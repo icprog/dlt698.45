@@ -5,9 +5,12 @@
 #include <pthread.h>
 #include <unistd.h>
 #include "option.h"
+
 #include "PublicFunction.h"
 #include "cjcomm.h"
 #include "cc.h"
+
+ProgramInfo* JProgramInfo=NULL;
 
 void clearcount(int index)
 {
@@ -28,9 +31,9 @@ int InitPro(ProgramInfo** prginfo, int argc, char *argv[])
 	if (argc >= 2)
 	{
 		*prginfo = OpenShMem("ProgramInfo",sizeof(ProgramInfo),NULL);
-		ProIndex = atoi(argv[1]);
-		fprintf(stderr,"\n%s start",(*prginfo)->Projects[ProIndex].ProjectName);
-		(*prginfo)->Projects[ProIndex].ProjectID=getpid();//保存当前进程的进程号
+		(*prginfo)->Index = atoi(argv[1]);
+		fprintf(stderr,"\n%s start",(*prginfo)->Projects[(*prginfo)->Index].ProjectName);
+		(*prginfo)->Projects[(*prginfo)->Index].ProjectID=getpid();//保存当前进程的进程号
 		return 1;
 	}
 	return 0;
@@ -165,6 +168,11 @@ void Comm_task(CommBlock *compara)
 		compara->testcounter++;
 	}
 }
+
+INT8S ComWrite(int fd, INT8U* buf, INT16U len) {
+    return write(fd, buf, len);
+}
+
 void initComPara(CommBlock *compara)
 {
 	INT8U addr[16]={0x01,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00};
@@ -179,9 +187,88 @@ void initComPara(CommBlock *compara)
 	compara->RTail = 0;
 	compara->deal_step = 0;
 	compara->rev_delay = 20;
-	compara->p_recv = RecvPro;
-	compara->p_send = SendPro;
-	compara->p_connet = connect_socket;
+
+	compara->p_send = ComWrite;
+	compara->p_recv = NULL;
+	compara->p_connet = NULL;
+}
+
+void *FirComWorker(void* args){
+	CommBlock fir_comstat;
+	CommBlock com_comstat;
+
+	initComPara(&fir_comstat);
+	initComPara(&com_comstat);
+
+	if ((fir_comstat.phy_connect_fd = OpenCom(3, 2400,(unsigned char *)"none",1,8)) <= 0){
+		//wrong
+	}
+
+	if ((com_comstat.phy_connect_fd = OpenCom(4, 2400,(unsigned char *)"none",1,8)) <= 0){
+		//wrong
+	}
+
+	while(1){
+		int revcount = 0;
+		ioctl(fir_comstat.phy_connect_fd, FIONREAD, &revcount);
+		if (revcount > 0) {
+			for (int j = 0; j < revcount; j++) {
+				read(fir_comstat.phy_connect_fd, &fir_comstat.RecBuf[fir_comstat.RHead], 1);
+				fir_comstat.RHead = (fir_comstat.RHead + 1)%BUFLEN;
+			}
+
+			int len = StateProcess(&comstat.deal_step,&comstat.rev_delay,10,&comstat.RTail,&comstat.RHead,comstat.RecBuf,comstat.DealBuf);
+			if(len > 0)
+			{
+				int apduType = ProcessData(&comstat);
+				switch(apduType)
+				{
+					case LINK_RESPONSE:
+						comstat.linkstate = build_connection;
+						comstat.testcounter = 0;
+						break;
+					default:
+						break;
+				}
+			}
+		}
+
+		revcount = 0;
+		ioctl(com_comstat.phy_connect_fd, FIONREAD, &revcount);
+
+		if (revcount > 0) {
+			for (int j = 0; j < revcount; j++) {
+				read(com_comstat.phy_connect_fd, &com_comstat.RecBuf[com_comstat.RHead], 1);
+				com_comstat.RHead = (com_comstat.RHead + 1)%BUFLEN;
+			}
+
+			int len = StateProcess(&comstat.deal_step,&comstat.rev_delay,10,&comstat.RTail,&comstat.RHead,comstat.RecBuf,comstat.DealBuf);
+			if(len > 0)
+			{
+				int apduType = ProcessData(&comstat);
+				switch(apduType)
+				{
+					case LINK_RESPONSE:
+						comstat.linkstate = build_connection;
+						comstat.testcounter = 0;
+						break;
+					default:
+						break;
+				}
+			}
+		}
+	}
+
+	return NULL;
+}
+
+void CreateFirComWorker(void){
+	pthread_attr_t attr;
+	pthread_attr_init(&attr);
+	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+
+	pthread_t temp_key;
+	pthread_create(&temp_key, &attr, FirComWorker, NULL);
 }
 
 int main(int argc, char *argv[])
@@ -196,10 +283,13 @@ int main(int argc, char *argv[])
 		return EXIT_FAILURE;
 	}
 	Setsig(&sa,QuitProcess);
+
+	CreateFirComWorker();
 	initComPara(&comstat);
+
 	while(1)
 	{
-		clearcount(ProIndex);
+		clearcount(JProgramInfo->Index);
 		if (comstat.phy_connect_fd <0)
 		{
 			initComPara(&comstat);
@@ -227,6 +317,6 @@ int main(int argc, char *argv[])
 		}
 		delay(50);
 	}
-	QuitProcess(&JProgramInfo->Projects[ProIndex]);
+	QuitProcess(&JProgramInfo->Projects[JProgramInfo->Index]);
  	return EXIT_SUCCESS;
 }
