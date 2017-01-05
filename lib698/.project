@@ -3,8 +3,7 @@
 	<name>lib698</name>
 	<comment></comment>
 	<projects>
-		<project>jAccess</project>
-		<project>jBase</project>
+		<project>libAccess</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>

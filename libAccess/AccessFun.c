@@ -312,17 +312,17 @@ INT8U save_block_file(char *fname,void *blockdata,int size,int index)
 	else sizenew = size+(4-size%4)+2;
 	fprintf(stderr,"write fname=%s,size=%d,sizenew=%d\n",fname,size,sizenew);
 	if(file_write(fname,blockdata,sizenew,index)==1) {
-//		for(i=0;i<3;i++) {
-//			fprintf(stderr,"read fname=%s,size=%d,sizenew=%d\n",fname,size,sizenew);
-//			if(file_read(fname,blockdata,sizenew,index,&readcrc)==1) {						//源文件正确，备份参数文件
-//				fprintf(stderr,"1保存文件成功，备份文件,crc=%04x\n",readcrc);
-//				ret = block_file_sync(fname,blockdata,size,index);			//配置文件同步处理
-////				fprintf(stderr,"**********block_file_sync ret=%d\n",ret);
-//				if(ret==1) 	break;
-//			}else {
-//				syslog(LOG_NOTICE,"file_read %s error",fname);
-//			}
-//		}
+		for(i=0;i<3;i++) {
+			fprintf(stderr,"read fname=%s,size=%d,sizenew=%d\n",fname,size,sizenew);
+			if(file_read(fname,blockdata,sizenew,index,&readcrc)==1) {						//源文件正确，备份参数文件
+//				fprintf(stderr,"保存文件成功，备份文件,crc=%04x\n",readcrc);
+				ret = block_file_sync(fname,blockdata,size,index);			//配置文件同步处理
+//				fprintf(stderr,"**********block_file_sync ret=%d\n",ret);
+				if(ret==1) 	break;
+			}else {
+				syslog(LOG_NOTICE,"file_read %s error",fname);
+			}
+		}
 	}else {
 		syslog(LOG_NOTICE,"file_write %s error",fname);
 	}
