@@ -7,7 +7,6 @@
 #include "option.h"
 #include "PublicFunction.h"
 #include "cjcomm.h"
-#include "cc.h"
 
 void clearcount(int index)
 {
@@ -203,8 +202,7 @@ int main(int argc, char *argv[])
 		if (comstat.phy_connect_fd <0)
 		{
 			initComPara(&comstat);
-			//comstat.p_connet((INT8U *)"192.168.1.179", 5022, &comstat.phy_connect_fd);
-			comstat.p_connet((INT8U *)"192.168.1.159", 5022, &comstat.phy_connect_fd);
+			comstat.p_connet((INT8U *)"192.168.1.179", 5022, &comstat.phy_connect_fd);
 		}else
 		{
 			TSGet(&ts);

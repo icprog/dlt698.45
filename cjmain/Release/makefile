@@ -58,7 +58,7 @@ all: cjmain secondary-outputs
 cjmain: $(OBJS) $(USER_OBJS)
 	@echo 'Building target: $@'
 	@echo 'Invoking: ARM Sourcery Linux GCC C++ Linker'
-	arm-none-linux-gnueabi-gcc -L"/opt/develop/jzq/software/apps/cjpro/libBase/Release" -Wl,-Map,cjmain.map -mcpu=arm926ej-s -o "cjmain" $(OBJS) $(USER_OBJS) $(LIBS)
+	arm-none-linux-gnueabi-gcc -L"/opt/develop/jzq/software/apps/698/libBase/Release" -Wl,-Map,cjmain.map -mcpu=arm926ej-s -o "cjmain" $(OBJS) $(USER_OBJS) $(LIBS)
 	@echo 'Finished building target: $@'
 	@echo ' '
 	$(MAKE) --no-print-directory post-build
