@@ -1,9 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <projectDescription>
-	<name>lib698</name>
+	<name>cjdeal</name>
 	<comment></comment>
 	<projects>
-		<project>libAccess</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>
