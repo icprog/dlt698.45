@@ -58,7 +58,11 @@ all: cjcomm secondary-outputs
 cjcomm: $(OBJS) $(USER_OBJS)
 	@echo 'Building target: $@'
 	@echo 'Invoking: ARM Sourcery Linux GCC C++ Linker'
+<<<<<<< HEAD
 	arm-none-linux-gnueabi-gcc -L"/home/ava/698/698/698/libAccess/Release" -L"/home/ava/698/698/698/lib698/Release" -L"/home/ava/698/698/698/libBase/Release" -Wl,-Map,cjcomm.map -mcpu=arm926ej-s -o "cjcomm" $(OBJS) $(USER_OBJS) $(LIBS)
+=======
+	arm-none-linux-gnueabi-gcc -L"/home/z/Desktop/Task/698/libAccess/Release" -L"/home/z/Desktop/Task/698/lib698/Release" -L"/home/z/Desktop/Task/698/libBase/Release" -Wl,-Map,cjcomm.map -mcpu=arm926ej-s -o "cjcomm" $(OBJS) $(USER_OBJS) $(LIBS)
+>>>>>>> 6ea835667e137d9b4e5b6d337603d803b2ef77db
 	@echo 'Finished building target: $@'
 	@echo ' '
 	$(MAKE) --no-print-directory post-build

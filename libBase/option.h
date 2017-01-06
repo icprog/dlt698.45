@@ -114,8 +114,6 @@ typedef struct{
 typedef struct {
 	ProjectInfo		Projects[PROJECTCOUNT];		//子程序信息
 	RealdataReq		RealDatareq;				//实时数据请求缓存
-
-
 }ProgramInfo; //程序信息结构
 
 //顺序

@@ -117,8 +117,9 @@ void AddBatchMeterInfo(INT8U *data)
 				meter.extinfo.asset_code[4],meter.extinfo.asset_code[5],meter.extinfo.pt,meter.extinfo.ct);
 		//将meter添加到记录文件
 //		extern unsigned short SaveMPara(int mtype,int id,unsigned char* data,int len);
-		fprintf(stderr,"\n-------------1  6001_len=%d\n",sizeof(CLASS_6001));
-		SaveMPara(0,6001,(unsigned char*)&meter,sizeof(CLASS_6001));
+		fprintf(stderr,"\n-------------1  6001_len=%d, sernum=%d\n",sizeof(CLASS_6001),meter.sernum);
+		save_block_file("/nand/para/mp_info.par",(unsigned char*)&meter,sizeof(CLASS_6001),meter.sernum);
+		//#define MP_INFO_DIR 			"/nand/para/mp_info.par"
 	}
 }
 void AddCjiFangAnInfo(INT8U *data)

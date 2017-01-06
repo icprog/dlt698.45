@@ -42,9 +42,9 @@ typedef struct
 {
 	INT8U name[OCTET_STRING_LEN];		//参数变量接口类逻辑名
 	INT16U sernum;						//配置序号
-	BASIC_OBJECT basicinfo;
-	EXTEND_OBJECT extinfo;
-	ANNEX_OBJECT aninfo;
+	BASIC_OBJECT basicinfo;				//基本信息
+	EXTEND_OBJECT extinfo;				//扩展信息
+	ANNEX_OBJECT aninfo;				//附属信息
 }CLASS_6001;//采集档案配置表对象
 typedef struct
 {
