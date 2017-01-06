@@ -53,7 +53,7 @@ typedef struct
 	INT16U deepsize;					//存储深度
 	INT8U  cjtype;						//采集类型
 	DataType data;
-	CSD    csd[10];						//记录列选择 array CSD,
+	CSD    csd[20];						//记录列选择 array CSD,
 	MS     ms;							//电能表集合
 	INT8U  savetimeflag;				//存储时标选择 enum
 }CLASS_6015;//普通采集方案

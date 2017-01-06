@@ -462,7 +462,7 @@ typedef union {
 	Scaler_Unit scalerunit;
 	RSD rsd;
 	CSD csd;
-	MS ms;
+//	MS ms;
 	SID sid;
 	SID_MAC sidmac;
 	COMDCB comdcb;
