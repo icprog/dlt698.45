@@ -1,6 +1,7 @@
 *
 .metadata/*
 RemoteSystemsTempFiles/*
+vmsgr/*
 
 !*/
 
