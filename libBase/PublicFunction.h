@@ -8,9 +8,11 @@
 #ifndef PUBLICFUNCTION_H_
 #define PUBLICFUNCTION_H_
 
-#include "option.h"
+#include <signal.h>
+#include "Shmem.h"
+#include "StdDataType.h"
+#include "ParaDef.h"
 
-#define delay(A) usleep((A)*1000)
 extern void TSGet(TS *ts);
 extern void Setsig(struct sigaction *psa,void (*pfun)(ProjectInfo *proinfo));
 extern void* CreateShMem(char* shname,int memsize,void* pmem);

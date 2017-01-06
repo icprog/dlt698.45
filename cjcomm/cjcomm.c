@@ -16,12 +16,12 @@
 #include "anet.h"
 #include "rlog.h"
 
-#include "option.h"
 #include "PublicFunction.h"
+#include "dlt698def.h"
 #include "cjcomm.h"
 
-#include "ObjectAction.h"
 ProgramInfo* JProgramInfo = NULL;
+static char IPaddr[24];
 
 void clearcount(int index) {
     JProgramInfo->Projects[index].WaitTimes = 0;
@@ -35,6 +35,10 @@ void QuitProcess(ProjectInfo* proinfo) {
  * 进程初始化
  *********************************************************/
 int InitPro(int argc, char* argv[]) {
+	memset(IPaddr, 0, sizeof(IPaddr));
+	memcpy(IPaddr,argv[1], strlen(argv[1]));
+
+	printf("Connect to %s\n", IPaddr);
     if (argc >= 2) {
         JProgramInfo = OpenShMem("ProgramInfo", sizeof(ProgramInfo), NULL);
         memcpy(JProgramInfo->Projects[3].ProjectName, "cjcomm", sizeof("cjcomm"));
@@ -145,13 +149,13 @@ void* FirComWorker(void* args) {
             }
 
             int len =
-            StateProcess(&comstat.deal_step, &comstat.rev_delay, 10, &comstat.RTail, &comstat.RHead, comstat.RecBuf, comstat.DealBuf);
+            StateProcess(&fir_comstat.deal_step, &fir_comstat.rev_delay, 10, &fir_comstat.RTail, &fir_comstat.RHead, fir_comstat.RecBuf, fir_comstat.DealBuf);
             if (len > 0) {
-                int apduType = ProcessData(&comstat);
+                int apduType = ProcessData(&fir_comstat);
                 switch (apduType) {
                     case LINK_RESPONSE:
-                        comstat.linkstate   = build_connection;
-                        comstat.testcounter = 0;
+                    	fir_comstat.linkstate   = build_connection;
+                    	fir_comstat.testcounter = 0;
                         break;
                     default:
                         break;
@@ -168,13 +172,13 @@ void* FirComWorker(void* args) {
             }
 
             int len =
-            StateProcess(&comstat.deal_step, &comstat.rev_delay, 10, &comstat.RTail, &comstat.RHead, comstat.RecBuf, comstat.DealBuf);
+            StateProcess(&com_comstat.deal_step, &com_comstat.rev_delay, 10, &com_comstat.RTail, &com_comstat.RHead, com_comstat.RecBuf, com_comstat.DealBuf);
             if (len > 0) {
-                int apduType = ProcessData(&comstat);
+                int apduType = ProcessData(&com_comstat);
                 switch (apduType) {
                     case LINK_RESPONSE:
-                        comstat.linkstate   = build_connection;
-                        comstat.testcounter = 0;
+                    	com_comstat.linkstate   = build_connection;
+                    	com_comstat.testcounter = 0;
                         break;
                     default:
                         break;
@@ -218,14 +222,22 @@ void NETRead(struct aeEventLoop* eventLoop, int fd, void* clientData, int mask) 
         }
         printf("\n");
 
-        int len =
-        StateProcess(&comstat.deal_step, &comstat.rev_delay, 10, &comstat.RTail, &comstat.RHead, comstat.RecBuf, comstat.DealBuf);
+        int len = 0;
+        for(int i = 0; i < 5; i++){
+        	len = StateProcess(&nst->deal_step, &nst->rev_delay, 10, &nst->RTail, &nst->RHead, nst->RecBuf, nst->DealBuf);
+        	printf("len = %d\n", len);
+        	if(len > 0)
+        	{
+        		break;
+        	}
+        }
+
         if (len > 0) {
-            int apduType = ProcessData(&comstat);
+            int apduType = ProcessData(nst);
             switch (apduType) {
                 case LINK_RESPONSE:
-                    comstat.linkstate   = build_connection;
-                    comstat.testcounter = 0;
+                	nst->linkstate   = build_connection;
+                	nst->testcounter = 0;
                     break;
                 default:
                     break;
@@ -239,7 +251,7 @@ int NETWorker(struct aeEventLoop* ep, long long id, void* clientData) {
 
     if (nst->phy_connect_fd <= 0) {
         initComPara(nst);
-        nst->phy_connect_fd = anetTcpConnect(NULL, "192.168.0.159", 5022);
+        nst->phy_connect_fd = anetTcpConnect(NULL, IPaddr, 5022);
         if (nst->phy_connect_fd > 0) {
             rlog("[NETWorker]Connect Server(%d)\n", nst->phy_connect_fd);
             if (aeCreateFileEvent(ep, nst->phy_connect_fd, AE_READABLE, NETRead, nst) < 0) {
@@ -265,7 +277,7 @@ int GPRSWorker(struct aeEventLoop* ep, long long id, void* clientData) {
     } else {
         TS ts = {};
         TSGet(&ts);
-        Comm_task(&comstat);
+        Comm_task(nst);
     }
 
     return 200;
@@ -601,9 +613,28 @@ void CreateATWorker(void) {
     pthread_create(&temp_key, &attr, ATWorker, NULL);
 }
 
+//void CreateLstSer(struct aeEventLoop* eventLoop, int fd, void* clientData, int mask) {
+//	CommBlock* nst = (CommBlock*)clientData;
+//
+//    if (mo->serverPort > 0){
+//    	 aeDeleteFileEvent(eventLoop, mo->serverPort, AE_READABLE);
+//    	 close(mo->serverPort);
+//    	 mo->serverPort = -1;
+//    }
+//    mo->serverPort = anetTcpAccept(NULL, mo->listenPort, NULL, 0, NULL);
+//    if (mo->serverPort > 0) {
+//        fprintf(stderr, "[vmsgr] 建立主站反向链接。fd = %d\n", mo->serverPort);
+//        if (aeCreateFileEvent(eventLoop, mo->serverPort, AE_READABLE, serRead, mo) == -1){
+//        	close(mo->serverPort);
+//        	mo->serverPort = -1;
+//        }
+//    } else {
+//        //网络监听出现异常，重置整体模块
+//        gprsDestory(eventLoop, mo);
+//    }
+//}
+
 int main(int argc, char* argv[]) {
-    INT8U apduType      = 0;
-    TS ts               = {};
     struct sigaction sa = {};
 
     if (access("/nand/mlog", F_OK) == -1) {
@@ -618,7 +649,6 @@ int main(int argc, char* argv[]) {
 
     CreateATWorker();
     CreateFirComWorker();
-    initComPara(&comstat);
 
     aeEventLoop* ep;
     ep = aeCreateEventLoop(128);

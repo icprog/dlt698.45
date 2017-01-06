@@ -12,9 +12,6 @@
 #include <stdint.h>
 #include <time.h>
 #include "../include/StdDataType.h"
-//#include "../libutils/libutils.h"
-//#include "../include/mtypes.h"
-
 #define DEBUG_ESAM_COMM
 
 #define MARK_ESAM 0x55

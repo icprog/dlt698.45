@@ -1,6 +1,9 @@
 #ifndef STDDATATYPE_H_
 #define STDDATATYPE_H_
 
+#include "ParaDef.h"
+
+
 typedef unsigned char  BOOLEAN;
 typedef unsigned char  INT8U;                    /* Unsigned  8 bit quantity                           */
 typedef signed   char  INT8S;                    /* Signed    8 bit quantity                           */
@@ -14,54 +17,31 @@ typedef float          FP32;                     /* Single precision floating po
 typedef double         FP64;                     /* Double precision floating point                    */
 
 
-#define FRAMELEN 	2048
-#define BUFLEN  	2048
-#define COLLCLASS_MAXNUM			1024		//定义集合类最大元素个数
-
 //698.45扩展数据类型-------------------------------------
 typedef unsigned char MAC_698;	//数据安全MAC
 typedef unsigned char RN_698;	//随机数
 typedef unsigned short OI_698;	//对象标识
 #define ASN_NULL 0
 
-#define LINK_REQUEST   1
-#define LINK_RESPONSE  129
-#define CONNECT_REQUEST  2
-#define RELEASE_REQUEST  3
-#define GET_REQUEST  5
-		#define GET_REQUEST_NORMAL	1
-		#define GET_REQUEST_NORMAL_LIST	2
-		#define GET_REQUEST_RECORD 3
-		#define GET_REQUEST_RECORD_LIST 4
-		#define GET_REQUEST_RECORD_NEXT 5
-#define SET_REQUEST  6
-		#define SET_REQUEST_NORMAL	1
-		#define SET_REQUEST_NORMAL_LIST	2
-		#define SET_THENGET_REQUEST_NORMAL_LIST 3
-
-#define ACTION_REQUEST  7
-		#define ACTIONREQUEST 1
-		#define ACTIONREQUEST_LIST	2
-		#define ACTIONTHENGET_REQUEST_NORMAL_LIST 3
-
-#define REPORT_RESPONSE  8
-#define PROXY_REQUEST  9
-#define CONNECT_RESPONSE 130
-#define RELEASE_RESPONSE 131
-#define	RELEASE_NOTIFICATION 132
-#define	GET_RESPONSE 133
-#define	SET_RESPONSE 134
-#define	ACTION_RESPONSE 135
-		#define	ActionResponseNormal			1
-		#define	ActionResponseNormalList		2
-		#define	ActionThenGetResponseNormalList	3
-#define	REPORT_NOTIFICATION 136
-#define	PROXY_RESPONSE 137
 
 //////////////////////////////////////////////////////////////////
-#define TSA_LEN					16
-#define OCTET_STRING_LEN		16
+/*
+ * 			枚举型参数定义区
+ * */
+//顺序
+typedef enum { positive,/*正序*/inverted //倒序
+} ORDER;
 
+typedef enum{					//该子程序运行状态
+	None=0,						//标志无程序运行
+	NeedStart,					//该程序需要运行
+	NeedKill,					//该程序需要停止运行
+	NowRun,						//目前该程序正在运行
+}ProjectState;					//程序运行状态
+
+/*
+ * 			CJ/T698.45 规约枚举类型定义区
+ * */
 typedef enum {
 	build_connection/*建立连接*/,
 	heart_beat,
@@ -128,6 +108,18 @@ typedef enum {
 	protocol_ver_err/*协议版本错误*/,
 	other_err2/*其它错误*/
 }ConnectResult;	/*应用连接请求认证的结果*/
+//////////////////////////////////////////////////////////////////
+
+typedef struct
+{
+	INT16U Year;    //year;
+    INT8U  Month;   //month;
+    INT8U  Day;     //day;
+    INT8U  Hour;    //hour;
+    INT8U  Minute;  //minute;
+    INT8U  Sec;     //second;
+    INT8U  Week;
+}TS;
 
 typedef struct
 {
@@ -203,6 +195,7 @@ typedef struct
 {
 	INT8U data;
 }PIID;
+
 typedef struct
 {
 	INT8U data;
