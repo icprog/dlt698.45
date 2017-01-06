@@ -21,22 +21,39 @@
 #include <fcntl.h>
 #include "AccessFun.h"
 #include "StdDataType.h"
-#include "ObjectAction.h"
+
 
 #define LIB_ACCESS_VER 			0x0001
-#define MAX_POINT_NUM 			1200
-#define MP_INFO_DIR 			"/nand/para/mp_info.par"
 
 #define 	CODE 			0xa001
 #define 	FILENAMELEN		128			//文件名字最大长度
 #define 	FILEEXTLEN		5			//文件扩展名最大长度
 
-typedef struct//集合接口类
+typedef struct
 {
-	INT8U logic_name[OCTET_STRING_LEN];//逻辑名
-	INT16U curr_num;//当前元素个数
-	INT16U max_num;//最大元素个数
-}COLL_CLASS;
+   INT16U 		oi;  							//对象标识OI
+   char			logic_name[OCTET_STRING_LEN];	//对象逻辑名字
+   char			file_name[FILENAMELEN];		//对象保存名字
+}CLASS_FILENAME;
+
+//typedef struct{
+//
+//}Method;
+
+const static CLASS_FILENAME  class_name[] ={
+		{6001,"6000","/nand/para/table6000.par"},		//采集档案配置表
+};
+
+INT16S getclassindex(INT16U oi)
+{
+	INT16S i=0;
+	for(i=0; i < sizeof(class_name)/sizeof(CLASS_FILENAME);i++)
+	{
+		if(class_name[i].oi == oi)
+			return i;
+	}
+	return -1;
+}
 
 INT16U crc(INT16U Data)
 {
@@ -144,7 +161,7 @@ INT8U file_write(char *FileName, void *source, int size,int index)
 //	fprintf(stderr,"\nwrite sourceaddr=%p\n", source);
 	readcrc = make_parity(source,size);			//计算crc16校验
 	int i=0;
-	fpos_t pos;
+//	fpos_t pos;
 	for(i=0;i<size;i++){
 		fprintf(stderr,"%02x ",blockdata[i]);
 	}
@@ -329,4 +346,22 @@ INT8U save_block_file(char *fname,void *blockdata,int size,int index)
 	return ret;
 }
 
+/*
+ * 参数类存储
+ * 输入参数：oi对象标识，blockdata：主文件块缓冲区，size:主文件尺寸，index:文件的存储索引位置
+ * 返回值：=1：文件保存成功，=0，文件保存失败，此时建议产生ERC2参数丢失事件通知主站异常
+ * =-1:  未查找到OI类数据
+ */
 
+INT8U ParaClassSave(INT16U oi,void *blockdata,int size,int index,int method)
+{
+	INT8U 	ret=-1;
+	INT16S	classindex=-1;
+
+	classindex = getclassindex(oi);
+	if(classindex == -1) {
+		return -1;
+	}
+//	save_block_file();
+	return ret;
+}

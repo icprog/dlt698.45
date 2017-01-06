@@ -16,11 +16,10 @@
 #include "anet.h"
 #include "rlog.h"
 
-#include "option.h"
 #include "PublicFunction.h"
+#include "dlt698def.h"
 #include "cjcomm.h"
 
-#include "ObjectAction.h"
 ProgramInfo* JProgramInfo = NULL;
 
 void clearcount(int index) {

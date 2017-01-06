@@ -8,8 +8,6 @@
 #ifndef CJT188_H_
 #define CJT188_H_
 
-#include "option.h"
-#include "PublicFunction.h"
 #include "cjt188def.h"
 
 ///////////////////Cjt188_lib接口函数  begin//////////////////////////////////

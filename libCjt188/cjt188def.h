@@ -8,6 +8,8 @@
 #ifndef CJT188DEF_H_
 #define CJT188DEF_H_
 
+#include "StdDataType.h"
+
 #define CJ188_MAXSIZE 	1024
 
 /****错误码定义*****************/

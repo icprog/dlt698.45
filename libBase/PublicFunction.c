@@ -268,7 +268,8 @@ void CloseCom(int ComPort)
 	close(ComPort);
 }
 //获取时间
-void TSGet(TS *ts) {
+void TSGet(TS *ts)
+{
 	struct tm tmp_tm;
 	time_t time_of_day;
 	time_of_day = time(NULL);
