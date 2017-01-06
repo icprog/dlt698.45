@@ -1,5 +1,6 @@
 ﻿#ifndef CJCOMM_H_
 #define CJCOMM_H_
+
 #include <termios.h>
 #include <errno.h>
 #include <wait.h>
@@ -10,14 +11,11 @@
 #include "PublicFunction.h"
 #include "dlt698.h"
 
-INT8S SendPro(int fd,INT8U * buf,INT16U len);
-void RecvPro(int fd,INT8U* buf,int *head);
-void connect_socket(INT8U *server,INT16U serverPort,int *fd);
-void initComPara(CommBlock *compara);
+INT8S SendPro(int fd, INT8U* buf, INT16U len);
+void RecvPro(int fd, INT8U* buf, int* head);
+void connect_socket(INT8U* server, INT16U serverPort, int* fd);
+void initComPara(CommBlock* compara);
 
-ProgramInfo* JProgramInfo=NULL;
-int ProIndex=0;
-int Port;
 CommBlock comstat;
 
 #endif

@@ -9,11 +9,13 @@
 #define PUBLICFUNCTION_H_
 
 #include "option.h"
+
 #define delay(A) usleep((A)*1000)
 extern void TSGet(TS *ts);
 extern void Setsig(struct sigaction *psa,void (*pfun)(ProjectInfo *proinfo));
 extern void* CreateShMem(char* shname,int memsize,void* pmem);
 extern void* OpenShMem(char* shname,int memsize,void* pmem);
+
 /* BCD码转int32u
  *参数：bcd为bcd码头指针，len为bcd码长度，order为positive正序/inverted反序，dint转换结果
  * 返回:0：成功；-1：asc为空；-2：en为0；-3：order有误

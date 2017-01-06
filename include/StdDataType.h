@@ -177,6 +177,7 @@ typedef struct
 	DateTimeBCD datetime;
 	INT16U msec;
 }DateTimeBCD_H;
+
 typedef struct
 {
 	ComBCD4 year;
@@ -185,6 +186,7 @@ typedef struct
 	ComBCD2 hour;
 	ComBCD2 min;
 }DateTimeBCD_S;
+
 typedef struct
 {
 	ComBCD4 year;
@@ -236,13 +238,13 @@ typedef struct
 typedef struct
 {
 	Region_Type type;
-	INT8U  begin;
-	INT8U  end;
+	INT8U  begin[20];//data类型
+	INT8U  end[20];//date类型
 }Region;
 typedef union
 {
-	INT16U nometer_null;
-	INT16U allmeter_null;
+	INT8U nometer_null;
+	INT8U allmeter_null;
 	INT8U userType[32];
 	TSA	userAddr[32];
 	INT16U configSerial[32];
@@ -272,7 +274,7 @@ typedef struct
 typedef struct
 {
 	SID sid;
-	MAC_698 mac;
+	INT8U mac[20];
 }SID_MAC;	/*安全标识*/
 
 
@@ -420,6 +422,54 @@ typedef struct
 	StopBits stopbits;
 	FlowControl flow;
 }COMDCB;/*串口控制块*/
+
+typedef union {
+	INT8U data_null;
+//	DataType data_array[10];
+//	DataType data_struct[10];
+	INT8U data_bool;
+	INT8U data_bit[180];
+	INT32U double_long;
+	INT32U double_long_unsigned;
+	INT8U octet_string[180];
+	INT8U visible_string[180];
+	INT8U utf8_string[180];
+	INT8U bcd[180];
+	INT8U integer;
+	INT16U data_long;
+	INT8U dataunsigned;
+	INT16U long_unsigned;
+	INT64U long64;
+	INT64U long64_unsigned;
+	INT8U  data_enum;
+	INT32S  float32;
+	INT64S float64;
+	INT8U data_datetime[10];
+	INT8U data_date[5];
+	INT8U data_time[3];
+	DateTimeBCD datetime;
+	DateTimeBCD_H datetime_h;
+	DateTimeBCD_S datetime_s;
+	DateBCD datebcd;
+	TimeBCD timebcd;
+	OI_698 OI;
+	OAD oad;
+	ROAD road;
+	OMD omd;
+	TI ti;
+	TSA tsa;
+	INT8U mac[20];
+	INT8U rn[20];
+	Region region;
+	Scaler_Unit scalerunit;
+	RSD rsd;
+	CSD csd;
+//	MS ms;
+	SID sid;
+	SID_MAC sidmac;
+	COMDCB comdcb;
+}DataType;
+
 typedef struct
 {
 	INT8U factorycode[4];
