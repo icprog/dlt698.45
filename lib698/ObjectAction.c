@@ -118,7 +118,7 @@ void AddBatchMeterInfo(INT8U *data)
 		//将meter添加到记录文件
 //		extern unsigned short SaveMPara(int mtype,int id,unsigned char* data,int len);
 		fprintf(stderr,"\n-------------1  6001_len=%d\n",sizeof(CLASS_6001));
-		SaveMPara(0,6000,(unsigned char*)&meter,sizeof(CLASS_6001));
+		SaveMPara(0,6001,(unsigned char*)&meter,sizeof(CLASS_6001));
 	}
 }
 void AddCjiFangAnInfo(INT8U *data)
