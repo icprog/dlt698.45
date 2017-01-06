@@ -8,6 +8,10 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
+#include <net/if.h>
+#include <netinet/in.h>
+#include <netinet/tcp.h>
+
 #include "ae.h"
 #include "anet.h"
 #include "rlog.h"
@@ -405,6 +409,31 @@ int RecieveFromComm(char* buf, int mlen, int com) {
     return (len < 0) ? 0 : len;
 }
 
+//查看拨号程序是否获取到ip地址
+int tryifconfig() {
+	int sock;
+	struct sockaddr_in sin;
+	struct ifreq ifr;
+	sock = socket(AF_INET, SOCK_DGRAM, 0);
+	if (sock == -1) {
+		return -1;
+	}
+	strncpy(ifr.ifr_name, "ppp0", IFNAMSIZ);
+	ifr.ifr_name[IFNAMSIZ - 1] = 0;
+	if (ioctl(sock, SIOCGIFADDR, &ifr) < 0) {
+		close(sock);
+		return -1;
+	}
+	memcpy(&sin, &ifr.ifr_addr, sizeof(sin));
+	if (sin.sin_addr.s_addr > 0) {
+		fprintf(stderr, "[vMsgr][tryifconfig]获取到正确的IP地址%s\n", inet_ntoa(sin.sin_addr));
+		close(sock);
+		return 1;
+	}
+	close(sock);
+	return 0;
+}
+
 void* ATWorker(void* args) {
     while (1) {
         printf("[ATWorker]Start AT Test.================\n");
@@ -433,6 +462,7 @@ void* ATWorker(void* args) {
         sleep(1);
         gpofun("/dev/gpoGPRS_RST", 1);
         sleep(1);
+
 
         printf("[ATWorker]Start MUX.\n");
         system("mux.sh &");
@@ -467,6 +497,20 @@ void* ATWorker(void* args) {
         for (int timeout = 0; timeout < 10; timeout++) {
             char Mrecvbuf[128];
 
+            SendATCommand("\rAT$MYGMR\r", 10, sMux0);
+            delay(1000);
+            memset(Mrecvbuf, 0, 128);
+            RecieveFromComm(Mrecvbuf, 128, sMux0);
+
+            char INFO[6][32];
+            if (sscanf(Mrecvbuf, "%*[^\n]\n%[^\n]\n%[^\n]\n%[^\n]\n%[^\n]\n%[^\n]\n%[^\n]", INFO[0],INFO[1],INFO[2],INFO[3],INFO[4],INFO[5]) == 6) {
+            	break;
+            }
+        }
+
+        for (int timeout = 0; timeout < 10; timeout++) {
+            char Mrecvbuf[128];
+
             SendATCommand("\rAT$MYTYPE?\r", 12, sMux0);
             delay(1000);
             memset(Mrecvbuf, 0, 128);
@@ -484,6 +528,70 @@ void* ATWorker(void* args) {
                 }
             }
         }
+
+        for (int timeout = 0; timeout < 10; timeout++) {
+			char Mrecvbuf[128];
+
+			SendATCommand("\rAT$MYCCID\r", 11, sMux0);
+			delay(1000);
+			memset(Mrecvbuf, 0, 128);
+			RecieveFromComm(Mrecvbuf, 128, sMux0);
+			char CCID[32];
+			memset(CCID, 0, 32);
+			if (sscanf(Mrecvbuf, "%*[^\"]\"%[0-9|A-Z|a-z]", CCID) == 1) {
+				printf("CCID: %s\n", CCID);
+				break;
+			}
+		}
+
+        for (int timeout = 0; timeout < 50; timeout++) {
+			char Mrecvbuf[128];
+
+			SendATCommand("\rAT+CSQ\r", 8, sMux0);
+			delay(1000);
+			memset(Mrecvbuf, 0, 128);
+			RecieveFromComm(Mrecvbuf, 128, sMux0);
+
+			int k, l;
+			if (sscanf(Mrecvbuf, "%*[^:]: %d,%d", &k, &l) == 2) {
+				printf("GprsCSQ = %d,%d\n",k,l);
+				if(k != 99){
+					break;
+				}
+			}
+		}
+
+        for (int timeout = 0; timeout < 50; timeout++) {
+			char Mrecvbuf[128];
+
+			SendATCommand("\rAT+CREG?\r", 10, sMux0);
+			delay(1000);
+			memset(Mrecvbuf, 0, 128);
+			RecieveFromComm(Mrecvbuf, 128, sMux0);
+
+			int k, l;
+			if (sscanf(Mrecvbuf, "%*[^:]: %d,%d", &k, &l) == 2) {
+				printf("GprsCREG = %d,%d\n",k,l);
+				if(l == 1 || l == 5){
+					break;
+				}
+			}
+		}
+
+        system("pppd call gprs &");
+
+
+        for(int i = 0; i < 50; i++){
+        	if(tryifconfig()==1){
+        		break;
+        	}
+        }
+
+        while(1){
+        	delay(1000);
+        	printf("wait for error.\n");
+        }
+
     err:
         continue;
     }
