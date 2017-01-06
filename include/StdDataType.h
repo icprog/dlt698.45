@@ -16,6 +16,8 @@ typedef double         FP64;                     /* Double precision floating po
 
 #define FRAMELEN 	2048
 #define BUFLEN  	2048
+#define COLLCLASS_MAXNUM			1024		//定义集合类最大元素个数
+
 //698.45扩展数据类型-------------------------------------
 typedef unsigned char MAC_698;	//数据安全MAC
 typedef unsigned char RN_698;	//随机数

@@ -90,17 +90,17 @@ INT8U file_read(char *FileName, void *source, int size,int index,INT16U *retcrc)
 	INT16U  readcrc;//=(INT16U *)((INT8U*)source+size-2);
 
 
-	fprintf(stderr,"read FileName=%s\n",FileName);
+//	fprintf(stderr,"read FileName=%s\n",FileName);
 
 	fp = fopen(FileName, "r");
 	if (fp != NULL) {
 		fseek(fp, index*size, SEEK_SET);
 		num=fread(source,1 ,size-2,fp);
 		fread(&readcrc,1,2,fp);
-		fprintf(stderr,"read.num=%d,size=%d,reccrc=%04x\n",num,size,readcrc);
+//		fprintf(stderr,"read.num=%d,size=%d,reccrc=%04x\n",num,size,readcrc);
 		if(num==(size-2)) {			//读取了size字节数据
 			INT16U crc= make_parity(source,size);
-			fprintf(stderr,"\n计算 crc =%04x\n",crc);
+//			fprintf(stderr,"\n计算 crc =%04x\n",crc);
 			if(crc==readcrc)  {
 //				fprintf(stderr,"read ok\n");
 				*retcrc = readcrc;
@@ -234,14 +234,14 @@ INT8U block_file_sync(char *fname,void *blockdata,int size,int index)
 	strncpy(fname2,fname,strlen(fname)-4);
 	strcat(fname2,".bak");
 
-	fprintf(stderr,"\n------par=%s",fname);
-	fprintf(stderr,"\n------bak=%s",fname2);
+//	fprintf(stderr,"\n------par=%s",fname);
+//	fprintf(stderr,"\n------bak=%s",fname2);
 
 	ret1 = file_read(fname,blockdata1,sizenew,index,readcrc1);
 	ret2 = file_read(fname2,blockdata2,sizenew,index,readcrc2);
-	fprintf(stderr,"\ncrc1=%04x,crc2=%04x,ret1=%d,ret2=%d\n",*readcrc1,*readcrc2,ret1,ret2);
+//	fprintf(stderr,"\ncrc1=%04x,crc2=%04x,ret1=%d,ret2=%d\n",*readcrc1,*readcrc2,ret1,ret2);
 	if((*readcrc1 == *readcrc2) && (ret1==1) && (ret2==1))  {		//两个文件校验正确，并且校验码相等，返回 1
-		fprintf(stderr,"正确\n");
+//		fprintf(stderr,"正确\n");
 //		syslog(LOG_NOTICE," %s 校验正确 ",fname);
 		ret= 1;
 	}
@@ -328,3 +328,5 @@ INT8U save_block_file(char *fname,void *blockdata,int size,int index)
 	}
 	return ret;
 }
+
+

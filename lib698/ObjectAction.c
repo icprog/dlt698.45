@@ -10,7 +10,7 @@
 #include "ObjectAction.h"
 #include "AccessFun.h"
 #include "StdDataType.h"
-
+#include "filepara.h"
 
 void get_BasicUnit(INT8U *source,INT16U *sourceindex,INT8U *dest,INT16U *destindex)
 {
@@ -118,8 +118,8 @@ void AddBatchMeterInfo(INT8U *data)
 		//将meter添加到记录文件
 //		extern unsigned short SaveMPara(int mtype,int id,unsigned char* data,int len);
 		fprintf(stderr,"\n-------------1  6001_len=%d, sernum=%d\n",sizeof(CLASS_6001),meter.sernum);
-		save_block_file("/nand/para/mp_info.par",(unsigned char*)&meter,sizeof(CLASS_6001),meter.sernum);
-		//#define MP_INFO_DIR 			"/nand/para/mp_info.par"
+		save_block_file(PARAFILE_6000,(unsigned char*)&meter,sizeof(CLASS_6001),meter.sernum);
+		//SaveMPara(0,6000,(unsigned char*)&meter,sizeof(CLASS_6001));
 	}
 }
 void AddCjiFangAnInfo(INT8U *data)

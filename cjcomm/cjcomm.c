@@ -16,11 +16,15 @@
 #include "PublicFunction.h"
 #include "cjcomm.h"
 
+#include "ObjectAction.h"
 ProgramInfo* JProgramInfo = NULL;
 
-void clearcount(int index) {
-    JProgramInfo->Projects[index].WaitTimes = 0;
+void clearcount(int index)
+{
+	JProgramInfo->Projects[index].WaitTimes = 0;
+
 }
+
 
 void QuitProcess(ProjectInfo* proinfo) {
     rlog("EXIT：%s %d\n", "cjcomm", JProgramInfo->Projects[3].ProjectID);
@@ -533,4 +537,5 @@ int main(int argc, char* argv[]) {
 
     QuitProcess(&JProgramInfo->Projects[3]);
     return EXIT_SUCCESS;
+
 }
