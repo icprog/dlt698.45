@@ -267,14 +267,14 @@ typedef struct
 
 typedef struct
 {
-	INT32U sig;
-	INT8U addition;
+	INT8U sig[4];
+	INT8U addition[10];/*(长度(1byte)+信息(n byte))*/
 }SID;	/*安全标识*/
 
 typedef struct
 {
 	SID sid;
-	INT8U mac[20];
+	INT8U mac[10];/*正常4byte   (长度(1byte)+信息(n byte))*/
 }SID_MAC;	/*安全标识*/
 
 
@@ -367,8 +367,8 @@ typedef struct
 }SymmetrySecurity;
 typedef struct
 {
-	INT8U encrypted_code2;
-	INT8U signature;
+	INT8U encrypted_code2[40];/*密文2,正常32字节(长度(1byte)+信息(32byte))*/
+	INT8U signature[70];/*正常64字节,(长度(1byte)+信息(64byte))*/
 }SignatureSecurity;
 typedef union
 {
@@ -379,8 +379,8 @@ typedef union
 }ConnectMechanismInfo;
 typedef struct
 {
-	RN_698 server_rn;			/*服务器随机数*/
-	INT8U  server_signInfo;		/*服务器签名信息*/
+	RN_698 server_rn[50];			/*服务器随机数*/
+	INT8U  server_signInfo[70];		/*服务器签名信息*/
 }SecurityData;/*认证附加信息*/
 
 typedef struct
