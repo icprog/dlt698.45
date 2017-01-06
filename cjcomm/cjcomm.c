@@ -145,13 +145,13 @@ void* FirComWorker(void* args) {
             }
 
             int len =
-            StateProcess(&comstat.deal_step, &comstat.rev_delay, 10, &comstat.RTail, &comstat.RHead, comstat.RecBuf, comstat.DealBuf);
+            StateProcess(&fir_comstat.deal_step, &fir_comstat.rev_delay, 10, &fir_comstat.RTail, &fir_comstat.RHead, fir_comstat.RecBuf, fir_comstat.DealBuf);
             if (len > 0) {
-                int apduType = ProcessData(&comstat);
+                int apduType = ProcessData(&fir_comstat);
                 switch (apduType) {
                     case LINK_RESPONSE:
-                        comstat.linkstate   = build_connection;
-                        comstat.testcounter = 0;
+                    	fir_comstat.linkstate   = build_connection;
+                    	fir_comstat.testcounter = 0;
                         break;
                     default:
                         break;
@@ -168,13 +168,13 @@ void* FirComWorker(void* args) {
             }
 
             int len =
-            StateProcess(&comstat.deal_step, &comstat.rev_delay, 10, &comstat.RTail, &comstat.RHead, comstat.RecBuf, comstat.DealBuf);
+            StateProcess(&com_comstat.deal_step, &com_comstat.rev_delay, 10, &com_comstat.RTail, &com_comstat.RHead, com_comstat.RecBuf, com_comstat.DealBuf);
             if (len > 0) {
-                int apduType = ProcessData(&comstat);
+                int apduType = ProcessData(&com_comstat);
                 switch (apduType) {
                     case LINK_RESPONSE:
-                        comstat.linkstate   = build_connection;
-                        comstat.testcounter = 0;
+                    	com_comstat.linkstate   = build_connection;
+                    	com_comstat.testcounter = 0;
                         break;
                     default:
                         break;
@@ -219,13 +219,13 @@ void NETRead(struct aeEventLoop* eventLoop, int fd, void* clientData, int mask) 
         printf("\n");
 
         int len =
-        StateProcess(&comstat.deal_step, &comstat.rev_delay, 10, &comstat.RTail, &comstat.RHead, comstat.RecBuf, comstat.DealBuf);
+        StateProcess(&nst->deal_step, &nst->rev_delay, 10, &nst->RTail, &nst->RHead, nst->RecBuf, nst->DealBuf);
         if (len > 0) {
-            int apduType = ProcessData(&comstat);
+            int apduType = ProcessData(nst);
             switch (apduType) {
                 case LINK_RESPONSE:
-                    comstat.linkstate   = build_connection;
-                    comstat.testcounter = 0;
+                	nst->linkstate   = build_connection;
+                	nst->testcounter = 0;
                     break;
                 default:
                     break;
@@ -265,7 +265,7 @@ int GPRSWorker(struct aeEventLoop* ep, long long id, void* clientData) {
     } else {
         TS ts = {};
         TSGet(&ts);
-        Comm_task(&comstat);
+        Comm_task(nst);
     }
 
     return 200;
@@ -602,8 +602,6 @@ void CreateATWorker(void) {
 }
 
 int main(int argc, char* argv[]) {
-    INT8U apduType      = 0;
-    TS ts               = {};
     struct sigaction sa = {};
 
     if (access("/nand/mlog", F_OK) == -1) {
@@ -618,7 +616,6 @@ int main(int argc, char* argv[]) {
 
     CreateATWorker();
     CreateFirComWorker();
-    initComPara(&comstat);
 
     aeEventLoop* ep;
     ep = aeCreateEventLoop(128);

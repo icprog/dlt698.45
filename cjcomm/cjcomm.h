@@ -16,6 +16,4 @@ void RecvPro(int fd, INT8U* buf, int* head);
 void connect_socket(INT8U* server, INT16U serverPort, int* fd);
 void initComPara(CommBlock* compara);
 
-CommBlock comstat;
-
 #endif
