@@ -8,6 +8,8 @@
 #include "PublicFunction.h"
 #include "cjcomm.h"
 
+#include "ObjectAction.h"
+
 void clearcount(int index)
 {
 	JProgramInfo->Projects[index].WaitTimes = 0;
@@ -196,6 +198,7 @@ int main(int argc, char *argv[])
 	}
 	Setsig(&sa,QuitProcess);
 	initComPara(&comstat);
+
 	while(1)
 	{
 		clearcount(ProIndex);
