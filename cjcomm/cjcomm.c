@@ -8,6 +8,10 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
+#include <net/if.h>
+#include <netinet/in.h>
+#include <netinet/tcp.h>
+
 #include "ae.h"
 #include "anet.h"
 #include "rlog.h"
@@ -18,10 +22,8 @@
 
 ProgramInfo* JProgramInfo = NULL;
 
-void clearcount(int index)
-{
-	JProgramInfo->Projects[index].WaitTimes = 0;
-
+void clearcount(int index) {
+    JProgramInfo->Projects[index].WaitTimes = 0;
 }
 
 void QuitProcess(ProjectInfo* proinfo) {
@@ -142,13 +144,13 @@ void* FirComWorker(void* args) {
             }
 
             int len =
-            StateProcess(&comstat.deal_step, &comstat.rev_delay, 10, &comstat.RTail, &comstat.RHead, comstat.RecBuf, comstat.DealBuf);
+            StateProcess(&fir_comstat.deal_step, &fir_comstat.rev_delay, 10, &fir_comstat.RTail, &fir_comstat.RHead, fir_comstat.RecBuf, fir_comstat.DealBuf);
             if (len > 0) {
-                int apduType = ProcessData(&comstat);
+                int apduType = ProcessData(&fir_comstat);
                 switch (apduType) {
                     case LINK_RESPONSE:
-                        comstat.linkstate   = build_connection;
-                        comstat.testcounter = 0;
+                    	fir_comstat.linkstate   = build_connection;
+                    	fir_comstat.testcounter = 0;
                         break;
                     default:
                         break;
@@ -165,13 +167,13 @@ void* FirComWorker(void* args) {
             }
 
             int len =
-            StateProcess(&comstat.deal_step, &comstat.rev_delay, 10, &comstat.RTail, &comstat.RHead, comstat.RecBuf, comstat.DealBuf);
+            StateProcess(&com_comstat.deal_step, &com_comstat.rev_delay, 10, &com_comstat.RTail, &com_comstat.RHead, com_comstat.RecBuf, com_comstat.DealBuf);
             if (len > 0) {
-                int apduType = ProcessData(&comstat);
+                int apduType = ProcessData(&com_comstat);
                 switch (apduType) {
                     case LINK_RESPONSE:
-                        comstat.linkstate   = build_connection;
-                        comstat.testcounter = 0;
+                    	com_comstat.linkstate   = build_connection;
+                    	com_comstat.testcounter = 0;
                         break;
                     default:
                         break;
@@ -207,6 +209,7 @@ void NETRead(struct aeEventLoop* eventLoop, int fd, void* clientData, int mask) 
     }
 
     if (revcount > 0) {
+        printf("NET RECV:\n");
         for (int j = 0; j < revcount; j++) {
             read(nst->phy_connect_fd, &nst->RecBuf[nst->RHead], 1);
             printf("%02x ", nst->RecBuf[nst->RHead]);
@@ -215,13 +218,13 @@ void NETRead(struct aeEventLoop* eventLoop, int fd, void* clientData, int mask) 
         printf("\n");
 
         int len =
-        StateProcess(&comstat.deal_step, &comstat.rev_delay, 10, &comstat.RTail, &comstat.RHead, comstat.RecBuf, comstat.DealBuf);
+        StateProcess(&nst->deal_step, &nst->rev_delay, 10, &nst->RTail, &nst->RHead, nst->RecBuf, nst->DealBuf);
         if (len > 0) {
-            int apduType = ProcessData(&comstat);
+            int apduType = ProcessData(nst);
             switch (apduType) {
                 case LINK_RESPONSE:
-                    comstat.linkstate   = build_connection;
-                    comstat.testcounter = 0;
+                	nst->linkstate   = build_connection;
+                	nst->testcounter = 0;
                     break;
                 default:
                     break;
@@ -261,7 +264,7 @@ int GPRSWorker(struct aeEventLoop* ep, long long id, void* clientData) {
     } else {
         TS ts = {};
         TSGet(&ts);
-        Comm_task(&comstat);
+        Comm_task(nst);
     }
 
     return 200;
@@ -283,10 +286,8 @@ int OpenMuxCom(INT8U port, int baud, unsigned char* par, unsigned char stopb, IN
     int baud_lnx = 0;
     unsigned char tmp[128];
     memset(tmp, 0, 128);
-    // sprintf((char *)tmp,"/dev/ttyS%d",port);
     sprintf((char*)tmp, "/dev/mux%d", port);
 
-    //	sprintf((char *)tmp,"%s%d",SERDEVNAME,port);
     Com_Port = open((char*)tmp, O_RDWR | O_NOCTTY); /* 打开串口文件 */
     if (Com_Port < 0) {
         fprintf(stderr, "open the serial port fail! errno is: %d\n", errno);
@@ -335,7 +336,6 @@ int OpenMuxCom(INT8U port, int baud, unsigned char* par, unsigned char stopb, IN
             break;
         default:
             baud_lnx = B9600;
-            fprintf(stderr, "\nSerial COM%d do not setup baud, default baud is 9600!!!", port);
             break;
     }
 
@@ -403,9 +403,34 @@ int RecieveFromComm(char* buf, int mlen, int com) {
     return (len < 0) ? 0 : len;
 }
 
+//查看拨号程序是否获取到ip地址
+int tryifconfig() {
+    int sock;
+    struct sockaddr_in sin;
+    struct ifreq ifr;
+    sock = socket(AF_INET, SOCK_DGRAM, 0);
+    if (sock == -1) {
+        return -1;
+    }
+    strncpy(ifr.ifr_name, "ppp0", IFNAMSIZ);
+    ifr.ifr_name[IFNAMSIZ - 1] = 0;
+    if (ioctl(sock, SIOCGIFADDR, &ifr) < 0) {
+        close(sock);
+        return -1;
+    }
+    memcpy(&sin, &ifr.ifr_addr, sizeof(sin));
+    if (sin.sin_addr.s_addr > 0) {
+        rlog("[tryifconfig]获取到正确的IP地址%s\n", inet_ntoa(sin.sin_addr));
+        close(sock);
+        return 1;
+    }
+    close(sock);
+    return 0;
+}
+
 void* ATWorker(void* args) {
     while (1) {
-        printf("[ATWorker]Start AT Test.================\n");
+        rlog("[ATWorker]开始拨号流程。\n");
 
         system("pkill ftpget");
         system("ppp-off");
@@ -432,7 +457,7 @@ void* ATWorker(void* args) {
         gpofun("/dev/gpoGPRS_RST", 1);
         sleep(1);
 
-        printf("[ATWorker]Start MUX.\n");
+        rlog("[ATWorker]打开串口复用。\n");
         system("mux.sh &");
         sleep(5);
 
@@ -453,12 +478,26 @@ void* ATWorker(void* args) {
             sleep(3);
             if (RecieveFromComm(Mrecvbuf, 128, sMux0) > 0) {
                 if (strstr(Mrecvbuf, "OK") != NULL) {
-                    printf("SUCCESS======\n");
                     break;
                 }
             }
             if (i == 2) {
                 goto err;
+            }
+        }
+
+        for (int timeout = 0; timeout < 10; timeout++) {
+            char Mrecvbuf[128];
+
+            SendATCommand("\rAT$MYGMR\r", 10, sMux0);
+            delay(1000);
+            memset(Mrecvbuf, 0, 128);
+            RecieveFromComm(Mrecvbuf, 128, sMux0);
+
+            char INFO[6][32];
+            if (sscanf(Mrecvbuf, "%*[^\n]\n%[^\n]\n%[^\n]\n%[^\n]\n%[^\n]\n%[^\n]\n%[^\n]", INFO[0], INFO[1], INFO[2], INFO[3],
+                       INFO[4], INFO[5]) == 6) {
+                break;
             }
         }
 
@@ -473,15 +512,78 @@ void* ATWorker(void* args) {
             int k, l, m;
             if (sscanf(Mrecvbuf, "%*[^:]: %d,%d,%d", &k, &l, &m) == 3) {
                 if ((l & 0x01) == 1) {
-                    fprintf(stderr, "\n远程通信单元类型为GPRS\n");
+                    rlog("[ATWorker]远程通信单元类型为GPRS。\n");
                     break;
                 }
                 if ((l & 0x08) == 8) {
-                    fprintf(stderr, "\n远程通信单元类型为CDMA2000\n");
+                    rlog("[ATWorker]远程通信单元类型为CDMA2000。\n");
                     break;
                 }
             }
         }
+
+        for (int timeout = 0; timeout < 10; timeout++) {
+            char Mrecvbuf[128];
+
+            SendATCommand("\rAT$MYCCID\r", 11, sMux0);
+            delay(1000);
+            memset(Mrecvbuf, 0, 128);
+            RecieveFromComm(Mrecvbuf, 128, sMux0);
+            char CCID[32];
+            memset(CCID, 0, 32);
+            if (sscanf(Mrecvbuf, "%*[^\"]\"%[0-9|A-Z|a-z]", CCID) == 1) {
+                rlog("CCID: %s\n", CCID);
+                break;
+            }
+        }
+
+        for (int timeout = 0; timeout < 50; timeout++) {
+            char Mrecvbuf[128];
+
+            SendATCommand("\rAT+CSQ\r", 8, sMux0);
+            delay(1000);
+            memset(Mrecvbuf, 0, 128);
+            RecieveFromComm(Mrecvbuf, 128, sMux0);
+
+            int k, l;
+            if (sscanf(Mrecvbuf, "%*[^:]: %d,%d", &k, &l) == 2) {
+                rlog("GprsCSQ = %d,%d\n", k, l);
+                if (k != 99) {
+                    break;
+                }
+            }
+        }
+
+        for (int timeout = 0; timeout < 50; timeout++) {
+            char Mrecvbuf[128];
+
+            SendATCommand("\rAT+CREG?\r", 10, sMux0);
+            delay(1000);
+            memset(Mrecvbuf, 0, 128);
+            RecieveFromComm(Mrecvbuf, 128, sMux0);
+
+            int k, l;
+            if (sscanf(Mrecvbuf, "%*[^:]: %d,%d", &k, &l) == 2) {
+                rlog("GprsCREG = %d,%d\n", k, l);
+                if (l == 1 || l == 5) {
+                    break;
+                }
+            }
+        }
+
+        system("pppd call gprs &");
+
+        for (int i = 0; i < 50; i++) {
+            if (tryifconfig() == 1) {
+                break;
+            }
+        }
+
+        while (1) {
+            delay(1000);
+            printf("wait for error.\n");
+        }
+
     err:
         continue;
     }
@@ -499,8 +601,6 @@ void CreateATWorker(void) {
 }
 
 int main(int argc, char* argv[]) {
-    INT8U apduType      = 0;
-    TS ts               = {};
     struct sigaction sa = {};
 
     if (access("/nand/mlog", F_OK) == -1) {
@@ -508,14 +608,13 @@ int main(int argc, char* argv[]) {
     }
 
     if (InitPro(argc, argv) == 0) {
-        fprintf(stderr, "进程 %s 参数错误\n", argv[0]);
+        fprintf(stderr, "[main]进程 %s 参数错误\n", argv[0]);
         return EXIT_FAILURE;
     }
     Setsig(&sa, QuitProcess);
 
     CreateATWorker();
     CreateFirComWorker();
-    initComPara(&comstat);
 
     aeEventLoop* ep;
     ep = aeCreateEventLoop(128);
@@ -535,5 +634,4 @@ int main(int argc, char* argv[]) {
 
     QuitProcess(&JProgramInfo->Projects[3]);
     return EXIT_SUCCESS;
-
 }
