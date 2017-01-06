@@ -624,9 +624,57 @@ INT32S Esam_GetRN(INT32S fd,  INT8U* Rbuf)  {
  **电表上报数据解密密文+随机数+MAC
  *发送：80124807+LC+电表表号+RN+Data2+MAC
  *返回：9000+Len+Data3
+ *输入：InfoData，此处特意定义结构体传数据   Data2头2个byte为长度
  *************************************************************/
-INT32S Esam_EmeterDataDencrypt(INT32S fd, INT8U* MeterNo, INT8U* Rbuf) {
+INT32S Esam_EmeterDataDencrypt(INT32S fd, Esam_MAC_RN_NO* InfoData, INT8U *Data2,INT8U* Rbuf) {
+	if(sizeof(InfoData->MAC)<=InfoData->MAC[0] || sizeof(InfoData->MeterNO)<= InfoData->MeterNO[0] || sizeof(InfoData->RN)<=InfoData->RN[0])
+	return ERR_ESAM_TRANSPARA_ERR;
+	INT8U tmp[BUFFLENMAX_SPI];
+	memset(tmp,0,BUFFLENMAX_SPI);
+	INT16U datalen=(0xff &Data2[1])|(0xff00 & (Data2[0]<<8));
+	if(datalen<=0) return ERR_ESAM_TRANSPARA_ERR;
+	INT8U data_mac[5]={0x55,0x80,0x0E,0x48,0x87};
+	INT8U endata[5]={0x55,0x80,0x0C,0x48,0x07};
+	INT8U endata_mac[5]={0x55,0x80,0x12,0x48,0x07};
+	INT32S Result=0;
+	INT16U len=0;
 	INT8U GetInfo_ESAM[BUFFLENMAX_SPI];
+	if(InfoData->DataType == 0x01)	memcpy(&GetInfo_ESAM[0],&data_mac[0],5);
+	else if(InfoData->DataType == 0x02)	memcpy(&GetInfo_ESAM[0],&endata[0],5);
+	else if(InfoData->DataType == 0x03)	memcpy(&GetInfo_ESAM[0],&endata_mac[0],5);
+	else 	return ERR_ESAM_TRANSPARA_ERR;
+	len+=5;
+	GetInfo_ESAM[5]=0;
+	GetInfo_ESAM[6]=0;
+	len+=2;
+	memcpy(&GetInfo_ESAM[len],&InfoData->MeterNO[1],InfoData->MeterNO[0]);
+	len+=InfoData->MeterNO[0];
+	memcpy(&GetInfo_ESAM[len],&InfoData->RN[1],InfoData->RN[0]);
+	len+=InfoData->RN[0];
+	memcpy(&GetInfo_ESAM[len],&Data2[2],datalen);
+	len+=datalen;
+	if(InfoData->DataType == 0x01 || InfoData->DataType==0x03)
+	{
+		memcpy(&GetInfo_ESAM[len],&InfoData->MAC[1],InfoData->MAC[0]);
+		len+=InfoData->MAC[0];
+	}
+	 GetInfo_ESAM[5]=(INT8U)(((len-7)>>8)&0x00ff);
+	 GetInfo_ESAM[6]=(INT8U)((len-7)&0x00ff);
+	GetInfo_ESAM[len]=LRC(&GetInfo_ESAM[1],len-1);
+	len+=1;
+	Result = Esam_WriteThenRead(fd, (INT8U*)GetInfo_ESAM, len, tmp);
+
+	if(Result>0 && Result<BUFFLENMAX_SPI) //大于BUFFLENMAX_SPI错误，此处做比较
+	{
+		if(InfoData->DataType == 0x01)//无返回明文数据，只有9000+0000
+			return Result;
+		else
+		{
+			memcpy(Rbuf,&tmp[4],Result-5);
+			return Result-5;
+		}
+	}
+	return Result;
 
 }
 

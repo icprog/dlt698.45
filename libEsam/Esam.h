@@ -146,6 +146,13 @@ typedef struct
 	INT8U ServerCcieSID[16];  //主站证书序列号
 	INT8U *ServerCcie;  //主站证书
 }EsamInfo;
+typedef struct
+{
+	INT8U DataType;//明文+MAC  0X01  密文  0x02  密文+MAC 0x03
+	INT8U MeterNO[20];
+	INT8U RN[20];
+	INT8U MAC[10];
+}Esam_MAC_RN_NO;//抄读电表时，上报报文解析，用于参数传递
 INT32S Esam_Init(INT32S fd, INT8U* spipath);
 INT32S Esam_WriteThenRead(INT32S fd, INT8U* Tbuf, INT8U Tlen, INT8U* Rbuf);
 void Esam_WriteToChip(INT32S fd, INT8U* Tbuf, INT8U Tlen);
