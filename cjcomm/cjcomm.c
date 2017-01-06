@@ -23,12 +23,9 @@
 #include "ObjectAction.h"
 ProgramInfo* JProgramInfo = NULL;
 
-void clearcount(int index)
-{
-	JProgramInfo->Projects[index].WaitTimes = 0;
-
+void clearcount(int index) {
+    JProgramInfo->Projects[index].WaitTimes = 0;
 }
-
 
 void QuitProcess(ProjectInfo* proinfo) {
     rlog("EXIT：%s %d\n", "cjcomm", JProgramInfo->Projects[3].ProjectID);
@@ -213,6 +210,7 @@ void NETRead(struct aeEventLoop* eventLoop, int fd, void* clientData, int mask) 
     }
 
     if (revcount > 0) {
+        printf("NET RECV:\n");
         for (int j = 0; j < revcount; j++) {
             read(nst->phy_connect_fd, &nst->RecBuf[nst->RHead], 1);
             printf("%02x ", nst->RecBuf[nst->RHead]);
@@ -289,10 +287,8 @@ int OpenMuxCom(INT8U port, int baud, unsigned char* par, unsigned char stopb, IN
     int baud_lnx = 0;
     unsigned char tmp[128];
     memset(tmp, 0, 128);
-    // sprintf((char *)tmp,"/dev/ttyS%d",port);
     sprintf((char*)tmp, "/dev/mux%d", port);
 
-    //	sprintf((char *)tmp,"%s%d",SERDEVNAME,port);
     Com_Port = open((char*)tmp, O_RDWR | O_NOCTTY); /* 打开串口文件 */
     if (Com_Port < 0) {
         fprintf(stderr, "open the serial port fail! errno is: %d\n", errno);
@@ -341,7 +337,6 @@ int OpenMuxCom(INT8U port, int baud, unsigned char* par, unsigned char stopb, IN
             break;
         default:
             baud_lnx = B9600;
-            fprintf(stderr, "\nSerial COM%d do not setup baud, default baud is 9600!!!", port);
             break;
     }
 
@@ -411,32 +406,32 @@ int RecieveFromComm(char* buf, int mlen, int com) {
 
 //查看拨号程序是否获取到ip地址
 int tryifconfig() {
-	int sock;
-	struct sockaddr_in sin;
-	struct ifreq ifr;
-	sock = socket(AF_INET, SOCK_DGRAM, 0);
-	if (sock == -1) {
-		return -1;
-	}
-	strncpy(ifr.ifr_name, "ppp0", IFNAMSIZ);
-	ifr.ifr_name[IFNAMSIZ - 1] = 0;
-	if (ioctl(sock, SIOCGIFADDR, &ifr) < 0) {
-		close(sock);
-		return -1;
-	}
-	memcpy(&sin, &ifr.ifr_addr, sizeof(sin));
-	if (sin.sin_addr.s_addr > 0) {
-		fprintf(stderr, "[vMsgr][tryifconfig]获取到正确的IP地址%s\n", inet_ntoa(sin.sin_addr));
-		close(sock);
-		return 1;
-	}
-	close(sock);
-	return 0;
+    int sock;
+    struct sockaddr_in sin;
+    struct ifreq ifr;
+    sock = socket(AF_INET, SOCK_DGRAM, 0);
+    if (sock == -1) {
+        return -1;
+    }
+    strncpy(ifr.ifr_name, "ppp0", IFNAMSIZ);
+    ifr.ifr_name[IFNAMSIZ - 1] = 0;
+    if (ioctl(sock, SIOCGIFADDR, &ifr) < 0) {
+        close(sock);
+        return -1;
+    }
+    memcpy(&sin, &ifr.ifr_addr, sizeof(sin));
+    if (sin.sin_addr.s_addr > 0) {
+        rlog("[tryifconfig]获取到正确的IP地址%s\n", inet_ntoa(sin.sin_addr));
+        close(sock);
+        return 1;
+    }
+    close(sock);
+    return 0;
 }
 
 void* ATWorker(void* args) {
     while (1) {
-        printf("[ATWorker]Start AT Test.================\n");
+        rlog("[ATWorker]开始拨号流程。\n");
 
         system("pkill ftpget");
         system("ppp-off");
@@ -463,8 +458,7 @@ void* ATWorker(void* args) {
         gpofun("/dev/gpoGPRS_RST", 1);
         sleep(1);
 
-
-        printf("[ATWorker]Start MUX.\n");
+        rlog("[ATWorker]打开串口复用。\n");
         system("mux.sh &");
         sleep(5);
 
@@ -485,7 +479,6 @@ void* ATWorker(void* args) {
             sleep(3);
             if (RecieveFromComm(Mrecvbuf, 128, sMux0) > 0) {
                 if (strstr(Mrecvbuf, "OK") != NULL) {
-                    printf("SUCCESS======\n");
                     break;
                 }
             }
@@ -503,8 +496,9 @@ void* ATWorker(void* args) {
             RecieveFromComm(Mrecvbuf, 128, sMux0);
 
             char INFO[6][32];
-            if (sscanf(Mrecvbuf, "%*[^\n]\n%[^\n]\n%[^\n]\n%[^\n]\n%[^\n]\n%[^\n]\n%[^\n]", INFO[0],INFO[1],INFO[2],INFO[3],INFO[4],INFO[5]) == 6) {
-            	break;
+            if (sscanf(Mrecvbuf, "%*[^\n]\n%[^\n]\n%[^\n]\n%[^\n]\n%[^\n]\n%[^\n]\n%[^\n]", INFO[0], INFO[1], INFO[2], INFO[3],
+                       INFO[4], INFO[5]) == 6) {
+                break;
             }
         }
 
@@ -519,77 +513,76 @@ void* ATWorker(void* args) {
             int k, l, m;
             if (sscanf(Mrecvbuf, "%*[^:]: %d,%d,%d", &k, &l, &m) == 3) {
                 if ((l & 0x01) == 1) {
-                    fprintf(stderr, "\n远程通信单元类型为GPRS\n");
+                    rlog("[ATWorker]远程通信单元类型为GPRS。\n");
                     break;
                 }
                 if ((l & 0x08) == 8) {
-                    fprintf(stderr, "\n远程通信单元类型为CDMA2000\n");
+                    rlog("[ATWorker]远程通信单元类型为CDMA2000。\n");
                     break;
                 }
             }
         }
 
         for (int timeout = 0; timeout < 10; timeout++) {
-			char Mrecvbuf[128];
+            char Mrecvbuf[128];
 
-			SendATCommand("\rAT$MYCCID\r", 11, sMux0);
-			delay(1000);
-			memset(Mrecvbuf, 0, 128);
-			RecieveFromComm(Mrecvbuf, 128, sMux0);
-			char CCID[32];
-			memset(CCID, 0, 32);
-			if (sscanf(Mrecvbuf, "%*[^\"]\"%[0-9|A-Z|a-z]", CCID) == 1) {
-				printf("CCID: %s\n", CCID);
-				break;
-			}
-		}
-
-        for (int timeout = 0; timeout < 50; timeout++) {
-			char Mrecvbuf[128];
-
-			SendATCommand("\rAT+CSQ\r", 8, sMux0);
-			delay(1000);
-			memset(Mrecvbuf, 0, 128);
-			RecieveFromComm(Mrecvbuf, 128, sMux0);
-
-			int k, l;
-			if (sscanf(Mrecvbuf, "%*[^:]: %d,%d", &k, &l) == 2) {
-				printf("GprsCSQ = %d,%d\n",k,l);
-				if(k != 99){
-					break;
-				}
-			}
-		}
+            SendATCommand("\rAT$MYCCID\r", 11, sMux0);
+            delay(1000);
+            memset(Mrecvbuf, 0, 128);
+            RecieveFromComm(Mrecvbuf, 128, sMux0);
+            char CCID[32];
+            memset(CCID, 0, 32);
+            if (sscanf(Mrecvbuf, "%*[^\"]\"%[0-9|A-Z|a-z]", CCID) == 1) {
+                rlog("CCID: %s\n", CCID);
+                break;
+            }
+        }
 
         for (int timeout = 0; timeout < 50; timeout++) {
-			char Mrecvbuf[128];
+            char Mrecvbuf[128];
 
-			SendATCommand("\rAT+CREG?\r", 10, sMux0);
-			delay(1000);
-			memset(Mrecvbuf, 0, 128);
-			RecieveFromComm(Mrecvbuf, 128, sMux0);
+            SendATCommand("\rAT+CSQ\r", 8, sMux0);
+            delay(1000);
+            memset(Mrecvbuf, 0, 128);
+            RecieveFromComm(Mrecvbuf, 128, sMux0);
 
-			int k, l;
-			if (sscanf(Mrecvbuf, "%*[^:]: %d,%d", &k, &l) == 2) {
-				printf("GprsCREG = %d,%d\n",k,l);
-				if(l == 1 || l == 5){
-					break;
-				}
-			}
-		}
+            int k, l;
+            if (sscanf(Mrecvbuf, "%*[^:]: %d,%d", &k, &l) == 2) {
+                rlog("GprsCSQ = %d,%d\n", k, l);
+                if (k != 99) {
+                    break;
+                }
+            }
+        }
+
+        for (int timeout = 0; timeout < 50; timeout++) {
+            char Mrecvbuf[128];
+
+            SendATCommand("\rAT+CREG?\r", 10, sMux0);
+            delay(1000);
+            memset(Mrecvbuf, 0, 128);
+            RecieveFromComm(Mrecvbuf, 128, sMux0);
+
+            int k, l;
+            if (sscanf(Mrecvbuf, "%*[^:]: %d,%d", &k, &l) == 2) {
+                rlog("GprsCREG = %d,%d\n", k, l);
+                if (l == 1 || l == 5) {
+                    break;
+                }
+            }
+        }
 
         system("pppd call gprs &");
 
-
-        for(int i = 0; i < 50; i++){
-        	if(tryifconfig()==1){
-        		break;
-        	}
+        for (int i = 0; i < 50; i++) {
+            if (tryifconfig() == 1) {
+                break;
+            }
         }
 
-        while(1){
-        	delay(1000);
-        	printf("wait for error.\n");
+        while (1) {
+            delay(1000);
+            printf("wait for error.\n");
         }
 
     err:
@@ -618,7 +611,7 @@ int main(int argc, char* argv[]) {
     }
 
     if (InitPro(argc, argv) == 0) {
-        fprintf(stderr, "进程 %s 参数错误\n", argv[0]);
+        fprintf(stderr, "[main]进程 %s 参数错误\n", argv[0]);
         return EXIT_FAILURE;
     }
     Setsig(&sa, QuitProcess);
@@ -645,5 +638,4 @@ int main(int argc, char* argv[]) {
 
     QuitProcess(&JProgramInfo->Projects[3]);
     return EXIT_SUCCESS;
-
 }
