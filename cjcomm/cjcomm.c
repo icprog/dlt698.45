@@ -601,6 +601,29 @@ void CreateATWorker(void) {
     pthread_create(&temp_key, &attr, ATWorker, NULL);
 }
 
+
+
+void CreateLstSer(struct aeEventLoop* eventLoop, int fd, void* clientData, int mask) {
+	CommBlock* nst = (CommBlock*)clientData;
+
+    if (mo->serverPort > 0){
+    	 aeDeleteFileEvent(eventLoop, mo->serverPort, AE_READABLE);
+    	 close(mo->serverPort);
+    	 mo->serverPort = -1;
+    }
+    mo->serverPort = anetTcpAccept(NULL, mo->listenPort, NULL, 0, NULL);
+    if (mo->serverPort > 0) {
+        fprintf(stderr, "[vmsgr] 建立主站反向链接。fd = %d\n", mo->serverPort);
+        if (aeCreateFileEvent(eventLoop, mo->serverPort, AE_READABLE, serRead, mo) == -1){
+        	close(mo->serverPort);
+        	mo->serverPort = -1;
+        }
+    } else {
+        //网络监听出现异常，重置整体模块
+        gprsDestory(eventLoop, mo);
+    }
+}
+
 int main(int argc, char* argv[]) {
     struct sigaction sa = {};
 
