@@ -153,5 +153,5 @@ void Esam_ReadFromChip(INT32S fd, INT8U* Rbuf, INT8U Rlen);
 INT16S Esam_ErrMessageCheck(INT8U *RBuf);
 INT32S Esam_GetTermiInfo(INT32S fd, EsamInfo* esamInfo);
 INT32U CharToINT32U(INT8U *Buf);
-
+extern sem_t* nsem_open(const char* name) ;
 #endif /* ESAM_H_ */

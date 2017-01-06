@@ -40,7 +40,21 @@
 
 ////////////////////////////////////////////////////////////////
 
+/*
+ * 	GPIO硬件接口
+ * */
+#define DEV_ESAM_RST   "/dev/gpoESAM_RST"
+#define DEV_ESAM_CS    "/dev/gpoESAM_CS"
+#define DEV_ESAM_PWR   "/dev/gpoESAM_PWR"
+#define DEV_ATT_RST    "/dev/gpoATT_RST"
 
+////////////////////////////////////////////////////////////////
 #define delay(A) usleep((A)*1000)
 
+/*
+ * 	互斥信号量
+ * */
+
+#define SEMNAME_SPI0_0 "sem_spi0_0" //专变、I型集中器交采和esam的spi通信互斥信号量
+////////////////////////////////////////////////////////////////
 #endif /* PARADEF_H_ */

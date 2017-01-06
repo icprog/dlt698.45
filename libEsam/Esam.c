@@ -11,13 +11,9 @@
 #include <linux/spi/spidev.h>
 #include <semaphore.h>
 #include "../libBase/PublicFunction.h"
+#include "../include/ParaDef.h"
 #include "Esam.h"
 #include "SPI.h"
-
-//#include "../libhd/libhd.h"
-//#include "../include/device.h"
-//#include "../include/semdef.h"
-//#include "../libnsem/libnsem.h"
 
 sem_t* sem_spi0_0;
 /*
