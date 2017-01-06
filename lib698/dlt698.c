@@ -4,8 +4,7 @@
 #include <stdlib.h>
 
 #include "dlt698.h"
-#include "ObjectAction.h"
-#include "ObjectSet.h"
+#include "dlt698def.h"
 
 #define LIB698_VER 	1
 INT8S (*pSendfun)(int fd,INT8U* sndbuf,INT16U sndlen);

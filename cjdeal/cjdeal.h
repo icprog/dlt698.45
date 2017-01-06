@@ -7,7 +7,6 @@
 #include <string.h>
 #include <fcntl.h>
 #include "PublicFunction.h"
-#include "gtype.h"
 
 ProgramInfo* JProgramInfo=NULL;
 int ProIndex=0;

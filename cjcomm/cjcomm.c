@@ -12,11 +12,10 @@
 #include "anet.h"
 #include "rlog.h"
 
-#include "option.h"
 #include "PublicFunction.h"
+#include "dlt698def.h"
 #include "cjcomm.h"
 
-#include "ObjectAction.h"
 ProgramInfo* JProgramInfo = NULL;
 
 void clearcount(int index)
@@ -24,7 +23,6 @@ void clearcount(int index)
 	JProgramInfo->Projects[index].WaitTimes = 0;
 
 }
-
 
 void QuitProcess(ProjectInfo* proinfo) {
     rlog("EXIT：%s %d\n", "cjcomm", JProgramInfo->Projects[3].ProjectID);

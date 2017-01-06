@@ -7,7 +7,6 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-#include "option.h"
 #include "PublicFunction.h"
 
 void rlog(const char* fmt, ...) {

@@ -7,8 +7,7 @@
 #include <string.h>
 #include <fcntl.h>
 #include "PublicFunction.h"
-#include "gtype.h"
-#define PRO_WAIT_COUNT     60
+
 ProgramInfo* JProgramInfo=NULL;
 
 #endif

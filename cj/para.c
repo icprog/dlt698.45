@@ -7,11 +7,9 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include "ObjectAction.h"
 #include "AccessFun.h"
-#include "filepara.h"
-
-
+#include "StdDataType.h"
+#include "Objectdef.h"
 /************************************
  * 函数说明：获取文件内容大小
  *************************************/
@@ -68,6 +66,7 @@ char *getenum(int type,int val)
 /*
  * 采集档案配置表
  * */
+#define PARAFILE_6000		"/nand/para/meter6000.par"
 void prtCollect6000()
 {
 	CLASS_6001	 meter={};

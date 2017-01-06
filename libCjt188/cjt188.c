@@ -5,6 +5,7 @@
 #include <string.h>
 #include <errno.h>
 #include "cjt188.h"
+#include "PublicFunction.h"
 
 #define LIB_CJT1888_VER 0x0001
 

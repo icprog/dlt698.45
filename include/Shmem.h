@@ -1,46 +1,48 @@
-#ifndef OPTION_H_
-#define OPTION_H_
+/*
+ * gtype.h
+ *
+ *  Created on: Sep 11, 2015
+ *      Author: fzh
+ */
+
+#ifndef GTYPE_H_
+#define GTYPE_H_
 
 #include "StdDataType.h"
-//typedef unsigned char  BOOLEAN;
-//typedef unsigned char  INT8U;                    /* Unsigned  8 bit quantity                           */
-//typedef signed   char  INT8S;                    /* Signed    8 bit quantity                           */
-//typedef unsigned short INT16U;                   /* Unsigned 16 bit quantity                           */
-//typedef signed   short INT16S;                   /* Signed   16 bit quantity                           */
-//typedef unsigned int   INT32U;                   /* Unsigned 32 bit quantity                           */
-//typedef signed   int   INT32S;                   /* Signed   32 bit quantity                           */
-//typedef unsigned long long     	INT64U;          /* Unsigned 64 bit quantity   						   */
-//typedef signed long long  		INT64S;          /* Unsigned 64 bit quantity                           */
-//typedef float          FP32;                     /* Single precision floating point                    */
-//typedef double         FP64;                     /* Double precision floating point                    */
-
-#define ARGVMAXLEN			50		//参数最大长度
-#define PRONAMEMAXLEN		50		//进程名称最大长度
-#define	PROJECTCOUNT		10		//守护进程可以支持的最多进程数
-#define ARGCMAX				4		//支持进程参数最大数
-
-#define REALDATA_LIST_LENGTH 10
-#define _CFGDIR_ 	"/nor/config"
-
-typedef struct _name_attach {
-} name_attach_t;
-typedef enum{					//该子程序运行状态
-	None=0,						//标志无程序运行
-	NeedStart,					//该程序需要运行
-	NeedKill,					//该程序需要停止运行
-	NowRun,						//目前该程序正在运行
-}ProjectState;					//程序运行状态
-
 typedef struct
 {
-	INT16U Year;    //year;
-    INT8U  Month;   //month;
-    INT8U  Day;     //day;
-    INT8U  Hour;    //hour;
-    INT8U  Minute;  //minute;
-    INT8U  Sec;     //second;
-    INT8U  Week;
-}TS;
+	INT8U VendorCode[2];	//厂商代码（VendorCode[1~0]：TC=鼎信；ES=东软；LH=力合微；37=中瑞昊天）
+	INT8U ChipCode[2];		//芯片代码
+	INT8U VersionDay;		//版本日期-日
+	INT8U VersionMonth;		//版本日期-月
+	INT8U VersionYear;		//版本日期-年
+	INT8U Version[2];		//版本
+}ZB_Info;	//厂商代码和版本信息
+typedef struct
+{
+	INT8U chg6000;		/*采集档案配置表属性变更*/
+	INT8U chg6002;		/*搜表类属性变更*/
+	INT8U chg6012;		/*任务配置表属性变更*/
+	INT8U chg6014;		/*普通采集方案集属性变更*/
+	INT8U chg6016;		/*事件采集方案集属性变更*/
+	INT8U chg6018;		/*透明方案集属性变更*/
+	INT8U chg601C;		/*上报方案集属性变更*/
+	INT8U chg601E;		/*采集规则库属性变更*/
+	INT8U chg6051;		/*实时监控采集方案集属性变更*/
+}PARA_CHG;
+typedef struct
+{
+	INT8U online_state;	/*gprs在线1 ，cdma在线2 ，FDD_LTE在线3 ，TD_LTE在线4 ，以太网在线5 ，正在拨号中6 */
+	INT8U csq;			/*信号强度*/
+	INT8U pppip[16];	/*无线IP*/
+	INT8U sa[16];		/*集中器地址*/
+	INT8U yx[4];		/*遥信状态*/
+	ZB_Info zbinfo;		/*载波模块信息*/
+	INT8U zbstatus;		/*载波抄表状态*/
+	INT8U jiexian;		/*交采接线类型*/
+	PARA_CHG parachg;	/*参数变更标识*/
+}TerminalMemType;
+
 typedef struct{
 	INT8U ASK_Port;				//终端通信端口号
 	INT8U ASK_Control;         	//通信控制字
@@ -101,6 +103,7 @@ typedef struct {
 	Realdata		RealdataList[REALDATA_LIST_LENGTH];
 	INT16U			Ticket_g;					//实时数据请求凭据（累加计数）请求时加1
 }RealdataReq;
+
 typedef struct{
 	INT32U		ProjectID;						//子程序PID  由系统自动分配的，杀死进程时用
 	INT8U		ProjectName[PRONAMEMAXLEN];		//程序名称
@@ -116,8 +119,4 @@ typedef struct {
 	RealdataReq		RealDatareq;				//实时数据请求缓存
 }ProgramInfo; //程序信息结构
 
-//顺序
-typedef enum { positive,/*正序*/inverted //倒序
-} ORDER;
-
-#endif /* OPTION_H_ */
+#endif /* GTYPE_H_ */
