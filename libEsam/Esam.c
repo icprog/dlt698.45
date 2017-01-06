@@ -10,6 +10,7 @@
 #include <sys/ioctl.h>
 #include <linux/spi/spidev.h>
 #include <semaphore.h>
+#include "../libBase/PublicFunction.h"
 #include "Esam.h"
 #include "SPI.h"
 
@@ -481,7 +482,7 @@ INT32S Esam_GetTerminalInfo(INT32S fd, INT8U *RN,INT8U* Data1,INT8U* Rbuf) {
 INT32S Esam_SymKeyUpdate(INT32S fd, INT8U* Data2, INT8U* Rbuf) {
 //TODO:Data2中包含的数据具体啥样，等链接加密机后在更改
 	if(Data2[0]==0) return ERR_ESAM_TRANSPARA_ERR;
-	INT32S Result=0;
+	//INT32S Result=0;
 	INT8U GetInfo_ESAM[BUFFLENMAX_SPI]={0x55};
 	memcpy(&GetInfo_ESAM[1],&Data2[1],Data2[0]);
 	GetInfo_ESAM[1+Data2[0]]=LRC(&GetInfo_ESAM[1],Data2[0]);
@@ -499,7 +500,7 @@ INT32S Esam_SymKeyUpdate(INT32S fd, INT8U* Data2, INT8U* Rbuf) {
 INT32S Esam_CcieUpdate(INT32S fd, INT8U* Data2, INT8U* Rbuf) {
 	//TODO:Data2中包含的数据具体啥样，等链接加密机后在更改
 	if(Data2[0]==0) return ERR_ESAM_TRANSPARA_ERR;
-	INT32S Result=0;
+	//INT32S Result=0;
 	INT8U GetInfo_ESAM[BUFFLENMAX_SPI]={0x55};
 	memcpy(&GetInfo_ESAM[1],&Data2[1],Data2[0]);
 	GetInfo_ESAM[1+Data2[0]]=LRC(&GetInfo_ESAM[1],Data2[0]);
@@ -517,7 +518,7 @@ INT32S Esam_CcieUpdate(INT32S fd, INT8U* Data2, INT8U* Rbuf) {
 INT32S Esam_SessionTime(INT32S fd, INT8U* Data2, INT8U* Rbuf) {
 	//TODO:Data2中包含的数据具体啥样，等链接加密机后在更改
 	if(Data2[0]==0) return ERR_ESAM_TRANSPARA_ERR;
-	INT32S Result=0;
+	//INT32S Result=0;
 	INT8U GetInfo_ESAM[BUFFLENMAX_SPI]={0x55};
 	memcpy(&GetInfo_ESAM[1],&Data2[1],Data2[0]);
 	GetInfo_ESAM[1+Data2[0]]=LRC(&GetInfo_ESAM[1],Data2[0]);
@@ -583,9 +584,9 @@ INT32S Esam_DencryptReport(INT32S fd, SID_MAC SidMac,INT8U* Data3, INT8U* Rbuf) 
 		 len+=4;
 		 memcpy(&GetInfo_ESAM[len],&SidMac.sid.addition[1],SidMac.sid.addition[0]);//附加数据
 		 len+=SidMac.sid.addition[0];
-		 memcpy(GetInfo_ESAM[len],Data3[2],datalen);//密文应用数据单元
+		 memcpy(&GetInfo_ESAM[len],&Data3[2],datalen);//密文应用数据单元
 		 len+=datalen;
-		 memcpy(GetInfo_ESAM[len],SidMac.mac[1],SidMac.mac[0]);//如果MAC有数据，拷贝
+		 memcpy(&GetInfo_ESAM[len],&SidMac.mac[1],SidMac.mac[0]);//如果MAC有数据，拷贝
 		 len+=SidMac.mac[0];
 		 GetInfo_ESAM[len]=LRC(&GetInfo_ESAM[1],len-1);//获取LRC校验值
 		 len+=1;
