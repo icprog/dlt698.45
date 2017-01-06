@@ -21,6 +21,7 @@
 #include "cjcomm.h"
 
 ProgramInfo* JProgramInfo = NULL;
+static char IPaddr[24];
 
 void clearcount(int index) {
     JProgramInfo->Projects[index].WaitTimes = 0;
@@ -34,6 +35,10 @@ void QuitProcess(ProjectInfo* proinfo) {
  * 进程初始化
  *********************************************************/
 int InitPro(int argc, char* argv[]) {
+	memset(IPaddr, 0, sizeof(IPaddr));
+	memcpy(IPaddr,argv[1], strlen(argv[1]));
+
+	printf("Connect to %s\n", IPaddr);
     if (argc >= 2) {
         JProgramInfo = OpenShMem("ProgramInfo", sizeof(ProgramInfo), NULL);
         memcpy(JProgramInfo->Projects[3].ProjectName, "cjcomm", sizeof("cjcomm"));
@@ -217,8 +222,16 @@ void NETRead(struct aeEventLoop* eventLoop, int fd, void* clientData, int mask) 
         }
         printf("\n");
 
-        int len =
-        StateProcess(&nst->deal_step, &nst->rev_delay, 10, &nst->RTail, &nst->RHead, nst->RecBuf, nst->DealBuf);
+        int len = 0;
+        for(int i = 0; i < 5; i++){
+        	len = StateProcess(&nst->deal_step, &nst->rev_delay, 10, &nst->RTail, &nst->RHead, nst->RecBuf, nst->DealBuf);
+        	printf("len = %d\n", len);
+        	if(len > 0)
+        	{
+        		break;
+        	}
+        }
+
         if (len > 0) {
             int apduType = ProcessData(nst);
             switch (apduType) {
@@ -238,7 +251,7 @@ int NETWorker(struct aeEventLoop* ep, long long id, void* clientData) {
 
     if (nst->phy_connect_fd <= 0) {
         initComPara(nst);
-        nst->phy_connect_fd = anetTcpConnect(NULL, "192.168.0.159", 5022);
+        nst->phy_connect_fd = anetTcpConnect(NULL, IPaddr, 5022);
         if (nst->phy_connect_fd > 0) {
             rlog("[NETWorker]Connect Server(%d)\n", nst->phy_connect_fd);
             if (aeCreateFileEvent(ep, nst->phy_connect_fd, AE_READABLE, NETRead, nst) < 0) {
@@ -599,8 +612,6 @@ void CreateATWorker(void) {
     pthread_t temp_key;
     pthread_create(&temp_key, &attr, ATWorker, NULL);
 }
-
-
 
 //void CreateLstSer(struct aeEventLoop* eventLoop, int fd, void* clientData, int mask) {
 //	CommBlock* nst = (CommBlock*)clientData;
