@@ -46,6 +46,17 @@ typedef struct
 	EXTEND_OBJECT extinfo;				//扩展信息
 	ANNEX_OBJECT aninfo;				//附属信息
 }CLASS_6001;//采集档案配置表对象
+typedef struct
+{
+	INT8U name[OCTET_STRING_LEN];		//参数变量接口类逻辑名
+	INT16U sernum;						//方案序号
+	INT16U deepsize;					//存储深度
+	INT8U  cjtype;						//采集类型
+	DataType data;
+	CSD    csd[20];						//记录列选择 array CSD,
+	MS     ms;							//电能表集合
+	INT8U  savetimeflag;				//存储时标选择 enum
+}CLASS_6015;//普通采集方案
 
 
 #endif /* OBJECTACTION_H_ */

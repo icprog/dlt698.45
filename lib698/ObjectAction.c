@@ -119,11 +119,61 @@ void AddBatchMeterInfo(INT8U *data)
 //		extern unsigned short SaveMPara(int mtype,int id,unsigned char* data,int len);
 		fprintf(stderr,"\n-------------1  6001_len=%d, sernum=%d\n",sizeof(CLASS_6001),meter.sernum);
 		save_block_file("/nand/para/mp_info.par",(unsigned char*)&meter,sizeof(CLASS_6001),meter.sernum);
-		//SaveMPara(0,6000,(unsigned char*)&meter,sizeof(CLASS_6001));
+		//#define MP_INFO_DIR 			"/nand/para/mp_info.par"
 	}
 }
-//#define MP_INFO_DIR 			"/nand/para/mp_info.par"
+void AddCjiFangAnInfo(INT8U *data)
+{
+	CLASS_6015 fangAn={};
+	int k=0;
+	INT8U addnum = data[1];
+	INT16U source_sumindex=0,source_index=0,dest_sumindex=0,dest_index=0;
 
+	for(k=0; k<addnum; k++)
+	{
+		memset(&fangAn,0,sizeof(fangAn));
+		get_BasicUnit(&data[2]+source_sumindex,&source_index,(INT8U *)&fangAn.sernum,&dest_index);
+		source_sumindex += source_index;
+		dest_sumindex += dest_index;
+//		SaveMPara(0,6000,(unsigned char*)&meter,sizeof(CLASS_6001));
+	}
+}
+void Set_CSD(INT8U *data)
+{
+	CSD    csd;
+	int k=0;
+	INT8U num = data[1];
+	INT16U source_sumindex=0,source_index=0,dest_sumindex=0,dest_index=0;
+
+	for(k=0; k<num; k++)
+	{
+		memset(&csd,0,sizeof(csd));
+		get_BasicUnit(&data[2]+source_sumindex,&source_index,(INT8U *)&csd,&dest_index);
+		source_sumindex += source_index;
+		dest_sumindex += dest_index;
+//		SetCjFangAnCSD(CSD,k);
+	}
+}
+void CjiFangAnInfo(INT16U attr_act,INT8U *data)
+{
+	switch(attr_act)
+	{
+		case 2:	 //属性 2(配置表)∷=array 采集档案配置单元
+			break;
+		case 127://方法 127:Add (array 普通采集方案)
+			AddCjiFangAnInfo(data);
+			break;
+		case 128://方法 128:Delete(array 方案编号)
+//			DeleteCjFangAn(data[1]);
+			break;
+		case 129://方法 129:Clear( )
+//			ClearCjFangAn();
+			break;
+		case 130://方法 130:Set_CSD(方案编号,array CSD)
+			Set_CSD(data);
+			break;
+	}
+}
 void MeterInfo(INT16U attr_act,INT8U *data)
 {
 	switch(attr_act)
@@ -164,6 +214,8 @@ int doObjectAction(OMD omd,INT8U *data)
 			break;
 		case 0x6012://任务配置表
 			break;
+		case 0x6014://普通采集方案集
+			CjiFangAnInfo(attr_act,data);
 	}
 	return 1;
 }
