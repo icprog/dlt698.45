@@ -4,6 +4,9 @@
 #include <signal.h>
 #include <pthread.h>
 #include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 
 #include "ae.h"
 #include "anet.h"
@@ -204,9 +207,10 @@ void NETRead(struct aeEventLoop* eventLoop, int fd, void* clientData, int mask) 
     if (revcount > 0) {
         for (int j = 0; j < revcount; j++) {
             read(nst->phy_connect_fd, &nst->RecBuf[nst->RHead], 1);
-            printf("%02x\n", nst->RecBuf[nst->RHead]);
+            printf("%02x ", nst->RecBuf[nst->RHead]);
             nst->RHead = (nst->RHead + 1) % BUFLEN;
         }
+        printf("\n");
 
         int len =
         StateProcess(&comstat.deal_step, &comstat.rev_delay, 10, &comstat.RTail, &comstat.RHead, comstat.RecBuf, comstat.DealBuf);
@@ -261,32 +265,225 @@ int GPRSWorker(struct aeEventLoop* ep, long long id, void* clientData) {
     return 200;
 }
 
-void* ATWorker(void* args) {
-    gpofun("/dev/gpoGPRS_POWER", 1);
-    sleep(3);
-    gpofun("/dev/gpoGPRS_POWER", 0);
-    sleep(3);
-    gpofun("/dev/gpoGPRS_POWER", 1);
-    sleep(3);
-
-    gpofun("/dev/gpoGPRS_SWITCH", 1);
-    usleep(200 * 1000);
-    gpofun("/dev/gpoGPRS_SWITCH", 0);
-    sleep(1);
-    gpofun("/dev/gpoGPRS_SWITCH", 1);
-    usleep(500 * 1000);
-
-    gpofun("/dev/gpoGPRS_RST", 1);
-    sleep(1);
-    gpofun("/dev/gpoGPRS_RST", 0);
-    sleep(1);
-    gpofun("/dev/gpoGPRS_RST", 1);
-    sleep(1);
-
-    int fd = OpenCom(3, 2400, (unsigned char*)"none", 1, 8);
-    if (fd < 0) {
-        fprintf(stderr, "[vMsgr]AT检查失败(端口创建失败)。\n");
+int gpofun(char* devname, int data) {
+    int fd = -1;
+    if ((fd = open(devname, O_RDWR | O_NDELAY)) >= 0) {
+        write(fd, &data, sizeof(int));
+        close(fd);
+        return 1;
     }
+    return 0;
+}
+
+int OpenMuxCom(INT8U port, int baud, unsigned char* par, unsigned char stopb, INT8U bits) {
+    int Com_Port = 0;
+    struct termios old_termi, new_termi;
+    int baud_lnx = 0;
+    unsigned char tmp[128];
+    memset(tmp, 0, 128);
+    // sprintf((char *)tmp,"/dev/ttyS%d",port);
+    sprintf((char*)tmp, "/dev/mux%d", port);
+
+    //	sprintf((char *)tmp,"%s%d",SERDEVNAME,port);
+    Com_Port = open((char*)tmp, O_RDWR | O_NOCTTY); /* 打开串口文件 */
+    if (Com_Port < 0) {
+        fprintf(stderr, "open the serial port fail! errno is: %d\n", errno);
+        return -1; /*打开串口失败*/
+    }
+    if (tcgetattr(Com_Port, &old_termi) != 0) /*存储原来的设置*/
+    {
+        fprintf(stderr, "get the terminal parameter error when set baudrate! errno is: %d\n", errno);
+        /*获取终端相关参数时出错*/
+        return -1;
+    }
+    // printf("\n\r c_ispeed == %d old_termi  c_ospeed == %d",old_termi.c_ispeed, old_termi.c_ospeed);
+    bzero(&new_termi, sizeof(new_termi));          /*将结构体清零*/
+    new_termi.c_cflag |= (CLOCAL | CREAD);         /*忽略调制解调器状态行，接收使能*/
+    new_termi.c_lflag &= ~(ICANON | ECHO | ECHOE); /*选择为原始输入模式*/
+    new_termi.c_oflag &= ~OPOST;                   /*选择为原始输出模式*/
+    new_termi.c_cc[VTIME] = 2;                     /*设置超时时间为0.5 s*/
+    new_termi.c_cc[VMIN]  = 0;                     /*最少返回的字节数是 7*/
+    new_termi.c_cflag &= ~CSIZE;
+    // new_termi.c_iflag &= ~INPCK;     /* Enable parity checking */
+    new_termi.c_iflag &= ~ISTRIP;
+    switch (baud) {
+        case 1200:
+            baud_lnx = B1200;
+            break;
+        case 2400:
+            baud_lnx = B2400;
+            break;
+        case 4800:
+            baud_lnx = B4800;
+            break;
+        case 9600:
+            baud_lnx = B9600;
+            break;
+        case 19200:
+            baud_lnx = B19200;
+            break;
+        case 38400:
+            baud_lnx = B38400;
+            break;
+        case 57600:
+            baud_lnx = B57600;
+            break;
+        case 115200:
+            baud_lnx = B115200;
+            break;
+        default:
+            baud_lnx = B9600;
+            fprintf(stderr, "\nSerial COM%d do not setup baud, default baud is 9600!!!", port);
+            break;
+    }
+
+    switch (bits) {
+        case 5:
+            new_termi.c_cflag |= CS5;
+            break;
+        case 6:
+            new_termi.c_cflag |= CS6;
+            break;
+        case 7:
+            new_termi.c_cflag |= CS7;
+            break;
+        case 8:
+            new_termi.c_cflag |= CS8;
+            break;
+        default:
+            new_termi.c_cflag |= CS8;
+            break;
+    }
+
+    if (strncmp((char*)par, "even", 4) == 0) //设置奇偶校验为偶校验
+    {
+        // new_termi.c_iflag |= (INPCK | ISTRIP);
+        new_termi.c_cflag |= PARENB;
+        new_termi.c_cflag &= ~PARODD;
+
+    } else if (strncmp((char*)par, "odd", 3) == 0) //设置奇偶校验为奇校验
+    {
+        new_termi.c_cflag |= PARENB;
+        new_termi.c_cflag |= PARODD;
+        // new_termi.c_iflag |= (INPCK | ISTRIP);
+    } else {
+        new_termi.c_cflag &= ~PARENB; //设置奇偶校验为无校验
+                                      // new_termi.c_iflag &=~ ISTRIP;
+    }
+
+    if (stopb == 1) //停止位
+    {
+        new_termi.c_cflag &= ~CSTOPB; //设置停止位为:一位停止位
+    } else if (stopb == 2) {
+        new_termi.c_cflag |= CSTOPB; //设置停止位为:二位停止位
+    } else {
+        new_termi.c_cflag &= ~CSTOPB; //设置停止位为:一位停止位
+    }
+
+    cfsetispeed(&new_termi, baud_lnx); /* 设置输入拨特率 */
+    cfsetospeed(&new_termi, baud_lnx); /* 设置输出拨特率 */
+
+    tcflush(Com_Port, TCIOFLUSH);                      /* 刷新输入输出流 */
+    if (tcsetattr(Com_Port, TCSANOW, &new_termi) != 0) /* 激活串口配置 */
+    {
+        fprintf(stderr, "Set serial port parameter error!\n"); // close(Com_Port);
+        return 0;
+    }
+    return Com_Port;
+}
+
+int SendATCommand(char* buf, int len, int com) {
+    int res = write(com, buf, len);
+    return (res < 0) ? 0 : res;
+}
+int RecieveFromComm(char* buf, int mlen, int com) {
+    int len = read(com, buf, mlen);
+    return (len < 0) ? 0 : len;
+}
+
+void* ATWorker(void* args) {
+    while (1) {
+        printf("[ATWorker]Start AT Test.================\n");
+
+        system("pkill ftpget");
+        system("ppp-off");
+        system("pkill gsmMuxd");
+
+        gpofun("/dev/gpoGPRS_POWER", 1);
+        sleep(3);
+        gpofun("/dev/gpoGPRS_POWER", 0);
+        sleep(3);
+        gpofun("/dev/gpoGPRS_POWER", 1);
+        sleep(3);
+
+        gpofun("/dev/gpoGPRS_SWITCH", 1);
+        usleep(200 * 1000);
+        gpofun("/dev/gpoGPRS_SWITCH", 0);
+        sleep(1);
+        gpofun("/dev/gpoGPRS_SWITCH", 1);
+        usleep(500 * 1000);
+
+        gpofun("/dev/gpoGPRS_RST", 1);
+        sleep(1);
+        gpofun("/dev/gpoGPRS_RST", 0);
+        sleep(1);
+        gpofun("/dev/gpoGPRS_RST", 1);
+        sleep(1);
+
+        printf("[ATWorker]Start MUX.\n");
+        system("mux.sh &");
+        sleep(5);
+
+        int sMux0 = OpenMuxCom(0, 115200, (unsigned char*)"none", 1, 8);
+        int sMux1 = OpenMuxCom(1, 115200, (unsigned char*)"none", 1, 8);
+
+        if (sMux0 < 0 || sMux1 < 0) {
+            close(sMux0);
+            close(sMux1);
+            goto err;
+        }
+
+        for (int i = 0; i < 3; i++) {
+            char Mrecvbuf[128];
+            memset(Mrecvbuf, 0, 128);
+
+            SendATCommand("\rAT\r", 4, sMux0);
+            sleep(3);
+            if (RecieveFromComm(Mrecvbuf, 128, sMux0) > 0) {
+                if (strstr(Mrecvbuf, "OK") != NULL) {
+                    printf("SUCCESS======\n");
+                    break;
+                }
+            }
+            if (i == 2) {
+                goto err;
+            }
+        }
+
+        for (int timeout = 0; timeout < 10; timeout++) {
+            char Mrecvbuf[128];
+
+            SendATCommand("\rAT$MYTYPE?\r", 12, sMux0);
+            delay(1000);
+            memset(Mrecvbuf, 0, 128);
+            RecieveFromComm(Mrecvbuf, 128, sMux0);
+
+            int k, l, m;
+            if (sscanf(Mrecvbuf, "%*[^:]: %d,%d,%d", &k, &l, &m) == 3) {
+                if ((l & 0x01) == 1) {
+                    fprintf(stderr, "\n远程通信单元类型为GPRS\n");
+                    break;
+                }
+                if ((l & 0x08) == 8) {
+                    fprintf(stderr, "\n远程通信单元类型为CDMA2000\n");
+                    break;
+                }
+            }
+        }
+    err:
+        continue;
+    }
+
     return NULL;
 }
 
@@ -314,6 +511,7 @@ int main(int argc, char* argv[]) {
     }
     Setsig(&sa, QuitProcess);
 
+    CreateATWorker();
     CreateFirComWorker();
     initComPara(&comstat);
 
