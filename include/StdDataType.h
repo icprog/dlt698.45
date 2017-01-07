@@ -135,6 +135,13 @@ typedef enum {
 	B_B=2/*前闭后闭*/,
 	K_K=3/*前开后开*/
 }RUN_TIME_TYPE;//运行时段类型
+
+
+typedef enum {
+	BEFORE_OPR=0/*未执行*/,
+	IN_OPR=1/*执行中*/,
+	AFTER_OPR=2/*已执行*/,
+}TASK_STATE;//任务执行状态
 //////////////////////////////////////////////////////////////////
 
 typedef struct

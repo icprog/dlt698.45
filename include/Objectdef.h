@@ -93,4 +93,17 @@ typedef struct
 }CLASS_6015;//普通采集方案
 
 
+
+typedef struct
+{
+	INT8U taskID;		                //任务ID
+	TASK_STATE taskState;				//任务执行状态
+	DataTimeBCD startime;               //任务执行开始时间
+	DataTimeBCD endtime;                //任务结束结束时间
+	INT16U totalMSNum;					//采集总数量
+	INT16U successMSNum;				//采集成功数量
+	INT16U sendMsgNum;					//发送报文数量
+	INT16U rcvMsgNum;					//接受报文数量
+}CLASS_6035;//采集任务监控单元
+
 #endif /* OBJECTACTION_H_ */

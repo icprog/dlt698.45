@@ -16,17 +16,6 @@
 #include <errno.h>
 #include "read485.h"
 
-typedef struct
-{
-	INT8U missionID;		//参数变量接口类逻辑名
-	TI interval;						//执行频率
-	INT16U deepsize;					//存储深度
-	INT8U  cjtype;						//采集类型
-	DataType data;
-	CSD    csd[20];						//记录列选择 array CSD,
-	MS     ms;							//电能表集合
-	INT8U  savetimeflag;				//存储时标选择 enum
-}CLASS_6013;//任务配置单元
 
 void read485_thread()
 {
@@ -72,7 +61,19 @@ void read485_proccess()
 		CLASS_6013 from6013;
 		CLASS_6015 to6015;
 		memset(&to6015,0,sizeof(CLASS_6015));
-		INT8U ret = use6013find6015(from6013,&to6015);
+
+
+		CLASS_6035 result6035;//采集任务监控单元
+		memset(&result6035,0,sizeof(CLASS_6035));
+		result6035.taskID = from6013.taskID;
+		result6035.taskState = IN_OPR;
+		//result6035.startime = ;
+		//result6035.endtime = ;
+		INT8U ret = 0;
+		ret = use6013find6015(from6013,&to6015);
+		ret = deal6015_698protocol(to6015);
+
+
 
 		sleep(1);
 	}
