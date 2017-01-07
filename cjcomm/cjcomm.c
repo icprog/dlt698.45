@@ -99,6 +99,10 @@ INT8S ComWrite(int fd, INT8U* buf, INT16U len) {
     return write(fd, buf, len);
 }
 
+INT8S NetWrite(int fd, INT8U* buf, INT16U len) {
+    return anetWrite(fd, buf, len);
+}
+
 void initComPara(CommBlock* compara) {
     INT8U addr[16] = { 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
     memcpy(compara->serveraddr, addr, 16);
@@ -114,8 +118,6 @@ void initComPara(CommBlock* compara) {
     compara->rev_delay = 20;
 
     compara->p_send   = ComWrite;
-    compara->p_recv   = NULL;
-    compara->p_connet = NULL;
 }
 
 void* FirComWorker(void* args) {
@@ -613,26 +615,28 @@ void CreateATWorker(void) {
     pthread_create(&temp_key, &attr, ATWorker, NULL);
 }
 
-//void CreateLstSer(struct aeEventLoop* eventLoop, int fd, void* clientData, int mask) {
-//	CommBlock* nst = (CommBlock*)clientData;
-//
-//    if (mo->serverPort > 0){
-//    	 aeDeleteFileEvent(eventLoop, mo->serverPort, AE_READABLE);
-//    	 close(mo->serverPort);
-//    	 mo->serverPort = -1;
-//    }
-//    mo->serverPort = anetTcpAccept(NULL, mo->listenPort, NULL, 0, NULL);
-//    if (mo->serverPort > 0) {
-//        fprintf(stderr, "[vmsgr] 建立主站反向链接。fd = %d\n", mo->serverPort);
-//        if (aeCreateFileEvent(eventLoop, mo->serverPort, AE_READABLE, serRead, mo) == -1){
-//        	close(mo->serverPort);
-//        	mo->serverPort = -1;
-//        }
-//    } else {
-//        //网络监听出现异常，重置整体模块
-//        gprsDestory(eventLoop, mo);
-//    }
-//}
+void CreateAptSer(struct aeEventLoop* eventLoop, int fd, void* clientData, int mask) {
+	CommBlock* nst = (CommBlock*)clientData;
+
+    if (nst->phy_connect_fd > 0){
+    	 aeDeleteFileEvent(eventLoop, nst->phy_connect_fd, AE_READABLE);
+    	 close(nst->phy_connect_fd);
+    	 nst->phy_connect_fd = -1;
+    }
+
+    nst->phy_connect_fd = anetTcpAccept(NULL, fd, NULL, 0, NULL);
+    if (nst->phy_connect_fd > 0) {
+        fprintf(stderr, "[vmsgr] 建立主站反向链接。fd = %d\n", nst->phy_connect_fd );
+        if (aeCreateFileEvent(eventLoop, nst->phy_connect_fd , AE_READABLE, NETRead, nst) == -1){
+        	close(fd);
+        }
+    } else {
+        int listen_port = anetTcpServer(NULL, 5555, "0.0.0.0", 1);
+        aeCreateFileEvent(eventLoop, listen_port, AE_READABLE, CreateAptSer,nst);
+    }
+}
+
+
 
 int main(int argc, char* argv[]) {
     struct sigaction sa = {};
@@ -656,13 +660,23 @@ int main(int argc, char* argv[]) {
         rlog("[main]事件循环创建失败，程序终止。\n");
     }
 
-    CommBlock net_comstat;
+    CommBlock nets_comstat;
     CommBlock gprs_comstat;
+    CommBlock serv_comstat;
 
-    net_comstat.p_send  = anetWrite;
-    gprs_comstat.p_send = anetWrite;
+    nets_comstat.p_send  = NetWrite;
+    gprs_comstat.p_send = NetWrite;
 
-    aeCreateTimeEvent(ep, 1 * 1000, NETWorker, &net_comstat, NULL);
+    initComPara(&nets_comstat);
+    initComPara(&gprs_comstat);
+    initComPara(&serv_comstat);
+
+    int listen_port = anetTcpServer(NULL, 5555, "0.0.0.0", 1);
+    if(listen_port >= 0){
+    	aeCreateFileEvent(ep, listen_port, AE_READABLE, CreateAptSer, &serv_comstat);
+    }
+
+    aeCreateTimeEvent(ep, 1 * 1000, NETWorker, &nets_comstat, NULL);
     //    aeCreateTimeEvent(ep, 1 * 1000, GPRSWorker, &net_comstat, NULL);
     aeMain(ep);
 
