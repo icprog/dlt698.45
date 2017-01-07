@@ -14,4 +14,7 @@ pthread_t thread_read485;
 
 extern void read485_proccess();
 
+CLASS_6013 from6013;
+CLASS_6015 to6015;
+
 #endif /* READ485_H_ */

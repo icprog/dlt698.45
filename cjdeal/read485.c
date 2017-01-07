@@ -49,6 +49,58 @@ INT8U deal6015_698protocol(CLASS_6015 st6015)
 	return result;
 
 }
+void init6013()
+{
+	from6013.taskID = 1;
+	from6013.interval.interval = 1;
+	from6013.interval.units = day_units;//一天
+	from6013.cjtype = norm;
+	from6013.sernum = 1;//方案编号
+	from6013.startime.year = 2016;
+	from6013.startime.month = 9;
+	from6013.startime.day = 12;
+	from6013.startime.hour = 0;
+	from6013.startime.min = 2;
+	from6013.startime.sec = 0;
+	from6013.endtime.year = 2099;
+	from6013.endtime.month = 9;
+	from6013.endtime.day = 9;
+	from6013.endtime.hour = 9;
+	from6013.endtime.min = 9;
+	from6013.endtime.sec = 9;
+	from6013.delay.interval = 0;
+	from6013.delay.units = sec_units;
+	from6013.runprio = ness;
+	from6013.state = valid;
+	from6013.befscript = 0;
+	from6013.aftscript = 0;
+	from6013.runtime.type = B_K;
+	from6013.runtime.runtime[0] = 0;
+	from6013.runtime.runtime[1] = 0;
+	from6013.runtime.runtime[2] = 0x17;
+	from6013.runtime.runtime[3] = 0x3b;
+}
+void init6015()
+{
+	to6015.sernum = 1;
+	to6015.deepsize = 0x100;
+	to6015.cjtype = 1;
+	//to6015.data = ;//无采集内容
+	to6015.csd.road.oad.OI = 0x5004;
+	to6015.csd.road.oad.attflg = 2;
+	to6015.csd.road.oad.attrindex = 0;
+	to6015.csd.road.oads[0].OI = 0x2021;
+	to6015.csd.road.oads[0].attflg = 2;
+	to6015.csd.road.oads[0].attrindex = 0;
+	to6015.csd.road.oads[1].OI = 0x0010;
+	to6015.csd.road.oads[1].attflg = 2;
+	to6015.csd.road.oads[1].attrindex = 0;
+	to6015.csd.road.oads[2].OI = 0x0020;
+	to6015.csd.road.oads[2].attflg = 2;
+	to6015.csd.road.oads[2].attrindex = 0;
+	to6015.ms.allmeter_null = 1;//所有电表
+	to6015.savetimeflag = 4;
+}
 void read485_proccess()
 {
 	pthread_attr_init(&read485_attr_t);
@@ -58,10 +110,8 @@ void read485_proccess()
 	{
 
 
-		CLASS_6013 from6013;
-		CLASS_6015 to6015;
-		memset(&to6015,0,sizeof(CLASS_6015));
-
+		init6013();
+		init6015();
 
 		CLASS_6035 result6035;//采集任务监控单元
 		memset(&result6035,0,sizeof(CLASS_6035));
@@ -74,7 +124,8 @@ void read485_proccess()
 		ret = deal6015_698protocol(to6015);
 
 
-
+//		memset(&to6015,0,sizeof(CLASS_6015));
+//		INT8U ret = use6013find6015(from6013,&to6015);
 		sleep(1);
 	}
 }

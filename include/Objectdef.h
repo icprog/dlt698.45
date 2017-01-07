@@ -70,8 +70,8 @@ typedef struct
 	INT16U deepsize;					//存储深度
 	SCHM_TYPE  cjtype;					//方案类型
 	INT8U sernum;						//方案序号
-	DataTimeBCD startime;               //开始时间
-	DataTimeBCD endtime;                //结束时间
+	DateTimeBCD startime;               //开始时间
+	DateTimeBCD endtime;                //结束时间
 	TI delay;						    //延时
 	RUN_PRIO runprio;                   //执行优先级
 	TASK_VALID state;                   //任务状态
@@ -98,8 +98,8 @@ typedef struct
 {
 	INT8U taskID;		                //任务ID
 	TASK_STATE taskState;				//任务执行状态
-	DataTimeBCD startime;               //任务执行开始时间
-	DataTimeBCD endtime;                //任务结束结束时间
+	DateTimeBCD startime;               //任务执行开始时间
+	DateTimeBCD endtime;                //任务结束结束时间
 	INT16U totalMSNum;					//采集总数量
 	INT16U successMSNum;				//采集成功数量
 	INT16U sendMsgNum;					//发送报文数量

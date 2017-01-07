@@ -111,7 +111,7 @@ typedef enum {
 //6013
 typedef enum {
 	norm=1/*普通采集方案*/,
-	even=2/*事件采集方案*/,
+	events=2/*事件采集方案*/,
 	tran=3/*透明采集方案*/,
 	rept=4/*上报方案*/,
 	scpt=5/*脚本方案*/
@@ -608,8 +608,6 @@ typedef struct{
 	int deal_step;					//数据接收状态机处理标记
 	int	rev_delay;					//接收延时
 	INT8S (*p_send)(int fd,INT8U * buf,INT16U len);
-	void (*p_recv)(int fd,INT8U* buf,int *head);
-	void (*p_connet)(INT8U* ip,INT16U port,int *fd);
 }CommBlock;
 
 typedef struct
