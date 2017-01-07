@@ -16,17 +16,17 @@
 #include <errno.h>
 #include "read485.h"
 
-typedef struct
-{
-	INT8U missionID;		//参数变量接口类逻辑名
-	TI interval;						//执行频率
-	INT16U deepsize;					//存储深度
-	INT8U  cjtype;						//采集类型
-	DataType data;
-	CSD    csd[20];						//记录列选择 array CSD,
-	MS     ms;							//电能表集合
-	INT8U  savetimeflag;				//存储时标选择 enum
-}CLASS_6013;//任务配置单元
+//typedef struct
+//{
+//	INT8U missionID;		//参数变量接口类逻辑名
+//	TI interval;						//执行频率
+//	INT16U deepsize;					//存储深度
+//	INT8U  cjtype;						//采集类型
+//	DataType data;
+//	CSD    csd[20];						//记录列选择 array CSD,
+//	MS     ms;							//电能表集合
+//	INT8U  savetimeflag;				//存储时标选择 enum
+//}CLASS_6013;//任务配置单元
 
 void read485_thread()
 {
@@ -60,6 +60,58 @@ INT8U deal6015_698protocol(CLASS_6015 st6015)
 	return result;
 
 }
+void init6013()
+{
+	from6013.taskID = 1;
+	from6013.interval.interval = 1;
+	from6013.interval.units = day_units;//一天
+	from6013.cjtype = norm;
+	from6013.sernum = 1;//方案编号
+	from6013.startime.year = 2016;
+	from6013.startime.month = 9;
+	from6013.startime.day = 12;
+	from6013.startime.hour = 0;
+	from6013.startime.min = 2;
+	from6013.startime.sec = 0;
+	from6013.endtime.year = 2099;
+	from6013.endtime.month = 9;
+	from6013.endtime.day = 9;
+	from6013.endtime.hour = 9;
+	from6013.endtime.min = 9;
+	from6013.endtime.sec = 9;
+	from6013.delay.interval = 0;
+	from6013.delay.units = sec_units;
+	from6013.runprio = ness;
+	from6013.state = valid;
+	from6013.befscript = 0;
+	from6013.aftscript = 0;
+	from6013.runtime.type = B_K;
+	from6013.runtime.runtime[0] = 0;
+	from6013.runtime.runtime[1] = 0;
+	from6013.runtime.runtime[2] = 0x17;
+	from6013.runtime.runtime[3] = 0x3b;
+}
+void init6015()
+{
+	to6015.sernum = 1;
+	to6015.deepsize = 0x100;
+	to6015.cjtype = 1;
+	//to6015.data = ;//无采集内容
+	to6015.csd.road.oad.OI = 0x5004;
+	to6015.csd.road.oad.attflg = 2;
+	to6015.csd.road.oad.attrindex = 0;
+	to6015.csd.road.oads[0].OI = 0x2021;
+	to6015.csd.road.oads[0].attflg = 2;
+	to6015.csd.road.oads[0].attrindex = 0;
+	to6015.csd.road.oads[1].OI = 0x0010;
+	to6015.csd.road.oads[1].attflg = 2;
+	to6015.csd.road.oads[1].attrindex = 0;
+	to6015.csd.road.oads[2].OI = 0x0020;
+	to6015.csd.road.oads[2].attflg = 2;
+	to6015.csd.road.oads[2].attrindex = 0;
+	to6015.ms.allmeter_null = 1;//所有电表
+	to6015.savetimeflag = 4;
+}
 void read485_proccess()
 {
 	pthread_attr_init(&read485_attr_t);
@@ -67,12 +119,10 @@ void read485_proccess()
 	pthread_attr_setdetachstate(&read485_attr_t,PTHREAD_CREATE_DETACHED);
 	while ((thread_read485_id=pthread_create(&thread_read485, &read485_attr_t, (void*)read485_thread, NULL)) != 0)
 	{
-
-
-		CLASS_6013 from6013;
-		CLASS_6015 to6015;
-		memset(&to6015,0,sizeof(CLASS_6015));
-		INT8U ret = use6013find6015(from6013,&to6015);
+		init6013();
+		init6015();
+//		memset(&to6015,0,sizeof(CLASS_6015));
+//		INT8U ret = use6013find6015(from6013,&to6015);
 
 		sleep(1);
 	}
