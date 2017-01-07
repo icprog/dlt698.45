@@ -60,6 +60,28 @@ typedef struct
 }CLASS_6001;//采集档案配置表对象
 typedef struct
 {
+	RUN_TIME_TYPE type;                //运行时段类型
+	INT8U runtime[4];                  //时段 0-3分别表示起始小时.分钟，结束小时.分钟
+}TASK_RUN_TIME;
+typedef struct
+{
+	INT8U taskID;		                //参数变量接口类逻辑名
+	TI interval;						//执行频率
+	INT16U deepsize;					//存储深度
+	SCHM_TYPE  cjtype;					//方案类型
+	INT8U sernum;						//方案序号
+	DataTimeBCD startime;               //开始时间
+	DataTimeBCD endtime;                //结束时间
+	TI delay;						    //延时
+	RUN_PRIO runprio;                   //执行优先级
+	TASK_VALID state;                   //任务状态
+	INT8U  befscript;                   //任务开始前脚本
+	INT8U  aftscript;                   //任务完成后脚本
+	TASK_RUN_TIME runtime;              //任务运行时段
+}CLASS_6013;//任务配置单元
+
+typedef struct
+{
 	INT8U name[OCTET_STRING_LEN];		//参数变量接口类逻辑名
 	INT16U sernum;						//方案序号
 	INT16U deepsize;					//存储深度

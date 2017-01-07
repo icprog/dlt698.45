@@ -108,6 +108,33 @@ typedef enum {
 	protocol_ver_err/*协议版本错误*/,
 	other_err2/*其它错误*/
 }ConnectResult;	/*应用连接请求认证的结果*/
+//6013
+typedef enum {
+	norm=1/*普通采集方案*/,
+	even=2/*事件采集方案*/,
+	tran=3/*透明采集方案*/,
+	rept=4/*上报方案*/,
+	scpt=5/*脚本方案*/
+}SCHM_TYPE;//方案类型
+
+typedef enum {
+	first=1/*首要*/,
+	ness=2/*必要*/,
+	need=3/*需要*/,
+	poss=4/*可能*/
+}RUN_PRIO;//执行优先级
+
+typedef enum {
+	valid=1/*正常*/,
+	novalid=2/*停用*/
+}TASK_VALID;//任务状态
+
+typedef enum {
+	B_K=0/*前闭后开*/,
+	K_B=1/*前开后闭*/,
+	B_B=2/*前闭后闭*/,
+	K_K=3/*前开后开*/
+}RUN_TIME_TYPE;//运行时段类型
 //////////////////////////////////////////////////////////////////
 
 typedef struct
