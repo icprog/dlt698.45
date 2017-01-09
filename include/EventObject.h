@@ -262,6 +262,7 @@ typedef struct
 								   //bit3:事件结束（恢复）上报确认标识，0—未确认，1—已确认。
 }Channel_Object;
 
+#pragma pack(1)				//结构体一个字节对齐
 /*以下为整个事件属性结构体，存储该结构体*/
 typedef struct
 {
