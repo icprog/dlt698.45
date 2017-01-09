@@ -48,6 +48,16 @@ typedef enum {
 	close_connection/*断开连接*/
 }Link_Request_type;	/*连接请求类型*/
 
+/*698基本数据类型*/
+typedef enum {
+  dtnull=0,dtarray=1,dtstructure=2,dtbool=3,dtbitstring=4,dtdoublelong=5,dtdoublelongunsigned=6,
+  dtoctetstring=9,dtvisiblestring=0x0a,dtutf8string=0x0c,dtinteger=0x0f,dtlong=0x10,dtunsigned=0x11,
+  dtlongunsigned=0x12,dtlong64=0x14,dtlong64unsigned=0x15,dtenum=0x16,dtfloat32=0x17,dtfloat64=0x18,
+  dtdatetime=0x19,dtdate=0x1a,dttime=0x1b,dtdatetimes=0x1c,dtoi=0x50,dtoad=0x51,dtroad=0x52,dtomd=0x53,
+  dtti=0x54,dttsa=0x55,dtmac=0x56,dtrn=0x57,dtregion=0x58,dtscalerunit=0x59,dtrsd=0x5a,dtcsd=0x5b,dtms=0x5c,
+  dtsid=0x5d,dtsidmac=0x5e,dtcomdcb=0x5f,dtrcsd=0x60
+}Base_DataType;
+
 typedef enum {
 	bps300,bps600,bps1200,bps2400,bps4800,bps7200,bps9600,bps19200,bps38400,bps57600,bps115200,autoa
 }Baud_Rate;	/*波特率*/
@@ -623,5 +633,6 @@ typedef struct
 	TSA cjqaddr;
 
 }MeterInfoUnit;
+
 
 #endif
