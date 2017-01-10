@@ -3,6 +3,7 @@
 #include <string.h>
 #include <stdlib.h>
 
+#include "AccessFun.h"
 #include "dlt698.h"
 #include "dlt698def.h"
 

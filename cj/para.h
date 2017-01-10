@@ -10,6 +10,6 @@
 
 /*
  * 参数文件的读取*/
-void para_process(char *type);
+extern void para_process(char *type);
 
 #endif /* PARA_H_ */

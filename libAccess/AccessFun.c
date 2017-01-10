@@ -19,41 +19,39 @@
 #include <sys/file.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+
 #include "AccessFun.h"
 #include "StdDataType.h"
+#include "Objectdef.h"
+#include "ParaDef.h"
+#define 	LIB_ACCESS_VER 			0x0001
 
+#define 	CODE 					0xa001
+#define 	FILENAMELEN				128			//文件名字最大长度
+#define 	FILEEXTLEN				5			//文件扩展名最大长度
 
-#define LIB_ACCESS_VER 			0x0001
-
-#define 	CODE 			0xa001
-#define 	FILENAMELEN		128			//文件名字最大长度
-#define 	FILEEXTLEN		5			//文件扩展名最大长度
+typedef enum{
+	AddUpdate=1,		//添加及更新
+	Delete,			//删除
+	Clear,			//清空
+}Method;
 
 typedef struct
 {
    INT16U 		oi;  							//对象标识OI
+   INT16U		interface_len;					//接口类头文件长度
+   INT16U		unit_len;						//配置单元长度
+   INT16U		index_site;						//配置序号索引位置
    char			logic_name[OCTET_STRING_LEN];	//对象逻辑名字
-   char			file_name[FILENAMELEN];		//对象保存名字
-}CLASS_FILENAME;
+   char			file_name[FILENAMELEN];			//对象保存名字
+}CLASS_INFO;
 
-//typedef struct{
-//
-//}Method;
-
-const static CLASS_FILENAME  class_name[] ={
-		{6001,"6000","/nand/para/table6000.par"},		//采集档案配置表
+CLASS_INFO	info={};
+const static CLASS_INFO  class_info[] ={
+		{0x6001,sizeof(COLL_CLASS_11),sizeof(CLASS_6001),OCTET_STRING_LEN,"6000","/nand/para/table6000.par"},		//采集档案配置表
 };
 
-INT16S getclassindex(INT16U oi)
-{
-	INT16S i=0;
-	for(i=0; i < sizeof(class_name)/sizeof(CLASS_FILENAME);i++)
-	{
-		if(class_name[i].oi == oi)
-			return i;
-	}
-	return -1;
-}
+
 
 INT16U crc(INT16U Data)
 {
@@ -81,13 +79,12 @@ INT16U  make_parity(void *source,int size)
 	INT16U			Parity=0xffff;
 	unsigned char   *buf = (unsigned char *)source;
 //	 fprintf(stderr,"------------size=%d\n", size);
-
     for (m=0; m<(size-2); m++){
 //    	if(m%32==0)fprintf(stderr,"\n");
 //    	fprintf(stderr,"%02x ",buf[m]);
 		Parity=Parity^buf[m];
 		Parity=crc(Parity);
-//		fprintf(stderr,"\n %04x \n",Parity);
+//		fprintf(stderr," %04x ",Parity);
 	}
 //    fprintf(stderr,"\n计算校验=%04x\n",Parity);
 	return Parity;
@@ -100,21 +97,25 @@ INT16U  make_parity(void *source,int size)
 // 输入参数：FileName:文件名，size:文件尺寸
 // 输出：	source:文件内容
 // 返回值：     =1，校验正确，=0，校验错误
-INT8U file_read(char *FileName, void *source, int size,int index,INT16U *retcrc)
+INT8U file_read(char *FileName, void *source, int size,int offset,INT16U *retcrc)
 {
 	FILE 	*fp=NULL;
 	int 	num,ret=0;
 	INT16U  readcrc;//=(INT16U *)((INT8U*)source+size-2);
-
+//	int		i;
+//	INT8U  *val;
 
 //	fprintf(stderr,"read FileName=%s\n",FileName);
-
 	fp = fopen(FileName, "r");
 	if (fp != NULL) {
-		fseek(fp, index*size, SEEK_SET);
+		fseek(fp, offset, SEEK_SET);
 		num=fread(source,1 ,size-2,fp);
 		fread(&readcrc,1,2,fp);
 //		fprintf(stderr,"read.num=%d,size=%d,reccrc=%04x\n",num,size,readcrc);
+//		for(i=0;i<(size-2);i++) {
+//			val = (INT8U *)source+i;
+//			fprintf(stderr,"%02x ",*val);
+//		}
 		if(num==(size-2)) {			//读取了size字节数据
 			INT16U crc= make_parity(source,size);
 //			fprintf(stderr,"\n计算 crc =%04x\n",crc);
@@ -139,7 +140,7 @@ INT8U file_read(char *FileName, void *source, int size,int index,INT16U *retcrc)
 //                    文件扩展名制定长度必须为3个字符
 // 输入参数：FileName:文件名，source:文件内容，size:文件尺寸
 // 返回值：     =1，文件保存成功，=0，文件保存失败
-INT8U file_write(char *FileName, void *source, int size,int index)
+INT8U file_write(char *FileName, void *source, int size, int offset)
 {
 	FILE *fp=NULL;
 	int	  fd;
@@ -147,7 +148,6 @@ INT8U file_write(char *FileName, void *source, int size,int index)
 	int num=0;
 	INT8U	*blockdata=NULL;
 	INT16U	readcrc;
-	int		offset=0;
 
 //	fprintf(stderr,"\nwrite begin size=%d", size);
 	blockdata = malloc(size);
@@ -161,11 +161,10 @@ INT8U file_write(char *FileName, void *source, int size,int index)
 //	fprintf(stderr,"\nwrite sourceaddr=%p\n", source);
 	readcrc = make_parity(source,size);			//计算crc16校验
 	int i=0;
-//	fpos_t pos;
-	for(i=0;i<size;i++){
-		fprintf(stderr,"%02x ",blockdata[i]);
-	}
-	fprintf(stderr,"\nwrite FileName %s source crc=%04x\n",FileName, readcrc);
+//	for(i=0;i<size;i++){
+//		fprintf(stderr,"%02x ",blockdata[i]);
+//	}
+//	fprintf(stderr,"\nwrite FileName %s source crc=%04x\n",FileName, readcrc);
 
 	memcpy(blockdata+size-2,&readcrc,2);
 	if(access(FileName,F_OK)!=0)
@@ -177,17 +176,9 @@ INT8U file_write(char *FileName, void *source, int size,int index)
 		fprintf(stderr,"替换文件\n");
 	}
 	if (fp != NULL) {
-		offset = fseek(fp, index*size, SEEK_SET);
-//		fprintf(stderr,"goto seek=%d offset=%d\n",offset,ftell(fp));
-//		//rewind(fp);
-//		fgetpos(fp,&pos);
-//		fprintf(stderr,"pos=%d\n",pos);
-//		if(offset!=0) {
-//			offset = fseek(fp, 0L, SEEK_END);
-//			fprintf(stderr,"end offset=%d\n",offset);
-//		}
+		fseek(fp, offset, SEEK_SET);
 		num = fwrite(blockdata, size,1,fp);
-		fprintf(stderr,"write index=%d,size=%d num=%d\n",index,size,num);
+//		fprintf(stderr,"write index=%d,size=%d num=%d\n",offset,size,num);
 		fd = fileno(fp);
 		fsync(fd);
 		fclose(fp);
@@ -198,7 +189,6 @@ INT8U file_write(char *FileName, void *source, int size,int index)
 			res = 1;
 		}else res = 0;
 //		syslog(LOG_NOTICE,"fwrite %s end!\n",FileName);
-//		fprintf(stderr,"fwrite %s end!\n",FileName);
 	} else {
 //		fprintf(stderr, "%s saved error\n\r", FileName);
 		res = 0;
@@ -214,10 +204,10 @@ INT8U file_write(char *FileName, void *source, int size,int index)
 // 输出：    		blockdata：文件数据缓冲区
 // 返回值： =1:文件同步成功,使用blockdata数据源初始化内存
 //         =0:文件同步失败，返回错误，参数初始化默认值，建议产生ERC2参数丢失事件
-INT8U block_file_sync(char *fname,void *blockdata,int size,int index)
+INT8U block_file_sync(char *fname,void *blockdata,int size,int headsize,int index)
 {
 	INT8U	ret1=0,ret2=0;
-	int		sizenew;
+	INT16U  sizenew,offset=0;
 	void 	*blockdata1;
 	void  	*blockdata2;
 	struct 	stat info1,info2;		//文件信息stat包含头文件/sys/stat.h
@@ -225,6 +215,7 @@ INT8U block_file_sync(char *fname,void *blockdata,int size,int index)
 	INT16U  *readcrc1;//=(INT16U *)((INT8U*)blockdata+size-4);
 	INT16U  *readcrc2;
 	INT16U  ret=0;
+
 //	fprintf(stderr,"\n read file :%s\n",fname);
 	if(fname==NULL) 	return 0;
 
@@ -254,8 +245,9 @@ INT8U block_file_sync(char *fname,void *blockdata,int size,int index)
 //	fprintf(stderr,"\n------par=%s",fname);
 //	fprintf(stderr,"\n------bak=%s",fname2);
 
-	ret1 = file_read(fname,blockdata1,sizenew,index,readcrc1);
-	ret2 = file_read(fname2,blockdata2,sizenew,index,readcrc2);
+	offset = headsize+sizenew*index;
+	ret1 = file_read(fname,blockdata1,sizenew,offset,readcrc1);
+	ret2 = file_read(fname2,blockdata2,sizenew,offset,readcrc2);
 //	fprintf(stderr,"\ncrc1=%04x,crc2=%04x,ret1=%d,ret2=%d\n",*readcrc1,*readcrc2,ret1,ret2);
 	if((*readcrc1 == *readcrc2) && (ret1==1) && (ret2==1))  {		//两个文件校验正确，并且校验码相等，返回 1
 //		fprintf(stderr,"正确\n");
@@ -271,7 +263,7 @@ INT8U block_file_sync(char *fname,void *blockdata,int size,int index)
 		//校验码不等，使用fname1文件内容更新fname2
 //			syslog(LOG_NOTICE," %s 校验码不等,更新备份文件 ",fname);
 //			fprintf(stderr," %s 校验码不等,更新备份文件 ",fname);
-			file_write(fname2,blockdata1,sizenew,index);
+			file_write(fname2,blockdata1,sizenew,offset);
 			ret= 1;
 //		}else {														//fname2文件修改时间新,更新fname1源数据
 //			syslog(LOG_NOTICE," %s 校验码不等,更新源文件 ",fname);
@@ -283,21 +275,21 @@ INT8U block_file_sync(char *fname,void *blockdata,int size,int index)
 	if((ret1==1) &&(ret2==0)) {							//fname1校验正确，fname2校验错误,更新fname2备份文件
 //		fprintf(stderr,"备份文件校验错误\n");
 		syslog(LOG_NOTICE," %s 备份文件校验错误 ",fname);
-		file_write(fname2,blockdata1,sizenew,index);
+		file_write(fname2,blockdata1,sizenew,offset);
 		ret= 1;
 	}
 	if((ret1==0) &&(ret2==1)) {							//fname2校验正确，fname1校验错误,更新fname1源文件
-//		fprintf(stderr,"主文件校验错误\n");
+		fprintf(stderr,"主文件校验错误\n");
 		syslog(LOG_NOTICE," %s 主文件校验错误 ",fname);
-		file_write(fname,blockdata2,sizenew,index);
+		file_write(fname,blockdata2,sizenew,offset);
 		memcpy(blockdata1,blockdata2,sizenew);
 		ret= 1;
 	}
 	if(ret1==0 && ret2==0){
-//		fprintf(stderr,"主文件 备份文件都错误  size=%d\n", sizenew);
+		fprintf(stderr,"主文件 备份文件都错误  size=%d\n", sizenew);
 		syslog(LOG_NOTICE," %s 主文件 备份文件都错误 ",fname);
-		file_write(fname2,blockdata1,sizenew,index);
-		file_write(fname,blockdata1,sizenew,index);
+		file_write(fname2,blockdata1,sizenew,offset);
+		file_write(fname,blockdata1,sizenew,offset);
 		ret = 1;
 	}
 	if (ret ==1)
@@ -316,10 +308,10 @@ INT8U block_file_sync(char *fname,void *blockdata,int size,int index)
 // 数据块数据保存文件
 // 输入参数：fname:主文件名，blockdata：主文件块缓冲区，size:主文件尺寸，index:文件的存储索引位置
 // 返回值：=1：文件保存成功，=0，文件保存失败，此时建议产生ERC2参数丢失事件通知主站异常
-INT8U save_block_file(char *fname,void *blockdata,int size,int index)
+INT8U save_block_file(char *fname,void *blockdata,int size,int headsize,int index)
 {
-	int		i,ret=0;
-	int		sizenew;
+	int		i=0,ret=0;
+	int		sizenew=0,offset=0;
 	INT16U	readcrc;
 
 	if(fname==NULL) 	  return 0;
@@ -327,13 +319,15 @@ INT8U save_block_file(char *fname,void *blockdata,int size,int index)
 	//文件默认最后两个字节为CRC16校验，原结构体尺寸如果不是4个字节对齐，进行补齐，加CRC16
 	if(size%4==0)	sizenew = size+2;
 	else sizenew = size+(4-size%4)+2;
-	fprintf(stderr,"write fname=%s,size=%d,sizenew=%d\n",fname,size,sizenew);
-	if(file_write(fname,blockdata,sizenew,index)==1) {
+//	fprintf(stderr,"write fname=%s,size=%d,sizenew=%d\n",fname,size,sizenew);
+
+	offset = headsize+sizenew*index;
+	if(file_write(fname,blockdata,sizenew,offset)==1) {
 		for(i=0;i<3;i++) {
-			fprintf(stderr,"read fname=%s,size=%d,sizenew=%d\n",fname,size,sizenew);
-			if(file_read(fname,blockdata,sizenew,index,&readcrc)==1) {						//源文件正确，备份参数文件
+//			fprintf(stderr,"read fname=%s,size=%d,sizenew=%d\n",fname,size,sizenew);
+			if(file_read(fname,blockdata,sizenew,offset,&readcrc)==1) {						//源文件正确，备份参数文件
 //				fprintf(stderr,"保存文件成功，备份文件,crc=%04x\n",readcrc);
-				ret = block_file_sync(fname,blockdata,size,index);			//配置文件同步处理
+				ret = block_file_sync(fname,blockdata,size,headsize,index);			//配置文件同步处理
 //				fprintf(stderr,"**********block_file_sync ret=%d\n",ret);
 				if(ret==1) 	break;
 			}else {
@@ -346,22 +340,262 @@ INT8U save_block_file(char *fname,void *blockdata,int size,int index)
 	return ret;
 }
 
+INT16S getclassinfo(INT16U oi,CLASS_INFO *classinfo)
+{
+	INT16S i=0;
+	for(i=0; i < sizeof(class_info)/sizeof(CLASS_INFO);i++)
+	{
+//		fprintf(stderr,"%d:classinfo %04x  oi=%04x\n",i,class_info[i].oi,oi);
+		if(class_info[i].oi == oi) {
+			strncpy(classinfo->logic_name,class_info[i].logic_name,sizeof(class_info[i].logic_name));
+			strncpy(classinfo->file_name,class_info[i].file_name,sizeof(class_info[i].file_name));
+			classinfo->interface_len = class_info[i].interface_len;
+			classinfo->unit_len = class_info[i].unit_len;
+			classinfo->index_site = class_info[i].index_site;
+			return i;
+		}
+	}
+	fprintf(stderr,"未找到OI=%04x的相关信息配置内容！！！\n",oi);
+	return -1;
+}
+
+/************************************
+ * 函数说明：获取参数文件对象配置单元的个数
+ * 返回值：
+ * >=0:  单元个数
+ * -1:  未查找到OI类数据
+ * -2:	文件记录不完整
+ *************************************/
+long getFileRecordNum(INT16U oi)
+{
+	int			blknum=0,sizenew=0;
+	CLASS_INFO	info={};
+	long 		filesize=0;
+
+	if(getclassinfo(oi,&info)==-1) {
+		return -1;
+	}
+
+	if(info.unit_len%4==0)	sizenew = info.unit_len+2;
+	else sizenew = info.unit_len+(4-info.unit_len%4)+2;
+
+    FILE* fp = fopen(info.file_name, "rb" );
+    if(fp==NULL){
+        fprintf(stderr,"ERROR: Open file %s failed.\n", info.file_name);
+        return 0;
+    }
+    fseek( fp, 0L, SEEK_END );
+    filesize=ftell(fp);
+    fclose(fp);
+
+	blknum = (filesize-info.interface_len)/sizenew;
+
+	if((filesize-info.interface_len)%sizenew!=0 ){
+		fprintf(stderr,"采集档案表不是整数，检查文件完整性！！！ %ld-%d=%d\n",filesize,info.interface_len,sizenew);
+		return -2;
+	}
+    return blknum;
+}
+
+/*
+ * 接口类公共属性读取
+ * 输入参数：oi对象标识，blockdata：主文件块缓冲区，size:主文件尺寸，index:文件的存储索引位置
+ * 返回值：
+ * =1：文件读取成功   =0：文件读取失败   =-1:  未查找到OI类数据信息
+ */
+//TODO: 未读取备份文件的接口类内容进行判断
+INT8U	readInterClass(INT16U oi,void *dest)
+{
+	FILE 	*fp=NULL;
+	int		num = 0;
+	INT16U	infoi=-1;
+//	CLASS_INFO	info={};
+
+	infoi = getclassinfo(oi,&info);
+	if(infoi==-1) {
+		return -1;
+	}
+	fp = fopen(class_info[infoi].file_name, "r");
+	if (fp != NULL) {
+		num=fread(dest,1 ,class_info[infoi].interface_len,fp);
+		fclose(fp);
+	}
+	return num;
+};
+
+/*
+ * 返回值： 0：写公用接口类失败，1：写成功
+ * */
+INT8U	writeInterClass(char *file_name,void *dest,int size)
+{
+	FILE 	*fp=NULL;
+	int		num=0;
+	char	fname2[FILENAMELEN]={};
+
+	if(access(file_name,F_OK)!=0)  //文件不存在
+	{
+		fp = fopen((char*)file_name, "w+");
+	}else {
+		fp = fopen((char*)file_name, "r+");
+	}
+	if (fp != NULL) {
+		fseek(fp, 0L, SEEK_SET);
+//		fprintf(stderr,"write size=%d\n",size);
+		num = fwrite(dest,size,1,fp);
+		fclose(fp);
+	}
+	memset(fname2,0,sizeof(fname2));
+	strncpy(fname2,file_name,strlen(file_name)-4);
+	strcat(fname2,".bak");
+	if(access(fname2,F_OK)!=0)  //文件不存在
+	{
+		fp = fopen((char*)fname2, "w+");
+	}else {
+		fp = fopen((char*)fname2, "r+");
+	}
+	if (fp != NULL) {
+		fseek(fp, 0L, SEEK_SET);
+//		fprintf(stderr,"write size=%d\n",size);
+		num = fwrite(dest,size,1,fp);
+		fclose(fp);
+	}
+	return num;
+};
+
+int WriteClass11(INT16U oi,INT16U seqnum,INT8U method)
+{
+	void 	*unitdata;
+	COLL_CLASS_11	class11={};
+	CLASS_INFO	tmpinfo={};
+	int		ret=0;
+	INT16U 	*sernum;
+
+	if(getclassinfo(oi,&tmpinfo)==-1) {
+		return -1;
+	}
+
+	unitdata = malloc(tmpinfo.unit_len);
+	memset(unitdata,0,tmpinfo.unit_len);
+	if(unitdata==NULL) {
+		free(unitdata);
+		syslog(LOG_NOTICE," oi = %04x malloc error",oi);
+		return -2;
+	}
+
+	if(readInterClass(oi,&class11)==0){			//文件不存在，初始化类
+		strncpy((char *)&class11.logic_name,tmpinfo.logic_name,sizeof(class11.logic_name));
+		class11.curr_num = 0;
+		class11.max_num = MAX_POINT_NUM;
+	}
+	if(seqnum>0 && seqnum<=MAX_POINT_NUM) {
+		switch(method) {
+		case AddUpdate:
+			ret = block_file_sync(tmpinfo.file_name,unitdata,tmpinfo.unit_len,tmpinfo.interface_len,seqnum);
+			if(ret==1) {
+				sernum = (INT16U *)((INT8U*)unitdata+tmpinfo.index_site);
+	//			fprintf(stderr,"================WriteClass11:index=%d  sernum=%d,site=%d\n",index,*sernum,tmpinfo.index_site);
+				if(*sernum == 0 || *sernum == 0xffff) {		//当前位置不存在相关序号记录，进行添加动作
+					class11.curr_num++;
+					fprintf(stderr,"添加操作 当前元素个数=%d\n",class11.curr_num);
+				}
+			}
+			break;
+		case Delete:
+			if(class11.curr_num) {
+				class11.curr_num--;
+				fprintf(stderr,"删除操作 当前元素个数=%d\n",class11.curr_num);
+			}
+			break;
+		case Clear:
+			class11.curr_num=0;
+			break;
+		}
+	}
+	writeInterClass((char *)tmpinfo.file_name,&class11,sizeof(COLL_CLASS_11));
+	free(unitdata);
+	return 1;
+}
+/*
+ * 组织接口类函数的属性值
+ * */
+//TODO: 各个接口类能否做成统一？
+void WriteInterfaceClass(INT16U oi,INT16U seqnum,INT8U method)
+{
+	switch(oi) {
+	case 0x6001:
+		WriteClass11(oi,seqnum,method);
+		break;
+	}
+}
 /*
  * 参数类存储
- * 输入参数：oi对象标识，blockdata：主文件块缓冲区，size:主文件尺寸，index:文件的存储索引位置
+ * 输入参数：oi对象标识，blockdata：主文件块缓冲区，seqnum:对象配置单元序列号，作为文件位置索引
  * 返回值：=1：文件保存成功，=0，文件保存失败，此时建议产生ERC2参数丢失事件通知主站异常
  * =-1:  未查找到OI类数据
  */
-
-INT8U ParaClassSave(INT16U oi,void *blockdata,int size,int index,int method)
+INT8U saveParaClass(INT16U oi,void *blockdata,int seqnum)
 {
 	INT8U 	ret=-1;
-	INT16S	classindex=-1;
+	INT16U	infoi=-1;
 
-	classindex = getclassindex(oi);
-	if(classindex == -1) {
+	infoi = getclassinfo(oi,&info);
+	if(infoi == -1) {
 		return -1;
 	}
-//	save_block_file();
+	if(class_info[infoi].interface_len!=0) {		//该存储单元内部包含的类的公共属性
+		WriteInterfaceClass(oi,seqnum,AddUpdate);
+	}
+	save_block_file((char *)class_info[infoi].file_name,blockdata,class_info[infoi].unit_len,class_info[infoi].interface_len,seqnum);
+	return ret;
+}
+
+/*
+ * 通过配置序号删除配置单元
+ * 输入参数：oi对象标识，seqnum:要删除的配置序号
+ * 返回值：=1：配置单元删除成功
+ * =-1:  未查找到OI类数据
+ */
+INT8U delClassBySeq(INT16U oi,void *blockdata,int seqnum)
+{
+	INT8U 	ret=-1;
+	INT16U	infoi=-1;
+
+	infoi = getclassinfo(oi,&info);
+	if(infoi == -1) {
+		return -1;
+	}
+	if(class_info[infoi].interface_len!=0) {		//该存储单元内部包含的类的公共属性
+		if(seqnum>0)
+			WriteInterfaceClass(oi,seqnum,Delete);
+	}
+	if(blockdata==NULL) {
+		blockdata = malloc(class_info[infoi].unit_len);
+		if(blockdata!=NULL) {
+			memset(blockdata,0,class_info[infoi].unit_len);
+		}
+	}
+	ret = save_block_file((char *)class_info[infoi].file_name,blockdata,class_info[infoi].unit_len,class_info[infoi].interface_len,seqnum);
+	free(blockdata);
+	return ret;
+}
+
+/*
+ * 根据OI、配置序号读取某条配置单元内容
+ * 输入参数：oi对象标识，seqnum:对象配置单元序列号
+ * 返回值：
+ * =1：文件读取成功，blockdata：配置单元内容
+ * =0： 文件读取失败
+ * =-1:  未查找到OI类数据
+ */
+INT8U  readParaClass(INT16U oi,void *blockdata,int seqnum)
+{
+	INT8U 	ret=-1;
+	INT16U	infoi=-1;
+
+	infoi = getclassinfo(oi,&info);
+	if(infoi==-1) {
+		return -1;
+	}
+	ret = block_file_sync((char *)class_info[infoi].file_name,blockdata,class_info[infoi].unit_len,class_info[infoi].interface_len,seqnum);
 	return ret;
 }
