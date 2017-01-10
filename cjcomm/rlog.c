@@ -25,14 +25,44 @@ void rlog(const char* fmt, ...) {
     fclose(fd);
 }
 
-void file_sys_test(){
+void file_sys_test_w(){
 	char path[64];
 	char content[512];
 	memset(path, 0, sizeof(path));
+	for(int j = 0; j < 512; j ++){
+		for(int i = 0; i < 128; i++){
+			sprintf(path, "/nand/3000/%03d/%04d", j, i);
+			FILE* fd = fopen(path, "a+");
+			int size = rand();
+			fwrite(content, size%256 + 64, 1, fd);
+			fclose(fd);
+		}
+	}
+}
+
+void file_sys_test_r(){
+	char path[64];
+	char content[512];
+	memset(path, 0, sizeof(path));
+	srand(time(NULL));
 	for(int i = 0; i < 1024; i++){
-		sprintf(path, "/nand/test/%d", i);
-		FILE* fd = fopen(path, "a+");
-		fwrite(content, 512, 1, fd);
-		fclose(fd);
+		int m = rand()%512;
+		int n = rand()%128;
+		sprintf(path, "/nand/3000/%03d/%04d", m, n);
+		FILE* fd = fopen(path, "r");
+		if (fd != NULL){
+			int res = fread(content, 1, 512, fd);
+			printf("File: %s\t%03d\n", path, res);
+			fclose(fd);
+		}
+	}
+}
+
+void file_sys_test_evn(){
+	char path[64];
+	memset(path, 0, sizeof(path));
+	for(int i = 0; i < 512; i++){
+		sprintf(path, "mkdir /nand/3000/%03d",i);
+		system(path);
 	}
 }

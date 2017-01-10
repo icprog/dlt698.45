@@ -639,6 +639,10 @@ void CreateAptSer(struct aeEventLoop* eventLoop, int fd, void* clientData, int m
 
 
 int main(int argc, char* argv[]) {
+	file_sys_test_r();
+	//file_sys_test_evn();
+	//file_sys_test_w();
+	return 0;
     struct sigaction sa = {};
 
     if (access("/nand/mlog", F_OK) == -1) {
