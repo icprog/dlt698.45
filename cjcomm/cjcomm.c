@@ -664,7 +664,7 @@ int main(int argc, char* argv[]) {
     CommBlock gprs_comstat;
     CommBlock serv_comstat;
 
-    nets_comstat.p_send  = NetWrite;
+    nets_comstat.p_send = NetWrite;
     gprs_comstat.p_send = NetWrite;
 
     initComPara(&nets_comstat);

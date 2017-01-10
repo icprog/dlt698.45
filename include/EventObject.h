@@ -297,4 +297,37 @@ typedef struct
 	Class7_Object Event3202_obj;    //购电参数设置记录29
 	Class7_Object Event3203_obj;    //电控告警事件记录30
 }TerminalEvent_Object
+
+/*
+ * Class7_Object Event3100_obj;    //终端初始化事件1
+ * Class7_Object Event3109_obj;    //终端消息认证错误事件8
+ * Class7_Object Event310A_obj;    //设备故障记录9
+ * Event3110_Object Event3110_obj; //月通信流量超限事件15
+ * Class7_Object Event3114_obj;    //终端对时事件18
+ * Class7_Object Event3202_obj;    //购电参数设置记录29
+ *
+ */
+
+/*
+ * Event3105_Object Event3105_obj; //电能表时钟超差事件4
+ * Event3106_Object Event3106_obj; //终端停/上电事件5
+ * Class7_Object Event310A_obj;    //设备故障记录9
+ * Event310B_Object Event310B_obj; //电能表示度下降事件10
+ * Event310C_Object Event310C_obj; //电能量超差事件11
+ * Event310D_Object Event310D_obj; //电能表飞走事件12
+ * Event310E_Object Event310E_obj; //电能表停走事件13
+ * Event310F_Object Event310F_obj; //终端抄表失败事件14
+ * Class7_Object Event3111_obj;    //发现未知电能表事件16
+ * Class7_Object Event3112_obj;    //跨台区电能表事件17
+ * Event311A_Object Event311A_obj; //电能表在网状态切换事件24
+ * Class7_Object Event311B_obj;    //终端对电表校时记录25
+ * Event311C_Object Event311C_obj; //电能表数据变更监控记录26
+ */
+
+/*
+ * Event3107_Object Event3107_obj; //终端直流模拟量越上限事件6
+ * Event3108_Object Event3108_obj; //终端直流模拟量越下限事件7
+ * Class7_Object Event310A_obj;    //设备故障记录9
+ * Class7_Object Event3119_obj;    //终端电流回路异常事件23
+ */
 #endif
