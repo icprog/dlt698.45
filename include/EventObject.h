@@ -53,7 +53,7 @@ typedef struct
 	INT16U maxnum;       //最大记录数
 	BOOLEAN reportflag;  //上报标识 1 上报 0 不上报
 	BOOLEAN enableflag;  //有效标识 1 有效 0 无效
-	Crrent_Object crrent_arr[5]; //当前值记录表
+	//Crrent_Object crrent_arr[5]; //当前值记录表
 }Class7_Object;
 
 //电能表时钟超差事件参数
@@ -310,7 +310,7 @@ typedef struct
 
 /*
  * Event3105_Object Event3105_obj; //电能表时钟超差事件4
- * Event3106_Object Event3106_obj; //终端停/上电事件5
+ *
  * Class7_Object Event310A_obj;    //设备故障记录9
  * Event310B_Object Event310B_obj; //电能表示度下降事件10
  * Event310C_Object Event310C_obj; //电能量超差事件11
@@ -325,6 +325,7 @@ typedef struct
  */
 
 /*
+ * Event3106_Object Event3106_obj; //终端停/上电事件5
  * Event3107_Object Event3107_obj; //终端直流模拟量越上限事件6
  * Event3108_Object Event3108_obj; //终端直流模拟量越下限事件7
  * Class7_Object Event310A_obj;    //设备故障记录9
