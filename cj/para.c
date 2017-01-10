@@ -10,22 +10,6 @@
 #include "AccessFun.h"
 #include "StdDataType.h"
 #include "Objectdef.h"
-/************************************
- * 函数说明：获取文件内容大小
- *************************************/
-long get_file_size(const char *filename){
-
-	long size=0;
-    FILE* fp = fopen( filename, "rb" );
-    if(fp==NULL){
-        fprintf(stderr,"ERROR: Open file %s failed.\n", filename);
-        return 0;
-    }
-    fseek( fp, 0L, SEEK_END );
-    size=ftell(fp);
-    fclose(fp);
-    return size;
-}
 
 char *getenum(int type,int val)
 {
@@ -61,33 +45,37 @@ char *getenum(int type,int val)
 		if(val==3)	strcpy(name,"三相四线");
 		break;
 	}
-	return name;
+	return (name);
 }
 /*
  * 采集档案配置表
  * */
-#define PARAFILE_6000		"/nand/para/meter6000.par"
 void prtCollect6000()
 {
 	CLASS_6001	 meter={};
-	int			i=0,blknum=0,blksize=0,sizenew=0;
+	COLL_CLASS_11	coll={};
+	int			i=0,blknum=0;
+	INT16U		oi = 0x6001;
 
-	blksize = sizeof(meter);
-	blknum = get_file_size(PARAFILE_6000)/(blksize+2);
+	readInterClass(oi,&coll);
+	fprintf(stderr,"采集档案配置表CLASS_11--------------");
+	fprintf(stderr,"逻辑名:%s    当前=%d     最大=%d\n",coll.logic_name,coll.curr_num,coll.max_num);
 
-	if(blksize%4==0)	sizenew = blksize+2;
-	else sizenew = blksize+(4-blksize%4)+2;
-
-	if(get_file_size(PARAFILE_6000)%sizenew !=0 ){
-		fprintf(stderr,"采集档案表不是整数，检查文件完整性！！！ %ld-%d\n",get_file_size(PARAFILE_6000),sizenew);
+	blknum = getFileRecordNum(oi);
+	if(blknum == -1) {
+		fprintf(stderr,"未找到OI=%04x的相关信息配置内容！！！\n",6000);
+		return;
+	}else if(blknum == -2){
+		fprintf(stderr,"采集档案表不是整数，检查文件完整性！！！\n");
+		return;
 	}
-	fprintf(stderr,"采集档案配置单元6001个数：%d\n",blknum);
+	fprintf(stderr,"采集档案配置单元文件记录个数：【%d】\n",blknum);
 	fprintf(stderr,"基本信息:通信地址  波特率  规约  端口OAD  通信密码  费率个数  用户类型  接线方式  额定电压  额定电流 \n");
 	fprintf(stderr,"扩展信息:采集器地址 资产号（PT CT）\n");
 	fprintf(stderr,"附属信息:对象属性OAD  属性值\n");
 	for(i=0;i<blknum;i++) {
-		if(block_file_sync(PARAFILE_6000,&meter,blksize,i)==1) {
-			if(meter.sernum!=0 || meter.sernum!=0xffff) {
+		if(readParaClass(oi,&meter,i)==1) {
+			if(meter.sernum!=0 && meter.sernum!=0xffff) {
 				fprintf(stderr,"\n序号:%d ",meter.sernum);
 				fprintf(stderr,"%02x%02x%02x%02x%02x%02x",
 						meter.basicinfo.addr.addr[0],meter.basicinfo.addr.addr[1],meter.basicinfo.addr.addr[2],meter.basicinfo.addr.addr[3],
@@ -111,6 +99,7 @@ void prtCollect6000()
 			}
 		}
 	}
+	fprintf(stderr,"\n");
 }
 
 void para_process(char *type)

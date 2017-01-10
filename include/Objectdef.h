@@ -7,7 +7,7 @@
 
 #ifndef OBJECTACTION_H_
 #define OBJECTACTION_H_
-//#include "AccessFun.h"
+#include "ParaDef.h"
 #include "StdDataType.h"
 int doObjectAction();
 

@@ -3,7 +3,6 @@
 
 #include "ParaDef.h"
 
-
 typedef unsigned char  BOOLEAN;
 typedef unsigned char  INT8U;                    /* Unsigned  8 bit quantity                           */
 typedef signed   char  INT8S;                    /* Signed    8 bit quantity                           */

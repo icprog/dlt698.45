@@ -2,7 +2,7 @@
  * main.c
  *
  *  Created on: Jan 5, 2017
- *      Author: adminstrator
+ *      Author: ava
  */
 
 #include <stdio.h>
@@ -16,6 +16,8 @@
 #include <mqueue.h>
 #include <semaphore.h>
 #include <termios.h>
+
+#include "para.h"
 
 static char
 		*usage =
