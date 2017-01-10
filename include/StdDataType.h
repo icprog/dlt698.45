@@ -47,6 +47,16 @@ typedef enum {
 	close_connection/*断开连接*/
 }Link_Request_type;	/*连接请求类型*/
 
+/*698基本数据类型*/
+typedef enum {
+  dtnull=0,dtarray=1,dtstructure=2,dtbool=3,dtbitstring=4,dtdoublelong=5,dtdoublelongunsigned=6,
+  dtoctetstring=9,dtvisiblestring=0x0a,dtutf8string=0x0c,dtinteger=0x0f,dtlong=0x10,dtunsigned=0x11,
+  dtlongunsigned=0x12,dtlong64=0x14,dtlong64unsigned=0x15,dtenum=0x16,dtfloat32=0x17,dtfloat64=0x18,
+  dtdatetime=0x19,dtdate=0x1a,dttime=0x1b,dtdatetimes=0x1c,dtoi=0x50,dtoad=0x51,dtroad=0x52,dtomd=0x53,
+  dtti=0x54,dttsa=0x55,dtmac=0x56,dtrn=0x57,dtregion=0x58,dtscalerunit=0x59,dtrsd=0x5a,dtcsd=0x5b,dtms=0x5c,
+  dtsid=0x5d,dtsidmac=0x5e,dtcomdcb=0x5f,dtrcsd=0x60
+}Base_DataType;
+
 typedef enum {
 	bps300,bps600,bps1200,bps2400,bps4800,bps7200,bps9600,bps19200,bps38400,bps57600,bps115200,autoa
 }Baud_Rate;	/*波特率*/
@@ -107,6 +117,40 @@ typedef enum {
 	protocol_ver_err/*协议版本错误*/,
 	other_err2/*其它错误*/
 }ConnectResult;	/*应用连接请求认证的结果*/
+//6013
+typedef enum {
+	norm=1/*普通采集方案*/,
+	events=2/*事件采集方案*/,
+	tran=3/*透明采集方案*/,
+	rept=4/*上报方案*/,
+	scpt=5/*脚本方案*/
+}SCHM_TYPE;//方案类型
+
+typedef enum {
+	first=1/*首要*/,
+	ness=2/*必要*/,
+	need=3/*需要*/,
+	poss=4/*可能*/
+}RUN_PRIO;//执行优先级
+
+typedef enum {
+	valid=1/*正常*/,
+	novalid=2/*停用*/
+}TASK_VALID;//任务状态
+
+typedef enum {
+	B_K=0/*前闭后开*/,
+	K_B=1/*前开后闭*/,
+	B_B=2/*前闭后闭*/,
+	K_K=3/*前开后开*/
+}RUN_TIME_TYPE;//运行时段类型
+
+
+typedef enum {
+	BEFORE_OPR=0/*未执行*/,
+	IN_OPR=1/*执行中*/,
+	AFTER_OPR=2/*已执行*/,
+}TASK_STATE;//任务执行状态
 //////////////////////////////////////////////////////////////////
 
 typedef struct
@@ -259,14 +303,14 @@ typedef struct
 
 typedef struct
 {
-	INT32U sig;
-	INT8U addition;
+	INT8U sig[4];
+	INT8U addition[10];/*(长度(1byte)+信息(n byte))*/
 }SID;	/*安全标识*/
 
 typedef struct
 {
 	SID sid;
-	INT8U mac[20];
+	INT8U mac[10];/*正常4byte   (长度(1byte)+信息(n byte))*/
 }SID_MAC;	/*安全标识*/
 
 
@@ -359,8 +403,8 @@ typedef struct
 }SymmetrySecurity;
 typedef struct
 {
-	INT8U encrypted_code2;
-	INT8U signature;
+	INT8U encrypted_code2[40];/*密文2,正常32字节(长度(1byte)+信息(32byte))*/
+	INT8U signature[70];/*正常64字节,(长度(1byte)+信息(64byte))*/
 }SignatureSecurity;
 typedef union
 {
@@ -371,8 +415,8 @@ typedef union
 }ConnectMechanismInfo;
 typedef struct
 {
-	RN_698 server_rn;			/*服务器随机数*/
-	INT8U  server_signInfo;		/*服务器签名信息*/
+	RN_698 server_rn[50];			/*服务器随机数*/
+	INT8U  server_signInfo[70];		/*服务器签名信息*/
 }SecurityData;/*认证附加信息*/
 
 typedef struct
@@ -573,8 +617,6 @@ typedef struct{
 	int deal_step;					//数据接收状态机处理标记
 	int	rev_delay;					//接收延时
 	INT8S (*p_send)(int fd,INT8U * buf,INT16U len);
-	void (*p_recv)(int fd,INT8U* buf,int *head);
-	void (*p_connet)(INT8U* ip,INT16U port,int *fd);
 }CommBlock;
 
 typedef struct
@@ -590,5 +632,6 @@ typedef struct
 	TSA cjqaddr;
 
 }MeterInfoUnit;
+
 
 #endif

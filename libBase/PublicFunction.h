@@ -9,9 +9,9 @@
 #define PUBLICFUNCTION_H_
 
 #include <signal.h>
-#include "Shmem.h"
-#include "StdDataType.h"
-#include "ParaDef.h"
+#include "../include/Shmem.h"
+#include "../include/StdDataType.h"
+#include "../include/ParaDef.h"
 
 extern void TSGet(TS *ts);
 extern void Setsig(struct sigaction *psa,void (*pfun)(ProjectInfo *proinfo));
@@ -27,5 +27,13 @@ extern INT8S bcd2int32u(INT8U *bcd, INT8U len,ORDER order,INT32U* dint);
 extern INT32S int32u2bcd(INT32U dint32, INT8U* bcd,ORDER order);
 extern int OpenCom(int port,int baud,unsigned char *par,unsigned char stopb,unsigned char bits);
 extern void CloseCom(int ComPort);
+/*
+ * gpio操作函数
+ */
+extern INT8S gpio_readbyte(INT8S* devpath);
+extern INT32S gpio_readint(INT8S* devpath) ;
+extern INT32S gpio_writebyte(INT8S* devpath, INT8S data) ;
+extern INT32S gpio_writebytes(INT8S* devpath, INT8S* vals, INT32S valnum) ;
+
 
 #endif /* PUBLICFUNCTION_H_ */

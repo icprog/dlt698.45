@@ -11,7 +11,6 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
-//#include "../libhd/libhd.h"
 #include "SPI.h"
 
 int SPI_Close(int fd) {

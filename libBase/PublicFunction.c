@@ -14,12 +14,19 @@
 #include "math.h"
 #include "PublicFunction.h"
 
+#include <linux/serial.h>
+#include <sys/ioctl.h>
 
 /* BCD码转int32u
  *参数：bcd为bcd码头指针，len为bcd码长度，order为positive正序/inverted反序，dint转换结果
  * 返回:0：成功；-1：asc为空；-2：en为0；-3：order有误
  * 例如:0x12 0x34 -> 1234
  * */
+
+#define PIN_BASE		32
+#define	 AT91_PIN_PC1	(PIN_BASE + 0x40 + 1)
+#define 	AT91_PIN_PA7	(PIN_BASE + 0x00 + 7)
+
 INT8S bcd2int32u(INT8U *bcd, INT8U len,ORDER order,INT32U* dint)
 {
 	int i=0;
@@ -146,9 +153,18 @@ void Setsig(struct sigaction *psa,void (*pfun)(ProjectInfo *proinfo))
 	}
 }
 
-
 int OpenCom(int port,int baud,unsigned char *par,unsigned char stopb,unsigned char bits)
 {
+
+	///lhl
+	#define RTS485			0x542D
+	#define TIOCGRS485      0x542E
+	#define TIOCSRS485      0x542F
+
+	struct serial_rs485 rs485conf;
+	int 	rs485gpio;
+
+
 	int ComPort=0;
 	struct termios old_termi={},new_termi={};
 	int baud_lnx=0;
@@ -260,6 +276,45 @@ int OpenCom(int port,int baud,unsigned char *par,unsigned char stopb,unsigned ch
     	printf("Set serial port parameter error!\n");
     	return 0;
     }
+
+	if ((port==S4851)||(port==S4852))
+	{
+	 //lhl
+		/* Enable RS485 mode: */
+		memset(&rs485conf,0,sizeof(rs485conf));
+		rs485conf.flags |= SER_RS485_ENABLED;
+
+		/* Set logical level for RTS pin equal to 1 when sending: */
+	 //	rs485conf.flags |= SER_RS485_RTS_ON_SEND;
+	 //	/* or, set logical level for RTS pin equal to 0 when sending: */
+		rs485conf.flags &= ~(SER_RS485_RTS_ON_SEND);
+
+		/* Set logical level for RTS pin equal to 1 after sending: */
+		rs485conf.flags |= SER_RS485_RTS_AFTER_SEND;
+		/* or, set logical level for RTS pin equal to 0 after sending: */
+	 //	rs485conf.flags &= ~(SER_RS485_RTS_AFTER_SEND);
+
+		if (ioctl (ComPort, TIOCSRS485, &rs485conf) < 0) {
+			fprintf(stderr,"ioctl TIOCSRS485 error\n");
+		}
+
+		if (port==S4851)
+			rs485gpio=AT91_PIN_PC1;		//上海485I：AT91_PIN_PC1， 485II：AT91_PIN_PA7 ，这里要根据不同的口进行不同的设置，需修改
+		else if (port==S4852)
+			rs485gpio=AT91_PIN_PA7;
+		else
+			rs485gpio=AT91_PIN_PC1;
+		if (ioctl (ComPort, RTS485, &rs485gpio) < 0) {
+			/* Error handling. See errno. */
+			fprintf(stderr,"ioctl RTS485 error\n");
+		}
+		fprintf(stderr,"rs485gpio=%d,ComPort=%d\n",rs485gpio,ComPort);
+	}
+
+
+
+
+
     return ComPort;
 }
 //关闭串口
@@ -380,4 +435,6 @@ int GetRealdataReq_data(RealdataReq* req,TRANSTYPE* data,INT16U ticket)
 	}
     return stat;
 }
+
+
 #endif /*JPublicFunctionH*/
