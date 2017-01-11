@@ -78,9 +78,9 @@ int main(int argc, char *argv[])
 		//交采、状态、统计处理
 
 
-		//检查参数变量是否有变更
-        if(1)//如果有变更
-        	InitPara();
+		//检查参数变量是否有变更,不要频繁调用!
+        //if(1)//如果有变更
+        //	InitPara();
 		sleep(1);
 
    	}
