@@ -1,6 +1,7 @@
 #ifndef EVENTOBJECT_H_
 #define EVENTOBJECT_H_
 
+#include "ParaDef.h"
 #include "StdDataType.h"
 
 /*
@@ -10,6 +11,11 @@
  *            Event311C_Object
  * 其他终端事件可按Class7_Object进行定义！
  */
+
+//目前已确定终端判断30个事件，可根据以下数组结构轮寻读取
+const static INT16U Eventtype={0x3100,0x3101,0x3104,0x3105,0x3106,0x3107,0x3108,0x3109,0x310A,
+                               0x310B,0x310C,0x310D,0x310E,0x310F,0x3110,0x3111,0x3112,0x3114,0x3115,0x3116,
+                               0x3117,0x3118,0x3119,0x311A,0x311B,0x311C,0x3200,0x3201,0x3202,0x3203};
 
 //设备故障记录 事件发生源
 typedef enum
@@ -26,7 +32,7 @@ typedef enum
 typedef enum
 {
   shortcircuit=0,   //短路（0）
-  opencircutit=1    //开路（1）
+  opencircuit=1    //开路（1）
 }CurrentError_type;
 
 //累计时间及发生次数
@@ -40,7 +46,7 @@ typedef struct
 typedef struct
 {
 	INT8U num;
-    INT8U source[17];
+    INT8U source[TSA_LEN];
     Timesnums_Object tims_nums;
 }Crrent_Object;
 
