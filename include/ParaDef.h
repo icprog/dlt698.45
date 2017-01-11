@@ -34,7 +34,7 @@
 /*
  * 	DL/T698.45		规约结构限值
  * */
-#define TSA_LEN					16
+#define TSA_LEN					17
 #define OCTET_STRING_LEN		16
 #define COLLCLASS_MAXNUM		1024		//定义集合类最大元素个数
 
