@@ -48,10 +48,9 @@ typedef struct
 
 CLASS_INFO	info={};
 const static CLASS_INFO  class_info[] ={
-		{0x6001,sizeof(COLL_CLASS_11),sizeof(CLASS_6001),OCTET_STRING_LEN,"6000","/nand/para/table6000.par"},		//采集档案配置表
+		{0x6000,sizeof(COLL_CLASS_11),sizeof(CLASS_6001),OCTET_STRING_LEN,"6000","/nand/para/table6000.par"},		//采集档案配置表
+//		{0x6005,sizeof(COLL_CLASS_11),sizeof(CLASS_6001),OCTET_STRING_LEN,"6000","/nand/para/table6000.par"},		//采集档案配置表
 };
-
-
 
 INT16U crc(INT16U Data)
 {
@@ -579,6 +578,29 @@ INT8U delClassBySeq(INT16U oi,void *blockdata,int seqnum)
 	return ret;
 }
 
+/*
+ * 方法：Clean()清空
+ * 输入参数：oi对象标识
+ * 返回值：=0：配置单元删除成功
+ * =-1:  删除错误
+ */
+INT8U ClearClass(INT16U oi)
+{
+	INT16U	infoi=-1;
+	int		ret = -1;
+	char	fname2[FILENAMELEN];
+	infoi = getclassinfo(oi,&info);
+	if(infoi==-1) {
+		return -1;
+	}
+	memset(fname2,0,sizeof(fname2));
+	strncpy(fname2,class_info[infoi].file_name,strlen(class_info[infoi].file_name)-4);
+	strcat(fname2,".bak");
+
+	ret = unlink(class_info[infoi].file_name);
+	ret = unlink(fname2);
+	return ret;
+}
 /*
  * 根据OI、配置序号读取某条配置单元内容
  * 输入参数：oi对象标识，seqnum:对象配置单元序列号

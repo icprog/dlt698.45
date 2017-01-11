@@ -17,6 +17,7 @@
 #include <semaphore.h>
 #include <termios.h>
 
+#include "StdDataType.h"
 #include "para.h"
 
 static char
@@ -42,6 +43,12 @@ int main(int argc, char *argv[])
 		if(argc>2) {
 			para_process(argv[2]);
 		}
+		return EXIT_SUCCESS;
+	}
+	if(strcmp("test",argv[1])==0)
+	{
+		DataType  dt={};
+		fprintf(stderr,"DataType len=%d\n",sizeof(dt));
 		return EXIT_SUCCESS;
 	}
 	fprintf(stderr,"%s",usage);

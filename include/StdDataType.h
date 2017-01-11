@@ -464,7 +464,7 @@ typedef union {
 //	DataType data_array[10];
 //	DataType data_struct[10];
 	INT8U data_bool;
-	INT8U data_bit[180];
+//	INT8U data_bit[180];
 	INT32U double_long;
 	INT32U double_long_unsigned;
 	INT8U octet_string[180];
@@ -503,9 +503,9 @@ typedef union {
 //	MS ms;
 	SID sid;
 	SID_MAC sidmac;
-	COMDCB comdcb;
+//	COMDCB comdcb;
 }DataType;
-
+//DataType len=1432
 typedef struct
 {
 	INT8U factorycode[4];

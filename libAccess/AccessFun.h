@@ -40,6 +40,14 @@ extern INT8U readInterClass(INT16U oi,void *dest);
  */
 extern INT8U delClassBySeq(INT16U oi,void *blockdata,int seqnum);
 
+/*
+ * 方法：Clean()清空
+ * 输入参数：oi对象标识
+ * 返回值：=1：配置单元删除成功
+ * =-1:  未查找到OI类数据
+ */
+extern INT8U ClearClass(INT16U oi);
+
 //////////////////////////////////////////////////////////////////////////////////////////
 
 /************************************

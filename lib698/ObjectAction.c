@@ -85,7 +85,7 @@ void get_BasicUnit(INT8U *source,INT16U *sourceindex,INT8U *dest,INT16U *destind
 	*destindex = dest_sumindex;
 }
 
-void AddBatchMeterInfo(INT8U *data)
+void AddBatchMeterInfo(INT16U oi,INT8U *data)
 {
 	CLASS_6001 meter={};
 	int k=0;
@@ -121,7 +121,7 @@ void AddBatchMeterInfo(INT8U *data)
 			memcpy(meter.name,"1111111111111111",sizeof(meter.name));
 		else  if(meter.sernum==2) memcpy(meter.name,"2222222222222222",sizeof(meter.name));
 		fprintf(stderr,"\n-------------1  6001_len=%d, sernum=%d\n",sizeof(CLASS_6001),meter.sernum);
-		saveParaClass(0x6001,(unsigned char*)&meter,meter.sernum);
+		saveParaClass(oi,(unsigned char*)&meter,meter.sernum);
 	}
 }
 void AddCjiFangAnInfo(INT8U *data)
@@ -176,30 +176,31 @@ void CjiFangAnInfo(INT16U attr_act,INT8U *data)
 			break;
 	}
 }
-void MeterInfo(INT16U attr_act,INT8U *data)
+void MeterInfo(INT16U oi,INT16U attr_act,INT8U *data)
 {
 	switch(attr_act)
 	{
 		case 2:	 //属性 2(配置表)∷=array 采集档案配置单元
 			break;
 		case 127://方法 127:Add (采集档案配置单元)
-			AddBatchMeterInfo(data);
+			AddBatchMeterInfo(oi,data);
 			break;
 		case 128://方法 128:AddBatch(array 采集档案配置单元)
-			AddBatchMeterInfo(data);
+			AddBatchMeterInfo(oi,data);
 			break;
 		case 129://方法 129:Update(配置序号,基本信息)
 			break;
 		case 130://方法 130:Update(配置序号,扩展信息,附属信息)
 			break;
 		case 131://方法 131:Delete(配置序号)
-			delClassBySeq(0x6001,NULL,2);
+			delClassBySeq(oi,NULL,2);
 			break;
 		case 132://方法 132:Delete(基本信息)
 			break;
 		case 133://方法 133:Delete(通信地址, 端口号)
 			break;
 		case 134://方法 134:Clear()
+			ClearClass(oi);
 			break;
 	}
 }
@@ -211,7 +212,7 @@ int doObjectAction(OMD omd,INT8U *data)
 	switch(oi)
 	{
 		case 0x6000://采集档案配置表
-			MeterInfo(attr_act,data);
+			MeterInfo(oi,attr_act,data);
 			break;
 		case 0x6002://搜表
 			break;
