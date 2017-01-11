@@ -5,11 +5,11 @@
  *      Author: gk
  */
 #include <stdio.h>
+#include <string.h>
 
 #include "ParaDef.h"
 #include "secure.h"
-#include "StdDataType.h"
-#include "../libEsam/esam.h"
+#include "../libEsam/Esam.h"
 /**********************************************************************
  *单位解析，解析安全传输中SID,MAC,RN
  *输入：type定义的数据类型（下发报文不含数据类型标示）0x01  SID  0x02 RN MAC
@@ -52,7 +52,7 @@ INT8S UnitParse(INT8U* source,INT8U* dest,INT8U type)
 		}
 		else
 		{
-			datalen=(apdu[2]<<8)&0xff00+apdu[3]&0x00ff;
+			datalen=((apdu[2]<<8)&0xff00)+(apdu[3]&0x00ff);
 			if(datalen>BUFLEN) return -1;
 			datalen+=2;
 		}
@@ -71,7 +71,7 @@ INT8S UnitParse(INT8U* source,INT8U* dest,INT8U type)
 	if(apdu[2+appLen]==0x00)//SID_MAC数据验证码
 	{
 		SID_MAC sidmac;
-		len = UnitParse(&apdu[2+appLen+1],sidmac,0x01);//解析SID部分
+		len = UnitParse(&apdu[2+appLen+1],(INT8U*)&sidmac,0x01);//解析SID部分
 		if(len<=0) return -1;
 		len = UnitParse(&apdu[2+appLen+1+len],sidmac.mac,0x02);//解析MAC部分
 		if(len<=0) return -1;//
@@ -90,5 +90,6 @@ INT8S UnitParse(INT8U* source,INT8U* dest,INT8U type)
 	}
 	else
 		return -4;//错误的数据验证信息
+	return len;
  }
 

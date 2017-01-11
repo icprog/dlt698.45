@@ -153,6 +153,7 @@ typedef struct
 	INT8U RN[20];
 	INT8U MAC[10];
 }Esam_MAC_RN_NO;//抄读电表时，上报报文解析，用于参数传递
+
 INT32S Esam_Init(INT32S fd, INT8U* spipath);
 INT32S Esam_WriteThenRead(INT32S fd, INT8U* Tbuf, INT8U Tlen, INT8U* Rbuf);
 void Esam_WriteToChip(INT32S fd, INT8U* Tbuf, INT8U Tlen);
@@ -172,5 +173,5 @@ INT32S Esam_ReportEncrypt(INT32S fd, INT8U* Data1, INT8U* RN,INT8U* MAC) ;
 INT32S Esam_DencryptReport(INT32S fd, SID_MAC SidMac,INT8U* Data3, INT8U* Rbuf) ;
 INT32S Esam_GetRN(INT32S fd,  INT8U* Rbuf);
 INT32S Esam_EmeterDataDencrypt(INT32S fd, Esam_MAC_RN_NO* InfoData, INT8U *Data2,INT8U* Rbuf);
-extern sem_t* nsem_open(const char* name) ;
+
 #endif /* ESAM_H_ */

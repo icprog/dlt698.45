@@ -9,6 +9,7 @@
 #define PUBLICFUNCTION_H_
 
 #include <signal.h>
+#include <semaphore.h>
 #include "Shmem.h"
 #include "StdDataType.h"
 #include "ParaDef.h"
@@ -35,5 +36,5 @@ extern INT32S gpio_readint(INT8S* devpath) ;
 extern INT32S gpio_writebyte(INT8S* devpath, INT8S data) ;
 extern INT32S gpio_writebytes(INT8S* devpath, INT8S* vals, INT32S valnum) ;
 
-
+extern sem_t* nsem_open(const char* name);
 #endif /* PUBLICFUNCTION_H_ */
