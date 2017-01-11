@@ -32,7 +32,7 @@ typedef enum
 typedef enum
 {
   shortcircuit=0,   //短路（0）
-  opencircutit=1    //开路（1）
+  opencircuit=1    //开路（1）
 }CurrentError_type;
 
 //累计时间及发生次数
