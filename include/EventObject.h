@@ -214,9 +214,9 @@ typedef struct
 //有功总电能量差动越限事件记录配置参数
 typedef struct
 {
-    INT8U group_no;             //有功总电能量差动组序号
-    OI contrast_group;          //对比的总加组
-    OI consult_group;           //参照的总加组
+	INT8U group_no;             //有功总电能量差动组序号
+	OI_698 contrast_group;          //对比的总加组
+	OI_698 consult_group;           //参照的总加组
 	INT8U flag;             	//参与差动的电能量的时间区间及对比方法标志 bit-string（SIZE（8））
 	                            //bit0～bit1编码表示电能量的时间跨度，取值范围0～2依次表示60分钟电量、30分钟电量、15分钟电量，其他值无效。
 								//bit7表示对比方法标志，置“0”：相对对比，公式见公式（1）；置“1”：绝对对比，公式见公式（2）。
@@ -302,7 +302,7 @@ typedef struct
 	Class7_Object Event3201_obj;    //电控跳闸记录28
 	Class7_Object Event3202_obj;    //购电参数设置记录29
 	Class7_Object Event3203_obj;    //电控告警事件记录30
-}TerminalEvent_Object
+}TerminalEvent_Object;
 
 /*
  * Class7_Object Event3100_obj;    //终端初始化事件1
