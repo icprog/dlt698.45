@@ -80,8 +80,9 @@ int main(int argc, char *argv[])
    	{
 		//交采、状态、统计处理
 		DealACS();
+		DealState();
 
-		sleep(1);
+		usleep(10 * 1000);
 
    	}
 	return EXIT_SUCCESS;//退出

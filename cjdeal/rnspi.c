@@ -258,6 +258,12 @@ void init_run_env_rn8209(INT32S pid) {
 void DealACS(void) {
     INT32S RRec[128]; // RN8209计量参数寄存器数据
     INT32S val = 0;
+    static int time_old = 0;
+    int time_now = time(NULL);
+    if(time_old == time_now){
+    	return;
+    }
+    time_old = time_now;
     sem_wait(sem_check_fd);
 
 	RRec[U_RMS >> 4] = rn_spi_read(spifp_rn8209, U_RMS); //电压通道有效值
@@ -267,4 +273,42 @@ void DealACS(void) {
     sem_post(sem_check_fd);
     realdata.Ua = (realdata.Ua * 4)/5 + (trans_regist_rn8209(val) * 1)/5; //转换，获取电压当前值
     fprintf(stderr, "当前电压值为： %d\n", realdata.Ua);
+}
+
+void DealState(void){
+	static int step = 0;
+	static int time_x = 0;
+	static int state_old = 1;
+
+	int fd = 0, state = 0;
+    if ((fd = open("/dev/gpiYX1", O_RDWR | O_NDELAY)) >= 0) {
+        read(fd, &state, sizeof(int));
+        close(fd);
+    }
+
+    switch(step){
+    case 0:
+    	time_x = 0;
+    	if(state_old != state){
+    		step = 1;
+    	}
+    	break;
+    case 1:
+    	if(state_old != state){
+    		time_x++;
+    		if(time_x > 9){
+    			step = 2;
+    		}
+    	}
+    	else
+    	{
+    		step = 0;
+    	}
+    	break;
+    case 2:
+    	printf("发生遥信变位%d\n", state);
+    	state_old = state;
+    	step = 0;
+    	break;
+    }
 }

@@ -79,6 +79,6 @@ INT8S check_id_rn8209(void);
  */
 void init_run_env_rn8209(INT32S pid);
 
-// void DealACS(void);
-
+void DealACS(void);
+void DealState(void);
 #endif /* RNSPI_H_ */
