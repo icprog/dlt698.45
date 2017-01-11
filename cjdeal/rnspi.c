@@ -20,7 +20,7 @@ static const char* rnspidevname = "/dev/spi0.0";
 static ACCoe_SAVE attCoef;  //校表系数结构体
 static _RealData realdata;  //交采实时数据
 static sem_t* sem_check_fd; //校表信号量
-INT32U K_vrms = 81930;     // RN8209校表系数 748600
+INT32U K_vrms = 8193;     // RN8209校表系数 748600
 
 /*
  * 功能：在/dev/shm目录下创建信号量描述文件，如果已经存在同名的文件，则先删除，然后在创建。
