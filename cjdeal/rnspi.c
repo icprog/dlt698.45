@@ -13,15 +13,14 @@
 #include "vacs.h"
 //以下头文件为校表用，如果把校表放在vd进程中，可不加这些头文件
 
-#define AV_COUNT 10;   //校正电表采样次数
-#define REG_COUNT 100; //校表系数扩大倍数
+#define AV_COUNT 10   //校正电表采样次数
+#define REG_COUNT 100 //校表系数扩大倍数
 
 static const char* rnspidevname = "/dev/spi0.0";
-static ACCoe_SAVE attCoef; //校表系数结构体
-INT32U K_vrms = 748600;    // RN8209校表系数
-// extern sem_t 		*sem_check_fd;	//校表信号量
-// extern INT32S		prog_pid;		//进程ID号
-//  INT32S		spifp_rn8209;	//RN8209打开spi句柄
+static ACCoe_SAVE attCoef;  //校表系数结构体
+static _RealData realdata;  //交采实时数据
+static sem_t* sem_check_fd; //校表信号量
+INT32U K_vrms = 81930;     // RN8209校表系数 748600
 
 /*
  * 功能：在/dev/shm目录下创建信号量描述文件，如果已经存在同名的文件，则先删除，然后在创建。
@@ -113,16 +112,16 @@ INT32S spi_init_r(INT32S fd, const char* spipath) {
     if (fd < 0)
         fprintf(stderr, "can't open  device %s\n", spipath);
     // if((rn_spi_read(spifp_rn8209, SYS_Status) & 0x01) != 0)//IRQ的状态，复位过
-    {
-        dumpstat_r((char*)spipath, fd);
-        usleep(10000); //交采实时电压数据
-        sleep(1);
-    }
+//    {
+//        dumpstat_r((char*)spipath, fd);
+//        usleep(10000); //交采实时电压数据
+//        sleep(1);
+//    }
 
     return fd;
 }
 
-int spi_read_r(int fd, INT8U* cbuf, int16_t clen, INT8U* rbuf, int rlen) {
+int spi_read_r(int fd, INT8U* cbuf, INT16U clen, INT8U* rbuf, int rlen) {
     unsigned char rx[512], i;
     struct spi_ioc_transfer xfer[2];
     unsigned char tx[512];
@@ -229,21 +228,15 @@ INT8S check_regvalue_rn8209(INT32S regvalue) {
 //返回值    ：实时采样值
 INT32S trans_regist_rn8209(INT32S reg) {
     INT32S tread = 0;
-    if (K_vrms)
-        // tread = ((FP64)reg * U_COEF / K_vrms) * REG_COUNT; //校正系数扩大REG_COUNT倍，寄存器的值也*REG_COUNT
+    if (K_vrms){
         tread = ((FP64)reg * U_COEF) / K_vrms;
-    //	fprintf(stderr,"校表系数 = %d\n",K_vrms);
-    // tread = (FP64)reg * 220000 /(1.25*(2^23)*220*K_vrms);
+    }
     return tread;
 }
 //获取芯片ID，确定芯片类型
 INT8S check_id_rn8209(void) {
     spifp_rn8209 = spi_init_r(spifp_rn8209, rnspidevname);
     if (rn_spi_read(spifp_rn8209, DeviceID) == 0x820900) {
-        //校表系数，如果没有校表配置文件，使用默认的校表系数
-        K_vrms = ((INT32U)attCoef.UA[0]) << 16;
-        K_vrms += ((INT32U)attCoef.UA[1]) << 8;
-        K_vrms += attCoef.UA[2];
         return 1;
     } else {
         return 0;
@@ -251,13 +244,27 @@ INT8S check_id_rn8209(void) {
 }
 //初始化RN8209的运行环境
 void init_run_env_rn8209(INT32S pid) {
-    // 读RN8209芯片的校表系数
-    // fu_read((INT8S*)SAVE_NAME_ACCOE, &attCoef, sizeof(ACCoe_SAVE));
-    // check_reg_print();
-    K_vrms = ((INT32U)attCoef.UA[0]) << 16;
-    K_vrms += ((INT32U)attCoef.UA[1]) << 8;
-    K_vrms += attCoef.UA[2];
+
     fprintf(stderr, "读取到的校表系数 = %d\n", K_vrms);
     //初始化spi设备
     spifp_rn8209 = spi_init_r(spifp_rn8209, rnspidevname);
+
+    int sem_id;
+	sem_check_fd = create_named_sem(SEMNAME_SPI0_0,1);
+	sem_getvalue(sem_check_fd, &sem_id);
+	fprintf(stderr, "process %d The sem is %d\n", pid, sem_id);
+}
+
+void DealACS(void) {
+    INT32S RRec[128]; // RN8209计量参数寄存器数据
+    INT32S val = 0;
+    sem_wait(sem_check_fd);
+
+	RRec[U_RMS >> 4] = rn_spi_read(spifp_rn8209, U_RMS); //电压通道有效值
+	if ((check_regvalue_rn8209(RRec[U_RMS >> 4]) == 0)) {
+		val = RRec[U_RMS >> 4];
+	}
+    sem_post(sem_check_fd);
+    realdata.Ua = (realdata.Ua * 4)/5 + (trans_regist_rn8209(val) * 1)/5; //转换，获取电压当前值
+    fprintf(stderr, "当前电压值为： %d\n", realdata.Ua);
 }

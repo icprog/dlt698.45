@@ -9,9 +9,9 @@
 #define PUBLICFUNCTION_H_
 
 #include <signal.h>
-#include "../include/Shmem.h"
-#include "../include/StdDataType.h"
-#include "../include/ParaDef.h"
+#include "Shmem.h"
+#include "StdDataType.h"
+#include "ParaDef.h"
 
 extern void TSGet(TS *ts);
 extern void Setsig(struct sigaction *psa,void (*pfun)(ProjectInfo *proinfo));
