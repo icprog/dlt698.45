@@ -54,7 +54,7 @@ INT32S secureResponseData(INT8U* RN,INT8U* apdu,INT8U* retData)
 	 INT16S MACindex=0;//MAC所在位置可能因为应用数据单元长度不定而变化
 	 fd = Esam_Init(fd,(INT8U*)DEV_SPI_PATH);
     if(fd<0) return -3;
-    INT16S len = GetDataLength(apdu[2]);
+    INT16S len = GetDataLength(&apdu[2]);
 
     if(len>255)
     	MACindex=2+2+len;
@@ -94,7 +94,6 @@ INT8S UnitParse(INT8U* source,INT8U* dest,INT8U type)
 		return -1;
 	return len;
 }
-
  /**********************************************************************
   *应用数据单元为密文情况时处理方案（ 698解析应用数据单元和数据验证信息.访问模型参见4.1.3.1）
   *当前理解：密文+SID为  《密文》等级   密文+SID_MAC为《密文+MAC》等级，密文情况下不存在RN/RN_MAC情况
@@ -102,41 +101,25 @@ INT8S UnitParse(INT8U* source,INT8U* dest,INT8U type)
   *输入：需返回的secureType安全类别，01明文，02明文+MAC 03密文  04密文+MAC
   *输出：retData长度
   **********************************************************************/
- INT32S secureEncryptDataDeal(INT32S fd,INT8U* secureType,INT8U* apdu,INT8U* retData)
+ INT32S secureEncryptDataDeal(INT32S fd,INT8U secureType,INT8U* apdu,INT8U* retData)
  {
-	 INT8U appUnit=apdu[1];//明文或密文标识
 	 INT16S tmplen=0;
 	 INT16S appLen=0;
-	 INT32S ret;
+	 INT32S ret=0;
+	 SID_MAC sidmac;
 	 appLen = GetDataLength(&apdu[2]);
-	if(apdu[2+appLen]==0x00 || apdu[2+appLen]==0x03)//SID_MAC数据验证码
+
+	if(apdu[2+appLen]==0x00 ||apdu[2+appLen]==0x03)//SID_MAC数据验证码
 	{
-		if(appUnit == 0x00 && apdu[2+appLen]==0x03) return 100;//明文+SID应用场景不存在，查看报文
-		SID_MAC sidmac;
 		tmplen = UnitParse(&apdu[2+appLen+1],(INT8U*)&sidmac,0x01);//解析SID部分
 		if(tmplen<=0) return -101;
-		if(appUnit == 0x01)
+		if(apdu[2+appLen]==0x00)
+		{
 			tmplen = UnitParse(&apdu[2+appLen+1+tmplen],sidmac.mac,0x02);//解析MAC部分
-		if(tmplen<=0) return -102;//
+			if(tmplen<=0) return -102;//
+		}
 		ret = Esam_SIDTerminalCheck(fd,sidmac,&apdu[2],retData);
 	}
-	else if(apdu[2+appLen]==0x01)//RN随机数
-	{
-		INT8U RN[128];
-		tmplen=UnitParse(&apdu[2+appLen+1],RN,0x02);
-		if(tmplen<=0) return -103;
-	}
-	else if(apdu[2+appLen]==0x02)//RN_MAC随机数+数据MAC
-	{
-		INT8U RN[128];
-		INT8U MAC[10];
-		tmplen=UnitParse(&apdu[2+appLen+1],RN,0x02);//RN
-		if(tmplen<=0) return -104;
-		tmplen=UnitParse(&apdu[2+appLen+1+tmplen],MAC,0x02);//mac
-		if(tmplen<=0) return -105;
-	}
-	else
-		return -107;//错误的数据验证信息
 	return ret;
  }
  /**********************************************************************
@@ -145,7 +128,17 @@ INT8S UnitParse(INT8U* source,INT8U* dest,INT8U type)
   *输入：不用返回安全类别，此处类别总是02明文+MAC
   *输出：retData长度
   **********************************************************************/
- INT32S secureDecryptDataDeal(INT32S fd,INT8U* apdu,INT8U* retData)
+ INT32S secureDecryptDataDeal(INT32S fd,INT8U* apdu,INT8U* MAC)
  {
-	 return 1;
+	 INT32S ret=0;
+	 MAC[0]=0x04;//MAC4字节
+	 INT16S appLen = GetDataLength(&apdu[2]);//计算应用数据单元长度
+	 if(apdu[2+2+appLen]==0x01 || apdu[2+2+appLen]==0x02)// 只处理RN/RN_MAC情况
+	 {
+		 if(appLen>255)//TODO:长度需更有逻辑的判断防止出现段错误！！！！！（错误报文容易导致长度异常）
+			 ret =  Esam_GetTerminalInfo(fd,&apdu[2+2+appLen+1],&apdu[2],&MAC[1]);//最后+1是数据验证信息标识
+		 else if(appLen<256 || appLen>0)
+			 ret = Esam_GetTerminalInfo(fd,&apdu[2+1+appLen+1],&apdu[2],&MAC[1]);
+	 }
+	 return ret;
  }
