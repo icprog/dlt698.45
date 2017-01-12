@@ -43,6 +43,11 @@
 /*
  * 	GPIO硬件接口
  * */
+#ifdef CCTT_II
+ #define DEV_SPI_PATH   "/dev/spi1.0"
+#else
+  #define DEV_SPI_PATH   "/dev/spi0.0"
+#endif
 #define DEV_ESAM_RST   "/dev/gpoESAM_RST"
 #define DEV_ESAM_CS    "/dev/gpoESAM_CS"
 #define DEV_ESAM_PWR   "/dev/gpoESAM_PWR"
