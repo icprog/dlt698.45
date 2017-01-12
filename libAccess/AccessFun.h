@@ -49,7 +49,18 @@ extern INT8U delClassBySeq(INT16U oi,void *blockdata,int seqnum);
 extern INT8U ClearClass(INT16U oi);
 
 //////////////////////////////////////////////////////////////////////////////////////////
-
+/*		第二类文件：事件参数、事件记录、当前记录集存储
+ *		该类文件根据OI类型生成相应的目录  /nand/oi/
+ *		type: 参数类数据存储
+ *
+ **/
+/*
+ * 输入参数：	oi:对象标识，seqno:记录序号，blockdata:存储数据，len：存储长度，
+ * 			type：存储类型【	para_save：参数文件存储   event_record_save: 事件记录表存储 	current_record_save :当前值记录表存储】
+ * 返回值：=1：文件存储成功
+ */
+extern INT8U saveEventClass(INT16U oi,INT16U seqno,void *blockdata,int savelen,int type);
+//////////////////////////////////////////////////////////////////////////////////////////
 /************************************
  * 函数说明：获取参数文件对象配置单元的个数
  * 返回值：

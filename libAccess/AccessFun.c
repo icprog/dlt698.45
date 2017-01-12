@@ -23,6 +23,7 @@
 #include "AccessFun.h"
 #include "StdDataType.h"
 #include "Objectdef.h"
+#include "EventObject.h"
 #include "ParaDef.h"
 #define 	LIB_ACCESS_VER 			0x0001
 
@@ -159,7 +160,7 @@ INT8U file_write(char *FileName, void *source, int size, int offset)
 	}
 //	fprintf(stderr,"\nwrite sourceaddr=%p\n", source);
 	readcrc = make_parity(source,size);			//计算crc16校验
-	int i=0;
+//	int i=0;
 //	for(i=0;i<size;i++){
 //		fprintf(stderr,"%02x ",blockdata[i]);
 //	}
@@ -337,6 +338,42 @@ INT8U save_block_file(char *fname,void *blockdata,int size,int headsize,int inde
 		syslog(LOG_NOTICE,"file_write %s error",fname);
 	}
 	return ret;
+}
+
+/*
+ * 覆盖存储（数据文件直接存储）
+ */
+INT8U writeFileCurve(char *fname, void *dataunit,int len)
+{
+	int fd=0,ret=0;
+	FILE *fp=NULL;
+
+	fp = fopen(fname, "w");
+	if(fp!=NULL)
+	{
+		fprintf(stderr,"\nfilewrite over %s",fname);
+		ret = fwrite(dataunit,len,1,fp);
+		fd = fileno(fp);
+		fsync(fd);
+		fclose(fp);
+	}
+	return ret;
+}
+
+/*
+ * 覆盖文件（数据）整块读取
+ */
+int readFileCurve(char *fname, void *dataunit,int len)
+{
+	FILE 	*fp=NULL;
+	int		num = 0;
+
+	fp = fopen(fname, "r");
+	if (fp != NULL) {
+		num=fread(dataunit,1 ,len,fp);
+		fclose(fp);
+	}
+	return num;
 }
 
 INT16S getclassinfo(INT16U oi,CLASS_INFO *classinfo)
@@ -620,4 +657,49 @@ INT8U  readParaClass(INT16U oi,void *blockdata,int seqnum)
 	}
 	ret = block_file_sync((char *)class_info[infoi].file_name,blockdata,class_info[infoi].unit_len,class_info[infoi].interface_len,seqnum);
 	return ret;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////
+/*
+ * 输入参数：	oi:对象标识，seqno:记录序号，blockdata:存储数据，savelen：存储长度，
+ * 			type：存储类型【	para_save：参数文件存储   event_record_save: 事件记录表存储 	current_record_save :当前值记录表存储】
+ * 返回值：=1：文件存储成功
+ */
+INT8U saveEventClass(INT16U oi,INT16U seqno,void *blockdata,int savelen,int type)
+{
+	int		ret = 0;
+	char	fname[FILENAMELEN]={};
+
+	if(access("/nand/event/",F_OK)!=0) {
+		mkdir("/nand/event/",0666);
+	}
+	memset(fname,0,sizeof(fname));
+	sprintf(fname,"/nand/event/%04x",oi);
+	if(access(fname,F_OK)!=0) { //文件不存在
+		mkdir(fname,0666);
+	}
+	switch(type) {
+	case para_save:
+		memset(fname,0,sizeof(fname));
+		sprintf(fname,"/nand/event/%04x/%04x.par",oi,oi);
+		save_block_file(fname,blockdata,savelen,0,0);
+		break;
+	case event_record_save:
+		memset(fname,0,sizeof(fname));
+		memcpy(fname,"/nand/event/%04x/record/",oi);
+		if(access(fname,F_OK)!=0) { //文件不存在
+			mkdir(fname,0666);
+		}
+		memset(fname,0,sizeof(fname));
+		sprintf(fname,"/nand/event/%04x/%d.dat",oi,seqno);
+
+		break;
+	case current_record_save:
+		memset(fname,0,sizeof(fname));
+		memcpy(fname,"/nand/event/%04x/current/",oi);
+		if(access(fname,F_OK)!=0) { //文件不存在
+			mkdir(fname,0666);
+		}
+		break;
+	}
 }

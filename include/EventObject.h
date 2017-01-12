@@ -13,9 +13,17 @@
  */
 
 //目前已确定终端判断30个事件，可根据以下数组结构轮寻读取
-const static INT16U Eventtype={0x3100,0x3101,0x3104,0x3105,0x3106,0x3107,0x3108,0x3109,0x310A,
+const static INT16U Eventtype[]={0x3100,0x3101,0x3104,0x3105,0x3106,0x3107,0x3108,0x3109,0x310A,
                                0x310B,0x310C,0x310D,0x310E,0x310F,0x3110,0x3111,0x3112,0x3114,0x3115,0x3116,
                                0x3117,0x3118,0x3119,0x311A,0x311B,0x311C,0x3200,0x3201,0x3202,0x3203};
+
+//文件存储类型
+typedef enum
+{
+	para_save=1,				//参数文件存储
+	event_record_save=2,		//事件记录表存储
+	current_record_save=3,		//当前值记录表存储
+}SaveEvent_type;
 
 //设备故障记录 事件发生源
 typedef enum
@@ -188,7 +196,7 @@ typedef struct
 typedef struct
 {
   INT8U retry_nums; //重试论次
-  INT8U task_no     //关联采集任务号
+  INT8U task_no;     //关联采集任务号
 }CollectFail_Object;
 
 //终端抄表失败事件
@@ -270,6 +278,8 @@ typedef struct
 
 #pragma pack(1)				//结构体一个字节对齐
 /*以下为整个事件属性结构体，存储该结构体*/
+
+
 typedef struct
 {
 	Class7_Object Event3100_obj;    //终端初始化事件1
