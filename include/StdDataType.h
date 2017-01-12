@@ -134,8 +134,8 @@ typedef enum {
 }RUN_PRIO;//执行优先级
 
 typedef enum {
-	valid=1/*正常*/,
-	novalid=2/*停用*/
+	 task_valid=1/*正常*/,
+	 task_novalid=2/*停用*/
 }TASK_VALID;//任务状态
 
 typedef enum {
