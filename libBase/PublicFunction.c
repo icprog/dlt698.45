@@ -338,6 +338,20 @@ void TSGet(TS *ts)
 	ts->Week = tmp_tm.tm_wday;
 }
 
+//获取时间
+void DataTimeGet(DateTimeBCD* ts) {
+    struct tm set;
+    time_t times;
+    times = time(NULL);
+    localtime_r(&times, &set);
+    ts->year.data  = set.tm_year + 1900;
+    ts->month.data = set.tm_mon + 1;
+    ts->day.data   = set.tm_mday;
+    ts->hour.data  = set.tm_hour;
+    ts->min.data   = set.tm_min;
+    ts->sec.data   = set.tm_sec;
+}
+
 /****************************************************************
  * 实时数据请求缓冲数组初始化
  */

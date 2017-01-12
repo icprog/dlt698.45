@@ -19,18 +19,18 @@ INT8U Event_FindOAD(INT8U* buf, OI_698 oad, INT8U* data);
  */
 INT8U Event_FindTsa(TSA tsa);
 
-INT8U Event_3105(TSA tsa, INT8U* data); //电能表时钟超差事件4
-INT8U Event_310A(INT8U type, INT8U);    //设备故障记录9
-INT8U Event_310B(TSA tsa, INT8U* data); //电能表示度下降事件10
-INT8U Event_310C(TSA tsa, INT8U* data); //电能量超差事件11
-INT8U Event_310D(TSA tsa, INT8U* data); //电能表飞走事件12
-INT8U Event_310E(TSA tsa, INT8U* data); //电能表停走事件13
-INT8U Event_310F(TSA tsa, INT8U* data); //终端抄表失败事件14
-INT8U Event_3111(TSA tsa, INT8U* data); //发现未知电能表事件16
-INT8U Event_3112(TSA tsa, INT8U* data); //跨台区电能表事件17
-INT8U Event_311A(TSA tsa, INT8U* data); //电能表在网状态切换事件24
-INT8U Event_311B(TSA tsa, INT8U* data); //终端对电表校时记录25
-INT8U Event_311C(TSA tsa, INT8U* data); //电能表数据变更监控记录26
+INT8U Event_3105(TSA tsa, INT8U* data);    //电能表时钟超差事件4
+INT8U Event_310A(INT8U type, INT8U* data); //设备故障记录9
+INT8U Event_310B(TSA tsa, INT8U* data);    //电能表示度下降事件10
+INT8U Event_310C(TSA tsa, INT8U* data);    //电能量超差事件11
+INT8U Event_310D(TSA tsa, INT8U* data);    //电能表飞走事件12
+INT8U Event_310E(TSA tsa, INT8U* data);    //电能表停走事件13
+INT8U Event_310F(TSA tsa, INT8U* data);    //终端抄表失败事件14
+INT8U Event_3111(TSA tsa, INT8U* data);    //发现未知电能表事件16
+INT8U Event_3112(TSA tsa, INT8U* data);    //跨台区电能表事件17
+INT8U Event_311A(TSA tsa, INT8U* data);    //电能表在网状态切换事件24
+INT8U Event_311B(TSA tsa, INT8U* data);    //终端对电表校时记录25
+INT8U Event_311C(TSA tsa, INT8U* data);    //电能表数据变更监控记录26
 
 /*
  * 分析下行报文，产生对应的配置事件。
