@@ -15,6 +15,7 @@
 #include "ParaDef.h"
 
 extern void TSGet(TS *ts);
+extern void DataTimeGet(DateTimeBCD* ts);
 extern void Setsig(struct sigaction *psa,void (*pfun)(ProjectInfo *proinfo));
 extern void* CreateShMem(char* shname,int memsize,void* pmem);
 extern void* OpenShMem(char* shname,int memsize,void* pmem);

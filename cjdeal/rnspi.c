@@ -20,7 +20,7 @@ static const char* rnspidevname = "/dev/spi0.0";
 static ACCoe_SAVE attCoef;  //校表系数结构体
 static _RealData realdata;  //交采实时数据
 static sem_t* sem_check_fd; //校表信号量
-INT32U K_vrms = 8193;     // RN8209校表系数 748600
+INT32U K_vrms = 8193;       // RN8209校表系数 748600
 
 /*
  * 功能：在/dev/shm目录下创建信号量描述文件，如果已经存在同名的文件，则先删除，然后在创建。
@@ -112,11 +112,11 @@ INT32S spi_init_r(INT32S fd, const char* spipath) {
     if (fd < 0)
         fprintf(stderr, "can't open  device %s\n", spipath);
     // if((rn_spi_read(spifp_rn8209, SYS_Status) & 0x01) != 0)//IRQ的状态，复位过
-//    {
-//        dumpstat_r((char*)spipath, fd);
-//        usleep(10000); //交采实时电压数据
-//        sleep(1);
-//    }
+    //    {
+    //        dumpstat_r((char*)spipath, fd);
+    //        usleep(10000); //交采实时电压数据
+    //        sleep(1);
+    //    }
 
     return fd;
 }
@@ -228,7 +228,7 @@ INT8S check_regvalue_rn8209(INT32S regvalue) {
 //返回值    ：实时采样值
 INT32S trans_regist_rn8209(INT32S reg) {
     INT32S tread = 0;
-    if (K_vrms){
+    if (K_vrms) {
         tread = ((FP64)reg * U_COEF) / K_vrms;
     }
     return tread;
@@ -244,71 +244,68 @@ INT8S check_id_rn8209(void) {
 }
 //初始化RN8209的运行环境
 void init_run_env_rn8209(INT32S pid) {
-
     fprintf(stderr, "读取到的校表系数 = %d\n", K_vrms);
     //初始化spi设备
     spifp_rn8209 = spi_init_r(spifp_rn8209, rnspidevname);
 
     int sem_id;
-	sem_check_fd = create_named_sem(SEMNAME_SPI0_0,1);
-	sem_getvalue(sem_check_fd, &sem_id);
-	fprintf(stderr, "process %d The sem is %d\n", pid, sem_id);
+    sem_check_fd = create_named_sem(SEMNAME_SPI0_0, 1);
+    sem_getvalue(sem_check_fd, &sem_id);
+    fprintf(stderr, "process %d The sem is %d\n", pid, sem_id);
 }
 
 void DealACS(void) {
     INT32S RRec[128]; // RN8209计量参数寄存器数据
-    INT32S val = 0;
+    INT32S val          = 0;
     static int time_old = 0;
-    int time_now = time(NULL);
-    if(time_old == time_now){
-    	return;
+    int time_now        = time(NULL);
+    if (time_old == time_now) {
+        return;
     }
     time_old = time_now;
     sem_wait(sem_check_fd);
 
-	RRec[U_RMS >> 4] = rn_spi_read(spifp_rn8209, U_RMS); //电压通道有效值
-	if ((check_regvalue_rn8209(RRec[U_RMS >> 4]) == 0)) {
-		val = RRec[U_RMS >> 4];
-	}
+    RRec[U_RMS >> 4] = rn_spi_read(spifp_rn8209, U_RMS); //电压通道有效值
+    if ((check_regvalue_rn8209(RRec[U_RMS >> 4]) == 0)) {
+        val = RRec[U_RMS >> 4];
+    }
     sem_post(sem_check_fd);
-    realdata.Ua = (realdata.Ua * 4)/5 + (trans_regist_rn8209(val) * 1)/5; //转换，获取电压当前值
+    realdata.Ua = (realdata.Ua * 4) / 5 + (trans_regist_rn8209(val) * 1) / 5; //转换，获取电压当前值
     fprintf(stderr, "当前电压值为： %d\n", realdata.Ua);
 }
 
-void DealState(void){
-	static int step = 0;
-	static int time_x = 0;
-	static int state_old = 1;
+void DealState(void) {
+    static int step      = 0;
+    static int time_x    = 0;
+    static int state_old = 1;
 
-	int fd = 0, state = 0;
+    int fd = 0, state = 0;
     if ((fd = open("/dev/gpiYX1", O_RDWR | O_NDELAY)) >= 0) {
         read(fd, &state, sizeof(int));
         close(fd);
     }
 
-    switch(step){
-    case 0:
-    	time_x = 0;
-    	if(state_old != state){
-    		step = 1;
-    	}
-    	break;
-    case 1:
-    	if(state_old != state){
-    		time_x++;
-    		if(time_x > 9){
-    			step = 2;
-    		}
-    	}
-    	else
-    	{
-    		step = 0;
-    	}
-    	break;
-    case 2:
-    	printf("发生遥信变位%d\n", state);
-    	state_old = state;
-    	step = 0;
-    	break;
+    switch (step) {
+        case 0:
+            time_x = 0;
+            if (state_old != state) {
+                step = 1;
+            }
+            break;
+        case 1:
+            if (state_old != state) {
+                time_x++;
+                if (time_x > 9) {
+                    step = 2;
+                }
+            } else {
+                step = 0;
+            }
+            break;
+        case 2:
+            printf("发生遥信变位%d\n", state);
+            state_old = state;
+            step      = 0;
+            break;
     }
 }

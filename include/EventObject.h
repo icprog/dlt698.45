@@ -13,9 +13,7 @@
  */
 
 //目前已确定终端判断30个事件，可根据以下数组结构轮寻读取
-const static INT16U Eventtype={0x3100,0x3101,0x3104,0x3105,0x3106,0x3107,0x3108,0x3109,0x310A,
-                               0x310B,0x310C,0x310D,0x310E,0x310F,0x3110,0x3111,0x3112,0x3114,0x3115,0x3116,
-                               0x3117,0x3118,0x3119,0x311A,0x311B,0x311C,0x3200,0x3201,0x3202,0x3203};
+const static INT16U Eventtype[]={0x3100,0x3101,0x3104,0x3105,0x3106,0x3107,0x3108,0x3109,0x310A,0x310B,0x310C,0x310D,0x310E,0x310F,0x3110,0x3111,0x3112,0x3114,0x3115,0x3116,0x3117,0x3118,0x3119,0x311A,0x311B,0x311C,0x3200,0x3201,0x3202,0x3203};
 
 //设备故障记录 事件发生源
 typedef enum
@@ -188,7 +186,7 @@ typedef struct
 typedef struct
 {
   INT8U retry_nums; //重试论次
-  INT8U task_no     //关联采集任务号
+  INT8U task_no;     //关联采集任务号
 }CollectFail_Object;
 
 //终端抄表失败事件
@@ -214,9 +212,9 @@ typedef struct
 //有功总电能量差动越限事件记录配置参数
 typedef struct
 {
-    INT8U group_no;             //有功总电能量差动组序号
-    OI contrast_group;          //对比的总加组
-    OI consult_group;           //参照的总加组
+	INT8U group_no;             //有功总电能量差动组序号
+	OI_698 contrast_group;          //对比的总加组
+	OI_698 consult_group;           //参照的总加组
 	INT8U flag;             	//参与差动的电能量的时间区间及对比方法标志 bit-string（SIZE（8））
 	                            //bit0～bit1编码表示电能量的时间跨度，取值范围0～2依次表示60分钟电量、30分钟电量、15分钟电量，其他值无效。
 								//bit7表示对比方法标志，置“0”：相对对比，公式见公式（1）；置“1”：绝对对比，公式见公式（2）。
@@ -302,7 +300,7 @@ typedef struct
 	Class7_Object Event3201_obj;    //电控跳闸记录28
 	Class7_Object Event3202_obj;    //购电参数设置记录29
 	Class7_Object Event3203_obj;    //电控告警事件记录30
-}TerminalEvent_Object
+}TerminalEvent_Object;
 
 /*
  * Class7_Object Event3100_obj;    //终端初始化事件1
