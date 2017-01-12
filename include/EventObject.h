@@ -186,7 +186,7 @@ typedef struct
 typedef struct
 {
   INT8U retry_nums; //重试论次
-  INT8U task_no     //关联采集任务号
+  INT8U task_no;     //关联采集任务号
 }CollectFail_Object;
 
 //终端抄表失败事件
