@@ -7,6 +7,7 @@
 #include "dlt698.h"
 #include "dlt698def.h"
 #include "secure.h"
+#include "../libEsam/Esam.h"
 
 #define LIB698_VER 	1
 INT8S (*pSendfun)(int fd,INT8U* sndbuf,INT16U sndlen);
