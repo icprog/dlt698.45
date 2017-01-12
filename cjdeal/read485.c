@@ -537,12 +537,16 @@ INT8U init6013ListFrom6012File()
 }
 void read485_thread()
 {
+
 	int task_index=0;
 	INT8U curr_prio=0;
 	comfd4851 = -1;
 	INT8U ret = 0;
 	INT16S taskID = -1;
 	INT8U totalTaskNum = init6013ListFrom6012File();
+
+	init6013();
+	init6015();
 	while(1)
 	{
 
@@ -570,6 +574,10 @@ void read485_thread()
 
 	pthread_detach(pthread_self());
 	pthread_exit(&thread_read485);
+
+	sleep(1);
+
+
 }
 void read485_proccess()
 {

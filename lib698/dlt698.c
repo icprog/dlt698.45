@@ -6,6 +6,7 @@
 #include "AccessFun.h"
 #include "dlt698.h"
 #include "dlt698def.h"
+#include "secure.h"
 
 #define LIB698_VER 	1
 INT8S (*pSendfun)(int fd,INT8U* sndbuf,INT16U sndlen);
@@ -446,6 +447,23 @@ int doActionRequest(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 			break;
 	}
 	return 1;
+}
+/**********************************************************************
+ * 安全传输Esam校验
+ *decryptData--明文信息 encryptData--密文数据集
+ *输入：retData--esam验证后返回信息(需要在该函数外层开辟空间)
+ *输出：retData长度
+ **********************************************************************/
+INT16U doScurityRequest(INT8U* apdu,INT8U* retData)
+{
+	if(apdu[0]!=0x10) return -1;//非安全传输，不处理
+	if(apdu[1] !=0x00 && apdu[1] != 0x01) return -2 ;   //明文应用数据单元
+	INT8U dataType=apdu[1];  //明文还是密文
+	INT16S datalen=0;
+	datalen = secureGetAppDataUnit(apdu);
+	if(datalen <=0) return -3; //应用数据单元长度解析错误
+	secureEsamCheck(apdu,datalen,retData);
+
 }
 /**********************************************************************
  * 1.	CONNECT.request 服务,本服务由客户机应用进程调用,用于向远方服务器的应用进程提出建立应用连接请求。
