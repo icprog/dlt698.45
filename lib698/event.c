@@ -347,19 +347,151 @@ INT8U Event_311A(TSA tsa, INT8U* data){
 
 	return 1;
 }
-INT8U Event_311B(TSA tsa, INT8U* data); //终端对电表校时记录25
-INT8U Event_311C(TSA tsa, INT8U* data); //电能表数据变更监控记录26
+
+//终端对电表校时记录25
+INT8U Event_311B(TSA tsa, INT8U* data){
+	if (EVENT_OBJS.Event311B_obj.enableflag == 0) {
+	        return 0;
+	    }
+
+	    //事件判定
+	    if (0) {
+	        return 0;
+	    }
+
+	    INT8U Save_buf[256];
+	    bzero(Save_buf, sizeof(Save_buf));
+	    INT32U crrentnum = EVENT_OBJS.Event311B_obj.crrentnum;
+
+	    memcpy(&Save_buf[0], &crrentnum, sizeof(INT32U));
+
+	    DateTimeBCD ntime;
+	    DataTimeGet(&ntime);
+	    //开始时间
+	    memcpy(&Save_buf[4], &ntime, sizeof(ntime));
+	    //结束时间
+	    memcpy(&Save_buf[11], &ntime, sizeof(ntime));
+
+	    //事件发生源
+	    int tsalen = tsa.addr[0];
+	    memcpy(&Save_buf[18], &tsa, sizeof(tsalen));
+
+	    //校时前时间
+	    memcpy(&Save_buf[18+tsalen+1],data, sizeof(DateTimeBCD_S));
+
+	    //时间误差
+
+	    EVENT_OBJS.Event311B_obj.crrentnum++;
+
+	    return 1;
+}
+
+//电能表数据变更监控记录26
+INT8U Event_311C(TSA tsa, INT8U* data);
 
 /*
  * 分析下行报文，产生对应的配置事件。
  */
 INT8U Event_AnalyseMsg(INT8U* data);
 
-INT8U Event_3100(INT8U* data); //终端初始化事件1
-INT8U Event_3109(INT8U* data); //终端消息认证错误事件8
-INT8U Event_3110(INT8U* data); //月通信流量超限事件15
-INT8U Event_3114(INT8U* data); //终端对时事件18
-INT8U Event_3202(INT8U* data); //购电参数设置记录29
+//终端初始化事件1
+INT8U Event_3100(INT8U* data){
+    if (EVENT_OBJS.Event3100_obj.enableflag == 0) {
+        return 0;
+    }
+
+    //事件判定
+    if (0) {
+        return 0;
+    }
+
+    INT8U Save_buf[256];
+    bzero(Save_buf, sizeof(Save_buf));
+    INT32U crrentnum = EVENT_OBJS.Event3100_obj.crrentnum;
+
+    memcpy(&Save_buf[0], &crrentnum, sizeof(INT32U));
+
+    DateTimeBCD ntime;
+    DataTimeGet(&ntime);
+    //开始时间
+    memcpy(&Save_buf[4], &ntime, sizeof(ntime));
+    //结束时间
+    memcpy(&Save_buf[11], &ntime, sizeof(ntime));
+
+
+
+    EVENT_OBJS.Event3100_obj.crrentnum++;
+
+    return 1;
+}
+
+//终端消息认证错误事件8
+INT8U Event_3109(INT8U* data){
+	   if (EVENT_OBJS.Event3109_obj.enableflag == 0) {
+	        return 0;
+	    }
+
+	    //事件判定
+	    if (0) {
+	        return 0;
+	    }
+
+	    INT8U Save_buf[256];
+	    bzero(Save_buf, sizeof(Save_buf));
+	    INT32U crrentnum = EVENT_OBJS.Event3109_obj.crrentnum;
+
+	    memcpy(&Save_buf[0], &crrentnum, sizeof(INT32U));
+
+	    DateTimeBCD ntime;
+	    DataTimeGet(&ntime);
+	    //开始时间
+	    memcpy(&Save_buf[4], &ntime, sizeof(ntime));
+	    //结束时间
+	    memcpy(&Save_buf[11], &ntime, sizeof(ntime));
+
+
+
+	    EVENT_OBJS.Event3109_obj.crrentnum++;
+
+	    return 1;
+}
+
+//月通信流量超限事件15
+INT8U Event_3110(INT8U* data){
+	   if (EVENT_OBJS.Event3110_obj.event_obj.enableflag == 0) {
+	        return 0;
+	   }
+
+	    //事件判定
+	    if (0) {
+	        return 0;
+	    }
+
+	    INT8U Save_buf[256];
+	    bzero(Save_buf, sizeof(Save_buf));
+	    INT32U crrentnum = EVENT_OBJS.Event3110_obj.event_obj.crrentnum;
+
+	    memcpy(&Save_buf[0], &crrentnum, sizeof(INT32U));
+
+	    DateTimeBCD ntime;
+	    DataTimeGet(&ntime);
+	    //开始时间
+	    memcpy(&Save_buf[4], &ntime, sizeof(ntime));
+	    //结束时间
+	    memcpy(&Save_buf[11], &ntime, sizeof(ntime));
+
+
+
+	    EVENT_OBJS.Event3110_obj.event_obj.crrentnum++;
+
+	    return 1;
+}
+
+//终端对时事件18
+INT8U Event_3114(INT8U* data);
+
+//购电参数设置记录29
+INT8U Event_3202(INT8U* data);
 
 INT8U Event_3202_1(INT8U* data); //终端停/上电事件5-停电事件-放在交采模块
 INT8U Event_3202_2(INT8U* data); //终端停/上电事件5-上电事件-放在交采模块-发起抄表动作
