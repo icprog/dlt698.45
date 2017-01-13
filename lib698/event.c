@@ -8,7 +8,6 @@ static TSA TSA_LIST[MAX_POINT_NUM];
 static int TSA_NUMS;
 static TerminalEvent_Object EVENT_OBJS;
 
-
 //计算时间差
 void DataTimeCut(DateTimeBCD* ts) {
     struct tm set;
@@ -103,18 +102,44 @@ INT8U Event_3105(TSA tsa, INT8U* data) {
     bzero(Save_buf, sizeof(Save_buf));
     INT32U crrentnum = EVENT_OBJS.Event3105_obj.event_obj.crrentnum;
 
-    memcpy(&Save_buf[0], &crrentnum, sizeof(INT32U));
+    //标准事件记录单元
+    Save_buf[0] = 0x33;
+    Save_buf[1] = 0x01;
+    // Type Struct
+    Save_buf[2] = 0x02;
+    //单元数量
+    Save_buf[3] = 0x05;
+    //事件记录序号
+    Save_buf[4] = 0x06;
+    memcpy(&Save_buf[5], &crrentnum, sizeof(INT32U));
 
     DateTimeBCD ntime;
     DataTimeGet(&ntime);
-    //开始时间
-    memcpy(&Save_buf[4], &ntime, sizeof(ntime));
-    //结束时间
-    memcpy(&Save_buf[11], &ntime, sizeof(ntime));
 
-    //事件发生源
-    int tsalen = tsa.addr[0];
-    memcpy(&Save_buf[18], &tsa, sizeof(TSA));
+    //事件发生事件
+    Save_buf[9] = 0x1C;
+    memcpy(&Save_buf[10], &ntime, sizeof(ntime));
+    //事件结束时间
+    Save_buf[17] = 0x1C;
+    memcpy(&Save_buf[18], &ntime, sizeof(ntime));
+
+    //事件发生源TSA
+    int tsalen   = tsa.addr[0];
+    Save_buf[25] = 0x55;
+    memcpy(&Save_buf[26], &tsa, sizeof(TSA));
+
+    //事件上报状态
+    Save_buf[27 + tsalen] = 0x01;
+    Save_buf[28 + tsalen] = 0x01;
+    //通道号
+    Save_buf[29 + tsalen] = 0x33;
+    Save_buf[30 + tsalen] = 0x00;
+    Save_buf[31 + tsalen] = 0x02;
+    Save_buf[32 + tsalen] = 0x00;
+    Save_buf[33 + tsalen] = 0x01;
+    //上报状态
+    Save_buf[34 + tsalen] = 0x11;
+    Save_buf[35 + tsalen] = 0x00;
 
     EVENT_OBJS.Event3105_obj.event_obj.crrentnum++;
 
@@ -136,14 +161,26 @@ INT8U Event_310A(INT8U type, INT8U* data) {
     bzero(Save_buf, sizeof(Save_buf));
     INT32U crrentnum = EVENT_OBJS.Event310A_obj.crrentnum;
 
-    memcpy(&Save_buf[0], &crrentnum, sizeof(INT32U));
+    //标准事件记录单元
+    Save_buf[0] = 0x33;
+    Save_buf[1] = 0x01;
+    // Type Struct
+    Save_buf[2] = 0x02;
+    //单元数量
+    Save_buf[3] = 0x05;
+    //事件记录序号
+    Save_buf[4] = 0x06;
+    memcpy(&Save_buf[5], &crrentnum, sizeof(INT32U));
 
     DateTimeBCD ntime;
     DataTimeGet(&ntime);
-    //开始时间
-    memcpy(&Save_buf[4], &ntime, sizeof(ntime));
-    //结束时间
-    memcpy(&Save_buf[11], &ntime, sizeof(ntime));
+
+    //事件发生事件
+    Save_buf[9] = 0x1C;
+    memcpy(&Save_buf[10], &ntime, sizeof(ntime));
+    //事件结束时间
+    Save_buf[17] = 0x1C;
+    memcpy(&Save_buf[18], &ntime, sizeof(ntime));
 
     //    事件发生源∷=enum
     //    {
@@ -154,11 +191,25 @@ INT8U Event_310A(INT8U type, INT8U* data) {
     //    显示板故障  （4），
     //    载波通道异常  （5）
     //    }
-    memcpy(&Save_buf[18], &type, sizeof(INT8U));
+
+    Save_buf[25] = 0x16;
+    Save_buf[26] = type && 0xff;
+
+    //事件上报状态
+    Save_buf[27] = 0x01;
+    Save_buf[28] = 0x01;
+    //通道号
+    Save_buf[29] = 0x33;
+    Save_buf[30] = 0x00;
+    Save_buf[31] = 0x02;
+    Save_buf[32] = 0x00;
+    Save_buf[33] = 0x01;
+    //上报状态
+    Save_buf[34] = 0x11;
+    Save_buf[35] = 0x00;
 
     EVENT_OBJS.Event310A_obj.crrentnum++;
 
-    return 1;
     return 1;
 }
 
@@ -177,18 +228,44 @@ INT8U Event_310B(TSA tsa, INT8U* data) {
     bzero(Save_buf, sizeof(Save_buf));
     INT32U crrentnum = EVENT_OBJS.Event310B_obj.event_obj.crrentnum;
 
-    memcpy(&Save_buf[0], &crrentnum, sizeof(INT32U));
+    //标准事件记录单元
+    Save_buf[0] = 0x33;
+    Save_buf[1] = 0x01;
+    // Type Struct
+    Save_buf[2] = 0x02;
+    //单元数量
+    Save_buf[3] = 0x05;
+    //事件记录序号
+    Save_buf[4] = 0x06;
+    memcpy(&Save_buf[5], &crrentnum, sizeof(INT32U));
 
     DateTimeBCD ntime;
     DataTimeGet(&ntime);
-    //开始时间
-    memcpy(&Save_buf[4], &ntime, sizeof(ntime));
-    //结束时间
-    memcpy(&Save_buf[11], &ntime, sizeof(ntime));
 
-    //事件发生源
-    int tsalen = tsa.addr[0];
-    memcpy(&Save_buf[18], &tsa, sizeof(TSA));
+    //事件发生事件
+    Save_buf[9] = 0x1C;
+    memcpy(&Save_buf[10], &ntime, sizeof(ntime));
+    //事件结束时间
+    Save_buf[17] = 0x1C;
+    memcpy(&Save_buf[18], &ntime, sizeof(ntime));
+
+    //事件发生源TSA
+    int tsalen   = tsa.addr[0];
+    Save_buf[25] = 0x55;
+    memcpy(&Save_buf[26], &tsa, sizeof(TSA));
+
+    //事件上报状态
+    Save_buf[27 + tsalen] = 0x01;
+    Save_buf[28 + tsalen] = 0x01;
+    //通道号
+    Save_buf[29 + tsalen] = 0x33;
+    Save_buf[30 + tsalen] = 0x00;
+    Save_buf[31 + tsalen] = 0x02;
+    Save_buf[32 + tsalen] = 0x00;
+    Save_buf[33 + tsalen] = 0x01;
+    //上报状态
+    Save_buf[34 + tsalen] = 0x11;
+    Save_buf[35 + tsalen] = 0x00;
 
     EVENT_OBJS.Event310B_obj.event_obj.crrentnum++;
 
@@ -210,18 +287,44 @@ INT8U Event_310C(TSA tsa, INT8U* data) {
     bzero(Save_buf, sizeof(Save_buf));
     INT32U crrentnum = EVENT_OBJS.Event310C_obj.event_obj.crrentnum;
 
-    memcpy(&Save_buf[0], &crrentnum, sizeof(INT32U));
+    //标准事件记录单元
+    Save_buf[0] = 0x33;
+    Save_buf[1] = 0x01;
+    // Type Struct
+    Save_buf[2] = 0x02;
+    //单元数量
+    Save_buf[3] = 0x05;
+    //事件记录序号
+    Save_buf[4] = 0x06;
+    memcpy(&Save_buf[5], &crrentnum, sizeof(INT32U));
 
     DateTimeBCD ntime;
     DataTimeGet(&ntime);
-    //开始时间
-    memcpy(&Save_buf[4], &ntime, sizeof(ntime));
-    //结束时间
-    memcpy(&Save_buf[11], &ntime, sizeof(ntime));
 
-    //事件发生源
-    int tsalen = tsa.addr[0];
-    memcpy(&Save_buf[18], &tsa, sizeof(TSA));
+    //事件发生事件
+    Save_buf[9] = 0x1C;
+    memcpy(&Save_buf[10], &ntime, sizeof(ntime));
+    //事件结束时间
+    Save_buf[17] = 0x1C;
+    memcpy(&Save_buf[18], &ntime, sizeof(ntime));
+
+    //事件发生源TSA
+    int tsalen   = tsa.addr[0];
+    Save_buf[25] = 0x55;
+    memcpy(&Save_buf[26], &tsa, sizeof(TSA));
+
+    //事件上报状态
+    Save_buf[27 + tsalen] = 0x01;
+    Save_buf[28 + tsalen] = 0x01;
+    //通道号
+    Save_buf[29 + tsalen] = 0x33;
+    Save_buf[30 + tsalen] = 0x00;
+    Save_buf[31 + tsalen] = 0x02;
+    Save_buf[32 + tsalen] = 0x00;
+    Save_buf[33 + tsalen] = 0x01;
+    //上报状态
+    Save_buf[34 + tsalen] = 0x11;
+    Save_buf[35 + tsalen] = 0x00;
 
     EVENT_OBJS.Event310C_obj.event_obj.crrentnum++;
 
@@ -243,18 +346,44 @@ INT8U Event_310D(TSA tsa, INT8U* data) {
     bzero(Save_buf, sizeof(Save_buf));
     INT32U crrentnum = EVENT_OBJS.Event310D_obj.event_obj.crrentnum;
 
-    memcpy(&Save_buf[0], &crrentnum, sizeof(INT32U));
+    //标准事件记录单元
+    Save_buf[0] = 0x33;
+    Save_buf[1] = 0x01;
+    // Type Struct
+    Save_buf[2] = 0x02;
+    //单元数量
+    Save_buf[3] = 0x05;
+    //事件记录序号
+    Save_buf[4] = 0x06;
+    memcpy(&Save_buf[5], &crrentnum, sizeof(INT32U));
 
     DateTimeBCD ntime;
     DataTimeGet(&ntime);
-    //开始时间
-    memcpy(&Save_buf[4], &ntime, sizeof(ntime));
-    //结束时间
-    memcpy(&Save_buf[11], &ntime, sizeof(ntime));
 
-    //事件发生源
-    int tsalen = tsa.addr[0];
-    memcpy(&Save_buf[18], &tsa, sizeof(TSA));
+    //事件发生事件
+    Save_buf[9] = 0x1C;
+    memcpy(&Save_buf[10], &ntime, sizeof(ntime));
+    //事件结束时间
+    Save_buf[17] = 0x1C;
+    memcpy(&Save_buf[18], &ntime, sizeof(ntime));
+
+    //事件发生源TSA
+    int tsalen   = tsa.addr[0];
+    Save_buf[25] = 0x55;
+    memcpy(&Save_buf[26], &tsa, sizeof(TSA));
+
+    //事件上报状态
+    Save_buf[27 + tsalen] = 0x01;
+    Save_buf[28 + tsalen] = 0x01;
+    //通道号
+    Save_buf[29 + tsalen] = 0x33;
+    Save_buf[30 + tsalen] = 0x00;
+    Save_buf[31 + tsalen] = 0x02;
+    Save_buf[32 + tsalen] = 0x00;
+    Save_buf[33 + tsalen] = 0x01;
+    //上报状态
+    Save_buf[34 + tsalen] = 0x11;
+    Save_buf[35 + tsalen] = 0x00;
 
     EVENT_OBJS.Event310D_obj.event_obj.crrentnum++;
 
@@ -276,18 +405,44 @@ INT8U Event_310E(TSA tsa, INT8U* data) {
     bzero(Save_buf, sizeof(Save_buf));
     INT32U crrentnum = EVENT_OBJS.Event310E_obj.event_obj.crrentnum;
 
-    memcpy(&Save_buf[0], &crrentnum, sizeof(INT32U));
+    //标准事件记录单元
+    Save_buf[0] = 0x33;
+    Save_buf[1] = 0x01;
+    // Type Struct
+    Save_buf[2] = 0x02;
+    //单元数量
+    Save_buf[3] = 0x05;
+    //事件记录序号
+    Save_buf[4] = 0x06;
+    memcpy(&Save_buf[5], &crrentnum, sizeof(INT32U));
 
     DateTimeBCD ntime;
     DataTimeGet(&ntime);
-    //开始时间
-    memcpy(&Save_buf[4], &ntime, sizeof(ntime));
-    //结束时间
-    memcpy(&Save_buf[11], &ntime, sizeof(ntime));
 
-    //事件发生源
-    int tsalen = tsa.addr[0];
-    memcpy(&Save_buf[18], &tsa, sizeof(TSA));
+    //事件发生事件
+    Save_buf[9] = 0x1C;
+    memcpy(&Save_buf[10], &ntime, sizeof(ntime));
+    //事件结束时间
+    Save_buf[17] = 0x1C;
+    memcpy(&Save_buf[18], &ntime, sizeof(ntime));
+
+    //事件发生源TSA
+    int tsalen   = tsa.addr[0];
+    Save_buf[25] = 0x55;
+    memcpy(&Save_buf[26], &tsa, sizeof(TSA));
+
+    //事件上报状态
+    Save_buf[27 + tsalen] = 0x01;
+    Save_buf[28 + tsalen] = 0x01;
+    //通道号
+    Save_buf[29 + tsalen] = 0x33;
+    Save_buf[30 + tsalen] = 0x00;
+    Save_buf[31 + tsalen] = 0x02;
+    Save_buf[32 + tsalen] = 0x00;
+    Save_buf[33 + tsalen] = 0x01;
+    //上报状态
+    Save_buf[34 + tsalen] = 0x11;
+    Save_buf[35 + tsalen] = 0x00;
 
     EVENT_OBJS.Event310E_obj.event_obj.crrentnum++;
 
@@ -309,18 +464,44 @@ INT8U Event_310F(TSA tsa, INT8U* data) {
     bzero(Save_buf, sizeof(Save_buf));
     INT32U crrentnum = EVENT_OBJS.Event310F_obj.event_obj.crrentnum;
 
-    memcpy(&Save_buf[0], &crrentnum, sizeof(INT32U));
+    //标准事件记录单元
+    Save_buf[0] = 0x33;
+    Save_buf[1] = 0x01;
+    // Type Struct
+    Save_buf[2] = 0x02;
+    //单元数量
+    Save_buf[3] = 0x05;
+    //事件记录序号
+    Save_buf[4] = 0x06;
+    memcpy(&Save_buf[5], &crrentnum, sizeof(INT32U));
 
     DateTimeBCD ntime;
     DataTimeGet(&ntime);
-    //开始时间
-    memcpy(&Save_buf[4], &ntime, sizeof(ntime));
-    //结束时间
-    memcpy(&Save_buf[11], &ntime, sizeof(ntime));
 
-    //事件发生源
-    int tsalen = tsa.addr[0];
-    memcpy(&Save_buf[18], &tsa, sizeof(TSA));
+    //事件发生事件
+    Save_buf[9] = 0x1C;
+    memcpy(&Save_buf[10], &ntime, sizeof(ntime));
+    //事件结束时间
+    Save_buf[17] = 0x1C;
+    memcpy(&Save_buf[18], &ntime, sizeof(ntime));
+
+    //事件发生源TSA
+    int tsalen   = tsa.addr[0];
+    Save_buf[25] = 0x55;
+    memcpy(&Save_buf[26], &tsa, sizeof(TSA));
+
+    //事件上报状态
+    Save_buf[27 + tsalen] = 0x01;
+    Save_buf[28 + tsalen] = 0x01;
+    //通道号
+    Save_buf[29 + tsalen] = 0x33;
+    Save_buf[30 + tsalen] = 0x00;
+    Save_buf[31 + tsalen] = 0x02;
+    Save_buf[32 + tsalen] = 0x00;
+    Save_buf[33 + tsalen] = 0x01;
+    //上报状态
+    Save_buf[34 + tsalen] = 0x11;
+    Save_buf[35 + tsalen] = 0x00;
 
     EVENT_OBJS.Event310F_obj.event_obj.crrentnum++;
 
@@ -343,59 +524,84 @@ INT8U Event_3112(TSA tsa, INT8U* data) {
     return 1;
 }
 //电能表在网状态切换事件24
-INT8U Event_311A(TSA tsa, INT8U* data){
-
-	return 1;
+INT8U Event_311A(TSA tsa, INT8U* data) {
+    return 1;
 }
 
 //终端对电表校时记录25
-INT8U Event_311B(TSA tsa, INT8U* data){
-	if (EVENT_OBJS.Event311B_obj.enableflag == 0) {
-	        return 0;
-	    }
+INT8U Event_311B(TSA tsa, INT8U* data) {
+    if (EVENT_OBJS.Event311B_obj.enableflag == 0) {
+        return 0;
+    }
 
-	    //事件判定
-	    if (0) {
-	        return 0;
-	    }
+    //事件判定
+    if (0) {
+        return 0;
+    }
 
-	    INT8U Save_buf[256];
-	    bzero(Save_buf, sizeof(Save_buf));
-	    INT32U crrentnum = EVENT_OBJS.Event311B_obj.crrentnum;
+    INT8U Save_buf[256];
+    bzero(Save_buf, sizeof(Save_buf));
+    INT32U crrentnum = EVENT_OBJS.Event311B_obj.crrentnum;
 
-	    memcpy(&Save_buf[0], &crrentnum, sizeof(INT32U));
+    //标准事件记录单元
+    Save_buf[0] = 0x33;
+    Save_buf[1] = 0x01;
+    // Type Struct
+    Save_buf[2] = 0x02;
+    //单元数量
+    Save_buf[3] = 0x05;
+    //事件记录序号
+    Save_buf[4] = 0x06;
+    memcpy(&Save_buf[5], &crrentnum, sizeof(INT32U));
 
-	    DateTimeBCD ntime;
-	    DataTimeGet(&ntime);
-	    //开始时间
-	    memcpy(&Save_buf[4], &ntime, sizeof(ntime));
-	    //结束时间
-	    memcpy(&Save_buf[11], &ntime, sizeof(ntime));
+    DateTimeBCD ntime;
+    DataTimeGet(&ntime);
 
-	    //事件发生源
-	    int tsalen = tsa.addr[0];
-	    memcpy(&Save_buf[18], &tsa, sizeof(tsalen));
+    //事件发生事件
+    Save_buf[9] = 0x1C;
+    memcpy(&Save_buf[10], &ntime, sizeof(ntime));
+    //事件结束时间
+    Save_buf[17] = 0x1C;
+    memcpy(&Save_buf[18], &ntime, sizeof(ntime));
 
-	    //校时前时间
-	    memcpy(&Save_buf[18+tsalen+1],data, sizeof(DateTimeBCD_S));
+    //事件发生源TSA
+    int tsalen   = tsa.addr[0];
+    Save_buf[25] = 0x55;
+    memcpy(&Save_buf[26], &tsa, sizeof(TSA));
 
-	    //时间误差
+    //事件上报状态
+    Save_buf[27 + tsalen] = 0x01;
+    Save_buf[28 + tsalen] = 0x01;
+    //通道号
+    Save_buf[29 + tsalen] = 0x33;
+    Save_buf[30 + tsalen] = 0x00;
+    Save_buf[31 + tsalen] = 0x02;
+    Save_buf[32 + tsalen] = 0x00;
+    Save_buf[33 + tsalen] = 0x01;
+    //上报状态
+    Save_buf[34 + tsalen] = 0x11;
+    Save_buf[35 + tsalen] = 0x00;
 
-	    EVENT_OBJS.Event311B_obj.crrentnum++;
+    //校表前时间
+    Save_buf[36 + tsalen] = 0x1C;
+    memcpy(&Save_buf[37 + tsalen], data, sizeof(ntime));
 
-	    return 1;
+    //时钟误差
+    Save_buf[44 + tsalen] = 0x0F;
+    Save_buf[45 + tsalen] = 0x00;
+
+    EVENT_OBJS.Event311B_obj.crrentnum++;
+
+    return 1;
 }
 
 //电能表数据变更监控记录26
-INT8U Event_311C(TSA tsa, INT8U* data);
-
-/*
- * 分析下行报文，产生对应的配置事件。
- */
-INT8U Event_AnalyseMsg(INT8U* data);
+INT8U Event_311C(TSA tsa, INT8U* data) {
+    return 1;
+}
 
 //终端初始化事件1
-INT8U Event_3100(INT8U* data){
+INT8U Event_3100(INT8U* data) {
     if (EVENT_OBJS.Event3100_obj.enableflag == 0) {
         return 0;
     }
@@ -409,16 +615,39 @@ INT8U Event_3100(INT8U* data){
     bzero(Save_buf, sizeof(Save_buf));
     INT32U crrentnum = EVENT_OBJS.Event3100_obj.crrentnum;
 
-    memcpy(&Save_buf[0], &crrentnum, sizeof(INT32U));
+    //标准事件记录单元
+    Save_buf[0] = 0x33;
+    Save_buf[1] = 0x01;
+    // Type Struct
+    Save_buf[2] = 0x02;
+    //单元数量
+    Save_buf[3] = 0x05;
+    //事件记录序号
+    Save_buf[4] = 0x06;
+    memcpy(&Save_buf[5], &crrentnum, sizeof(INT32U));
 
     DateTimeBCD ntime;
     DataTimeGet(&ntime);
-    //开始时间
-    memcpy(&Save_buf[4], &ntime, sizeof(ntime));
-    //结束时间
-    memcpy(&Save_buf[11], &ntime, sizeof(ntime));
 
+    //事件发生事件
+    Save_buf[9] = 0x1C;
+    memcpy(&Save_buf[10], &ntime, sizeof(ntime));
+    //事件结束时间
+    Save_buf[17] = 0x1C;
+    memcpy(&Save_buf[18], &ntime, sizeof(ntime));
 
+    //事件上报状态
+    Save_buf[25] = 0x01;
+    Save_buf[26] = 0x01;
+    //通道号
+    Save_buf[27] = 0x33;
+    Save_buf[28] = 0x00;
+    Save_buf[29] = 0x02;
+    Save_buf[30] = 0x00;
+    Save_buf[31] = 0x01;
+    //上报状态
+    Save_buf[32] = 0x11;
+    Save_buf[33] = 0x00;
 
     EVENT_OBJS.Event3100_obj.crrentnum++;
 
@@ -426,72 +655,172 @@ INT8U Event_3100(INT8U* data){
 }
 
 //终端消息认证错误事件8
-INT8U Event_3109(INT8U* data){
-	   if (EVENT_OBJS.Event3109_obj.enableflag == 0) {
-	        return 0;
-	    }
+INT8U Event_3109(INT8U* data) {
+    if (EVENT_OBJS.Event3109_obj.enableflag == 0) {
+        return 0;
+    }
 
-	    //事件判定
-	    if (0) {
-	        return 0;
-	    }
+    //事件判定
+    if (0) {
+        return 0;
+    }
 
-	    INT8U Save_buf[256];
-	    bzero(Save_buf, sizeof(Save_buf));
-	    INT32U crrentnum = EVENT_OBJS.Event3109_obj.crrentnum;
+    INT8U Save_buf[256];
+    bzero(Save_buf, sizeof(Save_buf));
+    INT32U crrentnum = EVENT_OBJS.Event3109_obj.crrentnum;
 
-	    memcpy(&Save_buf[0], &crrentnum, sizeof(INT32U));
+    //标准事件记录单元
+    Save_buf[0] = 0x33;
+    Save_buf[1] = 0x01;
+    // Type Struct
+    Save_buf[2] = 0x02;
+    //单元数量
+    Save_buf[3] = 0x05;
+    //事件记录序号
+    Save_buf[4] = 0x06;
+    memcpy(&Save_buf[5], &crrentnum, sizeof(INT32U));
 
-	    DateTimeBCD ntime;
-	    DataTimeGet(&ntime);
-	    //开始时间
-	    memcpy(&Save_buf[4], &ntime, sizeof(ntime));
-	    //结束时间
-	    memcpy(&Save_buf[11], &ntime, sizeof(ntime));
+    DateTimeBCD ntime;
+    DataTimeGet(&ntime);
 
+    //事件发生事件
+    Save_buf[9] = 0x1C;
+    memcpy(&Save_buf[10], &ntime, sizeof(ntime));
+    //事件结束时间
+    Save_buf[17] = 0x1C;
+    memcpy(&Save_buf[18], &ntime, sizeof(ntime));
 
+    //事件上报状态
+    Save_buf[25] = 0x01;
+    Save_buf[26] = 0x01;
+    //通道号
+    Save_buf[27] = 0x33;
+    Save_buf[28] = 0x00;
+    Save_buf[29] = 0x02;
+    Save_buf[30] = 0x00;
+    Save_buf[31] = 0x01;
+    //上报状态
+    Save_buf[32] = 0x11;
+    Save_buf[33] = 0x00;
 
-	    EVENT_OBJS.Event3109_obj.crrentnum++;
+    EVENT_OBJS.Event3109_obj.crrentnum++;
 
-	    return 1;
+    return 1;
 }
 
 //月通信流量超限事件15
-INT8U Event_3110(INT8U* data){
-	   if (EVENT_OBJS.Event3110_obj.event_obj.enableflag == 0) {
-	        return 0;
-	   }
+INT8U Event_3110(INT8U* data) {
+    if (EVENT_OBJS.Event3110_obj.event_obj.enableflag == 0) {
+        return 0;
+    }
 
-	    //事件判定
-	    if (0) {
-	        return 0;
-	    }
+    //事件判定
+    if (0) {
+        return 0;
+    }
 
-	    INT8U Save_buf[256];
-	    bzero(Save_buf, sizeof(Save_buf));
-	    INT32U crrentnum = EVENT_OBJS.Event3110_obj.event_obj.crrentnum;
+    INT8U Save_buf[256];
+    bzero(Save_buf, sizeof(Save_buf));
+    INT32U crrentnum = EVENT_OBJS.Event3110_obj.event_obj.crrentnum;
 
-	    memcpy(&Save_buf[0], &crrentnum, sizeof(INT32U));
+    //标准事件记录单元
+    Save_buf[0] = 0x33;
+    Save_buf[1] = 0x01;
+    // Type Struct
+    Save_buf[2] = 0x02;
+    //单元数量
+    Save_buf[3] = 0x05;
+    //事件记录序号
+    Save_buf[4] = 0x06;
+    memcpy(&Save_buf[5], &crrentnum, sizeof(INT32U));
 
-	    DateTimeBCD ntime;
-	    DataTimeGet(&ntime);
-	    //开始时间
-	    memcpy(&Save_buf[4], &ntime, sizeof(ntime));
-	    //结束时间
-	    memcpy(&Save_buf[11], &ntime, sizeof(ntime));
+    DateTimeBCD ntime;
+    DataTimeGet(&ntime);
 
+    //事件发生事件
+    Save_buf[9] = 0x1C;
+    memcpy(&Save_buf[10], &ntime, sizeof(ntime));
+    //事件结束时间
+    Save_buf[17] = 0x1C;
+    memcpy(&Save_buf[18], &ntime, sizeof(ntime));
 
+    //事件上报状态
+    Save_buf[25] = 0x01;
+    Save_buf[26] = 0x01;
+    //通道号
+    Save_buf[27] = 0x33;
+    Save_buf[28] = 0x00;
+    Save_buf[29] = 0x02;
+    Save_buf[30] = 0x00;
+    Save_buf[31] = 0x01;
+    //上报状态
+    Save_buf[32] = 0x11;
+    Save_buf[33] = 0x00;
 
-	    EVENT_OBJS.Event3110_obj.event_obj.crrentnum++;
+    EVENT_OBJS.Event3110_obj.event_obj.crrentnum++;
 
-	    return 1;
+    return 1;
 }
 
 //终端对时事件18
-INT8U Event_3114(INT8U* data);
+INT8U Event_3114(INT8U* data) {
+    if (EVENT_OBJS.Event3114_obj.enableflag == 0) {
+        return 0;
+    }
+
+    //事件判定
+    if (0) {
+        return 0;
+    }
+
+    INT8U Save_buf[256];
+    bzero(Save_buf, sizeof(Save_buf));
+    INT32U crrentnum = EVENT_OBJS.Event3114_obj.crrentnum;
+
+    //标准事件记录单元
+    Save_buf[0] = 0x33;
+    Save_buf[1] = 0x01;
+    // Type Struct
+    Save_buf[2] = 0x02;
+    //单元数量
+    Save_buf[3] = 0x05;
+    //事件记录序号
+    Save_buf[4] = 0x06;
+    memcpy(&Save_buf[5], &crrentnum, sizeof(INT32U));
+
+    DateTimeBCD ntime;
+    DataTimeGet(&ntime);
+
+    //事件发生事件
+    Save_buf[9] = 0x1C;
+    memcpy(&Save_buf[10], &ntime, sizeof(ntime));
+    //事件结束时间
+    Save_buf[17] = 0x1C;
+    memcpy(&Save_buf[18], &ntime, sizeof(ntime));
+
+    //事件上报状态
+    Save_buf[25] = 0x01;
+    Save_buf[26] = 0x01;
+    //通道号
+    Save_buf[27] = 0x33;
+    Save_buf[28] = 0x00;
+    Save_buf[29] = 0x02;
+    Save_buf[30] = 0x00;
+    Save_buf[31] = 0x01;
+    //上报状态
+    Save_buf[32] = 0x11;
+    Save_buf[33] = 0x00;
+
+    EVENT_OBJS.Event3114_obj.crrentnum++;
+
+    return 1;
+}
 
 //购电参数设置记录29
-INT8U Event_3202(INT8U* data);
+INT8U Event_3202(INT8U* data) {
+    //暂时不使用
+    return 1;
+}
 
 INT8U Event_3202_1(INT8U* data); //终端停/上电事件5-停电事件-放在交采模块
 INT8U Event_3202_2(INT8U* data); //终端停/上电事件5-上电事件-放在交采模块-发起抄表动作
@@ -501,8 +830,187 @@ INT8U Event_3202_clean(INT8U* data); //终端停/上电事件5-放在轻量级�
 /*
  * 分析交采数据，产生对应的配置事件。
  */
-INT8U Event_AnalyseACS(INT8U* data);
+INT8U Event_AnalyseACS(INT8U* data) {
+    return 1;
+}
 
-INT8U Event_3107(INT8U* data); //终端直流模拟量越上限事件6
-INT8U Event_3108(INT8U* data); //终端直流模拟量越下限事件7
-INT8U Event_3119(INT8U* data); //终端电流回路异常事件23
+//终端直流模拟量越上限事件6
+INT8U Event_3107(INT8U* data) {
+    if (EVENT_OBJS.Event3107_obj.event_obj.enableflag == 0) {
+        return 0;
+    }
+
+    //事件判定
+    if (0) {
+        return 0;
+    }
+
+    INT8U Save_buf[256];
+    bzero(Save_buf, sizeof(Save_buf));
+    INT32U crrentnum = EVENT_OBJS.Event3107_obj.event_obj.crrentnum;
+
+    //标准事件记录单元
+    Save_buf[0] = 0x33;
+    Save_buf[1] = 0x01;
+    // Type Struct
+    Save_buf[2] = 0x02;
+    //单元数量
+    Save_buf[3] = 0x05;
+    //事件记录序号
+    Save_buf[4] = 0x06;
+    memcpy(&Save_buf[5], &crrentnum, sizeof(INT32U));
+
+    DateTimeBCD ntime;
+    DataTimeGet(&ntime);
+
+    //事件发生事件
+    Save_buf[9] = 0x1C;
+    memcpy(&Save_buf[10], &ntime, sizeof(ntime));
+    //事件结束时间
+    Save_buf[17] = 0x1C;
+    memcpy(&Save_buf[18], &ntime, sizeof(ntime));
+
+    //事件发生源
+	Save_buf[25] = 0xF2;
+	Save_buf[25] = 0x04;
+	Save_buf[25] = 0x02;
+	Save_buf[25] = 0x00;
+	memcpy(&Save_buf[26], data, sizeof(INT32S));
+    //事件上报状态
+    Save_buf[30] = 0x01;
+    Save_buf[31] = 0x01;
+    //通道号
+    Save_buf[32] = 0x33;
+    Save_buf[33] = 0x00;
+    Save_buf[34] = 0x02;
+    Save_buf[35] = 0x00;
+    Save_buf[36] = 0x01;
+    //上报状态
+    Save_buf[37] = 0x11;
+    Save_buf[38] = 0x00;
+
+    EVENT_OBJS.Event3107_obj.event_obj.crrentnum++;
+
+    return 1;
+}
+//终端直流模拟量越下限事件7
+INT8U Event_3108(INT8U* data) {
+    if (EVENT_OBJS.Event3108_obj.event_obj.enableflag == 0) {
+        return 0;
+    }
+
+    //事件判定
+    if (0) {
+        return 0;
+    }
+
+    INT8U Save_buf[256];
+    bzero(Save_buf, sizeof(Save_buf));
+    INT32U crrentnum = EVENT_OBJS.Event3108_obj.event_obj.crrentnum;
+
+    //标准事件记录单元
+    Save_buf[0] = 0x33;
+    Save_buf[1] = 0x01;
+    // Type Struct
+    Save_buf[2] = 0x02;
+    //单元数量
+    Save_buf[3] = 0x05;
+    //事件记录序号
+    Save_buf[4] = 0x06;
+    memcpy(&Save_buf[5], &crrentnum, sizeof(INT32U));
+
+    DateTimeBCD ntime;
+    DataTimeGet(&ntime);
+
+    //事件发生事件
+    Save_buf[9] = 0x1C;
+    memcpy(&Save_buf[10], &ntime, sizeof(ntime));
+    //事件结束时间
+    Save_buf[17] = 0x1C;
+    memcpy(&Save_buf[18], &ntime, sizeof(ntime));
+
+    //事件发生源
+	Save_buf[25] = 0xF2;
+	Save_buf[25] = 0x04;
+	Save_buf[25] = 0x02;
+	Save_buf[25] = 0x00;
+	memcpy(&Save_buf[26], data, sizeof(INT32S));
+    //事件上报状态
+    Save_buf[30] = 0x01;
+    Save_buf[31] = 0x01;
+    //通道号
+    Save_buf[32] = 0x33;
+    Save_buf[33] = 0x00;
+    Save_buf[34] = 0x02;
+    Save_buf[35] = 0x00;
+    Save_buf[36] = 0x01;
+    //上报状态
+    Save_buf[37] = 0x11;
+    Save_buf[38] = 0x00;
+
+    EVENT_OBJS.Event3108_obj.event_obj.crrentnum++;
+
+    return 1;
+}
+//终端电流回路异常事件23
+INT8U Event_3119(INT8U type, INT8U* data) {
+    if (EVENT_OBJS.Event3119_obj.enableflag == 0) {
+        return 0;
+    }
+
+    //事件判定
+    if (0) {
+        return 0;
+    }
+
+    INT8U Save_buf[256];
+    bzero(Save_buf, sizeof(Save_buf));
+    INT32U crrentnum = EVENT_OBJS.Event3119_obj.crrentnum;
+
+    //标准事件记录单元
+    Save_buf[0] = 0x33;
+    Save_buf[1] = 0x01;
+    // Type Struct
+    Save_buf[2] = 0x02;
+    //单元数量
+    Save_buf[3] = 0x05;
+    //事件记录序号
+    Save_buf[4] = 0x06;
+    memcpy(&Save_buf[5], &crrentnum, sizeof(INT32U));
+
+    DateTimeBCD ntime;
+    DataTimeGet(&ntime);
+
+    //事件发生事件
+    Save_buf[9] = 0x1C;
+    memcpy(&Save_buf[10], &ntime, sizeof(ntime));
+    //事件结束时间
+    Save_buf[17] = 0x1C;
+    memcpy(&Save_buf[18], &ntime, sizeof(ntime));
+
+    //    事件发生源∷=enum
+    //    {
+    //    短路（0），
+    //    开路（1），
+    //    }
+
+    Save_buf[25] = 0x16;
+    Save_buf[26] = type && 0xff;
+
+    //事件上报状态
+    Save_buf[27] = 0x01;
+    Save_buf[28] = 0x01;
+    //通道号
+    Save_buf[29] = 0x33;
+    Save_buf[30] = 0x00;
+    Save_buf[31] = 0x02;
+    Save_buf[32] = 0x00;
+    Save_buf[33] = 0x01;
+    //上报状态
+    Save_buf[34] = 0x11;
+    Save_buf[35] = 0x00;
+
+    EVENT_OBJS.Event3119_obj.crrentnum++;
+
+    return 1;
+}
