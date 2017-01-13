@@ -13,7 +13,7 @@
 				</extensions>
 			</storageModule>
 			<storageModule moduleId="cdtBuildSystem" version="4.0.0">
-				<configuration artifactName="${ProjName}" buildArtefactType="org.eclipse.cdt.cross.arm.gnu.buildArtefactType.application" buildProperties="org.eclipse.cdt.build.core.buildArtefactType=org.eclipse.cdt.cross.arm.gnu.buildArtefactType.application,org.eclipse.cdt.build.core.buildType=org.eclipse.cdt.build.core.buildType.release" description="" errorParsers="org.eclipse.cdt.core.MakeErrorParser;org.eclipse.cdt.core.GCCErrorParser;org.eclipse.cdt.core.GLDErrorParser;org.eclipse.cdt.autotools.core.ErrorParser" id="org.eclipse.cdt.cross.arm.gnu.sourcery.app.linux.elf.release.938878439" name="Release" parent="org.eclipse.cdt.cross.arm.gnu.sourcery.app.linux.elf.release" postbuildStep="arm-none-linux-gnueabi-strip ${ProjName} ;cp ${ProjName} ../../bin_arm">
+				<configuration artifactName="${ProjName}" buildArtefactType="org.eclipse.cdt.cross.arm.gnu.buildArtefactType.application" buildProperties="org.eclipse.cdt.build.core.buildType=org.eclipse.cdt.build.core.buildType.release,org.eclipse.cdt.build.core.buildArtefactType=org.eclipse.cdt.cross.arm.gnu.buildArtefactType.application" description="" errorParsers="org.eclipse.cdt.core.MakeErrorParser;org.eclipse.cdt.core.GCCErrorParser;org.eclipse.cdt.core.GLDErrorParser;org.eclipse.cdt.autotools.core.ErrorParser" id="org.eclipse.cdt.cross.arm.gnu.sourcery.app.linux.elf.release.938878439" name="Release" parent="org.eclipse.cdt.cross.arm.gnu.sourcery.app.linux.elf.release" postbuildStep="arm-none-linux-gnueabi-strip ${ProjName} ;cp ${ProjName} ../../bin_arm">
 					<folderInfo id="org.eclipse.cdt.cross.arm.gnu.sourcery.app.linux.elf.release.938878439." name="/" resourcePath="">
 						<toolChain errorParsers="" id="org.eclipse.cdt.cross.arm.gnu.sourcery.app.linux.elf.toolchain.release.72058836" name="ARM Linux GCC (Linux App)" superClass="org.eclipse.cdt.cross.arm.gnu.sourcery.app.linux.elf.toolchain.release">
 							<option id="org.eclipse.cdt.cross.arm.gnu.sourcery.app.linux.option.debugging.level.1355945656" name="Debug level" superClass="org.eclipse.cdt.cross.arm.gnu.sourcery.app.linux.option.debugging.level" value="org.eclipse.cdt.cross.arm.gnu.base.option.debugging.level.none" valueType="enumerated"/>
@@ -36,8 +36,10 @@
 								<option id="org.eclipse.cdt.cross.arm.gnu.c.compiler.option.include.paths.910746417" name="Include paths (-I)" superClass="org.eclipse.cdt.cross.arm.gnu.c.compiler.option.include.paths" valueType="includePath">
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/libBase}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/include}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/libAccess}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/lib698}&quot;"/>
 								</option>
-								<option id="org.eclipse.cdt.cross.arm.gnu.c.compiler.option.other.otherflags.594650045" superClass="org.eclipse.cdt.cross.arm.gnu.c.compiler.option.other.otherflags" value="-c -fmessage-length=0 -std=c99" valueType="string"/>
+								<option id="org.eclipse.cdt.cross.arm.gnu.c.compiler.option.other.otherflags.594650045" name="Other flags" superClass="org.eclipse.cdt.cross.arm.gnu.c.compiler.option.other.otherflags" value="-c -fmessage-length=0 -std=c99" valueType="string"/>
 								<inputType id="org.eclipse.cdt.cross.arm.gnu.sourcery.app.linux.c.compiler.base.input.673535169" superClass="org.eclipse.cdt.cross.arm.gnu.sourcery.app.linux.c.compiler.base.input"/>
 							</tool>
 							<tool command="arm-none-linux-gnueabi-gcc" errorParsers="org.eclipse.cdt.core.GCCErrorParser" id="org.eclipse.cdt.cross.arm.gnu.sourcery.app.linux.elf.cpp.compiler.release.362687616" name="ARM Sourcery Linux GCC C++ Compiler" superClass="org.eclipse.cdt.cross.arm.gnu.sourcery.app.linux.elf.cpp.compiler.release">
@@ -54,11 +56,13 @@
 							<tool command="arm-none-linux-gnueabi-gcc" errorParsers="org.eclipse.cdt.core.GLDErrorParser" id="org.eclipse.cdt.cross.arm.gnu.sourcery.app.linux.elf.cpp.linker.release.739509390" name="ARM Sourcery Linux GCC C++ Linker" superClass="org.eclipse.cdt.cross.arm.gnu.sourcery.app.linux.elf.cpp.linker.release">
 								<option id="org.eclipse.cdt.cross.arm.gnu.cpp.link.option.paths.1157131872" name="Library search path (-L)" superClass="org.eclipse.cdt.cross.arm.gnu.cpp.link.option.paths" valueType="libPaths">
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/libBase/Release}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/libAccess/Release}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/lib698/Release}&quot;"/>
 								</option>
 								<option id="org.eclipse.cdt.cross.arm.gnu.cpp.link.option.libs.1478995610" name="Libraries (-l)" superClass="org.eclipse.cdt.cross.arm.gnu.cpp.link.option.libs" valueType="libs">
 									<listOptionValue builtIn="false" value="Base"/>
-									<listOptionValue builtIn="false" value="m"/>
-									<listOptionValue builtIn="false" value="rt"/>
+									<listOptionValue builtIn="false" srcPrefixMapping="" srcRootPath="" value="Access"/>
+									<listOptionValue builtIn="false" srcPrefixMapping="" srcRootPath="" value="698"/>
 								</option>
 								<option id="org.eclipse.cdt.cross.arm.gnu.cpp.link.option.nostart.383903638" name="Do not use standard start files (-nostartfiles)" superClass="org.eclipse.cdt.cross.arm.gnu.cpp.link.option.nostart" value="false" valueType="boolean"/>
 								<inputType id="org.eclipse.cdt.cross.arm.gnu.cpp.linker.input.1428654815" superClass="org.eclipse.cdt.cross.arm.gnu.cpp.linker.input">

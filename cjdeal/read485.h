@@ -9,14 +9,15 @@
 #define READ485_H_
 #include "Objectdef.h"
 #include "PublicFunction.h"
-
+#include "AccessFun.h"
 //一次从文件里读取10个6001--采集档案任务配置单元
 #define LIST6001SIZE 10
 #define TASK6012_MAX 256
 
 pthread_attr_t read485_attr_t;
-int thread_read485_id;           //485、四表合一（I型、II型、专变）
-pthread_t thread_read485;
+int thread_read4851_id,thread_read4852_id;           //485、四表合一（I型、II型、专变）
+pthread_t thread_read4851,thread_read4852;
+
 
 typedef enum{
 	PROTOCOL_UNKNOWN = 0,
@@ -45,6 +46,6 @@ typedef struct {
 TASK_CFG list6013[TASK6012_MAX];
 CLASS_6015 to6015;
 INT32S comfd4851;
-
+INT32S comfd4852;
 extern void read485_proccess();
 #endif /* READ485_H_ */

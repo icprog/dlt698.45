@@ -125,8 +125,6 @@ INT8U readList6001FromFile(BasicInfo6001* list6001,INT16U groupIndex,int recordn
 				if(meter.basicinfo.port.OI == 0xF201)
 				{
 					fprintf(stderr,"\n序号:%d ",meter.sernum);
-					fprintf(stderr,"baud %s",getenum(1,meter.basicinfo.baud));
-					fprintf(stderr,"protocol %s",getenum(2,meter.basicinfo.protocol));
 
 					list6001[mIndex%LIST6001SIZE].port = S4851;
 					list6001[mIndex%LIST6001SIZE].baud = meter.basicinfo.baud;
@@ -371,9 +369,6 @@ INT8U filterInvalidTask(INT16U taskIndex)
 int getTaskReadRounds(INT16U taskIndex)
 {
 	int readRound = 0;
-	struct tm tm_tmp;
-
-	time_t sec_start=0,sec_now;
 	TS ts_now;
 	TSGet(&ts_now);
 
@@ -535,15 +530,13 @@ INT8U init6013ListFrom6012File()
 
 	return result;
 }
-void read485_thread()
+void read485_thread(void* i485port)
 {
-
-	int task_index=0;
-	INT8U curr_prio=0;
+	INT8U port = *(INT8U*)i485port;
 	comfd4851 = -1;
 	INT8U ret = 0;
 	INT16S taskID = -1;
-	INT8U totalTaskNum = init6013ListFrom6012File();
+	init6013ListFrom6012File();
 
 	init6013();
 	init6015();
@@ -559,11 +552,13 @@ void read485_thread()
 			memset(&result6035,0,sizeof(CLASS_6035));
 			result6035.taskID = taskID;
 			result6035.taskState = IN_OPR;
-			//result6035.startime = ;
-			//result6035.endtime = ;
+			DataTimeGet(&result6035.starttime);
+
 
 			ret = use6013find6015(taskID,&to6015);
 			ret = deal6015(to6015);
+			DataTimeGet(&result6035.endtime);
+			result6035.taskState = AFTER_OPR;
 		}
 		else
 		{
@@ -573,7 +568,15 @@ void read485_thread()
 	}
 
 	pthread_detach(pthread_self());
-	pthread_exit(&thread_read485);
+	if(port==1)
+	{
+		pthread_exit(&thread_read4851);
+	}
+
+	if(port==2)
+	{
+		pthread_exit(&thread_read4852);
+	}
 
 	sleep(1);
 
@@ -581,11 +584,18 @@ void read485_thread()
 }
 void read485_proccess()
 {
+	INT8U i485port1 = 1;
+	INT8U i485port2 = 2;
 	pthread_attr_init(&read485_attr_t);
 	pthread_attr_setstacksize(&read485_attr_t,2048*1024);
 	pthread_attr_setdetachstate(&read485_attr_t,PTHREAD_CREATE_DETACHED);
-	while ((thread_read485_id=pthread_create(&thread_read485, &read485_attr_t, (void*)read485_thread, NULL)) != 0)
+	while ((thread_read4851_id=pthread_create(&thread_read4851, &read485_attr_t, (void*)read485_thread, &i485port1)) != 0)
+	{
+		sleep(1);
+	}
+	while ((thread_read4852_id=pthread_create(&thread_read4852, &read485_attr_t, (void*)read485_thread, &i485port2)) != 0)
 	{
 		sleep(1);
 	}
 }
+
