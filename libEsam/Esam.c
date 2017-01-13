@@ -461,7 +461,7 @@ INT32S Esam_SIDResponseCheck(INT32S fd, INT8U P2type, INT8U* Data3, INT8U* Rbuf)
  *函数返回：1、为正数是为终端信息数据长度		  2、负数：代表相应错误，见：Esam.h中，ESAM ERR ARRAY定义
  *************************************************************/
 INT32S Esam_GetTerminalInfo(INT32S fd, INT8U *RN,INT8U* Data1,INT8U* Rbuf) {
-	 INT16U datalen=(0xff &Data1[1])|(0xff00 & (Data1[0]<<8));
+	 INT16U datalen=Esam_GetDataLength(Data1);
 	 if(datalen<=0 || RN[0]<=0) return ERR_ESAM_TRANSPARA_ERR;
 	INT32S Result=0;
 	INT16U len=0;
@@ -474,7 +474,10 @@ INT32S Esam_GetTerminalInfo(INT32S fd, INT8U *RN,INT8U* Data1,INT8U* Rbuf) {
 	len+=2;
 	memcpy(&GetInfo_ESAM[7],&RN[1],RN[0]);
 	len+=RN[0];
-	memcpy(&GetInfo_ESAM,&Data1[2],datalen);
+	if(datalen>255)
+		memcpy(&GetInfo_ESAM,&Data1[2],datalen);
+	else
+		memcpy(&GetInfo_ESAM,&Data1[1],datalen);
 	len+=datalen;
 	GetInfo_ESAM[len] = LRC(&GetInfo_ESAM[1],len-1);
 
@@ -587,7 +590,7 @@ INT32S Esam_ReportEncrypt(INT32S fd, INT8U* Data1, INT8U* RN,INT8U* MAC) {
 INT32S Esam_DencryptReport(INT32S fd, INT8U* RN,INT8U* MAC,INT8U* Data3, INT8U* Rbuf) {
 	//Data3前2字节为长度
 	if(RN[0]==0x00 || MAC[0]==0x00) return ERR_ESAM_TRANSPARA_ERR;
-	 INT16U datalen=Esam_GetDataLength(Data3[0]);
+	 INT16U datalen=Esam_GetDataLength(Data3);
 	 if(datalen<=0) return ERR_ESAM_TRANSPARA_ERR;
 		INT32S Result=0;
 		INT16U len=0;

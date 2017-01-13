@@ -467,17 +467,16 @@ INT16S doSecurityRequest(INT8U* apdu,INT8U* MAC,INT8U* retData)//TODO:retData需
 
 	 if(apdu[1]==0x00)//明文应用数据处理
 	 {
-		 SecurityType=0x02;//明文+MAC
-		 secureDecryptDataDeal(fd,apdu,retData);
+		 SecurityType=0x02;//明文+RN返回MAC
+		 retLen = secureDecryptDataDeal(fd,apdu,MAC);
+		 retData=&apdu[2];
 	 }
 	 else if(apdu[1]==0x01)//密文应用数据处理
 	 {
-		 secureEncryptDataDeal(fd,SecurityType,apdu,retData);
+		 retLen = secureEncryptDataDeal(fd,SecurityType,apdu,retData);
 	 }
-	 else
-		 return -4;
-	 if(retLen<=0) return -4;
 	 Esam_Clear(fd);
+	 return retLen;
 }
 /**********************************************************************
  * 解析SECURITY-response 终端主动上报后，主站回复数据 apdu[0]=144;apdu[1]应用数据单元
