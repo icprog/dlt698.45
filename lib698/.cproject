@@ -26,6 +26,7 @@
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/include}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/libBase}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/libAccess}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/libEsam}&quot;"/>
 								</option>
 								<inputType id="org.eclipse.cdt.cross.arm.gnu.sourcery.app.linux.assembler.base.input.806880003" superClass="org.eclipse.cdt.cross.arm.gnu.sourcery.app.linux.assembler.base.input"/>
 							</tool>
@@ -50,9 +51,13 @@
 							<tool command="arm-none-linux-gnueabi-gcc  -fPIC -shared" id="org.eclipse.cdt.cross.arm.gnu.sourcery.app.linux.elf.cpp.linker.release.214230168" name="ARM Sourcery Linux GCC C++ Linker" superClass="org.eclipse.cdt.cross.arm.gnu.sourcery.app.linux.elf.cpp.linker.release">
 								<option id="org.eclipse.cdt.cross.arm.gnu.cpp.link.option.paths.231706704" name="Library search path (-L)" superClass="org.eclipse.cdt.cross.arm.gnu.cpp.link.option.paths" valueType="libPaths">
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/libAccess/Release}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/libEsam/Release}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/libBase/Release}&quot;"/>
 								</option>
 								<option id="org.eclipse.cdt.cross.arm.gnu.cpp.link.option.libs.17665986" name="Libraries (-l)" superClass="org.eclipse.cdt.cross.arm.gnu.cpp.link.option.libs" valueType="libs">
 									<listOptionValue builtIn="false" value="Access"/>
+									<listOptionValue builtIn="false" srcPrefixMapping="" srcRootPath="" value="Base"/>
+									<listOptionValue builtIn="false" srcPrefixMapping="" srcRootPath="" value="Esam"/>
 								</option>
 								<inputType id="org.eclipse.cdt.cross.arm.gnu.cpp.linker.input.1688563179" superClass="org.eclipse.cdt.cross.arm.gnu.cpp.linker.input">
 									<additionalInput kind="additionalinputdependency" paths="$(USER_OBJS)"/>
