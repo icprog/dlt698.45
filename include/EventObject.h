@@ -57,7 +57,7 @@ typedef struct
 	INT16U maxnum;       //最大记录数
 	BOOLEAN reportflag;  //上报标识 1 上报 0 不上报
 	BOOLEAN enableflag;  //有效标识 1 有效 0 无效
-	//Crrent_Object crrent_arr[5]; //当前值记录表
+	Crrent_Object crrent_arr[5]; //当前值记录表
 }Class7_Object;
 
 //电能表时钟超差事件参数
