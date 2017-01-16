@@ -56,6 +56,6 @@ INT8U Event_AnalyseACS(INT8U* data);
 
 INT8U Event_3107(INT8U* data); //终端直流模拟量越上限事件6
 INT8U Event_3108(INT8U* data); //终端直流模拟量越下限事件7
-INT8U Event_3119(INT8U* data); //终端电流回路异常事件23
+INT8U Event_3119(INT8U type, INT8U* data); //终端电流回路异常事件23
 
 #endif

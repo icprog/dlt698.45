@@ -23,6 +23,7 @@
 #include "AccessFun.h"
 #include "StdDataType.h"
 #include "Objectdef.h"
+#include "EventObject.h"
 #include "ParaDef.h"
 #define 	LIB_ACCESS_VER 			0x0001
 
@@ -48,16 +49,15 @@ typedef struct
 
 CLASS_INFO	info={};
 const static CLASS_INFO  class_info[] ={
-		{0x6001,sizeof(COLL_CLASS_11),sizeof(CLASS_6001),OCTET_STRING_LEN,"6000","/nand/para/table6000.par"},		//采集档案配置表
+		{0x6000,sizeof(COLL_CLASS_11),sizeof(CLASS_6001),OCTET_STRING_LEN,"6000","/nand/para/table6000.par"},		//采集档案配置表
+//		{0x6005,sizeof(COLL_CLASS_11),sizeof(CLASS_6001),OCTET_STRING_LEN,"6000","/nand/para/table6000.par"},		//采集档案配置表
 };
-
-
 
 INT16U crc(INT16U Data)
 {
-	unsigned char n;
+	unsigned char n=0;
+	INT16U Parity=0;
 
-	INT16U Parity;
 	Parity=Data;
 	for(n=0;n<8;n++)
 	{
@@ -75,7 +75,7 @@ INT16U crc(INT16U Data)
 // 返回值：     crc：校验值
 INT16U  make_parity(void *source,int size)
 {
-	int 	m;
+	int 	m=0;
 	INT16U			Parity=0xffff;
 	unsigned char   *buf = (unsigned char *)source;
 //	 fprintf(stderr,"------------size=%d\n", size);
@@ -100,8 +100,8 @@ INT16U  make_parity(void *source,int size)
 INT8U file_read(char *FileName, void *source, int size,int offset,INT16U *retcrc)
 {
 	FILE 	*fp=NULL;
-	int 	num,ret=0;
-	INT16U  readcrc;//=(INT16U *)((INT8U*)source+size-2);
+	int 	num=0,ret=0;
+	INT16U  readcrc=0;//=(INT16U *)((INT8U*)source+size-2);
 //	int		i;
 //	INT8U  *val;
 
@@ -143,13 +143,13 @@ INT8U file_read(char *FileName, void *source, int size,int offset,INT16U *retcrc
 INT8U file_write(char *FileName, void *source, int size, int offset)
 {
 	FILE *fp=NULL;
-	int	  fd;
-	INT8U res;
+	int	  fd=0;
+	INT8U res=0;
 	int num=0;
 	INT8U	*blockdata=NULL;
-	INT16U	readcrc;
+	INT16U	readcrc=0;
 
-//	fprintf(stderr,"\nwrite begin size=%d", size);
+	fprintf(stderr,"\nwrite begin size=%d", size);
 	blockdata = malloc(size);
 //	fprintf(stderr,"\nwrite sourceaddr=%p,blockdata=%p\n", source,blockdata);
 	if(blockdata!=NULL) {
@@ -160,11 +160,11 @@ INT8U file_write(char *FileName, void *source, int size, int offset)
 	}
 //	fprintf(stderr,"\nwrite sourceaddr=%p\n", source);
 	readcrc = make_parity(source,size);			//计算crc16校验
-	int i=0;
+//	int i=0;
 //	for(i=0;i<size;i++){
 //		fprintf(stderr,"%02x ",blockdata[i]);
 //	}
-//	fprintf(stderr,"\nwrite FileName %s source crc=%04x\n",FileName, readcrc);
+	fprintf(stderr,"\nwrite FileName %s source crc=%04x\n",FileName, readcrc);
 
 	memcpy(blockdata+size-2,&readcrc,2);
 	if(access(FileName,F_OK)!=0)
@@ -207,13 +207,13 @@ INT8U file_write(char *FileName, void *source, int size, int offset)
 INT8U block_file_sync(char *fname,void *blockdata,int size,int headsize,int index)
 {
 	INT8U	ret1=0,ret2=0;
-	INT16U  sizenew,offset=0;
-	void 	*blockdata1;
-	void  	*blockdata2;
-	struct 	stat info1,info2;		//文件信息stat包含头文件/sys/stat.h
-	char	fname2[FILENAMELEN];
-	INT16U  *readcrc1;//=(INT16U *)((INT8U*)blockdata+size-4);
-	INT16U  *readcrc2;
+	INT16U  sizenew=0,offset=0;
+	void 	*blockdata1=NULL;
+	void  	*blockdata2=NULL;
+	struct 	stat info1={},info2={};		//文件信息stat包含头文件/sys/stat.h
+	char	fname2[FILENAMELEN]={};
+	INT16U  *readcrc1=NULL;//=(INT16U *)((INT8U*)blockdata+size-4);
+	INT16U  *readcrc2=NULL;
 	INT16U  ret=0;
 
 //	fprintf(stderr,"\n read file :%s\n",fname);
@@ -302,6 +302,7 @@ INT8U block_file_sync(char *fname,void *blockdata,int size,int headsize,int inde
 	}
 	free(blockdata1);
 	free(blockdata2);
+//	fprintf(stderr,"ret=%d\n",ret);
 	return ret;					//异常情况，程序返回0，参数初始默认值，产生ERC2参数丢失事件
 }
 
@@ -312,7 +313,7 @@ INT8U save_block_file(char *fname,void *blockdata,int size,int headsize,int inde
 {
 	int		i=0,ret=0;
 	int		sizenew=0,offset=0;
-	INT16U	readcrc;
+	INT16U	readcrc=0;
 
 	if(fname==NULL) 	  return 0;
 
@@ -340,7 +341,43 @@ INT8U save_block_file(char *fname,void *blockdata,int size,int headsize,int inde
 	return ret;
 }
 
-INT16S getclassinfo(INT16U oi,CLASS_INFO *classinfo)
+/*
+ * 覆盖存储（数据文件直接存储）
+ */
+INT8U writeFileCurve(char *fname, void *dataunit,int len)
+{
+	int fd=0,ret=0;
+	FILE *fp=NULL;
+
+	fp = fopen(fname, "w");
+	if(fp!=NULL)
+	{
+		fprintf(stderr,"\nfilewrite over %s",fname);
+		ret = fwrite(dataunit,len,1,fp);
+		fd = fileno(fp);
+		fsync(fd);
+		fclose(fp);
+	}
+	return ret;
+}
+
+/*
+ * 覆盖文件（数据）整块读取
+ */
+int readFileCurve(char *fname, void *dataunit,int len)
+{
+	FILE 	*fp=NULL;
+	int		num = 0;
+
+	fp = fopen(fname, "r");
+	if (fp != NULL) {
+		num=fread(dataunit,1 ,len,fp);
+		fclose(fp);
+	}
+	return num;
+}
+
+INT16S getclassinfo(OI_698 oi,CLASS_INFO *classinfo)
 {
 	INT16S i=0;
 	for(i=0; i < sizeof(class_info)/sizeof(CLASS_INFO);i++)
@@ -366,7 +403,29 @@ INT16S getclassinfo(INT16U oi,CLASS_INFO *classinfo)
  * -1:  未查找到OI类数据
  * -2:	文件记录不完整
  *************************************/
-long getFileRecordNum(INT16U oi)
+long getFileLen(char *filename)
+{
+	long 		filesize=0;
+
+    FILE* fp = fopen(filename, "rb" );
+    if(fp==NULL){
+        fprintf(stderr,"ERROR: Open file %s failed.\n", filename);
+        return 0;
+    }
+    fseek( fp, 0L, SEEK_END );
+    filesize=ftell(fp);
+    fclose(fp);
+    return filesize;
+}
+
+/************************************
+ * 函数说明：获取参数文件对象配置单元的个数
+ * 返回值：
+ * >=0:  单元个数
+ * -1:  未查找到OI类数据
+ * -2:	文件记录不完整
+ *************************************/
+long getFileRecordNum(OI_698 oi)
 {
 	int			blknum=0,sizenew=0;
 	CLASS_INFO	info={};
@@ -397,6 +456,69 @@ long getFileRecordNum(INT16U oi)
     return blknum;
 }
 
+/**************************************/
+//函数功能：建立子目录
+/**************************************/
+void makeSubDir(char *DirName)
+{
+	DIR *dir=NULL;
+	dir = opendir(DirName);
+	if(dir==NULL) {
+		mkdir(DirName,0777);
+	}
+	else
+	{
+		closedir(dir);
+	}
+}
+
+/**************************************/
+/* 函数功能：建立事件子目录
+ *         /nand/event :事件对象接口
+ * 		   /nand/event/oi : 对象标识的OI目录
+ * 		   /nand/event/record:事件记录表存储目录
+ * 		   /nand/event/current:当前值记录表存储目录
+ */
+/**************************************/
+void makeEventDir(OI_698 oi)
+{
+	DIR *dir=NULL;
+	char dirname[FILENAMELEN]="/nand/event";
+
+	makeSubDir(dirname);
+	sprintf(dirname,"/nand/event/%04x",oi);
+	makeSubDir(dirname);
+	sprintf(dirname,"/nand/event/%04x/record/",oi);
+	makeSubDir(dirname);
+	sprintf(dirname,"/nand/event/%04x/current/",oi);
+	makeSubDir(dirname);
+}
+
+/**************************************/
+//函数功能：根据OI及类型获取存储文件路径及文件名字
+/**************************************/
+void getFileName(OI_698 oi,INT16U seqno,INT16U type,char *fname)
+{
+	if (fname==NULL)
+		return ;
+	memset(fname,0,FILENAMELEN);
+	switch(type) {
+	case para_save:
+		makeEventDir(oi);
+		sprintf(fname,"/nand/event/%04x/%04x.par",oi,oi);
+		break;
+	case event_record_save:
+		makeEventDir(oi);
+		sprintf(fname,"/nand/event/%04x/record/%d.dat",oi,seqno);
+		break;
+	case current_record_save:
+		makeEventDir(oi);
+		sprintf(fname,"/nand/event/%04x/current/%d.dat",oi,seqno);
+		break;
+	}
+	fprintf(stderr,"getFileName fname=%s\n",fname);
+}
+
 /*
  * 接口类公共属性读取
  * 输入参数：oi对象标识，blockdata：主文件块缓冲区，size:主文件尺寸，index:文件的存储索引位置
@@ -404,11 +526,11 @@ long getFileRecordNum(INT16U oi)
  * =1：文件读取成功   =0：文件读取失败   =-1:  未查找到OI类数据信息
  */
 //TODO: 未读取备份文件的接口类内容进行判断
-INT8U	readInterClass(INT16U oi,void *dest)
+int	readInterClass(OI_698 oi,void *dest)
 {
 	FILE 	*fp=NULL;
 	int		num = 0;
-	INT16U	infoi=-1;
+	INT16S	infoi=-1;
 //	CLASS_INFO	info={};
 
 	infoi = getclassinfo(oi,&info);
@@ -462,7 +584,7 @@ INT8U	writeInterClass(char *file_name,void *dest,int size)
 	return num;
 };
 
-int WriteClass11(INT16U oi,INT16U seqnum,INT8U method)
+int WriteClass11(OI_698 oi,INT16U seqnum,INT8U method)
 {
 	void 	*unitdata;
 	COLL_CLASS_11	class11={};
@@ -519,7 +641,7 @@ int WriteClass11(INT16U oi,INT16U seqnum,INT8U method)
  * 组织接口类函数的属性值
  * */
 //TODO: 各个接口类能否做成统一？
-void WriteInterfaceClass(INT16U oi,INT16U seqnum,INT8U method)
+void WriteInterfaceClass(OI_698 oi,INT16U seqnum,INT8U method)
 {
 	switch(oi) {
 	case 0x6001:
@@ -533,9 +655,10 @@ void WriteInterfaceClass(INT16U oi,INT16U seqnum,INT8U method)
  * 返回值：=1：文件保存成功，=0，文件保存失败，此时建议产生ERC2参数丢失事件通知主站异常
  * =-1:  未查找到OI类数据
  */
-INT8U saveParaClass(INT16U oi,void *blockdata,int seqnum)
+
+int saveParaClass(OI_698 oi,void *blockdata,int seqnum)
 {
-	INT8U 	ret=-1;
+	int 	ret=-1;
 	INT16U	infoi=-1;
 
 	infoi = getclassinfo(oi,&info);
@@ -555,10 +678,10 @@ INT8U saveParaClass(INT16U oi,void *blockdata,int seqnum)
  * 返回值：=1：配置单元删除成功
  * =-1:  未查找到OI类数据
  */
-INT8U delClassBySeq(INT16U oi,void *blockdata,int seqnum)
+int delClassBySeq(OI_698 oi,void *blockdata,int seqnum)
 {
-	INT8U 	ret=-1;
-	INT16U	infoi=-1;
+	int 	ret=-1;
+	INT16S	infoi=-1;
 
 	infoi = getclassinfo(oi,&info);
 	if(infoi == -1) {
@@ -580,6 +703,50 @@ INT8U delClassBySeq(INT16U oi,void *blockdata,int seqnum)
 }
 
 /*
+ * 方法：Reset()复位
+ * 输入参数：oi对象标识
+ * 返回值：=0：配置单元删除成功
+ * =-1:  删除错误
+ */
+int resetClass(OI_698 oi)
+{
+	INT16S	infoi=-1;
+	int		ret = -1;
+	char	fname2[FILENAMELEN];
+	char	cmd[64];
+
+	if(oi>=0x3000 && oi<=0x3fff) {
+		sprintf(cmd,"rm -rf /nand/event/%04x",oi);
+		system(cmd);
+		ret = 0;
+	}
+	return ret;
+}
+
+/*
+ * 方法：Clean()清空
+ * 输入参数：oi对象标识
+ * 返回值：=0：配置单元删除成功
+ * =-1:  删除错误
+ */
+int ClearClass(OI_698 oi)
+{
+	INT16S	infoi=-1;
+	int		ret = -1;
+	char	fname2[FILENAMELEN];
+	infoi = getclassinfo(oi,&info);
+	if(infoi==-1) {
+		return -1;
+	}
+	memset(fname2,0,sizeof(fname2));
+	strncpy(fname2,class_info[infoi].file_name,strlen(class_info[infoi].file_name)-4);
+	strcat(fname2,".bak");
+
+	ret = unlink(class_info[infoi].file_name);
+	ret = unlink(fname2);
+	return ret;
+}
+/*
  * 根据OI、配置序号读取某条配置单元内容
  * 输入参数：oi对象标识，seqnum:对象配置单元序列号
  * 返回值：
@@ -587,9 +754,9 @@ INT8U delClassBySeq(INT16U oi,void *blockdata,int seqnum)
  * =0： 文件读取失败
  * =-1:  未查找到OI类数据
  */
-INT8U  readParaClass(INT16U oi,void *blockdata,int seqnum)
+int  readParaClass(OI_698 oi,void *blockdata,int seqnum)
 {
-	INT8U 	ret=-1;
+	int 	ret=-1;
 	INT16U	infoi=-1;
 
 	infoi = getclassinfo(oi,&info);
@@ -599,3 +766,72 @@ INT8U  readParaClass(INT16U oi,void *blockdata,int seqnum)
 	ret = block_file_sync((char *)class_info[infoi].file_name,blockdata,class_info[infoi].unit_len,class_info[infoi].interface_len,seqnum);
 	return ret;
 }
+
+/////////////////////////////////////////////////////////////////////////////////////////
+
+/*
+ * 输入参数：	oi:对象标识，seqno:记录序号，blockdata:存储数据，savelen：存储长度，
+ * 			type：存储类型【	para_save：参数文件存储   event_record_save: 事件记录表存储 	current_record_save :当前值记录表存储】
+ * 返回值：=1：文件存储成功
+ */
+int saveEventClass(OI_698 oi,INT16U seqno,void *blockdata,int savelen,int type)
+{
+	int		ret = 0;
+	char	fname[FILENAMELEN]={};
+
+	memset(fname,0,sizeof(fname));
+	switch(type) {
+	case para_save:
+		getFileName(oi,seqno,para_save,fname);
+//		fprintf(stderr,"saveEventClass file=%s ",fname);
+		ret = save_block_file(fname,blockdata,savelen,0,0);
+		break;
+	case event_record_save:
+		getFileName(oi,seqno,event_record_save,fname);
+		writeFileCurve(fname,blockdata,savelen);
+		break;
+	case current_record_save:
+		getFileName(oi,seqno,current_record_save,fname);
+		writeFileCurve(fname,blockdata,savelen);
+		break;
+	}
+	return ret;
+}
+
+/*
+ * 输入参数：	oi:对象标识，seqno:记录序号，blockdata:存储数据，savelen：存储长度，
+ * 			type：存储类型【	para_save：参数文件存储   event_record_save: 事件记录表存储 	current_record_save :当前值记录表存储】
+ * 返回值：=1：文件存储成功
+ * =-1: 文件不存在
+ */
+int readEventClass(OI_698 oi,INT16U seqno,void *blockdata,int type)
+{
+	int		ret = 0;
+	int		filelen = 0;
+	char	fname[FILENAMELEN]={};
+
+	memset(fname,0,sizeof(fname));
+	switch(type) {
+	case para_save:
+		getFileName(oi,seqno,para_save,fname);
+		filelen = getFileLen(fname);
+//		fprintf(stderr,"readEventClass %s filelen=%d\n",fname,filelen);
+		if(filelen<=2)	return -1;
+		ret = block_file_sync(fname,blockdata,filelen-2,0,0);
+	break;
+	case event_record_save:
+		getFileName(oi,seqno,event_record_save,fname);
+		filelen = getFileLen(fname);
+		if(filelen==0)	return -1;
+		ret = readFileCurve(fname,blockdata,filelen);
+		break;
+	case current_record_save:
+		getFileName(oi,seqno,current_record_save,fname);
+		filelen = getFileLen(fname);
+		if(filelen==0)	return -1;
+		ret = readFileCurve(fname,blockdata,filelen);
+		break;
+	}
+	return ret;
+}
+

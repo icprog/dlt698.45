@@ -8,6 +8,9 @@
 #ifndef PARADEF_H_
 #define PARADEF_H_
 
+#define delay(A) usleep((A)*1000)
+//////////////////////////////////////////////////////////////
+#define _CFGDIR_ 			"/nor/config"
 
 ///////////////////////////////////////////////////////////////
 /*
@@ -23,7 +26,6 @@
 #define REALDATA_LIST_LENGTH 	10				//实时数据请求缓存
 #define PRO_WAIT_COUNT     		60
 
-#define _CFGDIR_ 			"/nor/config"
 ///////////////////////////////////////////////////////////////
 /*
  * 	终端类相关容量及参数定义
@@ -38,6 +40,7 @@
 #define OCTET_STRING_LEN		16
 #define COLLCLASS_MAXNUM		1024		//定义集合类最大元素个数
 
+#define CLASS7_OAD_NUM			10			//关联对象属性表
 ////////////////////////////////////////////////////////////////
 
 /*
@@ -54,7 +57,6 @@
 #define DEV_ATT_RST    "/dev/gpoATT_RST"
 
 ////////////////////////////////////////////////////////////////
-#define delay(A) usleep((A)*1000)
 
 /*
  * 	互斥信号量

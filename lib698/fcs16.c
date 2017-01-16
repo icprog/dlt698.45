@@ -50,7 +50,7 @@ u16 pppfcs16(u16 fcs,unsigned char *cp, int len)
 	return (fcs);
 }
 
-/*
+/*tryfcs16   bg
 * How to use the fcs
 */
 #define PPPINITFCS16 0xffff /* Initial FCS value */

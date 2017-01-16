@@ -4,6 +4,8 @@
 #include "ParaDef.h"
 #include "StdDataType.h"
 
+#pragma pack(1)				//结构体一个字节对齐
+
 /*
  * 特殊终端事件:Event3105_Object,Event3106_Object,Event3107_Object,Event3108_Object,
  *            Event310B_Object,Event310C_Object,Event310D_Object,Event310E_Object,
@@ -14,6 +16,14 @@
 
 //目前已确定终端判断30个事件，可根据以下数组结构轮寻读取
 const static INT16U Eventtype[]={0x3100,0x3101,0x3104,0x3105,0x3106,0x3107,0x3108,0x3109,0x310A,0x310B,0x310C,0x310D,0x310E,0x310F,0x3110,0x3111,0x3112,0x3114,0x3115,0x3116,0x3117,0x3118,0x3119,0x311A,0x311B,0x311C,0x3200,0x3201,0x3202,0x3203};
+
+//文件存储类型
+typedef enum
+{
+	para_save=1,				//参数文件存储
+	event_record_save=2,		//事件记录表存储
+	current_record_save=3,		//当前值记录表存储
+}SaveEvent_type;
 
 //设备故障记录 事件发生源
 typedef enum
@@ -52,12 +62,12 @@ typedef struct
 typedef struct
 {
 	OI_698 oi;           //逻辑名
-	OAD    oadarr[10];   //关联对象属性表
 	INT16U crrentnum;    //当前记录数
 	INT16U maxnum;       //最大记录数
 	BOOLEAN reportflag;  //上报标识 1 上报 0 不上报
 	BOOLEAN enableflag;  //有效标识 1 有效 0 无效
-	//Crrent_Object crrent_arr[5]; //当前值记录表
+	OAD    oadarr[CLASS7_OAD_NUM];   //关联对象属性表			//放结构体后面为扩展
+	Crrent_Object crrent_arr[5]; //当前值记录表
 }Class7_Object;
 
 //电能表时钟超差事件参数
@@ -266,7 +276,7 @@ typedef struct
 								   //bit3:事件结束（恢复）上报确认标识，0—未确认，1—已确认。
 }Channel_Object;
 
-#pragma pack(1)				//结构体一个字节对齐
+
 /*以下为整个事件属性结构体，存储该结构体*/
 typedef struct
 {
