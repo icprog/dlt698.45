@@ -34,6 +34,7 @@
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/libCjt188}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/libzlib}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/libDlt645}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/libEsam}&quot;"/>
 								</option>
 								<inputType id="org.eclipse.cdt.cross.arm.gnu.sourcery.app.linux.c.compiler.base.input.509786535" superClass="org.eclipse.cdt.cross.arm.gnu.sourcery.app.linux.c.compiler.base.input"/>
 							</tool>
@@ -45,11 +46,13 @@
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/lib698/Release}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/libAccess/Release}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/libBase/Release}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/libEsam/Release}&quot;"/>
 								</option>
 								<option id="org.eclipse.cdt.cross.arm.gnu.c.link.option.libs.1214441129" name="Libraries (-l)" superClass="org.eclipse.cdt.cross.arm.gnu.c.link.option.libs" valueType="libs">
 									<listOptionValue builtIn="false" value="Access"/>
 									<listOptionValue builtIn="false" value="698"/>
 									<listOptionValue builtIn="false" value="Base"/>
+									<listOptionValue builtIn="false" value="Esam"/>
 								</option>
 								<inputType id="org.eclipse.cdt.cross.arm.gnu.c.linker.input.2026673197" superClass="org.eclipse.cdt.cross.arm.gnu.c.linker.input">
 									<additionalInput kind="additionalinputdependency" paths="$(USER_OBJS)"/>
@@ -82,4 +85,5 @@
 	</storageModule>
 	<storageModule moduleId="org.eclipse.cdt.core.LanguageSettingsProviders"/>
 	<storageModule moduleId="refreshScope"/>
+	<storageModule moduleId="org.eclipse.cdt.make.core.buildtargets"/>
 </cproject>

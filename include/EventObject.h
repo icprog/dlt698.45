@@ -67,7 +67,7 @@ typedef struct
 	BOOLEAN reportflag;  //上报标识 1 上报 0 不上报
 	BOOLEAN enableflag;  //有效标识 1 有效 0 无效
 	OAD    oadarr[CLASS7_OAD_NUM];   //关联对象属性表			//放结构体后面为扩展
-	//Crrent_Object crrent_arr[5]; //当前值记录表
+	Crrent_Object crrent_arr[5]; //当前值记录表
 }Class7_Object;
 
 //电能表时钟超差事件参数

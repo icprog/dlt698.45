@@ -25,7 +25,7 @@ void rlog(const char* fmt, ...) {
     fclose(fd);
 }
 
-void file_sys_test_w() {
+void FileW() {
     char path[64];
     char content[512];
     memset(path, 0, sizeof(path));
@@ -40,7 +40,7 @@ void file_sys_test_w() {
     }
 }
 
-void file_sys_test_r() {
+void FileR() {
     char path[64];
     char content[512];
     memset(path, 0, sizeof(path));
@@ -58,7 +58,7 @@ void file_sys_test_r() {
     }
 }
 
-void file_sys_test_evn() {
+void FileEnv() {
     system("mkdir /nand/3000");
     char path[64];
     memset(path, 0, sizeof(path));

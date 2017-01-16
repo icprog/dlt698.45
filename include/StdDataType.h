@@ -134,8 +134,8 @@ typedef enum {
 }RUN_PRIO;//执行优先级
 
 typedef enum {
-	valid=1/*正常*/,
-	novalid=2/*停用*/
+	 task_valid=1/*正常*/,
+	 task_novalid=2/*停用*/
 }TASK_VALID;//任务状态
 
 typedef enum {
@@ -633,5 +633,14 @@ typedef struct
 
 }MeterInfoUnit;
 
-
+typedef struct
+{
+	OI_698 oi;
+	INT16U classNo;
+}SecureModePara;
+typedef struct
+{
+	SecureModePara securePara;
+	INT8U mask;//安全模式参数里有ZZ存在，此mask标记ZZ.mask=Z个数
+}SecureUnit;
 #endif
