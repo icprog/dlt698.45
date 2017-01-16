@@ -60,9 +60,17 @@ extern INT8U ClearClass(INT16U oi);
  * 返回值：=1：文件存储成功
  */
 extern INT8U saveEventClass(INT16U oi,INT16U seqno,void *blockdata,int savelen,int type);
+
+/*
+ * 输入参数：	oi:对象标识，seqno:记录序号，blockdata:存储数据，savelen：存储长度，
+ * 			type：存储类型【	para_save：参数文件存储   event_record_save: 事件记录表存储 	current_record_save :当前值记录表存储】
+ * 返回值：=1：文件存储成功
+ * =-1: 文件不存在
+ */
+extern INT8U readEventClass(INT16U oi,INT16U seqno,void *blockdata,int type);
 //////////////////////////////////////////////////////////////////////////////////////////
 /************************************
- * 函数说明：获取参数文件对象配置单元的个数
+ * 函数说明：获取参数文件对象配置单元的个数saveEventClass
  * 返回值：
  * >=0:  单元个数
  * -1:  未查找到OI类数据

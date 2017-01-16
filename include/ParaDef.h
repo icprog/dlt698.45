@@ -40,6 +40,7 @@
 #define OCTET_STRING_LEN		16
 #define COLLCLASS_MAXNUM		1024		//定义集合类最大元素个数
 
+#define CLASS7_OAD_NUM			10			//关联对象属性表
 ////////////////////////////////////////////////////////////////
 
 /*

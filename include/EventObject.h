@@ -4,6 +4,8 @@
 #include "ParaDef.h"
 #include "StdDataType.h"
 
+#pragma pack(1)				//结构体一个字节对齐
+
 /*
  * 特殊终端事件:Event3105_Object,Event3106_Object,Event3107_Object,Event3108_Object,
  *            Event310B_Object,Event310C_Object,Event310D_Object,Event310E_Object,
@@ -13,9 +15,7 @@
  */
 
 //目前已确定终端判断30个事件，可根据以下数组结构轮寻读取
-const static INT16U Eventtype[]={0x3100,0x3101,0x3104,0x3105,0x3106,0x3107,0x3108,0x3109,0x310A,
-                               0x310B,0x310C,0x310D,0x310E,0x310F,0x3110,0x3111,0x3112,0x3114,0x3115,0x3116,
-                               0x3117,0x3118,0x3119,0x311A,0x311B,0x311C,0x3200,0x3201,0x3202,0x3203};
+const static INT16U Eventtype[]={0x3100,0x3101,0x3104,0x3105,0x3106,0x3107,0x3108,0x3109,0x310A,0x310B,0x310C,0x310D,0x310E,0x310F,0x3110,0x3111,0x3112,0x3114,0x3115,0x3116,0x3117,0x3118,0x3119,0x311A,0x311B,0x311C,0x3200,0x3201,0x3202,0x3203};
 
 //文件存储类型
 typedef enum
@@ -62,11 +62,11 @@ typedef struct
 typedef struct
 {
 	OI_698 oi;           //逻辑名
-	OAD    oadarr[10];   //关联对象属性表
 	INT16U crrentnum;    //当前记录数
 	INT16U maxnum;       //最大记录数
 	BOOLEAN reportflag;  //上报标识 1 上报 0 不上报
 	BOOLEAN enableflag;  //有效标识 1 有效 0 无效
+	OAD    oadarr[CLASS7_OAD_NUM];   //关联对象属性表			//放结构体后面为扩展
 	//Crrent_Object crrent_arr[5]; //当前值记录表
 }Class7_Object;
 
@@ -222,9 +222,9 @@ typedef struct
 //有功总电能量差动越限事件记录配置参数
 typedef struct
 {
-    INT8U group_no;             //有功总电能量差动组序号
-    OI contrast_group;          //对比的总加组
-    OI consult_group;           //参照的总加组
+	INT8U group_no;             //有功总电能量差动组序号
+	OI_698 contrast_group;          //对比的总加组
+	OI_698 consult_group;           //参照的总加组
 	INT8U flag;             	//参与差动的电能量的时间区间及对比方法标志 bit-string（SIZE（8））
 	                            //bit0～bit1编码表示电能量的时间跨度，取值范围0～2依次表示60分钟电量、30分钟电量、15分钟电量，其他值无效。
 								//bit7表示对比方法标志，置“0”：相对对比，公式见公式（1）；置“1”：绝对对比，公式见公式（2）。
@@ -276,7 +276,7 @@ typedef struct
 								   //bit3:事件结束（恢复）上报确认标识，0—未确认，1—已确认。
 }Channel_Object;
 
-#pragma pack(1)				//结构体一个字节对齐
+
 /*以下为整个事件属性结构体，存储该结构体*/
 
 
@@ -312,7 +312,7 @@ typedef struct
 	Class7_Object Event3201_obj;    //电控跳闸记录28
 	Class7_Object Event3202_obj;    //购电参数设置记录29
 	Class7_Object Event3203_obj;    //电控告警事件记录30
-}TerminalEvent_Object
+}TerminalEvent_Object;
 
 /*
  * Class7_Object Event3100_obj;    //终端初始化事件1

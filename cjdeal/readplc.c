@@ -19,7 +19,7 @@
 void readplc_thread()
 {
   while(1){
-
+	  sleep(1);
   }
   pthread_detach(pthread_self());
   pthread_exit(&thread_readplc);

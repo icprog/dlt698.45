@@ -190,7 +190,6 @@ void init6015()
 void read485_thread()
 {
   while(1){
-
 		init6013();
 		init6015();
 
@@ -206,9 +205,9 @@ void read485_thread()
 		ret = deal6015(to6015);
 
 
-
 	//		memset(&to6015,0,sizeof(CLASS_6015));
 	//		INT8U ret = use6013find6015(from6013,&to6015);
+		sleep(1);
   }
   pthread_detach(pthread_self());
   pthread_exit(&thread_read485);
