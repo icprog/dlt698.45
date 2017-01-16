@@ -278,8 +278,6 @@ typedef struct
 
 
 /*以下为整个事件属性结构体，存储该结构体*/
-
-
 typedef struct
 {
 	Class7_Object Event3100_obj;    //终端初始化事件1

@@ -32,10 +32,11 @@ static char
 static char
 		*usage_event =
 					"--------------------事件类对象----------------------------\n"	\
+					"[复位事件]  cj event reset <oi> :例如：复位采集终端初始化事件  cj event reset 3100 	\n"					\
 					"[读取事件属性]  cj event att <oi> :例如：读取采集终端初始化事件属性 cj event att 3100 	\n"					\
-					"[Class7]  cj event att <oi> 当前记录数 最大记录数 上报标识 有效标识 关联对象个数 关联对象OAD[1-10]	\n"	\
-					"[设置采集终端初始化事件] cj event att 3100 1 16 1 1 0 \n"	\
-					"[设置终端状态量变位事件] cj event att 3104 1 16 1 1 5 201E-4200 F203-4201 F203-4202 F203-4203 F203-4204 F203-4205\n"		\
+					"[设置Class7]  cj event att <oi> 当前记录数 最大记录数 上报标识 有效标识 关联对象个数 关联对象OAD[1-10]	\n"	\
+					"	[设置采集终端初始化事件] cj event att 3100 1 16 1 1 0 \n"	\
+					"	[设置终端状态量变位事件] cj event att 3104 1 16 1 1 5 201E-4200 F203-4201 F203-4202 F203-4203 F203-4204 F203-4205\n"		\
 					;
 
 int main(int argc, char *argv[])
@@ -52,8 +53,9 @@ int main(int argc, char *argv[])
 	}
 	if(strcmp("para",argv[1])==0)
 	{
+		fprintf(stderr,"%s",usage_para);
 		if(argc>2) {
-			para_process(argv[2]);
+			para_process(argc,argv);
 		}
 		return EXIT_SUCCESS;
 	}

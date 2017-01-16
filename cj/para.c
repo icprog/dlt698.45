@@ -13,9 +13,11 @@
 
 char *getenum(int type,int val)
 {
-	char name[64]={};
+	char name1[64]={};
+	char *name;
 
-	strcpy(name,"");
+	name = name1;
+	memset(name1,0,sizeof(name1));
 	switch(type) {
 	case 1:
 		if(val==bps300)	strcpy(name,"300");
@@ -45,25 +47,25 @@ char *getenum(int type,int val)
 		if(val==3)	strcpy(name,"三相四线");
 		break;
 	}
-	return (name);
+	return name;
 }
 /*
  * 采集档案配置表
  * */
-void prtCollect6000()
+void prtCollect6000(OI_698	oi)
 {
 	CLASS_6001	 meter={};
 	COLL_CLASS_11	coll={};
 	int			i=0,blknum=0;
-	INT16U		oi = 0x6001;
+//	INT16U		oi = 0x6000;
 
-	readInterClass(oi,&coll);
+	if(readInterClass(oi,&coll)==-1)  return;
 	fprintf(stderr,"采集档案配置表CLASS_11--------------");
 	fprintf(stderr,"逻辑名:%s    当前=%d     最大=%d\n",coll.logic_name,coll.curr_num,coll.max_num);
 
 	blknum = getFileRecordNum(oi);
 	if(blknum == -1) {
-		fprintf(stderr,"未找到OI=%04x的相关信息配置内容！！！\n",6000);
+		fprintf(stderr,"未找到OI=%04x的相关信息配置内容！！！\n",oi);
 		return;
 	}else if(blknum == -2){
 		fprintf(stderr,"采集档案表不是整数，检查文件完整性！！！\n");
@@ -102,10 +104,17 @@ void prtCollect6000()
 	fprintf(stderr,"\n");
 }
 
-void para_process(char *type)
+void para_process(int argc, char *argv[])
 {
-	if(strcmp(type,"6000")==0) {
-		prtCollect6000();
+	int 	tmp=0;
+	OI_698	oi=0;
+
+	if(argc>=2) {	//para 6000
+		if(strcmp(argv[1],"para")==0) {
+			sscanf(argv[2],"%04x",&tmp);
+			oi = tmp;
+			prtCollect6000(oi);
+		}
 	}
 }
 
