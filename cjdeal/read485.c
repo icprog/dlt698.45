@@ -63,7 +63,10 @@ INT8U use6013find6015(INT16U taskID, CLASS_6015* st6015)
 INT8U deal6015_698(CLASS_6015 st6015,BasicInfo6001 to6001)
 {
 	INT8U result = 0;
-	//result = request_meter698();
+	INT8U sendbuff[BUFFSIZE];
+	memset(sendbuff,0,BUFFSIZE);
+
+	result = composeProtocol698_GetRequest(sendbuff,st6015,to6001.addr);
 
 	return result;
 }
@@ -547,7 +550,7 @@ void read485_thread(void* i485port)
 
 		if(taskID > -1)
 		{
-
+			fprintf(stderr,"\n taskID = %d",taskID);
 			CLASS_6035 result6035;//采集任务监控单元
 			memset(&result6035,0,sizeof(CLASS_6035));
 			result6035.taskID = taskID;
@@ -562,9 +565,9 @@ void read485_thread(void* i485port)
 		}
 		else
 		{
-			fprintf(stderr,"当前无任务可执行");
+			fprintf(stderr,"\n 当前无任务可执行");
 		}
-
+		sleep(1);
 	}
 
 	pthread_detach(pthread_self());

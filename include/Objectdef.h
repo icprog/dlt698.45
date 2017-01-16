@@ -85,7 +85,7 @@ typedef struct
 	INT8U name[OCTET_STRING_LEN];		//参数变量接口类逻辑名
 	INT16U sernum;						//方案序号
 	INT16U deepsize;					//存储深度
-	INT8U  cjtype;						//采集类型
+	CJTYPE_6015  cjtype;						//采集类型
 	DataType data;
 	CSD    csd[20];						//记录列选择 array CSD,
 	MS     ms;							//电能表集合

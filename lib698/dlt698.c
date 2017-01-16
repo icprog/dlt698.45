@@ -564,3 +564,108 @@ int ProcessData(CommBlock *com)
 	}
 	return 1;
 }
+
+INT16S fillGetRequestAPDU(INT8U* sendBuf,CLASS_6015 obj6015,INT8U requestType)
+{
+	INT16S length = 0;
+
+	return length;
+
+}
+
+INT16S composeProtocol698_GetRequest(INT8U* 	sendBuf,CLASS_6015 obj6015,TSA meterAddr)
+{
+	INT8U CA = 0x02;
+	INT8U PIID = 0x02;
+	INT8U tobecalc = 0;
+
+	INT8U hcspos1 = 0;
+	INT8U hcspos2 = 0;
+	INT8U meterAddrlen = meterAddr.addr[0]&0x0f;
+	if(meterAddrlen == 0)
+	{
+		return 0;
+	}
+	INT16S sendLen = 0;
+	INT16S apdulen = 0;
+	sendBuf[0] = 0x68; //heand
+	sendBuf[1] = tobecalc; //length
+	sendBuf[2] = tobecalc;
+	sendBuf[3] = 0x43; //control
+
+	memcpy(&sendBuf[4],meterAddr.addr,meterAddrlen+2);
+
+	sendLen = 4 + meterAddrlen + 2;
+	sendBuf[sendLen++] = CA;
+
+	hcspos1 = sendLen;
+	sendBuf[sendLen++] = tobecalc;
+	hcspos2 = sendLen;
+	sendBuf[sendLen++] = tobecalc;
+	sendBuf[sendLen++] = GET_REQUEST;
+	INT8U csdcount = 0;
+	INT8U requestType = 0;
+	switch(obj6015.cjtype)
+	{
+		case TYPE_NULL:
+			{
+				if(csdcount == 1)
+				{
+					requestType = GET_REQUEST_NORMAL;
+				}
+				if(csdcount > 0)
+				{
+					requestType = GET_REQUEST_NORMAL_LIST;
+				}
+
+				break;
+			}
+
+		case TYPE_LAST:
+			{
+				if(csdcount == 1)
+				{
+					requestType = GET_REQUEST_RECORD;
+				}
+				if(csdcount > 0)
+				{
+					requestType = GET_REQUEST_RECORD_LIST;
+				}
+				break;
+			}
+
+		case TYPE_FREEZE:
+
+			break;
+		case TYPE_INTERVAL:
+			break;
+	}
+	sendBuf[sendLen++] = requestType;
+	sendBuf[sendLen++] = PIID;
+	apdulen = fillGetRequestAPDU(&sendBuf[sendLen],obj6015,requestType);
+	sendLen += apdulen;
+	sendBuf[sendLen++] = 0x00;//没有时间标签
+
+	INT16U fcspos1=sendLen;
+	sendBuf[sendLen++] = tobecalc;
+	INT16U fcspos2=sendLen;
+	sendBuf[sendLen++] = tobecalc;
+
+	sendBuf[sendLen] = 0x16;
+	INT16U framelen = sendLen -2;
+	sendBuf[1] = (framelen & 0x00ff);//length
+	sendBuf[2] = ((framelen >> 8) & 0x00ff);//length
+
+	INT16U hcs = 0;
+	hcs = tryfcs16(&sendBuf[1], meterAddrlen + 6);
+
+	sendBuf[hcspos1] = (hcs & 0x00ff);//HCS
+	sendBuf[hcspos2] = ((hcs >> 8) & 0x00ff);//HCS
+
+	INT16U fcs = tryfcs16(&sendBuf[1], meterAddrlen + 6);
+
+	sendBuf[fcspos1] = (fcs & 0x00ff);//FCS
+	sendBuf[fcspos2] = ((fcs >> 8) & 0x00ff);//FCS
+
+	return sendLen;
+}
