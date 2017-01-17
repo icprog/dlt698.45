@@ -276,6 +276,17 @@ typedef struct
 								   //bit3:事件结束（恢复）上报确认标识，0—未确认，1—已确认。
 }Channel_Object;
 
+//通用事件记录单元
+typedef struct
+{
+	INT32U id;
+	DateTimeBCD begin;
+	DateTimeBCD end;
+	INT8U source[32];			//事件发生源
+	Channel_Object report;		//上报状态
+	OAD others[8];				//关联属性
+}E3301_Object;
+
 
 /*以下为整个事件属性结构体，存储该结构体*/
 typedef struct

@@ -637,24 +637,23 @@ void CreateAptSer(struct aeEventLoop* eventLoop, int fd, void* clientData, int m
     }
 }
 
-int main(int argc, char* argv[])
-{
-//    INT8U Save_buf[256];
-//    bzero(Save_buf, sizeof(Save_buf));
-//    INT32U crrentnum = 12345678;
-//
-//    memcpy(&Save_buf[0], &crrentnum, sizeof(INT32U));
-//
-//    DateTimeBCD ntime;
-//    DataTimeGet(&ntime);
-//    //开始时间
-//    memcpy(&Save_buf[4], &ntime, sizeof(ntime));
-//
-//    for (int i = 0; i < 16; i++) {
-//        printf("%02x ", Save_buf[i]);
-//    }
-//    printf("\n");
-//    return 0;
+int main(int argc, char* argv[]) {
+    //    INT8U Save_buf[256];
+    //    bzero(Save_buf, sizeof(Save_buf));
+    //    INT32U crrentnum = 12345678;
+    //
+    //    memcpy(&Save_buf[0], &crrentnum, sizeof(INT32U));
+    //
+    //    DateTimeBCD ntime;
+    //    DataTimeGet(&ntime);
+    //    //开始时间
+    //    memcpy(&Save_buf[4], &ntime, sizeof(ntime));
+    //
+    //    for (int i = 0; i < 16; i++) {
+    //        printf("%02x ", Save_buf[i]);
+    //    }
+    //    printf("\n");
+    //    return 0;
 
     if (access("/nand/mlog", F_OK) == -1) {
         system("mkdir /nand/mlog");
