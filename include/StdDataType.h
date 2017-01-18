@@ -151,6 +151,16 @@ typedef enum {
 	IN_OPR=1/*执行中*/,
 	AFTER_OPR=2/*已执行*/,
 }TASK_STATE;//任务执行状态
+
+
+typedef enum {
+	TYPE_NULL=0/*采集当前数据*/,
+	TYPE_LAST=1/*采集上N次*/,
+	TYPE_FREEZE=2/*按冻结时标*/,
+	TYPE_INTERVAL=3/*按时标间隔*/
+}CJTYPE_6015;//任务执行状态
+
+
 //////////////////////////////////////////////////////////////////
 
 typedef struct
