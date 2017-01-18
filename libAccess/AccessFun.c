@@ -50,7 +50,7 @@ typedef struct
 CLASS_INFO	info={};
 const static CLASS_INFO  class_info[] ={
 		{0x6000,sizeof(COLL_CLASS_11),sizeof(CLASS_6001),OCTET_STRING_LEN,"6000","/nand/para/table6000.par"},		//采集档案配置表
-//		{0x6005,sizeof(COLL_CLASS_11),sizeof(CLASS_6001),OCTET_STRING_LEN,"6000","/nand/para/table6000.par"},		//采集档案配置表
+//		{0x6013,0,sizeof(CLASS_6013),0,"6013","/nand/para/table6013.par"},		//任务配置单元
 };
 
 INT16U crc(INT16U Data)
@@ -344,7 +344,7 @@ INT8U save_block_file(char *fname,void *blockdata,int size,int headsize,int inde
 /*
  * 覆盖存储（数据文件直接存储）
  */
-INT8U writeFileCurve(char *fname, void *dataunit,int len)
+INT8U writeCoverFile(char *fname, void *dataunit,int len)
 {
 	int fd=0,ret=0;
 	FILE *fp=NULL;
@@ -364,7 +364,7 @@ INT8U writeFileCurve(char *fname, void *dataunit,int len)
 /*
  * 覆盖文件（数据）整块读取
  */
-int readFileCurve(char *fname, void *dataunit,int len)
+int readCoverFile(char *fname, void *dataunit,int len)
 {
 	FILE 	*fp=NULL;
 	int		num = 0;
@@ -482,7 +482,6 @@ void makeSubDir(char *DirName)
 /**************************************/
 void makeEventDir(OI_698 oi)
 {
-	DIR *dir=NULL;
 	char dirname[FILENAMELEN]="/nand/event";
 
 	makeSubDir(dirname);
@@ -503,7 +502,7 @@ void getFileName(OI_698 oi,INT16U seqno,INT16U type,char *fname)
 		return ;
 	memset(fname,0,FILENAMELEN);
 	switch(type) {
-	case para_save:
+	case event_para_save:
 		makeEventDir(oi);
 		sprintf(fname,"/nand/event/%04x/%04x.par",oi,oi);
 		break;
@@ -511,9 +510,15 @@ void getFileName(OI_698 oi,INT16U seqno,INT16U type,char *fname)
 		makeEventDir(oi);
 		sprintf(fname,"/nand/event/%04x/record/%d.dat",oi,seqno);
 		break;
-	case current_record_save:
+	case event_current_save:
 		makeEventDir(oi);
 		sprintf(fname,"/nand/event/%04x/current/%d.dat",oi,seqno);
+		break;
+	case coll_para_save:
+		makeSubDir("/nand/para");
+		sprintf(fname,"/nand/para/%04x/",oi);
+		makeSubDir(fname);
+		sprintf(fname,"/nand/para/%04x/%04x.par",oi,seqno);
 		break;
 	}
 	fprintf(stderr,"getFileName fname=%s\n",fname);
@@ -586,11 +591,11 @@ INT8U	writeInterClass(char *file_name,void *dest,int size)
 
 int WriteClass11(OI_698 oi,INT16U seqnum,INT8U method)
 {
-	void 	*unitdata;
+	void 	*unitdata=NULL;
 	COLL_CLASS_11	class11={};
 	CLASS_INFO	tmpinfo={};
 	int		ret=0;
-	INT16U 	*sernum;
+	INT16U 	*sernum=NULL;
 
 	if(getclassinfo(oi,&tmpinfo)==-1) {
 		return -1;
@@ -710,11 +715,10 @@ int delClassBySeq(OI_698 oi,void *blockdata,int seqnum)
  */
 int resetClass(OI_698 oi)
 {
-	INT16S	infoi=-1;
 	int		ret = -1;
-	char	fname2[FILENAMELEN];
-	char	cmd[64];
+	char	cmd[64]={};
 
+	memset(cmd,0,sizeof(cmd));
 	if(oi>=0x3000 && oi<=0x3fff) {
 		sprintf(cmd,"rm -rf /nand/event/%04x",oi);
 		system(cmd);
@@ -733,7 +737,8 @@ int ClearClass(OI_698 oi)
 {
 	INT16S	infoi=-1;
 	int		ret = -1;
-	char	fname2[FILENAMELEN];
+	char	fname2[FILENAMELEN]={};
+
 	infoi = getclassinfo(oi,&info);
 	if(infoi==-1) {
 		return -1;
@@ -771,28 +776,25 @@ int  readParaClass(OI_698 oi,void *blockdata,int seqnum)
 
 /*
  * 输入参数：	oi:对象标识，seqno:记录序号，blockdata:存储数据，savelen：存储长度，
- * 			type：存储类型【	para_save：参数文件存储   event_record_save: 事件记录表存储 	current_record_save :当前值记录表存储】
+ * 			type：存储类型【	根据宏定义SaveFile_type 】
  * 返回值：=1：文件存储成功
  */
-int saveEventClass(OI_698 oi,INT16U seqno,void *blockdata,int savelen,int type)
+int saveCoverClass(OI_698 oi,INT16U seqno,void *blockdata,int savelen,int type)
 {
 	int		ret = 0;
 	char	fname[FILENAMELEN]={};
 
 	memset(fname,0,sizeof(fname));
+	getFileName(oi,seqno,type,fname);
 	switch(type) {
-	case para_save:
-		getFileName(oi,seqno,para_save,fname);
+	case event_para_save:
+	case coll_para_save:
 //		fprintf(stderr,"saveEventClass file=%s ",fname);
 		ret = save_block_file(fname,blockdata,savelen,0,0);
 		break;
 	case event_record_save:
-		getFileName(oi,seqno,event_record_save,fname);
-		writeFileCurve(fname,blockdata,savelen);
-		break;
-	case current_record_save:
-		getFileName(oi,seqno,current_record_save,fname);
-		writeFileCurve(fname,blockdata,savelen);
+	case event_current_save:
+		writeCoverFile(fname,blockdata,savelen);
 		break;
 	}
 	return ret;
@@ -800,36 +802,30 @@ int saveEventClass(OI_698 oi,INT16U seqno,void *blockdata,int savelen,int type)
 
 /*
  * 输入参数：	oi:对象标识，seqno:记录序号，blockdata:存储数据，savelen：存储长度，
- * 			type：存储类型【	para_save：参数文件存储   event_record_save: 事件记录表存储 	current_record_save :当前值记录表存储】
+ * 			type：存储类型【	根据宏定义SaveFile_type 】
  * 返回值：=1：文件存储成功
  * =-1: 文件不存在
  */
-int readEventClass(OI_698 oi,INT16U seqno,void *blockdata,int type)
+int readCoverClass(OI_698 oi,INT16U seqno,void *blockdata,int type)
 {
 	int		ret = 0;
 	int		filelen = 0;
 	char	fname[FILENAMELEN]={};
 
 	memset(fname,0,sizeof(fname));
+	getFileName(oi,seqno,type,fname);
+	filelen = getFileLen(fname);
 	switch(type) {
-	case para_save:
-		getFileName(oi,seqno,para_save,fname);
-		filelen = getFileLen(fname);
+	case event_para_save:
+	case coll_para_save:
 //		fprintf(stderr,"readEventClass %s filelen=%d\n",fname,filelen);
 		if(filelen<=2)	return -1;
 		ret = block_file_sync(fname,blockdata,filelen-2,0,0);
 	break;
 	case event_record_save:
-		getFileName(oi,seqno,event_record_save,fname);
-		filelen = getFileLen(fname);
+	case event_current_save:
 		if(filelen==0)	return -1;
-		ret = readFileCurve(fname,blockdata,filelen);
-		break;
-	case current_record_save:
-		getFileName(oi,seqno,current_record_save,fname);
-		filelen = getFileLen(fname);
-		if(filelen==0)	return -1;
-		ret = readFileCurve(fname,blockdata,filelen);
+		ret = readCoverFile(fname,blockdata,filelen);
 		break;
 	}
 	return ret;

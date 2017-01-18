@@ -4,6 +4,15 @@
 
 #include "StdDataType.h"
 
+//文件存储类型
+typedef enum
+{
+	event_para_save=1,			//参数文件存储
+	event_record_save=2,		//事件记录表存储
+	event_current_save=3,		//当前值记录表存储
+	coll_para_save=4,			//采集类参数存储
+}SaveFile_type;
+
 /*
  * 复位
  * */
@@ -51,31 +60,31 @@ extern int readInterClass(OI_698 oi,void *dest);
  */
 extern int delClassBySeq(OI_698 oi,void *blockdata,int seqnum);
 
-
-
 //////////////////////////////////////////////////////////////////////////////////////////
-/*		第二类文件：事件参数、事件记录、当前记录集存储
- *		该类文件根据OI类型生成相应的目录  /nand/oi/
+/*		第三类文件：采用覆盖方式，根据每个oi的序号存储多个文件
+ * 				事件参数、事件记录、当前记录集存储
+ *		该类文件根据OI类型生成相应的目录  /nand/event/oi/
  *		type: 参数类数据存储
  *
  **/
 /*
  * 输入参数：	oi:对象标识，seqno:记录序号，blockdata:存储数据，len：存储长度，
- * 			type：存储类型【	para_save：参数文件存储   event_record_save: 事件记录表存储 	current_record_save :当前值记录表存储】
+ * 			type：存储类型【	根据宏定义SaveFile_type】
  * 返回值：=1：文件存储成功
  */
-extern int saveEventClass(OI_698 oi,INT16U seqno,void *blockdata,int savelen,int type);
+extern int saveCoverClass(OI_698 oi,INT16U seqno,void *blockdata,int savelen,int type);
 
 /*
  * 输入参数：	oi:对象标识，seqno:记录序号，blockdata:存储数据，savelen：存储长度，
- * 			type：存储类型【	para_save：参数文件存储   event_record_save: 事件记录表存储 	current_record_save :当前值记录表存储】
+ * 			type：存储类型【	根据宏定义SaveFile_type】
  * 返回值：=1：文件存储成功
  * =-1: 文件不存在
  */
-extern int readEventClass(OI_698 oi,INT16U seqno,void *blockdata,int type);
+extern int readCoverClass(OI_698 oi,INT16U seqno,void *blockdata,int type);
 
 
 //////////////////////////////////////////////////////////////////////////////////////////
+
 /************************************
  * 函数说明：获取参数文件对象配置单元的个数saveEventClass
  * 返回值：
