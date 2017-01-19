@@ -143,7 +143,23 @@ typedef enum {
 	AFTER_OPR=2/*已执行*/,
 }TASK_STATE;//任务执行状态
 //////////////////////////////////////////////////////////////////
+//typedef struct
+//{
+//	INT8U type;
+//	INT8U value;
+//}BOOL_TYPE
+//typedef struct
+//{
+//	INT8U type;
+//	INT8U value[16];
+//}BITSTRING_TYPE
 
+
+
+
+
+
+/////////////////////////////////////////////////////////////////
 typedef struct
 {
 	INT16U Year;    //year;
@@ -188,8 +204,8 @@ typedef struct
 	INT8U data2;
 	INT8U data3;
 	INT8U data4;
-}ComBCD8;
-typedef struct
+}ComBCD8;//053283069933
+typedef struct//12：30       1：30    //  18305356699  /     85     // 128
 {
 	ComBCD4 year;
 	ComBCD2 month;
@@ -381,7 +397,12 @@ typedef union
 	OAD  oad;	/*对象属性描述符*/
 	ROAD road;	/*记录型对象属性描述符*/
 }CSD;	/*列选择描述符*/
-
+typedef struct
+{
+	INT8U type;
+	INT8U num;
+	CSD   csd[20];
+}CSD_ARRAYTYPE;
 typedef struct
 {
 	CSD rcsd[16];
@@ -404,6 +425,11 @@ typedef union
 	SymmetrySecurity  symsecur;
 	SignatureSecurity sigsecur;
 }ConnectMechanismInfo;
+typedef struct
+{
+	INT8U type;
+	ConnectMechanismInfo info;
+}ConnectMechanismInfo_type;
 typedef struct
 {
 	RN_698 server_rn[50];			/*服务器随机数*/
@@ -495,8 +521,59 @@ typedef union {
 	SID sid;
 	SID_MAC sidmac;
 	COMDCB comdcb;
+}DataBuf;
+typedef union {
+	INT8U data_null;
+//	DataType data_array[10];
+//	DataType data_struct[10];
+	INT8U data_bool;
+	INT8U data_bit[180];
+	INT32U double_long;
+	INT32U double_long_unsigned;
+	INT8U octet_string[180];
+	INT8U visible_string[180];
+	INT8U utf8_string[180];
+	INT8U bcd[180];
+	INT8U integer;
+	INT16U data_long;
+	INT8U dataunsigned;
+	INT16U long_unsigned;
+	INT64U long64;
+	INT64U long64_unsigned;
+	INT8U  data_enum;
+	INT32S  float32;
+	INT64S float64;
+	INT8U data_datetime[10];
+	INT8U data_date[5];
+	INT8U data_time[3];
+	DateTimeBCD datetime;
+	DateTimeBCD_H datetime_h;
+	DateTimeBCD_S datetime_s;
+	DateBCD datebcd;
+	TimeBCD timebcd;
+	OI_698 OI;
+	OAD oad;
+	ROAD road;
+	OMD omd;
+	TI ti;
+	TSA tsa;
+	INT8U mac[20];
+	INT8U rn[20];
+	Region region;
+	Scaler_Unit scalerunit;
+	RSD rsd;
+	CSD csd;
+	MS ms;
+	SID sid;
+	SID_MAC sidmac;
+	COMDCB comdcb;
 }DataType;
 
+typedef struct
+{
+	INT8U type;
+	INT8U data[50];
+}DATA_TYPE;
 typedef struct
 {
 	INT8U factorycode[4];

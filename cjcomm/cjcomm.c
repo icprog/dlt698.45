@@ -253,6 +253,7 @@ int NETWorker(struct aeEventLoop* ep, long long id, void* clientData) {
 
     if (nst->phy_connect_fd <= 0) {
         initComPara(nst);
+        fprintf(stderr,"\nIPaddr:%s",IPaddr);
         nst->phy_connect_fd = anetTcpConnect(NULL, IPaddr, 5022);
         if (nst->phy_connect_fd > 0) {
             rlog("[NETWorker]Connect Server(%d)\n", nst->phy_connect_fd);
@@ -596,7 +597,7 @@ void* ATWorker(void* args) {
 
         while (1) {
             delay(1000);
-            printf("wait for error.\n");
+//            printf("wait for error.\n");
         }
 
     err:

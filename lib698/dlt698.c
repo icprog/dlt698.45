@@ -336,6 +336,37 @@ int setRequestNormalList(INT8U *Object,CSINFO *csinfo,INT8U *buf)
 	}
 	return bytes;
 }
+int getRequestRecord(INT8U *typestu,CSINFO *csinfo,INT8U *buf)
+{
+	RSD rsd;
+	OAD oad={};
+	INT8U rsdtype=0;
+	//1,OAD
+	oad.OI= (typestu[0]<<8) | typestu[1];
+	oad.attflg = typestu[2];
+	oad.attrindex = typestu[3];
+	fprintf(stderr,"\n- getRequestRecord  OI = %04x  attrib=%d  index=%d",oad.OI,oad.attflg,oad.attrindex);
+
+	//2,RSD
+	rsdtype = typestu[4];
+	switch(rsdtype)
+	{
+		case 0:
+			//null
+			break;
+		case 1:
+//			OAD oad1;
+			break;
+		case 2:
+			break;
+		case 3:
+			break;
+		case 4:
+			break;
+	}
+	//3,RCSD
+	return 1;
+}
 int doSetAttribute(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 {
 	PIID piid={};
@@ -358,10 +389,14 @@ int doSetAttribute(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 }
 int doGetAttribute(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 {
-	INT8U setType = apdu[1];
 	PIID piid={};
+	INT8U getType = apdu[1];
+	// 1,GetRequestNormal ; 2,GetRequestNormalList  3,GetRequestRecord  4,GetRequestRecordList,GetRequestNext
+
 	piid.data = apdu[2];
-	switch(setType)
+	fprintf(stderr,"\n- get type = %d PIID=%02x",getType,piid.data);
+
+	switch(getType)
 	{
 		case GET_REQUEST_NORMAL:
 
@@ -369,6 +404,7 @@ int doGetAttribute(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 		case GET_REQUEST_NORMAL_LIST:
 			break;
 		case GET_REQUEST_RECORD:
+			getRequestRecord(&apdu[3],csinfo,buf);
 			break;
 		case GET_REQUEST_RECORD_LIST:
 			break;
@@ -466,6 +502,7 @@ INT8U dealClientRequest(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
 			doSetAttribute(apdu,csinfo,sendbuf);
 			break;
 		case ACTION_REQUEST:
+			fprintf(stderr,"\n ACTION_REQUEST");
 			doActionRequest(apdu,csinfo,sendbuf);
 			break;
 		case PROXY_REQUEST:
