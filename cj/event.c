@@ -12,7 +12,7 @@
 #include "EventObject.h"
 #include "AccessFun.h"
 #include "ParaDef.h"
-//attribute
+//property
 
 
 void printClass7(Class7_Object class7)
@@ -42,7 +42,7 @@ void event_process(int argc, char *argv[])
 			ret = resetClass(oi);
 			fprintf(stderr,"复位出错=%d",ret);
 		}
-		if(strcmp("att",argv[2])==0) {
+		if(strcmp("pro",argv[2])==0) {
 			if(argc==4) {
 				memset(&class7,0,sizeof(Class7_Object));
 				readCoverClass(oi,0,&class7,event_para_save);

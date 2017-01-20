@@ -9,7 +9,8 @@
 #define PARA_H_
 
 /*
- * 参数文件的读取*/
+ * 参变量类*/
 extern void para_process(int argc, char *argv[]);
+
 
 #endif /* PARA_H_ */

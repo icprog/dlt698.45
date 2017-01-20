@@ -200,7 +200,7 @@ void MeterInfo(INT16U oi,INT16U attr_act,INT8U *data)
 		case 133://方法 133:Delete(通信地址, 端口号)
 			break;
 		case 134://方法 134:Clear()
-			ClearClass(oi);
+			clearClass(oi);
 			break;
 	}
 }

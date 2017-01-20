@@ -67,7 +67,6 @@ typedef struct
 {
 	INT8U taskID;		                //参数变量接口类逻辑名
 	TI interval;						//执行频率
-	INT16U deepsize;					//存储深度
 	SCHM_TYPE  cjtype;					//方案类型
 	INT8U sernum;						//方案序号
 	DateTimeBCD startime;               //开始时间
@@ -75,23 +74,22 @@ typedef struct
 	TI delay;						    //延时
 	RUN_PRIO runprio;                   //执行优先级
 	TASK_VALID state;                   //任务状态
-	INT8U  befscript;                   //任务开始前脚本
-	INT8U  aftscript;                   //任务完成后脚本
+	INT16U  befscript;                   //任务开始前脚本
+	INT16U  aftscript;                   //任务完成后脚本
 	TASK_RUN_TIME runtime;              //任务运行时段
 }CLASS_6013;//任务配置单元
 
 typedef struct
 {
 	INT8U name[OCTET_STRING_LEN];		//参数变量接口类逻辑名
-	INT16U sernum;						//方案序号
+	INT8U sernum;						//方案序号
 	INT16U deepsize;					//存储深度
-	CJTYPE_6015  cjtype;						//采集类型
-	DataType data;
-	CSD    csd[20];						//记录列选择 array CSD,
+	INT8U  cjtype;						//采集类型
+	DATA_TYPE data;						//采集内容
+	CSD_TYPE  csd[20];					//记录列选择 array CSD,
 	MS     ms;							//电能表集合
 	INT8U  savetimeflag;				//存储时标选择 enum
 }CLASS_6015;//普通采集方案
-
 
 
 typedef struct

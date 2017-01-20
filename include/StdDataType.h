@@ -408,6 +408,12 @@ typedef struct
 
 typedef struct
 {
+	INT8U	type;
+	CSD 	rcsd[16];
+}CSD_TYPE;	/*记录列选择描述符*/
+
+typedef struct
+{
 	INT8U encrypted_code1;
 	INT8U signature;
 }SymmetrySecurity;
@@ -516,6 +522,13 @@ typedef union {
 //	COMDCB comdcb;
 }DataType;
 //DataType len=1432
+
+typedef struct
+{
+	INT8U type;
+	INT8U data[50];
+}DATA_TYPE;
+
 typedef struct
 {
 	INT8U factorycode[4];
