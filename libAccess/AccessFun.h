@@ -129,4 +129,9 @@ extern int readCoverClass(OI_698 oi,INT16U seqno,void *blockdata,int type);
  *************************************/
 extern long getFileRecordNum(OI_698 oi);
 
+extern void getFileName(OI_698 oi,INT16U seqno,INT16U type,char *fname);
+/*
+ * 覆盖文件（数据）整块读取
+ */
+extern int readCoverFile(char *fname, void *dataunit,int len);
 #endif /* ACCESS_H_ */

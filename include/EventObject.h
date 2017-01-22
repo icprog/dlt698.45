@@ -43,23 +43,23 @@ typedef struct
 }Timesnums_Object;
 
 //当前数值记录表
-typedef struct
-{
-	INT8U num;
-    INT8U source[TSA_LEN];
-    Timesnums_Object tims_nums;
-}Crrent_Object;
+//typedef struct
+//{
+//	INT8U num;
+//    INT8U source[TSA_LEN];
+//    Timesnums_Object tims_nums;
+//}Crrent_Object;
 
 //class_7 事件类通用结构体
 typedef struct
 {
 	OI_698 oi;           //逻辑名
-	INT16U crrentnum;    //当前记录数
-	INT16U maxnum;       //最大记录数
+	INT8U crrentnum;    //当前记录数
+	INT8U maxnum;       //最大记录数
 	BOOLEAN reportflag;  //上报标识 1 上报 0 不上报
 	BOOLEAN enableflag;  //有效标识 1 有效 0 无效
 	OAD    oadarr[CLASS7_OAD_NUM];   //关联对象属性表			//放结构体后面为扩展
-	Crrent_Object crrent_arr[5]; //当前值记录表
+	//Crrent_Object crrent_arr[5]; //当前值记录表
 }Class7_Object;
 
 //电能表时钟超差事件参数
@@ -279,6 +279,16 @@ typedef struct
 	OAD others[8];				//关联属性
 }E3301_Object;
 
+typedef struct{
+	INT32U value;
+	INT8U Available;
+}MYINT32U ;
+
+typedef struct{
+	MYINT32U U[3];
+	MYINT32U I[3];
+	MYINT32U P[3];
+}EVENTREALDATA;
 
 /*以下为整个事件属性结构体，存储该结构体*/
 typedef struct
