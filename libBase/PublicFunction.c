@@ -352,6 +352,22 @@ void DataTimeGet(DateTimeBCD* ts) {
     ts->sec.data   = set.tm_sec;
 }
 
+time_t tmtotime_t(TS ptm)
+{
+	time_t ctime;
+	struct tm ctm;
+	ctime = time(NULL);
+	localtime_r(&ctime,&ctm);
+	ctm.tm_year = ptm.Year -1900;
+	ctm.tm_mon = ptm.Month-1 ;//TODO:是否正确
+	ctm.tm_mday = ptm.Day;
+	ctm.tm_hour = ptm.Hour;
+	ctm.tm_min = ptm.Minute;
+	ctm.tm_sec = ptm.Sec;
+	ctime = mktime(&ctm);
+	return ctime;
+}
+
 /****************************************************************
  * 实时数据请求缓冲数组初始化
  */
