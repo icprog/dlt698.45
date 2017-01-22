@@ -670,3 +670,4 @@ INT16S composeProtocol698_GetRequest(INT8U* 	sendBuf,CLASS_6015 obj6015,TSA mete
 
 	return sendLen;
 }
+

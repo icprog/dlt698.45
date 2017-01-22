@@ -1,9 +1,4 @@
-/*
- * read485.c
- *
- *  Created on: 2017-1-4
- *      Author: wzm
- */
+
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -58,21 +53,132 @@ INT8U use6013find6015(INT16U taskID, CLASS_6015* st6015)
 	return result;
 
 }
-
-
-INT8U deal6015_698(CLASS_6015 st6015,BasicInfo6001 to6001)
+/*
+ * 485口接收处理,判断完整帧
+ * 输入参数：delayms，超时等待时间，单位：毫秒
+ * 输出；*str：接收缓冲区
+ * 返回：>0：完整报文；=0:接收长度为0；-1：乱码，无完整报文
+ */
+INT16S ReceDataFrom485(INT32S fd,INT16U delayms,INT8U *str)
 {
-	INT8U result = 0;
-	INT8U sendbuff[BUFFSIZE];
-	memset(sendbuff,0,BUFFSIZE);
+	INT8U 	TmprevBuf[256];//接收报文临时缓冲区
+	INT8U 	prtstr[50];
+	INT16U  len_Total=0,len,rec_step,rec_head,rec_tail,DataLen,i,j;
 
-	result = composeProtocol698_GetRequest(sendbuff,st6015,to6001.addr);
+	if(fd<=2)
+		return -1;
+
+	memset(TmprevBuf,0,256);
+	rec_head=rec_tail= rec_step = DataLen =0;
+	fprintf(stderr, "delayms=%d, 111111111111111\n", delayms);
+	usleep(delayms*1000);
+
+	for(j=0;j<15;j++)
+	{
+		usleep(20000);	//20ms
+		len = read(fd,TmprevBuf,256);
+
+		if(len>0){
+			len_Total+=len;
+			if (len_Total > 256)
+			{
+				fprintf(stderr, "len_Total=%d, xxxxxxxxxxx\n", len_Total);
+				return -1;
+			}
+			for(i=0;i<len;i++)
+			{
+				str[rec_head++]=TmprevBuf[i];
+			}
+
+			memset(prtstr, 0, sizeof(prtstr));
+			sprintf((char *)prtstr, "485(%d)_R(%d):", 1, len);
+//			dbg_prtbuff((char *)prtstr, TmprevBuf, len, "%02x", " ", "\n");
+
+		}
+		switch (rec_step) {
+		case 0:
+			if (rec_tail < rec_head)
+			{
+				for(i=rec_tail; i<rec_head; i++)
+				{
+					if(str[i] == 0x68)
+					{//ma:判断第一个字符是否为0x68
+						rec_step = 1;
+						rec_tail = i;
+						break;
+					}else
+						rec_tail++;
+				}
+			}
+			break;
+		case 1:
+			if((rec_head - rec_tail)>=10)
+			{
+				if(str[rec_tail]==0x68 && str[rec_tail+7]==0x68 )
+				{
+					DataLen=str[rec_tail+9];//获取报文数据块长度
+					rec_step = 2;
+					break;
+				}else
+					rec_tail++;
+			}
+			break;
+		case 2:
+			if((rec_head - rec_tail)>=(DataLen+2))
+			{
+				if (str[rec_tail+9 +DataLen+2] == 0x16) {
+//					DbPrt1("R:",(char *)str, rec_head, NULL);
+					return rec_head;
+				}
+			}
+			break;
+		default:
+			break;
+		}
+	}
+	if (len_Total>0)
+		return -1;
+	else
+		return 0;
+}
+/**
+ * 485口发送
+ */
+void SendDataTo485(INT32S fd,INT8U *sendbuf,INT16U sendlen)
+{
+	ssize_t slen;
+
+	INT8U str[50];
+	memset(str, 0, 50);
+	sprintf((char *)str, "485(%d)_S(%d):", 1, sendlen);
+//	dbg_prtbuff((char *)str, sendbuf, sendlen, "%02x", " ", "\n");
+
+	slen = write(fd,sendbuf,sendlen);
+	if(slen<0)	fprintf(stderr, "slen=%d,send err!\n",slen);
+//	DbPrt1("S:", (char *) sendbuf, sendlen, NULL);
+}
+
+INT8S deal6015_698(CLASS_6015 st6015,BasicInfo6001 to6001)
+{
+	INT8S result = -1;
+	INT16S sendLen = 0;
+	INT16S recvLen = 0;
+	INT8U sendbuff[BUFFSIZE];
+	INT8U recvbuff[BUFFSIZE];
+	memset(sendbuff,0,BUFFSIZE);
+	memset(recvbuff,0,BUFFSIZE);
+
+	sendLen = composeProtocol698_GetRequest(sendbuff,st6015,to6001.addr);
+	SendDataTo485(comfd4851, sendbuff, sendLen);
+	recvLen = ReceDataFrom485(comfd4851, 500, recvbuff);
+
+
 
 	return result;
 }
-INT8U deal6015_07(CLASS_6015 st6015,BasicInfo6001 to6001)
+INT8S deal6015_07(CLASS_6015 st6015,BasicInfo6001 to6001)
 {
-	INT8U result = 0;
+	INT8S result = 0;
 
 	return result;
 }
@@ -81,7 +187,7 @@ INT8U deal6015_07(CLASS_6015 st6015,BasicInfo6001 to6001)
 */
 INT8U deal6015_singlemeter(CLASS_6015 st6015,BasicInfo6001 obj6001)
 {
-	INT8U ret = 0;
+	INT8S ret = 0;
 	//打开串口
 	comfd4851 = open_com_para_chg(obj6001.port,obj6001.baud,comfd4851);
 	if(comfd4851<=0)
@@ -226,37 +332,7 @@ INT8U deal6015(CLASS_6015 st6015)
 //	sendbuf[sendindex++] = TP;
 //}
 
-void init6013()
-{
-	list6013[0].basicInfo.taskID = 1;
-	list6013[0].basicInfo.interval.interval = 1;
-	list6013[0].basicInfo.interval.units = day_units;//一天
-	list6013[0].basicInfo.cjtype = norm;
-	list6013[0].basicInfo.sernum = 1;//方案编号
-	list6013[0].basicInfo.startime.year.data = 2016;
-	list6013[0].basicInfo.startime.month.data = 9;
-	list6013[0].basicInfo.startime.day.data = 12;
-	list6013[0].basicInfo.startime.hour.data = 0;
-	list6013[0].basicInfo.startime.min.data = 2;
-	list6013[0].basicInfo.startime.sec.data = 0;
-	list6013[0].basicInfo.endtime.year.data = 2099;
-	list6013[0].basicInfo.endtime.month.data = 9;
-	list6013[0].basicInfo.endtime.day.data = 9;
-	list6013[0].basicInfo.endtime.hour.data = 9;
-	list6013[0].basicInfo.endtime.min.data = 9;
-	list6013[0].basicInfo.endtime.sec.data = 9;
-	list6013[0].basicInfo.delay.interval = 0;
-	list6013[0].basicInfo.delay.units = sec_units;
-	list6013[0].basicInfo.runprio = ness;
-	list6013[0].basicInfo.state =  task_valid;
-	list6013[0].basicInfo.befscript = 0;
-	list6013[0].basicInfo.aftscript = 0;
-	list6013[0].basicInfo.runtime.type = B_K;
-	list6013[0].basicInfo.runtime.runtime[0] = 0;
-	list6013[0].basicInfo.runtime.runtime[1] = 0;
-	list6013[0].basicInfo.runtime.runtime[2] = 0x17;
-	list6013[0].basicInfo.runtime.runtime[3] = 0x3b;
-}
+
 void init6015()
 {
 	to6015.sernum = 1;
@@ -475,9 +551,11 @@ INT16S getNextTastID()
 
 	for(tIndex=0;tIndex<TASK6012_MAX;tIndex++)
 	{
+		fprintf(stderr,"\n getNextTastID tIndex = %d",tIndex);
 		//过滤任务无效或者不再抄表时段内的
 		if (filterInvalidTask(tIndex)==0)
 		{
+			fprintf(stderr,"\n filterInvalidTask");
 			continue;
 		}
 		//过滤没到抄表间隔的
@@ -510,17 +588,135 @@ INT16S getNextTastID()
 
 	return list6013[taskIndex].basicInfo.taskID;
 }
+typedef enum{
+	coll_bps=1,
+	coll_protocol,
+	coll_wiretype,
+	task_ti,
+	task_cjtype,
+	task_prio,
+	task_status,
+	task_runtime
+}OBJ_ENUM;
+char *getenum(int type,int val)
+{
+	char name1[128]={};
+	char *name=NULL;
+
+	name = name1;
+	memset(name1,0,sizeof(name1));
+//	fprintf(stderr,"val=%d ,type=%d\n",val,type);
+	switch(type) {
+	case coll_bps:
+		if(val==bps300)	strcpy(name,"300");
+		if(val==bps600)	strcpy(name,"600");
+		if(val==bps1200)	strcpy(name,"1200");
+		if(val==bps2400)	strcpy(name,"2400");
+		if(val==bps4800)	strcpy(name,"4800");
+		if(val==bps7200)	strcpy(name,"7200");
+		if(val==bps9600)	strcpy(name,"9600");
+		if(val==bps19200)	strcpy(name,"19200");
+		if(val==bps38400)	strcpy(name,"38400");
+		if(val==bps57600)	strcpy(name,"57600");
+		if(val==bps115200)	strcpy(name,"115200");
+		if(val==autoa)		strcpy(name,"自适应");
+		break;
+	case coll_protocol:
+		if(val==0)	strcpy(name,"未知");
+		if(val==1)	strcpy(name,"DL/T645-1997");
+		if(val==2)	strcpy(name,"DL/T645-2007");
+		if(val==3)	strcpy(name,"DL/T698.45");
+		if(val==4)	strcpy(name,"CJ/T18802004");
+		break;
+	case coll_wiretype:
+		if(val==0)	strcpy(name,"未知");
+		if(val==1)	strcpy(name,"单相");
+		if(val==2)	strcpy(name,"三相三线");
+		if(val==3)	strcpy(name,"三相四线");
+		break;
+	case task_ti:
+		if(val==0)	strcpy(name,"秒");
+		if(val==1)	strcpy(name,"分");
+		if(val==2)	strcpy(name,"时");
+		if(val==3)	strcpy(name,"日");
+		if(val==4)	strcpy(name,"月");
+		if(val==5)	strcpy(name,"年");
+		break;
+	case task_cjtype:
+		if(val==1)	strcpy(name,"普通采集方案");
+		if(val==2)	strcpy(name,"事件采集方案");
+		if(val==3)	strcpy(name,"透明方案");
+		if(val==4)	strcpy(name,"上报方案");
+		if(val==5)	strcpy(name,"脚本方案");
+		break;
+	case task_prio:
+		if(val==1)	strcpy(name,"首要");
+		if(val==2)	strcpy(name,"必要");
+		if(val==3)	strcpy(name,"需要");
+		if(val==4)	strcpy(name,"可能");
+		break;
+	case task_status:
+		if(val==1)	strcpy(name,"正常");
+		if(val==2)	strcpy(name,"停用");
+		break;
+	case task_runtime:
+		if(val==0)	strcpy(name,"前闭后开");
+		if(val==1)	strcpy(name,"前开后闭");
+		if(val==2)	strcpy(name,"前闭后闭");
+		if(val==3)	strcpy(name,"前开后开");
+		break;
+	}
+//	fprintf(stderr,"get name=%s\n",name);
+	return name;
+}
+
+void print6013(CLASS_6013 class6013)
+{
+	fprintf(stderr,"\n----------------------------------");
+	fprintf(stderr,"【6013】任务配置单元: 任务ID--%04x\n",class6013.taskID);
+	fprintf(stderr,"[1]执行频率 [2]方案类型 [3]方案编号 [4]开始时间 [5]结束时间 [6]延时 [7]执行优先级 [8]状态 [9]开始前脚本id [10]开始后脚本id [11]运行时段【起始HH:MM 结束HH:MM】\n");
+	fprintf(stderr,"[1]%s-%d ",getenum(task_ti,class6013.interval.units),class6013.interval.interval);
+	fprintf(stderr,"[2]%s  [3]%d   ",getenum(task_cjtype,class6013.cjtype),class6013.sernum);
+	fprintf(stderr,"[4]%d-%d-%d %d:%d:%d ",class6013.startime.year.data,class6013.startime.month.data,class6013.startime.day.data,
+			class6013.startime.hour.data,class6013.startime.min.data,class6013.startime.sec.data);
+	fprintf(stderr,"[5]%d-%d-%d %d:%d:%d ",class6013.endtime.year.data,class6013.endtime.month.data,class6013.endtime.day.data,
+			class6013.endtime.hour.data,class6013.endtime.min.data,class6013.endtime.sec.data);
+	fprintf(stderr,"[6]%s-%d ",getenum(task_ti,class6013.delay.units),class6013.delay.interval);
+	fprintf(stderr,"[7]%s  ",getenum(task_prio,class6013.runprio));
+	fprintf(stderr,"[8]%s  [9]%d  [10]%d ",getenum(task_status,class6013.state),class6013.befscript,class6013.aftscript);
+	fprintf(stderr,"[11]%s [%d:%d %d:%d] ",getenum(task_runtime,class6013.runtime.type),class6013.runtime.runtime[0],class6013.runtime.runtime[1],class6013.runtime.runtime[2],class6013.runtime.runtime[3]);
+	fprintf(stderr,"\n");
+}
+
+
 /*
  * 从文件里把所有的任务单元读上来
  * */
 INT8U init6013ListFrom6012File()
 {
+	fprintf(stderr,"\n -------------init6013ListFrom6012File---------------");
 	INT8U result = 0;
 	memset(list6013,0x00,TASK6012_MAX*sizeof(TASK_CFG));
+
+	INT16U tIndex = 0;
+	OI_698	oi=0x6013;
+	CLASS_6013	class6013={};
+	for(tIndex = 0;tIndex < TASK6012_MAX;tIndex++)
+	{
+		if(readCoverClass(oi,tIndex,&class6013,coll_para_save)== -1)
+		{
+
+		}
+		else
+		{
+			print6013(class6013);
+		}
+	}
+
 	//list6013  初始化上一次抄表时间  和 抄表轮次
 	TS ts_now;
 	TSGet(&ts_now);
-	INT16U tIndex = 0;
+
 	for(tIndex = 0;tIndex < TASK6012_MAX;tIndex++)
 	{
 		list6013[tIndex].ts_last.Year = ts_now.Year;
@@ -536,12 +732,11 @@ INT8U init6013ListFrom6012File()
 void read485_thread(void* i485port)
 {
 	INT8U port = *(INT8U*)i485port;
+	fprintf(stderr,"\n port = %d",port);
 	comfd4851 = -1;
 	INT8U ret = 0;
 	INT16S taskID = -1;
-	init6013ListFrom6012File();
 
-	init6013();
 	init6015();
 	while(1)
 	{
@@ -587,6 +782,8 @@ void read485_thread(void* i485port)
 }
 void read485_proccess()
 {
+	init6013ListFrom6012File();
+	return;
 	INT8U i485port1 = 1;
 	INT8U i485port2 = 2;
 	pthread_attr_init(&read485_attr_t);
@@ -596,9 +793,11 @@ void read485_proccess()
 	{
 		sleep(1);
 	}
+#if 0
 	while ((thread_read4852_id=pthread_create(&thread_read4852, &read485_attr_t, (void*)read485_thread, &i485port2)) != 0)
 	{
 		sleep(1);
 	}
+#endif
 }
 
