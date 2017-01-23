@@ -10,6 +10,7 @@
 #include <wait.h>
 #include <errno.h>
 #include <string.h>
+#include <time.h>
 #include "read485.h"
 
 /*
@@ -49,7 +50,24 @@ INT32S open_com_para_chg(INT8U port,INT32U baud,INT32S oldcomfd)
 INT8U use6013find6015(INT16U taskID, CLASS_6015* st6015)
 {
 	INT8U result = 0;
-
+	st6015->sernum = 1;
+	st6015->deepsize = 0x100;
+	st6015->cjtype = 1;
+	st6015->csd[0].type = 1;
+	st6015->csd[0].rcsd[0].oad.OI = 0x5004;
+	st6015->csd[0].rcsd[0].oad.attflg = 2;
+	st6015->csd[0].rcsd[0].oad.attrindex = 0;
+	st6015->csd[0].rcsd[0].oad.OI = 0x2021;
+	st6015->csd[0].rcsd[0].oad.attflg = 2;
+	st6015->csd[0].rcsd[0].oad.attrindex = 0;
+	st6015->csd[0].rcsd[1].oad.OI = 0x0010;
+	st6015->csd[0].rcsd[1].oad.attflg = 2;
+	st6015->csd[0].rcsd[1].oad.attrindex = 0;
+	st6015->csd[0].rcsd[2].oad.OI = 0x0020;
+	st6015->csd[0].rcsd[2].oad.attflg = 2;
+	st6015->csd[0].rcsd[2].oad.attrindex = 0;
+	st6015->ms.allmeter_null = 1;//所有电表
+	st6015->savetimeflag = 4;
 	return result;
 
 }
@@ -333,60 +351,79 @@ INT8U deal6015(CLASS_6015 st6015)
 //}
 
 
-void init6015()
-{
-	to6015.sernum = 1;
-	to6015.deepsize = 0x100;
-	to6015.cjtype = 1;
-	//to6015.data = ;//无采集内容
-	to6015.csd[0].rcsd[0].oad.OI = 0x5004;
-	to6015.csd[0].rcsd[0].oad.attflg = 2;
-	to6015.csd[0].rcsd[0].oad.attrindex = 0;
-	to6015.csd[0].rcsd[0].oad.OI = 0x2021;
-	to6015.csd[0].rcsd[0].oad.attflg = 2;
-	to6015.csd[0].rcsd[0].oad.attrindex = 0;
-	to6015.csd[0].rcsd[1].oad.OI = 0x0010;
-	to6015.csd[0].rcsd[1].oad.attflg = 2;
-	to6015.csd[0].rcsd[1].oad.attrindex = 0;
-	to6015.csd[0].rcsd[2].oad.OI = 0x0020;
-	to6015.csd[0].rcsd[2].oad.attflg = 2;
-	to6015.csd[0].rcsd[2].oad.attrindex = 0;
-	to6015.ms.allmeter_null = 1;//所有电表
-	to6015.savetimeflag = 4;
-}
-
 
 //时间在任务开始结束时间段内 0:任务开始 1：任务不执行
 INT8U time_in_round(CLASS_6013 from6012_curr)
 {
-	struct tm tm_tmp;
-	time_t start_sec=0,end_sec=0,curr_sec=0;
+	struct tm tm_start;
+	struct tm tm_end;
+	struct tm tm_curr;
 	if(from6012_curr.startime.year.data < 1900 || from6012_curr.startime.month.data < 1 ||
 			from6012_curr.endtime.year.data < 1900 || from6012_curr.endtime.month.data < 1)
+	{
+		fprintf(stderr,"\n time_in_round - 1");
 		return 1;//无效，任务不执行
-	memset(&tm_tmp,0x00,sizeof(struct tm));
-	tm_tmp.tm_year = from6012_curr.startime.year.data - 1900;
-	tm_tmp.tm_mon = from6012_curr.startime.month.data - 1;
-	tm_tmp.tm_wday = from6012_curr.startime.day.data;
-	tm_tmp.tm_hour = from6012_curr.startime.hour.data;
-	tm_tmp.tm_min = from6012_curr.startime.min.data;
-	tm_tmp.tm_sec = from6012_curr.startime.sec.data;
-	start_sec = mktime(&tm_tmp);
-	memset(&tm_tmp,0x00,sizeof(struct tm));
-	tm_tmp.tm_year = from6012_curr.endtime.year.data - 1900;
-	tm_tmp.tm_mon = from6012_curr.endtime.month.data - 1;
-	tm_tmp.tm_wday = from6012_curr.endtime.day.data;
-	tm_tmp.tm_hour = from6012_curr.endtime.hour.data;
-	tm_tmp.tm_min = from6012_curr.endtime.min.data;
-	tm_tmp.tm_sec = from6012_curr.endtime.sec.data;
-	end_sec = mktime(&tm_tmp);
+	}
 
-	if(start_sec >= end_sec)
-		return 1;
+	memset(&tm_start,0x00,sizeof(struct tm));
+	tm_start.tm_year = from6012_curr.startime.year.data -1900;
+	tm_start.tm_mon = from6012_curr.startime.month.data -1;
+	tm_start.tm_mday = from6012_curr.startime.day.data;
+	tm_start.tm_hour = from6012_curr.startime.hour.data;
+	tm_start.tm_min = from6012_curr.startime.min.data;
+	tm_start.tm_sec = from6012_curr.startime.sec.data;
 
-	curr_sec = time(NULL);
-	if(curr_sec < start_sec || curr_sec > end_sec)//抄表时段外
+
+
+	memset(&tm_end,0x00,sizeof(struct tm));
+	tm_end.tm_year = from6012_curr.endtime.year.data -1900;
+	tm_end.tm_mon = from6012_curr.endtime.month.data -1;
+	tm_end.tm_mday = from6012_curr.endtime.day.data;
+	tm_end.tm_hour = from6012_curr.endtime.hour.data;
+	tm_end.tm_min = from6012_curr.endtime.min.data;
+	tm_end.tm_sec = from6012_curr.endtime.sec.data;
+
+
+	time_t curr_time_t = time(NULL);
+	localtime_r(&curr_time_t, &tm_curr);
+#if 0
+	fprintf(stderr,"\n start year = %d mon = %d day = %d hour=%d  min=%d",
+				tm_start.tm_year,tm_start.tm_mon,tm_start.tm_mday,tm_start.tm_hour,tm_start.tm_min);
+	fprintf(stderr,"\n end year = %d mon = %d day = %d hour=%d  min=%d",
+			tm_end.tm_year,tm_end.tm_mon,tm_end.tm_mday,tm_end.tm_hour,tm_end.tm_min);
+	fprintf(stderr,"\n curr year = %d mon = %d day = %d hour=%d  min=%d",
+			tm_curr.tm_year,tm_curr.tm_mon,tm_curr.tm_mday,tm_curr.tm_hour,tm_curr.tm_min);
+#endif
+	if((tm_curr.tm_year >= tm_start.tm_year)&&(tm_curr.tm_year <= tm_end.tm_year))
+	{
+		if(tm_start.tm_year == tm_end.tm_year)
+		{
+			tm_start.tm_year = 0;
+			tm_end.tm_year = 0;
+			tm_curr.tm_year = 0;
+			time_t currsec = mktime(&tm_curr);
+			time_t startsec = mktime(&tm_start);
+			time_t endsec = mktime(&tm_end);
+			if((currsec>=startsec)&&(currsec<=endsec))
+			{
+				return 0;
+			}
+			else
+			{
+				return 1;
+			}
+		}
+		else
+		{
+			return 0;
+		}
+	}
+	else
+	{
 		return 1;
+	}
+
+
 
 	return 0;
 }
@@ -404,38 +441,66 @@ INT8U filterInvalidTask(INT16U taskIndex)
 	TSGet(&ts_now);
 
 	INT16U min_start,min_end,now_min;//距离0点0分
-	if(list6013[taskIndex].basicInfo.state == task_novalid)//任务无效
+	if(list6013[taskIndex].basicInfo.taskID == 0)
+	{
+		fprintf(stderr,"\n filterInvalidTask - 1");
 		return 0;
+	}
+
+
+	if(list6013[taskIndex].basicInfo.state == task_novalid)//任务无效
+	{
+		fprintf(stderr,"\n filterInvalidTask - 2");
+		return 0;
+	}
 
 	if(time_in_round(list6013[taskIndex].basicInfo)==1)//不在抄表时段内
+	{
+		fprintf(stderr,"\n filterInvalidTask - 3");
 		return 0;
+	}
 
 	now_min = ts_now.Hour * 60 + ts_now.Minute;
 	min_start = list6013[taskIndex].basicInfo.runtime.runtime[0] * 60 + list6013[taskIndex].basicInfo.runtime.runtime[1];//前秒数
 	min_end = list6013[taskIndex].basicInfo.runtime.runtime[2] * 60 + list6013[taskIndex].basicInfo.runtime.runtime[3];//后秒数
 
 	if(min_start >= min_end)//当日抄表时段无效
+	{
+		fprintf(stderr,"\n filterInvalidTask - 4");
 		return 0;
+	}
 	if((list6013[taskIndex].basicInfo.runtime.type & 0x01) == 0x01)//后闭
 	{
 		if(now_min > min_end)
+		{
+			fprintf(stderr,"\n filterInvalidTask - 5");
 			return 0;
+		}
 	}
 	else
 	{
 		if(now_min >= min_end)
+		{
+			fprintf(stderr,"\n filterInvalidTask - 6");
 			return 0;
+		}
 	}
 
 	if((list6013[taskIndex].basicInfo.runtime.type & 0x03) == 0x01)//前闭
 	{
 		if(now_min < min_start)
+		{
+			fprintf(stderr,"\n filterInvalidTask - 7");
 			return 0;
+		}
 	}
 	else
 	{
 		if(now_min <= min_start)
+		{
+			fprintf(stderr,"\n filterInvalidTask - 8");
 			return 0;
+		}
 	}
 	return 1;
 }
@@ -551,7 +616,10 @@ INT16S getNextTastID()
 
 	for(tIndex=0;tIndex<TASK6012_MAX;tIndex++)
 	{
-		fprintf(stderr,"\n getNextTastID tIndex = %d",tIndex);
+		if(list6013[tIndex].basicInfo.taskID == 0)
+			continue;
+
+		fprintf(stderr,"\n -----------------getNextTastID tIndex = %d-----------------------",tIndex);
 		//过滤任务无效或者不再抄表时段内的
 		if (filterInvalidTask(tIndex)==0)
 		{
@@ -694,6 +762,11 @@ void print6013(CLASS_6013 class6013)
  * */
 INT8U init6013ListFrom6012File()
 {
+	//list6013  初始化上一次抄表时间  和 抄表轮次
+	TS ts_now;
+	TSGet(&ts_now);
+
+
 	fprintf(stderr,"\n -------------init6013ListFrom6012File---------------");
 	INT8U result = 0;
 	memset(list6013,0x00,TASK6012_MAX*sizeof(TASK_CFG));
@@ -703,28 +776,17 @@ INT8U init6013ListFrom6012File()
 	CLASS_6013	class6013={};
 	for(tIndex = 0;tIndex < TASK6012_MAX;tIndex++)
 	{
-		if(readCoverClass(oi,tIndex,&class6013,coll_para_save)== -1)
+		if(readCoverClass(oi,tIndex+1,&class6013,coll_para_save)== 1)
 		{
-
+			memcpy(&list6013[tIndex].basicInfo,&class6013,sizeof(CLASS_6013));
+			list6013[tIndex].ts_last.Year = ts_now.Year;
+			list6013[tIndex].ts_last.Month = ts_now.Month;
+			list6013[tIndex].ts_last.Day = ts_now.Day;
+			list6013[tIndex].ts_last.Hour = ts_now.Hour;
+			list6013[tIndex].ts_last.Minute = ts_now.Minute;
+			list6013[tIndex].last_round = 0;
+			print6013(list6013[tIndex].basicInfo);
 		}
-		else
-		{
-			print6013(class6013);
-		}
-	}
-
-	//list6013  初始化上一次抄表时间  和 抄表轮次
-	TS ts_now;
-	TSGet(&ts_now);
-
-	for(tIndex = 0;tIndex < TASK6012_MAX;tIndex++)
-	{
-		list6013[tIndex].ts_last.Year = ts_now.Year;
-		list6013[tIndex].ts_last.Month = ts_now.Month;
-		list6013[tIndex].ts_last.Day = ts_now.Day;
-		list6013[tIndex].ts_last.Hour = ts_now.Hour;
-		list6013[tIndex].ts_last.Minute = ts_now.Minute;
-		list6013[tIndex].last_round = 0;
 	}
 
 	return result;
@@ -737,7 +799,6 @@ void read485_thread(void* i485port)
 	INT8U ret = 0;
 	INT16S taskID = -1;
 
-	init6015();
 	while(1)
 	{
 
@@ -745,24 +806,24 @@ void read485_thread(void* i485port)
 
 		if(taskID > -1)
 		{
-			fprintf(stderr,"\n taskID = %d",taskID);
+			fprintf(stderr,"\n------------------- taskID = %d",taskID);
 			CLASS_6035 result6035;//采集任务监控单元
 			memset(&result6035,0,sizeof(CLASS_6035));
 			result6035.taskID = taskID;
 			result6035.taskState = IN_OPR;
 			DataTimeGet(&result6035.starttime);
 
-
 			ret = use6013find6015(taskID,&to6015);
 			ret = deal6015(to6015);
 			DataTimeGet(&result6035.endtime);
 			result6035.taskState = AFTER_OPR;
+
 		}
 		else
 		{
 			fprintf(stderr,"\n 当前无任务可执行");
 		}
-		sleep(1);
+		sleep(3);
 	}
 
 	pthread_detach(pthread_self());
@@ -783,9 +844,11 @@ void read485_thread(void* i485port)
 void read485_proccess()
 {
 	init6013ListFrom6012File();
-	return;
+	fprintf(stderr,"\n init6013ListFrom6012File end");
+
+
 	INT8U i485port1 = 1;
-	INT8U i485port2 = 2;
+	//INT8U i485port2 = 2;
 	pthread_attr_init(&read485_attr_t);
 	pthread_attr_setstacksize(&read485_attr_t,2048*1024);
 	pthread_attr_setdetachstate(&read485_attr_t,PTHREAD_CREATE_DETACHED);
