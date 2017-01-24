@@ -7,10 +7,10 @@
 #include "sys/reboot.h"
 #include <wait.h>
 #include <errno.h>
+
+#include "rnspi.h"
 #include "cjdeal.h"
 #include "read485.h"
-#include "eventcalc.h"
-#include "stateacs.h"
 #include "readplc.h"
 #include "guictrl.h"
 
@@ -44,7 +44,13 @@ int InitPro(ProgramInfo** prginfo, int argc, char *argv[])
  ********************************************************/
 int InitPara()
 {
-  //
+
+	if(check_id_rn8209() == 1)
+	{
+		init_run_env_rn8209(0);		//RN8209初始化
+		fprintf(stderr, "RN8209 初始化成功！\n");
+	}
+
 	return 0;
 }
 /*********************************************************
@@ -52,31 +58,32 @@ int InitPara()
  *********************************************************/
 int main(int argc, char *argv[])
 {
-	struct sigaction sa1;
+//    struct sigaction sa = {};
+//    Setsig(&sa, QuitProcess);
+
 	fprintf(stderr,"\n[cjdeal]:cjdeal run!");
 	if(InitPro(&JProgramInfo,argc,argv)==0){
 		fprintf(stderr,"进程 %s 参数错误",argv[0]);
 		return EXIT_FAILURE;
 	}
-	Setsig(&sa1,QuitProcess);
+
 	//载入档案、参数
 	InitPara();
 	//485、四表合一
 	read485_proccess();
-	//事件、统计
-	eventcalc_proccess();
-	//状态量、交采、短信等其他功能
-	stateacs_proccess();
 	//载波
 	readplc_proccess();
 	//液晶、控制
 	guictrl_proccess();
+
 	while(1)
    	{
-		//检查参数变量是否有变更
-        if(1)//如果有变更
-        	InitPara();
-		sleep(1);
+		//交采、状态、统计处理
+		DealACS();
+		DealState();
+
+		usleep(10 * 1000);
+
    	}
 	return EXIT_SUCCESS;//退出
 }

@@ -1,2 +1,4 @@
 void rlog(const char* fmt, ...);
-void file_sys_test();
+void FileW();
+void FileR();
+void FileEnv();

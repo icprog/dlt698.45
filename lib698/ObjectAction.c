@@ -11,6 +11,12 @@
 #include "AccessFun.h"
 #include "StdDataType.h"
 #include "Objectdef.h"
+#include "dlt698def.h"
+#include "ParaDef.h"
+extern void FrameTail(INT8U *buf,int index,int hcsi);
+extern int FrameHead(CSINFO *csinfo,INT8U *buf);
+extern INT8S (*pSendfun)(int fd,INT8U* sndbuf,INT16U sndlen);
+extern int comfd;
 
 INT16U getMytypeSize(INT8U first )
 {
@@ -24,6 +30,47 @@ INT16U getMytypeSize(INT8U first )
 	}
 	return 0 ;
 }
+int doActionReponse(int reponse,CSINFO *csinfo,PIID piid,OMD omd,int dar,INT8U *data,INT8U *buf)
+{
+	int index=0, hcsi=0;
+
+	csinfo->dir = 1;
+	csinfo->prm = 0;
+
+	index = FrameHead(csinfo,buf);
+	hcsi = index;
+	index = index + 2;
+	buf[index] = ACTION_RESPONSE;
+	index++;
+	buf[index] = reponse;
+	index++;
+//	fprintf(stderr,"piid.data[%d]=%02x\n",index,piid.data);
+	buf[index] = piid.data;
+	index++;
+	memcpy(&buf[index],&omd,sizeof(OMD));
+	index = index + sizeof(OMD);
+	buf[index] = omd.OI & 0xff;
+	index++;
+	buf[index] = (omd.OI>>8) & 0xff;
+	index++;
+	buf[index] = omd.method_tag;
+	index++;
+	buf[index] = omd.oper_model;
+	index++;
+
+	buf[index] = dar;
+	index++;
+	if(data!=NULL) {
+		memcpy(&buf[index],&data,sizeof(data));
+		index = index + sizeof(data);
+	}
+	FrameTail(buf,index,hcsi);
+
+	if(pSendfun!=NULL)
+		pSendfun(comfd,buf,index+3);
+	return (index+3);
+}
+
 void get_BasicUnit(INT8U *source,INT16U *sourceindex,INT8U *dest,INT16U *destindex)
 {
 	INT8U 	size=0;
@@ -163,10 +210,12 @@ void AddBatchMeterInfo(INT8U *data)
 				meter.extinfo.asset_code[0],meter.extinfo.asset_code[1],meter.extinfo.asset_code[2],meter.extinfo.asset_code[3],
 				meter.extinfo.asset_code[4],meter.extinfo.asset_code[5],meter.extinfo.pt,meter.extinfo.ct);
 		//将meter添加到记录文件
-//		extern unsigned short SaveMPara(int mtype,int id,unsigned char* data,int len);
 		fprintf(stderr,"\n-------------1  6001_len=%d, sernum=%d\n",sizeof(CLASS_6001),meter.sernum);
-//		save_block_file(PARAFILE_6000,(unsigned char*)&meter,sizeof(CLASS_6001),meter.sernum);
-		//SaveMPara(0,6000,(unsigned char*)&meter,sizeof(CLASS_6001));
+		if(meter.sernum==1)
+			memcpy(meter.name,"1111111111111111",sizeof(meter.name));
+		else  if(meter.sernum==2) memcpy(meter.name,"2222222222222222",sizeof(meter.name));
+		fprintf(stderr,"\n-------------1  6001_len=%d, sernum=%d\n",sizeof(CLASS_6001),meter.sernum);
+		saveParaClass(0x6000,(unsigned char*)&meter,meter.sernum);
 	}
 }
 void AddCjiFangAnInfo(INT8U *data)
@@ -311,12 +360,15 @@ void MeterInfo(INT16U attr_act,INT8U *data)
 		case 130://方法 130:Update(配置序号,扩展信息,附属信息)
 			break;
 		case 131://方法 131:Delete(配置序号)
+			//delClassBySeq(NULL,2);
 			break;
 		case 132://方法 132:Delete(基本信息)
 			break;
 		case 133://方法 133:Delete(通信地址, 端口号)
 			break;
 		case 134://方法 134:Clear()
+			fprintf(stderr,"\n清空采集档案配置表");
+			//ClearClass(oi);
 			break;
 	}
 }

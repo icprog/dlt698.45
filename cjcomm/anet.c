@@ -400,6 +400,7 @@ int anetRead(int fd, char* buf, int count) {
  * (unless error is encountered) */
 int anetWrite(int fd, char* buf, int count) {
     ssize_t nwritten, totlen = 0;
+
     while (totlen != count) {
         nwritten = write(fd, buf, count - totlen);
         if (nwritten == 0)

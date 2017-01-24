@@ -7,7 +7,7 @@
 
 #ifndef OBJECTACTION_H_
 #define OBJECTACTION_H_
-//#include "AccessFun.h"
+#include "ParaDef.h"
 #include "StdDataType.h"
 int doObjectAction();
 
@@ -106,7 +106,7 @@ typedef struct
 {
 	INT8U taskID;		                //任务ID
 	TASK_STATE taskState;				//任务执行状态
-	DateTimeBCD startime;               //任务执行开始时间
+	DateTimeBCD starttime;                //任务结束结束时间
 	DateTimeBCD endtime;                //任务结束结束时间
 	INT16U totalMSNum;					//采集总数量
 	INT16U successMSNum;				//采集成功数量

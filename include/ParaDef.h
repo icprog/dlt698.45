@@ -8,6 +8,9 @@
 #ifndef PARADEF_H_
 #define PARADEF_H_
 
+#define delay(A) usleep((A)*1000)
+//////////////////////////////////////////////////////////////
+#define _CFGDIR_ 			"/nor/config"
 
 ///////////////////////////////////////////////////////////////
 /*
@@ -23,7 +26,6 @@
 #define REALDATA_LIST_LENGTH 	10				//实时数据请求缓存
 #define PRO_WAIT_COUNT     		60
 
-#define _CFGDIR_ 			"/nor/config"
 ///////////////////////////////////////////////////////////////
 /*
  * 	终端类相关容量及参数定义
@@ -34,27 +36,41 @@
 /*
  * 	DL/T698.45		规约结构限值
  * */
-#define TSA_LEN					16
+#define TSA_LEN					17
 #define OCTET_STRING_LEN		16
 #define COLLCLASS_MAXNUM		1024		//定义集合类最大元素个数
 
+#define CLASS7_OAD_NUM			10			//关联对象属性表
 ////////////////////////////////////////////////////////////////
 
 /*
  * 	GPIO硬件接口
  * */
+#ifdef CCTT_II
+ #define DEV_SPI_PATH   "/dev/spi1.0"
+#else
+  #define DEV_SPI_PATH   "/dev/spi0.0"
+#endif
 #define DEV_ESAM_RST   "/dev/gpoESAM_RST"
 #define DEV_ESAM_CS    "/dev/gpoESAM_CS"
 #define DEV_ESAM_PWR   "/dev/gpoESAM_PWR"
 #define DEV_ATT_RST    "/dev/gpoATT_RST"
 
 ////////////////////////////////////////////////////////////////
-#define delay(A) usleep((A)*1000)
 
 /*
  * 	互斥信号量
  * */
 
 #define SEMNAME_SPI0_0 "sem_spi0_0" //专变、I型集中器交采和esam的spi通信互斥信号量
+
+////////////////////////////////////////////////////////////////
+/*
+ * 	串口定义
+ * */
+#define S4851   1
+#define S4852   2
+#define S4853   3
+
 ////////////////////////////////////////////////////////////////
 #endif /* PARADEF_H_ */

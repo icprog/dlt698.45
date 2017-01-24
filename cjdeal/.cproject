@@ -26,8 +26,9 @@
 							</builder>
 							<tool errorParsers="org.eclipse.cdt.core.GCCErrorParser" id="org.eclipse.cdt.cross.arm.gnu.sourcery.app.linux.elf.assembler.release.65034114" name="ARM Sourcery Linux GCC Assembler" superClass="org.eclipse.cdt.cross.arm.gnu.sourcery.app.linux.elf.assembler.release">
 								<option id="org.eclipse.cdt.cross.arm.gnu.assembler.option.include.paths.482882799" name="Include paths (-I)" superClass="org.eclipse.cdt.cross.arm.gnu.assembler.option.include.paths" valueType="includePath">
-									<listOptionValue builtIn="false" value="../cjdeal/libBase"/>
-									<listOptionValue builtIn="false" value="../cjdeal/include"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/lib698}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/libBase}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/include}&quot;"/>
 								</option>
 								<inputType id="org.eclipse.cdt.cross.arm.gnu.sourcery.app.linux.assembler.base.input.1377667239" superClass="org.eclipse.cdt.cross.arm.gnu.sourcery.app.linux.assembler.base.input"/>
 							</tool>
@@ -36,7 +37,10 @@
 								<option id="org.eclipse.cdt.cross.arm.gnu.c.compiler.option.include.paths.910746417" name="Include paths (-I)" superClass="org.eclipse.cdt.cross.arm.gnu.c.compiler.option.include.paths" valueType="includePath">
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/libBase}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/include}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/libAccess}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/lib698}&quot;"/>
 								</option>
+								<option id="org.eclipse.cdt.cross.arm.gnu.c.compiler.option.other.otherflags.594650045" name="Other flags" superClass="org.eclipse.cdt.cross.arm.gnu.c.compiler.option.other.otherflags" value="-c -fmessage-length=0 -std=c99" valueType="string"/>
 								<inputType id="org.eclipse.cdt.cross.arm.gnu.sourcery.app.linux.c.compiler.base.input.673535169" superClass="org.eclipse.cdt.cross.arm.gnu.sourcery.app.linux.c.compiler.base.input"/>
 							</tool>
 							<tool command="arm-none-linux-gnueabi-gcc" errorParsers="org.eclipse.cdt.core.GCCErrorParser" id="org.eclipse.cdt.cross.arm.gnu.sourcery.app.linux.elf.cpp.compiler.release.362687616" name="ARM Sourcery Linux GCC C++ Compiler" superClass="org.eclipse.cdt.cross.arm.gnu.sourcery.app.linux.elf.cpp.compiler.release">
@@ -53,11 +57,15 @@
 							<tool command="arm-none-linux-gnueabi-gcc" errorParsers="org.eclipse.cdt.core.GLDErrorParser" id="org.eclipse.cdt.cross.arm.gnu.sourcery.app.linux.elf.cpp.linker.release.739509390" name="ARM Sourcery Linux GCC C++ Linker" superClass="org.eclipse.cdt.cross.arm.gnu.sourcery.app.linux.elf.cpp.linker.release">
 								<option id="org.eclipse.cdt.cross.arm.gnu.cpp.link.option.paths.1157131872" name="Library search path (-L)" superClass="org.eclipse.cdt.cross.arm.gnu.cpp.link.option.paths" valueType="libPaths">
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/libBase/Release}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/libAccess/Release}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/lib698/Release}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/libEsam/Release}&quot;"/>
 								</option>
 								<option id="org.eclipse.cdt.cross.arm.gnu.cpp.link.option.libs.1478995610" name="Libraries (-l)" superClass="org.eclipse.cdt.cross.arm.gnu.cpp.link.option.libs" valueType="libs">
 									<listOptionValue builtIn="false" value="Base"/>
-									<listOptionValue builtIn="false" value="m"/>
-									<listOptionValue builtIn="false" value="rt"/>
+									<listOptionValue builtIn="false" srcPrefixMapping="" srcRootPath="" value="Access"/>
+									<listOptionValue builtIn="false" srcPrefixMapping="" srcRootPath="" value="698"/>
+									<listOptionValue builtIn="false" srcPrefixMapping="" srcRootPath="" value="Esam"/>
 								</option>
 								<option id="org.eclipse.cdt.cross.arm.gnu.cpp.link.option.nostart.383903638" name="Do not use standard start files (-nostartfiles)" superClass="org.eclipse.cdt.cross.arm.gnu.cpp.link.option.nostart" value="false" valueType="boolean"/>
 								<inputType id="org.eclipse.cdt.cross.arm.gnu.cpp.linker.input.1428654815" superClass="org.eclipse.cdt.cross.arm.gnu.cpp.linker.input">
@@ -176,9 +184,10 @@
 	</storageModule>
 	<storageModule moduleId="org.eclipse.cdt.core.LanguageSettingsProviders"/>
 	<storageModule moduleId="refreshScope" versionNumber="2">
+		<configuration configurationName="x86"/>
 		<configuration configurationName="Release">
 			<resource resourceType="PROJECT" workspacePath="/cjmain"/>
 		</configuration>
-		<configuration configurationName="x86"/>
 	</storageModule>
+	<storageModule moduleId="org.eclipse.cdt.make.core.buildtargets"/>
 </cproject>

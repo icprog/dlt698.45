@@ -3,13 +3,19 @@
 #include <string.h>
 #include <stdlib.h>
 
+#include "AccessFun.h"
+#include "EventObject.h"
 #include "dlt698.h"
 #include "dlt698def.h"
-
+#include "secure.h"
+#include "Esam.h"
+#include "ParaDef.h"
 #define LIB698_VER 	1
+
+extern unsigned short tryfcs16(unsigned char *cp, int  len);
 INT8S (*pSendfun)(int fd,INT8U* sndbuf,INT16U sndlen);
 int comfd = 0;
-extern unsigned short tryfcs16(unsigned char *cp, int  len);
+
 /**************************************
  * 函数功能：DL/T698.45 状态机
  * 参数含义：
@@ -311,62 +317,6 @@ int appConnectResponse(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 		pSendfun(comfd,buf,index+3);
 	return (index+3);
 }
-
-
-int setRequestNormal(INT8U *Object,CSINFO *csinfo,INT8U *buf)
-{
-	int bytes=0;
-	OAD oad={};//对象属性描述符
-	memcpy(&oad , Object,4);
-//	bytes = setOneObject(&oad,csinfo,buf);
-	return bytes;
-}
-int setRequestNormalList(INT8U *Object,CSINFO *csinfo,INT8U *buf)
-{
-	int stepsize=1 , i=0 , bytes=0, objbytes=0;
-	INT8U objectnum = Object[0];
-
-	for(i=0 ; i< objectnum ; i++)
-	{
-		objbytes = setRequestNormal(Object+stepsize,csinfo,buf);
-		if (objbytes >0)
-			stepsize = stepsize + objbytes;
-		else
-			break;
-	}
-	return bytes;
-}
-int getRequestRecord(INT8U *typestu,CSINFO *csinfo,INT8U *buf)
-{
-	RSD rsd;
-	OAD oad={};
-	INT8U rsdtype=0;
-	//1,OAD
-	oad.OI= (typestu[0]<<8) | typestu[1];
-	oad.attflg = typestu[2];
-	oad.attrindex = typestu[3];
-	fprintf(stderr,"\n- getRequestRecord  OI = %04x  attrib=%d  index=%d",oad.OI,oad.attflg,oad.attrindex);
-
-	//2,RSD
-	rsdtype = typestu[4];
-	switch(rsdtype)
-	{
-		case 0:
-			//null
-			break;
-		case 1:
-//			OAD oad1;
-			break;
-		case 2:
-			break;
-		case 3:
-			break;
-		case 4:
-			break;
-	}
-	//3,RCSD
-	return 1;
-}
 int doSetAttribute(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 {
 	PIID piid={};
@@ -399,7 +349,7 @@ int doGetAttribute(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 	switch(getType)
 	{
 		case GET_REQUEST_NORMAL:
-
+			getRequestNormal(&apdu[3],csinfo,buf);
 			break;
 		case GET_REQUEST_NORMAL_LIST:
 			break;
@@ -412,47 +362,6 @@ int doGetAttribute(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 			break;
 	}
 	return 1;
-}
-
-int doActionReponse(int reponse,CSINFO *csinfo,PIID piid,OMD omd,int dar,INT8U *data,INT8U *buf)
-{
-	int index=0, hcsi=0;
-
-	csinfo->dir = 1;
-	csinfo->prm = 0;
-
-	index = FrameHead(csinfo,buf);
-	hcsi = index;
-	index = index + 2;
-	buf[index] = ACTION_RESPONSE;
-	index++;
-	buf[index] = reponse;
-	index++;
-//	fprintf(stderr,"piid.data[%d]=%02x\n",index,piid.data);
-	buf[index] = piid.data;
-	index++;
-	memcpy(&buf[index],&omd,sizeof(OMD));
-	index = index + sizeof(OMD);
-	buf[index] = omd.OI & 0xff;
-	index++;
-	buf[index] = (omd.OI>>8) & 0xff;
-	index++;
-	buf[index] = omd.method_tag;
-	index++;
-	buf[index] = omd.oper_model;
-	index++;
-
-	buf[index] = dar;
-	index++;
-	if(data!=NULL) {
-		memcpy(&buf[index],&data,sizeof(data));
-		index = index + sizeof(data);
-	}
-	FrameTail(buf,index,hcsi);
-
-	if(pSendfun!=NULL)
-		pSendfun(comfd,buf,index+3);
-	return (index+3);
 }
 
 int doActionRequest(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
@@ -481,6 +390,56 @@ int doActionRequest(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 			break;
 	}
 	return 1;
+}
+/**********************************************************************
+ * 安全传输Esam校验
+ *decryptData--明文信息 encryptData--密文数据集
+ *输入：retData--esam验证后返回信息(需要在该函数外层开辟空间) MAC明文加MAC时，需要保存全局MAC
+ *输出：retData长度
+ **********************************************************************/
+INT16S doSecurityRequest(INT8U* apdu,INT8U* MAC,INT8U* retData)//TODO:retData需要在上层函数定义INT8U数组
+{
+	if(apdu[0]!=0x10) return -1;//非安全传输，不处理
+	if(apdu[1] !=0x00 && apdu[1] != 0x01) return -2 ;   //明文应用数据单元
+	 INT16S retLen=0;
+	 INT32S fd=-1;
+	 INT8U SecurityType=0x00;//本次传输安全等级(属于库全局变量，暂放此处)
+	 fd = Esam_Init(fd,(INT8U*)DEV_SPI_PATH);
+	 if(fd<0) return -3;
+
+	 if(apdu[1]==0x00)//明文应用数据处理
+	 {
+		 SecurityType=0x02;//明文+RN返回MAC
+		 retLen = secureDecryptDataDeal(fd,apdu,MAC);
+		 retData=&apdu[2];
+	 }
+	 else if(apdu[1]==0x01)//密文应用数据处理
+	 {
+		 retLen = secureEncryptDataDeal(fd,SecurityType,apdu,retData);
+	 }
+	 Esam_Clear(fd);
+	 return retLen;
+}
+/**********************************************************************
+ * 解析SECURITY-response 终端主动上报后，主站回复数据 apdu[0]=144;apdu[1]应用数据单元
+ * 主动上报当前资料应用环境和流程是  明文+RN_MAC ----返回  明文+MAC
+ * 上行中终端明文进入esam生成RN和MAC，主站校验，返回明文和MAC，终端根据上行的RN和主站返回的MAC校验
+ * 注意RN需要终端主动上报后本地保存(全局变量)
+ **********************************************************************/
+INT16S parseSecurityResponse(INT8U* RN,INT8U* apdu,INT8U* retData)//TODO:retData需要在上层函数定义INT8U数组
+{
+	if(apdu[1]==0x00 || apdu[1]==0x01)//暂时将密文一起加入处理
+	{
+	     INT32S retLen = secureResponseData(RN,apdu,retData);
+	     return retLen;
+	}
+	else if(apdu[1]==0x02)
+	{
+		printf("parseSecurityResponse receive err flag DAR ,NO=%d",apdu[2]);
+		return apdu[2];
+	}
+	else
+		return -1;//无效应用数据单元标示
 }
 /**********************************************************************
  * 1.	CONNECT.request 服务,本服务由客户机应用进程调用,用于向远方服务器的应用进程提出建立应用连接请求。
@@ -547,4 +506,109 @@ int ProcessData(CommBlock *com)
 		}
 	}
 	return 1;
+}
+
+INT16S fillGetRequestAPDU(INT8U* sendBuf,CLASS_6015 obj6015,INT8U requestType)
+{
+	INT16S length = 0;
+
+	return length;
+
+}
+
+INT16S composeProtocol698_GetRequest(INT8U* 	sendBuf,CLASS_6015 obj6015,TSA meterAddr)
+{
+	INT8U CA = 0x02;
+	INT8U PIID = 0x02;
+	INT8U tobecalc = 0;
+
+	INT8U hcspos1 = 0;
+	INT8U hcspos2 = 0;
+	INT8U meterAddrlen = meterAddr.addr[0]&0x0f;
+	if(meterAddrlen == 0)
+	{
+		return 0;
+	}
+	INT16S sendLen = 0;
+	INT16S apdulen = 0;
+	sendBuf[0] = 0x68; //heand
+	sendBuf[1] = tobecalc; //length
+	sendBuf[2] = tobecalc;
+	sendBuf[3] = 0x43; //control
+
+	memcpy(&sendBuf[4],meterAddr.addr,meterAddrlen+2);
+
+	sendLen = 4 + meterAddrlen + 2;
+	sendBuf[sendLen++] = CA;
+
+	hcspos1 = sendLen;
+	sendBuf[sendLen++] = tobecalc;
+	hcspos2 = sendLen;
+	sendBuf[sendLen++] = tobecalc;
+	sendBuf[sendLen++] = GET_REQUEST;
+	INT8U csdcount = 0;
+	INT8U requestType = 0;
+	switch(obj6015.cjtype)
+	{
+		case TYPE_NULL:
+			{
+				if(csdcount == 1)
+				{
+					requestType = GET_REQUEST_NORMAL;
+				}
+				if(csdcount > 0)
+				{
+					requestType = GET_REQUEST_NORMAL_LIST;
+				}
+
+				break;
+			}
+
+		case TYPE_LAST:
+			{
+				if(csdcount == 1)
+				{
+					requestType = GET_REQUEST_RECORD;
+				}
+				if(csdcount > 0)
+				{
+					requestType = GET_REQUEST_RECORD_LIST;
+				}
+				break;
+			}
+
+		case TYPE_FREEZE:
+
+			break;
+		case TYPE_INTERVAL:
+			break;
+	}
+	sendBuf[sendLen++] = requestType;
+	sendBuf[sendLen++] = PIID;
+	apdulen = fillGetRequestAPDU(&sendBuf[sendLen],obj6015,requestType);
+	sendLen += apdulen;
+	sendBuf[sendLen++] = 0x00;//没有时间标签
+
+	INT16U fcspos1=sendLen;
+	sendBuf[sendLen++] = tobecalc;
+	INT16U fcspos2=sendLen;
+	sendBuf[sendLen++] = tobecalc;
+
+	sendBuf[sendLen] = 0x16;
+	INT16U framelen = sendLen -2;
+	sendBuf[1] = (framelen & 0x00ff);//length
+	sendBuf[2] = ((framelen >> 8) & 0x00ff);//length
+
+	INT16U hcs = 0;
+	hcs = tryfcs16(&sendBuf[1], meterAddrlen + 6);
+
+	sendBuf[hcspos1] = (hcs & 0x00ff);//HCS
+	sendBuf[hcspos2] = ((hcs >> 8) & 0x00ff);//HCS
+
+	INT16U fcs = tryfcs16(&sendBuf[1], meterAddrlen + 6);
+
+	sendBuf[fcspos1] = (fcs & 0x00ff);//FCS
+	sendBuf[fcspos2] = ((fcs >> 8) & 0x00ff);//FCS
+
+	return sendLen;
 }

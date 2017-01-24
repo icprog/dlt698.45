@@ -3,7 +3,6 @@
 
 #include "ParaDef.h"
 
-
 typedef unsigned char  BOOLEAN;
 typedef unsigned char  INT8U;                    /* Unsigned  8 bit quantity                           */
 typedef signed   char  INT8S;                    /* Signed    8 bit quantity                           */
@@ -47,6 +46,16 @@ typedef enum {
 	heart_beat,
 	close_connection/*断开连接*/
 }Link_Request_type;	/*连接请求类型*/
+
+/*698基本数据类型*/
+typedef enum {
+  dtnull=0,dtarray=1,dtstructure=2,dtbool=3,dtbitstring=4,dtdoublelong=5,dtdoublelongunsigned=6,
+  dtoctetstring=9,dtvisiblestring=0x0a,dtutf8string=0x0c,dtinteger=0x0f,dtlong=0x10,dtunsigned=0x11,
+  dtlongunsigned=0x12,dtlong64=0x14,dtlong64unsigned=0x15,dtenum=0x16,dtfloat32=0x17,dtfloat64=0x18,
+  dtdatetime=0x19,dtdate=0x1a,dttime=0x1b,dtdatetimes=0x1c,dtoi=0x50,dtoad=0x51,dtroad=0x52,dtomd=0x53,
+  dtti=0x54,dttsa=0x55,dtmac=0x56,dtrn=0x57,dtregion=0x58,dtscalerunit=0x59,dtrsd=0x5a,dtcsd=0x5b,dtms=0x5c,
+  dtsid=0x5d,dtsidmac=0x5e,dtcomdcb=0x5f,dtrcsd=0x60
+}Base_DataType;
 
 typedef enum {
 	bps300,bps600,bps1200,bps2400,bps4800,bps7200,bps9600,bps19200,bps38400,bps57600,bps115200,autoa
@@ -125,8 +134,8 @@ typedef enum {
 }RUN_PRIO;//执行优先级
 
 typedef enum {
-	valid=1/*正常*/,
-	novalid=2/*停用*/
+	 task_valid=1/*正常*/,
+	 task_novalid=2/*停用*/
 }TASK_VALID;//任务状态
 
 typedef enum {
@@ -142,6 +151,16 @@ typedef enum {
 	IN_OPR=1/*执行中*/,
 	AFTER_OPR=2/*已执行*/,
 }TASK_STATE;//任务执行状态
+
+
+typedef enum {
+	TYPE_NULL=0/*采集当前数据*/,
+	TYPE_LAST=1/*采集上N次*/,
+	TYPE_FREEZE=2/*按冻结时标*/,
+	TYPE_INTERVAL=3/*按时标间隔*/
+}CJTYPE_6015;//任务执行状态
+
+
 //////////////////////////////////////////////////////////////////
 //typedef struct
 //{
@@ -481,7 +500,7 @@ typedef union {
 //	DataType data_array[10];
 //	DataType data_struct[10];
 	INT8U data_bool;
-	INT8U data_bit[180];
+//	INT8U data_bit[180];
 	INT32U double_long;
 	INT32U double_long_unsigned;
 	INT8U octet_string[180];
@@ -568,7 +587,7 @@ typedef union {
 	SID_MAC sidmac;
 	COMDCB comdcb;
 }DataType;
-
+//DataType len=1432
 typedef struct
 {
 	INT8U type;
@@ -701,4 +720,14 @@ typedef struct
 
 }MeterInfoUnit;
 
+typedef struct
+{
+	OI_698 oi;
+	INT16U classNo;
+}SecureModePara;
+typedef struct
+{
+	SecureModePara securePara;
+	INT8U mask;//安全模式参数里有ZZ存在，此mask标记ZZ.mask=Z个数
+}SecureUnit;
 #endif
