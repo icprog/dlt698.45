@@ -7,12 +7,12 @@
 
 #include <string.h>
 #include <stdio.h>
-
+#include "ParaDef.h"
 #include "AccessFun.h"
 #include "StdDataType.h"
-#include "Objectdef.h"
 #include "dlt698def.h"
-#include "ParaDef.h"
+#include "Objectdef.h"
+
 extern void FrameTail(INT8U *buf,int index,int hcsi);
 extern int FrameHead(CSINFO *csinfo,INT8U *buf);
 extern INT8S (*pSendfun)(int fd,INT8U* sndbuf,INT16U sndlen);
@@ -24,10 +24,10 @@ INT16U getMytypeSize(INT8U first )
 	{
 		return (sizeof(DATA_TYPE));
 	}
-	if (first == 0x55)
-	{
-		return (sizeof(CSD_ARRAYTYPE));
-	}
+//	if (first == 0x55)
+//	{
+//		return (sizeof(CSD));
+//	}
 	return 0 ;
 }
 int doActionReponse(int reponse,CSINFO *csinfo,PIID piid,OMD omd,int dar,INT8U *data,INT8U *buf)
@@ -73,6 +73,7 @@ int doActionReponse(int reponse,CSINFO *csinfo,PIID piid,OMD omd,int dar,INT8U *
 
 void get_BasicUnit(INT8U *source,INT16U *sourceindex,INT8U *dest,INT16U *destindex)
 {
+	INT8U choicetype;
 	INT8U 	size=0;
 	INT8U	i=0;
 	INT8U	strnum = 0;
@@ -104,17 +105,20 @@ void get_BasicUnit(INT8U *source,INT16U *sourceindex,INT8U *dest,INT16U *destind
 			dest[0]= source[2];
 			dest[1]= source[1];
 			fprintf(stderr,"\n		long %02x %02x",source[2],source[1]);
-			dest_sumindex = size;
+			if (dest_sumindex ==0)
+				dest_sumindex = size;
 			break;
 		case 0x55://TSA
 			size = source[1];
-			memcpy(dest,&source[2],size);
-			dest_sumindex = TSA_LEN;
+			memcpy(dest,&source[1],size+2);// 0 表示长度为 1字节    1表示 长度为2字节 ....  将TSA长度拷贝到地址缓存中
+			if (dest_sumindex ==0)
+				dest_sumindex = TSA_LEN;
 			size = size + 1;
 			break;
 		case 0x5c://MS
 			size = 1;
-			switch (source[1])//chioce
+			choicetype = source[1];
+			switch (choicetype)
 			{
 				case 0:
 				case 1:
@@ -129,20 +133,35 @@ void get_BasicUnit(INT8U *source,INT16U *sourceindex,INT8U *dest,INT16U *destind
 				case 4:
 					break;
 			}
-			dest_sumindex = sizeof(MS);
+			if (dest_sumindex ==0)
+				dest_sumindex = sizeof(MS);
 			fprintf(stderr,"\n		目标地址跳转 %d 字节 ",dest_sumindex);
 			break;
 		case 0x16://enum
 			size = 1;
 			memcpy(dest,&source[1],size);
 			fprintf(stderr,"\n		enum data=%d\n",dest[0]);
-			dest_sumindex = size;
+			if (dest_sumindex ==0)
+				dest_sumindex = size;
 			break;
 		case 0x11://unsigned
 			size=1;
 			memcpy(dest,&source[1],size);
-			dest_sumindex = size;
+			if (dest_sumindex ==0)
+				dest_sumindex = size;
 			fprintf(stderr,"\n		unsigned %02x",source[1]);
+			break;
+		case 0x1c://DateTimeBCD
+			dest[1] = source[1];//年
+			dest[0] = source[2];
+			dest[2] = source[3];//月
+			dest[3] = source[4];//日
+			dest[4] = source[5];//时
+			dest[5] = source[6];//分
+			dest[6] = source[7];//秒
+			size  = 7;
+			if (dest_sumindex ==0)
+				dest_sumindex = size;
 			break;
 		case 0x51://OAD
 			size = 4;
@@ -150,20 +169,58 @@ void get_BasicUnit(INT8U *source,INT16U *sourceindex,INT8U *dest,INT16U *destind
 			dest[1]= source[1];
 			dest[2]= source[3];
 			dest[3]= source[4];
-			dest_sumindex = size;
+			if (dest_sumindex ==0)
+				dest_sumindex = size;
 			break;
 		case 0x09://octet-string
 			size = source[1];
 			memcpy(dest,&source[2],size);
-			dest_sumindex = OCTET_STRING_LEN;
+			if (dest_sumindex ==0)
+				dest_sumindex = OCTET_STRING_LEN;
 			size = size + 1;
 			break;
 		case 0x54://TI
-
+			dest[0] = source[1];//单位
+			dest[2] = source[2];//long unsigned数值
+			dest[1] = source[3];
+			size = 3;
+			if (dest_sumindex ==0)
+				dest_sumindex = 3;
+			break;
+    	case 0x5B://CSD
+			choicetype = source[1];
+			if (choicetype == 1)
+			{//road
+			//	dest[0] = choicetype;
+				//	memcpy(&dest[1],&source[2],4);
+				dest[0] = source[3];
+				dest[1] = source[2];
+				dest[2] = source[4];
+				dest[3] = source[5];
+				int numm = source[6];//SEQUENCE 0F OAD 数量
+				fprintf(stderr,"\nnumm=%d",numm);
+				for(int k=0;k<numm;k++)
+				{
+					dest[4+k*4+0] = source[7+k*4+1];		//dest[5+k*4+0] = source[7+k*4+1];
+					dest[4+k*4+1] = source[7+k*4+0];
+					dest[4+k*4+2] = source[7+k*4+2];
+					dest[4+k*4+3] = source[7+k*4+3];
+//					memcpy(&dest[5],&source[7],numm*4);
+				}
+				size =1+ 4+ 1 + numm*4;
+			}else
+			{//oad  6字节
+				dest[0] = choicetype;
+				memcpy(&dest[1],&source[1],sizeof(OAD));
+				size = 1+ 4;// 1： choicetype占用1个字节
+			}
+			if (dest_sumindex ==0)
+				dest_sumindex = sizeof(CSD);
+			//fprintf(stderr,"\n CSSSSSD size=%d",size);
 			break;
 	}
-	source_sumindex = size + 1;
-
+	source_sumindex = size + 1;// 1：类型占用一个字节
+	fprintf(stderr,"\n源缓冲区跳 %d字节 ",source_sumindex);
 //	fprintf(stderr,"\nadd size=%d,source[0]=%02x ",size,source[0]);
 
 	for(i=0;i<strnum;i++) {
@@ -174,7 +231,7 @@ void get_BasicUnit(INT8U *source,INT16U *sourceindex,INT8U *dest,INT16U *destind
 //		fprintf(stderr,"\n sourceindex == %d  source_sumindex = %d",*sourceindex,source_sumindex);
 //		fprintf(stderr,"\n destindex == %d  dest_sumindex = %d",*destindex,dest_sumindex);
 	}
-	fprintf(stderr,"\n循环 %d 次结束",strnum);
+//	fprintf(stderr,"\n循环 %d 次结束",strnum);
 	*sourceindex = source_sumindex;
 	*destindex = dest_sumindex;
 }
@@ -220,6 +277,7 @@ void AddBatchMeterInfo(INT8U *data)
 }
 void AddCjiFangAnInfo(INT8U *data)
 {
+	INT8U *buf;
 	CLASS_6015 fangAn={};
 	int k=0;
 	INT8U addnum = data[1];
@@ -230,15 +288,24 @@ void AddCjiFangAnInfo(INT8U *data)
 	{
 		memset(&fangAn,0,sizeof(fangAn));
 		fangAn.data.type = 0xAA;//标识data缓冲区
-		fangAn.csda.type = 0xBB;//标识
+//		fangAn.csd[0]= 0xBB;//标识
 		get_BasicUnit(&data[2]+source_sumindex,&source_index,(INT8U *)&fangAn.sernum,&dest_index);
 		source_sumindex += source_index;
 		dest_sumindex += dest_index;
 		fprintf(stderr,"\n方案号 ：%d ",fangAn.sernum);
 		fprintf(stderr,"\n存储深度 ：%d ",fangAn.deepsize);
 		fprintf(stderr,"\n采集类型 ：%d ",fangAn.cjtype);
-		fprintf(stderr,"\n采集内容(data) 类型：%d ",fangAn.data.type);
-		fprintf(stderr,"\n记录列选择（数组）type=%d   num=%d",fangAn.csda.type,fangAn.csda.num);
+		fprintf(stderr,"\n采集内容(data) 类型：%02x  data=%d",fangAn.data.type,fangAn.data.data[0]);
+//		fprintf(stderr,"\n记录列选择（数组）CSD chioce=%d\n",fangAn.);
+		buf = (INT8U *)&fangAn.csd[0];
+		fprintf(stderr,"csd: ");
+		for(int i=0;i<20;i++)
+			fprintf(stderr,"  %02x ",buf[i]);
+		fprintf(stderr,"\n%04x %02x %02x",fangAn.csd[0].road.oad.OI,fangAn.csd[0].road.oad.attflg,fangAn.csd[0].road.oad.attrindex);
+		fprintf(stderr,"\n%04x %02x %02x ",fangAn.csd[0].road.oads[0].OI,fangAn.csd[0].road.oads[0].attflg,fangAn.csd[0].road.oads[0].attrindex);
+		fprintf(stderr,"\n%04x %02x %02x ",fangAn.csd[0].road.oads[1].OI,fangAn.csd[0].road.oads[1].attflg,fangAn.csd[0].road.oads[1].attrindex);
+		fprintf(stderr,"\n%04x %02x %02x ",fangAn.csd[0].road.oads[2].OI,fangAn.csd[0].road.oads[2].attflg,fangAn.csd[0].road.oads[2].attrindex);
+		fprintf(stderr,"\n%04x %02x %02x ",fangAn.csd[0].road.oads[3].OI,fangAn.csd[0].road.oads[3].attflg,fangAn.csd[0].road.oads[3].attrindex);
 //		fprintf(stderr,"\nCSD: oi=%x",fangAn.csd[0].oad.OI);
 		fprintf(stderr,"\n");
 
@@ -273,6 +340,17 @@ void AddTaskInfo(INT8U *data)
 	{
 		memset(&task,0,sizeof(task));
 		get_BasicUnit(&data[2]+source_sumindex,&source_index,(INT8U *)&task.taskID,&dest_index);
+		fprintf(stderr,"\n任务 ID=%d",task.taskID);
+		fprintf(stderr,"\n执行频率 单位=%d   value=%d",task.interval.units,task.interval.interval);
+		fprintf(stderr,"\n方案类型 =%d",task.cjtype);
+		fprintf(stderr,"\n方案序号 =%d",task.sernum);
+		fprintf(stderr,"\n开始时间 =%d年 %d月 %d日 %d时 %d分 %d秒 ",task.startime.year.data,task.startime.month.data,task.startime.day.data,task.startime.hour.data,task.startime.min.data,task.startime.sec.data);
+		fprintf(stderr,"\n结束时间 =%d年 %d月 %d日 %d时 %d分 %d秒 ",task.endtime.year.data,task.endtime.month.data,task.endtime.day.data,task.endtime.hour.data,task.endtime.min.data,task.endtime.sec.data);
+		fprintf(stderr,"\n优先级别 =%d",task.runprio);
+		fprintf(stderr,"\n任务状态 =%d",task.state);
+		fprintf(stderr,"\n运行时段类型 =%02x",task.runtime.type);
+		fprintf(stderr,"\n开始  %d时 %d分  ",task.runtime.runtime[0].beginHour,task.runtime.runtime[0].beginMin);
+		fprintf(stderr,"\n结束  %d时 %d分  ",task.runtime.runtime[0].endHour,task.runtime.runtime[0].endMin);
 		source_sumindex += source_index;
 		dest_sumindex += dest_index;
 
@@ -368,7 +446,7 @@ void MeterInfo(INT16U attr_act,INT8U *data)
 			break;
 		case 134://方法 134:Clear()
 			fprintf(stderr,"\n清空采集档案配置表");
-			//ClearClass(oi);
+			clearClass(6000);
 			break;
 	}
 }

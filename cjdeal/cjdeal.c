@@ -72,15 +72,15 @@ int main(int argc, char *argv[])
 	//485、四表合一
 	read485_proccess();
 	//载波
-	readplc_proccess();
+	//readplc_proccess();
 	//液晶、控制
-	guictrl_proccess();
+	//guictrl_proccess();
 
 	while(1)
    	{
 		//交采、状态、统计处理
-		DealACS();
-		DealState();
+	//	DealACS();
+	//	DealState();
 
 		usleep(10 * 1000);
 

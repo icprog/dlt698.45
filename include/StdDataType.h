@@ -2,7 +2,7 @@
 #define STDDATATYPE_H_
 
 #include "ParaDef.h"
-
+#pragma pack(1)				//结构体一个字节对齐
 typedef unsigned char  BOOLEAN;
 typedef unsigned char  INT8U;                    /* Unsigned  8 bit quantity                           */
 typedef signed   char  INT8S;                    /* Signed    8 bit quantity                           */
@@ -283,7 +283,7 @@ typedef struct
 
 typedef struct
 {
-	Time_Units 	units;
+	INT8U 	units;
 	INT16U  interval;
 }TI;					/*时间间隔数据类型*/
 typedef struct
@@ -416,12 +416,7 @@ typedef union
 	OAD  oad;	/*对象属性描述符*/
 	ROAD road;	/*记录型对象属性描述符*/
 }CSD;	/*列选择描述符*/
-typedef struct
-{
-	INT8U type;
-	INT8U num;
-	CSD   csd[20];
-}CSD_ARRAYTYPE;
+
 typedef struct
 {
 	CSD rcsd[16];
@@ -541,58 +536,60 @@ typedef union {
 	SID_MAC sidmac;
 	COMDCB comdcb;
 }DataBuf;
-typedef union {
-	INT8U data_null;
-//	DataType data_array[10];
-//	DataType data_struct[10];
-	INT8U data_bool;
-	INT8U data_bit[180];
-	INT32U double_long;
-	INT32U double_long_unsigned;
-	INT8U octet_string[180];
-	INT8U visible_string[180];
-	INT8U utf8_string[180];
-	INT8U bcd[180];
-	INT8U integer;
-	INT16U data_long;
-	INT8U dataunsigned;
-	INT16U long_unsigned;
-	INT64U long64;
-	INT64U long64_unsigned;
-	INT8U  data_enum;
-	INT32S  float32;
-	INT64S float64;
-	INT8U data_datetime[10];
-	INT8U data_date[5];
-	INT8U data_time[3];
-	DateTimeBCD datetime;
-	DateTimeBCD_H datetime_h;
-	DateTimeBCD_S datetime_s;
-	DateBCD datebcd;
-	TimeBCD timebcd;
-	OI_698 OI;
-	OAD oad;
-	ROAD road;
-	OMD omd;
-	TI ti;
-	TSA tsa;
-	INT8U mac[20];
-	INT8U rn[20];
-	Region region;
-	Scaler_Unit scalerunit;
-	RSD rsd;
-	CSD csd;
-	MS ms;
-	SID sid;
-	SID_MAC sidmac;
-	COMDCB comdcb;
-}DataType;
+//typedef union {
+//	INT8U data_null;
+////	DataType data_array[10];
+////	DataType data_struct[10];
+//	INT8U data_bool;
+//	INT8U data_bit[180];
+//	INT32U double_long;
+//	INT32U double_long_unsigned;
+//	INT8U octet_string[180];
+//	INT8U visible_string[180];
+//	INT8U utf8_string[180];
+//	INT8U bcd[180];
+//	INT8U integer;
+//	INT16U data_long;
+//	INT8U dataunsigned;
+//	INT16U long_unsigned;
+//	INT64U long64;
+//	INT64U long64_unsigned;
+//	INT8U  data_enum;
+//	INT32S  float32;
+//	INT64S float64;
+//	INT8U data_datetime[10];
+//	INT8U data_date[5];
+//	INT8U data_time[3];
+//	DateTimeBCD datetime;
+//	DateTimeBCD_H datetime_h;
+//	DateTimeBCD_S datetime_s;
+//	DateBCD datebcd;
+//	TimeBCD timebcd;
+//	OI_698 OI;
+//	OAD oad;
+//	ROAD road;
+//	OMD omd;
+//	TI ti;
+//	TSA tsa;
+//	INT8U mac[20];
+//	INT8U rn[20];
+//	Region region;
+//	Scaler_Unit scalerunit;
+//	RSD rsd;
+//	CSD csd;
+//	MS ms;
+//	SID sid;
+//	SID_MAC sidmac;
+//	COMDCB comdcb;
+//}DataType;
 //DataType len=1432
+
 typedef struct
 {
 	INT8U type;
 	INT8U data[50];
 }DATA_TYPE;
+
 typedef struct
 {
 	INT8U factorycode[4];
@@ -699,7 +696,7 @@ typedef struct{
 	INT8U serveraddr[16];
 	INT8U SendBuf[BUFLEN];			//发送数据
 	INT8U DealBuf[FRAMELEN];  		//保存接口函数处理长度
-	INT8U RecBuf[BUFLEN]; 			//接收数据
+	INT8U RecBuf[BUFLEN]; 			//接收数
 	int RHead,RTail;				//接收报文头指针，尾指针
 	int deal_step;					//数据接收状态机处理标记
 	int	rev_delay;					//接收延时

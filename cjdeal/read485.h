@@ -1,9 +1,4 @@
-/*
- * read485.h
- *
- *  Created on: 2017-1-4
- *      Author: wzm
- */
+
 
 #ifndef READ485_H_
 #define READ485_H_

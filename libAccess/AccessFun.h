@@ -4,6 +4,25 @@
 
 #include "StdDataType.h"
 
+/********************************************************
+ * 存储结构：
+ * 1、参数类
+ * 	  [1] ->/nand/para/oi.par	 			追加的参数文件
+ * 	  	  ->/nand/para/oi.bak
+ * 	  [2] --> /nand/para/oi/01-255.par		按照序号等存储一组参数
+ * 	  	  --> /nand/para/oi/01-255.bak
+ * 2、事件类
+ *	  [1] ->/nand/event/property/oi/oi.par[oi.bak]		oi属性参数文件
+ *	  [2] -->/nand/event/record/oi/01-255.dat		事件记录表
+ *	  [3] -->/nand/event/current/oi/01-255.dat		当前值记录表
+ *
+ ********************************************************/
+
+#define	 EVENT_PORP			"/nand/event/property"		//事件属性目录
+#define	 EVENT_REC			"/nand/event/record"		//事件记录目录
+#define	 EVENT_CURR			"/nand/event/current"		//当前值记录表
+
+#define	 PARA				"/nand/para"				//属性参数文件
 //文件存储类型
 typedef enum
 {
@@ -23,7 +42,23 @@ extern int resetClass(OI_698 oi);
  * 返回值：=1：配置单元删除成功
  * =-1:  未查找到OI类数据
  */
-extern int ClearClass(OI_698 oi);
+extern int clearClass(OI_698 oi);
+
+/*
+ * 方法：Delete() 删除一个配置单元
+ * 输入参数：oi对象标识，id:索引
+ * 返回值：=0：配置单元删除成功
+ * =-1:  删除错误
+ */
+extern int deleteClass(OI_698 oi,INT8U id);
+
+/*
+ * 数据区初始化接口函数
+ * 返回值 =0: 删除成功
+ * =-1：删除失败
+ * */
+extern int dataInit();
+
 ////////////////////////////////////////////////////////////////////////////////////////
 /*		第一类参数文件：文件包含接口类公用属性，配置单元按照配置序号在相应的位置存储，
  *           方法：存储更新（追加，更新），删除，清空
@@ -63,7 +98,7 @@ extern int delClassBySeq(OI_698 oi,void *blockdata,int seqnum);
 //////////////////////////////////////////////////////////////////////////////////////////
 /*		第三类文件：采用覆盖方式，根据每个oi的序号存储多个文件
  * 				事件参数、事件记录、当前记录集存储
- *		该类文件根据OI类型生成相应的目录  /nand/event/oi/
+ *		该类文件根据OI类型生成相应的目录  /nand/event/
  *		type: 参数类数据存储
  *
  **/
@@ -94,4 +129,9 @@ extern int readCoverClass(OI_698 oi,INT16U seqno,void *blockdata,int type);
  *************************************/
 extern long getFileRecordNum(OI_698 oi);
 
+extern void getFileName(OI_698 oi,INT16U seqno,INT16U type,char *fname);
+/*
+ * 覆盖文件（数据）整块读取
+ */
+extern int readCoverFile(char *fname, void *dataunit,int len);
 #endif /* ACCESS_H_ */
