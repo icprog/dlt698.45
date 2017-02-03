@@ -100,6 +100,15 @@ void get_BasicUnit(INT8U *source,INT16U *sourceindex,INT8U *dest,INT16U *destind
 			fprintf(stderr,"\n		结构体 %d  元素",strnum);
 			size = 1;
 			break;
+		case 0x06: //double-long-unsigned
+			size = 4;
+			dest[0] = source[4];
+			dest[1] = source[3];
+			dest[2] = source[2];
+			dest[3] = source[1];
+			if (dest_sumindex ==0)
+				dest_sumindex = size;
+			break;
 		case 0x12://long unsigned
 			size = 2;
 			dest[0]= source[2];

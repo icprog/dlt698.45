@@ -15,7 +15,7 @@
 extern int doObjectAction();
 extern int doActionReponse(int reponse,CSINFO *csinfo,PIID piid,OMD omd,int dar,INT8U *data,INT8U *buf);
 extern int getRequestNormal(OAD oad,INT8U *data);
-extern int setRequestNormal(INT8U *Object,CSINFO *csinfo,INT8U *buf);
+extern int setRequestNormal(INT8U *data,OAD oad,CSINFO *csinfo,INT8U *buf);
 extern int setRequestNormalList(INT8U *Object,CSINFO *csinfo,INT8U *buf);
 
 extern unsigned short tryfcs16(unsigned char *cp, int  len);
@@ -338,7 +338,7 @@ int doSetAttribute(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 	switch(setType)
 	{
 		case SET_REQUEST_NORMAL:
-			setRequestNormal(&apdu[3],csinfo,buf);
+			setRequestNormal(data,oad,csinfo,buf);
 			break;
 		case SET_REQUEST_NORMAL_LIST:
 			setRequestNormalList(&apdu[3],csinfo,buf);
