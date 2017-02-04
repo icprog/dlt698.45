@@ -9,11 +9,19 @@
 #include "dlt698def.h"
 #include "secure.h"
 #include "Esam.h"
-
+#include "ParaDef.h"
 #define LIB698_VER 	1
+
+extern int doObjectAction();
+extern int doActionReponse(int reponse,CSINFO *csinfo,PIID piid,OMD omd,int dar,INT8U *data,INT8U *buf);
+extern int getRequestNormal(OAD oad,INT8U *data);
+extern int setRequestNormal(INT8U *data,OAD oad,CSINFO *csinfo,INT8U *buf);
+extern int setRequestNormalList(INT8U *Object,CSINFO *csinfo,INT8U *buf);
+
+extern unsigned short tryfcs16(unsigned char *cp, int  len);
 INT8S (*pSendfun)(int fd,INT8U* sndbuf,INT16U sndlen);
 int comfd = 0;
-extern unsigned short tryfcs16(unsigned char *cp, int  len);
+
 /**************************************
  * 函数功能：DL/T698.45 状态机
  * 参数含义：
@@ -315,41 +323,22 @@ int appConnectResponse(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 		pSendfun(comfd,buf,index+3);
 	return (index+3);
 }
-
-
-int setRequestNormal(INT8U *Object,CSINFO *csinfo,INT8U *buf)
-{
-	int bytes=0;
-	OAD oad={};//对象属性描述符
-	memcpy(&oad , Object,4);
-//	bytes = setOneObject(&oad,csinfo,buf);
-	return bytes;
-}
-int setRequestNormalList(INT8U *Object,CSINFO *csinfo,INT8U *buf)
-{
-	int stepsize=1 , i=0 , bytes=0, objbytes=0;
-	INT8U objectnum = Object[0];
-
-	for(i=0 ; i< objectnum ; i++)
-	{
-		objbytes = setRequestNormal(Object+stepsize,csinfo,buf);
-		if (objbytes >0)
-			stepsize = stepsize + objbytes;
-		else
-			break;
-	}
-	return bytes;
-}
 int doSetAttribute(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 {
 	PIID piid={};
 	INT8U setType = apdu[1];
+	OAD oad={};
+	INT8U *data=NULL;
 	piid.data = apdu[2];
+	oad.OI = (apdu[3]<<8) | apdu[4];
+	oad.attflg = apdu[5];
+	oad.attrindex = apdu[6];
+	data = &apdu[7];					//Data
 
 	switch(setType)
 	{
 		case SET_REQUEST_NORMAL:
-			setRequestNormal(&apdu[3],csinfo,buf);
+			setRequestNormal(data,oad,csinfo,buf);
 			break;
 		case SET_REQUEST_NORMAL_LIST:
 			setRequestNormalList(&apdu[3],csinfo,buf);
@@ -362,17 +351,28 @@ int doSetAttribute(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 }
 int doGetAttribute(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 {
-	INT8U setType = apdu[1];
 	PIID piid={};
+	INT8U getType = apdu[1];
+	OAD oad={};
+	INT8U *data=NULL;
+	// 1,GetRequestNormal ; 2,GetRequestNormalList  3,GetRequestRecord  4,GetRequestRecordList,GetRequestNext
+
 	piid.data = apdu[2];
-	switch(setType)
+	fprintf(stderr,"\n- get type = %d PIID=%02x",getType,piid.data);
+	oad.OI = (apdu[3]<<8) | apdu[4];
+	oad.attflg = apdu[5];
+	oad.attrindex = apdu[6];
+	data = &apdu[7];					//Data
+
+	switch(getType)
 	{
 		case GET_REQUEST_NORMAL:
-
+			getRequestNormal(oad,data);
 			break;
 		case GET_REQUEST_NORMAL_LIST:
 			break;
 		case GET_REQUEST_RECORD:
+//			getRequestRecord(&apdu[3],csinfo,buf);
 			break;
 		case GET_REQUEST_RECORD_LIST:
 			break;
@@ -380,47 +380,6 @@ int doGetAttribute(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 			break;
 	}
 	return 1;
-}
-
-int doActionReponse(int reponse,CSINFO *csinfo,PIID piid,OMD omd,int dar,INT8U *data,INT8U *buf)
-{
-	int index=0, hcsi=0;
-
-	csinfo->dir = 1;
-	csinfo->prm = 0;
-
-	index = FrameHead(csinfo,buf);
-	hcsi = index;
-	index = index + 2;
-	buf[index] = ACTION_RESPONSE;
-	index++;
-	buf[index] = reponse;
-	index++;
-//	fprintf(stderr,"piid.data[%d]=%02x\n",index,piid.data);
-	buf[index] = piid.data;
-	index++;
-	memcpy(&buf[index],&omd,sizeof(OMD));
-	index = index + sizeof(OMD);
-	buf[index] = omd.OI & 0xff;
-	index++;
-	buf[index] = (omd.OI>>8) & 0xff;
-	index++;
-	buf[index] = omd.method_tag;
-	index++;
-	buf[index] = omd.oper_model;
-	index++;
-
-	buf[index] = dar;
-	index++;
-	if(data!=NULL) {
-		memcpy(&buf[index],&data,sizeof(data));
-		index = index + sizeof(data);
-	}
-	FrameTail(buf,index,hcsi);
-
-	if(pSendfun!=NULL)
-		pSendfun(comfd,buf,index+3);
-	return (index+3);
 }
 
 int doActionRequest(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
@@ -520,6 +479,7 @@ INT8U dealClientRequest(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
 			doSetAttribute(apdu,csinfo,sendbuf);
 			break;
 		case ACTION_REQUEST:
+			fprintf(stderr,"\n ACTION_REQUEST");
 			doActionRequest(apdu,csinfo,sendbuf);
 			break;
 		case PROXY_REQUEST:
