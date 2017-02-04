@@ -17,7 +17,7 @@
  *	  [3] -->/nand/event/current/oi/01-255.dat		当前值记录表
  *
  ********************************************************/
-
+#define  EVENTDIR			"/nand/event/"
 #define	 EVENT_PORP			"/nand/event/property"		//事件属性目录
 #define	 EVENT_REC			"/nand/event/record"		//事件记录目录
 #define	 EVENT_CURR			"/nand/event/current"		//当前值记录表

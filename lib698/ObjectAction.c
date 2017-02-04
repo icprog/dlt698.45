@@ -24,10 +24,10 @@ INT16U getMytypeSize(INT8U first )
 	{
 		return (sizeof(DATA_TYPE));
 	}
-//	if (first == 0x55)
-//	{
-//		return (sizeof(CSD));
-//	}
+	if (first == 0x55)
+	{
+		return (sizeof(CSD_ARRAYTYPE));
+	}
 	return 0 ;
 }
 int doActionReponse(int reponse,CSINFO *csinfo,PIID piid,OMD omd,int dar,INT8U *data,INT8U *buf)
@@ -77,7 +77,7 @@ void get_BasicUnit(INT8U *source,INT16U *sourceindex,INT8U *dest,INT16U *destind
 	INT8U 	size=0;
 	INT8U	i=0;
 	INT8U	strnum = 0;
-	INT16U  source_sumindex = 0,dest_sumindex=0;
+	INT16U  source_sumindex = 0,dest_sumindex=0,csdsize=0;
 	INT8U 	type = source[0];
 
 	fprintf(stderr,"\ntype = %02x  sourceindex=%d ",type,*sourceindex);
@@ -94,6 +94,11 @@ void get_BasicUnit(INT8U *source,INT16U *sourceindex,INT8U *dest,INT16U *destind
 			strnum = source[1];
 			fprintf(stderr,"\n数组个数-%d",strnum);
 			size = 1;
+			if (dest_sumindex>0)
+			{
+				csdsize = dest_sumindex;//csdsize 保存特殊类型数组尺寸
+				dest_sumindex = 0;
+			}
 			break;
 		case 0x02: //struct
 			strnum = source[1];
@@ -143,7 +148,7 @@ void get_BasicUnit(INT8U *source,INT16U *sourceindex,INT8U *dest,INT16U *destind
 					break;
 			}
 			if (dest_sumindex ==0)
-				dest_sumindex = sizeof(MS);
+				dest_sumindex = sizeof(MY_MS);
 			fprintf(stderr,"\n		目标地址跳转 %d 字节 ",dest_sumindex);
 			break;
 		case 0x16://enum
@@ -200,8 +205,6 @@ void get_BasicUnit(INT8U *source,INT16U *sourceindex,INT8U *dest,INT16U *destind
 			choicetype = source[1];
 			if (choicetype == 1)
 			{//road
-			//	dest[0] = choicetype;
-				//	memcpy(&dest[1],&source[2],4);
 				dest[0] = source[3];
 				dest[1] = source[2];
 				dest[2] = source[4];
@@ -214,33 +217,46 @@ void get_BasicUnit(INT8U *source,INT16U *sourceindex,INT8U *dest,INT16U *destind
 					dest[4+k*4+1] = source[7+k*4+0];
 					dest[4+k*4+2] = source[7+k*4+2];
 					dest[4+k*4+3] = source[7+k*4+3];
-//					memcpy(&dest[5],&source[7],numm*4);
 				}
 				size =1+ 4+ 1 + numm*4;
 			}else
 			{//oad  6字节
 				dest[0] = choicetype;
-				memcpy(&dest[1],&source[1],sizeof(OAD));
-				size = 1+ 4;// 1： choicetype占用1个字节
+				dest[1] = source[3];
+				dest[2] = source[2];
+				dest[3] = source[4];
+				dest[4] = source[5];
+				size = 4+1;// 1： choicetype占用1个字节
+				fprintf(stderr,"\n%02x %02x %02x %02x ",dest[0],dest[1],dest[2],dest[3]);
+//				dest[0] = source[3];
+//				dest[1] = source[2];
+//				dest[2] = source[4];
+//				dest[3] = source[5];
+//				size = 4+1;// 1： choicetype占用1个字节
+//				fprintf(stderr,"\n%02x %02x %02x %02x ",dest[0],dest[1],dest[2],dest[3]);
 			}
 			if (dest_sumindex ==0)
-				dest_sumindex = sizeof(CSD);
-			//fprintf(stderr,"\n CSSSSSD size=%d",size);
+				dest_sumindex = sizeof(MY_CSD);
 			break;
 	}
 	source_sumindex = size + 1;// 1：类型占用一个字节
 	fprintf(stderr,"\n源缓冲区跳 %d字节 ",source_sumindex);
-//	fprintf(stderr,"\nadd size=%d,source[0]=%02x ",size,source[0]);
 
-	for(i=0;i<strnum;i++) {
-//		fprintf(stderr,"\ni = %d ",i);
+	for(i=0;i<strnum;i++)
+	{
+		fprintf(stderr,"\n----------i=%d  dest 向前移动 %d",i,dest_sumindex);
 		get_BasicUnit(source+source_sumindex,sourceindex,dest+dest_sumindex,destindex);
 		source_sumindex += *sourceindex;
 		dest_sumindex += *destindex;
-//		fprintf(stderr,"\n sourceindex == %d  source_sumindex = %d",*sourceindex,source_sumindex);
-//		fprintf(stderr,"\n destindex == %d  dest_sumindex = %d",*destindex,dest_sumindex);
 	}
-//	fprintf(stderr,"\n循环 %d 次结束",strnum);
+	if (i == strnum)
+	{
+		if (csdsize>0)
+		{
+			fprintf(stderr,"\n循环结束 csdsize=%d  dest_sumindex=%d",csdsize,dest_sumindex);
+			dest_sumindex = csdsize;
+		}
+	}
 	*sourceindex = source_sumindex;
 	*destindex = dest_sumindex;
 }
@@ -248,7 +264,7 @@ void get_BasicUnit(INT8U *source,INT16U *sourceindex,INT8U *dest,INT16U *destind
 void AddBatchMeterInfo(INT8U *data)
 {
 	CLASS_6001 meter={};
-	int k=0;
+	int k=0,saveflg=0;
 	INT8U addnum = data[1];
 	INT16U source_sumindex=0,source_index=0,dest_sumindex=0,dest_index=0;
 //	fprintf(stderr,"\naddnum=%d",addnum);
@@ -281,23 +297,27 @@ void AddBatchMeterInfo(INT8U *data)
 			memcpy(meter.name,"1111111111111111",sizeof(meter.name));
 		else  if(meter.sernum==2) memcpy(meter.name,"2222222222222222",sizeof(meter.name));
 		fprintf(stderr,"\n-------------1  6001_len=%d, sernum=%d\n",sizeof(CLASS_6001),meter.sernum);
-		saveParaClass(0x6000,(unsigned char*)&meter,meter.sernum);
+		saveflg = saveParaClass(0x6000,(unsigned char*)&meter,meter.sernum);
+		if (saveflg==1)
+			fprintf(stderr,"\n采集档案配置 %d 保存成功",meter.sernum);
+		else
+			fprintf(stderr,"\n采集档案配置 %d 保存失败",meter.sernum);
 	}
 }
 void AddCjiFangAnInfo(INT8U *data)
 {
 	INT8U *buf;
 	CLASS_6015 fangAn={};
-	int k=0;
+	int k=0,saveflg=0;
 	INT8U addnum = data[1];
 	INT16U source_sumindex=0,source_index=0,dest_sumindex=0,dest_index=0;
 	fprintf(stderr,"\nsizeof fangAn=%d",sizeof(fangAn));
 	fprintf(stderr,"\n添加个数 %d",addnum);
 	for(k=0; k<addnum; k++)
 	{
-		memset(&fangAn,0,sizeof(fangAn));
+		memset(&fangAn,0xee,sizeof(fangAn));
 		fangAn.data.type = 0xAA;//标识data缓冲区
-//		fangAn.csd[0]= 0xBB;//标识
+		fangAn.csds.type = 0x55;//标识csd数组
 		get_BasicUnit(&data[2]+source_sumindex,&source_index,(INT8U *)&fangAn.sernum,&dest_index);
 		source_sumindex += source_index;
 		dest_sumindex += dest_index;
@@ -305,19 +325,35 @@ void AddCjiFangAnInfo(INT8U *data)
 		fprintf(stderr,"\n存储深度 ：%d ",fangAn.deepsize);
 		fprintf(stderr,"\n采集类型 ：%d ",fangAn.cjtype);
 		fprintf(stderr,"\n采集内容(data) 类型：%02x  data=%d",fangAn.data.type,fangAn.data.data[0]);
-//		fprintf(stderr,"\n记录列选择（数组）CSD chioce=%d\n",fangAn.);
-		buf = (INT8U *)&fangAn.csd[0];
-		fprintf(stderr,"csd: ");
-		for(int i=0;i<20;i++)
-			fprintf(stderr,"  %02x ",buf[i]);
-		fprintf(stderr,"\n%04x %02x %02x",fangAn.csd[0].road.oad.OI,fangAn.csd[0].road.oad.attflg,fangAn.csd[0].road.oad.attrindex);
-		fprintf(stderr,"\n%04x %02x %02x ",fangAn.csd[0].road.oads[0].OI,fangAn.csd[0].road.oads[0].attflg,fangAn.csd[0].road.oads[0].attrindex);
-		fprintf(stderr,"\n%04x %02x %02x ",fangAn.csd[0].road.oads[1].OI,fangAn.csd[0].road.oads[1].attflg,fangAn.csd[0].road.oads[1].attrindex);
-		fprintf(stderr,"\n%04x %02x %02x ",fangAn.csd[0].road.oads[2].OI,fangAn.csd[0].road.oads[2].attflg,fangAn.csd[0].road.oads[2].attrindex);
-		fprintf(stderr,"\n%04x %02x %02x ",fangAn.csd[0].road.oads[3].OI,fangAn.csd[0].road.oads[3].attflg,fangAn.csd[0].road.oads[3].attrindex);
-//		fprintf(stderr,"\nCSD: oi=%x",fangAn.csd[0].oad.OI);
+		buf = (INT8U *)&fangAn.csds.type;
+		fprintf(stderr,"\ncsd: ");
+//		INT8U type=0,w;
+//		for(int i; i<10;i++)
+//		{
+//			type = fangAn.csds.csd[i].type;
+//			if (type==0)
+//			{
+//				fprintf(stderr,"\nOAD");
+//				fprintf(stderr,"\n%04x %02x %02x",fangAn.csds.csd[0].csd.oad.OI,fangAn.csds.csd[0].csd.oad.attflg,fangAn.csds.csd[0].csd.oad.attrindex);
+//			}else
+//			{
+//				fprintf(stderr,"\nROAD");
+//				fprintf(stderr,"\n		OAD-%04x %02x %02x",fangAn.csds.csd[0].csd.road.oad.OI,fangAn.csds.csd[0].csd.road.oad.attflg,fangAn.csds.csd[0].csd.road.oad.attrindex);
+//				for(w=0;w<10;w++)
+//				{
+//					fprintf(stderr,"\n		OAD-%04x %02x %02x",fangAn.csds.csd[0].csd.road.oads[w].OI,fangAn.csds.csd[0].csd.road.oads[w].attflg,fangAn.csds.csd[0].csd.road.oads[w].attrindex);
+//				}
+//			}
+//		}
+		fprintf(stderr,"\n电能表集合MS ：类型 %d (0:无表   1:全部   2:一组用户   3:一组用户地址   4:一组配置序号   )",fangAn.mst.mstype);
+		fprintf(stderr,"\n存储时标选择 ： %d (1:任务开始时间  2：相对当日0点0分  3:相对上日23点59分  4:相对上日0点0分  5:相对当月1日0点0分)",fangAn.savetimeflag);
 		fprintf(stderr,"\n");
 
+		saveflg = saveCoverClass(0x6015,fangAn.sernum,&fangAn,sizeof(fangAn),coll_para_save);
+		if (saveflg==1)
+			fprintf(stderr,"\n采集方案 %d 保存成功",fangAn.sernum);
+		else
+			fprintf(stderr,"\n采集方案 %d 保存失败",fangAn.sernum);
 	}
 }
 void AddEventCjiFangAnInfo(INT8U *data)
@@ -340,7 +376,7 @@ void AddEventCjiFangAnInfo(INT8U *data)
 void AddTaskInfo(INT8U *data)
 {
 	CLASS_6013 task={};
-	int k=0;
+	int k=0,saveflg=0;
 	INT8U addnum = data[1];
 	INT16U source_sumindex=0,source_index=0,dest_sumindex=0,dest_index=0;
 	fprintf(stderr,"\nsizeof task=%d",sizeof(task));
@@ -362,6 +398,12 @@ void AddTaskInfo(INT8U *data)
 		fprintf(stderr,"\n结束  %d时 %d分  ",task.runtime.runtime[0].endHour,task.runtime.runtime[0].endMin);
 		source_sumindex += source_index;
 		dest_sumindex += dest_index;
+
+		saveflg = saveParaClass(0x6012,(unsigned char*)&task,task.sernum);
+		if (saveflg==1)
+			fprintf(stderr,"\n采集任务 %d 保存成功",task.sernum);
+		else
+			fprintf(stderr,"\n采集任务 %d 保存失败",task.sernum);
 
 	}
 }

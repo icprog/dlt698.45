@@ -314,6 +314,8 @@ void getFileName(OI_698 oi,INT16U seqno,INT16U type,char *fname)
 	memset(fname,0,FILENAMELEN);
 	switch(type) {
 	case event_para_save:
+		sprintf(dirname,"%s",EVENTDIR);
+		makeSubDir(dirname);
 		sprintf(dirname,"%s",EVENT_PORP);
 		makeSubDir(dirname);
 		sprintf(dirname,"%s/%04x",EVENT_PORP,oi);
@@ -321,6 +323,8 @@ void getFileName(OI_698 oi,INT16U seqno,INT16U type,char *fname)
 		sprintf(fname,"%s/%04x/%04x.par",EVENT_PORP,oi,oi);
 		break;
 	case event_record_save:
+		sprintf(dirname,"%s",EVENTDIR);
+		makeSubDir(dirname);
 		sprintf(dirname,"%s",EVENT_REC);
 		makeSubDir(dirname);
 		sprintf(dirname,"%s/%04x",EVENT_REC,oi);
@@ -328,6 +332,8 @@ void getFileName(OI_698 oi,INT16U seqno,INT16U type,char *fname)
 		sprintf(fname,"%s/%04x/%d.dat",EVENT_REC,oi,seqno);
 		break;
 	case event_current_save:
+		sprintf(dirname,"%s",EVENTDIR);
+		makeSubDir(dirname);
 		sprintf(dirname,"%s",EVENT_CURR);
 		makeSubDir(dirname);
 		sprintf(dirname,"%s/%04x",EVENT_CURR,oi);
