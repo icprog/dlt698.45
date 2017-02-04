@@ -30,6 +30,8 @@ typedef enum
 	event_record_save=2,		//事件记录表存储
 	event_current_save=3,		//当前值记录表存储
 	coll_para_save=4,			//采集类参数存储
+	acs_coef_save=5,			//交采计量芯片系数存储
+	acs_energy_save=6,			//交采计量电能量数据存储
 }SaveFile_type;
 
 /*
@@ -110,18 +112,25 @@ extern int delClassBySeq(OI_698 oi,void *blockdata,int seqnum);
 extern int saveCoverClass(OI_698 oi,INT16U seqno,void *blockdata,int savelen,int type);
 
 /*
- * 输入参数：	oi:对象标识，seqno:记录序号，blockdata:存储数据，savelen：存储长度，
+ * 输入参数：	oi:对象标识，seqno:记录序号，
+ * 			type：存储类型【	根据宏定义SaveFile_type 】
+ * 返回值：相关对象标识的类的存储文件长度
+ * =-1: 无效数据
+ */
+extern int getClassFileLen(OI_698 oi,INT16U seqno,int type);
+/*
+ * 输入参数：	oi:对象标识，seqno:记录序号，blockdata:存储数据，datalen：存储长度，
  * 			type：存储类型【	根据宏定义SaveFile_type】
  * 返回值：=1：文件存储成功
  * =-1: 文件不存在
  */
-extern int readCoverClass(OI_698 oi,INT16U seqno,void *blockdata,int type);
+extern int readCoverClass(OI_698 oi,INT16U seqno,void *blockdata,int datalen,int type);
 
 
 //////////////////////////////////////////////////////////////////////////////////////////
 
 /************************************
- * 函数说明：获取参数文件对象配置单元的个数saveEventClass
+ * 函数说明：获取参数文件对象配置单元的个数
  * 返回值：
  * >=0:  单元个数
  * -1:  未查找到OI类数据
@@ -129,9 +138,4 @@ extern int readCoverClass(OI_698 oi,INT16U seqno,void *blockdata,int type);
  *************************************/
 extern long getFileRecordNum(OI_698 oi);
 
-extern void getFileName(OI_698 oi,INT16U seqno,INT16U type,char *fname);
-/*
- * 覆盖文件（数据）整块读取
- */
-extern int readCoverFile(char *fname, void *dataunit,int len);
 #endif /* ACCESS_H_ */

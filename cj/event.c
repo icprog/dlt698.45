@@ -45,7 +45,7 @@ void event_process(int argc, char *argv[])
 		if(strcmp("pro",argv[2])==0) {
 			if(argc==4) {
 				memset(&class7,0,sizeof(Class7_Object));
-				readCoverClass(oi,0,&class7,event_para_save);
+				readCoverClass(oi,0,&class7,sizeof(Class7_Object),event_para_save);
 				printClass7(class7);
 			}else {
 				switch(oi) {

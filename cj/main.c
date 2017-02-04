@@ -21,6 +21,7 @@
 #include "coll.h"
 #include "para.h"
 #include "event.h"
+#include "cjacs.h"
 
 static char
 		*usage_para =
@@ -52,6 +53,40 @@ static char
 					"-------------------------------------------------------\n"	\
 					;
 
+static char
+		*usage_acs =
+			"acs acreg   <Pa Pb Pc Qa Qb Qc Ua Ub Uc Ia Ib Ic >   [同时校正三相系数，输入值为单相标准值]\n\n" 			\
+			"		 [三相四交采校表:准备工作：标准源输入220V,3A,角度=60“C(0.5L 感性)]\n" 	\
+			"         例如输入：cj acs acreg 330.00 330.00 330.00 572.00 572.00 572.00 220.0 220.0 220.0 3 3 3\n"   			\
+			"         [参数输入标准源显示值，可输入浮点数。]\n"					\
+			"		<Pa 0 Pc Qa 0 Qc Uab 0 Uca Ia 0 Ic >\n"						\
+			"		 [三相三交采校表:准备工作：标准源输入100V,3A,角度=1“C(1L 感性)]\n" 	\
+			"         例如输入：cj acs acreg 259.8076 0 259.8076 150 0 -150 100 0 100 3 0 -3\n"   			\
+			"acs acphase   <Pa Pb Pc Qa Qb Qc Ua Ub Uc Ia Ib Ic >    [小电流相位校正：同时校正三相系数，输入值为单相标准值]\n\n"		\
+			"		 [ATT7022E 交采校表:准备工作：标准源输入220V,0.3A,角度=60“C(0.5L 感性)]\n"	\
+			"         例如输入：cj acs acphase 165.00 165.00 165.00 285.79 285.79 285.79 220.0 220.0 220.0 220.0 1.5 1.5 1.5\n"				\
+			"         [参数输入标准源显示值，可输入浮点数。]\n"			\
+			"		 [ATT7022E-D 交采校表:准备工作：标准源输入220V,1.5A,角度=60“C(0.5L 感性)]\n"	\
+			"         例如输入：cj acs acphase 165 165 165 286 286 286 220 220 220 1.5 1.5 1.5\n"				\
+			"         [参数输入标准源显示值，可输入浮点数。]\n"			\
+			"		[三相三交采校表:准备工作：标准源输入100V,1.5A,角度=1“C(1L 感性)]\n" 	\
+			"         例如输入：cj acs acphase 129.9 0 129.9 75 0 -75 100 0 100 1.5 0 1.5\n"   			\
+			"acs acphase0  <Pa Pb Pc Qa Qb Qc Ua Ub Uc Ia Ib Ic >  [(7022E-d型芯片支持)电流相位校正：同时校正三相系数，输入值为单相标准值]\n\n"		\
+			"		 [交采校表:准备工作：标准源输入220V,0.15A,角度=60“C(0.5L 感性)]\n"	\
+			"         例如输入：cj acs acphase0 16.5 16.5 16.5 28.6 28.6 28.6 220 220 220 0.15 0.15 0.15\n"				\
+			"         [参数输入标准源显示值，可输入浮点数。]\n"						\
+			"		[三相三交采校表:准备工作：标准源输入100V,0.3A,角度=1“C(1L 感性)]\n" 	\
+			"         例如输入：cj acs acphase0 25.9 0 25.9 15 0 -15 100 0 100 0.3 0 0.3\n"   						\
+			"acs acregclean [清除（交采）校表系数]\n" 									\
+			"acs acregdata	[读校表系数]\n" 								\
+			"acs acdata  [打印测量点1（交采）实时数据]\n" 								\
+			"acs ace  	 [测量点1（交采）电能示值数据]\n" 								\
+			"acs acrndata	[读RN8209校表系数]\n" 								\
+			"acs checku <U> [rn8209交采电压校正：输入标准源显示值]\n" 		\
+			"        例如输入：cj acs checku 220.00 \n"   \
+			"        [参数输入标准源显示值，可输入浮点数。]\n"			\
+		;
+
 void prthelp()
 {
 	fprintf(stderr,"Usage: ./cj (维护功能)  ");
@@ -59,6 +94,7 @@ void prthelp()
 	fprintf(stderr,"%s",usage_para);
 	fprintf(stderr,"%s",usage_event);
 	fprintf(stderr,"%s",usage_coll);
+	fprintf(stderr,"%s",usage_acs);
 
 }
 int main(int argc, char *argv[])
@@ -87,6 +123,12 @@ int main(int argc, char *argv[])
 	{
 		fprintf(stderr,"%s",usage_coll);
 		coll_process(argc,argv);
+		return EXIT_SUCCESS;
+	}
+	if(strcmp("acs",argv[1])==0)
+	{
+		fprintf(stderr,"%s",usage_acs);
+		acs_process(argc,argv);
 		return EXIT_SUCCESS;
 	}
 	prthelp();

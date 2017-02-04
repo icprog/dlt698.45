@@ -53,6 +53,8 @@
 									<listOptionValue builtIn="false" value="698"/>
 									<listOptionValue builtIn="false" value="Base"/>
 									<listOptionValue builtIn="false" value="Esam"/>
+									<listOptionValue builtIn="false" value="m"/>
+									<listOptionValue builtIn="false" value="rt"/>
 								</option>
 								<inputType id="org.eclipse.cdt.cross.arm.gnu.c.linker.input.2026673197" superClass="org.eclipse.cdt.cross.arm.gnu.c.linker.input">
 									<additionalInput kind="additionalinputdependency" paths="$(USER_OBJS)"/>

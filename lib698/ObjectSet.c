@@ -8,6 +8,7 @@
 #include <string.h>
 #include <stdio.h>
 
+
 #include "AccessFun.h"
 #include "StdDataType.h"
 #include "Objectdef.h"
@@ -28,7 +29,7 @@ INT16U set310d(INT8U attflg,INT8U index,INT8U *data)
 	int saveflg=0;
 	if ( attflg == 6 )
 	{
-		readCoverClass(0x310d,0,&tmp310d,event_para_save);
+		readCoverClass(0x310d,0,&tmp310d,sizeof(tmp310d),event_para_save);
 		fprintf(stderr,"\ntmp310d 阈值=%x",tmp310d.poweroffset_obj.power_offset);
 		get_BasicUnit(data,&source_index,(INT8U *)&value,&dest_index);
 		tmp310d.poweroffset_obj.power_offset = value;
@@ -46,7 +47,7 @@ INT16U set310c(INT8U attflg,INT8U index,INT8U *data)
 	int saveflg=0;
 	if ( attflg == 6 )
 	{
-		readCoverClass(0x310c,0,&tmp310c,event_para_save);
+		readCoverClass(0x310c,0,&tmp310c,sizeof(tmp310c),event_para_save);
 		fprintf(stderr,"\ntmp310c 阈值=%x",tmp310c.poweroffset_obj.power_offset);
 		get_BasicUnit(data,&source_index,(INT8U *)&value,&dest_index);
 		tmp310c.poweroffset_obj.power_offset = value;
@@ -64,7 +65,7 @@ INT16U set310e(INT8U attflg,INT8U index,INT8U *data)
 	int saveflg=0;
 	if ( attflg == 6 )
 	{
-		readCoverClass(0x310e,0,&tmp310e,event_para_save);
+		readCoverClass(0x310e,0,&tmp310e,sizeof(tmp310e),event_para_save);
 		fprintf(stderr,"\ntmp310e 阈值=%d 单位=%d",tmp310e.powerstoppara_obj.power_offset.interval,tmp310e.powerstoppara_obj.power_offset.units);
 		get_BasicUnit(data,&source_index,(INT8U *)&value,&dest_index);
 		tmp310e.powerstoppara_obj.power_offset = value;
@@ -82,7 +83,7 @@ INT16U set310f(INT8U attflg,INT8U index,INT8U *data)
 	int saveflg = 0;
 	if ( attflg == 6 )
 	{
-		readCoverClass(0x310f,0,&tmp310f,event_para_save);
+		readCoverClass(0x310f,0,&tmp310f,sizeof(tmp310f),event_para_save);
 		get_BasicUnit(data,&source_index,(INT8U *)&value,&dest_index);
 		tmp310f.collectfail_obj.retry_nums = value;
 		fprintf(stderr,"\n终端抄表失败事件：属性6 重试轮次=%d ",value);

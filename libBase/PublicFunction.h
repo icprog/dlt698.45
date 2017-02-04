@@ -20,7 +20,7 @@ extern void DataTimeGet(DateTimeBCD* ts);
 extern void Setsig(struct sigaction *psa,void (*pfun)(ProjectInfo *proinfo));
 extern void* CreateShMem(char* shname,int memsize,void* pmem);
 extern void* OpenShMem(char* shname,int memsize,void* pmem);
-
+extern void  shmm_unregister(char* shname,int memsize);
 /* BCD码转int32u
  *参数：bcd为bcd码头指针，len为bcd码长度，order为positive正序/inverted反序，dint转换结果
  * 返回:0：成功；-1：asc为空；-2：en为0；-3：order有误
@@ -39,4 +39,8 @@ extern INT32S gpio_writebyte(INT8S* devpath, INT8S data) ;
 extern INT32S gpio_writebytes(INT8S* devpath, INT8S* vals, INT32S valnum) ;
 
 extern sem_t* nsem_open(const char* name);
+
+extern sem_t* create_named_sem(const char* name, int flag);
+extern sem_t* open_named_sem(const char* name);
+
 #endif /* PUBLICFUNCTION_H_ */

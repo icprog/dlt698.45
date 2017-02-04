@@ -385,6 +385,7 @@ void AddTaskInfo(INT8U *data)
 	{
 		memset(&task,0,sizeof(task));
 		get_BasicUnit(&data[2]+source_sumindex,&source_index,(INT8U *)&task.taskID,&dest_index);
+
 		fprintf(stderr,"\n任务 ID=%d",task.taskID);
 		fprintf(stderr,"\n执行频率 单位=%d   value=%d",task.interval.units,task.interval.interval);
 		fprintf(stderr,"\n方案类型 =%d",task.cjtype);

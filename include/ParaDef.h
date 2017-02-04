@@ -11,7 +11,7 @@
 #define delay(A) usleep((A)*1000)
 //////////////////////////////////////////////////////////////
 #define _CFGDIR_ 			"/nor/config"
-
+#define _ACSDIR_			"/nand/acs"
 ///////////////////////////////////////////////////////////////
 /*
  * 	进程间通讯相关限值
@@ -41,21 +41,34 @@
 #define COLLCLASS_MAXNUM		1024		//定义集合类最大元素个数
 
 #define CLASS7_OAD_NUM			10			//关联对象属性表
+#define MAX_PERIOD_RATE   		48      	//支持的最到终端费率时段数
 ////////////////////////////////////////////////////////////////
 
 /*
  * 	GPIO硬件接口
  * */
+//TODO:根据交采芯片决定ESAM打开那个设备，不用CCTT_II区分
 #ifdef CCTT_II
  #define DEV_SPI_PATH   "/dev/spi1.0"
 #else
   #define DEV_SPI_PATH   "/dev/spi0.0"
 #endif
-#define DEV_ESAM_RST   "/dev/gpoESAM_RST"
-#define DEV_ESAM_CS    "/dev/gpoESAM_CS"
-#define DEV_ESAM_PWR   "/dev/gpoESAM_PWR"
-#define DEV_ATT_RST    "/dev/gpoATT_RST"
 
+#define	ACS_SPI_DEV		"/dev/spi0.0"		//计量芯片使用的spi设备
+
+//Esam与ATT7022E共用数据线,复位信号，各自独立片选，CS=0，可读写，
+//因此不能同时读写ESAM与ATT7022E，必须互斥操作。
+
+#define DEV_ESAM_RST   	"/dev/gpoESAM_RST"
+#define DEV_ESAM_CS    	"/dev/gpoESAM_CS"
+#define DEV_ESAM_PWR   	"/dev/gpoESAM_PWR"
+
+#define	DEV_ATT_RST		"/dev/gpoATT_RST"
+#define	DEV_ATT_CS		"/dev/gpoATT_CS"
+
+//II型RN8209控制gpio，目前程序中未用
+#define DEV_RN_RST 		"/dev/gpo8209_RST"
+#define DEV_RN_CS 		"/dev/gpo8209_CS"
 ////////////////////////////////////////////////////////////////
 
 /*
@@ -63,6 +76,13 @@
  * */
 
 #define SEMNAME_SPI0_0 "sem_spi0_0" //专变、I型集中器交采和esam的spi通信互斥信号量
+////////////////////////////////////////////////////////////////
+
+/*
+ * 	交采计量
+ * */
+#define MAXVAL_RATENUM			4		//支持的最大费率数
+#define MAXVAL_HARMONICWAVE     19       //支持的谐波检测最高谐波次数
 
 ////////////////////////////////////////////////////////////////
 /*
