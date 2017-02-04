@@ -24,6 +24,7 @@ typedef enum{
 }METER_PROTOCOL;
 typedef struct
 {
+	INT16U sernum;
 	TSA addr;			//通信地址
 	INT8U baud;			//波特率
 	METER_PROTOCOL protocol;		//规约类型

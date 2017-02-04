@@ -178,6 +178,7 @@ void SendDataTo485(INT32S fd,INT8U *sendbuf,INT16U sendlen)
 
 INT8S deal6015_698(CLASS_6015 st6015,BasicInfo6001 to6001)
 {
+	fprintf(stderr,"\n deal6015_698  meter = %d",to6001.sernum);
 	INT8S result = -1;
 	INT16S sendLen = 0;
 	INT16S recvLen = 0;
@@ -196,6 +197,7 @@ INT8S deal6015_698(CLASS_6015 st6015,BasicInfo6001 to6001)
 }
 INT8S deal6015_07(CLASS_6015 st6015,BasicInfo6001 to6001)
 {
+	fprintf(stderr,"\n deal6015_07  meter = %d",to6001.sernum);
 	INT8S result = 0;
 
 	return result;
@@ -228,7 +230,7 @@ INT8U deal6015_singlemeter(CLASS_6015 st6015,BasicInfo6001 obj6001)
  * */
 INT8U readList6001FromFile(BasicInfo6001* list6001,INT16U groupIndex,int recordnum)
 {
-	INT16U		oi = 0x6001;
+	INT16U		oi = 0x6000;
 	INT8U result = 0;
 	INT8U mIndex = 0;
 	int endIndex;
@@ -251,13 +253,16 @@ INT8U readList6001FromFile(BasicInfo6001* list6001,INT16U groupIndex,int recordn
 			{
 				if(meter.basicinfo.port.OI == 0xF201)
 				{
-					fprintf(stderr,"\n序号:%d ",meter.sernum);
-
+					list6001[mIndex%LIST6001SIZE].sernum = meter.sernum;
 					list6001[mIndex%LIST6001SIZE].port = S4851;
 					list6001[mIndex%LIST6001SIZE].baud = meter.basicinfo.baud;
 					list6001[mIndex%LIST6001SIZE].protocol = meter.basicinfo.protocol;
 					memcpy(&list6001[mIndex%LIST6001SIZE].addr,&meter.basicinfo.addr,sizeof(TSA));
-					memcpy(&list6001[mIndex%LIST6001SIZE].addr,&meter.basicinfo.addr,sizeof(TSA));
+					fprintf(stderr,"\n -------readList6001FromFile-------");
+					fprintf(stderr,"\n序号:%d %02x%02x%02x%02x%02x%02x ",meter.sernum,
+							list6001[mIndex%LIST6001SIZE].addr[0],list6001[mIndex%LIST6001SIZE].addr[1],
+			                list6001[mIndex%LIST6001SIZE].addr[2],list6001[mIndex%LIST6001SIZE].addr[3],
+			                list6001[mIndex%LIST6001SIZE].addr[4],list6001[mIndex%LIST6001SIZE].addr[5]);
 				}
 				else
 				{
@@ -273,15 +278,16 @@ INT8U readList6001FromFile(BasicInfo6001* list6001,INT16U groupIndex,int recordn
 /*
  * 处理一个普通采集方案
  * */
-INT8U deal6015(CLASS_6015 st6015)
+INT8U deal6015(CLASS_6015 st6015,INT8U port485)
 {
 	INT8U result = 0;
 	BasicInfo6001 list6001[LIST6001SIZE];
+
 	int recordnum = 0;
 	//全部电表
 	if(st6015.ms.allmeter_null == 1)
 	{
-		INT16U		oi = 0x6001;
+		INT16U		oi = 0x6000;
 		recordnum = getFileRecordNum(oi);
 		if(recordnum == -1)
 		{
@@ -292,7 +298,7 @@ INT8U deal6015(CLASS_6015 st6015)
 			fprintf(stderr,"采集档案表不是整数，检查文件完整性！！！\n");
 			return result;
 		}
-
+		fprintf(stderr,"\n deal6015 recordnum = %d ",recordnum);
 		/*
 		 * 根据st6015.csd 和 list6001抄表
 		 * */
@@ -301,11 +307,15 @@ INT8U deal6015(CLASS_6015 st6015)
 		INT8U mpIndex;
 		for(groupindex = 0;groupindex < groupNum;groupindex++)
 		{
-			memset(list6001,0,sizeof(list6001));
+			memset(list6001,0,LIST6001SIZE*sizeof(BasicInfo6001));
 			result = readList6001FromFile(list6001,groupindex,recordnum);
 			for(mpIndex = 0;mpIndex < LIST6001SIZE;mpIndex++)
 			{
-				deal6015_singlemeter(to6015,list6001[mpIndex]);
+				if(list6001[mpIndex].sernum > 0)
+				{
+					deal6015_singlemeter(to6015,list6001[mpIndex]);
+				}
+
 			}
 		}
 
@@ -590,11 +600,11 @@ INT8U cmpTaskPrio(INT16U taskIndex1,INT16U taskIndex2)
 {
 	if(list6013[taskIndex1].basicInfo.interval.units > list6013[taskIndex2].basicInfo.interval.units)
 	{
-		return 2;
+		return 1;
 	}
 	if(list6013[taskIndex1].basicInfo.interval.units < list6013[taskIndex2].basicInfo.interval.units)
 	{
-		return 1;
+		return 2;
 	}
 	if((getTaskReadRounds(taskIndex1) - list6013[taskIndex1].last_round) >
 	(getTaskReadRounds(taskIndex2) - list6013[taskIndex2].last_round))
@@ -814,7 +824,7 @@ void read485_thread(void* i485port)
 			DataTimeGet(&result6035.starttime);
 
 			ret = use6013find6015(taskID,&to6015);
-			ret = deal6015(to6015);
+			ret = deal6015(to6015,port);
 			DataTimeGet(&result6035.endtime);
 			result6035.taskState = AFTER_OPR;
 
@@ -848,7 +858,7 @@ void read485_proccess()
 
 
 	INT8U i485port1 = 1;
-	//INT8U i485port2 = 2;
+	INT8U i485port2 = 2;
 	pthread_attr_init(&read485_attr_t);
 	pthread_attr_setstacksize(&read485_attr_t,2048*1024);
 	pthread_attr_setdetachstate(&read485_attr_t,PTHREAD_CREATE_DETACHED);
@@ -856,11 +866,11 @@ void read485_proccess()
 	{
 		sleep(1);
 	}
-#if 0
+
 	while ((thread_read4852_id=pthread_create(&thread_read4852, &read485_attr_t, (void*)read485_thread, &i485port2)) != 0)
 	{
 		sleep(1);
 	}
-#endif
+
 }
 
