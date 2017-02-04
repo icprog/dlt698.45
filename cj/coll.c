@@ -206,7 +206,7 @@ void Task6013(int argc, char *argv[])
 					taskid = i;
 	//				fprintf(stderr,"taskid=%d\n",taskid);
 					memset(&class6013,0,sizeof(CLASS_6013));
-					if(readCoverClass(oi,taskid,&class6013,coll_para_save)== -1) {
+					if(readCoverClass(oi,taskid,&class6013,sizeof(class6013),coll_para_save)== -1) {
 //						fprintf(stderr,"任务ID=%d 无任务配置单元",taskid);
 					}else {
 						print6013(class6013);
@@ -215,9 +215,9 @@ void Task6013(int argc, char *argv[])
 			}else if(argc==5) {
 				sscanf(argv[4],"%04x",&tmp[0]);
 				taskid = tmp[0];
-//				fprintf(stderr,"taskid=%d\n",taskid);
+				fprintf(stderr,"taskid=%d\n",taskid);
 				memset(&class6013,0,sizeof(CLASS_6013));
-				if(readCoverClass(oi,taskid,&class6013,coll_para_save)== -1) {
+				if(readCoverClass(oi,taskid,&class6013,sizeof(class6013),coll_para_save)== -1) {
 					fprintf(stderr,"无任务配置单元");
 				}else {
 					print6013(class6013);
@@ -353,7 +353,7 @@ void Task6015(int argc, char *argv[])
 				for(i=0;i<=255;i++) {
 					taskid = i;
 					memset(&class6015,0,sizeof(CLASS_6015));
-					if(readCoverClass(oi,taskid,&class6015,coll_para_save)== -1) {
+					if(readCoverClass(oi,taskid,&class6015,sizeof(CLASS_6015),coll_para_save)== -1) {
 //						fprintf(stderr,"任务ID=%d 无任务配置单元",taskid);
 					}else {
 						print6015(class6015);
@@ -369,7 +369,7 @@ void coll_process(int argc, char *argv[])
 	int 	tmp=0;
 	OI_698	oi=0;
 
-	if(argc>=2) {	//para pro 6000
+	if(argc>=2) {	//coll pro 6000
 		if(strcmp(argv[1],"coll")==0) {
 			sscanf(argv[3],"%04x",&tmp);
 			oi = tmp;

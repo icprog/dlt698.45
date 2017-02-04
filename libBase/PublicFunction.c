@@ -133,6 +133,15 @@ void* OpenShMem(char* shname,int memsize,void* pmem)
 
 }
 
+void  shmm_unregister(char* shname,int memsize)
+{
+	if(shname != NULL)
+	{
+		munmap(shname,memsize);
+		shname = NULL;
+	}
+}
+
 void Setsig(struct sigaction *psa,void (*pfun)(ProjectInfo *proinfo))
 {
 	if (psa!=NULL)
@@ -466,5 +475,46 @@ int GetRealdataReq_data(RealdataReq* req,TRANSTYPE* data,INT16U ticket)
     return stat;
 }
 
+/*
+ * 功能：在/dev/shm目录下创建信号量描述文件，如果已经存在同名的文件，则先删除，然后在创建。
+ *
+ * 输入：
+ * name：为命名信号量的名称。
+ * flag：1 或者 0
+ *
+ * 返回：如果信号量创建成功，则返回信号量句柄
+ */
+sem_t* create_named_sem(const char* name, int flag)
+{
+    sem_t* fd;
+    if (name != NULL) {
+        sem_unlink(name);
+        fd = sem_open(name, O_CREAT, O_RDWR, flag);
+        if (fd != SEM_FAILED)
+            return fd;
+    }
+    return NULL;
+}
 
+/*
+ * 功能：打开一个命名信号量
+ *
+ * 输入
+ * name：命名信号量文件名
+ *
+ * 返回
+ * 成功：返回信号量句柄
+ * 失败：返回空
+ */
+
+sem_t* open_named_sem(const char* name)
+{
+    sem_t* fd;
+    if (name != NULL) {
+        fd = sem_open(name, O_RDWR);
+        if (fd != SEM_FAILED)
+            return fd;
+    }
+    return NULL;
+}
 #endif /*JPublicFunctionH*/

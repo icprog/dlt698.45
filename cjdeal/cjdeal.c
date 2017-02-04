@@ -1,18 +1,22 @@
 ﻿#include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include <unistd.h>
-#include <sys/mman.h>
+#include <time.h>
 #include <signal.h>
 #include <pthread.h>
-#include "sys/reboot.h"
 #include <wait.h>
 #include <errno.h>
+#include <syslog.h>
+#include <sys/mman.h>
+#include <sys/reboot.h>
+#include <bits/types.h>
 
-#include "rnspi.h"
 #include "cjdeal.h"
 #include "read485.h"
 #include "readplc.h"
 #include "guictrl.h"
+#include "acs.h"
 
 /*********************************************************
  *程序入口函数-----------------------------------------------------------------------------------------------------------
@@ -39,17 +43,14 @@ int InitPro(ProgramInfo** prginfo, int argc, char *argv[])
 	}
 	return 0;
 }
+
+
 /********************************************************
  * 载入档案、参数
  ********************************************************/
 int InitPara()
 {
-
-	if(check_id_rn8209() == 1)
-	{
-		init_run_env_rn8209(0);		//RN8209初始化
-		fprintf(stderr, "RN8209 初始化成功！\n");
-	}
+	InitACSPara();
 
 	return 0;
 }
@@ -69,18 +70,18 @@ int main(int argc, char *argv[])
 
 	//载入档案、参数
 	InitPara();
-	//485、四表合一
-	read485_proccess();
-	//载波
-	readplc_proccess();
-	//液晶、控制
-	guictrl_proccess();
+//	//485、四表合一
+//	read485_proccess();
+//	//载波
+//	readplc_proccess();
+//	//液晶、控制
+//	guictrl_proccess();
 
 	while(1)
    	{
 		//交采、状态、统计处理
 		DealACS();
-		DealState();
+		//DealState();  TODO：时间要求可能不满足
 
 		usleep(10 * 1000);
 

@@ -72,7 +72,7 @@ int delClassBySeq(OI_698 oi,void *blockdata,int seqnum)
 	}
 	if(blockdata==NULL) {
 		blockdata = malloc(class_info[infoi].unit_len);
-		if(blockdata!=NULL) {extern int	readInterClass(OI_698 oi,void *dest);
+		if(blockdata!=NULL) {
 			memset(blockdata,0,class_info[infoi].unit_len);
 		}
 	}
@@ -232,6 +232,8 @@ int saveCoverClass(OI_698 oi,INT16U seqno,void *blockdata,int savelen,int type)
 	switch(type) {
 	case event_para_save:
 	case coll_para_save:
+	case acs_coef_save:
+	case acs_energy_save:
 //		fprintf(stderr,"saveEventClass file=%s ",fname);
 		ret = save_block_file(fname,blockdata,savelen,0,0);
 		break;
@@ -244,31 +246,49 @@ int saveCoverClass(OI_698 oi,INT16U seqno,void *blockdata,int savelen,int type)
 }
 
 /*
- * 输入参数：	oi:对象标识，seqno:记录序号，blockdata:存储数据，savelen：存储长度，
+ * 输入参数：	oi:对象标识，seqno:记录序号，
  * 			type：存储类型【	根据宏定义SaveFile_type 】
- * 返回值：=1：文件存储成功
- * =-1: 文件不存在
+ * 返回值：相关对象标识的类的存储文件长度
+ * =-1: 无效数据
  */
-int readCoverClass(OI_698 oi,INT16U seqno,void *blockdata,int type)
+int getClassFileLen(OI_698 oi,INT16U seqno,int type)
 {
-	int		ret = 0;
-	int		filelen = 0;
+	int		filelen = -1;
 	char	fname[FILENAMELEN]={};
 
 	memset(fname,0,sizeof(fname));
 	getFileName(oi,seqno,type,fname);
 	filelen = getFileLen(fname);
+	return filelen;
+}
+/*
+ * 输入参数：	oi:对象标识，seqno:记录序号，blockdata:存储数据，savelen：存储长度，
+ * 			type：存储类型【	根据宏定义SaveFile_type 】
+ * 返回值：=1：文件存储成功
+ * =-1: 文件不存在
+ */
+int readCoverClass(OI_698 oi,INT16U seqno,void *blockdata,int datalen,int type)
+{
+	int		ret = 0;
+	char	fname[FILENAMELEN]={};
+
 	switch(type) {
 	case event_para_save:
 	case coll_para_save:
+	case acs_coef_save:
+	case acs_energy_save:
 //		fprintf(stderr,"readEventClass %s filelen=%d\n",fname,filelen);
-		if(filelen<=2)	return -1;
-		ret = block_file_sync(fname,blockdata,filelen-2,0,0);
+		memset(fname,0,sizeof(fname));
+		getFileName(oi,seqno,type,fname);
+		if(datalen<=2)	return -1;
+		ret = block_file_sync(fname,blockdata,datalen-2,0,0);	//返回数据去掉CRC校验的两个字节
 	break;
 	case event_record_save:
 	case event_current_save:
-		if(filelen==0)	return -1;
-		ret = readCoverFile(fname,blockdata,filelen);
+		memset(fname,0,sizeof(fname));
+		getFileName(oi,seqno,type,fname);
+		if(datalen==0)	return -1;
+		ret = readCoverFile(fname,blockdata,datalen);
 		break;
 	}
 	return ret;
