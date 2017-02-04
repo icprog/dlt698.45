@@ -283,7 +283,7 @@ typedef struct
 
 typedef struct
 {
-	Time_Units 	units;
+	INT8U 	units;
 	INT16U  interval;
 }TI;					/*时间间隔数据类型*/
 typedef struct

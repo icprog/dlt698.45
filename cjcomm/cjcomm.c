@@ -97,11 +97,23 @@ void Comm_task(CommBlock* compara) {
 }
 
 INT8S ComWrite(int fd, INT8U* buf, INT16U len) {
+    int j=0;
+    fprintf(stderr,"NET SEND:\n");
+    for (j = 0; j < len; j++) {
+        fprintf(stderr,"%02x ",buf[j]);
+    }
+    printf("\n");
     return write(fd, buf, len);
 }
 
 INT8S NetWrite(int fd, INT8U* buf, INT16U len) {
-    return anetWrite(fd, buf, len);
+    int j=0;
+    fprintf(stderr,"NET SEND:\n");
+    for (j = 0; j < len; j++) {
+        fprintf(stderr,"%02x ",buf[j]);
+    }
+    printf("\n");
+	return anetWrite(fd, buf, len);
 }
 
 void initComPara(CommBlock* compara) {
@@ -253,6 +265,7 @@ int NETWorker(struct aeEventLoop* ep, long long id, void* clientData) {
 
     if (nst->phy_connect_fd <= 0) {
         initComPara(nst);
+        fprintf(stderr,"\nIPaddr:%s",IPaddr);
         nst->phy_connect_fd = anetTcpConnect(NULL, IPaddr, 5022);
         if (nst->phy_connect_fd > 0) {
             rlog("[NETWorker]Connect Server(%d)\n", nst->phy_connect_fd);
@@ -596,7 +609,7 @@ void* ATWorker(void* args) {
 
         while (1) {
             delay(1000);
-            printf("wait for error.\n");
+//            printf("wait for error.\n");
         }
 
     err:
@@ -659,6 +672,7 @@ int main(int argc, char* argv[]) {
     if (access("/nand/mlog", F_OK) == -1) {
         system("mkdir /nand/mlog");
     }
+    printf("testing\n");
 
     if (InitPro(argc, argv) == 0) {
         fprintf(stderr, "[CJ-COMM]通信进程进程参数错误\n");

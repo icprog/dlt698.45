@@ -10,3 +10,4 @@ vmsgr/*
 !.project
 !.cproject
 !*.cfg
+cjtest/

@@ -167,7 +167,8 @@ void print6013(CLASS_6013 class6013)
 	fprintf(stderr,"[6]%s-%d ",getenum(task_ti,class6013.delay.units),class6013.delay.interval);
 	fprintf(stderr,"[7]%s  ",getenum(task_prio,class6013.runprio));
 	fprintf(stderr,"[8]%s  [9]%d  [10]%d ",getenum(task_status,class6013.state),class6013.befscript,class6013.aftscript);
-	fprintf(stderr,"[11]%s [%d:%d %d:%d] ",getenum(task_runtime,class6013.runtime.type),class6013.runtime.runtime[0],class6013.runtime.runtime[1],class6013.runtime.runtime[2],class6013.runtime.runtime[3]);
+	fprintf(stderr,"[11]%s [%d:%d %d:%d] ",getenum(task_runtime,class6013.runtime.type),class6013.runtime.runtime[0].beginHour,
+			class6013.runtime.runtime[0].beginMin,class6013.runtime.runtime[0].endHour,class6013.runtime.runtime[0].endMin);
 	fprintf(stderr,"\n");
 }
 
@@ -285,10 +286,10 @@ void Task6013(int argc, char *argv[])
 				pi++;
 				po++;
 				sscanf(argv[pi],"%d:%d-%d:%d",&tmp[po],&tmp[po+1],&tmp[po+2],&tmp[po+3]);
-				class6013.runtime.runtime[0]=tmp[po];
-				class6013.runtime.runtime[1]=tmp[po+1];
-				class6013.runtime.runtime[2]=tmp[po+2];
-				class6013.runtime.runtime[3]=tmp[po+3];
+				class6013.runtime.runtime[0].beginHour=tmp[po];
+				class6013.runtime.runtime[0].beginMin=tmp[po+1];
+				class6013.runtime.runtime[0].endHour=tmp[po+2];
+				class6013.runtime.runtime[0].endMin=tmp[po+3];
 				pi++;
 				po=po+4;
 				saveCoverClass(oi,class6013.taskID,&class6013,sizeof(CLASS_6013),coll_para_save);

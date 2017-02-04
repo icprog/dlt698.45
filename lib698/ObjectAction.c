@@ -100,6 +100,15 @@ void get_BasicUnit(INT8U *source,INT16U *sourceindex,INT8U *dest,INT16U *destind
 			fprintf(stderr,"\n		结构体 %d  元素",strnum);
 			size = 1;
 			break;
+		case 0x06: //double-long-unsigned
+			size = 4;
+			dest[0] = source[4];
+			dest[1] = source[3];
+			dest[2] = source[2];
+			dest[3] = source[1];
+			if (dest_sumindex ==0)
+				dest_sumindex = size;
+			break;
 		case 0x12://long unsigned
 			size = 2;
 			dest[0]= source[2];
@@ -151,6 +160,18 @@ void get_BasicUnit(INT8U *source,INT16U *sourceindex,INT8U *dest,INT16U *destind
 				dest_sumindex = size;
 			fprintf(stderr,"\n		unsigned %02x",source[1]);
 			break;
+		case 0x1c://DateTimeBCD
+			dest[1] = source[1];//年
+			dest[0] = source[2];
+			dest[2] = source[3];//月
+			dest[3] = source[4];//日
+			dest[4] = source[5];//时
+			dest[5] = source[6];//分
+			dest[6] = source[7];//秒
+			size  = 7;
+			if (dest_sumindex ==0)
+				dest_sumindex = size;
+			break;
 		case 0x51://OAD
 			size = 4;
 			dest[0]= source[2];
@@ -168,34 +189,34 @@ void get_BasicUnit(INT8U *source,INT16U *sourceindex,INT8U *dest,INT16U *destind
 			size = size + 1;
 			break;
 		case 0x54://TI
+			dest[0] = source[1];//单位
+			dest[2] = source[2];//long unsigned数值
+			dest[1] = source[3];
+			size = 3;
+			if (dest_sumindex ==0)
+				dest_sumindex = 3;
 			break;
     	case 0x5B://CSD
 			choicetype = source[1];
 			if (choicetype == 1)
 			{//road
-				dest[0] = choicetype;
-				memcpy(&dest[1],&source[2],4);
-				dest[1] = source[3];
-				dest[2] = source[2];
-				dest[3] = source[4];
-				dest[4] = source[5];
-//				fprintf(stderr,"\nsour %02x %02x %02x %02x",source[2],source[3],source[4],source[5]);
-//				fprintf(stderr,"\ndest %02x %02x %02x %02x",dest[1],dest[2],dest[3],dest[4]);
+			//	dest[0] = choicetype;
+				//	memcpy(&dest[1],&source[2],4);
+				dest[0] = source[3];
+				dest[1] = source[2];
+				dest[2] = source[4];
+				dest[3] = source[5];
 				int numm = source[6];//SEQUENCE 0F OAD 数量
 				fprintf(stderr,"\nnumm=%d",numm);
 				for(int k=0;k<numm;k++)
 				{
-					dest[5+k*4+0] = source[7+k*4+1];
-					dest[5+k*4+1] = source[7+k*4+0];
-					dest[5+k*4+2] = source[7+k*4+2];
-					dest[5+k*4+3] = source[7+k*4+3];
+					dest[4+k*4+0] = source[7+k*4+1];		//dest[5+k*4+0] = source[7+k*4+1];
+					dest[4+k*4+1] = source[7+k*4+0];
+					dest[4+k*4+2] = source[7+k*4+2];
+					dest[4+k*4+3] = source[7+k*4+3];
 //					memcpy(&dest[5],&source[7],numm*4);
 				}
-				fprintf(stderr,"\n%02x %02x %02x %02x ",source[7],source[8],source[9],source[10]);
-				fprintf(stderr,"\n%02x %02x %02x %02x ",source[11],source[12],source[13],source[14]);
-				fprintf(stderr,"\n%02x %02x %02x %02x ",source[15],source[16],source[17],source[18]);
 				size =1+ 4+ 1 + numm*4;
-				//fprintf(stderr,"\nnumm = %d",numm);
 			}else
 			{//oad  6字节
 				dest[0] = choicetype;
@@ -284,10 +305,12 @@ void AddCjiFangAnInfo(INT8U *data)
 		fprintf(stderr,"\n存储深度 ：%d ",fangAn.deepsize);
 		fprintf(stderr,"\n采集类型 ：%d ",fangAn.cjtype);
 		fprintf(stderr,"\n采集内容(data) 类型：%02x  data=%d",fangAn.data.type,fangAn.data.data[0]);
-		fprintf(stderr,"\n记录列选择（数组）CSD chioce=%d\n",fangAn.csdtype);
-//		buf = (INT8U *)&fangAn.csd[0].type;
+
+//		fprintf(stderr,"\n记录列选择（数组）CSD chioce=%d\n",fangAn.);
+		buf = (INT8U *)&fangAn.csd[0];
+		fprintf(stderr,"csd: ");
 		for(int i=0;i<20;i++)
-			fprintf(stderr,"%02x ",buf[i]);
+			fprintf(stderr,"  %02x ",buf[i]);
 		fprintf(stderr,"\n%04x %02x %02x",fangAn.csd[0].road.oad.OI,fangAn.csd[0].road.oad.attflg,fangAn.csd[0].road.oad.attrindex);
 		fprintf(stderr,"\n%04x %02x %02x ",fangAn.csd[0].road.oads[0].OI,fangAn.csd[0].road.oads[0].attflg,fangAn.csd[0].road.oads[0].attrindex);
 		fprintf(stderr,"\n%04x %02x %02x ",fangAn.csd[0].road.oads[1].OI,fangAn.csd[0].road.oads[1].attflg,fangAn.csd[0].road.oads[1].attrindex);
@@ -327,6 +350,18 @@ void AddTaskInfo(INT8U *data)
 	{
 		memset(&task,0,sizeof(task));
 		get_BasicUnit(&data[2]+source_sumindex,&source_index,(INT8U *)&task.taskID,&dest_index);
+
+		fprintf(stderr,"\n任务 ID=%d",task.taskID);
+		fprintf(stderr,"\n执行频率 单位=%d   value=%d",task.interval.units,task.interval.interval);
+		fprintf(stderr,"\n方案类型 =%d",task.cjtype);
+		fprintf(stderr,"\n方案序号 =%d",task.sernum);
+		fprintf(stderr,"\n开始时间 =%d年 %d月 %d日 %d时 %d分 %d秒 ",task.startime.year.data,task.startime.month.data,task.startime.day.data,task.startime.hour.data,task.startime.min.data,task.startime.sec.data);
+		fprintf(stderr,"\n结束时间 =%d年 %d月 %d日 %d时 %d分 %d秒 ",task.endtime.year.data,task.endtime.month.data,task.endtime.day.data,task.endtime.hour.data,task.endtime.min.data,task.endtime.sec.data);
+		fprintf(stderr,"\n优先级别 =%d",task.runprio);
+		fprintf(stderr,"\n任务状态 =%d",task.state);
+		fprintf(stderr,"\n运行时段类型 =%02x",task.runtime.type);
+		fprintf(stderr,"\n开始  %d时 %d分  ",task.runtime.runtime[0].beginHour,task.runtime.runtime[0].beginMin);
+		fprintf(stderr,"\n结束  %d时 %d分  ",task.runtime.runtime[0].endHour,task.runtime.runtime[0].endMin);
 		source_sumindex += source_index;
 		dest_sumindex += dest_index;
 

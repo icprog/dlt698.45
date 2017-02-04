@@ -12,6 +12,12 @@
 #include "ParaDef.h"
 #define LIB698_VER 	1
 
+extern int doObjectAction();
+extern int doActionReponse(int reponse,CSINFO *csinfo,PIID piid,OMD omd,int dar,INT8U *data,INT8U *buf);
+extern int getRequestNormal(OAD oad,INT8U *data);
+extern int setRequestNormal(INT8U *data,OAD oad,CSINFO *csinfo,INT8U *buf);
+extern int setRequestNormalList(INT8U *Object,CSINFO *csinfo,INT8U *buf);
+
 extern unsigned short tryfcs16(unsigned char *cp, int  len);
 INT8S (*pSendfun)(int fd,INT8U* sndbuf,INT16U sndlen);
 int comfd = 0;
@@ -321,12 +327,18 @@ int doSetAttribute(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 {
 	PIID piid={};
 	INT8U setType = apdu[1];
+	OAD oad={};
+	INT8U *data=NULL;
 	piid.data = apdu[2];
+	oad.OI = (apdu[3]<<8) | apdu[4];
+	oad.attflg = apdu[5];
+	oad.attrindex = apdu[6];
+	data = &apdu[7];					//Data
 
 	switch(setType)
 	{
 		case SET_REQUEST_NORMAL:
-			setRequestNormal(&apdu[3],csinfo,buf);
+			setRequestNormal(data,oad,csinfo,buf);
 			break;
 		case SET_REQUEST_NORMAL_LIST:
 			setRequestNormalList(&apdu[3],csinfo,buf);
@@ -341,20 +353,25 @@ int doGetAttribute(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 {
 	PIID piid={};
 	INT8U getType = apdu[1];
+	OAD oad={};
+	INT8U *data=NULL;
 	// 1,GetRequestNormal ; 2,GetRequestNormalList  3,GetRequestRecord  4,GetRequestRecordList,GetRequestNext
 
 	piid.data = apdu[2];
 	fprintf(stderr,"\n- get type = %d PIID=%02x",getType,piid.data);
-
+	oad.OI = (apdu[3]<<8) | apdu[4];
+	oad.attflg = apdu[5];
+	oad.attrindex = apdu[6];
+	data = &apdu[7];					//Data
 	switch(getType)
 	{
 		case GET_REQUEST_NORMAL:
-			getRequestNormal(&apdu[3],csinfo,buf);
+			getRequestNormal(oad,data);
 			break;
 		case GET_REQUEST_NORMAL_LIST:
 			break;
 		case GET_REQUEST_RECORD:
-			getRequestRecord(&apdu[3],csinfo,buf);
+//			getRequestRecord(&apdu[3],csinfo,buf);
 			break;
 		case GET_REQUEST_RECORD_LIST:
 			break;

@@ -70,19 +70,18 @@ int main(int argc, char *argv[])
 
 	//载入档案、参数
 	InitPara();
-//	//485、四表合一
-//	read485_proccess();
-//	//载波
-//	readplc_proccess();
-//	//液晶、控制
-//	guictrl_proccess();
+	//485、四表合一
+	read485_proccess();
+	//载波
+	//readplc_proccess();
+	//液晶、控制
+	//guictrl_proccess();
 
 	while(1)
    	{
 		//交采、状态、统计处理
 		DealACS();
 		//DealState();  TODO：时间要求可能不满足
-
 		usleep(10 * 1000);
 
    	}
