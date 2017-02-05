@@ -90,6 +90,9 @@ void get_BasicUnit(INT8U *source,INT16U *sourceindex,INT8U *dest,INT16U *destind
 	}
 	switch (type)
 	{
+		case 0x00:
+			dest[0] = 0;//Data类型 0x00为NULL
+			break;
 		case 0x01:	//array
 			strnum = source[1];
 			fprintf(stderr,"\n数组个数-%d",strnum);
@@ -394,8 +397,7 @@ void AddTaskInfo(INT8U *data)
 		fprintf(stderr,"\n结束  %d时 %d分  ",task.runtime.runtime[0].endHour,task.runtime.runtime[0].endMin);
 		source_sumindex += source_index;
 		dest_sumindex += dest_index;
-
-		saveflg = saveParaClass(0x6012,(unsigned char*)&task,task.sernum);
+		saveflg = saveCoverClass(0x6012,task.taskID,&task,sizeof(task),coll_para_save);
 		if (saveflg==1)
 			fprintf(stderr,"\n采集任务 %d 保存成功",task.sernum);
 		else
@@ -450,7 +452,8 @@ void EventCjFangAnInfo(INT16U attr_act,INT8U *data)
 	//		DeleteEventCjFangAn(data[1]);
 			break;
 		case 129:	//方法 129:Clear( )
-	//		ClearEventCjFangAn();
+			fprintf(stderr,"\n清空事件采集方案");
+			clearClass(0x6016);
 			break;
 		case 130:	//方法 130:Set_CSD(方案编号,array CSD)
 	//		UpdateReportFlag(data);
@@ -465,8 +468,12 @@ void TaskInfo(INT16U attr_act,INT8U *data)
 			AddTaskInfo(data);
 			break;
 		case 128://方法 128:Delete(array任务 ID )
+
+			deleteClass(0x6012,1);
 			break;
 		case 129://方法 129:Clear()
+			fprintf(stderr,"\n清空采集任务配置表");
+			clearClass(0x6012);
 			break;
 	}
 }
