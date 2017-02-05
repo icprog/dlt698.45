@@ -361,7 +361,6 @@ INT8U deal6015(CLASS_6015 st6015,INT8U port485)
 //}
 
 
-
 //时间在任务开始结束时间段内 0:任务开始 1：任务不执行
 INT8U time_in_round(CLASS_6013 from6012_curr)
 {

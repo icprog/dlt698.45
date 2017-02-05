@@ -48,6 +48,7 @@ int InitPro(int argc, char* argv[]) {
     return 0;
 }
 
+
 void WriteLinkRequest(INT8U link_type, INT16U heartbeat, LINK_Request* link_req) {
     TS ts = {};
     TSGet(&ts);

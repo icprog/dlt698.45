@@ -363,7 +363,6 @@ int doGetAttribute(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 	oad.attflg = apdu[5];
 	oad.attrindex = apdu[6];
 	data = &apdu[7];					//Data
-
 	switch(getType)
 	{
 		case GET_REQUEST_NORMAL:

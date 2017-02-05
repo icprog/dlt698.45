@@ -163,32 +163,26 @@ INT8U Event_FindTsa(TSA tsa) {
     }
     return 0;
 }
-/*
- * 获取文件内容大小,事件记录文件大小不同，只能读取整个大小
- */
-INT32U get_file_size(const char *filename){
 
-	INT32U size;
-    FILE* fp = fopen( filename, "rb" );
-    if(fp==NULL){
-        return 0;
-    }
-    fseek( fp, 0L, SEEK_END );
-    size=ftell(fp);
-    fclose(fp);
-    return size;
-}
 /*
  * 根据参数读取事件记录文件
  */
-INT8U Get_Event(OI_698 oi,INT8U eventno,INT8U** Getbuf,INT8U *Getlen){
-	//获取事件记录文件
-	INT8U filename[128];
-	getFileName(oi,eventno,2,(char*)filename);
-	INT32U filesize=get_file_size((const char*)filename);
+INT8U Get_Event(OI_698 oi,INT8U eventno,INT8U** Getbuf,INT8U *Getlen)
+{
+	int filesize=0;
+
+	filesize = getClassFileLen(oi,eventno,event_record_save);
+	if(filesize<=0)  return 0;
 	*Getlen=filesize;
 	*Getbuf=(INT8U*)malloc(filesize);
-	readCoverFile((char*)filename,*Getbuf,filesize);
+	readCoverClass(oi,eventno,*Getbuf,*Getlen,event_record_save);
+//	//获取事件记录文件
+//	INT8U filename[128];
+//	getFileName(oi,eventno,2,(char*)filename);
+//	INT32U filesize=get_file_size((const char*)filename);
+//	*Getlen=filesize;
+//	*Getbuf=(INT8U*)malloc(filesize);
+//	readCoverFile((char*)filename,*Getbuf,filesize);
 	return 1;
 }
 /*
@@ -200,7 +194,7 @@ INT8U Need_Report(OI_698 oi,INT8U eventno){
     //报文链路层报文头部
     //此处根据698协议
     //从文件读取记录
-	INT8U *Getbuf;//因为记录为变长，只能采用二级指针，动态分配
+	INT8U *Getbuf=NULL;//因为记录为变长，只能采用二级指针，动态分配
 	INT8U Getlen=0;//记录长度
 	Get_Event(oi,eventno,(INT8U**)&Getbuf,&Getlen);
 	if(Getbuf!=NULL){

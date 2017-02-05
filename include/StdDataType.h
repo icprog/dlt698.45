@@ -314,7 +314,11 @@ typedef union
 	Region addr[32];
 	Region serial[32];
 }MS;
-
+typedef struct
+{
+	INT8U mstype;
+	MS ms;
+}MY_MS;
 typedef struct
 {
 	OI_698 OI;
@@ -416,6 +420,16 @@ typedef union
 	OAD  oad;	/*对象属性描述符*/
 	ROAD road;	/*记录型对象属性描述符*/
 }CSD;	/*列选择描述符*/
+typedef struct
+{
+	INT8U type;
+	CSD csd;
+}MY_CSD;
+typedef struct
+{
+	INT8U type;
+	MY_CSD csd[10];//CSD
+}CSD_ARRAYTYPE;
 
 typedef struct
 {

@@ -70,6 +70,19 @@ typedef struct
 	INT8U type;   			            //运行时段类型
 	TIMEPART runtime[24];       	        //时段表 0-3分别表示起始小时.分钟，结束小时.分钟
 }TASK_RUN_TIME;
+
+typedef struct
+{
+	INT8U 	hour;		//时
+	INT8U	min;		//分
+	INT8U	rateno;		//费率号
+}Day_Period;
+
+typedef struct
+{
+	Day_Period Period_Rate[MAX_PERIOD_RATE];
+}CLASS_4016;
+
 typedef struct
 {
 	INT8U taskID;		                //参数变量接口类逻辑名
@@ -93,8 +106,8 @@ typedef struct
 	INT16U deepsize;					//存储深度
 	INT8U  cjtype;						//采集类型
 	DATA_TYPE data;						//采集内容
-	CSD  csd[10];						//记录列选择 array CSD,
-	MS     ms;							//电能表集合
+	CSD_ARRAYTYPE csds;					//记录列选择 array CSD,
+	MY_MS  mst;							//电能表集合
 	INT8U  savetimeflag;				//存储时标选择 enum
 }CLASS_6015;//普通采集方案
 

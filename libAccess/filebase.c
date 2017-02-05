@@ -257,7 +257,7 @@ long getFileLen(char *filename)
     FILE* fp = fopen(filename, "rb" );
     if(fp==NULL){
 //        fprintf(stderr,"ERROR: Open file %s failed.\n", filename);
-        return 0;
+        return -1;
     }
     fseek( fp, 0L, SEEK_END );
     filesize=ftell(fp);
@@ -314,6 +314,8 @@ void getFileName(OI_698 oi,INT16U seqno,INT16U type,char *fname)
 	memset(fname,0,FILENAMELEN);
 	switch(type) {
 	case event_para_save:
+		sprintf(dirname,"%s",EVENTDIR);
+		makeSubDir(dirname);
 		sprintf(dirname,"%s",EVENT_PORP);
 		makeSubDir(dirname);
 		sprintf(dirname,"%s/%04x",EVENT_PORP,oi);
@@ -321,6 +323,8 @@ void getFileName(OI_698 oi,INT16U seqno,INT16U type,char *fname)
 		sprintf(fname,"%s/%04x/%04x.par",EVENT_PORP,oi,oi);
 		break;
 	case event_record_save:
+		sprintf(dirname,"%s",EVENTDIR);
+		makeSubDir(dirname);
 		sprintf(dirname,"%s",EVENT_REC);
 		makeSubDir(dirname);
 		sprintf(dirname,"%s/%04x",EVENT_REC,oi);
@@ -328,6 +332,8 @@ void getFileName(OI_698 oi,INT16U seqno,INT16U type,char *fname)
 		sprintf(fname,"%s/%04x/%d.dat",EVENT_REC,oi,seqno);
 		break;
 	case event_current_save:
+		sprintf(dirname,"%s",EVENTDIR);
+		makeSubDir(dirname);
 		sprintf(dirname,"%s",EVENT_CURR);
 		makeSubDir(dirname);
 		sprintf(dirname,"%s/%04x",EVENT_CURR,oi);
@@ -339,6 +345,14 @@ void getFileName(OI_698 oi,INT16U seqno,INT16U type,char *fname)
 		sprintf(fname,"/nand/para/%04x/",oi);
 		makeSubDir(fname);
 		sprintf(fname,"/nand/para/%04x/%d.par",oi,seqno);
+		break;
+	case acs_coef_save:
+		makeSubDir(_ACSDIR_);
+		sprintf(fname,"%s/accoe.par",_ACSDIR_);
+		break;
+	case acs_energy_save:
+		makeSubDir(_ACSDIR_);
+		sprintf(fname,"%s/energy.par",_ACSDIR_);
 		break;
 	}
 //	fprintf(stderr,"getFileName fname=%s\n",fname);
@@ -510,12 +524,13 @@ INT8U block_file_sync(char *fname,void *blockdata,int size,int headsize,int inde
 	INT16U  ret=0;
 
 //	fprintf(stderr,"\n read file :%s\n",fname);
-	if(fname==NULL) 	return 0;
+	if(fname==NULL || strlen(fname)<=4) 	return 0;
 
 	//文件默认最后两个字节为CRC16校验，原结构体尺寸如果不是4个字节对齐，进行补齐，加CRC16
 	if(size%4==0)	sizenew = size+2;
 	else sizenew = size+(4-size%4)+2;
 //	fprintf(stderr,"size=%d,sizenew=%d\n",size,sizenew);
+
 	blockdata1 = malloc(sizenew);
 	blockdata2 = malloc(sizenew);
 	memset(blockdata1,0,sizenew);
