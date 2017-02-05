@@ -63,7 +63,7 @@ typedef struct
 	INT8U beginHour;
 	INT8U beginMin;
 	INT8U endHour;
-	INT8U endMin
+	INT8U endMin;
 }TIMEPART;//时段
 typedef struct
 {

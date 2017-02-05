@@ -53,19 +53,19 @@ INT8U use6013find6015(INT16U taskID, CLASS_6015* st6015)
 	st6015->sernum = 1;
 	st6015->deepsize = 0x100;
 	st6015->cjtype = 1;
-	st6015->csd[0].type = 1;
-	st6015->csd[0].rcsd[0].oad.OI = 0x5004;
-	st6015->csd[0].rcsd[0].oad.attflg = 2;
-	st6015->csd[0].rcsd[0].oad.attrindex = 0;
-	st6015->csd[0].rcsd[0].oad.OI = 0x2021;
-	st6015->csd[0].rcsd[0].oad.attflg = 2;
-	st6015->csd[0].rcsd[0].oad.attrindex = 0;
-	st6015->csd[0].rcsd[1].oad.OI = 0x0010;
-	st6015->csd[0].rcsd[1].oad.attflg = 2;
-	st6015->csd[0].rcsd[1].oad.attrindex = 0;
-	st6015->csd[0].rcsd[2].oad.OI = 0x0020;
-	st6015->csd[0].rcsd[2].oad.attflg = 2;
-	st6015->csd[0].rcsd[2].oad.attrindex = 0;
+//	st6015->csd[0].type = 1;
+//	st6015->csd[0].rcsd[0].oad.OI = 0x5004;
+//	st6015->csd[0].rcsd[0].oad.attflg = 2;
+//	st6015->csd[0].rcsd[0].oad.attrindex = 0;
+//	st6015->csd[0].rcsd[0].oad.OI = 0x2021;
+//	st6015->csd[0].rcsd[0].oad.attflg = 2;
+//	st6015->csd[0].rcsd[0].oad.attrindex = 0;
+//	st6015->csd[0].rcsd[1].oad.OI = 0x0010;
+//	st6015->csd[0].rcsd[1].oad.attflg = 2;
+//	st6015->csd[0].rcsd[1].oad.attrindex = 0;
+//	st6015->csd[0].rcsd[2].oad.OI = 0x0020;
+//	st6015->csd[0].rcsd[2].oad.attflg = 2;
+//	st6015->csd[0].rcsd[2].oad.attrindex = 0;
 	st6015->ms.allmeter_null = 1;//所有电表
 	st6015->savetimeflag = 4;
 	return result;
@@ -260,9 +260,9 @@ INT8U readList6001FromFile(BasicInfo6001* list6001,INT16U groupIndex,int recordn
 					memcpy(&list6001[mIndex%LIST6001SIZE].addr,&meter.basicinfo.addr,sizeof(TSA));
 					fprintf(stderr,"\n -------readList6001FromFile-------");
 					fprintf(stderr,"\n序号:%d %02x%02x%02x%02x%02x%02x ",meter.sernum,
-							list6001[mIndex%LIST6001SIZE].addr[0],list6001[mIndex%LIST6001SIZE].addr[1],
-			                list6001[mIndex%LIST6001SIZE].addr[2],list6001[mIndex%LIST6001SIZE].addr[3],
-			                list6001[mIndex%LIST6001SIZE].addr[4],list6001[mIndex%LIST6001SIZE].addr[5]);
+							list6001[mIndex%LIST6001SIZE].addr.addr[0],list6001[mIndex%LIST6001SIZE].addr.addr[1],
+			                list6001[mIndex%LIST6001SIZE].addr.addr[2],list6001[mIndex%LIST6001SIZE].addr.addr[3],
+			                list6001[mIndex%LIST6001SIZE].addr.addr[4],list6001[mIndex%LIST6001SIZE].addr.addr[5]);
 				}
 				else
 				{
@@ -464,15 +464,26 @@ INT8U filterInvalidTask(INT16U taskIndex)
 		return 0;
 	}
 
-	if(time_in_round(list6013[taskIndex].basicInfo)==1)//不在抄表时段内
+	if(time_in_round(list6013[taskIndex].basicInfo)==1)//不在任务执行时段内
 	{
 		fprintf(stderr,"\n filterInvalidTask - 3");
 		return 0;
 	}
-
 	now_min = ts_now.Hour * 60 + ts_now.Minute;
-	min_start = list6013[taskIndex].basicInfo.runtime.runtime[0] * 60 + list6013[taskIndex].basicInfo.runtime.runtime[1];//前秒数
-	min_end = list6013[taskIndex].basicInfo.runtime.runtime[2] * 60 + list6013[taskIndex].basicInfo.runtime.runtime[3];//后秒数
+	INT8U timePartIndex = 0;
+	for(timePartIndex = 0;timePartIndex < 24;timePartIndex++)
+	{
+		min_start = list6013[taskIndex].basicInfo.runtime.runtime[timePartIndex].beginHour * 60
+				+ list6013[taskIndex].basicInfo.runtime.runtime[timePartIndex].beginMin;
+		min_end = list6013[taskIndex].basicInfo.runtime.runtime[timePartIndex].endHour * 60
+				+ list6013[taskIndex].basicInfo.runtime.runtime[timePartIndex].endMin;
+
+		if(min_start  <= min_end)
+		{
+
+		}
+	}
+
 
 	if(min_start >= min_end)//当日抄表时段无效
 	{
