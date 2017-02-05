@@ -213,7 +213,7 @@ void get_BasicUnit(INT8U *source,INT16U *sourceindex,INT8U *dest,INT16U *destind
 				fprintf(stderr,"\nnumm=%d",numm);
 				for(int k=0;k<numm;k++)
 				{
-					dest[4+k*4+0] = source[7+k*4+1];		//dest[5+k*4+0] = source[7+k*4+1];
+					dest[4+k*4+0] = source[7+k*4+1];
 					dest[4+k*4+1] = source[7+k*4+0];
 					dest[4+k*4+2] = source[7+k*4+2];
 					dest[4+k*4+3] = source[7+k*4+3];
@@ -227,13 +227,7 @@ void get_BasicUnit(INT8U *source,INT16U *sourceindex,INT8U *dest,INT16U *destind
 				dest[3] = source[4];
 				dest[4] = source[5];
 				size = 4+1;// 1： choicetype占用1个字节
-				fprintf(stderr,"\n%02x %02x %02x %02x ",dest[0],dest[1],dest[2],dest[3]);
-//				dest[0] = source[3];
-//				dest[1] = source[2];
-//				dest[2] = source[4];
-//				dest[3] = source[5];
-//				size = 4+1;// 1： choicetype占用1个字节
-//				fprintf(stderr,"\n%02x %02x %02x %02x ",dest[0],dest[1],dest[2],dest[3]);
+				fprintf(stderr,"\n%02x %02x %02x %02x ",dest[1],dest[2],dest[3],dest[4]);
 			}
 			if (dest_sumindex ==0)
 				dest_sumindex = sizeof(MY_CSD);
@@ -326,25 +320,26 @@ void AddCjiFangAnInfo(INT8U *data)
 		fprintf(stderr,"\n采集类型 ：%d ",fangAn.cjtype);
 		fprintf(stderr,"\n采集内容(data) 类型：%02x  data=%d",fangAn.data.type,fangAn.data.data[0]);
 		buf = (INT8U *)&fangAn.csds.type;
-		fprintf(stderr,"\ncsd: ");
-//		INT8U type=0,w;
-//		for(int i; i<10;i++)
-//		{
-//			type = fangAn.csds.csd[i].type;
-//			if (type==0)
-//			{
-//				fprintf(stderr,"\nOAD");
-//				fprintf(stderr,"\n%04x %02x %02x",fangAn.csds.csd[0].csd.oad.OI,fangAn.csds.csd[0].csd.oad.attflg,fangAn.csds.csd[0].csd.oad.attrindex);
-//			}else
-//			{
-//				fprintf(stderr,"\nROAD");
-//				fprintf(stderr,"\n		OAD-%04x %02x %02x",fangAn.csds.csd[0].csd.road.oad.OI,fangAn.csds.csd[0].csd.road.oad.attflg,fangAn.csds.csd[0].csd.road.oad.attrindex);
-//				for(w=0;w<10;w++)
-//				{
-//					fprintf(stderr,"\n		OAD-%04x %02x %02x",fangAn.csds.csd[0].csd.road.oads[w].OI,fangAn.csds.csd[0].csd.road.oads[w].attflg,fangAn.csds.csd[0].csd.road.oads[w].attrindex);
-//				}
-//			}
-//		}
+		fprintf(stderr,"\ncsd:");
+		INT8U type=0,w;
+		for(int i=0; i<10;i++)
+		{
+			type = fangAn.csds.csd[i].type;
+			if (type==0)
+			{
+				fprintf(stderr,"\nOAD");
+				fprintf(stderr,"\n%04x %02x %02x",fangAn.csds.csd[i].csd.oad.OI,fangAn.csds.csd[i].csd.oad.attflg,fangAn.csds.csd[i].csd.oad.attrindex);
+			}else if (type==1)
+			{
+				fprintf(stderr,"\nROAD");
+				fprintf(stderr,"\n		OAD-%04x %02x %02x",fangAn.csds.csd[i].csd.road.oad.OI,fangAn.csds.csd[i].csd.road.oad.attflg,fangAn.csds.csd[i].csd.road.oad.attrindex);
+				for(w=0;w<10;w++)
+				{
+					if (fangAn.csds.csd[i].csd.road.oads[w].OI!=0xeeee)
+						fprintf(stderr,"\n		OAD-%04x %02x %02x",fangAn.csds.csd[i].csd.road.oads[w].OI,fangAn.csds.csd[i].csd.road.oads[w].attflg,fangAn.csds.csd[0].csd.road.oads[w].attrindex);
+				}
+			}
+		}
 		fprintf(stderr,"\n电能表集合MS ：类型 %d (0:无表   1:全部   2:一组用户   3:一组用户地址   4:一组配置序号   )",fangAn.mst.mstype);
 		fprintf(stderr,"\n存储时标选择 ： %d (1:任务开始时间  2：相对当日0点0分  3:相对上日23点59分  4:相对上日0点0分  5:相对当月1日0点0分)",fangAn.savetimeflag);
 		fprintf(stderr,"\n");
