@@ -105,9 +105,9 @@ void read_harmgain_cfg()
 	}else {
 		fprintf(stderr,"无谐波补偿值配置文件，选择默认配置\n");
 	}
-	for(i=0;i<22;i++) {
-		fprintf(stderr,"交采谐波：次数：%d, 补偿值：%lf\n",i,HarmGainCoef[i]);
-	}
+//	for(i=0;i<22;i++) {
+//		fprintf(stderr,"交采谐波：次数：%d, 补偿值：%lf\n",i,HarmGainCoef[i]);
+//	}
 }
 
 

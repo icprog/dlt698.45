@@ -53,20 +53,20 @@ INT8U use6013find6015(INT16U taskID, CLASS_6015* st6015)
 	st6015->sernum = 1;
 	st6015->deepsize = 0x100;
 	st6015->cjtype = 1;
-	st6015->csd[0].type = 1;
-	st6015->csd[0].rcsd[0].oad.OI = 0x5004;
-	st6015->csd[0].rcsd[0].oad.attflg = 2;
-	st6015->csd[0].rcsd[0].oad.attrindex = 0;
-	st6015->csd[0].rcsd[0].oad.OI = 0x2021;
-	st6015->csd[0].rcsd[0].oad.attflg = 2;
-	st6015->csd[0].rcsd[0].oad.attrindex = 0;
-	st6015->csd[0].rcsd[1].oad.OI = 0x0010;
-	st6015->csd[0].rcsd[1].oad.attflg = 2;
-	st6015->csd[0].rcsd[1].oad.attrindex = 0;
-	st6015->csd[0].rcsd[2].oad.OI = 0x0020;
-	st6015->csd[0].rcsd[2].oad.attflg = 2;
-	st6015->csd[0].rcsd[2].oad.attrindex = 0;
-	st6015->ms.allmeter_null = 1;//所有电表
+//	st6015->csd[0].type = 1;
+//	st6015->csd[0].rcsd[0].oad.OI = 0x5004;
+//	st6015->csd[0].rcsd[0].oad.attflg = 2;
+//	st6015->csd[0].rcsd[0].oad.attrindex = 0;
+//	st6015->csd[0].rcsd[0].oad.OI = 0x2021;
+//	st6015->csd[0].rcsd[0].oad.attflg = 2;
+//	st6015->csd[0].rcsd[0].oad.attrindex = 0;
+//	st6015->csd[0].rcsd[1].oad.OI = 0x0010;
+//	st6015->csd[0].rcsd[1].oad.attflg = 2;
+//	st6015->csd[0].rcsd[1].oad.attrindex = 0;
+//	st6015->csd[0].rcsd[2].oad.OI = 0x0020;
+//	st6015->csd[0].rcsd[2].oad.attflg = 2;
+//	st6015->csd[0].rcsd[2].oad.attrindex = 0;
+//	st6015->ms.allmeter_null = 1;//所有电表
 	st6015->savetimeflag = 4;
 	return result;
 
@@ -279,13 +279,13 @@ INT8U deal6015(CLASS_6015 st6015)
 	BasicInfo6001 list6001[LIST6001SIZE];
 	int recordnum = 0;
 	//全部电表
-	if(st6015.ms.allmeter_null == 1)
+//	if(st6015.ms.allmeter_null == 1)
 	{
 		INT16U		oi = 0x6001;
 		recordnum = getFileRecordNum(oi);
 		if(recordnum == -1)
 		{
-			fprintf(stderr,"未找到OI=%04x的相关信息配置内容！！！\n",6000);
+			fprintf(stderr,"未找到OI=%04x的相关信息配置内容！！！\n",oi);
 			return result;
 		}else if(recordnum == -2)
 		{
@@ -460,8 +460,8 @@ INT8U filterInvalidTask(INT16U taskIndex)
 	}
 
 	now_min = ts_now.Hour * 60 + ts_now.Minute;
-	min_start = list6013[taskIndex].basicInfo.runtime.runtime[0] * 60 + list6013[taskIndex].basicInfo.runtime.runtime[1];//前秒数
-	min_end = list6013[taskIndex].basicInfo.runtime.runtime[2] * 60 + list6013[taskIndex].basicInfo.runtime.runtime[3];//后秒数
+//	min_start = list6013[taskIndex].basicInfo.runtime.runtime[0] * 60 + list6013[taskIndex].basicInfo.runtime.runtime[1];//前秒数
+//	min_end = list6013[taskIndex].basicInfo.runtime.runtime[2] * 60 + list6013[taskIndex].basicInfo.runtime.runtime[3];//后秒数
 
 	if(min_start >= min_end)//当日抄表时段无效
 	{
@@ -542,8 +542,8 @@ int getTaskReadRounds(INT16U taskIndex)
 				readRound = 1;
 				list6013[taskIndex].resetFlag = 1;
 			}
-			else
-				readRound = 1 + abs(ts_now.Hour - list6013[taskIndex].basicInfo.runtime.runtime[0])/list6013[taskIndex].basicInfo.interval.interval;
+//			else
+//				readRound = 1 + abs(ts_now.Hour - list6013[taskIndex].basicInfo.runtime.runtime[0])/list6013[taskIndex].basicInfo.interval.interval;
 			break;
 		case minute_units:
 			if(ts_now.Year != list6013[taskIndex].ts_last.Year || ts_now.Month != list6013[taskIndex].ts_last.Month || ts_now.Day != list6013[taskIndex].ts_last.Day)
@@ -553,8 +553,8 @@ int getTaskReadRounds(INT16U taskIndex)
 			}
 			else
 			{
-				INT16U minSpan = abs((ts_now.Hour*60 + ts_now.Minute) - (list6013[taskIndex].basicInfo.runtime.runtime[0]*60 + list6013[taskIndex].basicInfo.runtime.runtime[1]));
-				readRound =  1 + minSpan /list6013[taskIndex].basicInfo.interval.interval;
+//				INT16U minSpan = abs((ts_now.Hour*60 + ts_now.Minute) - (list6013[taskIndex].basicInfo.runtime.runtime[0]*60 + list6013[taskIndex].basicInfo.runtime.runtime[1]));
+//				readRound =  1 + minSpan /list6013[taskIndex].basicInfo.interval.interval;
 			}
 			break;
 		case sec_units:
@@ -565,10 +565,10 @@ int getTaskReadRounds(INT16U taskIndex)
 			}
 			else
 			{
-				INT16U secSpan = abs((ts_now.Hour*3600 + ts_now.Minute*60 + ts_now.Sec) -
-									(list6013[taskIndex].basicInfo.runtime.runtime[0]*3600
-											+ list6013[taskIndex].basicInfo.runtime.runtime[1]*60));
-				readRound =  1 + secSpan /list6013[taskIndex].basicInfo.interval.interval;
+//				INT16U secSpan = abs((ts_now.Hour*3600 + ts_now.Minute*60 + ts_now.Sec) -
+//									(list6013[taskIndex].basicInfo.runtime.runtime[0]*3600
+//											+ list6013[taskIndex].basicInfo.runtime.runtime[1]*60));
+//				readRound =  1 + secSpan /list6013[taskIndex].basicInfo.interval.interval;
 			}
 
 			break;
@@ -775,7 +775,7 @@ INT8U init6013ListFrom6012File()
 	CLASS_6013	class6013={};
 	for(tIndex = 0;tIndex < TASK6012_MAX;tIndex++)
 	{
-		if(readCoverClass(oi,tIndex+1,&class6013,coll_para_save)== 1)
+		if(readCoverClass(oi,tIndex+1,&class6013,sizeof(CLASS_6013),coll_para_save)== 1)
 		{
 			memcpy(&list6013[tIndex].basicInfo,&class6013,sizeof(CLASS_6013));
 			list6013[tIndex].ts_last.Year = ts_now.Year;

@@ -104,9 +104,9 @@ void realdataprint(_RealData realdata)
 
 void acs_energysum_print(ACEnergy_Sum energysum)
 {
-	fprintf(stderr,"总电能示值(4舍5入)：PosPt=%d, NegPt=%d, PosQt=%d, NegQt=%d\n",
+	fprintf(stderr,"总电能示值(kWh,kVarh):PosPt=%d, NegPt=%d, PosQt=%d, NegQt=%d\n",
 			energysum.PosPt_All,energysum.NegPt_All,energysum.PosQt_All,energysum.NegQt_All);
-	fprintf(stderr,"正向有功:(4舍5入)	Pa=%d, Pb=%d, Pc=%d\n",
+	fprintf(stderr,"正向有功:Pa=%d, Pb=%d, Pc=%d\n",
 			energysum.PosPa_All,energysum.PosPb_All,energysum.PosPc_All);
 	fprintf(stderr,"反向有功:	Pa=%d, Pb=%d, Pc=%d\n",
 			energysum.NegPa_All,energysum.NegPb_All,energysum.NegPc_All);
@@ -114,16 +114,16 @@ void acs_energysum_print(ACEnergy_Sum energysum)
 			energysum.PosQa_All,energysum.PosQb_All,energysum.PosQc_All);
 	fprintf(stderr,"反向无功:	Qa=%d, Qb=%d, Qc=%d\n",
 			energysum.NegQa_All,energysum.NegQb_All,energysum.NegQc_All);
-	fprintf(stderr,"正向有功费率: P1=%d, P2=%d, P3=%d, P4=%d\n",
+	fprintf(stderr,"正向有功费率:P1=%d, P2=%d, P3=%d, P4=%d\n",
 			energysum.PosPt_Rate[0],energysum.PosPt_Rate[1],
 			energysum.PosPt_Rate[2],energysum.PosPt_Rate[3]);
-	fprintf(stderr,"反向有功费率:	P1=%d, P2=%d, P3=%d, P4=%d\n\r",
+	fprintf(stderr,"反向有功费率:P1=%d, P2=%d, P3=%d, P4=%d\n\r",
 			energysum.NegPt_Rate[0],energysum.NegPt_Rate[1],
 			energysum.NegPt_Rate[2],energysum.NegPt_Rate[3]);
-	fprintf(stderr,"正向无功费率:	Q1=%d, Q2=%d, Q3=%d, Q4=%d\n\r",
+	fprintf(stderr,"正向无功费率:Q1=%d, Q2=%d, Q3=%d, Q4=%d\n\r",
 			energysum.PosQt_Rate[0],energysum.PosQt_Rate[1],
 			energysum.PosQt_Rate[2],energysum.PosQt_Rate[3]);
-	fprintf(stderr,"反向无功费率:	Q1=%d, Q2=%d, Q3=%d, Q4=%d\n\r",
+	fprintf(stderr,"反向无功费率:Q1=%d, Q2=%d, Q3=%d, Q4=%d\n\r",
 			energysum.NegQt_Rate[0],energysum.NegQt_Rate[1],
 			energysum.NegQt_Rate[2],energysum.NegQt_Rate[3]);
 	fprintf(stderr,"象限1：总及四费率1:Qt=%d,Q1=%d,Q2=%d,Q3=%d,Q4=%d\n",
@@ -138,6 +138,7 @@ void acs_energysum_print(ACEnergy_Sum energysum)
 	fprintf(stderr,"象限4：总及四费率4:Qt=%d,Q1=%d,Q2=%d,Q3=%d,Q4=%d\n",
 			energysum.Q4_Qt_All,energysum.Q4_Qt_Rate[0],energysum.Q4_Qt_Rate[1],
 			energysum.Q4_Qt_Rate[2],energysum.Q4_Qt_Rate[3]);
+	fprintf(stderr,"\n\r");
 }
 
 /*ATT7022E校表寄存器值打印*/
@@ -202,6 +203,15 @@ void acs_regdata_print()
 	fprintf(stderr,"w_Iregion=%06x\n",REC[w_Iregion]);
 	fprintf(stderr,"w_Iregion1=%06x\n",REC[w_Iregion1]);
 
+	fprintf(stderr,"\n\r-------------coef.par 文件保存----------------------\n");
+	fprintf(stderr,"sizeof(ACCoe_SAVE)=%d\n",sizeof(ACCoe_SAVE));
+	readCoverClass(0,0,&attCoef,sizeof(ACCoe_SAVE),acs_coef_save);
+	fprintf(stderr,"UA系数:%02x-%02x-%02x\n",attCoef.UA[0],attCoef.UA[1],attCoef.UA[2]);
+	fprintf(stderr,"UB系数:%02x-%02x-%02x\n",attCoef.UB[0],attCoef.UB[1],attCoef.UB[2]);
+	fprintf(stderr,"UC系数:%02x-%02x-%02x\n",attCoef.UC[0],attCoef.UC[1],attCoef.UC[2]);
+	fprintf(stderr,"IA系数:%02x-%02x-%02x\n",attCoef.IA[0],attCoef.IA[1],attCoef.IA[2]);
+	fprintf(stderr,"IB系数:%02x-%02x-%02x\n",attCoef.IB[0],attCoef.IB[1],attCoef.IB[2]);
+	fprintf(stderr,"IC系数:%02x-%02x-%02x\n",attCoef.IC[0],attCoef.IC[1],attCoef.IC[2]);
 	sem_post(sem_fd);
 	sem_getvalue(sem_fd, &val);
 	fprintf(stderr,"process <vd> The sem is %d\n", val);
@@ -1043,6 +1053,7 @@ void acs_check_coef()
 		get_temp_val(spifp);
 	}
 	write_coef_reg(spifp);
+	fprintf(stderr,"----------ACCoe_SAVE=%d\n",sizeof(ACCoe_SAVE));
 	saveCoverClass(0,0,&attCoef,sizeof(ACCoe_SAVE),acs_coef_save);
 	///////////14.1.10
 //	fprintf(stderr,"等待谐波矫正\n");
@@ -1224,7 +1235,7 @@ void acs_process(int argc, char *argv[])
 
 	VersionID = JProgramInfo->ac_chip_type;
 	WireType = JProgramInfo->WireType;
-	fprintf(stderr,"计量芯片版本：%06X, 接线方式=%X(0600:三相四，1200：三相三)\n",VersionID,WireType);
+	fprintf(stderr,"\n计量芯片版本：%06X, 接线方式=%X(0600:三相四，1200：三相三)\n",VersionID,WireType);
     if(argc>=3) {	//
 		if(strcmp(argv[1],"acs")==0) {
 			if(strcmp(argv[2],"acreg")==0) {
@@ -1250,11 +1261,6 @@ void acs_process(int argc, char *argv[])
 				acs_regdata_print();
 				spi_close(spifp);
 			}
-			if(strcmp("acrndata",argv[2])==0){
-				spifp = spi_init(spifp, ACS_SPI_DEV);
-				rn8209_regdata_print();
-				spi_close(spifp);
-			}
 			if(strcmp("acdata",argv[2])==0){
 				for(;;){
 					realdataprint(JProgramInfo->ACSRealData);
@@ -1262,11 +1268,19 @@ void acs_process(int argc, char *argv[])
 				}
 			}
 			if(strcmp("ace",argv[2])==0){
-				acs_energysum_print(JProgramInfo->ACSEnergy);
+				for(;;){
+					acs_energysum_print(JProgramInfo->ACSEnergy);
+					sleep(1);
+				}
+			}
+			if(strcmp("acrndata",argv[2])==0){
+				spifp = spi_init_r(spifp, ACS_SPI_DEV);
+				rn8209_regdata_print();
+				spi_close(spifp);
 			}
 			if(strcmp("checku",argv[2])==0)//u
 			{
-				spifp = spi_init(spifp,ACS_SPI_DEV);
+				spifp = spi_init_r(spifp,ACS_SPI_DEV);
 				if(argc==3){
 					fprintf(stderr, "\n\r输入标准源的电压值，带两位小数位，如：220.00。具体参数察看帮助(cj help)！\n");
 				}else{

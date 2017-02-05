@@ -99,6 +99,7 @@ void prthelp()
 }
 int main(int argc, char *argv[])
 {
+	usleep(10);
 	if(argc<2) {
 		prthelp();
 		return EXIT_SUCCESS;

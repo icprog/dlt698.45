@@ -62,4 +62,5 @@ extern int spi_write(int fd, INT8U *buf, int len);
 
 extern INT32S rn_spi_read(int spifp,INT32U addr);
 extern INT32S rn_spi_write(int spifp, INT32U addr, INT8U *buf);
+extern INT32S spi_init_r(INT32S fd,const char * spipath);
 #endif /* SPI_H_ */

@@ -15,6 +15,8 @@ typedef signed long long  		INT64S;          /* Unsigned 64 bit quantity        
 typedef float          FP32;                     /* Single precision floating point                    */
 typedef double         FP64;                     /* Double precision floating point                    */
 
+#define TRUE 1
+#define FALSE !TRUE
 
 //698.45扩展数据类型-------------------------------------
 typedef unsigned char MAC_698;	//数据安全MAC
