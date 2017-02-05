@@ -107,7 +107,7 @@ void EventSetAttrib(OAD oad,INT8U *data)
 {
 	INT16U oi = oad.OI;
 	INT8U attr = oad.attflg;
-
+	fprintf(stderr,"\n事件类对象属性设置");
 	switch(oi)
 	{
 		case 0x310d:
@@ -128,19 +128,35 @@ void EnvironmentValue(OAD oad,INT8U *data)
 {
 	INT16U oi = oad.OI;
 	INT8U attr = oad.attflg;
-
+	fprintf(stderr,"\n参变量类对象属性设置");
 	switch(oi)
 	{
-		case 0x4000:
+		case 0x4000://日期时间
 			set4000(attr,oad.attrindex,data);
+			break;
+		case 0x4001://通信地址
+			break;
+		case 0x4002://表号
+			break;
+		case 0x4003://客户编号
+			break;
+		case 0x4004://设备地理位置
+			break;
+		case 0x4005://组地址
+			break;
+		case 0x4006://时钟源
+			break;
+		case 0x4007://LCD参数
+			break;
+		case 0x4030://电压合格率参数
 			break;
 	}
 }
-int setRequestNormal(INT8U *data,OAD oad,CSINFO *csinfo,INT8U *buf)
+void CollParaSet(OAD oad,INT8U *data)
 {
 	INT16U oi = oad.OI;
-	INT8U oihead = (oad.OI&0xF000) >>12;
-	fprintf(stderr,"\n对象属性设置  oi =%04x",oi);
+	INT8U attr = oad.attflg;
+	fprintf(stderr,"\n采集监控类对象属性设置");
 	switch(oi)
 	{
 		case 0x6000:	//采集档案配置表
@@ -154,6 +170,13 @@ int setRequestNormal(INT8U *data,OAD oad,CSINFO *csinfo,INT8U *buf)
 		case 0x6016:	//事件采集方案
 			break;
 	}
+}
+int setRequestNormal(INT8U *data,OAD oad,CSINFO *csinfo,INT8U *buf)
+{
+	INT16U oi = oad.OI;
+	INT8U oihead = (oad.OI&0xF000) >>12;
+	fprintf(stderr,"\n对象属性设置  【 %04x 】",oi);
+
 	switch(oihead)
 	{
 		case 0x3:		//事件对象
@@ -161,6 +184,9 @@ int setRequestNormal(INT8U *data,OAD oad,CSINFO *csinfo,INT8U *buf)
 			break;
 		case 0x4:		//参变量对象
 			EnvironmentValue(oad,data);
+			break;
+		case 0x6:		//采集监控类对象
+			CollParaSet(oad,data);
 			break;
 	}
 	return 1;
