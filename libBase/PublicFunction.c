@@ -65,7 +65,7 @@ INT32S getIntBits(INT32U dint)
 
 INT32S int32u2bcd(INT32U dint32, INT8U* bcd,ORDER order)
 {
-	INT8U i;
+	INT8U i=0;
 	INT16U mod = 1;
 	INT32S len= 0;
 	len = getIntBits(dint32);
@@ -319,11 +319,6 @@ int OpenCom(int port,int baud,unsigned char *par,unsigned char stopb,unsigned ch
 		}
 		fprintf(stderr,"rs485gpio=%d,ComPort=%d\n",rs485gpio,ComPort);
 	}
-
-
-
-
-
     return ComPort;
 }
 //关闭串口
@@ -348,7 +343,8 @@ void TSGet(TS *ts)
 }
 
 //获取时间
-void DataTimeGet(DateTimeBCD* ts) {
+void DataTimeGet(DateTimeBCD* ts)
+{
     struct tm set;
     time_t times;
     times = time(NULL);

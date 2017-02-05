@@ -271,6 +271,7 @@ int readCoverClass(OI_698 oi,INT16U seqno,void *blockdata,int datalen,int type)
 {
 	int		ret = 0;
 	char	fname[FILENAMELEN]={};
+	int		readlen = 0;
 
 	switch(type) {
 	case event_para_save:
@@ -281,7 +282,11 @@ int readCoverClass(OI_698 oi,INT16U seqno,void *blockdata,int datalen,int type)
 		memset(fname,0,sizeof(fname));
 		getFileName(oi,seqno,type,fname);
 		if(datalen<=2)	return -1;
-		ret = block_file_sync(fname,blockdata,datalen-2,0,0);	//返回数据去掉CRC校验的两个字节
+
+		if(datalen%4==0)	readlen = datalen-2;
+		else readlen = datalen-(4-datalen%4)+2;
+//		fprintf(stderr,"readlen=%d\n",readlen);
+		ret = block_file_sync(fname,blockdata,readlen,0,0);	//返回数据去掉CRC校验的两个字节
 	break;
 	case event_record_save:
 	case event_current_save:

@@ -536,28 +536,7 @@ INT8U Event_3105(TSA tsa, INT8U* data,INT8U len) {
         return 0;
     return 1;
 }
-/*
- * 底板电源是否有电
- */
-BOOLEAN pwr_has()
-{
-	INT32U state;
-	int fd=-1;
-	if((fd = open(DEV_MAINPOWER, O_RDWR | O_NDELAY)) > 0)
-	{
-		read(fd,&state,1);
-		close(fd);
-	}
-	if((state&0x01)==1)
-	{
-		return TRUE;
-	}
-	else
-	{
-		return FALSE;
-	}
-//#endif
-}
+
 
 /*
  * 写停上电事件日志

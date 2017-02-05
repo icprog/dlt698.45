@@ -10,9 +10,11 @@
 
 #include "StdDataType.h"
 
+#pragma pack(1)				//结构体一个字节对齐
+
 //交采系数
 typedef struct {
-	INT16U	crc;					//CRC校验
+//	INT16U	crc;					//CRC校验
 	INT8U PhaseA[3];				//相角系数
 	INT8U PhaseB[3];
 	INT8U PhaseC[3];
@@ -47,11 +49,11 @@ typedef struct {
 /*
  * 通过交采ATT7022E采样值计算的电能示值。电能示值是一个累计值，上电继续累加，保证不丢失。
  * 电能示值通过vsave保存到文件SAVE_NAME_ACDATA（"acenergy.dat"）
- * 所有结构体的电能示值= 实际值*ENERGY_COEF。
+ * 所有结构体的电能示值= 实际值*ENERGY_COEF（6400）。
  * 系数具体定义参照att7022e.h
  * */
 typedef struct {
-	INT16U	crc;					//CRC校验
+//	INT16U	crc;					//CRC校验
 	INT32U	PosPa_All;			  	//正向A相有功总电能示值
 	INT32U	PosPb_All;			  	//正向B相有功总电能示值
 	INT32U	PosPc_All;				//正向C相有功总电能示值

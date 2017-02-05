@@ -23,7 +23,7 @@
  * spipath：spi设备全路径
  * 返回：     spi设备句柄
  * */
-extern INT32S spi_init(INT32S fd,const char * spipath);
+extern INT32S spi_init(INT32S fd,const char * spipath,uint32_t speed);
 
 /*关闭SPI设备
  * */

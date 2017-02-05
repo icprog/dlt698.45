@@ -35,7 +35,6 @@
 
 ACCoe_SAVE  attCoef={};
 ACEnergy_Sum	energysum={};		//电能寄存器值累计后的示值（四舍五入后数据）
-ACEnergy_Sum 	energysum_tmp={}; //电能寄存器值累计后的示值原始数据
 INT32S 			spifp_rn8209=0; // RN8209打开spi句柄
 INT32S 			spifp=0; 		// ATT7022打开spi句柄
 
@@ -1057,13 +1056,13 @@ void InitACSEnergy()
 	int	readret=0;
 
 	// 读电能示值累加值数据
-	memset(&energysum_tmp,0,sizeof(ACEnergy_Sum));
-	readret = readCoverClass(0,0,&energysum_tmp,sizeof(ACEnergy_Sum),acs_energy_save);
+	memset(&energysum,0,sizeof(ACEnergy_Sum));
+	readret = readCoverClass(0,0,&energysum,sizeof(ACEnergy_Sum),acs_energy_save);
 	if(readret==1) {		//读取文件成功
-		energysum_print();
+		energysum_print(energysum);
 	}else {				//TODO:失败是否考虑读取日冻结数据作为基准值累计？清数据区？
-		fprintf(stderr,"电量累计值文件 acenergy.dat 丢失\n");
-		syslog(LOG_NOTICE,"电量累计值文件 acenergy.dat 丢失\n");
+		fprintf(stderr,"电量累计值文件 energy.dat 丢失 readret=%d\n",readret);
+		syslog(LOG_NOTICE,"电量累计值文件 energy.dat 丢失\n");
 	}
 }
 
@@ -1078,7 +1077,8 @@ INT32S  InitACSChip()
 	INT32S 	device_id = ATT_VER_ID;
 	int		i=0;
 	//获取芯片ID，确定芯片类型
-    spifp_rn8209 = spi_init(spifp_rn8209, ACS_SPI_DEV);
+    spifp_rn8209 = spi_init(spifp_rn8209, ACS_SPI_DEV, 400000);
+    //RN8209(spi max 1.2M) spi speed=400K
    	for(i=0;i<3;i++) {
    		device_id = rn_spi_read(spifp_rn8209, DeviceID);
    		fprintf(stderr,"device_id=%x\n",device_id);
@@ -1089,10 +1089,10 @@ INT32S  InitACSChip()
    			fprintf(stderr,"读取到的校表系数 = %d\n", K_vrms);
    			return device_id;
    		}
-   		sleep(1);
+   		usleep(500);
    	}
    	//ATT7022E
-   	spifp = spi_init(spifp,ACS_SPI_DEV);
+   	spifp = spi_init(spifp,ACS_SPI_DEV,2000000);		//ATT7022E(spi max 10M) spi speed = 2M
    	for(i=0;i<3;i++) {
    		device_id = att_spi_read(spifp, r_ChipID, 3);
    		if(device_id != 0xffffff)	break;
@@ -1134,9 +1134,9 @@ void realdataprint(TS	nowts)
 
 	if(oldsec == nowts.Sec) return;
 	oldsec = nowts.Sec;
-	dbg_prt("电压:	UA=%.1f, UB=%.1f, UC=%.1f\n",
+	dbg_prt("电压:	UA=%.1f, UB=%.1f, UC=%.1f",
 			(float)realdata.Ua/U_COEF,(float)realdata.Ub/U_COEF,(float)realdata.Uc/U_COEF);
-	fprintf(stderr,"电流:	IA=%.3f, IB=%.3f, IC=%.3f, IL=%.3f\n",
+	dbg_prt("电流:	IA=%.3f, IB=%.3f, IC=%.3f, IL=%.3f",
 			(float)realdata.Ia/I_COEF,(float)realdata.Ib/I_COEF,(float)realdata.Ic/I_COEF,(float)realdata.I0/I_COEF);
 	dbg_prt("有功:	PT=%.1f, PA=%.1f, PB=%.1f, PC=%.1f",
 			(float)realdata.Pt/P_COEF,(float)realdata.Pa/10,
@@ -1206,9 +1206,9 @@ void check_reg_print(INT32S device_id)
 	}
 }
 
-void energysum_print()
+void energysum_print(ACEnergy_Sum energysum_tmp)
 {
-	dbg_prt("总电能示值：PosPt=%d, NegPt=%d, PosQt=%d, NegQt=%d\n",
+	fprintf(stderr,"总电能示值：PosPt=%d, NegPt=%d, PosQt=%d, NegQt=%d\n",
 			energysum_tmp.PosPt_All,energysum_tmp.NegPt_All,energysum_tmp.PosQt_All,energysum_tmp.NegQt_All);
 	dbg_prt("总电能示值(4舍5入)：PosPt=%d, NegPt=%d, PosQt=%d, NegQt=%d\n",
 			energysum.PosPt_All,energysum.NegPt_All,energysum.PosQt_All,energysum.NegQt_All);
@@ -1293,8 +1293,8 @@ void DealRN8209(void)
         val = RRec[U_RMS >> 4];
     }
     sem_post(sem_check_fd);
-    realdata.Ua = (realdata.Ua * 4) / 5 + (trans_regist_rn8209(val) * 1) / 5; //转换，获取电压当前值
-    fprintf(stderr, "当前电压值为： %d\n", realdata.Ua);
+    realdata.Ua = (realdata.Ua + (trans_regist_rn8209(val))) / 2; //转换，获取电压当前值
+    fprintf(stderr, "当前电压值为： %d %d\n", realdata.Ua,trans_regist_rn8209(val));
 }
 /////////////////////////////////////////////////////////////
 
@@ -1346,6 +1346,39 @@ void DealATT7022(void)
 }
 
 /*
+ * 5分钟保存一次电量值
+ * 断电情况下保存电量
+ * */
+void ACSEnergySave(ACEnergy_Sum energysum_tmp)
+{
+	TS	ts={};
+	static INT8U oldmin=0;
+	INT8S  saveflag = 0;
+	FP32 bett[2]={};
+
+	TSGet(&ts);
+	if(ts.Minute%5==0 && ts.Minute!=oldmin) {
+		oldmin = ts.Minute;
+		if(pwr_has() == TRUE) {
+			saveflag = 1;
+		}
+	}
+	if(pwr_has() == FALSE) {
+		sleep(2);
+		if(bettery_getV(&bett[0],&bett[1]) == TRUE) {
+			if(bett[1] >= MIN_BATTWORK_VOL) {
+				saveflag = 2;
+				syslog(LOG_NOTICE,"底板电源已关闭，电池电压=%f V,保存电能示值",bett[1]);
+			}else {
+				syslog(LOG_NOTICE,"底板电源已关闭，电池电压过低=%f V,不保存电量！！！",bett[1]);
+			}
+		}
+	}
+	if(saveflag) {
+		saveCoverClass(0,0,&energysum_tmp,sizeof(ACEnergy_Sum),acs_energy_save);
+	}
+}
+/*
  * 交采计量芯片的处理过程
  * */
 void DealACS()
@@ -1356,7 +1389,8 @@ void DealACS()
 		break;
 	case 1:
 	case ATT_VER_ID:
-		DealATT7022();
+		DealATT7022();		//处理ATT7022E数据
+		ACSEnergySave(energysum);	//电量的存储	//TODO :底板掉电情况下，保证不控制gprs的poweron/off管脚
 		break;
 	}
 	//拷贝实时数据和电能量数据到pubdata共享内存结构体中。为了液晶的轮显数据

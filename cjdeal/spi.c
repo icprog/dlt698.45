@@ -26,13 +26,17 @@ sem_t * 		sem_check_fd;	//校表信号量
 /*
  * spi设备工作模式设置
  * */
-static void dumpstat(const char *name, int fd)
+static void dumpstat(const char *name, int fd,uint32_t speed)
 {
 	static uint8_t mode;
 	static uint8_t bits = 8;
-	static uint32_t speed = 2000000;//16000;
+//	static uint32_t speed = 2000000;//16000;
 
 	int ret;
+
+	if(speed == 0) {
+		speed = 2000000;
+	}
 
 	mode |= SPI_CPHA;			//交采SPI原工作模式
 //	mode = SPI_MODE_3;
@@ -68,7 +72,7 @@ INT32S spi_close(INT32S fd)
 	return 1;
 }
 
-INT32S spi_init(INT32S fd,const char * spipath)
+INT32S spi_init(INT32S fd,const char * spipath,uint32_t speed)
 {
 	if (fd != -1) {
 		spi_close(fd);
@@ -78,7 +82,7 @@ INT32S spi_init(INT32S fd,const char * spipath)
 		syslog(LOG_NOTICE,"打开SPI设备(%s)错误\n",spipath);
 		fprintf(stderr,"can't open  device %s\n",spipath);		//pabort
 	}
-	dumpstat((char*)spipath,fd);
+	dumpstat((char*)spipath,fd,speed);
 	gpio_writebyte((INT8S *)DEV_ATT_RST,0);
 	usleep(50000);
 	gpio_writebyte((INT8S*)DEV_ATT_RST,1);

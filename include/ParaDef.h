@@ -31,6 +31,8 @@
  * 	终端类相关容量及参数定义
  * */
 #define MAX_POINT_NUM 			1200
+#define MIN_BATTERY_VOL 		2.2  		//电池失压判断数值
+#define MIN_BATTWORK_VOL 		3.3  		//电池电压工作最小数值，掉电情况下低于该值，不进行数据存储
 
 ///////////////////////////////////////////////////////////////
 /*
@@ -47,6 +49,7 @@
 /*
  * 	GPIO硬件接口
  * */
+
 //TODO:根据交采芯片决定ESAM打开那个设备，不用CCTT_II区分
 #ifdef CCTT_II
  #define DEV_SPI_PATH   "/dev/spi1.0"
@@ -70,6 +73,13 @@
 #define DEV_RN_RST 		"/dev/gpo8209_RST"
 #define DEV_RN_CS 		"/dev/gpo8209_CS"
 ////////////////////////////////////////////////////////////////
+
+#define DEV_BAT_SWITCH "/dev/gpoBAT_SWITCH"		//=1，电池工作
+#define DEV_MAINPOWER  "/dev/gpiV5FROUNT_TST"  //底板电源：1上电0失电
+#define DEV_ADC_SWITCH "/dev/gpioADC_SWITCH"   //=0（终端工作放电模式）=1（终端工作充电模式）
+
+#define DEV_ADC        "/dev/adc0"
+/////////////////////////////////////////////////////////////////
 
 /*
  * 	互斥信号量

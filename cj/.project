@@ -3,6 +3,7 @@
 	<name>cj</name>
 	<comment></comment>
 	<projects>
+		<project>include</project>
 		<project>lib698</project>
 		<project>libAccess</project>
 		<project>libBase</project>

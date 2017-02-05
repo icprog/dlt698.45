@@ -86,7 +86,6 @@ static void dumpstat(const char *name, int fd)
 	static uint8_t mode;
 	static uint8_t bits = 8;
 	static uint32_t speed = 2000000;//16000;
-
 	int ret;
 
 	mode |= SPI_CPHA;			//交采SPI原工作模式
@@ -118,6 +117,42 @@ static void dumpstat(const char *name, int fd)
 }
 #endif
 
+static void dumpstat_r(const char *name, int fd)
+{
+	static uint8_t mode;
+	static uint8_t bits = 8;
+	static uint32_t speed = 400000;
+	int ret;
+
+	mode = SPI_MODE_1;
+//	mode = SPI_MODE_2;
+
+	ret = ioctl(fd, SPI_IOC_WR_MODE, &mode);
+	if (ret == -1)
+		fprintf(stderr,"can't set spi mode");
+
+	ret = ioctl(fd, SPI_IOC_RD_MODE, &mode);
+	if (ret == -1)
+		fprintf(stderr,"can't get spi mode");
+
+	ret = ioctl(fd, SPI_IOC_WR_BITS_PER_WORD, &bits);
+	if (ret == -1)
+		fprintf(stderr,"can't set bits per word");
+
+	ret = ioctl(fd, SPI_IOC_RD_BITS_PER_WORD, &bits);
+	if (ret == -1)
+		fprintf(stderr,"can't get bits per word");
+
+	ret = ioctl(fd, SPI_IOC_WR_MAX_SPEED_HZ, &speed);
+	if (ret == -1)
+		fprintf(stderr,"can't set max speed hz");
+
+	ret = ioctl(fd, SPI_IOC_RD_MAX_SPEED_HZ, &speed);
+	if (ret == -1)
+		fprintf(stderr,"can't get max speed hz");
+}
+
+
 INT32S spi_close(INT32S fd)
 {
 	close(fd);
@@ -135,6 +170,20 @@ INT32S spi_init(INT32S fd,const char * spipath)
 		fprintf(stderr,"can't open  device %s\n",spipath);		//pabort
 	}
 	dumpstat((char*)spipath,fd);
+	return fd;
+}
+
+INT32S spi_init_r(INT32S fd,const char * spipath)
+{
+	if (fd != -1) {
+		spi_close(fd);
+	}
+	fd = open((char*)spipath, O_RDWR);
+	if (fd < 0){
+		syslog(LOG_NOTICE,"打开SPI设备(%s)错误\n",spipath);
+		fprintf(stderr,"can't open  device %s\n",spipath);		//pabort
+	}
+	dumpstat_r((char*)spipath,fd);
 	return fd;
 }
 
