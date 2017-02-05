@@ -365,7 +365,6 @@ void AddEventCjiFangAnInfo(INT8U *data)
 		get_BasicUnit(&data[2]+source_sumindex,&source_index,(INT8U *)&eventFangAn.sernum,&dest_index);
 		source_sumindex += source_index;
 		dest_sumindex += dest_index;
-
 	}
 }
 void AddTaskInfo(INT8U *data)
