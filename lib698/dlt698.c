@@ -552,33 +552,26 @@ INT16S fillGetRequestAPDU(INT8U* sendBuf,CLASS_6015 obj6015,INT8U requestType)
 
 INT16S composeProtocol698_GetRequest(INT8U* 	sendBuf,CLASS_6015 obj6015,TSA meterAddr)
 {
-	INT8U CA = 0x02;
 	INT8U PIID = 0x02;
-	INT8U tobecalc = 0;
+	int sendLen = 0, hcsi = 0,apdulen = 0;
 
-	INT8U hcspos1 = 0;
-	INT8U hcspos2 = 0;
-	INT8U meterAddrlen = meterAddr.addr[0]&0x0f;
-	if(meterAddrlen == 0)
-	{
-		return 0;
-	}
-	INT16S sendLen = 0;
-	INT16S apdulen = 0;
-	sendBuf[0] = 0x68; //heand
-	sendBuf[1] = tobecalc; //length
-	sendBuf[2] = tobecalc;
-	sendBuf[3] = 0x43; //control
+	CSINFO csinfo={};
 
-	memcpy(&sendBuf[4],meterAddr.addr,meterAddrlen+2);
+	csinfo.dir = 0;		//服务器发出
+	csinfo.prm = 1; 	//服务器发出
+	csinfo.funcode = 3; //链路管理
+	csinfo.sa_type = 0 ;//单地址
+	csinfo.sa_length = meterAddr.addr[0]&0x0f;//sizeof(addr)-1;//服务器地址长度
 
-	sendLen = 4 + meterAddrlen + 2;
-	sendBuf[sendLen++] = CA;
+	memcpy(csinfo.sa,&meterAddr.addr[1],csinfo.sa_length );//服务器地址
+	csinfo.ca = 0x02;
 
-	hcspos1 = sendLen;
-	sendBuf[sendLen++] = tobecalc;
-	hcspos2 = sendLen;
-	sendBuf[sendLen++] = tobecalc;
+	fprintf(stderr,"sa_length = %d \n",csinfo.sa_length);
+	sendLen = FrameHead(&csinfo,sendBuf) ; //	2：hcs  hcs
+	hcsi = sendLen;
+	sendLen = sendLen + 2;
+
+
 	sendBuf[sendLen++] = GET_REQUEST;
 	INT8U csdcount = 0;
 	INT8U requestType = 0;
@@ -623,27 +616,8 @@ INT16S composeProtocol698_GetRequest(INT8U* 	sendBuf,CLASS_6015 obj6015,TSA mete
 	sendLen += apdulen;
 	sendBuf[sendLen++] = 0x00;//没有时间标签
 
-	INT16U fcspos1=sendLen;
-	sendBuf[sendLen++] = tobecalc;
-	INT16U fcspos2=sendLen;
-	sendBuf[sendLen++] = tobecalc;
+	FrameTail(sendBuf,sendLen,hcsi);
+	return (sendLen + 3);			//3: cs cs 16
 
-	sendBuf[sendLen] = 0x16;
-	INT16U framelen = sendLen -2;
-	sendBuf[1] = (framelen & 0x00ff);//length
-	sendBuf[2] = ((framelen >> 8) & 0x00ff);//length
-
-	INT16U hcs = 0;
-	hcs = tryfcs16(&sendBuf[1], meterAddrlen + 6);
-
-	sendBuf[hcspos1] = (hcs & 0x00ff);//HCS
-	sendBuf[hcspos2] = ((hcs >> 8) & 0x00ff);//HCS
-
-	INT16U fcs = tryfcs16(&sendBuf[1], meterAddrlen + 6);
-
-	sendBuf[fcspos1] = (fcs & 0x00ff);//FCS
-	sendBuf[fcspos2] = ((fcs >> 8) & 0x00ff);//FCS
-
-	return sendLen;
 }
 

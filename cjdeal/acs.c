@@ -40,9 +40,9 @@ INT32S 			spifp=0; 		// ATT7022打开spi句柄
 
 static 	INT32U 	K_vrms = 8193;       // RN8209校表系数 748600
 static 	INT32S 	device_id=-1;
+static  CLASS_4016	class4016;		//当前套日时段表
 
 extern sem_t * 		sem_check_fd;	//校表信号量
-
 extern ProgramInfo* JProgramInfo;
 
 
@@ -885,13 +885,29 @@ void calc_energy(TS nowts,INT32U PFlag,_EnergyCurr *ed)
  * 根据主站F21终端电能量费率时段和费率数设置
  * 读取当前的费率数
  */
-//TODO:按照4016 当前套日时段表获取
 INT8U get_rates_no(TS ts_t,CLASS_4016 class4016)
 {
 	INT8U	i=0;
-	for(i=0;i<MAX_PERIOD_RATE;i++) {
+	static INT8U oldmin=0xff;
+	static INT8U  rate=0;
 
+//   TODO:按照4016 当前套日时段表获取,获取4016参数变化了，重新读取文件
+	//if(参数变化) {
+//		readCoverClass(0x4016,0,&class4016,sizeof(CLASS_4016),para_vari_save);
+//		oldmin = 0xff;
+	//}
+	if(ts_t.Minute==oldmin && oldmin!=0xff) return rate;
+	oldmin = ts_t.Minute;
+	if(class4016.num>MAX_PERIOD_RATE)	return rate;
+	for(i=0;i<(class4016.num-1);i++) {
+		if(((ts_t.Hour*60 + ts_t.Minute)>= (class4016.Period_Rate[i].hour*60+class4016.Period_Rate[i].min))
+			&&((ts_t.Hour*60 + ts_t.Minute)< (class4016.Period_Rate[i+1].hour*60+class4016.Period_Rate[i+1].min))) {
+			rate = class4016.Period_Rate[i].rateno;
+//			fprintf(stderr,"rate=%d\n",rate);
+			break;
+		}
 	}
+	return rate;
 }
 
 /**************************************/
@@ -1025,14 +1041,31 @@ void sum_reactive_energy(TS nowts,INT8U nRate,INT32U PFlag,INT8U QWord1,INT8U QW
 void read_engergy_regist(TS ts,INT32S fp)
 {
 	INT8U  nRate = 0;
-	CLASS_4016	class4016;
+
 
 	nRate = get_rates_no(ts,class4016);	//得到当前费率数
-	/////////////TODO:
-	nRate = 4;
 	calc_energy(ts,realdata.PFlag,&energycurr);	//计算电能示值
 	sum_energy(ts,nRate,energycurr,&energysum);
 	sum_reactive_energy(ts,nRate,realdata.PFlag,QFeatureWord1,QFeatureWord2,energycurr.PosQt,energycurr.NegQt,&energysum);
+}
+
+/*
+ * 初始化当前套日时段表
+ * */
+void InitClass4016()
+{
+	int readret=0;
+	INT8U	i = 0;
+	readret = readCoverClass(0x4016,0,&class4016,sizeof(CLASS_4016),para_vari_save);
+	if(readret!=1) {
+		class4016.num = MAX_PERIOD_RATE/2;
+		for(i=0;i<class4016.num;i++) {
+			class4016.Period_Rate[i].hour = i;
+			class4016.Period_Rate[i].min = 0;
+			class4016.Period_Rate[i].rateno = (i%4)+1;
+			fprintf(stderr,"%d: hour:min=%d:%d rate=%d\n",i,class4016.Period_Rate[i].hour,class4016.Period_Rate[i].min,class4016.Period_Rate[i].rateno);
+		}
+	}
 }
 
 void InitACSCoef()
@@ -1298,26 +1331,6 @@ void DealRN8209(void)
 }
 /////////////////////////////////////////////////////////////
 
-/*
- * 初始化交采相关参数、电能量读取、系数读取
- * */
-void InitACSPara()
-{
-	int			val=0;
-
-	//信号量建立
-	sem_check_fd = create_named_sem(SEMNAME_SPI0_0,1);							//TODO:放入vmain
-	sem_getvalue(sem_check_fd, &val);
-	dbg_prt("process The sem is %d\n", val);
-
-	InitACSCoef();			//读交采数据
-	InitACSEnergy();		//电能量初值
-	device_id = InitACSChip();		//初始化芯片类型
-	JProgramInfo->ac_chip_type = device_id;
-	JProgramInfo->WireType = attCoef.WireType;
-	fprintf(stderr,"计量芯片版本：%06X, 接线方式=%X(0600:三相四，1200：三相三)\n",JProgramInfo->ac_chip_type,JProgramInfo->WireType);
-	syslog(LOG_NOTICE,"计量芯片版本：%06X, 接线方式=%X(0600:三相四，1200：三相三)\n",JProgramInfo->ac_chip_type,JProgramInfo->WireType);
-}
 
 void DealATT7022(void)
 {
@@ -1363,7 +1376,7 @@ void ACSEnergySave(ACEnergy_Sum energysum_tmp)
 			saveflag = 1;
 		}
 	}
-//	if(pwr_has() == FALSE) {
+	if(pwr_has() == FALSE) {
 		sleep(2);
 
 		if(bettery_getV(&bett[0],&bett[1]) == TRUE) {
@@ -1375,11 +1388,35 @@ void ACSEnergySave(ACEnergy_Sum energysum_tmp)
 				syslog(LOG_NOTICE,"底板电源已关闭，电池电压过低=%f V,不保存电量！！！",bett[1]);
 			}
 		}
-//	}
+	}
 	if(saveflag) {
 		saveCoverClass(0,0,&energysum_tmp,sizeof(ACEnergy_Sum),acs_energy_save);
 	}
 }
+///////////////////////////////////////////////////////////////////////////////////
+
+/*
+ * 初始化交采相关参数、电能量读取、系数读取
+ * */
+void InitACSPara()
+{
+	int			val=0;
+
+	//信号量建立
+	sem_check_fd = create_named_sem(SEMNAME_SPI0_0,1);							//TODO:放入vmain
+	sem_getvalue(sem_check_fd, &val);
+	dbg_prt("process The sem is %d\n", val);
+
+	InitACSCoef();					//读交采数据
+	InitACSEnergy();				//电能量初值
+	device_id = InitACSChip();		//初始化芯片类型
+	InitClass4016();				//初始化当前套日时段表
+	JProgramInfo->ac_chip_type = device_id;
+	JProgramInfo->WireType = attCoef.WireType;
+	fprintf(stderr,"计量芯片版本：%06X, 接线方式=%X(0600:三相四，1200：三相三)\n",JProgramInfo->ac_chip_type,JProgramInfo->WireType);
+	syslog(LOG_NOTICE,"计量芯片版本：%06X, 接线方式=%X(0600:三相四，1200：三相三)\n",JProgramInfo->ac_chip_type,JProgramInfo->WireType);
+}
+
 /*
  * 交采计量芯片的处理过程
  * */
