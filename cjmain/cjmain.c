@@ -8,14 +8,16 @@
 #include <wait.h>
 #include <errno.h>
 
-#include "cjmain.h"
 #include "ParaDef.h"
 #include "PublicFunction.h"
+#include "cjmain.h"
+#include "fixpara.h"
 
 void Runled()
 {
 
 }
+
 void Watchdog(int dogmin)//硬件看门狗
 {
 	int fd = -1;

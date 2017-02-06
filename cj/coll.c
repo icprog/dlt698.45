@@ -21,6 +21,8 @@ typedef enum{
 	task_status,
 	task_runtime,
 	coll_mode,
+	ms_type,
+	savetime_sel,
 }OBJ_ENUM;
 
 char *getenum(int type,int val)
@@ -96,6 +98,25 @@ char *getenum(int type,int val)
 		if(val==2)	strcpy(name,"按冻结时标采集");
 		if(val==3)	strcpy(name,"按时间间隔采集");
 		if(val==4)	strcpy(name,"补抄");
+		break;
+	case ms_type:
+		if(val==0)	strcpy(name,"无电能表");
+		if(val==1)	strcpy(name,"全部用户地址");
+		if(val==2)	strcpy(name,"一组用户类型");
+		if(val==3)	strcpy(name,"一组用户地址");
+		if(val==4)	strcpy(name,"一组配置序号");
+		if(val==5)	strcpy(name,"一组用户类型区间");
+		if(val==6)	strcpy(name,"一组用户地址区间");
+		if(val==7)	strcpy(name,"一组配置序号区间");
+		break;
+	case savetime_sel:
+		if(val==0)	strcpy(name,"未定义");
+		if(val==1)	strcpy(name,"任务开始时间");
+		if(val==2)	strcpy(name,"相对当日0点0分");
+		if(val==3)	strcpy(name,"相对上日23点59分");
+		if(val==4)	strcpy(name,"相对上日0点0分");
+		if(val==5)	strcpy(name,"相对当月1日0点0分");
+		if(val==6)	strcpy(name,"数据冻结时标");
 		break;
 	}
 	return name;
@@ -297,50 +318,62 @@ void Task6013(int argc, char *argv[])
 		}
 	}
 }
-#include <unistd.h>
+
 void print6015(CLASS_6015 class6015)
 {
+	INT8U type=0,w=0,i=0;
+
 	fprintf(stderr,"[1]方案编号 [2]存储深度 [3]采集类型 [4]采集内容 [5]OAD-ROAD [6]MS [7]存储时标\n");
-	fprintf(stderr,"普通采集方案: \n[1]方案编号--%d",class6015.sernum);
-	fprintf(stderr,"\n存储深度：%d \n采集类型：%s ",class6015.deepsize,getenum(coll_mode,class6015.cjtype));
-	fprintf(stderr,"\n采集内容：type-%02x value-",class6015.data.type);
-	usleep(10 * 1000);
+	fprintf(stderr,"[6015]普通采集方案:[1]方案号: %d  \n",class6015.sernum);
+	fprintf(stderr,"     [2]%d  [3]%s ",class6015.deepsize,getenum(coll_mode,class6015.cjtype));
 	switch(class6015.cjtype) {
 	case 0: // NULL
-		fprintf(stderr,"%02x (NULL)",class6015.data.data[0]);
+		fprintf(stderr,"[4]%02x ",class6015.data.data[0]);
 		break;
 	case 1:	//unsigned
-		fprintf(stderr,"%02x (unsigned)",class6015.data.data[0]);
+		fprintf(stderr,"[4]%02x ",class6015.data.data[0]);
 		break;
 	case 2:// NULL
-		fprintf(stderr,"%02x (NULL)",class6015.data.data[0]);
+		fprintf(stderr,"[4]%02x ",class6015.data.data[0]);
 		break;
 	case 3://TI
-		fprintf(stderr,"%d-%s (TI)",(class6015.data.data[2]|class6015.data.data[1]),getenum(task_ti,class6015.data.data[0]));
+		fprintf(stderr,"[4]%s-%d ",getenum(task_ti,class6015.data.data[0]),((class6015.data.data[2]<<8)|class6015.data.data[1]));
 		break;
 	case 4://RetryMetering
-		fprintf(stderr,"[4]%s-%d %d(Retry)",getenum(task_ti,class6015.data.data[0]),(class6015.data.data[2]|class6015.data.data[1]),
-									(class6015.data.data[4]|class6015.data.data[3]));
+		fprintf(stderr,"[4]%s-%d %d\n",getenum(task_ti,class6015.data.data[0]),((class6015.data.data[2]<<8)|class6015.data.data[1]),
+									((class6015.data.data[4]<<8)|class6015.data.data[3]));
 		break;
 	}
-//	fprintf(stderr,"\n%04x %02x %02x",class6015.csd[0].road.oad.OI,class6015.csd[0].road.oad.attflg,class6015.csd[0].road.oad.attrindex);
-//	fprintf(stderr,"\n%04x %02x %02x ",class6015.csd[0].road.oads[0].OI,class6015.csd[0].road.oads[0].attflg,class6015.csd[0].road.oads[0].attrindex);
-//	fprintf(stderr,"\n%04x %02x %02x ",class6015.csd[0].road.oads[1].OI,class6015.csd[0].road.oads[1].attflg,class6015.csd[0].road.oads[1].attrindex);
-//	fprintf(stderr,"\n%04x %02x %02x ",class6015.csd[0].road.oads[2].OI,class6015.csd[0].road.oads[2].attflg,class6015.csd[0].road.oads[2].attrindex);
-//	fprintf(stderr,"\n%04x %02x %02x ",class6015.csd[0].road.oads[3].OI,class6015.csd[0].road.oads[3].attflg,class6015.csd[0].road.oads[3].attrindex);
+	for(i=0; i<10;i++)
+	{
+		type = class6015.csds.csd[i].type;
+		if (type==0)
+		{
+			fprintf(stderr,"[5]OAD");
+			fprintf(stderr," %04x-%02x%02x ",class6015.csds.csd[i].csd.oad.OI,class6015.csds.csd[i].csd.oad.attflg,class6015.csds.csd[i].csd.oad.attrindex);
+		}else if (type==1)
+		{
+			fprintf(stderr,"[5]ROAD");
+			fprintf(stderr,"	OAD-%04x-%02x%02x ",
+					class6015.csds.csd[i].csd.road.oad.OI,class6015.csds.csd[i].csd.road.oad.attflg,class6015.csds.csd[i].csd.road.oad.attrindex);
+			for(w=0;w<16;w++)
+			{
+				if (class6015.csds.csd[i].csd.road.oads[w].OI!=0xeeee)
+					fprintf(stderr,"  OAD-%04x-%02x%02x ",
+							class6015.csds.csd[i].csd.road.oads[w].OI,class6015.csds.csd[i].csd.road.oads[w].attflg,class6015.csds.csd[0].csd.road.oads[w].attrindex);
+			}
+		}
+	}
+	fprintf(stderr,"[6]%s ",getenum(ms_type,class6015.mst.mstype));
+	fprintf(stderr,"[7]%s ",getenum(savetime_sel,class6015.savetimeflag));
+	fprintf(stderr,"\n");
 
-
-
-
-//	if(class6015.csd.type==0) fprintf(stderr,"[5]OAD");
-//	else if(class6015.csd.type==1) fprintf(stderr,"[5]ROAD");
-//	fprintf(stderr,"%04x-%02x%02x ",class6015.csd[0].rcsd.oad.OI,class6015.csd[0].rcsd.oad.attflg,class6015.csd[0].rcsd.oad.attrindex);
 }
 
 //普通采集方案
 void Task6015(int argc, char *argv[])
 {
-	int		ret = -1, pi=0, po=0;
+	int		ret = -1;
 	int		i=0;
 	int 	tmp[30]={};
 	INT8U	taskid=0;
@@ -370,11 +403,21 @@ void Task6015(int argc, char *argv[])
 				for(i=0;i<=255;i++) {
 					taskid = i;
 					memset(&class6015,0,sizeof(CLASS_6015));
-					if(readCoverClass(oi,taskid,&class6015,sizeof(CLASS_6015),coll_para_save)== -1) {
-//						fprintf(stderr,"任务ID=%d 无任务配置单元",taskid);
-					}else {
+					if(readCoverClass(oi,taskid,&class6015,sizeof(CLASS_6015),coll_para_save)== 1) {
 						print6015(class6015);
+					}else {
+//						fprintf(stderr,"任务ID=%d 无任务配置单元",taskid);
 					}
+				}
+			}else if(argc==5) {
+				sscanf(argv[4],"%04x",&tmp[0]);
+				taskid = tmp[0];
+				fprintf(stderr,"taskid=%d\n",taskid);
+				memset(&class6015,0,sizeof(CLASS_6015));
+				if(readCoverClass(oi,taskid,&class6015,sizeof(class6015),coll_para_save)==1) {
+					print6015(class6015);
+				}else {
+					fprintf(stderr,"无任务配置单元");
 				}
 			}
 		}

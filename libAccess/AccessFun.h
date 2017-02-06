@@ -30,9 +30,10 @@ typedef enum
 	event_para_save=1,			//参数文件存储
 	event_record_save=2,		//事件记录表存储
 	event_current_save=3,		//当前值记录表存储
-	coll_para_save=4,			//采集类参数存储
-	acs_coef_save=5,			//交采计量芯片系数存储
-	acs_energy_save=6,			//交采计量电能量数据存储
+	para_vari_save=4,		    //参变量类对象
+	coll_para_save=5,			//采集类参数存储
+	acs_coef_save=6,			//交采计量芯片系数存储
+	acs_energy_save=7,			//交采计量电能量数据存储
 }SaveFile_type;
 
 /*

@@ -80,6 +80,7 @@ typedef struct
 
 typedef struct
 {
+	INT8U	num;
 	Day_Period Period_Rate[MAX_PERIOD_RATE];
 }CLASS_4016;
 
