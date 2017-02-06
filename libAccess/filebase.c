@@ -340,11 +340,15 @@ void getFileName(OI_698 oi,INT16U seqno,INT16U type,char *fname)
 		makeSubDir(dirname);
 		sprintf(fname,"%s/%04x/%d.dat",EVENT_CURR,oi,seqno);
 		break;
+	case para_vari_save:
+		makeSubDir("/nand/para");
+		sprintf(fname,"/%s/%04x.par",PARADIR,oi);
+		break;
 	case coll_para_save:
 		makeSubDir("/nand/para");
-		sprintf(fname,"/nand/para/%04x/",oi);
+		sprintf(fname,"/%s/%04x/",PARADIR,oi);
 		makeSubDir(fname);
-		sprintf(fname,"/nand/para/%04x/%d.par",oi,seqno);
+		sprintf(fname,"/%s/%04x/%d.par",PARADIR,oi,seqno);
 		break;
 	case acs_coef_save:
 		makeSubDir(_ACSDIR_);
@@ -456,7 +460,7 @@ INT8U file_write(char *FileName, void *source, int size, int offset)
 	INT8U	*blockdata=NULL;
 	INT16U	readcrc=0;
 
-	fprintf(stderr,"\nwrite begin size=%d", size);
+//	fprintf(stderr,"\nwrite begin size=%d", size);
 	blockdata = malloc(size);
 //	fprintf(stderr,"\nwrite sourceaddr=%p,blockdata=%p\n", source,blockdata);
 	if(blockdata!=NULL) {
@@ -471,7 +475,7 @@ INT8U file_write(char *FileName, void *source, int size, int offset)
 //	for(i=0;i<size;i++){
 //		fprintf(stderr,"%02x ",blockdata[i]);
 //	}
-	fprintf(stderr,"\nwrite FileName %s source crc=%04x\n",FileName, readcrc);
+//	fprintf(stderr,"\nwrite FileName %s source crc=%04x\n",FileName, readcrc);
 
 	memcpy(blockdata+size-2,&readcrc,2);
 	if(access(FileName,F_OK)!=0)
@@ -506,7 +510,7 @@ INT8U file_write(char *FileName, void *source, int size, int offset)
 }
 
 
-// 数据块文件存储同步
+// 数据块文件存储同步（文件保存为实际数据+最后两个字节的CRC校验）
 // 输入参数：fname:保存文件名，size:文件尺寸
 // 输出：    		blockdata：文件数据缓冲区
 // 返回值： =1:文件同步成功,使用blockdata数据源初始化内存
@@ -529,6 +533,7 @@ INT8U block_file_sync(char *fname,void *blockdata,int size,int headsize,int inde
 	//文件默认最后两个字节为CRC16校验，原结构体尺寸如果不是4个字节对齐，进行补齐，加CRC16
 	if(size%4==0)	sizenew = size+2;
 	else sizenew = size+(4-size%4)+2;
+
 //	fprintf(stderr,"size=%d,sizenew=%d\n",size,sizenew);
 
 	blockdata1 = malloc(sizenew);
@@ -593,13 +598,13 @@ INT8U block_file_sync(char *fname,void *blockdata,int size,int headsize,int inde
 		memcpy(blockdata1,blockdata2,sizenew);
 		ret= 1;
 	}
-	if(ret1==0 && ret2==0){
-		fprintf(stderr,"主文件 备份文件都错误  size=%d\n", sizenew);
-		syslog(LOG_NOTICE," %s 主文件 备份文件都错误 ",fname);
-		file_write(fname2,blockdata1,sizenew,offset);
-		file_write(fname,blockdata1,sizenew,offset);
-		ret = 1;
-	}
+//	if(ret1==0 && ret2==0){
+//		fprintf(stderr,"主文件 备份文件都错误  size=%d\n", sizenew);
+//		syslog(LOG_NOTICE," %s 主文件 备份文件都错误 ",fname);
+//		file_write(fname2,blockdata1,sizenew,offset);
+//		file_write(fname,blockdata1,sizenew,offset);
+//		ret = 1;
+//	}
 	if (ret ==1)
 	{
 		memcpy(blockdata,blockdata1,size);

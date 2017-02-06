@@ -116,7 +116,8 @@ int clearClass(OI_698 oi)
 
 	infoi = getclassinfo(oi,&info);
 	if(infoi==-1) {
-		sprintf(cmd,"rm -rf /nand/para/%04x/",oi);
+		memset(cmd,0,sizeof(cmd));
+		sprintf(cmd,"rm -rf %s/%04x/",PARADIR,oi);
 		system(cmd);
 		return 1;
 	}
@@ -139,9 +140,10 @@ int deleteClass(OI_698 oi,INT8U id)
 {
 	char	cmd[FILENAMELEN]={};
 
-	sprintf(cmd,"rm -rf /nand/para/%04x/%02d.par",oi,id);
+	memset(cmd,0,sizeof(cmd));
+	sprintf(cmd,"rm -rf %s/%04x/%d.par",PARADIR,oi,id);
 	system(cmd);
-	sprintf(cmd,"rm -rf /nand/para/%04x/%02d.bak",oi,id);
+	sprintf(cmd,"rm -rf %s/%04x/%d.bak",PARADIR,oi,id);
 	system(cmd);
 	return 1;
 }
@@ -231,6 +233,7 @@ int saveCoverClass(OI_698 oi,INT16U seqno,void *blockdata,int savelen,int type)
 	getFileName(oi,seqno,type,fname);
 	switch(type) {
 	case event_para_save:
+	case para_vari_save:
 	case coll_para_save:
 	case acs_coef_save:
 	case acs_energy_save:
@@ -271,9 +274,11 @@ int readCoverClass(OI_698 oi,INT16U seqno,void *blockdata,int datalen,int type)
 {
 	int		ret = 0;
 	char	fname[FILENAMELEN]={};
+	int		readlen = 0;
 
 	switch(type) {
 	case event_para_save:
+	case para_vari_save:
 	case coll_para_save:
 	case acs_coef_save:
 	case acs_energy_save:
@@ -281,7 +286,11 @@ int readCoverClass(OI_698 oi,INT16U seqno,void *blockdata,int datalen,int type)
 		memset(fname,0,sizeof(fname));
 		getFileName(oi,seqno,type,fname);
 		if(datalen<=2)	return -1;
-		ret = block_file_sync(fname,blockdata,datalen-2,0,0);	//返回数据去掉CRC校验的两个字节
+
+		if(datalen%4==0)	readlen = datalen-2;
+		else readlen = datalen-(4-datalen%4)+2;
+//		fprintf(stderr,"readlen=%d\n",readlen);
+		ret = block_file_sync(fname,blockdata,readlen,0,0);	//返回数据去掉CRC校验的两个字节
 	break;
 	case event_record_save:
 	case event_current_save:

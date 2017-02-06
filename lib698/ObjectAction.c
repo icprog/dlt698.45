@@ -47,11 +47,11 @@ int doActionReponse(int reponse,CSINFO *csinfo,PIID piid,OMD omd,int dar,INT8U *
 //	fprintf(stderr,"piid.data[%d]=%02x\n",index,piid.data);
 	buf[index] = piid.data;
 	index++;
-	memcpy(&buf[index],&omd,sizeof(OMD));
-	index = index + sizeof(OMD);
-	buf[index] = omd.OI & 0xff;
-	index++;
+//	memcpy(&buf[index],&omd,sizeof(OMD));
+//	index = index + sizeof(OMD);
 	buf[index] = (omd.OI>>8) & 0xff;
+	index++;
+	buf[index] = omd.OI & 0xff;
 	index++;
 	buf[index] = omd.method_tag;
 	index++;
@@ -90,8 +90,13 @@ void get_BasicUnit(INT8U *source,INT16U *sourceindex,INT8U *dest,INT16U *destind
 	}
 	switch (type)
 	{
+		case 0x00:
+			dest[0] = 0;//Data类型 0x00为NULL
+			break;
 		case 0x01:	//array
 			strnum = source[1];
+			dest[0] = strnum;		//数组类型第一个字节为长度
+			dest = dest + 1;
 			fprintf(stderr,"\n数组个数-%d",strnum);
 			size = 1;
 			if (dest_sumindex>0)
@@ -210,15 +215,16 @@ void get_BasicUnit(INT8U *source,INT16U *sourceindex,INT8U *dest,INT16U *destind
 				dest[2] = source[4];
 				dest[3] = source[5];
 				int numm = source[6];//SEQUENCE 0F OAD 数量
+				dest[4] = (INT8U)numm;
 				fprintf(stderr,"\nnumm=%d",numm);
 				for(int k=0;k<numm;k++)
 				{
-					dest[4+k*4+0] = source[7+k*4+1];		//dest[5+k*4+0] = source[7+k*4+1];
-					dest[4+k*4+1] = source[7+k*4+0];
-					dest[4+k*4+2] = source[7+k*4+2];
-					dest[4+k*4+3] = source[7+k*4+3];
+					dest[5+k*4+0] = source[7+k*4+1];
+					dest[5+k*4+1] = source[7+k*4+0];
+					dest[5+k*4+2] = source[7+k*4+2];
+					dest[5+k*4+3] = source[7+k*4+3];
 				}
-				size =1+ 4+ 1 + numm*4;
+				size =1+ 4+ 1 + numm*4;// 1:choicetype  4:oad  1:num
 			}else
 			{//oad  6字节
 				dest[0] = choicetype;
@@ -227,13 +233,7 @@ void get_BasicUnit(INT8U *source,INT16U *sourceindex,INT8U *dest,INT16U *destind
 				dest[3] = source[4];
 				dest[4] = source[5];
 				size = 4+1;// 1： choicetype占用1个字节
-				fprintf(stderr,"\n%02x %02x %02x %02x ",dest[0],dest[1],dest[2],dest[3]);
-//				dest[0] = source[3];
-//				dest[1] = source[2];
-//				dest[2] = source[4];
-//				dest[3] = source[5];
-//				size = 4+1;// 1： choicetype占用1个字节
-//				fprintf(stderr,"\n%02x %02x %02x %02x ",dest[0],dest[1],dest[2],dest[3]);
+				fprintf(stderr,"\n%02x %02x %02x %02x ",dest[1],dest[2],dest[3],dest[4]);
 			}
 			if (dest_sumindex ==0)
 				dest_sumindex = sizeof(MY_CSD);
@@ -317,7 +317,7 @@ void AddCjiFangAnInfo(INT8U *data)
 	{
 		memset(&fangAn,0xee,sizeof(fangAn));
 		fangAn.data.type = 0xAA;//标识data缓冲区
-		fangAn.csds.type = 0x55;//标识csd数组
+		fangAn.csds.flag = 0x55;//标识csd数组
 		get_BasicUnit(&data[2]+source_sumindex,&source_index,(INT8U *)&fangAn.sernum,&dest_index);
 		source_sumindex += source_index;
 		dest_sumindex += dest_index;
@@ -325,26 +325,27 @@ void AddCjiFangAnInfo(INT8U *data)
 		fprintf(stderr,"\n存储深度 ：%d ",fangAn.deepsize);
 		fprintf(stderr,"\n采集类型 ：%d ",fangAn.cjtype);
 		fprintf(stderr,"\n采集内容(data) 类型：%02x  data=%d",fangAn.data.type,fangAn.data.data[0]);
-		buf = (INT8U *)&fangAn.csds.type;
-		fprintf(stderr,"\ncsd: ");
-//		INT8U type=0,w;
-//		for(int i; i<10;i++)
-//		{
-//			type = fangAn.csds.csd[i].type;
-//			if (type==0)
-//			{
-//				fprintf(stderr,"\nOAD");
-//				fprintf(stderr,"\n%04x %02x %02x",fangAn.csds.csd[0].csd.oad.OI,fangAn.csds.csd[0].csd.oad.attflg,fangAn.csds.csd[0].csd.oad.attrindex);
-//			}else
-//			{
-//				fprintf(stderr,"\nROAD");
-//				fprintf(stderr,"\n		OAD-%04x %02x %02x",fangAn.csds.csd[0].csd.road.oad.OI,fangAn.csds.csd[0].csd.road.oad.attflg,fangAn.csds.csd[0].csd.road.oad.attrindex);
-//				for(w=0;w<10;w++)
-//				{
-//					fprintf(stderr,"\n		OAD-%04x %02x %02x",fangAn.csds.csd[0].csd.road.oads[w].OI,fangAn.csds.csd[0].csd.road.oads[w].attflg,fangAn.csds.csd[0].csd.road.oads[w].attrindex);
-//				}
-//			}
-//		}
+		buf = (INT8U *)&fangAn.csds.flag;
+		fprintf(stderr,"\ncsd:");
+		INT8U type=0,w;
+		for(int i=0; i<10;i++)
+		{
+			type = fangAn.csds.csd[i].type;
+			if (type==0)
+			{
+				fprintf(stderr,"\nOAD");
+				fprintf(stderr,"\n%04x %02x %02x",fangAn.csds.csd[i].csd.oad.OI,fangAn.csds.csd[i].csd.oad.attflg,fangAn.csds.csd[i].csd.oad.attrindex);
+			}else if (type==1)
+			{
+				fprintf(stderr,"\nROAD");
+				fprintf(stderr,"\n		OAD-%04x %02x %02x",fangAn.csds.csd[i].csd.road.oad.OI,fangAn.csds.csd[i].csd.road.oad.attflg,fangAn.csds.csd[i].csd.road.oad.attrindex);
+				for(w=0;w<10;w++)
+				{
+					if (fangAn.csds.csd[i].csd.road.oads[w].OI!=0xeeee)
+						fprintf(stderr,"\n		OAD-%04x %02x %02x",fangAn.csds.csd[i].csd.road.oads[w].OI,fangAn.csds.csd[i].csd.road.oads[w].attflg,fangAn.csds.csd[0].csd.road.oads[w].attrindex);
+				}
+			}
+		}
 		fprintf(stderr,"\n电能表集合MS ：类型 %d (0:无表   1:全部   2:一组用户   3:一组用户地址   4:一组配置序号   )",fangAn.mst.mstype);
 		fprintf(stderr,"\n存储时标选择 ： %d (1:任务开始时间  2：相对当日0点0分  3:相对上日23点59分  4:相对上日0点0分  5:相对当月1日0点0分)",fangAn.savetimeflag);
 		fprintf(stderr,"\n");
@@ -370,7 +371,6 @@ void AddEventCjiFangAnInfo(INT8U *data)
 		get_BasicUnit(&data[2]+source_sumindex,&source_index,(INT8U *)&eventFangAn.sernum,&dest_index);
 		source_sumindex += source_index;
 		dest_sumindex += dest_index;
-
 	}
 }
 void AddTaskInfo(INT8U *data)
@@ -384,7 +384,11 @@ void AddTaskInfo(INT8U *data)
 	for(k=0; k<addnum; k++)
 	{
 		memset(&task,0,sizeof(task));
+		fprintf(stderr,"\n---------------------------------------进入解析\n");
 		get_BasicUnit(&data[2]+source_sumindex,&source_index,(INT8U *)&task.taskID,&dest_index);
+		fprintf(stderr,"\n---------------------------------------解析 第%d次\n",k);
+		source_sumindex += source_index;
+		dest_sumindex += dest_index;
 
 		fprintf(stderr,"\n任务 ID=%d",task.taskID);
 		fprintf(stderr,"\n执行频率 单位=%d   value=%d",task.interval.units,task.interval.interval);
@@ -397,10 +401,8 @@ void AddTaskInfo(INT8U *data)
 		fprintf(stderr,"\n运行时段类型 =%02x",task.runtime.type);
 		fprintf(stderr,"\n开始  %d时 %d分  ",task.runtime.runtime[0].beginHour,task.runtime.runtime[0].beginMin);
 		fprintf(stderr,"\n结束  %d时 %d分  ",task.runtime.runtime[0].endHour,task.runtime.runtime[0].endMin);
-		source_sumindex += source_index;
-		dest_sumindex += dest_index;
 
-		saveflg = saveParaClass(0x6012,(unsigned char*)&task,task.sernum);
+		saveflg = saveCoverClass(0x6013,task.taskID,&task,sizeof(task),coll_para_save);
 		if (saveflg==1)
 			fprintf(stderr,"\n采集任务 %d 保存成功",task.sernum);
 		else
@@ -455,7 +457,8 @@ void EventCjFangAnInfo(INT16U attr_act,INT8U *data)
 	//		DeleteEventCjFangAn(data[1]);
 			break;
 		case 129:	//方法 129:Clear( )
-	//		ClearEventCjFangAn();
+			fprintf(stderr,"\n清空事件采集方案");
+			clearClass(0x6016);
 			break;
 		case 130:	//方法 130:Set_CSD(方案编号,array CSD)
 	//		UpdateReportFlag(data);
@@ -470,8 +473,12 @@ void TaskInfo(INT16U attr_act,INT8U *data)
 			AddTaskInfo(data);
 			break;
 		case 128://方法 128:Delete(array任务 ID )
+
+			deleteClass(0x6012,1);
 			break;
 		case 129://方法 129:Clear()
+			fprintf(stderr,"\n清空采集任务配置表");
+			clearClass(0x6012);
 			break;
 	}
 }
@@ -524,5 +531,5 @@ int doObjectAction(OMD omd,INT8U *data)
 			EventCjFangAnInfo(attr_act,data);
 			break;
 	}
-	return 1;
+	return 0;	//DAR=0，成功
 }

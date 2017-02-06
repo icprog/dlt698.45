@@ -9,9 +9,8 @@
 #define STANDARD_NUM 5
 
 #define DATA_FF 0xFF
-#define DEV_MAINPOWER  "/dev/gpiV5FROUNT_TST"  //底板电源：1上电0失电
-#define TRUE 1
-#define FALSE !TRUE
+
+
 #define ERC3106PATH "/nand/erc3106.bat"
 //表正向有功
 typedef struct

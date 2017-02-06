@@ -22,16 +22,18 @@
 #define	 EVENT_REC			"/nand/event/record"		//事件记录目录
 #define	 EVENT_CURR			"/nand/event/current"		//当前值记录表
 
-#define	 PARA				"/nand/para"				//属性参数文件
+#define	 PARADIR				"/nand/para"				//参变量文件（4000） 采集监控类文件（6000）
+//#define	 COLLDIR				"/nand/coll"				//采集监控类文件（6000）
 //文件存储类型
 typedef enum
 {
 	event_para_save=1,			//参数文件存储
 	event_record_save=2,		//事件记录表存储
 	event_current_save=3,		//当前值记录表存储
-	coll_para_save=4,			//采集类参数存储
-	acs_coef_save=5,			//交采计量芯片系数存储
-	acs_energy_save=6,			//交采计量电能量数据存储
+	para_vari_save=4,		    //参变量类对象
+	coll_para_save=5,			//采集类参数存储
+	acs_coef_save=6,			//交采计量芯片系数存储
+	acs_energy_save=7,			//交采计量电能量数据存储
 }SaveFile_type;
 
 /*

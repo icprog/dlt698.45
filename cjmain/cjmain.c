@@ -7,13 +7,16 @@
 #include "sys/reboot.h"
 #include <wait.h>
 #include <errno.h>
-#include "cjmain.h"
 
+#include "ParaDef.h"
+#include "PublicFunction.h"
+#include "cjmain.h"
 
 void Runled()
 {
 
 }
+
 void Watchdog(int dogmin)//硬件看门狗
 {
 	int fd = -1;
@@ -176,6 +179,10 @@ int main(int argc, char *argv[])
 	struct sigaction sa1;
 	fprintf(stderr,"\ncjmain run!");
 	Setsig(&sa1,ProjectMainExit);
+
+	//此设置决定集中器在下电情况下，长按向下按键唤醒功能
+	gpio_writebyte((INT8S*)DEV_BAT_SWITCH,(INT8S)1);
+
 	JProgramInfo = (ProgramInfo*)CreateShMem("ProgramInfo",sizeof(ProgramInfo),NULL);
 	ReadSystemInfo();
 	while(1)

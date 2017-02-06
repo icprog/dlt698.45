@@ -35,15 +35,14 @@
 
 ACCoe_SAVE  attCoef={};
 ACEnergy_Sum	energysum={};		//电能寄存器值累计后的示值（四舍五入后数据）
-ACEnergy_Sum 	energysum_tmp={}; //电能寄存器值累计后的示值原始数据
 INT32S 			spifp_rn8209=0; // RN8209打开spi句柄
 INT32S 			spifp=0; 		// ATT7022打开spi句柄
 
 static 	INT32U 	K_vrms = 8193;       // RN8209校表系数 748600
 static 	INT32S 	device_id=-1;
+static  CLASS_4016	class4016;		//当前套日时段表
 
 extern sem_t * 		sem_check_fd;	//校表信号量
-
 extern ProgramInfo* JProgramInfo;
 
 
@@ -886,13 +885,29 @@ void calc_energy(TS nowts,INT32U PFlag,_EnergyCurr *ed)
  * 根据主站F21终端电能量费率时段和费率数设置
  * 读取当前的费率数
  */
-//TODO:按照4016 当前套日时段表获取
 INT8U get_rates_no(TS ts_t,CLASS_4016 class4016)
 {
 	INT8U	i=0;
-	for(i=0;i<MAX_PERIOD_RATE;i++) {
+	static INT8U oldmin=0xff;
+	static INT8U  rate=0;
 
+//   TODO:按照4016 当前套日时段表获取,获取4016参数变化了，重新读取文件
+	//if(参数变化) {
+//		readCoverClass(0x4016,0,&class4016,sizeof(CLASS_4016),para_vari_save);
+//		oldmin = 0xff;
+	//}
+	if(ts_t.Minute==oldmin && oldmin!=0xff) return rate;
+	oldmin = ts_t.Minute;
+	if(class4016.num>MAX_PERIOD_RATE)	return rate;
+	for(i=0;i<(class4016.num-1);i++) {
+		if(((ts_t.Hour*60 + ts_t.Minute)>= (class4016.Period_Rate[i].hour*60+class4016.Period_Rate[i].min))
+			&&((ts_t.Hour*60 + ts_t.Minute)< (class4016.Period_Rate[i+1].hour*60+class4016.Period_Rate[i+1].min))) {
+			rate = class4016.Period_Rate[i].rateno;
+//			fprintf(stderr,"rate=%d\n",rate);
+			break;
+		}
 	}
+	return rate;
 }
 
 /**************************************/
@@ -1026,14 +1041,31 @@ void sum_reactive_energy(TS nowts,INT8U nRate,INT32U PFlag,INT8U QWord1,INT8U QW
 void read_engergy_regist(TS ts,INT32S fp)
 {
 	INT8U  nRate = 0;
-	CLASS_4016	class4016;
+
 
 	nRate = get_rates_no(ts,class4016);	//得到当前费率数
-	/////////////TODO:
-	nRate = 4;
 	calc_energy(ts,realdata.PFlag,&energycurr);	//计算电能示值
 	sum_energy(ts,nRate,energycurr,&energysum);
 	sum_reactive_energy(ts,nRate,realdata.PFlag,QFeatureWord1,QFeatureWord2,energycurr.PosQt,energycurr.NegQt,&energysum);
+}
+
+/*
+ * 初始化当前套日时段表
+ * */
+void InitClass4016()
+{
+	int readret=0;
+	INT8U	i = 0;
+	readret = readCoverClass(0x4016,0,&class4016,sizeof(CLASS_4016),para_vari_save);
+	if(readret!=1) {
+		class4016.num = MAX_PERIOD_RATE/2;
+		for(i=0;i<class4016.num;i++) {
+			class4016.Period_Rate[i].hour = i;
+			class4016.Period_Rate[i].min = 0;
+			class4016.Period_Rate[i].rateno = (i%4)+1;
+			fprintf(stderr,"%d: hour:min=%d:%d rate=%d\n",i,class4016.Period_Rate[i].hour,class4016.Period_Rate[i].min,class4016.Period_Rate[i].rateno);
+		}
+	}
 }
 
 void InitACSCoef()
@@ -1057,13 +1089,13 @@ void InitACSEnergy()
 	int	readret=0;
 
 	// 读电能示值累加值数据
-	memset(&energysum_tmp,0,sizeof(ACEnergy_Sum));
-	readret = readCoverClass(0,0,&energysum_tmp,sizeof(ACEnergy_Sum),acs_energy_save);
+	memset(&energysum,0,sizeof(ACEnergy_Sum));
+	readret = readCoverClass(0,0,&energysum,sizeof(ACEnergy_Sum),acs_energy_save);
 	if(readret==1) {		//读取文件成功
-		energysum_print();
+		energysum_print(energysum);
 	}else {				//TODO:失败是否考虑读取日冻结数据作为基准值累计？清数据区？
-		fprintf(stderr,"电量累计值文件 acenergy.dat 丢失\n");
-		syslog(LOG_NOTICE,"电量累计值文件 acenergy.dat 丢失\n");
+		fprintf(stderr,"电量累计值文件 energy.dat 丢失 readret=%d\n",readret);
+		syslog(LOG_NOTICE,"电量累计值文件 energy.dat 丢失\n");
 	}
 }
 
@@ -1078,7 +1110,8 @@ INT32S  InitACSChip()
 	INT32S 	device_id = ATT_VER_ID;
 	int		i=0;
 	//获取芯片ID，确定芯片类型
-    spifp_rn8209 = spi_init(spifp_rn8209, ACS_SPI_DEV);
+    spifp_rn8209 = spi_init(spifp_rn8209, ACS_SPI_DEV, 400000);
+    //RN8209(spi max 1.2M) spi speed=400K
    	for(i=0;i<3;i++) {
    		device_id = rn_spi_read(spifp_rn8209, DeviceID);
    		fprintf(stderr,"device_id=%x\n",device_id);
@@ -1089,10 +1122,10 @@ INT32S  InitACSChip()
    			fprintf(stderr,"读取到的校表系数 = %d\n", K_vrms);
    			return device_id;
    		}
-   		sleep(1);
+   		usleep(500);
    	}
    	//ATT7022E
-   	spifp = spi_init(spifp,ACS_SPI_DEV);
+   	spifp = spi_init(spifp,ACS_SPI_DEV,2000000);		//ATT7022E(spi max 10M) spi speed = 2M
    	for(i=0;i<3;i++) {
    		device_id = att_spi_read(spifp, r_ChipID, 3);
    		if(device_id != 0xffffff)	break;
@@ -1134,9 +1167,9 @@ void realdataprint(TS	nowts)
 
 	if(oldsec == nowts.Sec) return;
 	oldsec = nowts.Sec;
-	dbg_prt("电压:	UA=%.1f, UB=%.1f, UC=%.1f\n",
+	dbg_prt("电压:	UA=%.1f, UB=%.1f, UC=%.1f",
 			(float)realdata.Ua/U_COEF,(float)realdata.Ub/U_COEF,(float)realdata.Uc/U_COEF);
-	fprintf(stderr,"电流:	IA=%.3f, IB=%.3f, IC=%.3f, IL=%.3f\n",
+	dbg_prt("电流:	IA=%.3f, IB=%.3f, IC=%.3f, IL=%.3f",
 			(float)realdata.Ia/I_COEF,(float)realdata.Ib/I_COEF,(float)realdata.Ic/I_COEF,(float)realdata.I0/I_COEF);
 	dbg_prt("有功:	PT=%.1f, PA=%.1f, PB=%.1f, PC=%.1f",
 			(float)realdata.Pt/P_COEF,(float)realdata.Pa/10,
@@ -1206,9 +1239,9 @@ void check_reg_print(INT32S device_id)
 	}
 }
 
-void energysum_print()
+void energysum_print(ACEnergy_Sum energysum_tmp)
 {
-	dbg_prt("总电能示值：PosPt=%d, NegPt=%d, PosQt=%d, NegQt=%d\n",
+	fprintf(stderr,"总电能示值：PosPt=%d, NegPt=%d, PosQt=%d, NegQt=%d\n",
 			energysum_tmp.PosPt_All,energysum_tmp.NegPt_All,energysum_tmp.PosQt_All,energysum_tmp.NegQt_All);
 	dbg_prt("总电能示值(4舍5入)：PosPt=%d, NegPt=%d, PosQt=%d, NegQt=%d\n",
 			energysum.PosPt_All,energysum.NegPt_All,energysum.PosQt_All,energysum.NegQt_All);
@@ -1293,31 +1326,11 @@ void DealRN8209(void)
         val = RRec[U_RMS >> 4];
     }
     sem_post(sem_check_fd);
-    realdata.Ua = (realdata.Ua * 4) / 5 + (trans_regist_rn8209(val) * 1) / 5; //转换，获取电压当前值
-    fprintf(stderr, "当前电压值为： %d\n", realdata.Ua);
+    realdata.Ua = (realdata.Ua + (trans_regist_rn8209(val))) / 2; //转换，获取电压当前值
+    fprintf(stderr, "当前电压值为： %d %d\n", realdata.Ua,trans_regist_rn8209(val));
 }
 /////////////////////////////////////////////////////////////
 
-/*
- * 初始化交采相关参数、电能量读取、系数读取
- * */
-void InitACSPara()
-{
-	int			val=0;
-
-	//信号量建立
-	sem_check_fd = create_named_sem(SEMNAME_SPI0_0,1);							//TODO:放入vmain
-	sem_getvalue(sem_check_fd, &val);
-	dbg_prt("process The sem is %d\n", val);
-
-	InitACSCoef();			//读交采数据
-	InitACSEnergy();		//电能量初值
-	device_id = InitACSChip();		//初始化芯片类型
-	JProgramInfo->ac_chip_type = device_id;
-	JProgramInfo->WireType = attCoef.WireType;
-	fprintf(stderr,"计量芯片版本：%06X, 接线方式=%X(0600:三相四，1200：三相三)\n",JProgramInfo->ac_chip_type,JProgramInfo->WireType);
-	syslog(LOG_NOTICE,"计量芯片版本：%06X, 接线方式=%X(0600:三相四，1200：三相三)\n",JProgramInfo->ac_chip_type,JProgramInfo->WireType);
-}
 
 void DealATT7022(void)
 {
@@ -1346,6 +1359,65 @@ void DealATT7022(void)
 }
 
 /*
+ * 5分钟保存一次电量值
+ * 断电情况下保存电量
+ * */
+void ACSEnergySave(ACEnergy_Sum energysum_tmp)
+{
+	TS	ts={};
+	static INT8U oldmin=0;
+	INT8S  saveflag = 0;
+	FP32 bett[2]={};
+
+	TSGet(&ts);
+	if(ts.Minute%5==0 && ts.Minute!=oldmin) {
+		oldmin = ts.Minute;
+		if(pwr_has() == TRUE) {
+			saveflag = 1;
+		}
+	}
+	if(pwr_has() == FALSE) {
+		sleep(2);
+
+		if(bettery_getV(&bett[0],&bett[1]) == TRUE) {
+			fprintf(stderr,"bett=%f,%f\n",bett[0],bett[1]);
+			if(bett[1] >= MIN_BATTWORK_VOL) {
+				saveflag = 2;
+				syslog(LOG_NOTICE,"底板电源已关闭，电池电压=%f V,保存电能示值",bett[1]);
+			}else {
+				syslog(LOG_NOTICE,"底板电源已关闭，电池电压过低=%f V,不保存电量！！！",bett[1]);
+			}
+		}
+	}
+	if(saveflag) {
+		saveCoverClass(0,0,&energysum_tmp,sizeof(ACEnergy_Sum),acs_energy_save);
+	}
+}
+///////////////////////////////////////////////////////////////////////////////////
+
+/*
+ * 初始化交采相关参数、电能量读取、系数读取
+ * */
+void InitACSPara()
+{
+	int			val=0;
+
+	//信号量建立
+	sem_check_fd = create_named_sem(SEMNAME_SPI0_0,1);							//TODO:放入vmain
+	sem_getvalue(sem_check_fd, &val);
+	dbg_prt("process The sem is %d\n", val);
+
+	InitACSCoef();					//读交采数据
+	InitACSEnergy();				//电能量初值
+	device_id = InitACSChip();		//初始化芯片类型
+	InitClass4016();				//初始化当前套日时段表
+	JProgramInfo->ac_chip_type = device_id;
+	JProgramInfo->WireType = attCoef.WireType;
+	fprintf(stderr,"计量芯片版本：%06X, 接线方式=%X(0600:三相四，1200：三相三)\n",JProgramInfo->ac_chip_type,JProgramInfo->WireType);
+	syslog(LOG_NOTICE,"计量芯片版本：%06X, 接线方式=%X(0600:三相四，1200：三相三)\n",JProgramInfo->ac_chip_type,JProgramInfo->WireType);
+}
+
+/*
  * 交采计量芯片的处理过程
  * */
 void DealACS()
@@ -1356,7 +1428,8 @@ void DealACS()
 		break;
 	case 1:
 	case ATT_VER_ID:
-		DealATT7022();
+		DealATT7022();		//处理ATT7022E数据
+		ACSEnergySave(energysum);	//电量的存储	//TODO :底板掉电情况下，保证不控制gprs的poweron/off管脚
 		break;
 	}
 	//拷贝实时数据和电能量数据到pubdata共享内存结构体中。为了液晶的轮显数据

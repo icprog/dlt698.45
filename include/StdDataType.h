@@ -15,6 +15,8 @@ typedef signed long long  		INT64S;          /* Unsigned 64 bit quantity        
 typedef float          FP32;                     /* Single precision floating point                    */
 typedef double         FP64;                     /* Double precision floating point                    */
 
+#define TRUE 1
+#define FALSE !TRUE
 
 //698.45扩展数据类型-------------------------------------
 typedef unsigned char MAC_698;	//数据安全MAC
@@ -277,6 +279,7 @@ typedef struct
 typedef struct
 {
 	OAD oad;
+	INT8U num;
 	OAD oads[16];
 }ROAD;					/*记录型对象属性描述符*/
 
@@ -426,7 +429,8 @@ typedef struct
 }MY_CSD;
 typedef struct
 {
-	INT8U type;
+	INT8U flag;			//解析时的标记，在应用程序中无意义
+	INT8U num;
 	MY_CSD csd[10];//CSD
 }CSD_ARRAYTYPE;
 

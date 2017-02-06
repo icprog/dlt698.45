@@ -288,6 +288,7 @@ INT8U deal6015(CLASS_6015 st6015,INT8U port485)
 	if(st6015.mst.mstype == 1)
 	{
 
+
 	}
 
 	INT16U		oi = 0x6000;
@@ -511,6 +512,7 @@ void getTaskNextTime(INT16U taskIndex)
 {
 	TSGet(&list6013[taskIndex].ts_next);
 	tminc(&list6013[taskIndex].ts_next,list6013[taskIndex].basicInfo.interval.units,list6013[taskIndex].basicInfo.interval.interval);
+
 }
 /*
  * 比较当前时间应该先抄读哪一个任务
@@ -715,7 +717,7 @@ INT8U init6013ListFrom6012File()
 	CLASS_6013	class6013={};
 	for(tIndex = 0;tIndex < TASK6012_MAX;tIndex++)
 	{
-		if(readCoverClass(oi,tIndex+1,&class6013,sizeof(class6013),coll_para_save) != 1)
+		if(readCoverClass(oi,tIndex+1,&class6013,sizeof(CLASS_6013),coll_para_save)== 1)
 		{
 			memcpy(&list6013[tIndex].basicInfo,&class6013,sizeof(CLASS_6013));
 			list6013[tIndex].ts_next.Year = ts_now.Year;
