@@ -11,7 +11,6 @@
 #include "ParaDef.h"
 #include "PublicFunction.h"
 #include "cjmain.h"
-#include "fixpara.h"
 
 void Runled()
 {

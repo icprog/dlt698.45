@@ -178,6 +178,7 @@ void Collect6000(OI_698	oi)
 
 void print6013(CLASS_6013 class6013)
 {
+	INT8U	i=0;
 	fprintf(stderr,"【6013】任务配置单元: 任务ID--%d\n",class6013.taskID);
 	fprintf(stderr,"       [1]%s-%d ",getenum(task_ti,class6013.interval.units),class6013.interval.interval);
 	fprintf(stderr,"[2]%s  [3]%d   ",getenum(task_cjtype,class6013.cjtype),class6013.sernum);
@@ -188,8 +189,11 @@ void print6013(CLASS_6013 class6013)
 	fprintf(stderr,"[6]%s-%d ",getenum(task_ti,class6013.delay.units),class6013.delay.interval);
 	fprintf(stderr,"[7]%s  ",getenum(task_prio,class6013.runprio));
 	fprintf(stderr,"[8]%s  [9]%d  [10]%d ",getenum(task_status,class6013.state),class6013.befscript,class6013.aftscript);
-	fprintf(stderr,"[11]%s [%d:%d %d:%d] ",getenum(task_runtime,class6013.runtime.type),class6013.runtime.runtime[0].beginHour,
-			class6013.runtime.runtime[0].beginMin,class6013.runtime.runtime[0].endHour,class6013.runtime.runtime[0].endMin);
+	fprintf(stderr,"[11]%s ",getenum(task_runtime,class6013.runtime.type));
+	for(i=0;i<class6013.runtime.num;i++) {
+		fprintf(stderr,"[%d:%d %d:%d] ",class6013.runtime.runtime[i].beginHour,class6013.runtime.runtime[i].beginMin,
+									    class6013.runtime.runtime[i].endHour,class6013.runtime.runtime[i].endMin);
+	}
 	fprintf(stderr,"\n");
 }
 
