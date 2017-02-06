@@ -207,22 +207,23 @@ void get_BasicUnit(INT8U *source,INT16U *sourceindex,INT8U *dest,INT16U *destind
 				dest_sumindex = 3;
 			break;
     	case 0x5B://CSD
-			choicetype = source[1];
+			choicetype = source[1];//01
 			if (choicetype == 1)
 			{//road
-				dest[0] = source[3];
-				dest[1] = source[2];
-				dest[2] = source[4];
-				dest[3] = source[5];
+				dest[0] = choicetype;
+				dest[1] = source[3];
+				dest[2] = source[2];
+				dest[3] = source[4];
+				dest[4] = source[5];
 				int numm = source[6];//SEQUENCE 0F OAD 数量
-				dest[4] = (INT8U)numm;
+				dest[5] = (INT8U)numm;
 				fprintf(stderr,"\nnumm=%d",numm);
 				for(int k=0;k<numm;k++)
 				{
-					dest[5+k*4+0] = source[7+k*4+1];
-					dest[5+k*4+1] = source[7+k*4+0];
-					dest[5+k*4+2] = source[7+k*4+2];
-					dest[5+k*4+3] = source[7+k*4+3];
+					dest[6+k*4+0] = source[7+k*4+1];
+					dest[6+k*4+1] = source[7+k*4+0];
+					dest[6+k*4+2] = source[7+k*4+2];
+					dest[6+k*4+3] = source[7+k*4+3];
 				}
 				size =1+ 4+ 1 + numm*4;// 1:choicetype  4:oad  1:num
 			}else

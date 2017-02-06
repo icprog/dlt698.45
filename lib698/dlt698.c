@@ -466,6 +466,23 @@ INT8U dealClientRequest(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
 {
 	INT8U apduType = apdu[0];
 	fprintf(stderr,"\n-------- apduType = %d ",apduType);
+
+	if (apduType == SECURITY_REQUEST)//安全请求的数据类型
+	{
+		INT8U choice=apdu[1];
+//		INT8U
+		switch (choice)
+		{
+			case 0:
+				fprintf(stderr,"\n安全请求的数据类型 SECURITY-Request  ----- 明文应用数据单元");
+
+				break;
+			case 1:
+				fprintf(stderr,"\n安全请求的数据类型 SECURITY-Request  ----- 密文应用数据单元");
+				break;
+		}
+	}
+
 	switch(apduType)
 	{
 		case CONNECT_REQUEST:
