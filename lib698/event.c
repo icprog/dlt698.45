@@ -769,15 +769,15 @@ INT8U Event_3106(EVENTREALDATA Realdata) {
 	INT16U maxtime_space=event_object.Event3106_obj.poweroff_para_obj.screen_para_obj.maxtime_space;
 	//判断下电
 	if(TermialPowerInfo.ERC3106State == POWER_START){
-		if(Realdata.U[0].value == 0)
+		if(Realdata.Voltage[0].value == 0)
 				off_time ++;
 			else
 				off_time = 0;
 		//二型集中器没有电池只有电容，所以不能够读出底板是否有电，且二型集中器只有一相电压，停上电事件在硬件复位时不能产生，
 		//所以判断时，需要判断当前电压大于一个定值且小时参数时，产生事件(大于的定时暂定为10v交采已经将实时电压值乘以１０).
-		if((Realdata.U[0].Available==TRUE)
-				&&((Realdata.U[0].value>100&&Realdata.U[0].value<poweroff_happen_vlim)
-				||(Realdata.U[0].value == 0 && off_time>5)))
+		if((Realdata.Voltage[0].Available==TRUE)
+				&&((Realdata.Voltage[0].value>100&&Realdata.Voltage[0].value<poweroff_happen_vlim)
+				||(Realdata.Voltage[0].value == 0 && off_time>5)))
 	    //一型集中器
 //		if((((Realdata.U[0].value<poweroff_happen_vlim)&&(Realdata.U[1].value<poweroff_happen_vlim)
 //						&&(Realdata.U[2].value<poweroff_happen_vlim))&&((Realdata.U[0].value|Realdata.U[1].value|Realdata.U[2].value)>0)&&gpio_5V)
@@ -790,14 +790,14 @@ INT8U Event_3106(EVENTREALDATA Realdata) {
 			//电压低于限值，且底板有电，产生下电事件
 			TermialPowerInfo.ERC3106State = POWER_OFF;
 			localtime_r((const time_t*)&time_of_now, &TermialPowerInfo.PoweroffTime);
-			ERC3106log(0,Realdata.U[0].value,TermialPowerInfo.PoweroffTime);//调试加入log
+			ERC3106log(0,Realdata.Voltage[0].value,TermialPowerInfo.PoweroffTime);//调试加入log
 
 			filewrite(ERC3106PATH,&TermialPowerInfo,sizeof(TermialPowerInfo));
 			SendERC3106(flag,0);
 		}
 	}else if(TermialPowerInfo.ERC3106State == POWER_OFF){
 		//II型
-		if((Realdata.U[0].Available&&Realdata.U[0].value>recover_voltage_limit))
+		if((Realdata.Voltage[0].Available&&Realdata.Voltage[0].value>recover_voltage_limit))
         //I型
 		//if((Realdata.U[0].Available&&Realdata.U[0].value>recover_voltage_limit)
         //			||(Realdata.U[1].Available&&Realdata.U[1].value>recover_voltage_limit)
@@ -809,7 +809,7 @@ INT8U Event_3106(EVENTREALDATA Realdata) {
 
 			filewrite(ERC3106PATH,&TermialPowerInfo,sizeof(TermialPowerInfo));
 			int interval = difftime(mktime(&TermialPowerInfo.PoweronTime),mktime(&TermialPowerInfo.PoweroffTime));
-			ERC3106log(1,Realdata.U[0].value,TermialPowerInfo.PoweronTime);//调试加入log
+			ERC3106log(1,Realdata.Voltage[0].value,TermialPowerInfo.PoweronTime);//调试加入log
 
 			//如果上电时间大于停电时间或者停上电时间间隔小于最小间隔或者大于最大间隔不产生下电事件
 			if((interval > mintime_space*60)&&(interval < maxtime_space*60)) {

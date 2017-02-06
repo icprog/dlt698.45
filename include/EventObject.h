@@ -282,12 +282,12 @@ typedef struct
 typedef struct{
 	INT32U value;
 	INT8U Available;
-}MYINT32U;
+}MYINT32U ;
 
 typedef struct{
-	MYINT32U U[3];
-	MYINT32U I[3];
-	MYINT32U P[3];
+	MYINT32U Voltage[3];
+	MYINT32U Current[3];
+	MYINT32U Power[3];
 }EVENTREALDATA;
 
 /*以下为整个事件属性结构体，存储该结构体*/

@@ -90,6 +90,7 @@ INT16U set310f(INT8U attflg,INT8U index,INT8U *data)
 		saveflg = saveCoverClass(0x310f,0,&tmp310f,sizeof(tmp310f),event_para_save);
 		prtstat(saveflg);
 	}
+
 	return source_index;
 }
 INT16U set4000(INT8U attflg,INT8U index,INT8U *data)
