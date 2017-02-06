@@ -116,7 +116,8 @@ int clearClass(OI_698 oi)
 
 	infoi = getclassinfo(oi,&info);
 	if(infoi==-1) {
-		sprintf(cmd,"rm -rf /nand/para/%04x/",oi);
+		memset(cmd,0,sizeof(cmd));
+		sprintf(cmd,"rm -rf %s/%04x/",PARADIR,oi);
 		system(cmd);
 		return 1;
 	}
@@ -139,9 +140,10 @@ int deleteClass(OI_698 oi,INT8U id)
 {
 	char	cmd[FILENAMELEN]={};
 
-	sprintf(cmd,"rm -rf /nand/para/%04x/%02d.par",oi,id);
+	memset(cmd,0,sizeof(cmd));
+	sprintf(cmd,"rm -rf %s/%04x/%d.par",PARADIR,oi,id);
 	system(cmd);
-	sprintf(cmd,"rm -rf /nand/para/%04x/%02d.bak",oi,id);
+	sprintf(cmd,"rm -rf %s/%04x/%d.bak",PARADIR,oi,id);
 	system(cmd);
 	return 1;
 }

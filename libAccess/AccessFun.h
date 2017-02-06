@@ -22,7 +22,8 @@
 #define	 EVENT_REC			"/nand/event/record"		//事件记录目录
 #define	 EVENT_CURR			"/nand/event/current"		//当前值记录表
 
-#define	 PARA				"/nand/para"				//属性参数文件
+#define	 PARADIR				"/nand/para"				//参变量文件（4000） 采集监控类文件（6000）
+//#define	 COLLDIR				"/nand/coll"				//采集监控类文件（6000）
 //文件存储类型
 typedef enum
 {

@@ -47,11 +47,11 @@ int doActionReponse(int reponse,CSINFO *csinfo,PIID piid,OMD omd,int dar,INT8U *
 //	fprintf(stderr,"piid.data[%d]=%02x\n",index,piid.data);
 	buf[index] = piid.data;
 	index++;
-	memcpy(&buf[index],&omd,sizeof(OMD));
-	index = index + sizeof(OMD);
-	buf[index] = omd.OI & 0xff;
-	index++;
+//	memcpy(&buf[index],&omd,sizeof(OMD));
+//	index = index + sizeof(OMD);
 	buf[index] = (omd.OI>>8) & 0xff;
+	index++;
+	buf[index] = omd.OI & 0xff;
 	index++;
 	buf[index] = omd.method_tag;
 	index++;
@@ -396,7 +396,7 @@ void AddTaskInfo(INT8U *data)
 		fprintf(stderr,"\n结束  %d时 %d分  ",task.runtime.runtime[0].endHour,task.runtime.runtime[0].endMin);
 		source_sumindex += source_index;
 		dest_sumindex += dest_index;
-		saveflg = saveCoverClass(0x6012,task.taskID,&task,sizeof(task),coll_para_save);
+		saveflg = saveCoverClass(0x6013,task.taskID,&task,sizeof(task),coll_para_save);
 		if (saveflg==1)
 			fprintf(stderr,"\n采集任务 %d 保存成功",task.sernum);
 		else
@@ -525,5 +525,5 @@ int doObjectAction(OMD omd,INT8U *data)
 			EventCjFangAnInfo(attr_act,data);
 			break;
 	}
-	return 1;
+	return 0;	//DAR=0，成功
 }
