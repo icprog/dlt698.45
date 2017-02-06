@@ -342,9 +342,9 @@ void getFileName(OI_698 oi,INT16U seqno,INT16U type,char *fname)
 		break;
 	case coll_para_save:
 		makeSubDir("/nand/para");
-		sprintf(fname,"/nand/para/%04x/",oi);
+		sprintf(fname,"/%s/%04x/",PARADIR,oi);
 		makeSubDir(fname);
-		sprintf(fname,"/nand/para/%04x/%d.par",oi,seqno);
+		sprintf(fname,"/%s/%04x/%d.par",PARADIR,oi,seqno);
 		break;
 	case acs_coef_save:
 		makeSubDir(_ACSDIR_);
@@ -437,7 +437,7 @@ INT8U file_read(char *FileName, void *source, int size,int offset,INT16U *retcrc
 	} else
 	{
 		ret = 0;
-		fprintf(stderr, "%s read error\n\r", FileName);
+//		fprintf(stderr, "%s read error\n\r", FileName);
 	}
 	return ret;
 }

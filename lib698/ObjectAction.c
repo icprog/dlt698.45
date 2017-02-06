@@ -47,11 +47,11 @@ int doActionReponse(int reponse,CSINFO *csinfo,PIID piid,OMD omd,int dar,INT8U *
 //	fprintf(stderr,"piid.data[%d]=%02x\n",index,piid.data);
 	buf[index] = piid.data;
 	index++;
-	memcpy(&buf[index],&omd,sizeof(OMD));
-	index = index + sizeof(OMD);
-	buf[index] = omd.OI & 0xff;
-	index++;
+//	memcpy(&buf[index],&omd,sizeof(OMD));
+//	index = index + sizeof(OMD);
 	buf[index] = (omd.OI>>8) & 0xff;
+	index++;
+	buf[index] = omd.OI & 0xff;
 	index++;
 	buf[index] = omd.method_tag;
 	index++;
@@ -325,7 +325,7 @@ void AddCjiFangAnInfo(INT8U *data)
 		fprintf(stderr,"\n存储深度 ：%d ",fangAn.deepsize);
 		fprintf(stderr,"\n采集类型 ：%d ",fangAn.cjtype);
 		fprintf(stderr,"\n采集内容(data) 类型：%02x  data=%d",fangAn.data.type,fangAn.data.data[0]);
-		buf = (INT8U *)&fangAn.csds.type;
+		buf = (INT8U *)&fangAn.csds.flag;
 		fprintf(stderr,"\ncsd:");
 		INT8U type=0,w;
 		for(int i=0; i<10;i++)
@@ -371,7 +371,6 @@ void AddEventCjiFangAnInfo(INT8U *data)
 		get_BasicUnit(&data[2]+source_sumindex,&source_index,(INT8U *)&eventFangAn.sernum,&dest_index);
 		source_sumindex += source_index;
 		dest_sumindex += dest_index;
-
 	}
 }
 void AddTaskInfo(INT8U *data)
@@ -403,7 +402,7 @@ void AddTaskInfo(INT8U *data)
 		fprintf(stderr,"\n开始  %d时 %d分  ",task.runtime.runtime[0].beginHour,task.runtime.runtime[0].beginMin);
 		fprintf(stderr,"\n结束  %d时 %d分  ",task.runtime.runtime[0].endHour,task.runtime.runtime[0].endMin);
 
-		saveflg = saveCoverClass(0x6012,task.taskID,&task,sizeof(task),coll_para_save);
+		saveflg = saveCoverClass(0x6013,task.taskID,&task,sizeof(task),coll_para_save);
 		if (saveflg==1)
 			fprintf(stderr,"\n采集任务 %d 保存成功",task.sernum);
 		else
@@ -532,5 +531,5 @@ int doObjectAction(OMD omd,INT8U *data)
 			EventCjFangAnInfo(attr_act,data);
 			break;
 	}
-	return 1;
+	return 0;	//DAR=0，成功
 }
