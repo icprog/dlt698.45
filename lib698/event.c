@@ -16,7 +16,7 @@
 static TSA TSA_LIST[MAX_POINT_NUM];
 static int TSA_NUMS;
 //事件参数（读文件）
-TerminalEvent_Object event_object;
+static TerminalEvent_Object event_object;
 //当前最新抄表数据
 static Curr_Data curr_data[MAX_POINT_NUM];
 //当前内存保存得数据个数
@@ -40,7 +40,7 @@ static INT16U currnum=0;
  * 初始化参数
  */
 INT8U Event_Init() {
-    //初始化事件参数，调用共享内存
+    //初始化事件参数，调用文件
 	readCoverClass(0x3100,0,&event_object.Event3100_obj,sizeof(event_object.Event3100_obj),event_para_save);
 	readCoverClass(0x3101,0,&event_object.Event3101_obj,sizeof(event_object.Event3101_obj),event_para_save);
 	readCoverClass(0x3104,0,&event_object.Event3104_obj,sizeof(event_object.Event3104_obj),event_para_save);
@@ -71,6 +71,17 @@ INT8U Event_Init() {
 	readCoverClass(0x3201,0,&event_object.Event3201_obj,sizeof(event_object.Event3201_obj),event_para_save);
 	readCoverClass(0x3202,0,&event_object.Event3202_obj,sizeof(event_object.Event3202_obj),event_para_save);
 	readCoverClass(0x3203,0,&event_object.Event3203_obj,sizeof(event_object.Event3203_obj),event_para_save);
+	//测量点信息
+	TSA_NUMS=getFileRecordNum(6000);
+	if(TSA_NUMS>MAX_POINT_NUM)
+		TSA_NUMS=MAX_POINT_NUM;
+	CLASS_6001	 meter={};
+	int i=0;
+	for(i=0;i<TSA_NUMS;i++) {
+		if(readParaClass(6000,&meter,i)==1) {
+			TSA_LIST[i]=meter.basicinfo.addr;
+		}
+	}
     return 1;
 }
 
