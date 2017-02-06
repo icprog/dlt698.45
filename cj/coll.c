@@ -348,22 +348,31 @@ void print6015(CLASS_6015 class6015)
 									((class6015.data.data[4]<<8)|class6015.data.data[3]));
 		break;
 	}
-	for(i=0; i<10;i++)
+	if(class6015.csds.num >= 10) {
+		fprintf(stderr,"csd overvalue 10 error\n");
+		return;
+	}
+	fprintf(stderr,"[5]");
+	for(i=0; i<class6015.csds.num;i++)
 	{
 		type = class6015.csds.csd[i].type;
 		if (type==0)
 		{
-			fprintf(stderr,"[5]OAD");
-			fprintf(stderr," %04x-%02x%02x ",class6015.csds.csd[i].csd.oad.OI,class6015.csds.csd[i].csd.oad.attflg,class6015.csds.csd[i].csd.oad.attrindex);
+			fprintf(stderr,"OAD");
+			fprintf(stderr,"<%d>%04x-%02x%02x ",i,class6015.csds.csd[i].csd.oad.OI,class6015.csds.csd[i].csd.oad.attflg,class6015.csds.csd[i].csd.oad.attrindex);
 		}else if (type==1)
 		{
-			fprintf(stderr,"[5]ROAD");
-			fprintf(stderr,"	OAD-%04x-%02x%02x ",
+			fprintf(stderr,"ROAD");
+			fprintf(stderr,"<%d>%04x-%02x%02x ",i,
 					class6015.csds.csd[i].csd.road.oad.OI,class6015.csds.csd[i].csd.road.oad.attflg,class6015.csds.csd[i].csd.road.oad.attrindex);
-			for(w=0;w<16;w++)
+			if(class6015.csds.num >= 16) {
+				fprintf(stderr,"csd overvalue 16 error\n");
+				return;
+			}
+			for(w=0;w<class6015.csds.num;w++)
 			{
 				if (class6015.csds.csd[i].csd.road.oads[w].OI!=0xeeee)
-					fprintf(stderr,"  OAD-%04x-%02x%02x ",
+					fprintf(stderr,"<%d>OAD %04x-%02x%02x ",w,
 							class6015.csds.csd[i].csd.road.oads[w].OI,class6015.csds.csd[i].csd.road.oads[w].attflg,class6015.csds.csd[0].csd.road.oads[w].attrindex);
 			}
 		}

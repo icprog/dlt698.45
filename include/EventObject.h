@@ -285,7 +285,7 @@ typedef struct{
 }MYINT32U;
 
 typedef struct{
-	MYINT32U U11[3];
+	MYINT32U U[3];
 	MYINT32U I[3];
 	MYINT32U P[3];
 }EVENTREALDATA;
