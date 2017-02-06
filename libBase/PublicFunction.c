@@ -394,6 +394,16 @@ INT8U TScompare(TS ts1,TS ts2)
 	}
 	return 0;
 }
+
+//判断该年是否闫年
+BOOLEAN LeapYear(INT16U Year)
+{
+	if(((Year%4==0) && (Year%100!=0)) || (Year%400==0))//闰年
+		return TRUE;
+	return FALSE;
+
+}
+
 INT8S tminc(TS* tmi,Time_Units unit,INT32S val)
 {
 	INT8U lastday[12]={31,28,31,30,31,30,31,31,30,31,30,31};
