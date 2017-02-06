@@ -346,7 +346,158 @@ void TSGet(TS *ts)
 	ts->Sec = tmp_tm.tm_sec;
 	ts->Week = tmp_tm.tm_wday;
 }
+//TS时间比较 0-相等 1-ts1大 2-ts2大
+INT8U TScompare(TS ts1,TS ts2)
+{
+	if(ts1.Year > ts2.Year)
+	{
+		return 1;
+	}
+	else if(ts1.Year < ts2.Year)
+	{
+		return 2;
+	}
+	else if(ts1.Month > ts2.Month)
+	{
+		return 1;
+	}
+	else if(ts1.Month < ts2.Month)
+	{
+		return 2;
+	}
+	else if(ts1.Day > ts2.Day)
+	{
+		return 1;
+	}
+	else if(ts1.Day < ts2.Day)
+	{
+		return 2;
+	}
+	else if(ts1.Hour > ts2.Hour)
+	{
+		return 1;
+	}
+	else if(ts1.Hour < ts2.Hour)
+	{
+		return 2;
+	}
+	else if(ts1.Minute > ts2.Minute)
+	{
+		return 1;
+	}
+	else if(ts1.Minute < ts2.Minute)
+	{
+		return 2;
+	}
+	else if(ts1.Sec > ts2.Sec)
+	{
+		return 1;
+	}
+	else if(ts1.Sec < ts2.Sec)
+	{
+		return 2;
+	}
+	return 0;
+}
+INT8S tminc(TS* tmi,Time_Units unit,INT32S val)
+{
+	INT8U lastday[12]={31,28,31,30,31,30,31,31,30,31,30,31};
+	struct tm nowtm;
+	struct tm tm2;
+	if(tmi == NULL)
+		return -1;
+	if (tmi->Year<1900)
+		nowtm.tm_year = tmi->Year + 2000;
+	else
+		nowtm.tm_year = tmi->Year;
+	nowtm.tm_mon = tmi->Month;
+	nowtm.tm_mday = tmi->Day;
+	nowtm.tm_hour = tmi->Hour;
+	nowtm.tm_min = tmi->Minute;
+//	nowtm.tm_wday = tmi->Week;
+	nowtm.tm_sec = tmi->Sec;
+	nowtm.tm_isdst = 0;
+	nowtm.tm_year -= 1900;
+	nowtm.tm_mon -= 1;
+	switch (unit) {
+	case sec_units:
+		nowtm.tm_sec += val;
+		break;
+	case minute_units:
+		nowtm.tm_min += val;
+		break;
+	case hour_units:
+		nowtm.tm_hour += val;
+		break;
+	case day_units:
+		nowtm.tm_mday += val;
+		break;
+	case month_units:
+	{
+		BOOLEAN month_lastday = 0;
+		if(nowtm.tm_mday == lastday[nowtm.tm_mon])
+			month_lastday = 1;
+		int tmp_mon = nowtm.tm_mon+val%12;
+		if(tmp_mon < 0)
+		{
+			nowtm.tm_mon = 12+tmp_mon;
+			nowtm.tm_year += val/12-1;
+			tmi->Year+= val/12-1;
+		}
+		else
+		{
+			nowtm.tm_mon = tmp_mon;
+			nowtm.tm_year += val/12;
+			tmi->Year+= val/12;
+		}
+		if(nowtm.tm_mon >12)
+		{
+			nowtm.tm_mon -=12;
+			nowtm.tm_year += 1;
+			tmi->Year+= 1;
+		}
 
+		if(month_lastday)
+		{
+			switch(nowtm.tm_mon+1)
+			{
+				case 4:
+				case 6:
+				case 9:
+				case 11:
+					nowtm.tm_mday = 30;
+					break;
+				case 2:
+					if(LeapYear(tmi->Year))
+						nowtm.tm_mday = 29;
+					else
+						nowtm.tm_mday = 28;
+					break;
+				default:
+					nowtm.tm_mday = 31;
+					break;
+			}
+		}
+
+	}
+		break;
+	case year_units:
+		nowtm.tm_year += val;
+		break;
+	default:
+		return -2;
+	}
+	time_t time2 = mktime(&nowtm);
+	localtime_r(&time2,&tm2);
+	tmi->Year = tm2.tm_year+1900;
+	tmi->Month = tm2.tm_mon+1;
+	tmi->Day = tm2.tm_mday;
+	tmi->Hour = tm2.tm_hour;
+	tmi->Minute = tm2.tm_min;
+	tmi->Sec = tm2.tm_sec;
+	tmi->Week = tm2.tm_wday;
+	return 0;
+}
 //获取时间
 void DataTimeGet(DateTimeBCD* ts) {
     struct tm set;

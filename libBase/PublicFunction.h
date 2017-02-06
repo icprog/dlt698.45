@@ -15,6 +15,7 @@
 #include "ParaDef.h"
 
 extern void TSGet(TS *ts);
+extern INT8U TScompare(TS ts1,TS ts2);
 extern time_t tmtotime_t(TS ptm);
 extern void DataTimeGet(DateTimeBCD* ts);
 extern void Setsig(struct sigaction *psa,void (*pfun)(ProjectInfo *proinfo));
