@@ -784,9 +784,6 @@ void read485_thread(void* i485port)
 			}
 			DataTimeGet(&result6035.endtime);
 			result6035.taskState = AFTER_OPR;
-
-
-
 		}
 		else
 		{
