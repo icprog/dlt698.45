@@ -144,7 +144,7 @@ INT8S SMode_OADGetClass(OAD oad,SecureModePara* SMPara,INT16U paraNum,INT8U apdu
 *                     其他（操作/代理）材料中未找到说明，此处采用密文加MAC处理！！！！
 *                     0x01 密文+MAC    0x02密文      0x04明文+MAC     0x08明文      0x00无操作权限
 */
-INT8S SMode_OADListGetClass(OAD *oad,oadNum,SecureModePara* SMPara,INT16U paraNum,INT8U apduType)
+INT8S SMode_OADListGetClass(OAD *oad,INT16U oadNum,SecureModePara* SMPara,INT16U paraNum,INT8U apduType)
 {
 	INT8S classtmp =0x0F;
 	INT16U i=0;
