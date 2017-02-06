@@ -17,6 +17,7 @@
 #include "readplc.h"
 #include "guictrl.h"
 #include "acs.h"
+#include "event.h"
 
 /*********************************************************
  *程序入口函数-----------------------------------------------------------------------------------------------------------
@@ -51,7 +52,7 @@ int InitPro(ProgramInfo** prginfo, int argc, char *argv[])
 int InitPara()
 {
 	InitACSPara();
-
+	Event_Init();
 	return 0;
 }
 /*********************************************************
