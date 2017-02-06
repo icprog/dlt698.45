@@ -1,19 +1,15 @@
-/*
- * read485.h
- *
- *  Created on: 2017-1-4
- *      Author: wzm
- */
+
 
 #ifndef READ485_H_
 #define READ485_H_
 #include "Objectdef.h"
 #include "PublicFunction.h"
 #include "AccessFun.h"
+#include "dlt698.h"
 //一次从文件里读取10个6001--采集档案任务配置单元
 #define LIST6001SIZE 10
 #define TASK6012_MAX 256
-
+#define BUFFSIZE 256
 pthread_attr_t read485_attr_t;
 int thread_read4851_id,thread_read4852_id;           //485、四表合一（I型、II型、专变）
 pthread_t thread_read4851,thread_read4852;

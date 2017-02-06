@@ -8,6 +8,8 @@
 #ifndef RN8209_H_
 #define RN8209_H_
 
+#define RN8209_VER_ID		0x820900
+
 /*********校表参数和计量控制寄存器********/
 #define SYS_CON         0x002    //系统控制寄存器    2
 #define EMU_CON         0x012    //计量控制寄存器    2

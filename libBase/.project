@@ -3,6 +3,7 @@
 	<name>libBase</name>
 	<comment></comment>
 	<projects>
+		<project>include</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>

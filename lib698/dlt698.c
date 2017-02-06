@@ -4,15 +4,24 @@
 #include <stdlib.h>
 
 #include "AccessFun.h"
+#include "EventObject.h"
 #include "dlt698.h"
 #include "dlt698def.h"
 #include "secure.h"
-#include "../libEsam/Esam.h"
-
+#include "Esam.h"
+#include "ParaDef.h"
 #define LIB698_VER 	1
+
+extern int doObjectAction();
+extern int doActionReponse(int reponse,CSINFO *csinfo,PIID piid,OMD omd,int dar,INT8U *data,INT8U *buf);
+extern int getRequestNormal(OAD oad,INT8U *data);
+extern int setRequestNormal(INT8U *data,OAD oad,CSINFO *csinfo,INT8U *buf);
+extern int setRequestNormalList(INT8U *Object,CSINFO *csinfo,INT8U *buf);
+
+extern unsigned short tryfcs16(unsigned char *cp, int  len);
 INT8S (*pSendfun)(int fd,INT8U* sndbuf,INT16U sndlen);
 int comfd = 0;
-extern unsigned short tryfcs16(unsigned char *cp, int  len);
+
 /**************************************
  * 函数功能：DL/T698.45 状态机
  * 参数含义：
@@ -314,41 +323,22 @@ int appConnectResponse(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 		pSendfun(comfd,buf,index+3);
 	return (index+3);
 }
-
-
-int setRequestNormal(INT8U *Object,CSINFO *csinfo,INT8U *buf)
-{
-	int bytes=0;
-	OAD oad={};//对象属性描述符
-	memcpy(&oad , Object,4);
-//	bytes = setOneObject(&oad,csinfo,buf);
-	return bytes;
-}
-int setRequestNormalList(INT8U *Object,CSINFO *csinfo,INT8U *buf)
-{
-	int stepsize=1 , i=0 , bytes=0, objbytes=0;
-	INT8U objectnum = Object[0];
-
-	for(i=0 ; i< objectnum ; i++)
-	{
-		objbytes = setRequestNormal(Object+stepsize,csinfo,buf);
-		if (objbytes >0)
-			stepsize = stepsize + objbytes;
-		else
-			break;
-	}
-	return bytes;
-}
 int doSetAttribute(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 {
 	PIID piid={};
 	INT8U setType = apdu[1];
+	OAD oad={};
+	INT8U *data=NULL;
 	piid.data = apdu[2];
+	oad.OI = (apdu[3]<<8) | apdu[4];
+	oad.attflg = apdu[5];
+	oad.attrindex = apdu[6];
+	data = &apdu[7];					//Data
 
 	switch(setType)
 	{
 		case SET_REQUEST_NORMAL:
-			setRequestNormal(&apdu[3],csinfo,buf);
+			setRequestNormal(data,oad,csinfo,buf);
 			break;
 		case SET_REQUEST_NORMAL_LIST:
 			setRequestNormalList(&apdu[3],csinfo,buf);
@@ -361,17 +351,27 @@ int doSetAttribute(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 }
 int doGetAttribute(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 {
-	INT8U setType = apdu[1];
 	PIID piid={};
+	INT8U getType = apdu[1];
+	OAD oad={};
+	INT8U *data=NULL;
+	// 1,GetRequestNormal ; 2,GetRequestNormalList  3,GetRequestRecord  4,GetRequestRecordList,GetRequestNext
+
 	piid.data = apdu[2];
-	switch(setType)
+	fprintf(stderr,"\n- get type = %d PIID=%02x",getType,piid.data);
+	oad.OI = (apdu[3]<<8) | apdu[4];
+	oad.attflg = apdu[5];
+	oad.attrindex = apdu[6];
+	data = &apdu[7];					//Data
+	switch(getType)
 	{
 		case GET_REQUEST_NORMAL:
-
+			getRequestNormal(oad,data);
 			break;
 		case GET_REQUEST_NORMAL_LIST:
 			break;
 		case GET_REQUEST_RECORD:
+//			getRequestRecord(&apdu[3],csinfo,buf);
 			break;
 		case GET_REQUEST_RECORD_LIST:
 			break;
@@ -379,47 +379,6 @@ int doGetAttribute(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 			break;
 	}
 	return 1;
-}
-
-int doActionReponse(int reponse,CSINFO *csinfo,PIID piid,OMD omd,int dar,INT8U *data,INT8U *buf)
-{
-	int index=0, hcsi=0;
-
-	csinfo->dir = 1;
-	csinfo->prm = 0;
-
-	index = FrameHead(csinfo,buf);
-	hcsi = index;
-	index = index + 2;
-	buf[index] = ACTION_RESPONSE;
-	index++;
-	buf[index] = reponse;
-	index++;
-//	fprintf(stderr,"piid.data[%d]=%02x\n",index,piid.data);
-	buf[index] = piid.data;
-	index++;
-	memcpy(&buf[index],&omd,sizeof(OMD));
-	index = index + sizeof(OMD);
-	buf[index] = omd.OI & 0xff;
-	index++;
-	buf[index] = (omd.OI>>8) & 0xff;
-	index++;
-	buf[index] = omd.method_tag;
-	index++;
-	buf[index] = omd.oper_model;
-	index++;
-
-	buf[index] = dar;
-	index++;
-	if(data!=NULL) {
-		memcpy(&buf[index],&data,sizeof(data));
-		index = index + sizeof(data);
-	}
-	FrameTail(buf,index,hcsi);
-
-	if(pSendfun!=NULL)
-		pSendfun(comfd,buf,index+3);
-	return (index+3);
 }
 
 int doActionRequest(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
@@ -519,6 +478,7 @@ INT8U dealClientRequest(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
 			doSetAttribute(apdu,csinfo,sendbuf);
 			break;
 		case ACTION_REQUEST:
+			fprintf(stderr,"\n ACTION_REQUEST");
 			doActionRequest(apdu,csinfo,sendbuf);
 			break;
 		case PROXY_REQUEST:
@@ -564,3 +524,109 @@ int ProcessData(CommBlock *com)
 	}
 	return 1;
 }
+
+INT16S fillGetRequestAPDU(INT8U* sendBuf,CLASS_6015 obj6015,INT8U requestType)
+{
+	INT16S length = 0;
+
+	return length;
+
+}
+
+INT16S composeProtocol698_GetRequest(INT8U* 	sendBuf,CLASS_6015 obj6015,TSA meterAddr)
+{
+	INT8U CA = 0x02;
+	INT8U PIID = 0x02;
+	INT8U tobecalc = 0;
+
+	INT8U hcspos1 = 0;
+	INT8U hcspos2 = 0;
+	INT8U meterAddrlen = meterAddr.addr[0]&0x0f;
+	if(meterAddrlen == 0)
+	{
+		return 0;
+	}
+	INT16S sendLen = 0;
+	INT16S apdulen = 0;
+	sendBuf[0] = 0x68; //heand
+	sendBuf[1] = tobecalc; //length
+	sendBuf[2] = tobecalc;
+	sendBuf[3] = 0x43; //control
+
+	memcpy(&sendBuf[4],meterAddr.addr,meterAddrlen+2);
+
+	sendLen = 4 + meterAddrlen + 2;
+	sendBuf[sendLen++] = CA;
+
+	hcspos1 = sendLen;
+	sendBuf[sendLen++] = tobecalc;
+	hcspos2 = sendLen;
+	sendBuf[sendLen++] = tobecalc;
+	sendBuf[sendLen++] = GET_REQUEST;
+	INT8U csdcount = 0;
+	INT8U requestType = 0;
+	switch(obj6015.cjtype)
+	{
+		case TYPE_NULL:
+			{
+				if(csdcount == 1)
+				{
+					requestType = GET_REQUEST_NORMAL;
+				}
+				if(csdcount > 0)
+				{
+					requestType = GET_REQUEST_NORMAL_LIST;
+				}
+
+				break;
+			}
+
+		case TYPE_LAST:
+			{
+				if(csdcount == 1)
+				{
+					requestType = GET_REQUEST_RECORD;
+				}
+				if(csdcount > 0)
+				{
+					requestType = GET_REQUEST_RECORD_LIST;
+				}
+				break;
+			}
+
+		case TYPE_FREEZE:
+
+			break;
+		case TYPE_INTERVAL:
+			break;
+	}
+	sendBuf[sendLen++] = requestType;
+	sendBuf[sendLen++] = PIID;
+	apdulen = fillGetRequestAPDU(&sendBuf[sendLen],obj6015,requestType);
+	sendLen += apdulen;
+	sendBuf[sendLen++] = 0x00;//没有时间标签
+
+	INT16U fcspos1=sendLen;
+	sendBuf[sendLen++] = tobecalc;
+	INT16U fcspos2=sendLen;
+	sendBuf[sendLen++] = tobecalc;
+
+	sendBuf[sendLen] = 0x16;
+	INT16U framelen = sendLen -2;
+	sendBuf[1] = (framelen & 0x00ff);//length
+	sendBuf[2] = ((framelen >> 8) & 0x00ff);//length
+
+	INT16U hcs = 0;
+	hcs = tryfcs16(&sendBuf[1], meterAddrlen + 6);
+
+	sendBuf[hcspos1] = (hcs & 0x00ff);//HCS
+	sendBuf[hcspos2] = ((hcs >> 8) & 0x00ff);//HCS
+
+	INT16U fcs = tryfcs16(&sendBuf[1], meterAddrlen + 6);
+
+	sendBuf[fcspos1] = (fcs & 0x00ff);//FCS
+	sendBuf[fcspos2] = ((fcs >> 8) & 0x00ff);//FCS
+
+	return sendLen;
+}
+

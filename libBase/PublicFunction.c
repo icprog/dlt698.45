@@ -65,7 +65,7 @@ INT32S getIntBits(INT32U dint)
 
 INT32S int32u2bcd(INT32U dint32, INT8U* bcd,ORDER order)
 {
-	INT8U i;
+	INT8U i=0;
 	INT16U mod = 1;
 	INT32S len= 0;
 	len = getIntBits(dint32);
@@ -131,6 +131,15 @@ void* OpenShMem(char* shname,int memsize,void* pmem)
 	close(fd);
 	return pmem;
 
+}
+
+void  shmm_unregister(char* shname,int memsize)
+{
+	if(shname != NULL)
+	{
+		munmap(shname,memsize);
+		shname = NULL;
+	}
 }
 
 void Setsig(struct sigaction *psa,void (*pfun)(ProjectInfo *proinfo))
@@ -310,11 +319,6 @@ int OpenCom(int port,int baud,unsigned char *par,unsigned char stopb,unsigned ch
 		}
 		fprintf(stderr,"rs485gpio=%d,ComPort=%d\n",rs485gpio,ComPort);
 	}
-
-
-
-
-
     return ComPort;
 }
 //关闭串口
@@ -339,7 +343,8 @@ void TSGet(TS *ts)
 }
 
 //获取时间
-void DataTimeGet(DateTimeBCD* ts) {
+void DataTimeGet(DateTimeBCD* ts)
+{
     struct tm set;
     time_t times;
     times = time(NULL);
@@ -350,6 +355,22 @@ void DataTimeGet(DateTimeBCD* ts) {
     ts->hour.data  = set.tm_hour;
     ts->min.data   = set.tm_min;
     ts->sec.data   = set.tm_sec;
+}
+
+time_t tmtotime_t(TS ptm)
+{
+	time_t ctime;
+	struct tm ctm;
+	ctime = time(NULL);
+	localtime_r(&ctime,&ctm);
+	ctm.tm_year = ptm.Year -1900;
+	ctm.tm_mon = ptm.Month-1 ;//TODO:是否正确
+	ctm.tm_mday = ptm.Day;
+	ctm.tm_hour = ptm.Hour;
+	ctm.tm_min = ptm.Minute;
+	ctm.tm_sec = ptm.Sec;
+	ctime = mktime(&ctm);
+	return ctime;
 }
 
 /****************************************************************
@@ -450,5 +471,46 @@ int GetRealdataReq_data(RealdataReq* req,TRANSTYPE* data,INT16U ticket)
     return stat;
 }
 
+/*
+ * 功能：在/dev/shm目录下创建信号量描述文件，如果已经存在同名的文件，则先删除，然后在创建。
+ *
+ * 输入：
+ * name：为命名信号量的名称。
+ * flag：1 或者 0
+ *
+ * 返回：如果信号量创建成功，则返回信号量句柄
+ */
+sem_t* create_named_sem(const char* name, int flag)
+{
+    sem_t* fd;
+    if (name != NULL) {
+        sem_unlink(name);
+        fd = sem_open(name, O_CREAT, O_RDWR, flag);
+        if (fd != SEM_FAILED)
+            return fd;
+    }
+    return NULL;
+}
 
+/*
+ * 功能：打开一个命名信号量
+ *
+ * 输入
+ * name：命名信号量文件名
+ *
+ * 返回
+ * 成功：返回信号量句柄
+ * 失败：返回空
+ */
+
+sem_t* open_named_sem(const char* name)
+{
+    sem_t* fd;
+    if (name != NULL) {
+        fd = sem_open(name, O_RDWR);
+        if (fd != SEM_FAILED)
+            return fd;
+    }
+    return NULL;
+}
 #endif /*JPublicFunctionH*/
