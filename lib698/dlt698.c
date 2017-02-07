@@ -13,7 +13,7 @@
 #define LIB698_VER 	1
 
 extern int doObjectAction();
-extern int doActionReponse(int reponse,CSINFO *csinfo,PIID piid,OMD omd,int dar,INT8U *data,INT8U *buf);
+extern int doReponse(int server,int reponse,CSINFO *csinfo,PIID piid,OAD oad,int dar,INT8U *data,INT8U *buf);
 extern int getRequestNormal(OAD oad,INT8U *data);
 extern int setRequestNormal(INT8U *data,OAD oad,CSINFO *csinfo,INT8U *buf);
 extern int setRequestNormalList(INT8U *Object,CSINFO *csinfo,INT8U *buf);
@@ -325,6 +325,7 @@ int appConnectResponse(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 }
 int doSetAttribute(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 {
+	int  DAR=success;
 	PIID piid={};
 	INT8U setType = apdu[1];
 	OAD oad={};
@@ -338,7 +339,8 @@ int doSetAttribute(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 	switch(setType)
 	{
 		case SET_REQUEST_NORMAL:
-			setRequestNormal(data,oad,csinfo,buf);
+			DAR = setRequestNormal(data,oad,csinfo,buf);
+			doReponse(SET_RESPONSE,SET_REQUEST_NORMAL,csinfo,piid,oad,DAR,NULL,buf);
 			break;
 		case SET_REQUEST_NORMAL_LIST:
 			setRequestNormalList(&apdu[3],csinfo,buf);
@@ -383,23 +385,23 @@ int doGetAttribute(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 
 int doActionRequest(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 {
-	int  DAR=0;
+	int  DAR=success;
 	PIID piid={};
-	OMD omd={};
+	OAD  oad={};
 	INT8U *data=NULL;
 	INT8U request_choice = apdu[1];		//ACTION-Request
 	piid.data = apdu[2];				//PIID
-//	memcpy(&omd,&apdu[3],4);			//OMD
-	omd.OI= (apdu[3]<<8) | apdu[4];
-	omd.method_tag = apdu[5];
-	omd.oper_model = apdu[6];
+//	memcpy(&omd,&apdu[3],4);			//OAD
+	oad.OI= (apdu[3]<<8) | apdu[4];
+	oad.attflg = apdu[5];
+	oad.attrindex = apdu[6];
 	data = &apdu[7];					//Data
-	fprintf(stderr,"\n-------- request choice = %d omd OI = %04x  method=%d",request_choice,omd.OI,omd.method_tag);
+	fprintf(stderr,"\n-------- request choice = %d omd OI = %04x  method=%d",request_choice,oad.OI,oad.attrindex);
 	switch(request_choice)
 	{
 		case ACTIONREQUEST:
-			DAR = doObjectAction(omd,data);
-			doActionReponse(ActionResponseNormal,csinfo,piid,omd,DAR,NULL,buf);
+			DAR = doObjectAction(oad,data);
+			doReponse(ACTION_RESPONSE,ActionResponseNormal,csinfo,piid,oad,DAR,NULL,buf);
 			break;
 		case ACTIONREQUEST_LIST:
 			break;
