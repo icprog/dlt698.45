@@ -15,14 +15,12 @@
 //测量点、事件参数
 static TSA TSA_LIST[MAX_POINT_NUM];
 static int TSA_NUMS;
-static TerminalEvent_Object EVENT_OBJS;
-
-//static TSA tsa_list;
-//static tsa_list_num;
+//事件参数（读文件）
+static TerminalEvent_Object event_object;
 //当前最新抄表数据
-Curr_Data curr_data[MAX_POINT_NUM];
+static Curr_Data curr_data[MAX_POINT_NUM];
 //当前内存保存得数据个数
-INT16U currnum=0;
+static INT16U currnum=0;
 
 /*
  * 说明：
@@ -42,10 +40,48 @@ INT16U currnum=0;
  * 初始化参数
  */
 INT8U Event_Init() {
-    //初始化EVENT_OBJS结构体（读文件）
-    bzero(&EVENT_OBJS, sizeof(TerminalEvent_Object));
-    //EVENT_OBJS调用共享内存
-    //扫描、初始化电表表号档案TSA_LIST（读文件）
+    //初始化事件参数，调用文件
+	readCoverClass(0x3100,0,&event_object.Event3100_obj,sizeof(event_object.Event3100_obj),event_para_save);
+	readCoverClass(0x3101,0,&event_object.Event3101_obj,sizeof(event_object.Event3101_obj),event_para_save);
+	readCoverClass(0x3104,0,&event_object.Event3104_obj,sizeof(event_object.Event3104_obj),event_para_save);
+	readCoverClass(0x3105,0,&event_object.Event3105_obj,sizeof(event_object.Event3105_obj),event_para_save);
+	readCoverClass(0x3106,0,&event_object.Event3106_obj,sizeof(event_object.Event3106_obj),event_para_save);
+	readCoverClass(0x3107,0,&event_object.Event3107_obj,sizeof(event_object.Event3107_obj),event_para_save);
+	readCoverClass(0x3108,0,&event_object.Event3108_obj,sizeof(event_object.Event3108_obj),event_para_save);
+	readCoverClass(0x3109,0,&event_object.Event3109_obj,sizeof(event_object.Event3109_obj),event_para_save);
+	readCoverClass(0x310A,0,&event_object.Event310A_obj,sizeof(event_object.Event310A_obj),event_para_save);
+	readCoverClass(0x310B,0,&event_object.Event310B_obj,sizeof(event_object.Event310B_obj),event_para_save);
+	readCoverClass(0x310C,0,&event_object.Event310C_obj,sizeof(event_object.Event310C_obj),event_para_save);
+	readCoverClass(0x310D,0,&event_object.Event310D_obj,sizeof(event_object.Event310D_obj),event_para_save);
+	readCoverClass(0x310E,0,&event_object.Event310E_obj,sizeof(event_object.Event310E_obj),event_para_save);
+	readCoverClass(0x310F,0,&event_object.Event310F_obj,sizeof(event_object.Event310F_obj),event_para_save);
+	readCoverClass(0x3110,0,&event_object.Event3110_obj,sizeof(event_object.Event3110_obj),event_para_save);
+	readCoverClass(0x3111,0,&event_object.Event3111_obj,sizeof(event_object.Event3111_obj),event_para_save);
+	readCoverClass(0x3112,0,&event_object.Event3112_obj,sizeof(event_object.Event3112_obj),event_para_save);
+	readCoverClass(0x3114,0,&event_object.Event3114_obj,sizeof(event_object.Event3114_obj),event_para_save);
+	readCoverClass(0x3115,0,&event_object.Event3115_obj,sizeof(event_object.Event3115_obj),event_para_save);
+	readCoverClass(0x3116,0,&event_object.Event3116_obj,sizeof(event_object.Event3116_obj),event_para_save);
+	readCoverClass(0x3117,0,&event_object.Event3117_obj,sizeof(event_object.Event3117_obj),event_para_save);
+	readCoverClass(0x3118,0,&event_object.Event3118_obj,sizeof(event_object.Event3118_obj),event_para_save);
+	readCoverClass(0x3119,0,&event_object.Event3119_obj,sizeof(event_object.Event3119_obj),event_para_save);
+	readCoverClass(0x311A,0,&event_object.Event311A_obj,sizeof(event_object.Event311A_obj),event_para_save);
+	readCoverClass(0x311B,0,&event_object.Event311B_obj,sizeof(event_object.Event311B_obj),event_para_save);
+	readCoverClass(0x311C,0,&event_object.Event311C_obj,sizeof(event_object.Event311C_obj),event_para_save);
+	readCoverClass(0x3200,0,&event_object.Event3200_obj,sizeof(event_object.Event3200_obj),event_para_save);
+	readCoverClass(0x3201,0,&event_object.Event3201_obj,sizeof(event_object.Event3201_obj),event_para_save);
+	readCoverClass(0x3202,0,&event_object.Event3202_obj,sizeof(event_object.Event3202_obj),event_para_save);
+	readCoverClass(0x3203,0,&event_object.Event3203_obj,sizeof(event_object.Event3203_obj),event_para_save);
+	//测量点信息
+	TSA_NUMS=getFileRecordNum(6000);
+	if(TSA_NUMS>MAX_POINT_NUM)
+		TSA_NUMS=MAX_POINT_NUM;
+	CLASS_6001	 meter={};
+	int i=0;
+	for(i=0;i<TSA_NUMS;i++) {
+		if(readParaClass(6000,&meter,i)==1) {
+			TSA_LIST[i]=meter.basicinfo.addr;
+		}
+	}
     return 1;
 }
 
@@ -170,19 +206,11 @@ INT8U Event_FindTsa(TSA tsa) {
 INT8U Get_Event(OI_698 oi,INT8U eventno,INT8U** Getbuf,INT8U *Getlen)
 {
 	int filesize=0;
-
 	filesize = getClassFileLen(oi,eventno,event_record_save);
 	if(filesize<=0)  return 0;
 	*Getlen=filesize;
 	*Getbuf=(INT8U*)malloc(filesize);
 	readCoverClass(oi,eventno,*Getbuf,*Getlen,event_record_save);
-//	//获取事件记录文件
-//	INT8U filename[128];
-//	getFileName(oi,eventno,2,(char*)filename);
-//	INT32U filesize=get_file_size((const char*)filename);
-//	*Getlen=filesize;
-//	*Getbuf=(INT8U*)malloc(filesize);
-//	readCoverFile((char*)filename,*Getbuf,filesize);
 	return 1;
 }
 /*
@@ -335,7 +363,7 @@ INT8U Getcurrno(INT8U *currno,INT8U maxno){
  * 终端初始化事件1 可以698规约解析actionrequest 调用该接口，data为OAD
  */
 INT8U Event_3100(INT8U* data,INT8U len) {
-    if (EVENT_OBJS.Event3100_obj.enableflag == 0) {
+    if (event_object.Event3100_obj.enableflag == 0) {
         return 0;
     }
     //43 00 03 00
@@ -345,16 +373,16 @@ INT8U Event_3100(INT8U* data,INT8U len) {
     if(oi==0x4300 && action==3){
     	INT8U Save_buf[256];
 		bzero(Save_buf, sizeof(Save_buf));
-		EVENT_OBJS.Event3100_obj.crrentnum++;
-		Getcurrno(&EVENT_OBJS.Event3100_obj.crrentnum,EVENT_OBJS.Event3100_obj.maxnum);
-		INT32U crrentnum = EVENT_OBJS.Event3100_obj.crrentnum;
+		event_object.Event3100_obj.crrentnum++;
+		Getcurrno(&event_object.Event3100_obj.crrentnum,event_object.Event3100_obj.maxnum);
+		INT32U crrentnum = event_object.Event3100_obj.crrentnum;
 		INT8U index=0;
 		//标准数据单元
 		Get_StandardUnit(0x3100,Save_buf,&index,crrentnum,NULL,s_null);
 		//无关联数据
 		Save_buf[STANDARD_NUM_INDEX]+=0;
 		//存储更改后得参数
-		saveCoverClass(0x3100,(INT16U)crrentnum,(void *)&EVENT_OBJS.Event3100_obj,sizeof(Class7_Object),1);
+		saveCoverClass(0x3100,(INT16U)crrentnum,(void *)&event_object.Event3100_obj,sizeof(Class7_Object),1);
 		//存储记录集
 		saveCoverClass(0x3100,(INT16U)crrentnum,(void *)Save_buf,(int)index,2);
 		//存储当前记录值
@@ -363,7 +391,7 @@ INT8U Event_3100(INT8U* data,INT8U len) {
 		Get_CurrResult(Currbuf,&Currindex,NULL,s_null,crrentnum,0);
 		saveCoverClass(0x3100,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,3);
 		//判断是否要上报
-		if(EVENT_OBJS.Event3100_obj.reportflag)
+		if(event_object.Event3100_obj.reportflag)
 			Need_Report(0x3100,crrentnum);
     }
     return 1;
@@ -373,16 +401,16 @@ INT8U Event_3100(INT8U* data,INT8U len) {
  * 终端版本变更事件 可直接调用，维护命令修改版本或者升级后可调用
  */
 INT8U Event_3101(INT8U* data,INT8U len) {
-    if (EVENT_OBJS.Event3101_obj.enableflag == 0) {
+    if (event_object.Event3101_obj.enableflag == 0) {
         return 0;
     }
     //事件判定
     if(1){
     	INT8U Save_buf[256];
 		bzero(Save_buf, sizeof(Save_buf));
-		EVENT_OBJS.Event3101_obj.crrentnum++;
-		Getcurrno(&EVENT_OBJS.Event3101_obj.crrentnum,EVENT_OBJS.Event3101_obj.maxnum);
-		INT32U crrentnum = EVENT_OBJS.Event3101_obj.crrentnum;
+		event_object.Event3101_obj.crrentnum++;
+		Getcurrno(&event_object.Event3101_obj.crrentnum,event_object.Event3101_obj.maxnum);
+		INT32U crrentnum = event_object.Event3101_obj.crrentnum;
 		INT8U index=0;
 		//标准数据单元
 		Get_StandardUnit(0x3101,Save_buf,&index,crrentnum,NULL,s_null);
@@ -403,7 +431,7 @@ INT8U Event_3101(INT8U* data,INT8U len) {
 		Save_buf[index++]=0;
 		Save_buf[STANDARD_NUM_INDEX]+=2;
 		//存储更改后得参数
-		saveCoverClass(0x3101,(INT16U)crrentnum,(void *)&EVENT_OBJS.Event3101_obj,sizeof(Class7_Object),1);
+		saveCoverClass(0x3101,(INT16U)crrentnum,(void *)&event_object.Event3101_obj,sizeof(Class7_Object),1);
 		//存储记录集
 		saveCoverClass(0x3101,(INT16U)crrentnum,(void *)Save_buf,(int)index,2);
 		//存储当前记录值
@@ -412,7 +440,7 @@ INT8U Event_3101(INT8U* data,INT8U len) {
 		Get_CurrResult(Currbuf,&Currindex,NULL,s_null,crrentnum,0);
 		saveCoverClass(0x3101,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,3);
 		//判断是否要上报
-		if(EVENT_OBJS.Event3101_obj.reportflag)
+		if(event_object.Event3101_obj.reportflag)
 			Need_Report(0x3101,crrentnum);
     }
     return 1;
@@ -422,16 +450,16 @@ INT8U Event_3101(INT8U* data,INT8U len) {
  * 状态量变位事件 可直接调用 data为前后得ST CD，（1-4路）8个字节即可
  */
 INT8U Event_3104(INT8U* data,INT8U len) {
-    if (EVENT_OBJS.Event3104_obj.enableflag == 0) {
+    if (event_object.Event3104_obj.enableflag == 0) {
         return 0;
     }
     //事件判定
     if(1){
     	INT8U Save_buf[256];
 		bzero(Save_buf, sizeof(Save_buf));
-		EVENT_OBJS.Event3104_obj.crrentnum++;
-		Getcurrno(&EVENT_OBJS.Event3104_obj.crrentnum,EVENT_OBJS.Event3104_obj.maxnum);
-		INT32U crrentnum = EVENT_OBJS.Event3104_obj.crrentnum;
+		event_object.Event3104_obj.crrentnum++;
+		Getcurrno(&event_object.Event3104_obj.crrentnum,event_object.Event3104_obj.maxnum);
+		INT32U crrentnum = event_object.Event3104_obj.crrentnum;
 		INT8U index=0;
 		//标准数据单元
 		Get_StandardUnit(0x3104,Save_buf,&index,crrentnum,NULL,s_null);
@@ -472,7 +500,7 @@ INT8U Event_3104(INT8U* data,INT8U len) {
 		Save_buf[index++]=data[7];
 		Save_buf[STANDARD_NUM_INDEX]+=5;
 		//存储更改后得参数
-		saveCoverClass(0x3104,(INT16U)crrentnum,(void *)&EVENT_OBJS.Event3104_obj,sizeof(Class7_Object),1);
+		saveCoverClass(0x3104,(INT16U)crrentnum,(void *)&event_object.Event3104_obj,sizeof(Class7_Object),1);
 		//存储记录集
 		saveCoverClass(0x3104,(INT16U)crrentnum,(void *)Save_buf,(int)index,2);
 		//存储当前记录值
@@ -481,7 +509,7 @@ INT8U Event_3104(INT8U* data,INT8U len) {
 		Get_CurrResult(Currbuf,&Currindex,NULL,s_null,crrentnum,0);
 		saveCoverClass(0x3104,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,3);
 		//判断是否要上报
-		if(EVENT_OBJS.Event3104_obj.reportflag)
+		if(event_object.Event3104_obj.reportflag)
 			Need_Report(0x3104,crrentnum);
     }
     return 1;
@@ -491,7 +519,7 @@ INT8U Event_3104(INT8U* data,INT8U len) {
  * 电能表时钟超差事件 tsa事件发生源 电表时钟
  */
 INT8U Event_3105(TSA tsa, INT8U* data,INT8U len) {
-    if (EVENT_OBJS.Event3105_obj.event_obj.enableflag == 0) {
+    if (event_object.Event3105_obj.event_obj.enableflag == 0) {
         return 0;
     }
     if(data==NULL)
@@ -507,21 +535,21 @@ INT8U Event_3105(TSA tsa, INT8U* data,INT8U len) {
     metertime.Sec=data[6];
     int tcha=abs(difftime(tmtotime_t(metertime),tmtotime_t(jzqtime)));
     //事件判定
-    if (tcha>EVENT_OBJS.Event3105_obj.mto_obj.over_threshold
-    		&& EVENT_OBJS.Event3105_obj.mto_obj.over_threshold>0) {
+    if (tcha>event_object.Event3105_obj.mto_obj.over_threshold
+    		&& event_object.Event3105_obj.mto_obj.over_threshold>0) {
     	INT8U Save_buf[256];
 		bzero(Save_buf, sizeof(Save_buf));
 		//更新当前记录数
-		EVENT_OBJS.Event3105_obj.event_obj.crrentnum++;
-		Getcurrno(&EVENT_OBJS.Event3105_obj.event_obj.crrentnum,EVENT_OBJS.Event3105_obj.event_obj.maxnum);
-		INT32U crrentnum = EVENT_OBJS.Event3105_obj.event_obj.crrentnum;
+		event_object.Event3105_obj.event_obj.crrentnum++;
+		Getcurrno(&event_object.Event3105_obj.event_obj.crrentnum,event_object.Event3105_obj.event_obj.maxnum);
+		INT32U crrentnum = event_object.Event3105_obj.event_obj.crrentnum;
 		INT8U index=0;
 		//标准数据单元
 		Get_StandardUnit(0x3105,Save_buf,&index,crrentnum,(INT8U*)&tsa,s_tsa);
 		//无属性3关联数据
 		Save_buf[STANDARD_NUM_INDEX]+=0;
 		//存储更改后得参数
-		saveCoverClass(0x3105,(INT16U)crrentnum,(void *)&EVENT_OBJS.Event3105_obj,sizeof(Event3105_Object),1);
+		saveCoverClass(0x3105,(INT16U)crrentnum,(void *)&event_object.Event3105_obj,sizeof(Event3105_Object),1);
 		//存储记录集
 		saveCoverClass(0x3105,(INT16U)crrentnum,(void *)Save_buf,(int)index,2);
         //存储当前记录值
@@ -530,7 +558,7 @@ INT8U Event_3105(TSA tsa, INT8U* data,INT8U len) {
 		Get_CurrResult(Currbuf,&Currindex,(INT8U*)&tsa,s_tsa,crrentnum,0);
 		saveCoverClass(0x3105,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,3);
 		//判断是否要上报
-		if(EVENT_OBJS.Event3105_obj.event_obj.reportflag)
+		if(event_object.Event3105_obj.event_obj.reportflag)
 			Need_Report(0x3105,crrentnum);
     }else
         return 0;
@@ -602,9 +630,9 @@ void SendERC3106(INT8U flag,INT8U Erctype)
 {
 	INT8U Save_buf[256];
 	bzero(Save_buf, sizeof(Save_buf));
-	EVENT_OBJS.Event3106_obj.event_obj.crrentnum++;
-	Getcurrno(&EVENT_OBJS.Event3106_obj.event_obj.crrentnum,EVENT_OBJS.Event3106_obj.event_obj.maxnum);
-	INT32U crrentnum = EVENT_OBJS.Event3106_obj.event_obj.crrentnum;
+	event_object.Event3106_obj.event_obj.crrentnum++;
+	Getcurrno(&event_object.Event3106_obj.event_obj.crrentnum,event_object.Event3106_obj.event_obj.maxnum);
+	INT32U crrentnum = event_object.Event3106_obj.event_obj.crrentnum;
 	INT8U index=0;
 	//标准数据单元
 	Get_StandardUnit(0x3106,Save_buf,&index,crrentnum,(INT8U*)&Erctype,s_enum);
@@ -613,7 +641,7 @@ void SendERC3106(INT8U flag,INT8U Erctype)
 	Save_buf[index++]=flag;
 	Save_buf[STANDARD_NUM_INDEX]+=1;
 	//存储更改后得参数
-	saveCoverClass(0x3106,(INT16U)crrentnum,(void *)&EVENT_OBJS.Event3106_obj,sizeof(Event3106_Object),1);
+	saveCoverClass(0x3106,(INT16U)crrentnum,(void *)&event_object.Event3106_obj,sizeof(Event3106_Object),1);
 	//存储记录集
 	saveCoverClass(0x3106,(INT16U)crrentnum,(void *)Save_buf,(int)index,2);
 	//存储当前记录值
@@ -622,7 +650,7 @@ void SendERC3106(INT8U flag,INT8U Erctype)
 	Get_CurrResult(Currbuf,&Currindex,(INT8U*)&Erctype,s_enum,crrentnum,0);
 	saveCoverClass(0x3106,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,3);
 	//判断是否要上报
-	if(EVENT_OBJS.Event3106_obj.event_obj.reportflag)
+	if(event_object.Event3106_obj.event_obj.reportflag)
 		Need_Report(0x3106,crrentnum);
 }
 
@@ -664,7 +692,7 @@ BOOLEAN MeterDiff()
 			//fprintf(stderr,"Diff1_tmp1 =%d,Diff1_tmp2 = %d,poweroff_on_offset=%d\r\n",Diff1_tmp1,Diff1_tmp2,shmm_getpara()->f98.poweroff_on_offset);
 			//判断停电事件　起止时间偏差限值的合法性
 			int poweroffset = 0;
-			poweroffset = EVENT_OBJS.Event3106_obj.poweroff_para_obj.screen_para_obj.startstoptime_offset;
+			poweroffset = event_object.Event3106_obj.poweroff_para_obj.screen_para_obj.startstoptime_offset;
 #ifdef SHANDONG
 			poweroffset = 100;
 #endif
@@ -682,7 +710,7 @@ BOOLEAN MeterDiff()
 			int tmp1 =abs(difftime(mktime(&MeterPowerInfo[i].PoweronTime),mktime(&MeterPowerInfo[i].PoweroffTime)));
 			int tmp2 =abs(difftime(mktime(&TermialPowerInfo.PoweronTime),mktime(&TermialPowerInfo.PoweroffTime)));
 
-			if(abs(tmp1-tmp2) > EVENT_OBJS.Event3106_obj.poweroff_para_obj.screen_para_obj.sectortime_offset*60)
+			if(abs(tmp1-tmp2) > event_object.Event3106_obj.poweroff_para_obj.screen_para_obj.sectortime_offset*60)
 			{
 				fprintf(stderr,"MeterDiff err2\r\n");
 				TermialPowerInfo.Valid = POWER_OFF_INVALIDE;
@@ -725,7 +753,7 @@ INT8U fileread(char *FileName, void *source, INT32U size)
  * 终端停/上电事件5-停电事件-放在交采模块
  */
 INT8U Event_3106(EVENTREALDATA Realdata) {
-	if (EVENT_OBJS.Event3106_obj.event_obj.enableflag == 0) {
+	if (event_object.Event3106_obj.event_obj.enableflag == 0) {
 		return 0;
 	}
 	MeterDiff();
@@ -735,21 +763,21 @@ INT8U Event_3106(EVENTREALDATA Realdata) {
 	INT8U flag = 0;
 	static INT8U off_time = 0;
 	fileread(ERC3106PATH,&TermialPowerInfo,sizeof(TermialPowerInfo));
-	INT16U poweroff_happen_vlim=EVENT_OBJS.Event3106_obj.poweroff_para_obj.screen_para_obj.happen_voltage_limit;
-	INT16U recover_voltage_limit=EVENT_OBJS.Event3106_obj.poweroff_para_obj.screen_para_obj.recover_voltage_limit;
-	INT16U mintime_space=EVENT_OBJS.Event3106_obj.poweroff_para_obj.screen_para_obj.mintime_space;
-	INT16U maxtime_space=EVENT_OBJS.Event3106_obj.poweroff_para_obj.screen_para_obj.maxtime_space;
+	INT16U poweroff_happen_vlim=event_object.Event3106_obj.poweroff_para_obj.screen_para_obj.happen_voltage_limit;
+	INT16U recover_voltage_limit=event_object.Event3106_obj.poweroff_para_obj.screen_para_obj.recover_voltage_limit;
+	INT16U mintime_space=event_object.Event3106_obj.poweroff_para_obj.screen_para_obj.mintime_space;
+	INT16U maxtime_space=event_object.Event3106_obj.poweroff_para_obj.screen_para_obj.maxtime_space;
 	//判断下电
 	if(TermialPowerInfo.ERC3106State == POWER_START){
-		if(Realdata.U[0].value == 0)
+		if(Realdata.Voltage[0].value == 0)
 				off_time ++;
 			else
 				off_time = 0;
 		//二型集中器没有电池只有电容，所以不能够读出底板是否有电，且二型集中器只有一相电压，停上电事件在硬件复位时不能产生，
 		//所以判断时，需要判断当前电压大于一个定值且小时参数时，产生事件(大于的定时暂定为10v交采已经将实时电压值乘以１０).
-		if((Realdata.U[0].Available==TRUE)
-				&&((Realdata.U[0].value>100&&Realdata.U[0].value<poweroff_happen_vlim)
-				||(Realdata.U[0].value == 0 && off_time>5)))
+		if((Realdata.Voltage[0].Available==TRUE)
+				&&((Realdata.Voltage[0].value>100&&Realdata.Voltage[0].value<poweroff_happen_vlim)
+				||(Realdata.Voltage[0].value == 0 && off_time>5)))
 	    //一型集中器
 //		if((((Realdata.U[0].value<poweroff_happen_vlim)&&(Realdata.U[1].value<poweroff_happen_vlim)
 //						&&(Realdata.U[2].value<poweroff_happen_vlim))&&((Realdata.U[0].value|Realdata.U[1].value|Realdata.U[2].value)>0)&&gpio_5V)
@@ -762,14 +790,14 @@ INT8U Event_3106(EVENTREALDATA Realdata) {
 			//电压低于限值，且底板有电，产生下电事件
 			TermialPowerInfo.ERC3106State = POWER_OFF;
 			localtime_r((const time_t*)&time_of_now, &TermialPowerInfo.PoweroffTime);
-			ERC3106log(0,Realdata.U[0].value,TermialPowerInfo.PoweroffTime);//调试加入log
+			ERC3106log(0,Realdata.Voltage[0].value,TermialPowerInfo.PoweroffTime);//调试加入log
 
 			filewrite(ERC3106PATH,&TermialPowerInfo,sizeof(TermialPowerInfo));
 			SendERC3106(flag,0);
 		}
 	}else if(TermialPowerInfo.ERC3106State == POWER_OFF){
 		//II型
-		if((Realdata.U[0].Available&&Realdata.U[0].value>recover_voltage_limit))
+		if((Realdata.Voltage[0].Available&&Realdata.Voltage[0].value>recover_voltage_limit))
         //I型
 		//if((Realdata.U[0].Available&&Realdata.U[0].value>recover_voltage_limit)
         //			||(Realdata.U[1].Available&&Realdata.U[1].value>recover_voltage_limit)
@@ -781,7 +809,7 @@ INT8U Event_3106(EVENTREALDATA Realdata) {
 
 			filewrite(ERC3106PATH,&TermialPowerInfo,sizeof(TermialPowerInfo));
 			int interval = difftime(mktime(&TermialPowerInfo.PoweronTime),mktime(&TermialPowerInfo.PoweroffTime));
-			ERC3106log(1,Realdata.U[0].value,TermialPowerInfo.PoweronTime);//调试加入log
+			ERC3106log(1,Realdata.Voltage[0].value,TermialPowerInfo.PoweronTime);//调试加入log
 
 			//如果上电时间大于停电时间或者停上电时间间隔小于最小间隔或者大于最大间隔不产生下电事件
 			if((interval > mintime_space*60)&&(interval < maxtime_space*60)) {
@@ -835,7 +863,7 @@ INT8U Event_3106(EVENTREALDATA Realdata) {
 		}
 		else
 		{
-			int interval_limit = EVENT_OBJS.Event3106_obj.poweroff_para_obj.collect_para_obj.time_threshold;
+			int interval_limit = event_object.Event3106_obj.poweroff_para_obj.collect_para_obj.time_threshold;
 			if(interval_limit==0)
 				interval_limit = 5;
 			//如果抄表超时还未抄回,直接上报无效上电事件
@@ -861,18 +889,18 @@ INT8U Event_AnalyseACS(INT8U* data,INT8U len) {
  * 终端直流模拟量越上限事件6 data为直流模拟量 字节高到低
  */
 INT8U Event_3107(INT8U* data,INT8U len) {
-    if (EVENT_OBJS.Event3107_obj.event_obj.enableflag == 0) {
+    if (event_object.Event3107_obj.event_obj.enableflag == 0) {
         return 0;
     }
     INT32S moniliang=(data[0]<<24)+(data[1]<<16)+(data[2]<<8)+data[3];
-    INT32S offset=EVENT_OBJS.Event3107_obj.analogtop_obj.top_limit;
+    INT32S offset=event_object.Event3107_obj.analogtop_obj.top_limit;
     if(moniliang>offset){
 		INT8U Save_buf[256];
 		bzero(Save_buf, sizeof(Save_buf));
 		//更新当前记录数
-		EVENT_OBJS.Event3107_obj.event_obj.crrentnum++;
-		Getcurrno(&EVENT_OBJS.Event3107_obj.event_obj.crrentnum,EVENT_OBJS.Event3107_obj.event_obj.maxnum);
-		INT32U crrentnum = EVENT_OBJS.Event3107_obj.event_obj.crrentnum;
+		event_object.Event3107_obj.event_obj.crrentnum++;
+		Getcurrno(&event_object.Event3107_obj.event_obj.crrentnum,event_object.Event3107_obj.event_obj.maxnum);
+		INT32U crrentnum = event_object.Event3107_obj.event_obj.crrentnum;
 		INT8U index=0;
 		//标准数据单元
 		INT8U oad[4]={0xF2,0x04,0x02,0x00};
@@ -880,7 +908,7 @@ INT8U Event_3107(INT8U* data,INT8U len) {
 		//属性3无关联数据
 		Save_buf[STANDARD_NUM_INDEX]+=0;
 		//存储更改后得参数
-		saveCoverClass(0x3107,(INT16U)crrentnum,(void *)&EVENT_OBJS.Event3107_obj,sizeof(Event3107_Object),1);
+		saveCoverClass(0x3107,(INT16U)crrentnum,(void *)&event_object.Event3107_obj,sizeof(Event3107_Object),1);
 		//存储记录集
 		saveCoverClass(0x3107,(INT16U)crrentnum,(void *)Save_buf,(int)index,2);
 		//存储当前记录值
@@ -889,7 +917,7 @@ INT8U Event_3107(INT8U* data,INT8U len) {
 		Get_CurrResult(Currbuf,&Currindex,(INT8U*)oad,s_oad,crrentnum,0);
 		saveCoverClass(0x3107,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,3);
 		//判断是否要上报
-		if(EVENT_OBJS.Event3107_obj.event_obj.reportflag)
+		if(event_object.Event3107_obj.event_obj.reportflag)
 			Need_Report(0x3107,crrentnum);
     }
     return 1;
@@ -899,19 +927,19 @@ INT8U Event_3107(INT8U* data,INT8U len) {
  * 终端直流模拟量越下限事件7 data为直流模拟量 字节高到低
  */
 INT8U Event_3108(INT8U* data,INT8U len) {
-    if (EVENT_OBJS.Event3108_obj.event_obj.enableflag == 0) {
+    if (event_object.Event3108_obj.event_obj.enableflag == 0) {
         return 0;
     }
 
     INT32S moniliang=(data[0]<<24)+(data[1]<<16)+(data[2]<<8)+data[3];
-	INT32S offset=EVENT_OBJS.Event3108_obj.analogbom_obj.bom_limit;
+	INT32S offset=event_object.Event3108_obj.analogbom_obj.bom_limit;
 	if(moniliang<offset){
 		INT8U Save_buf[256];
 		bzero(Save_buf, sizeof(Save_buf));
 		//更新当前记录数
-		EVENT_OBJS.Event3108_obj.event_obj.crrentnum++;
-		Getcurrno(&EVENT_OBJS.Event3108_obj.event_obj.crrentnum,EVENT_OBJS.Event3108_obj.event_obj.maxnum);
-		INT32U crrentnum = EVENT_OBJS.Event3108_obj.event_obj.crrentnum;
+		event_object.Event3108_obj.event_obj.crrentnum++;
+		Getcurrno(&event_object.Event3108_obj.event_obj.crrentnum,event_object.Event3108_obj.event_obj.maxnum);
+		INT32U crrentnum = event_object.Event3108_obj.event_obj.crrentnum;
 		INT8U index=0;
 		//标准数据单元
 		INT8U oad[4]={0xF2,0x04,0x02,0x00};
@@ -919,7 +947,7 @@ INT8U Event_3108(INT8U* data,INT8U len) {
 		//属性3无关联数据
 		Save_buf[STANDARD_NUM_INDEX]+=0;
 		//存储更改后得参数
-		saveCoverClass(0x3108,(INT16U)crrentnum,(void *)&EVENT_OBJS.Event3108_obj,sizeof(Event3108_Object),1);
+		saveCoverClass(0x3108,(INT16U)crrentnum,(void *)&event_object.Event3108_obj,sizeof(Event3108_Object),1);
 		//存储记录集
 		saveCoverClass(0x3108,(INT16U)crrentnum,(void *)Save_buf,(int)index,2);
 		//存储当前记录值
@@ -928,7 +956,7 @@ INT8U Event_3108(INT8U* data,INT8U len) {
 		Get_CurrResult(Currbuf,&Currindex,(INT8U*)oad,s_oad,crrentnum,0);
 		saveCoverClass(0x3108,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,3);
 		//判断是否要上报
-		if(EVENT_OBJS.Event3108_obj.event_obj.reportflag)
+		if(event_object.Event3108_obj.event_obj.reportflag)
 			Need_Report(0x3108,crrentnum);
 	}
     return 1;
@@ -938,16 +966,16 @@ INT8U Event_3108(INT8U* data,INT8U len) {
  * 终端消息认证错误事件8 data事件发生前安全认证密码(不含数据类型) len为长度
  */
 INT8U Event_3109(INT8U* data,INT8U len) {
-    if (EVENT_OBJS.Event3109_obj.enableflag == 0) {
+    if (event_object.Event3109_obj.enableflag == 0) {
         return 0;
     }
     if(1){
     	INT8U Save_buf[256];
 		bzero(Save_buf, sizeof(Save_buf));
 		//更新当前记录数
-		EVENT_OBJS.Event3109_obj.crrentnum++;
-		Getcurrno(&EVENT_OBJS.Event3109_obj.crrentnum,EVENT_OBJS.Event3109_obj.maxnum);
-		INT32U crrentnum = EVENT_OBJS.Event3109_obj.crrentnum;
+		event_object.Event3109_obj.crrentnum++;
+		Getcurrno(&event_object.Event3109_obj.crrentnum,event_object.Event3109_obj.maxnum);
+		INT32U crrentnum = event_object.Event3109_obj.crrentnum;
 		INT8U index=0;
 		//标准数据单元
 		Get_StandardUnit(0x3109,Save_buf,&index,crrentnum,NULL,s_null);
@@ -957,7 +985,7 @@ INT8U Event_3109(INT8U* data,INT8U len) {
 		index+=len;
 		Save_buf[STANDARD_NUM_INDEX]+=1;
 		//存储更改后得参数
-		saveCoverClass(0x3109,(INT16U)crrentnum,(void *)&EVENT_OBJS.Event3109_obj,sizeof(Class7_Object),1);
+		saveCoverClass(0x3109,(INT16U)crrentnum,(void *)&event_object.Event3109_obj,sizeof(Class7_Object),1);
 		//存储记录集
 		saveCoverClass(0x3109,(INT16U)crrentnum,(void *)Save_buf,(int)index,2);
 		//存储当前记录值
@@ -966,7 +994,7 @@ INT8U Event_3109(INT8U* data,INT8U len) {
 		Get_CurrResult(Currbuf,&Currindex,NULL,s_null,crrentnum,0);
 		saveCoverClass(0x3109,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,3);
 		//判断是否要上报
-		if(EVENT_OBJS.Event3109_obj.reportflag)
+		if(event_object.Event3109_obj.reportflag)
 			Need_Report(0x3109,crrentnum);
     }
     return 1;
@@ -976,7 +1004,7 @@ INT8U Event_3109(INT8U* data,INT8U len) {
  * 设备故障事件 errtype：0,1,2,3,4,5
  */
 INT8U Event_310A(MachineError_type errtype) {
-    if (EVENT_OBJS.Event310A_obj.enableflag == 0) {
+    if (event_object.Event310A_obj.enableflag == 0) {
         return 0;
     }
     INT8U Source=0;
@@ -1003,16 +1031,16 @@ INT8U Event_310A(MachineError_type errtype) {
     INT8U Save_buf[256];
     bzero(Save_buf, sizeof(Save_buf));
     //更新当前记录数
-    EVENT_OBJS.Event310A_obj.crrentnum++;
-    Getcurrno(&EVENT_OBJS.Event310A_obj.crrentnum,EVENT_OBJS.Event310A_obj.maxnum);
-    INT32U crrentnum = EVENT_OBJS.Event310A_obj.crrentnum;
+    event_object.Event310A_obj.crrentnum++;
+    Getcurrno(&event_object.Event310A_obj.crrentnum,event_object.Event310A_obj.maxnum);
+    INT32U crrentnum = event_object.Event310A_obj.crrentnum;
     INT8U index=0;
 	//标准数据单元
 	Get_StandardUnit(0x310A,Save_buf,&index,crrentnum,(INT8U*)&Source,s_enum);
 	//无属性3关联数据
 	Save_buf[STANDARD_NUM_INDEX]+=0;
 	//存储更改后得参数
-	saveCoverClass(0x310A,(INT16U)crrentnum,(void *)&EVENT_OBJS.Event310A_obj,sizeof(Class7_Object),1);
+	saveCoverClass(0x310A,(INT16U)crrentnum,(void *)&event_object.Event310A_obj,sizeof(Class7_Object),1);
 	//存储记录集
 	saveCoverClass(0x310A,(INT16U)crrentnum,(void *)Save_buf,(int)index,2);
 	//存储当前记录值
@@ -1021,7 +1049,7 @@ INT8U Event_310A(MachineError_type errtype) {
 	Get_CurrResult(Currbuf,&Currindex,(INT8U*)&Source,s_enum,crrentnum,0);
 	saveCoverClass(0x310A,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,3);
 	//判断是否要上报
-	if(EVENT_OBJS.Event310A_obj.reportflag)
+	if(event_object.Event310A_obj.reportflag)
 		Need_Report(0x310A,crrentnum);
     return 1;
 }
@@ -1030,7 +1058,7 @@ INT8U Event_310A(MachineError_type errtype) {
  * 电能表示度下降事件10 前台两次电能值对比是否超过设定值
  */
 INT8U Event_310B(TSA tsa, INT8U* data,INT8U len) {
-    if (EVENT_OBJS.Event310B_obj.event_obj.enableflag == 0) {
+    if (event_object.Event310B_obj.event_obj.enableflag == 0) {
         return 0;
     }
     if(data==NULL)
@@ -1042,9 +1070,9 @@ INT8U Event_310B(TSA tsa, INT8U* data,INT8U len) {
     	if(olddata>newdata){
     		INT8U Save_buf[256];
 			bzero(Save_buf, sizeof(Save_buf));
-			EVENT_OBJS.Event310B_obj.event_obj.crrentnum++;
-			Getcurrno(&EVENT_OBJS.Event310B_obj.event_obj.crrentnum,EVENT_OBJS.Event310B_obj.event_obj.maxnum);
-			INT32U crrentnum = EVENT_OBJS.Event310B_obj.event_obj.crrentnum;
+			event_object.Event310B_obj.event_obj.crrentnum++;
+			Getcurrno(&event_object.Event310B_obj.event_obj.crrentnum,event_object.Event310B_obj.event_obj.maxnum);
+			INT32U crrentnum = event_object.Event310B_obj.event_obj.crrentnum;
 			INT8U index=0;
 			//标准数据单元
 			Get_StandardUnit(0x310B,Save_buf,&index,crrentnum,(INT8U*)&tsa,s_tsa);
@@ -1062,7 +1090,7 @@ INT8U Event_310B(TSA tsa, INT8U* data,INT8U len) {
 			Save_buf[STANDARD_NUM_INDEX]+=2;
 
 			//存储更改后得参数
-			saveCoverClass(0x310B,(INT16U)crrentnum,(void *)&EVENT_OBJS.Event310B_obj,sizeof(Event310B_Object),1);
+			saveCoverClass(0x310B,(INT16U)crrentnum,(void *)&event_object.Event310B_obj,sizeof(Event310B_Object),1);
 			//存储记录集
 			saveCoverClass(0x310B,(INT16U)crrentnum,(void *)Save_buf,(int)index,2);
 			//存储当前记录值
@@ -1071,7 +1099,7 @@ INT8U Event_310B(TSA tsa, INT8U* data,INT8U len) {
 			Get_CurrResult(Currbuf,&Currindex,(INT8U*)&tsa,s_tsa,crrentnum,0);
 			saveCoverClass(0x310B,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,3);
 			//判断是否要上报
-			if(EVENT_OBJS.Event310B_obj.event_obj.reportflag)
+			if(event_object.Event310B_obj.event_obj.reportflag)
 				Need_Report(0x310B,crrentnum);
     	}
     }
@@ -1084,7 +1112,7 @@ INT8U Event_310B(TSA tsa, INT8U* data,INT8U len) {
  * 电能量超差事件11 前台两次电能值以及测量点额定电压、电流
  */
 INT8U Event_310C(TSA tsa, INT8U* data,INT8U len) {
-    if (EVENT_OBJS.Event310C_obj.event_obj.enableflag == 0) {
+    if (event_object.Event310C_obj.event_obj.enableflag == 0) {
         return 0;
     }
     if(data==NULL)
@@ -1096,7 +1124,7 @@ INT8U Event_310C(TSA tsa, INT8U* data,INT8U len) {
 		return 0;
 	/*===============TODO根据共享内存或者直接读取文件 获取该表参数*/
     CLASS_6001 meter={};
-    INT32U power_offset=EVENT_OBJS.Event310C_obj.poweroffset_obj.power_offset;//超差值
+    INT32U power_offset=event_object.Event310C_obj.poweroffset_obj.power_offset;//超差值
     INT16U ratedU=meter.basicinfo.ratedU; //额定电压
     INT16U ratedI=meter.basicinfo.ratedI; //额定电流
     INT8U connectype=meter.basicinfo.connectype;//接线方式
@@ -1124,9 +1152,9 @@ INT8U Event_310C(TSA tsa, INT8U* data,INT8U len) {
 		 if (((newdata-olddata)*1000>power_offset*Em) && (power_offset>0)){
 			INT8U Save_buf[256];
 			bzero(Save_buf, sizeof(Save_buf));
-			EVENT_OBJS.Event310C_obj.event_obj.crrentnum++;
-			Getcurrno(&EVENT_OBJS.Event310C_obj.event_obj.crrentnum,EVENT_OBJS.Event310C_obj.event_obj.maxnum);
-			INT32U crrentnum = EVENT_OBJS.Event310C_obj.event_obj.crrentnum;
+			event_object.Event310C_obj.event_obj.crrentnum++;
+			Getcurrno(&event_object.Event310C_obj.event_obj.crrentnum,event_object.Event310C_obj.event_obj.maxnum);
+			INT32U crrentnum = event_object.Event310C_obj.event_obj.crrentnum;
 			INT8U index=0;
 			//标准数据单元
 			Get_StandardUnit(0x310C,Save_buf,&index,crrentnum,(INT8U*)&tsa,s_tsa);
@@ -1143,7 +1171,7 @@ INT8U Event_310C(TSA tsa, INT8U* data,INT8U len) {
 			Save_buf[index++]=newdata&0x000000ff;
 			Save_buf[STANDARD_NUM_INDEX]+=2;
 			//存储更改后得参数
-			saveCoverClass(0x310C,(INT16U)crrentnum,(void *)&EVENT_OBJS.Event310C_obj,sizeof(Event310C_Object),1);
+			saveCoverClass(0x310C,(INT16U)crrentnum,(void *)&event_object.Event310C_obj,sizeof(Event310C_Object),1);
 			//存储记录集
 			saveCoverClass(0x310C,(INT16U)crrentnum,(void *)Save_buf,(int)index,2);
 			//存储当前记录值
@@ -1152,7 +1180,7 @@ INT8U Event_310C(TSA tsa, INT8U* data,INT8U len) {
 			Get_CurrResult(Currbuf,&Currindex,(INT8U*)&tsa,s_tsa,crrentnum,0);
 			saveCoverClass(0x310C,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,3);
 			//判断是否要上报
-			if(EVENT_OBJS.Event310C_obj.event_obj.reportflag)
+			if(event_object.Event310C_obj.event_obj.reportflag)
 				Need_Report(0x310C,crrentnum);
 		 }
 	 }
@@ -1165,7 +1193,7 @@ INT8U Event_310C(TSA tsa, INT8U* data,INT8U len) {
  * 电能表飞走事件12 前台两次电能值以及测量点额定电压、电流
  */
 INT8U Event_310D(TSA tsa, INT8U* data,INT8U len) {
-	if (EVENT_OBJS.Event310D_obj.event_obj.enableflag == 0) {
+	if (event_object.Event310D_obj.event_obj.enableflag == 0) {
 	        return 0;
 	}
 	if(data==NULL)
@@ -1177,7 +1205,7 @@ INT8U Event_310D(TSA tsa, INT8U* data,INT8U len) {
 		return 0;
 	/*===============TODO根据共享内存或者直接读取文件 获取该表参数*/
 	CLASS_6001 meter={};
-	INT32U power_offset=EVENT_OBJS.Event310D_obj.poweroffset_obj.power_offset;//超差值
+	INT32U power_offset=event_object.Event310D_obj.poweroffset_obj.power_offset;//超差值
 	INT16U ratedU=meter.basicinfo.ratedU; //额定电压
 	INT16U ratedI=meter.basicinfo.ratedI; //额定电流
 	INT8U connectype=meter.basicinfo.connectype;//接线方式
@@ -1205,9 +1233,9 @@ INT8U Event_310D(TSA tsa, INT8U* data,INT8U len) {
 		 if (((newdata-olddata)*1000>power_offset*Em) && (power_offset>0)){
 			INT8U Save_buf[256];
 			bzero(Save_buf, sizeof(Save_buf));
-			EVENT_OBJS.Event310D_obj.event_obj.crrentnum++;
-			Getcurrno(&EVENT_OBJS.Event310D_obj.event_obj.crrentnum,EVENT_OBJS.Event310D_obj.event_obj.maxnum);
-			INT32U crrentnum = EVENT_OBJS.Event310D_obj.event_obj.crrentnum;
+			event_object.Event310D_obj.event_obj.crrentnum++;
+			Getcurrno(&event_object.Event310D_obj.event_obj.crrentnum,event_object.Event310D_obj.event_obj.maxnum);
+			INT32U crrentnum = event_object.Event310D_obj.event_obj.crrentnum;
 			INT8U index=0;
 			//标准数据单元
 			Get_StandardUnit(0x310D,Save_buf,&index,crrentnum,(INT8U*)&tsa,s_tsa);
@@ -1224,7 +1252,7 @@ INT8U Event_310D(TSA tsa, INT8U* data,INT8U len) {
 			Save_buf[index++]=newdata&0x000000ff;
 			Save_buf[STANDARD_NUM_INDEX]+=2;
 			//存储更改后得参数
-			saveCoverClass(0x310D,(INT16U)crrentnum,(void *)&EVENT_OBJS.Event310D_obj,sizeof(Event310D_Object),1);
+			saveCoverClass(0x310D,(INT16U)crrentnum,(void *)&event_object.Event310D_obj,sizeof(Event310D_Object),1);
 			//存储记录集
 			saveCoverClass(0x310D,(INT16U)crrentnum,(void *)Save_buf,(int)index,2);
 			//存储当前记录值
@@ -1233,7 +1261,7 @@ INT8U Event_310D(TSA tsa, INT8U* data,INT8U len) {
 			Get_CurrResult(Currbuf,&Currindex,(INT8U*)&tsa,s_tsa,crrentnum,0);
 			saveCoverClass(0x310D,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,3);
 			//判断是否要上报
-			if(EVENT_OBJS.Event310D_obj.event_obj.reportflag)
+			if(event_object.Event310D_obj.event_obj.reportflag)
 				Need_Report(0x310D,crrentnum);
 		 }
 	 }
@@ -1246,7 +1274,7 @@ INT8U Event_310D(TSA tsa, INT8U* data,INT8U len) {
  * 电能表停走事件 前台两次电能值是否相同以及时间差是否超过设定值
  */
 INT8U Event_310E(TSA tsa, INT8U* data,INT8U len) {
-    if (EVENT_OBJS.Event310E_obj.event_obj.enableflag == 0) {
+    if (event_object.Event310E_obj.event_obj.enableflag == 0) {
         return 0;
     }
     INT32U newdata=(data[0]<<24)+(data[1]<<16)+(data[2]<<8)+data[3];
@@ -1260,32 +1288,32 @@ INT8U Event_310E(TSA tsa, INT8U* data,INT8U len) {
 		TSGet(&currtime);
 		int tcha=abs(difftime(tmtotime_t(ts),tmtotime_t(currtime)));
 		INT32U offset=0;
-		switch(EVENT_OBJS.Event310E_obj.powerstoppara_obj.power_offset.units){
+		switch(event_object.Event310E_obj.powerstoppara_obj.power_offset.units){
 			case 0:
-				offset=EVENT_OBJS.Event310E_obj.powerstoppara_obj.power_offset.interval;
+				offset=event_object.Event310E_obj.powerstoppara_obj.power_offset.interval;
 				break;
 			case 1:
-				offset=EVENT_OBJS.Event310E_obj.powerstoppara_obj.power_offset.interval*60;
+				offset=event_object.Event310E_obj.powerstoppara_obj.power_offset.interval*60;
 				break;
 			case 2:
-				offset=EVENT_OBJS.Event310E_obj.powerstoppara_obj.power_offset.interval*60*60;
+				offset=event_object.Event310E_obj.powerstoppara_obj.power_offset.interval*60*60;
 				break;
 			case 3:
-				offset=EVENT_OBJS.Event310E_obj.powerstoppara_obj.power_offset.interval*24*60*60;
+				offset=event_object.Event310E_obj.powerstoppara_obj.power_offset.interval*24*60*60;
 				break;
 			case 4:
-				offset=EVENT_OBJS.Event310E_obj.powerstoppara_obj.power_offset.interval*30*24*60*60;
+				offset=event_object.Event310E_obj.powerstoppara_obj.power_offset.interval*30*24*60*60;
 				break;
 			case 5:
-				offset=EVENT_OBJS.Event310E_obj.powerstoppara_obj.power_offset.interval*365*24*60*60;
+				offset=event_object.Event310E_obj.powerstoppara_obj.power_offset.interval*365*24*60*60;
 				break;
 			}
 		if(tcha>offset && offset>0){
 			INT8U Save_buf[256];
 			bzero(Save_buf, sizeof(Save_buf));
-			EVENT_OBJS.Event310E_obj.event_obj.crrentnum++;
-			Getcurrno(&EVENT_OBJS.Event310E_obj.event_obj.crrentnum,EVENT_OBJS.Event310E_obj.event_obj.maxnum);
-			INT32U crrentnum = EVENT_OBJS.Event310E_obj.event_obj.crrentnum;
+			event_object.Event310E_obj.event_obj.crrentnum++;
+			Getcurrno(&event_object.Event310E_obj.event_obj.crrentnum,event_object.Event310E_obj.event_obj.maxnum);
+			INT32U crrentnum = event_object.Event310E_obj.event_obj.crrentnum;
 			INT8U index=0;
 			//标准数据单元
 			Get_StandardUnit(0x310E,Save_buf,&index,crrentnum,(INT8U*)&tsa,s_tsa);
@@ -1297,7 +1325,7 @@ INT8U Event_310E(TSA tsa, INT8U* data,INT8U len) {
 			Save_buf[index++]=olddata&0x000000ff;
 			Save_buf[STANDARD_NUM_INDEX]+=1;
 			//存储更改后得参数
-			saveCoverClass(0x310E,(INT16U)crrentnum,(void *)&EVENT_OBJS.Event310E_obj,sizeof(Event310E_Object),1);
+			saveCoverClass(0x310E,(INT16U)crrentnum,(void *)&event_object.Event310E_obj,sizeof(Event310E_Object),1);
 			//存储记录集
 			saveCoverClass(0x310E,(INT16U)crrentnum,(void *)Save_buf,(int)index,2);
 			//存储当前记录值
@@ -1306,7 +1334,7 @@ INT8U Event_310E(TSA tsa, INT8U* data,INT8U len) {
 			Get_CurrResult(Currbuf,&Currindex,(INT8U*)&tsa,s_tsa,crrentnum,0);
 			saveCoverClass(0x310E,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,3);
 			//判断是否要上报
-			if(EVENT_OBJS.Event310E_obj.event_obj.reportflag)
+			if(event_object.Event310E_obj.event_obj.reportflag)
 				Need_Report(0x310E,crrentnum);
 		}
 	}else
@@ -1318,14 +1346,14 @@ INT8U Event_310E(TSA tsa, INT8U* data,INT8U len) {
  * 抄表失败事件 抄表可自行判断是否抄表失败，可直接调用该接口
  */
 INT8U Event_310F(TSA tsa, INT8U* data,INT8U len) {
-    if (EVENT_OBJS.Event310F_obj.event_obj.enableflag == 0) {
+    if (event_object.Event310F_obj.event_obj.enableflag == 0) {
         return 0;
     }
     INT8U Save_buf[256];
 	bzero(Save_buf, sizeof(Save_buf));
-	EVENT_OBJS.Event310F_obj.event_obj.crrentnum++;
-	Getcurrno(&EVENT_OBJS.Event310F_obj.event_obj.crrentnum,EVENT_OBJS.Event310F_obj.event_obj.maxnum);
-	INT32U crrentnum = EVENT_OBJS.Event310F_obj.event_obj.crrentnum;
+	event_object.Event310F_obj.event_obj.crrentnum++;
+	Getcurrno(&event_object.Event310F_obj.event_obj.crrentnum,event_object.Event310F_obj.event_obj.maxnum);
+	INT32U crrentnum = event_object.Event310F_obj.event_obj.crrentnum;
 	INT8U index=0;
 	//标准数据单元
 	Get_StandardUnit(0x310F,Save_buf,&index,crrentnum,(INT8U*)&tsa,s_tsa);
@@ -1353,7 +1381,7 @@ INT8U Event_310F(TSA tsa, INT8U* data,INT8U len) {
 	Save_buf[index++]=0;
 	Save_buf[STANDARD_NUM_INDEX]+=3;
 	//存储更改后得参数
-	saveCoverClass(0x310F,(INT16U)crrentnum,(void *)&EVENT_OBJS.Event310F_obj,sizeof(Event310F_Object),1);
+	saveCoverClass(0x310F,(INT16U)crrentnum,(void *)&event_object.Event310F_obj,sizeof(Event310F_Object),1);
 	//存储记录集
 	saveCoverClass(0x310F,(INT16U)crrentnum,(void *)Save_buf,(int)index,2);
 	//存储当前记录值
@@ -1362,7 +1390,7 @@ INT8U Event_310F(TSA tsa, INT8U* data,INT8U len) {
 	Get_CurrResult(Currbuf,&Currindex,(INT8U*)&tsa,s_tsa,crrentnum,0);
 	saveCoverClass(0x310F,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,3);
 	//判断是否要上报
-	if(EVENT_OBJS.Event310F_obj.event_obj.reportflag)
+	if(event_object.Event310F_obj.event_obj.reportflag)
 		Need_Report(0x310F,crrentnum);
     return 1;
 }
@@ -1371,18 +1399,18 @@ INT8U Event_310F(TSA tsa, INT8U* data,INT8U len) {
  * 月通信流量超限事件 data为当月已经发生流量 字节由高到低
  */
 INT8U Event_3110(INT8U* data,INT8U len) {
-    if (EVENT_OBJS.Event3110_obj.event_obj.enableflag == 0) {
+    if (event_object.Event3110_obj.event_obj.enableflag == 0) {
         return 0;
     }
     INT32U monthbytes=(data[0]<<24)+(data[1]<<16)+(data[2]<<8)+data[3];
-    INT32U offset=EVENT_OBJS.Event3110_obj.Monthtrans_obj.month_offset;
+    INT32U offset=event_object.Event3110_obj.Monthtrans_obj.month_offset;
     //通信处判断还是这里判断 TODO
     if(monthbytes>offset){
     	INT8U Save_buf[256];
 		bzero(Save_buf, sizeof(Save_buf));
-		EVENT_OBJS.Event3110_obj.event_obj.crrentnum++;
-		Getcurrno(&EVENT_OBJS.Event3110_obj.event_obj.crrentnum,EVENT_OBJS.Event3110_obj.event_obj.maxnum);
-		INT32U crrentnum = EVENT_OBJS.Event3110_obj.event_obj.crrentnum;
+		event_object.Event3110_obj.event_obj.crrentnum++;
+		Getcurrno(&event_object.Event3110_obj.event_obj.crrentnum,event_object.Event3110_obj.event_obj.maxnum);
+		INT32U crrentnum = event_object.Event3110_obj.event_obj.crrentnum;
 		INT8U index=0;
 		//标准数据单元
 		Get_StandardUnit(0x3110,Save_buf,&index,crrentnum,NULL,s_null);
@@ -1401,7 +1429,7 @@ INT8U Event_3110(INT8U* data,INT8U len) {
 		Save_buf[index++]=offset&0x000000ff;
 		Save_buf[STANDARD_NUM_INDEX]+=2;
 		//存储更改后得参数
-		saveCoverClass(0x3110,(INT16U)crrentnum,(void *)&EVENT_OBJS.Event3110_obj,sizeof(Event3110_Object),1);
+		saveCoverClass(0x3110,(INT16U)crrentnum,(void *)&event_object.Event3110_obj,sizeof(Event3110_Object),1);
 		//存储记录集
 		saveCoverClass(0x3110,(INT16U)crrentnum,(void *)Save_buf,(int)index,2);
 		//存储当前记录值
@@ -1410,7 +1438,7 @@ INT8U Event_3110(INT8U* data,INT8U len) {
 		Get_CurrResult(Currbuf,&Currindex,NULL,s_null,crrentnum,0);
 		saveCoverClass(0x3110,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,3);
 		//判断是否要上报
-		if(EVENT_OBJS.Event3110_obj.event_obj.reportflag)
+		if(event_object.Event3110_obj.event_obj.reportflag)
 			Need_Report(0x3110,crrentnum);
 		return 1;
     }
@@ -1421,16 +1449,16 @@ INT8U Event_3110(INT8U* data,INT8U len) {
  * 发现未知电能表事件 抄表搜表可以判断出表信息，直接可调用该接口，默认data为整个电能表信息
  */
 INT8U Event_3111(TSA tsa, INT8U* data,INT8U len) {
-	if (EVENT_OBJS.Event3111_obj.enableflag == 0) {
+	if (event_object.Event3111_obj.enableflag == 0) {
 	        return 0;
 	    }
 	if(data== NULL)
 		return 0;
 	INT8U Save_buf[256];
 	bzero(Save_buf, sizeof(Save_buf));
-	EVENT_OBJS.Event3111_obj.crrentnum++;
-	Getcurrno(&EVENT_OBJS.Event3111_obj.crrentnum,EVENT_OBJS.Event3111_obj.maxnum);
-	INT32U crrentnum = EVENT_OBJS.Event3111_obj.crrentnum;
+	event_object.Event3111_obj.crrentnum++;
+	Getcurrno(&event_object.Event3111_obj.crrentnum,event_object.Event3111_obj.maxnum);
+	INT32U crrentnum = event_object.Event3111_obj.crrentnum;
 	INT8U index=0;
 	//标准数据单元
 	Get_StandardUnit(0x3111,Save_buf,&index,crrentnum,NULL,s_null);
@@ -1468,7 +1496,7 @@ INT8U Event_3111(TSA tsa, INT8U* data,INT8U len) {
 	Save_buf[index++]=0;//数量
 	Save_buf[STANDARD_NUM_INDEX]+=1;
 	//存储更改后得参数
-	saveCoverClass(0x3111,(INT16U)crrentnum,(void *)&EVENT_OBJS.Event3111_obj,sizeof(Class7_Object),1);
+	saveCoverClass(0x3111,(INT16U)crrentnum,(void *)&event_object.Event3111_obj,sizeof(Class7_Object),1);
 	//存储记录集
 	saveCoverClass(0x3111,(INT16U)crrentnum,(void *)Save_buf,(int)index,2);
 	//存储当前记录值
@@ -1477,7 +1505,7 @@ INT8U Event_3111(TSA tsa, INT8U* data,INT8U len) {
 	Get_CurrResult(Currbuf,&Currindex,NULL,s_null,crrentnum,0);
 	saveCoverClass(0x3111,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,3);
 	//判断是否要上报
-	if(EVENT_OBJS.Event3111_obj.reportflag)
+	if(event_object.Event3111_obj.reportflag)
 		Need_Report(0x3111,crrentnum);
     return 1;
 }
@@ -1486,15 +1514,15 @@ INT8U Event_3111(TSA tsa, INT8U* data,INT8U len) {
  * 跨台区电能表事件17 抄表搜表可以判断出表信息，直接可调用该接口，默认data为整个垮台区电能表信息
  */
 INT8U Event_3112(TSA tsa, INT8U* data,INT8U len) {
-	if (EVENT_OBJS.Event3112_obj.enableflag == 0)
+	if (event_object.Event3112_obj.enableflag == 0)
 		return 0;
 	if(data== NULL)
 		return 0;
 	INT8U Save_buf[256];
 	bzero(Save_buf, sizeof(Save_buf));
-	EVENT_OBJS.Event3112_obj.crrentnum++;
-	Getcurrno(&EVENT_OBJS.Event3112_obj.crrentnum,EVENT_OBJS.Event3112_obj.maxnum);
-	INT32U crrentnum = EVENT_OBJS.Event3112_obj.crrentnum;
+	event_object.Event3112_obj.crrentnum++;
+	Getcurrno(&event_object.Event3112_obj.crrentnum,event_object.Event3112_obj.maxnum);
+	INT32U crrentnum = event_object.Event3112_obj.crrentnum;
 	INT8U index=0;
 	//标准数据单元
 	Get_StandardUnit(0x3112,Save_buf,&index,crrentnum,NULL,s_null);
@@ -1520,7 +1548,7 @@ INT8U Event_3112(TSA tsa, INT8U* data,INT8U len) {
 	index+=7;
 	Save_buf[STANDARD_NUM_INDEX]+=1;
 	//存储更改后得参数
-	saveCoverClass(0x3112,(INT16U)crrentnum,(void *)&EVENT_OBJS.Event3112_obj,sizeof(Class7_Object),1);
+	saveCoverClass(0x3112,(INT16U)crrentnum,(void *)&event_object.Event3112_obj,sizeof(Class7_Object),1);
 	//存储记录集
 	saveCoverClass(0x3112,(INT16U)crrentnum,(void *)Save_buf,(int)index,2);
 	//存储当前记录值
@@ -1529,7 +1557,7 @@ INT8U Event_3112(TSA tsa, INT8U* data,INT8U len) {
 	Get_CurrResult(Currbuf,&Currindex,NULL,s_null,crrentnum,0);
 	saveCoverClass(0x3112,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,3);
 	//判断是否要上报
-	if(EVENT_OBJS.Event3112_obj.reportflag)
+	if(event_object.Event3112_obj.reportflag)
 		Need_Report(0x3112,crrentnum);
     return 1;
 }
@@ -1538,19 +1566,19 @@ INT8U Event_3112(TSA tsa, INT8U* data,INT8U len) {
  * 电能表在网状态切换事件24 怎么判断TODO？ data为电能表地址TSA及在网状态bool
  */
 INT8U Event_311A(TSA tsa, INT8U* data,INT8U len) {
-	if (EVENT_OBJS.Event311A_obj.event_obj.enableflag == 0)
+	if (event_object.Event311A_obj.event_obj.enableflag == 0)
 		return 0;
 	if(data== NULL)
 		return 0;
 	//怎么判定？
-	INT16U time_delay=EVENT_OBJS.Event311A_obj.outtimepara_obj.outtime_offset;
+	INT16U time_delay=event_object.Event311A_obj.outtimepara_obj.outtime_offset;
 	//如果发生
 	if(1){
 		INT8U Save_buf[256];
 		bzero(Save_buf, sizeof(Save_buf));
-		EVENT_OBJS.Event311A_obj.event_obj.crrentnum++;
-		Getcurrno(&EVENT_OBJS.Event311A_obj.event_obj.crrentnum,EVENT_OBJS.Event311A_obj.event_obj.maxnum);
-		INT32U crrentnum = EVENT_OBJS.Event311A_obj.event_obj.crrentnum;
+		event_object.Event311A_obj.event_obj.crrentnum++;
+		Getcurrno(&event_object.Event311A_obj.event_obj.crrentnum,event_object.Event311A_obj.event_obj.maxnum);
+		INT32U crrentnum = event_object.Event311A_obj.event_obj.crrentnum;
 		INT8U index=0;
 		//标准数据单元
 		Get_StandardUnit(0x311A,Save_buf,&index,crrentnum,NULL,s_null);
@@ -1570,7 +1598,7 @@ INT8U Event_311A(TSA tsa, INT8U* data,INT8U len) {
 		Save_buf[index++]=data[l1+1];
 		Save_buf[STANDARD_NUM_INDEX]+=1;
 		//存储更改后得参数
-		saveCoverClass(0x311A,(INT16U)crrentnum,(void *)&EVENT_OBJS.Event311A_obj,sizeof(Event311A_Object),1);
+		saveCoverClass(0x311A,(INT16U)crrentnum,(void *)&event_object.Event311A_obj,sizeof(Event311A_Object),1);
 		//存储记录集
 		saveCoverClass(0x311A,(INT16U)crrentnum,(void *)Save_buf,(int)index,2);
 		//存储当前记录值
@@ -1579,7 +1607,7 @@ INT8U Event_311A(TSA tsa, INT8U* data,INT8U len) {
 		Get_CurrResult(Currbuf,&Currindex,NULL,s_null,crrentnum,0);
 		saveCoverClass(0x311A,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,3);
 		//判断是否要上报
-		if(EVENT_OBJS.Event311A_obj.event_obj.reportflag)
+		if(event_object.Event311A_obj.event_obj.reportflag)
 			Need_Report(0x311A,crrentnum);
 	}
     return 1;
@@ -1589,16 +1617,16 @@ INT8U Event_311A(TSA tsa, INT8U* data,INT8U len) {
  * 终端对电表校时记录 抄表是否可以自行判断是较时？可直接调用该接口 data为较时前电表时间及误差
  */
 INT8U Event_311B(TSA tsa, INT8U* data,INT8U len) {
-	if (EVENT_OBJS.Event311B_obj.enableflag == 0)
+	if (event_object.Event311B_obj.enableflag == 0)
 		return 0;
 	if(data== NULL)
 		return 0;
     if(1){
     	INT8U Save_buf[256];
 		bzero(Save_buf, sizeof(Save_buf));
-		EVENT_OBJS.Event311B_obj.crrentnum++;
-		Getcurrno(&EVENT_OBJS.Event311B_obj.crrentnum,EVENT_OBJS.Event311B_obj.maxnum);
-		INT32U crrentnum = EVENT_OBJS.Event311B_obj.crrentnum;
+		event_object.Event311B_obj.crrentnum++;
+		Getcurrno(&event_object.Event311B_obj.crrentnum,event_object.Event311B_obj.maxnum);
+		INT32U crrentnum = event_object.Event311B_obj.crrentnum;
 		INT8U index=0;
 		//标准数据单元
 		Get_StandardUnit(0x311B,Save_buf,&index,crrentnum,(INT8U*)&tsa,s_tsa);
@@ -1611,7 +1639,7 @@ INT8U Event_311B(TSA tsa, INT8U* data,INT8U len) {
 		Save_buf[index++]=data[7];
 		Save_buf[STANDARD_NUM_INDEX]+=2;
 		//存储更改后得参数
-		saveCoverClass(0x311B,(INT16U)crrentnum,(void *)&EVENT_OBJS.Event311B_obj,sizeof(Class7_Object),1);
+		saveCoverClass(0x311B,(INT16U)crrentnum,(void *)&event_object.Event311B_obj,sizeof(Class7_Object),1);
 		//存储记录集
 		saveCoverClass(0x311B,(INT16U)crrentnum,(void *)Save_buf,(int)index,2);
 		//存储当前记录值
@@ -1620,7 +1648,7 @@ INT8U Event_311B(TSA tsa, INT8U* data,INT8U len) {
 		Get_CurrResult(Currbuf,&Currindex,(INT8U*)&tsa,s_tsa,crrentnum,0);
 		saveCoverClass(0x311B,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,3);
 		//判断是否要上报
-		if(EVENT_OBJS.Event311B_obj.reportflag)
+		if(event_object.Event311B_obj.reportflag)
 			Need_Report(0x311B,crrentnum);
     }
     return 1;
@@ -1630,16 +1658,16 @@ INT8U Event_311B(TSA tsa, INT8U* data,INT8U len) {
  * 电能表数据变更监控记录 抄表可自行判断，直接调用该函数。
  */
 INT8U Event_311C(TSA tsa, INT8U* data,INT8U len) {
-	if (EVENT_OBJS.Event311C_obj.event_obj.enableflag == 0)
+	if (event_object.Event311C_obj.event_obj.enableflag == 0)
 		return 0;
 	if(data== NULL)
 		return 0;
 	if(1){
 		INT8U Save_buf[256];
 		bzero(Save_buf, sizeof(Save_buf));
-		EVENT_OBJS.Event311C_obj.event_obj.crrentnum++;
-		Getcurrno(&EVENT_OBJS.Event311C_obj.event_obj.crrentnum,EVENT_OBJS.Event311C_obj.event_obj.maxnum);
-		INT32U crrentnum = EVENT_OBJS.Event311C_obj.event_obj.crrentnum;
+		event_object.Event311C_obj.event_obj.crrentnum++;
+		Getcurrno(&event_object.Event311C_obj.event_obj.crrentnum,event_object.Event311C_obj.event_obj.maxnum);
+		INT32U crrentnum = event_object.Event311C_obj.event_obj.crrentnum;
 		INT8U index=0;
 		//标准数据单元
 		Get_StandardUnit(0x311C,Save_buf,&index,crrentnum,(INT8U*)&tsa,s_tsa);
@@ -1648,7 +1676,7 @@ INT8U Event_311C(TSA tsa, INT8U* data,INT8U len) {
 		index+=len;
 		Save_buf[STANDARD_NUM_INDEX]+=3;
 		//存储更改后得参数
-		saveCoverClass(0x311C,(INT16U)crrentnum,(void *)&EVENT_OBJS.Event311C_obj,sizeof(Class7_Object),1);
+		saveCoverClass(0x311C,(INT16U)crrentnum,(void *)&event_object.Event311C_obj,sizeof(Class7_Object),1);
 		//存储记录集
 		saveCoverClass(0x311C,(INT16U)crrentnum,(void *)Save_buf,(int)index,2);
 		//存储当前记录值
@@ -1657,7 +1685,7 @@ INT8U Event_311C(TSA tsa, INT8U* data,INT8U len) {
 		Get_CurrResult(Currbuf,&Currindex,(INT8U*)&tsa,s_tsa,crrentnum,0);
 		saveCoverClass(0x311C,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,3);
 		//判断是否要上报
-		if(EVENT_OBJS.Event311C_obj.event_obj.reportflag)
+		if(event_object.Event311C_obj.event_obj.reportflag)
 			Need_Report(0x311C,crrentnum);
 	}
     return 1;
@@ -1667,16 +1695,16 @@ INT8U Event_311C(TSA tsa, INT8U* data,INT8U len) {
  * 终端对时事件 此接口在698规约库调用，data为对时前时间 date-time-s格式 7个字节
  */
 INT8U Event_3114(INT8U* data,INT8U len) {
-    if (EVENT_OBJS.Event3114_obj.enableflag == 0) {
+    if (event_object.Event3114_obj.enableflag == 0) {
         return 0;
     }
 
     if(1){
 		INT8U Save_buf[256];
 		bzero(Save_buf, sizeof(Save_buf));
-		EVENT_OBJS.Event3114_obj.crrentnum++;
-		Getcurrno(&EVENT_OBJS.Event3114_obj.crrentnum,EVENT_OBJS.Event3114_obj.maxnum);
-		INT32U crrentnum = EVENT_OBJS.Event3114_obj.crrentnum;
+		event_object.Event3114_obj.crrentnum++;
+		Getcurrno(&event_object.Event3114_obj.crrentnum,event_object.Event3114_obj.maxnum);
+		INT32U crrentnum = event_object.Event3114_obj.crrentnum;
 		INT8U index=0;
 		//标准数据单元
 		Get_StandardUnit(0x3114,Save_buf,&index,crrentnum,NULL,s_null);
@@ -1692,7 +1720,7 @@ INT8U Event_3114(INT8U* data,INT8U len) {
 		index+=7;
 		Save_buf[STANDARD_NUM_INDEX]+=2;
 		//存储更改后得参数
-		saveCoverClass(0x3114,(INT16U)crrentnum,(void *)&EVENT_OBJS.Event3114_obj,sizeof(Class7_Object),1);
+		saveCoverClass(0x3114,(INT16U)crrentnum,(void *)&event_object.Event3114_obj,sizeof(Class7_Object),1);
 		//存储记录集
 		saveCoverClass(0x3114,(INT16U)crrentnum,(void *)Save_buf,(int)index,2);
 		//存储当前记录值
@@ -1701,7 +1729,7 @@ INT8U Event_3114(INT8U* data,INT8U len) {
 		Get_CurrResult(Currbuf,&Currindex,NULL,s_null,crrentnum,0);
 		saveCoverClass(0x3114,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,3);
 		//判断是否要上报
-		if(EVENT_OBJS.Event3114_obj.reportflag)
+		if(event_object.Event3114_obj.reportflag)
 			Need_Report(0x3114,crrentnum);
     }
     return 1;
@@ -1711,23 +1739,23 @@ INT8U Event_3114(INT8U* data,INT8U len) {
  * 输出回路接入状态变位事件记录
  */
 INT8U Event_3117(INT8U* data,INT8U len) {
-    if (EVENT_OBJS.Event3117_obj.enableflag == 0) {
+    if (event_object.Event3117_obj.enableflag == 0) {
         return 0;
     }
 
     if(1){
 		INT8U Save_buf[256];
 		bzero(Save_buf, sizeof(Save_buf));
-		EVENT_OBJS.Event3117_obj.crrentnum++;
-		Getcurrno(&EVENT_OBJS.Event3117_obj.crrentnum,EVENT_OBJS.Event3117_obj.maxnum);
-		INT32U crrentnum = EVENT_OBJS.Event3117_obj.crrentnum;
+		event_object.Event3117_obj.crrentnum++;
+		Getcurrno(&event_object.Event3117_obj.crrentnum,event_object.Event3117_obj.maxnum);
+		INT32U crrentnum = event_object.Event3117_obj.crrentnum;
 		INT8U index=0;
 		//标准数据单元
 		Get_StandardUnit(0x3117,Save_buf,&index,crrentnum,NULL,s_null);
 		//无属性3关联数据
 		Save_buf[STANDARD_NUM_INDEX]+=0;
 		//存储更改后得参数
-		saveCoverClass(0x3117,(INT16U)crrentnum,(void *)&EVENT_OBJS.Event3117_obj,sizeof(Class7_Object),1);
+		saveCoverClass(0x3117,(INT16U)crrentnum,(void *)&event_object.Event3117_obj,sizeof(Class7_Object),1);
 		//存储记录集
 		saveCoverClass(0x3117,(INT16U)crrentnum,(void *)Save_buf,(int)index,2);
 		//存储当前记录值
@@ -1736,7 +1764,7 @@ INT8U Event_3117(INT8U* data,INT8U len) {
 		Get_CurrResult(Currbuf,&Currindex,NULL,s_null,crrentnum,0);
 		saveCoverClass(0x3117,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,3);
 		//判断是否要上报
-		if(EVENT_OBJS.Event3117_obj.reportflag)
+		if(event_object.Event3117_obj.reportflag)
 			Need_Report(0x3117,crrentnum);
     }
     return 1;
@@ -1746,16 +1774,16 @@ INT8U Event_3117(INT8U* data,INT8U len) {
  * 终端编程记录 data为多个OAD集合，第一个字节为数量，后面是多个4个字节得OAD
  */
 INT8U Event_3118(INT8U* data,INT8U len) {
-    if (EVENT_OBJS.Event3118_obj.enableflag == 0) {
+    if (event_object.Event3118_obj.enableflag == 0) {
         return 0;
     }
 
     if(1){
 		INT8U Save_buf[256];
 		bzero(Save_buf, sizeof(Save_buf));
-		EVENT_OBJS.Event3118_obj.crrentnum++;
-		Getcurrno(&EVENT_OBJS.Event3118_obj.crrentnum,EVENT_OBJS.Event3118_obj.maxnum);
-		INT32U crrentnum = EVENT_OBJS.Event3118_obj.crrentnum;
+		event_object.Event3118_obj.crrentnum++;
+		Getcurrno(&event_object.Event3118_obj.crrentnum,event_object.Event3118_obj.maxnum);
+		INT32U crrentnum = event_object.Event3118_obj.crrentnum;
 		INT8U index=0;
 		//标准数据单元
 		Get_StandardUnit(0x3118,Save_buf,&index,crrentnum,NULL,s_null);
@@ -1770,7 +1798,7 @@ INT8U Event_3118(INT8U* data,INT8U len) {
 	    }
 		Save_buf[STANDARD_NUM_INDEX]+=1;
 		//存储更改后得参数
-		saveCoverClass(0x3118,(INT16U)crrentnum,(void *)&EVENT_OBJS.Event3118_obj,sizeof(Class7_Object),1);
+		saveCoverClass(0x3118,(INT16U)crrentnum,(void *)&event_object.Event3118_obj,sizeof(Class7_Object),1);
 		//存储记录集
 		saveCoverClass(0x3118,(INT16U)crrentnum,(void *)Save_buf,(int)index,2);
 		//存储当前记录值
@@ -1779,7 +1807,7 @@ INT8U Event_3118(INT8U* data,INT8U len) {
 		Get_CurrResult(Currbuf,&Currindex,NULL,s_null,crrentnum,0);
 		saveCoverClass(0x3118,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,3);
 		//判断是否要上报
-		if(EVENT_OBJS.Event3118_obj.reportflag)
+		if(event_object.Event3118_obj.reportflag)
 			Need_Report(0x3118,crrentnum);
     }
     return 1;
@@ -1789,22 +1817,22 @@ INT8U Event_3118(INT8U* data,INT8U len) {
  * 终端电流回路异常事件23,II型集中器没有电流，暂时不处理,type为0,1 短路、开路
  */
 INT8U Event_3119(INT8U type, INT8U* data,INT8U len) {
-    if (EVENT_OBJS.Event3119_obj.enableflag == 0) {
+    if (event_object.Event3119_obj.enableflag == 0) {
         return 0;
     }
     if(1){
 		INT8U Save_buf[256];
 		bzero(Save_buf, sizeof(Save_buf));
-		EVENT_OBJS.Event3119_obj.crrentnum++;
-		Getcurrno(&EVENT_OBJS.Event3119_obj.crrentnum,EVENT_OBJS.Event3119_obj.maxnum);
-		INT32U crrentnum = EVENT_OBJS.Event3119_obj.crrentnum;
+		event_object.Event3119_obj.crrentnum++;
+		Getcurrno(&event_object.Event3119_obj.crrentnum,event_object.Event3119_obj.maxnum);
+		INT32U crrentnum = event_object.Event3119_obj.crrentnum;
 		INT8U index=0;
 		//标准数据单元
 		Get_StandardUnit(0x3119,Save_buf,&index,crrentnum,(INT8U*)&type,s_enum);
 		//属性3无关联数据
 		Save_buf[STANDARD_NUM_INDEX]+=0;
 		//存储更改后得参数
-		saveCoverClass(0x3119,(INT16U)crrentnum,(void *)&EVENT_OBJS.Event3119_obj,sizeof(Class7_Object),1);
+		saveCoverClass(0x3119,(INT16U)crrentnum,(void *)&event_object.Event3119_obj,sizeof(Class7_Object),1);
 		//存储记录集
 		saveCoverClass(0x3119,(INT16U)crrentnum,(void *)Save_buf,(int)index,2);
 		//存储当前记录值
@@ -1813,7 +1841,7 @@ INT8U Event_3119(INT8U type, INT8U* data,INT8U len) {
 		Get_CurrResult(Currbuf,&Currindex,(INT8U*)&type,s_enum,crrentnum,0);
 		saveCoverClass(0x3119,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,3);
 		//判断是否要上报
-		if(EVENT_OBJS.Event3119_obj.reportflag)
+		if(event_object.Event3119_obj.reportflag)
 			Need_Report(0x3119,crrentnum);
     }
     return 1;
@@ -1823,16 +1851,16 @@ INT8U Event_3119(INT8U type, INT8U* data,INT8U len) {
  * 功控跳闸记录 data为事件源OI+事件发生后2分钟功率long64+控制对象OI+跳闸轮次bit-string(SIZE(8))+功控定值long64+跳闸前总有加有功功率23012300
  */
 INT8U Event_3200(INT8U* data,INT8U len) {
-    if (EVENT_OBJS.Event3200_obj.enableflag == 0) {
+    if (event_object.Event3200_obj.enableflag == 0) {
         return 0;
     }
 
     if(1){
 		INT8U Save_buf[256];
 		bzero(Save_buf, sizeof(Save_buf));
-		EVENT_OBJS.Event3200_obj.crrentnum++;
-		Getcurrno(&EVENT_OBJS.Event3200_obj.crrentnum,EVENT_OBJS.Event3200_obj.maxnum);
-		INT32U crrentnum = EVENT_OBJS.Event3200_obj.crrentnum;
+		event_object.Event3200_obj.crrentnum++;
+		Getcurrno(&event_object.Event3200_obj.crrentnum,event_object.Event3200_obj.maxnum);
+		INT32U crrentnum = event_object.Event3200_obj.crrentnum;
 		INT8U index=0;
 		//标准数据单元
 		Get_StandardUnit(0x3200,Save_buf,&index,crrentnum,(INT8U*)data,s_oi);
@@ -1858,7 +1886,7 @@ INT8U Event_3200(INT8U* data,INT8U len) {
 		index+=8;
 		Save_buf[STANDARD_NUM_INDEX]+=5;
 		//存储更改后得参数
-		saveCoverClass(0x3200,(INT16U)crrentnum,(void *)&EVENT_OBJS.Event3200_obj,sizeof(Class7_Object),1);
+		saveCoverClass(0x3200,(INT16U)crrentnum,(void *)&event_object.Event3200_obj,sizeof(Class7_Object),1);
 		//存储记录集
 		saveCoverClass(0x3200,(INT16U)crrentnum,(void *)Save_buf,(int)index,2);
 		//存储当前记录值
@@ -1867,7 +1895,7 @@ INT8U Event_3200(INT8U* data,INT8U len) {
 		Get_CurrResult(Currbuf,&Currindex,(INT8U*)data,s_oi,crrentnum,0);
 		saveCoverClass(0x3200,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,3);
 		//判断是否要上报
-		if(EVENT_OBJS.Event3200_obj.reportflag)
+		if(event_object.Event3200_obj.reportflag)
 			Need_Report(0x3200,crrentnum);
     }
     return 1;
@@ -1877,16 +1905,16 @@ INT8U Event_3200(INT8U* data,INT8U len) {
  * 电控跳闸记录 data为事件源OI+控制对象OI+跳闸轮次bit-string(SIZE(8))+电控定值long64+跳闸发生时总有加有功电量23014900array
  */
 INT8U Event_3201(INT8U* data,INT8U len) {
-    if (EVENT_OBJS.Event3201_obj.enableflag == 0) {
+    if (event_object.Event3201_obj.enableflag == 0) {
         return 0;
     }
 
     if(1){
 		INT8U Save_buf[256];
 		bzero(Save_buf, sizeof(Save_buf));
-		EVENT_OBJS.Event3201_obj.crrentnum++;
-		Getcurrno(&EVENT_OBJS.Event3201_obj.crrentnum,EVENT_OBJS.Event3201_obj.maxnum);
-		INT32U crrentnum = EVENT_OBJS.Event3201_obj.crrentnum;
+		event_object.Event3201_obj.crrentnum++;
+		Getcurrno(&event_object.Event3201_obj.crrentnum,event_object.Event3201_obj.maxnum);
+		INT32U crrentnum = event_object.Event3201_obj.crrentnum;
 		INT8U index=0;
 		//标准数据单元
 		Get_StandardUnit(0x3201,Save_buf,&index,crrentnum,(INT8U*)data,s_oi);
@@ -1906,7 +1934,7 @@ INT8U Event_3201(INT8U* data,INT8U len) {
 		Save_buf[index++]=0;//数量
 		Save_buf[STANDARD_NUM_INDEX]+=4;
 		//存储更改后得参数
-		saveCoverClass(0x3201,(INT16U)crrentnum,(void *)&EVENT_OBJS.Event3201_obj,sizeof(Class7_Object),1);
+		saveCoverClass(0x3201,(INT16U)crrentnum,(void *)&event_object.Event3201_obj,sizeof(Class7_Object),1);
 		//存储记录集
 		saveCoverClass(0x3201,(INT16U)crrentnum,(void *)Save_buf,(int)index,2);
 		//存储当前记录值
@@ -1915,7 +1943,7 @@ INT8U Event_3201(INT8U* data,INT8U len) {
 		Get_CurrResult(Currbuf,&Currindex,(INT8U*)data,s_oi,crrentnum,0);
 		saveCoverClass(0x3201,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,3);
 		//判断是否要上报
-		if(EVENT_OBJS.Event3201_obj.reportflag)
+		if(event_object.Event3201_obj.reportflag)
 			Need_Report(0x3201,crrentnum);
     }
     return 1;
@@ -1926,7 +1954,7 @@ INT8U Event_3201(INT8U* data,INT8U len) {
  */
 INT8U Event_3202(INT8U* data,INT8U len) {
     //暂时不使用
-	if (EVENT_OBJS.Event3202_obj.enableflag == 0) {
+	if (event_object.Event3202_obj.enableflag == 0) {
 		return 0;
 	}
 	//oi:8107 or 810c
@@ -1934,16 +1962,16 @@ INT8U Event_3202(INT8U* data,INT8U len) {
 		INT8U oi[2]={0x81,0x07};
 		INT8U Save_buf[256];
 		bzero(Save_buf, sizeof(Save_buf));
-		EVENT_OBJS.Event3202_obj.crrentnum++;
-		Getcurrno(&EVENT_OBJS.Event3202_obj.crrentnum,EVENT_OBJS.Event3202_obj.maxnum);
-		INT32U crrentnum = EVENT_OBJS.Event3202_obj.crrentnum;
+		event_object.Event3202_obj.crrentnum++;
+		Getcurrno(&event_object.Event3202_obj.crrentnum,event_object.Event3202_obj.maxnum);
+		INT32U crrentnum = event_object.Event3202_obj.crrentnum;
 		INT8U index=0;
 		//标准数据单元
 		Get_StandardUnit(0x3202,Save_buf,&index,crrentnum,(INT8U*)oi,s_oi);
 		//属性3无关联数据
 		Save_buf[STANDARD_NUM_INDEX]+=0;
 		//存储更改后得参数
-		saveCoverClass(0x3202,(INT16U)crrentnum,(void *)&EVENT_OBJS.Event3202_obj,sizeof(Class7_Object),1);
+		saveCoverClass(0x3202,(INT16U)crrentnum,(void *)&event_object.Event3202_obj,sizeof(Class7_Object),1);
 		//存储记录集
 		saveCoverClass(0x3202,(INT16U)crrentnum,(void *)Save_buf,(int)index,2);
 		//存储当前记录值
@@ -1952,7 +1980,7 @@ INT8U Event_3202(INT8U* data,INT8U len) {
 		Get_CurrResult(Currbuf,&Currindex,(INT8U*)oi,s_oi,crrentnum,0);
 		saveCoverClass(0x3202,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,3);
 		//判断是否要上报
-		if(EVENT_OBJS.Event3202_obj.reportflag)
+		if(event_object.Event3202_obj.reportflag)
 			Need_Report(0x3202,crrentnum);
 	 }
     return 1;
@@ -1963,16 +1991,16 @@ INT8U Event_3202(INT8U* data,INT8U len) {
  */
 INT8U Event_3203(INT8U* data,INT8U len) {
     //暂时不使用
-	 if (EVENT_OBJS.Event3203_obj.enableflag == 0) {
+	 if (event_object.Event3203_obj.enableflag == 0) {
 	        return 0;
 	}
 
 	if(1){
 		INT8U Save_buf[256];
 		bzero(Save_buf, sizeof(Save_buf));
-		EVENT_OBJS.Event3203_obj.crrentnum++;
-		Getcurrno(&EVENT_OBJS.Event3203_obj.crrentnum,EVENT_OBJS.Event3203_obj.maxnum);
-		INT32U crrentnum = EVENT_OBJS.Event3203_obj.crrentnum;
+		event_object.Event3203_obj.crrentnum++;
+		Getcurrno(&event_object.Event3203_obj.crrentnum,event_object.Event3203_obj.maxnum);
+		INT32U crrentnum = event_object.Event3203_obj.crrentnum;
 		INT8U index=0;
 		//标准数据单元
 		Get_StandardUnit(0x3203,Save_buf,&index,crrentnum,(INT8U*)data,s_oi);
@@ -1986,7 +2014,7 @@ INT8U Event_3203(INT8U* data,INT8U len) {
 		index+=8;
 		Save_buf[STANDARD_NUM_INDEX]+=2;
 		//存储更改后得参数
-		saveCoverClass(0x3203,(INT16U)crrentnum,(void *)&EVENT_OBJS.Event3203_obj,sizeof(Class7_Object),1);
+		saveCoverClass(0x3203,(INT16U)crrentnum,(void *)&event_object.Event3203_obj,sizeof(Class7_Object),1);
 		//存储记录集
 		saveCoverClass(0x3203,(INT16U)crrentnum,(void *)Save_buf,(int)index,2);
 		//存储当前记录值
@@ -1995,7 +2023,7 @@ INT8U Event_3203(INT8U* data,INT8U len) {
 		Get_CurrResult(Currbuf,&Currindex,(INT8U*)data,s_oi,crrentnum,0);
 		saveCoverClass(0x3203,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,3);
 		//判断是否要上报
-		if(EVENT_OBJS.Event3203_obj.reportflag)
+		if(event_object.Event3203_obj.reportflag)
 			Need_Report(0x3203,crrentnum);
 	}
     return 1;

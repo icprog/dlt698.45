@@ -340,6 +340,10 @@ void getFileName(OI_698 oi,INT16U seqno,INT16U type,char *fname)
 		makeSubDir(dirname);
 		sprintf(fname,"%s/%04x/%d.dat",EVENT_CURR,oi,seqno);
 		break;
+	case para_vari_save:
+		makeSubDir("/nand/para");
+		sprintf(fname,"/%s/%04x.par",PARADIR,oi);
+		break;
 	case coll_para_save:
 		makeSubDir("/nand/para");
 		sprintf(fname,"/%s/%04x/",PARADIR,oi);

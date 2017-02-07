@@ -68,6 +68,7 @@ typedef struct
 typedef struct
 {
 	INT8U type;   			            //运行时段类型
+	INT8U num;
 	TIMEPART runtime[24];       	    //时段表 0-3分别表示起始小时.分钟，结束小时.分钟
 }TASK_RUN_TIME;
 
@@ -80,6 +81,7 @@ typedef struct
 
 typedef struct
 {
+	INT8U	num;
 	Day_Period Period_Rate[MAX_PERIOD_RATE];
 }CLASS_4016;
 
@@ -160,10 +162,10 @@ typedef struct
 	INT8U onlineType;					//在线方式 enum{永久在线(0),被动激活(1)}
 	INT8U connectType;					//连接方式 enum{TCP(0),UDP(1)}
 	INT8U appConnectType;				//连接应用方式 enum{主备模式(0),多连接模式(1)}
-	INT8U apn[20];						//apn
-	INT8U userName[40];					//用户名称
-	INT8U passWord[40];					//密码
-	INT8U proxyIp[20];					//代理服务器地址
+	INT8U apn[OCTET_STRING_LEN];		//apn
+	INT8U userName[OCTET_STRING_LEN];	//用户名称
+	INT8U passWord[OCTET_STRING_LEN];	//密码
+	INT8U proxyIp[OCTET_STRING_LEN];	//代理服务器地址
 	INT16U proxyPort;					//代理端口
 	INT8U timeoutRtry;					//超时时间，重发次数
 	INT8U heartBeat;					//心跳周期秒
@@ -174,7 +176,7 @@ typedef struct
 	INT8U connectType;					//连接方式 enum{TCP(0),UDP(1)}
 	INT8U appConnectType;				//连接应用方式 enum{主备模式(0),多连接模式(1)}
 	INT16U listenPort[5];				//侦听端口列表
-	INT8U proxyIp[20];					//代理服务器地址
+	INT8U proxyIp[OCTET_STRING_LEN];	//代理服务器地址
 	INT16U proxyPort;					//代理端口
 	INT8U timeoutRtry;					//超时时间，重发次数
 	INT8U heartBeat;					//心跳周期秒
@@ -186,9 +188,9 @@ typedef struct
 }MASTER_STATION_INFO;
 typedef struct
 {
-	INT8U center[16];					//短信中心号码
-	INT8U master[4][16];				//主站号码
-	INT8U dest[4][16];					//短信通知目的号码
+	INT8U center[OCTET_STRING_LEN];		//短信中心号码
+	INT8U master[4][OCTET_STRING_LEN];	//主站号码
+	INT8U dest[4][OCTET_STRING_LEN];	//短信通知目的号码
 }SMS_INFO;
 
 typedef struct
@@ -206,12 +208,12 @@ typedef struct
 }CLASS25;//4500、4501公网通信模块1，2
 typedef struct
 {
-	INT8U ipConfigType;					//IP 配置方式 enum{DHCP(0),静态(1),PPPoE(2)}
-	INT8U ip[20];						//IP
-	INT8U subnet_mask[20];				//子网掩码
-	INT8U gateway[20];					//网关
-	INT8U username_pppoe[40];			//PPPOE用户名   sohu.com@yaxinli.com.cn
-	INT8U password_pppoe[40];			//PPPOE密码
+	INT8U ipConfigType;						//IP 配置方式 enum{DHCP(0),静态(1),PPPoE(2)}
+	INT8U ip[OCTET_STRING_LEN];				//IP
+	INT8U subnet_mask[OCTET_STRING_LEN];	//子网掩码
+	INT8U gateway[OCTET_STRING_LEN];		//网关
+	INT8U username_pppoe[OCTET_STRING_LEN];	//PPPOE用户名   sohu.com@yaxinli.com.cn
+	INT8U password_pppoe[OCTET_STRING_LEN];	//PPPOE密码
 }NETCONFIG;
 typedef struct
 {

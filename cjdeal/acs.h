@@ -15,13 +15,15 @@
 	{ } \
 }while(0)
 
-//#define dbg_prt(fmt,...) do \
-//	{ \
-//		{ \
-//			fprintf(stderr,fmt, ## __VA_ARGS__);\
-//			fprintf(stderr,"\n");\
-//		}\
-//}while(0)
+/*
+ * #define dbg_prt(fmt,...) do \
+	{ \
+		{ \
+			fprintf(stderr,fmt, ## __VA_ARGS__);\
+			fprintf(stderr,"\n");\
+		}\
+}while(0)
+*/
 
 #define U			1			//电压
 #define I			2			//电流

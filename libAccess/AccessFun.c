@@ -233,6 +233,7 @@ int saveCoverClass(OI_698 oi,INT16U seqno,void *blockdata,int savelen,int type)
 	getFileName(oi,seqno,type,fname);
 	switch(type) {
 	case event_para_save:
+	case para_vari_save:
 	case coll_para_save:
 	case acs_coef_save:
 	case acs_energy_save:
@@ -277,6 +278,7 @@ int readCoverClass(OI_698 oi,INT16U seqno,void *blockdata,int datalen,int type)
 
 	switch(type) {
 	case event_para_save:
+	case para_vari_save:
 	case coll_para_save:
 	case acs_coef_save:
 	case acs_energy_save:
