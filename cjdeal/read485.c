@@ -195,11 +195,71 @@ INT8S deal6015_698(CLASS_6015 st6015,BasicInfo6001 to6001)
 
 	return result;
 }
+INT8S OADTo07DI(OAD fromOAD,INT8U* toDI)
+{
+	INT8S result = 0;
+
+	return result;
+}
+INT8S request698_07Data(OAD meterOAD,TSA meterAddr)
+{
+	INT8S result = 0;
+	FORMAT07 Data07;
+	memset(&Data07,0,sizeof(FORMAT07));
+	if(OADTo07DI(meterOAD,Data07.DI))
+	{
+
+	}
+	else
+	{
+		fprintf(stderr,"request698_07Data:1");
+	}
+	return result;
+}
+INT8S deal6015_07_readtime(CSD_ARRAYTYPE csds,TSA meterAddr)
+{
+	INT8S result = 0;
+
+	INT8U dataIndex = 0;
+	for(dataIndex = 0;dataIndex < csds.num;dataIndex++)
+	{
+		//OAD
+		if(csds.csd[dataIndex].type == 0)
+		{
+			request698_07Data(csds.csd[dataIndex].csd.oad,meterAddr);
+
+		}
+		else//ROAD
+		{
+			fprintf(stderr,"deal6015_07_readtime:1");
+		}
+
+	}
+
+
+	return result;
+}
 INT8S deal6015_07(CLASS_6015 st6015,BasicInfo6001 to6001)
 {
 	fprintf(stderr,"\n deal6015_07  meter = %d",to6001.sernum);
 	INT8S result = 0;
+	switch(st6015.cjtype)
+	{
+		case TYPE_NULL:/*采集当前数据--实时*/
+		{
+			deal6015_07_readtime(st6015.csds,to6001.addr);
+		}
+		break;
+		case TYPE_LAST:/*采集上N次*/
+		{
 
+		}
+		break;
+		case TYPE_FREEZE:/*按冻结时标*/
+			break;
+		case TYPE_INTERVAL:/*按时标间隔---曲线*/
+			break;
+	}
 	return result;
 }
 /*
@@ -209,12 +269,25 @@ INT8U deal6015_singlemeter(CLASS_6015 st6015,BasicInfo6001 obj6001)
 {
 	INT8S ret = 0;
 	//打开串口
-	comfd4851 = open_com_para_chg(obj6001.port,obj6001.baud,comfd4851);
-	if(comfd4851<=0)
+	if(obj6001.port == S4851)
 	{
-		fprintf(stderr,"打开串口失败\n");
-		return ret;
+		comfd4851 = open_com_para_chg(obj6001.port,obj6001.baud,comfd4851);
+		if(comfd4851<=0)
+		{
+			fprintf(stderr,"打开S4851串口失败\n");
+			return ret;
+		}
 	}
+	if(obj6001.port == S4852)
+	{
+		comfd4852 = open_com_para_chg(obj6001.port,obj6001.baud,comfd4852);
+		if(comfd4852<=0)
+		{
+			fprintf(stderr,"打开S4852串口失败\n");
+			return ret;
+		}
+	}
+
 	switch(obj6001.protocol)
 	{
 		case DLT_645_07:
@@ -226,9 +299,25 @@ INT8U deal6015_singlemeter(CLASS_6015 st6015,BasicInfo6001 obj6001)
 	return ret;
 }
 /*
+*根据6015中的MS 和电表地址 和端口好判断此电表是否需要抄读
+*0-不抄 1-抄
+*/
+INT8U checkMeterType(MY_MS mst,INT8U port485,TSA meterAddr,OAD portOAD)
+{
+	if((portOAD.OI != 0xF201)||(portOAD.attflg != 0x02)||(portOAD.attrindex != port485))
+	{
+		return 0;
+	}
+	if(mst.mstype == 1)
+	{
+		return 1;
+	}
+	return 1;
+}
+/*
  * 从文件里读取LIST6001SIZE个测量点
  * */
-INT8U readList6001FromFile(BasicInfo6001* list6001,INT16U groupIndex,int recordnum)
+INT8U readList6001FromFile(BasicInfo6001* list6001,INT16U groupIndex,int recordnum,MY_MS mst,INT8U port485)
 {
 	INT16U		oi = 0x6000;
 	INT8U result = 0;
@@ -249,12 +338,13 @@ INT8U readList6001FromFile(BasicInfo6001* list6001,INT16U groupIndex,int recordn
 	{
 		if(readParaClass(oi,&meter,mIndex)==1)
 		{
+
 			if(meter.sernum!=0 && meter.sernum!=0xffff)
 			{
-				if(meter.basicinfo.port.OI == 0xF201)
+				if(checkMeterType(mst,port485,meter.basicinfo.addr,meter.basicinfo.port))
 				{
 					list6001[mIndex%LIST6001SIZE].sernum = meter.sernum;
-					list6001[mIndex%LIST6001SIZE].port = S4851;
+					list6001[mIndex%LIST6001SIZE].port = port485;
 					list6001[mIndex%LIST6001SIZE].baud = meter.basicinfo.baud;
 					list6001[mIndex%LIST6001SIZE].protocol = meter.basicinfo.protocol;
 					memcpy(&list6001[mIndex%LIST6001SIZE].addr,&meter.basicinfo.addr,sizeof(TSA));
@@ -263,6 +353,7 @@ INT8U readList6001FromFile(BasicInfo6001* list6001,INT16U groupIndex,int recordn
 							list6001[mIndex%LIST6001SIZE].addr.addr[0],list6001[mIndex%LIST6001SIZE].addr.addr[1],
 			                list6001[mIndex%LIST6001SIZE].addr.addr[2],list6001[mIndex%LIST6001SIZE].addr.addr[3],
 			                list6001[mIndex%LIST6001SIZE].addr.addr[4],list6001[mIndex%LIST6001SIZE].addr.addr[5]);
+
 				}
 				else
 				{
@@ -285,10 +376,9 @@ INT8U deal6015(CLASS_6015 st6015,INT8U port485)
 
 	int recordnum = 0;
 	//无电能表
-	if(st6015.mst.mstype == 1)
+	if(st6015.mst.mstype == 0)
 	{
-
-
+		return 0;
 	}
 
 	INT16U		oi = 0x6000;
@@ -312,14 +402,13 @@ INT8U deal6015(CLASS_6015 st6015,INT8U port485)
 	for(groupindex = 0;groupindex < groupNum;groupindex++)
 	{
 		memset(list6001,0,LIST6001SIZE*sizeof(BasicInfo6001));
-		result = readList6001FromFile(list6001,groupindex,recordnum);
+		result = readList6001FromFile(list6001,groupindex,recordnum,to6015.mst,port485);
 		for(mpIndex = 0;mpIndex < LIST6001SIZE;mpIndex++)
 		{
 			if(list6001[mpIndex].sernum > 0)
 			{
 				deal6015_singlemeter(to6015,list6001[mpIndex]);
 			}
-
 		}
 	}
 
