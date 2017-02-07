@@ -414,28 +414,33 @@ int doActionRequest(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
  *输入：retData--esam验证后返回信息(需要在该函数外层开辟空间) MAC明文加MAC时，需要保存全局MAC
  *输出：retData长度
  **********************************************************************/
-INT16S doSecurityRequest(INT8U* apdu,INT8U* MAC,INT8U* retData)//TODO:retData需要在上层函数定义INT8U数组
+INT16S doSecurityRequest(INT8U* apdu)//
 {
 	if(apdu[0]!=0x10) return -1;//非安全传输，不处理
 	if(apdu[1] !=0x00 && apdu[1] != 0x01) return -2 ;   //明文应用数据单元
 	 INT16S retLen=0;
 	 INT32S fd=-1;
 	 INT8U SecurityType=0x00;//本次传输安全等级(属于库全局变量，暂放此处)
+	 INT8U MAC[20];//该mac值暂时用不到，暂存
 	 fd = Esam_Init(fd,(INT8U*)DEV_SPI_PATH);
 	 if(fd<0) return -3;
 
 	 if(apdu[1]==0x00)//明文应用数据处理
 	 {
-		 SecurityType=0x02;//明文+RN返回MAC
-		 retLen = secureDecryptDataDeal(fd,apdu,MAC);
-		 retData=&apdu[2];
+		 retLen = secureDecryptDataDeal(fd,apdu,&SecurityType,MAC);//传入安全等级
+		 apdu=&apdu[2];
 	 }
 	 else if(apdu[1]==0x01)//密文应用数据处理
 	 {
-		 retLen = secureEncryptDataDeal(fd,SecurityType,apdu,retData);
+		 retLen = secureEncryptDataDeal(fd,&SecurityType,apdu,apdu);
 	 }
 	 Esam_Clear(fd);
 	 return retLen;
+}
+//组织SecurityResponse上行报文
+INT16S composeSecurityResponse()
+{
+
 }
 /**********************************************************************
  * 解析SECURITY-response 终端主动上报后，主站回复数据 apdu[0]=144;apdu[1]应用数据单元
@@ -443,11 +448,11 @@ INT16S doSecurityRequest(INT8U* apdu,INT8U* MAC,INT8U* retData)//TODO:retData需
  * 上行中终端明文进入esam生成RN和MAC，主站校验，返回明文和MAC，终端根据上行的RN和主站返回的MAC校验
  * 注意RN需要终端主动上报后本地保存(全局变量)
  **********************************************************************/
-INT16S parseSecurityResponse(INT8U* RN,INT8U* apdu,INT8U* retData)//TODO:retData需要在上层函数定义INT8U数组
+INT16S parseSecurityResponse(INT8U* RN,INT8U* apdu)//apdu负责传入和传出数据，一人全包
 {
 	if(apdu[1]==0x00 || apdu[1]==0x01)//暂时将密文一起加入处理
 	{
-	     INT32S retLen = secureResponseData(RN,apdu,retData);
+	     INT32S retLen = secureResponseData(RN,apdu);
 	     return retLen;
 	}
 	else if(apdu[1]==0x02)

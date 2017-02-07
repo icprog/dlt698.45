@@ -11,23 +11,27 @@
 #include "secure.h"
 #include "../libEsam/Esam.h"
 /**********************************************************************
- *安全传输中获取应用数据单元
+ *安全传输中获取应用数据单元长度
+ *参见A-XDR编码规则(第一个字节最高bit位代表是否可变长度，0代表本身即长度字节，不超128,1代表剩余bit是长度域字节数，先取长度域再取长度)
  *输入：apdu完整的应用数据单元开头地址
- *输出：应用数据单元长度包括长度的1或2个字节
+ *输出：应用数据单元长度包括长度的1或2个字节或3个字节
  **********************************************************************/
- INT16S GetDataLength(INT8U* Data)
+ INT16U GetDataLength(INT8U* Data)
  {
 	 INT16U datalen=0;
-		if(Data[0]>7)//长度字节，如果小于8，肯定不正确（参照读取一个对象属性），后一个字节也是长度（8*256=2048）
+		if((Data[0] &0x80) != 0x80)//最高位代表长度域的属性
 		{
 			datalen=Data[0]+1;
 		}
 		else
 		{
-			datalen=((Data[0]<<8)&0xff00)+(Data[1]&0x00ff);
-			if(datalen>BUFLEN) return -1;
-			datalen+=2;
+			if((Data[0] &0x7F) == 0x01)//长度域1个字节长度
+				datalen=Data[1]+2;
+			else if((Data[0] &0x7F) == 0x02)//长度域2个字节长度
+				datalen=((INT16U)Data[1]<<8)+(INT16U)Data[2] +3 ;//
+			else datalen=0;//长度域不会超过2个字节，超过的话此处做异常处理
 		}
+		if(datalen > BUFLEN) datalen=0;//超过上行最大长度，做异常处理
 		return datalen;
  }
  /**********************************************************************
@@ -47,7 +51,7 @@ INT32S secureConnectRequest(SignatureSecurity* securityInfo ,SecurityData* RetIn
 /**********************************************************************
 *处理主动上报，主站回复报文同esam交互部分
  **********************************************************************/
-INT32S secureResponseData(INT8U* RN,INT8U* apdu,INT8U* retData)
+INT32S secureResponseData(INT8U* RN,INT8U* apdu)
 {
 	 INT32S fd=-1;
 	 INT32S ret=0;
@@ -62,7 +66,7 @@ INT32S secureResponseData(INT8U* RN,INT8U* apdu,INT8U* retData)
     	MACindex=2+1+len;
     else return -1;
 
-    ret =Esam_DencryptReport( fd,  RN, &apdu[MACindex], &apdu[2],  retData);
+    ret =Esam_DencryptReport( fd,  RN, &apdu[MACindex], &apdu[2], apdu);
      Esam_Clear(fd);
      return ret;
 }
@@ -101,13 +105,14 @@ INT8S UnitParse(INT8U* source,INT8U* dest,INT8U type)
   *输入：需返回的secureType安全类别，01明文，02明文+MAC 03密文  04密文+MAC
   *输出：retData长度
   **********************************************************************/
- INT32S secureEncryptDataDeal(INT32S fd,INT8U secureType,INT8U* apdu,INT8U* retData)
+ INT32S secureEncryptDataDeal(INT32S fd,INT8U* secureType,INT8U* apdu,INT8U* retData)
  {
-	 INT16S tmplen=0;
-	 INT16S appLen=0;
+	 INT16U tmplen=0;
+	 INT16U appLen=0;
 	 INT32S ret=0;
 	 SID_MAC sidmac;
 	 appLen = GetDataLength(&apdu[2]);
+	 if(appLen<=0) return -100;
 
 	if(apdu[2+appLen]==0x00 ||apdu[2+appLen]==0x03)//SID_MAC数据验证码
 	{
@@ -120,25 +125,33 @@ INT8S UnitParse(INT8U* source,INT8U* dest,INT8U type)
 		}
 		ret = Esam_SIDTerminalCheck(fd,sidmac,&apdu[2],retData);
 	}
+	else
+		return -101;
+	if(apdu[2+appLen]==0x00)
+		*secureType=0x04;//密文+mac等级
+	if(apdu[2+appLen]==0x03)
+		*secureType=0x03;//密文等级
 	return ret;
  }
  /**********************************************************************
   *应用数据单元为明文情况时处理方案
   *当前理解：当前资料主要以明文+RN为主，为后续，兼容明文+RN_MAC情况。
-  *输入：不用返回安全类别，此处类别总是02明文+MAC
+  *输入：返回安全类别，此处类别总是02明文+MAC
+  *mac值传入上层函数，暂时用不到
   *输出：retData长度
   **********************************************************************/
- INT32S secureDecryptDataDeal(INT32S fd,INT8U* apdu,INT8U* MAC)
+ INT32S secureDecryptDataDeal(INT32S fd,INT8U* apdu,INT8U* secureType,INT8U* MAC)
  {
 	 INT32S ret=0;
-	 MAC[0]=0x04;//MAC4字节
-	 INT16S appLen = GetDataLength(&apdu[2]);//计算应用数据单元长度
-	 if(apdu[2+2+appLen]==0x01 || apdu[2+2+appLen]==0x02)// 只处理RN/RN_MAC情况
+	 INT16U appLen = GetDataLength(&apdu[2]);//计算应用数据单元长度
+	 if(appLen<=0) return -100;
+
+	 if(apdu[2+appLen]==0x01 || apdu[2+appLen]==0x02)// 只处理RN/RN_MAC情况
 	 {
-		 if(appLen>255)//TODO:长度需更有逻辑的判断防止出现段错误！！！！！（错误报文容易导致长度异常）
-			 ret =  Esam_GetTerminalInfo(fd,&apdu[2+2+appLen+1],&apdu[2],&MAC[1]);//最后+1是数据验证信息标识
-		 else if(appLen<256 || appLen>0)
-			 ret = Esam_GetTerminalInfo(fd,&apdu[2+1+appLen+1],&apdu[2],&MAC[1]);
+			 ret =  Esam_GetTerminalInfo(fd,&apdu[2+appLen+1],&apdu[2],MAC);//最后+1是数据验证信息标识
 	 }
+	 else
+		 return -101;
+		 *secureType=0x02;//明文+MAC等级
 	 return ret;
  }
