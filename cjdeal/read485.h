@@ -24,6 +24,7 @@ typedef enum{
 }METER_PROTOCOL;
 typedef struct
 {
+	INT16U sernum;
 	TSA addr;			//通信地址
 	INT8U baud;			//波特率
 	METER_PROTOCOL protocol;		//规约类型
@@ -31,10 +32,8 @@ typedef struct
 }BasicInfo6001;
 
 typedef struct {
-	INT8U resetFlag;
-	INT8U run_flg;//本轮已抄读 二进制：00未执行 01已执行(由抄表程序置位) 论次变更时置0
-	int last_round;//上一次抄表时段唯一标识值，判断某一时间论次是否变更
-	TS ts_last;//上一次抄表时刻
+	INT8U run_flg;//累计需要抄读次数 抄读一次后置为0   到下一次抄读时间置为1
+	TS ts_next;//下一次抄表时刻
 	CLASS_6013 basicInfo;
 }TASK_CFG;
 

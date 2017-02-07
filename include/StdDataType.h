@@ -162,7 +162,6 @@ typedef enum {
 	TYPE_INTERVAL=3/*按时标间隔*/
 }CJTYPE_6015;//任务执行状态
 
-
 //////////////////////////////////////////////////////////////////
 //typedef struct
 //{
@@ -280,6 +279,7 @@ typedef struct
 typedef struct
 {
 	OAD oad;
+	INT8U num;
 	OAD oads[16];
 }ROAD;					/*记录型对象属性描述符*/
 
@@ -429,7 +429,8 @@ typedef struct
 }MY_CSD;
 typedef struct
 {
-	INT8U type;
+	INT8U flag;			//解析时的标记，在应用程序中无意义
+	INT8U num;
 	MY_CSD csd[10];//CSD
 }CSD_ARRAYTYPE;
 

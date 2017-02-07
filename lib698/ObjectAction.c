@@ -95,6 +95,8 @@ void get_BasicUnit(INT8U *source,INT16U *sourceindex,INT8U *dest,INT16U *destind
 			break;
 		case 0x01:	//array
 			strnum = source[1];
+			dest[0] = strnum;		//数组类型第一个字节为长度
+			dest = dest + 1;
 			fprintf(stderr,"\n数组个数-%d",strnum);
 			size = 1;
 			if (dest_sumindex>0)
@@ -205,23 +207,25 @@ void get_BasicUnit(INT8U *source,INT16U *sourceindex,INT8U *dest,INT16U *destind
 				dest_sumindex = 3;
 			break;
     	case 0x5B://CSD
-			choicetype = source[1];
+			choicetype = source[1];//01
 			if (choicetype == 1)
 			{//road
-				dest[0] = source[3];
-				dest[1] = source[2];
-				dest[2] = source[4];
-				dest[3] = source[5];
+				dest[0] = choicetype;
+				dest[1] = source[3];
+				dest[2] = source[2];
+				dest[3] = source[4];
+				dest[4] = source[5];
 				int numm = source[6];//SEQUENCE 0F OAD 数量
+				dest[5] = (INT8U)numm;
 				fprintf(stderr,"\nnumm=%d",numm);
 				for(int k=0;k<numm;k++)
 				{
-					dest[4+k*4+0] = source[7+k*4+1];
-					dest[4+k*4+1] = source[7+k*4+0];
-					dest[4+k*4+2] = source[7+k*4+2];
-					dest[4+k*4+3] = source[7+k*4+3];
+					dest[6+k*4+0] = source[7+k*4+1];
+					dest[6+k*4+1] = source[7+k*4+0];
+					dest[6+k*4+2] = source[7+k*4+2];
+					dest[6+k*4+3] = source[7+k*4+3];
 				}
-				size =1+ 4+ 1 + numm*4;
+				size =1+ 4+ 1 + numm*4;// 1:choicetype  4:oad  1:num
 			}else
 			{//oad  6字节
 				dest[0] = choicetype;
@@ -314,7 +318,7 @@ void AddCjiFangAnInfo(INT8U *data)
 	{
 		memset(&fangAn,0xee,sizeof(fangAn));
 		fangAn.data.type = 0xAA;//标识data缓冲区
-		fangAn.csds.type = 0x55;//标识csd数组
+		fangAn.csds.flag = 0x55;//标识csd数组
 		get_BasicUnit(&data[2]+source_sumindex,&source_index,(INT8U *)&fangAn.sernum,&dest_index);
 		source_sumindex += source_index;
 		dest_sumindex += dest_index;
@@ -322,7 +326,7 @@ void AddCjiFangAnInfo(INT8U *data)
 		fprintf(stderr,"\n存储深度 ：%d ",fangAn.deepsize);
 		fprintf(stderr,"\n采集类型 ：%d ",fangAn.cjtype);
 		fprintf(stderr,"\n采集内容(data) 类型：%02x  data=%d",fangAn.data.type,fangAn.data.data[0]);
-		buf = (INT8U *)&fangAn.csds.type;
+		buf = (INT8U *)&fangAn.csds.flag;
 		fprintf(stderr,"\ncsd:");
 		INT8U type=0,w;
 		for(int i=0; i<10;i++)
@@ -381,7 +385,11 @@ void AddTaskInfo(INT8U *data)
 	for(k=0; k<addnum; k++)
 	{
 		memset(&task,0,sizeof(task));
+		fprintf(stderr,"\n---------------------------------------进入解析\n");
 		get_BasicUnit(&data[2]+source_sumindex,&source_index,(INT8U *)&task.taskID,&dest_index);
+		fprintf(stderr,"\n---------------------------------------解析 第%d次\n",k);
+		source_sumindex += source_index;
+		dest_sumindex += dest_index;
 
 		fprintf(stderr,"\n任务 ID=%d",task.taskID);
 		fprintf(stderr,"\n执行频率 单位=%d   value=%d",task.interval.units,task.interval.interval);
@@ -394,8 +402,7 @@ void AddTaskInfo(INT8U *data)
 		fprintf(stderr,"\n运行时段类型 =%02x",task.runtime.type);
 		fprintf(stderr,"\n开始  %d时 %d分  ",task.runtime.runtime[0].beginHour,task.runtime.runtime[0].beginMin);
 		fprintf(stderr,"\n结束  %d时 %d分  ",task.runtime.runtime[0].endHour,task.runtime.runtime[0].endMin);
-		source_sumindex += source_index;
-		dest_sumindex += dest_index;
+
 		saveflg = saveCoverClass(0x6013,task.taskID,&task,sizeof(task),coll_para_save);
 		if (saveflg==1)
 			fprintf(stderr,"\n采集任务 %d 保存成功",task.sernum);

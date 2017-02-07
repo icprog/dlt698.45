@@ -76,7 +76,7 @@ void Comm_task(CommBlock* compara) {
         oldtime = newtime;
         if (compara->phy_connect_fd < 0 || compara->testcounter >= 2) {
             fprintf(stderr, "phy_connect_fd = %d ,compara->testcounter = %d\n", compara->phy_connect_fd, compara->testcounter);
-            initComPara(compara);
+//            initComPara(compara);
             return;
         } else if (compara->phy_connect_fd >= 0 && compara->linkstate == close_connection) //物理通道建立完成后，如果请求状态为close，则需要建立连接
         {

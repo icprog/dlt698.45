@@ -67,7 +67,7 @@ INT8U use6013find6015(INT16U taskID, CLASS_6015* st6015)
 //	st6015->csd[0].rcsd[2].oad.attflg = 2;
 //	st6015->csd[0].rcsd[2].oad.attrindex = 0;
 //	st6015->ms.allmeter_null = 1;//所有电表
-	st6015->savetimeflag = 4;
+//	st6015->savetimeflag = 4;
 	return result;
 
 }
@@ -178,6 +178,7 @@ void SendDataTo485(INT32S fd,INT8U *sendbuf,INT16U sendlen)
 
 INT8S deal6015_698(CLASS_6015 st6015,BasicInfo6001 to6001)
 {
+	fprintf(stderr,"\n deal6015_698  meter = %d",to6001.sernum);
 	INT8S result = -1;
 	INT16S sendLen = 0;
 	INT16S recvLen = 0;
@@ -196,6 +197,7 @@ INT8S deal6015_698(CLASS_6015 st6015,BasicInfo6001 to6001)
 }
 INT8S deal6015_07(CLASS_6015 st6015,BasicInfo6001 to6001)
 {
+	fprintf(stderr,"\n deal6015_07  meter = %d",to6001.sernum);
 	INT8S result = 0;
 
 	return result;
@@ -228,7 +230,7 @@ INT8U deal6015_singlemeter(CLASS_6015 st6015,BasicInfo6001 obj6001)
  * */
 INT8U readList6001FromFile(BasicInfo6001* list6001,INT16U groupIndex,int recordnum)
 {
-	INT16U		oi = 0x6001;
+	INT16U		oi = 0x6000;
 	INT8U result = 0;
 	INT8U mIndex = 0;
 	int endIndex;
@@ -251,13 +253,16 @@ INT8U readList6001FromFile(BasicInfo6001* list6001,INT16U groupIndex,int recordn
 			{
 				if(meter.basicinfo.port.OI == 0xF201)
 				{
-					fprintf(stderr,"\n序号:%d ",meter.sernum);
-
+					list6001[mIndex%LIST6001SIZE].sernum = meter.sernum;
 					list6001[mIndex%LIST6001SIZE].port = S4851;
 					list6001[mIndex%LIST6001SIZE].baud = meter.basicinfo.baud;
 					list6001[mIndex%LIST6001SIZE].protocol = meter.basicinfo.protocol;
 					memcpy(&list6001[mIndex%LIST6001SIZE].addr,&meter.basicinfo.addr,sizeof(TSA));
-					memcpy(&list6001[mIndex%LIST6001SIZE].addr,&meter.basicinfo.addr,sizeof(TSA));
+					fprintf(stderr,"\n -------readList6001FromFile-------");
+					fprintf(stderr,"\n序号:%d %02x%02x%02x%02x%02x%02x ",meter.sernum,
+							list6001[mIndex%LIST6001SIZE].addr.addr[0],list6001[mIndex%LIST6001SIZE].addr.addr[1],
+			                list6001[mIndex%LIST6001SIZE].addr.addr[2],list6001[mIndex%LIST6001SIZE].addr.addr[3],
+			                list6001[mIndex%LIST6001SIZE].addr.addr[4],list6001[mIndex%LIST6001SIZE].addr.addr[5]);
 				}
 				else
 				{
@@ -273,44 +278,51 @@ INT8U readList6001FromFile(BasicInfo6001* list6001,INT16U groupIndex,int recordn
 /*
  * 处理一个普通采集方案
  * */
-INT8U deal6015(CLASS_6015 st6015)
+INT8U deal6015(CLASS_6015 st6015,INT8U port485)
 {
 	INT8U result = 0;
 	BasicInfo6001 list6001[LIST6001SIZE];
-	int recordnum = 0;
-	//全部电表
-//	if(st6015.ms.allmeter_null == 1)
-	{
-		INT16U		oi = 0x6001;
-		recordnum = getFileRecordNum(oi);
-		if(recordnum == -1)
-		{
-			fprintf(stderr,"未找到OI=%04x的相关信息配置内容！！！\n",oi);
-			return result;
-		}else if(recordnum == -2)
-		{
-			fprintf(stderr,"采集档案表不是整数，检查文件完整性！！！\n");
-			return result;
-		}
 
-		/*
-		 * 根据st6015.csd 和 list6001抄表
-		 * */
-		INT16U groupNum = (recordnum/LIST6001SIZE) + 1;
-		INT16U groupindex;
-		INT8U mpIndex;
-		for(groupindex = 0;groupindex < groupNum;groupindex++)
-		{
-			memset(list6001,0,sizeof(list6001));
-			result = readList6001FromFile(list6001,groupindex,recordnum);
-			for(mpIndex = 0;mpIndex < LIST6001SIZE;mpIndex++)
-			{
-				deal6015_singlemeter(to6015,list6001[mpIndex]);
-			}
-		}
+	int recordnum = 0;
+	//无电能表
+	if(st6015.mst.mstype == 1)
+	{
 
 
 	}
+
+	INT16U		oi = 0x6000;
+	recordnum = getFileRecordNum(oi);
+	if(recordnum == -1)
+	{
+		fprintf(stderr,"未找到OI=%04x的相关信息配置内容！！！\n",6000);
+		return result;
+	}else if(recordnum == -2)
+	{
+		fprintf(stderr,"采集档案表不是整数，检查文件完整性！！！\n");
+		return result;
+	}
+	fprintf(stderr,"\n deal6015 recordnum = %d ",recordnum);
+	/*
+	 * 根据st6015.csd 和 list6001抄表
+	 * */
+	INT16U groupNum = (recordnum/LIST6001SIZE) + 1;
+	INT16U groupindex;
+	INT8U mpIndex;
+	for(groupindex = 0;groupindex < groupNum;groupindex++)
+	{
+		memset(list6001,0,LIST6001SIZE*sizeof(BasicInfo6001));
+		result = readList6001FromFile(list6001,groupindex,recordnum);
+		for(mpIndex = 0;mpIndex < LIST6001SIZE;mpIndex++)
+		{
+			if(list6001[mpIndex].sernum > 0)
+			{
+				deal6015_singlemeter(to6015,list6001[mpIndex]);
+			}
+
+		}
+	}
+
 	return result;
 }
 
@@ -350,9 +362,42 @@ INT8U deal6015(CLASS_6015 st6015)
 //	sendbuf[sendindex++] = TP;
 //}
 
+INT8U time_in_shiduan(TASK_RUN_TIME str_runtime)
+{
+	TS ts_now;
+	TSGet(&ts_now);
 
+	INT16U min_start,min_end,now_min;//距离0点0分
+
+	now_min = ts_now.Hour * 60 + ts_now.Minute;
+	INT8U timePartIndex = 0;
+	for(timePartIndex = 0;timePartIndex < 24;timePartIndex++)
+	{
+		min_start = str_runtime.runtime[timePartIndex].beginHour * 60
+				+ str_runtime.runtime[timePartIndex].beginMin;
+		min_end = str_runtime.runtime[timePartIndex].endHour * 60
+				+ str_runtime.runtime[timePartIndex].endMin;
+
+		if(min_start  <= min_end)
+		{
+			if((now_min > min_start)&&(now_min < min_end))
+			{
+				return 1;
+			}
+			else if(((str_runtime.type & 0x01) == 0x01)&&(now_min == min_end))
+			{
+				return 1;
+			}
+			else if (((str_runtime.type & 0x03) == 0x01)&&(now_min == min_start))
+			{
+				return 1;
+			}
+		}
+	}
+	return 0;
+}
 //时间在任务开始结束时间段内 0:任务开始 1：任务不执行
-INT8U time_in_round(CLASS_6013 from6012_curr)
+INT8U time_in_task(CLASS_6013 from6012_curr)
 {
 	struct tm tm_start;
 	struct tm tm_end;
@@ -360,7 +405,7 @@ INT8U time_in_round(CLASS_6013 from6012_curr)
 	if(from6012_curr.startime.year.data < 1900 || from6012_curr.startime.month.data < 1 ||
 			from6012_curr.endtime.year.data < 1900 || from6012_curr.endtime.month.data < 1)
 	{
-		fprintf(stderr,"\n time_in_round - 1");
+		fprintf(stderr,"\n time_in_task - 1");
 		return 1;//无效，任务不执行
 	}
 
@@ -421,9 +466,6 @@ INT8U time_in_round(CLASS_6013 from6012_curr)
 	{
 		return 1;
 	}
-
-
-
 	return 0;
 }
 
@@ -436,10 +478,7 @@ INT8U time_in_round(CLASS_6013 from6012_curr)
  * */
 INT8U filterInvalidTask(INT16U taskIndex)
 {
-	TS ts_now;
-	TSGet(&ts_now);
 
-	INT16U min_start,min_end,now_min;//距离0点0分
 	if(list6013[taskIndex].basicInfo.taskID == 0)
 	{
 		fprintf(stderr,"\n filterInvalidTask - 1");
@@ -453,133 +492,31 @@ INT8U filterInvalidTask(INT16U taskIndex)
 		return 0;
 	}
 
-	if(time_in_round(list6013[taskIndex].basicInfo)==1)//不在抄表时段内
+	if(time_in_task(list6013[taskIndex].basicInfo)==1)//不在任务执行时段内
 	{
 		fprintf(stderr,"\n filterInvalidTask - 3");
 		return 0;
 	}
-
-	now_min = ts_now.Hour * 60 + ts_now.Minute;
-//	min_start = list6013[taskIndex].basicInfo.runtime.runtime[0] * 60 + list6013[taskIndex].basicInfo.runtime.runtime[1];//前秒数
-//	min_end = list6013[taskIndex].basicInfo.runtime.runtime[2] * 60 + list6013[taskIndex].basicInfo.runtime.runtime[3];//后秒数
-
-	if(min_start >= min_end)//当日抄表时段无效
+	if(time_in_shiduan(list6013[taskIndex].basicInfo.runtime)==1)//在抄表时段内
 	{
-		fprintf(stderr,"\n filterInvalidTask - 4");
-		return 0;
+		return 1;
 	}
-	if((list6013[taskIndex].basicInfo.runtime.type & 0x01) == 0x01)//后闭
-	{
-		if(now_min > min_end)
-		{
-			fprintf(stderr,"\n filterInvalidTask - 5");
-			return 0;
-		}
-	}
-	else
-	{
-		if(now_min >= min_end)
-		{
-			fprintf(stderr,"\n filterInvalidTask - 6");
-			return 0;
-		}
-	}
-
-	if((list6013[taskIndex].basicInfo.runtime.type & 0x03) == 0x01)//前闭
-	{
-		if(now_min < min_start)
-		{
-			fprintf(stderr,"\n filterInvalidTask - 7");
-			return 0;
-		}
-	}
-	else
-	{
-		if(now_min <= min_start)
-		{
-			fprintf(stderr,"\n filterInvalidTask - 8");
-			return 0;
-		}
-	}
-	return 1;
+	return 0;
 }
+
 /*
- * 根据抄表时间断和抄表间隔
- * 计算当前时间应该抄第几轮
- * runtime 现在默认就一个时段
+ * 计算下一次抄读该任务的时间
  *
  * */
-int getTaskReadRounds(INT16U taskIndex)
+void getTaskNextTime(INT16U taskIndex)
 {
-	int readRound = 0;
-	TS ts_now;
-	TSGet(&ts_now);
+	TSGet(&list6013[taskIndex].ts_next);
+	tminc(&list6013[taskIndex].ts_next,list6013[taskIndex].basicInfo.interval.units,list6013[taskIndex].basicInfo.interval.interval);
 
-	switch(list6013[taskIndex].basicInfo.interval.units)//计算本抄表时段唯一标识值
-	{
-		case year_units:
-			if(ts_now.Year != list6013[taskIndex].ts_last.Year)
-			{
-				readRound += 1;
-			}
-			break;
-		case month_units:
-			if(ts_now.Month != list6013[taskIndex].ts_last.Month)
-			{
-				readRound += 1;
-			}
-			break;
-		case day_units:
-			if(ts_now.Day != list6013[taskIndex].ts_last.Day)
-			{
-				readRound += 1;
-			}
-			break;
-		case hour_units://小时开始，标识不是唯一，不同天会产生循环的数，因此需要加上年月日判断
-			//小时与上一次抄表时间的day结合使用,每天重新生成唯一标识
-			if(ts_now.Year != list6013[taskIndex].ts_last.Year || ts_now.Month != list6013[taskIndex].ts_last.Month || ts_now.Day != list6013[taskIndex].ts_last.Day)
-			{
-				readRound = 1;
-				list6013[taskIndex].resetFlag = 1;
-			}
-//			else
-//				readRound = 1 + abs(ts_now.Hour - list6013[taskIndex].basicInfo.runtime.runtime[0])/list6013[taskIndex].basicInfo.interval.interval;
-			break;
-		case minute_units:
-			if(ts_now.Year != list6013[taskIndex].ts_last.Year || ts_now.Month != list6013[taskIndex].ts_last.Month || ts_now.Day != list6013[taskIndex].ts_last.Day)
-			{
-				readRound = 1;
-				list6013[taskIndex].resetFlag = 1;
-			}
-			else
-			{
-//				INT16U minSpan = abs((ts_now.Hour*60 + ts_now.Minute) - (list6013[taskIndex].basicInfo.runtime.runtime[0]*60 + list6013[taskIndex].basicInfo.runtime.runtime[1]));
-//				readRound =  1 + minSpan /list6013[taskIndex].basicInfo.interval.interval;
-			}
-			break;
-		case sec_units:
-			if(ts_now.Year != list6013[taskIndex].ts_last.Year || ts_now.Month != list6013[taskIndex].ts_last.Month || ts_now.Day != list6013[taskIndex].ts_last.Day)
-			{
-				readRound = 1;
-				list6013[taskIndex].resetFlag = 1;
-			}
-			else
-			{
-//				INT16U secSpan = abs((ts_now.Hour*3600 + ts_now.Minute*60 + ts_now.Sec) -
-//									(list6013[taskIndex].basicInfo.runtime.runtime[0]*3600
-//											+ list6013[taskIndex].basicInfo.runtime.runtime[1]*60));
-//				readRound =  1 + secSpan /list6013[taskIndex].basicInfo.interval.interval;
-			}
-
-			break;
-		default:
-			break;
-	}
-
-	return readRound;
 }
 /*
  * 比较当前时间应该先抄读哪一个任务
+ * 比较权重 优先级 >  采集类型（年>月>日>分） > run_flg
  * 返回
  * ：0-优先级一样
  * ：1-taskIndex1先执行
@@ -587,73 +524,78 @@ int getTaskReadRounds(INT16U taskIndex)
  * */
 INT8U cmpTaskPrio(INT16U taskIndex1,INT16U taskIndex2)
 {
-	if(list6013[taskIndex1].basicInfo.interval.units > list6013[taskIndex2].basicInfo.interval.units)
+
+	if(list6013[taskIndex1].basicInfo.runprio > list6013[taskIndex2].basicInfo.runprio)
+	{
+		return 1;
+	}
+	else if(list6013[taskIndex1].basicInfo.runprio < list6013[taskIndex2].basicInfo.runprio)
 	{
 		return 2;
 	}
-	if(list6013[taskIndex1].basicInfo.interval.units < list6013[taskIndex2].basicInfo.interval.units)
+	else if(list6013[taskIndex1].basicInfo.interval.units > list6013[taskIndex2].basicInfo.interval.units)
 	{
 		return 1;
 	}
-	if((getTaskReadRounds(taskIndex1) - list6013[taskIndex1].last_round) >
-	(getTaskReadRounds(taskIndex2) - list6013[taskIndex2].last_round))
+	else if(list6013[taskIndex1].basicInfo.interval.units < list6013[taskIndex2].basicInfo.interval.units)
+	{
+		return 2;
+	}
+	else if(list6013[taskIndex1].run_flg > list6013[taskIndex2].run_flg)
 	{
 		return 1;
 	}
-	if((getTaskReadRounds(taskIndex1) - list6013[taskIndex1].last_round) <
-	(getTaskReadRounds(taskIndex2) - list6013[taskIndex2].last_round))
+	else if(list6013[taskIndex1].run_flg < list6013[taskIndex2].run_flg)
 	{
 		return 2;
 	}
 	return 0;
 }
-INT16S getNextTastID()
+//查找下一个执行的任务
+INT16S getNextTastIndexIndex()
 {
 	INT16S taskIndex = -1;
 	INT16U tIndex = 0;
 
+	fprintf(stderr,"\n -----------------getNextTastIndexIndex = %d-----------------------",tIndex);
 
 	for(tIndex=0;tIndex<TASK6012_MAX;tIndex++)
 	{
 		if(list6013[tIndex].basicInfo.taskID == 0)
 			continue;
 
-		fprintf(stderr,"\n -----------------getNextTastID tIndex = %d-----------------------",tIndex);
-		//过滤任务无效或者不再抄表时段内的
-		if (filterInvalidTask(tIndex)==0)
+		//run_flg > 0说明应该抄读还没有抄
+		if(list6013[tIndex].run_flg > 0)
 		{
-			fprintf(stderr,"\n filterInvalidTask");
-			continue;
-		}
-		//过滤没到抄表间隔的
-		if((list6013[tIndex].last_round == getTaskReadRounds(tIndex))
-			&&(list6013[tIndex].resetFlag!=1))
-		{
-			continue;
-		}
-		if(taskIndex == -1)
-		{
-			taskIndex = tIndex;
-			continue;
-		}
-		else if(list6013[taskIndex].basicInfo.runprio < list6013[tIndex].basicInfo.runprio)
-		{
-			//判断优先级
-			taskIndex = tIndex;
-			continue;
+			list6013[tIndex].run_flg++;
 		}
 		else
 		{
-			if(cmpTaskPrio(taskIndex,tIndex) == 2)
+			//过滤任务无效或者不再抄表时段内的
+			if (filterInvalidTask(tIndex)==0)
 			{
-				taskIndex = tIndex;
+				fprintf(stderr,"\n filterInvalidTask");
 				continue;
 			}
+			TS tsNow = {};
+			TSGet(&tsNow);
+			if(TScompare(tsNow,list6013[tIndex].ts_next)==1)
+			{
+				list6013[tIndex].run_flg = 1;
+			}
 		}
-
+		if((taskIndex == -1)&&(list6013[tIndex].run_flg > 0))
+		{
+			taskIndex = tIndex;
+			continue;
+		}
+		if(cmpTaskPrio(taskIndex,tIndex) == 2)
+		{
+			taskIndex = tIndex;
+			continue;
+		}
 	}
-
-	return list6013[taskIndex].basicInfo.taskID;
+	return taskIndex;
 }
 typedef enum{
 	coll_bps=1,
@@ -751,7 +693,7 @@ void print6013(CLASS_6013 class6013)
 	fprintf(stderr,"[6]%s-%d ",getenum(task_ti,class6013.delay.units),class6013.delay.interval);
 	fprintf(stderr,"[7]%s  ",getenum(task_prio,class6013.runprio));
 	fprintf(stderr,"[8]%s  [9]%d  [10]%d ",getenum(task_status,class6013.state),class6013.befscript,class6013.aftscript);
-	fprintf(stderr,"[11]%s [%d:%d %d:%d] ",getenum(task_runtime,class6013.runtime.type),class6013.runtime.runtime[0],class6013.runtime.runtime[1],class6013.runtime.runtime[2],class6013.runtime.runtime[3]);
+
 	fprintf(stderr,"\n");
 }
 
@@ -761,7 +703,7 @@ void print6013(CLASS_6013 class6013)
  * */
 INT8U init6013ListFrom6012File()
 {
-	//list6013  初始化上一次抄表时间  和 抄表轮次
+	//list6013  初始化下一次抄表时间
 	TS ts_now;
 	TSGet(&ts_now);
 
@@ -778,12 +720,11 @@ INT8U init6013ListFrom6012File()
 		if(readCoverClass(oi,tIndex+1,&class6013,sizeof(CLASS_6013),coll_para_save)== 1)
 		{
 			memcpy(&list6013[tIndex].basicInfo,&class6013,sizeof(CLASS_6013));
-			list6013[tIndex].ts_last.Year = ts_now.Year;
-			list6013[tIndex].ts_last.Month = ts_now.Month;
-			list6013[tIndex].ts_last.Day = ts_now.Day;
-			list6013[tIndex].ts_last.Hour = ts_now.Hour;
-			list6013[tIndex].ts_last.Minute = ts_now.Minute;
-			list6013[tIndex].last_round = 0;
+			list6013[tIndex].ts_next.Year = ts_now.Year;
+			list6013[tIndex].ts_next.Month = ts_now.Month;
+			list6013[tIndex].ts_next.Day = ts_now.Day;
+			list6013[tIndex].ts_next.Hour = ts_now.Hour;
+			list6013[tIndex].ts_next.Minute = ts_now.Minute;
 			print6013(list6013[tIndex].basicInfo);
 		}
 	}
@@ -796,27 +737,53 @@ void read485_thread(void* i485port)
 	fprintf(stderr,"\n port = %d",port);
 	comfd4851 = -1;
 	INT8U ret = 0;
-	INT16S taskID = -1;
+	INT16S tastIndexIndex = -1;
 
 	while(1)
 	{
 
-		taskID = getNextTastID();
-
-		if(taskID > -1)
+		tastIndexIndex = getNextTastIndexIndex();
+		//计算下一次抄读此任务的时间
+		getTaskNextTime(tastIndexIndex);
+		if(tastIndexIndex > -1)
 		{
-			fprintf(stderr,"\n------------------- taskID = %d",taskID);
+			fprintf(stderr,"\n------------------- taskID = %d",list6013[tastIndexIndex].basicInfo.taskID);
 			CLASS_6035 result6035;//采集任务监控单元
 			memset(&result6035,0,sizeof(CLASS_6035));
-			result6035.taskID = taskID;
+			result6035.taskID = list6013[tastIndexIndex].basicInfo.taskID;
 			result6035.taskState = IN_OPR;
 			DataTimeGet(&result6035.starttime);
+			switch(list6013[tastIndexIndex].basicInfo.cjtype)
+			{
+				case norm:/*普通采集方案*/
+				{
+					ret = use6013find6015(list6013[tastIndexIndex].basicInfo.taskID,&to6015);
+					ret = deal6015(to6015,port);
+				}
+				break;
+				case events:/*事件采集方案*/
+				{
 
-			ret = use6013find6015(taskID,&to6015);
-			ret = deal6015(to6015);
+				}
+				break;
+				case tran:/*透明采集方案*/
+				{
+
+				}
+				break;
+				case rept:/*上报方案*/
+				{
+
+				}
+				break;
+				case scpt:/*脚本方案*/
+				{
+
+				}
+				break;
+			}
 			DataTimeGet(&result6035.endtime);
 			result6035.taskState = AFTER_OPR;
-
 		}
 		else
 		{
@@ -847,7 +814,7 @@ void read485_proccess()
 
 
 	INT8U i485port1 = 1;
-	//INT8U i485port2 = 2;
+	INT8U i485port2 = 2;
 	pthread_attr_init(&read485_attr_t);
 	pthread_attr_setstacksize(&read485_attr_t,2048*1024);
 	pthread_attr_setdetachstate(&read485_attr_t,PTHREAD_CREATE_DETACHED);
@@ -855,11 +822,11 @@ void read485_proccess()
 	{
 		sleep(1);
 	}
-#if 0
+
 	while ((thread_read4852_id=pthread_create(&thread_read4852, &read485_attr_t, (void*)read485_thread, &i485port2)) != 0)
 	{
 		sleep(1);
 	}
-#endif
+
 }
 
