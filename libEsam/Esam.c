@@ -17,22 +17,36 @@
 
 sem_t* sem_spi0_0;
 /*
- * TODO:传入该库中参数明文或密文的Data，首先判断长度
+ * 传入长度的判断，根据A-XDR编码规则
+ * 返回：lenSign= 1，单纯一个字节标示 长度，最高位bit为0，长度不超过128
+ * 			lenSign=2,第一个字节表示长度提示符，第二个字节表示长度，长度大于127
+ * 			lenSign=3,第一个字节表示长度提示符，第二个/三个字节表示长度，长度大于255
+ * 	datalen长度代表长度域之后的长度，剔除掉长度域，方便直接复制
  * 主站下发报文，解析成字段后，依次传入该库，不要把子串再组合传入，目的是将业务层剥离开，库外不需要知道ESAM如何组串。
  */
-INT16S Esam_GetDataLength(INT8U* Data)
+INT16U Esam_GetDataLength(INT8U* Data,INT8U* LenSign)
 {
 	 INT16U datalen=0;
-		if(Data[0]>7)//长度字节，如果小于8，肯定不正确（参照读取一个对象属性），后一个字节也是长度（8*256=2048）
+		if((Data[0] &0x80) != 0x80)//最高位代表长度域的属性
 		{
-			datalen=Data[0]+1;
+			datalen=Data[0];
+			*LenSign=1;
 		}
 		else
 		{
-			datalen=((Data[0]<<8)&0xff00)+(Data[1]&0x00ff);
-			if(datalen>BUFLEN) return -1;
-			datalen+=2;
+			if((Data[0] &0x7F) == 0x01)//长度域1个字节长度
+			{
+				datalen=Data[1];
+				*LenSign=2;
+			}
+			else if((Data[0] &0x7F) == 0x02)//长度域2个字节长度
+			{
+				datalen=(INT16U)Data[1]<<8+(INT16U)Data[2];
+				*LenSign=3;
+			}
+			else datalen=0;//长度域不会超过2个字节，超过的话此处做异常处理
 		}
+		if(datalen > BUFLEN) datalen=0;//超过上行最大长度，做异常处理
 		return datalen;
 }
 // LRC 对T-ESAM指令流校验 函数
@@ -379,7 +393,7 @@ INT32S Esam_CreateConnect(INT32S fd, SignatureSecurity* securityInfo ,SecurityDa
 /**********************************
  *5.3  安全传输数据处理（主站到终端）第四步中，将主站下发信息解密
  *SID或SID+MAC，发送：4字节安全标识+附加数据(AttachData)+Data(+MAC)
- *输入：Data前两个字节为数据长度（必须为2个字节！！不够补零）(附加数据其实就是信息长度)
+ *输入：Data是未经处理的传入报文信息，开头符合octet_string类型数据(附加数据其实就是信息长度)
  *返回：Rbuf(Data)已去掉帧头帧尾
  *函数返回：1、为正数是为终端信息数据长度		  2、负数：代表相应错误，见：Esam.h中，ESAM ERR ARRAY定义
  *************************************************************/
@@ -387,6 +401,7 @@ INT32S Esam_SIDTerminalCheck(INT32S fd, SID_MAC SidMac,INT8U* Data, INT8U* Rbuf)
 	if(sizeof(SidMac.sid.addition)<=SidMac.sid.addition[0])	return ERR_ESAM_TRANSPARA_ERR;
 	INT32S Result=0;
 	INT16U len=0;
+	INT8U lenSign=0;//返回开头长度域字节数
 	INT8U tmp[BUFFLENMAX_SPI];
 	 memset(tmp,0,BUFFLENMAX_SPI);
 	 INT8U GetInfo_ESAM[BUFFLENMAX_SPI];
@@ -396,11 +411,10 @@ INT32S Esam_SIDTerminalCheck(INT32S fd, SID_MAC SidMac,INT8U* Data, INT8U* Rbuf)
 	 len+=4;
 	 memcpy(&GetInfo_ESAM[len],&SidMac.sid.addition[1],SidMac.sid.addition[0]);//附加数据
 	 len+=SidMac.sid.addition[0];
-	 INT16S datalen = Esam_GetDataLength(Data);
-	 if(datalen>255)//Data长度判断
-		 memcpy(&GetInfo_ESAM[len],&Data[2],datalen);//密文应用数据单元
-	 else if(datalen<=255 &&datalen>5)
-		 memcpy(&GetInfo_ESAM[len],&Data[1],datalen);
+	 INT16U datalen = Esam_GetDataLength(Data,&lenSign);
+	 if(datalen==0) return ERR_ESAM_INTEREXE_ERR;
+	 if(lenSign>0 && lenSign<4)//Data长度判断
+		 memcpy(&GetInfo_ESAM[len],&Data[lenSign],datalen);//密文应用数据单元
 	 else
 		 return ERR_ESAM_INTEREXE_ERR;
 	 len+=datalen;
@@ -457,27 +471,28 @@ INT32S Esam_SIDResponseCheck(INT32S fd, INT8U P2type, INT8U* Data3, INT8U* Rbuf)
  *5.4.1安全传输数据处理  读取（抄读终端）应用场景：主站下发明文+RN，响应时需要MAC由此处获取
  *发送：800E4002+LC+Data1
  *返回：9000+0004+MAC
- *输入Data1(RN+PlainData)PlainData为响应的PADU(头2byte为长度)，RN为主站请求帧中附带的随机数(设定小与255)
+ *输入Data1(RN+PlainData)PlainData为响应的PADU，RN为主站请求帧中附带的随机数(设定小与255)
  *函数返回：1、为正数是为终端信息数据长度		  2、负数：代表相应错误，见：Esam.h中，ESAM ERR ARRAY定义
  *************************************************************/
 INT32S Esam_GetTerminalInfo(INT32S fd, INT8U *RN,INT8U* Data1,INT8U* Rbuf) {
-	 INT16U datalen=Esam_GetDataLength(Data1);
-	 if(datalen<=0 || RN[0]<=0) return ERR_ESAM_TRANSPARA_ERR;
 	INT32S Result=0;
 	INT16U len=0;
+	INT8U lenSign=0;//返回开头长度域字节数
 	INT8U tmp[BUFFLENMAX_SPI];
 	memset(tmp,0,BUFFLENMAX_SPI);
 	INT8U GetInfo_ESAM[BUFFLENMAX_SPI]={0x55,0x80,0x0E,0x40,0x02};
 	len+=5;
+	INT16U datalen = Esam_GetDataLength(Data1,&lenSign);
+	 if(datalen==0) return ERR_ESAM_INTEREXE_ERR;
 	 GetInfo_ESAM[5]=(INT8U)(((datalen+RN[0])>>8)&0x00ff);
 	 GetInfo_ESAM[6]=(INT8U)((datalen+RN[0])&0x00ff);
 	len+=2;
 	memcpy(&GetInfo_ESAM[7],&RN[1],RN[0]);
 	len+=RN[0];
-	if(datalen>255)
-		memcpy(&GetInfo_ESAM,&Data1[2],datalen);
-	else
-		memcpy(&GetInfo_ESAM,&Data1[1],datalen);
+	 if(lenSign>0 && lenSign<4)//Data长度判断
+		 memcpy(&GetInfo_ESAM[len],&Data1[lenSign],datalen);
+	 else
+		 return ERR_ESAM_INTEREXE_ERR;
 	len+=datalen;
 	GetInfo_ESAM[len] = LRC(&GetInfo_ESAM[1],len-1);
 
@@ -590,7 +605,8 @@ INT32S Esam_ReportEncrypt(INT32S fd, INT8U* Data1, INT8U* RN,INT8U* MAC) {
 INT32S Esam_DencryptReport(INT32S fd, INT8U* RN,INT8U* MAC,INT8U* Data3, INT8U* Rbuf) {
 	//Data3前2字节为长度
 	if(RN[0]==0x00 || MAC[0]==0x00) return ERR_ESAM_TRANSPARA_ERR;
-	 INT16U datalen=Esam_GetDataLength(Data3);
+	INT8U lenSign=0;//返回开头长度域字节数
+	 INT16U datalen=Esam_GetDataLength(Data3,&lenSign);
 	 if(datalen<=0) return ERR_ESAM_TRANSPARA_ERR;
 		INT32S Result=0;
 		INT16U len=0;
@@ -603,10 +619,10 @@ INT32S Esam_DencryptReport(INT32S fd, INT8U* RN,INT8U* MAC,INT8U* Data3, INT8U* 
 		 len+=RN[0];
 		 memset(&GetInfo_ESAM[len],0x00,4);//补4个字节0x00
 		 len+=4;
-		 if(datalen>255)
-			 memcpy(&GetInfo_ESAM[len],&Data3[2],datalen);//明文应用数据单元
+		 if(lenSign>0 && lenSign<4)//Data长度判断
+			 memcpy(&GetInfo_ESAM[len],&Data3[lenSign],datalen);
 		 else
-			 memcpy(&GetInfo_ESAM[len],&Data3[1],datalen);
+			 return ERR_ESAM_INTEREXE_ERR;
 		 len+=datalen;
 		 memcpy(&GetInfo_ESAM[len],&MAC[1],MAC[0]);//MAC数据拷贝
 		 len+=MAC[0];
