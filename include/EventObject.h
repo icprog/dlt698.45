@@ -52,8 +52,8 @@ typedef struct
 typedef struct
 {
 	OI_698 oi;           //逻辑名
-	INT8U crrentnum;    //当前记录数
-	INT8U maxnum;       //最大记录数
+	INT16U crrentnum;    //当前记录数
+	INT16U maxnum;       //最大记录数
 	BOOLEAN reportflag;  //上报标识 1 上报 0 不上报
 	BOOLEAN enableflag;  //有效标识 1 有效 0 无效
 	OAD    oadarr[CLASS7_OAD_NUM];   //关联对象属性表			//放结构体后面为扩展
