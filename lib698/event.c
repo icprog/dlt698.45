@@ -354,7 +354,7 @@ INT8U Get_StandardUnit(OI_698 oi,INT8U *Rbuf,INT8U *Index,
 /*
  * 每个事件记录数不超过设定得最大记录数，默认15个
  */
-INT8U Getcurrno(INT8U *currno,INT8U maxno){
+INT8U Getcurrno(INT16U *currno,INT16U maxno){
 	if(*currno>maxno)
 		*currno=1;
 	return 1;
