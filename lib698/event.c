@@ -72,13 +72,13 @@ INT8U Event_Init() {
 	readCoverClass(0x3202,0,&event_object.Event3202_obj,sizeof(event_object.Event3202_obj),event_para_save);
 	readCoverClass(0x3203,0,&event_object.Event3203_obj,sizeof(event_object.Event3203_obj),event_para_save);
 	//测量点信息
-	TSA_NUMS=getFileRecordNum(6000);
+	TSA_NUMS=getFileRecordNum(0x6000);
 	if(TSA_NUMS>MAX_POINT_NUM)
 		TSA_NUMS=MAX_POINT_NUM;
 	CLASS_6001	 meter={};
 	int i=0;
 	for(i=0;i<TSA_NUMS;i++) {
-		if(readParaClass(6000,&meter,i)==1) {
+		if(readParaClass(0x6000,&meter,i)==1) {
 			TSA_LIST[i]=meter.basicinfo.addr;
 		}
 	}
