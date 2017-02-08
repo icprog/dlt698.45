@@ -89,8 +89,7 @@ static char
 			"        [参数输入标准源显示值，可输入浮点数。]\n"			\
 			"-------------------------------------------------------\n\n"	\
 		;
-static char
-		*usage_acs ="";
+
 void prthelp()
 {
 	fprintf(stderr,"Usage: ./cj (维护功能)  ");
