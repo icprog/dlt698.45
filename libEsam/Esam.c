@@ -446,20 +446,19 @@ INT32S Esam_SIDTerminalCheck(INT32S fd, SID_MAC SidMac,INT8U* Data, INT8U* Rbuf)
  *输出：Esam返回DATA4需要根据P2type，查看芯片具体回复啥数据，再组上行报文
  *函数返回：1、为正数是为终端信息数据长度		  2、负数：代表相应错误，见：Esam.h中，ESAM ERR ARRAY定义
  *************************************************************/
-INT32S Esam_SIDResponseCheck(INT32S fd, INT8U P2type, INT8U* Data3, INT8U* Rbuf) {
-	 INT16U datalen=(0xff &Data3[1])|(0xff00 & (Data3[0]<<8));
-	if(datalen==0) return ERR_ESAM_TRANSPARA_ERR;
+INT32S Esam_SIDResponseCheck(INT32S fd, INT8U P2type, INT8U* Data3 ,INT16U Length,INT8U* Rbuf) {
+	if(Length<=0) return ERR_ESAM_TRANSPARA_ERR;
 	if(P2type!=0x11 || P2type!=0x96 || P2type!=0x97) return ERR_ESAM_TRANSPARA_ERR;
 	INT32S Result=0;
 	INT8U tmp[BUFFLENMAX_SPI];
 	memset(tmp,0,BUFFLENMAX_SPI);
 	 INT8U GetInfo_ESAM[BUFFLENMAX_SPI]={0x55,0x80,0x1C,0x00,P2type};//P2加入
-	 GetInfo_ESAM[5]=Data3[0];// 长度
-	 GetInfo_ESAM[6]=Data3[1];
-	 memcpy(&GetInfo_ESAM[7],&Data3[2],datalen);
-	 GetInfo_ESAM[7+datalen]=LRC(&GetInfo_ESAM[1],datalen+6);
+	 GetInfo_ESAM[5]=(INT8U)((Length>>8)&0x00ff);// 长度
+	 GetInfo_ESAM[6]=(INT8U)(Length&0x00ff);
+	 memcpy(&GetInfo_ESAM[7],&Data3[2],Length);
+	 GetInfo_ESAM[7+Length]=LRC(&GetInfo_ESAM[1],Length+6);
 
-	 Result = Esam_WriteThenRead(fd, (INT8U*)GetInfo_ESAM,datalen+8, tmp);
+	 Result = Esam_WriteThenRead(fd, (INT8U*)GetInfo_ESAM,Length+8, tmp);
 	 if(Result>0 && Result<BUFFLENMAX_SPI) //大于BUFFLENMAX_SPI错误，此处做比较
 	{
 		 memcpy(Rbuf,&tmp[4],Result-5);

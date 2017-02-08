@@ -438,9 +438,17 @@ INT16S doSecurityRequest(INT8U* apdu)//
 	 return retLen;
 }
 //组织SecurityResponse上行报文
-INT16S composeSecurityResponse()
+//length上行报文应用层数据长度，SecurityType下行报文等级（之前解析下行报文得出的值）
+//返回：SendApdu中存储新的加密数据（应用数据单元和数据验证信息）（假定包括明文/密文的开始第一个标示字节）
+INT16S composeSecurityResponse(INT8U* SendApdu,INT16U length,INT8U SecurityType)
 {
-
+	 INT16S retLen=0;
+	 INT32S fd=-1;
+	 fd = Esam_Init(fd,(INT8U*)DEV_SPI_PATH);
+	 if(fd<0) return -3;
+	 retLen = Esam_SIDResponseCheck(fd,SecurityType,SendApdu,length,SendApdu);
+	 Esam_Clear(fd);
+	 return retLen;
 }
 /**********************************************************************
  * 解析SECURITY-response 终端主动上报后，主站回复数据 apdu[0]=144;apdu[1]应用数据单元
