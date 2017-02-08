@@ -13,7 +13,7 @@
 #define LIB698_VER 	1
 
 extern int doObjectAction();
-extern int doActionReponse(int reponse,CSINFO *csinfo,PIID piid,OMD omd,int dar,INT8U *data,INT8U *buf);
+extern int doReponse(int server,int reponse,CSINFO *csinfo,PIID piid,OAD oad,int dar,INT8U *data,INT8U *buf);
 extern int getRequestNormal(OAD oad,INT8U *data);
 extern int setRequestNormal(INT8U *data,OAD oad,CSINFO *csinfo,INT8U *buf);
 extern int setRequestNormalList(INT8U *Object,CSINFO *csinfo,INT8U *buf);
@@ -325,6 +325,7 @@ int appConnectResponse(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 }
 int doSetAttribute(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 {
+	int  DAR=success;
 	PIID piid={};
 	INT8U setType = apdu[1];
 	OAD oad={};
@@ -338,7 +339,8 @@ int doSetAttribute(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 	switch(setType)
 	{
 		case SET_REQUEST_NORMAL:
-			setRequestNormal(data,oad,csinfo,buf);
+			DAR = setRequestNormal(data,oad,csinfo,buf);
+			doReponse(SET_RESPONSE,SET_REQUEST_NORMAL,csinfo,piid,oad,DAR,NULL,buf);
 			break;
 		case SET_REQUEST_NORMAL_LIST:
 			setRequestNormalList(&apdu[3],csinfo,buf);
@@ -383,23 +385,23 @@ int doGetAttribute(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 
 int doActionRequest(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 {
-	int  DAR=0;
+	int  DAR=success;
 	PIID piid={};
-	OMD omd={};
+	OAD  oad={};
 	INT8U *data=NULL;
 	INT8U request_choice = apdu[1];		//ACTION-Request
 	piid.data = apdu[2];				//PIID
-//	memcpy(&omd,&apdu[3],4);			//OMD
-	omd.OI= (apdu[3]<<8) | apdu[4];
-	omd.method_tag = apdu[5];
-	omd.oper_model = apdu[6];
+//	memcpy(&omd,&apdu[3],4);			//OAD
+	oad.OI= (apdu[3]<<8) | apdu[4];
+	oad.attflg = apdu[5];
+	oad.attrindex = apdu[6];
 	data = &apdu[7];					//Data
-	fprintf(stderr,"\n-------- request choice = %d omd OI = %04x  method=%d",request_choice,omd.OI,omd.method_tag);
+	fprintf(stderr,"\n-------- request choice = %d omd OI = %04x  method=%d",request_choice,oad.OI,oad.attrindex);
 	switch(request_choice)
 	{
 		case ACTIONREQUEST:
-			DAR = doObjectAction(omd,data);
-			doActionReponse(ActionResponseNormal,csinfo,piid,omd,DAR,NULL,buf);
+			DAR = doObjectAction(oad,data);
+			doReponse(ACTION_RESPONSE,ActionResponseNormal,csinfo,piid,oad,DAR,NULL,buf);
 			break;
 		case ACTIONREQUEST_LIST:
 			break;
@@ -414,40 +416,78 @@ int doActionRequest(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
  *输入：retData--esam验证后返回信息(需要在该函数外层开辟空间) MAC明文加MAC时，需要保存全局MAC
  *输出：retData长度
  **********************************************************************/
-INT16S doSecurityRequest(INT8U* apdu,INT8U* MAC,INT8U* retData)//TODO:retData需要在上层函数定义INT8U数组
+INT16S doSecurityRequest(INT8U* apdu)//
 {
 	if(apdu[0]!=0x10) return -1;//非安全传输，不处理
 	if(apdu[1] !=0x00 && apdu[1] != 0x01) return -2 ;   //明文应用数据单元
 	 INT16S retLen=0;
 	 INT32S fd=-1;
 	 INT8U SecurityType=0x00;//本次传输安全等级(属于库全局变量，暂放此处)
+	 INT8U MAC[20];//该mac值暂时用不到，暂存
 	 fd = Esam_Init(fd,(INT8U*)DEV_SPI_PATH);
 	 if(fd<0) return -3;
 
 	 if(apdu[1]==0x00)//明文应用数据处理
 	 {
-		 SecurityType=0x02;//明文+RN返回MAC
-		 retLen = secureDecryptDataDeal(fd,apdu,MAC);
-		 retData=&apdu[2];
+		 retLen = secureDecryptDataDeal(fd,apdu,&SecurityType,MAC);//传入安全等级
+		 apdu=&apdu[2];
 	 }
 	 else if(apdu[1]==0x01)//密文应用数据处理
 	 {
-		 retLen = secureEncryptDataDeal(fd,SecurityType,apdu,retData);
+		 retLen = secureEncryptDataDeal(fd,&SecurityType,apdu,apdu);
 	 }
 	 Esam_Clear(fd);
 	 return retLen;
 }
+//组织SecurityResponse上行报文
+//length上行报文应用层数据长度，SecurityType下行报文等级（之前解析下行报文得出的值）
+//返回：SendApdu中存储新的加密数据（应用数据单元和数据验证信息）（假定包括明文/密文的开始第一个标示字节）
+INT16S composeSecurityResponse(INT8U* SendApdu,INT16U length,INT8U SecurityType)
+{
+	 INT16S retLen=0;
+	 INT32S fd=-1;
+	 fd = Esam_Init(fd,(INT8U*)DEV_SPI_PATH);
+	 if(fd<0) return -3;
+	 retLen = Esam_SIDResponseCheck(fd,SecurityType,SendApdu,length,SendApdu);
+	 if(retLen<=0) return 0;
+	 Esam_Clear(fd);
+	 return retLen;
+}
+//组织主动上报报文安全加密（上送主站报文）
+//明文发送到ESAM芯片，返回12字节RN和4字节MAC共16字节
+//上报报文是明文+RN_MAC类型
+//传入的SendApdu后，在该buff后面添加RN_MAC
+//SendApdu第一个字节是0x00，代表明文应用数据单元，此处从第二个字节开始计算mac和rn
+INT16U composeAutoReport(INT8U* SendApdu,INT16U length)
+{
+	 INT16S retLen=0;
+	 INT32S fd=-1;
+	 INT8U RN[12];
+	 INT8U MAC[4];
+	 fd = Esam_Init(fd,(INT8U*)DEV_SPI_PATH);
+	 if(fd<0) return -3;
+	 retLen = Esam_ReportEncrypt(fd,&SendApdu[1],length-1,RN,MAC);
+	 if(retLen<=0) return 0;
+	 SendApdu[length]=0x02;//数据验证信息类型RN_MAC
+	 SendApdu[length+1]=0x0C;//随机数长度
+	 memcpy(&SendApdu[length+2],RN,12);//12个随机数，固定大小
+	 SendApdu[length+2+12]=0x04;//mac长度
+	 memcpy(&SendApdu[length+2+12+1],MAC,4);//MAC,固定大小
+	 if(retLen<=0) return 0;
+	 Esam_Clear(fd);
+	 return length+1+12+1+4;
+}
 /**********************************************************************
- * 解析SECURITY-response 终端主动上报后，主站回复数据 apdu[0]=144;apdu[1]应用数据单元
+ *  终端主动上报后,解析主站回复数据SECURITY-response， apdu[0]=144;apdu[1]应用数据单元
  * 主动上报当前资料应用环境和流程是  明文+RN_MAC ----返回  明文+MAC
  * 上行中终端明文进入esam生成RN和MAC，主站校验，返回明文和MAC，终端根据上行的RN和主站返回的MAC校验
  * 注意RN需要终端主动上报后本地保存(全局变量)
  **********************************************************************/
-INT16S parseSecurityResponse(INT8U* RN,INT8U* apdu,INT8U* retData)//TODO:retData需要在上层函数定义INT8U数组
+INT16S parseSecurityResponse(INT8U* RN,INT8U* apdu)//apdu负责传入和传出数据，一人全包
 {
 	if(apdu[1]==0x00 || apdu[1]==0x01)//暂时将密文一起加入处理
 	{
-	     INT32S retLen = secureResponseData(RN,apdu,retData);
+	     INT32S retLen = secureResponseData(RN,apdu);
 	     return retLen;
 	}
 	else if(apdu[1]==0x02)

@@ -240,7 +240,6 @@ int NETWorker(struct aeEventLoop* ep, long long id, void* clientData) {
     }
 
     return 200;
-
     /*
      * 检查红外与维护串口通信状况。
      */

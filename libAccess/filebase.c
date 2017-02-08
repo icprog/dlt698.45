@@ -90,7 +90,7 @@ INT8U	writeInterClass(char *file_name,void *dest,int size)
 int WriteClass11(OI_698 oi,INT16U seqnum,INT8U method)
 {
 	void 	*unitdata=NULL;
-	COLL_CLASS_11	class11={};
+	CLASS11		class11={};
 	CLASS_INFO	tmpinfo={};
 	int		ret=0;
 	INT16U 	*sernum=NULL;
@@ -136,7 +136,7 @@ int WriteClass11(OI_698 oi,INT16U seqnum,INT8U method)
 			break;
 		}
 	}
-	writeInterClass((char *)tmpinfo.file_name,&class11,sizeof(COLL_CLASS_11));
+	writeInterClass((char *)tmpinfo.file_name,&class11,sizeof(CLASS11));
 	free(unitdata);
 	return 1;
 }

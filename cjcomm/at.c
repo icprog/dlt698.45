@@ -17,6 +17,33 @@
 #include "dlt698def.h"
 #include "cjcomm.h"
 #include "rlog.h"
+
+int checkgprs_exist()
+{
+	INT8S  	gprsid = 0;
+	INT8S 	gprs_s0,gprs_s1,gprs_s2;
+
+//	gprsid = getSpiAnalogState() & 0x1f;
+	if((gprsid & 0x1f) == 0x1e) {
+		asyslog(stderr,"有GPRS模块  %02x",gprsid);
+		return 1;
+	}else  if(gprsid = -1) {			//II型
+		gprs_s0 = gpio_readbyte((INT8S*)"DEV_GPRS_S0");
+		gprs_s1 = gpio_readbyte((INT8S*)"DEV_GPRS_S1");
+		gprs_s2 = gpio_readbyte((INT8S*)"DEV_GPRS_S2");
+		if(gprs_s0==1 && gprs_s1==1 && gprs_s2==1)
+		{
+			asyslog(stderr,"无GPRS模块  %d, %d, %d",gprs_s0,gprs_s1,gprs_s2);
+			return 0;
+		}else
+		{
+			asyslog(stderr,"有GPRS模块  %d, %d, %d",gprs_s0,gprs_s1,gprs_s2);
+			return 1;
+		}
+	}
+	return 0;
+}
+
 int gpofun(char* devname, int data) {
     int fd = -1;
     if ((fd = open(devname, O_RDWR | O_NDELAY)) >= 0) {

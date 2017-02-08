@@ -1,5 +1,5 @@
 /*
- * event.c
+ * cjevent.c
  *
  *  Created on: Jan 12, 2017
  *      Author: ava
@@ -12,6 +12,8 @@
 #include "EventObject.h"
 #include "AccessFun.h"
 #include "ParaDef.h"
+#include "cjevent.h"
+#include "event.h"
 //property
 
 
@@ -107,6 +109,67 @@ void event_process(int argc, char *argv[])
 //					fprintf(stderr,"class7size=%d\n",sizeof(Class7_Object));
 					saveCoverClass(class7.oi,0,&class7,sizeof(Class7_Object),event_para_save);
 					break;
+				}
+			}
+		}
+		if(strcmp("record",argv[2])==0) {
+			sscanf(argv[4],"%d",&tmp[1]);
+			INT8U record_n = tmp[1];      //事件记录参数0/n
+			INT8U *Getbuf=NULL;//因为记录为变长，只能采用二级指针，动态分配
+			INT8U Getlen=0;//记录长度
+			if(record_n!=0){
+				Get_Event(oi,record_n,(INT8U**)&Getbuf,&Getlen);
+				if(Getbuf!=NULL){
+                    INT8U index=0;
+                    index++;//0:结构体
+                    index++;//1:结构体元素个数
+                    index++;//3:事件序号unsigned-long
+                    INT32U event_order=(Getbuf[index++]<<32)+(Getbuf[index++]<<16)+(Getbuf[index++]<<8)+Getbuf[index++];
+                    fprintf(stderr,"事件%04x：\n",oi);
+                    fprintf(stderr,"事件序号：%d\n",oi,event_order);
+                    index++;//0x1c date-s 发生时间
+                    fprintf(stderr,"发生时间：%d-%d-%d %d:%d:%d",(Getbuf[index++]<<8)+Getbuf[index++],
+                    		Getbuf[index++],Getbuf[index++],Getbuf[index++],Getbuf[index++],Getbuf[index++]);
+                    index++;//0x1c date-s 结束时间
+                    if(oi==0x311C){
+                    	fprintf(stderr,"该事件无结束时间!");
+                    }else{
+                    	fprintf(stderr,"结束时间：%d-%d-%d %d:%d:%d",(Getbuf[index++]<<8)+Getbuf[index++],
+                    	                            Getbuf[index++],Getbuf[index++],Getbuf[index++],Getbuf[index++],Getbuf[index++]);
+                    }
+                    INT8U Len=0;
+                    fprintf(stderr,"事件源类型：");
+                    switch(Getbuf[index++]){
+						case s_null:
+							fprintf(stderr,"NULL ");
+							Len=0;
+							break;
+						case s_tsa:
+							fprintf(stderr,"TSA ");
+							Len=(Getbuf[index+1]+1);
+							break;
+						case s_oad:
+							fprintf(stderr,"OAD ");
+							Len=4;
+							break;
+						case s_usigned:
+							fprintf(stderr,"USIGNED ");
+							Len=1;
+							break;
+						case s_enum:
+							fprintf(stderr,"ENUM ");
+							Len=1;
+							break;
+						case s_oi:
+							fprintf(stderr,"OI ");
+							Len=2;
+							break;
+                    }
+                    INT8U i=0;
+                    for(i=0;i<Len;i++)
+                    	fprintf(stderr,"%02x",Getbuf[index++]);
+                    fprintf(stderr,"\n");
+
 				}
 			}
 		}

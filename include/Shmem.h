@@ -258,7 +258,7 @@ typedef struct {
 	ACEnergy_Sum	ACSEnergy;			//计量芯片电能量数据
 	ProjectInfo		Projects[PROJECTCOUNT];		//子程序信息
 	RealdataReq		RealDatareq;				//实时数据请求缓存
-
+//	INT8U 			changed[MAXNUM_PARA]; //0：无效，1-255设置参数后循环累加
 }ProgramInfo; //程序信息结构
 
 #endif /* GTYPE_H_ */
