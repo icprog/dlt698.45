@@ -321,13 +321,13 @@ INT8U Get_StandardUnit(OI_698 oi,INT8U *Rbuf,INT8U *Index,
 	Rbuf[(*Index)++] = 0x1C;
 	//memcpy(&Rbuf[*Index], &ntime, sizeof(ntime));
 	//(*Index)+=sizeof(ntime);
-	Rbuf[(*Index)++] = (ntime.year>>8)&0x00ff;
-	Rbuf[(*Index)++] = (ntime.year)&0x00ff;
-	Rbuf[(*Index)++] = ntime.month;
-	Rbuf[(*Index)++] = ntime.day;
-	Rbuf[(*Index)++] = ntime.hour;
-	Rbuf[(*Index)++] = ntime.min;
-	Rbuf[(*Index)++] = ntime.sec;
+	Rbuf[(*Index)++] = (ntime.year.data>>8)&0x00ff;
+	Rbuf[(*Index)++] = (ntime.year.data)&0x00ff;
+	Rbuf[(*Index)++] = ntime.month.data;
+	Rbuf[(*Index)++] = ntime.day.data;
+	Rbuf[(*Index)++] = ntime.hour.data;
+	Rbuf[(*Index)++] = ntime.min.data;
+	Rbuf[(*Index)++] = ntime.sec.data;
 	//事件结束时间
 	Rbuf[(*Index)++] = 0x1C;
 	if(oi==0x311C){
@@ -335,13 +335,13 @@ INT8U Get_StandardUnit(OI_698 oi,INT8U *Rbuf,INT8U *Index,
 		(*Index)+=sizeof(ntime);
 	}
 	else{
-		Rbuf[(*Index)++] = (ntime.year>>8)&0x00ff;
-		Rbuf[(*Index)++] = (ntime.year)&0x00ff;
-		Rbuf[(*Index)++] = ntime.month;
-		Rbuf[(*Index)++] = ntime.day;
-		Rbuf[(*Index)++] = ntime.hour;
-		Rbuf[(*Index)++] = ntime.min;
-		Rbuf[(*Index)++] = ntime.sec;
+		Rbuf[(*Index)++] = (ntime.year.data>>8)&0x00ff;
+		Rbuf[(*Index)++] = (ntime.year.data)&0x00ff;
+		Rbuf[(*Index)++] = ntime.month.data;
+		Rbuf[(*Index)++] = ntime.day.data;
+		Rbuf[(*Index)++] = ntime.hour.data;
+		Rbuf[(*Index)++] = ntime.min.data;
+		Rbuf[(*Index)++] = ntime.sec.data;
 	}
 	//事件发生源
 	INT8U datatype=0,sourcelen=0;
