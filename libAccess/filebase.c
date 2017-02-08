@@ -254,6 +254,7 @@ long getFileLen(char *filename)
 {
 	long 		filesize=0;
 
+	fprintf(stderr,"filename=%s\n",filename);
     FILE* fp = fopen(filename, "rb" );
     if(fp==NULL){
 //        fprintf(stderr,"ERROR: Open file %s failed.\n", filename);

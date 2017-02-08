@@ -207,9 +207,11 @@ INT8U Get_Event(OI_698 oi,INT8U eventno,INT8U** Getbuf,INT8U *Getlen)
 {
 	int filesize=0;
 	filesize = getClassFileLen(oi,eventno,event_record_save);
+	fprintf(stderr,"filesize=%d\n",filesize);
 	if(filesize<=0)  return 0;
 	*Getlen=filesize;
 	*Getbuf=(INT8U*)malloc(filesize);
+	fprintf(stderr,"oi=%x,Getlen=%d\n",oi,*Getlen);
 	readCoverClass(oi,eventno,*Getbuf,*Getlen,event_record_save);
 	return 1;
 }
@@ -450,14 +452,13 @@ INT8U Event_3101(INT8U* data,INT8U len) {
  * 状态量变位事件 可直接调用 data为前后得ST CD，（1-4路）8个字节即可
  */
 INT8U Event_3104(INT8U* data,INT8U len) {
-	fprintf(stderr,"event_object.Event3104_obj.enableflag=%d\n",event_object.Event3104_obj.enableflag);
     if (event_object.Event3104_obj.enableflag == 0) {
         return 0;
     }
     //事件判定
     if(1){
     	INT8U Save_buf[256];
-		bzero(Save_buf, sizeof(Save_buf));
+    	bzero(Save_buf, sizeof(Save_buf));
 		event_object.Event3104_obj.crrentnum++;
 		Getcurrno(&event_object.Event3104_obj.crrentnum,event_object.Event3104_obj.maxnum);
 		INT32U crrentnum = event_object.Event3104_obj.crrentnum;

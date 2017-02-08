@@ -77,6 +77,7 @@ void event_process(int argc, char *argv[])
 					printClass310d();
 					break;
 				case 0x3100:
+				case 0x3104:
 					memset(&class7,0,sizeof(Class7_Object));
 					readCoverClass(oi,0,&class7,sizeof(Class7_Object),event_para_save);
 					printClass7(class7);
@@ -117,8 +118,12 @@ void event_process(int argc, char *argv[])
 			INT8U record_n = tmp[1];      //事件记录参数0/n
 			INT8U *Getbuf=NULL;//因为记录为变长，只能采用二级指针，动态分配
 			INT8U Getlen=0;//记录长度
+			fprintf(stderr,"record_n=%d\n",record_n);
 			if(record_n!=0){
 				Get_Event(oi,record_n,(INT8U**)&Getbuf,&Getlen);
+				for(i=0;i<Getlen;i++) {
+					fprintf(stderr,"%02x ",Getbuf[i]);
+				}
 				if(Getbuf!=NULL){
                     INT8U index=0;
                     index++;//0:结构体
@@ -126,7 +131,7 @@ void event_process(int argc, char *argv[])
                     index++;//3:事件序号unsigned-long
                     INT32U event_order=(Getbuf[index++]<<32)+(Getbuf[index++]<<16)+(Getbuf[index++]<<8)+Getbuf[index++];
                     fprintf(stderr,"事件%04x：\n",oi);
-                    fprintf(stderr,"事件序号：%d\n",oi,event_order);
+                    fprintf(stderr,"事件序号：%d\n",event_order);
                     index++;//0x1c date-s 发生时间
                     fprintf(stderr,"发生时间：%d-%d-%d %d:%d:%d",(Getbuf[index++]<<8)+Getbuf[index++],
                     		Getbuf[index++],Getbuf[index++],Getbuf[index++],Getbuf[index++],Getbuf[index++]);
