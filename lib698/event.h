@@ -1,6 +1,7 @@
 #ifndef EVENT_H_
 #define EVENT_H_
 
+#include <time.h>
 #include "StdDataType.h"
 #include "EventObject.h"
 
