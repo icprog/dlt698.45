@@ -210,6 +210,12 @@ INT8U Get_Event(OI_698 oi,INT8U eventno,INT8U** Getbuf,INT8U *Getlen)
 	if(filesize<=0)  return 0;
 	*Getlen=filesize;
 	*Getbuf=(INT8U*)malloc(filesize);
+	if(eventno == 0){
+		switch(oi){
+		//case 0x3100:
+
+		}
+	}
 	readCoverClass(oi,eventno,*Getbuf,*Getlen,event_record_save);
 	return 1;
 }
@@ -309,10 +315,10 @@ INT8U Get_StandardUnit(OI_698 oi,INT8U *Rbuf,INT8U *Index,
 	Rbuf[(*Index)++] = 0x06;
 	//memcpy(&Rbuf[*Index], &Eventno, sizeof(INT32U));
 	INT32U En=(INT32U)Eventno;
-	Rbuf[(*Index)++] = (Eventno>>32)&0x000000ff;
-	Rbuf[(*Index)++] = (Eventno>>16)&0x000000ff;
-	Rbuf[(*Index)++] = (Eventno>>8)&0x000000ff;
-	Rbuf[(*Index)++] = Eventno&0x000000ff;
+	Rbuf[(*Index)++] = ((En>>24)&0x000000ff);
+	Rbuf[(*Index)++] = ((En>>16)&0x000000ff);
+	Rbuf[(*Index)++] = ((En>>8)&0x000000ff);
+	Rbuf[(*Index)++] = En&0x000000ff;
 	//(*Index)+=sizeof(INT32U);
 	DateTimeBCD ntime;
 	DataTimeGet(&ntime);
@@ -321,8 +327,8 @@ INT8U Get_StandardUnit(OI_698 oi,INT8U *Rbuf,INT8U *Index,
 	Rbuf[(*Index)++] = 0x1C;
 	//memcpy(&Rbuf[*Index], &ntime, sizeof(ntime));
 	//(*Index)+=sizeof(ntime);
-	Rbuf[(*Index)++] = (ntime.year.data>>8)&0x00ff;
-	Rbuf[(*Index)++] = (ntime.year.data)&0x00ff;
+	Rbuf[(*Index)++] = ((ntime.year.data>>8)&0x00ff);
+	Rbuf[(*Index)++] = ((ntime.year.data)&0x00ff);
 	Rbuf[(*Index)++] = ntime.month.data;
 	Rbuf[(*Index)++] = ntime.day.data;
 	Rbuf[(*Index)++] = ntime.hour.data;
@@ -335,8 +341,8 @@ INT8U Get_StandardUnit(OI_698 oi,INT8U *Rbuf,INT8U *Index,
 		(*Index)+=sizeof(ntime);
 	}
 	else{
-		Rbuf[(*Index)++] = (ntime.year.data>>8)&0x00ff;
-		Rbuf[(*Index)++] = (ntime.year.data)&0x00ff;
+		Rbuf[(*Index)++] = ((ntime.year.data>>8)&0x00ff);
+		Rbuf[(*Index)++] = ((ntime.year.data)&0x00ff);
 		Rbuf[(*Index)++] = ntime.month.data;
 		Rbuf[(*Index)++] = ntime.day.data;
 		Rbuf[(*Index)++] = ntime.hour.data;
