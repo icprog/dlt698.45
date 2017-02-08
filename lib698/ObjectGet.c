@@ -14,9 +14,31 @@
 void GetMeterInfo(INT16U attr_act,INT8U *data)
 {
 }
+
+void GetEventInfo(OAD oad,INT8U *data)
+{
+	switch(oad.attflg) {
+	case 1:	//逻辑名
+	case 3:	//关联属性表
+	case 4:	//当前记录数
+	case 5:	//最大记录数
+	case 8: //上报标识
+	case 9: //有效标识
+
+		break;
+	case 6:	//配置参数
+		switch(oad.OI) {
+			case 0x310d:
+
+				break;
+		}
+		break;
+	}
+}
+
 int getRequestRecord(INT8U *typestu,CSINFO *csinfo,INT8U *buf)
 {
-	RSD rsd;
+	RSD rsd={};
 	OAD oad={};
 	INT8U rsdtype=0;
 	//1,OAD
@@ -50,6 +72,13 @@ int getRequestNormal(OAD oad,INT8U *data)
 	INT16U oi = oad.OI;
 	INT8U attr = oad.attflg;
 	fprintf(stderr,"\n----------  oi =%04x",oi);
+
+	INT8U oihead = (oad.OI&0xF000) >>12;
+	switch(oihead) {
+	case 3:			//事件类对象读取
+		GetEventInfo(oad,data);
+		break;
+	}
 	switch(oi)
 	{
 		case 0x6000:	//采集档案配置表

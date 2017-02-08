@@ -14,6 +14,7 @@
 #include <termios.h>
 #include <unistd.h>
 #include <semaphore.h>
+#include <pthread.h>
 #include <fcntl.h>
 #include <syslog.h>
 #include <sys/time.h>
@@ -32,6 +33,9 @@
 #include "acs.h"
 #include "ware.h"
 
+pthread_attr_t acs_attr_t={};
+int 		thread_acs_id=0;
+pthread_t thread_acs=0;
 
 ACCoe_SAVE  attCoef={};
 ACEnergy_Sum	energysum={};		//电能寄存器值累计后的示值（四舍五入后数据）
@@ -40,7 +44,7 @@ INT32S 			spifp=0; 		// ATT7022打开spi句柄
 
 static 	INT32U 	K_vrms = 8193;       // RN8209校表系数 748600
 static 	INT32S 	device_id=-1;
-static  CLASS_4016	class4016;		//当前套日时段表
+static  CLASS_4016	class4016={};		//当前套日时段表
 
 extern sem_t * 		sem_check_fd;	//校表信号量
 extern ProgramInfo* JProgramInfo;
@@ -1420,20 +1424,37 @@ void InitACSPara()
 /*
  * 交采计量芯片的处理过程
  * */
-void DealACS()
+void *thread_deal_acs()
 {
-	switch(device_id) {
-	case RN8209_VER_ID:
-		DealRN8209();
-		break;
-	case 1:
-	case ATT_VER_ID:
-		DealATT7022();		//处理ATT7022E数据
-		ACSEnergySave(energysum);	//电量的存储	//TODO :底板掉电情况下，保证不控制gprs的poweron/off管脚
-		break;
+	while(1) {
+		switch(device_id) {
+		case RN8209_VER_ID:
+			DealRN8209();
+			break;
+		case 1:
+		case ATT_VER_ID:
+			DealATT7022();		//处理ATT7022E数据
+			ACSEnergySave(energysum);	//电量的存储	//TODO :底板掉电情况下，保证不控制gprs的poweron/off管脚
+			break;
+		}
+		//拷贝实时数据和电能量数据到pubdata共享内存结构体中。为了液晶的轮显数据
+		memcpy(&JProgramInfo->ACSRealData,&realdata,sizeof(_RealData));
+		memcpy(&JProgramInfo->ACSEnergy,&energysum,sizeof(ACEnergy_Sum));
+		usleep(300000);				//300ms
 	}
-	//拷贝实时数据和电能量数据到pubdata共享内存结构体中。为了液晶的轮显数据
-	memcpy(&JProgramInfo->ACSRealData,&realdata,sizeof(_RealData));
-	memcpy(&JProgramInfo->ACSEnergy,&energysum,sizeof(ACEnergy_Sum));
 }
 
+/*
+ * 交采功能线程
+ * */
+void acs_process()
+{
+
+	pthread_attr_init(&acs_attr_t);
+	pthread_attr_setstacksize(&acs_attr_t,2048*1024);
+	pthread_attr_setdetachstate(&acs_attr_t,PTHREAD_CREATE_DETACHED);
+	while ((thread_acs_id=pthread_create(&thread_acs, &acs_attr_t, (void*)thread_deal_acs, NULL)) != 0)
+	{
+		sleep(1);
+	}
+}

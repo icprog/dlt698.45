@@ -219,7 +219,7 @@ INT8U EventSetAttrib(OAD oad,INT8U *data)
 		}
 		break;
 	}
-	return success;
+	return DAR;
 }
 
 void EnvironmentValue(OAD oad,INT8U *data)

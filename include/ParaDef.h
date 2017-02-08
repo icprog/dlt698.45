@@ -44,6 +44,8 @@
 
 #define CLASS7_OAD_NUM			10			//关联对象属性表
 #define MAX_PERIOD_RATE   		48      	//支持的最到终端费率时段数
+
+#define	STATE_MAXNUM			8			//开关量单元最大个数
 ////////////////////////////////////////////////////////////////
 
 /*
@@ -77,6 +79,16 @@
 #define DEV_BAT_SWITCH "/dev/gpoBAT_SWITCH"		//=1，电池工作
 #define DEV_MAINPOWER  "/dev/gpiV5FROUNT_TST"  //底板电源：1上电0失电
 #define DEV_ADC_SWITCH "/dev/gpioADC_SWITCH"   //=0（终端工作放电模式）=1（终端工作充电模式）
+
+//I型集中器并转串模拟输出: GPRS_ID状态 与 1路门节点
+#define DEV_SPI_CS		"/dev/gpoSPI_CS"		//并转串(74HC165)芯片选择
+#define	DEV_SPI_CLK		"/dev/gpoSPI_CLK"		//并转串(74HC165)时钟输出
+#define	DEV_SPI_MISO	"/dev/gpiSPI_MISO"		//并转串(74HC165)数据输入
+
+//II型集中器GPRS状态
+#define DEV_GPRS_S0		"/dev/gpiGPRS_S0"		//GPRS状态
+#define DEV_GPRS_S1		"/dev/gpiGPRS_S1"		//GPRS状态
+#define DEV_GPRS_S2		"/dev/gpiGPRS_S2"		//GPRS状态
 
 #define DEV_ADC        "/dev/adc0"
 /////////////////////////////////////////////////////////////////

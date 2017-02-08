@@ -127,7 +127,7 @@ char *getenum(int type,int val)
 void Collect6000(OI_698	oi)
 {
 	CLASS_6001	 meter={};
-	COLL_CLASS_11	coll={};
+	CLASS11		coll={};
 	int			i=0,blknum=0;
 //	INT16U		oi = 0x6000;
 
