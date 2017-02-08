@@ -48,15 +48,21 @@ typedef struct
 //    Timesnums_Object tims_nums;
 //}Crrent_Object;
 
+typedef struct
+{
+	INT8U	num;
+	OAD     oadarr[CLASS7_OAD_NUM];
+}Class7_OAD;
+
 //class_7 事件类通用结构体
 typedef struct
 {
-	OI_698 oi;           //逻辑名
-	INT16U crrentnum;    //当前记录数
-	INT16U maxnum;       //最大记录数
-	BOOLEAN reportflag;  //上报标识 1 上报 0 不上报
-	BOOLEAN enableflag;  //有效标识 1 有效 0 无效
-	OAD    oadarr[CLASS7_OAD_NUM];   //关联对象属性表			//放结构体后面为扩展
+	OI_698 oi;           	//逻辑名
+	INT16U crrentnum;    	//当前记录数
+	INT16U maxnum;       	//最大记录数
+	BOOLEAN reportflag;  	//上报标识 1 上报 0 不上报
+	BOOLEAN enableflag;  	//有效标识 1 有效 0 无效
+	Class7_OAD	class7_oad;  //关联对象属性表			//放结构体后面为扩展
 	//Crrent_Object crrent_arr[5]; //当前值记录表
 }Class7_Object;
 

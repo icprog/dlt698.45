@@ -288,8 +288,8 @@ int readCoverClass(OI_698 oi,INT16U seqno,void *blockdata,int datalen,int type)
 		if(datalen<=2)	return -1;
 
 		if(datalen%4==0)	readlen = datalen-2;
-		else readlen = datalen-(4-datalen%4)+2;
-//		fprintf(stderr,"readlen=%d\n",readlen);
+		else readlen = datalen+(4-datalen%4)-2;
+		fprintf(stderr,"readlen=%d\n",readlen);
 		ret = block_file_sync(fname,blockdata,readlen,0,0);	//返回数据去掉CRC校验的两个字节
 	break;
 	case event_record_save:

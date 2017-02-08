@@ -15,89 +15,76 @@
 #include "EventObject.h"
 
 extern void get_BasicUnit(INT8U *source,INT16U *sourceindex,INT8U *dest,INT16U *destindex);
-void prtstat(int flg)
+INT8U prtstat(int flg)
 {
-	if (flg == 1)
+	if (flg == 1) {
 		fprintf(stderr,"\n保存成功");
-	else
+		return success;
+	}else {
 		fprintf(stderr,"\n保存失败");
+		return refuse_rw;
+	}
 }
 
-INT16U set310d(OI_698 oi,INT8U attflg,INT8U *data,INT8U *DAR)
+INT16U set310d(OAD oad,INT8U *data,INT8U *DAR)
 {
-	Event310D_Object tmp310d;
+	Event310D_Object tmp310d={};
 	INT16U  source_index=0,dest_index=0;
 	int 	saveflg=0;
 
-	saveflg = readCoverClass(oi,0,&tmp310d,sizeof(Event310D_Object),event_para_save);
+	saveflg = readCoverClass(oad.OI,0,&tmp310d,sizeof(Event310D_Object),event_para_save);
 	fprintf(stderr,"\n[310d]电能表飞走事件 阈值=%d 任务号=%d\n",tmp310d.poweroffset_obj.power_offset,tmp310d.poweroffset_obj.task_no);
-
-	switch(attflg) {
-	case 6:
-		get_BasicUnit(data,&source_index,(INT8U *)&tmp310d.poweroffset_obj,&dest_index);
-		fprintf(stderr,"\n：属性6 阈值=%d 任务号=%d",tmp310d.poweroffset_obj.power_offset,tmp310d.poweroffset_obj.task_no);
-		saveflg = saveCoverClass(oi,0,&tmp310d,sizeof(Event310D_Object),event_para_save);
-		break;
-	}
+	get_BasicUnit(data,&source_index,(INT8U *)&tmp310d.poweroffset_obj,&dest_index);
+	fprintf(stderr,"\n：属性6 阈值=%d 任务号=%d",tmp310d.poweroffset_obj.power_offset,tmp310d.poweroffset_obj.task_no);
+	saveflg = saveCoverClass(oad.OI,0,&tmp310d,sizeof(Event310D_Object),event_para_save);
+	*DAR = prtstat(saveflg);
 	return source_index;
 }
 
-INT16U set310c(INT8U attflg,INT8U index,INT8U *data)
+INT16U set310c(OAD oad,INT8U *data,INT8U *DAR)
 {
 	INT16U source_index=0,dest_index=0;
-	Event310C_Object tmp310c;
-	INT32U value;
+	Event310C_Object tmp310c={};
 	int saveflg=0;
-	if ( attflg == 6 )
-	{
-		readCoverClass(0x310c,0,&tmp310c,sizeof(tmp310c),event_para_save);
-		fprintf(stderr,"\ntmp310c 阈值=%x",tmp310c.poweroffset_obj.power_offset);
-		get_BasicUnit(data,&source_index,(INT8U *)&value,&dest_index);
-		tmp310c.poweroffset_obj.power_offset = value;
-		fprintf(stderr,"\n电能量超差事件：属性6 阈值=%x",value);
-		saveflg = saveCoverClass(0x310c,0,&tmp310c,sizeof(tmp310c),event_para_save);
-		prtstat(saveflg);
-	}
+
+	readCoverClass(oad.OI,0,&tmp310c,sizeof(tmp310c),event_para_save);
+	fprintf(stderr,"\n[310c]阈值=%x",tmp310c.poweroffset_obj.power_offset);
+	get_BasicUnit(data,&source_index,(INT8U *)&tmp310c.poweroffset_obj.power_offset,&dest_index);
+	fprintf(stderr,"\n电能量超差事件：属性6 阈值=%x",tmp310c.poweroffset_obj.power_offset);
+	saveflg = saveCoverClass(oad.OI,0,&tmp310c,sizeof(tmp310c),event_para_save);
+	*DAR = prtstat(saveflg);
 	return source_index;
 }
 
-INT16U set310e(INT8U attflg,INT8U index,INT8U *data)
+INT16U set310e(OAD oad,INT8U *data,INT8U *DAR)
 {
 	INT16U source_index=0,dest_index=0;
-	Event310E_Object tmp310e;
-	TI value;
+	Event310E_Object tmp310e={};
 	int saveflg=0;
-	if ( attflg == 6 )
-	{
-		readCoverClass(0x310e,0,&tmp310e,sizeof(tmp310e),event_para_save);
-		fprintf(stderr,"\ntmp310e 阈值=%d 单位=%d",tmp310e.powerstoppara_obj.power_offset.interval,tmp310e.powerstoppara_obj.power_offset.units);
-		get_BasicUnit(data,&source_index,(INT8U *)&value,&dest_index);
-		tmp310e.powerstoppara_obj.power_offset = value;
-		fprintf(stderr,"\n电能表停走事件：属性6 阈值=%d 单位=%d",value.interval,value.units);
-		saveflg = saveCoverClass(0x310e,0,&tmp310e,sizeof(tmp310e),event_para_save);
-		prtstat(saveflg);
-	}
+
+	readCoverClass(oad.OI,0,&tmp310e,sizeof(tmp310e),event_para_save);
+	fprintf(stderr,"\ntmp310e 阈值=%d 单位=%d",tmp310e.powerstoppara_obj.power_offset.interval,tmp310e.powerstoppara_obj.power_offset.units);
+	get_BasicUnit(data,&source_index,(INT8U *)&tmp310e.powerstoppara_obj.power_offset,&dest_index);
+	fprintf(stderr,"\n电能表停走事件：属性6 阈值=%d 单位=%d",tmp310e.powerstoppara_obj.power_offset.interval,tmp310e.powerstoppara_obj.power_offset.units);
+	saveflg = saveCoverClass(oad.OI,0,&tmp310e,sizeof(tmp310e),event_para_save);
+	*DAR = prtstat(saveflg);
 	return source_index;
 }
 
-INT16U set310f(INT8U attflg,INT8U index,INT8U *data)
+INT16U set310f(OAD oad,INT8U *data,INT8U *DAR)
 {
 	INT16U source_index=0,dest_index=0;
-	Event310F_Object tmp310f;
-	INT8U value;
+	Event310F_Object tmp310f={};
 	int saveflg = 0;
-	if ( attflg == 6 )
-	{
-		readCoverClass(0x310f,0,&tmp310f,sizeof(tmp310f),event_para_save);
-		get_BasicUnit(data,&source_index,(INT8U *)&value,&dest_index);
-		tmp310f.collectfail_obj.retry_nums = value;
-		fprintf(stderr,"\n终端抄表失败事件：属性6 重试轮次=%d ",value);
-		saveflg = saveCoverClass(0x310f,0,&tmp310f,sizeof(tmp310f),event_para_save);
-		prtstat(saveflg);
-	}
 
+	readCoverClass(oad.OI,0,&tmp310f,sizeof(tmp310f),event_para_save);
+	get_BasicUnit(data,&source_index,(INT8U *)&tmp310f.collectfail_obj.retry_nums,&dest_index);
+	fprintf(stderr,"\n终端抄表失败事件：属性6 重试轮次=%d ",tmp310f.collectfail_obj.retry_nums);
+	saveflg = saveCoverClass(oad.OI,0,&tmp310f,sizeof(tmp310f),event_para_save);
+	*DAR = prtstat(saveflg);
 	return source_index;
 }
+
 INT16U set4000(INT8U attflg,INT8U index,INT8U *data)
 {
 	INT16U source_index=0,dest_index=0;
@@ -132,7 +119,7 @@ INT16S getEventClassLen(OI_698 oi)
 INT16U setClass7attr(OAD oad,INT8U *data,INT8U *DAR)
 {
 	INT8U*	eventbuff=NULL;
-	int 	saveflg=0;
+	int 	saveflg=0,i=0;
 	INT16S	classlen=0;
 	INT16U 	source_index=0,dest_index=0;
 	Class7_Object	class7={};
@@ -152,6 +139,7 @@ INT16U setClass7attr(OAD oad,INT8U *data,INT8U *DAR)
 	memcpy(&class7,eventbuff,sizeof(Class7_Object));
 	switch(oad.attflg) {
 	case 1:	//逻辑名
+		memset(str,0,sizeof(str));
 		fprintf(stderr,"\n设置前:class7.oi = %04x",class7.oi);
 		fprintf(stderr,"data=%02x %02x %02x %02x %02x\n",data[0],data[1],data[2],data[3],data[4]);
 		get_BasicUnit(data,&source_index,(INT8U *)&str[0],&dest_index);
@@ -160,8 +148,11 @@ INT16U setClass7attr(OAD oad,INT8U *data,INT8U *DAR)
 		fprintf(stderr,"\n设置后:class7.oi = %04x",class7.oi);
 		break;
 	case 3:	//关联属性表
-		get_BasicUnit(data,&source_index,(INT8U *)&class7.oadarr,&dest_index);
-		fprintf(stderr,"\n设置:class7.关联属性表 = %04x-%02x%02x",class7.oadarr[0].OI,class7.oadarr[0].attflg,class7.oadarr[0].attrindex);
+		get_BasicUnit(data,&source_index,(INT8U *)&class7.class7_oad,&dest_index);
+		fprintf(stderr,"\n设置:class7.关联属性表num=%d ",class7.class7_oad.num);
+		for(i=0;i<class7.class7_oad.num;i++) {
+			fprintf(stderr,"\n%04x-%02x%02x",class7.class7_oad.oadarr[i].OI,class7.class7_oad.oadarr[i].attflg,class7.class7_oad.oadarr[i].attrindex);
+		}
 		break;
 	case 4:	//当前记录数
 		get_BasicUnit(data,&source_index,(INT8U *)&class7.crrentnum,&dest_index);
@@ -214,16 +205,16 @@ INT8U EventSetAttrib(OAD oad,INT8U *data)
 	case 6:	//配置参数
 		switch(oi) {
 			case 0x310d:
-				set310d(oi,attr,data,&DAR);
+				set310d(oad,data,&DAR);
 				break;
 			case 0x310c:
-				set310c(attr,oad.attrindex,data);
+				set310c(oad,data,&DAR);
 				break;
 			case 0x310e:
-				set310e(attr,oad.attrindex,data);
+				set310e(oad,data,&DAR);
 				break;
 			case 0x310F:
-				set310f(attr,oad.attrindex,data);
+				set310f(oad,data,&DAR);
 				break;
 		}
 		break;
