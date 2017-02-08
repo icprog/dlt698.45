@@ -25,9 +25,9 @@ static INT16U currnum=0;
 /*
  * 说明：
  * 进程如调用该部分事件接口，需先调用Event_Init初始化事件参数结构体和测量点信息
- * 抄表需先调用Event_Init，在根据事件采集方案 然后根据实际情况调用具体函数Event_AnalyseData,判断310B，310C，310D，310E，3105
+ * 在根据事件采集方案 然后根据实际情况调用具体函数Event_AnalyseData,判断310B，310C，310D，310E，3105
  * 如抄表失败直接调用Event_310F，实际情况调用Event_3111，Event_3112,Event_311A，Event_311B，Event_311C
- * 交采需先调用Event_Init，实时调用Event_3106判断停上电,Event_3107,Event_3108，Event_3119
+ * 实时调用Event_3106判断停上电,Event_3107,Event_3108，Event_3119
  * 698规约判断如是初始化命令调用Event_3100，Event_3114
  * 远程升级或维护进程变更软件版本号调用Event_3101
  * 状态量改变调用Event_3104
@@ -382,14 +382,14 @@ INT8U Event_3100(INT8U* data,INT8U len) {
 		//无关联数据
 		Save_buf[STANDARD_NUM_INDEX]+=0;
 		//存储更改后得参数
-		saveCoverClass(0x3100,(INT16U)crrentnum,(void *)&event_object.Event3100_obj,sizeof(Class7_Object),1);
+		saveCoverClass(0x3100,(INT16U)crrentnum,(void *)&event_object.Event3100_obj,sizeof(Class7_Object),event_para_save);
 		//存储记录集
-		saveCoverClass(0x3100,(INT16U)crrentnum,(void *)Save_buf,(int)index,2);
+		saveCoverClass(0x3100,(INT16U)crrentnum,(void *)Save_buf,(int)index,event_record_save);
 		//存储当前记录值
 		INT8U Currbuf[50]={};
 		INT8U Currindex=0;
 		Get_CurrResult(Currbuf,&Currindex,NULL,s_null,crrentnum,0);
-		saveCoverClass(0x3100,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,3);
+		saveCoverClass(0x3100,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,event_current_save);
 		//判断是否要上报
 		if(event_object.Event3100_obj.reportflag)
 			Need_Report(0x3100,crrentnum);
@@ -431,14 +431,14 @@ INT8U Event_3101(INT8U* data,INT8U len) {
 		Save_buf[index++]=0;
 		Save_buf[STANDARD_NUM_INDEX]+=2;
 		//存储更改后得参数
-		saveCoverClass(0x3101,(INT16U)crrentnum,(void *)&event_object.Event3101_obj,sizeof(Class7_Object),1);
+		saveCoverClass(0x3101,(INT16U)crrentnum,(void *)&event_object.Event3101_obj,sizeof(Class7_Object),event_para_save);
 		//存储记录集
-		saveCoverClass(0x3101,(INT16U)crrentnum,(void *)Save_buf,(int)index,2);
+		saveCoverClass(0x3101,(INT16U)crrentnum,(void *)Save_buf,(int)index,event_record_save);
 		//存储当前记录值
 		INT8U Currbuf[50]={};
 		INT8U Currindex=0;
 		Get_CurrResult(Currbuf,&Currindex,NULL,s_null,crrentnum,0);
-		saveCoverClass(0x3101,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,3);
+		saveCoverClass(0x3101,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,event_current_save);
 		//判断是否要上报
 		if(event_object.Event3101_obj.reportflag)
 			Need_Report(0x3101,crrentnum);
@@ -471,43 +471,42 @@ INT8U Event_3104(INT8U* data,INT8U len) {
 		index+=sizeof(ntime);
 		//第1路事件发生后
 		Save_buf[index++]=2;//structure
-		Save_buf[index++]=2;// 4
+		Save_buf[index++]=2;// 2
 		Save_buf[index++]=17;
 		Save_buf[index++]=data[0];
 		Save_buf[index++]=17;
 		Save_buf[index++]=data[1];
 		//第2路事件发生后
 		Save_buf[index++]=2;//structure
-		Save_buf[index++]=2;// 4
+		Save_buf[index++]=2;// 2
 		Save_buf[index++]=17;
 		Save_buf[index++]=data[2];
 		Save_buf[index++]=17;
 		Save_buf[index++]=data[3];
-		Save_buf[STANDARD_NUM_INDEX]+=5;
 		//第3路事件发生后
 		Save_buf[index++]=2;//structure
-		Save_buf[index++]=2;// 4
+		Save_buf[index++]=2;// 2
 		Save_buf[index++]=17;
 		Save_buf[index++]=data[4];
 		Save_buf[index++]=17;
 		Save_buf[index++]=data[5];
 		//第4路事件发生后
 		Save_buf[index++]=2;//structure
-		Save_buf[index++]=2;// 4
+		Save_buf[index++]=2;// 2
 		Save_buf[index++]=17;
 		Save_buf[index++]=data[6];
 		Save_buf[index++]=17;
 		Save_buf[index++]=data[7];
 		Save_buf[STANDARD_NUM_INDEX]+=5;
 		//存储更改后得参数
-		saveCoverClass(0x3104,(INT16U)crrentnum,(void *)&event_object.Event3104_obj,sizeof(Class7_Object),1);
+		saveCoverClass(0x3104,(INT16U)crrentnum,(void *)&event_object.Event3104_obj,sizeof(Class7_Object),event_para_save);
 		//存储记录集
-		saveCoverClass(0x3104,(INT16U)crrentnum,(void *)Save_buf,(int)index,2);
+		saveCoverClass(0x3104,(INT16U)crrentnum,(void *)Save_buf,(int)index,event_record_save);
 		//存储当前记录值
 		INT8U Currbuf[50]={};
 		INT8U Currindex=0;
 		Get_CurrResult(Currbuf,&Currindex,NULL,s_null,crrentnum,0);
-		saveCoverClass(0x3104,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,3);
+		saveCoverClass(0x3104,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,event_current_save);
 		//判断是否要上报
 		if(event_object.Event3104_obj.reportflag)
 			Need_Report(0x3104,crrentnum);
@@ -549,14 +548,14 @@ INT8U Event_3105(TSA tsa, INT8U* data,INT8U len) {
 		//无属性3关联数据
 		Save_buf[STANDARD_NUM_INDEX]+=0;
 		//存储更改后得参数
-		saveCoverClass(0x3105,(INT16U)crrentnum,(void *)&event_object.Event3105_obj,sizeof(Event3105_Object),1);
+		saveCoverClass(0x3105,(INT16U)crrentnum,(void *)&event_object.Event3105_obj,sizeof(Event3105_Object),event_para_save);
 		//存储记录集
-		saveCoverClass(0x3105,(INT16U)crrentnum,(void *)Save_buf,(int)index,2);
+		saveCoverClass(0x3105,(INT16U)crrentnum,(void *)Save_buf,(int)index,event_record_save);
         //存储当前记录值
 		INT8U Currbuf[50]={};
 		INT8U Currindex=0;
 		Get_CurrResult(Currbuf,&Currindex,(INT8U*)&tsa,s_tsa,crrentnum,0);
-		saveCoverClass(0x3105,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,3);
+		saveCoverClass(0x3105,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,event_current_save);
 		//判断是否要上报
 		if(event_object.Event3105_obj.event_obj.reportflag)
 			Need_Report(0x3105,crrentnum);
@@ -641,14 +640,14 @@ void SendERC3106(INT8U flag,INT8U Erctype)
 	Save_buf[index++]=flag;
 	Save_buf[STANDARD_NUM_INDEX]+=1;
 	//存储更改后得参数
-	saveCoverClass(0x3106,(INT16U)crrentnum,(void *)&event_object.Event3106_obj,sizeof(Event3106_Object),1);
+	saveCoverClass(0x3106,(INT16U)crrentnum,(void *)&event_object.Event3106_obj,sizeof(Event3106_Object),event_para_save);
 	//存储记录集
-	saveCoverClass(0x3106,(INT16U)crrentnum,(void *)Save_buf,(int)index,2);
+	saveCoverClass(0x3106,(INT16U)crrentnum,(void *)Save_buf,(int)index,event_record_save);
 	//存储当前记录值
 	INT8U Currbuf[50]={};
 	INT8U Currindex=0;
 	Get_CurrResult(Currbuf,&Currindex,(INT8U*)&Erctype,s_enum,crrentnum,0);
-	saveCoverClass(0x3106,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,3);
+	saveCoverClass(0x3106,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,event_current_save);
 	//判断是否要上报
 	if(event_object.Event3106_obj.event_obj.reportflag)
 		Need_Report(0x3106,crrentnum);
@@ -908,14 +907,14 @@ INT8U Event_3107(INT8U* data,INT8U len) {
 		//属性3无关联数据
 		Save_buf[STANDARD_NUM_INDEX]+=0;
 		//存储更改后得参数
-		saveCoverClass(0x3107,(INT16U)crrentnum,(void *)&event_object.Event3107_obj,sizeof(Event3107_Object),1);
+		saveCoverClass(0x3107,(INT16U)crrentnum,(void *)&event_object.Event3107_obj,sizeof(Event3107_Object),event_para_save);
 		//存储记录集
-		saveCoverClass(0x3107,(INT16U)crrentnum,(void *)Save_buf,(int)index,2);
+		saveCoverClass(0x3107,(INT16U)crrentnum,(void *)Save_buf,(int)index,event_record_save);
 		//存储当前记录值
 		INT8U Currbuf[50]={};
 		INT8U Currindex=0;
 		Get_CurrResult(Currbuf,&Currindex,(INT8U*)oad,s_oad,crrentnum,0);
-		saveCoverClass(0x3107,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,3);
+		saveCoverClass(0x3107,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,event_current_save);
 		//判断是否要上报
 		if(event_object.Event3107_obj.event_obj.reportflag)
 			Need_Report(0x3107,crrentnum);
@@ -947,14 +946,14 @@ INT8U Event_3108(INT8U* data,INT8U len) {
 		//属性3无关联数据
 		Save_buf[STANDARD_NUM_INDEX]+=0;
 		//存储更改后得参数
-		saveCoverClass(0x3108,(INT16U)crrentnum,(void *)&event_object.Event3108_obj,sizeof(Event3108_Object),1);
+		saveCoverClass(0x3108,(INT16U)crrentnum,(void *)&event_object.Event3108_obj,sizeof(Event3108_Object),event_para_save);
 		//存储记录集
-		saveCoverClass(0x3108,(INT16U)crrentnum,(void *)Save_buf,(int)index,2);
+		saveCoverClass(0x3108,(INT16U)crrentnum,(void *)Save_buf,(int)index,event_record_save);
 		//存储当前记录值
 		INT8U Currbuf[50]={};
 		INT8U Currindex=0;
 		Get_CurrResult(Currbuf,&Currindex,(INT8U*)oad,s_oad,crrentnum,0);
-		saveCoverClass(0x3108,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,3);
+		saveCoverClass(0x3108,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,event_current_save);
 		//判断是否要上报
 		if(event_object.Event3108_obj.event_obj.reportflag)
 			Need_Report(0x3108,crrentnum);
@@ -985,14 +984,14 @@ INT8U Event_3109(INT8U* data,INT8U len) {
 		index+=len;
 		Save_buf[STANDARD_NUM_INDEX]+=1;
 		//存储更改后得参数
-		saveCoverClass(0x3109,(INT16U)crrentnum,(void *)&event_object.Event3109_obj,sizeof(Class7_Object),1);
+		saveCoverClass(0x3109,(INT16U)crrentnum,(void *)&event_object.Event3109_obj,sizeof(Class7_Object),event_para_save);
 		//存储记录集
-		saveCoverClass(0x3109,(INT16U)crrentnum,(void *)Save_buf,(int)index,2);
+		saveCoverClass(0x3109,(INT16U)crrentnum,(void *)Save_buf,(int)index,event_record_save);
 		//存储当前记录值
 		INT8U Currbuf[50]={};
 		INT8U Currindex=0;
 		Get_CurrResult(Currbuf,&Currindex,NULL,s_null,crrentnum,0);
-		saveCoverClass(0x3109,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,3);
+		saveCoverClass(0x3109,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,event_current_save);
 		//判断是否要上报
 		if(event_object.Event3109_obj.reportflag)
 			Need_Report(0x3109,crrentnum);
@@ -1040,14 +1039,14 @@ INT8U Event_310A(MachineError_type errtype) {
 	//无属性3关联数据
 	Save_buf[STANDARD_NUM_INDEX]+=0;
 	//存储更改后得参数
-	saveCoverClass(0x310A,(INT16U)crrentnum,(void *)&event_object.Event310A_obj,sizeof(Class7_Object),1);
+	saveCoverClass(0x310A,(INT16U)crrentnum,(void *)&event_object.Event310A_obj,sizeof(Class7_Object),event_para_save);
 	//存储记录集
-	saveCoverClass(0x310A,(INT16U)crrentnum,(void *)Save_buf,(int)index,2);
+	saveCoverClass(0x310A,(INT16U)crrentnum,(void *)Save_buf,(int)index,event_record_save);
 	//存储当前记录值
 	INT8U Currbuf[50]={};
 	INT8U Currindex=0;
 	Get_CurrResult(Currbuf,&Currindex,(INT8U*)&Source,s_enum,crrentnum,0);
-	saveCoverClass(0x310A,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,3);
+	saveCoverClass(0x310A,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,event_current_save);
 	//判断是否要上报
 	if(event_object.Event310A_obj.reportflag)
 		Need_Report(0x310A,crrentnum);
@@ -1090,14 +1089,14 @@ INT8U Event_310B(TSA tsa, INT8U* data,INT8U len) {
 			Save_buf[STANDARD_NUM_INDEX]+=2;
 
 			//存储更改后得参数
-			saveCoverClass(0x310B,(INT16U)crrentnum,(void *)&event_object.Event310B_obj,sizeof(Event310B_Object),1);
+			saveCoverClass(0x310B,(INT16U)crrentnum,(void *)&event_object.Event310B_obj,sizeof(Event310B_Object),event_para_save);
 			//存储记录集
-			saveCoverClass(0x310B,(INT16U)crrentnum,(void *)Save_buf,(int)index,2);
+			saveCoverClass(0x310B,(INT16U)crrentnum,(void *)Save_buf,(int)index,event_record_save);
 			//存储当前记录值
 			INT8U Currbuf[50]={};
 			INT8U Currindex=0;
 			Get_CurrResult(Currbuf,&Currindex,(INT8U*)&tsa,s_tsa,crrentnum,0);
-			saveCoverClass(0x310B,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,3);
+			saveCoverClass(0x310B,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,event_current_save);
 			//判断是否要上报
 			if(event_object.Event310B_obj.event_obj.reportflag)
 				Need_Report(0x310B,crrentnum);
@@ -1171,14 +1170,14 @@ INT8U Event_310C(TSA tsa, INT8U* data,INT8U len) {
 			Save_buf[index++]=newdata&0x000000ff;
 			Save_buf[STANDARD_NUM_INDEX]+=2;
 			//存储更改后得参数
-			saveCoverClass(0x310C,(INT16U)crrentnum,(void *)&event_object.Event310C_obj,sizeof(Event310C_Object),1);
+			saveCoverClass(0x310C,(INT16U)crrentnum,(void *)&event_object.Event310C_obj,sizeof(Event310C_Object),event_para_save);
 			//存储记录集
-			saveCoverClass(0x310C,(INT16U)crrentnum,(void *)Save_buf,(int)index,2);
+			saveCoverClass(0x310C,(INT16U)crrentnum,(void *)Save_buf,(int)index,event_record_save);
 			//存储当前记录值
 			INT8U Currbuf[50]={};
 			INT8U Currindex=0;
 			Get_CurrResult(Currbuf,&Currindex,(INT8U*)&tsa,s_tsa,crrentnum,0);
-			saveCoverClass(0x310C,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,3);
+			saveCoverClass(0x310C,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,event_current_save);
 			//判断是否要上报
 			if(event_object.Event310C_obj.event_obj.reportflag)
 				Need_Report(0x310C,crrentnum);
@@ -1252,14 +1251,14 @@ INT8U Event_310D(TSA tsa, INT8U* data,INT8U len) {
 			Save_buf[index++]=newdata&0x000000ff;
 			Save_buf[STANDARD_NUM_INDEX]+=2;
 			//存储更改后得参数
-			saveCoverClass(0x310D,(INT16U)crrentnum,(void *)&event_object.Event310D_obj,sizeof(Event310D_Object),1);
+			saveCoverClass(0x310D,(INT16U)crrentnum,(void *)&event_object.Event310D_obj,sizeof(Event310D_Object),event_para_save);
 			//存储记录集
-			saveCoverClass(0x310D,(INT16U)crrentnum,(void *)Save_buf,(int)index,2);
+			saveCoverClass(0x310D,(INT16U)crrentnum,(void *)Save_buf,(int)index,event_record_save);
 			//存储当前记录值
 			INT8U Currbuf[50]={};
 			INT8U Currindex=0;
 			Get_CurrResult(Currbuf,&Currindex,(INT8U*)&tsa,s_tsa,crrentnum,0);
-			saveCoverClass(0x310D,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,3);
+			saveCoverClass(0x310D,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,event_current_save);
 			//判断是否要上报
 			if(event_object.Event310D_obj.event_obj.reportflag)
 				Need_Report(0x310D,crrentnum);
@@ -1325,14 +1324,14 @@ INT8U Event_310E(TSA tsa, INT8U* data,INT8U len) {
 			Save_buf[index++]=olddata&0x000000ff;
 			Save_buf[STANDARD_NUM_INDEX]+=1;
 			//存储更改后得参数
-			saveCoverClass(0x310E,(INT16U)crrentnum,(void *)&event_object.Event310E_obj,sizeof(Event310E_Object),1);
+			saveCoverClass(0x310E,(INT16U)crrentnum,(void *)&event_object.Event310E_obj,sizeof(Event310E_Object),event_para_save);
 			//存储记录集
-			saveCoverClass(0x310E,(INT16U)crrentnum,(void *)Save_buf,(int)index,2);
+			saveCoverClass(0x310E,(INT16U)crrentnum,(void *)Save_buf,(int)index,event_record_save);
 			//存储当前记录值
 			INT8U Currbuf[50]={};
 			INT8U Currindex=0;
 			Get_CurrResult(Currbuf,&Currindex,(INT8U*)&tsa,s_tsa,crrentnum,0);
-			saveCoverClass(0x310E,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,3);
+			saveCoverClass(0x310E,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,event_current_save);
 			//判断是否要上报
 			if(event_object.Event310E_obj.event_obj.reportflag)
 				Need_Report(0x310E,crrentnum);
@@ -1381,14 +1380,14 @@ INT8U Event_310F(TSA tsa, INT8U* data,INT8U len) {
 	Save_buf[index++]=0;
 	Save_buf[STANDARD_NUM_INDEX]+=3;
 	//存储更改后得参数
-	saveCoverClass(0x310F,(INT16U)crrentnum,(void *)&event_object.Event310F_obj,sizeof(Event310F_Object),1);
+	saveCoverClass(0x310F,(INT16U)crrentnum,(void *)&event_object.Event310F_obj,sizeof(Event310F_Object),event_para_save);
 	//存储记录集
-	saveCoverClass(0x310F,(INT16U)crrentnum,(void *)Save_buf,(int)index,2);
+	saveCoverClass(0x310F,(INT16U)crrentnum,(void *)Save_buf,(int)index,event_record_save);
 	//存储当前记录值
 	INT8U Currbuf[50]={};
 	INT8U Currindex=0;
 	Get_CurrResult(Currbuf,&Currindex,(INT8U*)&tsa,s_tsa,crrentnum,0);
-	saveCoverClass(0x310F,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,3);
+	saveCoverClass(0x310F,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,event_current_save);
 	//判断是否要上报
 	if(event_object.Event310F_obj.event_obj.reportflag)
 		Need_Report(0x310F,crrentnum);
@@ -1429,14 +1428,14 @@ INT8U Event_3110(INT8U* data,INT8U len) {
 		Save_buf[index++]=offset&0x000000ff;
 		Save_buf[STANDARD_NUM_INDEX]+=2;
 		//存储更改后得参数
-		saveCoverClass(0x3110,(INT16U)crrentnum,(void *)&event_object.Event3110_obj,sizeof(Event3110_Object),1);
+		saveCoverClass(0x3110,(INT16U)crrentnum,(void *)&event_object.Event3110_obj,sizeof(Event3110_Object),event_para_save);
 		//存储记录集
-		saveCoverClass(0x3110,(INT16U)crrentnum,(void *)Save_buf,(int)index,2);
+		saveCoverClass(0x3110,(INT16U)crrentnum,(void *)Save_buf,(int)index,event_record_save);
 		//存储当前记录值
 		INT8U Currbuf[50]={};
 		INT8U Currindex=0;
 		Get_CurrResult(Currbuf,&Currindex,NULL,s_null,crrentnum,0);
-		saveCoverClass(0x3110,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,3);
+		saveCoverClass(0x3110,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,event_current_save);
 		//判断是否要上报
 		if(event_object.Event3110_obj.event_obj.reportflag)
 			Need_Report(0x3110,crrentnum);
@@ -1496,14 +1495,14 @@ INT8U Event_3111(TSA tsa, INT8U* data,INT8U len) {
 	Save_buf[index++]=0;//数量
 	Save_buf[STANDARD_NUM_INDEX]+=1;
 	//存储更改后得参数
-	saveCoverClass(0x3111,(INT16U)crrentnum,(void *)&event_object.Event3111_obj,sizeof(Class7_Object),1);
+	saveCoverClass(0x3111,(INT16U)crrentnum,(void *)&event_object.Event3111_obj,sizeof(Class7_Object),event_para_save);
 	//存储记录集
-	saveCoverClass(0x3111,(INT16U)crrentnum,(void *)Save_buf,(int)index,2);
+	saveCoverClass(0x3111,(INT16U)crrentnum,(void *)Save_buf,(int)index,event_record_save);
 	//存储当前记录值
 	INT8U Currbuf[50]={};
 	INT8U Currindex=0;
 	Get_CurrResult(Currbuf,&Currindex,NULL,s_null,crrentnum,0);
-	saveCoverClass(0x3111,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,3);
+	saveCoverClass(0x3111,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,event_current_save);
 	//判断是否要上报
 	if(event_object.Event3111_obj.reportflag)
 		Need_Report(0x3111,crrentnum);
@@ -1548,14 +1547,14 @@ INT8U Event_3112(TSA tsa, INT8U* data,INT8U len) {
 	index+=7;
 	Save_buf[STANDARD_NUM_INDEX]+=1;
 	//存储更改后得参数
-	saveCoverClass(0x3112,(INT16U)crrentnum,(void *)&event_object.Event3112_obj,sizeof(Class7_Object),1);
+	saveCoverClass(0x3112,(INT16U)crrentnum,(void *)&event_object.Event3112_obj,sizeof(Class7_Object),event_para_save);
 	//存储记录集
-	saveCoverClass(0x3112,(INT16U)crrentnum,(void *)Save_buf,(int)index,2);
+	saveCoverClass(0x3112,(INT16U)crrentnum,(void *)Save_buf,(int)index,event_record_save);
 	//存储当前记录值
 	INT8U Currbuf[50]={};
 	INT8U Currindex=0;
 	Get_CurrResult(Currbuf,&Currindex,NULL,s_null,crrentnum,0);
-	saveCoverClass(0x3112,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,3);
+	saveCoverClass(0x3112,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,event_current_save);
 	//判断是否要上报
 	if(event_object.Event3112_obj.reportflag)
 		Need_Report(0x3112,crrentnum);
@@ -1598,14 +1597,14 @@ INT8U Event_311A(TSA tsa, INT8U* data,INT8U len) {
 		Save_buf[index++]=data[l1+1];
 		Save_buf[STANDARD_NUM_INDEX]+=1;
 		//存储更改后得参数
-		saveCoverClass(0x311A,(INT16U)crrentnum,(void *)&event_object.Event311A_obj,sizeof(Event311A_Object),1);
+		saveCoverClass(0x311A,(INT16U)crrentnum,(void *)&event_object.Event311A_obj,sizeof(Event311A_Object),event_para_save);
 		//存储记录集
-		saveCoverClass(0x311A,(INT16U)crrentnum,(void *)Save_buf,(int)index,2);
+		saveCoverClass(0x311A,(INT16U)crrentnum,(void *)Save_buf,(int)index,event_record_save);
 		//存储当前记录值
 		INT8U Currbuf[50]={};
 		INT8U Currindex=0;
 		Get_CurrResult(Currbuf,&Currindex,NULL,s_null,crrentnum,0);
-		saveCoverClass(0x311A,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,3);
+		saveCoverClass(0x311A,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,event_current_save);
 		//判断是否要上报
 		if(event_object.Event311A_obj.event_obj.reportflag)
 			Need_Report(0x311A,crrentnum);
@@ -1676,14 +1675,14 @@ INT8U Event_311C(TSA tsa, INT8U* data,INT8U len) {
 		index+=len;
 		Save_buf[STANDARD_NUM_INDEX]+=3;
 		//存储更改后得参数
-		saveCoverClass(0x311C,(INT16U)crrentnum,(void *)&event_object.Event311C_obj,sizeof(Class7_Object),1);
+		saveCoverClass(0x311C,(INT16U)crrentnum,(void *)&event_object.Event311C_obj,sizeof(Class7_Object),event_para_save);
 		//存储记录集
-		saveCoverClass(0x311C,(INT16U)crrentnum,(void *)Save_buf,(int)index,2);
+		saveCoverClass(0x311C,(INT16U)crrentnum,(void *)Save_buf,(int)index,event_record_save);
 		//存储当前记录值
 		INT8U Currbuf[50]={};
 		INT8U Currindex=0;
 		Get_CurrResult(Currbuf,&Currindex,(INT8U*)&tsa,s_tsa,crrentnum,0);
-		saveCoverClass(0x311C,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,3);
+		saveCoverClass(0x311C,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,event_current_save);
 		//判断是否要上报
 		if(event_object.Event311C_obj.event_obj.reportflag)
 			Need_Report(0x311C,crrentnum);
@@ -1755,14 +1754,14 @@ INT8U Event_3117(INT8U* data,INT8U len) {
 		//无属性3关联数据
 		Save_buf[STANDARD_NUM_INDEX]+=0;
 		//存储更改后得参数
-		saveCoverClass(0x3117,(INT16U)crrentnum,(void *)&event_object.Event3117_obj,sizeof(Class7_Object),1);
+		saveCoverClass(0x3117,(INT16U)crrentnum,(void *)&event_object.Event3117_obj,sizeof(Class7_Object),event_para_save);
 		//存储记录集
-		saveCoverClass(0x3117,(INT16U)crrentnum,(void *)Save_buf,(int)index,2);
+		saveCoverClass(0x3117,(INT16U)crrentnum,(void *)Save_buf,(int)index,event_record_save);
 		//存储当前记录值
 		INT8U Currbuf[50]={};
 		INT8U Currindex=0;
 		Get_CurrResult(Currbuf,&Currindex,NULL,s_null,crrentnum,0);
-		saveCoverClass(0x3117,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,3);
+		saveCoverClass(0x3117,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,event_current_save);
 		//判断是否要上报
 		if(event_object.Event3117_obj.reportflag)
 			Need_Report(0x3117,crrentnum);
@@ -1798,14 +1797,14 @@ INT8U Event_3118(INT8U* data,INT8U len) {
 	    }
 		Save_buf[STANDARD_NUM_INDEX]+=1;
 		//存储更改后得参数
-		saveCoverClass(0x3118,(INT16U)crrentnum,(void *)&event_object.Event3118_obj,sizeof(Class7_Object),1);
+		saveCoverClass(0x3118,(INT16U)crrentnum,(void *)&event_object.Event3118_obj,sizeof(Class7_Object),event_para_save);
 		//存储记录集
-		saveCoverClass(0x3118,(INT16U)crrentnum,(void *)Save_buf,(int)index,2);
+		saveCoverClass(0x3118,(INT16U)crrentnum,(void *)Save_buf,(int)index,event_record_save);
 		//存储当前记录值
 		INT8U Currbuf[50]={};
 		INT8U Currindex=0;
 		Get_CurrResult(Currbuf,&Currindex,NULL,s_null,crrentnum,0);
-		saveCoverClass(0x3118,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,3);
+		saveCoverClass(0x3118,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,event_current_save);
 		//判断是否要上报
 		if(event_object.Event3118_obj.reportflag)
 			Need_Report(0x3118,crrentnum);
@@ -1832,14 +1831,14 @@ INT8U Event_3119(INT8U type, INT8U* data,INT8U len) {
 		//属性3无关联数据
 		Save_buf[STANDARD_NUM_INDEX]+=0;
 		//存储更改后得参数
-		saveCoverClass(0x3119,(INT16U)crrentnum,(void *)&event_object.Event3119_obj,sizeof(Class7_Object),1);
+		saveCoverClass(0x3119,(INT16U)crrentnum,(void *)&event_object.Event3119_obj,sizeof(Class7_Object),event_para_save);
 		//存储记录集
-		saveCoverClass(0x3119,(INT16U)crrentnum,(void *)Save_buf,(int)index,2);
+		saveCoverClass(0x3119,(INT16U)crrentnum,(void *)Save_buf,(int)index,event_record_save);
 		//存储当前记录值
 		INT8U Currbuf[50]={};
 		INT8U Currindex=0;
 		Get_CurrResult(Currbuf,&Currindex,(INT8U*)&type,s_enum,crrentnum,0);
-		saveCoverClass(0x3119,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,3);
+		saveCoverClass(0x3119,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,event_current_save);
 		//判断是否要上报
 		if(event_object.Event3119_obj.reportflag)
 			Need_Report(0x3119,crrentnum);
@@ -1886,14 +1885,14 @@ INT8U Event_3200(INT8U* data,INT8U len) {
 		index+=8;
 		Save_buf[STANDARD_NUM_INDEX]+=5;
 		//存储更改后得参数
-		saveCoverClass(0x3200,(INT16U)crrentnum,(void *)&event_object.Event3200_obj,sizeof(Class7_Object),1);
+		saveCoverClass(0x3200,(INT16U)crrentnum,(void *)&event_object.Event3200_obj,sizeof(Class7_Object),event_para_save);
 		//存储记录集
-		saveCoverClass(0x3200,(INT16U)crrentnum,(void *)Save_buf,(int)index,2);
+		saveCoverClass(0x3200,(INT16U)crrentnum,(void *)Save_buf,(int)index,event_record_save);
 		//存储当前记录值
 		INT8U Currbuf[50]={};
 		INT8U Currindex=0;
 		Get_CurrResult(Currbuf,&Currindex,(INT8U*)data,s_oi,crrentnum,0);
-		saveCoverClass(0x3200,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,3);
+		saveCoverClass(0x3200,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,event_current_save);
 		//判断是否要上报
 		if(event_object.Event3200_obj.reportflag)
 			Need_Report(0x3200,crrentnum);
@@ -1934,14 +1933,14 @@ INT8U Event_3201(INT8U* data,INT8U len) {
 		Save_buf[index++]=0;//数量
 		Save_buf[STANDARD_NUM_INDEX]+=4;
 		//存储更改后得参数
-		saveCoverClass(0x3201,(INT16U)crrentnum,(void *)&event_object.Event3201_obj,sizeof(Class7_Object),1);
+		saveCoverClass(0x3201,(INT16U)crrentnum,(void *)&event_object.Event3201_obj,sizeof(Class7_Object),event_para_save);
 		//存储记录集
-		saveCoverClass(0x3201,(INT16U)crrentnum,(void *)Save_buf,(int)index,2);
+		saveCoverClass(0x3201,(INT16U)crrentnum,(void *)Save_buf,(int)index,event_record_save);
 		//存储当前记录值
 		INT8U Currbuf[50]={};
 		INT8U Currindex=0;
 		Get_CurrResult(Currbuf,&Currindex,(INT8U*)data,s_oi,crrentnum,0);
-		saveCoverClass(0x3201,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,3);
+		saveCoverClass(0x3201,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,event_current_save);
 		//判断是否要上报
 		if(event_object.Event3201_obj.reportflag)
 			Need_Report(0x3201,crrentnum);
@@ -1971,14 +1970,14 @@ INT8U Event_3202(INT8U* data,INT8U len) {
 		//属性3无关联数据
 		Save_buf[STANDARD_NUM_INDEX]+=0;
 		//存储更改后得参数
-		saveCoverClass(0x3202,(INT16U)crrentnum,(void *)&event_object.Event3202_obj,sizeof(Class7_Object),1);
+		saveCoverClass(0x3202,(INT16U)crrentnum,(void *)&event_object.Event3202_obj,sizeof(Class7_Object),event_para_save);
 		//存储记录集
-		saveCoverClass(0x3202,(INT16U)crrentnum,(void *)Save_buf,(int)index,2);
+		saveCoverClass(0x3202,(INT16U)crrentnum,(void *)Save_buf,(int)index,event_record_save);
 		//存储当前记录值
 		INT8U Currbuf[50]={};
 		INT8U Currindex=0;
 		Get_CurrResult(Currbuf,&Currindex,(INT8U*)oi,s_oi,crrentnum,0);
-		saveCoverClass(0x3202,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,3);
+		saveCoverClass(0x3202,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,event_current_save);
 		//判断是否要上报
 		if(event_object.Event3202_obj.reportflag)
 			Need_Report(0x3202,crrentnum);
@@ -2014,14 +2013,14 @@ INT8U Event_3203(INT8U* data,INT8U len) {
 		index+=8;
 		Save_buf[STANDARD_NUM_INDEX]+=2;
 		//存储更改后得参数
-		saveCoverClass(0x3203,(INT16U)crrentnum,(void *)&event_object.Event3203_obj,sizeof(Class7_Object),1);
+		saveCoverClass(0x3203,(INT16U)crrentnum,(void *)&event_object.Event3203_obj,sizeof(Class7_Object),event_para_save);
 		//存储记录集
-		saveCoverClass(0x3203,(INT16U)crrentnum,(void *)Save_buf,(int)index,2);
+		saveCoverClass(0x3203,(INT16U)crrentnum,(void *)Save_buf,(int)index,event_record_save);
 		//存储当前记录值
 		INT8U Currbuf[50]={};
 		INT8U Currindex=0;
 		Get_CurrResult(Currbuf,&Currindex,(INT8U*)data,s_oi,crrentnum,0);
-		saveCoverClass(0x3203,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,3);
+		saveCoverClass(0x3203,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,event_current_save);
 		//判断是否要上报
 		if(event_object.Event3203_obj.reportflag)
 			Need_Report(0x3203,crrentnum);
