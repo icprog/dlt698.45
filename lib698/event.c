@@ -471,29 +471,28 @@ INT8U Event_3104(INT8U* data,INT8U len) {
 		index+=sizeof(ntime);
 		//第1路事件发生后
 		Save_buf[index++]=2;//structure
-		Save_buf[index++]=2;// 4
+		Save_buf[index++]=2;// 2
 		Save_buf[index++]=17;
 		Save_buf[index++]=data[0];
 		Save_buf[index++]=17;
 		Save_buf[index++]=data[1];
 		//第2路事件发生后
 		Save_buf[index++]=2;//structure
-		Save_buf[index++]=2;// 4
+		Save_buf[index++]=2;// 2
 		Save_buf[index++]=17;
 		Save_buf[index++]=data[2];
 		Save_buf[index++]=17;
 		Save_buf[index++]=data[3];
-		Save_buf[STANDARD_NUM_INDEX]+=5;
 		//第3路事件发生后
 		Save_buf[index++]=2;//structure
-		Save_buf[index++]=2;// 4
+		Save_buf[index++]=2;// 2
 		Save_buf[index++]=17;
 		Save_buf[index++]=data[4];
 		Save_buf[index++]=17;
 		Save_buf[index++]=data[5];
 		//第4路事件发生后
 		Save_buf[index++]=2;//structure
-		Save_buf[index++]=2;// 4
+		Save_buf[index++]=2;// 2
 		Save_buf[index++]=17;
 		Save_buf[index++]=data[6];
 		Save_buf[index++]=17;
