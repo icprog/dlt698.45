@@ -307,22 +307,42 @@ INT8U Get_StandardUnit(OI_698 oi,INT8U *Rbuf,INT8U *Index,
 	Rbuf[(*Index)++] = STANDARD_NUM;
 	//事件记录序号
 	Rbuf[(*Index)++] = 0x06;
-	memcpy(&Rbuf[*Index], &Eventno, sizeof(INT32U));
-	(*Index)+=sizeof(INT32U);
+	//memcpy(&Rbuf[*Index], &Eventno, sizeof(INT32U));
+	INT32U En=(INT32U)Eventno;
+	Rbuf[(*Index)++] = (Eventno>>32)&0x000000ff;
+	Rbuf[(*Index)++] = (Eventno>>16)&0x000000ff;
+	Rbuf[(*Index)++] = (Eventno>>8)&0x000000ff;
+	Rbuf[(*Index)++] = Eventno&0x000000ff;
+	//(*Index)+=sizeof(INT32U);
 	DateTimeBCD ntime;
 	DataTimeGet(&ntime);
 
 	//事件发生时间
 	Rbuf[(*Index)++] = 0x1C;
-	memcpy(&Rbuf[*Index], &ntime, sizeof(ntime));
-	(*Index)+=sizeof(ntime);
+	//memcpy(&Rbuf[*Index], &ntime, sizeof(ntime));
+	//(*Index)+=sizeof(ntime);
+	Rbuf[(*Index)++] = (ntime.year>>8)&0x00ff;
+	Rbuf[(*Index)++] = (ntime.year)&0x00ff;
+	Rbuf[(*Index)++] = ntime.month;
+	Rbuf[(*Index)++] = ntime.day;
+	Rbuf[(*Index)++] = ntime.hour;
+	Rbuf[(*Index)++] = ntime.min;
+	Rbuf[(*Index)++] = ntime.sec;
 	//事件结束时间
 	Rbuf[(*Index)++] = 0x1C;
-	if(oi==0x311C)
+	if(oi==0x311C){
 		memset(&Rbuf[*Index],DATA_FF,sizeof(ntime));//TODO
-	else
-		memcpy(&Rbuf[*Index], &ntime, sizeof(ntime));
-	(*Index)+=sizeof(ntime);
+		(*Index)+=sizeof(ntime);
+	}
+	else{
+		Rbuf[(*Index)++] = (ntime.year>>8)&0x00ff;
+		Rbuf[(*Index)++] = (ntime.year)&0x00ff;
+		Rbuf[(*Index)++] = ntime.month;
+		Rbuf[(*Index)++] = ntime.day;
+		Rbuf[(*Index)++] = ntime.hour;
+		Rbuf[(*Index)++] = ntime.min;
+		Rbuf[(*Index)++] = ntime.sec;
+	}
 	//事件发生源
 	INT8U datatype=0,sourcelen=0;
 	Get_Source(Source,S_type,&datatype,&sourcelen);
@@ -450,7 +470,6 @@ INT8U Event_3101(INT8U* data,INT8U len) {
  * 状态量变位事件 可直接调用 data为前后得ST CD，（1-4路）8个字节即可
  */
 INT8U Event_3104(INT8U* data,INT8U len) {
-	fprintf(stderr,"event_object.Event3104_obj.enableflag=%d\n",event_object.Event3104_obj.enableflag);
     if (event_object.Event3104_obj.enableflag == 0) {
         return 0;
     }
