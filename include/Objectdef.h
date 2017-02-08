@@ -223,7 +223,16 @@ typedef struct
 	NETCONFIG IP;						//终端IP
 	INT8U mac[20];						//MAC地址
 }CLASS26;//以太网通信接口类
-
+typedef struct
+{
+	OI_698 oi;
+	INT16U model
+}SecureModel;
+typedef struct
+{
+	INT8U active;
+	SecureModel modelpara[255];
+}CLASS_F101;
 
 
 

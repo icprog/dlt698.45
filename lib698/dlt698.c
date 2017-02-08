@@ -14,7 +14,7 @@
 
 extern int doObjectAction();
 extern int doActionReponse(int reponse,CSINFO *csinfo,PIID piid,OMD omd,int dar,INT8U *data,INT8U *buf);
-extern int getRequestNormal(OAD oad,INT8U *data);
+extern int getRequestNormal(OAD oad,INT8U *data,CSINFO *csinfo,INT8U *sendbuf);
 extern int setRequestNormal(INT8U *data,OAD oad,CSINFO *csinfo,INT8U *buf);
 extern int setRequestNormalList(INT8U *Object,CSINFO *csinfo,INT8U *buf);
 
@@ -349,13 +349,13 @@ int doSetAttribute(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 	}
 	return 1;
 }
-int doGetAttribute(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
+
+int doGetAttribute(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
 {
 	PIID piid={};
 	INT8U getType = apdu[1];
 	OAD oad={};
 	INT8U *data=NULL;
-	// 1,GetRequestNormal ; 2,GetRequestNormalList  3,GetRequestRecord  4,GetRequestRecordList,GetRequestNext
 
 	piid.data = apdu[2];
 	fprintf(stderr,"\n- get type = %d PIID=%02x",getType,piid.data);
@@ -366,9 +366,10 @@ int doGetAttribute(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 	switch(getType)
 	{
 		case GET_REQUEST_NORMAL:
-			getRequestNormal(oad,data);
+			getRequestNormal(oad,data,csinfo,sendbuf);
 			break;
 		case GET_REQUEST_NORMAL_LIST:
+			getRequestNormalList(oad,data,csinfo,sendbuf);
 			break;
 		case GET_REQUEST_RECORD:
 //			getRequestRecord(&apdu[3],csinfo,buf);
@@ -499,7 +500,7 @@ INT8U dealClientRequest(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
 
 	if (apduType == SECURITY_REQUEST)//安全请求的数据类型
 	{
-		SecurityRe = doSecurityRequest(apdu,macword);
+		SecurityRe = doSecurityRequest(apdu);
 		if (SecurityRe <= 0)
 		{
 			fprintf(stderr,"\n安全请求计算错误!!!");
