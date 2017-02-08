@@ -30,6 +30,8 @@ static CommBlock ComObject;
 static CommBlock nets_comstat;
 static CommBlock serv_comstat;
 
+static CLASS25 Class25;
+
 void clearcount(int index) {
     JProgramInfo->Projects[index].WaitTimes = 0;
 }
