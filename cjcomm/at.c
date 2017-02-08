@@ -202,6 +202,11 @@ int tryifconfig() {
     return 0;
 }
 
+void AT_POWOFF()
+{
+	gpofun("/dev/gpoGPRS_POWER", 0);
+}
+
 void* ATWorker(void* args) {
     while (1) {
         system("pkill ftpget");

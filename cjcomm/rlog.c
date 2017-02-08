@@ -23,6 +23,7 @@ void asyslog(int priority, const char* fmt, ...) {
     va_start(argp, fmt);
     vsyslog(priority, fmt, argp);
     vprintf(fmt, argp);
+    printf("\n");
     va_end(argp);
 }
 

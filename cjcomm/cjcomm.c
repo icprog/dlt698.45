@@ -34,26 +34,34 @@ void clearcount(int index) {
     JProgramInfo->Projects[index].WaitTimes = 0;
 }
 
-void QuitProcess(ProjectInfo* proinfo) {
-    asyslog(LOG_INFO, "通信模块退出");
+void QuitProcess(int sig) {
+    asyslog(LOG_INFO, "通信模块退出,收到信号类型(%d)", sig);
+
+    //关闭打开的服务
+    asyslog(LOG_INFO, "开始关闭外部服务（gtpget、ppp-off、gsmMuxd）");
+    system("pkill ftpget");
+    system("ppp-off");
+    system("pkill gsmMuxd");
+
+    //关闭打开的接口
+    asyslog(LOG_INFO, "开始关闭红外通信接口(%d)",FirObject.phy_connect_fd);
+    close(FirObject.phy_connect_fd);
+    asyslog(LOG_INFO, "开始关闭维护通信接口(%d)",ComObject.phy_connect_fd);
+    close(ComObject.phy_connect_fd);
+    asyslog(LOG_INFO, "开始关闭终端对主站链接接口(%d)",nets_comstat.phy_connect_fd);
+    close(nets_comstat.phy_connect_fd);
+    asyslog(LOG_INFO, "开始关闭主站对终端链接接口(%d)" ,serv_comstat.phy_connect_fd);
+    close(serv_comstat.phy_connect_fd);
+
+    //关闭AT模块
+    asyslog(LOG_INFO, "关闭AT模块电源");
+    AT_POWOFF();
+
+    //等待处理完成
+    asyslog(LOG_INFO, "等待(2秒)清理工作完成……");
+    sleep(2);
+
     exit(0);
-}
-/*********************************************************
- * 进程初始化
- *********************************************************/
-int InitPro(int argc, char* argv[]) {
-    memset(IPaddr, 0, sizeof(IPaddr));
-    memcpy(IPaddr, argv[1], strlen(argv[1]));
-
-    printf("Connect to %s\n", IPaddr);
-
-    if (argc >= 2) {
-        JProgramInfo = OpenShMem("ProgramInfo", sizeof(ProgramInfo), NULL);
-        memcpy(JProgramInfo->Projects[3].ProjectName, "cjcomm", sizeof("cjcomm"));
-        JProgramInfo->Projects[3].ProjectID = getpid();
-        return 1;
-    }
-    return 0;
 }
 
 void WriteLinkRequest(INT8U link_type, INT16U heartbeat, LINK_Request* link_req) {
@@ -306,8 +314,31 @@ void CreateAptSer(struct aeEventLoop* eventLoop, int fd, void* clientData, int m
     }
 }
 
-void enviromentCheck()
+/*********************************************************
+ * 进程初始化
+ *********************************************************/
+void enviromentCheck(int argc, char* argv[])
 {
+	//检查运行参数
+	if(argc < 2){
+		asyslog(LOG_ERR, "未指定通信参数");
+		exit(1);
+	}
+
+	//解析通信参数
+    memset(IPaddr, 0, sizeof(IPaddr));
+    memcpy(IPaddr, argv[1], strlen(argv[1]));
+    asyslog("主站通信地址为：%s\n", IPaddr);
+
+    //向cjmain报告启动
+    JProgramInfo = OpenShMem("ProgramInfo", sizeof(ProgramInfo), NULL);
+    memcpy(JProgramInfo->Projects[3].ProjectName, "cjcomm", sizeof("cjcomm"));
+    JProgramInfo->Projects[3].ProjectID = getpid();
+
+    struct sigaction sa = {};
+    Setsig(&sa, QuitProcess);
+
+
     //初始化通信对象参数
     initComPara(&FirObject);
     initComPara(&ComObject);
@@ -319,15 +350,8 @@ int main(int argc, char* argv[]) {
 
 	//daemon(0,0);
 
-	enviromentCheck();
+	enviromentCheck(argc, argv);
 
-    if (InitPro(argc, argv) == 0) {
-        fprintf(stderr, "[CJ-COMM]通信进程进程参数错误\n");
-        return EXIT_FAILURE;
-    }
-
-    struct sigaction sa = {};
-    Setsig(&sa, QuitProcess);
 
     //开始通信模块维护、红外与维护串口线程
     CreateATWorker();
