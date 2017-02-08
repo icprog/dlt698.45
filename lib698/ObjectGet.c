@@ -12,11 +12,12 @@
 #include "StdDataType.h"
 #include "Objectdef.h"
 #include "dlt698def.h"
+#include "PublicFunction.h"
 extern INT8S (*pSendfun)(int fd,INT8U* sndbuf,INT16U sndlen);
 extern int FrameHead(CSINFO *csinfo,INT8U *buf);
 extern void FrameTail(INT8U *buf,int index,int hcsi);
 extern int comfd;
-
+extern INT8U TmpDataBuf[MAXSIZ_FAM];
 typedef struct
 {
 	OAD oad;
@@ -39,7 +40,7 @@ int BuildFrame_GetResponse(INT8U response_type,CSINFO *csinfo,RESULT_NORMAL resp
 	sendbuf[index++] = response.oad.OI & 0xff;
 	sendbuf[index++] = response.oad.attflg;
 	sendbuf[index++] = response.oad.attrindex;
-	if (response.data!=NULL)
+	if (response.datalen > 0)
 	{
 		sendbuf[index++] = 1;//choice 1  ,Data有效
 		memcpy(&sendbuf[index],response.data,response.datalen);
@@ -76,6 +77,70 @@ int GetEventCjFangAnInfo(RESULT_NORMAL *response)
 {
 	return 0;
 }
+int create_array(INT8U *data,INT8U numm)
+{
+	data[0] = 0x01;
+	data[1] = numm;
+	return 2;
+}
+int create_struct(INT8U *data,INT8U numm)
+{
+	data[0] = 0x02;
+	data[1] = numm;
+	return 2;
+}
+int fill_bit_string8(INT8U *data,INT8U bits)
+{
+	//TODO : 默认8bit ，不符合A-XDR规范
+	data[0] = 0x04;
+	data[1] = 0x08;
+	data[2] = bits;
+	return 3;
+}
+int fill_unsigned(INT8U *data,INT8U value)
+{
+	data[0] = 0x11;
+	data[1] = value;
+	return 2;
+}
+int fill_DateTimeBCD(INT8U *data,DateTimeBCD *time)
+{
+	data[0] = 0x1C;
+	time->year.data = time->year.data >>8 | time->year.data<<8;
+	memcpy(&data[1],time,sizeof(DateTimeBCD));
+	return (sizeof(DateTimeBCD)+1);
+}
+int GetYxPara(RESULT_NORMAL *response)
+{
+	int index=0;
+	INT8U *data = NULL;
+	OAD oad;
+	CLASS_f203 objtmp;
+	oad = response->oad;
+	data = response->data;
+	memset(&objtmp,0,sizeof(objtmp));
+	readParaClass(0xf203,&objtmp,0);
+	switch(oad.attflg )
+	{
+		case 4://配置参数
+			index += create_struct(&data[index],2);
+			index += fill_bit_string8(&data[index],objtmp.state4.StateAcessFlag);
+			index += fill_bit_string8(&data[index],objtmp.state4.StatePropFlag);
+			break;
+		case 2://设备对象列表
+			objtmp.statearri.num = 4;
+			index += create_array(&data[index],objtmp.statearri.num);
+			for(int i=0;i<objtmp.statearri.num;i++)
+			{
+				index += create_struct(&data[index],2);
+				index += fill_unsigned(&data[index],objtmp.statearri.stateunit[i].ST);
+				index += fill_unsigned(&data[index],objtmp.statearri.stateunit[i].CD);
+			}
+			break;
+	}
+	response->datalen = index;
+	return 0;
+}
 int GetSecurePara(RESULT_NORMAL *response)
 {
 	INT8U *data=NULL;
@@ -87,10 +152,8 @@ int GetSecurePara(RESULT_NORMAL *response)
 	switch(oad.attflg )
 	{
 		case 2://安全模式选择
-			data  = malloc(2);
 			data[0] = 0x16;
 			data[1] = 0x01;
-			response->data = data;
 			response->datalen = 2;
 			break;
 		case 3://安全模式参数array
@@ -98,9 +161,47 @@ int GetSecurePara(RESULT_NORMAL *response)
 	}
 	return 0;
 }
+int GetSysDateTime(RESULT_NORMAL *response)
+{
+	INT8U *data=NULL;
+	OAD oad;
+	DateTimeBCD time;
+
+	oad = response->oad;
+	data = response->data;
+	DataTimeGet(&time);
+	switch(oad.attflg )
+	{
+		case 2://安全模式选择
+			response->datalen = fill_DateTimeBCD(response->data,&time);
+			break;
+	}
+	return 0;
+}
+void GetEventInfo(OAD oad,INT8U *data)
+{
+	switch(oad.attflg) {
+	case 1:	//逻辑名
+	case 3:	//关联属性表
+	case 4:	//当前记录数
+	case 5:	//最大记录数
+	case 8: //上报标识
+	case 9: //有效标识
+
+		break;
+	case 6:	//配置参数
+		switch(oad.OI) {
+			case 0x310d:
+
+				break;
+		}
+		break;
+	}
+}
+
 int getRequestRecord(INT8U *typestu,CSINFO *csinfo,INT8U *buf)
 {
-	RSD rsd;
+	RSD rsd={};
 	OAD oad={};
 	INT8U rsdtype=0;
 	//1,OAD
@@ -133,6 +234,13 @@ int doGetnormal(RESULT_NORMAL *response)
 {
 	INT16U oi = response->oad.OI;
 	fprintf(stderr,"\ngetRequestNormal----------  oi =%04x  ",oi);
+
+	INT8U oihead = (oi & 0xF000) >>12;
+	switch(oihead) {
+	case 3:			//事件类对象读取
+//		GetEventInfo(oad,data);
+		break;
+	}
 	switch(oi)
 	{
 		case 0x6000:	//采集档案配置表
@@ -152,19 +260,27 @@ int doGetnormal(RESULT_NORMAL *response)
 		case 0xF101:
 			GetSecurePara(response);
 			break;
+		case 0xF203:
+			GetYxPara(response);
+			break;
+		case 0x3104:
+			//GetEvent(response);
+			break;
+		case 0x4000:
+			GetSysDateTime(response);
+			break;
 	}
 	return 0;
 }
 int getRequestNormal(OAD oad,INT8U *data,CSINFO *csinfo,INT8U *sendbuf)
 {
 	RESULT_NORMAL response;
+	memset(TmpDataBuf,0,sizeof(TmpDataBuf));
 	response.oad = oad;
-	response.data = NULL;
+	response.data = TmpDataBuf;
 	response.datalen = 0;
 	doGetnormal(&response);
 	BuildFrame_GetResponse(GET_REQUEST_NORMAL,csinfo,response,sendbuf);
-	if (response.data!=NULL)
-		free(response.data);
 	return 1;
 }
 int getRequestNormalList(OAD oad,INT8U *data,CSINFO *csinfo,INT8U *sendbuf)

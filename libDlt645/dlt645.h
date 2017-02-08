@@ -15,6 +15,6 @@ typedef struct
 	INT8U SEQ;				//帧序号
 	INT8U Err;
 }FORMAT07;
-extern int ProcessData(unsigned char* Rcvbuf,int Rcvlen,unsigned char* addr);
+//extern int ProcessData(unsigned char* Rcvbuf,int Rcvlen,unsigned char* addr);
 
 #endif

@@ -15,6 +15,7 @@
 extern int doObjectAction();
 //extern int doActionReponse(int reponse,CSINFO *csinfo,PIID piid,OMD omd,int dar,INT8U *data,INT8U *buf);
 extern int getRequestNormal(OAD oad,INT8U *data,CSINFO *csinfo,INT8U *sendbuf);
+extern int getRequestNormalList(OAD oad,INT8U *data,CSINFO *csinfo,INT8U *sendbuf);
 extern int doReponse(int server,int reponse,CSINFO *csinfo,PIID piid,OAD oad,int dar,INT8U *data,INT8U *buf);
 extern int setRequestNormal(INT8U *data,OAD oad,CSINFO *csinfo,INT8U *buf);
 extern int setRequestNormalList(INT8U *Object,CSINFO *csinfo,INT8U *buf);
@@ -22,6 +23,7 @@ extern int setRequestNormalList(INT8U *Object,CSINFO *csinfo,INT8U *buf);
 extern unsigned short tryfcs16(unsigned char *cp, int  len);
 INT8S (*pSendfun)(int fd,INT8U* sndbuf,INT16U sndlen);
 int comfd = 0;
+INT8U TmpDataBuf[MAXSIZ_FAM];
 
 /**************************************
  * 函数功能：DL/T698.45 状态机
@@ -451,11 +453,36 @@ INT16S composeSecurityResponse(INT8U* SendApdu,INT16U length,INT8U SecurityType)
 	 fd = Esam_Init(fd,(INT8U*)DEV_SPI_PATH);
 	 if(fd<0) return -3;
 	 retLen = Esam_SIDResponseCheck(fd,SecurityType,SendApdu,length,SendApdu);
+	 if(retLen<=0) return 0;
 	 Esam_Clear(fd);
 	 return retLen;
 }
+//组织主动上报报文安全加密（上送主站报文）
+//明文发送到ESAM芯片，返回12字节RN和4字节MAC共16字节
+//上报报文是明文+RN_MAC类型
+//传入的SendApdu后，在该buff后面添加RN_MAC
+//SendApdu第一个字节是0x00，代表明文应用数据单元，此处从第二个字节开始计算mac和rn
+INT16U composeAutoReport(INT8U* SendApdu,INT16U length)
+{
+	 INT16S retLen=0;
+	 INT32S fd=-1;
+	 INT8U RN[12];
+	 INT8U MAC[4];
+	 fd = Esam_Init(fd,(INT8U*)DEV_SPI_PATH);
+	 if(fd<0) return -3;
+	 retLen = Esam_ReportEncrypt(fd,&SendApdu[1],length-1,RN,MAC);
+	 if(retLen<=0) return 0;
+	 SendApdu[length]=0x02;//数据验证信息类型RN_MAC
+	 SendApdu[length+1]=0x0C;//随机数长度
+	 memcpy(&SendApdu[length+2],RN,12);//12个随机数，固定大小
+	 SendApdu[length+2+12]=0x04;//mac长度
+	 memcpy(&SendApdu[length+2+12+1],MAC,4);//MAC,固定大小
+	 if(retLen<=0) return 0;
+	 Esam_Clear(fd);
+	 return length+1+12+1+4;
+}
 /**********************************************************************
- * 解析SECURITY-response 终端主动上报后，主站回复数据 apdu[0]=144;apdu[1]应用数据单元
+ *  终端主动上报后,解析主站回复数据SECURITY-response， apdu[0]=144;apdu[1]应用数据单元
  * 主动上报当前资料应用环境和流程是  明文+RN_MAC ----返回  明文+MAC
  * 上行中终端明文进入esam生成RN和MAC，主站校验，返回明文和MAC，终端根据上行的RN和主站返回的MAC校验
  * 注意RN需要终端主动上报后本地保存(全局变量)

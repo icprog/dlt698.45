@@ -77,5 +77,5 @@ typedef struct {
 }_AverageStru;
 
 extern void InitACSPara();
-extern void DealACS();
+extern void acs_process();
 #endif /* ACS_H_ */

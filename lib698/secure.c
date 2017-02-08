@@ -85,7 +85,7 @@ INT8S UnitParse(INT8U* source,INT8U* dest,INT8U type)
 		dest+=4;
 		source+=4;
 		if(source[0]!=0)
-			memcpy(dest,source,source[0]+1);//RN随机数（包含一个字节长度）
+			memcpy(dest,source,source[0]+1);//附加信息（包含一个字节长度）
 		len=len+4+1+source[0];
 	}
 	else if(type == 0x02)//RN  OR MAC    octet-string类型（包含一个字节长度）

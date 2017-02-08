@@ -112,9 +112,9 @@ INT16U setf203(INT8U attflg,INT8U index,INT8U *data)
 	INT16U source_index=0,dest_index=0;
 	if ( attflg == 4 )//配置参数
 	{
-//		YXCONFIG config;
-//		get_BasicUnit(data,&source_index,(INT8U*)&config,&dest_index);
-		fprintf(stderr,"\n状态量配置参数 : 接入标志 %02x  属性标志 %02x \n",config.yximportflg,config.yxattr);
+		StateAtti4 config;
+		get_BasicUnit(data,&source_index,(INT8U*)&config,&dest_index);
+		fprintf(stderr,"\n状态量配置参数 : 接入标志 %02x  属性标志 %02x \n",config.StateAcessFlag,config.StatePropFlag);
 	}
 	return source_index;
 }
@@ -241,7 +241,7 @@ INT8U EventSetAttrib(OAD oad,INT8U *data)
 		}
 		break;
 	}
-	return success;
+	return DAR;
 }
 
 void EnvironmentValue(OAD oad,INT8U *data)
