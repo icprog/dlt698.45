@@ -680,44 +680,43 @@ sem_t* open_named_sem(const char* name)
  * 正常返回  模拟状态 ，低5位为GPRS_ID, 第6位门节点状态
  * =-1：		无此设备，为II型集中器
  * */
-//INT8S getSpiAnalogState()
-//{
-//	unsigned char ret=0;
-//	int i,tmpid[8];
-//
-//	if(gpio_readbyte(DEV_SPI_CS,1)==-1) {
-//
-//		return -1;
-//	}
-//	usleep(50);
-//	gpio_readbyte(DEV_SPI_CS,0);
-//	usleep(50);
-//	gpio_readbyte(DEV_SPI_CS,1);
-//	gpio_readbyte(DEV_SPI_CLK,0);
-//	for(i=0;i<8;i++)
-//	{
-//		usleep(50);
-//		gpio_readbyte(DEV_SPI_CLK,1);
-//		usleep(50);
-//		tmpid[i] = gpifun(DEV_SPI_MISO);
-//		usleep(50);
-//		gpio_readbyte(DEV_SPI_CLK,0);
-//	}
-//	if (tmpid[6]==1)//GPRS_STAT0
-//		ret |= 1<<0;
-//	if (tmpid[4]==1)//GPRS_STAT1
-//		ret |= 1<<1;
-//	if (tmpid[5]==1)//GPRS_STAT2
-//		ret |= 1<<2;
-//	if (tmpid[1]==1)//GPRS_STAT3
-//		ret |= 1<<3;
-//	if (tmpid[3]==1)//GPRS_STAT4
-//		ret |= 1<<4;
-//
-//	if (tmpid[2]==1)//MEN node  门节点
-//		ret |= 1<<5;
-//	return ret;
-//}
-//
+INT8S getSpiAnalogState()
+{
+	unsigned char ret=0;
+	int i,tmpid[8];
+
+	if(gpio_writebyte(DEV_SPI_CS,1)==-1) {
+
+		return -1;
+	}
+	usleep(50);
+	gpio_writebyte(DEV_SPI_CS,0);
+	usleep(50);
+	gpio_writebyte(DEV_SPI_CS,1);
+	gpio_writebyte(DEV_SPI_CLK,0);
+	for(i=0;i<8;i++)
+	{
+		usleep(50);
+		gpio_writebyte(DEV_SPI_CLK,1);
+		usleep(50);
+		tmpid[i] = gpio_readbyte(DEV_SPI_MISO);
+		usleep(50);
+		gpio_writebyte(DEV_SPI_CLK,0);
+	}
+	if (tmpid[6]==1)//GPRS_STAT0
+		ret |= 1<<0;
+	if (tmpid[4]==1)//GPRS_STAT1
+		ret |= 1<<1;
+	if (tmpid[5]==1)//GPRS_STAT2
+		ret |= 1<<2;
+	if (tmpid[1]==1)//GPRS_STAT3
+		ret |= 1<<3;
+	if (tmpid[3]==1)//GPRS_STAT4
+		ret |= 1<<4;
+
+	if (tmpid[2]==1)//MEN node  门节点
+		ret |= 1<<5;
+	return ret;
+}
 
 #endif /*JPublicFunctionH*/

@@ -73,11 +73,11 @@ INT16S AxorB(INT8U* abuf, INT8U* bbuf, INT8U* Rbuf, INT8U len) {
 }
 //TODO:在vmain主进程中，需要有nsem_creat（）创建该信号量。
 INT32S Esam_Init(INT32S fd, INT8U* spipath) {
-    gpio_writebyte((INT8S*)DEV_ESAM_PWR, 0);
+    gpio_writebyte(DEV_ESAM_PWR, 0);
     usleep(50000);
-    gpio_writebyte((INT8S*)DEV_ATT_RST, 1);
+    gpio_writebyte(DEV_ATT_RST, 1);
     usleep(2);
-    gpio_writebyte((INT8S*)DEV_ESAM_CS, 1);
+    gpio_writebyte(DEV_ESAM_CS, 1);
     sem_spi0_0 = nsem_open(SEMNAME_SPI0_0);
     return SPI_Init(fd, spipath);
 }
@@ -173,7 +173,7 @@ INT32S Esam_WriteThenRead(INT32S fd, INT8U* Tbuf, INT8U Tlen, INT8U* Rbuf){
 			Result = Esam_ErrMessageCheck(rx);
 		}
 	}
-	gpio_writebyte((INT8S*)DEV_ESAM_CS,1);
+	gpio_writebyte(DEV_ESAM_CS,1);
 	sem_post(sem_spi0_0);
 	return Result;
 }
@@ -188,17 +188,17 @@ void Esam_WriteToChip(INT32S fd, INT8U* Tbuf, INT8U Tlen)
 		struct spi_ioc_transfer	xfer[2];
 		memset(xfer, 0,  sizeof xfer);
 		usleep(5);
-		gpio_writebyte((INT8S*)DEV_ESAM_CS,1);
+		gpio_writebyte(DEV_ESAM_CS,1);
 		usleep(10);
-		gpio_writebyte((INT8S*)DEV_ESAM_CS,0);
+		gpio_writebyte(DEV_ESAM_CS,0);
 		usleep(20);
 		xfer[0].tx_buf = (int)Tbuf;//发数据
 		xfer[0].len =Tlen;
 		ioctl(fd, SPI_IOC_MESSAGE(2), xfer);
 		usleep(5);
-		gpio_writebyte((INT8S*)DEV_ESAM_CS,1);
+		gpio_writebyte(DEV_ESAM_CS,1);
 		usleep(10);
-		gpio_writebyte((INT8S*)DEV_ESAM_CS,0);
+		gpio_writebyte(DEV_ESAM_CS,0);
 		usleep(20);
 
 		printf("\n Esam_WriteToChip:");

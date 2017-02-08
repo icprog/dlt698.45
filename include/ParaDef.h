@@ -90,6 +90,12 @@
 #define DEV_GPRS_S1		"/dev/gpiGPRS_S1"		//GPRS状态
 #define DEV_GPRS_S2		"/dev/gpiGPRS_S2"		//GPRS状态
 
+#define DEV_STATE1  	"/dev/gpiYX1"
+#define DEV_STATE2  	"/dev/gpiYX2"
+#define DEV_STATE3  	"/dev/gpiYX3"
+#define DEV_STATE4  	"/dev/gpiYX4"
+#define DEV_PULSE  		"/dev/pulse"  			//脉冲1
+
 #define DEV_ADC        "/dev/adc0"
 /////////////////////////////////////////////////////////////////
 

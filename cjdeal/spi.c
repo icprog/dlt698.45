@@ -83,9 +83,9 @@ INT32S spi_init(INT32S fd,const char * spipath,uint32_t speed)
 		fprintf(stderr,"can't open  device %s\n",spipath);		//pabort
 	}
 	dumpstat((char*)spipath,fd,speed);
-	gpio_writebyte((INT8S *)DEV_ATT_RST,0);
+	gpio_writebyte(DEV_ATT_RST,0);
 	usleep(50000);
-	gpio_writebyte((INT8S*)DEV_ATT_RST,1);
+	gpio_writebyte(DEV_ATT_RST,1);
 	sleep(1);
 	return fd;
 }
@@ -108,11 +108,11 @@ int spi_read(int fd, INT8U *cbuf, int16_t clen, INT8U *rbuf, int rlen)
 	xfer[1].rx_buf = (int) rx;
 	xfer[1].len = rlen;
 
-	gpio_writebyte((INT8S*)DEV_ESAM_CS,1);
-	gpio_writebyte((INT8S*)DEV_ATT_CS, 1);
-	gpio_writebyte((INT8S*)DEV_ATT_CS, 0);
+	gpio_writebyte(DEV_ESAM_CS,1);
+	gpio_writebyte(DEV_ATT_CS, 1);
+	gpio_writebyte(DEV_ATT_CS, 0);
 	ioctl(fd, SPI_IOC_MESSAGE(2), xfer);
-	gpio_writebyte((INT8S*)DEV_ATT_CS, 1);
+	gpio_writebyte(DEV_ATT_CS, 1);
 	for(i=0; i<rlen; i++)
 		rbuf[i]=rx[i];
 	return 1;
@@ -139,11 +139,11 @@ int spi_write(int fd, INT8U *buf, int len)
 	xfer[1].len = 0;
 	//xfer[1].delay_usecs=10;
 
-	gpio_writebyte((INT8S*)DEV_ESAM_CS,1);
-	gpio_writebyte((INT8S*)DEV_ATT_CS, 1);
-	gpio_writebyte((INT8S*)DEV_ATT_CS, 0);
+	gpio_writebyte(DEV_ESAM_CS,1);
+	gpio_writebyte(DEV_ATT_CS, 1);
+	gpio_writebyte(DEV_ATT_CS, 0);
 	ioctl(fd, SPI_IOC_MESSAGE(2), xfer);
-	gpio_writebyte((INT8S*)DEV_ATT_CS, 1);
+	gpio_writebyte(DEV_ATT_CS, 1);
 	return len;
 }
 
