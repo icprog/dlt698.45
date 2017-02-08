@@ -6,22 +6,39 @@
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <syslog.h>
 
 #include "PublicFunction.h"
 
-void rlog(const char* fmt, ...) {
-    char path[64];
-    TS ts = {};
-    TSGet(&ts);
+/*
+ *     LOG_ERR        发生错误
+ *     LOG_WARNING    警告信息
+ *     LOG_INFO       系统变量、状态信息
+ *     LOG_DEBUG      调试信息
+ *
+ */
 
-    memset(path, 0, sizeof(path));
-    sprintf(path, "/nand/mlog/M%02d-%02d-%02d.log", (ts.Year + 1900) % 100, ts.Month, ts.Day);
-    FILE* fd = fopen(path, "a+");
+void asyslog(int priority, const char* fmt, ...) {
     va_list argp;
     va_start(argp, fmt);
-    fprintf(fd, "[%02d-%02d-%02d]:", ts.Hour, ts.Minute, ts.Sec);
-    vfprintf(fd, fmt, argp); /* 将va_list传递给子函数 */
+    vsyslog(priority, fmt, argp);
+    vprintf(fmt, argp);
     va_end(argp);
-    fclose(fd);
 }
 
+void bufsyslog(const INT8U* buf, int head, int tail, int len) {
+	int count = 0;
+	char msg[4096];
+	memset(msg, '\0', sizeof(msg));
+	sprintf(msg, "RECV:");
+	while(head != tail)
+	{
+		sprintf(msg + 4 + count * 3, " %02x", buf[tail]);
+		tail = (tail + 1)%len;
+		count++;
+		if (count > 1024){
+			break;
+		}
+	}
+	syslog(LOG_INFO, "%s", buf);
+}

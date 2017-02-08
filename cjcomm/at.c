@@ -7,6 +7,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <syslog.h>
 
 #include <net/if.h>
 #include <netinet/in.h>
@@ -15,7 +16,7 @@
 #include "PublicFunction.h"
 #include "dlt698def.h"
 #include "cjcomm.h"
-
+#include "rlog.h"
 int gpofun(char* devname, int data) {
     int fd = -1;
     if ((fd = open(devname, O_RDWR | O_NDELAY)) >= 0) {
@@ -166,7 +167,7 @@ int tryifconfig() {
     }
     memcpy(&sin, &ifr.ifr_addr, sizeof(sin));
     if (sin.sin_addr.s_addr > 0) {
-        rlog("[tryifconfig]获取到正确的IP地址%s\n", inet_ntoa(sin.sin_addr));
+        asyslog(LOG_INFO, "[tryifconfig]获取到正确的IP地址%s\n", inet_ntoa(sin.sin_addr));
         close(sock);
         return 1;
     }
@@ -176,8 +177,6 @@ int tryifconfig() {
 
 void* ATWorker(void* args) {
     while (1) {
-        rlog("[ATWorker]开始拨号流程。\n");
-
         system("pkill ftpget");
         system("ppp-off");
         system("pkill gsmMuxd");
@@ -203,7 +202,7 @@ void* ATWorker(void* args) {
         gpofun("/dev/gpoGPRS_RST", 1);
         sleep(1);
 
-        rlog("[ATWorker]打开串口复用。\n");
+        asyslog(LOG_INFO, "打开串口复用模块");
         system("mux.sh &");
         sleep(5);
 
@@ -258,11 +257,11 @@ void* ATWorker(void* args) {
             int k, l, m;
             if (sscanf(Mrecvbuf, "%*[^:]: %d,%d,%d", &k, &l, &m) == 3) {
                 if ((l & 0x01) == 1) {
-                    rlog("[ATWorker]远程通信单元类型为GPRS。\n");
+                	asyslog(LOG_INFO, "远程通信单元类型为GPRS。\n");
                     break;
                 }
                 if ((l & 0x08) == 8) {
-                    rlog("[ATWorker]远程通信单元类型为CDMA2000。\n");
+                	asyslog(LOG_INFO, "远程通信单元类型为CDMA2000。\n");
                     break;
                 }
             }
@@ -278,7 +277,7 @@ void* ATWorker(void* args) {
             char CCID[32];
             memset(CCID, 0, 32);
             if (sscanf(Mrecvbuf, "%*[^\"]\"%[0-9|A-Z|a-z]", CCID) == 1) {
-                rlog("CCID: %s\n", CCID);
+            	asyslog(LOG_INFO, "CCID: %s\n", CCID);
                 break;
             }
         }
@@ -293,7 +292,7 @@ void* ATWorker(void* args) {
 
             int k, l;
             if (sscanf(Mrecvbuf, "%*[^:]: %d,%d", &k, &l) == 2) {
-                rlog("GprsCSQ = %d,%d\n", k, l);
+            	asyslog(LOG_INFO, "GprsCSQ = %d,%d\n", k, l);
                 if (k != 99) {
                     break;
                 }
@@ -310,7 +309,7 @@ void* ATWorker(void* args) {
 
             int k, l;
             if (sscanf(Mrecvbuf, "%*[^:]: %d,%d", &k, &l) == 2) {
-                rlog("GprsCREG = %d,%d\n", k, l);
+            	asyslog(LOG_INFO, "GprsCREG = %d,%d\n", k, l);
                 if (l == 1 || l == 5) {
                     break;
                 }
@@ -327,7 +326,6 @@ void* ATWorker(void* args) {
 
         while (1) {
             delay(1000);
-            //            printf("wait for error.\n");
         }
 
     err:

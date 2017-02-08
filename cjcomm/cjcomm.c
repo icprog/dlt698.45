@@ -16,6 +16,7 @@
 #include "anet.h"
 #include "rlog.h"
 #include "at.h"
+#include "assert.h"
 
 #include "PublicFunction.h"
 #include "dlt698def.h"
@@ -34,7 +35,7 @@ void clearcount(int index) {
 }
 
 void QuitProcess(ProjectInfo* proinfo) {
-    rlog("EXIT：%s %d\n", "cjcomm", JProgramInfo->Projects[3].ProjectID);
+    asyslog(LOG_INFO, "通信模块退出");
     exit(0);
 }
 /*********************************************************
@@ -45,6 +46,7 @@ int InitPro(int argc, char* argv[]) {
     memcpy(IPaddr, argv[1], strlen(argv[1]));
 
     printf("Connect to %s\n", IPaddr);
+
     if (argc >= 2) {
         JProgramInfo = OpenShMem("ProgramInfo", sizeof(ProgramInfo), NULL);
         memcpy(JProgramInfo->Projects[3].ProjectName, "cjcomm", sizeof("cjcomm"));
@@ -126,13 +128,11 @@ void GenericRead(struct aeEventLoop* eventLoop, int fd, void* clientData, int ma
     }
 
     if (revcount > 0) {
-        printf("Generic Read:\n");
         for (int j = 0; j < revcount; j++) {
             read(nst->phy_connect_fd, &nst->RecBuf[nst->RHead], 1);
             printf("%02x ", nst->RecBuf[nst->RHead]);
             nst->RHead = (nst->RHead + 1) % BUFLEN;
         }
-        printf("\n");
 
         int len = 0;
         for (int i = 0; i < 5; i++) {
@@ -189,18 +189,15 @@ void NETRead(struct aeEventLoop* eventLoop, int fd, void* clientData, int mask) 
     }
 
     if (revcount > 0) {
-        printf("NET RECV:\n");
         for (int j = 0; j < revcount; j++) {
             read(nst->phy_connect_fd, &nst->RecBuf[nst->RHead], 1);
-            printf("%02x ", nst->RecBuf[nst->RHead]);
             nst->RHead = (nst->RHead + 1) % BUFLEN;
         }
-        printf("\n");
+        bufsyslog(nst->RecBuf, nst->RHead, nst->RTail, revcount);
 
         int len = 0;
         for (int i = 0; i < 5; i++) {
             len = StateProcess(&nst->deal_step, &nst->rev_delay, 10, &nst->RTail, &nst->RHead, nst->RecBuf, nst->DealBuf);
-            printf("len = %d\n", len);
             if (len > 0) {
                 break;
             }
@@ -220,15 +217,17 @@ void NETRead(struct aeEventLoop* eventLoop, int fd, void* clientData, int mask) 
     }
 }
 
+
 int NETWorker(struct aeEventLoop* ep, long long id, void* clientData) {
     CommBlock* nst = (CommBlock*)clientData;
 
     if (nst->phy_connect_fd <= 0) {
         initComPara(nst);
-        fprintf(stderr, "\nIPaddr:%s", IPaddr);
+        fprintf(stderr, "IPaddr:%s\n", IPaddr);
         nst->phy_connect_fd = anetTcpConnect(NULL, IPaddr, 5022);
+        fprintf(stderr, "[NETWorke1r]Connect Server(%d)[%s-%d]\n", nst->phy_connect_fd, __FILE__, __LINE__);
         if (nst->phy_connect_fd > 0) {
-            rlog("[NETWorker]Connect Server(%d)\n", nst->phy_connect_fd);
+            fprintf(stderr, "[NETWorker]Connect Server(%d)\n", nst->phy_connect_fd);
             if (aeCreateFileEvent(ep, nst->phy_connect_fd, AE_READABLE, NETRead, nst) < 0) {
                 close(nst->phy_connect_fd);
                 nst->phy_connect_fd = -1;
@@ -240,28 +239,36 @@ int NETWorker(struct aeEventLoop* ep, long long id, void* clientData) {
         Comm_task(nst);
     }
 
+    return 200;
+
     /*
      * 检查红外与维护串口通信状况。
      */
-    if ((FirObject.phy_connect_fd = OpenCom(3, 2400, (unsigned char*)"none", 1, 8)) <= 0) {
-        rlog("[FirComWorker] Open Fir FAILED.\n");
-    }
-    else
-    {
-    	if (aeCreateFileEvent(ep, nst->phy_connect_fd, AE_READABLE, GenericRead, &FirObject) < 0) {
-			close(nst->phy_connect_fd);
-			nst->phy_connect_fd = -1;
+    if(FirObject.phy_connect_fd < 0){
+		if ((FirObject.phy_connect_fd = OpenCom(3, 2400, (unsigned char*)"none", 1, 8)) <= 0) {
+			asyslog(LOG_ERR, "红外口打开失败");
+		}
+		else
+		{
+			if (aeCreateFileEvent(ep, FirObject.phy_connect_fd, AE_READABLE, GenericRead, &FirObject) < 0) {
+				asyslog(LOG_ERR, "红外串口监听失败 %d", FirObject.phy_connect_fd);
+				close(FirObject.phy_connect_fd);
+				FirObject.phy_connect_fd = -1;
+			}
 		}
     }
 
-    if ((ComObject.phy_connect_fd = OpenCom(4, 2400, (unsigned char*)"none", 1, 8)) <= 0) {
-        rlog("[FirComWorker] Open Com FAILED.\n");
-    }
-    else
-    {
-    	if (aeCreateFileEvent(ep, nst->phy_connect_fd, AE_READABLE, GenericRead, &ComObject) < 0) {
-			close(nst->phy_connect_fd);
-			nst->phy_connect_fd = -1;
+    if(ComObject.phy_connect_fd < 0){
+		if ((ComObject.phy_connect_fd = OpenCom(4, 2400, (unsigned char*)"none", 1, 8)) <= 0) {
+			asyslog(LOG_ERR, "维护串口打开失败");
+		}
+		else
+		{
+			if (aeCreateFileEvent(ep, FirObject.phy_connect_fd, AE_READABLE, GenericRead, &ComObject) < 0) {
+				asyslog(LOG_ERR, "维护串口监听失败 %d", FirObject.phy_connect_fd);
+				close(FirObject.phy_connect_fd);
+				FirObject.phy_connect_fd = -1;
+			}
 		}
     }
 
@@ -302,11 +309,6 @@ void CreateAptSer(struct aeEventLoop* eventLoop, int fd, void* clientData, int m
 
 void enviromentCheck()
 {
-	//创建日志目录
-    if (access("/nand/mlog", F_OK) == -1) {
-        system("mkdir /nand/mlog");
-    }
-
     //初始化通信对象参数
     initComPara(&FirObject);
     initComPara(&ComObject);
@@ -315,6 +317,8 @@ void enviromentCheck()
 }
 
 int main(int argc, char* argv[]) {
+
+	//daemon(0,0);
 
 	enviromentCheck();
 
@@ -333,7 +337,8 @@ int main(int argc, char* argv[]) {
     aeEventLoop* ep;
     ep = aeCreateEventLoop(128);
     if (ep == NULL) {
-        rlog("[main]事件循环创建失败，程序终止。\n");
+        asyslog(LOG_ERR, "事件循环创建失败，程序终止。\n");
+        exit(0);
     }
 
     //建立服务端侦听
