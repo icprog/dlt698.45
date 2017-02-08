@@ -96,6 +96,28 @@ INT16U set4000(INT8U attflg,INT8U index,INT8U *data)
 	}
 	return source_index;
 }
+INT16U set4300(INT8U attflg,INT8U index,INT8U *data)
+{
+	INT16U source_index=0,dest_index=0;
+	if ( attflg == 8 )//允许\禁止终端主动上报
+	{
+		INT8U autoReport=0;
+		get_BasicUnit(data,&source_index,&autoReport,&dest_index);
+		fprintf(stderr,"\n终端主动上报 : %d\n",autoReport);
+	}
+	return source_index;
+}
+INT16U setf203(INT8U attflg,INT8U index,INT8U *data)
+{
+	INT16U source_index=0,dest_index=0;
+	if ( attflg == 4 )//配置参数
+	{
+		StateAtti4 config;
+		get_BasicUnit(data,&source_index,(INT8U*)&config,&dest_index);
+		fprintf(stderr,"\n状态量配置参数 : 接入标志 %02x  属性标志 %02x \n",config.StateAcessFlag,config.StatePropFlag);
+	}
+	return source_index;
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 /*
@@ -248,6 +270,8 @@ void EnvironmentValue(OAD oad,INT8U *data)
 			break;
 		case 0x4030://电压合格率参数
 			break;
+		case 0x4300://
+			set4300(attr,oad.attrindex,data);
 	}
 }
 void CollParaSet(OAD oad,INT8U *data)
@@ -269,6 +293,18 @@ void CollParaSet(OAD oad,INT8U *data)
 			break;
 	}
 }
+void DeviceIoSetAttrib(OAD oad,INT8U *data)
+{
+	INT16U oi = oad.OI;
+	INT8U attr = oad.attflg;
+	fprintf(stderr,"\n输入输出设备类对象属性设置");
+	switch(oi)
+	{
+		case 0xF203:	//开关量输入
+			setf203(attr,oad.attrindex,data);
+			break;
+	}
+}
 int setRequestNormal(INT8U *data,OAD oad,CSINFO *csinfo,INT8U *buf)
 {
 	INT16U oi = oad.OI;
@@ -286,6 +322,8 @@ int setRequestNormal(INT8U *data,OAD oad,CSINFO *csinfo,INT8U *buf)
 		case 0x6:		//采集监控类对象
 			CollParaSet(oad,data);
 			break;
+		case 0xf:		//输入输出设备类对象 + ESAM接口类对象
+			DeviceIoSetAttrib(oad,data);
 	}
 	return success;
 }

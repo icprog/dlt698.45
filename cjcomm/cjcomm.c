@@ -113,9 +113,15 @@ void Comm_task(CommBlock* compara) {
     }
 }
 
+<<<<<<< HEAD
+INT8S ComWrite(int fd, INT8U* buf, INT16U len) {
+    int j=0;
+    fprintf(stderr,"\nNET SEND:\n");
+=======
 INT8S GenericWrite(int fd, INT8U* buf, INT16U len) {
     int j = 0;
     fprintf(stderr, "Generic Send:\n");
+>>>>>>> 992222bfe0a69722419e998e5a2ceed3eea35882
     for (j = 0; j < len; j++) {
         fprintf(stderr, "%02x ", buf[j]);
     }
@@ -123,6 +129,13 @@ INT8S GenericWrite(int fd, INT8U* buf, INT16U len) {
     return anetWrite(fd, buf, (int)len);
 }
 
+<<<<<<< HEAD
+INT8S NetWrite(int fd, INT8U* buf, INT16U len) {
+    int j=0;
+    fprintf(stderr,"\nNET SEND:\n");
+    for (j = 0; j < len; j++) {
+        fprintf(stderr,"%02x ",buf[j]);
+=======
 void GenericRead(struct aeEventLoop* eventLoop, int fd, void* clientData, int mask) {
     CommBlock* nst = (CommBlock*)clientData;
 
@@ -164,6 +177,7 @@ void GenericRead(struct aeEventLoop* eventLoop, int fd, void* clientData, int ma
                     break;
             }
         }
+>>>>>>> 992222bfe0a69722419e998e5a2ceed3eea35882
     }
 }
 

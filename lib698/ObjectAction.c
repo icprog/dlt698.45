@@ -114,6 +114,10 @@ void get_BasicUnit(INT8U *source,INT16U *sourceindex,INT8U *dest,INT16U *destind
 			fprintf(stderr,"\n		bool %d  元素",source[1]);
 			size = 1;
 			break;
+		case 0x04: //bit-string
+			size = 2;
+			dest[0] = source[2];  // TODO: 此处默认8个bit   source[1] : 长度字节
+			break;
 		case 0x06: //double-long-unsigned
 			size = 4;
 			dest[0] = source[4];
@@ -487,6 +491,15 @@ void TaskInfo(INT16U attr_act,INT8U *data)
 			break;
 	}
 }
+void TerminalInfo(INT16U attr_act,INT8U *data)
+{
+	switch(attr_act)
+	{
+		case 3://数据初始化
+			fprintf(stderr,"\n终端数据初始化!");
+			break;
+	}
+}
 void MeterInfo(INT16U attr_act,INT8U *data)
 {
 	switch(attr_act)
@@ -534,6 +547,9 @@ int doObjectAction(OAD oad,INT8U *data)
 			break;
 		case 0x6016:	//事件采集方案
 			EventCjFangAnInfo(attr_act,data);
+			break;
+		case 0x4300:	//终端对象
+			TerminalInfo(attr_act,data);
 			break;
 	}
 	return success;	//DAR=0，成功	TODO：增加DAR各种错误判断

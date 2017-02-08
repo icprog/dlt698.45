@@ -262,6 +262,17 @@ typedef struct
 
 typedef struct
 {
+	OI_698 oi;
+	INT16U model;
+}SecureModel;
+typedef struct
+{
+	INT8U active;
+	SecureModel modelpara[255];
+}CLASS_F101;//安全模式参数
+
+typedef struct
+{
 	CLASS22			class22;		//接口类IC
 	StateUnitArray	statearri;		//开关量单元属性2
 	StateAtti4		state4;			//开关量属性

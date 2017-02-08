@@ -13,14 +13,17 @@
 #define LIB698_VER 	1
 
 extern int doObjectAction();
+//extern int doActionReponse(int reponse,CSINFO *csinfo,PIID piid,OMD omd,int dar,INT8U *data,INT8U *buf);
+extern int getRequestNormal(OAD oad,INT8U *data,CSINFO *csinfo,INT8U *sendbuf);
+extern int getRequestNormalList(OAD oad,INT8U *data,CSINFO *csinfo,INT8U *sendbuf);
 extern int doReponse(int server,int reponse,CSINFO *csinfo,PIID piid,OAD oad,int dar,INT8U *data,INT8U *buf);
-extern int getRequestNormal(OAD oad,INT8U *data);
 extern int setRequestNormal(INT8U *data,OAD oad,CSINFO *csinfo,INT8U *buf);
 extern int setRequestNormalList(INT8U *Object,CSINFO *csinfo,INT8U *buf);
 
 extern unsigned short tryfcs16(unsigned char *cp, int  len);
 INT8S (*pSendfun)(int fd,INT8U* sndbuf,INT16U sndlen);
 int comfd = 0;
+INT8U TmpDataBuf[MAXSIZ_FAM];
 
 /**************************************
  * 函数功能：DL/T698.45 状态机
@@ -351,13 +354,13 @@ int doSetAttribute(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 	}
 	return 1;
 }
-int doGetAttribute(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
+
+int doGetAttribute(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
 {
 	PIID piid={};
 	INT8U getType = apdu[1];
 	OAD oad={};
 	INT8U *data=NULL;
-	// 1,GetRequestNormal ; 2,GetRequestNormalList  3,GetRequestRecord  4,GetRequestRecordList,GetRequestNext
 
 	piid.data = apdu[2];
 	fprintf(stderr,"\n- get type = %d PIID=%02x",getType,piid.data);
@@ -368,9 +371,10 @@ int doGetAttribute(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 	switch(getType)
 	{
 		case GET_REQUEST_NORMAL:
-			getRequestNormal(oad,data);
+			getRequestNormal(oad,data,csinfo,sendbuf);
 			break;
 		case GET_REQUEST_NORMAL_LIST:
+			getRequestNormalList(oad,data,csinfo,sendbuf);
 			break;
 		case GET_REQUEST_RECORD:
 //			getRequestRecord(&apdu[3],csinfo,buf);
@@ -498,28 +502,47 @@ INT16S parseSecurityResponse(INT8U* RN,INT8U* apdu)//apdu负责传入和传出�
 	else
 		return -1;//无效应用数据单元标示
 }
+///*
+// * head 从长度标示字节开始     des 为目标字BYTE串起始位置
+// * 返回值 : 目标BYTE串字节数
+// */
+//INT16U get_octet_string(INT8U *head,INT8U *des)
+//{
+//	INT8U lengthbytenum=0;
+//	INT16U lenflg = head[0]; //数据单元长度
+//	if ((lenflg & 0x80 )>0)	 //长度字节最高位 1 表示后续有超过n个字节表示内容字节的长度，0表示该字节的 【bit6-bit0】表示内容字节数
+//	{
+//		lengthbytenum = lenflg & 0x80;//长度域字节个数
+//		if(lengthbytenum >= 2)
+//		{
+//			lenflg = head[1]<<8 | head[2];//698协议中字节数最多用2字节表示    flag len1 len2 buf buf buf...
+//			des = head + 3;
+//		}else if(lengthbytenum == 1)
+//		{
+//			lenflg = head[1]; //字节数由1个字节表示							flag len1 buf buf buf...
+//			des = head + 2;
+//		}else
+//			lenflg = 0;
+//	}
+//	return lenflg;
+//}
 /**********************************************************************
  * 1.	CONNECT.request 服务,本服务由客户机应用进程调用,用于向远方服务器的应用进程提出建立应用连接请求。
  * 						主站（客户机）请求集中器（客户机）建立应用连接
  */
 INT8U dealClientRequest(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
 {
-	INT8U apduType = apdu[0];
+	INT16S SecurityRe =0;
+	INT8U apduType = apdu[0];//0x10  [16]
 	fprintf(stderr,"\n-------- apduType = %d ",apduType);
 
 	if (apduType == SECURITY_REQUEST)//安全请求的数据类型
 	{
-		INT8U choice=apdu[1];
-//		INT8U
-		switch (choice)
+		SecurityRe = doSecurityRequest(apdu);
+		if (SecurityRe <= 0)
 		{
-			case 0:
-				fprintf(stderr,"\n安全请求的数据类型 SECURITY-Request  ----- 明文应用数据单元");
-
-				break;
-			case 1:
-				fprintf(stderr,"\n安全请求的数据类型 SECURITY-Request  ----- 密文应用数据单元");
-				break;
+			fprintf(stderr,"\n安全请求计算错误!!!");
+			return 0;
 		}
 	}
 
@@ -555,7 +578,6 @@ int ProcessData(CommBlock *com)
 	INT8U *SendBuf = com->SendBuf;
 	pSendfun = com->p_send;
 	comfd = com->phy_connect_fd;
-
 	hcsok = CheckHead( Rcvbuf ,&csinfo);
 	fcsok = CheckTail( Rcvbuf ,csinfo.frame_length);
 	if ((hcsok==1) && (fcsok==1))
