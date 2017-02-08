@@ -30,7 +30,8 @@ INT16U getMytypeSize(INT8U first )
 	}
 	return 0 ;
 }
-int doActionReponse(int reponse,CSINFO *csinfo,PIID piid,OMD omd,int dar,INT8U *data,INT8U *buf)
+
+int doReponse(int server,int reponse,CSINFO *csinfo,PIID piid,OAD oad,int dar,INT8U *data,INT8U *buf)
 {
 	int index=0, hcsi=0;
 
@@ -40,22 +41,20 @@ int doActionReponse(int reponse,CSINFO *csinfo,PIID piid,OMD omd,int dar,INT8U *
 	index = FrameHead(csinfo,buf);
 	hcsi = index;
 	index = index + 2;
-	buf[index] = ACTION_RESPONSE;
+	buf[index] = server;
 	index++;
 	buf[index] = reponse;
 	index++;
 //	fprintf(stderr,"piid.data[%d]=%02x\n",index,piid.data);
 	buf[index] = piid.data;
 	index++;
-//	memcpy(&buf[index],&omd,sizeof(OMD));
-//	index = index + sizeof(OMD);
-	buf[index] = (omd.OI>>8) & 0xff;
+	buf[index] = (oad.OI>>8) & 0xff;
 	index++;
-	buf[index] = omd.OI & 0xff;
+	buf[index] = oad.OI & 0xff;
 	index++;
-	buf[index] = omd.method_tag;
+	buf[index] = oad.attflg;
 	index++;
-	buf[index] = omd.oper_model;
+	buf[index] = oad.attrindex;
 	index++;
 
 	buf[index] = dar;
@@ -108,6 +107,11 @@ void get_BasicUnit(INT8U *source,INT16U *sourceindex,INT8U *dest,INT16U *destind
 		case 0x02: //struct
 			strnum = source[1];
 			fprintf(stderr,"\n		结构体 %d  元素",strnum);
+			size = 1;
+			break;
+		case 0x03: //bool
+			dest[0] = source[1];
+			fprintf(stderr,"\n		bool %d  元素",source[1]);
 			size = 1;
 			break;
 		case 0x06: //double-long-unsigned
@@ -483,6 +487,15 @@ void TaskInfo(INT16U attr_act,INT8U *data)
 			break;
 	}
 }
+void TerminalInfo(INT16U attr_act,INT8U *data)
+{
+	switch(attr_act)
+	{
+		case 3://数据初始化
+			fprintf(stderr,"\n终端数据初始化!");
+			break;
+	}
+}
 void MeterInfo(INT16U attr_act,INT8U *data)
 {
 	switch(attr_act)
@@ -510,10 +523,10 @@ void MeterInfo(INT16U attr_act,INT8U *data)
 			break;
 	}
 }
-int doObjectAction(OMD omd,INT8U *data)
+int doObjectAction(OAD oad,INT8U *data)
 {
-	INT16U oi = omd.OI;
-	INT8U attr_act = omd.method_tag;
+	INT16U oi = oad.OI;
+	INT8U attr_act = oad.attflg;
 	fprintf(stderr,"\n----------  oi =%04x",oi);
 	switch(oi)
 	{
@@ -531,6 +544,9 @@ int doObjectAction(OMD omd,INT8U *data)
 		case 0x6016:	//事件采集方案
 			EventCjFangAnInfo(attr_act,data);
 			break;
+		case 0x4300:	//终端对象
+			TerminalInfo(attr_act,data);
+			break;
 	}
-	return 0;	//DAR=0，成功
+	return success;	//DAR=0，成功	TODO：增加DAR各种错误判断
 }

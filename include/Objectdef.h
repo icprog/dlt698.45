@@ -226,13 +226,13 @@ typedef struct
 typedef struct
 {
 	OI_698 oi;
-	INT16U model
+	INT16U model;
 }SecureModel;
 typedef struct
 {
 	INT8U active;
 	SecureModel modelpara[255];
-}CLASS_F101;
+}CLASS_F101;//安全模式参数
 
 
 

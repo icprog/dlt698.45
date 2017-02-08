@@ -14,8 +14,6 @@
  * 其他终端事件可按Class7_Object进行定义！
  */
 
-//目前已确定终端判断30个事件，可根据以下数组结构轮寻读取
-const static INT16U Eventtype[]={0x3100,0x3101,0x3104,0x3105,0x3106,0x3107,0x3108,0x3109,0x310A,0x310B,0x310C,0x310D,0x310E,0x310F,0x3110,0x3111,0x3112,0x3114,0x3115,0x3116,0x3117,0x3118,0x3119,0x311A,0x311B,0x311C,0x3200,0x3201,0x3202,0x3203};
 
 //设备故障记录 事件发生源
 typedef enum
@@ -50,15 +48,21 @@ typedef struct
 //    Timesnums_Object tims_nums;
 //}Crrent_Object;
 
+typedef struct
+{
+	INT8U	num;
+	OAD     oadarr[CLASS7_OAD_NUM];
+}Class7_OAD;
+
 //class_7 事件类通用结构体
 typedef struct
 {
-	OI_698 oi;           //逻辑名
-	INT8U crrentnum;    //当前记录数
-	INT8U maxnum;       //最大记录数
-	BOOLEAN reportflag;  //上报标识 1 上报 0 不上报
-	BOOLEAN enableflag;  //有效标识 1 有效 0 无效
-	OAD    oadarr[CLASS7_OAD_NUM];   //关联对象属性表			//放结构体后面为扩展
+	OI_698 oi;           	//逻辑名
+	INT16U crrentnum;    	//当前记录数
+	INT16U maxnum;       	//最大记录数
+	BOOLEAN reportflag;  	//上报标识 1 上报 0 不上报
+	BOOLEAN enableflag;  	//有效标识 1 有效 0 无效
+	Class7_OAD	class7_oad;  //关联对象属性表			//放结构体后面为扩展
 	//Crrent_Object crrent_arr[5]; //当前值记录表
 }Class7_Object;
 
@@ -358,4 +362,21 @@ typedef struct
  * Class7_Object Event310A_obj;    //设备故障记录9
  * Class7_Object Event3119_obj;    //终端电流回路异常事件23
  */
+
+typedef struct
+{
+	OI_698 		oi;  			//对象标识OI
+	INT16U		classlen;	   //事件参数类长度
+}EVENT_CLASS_INFO;
+
+//目前已确定终端判断30个事件，可根据以下数组结构轮寻读取
+const static EVENT_CLASS_INFO  event_class_len[] ={
+		{0x3100,sizeof(Class7_Object)},		{0x3101,sizeof(Class7_Object)},		{0x3104,sizeof(Class7_Object)},		{0x3105,sizeof(Event3105_Object)},	{0x3106,sizeof(Event3106_Object)},
+		{0x3107,sizeof(Event3107_Object)},	{0x3108,sizeof(Event3108_Object)},	{0x3109,sizeof(Class7_Object)},		{0x310A,sizeof(Class7_Object)},		{0x310B,sizeof(Event310B_Object)},
+		{0x310C,sizeof(Event310C_Object)},	{0x310D,sizeof(Event310D_Object)},	{0x310E,sizeof(Event310E_Object)},	{0x310F,sizeof(Event310F_Object)},	{0x3110,sizeof(Event3110_Object)},
+		{0x3111,sizeof(Class7_Object)},		{0x3112,sizeof(Class7_Object)},		{0x3114,sizeof(Class7_Object)},		{0x3115,sizeof(Class7_Object)},		{0x3116,sizeof(Event3116_Object)},
+		{0x3117,sizeof(Class7_Object)},		{0x3118,sizeof(Class7_Object)},		{0x3119,sizeof(Class7_Object)},		{0x311A,sizeof(Event311A_Object)},	{0x311B,sizeof(Class7_Object)},
+		{0x311C,sizeof(Event311C_Object)},	{0x3200,sizeof(Class7_Object)},		{0x3201,sizeof(Class7_Object)},		{0x3202,sizeof(Class7_Object)},		{0x3203,sizeof(Class7_Object)},
+};
+
 #endif

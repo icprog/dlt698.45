@@ -98,7 +98,7 @@ void Comm_task(CommBlock* compara) {
 
 INT8S ComWrite(int fd, INT8U* buf, INT16U len) {
     int j=0;
-    fprintf(stderr,"NET SEND:\n");
+    fprintf(stderr,"\nNET SEND:\n");
     for (j = 0; j < len; j++) {
         fprintf(stderr,"%02x ",buf[j]);
     }
@@ -108,7 +108,7 @@ INT8S ComWrite(int fd, INT8U* buf, INT16U len) {
 
 INT8S NetWrite(int fd, INT8U* buf, INT16U len) {
     int j=0;
-    fprintf(stderr,"NET SEND:\n");
+    fprintf(stderr,"\nNET SEND:\n");
     for (j = 0; j < len; j++) {
         fprintf(stderr,"%02x ",buf[j]);
     }

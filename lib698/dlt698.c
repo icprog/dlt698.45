@@ -13,8 +13,9 @@
 #define LIB698_VER 	1
 
 extern int doObjectAction();
-extern int doActionReponse(int reponse,CSINFO *csinfo,PIID piid,OMD omd,int dar,INT8U *data,INT8U *buf);
+//extern int doActionReponse(int reponse,CSINFO *csinfo,PIID piid,OMD omd,int dar,INT8U *data,INT8U *buf);
 extern int getRequestNormal(OAD oad,INT8U *data,CSINFO *csinfo,INT8U *sendbuf);
+extern int doReponse(int server,int reponse,CSINFO *csinfo,PIID piid,OAD oad,int dar,INT8U *data,INT8U *buf);
 extern int setRequestNormal(INT8U *data,OAD oad,CSINFO *csinfo,INT8U *buf);
 extern int setRequestNormalList(INT8U *Object,CSINFO *csinfo,INT8U *buf);
 
@@ -325,6 +326,7 @@ int appConnectResponse(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 }
 int doSetAttribute(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 {
+	int  DAR=success;
 	PIID piid={};
 	INT8U setType = apdu[1];
 	OAD oad={};
@@ -338,7 +340,8 @@ int doSetAttribute(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 	switch(setType)
 	{
 		case SET_REQUEST_NORMAL:
-			setRequestNormal(data,oad,csinfo,buf);
+			DAR = setRequestNormal(data,oad,csinfo,buf);
+			doReponse(SET_RESPONSE,SET_REQUEST_NORMAL,csinfo,piid,oad,DAR,NULL,buf);
 			break;
 		case SET_REQUEST_NORMAL_LIST:
 			setRequestNormalList(&apdu[3],csinfo,buf);
@@ -384,23 +387,23 @@ int doGetAttribute(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
 
 int doActionRequest(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 {
-	int  DAR=0;
+	int  DAR=success;
 	PIID piid={};
-	OMD omd={};
+	OAD  oad={};
 	INT8U *data=NULL;
 	INT8U request_choice = apdu[1];		//ACTION-Request
 	piid.data = apdu[2];				//PIID
-//	memcpy(&omd,&apdu[3],4);			//OMD
-	omd.OI= (apdu[3]<<8) | apdu[4];
-	omd.method_tag = apdu[5];
-	omd.oper_model = apdu[6];
+//	memcpy(&omd,&apdu[3],4);			//OAD
+	oad.OI= (apdu[3]<<8) | apdu[4];
+	oad.attflg = apdu[5];
+	oad.attrindex = apdu[6];
 	data = &apdu[7];					//Data
-	fprintf(stderr,"\n-------- request choice = %d omd OI = %04x  method=%d",request_choice,omd.OI,omd.method_tag);
+	fprintf(stderr,"\n-------- request choice = %d omd OI = %04x  method=%d",request_choice,oad.OI,oad.attrindex);
 	switch(request_choice)
 	{
 		case ACTIONREQUEST:
-			DAR = doObjectAction(omd,data);
-			doActionReponse(ActionResponseNormal,csinfo,piid,omd,DAR,NULL,buf);
+			DAR = doObjectAction(oad,data);
+			doReponse(ACTION_RESPONSE,ActionResponseNormal,csinfo,piid,oad,DAR,NULL,buf);
 			break;
 		case ACTIONREQUEST_LIST:
 			break;
@@ -439,9 +442,17 @@ INT16S doSecurityRequest(INT8U* apdu)//
 	 return retLen;
 }
 //组织SecurityResponse上行报文
-INT16S composeSecurityResponse()
+//length上行报文应用层数据长度，SecurityType下行报文等级（之前解析下行报文得出的值）
+//返回：SendApdu中存储新的加密数据（应用数据单元和数据验证信息）（假定包括明文/密文的开始第一个标示字节）
+INT16S composeSecurityResponse(INT8U* SendApdu,INT16U length,INT8U SecurityType)
 {
-
+	 INT16S retLen=0;
+	 INT32S fd=-1;
+	 fd = Esam_Init(fd,(INT8U*)DEV_SPI_PATH);
+	 if(fd<0) return -3;
+	 retLen = Esam_SIDResponseCheck(fd,SecurityType,SendApdu,length,SendApdu);
+	 Esam_Clear(fd);
+	 return retLen;
 }
 /**********************************************************************
  * 解析SECURITY-response 终端主动上报后，主站回复数据 apdu[0]=144;apdu[1]应用数据单元
