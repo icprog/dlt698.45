@@ -51,6 +51,10 @@ MeterPower TermialPowerInfo;//终端停上电时间信息
  */
 extern INT8U Event_Init();
 /*
+ * 根据参数读取事件记录文件
+ */
+extern INT8U Get_Event(OI_698 oi,INT8U eventno,INT8U** Getbuf,INT8U *Getlen);
+/*
  * 分析抄表存储的报文，输入任务id和抄读对象地址。
  * buf抄表数据 buf长度 id任务号 tsa表地址
  */
