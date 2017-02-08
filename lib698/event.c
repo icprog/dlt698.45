@@ -450,6 +450,7 @@ INT8U Event_3101(INT8U* data,INT8U len) {
  * 状态量变位事件 可直接调用 data为前后得ST CD，（1-4路）8个字节即可
  */
 INT8U Event_3104(INT8U* data,INT8U len) {
+	fprintf(stderr,"event_object.Event3104_obj.enableflag=%d\n",event_object.Event3104_obj.enableflag);
     if (event_object.Event3104_obj.enableflag == 0) {
         return 0;
     }

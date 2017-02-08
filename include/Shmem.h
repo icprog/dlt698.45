@@ -12,6 +12,11 @@
 
 #pragma pack(1)				//结构体一个字节对齐
 
+typedef struct {
+	INT8U	oi4016;				//当前套日时段表
+	INT8U	oiF203;				//开关量
+}OI_CHANGE;
+
 //交采系数
 typedef struct {
 //	INT16U	crc;					//CRC校验
@@ -258,7 +263,7 @@ typedef struct {
 	ACEnergy_Sum	ACSEnergy;			//计量芯片电能量数据
 	ProjectInfo		Projects[PROJECTCOUNT];		//子程序信息
 	RealdataReq		RealDatareq;				//实时数据请求缓存
-//	INT8U 			changed[MAXNUM_PARA]; //0：无效，1-255设置参数后循环累加
+	OI_CHANGE		oi_changed;					//相应的OI参数修改变化值，结构体相应的OI值从1-255设置参数后循环累加
 }ProgramInfo; //程序信息结构
 
 #endif /* GTYPE_H_ */

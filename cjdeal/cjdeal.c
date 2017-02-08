@@ -53,6 +53,7 @@ int InitPara()
 {
 	InitACSPara();
 	Event_Init();
+	read_oif203_para();		//开关量输入值读取
 	return 0;
 }
 /*********************************************************
@@ -72,20 +73,20 @@ int main(int argc, char *argv[])
 	//载入档案、参数
 	InitPara();
 	//485、四表合一
-	read485_proccess();
+//	read485_proccess();
 	//载波
 	//readplc_proccess();
 	//液晶、控制
 	//guictrl_proccess();
 	//交采
-	acs_process();
+//	acs_process();
 
 	while(1)
    	{
 	    struct timeval start={}, end={};
 	    long  interval=0;
 		gettimeofday(&start, NULL);
-	//	DealState();
+		DealState(JProgramInfo->oi_changed.oiF203);
 		gettimeofday(&end, NULL);
 		interval = 1000000*(end.tv_sec - start.tv_sec) + (end.tv_usec - start.tv_usec);
 	    if(interval>=1000000)

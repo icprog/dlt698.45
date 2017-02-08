@@ -14,7 +14,7 @@
 #include "StdDataType.h"
 #include "ParaDef.h"
 
-INT8S gpio_readbyte(INT8S* devpath) {
+INT8S gpio_readbyte(char* devpath) {
     char data = 0;
     int fd    = 0;
     if ((fd = open((const char*)devpath, O_RDWR | O_NDELAY)) > 0) {
@@ -25,7 +25,7 @@ INT8S gpio_readbyte(INT8S* devpath) {
     return data;
 }
 
-INT32S gpio_readint(INT8S* devpath) {
+INT32S gpio_readint(char* devpath) {
     char data = 0;
     int fd    = 0;
     if ((fd = open((const char*)devpath, O_RDWR | O_NDELAY)) > 0) {
@@ -36,7 +36,7 @@ INT32S gpio_readint(INT8S* devpath) {
     return data;
 }
 
-INT32S gpio_writebyte(INT8S* devpath, INT8S data) {
+INT32S gpio_writebyte(char* devpath, INT8S data) {
     int fd = 0;
     if ((fd = open((const char*)devpath, O_RDWR | O_NDELAY)) > 0) {
         write(fd, &data, sizeof(char));
@@ -47,7 +47,7 @@ INT32S gpio_writebyte(INT8S* devpath, INT8S data) {
     return 0;
 }
 
-INT32S gpio_writebytes(INT8S* devpath, INT8S* vals, INT32S valnum) {
+INT32S gpio_writebytes(char* devpath, INT8S* vals, INT32S valnum) {
     int fd = -1;
     int i  = 0;
     fd     = open((const char*)devpath, O_RDWR | O_NDELAY);
@@ -109,10 +109,10 @@ BOOLEAN bettery_getV(FP32* clock_bt,FP32* tmnl_bt)
 	if((fd = open(DEV_ADC, O_RDWR | O_SYNC)) == -1)
 		return FALSE;
 
-	gpio_writebyte((INT8S*)DEV_ADC_SWITCH,0);
+	gpio_writebyte(DEV_ADC_SWITCH,0);
 	sleep(1);
 	read(fd,adc_result,2*sizeof(unsigned int));
-	gpio_writebyte((INT8S*)DEV_ADC_SWITCH,1);
+	gpio_writebyte(DEV_ADC_SWITCH,1);
 	*clock_bt = adc_result[0]*1.0/1023*6.6;
 	*tmnl_bt = adc_result[1]*1.0/1023*6.6;
     close(fd);

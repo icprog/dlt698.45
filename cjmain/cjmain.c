@@ -181,7 +181,7 @@ int main(int argc, char *argv[])
 	Setsig(&sa1,ProjectMainExit);
 
 	//此设置决定集中器在下电情况下，长按向下按键唤醒功能
-	gpio_writebyte((INT8S*)DEV_BAT_SWITCH,(INT8S)1);
+	gpio_writebyte(DEV_BAT_SWITCH,(INT8S)1);
 
 	JProgramInfo = (ProgramInfo*)CreateShMem("ProgramInfo",sizeof(ProgramInfo),NULL);
 	ReadSystemInfo();

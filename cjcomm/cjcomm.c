@@ -311,16 +311,16 @@ int gpofun(char* devname, int data) {
 int checkgprs_exist()
 {
 	INT8S  	gprsid = 0;
-	INT8S 	gprs_s0,gprs_s1,gprs_s2;
+	INT8S 	gprs_s0=-1,gprs_s1=-1,gprs_s2=-1;
 
-//	gprsid = getSpiAnalogState() & 0x1f;
+	gprsid = getSpiAnalogState() & 0x1f;
 	if((gprsid & 0x1f) == 0x1e) {
 //		fprintf(stderr,"\n有GPRS模块  %02x\n",gprsid);
 		return 1;
-	}else  if(gprsid = -1) {			//II型
-		gprs_s0 = gpio_readbyte((INT8S*)"DEV_GPRS_S0");
-		gprs_s1 = gpio_readbyte((INT8S*)"DEV_GPRS_S1");
-		gprs_s2 = gpio_readbyte((INT8S*)"DEV_GPRS_S2");
+	}else  if(gprsid == -1) {			//II型
+		gprs_s0 = gpio_readbyte("DEV_GPRS_S0");
+		gprs_s1 = gpio_readbyte("DEV_GPRS_S1");
+		gprs_s2 = gpio_readbyte("DEV_GPRS_S2");
 		if(gprs_s0==1 && gprs_s1==1 && gprs_s2==1)
 		{
 	//		fprintf(stderr,"\n无GPRS模块  %d, %d, %d\n",gprs_s0,gprs_s1,gprs_s2);
