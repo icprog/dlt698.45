@@ -1,6 +1,7 @@
 ﻿#ifndef JPublicFunctionH
 #define JPublicFunctionH
 #include "stdio.h"
+#include "stdlib.h"
 #include "zlib.h"
 #include "errno.h"
 #include "time.h"
@@ -13,7 +14,8 @@
 #include <termios.h>
 #include "math.h"
 #include "PublicFunction.h"
-
+#include <sys/time.h>
+#include <linux/rtc.h>
 #include <linux/serial.h>
 #include <sys/ioctl.h>
 
@@ -532,6 +534,28 @@ time_t tmtotime_t(TS ptm)
 	ctm.tm_sec = ptm.Sec;
 	ctime = mktime(&ctm);
 	return ctime;
+}
+void setsystime(DateTimeBCD datetime)
+{
+	fprintf(stderr,"\n终端对时：%d年-%d月-%d日 %d时:%d分:%d秒",datetime.year.data,datetime.month.data,datetime.day.data,datetime.hour.data,datetime.min.data,datetime.sec.data);
+	int rtc;
+	struct tm _tm;
+	struct timeval tv;
+	_tm.tm_sec = datetime.sec.data;
+	_tm.tm_min = datetime.min.data;
+	_tm.tm_hour = datetime.hour.data;
+	_tm.tm_mday = datetime.day.data;
+	_tm.tm_mon = datetime.month.data-1;
+	_tm.tm_year = datetime.year.data-1900;
+	_tm.tm_isdst = 0;
+	tv.tv_sec = mktime(&_tm);
+	tv.tv_usec = 0;
+	settimeofday(&tv, (struct timezone *)0);
+	rtc = open("/dev/rtc0",O_RDWR);
+	ioctl(rtc, RTC_SET_TIME, &_tm);
+	close(rtc);
+	system("date");
+	fprintf(stderr, "\n\n");
 }
 
 /****************************************************************

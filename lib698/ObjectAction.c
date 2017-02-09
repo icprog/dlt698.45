@@ -451,7 +451,8 @@ void CjiFangAnInfo(INT16U attr_act,INT8U *data)
 //			DeleteCjFangAn(data[1]);
 			break;
 		case 129:	//方法 129:Clear( )
-//			ClearCjFangAn();
+			fprintf(stderr,"\n清空普通采集方案");
+			clearClass(0x6014);
 			break;
 		case 130:	//方法 130:Set_CSD(方案编号,array CSD)
 			Set_CSD(data);
@@ -527,15 +528,33 @@ void MeterInfo(INT16U attr_act,INT8U *data)
 			break;
 		case 134://方法 134:Clear()
 			fprintf(stderr,"\n清空采集档案配置表");
-			clearClass(6000);
+			clearClass(0x6000);
 			break;
 	}
+}
+int EventMothod(OAD oad,INT8U *data)
+{
+	fprintf(stderr,"\n事件对象方法操作");
+	switch(oad.attflg)
+	{
+		case 1://复位
+			fprintf(stderr,"\n复位");
+			clearClass(oad.OI);
+			break;
+	}
+	return 0;
 }
 int doObjectAction(OAD oad,INT8U *data)
 {
 	INT16U oi = oad.OI;
 	INT8U attr_act = oad.attflg;
+	INT8U oihead = (oi & 0xF000) >>12;
 	fprintf(stderr,"\n----------  oi =%04x",oi);
+	switch(oihead) {
+	case 3:			//事件类对象方法操作
+		EventMothod(oad,data);
+		break;
+	}
 	switch(oi)
 	{
 		case 0x6000:	//采集档案配置表

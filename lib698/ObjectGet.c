@@ -16,8 +16,10 @@
 extern INT8S (*pSendfun)(int fd,INT8U* sndbuf,INT16U sndlen);
 extern int FrameHead(CSINFO *csinfo,INT8U *buf);
 extern void FrameTail(INT8U *buf,int index,int hcsi);
+extern INT8U Get_Event(OI_698 oi,INT8U eventno,INT8U** Getbuf,INT8U *Getlen);
 extern int comfd;
 extern INT8U TmpDataBuf[MAXSIZ_FAM];
+
 typedef struct
 {
 	OAD oad;
@@ -53,9 +55,7 @@ int BuildFrame_GetResponse(INT8U response_type,CSINFO *csinfo,RESULT_NORMAL resp
 	}
 	sendbuf[index++] = 0;
 	sendbuf[index++] = 0;
-
 	FrameTail(sendbuf,index,hcsi);
-
 	if(pSendfun!=NULL)
 		pSendfun(comfd,sendbuf,index+3);
 	return (index+3);
@@ -181,18 +181,27 @@ int GetSysDateTime(RESULT_NORMAL *response)
 int GetEventInfo(RESULT_NORMAL *response)
 {
 	INT8U *data=NULL;
-	OAD oad;
-	DateTimeBCD time;
-
-	oad = response->oad;
-	data = response->data;
-	DataTimeGet(&time);
-	switch(oad.attflg )
+	INT16U datalen=0;
+	if ( Get_Event(response->oad.OI,response->oad.attrindex-1,&data,(INT8U *)&datalen) == 1 )
 	{
-		case 2://安全模式选择
-			response->datalen = fill_DateTimeBCD(response->data,&time);
-			break;
+		if (datalen > 512 || data==NULL)
+		{
+			fprintf(stderr,"\n获取事件数据Get_Event函数异常! [datalen=%d  data=%p]",datalen,data);
+			if (data!=NULL)
+				free(data);
+			return 0;
+		}
+		memcpy(response->data,data,datalen);
+		response->datalen = datalen;
+		if (data!=NULL)
+			free(data);
+		return 1;
 	}
+	response->datalen = 0;
+	fprintf(stderr,"\n获取事件数据Get_Event函数返回 0  [datalen=%d  data=%p]",datalen,data);
+	if (data!=NULL)
+		free(data);
+
 	return 0;
 }
 

@@ -13,7 +13,7 @@
 #include "StdDataType.h"
 #include "Objectdef.h"
 #include "EventObject.h"
-
+#include "PublicFunction.h"
 extern void get_BasicUnit(INT8U *source,INT16U *sourceindex,INT8U *dest,INT16U *destindex);
 INT8U prtstat(int flg)
 {
@@ -96,7 +96,7 @@ INT16U set4000(INT8U attflg,INT8U index,INT8U *data)
 	if ( attflg == 2 )
 	{
 		get_BasicUnit(data,&source_index,(INT8U *)&datetime,&dest_index);
-		fprintf(stderr,"\n终端对时：属性2  %d年-%d月-%d日 %d时:%d分:%d秒",datetime.year.data,datetime.month.data,datetime.day.data,datetime.hour.data,datetime.min.data,datetime.sec.data);
+		setsystime(datetime);
 	}
 	return source_index;
 }
@@ -122,9 +122,6 @@ INT16U setf203(INT8U attflg,INT8U index,INT8U *data)
 		get_BasicUnit(data,&source_index,(INT8U*)&f203.state4,&dest_index);
 		saveCoverClass(0xf203,0,&f203,sizeof(CLASS_f203),para_vari_save);
 		fprintf(stderr,"\n状态量配置参数 : 接入标志 %02x  属性标志 %02x \n",f203.state4.StateAcessFlag,f203.state4.StatePropFlag);
-	}else if( attflg == 2)
-	{
-
 	}
 	return source_index;
 }
