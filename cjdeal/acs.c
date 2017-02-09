@@ -894,12 +894,13 @@ INT8U get_rates_no(TS ts_t,CLASS_4016 class4016)
 	INT8U	i=0;
 	static INT8U oldmin=0xff;
 	static INT8U  rate=0;
+	static INT8U  changed=0;
 
-//   TODO:按照4016 当前套日时段表获取,获取4016参数变化了，重新读取文件
-	//if(参数变化) {
-//		readCoverClass(0x4016,0,&class4016,sizeof(CLASS_4016),para_vari_save);
-//		oldmin = 0xff;
-	//}
+	if(changed != JProgramInfo->oi_changed.oi4016) {
+		changed = JProgramInfo->oi_changed.oi4016;
+		readCoverClass(0x4016,0,&class4016,sizeof(CLASS_4016),para_vari_save);
+		oldmin = 0xff;
+	}
 	if(ts_t.Minute==oldmin && oldmin!=0xff) return rate;
 	oldmin = ts_t.Minute;
 	if(class4016.num>MAX_PERIOD_RATE)	return rate;

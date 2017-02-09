@@ -129,9 +129,9 @@ void event_process(int argc, char *argv[])
                     index++;//0:结构体
                     index++;//1:结构体元素个数
                     index++;//3:事件序号unsigned-long
-                    INT32U event_order=(Getbuf[index++]<<32)+(Getbuf[index++]<<16)+(Getbuf[index++]<<8)+Getbuf[index++];
+                    INT32U event_order=(Getbuf[index++]<<32)+(Getbuf[index++]<<16)+(Getbuf[index++]<<8)+(Getbuf[index++]&0xff);
                     fprintf(stderr,"事件%04x：\n",oi);
-                    fprintf(stderr,"事件序号：%d\n",event_order);
+                    fprintf(stderr,"事件序号：%d \n",event_order);
                     index++;//0x1c date-s 发生时间
                     fprintf(stderr,"发生时间：%d-%d-%d %d:%d:%d",(Getbuf[index++]<<8)+Getbuf[index++],
                     		Getbuf[index++],Getbuf[index++],Getbuf[index++],Getbuf[index++],Getbuf[index++]);
