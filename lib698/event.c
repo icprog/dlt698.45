@@ -46,7 +46,10 @@ ProgramInfo* prginfo_event;
 INT8U Event_Init() {
 	prginfo_event=OpenShMem("ProgramInfo",sizeof(ProgramInfo),NULL);
 	//初始化事件参数变更状态
-	memcpy(&oi_chg,&prginfo_event->oi_changed,sizeof(OI_CHANGE));
+	if(prginfo_event != NULL)
+		memcpy(&oi_chg,&prginfo_event->oi_changed,sizeof(OI_CHANGE));
+	else
+		memset(&oi_chg,0,sizeof(OI_CHANGE));
     //初始化事件参数，调用文件
 	readCoverClass(0x3100,0,&event_object.Event3100_obj,sizeof(event_object.Event3100_obj),event_para_save);
 	readCoverClass(0x3101,0,&event_object.Event3101_obj,sizeof(event_object.Event3101_obj),event_para_save);
@@ -404,11 +407,11 @@ INT8U Get_CurrResult(INT8U *Rbuf,INT8U *Index,
 INT8U Get_StandardUnit(OI_698 oi,INT8U *Rbuf,INT8U *Index,
 		INT8U Eventno,INT8U *Source,Source_Typ S_type){
 	//Struct
-	Rbuf[(*Index)++] = 0x02;
+	Rbuf[(*Index)++] = dtstructure;
 	//单元数量
 	Rbuf[(*Index)++] = STANDARD_NUM;
 	//事件记录序号
-	Rbuf[(*Index)++] = 0x06;
+	Rbuf[(*Index)++] = dtdoublelongunsigned;
 	//memcpy(&Rbuf[*Index], &Eventno, sizeof(INT32U));
 	INT32U En=(INT32U)Eventno;
 	Rbuf[(*Index)++] = ((En>>24)&0x000000ff);
@@ -420,7 +423,7 @@ INT8U Get_StandardUnit(OI_698 oi,INT8U *Rbuf,INT8U *Index,
 	DataTimeGet(&ntime);
 
 	//事件发生时间
-	Rbuf[(*Index)++] = 0x1C;
+	Rbuf[(*Index)++] = dtdatetimes;
 	//memcpy(&Rbuf[*Index], &ntime, sizeof(ntime));
 	//(*Index)+=sizeof(ntime);
 	Rbuf[(*Index)++] = ((ntime.year.data>>8)&0x00ff);
@@ -431,7 +434,7 @@ INT8U Get_StandardUnit(OI_698 oi,INT8U *Rbuf,INT8U *Index,
 	Rbuf[(*Index)++] = ntime.min.data;
 	Rbuf[(*Index)++] = ntime.sec.data;
 	//事件结束时间
-	Rbuf[(*Index)++] = 0x1C;
+	Rbuf[(*Index)++] = dtdatetimes;
 	if(oi==0x311C){
 		memset(&Rbuf[*Index],DATA_FF,sizeof(ntime));//TODO
 		(*Index)+=sizeof(ntime);
@@ -453,22 +456,25 @@ INT8U Get_StandardUnit(OI_698 oi,INT8U *Rbuf,INT8U *Index,
 		memcpy(&Rbuf[(*Index)],Source,sourcelen);
 	(*Index)+=sourcelen;
 	//事件上报状态
-	Rbuf[(*Index)++] = 0x01;//array
+	Rbuf[(*Index)++] = dtarray;//array
 	Rbuf[(*Index)++] = 0x02;//数量
-	Rbuf[(*Index)++] = 0x02;//struct
+	Rbuf[(*Index)++] = dtstructure;//struct
 	Rbuf[(*Index)++] = 0x02;//数量
 	Rbuf[(*Index)++] = 0x51;//OAD
 	Rbuf[(*Index)++] = 0x45;//gprs
 	Rbuf[(*Index)++] = 0x00;
 	Rbuf[(*Index)++] = 0x00;
 	Rbuf[(*Index)++] = 0x00;
-	Rbuf[(*Index)++] = 0x16;//unsigned
+	Rbuf[(*Index)++] = dtunsigned;//unsigned
 	Rbuf[(*Index)++] = 0x00;
+	Rbuf[(*Index)++] = dtstructure;//struct
+	Rbuf[(*Index)++] = 0x02;//数量
+	Rbuf[(*Index)++] = 0x51;//OAD
 	Rbuf[(*Index)++] = 0x45;//以太网
 	Rbuf[(*Index)++] = 0x10;
 	Rbuf[(*Index)++] = 0x00;
 	Rbuf[(*Index)++] = 0x00;
-	Rbuf[(*Index)++] = 0x16;//unsigned
+	Rbuf[(*Index)++] = dtunsigned;//unsigned
 	Rbuf[(*Index)++] = 0x00;
     return 1;
 }
@@ -547,14 +553,14 @@ INT8U Event_3101(INT8U* data,INT8U len) {
 		Get_StandardUnit(0x3101,Save_buf,&index,crrentnum,NULL,s_null);
 		//取共享内存或文件
 		//事件发生前软件版本号
-		Save_buf[index++]=10;//visible-string 4
+		Save_buf[index++]=dtvisiblestring;//visible-string 4
 		Save_buf[index++]=4;// 4
 		Save_buf[index++]=0;
 		Save_buf[index++]=0;
 		Save_buf[index++]=0;
 		Save_buf[index++]=0;
 		//事件发生前软件版本号
-		Save_buf[index++]=10;//visible-string 4
+		Save_buf[index++]=dtvisiblestring;//visible-string 4
 		Save_buf[index++]=4;// 4
 		Save_buf[index++]=0;
 		Save_buf[index++]=0;
@@ -601,36 +607,43 @@ INT8U Event_3104(INT8U* data,INT8U len) {
 		//事件发生时间
 		DateTimeBCD ntime;
 		DataTimeGet(&ntime);
-		Save_buf[index++] = 28;
-		memcpy(&Save_buf[index], &ntime, sizeof(ntime));
-		index+=sizeof(ntime);
+		Save_buf[index++] = dtdatetimes;
+//		memcpy(&Save_buf[index], &ntime, sizeof(ntime));
+//		index+=sizeof(ntime);
+		Save_buf[index++] = ((ntime.year.data>>8)&0x00ff);
+		Save_buf[index++] = ((ntime.year.data)&0x00ff);
+		Save_buf[index++] = ntime.month.data;
+		Save_buf[index++] = ntime.day.data;
+		Save_buf[index++] = ntime.hour.data;
+		Save_buf[index++] = ntime.min.data;
+		Save_buf[index++] = ntime.sec.data;
 		//第1路事件发生后
-		Save_buf[index++]=2;//structure
+		Save_buf[index++]=dtstructure;//structure
 		Save_buf[index++]=2;// 2
-		Save_buf[index++]=17;
+		Save_buf[index++]=dtunsigned;
 		Save_buf[index++]=data[0];
-		Save_buf[index++]=17;
+		Save_buf[index++]=dtunsigned;
 		Save_buf[index++]=data[1];
 		//第2路事件发生后
-		Save_buf[index++]=2;//structure
+		Save_buf[index++]=dtstructure;//structure
 		Save_buf[index++]=2;// 2
-		Save_buf[index++]=17;
+		Save_buf[index++]=dtunsigned;
 		Save_buf[index++]=data[2];
-		Save_buf[index++]=17;
+		Save_buf[index++]=dtunsigned;
 		Save_buf[index++]=data[3];
 		//第3路事件发生后
-		Save_buf[index++]=2;//structure
+		Save_buf[index++]=dtstructure;//structure
 		Save_buf[index++]=2;// 2
-		Save_buf[index++]=17;
+		Save_buf[index++]=dtunsigned;
 		Save_buf[index++]=data[4];
-		Save_buf[index++]=17;
+		Save_buf[index++]=dtunsigned;
 		Save_buf[index++]=data[5];
 		//第4路事件发生后
-		Save_buf[index++]=2;//structure
+		Save_buf[index++]=dtstructure;//structure
 		Save_buf[index++]=2;// 2
-		Save_buf[index++]=17;
+		Save_buf[index++]=dtunsigned;
 		Save_buf[index++]=data[6];
-		Save_buf[index++]=17;
+		Save_buf[index++]=dtunsigned;
 		Save_buf[index++]=data[7];
 		Save_buf[STANDARD_NUM_INDEX]+=5;
 		//存储更改后得参数
@@ -775,7 +788,7 @@ void SendERC3106(INT8U flag,INT8U Erctype)
 	//标准数据单元
 	Get_StandardUnit(0x3106,Save_buf,&index,crrentnum,(INT8U*)&Erctype,s_enum);
 	//属性标志
-	Save_buf[index++]=4;//bit-string
+	Save_buf[index++]=dtbitstring;//bit-string
 	Save_buf[index++]=flag;
 	Save_buf[STANDARD_NUM_INDEX]+=1;
 	//存储更改后得参数
@@ -1134,7 +1147,8 @@ INT8U Event_3109(INT8U* data,INT8U len) {
 		//标准数据单元
 		Get_StandardUnit(0x3109,Save_buf,&index,crrentnum,NULL,s_null);
 		//事件发生前安全认证密码
-		Save_buf[index++]=10;//visable-string
+		Save_buf[index++]=dtvisiblestring;//visable-string
+		Save_buf[index++]=len;
 		memcpy(&Save_buf[index],data,len);
 		index+=len;
 		Save_buf[STANDARD_NUM_INDEX]+=1;
@@ -1239,12 +1253,12 @@ INT8U Event_310B(TSA tsa, INT8U* data,INT8U len) {
 			//标准数据单元
 			Get_StandardUnit(0x310B,Save_buf,&index,crrentnum,(INT8U*)&tsa,s_tsa);
 			//属性3有关联数据
-			Save_buf[index++]=6;//double-long-unsigned
+			Save_buf[index++]=dtdoublelongunsigned;//double-long-unsigned
 			Save_buf[index++]=(olddata>>24)&0x000000ff;
 			Save_buf[index++]=(olddata>>16)&0x000000ff;
 			Save_buf[index++]=(olddata>>8)&0x000000ff;
 			Save_buf[index++]=olddata&0x000000ff;
-			Save_buf[index++]=6;//double-long-unsigned
+			Save_buf[index++]=dtdoublelongunsigned;//double-long-unsigned
 			Save_buf[index++]=(newdata>>24)&0x000000ff;
 			Save_buf[index++]=(newdata>>16)&0x000000ff;
 			Save_buf[index++]=(newdata>>8)&0x000000ff;
@@ -1325,12 +1339,12 @@ INT8U Event_310C(TSA tsa, INT8U* data,INT8U len) {
 			//标准数据单元
 			Get_StandardUnit(0x310C,Save_buf,&index,crrentnum,(INT8U*)&tsa,s_tsa);
 			//属性3有关联数据
-			Save_buf[index++]=6;//double-long-unsigned
+			Save_buf[index++]=dtdoublelongunsigned;//double-long-unsigned
 			Save_buf[index++]=(olddata>>24)&0x000000ff;
 			Save_buf[index++]=(olddata>>16)&0x000000ff;
 			Save_buf[index++]=(olddata>>8)&0x000000ff;
 			Save_buf[index++]=olddata&0x000000ff;
-			Save_buf[index++]=6;//double-long-unsigned
+			Save_buf[index++]=dtdoublelongunsigned;//double-long-unsigned
 			Save_buf[index++]=(newdata>>24)&0x000000ff;
 			Save_buf[index++]=(newdata>>16)&0x000000ff;
 			Save_buf[index++]=(newdata>>8)&0x000000ff;
@@ -1410,12 +1424,12 @@ INT8U Event_310D(TSA tsa, INT8U* data,INT8U len) {
 			//标准数据单元
 			Get_StandardUnit(0x310D,Save_buf,&index,crrentnum,(INT8U*)&tsa,s_tsa);
 			//属性3有关联数据
-			Save_buf[index++]=6;//double-long-unsigned
+			Save_buf[index++]=dtdoublelongunsigned;//double-long-unsigned
 			Save_buf[index++]=(olddata>>24)&0x000000ff;
 			Save_buf[index++]=(olddata>>16)&0x000000ff;
 			Save_buf[index++]=(olddata>>8)&0x000000ff;
 			Save_buf[index++]=olddata&0x000000ff;
-			Save_buf[index++]=6;//double-long-unsigned
+			Save_buf[index++]=dtdoublelongunsigned;//double-long-unsigned
 			Save_buf[index++]=(newdata>>24)&0x000000ff;
 			Save_buf[index++]=(newdata>>16)&0x000000ff;
 			Save_buf[index++]=(newdata>>8)&0x000000ff;
@@ -1492,7 +1506,7 @@ INT8U Event_310E(TSA tsa, INT8U* data,INT8U len) {
 			//标准数据单元
 			Get_StandardUnit(0x310E,Save_buf,&index,crrentnum,(INT8U*)&tsa,s_tsa);
 			//属性3有关联数据
-			Save_buf[index++]=6;//double-long-unsigned
+			Save_buf[index++]=dtdoublelongunsigned;//double-long-unsigned
 			Save_buf[index++]=(olddata>>24)&0x000000ff;
 			Save_buf[index++]=(olddata>>16)&0x000000ff;
 			Save_buf[index++]=(olddata>>8)&0x000000ff;
@@ -1537,7 +1551,7 @@ INT8U Event_310F(TSA tsa, INT8U* data,INT8U len) {
 	Get_StandardUnit(0x310F,Save_buf,&index,crrentnum,(INT8U*)&tsa,s_tsa);
 	//属性3有关联数据
 	//最近一次抄表成功时间
-	Save_buf[index++]=28;//datetime-s
+	Save_buf[index++]=dtdatetimes;//datetime-s
 	Save_buf[index++]=0;
 	Save_buf[index++]=0;
 	Save_buf[index++]=0;
@@ -1546,13 +1560,13 @@ INT8U Event_310F(TSA tsa, INT8U* data,INT8U len) {
 	Save_buf[index++]=0;
 	Save_buf[index++]=0;
 	//最近一次正向有功
-	Save_buf[index++]=6;//double-long-unsigned
+	Save_buf[index++]=dtdoublelongunsigned;//double-long-unsigned
 	Save_buf[index++]=0;
 	Save_buf[index++]=0;
 	Save_buf[index++]=0;
 	Save_buf[index++]=0;
 	//最近一次正向有功
-	Save_buf[index++]=5;//double-long
+	Save_buf[index++]=dtdoublelong;//double-long
 	Save_buf[index++]=0;
 	Save_buf[index++]=0;
 	Save_buf[index++]=0;
@@ -1598,13 +1612,13 @@ INT8U Event_3110(INT8U* data,INT8U len) {
 		Get_StandardUnit(0x3110,Save_buf,&index,crrentnum,NULL,s_null);
 		//属性3有关联数据
 		//事件发生后已发生通信流量 //22004202
-		Save_buf[index++]=6;//double-long-unsiged
+		Save_buf[index++]=dtdoublelongunsigned;//double-long-unsiged
 		Save_buf[index++]=data[0];
 		Save_buf[index++]=data[1];
 		Save_buf[index++]=data[2];
 		Save_buf[index++]=data[3];
 		//月通信流量门限 //31100601
-		Save_buf[index++]=6;//double-long-unsigned
+		Save_buf[index++]=dtdoublelongunsigned;//double-long-unsigned
 		Save_buf[index++]=(offset>>24)&0x000000ff;
 		Save_buf[index++]=(offset>>16)&0x000000ff;
 		Save_buf[index++]=(offset>>8)&0x000000ff;
@@ -1649,36 +1663,36 @@ INT8U Event_3111(TSA tsa, INT8U* data,INT8U len) {
 	//标准数据单元
 	Get_StandardUnit(0x3111,Save_buf,&index,crrentnum,NULL,s_null);
 	//搜表结果集
-	Save_buf[index++]=01;//array
+	Save_buf[index++]=dtarray;//array
 	Save_buf[index++]=1;//默认搜到一个就产生事件
 	Save_buf[index++]=2;//structure
 	Save_buf[index++]=7;//元素数量
 	//默认data是搜表记录结果结构
 	//通信地址 TSA
-	Save_buf[index++]=85;//TSA
+	Save_buf[index++]=dttsa;//TSA
 	INT8U l1=data[0];
 	memcpy(&Save_buf[index],&data[0],l1+1);
 	index+=l1+1;
 	//所属采集器地址 TSA
-	Save_buf[index++]=85;//TSA
+	Save_buf[index++]=dttsa;//TSA
 	INT8U l2=data[l1+1];
 	memcpy(&Save_buf[index],&data[l1+1],l2+1);
 	index+=l2+1;
 	//规约类型  enum
-	Save_buf[index++]=22;
+	Save_buf[index++]=dtenum;
 	Save_buf[index++]=data[l1+1+l2+1];
 	//相位 enum{未知（0），A（1），B（2），C（3）}
-	Save_buf[index++]=22;
+	Save_buf[index++]=dtenum;
 	Save_buf[index++]=data[l1+1+l2+1+1];
 	//信号品质unsigned，
-	Save_buf[index++]=17;
+	Save_buf[index++]=dtunsigned;
 	Save_buf[index++]=data[l1+1+l2+1+2];
     //搜到的时间 date_time_s
-	Save_buf[index++]=28;
+	Save_buf[index++]=dtdatetimes;
 	memcpy(&Save_buf[index],&data[l1+1+l2+1+3],7);
 	index+=7;
 	//搜到的附加信息  array附加信息
-	Save_buf[index++]=1;//array
+	Save_buf[index++]=dtarray;//array
 	Save_buf[index++]=0;//数量
 	Save_buf[STANDARD_NUM_INDEX]+=1;
 	//存储更改后得参数
@@ -1717,23 +1731,23 @@ INT8U Event_3112(TSA tsa, INT8U* data,INT8U len) {
 	//标准数据单元
 	Get_StandardUnit(0x3112,Save_buf,&index,crrentnum,NULL,s_null);
 	//结果集
-	Save_buf[index++]=01;//array
+	Save_buf[index++]=dtarray;//array
 	Save_buf[index++]=1;//默认搜到一个就产生事件
 	Save_buf[index++]=2;//structure
 	Save_buf[index++]=3;//元素数量
 	//默认data是搜表记录结果结构
     //通信地址 TSA
-	Save_buf[index++]=85;//TSA
+	Save_buf[index++]=dttsa;//TSA
 	INT8U l1=data[0];
 	memcpy(&Save_buf[index],&data[0],l1+1);
 	index+=l1+1;
 	//所属采集器地址 TSA
-	Save_buf[index++]=85;//TSA
+	Save_buf[index++]=dttsa;//TSA
 	INT8U l2=data[l1+1];
 	memcpy(&Save_buf[index],&data[l1+1],l2+1);
 	index+=l2+1;
 	//变更时间 date_time_s
-	Save_buf[index++]=28;
+	Save_buf[index++]=dtdatetimes;
 	memcpy(&Save_buf[index],&data[l1+1+l2+1],7);
 	index+=7;
 	Save_buf[STANDARD_NUM_INDEX]+=1;
@@ -1777,18 +1791,18 @@ INT8U Event_311A(TSA tsa, INT8U* data,INT8U len) {
 		//标准数据单元
 		Get_StandardUnit(0x311A,Save_buf,&index,crrentnum,NULL,s_null);
 		//状态变迁事件
-		Save_buf[index++]=01;//array
+		Save_buf[index++]=dtarray;//array
 		Save_buf[index++]=1;//默认一个状态变迁事件
 		Save_buf[index++]=2;//structure
 		Save_buf[index++]=2;//元素数量
 		//默认data是记录结果结构
 		//电能表地址 TSA
-		Save_buf[index++]=85;//TSA
+		Save_buf[index++]=dttsa;//TSA
 		INT8U l1=data[0];
 		memcpy(&Save_buf[index],&data[0],l1+1);
 		index+=l1+1;
 		//在网状态 bool
-		Save_buf[index++]=3;//bool
+		Save_buf[index++]=dtbool;//bool
 		Save_buf[index++]=data[l1+1];
 		Save_buf[STANDARD_NUM_INDEX]+=1;
 		//存储更改后得参数
@@ -1829,11 +1843,11 @@ INT8U Event_311B(TSA tsa, INT8U* data,INT8U len) {
 		//标准数据单元
 		Get_StandardUnit(0x311B,Save_buf,&index,crrentnum,(INT8U*)&tsa,s_tsa);
 		//校时前时钟    date_time_s
-		Save_buf[index++]=28;
+		Save_buf[index++]=dtdatetimes;
 		memcpy(&Save_buf[index],data,7);
 		index+=7;
 		//时钟误差      integer（单位：秒，无换算）
-		Save_buf[index++]=15;
+		Save_buf[index++]=dtinteger;
 		Save_buf[index++]=data[7];
 		Save_buf[STANDARD_NUM_INDEX]+=2;
 		//存储更改后得参数
@@ -1915,15 +1929,22 @@ INT8U Event_3114(INT8U* data,INT8U len) {
 		//标准数据单元
 		Get_StandardUnit(0x3114,Save_buf,&index,crrentnum,NULL,s_null);
 		//事件发生前对时时间
-		Save_buf[index++]=28;
+		Save_buf[index++]=dtdatetimes;
 		memcpy(&Save_buf[index],data,len);
 		index+=len;
 		//事件发生后对时时间
 		DateTimeBCD ntime;
 		DataTimeGet(&ntime);
-		Save_buf[index++]=28;
-		memcpy(&Save_buf[index],&ntime,7);
-		index+=7;
+		Save_buf[index++]=dtdatetimes;
+//		memcpy(&Save_buf[index],&ntime,7);
+//		index+=7;
+		Save_buf[index++] = ((ntime.year.data>>8)&0x00ff);
+		Save_buf[index++] = ((ntime.year.data)&0x00ff);
+		Save_buf[index++] = ntime.month.data;
+		Save_buf[index++] = ntime.day.data;
+		Save_buf[index++] = ntime.hour.data;
+		Save_buf[index++] = ntime.min.data;
+		Save_buf[index++] = ntime.sec.data;
 		Save_buf[STANDARD_NUM_INDEX]+=2;
 		//存储更改后得参数
 		saveCoverClass(0x3114,(INT16U)crrentnum,(void *)&event_object.Event3114_obj,sizeof(Class7_Object),1);
@@ -2030,11 +2051,11 @@ INT8U Event_3118(INT8U* data,INT8U len) {
 		//标准数据单元
 		Get_StandardUnit(0x3118,Save_buf,&index,crrentnum,NULL,s_null);
 		//array OAD
-	    Save_buf[index++]=1;//array
+	    Save_buf[index++]=dtarray;//array
 	    Save_buf[index++]=data[0];//数量
 	    int i=0;
 	    for(i=0;i<data[0];i++){
-	    	Save_buf[index++]=81;//OAD
+	    	Save_buf[index++]=dtoad;//OAD
 	    	memcpy(&Save_buf[index],&data[1+i*4],4);
 	    	index+=4;
 	    }
@@ -2115,23 +2136,23 @@ INT8U Event_3200(INT8U* data,INT8U len) {
 		//标准数据单元
 		Get_StandardUnit(0x3200,Save_buf,&index,crrentnum,(INT8U*)data,s_oi);
 		//事件发生后2分钟功率long64
-	    Save_buf[index++]=20;//long64
+	    Save_buf[index++]=dtlong64;//long64
 	    //data[0].data[1]为OI
         memcpy(&Save_buf[index],&data[2],8);
         index+=8;
         //控制对象OI
-        Save_buf[index++]=80;//OI
+        Save_buf[index++]=dtoi;//OI
         memcpy(&Save_buf[index],&data[2+8],2);
         index+=2;
         //跳闸轮次bit-string(SIZE(8))
-        Save_buf[index++]=4;//BIT-STRING
+        Save_buf[index++]=dtbitstring;//BIT-STRING
         Save_buf[index++]=data[2+8+2];
         //功控定值long64
-        Save_buf[index++]=20;//long64
+        Save_buf[index++]=dtlong64;//long64
 		memcpy(&Save_buf[index],&data[2+8+2+1],8);
 		index+=8;
 		//跳闸前总有加有功功率23012300
-		Save_buf[index++]=20;//long64
+		Save_buf[index++]=dtlong64;//long64
 		memcpy(&Save_buf[index],&data[2+8+2+1+8],8);
 		index+=8;
 		Save_buf[STANDARD_NUM_INDEX]+=5;
@@ -2173,18 +2194,18 @@ INT8U Event_3201(INT8U* data,INT8U len) {
 		//标准数据单元
 		Get_StandardUnit(0x3201,Save_buf,&index,crrentnum,(INT8U*)data,s_oi);
         //控制对象OI
-        Save_buf[index++]=80;//OI
+        Save_buf[index++]=dtoi;//OI
         memcpy(&Save_buf[index],&data[2],2);
         index+=2;
         //跳闸轮次bit-string(SIZE(8))
-        Save_buf[index++]=4;//BIT-STRING
+        Save_buf[index++]=dtbitstring;//BIT-STRING
         Save_buf[index++]=data[2+2];
         //电控定值long64
-        Save_buf[index++]=20;//long64
+        Save_buf[index++]=dtlong64;//long64
 		memcpy(&Save_buf[index],&data[2+2+1],8);
 		index+=8;
 		//跳闸发生时总有加有功电量23014900array
-		Save_buf[index++]=20;//array
+		Save_buf[index++]=dtarray;//array 考虑用array列出总加组
 		Save_buf[index++]=0;//数量
 		Save_buf[STANDARD_NUM_INDEX]+=4;
 		//存储更改后得参数
@@ -2267,11 +2288,11 @@ INT8U Event_3203(INT8U* data,INT8U len) {
 		//标准数据单元
 		Get_StandardUnit(0x3203,Save_buf,&index,crrentnum,(INT8U*)data,s_oi);
 		//控制对象OI
-		Save_buf[index++]=80;//OI
+		Save_buf[index++]=dtoi;//OI
 		memcpy(&Save_buf[index],&data[2],2);
 		index+=2;
 		//电控定值long64
-		Save_buf[index++]=20;//long64
+		Save_buf[index++]=dtlong64;//long64
 		memcpy(&Save_buf[index],&data[2+2],8);
 		index+=8;
 		Save_buf[STANDARD_NUM_INDEX]+=2;
