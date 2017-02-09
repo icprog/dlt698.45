@@ -25,11 +25,11 @@ INT8U prtstat(int flg)
 		return refuse_rw;
 	}
 }
-void setOIChange(OI_698 oi)
-{
-	case oi4016:
-		break;
-}
+//void setOIChange(OI_698 oi)
+//{
+//	case oi4016:
+//		break;
+//}
 INT16U set310d(OAD oad,INT8U *data,INT8U *DAR)
 {
 	Event310D_Object tmp310d={};
@@ -329,7 +329,7 @@ int setRequestNormal(INT8U *data,OAD oad,CSINFO *csinfo,INT8U *buf)
 		case 0xf:		//输入输出设备类对象 + ESAM接口类对象
 			DeviceIoSetAttrib(oad,data);
 	}
-	setOIChange(oi);
+//	setOIChange(oi);
 	return success;
 }
 int setRequestNormalList(INT8U *data,OAD oad)

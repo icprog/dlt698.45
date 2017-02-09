@@ -13,7 +13,6 @@
 #include "AccessFun.h"
 #include "ParaDef.h"
 #include "cjevent.h"
-#include "event.h"
 //property
 
 
