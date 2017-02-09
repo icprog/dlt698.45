@@ -1408,7 +1408,7 @@ void InitACSPara()
 	int			val=0;
 
 	//信号量建立
-	sem_check_fd = create_named_sem(SEMNAME_SPI0_0,1);							//TODO:放入vmain
+	sem_check_fd = open_named_sem(SEMNAME_SPI0_0);
 	sem_getvalue(sem_check_fd, &val);
 	dbg_prt("process The sem is %d\n", val);
 

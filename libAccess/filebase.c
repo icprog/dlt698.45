@@ -343,13 +343,13 @@ void getFileName(OI_698 oi,INT16U seqno,INT16U type,char *fname)
 		break;
 	case para_vari_save:
 		makeSubDir("/nand/para");
-		sprintf(fname,"/%s/%04x.par",PARADIR,oi);
+		sprintf(fname,"%s/%04x.par",PARADIR,oi);
 		break;
 	case coll_para_save:
 		makeSubDir("/nand/para");
-		sprintf(fname,"/%s/%04x/",PARADIR,oi);
+		sprintf(fname,"%s/%04x/",PARADIR,oi);
 		makeSubDir(fname);
-		sprintf(fname,"/%s/%04x/%d.par",PARADIR,oi,seqno);
+		sprintf(fname,"%s/%04x/%d.par",PARADIR,oi,seqno);
 		break;
 	case acs_coef_save:
 		makeSubDir(_ACSDIR_);

@@ -113,10 +113,14 @@ void get_BasicUnit(INT8U *source,INT16U *sourceindex,INT8U *dest,INT16U *destind
 			dest[0] = source[1];
 			fprintf(stderr,"\n		bool %d  元素",source[1]);
 			size = 1;
+			if (dest_sumindex ==0)
+				dest_sumindex = 1;
 			break;
 		case 0x04: //bit-string
 			size = 2;
 			dest[0] = source[2];  // TODO: 此处默认8个bit   source[1] : 长度字节
+			if (dest_sumindex ==0)
+				dest_sumindex = 1;
 			break;
 		case 0x06: //double-long-unsigned
 			size = 4;

@@ -71,18 +71,19 @@ INT16S AxorB(INT8U* abuf, INT8U* bbuf, INT8U* Rbuf, INT8U len) {
     }
     return 1;
 }
-//TODO:在vmain主进程中，需要有nsem_creat（）创建该信号量。
+
 INT32S Esam_Init(INT32S fd, INT8U* spipath) {
     gpio_writebyte(DEV_ESAM_PWR, 0);
     usleep(50000);
     gpio_writebyte(DEV_ATT_RST, 1);
     usleep(2);
     gpio_writebyte(DEV_ESAM_CS, 1);
-    sem_spi0_0 = nsem_open(SEMNAME_SPI0_0);
+    sem_spi0_0 = open_named_sem(SEMNAME_SPI0_0);
     return SPI_Init(fd, spipath);
 }
 
 void Esam_Clear(INT32S fd) {
+	close_named_sem(SEMNAME_SPI0_0);
     sem_close(sem_spi0_0);
     sem_spi0_0 = NULL;
     SPI_Close(fd);

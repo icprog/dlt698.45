@@ -34,12 +34,13 @@ void bufsyslog(const INT8U* buf, int head, int tail, int len) {
 	sprintf(msg, "RECV:");
 	while(head != tail)
 	{
-		sprintf(msg + 4 + count * 3, " %02x", buf[tail]);
+		sprintf(msg + 5 + count * 3, " %02x", buf[tail]);
 		tail = (tail + 1)%len;
 		count++;
 		if (count > 1024){
 			break;
 		}
 	}
-	syslog(LOG_INFO, "%s", buf);
+	syslog(LOG_INFO, "%s", msg);
+	printf("%s\n", msg);
 }

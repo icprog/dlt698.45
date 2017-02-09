@@ -68,5 +68,6 @@ extern INT8S getSpiAnalogState();
 extern sem_t* nsem_open(const char* name);
 extern sem_t* create_named_sem(const char* name, int flag);
 extern sem_t* open_named_sem(const char* name);
+extern void close_named_sem(const char* name);
 
 #endif /* PUBLICFUNCTION_H_ */

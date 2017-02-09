@@ -632,6 +632,7 @@ int GetRealdataReq_data(RealdataReq* req,TRANSTYPE* data,INT16U ticket)
     return stat;
 }
 
+////////////////////////////////////////////////////////////////////////////
 /*
  * 功能：在/dev/shm目录下创建信号量描述文件，如果已经存在同名的文件，则先删除，然后在创建。
  *
@@ -663,7 +664,6 @@ sem_t* create_named_sem(const char* name, int flag)
  * 成功：返回信号量句柄
  * 失败：返回空
  */
-
 sem_t* open_named_sem(const char* name)
 {
     sem_t* fd;
@@ -675,6 +675,27 @@ sem_t* open_named_sem(const char* name)
     return NULL;
 }
 
+void close_named_sem(const char* name)
+{
+    sem_t* fd;
+    if (name != NULL) {
+        fd = sem_open(name, O_RDWR);
+        if (fd != SEM_FAILED) {
+            sem_close(fd);
+        }
+    }
+}
+
+void nsem_timedwait(sem_t* sem, int sec) {
+    struct timespec tsspec;
+    if (clock_gettime(CLOCK_REALTIME, &tsspec) == -1) {
+        fprintf(stderr, "\nnsem_timedwait clock_gettime error");
+    }
+    tsspec.tv_sec += sec;
+    sem_timedwait(sem, &tsspec);
+}
+
+/////////////////////////////////////////////////////
 /*
  * 并转串时钟输出74HC165
  * 正常返回  模拟状态 ，低5位为GPRS_ID, 第6位门节点状态

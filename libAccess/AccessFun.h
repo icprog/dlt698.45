@@ -34,6 +34,7 @@ typedef enum
 	coll_para_save=5,			//采集类参数存储
 	acs_coef_save=6,			//交采计量芯片系数存储
 	acs_energy_save=7,			//交采计量电能量数据存储
+	para_init_save=8,			//初始化参数保存文件
 }SaveFile_type;
 
 /*

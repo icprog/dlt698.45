@@ -169,9 +169,29 @@ void ReadSystemInfo()
 //程序退出前处理，杀死其他所有进程 清楚共享内存
 void ProjectMainExit(int signo)
 {
+	close_named_sem(SEMNAME_SPI0_0);
+	sem_unlink(SEMNAME_SPI0_0);
 	exit(0);
 	return ;
 }
+
+/*
+ * 初始化操作
+ * */
+void ProgInit()
+{
+	sem_t * 		sem_spi;	//SPI通信信号量
+	int		val;
+
+	//此设置决定集中器电池工作，并保证在下电情况下，长按向下按键唤醒功能
+	gpio_writebyte(DEV_BAT_SWITCH,(INT8S)1);
+	//信号量建立
+	sem_spi = create_named_sem(SEMNAME_SPI0_0,1);							//TODO:放入vmain
+	sem_getvalue(sem_spi, &val);
+	fprintf(stderr,"process The sem is %d\n", val);
+
+}
+
 int main(int argc, char *argv[])
 {
 	int i=0;
@@ -180,8 +200,6 @@ int main(int argc, char *argv[])
 	fprintf(stderr,"\ncjmain run!");
 	Setsig(&sa1,ProjectMainExit);
 
-	//此设置决定集中器在下电情况下，长按向下按键唤醒功能
-	gpio_writebyte(DEV_BAT_SWITCH,(INT8S)1);
 
 	JProgramInfo = (ProgramInfo*)CreateShMem("ProgramInfo",sizeof(ProgramInfo),NULL);
 	ReadSystemInfo();

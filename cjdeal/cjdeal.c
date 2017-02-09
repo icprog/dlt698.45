@@ -11,6 +11,7 @@
 #include <sys/mman.h>
 #include <sys/reboot.h>
 #include <bits/types.h>
+#include <bits/sigaction.h>
 
 #include "cjdeal.h"
 #include "read485.h"
@@ -25,6 +26,7 @@
  **********************************************************/
 void QuitProcess(ProjectInfo *proinfo)
 {
+	close_named_sem(SEMNAME_SPI0_0);
 	proinfo->ProjectID=0;
     fprintf(stderr,"\n退出：%s %d",proinfo->ProjectName,proinfo->ProjectID);
 	exit(0);
@@ -61,8 +63,8 @@ int InitPara()
  *********************************************************/
 int main(int argc, char *argv[])
 {
-//    struct sigaction sa = {};
-//    Setsig(&sa, QuitProcess);
+    struct sigaction sa = {};
+    Setsig(&sa, QuitProcess);
 
 	fprintf(stderr,"\n[cjdeal]:cjdeal run!");
 	if(InitPro(&JProgramInfo,argc,argv)==0){
@@ -79,7 +81,7 @@ int main(int argc, char *argv[])
 	//液晶、控制
 	//guictrl_proccess();
 	//交采
-//	acs_process();
+	acs_process();
 
 	while(1)
    	{
@@ -93,5 +95,6 @@ int main(int argc, char *argv[])
 	    	fprintf(stderr,"deal main interval = %f(ms)\n", interval/1000.0);
 		usleep(10 * 1000);
    	}
+	close_named_sem(SEMNAME_SPI0_0);
 	return EXIT_SUCCESS;//退出
 }
