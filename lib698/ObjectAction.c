@@ -527,7 +527,7 @@ void MeterInfo(INT16U attr_act,INT8U *data)
 			break;
 		case 134://方法 134:Clear()
 			fprintf(stderr,"\n清空采集档案配置表");
-			clearClass(6000);
+			clearClass(0x6000);
 			break;
 	}
 }

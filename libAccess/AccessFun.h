@@ -38,10 +38,6 @@ typedef enum
 }SaveFile_type;
 
 /*
- * 复位
- * */
-extern int resetClass(OI_698 oi);
-/*
  * 方法：Clean()清空
  * 输入参数：oi对象标识
  * 返回值：=1：配置单元删除成功
@@ -140,5 +136,8 @@ extern int readCoverClass(OI_698 oi,INT16U seqno,void *blockdata,int datalen,int
  * -2:	文件记录不完整
  *************************************/
 extern long getFileRecordNum(OI_698 oi);
+
+
+//////////////////////////////////////////////////////////////////////////////////////
 
 #endif /* ACCESS_H_ */

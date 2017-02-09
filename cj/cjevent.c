@@ -66,7 +66,7 @@ void event_process(int argc, char *argv[])
 		sscanf(argv[3],"%04x",&tmp[0]);
 		oi = tmp[0];
 		if(strcmp("reset",argv[2])==0) {
-			ret = resetClass(oi);
+			ret = clearClass(oi);
 			fprintf(stderr,"复位出错=%d",ret);
 		}
 		if(strcmp("pro",argv[2])==0) {

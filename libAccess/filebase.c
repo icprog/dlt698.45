@@ -655,3 +655,30 @@ INT8U save_block_file(char *fname,void *blockdata,int size,int headsize,int inde
 	return ret;
 }
 
+
+/////////////////////////////////////////////////////////
+sem_t * InitSem()
+{
+	int			val=0;
+	sem_t * 	sem_parasave=NULL;	//参数文件存储信号量
+	//打开信号量
+	sem_parasave = open_named_sem(SEMNAME_PARA_SAVE);
+	sem_getvalue(sem_parasave, &val);
+	fprintf(stderr,"\nprocess The sem = %s value = %d sem_parasave=%p\n",SEMNAME_PARA_SAVE, val,sem_parasave);
+	sem_wait(sem_parasave);
+//	sem_getvalue(sem_parasave, &val);
+//	fprintf(stderr,"\nprocess The sem = %s value = %d sem_parasave=%p\n",SEMNAME_PARA_SAVE, val,sem_parasave);
+	return sem_parasave;
+}
+
+void CloseSem(sem_t * sem_parasave)
+{
+//	int  val=0;
+	sem_post(sem_parasave);
+//	sem_getvalue(sem_parasave, &val);
+//	fprintf(stderr,"closesem: val3=%d   sem_parasave=%p\n",val,sem_parasave);
+	if(sem_parasave!=NULL) {
+		sem_parasave = NULL;
+		sem_close(sem_parasave);
+	}
+}

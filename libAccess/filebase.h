@@ -61,4 +61,7 @@ extern INT16S getclassinfo(OI_698 oi,CLASS_INFO *classinfo);
 extern INT8U block_file_sync(char *fname,void *blockdata,int size,int headsize,int index);
 extern INT8U save_block_file(char *fname,void *blockdata,int size,int headsize,int index);
 
+extern sem_t * InitSem();
+extern void CloseSem(sem_t * sem_parasave);
+
 #endif /* FILEBASE_H_ */

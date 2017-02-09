@@ -10,6 +10,7 @@
 
 #include "ParaDef.h"
 #include "PublicFunction.h"
+#include "AccessFun.h"
 #include "cjmain.h"
 
 void Runled()
@@ -171,6 +172,8 @@ void ProjectMainExit(int signo)
 {
 	close_named_sem(SEMNAME_SPI0_0);
 	sem_unlink(SEMNAME_SPI0_0);
+	close_named_sem(SEMNAME_PARA_SAVE);
+	sem_unlink(SEMNAME_PARA_SAVE);
 	exit(0);
 	return ;
 }
@@ -180,7 +183,7 @@ void ProjectMainExit(int signo)
  * */
 void ProgInit()
 {
-	sem_t * 		sem_spi;	//SPI通信信号量
+	sem_t * sem_spi=NULL,*sem_parasave=NULL;	//SPI通信信号量
 	int		val;
 
 	//此设置决定集中器电池工作，并保证在下电情况下，长按向下按键唤醒功能
@@ -188,8 +191,9 @@ void ProgInit()
 	//信号量建立
 	sem_spi = create_named_sem(SEMNAME_SPI0_0,1);							//TODO:放入vmain
 	sem_getvalue(sem_spi, &val);
+	sem_parasave = create_named_sem(SEMNAME_PARA_SAVE,1);
+	sem_getvalue(sem_parasave, &val);
 	fprintf(stderr,"process The sem is %d\n", val);
-
 }
 
 int main(int argc, char *argv[])
@@ -200,7 +204,7 @@ int main(int argc, char *argv[])
 	fprintf(stderr,"\ncjmain run!");
 	Setsig(&sa1,ProjectMainExit);
 
-
+	ProgInit();
 	JProgramInfo = (ProgramInfo*)CreateShMem("ProgramInfo",sizeof(ProgramInfo),NULL);
 	ReadSystemInfo();
 	while(1)
