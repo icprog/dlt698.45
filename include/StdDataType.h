@@ -709,6 +709,7 @@ typedef struct{
 	int RHead,RTail;				//接收报文头指针，尾指针
 	int deal_step;					//数据接收状态机处理标记
 	int	rev_delay;					//接收延时
+	void* shmem;
 	INT8S (*p_send)(int fd,INT8U * buf,INT16U len);
 }CommBlock;
 
