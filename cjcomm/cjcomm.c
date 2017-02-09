@@ -48,13 +48,13 @@ void QuitProcess(int sig) {
     system("pkill gsmMuxd");
 
     //关闭打开的接口
-    asyslog(LOG_INFO, "开始关闭红外通信接口(%d)",FirObject.phy_connect_fd);
+    asyslog(LOG_INFO, "开始关闭红外通信接口(%d)", FirObject.phy_connect_fd);
     close(FirObject.phy_connect_fd);
-    asyslog(LOG_INFO, "开始关闭维护通信接口(%d)",ComObject.phy_connect_fd);
+    asyslog(LOG_INFO, "开始关闭维护通信接口(%d)", ComObject.phy_connect_fd);
     close(ComObject.phy_connect_fd);
-    asyslog(LOG_INFO, "开始关闭终端对主站链接接口(%d)",nets_comstat.phy_connect_fd);
+    asyslog(LOG_INFO, "开始关闭终端对主站链接接口(%d)", nets_comstat.phy_connect_fd);
     close(nets_comstat.phy_connect_fd);
-    asyslog(LOG_INFO, "开始关闭主站对终端链接接口(%d)" ,serv_comstat.phy_connect_fd);
+    asyslog(LOG_INFO, "开始关闭主站对终端链接接口(%d)", serv_comstat.phy_connect_fd);
     close(serv_comstat.phy_connect_fd);
 
     //关闭AT模块
@@ -94,35 +94,31 @@ void Comm_task(CommBlock* compara) {
     if (abs(newtime - oldtime) > heartbeat) {
         TSGet(&ts);
         oldtime = newtime;
-        if (compara->phy_connect_fd < 0 || compara->testcounter >= 2) {
-            fprintf(stderr, "phy_connect_fd = %d ,compara->testcounter = %d\n", compara->phy_connect_fd, compara->testcounter);
-//            initComPara(compara);
+        if (compara->testcounter >= 2) {
             return;
         } else if (compara->phy_connect_fd >= 0 && compara->linkstate == close_connection) //物理通道建立完成后，如果请求状态为close，则需要建立连接
         {
             WriteLinkRequest(build_connection, heartbeat, &compara->link_request);
-            fprintf(stderr, "link %d-%0d-%d %d:%d:%d", compara->link_request.time.year, compara->link_request.time.month,
-                    compara->link_request.time.day_of_month, compara->link_request.time.hour, compara->link_request.time.minute,
-                    compara->link_request.time.second);
+            asyslog(LOG_INFO, "建立链接 %02d-%02d-%02d %d:%d:%d\n", compara->link_request.time.year,
+                    compara->link_request.time.month, compara->link_request.time.day_of_month, compara->link_request.time.hour,
+                    compara->link_request.time.minute, compara->link_request.time.second);
             sendlen = Link_Request(compara->link_request, compara->serveraddr, compara->SendBuf);
         } else {
             WriteLinkRequest(heart_beat, heartbeat, &compara->link_request);
             sendlen = Link_Request(compara->link_request, compara->serveraddr, compara->SendBuf);
         }
-
         compara->p_send(compara->phy_connect_fd, compara->SendBuf, sendlen);
         compara->testcounter++;
     }
 }
 
 INT8S GenericWrite(int fd, INT8U* buf, INT16U len) {
-    int j = 0;
-    fprintf(stderr, "Generic Send:\n");
-    for (j = 0; j < len; j++) {
-        fprintf(stderr, "%02x ", buf[j]);
+    int ret = anetWrite(fd, buf, (int)len);
+    if (ret != len) {
+        asyslog(LOG_WARNING, "报文发送失败(长度:%d,错误:%d)", len, errno);
     }
-    printf("\n");
-    return anetWrite(fd, buf, (int)len);
+    bufsyslog(buf, "Send:", len, 0, BUFLEN);
+    return ret;
 }
 
 void GenericRead(struct aeEventLoop* eventLoop, int fd, void* clientData, int mask) {
@@ -142,14 +138,13 @@ void GenericRead(struct aeEventLoop* eventLoop, int fd, void* clientData, int ma
     if (revcount > 0) {
         for (int j = 0; j < revcount; j++) {
             read(nst->phy_connect_fd, &nst->RecBuf[nst->RHead], 1);
-            printf("%02x ", nst->RecBuf[nst->RHead]);
             nst->RHead = (nst->RHead + 1) % BUFLEN;
         }
+        bufsyslog(nst->RecBuf, "Recv:", nst->RHead, nst->RTail, BUFLEN);
 
         int len = 0;
         for (int i = 0; i < 5; i++) {
             len = StateProcess(&nst->deal_step, &nst->rev_delay, 10, &nst->RTail, &nst->RHead, nst->RecBuf, nst->DealBuf);
-            printf("len = %d\n", len);
             if (len > 0) {
                 break;
             }
@@ -182,7 +177,7 @@ void initComPara(CommBlock* compara) {
     compara->RTail     = 0;
     compara->deal_step = 0;
     compara->rev_delay = 20;
-    compara->shmem = JProgramInfo;
+    compara->shmem     = JProgramInfo;
 
     compara->p_send = GenericWrite;
 }
@@ -206,7 +201,7 @@ void NETRead(struct aeEventLoop* eventLoop, int fd, void* clientData, int mask) 
             read(nst->phy_connect_fd, &nst->RecBuf[nst->RHead], 1);
             nst->RHead = (nst->RHead + 1) % BUFLEN;
         }
-        bufsyslog(nst->RecBuf, nst->RHead, nst->RTail, BUFLEN);
+        bufsyslog(nst->RecBuf, "Recv:", nst->RHead, nst->RTail, BUFLEN);
 
         int len = 0;
         for (int i = 0; i < 5; i++) {
@@ -230,17 +225,14 @@ void NETRead(struct aeEventLoop* eventLoop, int fd, void* clientData, int mask) 
     }
 }
 
-
 int NETWorker(struct aeEventLoop* ep, long long id, void* clientData) {
     CommBlock* nst = (CommBlock*)clientData;
 
     if (nst->phy_connect_fd <= 0) {
         initComPara(nst);
-        fprintf(stderr, "IPaddr:%s\n", IPaddr);
         nst->phy_connect_fd = anetTcpConnect(NULL, IPaddr, 5022);
-        fprintf(stderr, "[NETWorke1r]Connect Server(%d)[%s-%d]\n", nst->phy_connect_fd, __FILE__, __LINE__);
         if (nst->phy_connect_fd > 0) {
-            fprintf(stderr, "[NETWorker]Connect Server(%d)\n", nst->phy_connect_fd);
+            asyslog(LOG_INFO, "链接主站(主站地址:%s,结果:%d)", IPaddr, nst->phy_connect_fd);
             if (aeCreateFileEvent(ep, nst->phy_connect_fd, AE_READABLE, NETRead, nst) < 0) {
                 close(nst->phy_connect_fd);
                 nst->phy_connect_fd = -1;
@@ -292,40 +284,49 @@ void CreateAptSer(struct aeEventLoop* eventLoop, int fd, void* clientData, int m
     //如果成功建立主站连接，则创建IO事件；否则重新建立监听
     nst->phy_connect_fd = anetTcpAccept(NULL, fd, NULL, 0, NULL);
     if (nst->phy_connect_fd > 0) {
-        fprintf(stderr, "[vmsgr] 建立主站反向链接。fd = %d\n", nst->phy_connect_fd);
+        asyslog(LOG_INFO, "建立主站反向链接(结果:%d)", nst->phy_connect_fd);
         if (aeCreateFileEvent(eventLoop, nst->phy_connect_fd, AE_READABLE, NETRead, nst) == -1) {
+            aeDeleteFileEvent(eventLoop, nst->phy_connect_fd, AE_READABLE);
             close(fd);
         }
     } else {
+        asyslog(LOG_WARNING, "监听端口出错，尝试重建监听");
+        aeDeleteFileEvent(eventLoop, nst->phy_connect_fd, AE_READABLE);
+        close(fd);
         int listen_port = anetTcpServer(NULL, 5555, "0.0.0.0", 1);
-        aeCreateFileEvent(eventLoop, listen_port, AE_READABLE, CreateAptSer, nst);
+        if (listen_port > 0) {
+            nst->phy_connect_fd = listen_port;
+            aeCreateFileEvent(eventLoop, listen_port, AE_READABLE, CreateAptSer, nst);
+        } else {
+            asyslog(LOG_ERR, "监听端口出错，重新建立监听失败");
+            abort();
+        }
     }
 }
 
 /*********************************************************
  * 进程初始化
  *********************************************************/
-void enviromentCheck(int argc, char* argv[])
-{
-	//检查运行参数
-	if(argc < 2){
-		asyslog(LOG_ERR, "未指定通信参数");
-		exit(1);
-	}
+void enviromentCheck(int argc, char* argv[]) {
+    //绑定信号处理了函数
+    struct sigaction sa = {};
+    Setsig(&sa, QuitProcess);
 
-	//解析通信参数
+    //检查运行参数
+    if (argc < 2) {
+        asyslog(LOG_ERR, "未指定通信参数");
+        abort();
+    }
+
+    //解析通信参数
     memset(IPaddr, 0, sizeof(IPaddr));
     memcpy(IPaddr, argv[1], strlen(argv[1]));
-    asyslog("主站通信地址为：%s\n", IPaddr);
+    asyslog(LOG_INFO, "主站通信地址为：%s\n", IPaddr);
 
     //向cjmain报告启动
     JProgramInfo = OpenShMem("ProgramInfo", sizeof(ProgramInfo), NULL);
     memcpy(JProgramInfo->Projects[3].ProjectName, "cjcomm", sizeof("cjcomm"));
     JProgramInfo->Projects[3].ProjectID = getpid();
-
-    struct sigaction sa = {};
-    Setsig(&sa, QuitProcess);
-
 
     //初始化通信对象参数
     initComPara(&FirObject);
@@ -335,11 +336,9 @@ void enviromentCheck(int argc, char* argv[])
 }
 
 int main(int argc, char* argv[]) {
+    // daemon(0,0);
 
-	//daemon(0,0);
-
-	enviromentCheck(argc, argv);
-
+    enviromentCheck(argc, argv);
 
     //开始通信模块维护、红外与维护串口线程
     CreateATWorker();

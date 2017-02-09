@@ -27,20 +27,19 @@ void asyslog(int priority, const char* fmt, ...) {
     va_end(argp);
 }
 
-void bufsyslog(const INT8U* buf, int head, int tail, int len) {
-	int count = 0;
-	char msg[4096];
-	memset(msg, '\0', sizeof(msg));
-	sprintf(msg, "RECV:");
-	while(head != tail)
-	{
-		sprintf(msg + 5 + count * 3, " %02x", buf[tail]);
-		tail = (tail + 1)%len;
-		count++;
-		if (count > 1024){
-			break;
-		}
-	}
-	syslog(LOG_INFO, "%s", msg);
-	printf("%s\n", msg);
+void bufsyslog(const INT8U* buf, const char* title, int head, int tail, int len) {
+    int count = 0;
+    char msg[4096];
+    memset(msg, '\0', sizeof(msg));
+    snprintf(msg, 6, "%s", title);
+    while (head != tail) {
+        sprintf(msg + 5 + count * 3, " %02x", buf[tail]);
+        tail = (tail + 1) % len;
+        count++;
+        if (count > 1200) {
+            break;
+        }
+    }
+    syslog(LOG_INFO, "%s", msg);
+    printf("%s\n", msg);
 }
