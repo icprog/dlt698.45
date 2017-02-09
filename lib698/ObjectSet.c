@@ -25,7 +25,11 @@ INT8U prtstat(int flg)
 		return refuse_rw;
 	}
 }
-
+//void setOIChange(OI_698 oi)
+//{
+//	case oi4016:
+//		break;
+//}
 INT16U set310d(OAD oad,INT8U *data,INT8U *DAR)
 {
 	Event310D_Object tmp310d={};
@@ -110,11 +114,15 @@ INT16U set4300(INT8U attflg,INT8U index,INT8U *data)
 INT16U setf203(INT8U attflg,INT8U index,INT8U *data)
 {
 	INT16U source_index=0,dest_index=0;
+	CLASS_f203	f203;
+
+	memset(&f203,0,sizeof(CLASS_f203));
+	readCoverClass(0xf203,0,&f203,sizeof(CLASS_f203),para_vari_save);
 	if ( attflg == 4 )//配置参数
 	{
-		StateAtti4 config;
-		get_BasicUnit(data,&source_index,(INT8U*)&config,&dest_index);
-		fprintf(stderr,"\n状态量配置参数 : 接入标志 %02x  属性标志 %02x \n",config.StateAcessFlag,config.StatePropFlag);
+		get_BasicUnit(data,&source_index,(INT8U*)&f203.state4,&dest_index);
+		saveCoverClass(0xf203,0,&f203,sizeof(CLASS_f203),para_vari_save);
+		fprintf(stderr,"\n状态量配置参数 : 接入标志 %02x  属性标志 %02x \n",f203.state4.StateAcessFlag,f203.state4.StatePropFlag);
 	}
 	return source_index;
 }
@@ -325,6 +333,7 @@ int setRequestNormal(INT8U *data,OAD oad,CSINFO *csinfo,INT8U *buf)
 		case 0xf:		//输入输出设备类对象 + ESAM接口类对象
 			DeviceIoSetAttrib(oad,data);
 	}
+//	setOIChange(oi);
 	return success;
 }
 int setRequestNormalList(INT8U *data,OAD oad)

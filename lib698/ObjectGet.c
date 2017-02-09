@@ -119,7 +119,7 @@ int GetYxPara(RESULT_NORMAL *response)
 	oad = response->oad;
 	data = response->data;
 	memset(&objtmp,0,sizeof(objtmp));
-	readParaClass(0xf203,&objtmp,0);
+	readCoverClass(0xf203,0,&objtmp,sizeof(objtmp),para_vari_save);
 	switch(oad.attflg )
 	{
 		case 4://配置参数

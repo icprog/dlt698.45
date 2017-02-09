@@ -120,21 +120,29 @@ void event_process(int argc, char *argv[])
 			if(record_n!=0){
 				Get_Event(oi,record_n,(INT8U**)&Getbuf,&Getlen);
 				if(Getbuf!=NULL){
-                    INT8U index=0;
+                    INT8U index=0,h2=0,h1=0,l2=0,l1=0;
                     index++;//0:结构体
                     index++;//1:结构体元素个数
                     index++;//3:事件序号unsigned-long
-                    INT32U event_order=(Getbuf[index++]<<32)+(Getbuf[index++]<<16)+(Getbuf[index++]<<8)+Getbuf[index++];
+                    h2=Getbuf[index++];
+                    h1=Getbuf[index++];
+                    l2=Getbuf[index++];
+                    l1=Getbuf[index++];
+                    INT32U event_order=((h2<<24)+(h1<<16)+(l2<<8)+l1);
                     fprintf(stderr,"事件%04x：\n",oi);
-                    fprintf(stderr,"事件序号：%d\n",oi,event_order);
+                    fprintf(stderr,"事件序号：%d \n",event_order);
                     index++;//0x1c date-s 发生时间
-                    fprintf(stderr,"发生时间：%d-%d-%d %d:%d:%d",(Getbuf[index++]<<8)+Getbuf[index++],
+                    l2=Getbuf[index++];
+                    l1=Getbuf[index++];
+                    fprintf(stderr,"发生时间：%d-%d-%d %d:%d:%d",((l2<<8)+l1),
                     		Getbuf[index++],Getbuf[index++],Getbuf[index++],Getbuf[index++],Getbuf[index++]);
                     index++;//0x1c date-s 结束时间
                     if(oi==0x311C){
                     	fprintf(stderr,"该事件无结束时间!");
                     }else{
-                    	fprintf(stderr,"结束时间：%d-%d-%d %d:%d:%d",(Getbuf[index++]<<8)+Getbuf[index++],
+                    	l2=Getbuf[index++];
+                    	l1=Getbuf[index++];
+                    	fprintf(stderr,"结束时间：%d-%d-%d %d:%d:%d",((l2<<8)+l1),
                     	                            Getbuf[index++],Getbuf[index++],Getbuf[index++],Getbuf[index++],Getbuf[index++]);
                     }
                     INT8U Len=0;

@@ -683,10 +683,9 @@ sem_t* open_named_sem(const char* name)
 INT8S getSpiAnalogState()
 {
 	unsigned char ret=0;
-	int i,tmpid[8];
+	int i=0,tmpid[8]={};
 
 	if(gpio_writebyte(DEV_SPI_CS,1)==-1) {
-
 		return -1;
 	}
 	usleep(50);

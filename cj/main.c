@@ -50,7 +50,7 @@ static char
 					"[设置Class7]  cj event pro <oi> 当前记录数 最大记录数 上报标识 有效标识 关联对象个数 关联对象OAD[1-10]	\n"	\
 					"	[设置采集终端初始化事件] cj event pro 3100 1 16 1 1 0 \n"	\
 					"	[设置终端状态量变位事件] cj event pro 3104 1 16 1 1 5 201E-4200 F203-4201 F203-4202 F203-4203 F203-4204 F203-4205\n"		\
-					"[读取事件记录] cj event record <oi> 0（所有）/n（记录n）:例如：读取采集终端初始化事件记录 cj event record 0x3100 0（所有）/1(记录1)"
+					"[读取事件记录] cj event record <oi> 0（所有）/n（记录n）:例如：读取采集终端初始化事件记录 cj event record 3100 0（所有）/1(记录1)"
 					"-------------------------------------------------------\n\n"	\
 					;
 
@@ -94,10 +94,10 @@ void prthelp()
 {
 	fprintf(stderr,"Usage: ./cj (维护功能)  ");
 	fprintf(stderr,"help	 [help] ");
+	fprintf(stderr,"%s",usage_acs);
 	fprintf(stderr,"%s",usage_para);
 	fprintf(stderr,"%s",usage_event);
 	fprintf(stderr,"%s",usage_coll);
-	fprintf(stderr,"%s",usage_acs);
 }
 
 int main(int argc, char *argv[])
