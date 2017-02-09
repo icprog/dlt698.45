@@ -29,24 +29,55 @@
 
 CLASS_INFO	info={};
 
+void clearData()
+{
+	//冻结类数据清除
+	system("rm -rf /nand/freeze");
+}
+
+void clearEvent()
+{
+	//事件类数据清除
+	system("rm -rf /nand/event/record");
+	system("rm -rf /nand/event/current");
+}
+
+void clearDemand()
+{
+	//需量类数据清除
+	system("rm -rf /nand/demand");
+}
+
 
 /*
  * 数据区初始化接口函数
  * 返回值 =0: 删除成功
  * =-1：删除失败
  * */
-int dataInit()
+int dataInit(INT16U attr)
 {
     struct timeval start={}, end={};
     long  interval=0;
 	sem_t   *sem_save=NULL;
 
 	sem_save = InitSem();
-    fprintf(stderr,"数据区初始化\n");
-	gettimeofday(&start, NULL);
-	//事件类数据清除
-	system("rm -rf /nand/event/record");
-	system("rm -rf /nand/event/current");
+
+	fprintf(stderr,"[4300]设备参数 属性：%d\n",attr);
+
+	switch(attr) {
+	case 3://数据初始化
+		clearData();
+		clearEvent();
+		clearDemand();
+		break;
+	case 5://事件初始化
+		clearEvent();
+		break;
+	case 6://需量初始化
+		clearDemand();
+		break;
+	}
+ 	gettimeofday(&start, NULL);
 
 	gettimeofday(&end, NULL);
 	interval = 1000000*(end.tv_sec - start.tv_sec) + (end.tv_usec - start.tv_usec);

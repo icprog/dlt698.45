@@ -501,7 +501,9 @@ void TerminalInfo(INT16U attr_act,INT8U *data)
 	switch(attr_act)
 	{
 		case 3://数据初始化
-			dataInit();
+		case 5://事件初始化
+		case 6://需量初始化
+			dataInit(attr_act);
 			fprintf(stderr,"\n终端数据初始化!");
 			break;
 	}

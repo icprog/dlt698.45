@@ -77,6 +77,8 @@ void event_process(int argc, char *argv[])
 					printClass310d();
 					break;
 				case 0x3100:
+				case 0x3104:
+					fprintf(stderr,"class-%04x\n",oi);
 					memset(&class7,0,sizeof(Class7_Object));
 					readCoverClass(oi,0,&class7,sizeof(Class7_Object),event_para_save);
 					printClass7(class7);
