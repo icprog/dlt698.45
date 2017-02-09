@@ -217,11 +217,7 @@ INT8U Event_FindTsa(TSA tsa) {
 INT8U Get_Event(OI_698 oi,INT8U eventno,INT8U** Getbuf,int *Getlen)
 {
 	int filesize=0;
-	filesize = getClassFileLen(oi,eventno,event_record_save);
-	if(filesize<=0)  return 0;
-	*Getlen=filesize;
-	*Getbuf=(INT8U*)malloc(filesize);
-	 INT8U currno=0,_currno=0,maxno=0;
+	INT8U currno=0,_currno=0,maxno=0;
 	 switch(oi){
 	   case 0x3100:
 		   currno=event_object.Event3100_obj.crrentnum;
@@ -344,9 +340,13 @@ INT8U Get_Event(OI_698 oi,INT8U eventno,INT8U** Getbuf,int *Getlen)
 		   maxno=event_object.Event3203_obj.maxnum;
 		   break;
 	}
-    _currno=currno-(eventno-1);
-    if(_currno<=0)
-    	_currno = maxno;
+	_currno=currno-(eventno-1);
+	if(_currno<=0 || _currno>maxno)
+		_currno = maxno;
+	filesize = getClassFileLen(oi,_currno,event_record_save);
+	if(filesize<=0)  return 0;
+	*Getlen=filesize;
+	*Getbuf=(INT8U*)malloc(filesize);
 	readCoverClass(oi,_currno,*Getbuf,*Getlen,event_record_save);
 	return 1;
 }
