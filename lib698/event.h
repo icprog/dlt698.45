@@ -154,6 +154,14 @@ extern INT8U Event_311C(TSA tsa, INT8U* data,INT8U len);
  */
 extern INT8U Event_3114(INT8U* data,INT8U len);
 /*
+ * 遥控跳闸记录
+ */
+extern INT8U Event_3115(INT8U* data,INT8U len);
+/*
+ * 有功总电能量差动越限事件记录
+ */
+extern INT8U Event_3116(INT8U* data,INT8U len);
+/*
  * 输出回路接入状态变位事件记录
  */
 extern INT8U Event_3117(INT8U* data,INT8U len);
