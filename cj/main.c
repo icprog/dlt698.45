@@ -30,6 +30,14 @@ static char
 					"		 【数据初始化】cj para method 4300 3		\n"					\
 					"-------------------------------------------------------\n\n"	\
 					;
+
+static char
+		*usage_inoutdev =
+					"\n-------------------A.12　输入输出设备类对象----------------------------\n"	\
+					"【开关量输入】cj dev f203 		\n"					\
+					"-------------------------------------------------------\n\n"	\
+					;
+
 static char
 		*usage_coll =
 					"\n--------------------采集监控类对象----------------------------\n"	\
@@ -45,11 +53,13 @@ static char
 static char
 		*usage_event =
 					"--------------------事件类对象----------------------------\n"	\
-					"[复位事件]  cj event reset <oi> :例如：复位采集终端初始化事件  cj event reset 3100 	\n"					\
-					"[读取事件属性] cj event pro <oi> :例如：读取采集终端初始化事件属性 cj event pro 3100 	\n"					\
+					"[初始化事件参数]  cj event init <oi> :例如：初始化采集终端初始化事件  cj event init 0x3100/0全部 	\n"
+					"[复位事件]  cj event reset <oi> :例如：复位采集终端初始化事件  cj event reset 0x3100 	\n"					\
+					"[读取事件属性] cj event pro <oi> :例如：读取采集终端初始化事件属性 cj event pro 0x3100 	\n"					\
 					"[设置Class7]  cj event pro <oi> 当前记录数 最大记录数 上报标识 有效标识 关联对象个数 关联对象OAD[1-10]	\n"	\
 					"	[设置采集终端初始化事件] cj event pro 3100 1 16 1 1 0 \n"	\
 					"	[设置终端状态量变位事件] cj event pro 3104 1 16 1 1 5 201E-4200 F203-4201 F203-4202 F203-4203 F203-4204 F203-4205\n"		\
+					"[读取事件记录] cj event record <oi> 0（所有）/n（记录n）:例如：读取采集终端初始化事件记录 cj event record 0x3100 0（所有）/1(记录1)"
 					"-------------------------------------------------------\n\n"	\
 					;
 
@@ -93,10 +103,12 @@ void prthelp()
 {
 	fprintf(stderr,"Usage: ./cj (维护功能)  ");
 	fprintf(stderr,"help	 [help] ");
+	fprintf(stderr,"%s",usage_acs);
 	fprintf(stderr,"%s",usage_para);
 	fprintf(stderr,"%s",usage_event);
 	fprintf(stderr,"%s",usage_coll);
-	fprintf(stderr,"%s",usage_acs);
+	fprintf(stderr,"%s",usage_inoutdev);
+
 }
 
 int main(int argc, char *argv[])

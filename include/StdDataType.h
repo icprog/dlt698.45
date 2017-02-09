@@ -92,22 +92,20 @@ typedef enum {
 }Physical_Units;/*物理单位*/
 
 typedef enum {
-	success/*成功*/,hdw_disable/*硬件失效*/,
-	temporal_disable/*暂时失效*/,refuse_rw/*拒绝读写*/,
-	obj_undefine/*对象未定义*/,interface_uncomp/*对象接口类不符合*/,
-	obj_unexist/*对象不存在*/,type_mismatch/*类型不匹配*/,
-	boundry_over/*越界*/,dblock_invalid/*数据块不可用*/,
-	framesegment_cancel/*分帧传输已取消*/,framesegment_invalid_state/*不处于分帧传输状态*/,
-	wdblock_cancel/*块写取消*/,no_wdblock_state/*不存在块写状态*/,
-	dblock_invalid_serial/*数据块序号无效*/,pwd_err1/*密码错未授权*/,
-	comm_rate_disnablechg/*通信速率不能更改*/,year_zonenum_over/*年时区数超*/,
-	day_zonenum_over/*日时段数超*/,feilvnum_over/*费率数超*/,
-	security_mismatch/*安全认证不匹配*/,recharge_reuse/*重复充值*/,
-	esam_verify_fail/*ESAM 验证失败*/,security_fail,/*安全认证失败*/
-	customer_code_mismatch/*客户编号不匹配*/,recharge_counter_err/*充值次数错误*/,
-	buypower_over/*购电超囤积*/,addr_exception/*地址异常*/,
-	symmetric_decryption_err/*对称解密错误*/,signature_err1/*签名错误*/,
-	meter_suspend/*电表挂起*/,timetag_invalid/*时间标签无效*/,other_err1
+	success/*0成功*/,
+	hdw_disable/*1硬件失效*/,					temporal_disable/*2暂时失效*/,				refuse_rw/*3拒绝读写*/,
+	obj_undefine/*4对象未定义*/,				interface_uncomp/*5对象接口类不符合*/,			obj_unexist/*6对象不存在*/,
+	type_mismatch/*7类型不匹配*/,				boundry_over/*8越界*/,						dblock_invalid/*9数据块不可用*/,
+	framesegment_cancel/*10分帧传输已取消*/,	framesegment_invalid_state/*11不处于分帧传输状态*/,
+	wdblock_cancel/*12块写取消*/,				no_wdblock_state/*13不存在块写状态*/,			dblock_invalid_serial/*14数据块序号无效*/,
+	pwd_err1/*15密码错未授权*/,				comm_rate_disnablechg/*16通信速率不能更改*/,	year_zonenum_over/*17年时区数超*/,
+	day_zonenum_over/*18日时段数超*/,			feilvnum_over/*19费率数超*/,					security_mismatch/*20安全认证不匹配*/,
+	recharge_reuse/*21重复充值*/,				esam_verify_fail/*22ESAM 验证失败*/,			security_fail,/*23安全认证失败*/
+	customer_code_mismatch/*24客户编号不匹配*/,recharge_counter_err/*25充值次数错误*/,		buypower_over/*26购电超囤积*/,
+	addr_exception/*27地址异常*/,				symmetric_decryption_err/*28对称解密错误*/,	unsymmetric_decryption_err/*29非对称解密错误*/,
+	signature_err1/*30签名错误*/,				meter_suspend/*31电表挂起*/,					timetag_invalid/*32时间标签无效*/,
+	request_overtime/*33请求超时*/,			esam_p1p2_err/*34 ESAM的P1P2不正确*/,			esam_lc_err/*ESAM的LC错误*/,
+	other_err1=255/*其他*/
 }DAR;	/*数据访问结果*/
 
 typedef enum {
@@ -321,12 +319,7 @@ typedef struct
 	INT8U mstype;
 	MS ms;
 }MY_MS;
-typedef struct
-{
-	OI_698 OI;
-	INT8U method_tag;
-	INT8U oper_model;
-}OMD;
+
 typedef struct
 {
 	INT8U conver;
@@ -539,7 +532,6 @@ typedef union {
 	OI_698 OI;
 	OAD oad;
 	ROAD road;
-	OMD omd;
 	TI ti;
 	TSA tsa;
 	INT8U mac[20];
@@ -717,6 +709,7 @@ typedef struct{
 	int RHead,RTail;				//接收报文头指针，尾指针
 	int deal_step;					//数据接收状态机处理标记
 	int	rev_delay;					//接收延时
+	void* shmem;
 	INT8S (*p_send)(int fd,INT8U * buf,INT16U len);
 }CommBlock;
 

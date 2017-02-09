@@ -14,7 +14,7 @@
 #include "StdDataType.h"
 #include "ParaDef.h"
 
-
+extern void setsystime(DateTimeBCD datetime);
 extern void TSGet(TS *ts);
 extern INT8U TScompare(TS ts1,TS ts2);
 extern time_t tmtotime_t(TS ptm);
@@ -52,19 +52,22 @@ extern INT32S int32u2bcd(INT32U dint32, INT8U* bcd,ORDER order);
 /*
  * gpio操作函数
  */
-extern INT8S gpio_readbyte(INT8S* devpath);
-extern INT32S gpio_readint(INT8S* devpath) ;
-extern INT32S gpio_writebyte(INT8S* devpath, INT8S data) ;
-extern INT32S gpio_writebytes(INT8S* devpath, INT8S* vals, INT32S valnum) ;
+extern INT8S gpio_readbyte(char* devpath);
+extern INT32S gpio_readint(char* devpath) ;
+extern INT32S gpio_writebyte(char* devpath, INT8S data) ;
+extern INT32S gpio_writebytes(char* devpath, INT8S* vals, INT32S valnum) ;
 
 extern BOOLEAN pwr_has();
 extern BOOLEAN pwr_has_byVolt(INT8U valid,INT32U volt,INT16U limit);
 extern BOOLEAN bettery_getV(FP32* clock_bt,FP32* tmnl_bt);
+
+extern INT8S getSpiAnalogState();
 /*
  * 信号量操作函数
  * */
 extern sem_t* nsem_open(const char* name);
 extern sem_t* create_named_sem(const char* name, int flag);
 extern sem_t* open_named_sem(const char* name);
+extern void close_named_sem(const char* name);
 
 #endif /* PUBLICFUNCTION_H_ */

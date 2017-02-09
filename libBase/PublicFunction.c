@@ -1,6 +1,7 @@
 ﻿#ifndef JPublicFunctionH
 #define JPublicFunctionH
 #include "stdio.h"
+#include "stdlib.h"
 #include "zlib.h"
 #include "errno.h"
 #include "time.h"
@@ -13,7 +14,8 @@
 #include <termios.h>
 #include "math.h"
 #include "PublicFunction.h"
-
+#include <sys/time.h>
+#include <linux/rtc.h>
 #include <linux/serial.h>
 #include <sys/ioctl.h>
 
@@ -533,6 +535,28 @@ time_t tmtotime_t(TS ptm)
 	ctime = mktime(&ctm);
 	return ctime;
 }
+void setsystime(DateTimeBCD datetime)
+{
+	fprintf(stderr,"\n终端对时：%d年-%d月-%d日 %d时:%d分:%d秒",datetime.year.data,datetime.month.data,datetime.day.data,datetime.hour.data,datetime.min.data,datetime.sec.data);
+	int rtc;
+	struct tm _tm;
+	struct timeval tv;
+	_tm.tm_sec = datetime.sec.data;
+	_tm.tm_min = datetime.min.data;
+	_tm.tm_hour = datetime.hour.data;
+	_tm.tm_mday = datetime.day.data;
+	_tm.tm_mon = datetime.month.data-1;
+	_tm.tm_year = datetime.year.data-1900;
+	_tm.tm_isdst = 0;
+	tv.tv_sec = mktime(&_tm);
+	tv.tv_usec = 0;
+	settimeofday(&tv, (struct timezone *)0);
+	rtc = open("/dev/rtc0",O_RDWR);
+	ioctl(rtc, RTC_SET_TIME, &_tm);
+	close(rtc);
+	system("date");
+	fprintf(stderr, "\n\n");
+}
 
 /****************************************************************
  * 实时数据请求缓冲数组初始化
@@ -632,6 +656,7 @@ int GetRealdataReq_data(RealdataReq* req,TRANSTYPE* data,INT16U ticket)
     return stat;
 }
 
+////////////////////////////////////////////////////////////////////////////
 /*
  * 功能：在/dev/shm目录下创建信号量描述文件，如果已经存在同名的文件，则先删除，然后在创建。
  *
@@ -663,7 +688,6 @@ sem_t* create_named_sem(const char* name, int flag)
  * 成功：返回信号量句柄
  * 失败：返回空
  */
-
 sem_t* open_named_sem(const char* name)
 {
     sem_t* fd;
@@ -674,4 +698,69 @@ sem_t* open_named_sem(const char* name)
     }
     return NULL;
 }
+
+void close_named_sem(const char* name)
+{
+    sem_t* fd;
+    if (name != NULL) {
+        fd = sem_open(name, O_RDWR);
+        if (fd != SEM_FAILED) {
+            sem_close(fd);
+        }
+    }
+}
+
+void nsem_timedwait(sem_t* sem, int sec) {
+    struct timespec tsspec;
+    if (clock_gettime(CLOCK_REALTIME, &tsspec) == -1) {
+        fprintf(stderr, "\nnsem_timedwait clock_gettime error");
+    }
+    tsspec.tv_sec += sec;
+    sem_timedwait(sem, &tsspec);
+}
+
+/////////////////////////////////////////////////////
+/*
+ * 并转串时钟输出74HC165
+ * 正常返回  模拟状态 ，低5位为GPRS_ID, 第6位门节点状态
+ * =-1：		无此设备，为II型集中器
+ * */
+INT8S getSpiAnalogState()
+{
+	unsigned char ret=0;
+	int i=0,tmpid[8]={};
+
+	if(gpio_writebyte(DEV_SPI_CS,1)==-1) {
+		return -1;
+	}
+	usleep(50);
+	gpio_writebyte(DEV_SPI_CS,0);
+	usleep(50);
+	gpio_writebyte(DEV_SPI_CS,1);
+	gpio_writebyte(DEV_SPI_CLK,0);
+	for(i=0;i<8;i++)
+	{
+		usleep(50);
+		gpio_writebyte(DEV_SPI_CLK,1);
+		usleep(50);
+		tmpid[i] = gpio_readbyte(DEV_SPI_MISO);
+		usleep(50);
+		gpio_writebyte(DEV_SPI_CLK,0);
+	}
+	if (tmpid[6]==1)//GPRS_STAT0
+		ret |= 1<<0;
+	if (tmpid[4]==1)//GPRS_STAT1
+		ret |= 1<<1;
+	if (tmpid[5]==1)//GPRS_STAT2
+		ret |= 1<<2;
+	if (tmpid[1]==1)//GPRS_STAT3
+		ret |= 1<<3;
+	if (tmpid[3]==1)//GPRS_STAT4
+		ret |= 1<<4;
+
+	if (tmpid[2]==1)//MEN node  门节点
+		ret |= 1<<5;
+	return ret;
+}
+
 #endif /*JPublicFunctionH*/

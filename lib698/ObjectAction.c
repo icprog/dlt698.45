@@ -30,7 +30,8 @@ INT16U getMytypeSize(INT8U first )
 	}
 	return 0 ;
 }
-int doActionReponse(int reponse,CSINFO *csinfo,PIID piid,OMD omd,int dar,INT8U *data,INT8U *buf)
+
+int doReponse(int server,int reponse,CSINFO *csinfo,PIID piid,OAD oad,int dar,INT8U *data,INT8U *buf)
 {
 	int index=0, hcsi=0;
 
@@ -40,22 +41,20 @@ int doActionReponse(int reponse,CSINFO *csinfo,PIID piid,OMD omd,int dar,INT8U *
 	index = FrameHead(csinfo,buf);
 	hcsi = index;
 	index = index + 2;
-	buf[index] = ACTION_RESPONSE;
+	buf[index] = server;
 	index++;
 	buf[index] = reponse;
 	index++;
 //	fprintf(stderr,"piid.data[%d]=%02x\n",index,piid.data);
 	buf[index] = piid.data;
 	index++;
-//	memcpy(&buf[index],&omd,sizeof(OMD));
-//	index = index + sizeof(OMD);
-	buf[index] = (omd.OI>>8) & 0xff;
+	buf[index] = (oad.OI>>8) & 0xff;
 	index++;
-	buf[index] = omd.OI & 0xff;
+	buf[index] = oad.OI & 0xff;
 	index++;
-	buf[index] = omd.method_tag;
+	buf[index] = oad.attflg;
 	index++;
-	buf[index] = omd.oper_model;
+	buf[index] = oad.attrindex;
 	index++;
 
 	buf[index] = dar;
@@ -109,6 +108,19 @@ void get_BasicUnit(INT8U *source,INT16U *sourceindex,INT8U *dest,INT16U *destind
 			strnum = source[1];
 			fprintf(stderr,"\n		结构体 %d  元素",strnum);
 			size = 1;
+			break;
+		case 0x03: //bool
+			dest[0] = source[1];
+			fprintf(stderr,"\n		bool %d  元素",source[1]);
+			size = 1;
+			if (dest_sumindex ==0)
+				dest_sumindex = 1;
+			break;
+		case 0x04: //bit-string
+			size = 2;
+			dest[0] = source[2];  // TODO: 此处默认8个bit   source[1] : 长度字节
+			if (dest_sumindex ==0)
+				dest_sumindex = 1;
 			break;
 		case 0x06: //double-long-unsigned
 			size = 4;
@@ -439,7 +451,8 @@ void CjiFangAnInfo(INT16U attr_act,INT8U *data)
 //			DeleteCjFangAn(data[1]);
 			break;
 		case 129:	//方法 129:Clear( )
-//			ClearCjFangAn();
+			fprintf(stderr,"\n清空普通采集方案");
+			clearClass(0x6014);
 			break;
 		case 130:	//方法 130:Set_CSD(方案编号,array CSD)
 			Set_CSD(data);
@@ -483,6 +496,18 @@ void TaskInfo(INT16U attr_act,INT8U *data)
 			break;
 	}
 }
+void TerminalInfo(INT16U attr_act,INT8U *data)
+{
+	switch(attr_act)
+	{
+		case 3://数据初始化
+		case 5://事件初始化
+		case 6://需量初始化
+			dataInit(attr_act);
+			fprintf(stderr,"\n终端数据初始化!");
+			break;
+	}
+}
 void MeterInfo(INT16U attr_act,INT8U *data)
 {
 	switch(attr_act)
@@ -506,15 +531,33 @@ void MeterInfo(INT16U attr_act,INT8U *data)
 			break;
 		case 134://方法 134:Clear()
 			fprintf(stderr,"\n清空采集档案配置表");
-			clearClass(6000);
+			clearClass(0x6000);
 			break;
 	}
 }
-int doObjectAction(OMD omd,INT8U *data)
+int EventMothod(OAD oad,INT8U *data)
 {
-	INT16U oi = omd.OI;
-	INT8U attr_act = omd.method_tag;
+	fprintf(stderr,"\n事件对象方法操作");
+	switch(oad.attflg)
+	{
+		case 1://复位
+			fprintf(stderr,"\n复位");
+			clearClass(oad.OI);
+			break;
+	}
+	return 0;
+}
+int doObjectAction(OAD oad,INT8U *data)
+{
+	INT16U oi = oad.OI;
+	INT8U attr_act = oad.attflg;
+	INT8U oihead = (oi & 0xF000) >>12;
 	fprintf(stderr,"\n----------  oi =%04x",oi);
+	switch(oihead) {
+	case 3:			//事件类对象方法操作
+		EventMothod(oad,data);
+		break;
+	}
 	switch(oi)
 	{
 		case 0x6000:	//采集档案配置表
@@ -531,6 +574,9 @@ int doObjectAction(OMD omd,INT8U *data)
 		case 0x6016:	//事件采集方案
 			EventCjFangAnInfo(attr_act,data);
 			break;
+		case 0x4300:	//终端对象
+			TerminalInfo(attr_act,data);
+			break;
 	}
-	return 0;	//DAR=0，成功
+	return success;	//DAR=0，成功	TODO：增加DAR各种错误判断
 }

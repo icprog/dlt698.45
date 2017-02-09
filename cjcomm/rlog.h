@@ -1,4 +1,6 @@
-void rlog(const char* fmt, ...);
-void FileW();
-void FileR();
-void FileEnv();
+#include <syslog.h>
+
+#include "PublicFunction.h"
+
+void asyslog(int priority, const char* fmt, ...);
+void bufsyslog(const INT8U* buf, const char* title, int head, int tail, int len);

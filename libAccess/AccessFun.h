@@ -23,7 +23,9 @@
 #define	 EVENT_CURR			"/nand/event/current"		//当前值记录表
 
 #define	 PARADIR				"/nand/para"				//参变量文件（4000） 采集监控类文件（6000）
-//#define	 COLLDIR				"/nand/coll"				//采集监控类文件（6000）
+#define	 DEMANDDIR				"/nand/demand"				//需量类数据
+#define	 FREEZEDIR				"/nand/freeze"				//冻结类数据存储
+
 //文件存储类型
 typedef enum
 {
@@ -34,12 +36,9 @@ typedef enum
 	coll_para_save=5,			//采集类参数存储
 	acs_coef_save=6,			//交采计量芯片系数存储
 	acs_energy_save=7,			//交采计量电能量数据存储
+	para_init_save=8,			//初始化参数保存文件
 }SaveFile_type;
 
-/*
- * 复位
- * */
-extern int resetClass(OI_698 oi);
 /*
  * 方法：Clean()清空
  * 输入参数：oi对象标识
@@ -61,7 +60,7 @@ extern int deleteClass(OI_698 oi,INT8U id);
  * 返回值 =0: 删除成功
  * =-1：删除失败
  * */
-extern int dataInit();
+extern int dataInit(INT16U attr);
 
 ////////////////////////////////////////////////////////////////////////////////////////
 /*		第一类参数文件：文件包含接口类公用属性，配置单元按照配置序号在相应的位置存储，
@@ -139,5 +138,8 @@ extern int readCoverClass(OI_698 oi,INT16U seqno,void *blockdata,int datalen,int
  * -2:	文件记录不完整
  *************************************/
 extern long getFileRecordNum(OI_698 oi);
+
+
+//////////////////////////////////////////////////////////////////////////////////////
 
 #endif /* ACCESS_H_ */

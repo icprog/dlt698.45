@@ -37,9 +37,7 @@ typedef struct
 
 
 const static CLASS_INFO  class_info[] ={
-		{0x6000,sizeof(COLL_CLASS_11),sizeof(CLASS_6001),OCTET_STRING_LEN,"6000","/nand/para/table6000.par"},		//采集档案配置表
-		{0x6000,sizeof(COLL_CLASS_11),sizeof(CLASS_6001),OCTET_STRING_LEN,"6000","/nand/para/table6000.par"},		//交采
-//		{0x6013,0,sizeof(CLASS_6013),0,"6013","/nand/para/table6013.par"},		//任务配置单元
+		{0x6000,sizeof(CLASS11),sizeof(CLASS_6001),OCTET_STRING_LEN,"6000","/nand/para/table6000.par"},		//采集档案配置表
 };
 
 
@@ -62,5 +60,8 @@ extern INT16S getclassinfo(OI_698 oi,CLASS_INFO *classinfo);
 
 extern INT8U block_file_sync(char *fname,void *blockdata,int size,int headsize,int index);
 extern INT8U save_block_file(char *fname,void *blockdata,int size,int headsize,int index);
+
+extern sem_t * InitSem();
+extern void CloseSem(sem_t * sem_parasave);
 
 #endif /* FILEBASE_H_ */

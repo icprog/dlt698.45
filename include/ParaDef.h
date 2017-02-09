@@ -44,6 +44,8 @@
 
 #define CLASS7_OAD_NUM			10			//关联对象属性表
 #define MAX_PERIOD_RATE   		48      	//支持的最到终端费率时段数
+
+#define	STATE_MAXNUM			8			//开关量单元最大个数
 ////////////////////////////////////////////////////////////////
 
 /*
@@ -78,6 +80,22 @@
 #define DEV_MAINPOWER  "/dev/gpiV5FROUNT_TST"  //底板电源：1上电0失电
 #define DEV_ADC_SWITCH "/dev/gpioADC_SWITCH"   //=0（终端工作放电模式）=1（终端工作充电模式）
 
+//I型集中器并转串模拟输出: GPRS_ID状态 与 1路门节点
+#define DEV_SPI_CS		"/dev/gpoSPI_CS"		//并转串(74HC165)芯片选择
+#define	DEV_SPI_CLK		"/dev/gpoSPI_CLK"		//并转串(74HC165)时钟输出
+#define	DEV_SPI_MISO	"/dev/gpiSPI_MISO"		//并转串(74HC165)数据输入
+
+//II型集中器GPRS状态
+#define DEV_GPRS_S0		"/dev/gpiGPRS_S0"		//GPRS状态
+#define DEV_GPRS_S1		"/dev/gpiGPRS_S1"		//GPRS状态
+#define DEV_GPRS_S2		"/dev/gpiGPRS_S2"		//GPRS状态
+
+#define DEV_STATE1  	"/dev/gpiYX1"
+#define DEV_STATE2  	"/dev/gpiYX2"
+#define DEV_STATE3  	"/dev/gpiYX3"
+#define DEV_STATE4  	"/dev/gpiYX4"
+#define DEV_PULSE  		"/dev/pulse"  			//脉冲1
+
 #define DEV_ADC        "/dev/adc0"
 /////////////////////////////////////////////////////////////////
 
@@ -85,7 +103,8 @@
  * 	互斥信号量
  * */
 
-#define SEMNAME_SPI0_0 "sem_spi0_0" //专变、I型集中器交采和esam的spi通信互斥信号量
+#define SEMNAME_SPI0_0 		"sem_spi0_0" //专变、I型集中器交采和esam的spi通信互斥信号量
+#define	SEMNAME_PARA_SAVE	"sem_parasave"			//参数文件存储
 ////////////////////////////////////////////////////////////////
 
 /*

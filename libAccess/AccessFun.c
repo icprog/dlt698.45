@@ -23,31 +23,66 @@
 #include "Objectdef.h"
 #include "EventObject.h"
 #include "ParaDef.h"
-
+#include "PublicFunction.h"
 
 #define 	LIB_ACCESS_VER 			0x0001
 
 CLASS_INFO	info={};
+
+void clearData()
+{
+	//冻结类数据清除
+	system("rm -rf /nand/freeze");
+}
+
+void clearEvent()
+{
+	//事件类数据清除
+	system("rm -rf /nand/event/record");
+	system("rm -rf /nand/event/current");
+}
+
+void clearDemand()
+{
+	//需量类数据清除
+	system("rm -rf /nand/demand");
+}
+
 
 /*
  * 数据区初始化接口函数
  * 返回值 =0: 删除成功
  * =-1：删除失败
  * */
-int dataInit()
+int dataInit(INT16U attr)
 {
     struct timeval start={}, end={};
     long  interval=0;
+	sem_t   *sem_save=NULL;
 
-    fprintf(stderr,"数据区初始化\n");
-	gettimeofday(&start, NULL);
-	//事件类数据清除
-	system("rm -rf /nand/event/record");
-	system("rm -rf /nand/event/current");
+	sem_save = InitSem();
+
+	fprintf(stderr,"[4300]设备参数 属性：%d\n",attr);
+
+	switch(attr) {
+	case 3://数据初始化
+		clearData();
+		clearEvent();
+		clearDemand();
+		break;
+	case 5://事件初始化
+		clearEvent();
+		break;
+	case 6://需量初始化
+		clearDemand();
+		break;
+	}
+ 	gettimeofday(&start, NULL);
 
 	gettimeofday(&end, NULL);
 	interval = 1000000*(end.tv_sec - start.tv_sec) + (end.tv_usec - start.tv_usec);
     fprintf(stderr,"dataInit interval = %f(ms)\n", interval/1000.0);
+    CloseSem(sem_save);
 	return 0;
 }
 
@@ -61,9 +96,13 @@ int delClassBySeq(OI_698 oi,void *blockdata,int seqnum)
 {
 	int 	ret=-1;
 	INT16S	infoi=-1;
+	sem_t   *sem_save=NULL;
+
+	sem_save = InitSem();
 
 	infoi = getclassinfo(oi,&info);
 	if(infoi == -1) {
+		CloseSem(sem_save);
 		return -1;
 	}
 	if(class_info[infoi].interface_len!=0) {		//该存储单元内部包含的类的公共属性
@@ -78,26 +117,7 @@ int delClassBySeq(OI_698 oi,void *blockdata,int seqnum)
 	}
 	ret = save_block_file((char *)class_info[infoi].file_name,blockdata,class_info[infoi].unit_len,class_info[infoi].interface_len,seqnum);
 	free(blockdata);
-	return ret;
-}
-
-/*
- * 方法：Reset()复位
- * 输入参数：oi对象标识
- * 返回值：=0：配置单元删除成功
- * =-1:  删除错误
- */
-int resetClass(OI_698 oi)
-{
-	int		ret = -1;
-	char	cmd[64]={};
-
-	memset(cmd,0,sizeof(cmd));
-	if(oi>=0x3000 && oi<=0x3fff) {
-		sprintf(cmd,"rm -rf /%s/%04x",EVENT_PORP,oi);
-		system(cmd);
-		ret = 0;
-	}
+	CloseSem(sem_save);
 	return ret;
 }
 
@@ -113,11 +133,24 @@ int clearClass(OI_698 oi)
 	int		ret = -1;
 	char	fname2[FILENAMELEN]={};
 	char	cmd[FILENAMELEN]={};
+	INT8U	oiA1=0;
+	sem_t   *sem_save=NULL;
+
+	sem_save = InitSem();
 
 	infoi = getclassinfo(oi,&info);
 	if(infoi==-1) {
 		memset(cmd,0,sizeof(cmd));
-		sprintf(cmd,"rm -rf %s/%04x/",PARADIR,oi);
+		oiA1 = (oi & 0xf000) >> 12;
+		switch(oiA1) {
+		case 3:			//事件类
+			sprintf(cmd,"rm -rf /%s/%04x",EVENT_PORP,oi);
+			break;
+		case 4:			//参变量类
+		case 6:			//采集监控类
+			sprintf(cmd,"rm -rf %s/%04x/",PARADIR,oi);
+			break;
+		}
 		system(cmd);
 		return 1;
 	}
@@ -184,15 +217,19 @@ int saveParaClass(OI_698 oi,void *blockdata,int seqnum)
 {
 	int 	ret=-1;
 	INT16U	infoi=-1;
+	sem_t   *sem_save=NULL;
 
+	sem_save = InitSem();
 	infoi = getclassinfo(oi,&info);
 	if(infoi == -1) {
+		CloseSem(sem_save);
 		return -1;
 	}
 	if(class_info[infoi].interface_len!=0) {		//该存储单元内部包含的类的公共属性
 		WriteInterfaceClass(oi,seqnum,AddUpdate);
 	}
-	save_block_file((char *)class_info[infoi].file_name,blockdata,class_info[infoi].unit_len,class_info[infoi].interface_len,seqnum);
+	ret = save_block_file((char *)class_info[infoi].file_name,blockdata,class_info[infoi].unit_len,class_info[infoi].interface_len,seqnum);
+	CloseSem(sem_save);
 	return ret;
 }
 
@@ -208,12 +245,15 @@ int  readParaClass(OI_698 oi,void *blockdata,int seqnum)
 {
 	int 	ret=-1;
 	INT16U	infoi=-1;
+	sem_t   *sem_save=NULL;
 
+	sem_save = InitSem();
 	infoi = getclassinfo(oi,&info);
 	if(infoi==-1) {
 		return -1;
 	}
 	ret = block_file_sync((char *)class_info[infoi].file_name,blockdata,class_info[infoi].unit_len,class_info[infoi].interface_len,seqnum);
+	CloseSem(sem_save);
 	return ret;
 }
 
@@ -228,7 +268,10 @@ int saveCoverClass(OI_698 oi,INT16U seqno,void *blockdata,int savelen,int type)
 {
 	int		ret = 0;
 	char	fname[FILENAMELEN]={};
+	int		val;
+	sem_t   *sem_save=NULL;
 
+	sem_save = InitSem();
 	memset(fname,0,sizeof(fname));
 	getFileName(oi,seqno,type,fname);
 	switch(type) {
@@ -237,7 +280,7 @@ int saveCoverClass(OI_698 oi,INT16U seqno,void *blockdata,int savelen,int type)
 	case coll_para_save:
 	case acs_coef_save:
 	case acs_energy_save:
-//		fprintf(stderr,"saveEventClass file=%s ",fname);
+		fprintf(stderr,"saveEventClass file=%s ",fname);
 		ret = save_block_file(fname,blockdata,savelen,0,0);
 		break;
 	case event_record_save:
@@ -245,6 +288,7 @@ int saveCoverClass(OI_698 oi,INT16U seqno,void *blockdata,int savelen,int type)
 		writeCoverFile(fname,blockdata,savelen);
 		break;
 	}
+	CloseSem(sem_save);
 	return ret;
 }
 
@@ -275,7 +319,9 @@ int readCoverClass(OI_698 oi,INT16U seqno,void *blockdata,int datalen,int type)
 	int		ret = 0;
 	char	fname[FILENAMELEN]={};
 	int		readlen = 0;
+	sem_t   *sem_save=NULL;
 
+	sem_save = InitSem();
 	switch(type) {
 	case event_para_save:
 	case para_vari_save:
@@ -288,7 +334,7 @@ int readCoverClass(OI_698 oi,INT16U seqno,void *blockdata,int datalen,int type)
 		if(datalen<=2)	return -1;
 
 		if(datalen%4==0)	readlen = datalen-2;
-		else readlen = datalen-(4-datalen%4)+2;
+		else readlen = datalen+(4-datalen%4)-2;
 //		fprintf(stderr,"readlen=%d\n",readlen);
 		ret = block_file_sync(fname,blockdata,readlen,0,0);	//返回数据去掉CRC校验的两个字节
 	break;
@@ -300,6 +346,7 @@ int readCoverClass(OI_698 oi,INT16U seqno,void *blockdata,int datalen,int type)
 		ret = readCoverFile(fname,blockdata,datalen);
 		break;
 	}
+	CloseSem(sem_save);
 	return ret;
 }
 

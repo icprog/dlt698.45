@@ -71,18 +71,19 @@ INT16S AxorB(INT8U* abuf, INT8U* bbuf, INT8U* Rbuf, INT8U len) {
     }
     return 1;
 }
-//TODO:在vmain主进程中，需要有nsem_creat（）创建该信号量。
+
 INT32S Esam_Init(INT32S fd, INT8U* spipath) {
-    gpio_writebyte((INT8S*)DEV_ESAM_PWR, 0);
+    gpio_writebyte(DEV_ESAM_PWR, 0);
     usleep(50000);
-    gpio_writebyte((INT8S*)DEV_ATT_RST, 1);
+    gpio_writebyte(DEV_ATT_RST, 1);
     usleep(2);
-    gpio_writebyte((INT8S*)DEV_ESAM_CS, 1);
-    sem_spi0_0 = nsem_open(SEMNAME_SPI0_0);
+    gpio_writebyte(DEV_ESAM_CS, 1);
+    sem_spi0_0 = open_named_sem(SEMNAME_SPI0_0);
     return SPI_Init(fd, spipath);
 }
 
 void Esam_Clear(INT32S fd) {
+	close_named_sem(SEMNAME_SPI0_0);
     sem_close(sem_spi0_0);
     sem_spi0_0 = NULL;
     SPI_Close(fd);
@@ -173,7 +174,7 @@ INT32S Esam_WriteThenRead(INT32S fd, INT8U* Tbuf, INT8U Tlen, INT8U* Rbuf){
 			Result = Esam_ErrMessageCheck(rx);
 		}
 	}
-	gpio_writebyte((INT8S*)DEV_ESAM_CS,1);
+	gpio_writebyte(DEV_ESAM_CS,1);
 	sem_post(sem_spi0_0);
 	return Result;
 }
@@ -188,17 +189,17 @@ void Esam_WriteToChip(INT32S fd, INT8U* Tbuf, INT8U Tlen)
 		struct spi_ioc_transfer	xfer[2];
 		memset(xfer, 0,  sizeof xfer);
 		usleep(5);
-		gpio_writebyte((INT8S*)DEV_ESAM_CS,1);
+		gpio_writebyte(DEV_ESAM_CS,1);
 		usleep(10);
-		gpio_writebyte((INT8S*)DEV_ESAM_CS,0);
+		gpio_writebyte(DEV_ESAM_CS,0);
 		usleep(20);
 		xfer[0].tx_buf = (int)Tbuf;//发数据
 		xfer[0].len =Tlen;
 		ioctl(fd, SPI_IOC_MESSAGE(2), xfer);
 		usleep(5);
-		gpio_writebyte((INT8S*)DEV_ESAM_CS,1);
+		gpio_writebyte(DEV_ESAM_CS,1);
 		usleep(10);
-		gpio_writebyte((INT8S*)DEV_ESAM_CS,0);
+		gpio_writebyte(DEV_ESAM_CS,0);
 		usleep(20);
 
 		printf("\n Esam_WriteToChip:");
@@ -396,6 +397,7 @@ INT32S Esam_CreateConnect(INT32S fd, SignatureSecurity* securityInfo ,SecurityDa
  *输入：Data是未经处理的传入报文信息，开头符合octet_string类型数据(附加数据其实就是信息长度)
  *返回：Rbuf(Data)已去掉帧头帧尾
  *函数返回：1、为正数是为终端信息数据长度		  2、负数：代表相应错误，见：Esam.h中，ESAM ERR ARRAY定义
+ *TODO：当为广播传输时，需要对安全标识最后一个bit进行判断。
  *************************************************************/
 INT32S Esam_SIDTerminalCheck(INT32S fd, SID_MAC SidMac,INT8U* Data, INT8U* Rbuf) {
 	if(sizeof(SidMac.sid.addition)<=SidMac.sid.addition[0])	return ERR_ESAM_TRANSPARA_ERR;
@@ -446,20 +448,19 @@ INT32S Esam_SIDTerminalCheck(INT32S fd, SID_MAC SidMac,INT8U* Data, INT8U* Rbuf)
  *输出：Esam返回DATA4需要根据P2type，查看芯片具体回复啥数据，再组上行报文
  *函数返回：1、为正数是为终端信息数据长度		  2、负数：代表相应错误，见：Esam.h中，ESAM ERR ARRAY定义
  *************************************************************/
-INT32S Esam_SIDResponseCheck(INT32S fd, INT8U P2type, INT8U* Data3, INT8U* Rbuf) {
-	 INT16U datalen=(0xff &Data3[1])|(0xff00 & (Data3[0]<<8));
-	if(datalen==0) return ERR_ESAM_TRANSPARA_ERR;
+INT32S Esam_SIDResponseCheck(INT32S fd, INT8U P2type, INT8U* Data3 ,INT16U Length,INT8U* Rbuf) {
+	if(Length<=0) return ERR_ESAM_TRANSPARA_ERR;
 	if(P2type!=0x11 || P2type!=0x96 || P2type!=0x97) return ERR_ESAM_TRANSPARA_ERR;
 	INT32S Result=0;
 	INT8U tmp[BUFFLENMAX_SPI];
 	memset(tmp,0,BUFFLENMAX_SPI);
 	 INT8U GetInfo_ESAM[BUFFLENMAX_SPI]={0x55,0x80,0x1C,0x00,P2type};//P2加入
-	 GetInfo_ESAM[5]=Data3[0];// 长度
-	 GetInfo_ESAM[6]=Data3[1];
-	 memcpy(&GetInfo_ESAM[7],&Data3[2],datalen);
-	 GetInfo_ESAM[7+datalen]=LRC(&GetInfo_ESAM[1],datalen+6);
+	 GetInfo_ESAM[5]=(INT8U)((Length>>8)&0x00ff);// 长度
+	 GetInfo_ESAM[6]=(INT8U)(Length&0x00ff);
+	 memcpy(&GetInfo_ESAM[7],&Data3[2],Length);
+	 GetInfo_ESAM[7+Length]=LRC(&GetInfo_ESAM[1],Length+6);
 
-	 Result = Esam_WriteThenRead(fd, (INT8U*)GetInfo_ESAM,datalen+8, tmp);
+	 Result = Esam_WriteThenRead(fd, (INT8U*)GetInfo_ESAM,Length+8, tmp);
 	 if(Result>0 && Result<BUFFLENMAX_SPI) //大于BUFFLENMAX_SPI错误，此处做比较
 	{
 		 memcpy(Rbuf,&tmp[4],Result-5);
@@ -571,19 +572,18 @@ INT32S Esam_SessionTime(INT32S fd, INT8U* Data2, INT8U* Rbuf) {
  *函数输出：1、为正数是为终端信息数据长度  负数：代表相应错误，见：Esam.h中，ESAM ERR ARRAY定义
  *函数说明：加密主动上报和读取/设置一样，在读取设置报文之外加壳（报文+安全标识）
  *************************************************************/
-INT32S Esam_ReportEncrypt(INT32S fd, INT8U* Data1, INT8U* RN,INT8U* MAC) {
-	 INT16U datalen=(0xff &Data1[1])|(0xff00 & (Data1[0]<<8));
-	 if(datalen<=0) return ERR_ESAM_TRANSPARA_ERR;
+INT32S Esam_ReportEncrypt(INT32S fd, INT8U* Data1, INT16U Length,INT8U* RN,INT8U* MAC) {
+	 if(Length<=0) return ERR_ESAM_TRANSPARA_ERR;
 	 INT8U tmp[BUFFLENMAX_SPI];
 	memset(tmp,0,BUFFLENMAX_SPI);
 	INT32S Result=0;
 	INT8U GetInfo_ESAM[BUFFLENMAX_SPI]={0x55,0x80,0x14,0x01,0x03};
-	GetInfo_ESAM[5]=Data1[0];
-	GetInfo_ESAM[6]=Data1[1];
-	memcpy(&GetInfo_ESAM[1],&Data1[2],datalen);
-	GetInfo_ESAM[7+datalen]=LRC(&GetInfo_ESAM[1],datalen+6);
+	 GetInfo_ESAM[5]=(INT8U)((Length>>8)&0x00ff);// 长度
+	 GetInfo_ESAM[6]=(INT8U)(Length&0x00ff);
+	memcpy(&GetInfo_ESAM[1],&Data1[2],Length);
+	GetInfo_ESAM[7+Length]=LRC(&GetInfo_ESAM[1],Length+6);
 
-	Result = Esam_WriteThenRead(fd, (INT8U*)GetInfo_ESAM, datalen+8, tmp);
+	Result = Esam_WriteThenRead(fd, (INT8U*)GetInfo_ESAM, Length+8, tmp);
 	if(Result>0 && Result<BUFFLENMAX_SPI) //大于BUFFLENMAX_SPI错误，此处做比较
 	{
 		 memcpy(RN,&tmp[4],12);

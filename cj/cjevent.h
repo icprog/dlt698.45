@@ -1,12 +1,12 @@
 /*
- * event.h
+ * cjevent.h
  *
  *  Created on: Jan 12, 2017
  *      Author: ava
  */
 
-#ifndef EVENT_H_
-#define EVENT_H_
+#ifndef CJEVENT_H_
+#define CJEVENT_H_
 
 extern void event_process(int argc, char *argv[]);
 

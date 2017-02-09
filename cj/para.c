@@ -28,7 +28,9 @@ void para_process(int argc, char *argv[])
 				case 0x4300:
 					switch(method) {
 					case 3:		//数据区初始化
-						dataInit();
+					case 5:		//事件初始化
+					case 6:		//需量初始化
+						dataInit(method);
 						break;
 					}
 					break;
