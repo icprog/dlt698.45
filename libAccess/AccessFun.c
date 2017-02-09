@@ -39,7 +39,9 @@ int dataInit()
 {
     struct timeval start={}, end={};
     long  interval=0;
+	sem_t   *sem_save=NULL;
 
+	sem_save = InitSem();
     fprintf(stderr,"数据区初始化\n");
 	gettimeofday(&start, NULL);
 	//事件类数据清除
@@ -49,6 +51,7 @@ int dataInit()
 	gettimeofday(&end, NULL);
 	interval = 1000000*(end.tv_sec - start.tv_sec) + (end.tv_usec - start.tv_usec);
     fprintf(stderr,"dataInit interval = %f(ms)\n", interval/1000.0);
+    CloseSem(sem_save);
 	return 0;
 }
 
@@ -62,9 +65,13 @@ int delClassBySeq(OI_698 oi,void *blockdata,int seqnum)
 {
 	int 	ret=-1;
 	INT16S	infoi=-1;
+	sem_t   *sem_save=NULL;
+
+	sem_save = InitSem();
 
 	infoi = getclassinfo(oi,&info);
 	if(infoi == -1) {
+		CloseSem(sem_save);
 		return -1;
 	}
 	if(class_info[infoi].interface_len!=0) {		//该存储单元内部包含的类的公共属性
@@ -79,6 +86,7 @@ int delClassBySeq(OI_698 oi,void *blockdata,int seqnum)
 	}
 	ret = save_block_file((char *)class_info[infoi].file_name,blockdata,class_info[infoi].unit_len,class_info[infoi].interface_len,seqnum);
 	free(blockdata);
+	CloseSem(sem_save);
 	return ret;
 }
 
@@ -95,6 +103,9 @@ int clearClass(OI_698 oi)
 	char	fname2[FILENAMELEN]={};
 	char	cmd[FILENAMELEN]={};
 	INT8U	oiA1=0;
+	sem_t   *sem_save=NULL;
+
+	sem_save = InitSem();
 
 	infoi = getclassinfo(oi,&info);
 	if(infoi==-1) {
