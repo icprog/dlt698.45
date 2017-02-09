@@ -25,7 +25,7 @@ static INT16U currnum=0;
 //当前事件参数变更状态
 static OI_CHANGE oi_chg;
 //共享内存
-ProgramInfo* prginfo;
+ProgramInfo* prginfo_event;
 /*
  * 说明：
  * 进程如调用该部分事件接口，需先调用Event_Init初始化事件参数结构体和测量点信息
@@ -44,9 +44,9 @@ ProgramInfo* prginfo;
  * 初始化参数
  */
 INT8U Event_Init() {
-	prginfo=OpenShMem("ProgramInfo",sizeof(ProgramInfo),NULL);
+	prginfo_event=OpenShMem("ProgramInfo",sizeof(ProgramInfo),NULL);
 	//初始化事件参数变更状态
-	memcpy(&oi_chg,&prginfo->oi_changed,sizeof(OI_CHANGE));
+	memcpy(&oi_chg,&prginfo_event->oi_changed,sizeof(OI_CHANGE));
     //初始化事件参数，调用文件
 	readCoverClass(0x3100,0,&event_object.Event3100_obj,sizeof(event_object.Event3100_obj),event_para_save);
 	readCoverClass(0x3101,0,&event_object.Event3101_obj,sizeof(event_object.Event3101_obj),event_para_save);
@@ -485,9 +485,9 @@ INT8U Getcurrno(INT16U *currno,INT16U maxno){
  * 终端初始化事件1 可以698规约解析actionrequest 调用该接口，data为OAD
  */
 INT8U Event_3100(INT8U* data,INT8U len) {
-	if(oi_chg.oi3100 != prginfo->oi_changed.oi3100){
+	if(oi_chg.oi3100 != prginfo_event->oi_changed.oi3100){
 		readCoverClass(0x3100,0,&event_object.Event3100_obj,sizeof(event_object.Event3100_obj),event_para_save);
-		oi_chg.oi3100 = prginfo->oi_changed.oi3100;
+		oi_chg.oi3100 = prginfo_event->oi_changed.oi3100;
 	}
 
     if (event_object.Event3100_obj.enableflag == 0) {
@@ -528,9 +528,9 @@ INT8U Event_3100(INT8U* data,INT8U len) {
  * 终端版本变更事件 可直接调用，维护命令修改版本或者升级后可调用
  */
 INT8U Event_3101(INT8U* data,INT8U len) {
-	if(oi_chg.oi3101 != prginfo->oi_changed.oi3101){
+	if(oi_chg.oi3101 != prginfo_event->oi_changed.oi3101){
 		readCoverClass(0x3101,0,&event_object.Event3101_obj,sizeof(event_object.Event3101_obj),event_para_save);
-		oi_chg.oi3101 = prginfo->oi_changed.oi3101;
+		oi_chg.oi3101 = prginfo_event->oi_changed.oi3101;
 	}
     if (event_object.Event3101_obj.enableflag == 0) {
         return 0;
@@ -581,9 +581,9 @@ INT8U Event_3101(INT8U* data,INT8U len) {
  * 状态量变位事件 可直接调用 data为前后得ST CD，（1-4路）8个字节即可
  */
 INT8U Event_3104(INT8U* data,INT8U len) {
-	if(oi_chg.oi3104 != prginfo->oi_changed.oi3104){
+	if(oi_chg.oi3104 != prginfo_event->oi_changed.oi3104){
 		readCoverClass(0x3104,0,&event_object.Event3104_obj,sizeof(event_object.Event3104_obj),event_para_save);
-		oi_chg.oi3104 = prginfo->oi_changed.oi3104;
+		oi_chg.oi3104 = prginfo_event->oi_changed.oi3104;
 	}
     if (event_object.Event3104_obj.enableflag == 0) {
         return 0;
@@ -653,9 +653,9 @@ INT8U Event_3104(INT8U* data,INT8U len) {
  * 电能表时钟超差事件 tsa事件发生源 电表时钟
  */
 INT8U Event_3105(TSA tsa, INT8U* data,INT8U len) {
-	if(oi_chg.oi3105 != prginfo->oi_changed.oi3105){
+	if(oi_chg.oi3105 != prginfo_event->oi_changed.oi3105){
 		readCoverClass(0x3105,0,&event_object.Event3105_obj,sizeof(event_object.Event3105_obj),event_para_save);
-		oi_chg.oi3105 = prginfo->oi_changed.oi3105;
+		oi_chg.oi3105 = prginfo_event->oi_changed.oi3105;
 	}
     if (event_object.Event3105_obj.event_obj.enableflag == 0) {
         return 0;
@@ -891,9 +891,9 @@ INT8U fileread(char *FileName, void *source, INT32U size)
  * 终端停/上电事件5-停电事件-放在交采模块
  */
 INT8U Event_3106(EVENTREALDATA Realdata) {
-	if(oi_chg.oi3106 != prginfo->oi_changed.oi3106){
+	if(oi_chg.oi3106 != prginfo_event->oi_changed.oi3106){
 		readCoverClass(0x3106,0,&event_object.Event3106_obj,sizeof(event_object.Event3106_obj),event_para_save);
-		oi_chg.oi3106 = prginfo->oi_changed.oi3106;
+		oi_chg.oi3106 = prginfo_event->oi_changed.oi3106;
 	}
 	if (event_object.Event3106_obj.event_obj.enableflag == 0) {
 		return 0;
@@ -1031,9 +1031,9 @@ INT8U Event_AnalyseACS(INT8U* data,INT8U len) {
  * 终端直流模拟量越上限事件6 data为直流模拟量 字节高到低
  */
 INT8U Event_3107(INT8U* data,INT8U len) {
-	if(oi_chg.oi3107 != prginfo->oi_changed.oi3107){
+	if(oi_chg.oi3107 != prginfo_event->oi_changed.oi3107){
 		readCoverClass(0x3107,0,&event_object.Event3107_obj,sizeof(event_object.Event3107_obj),event_para_save);
-		oi_chg.oi3107 = prginfo->oi_changed.oi3107;
+		oi_chg.oi3107 = prginfo_event->oi_changed.oi3107;
 	}
     if (event_object.Event3107_obj.event_obj.enableflag == 0) {
         return 0;
@@ -1073,9 +1073,9 @@ INT8U Event_3107(INT8U* data,INT8U len) {
  * 终端直流模拟量越下限事件7 data为直流模拟量 字节高到低
  */
 INT8U Event_3108(INT8U* data,INT8U len) {
-	if(oi_chg.oi3108 != prginfo->oi_changed.oi3108){
+	if(oi_chg.oi3108 != prginfo_event->oi_changed.oi3108){
 		readCoverClass(0x3108,0,&event_object.Event3108_obj,sizeof(event_object.Event3108_obj),event_para_save);
-		oi_chg.oi3108 = prginfo->oi_changed.oi3108;
+		oi_chg.oi3108 = prginfo_event->oi_changed.oi3108;
 	}
     if (event_object.Event3108_obj.event_obj.enableflag == 0) {
         return 0;
@@ -1116,9 +1116,9 @@ INT8U Event_3108(INT8U* data,INT8U len) {
  * 终端消息认证错误事件8 data事件发生前安全认证密码(不含数据类型) len为长度
  */
 INT8U Event_3109(INT8U* data,INT8U len) {
-	if(oi_chg.oi3109 != prginfo->oi_changed.oi3109){
+	if(oi_chg.oi3109 != prginfo_event->oi_changed.oi3109){
 		readCoverClass(0x3109,0,&event_object.Event3109_obj,sizeof(event_object.Event3109_obj),event_para_save);
-		oi_chg.oi3109 = prginfo->oi_changed.oi3109;
+		oi_chg.oi3109 = prginfo_event->oi_changed.oi3109;
 	}
     if (event_object.Event3109_obj.enableflag == 0) {
         return 0;
@@ -1158,9 +1158,9 @@ INT8U Event_3109(INT8U* data,INT8U len) {
  * 设备故障事件 errtype：0,1,2,3,4,5
  */
 INT8U Event_310A(MachineError_type errtype) {
-	if(oi_chg.oi310A != prginfo->oi_changed.oi310A){
+	if(oi_chg.oi310A != prginfo_event->oi_changed.oi310A){
 		readCoverClass(0x310A,0,&event_object.Event310A_obj,sizeof(event_object.Event310A_obj),event_para_save);
-		oi_chg.oi310A = prginfo->oi_changed.oi310A;
+		oi_chg.oi310A = prginfo_event->oi_changed.oi310A;
 	}
     if (event_object.Event310A_obj.enableflag == 0) {
         return 0;
@@ -1216,9 +1216,9 @@ INT8U Event_310A(MachineError_type errtype) {
  * 电能表示度下降事件10 前台两次电能值对比是否超过设定值
  */
 INT8U Event_310B(TSA tsa, INT8U* data,INT8U len) {
-	if(oi_chg.oi310B != prginfo->oi_changed.oi310B){
+	if(oi_chg.oi310B != prginfo_event->oi_changed.oi310B){
 		readCoverClass(0x310B,0,&event_object.Event310B_obj,sizeof(event_object.Event310B_obj),event_para_save);
-		oi_chg.oi310B = prginfo->oi_changed.oi310B;
+		oi_chg.oi310B = prginfo_event->oi_changed.oi310B;
 	}
     if (event_object.Event310B_obj.event_obj.enableflag == 0) {
         return 0;
@@ -1274,9 +1274,9 @@ INT8U Event_310B(TSA tsa, INT8U* data,INT8U len) {
  * 电能量超差事件11 前台两次电能值以及测量点额定电压、电流
  */
 INT8U Event_310C(TSA tsa, INT8U* data,INT8U len) {
-	if(oi_chg.oi310C != prginfo->oi_changed.oi310C){
+	if(oi_chg.oi310C != prginfo_event->oi_changed.oi310C){
 		readCoverClass(0x310C,0,&event_object.Event310C_obj,sizeof(event_object.Event310C_obj),event_para_save);
-		oi_chg.oi310C = prginfo->oi_changed.oi310C;
+		oi_chg.oi310C = prginfo_event->oi_changed.oi310C;
 	}
     if (event_object.Event310C_obj.event_obj.enableflag == 0) {
         return 0;
@@ -1359,9 +1359,9 @@ INT8U Event_310C(TSA tsa, INT8U* data,INT8U len) {
  * 电能表飞走事件12 前台两次电能值以及测量点额定电压、电流
  */
 INT8U Event_310D(TSA tsa, INT8U* data,INT8U len) {
-	if(oi_chg.oi310D != prginfo->oi_changed.oi310D){
+	if(oi_chg.oi310D != prginfo_event->oi_changed.oi310D){
 		readCoverClass(0x310D,0,&event_object.Event310D_obj,sizeof(event_object.Event310D_obj),event_para_save);
-		oi_chg.oi310D = prginfo->oi_changed.oi310D;
+		oi_chg.oi310D = prginfo_event->oi_changed.oi310D;
 	}
 	if (event_object.Event310D_obj.event_obj.enableflag == 0) {
 	        return 0;
@@ -1444,9 +1444,9 @@ INT8U Event_310D(TSA tsa, INT8U* data,INT8U len) {
  * 电能表停走事件 前台两次电能值是否相同以及时间差是否超过设定值
  */
 INT8U Event_310E(TSA tsa, INT8U* data,INT8U len) {
-	if(oi_chg.oi310E != prginfo->oi_changed.oi310E){
+	if(oi_chg.oi310E != prginfo_event->oi_changed.oi310E){
 		readCoverClass(0x310E,0,&event_object.Event310E_obj,sizeof(event_object.Event310E_obj),event_para_save);
-		oi_chg.oi310E = prginfo->oi_changed.oi310E;
+		oi_chg.oi310E = prginfo_event->oi_changed.oi310E;
 	}
     if (event_object.Event310E_obj.event_obj.enableflag == 0) {
         return 0;
@@ -1520,9 +1520,9 @@ INT8U Event_310E(TSA tsa, INT8U* data,INT8U len) {
  * 抄表失败事件 抄表可自行判断是否抄表失败，可直接调用该接口
  */
 INT8U Event_310F(TSA tsa, INT8U* data,INT8U len) {
-	if(oi_chg.oi310F != prginfo->oi_changed.oi310F){
+	if(oi_chg.oi310F != prginfo_event->oi_changed.oi310F){
 		readCoverClass(0x310F,0,&event_object.Event310F_obj,sizeof(event_object.Event310F_obj),event_para_save);
-		oi_chg.oi310F = prginfo->oi_changed.oi310F;
+		oi_chg.oi310F = prginfo_event->oi_changed.oi310F;
 	}
     if (event_object.Event310F_obj.event_obj.enableflag == 0) {
         return 0;
@@ -1577,9 +1577,9 @@ INT8U Event_310F(TSA tsa, INT8U* data,INT8U len) {
  * 月通信流量超限事件 data为当月已经发生流量 字节由高到低
  */
 INT8U Event_3110(INT8U* data,INT8U len) {
-	if(oi_chg.oi3110 != prginfo->oi_changed.oi3110){
+	if(oi_chg.oi3110 != prginfo_event->oi_changed.oi3110){
 		readCoverClass(0x3110,0,&event_object.Event3110_obj,sizeof(event_object.Event3110_obj),event_para_save);
-		oi_chg.oi3110 = prginfo->oi_changed.oi3110;
+		oi_chg.oi3110 = prginfo_event->oi_changed.oi3110;
 	}
     if (event_object.Event3110_obj.event_obj.enableflag == 0) {
         return 0;
@@ -1631,9 +1631,9 @@ INT8U Event_3110(INT8U* data,INT8U len) {
  * 发现未知电能表事件 抄表搜表可以判断出表信息，直接可调用该接口，默认data为整个电能表信息
  */
 INT8U Event_3111(TSA tsa, INT8U* data,INT8U len) {
-	if(oi_chg.oi3111 != prginfo->oi_changed.oi3111){
+	if(oi_chg.oi3111 != prginfo_event->oi_changed.oi3111){
 		readCoverClass(0x3111,0,&event_object.Event3111_obj,sizeof(event_object.Event3111_obj),event_para_save);
-		oi_chg.oi3111 = prginfo->oi_changed.oi3111;
+		oi_chg.oi3111 = prginfo_event->oi_changed.oi3111;
 	}
 	if (event_object.Event3111_obj.enableflag == 0) {
 	        return 0;
@@ -1700,9 +1700,9 @@ INT8U Event_3111(TSA tsa, INT8U* data,INT8U len) {
  * 跨台区电能表事件17 抄表搜表可以判断出表信息，直接可调用该接口，默认data为整个垮台区电能表信息
  */
 INT8U Event_3112(TSA tsa, INT8U* data,INT8U len) {
-	if(oi_chg.oi3112 != prginfo->oi_changed.oi3112){
+	if(oi_chg.oi3112 != prginfo_event->oi_changed.oi3112){
 		readCoverClass(0x3112,0,&event_object.Event3112_obj,sizeof(event_object.Event3112_obj),event_para_save);
-		oi_chg.oi3112 = prginfo->oi_changed.oi3112;
+		oi_chg.oi3112 = prginfo_event->oi_changed.oi3112;
 	}
 	if (event_object.Event3112_obj.enableflag == 0)
 		return 0;
@@ -1756,9 +1756,9 @@ INT8U Event_3112(TSA tsa, INT8U* data,INT8U len) {
  * 电能表在网状态切换事件24 怎么判断TODO？ data为电能表地址TSA及在网状态bool
  */
 INT8U Event_311A(TSA tsa, INT8U* data,INT8U len) {
-	if(oi_chg.oi311A != prginfo->oi_changed.oi311A){
+	if(oi_chg.oi311A != prginfo_event->oi_changed.oi311A){
 		readCoverClass(0x311A,0,&event_object.Event311A_obj,sizeof(event_object.Event311A_obj),event_para_save);
-		oi_chg.oi311A = prginfo->oi_changed.oi311A;
+		oi_chg.oi311A = prginfo_event->oi_changed.oi311A;
 	}
 	if (event_object.Event311A_obj.event_obj.enableflag == 0)
 		return 0;
@@ -1811,9 +1811,9 @@ INT8U Event_311A(TSA tsa, INT8U* data,INT8U len) {
  * 终端对电表校时记录 抄表是否可以自行判断是较时？可直接调用该接口 data为较时前电表时间及误差
  */
 INT8U Event_311B(TSA tsa, INT8U* data,INT8U len) {
-	if(oi_chg.oi311B != prginfo->oi_changed.oi311B){
+	if(oi_chg.oi311B != prginfo_event->oi_changed.oi311B){
 		readCoverClass(0x311B,0,&event_object.Event311B_obj,sizeof(event_object.Event311B_obj),event_para_save);
-		oi_chg.oi311B = prginfo->oi_changed.oi311B;
+		oi_chg.oi311B = prginfo_event->oi_changed.oi311B;
 	}
 	if (event_object.Event311B_obj.enableflag == 0)
 		return 0;
@@ -1856,9 +1856,9 @@ INT8U Event_311B(TSA tsa, INT8U* data,INT8U len) {
  * 电能表数据变更监控记录 抄表可自行判断，直接调用该函数。
  */
 INT8U Event_311C(TSA tsa, INT8U* data,INT8U len) {
-	if(oi_chg.oi311C != prginfo->oi_changed.oi311C){
+	if(oi_chg.oi311C != prginfo_event->oi_changed.oi311C){
 		readCoverClass(0x311C,0,&event_object.Event311C_obj,sizeof(event_object.Event311C_obj),event_para_save);
-		oi_chg.oi311C = prginfo->oi_changed.oi311C;
+		oi_chg.oi311C = prginfo_event->oi_changed.oi311C;
 	}
 	if (event_object.Event311C_obj.event_obj.enableflag == 0)
 		return 0;
@@ -1897,9 +1897,9 @@ INT8U Event_311C(TSA tsa, INT8U* data,INT8U len) {
  * 终端对时事件 此接口在698规约库调用，data为对时前时间 date-time-s格式 7个字节
  */
 INT8U Event_3114(INT8U* data,INT8U len) {
-	if(oi_chg.oi3114 != prginfo->oi_changed.oi3114){
+	if(oi_chg.oi3114 != prginfo_event->oi_changed.oi3114){
 		readCoverClass(0x3114,0,&event_object.Event3114_obj,sizeof(event_object.Event3114_obj),event_para_save);
-		oi_chg.oi3114 = prginfo->oi_changed.oi3114;
+		oi_chg.oi3114 = prginfo_event->oi_changed.oi3114;
 	}
     if (event_object.Event3114_obj.enableflag == 0) {
         return 0;
@@ -1945,9 +1945,9 @@ INT8U Event_3114(INT8U* data,INT8U len) {
  * 遥控跳闸记录
  */
 INT8U Event_3115(INT8U* data,INT8U len) {
-	if(oi_chg.oi3115 != prginfo->oi_changed.oi3115){
+	if(oi_chg.oi3115 != prginfo_event->oi_changed.oi3115){
 		readCoverClass(0x3115,0,&event_object.Event3115_obj,sizeof(event_object.Event3115_obj),event_para_save);
-		oi_chg.oi3115 = prginfo->oi_changed.oi3115;
+		oi_chg.oi3115 = prginfo_event->oi_changed.oi3115;
 	}
     if (event_object.Event3115_obj.enableflag == 0) {
         return 0;
@@ -1959,9 +1959,9 @@ INT8U Event_3115(INT8U* data,INT8U len) {
  * 有功总电能量差动越限事件记录
  */
 INT8U Event_3116(INT8U* data,INT8U len) {
-	if(oi_chg.oi3116 != prginfo->oi_changed.oi3116){
+	if(oi_chg.oi3116 != prginfo_event->oi_changed.oi3116){
 		readCoverClass(0x3116,0,&event_object.Event3116_obj,sizeof(event_object.Event3116_obj),event_para_save);
-		oi_chg.oi3116 = prginfo->oi_changed.oi3116;
+		oi_chg.oi3116 = prginfo_event->oi_changed.oi3116;
 	}
     if (event_object.Event3116_obj.event_obj.enableflag == 0) {
         return 0;
@@ -1973,9 +1973,9 @@ INT8U Event_3116(INT8U* data,INT8U len) {
  * 输出回路接入状态变位事件记录
  */
 INT8U Event_3117(INT8U* data,INT8U len) {
-	if(oi_chg.oi3117 != prginfo->oi_changed.oi3117){
+	if(oi_chg.oi3117 != prginfo_event->oi_changed.oi3117){
 		readCoverClass(0x3117,0,&event_object.Event3117_obj,sizeof(event_object.Event3117_obj),event_para_save);
-		oi_chg.oi3117 = prginfo->oi_changed.oi3117;
+		oi_chg.oi3117 = prginfo_event->oi_changed.oi3117;
 	}
     if (event_object.Event3117_obj.enableflag == 0) {
         return 0;
@@ -2012,9 +2012,9 @@ INT8U Event_3117(INT8U* data,INT8U len) {
  * 终端编程记录 data为多个OAD集合，第一个字节为数量，后面是多个4个字节得OAD
  */
 INT8U Event_3118(INT8U* data,INT8U len) {
-	if(oi_chg.oi3118 != prginfo->oi_changed.oi3118){
+	if(oi_chg.oi3118 != prginfo_event->oi_changed.oi3118){
 		readCoverClass(0x3118,0,&event_object.Event3118_obj,sizeof(event_object.Event3118_obj),event_para_save);
-		oi_chg.oi3118 = prginfo->oi_changed.oi3118;
+		oi_chg.oi3118 = prginfo_event->oi_changed.oi3118;
 	}
     if (event_object.Event3118_obj.enableflag == 0) {
         return 0;
@@ -2059,9 +2059,9 @@ INT8U Event_3118(INT8U* data,INT8U len) {
  * 终端电流回路异常事件23,II型集中器没有电流，暂时不处理,type为0,1 短路、开路
  */
 INT8U Event_3119(INT8U type, INT8U* data,INT8U len) {
-	if(oi_chg.oi3119 != prginfo->oi_changed.oi3119){
+	if(oi_chg.oi3119 != prginfo_event->oi_changed.oi3119){
 		readCoverClass(0x3119,0,&event_object.Event3119_obj,sizeof(event_object.Event3119_obj),event_para_save);
-		oi_chg.oi3119 = prginfo->oi_changed.oi3119;
+		oi_chg.oi3119 = prginfo_event->oi_changed.oi3119;
 	}
     if (event_object.Event3119_obj.enableflag == 0) {
         return 0;
@@ -2097,9 +2097,9 @@ INT8U Event_3119(INT8U type, INT8U* data,INT8U len) {
  * 功控跳闸记录 data为事件源OI+事件发生后2分钟功率long64+控制对象OI+跳闸轮次bit-string(SIZE(8))+功控定值long64+跳闸前总有加有功功率23012300
  */
 INT8U Event_3200(INT8U* data,INT8U len) {
-	if(oi_chg.oi3200 != prginfo->oi_changed.oi3200){
+	if(oi_chg.oi3200 != prginfo_event->oi_changed.oi3200){
 		readCoverClass(0x3200,0,&event_object.Event3200_obj,sizeof(event_object.Event3200_obj),event_para_save);
-		oi_chg.oi3200 = prginfo->oi_changed.oi3200;
+		oi_chg.oi3200 = prginfo_event->oi_changed.oi3200;
 	}
     if (event_object.Event3200_obj.enableflag == 0) {
         return 0;
@@ -2155,9 +2155,9 @@ INT8U Event_3200(INT8U* data,INT8U len) {
  * 电控跳闸记录 data为事件源OI+控制对象OI+跳闸轮次bit-string(SIZE(8))+电控定值long64+跳闸发生时总有加有功电量23014900array
  */
 INT8U Event_3201(INT8U* data,INT8U len) {
-	if(oi_chg.oi3201 != prginfo->oi_changed.oi3201){
+	if(oi_chg.oi3201 != prginfo_event->oi_changed.oi3201){
 		readCoverClass(0x3201,0,&event_object.Event3201_obj,sizeof(event_object.Event3201_obj),event_para_save);
-		oi_chg.oi3201 = prginfo->oi_changed.oi3201;
+		oi_chg.oi3201 = prginfo_event->oi_changed.oi3201;
 	}
     if (event_object.Event3201_obj.enableflag == 0) {
         return 0;
@@ -2207,9 +2207,9 @@ INT8U Event_3201(INT8U* data,INT8U len) {
  * 购电参数设置记录29
  */
 INT8U Event_3202(INT8U* data,INT8U len) {
-	if(oi_chg.oi3202 != prginfo->oi_changed.oi3202){
+	if(oi_chg.oi3202 != prginfo_event->oi_changed.oi3202){
 		readCoverClass(0x3202,0,&event_object.Event3202_obj,sizeof(event_object.Event3202_obj),event_para_save);
-		oi_chg.oi3202 = prginfo->oi_changed.oi3202;
+		oi_chg.oi3202 = prginfo_event->oi_changed.oi3202;
 	}
     //暂时不使用
 	if (event_object.Event3202_obj.enableflag == 0) {
@@ -2248,9 +2248,9 @@ INT8U Event_3202(INT8U* data,INT8U len) {
  * 电控告警事件记录  data为事件源OI+控制对象OI+电控定值long64
  */
 INT8U Event_3203(INT8U* data,INT8U len) {
-	if(oi_chg.oi3203 != prginfo->oi_changed.oi3203){
+	if(oi_chg.oi3203 != prginfo_event->oi_changed.oi3203){
 		readCoverClass(0x3203,0,&event_object.Event3203_obj,sizeof(event_object.Event3203_obj),event_para_save);
-		oi_chg.oi3203 = prginfo->oi_changed.oi3203;
+		oi_chg.oi3203 = prginfo_event->oi_changed.oi3203;
 	}
     //暂时不使用
 	 if (event_object.Event3203_obj.enableflag == 0) {
