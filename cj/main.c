@@ -53,6 +53,7 @@ static char
 static char
 		*usage_event =
 					"--------------------事件类对象----------------------------\n"	\
+					"[初始化事件参数]  cj event init <oi> :例如：初始化采集终端初始化事件  cj event init 0x3100/0全部 	\n"
 					"[复位事件]  cj event reset <oi> :例如：复位采集终端初始化事件  cj event reset 0x3100 	\n"					\
 					"[读取事件属性] cj event pro <oi> :例如：读取采集终端初始化事件属性 cj event pro 0x3100 	\n"					\
 					"[设置Class7]  cj event pro <oi> 当前记录数 最大记录数 上报标识 有效标识 关联对象个数 关联对象OAD[1-10]	\n"	\
