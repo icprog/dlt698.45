@@ -103,6 +103,7 @@ int fill_unsigned(INT8U *data,INT8U value)
 	data[1] = value;
 	return 2;
 }
+
 int fill_DateTimeBCD(INT8U *data,DateTimeBCD *time)
 {
 	data[0] = 0x1C;
@@ -110,6 +111,7 @@ int fill_DateTimeBCD(INT8U *data,DateTimeBCD *time)
 	memcpy(&data[1],time,sizeof(DateTimeBCD));
 	return (sizeof(DateTimeBCD)+1);
 }
+
 int GetYxPara(RESULT_NORMAL *response)
 {
 	int index=0;

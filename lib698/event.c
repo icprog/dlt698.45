@@ -217,105 +217,137 @@ INT8U Event_FindTsa(TSA tsa) {
 INT8U Get_Event(OI_698 oi,INT8U eventno,INT8U** Getbuf,int *Getlen)
 {
 	int filesize=0;
-	filesize = getClassFileLen(oi,eventno,event_record_save);
+	INT8U currno=0,_currno=0,maxno=0;
+	 switch(oi){
+	   case 0x3100:
+		   currno=event_object.Event3100_obj.crrentnum;
+		   maxno=event_object.Event3100_obj.maxnum;
+		   break;
+	   case 0x3101:
+		   currno=event_object.Event3101_obj.crrentnum;
+		   maxno=event_object.Event3101_obj.maxnum;
+		   break;
+	   case 0x3104:
+		   currno=event_object.Event3104_obj.crrentnum;
+		   maxno=event_object.Event3104_obj.maxnum;
+		   break;
+	   case 0x3105:
+		   currno=event_object.Event3105_obj.event_obj.crrentnum;
+		   maxno=event_object.Event3105_obj.event_obj.maxnum;
+		   break;
+	   case 0x3106:
+		   currno=event_object.Event3106_obj.event_obj.crrentnum;
+		   maxno=event_object.Event3106_obj.event_obj.maxnum;
+		   break;
+	   case 0x3107:
+		   currno=event_object.Event3107_obj.event_obj.crrentnum;
+		   maxno=event_object.Event3107_obj.event_obj.maxnum;
+		   break;
+	   case 0x3108:
+		   currno=event_object.Event3108_obj.event_obj.crrentnum;
+		   maxno=event_object.Event3108_obj.event_obj.maxnum;
+		   break;
+	   case 0x3109:
+		   currno=event_object.Event3109_obj.crrentnum;
+		   maxno=event_object.Event3109_obj.maxnum;
+		   break;
+	   case 0x310A:
+		   currno=event_object.Event310A_obj.crrentnum;
+		   maxno=event_object.Event310A_obj.maxnum;
+		   break;
+	   case 0x310B:
+		   currno=event_object.Event310B_obj.event_obj.crrentnum;
+		   maxno=event_object.Event310B_obj.event_obj.maxnum;
+		   break;
+	   case 0x310C:
+		   currno=event_object.Event310C_obj.event_obj.crrentnum;
+		   maxno=event_object.Event310C_obj.event_obj.maxnum;
+		   break;
+	   case 0x310D:
+		   currno=event_object.Event310D_obj.event_obj.crrentnum;
+		   maxno=event_object.Event310D_obj.event_obj.maxnum;
+		   break;
+	   case 0x310E:
+		   currno=event_object.Event310E_obj.event_obj.crrentnum;
+		   maxno=event_object.Event310E_obj.event_obj.maxnum;
+		   break;
+	   case 0x310F:
+		   currno=event_object.Event310F_obj.event_obj.crrentnum;
+		   maxno=event_object.Event310F_obj.event_obj.maxnum;
+		   break;
+	   case 0x3110:
+		   currno=event_object.Event3110_obj.event_obj.crrentnum;
+		   maxno=event_object.Event3110_obj.event_obj.maxnum;
+		   break;
+	   case 0x3111:
+		   currno=event_object.Event3111_obj.crrentnum;
+		   maxno=event_object.Event3111_obj.maxnum;
+		   break;
+	   case 0x3112:
+		   currno=event_object.Event3112_obj.crrentnum;
+		   maxno=event_object.Event3112_obj.maxnum;
+		   break;
+	   case 0x311A:
+		   currno=event_object.Event311A_obj.event_obj.crrentnum;
+		   maxno=event_object.Event311A_obj.event_obj.maxnum;
+		   break;
+	   case 0x311B:
+		   currno=event_object.Event311B_obj.crrentnum;
+		   maxno=event_object.Event311B_obj.maxnum;
+		   break;
+	   case 0x311C:
+		   currno=event_object.Event311C_obj.event_obj.crrentnum;
+		   maxno=event_object.Event311C_obj.event_obj.maxnum;
+		   break;
+	   case 0x3114:
+		   currno=event_object.Event3114_obj.crrentnum;
+		   maxno=event_object.Event3114_obj.maxnum;
+		   break;
+	   case 0x3115:
+		   currno=event_object.Event3115_obj.crrentnum;
+		   maxno=event_object.Event3115_obj.maxnum;
+		   break;
+	   case 0x3116:
+		   currno=event_object.Event3116_obj.event_obj.crrentnum;
+		   maxno=event_object.Event3116_obj.event_obj.maxnum;
+		   break;
+	   case 0x3117:
+		   currno=event_object.Event3117_obj.crrentnum;
+		   maxno=event_object.Event3117_obj.maxnum;
+		   break;
+	   case 0x3118:
+		   currno=event_object.Event3118_obj.crrentnum;
+		   maxno=event_object.Event3118_obj.maxnum;
+		   break;
+	   case 0x3119:
+		   currno=event_object.Event3119_obj.crrentnum;
+		   maxno=event_object.Event3119_obj.maxnum;
+		   break;
+	   case 0x3200:
+		   currno=event_object.Event3200_obj.crrentnum;
+		   maxno=event_object.Event3200_obj.maxnum;
+		   break;
+	   case 0x3201:
+		   currno=event_object.Event3201_obj.crrentnum;
+		   maxno=event_object.Event3201_obj.maxnum;
+		   break;
+	   case 0x3202:
+		   currno=event_object.Event3202_obj.crrentnum;
+		   maxno=event_object.Event3202_obj.maxnum;
+		   break;
+	   case 0x3203:
+		   currno=event_object.Event3203_obj.crrentnum;
+		   maxno=event_object.Event3203_obj.maxnum;
+		   break;
+	}
+	_currno=currno-(eventno-1);
+	if(_currno<=0 || _currno>maxno)
+		_currno = maxno;
+	filesize = getClassFileLen(oi,_currno,event_record_save);
 	if(filesize<=0)  return 0;
 	*Getlen=filesize;
 	*Getbuf=(INT8U*)malloc(filesize);
-	if(eventno == 0){
-		switch(oi){
-		   case 0x3100:
-			   eventno=event_object.Event3100_obj.crrentnum;
-			   break;
-		   case 0x3101:
-			   eventno=event_object.Event3101_obj.crrentnum;
-			   break;
-		   case 0x3104:
-			   eventno=event_object.Event3104_obj.crrentnum;
-			   break;
-		   case 0x3105:
-			   eventno=event_object.Event3105_obj.event_obj.crrentnum;
-			   break;
-		   case 0x3106:
-			   eventno=event_object.Event3106_obj.event_obj.crrentnum;
-			   break;
-		   case 0x3107:
-			   eventno=event_object.Event3107_obj.event_obj.crrentnum;
-			   break;
-		   case 0x3108:
-			   eventno=event_object.Event3108_obj.event_obj.crrentnum;
-			   break;
-		   case 0x3109:
-			   eventno=event_object.Event3109_obj.crrentnum;
-			   break;
-		   case 0x310A:
-			   eventno=event_object.Event310A_obj.crrentnum;
-			   break;
-		   case 0x310B:
-			   eventno=event_object.Event310B_obj.event_obj.crrentnum;
-			   break;
-		   case 0x310C:
-			   eventno=event_object.Event310C_obj.event_obj.crrentnum;
-			   break;
-		   case 0x310D:
-			   eventno=event_object.Event310D_obj.event_obj.crrentnum;
-			   break;
-		   case 0x310E:
-			   eventno=event_object.Event310E_obj.event_obj.crrentnum;
-			   break;
-		   case 0x310F:
-			   eventno=event_object.Event310F_obj.event_obj.crrentnum;
-			   break;
-		   case 0x3110:
-			   eventno=event_object.Event3110_obj.event_obj.crrentnum;
-			   break;
-		   case 0x3111:
-			   eventno=event_object.Event3111_obj.crrentnum;
-			   break;
-		   case 0x3112:
-			   eventno=event_object.Event3112_obj.crrentnum;
-			   break;
-		   case 0x311A:
-			   eventno=event_object.Event311A_obj.event_obj.crrentnum;
-			   break;
-		   case 0x311B:
-			   eventno=event_object.Event311B_obj.crrentnum;
-			   break;
-		   case 0x311C:
-			   eventno=event_object.Event311C_obj.event_obj.crrentnum;
-			   break;
-		   case 0x3114:
-			   eventno=event_object.Event3114_obj.crrentnum;
-			   break;
-		   case 0x3115:
-			   eventno=event_object.Event3115_obj.crrentnum;
-			   break;
-		   case 0x3116:
-			   eventno=event_object.Event3116_obj.event_obj.crrentnum;
-			   break;
-		   case 0x3117:
-			   eventno=event_object.Event3117_obj.crrentnum;
-			   break;
-		   case 0x3118:
-			   eventno=event_object.Event3118_obj.crrentnum;
-			   break;
-		   case 0x3119:
-			   eventno=event_object.Event3119_obj.crrentnum;
-			   break;
-		   case 0x3200:
-			   eventno=event_object.Event3200_obj.crrentnum;
-			   break;
-		   case 0x3201:
-			   eventno=event_object.Event3201_obj.crrentnum;
-			   break;
-		   case 0x3202:
-			   eventno=event_object.Event3202_obj.crrentnum;
-			   break;
-		   case 0x3203:
-			   eventno=event_object.Event3203_obj.crrentnum;
-			   break;
-		}
-	}
-	readCoverClass(oi,eventno,*Getbuf,*Getlen,event_record_save);
+	readCoverClass(oi,_currno,*Getbuf,*Getlen,event_record_save);
 	return 1;
 }
 /*
