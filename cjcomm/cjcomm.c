@@ -340,6 +340,8 @@ int main(int argc, char* argv[]) {
 
     enviromentCheck(argc, argv);
 
+    //
+    Event_Init();
     //开始通信模块维护、红外与维护串口线程
     CreateATWorker();
 

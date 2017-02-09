@@ -234,6 +234,7 @@ INT8U Get_Event(OI_698 oi,INT8U eventno,INT8U** Getbuf,int *Getlen)
 	   case 0x3104:
 		   currno=event_object.Event3104_obj.crrentnum;
 		   maxno=event_object.Event3104_obj.maxnum;
+		   fprintf(stderr,"currno=%d,maxno=%d\n",currno,maxno);
 		   break;
 	   case 0x3105:
 		   currno=event_object.Event3105_obj.event_obj.crrentnum;

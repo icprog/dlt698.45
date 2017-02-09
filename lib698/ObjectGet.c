@@ -194,8 +194,9 @@ int GetEventInfo(RESULT_NORMAL *response)
 {
 	INT8U *data=NULL;
 	INT16U datalen=0;
-	if ( Get_Event(response->oad.OI,response->oad.attrindex-1,&data,(INT8U *)&datalen) == 1 )
+	if ( Get_Event(response->oad.OI,response->oad.attrindex,&data,(INT8U *)&datalen) == 1 )
 	{
+		fprintf(stderr,"datalen=%d\n",datalen);
 		if (datalen > 512 || data==NULL)
 		{
 			fprintf(stderr,"\n获取事件数据Get_Event函数异常! [datalen=%d  data=%p]",datalen,data);
