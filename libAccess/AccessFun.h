@@ -34,12 +34,9 @@ typedef enum
 	coll_para_save=5,			//采集类参数存储
 	acs_coef_save=6,			//交采计量芯片系数存储
 	acs_energy_save=7,			//交采计量电能量数据存储
+	para_init_save=8,			//初始化参数保存文件
 }SaveFile_type;
 
-/*
- * 复位
- * */
-extern int resetClass(OI_698 oi);
 /*
  * 方法：Clean()清空
  * 输入参数：oi对象标识
@@ -139,5 +136,8 @@ extern int readCoverClass(OI_698 oi,INT16U seqno,void *blockdata,int datalen,int
  * -2:	文件记录不完整
  *************************************/
 extern long getFileRecordNum(OI_698 oi);
+
+
+//////////////////////////////////////////////////////////////////////////////////////
 
 #endif /* ACCESS_H_ */

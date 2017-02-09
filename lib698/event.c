@@ -11,6 +11,7 @@
 #include "PublicFunction.h"
 #include "AccessFun.h"
 #include "Objectdef.h"
+#include "Shmem.h"
 
 //测量点、事件参数
 static TSA TSA_LIST[MAX_POINT_NUM];
@@ -21,7 +22,10 @@ static TerminalEvent_Object event_object;
 static Curr_Data curr_data[MAX_POINT_NUM];
 //当前内存保存得数据个数
 static INT16U currnum=0;
-
+//当前事件参数变更状态
+static OI_CHANGE oi_chg;
+//共享内存
+ProgramInfo* prginfo_event;
 /*
  * 说明：
  * 进程如调用该部分事件接口，需先调用Event_Init初始化事件参数结构体和测量点信息
@@ -40,6 +44,12 @@ static INT16U currnum=0;
  * 初始化参数
  */
 INT8U Event_Init() {
+	prginfo_event=OpenShMem("ProgramInfo",sizeof(ProgramInfo),NULL);
+	//初始化事件参数变更状态
+	if(prginfo_event != NULL)
+		memcpy(&oi_chg,&prginfo_event->oi_changed,sizeof(OI_CHANGE));
+	else
+		memset(&oi_chg,0,sizeof(OI_CHANGE));
     //初始化事件参数，调用文件
 	readCoverClass(0x3100,0,&event_object.Event3100_obj,sizeof(event_object.Event3100_obj),event_para_save);
 	readCoverClass(0x3101,0,&event_object.Event3101_obj,sizeof(event_object.Event3101_obj),event_para_save);
@@ -204,7 +214,7 @@ INT8U Event_FindTsa(TSA tsa) {
  * 根据参数读取事件记录文件
  * oi:事件oi eventno:0最新n某条 Getbuf空指针地址，动态分配 Getlen返回长度
  */
-INT8U Get_Event(OI_698 oi,INT8U eventno,INT8U** Getbuf,INT8U *Getlen)
+INT8U Get_Event(OI_698 oi,INT8U eventno,INT8U** Getbuf,int *Getlen)
 {
 	int filesize=0;
 	filesize = getClassFileLen(oi,eventno,event_record_save);
@@ -276,6 +286,12 @@ INT8U Get_Event(OI_698 oi,INT8U eventno,INT8U** Getbuf,INT8U *Getlen)
 		   case 0x3114:
 			   eventno=event_object.Event3114_obj.crrentnum;
 			   break;
+		   case 0x3115:
+			   eventno=event_object.Event3115_obj.crrentnum;
+			   break;
+		   case 0x3116:
+			   eventno=event_object.Event3116_obj.event_obj.crrentnum;
+			   break;
 		   case 0x3117:
 			   eventno=event_object.Event3117_obj.crrentnum;
 			   break;
@@ -306,13 +322,13 @@ INT8U Get_Event(OI_698 oi,INT8U eventno,INT8U** Getbuf,INT8U *Getlen)
  * 事件需要上报
  */
 INT8U Need_Report(OI_698 oi,INT8U eventno){
-	INT8U Sbuf[200];
-	INT8U index=0;
+	INT8U Sbuf[300];
+	int index=0;
     //报文链路层报文头部
     //此处根据698协议
     //从文件读取记录
 	INT8U *Getbuf=NULL;//因为记录为变长，只能采用二级指针，动态分配
-	INT8U Getlen=0;//记录长度
+	int Getlen=0;//记录长度
 	Get_Event(oi,eventno,(INT8U**)&Getbuf,&Getlen);
 	if(Getbuf!=NULL){
 		memcpy(&Sbuf[index],Getbuf,Getlen);
@@ -391,11 +407,11 @@ INT8U Get_CurrResult(INT8U *Rbuf,INT8U *Index,
 INT8U Get_StandardUnit(OI_698 oi,INT8U *Rbuf,INT8U *Index,
 		INT8U Eventno,INT8U *Source,Source_Typ S_type){
 	//Struct
-	Rbuf[(*Index)++] = 0x02;
+	Rbuf[(*Index)++] = dtstructure;
 	//单元数量
 	Rbuf[(*Index)++] = STANDARD_NUM;
 	//事件记录序号
-	Rbuf[(*Index)++] = 0x06;
+	Rbuf[(*Index)++] = dtdoublelongunsigned;
 	//memcpy(&Rbuf[*Index], &Eventno, sizeof(INT32U));
 	INT32U En=(INT32U)Eventno;
 	Rbuf[(*Index)++] = ((En>>24)&0x000000ff);
@@ -407,7 +423,7 @@ INT8U Get_StandardUnit(OI_698 oi,INT8U *Rbuf,INT8U *Index,
 	DataTimeGet(&ntime);
 
 	//事件发生时间
-	Rbuf[(*Index)++] = 0x1C;
+	Rbuf[(*Index)++] = dtdatetimes;
 	//memcpy(&Rbuf[*Index], &ntime, sizeof(ntime));
 	//(*Index)+=sizeof(ntime);
 	Rbuf[(*Index)++] = ((ntime.year.data>>8)&0x00ff);
@@ -418,7 +434,7 @@ INT8U Get_StandardUnit(OI_698 oi,INT8U *Rbuf,INT8U *Index,
 	Rbuf[(*Index)++] = ntime.min.data;
 	Rbuf[(*Index)++] = ntime.sec.data;
 	//事件结束时间
-	Rbuf[(*Index)++] = 0x1C;
+	Rbuf[(*Index)++] = dtdatetimes;
 	if(oi==0x311C){
 		memset(&Rbuf[*Index],DATA_FF,sizeof(ntime));//TODO
 		(*Index)+=sizeof(ntime);
@@ -440,22 +456,25 @@ INT8U Get_StandardUnit(OI_698 oi,INT8U *Rbuf,INT8U *Index,
 		memcpy(&Rbuf[(*Index)],Source,sourcelen);
 	(*Index)+=sourcelen;
 	//事件上报状态
-	Rbuf[(*Index)++] = 0x01;//array
+	Rbuf[(*Index)++] = dtarray;//array
 	Rbuf[(*Index)++] = 0x02;//数量
-	Rbuf[(*Index)++] = 0x02;//struct
+	Rbuf[(*Index)++] = dtstructure;//struct
 	Rbuf[(*Index)++] = 0x02;//数量
 	Rbuf[(*Index)++] = 0x51;//OAD
 	Rbuf[(*Index)++] = 0x45;//gprs
 	Rbuf[(*Index)++] = 0x00;
 	Rbuf[(*Index)++] = 0x00;
 	Rbuf[(*Index)++] = 0x00;
-	Rbuf[(*Index)++] = 0x16;//unsigned
+	Rbuf[(*Index)++] = dtunsigned;//unsigned
 	Rbuf[(*Index)++] = 0x00;
+	Rbuf[(*Index)++] = dtstructure;//struct
+	Rbuf[(*Index)++] = 0x02;//数量
+	Rbuf[(*Index)++] = 0x51;//OAD
 	Rbuf[(*Index)++] = 0x45;//以太网
 	Rbuf[(*Index)++] = 0x10;
 	Rbuf[(*Index)++] = 0x00;
 	Rbuf[(*Index)++] = 0x00;
-	Rbuf[(*Index)++] = 0x16;//unsigned
+	Rbuf[(*Index)++] = dtunsigned;//unsigned
 	Rbuf[(*Index)++] = 0x00;
     return 1;
 }
@@ -472,6 +491,11 @@ INT8U Getcurrno(INT16U *currno,INT16U maxno){
  * 终端初始化事件1 可以698规约解析actionrequest 调用该接口，data为OAD
  */
 INT8U Event_3100(INT8U* data,INT8U len) {
+	if(oi_chg.oi3100 != prginfo_event->oi_changed.oi3100){
+		readCoverClass(0x3100,0,&event_object.Event3100_obj,sizeof(event_object.Event3100_obj),event_para_save);
+		oi_chg.oi3100 = prginfo_event->oi_changed.oi3100;
+	}
+
     if (event_object.Event3100_obj.enableflag == 0) {
         return 0;
     }
@@ -510,6 +534,10 @@ INT8U Event_3100(INT8U* data,INT8U len) {
  * 终端版本变更事件 可直接调用，维护命令修改版本或者升级后可调用
  */
 INT8U Event_3101(INT8U* data,INT8U len) {
+	if(oi_chg.oi3101 != prginfo_event->oi_changed.oi3101){
+		readCoverClass(0x3101,0,&event_object.Event3101_obj,sizeof(event_object.Event3101_obj),event_para_save);
+		oi_chg.oi3101 = prginfo_event->oi_changed.oi3101;
+	}
     if (event_object.Event3101_obj.enableflag == 0) {
         return 0;
     }
@@ -525,14 +553,14 @@ INT8U Event_3101(INT8U* data,INT8U len) {
 		Get_StandardUnit(0x3101,Save_buf,&index,crrentnum,NULL,s_null);
 		//取共享内存或文件
 		//事件发生前软件版本号
-		Save_buf[index++]=10;//visible-string 4
+		Save_buf[index++]=dtvisiblestring;//visible-string 4
 		Save_buf[index++]=4;// 4
 		Save_buf[index++]=0;
 		Save_buf[index++]=0;
 		Save_buf[index++]=0;
 		Save_buf[index++]=0;
 		//事件发生前软件版本号
-		Save_buf[index++]=10;//visible-string 4
+		Save_buf[index++]=dtvisiblestring;//visible-string 4
 		Save_buf[index++]=4;// 4
 		Save_buf[index++]=0;
 		Save_buf[index++]=0;
@@ -559,6 +587,10 @@ INT8U Event_3101(INT8U* data,INT8U len) {
  * 状态量变位事件 可直接调用 data为前后得ST CD，（1-4路）8个字节即可
  */
 INT8U Event_3104(INT8U* data,INT8U len) {
+	if(oi_chg.oi3104 != prginfo_event->oi_changed.oi3104){
+		readCoverClass(0x3104,0,&event_object.Event3104_obj,sizeof(event_object.Event3104_obj),event_para_save);
+		oi_chg.oi3104 = prginfo_event->oi_changed.oi3104;
+	}
     if (event_object.Event3104_obj.enableflag == 0) {
         return 0;
     }
@@ -575,36 +607,43 @@ INT8U Event_3104(INT8U* data,INT8U len) {
 		//事件发生时间
 		DateTimeBCD ntime;
 		DataTimeGet(&ntime);
-		Save_buf[index++] = 28;
-		memcpy(&Save_buf[index], &ntime, sizeof(ntime));
-		index+=sizeof(ntime);
+		Save_buf[index++] = dtdatetimes;
+//		memcpy(&Save_buf[index], &ntime, sizeof(ntime));
+//		index+=sizeof(ntime);
+		Save_buf[index++] = ((ntime.year.data>>8)&0x00ff);
+		Save_buf[index++] = ((ntime.year.data)&0x00ff);
+		Save_buf[index++] = ntime.month.data;
+		Save_buf[index++] = ntime.day.data;
+		Save_buf[index++] = ntime.hour.data;
+		Save_buf[index++] = ntime.min.data;
+		Save_buf[index++] = ntime.sec.data;
 		//第1路事件发生后
-		Save_buf[index++]=2;//structure
+		Save_buf[index++]=dtstructure;//structure
 		Save_buf[index++]=2;// 2
-		Save_buf[index++]=17;
+		Save_buf[index++]=dtunsigned;
 		Save_buf[index++]=data[0];
-		Save_buf[index++]=17;
+		Save_buf[index++]=dtunsigned;
 		Save_buf[index++]=data[1];
 		//第2路事件发生后
-		Save_buf[index++]=2;//structure
+		Save_buf[index++]=dtstructure;//structure
 		Save_buf[index++]=2;// 2
-		Save_buf[index++]=17;
+		Save_buf[index++]=dtunsigned;
 		Save_buf[index++]=data[2];
-		Save_buf[index++]=17;
+		Save_buf[index++]=dtunsigned;
 		Save_buf[index++]=data[3];
 		//第3路事件发生后
-		Save_buf[index++]=2;//structure
+		Save_buf[index++]=dtstructure;//structure
 		Save_buf[index++]=2;// 2
-		Save_buf[index++]=17;
+		Save_buf[index++]=dtunsigned;
 		Save_buf[index++]=data[4];
-		Save_buf[index++]=17;
+		Save_buf[index++]=dtunsigned;
 		Save_buf[index++]=data[5];
 		//第4路事件发生后
-		Save_buf[index++]=2;//structure
+		Save_buf[index++]=dtstructure;//structure
 		Save_buf[index++]=2;// 2
-		Save_buf[index++]=17;
+		Save_buf[index++]=dtunsigned;
 		Save_buf[index++]=data[6];
-		Save_buf[index++]=17;
+		Save_buf[index++]=dtunsigned;
 		Save_buf[index++]=data[7];
 		Save_buf[STANDARD_NUM_INDEX]+=5;
 		//存储更改后得参数
@@ -627,6 +666,10 @@ INT8U Event_3104(INT8U* data,INT8U len) {
  * 电能表时钟超差事件 tsa事件发生源 电表时钟
  */
 INT8U Event_3105(TSA tsa, INT8U* data,INT8U len) {
+	if(oi_chg.oi3105 != prginfo_event->oi_changed.oi3105){
+		readCoverClass(0x3105,0,&event_object.Event3105_obj,sizeof(event_object.Event3105_obj),event_para_save);
+		oi_chg.oi3105 = prginfo_event->oi_changed.oi3105;
+	}
     if (event_object.Event3105_obj.event_obj.enableflag == 0) {
         return 0;
     }
@@ -745,7 +788,7 @@ void SendERC3106(INT8U flag,INT8U Erctype)
 	//标准数据单元
 	Get_StandardUnit(0x3106,Save_buf,&index,crrentnum,(INT8U*)&Erctype,s_enum);
 	//属性标志
-	Save_buf[index++]=4;//bit-string
+	Save_buf[index++]=dtbitstring;//bit-string
 	Save_buf[index++]=flag;
 	Save_buf[STANDARD_NUM_INDEX]+=1;
 	//存储更改后得参数
@@ -861,6 +904,10 @@ INT8U fileread(char *FileName, void *source, INT32U size)
  * 终端停/上电事件5-停电事件-放在交采模块
  */
 INT8U Event_3106(EVENTREALDATA Realdata) {
+	if(oi_chg.oi3106 != prginfo_event->oi_changed.oi3106){
+		readCoverClass(0x3106,0,&event_object.Event3106_obj,sizeof(event_object.Event3106_obj),event_para_save);
+		oi_chg.oi3106 = prginfo_event->oi_changed.oi3106;
+	}
 	if (event_object.Event3106_obj.event_obj.enableflag == 0) {
 		return 0;
 	}
@@ -997,6 +1044,10 @@ INT8U Event_AnalyseACS(INT8U* data,INT8U len) {
  * 终端直流模拟量越上限事件6 data为直流模拟量 字节高到低
  */
 INT8U Event_3107(INT8U* data,INT8U len) {
+	if(oi_chg.oi3107 != prginfo_event->oi_changed.oi3107){
+		readCoverClass(0x3107,0,&event_object.Event3107_obj,sizeof(event_object.Event3107_obj),event_para_save);
+		oi_chg.oi3107 = prginfo_event->oi_changed.oi3107;
+	}
     if (event_object.Event3107_obj.event_obj.enableflag == 0) {
         return 0;
     }
@@ -1035,6 +1086,10 @@ INT8U Event_3107(INT8U* data,INT8U len) {
  * 终端直流模拟量越下限事件7 data为直流模拟量 字节高到低
  */
 INT8U Event_3108(INT8U* data,INT8U len) {
+	if(oi_chg.oi3108 != prginfo_event->oi_changed.oi3108){
+		readCoverClass(0x3108,0,&event_object.Event3108_obj,sizeof(event_object.Event3108_obj),event_para_save);
+		oi_chg.oi3108 = prginfo_event->oi_changed.oi3108;
+	}
     if (event_object.Event3108_obj.event_obj.enableflag == 0) {
         return 0;
     }
@@ -1074,6 +1129,10 @@ INT8U Event_3108(INT8U* data,INT8U len) {
  * 终端消息认证错误事件8 data事件发生前安全认证密码(不含数据类型) len为长度
  */
 INT8U Event_3109(INT8U* data,INT8U len) {
+	if(oi_chg.oi3109 != prginfo_event->oi_changed.oi3109){
+		readCoverClass(0x3109,0,&event_object.Event3109_obj,sizeof(event_object.Event3109_obj),event_para_save);
+		oi_chg.oi3109 = prginfo_event->oi_changed.oi3109;
+	}
     if (event_object.Event3109_obj.enableflag == 0) {
         return 0;
     }
@@ -1088,7 +1147,8 @@ INT8U Event_3109(INT8U* data,INT8U len) {
 		//标准数据单元
 		Get_StandardUnit(0x3109,Save_buf,&index,crrentnum,NULL,s_null);
 		//事件发生前安全认证密码
-		Save_buf[index++]=10;//visable-string
+		Save_buf[index++]=dtvisiblestring;//visable-string
+		Save_buf[index++]=len;
 		memcpy(&Save_buf[index],data,len);
 		index+=len;
 		Save_buf[STANDARD_NUM_INDEX]+=1;
@@ -1112,6 +1172,10 @@ INT8U Event_3109(INT8U* data,INT8U len) {
  * 设备故障事件 errtype：0,1,2,3,4,5
  */
 INT8U Event_310A(MachineError_type errtype) {
+	if(oi_chg.oi310A != prginfo_event->oi_changed.oi310A){
+		readCoverClass(0x310A,0,&event_object.Event310A_obj,sizeof(event_object.Event310A_obj),event_para_save);
+		oi_chg.oi310A = prginfo_event->oi_changed.oi310A;
+	}
     if (event_object.Event310A_obj.enableflag == 0) {
         return 0;
     }
@@ -1166,6 +1230,10 @@ INT8U Event_310A(MachineError_type errtype) {
  * 电能表示度下降事件10 前台两次电能值对比是否超过设定值
  */
 INT8U Event_310B(TSA tsa, INT8U* data,INT8U len) {
+	if(oi_chg.oi310B != prginfo_event->oi_changed.oi310B){
+		readCoverClass(0x310B,0,&event_object.Event310B_obj,sizeof(event_object.Event310B_obj),event_para_save);
+		oi_chg.oi310B = prginfo_event->oi_changed.oi310B;
+	}
     if (event_object.Event310B_obj.event_obj.enableflag == 0) {
         return 0;
     }
@@ -1185,12 +1253,12 @@ INT8U Event_310B(TSA tsa, INT8U* data,INT8U len) {
 			//标准数据单元
 			Get_StandardUnit(0x310B,Save_buf,&index,crrentnum,(INT8U*)&tsa,s_tsa);
 			//属性3有关联数据
-			Save_buf[index++]=6;//double-long-unsigned
+			Save_buf[index++]=dtdoublelongunsigned;//double-long-unsigned
 			Save_buf[index++]=(olddata>>24)&0x000000ff;
 			Save_buf[index++]=(olddata>>16)&0x000000ff;
 			Save_buf[index++]=(olddata>>8)&0x000000ff;
 			Save_buf[index++]=olddata&0x000000ff;
-			Save_buf[index++]=6;//double-long-unsigned
+			Save_buf[index++]=dtdoublelongunsigned;//double-long-unsigned
 			Save_buf[index++]=(newdata>>24)&0x000000ff;
 			Save_buf[index++]=(newdata>>16)&0x000000ff;
 			Save_buf[index++]=(newdata>>8)&0x000000ff;
@@ -1220,6 +1288,10 @@ INT8U Event_310B(TSA tsa, INT8U* data,INT8U len) {
  * 电能量超差事件11 前台两次电能值以及测量点额定电压、电流
  */
 INT8U Event_310C(TSA tsa, INT8U* data,INT8U len) {
+	if(oi_chg.oi310C != prginfo_event->oi_changed.oi310C){
+		readCoverClass(0x310C,0,&event_object.Event310C_obj,sizeof(event_object.Event310C_obj),event_para_save);
+		oi_chg.oi310C = prginfo_event->oi_changed.oi310C;
+	}
     if (event_object.Event310C_obj.event_obj.enableflag == 0) {
         return 0;
     }
@@ -1267,12 +1339,12 @@ INT8U Event_310C(TSA tsa, INT8U* data,INT8U len) {
 			//标准数据单元
 			Get_StandardUnit(0x310C,Save_buf,&index,crrentnum,(INT8U*)&tsa,s_tsa);
 			//属性3有关联数据
-			Save_buf[index++]=6;//double-long-unsigned
+			Save_buf[index++]=dtdoublelongunsigned;//double-long-unsigned
 			Save_buf[index++]=(olddata>>24)&0x000000ff;
 			Save_buf[index++]=(olddata>>16)&0x000000ff;
 			Save_buf[index++]=(olddata>>8)&0x000000ff;
 			Save_buf[index++]=olddata&0x000000ff;
-			Save_buf[index++]=6;//double-long-unsigned
+			Save_buf[index++]=dtdoublelongunsigned;//double-long-unsigned
 			Save_buf[index++]=(newdata>>24)&0x000000ff;
 			Save_buf[index++]=(newdata>>16)&0x000000ff;
 			Save_buf[index++]=(newdata>>8)&0x000000ff;
@@ -1301,6 +1373,10 @@ INT8U Event_310C(TSA tsa, INT8U* data,INT8U len) {
  * 电能表飞走事件12 前台两次电能值以及测量点额定电压、电流
  */
 INT8U Event_310D(TSA tsa, INT8U* data,INT8U len) {
+	if(oi_chg.oi310D != prginfo_event->oi_changed.oi310D){
+		readCoverClass(0x310D,0,&event_object.Event310D_obj,sizeof(event_object.Event310D_obj),event_para_save);
+		oi_chg.oi310D = prginfo_event->oi_changed.oi310D;
+	}
 	if (event_object.Event310D_obj.event_obj.enableflag == 0) {
 	        return 0;
 	}
@@ -1348,12 +1424,12 @@ INT8U Event_310D(TSA tsa, INT8U* data,INT8U len) {
 			//标准数据单元
 			Get_StandardUnit(0x310D,Save_buf,&index,crrentnum,(INT8U*)&tsa,s_tsa);
 			//属性3有关联数据
-			Save_buf[index++]=6;//double-long-unsigned
+			Save_buf[index++]=dtdoublelongunsigned;//double-long-unsigned
 			Save_buf[index++]=(olddata>>24)&0x000000ff;
 			Save_buf[index++]=(olddata>>16)&0x000000ff;
 			Save_buf[index++]=(olddata>>8)&0x000000ff;
 			Save_buf[index++]=olddata&0x000000ff;
-			Save_buf[index++]=6;//double-long-unsigned
+			Save_buf[index++]=dtdoublelongunsigned;//double-long-unsigned
 			Save_buf[index++]=(newdata>>24)&0x000000ff;
 			Save_buf[index++]=(newdata>>16)&0x000000ff;
 			Save_buf[index++]=(newdata>>8)&0x000000ff;
@@ -1382,6 +1458,10 @@ INT8U Event_310D(TSA tsa, INT8U* data,INT8U len) {
  * 电能表停走事件 前台两次电能值是否相同以及时间差是否超过设定值
  */
 INT8U Event_310E(TSA tsa, INT8U* data,INT8U len) {
+	if(oi_chg.oi310E != prginfo_event->oi_changed.oi310E){
+		readCoverClass(0x310E,0,&event_object.Event310E_obj,sizeof(event_object.Event310E_obj),event_para_save);
+		oi_chg.oi310E = prginfo_event->oi_changed.oi310E;
+	}
     if (event_object.Event310E_obj.event_obj.enableflag == 0) {
         return 0;
     }
@@ -1426,7 +1506,7 @@ INT8U Event_310E(TSA tsa, INT8U* data,INT8U len) {
 			//标准数据单元
 			Get_StandardUnit(0x310E,Save_buf,&index,crrentnum,(INT8U*)&tsa,s_tsa);
 			//属性3有关联数据
-			Save_buf[index++]=6;//double-long-unsigned
+			Save_buf[index++]=dtdoublelongunsigned;//double-long-unsigned
 			Save_buf[index++]=(olddata>>24)&0x000000ff;
 			Save_buf[index++]=(olddata>>16)&0x000000ff;
 			Save_buf[index++]=(olddata>>8)&0x000000ff;
@@ -1454,6 +1534,10 @@ INT8U Event_310E(TSA tsa, INT8U* data,INT8U len) {
  * 抄表失败事件 抄表可自行判断是否抄表失败，可直接调用该接口
  */
 INT8U Event_310F(TSA tsa, INT8U* data,INT8U len) {
+	if(oi_chg.oi310F != prginfo_event->oi_changed.oi310F){
+		readCoverClass(0x310F,0,&event_object.Event310F_obj,sizeof(event_object.Event310F_obj),event_para_save);
+		oi_chg.oi310F = prginfo_event->oi_changed.oi310F;
+	}
     if (event_object.Event310F_obj.event_obj.enableflag == 0) {
         return 0;
     }
@@ -1467,7 +1551,7 @@ INT8U Event_310F(TSA tsa, INT8U* data,INT8U len) {
 	Get_StandardUnit(0x310F,Save_buf,&index,crrentnum,(INT8U*)&tsa,s_tsa);
 	//属性3有关联数据
 	//最近一次抄表成功时间
-	Save_buf[index++]=28;//datetime-s
+	Save_buf[index++]=dtdatetimes;//datetime-s
 	Save_buf[index++]=0;
 	Save_buf[index++]=0;
 	Save_buf[index++]=0;
@@ -1476,13 +1560,13 @@ INT8U Event_310F(TSA tsa, INT8U* data,INT8U len) {
 	Save_buf[index++]=0;
 	Save_buf[index++]=0;
 	//最近一次正向有功
-	Save_buf[index++]=6;//double-long-unsigned
+	Save_buf[index++]=dtdoublelongunsigned;//double-long-unsigned
 	Save_buf[index++]=0;
 	Save_buf[index++]=0;
 	Save_buf[index++]=0;
 	Save_buf[index++]=0;
 	//最近一次正向有功
-	Save_buf[index++]=5;//double-long
+	Save_buf[index++]=dtdoublelong;//double-long
 	Save_buf[index++]=0;
 	Save_buf[index++]=0;
 	Save_buf[index++]=0;
@@ -1507,6 +1591,10 @@ INT8U Event_310F(TSA tsa, INT8U* data,INT8U len) {
  * 月通信流量超限事件 data为当月已经发生流量 字节由高到低
  */
 INT8U Event_3110(INT8U* data,INT8U len) {
+	if(oi_chg.oi3110 != prginfo_event->oi_changed.oi3110){
+		readCoverClass(0x3110,0,&event_object.Event3110_obj,sizeof(event_object.Event3110_obj),event_para_save);
+		oi_chg.oi3110 = prginfo_event->oi_changed.oi3110;
+	}
     if (event_object.Event3110_obj.event_obj.enableflag == 0) {
         return 0;
     }
@@ -1524,13 +1612,13 @@ INT8U Event_3110(INT8U* data,INT8U len) {
 		Get_StandardUnit(0x3110,Save_buf,&index,crrentnum,NULL,s_null);
 		//属性3有关联数据
 		//事件发生后已发生通信流量 //22004202
-		Save_buf[index++]=6;//double-long-unsiged
+		Save_buf[index++]=dtdoublelongunsigned;//double-long-unsiged
 		Save_buf[index++]=data[0];
 		Save_buf[index++]=data[1];
 		Save_buf[index++]=data[2];
 		Save_buf[index++]=data[3];
 		//月通信流量门限 //31100601
-		Save_buf[index++]=6;//double-long-unsigned
+		Save_buf[index++]=dtdoublelongunsigned;//double-long-unsigned
 		Save_buf[index++]=(offset>>24)&0x000000ff;
 		Save_buf[index++]=(offset>>16)&0x000000ff;
 		Save_buf[index++]=(offset>>8)&0x000000ff;
@@ -1557,6 +1645,10 @@ INT8U Event_3110(INT8U* data,INT8U len) {
  * 发现未知电能表事件 抄表搜表可以判断出表信息，直接可调用该接口，默认data为整个电能表信息
  */
 INT8U Event_3111(TSA tsa, INT8U* data,INT8U len) {
+	if(oi_chg.oi3111 != prginfo_event->oi_changed.oi3111){
+		readCoverClass(0x3111,0,&event_object.Event3111_obj,sizeof(event_object.Event3111_obj),event_para_save);
+		oi_chg.oi3111 = prginfo_event->oi_changed.oi3111;
+	}
 	if (event_object.Event3111_obj.enableflag == 0) {
 	        return 0;
 	    }
@@ -1571,36 +1663,36 @@ INT8U Event_3111(TSA tsa, INT8U* data,INT8U len) {
 	//标准数据单元
 	Get_StandardUnit(0x3111,Save_buf,&index,crrentnum,NULL,s_null);
 	//搜表结果集
-	Save_buf[index++]=01;//array
+	Save_buf[index++]=dtarray;//array
 	Save_buf[index++]=1;//默认搜到一个就产生事件
 	Save_buf[index++]=2;//structure
 	Save_buf[index++]=7;//元素数量
 	//默认data是搜表记录结果结构
 	//通信地址 TSA
-	Save_buf[index++]=85;//TSA
+	Save_buf[index++]=dttsa;//TSA
 	INT8U l1=data[0];
 	memcpy(&Save_buf[index],&data[0],l1+1);
 	index+=l1+1;
 	//所属采集器地址 TSA
-	Save_buf[index++]=85;//TSA
+	Save_buf[index++]=dttsa;//TSA
 	INT8U l2=data[l1+1];
 	memcpy(&Save_buf[index],&data[l1+1],l2+1);
 	index+=l2+1;
 	//规约类型  enum
-	Save_buf[index++]=22;
+	Save_buf[index++]=dtenum;
 	Save_buf[index++]=data[l1+1+l2+1];
 	//相位 enum{未知（0），A（1），B（2），C（3）}
-	Save_buf[index++]=22;
+	Save_buf[index++]=dtenum;
 	Save_buf[index++]=data[l1+1+l2+1+1];
 	//信号品质unsigned，
-	Save_buf[index++]=17;
+	Save_buf[index++]=dtunsigned;
 	Save_buf[index++]=data[l1+1+l2+1+2];
     //搜到的时间 date_time_s
-	Save_buf[index++]=28;
+	Save_buf[index++]=dtdatetimes;
 	memcpy(&Save_buf[index],&data[l1+1+l2+1+3],7);
 	index+=7;
 	//搜到的附加信息  array附加信息
-	Save_buf[index++]=1;//array
+	Save_buf[index++]=dtarray;//array
 	Save_buf[index++]=0;//数量
 	Save_buf[STANDARD_NUM_INDEX]+=1;
 	//存储更改后得参数
@@ -1622,6 +1714,10 @@ INT8U Event_3111(TSA tsa, INT8U* data,INT8U len) {
  * 跨台区电能表事件17 抄表搜表可以判断出表信息，直接可调用该接口，默认data为整个垮台区电能表信息
  */
 INT8U Event_3112(TSA tsa, INT8U* data,INT8U len) {
+	if(oi_chg.oi3112 != prginfo_event->oi_changed.oi3112){
+		readCoverClass(0x3112,0,&event_object.Event3112_obj,sizeof(event_object.Event3112_obj),event_para_save);
+		oi_chg.oi3112 = prginfo_event->oi_changed.oi3112;
+	}
 	if (event_object.Event3112_obj.enableflag == 0)
 		return 0;
 	if(data== NULL)
@@ -1635,23 +1731,23 @@ INT8U Event_3112(TSA tsa, INT8U* data,INT8U len) {
 	//标准数据单元
 	Get_StandardUnit(0x3112,Save_buf,&index,crrentnum,NULL,s_null);
 	//结果集
-	Save_buf[index++]=01;//array
+	Save_buf[index++]=dtarray;//array
 	Save_buf[index++]=1;//默认搜到一个就产生事件
 	Save_buf[index++]=2;//structure
 	Save_buf[index++]=3;//元素数量
 	//默认data是搜表记录结果结构
     //通信地址 TSA
-	Save_buf[index++]=85;//TSA
+	Save_buf[index++]=dttsa;//TSA
 	INT8U l1=data[0];
 	memcpy(&Save_buf[index],&data[0],l1+1);
 	index+=l1+1;
 	//所属采集器地址 TSA
-	Save_buf[index++]=85;//TSA
+	Save_buf[index++]=dttsa;//TSA
 	INT8U l2=data[l1+1];
 	memcpy(&Save_buf[index],&data[l1+1],l2+1);
 	index+=l2+1;
 	//变更时间 date_time_s
-	Save_buf[index++]=28;
+	Save_buf[index++]=dtdatetimes;
 	memcpy(&Save_buf[index],&data[l1+1+l2+1],7);
 	index+=7;
 	Save_buf[STANDARD_NUM_INDEX]+=1;
@@ -1674,6 +1770,10 @@ INT8U Event_3112(TSA tsa, INT8U* data,INT8U len) {
  * 电能表在网状态切换事件24 怎么判断TODO？ data为电能表地址TSA及在网状态bool
  */
 INT8U Event_311A(TSA tsa, INT8U* data,INT8U len) {
+	if(oi_chg.oi311A != prginfo_event->oi_changed.oi311A){
+		readCoverClass(0x311A,0,&event_object.Event311A_obj,sizeof(event_object.Event311A_obj),event_para_save);
+		oi_chg.oi311A = prginfo_event->oi_changed.oi311A;
+	}
 	if (event_object.Event311A_obj.event_obj.enableflag == 0)
 		return 0;
 	if(data== NULL)
@@ -1691,18 +1791,18 @@ INT8U Event_311A(TSA tsa, INT8U* data,INT8U len) {
 		//标准数据单元
 		Get_StandardUnit(0x311A,Save_buf,&index,crrentnum,NULL,s_null);
 		//状态变迁事件
-		Save_buf[index++]=01;//array
+		Save_buf[index++]=dtarray;//array
 		Save_buf[index++]=1;//默认一个状态变迁事件
 		Save_buf[index++]=2;//structure
 		Save_buf[index++]=2;//元素数量
 		//默认data是记录结果结构
 		//电能表地址 TSA
-		Save_buf[index++]=85;//TSA
+		Save_buf[index++]=dttsa;//TSA
 		INT8U l1=data[0];
 		memcpy(&Save_buf[index],&data[0],l1+1);
 		index+=l1+1;
 		//在网状态 bool
-		Save_buf[index++]=3;//bool
+		Save_buf[index++]=dtbool;//bool
 		Save_buf[index++]=data[l1+1];
 		Save_buf[STANDARD_NUM_INDEX]+=1;
 		//存储更改后得参数
@@ -1725,6 +1825,10 @@ INT8U Event_311A(TSA tsa, INT8U* data,INT8U len) {
  * 终端对电表校时记录 抄表是否可以自行判断是较时？可直接调用该接口 data为较时前电表时间及误差
  */
 INT8U Event_311B(TSA tsa, INT8U* data,INT8U len) {
+	if(oi_chg.oi311B != prginfo_event->oi_changed.oi311B){
+		readCoverClass(0x311B,0,&event_object.Event311B_obj,sizeof(event_object.Event311B_obj),event_para_save);
+		oi_chg.oi311B = prginfo_event->oi_changed.oi311B;
+	}
 	if (event_object.Event311B_obj.enableflag == 0)
 		return 0;
 	if(data== NULL)
@@ -1739,11 +1843,11 @@ INT8U Event_311B(TSA tsa, INT8U* data,INT8U len) {
 		//标准数据单元
 		Get_StandardUnit(0x311B,Save_buf,&index,crrentnum,(INT8U*)&tsa,s_tsa);
 		//校时前时钟    date_time_s
-		Save_buf[index++]=28;
+		Save_buf[index++]=dtdatetimes;
 		memcpy(&Save_buf[index],data,7);
 		index+=7;
 		//时钟误差      integer（单位：秒，无换算）
-		Save_buf[index++]=15;
+		Save_buf[index++]=dtinteger;
 		Save_buf[index++]=data[7];
 		Save_buf[STANDARD_NUM_INDEX]+=2;
 		//存储更改后得参数
@@ -1766,6 +1870,10 @@ INT8U Event_311B(TSA tsa, INT8U* data,INT8U len) {
  * 电能表数据变更监控记录 抄表可自行判断，直接调用该函数。
  */
 INT8U Event_311C(TSA tsa, INT8U* data,INT8U len) {
+	if(oi_chg.oi311C != prginfo_event->oi_changed.oi311C){
+		readCoverClass(0x311C,0,&event_object.Event311C_obj,sizeof(event_object.Event311C_obj),event_para_save);
+		oi_chg.oi311C = prginfo_event->oi_changed.oi311C;
+	}
 	if (event_object.Event311C_obj.event_obj.enableflag == 0)
 		return 0;
 	if(data== NULL)
@@ -1803,6 +1911,10 @@ INT8U Event_311C(TSA tsa, INT8U* data,INT8U len) {
  * 终端对时事件 此接口在698规约库调用，data为对时前时间 date-time-s格式 7个字节
  */
 INT8U Event_3114(INT8U* data,INT8U len) {
+	if(oi_chg.oi3114 != prginfo_event->oi_changed.oi3114){
+		readCoverClass(0x3114,0,&event_object.Event3114_obj,sizeof(event_object.Event3114_obj),event_para_save);
+		oi_chg.oi3114 = prginfo_event->oi_changed.oi3114;
+	}
     if (event_object.Event3114_obj.enableflag == 0) {
         return 0;
     }
@@ -1817,15 +1929,22 @@ INT8U Event_3114(INT8U* data,INT8U len) {
 		//标准数据单元
 		Get_StandardUnit(0x3114,Save_buf,&index,crrentnum,NULL,s_null);
 		//事件发生前对时时间
-		Save_buf[index++]=28;
+		Save_buf[index++]=dtdatetimes;
 		memcpy(&Save_buf[index],data,len);
 		index+=len;
 		//事件发生后对时时间
 		DateTimeBCD ntime;
 		DataTimeGet(&ntime);
-		Save_buf[index++]=28;
-		memcpy(&Save_buf[index],&ntime,7);
-		index+=7;
+		Save_buf[index++]=dtdatetimes;
+//		memcpy(&Save_buf[index],&ntime,7);
+//		index+=7;
+		Save_buf[index++] = ((ntime.year.data>>8)&0x00ff);
+		Save_buf[index++] = ((ntime.year.data)&0x00ff);
+		Save_buf[index++] = ntime.month.data;
+		Save_buf[index++] = ntime.day.data;
+		Save_buf[index++] = ntime.hour.data;
+		Save_buf[index++] = ntime.min.data;
+		Save_buf[index++] = ntime.sec.data;
 		Save_buf[STANDARD_NUM_INDEX]+=2;
 		//存储更改后得参数
 		saveCoverClass(0x3114,(INT16U)crrentnum,(void *)&event_object.Event3114_obj,sizeof(Class7_Object),1);
@@ -1844,9 +1963,41 @@ INT8U Event_3114(INT8U* data,INT8U len) {
 }
 
 /*
+ * 遥控跳闸记录
+ */
+INT8U Event_3115(INT8U* data,INT8U len) {
+	if(oi_chg.oi3115 != prginfo_event->oi_changed.oi3115){
+		readCoverClass(0x3115,0,&event_object.Event3115_obj,sizeof(event_object.Event3115_obj),event_para_save);
+		oi_chg.oi3115 = prginfo_event->oi_changed.oi3115;
+	}
+    if (event_object.Event3115_obj.enableflag == 0) {
+        return 0;
+    }
+    return 1;
+}
+
+/*
+ * 有功总电能量差动越限事件记录
+ */
+INT8U Event_3116(INT8U* data,INT8U len) {
+	if(oi_chg.oi3116 != prginfo_event->oi_changed.oi3116){
+		readCoverClass(0x3116,0,&event_object.Event3116_obj,sizeof(event_object.Event3116_obj),event_para_save);
+		oi_chg.oi3116 = prginfo_event->oi_changed.oi3116;
+	}
+    if (event_object.Event3116_obj.event_obj.enableflag == 0) {
+        return 0;
+    }
+    return 1;
+}
+
+/*
  * 输出回路接入状态变位事件记录
  */
 INT8U Event_3117(INT8U* data,INT8U len) {
+	if(oi_chg.oi3117 != prginfo_event->oi_changed.oi3117){
+		readCoverClass(0x3117,0,&event_object.Event3117_obj,sizeof(event_object.Event3117_obj),event_para_save);
+		oi_chg.oi3117 = prginfo_event->oi_changed.oi3117;
+	}
     if (event_object.Event3117_obj.enableflag == 0) {
         return 0;
     }
@@ -1882,6 +2033,10 @@ INT8U Event_3117(INT8U* data,INT8U len) {
  * 终端编程记录 data为多个OAD集合，第一个字节为数量，后面是多个4个字节得OAD
  */
 INT8U Event_3118(INT8U* data,INT8U len) {
+	if(oi_chg.oi3118 != prginfo_event->oi_changed.oi3118){
+		readCoverClass(0x3118,0,&event_object.Event3118_obj,sizeof(event_object.Event3118_obj),event_para_save);
+		oi_chg.oi3118 = prginfo_event->oi_changed.oi3118;
+	}
     if (event_object.Event3118_obj.enableflag == 0) {
         return 0;
     }
@@ -1896,11 +2051,11 @@ INT8U Event_3118(INT8U* data,INT8U len) {
 		//标准数据单元
 		Get_StandardUnit(0x3118,Save_buf,&index,crrentnum,NULL,s_null);
 		//array OAD
-	    Save_buf[index++]=1;//array
+	    Save_buf[index++]=dtarray;//array
 	    Save_buf[index++]=data[0];//数量
 	    int i=0;
 	    for(i=0;i<data[0];i++){
-	    	Save_buf[index++]=81;//OAD
+	    	Save_buf[index++]=dtoad;//OAD
 	    	memcpy(&Save_buf[index],&data[1+i*4],4);
 	    	index+=4;
 	    }
@@ -1925,6 +2080,10 @@ INT8U Event_3118(INT8U* data,INT8U len) {
  * 终端电流回路异常事件23,II型集中器没有电流，暂时不处理,type为0,1 短路、开路
  */
 INT8U Event_3119(INT8U type, INT8U* data,INT8U len) {
+	if(oi_chg.oi3119 != prginfo_event->oi_changed.oi3119){
+		readCoverClass(0x3119,0,&event_object.Event3119_obj,sizeof(event_object.Event3119_obj),event_para_save);
+		oi_chg.oi3119 = prginfo_event->oi_changed.oi3119;
+	}
     if (event_object.Event3119_obj.enableflag == 0) {
         return 0;
     }
@@ -1959,6 +2118,10 @@ INT8U Event_3119(INT8U type, INT8U* data,INT8U len) {
  * 功控跳闸记录 data为事件源OI+事件发生后2分钟功率long64+控制对象OI+跳闸轮次bit-string(SIZE(8))+功控定值long64+跳闸前总有加有功功率23012300
  */
 INT8U Event_3200(INT8U* data,INT8U len) {
+	if(oi_chg.oi3200 != prginfo_event->oi_changed.oi3200){
+		readCoverClass(0x3200,0,&event_object.Event3200_obj,sizeof(event_object.Event3200_obj),event_para_save);
+		oi_chg.oi3200 = prginfo_event->oi_changed.oi3200;
+	}
     if (event_object.Event3200_obj.enableflag == 0) {
         return 0;
     }
@@ -1973,23 +2136,23 @@ INT8U Event_3200(INT8U* data,INT8U len) {
 		//标准数据单元
 		Get_StandardUnit(0x3200,Save_buf,&index,crrentnum,(INT8U*)data,s_oi);
 		//事件发生后2分钟功率long64
-	    Save_buf[index++]=20;//long64
+	    Save_buf[index++]=dtlong64;//long64
 	    //data[0].data[1]为OI
         memcpy(&Save_buf[index],&data[2],8);
         index+=8;
         //控制对象OI
-        Save_buf[index++]=80;//OI
+        Save_buf[index++]=dtoi;//OI
         memcpy(&Save_buf[index],&data[2+8],2);
         index+=2;
         //跳闸轮次bit-string(SIZE(8))
-        Save_buf[index++]=4;//BIT-STRING
+        Save_buf[index++]=dtbitstring;//BIT-STRING
         Save_buf[index++]=data[2+8+2];
         //功控定值long64
-        Save_buf[index++]=20;//long64
+        Save_buf[index++]=dtlong64;//long64
 		memcpy(&Save_buf[index],&data[2+8+2+1],8);
 		index+=8;
 		//跳闸前总有加有功功率23012300
-		Save_buf[index++]=20;//long64
+		Save_buf[index++]=dtlong64;//long64
 		memcpy(&Save_buf[index],&data[2+8+2+1+8],8);
 		index+=8;
 		Save_buf[STANDARD_NUM_INDEX]+=5;
@@ -2013,6 +2176,10 @@ INT8U Event_3200(INT8U* data,INT8U len) {
  * 电控跳闸记录 data为事件源OI+控制对象OI+跳闸轮次bit-string(SIZE(8))+电控定值long64+跳闸发生时总有加有功电量23014900array
  */
 INT8U Event_3201(INT8U* data,INT8U len) {
+	if(oi_chg.oi3201 != prginfo_event->oi_changed.oi3201){
+		readCoverClass(0x3201,0,&event_object.Event3201_obj,sizeof(event_object.Event3201_obj),event_para_save);
+		oi_chg.oi3201 = prginfo_event->oi_changed.oi3201;
+	}
     if (event_object.Event3201_obj.enableflag == 0) {
         return 0;
     }
@@ -2027,18 +2194,18 @@ INT8U Event_3201(INT8U* data,INT8U len) {
 		//标准数据单元
 		Get_StandardUnit(0x3201,Save_buf,&index,crrentnum,(INT8U*)data,s_oi);
         //控制对象OI
-        Save_buf[index++]=80;//OI
+        Save_buf[index++]=dtoi;//OI
         memcpy(&Save_buf[index],&data[2],2);
         index+=2;
         //跳闸轮次bit-string(SIZE(8))
-        Save_buf[index++]=4;//BIT-STRING
+        Save_buf[index++]=dtbitstring;//BIT-STRING
         Save_buf[index++]=data[2+2];
         //电控定值long64
-        Save_buf[index++]=20;//long64
+        Save_buf[index++]=dtlong64;//long64
 		memcpy(&Save_buf[index],&data[2+2+1],8);
 		index+=8;
 		//跳闸发生时总有加有功电量23014900array
-		Save_buf[index++]=20;//array
+		Save_buf[index++]=dtarray;//array 考虑用array列出总加组
 		Save_buf[index++]=0;//数量
 		Save_buf[STANDARD_NUM_INDEX]+=4;
 		//存储更改后得参数
@@ -2061,6 +2228,10 @@ INT8U Event_3201(INT8U* data,INT8U len) {
  * 购电参数设置记录29
  */
 INT8U Event_3202(INT8U* data,INT8U len) {
+	if(oi_chg.oi3202 != prginfo_event->oi_changed.oi3202){
+		readCoverClass(0x3202,0,&event_object.Event3202_obj,sizeof(event_object.Event3202_obj),event_para_save);
+		oi_chg.oi3202 = prginfo_event->oi_changed.oi3202;
+	}
     //暂时不使用
 	if (event_object.Event3202_obj.enableflag == 0) {
 		return 0;
@@ -2098,6 +2269,10 @@ INT8U Event_3202(INT8U* data,INT8U len) {
  * 电控告警事件记录  data为事件源OI+控制对象OI+电控定值long64
  */
 INT8U Event_3203(INT8U* data,INT8U len) {
+	if(oi_chg.oi3203 != prginfo_event->oi_changed.oi3203){
+		readCoverClass(0x3203,0,&event_object.Event3203_obj,sizeof(event_object.Event3203_obj),event_para_save);
+		oi_chg.oi3203 = prginfo_event->oi_changed.oi3203;
+	}
     //暂时不使用
 	 if (event_object.Event3203_obj.enableflag == 0) {
 	        return 0;
@@ -2113,11 +2288,11 @@ INT8U Event_3203(INT8U* data,INT8U len) {
 		//标准数据单元
 		Get_StandardUnit(0x3203,Save_buf,&index,crrentnum,(INT8U*)data,s_oi);
 		//控制对象OI
-		Save_buf[index++]=80;//OI
+		Save_buf[index++]=dtoi;//OI
 		memcpy(&Save_buf[index],&data[2],2);
 		index+=2;
 		//电控定值long64
-		Save_buf[index++]=20;//long64
+		Save_buf[index++]=dtlong64;//long64
 		memcpy(&Save_buf[index],&data[2+2],8);
 		index+=8;
 		Save_buf[STANDARD_NUM_INDEX]+=2;

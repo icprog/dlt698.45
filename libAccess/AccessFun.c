@@ -23,11 +23,12 @@
 #include "Objectdef.h"
 #include "EventObject.h"
 #include "ParaDef.h"
-
+#include "PublicFunction.h"
 
 #define 	LIB_ACCESS_VER 			0x0001
 
 CLASS_INFO	info={};
+
 
 /*
  * 数据区初始化接口函数
@@ -82,26 +83,6 @@ int delClassBySeq(OI_698 oi,void *blockdata,int seqnum)
 }
 
 /*
- * 方法：Reset()复位
- * 输入参数：oi对象标识
- * 返回值：=0：配置单元删除成功
- * =-1:  删除错误
- */
-int resetClass(OI_698 oi)
-{
-	int		ret = -1;
-	char	cmd[64]={};
-
-	memset(cmd,0,sizeof(cmd));
-	if(oi>=0x3000 && oi<=0x3fff) {
-		sprintf(cmd,"rm -rf /%s/%04x",EVENT_PORP,oi);
-		system(cmd);
-		ret = 0;
-	}
-	return ret;
-}
-
-/*
  * 方法：Clean()清空
  * 输入参数：oi对象标识
  * 返回值：=0：配置单元删除成功
@@ -113,11 +94,21 @@ int clearClass(OI_698 oi)
 	int		ret = -1;
 	char	fname2[FILENAMELEN]={};
 	char	cmd[FILENAMELEN]={};
+	INT8U	oiA1=0;
 
 	infoi = getclassinfo(oi,&info);
 	if(infoi==-1) {
 		memset(cmd,0,sizeof(cmd));
-		sprintf(cmd,"rm -rf %s/%04x/",PARADIR,oi);
+		oiA1 = (oi & 0xf000) >> 12;
+		switch(oiA1) {
+		case 3:			//事件类
+			sprintf(cmd,"rm -rf /%s/%04x",EVENT_PORP,oi);
+			break;
+		case 4:			//参变量类
+		case 6:			//采集监控类
+			sprintf(cmd,"rm -rf %s/%04x/",PARADIR,oi);
+			break;
+		}
 		system(cmd);
 		return 1;
 	}
@@ -184,15 +175,19 @@ int saveParaClass(OI_698 oi,void *blockdata,int seqnum)
 {
 	int 	ret=-1;
 	INT16U	infoi=-1;
+	sem_t   *sem_save=NULL;
 
+	sem_save = InitSem();
 	infoi = getclassinfo(oi,&info);
 	if(infoi == -1) {
+		CloseSem(sem_save);
 		return -1;
 	}
 	if(class_info[infoi].interface_len!=0) {		//该存储单元内部包含的类的公共属性
 		WriteInterfaceClass(oi,seqnum,AddUpdate);
 	}
-	save_block_file((char *)class_info[infoi].file_name,blockdata,class_info[infoi].unit_len,class_info[infoi].interface_len,seqnum);
+	ret = save_block_file((char *)class_info[infoi].file_name,blockdata,class_info[infoi].unit_len,class_info[infoi].interface_len,seqnum);
+	CloseSem(sem_save);
 	return ret;
 }
 
@@ -208,12 +203,15 @@ int  readParaClass(OI_698 oi,void *blockdata,int seqnum)
 {
 	int 	ret=-1;
 	INT16U	infoi=-1;
+	sem_t   *sem_save=NULL;
 
+	sem_save = InitSem();
 	infoi = getclassinfo(oi,&info);
 	if(infoi==-1) {
 		return -1;
 	}
 	ret = block_file_sync((char *)class_info[infoi].file_name,blockdata,class_info[infoi].unit_len,class_info[infoi].interface_len,seqnum);
+	CloseSem(sem_save);
 	return ret;
 }
 
@@ -228,7 +226,10 @@ int saveCoverClass(OI_698 oi,INT16U seqno,void *blockdata,int savelen,int type)
 {
 	int		ret = 0;
 	char	fname[FILENAMELEN]={};
+	int		val;
+	sem_t   *sem_save=NULL;
 
+	sem_save = InitSem();
 	memset(fname,0,sizeof(fname));
 	getFileName(oi,seqno,type,fname);
 	switch(type) {
@@ -245,6 +246,7 @@ int saveCoverClass(OI_698 oi,INT16U seqno,void *blockdata,int savelen,int type)
 		writeCoverFile(fname,blockdata,savelen);
 		break;
 	}
+	CloseSem(sem_save);
 	return ret;
 }
 
@@ -275,7 +277,9 @@ int readCoverClass(OI_698 oi,INT16U seqno,void *blockdata,int datalen,int type)
 	int		ret = 0;
 	char	fname[FILENAMELEN]={};
 	int		readlen = 0;
+	sem_t   *sem_save=NULL;
 
+	sem_save = InitSem();
 	switch(type) {
 	case event_para_save:
 	case para_vari_save:
@@ -300,6 +304,7 @@ int readCoverClass(OI_698 oi,INT16U seqno,void *blockdata,int datalen,int type)
 		ret = readCoverFile(fname,blockdata,datalen);
 		break;
 	}
+	CloseSem(sem_save);
 	return ret;
 }
 

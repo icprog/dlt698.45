@@ -116,6 +116,7 @@ int GetYxPara(RESULT_NORMAL *response)
 	INT8U *data = NULL;
 	OAD oad;
 	CLASS_f203 objtmp;
+	int	 chgflag=0;
 	oad = response->oad;
 	data = response->data;
 	memset(&objtmp,0,sizeof(objtmp));
@@ -128,6 +129,7 @@ int GetYxPara(RESULT_NORMAL *response)
 			index += fill_bit_string8(&data[index],objtmp.state4.StatePropFlag);
 			break;
 		case 2://设备对象列表
+			fprintf(stderr,"GetYxPara oi.att=%d\n",oad.attflg);
 			objtmp.statearri.num = 4;
 			index += create_array(&data[index],objtmp.statearri.num);
 			for(int i=0;i<objtmp.statearri.num;i++)
@@ -135,7 +137,15 @@ int GetYxPara(RESULT_NORMAL *response)
 				index += create_struct(&data[index],2);
 				index += fill_unsigned(&data[index],objtmp.statearri.stateunit[i].ST);
 				index += fill_unsigned(&data[index],objtmp.statearri.stateunit[i].CD);
+				if(objtmp.statearri.stateunit[i].CD) {
+					objtmp.statearri.stateunit[i].CD = 0;
+					chgflag = 1;
+				}
 			}
+			if(chgflag) {	//遥信变位状态更改后，保存
+				saveCoverClass(0xf203,0,&objtmp,sizeof(objtmp),para_vari_save);
+			}
+			fprintf(stderr,"index=%d\n",index);
 			break;
 	}
 	response->datalen = index;

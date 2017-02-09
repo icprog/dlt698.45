@@ -103,7 +103,8 @@
  * 	互斥信号量
  * */
 
-#define SEMNAME_SPI0_0 "sem_spi0_0" //专变、I型集中器交采和esam的spi通信互斥信号量
+#define SEMNAME_SPI0_0 		"sem_spi0_0" //专变、I型集中器交采和esam的spi通信互斥信号量
+#define	SEMNAME_PARA_SAVE	"sem_parasave"			//参数文件存储
 ////////////////////////////////////////////////////////////////
 
 /*
