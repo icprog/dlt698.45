@@ -204,7 +204,7 @@ INT8U Event_FindTsa(TSA tsa) {
  * 根据参数读取事件记录文件
  * oi:事件oi eventno:0最新n某条 Getbuf空指针地址，动态分配 Getlen返回长度
  */
-INT8U Get_Event(OI_698 oi,INT8U eventno,INT8U** Getbuf,INT8U *Getlen)
+INT8U Get_Event(OI_698 oi,INT8U eventno,INT8U** Getbuf,int *Getlen)
 {
 	int filesize=0;
 	filesize = getClassFileLen(oi,eventno,event_record_save);
@@ -276,6 +276,12 @@ INT8U Get_Event(OI_698 oi,INT8U eventno,INT8U** Getbuf,INT8U *Getlen)
 		   case 0x3114:
 			   eventno=event_object.Event3114_obj.crrentnum;
 			   break;
+		   case 0x3115:
+			   eventno=event_object.Event3115_obj.crrentnum;
+			   break;
+		   case 0x3116:
+			   eventno=event_object.Event3116_obj.event_obj.crrentnum;
+			   break;
 		   case 0x3117:
 			   eventno=event_object.Event3117_obj.crrentnum;
 			   break;
@@ -306,13 +312,13 @@ INT8U Get_Event(OI_698 oi,INT8U eventno,INT8U** Getbuf,INT8U *Getlen)
  * 事件需要上报
  */
 INT8U Need_Report(OI_698 oi,INT8U eventno){
-	INT8U Sbuf[200];
-	INT8U index=0;
+	INT8U Sbuf[300];
+	int index=0;
     //报文链路层报文头部
     //此处根据698协议
     //从文件读取记录
 	INT8U *Getbuf=NULL;//因为记录为变长，只能采用二级指针，动态分配
-	INT8U Getlen=0;//记录长度
+	int Getlen=0;//记录长度
 	Get_Event(oi,eventno,(INT8U**)&Getbuf,&Getlen);
 	if(Getbuf!=NULL){
 		memcpy(&Sbuf[index],Getbuf,Getlen);
