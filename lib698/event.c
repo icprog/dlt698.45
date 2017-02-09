@@ -46,7 +46,10 @@ ProgramInfo* prginfo_event;
 INT8U Event_Init() {
 	prginfo_event=OpenShMem("ProgramInfo",sizeof(ProgramInfo),NULL);
 	//初始化事件参数变更状态
-	memcpy(&oi_chg,&prginfo_event->oi_changed,sizeof(OI_CHANGE));
+	if(prginfo_event != NULL)
+		memcpy(&oi_chg,&prginfo_event->oi_changed,sizeof(OI_CHANGE));
+	else
+		memset(&oi_chg,0,sizeof(OI_CHANGE));
     //初始化事件参数，调用文件
 	readCoverClass(0x3100,0,&event_object.Event3100_obj,sizeof(event_object.Event3100_obj),event_para_save);
 	readCoverClass(0x3101,0,&event_object.Event3101_obj,sizeof(event_object.Event3101_obj),event_para_save);
