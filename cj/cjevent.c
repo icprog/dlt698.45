@@ -53,6 +53,141 @@ void printClass310d()
 	fprintf(stderr,"\n阈值=%d  关联采集任务号=%d\n",Event310d.poweroffset_obj.power_offset,Event310d.poweroffset_obj.task_no);
 	fprintf(stderr,"\n");
 }
+/*
+ *赋值class7-base
+ */
+void Class7_BaseInit(OI_698 oi,Class7_Object *obj){
+	obj->oi=oi;
+	obj->crrentnum=0;
+	obj->maxnum=15;
+	obj->enableflag=0;
+	obj->reportflag=0;
+}
+/*
+ *赋值class7
+ */
+void Class7_Init(OI_698 oi){
+	Class7_Object obj;
+	Class7_BaseInit(oi,&obj);
+	saveCoverClass(oi,0,(void *)&obj,sizeof(Class7_Object),para_init_save);
+}
+/*
+ * Event3105 初始化
+ */
+void Init_3105(){
+	Event3105_Object obj;
+	Class7_BaseInit(0x3105,&obj.event_obj);
+	obj.mto_obj.over_threshold=240;
+	saveCoverClass(0x3105,0,(void *)&obj,sizeof(Event3105_Object),para_init_save);
+}
+/*
+ * Event3106 初始化
+ */
+void Init_3106(){
+	Event3106_Object obj;
+	Class7_BaseInit(0x3106,&obj.event_obj);
+	//
+	saveCoverClass(0x3106,0,(void *)&obj,sizeof(Event3106_Object),para_init_save);
+}
+/*
+ * Event3107 初始化
+ */
+void Init_3107(){
+	Event3107_Object obj;
+	Class7_BaseInit(0x3107,&obj.event_obj);
+	//
+	saveCoverClass(0x3107,0,(void *)&obj,sizeof(Event3107_Object),para_init_save);
+}
+/*
+ * Event3108 初始化
+ */
+void Init_3108(){
+	Event3108_Object obj;
+	Class7_BaseInit(0x3108,&obj.event_obj);
+	//
+	saveCoverClass(0x3108,0,(void *)&obj,sizeof(Event3108_Object),para_init_save);
+}
+/*
+ * Event310B 初始化
+ */
+void Init_310B(){
+	Event310B_Object obj;
+	Class7_BaseInit(0x310B,&obj.event_obj);
+	//
+	saveCoverClass(0x310B,0,(void *)&obj,sizeof(Event310B_Object),para_init_save);
+}
+/*
+ * Event310C 初始化
+ */
+void Init_310C(){
+	Event310C_Object obj;
+	Class7_BaseInit(0x310C,&obj.event_obj);
+	//
+	saveCoverClass(0x310C,0,(void *)&obj,sizeof(Event310C_Object),para_init_save);
+}
+/*
+ * Event310D 初始化
+ */
+void Init_310D(){
+	Event310D_Object obj;
+	Class7_BaseInit(0x310D,&obj.event_obj);
+	//
+	saveCoverClass(0x310D,0,(void *)&obj,sizeof(Event310D_Object),para_init_save);
+}
+/*
+ * Event310E 初始化
+ */
+void Init_310E(){
+	Event310E_Object obj;
+	Class7_BaseInit(0x310E,&obj.event_obj);
+	//
+	saveCoverClass(0x310E,0,(void *)&obj,sizeof(Event310E_Object),para_init_save);
+}
+/*
+ * Event310F 初始化
+ */
+void Init_310F(){
+	Event310F_Object obj;
+	Class7_BaseInit(0x310F,&obj.event_obj);
+	//
+	saveCoverClass(0x310F,0,(void *)&obj,sizeof(Event310F_Object),para_init_save);
+}
+/*
+ * Event3110 初始化
+ */
+void Init_3110(){
+	Event3110_Object obj;
+	Class7_BaseInit(0x3110,&obj.event_obj);
+	//
+	saveCoverClass(0x3110,0,(void *)&obj,sizeof(Event3110_Object),para_init_save);
+}
+/*
+ * Event3116 初始化
+ */
+void Init_3116(){
+	Event3116_Object obj;
+	Class7_BaseInit(0x3116,&obj.event_obj);
+	//
+	saveCoverClass(0x3116,0,(void *)&obj,sizeof(Event3116_Object),para_init_save);
+}
+/*
+ * Event311A 初始化
+ */
+void Init_311A(){
+	Event311A_Object obj;
+	Class7_BaseInit(0x311A,&obj.event_obj);
+	//
+	saveCoverClass(0x311A,0,(void *)&obj,sizeof(Event311A_Object),para_init_save);
+}
+/*
+ * Event311C 初始化
+ */
+void Init_311C(){
+	Event311C_Object obj;
+	Class7_BaseInit(0x311C,&obj.event_obj);
+	//
+	saveCoverClass(0x311C,0,(void *)&obj,sizeof(Event311C_Object),para_init_save);
+}
 
 void event_process(int argc, char *argv[])
 {
@@ -181,6 +316,101 @@ void event_process(int argc, char *argv[])
                     fprintf(stderr,"\n");
 
 				}
+			}
+		}
+		if(strcmp("init",argv[2])==0) {
+			if(oi == 0){
+				Class7_Init(0x3100);
+				Class7_Init(0x3101);
+				Class7_Init(0x3104);
+				Class7_Init(0x3109);
+				Class7_Init(0x310A);
+				Class7_Init(0x3111);
+				Class7_Init(0x3112);
+				Class7_Init(0x3114);
+				Class7_Init(0x3115);
+				Class7_Init(0x3117);
+				Class7_Init(0x3118);
+				Class7_Init(0x3119);
+				Class7_Init(0x311B);
+				Class7_Init(0x3200);
+				Class7_Init(0x3201);
+				Class7_Init(0x3202);
+				Class7_Init(0x3203);
+				Init_3105();
+				Init_3106();
+				Init_3107();
+				Init_3108();
+				Init_310B();
+				Init_310C();
+				Init_310D();
+				Init_310E();
+				Init_310F();
+				Init_3110();
+				Init_3116();
+				Init_311A();
+				Init_311C();
+			}else{
+               switch(oi){
+               case 0x3100:
+			   case 0x3101:
+			   case 0x3104:
+			   case 0x3109:
+			   case 0x310A:
+			   case 0x3111:
+			   case 0x3112:
+			   case 0x3114:
+			   case 0x3115:
+			   case 0x3117:
+			   case 0x3118:
+			   case 0x3119:
+			   case 0x311B:
+			   case 0x3200:
+			   case 0x3201:
+			   case 0x3202:
+			   case 0x3203:
+				   Class7_Init(oi);
+				   break;
+			   case 0x3105:
+				   Init_3105();
+				   break;
+			   case 0x3106:
+				   Init_3106();
+				   break;
+			   case 0x3107:
+				   Init_3107();
+				   break;
+			   case 0x3108:
+				   Init_3108();
+				   break;
+			   case 0x310B:
+				   Init_310B();
+				   break;
+			   case 0x310C:
+				   Init_310C();
+				   break;
+			   case 0x310D:
+				   Init_310D();
+				   break;
+			   case 0x310E:
+				   Init_310E();
+				   break;
+			   case 0x310F:
+				   Init_310F();
+				   break;
+			   case 0x3110:
+				   Init_3110();
+				   break;
+			   case 0x3116:
+				   Init_3116();
+			   	   break;
+			   case 0x311A:
+				   Init_311A();
+				   break;
+			   case 0x311C:
+				   Init_311C();
+				   break;
+               }
 			}
 		}
 	}
