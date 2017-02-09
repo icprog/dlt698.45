@@ -50,24 +50,11 @@ INT32S open_com_para_chg(INT8U port,INT32U baud,INT32S oldcomfd)
 INT8U use6013find6015(INT16U taskID, CLASS_6015* st6015)
 {
 	INT8U result = 0;
-	st6015->sernum = 1;
-	st6015->deepsize = 0x100;
-	st6015->cjtype = 1;
-//	st6015->csd[0].type = 1;
-//	st6015->csd[0].rcsd[0].oad.OI = 0x5004;
-//	st6015->csd[0].rcsd[0].oad.attflg = 2;
-//	st6015->csd[0].rcsd[0].oad.attrindex = 0;
-//	st6015->csd[0].rcsd[0].oad.OI = 0x2021;
-//	st6015->csd[0].rcsd[0].oad.attflg = 2;
-//	st6015->csd[0].rcsd[0].oad.attrindex = 0;
-//	st6015->csd[0].rcsd[1].oad.OI = 0x0010;
-//	st6015->csd[0].rcsd[1].oad.attflg = 2;
-//	st6015->csd[0].rcsd[1].oad.attrindex = 0;
-//	st6015->csd[0].rcsd[2].oad.OI = 0x0020;
-//	st6015->csd[0].rcsd[2].oad.attflg = 2;
-//	st6015->csd[0].rcsd[2].oad.attrindex = 0;
-//	st6015->ms.allmeter_null = 1;//所有电表
-//	st6015->savetimeflag = 4;
+
+	//if(readCoverClass(oi,tIndex,st6015,sizeof(CLASS_6015),coll_para_save)== 1)
+	{
+
+	}
 	return result;
 
 }
@@ -815,15 +802,16 @@ INT8U init6013ListFrom6012File()
 
 	fprintf(stderr,"\n -------------init6013ListFrom6012File---------------");
 	INT8U result = 0;
-	memset(list6013,0x00,TASK6012_MAX*sizeof(TASK_CFG));
-
+	memset(list6013,0,TASK6012_MAX*sizeof(TASK_CFG));
 	INT16U tIndex = 0;
-	OI_698	oi=0x6013;
+	OI_698	oi = 0x6013;
 	CLASS_6013	class6013={};
 	for(tIndex = 0;tIndex < TASK6012_MAX;tIndex++)
 	{
-		if(readCoverClass(oi,tIndex+1,&class6013,sizeof(CLASS_6013),coll_para_save)== 1)
+		fprintf(stderr,"1111tIndex = %d",tIndex);
+		if(readCoverClass(oi,tIndex,&class6013,sizeof(CLASS_6013),coll_para_save)== 1)
 		{
+			fprintf(stderr,"tIndex = %d",tIndex);
 			memcpy(&list6013[tIndex].basicInfo,&class6013,sizeof(CLASS_6013));
 			list6013[tIndex].ts_next.Year = ts_now.Year;
 			list6013[tIndex].ts_next.Month = ts_now.Month;
@@ -889,6 +877,8 @@ void read485_thread(void* i485port)
 			}
 			DataTimeGet(&result6035.endtime);
 			result6035.taskState = AFTER_OPR;
+
+			saveCoverClass(0x6035,result6035.taskID,&result6035,sizeof(CLASS_6035),coll_para_save);
 		}
 		else
 		{
@@ -916,12 +906,20 @@ void read485_thread(void* i485port)
 
 
 }
-void initVariable()
-{
-}
+
 void read485_proccess()
 {
-	initVariable();
+#if 0
+	CLASS_6035 result6035;//采集任务监控单元
+	memset(&result6035,0,sizeof(CLASS_6035));
+	result6035.taskID = 1;
+	result6035.taskState = IN_OPR;
+	DataTimeGet(&result6035.starttime);
+	DataTimeGet(&result6035.endtime);
+	saveCoverClass(0x6035,result6035.taskID,&result6035,sizeof(CLASS_6035),coll_para_save);
+#endif
+
+	fprintf(stderr,"\n read485_proccess start");
 	init6013ListFrom6012File();
 	fprintf(stderr,"\n init6013ListFrom6012File end");
 
