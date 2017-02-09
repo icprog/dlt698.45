@@ -244,10 +244,21 @@ typedef struct
  ********************************************************/
 typedef struct
 {
+	OI_698 oi;
+	INT16U model;
+}SecureModel;
+
+typedef struct
+{
+	INT8U active;
+	SecureModel modelpara[255];
+}CLASS_F101;//安全模式参数
+
+typedef struct
+{
 	INT8U ST;			//状态ST  0：“分”状态；1：“合”状态
 	INT8U CD;			//变位CD  0：自前次遥信传送后无状态变化；1：自前次遥信传送后至少有一次状态变化。
 }StateUnit;
-
 typedef struct
 {
 	INT8U 		num;
@@ -259,17 +270,6 @@ typedef struct
 	INT8U		StateAcessFlag;			//bit-string(SIZE（8） bit0～bit7按顺序对位表示第1～8路状态量输入，置“1”：接入，置“0”：未接入。
 	INT8U		StatePropFlag;			//bit-string(SIZE（8） bit0～bit7按顺序对位表示第1～8路状态量输入，置“1”常开触点。置“0”：常闭触点。
 }StateAtti4;
-
-typedef struct
-{
-	OI_698 oi;
-	INT16U model;
-}SecureModel;
-typedef struct
-{
-	INT8U active;
-	SecureModel modelpara[255];
-}CLASS_F101;//安全模式参数
 
 typedef struct
 {
