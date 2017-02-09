@@ -178,25 +178,22 @@ int GetSysDateTime(RESULT_NORMAL *response)
 	}
 	return 0;
 }
-void GetEventInfo(OAD oad,INT8U *data)
+int GetEventInfo(RESULT_NORMAL *response)
 {
-	switch(oad.attflg) {
-	case 1:	//逻辑名
-	case 3:	//关联属性表
-	case 4:	//当前记录数
-	case 5:	//最大记录数
-	case 8: //上报标识
-	case 9: //有效标识
+	INT8U *data=NULL;
+	OAD oad;
+	DateTimeBCD time;
 
-		break;
-	case 6:	//配置参数
-		switch(oad.OI) {
-			case 0x310d:
-
-				break;
-		}
-		break;
+	oad = response->oad;
+	data = response->data;
+	DataTimeGet(&time);
+	switch(oad.attflg )
+	{
+		case 2://安全模式选择
+			response->datalen = fill_DateTimeBCD(response->data,&time);
+			break;
 	}
+	return 0;
 }
 
 int getRequestRecord(INT8U *typestu,CSINFO *csinfo,INT8U *buf)
@@ -238,7 +235,7 @@ int doGetnormal(RESULT_NORMAL *response)
 	INT8U oihead = (oi & 0xF000) >>12;
 	switch(oihead) {
 	case 3:			//事件类对象读取
-//		GetEventInfo(oad,data);
+		GetEventInfo(response);
 		break;
 	}
 	switch(oi)
@@ -262,9 +259,6 @@ int doGetnormal(RESULT_NORMAL *response)
 			break;
 		case 0xF203:
 			GetYxPara(response);
-			break;
-		case 0x3104:
-			//GetEvent(response);
 			break;
 		case 0x4000:
 			GetSysDateTime(response);
