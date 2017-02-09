@@ -9,6 +9,7 @@
 #define GTYPE_H_
 
 #include "StdDataType.h"
+#include "EventObject.h"
 
 #pragma pack(1)				//结构体一个字节对齐
 
@@ -294,6 +295,7 @@ typedef struct {
 	ProjectInfo		Projects[PROJECTCOUNT];		//子程序信息
 	RealdataReq		RealDatareq;				//实时数据请求缓存
 	OI_CHANGE		oi_changed;					//相应的OI参数修改变化值，结构体相应的OI值从1-255设置参数后循环累加
+	TerminalEvent_Object event_obj;           //事件参数结构体
 }ProgramInfo; //程序信息结构
 
 #endif /* GTYPE_H_ */
