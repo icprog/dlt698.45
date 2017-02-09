@@ -22,7 +22,9 @@
 #include "dlt698def.h"
 #include "cjcomm.h"
 
-ProgramInfo* JProgramInfo = NULL;
+//共享内存地址
+static ProgramInfo* JProgramInfo = NULL;
+
 static char IPaddr[24];
 //以太网、GPRS、侦听服务端处理对象
 static CommBlock FirObject;
@@ -113,15 +115,9 @@ void Comm_task(CommBlock* compara) {
     }
 }
 
-<<<<<<< HEAD
-INT8S ComWrite(int fd, INT8U* buf, INT16U len) {
-    int j=0;
-    fprintf(stderr,"\nNET SEND:\n");
-=======
 INT8S GenericWrite(int fd, INT8U* buf, INT16U len) {
     int j = 0;
     fprintf(stderr, "Generic Send:\n");
->>>>>>> 992222bfe0a69722419e998e5a2ceed3eea35882
     for (j = 0; j < len; j++) {
         fprintf(stderr, "%02x ", buf[j]);
     }
@@ -129,13 +125,6 @@ INT8S GenericWrite(int fd, INT8U* buf, INT16U len) {
     return anetWrite(fd, buf, (int)len);
 }
 
-<<<<<<< HEAD
-INT8S NetWrite(int fd, INT8U* buf, INT16U len) {
-    int j=0;
-    fprintf(stderr,"\nNET SEND:\n");
-    for (j = 0; j < len; j++) {
-        fprintf(stderr,"%02x ",buf[j]);
-=======
 void GenericRead(struct aeEventLoop* eventLoop, int fd, void* clientData, int mask) {
     CommBlock* nst = (CommBlock*)clientData;
 
@@ -177,7 +166,6 @@ void GenericRead(struct aeEventLoop* eventLoop, int fd, void* clientData, int ma
                     break;
             }
         }
->>>>>>> 992222bfe0a69722419e998e5a2ceed3eea35882
     }
 }
 
@@ -194,6 +182,7 @@ void initComPara(CommBlock* compara) {
     compara->RTail     = 0;
     compara->deal_step = 0;
     compara->rev_delay = 20;
+    compara->shmem = JProgramInfo;
 
     compara->p_send = GenericWrite;
 }
@@ -217,7 +206,7 @@ void NETRead(struct aeEventLoop* eventLoop, int fd, void* clientData, int mask) 
             read(nst->phy_connect_fd, &nst->RecBuf[nst->RHead], 1);
             nst->RHead = (nst->RHead + 1) % BUFLEN;
         }
-        bufsyslog(nst->RecBuf, nst->RHead, nst->RTail, revcount);
+        bufsyslog(nst->RecBuf, nst->RHead, nst->RTail, BUFLEN);
 
         int len = 0;
         for (int i = 0; i < 5; i++) {
