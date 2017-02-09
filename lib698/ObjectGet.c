@@ -191,8 +191,8 @@ int GetSysDateTime(RESULT_NORMAL *response)
 int GetEventInfo(RESULT_NORMAL *response)
 {
 	INT8U *data=NULL;
-	INT16U datalen=0;
-	if ( Get_Event(response->oad.OI,response->oad.attrindex-1,&data,(INT8U *)&datalen) == 1 )
+	int datalen=0;
+	if ( Get_Event(response->oad.OI,response->oad.attrindex,&data,&datalen) == 1 )
 	{
 		if (datalen > 512 || data==NULL)
 		{

@@ -377,7 +377,7 @@ int doGetAttribute(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
 			getRequestNormalList(oad,data,csinfo,sendbuf);
 			break;
 		case GET_REQUEST_RECORD:
-//			getRequestRecord(&apdu[3],csinfo,buf);
+			getRequestRecord(oad,data,csinfo,sendbuf);
 			break;
 		case GET_REQUEST_RECORD_LIST:
 			break;
