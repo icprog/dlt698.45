@@ -202,6 +202,7 @@ INT8U Event_FindTsa(TSA tsa) {
 
 /*
  * 根据参数读取事件记录文件
+ * oi:事件oi eventno:0最新n某条 Getbuf空指针地址，动态分配 Getlen返回长度
  */
 INT8U Get_Event(OI_698 oi,INT8U eventno,INT8U** Getbuf,INT8U *Getlen)
 {
@@ -212,8 +213,90 @@ INT8U Get_Event(OI_698 oi,INT8U eventno,INT8U** Getbuf,INT8U *Getlen)
 	*Getbuf=(INT8U*)malloc(filesize);
 	if(eventno == 0){
 		switch(oi){
-		//case 0x3100:
-
+		   case 0x3100:
+			   eventno=event_object.Event3100_obj.crrentnum;
+			   break;
+		   case 0x3101:
+			   eventno=event_object.Event3101_obj.crrentnum;
+			   break;
+		   case 0x3104:
+			   eventno=event_object.Event3104_obj.crrentnum;
+			   break;
+		   case 0x3105:
+			   eventno=event_object.Event3105_obj.event_obj.crrentnum;
+			   break;
+		   case 0x3106:
+			   eventno=event_object.Event3106_obj.event_obj.crrentnum;
+			   break;
+		   case 0x3107:
+			   eventno=event_object.Event3107_obj.event_obj.crrentnum;
+			   break;
+		   case 0x3108:
+			   eventno=event_object.Event3108_obj.event_obj.crrentnum;
+			   break;
+		   case 0x3109:
+			   eventno=event_object.Event3109_obj.crrentnum;
+			   break;
+		   case 0x310A:
+			   eventno=event_object.Event310A_obj.crrentnum;
+			   break;
+		   case 0x310B:
+			   eventno=event_object.Event310B_obj.event_obj.crrentnum;
+			   break;
+		   case 0x310C:
+			   eventno=event_object.Event310C_obj.event_obj.crrentnum;
+			   break;
+		   case 0x310D:
+			   eventno=event_object.Event310D_obj.event_obj.crrentnum;
+			   break;
+		   case 0x310E:
+			   eventno=event_object.Event310E_obj.event_obj.crrentnum;
+			   break;
+		   case 0x310F:
+			   eventno=event_object.Event310F_obj.event_obj.crrentnum;
+			   break;
+		   case 0x3110:
+			   eventno=event_object.Event3110_obj.event_obj.crrentnum;
+			   break;
+		   case 0x3111:
+			   eventno=event_object.Event3111_obj.crrentnum;
+			   break;
+		   case 0x3112:
+			   eventno=event_object.Event3112_obj.crrentnum;
+			   break;
+		   case 0x311A:
+			   eventno=event_object.Event311A_obj.event_obj.crrentnum;
+			   break;
+		   case 0x311B:
+			   eventno=event_object.Event311B_obj.crrentnum;
+			   break;
+		   case 0x311C:
+			   eventno=event_object.Event311C_obj.event_obj.crrentnum;
+			   break;
+		   case 0x3114:
+			   eventno=event_object.Event3114_obj.crrentnum;
+			   break;
+		   case 0x3117:
+			   eventno=event_object.Event3117_obj.crrentnum;
+			   break;
+		   case 0x3118:
+			   eventno=event_object.Event3118_obj.crrentnum;
+			   break;
+		   case 0x3119:
+			   eventno=event_object.Event3119_obj.crrentnum;
+			   break;
+		   case 0x3200:
+			   eventno=event_object.Event3200_obj.crrentnum;
+			   break;
+		   case 0x3201:
+			   eventno=event_object.Event3201_obj.crrentnum;
+			   break;
+		   case 0x3202:
+			   eventno=event_object.Event3202_obj.crrentnum;
+			   break;
+		   case 0x3203:
+			   eventno=event_object.Event3203_obj.crrentnum;
+			   break;
 		}
 	}
 	readCoverClass(oi,eventno,*Getbuf,*Getlen,event_record_save);
