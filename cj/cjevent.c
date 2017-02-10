@@ -294,7 +294,7 @@ void event_process(int argc, char *argv[])
 							break;
 						case s_tsa:
 							fprintf(stderr,"TSA ");
-							Len=(Getbuf[index+1]+1);
+							Len=(Getbuf[index]+1);
 							break;
 						case s_oad:
 							fprintf(stderr,"OAD ");
