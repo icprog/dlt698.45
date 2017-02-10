@@ -10,7 +10,6 @@
 #include "EventObject.h"
 #include "PublicFunction.h"
 #include "AccessFun.h"
-#include "Objectdef.h"
 #include "Shmem.h"
 
 //测量点、事件参数
@@ -24,8 +23,8 @@ static INT16U currnum=0;
 static OI_CHANGE oi_chg;
 /*
  * 说明：
- * 进程如调用该部分事件接口，需先调用Event_Init初始化事件参数结构体和测量点信息
- * 在根据事件采集方案 然后根据实际情况调用具体函数Event_AnalyseData,判断310B，310C，310D，310E，3105
+ * 进程如调用该部分事件接口
+ * 在根据事件采集方案 然后根据实际情况调用具体函数判断310B，310C，310D，310E，3105
  * 如抄表失败直接调用Event_310F，实际情况调用Event_3111，Event_3112,Event_311A，Event_311B，Event_311C
  * 实时调用Event_3106判断停上电,Event_3107,Event_3108，Event_3119
  * 698规约判断如是初始化命令调用Event_3100，Event_3114
@@ -274,7 +273,7 @@ INT8U Get_Source(INT8U *Source,Source_Typ S_type,
 			break;
 		case s_tsa:
 			*Data_type=85;
-		    *Len=(Source[0]+1);
+		    *Len=(Source[0]+1+1);
 			break;
 		case s_oad:
 			*Data_type=81;
@@ -374,6 +373,8 @@ INT8U Get_StandardUnit(OI_698 oi,INT8U *Rbuf,INT8U *Index,
 	INT8U datatype=0,sourcelen=0;
 	Get_Source(Source,S_type,&datatype,&sourcelen);
 	Rbuf[(*Index)++] = datatype;
+	if(datatype==s_tsa)
+		Rbuf[(*Index)++] = sourcelen;
 	if(sourcelen>0)
 		memcpy(&Rbuf[(*Index)],Source,sourcelen);
 	(*Index)+=sourcelen;
@@ -1101,27 +1102,7 @@ INT8U Event_310A(MachineError_type errtype,ProgramInfo* prginfo_event) {
     if (prginfo_event->event_obj.Event310A_obj.enableflag == 0) {
         return 0;
     }
-    INT8U Source=0;
-    switch(errtype){
-       case memory_err://终端主板内存故障
-            Source=0;
-            break;
-       case clock_err://时钟故障
-		    Source=1;
-		    break;
-       case comm_err://主板通信故障
-		    Source=2;
-		    break;
-       case c485_err://485抄表故障
-		    Source=3;
-		    break;
-	   case show_err://显示板故障
-		    Source=4;
-		    break;
-	   case plc_err://载波通道异常
-		    Source=5;
-		    break;
-    }
+    INT8U Source=errtype;
     INT8U Save_buf[256];
     bzero(Save_buf, sizeof(Save_buf));
     //更新当前记录数
@@ -1209,7 +1190,8 @@ INT8U Event_310B(TSA tsa, INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 /*
  * 电能量超差事件11 前台两次电能值以及测量点额定电压、电流
  */
-INT8U Event_310C(TSA tsa, INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
+INT8U Event_310C(TSA tsa, INT8U* data,INT8U len,ProgramInfo* prginfo_event,CLASS_6001 meter)
+{
 	if(oi_chg.oi310C != prginfo_event->oi_changed.oi310C){
 		readCoverClass(0x310C,0,&prginfo_event->event_obj.Event310C_obj,sizeof(prginfo_event->event_obj.Event310C_obj),event_para_save);
 		oi_chg.oi310C = prginfo_event->oi_changed.oi310C;
@@ -1225,7 +1207,7 @@ INT8U Event_310C(TSA tsa, INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 	if(Get_Mdata(tsa,&olddata,&ts) == 0)
 		return 0;
 	/*===============TODO根据共享内存或者直接读取文件 获取该表参数*/
-    CLASS_6001 meter={};
+   // CLASS_6001 meter={};
     INT32U power_offset=prginfo_event->event_obj.Event310C_obj.poweroffset_obj.power_offset;//超差值
     INT16U ratedU=meter.basicinfo.ratedU; //额定电压
     INT16U ratedI=meter.basicinfo.ratedI; //额定电流
@@ -1294,7 +1276,7 @@ INT8U Event_310C(TSA tsa, INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 /*
  * 电能表飞走事件12 前台两次电能值以及测量点额定电压、电流
  */
-INT8U Event_310D(TSA tsa, INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
+INT8U Event_310D(TSA tsa, INT8U* data,INT8U len,ProgramInfo* prginfo_event,CLASS_6001 meter) {
 	if(oi_chg.oi310D != prginfo_event->oi_changed.oi310D){
 		readCoverClass(0x310D,0,&prginfo_event->event_obj.Event310D_obj,sizeof(prginfo_event->event_obj.Event310D_obj),event_para_save);
 		oi_chg.oi310D = prginfo_event->oi_changed.oi310D;
@@ -1310,7 +1292,7 @@ INT8U Event_310D(TSA tsa, INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 	if(Get_Mdata(tsa,&olddata,&ts) == 0)
 		return 0;
 	/*===============TODO根据共享内存或者直接读取文件 获取该表参数*/
-	CLASS_6001 meter={};
+	//CLASS_6001 meter={};
 	INT32U power_offset=prginfo_event->event_obj.Event310D_obj.poweroffset_obj.power_offset;//超差值
 	INT16U ratedU=meter.basicinfo.ratedU; //额定电压
 	INT16U ratedI=meter.basicinfo.ratedI; //额定电流

@@ -24,6 +24,7 @@
 #include <sys/types.h>
 
 #include "filebase.h"
+#include "PublicFunction.h"
 #include "AccessFun.h"
 #include "StdDataType.h"
 #include "Objectdef.h"
@@ -304,9 +305,11 @@ long getFileRecordNum(OI_698 oi)
     return blknum;
 }
 
-/**************************************/
-//函数功能：根据OI及类型获取存储文件路径及文件名字
-/**************************************/
+/**************************************
+*  函数功能：根据OI及类型获取存储文件路径及文件名字
+*  ！！！！！注意： 函数返回是文件的实际长度，参数文件中包含CRC校验字节
+* 				 如果是参数文件请慎用此函数
+**************************************/
 void getFileName(OI_698 oi,INT16U seqno,INT16U type,char *fname)
 {
 	char dirname[FILENAMELEN]={};
@@ -315,38 +318,32 @@ void getFileName(OI_698 oi,INT16U seqno,INT16U type,char *fname)
 	memset(fname,0,FILENAMELEN);
 	switch(type) {
 	case event_para_save:
-		sprintf(dirname,"%s",EVENTDIR);
-		makeSubDir(dirname);
-		sprintf(dirname,"%s",EVENT_PORP);
-		makeSubDir(dirname);
+		makeSubDir(EVENTDIR);
+		makeSubDir(EVENT_PORP);
 		sprintf(dirname,"%s/%04x",EVENT_PORP,oi);
 		makeSubDir(dirname);
 		sprintf(fname,"%s/%04x/%04x.par",EVENT_PORP,oi,oi);
 		break;
 	case event_record_save:
-		sprintf(dirname,"%s",EVENTDIR);
-		makeSubDir(dirname);
-		sprintf(dirname,"%s",EVENT_REC);
-		makeSubDir(dirname);
+		makeSubDir(EVENTDIR);
+		makeSubDir(EVENT_REC);
 		sprintf(dirname,"%s/%04x",EVENT_REC,oi);
 		makeSubDir(dirname);
 		sprintf(fname,"%s/%04x/%d.dat",EVENT_REC,oi,seqno);
 		break;
 	case event_current_save:
-		sprintf(dirname,"%s",EVENTDIR);
-		makeSubDir(dirname);
-		sprintf(dirname,"%s",EVENT_CURR);
-		makeSubDir(dirname);
+		makeSubDir(EVENTDIR);
+		makeSubDir(EVENT_CURR);
 		sprintf(dirname,"%s/%04x",EVENT_CURR,oi);
 		makeSubDir(dirname);
 		sprintf(fname,"%s/%04x/%d.dat",EVENT_CURR,oi,seqno);
 		break;
 	case para_vari_save:
-		makeSubDir("/nand/para");
+		makeSubDir(PARADIR);
 		sprintf(fname,"%s/%04x.par",PARADIR,oi);
 		break;
 	case coll_para_save:
-		makeSubDir("/nand/para");
+		makeSubDir(PARADIR);
 		sprintf(fname,"%s/%04x/",PARADIR,oi);
 		makeSubDir(fname);
 		sprintf(fname,"%s/%04x/%d.par",PARADIR,oi,seqno);
@@ -359,10 +356,54 @@ void getFileName(OI_698 oi,INT16U seqno,INT16U type,char *fname)
 		makeSubDir(_ACSDIR_);
 		sprintf(fname,"%s/energy.par",_ACSDIR_);
 		break;
+	case para_init_save:	//参数初始化
+		makeSubDir(INITDIR);
+		sprintf(fname,"%s/%04x.par",INITDIR,oi);
+		break;
 	}
 //	fprintf(stderr,"getFileName fname=%s\n",fname);
 }
 
+/*
+ * =0 : 文件存在
+ * =-1：文件错误
+ * */
+int readFileName(OI_698 oi,INT16U seqno,INT16U type,char *fname)
+{
+	int		ret=0;
+	char dirname[FILENAMELEN]={};
+	if (fname==NULL)
+		return -1;
+	memset(fname,0,FILENAMELEN);
+	switch(type) {
+	case event_para_save:
+		sprintf(fname,"%s/%04x/%04x.par",EVENT_PORP,oi,oi);
+		break;
+	case event_record_save:
+		sprintf(fname,"%s/%04x/%d.dat",EVENT_REC,oi,seqno);
+		break;
+	case event_current_save:
+		sprintf(fname,"%s/%04x/%d.dat",EVENT_CURR,oi,seqno);
+		break;
+	case para_vari_save:
+		sprintf(fname,"%s/%04x.par",PARADIR,oi);
+		break;
+	case coll_para_save:
+		sprintf(fname,"%s/%04x/%d.par",PARADIR,oi,seqno);
+		break;
+	case acs_coef_save:
+		sprintf(fname,"%s/accoe.par",_ACSDIR_);
+		break;
+	case acs_energy_save:
+		sprintf(fname,"%s/energy.par",_ACSDIR_);
+		break;
+	case para_init_save:	//参数初始化
+		sprintf(fname,"%s/%04x.par",INITDIR,oi);
+		break;
+	}
+	ret = access(fname,F_OK);
+	return ret;
+}
 
 ///////////////////////////////////////////////////////////////////////////
 INT16U crc(INT16U Data)
@@ -466,6 +507,7 @@ INT8U file_write(char *FileName, void *source, int size, int offset)
 //	fprintf(stderr,"\nwrite sourceaddr=%p,blockdata=%p\n", source,blockdata);
 	if(blockdata!=NULL) {
 //		fprintf(stderr,"write memcpy blockdata\n");
+		memset(blockdata,0,sizeof(size));
 		memcpy(blockdata,source,size-2);
 	} else {
 		return 0;//error
@@ -529,13 +571,13 @@ INT8U block_file_sync(char *fname,void *blockdata,int size,int headsize,int inde
 	INT16U  ret=0;
 
 //	fprintf(stderr,"\n read file :%s\n",fname);
-	if(fname==NULL || strlen(fname)<=4) 	return 0;
+	if(fname==NULL || strlen(fname)<=4 || size<=2) 	return 0;
 
 	//文件默认最后两个字节为CRC16校验，原结构体尺寸如果不是4个字节对齐，进行补齐，加CRC16
 	if(size%4==0)	sizenew = size+2;
 	else sizenew = size+(4-size%4)+2;
 
-//	fprintf(stderr,"size=%d,sizenew=%d\n",size,sizenew);
+	fprintf(stderr,"size=%d,sizenew=%d\n",size,sizenew);
 
 	blockdata1 = malloc(sizenew);
 	blockdata2 = malloc(sizenew);
@@ -562,7 +604,7 @@ INT8U block_file_sync(char *fname,void *blockdata,int size,int headsize,int inde
 	offset = headsize+sizenew*index;
 	ret1 = file_read(fname,blockdata1,sizenew,offset,readcrc1);
 	ret2 = file_read(fname2,blockdata2,sizenew,offset,readcrc2);
-//	fprintf(stderr,"\ncrc1=%04x,crc2=%04x,ret1=%d,ret2=%d\n",*readcrc1,*readcrc2,ret1,ret2);
+	fprintf(stderr,"\ncrc1=%04x,crc2=%04x,ret1=%d,ret2=%d\n",*readcrc1,*readcrc2,ret1,ret2);
 	if((*readcrc1 == *readcrc2) && (ret1==1) && (ret2==1))  {		//两个文件校验正确，并且校验码相等，返回 1
 //		fprintf(stderr,"正确\n");
 //		syslog(LOG_NOTICE," %s 校验正确 ",fname);
@@ -634,6 +676,7 @@ INT8U save_block_file(char *fname,void *blockdata,int size,int headsize,int inde
 	//文件默认最后两个字节为CRC16校验，原结构体尺寸如果不是4个字节对齐，进行补齐，加CRC16
 	if(size%4==0)	sizenew = size+2;
 	else sizenew = size+(4-size%4)+2;
+
 //	fprintf(stderr,"write fname=%s,size=%d,sizenew=%d\n",fname,size,sizenew);
 
 	offset = headsize+sizenew*index;
@@ -659,13 +702,14 @@ INT8U save_block_file(char *fname,void *blockdata,int size,int headsize,int inde
 /////////////////////////////////////////////////////////
 sem_t * InitSem()
 {
+//	return NULL;
 	int			val=0;
 	sem_t * 	sem_parasave=NULL;	//参数文件存储信号量
 	//打开信号量
 	sem_parasave = open_named_sem(SEMNAME_PARA_SAVE);
-	sem_getvalue(sem_parasave, &val);
-	fprintf(stderr,"\nprocess The sem = %s value = %d sem_parasave=%p\n",SEMNAME_PARA_SAVE, val,sem_parasave);
-	sem_wait(sem_parasave);
+	if(sem_parasave!=NULL) {
+		sem_wait(sem_parasave);
+	}
 //	sem_getvalue(sem_parasave, &val);
 //	fprintf(stderr,"\nprocess The sem = %s value = %d sem_parasave=%p\n",SEMNAME_PARA_SAVE, val,sem_parasave);
 	return sem_parasave;
@@ -673,11 +717,12 @@ sem_t * InitSem()
 
 void CloseSem(sem_t * sem_parasave)
 {
-//	int  val=0;
-	sem_post(sem_parasave);
-//	sem_getvalue(sem_parasave, &val);
-//	fprintf(stderr,"closesem: val3=%d   sem_parasave=%p\n",val,sem_parasave);
+//	return;
+	int  val=0;
 	if(sem_parasave!=NULL) {
+		sem_post(sem_parasave);
+//			sem_getvalue(sem_parasave, &val);
+//			fprintf(stderr,"closesem: val=%d   sem_parasave=%p\n",val,sem_parasave);
 		sem_parasave = NULL;
 		sem_close(sem_parasave);
 	}

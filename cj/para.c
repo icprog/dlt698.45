@@ -10,6 +10,7 @@
 #include "AccessFun.h"
 #include "StdDataType.h"
 #include "Objectdef.h"
+#include "main.h"
 
 void para_process(int argc, char *argv[])
 {

@@ -10,6 +10,7 @@
 #include "secure.h"
 #include "Esam.h"
 #include "ParaDef.h"
+#include "Shmem.h"
 #define LIB698_VER 	1
 
 extern int doObjectAction();
@@ -24,7 +25,7 @@ extern unsigned short tryfcs16(unsigned char *cp, int  len);
 INT8S (*pSendfun)(int fd,INT8U* sndbuf,INT16U sndlen);
 int comfd = 0;
 INT8U TmpDataBuf[MAXSIZ_FAM];
-
+ProgramInfo *memp;
 /**************************************
  * 函数功能：DL/T698.45 状态机
  * 参数含义：
@@ -377,7 +378,7 @@ int doGetAttribute(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
 			getRequestNormalList(oad,data,csinfo,sendbuf);
 			break;
 		case GET_REQUEST_RECORD:
-//			getRequestRecord(&apdu[3],csinfo,buf);
+			getRequestRecord(oad,data,csinfo,sendbuf);
 			break;
 		case GET_REQUEST_RECORD_LIST:
 			break;
@@ -577,8 +578,7 @@ int ProcessData(CommBlock *com)
 	INT8U *Rcvbuf = com->DealBuf;
 	INT8U *SendBuf = com->SendBuf;
 
-//    JProgramInfo = OpenShMem("ProgramInfo", sizeof(ProgramInfo), NULL);
-
+	memp = (ProgramInfo*)com->shmem;
 	pSendfun = com->p_send;
 	comfd = com->phy_connect_fd;
 	hcsok = CheckHead( Rcvbuf ,&csinfo);

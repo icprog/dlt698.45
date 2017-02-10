@@ -18,10 +18,7 @@
 #include <termios.h>
 
 #include "StdDataType.h"
-#include "coll.h"
-#include "para.h"
-#include "event.h"
-#include "cjacs.h"
+#include "main.h"
 
 static char
 		*usage_para =
@@ -34,7 +31,7 @@ static char
 static char
 		*usage_inoutdev =
 					"\n-------------------A.12　输入输出设备类对象----------------------------\n"	\
-					"【开关量输入】cj dev f203 		\n"					\
+					"【开关量输入】cj dev pro f203 		\n"					\
 					"-------------------------------------------------------\n\n"	\
 					;
 
@@ -138,6 +135,12 @@ int main(int argc, char *argv[])
 	{
 		fprintf(stderr,"%s",usage_coll);
 		coll_process(argc,argv);
+		return EXIT_SUCCESS;
+	}
+	if(strcmp("dev",argv[1])==0)
+	{
+		fprintf(stderr,"%s",usage_coll);
+		inoutdev_process(argc,argv);
 		return EXIT_SUCCESS;
 	}
 	if(strcmp("acs",argv[1])==0)

@@ -554,6 +554,7 @@ void setsystime(DateTimeBCD datetime)
 	rtc = open("/dev/rtc0",O_RDWR);
 	ioctl(rtc, RTC_SET_TIME, &_tm);
 	close(rtc);
+	fprintf(stderr, "\n\n");
 	system("date");
 	fprintf(stderr, "\n\n");
 }
