@@ -194,7 +194,7 @@ int GetEventInfo(RESULT_NORMAL *response)
 {
 	INT8U *data=NULL;
 	int datalen=0;
-	if ( Get_Event(response->oad.OI,response->oad.attrindex,&data,(int *)&datalen,NULL) == 1 )
+//	if ( Get_Event(response->oad.OI,response->oad.attrindex,&data,(int *)&datalen,NULL) == 1 )
 	{
 		fprintf(stderr,"datalen=%d\n",datalen);
 		if (datalen > 512 || data==NULL)

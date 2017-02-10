@@ -26,6 +26,8 @@
 #define	 DEMANDDIR				"/nand/demand"				//需量类数据
 #define	 FREEZEDIR				"/nand/freeze"				//冻结类数据存储
 
+#define	 INITDIR			"/nor/init"					//初始化参数文件
+
 //文件存储类型
 typedef enum
 {

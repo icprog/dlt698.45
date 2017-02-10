@@ -46,16 +46,24 @@ void clearEvent()
 	for(i=0; i < sizeof(event_class_len)/sizeof(EVENT_CLASS_INFO);i++)
 	{
 		if(event_class_len[i].oi) {
-//			fprintf(stderr,"i=%d, oi=%04x,3104size=%d\n",i,event_class_len[i].oi,sizeof(Class7_Object));
 			classlen = event_class_len[i].classlen;
 			eventbuff = (INT8U *)malloc(classlen);
 			if(eventbuff!=NULL) {
 				memset(eventbuff,0,classlen);
-				saveflg = readCoverClass(event_class_len[i].oi,0,eventbuff,classlen,event_para_save);
-//				fprintf(stderr,"saveflg=%d\n",saveflg);
+				fprintf(stderr,"i=%d, oi=%04x, size=%d\n",i,event_class_len[i].oi,classlen);
+				saveflg = 0;
+				saveflg = readCoverClass(event_class_len[i].oi,0,(INT8U *)eventbuff,classlen,event_para_save);
+				fprintf(stderr,"saveflg=%d oi=%04x\n",saveflg,event_class_len[i].oi);
+//				int		j=0;
+//				INT8U	val;
+//				for(j=0;j<classlen;j++) {
+//					val = (INT8U )eventbuff[j];
+//					fprintf(stderr,"%02x ",val);
+//				}
+//				fprintf(stderr,"\n");
 				if(saveflg) {
 					memcpy(&class7,eventbuff,sizeof(Class7_Object));
-//					fprintf(stderr,"i=%d,oi=%d,class7.crrentnum=%d\n",i,event_class_len[i].oi,class7.crrentnum);
+					fprintf(stderr,"修改前：i=%d,oi=%x,class7.crrentnum=%d\n",i,event_class_len[i].oi,class7.crrentnum);
 					class7.crrentnum = 0;			//清除当前记录数
 					memcpy(eventbuff,&class7,sizeof(Class7_Object));
 					saveflg = saveCoverClass(event_class_len[i].oi,0,eventbuff,classlen,event_para_save);
@@ -85,13 +93,10 @@ int dataInit(INT16U attr)
 {
     struct timeval start={}, end={};
     long  interval=0;
-	sem_t   *sem_save=NULL;
-
-	sem_save = InitSem();
-
 	fprintf(stderr,"[4300]设备参数 属性：%d\n",attr);
 
-	switch(attr) {
+ 	gettimeofday(&start, NULL);
+ 	switch(attr) {
 	case 3://数据初始化
 		clearData();
 		clearEvent();
@@ -104,13 +109,11 @@ int dataInit(INT16U attr)
 		clearDemand();
 		break;
 	}
- 	gettimeofday(&start, NULL);
 
 	gettimeofday(&end, NULL);
 	interval = 1000000*(end.tv_sec - start.tv_sec) + (end.tv_usec - start.tv_usec);
     fprintf(stderr,"dataInit interval = %f(ms)\n", interval/1000.0);
-    CloseSem(sem_save);
-	return 0;
+ 	return 0;
 }
 
 /*
@@ -179,6 +182,7 @@ int clearClass(OI_698 oi)
 			break;
 		}
 		system(cmd);
+		CloseSem(sem_save);
 		return 1;
 	}
 	memset(fname2,0,sizeof(fname2));
@@ -187,6 +191,7 @@ int clearClass(OI_698 oi)
 
 	ret = unlink(class_info[infoi].file_name);
 	ret = unlink(fname2);
+	CloseSem(sem_save);
 	return ret;
 }
 
@@ -295,7 +300,6 @@ int saveCoverClass(OI_698 oi,INT16U seqno,void *blockdata,int savelen,int type)
 {
 	int		ret = 0;
 	char	fname[FILENAMELEN]={};
-	int		val;
 	sem_t   *sem_save=NULL;
 
 	sem_save = InitSem();
@@ -307,7 +311,8 @@ int saveCoverClass(OI_698 oi,INT16U seqno,void *blockdata,int savelen,int type)
 	case coll_para_save:
 	case acs_coef_save:
 	case acs_energy_save:
-		fprintf(stderr,"saveEventClass file=%s ",fname);
+	case para_init_save:
+		fprintf(stderr,"saveClass file=%s ",fname);
 		ret = save_block_file(fname,blockdata,savelen,0,0);
 		break;
 	case event_record_save:
@@ -345,45 +350,59 @@ int readCoverClass(OI_698 oi,INT16U seqno,void *blockdata,int datalen,int type)
 {
 	int		ret = 0;
 	char	fname[FILENAMELEN]={};
-	int		readlen = 0;
+//	int		readlen = 0;
 	sem_t   *sem_save=NULL;
-	void 	*blockdata1=NULL;
+//	void 	*blockdata1=NULL;
 
 	sem_save = InitSem();
+	memset(fname,0,sizeof(fname));
 	switch(type) {
 	case event_para_save:
 	case para_vari_save:
 	case coll_para_save:
 	case acs_coef_save:
 	case acs_energy_save:
-//		fprintf(stderr,"readEventClass %s filelen=%d\n",fname,filelen);
-		memset(fname,0,sizeof(fname));
-		getFileName(oi,seqno,type,fname);
-		if(datalen<=2)	return -1;
-//		if(datalen%4==0)	readlen = datalen-2;
-//		else readlen = datalen+(4-datalen%4)-2;
-
-
-		readlen = datalen;
+		ret = readFileName(oi,seqno,type,fname);
+		if(ret==0) {		//文件存在
+			fprintf(stderr,"readClass %s filelen=%d\n",fname,datalen);
+			ret = block_file_sync(fname,blockdata,datalen,0,0);
+			fprintf(stderr,"ret=%d\n",ret);
+		}else  {		//无配置文件，读取系统初始化参数
+			memset(fname,0,sizeof(fname));
+			readFileName(oi,seqno,para_init_save,fname);
+			fprintf(stderr,"read /nor/init的参数文件：  Class %s filelen=%d\n",fname,datalen);
+			ret = block_file_sync(fname,blockdata,datalen,0,0);
+		}
+		break;
+	case para_init_save:
+		ret = readFileName(oi,seqno,type,fname);
+		fprintf(stderr,"readClass %s filelen=%d\n",fname,datalen);
+		if(ret==0) {
+			ret = block_file_sync(fname,blockdata,datalen,0,0);
+		}
+/*		if(datalen%4==0)	readlen = datalen-2;
+		else readlen = datalen+(4-datalen%4)-2;
 		fprintf(stderr,"readlen=%d\n",datalen);
 		blockdata1 = malloc(readlen);
 		if(blockdata1) {
 			memset(blockdata1,0,readlen);
 			ret = block_file_sync(fname,blockdata1,readlen,0,0);	//返回数据去掉CRC校验的两个字节
 			if(ret == 1) {		//数据读取成功，返回实际读取数据
-				memcpy(blockdata,blockdata1,datalen);
+				memcpy(blockdata,blockdata1,datalen);				//防止实际返回长度比读取的长度大，数据区溢出
 			}
 		}
 		if(blockdata1!=NULL)	free(blockdata1);
+*/
 	break;
 	case event_record_save:
 	case event_current_save:
-		memset(fname,0,sizeof(fname));
-		getFileName(oi,seqno,type,fname);
-		if(datalen==0)	return -1;
-		ret = readCoverFile(fname,blockdata,datalen);
+		ret = readFileName(oi,seqno,type,fname);
+		if(ret==0) {
+			ret = readCoverFile(fname,blockdata,datalen);
+		}
 		break;
 	}
+	//信号量post，注意正常退出
 	CloseSem(sem_save);
 	return ret;
 }

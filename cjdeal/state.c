@@ -176,7 +176,7 @@ INT8U state_check(BOOLEAN changed)
 	return staret;
 }
 
-void getStateEvent(ProgramInfo prgInfo)
+void getStateEvent(ProgramInfo* prginfo)
 {
 	INT8U	data[STATE_MAXNUM]={};
 	INT8U	i=0;
@@ -185,20 +185,20 @@ void getStateEvent(ProgramInfo prgInfo)
 		data[i*2+0]=oif203.statearri.stateunit[i].ST;
 		data[i*2+1]=oif203.statearri.stateunit[i].CD;
 	}
-	Event_3104(data,STATE_MAXNUM,&prgInfo);
+	Event_3104(data,STATE_MAXNUM,prginfo);
 }
 
 /*
  * 开关量状态处理
  * */
-void DealState(ProgramInfo prgInfo,INT8U save_changed)
+void DealState(ProgramInfo* prginfo)
 {
 	BOOLEAN changed = FALSE;
 	INT8U	stachg = 0;
-	changed = oi_f203_changed(prgInfo.oi_changed.oiF203);
+	changed = oi_f203_changed(prginfo->oi_changed.oiF203);
 	stachg = state_check(changed);
 	if(stachg==1) {
-		getStateEvent(prgInfo);
+		getStateEvent(prginfo);
 		saveCoverClass(0xf203,0,&oif203,sizeof(CLASS_f203),para_vari_save);
 	}
 }
