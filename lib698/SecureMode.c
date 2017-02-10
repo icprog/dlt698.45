@@ -9,7 +9,12 @@
 
 #include "dlt698def.h"
 #include "../include/StdDataType.h"
-
+#include "../include/Objectdef.h"
+typedef struct
+{
+	SecureModel securePara;
+	INT8U mask;//安全模式参数里有ZZ存在，此mask标记ZZ.mask=Z个数
+}SecureUnit;
 SecureUnit DefaultSecurePara[]={{{0x0FFF,0x8004},3},//当前电量
 														{{0x1FFF,0x4000},3},//最大需量
 														{{0x202C,0x8004},0},//当前钱包文件
@@ -92,7 +97,7 @@ INT16U SMode_MaskDeal(OI_698 oi,INT8U mask)
  * 说明：oad首先和显示安全模式参数比较，显示模式安全参数完整的oad，没有zz，只需要判断==
  * 之后如果没有找到显示安全参数，再和默认安全参数比较（显示安全模式参数为首选标准）
  *****************************************************************************/
-INT8S SMode_OADGetClass(OAD oad,SecureModePara* SMPara,INT16U paraNum,INT8U apduType)
+INT8S SMode_OADGetClass(OAD oad,SecureModel* SMPara,INT16U paraNum,INT8U apduType)
 {
 	INT16U i=0;
 	INT8U masktmp=0;
@@ -104,7 +109,7 @@ INT8S SMode_OADGetClass(OAD oad,SecureModePara* SMPara,INT16U paraNum,INT8U apdu
 		{
 			if(oad.OI == (SMPara+i)->oi)
 			{
-				return SMode_TypeGrade((SMPara+i)->classNo,apduType);
+				return SMode_TypeGrade((SMPara+i)->model,apduType);
 			}
 		}
 	}
@@ -119,14 +124,15 @@ INT8S SMode_OADGetClass(OAD oad,SecureModePara* SMPara,INT16U paraNum,INT8U apdu
 				if(masktmp==0)//初次找到‘类似’符合要求的oad，记录掩码和oi，继续寻找(好理解的说)
 				{
 					masktmp=DefaultSecurePara[i].mask;
-					classtmp=DefaultSecurePara[i].securePara.classNo;
+					classtmp=DefaultSecurePara[i].securePara.model;
 				}
 				else                        //再次找到‘类似’符合要求的oad，和已存掩码比较，存储掩码值小的oi和掩码
 				{
 					if(masktmp>DefaultSecurePara[i].mask)
 					{
 						masktmp=DefaultSecurePara[i].mask;
-						classtmp=DefaultSecurePara[i].securePara.classNo;
+						classtmp=DefaultSecurePara[i].securePara.model;
+
 					}
 				}
 			}
@@ -144,7 +150,7 @@ INT8S SMode_OADGetClass(OAD oad,SecureModePara* SMPara,INT16U paraNum,INT8U apdu
 *                     其他（操作/代理）材料中未找到说明，此处采用密文加MAC处理！！！！
 *                     0x01 密文+MAC    0x02密文      0x04明文+MAC     0x08明文      0x00无操作权限
 */
-INT8S SMode_OADListGetClass(OAD *oad,INT16U oadNum,SecureModePara* SMPara,INT16U paraNum,INT8U apduType)
+INT8S SMode_OADListGetClass(OAD *oad,INT16U oadNum,SecureModel* SMPara,INT16U paraNum,INT8U apduType)
 {
 	INT8S classtmp =0x0F;
 	INT16U i=0;

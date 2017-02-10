@@ -69,7 +69,91 @@ int doReponse(int server,int reponse,CSINFO *csinfo,PIID piid,OAD oad,int dar,IN
 		pSendfun(comfd,buf,index+3);
 	return (index+3);
 }
+int getDateTimeBCD(INT8U *source,INT8U *dest)
+{
+	dest[1] = source[0];//年
+	dest[0] = source[1];
+	dest[2] = source[2];//月
+	dest[3] = source[3];//日
+	dest[4] = source[4];//时
+	dest[5] = source[5];//分
+	dest[6] = source[6];//秒
+	return sizeof(DateTimeBCD);
+}
+/*
+ * 解析选择方法类型 RSD
+ */
+int get_BasicRSD(INT8U *source,INT8U *dest,INT8U *type)
+{
+	INT16U source_sumindex=0,source_index=0,dest_sumindex=0,dest_index=0;
+	int index = 0,i=0;
+	INT8U selectype =0;
+	Selector4 select4;
+	Selector1 select1;
+	Selector2 select2;
+	selectype  = source[0];//选择方法
+	switch(selectype )
+	{
+		case 0:
+			dest[0] = 0;
+			break;
+		case 1:
 
+			memset(&select1,0,sizeof(select1));
+			select1.oad.OI= (source[1]<<8) | source[2];
+			select1.oad.attflg = source[3];
+			select1.oad.attrindex = source[4];
+			get_BasicUnit(&source[5]+source_sumindex,&source_index,(INT8U *)&select1.data,&dest_index);
+			source_sumindex += source_index;
+			dest_sumindex += dest_index;
+			memcpy(dest,&select1,sizeof(select1));
+			break;
+		case 2:
+
+			memset(&select2,0,sizeof(select2));
+			select2.oad.OI= (source[1]<<8) | source[2];
+			select2.oad.attflg = source[3];
+			select2.oad.attrindex = source[4];
+			get_BasicUnit(&source[5]+source_sumindex,&source_index,(INT8U *)&select2.data_from,&dest_index);
+			source_sumindex += source_index;
+			dest_sumindex += dest_index;
+			get_BasicUnit(&source[5]+source_sumindex,&source_index,(INT8U *)&select2.data_to,&dest_index);
+			source_sumindex += source_index;
+			dest_sumindex += dest_index;
+			get_BasicUnit(&source[5]+source_sumindex,&source_index,(INT8U *)&select2.data_jiange,&dest_index);
+			source_sumindex += source_index;
+			dest_sumindex += dest_index;
+			memcpy(dest,&select2,sizeof(select2));
+			break;
+		case 3:
+			break;
+		case 4:
+
+			index = getDateTimeBCD(source,&select4.collect_star);
+			select4.meters.mstype = 0x5c;
+			get_BasicUnit(&source[5]+source_sumindex,&source_index,(INT8U *)&select2.data_jiange,&dest_index);
+			break;
+		case 5:
+			break;
+		case 6:
+			break;
+		case 7:
+			break;
+		case 8:
+			break;
+		case 9:
+			break;
+		case 10:
+			break;
+	}
+}
+/*
+ * 解析记录列选择 RCSD
+ */
+int get_BasicRCSD(INT8U *source,INT8U *dest)
+{
+
+}
 void get_BasicUnit(INT8U *source,INT16U *sourceindex,INT8U *dest,INT16U *destindex)
 {
 	INT8U choicetype;

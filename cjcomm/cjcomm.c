@@ -343,7 +343,6 @@ int main(int argc, char* argv[]) {
     //
      //开始通信模块维护、红外与维护串口线程
     CreateATWorker();
-
     //开启网络IO事件处理框架
     aeEventLoop* ep;
     ep = aeCreateEventLoop(128);
