@@ -273,7 +273,7 @@ INT8U Get_Source(INT8U *Source,Source_Typ S_type,
 			break;
 		case s_tsa:
 			*Data_type=85;
-		    *Len=(Source[0]+1);
+		    *Len=(Source[0]+1+1);
 			break;
 		case s_oad:
 			*Data_type=81;
@@ -373,6 +373,8 @@ INT8U Get_StandardUnit(OI_698 oi,INT8U *Rbuf,INT8U *Index,
 	INT8U datatype=0,sourcelen=0;
 	Get_Source(Source,S_type,&datatype,&sourcelen);
 	Rbuf[(*Index)++] = datatype;
+	if(datatype==s_tsa)
+		Rbuf[(*Index)++] = sourcelen;
 	if(sourcelen>0)
 		memcpy(&Rbuf[(*Index)],Source,sourcelen);
 	(*Index)+=sourcelen;
