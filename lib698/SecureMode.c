@@ -132,6 +132,7 @@ INT8S SMode_OADGetClass(OAD oad,SecureModel* SMPara,INT16U paraNum,INT8U apduTyp
 					{
 						masktmp=DefaultSecurePara[i].mask;
 						classtmp=DefaultSecurePara[i].securePara.model;
+
 					}
 				}
 			}
