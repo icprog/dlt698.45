@@ -1102,27 +1102,7 @@ INT8U Event_310A(MachineError_type errtype,ProgramInfo* prginfo_event) {
     if (prginfo_event->event_obj.Event310A_obj.enableflag == 0) {
         return 0;
     }
-    INT8U Source=0;
-    switch(errtype){
-       case memory_err://终端主板内存故障
-            Source=0;
-            break;
-       case clock_err://时钟故障
-		    Source=1;
-		    break;
-       case comm_err://主板通信故障
-		    Source=2;
-		    break;
-       case c485_err://485抄表故障
-		    Source=3;
-		    break;
-	   case show_err://显示板故障
-		    Source=4;
-		    break;
-	   case plc_err://载波通道异常
-		    Source=5;
-		    break;
-    }
+    INT8U Source=errtype;
     INT8U Save_buf[256];
     bzero(Save_buf, sizeof(Save_buf));
     //更新当前记录数
