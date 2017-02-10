@@ -14,6 +14,7 @@
 #include "ParaDef.h"
 #include "cjevent.h"
 #include "event.h"
+#include "Shmem.h"
 //property
 
 
