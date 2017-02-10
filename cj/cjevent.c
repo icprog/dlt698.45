@@ -14,6 +14,7 @@
 #include "ParaDef.h"
 #include "cjevent.h"
 #include "event.h"
+#include "Shmem.h"
 //property
 
 
@@ -255,7 +256,9 @@ void event_process(int argc, char *argv[])
 			INT8U *Getbuf=NULL;//因为记录为变长，只能采用二级指针，动态分配
 			INT8U Getlen=0;//记录长度
 			if(record_n!=0){
-				Get_Event(oi,record_n,(INT8U**)&Getbuf,&Getlen);
+				ProgramInfo* prginfo_event;
+				prginfo_event=OpenShMem("ProgramInfo",sizeof(ProgramInfo),NULL);
+				Get_Event(oi,record_n,(INT8U**)&Getbuf,&Getlen,prginfo_event);
 				if(Getbuf!=NULL){
                     INT8U index=0,h2=0,h1=0,l2=0,l1=0;
                     index++;//0:结构体
@@ -291,7 +294,7 @@ void event_process(int argc, char *argv[])
 							break;
 						case s_tsa:
 							fprintf(stderr,"TSA ");
-							Len=(Getbuf[index+1]+1);
+							Len=(Getbuf[index]+1);
 							break;
 						case s_oad:
 							fprintf(stderr,"OAD ");

@@ -39,10 +39,23 @@ typedef struct {
 	CLASS_6013 basicInfo;
 }TASK_CFG;
 
+//698 OAD 和 645 07规约 数据标识对应关系
+
+
+
+
+typedef struct
+{
+	INT8U flagOAD[50][4];
+	INT8U flag07[50][4];
+}OAD_07_MAPList;
+
+
+extern void read485_proccess();
 
 TASK_CFG list6013[TASK6012_MAX];
 CLASS_6015 to6015;
 INT32S comfd4851;
 INT32S comfd4852;
-extern void read485_proccess();
+
 #endif /* READ485_H_ */

@@ -729,14 +729,4 @@ typedef struct
 
 }MeterInfoUnit;
 
-typedef struct
-{
-	OI_698 oi;
-	INT16U classNo;
-}SecureModePara;
-typedef struct
-{
-	SecureModePara securePara;
-	INT8U mask;//安全模式参数里有ZZ存在，此mask标记ZZ.mask=Z个数
-}SecureUnit;
 #endif

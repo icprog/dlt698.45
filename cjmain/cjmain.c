@@ -194,6 +194,38 @@ void ProgInit()
 	sem_parasave = create_named_sem(SEMNAME_PARA_SAVE,1);
 	sem_getvalue(sem_parasave, &val);
 	fprintf(stderr,"process The sem is %d\n", val);
+	//初始化事件参数，调用文件
+	//JProgramInfo
+	readCoverClass(0x3100,0,&JProgramInfo->event_obj.Event3100_obj,sizeof(JProgramInfo->event_obj.Event3100_obj),event_para_save);
+	readCoverClass(0x3101,0,&JProgramInfo->event_obj.Event3101_obj,sizeof(JProgramInfo->event_obj.Event3101_obj),event_para_save);
+	readCoverClass(0x3104,0,&JProgramInfo->event_obj.Event3104_obj,sizeof(JProgramInfo->event_obj.Event3104_obj),event_para_save);
+	readCoverClass(0x3105,0,&JProgramInfo->event_obj.Event3105_obj,sizeof(JProgramInfo->event_obj.Event3105_obj),event_para_save);
+	readCoverClass(0x3106,0,&JProgramInfo->event_obj.Event3106_obj,sizeof(JProgramInfo->event_obj.Event3106_obj),event_para_save);
+	readCoverClass(0x3107,0,&JProgramInfo->event_obj.Event3107_obj,sizeof(JProgramInfo->event_obj.Event3107_obj),event_para_save);
+	readCoverClass(0x3108,0,&JProgramInfo->event_obj.Event3108_obj,sizeof(JProgramInfo->event_obj.Event3108_obj),event_para_save);
+	readCoverClass(0x3109,0,&JProgramInfo->event_obj.Event3109_obj,sizeof(JProgramInfo->event_obj.Event3109_obj),event_para_save);
+	readCoverClass(0x310A,0,&JProgramInfo->event_obj.Event310A_obj,sizeof(JProgramInfo->event_obj.Event310A_obj),event_para_save);
+	readCoverClass(0x310B,0,&JProgramInfo->event_obj.Event310B_obj,sizeof(JProgramInfo->event_obj.Event310B_obj),event_para_save);
+	readCoverClass(0x310C,0,&JProgramInfo->event_obj.Event310C_obj,sizeof(JProgramInfo->event_obj.Event310C_obj),event_para_save);
+	readCoverClass(0x310D,0,&JProgramInfo->event_obj.Event310D_obj,sizeof(JProgramInfo->event_obj.Event310D_obj),event_para_save);
+	readCoverClass(0x310E,0,&JProgramInfo->event_obj.Event310E_obj,sizeof(JProgramInfo->event_obj.Event310E_obj),event_para_save);
+	readCoverClass(0x310F,0,&JProgramInfo->event_obj.Event310F_obj,sizeof(JProgramInfo->event_obj.Event310F_obj),event_para_save);
+	readCoverClass(0x3110,0,&JProgramInfo->event_obj.Event3110_obj,sizeof(JProgramInfo->event_obj.Event3110_obj),event_para_save);
+	readCoverClass(0x3111,0,&JProgramInfo->event_obj.Event3111_obj,sizeof(JProgramInfo->event_obj.Event3111_obj),event_para_save);
+	readCoverClass(0x3112,0,&JProgramInfo->event_obj.Event3112_obj,sizeof(JProgramInfo->event_obj.Event3112_obj),event_para_save);
+	readCoverClass(0x3114,0,&JProgramInfo->event_obj.Event3114_obj,sizeof(JProgramInfo->event_obj.Event3114_obj),event_para_save);
+	readCoverClass(0x3115,0,&JProgramInfo->event_obj.Event3115_obj,sizeof(JProgramInfo->event_obj.Event3115_obj),event_para_save);
+	readCoverClass(0x3116,0,&JProgramInfo->event_obj.Event3116_obj,sizeof(JProgramInfo->event_obj.Event3116_obj),event_para_save);
+	readCoverClass(0x3117,0,&JProgramInfo->event_obj.Event3117_obj,sizeof(JProgramInfo->event_obj.Event3117_obj),event_para_save);
+	readCoverClass(0x3118,0,&JProgramInfo->event_obj.Event3118_obj,sizeof(JProgramInfo->event_obj.Event3118_obj),event_para_save);
+	readCoverClass(0x3119,0,&JProgramInfo->event_obj.Event3119_obj,sizeof(JProgramInfo->event_obj.Event3119_obj),event_para_save);
+	readCoverClass(0x311A,0,&JProgramInfo->event_obj.Event311A_obj,sizeof(JProgramInfo->event_obj.Event311A_obj),event_para_save);
+	readCoverClass(0x311B,0,&JProgramInfo->event_obj.Event311B_obj,sizeof(JProgramInfo->event_obj.Event311B_obj),event_para_save);
+	readCoverClass(0x311C,0,&JProgramInfo->event_obj.Event311C_obj,sizeof(JProgramInfo->event_obj.Event311C_obj),event_para_save);
+	readCoverClass(0x3200,0,&JProgramInfo->event_obj.Event3200_obj,sizeof(JProgramInfo->event_obj.Event3200_obj),event_para_save);
+	readCoverClass(0x3201,0,&JProgramInfo->event_obj.Event3201_obj,sizeof(JProgramInfo->event_obj.Event3201_obj),event_para_save);
+	readCoverClass(0x3202,0,&JProgramInfo->event_obj.Event3202_obj,sizeof(JProgramInfo->event_obj.Event3202_obj),event_para_save);
+	readCoverClass(0x3203,0,&JProgramInfo->event_obj.Event3203_obj,sizeof(JProgramInfo->event_obj.Event3203_obj),event_para_save);
 }
 
 int main(int argc, char *argv[])
@@ -204,8 +236,9 @@ int main(int argc, char *argv[])
 	fprintf(stderr,"\ncjmain run!");
 	Setsig(&sa1,ProjectMainExit);
 
-	ProgInit();
+
 	JProgramInfo = (ProgramInfo*)CreateShMem("ProgramInfo",sizeof(ProgramInfo),NULL);
+	ProgInit();
 	ReadSystemInfo();
 	while(1)
    	{

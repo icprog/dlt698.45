@@ -1,5 +1,3 @@
-
-
 #ifndef DLT645_H_
 #define DLT645_H_
 
@@ -15,6 +13,5 @@ typedef struct
 	INT8U SEQ;				//帧序号
 	INT8U Err;
 }FORMAT07;
-//extern int ProcessData(unsigned char* Rcvbuf,int Rcvlen,unsigned char* addr);
 
 #endif
