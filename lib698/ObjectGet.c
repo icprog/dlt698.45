@@ -16,7 +16,7 @@
 extern INT8S (*pSendfun)(int fd,INT8U* sndbuf,INT16U sndlen);
 extern int FrameHead(CSINFO *csinfo,INT8U *buf);
 extern void FrameTail(INT8U *buf,int index,int hcsi);
-extern INT8U Get_Event(OI_698 oi,INT8U eventno,INT8U** Getbuf,INT8U *Getlen);
+extern INT8U Get_Event(OI_698 oi,INT8U eventno,INT8U** Getbuf,int *Getlen,ProgramInfo* prginfo_event);
 extern int comfd;
 extern INT8U TmpDataBuf[MAXSIZ_FAM];
 
@@ -194,7 +194,7 @@ int GetEventInfo(RESULT_NORMAL *response)
 {
 	INT8U *data=NULL;
 	int datalen=0;
-	if ( Get_Event(response->oad.OI,response->oad.attrindex,&data,(int *)&datalen) == 1 )
+	if ( Get_Event(response->oad.OI,response->oad.attrindex,&data,(int *)&datalen,NULL) == 1 )
 	{
 		fprintf(stderr,"datalen=%d\n",datalen);
 		if (datalen > 512 || data==NULL)

@@ -30,7 +30,6 @@
 #include "PublicFunction.h"
 #include "event.h"
 
-extern ProgramInfo* JProgramInfo;
 static CLASS_f203	oif203={};
 
 typedef enum {STATE1=1,STATE2=2,STATE3=3,STATE4=4,PLUSE1=5,PLUSE2=6} DEV_STATE_PULSE;
@@ -177,7 +176,7 @@ INT8U state_check(BOOLEAN changed)
 	return staret;
 }
 
-void getStateEvent()
+void getStateEvent(ProgramInfo prgInfo)
 {
 	INT8U	data[STATE_MAXNUM]={};
 	INT8U	i=0;
@@ -186,20 +185,20 @@ void getStateEvent()
 		data[i*2+0]=oif203.statearri.stateunit[i].ST;
 		data[i*2+1]=oif203.statearri.stateunit[i].CD;
 	}
-	Event_3104(data,STATE_MAXNUM);
+	Event_3104(data,STATE_MAXNUM,&prgInfo);
 }
 
 /*
  * 开关量状态处理
  * */
-void DealState(INT8U save_changed)
+void DealState(ProgramInfo prgInfo,INT8U save_changed)
 {
 	BOOLEAN changed = FALSE;
 	INT8U	stachg = 0;
-	changed = oi_f203_changed(save_changed);
+	changed = oi_f203_changed(prgInfo.oi_changed.oiF203);
 	stachg = state_check(changed);
 	if(stachg==1) {
-		getStateEvent();
+		getStateEvent(prgInfo);
 		saveCoverClass(0xf203,0,&oif203,sizeof(CLASS_f203),para_vari_save);
 	}
 }

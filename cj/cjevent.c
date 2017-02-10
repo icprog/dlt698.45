@@ -9,7 +9,9 @@
 #include <string.h>
 
 #include "StdDataType.h"
+#include "Shmem.h"
 #include "EventObject.h"
+#include "PublicFunction.h"
 #include "AccessFun.h"
 #include "ParaDef.h"
 #include "cjevent.h"
@@ -213,6 +215,18 @@ void event_process(int argc, char *argv[])
 					break;
 				case 0x3100:
 				case 0x3104:
+				case 0x3109:
+				case 0x310A:
+				case 0x3111:
+				case 0x3112:
+				case 0x3114:
+				case 0x3115:
+				case 0x3117:
+				case 0x3118:
+				case 0x3119:
+				case 0x3200:
+				case 0x3201:
+				case 0x3202:
 					fprintf(stderr,"class-%04x ,len=%d\n",oi,sizeof(Class7_Object));
 					memset(&class7,0,sizeof(Class7_Object));
 					readCoverClass(oi,0,&class7,sizeof(Class7_Object),event_para_save);
@@ -253,7 +267,7 @@ void event_process(int argc, char *argv[])
 			sscanf(argv[4],"%d",&tmp[1]);
 			INT8U record_n = tmp[1];      //事件记录参数0/n
 			INT8U *Getbuf=NULL;//因为记录为变长，只能采用二级指针，动态分配
-			INT8U Getlen=0;//记录长度
+			int  Getlen=0;//记录长度
 			if(record_n!=0){
 				ProgramInfo* prginfo_event;
 				prginfo_event=OpenShMem("ProgramInfo",sizeof(ProgramInfo),NULL);

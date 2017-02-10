@@ -304,8 +304,10 @@ long getFileRecordNum(OI_698 oi)
     return blknum;
 }
 
-/**************************************/
-//函数功能：根据OI及类型获取存储文件路径及文件名字
+/**************************************
+*  函数功能：根据OI及类型获取存储文件路径及文件名字
+*  ！！！！！注意： 函数返回是文件的实际长度，参数文件中包含CRC校验字节
+* 				 如果是参数文件请慎用此函数
 /**************************************/
 void getFileName(OI_698 oi,INT16U seqno,INT16U type,char *fname)
 {
@@ -430,9 +432,9 @@ INT8U file_read(char *FileName, void *source, int size,int offset,INT16U *retcrc
 //		}
 		if(num==(size-2)) {			//读取了size字节数据
 			INT16U crc= make_parity(source,size);
-			fprintf(stderr,"\n计算 crc =%04x\n",crc);
+//			fprintf(stderr,"\n计算 crc =%04x\n",crc);
 			if(crc==readcrc)  {
-				fprintf(stderr,"read ok\n");
+//				fprintf(stderr,"read ok\n");
 				*retcrc = readcrc;
 				ret = 1;
 			}
@@ -466,6 +468,7 @@ INT8U file_write(char *FileName, void *source, int size, int offset)
 //	fprintf(stderr,"\nwrite sourceaddr=%p,blockdata=%p\n", source,blockdata);
 	if(blockdata!=NULL) {
 //		fprintf(stderr,"write memcpy blockdata\n");
+		memset(blockdata,0,sizeof(size));
 		memcpy(blockdata,source,size-2);
 	} else {
 		return 0;//error
@@ -535,7 +538,7 @@ INT8U block_file_sync(char *fname,void *blockdata,int size,int headsize,int inde
 	if(size%4==0)	sizenew = size+2;
 	else sizenew = size+(4-size%4)+2;
 
-//	fprintf(stderr,"size=%d,sizenew=%d\n",size,sizenew);
+	fprintf(stderr,"size=%d,sizenew=%d\n",size,sizenew);
 
 	blockdata1 = malloc(sizenew);
 	blockdata2 = malloc(sizenew);
@@ -562,7 +565,7 @@ INT8U block_file_sync(char *fname,void *blockdata,int size,int headsize,int inde
 	offset = headsize+sizenew*index;
 	ret1 = file_read(fname,blockdata1,sizenew,offset,readcrc1);
 	ret2 = file_read(fname2,blockdata2,sizenew,offset,readcrc2);
-//	fprintf(stderr,"\ncrc1=%04x,crc2=%04x,ret1=%d,ret2=%d\n",*readcrc1,*readcrc2,ret1,ret2);
+	fprintf(stderr,"\ncrc1=%04x,crc2=%04x,ret1=%d,ret2=%d\n",*readcrc1,*readcrc2,ret1,ret2);
 	if((*readcrc1 == *readcrc2) && (ret1==1) && (ret2==1))  {		//两个文件校验正确，并且校验码相等，返回 1
 //		fprintf(stderr,"正确\n");
 //		syslog(LOG_NOTICE," %s 校验正确 ",fname);

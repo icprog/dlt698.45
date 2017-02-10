@@ -47,7 +47,7 @@ void clearEvent()
 	{
 		if(event_class_len[i].oi) {
 //			fprintf(stderr,"i=%d, oi=%04x,3104size=%d\n",i,event_class_len[i].oi,sizeof(Class7_Object));
-			classlen = event_class_len[i].classlen;//getClassFileLen(event_class_len[i].oi,0,event_para_save);
+			classlen = event_class_len[i].classlen;
 			eventbuff = (INT8U *)malloc(classlen);
 			if(eventbuff!=NULL) {
 				memset(eventbuff,0,classlen);
@@ -360,13 +360,19 @@ int readCoverClass(OI_698 oi,INT16U seqno,void *blockdata,int datalen,int type)
 		memset(fname,0,sizeof(fname));
 		getFileName(oi,seqno,type,fname);
 		if(datalen<=2)	return -1;
-		if(datalen%4==0)	readlen = datalen-2;
-		else readlen = datalen+(4-datalen%4)-2;
-//		fprintf(stderr,"readlen=%d\n",readlen);
+//		if(datalen%4==0)	readlen = datalen-2;
+//		else readlen = datalen+(4-datalen%4)-2;
+
+
+		readlen = datalen;
+		fprintf(stderr,"readlen=%d\n",datalen);
 		blockdata1 = malloc(readlen);
 		if(blockdata1) {
+			memset(blockdata1,0,readlen);
 			ret = block_file_sync(fname,blockdata1,readlen,0,0);	//返回数据去掉CRC校验的两个字节
-			memcpy(blockdata,blockdata1,datalen);
+			if(ret == 1) {		//数据读取成功，返回实际读取数据
+				memcpy(blockdata,blockdata1,datalen);
+			}
 		}
 		if(blockdata1!=NULL)	free(blockdata1);
 	break;

@@ -577,8 +577,6 @@ int ProcessData(CommBlock *com)
 	INT8U *Rcvbuf = com->DealBuf;
 	INT8U *SendBuf = com->SendBuf;
 
-//    JProgramInfo = OpenShMem("ProgramInfo", sizeof(ProgramInfo), NULL);
-
 	pSendfun = com->p_send;
 	comfd = com->phy_connect_fd;
 	hcsok = CheckHead( Rcvbuf ,&csinfo);
