@@ -5,6 +5,7 @@
 #include "StdDataType.h"
 #include "EventObject.h"
 #include "Shmem.h"
+#include "Objectdef.h"
 
 //标准记录单元结构体元素数量索引位置及值
 #define STANDARD_NUM_INDEX 1
@@ -98,13 +99,13 @@ extern INT8U Event_310A(MachineError_type errtype,ProgramInfo* prginfo_event);
  */
 extern INT8U Event_310B(TSA tsa, INT8U* data,INT8U len,ProgramInfo* prginfo_event);
 /*
- * 电能量超差事件11 前台两次电能值以及测量点额定电压、电流 prginfo_event共享内存
+ * 电能量超差事件11 前台两次电能值以及测量点额定电压、电流 prginfo_event共享内存 meter当前测量点信息
  */
-extern INT8U Event_310C(TSA tsa, INT8U* data,INT8U len,ProgramInfo* prginfo_event);
+extern INT8U Event_310C(TSA tsa, INT8U* data,INT8U len,ProgramInfo* prginfo_event,CLASS_6001 meter);
 /*
- * 电能表飞走事件12 前台两次电能值以及测量点额定电压、电流 prginfo_event共享内存
+ * 电能表飞走事件12 前台两次电能值以及测量点额定电压、电流 prginfo_event共享内存 meter当前测量点信息
  */
-extern INT8U Event_310D(TSA tsa, INT8U* data,INT8U len,ProgramInfo* prginfo_event);
+extern INT8U Event_310D(TSA tsa, INT8U* data,INT8U len,ProgramInfo* prginfo_event,CLASS_6001 meter);
 /*
  * 电能表停走事件 前台两次电能值是否相同以及时间差是否超过设定值 prginfo_event共享内存
  */
