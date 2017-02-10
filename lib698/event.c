@@ -348,6 +348,7 @@ INT8U Get_Event(OI_698 oi,INT8U eventno,INT8U** Getbuf,int *Getlen)
 	*Getlen=filesize;
 	*Getbuf=(INT8U*)malloc(filesize);
 	readCoverClass(oi,_currno,*Getbuf,*Getlen,event_record_save);
+	fprintf(stderr,"\n\n\n  filesize=%d   getlen=%d\n\n",filesize,*Getlen);
 	return 1;
 }
 /*

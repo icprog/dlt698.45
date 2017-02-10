@@ -17,6 +17,9 @@ extern INT8S (*pSendfun)(int fd,INT8U* sndbuf,INT16U sndlen);
 extern int FrameHead(CSINFO *csinfo,INT8U *buf);
 extern void FrameTail(INT8U *buf,int index,int hcsi);
 extern INT8U Get_Event(OI_698 oi,INT8U eventno,INT8U** Getbuf,INT8U *Getlen);
+extern int get_BasicRSD(INT8U *source,INT8U *dest,INT8U *type);
+extern int get_BasicRCSD(INT8U *source,INT8U *dest);
+
 extern int comfd;
 extern INT8U TmpDataBuf[MAXSIZ_FAM];
 
@@ -27,6 +30,16 @@ typedef struct
 	INT8U *data;	//数据  上报时与 dar二选一
 	INT16U datalen;	//数据长度
 }RESULT_NORMAL;
+typedef struct
+{
+	OAD oad;
+	RCSD rcsd;
+	INT8U *data;	//数据  上报时与 dar二选一
+	INT16U datalen;	//数据长度
+	INT8U selectType;//选择类型
+	RSD   select;	 //选择方法实例
+}RESULT_RECORD;
+
 int BuildFrame_GetResponse(INT8U response_type,CSINFO *csinfo,RESULT_NORMAL response,INT8U *sendbuf)
 {
 	int index=0, hcsi=0;
@@ -216,33 +229,26 @@ int GetEventInfo(RESULT_NORMAL *response)
 
 	return 0;
 }
-
-int getRequestRecord(INT8U *typestu,CSINFO *csinfo,INT8U *buf)
+int doGetrecord(RESULT_RECORD *record)
 {
 	RSD rsd={};
-	OAD oad={};
-	INT8U rsdtype=0;
-	//1,OAD
-	oad.OI= (typestu[0]<<8) | typestu[1];
-	oad.attflg = typestu[2];
-	oad.attrindex = typestu[3];
-	fprintf(stderr,"\n- getRequestRecord  OI = %04x  attrib=%d  index=%d",oad.OI,oad.attflg,oad.attrindex);
+	INT8U SelectorN = record->selectType;
+	fprintf(stderr,"\n- getRequestRecord  OI = %04x  attrib=%d  index=%d",record->oad.OI,record->oad.attflg,record->oad.attrindex);
 
-	//2,RSD
-	rsdtype = typestu[4];
-	switch(rsdtype)
+	switch(SelectorN)
 	{
 		case 0:
 			//null
 			break;
-		case 1:
-//			OAD oad1;
+		case 1://Selector1
 			break;
-		case 2:
+		case 2://Selector2
 			break;
-		case 3:
+		case 3://Selector3
 			break;
-		case 4:
+		case 4://Selector4
+			break;
+		case 5://Selector5
 			break;
 	}
 	//3,RCSD
@@ -298,6 +304,21 @@ int getRequestNormal(OAD oad,INT8U *data,CSINFO *csinfo,INT8U *sendbuf)
 	BuildFrame_GetResponse(GET_REQUEST_NORMAL,csinfo,response,sendbuf);
 	return 1;
 }
+int getRequestRecord(OAD oad,INT8U *data,CSINFO *csinfo,INT8U *sendbuf)
+{
+	RESULT_RECORD record;
+	int index=0;
+	memset(TmpDataBuf,0,sizeof(TmpDataBuf));
+	record.oad = oad;
+	record.data = TmpDataBuf;
+	record.datalen = 0;
+	index = get_BasicRSD(data[index],(INT8U *)&record.select,&record.selectType);
+	index +=get_BasicRCSD(data[index],(INT8U *)&record.rcsd);
+	doGetrecord(&record);
+//	BuildFrame_GetResponse(GET_REQUEST_RECORD,csinfo,record,sendbuf);
+	return 1;
+}
+
 int getRequestNormalList(OAD oad,INT8U *data,CSINFO *csinfo,INT8U *sendbuf)
 {
 	return 1;
