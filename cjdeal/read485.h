@@ -43,14 +43,6 @@ typedef struct {
 
 
 
-
-typedef struct
-{
-	INT8U flagOAD[50][4];
-	INT8U flag07[50][4];
-}OAD_07_MAPList;
-
-
 extern void read485_proccess();
 
 TASK_CFG list6013[TASK6012_MAX];

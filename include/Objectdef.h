@@ -278,4 +278,13 @@ typedef struct
 	StateAtti4		state4;			//开关量属性
 }CLASS_f203;//开关量输入
 
+typedef struct
+{
+	CSD flag698;
+	struct flag07
+	{
+		INT8U DI_1[4];
+		INT8U DI_2[4];
+	};
+}CLASS_601F;//开关量输入
 #endif /* OBJECTACTION_H_ */

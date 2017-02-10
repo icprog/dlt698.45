@@ -12,6 +12,165 @@
 #include <string.h>
 #include <time.h>
 #include "read485.h"
+typedef enum{
+	coll_bps=1,
+	coll_protocol,
+	coll_wiretype,
+	task_ti,
+	task_cjtype,
+	task_prio,
+	task_status,
+	task_runtime,
+	coll_mode,
+	ms_type,
+	savetime_sel,
+}OBJ_ENUM;
+char *getenum(int type,int val)
+{
+	char name1[128]={};
+	char *name=NULL;
+
+	name = name1;
+	memset(name1,0,sizeof(name1));
+//	fprintf(stderr,"val=%d ,type=%d\n",val,type);
+	switch(type) {
+	case coll_bps:
+		if(val==bps300)	strcpy(name,"300");
+		if(val==bps600)	strcpy(name,"600");
+		if(val==bps1200)	strcpy(name,"1200");
+		if(val==bps2400)	strcpy(name,"2400");
+		if(val==bps4800)	strcpy(name,"4800");
+		if(val==bps7200)	strcpy(name,"7200");
+		if(val==bps9600)	strcpy(name,"9600");
+		if(val==bps19200)	strcpy(name,"19200");
+		if(val==bps38400)	strcpy(name,"38400");
+		if(val==bps57600)	strcpy(name,"57600");
+		if(val==bps115200)	strcpy(name,"115200");
+		if(val==autoa)		strcpy(name,"自适应");
+		break;
+	case coll_protocol:
+		if(val==0)	strcpy(name,"未知");
+		if(val==1)	strcpy(name,"DL/T645-1997");
+		if(val==2)	strcpy(name,"DL/T645-2007");
+		if(val==3)	strcpy(name,"DL/T698.45");
+		if(val==4)	strcpy(name,"CJ/T18802004");
+		break;
+	case coll_wiretype:
+		if(val==0)	strcpy(name,"未知");
+		if(val==1)	strcpy(name,"单相");
+		if(val==2)	strcpy(name,"三相三线");
+		if(val==3)	strcpy(name,"三相四线");
+		break;
+	case task_ti:
+		if(val==0)	strcpy(name,"秒");
+		if(val==1)	strcpy(name,"分");
+		if(val==2)	strcpy(name,"时");
+		if(val==3)	strcpy(name,"日");
+		if(val==4)	strcpy(name,"月");
+		if(val==5)	strcpy(name,"年");
+		break;
+	case task_cjtype:
+		if(val==1)	strcpy(name,"普通采集方案");
+		if(val==2)	strcpy(name,"事件采集方案");
+		if(val==3)	strcpy(name,"透明方案");
+		if(val==4)	strcpy(name,"上报方案");
+		if(val==5)	strcpy(name,"脚本方案");
+		break;
+	case task_prio:
+		if(val==1)	strcpy(name,"首要");
+		if(val==2)	strcpy(name,"必要");
+		if(val==3)	strcpy(name,"需要");
+		if(val==4)	strcpy(name,"可能");
+		break;
+	case task_status:
+		if(val==1)	strcpy(name,"正常");
+		if(val==2)	strcpy(name,"停用");
+		break;
+	case task_runtime:
+		if(val==0)	strcpy(name,"前闭后开");
+		if(val==1)	strcpy(name,"前开后闭");
+		if(val==2)	strcpy(name,"前闭后闭");
+		if(val==3)	strcpy(name,"前开后开");
+		break;
+	}
+//	fprintf(stderr,"get name=%s\n",name);
+	return name;
+}
+
+void print6013(CLASS_6013 class6013)
+{
+	fprintf(stderr,"\n----------------------------------");
+	fprintf(stderr,"【6013】任务配置单元: 任务ID--%04x\n",class6013.taskID);
+	fprintf(stderr,"[1]执行频率 [2]方案类型 [3]方案编号 [4]开始时间 [5]结束时间 [6]延时 [7]执行优先级 [8]状态 [9]开始前脚本id [10]开始后脚本id [11]运行时段【起始HH:MM 结束HH:MM】\n");
+	fprintf(stderr,"[1]%s-%d ",getenum(task_ti,class6013.interval.units),class6013.interval.interval);
+	fprintf(stderr,"[2]%s  [3]%d   ",getenum(task_cjtype,class6013.cjtype),class6013.sernum);
+	fprintf(stderr,"[4]%d-%d-%d %d:%d:%d ",class6013.startime.year.data,class6013.startime.month.data,class6013.startime.day.data,
+			class6013.startime.hour.data,class6013.startime.min.data,class6013.startime.sec.data);
+	fprintf(stderr,"[5]%d-%d-%d %d:%d:%d ",class6013.endtime.year.data,class6013.endtime.month.data,class6013.endtime.day.data,
+			class6013.endtime.hour.data,class6013.endtime.min.data,class6013.endtime.sec.data);
+	fprintf(stderr,"[6]%s-%d ",getenum(task_ti,class6013.delay.units),class6013.delay.interval);
+	fprintf(stderr,"[7]%s  ",getenum(task_prio,class6013.runprio));
+	fprintf(stderr,"[8]%s  [9]%d  [10]%d ",getenum(task_status,class6013.state),class6013.befscript,class6013.aftscript);
+
+	fprintf(stderr,"\n");
+}
+void print6015(CLASS_6015 class6015)
+{
+	INT8U type=0,w=0,i=0;
+
+	fprintf(stderr,"[1]方案编号 [2]存储深度 [3]采集类型 [4]采集内容 [5]OAD-ROAD [6]MS [7]存储时标\n");
+	fprintf(stderr,"[6015]普通采集方案:[1]方案号: %d  \n",class6015.sernum);
+	fprintf(stderr,"     [2]%d  [3]%s ",class6015.deepsize,getenum(coll_mode,class6015.cjtype));
+	switch(class6015.cjtype) {
+	case 0: // NULL
+		fprintf(stderr,"[4]%02x ",class6015.data.data[0]);
+		break;
+	case 1:	//unsigned
+		fprintf(stderr,"[4]%02x ",class6015.data.data[0]);
+		break;
+	case 2:// NULL
+		fprintf(stderr,"[4]%02x ",class6015.data.data[0]);
+		break;
+	case 3://TI
+		fprintf(stderr,"[4]%s-%d ",getenum(task_ti,class6015.data.data[0]),((class6015.data.data[2]<<8)|class6015.data.data[1]));
+		break;
+	case 4://RetryMetering
+		fprintf(stderr,"[4]%s-%d %d\n",getenum(task_ti,class6015.data.data[0]),((class6015.data.data[2]<<8)|class6015.data.data[1]),
+									((class6015.data.data[4]<<8)|class6015.data.data[3]));
+		break;
+	}
+	if(class6015.csds.num >= 10) {
+		fprintf(stderr,"csd overvalue 10 error\n");
+		return;
+	}
+	fprintf(stderr,"[5]");
+	for(i=0; i<class6015.csds.num;i++)
+	{
+		type = class6015.csds.csd[i].type;
+		if (type==0)
+		{
+			fprintf(stderr,"<%d>OAD%04x-%02x%02x ",i,class6015.csds.csd[i].csd.oad.OI,class6015.csds.csd[i].csd.oad.attflg,class6015.csds.csd[i].csd.oad.attrindex);
+		}else if (type==1)
+		{
+			fprintf(stderr,"<%d>ROAD%04x-%02x%02x ",i,
+					class6015.csds.csd[i].csd.road.oad.OI,class6015.csds.csd[i].csd.road.oad.attflg,class6015.csds.csd[i].csd.road.oad.attrindex);
+			if(class6015.csds.csd[i].csd.road.num >= 16) {
+				fprintf(stderr,"csd overvalue 16 error\n");
+				return;
+			}
+//			fprintf(stderr,"csds.num=%d\n",class6015.csds.num);
+			for(w=0;w<class6015.csds.csd[i].csd.road.num;w++)
+			{
+				fprintf(stderr,"<..%d>%04x-%02x%02x ",w,
+						class6015.csds.csd[i].csd.road.oads[w].OI,class6015.csds.csd[i].csd.road.oads[w].attflg,class6015.csds.csd[i].csd.road.oads[w].attrindex);
+			}
+		}
+	}
+	fprintf(stderr,"[6]%s ",getenum(ms_type,class6015.mst.mstype));
+	fprintf(stderr,"[7]%s ",getenum(savetime_sel,class6015.savetimeflag));
+	fprintf(stderr,"\n");
+
+}
 
 /*
  * 根据测量点串口参数是否改变
@@ -28,10 +187,6 @@ INT32S open_com_para_chg(INT8U port,INT32U baud,INT32S oldcomfd)
 	{
 		return oldcomfd;
 	}
-	else
-	{
-
-	}
 	if(oldcomfd>0)
 	{
 		CloseCom(oldcomfd);
@@ -39,6 +194,9 @@ INT32S open_com_para_chg(INT8U port,INT32U baud,INT32S oldcomfd)
 	}
 	newfd = OpenCom(port,baud,(unsigned char *)"even",1,8);
 
+	lastport = port;
+	lastbaud = baud;
+	fprintf(stderr,"open_com_para_chg newfd = %d",newfd);
 	return newfd;
 }
 
@@ -47,13 +205,13 @@ INT32S open_com_para_chg(INT8U port,INT32U baud,INT32S oldcomfd)
  * 输入 st6013
  * 输出 st6015
 */
-INT8U use6013find6015(INT16U taskID, CLASS_6015* st6015)
+INT8U use6013find6015(INT16U fanganID, CLASS_6015* st6015)
 {
 	INT8U result = 0;
-
-	//if(readCoverClass(oi,tIndex,st6015,sizeof(CLASS_6015),coll_para_save)== 1)
+	OI_698	oi=0x6015;
+	if(readCoverClass(oi,fanganID,st6015,sizeof(CLASS_6015),coll_para_save)== 1)
 	{
-
+		print6015(*st6015);
 	}
 	return result;
 
@@ -185,38 +343,9 @@ INT8S deal6015_698(CLASS_6015 st6015,BasicInfo6001 to6001)
  * dataType:0-实时数据 realDataMapListHead 1-冻结数据 freezeDataMapListHead
  * dir:0-通过698OAD找64507DI 1-通过64507DI找698OAD
  * */
-INT8S OADMap07DI(INT8U dataType,INT8U dir,OAD* fromOAD,INT8U* toDI)
+INT8S CSDMap07DI(INT8U dataType,INT8U dir,CSD* strCAD,INT8U* strDI)
 {
 	INT8S result = 0;
-	OAD_07_MAPList* findptr;
-#if 0
-	if(dataType == 0)
-	{
-		findptr = realDataMapListHead;
-	}
-	else
-	{
-		findptr = freezeDataMapListHead;
-	}
-#endif
-	while(findptr!=NULL)
-	{
-		if(dir == 1)
-		{
-			INT8U flagOAD[4];
-			memcpy(flagOAD,&fromOAD->OI,2);
-			flagOAD[3] = fromOAD->attflg;
-			flagOAD[4] = fromOAD->attrindex;
-			if(memcmp(fromOAD,findptr->flagOAD,4)==0)
-			{
-				memcpy(toDI,findptr->flag07,4);
-				return 1;
-			}
-		}
-//		findptr = findptr->next;
-
-	}
-
 
 
 	return result;
@@ -229,54 +358,20 @@ INT8S request698_07Data(FORMAT07 data07)
 
 	return result;
 }
-INT8S deal6015_07_realtime(CSD_ARRAYTYPE csds,TSA meterAddr)
-{
-	INT8S result = 0;
 
-	INT8U dataIndex = 0;
-	for(dataIndex = 0;dataIndex < csds.num;dataIndex++)
-	{
-		//OAD
-		if(csds.csd[dataIndex].type == 0)
-		{
-			FORMAT07 data07;
-
-			if(OADMap07DI(0,1,&csds.csd[dataIndex].csd.oad,data07.DI))
-			{
-
-			}
-			else
-			{
-				fprintf(stderr,"request698_07Data:1");
-				continue;
-			}
-			request698_07Data(data07);
-
-		}
-		else//ROAD
-		{
-			fprintf(stderr,"deal6015_07_readtime:1");
-		}
-
-	}
-
-
-	return result;
-}
 INT8S deal6015_07(CLASS_6015 st6015,BasicInfo6001 to6001)
 {
 	fprintf(stderr,"\n deal6015_07  meter = %d",to6001.sernum);
-	INT8S result = 0;
 	switch(st6015.cjtype)
 	{
 		case TYPE_NULL:/*采集当前数据--实时*/
 		{
-			//deal6015_07_readtime(st6015.csds,to6001.addr);
+			fprintf(stderr,"\n deal6015_07 采集当前数据--实时");
 		}
 		break;
 		case TYPE_LAST:/*采集上N次*/
 		{
-
+			fprintf(stderr,"\n deal6015_07 采集上N次数据--冻结");
 		}
 		break;
 		case TYPE_FREEZE:/*按冻结时标*/
@@ -284,6 +379,25 @@ INT8S deal6015_07(CLASS_6015 st6015,BasicInfo6001 to6001)
 		case TYPE_INTERVAL:/*按时标间隔---曲线*/
 			break;
 	}
+	FORMAT07 data07;
+	memset(&data07,0,sizeof(FORMAT07));
+
+	INT8S result = 0;
+
+	INT8U dataIndex = 0;
+	for(dataIndex = 0;dataIndex < st6015.csds.num;dataIndex++)
+	{
+		if(CSDMap07DI(0,1,&st6015.csds.csd[dataIndex].csd.oad,data07.DI))
+		{
+			request698_07Data(data07);
+		}
+		else
+		{
+			fprintf(stderr,"request698_07Data:1");
+			continue;
+		}
+	}
+
 	return result;
 }
 /*
@@ -314,11 +428,15 @@ INT8U deal6015_singlemeter(CLASS_6015 st6015,BasicInfo6001 obj6001)
 
 	switch(obj6001.protocol)
 	{
+#if 0
 		case DLT_645_07:
 			ret = deal6015_07(to6015,obj6001);
 			break;
 		default:
 			ret = deal6015_698(to6015,obj6001);
+#endif
+		default:
+			ret = deal6015_07(to6015,obj6001);
 	}
 	return ret;
 }
@@ -371,21 +489,18 @@ INT8U readList6001FromFile(BasicInfo6001* list6001,INT16U groupIndex,int recordn
 					list6001[mIndex%LIST6001SIZE].port = port485;
 					list6001[mIndex%LIST6001SIZE].baud = meter.basicinfo.baud;
 					list6001[mIndex%LIST6001SIZE].protocol = meter.basicinfo.protocol;
-					if(list6001[mIndex%LIST6001SIZE].protocol == DLT_645_07)
-					{
-						result = DLT_645_07;
-					}
 					memcpy(&list6001[mIndex%LIST6001SIZE].addr,&meter.basicinfo.addr,sizeof(TSA));
 					fprintf(stderr,"\n -------readList6001FromFile-------");
-					fprintf(stderr,"\n序号:%d %02x%02x%02x%02x%02x%02x ",meter.sernum,
+					fprintf(stderr,"\n序号:%d %02x%02x%02x%02x%02x%02x%02x%02x ",meter.sernum,
 							list6001[mIndex%LIST6001SIZE].addr.addr[0],list6001[mIndex%LIST6001SIZE].addr.addr[1],
 			                list6001[mIndex%LIST6001SIZE].addr.addr[2],list6001[mIndex%LIST6001SIZE].addr.addr[3],
-			                list6001[mIndex%LIST6001SIZE].addr.addr[4],list6001[mIndex%LIST6001SIZE].addr.addr[5]);
+			                list6001[mIndex%LIST6001SIZE].addr.addr[4],list6001[mIndex%LIST6001SIZE].addr.addr[5],
+			                list6001[mIndex%LIST6001SIZE].addr.addr[6],list6001[mIndex%LIST6001SIZE].addr.addr[7]);
 
 				}
 				else
 				{
-					fprintf(stderr,"非485测量点 %04X",meter.basicinfo.port.OI);
+					fprintf(stderr,"\n序号:%d 非485测量点 %04X",meter.sernum,meter.basicinfo.port.OI);
 				}
 			}
 		}
@@ -424,8 +539,6 @@ INT8U deal6015(CLASS_6015 st6015,INT8U port485)
 	/*
 	 * 根据st6015.csd 和 list6001抄表
 	 * */
-	OAD_07_MAPList* mapList698_07 = NULL;//保存数据（698--645）映射关系链表
-
 
 	INT16U groupNum = (recordnum/LIST6001SIZE) + 1;
 	INT16U groupindex;
@@ -434,13 +547,7 @@ INT8U deal6015(CLASS_6015 st6015,INT8U port485)
 	{
 		memset(list6001,0,LIST6001SIZE*sizeof(BasicInfo6001));
 		result = readList6001FromFile(list6001,groupindex,recordnum,to6015.mst,port485);
-		//如果需要抄读的测量点中有07规约的
-		if(result == DLT_645_07)
-		{
-	//		readMapListFromFile(st6015.cjtype);
 
-
-		}
 		for(mpIndex = 0;mpIndex < LIST6001SIZE;mpIndex++)
 		{
 			if(list6001[mpIndex].sernum > 0)
@@ -649,16 +756,18 @@ INT16S getNextTastIndexIndex()
 	INT16S taskIndex = -1;
 	INT16U tIndex = 0;
 
-	fprintf(stderr,"\n -----------------getNextTastIndexIndex = %d-----------------------",tIndex);
-
 	for(tIndex=0;tIndex<TASK6012_MAX;tIndex++)
 	{
-		if(list6013[tIndex].basicInfo.taskID == 0)
-			continue;
 
+		if(list6013[tIndex].basicInfo.taskID == 0)
+		{
+			continue;
+		}
+		fprintf(stderr,"\n ---------list6013[%d].basicInfo.taskID = %d ",tIndex,list6013[tIndex].basicInfo.taskID);
 		//run_flg > 0说明应该抄读还没有抄
 		if(list6013[tIndex].run_flg > 0)
 		{
+			fprintf(stderr,"\n  getNextTastIndexIndex-2222");
 			list6013[tIndex].run_flg++;
 		}
 		else
@@ -666,7 +775,7 @@ INT16S getNextTastIndexIndex()
 			//过滤任务无效或者不再抄表时段内的
 			if (filterInvalidTask(tIndex)==0)
 			{
-				fprintf(stderr,"\n filterInvalidTask");
+				fprintf(stderr,"\n  getNextTastIndexIndex-3333");
 				continue;
 			}
 			TS tsNow = {};
@@ -674,119 +783,23 @@ INT16S getNextTastIndexIndex()
 			if(TScompare(tsNow,list6013[tIndex].ts_next)==1)
 			{
 				list6013[tIndex].run_flg = 1;
+				fprintf(stderr,"\n  getNextTastIndexIndex-4444");
 			}
 		}
 		if((taskIndex == -1)&&(list6013[tIndex].run_flg > 0))
 		{
+			fprintf(stderr,"\n  getNextTastIndexIndex-5555");
 			taskIndex = tIndex;
 			continue;
 		}
 		if(cmpTaskPrio(taskIndex,tIndex) == 2)
 		{
+			fprintf(stderr,"\n  getNextTastIndexIndex-6666");
 			taskIndex = tIndex;
 			continue;
 		}
 	}
 	return taskIndex;
-}
-typedef enum{
-	coll_bps=1,
-	coll_protocol,
-	coll_wiretype,
-	task_ti,
-	task_cjtype,
-	task_prio,
-	task_status,
-	task_runtime
-}OBJ_ENUM;
-char *getenum(int type,int val)
-{
-	char name1[128]={};
-	char *name=NULL;
-
-	name = name1;
-	memset(name1,0,sizeof(name1));
-//	fprintf(stderr,"val=%d ,type=%d\n",val,type);
-	switch(type) {
-	case coll_bps:
-		if(val==bps300)	strcpy(name,"300");
-		if(val==bps600)	strcpy(name,"600");
-		if(val==bps1200)	strcpy(name,"1200");
-		if(val==bps2400)	strcpy(name,"2400");
-		if(val==bps4800)	strcpy(name,"4800");
-		if(val==bps7200)	strcpy(name,"7200");
-		if(val==bps9600)	strcpy(name,"9600");
-		if(val==bps19200)	strcpy(name,"19200");
-		if(val==bps38400)	strcpy(name,"38400");
-		if(val==bps57600)	strcpy(name,"57600");
-		if(val==bps115200)	strcpy(name,"115200");
-		if(val==autoa)		strcpy(name,"自适应");
-		break;
-	case coll_protocol:
-		if(val==0)	strcpy(name,"未知");
-		if(val==1)	strcpy(name,"DL/T645-1997");
-		if(val==2)	strcpy(name,"DL/T645-2007");
-		if(val==3)	strcpy(name,"DL/T698.45");
-		if(val==4)	strcpy(name,"CJ/T18802004");
-		break;
-	case coll_wiretype:
-		if(val==0)	strcpy(name,"未知");
-		if(val==1)	strcpy(name,"单相");
-		if(val==2)	strcpy(name,"三相三线");
-		if(val==3)	strcpy(name,"三相四线");
-		break;
-	case task_ti:
-		if(val==0)	strcpy(name,"秒");
-		if(val==1)	strcpy(name,"分");
-		if(val==2)	strcpy(name,"时");
-		if(val==3)	strcpy(name,"日");
-		if(val==4)	strcpy(name,"月");
-		if(val==5)	strcpy(name,"年");
-		break;
-	case task_cjtype:
-		if(val==1)	strcpy(name,"普通采集方案");
-		if(val==2)	strcpy(name,"事件采集方案");
-		if(val==3)	strcpy(name,"透明方案");
-		if(val==4)	strcpy(name,"上报方案");
-		if(val==5)	strcpy(name,"脚本方案");
-		break;
-	case task_prio:
-		if(val==1)	strcpy(name,"首要");
-		if(val==2)	strcpy(name,"必要");
-		if(val==3)	strcpy(name,"需要");
-		if(val==4)	strcpy(name,"可能");
-		break;
-	case task_status:
-		if(val==1)	strcpy(name,"正常");
-		if(val==2)	strcpy(name,"停用");
-		break;
-	case task_runtime:
-		if(val==0)	strcpy(name,"前闭后开");
-		if(val==1)	strcpy(name,"前开后闭");
-		if(val==2)	strcpy(name,"前闭后闭");
-		if(val==3)	strcpy(name,"前开后开");
-		break;
-	}
-//	fprintf(stderr,"get name=%s\n",name);
-	return name;
-}
-
-void print6013(CLASS_6013 class6013)
-{
-	fprintf(stderr,"\n----------------------------------");
-	fprintf(stderr,"【6013】任务配置单元: 任务ID--%04x\n",class6013.taskID);
-	fprintf(stderr,"[1]执行频率 [2]方案类型 [3]方案编号 [4]开始时间 [5]结束时间 [6]延时 [7]执行优先级 [8]状态 [9]开始前脚本id [10]开始后脚本id [11]运行时段【起始HH:MM 结束HH:MM】\n");
-	fprintf(stderr,"[1]%s-%d ",getenum(task_ti,class6013.interval.units),class6013.interval.interval);
-	fprintf(stderr,"[2]%s  [3]%d   ",getenum(task_cjtype,class6013.cjtype),class6013.sernum);
-	fprintf(stderr,"[4]%d-%d-%d %d:%d:%d ",class6013.startime.year.data,class6013.startime.month.data,class6013.startime.day.data,
-			class6013.startime.hour.data,class6013.startime.min.data,class6013.startime.sec.data);
-	fprintf(stderr,"[5]%d-%d-%d %d:%d:%d ",class6013.endtime.year.data,class6013.endtime.month.data,class6013.endtime.day.data,
-			class6013.endtime.hour.data,class6013.endtime.min.data,class6013.endtime.sec.data);
-	fprintf(stderr,"[6]%s-%d ",getenum(task_ti,class6013.delay.units),class6013.delay.interval);
-	fprintf(stderr,"[7]%s  ",getenum(task_prio,class6013.runprio));
-	fprintf(stderr,"[8]%s  [9]%d  [10]%d ",getenum(task_status,class6013.state),class6013.befscript,class6013.aftscript);
-
-	fprintf(stderr,"\n");
 }
 
 
@@ -808,10 +821,8 @@ INT8U init6013ListFrom6012File()
 	CLASS_6013	class6013={};
 	for(tIndex = 0;tIndex < TASK6012_MAX;tIndex++)
 	{
-		fprintf(stderr,"1111tIndex = %d",tIndex);
 		if(readCoverClass(oi,tIndex,&class6013,sizeof(CLASS_6013),coll_para_save)== 1)
 		{
-			fprintf(stderr,"tIndex = %d",tIndex);
 			memcpy(&list6013[tIndex].basicInfo,&class6013,sizeof(CLASS_6013));
 			list6013[tIndex].ts_next.Year = ts_now.Year;
 			list6013[tIndex].ts_next.Month = ts_now.Month;
@@ -840,7 +851,7 @@ void read485_thread(void* i485port)
 		getTaskNextTime(tastIndexIndex);
 		if(tastIndexIndex > -1)
 		{
-			fprintf(stderr,"\n------------------- taskID = %d",list6013[tastIndexIndex].basicInfo.taskID);
+			fprintf(stderr,"\n-read485_thread tastIndexIndex = %d taskID = %d",tastIndexIndex,list6013[tastIndexIndex].basicInfo.taskID);
 			CLASS_6035 result6035;//采集任务监控单元
 			memset(&result6035,0,sizeof(CLASS_6035));
 			result6035.taskID = list6013[tastIndexIndex].basicInfo.taskID;
@@ -850,7 +861,7 @@ void read485_thread(void* i485port)
 			{
 				case norm:/*普通采集方案*/
 				{
-					ret = use6013find6015(list6013[tastIndexIndex].basicInfo.taskID,&to6015);
+					ret = use6013find6015(list6013[tastIndexIndex].basicInfo.sernum,&to6015);
 					ret = deal6015(to6015,port);
 				}
 				break;
@@ -884,7 +895,7 @@ void read485_thread(void* i485port)
 		{
 			fprintf(stderr,"\n 当前无任务可执行");
 		}
-		sleep(3);
+		sleep(10);
 	}
 
 	pthread_detach(pthread_self());
@@ -909,23 +920,12 @@ void read485_thread(void* i485port)
 
 void read485_proccess()
 {
-#if 0
-	CLASS_6035 result6035;//采集任务监控单元
-	memset(&result6035,0,sizeof(CLASS_6035));
-	result6035.taskID = 1;
-	result6035.taskState = IN_OPR;
-	DataTimeGet(&result6035.starttime);
-	DataTimeGet(&result6035.endtime);
-	saveCoverClass(0x6035,result6035.taskID,&result6035,sizeof(CLASS_6035),coll_para_save);
-#endif
-
-	fprintf(stderr,"\n read485_proccess start");
+	//读取所有任务文件
 	init6013ListFrom6012File();
-	fprintf(stderr,"\n init6013ListFrom6012File end");
 
 
 	INT8U i485port1 = 1;
-	INT8U i485port2 = 2;
+
 	pthread_attr_init(&read485_attr_t);
 	pthread_attr_setstacksize(&read485_attr_t,2048*1024);
 	pthread_attr_setdetachstate(&read485_attr_t,PTHREAD_CREATE_DETACHED);
@@ -933,11 +933,13 @@ void read485_proccess()
 	{
 		sleep(1);
 	}
-
+/*
+ * 	INT8U i485port2 = 2;
 	while ((thread_read4852_id=pthread_create(&thread_read4852, &read485_attr_t, (void*)read485_thread, &i485port2)) != 0)
 	{
 		sleep(1);
 	}
+	*/
 
 }
 
