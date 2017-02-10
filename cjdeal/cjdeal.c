@@ -54,7 +54,6 @@ int InitPro(ProgramInfo** prginfo, int argc, char *argv[])
 int InitPara()
 {
 	InitACSPara();
-	Event_Init();
 	read_oif203_para();		//开关量输入值读取
 	return 0;
 }

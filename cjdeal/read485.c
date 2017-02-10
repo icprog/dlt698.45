@@ -191,32 +191,58 @@ INT8S deal6015_698(CLASS_6015 st6015,BasicInfo6001 to6001)
 	SendDataTo485(comfd4851, sendbuff, sendLen);
 	recvLen = ReceDataFrom485(comfd4851, 500, recvbuff);
 
-
-
 	return result;
 }
-INT8S OADTo07DI(OAD fromOAD,INT8U* toDI)
+/*
+ * 698 OAD 和 645 07规约 数据标识转换
+ * dataType:0-实时数据 realDataMapListHead 1-冻结数据 freezeDataMapListHead
+ * dir:0-通过698OAD找64507DI 1-通过64507DI找698OAD
+ * */
+INT8S OADMap07DI(INT8U dataType,INT8U dir,OAD* fromOAD,INT8U* toDI)
 {
 	INT8S result = 0;
+	OAD_07_MAPList* findptr;
+#if 0
+	if(dataType == 0)
+	{
+		findptr = realDataMapListHead;
+	}
+	else
+	{
+		findptr = freezeDataMapListHead;
+	}
+#endif
+	while(findptr!=NULL)
+	{
+		if(dir == 1)
+		{
+			INT8U flagOAD[4];
+			memcpy(flagOAD,&fromOAD->OI,2);
+			flagOAD[3] = fromOAD->attflg;
+			flagOAD[4] = fromOAD->attrindex;
+			if(memcmp(fromOAD,findptr->flagOAD,4)==0)
+			{
+				memcpy(toDI,findptr->flag07,4);
+				return 1;
+			}
+		}
+//		findptr = findptr->next;
+
+	}
+
+
 
 	return result;
 }
-INT8S request698_07Data(OAD meterOAD,TSA meterAddr)
+INT8S request698_07Data(FORMAT07 data07)
 {
 	INT8S result = 0;
 	FORMAT07 Data07;
 	memset(&Data07,0,sizeof(FORMAT07));
-	if(OADTo07DI(meterOAD,Data07.DI))
-	{
 
-	}
-	else
-	{
-		fprintf(stderr,"request698_07Data:1");
-	}
 	return result;
 }
-INT8S deal6015_07_readtime(CSD_ARRAYTYPE csds,TSA meterAddr)
+INT8S deal6015_07_realtime(CSD_ARRAYTYPE csds,TSA meterAddr)
 {
 	INT8S result = 0;
 
@@ -226,7 +252,18 @@ INT8S deal6015_07_readtime(CSD_ARRAYTYPE csds,TSA meterAddr)
 		//OAD
 		if(csds.csd[dataIndex].type == 0)
 		{
-			request698_07Data(csds.csd[dataIndex].csd.oad,meterAddr);
+			FORMAT07 data07;
+
+			if(OADMap07DI(0,1,&csds.csd[dataIndex].csd.oad,data07.DI))
+			{
+
+			}
+			else
+			{
+				fprintf(stderr,"request698_07Data:1");
+				continue;
+			}
+			request698_07Data(data07);
 
 		}
 		else//ROAD
@@ -247,7 +284,7 @@ INT8S deal6015_07(CLASS_6015 st6015,BasicInfo6001 to6001)
 	{
 		case TYPE_NULL:/*采集当前数据--实时*/
 		{
-			deal6015_07_readtime(st6015.csds,to6001.addr);
+			//deal6015_07_readtime(st6015.csds,to6001.addr);
 		}
 		break;
 		case TYPE_LAST:/*采集上N次*/
@@ -347,6 +384,10 @@ INT8U readList6001FromFile(BasicInfo6001* list6001,INT16U groupIndex,int recordn
 					list6001[mIndex%LIST6001SIZE].port = port485;
 					list6001[mIndex%LIST6001SIZE].baud = meter.basicinfo.baud;
 					list6001[mIndex%LIST6001SIZE].protocol = meter.basicinfo.protocol;
+					if(list6001[mIndex%LIST6001SIZE].protocol == DLT_645_07)
+					{
+						result = DLT_645_07;
+					}
 					memcpy(&list6001[mIndex%LIST6001SIZE].addr,&meter.basicinfo.addr,sizeof(TSA));
 					fprintf(stderr,"\n -------readList6001FromFile-------");
 					fprintf(stderr,"\n序号:%d %02x%02x%02x%02x%02x%02x ",meter.sernum,
@@ -396,6 +437,9 @@ INT8U deal6015(CLASS_6015 st6015,INT8U port485)
 	/*
 	 * 根据st6015.csd 和 list6001抄表
 	 * */
+	OAD_07_MAPList* mapList698_07 = NULL;//保存数据（698--645）映射关系链表
+
+
 	INT16U groupNum = (recordnum/LIST6001SIZE) + 1;
 	INT16U groupindex;
 	INT8U mpIndex;
@@ -403,6 +447,13 @@ INT8U deal6015(CLASS_6015 st6015,INT8U port485)
 	{
 		memset(list6001,0,LIST6001SIZE*sizeof(BasicInfo6001));
 		result = readList6001FromFile(list6001,groupindex,recordnum,to6015.mst,port485);
+		//如果需要抄读的测量点中有07规约的
+		if(result == DLT_645_07)
+		{
+	//		readMapListFromFile(st6015.cjtype);
+
+
+		}
 		for(mpIndex = 0;mpIndex < LIST6001SIZE;mpIndex++)
 		{
 			if(list6001[mpIndex].sernum > 0)
@@ -412,44 +463,9 @@ INT8U deal6015(CLASS_6015 st6015,INT8U port485)
 		}
 	}
 
+
 	return result;
 }
-
-//void get_request(INT8U *cjtype,INT8U oad_num,INT8U piid,INT8U *oad,INT8U TP)
-//{
-//	int i=0;
-//	INT16U sendindex=0;
-//	INT8U sendbuf[512];
-//
-//	//报文头以后组 todo
-//	sendbuf[sendindex++] = 0x05;
-//	switch (cjtype[0])
-//	{
-//	case 0://实时数据
-//		if(oad_num > 1)
-//			sendbuf[sendindex++] = 0x01;//normal
-//		else
-//			sendbuf[sendindex++] = 0x02;//normallist
-//		sendbuf[sendindex++] = (piid+1)%256;
-//		if(oad_num > 1)
-//			sendbuf[sendindex++] = oad_num;//piid后面为个数
-//		for(i=0;i<oad_num;i++)
-//		{
-//			memcpy(&sendbuf[sendindex],&oad[i][0],4);//oad为二位数组
-//			sendindex += 4;
-//		}
-//		break;
-//	case 1://日冻结 采集上第N次
-//		sendbuf[sendindex++] = 0x03;//record
-//		sendbuf[sendindex++] = (piid+1)%256;
-//		memcpy(&sendbuf[sendindex],&oad[i][0],4);//oad为二位数组,第0个为冻结类型
-//		sendindex += 4;
-//		sendbuf[sendindex++] = 0x01;//选择方法为RCSD
-//		break;
-//	default:break;
-//	}
-//	sendbuf[sendindex++] = TP;
-//}
 
 INT8U time_in_shiduan(TASK_RUN_TIME str_runtime)
 {
@@ -884,20 +900,28 @@ void read485_thread(void* i485port)
 	pthread_detach(pthread_self());
 	if(port==1)
 	{
+		fprintf(stderr,"485 1 线程退出");
 		pthread_exit(&thread_read4851);
+
 	}
 
 	if(port==2)
 	{
+		fprintf(stderr,"485 1 线程退出");
 		pthread_exit(&thread_read4852);
+
 	}
 
 	sleep(1);
 
 
 }
+void initVariable()
+{
+}
 void read485_proccess()
 {
+	initVariable();
 	init6013ListFrom6012File();
 	fprintf(stderr,"\n init6013ListFrom6012File end");
 
