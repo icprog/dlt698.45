@@ -213,7 +213,7 @@ void event_process(int argc, char *argv[])
 					break;
 				case 0x3100:
 				case 0x3104:
-					fprintf(stderr,"class-%04x\n",oi);
+					fprintf(stderr,"class-%04x ,len=%d\n",oi,sizeof(Class7_Object));
 					memset(&class7,0,sizeof(Class7_Object));
 					readCoverClass(oi,0,&class7,sizeof(Class7_Object),event_para_save);
 					printClass7(class7);

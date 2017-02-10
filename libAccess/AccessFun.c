@@ -38,6 +38,33 @@ void clearData()
 void clearEvent()
 {
 	//事件类数据清除
+	INT8U*	eventbuff=NULL;
+	int 	saveflg=0,i=0;
+	int		classlen=0;
+	Class7_Object	class7={};
+
+	for(i=0; i < sizeof(event_class_len)/sizeof(EVENT_CLASS_INFO);i++)
+	{
+		if(event_class_len[i].oi) {
+//			fprintf(stderr,"i=%d, oi=%04x,3104size=%d\n",i,event_class_len[i].oi,sizeof(Class7_Object));
+			classlen = event_class_len[i].classlen;//getClassFileLen(event_class_len[i].oi,0,event_para_save);
+			eventbuff = (INT8U *)malloc(classlen);
+			if(eventbuff!=NULL) {
+				memset(eventbuff,0,classlen);
+				saveflg = readCoverClass(event_class_len[i].oi,0,eventbuff,classlen,event_para_save);
+//				fprintf(stderr,"saveflg=%d\n",saveflg);
+				if(saveflg) {
+					memcpy(&class7,eventbuff,sizeof(Class7_Object));
+//					fprintf(stderr,"i=%d,oi=%d,class7.crrentnum=%d\n",i,event_class_len[i].oi,class7.crrentnum);
+					class7.crrentnum = 0;			//清除当前记录数
+					memcpy(eventbuff,&class7,sizeof(Class7_Object));
+					saveflg = saveCoverClass(event_class_len[i].oi,0,eventbuff,classlen,event_para_save);
+				}
+				free(eventbuff);
+				eventbuff=NULL;
+			}
+		}
+	}
 	system("rm -rf /nand/event/record");
 	system("rm -rf /nand/event/current");
 }
@@ -320,6 +347,7 @@ int readCoverClass(OI_698 oi,INT16U seqno,void *blockdata,int datalen,int type)
 	char	fname[FILENAMELEN]={};
 	int		readlen = 0;
 	sem_t   *sem_save=NULL;
+	void 	*blockdata1=NULL;
 
 	sem_save = InitSem();
 	switch(type) {
@@ -332,11 +360,15 @@ int readCoverClass(OI_698 oi,INT16U seqno,void *blockdata,int datalen,int type)
 		memset(fname,0,sizeof(fname));
 		getFileName(oi,seqno,type,fname);
 		if(datalen<=2)	return -1;
-
 		if(datalen%4==0)	readlen = datalen-2;
 		else readlen = datalen+(4-datalen%4)-2;
 //		fprintf(stderr,"readlen=%d\n",readlen);
-		ret = block_file_sync(fname,blockdata,readlen,0,0);	//返回数据去掉CRC校验的两个字节
+		blockdata1 = malloc(readlen);
+		if(blockdata1) {
+			ret = block_file_sync(fname,blockdata1,readlen,0,0);	//返回数据去掉CRC校验的两个字节
+			memcpy(blockdata,blockdata1,datalen);
+		}
+		if(blockdata1!=NULL)	free(blockdata1);
 	break;
 	case event_record_save:
 	case event_current_save:

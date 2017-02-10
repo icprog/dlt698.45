@@ -430,9 +430,9 @@ INT8U file_read(char *FileName, void *source, int size,int offset,INT16U *retcrc
 //		}
 		if(num==(size-2)) {			//读取了size字节数据
 			INT16U crc= make_parity(source,size);
-//			fprintf(stderr,"\n计算 crc =%04x\n",crc);
+			fprintf(stderr,"\n计算 crc =%04x\n",crc);
 			if(crc==readcrc)  {
-//				fprintf(stderr,"read ok\n");
+				fprintf(stderr,"read ok\n");
 				*retcrc = readcrc;
 				ret = 1;
 			}
@@ -634,6 +634,7 @@ INT8U save_block_file(char *fname,void *blockdata,int size,int headsize,int inde
 	//文件默认最后两个字节为CRC16校验，原结构体尺寸如果不是4个字节对齐，进行补齐，加CRC16
 	if(size%4==0)	sizenew = size+2;
 	else sizenew = size+(4-size%4)+2;
+
 //	fprintf(stderr,"write fname=%s,size=%d,sizenew=%d\n",fname,size,sizenew);
 
 	offset = headsize+sizenew*index;
@@ -659,13 +660,16 @@ INT8U save_block_file(char *fname,void *blockdata,int size,int headsize,int inde
 /////////////////////////////////////////////////////////
 sem_t * InitSem()
 {
+	return NULL;
 	int			val=0;
 	sem_t * 	sem_parasave=NULL;	//参数文件存储信号量
 	//打开信号量
 	sem_parasave = open_named_sem(SEMNAME_PARA_SAVE);
-//	sem_getvalue(sem_parasave, &val);
-//	fprintf(stderr,"\nprocess The sem = %s value = %d sem_parasave=%p\n",SEMNAME_PARA_SAVE, val,sem_parasave);
-	sem_wait(sem_parasave);
+	if(sem_parasave!=NULL) {
+		sem_getvalue(sem_parasave, &val);
+		fprintf(stderr,"\nprocess The sem = %s value = %d sem_parasave=%p\n",SEMNAME_PARA_SAVE, val,sem_parasave);
+		sem_wait(sem_parasave);
+	}
 //	sem_getvalue(sem_parasave, &val);
 //	fprintf(stderr,"\nprocess The sem = %s value = %d sem_parasave=%p\n",SEMNAME_PARA_SAVE, val,sem_parasave);
 	return sem_parasave;
@@ -673,6 +677,7 @@ sem_t * InitSem()
 
 void CloseSem(sem_t * sem_parasave)
 {
+	return;
 //	int  val=0;
 	sem_post(sem_parasave);
 //	sem_getvalue(sem_parasave, &val);

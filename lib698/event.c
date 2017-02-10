@@ -345,10 +345,13 @@ INT8U Get_Event(OI_698 oi,INT8U eventno,INT8U** Getbuf,int *Getlen)
 	if(_currno<=0 || _currno>maxno)
 		_currno = maxno;
 	filesize = getClassFileLen(oi,_currno,event_record_save);
+	fprintf(stderr,"filesize=%d \n",filesize);
 	if(filesize<=0)  return 0;
 	*Getlen=filesize;
 	*Getbuf=(INT8U*)malloc(filesize);
+	fprintf(stderr,"Getlen=%d \n",*Getlen);
 	readCoverClass(oi,_currno,*Getbuf,*Getlen,event_record_save);
+	fprintf(stderr,"00Getlen=%d \n",*Getlen);
 	return 1;
 }
 /*
