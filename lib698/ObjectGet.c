@@ -13,16 +13,17 @@
 #include "Objectdef.h"
 #include "dlt698def.h"
 #include "PublicFunction.h"
+#include "event.h"
+
 extern INT8S (*pSendfun)(int fd,INT8U* sndbuf,INT16U sndlen);
 extern int FrameHead(CSINFO *csinfo,INT8U *buf);
 extern void FrameTail(INT8U *buf,int index,int hcsi);
-extern INT8U Get_Event(OI_698 oi,INT8U eventno,INT8U** Getbuf,int *Getlen);
 extern int get_BasicRSD(INT8U *source,INT8U *dest,INT8U *type);
 extern int get_BasicRCSD(INT8U *source,INT8U *dest);
-
 extern int comfd;
 extern INT8U TmpDataBuf[MAXSIZ_FAM];
 extern INT8U securetype;
+extern ProgramInfo *memp;
 typedef struct
 {
 	OAD oad;
@@ -268,8 +269,9 @@ int GetEventInfo(RESULT_NORMAL *response)
 {
 	INT8U *data=NULL;
 	int datalen=0;
-	if ( Get_Event(response->oad.OI,response->oad.attrindex,&data,&datalen) == 1 )
+	if ( Get_Event(response->oad.OI,response->oad.attrindex,&data,(int *)&datalen,memp) == 1 )
 	{
+		fprintf(stderr,"datalen=%d\n",datalen);
 		if (datalen > 512 || data==NULL)
 		{
 			fprintf(stderr,"\n获取事件数据Get_Event函数异常! [datalen=%d  data=%p]",datalen,data);

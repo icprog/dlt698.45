@@ -35,6 +35,7 @@
 								<option id="org.eclipse.cdt.cross.arm.gnu.c.compiler.option.optimization.level.1011360547" name="Optimization level" superClass="org.eclipse.cdt.cross.arm.gnu.c.compiler.option.optimization.level" value="org.eclipse.cdt.cross.arm.gnu.base.option.optimization.level.size" valueType="enumerated"/>
 								<option id="org.eclipse.cdt.cross.arm.gnu.c.compiler.option.include.paths.715179002" name="Include paths (-I)" superClass="org.eclipse.cdt.cross.arm.gnu.c.compiler.option.include.paths" valueType="includePath">
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/include}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/libevent}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/libcc}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/libAccess}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/lib698}&quot;"/>
@@ -56,12 +57,14 @@
 								<option id="org.eclipse.cdt.cross.arm.gnu.cpp.link.option.nostart.93778905" name="Do not use standard start files (-nostartfiles)" superClass="org.eclipse.cdt.cross.arm.gnu.cpp.link.option.nostart" value="false" valueType="boolean"/>
 								<option id="org.eclipse.cdt.cross.arm.gnu.cpp.link.option.paths.145406798" name="Library search path (-L)" superClass="org.eclipse.cdt.cross.arm.gnu.cpp.link.option.paths" valueType="libPaths">
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/libAccess/Release}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/libevent/Release}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/libEsam/Release}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/lib698/Release}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/libBase/Release}&quot;"/>
 								</option>
 								<option id="org.eclipse.cdt.cross.arm.gnu.cpp.link.option.libs.1257424912" name="Libraries (-l)" superClass="org.eclipse.cdt.cross.arm.gnu.cpp.link.option.libs" valueType="libs">
 									<listOptionValue builtIn="false" value="698"/>
+									<listOptionValue builtIn="false" value="event"/>
 									<listOptionValue builtIn="false" value="Esam"/>
 									<listOptionValue builtIn="false" value="Access"/>
 									<listOptionValue builtIn="false" value="Base"/>

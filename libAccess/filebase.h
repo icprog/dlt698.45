@@ -54,6 +54,7 @@ extern void makeEventDir(OI_698 oi);
 extern void makeSubDir(char *DirName);
 
 extern void getFileName(OI_698 oi,INT16U seqno,INT16U type,char *fname);
+extern int  readFileName(OI_698 oi,INT16U seqno,INT16U type,char *fname);
 extern long getFileRecordNum(OI_698 oi);
 extern long getFileLen(char *filename);
 extern INT16S getclassinfo(OI_698 oi,CLASS_INFO *classinfo);

@@ -7,9 +7,11 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+
 #include "AccessFun.h"
 #include "StdDataType.h"
 #include "Objectdef.h"
+#include "main.h"
 
 typedef enum{
 	coll_bps=1,
