@@ -466,13 +466,14 @@ void cjframe(int argc, char *argv[])
 {
 	INT8U tempbuf[512];
 	int len=0,i=0,tmp=0;
+	fprintf(stderr,"\nargc =%d",argc);
 	if (argc>3)
 	{
 		len = argc - 2;//cj test 05 02 23 34 54 67
 		if (len>512)
 			return;
 		memset(tempbuf,0,512);
-		for(i=0;i<argc;i++)
+		for(i=0;i<len;i++)
 		{
 			sscanf(argv[i+2],"%02x",&tmp);
 			tempbuf[i] = (INT8U)tmp;

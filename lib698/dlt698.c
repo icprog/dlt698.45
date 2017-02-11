@@ -609,7 +609,6 @@ void testframe(INT8U *apdu,int len)
 	buf[i++]= 0x68;//起始码
 	buf[i++]= 0;	//长度
 	buf[i++]= 0;
-
 	buf[i++]= 0xc3;
 	buf[i++]= 0x05;
 	buf[i++]= 0x08;
@@ -621,7 +620,7 @@ void testframe(INT8U *apdu,int len)
 	buf[i++]= 0x10;
 	hcsi = i;
 	i = i + 2;
-	memcpy(buf,apdu,len);
+	memcpy(&buf[i],apdu,len);
 	i = i + len;
 	FrameTail(buf,i,hcsi);
 	int k=0;
