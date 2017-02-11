@@ -455,13 +455,13 @@ int doGetrecord(RESULT_RECORD *record)
 	int datalen=0;
 
 //	int getSelector(RSD select,INT8U type,CSD_ARRAYTYPE csds,INT8U** Databuf,int *Datalen);
-	if (getSelector(record->select,SelectorN,record->rcsd,(INT8U *)&record->data,datalen)>0)
-	{
-
-	}else
-	{
-		//错误
-	}
+////	if (getSelector(record->select,SelectorN,record->rcsd,(INT8U *)&record->data,datalen)>0)
+//	{
+//
+//	}else
+//	{
+//		//错误
+//	}
 	return 1;
 }
 int doGetnormal(RESULT_NORMAL *response)
