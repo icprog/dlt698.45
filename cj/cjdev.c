@@ -22,7 +22,7 @@
 
 void printF203()
 {
-	static CLASS_f203	oif203={};
+	CLASS_f203	oif203={};
 	readCoverClass(0xf203,0,&oif203,sizeof(CLASS_f203),para_vari_save);
 	fprintf(stderr,"[F203]开关量输入\n");
 	fprintf(stderr,"逻辑名 %s\n",oif203.class22.logic_name);
@@ -33,12 +33,29 @@ void printF203()
 	fprintf(stderr,"属性4：属性标志=%02x\n",oif203.state4.StatePropFlag);
 }
 
-//void SetF101(int argc, char *argv[])
-//{
-//	CLASS_F101  f101={};
-//	readCoverClass(0xf101,0,&f101,sizeof(CLASS_F101),para_vari_save);
-//
-//}
+void print101()
+{
+	CLASS_F101  f101={};
+	readCoverClass(0xf101,0,&f101,sizeof(CLASS_F101),para_vari_save);
+	fprintf(stderr,"[F101]安全模式参数\n");
+	if(f101.active==0) {
+		fprintf(stderr,"属性2:安全模式选择：不启用安全模式参数\n");
+	}else 	if(f101.active==1) {
+		fprintf(stderr,"属性2:安全模式选择：启用安全模式参数\n");
+	}else {
+		fprintf(stderr,"属性2:安全模式选择[0,1]：读取无效值：%d\n",f101.active);
+	}
+}
+
+void SetF101(int argc, char *argv[])
+{
+	CLASS_F101  f101={};
+	if(strcmp(argv[2],"init")==0) {
+		memset(&0xf101,0,sizeof(CLASS_F101));
+		f101.active = 1;		//初始化启用
+		saveCoverClass(0xf101,0,&f101,sizeof(CLASS_F101),para_init_save);
+	}
+}
 
 void inoutdev_process(int argc, char *argv[])
 {
@@ -47,15 +64,24 @@ void inoutdev_process(int argc, char *argv[])
 
 	if(argc>=2) {	//dev pro
 		if(strcmp(argv[1],"dev")==0) {
+			sscanf(argv[3],"%04x",&tmp);
+			oi = tmp;
 			if(strcmp(argv[2],"pro")==0) {
-				sscanf(argv[3],"%04x",&tmp);
-				oi = tmp;
 				switch(oi) {
 				case 0xf203:
 					printF203();
 					break;
+				case 0xf101:
+					printfF101();
+				}
+			}else {
+				switch(oi) {
+				case 0xf101:
+					SetF101(argc,argv);
+					break;
 				}
 			}
+
 		}
 	}
 }
