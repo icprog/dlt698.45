@@ -13,7 +13,6 @@
 #include "Shmem.h"
 #include "StdDataType.h"
 #include "ParaDef.h"
-
 extern void setsystime(DateTimeBCD datetime);
 extern void TSGet(TS *ts);
 extern INT8U TScompare(TS ts1,TS ts2);

@@ -435,7 +435,6 @@ typedef struct
 
 typedef struct
 {
-	CSD rcsd[16];
 	CSD_ARRAYTYPE csds;	//csd数组
 }RCSD;	/*记录列选择描述符*/
 
@@ -711,6 +710,7 @@ typedef struct{
 	int RHead,RTail;				//接收报文头指针，尾指针
 	int deal_step;					//数据接收状态机处理标记
 	int	rev_delay;					//接收延时
+	INT8U securetype;				//安全类型
 	void* shmem;
 	INT8S (*p_send)(int fd,INT8U * buf,INT16U len);
 }CommBlock;
