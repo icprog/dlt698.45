@@ -13,6 +13,7 @@
 #include "dlt698def.h"
 #include "Objectdef.h"
 
+void get_BasicUnit(INT8U *source,INT16U *sourceindex,INT8U *dest,INT16U *destindex);
 extern void FrameTail(INT8U *buf,int index,int hcsi);
 extern int FrameHead(CSINFO *csinfo,INT8U *buf);
 extern INT8S (*pSendfun)(int fd,INT8U* sndbuf,INT16U sndlen);
@@ -85,74 +86,132 @@ int getDateTimeBCD(INT8U *source,INT8U *dest)
  */
 int get_BasicRSD(INT8U *source,INT8U *dest,INT8U *type)
 {
-	INT16U source_sumindex=0,source_index=0,dest_sumindex=0,dest_index=0;
-	int index = 0,i=0;
-	INT8U selectype =0;
+	INT16U source_sumindex=0,source_index=0,dest_index=0;
+	int index = 0;
+	INT8U tmpbuf[2];
 	Selector4 select4;
+	Selector6 select6;
+	Selector9 select9;
+	Selector10 select10;
 	Selector1 select1;
 	Selector2 select2;
-	selectype  = source[0];//选择方法
-	switch(selectype )
+
+	*type = source[0];//选择方法
+	switch(*type )
 	{
 		case 0:
 			dest[0] = 0;
+			index = 1;
 			break;
 		case 1:
-
 			memset(&select1,0,sizeof(select1));
 			select1.oad.OI= (source[1]<<8) | source[2];
 			select1.oad.attflg = source[3];
 			select1.oad.attrindex = source[4];
+			select1.data.type = 0xAA;
 			get_BasicUnit(&source[5]+source_sumindex,&source_index,(INT8U *)&select1.data,&dest_index);
 			source_sumindex += source_index;
-			dest_sumindex += dest_index;
 			memcpy(dest,&select1,sizeof(select1));
+			index = source_sumindex + 4 ;
 			break;
 		case 2:
-
 			memset(&select2,0,sizeof(select2));
 			select2.oad.OI= (source[1]<<8) | source[2];
 			select2.oad.attflg = source[3];
 			select2.oad.attrindex = source[4];
+			select2.data_from.type = 0xAA;
 			get_BasicUnit(&source[5]+source_sumindex,&source_index,(INT8U *)&select2.data_from,&dest_index);
 			source_sumindex += source_index;
-			dest_sumindex += dest_index;
+			select2.data_to.type = 0xAA;
 			get_BasicUnit(&source[5]+source_sumindex,&source_index,(INT8U *)&select2.data_to,&dest_index);
 			source_sumindex += source_index;
-			dest_sumindex += dest_index;
+			select2.data_jiange.type = 0xAA;
 			get_BasicUnit(&source[5]+source_sumindex,&source_index,(INT8U *)&select2.data_jiange,&dest_index);
 			source_sumindex += source_index;
-			dest_sumindex += dest_index;
 			memcpy(dest,&select2,sizeof(select2));
+			index = source_sumindex + 4;
 			break;
 		case 3:
 			break;
 		case 4:
-
-			index = getDateTimeBCD(source,&select4.collect_star);
-			select4.meters.mstype = 0x5c;
-			get_BasicUnit(&source[5]+source_sumindex,&source_index,(INT8U *)&select2.data_jiange,&dest_index);
-			break;
 		case 5:
+			index = getDateTimeBCD(source,(INT8U *)&select4.collect_star);
+			select4.meters.mstype = 0x5c;
+			select2.data_jiange.type = 0xAA;
+			get_BasicUnit(&source[5],&source_index,(INT8U *)&select2.data_jiange,&dest_index);
+			source_sumindex += source_index;
+			index += source_sumindex;
+			memcpy(dest,&select4,sizeof(select4));
 			break;
 		case 6:
-			break;
 		case 7:
-			break;
 		case 8:
+			index = getDateTimeBCD(source,(INT8U *)&select6.collect_star);
+			index += getDateTimeBCD(source+index,(INT8U *)&select6.collect_finish);
+			select6.ti.units = source[7];//单位
+			tmpbuf[1] = source[8];//long unsigned数值
+			tmpbuf[0] = source[9];
+			memcpy(&select6.ti.interval,tmpbuf,2);
+			get_BasicUnit(&source[10],&source_index,(INT8U *)&select6.meters.mstype,&dest_index);
+			index = source_index + sizeof(DateTimeBCD)+ sizeof(DateTimeBCD)+ sizeof(TI);
+			memcpy(dest,&select6,sizeof(select6));
 			break;
 		case 9:
+			select9.recordn = source[0];
+			memcpy(dest,&select9,sizeof(select9));
+			index = 1;
 			break;
 		case 10:
+			select10.recordn = source[0];
+			get_BasicUnit(&source[1],&source_index,(INT8U *)&select10.meters.mstype,&dest_index);
+			index = source_index + sizeof(DateTimeBCD)+ sizeof(DateTimeBCD)+ sizeof(TI);
+			memcpy(dest,&select10,sizeof(select10));
 			break;
 	}
+	return index;
 }
 /*
  * 解析记录列选择 RCSD
  */
-int get_BasicRCSD(INT8U *source,INT8U *dest)
+int get_BasicRCSD(INT8U *source,CSD_ARRAYTYPE *csds)
 {
-
+	INT8U oadtmp[4];
+	int i=0,index=0,j=0;
+	INT8U num=0;
+	num = source[index++];
+	csds->num = num;
+	for(i=0;i<num ;i++)
+	{
+		csds->csd[i].type = source[index++];
+		if (csds->csd[i].type  == 1)
+		{//road
+			oadtmp[0] = source[index+1];
+			oadtmp[1] = source[index+0];
+			oadtmp[2] = source[index+2];
+			oadtmp[3] = source[index+3];
+			memcpy(&csds->csd[i].csd.road.oad,oadtmp,4);
+			index = index +4;
+			csds->csd[i].csd.road.num = source[index++];
+			for(j=0;j<csds->csd[i].csd.road.num;j++)
+			{
+				oadtmp[0] = source[index+1];
+				oadtmp[1] = source[index+0];
+				oadtmp[2] = source[index+2];
+				oadtmp[3] = source[index+3];
+				index = index +4;
+				memcpy(&csds->csd[i].csd.road.oad,oadtmp,4);
+			}
+		}else
+		{//oad  6字节
+			oadtmp[0] = source[index+1];
+			oadtmp[1] = source[index+0];
+			oadtmp[2] = source[index+2];
+			oadtmp[3] = source[index+3];
+			index = index + 4;
+			memcpy(&csds->csd[i].csd.road.oad,oadtmp,4);
+		}
+	}
+	return index;
 }
 void get_BasicUnit(INT8U *source,INT16U *sourceindex,INT8U *dest,INT16U *destindex)
 {

@@ -26,6 +26,7 @@ INT8S (*pSendfun)(int fd,INT8U* sndbuf,INT16U sndlen);
 int comfd = 0;
 INT8U TmpDataBuf[MAXSIZ_FAM];
 ProgramInfo *memp;
+INT8U securetype;
 /**************************************
  * 函数功能：DL/T698.45 状态机
  * 参数含义：
@@ -369,6 +370,7 @@ int doGetAttribute(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
 	oad.attflg = apdu[5];
 	oad.attrindex = apdu[6];
 	data = &apdu[7];					//Data
+
 	switch(getType)
 	{
 		case GET_REQUEST_NORMAL:
@@ -545,8 +547,8 @@ INT8U dealClientRequest(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
 			fprintf(stderr,"\n安全请求计算错误!!!");
 			return 0;
 		}
+		apduType = apdu[0];
 	}
-
 	switch(apduType)
 	{
 		case CONNECT_REQUEST:
@@ -577,7 +579,7 @@ int ProcessData(CommBlock *com)
 	INT8U *apdu= NULL;
 	INT8U *Rcvbuf = com->DealBuf;
 	INT8U *SendBuf = com->SendBuf;
-
+//	securetype =  &com->securetype;
 	memp = (ProgramInfo*)com->shmem;
 	pSendfun = com->p_send;
 	comfd = com->phy_connect_fd;
