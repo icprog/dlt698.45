@@ -30,20 +30,22 @@ typedef struct
 
 typedef struct
 {
-	INT8U factoryCode[4];
-	INT8U softVer[4];
-	INT8U softDate[6];
-	INT8U hardVer[4];
-	INT8U hardDate[6];
-	INT8U factoryExpInfo[8];
+	char factoryCode[4];	//厂商代码
+	char softVer[4];		//软件版本号
+	char softDate[6];		//软件版本日期
+	char hardVer[4];		//硬件版本号
+	char hardDate[6];		//硬件版本日期
+	char factoryExpInfo[8];//厂家扩展信息
 }VERINFO;
+
 typedef struct
 {
-	INT8U name[OCTET_STRING_LEN];		//逻辑名
+	char name[OCTET_STRING_LEN];		//逻辑名
+	char devdesc[OCTET_STRING_LEN];		//设备描述符
 	VERINFO info;						//版本信息
 	DateTimeBCD date_Product;			//生产日期
 	OI_698 ois[10];						//子设备列表
-	INT8U protcol[10];					//支持的规约列表
+	char  protcol[OCTET_STRING_LEN];	//支持的规约列表
 	INT8U follow_report;				//是否允许跟随上报
 	INT8U active_report;				//是否允许主动上报
 	INT8U talk_master;					//是否允许与主站通话
@@ -244,14 +246,14 @@ typedef struct
  ********************************************************/
 typedef struct
 {
-	OI_698 oi;
-	INT16U model;
+	OI_698 oi;			//对象标识
+	INT16U model;		//安全模式
 }SecureModel;
 
 typedef struct
 {
-	INT8U active;
-	SecureModel modelpara[255];
+	INT8U 		active;			//属性2：安全模式选择（0：不启用安全模式参数，1：启用安全模式）
+	SecureModel modelpara[255]; //属性3：显示安全模式参数
 }CLASS_F101;//安全模式参数
 
 typedef struct
