@@ -389,7 +389,35 @@ int doGetAttribute(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
 	}
 	return 1;
 }
+int doProxyRequest(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
+{
+	PIID piid={};
+	INT8U getType = apdu[1];
+	OAD oad={};
+	INT8U *data=NULL;
 
+	piid.data = apdu[2];
+	fprintf(stderr,"\n代理 PIID %02x   ",piid.data);
+	switch(getType)
+	{
+		case ProxyGetRequestList:
+			Proxy_GetRequestlist(data,csinfo,sendbuf);
+			break;
+		case ProxyGetRequestRecord:
+			break;
+		case ProxySetRequestList:
+			break;
+		case ProxySetThenGetRequestList:
+			break;
+		case ProxyActionRequestList:
+			break;
+		case ProxyActionThenGetRequestList:
+			break;
+		case ProxyTransCommandRequest:
+			break;
+	}
+	return 1;
+}
 int doActionRequest(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 {
 	int  DAR=success;
@@ -565,6 +593,8 @@ INT8U dealClientRequest(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
 			doActionRequest(apdu,csinfo,sendbuf);
 			break;
 		case PROXY_REQUEST:
+			fprintf(stderr,"\n PROXY_REQUEST");
+			doProxyRequest(apdu,csinfo,sendbuf);
 			break;
 		case RELEASE_REQUEST:
 			break;
@@ -579,7 +609,7 @@ int ProcessData(CommBlock *com)
 	INT8U *apdu= NULL;
 	INT8U *Rcvbuf = com->DealBuf;
 	INT8U *SendBuf = com->SendBuf;
-//	securetype =  &com->securetype;
+
 	memp = (ProgramInfo*)com->shmem;
 	pSendfun = com->p_send;
 	comfd = com->phy_connect_fd;

@@ -15,11 +15,10 @@
 #include "EventObject.h"
 #include "PublicFunction.h"
 #include "AccessFun.h"
+#include "Objectdef.h"
 #include "ParaDef.h"
-#include "main.h"
-#include "event.h"
 #include "Shmem.h"
-
+#include "main.h"
 
 void printF203()
 {
@@ -34,6 +33,12 @@ void printF203()
 	fprintf(stderr,"属性4：属性标志=%02x\n",oif203.state4.StatePropFlag);
 }
 
+//void SetF101(int argc, char *argv[])
+//{
+//	CLASS_F101  f101={};
+//	readCoverClass(0xf101,0,&f101,sizeof(CLASS_F101),para_vari_save);
+//
+//}
 
 void inoutdev_process(int argc, char *argv[])
 {
@@ -42,12 +47,14 @@ void inoutdev_process(int argc, char *argv[])
 
 	if(argc>=2) {	//dev pro
 		if(strcmp(argv[1],"dev")==0) {
-			sscanf(argv[3],"%04x",&tmp);
-			oi = tmp;
-			switch(oi) {
-			case 0xf203:
-				printF203();
-				break;
+			if(strcmp(argv[2],"pro")==0) {
+				sscanf(argv[3],"%04x",&tmp);
+				oi = tmp;
+				switch(oi) {
+				case 0xf203:
+					printF203();
+					break;
+				}
 			}
 		}
 	}

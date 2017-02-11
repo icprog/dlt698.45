@@ -10,4 +10,6 @@
 
 ProgramInfo* JProgramInfo=NULL;
 
+extern void InitClass4300();
+
 #endif

@@ -108,7 +108,7 @@ void read_oif203_para()
 BOOLEAN oi_f203_changed(INT8U save_changed)
 {
 	INT8U i=0;
-	static INT8U changed = 0;
+	static INT8U changed = 0xff;
 	if(changed != 0 && changed != save_changed)
 	{
 		read_oif203_para();
