@@ -26,7 +26,6 @@ typedef struct {
 	INT16U device_num;					 //设备对象数量
 } CLASS22;			//输入输出设备接口类
 
-<<<<<<< HEAD
 typedef struct
 {
 	char factoryCode[4];	//厂商代码
@@ -41,18 +40,6 @@ typedef struct
 {
 	char name[OCTET_STRING_LEN];		//逻辑名
 	char devdesc[OCTET_STRING_LEN];		//设备描述符
-=======
-typedef struct {
-	INT8U factoryCode[4];
-	INT8U softVer[4];
-	INT8U softDate[6];
-	INT8U hardVer[4];
-	INT8U hardDate[6];
-	INT8U factoryExpInfo[8];
-} VERINFO;
-typedef struct {
-	INT8U name[OCTET_STRING_LEN];		//逻辑名
->>>>>>> a76209fd55099cc39901c741d7d8c48b127ab558
 	VERINFO info;						//版本信息
 	DateTimeBCD date_Product;			//生产日期
 	OI_698 ois[10];						//子设备列表
