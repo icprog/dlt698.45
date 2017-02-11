@@ -348,7 +348,7 @@ void get_BasicUnit(INT8U *source,INT16U *sourceindex,INT8U *dest,INT16U *destind
 			break;
 		case 0x09://octet-string
 			size = source[1];
-			memcpy(dest,&source[2],size);
+			memcpy(dest,&source[1],size+1);//source[2], size
 			if (dest_sumindex ==0)
 				dest_sumindex = OCTET_STRING_LEN;
 			size = size + 1;

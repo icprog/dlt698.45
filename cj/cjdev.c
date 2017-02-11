@@ -51,7 +51,7 @@ void SetF101(int argc, char *argv[])
 {
 	CLASS_F101  f101={};
 	if(strcmp(argv[2],"init")==0) {
-		memset(&0xf101,0,sizeof(CLASS_F101));
+		memset(&f101,0,sizeof(CLASS_F101));
 		f101.active = 1;		//初始化启用
 		saveCoverClass(0xf101,0,&f101,sizeof(CLASS_F101),para_init_save);
 	}
