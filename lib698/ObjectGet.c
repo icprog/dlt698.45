@@ -166,6 +166,16 @@ int fill_bit_string8(INT8U *data,INT8U bits)
 	return 3;
 }
 
+int fill_octet_string(INT8U *data,INT8U *source)
+{
+	INT8U	octlen=0;
+	data[0] = dtoctetstring;
+	octlen = source[0];
+	data[1] = octlen;
+	memcpy(&data[2],&source[1],octlen);
+	return (2+octlen);
+}
+
 int fill_visible_string(INT8U *data,INT8U numm,char *source)
 {
 	data[0] = dtvisiblestring;
@@ -278,6 +288,23 @@ int GetSecurePara(RESULT_NORMAL *response)
 	return 0;
 }
 
+int GetCustomNum(RESULT_NORMAL *response)
+{
+	INT8U *data=NULL;
+	CLASS_4001_4002_4003	 oi400x={};
+	int		index=0;
+
+	data = response->data;
+	memset(&oi400x,0,sizeof(CLASS_4001_4002_4003));
+	readCoverClass(response->oad.OI,0,&oi400x,sizeof(CLASS_4001_4002_4003),para_vari_save);
+	switch(response->oad.attflg) {
+	case 2:	//设备编号
+		index += fill_octet_string(&data[index],oi400x.curstom_num);
+		response->datalen = index;
+		break;
+	}
+	return 0;
+}
 
 int GetDevice(RESULT_NORMAL *response)
 {
@@ -373,6 +400,9 @@ int GetParaVarInfo(RESULT_NORMAL *response)
 	case 0x4000:	//日期时间
 		GetSysDateTime(response);
 		break;
+	case 0x4003:	//客户编号
+		GetCustomNum(response);
+		break;
 	case 0x4300:	//电气设备
 		GetDevice(response);
 		break;
@@ -425,13 +455,13 @@ int doGetrecord(RESULT_RECORD *record)
 	int datalen=0;
 
 //	int getSelector(RSD select,INT8U type,CSD_ARRAYTYPE csds,INT8U** Databuf,int *Datalen);
-	if (getSelector(record->select,SelectorN,record->rcsd,(INT8U *)&record->data,datalen)>0)
-	{
-
-	}else
-	{
-		//错误
-	}
+////	if (getSelector(record->select,SelectorN,record->rcsd,(INT8U *)&record->data,datalen)>0)
+//	{
+//
+//	}else
+//	{
+//		//错误
+//	}
 	return 1;
 }
 int doGetnormal(RESULT_NORMAL *response)

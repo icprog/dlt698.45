@@ -116,6 +116,11 @@ typedef struct {
  *				 A.5 参变量类对象
  ********************************************************/
 typedef struct {
+	INT8U 	login_name[OCTET_STRING_LEN];		//逻辑名
+	INT8U  	curstom_num[OCTET_STRING_LEN];	//客户编号
+} CLASS_4001_4002_4003; 	//4001:通信地址，4002：表号，4003：客户编号
+
+typedef struct {
 	INT8U hour;						//时
 	INT8U min;						//分
 	INT8U rateno;						//费率号
@@ -232,7 +237,7 @@ typedef struct
 typedef struct
 {
 	INT8U 		active;			//属性2：安全模式选择（0：不启用安全模式参数，1：启用安全模式）
-	INT8U 		modelnum;		//安全模式数据单元个数
+	INT8U		modelnum;		//安全模式参数总个数
 	SecureModel modelpara[255]; //属性3：显示安全模式参数
 }CLASS_F101;//安全模式参数
 

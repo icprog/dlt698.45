@@ -132,6 +132,7 @@ INT16U set4000(INT8U attflg,INT8U index,INT8U *data)
 {
 	INT16U source_index=0,dest_index=0;
 	DateTimeBCD datetime;
+
 	if ( attflg == 2 )
 	{
 		get_BasicUnit(data,&source_index,(INT8U *)&datetime,&dest_index);
@@ -139,6 +140,26 @@ INT16U set4000(INT8U attflg,INT8U index,INT8U *data)
 	}
 	return source_index;
 }
+
+INT16U set4001_4002_4003(OAD oad,INT8U *data)
+{
+	INT16U source_index=0,dest_index=0;
+	CLASS_4001_4002_4003	class_addr={};
+	int i=0;
+	memset(&class_addr,0,sizeof(CLASS_4001_4002_4003));
+	readCoverClass(oad.OI,0,&class_addr,sizeof(CLASS_4001_4002_4003),para_vari_save);
+
+	if (oad.attflg == 2 )
+	{
+		get_BasicUnit(data,&source_index,(INT8U *)&class_addr.curstom_num,&dest_index);
+		for(i=0;i<OCTET_STRING_LEN;i++) {
+			fprintf(stderr,"%02x ",class_addr.curstom_num[i]);
+		}
+		saveCoverClass(oad.OI,0,&class_addr,sizeof(CLASS_4001_4002_4003),para_vari_save);
+	}
+	return source_index;
+}
+
 INT16U set4300(INT8U attflg,INT8U index,INT8U *data)
 {
 	INT16U source_index=0,dest_index=0;
@@ -301,10 +322,12 @@ void EnvironmentValue(OAD oad,INT8U *data)
 			set4000(attr,oad.attrindex,data);
 			break;
 		case 0x4001://通信地址
+			//set4001(oad,data);
 			break;
 		case 0x4002://表号
 			break;
 		case 0x4003://客户编号
+			set4001_4002_4003(oad,data);
 			break;
 		case 0x4004://设备地理位置
 			break;
