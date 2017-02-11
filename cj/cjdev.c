@@ -33,9 +33,10 @@ void printF203()
 	fprintf(stderr,"属性4：属性标志=%02x\n",oif203.state4.StatePropFlag);
 }
 
-void print101()
+void printF101()
 {
 	CLASS_F101  f101={};
+	int		i=0;
 	readCoverClass(0xf101,0,&f101,sizeof(CLASS_F101),para_vari_save);
 	fprintf(stderr,"[F101]安全模式参数\n");
 	if(f101.active==0) {
@@ -45,15 +46,27 @@ void print101()
 	}else {
 		fprintf(stderr,"属性2:安全模式选择[0,1]：读取无效值：%d\n",f101.active);
 	}
+	fprintf(stderr,"安全模式参数个数：%d\n",f101.modelnum);
+	for(i=0;i<f101.modelnum;i++) {
+		fprintf(stderr,"OI=%04x 安全模式=%d\n",f101.modelpara[i].oi,f101.modelpara[i].model);
+	}
 }
 
 void SetF101(int argc, char *argv[])
 {
 	CLASS_F101  f101={};
+	int		tmp=0;
 	if(strcmp(argv[2],"init")==0) {
-		memset(&0xf101,0,sizeof(CLASS_F101));
+		memset(&f101,0,sizeof(CLASS_F101));
 		f101.active = 1;		//初始化启用
 		saveCoverClass(0xf101,0,&f101,sizeof(CLASS_F101),para_init_save);
+	}
+	if(strcmp(argv[2],"set")==0) {
+		memset(&f101,0,sizeof(CLASS_F101));
+		readCoverClass(0xf101,0,&f101,sizeof(CLASS_F101),para_vari_save);
+		sscanf(argv[4],"%d",&tmp);
+		f101.active = tmp;
+		saveCoverClass(0xf101,0,&f101,sizeof(CLASS_F101),para_vari_save);
 	}
 }
 
@@ -72,7 +85,7 @@ void inoutdev_process(int argc, char *argv[])
 					printF203();
 					break;
 				case 0xf101:
-					printfF101();
+					printF101();
 				}
 			}else {
 				switch(oi) {

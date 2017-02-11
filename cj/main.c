@@ -30,8 +30,10 @@ static char
 
 static char
 		*usage_inoutdev =
-					"\n-------------------A.12　输入输出设备类对象----------------------------\n"	\
-					"【开关量输入】cj dev pro f203 		\n"					\
+					"\n---------文件传输类对象 	ESAM接口类对象 	输入输出设备类对象 	显示类对象--------\n"	\
+					"【开关量输入】cj dev pro f203 				\n"					\
+					"【安全模式参数读取】cj dev pro f101 			\n"					\
+					"【安全模式参数设置,0:不启用，1:启用】cj dev set f101 <0/1>		\n"	\
 					"-------------------------------------------------------\n\n"	\
 					;
 
@@ -139,7 +141,7 @@ int main(int argc, char *argv[])
 	}
 	if(strcmp("dev",argv[1])==0)
 	{
-		fprintf(stderr,"%s",usage_coll);
+		fprintf(stderr,"%s",usage_inoutdev);
 		inoutdev_process(argc,argv);
 		return EXIT_SUCCESS;
 	}
