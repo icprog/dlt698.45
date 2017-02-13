@@ -26,6 +26,7 @@ INT8S (*pSendfun)(int fd,INT8U* sndbuf,INT16U sndlen);
 int comfd = 0;
 INT8U TmpDataBuf[MAXSIZ_FAM];
 ProgramInfo *memp;
+INT8U securetype;
 /**************************************
  * 函数功能：DL/T698.45 状态机
  * 参数含义：
@@ -369,6 +370,7 @@ int doGetAttribute(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
 	oad.attflg = apdu[5];
 	oad.attrindex = apdu[6];
 	data = &apdu[7];					//Data
+
 	switch(getType)
 	{
 		case GET_REQUEST_NORMAL:
@@ -387,7 +389,35 @@ int doGetAttribute(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
 	}
 	return 1;
 }
+int doProxyRequest(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
+{
+	PIID piid={};
+	INT8U getType = apdu[1];
+	OAD oad={};
+	INT8U *data=NULL;
 
+	piid.data = apdu[2];
+	fprintf(stderr,"\n代理 PIID %02x   ",piid.data);
+	switch(getType)
+	{
+		case ProxyGetRequestList:
+			Proxy_GetRequestlist(data,csinfo,sendbuf);
+			break;
+		case ProxyGetRequestRecord:
+			break;
+		case ProxySetRequestList:
+			break;
+		case ProxySetThenGetRequestList:
+			break;
+		case ProxyActionRequestList:
+			break;
+		case ProxyActionThenGetRequestList:
+			break;
+		case ProxyTransCommandRequest:
+			break;
+	}
+	return 1;
+}
 int doActionRequest(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 {
 	int  DAR=success;
@@ -545,8 +575,8 @@ INT8U dealClientRequest(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
 			fprintf(stderr,"\n安全请求计算错误!!!");
 			return 0;
 		}
+		apduType = apdu[0];
 	}
-
 	switch(apduType)
 	{
 		case CONNECT_REQUEST:
@@ -563,13 +593,42 @@ INT8U dealClientRequest(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
 			doActionRequest(apdu,csinfo,sendbuf);
 			break;
 		case PROXY_REQUEST:
+			fprintf(stderr,"\n PROXY_REQUEST");
+			doProxyRequest(apdu,csinfo,sendbuf);
 			break;
 		case RELEASE_REQUEST:
 			break;
 	}
 	return(apduType);
 }
-
+void testframe(INT8U *apdu,int len)
+{
+	int index=0, hcsi=0;
+	INT8U buf[512]={};
+	int i=0;
+	buf[i++]= 0x68;//起始码
+	buf[i++]= 0;	//长度
+	buf[i++]= 0;
+	buf[i++]= 0xc3;
+	buf[i++]= 0x05;
+	buf[i++]= 0x08;
+	buf[i++]= 0x00;
+	buf[i++]= 0x00;
+	buf[i++]= 0x00;
+	buf[i++]= 0x00;
+	buf[i++]= 0x00;
+	buf[i++]= 0x10;
+	hcsi = i;
+	i = i + 2;
+	memcpy(&buf[i],apdu,len);
+	i = i + len;
+	FrameTail(buf,i,hcsi);
+	int k=0;
+	fprintf(stderr,"\n");
+	for(k=0;k<i+3;k++)
+		fprintf(stderr,"%02x ",buf[k]);
+	fprintf(stderr,"\n----------------------------------------\n");
+}
 int ProcessData(CommBlock *com)
 {
 	CSINFO csinfo={};
@@ -577,8 +636,8 @@ int ProcessData(CommBlock *com)
 	INT8U *apdu= NULL;
 	INT8U *Rcvbuf = com->DealBuf;
 	INT8U *SendBuf = com->SendBuf;
-	memp = (ProgramInfo*)com->shmem;
 
+	memp = (ProgramInfo*)com->shmem;
 	pSendfun = com->p_send;
 	comfd = com->phy_connect_fd;
 	hcsok = CheckHead( Rcvbuf ,&csinfo);

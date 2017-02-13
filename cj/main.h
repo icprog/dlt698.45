@@ -17,6 +17,9 @@ extern void coll_process(int argc, char *argv[]);
 /*
  * 参变量类*/
 extern void para_process(int argc, char *argv[]);
-
+/*
+ * 文件传输类对象 ESAM接口类对象 输入输出设备类对象 显示类对象
+ * */
+void inoutdev_process(int argc, char *argv[]);
 #endif /* MAIN_H_ */
 

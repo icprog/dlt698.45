@@ -116,6 +116,11 @@ typedef struct {
  *				 A.5 参变量类对象
  ********************************************************/
 typedef struct {
+	INT8U 	login_name[OCTET_STRING_LEN];		//逻辑名
+	INT8U  	curstom_num[OCTET_STRING_LEN];	//客户编号
+} CLASS_4001_4002_4003; 	//4001:通信地址，4002：表号，4003：客户编号
+
+typedef struct {
 	INT8U hour;						//时
 	INT8U min;						//分
 	INT8U rateno;						//费率号
@@ -204,7 +209,7 @@ typedef struct {
 //	INT8U name[OCTET_STRING_LEN];		//参数变量接口类逻辑名
 	INT8U sernum;						//方案序号
 	ROAD road[10];						//采集的事件数据
-	MS ms;								//采集类型
+	MY_MS  ms;							//采集类型
 	INT8U ifreport;						//上报标识
 	INT16U deepsize;					//存储深度
 } CLASS_6017;					//事件采集方案
@@ -232,6 +237,7 @@ typedef struct
 typedef struct
 {
 	INT8U 		active;			//属性2：安全模式选择（0：不启用安全模式参数，1：启用安全模式）
+	INT8U		modelnum;		//安全模式参数总个数
 	SecureModel modelpara[255]; //属性3：显示安全模式参数
 }CLASS_F101;//安全模式参数
 

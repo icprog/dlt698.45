@@ -22,7 +22,7 @@
 
 void printF203()
 {
-	static CLASS_f203	oif203={};
+	CLASS_f203	oif203={};
 	readCoverClass(0xf203,0,&oif203,sizeof(CLASS_f203),para_vari_save);
 	fprintf(stderr,"[F203]开关量输入\n");
 	fprintf(stderr,"逻辑名 %s\n",oif203.class22.logic_name);
@@ -33,12 +33,42 @@ void printF203()
 	fprintf(stderr,"属性4：属性标志=%02x\n",oif203.state4.StatePropFlag);
 }
 
-//void SetF101(int argc, char *argv[])
-//{
-//	CLASS_F101  f101={};
-//	readCoverClass(0xf101,0,&f101,sizeof(CLASS_F101),para_vari_save);
-//
-//}
+void printF101()
+{
+	CLASS_F101  f101={};
+	int		i=0;
+	readCoverClass(0xf101,0,&f101,sizeof(CLASS_F101),para_vari_save);
+	fprintf(stderr,"[F101]安全模式参数\n");
+	if(f101.active==0) {
+		fprintf(stderr,"属性2:安全模式选择：不启用安全模式参数\n");
+	}else 	if(f101.active==1) {
+		fprintf(stderr,"属性2:安全模式选择：启用安全模式参数\n");
+	}else {
+		fprintf(stderr,"属性2:安全模式选择[0,1]：读取无效值：%d\n",f101.active);
+	}
+	fprintf(stderr,"安全模式参数个数：%d\n",f101.modelnum);
+	for(i=0;i<f101.modelnum;i++) {
+		fprintf(stderr,"OI=%04x 安全模式=%d\n",f101.modelpara[i].oi,f101.modelpara[i].model);
+	}
+}
+
+void SetF101(int argc, char *argv[])
+{
+	CLASS_F101  f101={};
+	int		tmp=0;
+	if(strcmp(argv[2],"init")==0) {
+		memset(&f101,0,sizeof(CLASS_F101));
+		f101.active = 1;		//初始化启用
+		saveCoverClass(0xf101,0,&f101,sizeof(CLASS_F101),para_init_save);
+	}
+	if(strcmp(argv[2],"set")==0) {
+		memset(&f101,0,sizeof(CLASS_F101));
+		readCoverClass(0xf101,0,&f101,sizeof(CLASS_F101),para_vari_save);
+		sscanf(argv[4],"%d",&tmp);
+		f101.active = tmp;
+		saveCoverClass(0xf101,0,&f101,sizeof(CLASS_F101),para_vari_save);
+	}
+}
 
 INT8U workModel;					//工作模式 enum{混合模式(0),客户机模式(1),服务器模式(2)},
 INT8U onlineType;					//在线方式 enum{永久在线(0),被动激活(1)}
@@ -66,8 +96,8 @@ void Init_4500(){
 	obj.commconfig.proxyPort = 0;
 	obj.commconfig.timeoutRtry = 3;
 	obj.commconfig.heartBeat = 300;
-	memcpy(obj.master.ip, "192.168.0.97", sizeof("192.168.0.97"));
-	obj.master.port = 5200;
+	memcpy(obj.master[0].ip, "192.168.0.97", sizeof("192.168.0.97"));
+	obj.master[0].port = 5022;
 
 	saveCoverClass(0x4500,0,(void *)&obj,sizeof(CLASS25),para_init_save);
 }
@@ -79,12 +109,20 @@ void inoutdev_process(int argc, char *argv[])
 
 	if(argc>=2) {	//dev pro
 		if(strcmp(argv[1],"dev")==0) {
+			sscanf(argv[3],"%04x",&tmp);
+			oi = tmp;
 			if(strcmp(argv[2],"pro")==0) {
-				sscanf(argv[3],"%04x",&tmp);
-				oi = tmp;
 				switch(oi) {
 				case 0xf203:
 					printF203();
+					break;
+				case 0xf101:
+					printF101();
+				}
+			}else {
+				switch(oi) {
+				case 0xf101:
+					SetF101(argc,argv);
 					break;
 				}
 			}
