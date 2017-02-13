@@ -153,6 +153,18 @@ int GetYxPara(RESULT_NORMAL *response)
 	response->datalen = index;
 	return 0;
 }
+int GetEsamPara(RESULT_NORMAL *response)
+{
+	INT8U *data=NULL;
+	OAD oad;
+	oad = response->oad;
+	data = response->data;
+	switch(oad.attflg )
+	{
+
+	}
+	return 0;
+}
 int GetSecurePara(RESULT_NORMAL *response)
 {
 	INT8U *data=NULL;
@@ -274,6 +286,9 @@ int doGetnormal(RESULT_NORMAL *response)
 			break;
 		case 0x6016:	//事件采集方案
 			GetEventCjFangAnInfo(response);
+			break;
+		case 0xF100:
+			GetEsamPara(response);
 			break;
 		case 0xF101:
 			GetSecurePara(response);
