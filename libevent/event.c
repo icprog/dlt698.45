@@ -1840,8 +1840,6 @@ INT8U Event_3114(INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 		DateTimeBCD ntime;
 		DataTimeGet(&ntime);
 		Save_buf[index++]=dtdatetimes;
-//		memcpy(&Save_buf[index],&ntime,7);
-//		index+=7;
 		Save_buf[index++] = ((ntime.year.data>>8)&0x00ff);
 		Save_buf[index++] = ((ntime.year.data)&0x00ff);
 		Save_buf[index++] = ntime.month.data;
