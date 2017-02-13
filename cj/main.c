@@ -151,6 +151,12 @@ int main(int argc, char *argv[])
 		acs_process(argc,argv);
 		return EXIT_SUCCESS;
 	}
+	if (strcmp("test",argv[1])==0)
+	{
+		fprintf(stderr,"\n自组报文\n");
+		cjframe(argc,argv);
+		return EXIT_SUCCESS;
+	}
 	prthelp();
 	return EXIT_SUCCESS;
 }

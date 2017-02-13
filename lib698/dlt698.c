@@ -601,7 +601,34 @@ INT8U dealClientRequest(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
 	}
 	return(apduType);
 }
-
+void testframe(INT8U *apdu,int len)
+{
+	int index=0, hcsi=0;
+	INT8U buf[512]={};
+	int i=0;
+	buf[i++]= 0x68;//起始码
+	buf[i++]= 0;	//长度
+	buf[i++]= 0;
+	buf[i++]= 0xc3;
+	buf[i++]= 0x05;
+	buf[i++]= 0x08;
+	buf[i++]= 0x00;
+	buf[i++]= 0x00;
+	buf[i++]= 0x00;
+	buf[i++]= 0x00;
+	buf[i++]= 0x00;
+	buf[i++]= 0x10;
+	hcsi = i;
+	i = i + 2;
+	memcpy(&buf[i],apdu,len);
+	i = i + len;
+	FrameTail(buf,i,hcsi);
+	int k=0;
+	fprintf(stderr,"\n");
+	for(k=0;k<i+3;k++)
+		fprintf(stderr,"%02x ",buf[k]);
+	fprintf(stderr,"\n----------------------------------------\n");
+}
 int ProcessData(CommBlock *com)
 {
 	CSINFO csinfo={};
