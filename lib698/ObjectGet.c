@@ -21,6 +21,7 @@ extern void FrameTail(INT8U *buf,int index,int hcsi);
 extern int get_BasicRSD(INT8U *source,INT8U *dest,INT8U *type);
 extern int get_BasicRCSD(INT8U *source,INT8U *dest);
 extern int comfd;
+extern INT8U TmpDataBufList[MAXSIZ_FAM*2];
 extern INT8U TmpDataBuf[MAXSIZ_FAM];
 extern INT8U securetype;
 extern ProgramInfo *memp;
@@ -42,10 +43,29 @@ typedef struct
 	INT8U selectType;//选择类型
 	RSD   select;	 //选择方法实例
 }RESULT_RECORD;
-
-int BuildFrame_GetResponse(INT8U response_type,CSINFO *csinfo,RESULT_NORMAL response,INT8U *sendbuf)
+int A_ResultNormal(INT8U *buf,RESULT_NORMAL *response)
 {
-	int index=0, hcsi=0;
+	int index = 0;
+	buf[index++] = (response->oad.OI>>8) & 0xff;
+	buf[index++] = response->oad.OI & 0xff;
+	buf[index++] = response->oad.attflg;
+	buf[index++] = response->oad.attrindex;
+	if (response->datalen > 0)
+	{
+		buf[index++] = 1;//choice 1  ,Data有效
+		memcpy(&buf[index],response->data,response->datalen);
+		index = index + response->datalen;
+	}else
+	{
+		buf[index++] = 0;//choice 0  ,DAR 有效 (数据访问可能的结果)
+		buf[index++] = response->dar;
+	}
+	return index;
+}
+
+int BuildFrame_GetResponse(INT8U response_type,CSINFO *csinfo,INT8U resultNum,INT8U *data,INT16U len,INT8U *sendbuf)
+{
+	int index=0, hcsi=0,ren=0;
 	csinfo->dir = 1;
 	csinfo->prm = 0;
 	index = FrameHead(csinfo,sendbuf);
@@ -54,21 +74,10 @@ int BuildFrame_GetResponse(INT8U response_type,CSINFO *csinfo,RESULT_NORMAL resp
 	sendbuf[index++] = GET_RESPONSE;
 	sendbuf[index++] = response_type;
 	sendbuf[index++] = 0;	//	piid
-	sendbuf[index++] = (response.oad.OI>>8) & 0xff;
-	sendbuf[index++] = response.oad.OI & 0xff;
-	sendbuf[index++] = response.oad.attflg;
-	sendbuf[index++] = response.oad.attrindex;
-	if (response.datalen > 0)
-	{
-		sendbuf[index++] = 1;//choice 1  ,Data有效
-		memcpy(&sendbuf[index],response.data,response.datalen);
-		index = index + response.datalen;
-	}else
-	{
-		sendbuf[index++] = 0;//choice 0  ,DAR 有效 (数据访问可能的结果)
-//		sendbuf[index++] = 0x16;
-		sendbuf[index++] = response.dar;
-	}
+	if (resultNum>0)
+		sendbuf[index++] = resultNum;
+	memcpy(&sendbuf[index],data,len);
+	index = index + len;
 	sendbuf[index++] = 0;
 	sendbuf[index++] = 0;
 	FrameTail(sendbuf,index,hcsi);
@@ -464,6 +473,25 @@ int doGetrecord(RESULT_RECORD *record)
 //	}
 	return 1;
 }
+int getRequestRecord(OAD oad,INT8U *data,CSINFO *csinfo,INT8U *sendbuf)
+{
+	RESULT_RECORD record;
+
+	int index=0;
+	memset(TmpDataBuf,0,sizeof(TmpDataBuf));
+	record.oad = oad;
+	record.data = TmpDataBuf;
+	record.datalen = 0;
+	fprintf(stderr,"\nGetRequestRecord   oi=%x  %02x  %02x",record.oad.OI,record.oad.attflg,record.oad.attrindex);
+	index = get_BasicRSD(&data[index],(INT8U *)&record.select,&record.selectType);
+	fprintf(stderr,"\nRSD type=%d  oi=%x  %02x  %20x",record.selectType,record.select.selec1.oad.OI,record.select.selec1.oad.attflg,record.select.selec1.oad.attrindex);
+	fprintf(stderr,"\nData type=%02x data=%d ",record.select.selec1.data.type,record.select.selec1.data.data[0]);
+	index +=get_BasicRCSD(&data[index],(INT8U *)&record.rcsd.csds);
+	doGetrecord(&record);
+	BuildFrame_GetResponseRecord(GET_REQUEST_RECORD,csinfo,record,sendbuf);
+//	securetype = 0;		//清除安全等级标识
+	return 1;
+}
 int doGetnormal(RESULT_NORMAL *response)
 {
 	INT16U oi = response->oad.OI;
@@ -490,38 +518,43 @@ int doGetnormal(RESULT_NORMAL *response)
 int getRequestNormal(OAD oad,INT8U *data,CSINFO *csinfo,INT8U *sendbuf)
 {
 	RESULT_NORMAL response;
-
+	int length=0;
 	memset(TmpDataBuf,0,sizeof(TmpDataBuf));
+	memset(TmpDataBufList,0,sizeof(TmpDataBufList));
 	response.oad = oad;
 	response.data = TmpDataBuf;
 	response.datalen = 0;
 //	SMode_OADListGetClass
 	doGetnormal(&response);
-	BuildFrame_GetResponse(GET_REQUEST_NORMAL,csinfo,response,sendbuf);
-	securetype = 0;		//清除安全等级标识
+	length = A_ResultNormal(TmpDataBufList,&response);	//积累 OAD 属性数据
+	BuildFrame_GetResponse(GET_REQUEST_NORMAL,csinfo,0,TmpDataBufList,length,sendbuf);
+//	securetype = 0;		//清除安全等级标识
 	return 1;
 }
-int getRequestRecord(OAD oad,INT8U *data,CSINFO *csinfo,INT8U *sendbuf)
+int getRequestNormalList(INT8U *data,CSINFO *csinfo,INT8U *sendbuf)
 {
-	RESULT_RECORD record;
+	RESULT_NORMAL response;
+	OAD oadtmp;
+	INT8U oadnum=0;
+	int listIndex=0,i=0;
 
-	int index=0;
-	memset(TmpDataBuf,0,sizeof(TmpDataBuf));
-	record.oad = oad;
-	record.data = TmpDataBuf;
-	record.datalen = 0;
-	fprintf(stderr,"\nGetRequestRecord   oi=%x  %02x  %02x",record.oad.OI,record.oad.attflg,record.oad.attrindex);
-	index = get_BasicRSD(&data[index],(INT8U *)&record.select,&record.selectType);
-	fprintf(stderr,"\nRSD type=%d  oi=%x  %02x  %20x",record.selectType,record.select.selec1.oad.OI,record.select.selec1.oad.attflg,record.select.selec1.oad.attrindex);
-	fprintf(stderr,"\nData type=%02x data=%d ",record.select.selec1.data.type,record.select.selec1.data.data[0]);
-	index +=get_BasicRCSD(&data[index],(INT8U *)&record.rcsd.csds);
-	doGetrecord(&record);
-	BuildFrame_GetResponseRecord(GET_REQUEST_RECORD,csinfo,record,sendbuf);
-	securetype = 0;		//清除安全等级标识
-	return 1;
-}
+	memset(TmpDataBufList,0,sizeof(TmpDataBufList));
+	oadnum = data[0];
+	fprintf(stderr,"\ngetRequestNormalList!! OAD 数量=%d",oadnum);
+	data = data +1;
 
-int getRequestNormalList(OAD oad,INT8U *data,CSINFO *csinfo,INT8U *sendbuf)
-{
+	for(i=0;i<oadnum;i++)
+	{
+		memset(TmpDataBuf,0,sizeof(TmpDataBuf));
+		response.oad.OI = (data[0]<<8) | data[1];
+		response.oad.attflg = data[2];
+		response.oad.attrindex = data[3];
+		response.data = TmpDataBuf;
+		response.datalen = 0;
+		data = data + 4;
+		doGetnormal(&response);
+		listIndex += A_ResultNormal(TmpDataBufList[listIndex],&response);//积累 OAD 属性数据
+	}
+	BuildFrame_GetResponse(GET_REQUEST_NORMAL_LIST,csinfo,oadnum,TmpDataBufList,listIndex,sendbuf);
 	return 1;
 }

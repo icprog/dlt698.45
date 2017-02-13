@@ -15,16 +15,18 @@
 
 extern int doObjectAction();
 //extern int doActionReponse(int reponse,CSINFO *csinfo,PIID piid,OMD omd,int dar,INT8U *data,INT8U *buf);
+extern int getRequestRecord(OAD oad,INT8U *data,CSINFO *csinfo,INT8U *sendbuf);
 extern int getRequestNormal(OAD oad,INT8U *data,CSINFO *csinfo,INT8U *sendbuf);
-extern int getRequestNormalList(OAD oad,INT8U *data,CSINFO *csinfo,INT8U *sendbuf);
+extern int getRequestNormalList(INT8U *data,CSINFO *csinfo,INT8U *sendbuf);
 extern int doReponse(int server,int reponse,CSINFO *csinfo,PIID piid,OAD oad,int dar,INT8U *data,INT8U *buf);
 extern int setRequestNormal(INT8U *data,OAD oad,CSINFO *csinfo,INT8U *buf);
 extern int setRequestNormalList(INT8U *Object,CSINFO *csinfo,INT8U *buf);
-
+extern int Proxy_GetRequestlist(INT8U *data,CSINFO *csinfo,INT8U *sendbuf);
 extern unsigned short tryfcs16(unsigned char *cp, int  len);
 INT8S (*pSendfun)(int fd,INT8U* sndbuf,INT16U sndlen);
 int comfd = 0;
 INT8U TmpDataBuf[MAXSIZ_FAM];
+INT8U TmpDataBufList[MAXSIZ_FAM*2];
 ProgramInfo *memp;
 INT8U securetype;
 /**************************************
@@ -363,7 +365,7 @@ int doGetAttribute(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
 	INT8U getType = apdu[1];
 	OAD oad={};
 	INT8U *data=NULL;
-
+	INT8U oadnum=0;
 	piid.data = apdu[2];
 	fprintf(stderr,"\n- get type = %d PIID=%02x",getType,piid.data);
 	oad.OI = (apdu[3]<<8) | apdu[4];
@@ -377,7 +379,8 @@ int doGetAttribute(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
 			getRequestNormal(oad,data,csinfo,sendbuf);
 			break;
 		case GET_REQUEST_NORMAL_LIST:
-			getRequestNormalList(oad,data,csinfo,sendbuf);
+			data = &apdu[3];
+			getRequestNormalList(data,csinfo,sendbuf);
 			break;
 		case GET_REQUEST_RECORD:
 			getRequestRecord(oad,data,csinfo,sendbuf);
@@ -393,7 +396,6 @@ int doProxyRequest(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
 {
 	PIID piid={};
 	INT8U getType = apdu[1];
-	OAD oad={};
 	INT8U *data=NULL;
 
 	piid.data = apdu[2];
@@ -533,138 +535,6 @@ INT16S parseSecurityResponse(INT8U* RN,INT8U* apdu)//apdu负责传入和传出�
 	else
 		return -1;//无效应用数据单元标示
 }
-///*
-// * head 从长度标示字节开始     des 为目标字BYTE串起始位置
-// * 返回值 : 目标BYTE串字节数
-// */
-//INT16U get_octet_string(INT8U *head,INT8U *des)
-//{
-//	INT8U lengthbytenum=0;
-//	INT16U lenflg = head[0]; //数据单元长度
-//	if ((lenflg & 0x80 )>0)	 //长度字节最高位 1 表示后续有超过n个字节表示内容字节的长度，0表示该字节的 【bit6-bit0】表示内容字节数
-//	{
-//		lengthbytenum = lenflg & 0x80;//长度域字节个数
-//		if(lengthbytenum >= 2)
-//		{
-//			lenflg = head[1]<<8 | head[2];//698协议中字节数最多用2字节表示    flag len1 len2 buf buf buf...
-//			des = head + 3;
-//		}else if(lengthbytenum == 1)
-//		{
-//			lenflg = head[1]; //字节数由1个字节表示							flag len1 buf buf buf...
-//			des = head + 2;
-//		}else
-//			lenflg = 0;
-//	}
-//	return lenflg;
-//}
-/**********************************************************************
- * 1.	CONNECT.request 服务,本服务由客户机应用进程调用,用于向远方服务器的应用进程提出建立应用连接请求。
- * 						主站（客户机）请求集中器（客户机）建立应用连接
- */
-INT8U dealClientRequest(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
-{
-	INT16S SecurityRe =0;
-	INT8U apduType = apdu[0];//0x10  [16]
-	fprintf(stderr,"\n-------- apduType = %d ",apduType);
-
-	if (apduType == SECURITY_REQUEST)//安全请求的数据类型
-	{
-		SecurityRe = doSecurityRequest(apdu);
-		if (SecurityRe <= 0)
-		{
-			fprintf(stderr,"\n安全请求计算错误!!!");
-			return 0;
-		}
-		apduType = apdu[0];
-	}
-	switch(apduType)
-	{
-		case CONNECT_REQUEST:
-			appConnectResponse(apdu,csinfo,sendbuf);
-			break;
-		case GET_REQUEST:
-			doGetAttribute(apdu,csinfo,sendbuf);
-			break;
-		case SET_REQUEST:
-			doSetAttribute(apdu,csinfo,sendbuf);
-			break;
-		case ACTION_REQUEST:
-			fprintf(stderr,"\n ACTION_REQUEST");
-			doActionRequest(apdu,csinfo,sendbuf);
-			break;
-		case PROXY_REQUEST:
-			fprintf(stderr,"\n PROXY_REQUEST");
-			doProxyRequest(apdu,csinfo,sendbuf);
-			break;
-		case RELEASE_REQUEST:
-			break;
-	}
-	return(apduType);
-}
-void testframe(INT8U *apdu,int len)
-{
-	int index=0, hcsi=0;
-	INT8U buf[512]={};
-	int i=0;
-	buf[i++]= 0x68;//起始码
-	buf[i++]= 0;	//长度
-	buf[i++]= 0;
-	buf[i++]= 0xc3;
-	buf[i++]= 0x05;
-	buf[i++]= 0x08;
-	buf[i++]= 0x00;
-	buf[i++]= 0x00;
-	buf[i++]= 0x00;
-	buf[i++]= 0x00;
-	buf[i++]= 0x00;
-	buf[i++]= 0x10;
-	hcsi = i;
-	i = i + 2;
-	memcpy(&buf[i],apdu,len);
-	i = i + len;
-	FrameTail(buf,i,hcsi);
-	int k=0;
-	fprintf(stderr,"\n");
-	for(k=0;k<i+3;k++)
-		fprintf(stderr,"%02x ",buf[k]);
-	fprintf(stderr,"\n----------------------------------------\n");
-}
-int ProcessData(CommBlock *com)
-{
-	CSINFO csinfo={};
-	int hcsok = 0 ,fcsok = 0;
-	INT8U *apdu= NULL;
-	INT8U *Rcvbuf = com->DealBuf;
-	INT8U *SendBuf = com->SendBuf;
-
-	memp = (ProgramInfo*)com->shmem;
-	pSendfun = com->p_send;
-	comfd = com->phy_connect_fd;
-	hcsok = CheckHead( Rcvbuf ,&csinfo);
-	fcsok = CheckTail( Rcvbuf ,csinfo.frame_length);
-	if ((hcsok==1) && (fcsok==1))
-	{
-		apdu = &Rcvbuf[csinfo.sa_length+8];
-		if (csinfo.dir == 0 && csinfo.prm == 0)		/*客户机对服务器上报的响应	（主站对集中器上报的响应）*/
-		{
-			return(dealClientResponse(apdu,&csinfo));
-		}else if (csinfo.dir==0 && csinfo.prm == 1)	/*客户机发起的请求			（主站对集中器发起的请求）*/
-		{
-			fprintf(stderr,"\n-------- 客户机发起请求 ");
-			return(dealClientRequest(apdu,&csinfo,SendBuf));
-		}else if (csinfo.dir==1 && csinfo.prm == 0)	/*服务器发起的上报			（电表主动上报）*/
-		{
-			//MeterReport();
-		}else if (csinfo.dir==1 && csinfo.prm == 1)	/*服务器对客户机请求的响应	（电表应答）*/
-		{
-			//MeterEcho();
-		}else
-		{
-			fprintf(stderr,"\n控制码解析错误(传输方向与启动位错误)");
-		}
-	}
-	return 1;
-}
 
 INT16S fillGetRequestAPDU(INT8U* sendBuf,CLASS_6015 obj6015,INT8U requestType)
 {
@@ -743,5 +613,114 @@ INT16S composeProtocol698_GetRequest(INT8U* 	sendBuf,CLASS_6015 obj6015,TSA mete
 	FrameTail(sendBuf,sendLen,hcsi);
 	return (sendLen + 3);			//3: cs cs 16
 
+}
+
+/**********************************************************************
+ * 1.	CONNECT.request 服务,本服务由客户机应用进程调用,用于向远方服务器的应用进程提出建立应用连接请求。
+ * 						主站（客户机）请求集中器（客户机）建立应用连接
+ */
+INT8U dealClientRequest(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
+{
+	INT16S SecurityRe =0;
+	INT8U apduType = apdu[0];//0x10  [16]
+	fprintf(stderr,"\n-------- apduType = %d ",apduType);
+
+	if (apduType == SECURITY_REQUEST)//安全请求的数据类型
+	{
+		SecurityRe = doSecurityRequest(apdu);
+		if (SecurityRe <= 0)
+		{
+			fprintf(stderr,"\n安全请求计算错误!!!");
+			return 0;
+		}
+		apduType = apdu[0];
+	}
+	switch(apduType)
+	{
+		case CONNECT_REQUEST:
+			appConnectResponse(apdu,csinfo,sendbuf);
+			break;
+		case GET_REQUEST:
+			doGetAttribute(apdu,csinfo,sendbuf);
+			break;
+		case SET_REQUEST:
+			doSetAttribute(apdu,csinfo,sendbuf);
+			break;
+		case ACTION_REQUEST:
+			fprintf(stderr,"\n ACTION_REQUEST");
+			doActionRequest(apdu,csinfo,sendbuf);
+			break;
+		case PROXY_REQUEST:
+			fprintf(stderr,"\n PROXY_REQUEST");
+			doProxyRequest(apdu,csinfo,sendbuf);
+			break;
+		case RELEASE_REQUEST:
+			break;
+	}
+	return(apduType);
+}
+void testframe(INT8U *apdu,int len)
+{
+	int hcsi=0;
+	INT8U buf[512]={};
+	int i=0;
+	buf[i++]= 0x68;//起始码
+	buf[i++]= 0;	//长度
+	buf[i++]= 0;
+	buf[i++]= 0xc3;
+	buf[i++]= 0x05;
+	buf[i++]= 0x08;
+	buf[i++]= 0x00;
+	buf[i++]= 0x00;
+	buf[i++]= 0x00;
+	buf[i++]= 0x00;
+	buf[i++]= 0x00;
+	buf[i++]= 0x10;
+	hcsi = i;
+	i = i + 2;
+	memcpy(&buf[i],apdu,len);
+	i = i + len;
+	FrameTail(buf,i,hcsi);
+	int k=0;
+	fprintf(stderr,"\n");
+	for(k=0;k<i+3;k++)
+		fprintf(stderr,"%02x ",buf[k]);
+	fprintf(stderr,"\n----------------------------------------\n");
+}
+int ProcessData(CommBlock *com)
+{
+	CSINFO csinfo={};
+	int hcsok = 0 ,fcsok = 0;
+	INT8U *apdu= NULL;
+	INT8U *Rcvbuf = com->DealBuf;
+	INT8U *SendBuf = com->SendBuf;
+
+	memp = (ProgramInfo*)com->shmem;
+	pSendfun = com->p_send;
+	comfd = com->phy_connect_fd;
+	hcsok = CheckHead( Rcvbuf ,&csinfo);
+	fcsok = CheckTail( Rcvbuf ,csinfo.frame_length);
+	if ((hcsok==1) && (fcsok==1))
+	{
+		apdu = &Rcvbuf[csinfo.sa_length+8];
+		if (csinfo.dir == 0 && csinfo.prm == 0)		/*客户机对服务器上报的响应	（主站对集中器上报的响应）*/
+		{
+			return(dealClientResponse(apdu,&csinfo));
+		}else if (csinfo.dir==0 && csinfo.prm == 1)	/*客户机发起的请求			（主站对集中器发起的请求）*/
+		{
+			fprintf(stderr,"\n-------- 客户机发起请求 ");
+			return(dealClientRequest(apdu,&csinfo,SendBuf));
+		}else if (csinfo.dir==1 && csinfo.prm == 0)	/*服务器发起的上报			（电表主动上报）*/
+		{
+			//MeterReport();
+		}else if (csinfo.dir==1 && csinfo.prm == 1)	/*服务器对客户机请求的响应	（电表应答）*/
+		{
+			//MeterEcho();
+		}else
+		{
+			fprintf(stderr,"\n控制码解析错误(传输方向与启动位错误)");
+		}
+	}
+	return 1;
 }
 
