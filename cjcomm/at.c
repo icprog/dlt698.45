@@ -194,7 +194,8 @@ int tryifconfig() {
     }
     memcpy(&sin, &ifr.ifr_addr, sizeof(sin));
     if (sin.sin_addr.s_addr > 0) {
-        asyslog(LOG_INFO, "[tryifconfig]获取到正确的IP地址%s\n", inet_ntoa(sin.sin_addr));
+        asyslog(LOG_INFO, "获取到正确的IP地址%s\n", inet_ntoa(sin.sin_addr));
+        setPPPIP(inet_ntoa(sin.sin_addr));
         close(sock);
         return 1;
     }
@@ -315,6 +316,7 @@ void* ATWorker(void* args) {
             memset(CCID, 0, 32);
             if (sscanf(Mrecvbuf, "%*[^\"]\"%[0-9|A-Z|a-z]", CCID) == 1) {
             	asyslog(LOG_INFO, "CCID: %s\n", CCID);
+            	setCCID(CCID);
                 break;
             }
         }
@@ -331,6 +333,7 @@ void* ATWorker(void* args) {
             if (sscanf(Mrecvbuf, "%*[^:]: %d,%d", &k, &l) == 2) {
             	asyslog(LOG_INFO, "GprsCSQ = %d,%d\n", k, l);
                 if (k != 99) {
+                	setSINSTR(k);
                     break;
                 }
             }
@@ -361,7 +364,10 @@ void* ATWorker(void* args) {
             }
         }
 
+        //拨号成功，存储参数，以备召唤
+        saveCurrClass25();
     wait:
+    	//等待在线状态为“否”，重新拨号
         while (1) {
             delay(1000);
             if(getOnlineState() == 0)
@@ -371,6 +377,7 @@ void* ATWorker(void* args) {
         }
 
     err:
+    	//拨号出错，重试
         continue;
     }
 

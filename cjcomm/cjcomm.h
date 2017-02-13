@@ -16,5 +16,10 @@ void RecvPro(int fd, INT8U* buf, int* head);
 void connect_socket(INT8U* server, INT16U serverPort, int* fd);
 void initComPara(CommBlock* compara);
 int getOnlineState(void);
+void setCCID(INT8U CCID[]);
+void setIMSI(INT8U IMSI[]);
+void setSINSTR(INT16U SINSTR);
+void setPPPIP(INT8U PPPIP[]);
+void saveCurrClass25(void);
 
 #endif

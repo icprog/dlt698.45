@@ -33,8 +33,32 @@ static CommBlock ComObject;
 static CommBlock nets_comstat;
 static CommBlock serv_comstat;
 
+INT8U ccid[20];						//SIM卡CCID
+INT8U imsi[20];						//SIM卡IMSI
+INT16U signalStrength;				//信号强度
+INT8U pppip[20];					//拨号IP
 static CLASS25 Class25;
 static int online_state;
+
+void saveCurrClass25(void){
+    saveCoverClass(0x4500,0,(void *)&Class25,sizeof(CLASS25),para_init_save);
+}
+
+void setCCID(INT8U CCID[]){
+	memcpy(Class25.ccid, CCID, 20);
+}
+
+void setIMSI(INT8U IMSI[]){
+	memcpy(Class25.imsi, IMSI, 20);
+}
+
+void setSINSTR(INT16U SINSTR){
+	Class25.signalStrength = SINSTR;
+}
+
+void setPPPIP(INT8U PPPIP[]){
+	memcpy(Class25.pppip, PPPIP, 20);
+}
 
 int getOnlineState(void){
 	return online_state;
