@@ -160,6 +160,21 @@ INT16U set4001_4002_4003(OAD oad,INT8U *data)
 	return source_index;
 }
 
+INT16U set4004(OAD oad,INT8U *data)
+{
+	INT16U 			source_index=0,dest_index=0;
+	CLASS_4004		class4004={};
+	memset(&class4004,0,sizeof(CLASS_4004));
+	readCoverClass(0x4004,0,&class4004,sizeof(CLASS_4004),para_vari_save);
+
+	if (oad.attflg == 2 )
+	{
+		get_BasicUnit(data,&source_index,(INT8U *)&class4004,&dest_index);
+		saveCoverClass(0x4004,0,&class4004,sizeof(CLASS_4004),para_vari_save);
+	}
+	return source_index;
+}
+
 INT16U set4300(INT8U attflg,INT8U index,INT8U *data)
 {
 	INT16U source_index=0,dest_index=0;
@@ -330,6 +345,7 @@ void EnvironmentValue(OAD oad,INT8U *data)
 			set4001_4002_4003(oad,data);
 			break;
 		case 0x4004://设备地理位置
+			set4004(oad,data);
 			break;
 		case 0x4005://组地址
 			break;

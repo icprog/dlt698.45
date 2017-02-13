@@ -121,6 +121,19 @@ typedef struct {
 } CLASS_4001_4002_4003; 	//4001:通信地址，4002：表号，4003：客户编号
 
 typedef struct {
+	INT8U  	position;	//经度：E(0),W(1)  纬度：S(0),N(1)
+	INT8U	degree;		//度
+	INT8U	min;		//分
+	INT8U	sec;		//秒
+}Lon_Lat_info;
+
+typedef struct {
+	Lon_Lat_info	Longitude;		//经度
+	Lon_Lat_info	Latitude;		//纬度
+	FP64			Height;			//高度
+} CLASS_4004; 	//4004：设备地理位置
+
+typedef struct {
 	INT8U hour;						//时
 	INT8U min;						//分
 	INT8U rateno;						//费率号
@@ -214,6 +227,17 @@ typedef struct {
 	INT16U deepsize;					//存储深度
 } CLASS_6017;					//事件采集方案
 
+typedef struct
+{
+	INT8U DI_1[4];
+	INT8U DI_2[4];
+}C601F_07Flag;
+
+typedef struct {
+	CSD flag698;
+	C601F_07Flag flag07;
+} CLASS_601F;			//开关量输入
+
 typedef struct {
 	INT8U taskID;		                //任务ID
 	TASK_STATE taskState;				//任务执行状态
@@ -261,14 +285,5 @@ typedef struct {
 	StateAtti4 state4;			//开关量属性
 } CLASS_f203;			//开关量输入
 
-typedef struct
-{
-	INT8U DI_1[4];
-	INT8U DI_2[4];
-}C601F_07Flag;
 
-typedef struct {
-	CSD flag698;
-	C601F_07Flag flag07;
-} CLASS_601F;			//开关量输入
 #endif /* OBJECTACTION_H_ */
