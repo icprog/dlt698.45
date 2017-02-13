@@ -21,6 +21,7 @@
 #include "PublicFunction.h"
 #include "dlt698def.h"
 #include "cjcomm.h"
+#include "AccessFun.h"
 
 //共享内存地址
 static ProgramInfo* JProgramInfo = NULL;
@@ -323,6 +324,9 @@ void enviromentCheck(int argc, char* argv[]) {
     memcpy(IPaddr, argv[1], strlen(argv[1]));
     asyslog(LOG_INFO, "主站通信地址为：%s\n", IPaddr);
 
+    //读取设备参数
+    saveCoverClass(0x4500,0,(void *)&Class25,sizeof(CLASS25),para_init_save);
+
     //向cjmain报告启动
     JProgramInfo = OpenShMem("ProgramInfo", sizeof(ProgramInfo), NULL);
     memcpy(JProgramInfo->Projects[3].ProjectName, "cjcomm", sizeof("cjcomm"));
@@ -337,11 +341,9 @@ void enviromentCheck(int argc, char* argv[]) {
 
 int main(int argc, char* argv[]) {
     // daemon(0,0);
-
     enviromentCheck(argc, argv);
 
-    //
-     //开始通信模块维护、红外与维护串口线程
+    //开始通信模块维护、红外与维护串口线程
     CreateATWorker();
     //开启网络IO事件处理框架
     aeEventLoop* ep;

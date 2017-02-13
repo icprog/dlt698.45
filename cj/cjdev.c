@@ -40,6 +40,38 @@ void printF203()
 //
 //}
 
+INT8U workModel;					//工作模式 enum{混合模式(0),客户机模式(1),服务器模式(2)},
+INT8U onlineType;					//在线方式 enum{永久在线(0),被动激活(1)}
+INT8U connectType;					//连接方式 enum{TCP(0),UDP(1)}
+INT8U appConnectType;				//连接应用方式 enum{主备模式(0),多连接模式(1)}
+INT8U apn[OCTET_STRING_LEN];		//apn
+INT8U userName[OCTET_STRING_LEN];	//用户名称
+INT8U passWord[OCTET_STRING_LEN];	//密码
+INT8U proxyIp[OCTET_STRING_LEN];	//代理服务器地址
+INT16U proxyPort;					//代理端口
+INT8U timeoutRtry;					//超时时间，重发次数
+INT8U heartBeat;					//心跳周期秒
+
+void Init_4500(){
+	CLASS25 obj;
+	memset(&obj,0,sizeof(obj));
+	obj.commconfig.workModel = 1;
+	obj.commconfig.onlineType = 0;
+	obj.commconfig.connectType = 0;
+	obj.commconfig.appConnectType = 0;
+	memcpy(obj.commconfig.apn, "cmcc", 4);
+	memcpy(obj.commconfig.userName, "user", 4);
+	memcpy(obj.commconfig.passWord, "user", 4);
+	memcpy(obj.commconfig.proxyIp, "0.0.0.0", 7);
+	obj.commconfig.proxyPort = 0;
+	obj.commconfig.timeoutRtry = 3;
+	obj.commconfig.heartBeat = 300;
+	memcpy(obj.master.ip, "192.168.0.97", sizeof("192.168.0.97"));
+	obj.master.port = 5200;
+
+	saveCoverClass(0x4500,0,(void *)&obj,sizeof(CLASS25),para_init_save);
+}
+
 void inoutdev_process(int argc, char *argv[])
 {
 	int 	tmp=0;
@@ -53,6 +85,15 @@ void inoutdev_process(int argc, char *argv[])
 				switch(oi) {
 				case 0xf203:
 					printF203();
+					break;
+				}
+			}
+			if(strcmp(argv[2],"init")==0) {
+				sscanf(argv[3],"%04x",&tmp);
+				oi = tmp;
+				switch(oi) {
+				case 0x4500:
+					Init_4500();
 					break;
 				}
 			}
