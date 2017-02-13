@@ -34,6 +34,11 @@ static CommBlock nets_comstat;
 static CommBlock serv_comstat;
 
 static CLASS25 Class25;
+static int online_state;
+
+int getOnlineState(void){
+	return online_state;
+}
 
 void clearcount(int index) {
     JProgramInfo->Projects[index].WaitTimes = 0;
@@ -237,6 +242,9 @@ int NETWorker(struct aeEventLoop* ep, long long id, void* clientData) {
             if (aeCreateFileEvent(ep, nst->phy_connect_fd, AE_READABLE, NETRead, nst) < 0) {
                 close(nst->phy_connect_fd);
                 nst->phy_connect_fd = -1;
+            }else{
+            	online_state = 1;
+            	asyslog(LOG_INFO, "与主站链路建立成功");
             }
         }
     } else {
@@ -275,13 +283,6 @@ int NETWorker(struct aeEventLoop* ep, long long id, void* clientData) {
 			}
 		}
     }
-//    else
-//    {
-//    	char buf[128];
-//    	int ret = read(ComObject.phy_connect_fd, buf, 128);
-//    	printf("ret = %d\n", ret);
-//    }
-
 
     return 200;
 }
@@ -364,6 +365,9 @@ void enviromentCheck(int argc, char* argv[]) {
 
     //读取设备参数
     saveCoverClass(0x4500,0,(void *)&Class25,sizeof(CLASS25),para_init_save);
+
+    //设置在线状态
+    online_state = 0;
 
     //向cjmain报告启动
     JProgramInfo = OpenShMem("ProgramInfo", sizeof(ProgramInfo), NULL);

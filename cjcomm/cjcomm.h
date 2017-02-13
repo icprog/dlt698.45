@@ -15,5 +15,6 @@ INT8S SendPro(int fd, INT8U* buf, INT16U len);
 void RecvPro(int fd, INT8U* buf, int* head);
 void connect_socket(INT8U* server, INT16U serverPort, int* fd);
 void initComPara(CommBlock* compara);
+int getOnlineState(void);
 
 #endif

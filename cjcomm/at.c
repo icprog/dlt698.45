@@ -209,6 +209,11 @@ void AT_POWOFF()
 
 void* ATWorker(void* args) {
     while (1) {
+        if(getOnlineState() == 1)
+        {
+        	goto wait;
+        }
+
         system("pkill ftpget");
         system("ppp-off");
         system("pkill gsmMuxd");
@@ -356,8 +361,13 @@ void* ATWorker(void* args) {
             }
         }
 
+    wait:
         while (1) {
             delay(1000);
+            if(getOnlineState() == 0)
+            {
+            	break;
+            }
         }
 
     err:
