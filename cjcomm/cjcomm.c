@@ -245,6 +245,44 @@ int NETWorker(struct aeEventLoop* ep, long long id, void* clientData) {
         Comm_task(nst);
     }
 
+    /*
+     * 检查红外与维护串口通信状况。
+     */
+    if (FirObject.phy_connect_fd < 0){
+		if ((FirObject.phy_connect_fd = OpenCom(3, 2400, (unsigned char*)"none", 1, 8)) <= 0) {
+			asyslog(LOG_ERR, "红外串口打开失败");
+		}
+		else
+		{
+			if (aeCreateFileEvent(ep, FirObject.phy_connect_fd, AE_READABLE, GenericRead, &FirObject) < 0) {
+				asyslog(LOG_ERR, "红外串口监听失败");
+				close(FirObject.phy_connect_fd);
+				FirObject.phy_connect_fd = -1;
+			}
+		}
+    }
+
+    if (ComObject.phy_connect_fd < 0){
+		if ((ComObject.phy_connect_fd = OpenCom(2, 9600, (unsigned char*)"none", 1, 8)) <= 0) {
+			asyslog(LOG_ERR, "维护串口打开失败");
+		}
+		else
+		{
+			if (aeCreateFileEvent(ep, ComObject.phy_connect_fd, AE_READABLE, GenericRead, &ComObject) < 0) {
+				asyslog(LOG_ERR, "维护串口监听失败");
+				close(ComObject.phy_connect_fd);
+				ComObject.phy_connect_fd = -1;
+			}
+		}
+    }
+//    else
+//    {
+//    	char buf[128];
+//    	int ret = read(ComObject.phy_connect_fd, buf, 128);
+//    	printf("ret = %d\n", ret);
+//    }
+
+
     return 200;
 }
 
