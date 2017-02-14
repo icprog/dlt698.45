@@ -13,6 +13,7 @@
 #include "Objectdef.h"
 #include "dlt698def.h"
 #include "PublicFunction.h"
+#include "secure.h"
 extern INT8S (*pSendfun)(int fd,INT8U* sndbuf,INT16U sndlen);
 extern int FrameHead(CSINFO *csinfo,INT8U *buf);
 extern void FrameTail(INT8U *buf,int index,int hcsi);
@@ -159,10 +160,9 @@ int GetEsamPara(RESULT_NORMAL *response)
 	OAD oad;
 	oad = response->oad;
 	data = response->data;
-	switch(oad.attflg )
-	{
-
-	}
+	response->datalen = getEsamAttribute(oad,data);
+	if(response->datalen == 0)
+		response->dar = 0x16;//esam验证失败
 	return 0;
 }
 int GetSecurePara(RESULT_NORMAL *response)
