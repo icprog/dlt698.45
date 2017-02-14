@@ -690,6 +690,10 @@ int EventMothod(OAD oad,INT8U *data)
 	}
 	return 0;
 }
+void EsamMothod(INT16U attr_act,INT8U *data)
+{
+	return;
+}
 int doObjectAction(OAD oad,INT8U *data)
 {
 	INT16U oi = oad.OI;
@@ -719,6 +723,9 @@ int doObjectAction(OAD oad,INT8U *data)
 			break;
 		case 0x4300:	//终端对象
 			TerminalInfo(attr_act,data);
+			break;
+		case 0xF100:
+			EsamMothod(attr_act,data);
 			break;
 	}
 	return success;	//DAR=0，成功	TODO：增加DAR各种错误判断

@@ -442,7 +442,7 @@ INT8U Event_3100(INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 		//存储记录集
 		saveCoverClass(0x3100,(INT16U)crrentnum,(void *)Save_buf,(int)index,event_record_save);
 		//存储当前记录值
-		INT8U Currbuf[50]={};
+		INT8U Currbuf[50]={};memset(Currbuf,0,50);
 		INT8U Currindex=0;
 		Get_CurrResult(Currbuf,&Currindex,NULL,s_null,crrentnum,0);
 		saveCoverClass(0x3100,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,event_current_save);
@@ -495,7 +495,7 @@ INT8U Event_3101(INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 		//存储记录集
 		saveCoverClass(0x3101,(INT16U)crrentnum,(void *)Save_buf,(int)index,event_record_save);
 		//存储当前记录值
-		INT8U Currbuf[50]={};
+		INT8U Currbuf[50]={};memset(Currbuf,0,50);
 		INT8U Currindex=0;
 		Get_CurrResult(Currbuf,&Currindex,NULL,s_null,crrentnum,0);
 		saveCoverClass(0x3101,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,event_current_save);
@@ -574,7 +574,7 @@ INT8U Event_3104(INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 		//存储记录集
 		saveCoverClass(0x3104,(INT16U)crrentnum,(void *)Save_buf,(int)index,event_record_save);
 		//存储当前记录值
-		INT8U Currbuf[50]={};
+		INT8U Currbuf[50]={};memset(Currbuf,0,50);
 		INT8U Currindex=0;
 		Get_CurrResult(Currbuf,&Currindex,NULL,s_null,crrentnum,0);
 		saveCoverClass(0x3104,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,event_current_save);
@@ -588,7 +588,7 @@ INT8U Event_3104(INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 /*
  * 电能表时钟超差事件 tsa事件发生源 电表时钟
  */
-INT8U Event_3105(TSA tsa, INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
+INT8U Event_3105(TSA tsa,INT8U taskno,INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 	if(oi_chg.oi3105 != prginfo_event->oi_changed.oi3105){
 		readCoverClass(0x3105,0,&prginfo_event->event_obj.Event3105_obj,sizeof(prginfo_event->event_obj.Event3105_obj),event_para_save);
 		oi_chg.oi3105 = prginfo_event->oi_changed.oi3105;
@@ -596,6 +596,9 @@ INT8U Event_3105(TSA tsa, INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
     if (prginfo_event->event_obj.Event3105_obj.event_obj.enableflag == 0) {
         return 0;
     }
+    if(prginfo_event->event_obj.Event3105_obj.mto_obj.task_no!=taskno)
+    	return 0;
+
     if(data==NULL)
     	return 0;
     TS jzqtime;
@@ -627,7 +630,7 @@ INT8U Event_3105(TSA tsa, INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 		//存储记录集
 		saveCoverClass(0x3105,(INT16U)crrentnum,(void *)Save_buf,(int)index,event_record_save);
         //存储当前记录值
-		INT8U Currbuf[50]={};
+		INT8U Currbuf[50]={};memset(Currbuf,0,50);
 		INT8U Currindex=0;
 		Get_CurrResult(Currbuf,&Currindex,(INT8U*)&tsa,s_tsa,crrentnum,0);
 		saveCoverClass(0x3105,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,event_current_save);
@@ -719,7 +722,7 @@ void SendERC3106(INT8U flag,INT8U Erctype,ProgramInfo* prginfo_event)
 	//存储记录集
 	saveCoverClass(0x3106,(INT16U)crrentnum,(void *)Save_buf,(int)index,event_record_save);
 	//存储当前记录值
-	INT8U Currbuf[50]={};
+	INT8U Currbuf[50]={};memset(Currbuf,0,50);
 	INT8U Currindex=0;
 	Get_CurrResult(Currbuf,&Currindex,(INT8U*)&Erctype,s_enum,crrentnum,0);
 	saveCoverClass(0x3106,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,event_current_save);
@@ -994,7 +997,7 @@ INT8U Event_3107(INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 		//存储记录集
 		saveCoverClass(0x3107,(INT16U)crrentnum,(void *)Save_buf,(int)index,event_record_save);
 		//存储当前记录值
-		INT8U Currbuf[50]={};
+		INT8U Currbuf[50]={};memset(Currbuf,0,50);
 		INT8U Currindex=0;
 		Get_CurrResult(Currbuf,&Currindex,(INT8U*)oad,s_oad,crrentnum,0);
 		saveCoverClass(0x3107,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,event_current_save);
@@ -1037,7 +1040,7 @@ INT8U Event_3108(INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 		//存储记录集
 		saveCoverClass(0x3108,(INT16U)crrentnum,(void *)Save_buf,(int)index,event_record_save);
 		//存储当前记录值
-		INT8U Currbuf[50]={};
+		INT8U Currbuf[50]={};memset(Currbuf,0,50);
 		INT8U Currindex=0;
 		Get_CurrResult(Currbuf,&Currindex,(INT8U*)oad,s_oad,crrentnum,0);
 		saveCoverClass(0x3108,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,event_current_save);
@@ -1080,7 +1083,7 @@ INT8U Event_3109(INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 		//存储记录集
 		saveCoverClass(0x3109,(INT16U)crrentnum,(void *)Save_buf,(int)index,event_record_save);
 		//存储当前记录值
-		INT8U Currbuf[50]={};
+		INT8U Currbuf[50]={};memset(Currbuf,0,50);
 		INT8U Currindex=0;
 		Get_CurrResult(Currbuf,&Currindex,NULL,s_null,crrentnum,0);
 		saveCoverClass(0x3109,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,event_current_save);
@@ -1119,7 +1122,7 @@ INT8U Event_310A(MachineError_type errtype,ProgramInfo* prginfo_event) {
 	//存储记录集
 	saveCoverClass(0x310A,(INT16U)crrentnum,(void *)Save_buf,(int)index,event_record_save);
 	//存储当前记录值
-	INT8U Currbuf[50]={};
+	INT8U Currbuf[50]={};memset(Currbuf,0,50);
 	INT8U Currindex=0;
 	Get_CurrResult(Currbuf,&Currindex,(INT8U*)&Source,s_enum,crrentnum,0);
 	saveCoverClass(0x310A,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,event_current_save);
@@ -1132,7 +1135,7 @@ INT8U Event_310A(MachineError_type errtype,ProgramInfo* prginfo_event) {
 /*
  * 电能表示度下降事件10 前台两次电能值对比是否超过设定值
  */
-INT8U Event_310B(TSA tsa, INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
+INT8U Event_310B(TSA tsa, INT8U taskno,INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 	if(oi_chg.oi310B != prginfo_event->oi_changed.oi310B){
 		readCoverClass(0x310B,0,&prginfo_event->event_obj.Event310B_obj,sizeof(prginfo_event->event_obj.Event310B_obj),event_para_save);
 		oi_chg.oi310B = prginfo_event->oi_changed.oi310B;
@@ -1140,6 +1143,9 @@ INT8U Event_310B(TSA tsa, INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
     if (prginfo_event->event_obj.Event310B_obj.event_obj.enableflag == 0) {
         return 0;
     }
+    if(prginfo_event->event_obj.Event3105_obj.mto_obj.task_no!=taskno)
+    	return 0;
+
     if(data==NULL)
     	return 0;
     INT32U newdata=(data[0]<<24)+(data[1]<<16)+(data[2]<<8)+data[3];
@@ -1173,7 +1179,7 @@ INT8U Event_310B(TSA tsa, INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 			//存储记录集
 			saveCoverClass(0x310B,(INT16U)crrentnum,(void *)Save_buf,(int)index,event_record_save);
 			//存储当前记录值
-			INT8U Currbuf[50]={};
+			INT8U Currbuf[50]={};memset(Currbuf,0,50);
 			INT8U Currindex=0;
 			Get_CurrResult(Currbuf,&Currindex,(INT8U*)&tsa,s_tsa,crrentnum,0);
 			saveCoverClass(0x310B,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,event_current_save);
@@ -1190,7 +1196,7 @@ INT8U Event_310B(TSA tsa, INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 /*
  * 电能量超差事件11 前台两次电能值以及测量点额定电压、电流
  */
-INT8U Event_310C(TSA tsa, INT8U* data,INT8U len,ProgramInfo* prginfo_event,CLASS_6001 meter)
+INT8U Event_310C(TSA tsa, INT8U taskno,INT8U* data,INT8U len,ProgramInfo* prginfo_event,CLASS_6001 meter)
 {
 	if(oi_chg.oi310C != prginfo_event->oi_changed.oi310C){
 		readCoverClass(0x310C,0,&prginfo_event->event_obj.Event310C_obj,sizeof(prginfo_event->event_obj.Event310C_obj),event_para_save);
@@ -1199,6 +1205,8 @@ INT8U Event_310C(TSA tsa, INT8U* data,INT8U len,ProgramInfo* prginfo_event,CLASS
     if (prginfo_event->event_obj.Event310C_obj.event_obj.enableflag == 0) {
         return 0;
     }
+    if(prginfo_event->event_obj.Event3105_obj.mto_obj.task_no!=taskno)
+       	return 0;
     if(data==NULL)
     	return 0;
     INT32U newdata=(data[0]<<24)+(data[1]<<16)+(data[2]<<8)+data[3];
@@ -1259,7 +1267,7 @@ INT8U Event_310C(TSA tsa, INT8U* data,INT8U len,ProgramInfo* prginfo_event,CLASS
 			//存储记录集
 			saveCoverClass(0x310C,(INT16U)crrentnum,(void *)Save_buf,(int)index,event_record_save);
 			//存储当前记录值
-			INT8U Currbuf[50]={};
+			INT8U Currbuf[50]={};memset(Currbuf,0,50);
 			INT8U Currindex=0;
 			Get_CurrResult(Currbuf,&Currindex,(INT8U*)&tsa,s_tsa,crrentnum,0);
 			saveCoverClass(0x310C,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,event_current_save);
@@ -1276,7 +1284,7 @@ INT8U Event_310C(TSA tsa, INT8U* data,INT8U len,ProgramInfo* prginfo_event,CLASS
 /*
  * 电能表飞走事件12 前台两次电能值以及测量点额定电压、电流
  */
-INT8U Event_310D(TSA tsa, INT8U* data,INT8U len,ProgramInfo* prginfo_event,CLASS_6001 meter) {
+INT8U Event_310D(TSA tsa, INT8U taskno,INT8U* data,INT8U len,ProgramInfo* prginfo_event,CLASS_6001 meter) {
 	if(oi_chg.oi310D != prginfo_event->oi_changed.oi310D){
 		readCoverClass(0x310D,0,&prginfo_event->event_obj.Event310D_obj,sizeof(prginfo_event->event_obj.Event310D_obj),event_para_save);
 		oi_chg.oi310D = prginfo_event->oi_changed.oi310D;
@@ -1284,6 +1292,9 @@ INT8U Event_310D(TSA tsa, INT8U* data,INT8U len,ProgramInfo* prginfo_event,CLASS
 	if (prginfo_event->event_obj.Event310D_obj.event_obj.enableflag == 0) {
 	        return 0;
 	}
+	 if(prginfo_event->event_obj.Event3105_obj.mto_obj.task_no!=taskno)
+		 return 0;
+
 	if(data==NULL)
 		return 0;
 	INT32U newdata=(data[0]<<24)+(data[1]<<16)+(data[2]<<8)+data[3];
@@ -1344,7 +1355,7 @@ INT8U Event_310D(TSA tsa, INT8U* data,INT8U len,ProgramInfo* prginfo_event,CLASS
 			//存储记录集
 			saveCoverClass(0x310D,(INT16U)crrentnum,(void *)Save_buf,(int)index,event_record_save);
 			//存储当前记录值
-			INT8U Currbuf[50]={};
+			INT8U Currbuf[50]={};memset(Currbuf,0,50);
 			INT8U Currindex=0;
 			Get_CurrResult(Currbuf,&Currindex,(INT8U*)&tsa,s_tsa,crrentnum,0);
 			saveCoverClass(0x310D,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,event_current_save);
@@ -1361,7 +1372,7 @@ INT8U Event_310D(TSA tsa, INT8U* data,INT8U len,ProgramInfo* prginfo_event,CLASS
 /*
  * 电能表停走事件 前台两次电能值是否相同以及时间差是否超过设定值
  */
-INT8U Event_310E(TSA tsa, INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
+INT8U Event_310E(TSA tsa, INT8U taskno,INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 	if(oi_chg.oi310E != prginfo_event->oi_changed.oi310E){
 		readCoverClass(0x310E,0,&prginfo_event->event_obj.Event310E_obj,sizeof(prginfo_event->event_obj.Event310E_obj),event_para_save);
 		oi_chg.oi310E = prginfo_event->oi_changed.oi310E;
@@ -1369,6 +1380,8 @@ INT8U Event_310E(TSA tsa, INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
     if (prginfo_event->event_obj.Event310E_obj.event_obj.enableflag == 0) {
         return 0;
     }
+    if(prginfo_event->event_obj.Event3105_obj.mto_obj.task_no!=taskno)
+       	return 0;
     INT32U newdata=(data[0]<<24)+(data[1]<<16)+(data[2]<<8)+data[3];
 	INT32U olddata=0;
 	TS ts;
@@ -1421,7 +1434,7 @@ INT8U Event_310E(TSA tsa, INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 			//存储记录集
 			saveCoverClass(0x310E,(INT16U)crrentnum,(void *)Save_buf,(int)index,event_record_save);
 			//存储当前记录值
-			INT8U Currbuf[50]={};
+			INT8U Currbuf[50]={};memset(Currbuf,0,50);
 			INT8U Currindex=0;
 			Get_CurrResult(Currbuf,&Currindex,(INT8U*)&tsa,s_tsa,crrentnum,0);
 			saveCoverClass(0x310E,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,event_current_save);
@@ -1481,7 +1494,7 @@ INT8U Event_310F(TSA tsa, INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 	//存储记录集
 	saveCoverClass(0x310F,(INT16U)crrentnum,(void *)Save_buf,(int)index,event_record_save);
 	//存储当前记录值
-	INT8U Currbuf[50]={};
+	INT8U Currbuf[50]={};memset(Currbuf,0,50);
 	INT8U Currindex=0;
 	Get_CurrResult(Currbuf,&Currindex,(INT8U*)&tsa,s_tsa,crrentnum,0);
 	saveCoverClass(0x310F,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,event_current_save);
@@ -1533,7 +1546,7 @@ INT8U Event_3110(INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 		//存储记录集
 		saveCoverClass(0x3110,(INT16U)crrentnum,(void *)Save_buf,(int)index,event_record_save);
 		//存储当前记录值
-		INT8U Currbuf[50]={};
+		INT8U Currbuf[50]={};memset(Currbuf,0,50);
 		INT8U Currindex=0;
 		Get_CurrResult(Currbuf,&Currindex,NULL,s_null,crrentnum,0);
 		saveCoverClass(0x3110,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,event_current_save);
@@ -1604,7 +1617,7 @@ INT8U Event_3111(TSA tsa, INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 	//存储记录集
 	saveCoverClass(0x3111,(INT16U)crrentnum,(void *)Save_buf,(int)index,event_record_save);
 	//存储当前记录值
-	INT8U Currbuf[50]={};
+	INT8U Currbuf[50]={};memset(Currbuf,0,50);
 	INT8U Currindex=0;
 	Get_CurrResult(Currbuf,&Currindex,NULL,s_null,crrentnum,0);
 	saveCoverClass(0x3111,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,event_current_save);
@@ -1660,7 +1673,7 @@ INT8U Event_3112(TSA tsa, INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 	//存储记录集
 	saveCoverClass(0x3112,(INT16U)crrentnum,(void *)Save_buf,(int)index,event_record_save);
 	//存储当前记录值
-	INT8U Currbuf[50]={};
+	INT8U Currbuf[50]={};memset(Currbuf,0,50);
 	INT8U Currindex=0;
 	Get_CurrResult(Currbuf,&Currindex,NULL,s_null,crrentnum,0);
 	saveCoverClass(0x3112,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,event_current_save);
@@ -1714,7 +1727,7 @@ INT8U Event_311A(TSA tsa, INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 		//存储记录集
 		saveCoverClass(0x311A,(INT16U)crrentnum,(void *)Save_buf,(int)index,event_record_save);
 		//存储当前记录值
-		INT8U Currbuf[50]={};
+		INT8U Currbuf[50]={};memset(Currbuf,0,50);
 		INT8U Currindex=0;
 		Get_CurrResult(Currbuf,&Currindex,NULL,s_null,crrentnum,0);
 		saveCoverClass(0x311A,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,event_current_save);
@@ -1759,7 +1772,7 @@ INT8U Event_311B(TSA tsa, INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 		//存储记录集
 		saveCoverClass(0x311B,(INT16U)crrentnum,(void *)Save_buf,(int)index,2);
 		//存储当前记录值
-		INT8U Currbuf[50]={};
+		INT8U Currbuf[50]={};memset(Currbuf,0,50);
 		INT8U Currindex=0;
 		Get_CurrResult(Currbuf,&Currindex,(INT8U*)&tsa,s_tsa,crrentnum,0);
 		saveCoverClass(0x311B,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,3);
@@ -1800,7 +1813,7 @@ INT8U Event_311C(TSA tsa, INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 		//存储记录集
 		saveCoverClass(0x311C,(INT16U)crrentnum,(void *)Save_buf,(int)index,event_record_save);
 		//存储当前记录值
-		INT8U Currbuf[50]={};
+		INT8U Currbuf[50]={};memset(Currbuf,0,50);
 		INT8U Currindex=0;
 		Get_CurrResult(Currbuf,&Currindex,(INT8U*)&tsa,s_tsa,crrentnum,0);
 		saveCoverClass(0x311C,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,event_current_save);
@@ -1840,8 +1853,6 @@ INT8U Event_3114(INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 		DateTimeBCD ntime;
 		DataTimeGet(&ntime);
 		Save_buf[index++]=dtdatetimes;
-//		memcpy(&Save_buf[index],&ntime,7);
-//		index+=7;
 		Save_buf[index++] = ((ntime.year.data>>8)&0x00ff);
 		Save_buf[index++] = ((ntime.year.data)&0x00ff);
 		Save_buf[index++] = ntime.month.data;
@@ -1855,7 +1866,7 @@ INT8U Event_3114(INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 		//存储记录集
 		saveCoverClass(0x3114,(INT16U)crrentnum,(void *)Save_buf,(int)index,2);
 		//存储当前记录值
-		INT8U Currbuf[50]={};
+		INT8U Currbuf[50]={};memset(Currbuf,0,50);
 		INT8U Currindex=0;
 		Get_CurrResult(Currbuf,&Currindex,NULL,s_null,crrentnum,0);
 		saveCoverClass(0x3114,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,3);
@@ -1922,7 +1933,7 @@ INT8U Event_3117(INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 		//存储记录集
 		saveCoverClass(0x3117,(INT16U)crrentnum,(void *)Save_buf,(int)index,event_record_save);
 		//存储当前记录值
-		INT8U Currbuf[50]={};
+		INT8U Currbuf[50]={};memset(Currbuf,0,50);
 		INT8U Currindex=0;
 		Get_CurrResult(Currbuf,&Currindex,NULL,s_null,crrentnum,0);
 		saveCoverClass(0x3117,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,event_current_save);
@@ -1969,7 +1980,7 @@ INT8U Event_3118(INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 		//存储记录集
 		saveCoverClass(0x3118,(INT16U)crrentnum,(void *)Save_buf,(int)index,event_record_save);
 		//存储当前记录值
-		INT8U Currbuf[50]={};
+		INT8U Currbuf[50]={};memset(Currbuf,0,50);
 		INT8U Currindex=0;
 		Get_CurrResult(Currbuf,&Currindex,NULL,s_null,crrentnum,0);
 		saveCoverClass(0x3118,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,event_current_save);
@@ -2007,7 +2018,7 @@ INT8U Event_3119(INT8U type, INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 		//存储记录集
 		saveCoverClass(0x3119,(INT16U)crrentnum,(void *)Save_buf,(int)index,event_record_save);
 		//存储当前记录值
-		INT8U Currbuf[50]={};
+		INT8U Currbuf[50]={};memset(Currbuf,0,50);
 		INT8U Currindex=0;
 		Get_CurrResult(Currbuf,&Currindex,(INT8U*)&type,s_enum,crrentnum,0);
 		saveCoverClass(0x3119,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,event_current_save);
@@ -2065,7 +2076,7 @@ INT8U Event_3200(INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 		//存储记录集
 		saveCoverClass(0x3200,(INT16U)crrentnum,(void *)Save_buf,(int)index,event_record_save);
 		//存储当前记录值
-		INT8U Currbuf[50]={};
+		INT8U Currbuf[50]={};memset(Currbuf,0,50);
 		INT8U Currindex=0;
 		Get_CurrResult(Currbuf,&Currindex,(INT8U*)data,s_oi,crrentnum,0);
 		saveCoverClass(0x3200,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,event_current_save);
@@ -2117,7 +2128,7 @@ INT8U Event_3201(INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 		//存储记录集
 		saveCoverClass(0x3201,(INT16U)crrentnum,(void *)Save_buf,(int)index,event_record_save);
 		//存储当前记录值
-		INT8U Currbuf[50]={};
+		INT8U Currbuf[50]={};memset(Currbuf,0,50);
 		INT8U Currindex=0;
 		Get_CurrResult(Currbuf,&Currindex,(INT8U*)data,s_oi,crrentnum,0);
 		saveCoverClass(0x3201,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,event_current_save);
@@ -2158,7 +2169,7 @@ INT8U Event_3202(INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 		//存储记录集
 		saveCoverClass(0x3202,(INT16U)crrentnum,(void *)Save_buf,(int)index,event_record_save);
 		//存储当前记录值
-		INT8U Currbuf[50]={};
+		INT8U Currbuf[50]={};memset(Currbuf,0,50);
 		INT8U Currindex=0;
 		Get_CurrResult(Currbuf,&Currindex,(INT8U*)oi,s_oi,crrentnum,0);
 		saveCoverClass(0x3202,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,event_current_save);
@@ -2205,7 +2216,7 @@ INT8U Event_3203(INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 		//存储记录集
 		saveCoverClass(0x3203,(INT16U)crrentnum,(void *)Save_buf,(int)index,event_record_save);
 		//存储当前记录值
-		INT8U Currbuf[50]={};
+		INT8U Currbuf[50]={};memset(Currbuf,0,50);
 		INT8U Currindex=0;
 		Get_CurrResult(Currbuf,&Currindex,(INT8U*)data,s_oi,crrentnum,0);
 		saveCoverClass(0x3203,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,event_current_save);

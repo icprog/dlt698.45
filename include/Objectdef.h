@@ -263,8 +263,8 @@ typedef struct {
 
 typedef struct
 {
-	INT8U DI_1[4];
-	INT8U DI_2[4];
+	INT8U DI_1[10][4];
+	INT8U DI_2[10][4];
 }C601F_07Flag;
 
 typedef struct {

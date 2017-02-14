@@ -289,15 +289,15 @@ INT32S Esam_GetTermiInfo(INT32S fd, EsamInfo* esamInfo) {
 		index+=16;
 		esamInfo->CcieVersion.ServerCcieVersion=Rbuf[index++]; //主站证书版本
 		esamInfo->CcieVersion.TerminalCcieVersion=Rbuf[index++]; //终端证书版本
-		esamInfo->SessionTimeHold=CharToINT32U(&Rbuf[index]);//会话时效门限
+		memcpy(esamInfo->SessionTimeHold,&Rbuf[index],4);//会话时效门限
 		index+=4;
-		esamInfo->SessionTimeLeft=CharToINT32U(&Rbuf[index]);//会话剩余时间
+		memcpy(esamInfo->SessionTimeLeft,&Rbuf[index],4);//会话剩余时间
 		index+=4;
-		esamInfo->CurrentCounter.SingleAddrCounter =CharToINT32U(&Rbuf[index]);//单地址应用协商计数器
+		memcpy(esamInfo->CurrentCounter.SingleAddrCounter,&Rbuf[index],4);//单地址应用协商计数器
 		index+=4;
-		esamInfo->CurrentCounter.ReportCounter=CharToINT32U(&Rbuf[index]);//主动上报计数器
+		memcpy(esamInfo->CurrentCounter.ReportCounter,&Rbuf[index],4);//主动上报计数器
 		index+=4;
-		esamInfo->CurrentCounter.BroadCastSID=CharToINT32U(&Rbuf[index]);//应用广播通信序列号
+		memcpy(esamInfo->CurrentCounter.BroadCastSID,&Rbuf[index],4);//应用广播通信序列号
 		index+=4;
 		memcpy(esamInfo->TerminalCcieSID,&Rbuf[index],16); //终端证书序列号
 		index+=16;
@@ -385,8 +385,10 @@ INT32S Esam_CreateConnect(INT32S fd, SignatureSecurity* securityInfo ,SecurityDa
 
 	 if(Result>0 && Result<BUFFLENMAX_SPI) //大于BUFFLENMAX_SPI错误，此处做比较
 	{
-		 memcpy(RetInfo->server_rn,&tmp[4],48);//48byte服务器随机数
-		 memcpy(RetInfo->server_signInfo,&tmp[52],Result-53);  //53=4+1+48
+		 RetInfo->server_rn[0]=0x30;//第一个字节为长度
+		 memcpy(&RetInfo->server_rn[1],&tmp[4],48);//48byte服务器随机数
+		 RetInfo->server_signInfo[1]=Result-53;//第一个字节为长度
+		 memcpy(&RetInfo->server_signInfo[1],&tmp[52],Result-53);  //53=4+1+48
 		return Result-5;
 	}
    return Result;
