@@ -23,11 +23,15 @@ extern int setRequestNormal(INT8U *data,OAD oad,CSINFO *csinfo,INT8U *buf);
 extern int setRequestNormalList(INT8U *Object,CSINFO *csinfo,INT8U *buf);
 extern int Proxy_GetRequestlist(INT8U *data,CSINFO *csinfo,INT8U *sendbuf);
 extern unsigned short tryfcs16(unsigned char *cp, int  len);
+extern INT32S secureConnectRequest(SignatureSecurity* securityInfo ,SecurityData* RetInfo);
 INT8S (*pSendfun)(int fd,INT8U* sndbuf,INT16U sndlen);
 int comfd = 0;
 INT8U TmpDataBuf[MAXSIZ_FAM];
 INT8U TmpDataBufList[MAXSIZ_FAM*2];
 ProgramInfo *memp;
+LINK_Response *linkResponse_p;	// 预连接（登录、心跳）的确认，存储在com控制块中
+CONNECT_Response *myAppVar_p;	// 集中器支持参数（应用层会话参数）
+CONNECT_Response *AppVar_p;		// 集中器协商后参数（应用层会话参数）
 INT8U securetype;
 /**************************************
  * 函数功能：DL/T698.45 状态机
@@ -278,6 +282,7 @@ int Link_Response(INT8U *apdu)
 	fprintf(stderr,"\nrequest time: %d-%d-%d %d:%d:%d",linkresponse.request_time.year,linkresponse.request_time.month,linkresponse.request_time.day_of_month,linkresponse.request_time.hour,linkresponse.request_time.minute,linkresponse.request_time.second);
 	fprintf(stderr,"\nresponse time: %d-%d-%d  %d:%d:%d",linkresponse.response_time.year,linkresponse.response_time.month,linkresponse.response_time.day_of_month,linkresponse.response_time.hour,linkresponse.response_time.minute,linkresponse.response_time.second);
 	fprintf(stderr,"\nreached time: %d-%d-%d  %d:%d:%d",linkresponse.reached_time.year,linkresponse.reached_time.month,linkresponse.reached_time.day_of_month,linkresponse.reached_time.hour,linkresponse.reached_time.minute,linkresponse.reached_time.second);
+	memcpy(linkResponse_p,&linkresponse,sizeof(LINK_Response));
 	return 1;
 }
 /**********************************************************************
@@ -301,28 +306,190 @@ int dealClientResponse(INT8U *apdu,CSINFO *csinfo)
 	}
 	return apduType;
 }
+int long_unsigned(INT8U *value,INT8U *buf)
+{
+	value[0]= buf[1];
+	value[1]= buf[0];
+	return 2;
+}
+void GetconnetRequest(CONNECT_Request *request,INT8U *apdu)
+{
+	int index=0, bytenum=0;
+	request->piid.data = apdu[index++];
+	memcpy((INT8U*)&request->expect_app_ver,&apdu[index],2);
+	index = index + 2;
+	memcpy((INT8U*)&request->ProtocolConformance,&apdu[index],sizeof(request->ProtocolConformance));
+	index += sizeof(request->ProtocolConformance);
+	memcpy((INT8U*)&request->FunctionConformance,&apdu[index],sizeof(request->FunctionConformance));
+	index += sizeof(request->FunctionConformance);
+	index += long_unsigned((INT8U *)&request->client_send_size,&apdu[index]);
+	index += long_unsigned((INT8U *)&request->client_recv_size,&apdu[index]);
+	request->client_recv_maxWindow = apdu[index++];
+	index += long_unsigned((INT8U *)&request->client_deal_maxApdu,&apdu[index]);
+	request->expect_connect_timeout = (apdu[index]<<24) + (apdu[index+1]<<16) + (apdu[index+2]<<8) + (apdu[index+3]);
+	index = index + 4;
+	request->connecttype = apdu[index++];
+	switch(request->connecttype )
+	{
+		case 0://公共连接
+			break;
+		case 1://一般密码
+			break;
+		case 2://对称加密
+			break;
+		default://数字签名
+			bytenum = apdu[index];
+			if (bytenum<=40)
+			{
+				memcpy((INT8U*)&request->info.sigsecur.encrypted_code2,&apdu[index],bytenum+1);//长度拷贝到目的缓冲区第0个字节
+				index = index + bytenum +1;
+				bytenum = apdu[index];
+				if (bytenum<70)
+					memcpy((INT8U*)&request->info.sigsecur.signature,&apdu[index],bytenum);
+			}
+			break;
+	}
+	fprintf(stderr,"\nPIID=%02x",request->piid.data);
+	fprintf(stderr,"\n期望的应用缯协议版本 = %x",request->expect_app_ver.data);
+	fprintf(stderr,"\n期望的协议一致性块 =");
+	for(index=0;index<8;index++)
+		fprintf(stderr,"%02x ",request->ProtocolConformance[index]);
+	fprintf(stderr,"\n期望的功能一致性块 =");
+	for(index=0;index<16;index++)
+		fprintf(stderr,"%02x ",request->FunctionConformance[index]);
+
+	fprintf(stderr,"\n客户机发送最大字节 %d",request->client_send_size);
+	fprintf(stderr,"\n客户机接收最大字节 %d",request->client_recv_size);
+	fprintf(stderr,"\n客户机最大窗口 %d",request->client_recv_maxWindow);
+	fprintf(stderr,"\n客户机最大可处理APDU %d",request->client_deal_maxApdu);
+	fprintf(stderr,"\n期望应用连接超时时间 %d",request->expect_connect_timeout);
+	fprintf(stderr,"\n应用连接类型=%d",request->connecttype);
+	fprintf(stderr,"\n密文2");
+	for(index=0;index<request->info.sigsecur.encrypted_code2[0];index++)
+	{
+		if (index %10==0) fprintf(stderr,"\n");
+		fprintf(stderr,"%02x ",request->info.sigsecur.encrypted_code2[index+1]);
+	}
+	fprintf(stderr,"\n客户机签名2");
+	for(index=0;index<request->info.sigsecur.signature[0];index++)
+	{
+		if (index %10==0) fprintf(stderr,"\n");
+		fprintf(stderr,"%02x ",request->info.sigsecur.signature[index+1]);
+	}
+}
+void varconsult(CONNECT_Response *response ,CONNECT_Request *request,CONNECT_Response *myvar)
+{
+	int i =0;
+	for(i=0;i<16;i++)
+		response->FunctionConformance[i] = myvar->FunctionConformance[i] & request->FunctionConformance[i];
+	for(i=0;i<8;i++)
+		response->ProtocolConformance[i] = myvar->ProtocolConformance[i] & request->ProtocolConformance[i];
+	memcpy(&response->app_version,&request->expect_app_ver,sizeof(request->expect_app_ver));
+	if (myvar->server_deal_maxApdu < request->client_deal_maxApdu)
+		response->server_deal_maxApdu = myvar->server_deal_maxApdu;
+	else
+		response->server_deal_maxApdu = request->client_deal_maxApdu;
+	if (myvar->server_recv_size < request->client_recv_size)
+		response->server_recv_size = myvar->server_recv_size;
+	else
+		response->server_recv_size = request->client_deal_maxApdu;
+	if (myvar->server_recv_maxWindow < request->client_recv_maxWindow)
+		response->server_recv_maxWindow = myvar->server_recv_maxWindow;
+	else
+		response->server_recv_maxWindow = request->client_recv_maxWindow;
+	if (myvar->server_send_size < request->client_send_size)
+		response->server_send_size = myvar->server_send_size;
+	else
+		response->server_send_size = request->client_send_size;
+	if(myvar->expect_connect_timeout < request->expect_connect_timeout)
+		response->expect_connect_timeout = myvar->expect_connect_timeout;
+	else
+		response->expect_connect_timeout = request->expect_connect_timeout;
+	memcpy(&response->server_factory_version, &myvar->server_factory_version,sizeof(FactoryVersion));
+	response->info.result = allow;
+//	response->info.addinfo  //在发送前从 ESAM取值
+}
 int appConnectResponse(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 {
-	int index=0, hcsi=0;
-	CONNECT_Request *request=(CONNECT_Request *)apdu;
+	int index=1, hcsi=0,bytenum=0;
+	CONNECT_Request request={};
 	CONNECT_Response response={};
+
+	/*
+	 * 解析主站应用连接请求的参数，在request结构体
+	 */
+	GetconnetRequest(&request,&apdu[1]);
+
+	/* test:
+	 * 临时将应用会话参数 附值成下发的 主站会话参数，测试
+	 */
+
+	//---------------------------------------------------------------------------------
+	/*
+	 * 协商过程：
+	 * 把主站下发的会话参数 与 集中器本身的会话参数进行比对，选择小的，应答给主站
+	 * response:协商后的结果（应答给主站）
+	 * 		request :主站协商请求的内容
+	 * 		myAppVar_p :集中器本身的参数
+	 */
+	memset(&response,0,sizeof(response));
+	response.piid_acd = request.piid;
+	varconsult(&response,&request,myAppVar_p);
+	/*
+	 *存储应用会话参数结构
+	 */
+	memcpy((INT8U *)AppVar_p,&response,sizeof(response));
+
+	/*
+	 * 根据 response 组织响应报文
+	 */
+	return 1;
 	csinfo->dir = 1;
 	csinfo->prm = 0;
-
-	memset(&response,0,sizeof(response));
 	index = FrameHead(csinfo,buf);
 	hcsi = index;
 	index = index + 2;
+	buf[index++] = response.piid_acd.data;
+	memcpy(&buf[index],response.server_factory_version.factorycode,4);
+	index = index +4;
+	memcpy(&buf[index],response.server_factory_version.software_ver,4);
+	index = index +4;
+	memcpy(&buf[index],response.server_factory_version.software_date,6);
+	index = index +6;
+	memcpy(&buf[index],response.server_factory_version.hardware_ver,4);
+	index = index +4;
+	memcpy(&buf[index],response.server_factory_version.hardware_date,6);
+	index = index +6;
+	memcpy(&buf[index],response.server_factory_version.additioninfo,8);
+	index = index +8;
+	memcpy(&buf[index],&response.app_version,2);
+	index = index +2;
+	memcpy(&buf[index],response.ProtocolConformance,8);
+	index = index +8;
+	memcpy(&buf[index],response.FunctionConformance,16);
+	index = index +16;
+	buf[index++] = (response.server_send_size & 0xFF00)>>8;
+	buf[index++] = response.server_send_size & 0x00FF;
+	buf[index++] = (response.server_recv_size & 0x00FF)>>8;
+	buf[index++] = response.server_recv_size & 0x00FF;
+	buf[index++] = response.server_recv_maxWindow;
+	buf[index++] = (response.server_deal_maxApdu & 0xFF00) >>8;
+	buf[index++] = response.server_deal_maxApdu &0x00FF;
+	buf[index++] = (response.expect_connect_timeout & 0xFF000000) >> 24 ;
+	buf[index++] = (response.expect_connect_timeout & 0x00FF0000) >> 16 ;
+	buf[index++] = (response.expect_connect_timeout & 0x0000FF00) >> 8 ;
+	buf[index++] =  response.expect_connect_timeout & 0x000000FF;
+	buf[index++] = response.info.result;
 
-	response.piid_acd = request->piid;
-	response.app_version = request->expect_app_ver;
-	response.server_recv_size = BUFLEN;
-	response.server_send_size = BUFLEN;
-	response.server_deal_maxApdu = 1;
-//	response.server_factory_version=1;
-	memcpy(response.ProtocolConformance,request->ProtocolConformance,sizeof(request->ProtocolConformance));
-	memcpy(&buf[index],&response,sizeof(response));
-	index = index + sizeof(response);
+	INT32S ret = secureConnectRequest(&request.info.sigsecur,&response.info.addinfo);
+	if( ret >0 )
+	{
+		bytenum = response.info.addinfo.server_rn[0];
+		memcpy(&buf[index],response.info.addinfo.server_rn,bytenum);
+		index = index + bytenum;
+		bytenum = response.info.addinfo.server_signInfo[0];
+		memcpy(&buf[index],response.info.addinfo.server_signInfo,bytenum);
+	}
 
 	FrameTail(buf,index,hcsi);
 
@@ -365,7 +532,6 @@ int doGetAttribute(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
 	INT8U getType = apdu[1];
 	OAD oad={};
 	INT8U *data=NULL;
-	INT8U oadnum=0;
 	piid.data = apdu[2];
 	fprintf(stderr,"\n- get type = %d PIID=%02x",getType,piid.data);
 	oad.OI = (apdu[3]<<8) | apdu[4];
@@ -379,6 +545,7 @@ int doGetAttribute(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
 			getRequestNormal(oad,data,csinfo,sendbuf);
 			break;
 		case GET_REQUEST_NORMAL_LIST:
+			/*重新定位数据指针地址*/
 			data = &apdu[3];
 			getRequestNormalList(data,csinfo,sendbuf);
 			break;
@@ -694,7 +861,8 @@ int ProcessData(CommBlock *com)
 	INT8U *apdu= NULL;
 	INT8U *Rcvbuf = com->DealBuf;
 	INT8U *SendBuf = com->SendBuf;
-
+	linkResponse_p = &com->linkResponse;
+	myAppVar_p = &com->myAppVar;
 	memp = (ProgramInfo*)com->shmem;
 	pSendfun = com->p_send;
 	comfd = com->phy_connect_fd;

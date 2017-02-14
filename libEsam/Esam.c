@@ -385,8 +385,10 @@ INT32S Esam_CreateConnect(INT32S fd, SignatureSecurity* securityInfo ,SecurityDa
 
 	 if(Result>0 && Result<BUFFLENMAX_SPI) //大于BUFFLENMAX_SPI错误，此处做比较
 	{
-		 memcpy(RetInfo->server_rn,&tmp[4],48);//48byte服务器随机数
-		 memcpy(RetInfo->server_signInfo,&tmp[52],Result-53);  //53=4+1+48
+		 RetInfo->server_rn[0]=0x30;//第一个字节为长度
+		 memcpy(&RetInfo->server_rn[1],&tmp[4],48);//48byte服务器随机数
+		 RetInfo->server_signInfo[1]=Result-53;//第一个字节为长度
+		 memcpy(&RetInfo->server_signInfo[1],&tmp[52],Result-53);  //53=4+1+48
 		return Result-5;
 	}
    return Result;
