@@ -136,7 +136,21 @@ char *getenum(int type, int val) {
 //	fprintf(stderr,"get name=%s\n",name);
 	return name;
 }
+INT32U getMeterBaud(INT8U bps)
+{
+	if (bps == bps1200)
+		return 1200;
+	if (bps == bps4800)
+		return 4800;
+	if (bps == bps7200)
+		return 7200;
+	if (bps == bps9600)
+		return 9600;
+	if (bps == bps115200)
+		return 115200;
 
+	return 2400;
+}
 void print6013(CLASS_6013 class6013) {
 	fprintf(stderr, "\n----------------------------------");
 	fprintf(stderr, "【6013】任务配置单元: 任务ID--%04x\n", class6013.taskID);
@@ -224,22 +238,22 @@ void print6015(CLASS_6015 class6015) {
 	fprintf(stderr, "[5]");
 	for (i = 0; i < class6015.csds.num; i++) {
 		printMY_CSD(class6015.csds.csd[i]);
-#if 1//test
+#ifdef TESTDEF
 		if (class6015.csds.csd[i].type == 0) {
 			memcpy(&testArray[0].flag698.oad, &class6015.csds.csd[i].csd.oad,
 					sizeof(OAD));
-			INT8U flag07_0CF33[4] = { 0x00, 0x01, 0xff, 0x00 };
+			INT8U flag07_0CF33[4] = { 0x00, 0xff, 0x01, 0x00 };
 			memcpy(testArray[0].flag07.DI_1[0], flag07_0CF33, 4);
-			INT8U flag07_0CF25_1[4] = { 0x02, 0x01, 0xff, 0x00 };
+			INT8U flag07_0CF25_1[4] = { 0x00, 0xff, 0x01, 0x02 };
 			memcpy(testArray[0].flag07.DI_1[1], flag07_0CF25_1, 4);
-			INT8U flag07_0CF25_2[4] = { 0x02, 0x02, 0xff, 0x00 };
+			INT8U flag07_0CF25_2[4] = { 0x00, 0xff, 0x02, 0x02 };
 			memcpy(testArray[0].flag07.DI_1[2], flag07_0CF25_2, 4);
 
 		}
 		if (class6015.csds.csd[i].type == 1) {
 			memcpy(&testArray[1].flag698.road, &class6015.csds.csd[i].csd.road,
 					sizeof(ROAD));
-			INT8U freezeflag07[4] = { 0x05, 0x06, 0x01, 0x01 };
+			INT8U freezeflag07[4] = { 0x01, 0x01, 0x06, 0x05 };
 			memcpy(testArray[1].flag07.DI_1[4], freezeflag07, 4);
 		}
 #endif
@@ -268,11 +282,19 @@ INT32S open_com_para_chg(INT8U port, INT32U baud, INT32S oldcomfd) {
 		CloseCom(oldcomfd);
 		sleep(1);
 	}
+
+	if (port==1)
+		port = 2;
+	else if (port==2)
+		port = 1;
+
+	//fprintf(stderr,"\n open_com_para_chg port = %d baud = %d newfd = %d",port,baud, newfd);
+
 	newfd = OpenCom(port, baud, (unsigned char *) "even", 1, 8);
 
 	lastport = port;
 	lastbaud = baud;
-	fprintf(stderr, "open_com_para_chg newfd = %d", newfd);
+
 	return newfd;
 }
 
@@ -290,6 +312,21 @@ INT8U use6013find6015(INT16U fanganID, CLASS_6015* st6015) {
 	}
 	return result;
 
+}
+void printbuff(const char* prefix, INT8U* buff, INT32U len, const char* format,
+		const char* space, const char* surfix) {
+	if (prefix != NULL )
+		fprintf(stderr, "%s", prefix);
+	if (buff != NULL && len > 0) {
+		INT32U i = 0;
+		for (i = 0; i < len; i++) {
+			fprintf(stderr, (const char*) format, *(buff + i));
+			if (space != NULL )
+				fprintf(stderr, "%s", space);
+		}
+	}
+	if (surfix != NULL )
+		fprintf(stderr, "%s", surfix);
 }
 /*
  * 485口接收处理,判断完整帧
@@ -326,8 +363,8 @@ INT16S ReceDataFrom485(INT32S fd, INT16U delayms, INT8U *str) {
 
 			memset(prtstr, 0, sizeof(prtstr));
 			sprintf((char *) prtstr, "485(%d)_R(%d):", 1, len);
-//			dbg_prtbuff((char *)prtstr, TmprevBuf, len, "%02x", " ", "\n");
 
+			printbuff((char *) prtstr, TmprevBuf, len, "%02x", " ", "\n");
 		}
 		switch (rec_step) {
 		case 0:
@@ -369,21 +406,7 @@ INT16S ReceDataFrom485(INT32S fd, INT16U delayms, INT8U *str) {
 	else
 		return 0;
 }
-void printbuff(const char* prefix, INT8U* buff, INT32U len, const char* format,
-		const char* space, const char* surfix) {
-	if (prefix != NULL )
-		fprintf(stderr, "%s", prefix);
-	if (buff != NULL && len > 0) {
-		INT32U i = 0;
-		for (i = 0; i < len; i++) {
-			fprintf(stderr, (const char*) format, *(buff + i));
-			if (space != NULL )
-				fprintf(stderr, "%s", space);
-		}
-	}
-	if (surfix != NULL )
-		fprintf(stderr, "%s", surfix);
-}
+
 /**
  * 485口发送
  */
@@ -573,16 +596,17 @@ INT8S deal6015_07(CLASS_6015 st6015, BasicInfo6001 to6001) {
  */
 INT8U deal6015_singlemeter(CLASS_6015 st6015, BasicInfo6001 obj6001) {
 	INT8S ret = 0;
+	INT32U baudrate = getMeterBaud(obj6001.baud);
 	//打开串口
 	if (obj6001.port == S4851) {
-		comfd4851 = open_com_para_chg(obj6001.port, obj6001.baud, comfd4851);
+		comfd4851 = open_com_para_chg(obj6001.port, baudrate, comfd4851);
 		if (comfd4851 <= 0) {
 			fprintf(stderr, "打开S4851串口失败\n");
 			return ret;
 		}
 	}
 	if (obj6001.port == S4852) {
-		comfd4852 = open_com_para_chg(obj6001.port, obj6001.baud, comfd4852);
+		comfd4852 = open_com_para_chg(obj6001.port, baudrate, comfd4852);
 		if (comfd4852 <= 0) {
 			fprintf(stderr, "打开S4852串口失败\n");
 			return ret;
@@ -718,15 +742,14 @@ INT8U time_in_shiduan(TASK_RUN_TIME str_runtime) {
 	TSGet(&ts_now);
 
 	INT16U min_start, min_end, now_min;	//距离0点0分
-
 	now_min = ts_now.Hour * 60 + ts_now.Minute;
 	INT8U timePartIndex = 0;
-	for (timePartIndex = 0; timePartIndex < 24; timePartIndex++) {
+	for (timePartIndex = 0; timePartIndex < str_runtime.num; timePartIndex++)
+	{
 		min_start = str_runtime.runtime[timePartIndex].beginHour * 60
 				+ str_runtime.runtime[timePartIndex].beginMin;
 		min_end = str_runtime.runtime[timePartIndex].endHour * 60
 				+ str_runtime.runtime[timePartIndex].endMin;
-
 		if (min_start <= min_end) {
 			if ((now_min > min_start) && (now_min < min_end)) {
 				return 1;
@@ -816,20 +839,18 @@ INT8U filterInvalidTask(INT16U taskIndex) {
 		fprintf(stderr, "\n filterInvalidTask - 1");
 		return 0;
 	}
-
 	if (list6013[taskIndex].basicInfo.state == task_novalid)	//任务无效
 			{
 		fprintf(stderr, "\n filterInvalidTask - 2");
 		return 0;
 	}
-
 	if (time_in_task(list6013[taskIndex].basicInfo) == 1)	//不在任务执行时段内
-			{
+	{
 		fprintf(stderr, "\n filterInvalidTask - 3");
 		return 0;
 	}
 	if (time_in_shiduan(list6013[taskIndex].basicInfo.runtime) == 1)	//在抄表时段内
-			{
+	{
 		return 1;
 	}
 	return 0;
@@ -841,9 +862,16 @@ INT8U filterInvalidTask(INT16U taskIndex) {
  * */
 void getTaskNextTime(INT16U taskIndex) {
 	TSGet(&list6013[taskIndex].ts_next);
+	fprintf(stderr,"\n getTaskNextTime 任务ID = %d",list6013[taskIndex].basicInfo.taskID);
+	fprintf(stderr,"\n 本次抄表时间 %04d-%02d-%02d %02d:%02d:%02d",
+			list6013[taskIndex].ts_next.Year,list6013[taskIndex].ts_next.Month,list6013[taskIndex].ts_next.Day,
+			list6013[taskIndex].ts_next.Hour,list6013[taskIndex].ts_next.Minute,list6013[taskIndex].ts_next.Sec);
 	tminc(&list6013[taskIndex].ts_next,
 			list6013[taskIndex].basicInfo.interval.units,
 			list6013[taskIndex].basicInfo.interval.interval);
+	fprintf(stderr,"\n 下次抄表时间 %04d-%02d-%02d %02d:%02d:%02d",
+				list6013[taskIndex].ts_next.Year,list6013[taskIndex].ts_next.Month,list6013[taskIndex].ts_next.Day,
+				list6013[taskIndex].ts_next.Hour,list6013[taskIndex].ts_next.Minute,list6013[taskIndex].ts_next.Sec);
 
 }
 /*
@@ -880,7 +908,8 @@ INT16S getNextTastIndexIndex() {
 	INT16S taskIndex = -1;
 	INT16U tIndex = 0;
 
-	for (tIndex = 0; tIndex < TASK6012_MAX; tIndex++) {
+	for (tIndex = 0; tIndex < TASK6012_MAX; tIndex++)
+	{
 
 		if (list6013[tIndex].basicInfo.taskID == 0) {
 			continue;
@@ -904,11 +933,17 @@ INT16S getNextTastIndexIndex() {
 				fprintf(stderr, "\n  getNextTastIndexIndex-4444");
 			}
 		}
-		if ((taskIndex == -1) && (list6013[tIndex].run_flg > 0)) {
-			fprintf(stderr, "\n  getNextTastIndexIndex-5555");
-			taskIndex = tIndex;
+
+		if (taskIndex == -1)
+		{
+			if(list6013[tIndex].run_flg > 0)
+			{
+				fprintf(stderr, "\n  getNextTastIndexIndex-5555");
+				taskIndex = tIndex;
+			}
 			continue;
 		}
+
 		if (cmpTaskPrio(taskIndex, tIndex) == 2) {
 			fprintf(stderr, "\n  getNextTastIndexIndex-6666");
 			taskIndex = tIndex;
@@ -957,11 +992,13 @@ void read485_thread(void* i485port) {
 	while (1) {
 
 		tastIndexIndex = getNextTastIndexIndex();
-		//计算下一次抄读此任务的时间
-		getTaskNextTime(tastIndexIndex);
+
 		if (tastIndexIndex > -1) {
-			fprintf(stderr, "\n-read485_thread tastIndexIndex = %d taskID = %d",
+			fprintf(stderr, "\n\n\n\n\n*************-read485_thread tastIndexIndex = %d taskID = %d*****************\n",
 					tastIndexIndex, list6013[tastIndexIndex].basicInfo.taskID);
+			//计算下一次抄读此任务的时间
+			getTaskNextTime(tastIndexIndex);
+
 			CLASS_6035 result6035;	//采集任务监控单元
 			memset(&result6035, 0, sizeof(CLASS_6035));
 			CLASS_6015 to6015;	//采集方案集
@@ -1000,7 +1037,7 @@ void read485_thread(void* i485port) {
 			}
 			DataTimeGet(&result6035.endtime);
 			result6035.taskState = AFTER_OPR;
-
+			list6013[tastIndexIndex].run_flg = 0;
 			saveCoverClass(0x6035, result6035.taskID, &result6035,
 					sizeof(CLASS_6035), coll_para_save);
 		} else {
