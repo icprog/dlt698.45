@@ -294,10 +294,11 @@ typedef struct {
 	INT32U			WireType;			//接线方式，0x1200：三相三，0x0600：三相四
 	_RealData		ACSRealData;		//计量芯片实时数据
 	ACEnergy_Sum	ACSEnergy;			//计量芯片电能量数据
-	ProjectInfo		Projects[PROJECTCOUNT];		//子程序信息
-	RealdataReq		RealDatareq;				//实时数据请求缓存
-	OI_CHANGE		oi_changed;					//相应的OI参数修改变化值，结构体相应的OI值从1-255设置参数后循环累加
-	TerminalEvent_Object event_obj;           //事件参数结构体
+	ProjectInfo		Projects[PROJECTCOUNT];	//子程序信息
+	RealdataReq		RealDatareq;			//实时数据请求缓存
+	OI_CHANGE		oi_changed;				//相应的OI参数修改变化值，结构体相应的OI值从1-255设置参数后循环累加
+	TerminalEvent_Object event_obj;         //事件参数结构体
+	FactoryVersion  version;				//终端版本信息
 }ProgramInfo; //程序信息结构
 
 #endif /* GTYPE_H_ */

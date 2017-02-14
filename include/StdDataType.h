@@ -653,12 +653,13 @@ typedef struct
 	PIID piid;
 	ComBCD4 expect_app_ver;
 	INT8U ProtocolConformance[8];
-	INT8U FactoryConformance[8];
+	INT8U FunctionConformance[16];
 	INT16U client_send_size;
 	INT16U client_recv_size;
 	INT8U client_recv_maxWindow;
 	INT16U client_deal_maxApdu;
 	INT32U expect_connect_timeout;
+	INT8U connecttype;
 	ConnectMechanismInfo info;
 }CONNECT_Request;
 typedef struct
@@ -667,7 +668,7 @@ typedef struct
 	FactoryVersion server_factory_version;
 	ComBCD4 app_version;
 	INT8U ProtocolConformance[8];
-	INT8U FactoryConformance[8];
+	INT8U FunctionConformance[16];
 	INT16U server_send_size;
 	INT16U server_recv_size;
 	INT8U server_recv_maxWindow;
@@ -712,6 +713,8 @@ typedef struct{
 	int	rev_delay;					//接收延时
 	INT8U securetype;				//安全类型
 	LINK_Response linkResponse;		//心跳确认
+	CONNECT_Response myAppVar;		//集中器支持的应用层会话参数
+	CONNECT_Response AppVar;		//与主站协商后的应用层会话参数
 	void* shmem;
 	INT8S (*p_send)(int fd,INT8U * buf,INT16U len);
 }CommBlock;
