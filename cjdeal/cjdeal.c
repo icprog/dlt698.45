@@ -74,7 +74,7 @@ int main(int argc, char *argv[])
 	//载入档案、参数
 	InitPara();
 	//485、四表合一
-//	read485_proccess();
+	read485_proccess();
 	//载波
 	//readplc_proccess();
 	//液晶、控制
