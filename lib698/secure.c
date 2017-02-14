@@ -340,7 +340,6 @@ INT16U getEsamAttribute(OAD oad,INT8U *retBuff)
 			break;
 		case 0x0D:    //ESAM安全存储对象列表
 			break;
-
 	}
 	return retLen;
 }
