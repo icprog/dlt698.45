@@ -26,6 +26,8 @@
 #define	 DEMANDDIR				"/nand/demand"				//需量类数据
 #define	 FREEZEDIR				"/nand/freeze"				//冻结类数据存储
 
+#define	 INITDIR			"/nor/init"					//初始化参数文件
+
 //文件存储类型
 typedef enum
 {
@@ -117,6 +119,8 @@ extern int saveCoverClass(OI_698 oi,INT16U seqno,void *blockdata,int savelen,int
  * 			type：存储类型【	根据宏定义SaveFile_type 】
  * 返回值：相关对象标识的类的存储文件长度
  * =-1: 无效数据
+ * ！！！！！注意： 函数返回是文件的实际长度，参数文件中包含CRC校验字节
+ * 				 如果是参数文件请慎用此函数
  */
 extern int getClassFileLen(OI_698 oi,INT16U seqno,int type);
 /*

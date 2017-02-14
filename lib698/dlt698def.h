@@ -32,6 +32,14 @@
 
 #define REPORT_RESPONSE  8
 #define PROXY_REQUEST  9
+		#define ProxyGetRequestList		1
+		#define ProxyGetRequestRecord	2
+		#define ProxySetRequestList		3
+		#define ProxySetThenGetRequestList 4
+		#define ProxyActionRequestList 5
+		#define ProxyActionThenGetRequestList 6
+		#define ProxyTransCommandRequest 7
+
 #define CONNECT_RESPONSE 130
 #define RELEASE_RESPONSE 131
 #define	RELEASE_NOTIFICATION 132
@@ -43,6 +51,13 @@
 		#define	ActionThenGetResponseNormalList	3
 #define	REPORT_NOTIFICATION 136
 #define	PROXY_RESPONSE 137
+		#define ProxyGetResponseList		1
+		#define ProxyGetResponseRecord	2
+		#define ProxySetResponseList		3
+		#define ProxySetThenGetResponseList 4
+		#define ProxyActionResponseList 5
+		#define ProxyActionThenGetResponseList 6
+		#define ProxyTransCommandResponse 7
 
 #define SECURITY_REQUEST 16
 #define SECURITY_RESPONSE 144

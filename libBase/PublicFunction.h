@@ -13,13 +13,12 @@
 #include "Shmem.h"
 #include "StdDataType.h"
 #include "ParaDef.h"
-
 extern void setsystime(DateTimeBCD datetime);
 extern void TSGet(TS *ts);
 extern INT8U TScompare(TS ts1,TS ts2);
 extern time_t tmtotime_t(TS ptm);
 extern void DataTimeGet(DateTimeBCD* ts);
-INT8S tminc(TS* tmi,Time_Units unit,INT32S val);
+extern INT8S tminc(TS* tmi,Time_Units unit,INT32S val);
 extern void Setsig(struct sigaction *psa,void (*pfun)(ProjectInfo *proinfo));
 /*
  * 共享内存操作函数
@@ -70,4 +69,8 @@ extern sem_t* create_named_sem(const char* name, int flag);
 extern sem_t* open_named_sem(const char* name);
 extern void close_named_sem(const char* name);
 
+/*
+ * 数据从大到小排序 arr数组 len长度
+ */
+extern INT8U getarryb2s(INT32S *arr,INT8U len);
 #endif /* PUBLICFUNCTION_H_ */

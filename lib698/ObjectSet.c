@@ -14,7 +14,10 @@
 #include "Objectdef.h"
 #include "EventObject.h"
 #include "PublicFunction.h"
+
 extern void get_BasicUnit(INT8U *source,INT16U *sourceindex,INT8U *dest,INT16U *destindex);
+extern ProgramInfo *memp;
+
 INT8U prtstat(int flg)
 {
 	if (flg == 1) {
@@ -25,11 +28,47 @@ INT8U prtstat(int flg)
 		return refuse_rw;
 	}
 }
-//void setOIChange(OI_698 oi)
-//{
-//	case oi4016:
-//		break;
-//}
+
+/*参数文件修改，改变共享内存的标记值，通知相关进程，参数有改变
+ * */
+void setOIChange(OI_698 oi)
+{
+	switch(oi) {
+	case 0x3100:  	memp->oi_changed.oi3100++; 	break;
+	case 0x3101:  	memp->oi_changed.oi3101++; 	break;
+	case 0x3014:	memp->oi_changed.oi3104++; 	break;
+	case 0x3105:	memp->oi_changed.oi3105++; 	break;
+	case 0x3106:	memp->oi_changed.oi3106++; 	break;
+	case 0x3107:	memp->oi_changed.oi3107++; 	break;
+	case 0x3108:	memp->oi_changed.oi3108++; 	break;
+	case 0x3109: 	memp->oi_changed.oi3109++; 	break;
+	case 0x310A:	memp->oi_changed.oi310A++; 	break;
+	case 0x310B:	memp->oi_changed.oi310B++; 	break;
+	case 0x310C:	memp->oi_changed.oi310C++; 	break;
+	case 0x310D:	memp->oi_changed.oi310D++; 	break;
+	case 0x310E:	memp->oi_changed.oi310E++; 	break;
+	case 0x310F:	memp->oi_changed.oi310F++; 	break;
+	case 0x3110:	memp->oi_changed.oi3110++;	break;
+	case 0x3111:	memp->oi_changed.oi3111++;	break;
+	case 0x3112:	memp->oi_changed.oi3112++;  break;
+	case 0x3114:	memp->oi_changed.oi3114++; 	break;
+	case 0x3115:	memp->oi_changed.oi3105++; 	break;
+	case 0x3116:	memp->oi_changed.oi3116++;	break;
+	case 0x3117:	memp->oi_changed.oi3117++;	break;
+	case 0x3118:	memp->oi_changed.oi3118++;	break;
+	case 0x3119:	memp->oi_changed.oi3119++;	break;
+	case 0x311A:	memp->oi_changed.oi311A++;	break;
+	case 0x311B:	memp->oi_changed.oi311B++;	break;
+	case 0x311C:	memp->oi_changed.oi311C++;	break;
+	case 0x3200:	memp->oi_changed.oi3200++;	break;
+	case 0x3201:	memp->oi_changed.oi3201++;	break;
+	case 0x3202:	memp->oi_changed.oi3202++;	break;
+	case 0x3203:	memp->oi_changed.oi3203++;	break;
+	case 0x4016:	memp->oi_changed.oi4016++;	break;
+	case 0xf203:	memp->oi_changed.oiF203++;  break;
+	}
+}
+
 INT16U set310d(OAD oad,INT8U *data,INT8U *DAR)
 {
 	Event310D_Object tmp310d={};
@@ -93,6 +132,7 @@ INT16U set4000(INT8U attflg,INT8U index,INT8U *data)
 {
 	INT16U source_index=0,dest_index=0;
 	DateTimeBCD datetime;
+
 	if ( attflg == 2 )
 	{
 		get_BasicUnit(data,&source_index,(INT8U *)&datetime,&dest_index);
@@ -100,6 +140,26 @@ INT16U set4000(INT8U attflg,INT8U index,INT8U *data)
 	}
 	return source_index;
 }
+
+INT16U set4001_4002_4003(OAD oad,INT8U *data)
+{
+	INT16U source_index=0,dest_index=0;
+	CLASS_4001_4002_4003	class_addr={};
+	int i=0;
+	memset(&class_addr,0,sizeof(CLASS_4001_4002_4003));
+	readCoverClass(oad.OI,0,&class_addr,sizeof(CLASS_4001_4002_4003),para_vari_save);
+
+	if (oad.attflg == 2 )
+	{
+		get_BasicUnit(data,&source_index,(INT8U *)&class_addr.curstom_num,&dest_index);
+		for(i=0;i<OCTET_STRING_LEN;i++) {
+			fprintf(stderr,"%02x ",class_addr.curstom_num[i]);
+		}
+		saveCoverClass(oad.OI,0,&class_addr,sizeof(CLASS_4001_4002_4003),para_vari_save);
+	}
+	return source_index;
+}
+
 INT16U set4300(INT8U attflg,INT8U index,INT8U *data)
 {
 	INT16U source_index=0,dest_index=0;
@@ -262,10 +322,12 @@ void EnvironmentValue(OAD oad,INT8U *data)
 			set4000(attr,oad.attrindex,data);
 			break;
 		case 0x4001://通信地址
+			//set4001(oad,data);
 			break;
 		case 0x4002://表号
 			break;
 		case 0x4003://客户编号
+			set4001_4002_4003(oad,data);
 			break;
 		case 0x4004://设备地理位置
 			break;
@@ -332,7 +394,7 @@ int setRequestNormal(INT8U *data,OAD oad,CSINFO *csinfo,INT8U *buf)
 		case 0xf:		//输入输出设备类对象 + ESAM接口类对象
 			DeviceIoSetAttrib(oad,data);
 	}
-//	setOIChange(oi);
+	setOIChange(oi);
 	return success;
 }
 int setRequestNormalList(INT8U *data,OAD oad)

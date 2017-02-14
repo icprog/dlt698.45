@@ -28,6 +28,7 @@
 								<option id="org.eclipse.cdt.cross.arm.gnu.c.compiler.option.optimization.level.486825711" name="Optimization level" superClass="org.eclipse.cdt.cross.arm.gnu.c.compiler.option.optimization.level" value="org.eclipse.cdt.cross.arm.gnu.base.option.optimization.level.size" valueType="enumerated"/>
 								<option id="org.eclipse.cdt.cross.arm.gnu.c.compiler.option.include.paths.233685994" name="Include paths (-I)" superClass="org.eclipse.cdt.cross.arm.gnu.c.compiler.option.include.paths" valueType="includePath">
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/include}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/libevent}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/libAccess}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/lib698}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/libBase}&quot;"/>
@@ -44,12 +45,14 @@
 							<tool id="org.eclipse.cdt.cross.arm.gnu.sourcery.app.linux.elf.c.linker.release.717906019" name="ARM Sourcery Linux GCC C Linker" superClass="org.eclipse.cdt.cross.arm.gnu.sourcery.app.linux.elf.c.linker.release">
 								<option id="org.eclipse.cdt.cross.arm.gnu.c.link.option.paths.1704075832" name="Library search path (-L)" superClass="org.eclipse.cdt.cross.arm.gnu.c.link.option.paths" valueType="libPaths">
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/lib698/Release}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/libevent/Release}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/libAccess/Release}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/libBase/Release}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/libEsam/Release}&quot;"/>
 								</option>
 								<option id="org.eclipse.cdt.cross.arm.gnu.c.link.option.libs.1214441129" name="Libraries (-l)" superClass="org.eclipse.cdt.cross.arm.gnu.c.link.option.libs" valueType="libs">
 									<listOptionValue builtIn="false" value="Access"/>
+									<listOptionValue builtIn="false" value="event"/>
 									<listOptionValue builtIn="false" value="698"/>
 									<listOptionValue builtIn="false" value="Base"/>
 									<listOptionValue builtIn="false" value="Esam"/>

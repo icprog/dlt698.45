@@ -180,6 +180,12 @@ typedef enum {
 /////////////////////////////////////////////////////////////////
 typedef struct
 {
+	INT8U type;
+	INT8U data[50];
+}DATA_TYPE;
+
+typedef struct
+{
 	INT16U Year;    //year;
     INT8U  Month;   //month;
     INT8U  Day;     //day;
@@ -342,14 +348,14 @@ typedef struct
 typedef struct
 {
 	OAD oad;
-	INT8U data[10];
+	DATA_TYPE data;
 }Selector1;
 typedef struct
 {
 	OAD oad;
-	INT8U from[10];
-	INT8U to[10];
-	INT8U jiange;
+	DATA_TYPE data_from;
+	DATA_TYPE data_to;
+	DATA_TYPE data_jiange;
 }Selector2;
 typedef struct
 {
@@ -358,33 +364,33 @@ typedef struct
 typedef struct
 {
 	DateTimeBCD collect_star;
-	MS meters;
+	MY_MS meters;
 }Selector4;		/*指定电能表集合、指定采集启动时间*/
 typedef struct
 {
 	DateTimeBCD collect_save;
-	MS meters;
+	MY_MS meters;
 }Selector5;		/*指定电能表集合、指定采集存储时间*/
 typedef struct
 {
 	DateTimeBCD collect_star;
 	DateTimeBCD collect_finish;
 	TI ti;
-	MS meters;
+	MY_MS meters;
 }Selector6;		/*指定电能表集合、指定采集启动时间区间内连续*/
 typedef struct
 {
 	DateTimeBCD collect_save_star;
 	DateTimeBCD collect_save_finish;
 	TI ti;
-	MS meters;
+	MY_MS meters;
 }Selector7;		/*指定电能表集合、指定采集存储时间区间内连续*/
 typedef struct
 {
 	DateTimeBCD collect_succ_star;
 	DateTimeBCD collect_succ_finish;
 	TI ti;
-	MS meters;
+	MY_MS meters;
 }Selector8;		/*指定电能表集合、指定采集到时间区间内连续间隔值*/
 typedef struct
 {
@@ -393,7 +399,7 @@ typedef struct
 typedef struct
 {
 	INT8U recordn;
-	MS meters;
+	MY_MS meters;
 }Selector10;	/*指定选取最新的n条记录*/
 
 typedef union
@@ -429,7 +435,7 @@ typedef struct
 
 typedef struct
 {
-	CSD rcsd[16];
+	CSD_ARRAYTYPE csds;	//csd数组
 }RCSD;	/*记录列选择描述符*/
 
 typedef struct
@@ -593,11 +599,6 @@ typedef union {
 //}DataType;
 //DataType len=1432
 
-typedef struct
-{
-	INT8U type;
-	INT8U data[50];
-}DATA_TYPE;
 
 typedef struct
 {
@@ -709,6 +710,8 @@ typedef struct{
 	int RHead,RTail;				//接收报文头指针，尾指针
 	int deal_step;					//数据接收状态机处理标记
 	int	rev_delay;					//接收延时
+	INT8U securetype;				//安全类型
+	LINK_Response linkResponse;		//心跳确认
 	void* shmem;
 	INT8S (*p_send)(int fd,INT8U * buf,INT16U len);
 }CommBlock;

@@ -14,8 +14,6 @@
 #pragma pack(1)				//结构体一个字节对齐
 
 typedef struct {
-	INT8U	oi4016;				//当前套日时段表
-	INT8U   oiF203;             //开关量
 	INT8U	oi3100;				//终端初始化事件
 	INT8U	oi3101;				//终端版本变更事件
 	INT8U	oi3104;				//终端状态量变位事件
@@ -46,6 +44,10 @@ typedef struct {
 	INT8U	oi3201;				//电控跳闸记录
 	INT8U	oi3202;				//购电参数设置记录
 	INT8U	oi3203;				//电控告警事件记录
+////////////////////////////////////////////////////////
+	INT8U	oi4016;				//当前套日时段表
+////////////////////////////////////////////////////////
+	INT8U   oiF203;             //开关量
 }OI_CHANGE;
 
 //交采系数
@@ -286,7 +288,15 @@ typedef struct{
 	INT32U		Version;						//进程版本号
 	INT8U		argv[ARGCMAX][ARGVMAXLEN];		//运行参数
 }ProjectInfo; 	//子程序信息
-
+typedef struct{
+	DateTimeBCD dt;  //时间
+	INT8U type;      //校时标志
+	INT8U totalnum;  //最近心跳时间总个数
+	INT8U maxn;      //最大值剔除个数
+	INT8U minn;      //最小值剔除个数
+	INT8U timeoffset;//通讯延时数值 秒
+	INT8U lastnum;   //最少有效个数
+}Terminal_timeoffset;
 typedef struct {
 	INT32U 			ac_chip_type; 		//==0x820900:	RN8029芯片，III型集中器	//==1： ATT7022D-E芯片 	//==0x7022E0:	ATT7022E-D芯片
 	INT32U			WireType;			//接线方式，0x1200：三相三，0x0600：三相四
@@ -296,6 +306,7 @@ typedef struct {
 	RealdataReq		RealDatareq;				//实时数据请求缓存
 	OI_CHANGE		oi_changed;					//相应的OI参数修改变化值，结构体相应的OI值从1-255设置参数后循环累加
 	TerminalEvent_Object event_obj;           //事件参数结构体
+	Terminal_timeoffset t_timeoffset;    //终端精准校时参数
 }ProgramInfo; //程序信息结构
 
 #endif /* GTYPE_H_ */

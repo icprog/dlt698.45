@@ -20,7 +20,7 @@
 #include "spi.h"
 #include "att7022e.h"
 #include "rn8209.h"
-#include "cjacs.h"
+#include "main.h"
 
 #define 	W_APQ0		8
 #define 	W_APQ1		1

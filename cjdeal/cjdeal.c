@@ -87,7 +87,7 @@ int main(int argc, char *argv[])
 	    struct timeval start={}, end={};
 	    long  interval=0;
 		gettimeofday(&start, NULL);
-		DealState(JProgramInfo->oi_changed.oiF203);
+		DealState(JProgramInfo);
 		gettimeofday(&end, NULL);
 		interval = 1000000*(end.tv_sec - start.tv_sec) + (end.tv_usec - start.tv_usec);
 	    if(interval>=1000000)

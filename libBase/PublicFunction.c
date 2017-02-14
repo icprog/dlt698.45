@@ -554,6 +554,7 @@ void setsystime(DateTimeBCD datetime)
 	rtc = open("/dev/rtc0",O_RDWR);
 	ioctl(rtc, RTC_SET_TIME, &_tm);
 	close(rtc);
+	fprintf(stderr, "\n\n");
 	system("date");
 	fprintf(stderr, "\n\n");
 }
@@ -761,6 +762,28 @@ INT8S getSpiAnalogState()
 	if (tmpid[2]==1)//MEN node  门节点
 		ret |= 1<<5;
 	return ret;
+}
+
+/*
+ * 数据从大到小排序 arr数组 len长度
+ */
+INT8U getarryb2s(INT32S *arr,INT8U len)
+{
+	INT8U i=0,j=0;
+	INT32S temp=0;
+	  for(i = 0;i<len-1;i++)
+	  {
+		  for(j = i+1;j<len;j++)
+		  {
+			  if(arr[i] < arr[j])
+			  {
+				  temp = arr[i];
+				  arr[i] = arr[j];
+				  arr[j] = temp;
+			  }
+		  }
+	  }
+  return 0;
 }
 
 #endif /*JPublicFunctionH*/

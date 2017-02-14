@@ -9,12 +9,14 @@
 #include <string.h>
 
 #include "StdDataType.h"
+#include "Shmem.h"
 #include "EventObject.h"
+#include "PublicFunction.h"
 #include "AccessFun.h"
 #include "ParaDef.h"
-#include "cjevent.h"
 #include "event.h"
 #include "Shmem.h"
+#include "main.h"
 //property
 
 
@@ -69,6 +71,7 @@ void Class7_BaseInit(OI_698 oi,Class7_Object *obj){
  */
 void Class7_Init(OI_698 oi){
 	Class7_Object obj;
+	memset(&obj,0,sizeof(obj));
 	Class7_BaseInit(oi,&obj);
 	saveCoverClass(oi,0,(void *)&obj,sizeof(Class7_Object),para_init_save);
 }
@@ -77,6 +80,7 @@ void Class7_Init(OI_698 oi){
  */
 void Init_3105(){
 	Event3105_Object obj;
+	memset(&obj,0,sizeof(obj));
 	Class7_BaseInit(0x3105,&obj.event_obj);
 	obj.mto_obj.over_threshold=240;
 	saveCoverClass(0x3105,0,(void *)&obj,sizeof(Event3105_Object),para_init_save);
@@ -86,6 +90,7 @@ void Init_3105(){
  */
 void Init_3106(){
 	Event3106_Object obj;
+	memset(&obj,0,sizeof(obj));
 	Class7_BaseInit(0x3106,&obj.event_obj);
 	//
 	saveCoverClass(0x3106,0,(void *)&obj,sizeof(Event3106_Object),para_init_save);
@@ -95,6 +100,7 @@ void Init_3106(){
  */
 void Init_3107(){
 	Event3107_Object obj;
+	memset(&obj,0,sizeof(obj));
 	Class7_BaseInit(0x3107,&obj.event_obj);
 	//
 	saveCoverClass(0x3107,0,(void *)&obj,sizeof(Event3107_Object),para_init_save);
@@ -104,6 +110,7 @@ void Init_3107(){
  */
 void Init_3108(){
 	Event3108_Object obj;
+	memset(&obj,0,sizeof(obj));
 	Class7_BaseInit(0x3108,&obj.event_obj);
 	//
 	saveCoverClass(0x3108,0,(void *)&obj,sizeof(Event3108_Object),para_init_save);
@@ -113,6 +120,7 @@ void Init_3108(){
  */
 void Init_310B(){
 	Event310B_Object obj;
+	memset(&obj,0,sizeof(obj));
 	Class7_BaseInit(0x310B,&obj.event_obj);
 	//
 	saveCoverClass(0x310B,0,(void *)&obj,sizeof(Event310B_Object),para_init_save);
@@ -122,6 +130,7 @@ void Init_310B(){
  */
 void Init_310C(){
 	Event310C_Object obj;
+	memset(&obj,0,sizeof(obj));
 	Class7_BaseInit(0x310C,&obj.event_obj);
 	//
 	saveCoverClass(0x310C,0,(void *)&obj,sizeof(Event310C_Object),para_init_save);
@@ -131,6 +140,7 @@ void Init_310C(){
  */
 void Init_310D(){
 	Event310D_Object obj;
+	memset(&obj,0,sizeof(obj));
 	Class7_BaseInit(0x310D,&obj.event_obj);
 	//
 	saveCoverClass(0x310D,0,(void *)&obj,sizeof(Event310D_Object),para_init_save);
@@ -140,6 +150,7 @@ void Init_310D(){
  */
 void Init_310E(){
 	Event310E_Object obj;
+	memset(&obj,0,sizeof(obj));
 	Class7_BaseInit(0x310E,&obj.event_obj);
 	//
 	saveCoverClass(0x310E,0,(void *)&obj,sizeof(Event310E_Object),para_init_save);
@@ -149,6 +160,7 @@ void Init_310E(){
  */
 void Init_310F(){
 	Event310F_Object obj;
+	memset(&obj,0,sizeof(obj));
 	Class7_BaseInit(0x310F,&obj.event_obj);
 	//
 	saveCoverClass(0x310F,0,(void *)&obj,sizeof(Event310F_Object),para_init_save);
@@ -158,6 +170,7 @@ void Init_310F(){
  */
 void Init_3110(){
 	Event3110_Object obj;
+	memset(&obj,0,sizeof(obj));
 	Class7_BaseInit(0x3110,&obj.event_obj);
 	//
 	saveCoverClass(0x3110,0,(void *)&obj,sizeof(Event3110_Object),para_init_save);
@@ -167,6 +180,7 @@ void Init_3110(){
  */
 void Init_3116(){
 	Event3116_Object obj;
+	memset(&obj,0,sizeof(obj));
 	Class7_BaseInit(0x3116,&obj.event_obj);
 	//
 	saveCoverClass(0x3116,0,(void *)&obj,sizeof(Event3116_Object),para_init_save);
@@ -176,6 +190,7 @@ void Init_3116(){
  */
 void Init_311A(){
 	Event311A_Object obj;
+	memset(&obj,0,sizeof(obj));
 	Class7_BaseInit(0x311A,&obj.event_obj);
 	//
 	saveCoverClass(0x311A,0,(void *)&obj,sizeof(Event311A_Object),para_init_save);
@@ -185,6 +200,7 @@ void Init_311A(){
  */
 void Init_311C(){
 	Event311C_Object obj;
+	memset(&obj,0,sizeof(obj));
 	Class7_BaseInit(0x311C,&obj.event_obj);
 	//
 	saveCoverClass(0x311C,0,(void *)&obj,sizeof(Event311C_Object),para_init_save);
@@ -214,7 +230,19 @@ void event_process(int argc, char *argv[])
 					break;
 				case 0x3100:
 				case 0x3104:
-					fprintf(stderr,"class-%04x\n",oi);
+				case 0x3109:
+				case 0x310A:
+				case 0x3111:
+				case 0x3112:
+				case 0x3114:
+				case 0x3115:
+				case 0x3117:
+				case 0x3118:
+				case 0x3119:
+				case 0x3200:
+				case 0x3201:
+				case 0x3202:
+					fprintf(stderr,"class-%04x ,len=%d\n",oi,sizeof(Class7_Object));
 					memset(&class7,0,sizeof(Class7_Object));
 					readCoverClass(oi,0,&class7,sizeof(Class7_Object),event_para_save);
 					printClass7(class7);
@@ -235,6 +263,7 @@ void event_process(int argc, char *argv[])
 					sscanf(argv[7],"%d",&tmp[1]);
 					class7.enableflag = tmp[1];
 					sscanf(argv[8],"%d",&tmp[0]);
+					class7.class7_oad.num = tmp[0];
 					for(i=0;i<tmp[0];i++) {
 						fprintf(stderr,"argv[%d]=%s",i+9,argv[9+i]);
 						sscanf(argv[i+9],"%04X-%02X%02X",&tmp[1],&tmp[2],&tmp[3]);
@@ -254,7 +283,7 @@ void event_process(int argc, char *argv[])
 			sscanf(argv[4],"%d",&tmp[1]);
 			INT8U record_n = tmp[1];      //事件记录参数0/n
 			INT8U *Getbuf=NULL;//因为记录为变长，只能采用二级指针，动态分配
-			INT8U Getlen=0;//记录长度
+			int  Getlen=0;//记录长度
 			if(record_n!=0){
 				ProgramInfo* prginfo_event;
 				prginfo_event=OpenShMem("ProgramInfo",sizeof(ProgramInfo),NULL);
