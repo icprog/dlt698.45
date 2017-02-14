@@ -300,6 +300,7 @@ int doGetnormal(RESULT_NORMAL *response)
 			GetSysDateTime(response);
 			break;
 	}
+
 	return 0;
 }
 int getRequestNormal(OAD oad,INT8U *data,CSINFO *csinfo,INT8U *sendbuf)
