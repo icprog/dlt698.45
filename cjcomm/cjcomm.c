@@ -256,15 +256,7 @@ void *deal_terminal_timeoffset(){
             	   DT.sec.data=jzqtime.Sec;
             	   setsystime(DT);
             	   //产生对时事件
-            	   INT8U DATA[7];
-            	   DATA[0]=((DT.year.data>>8)&0x00ff);
-            	   DATA[1]=(DT.year.data&0x00ff);
-            	   DATA[2]=DT.month.data;
-            	   DATA[3]=DT.day.data;
-            	   DATA[4]=DT.hour.data;
-            	   DATA[5]=DT.min.data;
-            	   DATA[6]=DT.sec.data;
-            	   Event_3114(DATA,7,JProgramInfo);
+            	   Event_3114(DT,JProgramInfo);
                }
                memset(timeoffset,0,50);
 			   crrntimen=0;

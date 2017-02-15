@@ -12,7 +12,7 @@
 #include "StdDataType.h"
 #include "dlt698def.h"
 #include "Objectdef.h"
-
+#include "event.h"
 void get_BasicUnit(INT8U *source,INT16U *sourceindex,INT8U *dest,INT16U *destindex);
 extern void FrameTail(INT8U *buf,int index,int hcsi);
 extern int FrameHead(CSINFO *csinfo,INT8U *buf);
@@ -279,6 +279,15 @@ void get_BasicUnit(INT8U *source,INT16U *sourceindex,INT8U *dest,INT16U *destind
 			dest[0]= source[2];
 			dest[1]= source[1];
 			fprintf(stderr,"\n		long %02x %02x",source[2],source[1]);
+			if (dest_sumindex ==0)
+				dest_sumindex = size;
+			break;
+		case 0x1b://time
+			size = 3;
+			dest[0] = source[1];
+			dest[1] = source[2];
+			dest[2] = source[3];
+			fprintf(stderr,"\n		time %02x %02x %02x ",dest[0],dest[1],dest[2]);
 			if (dest_sumindex ==0)
 				dest_sumindex = size;
 			break;
@@ -647,6 +656,7 @@ void TerminalInfo(INT16U attr_act,INT8U *data)
 		case 5://事件初始化
 		case 6://需量初始化
 			dataInit(attr_act);
+			Event_3100(NULL,0,memp);//初始化，产生事件
 			fprintf(stderr,"\n终端数据初始化!");
 			break;
 	}

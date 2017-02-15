@@ -141,7 +141,7 @@ extern INT8U Event_311C(TSA tsa, INT8U* data,INT8U len,ProgramInfo* prginfo_even
 /*
  * 终端对时事件 此接口在698规约库调用，data为对时前时间 date-time-s格式 7个字节 prginfo_event共享内存
  */
-extern INT8U Event_3114(INT8U* data,INT8U len,ProgramInfo* prginfo_event);
+extern INT8U Event_3114(DateTimeBCD data,ProgramInfo* prginfo_event);
 /*
  * 遥控跳闸记录 prginfo_event共享内存
  */
