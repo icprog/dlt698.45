@@ -518,6 +518,15 @@ void enviromentCheck(int argc, char* argv[]) {
 
 
 int main(int argc, char* argv[]) {
+
+//	char buf[1024];
+//	memset(buf, 0x00, 1024);
+//	createFile("/nand/UpFiles/update.dat",1024*76+98,0x00,1024);
+//	for(int i = 0; i < 77; i++){
+//		int res = appendFile("/nand/UpFiles/update.dat", i, 1024, buf);
+//		printf("res1 = %d\n",res);
+//	}
+//	return 0;
     // daemon(0,0);
     enviromentCheck(argc, argv);
 

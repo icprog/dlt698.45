@@ -11,4 +11,7 @@ extern int Link_Request(LINK_Request request,INT8U *addr,INT8U *buf);
 extern void testframe(INT8U *apdu,int len);
 /*----------------------抄表相关*************************/
 INT16S composeProtocol698_GetRequest(INT8U*,CLASS_6015,TSA);
+
+int createFile(const char * path, int length, unsigned char crc, unsigned short bs);
+int appendFile(const char * path, int shift, int length, unsigned char *buf);
 #endif
