@@ -282,6 +282,15 @@ void get_BasicUnit(INT8U *source,INT16U *sourceindex,INT8U *dest,INT16U *destind
 			if (dest_sumindex ==0)
 				dest_sumindex = size;
 			break;
+		case 0x1b://time
+			size = 3;
+			dest[0] = source[1];
+			dest[1] = source[2];
+			dest[2] = source[3];
+			fprintf(stderr,"\n		time %02x %02x %02x ",dest[0],dest[1],dest[2]);
+			if (dest_sumindex ==0)
+				dest_sumindex = size;
+			break;
 		case 0x55://TSA
 			size = source[1];
 			memcpy(dest,&source[1],size+2);// 0 表示长度为 1字节    1表示 长度为2字节 ....  将TSA长度拷贝到地址缓存中

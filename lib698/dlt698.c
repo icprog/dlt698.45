@@ -834,7 +834,7 @@ void testframe(INT8U *apdu,int len)
 	buf[i++]= 0x68;//起始码
 	buf[i++]= 0;	//长度
 	buf[i++]= 0;
-	buf[i++]= 0xc3;
+	buf[i++]= 0x43;
 	buf[i++]= 0x05;
 	buf[i++]= 0x08;
 	buf[i++]= 0x00;
@@ -870,6 +870,7 @@ int ProcessData(CommBlock *com)
 	fcsok = CheckTail( Rcvbuf ,csinfo.frame_length);
 	if ((hcsok==1) && (fcsok==1))
 	{
+		fprintf(stderr,"\nsa_length=%d\n",csinfo.sa_length);
 		apdu = &Rcvbuf[csinfo.sa_length+8];
 		if (csinfo.dir == 0 && csinfo.prm == 0)		/*客户机对服务器上报的响应	（主站对集中器上报的响应）*/
 		{
@@ -880,9 +881,11 @@ int ProcessData(CommBlock *com)
 			return(dealClientRequest(apdu,&csinfo,SendBuf));
 		}else if (csinfo.dir==1 && csinfo.prm == 0)	/*服务器发起的上报			（电表主动上报）*/
 		{
+			fprintf(stderr,"\n服务器发起的上报			（电表主动上报）");
 			//MeterReport();
 		}else if (csinfo.dir==1 && csinfo.prm == 1)	/*服务器对客户机请求的响应	（电表应答）*/
 		{
+			fprintf(stderr,"\n服务器对客户机请求的响应	（电表应答）");
 			//MeterEcho();
 		}else
 		{
