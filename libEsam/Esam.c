@@ -41,7 +41,7 @@ INT16U Esam_GetDataLength(INT8U* Data,INT8U* LenSign)
 			}
 			else if((Data[0] &0x7F) == 0x02)//长度域2个字节长度
 			{
-				datalen=(INT16U)Data[1]<<8+(INT16U)Data[2];
+				datalen=((INT16U)Data[1]<<8)+(INT16U)Data[2];
 				*LenSign=3;
 			}
 			else datalen=0;//长度域不会超过2个字节，超过的话此处做异常处理
@@ -516,51 +516,71 @@ INT32S Esam_GetTerminalInfo(INT32S fd, INT8U *RN,INT8U* Data1,INT8U* Rbuf) {
  *输入5.3中第4步获取Data2，解析获取发送所需数据
  *函数返回：1、为正数是为终端信息数据长度	  2、负数：代表相应错误，见：Esam.h中，ESAM ERR ARRAY定义
  *************************************************************/
-INT32S Esam_SymKeyUpdate(INT32S fd, INT8U* Data2, INT8U* Rbuf) {
-//TODO:Data2中包含的数据具体啥样，等链接加密机后在更改
+INT32S Esam_SymKeyUpdate(INT32S fd, SID_MAC SidMac,INT8U* Data2) {
 	if(Data2[0]==0) return ERR_ESAM_TRANSPARA_ERR;
-	//INT32S Result=0;
+	INT8U Rbuf[20];
+	INT16U len=0;
+	INT8U lenSign=0;//返回开头长度域字节数
 	INT8U GetInfo_ESAM[BUFFLENMAX_SPI]={0x55};
-	memcpy(&GetInfo_ESAM[1],&Data2[1],Data2[0]);
-	GetInfo_ESAM[1+Data2[0]]=LRC(&GetInfo_ESAM[1],Data2[0]);
-
-	return Esam_WriteThenRead(fd, (INT8U*)GetInfo_ESAM,Data2[0]+2,Rbuf);
+	 memcpy(&GetInfo_ESAM[len],SidMac.sid.sig,4);//4字节安全标示
+	 len+=4;
+	 memcpy(&GetInfo_ESAM[len],&SidMac.sid.addition[1],SidMac.sid.addition[0]);//附加数据
+	 len+=SidMac.sid.addition[0];
+	 INT16U datalen = Esam_GetDataLength(Data2,&lenSign);
+	 if(datalen==0) return ERR_ESAM_INTEREXE_ERR;
+	 if(lenSign>0 && lenSign<4)//Data长度判断
+		 memcpy(&GetInfo_ESAM[len],&Data2[lenSign],datalen);//密文应用数据单元
+	 else
+		 return ERR_ESAM_INTEREXE_ERR;
+	 len+=datalen;
+	 if(SidMac.mac[0]!=0x00)
+	 {
+		 if(sizeof(SidMac.mac)<=SidMac.mac[0])  return ERR_ESAM_TRANSPARA_ERR;
+		 memcpy(&GetInfo_ESAM[len],&SidMac.mac[1],SidMac.mac[0]);//如果MAC有数据，拷贝
+		 len+=SidMac.mac[0];
+	 }
+	 GetInfo_ESAM[len]=LRC(&GetInfo_ESAM[1],len-1);//获取LRC校验值
+	 len+=1;
+	Esam_WriteThenRead(fd, (INT8U*)GetInfo_ESAM,len,Rbuf);
+	if(Rbuf[0]==0x90 && Rbuf[1]==0x00)//验证一下esam返回信息正确性
+		return 0;
+	else
+		return -1;
 }
 /**********************************
- *安全传输数据处理（证书更新）与终端对称密钥更新类似
+ *安全传输数据处理（证书更新）与终端对称密钥更新类似(证书更新和回话时效门限用一个函数解决)
  *终端判断安全标识为81300203
+ *安全传输数据处理（更新会话时效门限）
+ *终端判断安全标识为81340105
  *发送：安全标识+附加数
  *据 AttachData+Endata1
  *返回：9000+0000
  *函数返回：1、为正数是为终端信息数据长度   负数：代表相应错误，见：Esam.h中，ESAM ERR ARRAY定义
  *************************************************************/
-INT32S Esam_CcieUpdate(INT32S fd, INT8U* Data2, INT8U* Rbuf) {
-	//TODO:Data2中包含的数据具体啥样，等链接加密机后在更改
+INT32S Esam_CcieSession(INT32S fd, SID sid,INT8U* Data2) {
 	if(Data2[0]==0) return ERR_ESAM_TRANSPARA_ERR;
-	//INT32S Result=0;
+	INT8U Rbuf[20];
+	INT16U len=0;
+	INT8U lenSign=0;//返回开头长度域字节数
 	INT8U GetInfo_ESAM[BUFFLENMAX_SPI]={0x55};
-	memcpy(&GetInfo_ESAM[1],&Data2[1],Data2[0]);
-	GetInfo_ESAM[1+Data2[0]]=LRC(&GetInfo_ESAM[1],Data2[0]);
-
-	return Esam_WriteThenRead(fd, (INT8U*)GetInfo_ESAM,Data2[0]+2,Rbuf);
-}
-/**********************************
- *安全传输数据处理（更新会话时效门限）
- *终端判断安全标识为81340105
- *发送：安全标识+附加数
- *据 AttachData++Data1
- *返回：9000+0000
- *函数返回：1、为正数是为终端信息数据长度  负数：代表相应错误，见：Esam.h中，ESAM ERR ARRAY定义
- *************************************************************/
-INT32S Esam_SessionTime(INT32S fd, INT8U* Data2, INT8U* Rbuf) {
-	//TODO:Data2中包含的数据具体啥样，等链接加密机后在更改
-	if(Data2[0]==0) return ERR_ESAM_TRANSPARA_ERR;
-	//INT32S Result=0;
-	INT8U GetInfo_ESAM[BUFFLENMAX_SPI]={0x55};
-	memcpy(&GetInfo_ESAM[1],&Data2[1],Data2[0]);
-	GetInfo_ESAM[1+Data2[0]]=LRC(&GetInfo_ESAM[1],Data2[0]);
-
-	return Esam_WriteThenRead(fd, (INT8U*)GetInfo_ESAM,Data2[0]+2,Rbuf);
+	 memcpy(&GetInfo_ESAM[len],sid.sig,4);//4字节安全标示
+	 len+=4;
+	 memcpy(&GetInfo_ESAM[len],&sid.addition[1],sid.addition[0]);//附加数据
+	 len+=sid.addition[0];
+	 INT16U datalen = Esam_GetDataLength(Data2,&lenSign);
+	 if(datalen==0) return ERR_ESAM_INTEREXE_ERR;
+	 if(lenSign>0 && lenSign<4)//Data长度判断
+		 memcpy(&GetInfo_ESAM[len],&Data2[lenSign],datalen);//密文应用数据单元
+	 else
+		 return ERR_ESAM_INTEREXE_ERR;
+	 len+=datalen;
+	 GetInfo_ESAM[len]=LRC(&GetInfo_ESAM[1],len-1);//获取LRC校验值
+	 len+=1;
+	Esam_WriteThenRead(fd, (INT8U*)GetInfo_ESAM,len,Rbuf);
+	if(Rbuf[0]==0x90 && Rbuf[1]==0x00)//验证一下esam返回信息正确性
+		return 0;
+	else
+		return -1;
 }
 /**********************************
  *安全传输数据处理（终端主动上报）

@@ -78,9 +78,9 @@ INT32S secureResponseData(INT8U* RN,INT8U* apdu)
  *输出：source解析长度
  *说明：type=0x01时dest是SID类型结构体；RN/MAC/SID中随机数，开头一个字节都是长度
  **********************************************************************/
-INT8S UnitParse(INT8U* source,INT8U* dest,INT8U type)
+INT32S UnitParse(INT8U* source,INT8U* dest,INT8U type)
 {
-	INT8S len=0;
+	INT32S len=0;
 	if(type==0x01)//SID
 	{
 		memcpy(dest,source,4);//标识double-long-unsigned
@@ -109,7 +109,7 @@ INT8S UnitParse(INT8U* source,INT8U* dest,INT8U type)
   **********************************************************************/
  INT32S secureEncryptDataDeal(INT32S fd,INT8U* secureType,INT8U* apdu,INT8U* retData)
  {
-	 INT16U tmplen=0;
+	 INT32S tmplen=0;
 	 INT16U appLen=0;
 	 INT32S ret=0;
 	 SID_MAC sidmac;
@@ -261,7 +261,7 @@ INT8S UnitParse(INT8U* source,INT8U* dest,INT8U type)
  //当属性为0的时候，返回错误，因为无法将主站和客户端的证书组报文返回去，也没这么用的
 INT16U getEsamAttribute(OAD oad,INT8U *retBuff)
 {
-	INT16U retLen=-1;
+	INT16U retLen=0;
 	static struct timeval tv_store;//存储静态时间，用于list类型属性提取，不用多次esam访问
 	static 	EsamInfo esamInfo;//
 	INT8U attnum = oad.attflg&0x1F;
@@ -282,10 +282,11 @@ INT16U getEsamAttribute(OAD oad,INT8U *retBuff)
 			if(retLen>0)
 				memcpy(&tv_store,&tv_new,sizeof(tv_store));//更新存储时间
 		}
-		if(fd<0 || retLen<0) //打开esam失败，返回DAR错误0x16
+		if(fd<=0 || retLen<0) //打开esam失败，返回DAR错误0x16
 		{
 			return 0;
 		}
+		if(fd>0)	Esam_Clear(fd);
 	}
 	//经过以上的过滤，处理3种情况(第一次进入，时间超时，证书，一下直接从esamInfo中拷贝属性信息)
 	switch(attnum)
@@ -333,6 +334,65 @@ INT16U getEsamAttribute(OAD oad,INT8U *retBuff)
 			break;
 		case 0x0D:    //ESAM安全存储对象列表
 			break;
+		default:
+			break;
 	}
 	return retLen;
 }
+//esam方法操作7，秘钥更新（02 02 09 82 00 C0 7F CA 75。。。。）
+//输入：Data2为原始报文头，包括真个秘钥更新的结构体  02结构体 02 2个元素 09 octetstring 82 可变2个字节 00 C0长度字节 7F CA 75。。。。
+//输出：
+INT32S esamMethodKeyUpdate(INT8U *Data2)
+{
+	 INT16U secureLen=0;
+	 SID_MAC sidmac;
+	 INT32S tmplen=0;
+	if(Data2[0]==0x02 && Data2[1]==0x02 && Data2[2]==0x09)//此处必须严格遵守字节值
+	{
+		secureLen = GetDataLength(&Data2[3]);//包含头部的长度字节数量
+		if(secureLen <= 0)			return -1;
+		INT32S fd=-1;
+		fd = Esam_Init(fd,(INT8U*)DEV_SPI_PATH);
+		if(fd>0)
+		{
+			tmplen = UnitParse(&Data2[2+secureLen+1],(INT8U *)&sidmac,0x01);//填充sidmac中sid部分
+			if(tmplen<=0) return -2;
+			tmplen = UnitParse(&Data2[2+secureLen+1+tmplen],sidmac.mac,0x02);//填充mac
+			if(tmplen<=0) return -3;
+			tmplen = Esam_SymKeyUpdate(fd,sidmac,&Data2[3]);//秘钥更新
+			if(fd>0) Esam_Clear(fd);
+			return tmplen;
+		}
+		else
+			return -4;
+	}
+	else
+		return -5;
+}
+//esam 方法操作8  证书更新----------//esam 方法操作9 设置协商时效门限
+//方法8和9   统一一个方法解决
+INT32S esamMethodCcieSession(INT8U *Data2)
+{
+	 INT16U secureLen=0;
+	 SID sid;
+	 INT32S tmplen=0;
+	 if(Data2[0]==0x02 && Data2[1]==0x02 && Data2[2]==0x09)//此处必须严格遵守字节值
+	{
+		 secureLen = GetDataLength(&Data2[3]);//包含头部的长度字节数量
+		if(secureLen <= 0)			return -1;
+		INT32S fd=-1;
+		fd = Esam_Init(fd,(INT8U*)DEV_SPI_PATH);
+		if(fd>0)
+		{
+			tmplen = UnitParse(&Data2[2+secureLen+1],(INT8U *)&sid,0x01);//填充sidmac中sid部分
+			if(tmplen<=0) return -2;
+			tmplen = Esam_CcieSession(fd,sid,&Data2[3]);//证书更新///协商时效门限
+			if(fd>0)  Esam_Clear(fd);
+			return tmplen;
+		}
+		else return -3;
+	}
+	 else return -4;
+}
+
+

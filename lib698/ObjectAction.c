@@ -699,9 +699,23 @@ int EventMothod(OAD oad,INT8U *data)
 	}
 	return 0;
 }
+//esam 698处理函数返回0，正常，可以组上行帧。返回负数，异常，组错误帧，同意用0x16
 void EsamMothod(INT16U attr_act,INT8U *data)
 {
-	return;
+	INT32S ret=-1;
+	switch(attr_act)
+		{
+			case 7://秘钥更新
+				ret = esamMethodKeyUpdate(data);
+				break;
+			case 8://证书更新
+			case 9://设置协商时效
+				ret = esamMethodCcieSession(data);
+				break;
+			default:
+				ret = -1;
+				break;
+		}
 }
 int doObjectAction(OAD oad,INT8U *data)
 {
