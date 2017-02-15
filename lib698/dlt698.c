@@ -443,7 +443,7 @@ int appConnectResponse(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 	/*
 	 * 根据 response 组织响应报文
 	 */
-	return 1;
+	//return 1;
 	csinfo->dir = 1;
 	csinfo->prm = 0;
 	index = FrameHead(csinfo,buf);
@@ -628,7 +628,7 @@ INT16S doSecurityRequest(INT8U* apdu)//
 	 INT32S fd=-1;
 	 INT8U SecurityType=0x00;//本次传输安全等级(属于库全局变量，暂放此处)
 	 INT8U MAC[20];//该mac值暂时用不到，暂存
-	 fd = Esam_Init(fd,(INT8U*)DEV_SPI_PATH);
+	 fd = Esam_Init(fd,(INT8U*)ACS_SPI_DEV);
 	 if(fd<0) return -3;
 
 	 if(apdu[1]==0x00)//明文应用数据处理
@@ -650,7 +650,7 @@ INT16S composeSecurityResponse(INT8U* SendApdu,INT16U length,INT8U SecurityType)
 {
 	 INT16S retLen=0;
 	 INT32S fd=-1;
-	 fd = Esam_Init(fd,(INT8U*)DEV_SPI_PATH);
+	 fd = Esam_Init(fd,(INT8U*)ACS_SPI_DEV);
 	 if(fd<0) return -3;
 	 retLen = Esam_SIDResponseCheck(fd,SecurityType,SendApdu,length,SendApdu);
 	 if(retLen<=0) return 0;
@@ -668,7 +668,7 @@ INT16U composeAutoReport(INT8U* SendApdu,INT16U length)
 	 INT32S fd=-1;
 	 INT8U RN[12];
 	 INT8U MAC[4];
-	 fd = Esam_Init(fd,(INT8U*)DEV_SPI_PATH);
+	 fd = Esam_Init(fd,(INT8U*)ACS_SPI_DEV);
 	 if(fd<0) return -3;
 	 retLen = Esam_ReportEncrypt(fd,&SendApdu[1],length-1,RN,MAC);
 	 if(retLen<=0) return 0;
@@ -834,7 +834,7 @@ void testframe(INT8U *apdu,int len)
 	buf[i++]= 0x68;//起始码
 	buf[i++]= 0;	//长度
 	buf[i++]= 0;
-	buf[i++]= 0xc3;
+	buf[i++]= 0x43;
 	buf[i++]= 0x05;
 	buf[i++]= 0x08;
 	buf[i++]= 0x00;
@@ -863,6 +863,7 @@ int ProcessData(CommBlock *com)
 	INT8U *SendBuf = com->SendBuf;
 	linkResponse_p = &com->linkResponse;
 	myAppVar_p = &com->myAppVar;
+	AppVar_p = &com->AppVar;
 	memp = (ProgramInfo*)com->shmem;
 	pSendfun = com->p_send;
 	comfd = com->phy_connect_fd;
@@ -870,6 +871,7 @@ int ProcessData(CommBlock *com)
 	fcsok = CheckTail( Rcvbuf ,csinfo.frame_length);
 	if ((hcsok==1) && (fcsok==1))
 	{
+		fprintf(stderr,"\nsa_length=%d\n",csinfo.sa_length);
 		apdu = &Rcvbuf[csinfo.sa_length+8];
 		if (csinfo.dir == 0 && csinfo.prm == 0)		/*客户机对服务器上报的响应	（主站对集中器上报的响应）*/
 		{
@@ -880,9 +882,11 @@ int ProcessData(CommBlock *com)
 			return(dealClientRequest(apdu,&csinfo,SendBuf));
 		}else if (csinfo.dir==1 && csinfo.prm == 0)	/*服务器发起的上报			（电表主动上报）*/
 		{
+			fprintf(stderr,"\n服务器发起的上报			（电表主动上报）");
 			//MeterReport();
 		}else if (csinfo.dir==1 && csinfo.prm == 1)	/*服务器对客户机请求的响应	（电表应答）*/
 		{
+			fprintf(stderr,"\n服务器对客户机请求的响应	（电表应答）");
 			//MeterEcho();
 		}else
 		{

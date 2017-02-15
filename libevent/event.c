@@ -776,7 +776,6 @@ BOOLEAN MeterDiff(ProgramInfo* prginfo_event)
 			if((abs(difftime(mktime(&MeterPowerInfo[i].PoweroffTime),mktime(&TermialPowerInfo.PoweroffTime)))>(poweroffset*60))
 			||(abs(difftime(mktime(&MeterPowerInfo[i].PoweronTime),mktime(&TermialPowerInfo.PoweronTime)))>(poweroffset*60)))
 			{
-
 				TermialPowerInfo.Valid = POWER_OFF_INVALIDE;
 				fprintf(stderr,"MeterDiff err1\r\n");
 				filewrite(ERC3106PATH,&TermialPowerInfo,sizeof(TermialPowerInfo));
@@ -1827,7 +1826,7 @@ INT8U Event_311C(TSA tsa, INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 /*
  * 终端对时事件 此接口在698规约库调用，data为对时前时间 date-time-s格式 7个字节
  */
-INT8U Event_3114(INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
+INT8U Event_3114(DateTimeBCD data,ProgramInfo* prginfo_event) {
 	if(oi_chg.oi3114 != prginfo_event->oi_changed.oi3114){
 		readCoverClass(0x3114,0,&prginfo_event->event_obj.Event3114_obj,sizeof(prginfo_event->event_obj.Event3114_obj),event_para_save);
 		oi_chg.oi3114 = prginfo_event->oi_changed.oi3114;
@@ -1847,8 +1846,13 @@ INT8U Event_3114(INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 		Get_StandardUnit(0x3114,Save_buf,&index,crrentnum,NULL,s_null);
 		//事件发生前对时时间
 		Save_buf[index++]=dtdatetimes;
-		memcpy(&Save_buf[index],data,len);
-		index+=len;
+		Save_buf[index++] = ((data.year.data>>8)&0x00ff);
+		Save_buf[index++] = ((data.year.data)&0x00ff);
+		Save_buf[index++] = data.month.data;
+		Save_buf[index++] = data.day.data;
+		Save_buf[index++] = data.hour.data;
+		Save_buf[index++] = data.min.data;
+		Save_buf[index++] = data.sec.data;
 		//事件发生后对时时间
 		DateTimeBCD ntime;
 		DataTimeGet(&ntime);

@@ -7,9 +7,10 @@
 
 #ifndef GTYPE_H_
 #define GTYPE_H_
-
+#include "Objectdef.h"
 #include "StdDataType.h"
 #include "EventObject.h"
+#include "ParaDef.h"
 
 #pragma pack(1)				//结构体一个字节对齐
 
@@ -48,6 +49,16 @@ typedef struct {
 	INT8U	oi4016;				//当前套日时段表
 ////////////////////////////////////////////////////////
 	INT8U   oiF203;             //开关量
+	INT8U oi6000;		/*采集档案配置表属性变更*/
+	INT8U oi6002;		/*搜表类属性变更*/
+	INT8U oi6012;		/*任务配置表属性变更*/
+	INT8U oi6014;		/*普通采集方案集属性变更*/
+	INT8U oi6016;		/*事件采集方案集属性变更*/
+	INT8U oi6018;		/*透明方案集属性变更*/
+	INT8U oi601C;		/*上报方案集属性变更*/
+	INT8U oi601E;		/*采集规则库属性变更*/
+	INT8U oi6051;		/*实时监控采集方案集属性变更*/
+	INT8U oi4030;       //电压合格率统计
 }OI_CHANGE;
 
 //交采系数
@@ -180,11 +191,12 @@ typedef struct {
 	INT32U	PFlag;				//有功、无功功率方向，正向为0，负相为1,
 	INT32S	Temp;				//温度传感器值
 	INT32U	SFlag;				//存放断相、相序、SIG标志状态,第三位为1电压相序错,第四位为1电流相序错,
+	INT8U Available;            //交采开机后是否已经采到有效数据
 }_RealData;
 
 typedef struct
 {
-	INT8U VendorCode[2];	//厂商代码（VendorCode[1~0]：TC=鼎信；ES=东软；LH=力合微；37=中瑞昊天）
+	INT8U VendorCode[2];	//厂商代码（VCLASS_4300endorCode[1~0]：TC=鼎信；ES=东软；LH=力合微；37=中瑞昊天）
 	INT8U ChipCode[2];		//芯片代码
 	INT8U VersionDay;		//版本日期-日
 	INT8U VersionMonth;		//版本日期-月
@@ -297,6 +309,101 @@ typedef struct{
 	INT8U timeoffset;//通讯延时数值 秒
 	INT8U lastnum;   //最少有效个数
 }Terminal_timeoffset;
+typedef struct
+{
+	FP32 RPS;      //当前总加有功功率  1
+	FP32 PQS;		//当前总加无功功率
+	FP64 DESP;   	//当日总加有功总电能
+	FP64 DESP_m1;
+	FP64 DESP_m2;
+	FP64 DESP_m3;
+	FP64 DESP_m4;
+	FP64 DESQ;    //当日总加无功总电能
+	FP64 DESQ_m1;
+	FP64 DESQ_m2;
+	FP64 DESQ_m3;
+	FP64 DESQ_m4;
+	FP64 MESP;    //当月总加有功总电能
+	FP64 MESP_m1;
+	FP64 MESP_m2;
+	FP64 MESP_m3;
+	FP64 MESP_m4;
+	FP64 MESQ;	//当月总加无功总电能
+	FP64 MESQ_m1;
+	FP64 MESQ_m2;
+	FP64 MESQ_m3;
+	FP64 MESQ_m4;
+	FP64   RER;		//剩余电量
+	FP64   DESP_before1min;//一分钟前的电能示值
+	FP64   RER_beforectrl;//控前电量(液晶显示用)
+}DATA_CALC_BY1MIN;  //一分钟一统计的数据
+typedef struct
+{
+	FP64 	JC_ZPXL_Curr_Data;//当前正向有功最大需量
+	INT8U 	JC_ZPXL_Curr_Time[4];//发生时间  字节[0]:分钟 [1]:小时 [2]:日 [3]月
+	FP64 	JC_ZPXL_Curr_Data_FL[4];//当前正向有功费率最大需量
+	INT8U 	JC_ZPXL_Curr_Time_FL[4][4];//发生时间  字节[0]:分钟 [1]:小时 [2]:日 [3]月
+
+	FP64 	JC_FPXL_Curr_Data;//当前反向有功最大需量
+	INT8U 	JC_FPXL_Curr_Time[4];//发生时间  字节[0]:分钟 [1]:小时 [2]:日 [3]月
+	FP64 	JC_FPXL_Curr_Data_FL[4];//当前反向有功最大需量
+	INT8U 	JC_FPXL_Curr_Time_FL[4][4];//发生时间  字节[0]:分钟 [1]:小时 [2]:日 [3]月
+
+	FP64 	JC_ZQXL_Curr_Data;//当前正向无功最大需量
+	INT8U 	JC_ZQXL_Curr_Time[4];//发生时间  字节[0]:分钟 [1]:小时 [2]:日 [3]月
+	FP64 	JC_ZQXL_Curr_Data_FL[4];//当前正向无功最大需量
+	INT8U 	JC_ZQXL_Curr_Time_FL[4][4];//发生时间  字节[0]:分钟 [1]:小时 [2]:日 [3]月
+
+	FP64 	JC_FQXL_Curr_Data;//当前反向无功最大需量
+	INT8U 	JC_FQXL_Curr_Time[4];//发生时间  字节[0]:分钟 [1]:小时 [2]:日 [3]月
+	FP64 	JC_FQXL_Curr_Data_FL[4];//当前反向无功最大需量
+	INT8U 	JC_FQXL_Curr_Time_FL[4][4];//发生时间  字节[0]:分钟 [1]:小时 [2]:日 [3]月
+}PUB_JC_Data;//存放交采临时数据
+typedef struct{
+	INT32U s_Rate;//电压上限率
+	INT32U x_Rate;//电压下限率
+	INT32U ok_Rate;//电压合格率
+	INT16U ss_count;					//相电压越上上限累计时间    (min)
+	INT16U xx_count;					//相电压越下下限累计时间    (min)
+	INT16U s_count;						//相电压越上限累计时间      (min)
+	INT16U x_count;						//相电压越下限累计时间 	(min)
+	INT16U ok_count;					//相电压合格限累计时间 	(min)
+	INT16U max;							//相电压最大值
+	INT16U min;							//相电压最小值
+	INT16U U_Avg;//一天当中相电压的平均电压
+	INT8U max_time[3];			//相电压最大值发生时间
+	INT8U min_time[3];			//相电压最小值发生时间
+
+	INT32U U_Sum;//一天当中相电压累加和，用于计算平均电压
+	INT32U U_Count;//一天当中相电压累加时间
+
+	INT8U tmp[2];//字节对齐位
+}Statistics_U;//电压统计结果
+
+typedef struct{
+	Statistics_U tjUa;						//A相电压统计								二类数据F27
+	Statistics_U tjUb;						//B相电压统计
+	Statistics_U tjUc;						//C相电压统计
+}StatisticsInfo;//三相电压统计结果
+
+typedef struct{
+	StatisticsInfo DayResu; //日统计电压结果
+	StatisticsInfo MonthResu;//月统计电压结果
+	INT32U PointNo; //测量点
+}StatisticsPointProp;//测量点统计结果
+//电能量值 41
+typedef struct{
+	INT16U pointno;
+	BOOLEAN Valid;
+	INT32S z_Psz_energy_all;
+	INT32S z_Psz_energy[MAXVAL_RATENUM];//实时正向有功总电能  41  45
+	INT32S f_Psz_energy_all;
+	INT32S f_Psz_energy[MAXVAL_RATENUM];//实时反向有功总电能  43  47
+	INT32S z_Qsz_energy_all;
+	INT32S z_Qsz_energy[MAXVAL_RATENUM];//实时正向无功总电能 42  46
+	INT32S f_Qsz_energy_all;
+	INT32S f_Qsz_energy[MAXVAL_RATENUM];//实时反向无功总电能  44  48
+}ENERGY_PROPERTY_SET;
 typedef struct {
 	INT32U 			ac_chip_type; 		//==0x820900:	RN8029芯片，III型集中器	//==1： ATT7022D-E芯片 	//==0x7022E0:	ATT7022E-D芯片
 	INT32U			WireType;			//接线方式，0x1200：三相三，0x0600：三相四
@@ -308,6 +415,12 @@ typedef struct {
 	TerminalEvent_Object event_obj;         //事件参数结构体
 	FactoryVersion  version;				//终端版本信息
 	Terminal_timeoffset t_timeoffset;    	//终端精准校时参数
+	CLASS19			terminalinfo;			//集中器，设备管理接口对象
+	DATA_CALC_BY1MIN data_calc_by1min[MAXNUM_SUMGROUP];//一分钟一统计的数据
+	PUB_JC_Data jc_data;                               //存放交采临时数据
+	StatisticsPointProp StatisticsPoint[MAXNUM_IMPORTANTUSR];//测量点日月电压统计结果
+//	ENERGY_PROPERTY_SET ENERGY_PROPERTY_DAY[MAXNUM_IMPORTANTUSR]; //日电能量
+//	ENERGY_PROPERTY_SET ENERGY_PROPERTY_MONTH[MAXNUM_IMPORTANTUSR];//月电能量
 }ProgramInfo; //程序信息结构
 
 #endif /* GTYPE_H_ */
