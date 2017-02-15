@@ -242,12 +242,16 @@ void print6015(CLASS_6015 class6015) {
 		if (class6015.csds.csd[i].type == 0) {
 			memcpy(&testArray[0].flag698.oad, &class6015.csds.csd[i].csd.oad,
 					sizeof(OAD));
-			INT8U flag07_0CF33[4] = { 0x00, 0xff, 0x01, 0x00 };
+			INT8U flag07_0CF33[4] = { 0x00, 0x00, 0x01, 0x00 };//当前正向有功总电能示值
 			memcpy(testArray[0].flag07.DI_1[0], flag07_0CF33, 4);
-			INT8U flag07_0CF25_1[4] = { 0x00, 0xff, 0x01, 0x02 };
+			INT8U flag07_0CF25_1[4] = { 0x00, 0xff, 0x01, 0x02 };//当前电压
 			memcpy(testArray[0].flag07.DI_1[1], flag07_0CF25_1, 4);
-			INT8U flag07_0CF25_2[4] = { 0x00, 0xff, 0x02, 0x02 };
+			INT8U flag07_0CF25_2[4] = { 0x00, 0xff, 0x02, 0x02 };//当前电流 A
 			memcpy(testArray[0].flag07.DI_1[2], flag07_0CF25_2, 4);
+			INT8U flag07_date[4] = { 0x01, 0x01, 0x00, 0x04 };//电能表日历时钟-日期
+			memcpy(testArray[0].flag07.DI_1[3], flag07_date, 4);
+			INT8U flag07_time[4] = { 0x02, 0x01, 0x00, 0x04 };//电能表日历时钟-时间
+			memcpy(testArray[0].flag07.DI_1[4], flag07_time, 4);
 
 		}
 		if (class6015.csds.csd[i].type == 1) {
@@ -440,15 +444,18 @@ INT8S deal6015_698(CLASS_6015 st6015, BasicInfo6001 to6001) {
 
 	return result;
 }
-
-INT16U request698_07DataList(INT8U DI07List[10][4], TSA meterAddr,INT8U* dataContent)
+/*
+ * DI07List[10][4]是一个CSD对应的07数据标识列表
+ * dataContent里保存一个任务抄上来的所有数据，不带数据标识
+ * */
+INT16U request698_07DataList(INT8U DI07List[10][4], TSA meterAddr,INT8U* dataContent,CLASS_6035* st6035)
 {
-	INT16U dataLen = 0;
+
 	INT8S recsta = 0;
 	BOOLEAN nextFlag = 0;
 	FORMAT07 Data07;
 	INT16S SendLen = 0, RecvLen = 0;
-	INT8U DATA[1024];	//暂存正常抄读的数据
+
 	INT16U DataLen = 0;	//暂存正常抄读的数据长度
 
 	INT8U SendBuff[256], RecvBuff[256];
@@ -456,8 +463,12 @@ INT16U request698_07DataList(INT8U DI07List[10][4], TSA meterAddr,INT8U* dataCon
 	INT8U invalidDI[4] = { 0 };
 	INT8U index;
 
-	for (index = 0; index < 10; index++) {
-		if (memcmp(invalidDI, DI07List[index], 4) == 0) {
+	INT8U isSuccess = 1;
+	for (index = 0; index < 10; index++)
+	{
+		if (memcmp(invalidDI, DI07List[index], 4) == 0)
+		{
+			fprintf(stderr,"\n 无效的数据标识");
 			continue;
 		}
 		fprintf(stderr, "\n meterAddr len = %d addr = %02x%02x%02x%02x%02x%02x",
@@ -467,7 +478,7 @@ INT16U request698_07DataList(INT8U DI07List[10][4], TSA meterAddr,INT8U* dataCon
 		fprintf(stderr, "\n request698_07DataList DI[%d] = %02x%02x%02x%02x\n",
 				index, DI07List[index][0], DI07List[index][1],
 				DI07List[index][2], DI07List[index][3]);
-		memset(DATA, 0, sizeof(DATA));
+
 		memset(&SendBuff[0], 0, 256);
 		memset(&RecvBuff[0], 0, 256);
 		memset(&Data07, 0, sizeof(FORMAT07));
@@ -481,25 +492,23 @@ INT16U request698_07DataList(INT8U DI07List[10][4], TSA meterAddr,INT8U* dataCon
 			continue;
 		}
 		SendDataTo485(comfd4851, SendBuff, SendLen);
+		st6035->sendMsgNum++;
 		RecvLen = ReceDataFrom485(comfd4851, 500, RecvBuff);
-		if (RecvLen > 0) {
+		if (RecvLen > 0)
+		{
+			st6035->rcvMsgNum++;
 			recsta = analyzeProtocol07(&Data07, RecvBuff, RecvLen, &nextFlag);
 			if (recsta == 0) {
 				fprintf(stderr, "正常应答！  DI07 = %02x%02x%02x%02x\n",
 						Data07.DI[3], Data07.DI[2], Data07.DI[1], Data07.DI[0]);
-				if (Data07.SEQ == 0)	//无帧序号
-						{
-				} else {
-					INT8U tmpdata[256];
-					memcpy(tmpdata, DATA, DataLen);
-					memcpy(&tmpdata[DataLen], Data07.Data, Data07.Length - 5);
 
-					Data07.Length = DataLen + Data07.Length - 1;//累加之前几帧报文的数据长度
-					memcpy(Data07.Data, tmpdata, Data07.Length);
+				INT16U len = Data07.Length-4;
+				memcpy(&dataContent[DataLen],Data07.Data,len);
+				DataLen += len;
+				fprintf(stderr,"\n request698_07DataList DataLen = %d",DataLen);
 
-				}
-				recsta = 0;
 			} else {
+				isSuccess = 0;
 				if (recsta == -1) {
 					fprintf(stderr, "电表异常应答，无数据项  %02x%02x%02x%02x！！！\n",
 							Data07.DI[3], Data07.DI[2], Data07.DI[1],
@@ -513,9 +522,16 @@ INT16U request698_07DataList(INT8U DI07List[10][4], TSA meterAddr,INT8U* dataCon
 				}
 			}
 		}
+		else
+		{
+			isSuccess = 0;
+		}
 	}
-
-	return dataLen;
+	if(isSuccess ==1)
+	{
+		st6035->successMSNum++;
+	}
+	return DataLen;
 }
 /*
  * 698 OAD 和 645 07规约 数据标识转换
@@ -553,8 +569,10 @@ INT8S CSDMap07DI(INT8U dir, MY_CSD* strCAD, INT8U strDIList[10][4]) {
 	fprintf(stderr, "\n CSDMap07DI--------end--------\n");
 	return result;
 }
-INT8S deal6015_07(CLASS_6015 st6015, BasicInfo6001 to6001) {
-	INT8S result = 0;
+
+INT8S deal6015_07(CLASS_6015 st6015, BasicInfo6001 to6001,CLASS_6035* st6035,INT8U* dataContent) {
+	INT16U totaldataLen =0;
+	INT16U datalen= 0;
 	fprintf(stderr,
 			"\n deal6015_07  meter = %d st6015.sernum = %d st6015.csds.num = %d",
 			to6001.sernum, st6015.sernum, st6015.csds.num);
@@ -577,24 +595,32 @@ INT8S deal6015_07(CLASS_6015 st6015, BasicInfo6001 to6001) {
 
 	INT8U DIList[10][4];
 	memset(DIList, 0, 40);
-	INT8U dataContent[200] = {0};
+
 	INT8U dataIndex = 0;
-	INT16U dataLen = 0;
+
 	for (dataIndex = 0; dataIndex < st6015.csds.num; dataIndex++) {
 		if (CSDMap07DI(0, &st6015.csds.csd[dataIndex], DIList) == 1) {
-			dataLen = request698_07DataList(DIList, to6001.addr,dataContent);
+			datalen = request698_07DataList(DIList, to6001.addr,&dataContent[totaldataLen],st6035);
+			totaldataLen += datalen;
+			fprintf(stderr,"\n deal6015_07 totaldataLen = %d,datalen=%d",totaldataLen,datalen);
+			if(totaldataLen >= DATA_CONTENT_LEN)
+			{
+				fprintf(stderr,"dataContent 长度不够");
+				fprintf(stderr,"deal6015_07 datalen = %d totaldataLen = %d",datalen,totaldataLen);
+				break;
+			}
 		} else {
 			fprintf(stderr, "request698_07Data:1");
 			continue;
 		}
 	}
 
-	return result;
+	return totaldataLen;
 }
 /*
  * 抄读1个测量点
  */
-INT8U deal6015_singlemeter(CLASS_6015 st6015, BasicInfo6001 obj6001) {
+INT8U deal6015_singlemeter(CLASS_6015 st6015, BasicInfo6001 obj6001,CLASS_6035* st6035,INT8U* dataContent) {
 	INT8S ret = 0;
 	INT32U baudrate = getMeterBaud(obj6001.baud);
 	//打开串口
@@ -614,7 +640,7 @@ INT8U deal6015_singlemeter(CLASS_6015 st6015, BasicInfo6001 obj6001) {
 	}
 
 	switch (obj6001.protocol) {
-#if 0
+#ifndef TESTDEF
 	case DLT_645_07:
 	ret = deal6015_07(to6015,obj6001);
 	break;
@@ -622,8 +648,9 @@ INT8U deal6015_singlemeter(CLASS_6015 st6015, BasicInfo6001 obj6001) {
 	ret = deal6015_698(to6015,obj6001);
 #endif
 	default:
-		ret = deal6015_07(st6015, obj6001);
+		ret = deal6015_07(st6015, obj6001,st6035,dataContent);
 	}
+	fprintf(stderr, "\ndeal6015_singlemeter ret = %d\n",ret);
 	return ret;
 }
 /*
@@ -691,11 +718,38 @@ INT8U readList6001FromFile(BasicInfo6001* list6001, INT16U groupIndex,
 
 	return result;
 }
-
+INT16U compose6012Buff(DateTimeBCD startTime,TSA meterAddr,INT16U dataLen,INT8U* dataContent)
+{
+	fprintf(stderr,"\n compose6012Buff--------------");
+	fprintf(stderr,"\n dataContetent[%d]:",dataLen);
+	INT16U index;
+	for(index = 0;index < dataLen;index++)
+	{
+		fprintf(stderr,"%02x",dataContent[index]);
+		if(index%20 == 0)
+		{
+			fprintf(stderr,"\n");
+		}
+	}
+	INT16U bufflen = 0;
+	DateTimeBCD endTime;
+	DataTimeGet(&endTime);
+	INT8U buff6012[600];
+	memset(buff6012,0,600);
+	memcpy(buff6012,&meterAddr,sizeof(TSA));//采集通信地址
+	bufflen += sizeof(TSA);
+	memcpy(buff6012,&startTime,sizeof(DateTimeBCD));//采集启动时标
+	memcpy(buff6012,&endTime,sizeof(DateTimeBCD));//采集成功时标
+	memcpy(buff6012,&endTime,sizeof(DateTimeBCD));//采集存储时标
+	bufflen += 3*sizeof(DateTimeBCD);
+	memcpy(buff6012,dataContent,dataLen);
+	bufflen += dataLen;
+	return bufflen;
+}
 /*
  * 处理一个普通采集方案
  * */
-INT8U deal6015(CLASS_6015 st6015, INT8U port485) {
+INT8U deal6015(CLASS_6015 st6015, INT8U port485,CLASS_6035* st6035) {
 	INT8U result = 0;
 	BasicInfo6001 list6001[LIST6001SIZE];
 
@@ -727,9 +781,20 @@ INT8U deal6015(CLASS_6015 st6015, INT8U port485) {
 		result = readList6001FromFile(list6001, groupindex, recordnum,
 				st6015.mst, port485);
 
-		for (mpIndex = 0; mpIndex < LIST6001SIZE; mpIndex++) {
-			if (list6001[mpIndex].sernum > 0) {
-				deal6015_singlemeter(st6015, list6001[mpIndex]);
+		for (mpIndex = 0; mpIndex < LIST6001SIZE; mpIndex++)
+		{
+			if (list6001[mpIndex].sernum > 0)
+			{
+				st6035->totalMSNum++;
+				fprintf(stderr,"\n\n deal6015 测量点 = %d------------------",list6001[mpIndex].sernum);
+				INT8U dataContent[DATA_CONTENT_LEN];
+				memset(dataContent,0,DATA_CONTENT_LEN);
+				INT16U dataLen = 0;
+				DateTimeBCD startTime;
+
+				DataTimeGet(&startTime);
+				dataLen = deal6015_singlemeter(st6015, list6001[mpIndex],st6035,dataContent);
+				compose6012Buff(startTime,list6001[mpIndex].addr,dataLen,dataContent);
 			}
 		}
 	}
@@ -1001,17 +1066,19 @@ void read485_thread(void* i485port) {
 
 			CLASS_6035 result6035;	//采集任务监控单元
 			memset(&result6035, 0, sizeof(CLASS_6035));
-			CLASS_6015 to6015;	//采集方案集
-			memset(&to6015, 0, sizeof(CLASS_6015));
 			result6035.taskID = list6013[tastIndexIndex].basicInfo.taskID;
 			result6035.taskState = IN_OPR;
-			DataTimeGet(&result6035.starttime);
+			memcpy(&result6035.starttime,&list6013[tastIndexIndex].basicInfo.startime,sizeof(DateTimeBCD));
+			memcpy(&result6035.endtime,&list6013[tastIndexIndex].basicInfo.endtime,sizeof(DateTimeBCD));
+
+			CLASS_6015 to6015;	//采集方案集
+			memset(&to6015, 0, sizeof(CLASS_6015));
 			switch (list6013[tastIndexIndex].basicInfo.cjtype) {
 			case norm:/*普通采集方案*/
 			{
 				ret = use6013find6015(list6013[tastIndexIndex].basicInfo.sernum,
 						&to6015);
-				ret = deal6015(to6015, port);
+				ret = deal6015(to6015, port,&result6035);
 			}
 				break;
 			case events:/*事件采集方案*/
@@ -1068,21 +1135,20 @@ void read485_proccess() {
 	init6013ListFrom6012File();
 
 	INT8U i485port1 = 1;
-
 	pthread_attr_init(&read485_attr_t);
 	pthread_attr_setstacksize(&read485_attr_t, 2048 * 1024);
 	pthread_attr_setdetachstate(&read485_attr_t, PTHREAD_CREATE_DETACHED);
-	while ((thread_read4851_id = pthread_create(&thread_read4851,
-			&read485_attr_t, (void*) read485_thread, &i485port1)) != 0) {
+	while ((thread_read4851_id = pthread_create(&thread_read4851,&read485_attr_t, (void*) read485_thread, &i485port1)) != 0)
+	{
 		sleep(1);
 	}
-	/*
-	 * 	INT8U i485port2 = 2;
-	 while ((thread_read4852_id=pthread_create(&thread_read4852, &read485_attr_t, (void*)read485_thread, &i485port2)) != 0)
-	 {
-	 sleep(1);
-	 }
-	 */
+#if 0
+	INT8U i485port2 = 2;
+	while ((thread_read4852_id=pthread_create(&thread_read4852, &read485_attr_t, (void*)read485_thread, &i485port2)) != 0)
+	{
+		sleep(1);
+	}
+#endif
 
 }
 
