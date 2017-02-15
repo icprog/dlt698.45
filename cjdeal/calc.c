@@ -511,7 +511,91 @@ void voltage_calc(){
 		}
 	}
 }
+/*
+ * 从共享内存读数据
+ */
+void CpPubdata_UU(Statistics_U source, DIANYA_TJ* Dest)
+{
 
+	Dest->max = source.max;
+	memcpy(Dest->max_time,source.max_time,3);
+	Dest->min = source.min;
+	memcpy(Dest->min_time,source.min_time,3);
+	Dest->U_Avg = source.U_Avg;
+	Dest->ok_Rate = Round(3,source.ok_Rate)*A25_COEF;
+	Dest->ok_count = source.ok_count;
+	Dest->s_Rate = Round(3,source.s_Rate)*A25_COEF;
+	Dest->s_count = source.s_count;
+	Dest->ss_count = source.ss_count;
+	Dest->x_Rate = Round(3,source.x_Rate)*A25_COEF;
+	Dest->x_count = source.x_count;
+	Dest->xx_count = source.xx_count;
+	Dest->U_Sum = source.U_Sum;
+	Dest->U_Count = source.U_Count;
+
+	struct tm NowTime;
+	time_t time_of_day;
+	time_t tmp;
+	time_of_day = time(NULL);
+	localtime_r(&time_of_day, &NowTime);
+
+	tmp = mktime(&NowTime)-60;
+	localtime_r(&tmp,&Dest->StartTime);//记录起始时间为上一分种
+
+
+#if 1
+	fprintf(stderr,"ok_Rate:%f,ok_count:%d,U_Count:%d\r\n",Dest->ok_Rate,Dest->ok_count,source.U_Count);
+	fprintf(stderr,"s_Rate:%f,s_count:%d,U_Count:%d\r\n",Dest->s_Rate,Dest->s_count,source.U_Count);
+	fprintf(stderr,"x_Rate:%f,x_count:%d,U_Count:%d\r\n",Dest->x_Rate,Dest->x_count,source.U_Count);
+	fprintf(stderr,"\r\n");
+#endif
+}
+/*
+ * 初始化数据
+ */
+void ReadPubData()
+{
+	int i = 0;
+	for(i=0; i< MAXNUM_IMPORTANTUSR_CALC ;i++)
+	{
+		memset(&point[i].Result.tjUa,0,sizeof(point[i].Result.tjUa));
+		memset(&point[i].Result.tjUb,0,sizeof(point[i].Result.tjUb));
+		memset(&point[i].Result.tjUc,0,sizeof(point[i].Result.tjUc));
+
+
+		memset(&point[i].Result_m.tjUa,0,sizeof(point[i].Result_m.tjUa));
+		memset(&point[i].Result_m.tjUb,0,sizeof(point[i].Result_m.tjUb));
+		memset(&point[i].Result_m.tjUc,0,sizeof(point[i].Result_m.tjUc));
+
+	}
+	if(readCoverClass(0x4030,0,JProgramInfo->StatisticsPoint,sizeof(JProgramInfo->StatisticsPoint),calc_voltage_save)<=0)
+	{
+		return;
+	}
+
+	for(i=0; i< MAXNUM_IMPORTANTUSR_CALC ;i++)
+	{
+		if(point[i].valid != 1)
+			continue;
+	//	if (point[i].Type!= JIAOCAI_TYPE)
+	//		continue;
+#ifdef CCTT_II
+		CpPubdata_UU(JProgramInfo->StatisticsPoint[i].DayResu.tjUa,&point[i].Result.tjUa);
+		CpPubdata_UU(JProgramInfo->StatisticsPoint[i].MonthResu.tjUa,&point[i].Result_m.tjUa);
+
+#else
+		CpPubdata_UU(JProgramInfo->StatisticsPoint[i].DayResu.tjUa,&point[i].Result.tjUa);
+		CpPubdata_UU(JProgramInfo->StatisticsPoint[i].MonthResu.tjUa,&point[i].Result_m.tjUa);
+		CpPubdata_UU(JProgramInfo->StatisticsPoint[i].DayResu.tjUb,&point[i].Result.tjUb);
+		CpPubdata_UU(JProgramInfo->StatisticsPoint[i].MonthResu.tjUb,&point[i].Result_m.tjUb);
+		CpPubdata_UU(JProgramInfo->StatisticsPoint[i].DayResu.tjUc,&point[i].Result.tjUc);
+		CpPubdata_UU(JProgramInfo->StatisticsPoint[i].MonthResu.tjUc,&point[i].Result_m.tjUc);
+
+#endif
+	}
+
+
+}
 /*
  * 统计主线程
  */
@@ -526,9 +610,10 @@ void calc_thread()
 		#else
 			valid = 1;
 		#endif
+		//电压合格率统计
 	    if(valid == 1){
 			voltage_calc();
-			saveCoverClass(0x4030,0,&JProgramInfo->StatisticsPoint,sizeof(JProgramInfo->StatisticsPoint),calc_voltage_save);
+			saveCoverClass(0x4030,0,JProgramInfo->StatisticsPoint,sizeof(JProgramInfo->StatisticsPoint),calc_voltage_save);
 	    }
 	    usleep(100*1000);
   }
