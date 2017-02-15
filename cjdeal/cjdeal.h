@@ -3,8 +3,7 @@
 
 #include "PublicFunction.h"
 
-ProgramInfo* JProgramInfo=NULL;
-int ProIndex=0;
+extern ProgramInfo* JProgramInfo;
 
 extern void DealState(ProgramInfo* prginfo);
 extern void read_oif203_para();

@@ -776,7 +776,6 @@ BOOLEAN MeterDiff(ProgramInfo* prginfo_event)
 			if((abs(difftime(mktime(&MeterPowerInfo[i].PoweroffTime),mktime(&TermialPowerInfo.PoweroffTime)))>(poweroffset*60))
 			||(abs(difftime(mktime(&MeterPowerInfo[i].PoweronTime),mktime(&TermialPowerInfo.PoweronTime)))>(poweroffset*60)))
 			{
-
 				TermialPowerInfo.Valid = POWER_OFF_INVALIDE;
 				fprintf(stderr,"MeterDiff err1\r\n");
 				filewrite(ERC3106PATH,&TermialPowerInfo,sizeof(TermialPowerInfo));

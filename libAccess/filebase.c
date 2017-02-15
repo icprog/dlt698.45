@@ -360,6 +360,10 @@ void getFileName(OI_698 oi,INT16U seqno,INT16U type,char *fname)
 		makeSubDir(INITDIR);
 		sprintf(fname,"%s/%04x.par",INITDIR,oi);
 		break;
+	case calc_voltage_save: //电压合格率
+		makeSubDir(CALCDIR);
+		sprintf(fname,"%s/%04x.par",CALCDIR,oi);
+		break;
 	}
 //	fprintf(stderr,"getFileName fname=%s\n",fname);
 }
