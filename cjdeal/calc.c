@@ -21,6 +21,7 @@
 #include "ParaDef.h"
 #include "AccessFun.h"
 #include "Objectdef.h"
+#include "PublicFunction.h"
 
 //#ifdef SPTF_III
 //SumGroup_TYPE sumgroup[MAXNUM_SUMGROUP];
@@ -30,6 +31,7 @@ MaxDemand tjXuliang_acs;				//日冻结交采需量统计
 MaxDemand tjXuliang_acs_m;				//月冻结交采需量统计
 INT8U 	CalcPointNum;		//需要统计的最大个数
 CLASS_4030 obj_offset={};
+CLASS_4016 feilv_para={};
 /*
  * 	山东要求：电压合格率统计，在停上电1分钟及停电期间，不进行电压合格统计
  * =1:满足上电1分钟要求，可以进行电压合格率统计
@@ -58,7 +60,6 @@ int	getcalcvalid()
 		}
 	}
 }
-
 
 /* 记录各测量点类型和数量,一号测量点可以是交采测试点,也可以下挂电表测量点
  * 测量点类型包括:暂时统计485测量点,交采测试点
@@ -101,6 +102,7 @@ INT8U write_calc_stru(POINT_CALC_TYPE *pcalc)
 	}
 	return num;
 }
+
 /*
  *根据系统参数确定测量点信息，
  *填充POINT_CALC_TYPE结构体数据，用于进行统计计算
@@ -141,6 +143,7 @@ int cmp_limit(int value, int ss_limit,int s_limit,int x_limit,int xx_limit)
 	if (value <  xx_limit) 						  return XXIA_XIAN;
 	return 0;
 }
+
 /*计算单相当前状态的累计时间和总电压
  *参数：参数1，单相电压的属性结构体，参数2，当前时间，参数3，出参，当前状态的累计时间，参数4，出参，电压的累加值，参数5，当前电压值。
  *函数的计算结果，直接存储在参数2中
@@ -593,6 +596,290 @@ void ReadPubData()
 
 #endif
 	}
+}
+/*获取交采测量点序号
+ * 返回值:０,没有找到,>0正确
+ */
+INT32U GetAcsPointNo()
+{
+	int i = 0;
+	for(i = 0;i< MAXNUM_IMPORTANTUSR_CALC;i++)
+	{
+		if(JIAOCAI_TYPE == point[i].Type)
+			return i;
+	}
+	return 0;
+}
+/*
+ * 获取当前费率号
+ * */
+int GetRatesNo(const TS ts_t)
+ {
+	static INT8U lastchgoi4016=0;
+	static INT8U first=1;
+	INT8U FeilvNo=0;
+	if(first){
+		first=0;
+		lastchgoi4016 = JProgramInfo->oi_changed.oi4016;
+		readParaClass(0x4030,&obj_offset,0);
+	}
+	if(lastchgoi4016!=JProgramInfo->oi_changed.oi4016){
+		readParaClass(0x4030,&obj_offset,0);
+		if(lastchgoi4016!=JProgramInfo->oi_changed.oi4016) {
+			lastchgoi4016++;
+			if(lastchgoi4016==0) lastchgoi4016=1;
+		}
+	}
+	INT8U i=0;
+	for(i=0;i<MAX_PERIOD_RATE;i++){
+		INT8U Curr_H=0,Curr_M=0,Next_H=0,Next_M=0;
+		Curr_H=feilv_para.Period_Rate[i].hour;
+		Curr_M=feilv_para.Period_Rate[i].min;
+		TS pre_time;
+		TS next_time;
+		TS tem_time;
+		memset(&pre_time,0,sizeof(TS));
+		memset(&next_time,0,sizeof(TS));
+		memset(&tem_time,0,sizeof(TS));
+		memcpy(&tem_time,&ts_t,sizeof(TS));
+		if((i+1)==MAX_PERIOD_RATE){
+			Next_H=feilv_para.Period_Rate[0].hour;
+			Next_M=feilv_para.Period_Rate[0].min;
+		}else{
+			Next_H=feilv_para.Period_Rate[i+1].hour;
+			Next_M=feilv_para.Period_Rate[i+1].min;
+		}
+		//跨天
+		if(Curr_H>Next_H){
+			//当前时间处在0点之前
+            if(ts_t.Hour>=Curr_H && ts_t.Hour<=23){
+            	pre_time.Year=ts_t.Year;
+				pre_time.Month=ts_t.Month;
+				pre_time.Day=ts_t.Day;
+				pre_time.Hour=Curr_H;
+				pre_time.Minute=Curr_M;
+				pre_time.Sec=0;
+				tminc(&tem_time,day_units,1);
+				next_time.Year=tem_time.Year;
+				next_time.Month=tem_time.Month;
+				next_time.Day=tem_time.Day;
+				next_time.Hour=Next_H;
+				next_time.Minute=Next_M;
+				next_time.Sec=0;
+            }else if(ts_t.Hour>=0 && ts_t.Hour<=Next_H){
+            	tminc(&tem_time,day_units,-1);
+            	pre_time.Year=tem_time.Year;
+				pre_time.Month=tem_time.Month;
+				pre_time.Day=tem_time.Day;
+				pre_time.Hour=Curr_H;
+				pre_time.Minute=Curr_M;
+				pre_time.Sec=0;
+
+				next_time.Year=ts_t.Year;
+				next_time.Month=ts_t.Month;
+				next_time.Day=ts_t.Day;
+				next_time.Hour=Next_H;
+				next_time.Minute=Next_M;
+				next_time.Sec=0;
+            }
+		}else{
+			pre_time.Year=ts_t.Year;
+			pre_time.Month=ts_t.Month;
+			pre_time.Day=ts_t.Day;
+			pre_time.Hour=Curr_H;
+			pre_time.Minute=Curr_M;
+			pre_time.Sec=0;
+
+			next_time.Year=ts_t.Year;
+			next_time.Month=ts_t.Month;
+			next_time.Day=ts_t.Day;
+			next_time.Hour=Next_H;
+			next_time.Minute=Next_M;
+			next_time.Sec=0;
+		}
+       int offset_1=difftime(tmtotime_t(ts_t),tmtotime_t(pre_time));
+       int offset_2=difftime(tmtotime_t(next_time),tmtotime_t(ts_t));
+       if(offset_1>=0 && offset_2>0)
+    	   FeilvNo=feilv_para.Period_Rate[i].rateno;
+       if(FeilvNo>MAX_PERIOD_RATE)
+    	   FeilvNo=0;
+	}
+    return FeilvNo;
+}
+/*
+ * 从共享内存读取交采实时数据
+ */
+void CpyAcsDataFromPubData(POINT_CALC_TYPE* point_hander)
+{
+	TS tm;
+	int PointIndex = GetAcsPointNo();//获得测量点号
+	TSGet(&tm);
+
+	if(JIAOCAI_TYPE != point[PointIndex].Type||point[PointIndex].valid!=TRUE)
+		return;
+
+	int Rateindex = GetRatesNo(tm);//获得费率数
+	int i = 0;
+	if(JProgramInfo->ACSRealData.Available==0)
+		return;
+//JProgramInfo ACSRealData ACSRealData
+	point_hander[PointIndex].Realdata.Cos.value = JProgramInfo->ACSRealData.Cos;//总功率因数
+	point_hander[PointIndex].Realdata.Cos.Available = TRUE;
+
+	point_hander[PointIndex].Realdata.Cosa.value =JProgramInfo->ACSRealData.CosA;
+	point_hander[PointIndex].Realdata.Cosa.Available = TRUE;
+
+	point_hander[PointIndex].Realdata.Cosb.value =JProgramInfo->ACSRealData.CosB;
+	point_hander[PointIndex].Realdata.Cosb.Available = TRUE;
+
+	point_hander[PointIndex].Realdata.Cosc.value =JProgramInfo->ACSRealData.CosC;
+	point_hander[PointIndex].Realdata.Cosc.Available = TRUE;
+
+	point_hander[PointIndex].Realdata.I0.value = JProgramInfo->ACSRealData.I0;//电流
+	point_hander[PointIndex].Realdata.I0.Available = TRUE;
+
+
+	point_hander[PointIndex].Realdata.Ia.value = JProgramInfo->ACSRealData.Ia;
+	point_hander[PointIndex].Realdata.Ia.Available = TRUE;
+
+	point_hander[PointIndex].Realdata.Ib.value = JProgramInfo->ACSRealData.Ib;
+	point_hander[PointIndex].Realdata.Ib.Available = TRUE;
+
+	point_hander[PointIndex].Realdata.Ic.value = JProgramInfo->ACSRealData.Ic;
+	point_hander[PointIndex].Realdata.Ic.Available = TRUE;
+
+//	point_hander[PointIndex].Realdata.Psz.value = JProgramInfo->ACSRealData.St;//视在功率
+//	point_hander[PointIndex].Realdata.Psz.Available = TRUE;
+
+	/*
+	  Bit0:A相有功功率。Bit1：B相有功功率，Bit2：C相有功功率。Bit3：合相有功功率
+	  Bit4:A相无功功率。Bit5：B相无功功率，Bit6：C相无功功率。Bit7：合相无功功率
+	  0：正向，1：反向
+	*/
+	point_hander[PointIndex].Realdata.PFlag.value = JProgramInfo->ACSRealData.PFlag;
+	point_hander[PointIndex].Realdata.PFlag.Available = TRUE;
+    /*反向有功*/
+	if((point_hander[PointIndex].Realdata.PFlag.value&0x08)&&(point_hander[PointIndex].Realdata.PFlag.Available))//1:反向
+	{
+		point_hander[PointIndex].Realdata.F_P.value = JProgramInfo->ACSRealData.Pt/kw2w_acs;
+		point_hander[PointIndex].Realdata.F_P.Available = TRUE;
+
+		point_hander[PointIndex].Realdata.F_P_R[Rateindex].value = JProgramInfo->ACSRealData.Pt/kw2w_acs;
+		point_hander[PointIndex].Realdata.F_P_R[Rateindex].Available = TRUE;
+
+		point_hander[PointIndex].Realdata.CP.Available = FALSE;
+		point_hander[PointIndex].Realdata.CP.value = 0;
+		point_hander[PointIndex].Realdata.P_R[Rateindex].value = 0;
+		point_hander[PointIndex].Realdata.P_R[Rateindex].Available = FALSE;
+	}
+	/*正向有功*/
+	else
+	{
+		point_hander[PointIndex].Realdata.CP.value = JProgramInfo->ACSRealData.Pt/kw2w_acs;
+		point_hander[PointIndex].Realdata.CP.Available = TRUE;
+
+		point_hander[PointIndex].Realdata.P_R[Rateindex].value = JProgramInfo->ACSRealData.Pt/kw2w_acs;
+		point_hander[PointIndex].Realdata.P_R[Rateindex].Available = TRUE;
+
+		point_hander[PointIndex].Realdata.F_P.Available = FALSE;
+		point_hander[PointIndex].Realdata.F_P.value = 0;
+		point_hander[PointIndex].Realdata.F_P_R[Rateindex].value = 0;
+		point_hander[PointIndex].Realdata.F_P_R[Rateindex].Available = FALSE;
+	}
+
+
+	/*反向无功*/
+	if(point_hander[PointIndex].Realdata.PFlag.value&0x80)
+	{
+			point_hander[PointIndex].Realdata.F_Q.value = JProgramInfo->ACSRealData.Qt/kw2w_acs;
+			point_hander[PointIndex].Realdata.F_Q.Available = TRUE;
+
+			point_hander[PointIndex].Realdata.F_Q_R[Rateindex].value = JProgramInfo->ACSRealData.Qt/kw2w_acs;
+			point_hander[PointIndex].Realdata.F_Q_R[Rateindex].Available = TRUE;
+			point_hander[PointIndex].Realdata.CQ.value = 0;
+			point_hander[PointIndex].Realdata.CQ.Available = FALSE;
+			point_hander[PointIndex].Realdata.Q_R[Rateindex].value = 0;
+			point_hander[PointIndex].Realdata.Q_R[Rateindex].Available = FALSE;
+	}
+	/*反向有功*/
+	else
+	{
+
+		point_hander[PointIndex].Realdata.CQ.value = JProgramInfo->ACSRealData.Qt/kw2w_acs;
+		point_hander[PointIndex].Realdata.CQ.Available = TRUE;
+
+		point_hander[PointIndex].Realdata.Q_R[Rateindex].value = JProgramInfo->ACSRealData.Qt/kw2w_acs;
+		point_hander[PointIndex].Realdata.Q_R[Rateindex].Available = TRUE;
+
+		point_hander[PointIndex].Realdata.F_Q.value = 0;
+		point_hander[PointIndex].Realdata.F_Q.Available = FALSE;
+		point_hander[PointIndex].Realdata.F_Q_R[Rateindex].value = 0;
+		point_hander[PointIndex].Realdata.F_Q_R[Rateindex].Available = FALSE;
+	}
+	/*A相有功功率*/
+	point_hander[PointIndex].Realdata.CPa.value = JProgramInfo->ACSRealData.Pa/kw2w_acs;
+	point_hander[PointIndex].Realdata.CPa.Available = TRUE;
+
+	point_hander[PointIndex].Realdata.Pb.value = JProgramInfo->ACSRealData.Pb/kw2w_acs;
+	point_hander[PointIndex].Realdata.Pb.Available = TRUE;
+
+	point_hander[PointIndex].Realdata.Pc.value = JProgramInfo->ACSRealData.Pc/kw2w_acs;
+	point_hander[PointIndex].Realdata.Pc.Available = TRUE;
+
+	/*A相无功功率*/
+	point_hander[PointIndex].Realdata.Qa.value = JProgramInfo->ACSRealData.Qa/kw2w_acs;
+	point_hander[PointIndex].Realdata.Qa.Available = TRUE;
+
+	point_hander[PointIndex].Realdata.Qb.value = JProgramInfo->ACSRealData.Qb/kw2w_acs;
+	point_hander[PointIndex].Realdata.Qb.Available = TRUE;
+
+	point_hander[PointIndex].Realdata.Qc.value = JProgramInfo->ACSRealData.Qc/kw2w_acs;
+	point_hander[PointIndex].Realdata.Qc.Available = TRUE;
+
+	point_hander[PointIndex].Realdata.Va.value = JProgramInfo->ACSRealData.Ua;
+	point_hander[PointIndex].Realdata.Va.Available = TRUE;
+#ifndef CCTT_II
+	if(JProgramInfo->Accoepara.WireType!=0x1200)
+	{
+		point_hander[PointIndex].Realdata.Vb.value = JProgramInfo->ACSRealData.Ub;
+		point_hander[PointIndex].Realdata.Vb.Available = TRUE;
+	}
+	point_hander[PointIndex].Realdata.Vc.value = JProgramInfo->ACSRealData.Uc;
+	point_hander[PointIndex].Realdata.Vc.Available = TRUE;
+#endif
+
+//ACSRealData
+	//交采在共享内存中的电能量是示值，需要除以6400才能换算成正确的示值，单位是千瓦
+	point_hander[PointIndex].Realdata.z_P_energy_all.value = JProgramInfo->ACSEnergy.PosPt_All*kw2w/64;
+	point_hander[PointIndex].Realdata.z_P_energy_all.Available = TRUE;
+
+	point_hander[PointIndex].Realdata.f_P_energy_all.value = JProgramInfo->ACSEnergy.NegPt_All*kw2w/64;
+	point_hander[PointIndex].Realdata.f_P_energy_all.Available = TRUE;
+
+	point_hander[PointIndex].Realdata.z_Q_energy_all.value = JProgramInfo->ACSEnergy.PosQt_All*kw2w/64;
+	point_hander[PointIndex].Realdata.z_Q_energy_all.Available = TRUE;
+
+	point_hander[PointIndex].Realdata.f_Q_energy_all.value = JProgramInfo->ACSEnergy.NegQt_All*kw2w/64;
+	point_hander[PointIndex].Realdata.f_Q_energy_all.Available = TRUE;
+
+	for(i = 0;i<MAXVAL_RATENUM;i++)
+	{
+		point_hander[PointIndex].Realdata.z_P_energy[i].value = JProgramInfo->ACSEnergy.PosPt_Rate[i]*kw2w/64;
+		point_hander[PointIndex].Realdata.z_P_energy[i].Available = TRUE;
+
+		point_hander[PointIndex].Realdata.f_P_energy[i].value = JProgramInfo->ACSEnergy.NegPt_Rate[i]*kw2w/64;
+		point_hander[PointIndex].Realdata.f_P_energy[i].Available = TRUE;
+
+		point_hander[PointIndex].Realdata.z_Q_energy[i].value = JProgramInfo->ACSEnergy.PosQt_Rate[i]*kw2w/64;
+		point_hander[PointIndex].Realdata.z_Q_energy[i].Available = TRUE;
+
+		point_hander[PointIndex].Realdata.f_Q_energy[i].value = JProgramInfo->ACSEnergy.NegQt_Rate[i]*kw2w/64;
+		point_hander[PointIndex].Realdata.f_Q_energy[i].Available = TRUE;
+	}
+
+//	JProgramInfo->ACSRealData.YUaUb;
+//	JProgramInfo->ACSRealData.YUaUc;
+//	JProgramInfo->ACSRealData.YUbUc;
 
 
 }
@@ -604,7 +891,8 @@ void calc_thread()
 	INT8U valid = 0;
     while(1){
 		/*根据系统参数确定测量点信息，内容保存到point相关处*/
-		get_point_para(&point[0]);
+		get_point_para(&point[0]);       //初始化测量点参数
+		CpyAcsDataFromPubData(&point[0]);//初始化交采数据从共享内存
 		#ifdef SHANDONG
 			valid = getcalcvalid();
 		#else
@@ -626,6 +914,7 @@ void calc_thread()
  */
 void calc_proccess()
 {
+	ReadPubData();
 	pthread_attr_init(&calc_attr_t);
 	pthread_attr_setstacksize(&calc_attr_t,2048*1024);
 	pthread_attr_setdetachstate(&calc_attr_t,PTHREAD_CREATE_DETACHED);
