@@ -104,7 +104,28 @@ int fill_unsigned(INT8U *data,INT8U value)
 	data[1] = value;
 	return 2;
 }
+int fill_integer(INT8U *data,INT8U value)
+{
+	data[0] = 0xf;
+	data[1] = value;
+	return 2;
+}
 
+int fill_visiblestring(INT8U *data,INT8U *value)
+{
+	int bytenum = 0;
+	data[0] = 0x0a;
+	bytenum = value[0] + 1 + 1;//总字节长度 = 字符串 + 长度描述符 + 类型  ，
+	memcpy(&data[1],value,bytenum);
+	return bytenum;
+}
+int fill_long_unsigned(INT8U *data,INT16U value)
+{
+	data[0] = 0x12;
+	data[1] = (value & 0xFF00)>>8;
+	data[2] = value & 0x00FF;
+	return 3;
+}
 int fill_DateTimeBCD(INT8U *data,DateTimeBCD *time)
 {
 	data[0] = 0x1C;
@@ -112,7 +133,33 @@ int fill_DateTimeBCD(INT8U *data,DateTimeBCD *time)
 	memcpy(&data[1],time,sizeof(DateTimeBCD));
 	return (sizeof(DateTimeBCD)+1);
 }
-
+int fill_enum(INT8U *data,INT8U value)
+{
+	data[0] = 0x16;
+	data[1] = value;
+	return 2;
+}
+int fill_time(INT8U *data,INT8U *value)
+{
+	data[0] = 0x1b;
+	memcpy(&data[1],&value[0],3);
+	return 4;
+}
+int file_bool(INT8U *data,INT8U value)
+{
+	data[0] = 3;
+	data[1] = value;
+	return 2;
+}
+int fill_double_long_unsigned(INT8U *data,INT32U value)
+{
+	data[0] = 0x06;
+	data[1] = (value & 0xFF000000) >> 24 ;
+	data[2] = (value & 0x00FF0000) >> 16 ;
+	data[3] = (value & 0x0000FF00) >> 8 ;
+	data[4] =  value & 0x000000FF;
+	return 5;
+}
 int GetYxPara(RESULT_NORMAL *response)
 {
 	int index=0;
@@ -172,13 +219,12 @@ int GetSecurePara(RESULT_NORMAL *response)
 	CLASS_F101 f101;
 	oad = response->oad;
 	data = response->data;
-	readParaClass(0xf101,&f101,0);
+//	readParaClass(0xf101,&f101,0);
+	readCoverClass(0xf101,0,&f101,sizeof(f101),para_vari_save);
 	switch(oad.attflg )
 	{
 		case 2://安全模式选择
-			data[0] = 0x16;
-			data[1] = 0x01;
-			response->datalen = 2;
+			response->datalen = fill_enum(data,f101.active);;
 			break;
 		case 3://安全模式参数array
 			break;
@@ -202,6 +248,196 @@ int GetSysDateTime(RESULT_NORMAL *response)
 	}
 	return 0;
 }
+
+int Get4001_4002_4003(RESULT_NORMAL *response)
+{
+	int i;
+	OAD oad;
+	CLASS_4001_4002_4003	class_addr={};
+
+	oad = response->oad;
+	memset(&class_addr,0,sizeof(CLASS_4001_4002_4003));
+	readCoverClass(oad.OI,0,&class_addr,sizeof(CLASS_4001_4002_4003),para_vari_save);
+	switch(oad.attflg )
+	{
+		case 2:
+			response->datalen =  class_addr.curstom_num[0]+1;//第一个字节是长度 + 内容
+			fprintf(stderr,"\n读取 datalen=%d\n",response->datalen);
+			for(i=0;i< response->datalen;i++)
+				fprintf(stderr," %02x",class_addr.curstom_num[i]);
+			fprintf(stderr,"\n");
+			response->data[0] = 0x09;
+			response->datalen += 1;//再加一个数据类型
+			memcpy(&response->data[1] ,class_addr.curstom_num,response->datalen);
+			break;
+	}
+	return 0;
+}
+int Get4004(RESULT_NORMAL *response)
+{
+	int index=0;
+	INT8U *data = NULL;
+	OAD oad;
+	CLASS_4004	class_tmp={};
+	data = response->data;
+	oad = response->oad;
+	memset(&class_tmp,0,sizeof(CLASS_4004));
+	readCoverClass(oad.OI,0,&class_tmp,sizeof(CLASS_4004),para_vari_save);
+	switch(oad.attflg )
+	{
+		case 2:
+			index += create_struct(&data[index],3);//经度，纬度，高度
+			index += create_struct(&data[index],4);//方位、度、分、秒
+			index += fill_enum(&data[index],class_tmp.jing.fangwei);
+			index += fill_unsigned(&data[index],class_tmp.jing.du);
+			index += fill_unsigned(&data[index],class_tmp.jing.fen);
+			index += fill_unsigned(&data[index],class_tmp.jing.miao);
+			index += create_struct(&data[index],4);//方位、度、分、秒
+			index += fill_enum(&data[index],class_tmp.wei.fangwei);
+			index += fill_unsigned(&data[index],class_tmp.wei.du);
+			index += fill_unsigned(&data[index],class_tmp.wei.fen);
+			index += fill_unsigned(&data[index],class_tmp.wei.miao);
+			index += fill_double_long_unsigned(&data[index],class_tmp.heigh);
+			response->datalen = index;
+			break;
+	}
+	return 0;
+}
+int Get4006(RESULT_NORMAL *response)
+{
+	int index=0;
+	INT8U *data = NULL;
+	OAD oad;
+	CLASS_4006	class_tmp={};
+	data = response->data;
+	oad = response->oad;
+	memset(&class_tmp,0,sizeof(CLASS_4006));
+	readCoverClass(oad.OI,0,&class_tmp,sizeof(CLASS_4006),para_vari_save);
+	class_tmp.clocksource = 1;//时钟芯片
+	class_tmp.state = 0;//可用
+	switch(oad.attflg )
+	{
+		case 2:
+			index += create_struct(&data[index],2);//时钟源
+			index += fill_enum(&data[index],class_tmp.clocksource);
+			index += fill_enum(&data[index],class_tmp.state);
+			response->datalen = index;
+			break;
+	}
+	return 0;
+}
+int Get4007(RESULT_NORMAL *response)
+{
+	int index=0;
+	INT8U *data = NULL;
+	OAD oad;
+	CLASS_4007	class_tmp={};
+	data = response->data;
+	oad = response->oad;
+	memset(&class_tmp,0,sizeof(CLASS_4007));
+	readCoverClass(oad.OI,0,&class_tmp,sizeof(CLASS_4007),para_vari_save);
+	switch(oad.attflg )
+	{
+		case 2:
+			index += create_struct(&data[index],7);
+			index += fill_unsigned(&data[index],class_tmp.poweon_showtime);
+			index += fill_long_unsigned(&data[index],class_tmp.lcdlight_time);
+			index += fill_long_unsigned(&data[index],class_tmp.looklight_time);
+			index += fill_long_unsigned(&data[index],class_tmp.poweron_maxtime);
+			index += fill_long_unsigned(&data[index],class_tmp.poweroff_maxtime);
+			index += fill_unsigned(&data[index],class_tmp.energydata_dec);
+			index += fill_unsigned(&data[index],class_tmp.powerdata_dec);
+			response->datalen = index;
+			break;
+	}
+	return 0;
+}
+int Get4103(RESULT_NORMAL *response)
+{
+	int index=0;
+	INT8U *data = NULL;
+	OAD oad;
+	CLASS_4103	class_tmp={};
+	data = response->data;
+	oad = response->oad;
+	memset(&class_tmp,0,sizeof(CLASS_4103));
+	readCoverClass(oad.OI,0,&class_tmp,sizeof(CLASS_4103),para_vari_save);
+	switch(oad.attflg )
+	{
+		case 2:
+			index += fill_visiblestring(&data[index],class_tmp.assetcode);
+			response->datalen = index;
+			break;
+	}
+	return 0;
+}
+int Get4204(RESULT_NORMAL *response)
+{
+	int index=0;
+	INT8U *data = NULL;
+	OAD oad;
+	CLASS_4204	class_tmp={};
+	data = response->data;
+	oad = response->oad;
+	memset(&class_tmp,0,sizeof(CLASS_4204));
+	readCoverClass(oad.OI,0,&class_tmp,sizeof(CLASS_4204),para_vari_save);
+	switch(oad.attflg )
+	{
+		case 2:
+			index += create_struct(&data[index],2);
+			index += fill_time(&data[index],class_tmp.startime);
+			index += file_bool(&data[index],class_tmp.enable);
+			response->datalen = index;
+			break;
+		case 3:
+			index += create_struct(&data[index],3);
+			index += fill_integer(&data[index],class_tmp.upleve);
+			index += fill_time(&data[index],class_tmp.startime1);
+			index += file_bool(&data[index],class_tmp.enable1);
+			response->datalen = index;
+			break;
+	}
+	return 0;
+}
+int Get4300(RESULT_NORMAL *response)
+{
+	int index=0;
+	INT8U *data = NULL;
+	OAD oad;
+	CLASS19	class_tmp={};
+	data = response->data;
+	oad = response->oad;
+	memset(&class_tmp,0,sizeof(CLASS19));
+	readCoverClass(0x4300,0,&class_tmp,sizeof(CLASS19),para_vari_save);
+	switch(oad.attflg )
+	{
+		case 3:
+			index += create_struct(&data[index],6);
+			class_tmp.info.factoryCode[0] = 4;
+			index += fill_visiblestring(&data[index],class_tmp.info.factoryCode);
+			class_tmp.info.softVer[0] = 4;
+			index += fill_visiblestring(&data[index],class_tmp.info.softVer);
+			class_tmp.info.softDate[0] = 6;
+			index += fill_visiblestring(&data[index],class_tmp.info.softDate);
+			class_tmp.info.hardVer[0] = 4;
+			index += fill_visiblestring(&data[index],class_tmp.info.hardVer);
+			class_tmp.info.hardDate[0] = 6;
+			index += fill_visiblestring(&data[index],class_tmp.info.hardDate);
+			class_tmp.info.factoryExpInfo[0] = 8;
+			index += fill_visiblestring(&data[index],class_tmp.info.factoryExpInfo);
+			response->datalen = index;
+			break;
+		case 4:
+			index += create_struct(&data[index],3);
+//			index += fill_integer(&data[index],class_tmp.upleve);
+//			index += fill_time(&data[index],class_tmp.startime1);
+//			index += file_bool(&data[index],class_tmp.enable1);
+			response->datalen = index;
+			break;
+	}
+	return 0;
+}
+
 int GetEventInfo(RESULT_NORMAL *response)
 {
 	INT8U *data=NULL;
@@ -298,6 +534,27 @@ int doGetnormal(RESULT_NORMAL *response)
 			break;
 		case 0x4000:
 			GetSysDateTime(response);
+			break;
+		case 0x4003:
+			Get4001_4002_4003(response);
+			break;
+		case 0x4004:
+			Get4004(response);
+			break;
+		case 0x4006:
+			Get4006(response);
+			break;
+		case 0x4007:
+			Get4007(response);
+			break;
+		case 0x4103:
+			Get4103(response);
+			break;
+		case 0x4204:
+			Get4204(response);
+			break;
+		case 0x4300:
+			Get4300(response);
 			break;
 	}
 

@@ -28,12 +28,12 @@ typedef struct {
 
 typedef struct
 {
-	char factoryCode[4];	//厂商代码
-	char softVer[4];		//软件版本号
-	char softDate[6];		//软件版本日期
-	char hardVer[4];		//硬件版本号
-	char hardDate[6];		//硬件版本日期
-	char factoryExpInfo[8];//厂家扩展信息
+	INT8U factoryCode[5];	//厂商代码
+	INT8U softVer[5];		//软件版本号
+	INT8U softDate[7];		//软件版本日期
+	INT8U hardVer[5];		//硬件版本号
+	INT8U hardDate[7];		//硬件版本日期
+	INT8U factoryExpInfo[9];//厂家扩展信息
 }VERINFO;
 
 typedef struct
@@ -116,7 +116,7 @@ typedef struct {
  *				 A.5 参变量类对象
  ********************************************************/
 typedef struct {
-	INT8U 	login_name[OCTET_STRING_LEN];		//逻辑名
+	INT8U 	login_name[OCTET_STRING_LEN];	//逻辑名
 	INT8U  	curstom_num[OCTET_STRING_LEN];	//客户编号
 } CLASS_4001_4002_4003; 	//4001:通信地址，4002：表号，4003：客户编号
 
@@ -130,6 +130,63 @@ typedef struct {
 	INT8U num;
 	Day_Period Period_Rate[MAX_PERIOD_RATE];
 } CLASS_4016;
+
+typedef struct {
+	INT8U fangwei;
+	INT8U du;
+	INT8U fen;
+	INT8U miao;
+} TYPE_JWD;
+typedef struct {
+	TYPE_JWD jing;
+	TYPE_JWD wei;
+	INT32U heigh;
+} CLASS_4004;
+
+typedef struct {
+	INT8U clocksource;
+	INT8U state;
+} CLASS_4006;
+typedef struct {
+	INT16U uUp;
+	INT16U uDown;
+	INT16U uUp_Kaohe;
+	INT16U uDown_Kaohe;
+} CLASS_4030;
+
+typedef struct {
+	INT8U poweon_showtime;//上电全显时间
+	INT16U lcdlight_time;//背光点亮时间（按键）
+	INT16U looklight_time;//背光点亮时间(查看)
+	INT16U poweron_maxtime;//有电按键屏幕驻留时间(查看)
+	INT16U poweroff_maxtime;//无电按键屏幕驻留时间(查看)
+	INT8U energydata_dec;//显示电能小数位
+	INT8U powerdata_dec;//显示功率小数位
+} CLASS_4007;
+typedef struct {
+	INT8U assetcode[40];
+} CLASS_4103;
+typedef struct {
+	INT8U startime[OCTET_STRING_LEN];
+	INT8U enable;
+	INT8U upleve;//误差阀值
+	INT8U startime1[OCTET_STRING_LEN];
+	INT8U enable1;
+} CLASS_4204;
+
+//typedef struct {
+//	FactoryVersion verinfo;
+//	DateTimeBCD  productDate;
+//	INT8U oinum;
+//	OI_698 ois[10];
+//	INT8U protocolnum;
+//	INT8U protocol[8][OCTET_STRING_LEN];
+//	INT8U follow_report;
+//	INT8U auto_report;
+//	INT8U talk_master;
+//	INT8U oadnum;
+//	OAD  oads[10];
+//} CLASS_4300;
 ///////////////////////////////////////////////////////////////////////////////
 /********************************************************
  *				A.7　采集监控类对象

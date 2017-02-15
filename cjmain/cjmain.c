@@ -194,7 +194,7 @@ void ProgInit()
 	sem_parasave = create_named_sem(SEMNAME_PARA_SAVE,1);
 	sem_getvalue(sem_parasave, &val);
 	fprintf(stderr,"process The sem is %d\n", val);
-	InitClass4300();
+	InitClass4300(&JProgramInfo->terminalinfo);
 	//初始化事件参数，调用文件
 	//JProgramInfo
 	readCoverClass(0x3100,0,&JProgramInfo->event_obj.Event3100_obj,sizeof(JProgramInfo->event_obj.Event3100_obj),event_para_save);
