@@ -135,6 +135,8 @@ INT16U set4000(INT8U attflg,INT8U index,INT8U *data)
 
 	if ( attflg == 2 )
 	{
+		DataTimeGet(&datetime);
+		Event_3114(datetime,memp);//对时，产生事件
 		get_BasicUnit(data,&source_index,(INT8U *)&datetime,&dest_index);
 		setsystime(datetime);
 	}
@@ -295,9 +297,9 @@ INT16U setf101(INT8U attflg,INT8U index,INT8U *data)
 	readCoverClass(0xf101,0,&f101,sizeof(CLASS_F101),para_vari_save);
 	if ( attflg == 2 )//配置参数
 	{
-		get_BasicUnit(data,&source_index,(INT8U*)&f101.state4,&dest_index);
-		saveCoverClass(0xf203,0,&f203,sizeof(CLASS_f203),para_vari_save);
-		fprintf(stderr,"\n状态量配置参数 : 接入标志 %02x  属性标志 %02x \n",f203.state4.StateAcessFlag,f203.state4.StatePropFlag);
+		get_BasicUnit(data,&source_index,(INT8U*)&f101.active,&dest_index);
+		saveCoverClass(0xf101,0,&f101,sizeof(CLASS_F101),para_vari_save);
+		fprintf(stderr,"\n安全模式选择 : %02x \n",f101.active);
 	}
 	return source_index;
 }

@@ -219,13 +219,12 @@ int GetSecurePara(RESULT_NORMAL *response)
 	CLASS_F101 f101;
 	oad = response->oad;
 	data = response->data;
-	readParaClass(0xf101,&f101,0);
+//	readParaClass(0xf101,&f101,0);
+	readCoverClass(0xf101,0,&f101,sizeof(f101),para_vari_save);
 	switch(oad.attflg )
 	{
 		case 2://安全模式选择
-			data[0] = 0x16;
-			data[1] = 0x01;
-			response->datalen = 2;
+			response->datalen = fill_enum(data,f101.active);;
 			break;
 		case 3://安全模式参数array
 			break;
@@ -400,6 +399,44 @@ int Get4204(RESULT_NORMAL *response)
 	}
 	return 0;
 }
+int Get4300(RESULT_NORMAL *response)
+{
+	int index=0;
+	INT8U *data = NULL;
+	OAD oad;
+	CLASS19	class_tmp={};
+	data = response->data;
+	oad = response->oad;
+	memset(&class_tmp,0,sizeof(CLASS19));
+	readCoverClass(0x4300,0,&class_tmp,sizeof(CLASS19),para_vari_save);
+	switch(oad.attflg )
+	{
+		case 3:
+			index += create_struct(&data[index],6);
+			class_tmp.info.factoryCode[0] = 4;
+			index += fill_visiblestring(&data[index],class_tmp.info.factoryCode);
+			class_tmp.info.softVer[0] = 4;
+			index += fill_visiblestring(&data[index],class_tmp.info.softVer);
+			class_tmp.info.softDate[0] = 6;
+			index += fill_visiblestring(&data[index],class_tmp.info.softDate);
+			class_tmp.info.hardVer[0] = 4;
+			index += fill_visiblestring(&data[index],class_tmp.info.hardVer);
+			class_tmp.info.hardDate[0] = 6;
+			index += fill_visiblestring(&data[index],class_tmp.info.hardDate);
+			class_tmp.info.factoryExpInfo[0] = 8;
+			index += fill_visiblestring(&data[index],class_tmp.info.factoryExpInfo);
+			response->datalen = index;
+			break;
+		case 4:
+			index += create_struct(&data[index],3);
+//			index += fill_integer(&data[index],class_tmp.upleve);
+//			index += fill_time(&data[index],class_tmp.startime1);
+//			index += file_bool(&data[index],class_tmp.enable1);
+			response->datalen = index;
+			break;
+	}
+	return 0;
+}
 
 int GetEventInfo(RESULT_NORMAL *response)
 {
@@ -515,6 +552,9 @@ int doGetnormal(RESULT_NORMAL *response)
 			break;
 		case 0x4204:
 			Get4204(response);
+			break;
+		case 0x4300:
+			Get4300(response);
 			break;
 	}
 

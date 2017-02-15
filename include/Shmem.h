@@ -7,7 +7,7 @@
 
 #ifndef GTYPE_H_
 #define GTYPE_H_
-
+#include "Objectdef.h"
 #include "StdDataType.h"
 #include "EventObject.h"
 
@@ -185,7 +185,7 @@ typedef struct {
 
 typedef struct
 {
-	INT8U VendorCode[2];	//厂商代码（VendorCode[1~0]：TC=鼎信；ES=东软；LH=力合微；37=中瑞昊天）
+	INT8U VendorCode[2];	//厂商代码（VCLASS_4300endorCode[1~0]：TC=鼎信；ES=东软；LH=力合微；37=中瑞昊天）
 	INT8U ChipCode[2];		//芯片代码
 	INT8U VersionDay;		//版本日期-日
 	INT8U VersionMonth;		//版本日期-月
@@ -309,6 +309,7 @@ typedef struct {
 	TerminalEvent_Object event_obj;         //事件参数结构体
 	FactoryVersion  version;				//终端版本信息
 	Terminal_timeoffset t_timeoffset;    	//终端精准校时参数
+	CLASS19			terminalinfo;			//集中器，设备管理接口对象
 }ProgramInfo; //程序信息结构
 
 #endif /* GTYPE_H_ */
