@@ -49,5 +49,7 @@ TASK_CFG list6013[TASK6012_MAX];
 INT32S comfd4851;
 INT32S comfd4852;
 //以下是测试用的假数据
+#ifdef TESTDEF
 CLASS_601F testArray[5];
+#endif
 #endif /* READ485_H_ */
