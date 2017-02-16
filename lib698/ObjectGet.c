@@ -493,42 +493,10 @@ int getRequestRecord(INT8U *typestu,CSINFO *csinfo,INT8U *buf)
 	//3,RCSD
 	return 1;
 }
-int doGetnormal(RESULT_NORMAL *response)
+int GetEnvironmentValue(RESULT_NORMAL *response)
 {
-	INT16U oi = response->oad.OI;
-	fprintf(stderr,"\ngetRequestNormal----------  oi =%04x  \n",oi);
-
-	INT8U oihead = (oi & 0xF000) >>12;
-	switch(oihead) {
-	case 3:			//事件类对象读取
-		GetEventInfo(response);
-		break;
-	}
-	switch(oi)
+	switch(response->oad.OI)
 	{
-		case 0x6000:	//采集档案配置表
-			GetMeterInfo(response);
-			break;
-		case 0x6002:	//搜表
-			break;
-		case 0x6012:	//任务配置表
-			GetTaskInfo(response);
-			break;
-		case 0x6014:	//普通采集方案集
-			GetCjiFangAnInfo(response);
-			break;
-		case 0x6016:	//事件采集方案
-			GetEventCjFangAnInfo(response);
-			break;
-		case 0xF100:
-			GetEsamPara(response);
-			break;
-		case 0xF101:
-			GetSecurePara(response);
-			break;
-		case 0xF203:
-			GetYxPara(response);
-			break;
 		case 0x4000:
 			GetSysDateTime(response);
 			break;
@@ -554,7 +522,66 @@ int doGetnormal(RESULT_NORMAL *response)
 			Get4300(response);
 			break;
 	}
+	return 1;
+}
+int GetCollPara(RESULT_NORMAL *response)
+{
+	switch(response->oad.OI)
+	{
+		case 0x6000:	//采集档案配置表
+			GetMeterInfo(response);
+			break;
+		case 0x6002:	//搜表
+			break;
+		case 0x6012:	//任务配置表
+			GetTaskInfo(response);
+			break;
+		case 0x6014:	//普通采集方案集
+			GetCjiFangAnInfo(response);
+			break;
+		case 0x6016:	//事件采集方案
+			GetEventCjFangAnInfo(response);
+			break;
+	}
+	return 1;
+}
+int GetDeviceIo(RESULT_NORMAL *response)
+{
+	switch(response->oad.OI)
+	{
+		case 0xF100:
+			GetEsamPara(response);
+			break;
+		case 0xF101:
+			GetSecurePara(response);
+			break;
+		case 0xF203:
+			GetYxPara(response);
+			break;
+	}
 
+	return 1;
+}
+int doGetnormal(RESULT_NORMAL *response)
+{
+	INT16U oi = response->oad.OI;
+	INT8U oihead = (oi & 0xF000) >>12;
+
+	fprintf(stderr,"\ngetRequestNormal----------  oi =%04x  \n",oi);
+	switch(oihead) {
+		case 3:			//事件类对象读取
+			GetEventInfo(response);
+			break;
+		case 6:			//采集监控类对象
+			GetCollPara(response);
+			break;
+		case 4:			//参变量类对象
+			GetEnvironmentValue(response);
+			break;
+		case 0xF:		//文件类/esam类/设备类
+			GetDeviceIo(response);
+			break;
+	}
 	return 0;
 }
 int getRequestNormal(OAD oad,INT8U *data,CSINFO *csinfo,INT8U *sendbuf)
