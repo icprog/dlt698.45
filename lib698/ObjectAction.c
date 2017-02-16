@@ -18,6 +18,7 @@ extern void FrameTail(INT8U *buf,int index,int hcsi);
 extern int FrameHead(CSINFO *csinfo,INT8U *buf);
 extern INT8S (*pSendfun)(int fd,INT8U* sndbuf,INT16U sndlen);
 extern int comfd;
+extern ProgramInfo *memp;
 
 INT16U getMytypeSize(INT8U first )
 {
