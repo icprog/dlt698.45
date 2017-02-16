@@ -31,8 +31,11 @@
  * 	终端类相关容量及参数定义
  * */
 #define MAX_POINT_NUM 			1200
+#define MAXNUM_IMPORTANTUSR     21 		    // 重点用户最大个数,20个重点用户+１交采
+#define MAXNUM_SUMGROUP			8		    //总加组配置数量
 #define MIN_BATTERY_VOL 		2.2  		//电池失压判断数值
 #define MIN_BATTWORK_VOL 		3.3  		//电池电压工作最小数值，掉电情况下低于该值，不进行数据存储
+#define MAXVAL_RATENUM			4	     	//支持的最大费率数
 
 ///////////////////////////////////////////////////////////////
 /*
@@ -56,12 +59,12 @@
 
 //TODO:根据交采芯片决定ESAM打开那个设备，不用CCTT_II区分
 #ifdef CCTT_II
- #define DEV_SPI_PATH   "/dev/spi1.0"
+ #define DEV_SPI_PATH   "/dev/spidev1.0"
 #else
   #define DEV_SPI_PATH   "/dev/spi0.0"
 #endif
 
-#define	ACS_SPI_DEV		"/dev/spi0.0"		//计量芯片使用的spi设备
+#define	ACS_SPI_DEV		"/dev/spidev1.0"		//计量芯片使用的spi设备
 
 //Esam与ATT7022E共用数据线,复位信号，各自独立片选，CS=0，可读写，
 //因此不能同时读写ESAM与ATT7022E，必须互斥操作。

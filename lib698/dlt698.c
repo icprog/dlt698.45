@@ -15,17 +15,23 @@
 
 extern int doObjectAction();
 //extern int doActionReponse(int reponse,CSINFO *csinfo,PIID piid,OMD omd,int dar,INT8U *data,INT8U *buf);
+extern int getRequestRecord(OAD oad,INT8U *data,CSINFO *csinfo,INT8U *sendbuf);
 extern int getRequestNormal(OAD oad,INT8U *data,CSINFO *csinfo,INT8U *sendbuf);
-extern int getRequestNormalList(OAD oad,INT8U *data,CSINFO *csinfo,INT8U *sendbuf);
+extern int getRequestNormalList(INT8U *data,CSINFO *csinfo,INT8U *sendbuf);
 extern int doReponse(int server,int reponse,CSINFO *csinfo,PIID piid,OAD oad,int dar,INT8U *data,INT8U *buf);
 extern int setRequestNormal(INT8U *data,OAD oad,CSINFO *csinfo,INT8U *buf);
 extern int setRequestNormalList(INT8U *Object,CSINFO *csinfo,INT8U *buf);
-
+extern int Proxy_GetRequestlist(INT8U *data,CSINFO *csinfo,INT8U *sendbuf);
 extern unsigned short tryfcs16(unsigned char *cp, int  len);
+extern INT32S secureConnectRequest(SignatureSecurity* securityInfo ,SecurityData* RetInfo);
 INT8S (*pSendfun)(int fd,INT8U* sndbuf,INT16U sndlen);
 int comfd = 0;
 INT8U TmpDataBuf[MAXSIZ_FAM];
+INT8U TmpDataBufList[MAXSIZ_FAM*2];
 ProgramInfo *memp;
+LINK_Response *linkResponse_p;	// 预连接（登录、心跳）的确认，存储在com控制块中
+CONNECT_Response *myAppVar_p;	// 集中器支持参数（应用层会话参数）
+CONNECT_Response *AppVar_p;		// 集中器协商后参数（应用层会话参数）
 INT8U securetype;
 /**************************************
  * 函数功能：DL/T698.45 状态机
@@ -276,6 +282,7 @@ int Link_Response(INT8U *apdu)
 	fprintf(stderr,"\nrequest time: %d-%d-%d %d:%d:%d",linkresponse.request_time.year,linkresponse.request_time.month,linkresponse.request_time.day_of_month,linkresponse.request_time.hour,linkresponse.request_time.minute,linkresponse.request_time.second);
 	fprintf(stderr,"\nresponse time: %d-%d-%d  %d:%d:%d",linkresponse.response_time.year,linkresponse.response_time.month,linkresponse.response_time.day_of_month,linkresponse.response_time.hour,linkresponse.response_time.minute,linkresponse.response_time.second);
 	fprintf(stderr,"\nreached time: %d-%d-%d  %d:%d:%d",linkresponse.reached_time.year,linkresponse.reached_time.month,linkresponse.reached_time.day_of_month,linkresponse.reached_time.hour,linkresponse.reached_time.minute,linkresponse.reached_time.second);
+	memcpy(linkResponse_p,&linkresponse,sizeof(LINK_Response));
 	return 1;
 }
 /**********************************************************************
@@ -299,28 +306,209 @@ int dealClientResponse(INT8U *apdu,CSINFO *csinfo)
 	}
 	return apduType;
 }
+int long_unsigned(INT8U *value,INT8U *buf)
+{
+	value[0]= buf[1];
+	value[1]= buf[0];
+	return 2;
+}
+void getoad(INT8U *data,OAD *oad)
+{
+	oad->OI = data[0]<<8 | data[1];
+	oad->attflg = data[2];
+	oad->attrindex = data[3];
+}
+void GetconnetRequest(CONNECT_Request *request,INT8U *apdu)
+{
+	int index=0, bytenum=0;
+	request->piid.data = apdu[index++];
+	memcpy((INT8U*)&request->expect_app_ver,&apdu[index],2);
+	index = index + 2;
+	memcpy((INT8U*)&request->ProtocolConformance,&apdu[index],sizeof(request->ProtocolConformance));
+	index += sizeof(request->ProtocolConformance);
+	memcpy((INT8U*)&request->FunctionConformance,&apdu[index],sizeof(request->FunctionConformance));
+	index += sizeof(request->FunctionConformance);
+	index += long_unsigned((INT8U *)&request->client_send_size,&apdu[index]);
+	index += long_unsigned((INT8U *)&request->client_recv_size,&apdu[index]);
+	request->client_recv_maxWindow = apdu[index++];
+	index += long_unsigned((INT8U *)&request->client_deal_maxApdu,&apdu[index]);
+	request->expect_connect_timeout = (apdu[index]<<24) + (apdu[index+1]<<16) + (apdu[index+2]<<8) + (apdu[index+3]);
+	index = index + 4;
+	request->connecttype = apdu[index++];
+	switch(request->connecttype )
+	{
+		case 0://公共连接
+			break;
+		case 1://一般密码
+			break;
+		case 2://对称加密
+			break;
+		default://数字签名
+			bytenum = apdu[index];
+			if (bytenum<=40)
+			{
+				memcpy((INT8U*)&request->info.sigsecur.encrypted_code2,&apdu[index],bytenum+1);//长度拷贝到目的缓冲区第0个字节
+				index = index + bytenum +1;
+				bytenum = apdu[index];
+				if (bytenum<70)
+					memcpy((INT8U*)&request->info.sigsecur.signature,&apdu[index],bytenum);
+			}
+			break;
+	}
+	fprintf(stderr,"\nPIID=%02x",request->piid.data);
+	fprintf(stderr,"\n期望的应用缯协议版本 = %x",request->expect_app_ver.data);
+	fprintf(stderr,"\n期望的协议一致性块 =");
+	for(index=0;index<8;index++)
+		fprintf(stderr,"%02x ",request->ProtocolConformance[index]);
+	fprintf(stderr,"\n期望的功能一致性块 =");
+	for(index=0;index<16;index++)
+		fprintf(stderr,"%02x ",request->FunctionConformance[index]);
+
+	fprintf(stderr,"\n客户机发送最大字节 %d",request->client_send_size);
+	fprintf(stderr,"\n客户机接收最大字节 %d",request->client_recv_size);
+	fprintf(stderr,"\n客户机最大窗口 %d",request->client_recv_maxWindow);
+	fprintf(stderr,"\n客户机最大可处理APDU %d",request->client_deal_maxApdu);
+	fprintf(stderr,"\n期望应用连接超时时间 %d",request->expect_connect_timeout);
+	fprintf(stderr,"\n应用连接类型=%d",request->connecttype);
+	fprintf(stderr,"\n密文2");
+	for(index=0;index<request->info.sigsecur.encrypted_code2[0];index++)
+	{
+		if (index %10==0) fprintf(stderr,"\n");
+		fprintf(stderr,"%02x ",request->info.sigsecur.encrypted_code2[index+1]);
+	}
+	fprintf(stderr,"\n客户机签名2");
+	for(index=0;index<request->info.sigsecur.signature[0];index++)
+	{
+		if (index %10==0) fprintf(stderr,"\n");
+		fprintf(stderr,"%02x ",request->info.sigsecur.signature[index+1]);
+	}
+}
+void varconsult(CONNECT_Response *response ,CONNECT_Request *request,CONNECT_Response *myvar)
+{
+	int i =0;
+	for(i=0;i<16;i++)
+		response->FunctionConformance[i] = myvar->FunctionConformance[i] & request->FunctionConformance[i];
+	for(i=0;i<8;i++)
+		response->ProtocolConformance[i] = myvar->ProtocolConformance[i] & request->ProtocolConformance[i];
+	memcpy(&response->app_version,&request->expect_app_ver,sizeof(request->expect_app_ver));
+	if (myvar->server_deal_maxApdu < request->client_deal_maxApdu)
+		response->server_deal_maxApdu = myvar->server_deal_maxApdu;
+	else
+		response->server_deal_maxApdu = request->client_deal_maxApdu;
+	if (myvar->server_recv_size < request->client_recv_size)
+		response->server_recv_size = myvar->server_recv_size;
+	else
+		response->server_recv_size = request->client_deal_maxApdu;
+	if (myvar->server_recv_maxWindow < request->client_recv_maxWindow)
+		response->server_recv_maxWindow = myvar->server_recv_maxWindow;
+	else
+		response->server_recv_maxWindow = request->client_recv_maxWindow;
+	if (myvar->server_send_size < request->client_send_size)
+		response->server_send_size = myvar->server_send_size;
+	else
+		response->server_send_size = request->client_send_size;
+	if(myvar->expect_connect_timeout < request->expect_connect_timeout)
+		response->expect_connect_timeout = myvar->expect_connect_timeout;
+	else
+		response->expect_connect_timeout = request->expect_connect_timeout;
+	memcpy(&response->server_factory_version, &myvar->server_factory_version,sizeof(FactoryVersion));
+	response->info.result = allow;
+//	response->info.addinfo  //在发送前从 ESAM取值
+}
 int appConnectResponse(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 {
-	int index=0, hcsi=0;
-	CONNECT_Request *request=(CONNECT_Request *)apdu;
+	int index=1, hcsi=0,bytenum=0;
+	CONNECT_Request request={};
 	CONNECT_Response response={};
+
+	/*
+	 * 解析主站应用连接请求的参数，在request结构体
+	 */
+	GetconnetRequest(&request,&apdu[1]);
+
+	/* test:
+	 * 临时将应用会话参数 附值成下发的 主站会话参数，测试
+	 */
+
+	//---------------------------------------------------------------------------------
+	/*
+	 * 协商过程：
+	 * 把主站下发的会话参数 与 集中器本身的会话参数进行比对，选择小的，应答给主站
+	 * response:协商后的结果（应答给主站）
+	 * 		request :主站协商请求的内容
+	 * 		myAppVar_p :集中器本身的参数
+	 */
+	memset(&response,0,sizeof(response));
+	response.piid_acd = request.piid;
+	varconsult(&response,&request,myAppVar_p);
+	/*
+	 *存储应用会话参数结构
+	 */
+	memcpy((INT8U *)AppVar_p,&response,sizeof(response));
+
+	/*
+	 * 根据 response 组织响应报文
+	 */
+	//return 1;
 	csinfo->dir = 1;
 	csinfo->prm = 0;
-
-	memset(&response,0,sizeof(response));
 	index = FrameHead(csinfo,buf);
 	hcsi = index;
 	index = index + 2;
+	buf[index++] = response.piid_acd.data;
+	memcpy(&buf[index],response.server_factory_version.factorycode,4);
+	index = index +4;
+	memcpy(&buf[index],response.server_factory_version.software_ver,4);
+	index = index +4;
+	memcpy(&buf[index],response.server_factory_version.software_date,6);
+	index = index +6;
+	memcpy(&buf[index],response.server_factory_version.hardware_ver,4);
+	index = index +4;
+	memcpy(&buf[index],response.server_factory_version.hardware_date,6);
+	index = index +6;
+	memcpy(&buf[index],response.server_factory_version.additioninfo,8);
+	index = index +8;
+	memcpy(&buf[index],&response.app_version,2);
+	index = index +2;
+	memcpy(&buf[index],response.ProtocolConformance,8);
+	index = index +8;
+	memcpy(&buf[index],response.FunctionConformance,16);
+	index = index +16;
+	buf[index++] = (response.server_send_size & 0xFF00)>>8;
+	buf[index++] = response.server_send_size & 0x00FF;
+	buf[index++] = (response.server_recv_size & 0x00FF)>>8;
+	buf[index++] = response.server_recv_size & 0x00FF;
+	buf[index++] = response.server_recv_maxWindow;
+	buf[index++] = (response.server_deal_maxApdu & 0xFF00) >>8;
+	buf[index++] = response.server_deal_maxApdu &0x00FF;
+	buf[index++] = (response.expect_connect_timeout & 0xFF000000) >> 24 ;
+	buf[index++] = (response.expect_connect_timeout & 0x00FF0000) >> 16 ;
+	buf[index++] = (response.expect_connect_timeout & 0x0000FF00) >> 8 ;
+	buf[index++] =  response.expect_connect_timeout & 0x000000FF;
 
-	response.piid_acd = request->piid;
-	response.app_version = request->expect_app_ver;
-	response.server_recv_size = BUFLEN;
-	response.server_send_size = BUFLEN;
-	response.server_deal_maxApdu = 1;
-//	response.server_factory_version=1;
-	memcpy(response.ProtocolConformance,request->ProtocolConformance,sizeof(request->ProtocolConformance));
-	memcpy(&buf[index],&response,sizeof(response));
-	index = index + sizeof(response);
+
+	INT32S ret = 0;
+	if (request.connecttype == 3)
+	{
+		ret = secureConnectRequest(&request.info.sigsecur,&response.info.addinfo);
+		if( ret > 0 )
+		{
+			buf[index++] = response.info.result;
+			bytenum = response.info.addinfo.server_rn[0];
+			memcpy(&buf[index],response.info.addinfo.server_rn,bytenum);
+			index = index + bytenum;
+			bytenum = response.info.addinfo.server_signInfo[0];
+			memcpy(&buf[index],response.info.addinfo.server_signInfo,bytenum);
+		}else
+		{
+			buf[index++] = 4;
+			buf[index++] = 0;
+		}
+	}else
+	{
+		buf[index++] = 0;
+		buf[index++] = 0;
+	}
 
 	FrameTail(buf,index,hcsi);
 
@@ -363,12 +551,14 @@ int doGetAttribute(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
 	INT8U getType = apdu[1];
 	OAD oad={};
 	INT8U *data=NULL;
-
 	piid.data = apdu[2];
 	fprintf(stderr,"\n- get type = %d PIID=%02x",getType,piid.data);
-	oad.OI = (apdu[3]<<8) | apdu[4];
-	oad.attflg = apdu[5];
-	oad.attrindex = apdu[6];
+
+	getoad(&apdu[3],&oad);
+
+//	oad.OI = (apdu[3]<<8) | apdu[4];
+//	oad.attflg = apdu[5];
+//	oad.attrindex = apdu[6];
 	data = &apdu[7];					//Data
 
 	switch(getType)
@@ -377,7 +567,9 @@ int doGetAttribute(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
 			getRequestNormal(oad,data,csinfo,sendbuf);
 			break;
 		case GET_REQUEST_NORMAL_LIST:
-			getRequestNormalList(oad,data,csinfo,sendbuf);
+			/*重新定位数据指针地址*/
+			data = &apdu[3];
+			getRequestNormalList(data,csinfo,sendbuf);
 			break;
 		case GET_REQUEST_RECORD:
 			getRequestRecord(oad,data,csinfo,sendbuf);
@@ -393,7 +585,6 @@ int doProxyRequest(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
 {
 	PIID piid={};
 	INT8U getType = apdu[1];
-	OAD oad={};
 	INT8U *data=NULL;
 
 	piid.data = apdu[2];
@@ -459,7 +650,7 @@ INT16S doSecurityRequest(INT8U* apdu)//
 	 INT32S fd=-1;
 	 INT8U SecurityType=0x00;//本次传输安全等级(属于库全局变量，暂放此处)
 	 INT8U MAC[20];//该mac值暂时用不到，暂存
-	 fd = Esam_Init(fd,(INT8U*)DEV_SPI_PATH);
+	 fd = Esam_Init(fd,(INT8U*)ACS_SPI_DEV);
 	 if(fd<0) return -3;
 
 	 if(apdu[1]==0x00)//明文应用数据处理
@@ -481,7 +672,7 @@ INT16S composeSecurityResponse(INT8U* SendApdu,INT16U length,INT8U SecurityType)
 {
 	 INT16S retLen=0;
 	 INT32S fd=-1;
-	 fd = Esam_Init(fd,(INT8U*)DEV_SPI_PATH);
+	 fd = Esam_Init(fd,(INT8U*)ACS_SPI_DEV);
 	 if(fd<0) return -3;
 	 retLen = Esam_SIDResponseCheck(fd,SecurityType,SendApdu,length,SendApdu);
 	 if(retLen<=0) return 0;
@@ -499,7 +690,7 @@ INT16U composeAutoReport(INT8U* SendApdu,INT16U length)
 	 INT32S fd=-1;
 	 INT8U RN[12];
 	 INT8U MAC[4];
-	 fd = Esam_Init(fd,(INT8U*)DEV_SPI_PATH);
+	 fd = Esam_Init(fd,(INT8U*)ACS_SPI_DEV);
 	 if(fd<0) return -3;
 	 retLen = Esam_ReportEncrypt(fd,&SendApdu[1],length-1,RN,MAC);
 	 if(retLen<=0) return 0;
@@ -532,138 +723,6 @@ INT16S parseSecurityResponse(INT8U* RN,INT8U* apdu)//apdu负责传入和传出�
 	}
 	else
 		return -1;//无效应用数据单元标示
-}
-///*
-// * head 从长度标示字节开始     des 为目标字BYTE串起始位置
-// * 返回值 : 目标BYTE串字节数
-// */
-//INT16U get_octet_string(INT8U *head,INT8U *des)
-//{
-//	INT8U lengthbytenum=0;
-//	INT16U lenflg = head[0]; //数据单元长度
-//	if ((lenflg & 0x80 )>0)	 //长度字节最高位 1 表示后续有超过n个字节表示内容字节的长度，0表示该字节的 【bit6-bit0】表示内容字节数
-//	{
-//		lengthbytenum = lenflg & 0x80;//长度域字节个数
-//		if(lengthbytenum >= 2)
-//		{
-//			lenflg = head[1]<<8 | head[2];//698协议中字节数最多用2字节表示    flag len1 len2 buf buf buf...
-//			des = head + 3;
-//		}else if(lengthbytenum == 1)
-//		{
-//			lenflg = head[1]; //字节数由1个字节表示							flag len1 buf buf buf...
-//			des = head + 2;
-//		}else
-//			lenflg = 0;
-//	}
-//	return lenflg;
-//}
-/**********************************************************************
- * 1.	CONNECT.request 服务,本服务由客户机应用进程调用,用于向远方服务器的应用进程提出建立应用连接请求。
- * 						主站（客户机）请求集中器（客户机）建立应用连接
- */
-INT8U dealClientRequest(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
-{
-	INT16S SecurityRe =0;
-	INT8U apduType = apdu[0];//0x10  [16]
-	fprintf(stderr,"\n-------- apduType = %d ",apduType);
-
-	if (apduType == SECURITY_REQUEST)//安全请求的数据类型
-	{
-		SecurityRe = doSecurityRequest(apdu);
-		if (SecurityRe <= 0)
-		{
-			fprintf(stderr,"\n安全请求计算错误!!!");
-			return 0;
-		}
-		apduType = apdu[0];
-	}
-	switch(apduType)
-	{
-		case CONNECT_REQUEST:
-			appConnectResponse(apdu,csinfo,sendbuf);
-			break;
-		case GET_REQUEST:
-			doGetAttribute(apdu,csinfo,sendbuf);
-			break;
-		case SET_REQUEST:
-			doSetAttribute(apdu,csinfo,sendbuf);
-			break;
-		case ACTION_REQUEST:
-			fprintf(stderr,"\n ACTION_REQUEST");
-			doActionRequest(apdu,csinfo,sendbuf);
-			break;
-		case PROXY_REQUEST:
-			fprintf(stderr,"\n PROXY_REQUEST");
-			doProxyRequest(apdu,csinfo,sendbuf);
-			break;
-		case RELEASE_REQUEST:
-			break;
-	}
-	return(apduType);
-}
-void testframe(INT8U *apdu,int len)
-{
-	int index=0, hcsi=0;
-	INT8U buf[512]={};
-	int i=0;
-	buf[i++]= 0x68;//起始码
-	buf[i++]= 0;	//长度
-	buf[i++]= 0;
-	buf[i++]= 0xc3;
-	buf[i++]= 0x05;
-	buf[i++]= 0x08;
-	buf[i++]= 0x00;
-	buf[i++]= 0x00;
-	buf[i++]= 0x00;
-	buf[i++]= 0x00;
-	buf[i++]= 0x00;
-	buf[i++]= 0x10;
-	hcsi = i;
-	i = i + 2;
-	memcpy(&buf[i],apdu,len);
-	i = i + len;
-	FrameTail(buf,i,hcsi);
-	int k=0;
-	fprintf(stderr,"\n");
-	for(k=0;k<i+3;k++)
-		fprintf(stderr,"%02x ",buf[k]);
-	fprintf(stderr,"\n----------------------------------------\n");
-}
-int ProcessData(CommBlock *com)
-{
-	CSINFO csinfo={};
-	int hcsok = 0 ,fcsok = 0;
-	INT8U *apdu= NULL;
-	INT8U *Rcvbuf = com->DealBuf;
-	INT8U *SendBuf = com->SendBuf;
-
-	memp = (ProgramInfo*)com->shmem;
-	pSendfun = com->p_send;
-	comfd = com->phy_connect_fd;
-	hcsok = CheckHead( Rcvbuf ,&csinfo);
-	fcsok = CheckTail( Rcvbuf ,csinfo.frame_length);
-	if ((hcsok==1) && (fcsok==1))
-	{
-		apdu = &Rcvbuf[csinfo.sa_length+8];
-		if (csinfo.dir == 0 && csinfo.prm == 0)		/*客户机对服务器上报的响应	（主站对集中器上报的响应）*/
-		{
-			return(dealClientResponse(apdu,&csinfo));
-		}else if (csinfo.dir==0 && csinfo.prm == 1)	/*客户机发起的请求			（主站对集中器发起的请求）*/
-		{
-			fprintf(stderr,"\n-------- 客户机发起请求 ");
-			return(dealClientRequest(apdu,&csinfo,SendBuf));
-		}else if (csinfo.dir==1 && csinfo.prm == 0)	/*服务器发起的上报			（电表主动上报）*/
-		{
-			//MeterReport();
-		}else if (csinfo.dir==1 && csinfo.prm == 1)	/*服务器对客户机请求的响应	（电表应答）*/
-		{
-			//MeterEcho();
-		}else
-		{
-			fprintf(stderr,"\n控制码解析错误(传输方向与启动位错误)");
-		}
-	}
-	return 1;
 }
 
 INT16S fillGetRequestAPDU(INT8U* sendBuf,CLASS_6015 obj6015,INT8U requestType)
@@ -743,5 +802,119 @@ INT16S composeProtocol698_GetRequest(INT8U* 	sendBuf,CLASS_6015 obj6015,TSA mete
 	FrameTail(sendBuf,sendLen,hcsi);
 	return (sendLen + 3);			//3: cs cs 16
 
+}
+
+/**********************************************************************
+ * 1.	CONNECT.request 服务,本服务由客户机应用进程调用,用于向远方服务器的应用进程提出建立应用连接请求。
+ * 						主站（客户机）请求集中器（客户机）建立应用连接
+ */
+INT8U dealClientRequest(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
+{
+	INT16S SecurityRe =0;
+	INT8U apduType = apdu[0];//0x10  [16]
+	fprintf(stderr,"\n-------- apduType = %d ",apduType);
+
+	if (apduType == SECURITY_REQUEST)//安全请求的数据类型
+	{
+		SecurityRe = doSecurityRequest(apdu);
+		if (SecurityRe <= 0)
+		{
+			fprintf(stderr,"\n安全请求计算错误!!!");
+			return 0;
+		}
+		apduType = apdu[0];
+	}
+	switch(apduType)
+	{
+		case CONNECT_REQUEST:
+			appConnectResponse(apdu,csinfo,sendbuf);
+			break;
+		case GET_REQUEST:
+			doGetAttribute(apdu,csinfo,sendbuf);
+			break;
+		case SET_REQUEST:
+			doSetAttribute(apdu,csinfo,sendbuf);
+			break;
+		case ACTION_REQUEST:
+			fprintf(stderr,"\n ACTION_REQUEST");
+			doActionRequest(apdu,csinfo,sendbuf);
+			break;
+		case PROXY_REQUEST:
+			fprintf(stderr,"\n PROXY_REQUEST");
+			doProxyRequest(apdu,csinfo,sendbuf);
+			break;
+		case RELEASE_REQUEST:
+			break;
+	}
+	return(apduType);
+}
+void testframe(INT8U *apdu,int len)
+{
+	int hcsi=0;
+	INT8U buf[512]={};
+	int i=0;
+	buf[i++]= 0x68;//起始码
+	buf[i++]= 0;	//长度
+	buf[i++]= 0;
+	buf[i++]= 0x43;
+	buf[i++]= 0x05;
+	buf[i++]= 0x08;
+	buf[i++]= 0x00;
+	buf[i++]= 0x00;
+	buf[i++]= 0x00;
+	buf[i++]= 0x00;
+	buf[i++]= 0x00;
+	buf[i++]= 0x10;
+	hcsi = i;
+	i = i + 2;
+	memcpy(&buf[i],apdu,len);
+	i = i + len;
+	FrameTail(buf,i,hcsi);
+	int k=0;
+	fprintf(stderr,"\n");
+	for(k=0;k<i+3;k++)
+		fprintf(stderr,"%02x ",buf[k]);
+	fprintf(stderr,"\n----------------------------------------\n");
+}
+int ProcessData(CommBlock *com)
+{
+	CSINFO csinfo={};
+	int hcsok = 0 ,fcsok = 0;
+	INT8U *apdu= NULL;
+	INT8U *Rcvbuf = com->DealBuf;
+	INT8U *SendBuf = com->SendBuf;
+	linkResponse_p = &com->linkResponse;
+	myAppVar_p = &com->myAppVar;
+	AppVar_p = &com->AppVar;
+	memp = (ProgramInfo*)com->shmem;
+	pSendfun = com->p_send;
+	comfd = com->phy_connect_fd;
+	hcsok = CheckHead( Rcvbuf ,&csinfo);
+	fcsok = CheckTail( Rcvbuf ,csinfo.frame_length);
+	if ((hcsok==1) && (fcsok==1))
+	{
+		fprintf(stderr,"\nsa_length=%d\n",csinfo.sa_length);
+		apdu = &Rcvbuf[csinfo.sa_length+8];
+		if (csinfo.dir == 0 && csinfo.prm == 0)		/*客户机对服务器上报的响应	（主站对集中器上报的响应）*/
+		{
+			return(dealClientResponse(apdu,&csinfo));
+		}else if (csinfo.dir==0 && csinfo.prm == 1)	/*客户机发起的请求			（主站对集中器发起的请求）*/
+		{
+			fprintf(stderr,"\n-------- 客户机发起请求 ");
+			return(dealClientRequest(apdu,&csinfo,SendBuf));
+		}else if (csinfo.dir==1 && csinfo.prm == 0)	/*服务器发起的上报			（电表主动上报）*/
+		{
+			fprintf(stderr,"\n服务器发起的上报			（电表主动上报）");
+			//MeterReport();
+		}else if (csinfo.dir==1 && csinfo.prm == 1)	/*服务器对客户机请求的响应	（电表应答）*/
+		{
+			fprintf(stderr,"\n服务器对客户机请求的响应	（电表应答）");
+			//MeterEcho();
+		}else
+		{
+			fprintf(stderr,"\n控制码解析错误(传输方向与启动位错误)");
+		}
+	}
+	return 1;
 }
 

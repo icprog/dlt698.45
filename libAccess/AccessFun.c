@@ -312,6 +312,7 @@ int saveCoverClass(OI_698 oi,INT16U seqno,void *blockdata,int savelen,int type)
 	case acs_coef_save:
 	case acs_energy_save:
 	case para_init_save:
+	case calc_voltage_save:
 		fprintf(stderr,"saveClass file=%s ",fname);
 		ret = save_block_file(fname,blockdata,savelen,0,0);
 		break;

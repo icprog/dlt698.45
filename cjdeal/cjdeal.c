@@ -19,7 +19,10 @@
 #include "guictrl.h"
 #include "acs.h"
 #include "event.h"
+#include "calc.h"
 
+ProgramInfo* JProgramInfo=NULL;
+int ProIndex=0;
 /*********************************************************
  *程序入口函数-----------------------------------------------------------------------------------------------------------
  *程序退出前处理，杀死其他所有进程 清楚共享内存
@@ -74,13 +77,15 @@ int main(int argc, char *argv[])
 	//载入档案、参数
 	InitPara();
 	//485、四表合一
-//	read485_proccess();
+	read485_proccess();
+	//统计计算 电压合格率等
+	calc_proccess();
 	//载波
 	//readplc_proccess();
 	//液晶、控制
 	//guictrl_proccess();
 	//交采
-	acs_process();
+	//acs_process();
 
 	while(1)
    	{

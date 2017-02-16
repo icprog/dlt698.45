@@ -11,6 +11,7 @@
 #define LIST6001SIZE 10
 #define TASK6012_MAX 256
 #define BUFFSIZE 256
+#define DATA_CONTENT_LEN 500
 
 pthread_attr_t read485_attr_t;
 int thread_read4851_id,thread_read4852_id;           //485、四表合一（I型、II型、专变）
@@ -46,8 +47,10 @@ typedef struct {
 extern void read485_proccess();
 
 TASK_CFG list6013[TASK6012_MAX];
-CLASS_6015 to6015;
 INT32S comfd4851;
 INT32S comfd4852;
-
+//以下是测试用的假数据
+#ifdef TESTDEF
+CLASS_601F testArray[5];
+#endif
 #endif /* READ485_H_ */

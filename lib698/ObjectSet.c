@@ -135,6 +135,8 @@ INT16U set4000(INT8U attflg,INT8U index,INT8U *data)
 
 	if ( attflg == 2 )
 	{
+		DataTimeGet(&datetime);
+		Event_3114(datetime,memp);//对时，产生事件
 		get_BasicUnit(data,&source_index,(INT8U *)&datetime,&dest_index);
 		setsystime(datetime);
 	}
@@ -143,6 +145,7 @@ INT16U set4000(INT8U attflg,INT8U index,INT8U *data)
 
 INT16U set4001_4002_4003(OAD oad,INT8U *data)
 {
+	int datalen ;
 	INT16U source_index=0,dest_index=0;
 	CLASS_4001_4002_4003	class_addr={};
 	int i=0;
@@ -152,29 +155,66 @@ INT16U set4001_4002_4003(OAD oad,INT8U *data)
 	if (oad.attflg == 2 )
 	{
 		get_BasicUnit(data,&source_index,(INT8U *)&class_addr.curstom_num,&dest_index);
-		for(i=0;i<OCTET_STRING_LEN;i++) {
+		datalen = class_addr.curstom_num[0]+1;
+		fprintf(stderr,"\n设置 datalen=%d",datalen);
+		for(i=0;i<datalen;i++) {
 			fprintf(stderr,"%02x ",class_addr.curstom_num[i]);
 		}
 		saveCoverClass(oad.OI,0,&class_addr,sizeof(CLASS_4001_4002_4003),para_vari_save);
 	}
 	return source_index;
 }
-
 INT16U set4004(OAD oad,INT8U *data)
 {
-	INT16U 			source_index=0,dest_index=0;
-	CLASS_4004		class4004={};
+	INT16U source_index=0,dest_index=0;
+	CLASS_4004 class4004;
 	memset(&class4004,0,sizeof(CLASS_4004));
-	readCoverClass(0x4004,0,&class4004,sizeof(CLASS_4004),para_vari_save);
-
+	readCoverClass(oad.OI,0,&class4004,sizeof(CLASS_4004),para_vari_save);
 	if (oad.attflg == 2 )
 	{
-		get_BasicUnit(data,&source_index,(INT8U *)&class4004,&dest_index);
-		saveCoverClass(0x4004,0,&class4004,sizeof(CLASS_4004),para_vari_save);
+		get_BasicUnit(data,&source_index,(INT8U *)&class4004.jing,&dest_index);
+		fprintf(stderr,"\n【精度】方位 %d  度 %d  分 %d  秒 %d",class4004.jing.fangwei,class4004.jing.du,class4004.jing.fen,class4004.jing.miao);
+		fprintf(stderr,"\n【纬度】方位 %d  度 %d  分 %d  秒 %d",class4004.jing.fangwei,class4004.jing.du,class4004.jing.fen,class4004.jing.miao);
+		fprintf(stderr,"\n【高度】%d",class4004.heigh);
+		saveCoverClass(oad.OI,0,&class4004,sizeof(CLASS_4004),para_vari_save);
 	}
-	return source_index;
+	return 0;
 }
-
+INT16U set4006(OAD oad,INT8U *data)
+{
+	INT16U source_index=0,dest_index=0;
+	CLASS_4006 class4006;
+	memset(&class4006,0,sizeof(CLASS_4006));
+	readCoverClass(oad.OI,0,&class4006,sizeof(CLASS_4006),para_vari_save);
+	if (oad.attflg == 2 )
+	{
+		get_BasicUnit(data,&source_index,(INT8U *)&class4006,&dest_index);
+		fprintf(stderr,"\n【时钟源】%d",class4006.clocksource);
+		fprintf(stderr,"\n【状态】 %d",class4006.state);
+		saveCoverClass(oad.OI,0,&class4006,sizeof(CLASS_4006),para_vari_save);
+	}
+	return 0;
+}
+INT16U set4007(OAD oad,INT8U *data)
+{
+	INT16U source_index=0,dest_index=0;
+	CLASS_4007 class4007;
+	memset(&class4007,0,sizeof(CLASS_4007));
+	readCoverClass(oad.OI,0,&class4007,sizeof(CLASS_4007),para_vari_save);
+	if (oad.attflg == 2 )
+	{
+		get_BasicUnit(data,&source_index,(INT8U *)&class4007,&dest_index);
+		fprintf(stderr,"\n【上电全显时间】%d",class4007.poweon_showtime);
+		fprintf(stderr,"\n【背光点亮时间（按键）】 %d",class4007.lcdlight_time);
+		fprintf(stderr,"\n【背光点亮时间(查看)】 %d",class4007.looklight_time);
+		fprintf(stderr,"\n【有电按键屏幕驻留时间(查看)】 %d",class4007.poweron_maxtime);
+		fprintf(stderr,"\n【无电按键屏幕驻留时间(查看)】 %d",class4007.poweroff_maxtime);
+		fprintf(stderr,"\n【显示电能小数位】 %d",class4007.energydata_dec);
+		fprintf(stderr,"\n【显示功率小数位】 %d",class4007.powerdata_dec);
+		saveCoverClass(oad.OI,0,&class4007,sizeof(CLASS_4007),para_vari_save);
+	}
+	return 0;
+}
 INT16U set4300(INT8U attflg,INT8U index,INT8U *data)
 {
 	INT16U source_index=0,dest_index=0;
@@ -185,6 +225,55 @@ INT16U set4300(INT8U attflg,INT8U index,INT8U *data)
 		fprintf(stderr,"\n终端主动上报 : %d\n",autoReport);
 	}
 	return source_index;
+}
+INT16U set4103(OAD oad,INT8U *data)
+{
+	int i=0,bytenum=0;
+	INT16U source_index=0,dest_index=0;
+	CLASS_4103 class4103;
+	memset(&class4103,0,sizeof(CLASS_4103));
+	fprintf(stderr,"\n==========%d",oad.attflg);
+	readCoverClass(oad.OI,0,&class4103,sizeof(CLASS_4103),para_vari_save);
+	if (oad.attflg == 2 )
+	{
+		bytenum = data[1]+1; // data[0]表示类型，data[1]表示长度，字符串长度加 长度字节本身
+		if (bytenum>sizeof(class4103.assetcode))
+			bytenum = sizeof(class4103.assetcode);
+		memcpy(class4103.assetcode,&data[1],bytenum);
+		fprintf(stderr,"\n【资产管理编码】%d :",bytenum);
+		for(i=0;i<bytenum;i++)
+			fprintf(stderr,"%02x ",class4103.assetcode[i]);
+		fprintf(stderr,"\n");
+		saveCoverClass(oad.OI,0,&class4103,sizeof(CLASS_4103),para_vari_save);
+	}
+	return 0;
+}
+INT16U set4204(OAD oad,INT8U *data)
+{
+	INT16U source_index=0,dest_index=0;
+	CLASS_4204 class4204;
+	memset(&class4204,0,sizeof(CLASS_4204));
+	fprintf(stderr,"\n==========%d",oad.attflg);
+	readCoverClass(oad.OI,0,&class4204,sizeof(CLASS_4204),para_vari_save);
+	if (oad.attflg == 2 )
+	{
+		get_BasicUnit(data,&source_index,(INT8U *)&class4204.startime,&dest_index);
+		fprintf(stderr,"\n【终端广播校时,属性2】:");
+		fprintf(stderr,"\ntime : %02x %02x %02x",class4204.startime[0],class4204.startime[1],class4204.startime[2]);
+		fprintf(stderr,"\nenable: %d",class4204.enable);
+		fprintf(stderr,"\n");
+		saveCoverClass(oad.OI,0,&class4204,sizeof(CLASS_4204),para_vari_save);
+	}else if(oad.attflg == 3)
+	{
+		get_BasicUnit(data,&source_index,(INT8U *)&class4204.upleve,&dest_index);
+		fprintf(stderr,"\n【终端广播校时，属性3】:");
+		fprintf(stderr,"\ntime : %02x %02x %02x ",class4204.startime1[0],class4204.startime1[1],class4204.startime1[2]);
+		fprintf(stderr,"\nenable: %d",class4204.enable1);
+		fprintf(stderr,"\n误差 = %d",class4204.upleve);
+		fprintf(stderr,"\n");
+		saveCoverClass(oad.OI,0,&class4204,sizeof(CLASS_4204),para_vari_save);
+	}
+	return 0;
 }
 INT16U setf203(INT8U attflg,INT8U index,INT8U *data)
 {
@@ -200,7 +289,20 @@ INT16U setf203(INT8U attflg,INT8U index,INT8U *data)
 	}
 	return source_index;
 }
-
+INT16U setf101(INT8U attflg,INT8U index,INT8U *data)
+{
+	INT16U source_index=0,dest_index=0;
+	CLASS_F101	f101;
+	memset(&f101,0,sizeof(CLASS_F101));
+	readCoverClass(0xf101,0,&f101,sizeof(CLASS_F101),para_vari_save);
+	if ( attflg == 2 )//配置参数
+	{
+		get_BasicUnit(data,&source_index,(INT8U*)&f101.active,&dest_index);
+		saveCoverClass(0xf101,0,&f101,sizeof(CLASS_F101),para_vari_save);
+		fprintf(stderr,"\n安全模式选择 : %02x \n",f101.active);
+	}
+	return source_index;
+}
 ///////////////////////////////////////////////////////////////////////////////
 /*
  * 根据oi参数，查找相应的class_info的结构体数据
@@ -350,13 +452,21 @@ void EnvironmentValue(OAD oad,INT8U *data)
 		case 0x4005://组地址
 			break;
 		case 0x4006://时钟源
+			set4006(oad,data);
 			break;
 		case 0x4007://LCD参数
+			set4007(oad,data);
 			break;
 		case 0x4030://电压合格率参数
 			break;
 		case 0x4300://
 			set4300(attr,oad.attrindex,data);
+			break;
+		case 0x4103:
+			set4103(oad,data);
+			break;
+		case 0x4204:
+			set4204(oad,data);
 	}
 }
 void CollParaSet(OAD oad,INT8U *data)
@@ -388,6 +498,9 @@ void DeviceIoSetAttrib(OAD oad,INT8U *data)
 		case 0xF203:	//开关量输入
 			setf203(attr,oad.attrindex,data);
 			break;
+		case 0xF101:
+			setf101(attr,oad.attrindex,data);
+			break;
 	}
 }
 int setRequestNormal(INT8U *data,OAD oad,CSINFO *csinfo,INT8U *buf)
@@ -415,6 +528,7 @@ int setRequestNormal(INT8U *data,OAD oad,CSINFO *csinfo,INT8U *buf)
 }
 int setRequestNormalList(INT8U *data,OAD oad)
 {
+
 	return 0;
 }
 

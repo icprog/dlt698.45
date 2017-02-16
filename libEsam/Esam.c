@@ -41,7 +41,7 @@ INT16U Esam_GetDataLength(INT8U* Data,INT8U* LenSign)
 			}
 			else if((Data[0] &0x7F) == 0x02)//长度域2个字节长度
 			{
-				datalen=(INT16U)Data[1]<<8+(INT16U)Data[2];
+				datalen=((INT16U)Data[1]<<8)+(INT16U)Data[2];
 				*LenSign=3;
 			}
 			else datalen=0;//长度域不会超过2个字节，超过的话此处做异常处理
@@ -78,13 +78,13 @@ INT32S Esam_Init(INT32S fd, INT8U* spipath) {
     gpio_writebyte(DEV_ATT_RST, 1);
     usleep(2);
     gpio_writebyte(DEV_ESAM_CS, 1);
-    sem_spi0_0 = open_named_sem(SEMNAME_SPI0_0);
+    //sem_spi0_0 = open_named_sem(SEMNAME_SPI0_0);
     return SPI_Init(fd, spipath);
 }
 
 void Esam_Clear(INT32S fd) {
 	close_named_sem(SEMNAME_SPI0_0);
-    sem_close(sem_spi0_0);
+   // sem_close(sem_spi0_0);
     sem_spi0_0 = NULL;
     SPI_Close(fd);
 }
@@ -109,14 +109,11 @@ INT32S Esam_WriteThenRead(INT32S fd, INT8U* Tbuf, INT8U Tlen, INT8U* Rbuf){
 	INT8U index;
 	INT16S Result = ERR_ESAM_UNKNOWN;
     INT8U rx[BUFFLENMAX_SPI];
-
-	sem_wait(sem_spi0_0);
-
+	//sem_wait(sem_spi0_0);
 	for(index=0;index<6;index++)//只做3次异常处理，每次若出异常，时间会很长，秒级
 	{
 		memset(rx,0x00,BUFFLENMAX_SPI);
 		Esam_WriteToChip(fd,Tbuf,Tlen);//向片中发送数据
-
 		INT8U i=0;
 		do{
 			memset(rx,0x00,1);
@@ -125,7 +122,7 @@ INT32S Esam_WriteThenRead(INT32S fd, INT8U* Tbuf, INT8U Tlen, INT8U* Rbuf){
 			if(i>=20) break;
 		}while(rx[0]!=MARK_ESAM);
 
-		if(rx[0]==MARK_ESAM)//TODO:此处可以根据测试成功率，增加读取次数
+		if(rx[0]==MARK_ESAM)
 		{
 			memset(rx,0x00,4);
 			Esam_ReadFromChip(fd,rx,4);//读取SW1 SW2 Len1 Len2
@@ -139,6 +136,7 @@ INT32S Esam_WriteThenRead(INT32S fd, INT8U* Tbuf, INT8U Tlen, INT8U* Rbuf){
 		if((rx[0] == 0x90)&&(rx[1] == 0x00))//接收数据状态判断
 		{
 			INT32S length =((0xff & rx[3])|(0xff00 & (rx[2]<<8)));
+			//fprintf(stderr,"Esam_WriteThenRead length = %d\n",length);
 			if(length>=0 && length<=2000)
 			{
 				for(i=0;i<(length/200)+1;i++)//读取DATA LRC2  每次不能读的太多，200一个间隔
@@ -175,7 +173,7 @@ INT32S Esam_WriteThenRead(INT32S fd, INT8U* Tbuf, INT8U Tlen, INT8U* Rbuf){
 		}
 	}
 	gpio_writebyte(DEV_ESAM_CS,1);
-	sem_post(sem_spi0_0);
+	//sem_post(sem_spi0_0);
 	return Result;
 }
 /**********************************
@@ -289,15 +287,15 @@ INT32S Esam_GetTermiInfo(INT32S fd, EsamInfo* esamInfo) {
 		index+=16;
 		esamInfo->CcieVersion.ServerCcieVersion=Rbuf[index++]; //主站证书版本
 		esamInfo->CcieVersion.TerminalCcieVersion=Rbuf[index++]; //终端证书版本
-		esamInfo->SessionTimeHold=CharToINT32U(&Rbuf[index]);//会话时效门限
+		memcpy(esamInfo->SessionTimeHold,&Rbuf[index],4);//会话时效门限
 		index+=4;
-		esamInfo->SessionTimeLeft=CharToINT32U(&Rbuf[index]);//会话剩余时间
+		memcpy(esamInfo->SessionTimeLeft,&Rbuf[index],4);//会话剩余时间
 		index+=4;
-		esamInfo->CurrentCounter.SingleAddrCounter =CharToINT32U(&Rbuf[index]);//单地址应用协商计数器
+		memcpy(esamInfo->CurrentCounter.SingleAddrCounter,&Rbuf[index],4);//单地址应用协商计数器
 		index+=4;
-		esamInfo->CurrentCounter.ReportCounter=CharToINT32U(&Rbuf[index]);//主动上报计数器
+		memcpy(esamInfo->CurrentCounter.ReportCounter,&Rbuf[index],4);//主动上报计数器
 		index+=4;
-		esamInfo->CurrentCounter.BroadCastSID=CharToINT32U(&Rbuf[index]);//应用广播通信序列号
+		memcpy(esamInfo->CurrentCounter.BroadCastSID,&Rbuf[index],4);//应用广播通信序列号
 		index+=4;
 		memcpy(esamInfo->TerminalCcieSID,&Rbuf[index],16); //终端证书序列号
 		index+=16;
@@ -335,17 +333,21 @@ INT32U CharToINT32U(INT8U *Buf)
  *		  2、负数：代表相应错误，见：Esam.h中，ESAM ERR ARRAY定义
  *说明，本函数只负责超读0B，0C，证书1499字节报文。其他信息通过批量函数获取即可
  *************************************************************/
-INT32S Esam_GetTermiSingleInfo(INT32S fd, INT8U type, INT8U* Rbuf) {
+INT32S Esam_GetTermiSingleInfo(INT32S fd, INT8U type, INT8U* Rbuf) {   //&&已测
     INT8U GetInfo_ESAM[]    = { 0x55, 0x80, 0x36, 0x00, 0xFF, 0x00, 0x00,0x00 };
     if(type!=0x0B && type!=0x0C)
     	return -1;
     INT32S Result=0;
     INT8U tmp[BUFFLENMAX_SPI];
     memset(tmp,0,BUFFLENMAX_SPI);
-
     GetInfo_ESAM[4] = type;
     GetInfo_ESAM[7] = LRC(&GetInfo_ESAM[1], 6);
+    //int i;
+//    for(i=0;i<8;i++)
+//    	fprintf(stderr,"%02x ",GetInfo_ESAM[i]);
+//    fprintf(stderr,"\n");
     Result = Esam_WriteThenRead(fd, (INT8U*)GetInfo_ESAM, 8, tmp);
+    //fprintf(stderr,"Esam_GetTermiSingleInfo result = %d\n",Result);
     if(Result>0 && Result<BUFFLENMAX_SPI) //大于BUFFLENMAX_SPI错误，此处做比较
     {
     	memcpy(Rbuf,&tmp[4],Result-5);
@@ -362,6 +364,8 @@ INT32S Esam_GetTermiSingleInfo(INT32S fd, INT8U type, INT8U* Rbuf) {
  *函数说明:ucOutSessionInit和ucOutSign第一字节是数量
  *函数说明:返回的ucSessionData固定48字节，ucSign长度为length-48
  *************************************************************/
+
+//已测/但测试报文无法通过校验，应该是esam芯片内证书和报文证书不匹配
 INT32S Esam_CreateConnect(INT32S fd, SignatureSecurity* securityInfo ,SecurityData* RetInfo) {
 	if(sizeof(securityInfo->signature)<=securityInfo->signature[0] || sizeof(securityInfo->encrypted_code2)<=securityInfo->encrypted_code2[0])
 		return ERR_ESAM_TRANSPARA_ERR;//校验第一个字节长度是否小与数组长度
@@ -369,26 +373,35 @@ INT32S Esam_CreateConnect(INT32S fd, SignatureSecurity* securityInfo ,SecurityDa
 	 INT8U tmp[BUFFLENMAX_SPI];
 	 memset(tmp,0,BUFFLENMAX_SPI);
 	 INT16U len=0;
-	 INT8U GetInfo_ESAM[BUFFLENMAX_SPI]={0x55,0x80,0x02,0x00,0x00};
+	 INT8U GetInfo_ESAM[BUFFLENMAX_SPI]={0x55,0x80,0x02,0x00,0x00 };
 	 len+=5;
 	 INT16U datalen=securityInfo->signature[0]+securityInfo->encrypted_code2[0];
+	 //fprintf(stderr,"Esam_CreateConnect datalen = %d\n",datalen);
 	 GetInfo_ESAM[5]=(INT8U)((datalen>>8)&0x00ff);
 	 GetInfo_ESAM[6]=(INT8U)(datalen&0x00ff);
 	 len+=2;
 	 memcpy(&GetInfo_ESAM[7],&securityInfo->encrypted_code2[1],securityInfo->encrypted_code2[0]);
 	 len+=securityInfo->encrypted_code2[0];
-	 memcpy(&GetInfo_ESAM[securityInfo->signature[0]+7],&securityInfo->signature[1],securityInfo->signature[0]);
+	 memcpy(&GetInfo_ESAM[len],&securityInfo->signature[1],securityInfo->signature[0]);
 	 len+=securityInfo->signature[0];
 	 GetInfo_ESAM[len]=LRC(&GetInfo_ESAM[1],len-1);
-
+	 len+=1;
+//	    int i;
+//	    for(i=0;i<=len;i++)
+//	    	fprintf(stderr,"%02x ",GetInfo_ESAM[i]);
+//	    fprintf(stderr,"\n");
 	 Result = Esam_WriteThenRead(fd, (INT8U*)GetInfo_ESAM, len, tmp);
-
-	 if(Result>0 && Result<BUFFLENMAX_SPI) //大于BUFFLENMAX_SPI错误，此处做比较
+	// fprintf(stderr,"Esam_CreateConnect result = %d\n",Result);
+	 if(Result>48 && Result<BUFFLENMAX_SPI) //大于BUFFLENMAX_SPI错误，此处做比较(48byte服务器随机数)
 	{
-		 memcpy(RetInfo->server_rn,&tmp[4],48);//48byte服务器随机数
-		 memcpy(RetInfo->server_signInfo,&tmp[52],Result-53);  //53=4+1+48
-		return Result-5;
+			 RetInfo->server_rn[0]=0x30;//第一个字节为长度
+			 memcpy(&RetInfo->server_rn[1],&tmp[4],48);//48byte服务器随机数
+			 RetInfo->server_signInfo[1]=Result-53;//第一个字节为长度
+			 memcpy(&RetInfo->server_signInfo[1],&tmp[52],Result-53);  //53=4+1+48
+			return Result-5;
 	}
+	 else
+		 Result=-1;
    return Result;
 }
 /**********************************
@@ -457,7 +470,7 @@ INT32S Esam_SIDResponseCheck(INT32S fd, INT8U P2type, INT8U* Data3 ,INT16U Lengt
 	 INT8U GetInfo_ESAM[BUFFLENMAX_SPI]={0x55,0x80,0x1C,0x00,P2type};//P2加入
 	 GetInfo_ESAM[5]=(INT8U)((Length>>8)&0x00ff);// 长度
 	 GetInfo_ESAM[6]=(INT8U)(Length&0x00ff);
-	 memcpy(&GetInfo_ESAM[7],&Data3[2],Length);
+	 memcpy(&GetInfo_ESAM[7],&Data3[0],Length);//TODO:确认Data3开头是否长度
 	 GetInfo_ESAM[7+Length]=LRC(&GetInfo_ESAM[1],Length+6);
 
 	 Result = Esam_WriteThenRead(fd, (INT8U*)GetInfo_ESAM,Length+8, tmp);
@@ -496,7 +509,7 @@ INT32S Esam_GetTerminalInfo(INT32S fd, INT8U *RN,INT8U* Data1,INT8U* Rbuf) {
 		 return ERR_ESAM_INTEREXE_ERR;
 	len+=datalen;
 	GetInfo_ESAM[len] = LRC(&GetInfo_ESAM[1],len-1);
-
+	len+=1;
 	Result = Esam_WriteThenRead(fd, (INT8U*)GetInfo_ESAM, len, tmp);
 	if(Result>0 && Result<BUFFLENMAX_SPI) //大于BUFFLENMAX_SPI错误，此处做比较
 	{
@@ -514,51 +527,71 @@ INT32S Esam_GetTerminalInfo(INT32S fd, INT8U *RN,INT8U* Data1,INT8U* Rbuf) {
  *输入5.3中第4步获取Data2，解析获取发送所需数据
  *函数返回：1、为正数是为终端信息数据长度	  2、负数：代表相应错误，见：Esam.h中，ESAM ERR ARRAY定义
  *************************************************************/
-INT32S Esam_SymKeyUpdate(INT32S fd, INT8U* Data2, INT8U* Rbuf) {
-//TODO:Data2中包含的数据具体啥样，等链接加密机后在更改
+INT32S Esam_SymKeyUpdate(INT32S fd, SID_MAC SidMac,INT8U* Data2) {
 	if(Data2[0]==0) return ERR_ESAM_TRANSPARA_ERR;
-	//INT32S Result=0;
+	INT8U Rbuf[20];
+	INT16U len=0;
+	INT8U lenSign=0;//返回开头长度域字节数
 	INT8U GetInfo_ESAM[BUFFLENMAX_SPI]={0x55};
-	memcpy(&GetInfo_ESAM[1],&Data2[1],Data2[0]);
-	GetInfo_ESAM[1+Data2[0]]=LRC(&GetInfo_ESAM[1],Data2[0]);
-
-	return Esam_WriteThenRead(fd, (INT8U*)GetInfo_ESAM,Data2[0]+2,Rbuf);
+	 memcpy(&GetInfo_ESAM[len],SidMac.sid.sig,4);//4字节安全标示
+	 len+=4;
+	 memcpy(&GetInfo_ESAM[len],&SidMac.sid.addition[1],SidMac.sid.addition[0]);//附加数据
+	 len+=SidMac.sid.addition[0];
+	 INT16U datalen = Esam_GetDataLength(Data2,&lenSign);
+	 if(datalen==0) return ERR_ESAM_INTEREXE_ERR;
+	 if(lenSign>0 && lenSign<4)//Data长度判断
+		 memcpy(&GetInfo_ESAM[len],&Data2[lenSign],datalen);//密文应用数据单元
+	 else
+		 return ERR_ESAM_INTEREXE_ERR;
+	 len+=datalen;
+	 if(SidMac.mac[0]!=0x00)
+	 {
+		 if(sizeof(SidMac.mac)<=SidMac.mac[0])  return ERR_ESAM_TRANSPARA_ERR;
+		 memcpy(&GetInfo_ESAM[len],&SidMac.mac[1],SidMac.mac[0]);//如果MAC有数据，拷贝
+		 len+=SidMac.mac[0];
+	 }
+	 GetInfo_ESAM[len]=LRC(&GetInfo_ESAM[1],len-1);//获取LRC校验值
+	 len+=1;
+	Esam_WriteThenRead(fd, (INT8U*)GetInfo_ESAM,len,Rbuf);
+	if(Rbuf[0]==0x90 && Rbuf[1]==0x00)//验证一下esam返回信息正确性
+		return 0;
+	else
+		return -1;
 }
 /**********************************
- *安全传输数据处理（证书更新）与终端对称密钥更新类似
+ *安全传输数据处理（证书更新）与终端对称密钥更新类似(证书更新和回话时效门限用一个函数解决)
  *终端判断安全标识为81300203
+ *安全传输数据处理（更新会话时效门限）
+ *终端判断安全标识为81340105
  *发送：安全标识+附加数
  *据 AttachData+Endata1
  *返回：9000+0000
  *函数返回：1、为正数是为终端信息数据长度   负数：代表相应错误，见：Esam.h中，ESAM ERR ARRAY定义
  *************************************************************/
-INT32S Esam_CcieUpdate(INT32S fd, INT8U* Data2, INT8U* Rbuf) {
-	//TODO:Data2中包含的数据具体啥样，等链接加密机后在更改
+INT32S Esam_CcieSession(INT32S fd, SID sid,INT8U* Data2) {
 	if(Data2[0]==0) return ERR_ESAM_TRANSPARA_ERR;
-	//INT32S Result=0;
+	INT8U Rbuf[20];
+	INT16U len=0;
+	INT8U lenSign=0;//返回开头长度域字节数
 	INT8U GetInfo_ESAM[BUFFLENMAX_SPI]={0x55};
-	memcpy(&GetInfo_ESAM[1],&Data2[1],Data2[0]);
-	GetInfo_ESAM[1+Data2[0]]=LRC(&GetInfo_ESAM[1],Data2[0]);
-
-	return Esam_WriteThenRead(fd, (INT8U*)GetInfo_ESAM,Data2[0]+2,Rbuf);
-}
-/**********************************
- *安全传输数据处理（更新会话时效门限）
- *终端判断安全标识为81340105
- *发送：安全标识+附加数
- *据 AttachData++Data1
- *返回：9000+0000
- *函数返回：1、为正数是为终端信息数据长度  负数：代表相应错误，见：Esam.h中，ESAM ERR ARRAY定义
- *************************************************************/
-INT32S Esam_SessionTime(INT32S fd, INT8U* Data2, INT8U* Rbuf) {
-	//TODO:Data2中包含的数据具体啥样，等链接加密机后在更改
-	if(Data2[0]==0) return ERR_ESAM_TRANSPARA_ERR;
-	//INT32S Result=0;
-	INT8U GetInfo_ESAM[BUFFLENMAX_SPI]={0x55};
-	memcpy(&GetInfo_ESAM[1],&Data2[1],Data2[0]);
-	GetInfo_ESAM[1+Data2[0]]=LRC(&GetInfo_ESAM[1],Data2[0]);
-
-	return Esam_WriteThenRead(fd, (INT8U*)GetInfo_ESAM,Data2[0]+2,Rbuf);
+	 memcpy(&GetInfo_ESAM[len],sid.sig,4);//4字节安全标示
+	 len+=4;
+	 memcpy(&GetInfo_ESAM[len],&sid.addition[1],sid.addition[0]);//附加数据
+	 len+=sid.addition[0];
+	 INT16U datalen = Esam_GetDataLength(Data2,&lenSign);
+	 if(datalen==0) return ERR_ESAM_INTEREXE_ERR;
+	 if(lenSign>0 && lenSign<4)//Data长度判断
+		 memcpy(&GetInfo_ESAM[len],&Data2[lenSign],datalen);//密文应用数据单元
+	 else
+		 return ERR_ESAM_INTEREXE_ERR;
+	 len+=datalen;
+	 GetInfo_ESAM[len]=LRC(&GetInfo_ESAM[1],len-1);//获取LRC校验值
+	 len+=1;
+	Esam_WriteThenRead(fd, (INT8U*)GetInfo_ESAM,len,Rbuf);
+	if(Rbuf[0]==0x90 && Rbuf[1]==0x00)//验证一下esam返回信息正确性
+		return 0;
+	else
+		return -1;
 }
 /**********************************
  *安全传输数据处理（终端主动上报）

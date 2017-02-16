@@ -67,9 +67,9 @@ extern INT8U Event_3101(INT8U* data,INT8U len,ProgramInfo* prginfo_event);
  */
 extern INT8U Event_3104(INT8U* data,INT8U len,ProgramInfo* prginfo_event);
 /*
- * 电能表时钟超差事件 tsa事件发生源 电表时钟 prginfo_event共享内存
+ * 电能表时钟超差事件 tsa事件发生源 电表时钟 prginfo_event共享内存 taskno采集方案号
  */
-extern INT8U Event_3105(TSA tsa, INT8U* data,INT8U len,ProgramInfo* prginfo_event);
+extern INT8U Event_3105(TSA tsa, INT8U taskno,INT8U* data,INT8U len,ProgramInfo* prginfo_event);
 /*
  * 终端停/上电事件5-停电事件-放在交采模块 prginfo_event共享内存
  */
@@ -95,21 +95,21 @@ extern INT8U Event_3109(INT8U* data,INT8U len,ProgramInfo* prginfo_event);
  */
 extern INT8U Event_310A(MachineError_type errtype,ProgramInfo* prginfo_event);
 /*
- * 电能表示度下降事件10 前台两次电能值对比是否超过设定值 prginfo_event共享内存
+ * 电能表示度下降事件10 前台两次电能值对比是否超过设定值 prginfo_event共享内存 taskno采集方案号
  */
-extern INT8U Event_310B(TSA tsa, INT8U* data,INT8U len,ProgramInfo* prginfo_event);
+extern INT8U Event_310B(TSA tsa,  INT8U taskno,INT8U* data,INT8U len,ProgramInfo* prginfo_event);
 /*
- * 电能量超差事件11 前台两次电能值以及测量点额定电压、电流 prginfo_event共享内存 meter当前测量点信息
+ * 电能量超差事件11 前台两次电能值以及测量点额定电压、电流 prginfo_event共享内存 meter当前测量点信息 taskno采集方案号
  */
-extern INT8U Event_310C(TSA tsa, INT8U* data,INT8U len,ProgramInfo* prginfo_event,CLASS_6001 meter);
+extern INT8U Event_310C(TSA tsa, INT8U taskno, INT8U* data,INT8U len,ProgramInfo* prginfo_event,CLASS_6001 meter);
 /*
- * 电能表飞走事件12 前台两次电能值以及测量点额定电压、电流 prginfo_event共享内存 meter当前测量点信息
+ * 电能表飞走事件12 前台两次电能值以及测量点额定电压、电流 prginfo_event共享内存 meter当前测量点信息 taskno采集方案号
  */
-extern INT8U Event_310D(TSA tsa, INT8U* data,INT8U len,ProgramInfo* prginfo_event,CLASS_6001 meter);
+extern INT8U Event_310D(TSA tsa, INT8U taskno,INT8U* data,INT8U len,ProgramInfo* prginfo_event,CLASS_6001 meter);
 /*
- * 电能表停走事件 前台两次电能值是否相同以及时间差是否超过设定值 prginfo_event共享内存
+ * 电能表停走事件 前台两次电能值是否相同以及时间差是否超过设定值 prginfo_event共享内存 taskno采集方案号
  */
-extern INT8U Event_310E(TSA tsa, INT8U* data,INT8U len,ProgramInfo* prginfo_event) ;
+extern INT8U Event_310E(TSA tsa, INT8U taskno,INT8U* data,INT8U len,ProgramInfo* prginfo_event) ;
 /*
  * 抄表失败事件 抄表可自行判断是否抄表失败，可直接调用该接口 prginfo_event共享内存
  */
@@ -141,7 +141,7 @@ extern INT8U Event_311C(TSA tsa, INT8U* data,INT8U len,ProgramInfo* prginfo_even
 /*
  * 终端对时事件 此接口在698规约库调用，data为对时前时间 date-time-s格式 7个字节 prginfo_event共享内存
  */
-extern INT8U Event_3114(INT8U* data,INT8U len,ProgramInfo* prginfo_event);
+extern INT8U Event_3114(DateTimeBCD data,ProgramInfo* prginfo_event);
 /*
  * 遥控跳闸记录 prginfo_event共享内存
  */

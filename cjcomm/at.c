@@ -25,7 +25,7 @@ int checkgprs_exist()
 
 	gprsid = getSpiAnalogState() & 0x1f;
 	if((gprsid & 0x1f) == 0x1e) {
-		asyslog(stderr,"有GPRS模块  %02x",gprsid);
+		asyslog(LOG_INFO,"有GPRS模块  %02x",gprsid);
 		return 1;
 	}else  if(gprsid = -1) {			//II型
 		gprs_s0 = gpio_readbyte("DEV_GPRS_S0");
@@ -33,11 +33,11 @@ int checkgprs_exist()
 		gprs_s2 = gpio_readbyte("DEV_GPRS_S2");
 		if(gprs_s0==1 && gprs_s1==1 && gprs_s2==1)
 		{
-			asyslog(stderr,"无GPRS模块  %d, %d, %d",gprs_s0,gprs_s1,gprs_s2);
+			asyslog(LOG_INFO,"无GPRS模块  %d, %d, %d",gprs_s0,gprs_s1,gprs_s2);
 			return 0;
 		}else
 		{
-			asyslog(stderr,"有GPRS模块  %d, %d, %d",gprs_s0,gprs_s1,gprs_s2);
+			asyslog(LOG_INFO,"有GPRS模块  %d, %d, %d",gprs_s0,gprs_s1,gprs_s2);
 			return 1;
 		}
 	}
@@ -194,7 +194,8 @@ int tryifconfig() {
     }
     memcpy(&sin, &ifr.ifr_addr, sizeof(sin));
     if (sin.sin_addr.s_addr > 0) {
-        asyslog(LOG_INFO, "[tryifconfig]获取到正确的IP地址%s\n", inet_ntoa(sin.sin_addr));
+        asyslog(LOG_INFO, "获取到正确的IP地址%s\n", inet_ntoa(sin.sin_addr));
+        setPPPIP(inet_ntoa(sin.sin_addr));
         close(sock);
         return 1;
     }
@@ -209,6 +210,11 @@ void AT_POWOFF()
 
 void* ATWorker(void* args) {
     while (1) {
+        if(getOnlineState() == 1)
+        {
+        	goto wait;
+        }
+
         system("pkill ftpget");
         system("ppp-off");
         system("pkill gsmMuxd");
@@ -310,6 +316,7 @@ void* ATWorker(void* args) {
             memset(CCID, 0, 32);
             if (sscanf(Mrecvbuf, "%*[^\"]\"%[0-9|A-Z|a-z]", CCID) == 1) {
             	asyslog(LOG_INFO, "CCID: %s\n", CCID);
+            	setCCID(CCID);
                 break;
             }
         }
@@ -326,6 +333,7 @@ void* ATWorker(void* args) {
             if (sscanf(Mrecvbuf, "%*[^:]: %d,%d", &k, &l) == 2) {
             	asyslog(LOG_INFO, "GprsCSQ = %d,%d\n", k, l);
                 if (k != 99) {
+                	setSINSTR(k);
                     break;
                 }
             }
@@ -356,11 +364,20 @@ void* ATWorker(void* args) {
             }
         }
 
+        //拨号成功，存储参数，以备召唤
+        saveCurrClass25();
+    wait:
+    	//等待在线状态为“否”，重新拨号
         while (1) {
             delay(1000);
+            if(getOnlineState() == 0)
+            {
+            	break;
+            }
         }
 
     err:
+    	//拨号出错，重试
         continue;
     }
 

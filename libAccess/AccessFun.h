@@ -25,7 +25,7 @@
 #define	 PARADIR				"/nand/para"				//参变量文件（4000） 采集监控类文件（6000）
 #define	 DEMANDDIR				"/nand/demand"				//需量类数据
 #define	 FREEZEDIR				"/nand/freeze"				//冻结类数据存储
-
+#define	 CALCDIR				"/nand/calc"				//统计类数据存储
 #define	 INITDIR			"/nor/init"					//初始化参数文件
 
 //文件存储类型
@@ -39,6 +39,7 @@ typedef enum
 	acs_coef_save=6,			//交采计量芯片系数存储
 	acs_energy_save=7,			//交采计量电能量数据存储
 	para_init_save=8,			//初始化参数保存文件
+	calc_voltage_save=9,	    //电压合格率存储
 }SaveFile_type;
 
 /*

@@ -123,9 +123,9 @@ const static INT16S SW1SW2[] = {0x6D00, 0x6E00, 0x6A86, 0x6700, 0x6581,0x6901, 0
                                  0x6A82, 0x6A84, 0x6A88, 0x6A90};
 typedef struct
 {
-	INT32U SingleAddrCounter;
-	INT32U ReportCounter;
-	INT32U BroadCastSID;
+	INT8U SingleAddrCounter[4];
+	INT8U ReportCounter[4];
+	INT8U BroadCastSID[4];
 }EsamCurrCounter; //当前计数器
 typedef struct
 {
@@ -137,8 +137,8 @@ typedef struct
 	INT8U EsamSID[8];    //Esam序列号
 	INT8U EsamVID[4];   //Esam版本号
 	INT8U SecretKeyVersion[16];  //对称密钥版本
-	INT32U SessionTimeHold;  //会话时效门限
-	INT32U SessionTimeLeft;  //会话实效剩余时间
+	INT8U SessionTimeHold[4];  //会话时效门限
+	INT8U SessionTimeLeft[4];  //会话实效剩余时间
 	EsamCurrCounter CurrentCounter; //当前计数器
 	EsamCcieVersion  CcieVersion; //证书版本
 	INT8U TerminalCcieSID[16];  //终端证书序列号
@@ -167,9 +167,8 @@ INT32S Esam_CreateConnect(INT32S fd, SignatureSecurity* securityInfo ,SecurityDa
 INT32S Esam_SIDTerminalCheck(INT32S fd, SID_MAC SidMac,INT8U* Data, INT8U* Rbuf) ;
 INT32S Esam_SIDResponseCheck(INT32S fd, INT8U P2type, INT8U* Data3,INT16U Length, INT8U* Rbuf);
 INT32S Esam_GetTerminalInfo(INT32S fd, INT8U *RN,INT8U* Data1,INT8U* Rbuf) ;
-INT32S Esam_SymKeyUpdate(INT32S fd, INT8U* Data2, INT8U* Rbuf) ;
-INT32S Esam_CcieUpdate(INT32S fd, INT8U* Data2, INT8U* Rbuf) ;
-INT32S Esam_SessionTime(INT32S fd, INT8U* Data2, INT8U* Rbuf);
+INT32S Esam_SymKeyUpdate(INT32S fd, SID_MAC SidMac,INT8U* Data2);
+INT32S Esam_CcieSession(INT32S fd, SID sid,INT8U* Data2);
 INT32S Esam_ReportEncrypt(INT32S fd, INT8U* Data1, INT16U Length,INT8U* RN,INT8U* MAC) ;
 INT32S Esam_DencryptReport(INT32S fd, INT8U* RN,INT8U* MAC,INT8U* Data3, INT8U* Rbuf);
 INT32S Esam_GetRN(INT32S fd,  INT8U* Rbuf);
