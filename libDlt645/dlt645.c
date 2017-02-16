@@ -143,14 +143,8 @@ INT8S analyzeProtocol07(FORMAT07* format07, INT8U* recvBuf, const INT16U recvLen
 		{
 			memcpy(format07->DI, &recvBuf[count+10], 4);
 			memcpy(format07->Data, &recvBuf[count+14], format07->Length-4);
-//			ret = 0;
 
-			INT8U errData[256];//7.10 for shandong
-			memset(errData, 0xff, 256);
-			if (memcmp(errData, format07->Data, format07->Length-4) == 0)
-				return -1;
-			else
-				return 0;
+			return 0;
 		}
 		else if ((format07->Ctrl == 0x92) || (format07->Ctrl == 0xB2))//正常应答读后续帧
 		{

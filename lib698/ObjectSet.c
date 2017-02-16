@@ -528,6 +528,7 @@ int setRequestNormal(INT8U *data,OAD oad,CSINFO *csinfo,INT8U *buf)
 }
 int setRequestNormalList(INT8U *data,OAD oad)
 {
+
 	return 0;
 }
 
