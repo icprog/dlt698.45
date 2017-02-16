@@ -915,6 +915,8 @@ void calc_thread()
  */
 void calc_proccess()
 {
+	memset(StatisticsPoint,0,sizeof(StatisticsPointProp)*MAXNUM_IMPORTANTUSR);
+	memset(point,0,sizeof(POINT_CALC_TYPE)*MAXNUM_IMPORTANTUSR_CALC);
 	ReadPubData();
 	pthread_attr_init(&calc_attr_t);
 	pthread_attr_setstacksize(&calc_attr_t,2048*1024);
