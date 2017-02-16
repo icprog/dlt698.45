@@ -574,6 +574,7 @@ int doGetAttribute(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
 			break;
 		case GET_REQUEST_RECORD_NEXT:
 			break;
+
 	}
 	return 1;
 }

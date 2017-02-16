@@ -137,10 +137,11 @@ int get_BasicRSD(INT8U *source,INT8U *dest,INT8U *type)
 			break;
 		case 4:
 		case 5:
-			index = getDateTimeBCD(source,(INT8U *)&select4.collect_star);
-			select4.meters.mstype = 0x5c;
-			select2.data_jiange.type = 0xAA;
-			get_BasicUnit(&source[5],&source_index,(INT8U *)&select2.data_jiange,&dest_index);
+			index = getDateTimeBCD(&source[1],(INT8U *)&select4.collect_star);
+			fprintf(stderr,"\n--- %02x %02x --",source[1+index],source[1+index+1]);
+			source[index] = 0x5c;//报文中没有MS的类型字节，自己添加一个
+			get_BasicUnit(&source[index],&source_index,(INT8U *)&select4.meters,&dest_index);
+
 			source_sumindex += source_index;
 			index += source_sumindex;
 			memcpy(dest,&select4,sizeof(select4));
@@ -148,13 +149,13 @@ int get_BasicRSD(INT8U *source,INT8U *dest,INT8U *type)
 		case 6:
 		case 7:
 		case 8:
-			index = getDateTimeBCD(source,(INT8U *)&select6.collect_star);
-			index += getDateTimeBCD(source+index,(INT8U *)&select6.collect_finish);
-			select6.ti.units = source[7];//单位
-			tmpbuf[1] = source[8];//long unsigned数值
-			tmpbuf[0] = source[9];
+			index = getDateTimeBCD(&source[1],(INT8U *)&select6.collect_star);
+			index += getDateTimeBCD(&source[1+index],(INT8U *)&select6.collect_finish);
+			select6.ti.units = source[15];//单位
+			tmpbuf[1] = source[16];//long unsigned数值
+			tmpbuf[0] = source[17];
 			memcpy(&select6.ti.interval,tmpbuf,2);
-			get_BasicUnit(&source[10],&source_index,(INT8U *)&select6.meters.mstype,&dest_index);
+			get_BasicUnit(&source[18],&source_index,(INT8U *)&select6.meters.mstype,&dest_index);
 			index = source_index + sizeof(DateTimeBCD)+ sizeof(DateTimeBCD)+ sizeof(TI);
 			memcpy(dest,&select6,sizeof(select6));
 			break;
