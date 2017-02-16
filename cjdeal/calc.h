@@ -364,5 +364,36 @@ typedef struct{
 	TONGJI_RESULT Result_m; 	//月统计值
 	int valid;					//有效标识
 }POINT_CALC_TYPE;
+typedef struct{
+	INT32U s_Rate;//电压上限率
+	INT32U x_Rate;//电压下限率
+	INT32U ok_Rate;//电压合格率
+	INT16U ss_count;					//相电压越上上限累计时间    (min)
+	INT16U xx_count;					//相电压越下下限累计时间    (min)
+	INT16U s_count;						//相电压越上限累计时间      (min)
+	INT16U x_count;						//相电压越下限累计时间 	(min)
+	INT16U ok_count;					//相电压合格限累计时间 	(min)
+	INT16U max;							//相电压最大值
+	INT16U min;							//相电压最小值
+	INT16U U_Avg;//一天当中相电压的平均电压
+	INT8U max_time[3];			//相电压最大值发生时间
+	INT8U min_time[3];			//相电压最小值发生时间
 
+	INT32U U_Sum;//一天当中相电压累加和，用于计算平均电压
+	INT32U U_Count;//一天当中相电压累加时间
+
+	INT8U tmp[2];//字节对齐位
+}Statistics_U;//电压统计结果
+
+typedef struct{
+	Statistics_U tjUa;						//A相电压统计								二类数据F27
+	Statistics_U tjUb;						//B相电压统计
+	Statistics_U tjUc;						//C相电压统计
+}StatisticsInfo;//三相电压统计结果
+
+typedef struct{
+	StatisticsInfo DayResu; //日统计电压结果
+	StatisticsInfo MonthResu;//月统计电压结果
+	INT32U PointNo; //测量点
+}StatisticsPointProp;//测量点统计结果
 #endif /* CALC_H_ */
