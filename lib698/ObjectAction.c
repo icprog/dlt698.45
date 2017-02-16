@@ -20,6 +20,7 @@ extern int FrameHead(CSINFO *csinfo,INT8U *buf);
 extern INT8S (*pSendfun)(int fd,INT8U* sndbuf,INT16U sndlen);
 extern int comfd;
 extern ProgramInfo *memp;
+
 INT16U getMytypeSize(INT8U first )
 {
 	if (first == 0xAA)

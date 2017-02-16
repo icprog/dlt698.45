@@ -18,9 +18,10 @@ extern INT8S (*pSendfun)(int fd,INT8U* sndbuf,INT16U sndlen);
 extern int FrameHead(CSINFO *csinfo,INT8U *buf);
 extern void FrameTail(INT8U *buf,int index,int hcsi);
 extern INT8U Get_Event(OI_698 oi,INT8U eventno,INT8U** Getbuf,INT8U *Getlen);
+extern void getoad(INT8U *data,OAD *oad);
 extern int comfd;
 extern INT8U TmpDataBuf[MAXSIZ_FAM];
-
+extern INT8U TmpDataBufList[MAXSIZ_FAM*2];
 typedef struct
 {
 	OAD oad;
@@ -28,7 +29,7 @@ typedef struct
 	INT8U *data;	//数据  上报时与 dar二选一
 	INT16U datalen;	//数据长度
 }RESULT_NORMAL;
-int BuildFrame_GetResponse(INT8U response_type,CSINFO *csinfo,RESULT_NORMAL response,INT8U *sendbuf)
+int BuildFrame_GetResponse(INT8U response_type,CSINFO *csinfo,INT8U oadnum,RESULT_NORMAL response,INT8U *sendbuf)
 {
 	int index=0, hcsi=0;
 	csinfo->dir = 1;
@@ -39,22 +40,12 @@ int BuildFrame_GetResponse(INT8U response_type,CSINFO *csinfo,RESULT_NORMAL resp
 	sendbuf[index++] = GET_RESPONSE;
 	sendbuf[index++] = response_type;
 	sendbuf[index++] = 0;	//	piid
-	sendbuf[index++] = (response.oad.OI>>8) & 0xff;
-	sendbuf[index++] = response.oad.OI & 0xff;
-	sendbuf[index++] = response.oad.attflg;
-	sendbuf[index++] = response.oad.attrindex;
-	if (response.datalen > 0)
-	{
-		sendbuf[index++] = 1;//choice 1  ,Data有效
-		memcpy(&sendbuf[index],response.data,response.datalen);
-		index = index + response.datalen;
-	}else
-	{
-		sendbuf[index++] = 0;//choice 0  ,DAR 有效 (数据访问可能的结果)
-		sendbuf[index++] = 0x16;
-		sendbuf[index++] = response.dar;
-	}
-	sendbuf[index++] = 0;
+	if (oadnum>0)
+		sendbuf[index++] = oadnum;
+
+	memcpy(&sendbuf[index],response.data,response.datalen);
+	index = index + response.datalen;
+
 	sendbuf[index++] = 0;
 	FrameTail(sendbuf,index,hcsi);
 	if(pSendfun!=NULL)
@@ -499,7 +490,7 @@ int getRequestRecord(INT8U *typestu,CSINFO *csinfo,INT8U *buf)
 int doGetnormal(RESULT_NORMAL *response)
 {
 	INT16U oi = response->oad.OI;
-	fprintf(stderr,"\ngetRequestNormal----------  oi =%04x  ",oi);
+	fprintf(stderr,"\ngetRequestNormal----------  oi =%04x  \n",oi);
 
 	INT8U oihead = (oi & 0xF000) >>12;
 	switch(oihead) {
@@ -563,15 +554,68 @@ int doGetnormal(RESULT_NORMAL *response)
 int getRequestNormal(OAD oad,INT8U *data,CSINFO *csinfo,INT8U *sendbuf)
 {
 	RESULT_NORMAL response;
+	INT8U oadtmp[4]={};
+	oadtmp[0] = (oad.OI>>8) & 0xff;
+	oadtmp[1] = oad.OI & 0xff;
+	oadtmp[2] = oad.attflg;
+	oadtmp[3] = oad.attrindex;
 	memset(TmpDataBuf,0,sizeof(TmpDataBuf));
+	memcpy(TmpDataBuf,oadtmp,4);
+
 	response.oad = oad;
-	response.data = TmpDataBuf;
+	response.data = TmpDataBuf+5; //4 + 1             oad（4字节） + choice(1字节)
 	response.datalen = 0;
 	doGetnormal(&response);
-	BuildFrame_GetResponse(GET_REQUEST_NORMAL,csinfo,response,sendbuf);
+	if (response.datalen>0)
+	{
+		TmpDataBuf[4] = 1;//数据
+		response.datalen += 5;  // datalen + oad(4) + choice(1)
+	}else
+	{
+		TmpDataBuf[4] = 0;//错误
+		TmpDataBuf[5] = response.dar;
+		response.datalen += 6;  // datalen + oad(4) + choice(1) + dar
+	}
+	response.data = TmpDataBuf;
+
+	BuildFrame_GetResponse(GET_REQUEST_NORMAL,csinfo,0,response,sendbuf);
 	return 1;
 }
-int getRequestNormalList(OAD oad,INT8U *data,CSINFO *csinfo,INT8U *sendbuf)
+
+int getRequestNormalList(INT8U *data,CSINFO *csinfo,INT8U *sendbuf)
 {
+	RESULT_NORMAL response;
+	INT8U oadtmp[4]={};
+	INT8U oadnum = data[0];
+	int i=0,listindex=0;
+	fprintf(stderr,"\nGetNormalList!! OAD_NUM=%d",oadnum);
+	memset(TmpDataBufList,0,sizeof(TmpDataBufList));
+	for(i=0;i<oadnum;i++)
+	{
+		memset(TmpDataBuf,0,sizeof(TmpDataBuf));
+		memcpy(oadtmp,&data[1 + i*4],4);
+		getoad(oadtmp, &response.oad);
+		response.datalen = 0;
+		response.data = TmpDataBuf + 5;
+		fprintf(stderr,"\n【%d】OI = %x  %02x  %02x",i,response.oad.OI,response.oad.attflg,response.oad.attrindex);
+		doGetnormal(&response);
+
+		memcpy(&TmpDataBufList[listindex + 0],oadtmp,4);
+		if (response.datalen>0)
+		{
+			TmpDataBufList[listindex + 4] = 1;//数据
+			memcpy(&TmpDataBufList[listindex + 5],response.data,response.datalen);
+			listindex = listindex + 5 + response.datalen;
+		}
+		else
+		{
+			TmpDataBufList[listindex + 4] = 0;//错误
+			TmpDataBufList[listindex + 5] = response.dar;  //  0-3(oad)   4(choice)  5(dar)
+			listindex = listindex + 6;
+		}
+	}
+	response.data = TmpDataBufList;
+	response.datalen = listindex;
+	BuildFrame_GetResponse(GET_REQUEST_NORMAL_LIST,csinfo,oadnum,response,sendbuf);
 	return 1;
 }
