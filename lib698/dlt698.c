@@ -32,7 +32,8 @@ ProgramInfo *memp;
 LINK_Response *linkResponse_p;	// 预连接（登录、心跳）的确认，存储在com控制块中
 CONNECT_Response *myAppVar_p;	// 集中器支持参数（应用层会话参数）
 CONNECT_Response *AppVar_p;		// 集中器协商后参数（应用层会话参数）
-INT8U securetype;
+INT8U securetype;  //安全等级类型  01明文，02明文+MAC 03密文  04密文+MAC
+INT8U secureRN[20];//安全认证随机数，主站下发，终端回复时需用到，esam计算使用
 /**************************************
  * 函数功能：DL/T698.45 状态机
  * 参数含义：
@@ -170,7 +171,7 @@ int CheckTail(unsigned char * buf,INT16U length)
 	INT8U b1=0, b2=0, fsc1=0, fsc2=0 ;
 	if( buf[0]==0x68  )
 	{
-//		fprintf(stderr,"frame length(-2) = %d ",length);
+		fprintf(stderr,"frame length(-2) = %d ",length);
 		cs16 = tryfcs16(&buf[1], length-2);
 		b1 = (cs16 & 0x00ff);
 		b2 = ((cs16 >> 8) & 0x00ff);
@@ -574,6 +575,7 @@ int doGetAttribute(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
 			break;
 		case GET_REQUEST_RECORD_NEXT:
 			break;
+
 	}
 	return 1;
 }
@@ -644,19 +646,17 @@ INT16S doSecurityRequest(INT8U* apdu)//
 	if(apdu[1] !=0x00 && apdu[1] != 0x01) return -2 ;   //明文应用数据单元
 	 INT16S retLen=0;
 	 INT32S fd=-1;
-	 INT8U SecurityType=0x00;//本次传输安全等级(属于库全局变量，暂放此处)
-	 INT8U MAC[20];//该mac值暂时用不到，暂存
 	 fd = Esam_Init(fd,(INT8U*)ACS_SPI_DEV);
 	 if(fd<0) return -3;
 
 	 if(apdu[1]==0x00)//明文应用数据处理
 	 {
-		 retLen = secureDecryptDataDeal(fd,apdu,&SecurityType,MAC);//传入安全等级
+		 retLen = secureDecryptDataDeal(apdu);//传入安全等级
 		 apdu=&apdu[2];
 	 }
 	 else if(apdu[1]==0x01)//密文应用数据处理
 	 {
-		 retLen = secureEncryptDataDeal(fd,&SecurityType,apdu,apdu);
+		 retLen = secureEncryptDataDeal(fd,apdu,apdu);
 	 }
 	 Esam_Clear(fd);
 	 return retLen;
@@ -670,7 +670,14 @@ INT16S composeSecurityResponse(INT8U* SendApdu,INT16U length,INT8U SecurityType)
 	 INT32S fd=-1;
 	 fd = Esam_Init(fd,(INT8U*)ACS_SPI_DEV);
 	 if(fd<0) return -3;
-	 retLen = Esam_SIDResponseCheck(fd,SecurityType,SendApdu,length,SendApdu);
+	 if(SendApdu == 133)//读取的上报
+	 {
+		// Esam_GetTerminalInfo();
+	 }
+	 else
+	 {
+		 retLen = Esam_SIDResponseCheck(fd,SecurityType,SendApdu,length,SendApdu);
+	 }
 	 if(retLen<=0) return 0;
 	 Esam_Clear(fd);
 	 return retLen;

@@ -104,22 +104,26 @@ int BuildFrame_GetResponseRecord(INT8U response_type,CSINFO *csinfo,RESULT_RECOR
 
 int BuildFrame_GetResponse(INT8U response_type,CSINFO *csinfo,INT8U oadnum,RESULT_NORMAL response,INT8U *sendbuf)
 {
+	int apduplace =0;
 	int index=0, hcsi=0;
 	csinfo->dir = 1;
 	csinfo->prm = 0;
 	index = FrameHead(csinfo,sendbuf);
 	hcsi = index;
 	index = index + 2;
+
+	apduplace = index;		//记录APDU 起始位置
 	sendbuf[index++] = GET_RESPONSE;
 	sendbuf[index++] = response_type;
 	sendbuf[index++] = 0;	//	piid
 	if (oadnum>0)
 		sendbuf[index++] = oadnum;
-
 	memcpy(&sendbuf[index],response.data,response.datalen);
 	index = index + response.datalen;
-
 	sendbuf[index++] = 0;
+
+//	apduplace += SecureApdu(&sendbuf[apduplace],index-apduplace);
+
 	FrameTail(sendbuf,index,hcsi);
 	if(pSendfun!=NULL)
 		pSendfun(comfd,sendbuf,index+3);
@@ -607,7 +611,7 @@ int doGetrecord(RESULT_RECORD *record)
 int getRequestRecord(OAD oad,INT8U *data,CSINFO *csinfo,INT8U *sendbuf)
 {
 	RESULT_RECORD record;
-
+	int i=0;
 	int index=0;
 	memset(TmpDataBuf,0,sizeof(TmpDataBuf));
 	record.oad = oad;
@@ -615,9 +619,30 @@ int getRequestRecord(OAD oad,INT8U *data,CSINFO *csinfo,INT8U *sendbuf)
 	record.datalen = 0;
 	fprintf(stderr,"\nGetRequestRecord   oi=%x  %02x  %02x",record.oad.OI,record.oad.attflg,record.oad.attrindex);
 	index = get_BasicRSD(&data[index],(INT8U *)&record.select,&record.selectType);
-	fprintf(stderr,"\nRSD type=%d  oi=%x  %02x  %20x",record.selectType,record.select.selec1.oad.OI,record.select.selec1.oad.attflg,record.select.selec1.oad.attrindex);
-	fprintf(stderr,"\nData type=%02x data=%d ",record.select.selec1.data.type,record.select.selec1.data.data[0]);
+	fprintf(stderr,"\nRSD Select%d  ",record.selectType);
 	index +=get_BasicRCSD(&data[index],&record.rcsd.csds);
+	int k=0;
+	if(record.selectType==5)
+	{
+		fprintf(stderr,"\n%d年 %d月 %d日 %d时:%d分:%d秒",
+				record.select.selec5.collect_save.year.data,record.select.selec5.collect_save.month.data,
+				record.select.selec5.collect_save.day.data,record.select.selec5.collect_save.hour.data,
+				record.select.selec5.collect_save.min.data,record.select.selec5.collect_save.sec.data);
+		fprintf(stderr,"\nMS-TYPE %d  ",record.select.selec5.meters.mstype);
+		for(i = 0; i<record.rcsd.csds.num;i++)
+		{
+			if (record.rcsd.csds.csd[i].type == 1)
+			{
+				fprintf(stderr,"\n");
+				fprintf(stderr,"\nROAD     %04x %02x %02x",record.rcsd.csds.csd[i].csd.road.oad.OI,record.rcsd.csds.csd[i].csd.road.oad.attflg,record.rcsd.csds.csd[i].csd.road.oad.attrindex);
+				for(k=0;k<record.rcsd.csds.csd[i].csd.road.num;k++)
+					fprintf(stderr,"\n     		oad %04x %02x %02x",record.rcsd.csds.csd[i].csd.road.oads[k].OI,record.rcsd.csds.csd[i].csd.road.oads[k].attflg,record.rcsd.csds.csd[i].csd.road.oads[k].attrindex);
+			}else
+			{
+				fprintf(stderr,"\nOAD     %04x %02x %02x",record.rcsd.csds.csd[i].csd.oad.OI,record.rcsd.csds.csd[i].csd.oad.attflg,record.rcsd.csds.csd[i].csd.oad.attrindex);
+			}
+		}
+	}
 	doGetrecord(&record);
 	BuildFrame_GetResponseRecord(GET_REQUEST_RECORD,csinfo,record,sendbuf);
 //	securetype = 0;		//清除安全等级标识
