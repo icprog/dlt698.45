@@ -24,23 +24,7 @@ extern int get_BasicRSD(INT8U *source,INT8U *dest,INT8U *type);
 extern int comfd;
 extern INT8U TmpDataBuf[MAXSIZ_FAM];
 extern INT8U TmpDataBufList[MAXSIZ_FAM*2];
-typedef struct
-{
-	OAD oad;
-	INT8U dar;		//错误信息
-	INT8U *data;	//数据  上报时与 dar二选一
-	INT16U datalen;	//数据长度
-}RESULT_NORMAL;
-typedef struct
-{
-	OAD oad;
-	RCSD rcsd;
-	INT8U dar;
-	INT8U *data;	//数据  上报时与 dar二选一
-	INT16U datalen;	//数据长度
-	INT8U selectType;//选择类型
-	RSD   select;	 //选择方法实例
-}RESULT_RECORD;
+
 int BuildFrame_GetResponseRecord(INT8U response_type,CSINFO *csinfo,RESULT_RECORD record,INT8U *sendbuf)
 {
 	int index=0, hcsi=0,num=0,i=0,k=0;
@@ -166,9 +150,8 @@ int fill_double_long_unsigned(INT8U *data,INT32U value)
 	data[4] =  value & 0x000000FF;
 	return 5;
 }
-int fill_visible_string(INT8U *data,INT8U *value,INT8U len)
+int fill_visible_string(INT8U *data,char *value,INT8U len)
 {
-	int bytenum = 0;
 	data[0] = dtvisiblestring;
 	data[1] = len;
 	memcpy(&data[2],value,len);
@@ -506,10 +489,11 @@ int Get4300(RESULT_NORMAL *response)
 	return 0;
 }
 
-int GetEventInfo(RESULT_NORMAL *response)
+int GetEventRecord(RESULT_NORMAL *response)
 {
 	INT8U *data=NULL;
 	INT16U datalen=0;
+
 	if ( Get_Event(response->oad.OI,response->oad.attrindex-1,&data,(INT8U *)&datalen) == 1 )
 	{
 		if (datalen > 512 || data==NULL)
@@ -529,9 +513,69 @@ int GetEventInfo(RESULT_NORMAL *response)
 	fprintf(stderr,"\n获取事件数据Get_Event函数返回 0  [datalen=%d  data=%p]",datalen,data);
 	if (data!=NULL)
 		free(data);
+	return 1;
+}
 
+int GetClass7attr(RESULT_NORMAL *response)
+{
+	INT8U *data = NULL;
+	OAD oad={};
+	Class7_Object	class7={};
+	int index=0;
+	data = response->data;
+	oad = response->oad;
+	memset(&class7,sizeof(Class7_Object),0);
+	readCoverClass(oad.OI,0,&class7,sizeof(Class7_Object),event_para_save);
+	switch(oad.attflg) {
+	case 1:	//逻辑名
+		break;
+	case 3:	//关联属性表
+		break;
+	case 4:	//当前记录数
+		break;
+	case 5:	//最大记录数
+		break;
+	case 8: //上报标识
+		break;
+	case 9: //有效标识
+		index += file_bool(&data[0],class7.enableflag);
+		break;
+	}
+	response->datalen = index;
 	return 0;
 }
+
+int GetEventInfo(RESULT_NORMAL *response)
+{
+	fprintf(stderr,"GetEventInfo OI=%x,attflg=%d,attrindex=%d \n",response->oad.OI,response->oad.attflg,response->oad.attrindex);
+	switch(response->oad.attflg) {
+	case 2:		//事件记录表
+		GetEventRecord(response);
+		break;
+	case 1:	//逻辑名
+	case 3:	//关联属性表
+	case 4:	//当前记录数
+	case 5:	//最大记录数
+	case 8: //上报标识
+	case 9: //有效标识
+		GetClass7attr(response);
+		break;
+	case 6:	//配置参数
+		switch(response->oad.OI) {
+			case 0x310d:
+				break;
+			case 0x310c:
+				break;
+			case 0x310e:
+				break;
+			case 0x310F:
+				break;
+		}
+		break;
+	}
+	return 0;
+}
+
 int doGetrecord(RESULT_RECORD *record)
 {
 	INT8U SelectorN = record->selectType;
