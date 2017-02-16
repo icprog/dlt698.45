@@ -176,7 +176,7 @@ typedef struct {
 } CLASS_4030;
 
 typedef struct {
-	INT8U assetcode[40];
+	char assetcode[40];
 } CLASS_4103;
 
 typedef struct {

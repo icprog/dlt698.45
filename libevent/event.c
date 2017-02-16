@@ -234,6 +234,7 @@ INT8U Get_Event(OI_698 oi,INT8U eventno,INT8U** Getbuf,int *Getlen,ProgramInfo* 
 	_currno=currno-(eventno-1);
 	if(_currno<=0 || _currno>maxno)
 		_currno = maxno;
+	fprintf(stderr,"currno=%d,maxno=%d\n",currno,maxno);
 	filesize = getClassFileLen(oi,_currno,event_record_save);
 	if(filesize<=0)  return 0;
 	*Getlen=filesize;
