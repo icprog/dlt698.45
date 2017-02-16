@@ -672,7 +672,7 @@ INT16S composeSecurityResponse(INT8U* SendApdu,INT16U length,INT8U SecurityType)
 	 if(fd<0) return -3;
 	 if(SendApdu == 133)//读取的上报
 	 {
-		 Esam_GetTerminalInfo();
+		// Esam_GetTerminalInfo();
 	 }
 	 else
 	 {
