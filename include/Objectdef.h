@@ -341,4 +341,25 @@ typedef struct {
 	CSD flag698;
 	C601F_07Flag flag07;
 } CLASS_601F;			//开关量输入
+
+/////////////////////////////////////////////////////////////////////
+typedef struct
+{
+	OAD oad;
+	INT8U dar;		//错误信息
+	INT8U *data;	//数据  上报时与 dar二选一
+	INT16U datalen;	//数据长度
+}RESULT_NORMAL;
+typedef struct
+{
+	OAD oad;
+	RCSD rcsd;
+	INT8U dar;
+	INT8U *data;	//数据  上报时与 dar二选一
+	INT16U datalen;	//数据长度
+	INT8U selectType;//选择类型
+	RSD   select;	 //选择方法实例
+}RESULT_RECORD;
+////////////////////////////////////////////////////////////////////
+
 #endif /* OBJECTACTION_H_ */
