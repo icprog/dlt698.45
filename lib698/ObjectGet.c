@@ -136,15 +136,6 @@ int BuildFrame_GetResponseRecord(INT8U response_type,CSINFO *csinfo,RESULT_RECOR
 	return (index+3);
 }
 
-int GetMeterInfo(RESULT_NORMAL *response)
-{
-	return 0;
-}
-int GetTaskInfo(RESULT_NORMAL *response)
-{
-	return 0;
-}
-
 int create_array(INT8U *data,INT8U numm)
 {
 	data[0] = dtarray;
@@ -164,6 +155,22 @@ int fill_bit_string8(INT8U *data,INT8U bits)
 	data[1] = 0x08;
 	data[2] = bits;
 	return 3;
+}
+
+int fill_double_long_unsigned(INT8U *data,INT32U val,INT8U unit)
+{
+	INT32S 	retval=0;
+
+	data[0] = dtdoublelongunsigned;
+	fprintf(stderr,"val=%04x,unit=%d\n",val,unit);
+	retval = (INT64S)((FP64)val);
+	if(unit!=0)  retval = retval*unit;
+	fprintf(stderr,"retval=%04x\n",retval);
+	data[1] = (retval>>24)&0xff;
+	data[2] = (retval>>16)&0xff;
+	data[3] = (retval>>8)&0xff;
+	data[4] = retval&0xff;
+	return 5;
 }
 
 int fill_octet_string(INT8U *data,INT8U *source)
@@ -216,6 +223,15 @@ int fill_Verion(INT8U *data,VERINFO info)
 	index += fill_visible_string(&data[index],sizeof(info.hardDate),info.hardDate);
 	index += fill_visible_string(&data[index],sizeof(info.factoryExpInfo),info.factoryExpInfo);
 	return index;
+}
+
+int GetMeterInfo(RESULT_NORMAL *response)
+{
+	return 0;
+}
+int GetTaskInfo(RESULT_NORMAL *response)
+{
+	return 0;
 }
 
 int GetCjiFangAnInfo(RESULT_NORMAL *response)
@@ -300,6 +316,36 @@ int GetCustomNum(RESULT_NORMAL *response)
 	switch(response->oad.attflg) {
 	case 2:	//设备编号
 		index += fill_octet_string(&data[index],oi400x.curstom_num);
+		response->datalen = index;
+		break;
+	}
+	return 0;
+}
+
+int GetLocateInfo(RESULT_NORMAL *response)
+{
+	INT8U *data=NULL;
+	CLASS_4004	 oi4004={};
+	int		index=0;
+
+	data = response->data;
+	memset(&oi4004,0,sizeof(CLASS_4004));
+	readCoverClass(response->oad.OI,0,&oi4004,sizeof(CLASS_4004),para_vari_save);
+	switch(response->oad.attflg) {
+	case 2:	//地理位置
+		index += create_struct(&data[index],3);
+		index += create_struct(&data[index],4);
+		index += fill_enum(&data[index],oi4004.Longitude.position);
+		index += fill_unsigned(&data[index],oi4004.Longitude.degree);
+		index += fill_unsigned(&data[index],oi4004.Longitude.min);
+		index += fill_unsigned(&data[index],oi4004.Longitude.sec);
+		index += create_struct(&data[index],4);
+		index += fill_enum(&data[index],oi4004.Latitude.position);
+		index += fill_unsigned(&data[index],oi4004.Latitude.degree);
+		index += fill_unsigned(&data[index],oi4004.Latitude.min);
+		index += fill_unsigned(&data[index],oi4004.Latitude.sec);
+		fprintf(stderr,"4004.height=%04x,",oi4004.Height);
+		index += fill_double_long_unsigned(&data[index],oi4004.Height,0);
 		response->datalen = index;
 		break;
 	}
@@ -402,6 +448,9 @@ int GetParaVarInfo(RESULT_NORMAL *response)
 		break;
 	case 0x4003:	//客户编号
 		GetCustomNum(response);
+		break;
+	case 0x4004:	//设备地理位置
+		GetLocateInfo(response);
 		break;
 	case 0x4300:	//电气设备
 		GetDevice(response);

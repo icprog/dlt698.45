@@ -130,7 +130,7 @@ typedef struct {
 typedef struct {
 	Lon_Lat_info	Longitude;		//经度
 	Lon_Lat_info	Latitude;		//纬度
-	FP64			Height;			//高度
+	INT32U			Height;			//高度
 } CLASS_4004; 	//4004：设备地理位置
 
 typedef struct {
