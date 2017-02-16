@@ -840,7 +840,7 @@ void CpyAcsDataFromPubData(POINT_CALC_TYPE* point_hander)
 	point_hander[PointIndex].Realdata.Va.value = JProgramInfo->ACSRealData.Ua;
 	point_hander[PointIndex].Realdata.Va.Available = TRUE;
 #ifndef CCTT_II
-	if(JProgramInfo->Accoepara.WireType!=0x1200)
+	if(JProgramInfo->WireType!=0x1200)
 	{
 		point_hander[PointIndex].Realdata.Vb.value = JProgramInfo->ACSRealData.Ub;
 		point_hander[PointIndex].Realdata.Vb.Available = TRUE;
@@ -915,6 +915,8 @@ void calc_thread()
  */
 void calc_proccess()
 {
+	memset(StatisticsPoint,0,sizeof(StatisticsPointProp)*MAXNUM_IMPORTANTUSR);
+	memset(point,0,sizeof(POINT_CALC_TYPE)*MAXNUM_IMPORTANTUSR_CALC);
 	ReadPubData();
 	pthread_attr_init(&calc_attr_t);
 	pthread_attr_setstacksize(&calc_attr_t,2048*1024);

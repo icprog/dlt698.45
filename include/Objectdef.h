@@ -28,12 +28,12 @@ typedef struct {
 
 typedef struct
 {
-	INT8U factoryCode[5];	//厂商代码
-	INT8U softVer[5];		//软件版本号
-	INT8U softDate[7];		//软件版本日期
-	INT8U hardVer[5];		//硬件版本号
-	INT8U hardDate[7];		//硬件版本日期
-	INT8U factoryExpInfo[9];//厂家扩展信息
+	char factoryCode[4];	//厂商代码
+	char softVer[4];		//软件版本号
+	char softDate[6];		//软件版本日期
+	char hardVer[4];		//硬件版本号
+	char hardDate[6];		//硬件版本日期
+	char factoryExpInfo[8];//厂家扩展信息
 }VERINFO;
 
 typedef struct
@@ -116,20 +116,19 @@ typedef struct {
  *				 A.5 参变量类对象
  ********************************************************/
 typedef struct {
+	DateTimeBCD datetime;	//属性2
+	INT8U type;				//校时模式
+	INT8U hearbeatnum;		//心跳时间总个数
+	INT8U tichu_max;		//最大剔除个数
+	INT8U tichu_min;		//最小剔除个数
+	INT8U delay;			//通讯延时阀值
+	INT8U num_min;			//最少有效个数
+} CLASS_4000; 	//日期时间
+
+typedef struct {
 	INT8U 	login_name[OCTET_STRING_LEN];	//逻辑名
 	INT8U  	curstom_num[OCTET_STRING_LEN];	//客户编号
 } CLASS_4001_4002_4003; 	//4001:通信地址，4002：表号，4003：客户编号
-
-typedef struct {
-	INT8U hour;						//时
-	INT8U min;						//分
-	INT8U rateno;						//费率号
-} Day_Period;
-
-typedef struct {
-	INT8U num;
-	Day_Period Period_Rate[MAX_PERIOD_RATE];
-} CLASS_4016;
 
 typedef struct {
 	INT8U fangwei;
@@ -147,12 +146,6 @@ typedef struct {
 	INT8U clocksource;
 	INT8U state;
 } CLASS_4006;
-typedef struct {
-	INT16U uUp;
-	INT16U uDown;
-	INT16U uUp_Kaohe;
-	INT16U uDown_Kaohe;
-} CLASS_4030;
 
 typedef struct {
 	INT8U poweon_showtime;//上电全显时间
@@ -163,9 +156,29 @@ typedef struct {
 	INT8U energydata_dec;//显示电能小数位
 	INT8U powerdata_dec;//显示功率小数位
 } CLASS_4007;
+
+typedef struct {
+	INT8U hour;						//时
+	INT8U min;						//分
+	INT8U rateno;						//费率号
+} Day_Period;
+
+typedef struct {
+	INT8U num;
+	Day_Period Period_Rate[MAX_PERIOD_RATE];
+} CLASS_4016;
+
+typedef struct {
+	INT16U uUp;
+	INT16U uDown;
+	INT16U uUp_Kaohe;
+	INT16U uDown_Kaohe;
+} CLASS_4030;
+
 typedef struct {
 	INT8U assetcode[40];
 } CLASS_4103;
+
 typedef struct {
 	INT8U startime[OCTET_STRING_LEN];
 	INT8U enable;

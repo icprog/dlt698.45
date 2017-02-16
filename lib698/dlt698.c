@@ -556,10 +556,6 @@ int doGetAttribute(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
 	fprintf(stderr,"\n- get type = %d PIID=%02x",getType,piid.data);
 
 	getoad(&apdu[3],&oad);
-
-//	oad.OI = (apdu[3]<<8) | apdu[4];
-//	oad.attflg = apdu[5];
-//	oad.attrindex = apdu[6];
 	data = &apdu[7];					//Data
 
 	switch(getType)
@@ -579,6 +575,7 @@ int doGetAttribute(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
 			break;
 		case GET_REQUEST_RECORD_NEXT:
 			break;
+
 	}
 	return 1;
 }
