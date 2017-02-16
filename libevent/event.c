@@ -11,6 +11,7 @@
 #include "PublicFunction.h"
 #include "AccessFun.h"
 #include "Shmem.h"
+#include "Objectdef.h"
 
 //测量点、事件参数
 static TSA TSA_LIST[MAX_POINT_NUM];
@@ -242,6 +243,107 @@ INT8U Get_Event(OI_698 oi,INT8U eventno,INT8U** Getbuf,int *Getlen,ProgramInfo* 
 	readCoverClass(oi,_currno,*Getbuf,*Getlen,event_record_save);
 	return 1;
 }
+
+/*
+ * GETREQUESTRECORD selector9/10 获取事件记录中某一数据
+ */
+INT8U Getevent_Record_Selector(RESULT_RECORD *record_para,ProgramInfo* prginfo_event){
+    if(record_para == NULL)
+    	return 0;
+    INT8U event_no=1; //上n条记录
+    //如果是属性2
+    if(record_para->oad.attflg == 2){
+         switch(record_para->selectType){
+			 case 9:
+				 event_no=record_para->select.selec9.recordn;
+				 break;
+			 case 10:
+				 event_no=record_para->select.selec10.recordn;
+				 break;
+         }
+		INT8U *Getbuf=NULL;//因为记录为变长，只能采用二级指针，动态分配
+		int Getlen=0;//记录长度
+		Get_Event(record_para->oad.OI,event_no,(INT8U**)&Getbuf,&Getlen,prginfo_event);
+		if(Getbuf!=NULL && Getlen>0){
+            INT8U real_index=0;//最终长度
+            record_para->data=(INT8U*)malloc(Getlen);//先按最大长度分配
+            OI_698 oi_array[50]={0};
+            INT8U oi_index=0; //召测得数据OI数量
+            INT8U i=0;
+            for(i=0;i<record_para->rcsd.csds.num;i++){
+            	//OAD
+            	if(record_para->rcsd.csds.csd[i].type == 0){
+            		if(record_para->rcsd.csds.csd[i].csd.oad.attflg == 2)
+            			oi_array[oi_index++]=record_para->rcsd.csds.csd[i].csd.oad.OI;
+            	}
+            	//ROAD
+            	else if(record_para->rcsd.csds.csd[i].type == 1){
+            		if(record_para->rcsd.csds.csd[i].csd.road.oad.attflg == 2)
+            			oi_array[oi_index++]=record_para->rcsd.csds.csd[i].csd.road.oad.OI;
+
+            		INT8U j=0;
+            		for(j=0;j<record_para->rcsd.csds.csd[i].csd.road.num;j++){
+            			if(record_para->rcsd.csds.csd[i].csd.road.oads[j].attflg == 2)
+            				oi_array[oi_index++]=record_para->rcsd.csds.csd[i].csd.road.oads[j].OI;
+            		}
+            	}
+            }
+            INT8U m=0;
+            for(m=0;i<oi_index;m++){
+				switch(oi_array[m]){
+					case 0x2022://事件序号
+						memcpy(&record_para->data[real_index],&Getbuf[STANDARD_NO_INDEX],5);
+						real_index +=5;
+						break;
+					case 0x201E://事件发生时间
+						memcpy(&record_para->data[real_index],&Getbuf[STANDARD_HAPPENTIME_INDEX],8);
+						real_index +=8;
+						break;
+					case 0x2020://事件结束时间
+						memcpy(&record_para->data[real_index],&Getbuf[STANDARD_ENDTIME_INDEX],8);
+						real_index +=8;
+						break;
+					case 0x2024://事件发生源
+					{
+						INT8U len=0;
+						switch(Getbuf[STANDARD_SOURCE_INDEX]){
+						    case s_null:
+						    	record_para->data[real_index++]=0;
+						    	len=0;
+						    	break;
+						    case s_tsa:
+						    	len=Getbuf[STANDARD_SOURCE_INDEX+1]+2;
+						    	break;
+						    case s_oad:
+								len=5;
+								break;
+						    case s_usigned:
+								len=2;
+								break;
+						    case s_enum:
+								len=2;
+								break;
+						    case s_oi:
+								len=3;
+								break;
+						}
+                        memcpy(&record_para->data[real_index],&Getbuf[23],len);
+                        real_index +=len;
+						break;
+					}
+				}
+            }
+            record_para->datalen=real_index;//最终长度
+		}else{
+			record_para->dar = 0; //无数据
+			return 0;
+		}
+    }else{
+    	record_para->dar = 0;
+    	return 0;
+    }
+	return 1;
+}
 /*
  * 事件需要上报
  */
@@ -331,53 +433,53 @@ INT8U Get_CurrResult(INT8U *Rbuf,INT8U *Index,
 INT8U Get_StandardUnit(OI_698 oi,INT8U *Rbuf,INT8U *Index,
 		INT8U Eventno,INT8U *Source,Source_Typ S_type){
 	//Struct
-	Rbuf[(*Index)++] = dtstructure;
+	Rbuf[(*Index)++] = dtstructure;//0
 	//单元数量
-	Rbuf[(*Index)++] = STANDARD_NUM;
+	Rbuf[(*Index)++] = STANDARD_NUM;//1
 	//事件记录序号
-	Rbuf[(*Index)++] = dtdoublelongunsigned;
+	Rbuf[(*Index)++] = dtdoublelongunsigned;//2
 	//memcpy(&Rbuf[*Index], &Eventno, sizeof(INT32U));
 	INT32U En=(INT32U)Eventno;
-	Rbuf[(*Index)++] = ((En>>24)&0x000000ff);
-	Rbuf[(*Index)++] = ((En>>16)&0x000000ff);
-	Rbuf[(*Index)++] = ((En>>8)&0x000000ff);
-	Rbuf[(*Index)++] = En&0x000000ff;
+	Rbuf[(*Index)++] = ((En>>24)&0x000000ff);//3
+	Rbuf[(*Index)++] = ((En>>16)&0x000000ff);//4
+	Rbuf[(*Index)++] = ((En>>8)&0x000000ff);//5
+	Rbuf[(*Index)++] = En&0x000000ff;//6
 	//(*Index)+=sizeof(INT32U);
 	DateTimeBCD ntime;
 	DataTimeGet(&ntime);
 
 	//事件发生时间
-	Rbuf[(*Index)++] = dtdatetimes;
+	Rbuf[(*Index)++] = dtdatetimes;//7
 	//memcpy(&Rbuf[*Index], &ntime, sizeof(ntime));
 	//(*Index)+=sizeof(ntime);
-	Rbuf[(*Index)++] = ((ntime.year.data>>8)&0x00ff);
-	Rbuf[(*Index)++] = ((ntime.year.data)&0x00ff);
-	Rbuf[(*Index)++] = ntime.month.data;
-	Rbuf[(*Index)++] = ntime.day.data;
-	Rbuf[(*Index)++] = ntime.hour.data;
-	Rbuf[(*Index)++] = ntime.min.data;
-	Rbuf[(*Index)++] = ntime.sec.data;
+	Rbuf[(*Index)++] = ((ntime.year.data>>8)&0x00ff);//8
+	Rbuf[(*Index)++] = ((ntime.year.data)&0x00ff);//9
+	Rbuf[(*Index)++] = ntime.month.data;//10
+	Rbuf[(*Index)++] = ntime.day.data;//11
+	Rbuf[(*Index)++] = ntime.hour.data;//12
+	Rbuf[(*Index)++] = ntime.min.data;//13
+	Rbuf[(*Index)++] = ntime.sec.data;//14
 	//事件结束时间
-	Rbuf[(*Index)++] = dtdatetimes;
+	Rbuf[(*Index)++] = dtdatetimes;//15
 	if(oi==0x311C){
 		memset(&Rbuf[*Index],DATA_FF,sizeof(ntime));//TODO
-		(*Index)+=sizeof(ntime);
+		(*Index)+=sizeof(ntime);//0
 	}
 	else{
-		Rbuf[(*Index)++] = ((ntime.year.data>>8)&0x00ff);
-		Rbuf[(*Index)++] = ((ntime.year.data)&0x00ff);
-		Rbuf[(*Index)++] = ntime.month.data;
-		Rbuf[(*Index)++] = ntime.day.data;
-		Rbuf[(*Index)++] = ntime.hour.data;
-		Rbuf[(*Index)++] = ntime.min.data;
-		Rbuf[(*Index)++] = ntime.sec.data;
+		Rbuf[(*Index)++] = ((ntime.year.data>>8)&0x00ff);//16
+		Rbuf[(*Index)++] = ((ntime.year.data)&0x00ff);//17
+		Rbuf[(*Index)++] = ntime.month.data;//18
+		Rbuf[(*Index)++] = ntime.day.data;//19
+		Rbuf[(*Index)++] = ntime.hour.data;//20
+		Rbuf[(*Index)++] = ntime.min.data;//21
+		Rbuf[(*Index)++] = ntime.sec.data;//22
 	}
 	//事件发生源
 	INT8U datatype=0,sourcelen=0;
 	Get_Source(Source,S_type,&datatype,&sourcelen);
-	Rbuf[(*Index)++] = datatype;
+	Rbuf[(*Index)++] = datatype;//23
 	if(datatype==s_tsa)
-		Rbuf[(*Index)++] = sourcelen;
+		Rbuf[(*Index)++] = sourcelen;//0
 	if(sourcelen>0)
 		memcpy(&Rbuf[(*Index)],Source,sourcelen);
 	(*Index)+=sourcelen;
