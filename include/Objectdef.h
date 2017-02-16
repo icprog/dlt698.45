@@ -121,17 +121,6 @@ typedef struct {
 } CLASS_4001_4002_4003; 	//4001:通信地址，4002：表号，4003：客户编号
 
 typedef struct {
-	INT8U hour;						//时
-	INT8U min;						//分
-	INT8U rateno;						//费率号
-} Day_Period;
-
-typedef struct {
-	INT8U num;
-	Day_Period Period_Rate[MAX_PERIOD_RATE];
-} CLASS_4016;
-
-typedef struct {
 	INT8U fangwei;
 	INT8U du;
 	INT8U fen;
@@ -147,12 +136,6 @@ typedef struct {
 	INT8U clocksource;
 	INT8U state;
 } CLASS_4006;
-typedef struct {
-	INT16U uUp;
-	INT16U uDown;
-	INT16U uUp_Kaohe;
-	INT16U uDown_Kaohe;
-} CLASS_4030;
 
 typedef struct {
 	INT8U poweon_showtime;//上电全显时间
@@ -163,9 +146,29 @@ typedef struct {
 	INT8U energydata_dec;//显示电能小数位
 	INT8U powerdata_dec;//显示功率小数位
 } CLASS_4007;
+
+typedef struct {
+	INT8U hour;						//时
+	INT8U min;						//分
+	INT8U rateno;						//费率号
+} Day_Period;
+
+typedef struct {
+	INT8U num;
+	Day_Period Period_Rate[MAX_PERIOD_RATE];
+} CLASS_4016;
+
+typedef struct {
+	INT16U uUp;
+	INT16U uDown;
+	INT16U uUp_Kaohe;
+	INT16U uDown_Kaohe;
+} CLASS_4030;
+
 typedef struct {
 	INT8U assetcode[40];
 } CLASS_4103;
+
 typedef struct {
 	INT8U startime[OCTET_STRING_LEN];
 	INT8U enable;

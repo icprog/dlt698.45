@@ -189,6 +189,7 @@ INT32S UnitParse(INT8U* source,INT8U* dest,INT8U type)
 
  //组织属性对象中的当前计数器，返回添加进入的字节数量
  //attrindex OAD内属性索引
+ 	//已测
  INT8U composeEsamCurrentCounter(INT8U attrindex,EsamInfo *esamInfo,INT8U *retBuff)
  {
 	 INT8U retLen=0;
@@ -260,6 +261,7 @@ INT32S UnitParse(INT8U* source,INT8U* dest,INT8U type)
  //输入：单个oad，retBuff,返回字符串指针，将需要返回字符串写入，开头为长度
  //输出：写入retBuff长度
  //当属性为0的时候，返回错误，因为无法将主站和客户端的证书组报文返回去，也没这么用的
+ //已测
 INT16U getEsamAttribute(OAD oad,INT8U *retBuff)
 {
 	INT32S retLen=0;
@@ -273,8 +275,10 @@ INT16U getEsamAttribute(OAD oad,INT8U *retBuff)
 	}
 	struct timeval tv_new;//静态存储时间
 	gettimeofday(&tv_new, NULL);
-	if(tv_store.tv_sec == 0 || (tv_store.tv_sec - tv_store.tv_sec)>=3)//第一次进入该函数，或有效时间超过3秒，重新esam访问
+	fprintf(stderr,"get esam attribute 00000\n");
+	if(tv_store.tv_sec == 0 || (tv_new.tv_sec - tv_store.tv_sec)>=3)//第一次进入该函数，或有效时间超过3秒，重新esam访问
 	{
+		fprintf(stderr,"get esam attribute 11111\n");
 		INT32S fd=-1;
 		fd = Esam_Init(fd,(INT8U*)ACS_SPI_DEV);
 		if(fd>0)
@@ -294,28 +298,33 @@ INT16U getEsamAttribute(OAD oad,INT8U *retBuff)
 	{
 		case 0x02:    //ESAM序列号
 			retBuff[0] = 0x09;//octet-string
-			memcpy(&retBuff[1],esamInfo.EsamSID,8);
-			retLen=1+8;
+			retBuff[1]=0x08;//长度
+			memcpy(&retBuff[2],esamInfo.EsamSID,8);
+			retLen=2+8;
 			break;
 		case 0x03:   //ESAM版本号
 			retBuff[0] = 0x09;//octet-string
-			memcpy(&retBuff[1],esamInfo.EsamVID,4);
-			retLen=1+4;
+			retBuff[1]=0x04;
+			memcpy(&retBuff[2],esamInfo.EsamVID,4);
+			retLen=2+4;
 			break;
 		case 0x04:    //对称秘钥版本
 			retBuff[0] = 0x09;//octet-string
-			memcpy(&retBuff[1],esamInfo.SecretKeyVersion,16);
-			retLen=1+16;
+			retBuff[1] = 0x10;
+			memcpy(&retBuff[2],esamInfo.SecretKeyVersion,16);
+			retLen=2+16;
 			break;
 		case 0x05:    //会话时效门限
 			retBuff[0]=0x06;//double-long-unsigned
-			memcpy(&retBuff[1],esamInfo.SessionTimeHold,4);
-			retLen=1+4;
+			retBuff[1] = 0x04;
+			memcpy(&retBuff[2],esamInfo.SessionTimeHold,4);
+			retLen=2+4;
 			break;
 		case 0x06:   //会话时效剩余时间
 			retBuff[0]=0x06;//double-long-unsigned
-			memcpy(&retBuff[1],esamInfo.SessionTimeLeft,4);
-			retLen=1+4;
+			retBuff[1] = 0x04;
+			memcpy(&retBuff[2],esamInfo.SessionTimeLeft,4);
+			retLen=2+4;
 			break;
 		case 0x07:    //当前计数器
 			retLen = composeEsamCurrentCounter(oad.attrindex,&esamInfo,retBuff);
@@ -325,13 +334,15 @@ INT16U getEsamAttribute(OAD oad,INT8U *retBuff)
 			break;
 		case 0x09:     //终端证书序列号
 			retBuff[0] = 0x09;//octet-string
-			memcpy(&retBuff[1],esamInfo.TerminalCcieSID,16);
-			retLen=1+16;
+			retBuff[1] = 0x10;
+			memcpy(&retBuff[2],esamInfo.TerminalCcieSID,16);
+			retLen=2+16;
 			break;
 		case 0x0B:    //主站证书序列号
 			retBuff[0] = 0x09;//octet-string
-			memcpy(&retBuff[1],esamInfo.ServerCcieSID,16);
-			retLen=1+16;
+			retBuff[1] = 0x10;
+			memcpy(&retBuff[2],esamInfo.ServerCcieSID,16);
+			retLen=2+16;
 			break;
 		case 0x0D:    //ESAM安全存储对象列表
 			break;

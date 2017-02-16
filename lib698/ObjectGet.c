@@ -18,9 +18,10 @@ extern INT8S (*pSendfun)(int fd,INT8U* sndbuf,INT16U sndlen);
 extern int FrameHead(CSINFO *csinfo,INT8U *buf);
 extern void FrameTail(INT8U *buf,int index,int hcsi);
 extern INT8U Get_Event(OI_698 oi,INT8U eventno,INT8U** Getbuf,INT8U *Getlen);
+extern void getoad(INT8U *data,OAD *oad);
 extern int comfd;
 extern INT8U TmpDataBuf[MAXSIZ_FAM];
-
+extern INT8U TmpDataBufList[MAXSIZ_FAM*2];
 typedef struct
 {
 	OAD oad;
@@ -28,7 +29,7 @@ typedef struct
 	INT8U *data;	//数据  上报时与 dar二选一
 	INT16U datalen;	//数据长度
 }RESULT_NORMAL;
-int BuildFrame_GetResponse(INT8U response_type,CSINFO *csinfo,RESULT_NORMAL response,INT8U *sendbuf)
+int BuildFrame_GetResponse(INT8U response_type,CSINFO *csinfo,INT8U oadnum,RESULT_NORMAL response,INT8U *sendbuf)
 {
 	int index=0, hcsi=0;
 	csinfo->dir = 1;
@@ -39,28 +40,105 @@ int BuildFrame_GetResponse(INT8U response_type,CSINFO *csinfo,RESULT_NORMAL resp
 	sendbuf[index++] = GET_RESPONSE;
 	sendbuf[index++] = response_type;
 	sendbuf[index++] = 0;	//	piid
-	sendbuf[index++] = (response.oad.OI>>8) & 0xff;
-	sendbuf[index++] = response.oad.OI & 0xff;
-	sendbuf[index++] = response.oad.attflg;
-	sendbuf[index++] = response.oad.attrindex;
-	if (response.datalen > 0)
-	{
-		sendbuf[index++] = 1;//choice 1  ,Data有效
-		memcpy(&sendbuf[index],response.data,response.datalen);
-		index = index + response.datalen;
-	}else
-	{
-		sendbuf[index++] = 0;//choice 0  ,DAR 有效 (数据访问可能的结果)
-		sendbuf[index++] = 0x16;
-		sendbuf[index++] = response.dar;
-	}
-	sendbuf[index++] = 0;
+	if (oadnum>0)
+		sendbuf[index++] = oadnum;
+
+	memcpy(&sendbuf[index],response.data,response.datalen);
+	index = index + response.datalen;
+
 	sendbuf[index++] = 0;
 	FrameTail(sendbuf,index,hcsi);
 	if(pSendfun!=NULL)
 		pSendfun(comfd,sendbuf,index+3);
 	return (index+3);
 }
+
+int create_array(INT8U *data,INT8U numm)
+{
+	data[0] = dtarray;
+	data[1] = numm;
+	return 2;
+}
+int create_struct(INT8U *data,INT8U numm)
+{
+	data[0] = dtstructure;
+	data[1] = numm;
+	return 2;
+}
+int file_bool(INT8U *data,INT8U value)
+{
+	data[0] = dtbool;
+	data[1] = value;
+	return 2;
+}
+int fill_bit_string8(INT8U *data,INT8U bits)
+{
+	//TODO : 默认8bit ，不符合A-XDR规范
+	data[0] = dtbitstring;
+	data[1] = 0x08;
+	data[2] = bits;
+	return 3;
+}
+
+int fill_double_long_unsigned(INT8U *data,INT32U value)
+{
+	data[0] = dtdoublelongunsigned;
+	data[1] = (value & 0xFF000000) >> 24 ;
+	data[2] = (value & 0x00FF0000) >> 16 ;
+	data[3] = (value & 0x0000FF00) >> 8 ;
+	data[4] =  value & 0x000000FF;
+	return 5;
+}
+int fill_visiblestring(INT8U *data,INT8U *value)
+{
+	int bytenum = 0;
+	data[0] = dtvisiblestring;
+	bytenum = value[0] + 1 + 1;//总字节长度 = 字符串 + 长度描述符 + 类型  ，
+	memcpy(&data[1],value,bytenum);
+	return bytenum;
+}
+
+int fill_integer(INT8U *data,INT8U value)
+{
+	data[0] = dtinteger;
+	data[1] = value;
+	return 2;
+}
+int fill_unsigned(INT8U *data,INT8U value)
+{
+	data[0] = dtunsigned;
+	data[1] = value;
+	return 2;
+}
+
+int fill_long_unsigned(INT8U *data,INT16U value)
+{
+	data[0] = dtlongunsigned;
+	data[1] = (value & 0xFF00)>>8;
+	data[2] = value & 0x00FF;
+	return 3;
+}
+int fill_enum(INT8U *data,INT8U value)
+{
+	data[0] = dtenum;
+	data[1] = value;
+	return 2;
+}
+int fill_time(INT8U *data,INT8U *value)
+{
+	data[0] = dttime;
+	memcpy(&data[1],&value[0],3);
+	return 4;
+}
+
+int fill_DateTimeBCD(INT8U *data,DateTimeBCD *time)
+{
+	data[0] = dtdatetimes;
+	time->year.data = time->year.data >>8 | time->year.data<<8;
+	memcpy(&data[1],time,sizeof(DateTimeBCD));
+	return (sizeof(DateTimeBCD)+1);
+}
+
 int GetMeterInfo(RESULT_NORMAL *response)
 {
 	return 0;
@@ -78,88 +156,7 @@ int GetEventCjFangAnInfo(RESULT_NORMAL *response)
 {
 	return 0;
 }
-int create_array(INT8U *data,INT8U numm)
-{
-	data[0] = 0x01;
-	data[1] = numm;
-	return 2;
-}
-int create_struct(INT8U *data,INT8U numm)
-{
-	data[0] = 0x02;
-	data[1] = numm;
-	return 2;
-}
-int fill_bit_string8(INT8U *data,INT8U bits)
-{
-	//TODO : 默认8bit ，不符合A-XDR规范
-	data[0] = 0x04;
-	data[1] = 0x08;
-	data[2] = bits;
-	return 3;
-}
-int fill_unsigned(INT8U *data,INT8U value)
-{
-	data[0] = 0x11;
-	data[1] = value;
-	return 2;
-}
-int fill_integer(INT8U *data,INT8U value)
-{
-	data[0] = 0xf;
-	data[1] = value;
-	return 2;
-}
 
-int fill_visiblestring(INT8U *data,INT8U *value)
-{
-	int bytenum = 0;
-	data[0] = 0x0a;
-	bytenum = value[0] + 1 + 1;//总字节长度 = 字符串 + 长度描述符 + 类型  ，
-	memcpy(&data[1],value,bytenum);
-	return bytenum;
-}
-int fill_long_unsigned(INT8U *data,INT16U value)
-{
-	data[0] = 0x12;
-	data[1] = (value & 0xFF00)>>8;
-	data[2] = value & 0x00FF;
-	return 3;
-}
-int fill_DateTimeBCD(INT8U *data,DateTimeBCD *time)
-{
-	data[0] = 0x1C;
-	time->year.data = time->year.data >>8 | time->year.data<<8;
-	memcpy(&data[1],time,sizeof(DateTimeBCD));
-	return (sizeof(DateTimeBCD)+1);
-}
-int fill_enum(INT8U *data,INT8U value)
-{
-	data[0] = 0x16;
-	data[1] = value;
-	return 2;
-}
-int fill_time(INT8U *data,INT8U *value)
-{
-	data[0] = 0x1b;
-	memcpy(&data[1],&value[0],3);
-	return 4;
-}
-int file_bool(INT8U *data,INT8U value)
-{
-	data[0] = 3;
-	data[1] = value;
-	return 2;
-}
-int fill_double_long_unsigned(INT8U *data,INT32U value)
-{
-	data[0] = 0x06;
-	data[1] = (value & 0xFF000000) >> 24 ;
-	data[2] = (value & 0x00FF0000) >> 16 ;
-	data[3] = (value & 0x0000FF00) >> 8 ;
-	data[4] =  value & 0x000000FF;
-	return 5;
-}
 int GetYxPara(RESULT_NORMAL *response)
 {
 	int index=0;
@@ -496,42 +493,10 @@ int getRequestRecord(INT8U *typestu,CSINFO *csinfo,INT8U *buf)
 	//3,RCSD
 	return 1;
 }
-int doGetnormal(RESULT_NORMAL *response)
+int GetEnvironmentValue(RESULT_NORMAL *response)
 {
-	INT16U oi = response->oad.OI;
-	fprintf(stderr,"\ngetRequestNormal----------  oi =%04x  ",oi);
-
-	INT8U oihead = (oi & 0xF000) >>12;
-	switch(oihead) {
-	case 3:			//事件类对象读取
-		GetEventInfo(response);
-		break;
-	}
-	switch(oi)
+	switch(response->oad.OI)
 	{
-		case 0x6000:	//采集档案配置表
-			GetMeterInfo(response);
-			break;
-		case 0x6002:	//搜表
-			break;
-		case 0x6012:	//任务配置表
-			GetTaskInfo(response);
-			break;
-		case 0x6014:	//普通采集方案集
-			GetCjiFangAnInfo(response);
-			break;
-		case 0x6016:	//事件采集方案
-			GetEventCjFangAnInfo(response);
-			break;
-		case 0xF100:
-			GetEsamPara(response);
-			break;
-		case 0xF101:
-			GetSecurePara(response);
-			break;
-		case 0xF203:
-			GetYxPara(response);
-			break;
 		case 0x4000:
 			GetSysDateTime(response);
 			break;
@@ -557,21 +522,133 @@ int doGetnormal(RESULT_NORMAL *response)
 			Get4300(response);
 			break;
 	}
+	return 1;
+}
+int GetCollPara(RESULT_NORMAL *response)
+{
+	switch(response->oad.OI)
+	{
+		case 0x6000:	//采集档案配置表
+			GetMeterInfo(response);
+			break;
+		case 0x6002:	//搜表
+			break;
+		case 0x6012:	//任务配置表
+			GetTaskInfo(response);
+			break;
+		case 0x6014:	//普通采集方案集
+			GetCjiFangAnInfo(response);
+			break;
+		case 0x6016:	//事件采集方案
+			GetEventCjFangAnInfo(response);
+			break;
+	}
+	return 1;
+}
+int GetDeviceIo(RESULT_NORMAL *response)
+{
+	switch(response->oad.OI)
+	{
+		case 0xF100:
+			GetEsamPara(response);
+			break;
+		case 0xF101:
+			GetSecurePara(response);
+			break;
+		case 0xF203:
+			GetYxPara(response);
+			break;
+	}
 
+	return 1;
+}
+int doGetnormal(RESULT_NORMAL *response)
+{
+	INT16U oi = response->oad.OI;
+	INT8U oihead = (oi & 0xF000) >>12;
+
+	fprintf(stderr,"\ngetRequestNormal----------  oi =%04x  \n",oi);
+	switch(oihead) {
+		case 3:			//事件类对象读取
+			GetEventInfo(response);
+			break;
+		case 6:			//采集监控类对象
+			GetCollPara(response);
+			break;
+		case 4:			//参变量类对象
+			GetEnvironmentValue(response);
+			break;
+		case 0xF:		//文件类/esam类/设备类
+			GetDeviceIo(response);
+			break;
+	}
 	return 0;
 }
 int getRequestNormal(OAD oad,INT8U *data,CSINFO *csinfo,INT8U *sendbuf)
 {
 	RESULT_NORMAL response;
+	INT8U oadtmp[4]={};
+	oadtmp[0] = (oad.OI>>8) & 0xff;
+	oadtmp[1] = oad.OI & 0xff;
+	oadtmp[2] = oad.attflg;
+	oadtmp[3] = oad.attrindex;
 	memset(TmpDataBuf,0,sizeof(TmpDataBuf));
+	memcpy(TmpDataBuf,oadtmp,4);
+
 	response.oad = oad;
-	response.data = TmpDataBuf;
+	response.data = TmpDataBuf+5; //4 + 1             oad（4字节） + choice(1字节)
 	response.datalen = 0;
 	doGetnormal(&response);
-	BuildFrame_GetResponse(GET_REQUEST_NORMAL,csinfo,response,sendbuf);
+	if (response.datalen>0)
+	{
+		TmpDataBuf[4] = 1;//数据
+		response.datalen += 5;  // datalen + oad(4) + choice(1)
+	}else
+	{
+		TmpDataBuf[4] = 0;//错误
+		TmpDataBuf[5] = response.dar;
+		response.datalen += 6;  // datalen + oad(4) + choice(1) + dar
+	}
+	response.data = TmpDataBuf;
+
+	BuildFrame_GetResponse(GET_REQUEST_NORMAL,csinfo,0,response,sendbuf);
 	return 1;
 }
-int getRequestNormalList(OAD oad,INT8U *data,CSINFO *csinfo,INT8U *sendbuf)
+
+int getRequestNormalList(INT8U *data,CSINFO *csinfo,INT8U *sendbuf)
 {
+	RESULT_NORMAL response;
+	INT8U oadtmp[4]={};
+	INT8U oadnum = data[0];
+	int i=0,listindex=0;
+	fprintf(stderr,"\nGetNormalList!! OAD_NUM=%d",oadnum);
+	memset(TmpDataBufList,0,sizeof(TmpDataBufList));
+	for(i=0;i<oadnum;i++)
+	{
+		memset(TmpDataBuf,0,sizeof(TmpDataBuf));
+		memcpy(oadtmp,&data[1 + i*4],4);
+		getoad(oadtmp, &response.oad);
+		response.datalen = 0;
+		response.data = TmpDataBuf + 5;
+		fprintf(stderr,"\n【%d】OI = %x  %02x  %02x",i,response.oad.OI,response.oad.attflg,response.oad.attrindex);
+		doGetnormal(&response);
+
+		memcpy(&TmpDataBufList[listindex + 0],oadtmp,4);
+		if (response.datalen>0)
+		{
+			TmpDataBufList[listindex + 4] = 1;//数据
+			memcpy(&TmpDataBufList[listindex + 5],response.data,response.datalen);
+			listindex = listindex + 5 + response.datalen;
+		}
+		else
+		{
+			TmpDataBufList[listindex + 4] = 0;//错误
+			TmpDataBufList[listindex + 5] = response.dar;  //  0-3(oad)   4(choice)  5(dar)
+			listindex = listindex + 6;
+		}
+	}
+	response.data = TmpDataBufList;
+	response.datalen = listindex;
+	BuildFrame_GetResponse(GET_REQUEST_NORMAL_LIST,csinfo,oadnum,response,sendbuf);
 	return 1;
 }

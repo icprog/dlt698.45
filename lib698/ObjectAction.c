@@ -13,11 +13,13 @@
 #include "dlt698def.h"
 #include "Objectdef.h"
 #include "event.h"
+#include "secure.h"
 void get_BasicUnit(INT8U *source,INT16U *sourceindex,INT8U *dest,INT16U *destindex);
 extern void FrameTail(INT8U *buf,int index,int hcsi);
 extern int FrameHead(CSINFO *csinfo,INT8U *buf);
 extern INT8S (*pSendfun)(int fd,INT8U* sndbuf,INT16U sndlen);
 extern int comfd;
+extern ProgramInfo *memp;
 
 INT16U getMytypeSize(INT8U first )
 {

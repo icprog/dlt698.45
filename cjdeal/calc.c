@@ -32,6 +32,7 @@ MaxDemand tjXuliang_acs_m;				//月冻结交采需量统计
 INT8U 	CalcPointNum;		//需要统计的最大个数
 CLASS_4030 obj_offset={};
 CLASS_4016 feilv_para={};
+StatisticsPointProp StatisticsPoint[MAXNUM_IMPORTANTUSR];
 /*
  * 	山东要求：电压合格率统计，在停上电1分钟及停电期间，不进行电压合格统计
  * =1:满足上电1分钟要求，可以进行电压合格率统计
@@ -392,15 +393,15 @@ void voltage_calc(){
 			point[i].Result_m.tjUa.x_Rate = Rate>100?100:Rate;
 			point[i].Result_m.tjUa.ok_Rate = 100.00-point[i].Result_m.tjUa.x_Rate-point[i].Result_m.tjUa.s_Rate;
 			//统计数据给共享内存赋值
-			CpPubdata_U(point[i].Result.tjUa,&JProgramInfo->StatisticsPoint[i].DayResu.tjUa);
-			CpPubdata_U(point[i].Result_m.tjUa,&JProgramInfo->StatisticsPoint[i].MonthResu.tjUa);
-			JProgramInfo->StatisticsPoint[i].PointNo = point[i].PointNo;
+			CpPubdata_U(point[i].Result.tjUa,&StatisticsPoint[i].DayResu.tjUa);
+			CpPubdata_U(point[i].Result_m.tjUa,&StatisticsPoint[i].MonthResu.tjUa);
+			StatisticsPoint[i].PointNo = point[i].PointNo;
 
 		}
 		else
 		{
-			memset((INT8U*)&JProgramInfo->StatisticsPoint[i].DayResu.tjUa,0xee,sizeof(JProgramInfo->StatisticsPoint[i].DayResu.tjUa));
-			memset((INT8U*)&JProgramInfo->StatisticsPoint[i].MonthResu.tjUa,0xee,sizeof(JProgramInfo->StatisticsPoint[i].MonthResu.tjUa));
+			memset((INT8U*)&StatisticsPoint[i].DayResu.tjUa,0xee,sizeof(StatisticsPoint[i].DayResu.tjUa));
+			memset((INT8U*)&StatisticsPoint[i].MonthResu.tjUa,0xee,sizeof(StatisticsPoint[i].MonthResu.tjUa));
 		}
 
 		//code 3
@@ -451,15 +452,15 @@ void voltage_calc(){
 				point[i].Result_m.tjUb.x_Rate = Rate>100?100:Rate;
 				point[i].Result_m.tjUb.ok_Rate = 100.00-point[i].Result_m.tjUb.x_Rate-point[i].Result_m.tjUb.s_Rate;
 
-				JProgramInfo->StatisticsPoint[i].PointNo = point[i].PointNo;
-				CpPubdata_U(point[i].Result.tjUb,&JProgramInfo->StatisticsPoint[i].DayResu.tjUb);
-				CpPubdata_U(point[i].Result_m.tjUb,&JProgramInfo->StatisticsPoint[i].MonthResu.tjUb);
+				StatisticsPoint[i].PointNo = point[i].PointNo;
+				CpPubdata_U(point[i].Result.tjUb,&StatisticsPoint[i].DayResu.tjUb);
+				CpPubdata_U(point[i].Result_m.tjUb,&StatisticsPoint[i].MonthResu.tjUb);
 
 			}
 			else
 			{
-				memset((INT8U*)&JProgramInfo->StatisticsPoint[i].DayResu.tjUb,0xee,sizeof(JProgramInfo->StatisticsPoint[i].DayResu.tjUb));
-				memset((INT8U*)&JProgramInfo->StatisticsPoint[i].MonthResu.tjUb,0xee,sizeof(JProgramInfo->StatisticsPoint[i].MonthResu.tjUb));
+				memset((INT8U*)&StatisticsPoint[i].DayResu.tjUb,0xee,sizeof(StatisticsPoint[i].DayResu.tjUb));
+				memset((INT8U*)&StatisticsPoint[i].MonthResu.tjUb,0xee,sizeof(StatisticsPoint[i].MonthResu.tjUb));
 			}
 		}
 		//code 2
@@ -503,14 +504,14 @@ void voltage_calc(){
 			point[i].Result_m.tjUc.x_Rate = Rate>100?100:Rate;
 			point[i].Result_m.tjUc.ok_Rate = 100.00-point[i].Result_m.tjUc.x_Rate-point[i].Result_m.tjUc.s_Rate;
 
-			JProgramInfo->StatisticsPoint[i].PointNo = point[i].PointNo;
-			CpPubdata_U(point[i].Result.tjUc,&JProgramInfo->StatisticsPoint[i].DayResu.tjUc);
-			CpPubdata_U(point[i].Result_m.tjUc,&JProgramInfo->StatisticsPoint[i].MonthResu.tjUc);
+			StatisticsPoint[i].PointNo = point[i].PointNo;
+			CpPubdata_U(point[i].Result.tjUc,&StatisticsPoint[i].DayResu.tjUc);
+			CpPubdata_U(point[i].Result_m.tjUc,&StatisticsPoint[i].MonthResu.tjUc);
 		}
 		else
 		{
-			memset((INT8U*)&JProgramInfo->StatisticsPoint[i].DayResu.tjUc,0xee,sizeof(JProgramInfo->StatisticsPoint[i].DayResu.tjUc));
-			memset((INT8U*)&JProgramInfo->StatisticsPoint[i].MonthResu.tjUc,0xee,sizeof(JProgramInfo->StatisticsPoint[i].MonthResu.tjUc));
+			memset((INT8U*)&StatisticsPoint[i].DayResu.tjUc,0xee,sizeof(StatisticsPoint[i].DayResu.tjUc));
+			memset((INT8U*)&StatisticsPoint[i].MonthResu.tjUc,0xee,sizeof(StatisticsPoint[i].MonthResu.tjUc));
 		}
 	}
 }
@@ -571,7 +572,7 @@ void ReadPubData()
 		memset(&point[i].Result_m.tjUc,0,sizeof(point[i].Result_m.tjUc));
 
 	}
-	if(readCoverClass(0x4030,0,JProgramInfo->StatisticsPoint,sizeof(JProgramInfo->StatisticsPoint),calc_voltage_save)<=0)
+	if(readCoverClass(0x4030,0,StatisticsPoint,sizeof(StatisticsPoint),calc_voltage_save)<=0)
 	{
 		return;
 	}
@@ -583,16 +584,16 @@ void ReadPubData()
 	//	if (point[i].Type!= JIAOCAI_TYPE)
 	//		continue;
 #ifdef CCTT_II
-		CpPubdata_UU(JProgramInfo->StatisticsPoint[i].DayResu.tjUa,&point[i].Result.tjUa);
-		CpPubdata_UU(JProgramInfo->StatisticsPoint[i].MonthResu.tjUa,&point[i].Result_m.tjUa);
+		CpPubdata_UU(StatisticsPoint[i].DayResu.tjUa,&point[i].Result.tjUa);
+		CpPubdata_UU(StatisticsPoint[i].MonthResu.tjUa,&point[i].Result_m.tjUa);
 
 #else
-		CpPubdata_UU(JProgramInfo->StatisticsPoint[i].DayResu.tjUa,&point[i].Result.tjUa);
-		CpPubdata_UU(JProgramInfo->StatisticsPoint[i].MonthResu.tjUa,&point[i].Result_m.tjUa);
-		CpPubdata_UU(JProgramInfo->StatisticsPoint[i].DayResu.tjUb,&point[i].Result.tjUb);
-		CpPubdata_UU(JProgramInfo->StatisticsPoint[i].MonthResu.tjUb,&point[i].Result_m.tjUb);
-		CpPubdata_UU(JProgramInfo->StatisticsPoint[i].DayResu.tjUc,&point[i].Result.tjUc);
-		CpPubdata_UU(JProgramInfo->StatisticsPoint[i].MonthResu.tjUc,&point[i].Result_m.tjUc);
+		CpPubdata_UU(StatisticsPoint[i].DayResu.tjUa,&point[i].Result.tjUa);
+		CpPubdata_UU(StatisticsPoint[i].MonthResu.tjUa,&point[i].Result_m.tjUa);
+		CpPubdata_UU(StatisticsPoint[i].DayResu.tjUb,&point[i].Result.tjUb);
+		CpPubdata_UU(StatisticsPoint[i].MonthResu.tjUb,&point[i].Result_m.tjUb);
+		CpPubdata_UU(StatisticsPoint[i].DayResu.tjUc,&point[i].Result.tjUc);
+		CpPubdata_UU(StatisticsPoint[i].MonthResu.tjUc,&point[i].Result_m.tjUc);
 
 #endif
 	}
@@ -839,7 +840,7 @@ void CpyAcsDataFromPubData(POINT_CALC_TYPE* point_hander)
 	point_hander[PointIndex].Realdata.Va.value = JProgramInfo->ACSRealData.Ua;
 	point_hander[PointIndex].Realdata.Va.Available = TRUE;
 #ifndef CCTT_II
-	if(JProgramInfo->Accoepara.WireType!=0x1200)
+	if(JProgramInfo->WireType!=0x1200)
 	{
 		point_hander[PointIndex].Realdata.Vb.value = JProgramInfo->ACSRealData.Ub;
 		point_hander[PointIndex].Realdata.Vb.Available = TRUE;
@@ -901,7 +902,7 @@ void calc_thread()
 		//电压合格率统计
 	    if(valid == 1){
 			voltage_calc();
-			saveCoverClass(0x4030,0,JProgramInfo->StatisticsPoint,sizeof(JProgramInfo->StatisticsPoint),calc_voltage_save);
+			saveCoverClass(0x4030,0,StatisticsPoint,sizeof(StatisticsPoint),calc_voltage_save);
 	    }
 	    usleep(100*1000);
   }
@@ -914,6 +915,8 @@ void calc_thread()
  */
 void calc_proccess()
 {
+	memset(StatisticsPoint,0,sizeof(StatisticsPointProp)*MAXNUM_IMPORTANTUSR);
+	memset(point,0,sizeof(POINT_CALC_TYPE)*MAXNUM_IMPORTANTUSR_CALC);
 	ReadPubData();
 	pthread_attr_init(&calc_attr_t);
 	pthread_attr_setstacksize(&calc_attr_t,2048*1024);

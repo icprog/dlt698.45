@@ -312,6 +312,12 @@ int long_unsigned(INT8U *value,INT8U *buf)
 	value[1]= buf[0];
 	return 2;
 }
+void getoad(INT8U *data,OAD *oad)
+{
+	oad->OI = data[0]<<8 | data[1];
+	oad->attflg = data[2];
+	oad->attrindex = data[3];
+}
 void GetconnetRequest(CONNECT_Request *request,INT8U *apdu)
 {
 	int index=0, bytenum=0;
@@ -479,16 +485,29 @@ int appConnectResponse(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 	buf[index++] = (response.expect_connect_timeout & 0x00FF0000) >> 16 ;
 	buf[index++] = (response.expect_connect_timeout & 0x0000FF00) >> 8 ;
 	buf[index++] =  response.expect_connect_timeout & 0x000000FF;
-	buf[index++] = response.info.result;
 
-	INT32S ret = secureConnectRequest(&request.info.sigsecur,&response.info.addinfo);
-	if( ret >0 )
+
+	INT32S ret = 0;
+	if (request.connecttype == 3)
 	{
-		bytenum = response.info.addinfo.server_rn[0];
-		memcpy(&buf[index],response.info.addinfo.server_rn,bytenum);
-		index = index + bytenum;
-		bytenum = response.info.addinfo.server_signInfo[0];
-		memcpy(&buf[index],response.info.addinfo.server_signInfo,bytenum);
+		ret = secureConnectRequest(&request.info.sigsecur,&response.info.addinfo);
+		if( ret > 0 )
+		{
+			buf[index++] = response.info.result;
+			bytenum = response.info.addinfo.server_rn[0];
+			memcpy(&buf[index],response.info.addinfo.server_rn,bytenum);
+			index = index + bytenum;
+			bytenum = response.info.addinfo.server_signInfo[0];
+			memcpy(&buf[index],response.info.addinfo.server_signInfo,bytenum);
+		}else
+		{
+			buf[index++] = 4;
+			buf[index++] = 0;
+		}
+	}else
+	{
+		buf[index++] = 0;
+		buf[index++] = 0;
 	}
 
 	FrameTail(buf,index,hcsi);
@@ -534,9 +553,12 @@ int doGetAttribute(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
 	INT8U *data=NULL;
 	piid.data = apdu[2];
 	fprintf(stderr,"\n- get type = %d PIID=%02x",getType,piid.data);
-	oad.OI = (apdu[3]<<8) | apdu[4];
-	oad.attflg = apdu[5];
-	oad.attrindex = apdu[6];
+
+	getoad(&apdu[3],&oad);
+
+//	oad.OI = (apdu[3]<<8) | apdu[4];
+//	oad.attflg = apdu[5];
+//	oad.attrindex = apdu[6];
 	data = &apdu[7];					//Data
 
 	switch(getType)
