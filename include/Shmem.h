@@ -335,7 +335,6 @@ typedef struct {
 	TerminalEvent_Object event_obj;         //事件参数结构体
 	FactoryVersion  version;				//终端版本信息
 	Terminal_timeoffset t_timeoffset;    	//终端精准校时参数
-	CLASS19			terminalinfo;			//集中器，设备管理接口对象
 }ProgramInfo; //程序信息结构
 
 #endif /* GTYPE_H_ */
