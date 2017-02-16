@@ -449,7 +449,7 @@ int appConnectResponse(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 	/*
 	 * 根据 response 组织响应报文
 	 */
-	return 1;
+	//return 1;
 	csinfo->dir = 1;
 	csinfo->prm = 0;
 	index = FrameHead(csinfo,buf);
@@ -650,7 +650,7 @@ INT16S doSecurityRequest(INT8U* apdu)//
 	 INT32S fd=-1;
 	 INT8U SecurityType=0x00;//本次传输安全等级(属于库全局变量，暂放此处)
 	 INT8U MAC[20];//该mac值暂时用不到，暂存
-	 fd = Esam_Init(fd,(INT8U*)DEV_SPI_PATH);
+	 fd = Esam_Init(fd,(INT8U*)ACS_SPI_DEV);
 	 if(fd<0) return -3;
 
 	 if(apdu[1]==0x00)//明文应用数据处理
@@ -672,7 +672,7 @@ INT16S composeSecurityResponse(INT8U* SendApdu,INT16U length,INT8U SecurityType)
 {
 	 INT16S retLen=0;
 	 INT32S fd=-1;
-	 fd = Esam_Init(fd,(INT8U*)DEV_SPI_PATH);
+	 fd = Esam_Init(fd,(INT8U*)ACS_SPI_DEV);
 	 if(fd<0) return -3;
 	 retLen = Esam_SIDResponseCheck(fd,SecurityType,SendApdu,length,SendApdu);
 	 if(retLen<=0) return 0;
@@ -690,7 +690,7 @@ INT16U composeAutoReport(INT8U* SendApdu,INT16U length)
 	 INT32S fd=-1;
 	 INT8U RN[12];
 	 INT8U MAC[4];
-	 fd = Esam_Init(fd,(INT8U*)DEV_SPI_PATH);
+	 fd = Esam_Init(fd,(INT8U*)ACS_SPI_DEV);
 	 if(fd<0) return -3;
 	 retLen = Esam_ReportEncrypt(fd,&SendApdu[1],length-1,RN,MAC);
 	 if(retLen<=0) return 0;

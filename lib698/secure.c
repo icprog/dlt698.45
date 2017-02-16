@@ -41,11 +41,13 @@
   *输入：SignatureSecurity为主站下发解析得到；SecurityData为上行报文结构数据，需填充
   *输出：返回正值正确，否则失败
   **********************************************************************/
+ //已测/但测试报文无法通过校验，应该是esam芯片内证书和报文证书不匹配
 INT32S secureConnectRequest(SignatureSecurity* securityInfo ,SecurityData* RetInfo)
 {
 	 INT32S fd=-1;
-	 fd = Esam_Init(fd,(INT8U*)DEV_SPI_PATH);
-     if(fd<0) return -3;
+	 fd = Esam_Init(fd,(INT8U*)ACS_SPI_DEV);
+     if(fd<0) return -1;
+     fprintf(stderr,"secureConnectRequest  securityInfo= %d   =%d  \n",securityInfo->encrypted_code2[0],securityInfo->signature[0]);
      INT32S ret= Esam_CreateConnect( fd,  securityInfo , RetInfo);
      Esam_Clear(fd);
      return ret;
@@ -58,7 +60,7 @@ INT32S secureResponseData(INT8U* RN,INT8U* apdu)
 	 INT32S fd=-1;
 	 INT32S ret=0;
 	 INT16S MACindex=0;//MAC所在位置可能因为应用数据单元长度不定而变化
-	 fd = Esam_Init(fd,(INT8U*)DEV_SPI_PATH);
+	 fd = Esam_Init(fd,(INT8U*)ACS_SPI_DEV);
     if(fd<0) return -3;
     INT16S len = GetDataLength(&apdu[2]);
 
@@ -159,17 +161,20 @@ INT32S UnitParse(INT8U* source,INT8U* dest,INT8U type)
  }
  //获取ESAM主站/终端证书   证书都是大于1000字节，此处按照大于1000,2个字节组织上送报文
  	//ccieFlag证书标识  0x0C主站证书   0x0A终端证书
- 	INT16U getEsamCcie(INT8U ccieFlag,INT8U *retBuff)
+ 	INT16U getEsamCcie(INT8U ccieFlag,INT8U *retBuff)//&&已测
  	{
- 		INT16U retLen=-1;
+ 		INT32S retLen=0;
  		INT32S fd=-1;
- 		fd = Esam_Init(fd,(INT8U*)DEV_SPI_PATH);
- 		if(fd<0) return -2;
+ 		fd = Esam_Init(fd,(INT8U*)ACS_SPI_DEV);
+ 		//fprintf(stderr,"function getesamccie fd = %d\n",fd);
+ 		if(fd<0) return 0;
  		INT8U buff[2048];
+ 		//fprintf(stderr,"ccieFlag = %d\n",ccieFlag);
  		if(ccieFlag==0x0C)	//主站证书
  			retLen = Esam_GetTermiSingleInfo(fd,0x0C,buff);
  		else                        //终端证书
- 			retLen=Esam_GetTermiSingleInfo(fd,0x0A,buff);
+ 			retLen=Esam_GetTermiSingleInfo(fd,0x0B,buff);//此处芯片手册和属性编号不一致
+ 		//fprintf(stderr,"function getesamccie retlen = %d\n",retLen);
  		if(retLen>10)   //10值为随意值，正常证书长度1500左右(正常状态下)
  		{
  			retBuff[0] = 0x09;//octet-string类型
@@ -178,10 +183,6 @@ INT32S UnitParse(INT8U* source,INT8U* dest,INT8U type)
  			retBuff[3] = (INT8U)(retLen&0x00ff);//长度字节低字节
  			memcpy(&retBuff[4],buff,retLen);
  			retLen+=4;
- 		}
- 		else  //异常状态下
- 		{
- 			retLen=0;
  		}
  		return retLen;
  	}
@@ -261,21 +262,21 @@ INT32S UnitParse(INT8U* source,INT8U* dest,INT8U type)
  //当属性为0的时候，返回错误，因为无法将主站和客户端的证书组报文返回去，也没这么用的
 INT16U getEsamAttribute(OAD oad,INT8U *retBuff)
 {
-	INT16U retLen=0;
+	INT32S retLen=0;
 	static struct timeval tv_store;//存储静态时间，用于list类型属性提取，不用多次esam访问
 	static 	EsamInfo esamInfo;//
 	INT8U attnum = oad.attflg&0x1F;
 	if(attnum == 0x0C || attnum==0x0A)//主站/终端证书属性
 	{
 		retLen = getEsamCcie(attnum,retBuff);
-		return retLen;
+		return retLen<=0 ? 0:retLen;
 	}
 	struct timeval tv_new;//静态存储时间
 	gettimeofday(&tv_new, NULL);
 	if(tv_store.tv_sec == 0 || (tv_store.tv_sec - tv_store.tv_sec)>=3)//第一次进入该函数，或有效时间超过3秒，重新esam访问
 	{
 		INT32S fd=-1;
-		fd = Esam_Init(fd,(INT8U*)DEV_SPI_PATH);
+		fd = Esam_Init(fd,(INT8U*)ACS_SPI_DEV);
 		if(fd>0)
 		{
 			retLen = Esam_GetTermiInfo(fd,&esamInfo);
@@ -352,7 +353,7 @@ INT32S esamMethodKeyUpdate(INT8U *Data2)
 		secureLen = GetDataLength(&Data2[3]);//包含头部的长度字节数量
 		if(secureLen <= 0)			return -1;
 		INT32S fd=-1;
-		fd = Esam_Init(fd,(INT8U*)DEV_SPI_PATH);
+		fd = Esam_Init(fd,(INT8U*)ACS_SPI_DEV);
 		if(fd>0)
 		{
 			tmplen = UnitParse(&Data2[2+secureLen+1],(INT8U *)&sidmac,0x01);//填充sidmac中sid部分
@@ -381,7 +382,7 @@ INT32S esamMethodCcieSession(INT8U *Data2)
 		 secureLen = GetDataLength(&Data2[3]);//包含头部的长度字节数量
 		if(secureLen <= 0)			return -1;
 		INT32S fd=-1;
-		fd = Esam_Init(fd,(INT8U*)DEV_SPI_PATH);
+		fd = Esam_Init(fd,(INT8U*)ACS_SPI_DEV);
 		if(fd>0)
 		{
 			tmplen = UnitParse(&Data2[2+secureLen+1],(INT8U *)&sid,0x01);//填充sidmac中sid部分

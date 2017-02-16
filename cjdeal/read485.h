@@ -11,6 +11,7 @@
 #define LIST6001SIZE 10
 #define TASK6012_MAX 256
 #define BUFFSIZE 256
+#define DATA_CONTENT_LEN 500
 
 pthread_attr_t read485_attr_t;
 int thread_read4851_id,thread_read4852_id;           //485、四表合一（I型、II型、专变）
