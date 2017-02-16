@@ -24,23 +24,7 @@ extern int get_BasicRSD(INT8U *source,INT8U *dest,INT8U *type);
 extern int comfd;
 extern INT8U TmpDataBuf[MAXSIZ_FAM];
 extern INT8U TmpDataBufList[MAXSIZ_FAM*2];
-typedef struct
-{
-	OAD oad;
-	INT8U dar;		//错误信息
-	INT8U *data;	//数据  上报时与 dar二选一
-	INT16U datalen;	//数据长度
-}RESULT_NORMAL;
-typedef struct
-{
-	OAD oad;
-	RCSD rcsd;
-	INT8U dar;
-	INT8U *data;	//数据  上报时与 dar二选一
-	INT16U datalen;	//数据长度
-	INT8U selectType;//选择类型
-	RSD   select;	 //选择方法实例
-}RESULT_RECORD;
+
 int BuildFrame_GetResponseRecord(INT8U response_type,CSINFO *csinfo,RESULT_RECORD record,INT8U *sendbuf)
 {
 	int index=0, hcsi=0,num=0,i=0,k=0;
