@@ -116,6 +116,16 @@ typedef struct {
  *				 A.5 参变量类对象
  ********************************************************/
 typedef struct {
+	DateTimeBCD datetime;	//属性2
+	INT8U type;				//校时模式
+	INT8U hearbeatnum;		//心跳时间总个数
+	INT8U tichu_max;		//最大剔除个数
+	INT8U tichu_min;		//最小剔除个数
+	INT8U delay;			//通讯延时阀值
+	INT8U num_min;			//最少有效个数
+} CLASS_4000; 	//日期时间
+
+typedef struct {
 	INT8U 	login_name[OCTET_STRING_LEN];	//逻辑名
 	INT8U  	curstom_num[OCTET_STRING_LEN];	//客户编号
 } CLASS_4001_4002_4003; 	//4001:通信地址，4002：表号，4003：客户编号
