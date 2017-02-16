@@ -29,14 +29,14 @@ void asyslog(int priority, const char* fmt, ...) {
 
 void bufsyslog(const INT8U* buf, const char* title, int head, int tail, int len) {
     int count = 0;
-    char msg[4096];
+    char msg[9009];
     memset(msg, '\0', sizeof(msg));
     snprintf(msg, 6, "%s", title);
     while (head != tail) {
         sprintf(msg + 5 + count * 3, " %02x", buf[tail]);
         tail = (tail + 1) % len;
         count++;
-        if (count > 1200) {
+        if (count > 3000) {
             break;
         }
     }

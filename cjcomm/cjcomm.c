@@ -179,24 +179,26 @@ void GenericRead(struct aeEventLoop* eventLoop, int fd, void* clientData, int ma
         }
         bufsyslog(nst->RecBuf, "Recv:", nst->RHead, nst->RTail, BUFLEN);
 
-        int len = 0;
-        for (int i = 0; i < 5; i++) {
-            len = StateProcess(&nst->deal_step, &nst->rev_delay, 10, &nst->RTail, &nst->RHead, nst->RecBuf, nst->DealBuf);
-            if (len > 0) {
-                break;
-            }
-        }
+        for(int k = 0; k < 3; k ++){
+			int len = 0;
+			for (int i = 0; i < 5; i++) {
+				len = StateProcess(&nst->deal_step, &nst->rev_delay, 10, &nst->RTail, &nst->RHead, nst->RecBuf, nst->DealBuf);
+				if (len > 0) {
+					break;
+				}
+			}
 
-        if (len > 0) {
-            int apduType = ProcessData(nst);
-            switch (apduType) {
-                case LINK_RESPONSE:
-                    nst->linkstate   = build_connection;
-                    nst->testcounter = 0;
-                    break;
-                default:
-                    break;
-            }
+			if (len > 0) {
+				int apduType = ProcessData(nst);
+				switch (apduType) {
+					case LINK_RESPONSE:
+						nst->linkstate   = build_connection;
+						nst->testcounter = 0;
+						break;
+					default:
+						break;
+				}
+			}
         }
     }
 }
@@ -329,27 +331,33 @@ void NETRead(struct aeEventLoop* eventLoop, int fd, void* clientData, int mask) 
         }
         bufsyslog(nst->RecBuf, "Recv:", nst->RHead, nst->RTail, BUFLEN);
 
-        int len = 0;
-        for (int i = 0; i < 5; i++) {
-            len = StateProcess(&nst->deal_step, &nst->rev_delay, 10, &nst->RTail, &nst->RHead, nst->RecBuf, nst->DealBuf);
-            if (len > 0) {
-                break;
-            }
-        }
+        for(int k = 0; k < 5; k ++){
+			int len = 0;
+			for (int i = 0; i < 5; i++) {
+				len = StateProcess(&nst->deal_step, &nst->rev_delay, 10, &nst->RTail, &nst->RHead, nst->RecBuf, nst->DealBuf);
+				if (len > 0) {
+					break;
+				}
+			}
+			if(len <= 0)
+			{
+				break;
+			}
 
-        if (len > 0) {
-            int apduType = ProcessData(nst);
-            switch (apduType) {
-                case LINK_RESPONSE:
-                	if(timeoffsetflag == 1){
-                		Getk(nst->linkResponse);
-                	}
-                    nst->linkstate   = build_connection;
-                    nst->testcounter = 0;
-                    break;
-                default:
-                    break;
-            }
+			if (len > 0) {
+				int apduType = ProcessData(nst);
+				switch (apduType) {
+					case LINK_RESPONSE:
+						if(timeoffsetflag == 1){
+							Getk(nst->linkResponse);
+						}
+						nst->linkstate   = build_connection;
+						nst->testcounter = 0;
+						break;
+					default:
+						break;
+				}
+			}
         }
     }
 }

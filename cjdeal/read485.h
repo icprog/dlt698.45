@@ -7,6 +7,7 @@
 #include "AccessFun.h"
 #include "dlt698.h"
 #include "dlt645.h"
+#include "event.h"
 //一次从文件里读取10个6001--采集档案任务配置单元
 #define LIST6001SIZE 10
 #define TASK6012_MAX 256

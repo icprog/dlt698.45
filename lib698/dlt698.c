@@ -143,7 +143,7 @@ int CheckHead(unsigned char* buf ,CSINFO *csinfo)
 		if (hsc1 == b1 && hsc2 == b2)
 		{
 			ctrl 	= buf[3];
-			csinfo->frame_length = ((buf[2]&0x3f << 8) + buf[1]) & 0x03FFF;
+			csinfo->frame_length = (((buf[2]&0x003f) << 8) + buf[1]) & 0x03FFF;
 			csinfo->funcode = ctrl & 0x03;
 			csinfo->dir = (ctrl & 0x80)>>7;
 			csinfo->prm = (ctrl & 0x40)>>6;
@@ -555,10 +555,6 @@ int doGetAttribute(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
 	fprintf(stderr,"\n- get type = %d PIID=%02x",getType,piid.data);
 
 	getoad(&apdu[3],&oad);
-
-//	oad.OI = (apdu[3]<<8) | apdu[4];
-//	oad.attflg = apdu[5];
-//	oad.attrindex = apdu[6];
 	data = &apdu[7];					//Data
 
 	switch(getType)
