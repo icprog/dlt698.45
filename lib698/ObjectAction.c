@@ -202,7 +202,7 @@ int get_BasicRCSD(INT8U *source,CSD_ARRAYTYPE *csds)
 				oadtmp[2] = source[index+2];
 				oadtmp[3] = source[index+3];
 				index = index +4;
-				memcpy(&csds->csd[i].csd.road.oad,oadtmp,4);
+				memcpy(&csds->csd[i].csd.road.oads[j],oadtmp,4);
 			}
 		}else
 		{//oad  6字节
