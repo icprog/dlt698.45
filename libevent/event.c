@@ -266,6 +266,7 @@ INT8U Getevent_Record_Selector(RESULT_RECORD *record_para,ProgramInfo* prginfo_e
 		Get_Event(record_para->oad.OI,event_no,(INT8U**)&Getbuf,&Getlen,prginfo_event);
 		if(Getbuf!=NULL && Getlen>0){
             INT8U real_index=0;//最终长度
+            record_para->dar = 1;
             record_para->data=(INT8U*)malloc(Getlen);//先按最大长度分配
             OI_698 oi_array[50]={0};
             INT8U oi_index=0; //召测得数据OI数量
