@@ -28,12 +28,12 @@ typedef struct {
 
 typedef struct
 {
-	INT8U factoryCode[5];	//厂商代码
-	INT8U softVer[5];		//软件版本号
-	INT8U softDate[7];		//软件版本日期
-	INT8U hardVer[5];		//硬件版本号
-	INT8U hardDate[7];		//硬件版本日期
-	INT8U factoryExpInfo[9];//厂家扩展信息
+	INT8U factoryCode[4];	//厂商代码
+	INT8U softVer[4];		//软件版本号
+	INT8U softDate[6];		//软件版本日期
+	INT8U hardVer[4];		//硬件版本号
+	INT8U hardDate[6];		//硬件版本日期
+	INT8U factoryExpInfo[8];//厂家扩展信息
 }VERINFO;
 
 typedef struct
