@@ -46,8 +46,7 @@ typedef struct{
 #define POWER_OFF 2 //停电状态
 #define POWER_OFF_VALIDE 3 //停电事件有效
 #define POWER_OFF_INVALIDE 4 //停电事件无效
-MeterPower MeterPowerInfo[3+1];//台区公共表加０－３个电能表
-MeterPower TermialPowerInfo;//终端停上电时间信息
+
 
 /*
  * 根据参数读取事件记录文件

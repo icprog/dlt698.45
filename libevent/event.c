@@ -21,6 +21,8 @@ static Curr_Data curr_data[MAX_POINT_NUM];
 static INT16U currnum=0;
 //当前事件参数变更状态
 static OI_CHANGE oi_chg;
+MeterPower MeterPowerInfo[3+1];//台区公共表加０－３个电能表
+MeterPower TermialPowerInfo;//终端停上电时间信息
 /*
  * 说明：
  * 进程如调用该部分事件接口
