@@ -25,7 +25,7 @@ int checkgprs_exist()
 
 	gprsid = getSpiAnalogState() & 0x1f;
 	if((gprsid & 0x1f) == 0x1e) {
-		asyslog(stderr,"有GPRS模块  %02x",gprsid);
+		asyslog(LOG_INFO,"有GPRS模块  %02x",gprsid);
 		return 1;
 	}else  if(gprsid = -1) {			//II型
 		gprs_s0 = gpio_readbyte("DEV_GPRS_S0");
@@ -33,11 +33,11 @@ int checkgprs_exist()
 		gprs_s2 = gpio_readbyte("DEV_GPRS_S2");
 		if(gprs_s0==1 && gprs_s1==1 && gprs_s2==1)
 		{
-			asyslog(stderr,"无GPRS模块  %d, %d, %d",gprs_s0,gprs_s1,gprs_s2);
+			asyslog(LOG_INFO,"无GPRS模块  %d, %d, %d",gprs_s0,gprs_s1,gprs_s2);
 			return 0;
 		}else
 		{
-			asyslog(stderr,"有GPRS模块  %d, %d, %d",gprs_s0,gprs_s1,gprs_s2);
+			asyslog(LOG_INFO,"有GPRS模块  %d, %d, %d",gprs_s0,gprs_s1,gprs_s2);
 			return 1;
 		}
 	}
