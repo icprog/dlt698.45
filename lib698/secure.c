@@ -18,6 +18,8 @@
  *输入：apdu完整的应用数据单元开头地址
  *输出：应用数据单元长度包括长度的1或2个字节或3个字节
  **********************************************************************/
+extern INT8U securetype;//dlt698.c定义
+extern INT8U secureRN[20];
  INT16U GetDataLength(INT8U* Data)
  {
 	 INT16U datalen=0;
@@ -109,7 +111,7 @@ INT32S UnitParse(INT8U* source,INT8U* dest,INT8U type)
   *输入：需返回的secureType安全类别，01明文，02明文+MAC 03密文  04密文+MAC
   *输出：retData长度
   **********************************************************************/
- INT32S secureEncryptDataDeal(INT32S fd,INT8U* secureType,INT8U* apdu,INT8U* retData)
+ INT32S secureEncryptDataDeal(INT32S fd,INT8U* apdu,INT8U* retData)
  {
 	 INT32S tmplen=0;
 	 INT16U appLen=0;
@@ -117,9 +119,10 @@ INT32S UnitParse(INT8U* source,INT8U* dest,INT8U type)
 	 SID_MAC sidmac;
 	 appLen = GetDataLength(&apdu[2]);
 	 if(appLen<=0) return -100;
-
+	// fprintf(stderr,"applen = %d \n",appLen);
 	if(apdu[2+appLen]==0x00 ||apdu[2+appLen]==0x03)//SID_MAC数据验证码
 	{
+		//fprintf(stderr,"sid_mac first byte = %02x,%02x\n",(INT8U)apdu[2+appLen],(INT8U)apdu[2+apdu+1]);
 		tmplen = UnitParse(&apdu[2+appLen+1],(INT8U*)&sidmac,0x01);//解析SID部分
 		if(tmplen<=0) return -101;
 		if(apdu[2+appLen]==0x00)
@@ -128,13 +131,14 @@ INT32S UnitParse(INT8U* source,INT8U* dest,INT8U type)
 			if(tmplen<=0) return -102;//
 		}
 		ret = Esam_SIDTerminalCheck(fd,sidmac,&apdu[2],retData);
+		//fprintf(stderr,"secureEncryptDataDeal ret = %d",ret);
 	}
 	else
 		return -101;
 	if(apdu[2+appLen]==0x00)
-		*secureType=0x04;//密文+mac等级
+		securetype=0x04;//密文+mac等级
 	if(apdu[2+appLen]==0x03)
-		*secureType=0x03;//密文等级
+		securetype=0x03;//密文等级
 	return ret;
  }
  /**********************************************************************
@@ -144,19 +148,27 @@ INT32S UnitParse(INT8U* source,INT8U* dest,INT8U type)
   *mac值传入上层函数，暂时用不到
   *输出：retData长度
   **********************************************************************/
- INT32S secureDecryptDataDeal(INT32S fd,INT8U* apdu,INT8U* secureType,INT8U* MAC)
+ INT32S secureDecryptDataDeal(INT8U* apdu)
  {
 	 INT32S ret=0;
 	 INT16U appLen = GetDataLength(&apdu[2]);//计算应用数据单元长度
 	 if(appLen<=0) return -100;
-
+	 fprintf(stderr,"secureDecryptDataDeal appLen = %d\n",appLen);
+	 securetype=0x02;//明文+MAC等级
 	 if(apdu[2+appLen]==0x01 || apdu[2+appLen]==0x02)// 只处理RN/RN_MAC情况
 	 {
-			 ret =  Esam_GetTerminalInfo(fd,&apdu[2+appLen+1],&apdu[2],MAC);//最后+1是数据验证信息标识
+		 if(apdu[2+appLen+1]<=sizeof(secureRN))//随机数字符数小于secureRN大小(原则是16byte)
+		 {
+			 memcpy(secureRN,&apdu[2+appLen+2],apdu[2+appLen+1]);
+			 ret=appLen;
+		 }
+			 //ret =  Esam_GetTerminalInfo(fd,&apdu[2+appLen+1],&apdu[2],MAC);//最后+1是数据验证信息标识
 	 }
-	 else
+	 else if(apdu[2+appLen]==0x00 || apdu[2+appLen]==0x03)
+	 {
+		 ret=appLen;
+	 }
 		 return -101;
-		 *secureType=0x02;//明文+MAC等级
 	 return ret;
  }
  //获取ESAM主站/终端证书   证书都是大于1000字节，此处按照大于1000,2个字节组织上送报文
