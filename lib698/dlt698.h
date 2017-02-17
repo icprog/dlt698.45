@@ -13,5 +13,5 @@ extern void testframe(INT8U *apdu,int len);
 INT16S composeProtocol698_GetRequest(INT8U*,CLASS_6015,TSA);
 
 int createFile(const char * path, int length, unsigned char crc, unsigned short bs);
-int appendFile(const char * path, int shift, int length, unsigned char *buf);
+int appendFile(int shift, int length, unsigned char *buf);
 #endif
