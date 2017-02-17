@@ -26,6 +26,7 @@ extern unsigned short tryfcs16(unsigned char *cp, int  len);
 extern INT32S secureConnectRequest(SignatureSecurity* securityInfo ,SecurityData* RetInfo);
 INT8S (*pSendfun)(int fd,INT8U* sndbuf,INT16U sndlen);
 int comfd = 0;
+INT8U ClientPiid=0;
 INT8U TmpDataBuf[MAXSIZ_FAM];
 INT8U TmpDataBufList[MAXSIZ_FAM*2];
 ProgramInfo *memp;
@@ -807,6 +808,30 @@ INT16S composeProtocol698_GetRequest(INT8U* 	sendBuf,CLASS_6015 obj6015,TSA mete
 
 }
 
+int doReleaseConnect(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
+{
+	int apduplace =0,index=0, hcsi=0;
+	ClientPiid = apdu[1];
+	csinfo->dir = 1;
+	csinfo->prm = 0;
+	index = FrameHead(csinfo,sendbuf);
+	hcsi = index;
+	index = index + 2;
+
+	apduplace = index;		//记录APDU 起始位置
+	sendbuf[index++] = RELEASE_RESPONSE;
+	sendbuf[index++] = ClientPiid;
+	sendbuf[index++] = 0;
+	sendbuf[index++] = 0;
+	sendbuf[index++] = 0;
+
+	FrameTail(sendbuf,index,hcsi);
+	if(pSendfun!=NULL)
+		pSendfun(comfd,sendbuf,index+3);
+	fprintf(stderr,"\n			断开应用连接 PIID = %x",ClientPiid);
+	return 1;
+}
+
 /**********************************************************************
  * 1.	CONNECT.request 服务,本服务由客户机应用进程调用,用于向远方服务器的应用进程提出建立应用连接请求。
  * 						主站（客户机）请求集中器（客户机）建立应用连接
@@ -847,6 +872,7 @@ INT8U dealClientRequest(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
 			doProxyRequest(apdu,csinfo,sendbuf);
 			break;
 		case RELEASE_REQUEST:
+			doReleaseConnect(apdu,csinfo,sendbuf);
 			break;
 	}
 	return(apduType);

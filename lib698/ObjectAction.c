@@ -160,9 +160,9 @@ int get_BasicRSD(INT8U *source,INT8U *dest,INT8U *type)
 			memcpy(dest,&select6,sizeof(select6));
 			break;
 		case 9:
-			select9.recordn = source[0];
+			select9.recordn = source[1];
 			memcpy(dest,&select9,sizeof(select9));
-			index = 1;
+			index = 2;
 			break;
 		case 10:
 			select10.recordn = source[0];
@@ -182,6 +182,7 @@ int get_BasicRCSD(INT8U *source,CSD_ARRAYTYPE *csds)
 	int i=0,index=0,j=0;
 	INT8U num=0;
 	num = source[index++];
+	fprintf(stderr,"get RCSD num=%d\n",num);
 	csds->num = num;
 	for(i=0;i<num ;i++)
 	{
@@ -202,7 +203,7 @@ int get_BasicRCSD(INT8U *source,CSD_ARRAYTYPE *csds)
 				oadtmp[2] = source[index+2];
 				oadtmp[3] = source[index+3];
 				index = index +4;
-				memcpy(&csds->csd[i].csd.road.oad,oadtmp,4);
+				memcpy(&csds->csd[i].csd.road.oads[j],oadtmp,4);
 			}
 		}else
 		{//oad  6字节
