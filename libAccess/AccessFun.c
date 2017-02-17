@@ -64,9 +64,11 @@ void clearEvent()
 				if(saveflg) {
 					memcpy(&class7,eventbuff,sizeof(Class7_Object));
 					fprintf(stderr,"修改前：i=%d,oi=%x,class7.crrentnum=%d\n",i,event_class_len[i].oi,class7.crrentnum);
-					class7.crrentnum = 0;			//清除当前记录数
-					memcpy(eventbuff,&class7,sizeof(Class7_Object));
-					saveflg = saveCoverClass(event_class_len[i].oi,0,eventbuff,classlen,event_para_save);
+					if(class7.crrentnum!=0) {
+						class7.crrentnum = 0;			//清除当前记录数
+						memcpy(eventbuff,&class7,sizeof(Class7_Object));
+						saveflg = saveCoverClass(event_class_len[i].oi,0,eventbuff,classlen,event_para_save);
+					}
 				}
 				free(eventbuff);
 				eventbuff=NULL;
