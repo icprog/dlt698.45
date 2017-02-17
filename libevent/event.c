@@ -290,7 +290,7 @@ INT8U Getevent_Record_Selector(RESULT_RECORD *record_para,ProgramInfo* prginfo_e
             	}
             }
             INT8U m=0;
-            for(m=0;i<oi_index;m++){
+            for(m=0;m<oi_index;m++){
 				switch(oi_array[m]){
 					case 0x2022://事件序号
 						memcpy(&record_para->data[real_index],&Getbuf[STANDARD_NO_INDEX],5);
@@ -330,8 +330,8 @@ INT8U Getevent_Record_Selector(RESULT_RECORD *record_para,ProgramInfo* prginfo_e
 						}
                         memcpy(&record_para->data[real_index],&Getbuf[23],len);
                         real_index +=len;
-						break;
 					}
+					break;
 				}
             }
             record_para->datalen=real_index;//最终长度
