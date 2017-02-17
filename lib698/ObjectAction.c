@@ -608,7 +608,7 @@ void CjiFangAnInfo(INT16U attr_act,INT8U *data)
 			break;
 		case 129:	//方法 129:Clear( )
 			fprintf(stderr,"\n清空普通采集方案");
-			clearClass(0x6014);
+			clearClass(0x6015);			//普通采集方案放置在6015目录下
 			break;
 		case 130:	//方法 130:Set_CSD(方案编号,array CSD)
 			Set_CSD(data);
@@ -644,11 +644,11 @@ void TaskInfo(INT16U attr_act,INT8U *data)
 			break;
 		case 128://方法 128:Delete(array任务 ID )
 
-			deleteClass(0x6012,1);
+			deleteClass(0x6013,1);
 			break;
 		case 129://方法 129:Clear()
 			fprintf(stderr,"\n清空采集任务配置表");
-			clearClass(0x6012);
+			clearClass(0x6013);		//任务配置单元存放在/nand/para/6013目录
 			break;
 	}
 }
