@@ -44,6 +44,7 @@
 #define RELEASE_RESPONSE 131
 #define	RELEASE_NOTIFICATION 132
 #define	GET_RESPONSE 133
+
 #define	SET_RESPONSE 134
 #define	ACTION_RESPONSE 135
 		#define	ActionResponseNormal			1

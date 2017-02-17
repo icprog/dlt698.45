@@ -592,10 +592,47 @@ int doGetrecord(RESULT_RECORD *record)
 //	}
 	return 1;
 }
+
+void printrcsd(RCSD rcsd)
+{
+	int i=0;
+	int k=0;
+	for(i = 0; i<rcsd.csds.num;i++)
+	{
+		if (rcsd.csds.csd[i].type == 1)
+		{
+			fprintf(stderr,"\n");
+			fprintf(stderr,"\nROAD     %04x %02x %02x",rcsd.csds.csd[i].csd.road.oad.OI,rcsd.csds.csd[i].csd.road.oad.attflg,rcsd.csds.csd[i].csd.road.oad.attrindex);
+			for(k=0;k<rcsd.csds.csd[i].csd.road.num;k++)
+				fprintf(stderr,"\n     		oad %04x %02x %02x",rcsd.csds.csd[i].csd.road.oads[k].OI,rcsd.csds.csd[i].csd.road.oads[k].attflg,rcsd.csds.csd[i].csd.road.oads[k].attrindex);
+		}else
+		{
+			fprintf(stderr,"\nOAD     %04x %02x %02x",rcsd.csds.csd[i].csd.oad.OI,rcsd.csds.csd[i].csd.oad.attflg,rcsd.csds.csd[i].csd.oad.attrindex);
+		}
+	}
+}
+void printSel5(RESULT_RECORD record)
+{
+	fprintf(stderr,"\n%d年 %d月 %d日 %d时:%d分:%d秒",
+					record.select.selec5.collect_save.year.data,record.select.selec5.collect_save.month.data,
+					record.select.selec5.collect_save.day.data,record.select.selec5.collect_save.hour.data,
+					record.select.selec5.collect_save.min.data,record.select.selec5.collect_save.sec.data);
+	fprintf(stderr,"\nMS-TYPE %d  ",record.select.selec5.meters.mstype);
+	printrcsd(record.rcsd);
+}
+
+void printSel9(RESULT_RECORD record)
+{
+	fprintf(stderr,"\nSelector9:指定选取上第n次记录\n");
+	fprintf(stderr,"\n选取上第%d次记录 ",record.select.selec9.recordn);
+	fprintf(stderr,"\nRCSD个数：%d",record.rcsd.csds.num);
+	printrcsd(record.rcsd);
+}
+
 int getRequestRecord(OAD oad,INT8U *data,CSINFO *csinfo,INT8U *sendbuf)
 {
 	RESULT_RECORD record;
-	int i=0;
+
 	int index=0;
 	memset(TmpDataBuf,0,sizeof(TmpDataBuf));
 	record.oad = oad;
@@ -605,27 +642,14 @@ int getRequestRecord(OAD oad,INT8U *data,CSINFO *csinfo,INT8U *sendbuf)
 	index = get_BasicRSD(&data[index],(INT8U *)&record.select,&record.selectType);
 	fprintf(stderr,"\nRSD Select%d  ",record.selectType);
 	index +=get_BasicRCSD(&data[index],&record.rcsd.csds);
-	int k=0;
+
 	if(record.selectType==5)
 	{
-		fprintf(stderr,"\n%d年 %d月 %d日 %d时:%d分:%d秒",
-				record.select.selec5.collect_save.year.data,record.select.selec5.collect_save.month.data,
-				record.select.selec5.collect_save.day.data,record.select.selec5.collect_save.hour.data,
-				record.select.selec5.collect_save.min.data,record.select.selec5.collect_save.sec.data);
-		fprintf(stderr,"\nMS-TYPE %d  ",record.select.selec5.meters.mstype);
-		for(i = 0; i<record.rcsd.csds.num;i++)
-		{
-			if (record.rcsd.csds.csd[i].type == 1)
-			{
-				fprintf(stderr,"\n");
-				fprintf(stderr,"\nROAD     %04x %02x %02x",record.rcsd.csds.csd[i].csd.road.oad.OI,record.rcsd.csds.csd[i].csd.road.oad.attflg,record.rcsd.csds.csd[i].csd.road.oad.attrindex);
-				for(k=0;k<record.rcsd.csds.csd[i].csd.road.num;k++)
-					fprintf(stderr,"\n     		oad %04x %02x %02x",record.rcsd.csds.csd[i].csd.road.oads[k].OI,record.rcsd.csds.csd[i].csd.road.oads[k].attflg,record.rcsd.csds.csd[i].csd.road.oads[k].attrindex);
-			}else
-			{
-				fprintf(stderr,"\nOAD     %04x %02x %02x",record.rcsd.csds.csd[i].csd.oad.OI,record.rcsd.csds.csd[i].csd.oad.attflg,record.rcsd.csds.csd[i].csd.oad.attrindex);
-			}
-		}
+		printSel5(record);
+	}
+	if(record.selectType==9)
+	{
+		printSel9(record);
 	}
 	doGetrecord(&record);
 	BuildFrame_GetResponseRecord(GET_REQUEST_RECORD,csinfo,record,sendbuf);
