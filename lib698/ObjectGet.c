@@ -17,13 +17,15 @@
 extern INT8S (*pSendfun)(int fd,INT8U* sndbuf,INT16U sndlen);
 extern int FrameHead(CSINFO *csinfo,INT8U *buf);
 extern void FrameTail(INT8U *buf,int index,int hcsi);
-extern INT8U Get_Event(OI_698 oi,INT8U eventno,INT8U** Getbuf,INT8U *Getlen);
+extern INT8U Get_Event(OI_698 oi,INT8U eventno,INT8U** Getbuf,int *Getlen,ProgramInfo* prginfo_event);
+extern INT8U Getevent_Record_Selector(RESULT_RECORD *record_para,ProgramInfo* prginfo_event);
 extern void getoad(INT8U *data,OAD *oad);
 extern int get_BasicRCSD(INT8U *source,CSD_ARRAYTYPE *csds);
 extern int get_BasicRSD(INT8U *source,INT8U *dest,INT8U *type);
 extern int comfd;
 extern INT8U TmpDataBuf[MAXSIZ_FAM];
 extern INT8U TmpDataBufList[MAXSIZ_FAM*2];
+extern ProgramInfo *memp;
 
 int BuildFrame_GetResponseRecord(INT8U response_type,CSINFO *csinfo,RESULT_RECORD record,INT8U *sendbuf)
 {
@@ -69,7 +71,7 @@ int BuildFrame_GetResponseRecord(INT8U response_type,CSINFO *csinfo,RESULT_RECOR
 
 	if (record.datalen > 0)
 	{
-		sendbuf[index++] = 1;//choice 1  ,Data有效
+		sendbuf[index++] = 1;//choice 1  ,SEQUENCE OF A-RecordRow
 		memcpy(&sendbuf[index],record.data,record.datalen);
 		index = index + record.datalen;
 	}else
@@ -494,7 +496,7 @@ int GetEventRecord(RESULT_NORMAL *response)
 	INT8U *data=NULL;
 	INT16U datalen=0;
 
-	if ( Get_Event(response->oad.OI,response->oad.attrindex-1,&data,(INT8U *)&datalen) == 1 )
+	if ( Get_Event(response->oad.OI,response->oad.attrindex,&data,(INT8U *)&datalen,memp) == 1 )
 	{
 		if (datalen > 512 || data==NULL)
 		{
@@ -582,6 +584,11 @@ int doGetrecord(RESULT_RECORD *record)
 	fprintf(stderr,"\n- getRequestRecord  OI = %04x  attrib=%d  index=%d",record->oad.OI,record->oad.attflg,record->oad.attrindex);
 	int datalen=0;
 
+	switch(SelectorN) {
+	case 9:		//指定读取上第n次记录
+		Getevent_Record_Selector(record,memp);
+		break;
+	}
 //	int getSelector(RSD select,INT8U type,CSD_ARRAYTYPE csds,INT8U** Databuf,int *Datalen);
 ////	if (getSelector(record->select,SelectorN,record->rcsd,(INT8U *)&record->data,datalen)>0)
 //	{

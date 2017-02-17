@@ -268,6 +268,8 @@ INT8U Getevent_Record_Selector(RESULT_RECORD *record_para,ProgramInfo* prginfo_e
             INT8U real_index=0;//最终长度
             record_para->dar = 1;
             record_para->data=(INT8U*)malloc(Getlen);//先按最大长度分配
+            memset(&record_para->data[0],0,Getlen);
+            record_para->data[real_index++]=1;		//SEQUENCE OF A-RecordRow
             OI_698 oi_array[50]={0};
             INT8U oi_index=0; //召测得数据OI数量
             INT8U i=0;
