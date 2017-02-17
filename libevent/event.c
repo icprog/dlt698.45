@@ -254,7 +254,7 @@ INT8U Get_Event(OI_698 oi,INT8U eventno,INT8U** Getbuf,int *Getlen,ProgramInfo* 
  * record_para 数据参数
  * prginfo_event 共享内存
  */
-INT8U Getevent_Record(INT8U event_no,INT8U *oi_array,INT8U oi_index,INT8U *real_index,INT8U num,RESULT_RECORD *record_para,ProgramInfo* prginfo_event){
+INT8U Getevent_Record(INT8U event_no,OI_698 *oi_array,INT8U oi_index,INT8U *real_index,INT8U num,RESULT_RECORD *record_para,ProgramInfo* prginfo_event){
 	INT8U *Getbuf=NULL;//因为记录为变长，只能采用二级指针，动态分配
 	int Getlen=0;//记录长度
 	Get_Event(record_para->oad.OI,event_no,(INT8U**)&Getbuf,&Getlen,prginfo_event);
@@ -356,8 +356,7 @@ INT8U Getevent_Record_Selector(RESULT_RECORD *record_para,ProgramInfo* prginfo_e
 			 {
 				event_no=record_para->select.selec9.recordn;
 				Getevent_Record(event_no,oi_array,oi_index,
-						&real_index,1,record_para,
-						prginfo_event);
+						&real_index,1,record_para,prginfo_event);
 			 }
 				 break;
 			 case 10:
@@ -366,8 +365,7 @@ INT8U Getevent_Record_Selector(RESULT_RECORD *record_para,ProgramInfo* prginfo_e
 				 for(;event_no>0;event_no--){
 					 Getevent_Record(event_no,oi_array,oi_index,
 							 &real_index,record_para->select.selec10.recordn,
-							 record_para,
-							 prginfo_event);
+							 record_para,prginfo_event);
 				 }
 			 }
 				 break;
