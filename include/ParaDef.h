@@ -8,6 +8,7 @@
 #ifndef PARADEF_H_
 #define PARADEF_H_
 
+
 #define delay(A) usleep((A)*1000)
 //////////////////////////////////////////////////////////////
 #define _CFGDIR_ 			"/nor/config"
@@ -102,6 +103,18 @@
 #define DEV_PULSE  		"/dev/pulse"  			//脉冲1
 
 #define DEV_ADC        "/dev/adc0"
+
+#define DEV_WATCHDOG   "/dev/watchdog"
+#define DEV_LED_ALARM   		"/dev/gpoALARM"
+#define DEV_LED_RUN     		"/dev/gpoRUN_LED"
+#define DEV_LED_ONLINE  		"/dev/gpoONLINE_LED"
+#define DEV_LED_CSQ_RED 		"/dev/gpoCSQ_RED"
+#define DEV_LED_CSQ_GREEN 		"/dev/gpoCSQ_GREEN"
+#define DEV_LED_RMT_RED      	"/dev/gpoREMOTE_RED"
+#define DEV_LED_RMT_GRN   		"/dev/gpoREMOTE_GREEN"
+
+
+
 /////////////////////////////////////////////////////////////////
 
 /*

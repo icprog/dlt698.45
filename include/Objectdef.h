@@ -28,12 +28,12 @@ typedef struct {
 
 typedef struct
 {
-	INT8U factoryCode[5];	//厂商代码
-	INT8U softVer[5];		//软件版本号
-	INT8U softDate[7];		//软件版本日期
-	INT8U hardVer[5];		//硬件版本号
-	INT8U hardDate[7];		//硬件版本日期
-	INT8U factoryExpInfo[9];//厂家扩展信息
+	char factoryCode[4];	//厂商代码
+	char softVer[4];		//软件版本号
+	char softDate[6];		//软件版本日期
+	char hardVer[4];		//硬件版本号
+	char hardDate[6];		//硬件版本日期
+	char factoryExpInfo[8];//厂家扩展信息
 }VERINFO;
 
 typedef struct
@@ -116,6 +116,16 @@ typedef struct {
  *				 A.5 参变量类对象
  ********************************************************/
 typedef struct {
+	DateTimeBCD datetime;	//属性2
+	INT8U type;				//校时模式
+	INT8U hearbeatnum;		//心跳时间总个数
+	INT8U tichu_max;		//最大剔除个数
+	INT8U tichu_min;		//最小剔除个数
+	INT8U delay;			//通讯延时阀值
+	INT8U num_min;			//最少有效个数
+} CLASS_4000; 	//日期时间
+
+typedef struct {
 	INT8U 	login_name[OCTET_STRING_LEN];	//逻辑名
 	INT8U  	curstom_num[OCTET_STRING_LEN];	//客户编号
 } CLASS_4001_4002_4003; 	//4001:通信地址，4002：表号，4003：客户编号
@@ -166,7 +176,7 @@ typedef struct {
 } CLASS_4030;
 
 typedef struct {
-	INT8U assetcode[40];
+	char assetcode[40];
 } CLASS_4103;
 
 typedef struct {
@@ -331,4 +341,25 @@ typedef struct {
 	CSD flag698;
 	C601F_07Flag flag07;
 } CLASS_601F;			//开关量输入
+
+/////////////////////////////////////////////////////////////////////
+typedef struct
+{
+	OAD oad;
+	INT8U dar;		//错误信息
+	INT8U *data;	//数据  上报时与 dar二选一
+	INT16U datalen;	//数据长度
+}RESULT_NORMAL;
+typedef struct
+{
+	OAD oad;
+	RCSD rcsd;
+	INT8U dar;
+	INT8U *data;	//数据  上报时与 dar二选一
+	INT16U datalen;	//数据长度
+	INT8U selectType;//选择类型
+	RSD   select;	 //选择方法实例
+}RESULT_RECORD;
+////////////////////////////////////////////////////////////////////
+
 #endif /* OBJECTACTION_H_ */

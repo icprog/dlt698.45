@@ -17,21 +17,21 @@
 extern INT8S (*pSendfun)(int fd,INT8U* sndbuf,INT16U sndlen);
 extern int FrameHead(CSINFO *csinfo,INT8U *buf);
 extern void FrameTail(INT8U *buf,int index,int hcsi);
-extern INT8U Get_Event(OI_698 oi,INT8U eventno,INT8U** Getbuf,INT8U *Getlen);
+extern INT8U Get_Event(OI_698 oi,INT8U eventno,INT8U** Getbuf,int *Getlen,ProgramInfo* prginfo_event);
+extern INT8U Getevent_Record_Selector(RESULT_RECORD *record_para,ProgramInfo* prginfo_event);
 extern void getoad(INT8U *data,OAD *oad);
+extern int get_BasicRCSD(INT8U *source,CSD_ARRAYTYPE *csds);
+extern int get_BasicRSD(INT8U *source,INT8U *dest,INT8U *type);
+extern INT16S composeSecurityResponse(INT8U* SendApdu,INT16U Length);
 extern int comfd;
 extern INT8U TmpDataBuf[MAXSIZ_FAM];
 extern INT8U TmpDataBufList[MAXSIZ_FAM*2];
-typedef struct
+extern INT8U securetype;
+extern ProgramInfo *memp;
+
+int BuildFrame_GetResponseRecord(INT8U response_type,CSINFO *csinfo,RESULT_RECORD record,INT8U *sendbuf)
 {
-	OAD oad;
-	INT8U dar;		//错误信息
-	INT8U *data;	//数据  上报时与 dar二选一
-	INT16U datalen;	//数据长度
-}RESULT_NORMAL;
-int BuildFrame_GetResponse(INT8U response_type,CSINFO *csinfo,INT8U oadnum,RESULT_NORMAL response,INT8U *sendbuf)
-{
-	int index=0, hcsi=0;
+	int index=0, hcsi=0,num=0,i=0,k=0;
 	csinfo->dir = 1;
 	csinfo->prm = 0;
 	index = FrameHead(csinfo,sendbuf);
@@ -40,13 +40,80 @@ int BuildFrame_GetResponse(INT8U response_type,CSINFO *csinfo,INT8U oadnum,RESUL
 	sendbuf[index++] = GET_RESPONSE;
 	sendbuf[index++] = response_type;
 	sendbuf[index++] = 0;	//	piid
+	sendbuf[index++] = (record.oad.OI>>8) & 0xff;
+	sendbuf[index++] = record.oad.OI & 0xff;
+	sendbuf[index++] = record.oad.attflg;
+	sendbuf[index++] = record.oad.attrindex;
+	num = record.rcsd.csds.num;
+	sendbuf[index++] = num;
+	for(i=0;i<num;i++)
+	{
+		sendbuf[index++] = record.rcsd.csds.csd[i].type;	//第 i 个csd类型
+		if (record.rcsd.csds.csd[i].type ==0)
+		{
+			sendbuf[index++] = (record.rcsd.csds.csd[i].csd.oad.OI)>>8 &0xff ;
+			sendbuf[index++] = record.rcsd.csds.csd[i].csd.oad.OI &0xff;
+			sendbuf[index++] = record.rcsd.csds.csd[i].csd.oad.attflg;
+			sendbuf[index++] = record.rcsd.csds.csd[i].csd.oad.attrindex;
+		}else
+		{
+			sendbuf[index++] = (record.rcsd.csds.csd[i].csd.road.oad.OI>>8) &0xff ;
+			sendbuf[index++] = record.rcsd.csds.csd[i].csd.road.oad.OI &0xff;
+			sendbuf[index++] = record.rcsd.csds.csd[i].csd.road.oad.attflg;
+			sendbuf[index++] = record.rcsd.csds.csd[i].csd.road.oad.attrindex;
+			for(k=0; k<record.rcsd.csds.csd[i].csd.road.num; k++)
+			{
+				sendbuf[index++] = (record.rcsd.csds.csd[i].csd.road.oads[k].OI>>8) & 0xff;
+				sendbuf[index++] = record.rcsd.csds.csd[i].csd.road.oads[k].OI & 0xff;
+				sendbuf[index++] = record.rcsd.csds.csd[i].csd.road.oads[k].attflg;
+				sendbuf[index++] = record.rcsd.csds.csd[i].csd.road.oads[k].attrindex;
+			}
+		}
+	}
+
+	if (record.datalen > 0)
+	{
+		sendbuf[index++] = 1;//choice 1  ,SEQUENCE OF A-RecordRow
+		memcpy(&sendbuf[index],record.data,record.datalen);
+		index = index + record.datalen;
+	}else
+	{
+		sendbuf[index++] = 0;//choice 0  ,DAR 有效 (数据访问可能的结果)
+		sendbuf[index++] = record.dar;
+	}
+	sendbuf[index++] = 0;
+	sendbuf[index++] = 0;
+	FrameTail(sendbuf,index,hcsi);
+	if(pSendfun!=NULL)
+		pSendfun(comfd,sendbuf,index+3);
+	return (index+3);
+}
+
+
+int BuildFrame_GetResponse(INT8U response_type,CSINFO *csinfo,INT8U oadnum,RESULT_NORMAL response,INT8U *sendbuf)
+{
+	int apduplace =0;
+	int index=0, hcsi=0;
+	csinfo->dir = 1;
+	csinfo->prm = 0;
+	index = FrameHead(csinfo,sendbuf);
+	hcsi = index;
+	index = index + 2;
+
+	apduplace = index;		//记录APDU 起始位置
+	sendbuf[index++] = GET_RESPONSE;
+	sendbuf[index++] = response_type;
+	sendbuf[index++] = 0;	//	piid
 	if (oadnum>0)
 		sendbuf[index++] = oadnum;
-
 	memcpy(&sendbuf[index],response.data,response.datalen);
 	index = index + response.datalen;
-
 	sendbuf[index++] = 0;
+	if(securetype!=0)//安全等级类型不为0，代表是通过安全传输下发报文，上行报文需要以不低于请求的安全级别回复
+	{
+		apduplace += composeSecurityResponse(&sendbuf[apduplace],index-apduplace);
+		index=apduplace;
+	}
 	FrameTail(sendbuf,index,hcsi);
 	if(pSendfun!=NULL)
 		pSendfun(comfd,sendbuf,index+3);
@@ -89,13 +156,12 @@ int fill_double_long_unsigned(INT8U *data,INT32U value)
 	data[4] =  value & 0x000000FF;
 	return 5;
 }
-int fill_visiblestring(INT8U *data,INT8U *value)
+int fill_visible_string(INT8U *data,char *value,INT8U len)
 {
-	int bytenum = 0;
 	data[0] = dtvisiblestring;
-	bytenum = value[0] + 1 + 1;//总字节长度 = 字符串 + 长度描述符 + 类型  ，
-	memcpy(&data[1],value,bytenum);
-	return bytenum;
+	data[1] = len;
+	memcpy(&data[2],value,len);
+	return (len+2);
 }
 
 int fill_integer(INT8U *data,INT8U value)
@@ -362,7 +428,7 @@ int Get4103(RESULT_NORMAL *response)
 	switch(oad.attflg )
 	{
 		case 2:
-			index += fill_visiblestring(&data[index],class_tmp.assetcode);
+			index += fill_visible_string(&data[index],class_tmp.assetcode,32);
 			response->datalen = index;
 			break;
 	}
@@ -410,18 +476,12 @@ int Get4300(RESULT_NORMAL *response)
 	{
 		case 3:
 			index += create_struct(&data[index],6);
-			class_tmp.info.factoryCode[0] = 4;
-			index += fill_visiblestring(&data[index],class_tmp.info.factoryCode);
-			class_tmp.info.softVer[0] = 4;
-			index += fill_visiblestring(&data[index],class_tmp.info.softVer);
-			class_tmp.info.softDate[0] = 6;
-			index += fill_visiblestring(&data[index],class_tmp.info.softDate);
-			class_tmp.info.hardVer[0] = 4;
-			index += fill_visiblestring(&data[index],class_tmp.info.hardVer);
-			class_tmp.info.hardDate[0] = 6;
-			index += fill_visiblestring(&data[index],class_tmp.info.hardDate);
-			class_tmp.info.factoryExpInfo[0] = 8;
-			index += fill_visiblestring(&data[index],class_tmp.info.factoryExpInfo);
+			index += fill_visible_string(&data[index],class_tmp.info.factoryCode,4);
+			index += fill_visible_string(&data[index],class_tmp.info.softVer,4);
+			index += fill_visible_string(&data[index],class_tmp.info.softDate,6);
+			index += fill_visible_string(&data[index],class_tmp.info.hardVer,4);
+			index += fill_visible_string(&data[index],class_tmp.info.hardDate,6);
+			index += fill_visible_string(&data[index],class_tmp.info.factoryExpInfo,8);
 			response->datalen = index;
 			break;
 		case 4:
@@ -435,11 +495,12 @@ int Get4300(RESULT_NORMAL *response)
 	return 0;
 }
 
-int GetEventInfo(RESULT_NORMAL *response)
+int GetEventRecord(RESULT_NORMAL *response)
 {
 	INT8U *data=NULL;
 	INT16U datalen=0;
-	if ( Get_Event(response->oad.OI,response->oad.attrindex-1,&data,(INT8U *)&datalen) == 1 )
+
+	if ( Get_Event(response->oad.OI,response->oad.attrindex,&data,(INT8U *)&datalen,memp) == 1 )
 	{
 		if (datalen > 512 || data==NULL)
 		{
@@ -458,39 +519,152 @@ int GetEventInfo(RESULT_NORMAL *response)
 	fprintf(stderr,"\n获取事件数据Get_Event函数返回 0  [datalen=%d  data=%p]",datalen,data);
 	if (data!=NULL)
 		free(data);
+	return 1;
+}
 
+int GetClass7attr(RESULT_NORMAL *response)
+{
+	INT8U *data = NULL;
+	OAD oad={};
+	Class7_Object	class7={};
+	int index=0;
+	data = response->data;
+	oad = response->oad;
+	memset(&class7,sizeof(Class7_Object),0);
+	readCoverClass(oad.OI,0,&class7,sizeof(Class7_Object),event_para_save);
+	switch(oad.attflg) {
+	case 1:	//逻辑名
+		break;
+	case 3:	//关联属性表
+		break;
+	case 4:	//当前记录数
+		break;
+	case 5:	//最大记录数
+		break;
+	case 8: //上报标识
+		break;
+	case 9: //有效标识
+		index += file_bool(&data[0],class7.enableflag);
+		break;
+	}
+	response->datalen = index;
 	return 0;
 }
 
-int getRequestRecord(INT8U *typestu,CSINFO *csinfo,INT8U *buf)
+int GetEventInfo(RESULT_NORMAL *response)
 {
-	RSD rsd={};
-	OAD oad={};
-	INT8U rsdtype=0;
-	//1,OAD
-	oad.OI= (typestu[0]<<8) | typestu[1];
-	oad.attflg = typestu[2];
-	oad.attrindex = typestu[3];
-	fprintf(stderr,"\n- getRequestRecord  OI = %04x  attrib=%d  index=%d",oad.OI,oad.attflg,oad.attrindex);
-
-	//2,RSD
-	rsdtype = typestu[4];
-	switch(rsdtype)
-	{
-		case 0:
-			//null
-			break;
-		case 1:
-//			OAD oad1;
-			break;
-		case 2:
-			break;
-		case 3:
-			break;
-		case 4:
-			break;
+	fprintf(stderr,"GetEventInfo OI=%x,attflg=%d,attrindex=%d \n",response->oad.OI,response->oad.attflg,response->oad.attrindex);
+	switch(response->oad.attflg) {
+	case 2:		//事件记录表
+		GetEventRecord(response);
+		break;
+	case 1:	//逻辑名
+	case 3:	//关联属性表
+	case 4:	//当前记录数
+	case 5:	//最大记录数
+	case 8: //上报标识
+	case 9: //有效标识
+		GetClass7attr(response);
+		break;
+	case 6:	//配置参数
+		switch(response->oad.OI) {
+			case 0x310d:
+				break;
+			case 0x310c:
+				break;
+			case 0x310e:
+				break;
+			case 0x310F:
+				break;
+		}
+		break;
 	}
-	//3,RCSD
+	return 0;
+}
+
+int doGetrecord(RESULT_RECORD *record)
+{
+	INT8U SelectorN = record->selectType;
+	fprintf(stderr,"\n- getRequestRecord  OI = %04x  attrib=%d  index=%d",record->oad.OI,record->oad.attflg,record->oad.attrindex);
+	int datalen=0;
+
+	switch(SelectorN) {
+	case 5:
+	case 7:
+//		getSelector(record->select,SelectorN,record->rcsd,(INT8U *)&record->data,datalen);
+		break;
+	case 9:		//指定读取上第n次记录
+		Getevent_Record_Selector(record,memp);
+		break;
+	}
+	return 1;
+}
+
+void printrcsd(RCSD rcsd)
+{
+	int i=0;
+	int k=0;
+	for(i = 0; i<rcsd.csds.num;i++)
+	{
+		if (rcsd.csds.csd[i].type == 1)
+		{
+			fprintf(stderr,"\n");
+			fprintf(stderr,"\nROAD     %04x %02x %02x",rcsd.csds.csd[i].csd.road.oad.OI,rcsd.csds.csd[i].csd.road.oad.attflg,rcsd.csds.csd[i].csd.road.oad.attrindex);
+			for(k=0;k<rcsd.csds.csd[i].csd.road.num;k++)
+				fprintf(stderr,"\n     		oad %04x %02x %02x",rcsd.csds.csd[i].csd.road.oads[k].OI,rcsd.csds.csd[i].csd.road.oads[k].attflg,rcsd.csds.csd[i].csd.road.oads[k].attrindex);
+		}else
+		{
+			fprintf(stderr,"\nOAD     %04x %02x %02x",rcsd.csds.csd[i].csd.oad.OI,rcsd.csds.csd[i].csd.oad.attflg,rcsd.csds.csd[i].csd.oad.attrindex);
+		}
+	}
+}
+void printSel5(RESULT_RECORD record)
+{
+	fprintf(stderr,"\n%d年 %d月 %d日 %d时:%d分:%d秒",
+					record.select.selec5.collect_save.year.data,record.select.selec5.collect_save.month.data,
+					record.select.selec5.collect_save.day.data,record.select.selec5.collect_save.hour.data,
+					record.select.selec5.collect_save.min.data,record.select.selec5.collect_save.sec.data);
+	fprintf(stderr,"\nMS-TYPE %d  ",record.select.selec5.meters.mstype);
+	printrcsd(record.rcsd);
+}
+
+void printSel9(RESULT_RECORD record)
+{
+	fprintf(stderr,"\nSelector9:指定选取上第n次记录\n");
+	fprintf(stderr,"\n选取上第%d次记录 ",record.select.selec9.recordn);
+	fprintf(stderr,"\nRCSD个数：%d",record.rcsd.csds.num);
+	printrcsd(record.rcsd);
+}
+
+int getRequestRecord(OAD oad,INT8U *data,CSINFO *csinfo,INT8U *sendbuf)
+{
+	RESULT_RECORD record;
+
+	int index=0;
+	memset(TmpDataBuf,0,sizeof(TmpDataBuf));
+	record.oad = oad;
+	record.data = TmpDataBuf;
+	record.datalen = 0;
+	fprintf(stderr,"\nGetRequestRecord   oi=%x  %02x  %02x",record.oad.OI,record.oad.attflg,record.oad.attrindex);
+	index = get_BasicRSD(&data[index],(INT8U *)&record.select,&record.selectType);
+	fprintf(stderr,"\nRSD Select%d  ",record.selectType);
+	index +=get_BasicRCSD(&data[index],&record.rcsd.csds);
+	if (record.selectType == 1)
+	{
+		fprintf(stderr,"\nOAD %04x %02x %02x",record.select.selec1.oad.OI,record.select.selec1.oad.attflg,record.select.selec1.oad.attrindex);
+		fprintf(stderr,"\nData Type= %02x  Value=%d ",record.select.selec1.data.type,record.select.selec1.data.data[0]);
+	}
+	if(record.selectType==5)
+	{
+		printSel5(record);
+	}
+	if(record.selectType==9)
+	{
+		printSel9(record);
+	}
+	doGetrecord(&record);
+	BuildFrame_GetResponseRecord(GET_REQUEST_RECORD,csinfo,record,sendbuf);
+//	securetype = 0;		//清除安全等级标识
 	return 1;
 }
 int GetEnvironmentValue(RESULT_NORMAL *response)

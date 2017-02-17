@@ -34,6 +34,7 @@
 static unsigned char checksum;
 static unsigned short blocksize;
 static unsigned char checksumtmp;
+static unsigned char file_path[256];
 
 
 int createFile(const char * path, int length, unsigned char crc, unsigned short bs){
@@ -48,8 +49,9 @@ int createFile(const char * path, int length, unsigned char crc, unsigned short 
 
 	//文件夹不存在,创建文件夹
 	if(access("/nand/UpFiles", F_OK)!=0){
-			system("mkdir /nand/UpFiles");
+		system("mkdir /nand/UpFiles");
 	}
+	memcpy(file_path, path, sizeof(file_path));
 
 	//打开文件，并写入空值对文件进行填充
 	fp = fopen((const char*)path, "w+");
@@ -73,16 +75,16 @@ int createFile(const char * path, int length, unsigned char crc, unsigned short 
 }
 
 
-int appendFile(const char * path, int shift, int length, unsigned char *buf){
+int appendFile(int shift, int length, unsigned char *buf){
 	FILE 	*fp=NULL;
 
 	//文件不存在
-	if(access(path, F_OK)!=0){
+	if(access(file_path, F_OK)!=0){
 		return 104;
 	}
 
 	//打开文件，并写入空值对文件进行填充
-	fp = fopen((const char*)path, "r+");
+	fp = fopen((const char*)file_path, "r+");
 	if (fp != NULL) {
 		fseek(fp, shift*blocksize, SEEK_SET);
 		fwrite(buf,length,1,fp);
@@ -91,7 +93,7 @@ int appendFile(const char * path, int shift, int length, unsigned char *buf){
 			checksumtmp += buf[j];
 		}
 		struct stat mstats;
-		stat(path, &mstats);
+		stat(file_path, &mstats);
 		int res = (int)((shift*blocksize + length)*100.0)/mstats.st_size;
 		if(res == 100){
 			printf("checksumtmp = %d-%d\n", checksumtmp, checksum);

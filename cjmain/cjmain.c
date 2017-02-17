@@ -12,16 +12,18 @@
 #include "PublicFunction.h"
 #include "AccessFun.h"
 #include "cjmain.h"
+#include <dirent.h>
+#define PATH_MAX 256
 
 void Runled()
 {
-
+	gpio_writebyte((char*)DEV_LED_RUN, 1); //运行灯常亮
 }
 
 void Watchdog(int dogmin)//硬件看门狗
 {
 	int fd = -1;
-	if((fd = open("/dev/watchdog", O_RDWR | O_NDELAY)) == -1)
+	if((fd = open(DEV_WATCHDOG, O_RDWR | O_NDELAY)) == -1)
 	{
 		fprintf(stderr, "\n\r open /dev/watchdog error!!!");
 		return;
@@ -165,17 +167,78 @@ void ReadSystemInfo()
 	}
 	fprintf(stderr,"\n\n\n");
 }
+void shmm_destroy()
+{
+	if(JProgramInfo !=NULL)
+	{
+		munmap(JProgramInfo,sizeof(ProgramInfo));
+		JProgramInfo = NULL;
+		shm_unlink((const char*)"ProgramInfo");
+	}
+}
 
 //程序入口函数-----------------------------------------------------------------------------------------------------------
 //程序退出前处理，杀死其他所有进程 清楚共享内存
 void ProjectMainExit(int signo)
 {
+	fprintf(stderr,"\ncjmain exit\n");
 	close_named_sem(SEMNAME_SPI0_0);
 	sem_unlink(SEMNAME_SPI0_0);
 	close_named_sem(SEMNAME_PARA_SAVE);
 	sem_unlink(SEMNAME_PARA_SAVE);
+	shmm_destroy();
 	exit(0);
 	return ;
+}
+
+INT32S prog_find_pid_by_name(INT8S* ProcName, INT32S* foundpid)
+{
+	DIR             *dir;
+	struct dirent   *d;
+	int             pid, i;
+	char            *s;
+	int pnlen;
+	i = 0;
+	foundpid[0] = 0;
+	pnlen = strlen((const char*)ProcName);
+	/* Open the /proc directory. */
+	dir = opendir("/proc");
+	if (!dir)
+	{
+			printf("cannot open /proc");
+			return -1;
+	}
+	/* Walk through the directory. */
+	while ((d = readdir(dir)) != NULL) {
+			char exe [PATH_MAX+1];
+			char path[PATH_MAX+1];
+			int len;
+			int namelen;
+			/* See if this is a process */
+			if ((pid = atoi(d->d_name)) == 0)
+				continue;
+			snprintf(exe, sizeof(exe), "/proc/%s/exe", d->d_name);
+			if ((len = readlink(exe, path, PATH_MAX)) < 0)
+					continue;
+			path[len] = '\0';
+			/* Find ProcName */
+			s = strrchr(path, '/');
+			if(s == NULL) continue;
+			s++;
+			/* we don't need small name len */
+			namelen = strlen(s);
+			if(namelen < pnlen)     continue;
+			if(!strncmp((const char*)ProcName, s, pnlen)) {
+					/* to avoid subname like search proc tao but proc taolinke matched */
+					if(s[pnlen] == ' ' || s[pnlen] == '\0') {
+							foundpid[i] = pid;
+							i++;
+					}
+			}
+	}
+	foundpid[i] = 0;
+	closedir(dir);
+	return  i;
 }
 
 /*
@@ -194,7 +257,7 @@ void ProgInit()
 	sem_parasave = create_named_sem(SEMNAME_PARA_SAVE,1);
 	sem_getvalue(sem_parasave, &val);
 	fprintf(stderr,"process The sem is %d\n", val);
-	InitClass4300(&JProgramInfo->terminalinfo);
+	InitClass4300();
 	//初始化事件参数，调用文件
 	//JProgramInfo
 	readCoverClass(0x3100,0,&JProgramInfo->event_obj.Event3100_obj,sizeof(JProgramInfo->event_obj.Event3100_obj),event_para_save);
@@ -231,16 +294,24 @@ void ProgInit()
 
 int main(int argc, char *argv[])
 {
+	pid_t pids[128];
 	int i=0;
-	INT8U prostat=0;
 	struct sigaction sa1;
-	fprintf(stderr,"\ncjmain run!");
+
 	Setsig(&sa1,ProjectMainExit);
-
-
 	JProgramInfo = (ProgramInfo*)CreateShMem("ProgramInfo",sizeof(ProgramInfo),NULL);
+	if (prog_find_pid_by_name((INT8S*)argv[0], pids) > 1)
+	{
+		return EXIT_SUCCESS;
+	}
+	if (argc >= 2 )
+	{
+		if (strcmp("all",argv[1])==0)
+			ReadSystemInfo();
+	}
+	fprintf(stderr,"\ncjmain run!");
 	ProgInit();
-	ReadSystemInfo();
+
 	while(1)
    	{
 		sleep(1);

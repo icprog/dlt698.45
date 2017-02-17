@@ -26,13 +26,15 @@ extern unsigned short tryfcs16(unsigned char *cp, int  len);
 extern INT32S secureConnectRequest(SignatureSecurity* securityInfo ,SecurityData* RetInfo);
 INT8S (*pSendfun)(int fd,INT8U* sndbuf,INT16U sndlen);
 int comfd = 0;
+INT8U ClientPiid=0;
 INT8U TmpDataBuf[MAXSIZ_FAM];
 INT8U TmpDataBufList[MAXSIZ_FAM*2];
 ProgramInfo *memp;
 LINK_Response *linkResponse_p;	// 预连接（登录、心跳）的确认，存储在com控制块中
 CONNECT_Response *myAppVar_p;	// 集中器支持参数（应用层会话参数）
 CONNECT_Response *AppVar_p;		// 集中器协商后参数（应用层会话参数）
-INT8U securetype;
+INT8U securetype;  //安全等级类型  01明文，02明文+MAC 03密文  04密文+MAC
+INT8U secureRN[20];//安全认证随机数，主站下发，终端回复时需用到，esam计算使用
 /**************************************
  * 函数功能：DL/T698.45 状态机
  * 参数含义：
@@ -143,7 +145,7 @@ int CheckHead(unsigned char* buf ,CSINFO *csinfo)
 		if (hsc1 == b1 && hsc2 == b2)
 		{
 			ctrl 	= buf[3];
-			csinfo->frame_length = ((buf[2]&0x3f << 8) + buf[1]) & 0x03FFF;
+			csinfo->frame_length = (((buf[2]&0x003f) << 8) + buf[1]) & 0x03FFF;
 			csinfo->funcode = ctrl & 0x03;
 			csinfo->dir = (ctrl & 0x80)>>7;
 			csinfo->prm = (ctrl & 0x40)>>6;
@@ -170,7 +172,7 @@ int CheckTail(unsigned char * buf,INT16U length)
 	INT8U b1=0, b2=0, fsc1=0, fsc2=0 ;
 	if( buf[0]==0x68  )
 	{
-//		fprintf(stderr,"frame length(-2) = %d ",length);
+		fprintf(stderr,"frame length(-2) = %d ",length);
 		cs16 = tryfcs16(&buf[1], length-2);
 		b1 = (cs16 & 0x00ff);
 		b2 = ((cs16 >> 8) & 0x00ff);
@@ -555,10 +557,6 @@ int doGetAttribute(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
 	fprintf(stderr,"\n- get type = %d PIID=%02x",getType,piid.data);
 
 	getoad(&apdu[3],&oad);
-
-//	oad.OI = (apdu[3]<<8) | apdu[4];
-//	oad.attflg = apdu[5];
-//	oad.attrindex = apdu[6];
 	data = &apdu[7];					//Data
 
 	switch(getType)
@@ -578,6 +576,7 @@ int doGetAttribute(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
 			break;
 		case GET_REQUEST_RECORD_NEXT:
 			break;
+
 	}
 	return 1;
 }
@@ -648,36 +647,58 @@ INT16S doSecurityRequest(INT8U* apdu)//
 	if(apdu[1] !=0x00 && apdu[1] != 0x01) return -2 ;   //明文应用数据单元
 	 INT16S retLen=0;
 	 INT32S fd=-1;
-	 INT8U SecurityType=0x00;//本次传输安全等级(属于库全局变量，暂放此处)
-	 INT8U MAC[20];//该mac值暂时用不到，暂存
 	 fd = Esam_Init(fd,(INT8U*)ACS_SPI_DEV);
 	 if(fd<0) return -3;
-
+	 //fprintf(stderr,"in doSecurityRequest\n");
 	 if(apdu[1]==0x00)//明文应用数据处理
 	 {
-		 retLen = secureDecryptDataDeal(fd,apdu,&SecurityType,MAC);//传入安全等级
+		 retLen = secureDecryptDataDeal(apdu);//传入安全等级
 		 apdu=&apdu[2];
 	 }
 	 else if(apdu[1]==0x01)//密文应用数据处理
 	 {
-		 retLen = secureEncryptDataDeal(fd,&SecurityType,apdu,apdu);
+		 retLen = secureEncryptDataDeal(fd,apdu,apdu);
 	 }
 	 Esam_Clear(fd);
 	 return retLen;
 }
 //组织SecurityResponse上行报文
 //length上行报文应用层数据长度，SecurityType下行报文等级（之前解析下行报文得出的值）
-//返回：SendApdu中存储新的加密数据（应用数据单元和数据验证信息）（假定包括明文/密文的开始第一个标示字节）
-INT16S composeSecurityResponse(INT8U* SendApdu,INT16U length,INT8U SecurityType)
+//规约要求：所有应答的安全级别不能低于请求的安全级别。此处，使用和下发报文相同安全级别回复
+//返回：SendApdu中存储新的加密数据（应用数据单元和数据验证信息,包括明文/密文的开始第一个标示字节）
+INT16S composeSecurityResponse(INT8U* SendApdu,INT16U Length)
 {
-	 INT16S retLen=0;
 	 INT32S fd=-1;
+	 INT32S ret=0;
 	 fd = Esam_Init(fd,(INT8U*)ACS_SPI_DEV);
-	 if(fd<0) return -3;
-	 retLen = Esam_SIDResponseCheck(fd,SecurityType,SendApdu,length,SendApdu);
-	 if(retLen<=0) return 0;
-	 Esam_Clear(fd);
-	 return retLen;
+	 do
+	 {
+		 if(fd>0 && Length>0)
+		 {
+			 if(securetype == 0x02)//明文+mac
+				 ret = compose_DataAndMac(fd,SendApdu,Length);
+			 else if(securetype == 0x03)//密文
+				 ret = compose_EnData(fd,SendApdu,Length);
+			 else if(securetype == 0x04)//密文+mac
+				 ret = compose_EnDataAndMac(fd,SendApdu,Length);
+			 else
+				 break;
+		 }
+		 if(ret>0 && fd>0)//esam校验正常，返回
+		 {
+			 Esam_Clear(fd);
+			 return ret;
+		 }
+	 }
+	 while(0);
+	 //以上都正常返回了，走到这就就很抱歉了
+	 //走到这里说明esam验证出现错误，回复DAR异常错误
+	 if(fd>0) Esam_Clear(fd);
+	 SendApdu[0]=0x90;
+	 SendApdu[1]=0x02;//DAR
+	 SendApdu[2]=0x16;//22ESAM校验错误
+	 SendApdu[3]=0x00;//mac optional
+	 return 4;
 }
 //组织主动上报报文安全加密（上送主站报文）
 //明文发送到ESAM芯片，返回12字节RN和4字节MAC共16字节
@@ -877,6 +898,30 @@ INT16S composeProtocol698_GetRequest(INT8U* 	sendBuf,CLASS_6015 obj6015,TSA mete
 
 }
 
+int doReleaseConnect(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
+{
+	int apduplace =0,index=0, hcsi=0;
+	ClientPiid = apdu[1];
+	csinfo->dir = 1;
+	csinfo->prm = 0;
+	index = FrameHead(csinfo,sendbuf);
+	hcsi = index;
+	index = index + 2;
+
+	apduplace = index;		//记录APDU 起始位置
+	sendbuf[index++] = RELEASE_RESPONSE;
+	sendbuf[index++] = ClientPiid;
+	sendbuf[index++] = 0;
+	sendbuf[index++] = 0;
+	sendbuf[index++] = 0;
+
+	FrameTail(sendbuf,index,hcsi);
+	if(pSendfun!=NULL)
+		pSendfun(comfd,sendbuf,index+3);
+	fprintf(stderr,"\n			断开应用连接 PIID = %x",ClientPiid);
+	return 1;
+}
+
 /**********************************************************************
  * 1.	CONNECT.request 服务,本服务由客户机应用进程调用,用于向远方服务器的应用进程提出建立应用连接请求。
  * 						主站（客户机）请求集中器（客户机）建立应用连接
@@ -895,6 +940,14 @@ INT8U dealClientRequest(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
 			fprintf(stderr,"\n安全请求计算错误!!!");
 			return 0;
 		}
+//		else
+//		{
+//			fprintf(stderr,"apduType = %d\n",apduType);
+//			int i;
+//			for( i=0;i<SecurityRe;i++)
+//				fprintf(stderr,"%02x ",apdu[i]);
+//			fprintf(stderr,"\n");
+//		}
 		apduType = apdu[0];
 	}
 	switch(apduType)
@@ -917,6 +970,7 @@ INT8U dealClientRequest(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
 			doProxyRequest(apdu,csinfo,sendbuf);
 			break;
 		case RELEASE_REQUEST:
+			doReleaseConnect(apdu,csinfo,sendbuf);
 			break;
 	}
 	return(apduType);

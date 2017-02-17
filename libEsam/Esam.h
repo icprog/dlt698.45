@@ -166,7 +166,7 @@ INT32S Esam_GetTermiSingleInfo(INT32S fd, INT8U type, INT8U* Rbuf);
 INT32S Esam_CreateConnect(INT32S fd, SignatureSecurity* securityInfo ,SecurityData* RetInfo) ;
 INT32S Esam_SIDTerminalCheck(INT32S fd, SID_MAC SidMac,INT8U* Data, INT8U* Rbuf) ;
 INT32S Esam_SIDResponseCheck(INT32S fd, INT8U P2type, INT8U* Data3,INT16U Length, INT8U* Rbuf);
-INT32S Esam_GetTerminalInfo(INT32S fd, INT8U *RN,INT8U* Data1,INT8U* Rbuf) ;
+INT32S Esam_GetTerminalInfo(INT32S fd, INT8U *RN,INT8U* Data1,INT16U Length,INT8U* Rbuf) ;
 INT32S Esam_SymKeyUpdate(INT32S fd, SID_MAC SidMac,INT8U* Data2);
 INT32S Esam_CcieSession(INT32S fd, SID sid,INT8U* Data2);
 INT32S Esam_ReportEncrypt(INT32S fd, INT8U* Data1, INT16U Length,INT8U* RN,INT8U* MAC) ;
