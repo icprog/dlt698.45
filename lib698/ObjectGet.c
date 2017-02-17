@@ -581,7 +581,14 @@ int doGetrecord(RESULT_RECORD *record)
 	INT8U SelectorN = record->selectType;
 	fprintf(stderr,"\n- getRequestRecord  OI = %04x  attrib=%d  index=%d",record->oad.OI,record->oad.attflg,record->oad.attrindex);
 	int datalen=0;
-
+	int ret=0;
+	if (record->selectType== 9 || record->selectType == 10)
+	{
+//		ret = Getevent_Record_Selector(record,memp);
+	}else if (record->selectType == 5 || record->selectType==7)
+	{
+//		ret = getSelector(record->select,SelectorN,record->rcsd,(INT8U *)&record->data,datalen);
+	}
 //	int getSelector(RSD select,INT8U type,CSD_ARRAYTYPE csds,INT8U** Databuf,int *Datalen);
 ////	if (getSelector(record->select,SelectorN,record->rcsd,(INT8U *)&record->data,datalen)>0)
 //	{
