@@ -17,13 +17,17 @@
 extern INT8S (*pSendfun)(int fd,INT8U* sndbuf,INT16U sndlen);
 extern int FrameHead(CSINFO *csinfo,INT8U *buf);
 extern void FrameTail(INT8U *buf,int index,int hcsi);
-extern INT8U Get_Event(OI_698 oi,INT8U eventno,INT8U** Getbuf,INT8U *Getlen);
+extern INT8U Get_Event(OI_698 oi,INT8U eventno,INT8U** Getbuf,int *Getlen,ProgramInfo* prginfo_event);
+extern INT8U Getevent_Record_Selector(RESULT_RECORD *record_para,ProgramInfo* prginfo_event);
 extern void getoad(INT8U *data,OAD *oad);
 extern int get_BasicRCSD(INT8U *source,CSD_ARRAYTYPE *csds);
 extern int get_BasicRSD(INT8U *source,INT8U *dest,INT8U *type);
+extern INT16S composeSecurityResponse(INT8U* SendApdu,INT16U Length);
 extern int comfd;
 extern INT8U TmpDataBuf[MAXSIZ_FAM];
 extern INT8U TmpDataBufList[MAXSIZ_FAM*2];
+extern INT8U securetype;
+extern ProgramInfo *memp;
 
 int BuildFrame_GetResponseRecord(INT8U response_type,CSINFO *csinfo,RESULT_RECORD record,INT8U *sendbuf)
 {
@@ -69,7 +73,7 @@ int BuildFrame_GetResponseRecord(INT8U response_type,CSINFO *csinfo,RESULT_RECOR
 
 	if (record.datalen > 0)
 	{
-		sendbuf[index++] = 1;//choice 1  ,Data有效
+		sendbuf[index++] = 1;//choice 1  ,SEQUENCE OF A-RecordRow
 		memcpy(&sendbuf[index],record.data,record.datalen);
 		index = index + record.datalen;
 	}else
@@ -105,9 +109,11 @@ int BuildFrame_GetResponse(INT8U response_type,CSINFO *csinfo,INT8U oadnum,RESUL
 	memcpy(&sendbuf[index],response.data,response.datalen);
 	index = index + response.datalen;
 	sendbuf[index++] = 0;
-
-//	apduplace += SecureApdu(&sendbuf[apduplace],index-apduplace);
-
+	if(securetype!=0)//安全等级类型不为0，代表是通过安全传输下发报文，上行报文需要以不低于请求的安全级别回复
+	{
+		apduplace += composeSecurityResponse(&sendbuf[apduplace],index-apduplace);
+		index=apduplace;
+	}
 	FrameTail(sendbuf,index,hcsi);
 	if(pSendfun!=NULL)
 		pSendfun(comfd,sendbuf,index+3);
@@ -494,7 +500,7 @@ int GetEventRecord(RESULT_NORMAL *response)
 	INT8U *data=NULL;
 	INT16U datalen=0;
 
-	if ( Get_Event(response->oad.OI,response->oad.attrindex-1,&data,(INT8U *)&datalen) == 1 )
+	if ( Get_Event(response->oad.OI,response->oad.attrindex,&data,(INT8U *)&datalen,memp) == 1 )
 	{
 		if (datalen > 512 || data==NULL)
 		{
@@ -581,28 +587,59 @@ int doGetrecord(RESULT_RECORD *record)
 	INT8U SelectorN = record->selectType;
 	fprintf(stderr,"\n- getRequestRecord  OI = %04x  attrib=%d  index=%d",record->oad.OI,record->oad.attflg,record->oad.attrindex);
 	int datalen=0;
-	int ret=0;
-	if (record->selectType== 9 || record->selectType == 10)
-	{
-//		ret = Getevent_Record_Selector(record,memp);
-	}else if (record->selectType == 5 || record->selectType==7)
-	{
-//		ret = getSelector(record->select,SelectorN,record->rcsd,(INT8U *)&record->data,datalen);
+
+	switch(SelectorN) {
+	case 5:
+	case 7:
+//		getSelector(record->select,SelectorN,record->rcsd,(INT8U *)&record->data,datalen);
+		break;
+	case 9:		//指定读取上第n次记录
+		Getevent_Record_Selector(record,memp);
+		break;
 	}
-//	int getSelector(RSD select,INT8U type,CSD_ARRAYTYPE csds,INT8U** Databuf,int *Datalen);
-////	if (getSelector(record->select,SelectorN,record->rcsd,(INT8U *)&record->data,datalen)>0)
-//	{
-//
-//	}else
-//	{
-//		//错误
-//	}
 	return 1;
 }
+
+void printrcsd(RCSD rcsd)
+{
+	int i=0;
+	int k=0;
+	for(i = 0; i<rcsd.csds.num;i++)
+	{
+		if (rcsd.csds.csd[i].type == 1)
+		{
+			fprintf(stderr,"\n");
+			fprintf(stderr,"\nROAD     %04x %02x %02x",rcsd.csds.csd[i].csd.road.oad.OI,rcsd.csds.csd[i].csd.road.oad.attflg,rcsd.csds.csd[i].csd.road.oad.attrindex);
+			for(k=0;k<rcsd.csds.csd[i].csd.road.num;k++)
+				fprintf(stderr,"\n     		oad %04x %02x %02x",rcsd.csds.csd[i].csd.road.oads[k].OI,rcsd.csds.csd[i].csd.road.oads[k].attflg,rcsd.csds.csd[i].csd.road.oads[k].attrindex);
+		}else
+		{
+			fprintf(stderr,"\nOAD     %04x %02x %02x",rcsd.csds.csd[i].csd.oad.OI,rcsd.csds.csd[i].csd.oad.attflg,rcsd.csds.csd[i].csd.oad.attrindex);
+		}
+	}
+}
+void printSel5(RESULT_RECORD record)
+{
+	fprintf(stderr,"\n%d年 %d月 %d日 %d时:%d分:%d秒",
+					record.select.selec5.collect_save.year.data,record.select.selec5.collect_save.month.data,
+					record.select.selec5.collect_save.day.data,record.select.selec5.collect_save.hour.data,
+					record.select.selec5.collect_save.min.data,record.select.selec5.collect_save.sec.data);
+	fprintf(stderr,"\nMS-TYPE %d  ",record.select.selec5.meters.mstype);
+	printrcsd(record.rcsd);
+}
+
+void printSel9(RESULT_RECORD record)
+{
+	fprintf(stderr,"\nSelector9:指定选取上第n次记录\n");
+	fprintf(stderr,"\n选取上第%d次记录 ",record.select.selec9.recordn);
+	fprintf(stderr,"\nRCSD个数：%d",record.rcsd.csds.num);
+	printrcsd(record.rcsd);
+}
+
 int getRequestRecord(OAD oad,INT8U *data,CSINFO *csinfo,INT8U *sendbuf)
 {
 	RESULT_RECORD record;
-	int i=0;
+
 	int index=0;
 	memset(TmpDataBuf,0,sizeof(TmpDataBuf));
 	record.oad = oad;
@@ -612,7 +649,6 @@ int getRequestRecord(OAD oad,INT8U *data,CSINFO *csinfo,INT8U *sendbuf)
 	index = get_BasicRSD(&data[index],(INT8U *)&record.select,&record.selectType);
 	fprintf(stderr,"\nRSD Select%d  ",record.selectType);
 	index +=get_BasicRCSD(&data[index],&record.rcsd.csds);
-	int k=0;
 	if (record.selectType == 1)
 	{
 		fprintf(stderr,"\nOAD %04x %02x %02x",record.select.selec1.oad.OI,record.select.selec1.oad.attflg,record.select.selec1.oad.attrindex);
@@ -620,24 +656,11 @@ int getRequestRecord(OAD oad,INT8U *data,CSINFO *csinfo,INT8U *sendbuf)
 	}
 	if(record.selectType==5)
 	{
-		fprintf(stderr,"\n%d年 %d月 %d日 %d时:%d分:%d秒",
-				record.select.selec5.collect_save.year.data,record.select.selec5.collect_save.month.data,
-				record.select.selec5.collect_save.day.data,record.select.selec5.collect_save.hour.data,
-				record.select.selec5.collect_save.min.data,record.select.selec5.collect_save.sec.data);
-		fprintf(stderr,"\nMS-TYPE %d  ",record.select.selec5.meters.mstype);
-		for(i = 0; i<record.rcsd.csds.num;i++)
-		{
-			if (record.rcsd.csds.csd[i].type == 1)
-			{
-				fprintf(stderr,"\n");
-				fprintf(stderr,"\nROAD     %04x %02x %02x",record.rcsd.csds.csd[i].csd.road.oad.OI,record.rcsd.csds.csd[i].csd.road.oad.attflg,record.rcsd.csds.csd[i].csd.road.oad.attrindex);
-				for(k=0;k<record.rcsd.csds.csd[i].csd.road.num;k++)
-					fprintf(stderr,"\n     		oad %04x %02x %02x",record.rcsd.csds.csd[i].csd.road.oads[k].OI,record.rcsd.csds.csd[i].csd.road.oads[k].attflg,record.rcsd.csds.csd[i].csd.road.oads[k].attrindex);
-			}else
-			{
-				fprintf(stderr,"\nOAD     %04x %02x %02x",record.rcsd.csds.csd[i].csd.oad.OI,record.rcsd.csds.csd[i].csd.oad.attflg,record.rcsd.csds.csd[i].csd.oad.attrindex);
-			}
-		}
+		printSel5(record);
+	}
+	if(record.selectType==9)
+	{
+		printSel9(record);
 	}
 	doGetrecord(&record);
 	BuildFrame_GetResponseRecord(GET_REQUEST_RECORD,csinfo,record,sendbuf);

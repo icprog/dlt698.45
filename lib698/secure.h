@@ -18,4 +18,7 @@ INT32S UnitParse(INT8U* source,INT8U* dest,INT8U type);
  INT16U getEsamAttribute(OAD oad,INT8U *retBuff);
  INT32S esamMethodKeyUpdate(INT8U *Data2);
  INT32S esamMethodCcieSession(INT8U *Data2);
+ INT16S compose_EnData( INT32S fd,INT8U* SendApdu,INT16U Length);
+ INT16S compose_DataAndMac( INT32S fd,INT8U* SendApdu,INT16U Length);
+ INT16S compose_EnDataAndMac( INT32S fd,INT8U* SendApdu,INT16U Length);
 #endif /* SECURE_H_ */

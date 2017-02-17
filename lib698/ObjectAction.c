@@ -160,9 +160,9 @@ int get_BasicRSD(INT8U *source,INT8U *dest,INT8U *type)
 			memcpy(dest,&select6,sizeof(select6));
 			break;
 		case 9:
-			select9.recordn = source[0];
+			select9.recordn = source[1];
 			memcpy(dest,&select9,sizeof(select9));
-			index = 1;
+			index = 2;
 			break;
 		case 10:
 			select10.recordn = source[0];
@@ -182,6 +182,7 @@ int get_BasicRCSD(INT8U *source,CSD_ARRAYTYPE *csds)
 	int i=0,index=0,j=0;
 	INT8U num=0;
 	num = source[index++];
+	fprintf(stderr,"get RCSD num=%d\n",num);
 	csds->num = num;
 	for(i=0;i<num ;i++)
 	{
@@ -664,6 +665,179 @@ void TerminalInfo(INT16U attr_act,INT8U *data)
 			break;
 	}
 }
+void FileTransMothod(INT16U attr_act,INT8U *data)
+{
+	INT8U name[128];
+	INT8U sub_name[128];
+	INT8U version[128];
+	INT8U path[256];
+
+	memset(name, 0x00, sizeof(name));
+	memset(sub_name, 0x00, sizeof(sub_name));
+	memset(version, 0x00, sizeof(version));
+	memset(path, 0, sizeof(path));
+	INT32U file_length = 0;
+	INT16U block_length = 0;
+	INT8U crc = 0;
+	INT16U block_start = 0;
+
+	switch(attr_act)
+	{
+		case 7://启动传输
+			//开始解析固定的信息
+			if (data[2] == 0x02 && data[3] == 0x05)
+			{
+				int data_index = 4;
+				if(data[data_index] != 0x0a)
+				{
+					fprintf(stderr,"未能找到文件名\n");
+					goto err;
+				}
+				data_index++;
+				if(data[data_index] >= 128)
+				{
+					fprintf(stderr,"文件名过长\n");
+					goto err;
+				}
+				memcpy(name, &data[data_index + 1], data[data_index]);
+				data_index += data[data_index] + 1;
+
+				if(data[data_index] != 0x0a)
+				{
+					fprintf(stderr,"未能找到文件扩展名\n");
+					goto err;
+				}
+				data_index++;
+				if(data[data_index] >= 128)
+				{
+					fprintf(stderr,"文件扩展名过长\n");
+					goto err;
+				}
+				memcpy(sub_name, &data[data_index + 1], data[data_index]);
+				data_index += data[data_index]+1;
+
+				if(data[data_index] != 0x06)
+				{
+					fprintf(stderr,"未能找到文件长度\n");
+					goto err;
+				}
+				data_index++;
+				file_length += data[data_index++];
+				file_length <<= 8;
+				file_length += data[data_index++];
+				file_length <<= 8;
+				file_length += data[data_index++];
+				file_length <<= 8;
+				file_length += data[data_index++];
+				data_index+=3;
+
+				if(data[data_index] != 0x0a)
+				{
+					fprintf(stderr,"未能找到文件版本信息\n");
+					goto err;
+				}
+				data_index++;
+				if(data[data_index] >= 128)
+				{
+					fprintf(stderr,"文件版本信息过长\n");
+					goto err;
+				}
+				memcpy(version, &data[data_index + 1], data[data_index]);
+				data_index += data[data_index]+1;
+
+				if(data[data_index] != 0x12)
+				{
+					fprintf(stderr,"未能找到文件传输块大小\n");
+					goto err;
+				}
+				data_index++;
+				block_length += data[data_index++];
+				block_length <<= 8;
+				block_length += data[data_index++];
+
+				data_index+=2;
+				if(data[data_index] != 0x16 || data[data_index+1] != 0x00)
+				{
+					fprintf(stderr,"无法找到文件校验方式或者文件校验方式不是CRC{%d}\n",data[data_index+1]);
+					goto err;
+				}
+				data_index+=2;
+				if(data[data_index] !=0x09)
+				{
+					fprintf(stderr,"无法找到文件校验的crc\n");
+					goto err;
+				}
+				data_index++;
+				crc = data[data_index];
+			}
+			else
+			{
+				goto err;
+			}
+
+			snprintf(path,sizeof(path), "/nand/UpFiles/u%s.%s.%s", name, sub_name, version);
+
+			fprintf(stderr,"启动传输 文件名:%s,文件长度:%d,文件校验%02x,块长度%d\n", path, file_length, crc, block_length);
+			createFile(path, file_length, crc, block_length);
+			break;
+		case 8://写文件
+			if(data[0] == 0x02 && data[1] == 0x02)
+			{
+				int data_index = 2;
+				INT16U block_index = 0;
+				INT32U block_sub_len = 0;
+				if(data[data_index] != 0x12)
+				{
+					fprintf(stderr,"未能找到分段序号\n");
+					goto err;
+				}
+				data_index++;
+				block_index += data[data_index++];
+				block_index <<= 8;
+				block_index += data[data_index++];
+
+				if(data[data_index] != 0x09)
+				{
+					fprintf(stderr,"未能找到分段长度\n");
+					goto err;
+				}
+				data_index++;
+				if(data[data_index] > 128)
+				{
+					int length_len = data[data_index] - 128;
+					if(length_len > 2){
+						fprintf(stderr,"分片过长\n");
+						goto err;
+					}
+					data_index++;
+					for(int i = 0; i < length_len; i++)
+					{
+						block_sub_len+= data[data_index++];
+						block_sub_len <<= 8;
+					}
+					block_sub_len >>= 8;
+				}
+				else
+				{
+					block_sub_len = data[data_index++];
+				}
+				block_start = data_index;
+				fprintf(stderr,"写入文件 分段序号%d,分段长度%d\n", block_index, block_sub_len);
+				appendFile(block_index, block_sub_len, &data[block_start]);
+			}
+			else
+			{
+				goto err;
+			}
+			break;
+		case 9://读文件
+			fprintf(stderr,"读取文件\n");
+			break;
+	}
+
+err:
+	return;
+}
 void MeterInfo(INT16U attr_act,INT8U *data)
 {
 	switch(attr_act)
@@ -750,6 +924,9 @@ int doObjectAction(OAD oad,INT8U *data)
 			break;
 		case 0x4300:	//终端对象
 			TerminalInfo(attr_act,data);
+			break;
+		case 0xF001: //文件传输
+			FileTransMothod(attr_act,data);
 			break;
 		case 0xF100:
 			EsamMothod(attr_act,data);

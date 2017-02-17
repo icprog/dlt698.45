@@ -38,6 +38,32 @@ extern INT8U secureRN[20];
 		if(datalen > BUFLEN) datalen=0;//超过上行最大长度，做异常处理
 		return datalen;
  }
+ //给出字符串长度，返回长度字节数和对应的字节(用于组octet-string字符串)
+ //如 96 返回1，retData=0x60,    如130 返回2，retData = 0x81,0x82  如258 返回2，retData = 0x82 0x01,0x02
+ //处理长度最大用2个字节可表示长度
+ INT16U GetLengthByte(INT16U Length,INT8U *retData)
+ {
+	 if(Length>0 && Length<128)
+	 {
+		 retData[0]=Length;
+		 return 1;
+	 }
+	 else if(Length>=128 && Length<256)
+	 {
+		 retData[0]=0x81;
+		 retData[1]=Length;
+		 return 2;
+	 }
+	 else if(Length>=256)
+	 {
+		 retData[0]=0x82;
+		 retData[1]=Length/256;
+		 retData[2]=Length%256;
+		 return 3;
+	 }
+	 else
+		 return 0;
+ }
  /**********************************************************************
   *建立应用链接（）
   *输入：SignatureSecurity为主站下发解析得到；SecurityData为上行报文结构数据，需填充
@@ -152,23 +178,50 @@ INT32S UnitParse(INT8U* source,INT8U* dest,INT8U type)
  {
 	 INT32S ret=0;
 	 INT16U appLen = GetDataLength(&apdu[2]);//计算应用数据单元长度
+	 INT8U tmpbuff[2048];
 	 if(appLen<=0) return -100;
-	 fprintf(stderr,"secureDecryptDataDeal appLen = %d\n",appLen);
+	 //fprintf(stderr,"secureDecryptDataDeal appLen = %d\n",appLen);
 	 securetype=0x02;//明文+MAC等级
 	 if(apdu[2+appLen]==0x01 || apdu[2+appLen]==0x02)// 只处理RN/RN_MAC情况
 	 {
 		 if(apdu[2+appLen+1]<=sizeof(secureRN))//随机数字符数小于secureRN大小(原则是16byte)
 		 {
-			 memcpy(secureRN,&apdu[2+appLen+2],apdu[2+appLen+1]);
+			 memcpy(secureRN,&apdu[2+appLen+1],apdu[2+appLen+1]+1);//包括第一字节长度
 			 ret=appLen;
 		 }
 			 //ret =  Esam_GetTerminalInfo(fd,&apdu[2+appLen+1],&apdu[2],MAC);//最后+1是数据验证信息标识
 	 }
-	 else if(apdu[2+appLen]==0x00 || apdu[2+appLen]==0x03)
+	 else if(apdu[2+appLen]==0x00 || apdu[2+appLen]==0x03)//TODO:处理明文状态下，收到SID/SID_MAC异常情况
 	 {
 		 ret=appLen;
 	 }
+	 else
 		 return -101;
+	 if(apdu[2]<0x80)//长度字节为1个字节
+	 {
+		 memcpy(tmpbuff,&apdu[3],appLen-1);
+		 memcpy(apdu,tmpbuff,appLen-1);
+		 ret=appLen-1;
+	 }
+	 else if(apdu[2]==0x81)//长度2个字节
+	 {
+			 memcpy(tmpbuff,&apdu[4],appLen-2);
+			 memcpy(apdu,tmpbuff,appLen-2);
+			 ret=appLen-2;
+	 }
+	 else if(apdu[2] == 0x82)//长度为3个字节
+	 {
+		 memcpy(tmpbuff,&apdu[5],appLen-3);
+		 memcpy(apdu,tmpbuff,appLen-3);
+		 ret=appLen-3;
+	 }
+	 else
+		 return -102;
+	// int i=0;
+//	 fprintf(stderr,"rn = ");
+//	 for(i=0;i<20;i++)
+//		 fprintf(stderr,"%02x ",secureRN[i]);
+//	 fprintf(stderr,"\n");
 	 return ret;
  }
  //获取ESAM主站/终端证书   证书都是大于1000字节，此处按照大于1000,2个字节组织上送报文
@@ -418,5 +471,84 @@ INT32S esamMethodCcieSession(INT8U *Data2)
 	}
 	 else return -4;
 }
+//回复明文加mac   区分读取和其他
+INT16S compose_DataAndMac( INT32S fd,INT8U* SendApdu,INT16U Length)
+{
+	 INT8U esamBuff[2048];//送入esam，获取esam返回信息
+	 INT8U bytelen[3];
+	 INT8U BuffTmp[2048];
+	 INT16S retLen=0;
+	 BuffTmp[0]=0x90;//安全传输应答标识
+	 if(SendApdu[0] == 133)//读取的上报
+		 retLen = Esam_GetTerminalInfo(fd,secureRN,SendApdu,Length,esamBuff);
+	 else
+		 retLen = Esam_SIDResponseCheck(fd,11,SendApdu,Length,esamBuff);
+	 if(retLen>0)//正常返回4字节MAC
+	 {
+		 BuffTmp[1]=0x00;//明文传输标识
+		 retLen = GetLengthByte(Length,bytelen);
+		 memcpy(&BuffTmp[2],&bytelen[0],retLen);//复制长度字符串
+		 memcpy(&BuffTmp[2+retLen],SendApdu,Length);//复制明文字符串
+		 BuffTmp[2+retLen+Length]=0x01;//有MAC
+		 BuffTmp[2+retLen+Length+1]=0x00;//MAC标识
+		 BuffTmp[2+retLen+Length+2] = 0x04;//MAC长度4字节
+		 if(SendApdu[0] == 133)//读取的上报
+			 memcpy(&BuffTmp[2+retLen+Length+3],esamBuff,4);//复制mac(终端读取)
+		 else
+			 memcpy(&BuffTmp[2+retLen+Length+3],&esamBuff[retLen-4],4);//非终端读取（esam返回的是明文加mac，此处需验证）
+		 memcpy(SendApdu,BuffTmp,2+retLen+Length+7);//复制回SendApdu
+		 return 2+retLen+Length+7;
+	 }
+	 else
+		 return 0;
+}
+//回复密文
+INT16S compose_EnData( INT32S fd,INT8U* SendApdu,INT16U Length)
+{
+	 INT8U esamBuff[2048];//送入esam，获取esam返回信息
+	 INT8U bytelen[3];
+	 INT8U BuffTmp[2048];
+	 INT16S esamret=0;
+	 INT8U retLen=0;
 
+	 BuffTmp[0]=0x90;//安全传输应答标识
+	 esamret = Esam_SIDResponseCheck(fd,96,SendApdu,Length,esamBuff);
+	 if(esamret>0)//正常返回4字节MAC
+	{
+		 BuffTmp[1]=0x01;//密文传输标识
+		 retLen = GetLengthByte(esamret,bytelen);
+		 memcpy(&BuffTmp[2],&bytelen[0],retLen);//复制长度字符串
+		 memcpy(&BuffTmp[2+retLen],esamBuff,esamret);//复制密文字符串
+		 BuffTmp[2+retLen + esamret] = 0x00;//无mac
+		 return 2+retLen+esamret+1;
+	}
+	 else
+		 return 0;
+}
+//回复密文+mac
+INT16S compose_EnDataAndMac( INT32S fd,INT8U* SendApdu,INT16U Length)
+{
+	 INT8U esamBuff[2048];//送入esam，获取esam返回信息
+	 INT8U bytelen[3];
+	 INT8U BuffTmp[2048];
+	 INT16S esamret=0;
+	 INT8U retLen=0;
+
+	 BuffTmp[0]=0x90;//安全传输应答标识
+	 esamret = Esam_SIDResponseCheck(fd,96,SendApdu,Length,esamBuff);
+	 if(esamret>0)//正常返回4字节MAC
+	{
+		 BuffTmp[1]=0x01;//密文传输标识
+		 retLen = GetLengthByte(esamret-4,bytelen);//去除尾部4个字节mac，得到的密文长度
+		 memcpy(&BuffTmp[2],&bytelen[0],retLen);//复制长度字符串
+		 memcpy(&BuffTmp[2+retLen],esamBuff,esamret-4);//复制密文字符串
+		 BuffTmp[2+retLen+esamret-4]=0x01;//有MAC
+		 BuffTmp[2+retLen+esamret-4+1]=0x00;//MAC标识
+		 memcpy( &BuffTmp[2+retLen+esamret-4+2],&esamBuff[esamret-4],4);//复制mac
+		 memcpy(SendApdu,BuffTmp,2+retLen+esamret-4+6);
+		 return 2+retLen+esamret-4+6;
+	}
+	 else
+		 return 0;
+}
 
