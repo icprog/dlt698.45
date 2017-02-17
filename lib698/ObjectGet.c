@@ -22,9 +22,11 @@ extern INT8U Getevent_Record_Selector(RESULT_RECORD *record_para,ProgramInfo* pr
 extern void getoad(INT8U *data,OAD *oad);
 extern int get_BasicRCSD(INT8U *source,CSD_ARRAYTYPE *csds);
 extern int get_BasicRSD(INT8U *source,INT8U *dest,INT8U *type);
+extern INT16S composeSecurityResponse(INT8U* SendApdu,INT16U Length);
 extern int comfd;
 extern INT8U TmpDataBuf[MAXSIZ_FAM];
 extern INT8U TmpDataBufList[MAXSIZ_FAM*2];
+extern INT8U securetype;
 extern ProgramInfo *memp;
 
 int BuildFrame_GetResponseRecord(INT8U response_type,CSINFO *csinfo,RESULT_RECORD record,INT8U *sendbuf)
@@ -107,9 +109,11 @@ int BuildFrame_GetResponse(INT8U response_type,CSINFO *csinfo,INT8U oadnum,RESUL
 	memcpy(&sendbuf[index],response.data,response.datalen);
 	index = index + response.datalen;
 	sendbuf[index++] = 0;
-
-//	apduplace += SecureApdu(&sendbuf[apduplace],index-apduplace);
-
+	if(securetype!=0)//安全等级类型不为0，代表是通过安全传输下发报文，上行报文需要以不低于请求的安全级别回复
+	{
+		apduplace += composeSecurityResponse(&sendbuf[apduplace],index-apduplace);
+		index=apduplace;
+	}
 	FrameTail(sendbuf,index,hcsi);
 	if(pSendfun!=NULL)
 		pSendfun(comfd,sendbuf,index+3);
@@ -585,18 +589,14 @@ int doGetrecord(RESULT_RECORD *record)
 	int datalen=0;
 
 	switch(SelectorN) {
+	case 5:
+	case 7:
+//		getSelector(record->select,SelectorN,record->rcsd,(INT8U *)&record->data,datalen);
+		break;
 	case 9:		//指定读取上第n次记录
 		Getevent_Record_Selector(record,memp);
 		break;
 	}
-//	int getSelector(RSD select,INT8U type,CSD_ARRAYTYPE csds,INT8U** Databuf,int *Datalen);
-////	if (getSelector(record->select,SelectorN,record->rcsd,(INT8U *)&record->data,datalen)>0)
-//	{
-//
-//	}else
-//	{
-//		//错误
-//	}
 	return 1;
 }
 

@@ -287,7 +287,11 @@ void event_process(int argc, char *argv[])
 			if(record_n!=0){
 				ProgramInfo* prginfo_event;
 				prginfo_event=OpenShMem("ProgramInfo",sizeof(ProgramInfo),NULL);
-				Get_Event(oi,record_n,(INT8U**)&Getbuf,&Getlen,prginfo_event);
+				OAD oad;
+				memset(&oad,0,sizeof(OAD));
+				oad.OI=oi;
+				oad.attflg=2;
+				Get_Event(oad,record_n,(INT8U**)&Getbuf,&Getlen,prginfo_event);
 				if(Getbuf!=NULL){
                     INT8U index=0,h2=0,h1=0,l2=0,l1=0;
                     index++;//0:结构体

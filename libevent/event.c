@@ -106,11 +106,11 @@ INT8U Event_FindTsa(TSA tsa) {
  * 根据参数读取事件记录文件
  * oi:事件oi eventno:0最新n某条 Getbuf空指针地址，动态分配 Getlen返回长度
  */
-INT8U Get_Event(OI_698 oi,INT8U eventno,INT8U** Getbuf,int *Getlen,ProgramInfo* prginfo_event)
+INT8U Get_Event(OAD oad,INT8U eventno,INT8U** Getbuf,int *Getlen,ProgramInfo* prginfo_event)
 {
 	int filesize=0;
 	INT8U currno=0,_currno=0,maxno=0;
-	 switch(oi){
+	 switch(oad.OI){
 	   case 0x3100:
 		   currno=prginfo_event->event_obj.Event3100_obj.crrentnum;
 		   maxno=prginfo_event->event_obj.Event3100_obj.maxnum;
@@ -236,115 +236,153 @@ INT8U Get_Event(OI_698 oi,INT8U eventno,INT8U** Getbuf,int *Getlen,ProgramInfo* 
 	if(_currno<=0 || _currno>maxno)
 		_currno = maxno;
 	fprintf(stderr,"currno=%d,maxno=%d\n",currno,maxno);
-	filesize = getClassFileLen(oi,_currno,event_record_save);
+	SaveFile_type savefiletype = event_record_save;
+	switch(oad.attflg){
+	     case 2:
+	    	 savefiletype=event_record_save;
+	    	 break;
+	     case 7:
+	    	 savefiletype=event_current_save;
+	    	 break;
+	}
+	filesize = getClassFileLen(oad.OI,_currno,savefiletype);
 	if(filesize<=0)  return 0;
 	*Getlen=filesize;
 	*Getbuf=(INT8U*)malloc(filesize);
-	readCoverClass(oi,_currno,*Getbuf,*Getlen,event_record_save);
+	readCoverClass(oad.OI,_currno,*Getbuf,*Getlen,savefiletype);
 	return 1;
 }
 
 /*
- * GETREQUESTRECORD selector9/10 获取事件记录中某一数据
+ * GETRECORD
+ * event_no 上第n条
+ * oi_array 要得到得OAD
+ * oi_index 要得到得OAD数量
+ * real_index 最终数据长度
+ * num 数据块数量
+ * record_para 数据参数
+ * prginfo_event 共享内存
+ */
+INT8U Getevent_Record(INT8U event_no,OI_698 *oi_array,INT8U oi_index,INT8U *real_index,
+		INT8U num,RESULT_RECORD *record_para,ProgramInfo* prginfo_event){
+	INT8U *Getbuf=NULL;//因为记录为变长，只能采用二级指针，动态分配
+	int Getlen=0;//记录长度
+	Get_Event(record_para->oad,event_no,(INT8U**)&Getbuf,&Getlen,prginfo_event);
+	if(Getbuf!=NULL && Getlen>0){
+		 record_para->dar = 1;
+		 if(record_para->data == NULL)
+			 record_para->data=(INT8U*)malloc(Getlen*num);//先按最大长度分配
+
+		 memset(&record_para->data[0],0,Getlen);
+		 record_para->data[0] +=1;		//SEQUENCE OF A-RecordRow
+         (*real_index)++;
+		 INT8U m=0;
+		 for(m=0;m<oi_index;m++){
+			switch(oi_array[m]){
+				case 0x2022://事件序号
+					memcpy(&record_para->data[*real_index],&Getbuf[STANDARD_NO_INDEX],5);
+					(*real_index) +=5;
+					break;
+				case 0x201E://事件发生时间
+					memcpy(&record_para->data[*real_index],&Getbuf[STANDARD_HAPPENTIME_INDEX],8);
+					(*real_index) +=8;
+					break;
+				case 0x2020://事件结束时间
+					memcpy(&record_para->data[*real_index],&Getbuf[STANDARD_ENDTIME_INDEX],8);
+					(*real_index) +=8;
+					break;
+				case 0x2024://事件发生源
+				{
+					INT8U len=0;
+					switch(Getbuf[STANDARD_SOURCE_INDEX]){
+						case s_null:
+							record_para->data[(*real_index)++]=0;
+							len=0;
+							break;
+						case s_tsa:
+							len=Getbuf[STANDARD_SOURCE_INDEX+1]+2;
+							break;
+						case s_oad:
+							len=5;
+							break;
+						case s_usigned:
+							len=2;
+							break;
+						case s_enum:
+							len=2;
+							break;
+						case s_oi:
+							len=3;
+							break;
+					}
+					 memcpy(&record_para->data[*real_index],&Getbuf[23],len);
+					 *real_index +=len;
+				}
+				break;
+				case 0x2025://事件当前值
+					memcpy(&record_para->data[*real_index],&Getbuf[0],Getlen);
+					(*real_index) +=Getlen;
+					break;
+			}
+		 }
+		 record_para->datalen =*real_index;//最终长度
+	}else{
+		record_para->dar = 0; //无数据
+		return 0;
+	}
+	return 1;
+}
+/*
+ * GETREQUESTRECORD selector9/10 获取事件记录中数据
+ * record_para传入要得到的数据OAD prginfo_event 共享内存
  */
 INT8U Getevent_Record_Selector(RESULT_RECORD *record_para,ProgramInfo* prginfo_event){
     if(record_para == NULL)
     	return 0;
-    INT8U event_no=1; //上n条记录
-    //如果是属性2
-    if(record_para->oad.attflg == 2){
-         switch(record_para->selectType){
+	INT8U event_no=1; //9:上第n条记录 10:上N条
+	OI_698 oi_array[50]={0};
+	 INT8U oi_index=0; //召测得数据OI数量
+	 INT8U real_index=0;//最终长度
+	 INT8U i=0;
+	 for(i=0;i<record_para->rcsd.csds.num;i++){
+		//OAD
+		if(record_para->rcsd.csds.csd[i].type == 0){
+			if(record_para->rcsd.csds.csd[i].csd.oad.attflg == 2)
+				oi_array[oi_index++]=record_para->rcsd.csds.csd[i].csd.oad.OI;
+		}
+		//ROAD
+		else if(record_para->rcsd.csds.csd[i].type == 1){
+			if(record_para->rcsd.csds.csd[i].csd.road.oad.attflg == 2)
+				oi_array[oi_index++]=record_para->rcsd.csds.csd[i].csd.road.oad.OI;
+
+			INT8U j=0;
+			for(j=0;j<record_para->rcsd.csds.csd[i].csd.road.num;j++){
+				if(record_para->rcsd.csds.csd[i].csd.road.oads[j].attflg == 2)
+					oi_array[oi_index++]=record_para->rcsd.csds.csd[i].csd.road.oads[j].OI;
+			}
+		}
+	 }
+	 if(oi_index > 0){
+		 switch(record_para->selectType){
 			 case 9:
-				 event_no=record_para->select.selec9.recordn;
+			 {
+				event_no=record_para->select.selec9.recordn;
+				Getevent_Record(event_no,oi_array,oi_index,
+						&real_index,1,record_para,prginfo_event);
+			 }
 				 break;
 			 case 10:
+			 {
 				 event_no=record_para->select.selec10.recordn;
+				 for(;event_no>0;event_no--){
+					 Getevent_Record(event_no,oi_array,oi_index,
+							 &real_index,record_para->select.selec10.recordn,
+							 record_para,prginfo_event);
+				 }
+			 }
 				 break;
-         }
-		INT8U *Getbuf=NULL;//因为记录为变长，只能采用二级指针，动态分配
-		int Getlen=0;//记录长度
-		Get_Event(record_para->oad.OI,event_no,(INT8U**)&Getbuf,&Getlen,prginfo_event);
-		if(Getbuf!=NULL && Getlen>0){
-            INT8U real_index=0;//最终长度
-            record_para->dar = 1;
-            record_para->data=(INT8U*)malloc(Getlen);//先按最大长度分配
-            memset(&record_para->data[0],0,Getlen);
-            record_para->data[real_index++]=1;		//SEQUENCE OF A-RecordRow
-            OI_698 oi_array[50]={0};
-            INT8U oi_index=0; //召测得数据OI数量
-            INT8U i=0;
-            for(i=0;i<record_para->rcsd.csds.num;i++){
-            	//OAD
-            	if(record_para->rcsd.csds.csd[i].type == 0){
-            		if(record_para->rcsd.csds.csd[i].csd.oad.attflg == 2)
-            			oi_array[oi_index++]=record_para->rcsd.csds.csd[i].csd.oad.OI;
-            	}
-            	//ROAD
-            	else if(record_para->rcsd.csds.csd[i].type == 1){
-            		if(record_para->rcsd.csds.csd[i].csd.road.oad.attflg == 2)
-            			oi_array[oi_index++]=record_para->rcsd.csds.csd[i].csd.road.oad.OI;
-
-            		INT8U j=0;
-            		for(j=0;j<record_para->rcsd.csds.csd[i].csd.road.num;j++){
-            			if(record_para->rcsd.csds.csd[i].csd.road.oads[j].attflg == 2)
-            				oi_array[oi_index++]=record_para->rcsd.csds.csd[i].csd.road.oads[j].OI;
-            		}
-            	}
-            }
-            INT8U m=0;
-            for(m=0;m<oi_index;m++){
-				switch(oi_array[m]){
-					case 0x2022://事件序号
-						memcpy(&record_para->data[real_index],&Getbuf[STANDARD_NO_INDEX],5);
-						real_index +=5;
-						break;
-					case 0x201E://事件发生时间
-						memcpy(&record_para->data[real_index],&Getbuf[STANDARD_HAPPENTIME_INDEX],8);
-						real_index +=8;
-						break;
-					case 0x2020://事件结束时间
-						memcpy(&record_para->data[real_index],&Getbuf[STANDARD_ENDTIME_INDEX],8);
-						real_index +=8;
-						break;
-					case 0x2024://事件发生源
-					{
-						INT8U len=0;
-						switch(Getbuf[STANDARD_SOURCE_INDEX]){
-						    case s_null:
-						    	record_para->data[real_index++]=0;
-						    	len=0;
-						    	break;
-						    case s_tsa:
-						    	len=Getbuf[STANDARD_SOURCE_INDEX+1]+2;
-						    	break;
-						    case s_oad:
-								len=5;
-								break;
-						    case s_usigned:
-								len=2;
-								break;
-						    case s_enum:
-								len=2;
-								break;
-						    case s_oi:
-								len=3;
-								break;
-						}
-                        memcpy(&record_para->data[real_index],&Getbuf[23],len);
-                        real_index +=len;
-					}
-					break;
-				}
-            }
-            record_para->datalen=real_index;//最终长度
-		}else{
-			record_para->dar = 0; //无数据
-			return 0;
-		}
-    }else{
-    	record_para->dar = 0;
-    	return 0;
-    }
+		   }
+	 }
 	return 1;
 }
 /*
@@ -407,7 +445,7 @@ INT8U Get_Source(INT8U *Source,Source_Typ S_type,
  */
 INT8U Get_CurrResult(INT8U *Rbuf,INT8U *Index,
 		INT8U *Source,Source_Typ S_type,INT8U Num,INT32U Timedelay){
-    Rbuf[(*Index)++]=0x02;//structure
+    Rbuf[(*Index)++]=dtstructure;//structure
     Rbuf[(*Index)++]=0x02;//数量
     //事件发生源
     INT8U datatype=0,sourcelen=0;
@@ -416,7 +454,7 @@ INT8U Get_CurrResult(INT8U *Rbuf,INT8U *Index,
     if(sourcelen>0)
     	memcpy(&Rbuf[(*Index)],Source,sourcelen);
     (*Index)+=sourcelen;
-	Rbuf[(*Index)++] = 0x02;//structure
+	Rbuf[(*Index)++] = dtstructure;//structure
 	Rbuf[(*Index)++] = 0x06;
 	Rbuf[(*Index)++] = (Num>>24)&0x000000ff;
 	Rbuf[(*Index)++] = (Num>>16)&0x000000ff;

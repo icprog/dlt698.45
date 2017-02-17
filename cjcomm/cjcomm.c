@@ -374,6 +374,7 @@ int NETWorker(struct aeEventLoop* ep, long long id, void* clientData) {
                 close(nst->phy_connect_fd);
                 nst->phy_connect_fd = -1;
             }else{
+            	anetTcpKeepAlive(NULL, nst->phy_connect_fd);
             	online_state = 1;
             	asyslog(LOG_INFO, "与主站链路建立成功");
             }
