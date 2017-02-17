@@ -56,7 +56,7 @@ typedef struct{
  * 根据参数读取事件记录文件
  * oi:事件oi eventno:0最新n某条 Getbuf空指针地址，动态分配 Getlen返回长度 prginfo_event共享内存
  */
-extern INT8U Get_Event(OI_698 oi,INT8U eventno,INT8U** Getbuf,int *Getlen,ProgramInfo* prginfo_event);
+extern INT8U Get_Event(OAD oad,INT8U eventno,INT8U** Getbuf,int *Getlen,ProgramInfo* prginfo_event);
 /*
  * GETREQUESTRECORD selector9/10 获取事件记录中某一数据
  */
