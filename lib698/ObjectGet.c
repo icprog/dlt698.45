@@ -642,7 +642,11 @@ int getRequestRecord(OAD oad,INT8U *data,CSINFO *csinfo,INT8U *sendbuf)
 	index = get_BasicRSD(&data[index],(INT8U *)&record.select,&record.selectType);
 	fprintf(stderr,"\nRSD Select%d  ",record.selectType);
 	index +=get_BasicRCSD(&data[index],&record.rcsd.csds);
-
+	if (record.selectType == 1)
+	{
+		fprintf(stderr,"\nOAD %04x %02x %02x",record.select.selec1.oad.OI,record.select.selec1.oad.attflg,record.select.selec1.oad.attrindex);
+		fprintf(stderr,"\nData Type= %02x  Value=%d ",record.select.selec1.data.type,record.select.selec1.data.data[0]);
+	}
 	if(record.selectType==5)
 	{
 		printSel5(record);
