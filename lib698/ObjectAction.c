@@ -672,6 +672,10 @@ void TerminalInfo(INT16U attr_act,INT8U *data)
 {
 	switch(attr_act)
 	{
+		case 1://设备复位
+			memp->oi_changed.reset++;
+			fprintf(stderr,"\n4300 设备复位！");
+			break;
 		case 3://数据初始化
 		case 5://事件初始化
 		case 6://需量初始化

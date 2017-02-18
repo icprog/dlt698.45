@@ -38,6 +38,7 @@ typedef enum{					//该子程序运行状态
 	NeedStart,					//该程序需要运行
 	NeedKill,					//该程序需要停止运行
 	NowRun,						//目前该程序正在运行
+	NeedStop					//进程需要停止
 }ProjectState;					//程序运行状态
 
 /*

@@ -250,7 +250,7 @@ INT16U set4500(OAD oad,INT8U *data)
 		fprintf(stderr,"\n【APN】 %s",&config.apn[1]);
 		fprintf(stderr,"\n【用户名】 %s",&config.userName[1]);
 		fprintf(stderr,"\n【密码】 %s",&config.passWord[1]);
-		fprintf(stderr,"\n【代理服务器地址】 %d.%d.%d.d ",config.proxyIp[1],config.proxyIp[2],config.proxyIp[3],config.proxyIp[4]);
+		fprintf(stderr,"\n【代理服务器地址】 %d.%d.%d.%d ",config.proxyIp[1],config.proxyIp[2],config.proxyIp[3],config.proxyIp[4]);
 		fprintf(stderr,"\n【代理服务器端口】 %d",config.proxyPort);
 		fprintf(stderr,"\n【超时时间和重发次数】 %02x",config.timeoutRtry);
 		fprintf(stderr,"\n【心跳周期】 %d\n",config.heartBeat);
