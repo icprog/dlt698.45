@@ -232,6 +232,9 @@ INT16U set4500(OAD oad,INT8U *data)
 	CLASS25 class4500;
 	memset(&class4500,0,sizeof(CLASS25));
 	readCoverClass(oad.OI,0,&class4500,sizeof(CLASS25),para_vari_save);
+	fprintf(stderr,"\n先读出 主站IP %d.%d.%d.%d :%d\n",class4500.master.master[0].ip[1],class4500.master.master[0].ip[2],
+			class4500.master.master[0].ip[3],class4500.master.master[0].ip[4],class4500.master.master[0].port);
+
 	if (oad.attflg == 2 )
 	{
 		COMM_CONFIG_1 config;
@@ -263,6 +266,9 @@ INT16U set4500(OAD oad,INT8U *data)
 		fprintf(stderr,"\n【主站IP】%d.%d.%d.%d",master.master[0].ip[1],master.master[0].ip[2],master.master[0].ip[3],master.master[0].ip[4]);
 		fprintf(stderr,"\n【端口号】 %d  \n",master.master[0].port);
 		memcpy(&class4500.master,&master,sizeof(MASTER_STATION_INFO_LIST));
+		fprintf(stderr,"\n存储前 主站IP %d.%d.%d.%d :%d\n",class4500.master.master[0].ip[1],class4500.master.master[0].ip[2],
+				class4500.master.master[0].ip[3],class4500.master.master[0].ip[4],class4500.master.master[0].port);
+
 		saveCoverClass(oad.OI,0,&class4500,sizeof(CLASS25),para_vari_save);
 	}
 	return 1;
