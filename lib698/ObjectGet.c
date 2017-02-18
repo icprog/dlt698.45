@@ -592,6 +592,10 @@ int doGetrecord(RESULT_RECORD *record)
 	int datalen=0;
 
 	switch(SelectorN) {
+	case 1:		//指定对象指定值
+
+	break;
+
 	case 5:
 	case 7:
 //		getSelector(record->select,SelectorN,record->rcsd,(INT8U *)&record->data,datalen);
