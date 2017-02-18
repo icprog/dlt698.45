@@ -746,14 +746,117 @@ INT16S parseSecurityResponse(INT8U* RN,INT8U* apdu)//apdu负责传入和传出�
 		return -1;//无效应用数据单元标示
 }
 
+INT8U OADtoBuff(OAD fromOAD,INT8U* buff)
+{
+	INT8U length = 0;
+	memcpy(&buff[length],&fromOAD.OI,sizeof(fromOAD.OI));
+	length += 2;
+	buff[length++] = fromOAD.attflg;
+	buff[length++] = fromOAD.attrindex;
+
+	fprintf(stderr,"\n OADtoBuff = %d ",sizeof(OAD));
+	return sizeof(OAD);
+}
 INT16S fillGetRequestAPDU(INT8U* sendBuf,CLASS_6015 obj6015,INT8U requestType)
 {
 	INT16S length = 0;
+	INT8U csdIndex = 0;
+	INT8U len = 0;
+	if((requestType == GET_REQUEST_NORMAL_LIST)||(requestType == GET_REQUEST_NORMAL_LIST))
+	{
+		sendBuf[length++] = obj6015.csds.num;
+	}
 
+	if(obj6015.cjtype == TYPE_NULL)
+	{
+		for(csdIndex = 0;csdIndex < obj6015.csds.num;csdIndex++)
+		{
+			/*采集当前数据*/
+			if(obj6015.csds.csd[csdIndex].type == 0)//OAD
+			{
+				len = OADtoBuff(obj6015.csds.csd[csdIndex].csd.oad,&sendBuf[length]);
+				length +=len;
+			}
+			else
+			{
+				fprintf(stderr,"fillGetRequestAPDU not OAD obj6015.sernum = %d,obj6015.cjtype = %d",
+						obj6015.sernum,obj6015.cjtype);
+			}
+
+		}
+	}
+
+	if(obj6015.cjtype == TYPE_LAST)
+	{
+		sendBuf[length++] = 0x09;//Selector = 9 选取上n条记录
+		sendBuf[length++] = 0x01;//选取上1条记录
+		for(csdIndex = 0;csdIndex < obj6015.csds.num;csdIndex++)
+		{
+			/*采集当前数据*/
+			if(obj6015.csds.csd[csdIndex].type == 1)//ROAD
+			{
+				len = OADtoBuff(obj6015.csds.csd[csdIndex].csd.road.oad,&sendBuf[length]);
+				length +=len;
+
+				INT8U oadsIndex;
+				for (oadsIndex = 0; oadsIndex < obj6015.csds.csd[csdIndex].csd.road.num; oadsIndex++)
+				{
+					len = OADtoBuff(obj6015.csds.csd[csdIndex].csd.road.oads[oadsIndex],&sendBuf[length]);
+					length +=len;
+				}
+
+			}
+			else
+			{
+				fprintf(stderr,"fillGetRequestAPDU not ROAD obj6015.sernum = %d,obj6015.cjtype = %d",
+						obj6015.sernum,obj6015.cjtype);
+			}
+
+		}
+	}
 	return length;
 
 }
+INT8S getRequestType(INT8U cjtype,INT8U csdcount)
+{
+	INT8S requestType = -1;
+	switch(cjtype)
+	{
+		case TYPE_NULL:
+			{
+				if(csdcount == 1)
+				{
+					requestType = GET_REQUEST_NORMAL;
+				}
+				if(csdcount > 1)
+				{
+					requestType = GET_REQUEST_NORMAL_LIST;
+				}
 
+				break;
+			}
+
+		case TYPE_LAST:
+			{
+				if(csdcount == 1)
+				{
+					requestType = GET_REQUEST_RECORD;
+				}
+				if(csdcount > 1)
+				{
+					requestType = GET_REQUEST_RECORD_LIST;
+				}
+				break;
+			}
+
+		case TYPE_FREEZE:
+
+			break;
+		case TYPE_INTERVAL:
+			break;
+	}
+	return requestType;
+}
 INT16S composeProtocol698_GetRequest(INT8U* 	sendBuf,CLASS_6015 obj6015,TSA meterAddr)
 {
 	INT8U PIID = 0x02;
@@ -777,42 +880,12 @@ INT16S composeProtocol698_GetRequest(INT8U* 	sendBuf,CLASS_6015 obj6015,TSA mete
 
 
 	sendBuf[sendLen++] = GET_REQUEST;
-	INT8U csdcount = 0;
-	INT8U requestType = 0;
-	switch(obj6015.cjtype)
+	INT8U csdcount = obj6015.csds.num;
+	INT8S requestType = getRequestType(obj6015.cjtype,obj6015.csds.num);
+	fprintf(stderr,"\n composeProtocol698_GetRequest requestType = %d",requestType);
+	if(requestType < 0)
 	{
-		case TYPE_NULL:
-			{
-				if(csdcount == 1)
-				{
-					requestType = GET_REQUEST_NORMAL;
-				}
-				if(csdcount > 0)
-				{
-					requestType = GET_REQUEST_NORMAL_LIST;
-				}
-
-				break;
-			}
-
-		case TYPE_LAST:
-			{
-				if(csdcount == 1)
-				{
-					requestType = GET_REQUEST_RECORD;
-				}
-				if(csdcount > 0)
-				{
-					requestType = GET_REQUEST_RECORD_LIST;
-				}
-				break;
-			}
-
-		case TYPE_FREEZE:
-
-			break;
-		case TYPE_INTERVAL:
-			break;
+		return-1;
 	}
 	sendBuf[sendLen++] = requestType;
 	sendBuf[sendLen++] = PIID;
