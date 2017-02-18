@@ -17,7 +17,7 @@
 extern INT8S (*pSendfun)(int fd,INT8U* sndbuf,INT16U sndlen);
 extern int FrameHead(CSINFO *csinfo,INT8U *buf);
 extern void FrameTail(INT8U *buf,int index,int hcsi);
-extern INT8U Get_Event(OI_698 oi,INT8U eventno,INT8U** Getbuf,int *Getlen,ProgramInfo* prginfo_event);
+extern INT8U Get_Event(OAD oad,INT8U eventno,INT8U** Getbuf,int *Getlen,ProgramInfo* prginfo_event);
 extern INT8U Getevent_Record_Selector(RESULT_RECORD *record_para,ProgramInfo* prginfo_event);
 extern void getoad(INT8U *data,OAD *oad);
 extern int get_BasicRCSD(INT8U *source,CSD_ARRAYTYPE *csds);
@@ -498,9 +498,9 @@ int Get4300(RESULT_NORMAL *response)
 int GetEventRecord(RESULT_NORMAL *response)
 {
 	INT8U *data=NULL;
-	INT16U datalen=0;
+	int datalen=0;
 
-	if ( Get_Event(response->oad.OI,response->oad.attrindex,&data,(INT8U *)&datalen,memp) == 1 )
+	if ( Get_Event(response->oad,response->oad.attrindex,&data,&datalen,memp) == 1 )
 	{
 		if (datalen > 512 || data==NULL)
 		{
@@ -577,6 +577,9 @@ int GetEventInfo(RESULT_NORMAL *response)
 			case 0x310F:
 				break;
 		}
+		break;
+	case 7:
+		GetEventRecord(response);
 		break;
 	}
 	return 0;
