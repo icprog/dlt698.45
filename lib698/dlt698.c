@@ -878,9 +878,9 @@ INT16S composeProtocol698_GetRequest(INT8U* 	sendBuf,CLASS_6015 obj6015,TSA mete
 	hcsi = sendLen;
 	sendLen = sendLen + 2;
 
-
+	fprintf(stderr,"\n 123123123");
 	sendBuf[sendLen++] = GET_REQUEST;
-	INT8U csdcount = obj6015.csds.num;
+
 	INT8S requestType = getRequestType(obj6015.cjtype,obj6015.csds.num);
 	fprintf(stderr,"\n composeProtocol698_GetRequest requestType = %d",requestType);
 	if(requestType < 0)
