@@ -299,8 +299,11 @@ time_t ifDevReset()
 		fprintf(stderr,"\ncjmain判断需要设备复位");
 		for(i=0;i<PROJECTCOUNT;i++)
 		{
-			if (JProgramInfo->Projects[i].ProjectState ==NowRun)
+			if (JProgramInfo->Projects[i].ProjectID >0)
+			{
+				fprintf(stderr,"\nID=%d  %s  需要停止",JProgramInfo->Projects[i].ProjectID,JProgramInfo->Projects[i].ProjectName );
 				JProgramInfo->Projects[i].ProjectState = NeedStop;
+			}
 		}
 		DevResetNum = JProgramInfo->oi_changed.reset;
 		return (time(NULL));
@@ -326,6 +329,7 @@ int main(int argc, char *argv[])
 	fprintf(stderr,"\ncjmain run!");
 	ProgInit();
 	time_t resetStart=0;
+	DevResetNum =JProgramInfo->oi_changed.reset;
 	while(1)
    	{
 		sleep(1);
@@ -361,8 +365,11 @@ int main(int argc, char *argv[])
 			resetStart = ifDevReset();
 		else
 		{
+			fprintf(stderr,"\n...%ld",time(NULL));
 			if (abs(time(NULL)-resetStart)>=5)
+			{
 				system("reboot");
+			}
 		}
    	}
 	return EXIT_SUCCESS;//退出
