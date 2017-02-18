@@ -34,6 +34,12 @@ void QuitProcess(ProjectInfo *proinfo)
     fprintf(stderr,"\n退出：%s %d",proinfo->ProjectName,proinfo->ProjectID);
 	exit(0);
 }
+/*******************************************************
+ * 清死亡计数
+ */
+void clearcount(int index) {
+    JProgramInfo->Projects[index].WaitTimes = 0;
+}
 /*********************************************************
  * 进程初始化
  *********************************************************/
@@ -97,6 +103,7 @@ int main(int argc, char *argv[])
 	    if(interval>=1000000)
 	    	fprintf(stderr,"deal main interval = %f(ms)\n", interval/1000.0);
 		usleep(10 * 1000);
+		clearcount(ProIndex);
    	}
 	close_named_sem(SEMNAME_SPI0_0);
 	return EXIT_SUCCESS;//退出

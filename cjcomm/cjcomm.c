@@ -356,7 +356,7 @@ void NETRead(struct aeEventLoop* eventLoop, int fd, void* clientData, int mask) 
 
 int NETWorker(struct aeEventLoop* ep, long long id, void* clientData) {
     CommBlock* nst = (CommBlock*)clientData;
-
+    clearcount(1);
     if (nst->phy_connect_fd <= 0) {
         initComPara(nst);
         nst->phy_connect_fd = anetTcpConnect(NULL, IPaddr, Class25.master.master[1].port);
@@ -502,8 +502,8 @@ void enviromentCheck(int argc, char* argv[]) {
 
     //向cjmain报告启动
     JProgramInfo = OpenShMem("ProgramInfo", sizeof(ProgramInfo), NULL);
-    memcpy(JProgramInfo->Projects[3].ProjectName, "cjcomm", sizeof("cjcomm"));
-    JProgramInfo->Projects[3].ProjectID = getpid();
+    memcpy(JProgramInfo->Projects[1].ProjectName, "cjcomm", sizeof("cjcomm"));
+    JProgramInfo->Projects[1].ProjectID = getpid();
 
     //初始化通信对象参数
     initComPara(&FirObject);
