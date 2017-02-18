@@ -69,7 +69,45 @@ void SetF101(int argc, char *argv[])
 		saveCoverClass(0xf101,0,&f101,sizeof(CLASS_F101),para_vari_save);
 	}
 }
+void getipnum(MASTER_STATION_INFO *info,char *argv)
+{
+	int ipnum1=0,ipnum2=0,ipnum3=0,ipnum4=0,port1;
+	sscanf((const char*)argv, "%d.%d.%d.%d:%d",&ipnum1,&ipnum2,&ipnum3,&ipnum4,&port1);
+	info[0].port = port1;
+	info[0].ip[1] = ipnum1;
+	info[0].ip[2] = ipnum2;
+	info[0].ip[3] = ipnum3;
+	info[0].ip[4] = ipnum4;
+}
+void SetIPort(int argc, char *argv[])
+{
+	CLASS25 class4500;
+	MASTER_STATION_INFO_LIST  master;
 
+	memset(&master,0,sizeof(MASTER_STATION_INFO_LIST));
+	memset(&class4500,0,sizeof(CLASS25));
+	readCoverClass(0x4500,0,&class4500,sizeof(CLASS25),para_vari_save);
+	fprintf(stderr,"\n先读出 主IP %d.%d.%d.%d :%d\n",class4500.master.master[0].ip[1],class4500.master.master[0].ip[2],
+			class4500.master.master[0].ip[3],class4500.master.master[0].ip[4],class4500.master.master[0].port);
+	fprintf(stderr,"\n先读出 备IP %d.%d.%d.%d :%d\n",class4500.master.master[1].ip[1],class4500.master.master[1].ip[2],
+			class4500.master.master[1].ip[3],class4500.master.master[1].ip[4],class4500.master.master[1].port);
+	int i=0;
+	int num = argc -2;
+	if ( num >0 && num<4)
+	{
+		master.masternum = num;
+		for(i=0;i<num;i++)
+		{
+			getipnum(&master.master[i],argv[2+i]);
+		}
+		memcpy(&class4500.master,&master,sizeof(MASTER_STATION_INFO_LIST));
+		fprintf(stderr,"\n存储前 主IP %d.%d.%d.%d :%d\n",class4500.master.master[0].ip[1],class4500.master.master[0].ip[2],
+					class4500.master.master[0].ip[3],class4500.master.master[0].ip[4],class4500.master.master[0].port);
+		fprintf(stderr,"\n存储前 备IP %d.%d.%d.%d :%d\n",class4500.master.master[1].ip[1],class4500.master.master[1].ip[2],
+					class4500.master.master[1].ip[3],class4500.master.master[1].ip[4],class4500.master.master[1].port);
+		saveCoverClass(0x4500,0,&class4500,sizeof(CLASS25),para_vari_save);
+	}
+}
 void Init_4500(){
 	CLASS25 obj;
 	memset(&obj,0,sizeof(obj));
