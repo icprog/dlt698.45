@@ -79,7 +79,7 @@ int main(int argc, char *argv[])
 	//485、四表合一
 	read485_proccess();
 	//统计计算 电压合格率等
-	calc_proccess();
+//	calc_proccess();
 	//载波
 	//readplc_proccess();
 	//液晶、控制

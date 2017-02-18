@@ -66,7 +66,7 @@
   #define DEV_SPI_PATH   "/dev/spi0.0"
 #endif
 
-#define	ACS_SPI_DEV		"/dev/spidev1.0"		//计量芯片使用的spi设备
+#define	ACS_SPI_DEV		"/dev/spi0.0"//"/dev/spidev1.0"		//计量芯片使用的spi设备
 
 //Esam与ATT7022E共用数据线,复位信号，各自独立片选，CS=0，可读写，
 //因此不能同时读写ESAM与ATT7022E，必须互斥操作。
