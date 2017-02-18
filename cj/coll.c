@@ -131,7 +131,7 @@ void Collect6000(OI_698	oi)
 {
 	CLASS_6001	 meter={};
 	CLASS11		coll={};
-	int			i=0,blknum=0;
+	int			i=0,j=0,blknum=0;
 //	INT16U		oi = 0x6000;
 
 	if(readInterClass(oi,&coll)==-1)  return;
@@ -154,10 +154,15 @@ void Collect6000(OI_698	oi)
 		if(readParaClass(oi,&meter,i)==1) {
 			if(meter.sernum!=0 && meter.sernum!=0xffff) {
 				fprintf(stderr,"\n序号:%d ",meter.sernum);
-				fprintf(stderr,"[1]%02x%02x%02x%02x%02x%02x ",
-						meter.basicinfo.addr.addr[0],meter.basicinfo.addr.addr[1],meter.basicinfo.addr.addr[2],meter.basicinfo.addr.addr[3],
-						meter.basicinfo.addr.addr[4],meter.basicinfo.addr.addr[5]);
-				fprintf(stderr,"[2]%s ",getenum(coll_bps,meter.basicinfo.baud));
+				fprintf(stderr,"[1]");
+				if(meter.basicinfo.addr.addr[0]>TSA_LEN)   fprintf(stderr,"TSA 长度[%d]超过17个字节，错误！！！\n",meter.basicinfo.addr.addr[0]);
+				for(j=0;j<meter.basicinfo.addr.addr[0];j++) {
+					fprintf(stderr,"%02x",meter.basicinfo.addr.addr[j+1]);
+//				fprintf(stderr,"[1]%02x%02x%02x%02x%02x%02x ",
+//						meter.basicinfo.addr.addr[0],meter.basicinfo.addr.addr[1],meter.basicinfo.addr.addr[2],meter.basicinfo.addr.addr[3],
+//						meter.basicinfo.addr.addr[4],meter.basicinfo.addr.addr[5]);
+				}
+				fprintf(stderr," [2]%s ",getenum(coll_bps,meter.basicinfo.baud));
 				fprintf(stderr,"[3]%s ",getenum(coll_protocol,meter.basicinfo.protocol));
 				fprintf(stderr,"[4]%04X_%02X%02X ",meter.basicinfo.port.OI,meter.basicinfo.port.attflg,meter.basicinfo.port.attrindex);
 				fprintf(stderr,"[5]%02x%02x%02x%02x%02x%02x ",meter.basicinfo.pwd[0],meter.basicinfo.pwd[1],meter.basicinfo.pwd[2],
