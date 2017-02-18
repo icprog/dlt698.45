@@ -248,14 +248,14 @@ void *deal_terminal_timeoffset(){
                //如果平均偏差值大于等于主站设置得阀值进行精确校时
                if(abs(avg)>=JProgramInfo->t_timeoffset.timeoffset){
             	   TSGet(&jzqtime);//集中器时间
-            	   tminc(&jzqtime,sec_units,avg);
             	   DateTimeBCD DT;
-            	   DT.year.data=jzqtime.Year;
-            	   DT.month.data=jzqtime.Month;
-            	   DT.day.data=jzqtime.Day;
-            	   DT.hour.data=jzqtime.Hour;
-            	   DT.min.data=jzqtime.Minute;
-            	   DT.sec.data=jzqtime.Sec;
+				   DT.year.data=jzqtime.Year;
+				   DT.month.data=jzqtime.Month;
+				   DT.day.data=jzqtime.Day;
+				   DT.hour.data=jzqtime.Hour;
+				   DT.min.data=jzqtime.Minute;
+				   DT.sec.data=jzqtime.Sec;
+            	   tminc(&jzqtime,sec_units,avg);
             	   setsystime(DT);
             	   //产生对时事件
             	   Event_3114(DT,JProgramInfo);

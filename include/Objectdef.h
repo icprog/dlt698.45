@@ -39,7 +39,7 @@ typedef struct
 typedef struct
 {
 	char name[OCTET_STRING_LEN];		//逻辑名
-	char devdesc[OCTET_STRING_LEN];		//设备描述符
+	char devdesc[VISIBLE_STRING_LEN];		//设备描述符
 	VERINFO info;						//版本信息
 	DateTimeBCD date_Product;			//生产日期
 	OI_698 ois[10];						//子设备列表
@@ -54,9 +54,11 @@ typedef struct {
 	INT8U onlineType;					//在线方式 enum{永久在线(0),被动激活(1)}
 	INT8U connectType;					//连接方式 enum{TCP(0),UDP(1)}
 	INT8U appConnectType;				//连接应用方式 enum{主备模式(0),多连接模式(1)}
-	INT8U apn[OCTET_STRING_LEN];		//apn
-	INT8U userName[OCTET_STRING_LEN];	//用户名称
-	INT8U passWord[OCTET_STRING_LEN];	//密码
+	INT16U listenPortnum;				//端口数量
+	INT16U listenPort[5];				//侦听端口列表
+	INT8U apn[VISIBLE_STRING_LEN];		//apn
+	INT8U userName[VISIBLE_STRING_LEN];	//用户名称
+	INT8U passWord[VISIBLE_STRING_LEN];	//密码
 	INT8U proxyIp[OCTET_STRING_LEN];	//代理服务器地址
 	INT16U proxyPort;					//代理端口
 	INT8U timeoutRtry;					//超时时间，重发次数
@@ -72,27 +74,33 @@ typedef struct {
 	INT8U timeoutRtry;					//超时时间，重发次数
 	INT8U heartBeat;					//心跳周期秒
 } COMM_CONFIG_2;
+
 typedef struct {
-	INT8U ip[20];						//主站 IP 192.168.000.001
+	INT8U ip[OCTET_STRING_LEN];		//主站 IP 192.168.000.001
 	INT16U port;						//端口
 } MASTER_STATION_INFO;
 typedef struct {
-	INT8U center[OCTET_STRING_LEN];		//短信中心号码
-	INT8U master[4][OCTET_STRING_LEN];	//主站号码
-	INT8U dest[4][OCTET_STRING_LEN];	//短信通知目的号码
+	INT16U masternum;
+	MASTER_STATION_INFO master[4];
+} MASTER_STATION_INFO_LIST;
+
+typedef struct {
+	INT8U center[VISIBLE_STRING_LEN];		//短信中心号码
+	INT8U master[4][VISIBLE_STRING_LEN];	//主站号码
+	INT8U dest[4][VISIBLE_STRING_LEN];	//短信通知目的号码
 } SMS_INFO;
 
 typedef struct {
 	INT8U name[OCTET_STRING_LEN];		//逻辑名
 	COMM_CONFIG_1 commconfig;			//通信配置
-	MASTER_STATION_INFO master[4];		//主站通信参数表
+	MASTER_STATION_INFO_LIST master;		//主站通信参数表
 	SMS_INFO sms;						//短信通信参数表
 	VERINFO info;						//版本信息
-	INT8U protcol[10];					//支持的规约列表
-	INT8U ccid[20];						//SIM卡CCID
-	INT8U imsi[20];						//SIM卡IMSI
+	INT8U protcol[10][VISIBLE_STRING_LEN];//支持的规约列表
+	INT8U ccid[VISIBLE_STRING_LEN];						//SIM卡CCID
+	INT8U imsi[VISIBLE_STRING_LEN];						//SIM卡IMSI
 	INT16U signalStrength;				//信号强度
-	INT8U pppip[20];					//拨号IP
+	INT8U pppip[OCTET_STRING_LEN];					//拨号IP
 } CLASS25;					//4500、4501公网通信模块1，2
 
 typedef struct {
@@ -100,15 +108,15 @@ typedef struct {
 	INT8U ip[OCTET_STRING_LEN];				//IP
 	INT8U subnet_mask[OCTET_STRING_LEN];	//子网掩码
 	INT8U gateway[OCTET_STRING_LEN];		//网关
-	INT8U username_pppoe[OCTET_STRING_LEN];	//PPPOE用户名   sohu.com@yaxinli.com.cn
-	INT8U password_pppoe[OCTET_STRING_LEN];	//PPPOE密码
+	INT8U username_pppoe[VISIBLE_STRING_LEN];	//PPPOE用户名   sohu.com@yaxinli.com.cn
+	INT8U password_pppoe[VISIBLE_STRING_LEN];	//PPPOE密码
 } NETCONFIG;
 typedef struct {
 	INT8U name[OCTET_STRING_LEN];		//逻辑名
 	COMM_CONFIG_2 commconfig;			//通信配置
 	MASTER_STATION_INFO master[4];		//主站通信参数表
 	NETCONFIG IP;						//终端IP
-	INT8U mac[20];						//MAC地址
+	INT8U mac[OCTET_STRING_LEN];						//MAC地址
 } CLASS26;						//以太网通信接口类
 
 /////////////////////////////////////////////////////////////////////////////

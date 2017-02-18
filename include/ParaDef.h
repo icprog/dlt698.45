@@ -44,6 +44,7 @@
  * */
 #define TSA_LEN					17
 #define OCTET_STRING_LEN		16
+#define VISIBLE_STRING_LEN		40
 #define COLLCLASS_MAXNUM		1024		//定义集合类最大元素个数
 
 #define CLASS7_OAD_NUM			10			//关联对象属性表

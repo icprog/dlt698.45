@@ -443,6 +443,11 @@ INT8S deal6015_698(CLASS_6015 st6015, CLASS_6001 to6001) {
 	memset(recvbuff, 0, BUFFSIZE);
 
 	sendLen = composeProtocol698_GetRequest(sendbuff, st6015, to6001.basicinfo.addr);
+	if(sendLen < 0)
+	{
+		fprintf(stderr,"deal6015_698  sendLen < 0");
+		return -1;
+	}
 	SendDataTo485(comfd4851, sendbuff, sendLen);
 	recvLen = ReceDataFrom485(comfd4851, 500, recvbuff);
 
