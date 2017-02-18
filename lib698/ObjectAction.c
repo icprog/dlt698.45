@@ -31,6 +31,14 @@ INT16U getMytypeSize(INT8U first )
 	{
 		return (sizeof(CSD_ARRAYTYPE));
 	}
+	if( first == 0xCC)
+	{
+		return (12);
+	}
+	if( first == 0x22)
+	{
+		return (sizeof(MASTER_STATION_INFO_LIST));
+	}
 	return 0 ;
 }
 
@@ -224,6 +232,7 @@ void get_BasicUnit(INT8U *source,INT16U *sourceindex,INT8U *dest,INT16U *destind
 	INT8U	i=0;
 	INT8U	strnum = 0;
 	INT16U  source_sumindex = 0,dest_sumindex=0,csdsize=0;
+
 	INT8U 	type = source[0];
 
 	fprintf(stderr,"\ntype = %02x  sourceindex=%d ",type,*sourceindex);
@@ -277,6 +286,13 @@ void get_BasicUnit(INT8U *source,INT16U *sourceindex,INT8U *dest,INT16U *destind
 			dest[3] = source[1];
 			if (dest_sumindex ==0)
 				dest_sumindex = size;
+			break;
+		case 0x0a:	//visible-string
+			size = source[1];// 长度
+			memcpy(dest,&source[1],size+1);
+			if (dest_sumindex ==0)
+				dest_sumindex = VISIBLE_STRING_LEN;
+			size += 1;//加1 ：    1长度
 			break;
 		case 0x12://long unsigned
 			size = 2;

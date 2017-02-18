@@ -226,6 +226,47 @@ INT16U set4300(INT8U attflg,INT8U index,INT8U *data)
 	}
 	return source_index;
 }
+INT16U set4500(OAD oad,INT8U *data)
+{
+	INT16U source_index=0,dest_index=0;
+	CLASS25 class4500;
+	memset(&class4500,0,sizeof(CLASS25));
+	readCoverClass(oad.OI,0,&class4500,sizeof(CLASS25),para_vari_save);
+	if (oad.attflg == 2 )
+	{
+		COMM_CONFIG_1 config;
+		memset(&config,0,sizeof(config));
+		config.listenPortnum = 0xCC;//数组
+		get_BasicUnit(data,&source_index,(INT8U *)&config.workModel,&dest_index);
+		fprintf(stderr,"\n【工作模式】%d",config.workModel);
+		fprintf(stderr,"\n【在线方式】%d",config.onlineType);
+		fprintf(stderr,"\n【连接方式】%d",config.connectType);
+		fprintf(stderr,"\n【连接应用方式】%d",config.appConnectType);
+		fprintf(stderr,"\n【侦听端口1】%04x %d",config.listenPort[0],config.listenPort[0]);
+		fprintf(stderr,"\n【侦听端口2】%04x %d",config.listenPort[1],config.listenPort[1]);
+		fprintf(stderr,"\n【APN】 %s",&config.apn[1]);
+		fprintf(stderr,"\n【用户名】 %s",&config.userName[1]);
+		fprintf(stderr,"\n【密码】 %s",&config.passWord[1]);
+		fprintf(stderr,"\n【代理服务器地址】 %d.%d.%d.d ",config.proxyIp[1],config.proxyIp[2],config.proxyIp[3],config.proxyIp[4]);
+		fprintf(stderr,"\n【代理服务器端口】 %d",config.proxyPort);
+		fprintf(stderr,"\n【超时时间和重发次数】 %02x",config.timeoutRtry);
+		fprintf(stderr,"\n【心跳周期】 %d\n",config.heartBeat);
+		memcpy(&class4500.commconfig,&config,sizeof(COMM_CONFIG_1));
+		saveCoverClass(oad.OI,0,&class4500,sizeof(CLASS25),para_vari_save);
+	}
+	if (oad.attflg == 3)
+	{
+		MASTER_STATION_INFO_LIST  master;
+		memset(&master,0,sizeof(master));
+		master.masternum = 0x22;
+		get_BasicUnit(data,&source_index,(INT8U *)&master.masternum,&dest_index);
+		fprintf(stderr,"\n【主站IP】%d.%d.%d.%d",master.master[0].ip[1],master.master[0].ip[2],master.master[0].ip[3],master.master[0].ip[4]);
+		fprintf(stderr,"\n【端口号】 %d  \n",master.master[0].port);
+		memcpy(&class4500.master,&master,sizeof(MASTER_STATION_INFO_LIST));
+		saveCoverClass(oad.OI,0,&class4500,sizeof(CLASS25),para_vari_save);
+	}
+	return 1;
+}
 INT16U set4103(OAD oad,INT8U *data)
 {
 	int i=0,bytenum=0;
@@ -467,6 +508,10 @@ void EnvironmentValue(OAD oad,INT8U *data)
 			break;
 		case 0x4204:
 			set4204(oad,data);
+			break;
+		case 0x4500:
+			set4500(oad,data);
+			break;
 	}
 }
 void CollParaSet(OAD oad,INT8U *data)
