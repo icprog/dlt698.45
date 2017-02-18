@@ -247,9 +247,7 @@ INT16U set4500(OAD oad,INT8U *data)
 		fprintf(stderr,"\n【APN】 %s",&config.apn[1]);
 		fprintf(stderr,"\n【用户名】 %s",&config.userName[1]);
 		fprintf(stderr,"\n【密码】 %s",&config.passWord[1]);
-		fprintf(stderr,"\n【代理服务器地址】 %02x %d.%d.%d.d %02x %02x %02x",
-				config.proxyIp[1],config.proxyIp[2],config.proxyIp[3],config.proxyIp[4]
-		        ,config.proxyIp[5],config.proxyIp[6],config.proxyIp[7],config.proxyIp[8]);
+		fprintf(stderr,"\n【代理服务器地址】 %d.%d.%d.d ",config.proxyIp[1],config.proxyIp[2],config.proxyIp[3],config.proxyIp[4]);
 		fprintf(stderr,"\n【代理服务器端口】 %d",config.proxyPort);
 		fprintf(stderr,"\n【超时时间和重发次数】 %02x",config.timeoutRtry);
 		fprintf(stderr,"\n【心跳周期】 %d\n",config.heartBeat);
@@ -262,7 +260,7 @@ INT16U set4500(OAD oad,INT8U *data)
 		memset(&master,0,sizeof(master));
 		master.masternum = 0x22;
 		get_BasicUnit(data,&source_index,(INT8U *)&master.masternum,&dest_index);
-		fprintf(stderr,"\n【主站IP】%02x %d.%d.%d.%d",master.master[0].ip[0],master.master[0].ip[1],master.master[0].ip[2],master.master[0].ip[3],master.master[0].ip[4]);
+		fprintf(stderr,"\n【主站IP】%d.%d.%d.%d",master.master[0].ip[1],master.master[0].ip[2],master.master[0].ip[3],master.master[0].ip[4]);
 		fprintf(stderr,"\n【端口号】 %d  \n",master.master[0].port);
 		memcpy(&class4500.master,&master,sizeof(MASTER_STATION_INFO_LIST));
 		saveCoverClass(oad.OI,0,&class4500,sizeof(CLASS25),para_vari_save);
