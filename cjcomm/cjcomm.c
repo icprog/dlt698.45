@@ -1,12 +1,12 @@
 ﻿#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include <signal.h>
-#include <pthread.h>
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/stat.h>
 #include <fcntl.h>
+#include <pthread.h>
+#include <signal.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 #include <net/if.h>
 #include <netinet/in.h>
@@ -14,14 +14,14 @@
 
 #include "ae.h"
 #include "anet.h"
-#include "rlog.h"
-#include "at.h"
 #include "assert.h"
+#include "at.h"
+#include "rlog.h"
 
-#include "PublicFunction.h"
-#include "dlt698def.h"
-#include "cjcomm.h"
 #include "AccessFun.h"
+#include "PublicFunction.h"
+#include "cjcomm.h"
+#include "dlt698def.h"
 #include "event.h"
 
 //共享内存地址
@@ -34,41 +34,41 @@ static CommBlock ComObject;
 static CommBlock nets_comstat;
 static CommBlock serv_comstat;
 
-INT8U ccid[20];						//SIM卡CCID
-INT8U imsi[20];						//SIM卡IMSI
-INT16U signalStrength;				//信号强度
-INT8U pppip[20];					//拨号IP
+INT8U ccid[20];        // SIM卡CCID
+INT8U imsi[20];        // SIM卡IMSI
+INT16U signalStrength; //信号强度
+INT8U pppip[20];       //拨号IP
 static CLASS25 Class25;
 static int online_state;
 
-INT32S timeoffset[50];      //终端精准校时 默认最近心跳时间总个数50次
-INT8U crrntimen=0;          //终端精准校时 当前接手心跳数
-INT8U timeoffsetflag=0;    //终端精准校时 开始标志
+INT32S timeoffset[50];    //终端精准校时 默认最近心跳时间总个数50次
+INT8U crrntimen      = 0; //终端精准校时 当前接手心跳数
+INT8U timeoffsetflag = 0; //终端精准校时 开始标志
 int dealtimeoffset_id;
 pthread_t td_dealtimeoffset;
 
-void saveCurrClass25(void){
-    saveCoverClass(0x4500,0,(void *)&Class25,sizeof(CLASS25),para_init_save);
+void saveCurrClass25(void) {
+    saveCoverClass(0x4500, 0, (void*)&Class25, sizeof(CLASS25), para_init_save);
 }
 
-void setCCID(INT8U CCID[]){
-	memcpy(Class25.ccid, CCID, 20);
+void setCCID(INT8U CCID[]) {
+    memcpy(Class25.ccid, CCID, 20);
 }
 
-void setIMSI(INT8U IMSI[]){
-	memcpy(Class25.imsi, IMSI, 20);
+void setIMSI(INT8U IMSI[]) {
+    memcpy(Class25.imsi, IMSI, 20);
 }
 
-void setSINSTR(INT16U SINSTR){
-	Class25.signalStrength = SINSTR;
+void setSINSTR(INT16U SINSTR) {
+    Class25.signalStrength = SINSTR;
 }
 
-void setPPPIP(INT8U PPPIP[]){
-	memcpy(Class25.pppip, PPPIP, 20);
+void setPPPIP(INT8U PPPIP[]) {
+    memcpy(Class25.pppip, PPPIP, 20);
 }
 
-int getOnlineState(void){
-	return online_state;
+int getOnlineState(void) {
+    return online_state;
 }
 
 void clearcount(int index) {
@@ -179,26 +179,26 @@ void GenericRead(struct aeEventLoop* eventLoop, int fd, void* clientData, int ma
         }
         bufsyslog(nst->RecBuf, "Recv:", nst->RHead, nst->RTail, BUFLEN);
 
-        for(int k = 0; k < 3; k ++){
-			int len = 0;
-			for (int i = 0; i < 5; i++) {
-				len = StateProcess(&nst->deal_step, &nst->rev_delay, 10, &nst->RTail, &nst->RHead, nst->RecBuf, nst->DealBuf);
-				if (len > 0) {
-					break;
-				}
-			}
+        for (int k = 0; k < 3; k++) {
+            int len = 0;
+            for (int i = 0; i < 5; i++) {
+                len = StateProcess(&nst->deal_step, &nst->rev_delay, 10, &nst->RTail, &nst->RHead, nst->RecBuf, nst->DealBuf);
+                if (len > 0) {
+                    break;
+                }
+            }
 
-			if (len > 0) {
-				int apduType = ProcessData(nst);
-				switch (apduType) {
-					case LINK_RESPONSE:
-						nst->linkstate   = build_connection;
-						nst->testcounter = 0;
-						break;
-					default:
-						break;
-				}
-			}
+            if (len > 0) {
+                int apduType = ProcessData(nst);
+                switch (apduType) {
+                    case LINK_RESPONSE:
+                        nst->linkstate   = build_connection;
+                        nst->testcounter = 0;
+                        break;
+                    default:
+                        break;
+                }
+            }
         }
     }
 }
@@ -221,94 +221,87 @@ void initComPara(CommBlock* compara) {
     compara->p_send = GenericWrite;
 }
 
-void *deal_terminal_timeoffset(){
-	while(1){
-		TS jzqtime;
-		TSGet(&jzqtime);//集中器时间
-		//判断是否到开始记录心跳时间
-		if(JProgramInfo->t_timeoffset.type == 1
-				&& JProgramInfo->t_timeoffset.totalnum>0){
-			//有效总个数是否小于主站设置得最少有效个数
-			INT8U lastn=JProgramInfo->t_timeoffset.totalnum-JProgramInfo->t_timeoffset.maxn-JProgramInfo->t_timeoffset.minn;
-			if(lastn<JProgramInfo->t_timeoffset.lastnum || lastn == 0)
-				return NULL;
-			if(crrntimen < JProgramInfo->t_timeoffset.totalnum)
-				timeoffsetflag=1; //开始标志 记录心跳
-			else
-				timeoffsetflag=0;
-           //判断是否需要计算相关偏差值  记录完毕 达到主站设置得最大记录数
-		   if(timeoffsetflag == 0 && crrntimen == JProgramInfo->t_timeoffset.totalnum){
-			   getarryb2s(timeoffset,crrntimen);
-               INT32S allk=0;
-               INT8U index=0;
-               for(index=JProgramInfo->t_timeoffset.maxn-1;index<(crrntimen-JProgramInfo->t_timeoffset.minn);index++){
-            	   allk += timeoffset[index];
-               }
-               INT32S avg=allk/lastn;
-               //如果平均偏差值大于等于主站设置得阀值进行精确校时
-               if(abs(avg)>=JProgramInfo->t_timeoffset.timeoffset){
-            	   TSGet(&jzqtime);//集中器时间
-            	   tminc(&jzqtime,sec_units,avg);
-            	   DateTimeBCD DT;
-            	   DT.year.data=jzqtime.Year;
-            	   DT.month.data=jzqtime.Month;
-            	   DT.day.data=jzqtime.Day;
-            	   DT.hour.data=jzqtime.Hour;
-            	   DT.min.data=jzqtime.Minute;
-            	   DT.sec.data=jzqtime.Sec;
-            	   setsystime(DT);
-            	   //产生对时事件
-            	   Event_3114(DT,JProgramInfo);
-               }
-               memset(timeoffset,0,50);
-			   crrntimen=0;
-			   timeoffsetflag=0;
-		   }
-	    }
-		usleep(100*1000);
-	}
-
-	pthread_detach(pthread_self());
-	pthread_exit(&td_dealtimeoffset);
+void deal_terminal_timeoffset() {
+    TS jzqtime;
+    TSGet(&jzqtime); //集中器时间
+    //判断是否到开始记录心跳时间
+    if (JProgramInfo->t_timeoffset.type == 1 && JProgramInfo->t_timeoffset.totalnum > 0) {
+        //有效总个数是否小于主站设置得最少有效个数
+        INT8U lastn = JProgramInfo->t_timeoffset.totalnum - JProgramInfo->t_timeoffset.maxn - JProgramInfo->t_timeoffset.minn;
+        if (lastn < JProgramInfo->t_timeoffset.lastnum || lastn == 0)
+            return;
+        if (crrntimen < JProgramInfo->t_timeoffset.totalnum)
+            timeoffsetflag = 1; //开始标志 记录心跳
+        else
+            timeoffsetflag = 0;
+        //判断是否需要计算相关偏差值  记录完毕 达到主站设置得最大记录数
+        if (timeoffsetflag == 0 && crrntimen == JProgramInfo->t_timeoffset.totalnum) {
+            getarryb2s(timeoffset, crrntimen);
+            INT32S allk = 0;
+            INT8U index = 0;
+            for (index = JProgramInfo->t_timeoffset.maxn - 1; index < (crrntimen - JProgramInfo->t_timeoffset.minn); index++) {
+                allk += timeoffset[index];
+            }
+            INT32S avg = allk / lastn;
+            //如果平均偏差值大于等于主站设置得阀值进行精确校时
+            if (abs(avg) >= JProgramInfo->t_timeoffset.timeoffset) {
+                TSGet(&jzqtime); //集中器时间
+                tminc(&jzqtime, sec_units, avg);
+                DateTimeBCD DT;
+                DT.year.data  = jzqtime.Year;
+                DT.month.data = jzqtime.Month;
+                DT.day.data   = jzqtime.Day;
+                DT.hour.data  = jzqtime.Hour;
+                DT.min.data   = jzqtime.Minute;
+                DT.sec.data   = jzqtime.Sec;
+                setsystime(DT);
+                //产生对时事件
+                Event_3114(DT, JProgramInfo);
+            }
+            memset(timeoffset, 0, 50);
+            crrntimen      = 0;
+            timeoffsetflag = 0;
+        }
+    }
 }
 
-void Getk(LINK_Response link){
-	TS T4;
-	TSGet(&T4);//集中器接收时间
+void Getk(LINK_Response link) {
+    TS T4;
+    TSGet(&T4); //集中器接收时间
     TS T1;
     TS T2;
     TS T3;
-    T1.Year=link.request_time.year;
-    T1.Month=link.request_time.month;
-    T1.Day=link.request_time.day_of_month;
-    T1.Hour=link.request_time.hour;
-    T1.Minute=link.request_time.minute;
-    T1.Sec=link.request_time.second;
-    T1.Week=link.request_time.day_of_week;
+    T1.Year   = link.request_time.year;
+    T1.Month  = link.request_time.month;
+    T1.Day    = link.request_time.day_of_month;
+    T1.Hour   = link.request_time.hour;
+    T1.Minute = link.request_time.minute;
+    T1.Sec    = link.request_time.second;
+    T1.Week   = link.request_time.day_of_week;
 
-    T2.Year=link.reached_time.year;
-    T2.Month=link.reached_time.month;
-    T2.Day=link.reached_time.day_of_month;
-    T2.Hour=link.reached_time.hour;
-    T2.Minute=link.reached_time.minute;
-    T2.Sec=link.reached_time.second;
-    T2.Week=link.reached_time.day_of_week;
+    T2.Year   = link.reached_time.year;
+    T2.Month  = link.reached_time.month;
+    T2.Day    = link.reached_time.day_of_month;
+    T2.Hour   = link.reached_time.hour;
+    T2.Minute = link.reached_time.minute;
+    T2.Sec    = link.reached_time.second;
+    T2.Week   = link.reached_time.day_of_week;
 
-    T3.Year=link.response_time.year;
-	T3.Month=link.response_time.month;
-	T3.Day=link.response_time.day_of_month;
-	T3.Hour=link.response_time.hour;
-	T3.Minute=link.response_time.minute;
-	T3.Sec=link.response_time.second;
-	T3.Week=link.response_time.day_of_week;
+    T3.Year   = link.response_time.year;
+    T3.Month  = link.response_time.month;
+    T3.Day    = link.response_time.day_of_month;
+    T3.Hour   = link.response_time.hour;
+    T3.Minute = link.response_time.minute;
+    T3.Sec    = link.response_time.second;
+    T3.Week   = link.response_time.day_of_week;
 
-	INT32S U=difftime(tmtotime_t(T2),tmtotime_t(T1));
-	INT32S V=difftime(tmtotime_t(T4),tmtotime_t(T3));
-	INT32S K=(U-V)/2;
-	timeoffset[crrntimen]=K;
-	crrntimen++;
-	if(crrntimen == JProgramInfo->t_timeoffset.totalnum)
-		timeoffsetflag=0;
+    INT32S U              = difftime(tmtotime_t(T2), tmtotime_t(T1));
+    INT32S V              = difftime(tmtotime_t(T4), tmtotime_t(T3));
+    INT32S K              = (U - V) / 2;
+    timeoffset[crrntimen] = K;
+    crrntimen++;
+    if (crrntimen == JProgramInfo->t_timeoffset.totalnum)
+        timeoffsetflag = 0;
 }
 void NETRead(struct aeEventLoop* eventLoop, int fd, void* clientData, int mask) {
     CommBlock* nst = (CommBlock*)clientData;
@@ -331,33 +324,32 @@ void NETRead(struct aeEventLoop* eventLoop, int fd, void* clientData, int mask) 
         }
         bufsyslog(nst->RecBuf, "Recv:", nst->RHead, nst->RTail, BUFLEN);
 
-        for(int k = 0; k < 5; k ++){
-			int len = 0;
-			for (int i = 0; i < 5; i++) {
-				len = StateProcess(&nst->deal_step, &nst->rev_delay, 10, &nst->RTail, &nst->RHead, nst->RecBuf, nst->DealBuf);
-				if (len > 0) {
-					break;
-				}
-			}
-			if(len <= 0)
-			{
-				break;
-			}
+        for (int k = 0; k < 5; k++) {
+            int len = 0;
+            for (int i = 0; i < 5; i++) {
+                len = StateProcess(&nst->deal_step, &nst->rev_delay, 10, &nst->RTail, &nst->RHead, nst->RecBuf, nst->DealBuf);
+                if (len > 0) {
+                    break;
+                }
+            }
+            if (len <= 0) {
+                break;
+            }
 
-			if (len > 0) {
-				int apduType = ProcessData(nst);
-				switch (apduType) {
-					case LINK_RESPONSE:
-						if(timeoffsetflag == 1){
-							Getk(nst->linkResponse);
-						}
-						nst->linkstate   = build_connection;
-						nst->testcounter = 0;
-						break;
-					default:
-						break;
-				}
-			}
+            if (len > 0) {
+                int apduType = ProcessData(nst);
+                switch (apduType) {
+                    case LINK_RESPONSE:
+                        if (timeoffsetflag == 1) {
+                            Getk(nst->linkResponse);
+                        }
+                        nst->linkstate   = build_connection;
+                        nst->testcounter = 0;
+                        break;
+                    default:
+                        break;
+                }
+            }
         }
     }
 }
@@ -373,47 +365,44 @@ int NETWorker(struct aeEventLoop* ep, long long id, void* clientData) {
             if (aeCreateFileEvent(ep, nst->phy_connect_fd, AE_READABLE, NETRead, nst) < 0) {
                 close(nst->phy_connect_fd);
                 nst->phy_connect_fd = -1;
-            }else{
-            	anetTcpKeepAlive(NULL, nst->phy_connect_fd);
-            	online_state = 1;
-            	asyslog(LOG_INFO, "与主站链路建立成功");
+            } else {
+                anetTcpKeepAlive(NULL, nst->phy_connect_fd);
+                online_state = 1;
+                asyslog(LOG_INFO, "与主站链路建立成功");
             }
         }
     } else {
         TS ts = {};
         TSGet(&ts);
         Comm_task(nst);
+        deal_terminal_timeoffset();
     }
 
     /*
      * 检查红外与维护串口通信状况。
      */
-    if (FirObject.phy_connect_fd < 0){
-		if ((FirObject.phy_connect_fd = OpenCom(3, 2400, (unsigned char*)"none", 1, 8)) <= 0) {
-			asyslog(LOG_ERR, "红外串口打开失败");
-		}
-		else
-		{
-			if (aeCreateFileEvent(ep, FirObject.phy_connect_fd, AE_READABLE, GenericRead, &FirObject) < 0) {
-				asyslog(LOG_ERR, "红外串口监听失败");
-				close(FirObject.phy_connect_fd);
-				FirObject.phy_connect_fd = -1;
-			}
-		}
+    if (FirObject.phy_connect_fd < 0) {
+        if ((FirObject.phy_connect_fd = OpenCom(3, 2400, (unsigned char*)"even", 1, 8)) <= 0) {
+            asyslog(LOG_ERR, "红外串口打开失败");
+        } else {
+            if (aeCreateFileEvent(ep, FirObject.phy_connect_fd, AE_READABLE, GenericRead, &FirObject) < 0) {
+                asyslog(LOG_ERR, "红外串口监听失败");
+                close(FirObject.phy_connect_fd);
+                FirObject.phy_connect_fd = -1;
+            }
+        }
     }
 
-    if (ComObject.phy_connect_fd < 0){
-		if ((ComObject.phy_connect_fd = OpenCom(2, 9600, (unsigned char*)"none", 1, 8)) <= 0) {
-			asyslog(LOG_ERR, "维护串口打开失败");
-		}
-		else
-		{
-			if (aeCreateFileEvent(ep, ComObject.phy_connect_fd, AE_READABLE, GenericRead, &ComObject) < 0) {
-				asyslog(LOG_ERR, "维护串口监听失败");
-				close(ComObject.phy_connect_fd);
-				ComObject.phy_connect_fd = -1;
-			}
-		}
+    if (ComObject.phy_connect_fd < 0) {
+        if ((ComObject.phy_connect_fd = OpenCom(4, 9600, (unsigned char*)"even", 1, 8)) <= 0) {
+            asyslog(LOG_ERR, "维护串口打开失败");
+        } else {
+            if (aeCreateFileEvent(ep, ComObject.phy_connect_fd, AE_READABLE, GenericRead, &ComObject) < 0) {
+                asyslog(LOG_ERR, "维护串口监听失败");
+                close(ComObject.phy_connect_fd);
+                ComObject.phy_connect_fd = -1;
+            }
+        }
     }
 
     return 200;
@@ -496,7 +485,7 @@ void enviromentCheck(int argc, char* argv[]) {
     asyslog(LOG_INFO, "主站通信地址为：%s\n", IPaddr);
 
     //读取设备参数
-    saveCoverClass(0x4500,0,(void *)&Class25,sizeof(CLASS25),para_init_save);
+    saveCoverClass(0x4500, 0, (void*)&Class25, sizeof(CLASS25), para_init_save);
 
     //设置在线状态
     online_state = 0;
@@ -512,22 +501,20 @@ void enviromentCheck(int argc, char* argv[]) {
     initComPara(&nets_comstat);
     initComPara(&serv_comstat);
 
-    memset(timeoffset,0,50);
-    crrntimen=0;
-    timeoffsetflag=0;
+    memset(timeoffset, 0, 50);
+    crrntimen      = 0;
+    timeoffsetflag = 0;
 }
 
-
 int main(int argc, char* argv[]) {
-
-//	char buf[1024];
-//	memset(buf, 0x00, 1024);
-//	createFile("/nand/UpFiles/update.dat",1024*76+98,0x00,1024);
-//	for(int i = 0; i < 77; i++){
-//		int res = appendFile("/nand/UpFiles/update.dat", i, 1024, buf);
-//		printf("res1 = %d\n",res);
-//	}
-//	return 0;
+    //	char buf[1024];
+    //	memset(buf, 0x00, 1024);
+    //	createFile("/nand/UpFiles/update.dat",1024*76+98,0x00,1024);
+    //	for(int i = 0; i < 77; i++){
+    //		int res = appendFile("/nand/UpFiles/update.dat", i, 1024, buf);
+    //		printf("res1 = %d\n",res);
+    //	}
+    //	return 0;
     // daemon(0,0);
     enviromentCheck(argc, argv);
 
@@ -553,10 +540,10 @@ int main(int argc, char* argv[]) {
 
     //终端精准9校时线程
     pthread_attr_t att;
-	pthread_attr_init(&att);
-	pthread_attr_setstacksize(&att,2048*1024);
-	pthread_attr_setdetachstate(&att,PTHREAD_CREATE_DETACHED);
-	dealtimeoffset_id = pthread_create(&td_dealtimeoffset,&att,deal_terminal_timeoffset,NULL);//ERC45
+    pthread_attr_init(&att);
+    pthread_attr_setstacksize(&att, 2048 * 1024);
+    pthread_attr_setdetachstate(&att, PTHREAD_CREATE_DETACHED);
+    dealtimeoffset_id = pthread_create(&td_dealtimeoffset, &att, deal_terminal_timeoffset, NULL); // ERC45
 
     QuitProcess(&JProgramInfo->Projects[3]);
     return EXIT_SUCCESS;
