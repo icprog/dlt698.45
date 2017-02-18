@@ -748,13 +748,10 @@ INT16S parseSecurityResponse(INT8U* RN,INT8U* apdu)//apdu负责传入和传出�
 
 INT8U OADtoBuff(OAD fromOAD,INT8U* buff)
 {
-	INT8U length = 0;
-	memcpy(&buff[length],&fromOAD.OI,sizeof(fromOAD.OI));
-	length += 2;
-	buff[length++] = fromOAD.attflg;
-	buff[length++] = fromOAD.attrindex;
-
-	fprintf(stderr,"\n OADtoBuff = %d ",sizeof(OAD));
+	memcpy(&buff[0],&fromOAD,sizeof(OAD));
+	INT8U tmp = buff[0];
+	buff[0] = buff[1];
+	buff[1] = tmp;
 	return sizeof(OAD);
 }
 INT16S fillGetRequestAPDU(INT8U* sendBuf,CLASS_6015 obj6015,INT8U requestType)
@@ -762,7 +759,7 @@ INT16S fillGetRequestAPDU(INT8U* sendBuf,CLASS_6015 obj6015,INT8U requestType)
 	INT16S length = 0;
 	INT8U csdIndex = 0;
 	INT8U len = 0;
-	if((requestType == GET_REQUEST_NORMAL_LIST)||(requestType == GET_REQUEST_NORMAL_LIST))
+	if((requestType == GET_REQUEST_NORMAL_LIST)||(requestType == GET_REQUEST_RECORD_LIST))
 	{
 		sendBuf[length++] = obj6015.csds.num;
 	}
@@ -797,10 +794,11 @@ INT16S fillGetRequestAPDU(INT8U* sendBuf,CLASS_6015 obj6015,INT8U requestType)
 			{
 				len = OADtoBuff(obj6015.csds.csd[csdIndex].csd.road.oad,&sendBuf[length]);
 				length +=len;
-
+				sendBuf[length++] = obj6015.csds.csd[csdIndex].csd.road.num;//OAD num
 				INT8U oadsIndex;
 				for (oadsIndex = 0; oadsIndex < obj6015.csds.csd[csdIndex].csd.road.num; oadsIndex++)
 				{
+					sendBuf[length++] = 0;//OAD
 					len = OADtoBuff(obj6015.csds.csd[csdIndex].csd.road.oads[oadsIndex],&sendBuf[length]);
 					length +=len;
 				}
@@ -878,7 +876,6 @@ INT16S composeProtocol698_GetRequest(INT8U* 	sendBuf,CLASS_6015 obj6015,TSA mete
 	hcsi = sendLen;
 	sendLen = sendLen + 2;
 
-	fprintf(stderr,"\n 123123123");
 	sendBuf[sendLen++] = GET_REQUEST;
 
 	INT8S requestType = getRequestType(obj6015.cjtype,obj6015.csds.num);
