@@ -359,7 +359,7 @@ int NETWorker(struct aeEventLoop* ep, long long id, void* clientData) {
 
     if (nst->phy_connect_fd <= 0) {
         initComPara(nst);
-        nst->phy_connect_fd = anetTcpConnect(NULL, IPaddr, 5022);
+        nst->phy_connect_fd = anetTcpConnect(NULL, IPaddr, Class25.master.master[1].port);
         if (nst->phy_connect_fd > 0) {
             asyslog(LOG_INFO, "链接主站(主站地址:%s,结果:%d)", IPaddr, nst->phy_connect_fd);
             if (aeCreateFileEvent(ep, nst->phy_connect_fd, AE_READABLE, NETRead, nst) < 0) {
@@ -473,19 +473,29 @@ void enviromentCheck(int argc, char* argv[]) {
     struct sigaction sa = {};
     Setsig(&sa, QuitProcess);
 
+    //读取设备参数
+    readCoverClass(0x4500, 0, (void*)&Class25, sizeof(CLASS25), para_vari_save);
+    asyslog(LOG_INFO, "工作模式 enum{混合模式(0),客户机模式(1),服务器模式(2)}：%d", Class25.commconfig.workModel);
+    asyslog(LOG_INFO, "在线方式 enum{永久在线(0),被动激活(1)}：%d", Class25.commconfig.onlineType);
+    asyslog(LOG_INFO, "连接方式 enum{TCP(0),UDP(1)}：%d", Class25.commconfig.connectType);
+    asyslog(LOG_INFO, "连接应用方式 enum{主备模式(0),多连接模式(1)}：%d", Class25.commconfig.appConnectType);
+    asyslog(LOG_INFO, "侦听端口列表：%d", Class25.commconfig.listenPort[0]);
+    asyslog(LOG_INFO, "超时时间，重发次数：%02x", Class25.commconfig.timeoutRtry);
+    asyslog(LOG_INFO, "心跳周期秒：%d\n", Class25.commconfig.heartBeat);
+    asyslog(LOG_INFO, "主站通信地址(1)为：%d.%d.%d.%d:%d", Class25.master.master[0].ip[1], Class25.master.master[0].ip[2],Class25.master.master[0].ip[3],Class25.master.master[0].ip[4],Class25.master.master[0].port);
+    asyslog(LOG_INFO, "主站通信地址(2)为：%d.%d.%d.%d:%d", Class25.master.master[1].ip[1], Class25.master.master[1].ip[2],Class25.master.master[1].ip[3],Class25.master.master[1].ip[4],Class25.master.master[1].port);
+
     //检查运行参数
     if (argc < 2) {
-        asyslog(LOG_ERR, "未指定通信参数");
-        abort();
+    	memset(IPaddr, 0, sizeof(IPaddr));
+        snprintf(IPaddr, sizeof(IPaddr), "%d.%d.%d.%d", Class25.master.master[0].ip[1], Class25.master.master[0].ip[2],Class25.master.master[0].ip[3],Class25.master.master[0].ip[4]);
+        asyslog(LOG_INFO, "确定：主站通信地址为：%s\n", IPaddr);
+    }else{
+        //解析通信参数
+        memset(IPaddr, 0, sizeof(IPaddr));
+        memcpy(IPaddr, argv[1], strlen(argv[1]));
+        asyslog(LOG_INFO, "确定：主站通信地址为：%s\n", IPaddr);
     }
-
-    //解析通信参数
-    memset(IPaddr, 0, sizeof(IPaddr));
-    memcpy(IPaddr, argv[1], strlen(argv[1]));
-    asyslog(LOG_INFO, "主站通信地址为：%s\n", IPaddr);
-
-    //读取设备参数
-    saveCoverClass(0x4500, 0, (void*)&Class25, sizeof(CLASS25), para_init_save);
 
     //设置在线状态
     online_state = 0;
@@ -507,14 +517,6 @@ void enviromentCheck(int argc, char* argv[]) {
 }
 
 int main(int argc, char* argv[]) {
-    //	char buf[1024];
-    //	memset(buf, 0x00, 1024);
-    //	createFile("/nand/UpFiles/update.dat",1024*76+98,0x00,1024);
-    //	for(int i = 0; i < 77; i++){
-    //		int res = appendFile("/nand/UpFiles/update.dat", i, 1024, buf);
-    //		printf("res1 = %d\n",res);
-    //	}
-    //	return 0;
     // daemon(0,0);
     enviromentCheck(argc, argv);
 
