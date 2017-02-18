@@ -50,7 +50,6 @@ int InitPro(ProgramInfo** prginfo, int argc, char *argv[])
 	return 0;
 }
 
-
 /********************************************************
  * 载入档案、参数
  ********************************************************/
@@ -79,7 +78,7 @@ int main(int argc, char *argv[])
 	//485、四表合一
 	read485_proccess();
 	//统计计算 电压合格率等
-//	calc_proccess();
+	// calc_proccess();
 	//载波
 	//readplc_proccess();
 	//液晶、控制

@@ -59,6 +59,8 @@ typedef struct {
 	INT8U oi601E;		/*采集规则库属性变更*/
 	INT8U oi6051;		/*实时监控采集方案集属性变更*/
 	INT8U oi4030;       //电压合格率统计
+	INT8U oi4500;		//通讯参数
+	INT8U reset;		/*4300方法1，设备复位*/
 }OI_CHANGE;
 
 //交采系数
