@@ -14,7 +14,7 @@
 #include "cjmain.h"
 #include <dirent.h>
 #define PATH_MAX 256
-
+int DevResetNum=0;
 void Runled()
 {
 	gpio_writebyte((char*)DEV_LED_RUN, 1); //运行灯常亮
@@ -291,7 +291,25 @@ void ProgInit()
 	readCoverClass(0x3202,0,&JProgramInfo->event_obj.Event3202_obj,sizeof(JProgramInfo->event_obj.Event3202_obj),event_para_save);
 	readCoverClass(0x3203,0,&JProgramInfo->event_obj.Event3203_obj,sizeof(JProgramInfo->event_obj.Event3203_obj),event_para_save);
 }
-
+time_t ifDevReset()
+{
+	int i=0;
+	if (DevResetNum !=JProgramInfo->oi_changed.reset)
+	{
+		fprintf(stderr,"\ncjmain判断需要设备复位");
+		for(i=0;i<PROJECTCOUNT;i++)
+		{
+			if (JProgramInfo->Projects[i].ProjectID >0)
+			{
+				fprintf(stderr,"\nID=%d  %s  需要停止",JProgramInfo->Projects[i].ProjectID,JProgramInfo->Projects[i].ProjectName );
+				JProgramInfo->Projects[i].ProjectState = NeedStop;
+			}
+		}
+		DevResetNum = JProgramInfo->oi_changed.reset;
+		return (time(NULL));
+	}
+	return 0;
+}
 int main(int argc, char *argv[])
 {
 	pid_t pids[128];
@@ -301,9 +319,8 @@ int main(int argc, char *argv[])
 	Setsig(&sa1,ProjectMainExit);
 	JProgramInfo = (ProgramInfo*)CreateShMem("ProgramInfo",sizeof(ProgramInfo),NULL);
 	if (prog_find_pid_by_name((INT8S*)argv[0], pids) > 1)
-	{
 		return EXIT_SUCCESS;
-	}
+
 	if (argc >= 2 )
 	{
 		if (strcmp("all",argv[1])==0)
@@ -311,7 +328,8 @@ int main(int argc, char *argv[])
 	}
 	fprintf(stderr,"\ncjmain run!");
 	ProgInit();
-
+	time_t resetStart=0;
+	DevResetNum =JProgramInfo->oi_changed.reset;
 	while(1)
    	{
 		sleep(1);
@@ -335,8 +353,23 @@ int main(int argc, char *argv[])
 					break;
 				case NowRun:
 					break;
+				case NeedStop:
+					fprintf(stderr,"\n进程:%s %s  PID=%d 停止",JProgramInfo->Projects[i].ProjectName,JProgramInfo->Projects[i].argv[0],JProgramInfo->Projects[i].ProjectID);
+					if(ProjectKill(JProgramInfo->Projects[i])==1)
+						JProgramInfo->Projects[i].ProjectState = NowRun;
+					break;
 			}
 			JProgramInfo->Projects[i].WaitTimes++;
+		}
+		if (resetStart==0)
+			resetStart = ifDevReset();
+		else
+		{
+			fprintf(stderr,"\n...%ld",time(NULL));
+			if (abs(time(NULL)-resetStart)>=5)
+			{
+				system("reboot");
+			}
 		}
    	}
 	return EXIT_SUCCESS;//退出
