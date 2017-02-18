@@ -3,7 +3,27 @@
 #include "dlt645.h"
 #include <string.h>
 #include <stdio.h>
-
+#include <stdlib.h>
+//反转buff
+INT8S reversebuff(INT8U* buff,INT32U len,INT8U* invbuff)
+{
+	if(buff==NULL)
+		return -1;
+	if(len == 0)
+		return -2;
+	if(invbuff == NULL)
+		return -3;
+	INT8U* buftmp =(INT8U*)malloc(len);
+	memcpy(buftmp,buff,len);
+	INT32U i=0;
+	for(i=0; i < len; i++)
+	{
+		invbuff[i] = buftmp[len-i-1];
+	}
+	free(buftmp);
+	buftmp = NULL;
+	return 0;
+}
 INT8U getCS645(INT8U* buf, const INT16U len)
 {
 	INT16U i, cs=0;
@@ -63,14 +83,16 @@ INT16U getFFCount(INT8U* recvBuf, const INT16U recvLen)//得到待解析报文�
 INT16S composeProtocol07(FORMAT07* format07, INT8U* sendBuf)
 {
 	INT16U i;
-#ifdef TESTDEF
+#ifdef TESTDEF1
 	INT8U meterAddr[6] = {0x71,0x05,0x17,0x28,0x15,0x00};
 	memcpy(format07->Addr,meterAddr,6);
 #endif
+	INT8U addrBuff[6] = {0};
+	reversebuff(format07->Addr,6,addrBuff);
 	if (format07->Ctrl == 0x11)//读数据
 	{
 		sendBuf[0] = 0x68;
-		memcpy(&sendBuf[1], format07->Addr, 6);//地址
+		memcpy(&sendBuf[1], addrBuff, 6);//地址
 		sendBuf[7] = 0x68;
 		sendBuf[8] = format07->Ctrl;
 		sendBuf[9] = 0x04;//长度
@@ -89,7 +111,7 @@ INT16S composeProtocol07(FORMAT07* format07, INT8U* sendBuf)
 	if (format07->Ctrl == 0x12)//读后续数据
 	{
 		sendBuf[0] = 0x68;
-		memcpy(&sendBuf[1], format07->Addr, 6);//地址
+		memcpy(&sendBuf[1], addrBuff, 6);//地址
 		sendBuf[7] = 0x68;
 		sendBuf[8] = format07->Ctrl;
 		sendBuf[9] = 0x05;//长度

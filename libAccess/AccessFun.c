@@ -369,11 +369,11 @@ int readCoverClass(OI_698 oi,INT16U seqno,void *blockdata,int datalen,int type)
 		if(ret==0) {		//文件存在
 			fprintf(stderr,"readClass %s filelen=%d\n",fname,datalen);
 			ret = block_file_sync(fname,blockdata,datalen,0,0);
-			fprintf(stderr,"ret=%d\n",ret);
+//			fprintf(stderr,"ret=%d\n",ret);
 		}else  {		//无配置文件，读取系统初始化参数
 			memset(fname,0,sizeof(fname));
 			readFileName(oi,seqno,para_init_save,fname);
-			fprintf(stderr,"read /nor/init的参数文件：  Class %s filelen=%d\n",fname,datalen);
+//			fprintf(stderr,"read /nor/init的参数文件：  Class %s filelen=%d\n",fname,datalen);
 			ret = block_file_sync(fname,blockdata,datalen,0,0);
 		}
 		break;
