@@ -111,12 +111,32 @@ void prthelp()
 	fprintf(stderr,"%s",usage_inoutdev);
 
 }
-
+void dog_feed()
+{
+	INT32S fd = -1;
+	INT32S tm = 888888;
+	system("pkill cjmain");
+	sleep(1);
+	if((fd = open(DEV_WATCHDOG, O_RDWR | O_NDELAY)) == -1)
+	{
+		fprintf(stderr, "\n\r open /dev/watchdog error!!!");
+		return ;
+	}
+	write(fd,&tm,sizeof(int));
+	close(fd);
+	system("pkill cjcomm");
+	system("pkill cjdeal");
+	system("pkill gsmMuxd");
+}
 int main(int argc, char *argv[])
 {
 	usleep(10);
 	if(argc<2) {
 		prthelp();
+		return EXIT_SUCCESS;
+	}
+	if (strcmp("dog",argv[1])==0) {
+		dog_feed();
 		return EXIT_SUCCESS;
 	}
 	if(strcmp("help",argv[1])==0) {

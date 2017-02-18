@@ -475,7 +475,7 @@ INT32S Esam_SIDResponseCheck(INT32S fd, INT8U P2type, INT8U* Data3 ,INT16U Lengt
 	 INT8U GetInfo_ESAM[BUFFLENMAX_SPI]={0x55,0x80,0x1C,0x00,P2type};//P2加入
 	 GetInfo_ESAM[5]=(INT8U)((Length>>8)&0x00ff);// 长度
 	 GetInfo_ESAM[6]=(INT8U)(Length&0x00ff);
-	 memcpy(&GetInfo_ESAM[7],&Data3[0],Length);//TODO:确认Data3开头是否长度
+	 memcpy(&GetInfo_ESAM[7],&Data3[0],Length);
 	 GetInfo_ESAM[7+Length]=LRC(&GetInfo_ESAM[1],Length+6);
 
 	 Result = Esam_WriteThenRead(fd, (INT8U*)GetInfo_ESAM,Length+8, tmp);
@@ -493,26 +493,21 @@ INT32S Esam_SIDResponseCheck(INT32S fd, INT8U P2type, INT8U* Data3 ,INT16U Lengt
  *输入Data1(RN+PlainData)PlainData为响应的apDU，RN为主站请求帧中附带的随机数(设定小与255)
  *函数返回：1、为正数是为终端信息数据长度		  2、负数：代表相应错误，见：Esam.h中，ESAM ERR ARRAY定义
  *************************************************************/
-INT32S Esam_GetTerminalInfo(INT32S fd, INT8U *RN,INT8U* Data1,INT8U* Rbuf) {
+INT32S Esam_GetTerminalInfo(INT32S fd, INT8U *RN,INT8U* Data1,INT16U Length,INT8U* Rbuf) {
 	INT32S Result=0;
 	INT16U len=0;
-	INT8U lenSign=0;//返回开头长度域字节数
 	INT8U tmp[BUFFLENMAX_SPI];
 	memset(tmp,0,BUFFLENMAX_SPI);
 	INT8U GetInfo_ESAM[BUFFLENMAX_SPI]={0x55,0x80,0x0E,0x40,0x02};
 	len+=5;
-	INT16U datalen = Esam_GetDataLength(Data1,&lenSign);
-	 if(datalen==0) return ERR_ESAM_INTEREXE_ERR;
-	 GetInfo_ESAM[5]=(INT8U)(((datalen+RN[0])>>8)&0x00ff);
-	 GetInfo_ESAM[6]=(INT8U)((datalen+RN[0])&0x00ff);
+	 if(Length==0) return ERR_ESAM_INTEREXE_ERR;
+	 GetInfo_ESAM[5]=(INT8U)(((Length+RN[0])>>8)&0x00ff);
+	 GetInfo_ESAM[6]=(INT8U)((Length+RN[0])&0x00ff);
 	len+=2;
 	memcpy(&GetInfo_ESAM[7],&RN[1],RN[0]);
 	len+=RN[0];
-	 if(lenSign>0 && lenSign<4)//Data长度判断
-		 memcpy(&GetInfo_ESAM[len],&Data1[lenSign],datalen);
-	 else
-		 return ERR_ESAM_INTEREXE_ERR;
-	len+=datalen;
+	memcpy(&GetInfo_ESAM[len],&Data1[0],Length);
+	len+=Length;
 	GetInfo_ESAM[len] = LRC(&GetInfo_ESAM[1],len-1);
 	len+=1;
 	Result = Esam_WriteThenRead(fd, (INT8U*)GetInfo_ESAM, len, tmp);

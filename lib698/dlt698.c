@@ -649,7 +649,7 @@ INT16S doSecurityRequest(INT8U* apdu)//
 	 INT32S fd=-1;
 	 fd = Esam_Init(fd,(INT8U*)ACS_SPI_DEV);
 	 if(fd<0) return -3;
-
+	 //fprintf(stderr,"in doSecurityRequest\n");
 	 if(apdu[1]==0x00)//明文应用数据处理
 	 {
 		 retLen = secureDecryptDataDeal(apdu);//传入安全等级
@@ -664,24 +664,41 @@ INT16S doSecurityRequest(INT8U* apdu)//
 }
 //组织SecurityResponse上行报文
 //length上行报文应用层数据长度，SecurityType下行报文等级（之前解析下行报文得出的值）
-//返回：SendApdu中存储新的加密数据（应用数据单元和数据验证信息）（假定包括明文/密文的开始第一个标示字节）
-INT16S composeSecurityResponse(INT8U* SendApdu,INT16U length,INT8U SecurityType)
+//规约要求：所有应答的安全级别不能低于请求的安全级别。此处，使用和下发报文相同安全级别回复
+//返回：SendApdu中存储新的加密数据（应用数据单元和数据验证信息,包括明文/密文的开始第一个标示字节）
+INT16S composeSecurityResponse(INT8U* SendApdu,INT16U Length)
 {
-	 INT16S retLen=0;
 	 INT32S fd=-1;
+	 INT32S ret=0;
 	 fd = Esam_Init(fd,(INT8U*)ACS_SPI_DEV);
-	 if(fd<0) return -3;
-	 if(SendApdu == 133)//读取的上报
+	 do
 	 {
-		// Esam_GetTerminalInfo();
+		 if(fd>0 && Length>0)
+		 {
+			 if(securetype == 0x02)//明文+mac
+				 ret = compose_DataAndMac(fd,SendApdu,Length);
+			 else if(securetype == 0x03)//密文
+				 ret = compose_EnData(fd,SendApdu,Length);
+			 else if(securetype == 0x04)//密文+mac
+				 ret = compose_EnDataAndMac(fd,SendApdu,Length);
+			 else
+				 break;
+		 }
+		 if(ret>0 && fd>0)//esam校验正常，返回
+		 {
+			 Esam_Clear(fd);
+			 return ret;
+		 }
 	 }
-	 else
-	 {
-		 retLen = Esam_SIDResponseCheck(fd,SecurityType,SendApdu,length,SendApdu);
-	 }
-	 if(retLen<=0) return 0;
-	 Esam_Clear(fd);
-	 return retLen;
+	 while(0);
+	 //以上都正常返回了，走到这就就很抱歉了
+	 //走到这里说明esam验证出现错误，回复DAR异常错误
+	 if(fd>0) Esam_Clear(fd);
+	 SendApdu[0]=0x90;
+	 SendApdu[1]=0x02;//DAR
+	 SendApdu[2]=0x16;//22ESAM校验错误
+	 SendApdu[3]=0x00;//mac optional
+	 return 4;
 }
 //组织主动上报报文安全加密（上送主站报文）
 //明文发送到ESAM芯片，返回12字节RN和4字节MAC共16字节
@@ -729,14 +746,117 @@ INT16S parseSecurityResponse(INT8U* RN,INT8U* apdu)//apdu负责传入和传出�
 		return -1;//无效应用数据单元标示
 }
 
+INT8U OADtoBuff(OAD fromOAD,INT8U* buff)
+{
+	INT8U length = 0;
+	memcpy(&buff[length],&fromOAD.OI,sizeof(fromOAD.OI));
+	length += 2;
+	buff[length++] = fromOAD.attflg;
+	buff[length++] = fromOAD.attrindex;
+
+	fprintf(stderr,"\n OADtoBuff = %d ",sizeof(OAD));
+	return sizeof(OAD);
+}
 INT16S fillGetRequestAPDU(INT8U* sendBuf,CLASS_6015 obj6015,INT8U requestType)
 {
 	INT16S length = 0;
+	INT8U csdIndex = 0;
+	INT8U len = 0;
+	if((requestType == GET_REQUEST_NORMAL_LIST)||(requestType == GET_REQUEST_NORMAL_LIST))
+	{
+		sendBuf[length++] = obj6015.csds.num;
+	}
 
+	if(obj6015.cjtype == TYPE_NULL)
+	{
+		for(csdIndex = 0;csdIndex < obj6015.csds.num;csdIndex++)
+		{
+			/*采集当前数据*/
+			if(obj6015.csds.csd[csdIndex].type == 0)//OAD
+			{
+				len = OADtoBuff(obj6015.csds.csd[csdIndex].csd.oad,&sendBuf[length]);
+				length +=len;
+			}
+			else
+			{
+				fprintf(stderr,"fillGetRequestAPDU not OAD obj6015.sernum = %d,obj6015.cjtype = %d",
+						obj6015.sernum,obj6015.cjtype);
+			}
+
+		}
+	}
+
+	if(obj6015.cjtype == TYPE_LAST)
+	{
+		sendBuf[length++] = 0x09;//Selector = 9 选取上n条记录
+		sendBuf[length++] = 0x01;//选取上1条记录
+		for(csdIndex = 0;csdIndex < obj6015.csds.num;csdIndex++)
+		{
+			/*采集当前数据*/
+			if(obj6015.csds.csd[csdIndex].type == 1)//ROAD
+			{
+				len = OADtoBuff(obj6015.csds.csd[csdIndex].csd.road.oad,&sendBuf[length]);
+				length +=len;
+
+				INT8U oadsIndex;
+				for (oadsIndex = 0; oadsIndex < obj6015.csds.csd[csdIndex].csd.road.num; oadsIndex++)
+				{
+					len = OADtoBuff(obj6015.csds.csd[csdIndex].csd.road.oads[oadsIndex],&sendBuf[length]);
+					length +=len;
+				}
+
+			}
+			else
+			{
+				fprintf(stderr,"fillGetRequestAPDU not ROAD obj6015.sernum = %d,obj6015.cjtype = %d",
+						obj6015.sernum,obj6015.cjtype);
+			}
+
+		}
+	}
 	return length;
 
 }
+INT8S getRequestType(INT8U cjtype,INT8U csdcount)
+{
+	INT8S requestType = -1;
+	switch(cjtype)
+	{
+		case TYPE_NULL:
+			{
+				if(csdcount == 1)
+				{
+					requestType = GET_REQUEST_NORMAL;
+				}
+				if(csdcount > 1)
+				{
+					requestType = GET_REQUEST_NORMAL_LIST;
+				}
 
+				break;
+			}
+
+		case TYPE_LAST:
+			{
+				if(csdcount == 1)
+				{
+					requestType = GET_REQUEST_RECORD;
+				}
+				if(csdcount > 1)
+				{
+					requestType = GET_REQUEST_RECORD_LIST;
+				}
+				break;
+			}
+
+		case TYPE_FREEZE:
+
+			break;
+		case TYPE_INTERVAL:
+			break;
+	}
+	return requestType;
+}
 INT16S composeProtocol698_GetRequest(INT8U* 	sendBuf,CLASS_6015 obj6015,TSA meterAddr)
 {
 	INT8U PIID = 0x02;
@@ -760,42 +880,12 @@ INT16S composeProtocol698_GetRequest(INT8U* 	sendBuf,CLASS_6015 obj6015,TSA mete
 
 
 	sendBuf[sendLen++] = GET_REQUEST;
-	INT8U csdcount = 0;
-	INT8U requestType = 0;
-	switch(obj6015.cjtype)
+	INT8U csdcount = obj6015.csds.num;
+	INT8S requestType = getRequestType(obj6015.cjtype,obj6015.csds.num);
+	fprintf(stderr,"\n composeProtocol698_GetRequest requestType = %d",requestType);
+	if(requestType < 0)
 	{
-		case TYPE_NULL:
-			{
-				if(csdcount == 1)
-				{
-					requestType = GET_REQUEST_NORMAL;
-				}
-				if(csdcount > 0)
-				{
-					requestType = GET_REQUEST_NORMAL_LIST;
-				}
-
-				break;
-			}
-
-		case TYPE_LAST:
-			{
-				if(csdcount == 1)
-				{
-					requestType = GET_REQUEST_RECORD;
-				}
-				if(csdcount > 0)
-				{
-					requestType = GET_REQUEST_RECORD_LIST;
-				}
-				break;
-			}
-
-		case TYPE_FREEZE:
-
-			break;
-		case TYPE_INTERVAL:
-			break;
+		return-1;
 	}
 	sendBuf[sendLen++] = requestType;
 	sendBuf[sendLen++] = PIID;
@@ -850,6 +940,14 @@ INT8U dealClientRequest(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
 			fprintf(stderr,"\n安全请求计算错误!!!");
 			return 0;
 		}
+//		else
+//		{
+//			fprintf(stderr,"apduType = %d\n",apduType);
+//			int i;
+//			for( i=0;i<SecurityRe;i++)
+//				fprintf(stderr,"%02x ",apdu[i]);
+//			fprintf(stderr,"\n");
+//		}
 		apduType = apdu[0];
 	}
 	switch(apduType)
