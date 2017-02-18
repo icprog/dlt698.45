@@ -2,7 +2,6 @@
 #define DLT645_H_
 
 #include "StdDataType.h"
-
 typedef struct
 {
 	INT8U Addr[6];			//表地址

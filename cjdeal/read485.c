@@ -513,7 +513,7 @@ INT16U request698_07DataList(INT8U DI07List[10][4], CLASS_6001 meter,INT8U* data
 		fprintf(stderr, "\n meterAddr len = %d addr = %02x%02x%02x%02x%02x%02x",
 				meter.basicinfo.addr.addr[0], meter.basicinfo.addr.addr[1], meter.basicinfo.addr.addr[2],
 				meter.basicinfo.addr.addr[3], meter.basicinfo.addr.addr[4], meter.basicinfo.addr.addr[5],
-				meter.basicinfo.addr.addr[5]);
+				meter.basicinfo.addr.addr[6]);
 		fprintf(stderr, "\n request698_07DataList DI[%d] = %02x%02x%02x%02x\n",
 				index, DI07List[index][0], DI07List[index][1],
 				DI07List[index][2], DI07List[index][3]);
