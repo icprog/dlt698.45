@@ -445,8 +445,6 @@ void Task6015(int argc, char *argv[])
 
 void print6035(CLASS_6035 class6035)
 {
-	INT8U type=0,w=0,i=0;
-
 	fprintf(stderr,"[6035]采集任务监控单元 \n");
 	fprintf(stderr,"[1]任务ID [2]执行状态<0:未执行 1:执行中 2:已执行> [3]任务执行开始时间 [4]任务执行结束时间 [5]采集总数量 [6]采集成功数量 [7]已发送报文条数 [8]已接收报文条数 \n");
 	fprintf(stderr,"[1]%d [2]%d ",class6035.taskID,class6035.taskState);

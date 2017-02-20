@@ -12,6 +12,7 @@
 #include "StdDataType.h"
 #include "Objectdef.h"
 #include "dlt698def.h"
+#include "dlt698.h"
 #include "PublicFunction.h"
 #include "secure.h"
 extern INT8S (*pSendfun)(int fd,INT8U* sndbuf,INT16U sndlen);
@@ -40,40 +41,37 @@ int BuildFrame_GetResponseRecord(INT8U response_type,CSINFO *csinfo,RESULT_RECOR
 	sendbuf[index++] = GET_RESPONSE;
 	sendbuf[index++] = response_type;
 	sendbuf[index++] = 0;	//	piid
-	sendbuf[index++] = (record.oad.OI>>8) & 0xff;
-	sendbuf[index++] = record.oad.OI & 0xff;
-	sendbuf[index++] = record.oad.attflg;
-	sendbuf[index++] = record.oad.attrindex;
-
+	index += create_OAD(&sendbuf[index],record.oad);
 	num = record.rcsd.csds.num;
-	sendbuf[index++] = num;
-	for(i=0;i<num;i++)
-	{
-		sendbuf[index++] = record.rcsd.csds.csd[i].type;	//第 i 个csd类型
-		fprintf(stderr,"num=%d type=%d\n",num,record.rcsd.csds.csd[i].type);
-		fprintf(stderr,"oi=%04x_%02x_%02x\n",record.rcsd.csds.csd[i].csd.oad.OI,record.rcsd.csds.csd[i].csd.oad.attflg,record.rcsd.csds.csd[i].csd.oad.attrindex);
-		if (record.rcsd.csds.csd[i].type ==0)
+	if(num==0) {
+		switch(record.selectType) {
+		case 1:		//Select1
+			sendbuf[index++] = 1;	//一行记录M列属性描述符 	RCSD
+			sendbuf[index++] = 0;	//OAD
+			record.select.selec1.oad.attrindex = 0;		//上送属性下所有索引值
+			index += create_OAD(&sendbuf[index],record.select.selec1.oad);
+			break;
+		}
+	}else {
+		sendbuf[index++] = num;
+		for(i=0;i<num;i++)
 		{
-			sendbuf[index++] = (record.rcsd.csds.csd[i].csd.oad.OI)>>8 &0xff ;
-			sendbuf[index++] = record.rcsd.csds.csd[i].csd.oad.OI &0xff;
-			sendbuf[index++] = record.rcsd.csds.csd[i].csd.oad.attflg;
-			sendbuf[index++] = record.rcsd.csds.csd[i].csd.oad.attrindex;
-		}else
-		{
-			sendbuf[index++] = (record.rcsd.csds.csd[i].csd.road.oad.OI>>8) &0xff ;
-			sendbuf[index++] = record.rcsd.csds.csd[i].csd.road.oad.OI &0xff;
-			sendbuf[index++] = record.rcsd.csds.csd[i].csd.road.oad.attflg;
-			sendbuf[index++] = record.rcsd.csds.csd[i].csd.road.oad.attrindex;
-			for(k=0; k<record.rcsd.csds.csd[i].csd.road.num; k++)
+			sendbuf[index++] = record.rcsd.csds.csd[i].type;	//第 i 个csd类型
+			fprintf(stderr,"num=%d type=%d\n",num,record.rcsd.csds.csd[i].type);
+			fprintf(stderr,"oi=%04x_%02x_%02x\n",record.rcsd.csds.csd[i].csd.oad.OI,record.rcsd.csds.csd[i].csd.oad.attflg,record.rcsd.csds.csd[i].csd.oad.attrindex);
+			if (record.rcsd.csds.csd[i].type ==0)
 			{
-				sendbuf[index++] = (record.rcsd.csds.csd[i].csd.road.oads[k].OI>>8) & 0xff;
-				sendbuf[index++] = record.rcsd.csds.csd[i].csd.road.oads[k].OI & 0xff;
-				sendbuf[index++] = record.rcsd.csds.csd[i].csd.road.oads[k].attflg;
-				sendbuf[index++] = record.rcsd.csds.csd[i].csd.road.oads[k].attrindex;
+				index += create_OAD(&sendbuf[index],record.rcsd.csds.csd[i].csd.oad);
+			}else
+			{
+				index += create_OAD(&sendbuf[index],record.rcsd.csds.csd[i].csd.road.oad);
+				for(k=0; k<record.rcsd.csds.csd[i].csd.road.num; k++)
+				{
+					index += create_OAD(&sendbuf[index],record.rcsd.csds.csd[i].csd.road.oads[k]);
+				}
 			}
 		}
 	}
-
 	if (record.datalen > 0)
 	{
 		sendbuf[index++] = 1;//choice 1  ,SEQUENCE OF A-RecordRow
@@ -121,6 +119,15 @@ int BuildFrame_GetResponse(INT8U response_type,CSINFO *csinfo,INT8U oadnum,RESUL
 	if(pSendfun!=NULL)
 		pSendfun(comfd,sendbuf,index+3);
 	return (index+3);
+}
+
+int  create_OAD(INT8U *data,OAD oad)
+{
+	data[0] = ( oad.OI >> 8 ) & 0xff;
+	data[1] = oad.OI & 0xff;
+	data[2] = oad.attflg;
+	data[3] = oad.attrindex;
+	return 4;
 }
 
 int create_array(INT8U *data,INT8U numm)
@@ -596,6 +603,7 @@ int getSel1_coll(RESULT_RECORD *record)
 	int		index = 0;
 	INT8U	taskid=0;
 	data = record->data;
+	data[index++] = 1;		//1条记录     [1] SEQUENCE OF A-RecordRow
 	switch(record->select.selec1.oad.OI) {
 	case 0x6035:
 		if(record->select.selec1.data.type == dtunsigned) {
@@ -638,7 +646,7 @@ int doGetrecord(RESULT_RECORD *record)
 {
 	INT8U SelectorN = record->selectType;
 	fprintf(stderr,"\n- getRequestRecord  OI = %04x  attrib=%d  index=%d",record->oad.OI,record->oad.attflg,record->oad.attrindex);
-	int datalen=0;
+	int index=0,i=0,k=0;
 
 	switch(SelectorN) {
 	case 1:		//指定对象指定值

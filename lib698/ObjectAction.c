@@ -11,6 +11,7 @@
 #include "AccessFun.h"
 #include "StdDataType.h"
 #include "dlt698def.h"
+#include "dlt698.h"
 #include "Objectdef.h"
 #include "event.h"
 #include "secure.h"
@@ -20,6 +21,7 @@ extern int FrameHead(CSINFO *csinfo,INT8U *buf);
 extern INT8S (*pSendfun)(int fd,INT8U* sndbuf,INT16U sndlen);
 extern int comfd;
 extern ProgramInfo *memp;
+
 
 INT16U getMytypeSize(INT8U first )
 {
@@ -59,15 +61,7 @@ int doReponse(int server,int reponse,CSINFO *csinfo,PIID piid,OAD oad,int dar,IN
 //	fprintf(stderr,"piid.data[%d]=%02x\n",index,piid.data);
 	buf[index] = piid.data;
 	index++;
-	buf[index] = (oad.OI>>8) & 0xff;
-	index++;
-	buf[index] = oad.OI & 0xff;
-	index++;
-	buf[index] = oad.attflg;
-	index++;
-	buf[index] = oad.attrindex;
-	index++;
-
+	index += create_OAD(&buf[index],oad);
 	buf[index] = dar;
 	index++;
 	if(data!=NULL) {
