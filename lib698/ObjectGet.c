@@ -49,6 +49,8 @@ int BuildFrame_GetResponseRecord(INT8U response_type,CSINFO *csinfo,RESULT_RECOR
 	for(i=0;i<num;i++)
 	{
 		sendbuf[index++] = record.rcsd.csds.csd[i].type;	//第 i 个csd类型
+		fprintf(stderr,"num=%d type=%d\n",num,record.rcsd.csds.csd[i].type);
+		fprintf(stderr,"oi=%04x_%02x_%02x\n",record.rcsd.csds.csd[i].csd.oad.OI,record.rcsd.csds.csd[i].csd.oad.attflg,record.rcsd.csds.csd[i].csd.oad.attrindex);
 		if (record.rcsd.csds.csd[i].type ==0)
 		{
 			sendbuf[index++] = (record.rcsd.csds.csd[i].csd.oad.OI)>>8 &0xff ;
@@ -585,6 +587,52 @@ int GetEventInfo(RESULT_NORMAL *response)
 	return 0;
 }
 
+int getSel1_coll(RESULT_RECORD *record)
+{
+	int ret=0;
+	CLASS_6035	classoi={};
+	INT8U *data = NULL;
+	int		index = 0;
+	INT8U	taskid=0;
+	data = record->data;
+	switch(record->select.selec1.oad.OI) {
+	case 0x6035:
+		if(record->select.selec1.data.type == dtunsigned) {
+			taskid = record->select.selec1.data.data[0];
+		}
+		fprintf(stderr,"taskid=%d\n",taskid);
+		readCoverClass(record->select.selec1.oad.OI,taskid,&classoi,sizeof(CLASS_6035),coll_para_save);
+		index += create_struct(&data[index],8);
+		index += fill_unsigned(&data[index],classoi.taskID);
+		index += fill_enum(&data[index],classoi.taskState);
+		index += fill_DateTimeBCD(&data[index],&classoi.starttime);
+		index += fill_DateTimeBCD(&data[index],&classoi.endtime);
+		index += fill_long_unsigned(&data[index],classoi.totalMSNum);
+		index += fill_long_unsigned(&data[index],classoi.successMSNum);
+		index += fill_long_unsigned(&data[index],classoi.sendMsgNum);
+		index += fill_long_unsigned(&data[index],classoi.rcvMsgNum);
+		record->datalen = index;
+		break;
+	}
+	return ret;
+}
+/*
+ * 选择方法1: 读取指定对象指定值
+ * */
+int getSelector1(RESULT_RECORD *record)
+{
+	int  ret=0;
+	INT8U oihead = (record->oad.OI & 0xF000) >>12;
+
+	switch(oihead) {
+	case 6:			//采集监控类对象
+		fprintf(stderr,"\n读取采集监控对象\n");
+		getSel1_coll(record);
+		break;
+	}
+	return ret;
+}
+
 int doGetrecord(RESULT_RECORD *record)
 {
 	INT8U SelectorN = record->selectType;
@@ -593,7 +641,7 @@ int doGetrecord(RESULT_RECORD *record)
 
 	switch(SelectorN) {
 	case 1:		//指定对象指定值
-
+		getSelector1(record);
 	break;
 
 	case 5:
@@ -656,6 +704,9 @@ int getRequestRecord(OAD oad,INT8U *data,CSINFO *csinfo,INT8U *sendbuf)
 	index = get_BasicRSD(&data[index],(INT8U *)&record.select,&record.selectType);
 	fprintf(stderr,"\nRSD Select%d  ",record.selectType);
 	index +=get_BasicRCSD(&data[index],&record.rcsd.csds);
+
+
+	//record.rcsd.csds.csd[i].csd.oad.OI
 	if (record.selectType == 1)
 	{
 		fprintf(stderr,"\nOAD %04x %02x %02x",record.select.selec1.oad.OI,record.select.selec1.oad.attflg,record.select.selec1.oad.attrindex);

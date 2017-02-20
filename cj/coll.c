@@ -443,6 +443,72 @@ void Task6015(int argc, char *argv[])
 	}
 }
 
+void print6035(CLASS_6035 class6035)
+{
+	INT8U type=0,w=0,i=0;
+
+	fprintf(stderr,"[6035]采集任务监控单元 \n");
+	fprintf(stderr,"[1]任务ID [2]执行状态<0:未执行 1:执行中 2:已执行> [3]任务执行开始时间 [4]任务执行结束时间 [5]采集总数量 [6]采集成功数量 [7]已发送报文条数 [8]已接收报文条数 \n");
+	fprintf(stderr,"[1]%d [2]%d ",class6035.taskID,class6035.taskState);
+	fprintf(stderr,"[3]%d-%d-%d %02d:%02d:%02d ",class6035.starttime.year.data,class6035.starttime.month.data,class6035.starttime.day.data,
+			class6035.starttime.hour.data,class6035.starttime.min.data,class6035.starttime.sec.data);
+	fprintf(stderr,"[4]%d-%d-%d %02d:%02d:%02d ",class6035.endtime.year.data,class6035.endtime.month.data,class6035.endtime.day.data,
+			class6035.endtime.hour.data,class6035.endtime.min.data,class6035.endtime.sec.data);
+	fprintf(stderr,"[5]%d [6]%d [7]%d [8]%d\n",class6035.totalMSNum,class6035.successMSNum,class6035.sendMsgNum,class6035.rcvMsgNum);
+}
+//采集任务监控
+void Task6035(int argc, char *argv[])
+{
+	int		ret = -1;
+	int		i=0;
+	int 	tmp[30]={};
+	INT8U	taskid=0;
+	OI_698	oi=0;
+	CLASS_6035	class6035={};
+
+	sscanf(argv[3],"%04x",&tmp[0]);
+	oi = tmp[0];
+	if(strcmp("clear",argv[2])==0) {
+		ret = clearClass(oi);
+		if(ret==-1) {
+			fprintf(stderr,"清空出错=%d",ret);
+		}
+	}
+	if(strcmp("delete",argv[2])==0) {
+		if(argc==5) {
+			sscanf(argv[4],"%d",&tmp[0]);
+			taskid = tmp[0];
+			if(deleteClass(oi,taskid)==1) {
+				fprintf(stderr,"删除一个配置单元oi【%04x】【%d】成功",oi,taskid);
+			}
+		}else fprintf(stderr,"参数错误，查看cj help");
+	}else {
+		if(strcmp("pro",argv[2])==0) {
+			if(argc<5) {
+				for(i=0;i<=255;i++) {
+					taskid = i;
+					memset(&class6035,0,sizeof(CLASS_6035));
+					if(readCoverClass(oi,taskid,&class6035,sizeof(CLASS_6035),coll_para_save)== 1) {
+						print6035(class6035);
+					}else {
+//						fprintf(stderr,"任务ID=%d 无任务配置单元",taskid);
+					}
+				}
+			}else if(argc==5) {
+				sscanf(argv[4],"%04x",&tmp[0]);
+				taskid = tmp[0];
+				fprintf(stderr,"taskid=%d\n",taskid);
+				memset(&class6035,0,sizeof(CLASS_6035));
+				if(readCoverClass(oi,taskid,&class6035,sizeof(class6035),coll_para_save)==1) {
+					print6035(class6035);
+				}else {
+					fprintf(stderr,"无任务配置单元");
+				}
+			}
+		}
+	}
+}
+
 void coll_process(int argc, char *argv[])
 {
 	int 	tmp=0;
@@ -461,6 +527,9 @@ void coll_process(int argc, char *argv[])
 				break;
 			case 0x6015:
 				Task6015(argc,argv);
+				break;
+			case 0x6035:
+				Task6035(argc,argv);
 				break;
 			}
 		}
