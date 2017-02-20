@@ -44,6 +44,7 @@ int BuildFrame_GetResponseRecord(INT8U response_type,CSINFO *csinfo,RESULT_RECOR
 	sendbuf[index++] = record.oad.OI & 0xff;
 	sendbuf[index++] = record.oad.attflg;
 	sendbuf[index++] = record.oad.attrindex;
+
 	num = record.rcsd.csds.num;
 	sendbuf[index++] = num;
 	for(i=0;i<num;i++)
@@ -702,7 +703,8 @@ int getRequestRecord(OAD oad,INT8U *data,CSINFO *csinfo,INT8U *sendbuf)
 	record.datalen = 0;
 	fprintf(stderr,"\nGetRequestRecord   oi=%x  %02x  %02x",record.oad.OI,record.oad.attflg,record.oad.attrindex);
 	index = get_BasicRSD(&data[index],(INT8U *)&record.select,&record.selectType);
-	fprintf(stderr,"\nRSD Select%d  ",record.selectType);
+	fprintf(stderr,"\nRSD Select%d     data[%d] = %02x",record.selectType,index,data[index]);
+
 	index +=get_BasicRCSD(&data[index],&record.rcsd.csds);
 
 
@@ -711,6 +713,7 @@ int getRequestRecord(OAD oad,INT8U *data,CSINFO *csinfo,INT8U *sendbuf)
 	{
 		fprintf(stderr,"\nOAD %04x %02x %02x",record.select.selec1.oad.OI,record.select.selec1.oad.attflg,record.select.selec1.oad.attrindex);
 		fprintf(stderr,"\nData Type= %02x  Value=%d ",record.select.selec1.data.type,record.select.selec1.data.data[0]);
+
 	}
 	if(record.selectType==5)
 	{
