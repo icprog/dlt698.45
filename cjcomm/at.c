@@ -60,8 +60,8 @@ int OpenMuxCom(INT8U port, int baud, unsigned char* par, unsigned char stopb, IN
     int baud_lnx = 0;
     unsigned char tmp[128];
     memset(tmp, 0, 128);
-//    sprintf((char*)tmp, "/dev/mux%d", port);
-    sprintf((char*)tmp, "/dev/ttyS%d", port);
+    sprintf((char*)tmp, "/dev/mux%d", port);
+//    sprintf((char*)tmp, "/dev/ttyS%d", port);
 
     Com_Port = open((char*)tmp, O_RDWR | O_NOCTTY); /* 打开串口文件 */
     if (Com_Port < 0) {
@@ -255,23 +255,23 @@ void* ATWorker(void* args) {
         system("pkill gsmMuxd");
         sleep(3);
         reset_power();
-//        asyslog(LOG_INFO, "打开串口复用模块");
-//        system("mux.sh &");
-//        sleep(15);
+        asyslog(LOG_INFO, "打开串口复用模块");
+        system("mux.sh &");
+        sleep(15);
 
-//        int sMux0 = OpenMuxCom(5, 115200, (unsigned char*)"none", 1, 8);//0
-//        int sMux1 = OpenMuxCom(1, 115200, (unsigned char*)"none", 1, 8);
-//        if (sMux0 < 0 || sMux1 < 0) {
-//            close(sMux0);
-//            close(sMux1);
-//            fprintf(stderr,"\n打开串口复用错误！\n");
-//            goto err;
-//        }
-        int sMux0 = OpenMuxCom(5, 115200, (unsigned char*)"none", 1, 8);//0
-        if (sMux0 < 0) {
+        int sMux0 = OpenMuxCom(0, 115200, (unsigned char*)"none", 1, 8);//0
+        int sMux1 = OpenMuxCom(1, 115200, (unsigned char*)"none", 1, 8);
+        if (sMux0 < 0 || sMux1 < 0) {
             close(sMux0);
+            close(sMux1);
+            fprintf(stderr,"\n打开串口复用错误！\n");
             goto err;
         }
+//        int sMux0 = OpenMuxCom(5, 115200, (unsigned char*)"none", 1, 8);//0
+//        if (sMux0 < 0) {
+//            close(sMux0);
+//            goto err;
+//        }
 
         for (int i = 0; i < 5; i++) {
             char Mrecvbuf[128];

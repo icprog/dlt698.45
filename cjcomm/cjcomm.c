@@ -362,11 +362,11 @@ void NETRead(struct aeEventLoop* eventLoop, int fd, void* clientData, int mask) 
 int NETWorker(struct aeEventLoop* ep, long long id, void* clientData) {
     CommBlock* nst = (CommBlock*)clientData;
     clearcount(1);
-    fprintf(stderr,"\nconnect fd = %d",nst->phy_connect_fd);
+
     if (nst->phy_connect_fd <= 0) {
         initComPara(nst);
-        asyslog(LOG_INFO, "链接主站(主站地址:%s)", IPaddr);
-        nst->phy_connect_fd = anetTcpConnect(NULL, IPaddr, Class25.master.master[1].port);
+        asyslog(LOG_INFO, "链接主站(主站地址:%s:%d)", IPaddr, Class25.master.master[0].port);
+        nst->phy_connect_fd = anetTcpConnect(NULL, IPaddr, Class25.master.master[0].port);
         if (nst->phy_connect_fd > 0) {
             asyslog(LOG_INFO, "链接主站(主站地址:%s,结果:%d)", IPaddr, nst->phy_connect_fd);
             if (aeCreateFileEvent(ep, nst->phy_connect_fd, AE_READABLE, NETRead, nst) < 0) {
