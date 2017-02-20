@@ -365,7 +365,6 @@ int NETWorker(struct aeEventLoop* ep, long long id, void* clientData) {
 
     if (nst->phy_connect_fd <= 0) {
         initComPara(nst);
-        asyslog(LOG_INFO, "链接主站(主站地址:%s:%d)", IPaddr, Class25.master.master[0].port);
         nst->phy_connect_fd = anetTcpConnect(NULL, IPaddr, Class25.master.master[0].port);
         if (nst->phy_connect_fd > 0) {
             asyslog(LOG_INFO, "链接主站(主站地址:%s,结果:%d)", IPaddr, nst->phy_connect_fd);
