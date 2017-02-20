@@ -27,6 +27,7 @@
 #define	 FREEZEDIR				"/nand/freeze"				//冻结类数据存储
 #define	 CALCDIR				"/nand/calc"				//统计类数据存储
 #define	 INITDIR			"/nor/init"					//初始化参数文件
+#define	 TASKDATA				"/nand/task"				//任务采集存储文件
 
 //文件存储类型
 typedef enum
@@ -40,6 +41,7 @@ typedef enum
 	acs_energy_save=7,			//交采计量电能量数据存储
 	para_init_save=8,			//初始化参数保存文件
 	calc_voltage_save=9,	    //电压合格率存储
+	coll_data_save=10
 }SaveFile_type;
 
 /*
