@@ -139,7 +139,12 @@ int main(int argc, char *argv[])
 		SetIPort(argc,argv);
 		return EXIT_SUCCESS;
 	}
-	if (strcmp("dog",argv[1])==0) {
+	if (strcmp("apn",argv[1])==0) {
+		SetApn(argc,argv);
+		return EXIT_SUCCESS;
+	}
+
+	if (strcmp("dog",argv[1])==0 || strcmp("stop",argv[1])==0) {
 		dog_feed();
 		return EXIT_SUCCESS;
 	}
