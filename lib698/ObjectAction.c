@@ -122,7 +122,8 @@ int get_BasicRSD(INT8U *source,INT8U *dest,INT8U *type)
 			get_BasicUnit(&source[5]+source_sumindex,&source_index,(INT8U *)&select1.data,&dest_index);
 			source_sumindex += source_index;
 			memcpy(dest,&select1,sizeof(select1));
-			index = source_sumindex + 4 ;
+			index = source_sumindex + 4 + 1;//4:oad  1:type   source_sumindex:解析data的内容长度
+			fprintf(stderr,"\n index = %d    !!!!!!!!!!!\n",index);
 			break;
 		case 2:
 			memset(&select2,0,sizeof(select2));
