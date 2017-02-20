@@ -655,7 +655,7 @@ int doGetrecord(RESULT_RECORD *record)
 
 	case 5:
 	case 7:
-//		getSelector(record->select,SelectorN,record->rcsd,(INT8U *)&record->data,datalen);
+		getSelector(record->select, record->selectType,record->rcsd.csds,(INT8U *)&record->data,&index);
 		break;
 	case 9:		//指定读取上第n次记录
 		Getevent_Record_Selector(record,memp);
@@ -689,6 +689,21 @@ void printSel5(RESULT_RECORD record)
 					record.select.selec5.collect_save.day.data,record.select.selec5.collect_save.hour.data,
 					record.select.selec5.collect_save.min.data,record.select.selec5.collect_save.sec.data);
 	fprintf(stderr,"\nMS-TYPE %d  ",record.select.selec5.meters.mstype);
+	printrcsd(record.rcsd);
+}
+
+void printSel7(RESULT_RECORD record)
+{
+	fprintf(stderr,"\n采集存储时间起始值：%d-%d-%d %d:%d:%d",
+					record.select.selec7.collect_save_star.year.data,record.select.selec7.collect_save_star.month.data,
+					record.select.selec7.collect_save_star.day.data,record.select.selec7.collect_save_star.hour.data,
+					record.select.selec7.collect_save_star.min.data,record.select.selec7.collect_save_star.sec.data);
+	fprintf(stderr,"\n采集存储时间结束值：%d-%d-%d %d:%d:%d",
+					record.select.selec7.collect_save_finish.year.data,record.select.selec7.collect_save_finish.month.data,
+					record.select.selec7.collect_save_finish.day.data,record.select.selec7.collect_save_finish.hour.data,
+					record.select.selec7.collect_save_finish.min.data,record.select.selec7.collect_save_finish.sec.data);
+	fprintf(stderr,"\n时间间隔TI 单位:%d[秒-0，分-1，时-2，日-3，月-4，年-5],间隔:%x",record.select.selec7.ti.units,record.select.selec7.ti.interval);
+	fprintf(stderr,"\n电能表集合MS 类型：%d\n",record.select.selec7.meters.mstype);
 	printrcsd(record.rcsd);
 }
 
@@ -726,6 +741,10 @@ int getRequestRecord(OAD oad,INT8U *data,CSINFO *csinfo,INT8U *sendbuf)
 	if(record.selectType==5)
 	{
 		printSel5(record);
+	}
+	if(record.selectType==7)
+	{
+		printSel7(record);
 	}
 	if(record.selectType==9)
 	{

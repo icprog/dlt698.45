@@ -74,6 +74,15 @@ int doReponse(int server,int reponse,CSINFO *csinfo,PIID piid,OAD oad,int dar,IN
 		pSendfun(comfd,buf,index+3);
 	return (index+3);
 }
+
+int getTI(INT8U *source,INT8U *dest)
+{
+	dest[0] = source[0];//单位
+	dest[2] = source[1];//long unsigned数值
+	dest[1] = source[2];//
+	return 3;
+}
+
 int getDateTimeBCD(INT8U *source,INT8U *dest)
 {
 	dest[1] = source[0];//年
@@ -84,6 +93,26 @@ int getDateTimeBCD(INT8U *source,INT8U *dest)
 	dest[5] = source[5];//分
 	dest[6] = source[6];//秒
 	return sizeof(DateTimeBCD);
+}
+int getMS(INT8U *source,INT8U *dest)
+{
+	INT8U choicetype=0;
+	choicetype = source[0];
+	switch (choicetype)
+	{
+		case 0:
+		case 1:
+			dest[0] = source[0];  //0表示 没有电表  1表示 全部电表
+			fprintf(stderr,"\n		MS:Choice =%02x ",source[0]);
+			return 1;
+		case 2:
+			break;
+		case 3:
+			break;
+		case 4:
+			break;
+	}
+	return 0;
 }
 /*
  * 解析选择方法类型 RSD
@@ -152,14 +181,11 @@ int get_BasicRSD(INT8U *source,INT8U *dest,INT8U *type)
 		case 6:
 		case 7:
 		case 8:
-			index = getDateTimeBCD(&source[1],(INT8U *)&select6.collect_star);
-			index += getDateTimeBCD(&source[1+index],(INT8U *)&select6.collect_finish);
-			select6.ti.units = source[15];//单位
-			tmpbuf[1] = source[16];//long unsigned数值
-			tmpbuf[0] = source[17];
-			memcpy(&select6.ti.interval,tmpbuf,2);
-			get_BasicUnit(&source[18],&source_index,(INT8U *)&select6.meters.mstype,&dest_index);
-			index = source_index + sizeof(DateTimeBCD)+ sizeof(DateTimeBCD)+ sizeof(TI);
+			index++;	//type
+			index += getDateTimeBCD(&source[index],(INT8U *)&select6.collect_star);
+			index += getDateTimeBCD(&source[index],(INT8U *)&select6.collect_finish);
+			index += getTI(&source[index],(INT8U *)&select6.ti);
+			index += getMS(&source[18],&select6.meters.mstype);
 			memcpy(dest,&select6,sizeof(select6));
 			break;
 		case 9:
