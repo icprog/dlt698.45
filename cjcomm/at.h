@@ -1,2 +1,4 @@
 void AT_POWOFF();
-void* ATWorker(void* args);
+void CreateATWorker(void);
+void SetOnline(void);
+void SetOffline(void);
