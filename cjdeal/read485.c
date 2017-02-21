@@ -243,27 +243,45 @@ void print6015(CLASS_6015 class6015) {
 	for (i = 0; i < class6015.csds.num; i++) {
 		printMY_CSD(class6015.csds.csd[i]);
 #ifdef TESTDEF
+		if (class6015.csds.csd[i].type == 1) {
+					memcpy(&testArray[0].flag698.road, &class6015.csds.csd[i].csd.road,
+							sizeof(ROAD));
+					INT8U freezeflag07_1[4] = { 0x01, 0x00, 0x06, 0x05 };
+					memcpy(testArray[0].flag07.DI_1[0], freezeflag07_1, 4);
+					INT8U freezeflag07_2[4] = { 0x01, 0x01, 0x06, 0x05 };
+					memcpy(testArray[0].flag07.DI_1[1], freezeflag07_2, 4);
+					INT8U freezeflag07_3[4] = { 0x01, 0x02, 0x06, 0x05 };
+					memcpy(testArray[0].flag07.DI_1[2], freezeflag07_3, 4);
+				}
+
 		if (class6015.csds.csd[i].type == 0) {
-			memcpy(&testArray[0].flag698.oad, &class6015.csds.csd[i].csd.oad,
-					sizeof(OAD));
-			INT8U flag07_0CF33[4] = { 0x00, 0x00, 0x01, 0x00 };//当前正向有功总电能示值
-			memcpy(testArray[0].flag07.DI_1[0], flag07_0CF33, 4);
-			INT8U flag07_0CF25_1[4] = { 0x00, 0xff, 0x01, 0x02 };//当前电压
-			memcpy(testArray[0].flag07.DI_1[1], flag07_0CF25_1, 4);
-			INT8U flag07_0CF25_2[4] = { 0x00, 0xff, 0x02, 0x02 };//当前电流 A
-			memcpy(testArray[0].flag07.DI_1[2], flag07_0CF25_2, 4);
+			fprintf(stderr,"\n 2-----class6015.csds.csd[i].csd.oad = %04x",class6015.csds.csd[i].csd.oad.OI);
+			if(class6015.csds.csd[i].csd.oad.OI== 0x0010)
+			{
+				memcpy(&testArray[1].flag698.oad, &class6015.csds.csd[i].csd.oad,sizeof(OAD));
+				INT8U flag07_0CF33[4] = { 0x00, 0xff, 0x01, 0x00 };//当前正向有功总电能示值
+				memcpy(testArray[1].flag07.DI_1[0], flag07_0CF33, 4);
+			}
+			if(class6015.csds.csd[i].csd.oad.OI== 0x2000)
+			{
+				memcpy(&testArray[2].flag698.oad, &class6015.csds.csd[i].csd.oad,sizeof(OAD));
+				INT8U flag07_0CF25_1[4] = { 0x00, 0xff, 0x01, 0x02 };//当前电压
+				memcpy(testArray[2].flag07.DI_1[0], flag07_0CF25_1, 4);
+			}
+			if(class6015.csds.csd[i].csd.oad.OI== 0x2001)
+			{
+				memcpy(&testArray[3].flag698.oad, &class6015.csds.csd[i].csd.oad,sizeof(OAD));
+				INT8U flag07_0CF25_2[4] = { 0x00, 0xff, 0x02, 0x02 };//当前电流 A
+				memcpy(testArray[3].flag07.DI_1[0], flag07_0CF25_2, 4);
+			}
+#if 0
 			INT8U flag07_date[4] = { 0x01, 0x01, 0x00, 0x04 };//电能表日历时钟-日期
 			memcpy(testArray[0].flag07.DI_1[3], flag07_date, 4);
 			INT8U flag07_time[4] = { 0x02, 0x01, 0x00, 0x04 };//电能表日历时钟-时间
 			memcpy(testArray[0].flag07.DI_1[4], flag07_time, 4);
+#endif
+		}
 
-		}
-		if (class6015.csds.csd[i].type == 1) {
-			memcpy(&testArray[1].flag698.road, &class6015.csds.csd[i].csd.road,
-					sizeof(ROAD));
-			INT8U freezeflag07[4] = { 0x01, 0x01, 0x06, 0x05 };
-			memcpy(testArray[1].flag07.DI_1[4], freezeflag07, 4);
-		}
 #endif
 
 	}
@@ -483,6 +501,101 @@ INT8U checkEvent(CLASS_6001 meter,FORMAT07 resultData07,INT16U taskID)
 	}
 	return ret;
 }
+//根据07 DI 返回数据类型dataType 数组大小size 信息
+INT8U getASNInfo(FORMAT07* DI07,Base_DataType* dataType)
+{
+	fprintf(stderr, "\n getASNInfo DI07 = %02x%02x%02x%02x",DI07->DI[3],DI07->DI[2],DI07->DI[1],DI07->DI[0]);
+	INT8U flag07_0CF33[4] =   {0x00,0xff,0x01,0x00};//当前正向有功总电能示值
+	INT8U flag07_0CF25_1[4] = {0x00,0xff,0x01,0x02};//当前电压
+	INT8U flag07_0CF25_2[4] = {0x00,0xff,0x02,0x02};//当前电流
+	INT8U freezeflag07_1[4] = {0x01,0x00,0x06,0x05};
+	INT8U freezeflag07_2[4] = {0x01,0x01,0x06,0x05};
+	INT8U freezeflag07_3[4] = {0x01,0x02,0x06,0x05};
+
+
+	INT8U unitNum = 1;
+	if(memcmp(flag07_0CF25_1,DI07->DI,4) == 0)
+	{
+		*dataType = dtlongunsigned;
+		unitNum = 3;
+	}
+	if(memcmp(flag07_0CF25_2,DI07->DI,4) == 0)
+	{
+		*dataType = dtdoublelong;
+		unitNum = 3;
+		INT8U f25_2_buff[12] = {0};
+		memcpy(&f25_2_buff[1],&DI07->Data[0],3);
+		memcpy(&f25_2_buff[5],&DI07->Data[3],3);
+		memcpy(&f25_2_buff[9],&DI07->Data[6],3);
+		memcpy(&DI07->Data[0],&f25_2_buff[0],12);
+		DI07->Length += 3;
+	}
+	//冻结时标数据07为5个字节 698为7个 需要特殊处理
+	if(memcmp(freezeflag07_1,DI07->DI,4) == 0)
+	{
+		*dataType = dtdatetimes;
+		DI07->Length += 2;
+		fprintf(stderr,"\n 1-----getASNInfo dataType = %d",*dataType);
+	}
+	if((memcmp(freezeflag07_2,DI07->DI,4) == 0)||(memcmp(freezeflag07_3,DI07->DI,4) == 0)
+			||(memcmp(flag07_0CF33,DI07->DI,4) == 0))
+	{
+		*dataType = dtdoublelongunsigned;
+		unitNum = 5;
+		fprintf(stderr,"\n 2-----getASNInfo dataType = %d",*dataType);
+	}
+
+	return unitNum;
+}
+//把抄回来的07数据转换成698格式存储
+INT16U data07Tobuff698(FORMAT07 Data07,INT8U* dataContent)
+{
+	INT16U index;
+
+	INT16U len = 0;
+	Base_DataType dataType = dtnull;
+	INT8U unitSize = 0;
+	INT8U unitNum = getASNInfo(&Data07,&dataType);
+	INT16U dataLen07 = Data07.Length-4;
+	#ifdef TESTDEF
+		fprintf(stderr, "正常应答！  DI07 = %02x%02x%02x%02x datalen = %d data=",
+				Data07.DI[3], Data07.DI[2], Data07.DI[1], Data07.DI[0],dataLen07);
+		for(index = 0;index < dataLen07;index++)
+		{
+			fprintf(stderr," %02x",Data07.Data[index]);
+		}
+	#endif
+
+	unitSize = dataLen07/unitNum;
+	fprintf(stderr,"dataLen07 = %d unitNum = %d unitSize = %d",dataLen07,unitNum,unitSize);
+	if((dataLen07%unitNum)!=0)
+	{
+		return len;
+	}
+	if(unitNum > 1)
+	{
+		dataContent[len++] = dtarray;
+		dataContent[len++] = unitNum;
+		fprintf(stderr,"\n 1---- dataContent[%d] = %d",len,unitNum);
+	}
+
+	for(index = 0;index < unitNum;index++)
+	{
+		INT16U dataIndex = unitSize*index;
+		dataContent[len++] = dataType;
+		fprintf(stderr,"\n 2---index = %d dataIndex = %d dataContent[%d] = %d",index,dataIndex,len,dataType);
+		memcpy(&dataContent[len],&Data07.Data[dataIndex],unitSize);
+		len += unitSize;
+	}
+#ifdef TESTDEF
+	fprintf(stderr, "\n data07Tobuff698[%d] = ",len);
+	for(index = 0;index < len;index++)
+	{
+		fprintf(stderr," %02x",dataContent[index]);
+	}
+#endif
+	return len;
+}
 /*
  * DI07List[10][4]是一个CSD对应的07数据标识列表
  * dataContent里保存一个任务抄上来的所有数据，不带数据标识
@@ -538,13 +651,8 @@ INT16U request698_07DataList(INT8U DI07List[10][4], CLASS_6001 meter,INT8U* data
 			st6035->rcvMsgNum++;
 			recsta = analyzeProtocol07(&Data07, RecvBuff, RecvLen, &nextFlag);
 			if (recsta == 0) {
-				fprintf(stderr, "正常应答！  DI07 = %02x%02x%02x%02x\n",
-						Data07.DI[3], Data07.DI[2], Data07.DI[1], Data07.DI[0]);
-
-				INT16U len = Data07.Length-4;
-				memcpy(&dataContent[DataLen],Data07.Data,len);
-				DataLen += len;
-				fprintf(stderr,"\n request698_07DataList DataLen = %d",DataLen);
+				//把07数据格式化放到dataContent
+				DataLen += data07Tobuff698(Data07,&dataContent[DataLen]);
 				//检查是否是事件关联数据标识
 				checkEvent(meter,Data07,st6035->taskID);
 			} else {
@@ -680,14 +788,19 @@ INT8U deal6015_singlemeter(CLASS_6015 st6015, CLASS_6001 obj6001,CLASS_6035* st6
 	}
 
 	switch (obj6001.basicinfo.protocol) {
-
+#ifndef TESTDEF
 	case DLT_645_07:
 		ret = deal6015_07(st6015, obj6001,st6035,dataContent);
 	break;
 	default:
 		ret = deal6015_698(st6015,obj6001);
-
+#else
+	case DLT_645_07:
+	case DLT_698:
+	ret = deal6015_07(st6015, obj6001,st6035,dataContent);
+#endif
 	}
+
 	fprintf(stderr, "\ndeal6015_singlemeter ret = %d\n",ret);
 	return ret;
 }
@@ -745,7 +858,7 @@ INT16U compose6012Buff(DateTimeBCD startTime,TSA meterAddr,INT16U dataLen,INT8U*
 	INT16U index;
 	for(index = 0;index < dataLen;index++)
 	{
-		fprintf(stderr,"%02x",dataContent[index]);
+		fprintf(stderr," %02x",dataContent[index]);
 		if(index%20 == 0)
 		{
 			fprintf(stderr,"\n");
@@ -756,13 +869,23 @@ INT16U compose6012Buff(DateTimeBCD startTime,TSA meterAddr,INT16U dataLen,INT8U*
 	DataTimeGet(&endTime);
 	INT8U buff6012[600];
 	memset(buff6012,0,600);
-	memcpy(buff6012,&meterAddr,sizeof(TSA));//采集通信地址
+
+	memcpy(&buff6012[bufflen],&meterAddr,sizeof(TSA));//采集通信地址
 	bufflen += sizeof(TSA);
-	memcpy(buff6012,&startTime,sizeof(DateTimeBCD));//采集启动时标
-	memcpy(buff6012,&endTime,sizeof(DateTimeBCD));//采集成功时标
-	memcpy(buff6012,&endTime,sizeof(DateTimeBCD));//采集存储时标
-	bufflen += 3*sizeof(DateTimeBCD);
-	memcpy(buff6012,dataContent,dataLen);
+
+	buff6012[bufflen++] = dtdatetimes;
+	memcpy(&buff6012[bufflen],&startTime,sizeof(DateTimeBCD));//采集启动时标
+	bufflen += sizeof(DateTimeBCD);
+
+	buff6012[bufflen++] = dtdatetimes;
+	memcpy(&buff6012[bufflen],&endTime,sizeof(DateTimeBCD));//采集成功时标
+	bufflen += sizeof(DateTimeBCD);
+
+	buff6012[bufflen++] = dtdatetimes;
+	memcpy(&buff6012[bufflen],&endTime,sizeof(DateTimeBCD));//采集存储时标
+	bufflen += sizeof(DateTimeBCD);
+
+	memcpy(&buff6012[bufflen],dataContent,dataLen);
 	bufflen += dataLen;
 	return bufflen;
 }
@@ -806,7 +929,7 @@ INT8U deal6015(CLASS_6015 st6015, INT8U port485,CLASS_6035* st6035) {
 			if (list6001[mpIndex].sernum > 0)
 			{
 				st6035->totalMSNum++;
-				fprintf(stderr,"\n\n deal6015 测量点 = %d------------------",list6001[mpIndex].sernum);
+				fprintf(stderr,"\n\n 任务号:%d  方案号:%d deal6015 测量点 = %d-----",st6035->taskID,st6015.sernum,list6001[mpIndex].sernum);
 				INT8U dataContent[DATA_CONTENT_LEN];
 				memset(dataContent,0,DATA_CONTENT_LEN);
 				INT16U dataLen = 0;
@@ -814,7 +937,17 @@ INT8U deal6015(CLASS_6015 st6015, INT8U port485,CLASS_6035* st6035) {
 
 				DataTimeGet(&startTime);
 				dataLen = deal6015_singlemeter(st6015, list6001[mpIndex],st6035,dataContent);
-				compose6012Buff(startTime,list6001[mpIndex].basicinfo.addr,dataLen,dataContent);
+
+				if(dataLen > 0)
+				{
+					int bufflen = compose6012Buff(startTime,list6001[mpIndex].basicinfo.addr,dataLen,dataContent);
+					SaveNorData(st6035->taskID,dataContent,bufflen);
+				}
+				else
+				{
+					fprintf(stderr,"\n deal6015:失败");
+				}
+
 			}
 		}
 	}
