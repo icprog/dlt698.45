@@ -1044,3 +1044,93 @@ int ComposeSendBuff(TS *ts,INT8U seletype,INT8U taskid,TSA *tsa_con,INT8U tsa_nu
 	}
 	return sendindex;
 }
+/*
+ * 根据招测类型组织报文
+ * 如果MS选取的测量点过多，不能同时上报，分帧
+ */
+INT8U getSelector(RSD select, INT8U selectype, CSD_ARRAYTYPE csds, INT8U *data, int *datalen)
+{
+	TS ts_info[2];//时标选择，根据普通采集方案存储时标选择进行，此处默认为相对当日0点0分 todo
+	INT8U taskid,tsa_num=0;
+//	TSA tsa_con = NULL;
+//	tsa_num = GetTsaNum(select);//得到tsa个数
+//	tsa_con = malloc(tsa_num*sizeof(TSA));
+//	GetTsaGroup(select,tsa_con);//计算得到tsa组
+//	taskid = GetTaskId(rcsd);//根据rcsd得到应该去哪个任务里找，如果涉及到多个任务呢？应该不会
+	//测试写死
+	///////////////////////////////////////////////////////////////test
+	tsa_num = 3;
+	TSA tsa_con[] = {
+			0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x07,0x05,0x00,0x00,0x00,0x00,0x00,0x01,
+			0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x07,0x05,0x00,0x00,0x00,0x00,0x00,0x02,
+			0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x07,0x05,0x00,0x00,0x00,0x00,0x00,0x03,
+	};
+	fprintf(stderr,"\n-------------1\n");
+	memset(&csds,0xee,sizeof(CSD_ARRAYTYPE));
+	csds.num = 5;
+	csds.csd[0].type=0;
+	csds.csd[0].csd.oad.OI = 0x4001;
+	csds.csd[0].csd.oad.attflg = 0x02;
+	csds.csd[0].csd.oad.attrindex = 0;
+	csds.csd[1].type=0;
+	csds.csd[1].csd.oad.OI = 0x6040;
+	csds.csd[1].csd.oad.attflg = 0x02;
+	csds.csd[1].csd.oad.attrindex = 0;
+	csds.csd[2].type=0;
+	csds.csd[2].csd.oad.OI = 0x6041;
+	csds.csd[2].csd.oad.attflg = 0x02;
+	csds.csd[2].csd.oad.attrindex = 0;
+	csds.csd[3].type=0;
+	csds.csd[3].csd.oad.OI = 0x6042;
+	csds.csd[3].csd.oad.attflg = 0x02;
+	csds.csd[3].csd.oad.attrindex = 0;
+	csds.csd[4].type=1;
+	csds.csd[4].csd.road.oad.OI = 0x5004;
+	csds.csd[4].csd.road.oad.attflg = 0x02;
+	csds.csd[4].csd.road.oad.attrindex = 0;
+	csds.csd[4].csd.road.num = 3;
+	csds.csd[4].csd.road.oads[0].OI = 0x2021;
+	csds.csd[4].csd.road.oads[0].attflg = 0x02;
+	csds.csd[4].csd.road.oads[0].attrindex = 0;
+	csds.csd[4].csd.road.oads[1].OI = 0x0010;
+	csds.csd[4].csd.road.oads[1].attflg = 0x02;
+	csds.csd[4].csd.road.oads[1].attrindex = 0;
+	csds.csd[4].csd.road.oads[2].OI = 0x0020;
+	csds.csd[4].csd.road.oads[2].attflg = 0x02;
+	csds.csd[4].csd.road.oads[2].attrindex = 0;
+//	csds.num = 1;
+//	csds.csd[0].type=1;
+//	csds.csd[0].csd.road.oad.OI = 0x5004;
+//	csds.csd[0].csd.road.oad.attflg = 0x02;
+//	csds.csd[0].csd.road.oad.attrindex = 0;
+//	csds.csd[0].csd.road.num = 3;
+//	csds.csd[0].csd.road.oads[0].OI = 0x2021;
+//	csds.csd[0].csd.road.oads[0].attflg = 0x02;
+//	csds.csd[0].csd.road.oads[0].attrindex = 0;
+//	csds.csd[0].csd.road.oads[1].OI = 0x0010;
+//	csds.csd[0].csd.road.oads[1].attflg = 0x02;
+//	csds.csd[0].csd.road.oads[1].attrindex = 0;
+//	csds.csd[0].csd.road.oads[2].OI = 0x0020;
+//	csds.csd[0].csd.road.oads[2].attflg = 0x02;
+//	csds.csd[0].csd.road.oads[2].attrindex = 0;
+	taskid = 1;
+	///////////////////////////////////////////////////////////////test
+	fprintf(stderr,"\n-------------2\n");
+	switch(selectype)
+	{
+	case 5://例子中招测冻结数据，包括分钟小时日月冻结数据招测方法
+		memcpy(&ts_info[0],&select.selec5.collect_save,sizeof(DateTimeBCD));
+//		ReadNorData(ts_info,taskid,tsa_con,tsa_num);
+		//////////////////////////////////////////////////////////////////////test
+		TSGet(&ts_info[0]);
+		//////////////////////////////////////////////////////////////////////test
+		*datalen = ComposeSendBuff(&ts_info[0],selectype,taskid,tsa_con,tsa_num,csds,data);
+		break;
+	case 7://例子中招测实时数据方法
+		*datalen = ComposeSendBuff(&ts_info[0],selectype,taskid,tsa_con,tsa_num,csds,data);
+		break;
+	default:
+		break;
+	}
+	return 0;
+}
