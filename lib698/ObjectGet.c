@@ -209,10 +209,18 @@ int fill_time(INT8U *data,INT8U *value)
 
 int fill_DateTimeBCD(INT8U *data,DateTimeBCD *time)
 {
-	data[0] = dtdatetimes;
-	time->year.data = time->year.data >>8 | time->year.data<<8;
-	memcpy(&data[1],time,sizeof(DateTimeBCD));
-	return (sizeof(DateTimeBCD)+1);
+	DateTimeBCD  init_datatimes={};
+
+	memset(&init_datatimes,0xEE,sizeof(DateTimeBCD));
+	if(memcmp(time,&init_datatimes,sizeof(DateTimeBCD))==0) {		//时间无效，上送NULL（0）
+		data[0] = 0;
+		return 1;
+	}else {
+		data[0] = dtdatetimes;
+		time->year.data = time->year.data >>8 | time->year.data<<8;
+		memcpy(&data[1],time,sizeof(DateTimeBCD));
+		return (sizeof(DateTimeBCD)+1);
+	}
 }
 
 int GetMeterInfo(RESULT_NORMAL *response)
