@@ -149,4 +149,11 @@ extern long getFileRecordNum(OI_698 oi);
 
 //////////////////////////////////////////////////////////////////////////////////////
 
+///////////////数据文件存储
+
+extern INT8U getSelector(RSD select, INT8U selectype, CSD_ARRAYTYPE csds, INT8U *data, int *datalen);
+
+
+
+
 #endif /* ACCESS_H_ */
