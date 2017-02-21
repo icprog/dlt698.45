@@ -39,7 +39,8 @@ INT8U imsi[20];        // SIM卡IMSI
 INT16U signalStrength; //信号强度
 INT8U pppip[20];       //拨号IP
 static CLASS25 Class25;
-static int online_state;
+//static int online_state;
+int online_state;
 
 INT32S timeoffset[50];    //终端精准校时 默认最近心跳时间总个数50次
 INT8U crrntimen      = 0; //终端精准校时 当前接手心跳数
@@ -132,6 +133,10 @@ void Comm_task(CommBlock* compara) {
         TSGet(&ts);
         oldtime = newtime;
         if (compara->testcounter >= 2) {
+        	close(compara->phy_connect_fd);
+        	compara->phy_connect_fd = -1;
+        	compara->testcounter = 0;
+        	online_state = 0;
             return;
         } else if (compara->phy_connect_fd >= 0 && compara->linkstate == close_connection) //物理通道建立完成后，如果请求状态为close，则需要建立连接
         {
@@ -357,9 +362,11 @@ void NETRead(struct aeEventLoop* eventLoop, int fd, void* clientData, int mask) 
 int NETWorker(struct aeEventLoop* ep, long long id, void* clientData) {
     CommBlock* nst = (CommBlock*)clientData;
     clearcount(1);
+
     if (nst->phy_connect_fd <= 0) {
         initComPara(nst);
-        nst->phy_connect_fd = anetTcpConnect(NULL, IPaddr, Class25.master.master[1].port);
+        asyslog(LOG_INFO, "链接主站(主站地址:%s:%d)", IPaddr, Class25.master.master[0].port);
+        nst->phy_connect_fd = anetTcpConnect(NULL, IPaddr, Class25.master.master[0].port);
         if (nst->phy_connect_fd > 0) {
             asyslog(LOG_INFO, "链接主站(主站地址:%s,结果:%d)", IPaddr, nst->phy_connect_fd);
             if (aeCreateFileEvent(ep, nst->phy_connect_fd, AE_READABLE, NETRead, nst) < 0) {
@@ -486,7 +493,7 @@ void enviromentCheck(int argc, char* argv[]) {
     asyslog(LOG_INFO, "主站通信地址(2)为：%d.%d.%d.%d:%d", Class25.master.master[1].ip[1], Class25.master.master[1].ip[2],Class25.master.master[1].ip[3],Class25.master.master[1].ip[4],Class25.master.master[1].port);
 
     //检查运行参数
-    if (argc < 2) {
+    if (argc <= 2) {
     	memset(IPaddr, 0, sizeof(IPaddr));
         snprintf(IPaddr, sizeof(IPaddr), "%d.%d.%d.%d", Class25.master.master[0].ip[1], Class25.master.master[0].ip[2],Class25.master.master[0].ip[3],Class25.master.master[0].ip[4]);
         asyslog(LOG_INFO, "确定：主站通信地址为：%s\n", IPaddr);

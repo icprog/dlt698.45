@@ -7,8 +7,8 @@
 
 #ifndef MAIN_H_
 #define MAIN_H_
-
-
+extern void SetApn(int argc, char *argv[]);
+extern void SetIPort(int argc, char *argv[]);
 extern void acs_process(int argc, char *argv[]);
 extern void event_process(int argc, char *argv[]);
 /*

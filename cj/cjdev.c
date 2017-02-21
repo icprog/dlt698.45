@@ -19,7 +19,40 @@
 #include "ParaDef.h"
 #include "Shmem.h"
 #include "main.h"
-
+void write_apn(char *apn)
+{
+	FILE *fp;
+	fp = fopen("/etc/ppp/gprs-connect-chat","w");
+	if(fp==NULL)
+	{
+		return;
+	}
+	fprintf(fp,"TIMEOUT        5\n");
+	fprintf(fp,"ABORT        \'\\nBUSY\\r\'\n");
+	fprintf(fp,"ABORT        \'\\nNO ANSWER\\r\'\n");
+	fprintf(fp,"ABORT        \'\\nRINGING\\r\\n\\r\\nRINGING\\r\'\n");
+	fprintf(fp,"ABORT        \'\\nNO CARRIER\\r\'\n");
+	fprintf(fp,"\'\' \\rAT\n");
+	fprintf(fp,"TIMEOUT        5\n");
+	fprintf(fp,"\'OK-+++\\c-OK\'    ATH\n");
+	fprintf(fp,"TIMEOUT        20\n");
+	fprintf(fp,"OK        AT+CREG?\n");
+	fprintf(fp,"TIMEOUT        10\n");
+	fprintf(fp,"OK        AT+CGATT=1\n");
+	fprintf(fp,"TIMEOUT        300\n");
+	fprintf(fp,"OK        AT+CGATT?\n");
+	fprintf(fp,"OK        AT+CFUN=1\n");
+	fprintf(fp,"TIMEOUT        5\n");
+	fprintf(fp,"OK        AT+CPIN?\n");
+	fprintf(fp,"TIMEOUT        5\n");
+	fprintf(fp,"OK        AT+CSQ\n");
+	fprintf(fp,"TIMEOUT        5\n");
+	fprintf(fp,"OK        AT+CGDCONT=1,\"IP\",\"%s\"\n",apn);
+	fprintf(fp,"OK        ATDT*99***1#\n");
+	fprintf(fp,"CONNECT \'\'\n");
+	fclose(fp);
+	fp = NULL;
+}
 void printF203()
 {
 	CLASS_f203	oif203={};
@@ -106,6 +139,28 @@ void SetIPort(int argc, char *argv[])
 		fprintf(stderr,"\n存储前 备IP %d.%d.%d.%d :%d\n",class4500.master.master[1].ip[1],class4500.master.master[1].ip[2],
 					class4500.master.master[1].ip[3],class4500.master.master[1].ip[4],class4500.master.master[1].port);
 		saveCoverClass(0x4500,0,&class4500,sizeof(CLASS25),para_vari_save);
+	}
+
+}
+void SetApn(int argc, char *argv[])
+{
+	CLASS25 class4500;
+	COMM_CONFIG_1  config1;
+	char apnbuf[VISIBLE_STRING_LEN-1];
+	memset(&config1,0,sizeof(COMM_CONFIG_1));
+	memset(&class4500,0,sizeof(CLASS25));
+	readCoverClass(0x4500,0,&class4500,sizeof(CLASS25),para_vari_save);
+	fprintf(stderr,"\n先读出 APN : %s\n",&class4500.commconfig.apn[1]);
+	if (argc>2)
+	{
+		memset(apnbuf,0,sizeof(apnbuf));
+		if (sscanf(argv[2], "%s", apnbuf))
+		{
+			memcpy(&class4500.commconfig.apn[1],apnbuf,sizeof(apnbuf));
+			fprintf(stderr,"\n存储前 APN : %s\n",&class4500.commconfig.apn[1]);
+			saveCoverClass(0x4500,0,&class4500,sizeof(CLASS25),para_vari_save);
+			write_apn((char*)&class4500.commconfig.apn[1]);
+		}
 	}
 }
 void Init_4500(){
