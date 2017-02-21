@@ -583,13 +583,6 @@ int ComposeSendBuff(TS *ts,INT8U seletype,INT8U taskid,TSA *tsa_con,INT8U tsa_nu
 	//////////////////////////////////////////////////////////////////////////////////test
 
 	getTaskFileName(taskid,ts_now,fname);
-//	ReadFileHeadLen(fname,&headlen,&unitlen);
-//	headbuf = (INT8U *)malloc(headlen);
-//	unitnum = (headlen-4)/sizeof(HEAD_UNIT);
-//	ReadFileHead(fname,headlen,unitlen,unitnum,headbuf);
-//	databuf_tmp = malloc(unitlen);
-//	savepos = (int *)malloc(tsa_num*sizeof(int));
-//	fprintf(stderr,"\n-------------6--%s\n",fname);
 	fp = fopen(fname,"r");
 	if(fp == NULL)//文件没内容 组文件头，如果文件已存在，提取文件头信息
 	{
@@ -597,7 +590,6 @@ int ComposeSendBuff(TS *ts,INT8U seletype,INT8U taskid,TSA *tsa_con,INT8U tsa_nu
 	}
 	else
 	{
-//		fprintf(stderr,"\n-------------7\n");
 		fread(headl,2,1,fp);
 		headlen = headl[0];
 		headlen = (headl[0]<<8) + headl[1];
@@ -625,7 +617,6 @@ int ComposeSendBuff(TS *ts,INT8U seletype,INT8U taskid,TSA *tsa_con,INT8U tsa_nu
 				for(m=0;m<freq;m++)
 				{
 					schpos = m*blocklen/freq;
-//					fprintf(stderr,"\n-------------9---i=%d\n",i);
 //					fprintf(stderr,"\n1addr1:%02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x",
 //							databuf_tmp[schpos+16],databuf_tmp[schpos+15],databuf_tmp[schpos+14],databuf_tmp[schpos+13],
 //							databuf_tmp[schpos+12],databuf_tmp[schpos+11],databuf_tmp[schpos+10],databuf_tmp[schpos+9],
@@ -648,7 +639,6 @@ int ComposeSendBuff(TS *ts,INT8U seletype,INT8U taskid,TSA *tsa_con,INT8U tsa_nu
 								databuf_tmp[schpos+12],databuf_tmp[schpos+11],databuf_tmp[schpos+10],databuf_tmp[schpos+9],
 								databuf_tmp[schpos+8],databuf_tmp[schpos+7],databuf_tmp[schpos+6],	databuf_tmp[schpos+5],
 								databuf_tmp[schpos+4],databuf_tmp[schpos+3],databuf_tmp[schpos+2],databuf_tmp[schpos+1]);
-//						fprintf(stderr,"\n------------10---find addr\n");
 						for(j=0;j<csds.num;j++)
 						{
 //							fprintf(stderr,"\n-------%d:(type=%d)\n",j,csds.csd[j].type);
@@ -683,7 +673,7 @@ int ComposeSendBuff(TS *ts,INT8U seletype,INT8U taskid,TSA *tsa_con,INT8U tsa_nu
 							}
 							if(csds.csd[j].type == 0)
 							{
-								if(csds.csd[j].csd.oad.OI == 0x4001)
+								if(csds.csd[j].csd.oad.OI == 0x202a)
 								{
 									SendBuf[sendindex++]=0x55;
 									for(k=1;k<17;k++)
@@ -723,7 +713,57 @@ int ComposeSendBuff(TS *ts,INT8U seletype,INT8U taskid,TSA *tsa_con,INT8U tsa_nu
 			}
 		}
 	}
+	free(databuf_tmp);
+	free(head_unit);
 	return sendindex;
+}
+INT16U GetTSANum()
+{
+	INT16U i=0,TSA_num=0;
+	CLASS_6001 meter = { };
+	for (i = 1; i < 1200; i++) {
+		if (readParaClass(0x6000, &meter, i) == 1) {
+
+			if (meter.sernum != 0 && meter.sernum != 0xffff) {
+				if(meter.basicinfo.port.attrindex == 1 || meter.basicinfo.port.attrindex == 2)
+				{
+					fprintf(stderr,"\n-0--pointno=%d\n",i);
+					TSA_num++;
+				}
+			}
+		}
+	}
+	return TSA_num;
+}
+void GetTSACon(MY_MS meters,TSA *tsa_con,INT16U tsa_num)
+{
+	INT16U i=0,TSA_num=0;
+	CLASS_6001 meter = { };
+	for (i = 1; i < 1200; i++) {
+		if (readParaClass(0x6000, &meter, i) == 1) {
+
+			if (meter.sernum != 0 && meter.sernum != 0xffff) {
+				if(meter.basicinfo.port.attrindex == 1 || meter.basicinfo.port.attrindex == 2)
+				{
+					fprintf(stderr,"\n-1--pointno=%d\n",i);
+					memcpy(&tsa_con[TSA_num],&meter.basicinfo.addr,sizeof(TSA));
+					fprintf(stderr,"\ncpy addr:%02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x",
+							tsa_con[TSA_num].addr[16],tsa_con[TSA_num].addr[15],tsa_con[TSA_num].addr[14],tsa_con[TSA_num].addr[13],
+							tsa_con[TSA_num].addr[12],tsa_con[TSA_num].addr[11],tsa_con[TSA_num].addr[10],tsa_con[TSA_num].addr[9],
+							tsa_con[TSA_num].addr[8],tsa_con[TSA_num].addr[7],tsa_con[TSA_num].addr[6],	tsa_con[TSA_num].addr[5],
+							tsa_con[TSA_num].addr[4],tsa_con[TSA_num].addr[3],tsa_con[TSA_num].addr[2],tsa_con[TSA_num].addr[1],tsa_con[TSA_num].addr[0]);
+					fprintf(stderr,"\ncpy addr:%02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x",
+							meter.basicinfo.addr.addr[16],meter.basicinfo.addr.addr[15],meter.basicinfo.addr.addr[14],meter.basicinfo.addr.addr[13],
+							meter.basicinfo.addr.addr[12],meter.basicinfo.addr.addr[11],meter.basicinfo.addr.addr[10],meter.basicinfo.addr.addr[9],
+							meter.basicinfo.addr.addr[8],meter.basicinfo.addr.addr[7],meter.basicinfo.addr.addr[6],	meter.basicinfo.addr.addr[5],
+							meter.basicinfo.addr.addr[4],meter.basicinfo.addr.addr[3],meter.basicinfo.addr.addr[2],meter.basicinfo.addr.addr[1],meter.basicinfo.addr.addr[0]);
+					TSA_num++;
+				}
+				if(TSA_num >= tsa_num)
+					break;
+			}
+		}
+	}
 }
 /*
  * 根据招测类型组织报文
@@ -733,52 +773,53 @@ INT8U getSelector(RSD select, INT8U selectype, CSD_ARRAYTYPE csds, INT8U *data, 
 {
 	TS ts_info[2];//时标选择，根据普通采集方案存储时标选择进行，此处默认为相对当日0点0分 todo
 	INT8U taskid,tsa_num=0;
-//	TSA tsa_con = NULL;
-//	tsa_num = GetTsaNum(select);//得到tsa个数
-//	tsa_con = malloc(tsa_num*sizeof(TSA));
-//	GetTsaGroup(select,tsa_con);//计算得到tsa组
+	TSA *tsa_con = NULL;
+	tsa_num = GetTSANum();//得到tsa个数
+	fprintf(stderr,"\n---tsa_num=%d\n",tsa_num);
+	tsa_con = malloc(tsa_num*sizeof(TSA));
+	int i=0;
 //	taskid = GetTaskId(rcsd);//根据rcsd得到应该去哪个任务里找，如果涉及到多个任务呢？应该不会
 	//测试写死
 	///////////////////////////////////////////////////////////////test
-	tsa_num = 3;
-	TSA tsa_con[] = {
-			0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x07,0x05,0x00,0x00,0x00,0x00,0x00,0x01,
-			0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x07,0x05,0x00,0x00,0x00,0x00,0x00,0x02,
-			0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x07,0x05,0x00,0x00,0x00,0x00,0x00,0x03,
-	};
-	fprintf(stderr,"\n-------------1\n");
-	memset(&csds,0xee,sizeof(CSD_ARRAYTYPE));
-	csds.num = 5;
-	csds.csd[0].type=0;
-	csds.csd[0].csd.oad.OI = 0x4001;
-	csds.csd[0].csd.oad.attflg = 0x02;
-	csds.csd[0].csd.oad.attrindex = 0;
-	csds.csd[1].type=0;
-	csds.csd[1].csd.oad.OI = 0x6040;
-	csds.csd[1].csd.oad.attflg = 0x02;
-	csds.csd[1].csd.oad.attrindex = 0;
-	csds.csd[2].type=0;
-	csds.csd[2].csd.oad.OI = 0x6041;
-	csds.csd[2].csd.oad.attflg = 0x02;
-	csds.csd[2].csd.oad.attrindex = 0;
-	csds.csd[3].type=0;
-	csds.csd[3].csd.oad.OI = 0x6042;
-	csds.csd[3].csd.oad.attflg = 0x02;
-	csds.csd[3].csd.oad.attrindex = 0;
-	csds.csd[4].type=1;
-	csds.csd[4].csd.road.oad.OI = 0x5004;
-	csds.csd[4].csd.road.oad.attflg = 0x02;
-	csds.csd[4].csd.road.oad.attrindex = 0;
-	csds.csd[4].csd.road.num = 3;
-	csds.csd[4].csd.road.oads[0].OI = 0x2021;
-	csds.csd[4].csd.road.oads[0].attflg = 0x02;
-	csds.csd[4].csd.road.oads[0].attrindex = 0;
-	csds.csd[4].csd.road.oads[1].OI = 0x0010;
-	csds.csd[4].csd.road.oads[1].attflg = 0x02;
-	csds.csd[4].csd.road.oads[1].attrindex = 0;
-	csds.csd[4].csd.road.oads[2].OI = 0x0020;
-	csds.csd[4].csd.road.oads[2].attflg = 0x02;
-	csds.csd[4].csd.road.oads[2].attrindex = 0;
+//	tsa_num = 3;
+//	TSA tsa_con[] = {
+//			0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x07,0x05,0x00,0x00,0x00,0x00,0x00,0x01,
+//			0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x07,0x05,0x00,0x00,0x00,0x00,0x00,0x02,
+//			0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x07,0x05,0x00,0x00,0x00,0x00,0x00,0x03,
+//	};
+//	fprintf(stderr,"\n-------------1\n");
+//	memset(&csds,0xee,sizeof(CSD_ARRAYTYPE));
+//	csds.num = 5;
+//	csds.csd[0].type=0;
+//	csds.csd[0].csd.oad.OI = 0x4001;
+//	csds.csd[0].csd.oad.attflg = 0x02;
+//	csds.csd[0].csd.oad.attrindex = 0;
+//	csds.csd[1].type=0;
+//	csds.csd[1].csd.oad.OI = 0x6040;
+//	csds.csd[1].csd.oad.attflg = 0x02;
+//	csds.csd[1].csd.oad.attrindex = 0;
+//	csds.csd[2].type=0;
+//	csds.csd[2].csd.oad.OI = 0x6041;
+//	csds.csd[2].csd.oad.attflg = 0x02;
+//	csds.csd[2].csd.oad.attrindex = 0;
+//	csds.csd[3].type=0;
+//	csds.csd[3].csd.oad.OI = 0x6042;
+//	csds.csd[3].csd.oad.attflg = 0x02;
+//	csds.csd[3].csd.oad.attrindex = 0;
+//	csds.csd[4].type=1;
+//	csds.csd[4].csd.road.oad.OI = 0x5004;
+//	csds.csd[4].csd.road.oad.attflg = 0x02;
+//	csds.csd[4].csd.road.oad.attrindex = 0;
+//	csds.csd[4].csd.road.num = 3;
+//	csds.csd[4].csd.road.oads[0].OI = 0x2021;
+//	csds.csd[4].csd.road.oads[0].attflg = 0x02;
+//	csds.csd[4].csd.road.oads[0].attrindex = 0;
+//	csds.csd[4].csd.road.oads[1].OI = 0x0010;
+//	csds.csd[4].csd.road.oads[1].attflg = 0x02;
+//	csds.csd[4].csd.road.oads[1].attrindex = 0;
+//	csds.csd[4].csd.road.oads[2].OI = 0x0020;
+//	csds.csd[4].csd.road.oads[2].attflg = 0x02;
+//	csds.csd[4].csd.road.oads[2].attrindex = 0;
 //	csds.num = 1;
 //	csds.csd[0].type=1;
 //	csds.csd[0].csd.road.oad.OI = 0x5004;
@@ -796,7 +837,7 @@ INT8U getSelector(RSD select, INT8U selectype, CSD_ARRAYTYPE csds, INT8U *data, 
 //	csds.csd[0].csd.road.oads[2].attrindex = 0;
 	taskid = 1;
 	///////////////////////////////////////////////////////////////test
-	fprintf(stderr,"\n-------------2\n");
+	fprintf(stderr,"\n-----selectype=%d\n",selectype);
 	switch(selectype)
 	{
 	case 5://例子中招测冻结数据，包括分钟小时日月冻结数据招测方法
@@ -804,15 +845,27 @@ INT8U getSelector(RSD select, INT8U selectype, CSD_ARRAYTYPE csds, INT8U *data, 
 //		ReadNorData(ts_info,taskid,tsa_con,tsa_num);
 		//////////////////////////////////////////////////////////////////////test
 		TSGet(&ts_info[0]);
+		GetTSACon(select.selec5.meters,tsa_con,tsa_num);
 		//////////////////////////////////////////////////////////////////////test
 		*datalen = ComposeSendBuff(&ts_info[0],selectype,taskid,tsa_con,tsa_num,csds,data);
 		break;
 	case 7://例子中招测实时数据方法
+		GetTSACon(select.selec7.meters,tsa_con,tsa_num);
+		for(i=0;i<tsa_num;i++)
+			fprintf(stderr,"\n1addr3:%02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x",
+					tsa_con[i].addr[16],tsa_con[i].addr[15],tsa_con[i].addr[14],tsa_con[i].addr[13],
+					tsa_con[i].addr[12],tsa_con[i].addr[11],tsa_con[i].addr[10],tsa_con[i].addr[9],
+					tsa_con[i].addr[8],tsa_con[i].addr[7],tsa_con[i].addr[6],	tsa_con[i].addr[5],
+					tsa_con[i].addr[4],tsa_con[i].addr[3],tsa_con[i].addr[2],tsa_con[i].addr[1],tsa_con[i].addr[0]);
 		*datalen = ComposeSendBuff(&ts_info[0],selectype,taskid,tsa_con,tsa_num,csds,data);
 		break;
 	default:
 		break;
 	}
+	free(tsa_con);
+	fprintf(stderr,"\n报文(%d)：",*datalen);
+	for(i=0;i<*datalen;i++)
+		fprintf(stderr," %02x",data[i]);
 	return 0;
 }
 

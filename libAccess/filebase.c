@@ -209,7 +209,7 @@ INT16S getclassinfo(OI_698 oi,CLASS_INFO *classinfo)
 			return i;
 		}
 	}
-	fprintf(stderr,"未找到OI=%04x的相关信息配置内容！！！\n",oi);
+//	fprintf(stderr,"未找到OI=%04x的相关信息配置内容！！！\n",oi);
 	return -1;
 }
 
