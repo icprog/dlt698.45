@@ -871,23 +871,14 @@ INT8U readList6001FromFile(CLASS_6001* list6001, INT16U groupIndex,
 INT16U compose6012Buff(DateTimeBCD startTime,TSA meterAddr,INT16U dataLen,INT8U* dataContent)
 {
 	fprintf(stderr,"\n compose6012Buff--------------");
-	fprintf(stderr,"\n dataContetent[%d]:",dataLen);
 	INT16U index;
-	for(index = 0;index < dataLen;index++)
-	{
-		fprintf(stderr," %02x",dataContent[index]);
-		if(index%20 == 0)
-		{
-			fprintf(stderr,"\n");
-		}
-	}
 	INT16U bufflen = 0;
 	DateTimeBCD endTime;
 	DataTimeGet(&endTime);
-	INT8U buff6012[600];
-	memset(buff6012,0,600);
+	INT8U buff6012[DATA_CONTENT_LEN];
+	memset(buff6012,0,DATA_CONTENT_LEN);
 
-	memcpy(&buff6012[bufflen],&meterAddr,sizeof(TSA));//采集通信地址
+	memcpy(&buff6012[bufflen],meterAddr.addr,sizeof(TSA));//采集通信地址
 	bufflen += sizeof(TSA);
 
 	buff6012[bufflen++] = dtdatetimes;
@@ -904,6 +895,18 @@ INT16U compose6012Buff(DateTimeBCD startTime,TSA meterAddr,INT16U dataLen,INT8U*
 
 	memcpy(&buff6012[bufflen],dataContent,dataLen);
 	bufflen += dataLen;
+
+	memset(dataContent,0,DATA_CONTENT_LEN);
+	memcpy(dataContent,buff6012,bufflen);
+	fprintf(stderr,"\n\n buff6012[%d]:",bufflen);
+	for(index = 0;index < bufflen;index++)
+	{
+		fprintf(stderr," %02x",buff6012[index]);
+		if(index%20 == 0)
+		{
+			fprintf(stderr,"\n");
+		}
+	}
 	return bufflen;
 }
 /*
