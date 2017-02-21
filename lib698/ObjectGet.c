@@ -12,6 +12,7 @@
 #include "StdDataType.h"
 #include "Objectdef.h"
 #include "dlt698def.h"
+#include "dlt698.h"
 #include "PublicFunction.h"
 #include "secure.h"
 extern INT8S (*pSendfun)(int fd,INT8U* sndbuf,INT16U sndlen);
@@ -40,37 +41,37 @@ int BuildFrame_GetResponseRecord(INT8U response_type,CSINFO *csinfo,RESULT_RECOR
 	sendbuf[index++] = GET_RESPONSE;
 	sendbuf[index++] = response_type;
 	sendbuf[index++] = 0;	//	piid
-	sendbuf[index++] = (record.oad.OI>>8) & 0xff;
-	sendbuf[index++] = record.oad.OI & 0xff;
-	sendbuf[index++] = record.oad.attflg;
-	sendbuf[index++] = record.oad.attrindex;
+	index += create_OAD(&sendbuf[index],record.oad);
 	num = record.rcsd.csds.num;
-	sendbuf[index++] = num;
-	for(i=0;i<num;i++)
-	{
-		sendbuf[index++] = record.rcsd.csds.csd[i].type;	//第 i 个csd类型
-		if (record.rcsd.csds.csd[i].type ==0)
+	if(num==0) {
+		switch(record.selectType) {
+		case 1:		//Select1
+			sendbuf[index++] = 1;	//一行记录M列属性描述符 	RCSD
+			sendbuf[index++] = 0;	//OAD
+			record.select.selec1.oad.attrindex = 0;		//上送属性下所有索引值
+			index += create_OAD(&sendbuf[index],record.select.selec1.oad);
+			break;
+		}
+	}else {
+		sendbuf[index++] = num;
+		for(i=0;i<num;i++)
 		{
-			sendbuf[index++] = (record.rcsd.csds.csd[i].csd.oad.OI)>>8 &0xff ;
-			sendbuf[index++] = record.rcsd.csds.csd[i].csd.oad.OI &0xff;
-			sendbuf[index++] = record.rcsd.csds.csd[i].csd.oad.attflg;
-			sendbuf[index++] = record.rcsd.csds.csd[i].csd.oad.attrindex;
-		}else
-		{
-			sendbuf[index++] = (record.rcsd.csds.csd[i].csd.road.oad.OI>>8) &0xff ;
-			sendbuf[index++] = record.rcsd.csds.csd[i].csd.road.oad.OI &0xff;
-			sendbuf[index++] = record.rcsd.csds.csd[i].csd.road.oad.attflg;
-			sendbuf[index++] = record.rcsd.csds.csd[i].csd.road.oad.attrindex;
-			for(k=0; k<record.rcsd.csds.csd[i].csd.road.num; k++)
+			sendbuf[index++] = record.rcsd.csds.csd[i].type;	//第 i 个csd类型
+			fprintf(stderr,"num=%d type=%d\n",num,record.rcsd.csds.csd[i].type);
+			fprintf(stderr,"oi=%04x_%02x_%02x\n",record.rcsd.csds.csd[i].csd.oad.OI,record.rcsd.csds.csd[i].csd.oad.attflg,record.rcsd.csds.csd[i].csd.oad.attrindex);
+			if (record.rcsd.csds.csd[i].type ==0)
 			{
-				sendbuf[index++] = (record.rcsd.csds.csd[i].csd.road.oads[k].OI>>8) & 0xff;
-				sendbuf[index++] = record.rcsd.csds.csd[i].csd.road.oads[k].OI & 0xff;
-				sendbuf[index++] = record.rcsd.csds.csd[i].csd.road.oads[k].attflg;
-				sendbuf[index++] = record.rcsd.csds.csd[i].csd.road.oads[k].attrindex;
+				index += create_OAD(&sendbuf[index],record.rcsd.csds.csd[i].csd.oad);
+			}else
+			{
+				index += create_OAD(&sendbuf[index],record.rcsd.csds.csd[i].csd.road.oad);
+				for(k=0; k<record.rcsd.csds.csd[i].csd.road.num; k++)
+				{
+					index += create_OAD(&sendbuf[index],record.rcsd.csds.csd[i].csd.road.oads[k]);
+				}
 			}
 		}
 	}
-
 	if (record.datalen > 0)
 	{
 		sendbuf[index++] = 1;//choice 1  ,SEQUENCE OF A-RecordRow
@@ -118,6 +119,15 @@ int BuildFrame_GetResponse(INT8U response_type,CSINFO *csinfo,INT8U oadnum,RESUL
 	if(pSendfun!=NULL)
 		pSendfun(comfd,sendbuf,index+3);
 	return (index+3);
+}
+
+int  create_OAD(INT8U *data,OAD oad)
+{
+	data[0] = ( oad.OI >> 8 ) & 0xff;
+	data[1] = oad.OI & 0xff;
+	data[2] = oad.attflg;
+	data[3] = oad.attrindex;
+	return 4;
 }
 
 int create_array(INT8U *data,INT8U numm)
@@ -199,10 +209,18 @@ int fill_time(INT8U *data,INT8U *value)
 
 int fill_DateTimeBCD(INT8U *data,DateTimeBCD *time)
 {
-	data[0] = dtdatetimes;
-	time->year.data = time->year.data >>8 | time->year.data<<8;
-	memcpy(&data[1],time,sizeof(DateTimeBCD));
-	return (sizeof(DateTimeBCD)+1);
+	DateTimeBCD  init_datatimes={};
+
+	memset(&init_datatimes,0xEE,sizeof(DateTimeBCD));
+	if(memcmp(time,&init_datatimes,sizeof(DateTimeBCD))==0) {		//时间无效，上送NULL（0）
+		data[0] = 0;
+		return 1;
+	}else {
+		data[0] = dtdatetimes;
+		time->year.data = time->year.data >>8 | time->year.data<<8;
+		memcpy(&data[1],time,sizeof(DateTimeBCD));
+		return (sizeof(DateTimeBCD)+1);
+	}
 }
 
 int GetMeterInfo(RESULT_NORMAL *response)
@@ -585,20 +603,67 @@ int GetEventInfo(RESULT_NORMAL *response)
 	return 0;
 }
 
+int getSel1_coll(RESULT_RECORD *record)
+{
+	int ret=0;
+	CLASS_6035	classoi={};
+	INT8U *data = NULL;
+	int		index = 0;
+	INT8U	taskid=0;
+	data = record->data;
+	data[index++] = 1;		//1条记录     [1] SEQUENCE OF A-RecordRow
+	switch(record->select.selec1.oad.OI) {
+	case 0x6035:
+		if(record->select.selec1.data.type == dtunsigned) {
+			taskid = record->select.selec1.data.data[0];
+		}
+		fprintf(stderr,"taskid=%d\n",taskid);
+		readCoverClass(record->select.selec1.oad.OI,taskid,&classoi,sizeof(CLASS_6035),coll_para_save);
+		index += create_struct(&data[index],8);
+		index += fill_unsigned(&data[index],classoi.taskID);
+		index += fill_enum(&data[index],classoi.taskState);
+		index += fill_DateTimeBCD(&data[index],&classoi.starttime);
+		index += fill_DateTimeBCD(&data[index],&classoi.endtime);
+		index += fill_long_unsigned(&data[index],classoi.totalMSNum);
+		index += fill_long_unsigned(&data[index],classoi.successMSNum);
+		index += fill_long_unsigned(&data[index],classoi.sendMsgNum);
+		index += fill_long_unsigned(&data[index],classoi.rcvMsgNum);
+		record->datalen = index;
+		break;
+	}
+	return ret;
+}
+/*
+ * 选择方法1: 读取指定对象指定值
+ * */
+int getSelector1(RESULT_RECORD *record)
+{
+	int  ret=0;
+	INT8U oihead = (record->oad.OI & 0xF000) >>12;
+
+	switch(oihead) {
+	case 6:			//采集监控类对象
+		fprintf(stderr,"\n读取采集监控对象\n");
+		getSel1_coll(record);
+		break;
+	}
+	return ret;
+}
+
 int doGetrecord(RESULT_RECORD *record)
 {
 	INT8U SelectorN = record->selectType;
 	fprintf(stderr,"\n- getRequestRecord  OI = %04x  attrib=%d  index=%d",record->oad.OI,record->oad.attflg,record->oad.attrindex);
-	int datalen=0;
+	int index=0,i=0,k=0;
 
 	switch(SelectorN) {
 	case 1:		//指定对象指定值
-
+		getSelector1(record);
 	break;
 
 	case 5:
 	case 7:
-//		getSelector(record->select,SelectorN,record->rcsd,(INT8U *)&record->data,datalen);
+		getSelector(record->select, record->selectType,record->rcsd.csds,(INT8U *)&record->data,&index);
 		break;
 	case 9:		//指定读取上第n次记录
 		Getevent_Record_Selector(record,memp);
@@ -635,6 +700,21 @@ void printSel5(RESULT_RECORD record)
 	printrcsd(record.rcsd);
 }
 
+void printSel7(RESULT_RECORD record)
+{
+	fprintf(stderr,"\n采集存储时间起始值：%d-%d-%d %d:%d:%d",
+					record.select.selec7.collect_save_star.year.data,record.select.selec7.collect_save_star.month.data,
+					record.select.selec7.collect_save_star.day.data,record.select.selec7.collect_save_star.hour.data,
+					record.select.selec7.collect_save_star.min.data,record.select.selec7.collect_save_star.sec.data);
+	fprintf(stderr,"\n采集存储时间结束值：%d-%d-%d %d:%d:%d",
+					record.select.selec7.collect_save_finish.year.data,record.select.selec7.collect_save_finish.month.data,
+					record.select.selec7.collect_save_finish.day.data,record.select.selec7.collect_save_finish.hour.data,
+					record.select.selec7.collect_save_finish.min.data,record.select.selec7.collect_save_finish.sec.data);
+	fprintf(stderr,"\n时间间隔TI 单位:%d[秒-0，分-1，时-2，日-3，月-4，年-5],间隔:%x",record.select.selec7.ti.units,record.select.selec7.ti.interval);
+	fprintf(stderr,"\n电能表集合MS 类型：%d\n",record.select.selec7.meters.mstype);
+	printrcsd(record.rcsd);
+}
+
 void printSel9(RESULT_RECORD record)
 {
 	fprintf(stderr,"\nSelector9:指定选取上第n次记录\n");
@@ -654,16 +734,25 @@ int getRequestRecord(OAD oad,INT8U *data,CSINFO *csinfo,INT8U *sendbuf)
 	record.datalen = 0;
 	fprintf(stderr,"\nGetRequestRecord   oi=%x  %02x  %02x",record.oad.OI,record.oad.attflg,record.oad.attrindex);
 	index = get_BasicRSD(&data[index],(INT8U *)&record.select,&record.selectType);
-	fprintf(stderr,"\nRSD Select%d  ",record.selectType);
+	fprintf(stderr,"\nRSD Select%d     data[%d] = %02x",record.selectType,index,data[index]);
+
 	index +=get_BasicRCSD(&data[index],&record.rcsd.csds);
+
+
+	//record.rcsd.csds.csd[i].csd.oad.OI
 	if (record.selectType == 1)
 	{
 		fprintf(stderr,"\nOAD %04x %02x %02x",record.select.selec1.oad.OI,record.select.selec1.oad.attflg,record.select.selec1.oad.attrindex);
 		fprintf(stderr,"\nData Type= %02x  Value=%d ",record.select.selec1.data.type,record.select.selec1.data.data[0]);
+
 	}
 	if(record.selectType==5)
 	{
 		printSel5(record);
+	}
+	if(record.selectType==7)
+	{
+		printSel7(record);
 	}
 	if(record.selectType==9)
 	{

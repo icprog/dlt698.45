@@ -39,7 +39,11 @@ typedef struct
 const static CLASS_INFO  class_info[] ={
 		{0x6000,sizeof(CLASS11),sizeof(CLASS_6001),OCTET_STRING_LEN,"6000","/nand/para/table6000.par"},		//采集档案配置表
 };
-
+typedef struct{
+	INT8U type;//0：oad 1：road
+	OAD   oad;
+	INT8U num[2];//长度或个数，类型为0，表示长度；类型为1，表示个数
+}HEAD_UNIT;
 
 /*
  * 该文件定义的函数为libAccess接口库内部使用函数。不是对外接口
