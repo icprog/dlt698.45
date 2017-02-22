@@ -410,3 +410,84 @@ int readCoverClass(OI_698 oi,INT16U seqno,void *blockdata,int datalen,int type)
 	return ret;
 }
 
+#define SEMNAME_PROXY_SAVE "sem_proxysave"
+/*
+ *  写 ProxyRequestList 代理请求内容到文件 /nand/proxy_list
+ *  list->position >0 将按该位置信息写入文件，否则追加到文件尾
+ */
+int write2_ProxyRequestList(PROXY_GETLIST *list)
+{
+	int fd=0;
+	FILE *fp=NULL;
+	sem_t *sem_proxysave=NULL;	//代理传输文件存储信号量
+	//打开信号量
+	sem_proxysave = open_named_sem(SEMNAME_PROXY_SAVE );
+	if(sem_proxysave!=NULL)
+	{
+		sem_wait(sem_proxysave);//TODO : 需要改为超时返回
+	}
+	fp = fopen("/nand/proxy_list","ab");
+	if (fp != NULL)
+	{
+		if (list->position > 0 )//按位置信息写入文件
+		{
+			fseek(fp, list->position, SEEK_SET);
+		}else
+		{
+			list->position = ftell(fp);
+		}
+		fwrite(list,sizeof(PROXY_GETLIST ),1,fp);
+		fclose(fp);
+		fd = fileno(fp);
+		fsync(fd);
+		fclose(fp);
+		fp = NULL;
+	}
+	CloseSem(sem_proxysave);
+	return 1;
+}
+/*
+ *	读  ProxyRequestList 代理请求内容
+ *	status : 希望读取的类型   0 就绪    1发送完成  2已经响应主站   3超时
+ *	返回值 ：  1 存在一个未处理的代理请求，代理请求具体内容保存在 *list
+ *			 0 不存在未处理的代理请求
+ *
+ */
+int read_ProxyRequestList(PROXY_GETLIST *list)
+{
+	PROXY_GETLIST listmp;
+	int fd=0,ret=0;
+	long int possion =0 ;
+	FILE *fp=NULL;
+	sem_t *sem_proxysave=NULL;	//代理传输文件存储信号量
+	//打开信号量
+	sem_proxysave = open_named_sem(SEMNAME_PROXY_SAVE );
+	if(sem_proxysave!=NULL)
+	{
+		sem_wait(sem_proxysave);//TODO : 需要改为超时返回
+	}
+	fp = fopen("/nand/proxy_list","r");
+	if (fp!=NULL)
+	{
+		fseek(fp, 0, SEEK_SET);
+		while( ! feof( fp ) )
+		{
+			possion = ftell(fp);
+			fread(&listmp,sizeof(PROXY_GETLIST ),1,fp);
+			if (listmp.status==0)
+			{
+				listmp.position = possion;
+				memcpy(list,&listmp,sizeof(PROXY_GETLIST));
+				ret = 1;
+				break;
+			}
+		}
+		fclose(fp);
+		fd = fileno(fp);
+		fsync(fd);
+		fclose(fp);
+		fp = NULL;
+	}
+	CloseSem(sem_proxysave);
+	return ret;
+}

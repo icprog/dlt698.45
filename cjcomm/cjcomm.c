@@ -522,7 +522,6 @@ void enviromentCheck(int argc, char* argv[]) {
     crrntimen      = 0;
     timeoffsetflag = 0;
 }
-
 int main(int argc, char* argv[]) {
     // daemon(0,0);
     enviromentCheck(argc, argv);
@@ -547,12 +546,9 @@ int main(int argc, char* argv[]) {
     aeCreateTimeEvent(ep, 1 * 1000, NETWorker, &nets_comstat, NULL);
     aeMain(ep);
 
-    //终端精准9校时线程
-    pthread_attr_t att;
-    pthread_attr_init(&att);
-    pthread_attr_setstacksize(&att, 2048 * 1024);
-    pthread_attr_setdetachstate(&att, PTHREAD_CREATE_DETACHED);
-    dealtimeoffset_id = pthread_create(&td_dealtimeoffset, &att, deal_terminal_timeoffset, NULL); // ERC45
+
+
+
 
     QuitProcess(&JProgramInfo->Projects[3]);
     return EXIT_SUCCESS;

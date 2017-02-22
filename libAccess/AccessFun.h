@@ -3,7 +3,7 @@
 #define ACCESSFUNH_H_
 
 #include "StdDataType.h"
-
+#include "Objectdef.h"
 /********************************************************
  * 存储结构：
  * 1、参数类
@@ -146,7 +146,9 @@ extern int readCoverClass(OI_698 oi,INT16U seqno,void *blockdata,int datalen,int
  *************************************/
 extern long getFileRecordNum(OI_698 oi);
 
+extern int write2_ProxyRequestList(PROXY_GETLIST *list);
 
+extern int read_ProxyRequestList(PROXY_GETLIST *list);
 //////////////////////////////////////////////////////////////////////////////////////
 
 #endif /* ACCESS_H_ */
