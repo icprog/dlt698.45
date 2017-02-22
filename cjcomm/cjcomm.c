@@ -375,7 +375,7 @@ int NETWorker(struct aeEventLoop* ep, long long id, void* clientData) {
         TSGet(&ts);
         Comm_task(nst);
         deal_terminal_timeoffset();
-    	deal_vsms();
+    	//deal_vsms();
     }
 
     /*
