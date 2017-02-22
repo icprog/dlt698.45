@@ -389,12 +389,14 @@ void* ATWorker(void* args) {
                 break;
             }
         }
+        sleep(8);
 
     wait:
 //    	deal_vsms(sMux1);
         //等待在线状态为“否”，重新拨号
         while (1) {
-            sleep(5);
+        	RecePro(0);
+            usleep(200);
             if (NeedDoAt == 1) {
                 break;
             }

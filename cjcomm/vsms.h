@@ -40,6 +40,7 @@
 int put1_str_CRLF_Wait(int cmd, char* str, int count1);
 void put1_str_CRLF(char* str);
 void RxHandle(int cmd);
+void dealinit();
 void deal_vsms(int msmport);
 
 //模块接收短信信息结构体

@@ -2,7 +2,7 @@
 #include <string.h>
 #include <fcntl.h>
 
-static int smsPort = -1; //	短信口
+extern int smsPort = -1; //	短信口
 
 static long long RetCode;
 static unsigned char StartCMGL = 0; //	发送AT+CMGL=ALL命令标志
@@ -973,36 +973,31 @@ void m37i_at_init(int day) {
             }
         }
     }
+    printf("m37i_init_flag %d\n", m37i_init_flag);
 }
 
 void* RecePro(void* param) {
-    int i;
-    unsigned char TempBuf[1024];
-    int smslen = -1;
+    static unsigned char TempBuf[1024];
 
-    for (;;) {
-        if (smsPort != -1) {
-            //			SdPrint("Flag=%d,smsPort=%d ",SMSLinkFlag,smsPort);
-            bzero(TempBuf, 1024);
-            if (((handlept - rxpt - 256 + BUF_LEN) % BUF_LEN) > 0) { //判断有空
-                smslen = read(smsPort, TempBuf, 256);
-                if (smslen > 0) {
-                    SdPrint("RRRRRRRRRR-%d=", smslen);
-                    for (i = 0; i < smslen; i++) {
-                        rxbuf[rxpt] = TempBuf[i];
-                        SdPrint("%02x,", rxbuf[rxpt]);
-                        SdPrint("%c,", rxbuf[rxpt]);
-                        rxpt = (rxpt + 1) % BUF_LEN;
-                    }
-                    //				TempBuf[smslen]=' ';
-                    SdPrint("rxpt=%d, %s\n", rxpt, TempBuf);
-                    SdPrint("\n");
-                }
-            }
-        }
-        usleep(100);
-    }
-    exit(EXIT_SUCCESS);
+	if (smsPort != -1) {
+		//			SdPrint("Flag=%d,smsPort=%d ",SMSLinkFlag,smsPort);
+		bzero(TempBuf, 1024);
+		if (((handlept - rxpt - 256 + BUF_LEN) % BUF_LEN) > 0) { //判断有空
+			int smslen = read(smsPort, TempBuf, 256);
+			if (smslen > 0) {
+				SdPrint("RRRRRRRRRR-%d=", smslen);
+				for (int i = 0; i < smslen; i++) {
+					rxbuf[rxpt] = TempBuf[i];
+					SdPrint("%02x,", rxbuf[rxpt]);
+					SdPrint("%c,", rxbuf[rxpt]);
+					rxpt = (rxpt + 1) % BUF_LEN;
+				}
+				//				TempBuf[smslen]=' ';
+				SdPrint("rxpt=%d, %s\n", rxpt, TempBuf);
+				SdPrint("\n");
+			}
+		}
+	}
 }
 
 void dealinit() {
@@ -1014,22 +1009,18 @@ void dealinit() {
 
 void deal_vsms(int msmport) {
     TS ts;
-    dealinit();
-    smsPort = msmport;
     fprintf(stderr, "smsPort=%d\n", smsPort);
 
-    while (1) {
-    	TSGet(&ts);
-        RxHandle(0);
-        m37i_at_init(ts.Day); //(gprs模块初始化通知)一天一次M37i模块短信模式初始化
-        SendCMGL(ts.Minute); //定时1分钟，或有短信通知查短信
-        //当有短信时，处理短信数据
-        for (int i = 0; i < RXMSG_NUM; i++) {
-            //			fprintf(stderr,"rxmsg[i].rxmsgflag=%d",rxmsg[i].rxmsgflag);
-            if (rxmsg[i].rxmsgflag) {
-                rxmsg[i].rxmsgflag = 0;
-                SendCMGR(rxmsg[i].rxmsgno);
-            }
-        }
-    }
+	TSGet(&ts);
+	RxHandle(0);
+	m37i_at_init(ts.Day); //(gprs模块初始化通知)一天一次M37i模块短信模式初始化
+	SendCMGL(ts.Minute); //定时1分钟，或有短信通知查短信
+	//当有短信时，处理短信数据
+	for (int i = 0; i < RXMSG_NUM; i++) {
+		//			fprintf(stderr,"rxmsg[i].rxmsgflag=%d",rxmsg[i].rxmsgflag);
+		if (rxmsg[i].rxmsgflag) {
+			rxmsg[i].rxmsgflag = 0;
+			SendCMGR(rxmsg[i].rxmsgno);
+		}
+	}
 }
