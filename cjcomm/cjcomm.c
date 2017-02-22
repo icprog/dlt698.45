@@ -194,6 +194,7 @@ void GenericRead(struct aeEventLoop* eventLoop, int fd, void* clientData, int ma
 
 void initComPara(CommBlock* compara) {
 	CLASS_4001_4002_4003 c4001;
+	memset(&c4001, 0x00, sizeof(c4001));
 	readCoverClass(0x4001, 0, &c4001, sizeof(c4001), para_vari_save);
 	asyslog("逻辑地址长度：%d\n", c4001.curstom_num);
     memcpy(compara->serveraddr, c4001.curstom_num, 16);
@@ -368,6 +369,7 @@ int NETWorker(struct aeEventLoop* ep, long long id, void* clientData) {
                 anetTcpKeepAlive(NULL, nst->phy_connect_fd);
                 SetOnline();
                 asyslog(LOG_INFO, "与主站链路建立成功");
+                gpofun("/dev/gpoONLINE_LED", 1);
             }
         }
     } else {
@@ -484,7 +486,6 @@ void enviromentCheck(int argc, char* argv[]) {
     initComPara(&nets_comstat);
     initComPara(&serv_comstat);
 }
-
 int main(int argc, char* argv[]) {
 	printf("version 1012\n");
     // daemon(0,0);

@@ -51,7 +51,6 @@ struct RXMSG {
     INT8U rxmsgflag; //	收到短消息标志
     int rxmsgno;     //	收到的短消息序号
 };
-
 // PDU短消息参数结构，编码/解码共用
 // 其中，字符串以0结尾
 typedef struct {
