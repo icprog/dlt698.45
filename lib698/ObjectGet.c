@@ -166,6 +166,15 @@ int fill_double_long_unsigned(INT8U *data,INT32U value)
 	data[4] =  value & 0x000000FF;
 	return 5;
 }
+
+int fill_octet_string(INT8U *data,char *value,INT8U len)
+{
+	data[0] = dtoctetstring;
+	data[1] = len;
+	memcpy(&data[2],value,len);
+	return (len+2);
+}
+
 int fill_visible_string(INT8U *data,char *value,INT8U len)
 {
 	data[0] = dtvisiblestring;
@@ -223,8 +232,55 @@ int fill_DateTimeBCD(INT8U *data,DateTimeBCD *time)
 	}
 }
 
+int fill_TSA(INT8U *data,INT8U *value,INT8U len)
+{
+	data[0] = dttsa;
+	data[1] = len;
+	memcpy(&data[2],value,len);
+	return (len+2);
+}
+
+
 int GetMeterInfo(RESULT_NORMAL *response)
 {
+	int 	index=0;
+	INT8U 	*data = NULL;
+	OAD oad={};
+	CLASS_6001	 meter={};
+	int		i=0,blknum=0;
+
+	oad = response->oad;
+	data = response->data;
+
+	memset(&meter,0,sizeof(CLASS_6001));
+	blknum = getFileRecordNum(oad.OI);
+	fprintf(stderr,"GetMeterInfo oad.oi=%04x blknum=%d\n",oad.OI,blknum);
+	if(blknum<=1)	return 0;
+	index += create_array(&data[index],blknum-1);		//个数-1：文件第一个块为空 电表总数
+	for(i=0;i<blknum;i++) {
+		if(readParaClass(oad.OI,&meter,i)==1) {
+			index += create_struct(&data[index],4);		//属性2：struct 四个元素
+			index += fill_long_unsigned(&data[index],meter.sernum);		//配置序号
+			index += create_struct(&data[index],10);					//基本信息:10个元素
+			index += fill_TSA(&data[index],(INT8U *)&meter.basicinfo.addr.addr[1],meter.basicinfo.addr.addr[0]);		//TSA
+			index += fill_enum(&data[index],meter.basicinfo.baud);			//波特率
+			index += fill_enum(&data[index],meter.basicinfo.protocol);		//规约类型
+			index += create_OAD(&data[index],meter.basicinfo.port);		//端口
+			index += fill_octet_string(&data[index],(char *)&meter.basicinfo.pwd[1],meter.basicinfo.pwd[0]);		//通信密码
+			index += fill_unsigned(&data[index],meter.basicinfo.ratenum);		//费率个数
+			index += fill_unsigned(&data[index],meter.basicinfo.usrtype);		//用户类型
+			index += fill_enum(&data[index],meter.basicinfo.connectype);		//接线方式
+			index += fill_long_unsigned(&data[index],meter.basicinfo.ratedU);		//额定电压
+			index += fill_long_unsigned(&data[index],meter.basicinfo.ratedI);		//额定电流
+			index += create_struct(&data[index],10);					//扩展信息:4个元素
+			index += fill_TSA(&data[index],(INT8U *)&meter.extinfo.cjq_addr.addr[1],meter.extinfo.cjq_addr.addr[0]);		//TSA
+			index += fill_octet_string(&data[index],(char *)&meter.extinfo.asset_code[1],meter.extinfo.asset_code[0]);	//资产号
+			index += fill_long_unsigned(&data[index],meter.extinfo.pt);		//PT
+			index += fill_long_unsigned(&data[index],meter.extinfo.ct);		//CT
+			index += create_struct(&data[index],0);					//附属信息:0个元素
+		}
+	}
+	response->datalen = index;
 	return 0;
 }
 int GetTaskInfo(RESULT_NORMAL *response)
@@ -446,7 +502,7 @@ int Get4103(RESULT_NORMAL *response)
 	switch(oad.attflg )
 	{
 		case 2:
-			index += fill_visible_string(&data[index],class_tmp.assetcode,32);
+			index += fill_visible_string(&data[index],&class_tmp.assetcode[1],class_tmp.assetcode[0]);
 			response->datalen = index;
 			break;
 	}
@@ -607,10 +663,11 @@ int getSel1_coll(RESULT_RECORD *record)
 {
 	int ret=0;
 	CLASS_6035	classoi={};
-	INT8U *data = NULL;
+	INT8U 	data[512];
 	int		index = 0;
 	INT8U	taskid=0;
-	data = record->data;
+
+//	record->data = data;
 	data[index++] = 1;		//1条记录     [1] SEQUENCE OF A-RecordRow
 	switch(record->select.selec1.oad.OI) {
 	case 0x6035:
@@ -630,6 +687,10 @@ int getSel1_coll(RESULT_RECORD *record)
 		index += fill_long_unsigned(&data[index],classoi.rcvMsgNum);
 		record->datalen = index;
 		break;
+	}
+	if(record->data==NULL) {
+		record->data = malloc(index);
+		memcpy(record->data,data,index);
 	}
 	return ret;
 }
@@ -653,8 +714,8 @@ int getSelector1(RESULT_RECORD *record)
 int doGetrecord(RESULT_RECORD *record)
 {
 	INT8U SelectorN = record->selectType;
-	fprintf(stderr,"\n- getRequestRecord  OI = %04x  attrib=%d  index=%d",record->oad.OI,record->oad.attflg,record->oad.attrindex);
-	int index=0,i=0,k=0;
+	fprintf(stderr,"\n- getRequestRecord SelectorN=%d OI = %04x  attrib=%d  index=%d",SelectorN,record->oad.OI,record->oad.attflg,record->oad.attrindex);
+	int index=0;
 
 	switch(SelectorN) {
 	case 1:		//指定对象指定值
@@ -667,10 +728,10 @@ int doGetrecord(RESULT_RECORD *record)
 		record->data = malloc(2000);
 		getSelector(record->select, record->selectType,record->rcsd.csds,(INT8U *)record->data,&index);
 		record->datalen = index;
-		fprintf(stderr,"\nreturn len =%d\n",index);
-		fprintf(stderr,"\n报文(%d)：",index);
-		for(i=0;i<index;i++)
-			fprintf(stderr," %02x",record->data[i]);
+//		fprintf(stderr,"\nreturn len =%d\n",index);
+//		fprintf(stderr,"\n报文(%d)：",index);
+//		for(i=0;i<index;i++)
+//			fprintf(stderr," %02x",record->data[i]);
 		break;
 	case 9:		//指定读取上第n次记录
 		Getevent_Record_Selector(record,memp);
@@ -768,7 +829,9 @@ int getRequestRecord(OAD oad,INT8U *data,CSINFO *csinfo,INT8U *sendbuf)
 	}
 	doGetrecord(&record);
 	BuildFrame_GetResponseRecord(GET_REQUEST_RECORD,csinfo,record,sendbuf);
-	free(record.data);
+	if(record.data!=NULL) {				//TODO：是否位置合适么？中间是否有退出情况
+		free(record.data);
+	}
 //	securetype = 0;		//清除安全等级标识
 	return 1;
 }
@@ -779,6 +842,8 @@ int GetEnvironmentValue(RESULT_NORMAL *response)
 		case 0x4000:
 			GetSysDateTime(response);
 			break;
+		case 0x4001:
+		case 0x4002:
 		case 0x4003:
 			Get4001_4002_4003(response);
 			break;
@@ -867,6 +932,7 @@ int getRequestNormal(OAD oad,INT8U *data,CSINFO *csinfo,INT8U *sendbuf)
 {
 	RESULT_NORMAL response;
 	INT8U oadtmp[4]={};
+
 	oadtmp[0] = (oad.OI>>8) & 0xff;
 	oadtmp[1] = oad.OI & 0xff;
 	oadtmp[2] = oad.attflg;

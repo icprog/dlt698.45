@@ -488,10 +488,7 @@ void EnvironmentValue(OAD oad,INT8U *data)
 			set4000(attr,oad.attrindex,data);
 			break;
 		case 0x4001://通信地址
-			//set4001(oad,data);
-			break;
 		case 0x4002://表号
-			break;
 		case 0x4003://客户编号
 			set4001_4002_4003(oad,data);
 			break;

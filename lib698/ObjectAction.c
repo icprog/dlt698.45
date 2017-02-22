@@ -308,12 +308,26 @@ void get_BasicUnit(INT8U *source,INT16U *sourceindex,INT8U *dest,INT16U *destind
 			if (dest_sumindex ==0)
 				dest_sumindex = size;
 			break;
+		case 0x09://octet-string
+			size = source[1];
+			memcpy(dest,&source[1],size+1);// memcpy(dest,&source[2],size); 第一个字节放置实际数据长度
+			if (dest_sumindex ==0)
+				dest_sumindex = OCTET_STRING_LEN;
+			size = size + 1;
+			break;
 		case 0x0a:	//visible-string
 			size = source[1];// 长度
 			memcpy(dest,&source[1],size+1);
 			if (dest_sumindex ==0)
 				dest_sumindex = VISIBLE_STRING_LEN;
 			size += 1;//加1 ：    1长度
+			break;
+		case 0x11://unsigned
+			size=1;
+			memcpy(dest,&source[1],size);
+			if (dest_sumindex ==0)
+				dest_sumindex = size;
+			fprintf(stderr,"\n		unsigned %02x",source[1]);
 			break;
 		case 0x12://long unsigned
 			size = 2;
@@ -323,12 +337,31 @@ void get_BasicUnit(INT8U *source,INT16U *sourceindex,INT8U *dest,INT16U *destind
 			if (dest_sumindex ==0)
 				dest_sumindex = size;
 			break;
+		case 0x16://enum
+			size = 1;
+			memcpy(dest,&source[1],size);
+			fprintf(stderr,"\n		enum data=%d\n",dest[0]);
+			if (dest_sumindex ==0)
+				dest_sumindex = size;
+			break;
 		case 0x1b://time
 			size = 3;
 			dest[0] = source[1];
 			dest[1] = source[2];
 			dest[2] = source[3];
 			fprintf(stderr,"\n		time %02x %02x %02x ",dest[0],dest[1],dest[2]);
+			if (dest_sumindex ==0)
+				dest_sumindex = size;
+			break;
+		case 0x1c://DateTimeBCD
+			dest[1] = source[1];//年
+			dest[0] = source[2];
+			dest[2] = source[3];//月
+			dest[3] = source[4];//日
+			dest[4] = source[5];//时
+			dest[5] = source[6];//分
+			dest[6] = source[7];//秒
+			size  = 7;
 			if (dest_sumindex ==0)
 				dest_sumindex = size;
 			break;
@@ -361,32 +394,6 @@ void get_BasicUnit(INT8U *source,INT16U *sourceindex,INT8U *dest,INT16U *destind
 				dest_sumindex = sizeof(MY_MS);
 			fprintf(stderr,"\n		目标地址跳转 %d 字节 ",dest_sumindex);
 			break;
-		case 0x16://enum
-			size = 1;
-			memcpy(dest,&source[1],size);
-			fprintf(stderr,"\n		enum data=%d\n",dest[0]);
-			if (dest_sumindex ==0)
-				dest_sumindex = size;
-			break;
-		case 0x11://unsigned
-			size=1;
-			memcpy(dest,&source[1],size);
-			if (dest_sumindex ==0)
-				dest_sumindex = size;
-			fprintf(stderr,"\n		unsigned %02x",source[1]);
-			break;
-		case 0x1c://DateTimeBCD
-			dest[1] = source[1];//年
-			dest[0] = source[2];
-			dest[2] = source[3];//月
-			dest[3] = source[4];//日
-			dest[4] = source[5];//时
-			dest[5] = source[6];//分
-			dest[6] = source[7];//秒
-			size  = 7;
-			if (dest_sumindex ==0)
-				dest_sumindex = size;
-			break;
 		case 0x51://OAD
 			size = 4;
 			dest[0]= source[2];
@@ -395,13 +402,6 @@ void get_BasicUnit(INT8U *source,INT16U *sourceindex,INT8U *dest,INT16U *destind
 			dest[3]= source[4];
 			if (dest_sumindex ==0)
 				dest_sumindex = size;
-			break;
-		case 0x09://octet-string
-			size = source[1];
-			memcpy(dest,&source[1],size+1);// memcpy(dest,&source[2],size); 第一个字节放置实际数据长度
-			if (dest_sumindex ==0)
-				dest_sumindex = OCTET_STRING_LEN;
-			size = size + 1;
 			break;
 		case 0x54://TI
 			dest[0] = source[1];//单位

@@ -383,19 +383,6 @@ int readCoverClass(OI_698 oi,INT16U seqno,void *blockdata,int datalen,int type)
 		if(ret==0) {
 			ret = block_file_sync(fname,blockdata,datalen,0,0);
 		}
-/*		if(datalen%4==0)	readlen = datalen-2;
-		else readlen = datalen+(4-datalen%4)-2;
-		fprintf(stderr,"readlen=%d\n",datalen);
-		blockdata1 = malloc(readlen);
-		if(blockdata1) {
-			memset(blockdata1,0,readlen);
-			ret = block_file_sync(fname,blockdata1,readlen,0,0);	//返回数据去掉CRC校验的两个字节
-			if(ret == 1) {		//数据读取成功，返回实际读取数据
-				memcpy(blockdata,blockdata1,datalen);				//防止实际返回长度比读取的长度大，数据区溢出
-			}
-		}
-		if(blockdata1!=NULL)	free(blockdata1);
-*/
 	break;
 	case event_record_save:
 	case event_current_save:

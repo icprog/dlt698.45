@@ -350,7 +350,8 @@ void event_process(int argc, char *argv[])
                     for(i=0;i<Len;i++)
                     	fprintf(stderr,"%02x",Getbuf[index++]);
                     fprintf(stderr,"\n");
-
+                    if(Getbuf!=NULL)
+                    	free(Getbuf);
 				}
 			}
 		}

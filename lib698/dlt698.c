@@ -253,10 +253,10 @@ int Link_Request(LINK_Request request,INT8U *addr,INT8U *buf)
 	csinfo.prm = 0; 	//服务器发出
 	csinfo.funcode = 1; //链路管理
 	csinfo.sa_type = 0 ;//单地址
-	csinfo.sa_length = 6;//sizeof(addr)-1;//服务器地址长度
+	csinfo.sa_length = addr[0];//sizeof(addr)-1;//服务器地址长度
 
-//	fprintf(stderr,"sa_length = %d \n",csinfo.sa_length);
-	memcpy(csinfo.sa,addr,csinfo.sa_length );//服务器地址
+	fprintf(stderr,"sa_length = %d \n",csinfo.sa_length);
+	memcpy(csinfo.sa,&addr[1],csinfo.sa_length );//服务器地址
 	csinfo.ca = 0;
 
 	index = FrameHead(&csinfo,buf) ; //	2：hcs  hcs
