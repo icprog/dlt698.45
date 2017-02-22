@@ -389,6 +389,8 @@ void* ATWorker(void* args) {
                 break;
             }
         }
+        printf("sMux1 %d\n", sMux1);
+        setPort(sMux1);
         sleep(8);
 
     wait:
@@ -400,7 +402,6 @@ void* ATWorker(void* args) {
             if (NeedDoAt == 1) {
                 break;
             }
-            printf("Wait for offline\n");
         }
 
     err:

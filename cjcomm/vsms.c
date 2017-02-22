@@ -1007,20 +1007,26 @@ void dealinit() {
     memset(rxmsg, 0, sizeof(rxmsg));
 }
 
+void setPort(int port) {
+	smsPort = port;
+}
+
 void deal_vsms(int msmport) {
     TS ts;
     fprintf(stderr, "smsPort=%d\n", smsPort);
 
-	TSGet(&ts);
-	RxHandle(0);
-	m37i_at_init(ts.Day); //(gprs模块初始化通知)一天一次M37i模块短信模式初始化
-	SendCMGL(ts.Minute); //定时1分钟，或有短信通知查短信
-	//当有短信时，处理短信数据
-	for (int i = 0; i < RXMSG_NUM; i++) {
-		//			fprintf(stderr,"rxmsg[i].rxmsgflag=%d",rxmsg[i].rxmsgflag);
-		if (rxmsg[i].rxmsgflag) {
-			rxmsg[i].rxmsgflag = 0;
-			SendCMGR(rxmsg[i].rxmsgno);
+    if(smsPort > 0){
+		TSGet(&ts);
+		RxHandle(0);
+		m37i_at_init(ts.Day); //(gprs模块初始化通知)一天一次M37i模块短信模式初始化
+		SendCMGL(ts.Minute); //定时1分钟，或有短信通知查短信
+		//当有短信时，处理短信数据
+		for (int i = 0; i < RXMSG_NUM; i++) {
+			//			fprintf(stderr,"rxmsg[i].rxmsgflag=%d",rxmsg[i].rxmsgflag);
+			if (rxmsg[i].rxmsgflag) {
+				rxmsg[i].rxmsgflag = 0;
+				SendCMGR(rxmsg[i].rxmsgno);
+			}
 		}
-	}
+    }
 }

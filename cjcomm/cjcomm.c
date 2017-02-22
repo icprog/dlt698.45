@@ -486,7 +486,7 @@ void enviromentCheck(int argc, char* argv[]) {
 }
 
 int main(int argc, char* argv[]) {
-	printf("version 1011\n");
+	printf("version 1012\n");
     // daemon(0,0);
     enviromentCheck(argc, argv);
 
