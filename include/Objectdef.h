@@ -184,16 +184,16 @@ typedef struct {
 } CLASS_4030;
 
 typedef struct {
-	char assetcode[40];
-} CLASS_4103;
+	char assetcode[40];	//0：代表有效长度
+} CLASS_4103;	//资产管理编码
 
 typedef struct {
-	INT8U startime[OCTET_STRING_LEN];
-	INT8U enable;
-	INT8U upleve;//误差阀值
-	INT8U startime1[OCTET_STRING_LEN];
-	INT8U enable1;
-} CLASS_4204;
+	INT8U startime[3];	//广播校时启动时间 time类型 octet-string(SIZE(3))
+	INT8U enable;						//是否启用
+	INT8U upleve;						//时钟误差阀值
+	INT8U startime1[3];	//终端广播校时启动时间
+	INT8U enable1;						//是否启用
+} CLASS_4204;	//终端广播校时
 
 //typedef struct {
 //	FactoryVersion verinfo;

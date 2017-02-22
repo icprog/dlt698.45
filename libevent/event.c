@@ -325,6 +325,8 @@ INT8U Getevent_Record(INT8U event_no,OI_698 *oi_array,INT8U oi_index,INT8U *real
 					break;
 			}
 		 }
+		if (Getbuf!=NULL)		//TODO:  是否该处释放？？？？
+			free(Getbuf);
 		 record_para->datalen =*real_index;//最终长度
 	}else{
 		record_para->dar = 0; //无数据

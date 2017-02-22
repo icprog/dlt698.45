@@ -142,6 +142,54 @@ void SetIPort(int argc, char *argv[])
 	}
 
 }
+
+void SetID(int argc, char *argv[])
+{
+	CLASS_4001_4002_4003	classtmp={};
+	char idbuf[VISIBLE_STRING_LEN-1];
+	long int len=0,id=0,i=0;
+	char a;
+	int   tmpval=0;
+
+	memset(&classtmp,0,sizeof(CLASS_4001_4002_4003));
+	memset(&classtmp,0,sizeof(CLASS_4001_4002_4003));
+//	readCoverClass(0x4001,0,&classtmp,sizeof(CLASS_4001_4002_4003),para_vari_save);
+	if (argc>2)
+	{
+		memset(idbuf,0,sizeof(idbuf));
+//		if (sscanf(argv[2], "%d %d",&len, &id))
+		if (sscanf(argv[2], "%s",idbuf))
+		{
+//			fprintf(stderr,"id=%s,len=%d\n",idbuf,strlen(idbuf));
+//			for(i=0;i<strlen(idbuf);i++) {
+//				a = idbuf[i];
+//				sscanf(&a,"%x ",&tmpval);
+//				fprintf(stderr,"%x      %c\n",tmpval,a);
+//				if(i%2==0) {
+//					classtmp.curstom_num[i/2] = tmpval;
+//				}else if(i%2==1) {
+//					classtmp.curstom_num[i/2] = (classtmp.curstom_num[i/2]<<4) | tmpval;
+//				}
+//			}
+//			if(strlen(idbuf)%2!=0) {
+//				len = strlen(idbuf)/2+1;
+//				classtmp.curstom_num[len-1] = classtmp.curstom_num[len-1]<<4;
+//			}else {
+//				len = strlen(idbuf)/2;
+//			}
+//			classtmp.curstom_num[0] = len;
+
+//			fprintf(stderr,"======%d",atoi(idbuf));
+			classtmp.curstom_num[0] = strlen(idbuf)/2;
+			int32u2bcd(atoi(idbuf),&classtmp.curstom_num[1],positive);
+			for(i=0;i<16;i++) {
+				fprintf(stderr,"%02x ",classtmp.curstom_num[i]);
+			}
+			saveCoverClass(0x4001,0,&classtmp,sizeof(CLASS_4001_4002_4003),para_vari_save);
+		}
+	}
+}
+
 void SetApn(int argc, char *argv[])
 {
 	CLASS25 class4500;

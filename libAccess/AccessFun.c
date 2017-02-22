@@ -383,19 +383,6 @@ int readCoverClass(OI_698 oi,INT16U seqno,void *blockdata,int datalen,int type)
 		if(ret==0) {
 			ret = block_file_sync(fname,blockdata,datalen,0,0);
 		}
-/*		if(datalen%4==0)	readlen = datalen-2;
-		else readlen = datalen+(4-datalen%4)-2;
-		fprintf(stderr,"readlen=%d\n",datalen);
-		blockdata1 = malloc(readlen);
-		if(blockdata1) {
-			memset(blockdata1,0,readlen);
-			ret = block_file_sync(fname,blockdata1,readlen,0,0);	//返回数据去掉CRC校验的两个字节
-			if(ret == 1) {		//数据读取成功，返回实际读取数据
-				memcpy(blockdata,blockdata1,datalen);				//防止实际返回长度比读取的长度大，数据区溢出
-			}
-		}
-		if(blockdata1!=NULL)	free(blockdata1);
-*/
 	break;
 	case event_record_save:
 	case event_current_save:
@@ -562,24 +549,24 @@ int ComposeSendBuff(TS *ts,INT8U seletype,INT8U taskid,TSA *tsa_con,INT8U tsa_nu
 	readCoverClass(0x6015,class6013.sernum,&class6015,sizeof(CLASS_6015),coll_para_save);
 	freq = CalcFreq(class6015);
 	////////////////////////////////////////////////////////////////////////////////test
-	memset(&class6015,0xee,sizeof(CLASS_6015));
-	class6015.csds.num = 1;
-	class6015.csds.csd[0].type=1;
-	class6015.csds.csd[0].csd.road.oad.OI =0x5004;
-	class6015.csds.csd[0].csd.road.oad.attflg = 0x02;
-	class6015.csds.csd[0].csd.road.oad.attrindex = 0x00;
-	class6015.csds.csd[0].csd.road.num = 3;
-	class6015.csds.csd[0].csd.road.oads[0].OI = 0x2021;
-	class6015.csds.csd[0].csd.road.oads[0].attflg = 0x02;
-	class6015.csds.csd[0].csd.road.oads[0].attrindex = 0x00;
-	class6015.csds.csd[0].csd.road.oads[1].OI = 0x0010;
-	class6015.csds.csd[0].csd.road.oads[1].attflg = 0x02;
-	class6015.csds.csd[0].csd.road.oads[1].attrindex = 0x00;
-	class6015.csds.csd[0].csd.road.oads[2].OI = 0x0020;
-	class6015.csds.csd[0].csd.road.oads[2].attflg = 0x02;
-	class6015.csds.csd[0].csd.road.oads[2].attrindex = 0x00;
-	freq = 1;
-	taskid=1;
+//	memset(&class6015,0xee,sizeof(CLASS_6015));
+//	class6015.csds.num = 1;
+//	class6015.csds.csd[0].type=1;
+//	class6015.csds.csd[0].csd.road.oad.OI =0x5004;
+//	class6015.csds.csd[0].csd.road.oad.attflg = 0x02;
+//	class6015.csds.csd[0].csd.road.oad.attrindex = 0x00;
+//	class6015.csds.csd[0].csd.road.num = 3;
+//	class6015.csds.csd[0].csd.road.oads[0].OI = 0x2021;
+//	class6015.csds.csd[0].csd.road.oads[0].attflg = 0x02;
+//	class6015.csds.csd[0].csd.road.oads[0].attrindex = 0x00;
+//	class6015.csds.csd[0].csd.road.oads[1].OI = 0x0010;
+//	class6015.csds.csd[0].csd.road.oads[1].attflg = 0x02;
+//	class6015.csds.csd[0].csd.road.oads[1].attrindex = 0x00;
+//	class6015.csds.csd[0].csd.road.oads[2].OI = 0x0020;
+//	class6015.csds.csd[0].csd.road.oads[2].attflg = 0x02;
+//	class6015.csds.csd[0].csd.road.oads[2].attrindex = 0x00;
+//	freq = 1;
+//	taskid=1;
 	//////////////////////////////////////////////////////////////////////////////////test
 
 	getTaskFileName(taskid,ts_now,fname);
@@ -740,45 +727,45 @@ INT8U getSelector(RSD select, INT8U selectype, CSD_ARRAYTYPE csds, INT8U *data, 
 //	taskid = GetTaskId(rcsd);//根据rcsd得到应该去哪个任务里找，如果涉及到多个任务呢？应该不会
 	//测试写死
 	///////////////////////////////////////////////////////////////test
-	tsa_num = 3;
+//	tsa_num = 3;
 	TSA tsa_con[] = {
 			0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x07,0x05,0x00,0x00,0x00,0x00,0x00,0x01,
 			0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x07,0x05,0x00,0x00,0x00,0x00,0x00,0x02,
 			0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x07,0x05,0x00,0x00,0x00,0x00,0x00,0x03,
 	};
-	fprintf(stderr,"\n-------------1\n");
-	memset(&csds,0xee,sizeof(CSD_ARRAYTYPE));
-	csds.num = 5;
-	csds.csd[0].type=0;
-	csds.csd[0].csd.oad.OI = 0x4001;
-	csds.csd[0].csd.oad.attflg = 0x02;
-	csds.csd[0].csd.oad.attrindex = 0;
-	csds.csd[1].type=0;
-	csds.csd[1].csd.oad.OI = 0x6040;
-	csds.csd[1].csd.oad.attflg = 0x02;
-	csds.csd[1].csd.oad.attrindex = 0;
-	csds.csd[2].type=0;
-	csds.csd[2].csd.oad.OI = 0x6041;
-	csds.csd[2].csd.oad.attflg = 0x02;
-	csds.csd[2].csd.oad.attrindex = 0;
-	csds.csd[3].type=0;
-	csds.csd[3].csd.oad.OI = 0x6042;
-	csds.csd[3].csd.oad.attflg = 0x02;
-	csds.csd[3].csd.oad.attrindex = 0;
-	csds.csd[4].type=1;
-	csds.csd[4].csd.road.oad.OI = 0x5004;
-	csds.csd[4].csd.road.oad.attflg = 0x02;
-	csds.csd[4].csd.road.oad.attrindex = 0;
-	csds.csd[4].csd.road.num = 3;
-	csds.csd[4].csd.road.oads[0].OI = 0x2021;
-	csds.csd[4].csd.road.oads[0].attflg = 0x02;
-	csds.csd[4].csd.road.oads[0].attrindex = 0;
-	csds.csd[4].csd.road.oads[1].OI = 0x0010;
-	csds.csd[4].csd.road.oads[1].attflg = 0x02;
-	csds.csd[4].csd.road.oads[1].attrindex = 0;
-	csds.csd[4].csd.road.oads[2].OI = 0x0020;
-	csds.csd[4].csd.road.oads[2].attflg = 0x02;
-	csds.csd[4].csd.road.oads[2].attrindex = 0;
+//	fprintf(stderr,"\n-------------1\n");
+//	memset(&csds,0xee,sizeof(CSD_ARRAYTYPE));
+//	csds.num = 5;
+//	csds.csd[0].type=0;
+//	csds.csd[0].csd.oad.OI = 0x4001;
+//	csds.csd[0].csd.oad.attflg = 0x02;
+//	csds.csd[0].csd.oad.attrindex = 0;
+//	csds.csd[1].type=0;
+//	csds.csd[1].csd.oad.OI = 0x6040;
+//	csds.csd[1].csd.oad.attflg = 0x02;
+//	csds.csd[1].csd.oad.attrindex = 0;
+//	csds.csd[2].type=0;
+//	csds.csd[2].csd.oad.OI = 0x6041;
+//	csds.csd[2].csd.oad.attflg = 0x02;
+//	csds.csd[2].csd.oad.attrindex = 0;
+//	csds.csd[3].type=0;
+//	csds.csd[3].csd.oad.OI = 0x6042;
+//	csds.csd[3].csd.oad.attflg = 0x02;
+//	csds.csd[3].csd.oad.attrindex = 0;
+//	csds.csd[4].type=1;
+//	csds.csd[4].csd.road.oad.OI = 0x5004;
+//	csds.csd[4].csd.road.oad.attflg = 0x02;
+//	csds.csd[4].csd.road.oad.attrindex = 0;
+//	csds.csd[4].csd.road.num = 3;
+//	csds.csd[4].csd.road.oads[0].OI = 0x2021;
+//	csds.csd[4].csd.road.oads[0].attflg = 0x02;
+//	csds.csd[4].csd.road.oads[0].attrindex = 0;
+//	csds.csd[4].csd.road.oads[1].OI = 0x0010;
+//	csds.csd[4].csd.road.oads[1].attflg = 0x02;
+//	csds.csd[4].csd.road.oads[1].attrindex = 0;
+//	csds.csd[4].csd.road.oads[2].OI = 0x0020;
+//	csds.csd[4].csd.road.oads[2].attflg = 0x02;
+//	csds.csd[4].csd.road.oads[2].attrindex = 0;
 //	csds.num = 1;
 //	csds.csd[0].type=1;
 //	csds.csd[0].csd.road.oad.OI = 0x5004;
@@ -796,7 +783,7 @@ INT8U getSelector(RSD select, INT8U selectype, CSD_ARRAYTYPE csds, INT8U *data, 
 //	csds.csd[0].csd.road.oads[2].attrindex = 0;
 	taskid = 1;
 	///////////////////////////////////////////////////////////////test
-	fprintf(stderr,"\n-------------2\n");
+	fprintf(stderr,"\n-------------2 selectype=%d\n",selectype);
 	switch(selectype)
 	{
 	case 5://例子中招测冻结数据，包括分钟小时日月冻结数据招测方法
