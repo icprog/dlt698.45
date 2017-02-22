@@ -387,10 +387,29 @@ int GetSysDateTime(RESULT_NORMAL *response)
 	return 0;
 }
 
+int Get3105(RESULT_NORMAL *response)
+{
+	int index=0;
+	OAD oad={};
+	Event3105_Object	tmpobj={};
+	INT8U *data = NULL;
+
+	data = response->data;
+	oad = response->oad;
+	memset(&tmpobj,0,sizeof(Event3105_Object));
+	readCoverClass(oad.OI,0,&tmpobj,sizeof(Event3105_Object),event_para_save);
+	fprintf(stderr,"阀值=%d\n",tmpobj.mto_obj.over_threshold);
+	index += create_struct(&data[index],2);
+	index += fill_long_unsigned(&data[index],tmpobj.mto_obj.over_threshold);
+	index += fill_unsigned(&data[index],tmpobj.mto_obj.task_no);
+	response->datalen = index;
+	return 0;
+}
+
 int Get4001_4002_4003(RESULT_NORMAL *response)
 {
-	int i;
-	OAD oad;
+	int i=0;
+	OAD oad={};
 	CLASS_4001_4002_4003	class_addr={};
 
 	oad = response->oad;
@@ -643,6 +662,9 @@ int GetEventInfo(RESULT_NORMAL *response)
 		break;
 	case 6:	//配置参数
 		switch(response->oad.OI) {
+			case 0x3105:
+				Get3105(response);
+				break;
 			case 0x310d:
 				break;
 			case 0x310c:

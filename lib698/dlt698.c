@@ -256,8 +256,12 @@ int Link_Request(LINK_Request request,INT8U *addr,INT8U *buf)
 	csinfo.sa_length = addr[0];//sizeof(addr)-1;//服务器地址长度
 
 	fprintf(stderr,"sa_length = %d \n",csinfo.sa_length);
-	for(i=0;i<csinfo.sa_length;i++) {
-		csinfo.sa[i] = addr[csinfo.sa_length-i];
+	if(csinfo.sa_length<OCTET_STRING_LEN) {
+		for(i=0;i<csinfo.sa_length;i++) {
+			csinfo.sa[i] = addr[csinfo.sa_length-i];
+		}
+	}else {
+		fprintf(stderr,"SA 长度超过定义长度，不合理！！！\n");
 	}
 //	memcpy(csinfo.sa,&addr[1],csinfo.sa_length );//服务器地址
 	csinfo.ca = 0;
