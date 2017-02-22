@@ -565,6 +565,7 @@ void ReadNorData(TS ts,INT8U taskid,TSA *tsa_con,INT8U tsa_num)
 			fprintf(stderr,"\n");
 		}
 	}
+	free(savepos);
 }
 INT16U GetFileOadLen(INT8U units,INT8U tens)//个位十位转化为一个INT16U
 {

@@ -562,30 +562,31 @@ int ComposeSendBuff(TS *ts,INT8U seletype,INT8U taskid,TSA *tsa_con,INT8U tsa_nu
 	readCoverClass(0x6015,class6013.sernum,&class6015,sizeof(CLASS_6015),coll_para_save);
 	freq = CalcFreq(class6015);
 	////////////////////////////////////////////////////////////////////////////////test
-	memset(&class6015,0xee,sizeof(CLASS_6015));
-	class6015.csds.num = 1;
-	class6015.csds.csd[0].type=1;
-	class6015.csds.csd[0].csd.road.oad.OI =0x5004;
-	class6015.csds.csd[0].csd.road.oad.attflg = 0x02;
-	class6015.csds.csd[0].csd.road.oad.attrindex = 0x00;
-	class6015.csds.csd[0].csd.road.num = 3;
-	class6015.csds.csd[0].csd.road.oads[0].OI = 0x2021;
-	class6015.csds.csd[0].csd.road.oads[0].attflg = 0x02;
-	class6015.csds.csd[0].csd.road.oads[0].attrindex = 0x00;
-	class6015.csds.csd[0].csd.road.oads[1].OI = 0x0010;
-	class6015.csds.csd[0].csd.road.oads[1].attflg = 0x02;
-	class6015.csds.csd[0].csd.road.oads[1].attrindex = 0x00;
-	class6015.csds.csd[0].csd.road.oads[2].OI = 0x0020;
-	class6015.csds.csd[0].csd.road.oads[2].attflg = 0x02;
-	class6015.csds.csd[0].csd.road.oads[2].attrindex = 0x00;
-	freq = 1;
-	taskid=1;
+//	memset(&class6015,0xee,sizeof(CLASS_6015));
+//	class6015.csds.num = 1;
+//	class6015.csds.csd[0].type=1;
+//	class6015.csds.csd[0].csd.road.oad.OI =0x5004;
+//	class6015.csds.csd[0].csd.road.oad.attflg = 0x02;
+//	class6015.csds.csd[0].csd.road.oad.attrindex = 0x00;
+//	class6015.csds.csd[0].csd.road.num = 3;
+//	class6015.csds.csd[0].csd.road.oads[0].OI = 0x2021;
+//	class6015.csds.csd[0].csd.road.oads[0].attflg = 0x02;
+//	class6015.csds.csd[0].csd.road.oads[0].attrindex = 0x00;
+//	class6015.csds.csd[0].csd.road.oads[1].OI = 0x0010;
+//	class6015.csds.csd[0].csd.road.oads[1].attflg = 0x02;
+//	class6015.csds.csd[0].csd.road.oads[1].attrindex = 0x00;
+//	class6015.csds.csd[0].csd.road.oads[2].OI = 0x0020;
+//	class6015.csds.csd[0].csd.road.oads[2].attflg = 0x02;
+//	class6015.csds.csd[0].csd.road.oads[2].attrindex = 0x00;
+//	freq = 1;
+//	taskid=1;
 	//////////////////////////////////////////////////////////////////////////////////test
 
 	getTaskFileName(taskid,ts_now,fname);
 	fp = fopen(fname,"r");
 	if(fp == NULL)//文件没内容 组文件头，如果文件已存在，提取文件头信息
 	{
+		fprintf(stderr,"\n-----file %s not exist\n",fname);
 		return 0;
 	}
 	else
@@ -617,16 +618,16 @@ int ComposeSendBuff(TS *ts,INT8U seletype,INT8U taskid,TSA *tsa_con,INT8U tsa_nu
 				for(m=0;m<freq;m++)
 				{
 					schpos = m*blocklen/freq;
-//					fprintf(stderr,"\n1addr1:%02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x",
-//							databuf_tmp[schpos+16],databuf_tmp[schpos+15],databuf_tmp[schpos+14],databuf_tmp[schpos+13],
-//							databuf_tmp[schpos+12],databuf_tmp[schpos+11],databuf_tmp[schpos+10],databuf_tmp[schpos+9],
-//							databuf_tmp[schpos+8],databuf_tmp[schpos+7],databuf_tmp[schpos+6],	databuf_tmp[schpos+5],
-//							databuf_tmp[schpos+4],databuf_tmp[schpos+3],databuf_tmp[schpos+2],databuf_tmp[schpos+1]);
-//					fprintf(stderr,"\n1addr2:%02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x",
-//							tsa_con[i].addr[16],tsa_con[i].addr[15],tsa_con[i].addr[14],tsa_con[i].addr[13],
-//							tsa_con[i].addr[12],tsa_con[i].addr[11],tsa_con[i].addr[10],tsa_con[i].addr[9],
-//							tsa_con[i].addr[8],tsa_con[i].addr[7],tsa_con[i].addr[6],	tsa_con[i].addr[5],
-//							tsa_con[i].addr[4],tsa_con[i].addr[3],tsa_con[i].addr[2],tsa_con[i].addr[1],tsa_con[i].addr[0]);
+					fprintf(stderr,"\n1addr1:%02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x",
+							databuf_tmp[schpos+16],databuf_tmp[schpos+15],databuf_tmp[schpos+14],databuf_tmp[schpos+13],
+							databuf_tmp[schpos+12],databuf_tmp[schpos+11],databuf_tmp[schpos+10],databuf_tmp[schpos+9],
+							databuf_tmp[schpos+8],databuf_tmp[schpos+7],databuf_tmp[schpos+6],	databuf_tmp[schpos+5],
+							databuf_tmp[schpos+4],databuf_tmp[schpos+3],databuf_tmp[schpos+2],databuf_tmp[schpos+1]);
+					fprintf(stderr,"\n1addr2:%02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x",
+							tsa_con[i].addr[16],tsa_con[i].addr[15],tsa_con[i].addr[14],tsa_con[i].addr[13],
+							tsa_con[i].addr[12],tsa_con[i].addr[11],tsa_con[i].addr[10],tsa_con[i].addr[9],
+							tsa_con[i].addr[8],tsa_con[i].addr[7],tsa_con[i].addr[6],	tsa_con[i].addr[5],
+							tsa_con[i].addr[4],tsa_con[i].addr[3],tsa_con[i].addr[2],tsa_con[i].addr[1],tsa_con[i].addr[0]);
 					if(memcmp(&databuf_tmp[schpos+1],&tsa_con[i].addr[1],16)==0)//找到了存储结构的位置，一个存储结构可能含有unitnum个单元
 					{
 						fprintf(stderr,"\naddr1:%02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x",
@@ -641,7 +642,7 @@ int ComposeSendBuff(TS *ts,INT8U seletype,INT8U taskid,TSA *tsa_con,INT8U tsa_nu
 								databuf_tmp[schpos+4],databuf_tmp[schpos+3],databuf_tmp[schpos+2],databuf_tmp[schpos+1]);
 						for(j=0;j<csds.num;j++)
 						{
-//							fprintf(stderr,"\n-------%d:(type=%d)\n",j,csds.csd[j].type);
+							fprintf(stderr,"\n-------%d:(type=%d)\n",j,csds.csd[j].type);
 							if(csds.csd[j].type != 0 && csds.csd[j].type != 1)
 								continue;
 							if(csds.csd[j].type == 1)
@@ -845,8 +846,14 @@ INT8U getSelector(RSD select, INT8U selectype, CSD_ARRAYTYPE csds, INT8U *data, 
 //		ReadNorData(ts_info,taskid,tsa_con,tsa_num);
 		//////////////////////////////////////////////////////////////////////test
 		TSGet(&ts_info[0]);
-		GetTSACon(select.selec5.meters,tsa_con,tsa_num);
 		//////////////////////////////////////////////////////////////////////test
+		GetTSACon(select.selec5.meters,tsa_con,tsa_num);
+		for(i=0;i<tsa_num;i++)
+			fprintf(stderr,"\n1addr3:%02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x",
+					tsa_con[i].addr[16],tsa_con[i].addr[15],tsa_con[i].addr[14],tsa_con[i].addr[13],
+					tsa_con[i].addr[12],tsa_con[i].addr[11],tsa_con[i].addr[10],tsa_con[i].addr[9],
+					tsa_con[i].addr[8],tsa_con[i].addr[7],tsa_con[i].addr[6],	tsa_con[i].addr[5],
+					tsa_con[i].addr[4],tsa_con[i].addr[3],tsa_con[i].addr[2],tsa_con[i].addr[1],tsa_con[i].addr[0]);
 		*datalen = ComposeSendBuff(&ts_info[0],selectype,taskid,tsa_con,tsa_num,csds,data);
 		break;
 	case 7://例子中招测实时数据方法

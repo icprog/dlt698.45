@@ -663,12 +663,20 @@ int doGetrecord(RESULT_RECORD *record)
 
 	case 5:
 	case 7:
-		getSelector(record->select, record->selectType,record->rcsd.csds,(INT8U *)&record->data,&index);
+//		getSelector(record->select, record->selectType,record->rcsd.csds,(INT8U *)&record->data,&index);
+		record->data = malloc(2000);
+		getSelector(record->select, record->selectType,record->rcsd.csds,(INT8U *)record->data,&index);
+		record->datalen = index;
+		fprintf(stderr,"\nreturn len =%d\n",index);
+		fprintf(stderr,"\n报文(%d)：",index);
+		for(i=0;i<index;i++)
+			fprintf(stderr," %02x",record->data[i]);
 		break;
 	case 9:		//指定读取上第n次记录
 		Getevent_Record_Selector(record,memp);
 		break;
 	}
+	fprintf(stderr,"\n---doGetrecord end\n");
 	return 1;
 }
 
@@ -760,6 +768,7 @@ int getRequestRecord(OAD oad,INT8U *data,CSINFO *csinfo,INT8U *sendbuf)
 	}
 	doGetrecord(&record);
 	BuildFrame_GetResponseRecord(GET_REQUEST_RECORD,csinfo,record,sendbuf);
+	free(record.data);
 //	securetype = 0;		//清除安全等级标识
 	return 1;
 }
