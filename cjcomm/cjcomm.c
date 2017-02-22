@@ -34,19 +34,11 @@ static CommBlock ComObject;
 static CommBlock nets_comstat;
 static CommBlock serv_comstat;
 
-INT8U ccid[20];        // SIM卡CCID
-INT8U imsi[20];        // SIM卡IMSI
-INT16U signalStrength; //信号强度
-INT8U pppip[20];       //拨号IP
-static CLASS25 Class25;
-//static int online_state;
-int online_state;
+static INT32S timeoffset[50]; //终端精准校时 默认最近心跳时间总个数50次
+static INT8U crrntimen      = 0;  //终端精准校时 当前接手心跳数
+static INT8U timeoffsetflag = 0; //终端精准校时 开始标志
 
-INT32S timeoffset[50];    //终端精准校时 默认最近心跳时间总个数50次
-INT8U crrntimen      = 0; //终端精准校时 当前接手心跳数
-INT8U timeoffsetflag = 0; //终端精准校时 开始标志
-int dealtimeoffset_id;
-pthread_t td_dealtimeoffset;
+static CLASS25 Class25;
 
 void saveCurrClass25(void) {
     saveCoverClass(0x4500, 0, (void*)&Class25, sizeof(CLASS25), para_init_save);
@@ -68,9 +60,6 @@ void setPPPIP(INT8U PPPIP[]) {
     memcpy(Class25.pppip, PPPIP, 20);
 }
 
-int getOnlineState(void) {
-    return online_state;
-}
 
 void clearcount(int index) {
     JProgramInfo->Projects[index].WaitTimes = 0;
@@ -78,12 +67,6 @@ void clearcount(int index) {
 
 void QuitProcess(int sig) {
     asyslog(LOG_INFO, "通信模块退出,收到信号类型(%d)", sig);
-
-    //关闭打开的服务
-    asyslog(LOG_INFO, "开始关闭外部服务（gtpget、ppp-off、gsmMuxd）");
-    system("pkill ftpget");
-    system("ppp-off");
-    system("pkill gsmMuxd");
 
     //关闭打开的接口
     asyslog(LOG_INFO, "开始关闭红外通信接口(%d)", FirObject.phy_connect_fd);
@@ -135,10 +118,11 @@ void Comm_task(CommBlock* compara) {
         if (compara->testcounter >= 2) {
         	close(compara->phy_connect_fd);
         	compara->phy_connect_fd = -1;
+        	SetOffline();
+            AT_POWOFF();
         	compara->testcounter = 0;
-        	online_state = 0;
             return;
-        } else if (compara->phy_connect_fd >= 0 && compara->linkstate == close_connection) //物理通道建立完成后，如果请求状态为close，则需要建立连接
+        } else if (compara->linkstate == close_connection) //物理通道建立完成后，如果请求状态为close，则需要建立连接
         {
             WriteLinkRequest(build_connection, heartbeat, &compara->link_request);
             asyslog(LOG_INFO, "建立链接 %02d-%02d-%02d %d:%d:%d\n", compara->link_request.time.year,
@@ -209,8 +193,10 @@ void GenericRead(struct aeEventLoop* eventLoop, int fd, void* clientData, int ma
 }
 
 void initComPara(CommBlock* compara) {
-    INT8U addr[16] = { 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
-    memcpy(compara->serveraddr, addr, 16);
+	CLASS_4001_4002_4003 c4001;
+	readCoverClass(0x4001, 0, &c4001, sizeof(c4001), para_vari_save);
+	asyslog("逻辑地址长度：%d\n", c4001.curstom_num);
+    memcpy(compara->serveraddr, c4001.curstom_num, 16);
     compara->phy_connect_fd = -1;
     compara->testcounter    = 0;
     compara->linkstate      = close_connection;
@@ -229,6 +215,7 @@ void initComPara(CommBlock* compara) {
 void deal_terminal_timeoffset() {
     TS jzqtime;
     TSGet(&jzqtime); //集中器时间
+
     //判断是否到开始记录心跳时间
     if (JProgramInfo->t_timeoffset.type == 1 && JProgramInfo->t_timeoffset.totalnum > 0) {
         //有效总个数是否小于主站设置得最少有效个数
@@ -308,23 +295,26 @@ void Getk(LINK_Response link) {
     if (crrntimen == JProgramInfo->t_timeoffset.totalnum)
         timeoffsetflag = 0;
 }
+
 void NETRead(struct aeEventLoop* eventLoop, int fd, void* clientData, int mask) {
     CommBlock* nst = (CommBlock*)clientData;
 
     //判断fd中有多少需要接收的数据
     int revcount = 0;
-    ioctl(nst->phy_connect_fd, FIONREAD, &revcount);
+    ioctl(fd , FIONREAD, &revcount);
 
     //关闭异常端口
     if (revcount == 0) {
-        aeDeleteFileEvent(eventLoop, nst->phy_connect_fd, AE_READABLE);
-        close(nst->phy_connect_fd);
+    	asyslog(LOG_WARNING, "链接出现异常，关闭端口、取消监听");
+        aeDeleteFileEvent(eventLoop, fd, AE_READABLE);
+        close(fd);
         nst->phy_connect_fd = -1;
+        SetOffline();
     }
 
     if (revcount > 0) {
         for (int j = 0; j < revcount; j++) {
-            read(nst->phy_connect_fd, &nst->RecBuf[nst->RHead], 1);
+            read(fd, &nst->RecBuf[nst->RHead], 1);
             nst->RHead = (nst->RHead + 1) % BUFLEN;
         }
         bufsyslog(nst->RecBuf, "Recv:", nst->RHead, nst->RTail, BUFLEN);
@@ -363,9 +353,10 @@ int NETWorker(struct aeEventLoop* ep, long long id, void* clientData) {
     CommBlock* nst = (CommBlock*)clientData;
     clearcount(1);
 
+    printf("nst->phy_connect_fd %d\n", nst->phy_connect_fd);
+
     if (nst->phy_connect_fd <= 0) {
         initComPara(nst);
-        asyslog(LOG_INFO, "链接主站(主站地址:%s:%d)", IPaddr, Class25.master.master[0].port);
         nst->phy_connect_fd = anetTcpConnect(NULL, IPaddr, Class25.master.master[0].port);
         if (nst->phy_connect_fd > 0) {
             asyslog(LOG_INFO, "链接主站(主站地址:%s,结果:%d)", IPaddr, nst->phy_connect_fd);
@@ -373,8 +364,9 @@ int NETWorker(struct aeEventLoop* ep, long long id, void* clientData) {
                 close(nst->phy_connect_fd);
                 nst->phy_connect_fd = -1;
             } else {
+            	dealinit();
                 anetTcpKeepAlive(NULL, nst->phy_connect_fd);
-                online_state = 1;
+                SetOnline();
                 asyslog(LOG_INFO, "与主站链路建立成功");
             }
         }
@@ -383,6 +375,7 @@ int NETWorker(struct aeEventLoop* ep, long long id, void* clientData) {
         TSGet(&ts);
         Comm_task(nst);
         deal_terminal_timeoffset();
+    	//deal_vsms();
     }
 
     /*
@@ -412,31 +405,7 @@ int NETWorker(struct aeEventLoop* ep, long long id, void* clientData) {
         }
     }
 
-    return 200;
-}
-
-int GPRSWorker(struct aeEventLoop* ep, long long id, void* clientData) {
-    CommBlock* nst = (CommBlock*)clientData;
-
-    if (nst->phy_connect_fd <= 0) {
-        initComPara(nst);
-        nst->phy_connect_fd = anetTcpConnect(NULL, "192.168.0.159", 5022);
-    } else {
-        TS ts = {};
-        TSGet(&ts);
-        Comm_task(nst);
-    }
-
-    return 200;
-}
-
-void CreateATWorker(void) {
-    pthread_attr_t attr;
-    pthread_attr_init(&attr);
-    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
-
-    pthread_t temp_key;
-    pthread_create(&temp_key, &attr, ATWorker, NULL);
+    return 2000;
 }
 
 void CreateAptSer(struct aeEventLoop* eventLoop, int fd, void* clientData, int mask) {
@@ -488,7 +457,7 @@ void enviromentCheck(int argc, char* argv[]) {
     asyslog(LOG_INFO, "连接应用方式 enum{主备模式(0),多连接模式(1)}：%d", Class25.commconfig.appConnectType);
     asyslog(LOG_INFO, "侦听端口列表：%d", Class25.commconfig.listenPort[0]);
     asyslog(LOG_INFO, "超时时间，重发次数：%02x", Class25.commconfig.timeoutRtry);
-    asyslog(LOG_INFO, "心跳周期秒：%d\n", Class25.commconfig.heartBeat);
+    asyslog(LOG_INFO, "心跳周期秒：%d", Class25.commconfig.heartBeat);
     asyslog(LOG_INFO, "主站通信地址(1)为：%d.%d.%d.%d:%d", Class25.master.master[0].ip[1], Class25.master.master[0].ip[2],Class25.master.master[0].ip[3],Class25.master.master[0].ip[4],Class25.master.master[0].port);
     asyslog(LOG_INFO, "主站通信地址(2)为：%d.%d.%d.%d:%d", Class25.master.master[1].ip[1], Class25.master.master[1].ip[2],Class25.master.master[1].ip[3],Class25.master.master[1].ip[4],Class25.master.master[1].port);
 
@@ -504,9 +473,6 @@ void enviromentCheck(int argc, char* argv[]) {
         asyslog(LOG_INFO, "确定：主站通信地址为：%s\n", IPaddr);
     }
 
-    //设置在线状态
-    online_state = 0;
-
     //向cjmain报告启动
     JProgramInfo = OpenShMem("ProgramInfo", sizeof(ProgramInfo), NULL);
     memcpy(JProgramInfo->Projects[1].ProjectName, "cjcomm", sizeof("cjcomm"));
@@ -517,14 +483,12 @@ void enviromentCheck(int argc, char* argv[]) {
     initComPara(&ComObject);
     initComPara(&nets_comstat);
     initComPara(&serv_comstat);
-
-    memset(timeoffset, 0, 50);
-    crrntimen      = 0;
-    timeoffsetflag = 0;
 }
 int main(int argc, char* argv[]) {
+	printf("version 1012\n");
     // daemon(0,0);
     enviromentCheck(argc, argv);
+
 
     //开始通信模块维护、红外与维护串口线程
     CreateATWorker();
@@ -545,10 +509,6 @@ int main(int argc, char* argv[]) {
     //建立网络连接（以太网、GPRS）维护事件
     aeCreateTimeEvent(ep, 1 * 1000, NETWorker, &nets_comstat, NULL);
     aeMain(ep);
-
-
-
-
 
     QuitProcess(&JProgramInfo->Projects[3]);
     return EXIT_SUCCESS;

@@ -142,6 +142,39 @@ void SetIPort(int argc, char *argv[])
 	}
 
 }
+
+void SetID(int argc, char *argv[])
+{
+	CLASS_4001_4002_4003	classtmp={};
+	char idbuf[VISIBLE_STRING_LEN-1];
+	long int len=0,id=0,i=0;
+	char a;
+	int   tmpval=0;
+
+	memset(&classtmp,0,sizeof(CLASS_4001_4002_4003));
+//
+	if (argc>2)
+	{
+		memset(idbuf,0,sizeof(idbuf));
+		len = argc-2;
+		classtmp.curstom_num[0] = len;
+		for(i=0;i<len;i++) {
+			sscanf(argv[2+i], "%02x",&tmpval);
+			classtmp.curstom_num[i+1] = tmpval;
+		}
+		for(i=0;i<16;i++) {
+			fprintf(stderr,"%02x ",classtmp.curstom_num[i]);
+		}
+		saveCoverClass(0x4001,0,&classtmp,sizeof(CLASS_4001_4002_4003),para_vari_save);
+	}else {
+		readCoverClass(0x4001,0,&classtmp,sizeof(CLASS_4001_4002_4003),para_vari_save);
+		fprintf(stderr,"\n通信地址[%d]:",classtmp.curstom_num[0]);
+		for(i=0;i<classtmp.curstom_num[0];i++) {
+			fprintf(stderr,"%02x ",classtmp.curstom_num[i+1]);
+		}
+	}
+}
+
 void SetApn(int argc, char *argv[])
 {
 	CLASS25 class4500;

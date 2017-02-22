@@ -17,31 +17,42 @@
 #include "dlt698def.h"
 #include "cjcomm.h"
 #include "rlog.h"
-extern int online_state;
-int checkgprs_exist()
-{
-	INT8S  	gprsid = 0;
-	INT8S 	gprs_s0=-1,gprs_s1=-1,gprs_s2=-1;
+#include "vsms.h"
 
-	gprsid = getSpiAnalogState() & 0x1f;
-	if((gprsid & 0x1f) == 0x1e) {
-		asyslog(LOG_INFO,"有GPRS模块  %02x",gprsid);
-		return 1;
-	}else  if(gprsid = -1) {			//II型
-		gprs_s0 = gpio_readbyte("DEV_GPRS_S0");
-		gprs_s1 = gpio_readbyte("DEV_GPRS_S1");
-		gprs_s2 = gpio_readbyte("DEV_GPRS_S2");
-		if(gprs_s0==1 && gprs_s1==1 && gprs_s2==1)
-		{
-			asyslog(LOG_INFO,"无GPRS模块  %d, %d, %d",gprs_s0,gprs_s1,gprs_s2);
-			return 0;
-		}else
-		{
-			asyslog(LOG_INFO,"有GPRS模块  %d, %d, %d",gprs_s0,gprs_s1,gprs_s2);
-			return 1;
-		}
-	}
-	return 0;
+
+static int NeedDoAt = 1;
+
+void SetOnline(void){
+	asyslog(LOG_NOTICE, "设置不需要AT拨号");
+	NeedDoAt = 0;
+}
+
+void SetOffline(void){
+	asyslog(LOG_NOTICE, "设置需要AT拨号");
+	NeedDoAt = 1;
+}
+
+int checkgprs_exist() {
+    INT8S gprsid  = 0;
+    INT8S gprs_s0 = -1, gprs_s1 = -1, gprs_s2 = -1;
+
+    gprsid = getSpiAnalogState() & 0x1f;
+    if ((gprsid & 0x1f) == 0x1e) {
+        asyslog(LOG_INFO, "有GPRS模块  %02x", gprsid);
+        return 1;
+    } else if (gprsid == -1) { // II型
+        gprs_s0 = gpio_readbyte("DEV_GPRS_S0");
+        gprs_s1 = gpio_readbyte("DEV_GPRS_S1");
+        gprs_s2 = gpio_readbyte("DEV_GPRS_S2");
+        if (gprs_s0 == 1 && gprs_s1 == 1 && gprs_s2 == 1) {
+            asyslog(LOG_INFO, "无GPRS模块  %d, %d, %d", gprs_s0, gprs_s1, gprs_s2);
+            return 0;
+        } else {
+            asyslog(LOG_INFO, "有GPRS模块  %d, %d, %d", gprs_s0, gprs_s1, gprs_s2);
+            return 1;
+        }
+    }
+    return 0;
 }
 
 int gpofun(char* devname, int data) {
@@ -61,7 +72,7 @@ int OpenMuxCom(INT8U port, int baud, unsigned char* par, unsigned char stopb, IN
     unsigned char tmp[128];
     memset(tmp, 0, 128);
     sprintf((char*)tmp, "/dev/mux%d", port);
-//    sprintf((char*)tmp, "/dev/ttyS%d", port);
+    //    sprintf((char*)tmp, "/dev/ttyS%d", port);
 
     Com_Port = open((char*)tmp, O_RDWR | O_NOCTTY); /* 打开串口文件 */
     if (Com_Port < 0) {
@@ -171,23 +182,20 @@ int OpenMuxCom(INT8U port, int baud, unsigned char* par, unsigned char stopb, IN
 
 int SendATCommand(char* buf, int len, int com) {
     int res = write(com, buf, len);
-    int i=0;
-    if(len>0)
-    {
-    	fprintf(stderr,"\n发");
-        for(i=0;i<len;i++)
-        	fprintf(stderr,"%c",buf[i]);
+    int i   = 0;
+    if (len > 0) {
+        for (i = 0; i < len; i++)
+            fprintf(stderr, "%c", buf[i]);
     }
     return (res < 0) ? 0 : res;
 }
+
 int RecieveFromComm(char* buf, int mlen, int com) {
     int len = read(com, buf, mlen);
-    int i=0;
-    if (len>0)
-    {
-    	fprintf(stderr,"\n收");
-        for(i=0;i<len;i++)
-        	fprintf(stderr,"%c",buf[i]);
+    int i   = 0;
+    if (len > 0) {
+        for (i = 0; i < len; i++)
+            fprintf(stderr, "%c", buf[i]);
     }
     return (len < 0) ? 0 : len;
 }
@@ -210,7 +218,7 @@ int tryifconfig() {
     memcpy(&sin, &ifr.ifr_addr, sizeof(sin));
     if (sin.sin_addr.s_addr > 0) {
         asyslog(LOG_INFO, "获取到正确的IP地址%s\n", inet_ntoa(sin.sin_addr));
-//        setPPPIP(inet_ntoa(sin.sin_addr));
+//                setPPPIP(inet_ntoa(sin.sin_addr));
         close(sock);
         return 1;
     }
@@ -218,60 +226,54 @@ int tryifconfig() {
     return 0;
 }
 
-void AT_POWOFF()
-{
-	gpofun("/dev/gpoGPRS_POWER", 0);
-}
-void reset_power()
-{
-	fprintf(stderr,"\nGPRS电源上电。。。。。。。。。。。。。。。。。。。。\n");
-	gpofun("/dev/gpoGPRS_POWER", 0);
-	sleep(4);
-	gpofun("/dev/gpoGPRS_POWER", 1);
-	gpofun("/dev/gpoGPRS_RST", 1);
-	gpofun("/dev/gpoGPRS_SWITCH", 1);
-	sleep(2);
-	gpofun("/dev/gpoGPRS_RST", 0);
-	sleep(1);
-	gpofun("/dev/gpoGPRS_RST", 1);
-	sleep(5);
-	gpofun("/dev/gpoGPRS_SWITCH", 0);
-	sleep(1);
-	gpofun("/dev/gpoGPRS_SWITCH", 1);
-	sleep(10);
+void AT_POWOFF() {
+    //关闭打开的服务
+    asyslog(LOG_INFO, "开始关闭外部服务（gtpget、ppp-off、gsmMuxd）");
+    system("pkill ftpget");
+    system("ppp-off");
+    system("pkill gsmMuxd");
+    sleep(3);
+    gpofun("/dev/gpoGPRS_POWER", 0);
 }
 
 void* ATWorker(void* args) {
     while (1) {
-        if(getOnlineState() == 1)
-        {
-        	goto wait;
+        if (NeedDoAt == 0) {
+            goto wait;
         }
 
         system("pkill ftpget");
         system("ppp-off");
         system("pkill gsmMuxd");
         sleep(3);
-        system("pkill gsmMuxd");
-        sleep(3);
-        reset_power();
+
+        gpofun("/dev/gpoGPRS_POWER", 0);
+        sleep(4);
+        gpofun("/dev/gpoGPRS_POWER", 1);
+        gpofun("/dev/gpoGPRS_RST", 1);
+        gpofun("/dev/gpoGPRS_SWITCH", 1);
+        sleep(2);
+        gpofun("/dev/gpoGPRS_RST", 0);
+        sleep(1);
+        gpofun("/dev/gpoGPRS_RST", 1);
+        sleep(5);
+        gpofun("/dev/gpoGPRS_SWITCH", 0);
+        sleep(1);
+        gpofun("/dev/gpoGPRS_SWITCH", 1);
+        sleep(10);
+
         asyslog(LOG_INFO, "打开串口复用模块");
         system("mux.sh &");
         sleep(15);
 
-        int sMux0 = OpenMuxCom(0, 115200, (unsigned char*)"none", 1, 8);//0
+        int sMux0 = OpenMuxCom(0, 115200, (unsigned char*)"none", 1, 8); // 0
         int sMux1 = OpenMuxCom(1, 115200, (unsigned char*)"none", 1, 8);
         if (sMux0 < 0 || sMux1 < 0) {
             close(sMux0);
             close(sMux1);
-            fprintf(stderr,"\n打开串口复用错误！\n");
+            fprintf(stderr, "\n打开串口复用错误！\n");
             goto err;
         }
-//        int sMux0 = OpenMuxCom(5, 115200, (unsigned char*)"none", 1, 8);//0
-//        if (sMux0 < 0) {
-//            close(sMux0);
-//            goto err;
-//        }
 
         for (int i = 0; i < 5; i++) {
             char Mrecvbuf[128];
@@ -315,11 +317,11 @@ void* ATWorker(void* args) {
             int k, l, m;
             if (sscanf(Mrecvbuf, "%*[^:]: %d,%d,%d", &k, &l, &m) == 3) {
                 if ((l & 0x01) == 1) {
-                	asyslog(LOG_INFO, "远程通信单元类型为GPRS。\n");
+                    asyslog(LOG_INFO, "远程通信单元类型为GPRS。\n");
                     break;
                 }
                 if ((l & 0x08) == 8) {
-                	asyslog(LOG_INFO, "远程通信单元类型为CDMA2000。\n");
+                    asyslog(LOG_INFO, "远程通信单元类型为CDMA2000。\n");
                     break;
                 }
             }
@@ -335,8 +337,8 @@ void* ATWorker(void* args) {
             char CCID[32];
             memset(CCID, 0, 32);
             if (sscanf(Mrecvbuf, "%*[^\"]\"%[0-9|A-Z|a-z]", CCID) == 1) {
-            	asyslog(LOG_INFO, "CCID: %s\n", CCID);
-            	setCCID(CCID);
+                asyslog(LOG_INFO, "CCID: %s\n", CCID);
+                setCCID(CCID);
                 break;
             }
         }
@@ -351,9 +353,9 @@ void* ATWorker(void* args) {
 
             int k, l;
             if (sscanf(Mrecvbuf, "%*[^:]: %d,%d", &k, &l) == 2) {
-            	asyslog(LOG_INFO, "GprsCSQ = %d,%d\n", k, l);
+                asyslog(LOG_INFO, "GprsCSQ = %d,%d\n", k, l);
                 if (k != 99) {
-                	setSINSTR(k);
+                    setSINSTR(k);
                     break;
                 }
             }
@@ -369,7 +371,7 @@ void* ATWorker(void* args) {
 
             int k, l;
             if (sscanf(Mrecvbuf, "%*[^:]: %d,%d", &k, &l) == 2) {
-            	asyslog(LOG_INFO, "GprsCREG = %d,%d\n", k, l);
+                asyslog(LOG_INFO, "GprsCREG = %d,%d\n", k, l);
                 if (l == 1 || l == 5) {
                     break;
                 }
@@ -380,30 +382,42 @@ void* ATWorker(void* args) {
         system("pppd call gprs &");
 
         for (int i = 0; i < 50; i++) {
-        	sleep(1);
+            sleep(1);
             if (tryifconfig() == 1) {
-            	online_state  = 1;
                 //拨号成功，存储参数，以备召唤
-               // saveCurrClass25();
+                saveCurrClass25();
+                break;
+            }
+        }
+        printf("sMux1 %d\n", sMux1);
+        setPort(sMux1);
+        sleep(8);
+
+    wait:
+//    	deal_vsms(sMux1);
+        //等待在线状态为“否”，重新拨号
+        while (1) {
+//        	RecePro(0);
+            usleep(200);
+            if (NeedDoAt == 1) {
                 break;
             }
         }
 
-
-    wait:
-    	//等待在线状态为“否”，重新拨号
-        while (1) {
-            delay(1000);
-            if(getOnlineState() == 0)
-            {
-            	break;
-            }
-        }
-
     err:
-    	//拨号出错，重试
+        //拨号出错，重试
+    	sleep(1);
         continue;
     }
 
     return NULL;
+}
+
+void CreateATWorker(void) {
+    pthread_attr_t attr;
+    pthread_attr_init(&attr);
+    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+
+    pthread_t temp_key;
+    pthread_create(&temp_key, &attr, ATWorker, NULL);
 }

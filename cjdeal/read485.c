@@ -14,6 +14,14 @@
 
 extern ProgramInfo* JProgramInfo;
 
+INT8U flag07_0CF33[4] =   {0x00,0xff,0x01,0x00};//当前正向有功总电能示值
+INT8U flag07_0CF25_1[4] = {0x00,0xff,0x01,0x02};//当前电压
+INT8U flag07_0CF25_2[4] = {0x00,0xff,0x02,0x02};//当前电流
+INT8U freezeflag07_1[4] = {0x01,0x00,0x06,0x05};//上一次日冻结时标
+INT8U freezeflag07_2[4] = {0x01,0x01,0x06,0x05};//上一次日冻结正向有功总电能示值
+INT8U freezeflag07_3[4] = {0x01,0x02,0x06,0x05};//上一次日冻结反向有功总电能示值
+INT8U flag07_date[4] 	= {0x01,0x01,0x00,0x04};//电能表日历时钟-日期
+INT8U flag07_time[4]	= {0x02,0x01,0x00,0x04};//电能表日历时钟-时间
 
 typedef enum {
 	coll_bps = 1,
@@ -246,11 +254,9 @@ void print6015(CLASS_6015 class6015) {
 		if (class6015.csds.csd[i].type == 1) {
 					memcpy(&testArray[0].flag698.road, &class6015.csds.csd[i].csd.road,
 							sizeof(ROAD));
-					INT8U freezeflag07_1[4] = { 0x01, 0x00, 0x06, 0x05 };
+
 					memcpy(testArray[0].flag07.DI_1[0], freezeflag07_1, 4);
-					INT8U freezeflag07_2[4] = { 0x01, 0x01, 0x06, 0x05 };
 					memcpy(testArray[0].flag07.DI_1[1], freezeflag07_2, 4);
-					INT8U freezeflag07_3[4] = { 0x01, 0x02, 0x06, 0x05 };
 					memcpy(testArray[0].flag07.DI_1[2], freezeflag07_3, 4);
 				}
 
@@ -259,19 +265,16 @@ void print6015(CLASS_6015 class6015) {
 			if(class6015.csds.csd[i].csd.oad.OI== 0x0010)
 			{
 				memcpy(&testArray[1].flag698.oad, &class6015.csds.csd[i].csd.oad,sizeof(OAD));
-				INT8U flag07_0CF33[4] = { 0x00, 0xff, 0x01, 0x00 };//当前正向有功总电能示值
 				memcpy(testArray[1].flag07.DI_1[0], flag07_0CF33, 4);
 			}
 			if(class6015.csds.csd[i].csd.oad.OI== 0x2000)
 			{
 				memcpy(&testArray[2].flag698.oad, &class6015.csds.csd[i].csd.oad,sizeof(OAD));
-				INT8U flag07_0CF25_1[4] = { 0x00, 0xff, 0x01, 0x02 };//当前电压
 				memcpy(testArray[2].flag07.DI_1[0], flag07_0CF25_1, 4);
 			}
 			if(class6015.csds.csd[i].csd.oad.OI== 0x2001)
 			{
 				memcpy(&testArray[3].flag698.oad, &class6015.csds.csd[i].csd.oad,sizeof(OAD));
-				INT8U flag07_0CF25_2[4] = { 0x00, 0xff, 0x02, 0x02 };//当前电流 A
 				memcpy(testArray[3].flag07.DI_1[0], flag07_0CF25_2, 4);
 			}
 #if 0
@@ -475,16 +478,6 @@ INT8U checkEvent(CLASS_6001 meter,FORMAT07 resultData07,INT16U taskID)
 {
 	INT8U ret = 0;
 
-	INT8U flag07_0CF33[4] = { 0x00, 0x00, 0x01, 0x00 };//当前正向有功总电能示值
-	memcpy(testArray[0].flag07.DI_1[0], flag07_0CF33, 4);
-	INT8U flag07_0CF25_1[4] = { 0x00, 0xff, 0x01, 0x02 };//当前电压
-	memcpy(testArray[0].flag07.DI_1[1], flag07_0CF25_1, 4);
-	INT8U flag07_0CF25_2[4] = { 0x00, 0xff, 0x02, 0x02 };//当前电流 A
-	memcpy(testArray[0].flag07.DI_1[2], flag07_0CF25_2, 4);
-	INT8U flag07_date[4] = { 0x01, 0x01, 0x00, 0x04 };//电能表日历时钟-日期
-	memcpy(testArray[0].flag07.DI_1[3], flag07_date, 4);
-	INT8U flag07_time[4] = { 0x02, 0x01, 0x00, 0x04 };//电能表日历时钟-时间
-	memcpy(testArray[0].flag07.DI_1[4], flag07_time, 4);
 	if(memcmp(flag07_0CF33,resultData07.DI,4)==0)
 	{
 		ret = Event_310B(meter.basicinfo.addr,taskID,resultData07.Data,resultData07.Length,JProgramInfo);
@@ -505,12 +498,6 @@ INT8U checkEvent(CLASS_6001 meter,FORMAT07 resultData07,INT16U taskID)
 INT8U getASNInfo(FORMAT07* DI07,Base_DataType* dataType)
 {
 	fprintf(stderr, "\n getASNInfo DI07 = %02x%02x%02x%02x",DI07->DI[3],DI07->DI[2],DI07->DI[1],DI07->DI[0]);
-	INT8U flag07_0CF33[4] =   {0x00,0xff,0x01,0x00};//当前正向有功总电能示值
-	INT8U flag07_0CF25_1[4] = {0x00,0xff,0x01,0x02};//当前电压
-	INT8U flag07_0CF25_2[4] = {0x00,0xff,0x02,0x02};//当前电流
-	INT8U freezeflag07_1[4] = {0x01,0x00,0x06,0x05};
-	INT8U freezeflag07_2[4] = {0x01,0x01,0x06,0x05};
-	INT8U freezeflag07_3[4] = {0x01,0x02,0x06,0x05};
 
 
 	INT8U unitNum = 1;
@@ -588,13 +575,53 @@ INT16U data07Tobuff698(FORMAT07 Data07,INT8U* dataContent)
 		len += unitSize;
 	}
 #ifdef TESTDEF
-	fprintf(stderr, "\n data07Tobuff698[%d] = ",len);
+	fprintf(stderr, "\n\n\n ###############data07Tobuff698[%d] = ",len);
 	for(index = 0;index < len;index++)
 	{
 		fprintf(stderr," %02x",dataContent[index]);
 	}
+	fprintf(stderr, "###############\n\n\n");
 #endif
 	return len;
+}
+INT16U request698_07DataSingle(FORMAT07* format07, INT8U* SendBuf,INT16S SendLen,CLASS_6035* st6035,INT8U* dataContent,CLASS_6001 meter)
+{
+	BOOLEAN nextFlag = 0;
+	INT8S recsta = 0;
+	INT16S RecvLen = 0;
+	INT8U RecvBuff[256];
+	INT16U buffLen = 0;
+	memset(&RecvBuff[0], 0, 256);
+	SendDataTo485(comfd4851, SendBuf, SendLen);
+	st6035->sendMsgNum++;
+	RecvLen = ReceDataFrom485(comfd4851, 500, RecvBuff);
+	if (RecvLen > 0)
+	{
+		st6035->rcvMsgNum++;
+		recsta = analyzeProtocol07(format07, RecvBuff, RecvLen, &nextFlag);
+		if (recsta == 0)
+		{
+			//把07数据格式化放到dataContent
+			buffLen = data07Tobuff698(*format07,dataContent);
+			//检查是否是事件关联数据标识
+			checkEvent(meter,*format07,st6035->taskID);
+		} else
+		{
+
+			if (recsta == -1) {
+				fprintf(stderr, "电表异常应答，无数据项  %02x%02x%02x%02x！！！\n",
+						format07->DI[3], format07->DI[2], format07->DI[1],
+						format07->DI[0]);
+			} else if (recsta == -2) {
+				fprintf(stderr, "电表异常应答，未知错误！ Err=%02x\n", format07->Err);
+			} else if (recsta == -3) {
+				fprintf(stderr, "其他功能！\n");
+			} else if (recsta == -4) {
+				fprintf(stderr, "校验错误！\n");
+			}
+		}
+	}
+	return buffLen;
 }
 /*
  * DI07List[10][4]是一个CSD对应的07数据标识列表
@@ -602,19 +629,17 @@ INT16U data07Tobuff698(FORMAT07 Data07,INT8U* dataContent)
  * */
 INT16U request698_07DataList(INT8U DI07List[10][4], CLASS_6001 meter,INT8U* dataContent,CLASS_6035* st6035)
 {
-
-	INT8S recsta = 0;
-	BOOLEAN nextFlag = 0;
 	FORMAT07 Data07;
-	INT16S SendLen = 0, RecvLen = 0;
+	INT16S SendLen = 0;
 
 	INT16U DataLen = 0;	//暂存正常抄读的数据长度
 
-	INT8U SendBuff[256], RecvBuff[256];
+	INT8U SendBuff[256];
 
 	INT8U invalidDI[4] = { 0 };
 	INT8U index;
-
+	INT16U singleBuffLen = 0;
+	INT8U subindex = 0;
 	INT8U isSuccess = 1;
 	for (index = 0; index < 10; index++)
 	{
@@ -627,53 +652,43 @@ INT16U request698_07DataList(INT8U DI07List[10][4], CLASS_6001 meter,INT8U* data
 				meter.basicinfo.addr.addr[0], meter.basicinfo.addr.addr[1], meter.basicinfo.addr.addr[2],
 				meter.basicinfo.addr.addr[3], meter.basicinfo.addr.addr[4], meter.basicinfo.addr.addr[5],
 				meter.basicinfo.addr.addr[6]);
-		fprintf(stderr, "\n request698_07DataList DI[%d] = %02x%02x%02x%02x\n",
+		fprintf(stderr, "\n\n ------------------request698_07DataList DI[%d] = %02x%02x%02x%02x\n",
 				index, DI07List[index][0], DI07List[index][1],
 				DI07List[index][2], DI07List[index][3]);
 
 		memset(&SendBuff[0], 0, 256);
-		memset(&RecvBuff[0], 0, 256);
 		memset(&Data07, 0, sizeof(FORMAT07));
-
 		Data07.Ctrl = CTRL_Read_07;
 		memcpy(&Data07.Addr, &meter.basicinfo.addr.addr[1], meter.basicinfo.addr.addr[0]);
 		memcpy(&Data07.DI, DI07List[index], 4);
+
 		SendLen = composeProtocol07(&Data07, SendBuff);
-		if (SendLen < 0) {
+		if (SendLen < 0)
+		{
 			fprintf(stderr, "request698_07DataList1");
 			continue;
 		}
-		SendDataTo485(comfd4851, SendBuff, SendLen);
-		st6035->sendMsgNum++;
-		RecvLen = ReceDataFrom485(comfd4851, 500, RecvBuff);
-		if (RecvLen > 0)
+		singleBuffLen = 0;
+		subindex = 0;
+		while(subindex < 3)
 		{
-			st6035->rcvMsgNum++;
-			recsta = analyzeProtocol07(&Data07, RecvBuff, RecvLen, &nextFlag);
-			if (recsta == 0) {
-				//把07数据格式化放到dataContent
-				DataLen += data07Tobuff698(Data07,&dataContent[DataLen]);
-				//检查是否是事件关联数据标识
-				checkEvent(meter,Data07,st6035->taskID);
-			} else {
-				isSuccess = 0;
-				if (recsta == -1) {
-					fprintf(stderr, "电表异常应答，无数据项  %02x%02x%02x%02x！！！\n",
-							Data07.DI[3], Data07.DI[2], Data07.DI[1],
-							Data07.DI[0]);
-				} else if (recsta == -2) {
-					fprintf(stderr, "电表异常应答，未知错误！ Err=%02x\n", Data07.Err);
-				} else if (recsta == -3) {
-					fprintf(stderr, "其他功能！\n");
-				} else if (recsta == -4) {
-					fprintf(stderr, "校验错误！\n");
-				}
+			singleBuffLen = request698_07DataSingle(&Data07,SendBuff,SendLen,st6035,&dataContent[DataLen],meter);
+			fprintf(stderr,"\n singleBuffLen = %d",singleBuffLen);
+			if(singleBuffLen > 0)
+			{
+				break;
 			}
+			subindex++;
+		}
+		if(singleBuffLen > 0)
+		{
+			DataLen += singleBuffLen;
 		}
 		else
 		{
 			isSuccess = 0;
 		}
+
 	}
 	if(isSuccess ==1)
 	{
@@ -722,7 +737,7 @@ INT8S deal6015_07(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8U*
 	INT16U totaldataLen =0;
 	INT16U datalen= 0;
 	fprintf(stderr,
-			"\n deal6015_07  meter = %d st6015.sernum = %d st6015.csds.num = %d",
+			"\n\n-------start------------ deal6015_07  meter = %d st6015.sernum = %d st6015.csds.num = %d---------",
 			to6001.sernum, st6015.sernum, st6015.csds.num);
 	switch (st6015.cjtype) {
 	case TYPE_NULL:/*采集当前数据--实时*/
@@ -762,7 +777,9 @@ INT8S deal6015_07(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8U*
 			continue;
 		}
 	}
-
+	fprintf(stderr,
+			"\n\n**********end************ deal6015_07  meter = %d st6015.sernum = %d st6015.csds.num = %d---------",
+			to6001.sernum, st6015.sernum, st6015.csds.num);
 	return totaldataLen;
 }
 /*
@@ -854,23 +871,14 @@ INT8U readList6001FromFile(CLASS_6001* list6001, INT16U groupIndex,
 INT16U compose6012Buff(DateTimeBCD startTime,TSA meterAddr,INT16U dataLen,INT8U* dataContent)
 {
 	fprintf(stderr,"\n compose6012Buff--------------");
-	fprintf(stderr,"\n dataContetent[%d]:",dataLen);
 	INT16U index;
-	for(index = 0;index < dataLen;index++)
-	{
-		fprintf(stderr," %02x",dataContent[index]);
-		if(index%20 == 0)
-		{
-			fprintf(stderr,"\n");
-		}
-	}
 	INT16U bufflen = 0;
 	DateTimeBCD endTime;
 	DataTimeGet(&endTime);
-	INT8U buff6012[600];
-	memset(buff6012,0,600);
+	INT8U buff6012[DATA_CONTENT_LEN];
+	memset(buff6012,0,DATA_CONTENT_LEN);
 
-	memcpy(&buff6012[bufflen],&meterAddr,sizeof(TSA));//采集通信地址
+	memcpy(&buff6012[bufflen],meterAddr.addr,sizeof(TSA));//采集通信地址
 	bufflen += sizeof(TSA);
 
 	buff6012[bufflen++] = dtdatetimes;
@@ -887,6 +895,18 @@ INT16U compose6012Buff(DateTimeBCD startTime,TSA meterAddr,INT16U dataLen,INT8U*
 
 	memcpy(&buff6012[bufflen],dataContent,dataLen);
 	bufflen += dataLen;
+
+	memset(dataContent,0,DATA_CONTENT_LEN);
+	memcpy(dataContent,buff6012,bufflen);
+	fprintf(stderr,"\n\n buff6012[%d]:",bufflen);
+	for(index = 0;index < bufflen;index++)
+	{
+		fprintf(stderr," %02x",buff6012[index]);
+		if(index%20 == 0)
+		{
+			fprintf(stderr,"\n");
+		}
+	}
 	return bufflen;
 }
 /*
@@ -1218,7 +1238,7 @@ void read485_thread(void* i485port) {
 			getTaskNextTime(tastIndexIndex);
 
 			CLASS_6035 result6035;	//采集任务监控单元
-			memset(&result6035, 0, sizeof(CLASS_6035));
+			memset(&result6035, 0xee, sizeof(CLASS_6035));
 			result6035.taskID = list6013[tastIndexIndex].basicInfo.taskID;
 			result6035.taskState = IN_OPR;
 			memcpy(&result6035.starttime,&list6013[tastIndexIndex].basicInfo.startime,sizeof(DateTimeBCD));
