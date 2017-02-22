@@ -193,8 +193,10 @@ void GenericRead(struct aeEventLoop* eventLoop, int fd, void* clientData, int ma
 }
 
 void initComPara(CommBlock* compara) {
-    INT8U addr[16] = { 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
-    memcpy(compara->serveraddr, addr, 16);
+	CLASS_4001_4002_4003 c4001;
+	readCoverClass(0x4001, 0, &c4001, sizeof(c4001), para_vari_save);
+	asyslog("逻辑地址长度：%d\n", c4001.curstom_num);
+    memcpy(compara->serveraddr, c4001.curstom_num, 16);
     compara->phy_connect_fd = -1;
     compara->testcounter    = 0;
     compara->linkstate      = close_connection;
@@ -362,6 +364,7 @@ int NETWorker(struct aeEventLoop* ep, long long id, void* clientData) {
                 close(nst->phy_connect_fd);
                 nst->phy_connect_fd = -1;
             } else {
+            	dealinit();
                 anetTcpKeepAlive(NULL, nst->phy_connect_fd);
                 SetOnline();
                 asyslog(LOG_INFO, "与主站链路建立成功");
@@ -372,6 +375,7 @@ int NETWorker(struct aeEventLoop* ep, long long id, void* clientData) {
         TSGet(&ts);
         Comm_task(nst);
         deal_terminal_timeoffset();
+    	//deal_vsms();
     }
 
     /*
@@ -480,9 +484,8 @@ void enviromentCheck(int argc, char* argv[]) {
     initComPara(&nets_comstat);
     initComPara(&serv_comstat);
 }
-
 int main(int argc, char* argv[]) {
-	printf("version 1006\n");
+	printf("version 1012\n");
     // daemon(0,0);
     enviromentCheck(argc, argv);
 

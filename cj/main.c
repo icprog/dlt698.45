@@ -21,6 +21,13 @@
 #include "main.h"
 
 static char
+		*usage_set =
+					"\n--------------------参数设置----------------------------\n"	\
+					"		 【通信地址】cj id <addr>		\n"					\
+					"-------------------------------------------------------\n\n"	\
+					;
+
+static char
 		*usage_para =
 					"\n--------------------参变量类对象----------------------------\n"	\
 					"[电气设备] "
@@ -142,6 +149,10 @@ int main(int argc, char *argv[])
 	}
 	if (strcmp("apn",argv[1])==0) {
 		SetApn(argc,argv);
+		return EXIT_SUCCESS;
+	}
+	if (strcmp("id",argv[1])==0) {
+		SetID(argc,argv);
 		return EXIT_SUCCESS;
 	}
 

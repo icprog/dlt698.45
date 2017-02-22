@@ -17,6 +17,8 @@
 #include "dlt698def.h"
 #include "cjcomm.h"
 #include "rlog.h"
+#include "vsms.h"
+
 
 static int NeedDoAt = 1;
 
@@ -387,15 +389,19 @@ void* ATWorker(void* args) {
                 break;
             }
         }
+        printf("sMux1 %d\n", sMux1);
+        setPort(sMux1);
+        sleep(8);
 
     wait:
+//    	deal_vsms(sMux1);
         //等待在线状态为“否”，重新拨号
         while (1) {
-            sleep(5);
+//        	RecePro(0);
+            usleep(200);
             if (NeedDoAt == 1) {
                 break;
             }
-            printf("Wait for offline\n");
         }
 
     err:

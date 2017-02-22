@@ -165,18 +165,22 @@ void Collect6000(OI_698	oi)
 				fprintf(stderr," [2]%s ",getenum(coll_bps,meter.basicinfo.baud));
 				fprintf(stderr,"[3]%s ",getenum(coll_protocol,meter.basicinfo.protocol));
 				fprintf(stderr,"[4]%04X_%02X%02X ",meter.basicinfo.port.OI,meter.basicinfo.port.attflg,meter.basicinfo.port.attrindex);
-				fprintf(stderr,"[5]%02x%02x%02x%02x%02x%02x ",meter.basicinfo.pwd[0],meter.basicinfo.pwd[1],meter.basicinfo.pwd[2],
-												meter.basicinfo.pwd[3],meter.basicinfo.pwd[4],meter.basicinfo.pwd[5]);
+				fprintf(stderr,"[5]");
+				for(j=0;j<meter.basicinfo.pwd[0];j++) {
+					fprintf(stderr,"%02x",meter.basicinfo.pwd[j+1]);
+				}
 				fprintf(stderr,"[6]%d [7]%d ",meter.basicinfo.ratenum,meter.basicinfo.usrtype);
 				fprintf(stderr,"[8]%s ",getenum(coll_wiretype,meter.basicinfo.connectype));
 				fprintf(stderr,"[9]%d [10]%d ",meter.basicinfo.ratedU,meter.basicinfo.ratedI);
-				fprintf(stderr,"\n       [11]%02x%02x%02x%02x%02x%02x ",
-						meter.extinfo.cjq_addr.addr[0],meter.extinfo.cjq_addr.addr[1],meter.extinfo.cjq_addr.addr[2],
-						meter.extinfo.cjq_addr.addr[3],meter.extinfo.cjq_addr.addr[4],meter.extinfo.cjq_addr.addr[5]);
-				fprintf(stderr,"[12]%02x%02x%02x%02x%02x%02x ",
-						meter.extinfo.asset_code[0],meter.extinfo.asset_code[1],meter.extinfo.asset_code[2],meter.extinfo.asset_code[3],
-						meter.extinfo.asset_code[4],meter.extinfo.asset_code[5]);
-				fprintf(stderr,"[13]%d [14]%d",meter.extinfo.pt,meter.extinfo.ct);
+				fprintf(stderr,"[11]");
+				for(j=0;j<meter.extinfo.cjq_addr.addr[0];j++) {
+					fprintf(stderr,"%02x",meter.extinfo.cjq_addr.addr[j+1]);
+				}
+				fprintf(stderr," [12]");
+				for(j=0;j<meter.extinfo.asset_code[0];j++) {
+					fprintf(stderr,"%02x",meter.extinfo.asset_code[j+1]);
+				}
+				fprintf(stderr," [13]%d [14]%d",meter.extinfo.pt,meter.extinfo.ct);
 				fprintf(stderr,"\n       [15]%04X_%02X%02X",meter.aninfo.oad.OI,meter.aninfo.oad.attflg,meter.aninfo.oad.attrindex);
 			}
 		}

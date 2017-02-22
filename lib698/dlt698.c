@@ -21,7 +21,7 @@ extern int getRequestNormalList(INT8U *data,CSINFO *csinfo,INT8U *sendbuf);
 extern int doReponse(int server,int reponse,CSINFO *csinfo,PIID piid,OAD oad,int dar,INT8U *data,INT8U *buf);
 extern int setRequestNormal(INT8U *data,OAD oad,CSINFO *csinfo,INT8U *buf);
 extern int setRequestNormalList(INT8U *Object,CSINFO *csinfo,INT8U *buf);
-extern int Proxy_GetRequestlist(INT8U *data,CSINFO *csinfo,INT8U *sendbuf);
+extern int Proxy_GetRequestlist(INT8U *data,CSINFO *csinfo,INT8U *sendbuf,INT8U piid);
 extern unsigned short tryfcs16(unsigned char *cp, int  len);
 extern INT32S secureConnectRequest(SignatureSecurity* securityInfo ,SecurityData* RetInfo);
 INT8S (*pSendfun)(int fd,INT8U* sndbuf,INT16U sndlen);
@@ -246,17 +246,20 @@ int FrameHead(CSINFO *csinfo,INT8U *buf)
  */
 int Link_Request(LINK_Request request,INT8U *addr,INT8U *buf)
 {
-	int index=0, hcsi=0;
+	int index=0, hcsi=0,i=0;
 	CSINFO csinfo={};
 
 	csinfo.dir = 1;		//服务器发出
 	csinfo.prm = 0; 	//服务器发出
 	csinfo.funcode = 1; //链路管理
 	csinfo.sa_type = 0 ;//单地址
-	csinfo.sa_length = 6;//sizeof(addr)-1;//服务器地址长度
+	csinfo.sa_length = addr[0];//sizeof(addr)-1;//服务器地址长度
 
-//	fprintf(stderr,"sa_length = %d \n",csinfo.sa_length);
-	memcpy(csinfo.sa,addr,csinfo.sa_length );//服务器地址
+	fprintf(stderr,"sa_length = %d \n",csinfo.sa_length);
+	for(i=0;i<csinfo.sa_length;i++) {
+		csinfo.sa[i] = addr[csinfo.sa_length-i];
+	}
+//	memcpy(csinfo.sa,&addr[1],csinfo.sa_length );//服务器地址
 	csinfo.ca = 0;
 
 	index = FrameHead(&csinfo,buf) ; //	2：hcs  hcs
@@ -587,11 +590,12 @@ int doProxyRequest(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
 	INT8U *data=NULL;
 
 	piid.data = apdu[2];
+	data = &apdu[3];
 	fprintf(stderr,"\n代理 PIID %02x   ",piid.data);
 	switch(getType)
 	{
 		case ProxyGetRequestList:
-			Proxy_GetRequestlist(data,csinfo,sendbuf);
+			Proxy_GetRequestlist(data,csinfo,sendbuf,piid.data);
 			break;
 		case ProxyGetRequestRecord:
 			break;

@@ -7,6 +7,7 @@
 
 #ifndef OBJECTACTION_H_
 #define OBJECTACTION_H_
+#include <time.h>
 #include "ParaDef.h"
 #include "StdDataType.h"
 
@@ -111,6 +112,7 @@ typedef struct {
 	INT8U username_pppoe[VISIBLE_STRING_LEN];	//PPPOE用户名   sohu.com@yaxinli.com.cn
 	INT8U password_pppoe[VISIBLE_STRING_LEN];	//PPPOE密码
 } NETCONFIG;
+
 typedef struct {
 	INT8U name[OCTET_STRING_LEN];		//逻辑名
 	COMM_CONFIG_2 commconfig;			//通信配置
@@ -184,16 +186,16 @@ typedef struct {
 } CLASS_4030;
 
 typedef struct {
-	char assetcode[40];
-} CLASS_4103;
+	char assetcode[40];	//0：代表有效长度
+} CLASS_4103;	//资产管理编码
 
 typedef struct {
-	INT8U startime[OCTET_STRING_LEN];
-	INT8U enable;
-	INT8U upleve;//误差阀值
-	INT8U startime1[OCTET_STRING_LEN];
-	INT8U enable1;
-} CLASS_4204;
+	INT8U startime[3];	//广播校时启动时间 time类型 octet-string(SIZE(3))
+	INT8U enable;						//是否启用
+	INT8U upleve;						//时钟误差阀值
+	INT8U startime1[3];	//终端广播校时启动时间
+	INT8U enable1;						//是否启用
+} CLASS_4204;	//终端广播校时
 
 //typedef struct {
 //	FactoryVersion verinfo;
@@ -368,6 +370,26 @@ typedef struct
 	INT8U selectType;//选择类型
 	RSD   select;	 //选择方法实例
 }RESULT_RECORD;
+typedef struct
+{
+	TSA tsa;			//目标地址
+	INT16U onetimeout;	//一个服务器的超时时间
+	INT16U num;			//oad的个数
+	OAD oads[10];		//num个对象描述
+}GETOBJS;
+typedef struct
+{
+	INT8U status;		//代理传输状态		0 表示就绪     1 已经表示返回数据  2 已经响应主站   3 超时
+	long int position;	//记录文件中的位置
+	time_t timeold;		//代理请求产生的时间
+	CSINFO csinfo;		//保存客户机信息
+	INT8U piid;			//本次代理请求PIID
+	INT16U timeout;		//代理超时时间
+	INT16U num;			//个数
+	GETOBJS objs[10];	//代理请求列表
+	INT8U data[512];	//请求结果
+}PROXY_GETLIST;
+
 ////////////////////////////////////////////////////////////////////
 
 #endif /* OBJECTACTION_H_ */

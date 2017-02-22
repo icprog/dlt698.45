@@ -114,7 +114,10 @@
 #define DEV_LED_RMT_RED      	"/dev/gpoREMOTE_RED"
 #define DEV_LED_RMT_GRN   		"/dev/gpoREMOTE_GREEN"
 
-
+////////*********************************************************
+//消息
+#define PROXY_485_MQ_NAME			"/proxy_485_mq"		//485抄表过程接收代理请求消息队列
+#define PROXY_NET_MQ_NAME			"/proxy_net_mq"		//通讯进程代理应答接收消息队列
 
 /////////////////////////////////////////////////////////////////
 
