@@ -486,7 +486,6 @@ void enviromentCheck(int argc, char* argv[]) {
     initComPara(&nets_comstat);
     initComPara(&serv_comstat);
 }
-
 int main(int argc, char* argv[]) {
 	printf("version 1012\n");
     // daemon(0,0);

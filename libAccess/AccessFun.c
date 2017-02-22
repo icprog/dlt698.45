@@ -862,4 +862,3 @@ INT8U getSelector(RSD select, INT8U selectype, CSD_ARRAYTYPE csds, INT8U *data, 
 		fprintf(stderr," %02x",data[i]);
 	return 0;
 }
-
