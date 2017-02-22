@@ -482,7 +482,7 @@ void enviromentCheck(int argc, char* argv[]) {
 }
 
 int main(int argc, char* argv[]) {
-	printf("version 1006\n");
+	printf("version 1007\n");
     // daemon(0,0);
     enviromentCheck(argc, argv);
 

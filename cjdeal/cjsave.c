@@ -223,7 +223,7 @@ void CreateSaveHead(char *fname,CSD_ARRAYTYPE csds,INT16U *headlen,INT16U *unitl
 	INT16U pindex=0,len_tmp=0,csd_unitnum=0;
 	int i=0,j=0;
 
-	INT8U fixed_buf[] = {0x00,0x01,0x40,0x02,0x00,0x00,0x11,//类型（0：oad 1：road） oad/road 长度 长度需要加上一个字节数据类型
+	INT8U fixed_buf[] = {0x00,0x2a,0x20,0x02,0x00,0x00,0x11,//类型（0：oad 1：road） oad/road 长度 长度需要加上一个字节数据类型
 						0x00,0x40,0x60,0x02,0x00,0x00,0x08,//开始 3个时标                     数据第一个字节为数据类型
 						0x00,0x41,0x60,0x02,0x00,0x00,0x08,//成功
 						0x00,0x42,0x60,0x02,0x00,0x00,0x08};//存储
@@ -338,19 +338,15 @@ void SaveNorData(INT8U taskid,INT8U *databuf,int datalen)
 	INT16U headlen=0,unitlen=0,unitnum=0,freq=0,unitseq=0;
 	CLASS_6015	class6015={};
 	CLASS_6013	class6013={};
-	fprintf(stderr,"\n--1.1--\n");
 	memset(fname,0,sizeof(fname));
 	TSGet(&ts_now);//用的当前时间，测试用，需要根据具体存储时标选择来定义
-	fprintf(stderr,"\n--1.2--\n");
 
 	memset(&class6013,0,sizeof(CLASS_6013));
-	fprintf(stderr,"\n--1.3--\n");
 	readCoverClass(0x6013,taskid,&class6013,sizeof(CLASS_6013),coll_para_save);
 	memset(&class6015,0,sizeof(CLASS_6015));
 	readCoverClass(0x6015,class6013.sernum,&class6015,sizeof(CLASS_6015),coll_para_save);
 
 	freq = CalcFreq(class6015);
-	fprintf(stderr,"\n--1.3--\n");
 	////////////////////////////////////////////////////////////////////////////////test
 //	memset(&class6015,0xee,sizeof(CLASS_6015));
 //	fprintf(stderr,"\n--1.4--\n");
@@ -374,9 +370,7 @@ void SaveNorData(INT8U taskid,INT8U *databuf,int datalen)
 //	freq = 1;
 //	taskid=1;
 	//////////////////////////////////////////////////////////////////////////////////test
-	fprintf(stderr,"\n--1.7--\n");
 	getTaskFileName(taskid,ts_now,fname);
-	fprintf(stderr,"\n--1.8--\n");
 //	ReadFileHead(fname);
 //	fprintf(stderr,"\n----headlence=%d,unitlence=%d,unitcnt=%d\n",headlence,unitlence,unitcnt);
 	fp = fopen(fname,"r");
@@ -402,7 +396,7 @@ void SaveNorData(INT8U taskid,INT8U *databuf,int datalen)
 		{
 			if(fread(databuf_tmp,unitlen,1,fp)==0)
 			{
-				fseek(fp,headlen,SEEK_SET);//回到文件头末尾
+//				fseek(fp,headlen,SEEK_SET);//回到文件头末尾
 				break;
 			}
 			fprintf(stderr,"\n文件中地址：");
@@ -421,6 +415,8 @@ void SaveNorData(INT8U taskid,INT8U *databuf,int datalen)
 				savepos=ftell(fp)-unitlen;
 				break;
 			}
+			else
+				fprintf(stderr,"\n-----savepos=%d,ftell(fp)=%d\n",savepos,ftell(fp));
 		}
 //		if(savepos==0)//存储位置为0.说明文件中没找到，则应添加而不是覆盖
 //		{
@@ -430,10 +426,12 @@ void SaveNorData(INT8U taskid,INT8U *databuf,int datalen)
 //				memcpy(&databuf_tmp[unitlen*i/freq],databuf,17);//每个小单元地址附上
 //		}
 	}
+	fprintf(stderr,"\n-------------savepos=%d\n",savepos);
 	if(savepos==0 || savepos==headlen)//存储位置为0.说明文件中没找到，则应添加而不是覆盖
 	{
 		if(savepos==0)
 			savepos=ftell(fp);
+		fprintf(stderr,"\n-------1------savepos=%d\n",savepos);
 		memset(databuf_tmp,0x00,unitlen);
 		for(i=0;i<freq;i++)
 			memcpy(&databuf_tmp[unitlen*i/freq],databuf,17);//每个小单元地址附上
@@ -567,6 +565,7 @@ void ReadNorData(TS ts,INT8U taskid,TSA *tsa_con,INT8U tsa_num)
 			fprintf(stderr,"\n");
 		}
 	}
+	free(savepos);
 }
 INT16U GetFileOadLen(INT8U units,INT8U tens)//个位十位转化为一个INT16U
 {
@@ -760,37 +759,6 @@ INT16U GetFileOadLen(INT8U units,INT8U tens)//个位十位转化为一个INT16U
 //	}
 //	return sendindex;
 //}
-
-
-INT8U GetTaskID(CSD_ARRAYTYPE csds)
-{
-	int i = 0;
-	INT8U collid=0;
-	CLASS_6013	class6013={};
-	CLASS_6015	class6015={};
-	for(i=0;i<256;i++)
-	{
-		memset(&class6015,0,sizeof(CLASS_6015));
-		readCoverClass(0x6015,i+1,&class6015,sizeof(CLASS_6015),coll_para_save);
-		if(memcmp(&csds,&class6015.csds,sizeof(CSD_ARRAYTYPE))==0)
-		{
-			collid=i;
-			break;
-		}
-	}
-	if(collid!=0)//找到了合适的普通采集方案
-	{
-		for(i=0;i<256;i++)
-		{
-			memset(&class6013,0,sizeof(CLASS_6015));
-			readCoverClass(0x6013,i+1,&class6013,sizeof(CLASS_6013),coll_para_save);
-			if(class6013.sernum == collid)
-				return i+1;
-		}
-	}
-	return 0;
-}
-
 //int main(int argc, char *argv[])
 //{
 ////    struct sigaction sa = {};

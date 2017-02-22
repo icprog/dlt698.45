@@ -111,6 +111,7 @@ typedef struct {
 	INT8U username_pppoe[VISIBLE_STRING_LEN];	//PPPOE用户名   sohu.com@yaxinli.com.cn
 	INT8U password_pppoe[VISIBLE_STRING_LEN];	//PPPOE密码
 } NETCONFIG;
+
 typedef struct {
 	INT8U name[OCTET_STRING_LEN];		//逻辑名
 	COMM_CONFIG_2 commconfig;			//通信配置
