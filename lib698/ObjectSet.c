@@ -151,7 +151,7 @@ INT16U set4001_4002_4003(OAD oad,INT8U *data)
 	int i=0;
 	memset(&class_addr,0,sizeof(CLASS_4001_4002_4003));
 	readCoverClass(oad.OI,0,&class_addr,sizeof(CLASS_4001_4002_4003),para_vari_save);
-
+	memset(&class_addr.curstom_num,0,sizeof(class_addr.curstom_num));
 	if (oad.attflg == 2 )
 	{
 		get_BasicUnit(data,&source_index,(INT8U *)&class_addr.curstom_num,&dest_index);

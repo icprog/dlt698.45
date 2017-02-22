@@ -246,7 +246,7 @@ int FrameHead(CSINFO *csinfo,INT8U *buf)
  */
 int Link_Request(LINK_Request request,INT8U *addr,INT8U *buf)
 {
-	int index=0, hcsi=0;
+	int index=0, hcsi=0,i=0;
 	CSINFO csinfo={};
 
 	csinfo.dir = 1;		//服务器发出
@@ -256,7 +256,10 @@ int Link_Request(LINK_Request request,INT8U *addr,INT8U *buf)
 	csinfo.sa_length = addr[0];//sizeof(addr)-1;//服务器地址长度
 
 	fprintf(stderr,"sa_length = %d \n",csinfo.sa_length);
-	memcpy(csinfo.sa,&addr[1],csinfo.sa_length );//服务器地址
+	for(i=0;i<csinfo.sa_length;i++) {
+		csinfo.sa[i] = addr[csinfo.sa_length-i];
+	}
+//	memcpy(csinfo.sa,&addr[1],csinfo.sa_length );//服务器地址
 	csinfo.ca = 0;
 
 	index = FrameHead(&csinfo,buf) ; //	2：hcs  hcs
