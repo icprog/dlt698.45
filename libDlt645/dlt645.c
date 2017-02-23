@@ -83,12 +83,14 @@ INT16U getFFCount(INT8U* recvBuf, const INT16U recvLen)//得到待解析报文�
 INT16S composeProtocol07(FORMAT07* format07, INT8U* sendBuf)
 {
 	INT16U i;
-#ifdef TESTDEF1
-	INT8U meterAddr[6] = {0x71,0x05,0x17,0x28,0x15,0x00};
-	memcpy(format07->Addr,meterAddr,6);
-#endif
 	INT8U addrBuff[6] = {0};
 	reversebuff(format07->Addr,6,addrBuff);
+
+#ifdef TESTDEF1
+	INT8U meterAddr[6] = {0x71,0x05,0x17,0x28,0x15,0x00};
+	memcpy(addrBuff,meterAddr,6);
+#endif
+
 	if (format07->Ctrl == 0x11)//读数据
 	{
 		sendBuf[0] = 0x68;

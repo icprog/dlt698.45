@@ -754,7 +754,7 @@ INT16S parseSecurityResponse(INT8U* RN,INT8U* apdu)//apdu负责传入和传出�
 	else
 		return -1;//无效应用数据单元标示
 }
-
+//OAD转换为报文
 INT8U OADtoBuff(OAD fromOAD,INT8U* buff)
 {
 	memcpy(&buff[0],&fromOAD,sizeof(OAD));
@@ -903,7 +903,31 @@ INT16S composeProtocol698_GetRequest(INT8U* 	sendBuf,CLASS_6015 obj6015,TSA mete
 	return (sendLen + 3);			//3: cs cs 16
 
 }
+#ifdef TESTDEF1
+int analyzeProtocol698(INT8U* Rcvbuf,)
+{
+	CSINFO csinfo={};
+	int hcsok = 0 ,fcsok = 0;
+	INT8U *apdu= NULL;
 
+	hcsok = CheckHead( Rcvbuf ,&csinfo);
+	fcsok = CheckTail( Rcvbuf ,csinfo.frame_length);
+	if ((hcsok==1) && (fcsok==1))
+	{
+		fprintf(stderr,"\nsa_length=%d\n",csinfo.sa_length);
+		apdu = &Rcvbuf[csinfo.sa_length+8];
+		if (csinfo.dir==1 && csinfo.prm == 1)	/*服务器对客户机请求的响应	（电表应答）*/
+		{
+			fprintf(stderr,"\n服务器对客户机请求的响应	（电表应答）");
+			//MeterEcho();
+		}else
+		{
+			fprintf(stderr,"\n控制码解析错误(传输方向与启动位错误)");
+		}
+	}
+	return 1;
+}
+#endif
 int doReleaseConnect(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
 {
 	int apduplace =0,index=0, hcsi=0;

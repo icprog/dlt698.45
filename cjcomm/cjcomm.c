@@ -23,6 +23,7 @@
 #include "cjcomm.h"
 #include "dlt698def.h"
 #include "event.h"
+#include "libmmq.h"
 
 //共享内存地址
 static ProgramInfo* JProgramInfo = NULL;
@@ -503,6 +504,11 @@ void InitCommPara()
 	nets_comstat.myAppVar.expect_connect_timeout = 56400;
 }
 
+void DealMMQMsg(struct aeEventLoop* eventLoop, int fd, void* clientData, int mask) {
+
+	return;
+}
+
 int main(int argc, char* argv[]) {
 	printf("version 1015\n");
 	pid_t pids[128];
@@ -522,7 +528,14 @@ int main(int argc, char* argv[]) {
     }
 
     //建立消息监听服务
-//    mqd_t mmpd = mmq_open(PROXY_NET_MQ_NAME,struct mq_attr *attr,INT32S flags);
+    struct mq_attr mmqAttr;
+    mmqAttr.mq_maxmsg = 128;
+    mmqAttr.mq_msgsize = 4096;
+    mqd_t mmpd = mmq_open(PROXY_NET_MQ_NAME, &mmqAttr, O_RDONLY);
+    if (mmpd >= 0) {
+        aeCreateFileEvent(ep, mmpd, AE_READABLE, DealMMQMsg, &serv_comstat);
+    }
+
 
     //建立服务端侦听
     int listen_port = anetTcpServer(NULL, 5555, "0.0.0.0", 1);

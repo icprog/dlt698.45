@@ -8,6 +8,8 @@
 #ifndef MAIN_H_
 #define MAIN_H_
 extern void SetApn(int argc, char *argv[]);
+extern void SetUsrPwd(int argc, char *argv[]);
+
 extern void SetIPort(int argc, char *argv[]);
 extern void SetID(int argc, char *argv[]);
 extern void cjframe(int argc, char *argv[]);

@@ -192,6 +192,13 @@ int main(int argc, char *argv[])
 		inoutdev_process(argc,argv);
 		return EXIT_SUCCESS;
 	}
+
+	if(strcmp("usr-pwd",argv[1])==0)
+	{
+		SetUsrPwd(argc, argv);
+		return EXIT_SUCCESS;
+	}
+
 	if(strcmp("acs",argv[1])==0)
 	{
 		fprintf(stderr,"%s",usage_acs);
