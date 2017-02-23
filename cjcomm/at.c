@@ -437,9 +437,43 @@ void* ATWorker(void* args) {
                 }
             }
         }
+
+        char* cimiType[] = {
+        		"46003",
+        		"46011",
+        };
+
+        int callType = 1;
+
+        for (int timeout = 0; timeout < 50; timeout++) {
+            char Mrecvbuf[128];
+
+            SendATCommand("\rAT+CIMI\r", 9, sMux0);
+            delay(1000);
+            memset(Mrecvbuf, 0, 128);
+            RecieveFromComm(Mrecvbuf, 128, sMux0);
+
+            char cimi[64];
+            memset(cimi, 0x00, sizeof(cimi));
+            if (sscanf((char *)&Mrecvbuf[0],"AT+CIMI%s",cimi)==1) {
+                asyslog(LOG_INFO, "CIMI = %s\n", cimi);
+                for (int i = 0; i < 2; i++) {
+                	if(strncmp(cimiType[i], cimi, 5) == 0){
+                		callType = 3;
+                		break;
+                	}
+                }
+                break;
+            }
+        }
         close(sMux0);
 
-        system("pppd call gprs &");
+        asyslog(LOG_INFO, "拨号类型：%s\n", (callType == 1)? "GPRS": "CDMA2000");
+        if(callType == 1){
+        	system("pppd call gprs &");
+        }else {
+        	system("pppd call cdma2000 &");
+        }
 
         for (int i = 0; i < 50; i++) {
             sleep(1);
@@ -454,10 +488,10 @@ void* ATWorker(void* args) {
         ATMYSOCKETLED(4, -1);
 
     wait:
-//    	deal_vsms(sMux1);
+    	//deal_vsms(sMux1);
         //等待在线状态为“否”，重新拨号
         while (1) {
-//        	RecePro(0);
+        	//RecePro(0);
             usleep(200);
             if (NeedDoAt == 1) {
                 break;
