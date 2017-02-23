@@ -487,7 +487,7 @@ void enviromentCheck(int argc, char* argv[]) {
     initComPara(&serv_comstat);
 }
 
-void InitClass4300()
+void getClass4300()
 {
 	CLASS19	 oi4300={};
 	int	 ret=0,i=0;
@@ -514,7 +514,7 @@ int main(int argc, char* argv[]) {
 	printf("version 1012\n");
     // daemon(0,0);
     enviromentCheck(argc, argv);
-    InitClass4300();
+    getClass4300();
 
     //开始通信模块维护、红外与维护串口线程
     CreateATWorker();
