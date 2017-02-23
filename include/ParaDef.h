@@ -27,6 +27,13 @@
 #define REALDATA_LIST_LENGTH 	10				//实时数据请求缓存
 #define PRO_WAIT_COUNT     		60
 
+
+#define MMQNAMEMAXLEN    	32		//消息队列名称长度
+#define MAXSIZ_PROXY_485    256
+#define MAXNUM_PROXY_485    25
+#define MAXSIZ_PROXY_NET    256
+#define MAXNUM_PROXY_NET    25
+
 ///////////////////////////////////////////////////////////////
 /*
  * 	终端类相关容量及参数定义
@@ -114,7 +121,10 @@
 #define DEV_LED_RMT_RED      	"/dev/gpoREMOTE_RED"
 #define DEV_LED_RMT_GRN   		"/dev/gpoREMOTE_GREEN"
 
-
+////////*********************************************************
+//消息
+#define PROXY_485_MQ_NAME			"/proxy_485_mq"		//485抄表过程接收代理请求消息队列
+#define PROXY_NET_MQ_NAME			"/proxy_net_mq"		//通讯进程代理应答接收消息队列
 
 /////////////////////////////////////////////////////////////////
 

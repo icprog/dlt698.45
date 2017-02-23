@@ -7,6 +7,7 @@
 
 #ifndef OBJECTACTION_H_
 #define OBJECTACTION_H_
+#include <time.h>
 #include "ParaDef.h"
 #include "StdDataType.h"
 
@@ -196,19 +197,6 @@ typedef struct {
 	INT8U enable1;						//是否启用
 } CLASS_4204;	//终端广播校时
 
-//typedef struct {
-//	FactoryVersion verinfo;
-//	DateTimeBCD  productDate;
-//	INT8U oinum;
-//	OI_698 ois[10];
-//	INT8U protocolnum;
-//	INT8U protocol[8][OCTET_STRING_LEN];
-//	INT8U follow_report;
-//	INT8U auto_report;
-//	INT8U talk_master;
-//	INT8U oadnum;
-//	OAD  oads[10];
-//} CLASS_4300;
 ///////////////////////////////////////////////////////////////////////////////
 /********************************************************
  *				A.7　采集监控类对象
@@ -369,6 +357,26 @@ typedef struct
 	INT8U selectType;//选择类型
 	RSD   select;	 //选择方法实例
 }RESULT_RECORD;
+typedef struct
+{
+	TSA tsa;			//目标地址
+	INT16U onetimeout;	//一个服务器的超时时间
+	INT16U num;			//oad的个数
+	OAD oads[10];		//num个对象描述
+}GETOBJS;
+typedef struct
+{
+	INT8U status;		//代理传输状态		0 表示就绪     1 已经表示返回数据  2 已经响应主站   3 超时
+	long int position;	//记录文件中的位置
+	time_t timeold;		//代理请求产生的时间
+	CSINFO csinfo;		//保存客户机信息
+	INT8U piid;			//本次代理请求PIID
+	INT16U timeout;		//代理超时时间
+	INT16U num;			//个数
+	GETOBJS objs[10];	//代理请求列表
+	INT8U data[512];	//请求结果
+}PROXY_GETLIST;
+
 ////////////////////////////////////////////////////////////////////
 
 #endif /* OBJECTACTION_H_ */

@@ -32,6 +32,30 @@ void printClass7(Class7_Object class7)
 	fprintf(stderr,"\n");
 }
 
+void printClass3106()
+{
+	Event3106_Object tmpobj={};
+	int 	saveflg=0,i=0,j=0;
+
+	saveflg = readCoverClass(0x3106,0,&tmpobj,sizeof(Event3106_Object),event_para_save);
+	fprintf(stderr,"\n[3106]终端停上电事件 \n");
+	fprintf(stderr,"\n采集配置参数：采集标志:%02x 抄读间隔(小时):%d　抄读限值(分钟):%d",tmpobj.poweroff_para_obj.collect_para_obj.collect_flag,
+			tmpobj.poweroff_para_obj.collect_para_obj.time_space,tmpobj.poweroff_para_obj.collect_para_obj.time_threshold);
+	fprintf(stderr,"\n电能表TSA:");
+	for(j=0;j<tmpobj.poweroff_para_obj.collect_para_obj.tsaarr.num;j++) {
+		fprintf(stderr,"\n电能表TSA[%d]:",j);
+		for(i=0;i<tmpobj.poweroff_para_obj.collect_para_obj.tsaarr.meter_tas[j].addr[0];i++) {
+			fprintf(stderr,"%02x",tmpobj.poweroff_para_obj.collect_para_obj.tsaarr.meter_tas[j].addr[i]);
+		}
+	}
+	fprintf(stderr,"\n甄别限值参数:\n最小间隔时间:%d\n最大间隔事件:%d\n起止时间偏差限值:%d\n区段偏差限值:%d\n停电发生电压限值:%d\n停电恢复电压限值:%d\n",
+			tmpobj.poweroff_para_obj.screen_para_obj.mintime_space,tmpobj.poweroff_para_obj.screen_para_obj.maxtime_space,
+			tmpobj.poweroff_para_obj.screen_para_obj.startstoptime_offset,tmpobj.poweroff_para_obj.screen_para_obj.sectortime_offset,
+			tmpobj.poweroff_para_obj.screen_para_obj.happen_voltage_limit,tmpobj.poweroff_para_obj.screen_para_obj.recover_voltage_limit);
+
+
+}
+
 void printClass310d()
 {
 	Event310D_Object Event310d; //电能表飞走事件12
@@ -224,6 +248,10 @@ void event_process(int argc, char *argv[])
 		if(strcmp("pro",argv[2])==0) {
 			if(argc==4) {
 				switch(oi) {
+				case 0x3106:
+					fprintf(stderr,"class3106:停上电事件\n");
+					printClass3106();
+					break;
 				case 0x310d:
 					fprintf(stderr,"class310d\n");
 					printClass310d();

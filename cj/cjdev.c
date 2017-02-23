@@ -152,7 +152,7 @@ void SetID(int argc, char *argv[])
 	int   tmpval=0;
 
 	memset(&classtmp,0,sizeof(CLASS_4001_4002_4003));
-//	readCoverClass(0x4001,0,&classtmp,sizeof(CLASS_4001_4002_4003),para_vari_save);
+//
 	if (argc>2)
 	{
 		memset(idbuf,0,sizeof(idbuf));
@@ -166,36 +166,13 @@ void SetID(int argc, char *argv[])
 			fprintf(stderr,"%02x ",classtmp.curstom_num[i]);
 		}
 		saveCoverClass(0x4001,0,&classtmp,sizeof(CLASS_4001_4002_4003),para_vari_save);
+	}else {
+		readCoverClass(0x4001,0,&classtmp,sizeof(CLASS_4001_4002_4003),para_vari_save);
+		fprintf(stderr,"\n通信地址[%d]:",classtmp.curstom_num[0]);
+		for(i=0;i<classtmp.curstom_num[0];i++) {
+			fprintf(stderr,"%02x ",classtmp.curstom_num[i+1]);
+		}
 	}
-
-
-//		if (sscanf(argv[2], "%d %d",&len, &id))
-//		if (sscanf(argv[2], "%s",idbuf))
-//		{
-//			fprintf(stderr,"id=%s,len=%d\n",idbuf,strlen(idbuf));
-//			for(i=0;i<strlen(idbuf);i++) {
-//				a = idbuf[i];
-//				sscanf(&a,"%x ",&tmpval);
-//				fprintf(stderr,"%x      %c\n",tmpval,a);
-//				if(i%2==0) {
-//					classtmp.curstom_num[i/2+1] = tmpval;
-//				}else if(i%2==1) {
-//					classtmp.curstom_num[i/2+1] = (classtmp.curstom_num[i/2]<<4) | tmpval;
-//				}
-//			}
-////			if(strlen(idbuf)%2!=0) {
-////				len = strlen(idbuf)/2+1;
-////				classtmp.curstom_num[len-1] = classtmp.curstom_num[len-1]<<4;
-////			}else {
-////				len = strlen(idbuf)/2;
-////			}
-////			classtmp.curstom_num[0] = len;
-//
-////			fprintf(stderr,"======%d",atoi(idbuf));
-//			classtmp.curstom_num[0] = strlen(idbuf)/2;
-//			int32u2bcd(atoi(idbuf),&classtmp.curstom_num[1],positive);
-//		}
-//	}
 }
 
 void SetApn(int argc, char *argv[])

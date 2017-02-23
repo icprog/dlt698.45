@@ -32,7 +32,7 @@ CLASS_INFO	info={};
 void clearData()
 {
 	//冻结类数据清除
-	system("rm -rf /nand/freeze");
+	system("rm -rf /nand/task");
 }
 
 void clearEvent()
@@ -929,4 +929,3 @@ INT8U getSelector(RSD select, INT8U selectype, CSD_ARRAYTYPE csds, INT8U *data, 
 	free(tsa_con);
 	return 0;
 }
-
