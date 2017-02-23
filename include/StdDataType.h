@@ -706,6 +706,7 @@ typedef struct{
 	INT8U linkstate;
 	INT8U testcounter;
 	INT8U serveraddr[16];
+        INT8U taskaddr;                 //客户机地址
 	INT8U SendBuf[BUFLEN];			//发送数据
 	INT8U DealBuf[FRAMELEN];  		//保存接口函数处理长度
 	INT8U RecBuf[BUFLEN]; 			//接收数
@@ -733,5 +734,15 @@ typedef struct
 	TSA cjqaddr;
 
 }MeterInfoUnit;
+
+typedef struct{
+	OI_698 oi;
+	INT16U eventno;
+}Reportevent;
+
+typedef struct{
+	INT8U event_num;
+	Reportevent report_event[15];
+}NeedReport_Event;
 
 #endif
