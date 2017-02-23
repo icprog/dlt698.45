@@ -18,7 +18,7 @@
 #define DATA_CONTENT_LEN 500
 
 
-mqd_t mqd_485_main;
+
 pthread_attr_t read485_attr_t;
 int thread_read4851_id,thread_read4852_id;           //485、四表合一（I型、II型、专变）
 pthread_t thread_read4851,thread_read4852;

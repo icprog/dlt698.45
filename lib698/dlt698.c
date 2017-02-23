@@ -597,10 +597,12 @@ int doProxyRequest(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
 	INT8U *data=NULL;
 
 	piid.data = apdu[2];
+	data = &apdu[3];
 	fprintf(stderr,"\n代理 PIID %02x   ",piid.data);
 	switch(getType)
 	{
 		case ProxyGetRequestList:
+			fprintf(stderr,"\n==========\n");
 			Proxy_GetRequestlist(data,csinfo,sendbuf);
 			break;
 		case ProxyGetRequestRecord:
