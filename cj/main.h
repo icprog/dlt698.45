@@ -9,7 +9,11 @@
 #define MAIN_H_
 extern void SetApn(int argc, char *argv[]);
 extern void SetIPort(int argc, char *argv[]);
+extern void SetID(int argc, char *argv[]);
+extern void cjframe(int argc, char *argv[]);
+
 extern void acs_process(int argc, char *argv[]);
+
 extern void event_process(int argc, char *argv[]);
 /*
  * 采集监控类文件的读取*/

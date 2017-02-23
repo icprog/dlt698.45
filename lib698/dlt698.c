@@ -35,6 +35,7 @@ CONNECT_Response *myAppVar_p;	// 集中器支持参数（应用层会话参数�
 CONNECT_Response *AppVar_p;		// 集中器协商后参数（应用层会话参数）
 INT8U securetype;  //安全等级类型  01明文，02明文+MAC 03密文  04密文+MAC
 INT8U secureRN[20];//安全认证随机数，主站下发，终端回复时需用到，esam计算使用
+PIID piid_g={};
 /**************************************
  * 函数功能：DL/T698.45 状态机
  * 参数含义：
@@ -564,12 +565,12 @@ int doSetAttribute(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 
 int doGetAttribute(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
 {
-	PIID piid={};
+
 	INT8U getType = apdu[1];
 	OAD oad={};
 	INT8U *data=NULL;
-	piid.data = apdu[2];
-	fprintf(stderr,"\n- get type = %d PIID=%02x",getType,piid.data);
+	piid_g.data = apdu[2];
+	fprintf(stderr,"\n- get type = %d PIID=%02x",getType,piid_g.data);
 
 	getoad(&apdu[3],&oad);
 	data = &apdu[7];					//Data

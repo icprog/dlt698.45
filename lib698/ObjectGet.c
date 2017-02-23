@@ -29,7 +29,7 @@ extern INT8U TmpDataBuf[MAXSIZ_FAM];
 extern INT8U TmpDataBufList[MAXSIZ_FAM*2];
 extern INT8U securetype;
 extern ProgramInfo *memp;
-
+extern PIID piid_g;
 int BuildFrame_GetResponseRecord(INT8U response_type,CSINFO *csinfo,RESULT_RECORD record,INT8U *sendbuf)
 {
 	int index=0, hcsi=0,num=0,i=0,k=0;
@@ -40,7 +40,7 @@ int BuildFrame_GetResponseRecord(INT8U response_type,CSINFO *csinfo,RESULT_RECOR
 	index = index + 2;
 	sendbuf[index++] = GET_RESPONSE;
 	sendbuf[index++] = response_type;
-	sendbuf[index++] = 0;	//	piid
+	sendbuf[index++] = piid_g.data;	//	piid
 	index += create_OAD(&sendbuf[index],record.oad);
 	num = record.rcsd.csds.num;
 	if(num==0) {
@@ -96,7 +96,7 @@ int BuildFrame_GetResponse(INT8U response_type,CSINFO *csinfo,INT8U oadnum,RESUL
 	int apduplace =0;
 	int index=0, hcsi=0;
 	csinfo->dir = 1;
-	csinfo->prm = 0;
+	csinfo->prm = 1;
 	index = FrameHead(csinfo,sendbuf);
 	hcsi = index;
 	index = index + 2;
@@ -104,7 +104,7 @@ int BuildFrame_GetResponse(INT8U response_type,CSINFO *csinfo,INT8U oadnum,RESUL
 	apduplace = index;		//记录APDU 起始位置
 	sendbuf[index++] = GET_RESPONSE;
 	sendbuf[index++] = response_type;
-	sendbuf[index++] = 0;	//	piid
+	sendbuf[index++] = piid_g.data;	//	piid
 	if (oadnum>0)
 		sendbuf[index++] = oadnum;
 	memcpy(&sendbuf[index],response.data,response.datalen);

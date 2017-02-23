@@ -14,6 +14,7 @@
 #include "Objectdef.h"
 #include "EventObject.h"
 #include "PublicFunction.h"
+#include "event.h"
 
 extern void get_BasicUnit(INT8U *source,INT16U *sourceindex,INT8U *dest,INT16U *destindex);
 extern ProgramInfo *memp;
@@ -265,15 +266,15 @@ INT16U set4300(OAD oad,INT8U *data)
 	INT16U source_index=0,dest_index=0;
 	CLASS19		class4300={};
 
-//	readCoverClass(oad.OI,0,&class4300,sizeof(CLASS19),para_vari_save);
-//
-//	if ( attflg == 8 )//允许\禁止终端主动上报
-//	{
-//		INT8U autoReport=0;
-//		get_BasicUnit(data,&source_index,&autoReport,&dest_index);
-//		fprintf(stderr,"\n终端主动上报 : %d\n",autoReport);
-//	}
-//	return source_index;
+	readCoverClass(oad.OI,0,&class4300,sizeof(CLASS19),para_vari_save);
+	switch(oad.attflg) {
+	case 8:	//允许\禁止终端主动上报
+		get_BasicUnit(data,&source_index,&class4300.follow_report,&dest_index);
+		fprintf(stderr,"\n终端主动上报 : %d\n",class4300.follow_report);
+		saveCoverClass(oad.OI,0,&class4300,sizeof(CLASS19),para_vari_save);
+		break;
+	}
+	return source_index;
 }
 
 INT16U set4500(OAD oad,INT8U *data)
@@ -328,7 +329,6 @@ INT16U set4500(OAD oad,INT8U *data)
 INT16U set4103(OAD oad,INT8U *data)
 {
 	int i=0,bytenum=0;
-	INT16U source_index=0,dest_index=0;
 	CLASS_4103 class4103;
 	memset(&class4103,0,sizeof(CLASS_4103));
 	fprintf(stderr,"\n==========%d",oad.attflg);
@@ -581,7 +581,7 @@ void EnvironmentValue(OAD oad,INT8U *data)
 void CollParaSet(OAD oad,INT8U *data)
 {
 	INT16U oi = oad.OI;
-	INT8U attr = oad.attflg;
+//	INT8U attr = oad.attflg;
 	fprintf(stderr,"\n采集监控类对象属性设置");
 	switch(oi)
 	{
