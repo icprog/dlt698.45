@@ -521,6 +521,16 @@ INT8U is485OAD(OAD portOAD,INT8U port485)
 	}
 	return 1;
 }
+INT16U dealProxy_645_07(GETOBJS obj07)
+{
+	INT16U dataLen = 0;
+#if 0
+	obj07.num
+	obj07.tsa
+	obj07.oads
+#endif
+	return dataLen;
+}
 INT8S dealProxy(PROXY_GETLIST* getlist,INT8U port485)
 {
 	INT8S result = -1;
@@ -553,6 +563,16 @@ INT8S dealProxy(PROXY_GETLIST* getlist,INT8U port485)
 			fprintf(stderr," dealProxy--------4");
 			continue;
 		}
+		if(obj6001.basicinfo.protocol == DLT_645_07)
+		{
+			dealProxy_645_07(getlist->objs[index]);
+
+		}
+		if(obj6001.basicinfo.protocol == DLT_698)
+		{
+
+		}
+
 
 	}
 
@@ -565,9 +585,12 @@ INT8S DealRecvMsg(mmq_head mq_h, INT8U *rev_485_buf,INT8U port485)
 	switch(mq_h.cmd)
 	{
 		case 1://代理
-			//PROXY_GETLIST* getlist = (PROXY_GETLIST*)rev_485_buf;
-			//dealProxy(getlist,port485);
-			break;
+		{
+			PROXY_GETLIST * getlist;
+			getlist = (PROXY_GETLIST*)rev_485_buf;
+			dealProxy(getlist,port485);
+		}
+		break;
 		default:
 			return result;
 	}
@@ -582,13 +605,13 @@ INT8S dealRealTimeRequst(INT8U port485)
 		fprintf(stderr,"S485_1_REV_MAIN_MQ:mq_open_ret=%d\n",mqd_485_main);
 		return result;
 	}
-	fprintf(stderr,"\n dealRealTimeRequst buffsize = %d",sizeof(PROXY_GETLIST));
-	INT8U  rev_485_buf[1024];
+	fprintf(stderr,"\n dealRealTimeRequst mqd_485_main = %d buffsize = %d",mqd_485_main,sizeof(PROXY_GETLIST));
+	INT8U  rev_485_buf[4092];
 	INT8S ret;
 	mmq_head mq_h;
 	while(1)
 	{
-		ret = mmq_get(mqd_485_main, 1, &mq_h, rev_485_buf);
+		ret = mmq_get(mqd_485_main, 10, &mq_h, rev_485_buf);
 		if (ret>0)
 		{
 			//备份当前comfd4851 comfd4852，代理执行完后重新赋值
@@ -617,6 +640,7 @@ INT8S dealRealTimeRequst(INT8U port485)
 		}
 		else
 		{
+			fprintf(stderr,"\n dealRealTimeRequst result = %d",result);
 			return result;
 		}
 	}
