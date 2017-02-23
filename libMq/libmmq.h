@@ -10,12 +10,26 @@
 
 #include <mqueue.h>
 #include "../include/StdDataType.h"
-
+#include "../include/ParaDef.h"
 typedef struct{
 	INT16U 	pid;			   //发送方进程id
 	INT32U  cmd;               //命令字
 	INT32U  bufsiz;				//buf的有效长度
 }mmq_head;
+
+typedef enum
+{
+	 cjcomm,
+	 cjdeal
+}PROGS_ID;
+
+typedef struct
+{
+	PROGS_ID pid;    //消息队列服务器端进程号
+	INT8U    name[MMQNAMEMAXLEN]; //消息队列名称
+	INT32U   maxsiz; //数据缓冲容量最大值
+	INT32U   maxnum; //mq最大消息个数
+}mmq_attribute;
 
 extern mqd_t mmq_create(INT8S * name,struct mq_attr *attr,INT32S flags);
 

@@ -35,6 +35,7 @@ CONNECT_Response *myAppVar_p;	// 集中器支持参数（应用层会话参数�
 CONNECT_Response *AppVar_p;		// 集中器协商后参数（应用层会话参数）
 INT8U securetype;  //安全等级类型  01明文，02明文+MAC 03密文  04密文+MAC
 INT8U secureRN[20];//安全认证随机数，主站下发，终端回复时需用到，esam计算使用
+PIID piid_g={};
 /**************************************
  * 函数功能：DL/T698.45 状态机
  * 参数含义：
@@ -256,8 +257,12 @@ int Link_Request(LINK_Request request,INT8U *addr,INT8U *buf)
 	csinfo.sa_length = addr[0];//sizeof(addr)-1;//服务器地址长度
 
 	fprintf(stderr,"sa_length = %d \n",csinfo.sa_length);
-	for(i=0;i<csinfo.sa_length;i++) {
-		csinfo.sa[i] = addr[csinfo.sa_length-i];
+	if(csinfo.sa_length<OCTET_STRING_LEN) {
+		for(i=0;i<csinfo.sa_length;i++) {
+			csinfo.sa[i] = addr[csinfo.sa_length-i];
+		}
+	}else {
+		fprintf(stderr,"SA 长度超过定义长度，不合理！！！\n");
 	}
 //	memcpy(csinfo.sa,&addr[1],csinfo.sa_length );//服务器地址
 	csinfo.ca = 0;
@@ -445,7 +450,14 @@ int appConnectResponse(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 	 */
 	memset(&response,0,sizeof(response));
 	response.piid_acd = request.piid;
+
+	fprintf(stderr,"\n应用连接---PIID-ACD----%02x",request.piid.data);
+
 	varconsult(&response,&request,myAppVar_p);
+
+
+
+
 	/*
 	 *存储应用会话参数结构
 	 */
@@ -460,6 +472,7 @@ int appConnectResponse(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 	index = FrameHead(csinfo,buf);
 	hcsi = index;
 	index = index + 2;
+	buf[index++] = 0x82;
 	buf[index++] = response.piid_acd.data;
 	memcpy(&buf[index],response.server_factory_version.factorycode,4);
 	index = index +4;
@@ -552,12 +565,12 @@ int doSetAttribute(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 
 int doGetAttribute(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
 {
-	PIID piid={};
+
 	INT8U getType = apdu[1];
 	OAD oad={};
 	INT8U *data=NULL;
-	piid.data = apdu[2];
-	fprintf(stderr,"\n- get type = %d PIID=%02x",getType,piid.data);
+	piid_g.data = apdu[2];
+	fprintf(stderr,"\n- get type = %d PIID=%02x",getType,piid_g.data);
 
 	getoad(&apdu[3],&oad);
 	data = &apdu[7];					//Data
@@ -1028,6 +1041,7 @@ void testframe(INT8U *apdu,int len)
 		fprintf(stderr,"%02x ",buf[k]);
 	fprintf(stderr,"\n----------------------------------------\n");
 }
+
 int ProcessData(CommBlock *com)
 {
 	CSINFO csinfo={};

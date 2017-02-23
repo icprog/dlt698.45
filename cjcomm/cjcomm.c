@@ -194,6 +194,7 @@ void GenericRead(struct aeEventLoop* eventLoop, int fd, void* clientData, int ma
 
 void initComPara(CommBlock* compara) {
 	CLASS_4001_4002_4003 c4001;
+	memset(&c4001, 0x00, sizeof(c4001));
 	readCoverClass(0x4001, 0, &c4001, sizeof(c4001), para_vari_save);
 	asyslog("逻辑地址长度：%d\n", c4001.curstom_num);
     memcpy(compara->serveraddr, c4001.curstom_num, 16);
@@ -353,11 +354,12 @@ int NETWorker(struct aeEventLoop* ep, long long id, void* clientData) {
     CommBlock* nst = (CommBlock*)clientData;
     clearcount(1);
 
-    printf("nst->phy_connect_fd %d\n", nst->phy_connect_fd);
-
+    printf("nst->phy_connect_fd %d - %s:%d\n", nst->phy_connect_fd, IPaddr, Class25.master.master[0].port);
     if (nst->phy_connect_fd <= 0) {
+        char errmsg[256];
+        memset(errmsg, 0x00, sizeof(errmsg));
         initComPara(nst);
-        nst->phy_connect_fd = anetTcpConnect(NULL, IPaddr, Class25.master.master[0].port);
+        nst->phy_connect_fd = anetTcpConnect(errmsg, IPaddr, Class25.master.master[0].port);
         if (nst->phy_connect_fd > 0) {
             asyslog(LOG_INFO, "链接主站(主站地址:%s,结果:%d)", IPaddr, nst->phy_connect_fd);
             if (aeCreateFileEvent(ep, nst->phy_connect_fd, AE_READABLE, NETRead, nst) < 0) {
@@ -368,7 +370,11 @@ int NETWorker(struct aeEventLoop* ep, long long id, void* clientData) {
                 anetTcpKeepAlive(NULL, nst->phy_connect_fd);
                 SetOnline();
                 asyslog(LOG_INFO, "与主站链路建立成功");
+                gpofun("/dev/gpoONLINE_LED", 1);
             }
+        }
+        else{
+        	asyslog(LOG_WARNING, "主站链接失败，(%d)[%s]", nst->phy_connect_fd, errmsg);
         }
     } else {
         TS ts = {};
@@ -462,16 +468,9 @@ void enviromentCheck(int argc, char* argv[]) {
     asyslog(LOG_INFO, "主站通信地址(2)为：%d.%d.%d.%d:%d", Class25.master.master[1].ip[1], Class25.master.master[1].ip[2],Class25.master.master[1].ip[3],Class25.master.master[1].ip[4],Class25.master.master[1].port);
 
     //检查运行参数
-    if (argc <= 2) {
-    	memset(IPaddr, 0, sizeof(IPaddr));
-        snprintf(IPaddr, sizeof(IPaddr), "%d.%d.%d.%d", Class25.master.master[0].ip[1], Class25.master.master[0].ip[2],Class25.master.master[0].ip[3],Class25.master.master[0].ip[4]);
-        asyslog(LOG_INFO, "确定：主站通信地址为：%s\n", IPaddr);
-    }else{
-        //解析通信参数
-        memset(IPaddr, 0, sizeof(IPaddr));
-        memcpy(IPaddr, argv[1], strlen(argv[1]));
-        asyslog(LOG_INFO, "确定：主站通信地址为：%s\n", IPaddr);
-    }
+	memset(IPaddr, 0, sizeof(IPaddr));
+	snprintf(IPaddr, sizeof(IPaddr), "%d.%d.%d.%d", Class25.master.master[0].ip[1], Class25.master.master[0].ip[2],Class25.master.master[0].ip[3],Class25.master.master[0].ip[4]);
+	asyslog(LOG_INFO, "确定：主站通信地址为：%s\n", IPaddr);
 
     //向cjmain报告启动
     JProgramInfo = OpenShMem("ProgramInfo", sizeof(ProgramInfo), NULL);
@@ -484,12 +483,34 @@ void enviromentCheck(int argc, char* argv[]) {
     initComPara(&nets_comstat);
     initComPara(&serv_comstat);
 }
+
+void InitCommPara()
+{
+	CLASS19	 oi4300={};
+	int	 ret=0,i=0;
+	memset(&oi4300,0,sizeof(CLASS19));
+	ret = readCoverClass(0x4300,0,&oi4300,sizeof(CLASS19),para_vari_save);
+	if (ret)
+		memcpy(&nets_comstat.myAppVar.server_factory_version,&oi4300.info,sizeof(FactoryVersion));
+	for(i=0;i<2;i++)
+		nets_comstat.myAppVar.FunctionConformance[i] =0xff;
+	for(i=0;i<5;i++)
+		nets_comstat.myAppVar.ProtocolConformance[i] =0xff;
+	nets_comstat.myAppVar.server_deal_maxApdu = 1024;
+	nets_comstat.myAppVar.server_recv_size = 1024;
+	nets_comstat.myAppVar.server_send_size = 1024;
+	nets_comstat.myAppVar.server_recv_maxWindow = 1;
+	nets_comstat.myAppVar.expect_connect_timeout = 56400;
+}
+
 int main(int argc, char* argv[]) {
-	printf("version 1012\n");
+	printf("version 1015\n");
+	pid_t pids[128];
+    if (prog_find_pid_by_name((INT8S*)argv[0], pids) > 1)
+		return EXIT_SUCCESS;
     // daemon(0,0);
     enviromentCheck(argc, argv);
-
-
+    InitCommPara();
     //开始通信模块维护、红外与维护串口线程
     CreateATWorker();
     //开启网络IO事件处理框架
@@ -499,6 +520,9 @@ int main(int argc, char* argv[]) {
         asyslog(LOG_ERR, "事件循环创建失败，程序终止。\n");
         exit(0);
     }
+
+    //建立消息监听服务
+//    mqd_t mmpd = mmq_open(PROXY_NET_MQ_NAME,struct mq_attr *attr,INT32S flags);
 
     //建立服务端侦听
     int listen_port = anetTcpServer(NULL, 5555, "0.0.0.0", 1);
@@ -510,6 +534,6 @@ int main(int argc, char* argv[]) {
     aeCreateTimeEvent(ep, 1 * 1000, NETWorker, &nets_comstat, NULL);
     aeMain(ep);
 
-    QuitProcess(&JProgramInfo->Projects[3]);
+    QuitProcess(&JProgramInfo->Projects[1]);
     return EXIT_SUCCESS;
 }

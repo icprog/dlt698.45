@@ -375,7 +375,6 @@ void getFileName(OI_698 oi,INT16U seqno,INT16U type,char *fname)
 int readFileName(OI_698 oi,INT16U seqno,INT16U type,char *fname)
 {
 	int		ret=0;
-	char dirname[FILENAMELEN]={};
 	if (fname==NULL)
 		return -1;
 	memset(fname,0,FILENAMELEN);

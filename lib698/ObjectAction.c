@@ -41,6 +41,10 @@ INT16U getMytypeSize(INT8U first )
 	{
 		return (sizeof(MASTER_STATION_INFO_LIST));
 	}
+	if( first == 0x88)
+	{
+		return (sizeof(TSA_ARRAYTYPE));
+	}
 	return 0 ;
 }
 
@@ -296,6 +300,7 @@ void get_BasicUnit(INT8U *source,INT16U *sourceindex,INT8U *dest,INT16U *destind
 		case 0x04: //bit-string
 			size = 2;
 			dest[0] = source[2];  // TODO: 此处默认8个bit   source[1] : 长度字节
+			fprintf(stderr,"\n		bit-string %d ",source[2]);
 			if (dest_sumindex ==0)
 				dest_sumindex = 1;
 			break;
@@ -371,6 +376,7 @@ void get_BasicUnit(INT8U *source,INT16U *sourceindex,INT8U *dest,INT16U *destind
 			if (dest_sumindex ==0)
 				dest_sumindex = TSA_LEN;
 			size = size + 1;
+			fprintf(stderr,"TSA %d %02x %02x %02x %02x %02x %02x\n",dest[0],dest[1],dest[2],dest[3],dest[4],dest[5],dest[6]);
 			break;
 		case 0x5c://MS
 			size = 1;

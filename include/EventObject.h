@@ -78,13 +78,19 @@ typedef struct
   INT8U task_no;         //关联采集任务号
 }MeterTimeOver_Object;
 
+typedef struct
+{
+	INT8U	flag;
+	INT8U	num;
+	TSA 	meter_tas[5];     //需要抄读停电事件电能表
+}TSA_ARRAYTYPE;
 //停电书记采集配置参数
 typedef struct
 {
   INT8U collect_flag;   //采集标志(bit0 置1有效，置0无效 bit1 置1随机选择测量点，置0只采集设置对测量点。)
   INT8U time_space;     //停电事件抄读时间间隔（单位 小时）
   INT8U time_threshold; //停电事件抄读时间限值（单位 分钟）
-  TSA meter_tas[5];     //需要抄读停电事件电能表
+  TSA_ARRAYTYPE	tsaarr;
 }Collect_Para_Object;
 
 //停电事件甄别限值参数

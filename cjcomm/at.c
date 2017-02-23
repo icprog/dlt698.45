@@ -19,8 +19,8 @@
 #include "rlog.h"
 #include "vsms.h"
 
-
 static int NeedDoAt = 1;
+static int ledPort = -1;
 
 void SetOnline(void){
 	asyslog(LOG_NOTICE, "设置不需要AT拨号");
@@ -200,6 +200,65 @@ int RecieveFromComm(char* buf, int mlen, int com) {
     return (len < 0) ? 0 : len;
 }
 
+
+/************************************************************
+ * 函数功能：控制无线模块net灯
+ * *********************************************************/
+int ATMYSOCKETLED(unsigned char step, int ComPort) {
+    int timeout = 0, i, scid, Len;
+    char scidstr[50];
+    memset(scidstr, 0, 50);
+    ComPort = ledPort;
+    fprintf(stderr, "AT MYSOCKETLED %d\n", ComPort);
+    do {
+        scid = 0;
+        timeout++;
+        switch (step) {
+            case 1:
+                fprintf(stderr, "步骤1：受限的网路服务；无SIM卡或需输入PIN码；正在搜索网络；正在进行用户鉴权等\n");
+                SendATCommand("AT$MYSOCKETLED=0\r", 17, ComPort);
+                break;
+            case 2:
+                fprintf(stderr, "步骤2：模块处于待机状态\n");
+                SendATCommand("AT$MYSOCKETLED=1\r", 17, ComPort);
+                break;
+            case 3:
+                fprintf(stderr, "步骤3：PDP激活状态，并已获取IP地址\n");
+                SendATCommand("AT$MYSOCKETLED=0\r", 17, ComPort);
+                break;
+            case 4:
+                fprintf(stderr, "步骤4：Socket链接已建立\n");
+                SendATCommand("AT$MYSOCKETLED=1\r", 17, ComPort);
+                break;
+            default:
+                break;
+        }
+        delay(5000);
+        INT8U Mrecvbuf[RES_LENGTH];
+        memset(Mrecvbuf, 0, RES_LENGTH);
+        Len = RecieveFromComm(Mrecvbuf, RES_LENGTH, ComPort);
+        if (Len > 0) {
+            for (i = 0; i < Len; i++) {
+                fprintf(stderr, "%c", Mrecvbuf[i]);
+            }
+            fprintf(stderr, "\n");
+        }
+
+        for (i = 0; i < Len; i++) {
+            if ((Mrecvbuf[i] == 'O') && (Mrecvbuf[i + 1] == 'K')) {
+                scid = 1;
+            }
+        }
+        if (scid == 1)
+            break;
+
+    } while (timeout < 5);
+    if (timeout >= 5)
+        return 0;
+
+    return 1;
+}
+
 //查看拨号程序是否获取到ip地址
 int tryifconfig() {
     int sock;
@@ -268,6 +327,7 @@ void* ATWorker(void* args) {
 
         int sMux0 = OpenMuxCom(0, 115200, (unsigned char*)"none", 1, 8); // 0
         int sMux1 = OpenMuxCom(1, 115200, (unsigned char*)"none", 1, 8);
+        ledPort = sMux1;
         if (sMux0 < 0 || sMux1 < 0) {
             close(sMux0);
             close(sMux1);
@@ -391,7 +451,7 @@ void* ATWorker(void* args) {
         }
         printf("sMux1 %d\n", sMux1);
         setPort(sMux1);
-        sleep(8);
+        ATMYSOCKETLED(4, -1);
 
     wait:
 //    	deal_vsms(sMux1);

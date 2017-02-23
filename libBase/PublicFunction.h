@@ -26,7 +26,7 @@ extern void Setsig(struct sigaction *psa,void (*pfun)(ProjectInfo *proinfo));
 extern void* CreateShMem(char* shname,int memsize,void* pmem);
 extern void* OpenShMem(char* shname,int memsize,void* pmem);
 extern void  shmm_unregister(char* shname,int memsize);
-
+extern INT32S prog_find_pid_by_name(INT8S* ProcName, INT32S* foundpid);
 /*
  * 串口操作函数
  * */
