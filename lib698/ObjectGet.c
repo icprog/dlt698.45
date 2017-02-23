@@ -29,7 +29,7 @@ extern INT8U TmpDataBuf[MAXSIZ_FAM];
 extern INT8U TmpDataBufList[MAXSIZ_FAM*2];
 extern INT8U securetype;
 extern ProgramInfo *memp;
-
+extern PIID piid_g;
 int BuildFrame_GetResponseRecord(INT8U response_type,CSINFO *csinfo,RESULT_RECORD record,INT8U *sendbuf)
 {
 	int index=0, hcsi=0,num=0,i=0,k=0;
@@ -40,7 +40,7 @@ int BuildFrame_GetResponseRecord(INT8U response_type,CSINFO *csinfo,RESULT_RECOR
 	index = index + 2;
 	sendbuf[index++] = GET_RESPONSE;
 	sendbuf[index++] = response_type;
-	sendbuf[index++] = 0;	//	piid
+	sendbuf[index++] = piid_g.data;	//	piid
 	index += create_OAD(&sendbuf[index],record.oad);
 	num = record.rcsd.csds.num;
 	if(num==0) {
@@ -104,11 +104,12 @@ int BuildFrame_GetResponse(INT8U response_type,CSINFO *csinfo,INT8U oadnum,RESUL
 	apduplace = index;		//记录APDU 起始位置
 	sendbuf[index++] = GET_RESPONSE;
 	sendbuf[index++] = response_type;
-	sendbuf[index++] = 0;	//	piid
+	sendbuf[index++] = piid_g.data;	//	piid
 	if (oadnum>0)
 		sendbuf[index++] = oadnum;
 	memcpy(&sendbuf[index],response.data,response.datalen);
 	index = index + response.datalen;
+	sendbuf[index++] = 0;
 	sendbuf[index++] = 0;
 	if(securetype!=0)//安全等级类型不为0，代表是通过安全传输下发报文，上行报文需要以不低于请求的安全级别回复
 	{
