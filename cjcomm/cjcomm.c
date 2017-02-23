@@ -508,6 +508,9 @@ void InitClass4300()
 
 
 int main(int argc, char* argv[]) {
+	pid_t pids[128];
+    if (prog_find_pid_by_name((INT8S*)argv[0], pids) > 1)
+		return EXIT_SUCCESS;
 	printf("version 1012\n");
     // daemon(0,0);
     enviromentCheck(argc, argv);
