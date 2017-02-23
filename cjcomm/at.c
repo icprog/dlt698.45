@@ -19,7 +19,6 @@
 #include "rlog.h"
 #include "vsms.h"
 
-
 static int NeedDoAt = 1;
 static int ledPort = -1;
 
