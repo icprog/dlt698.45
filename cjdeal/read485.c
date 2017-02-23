@@ -877,7 +877,7 @@ INT16U compose6012Buff(DateTimeBCD startTime,TSA meterAddr,INT16U dataLen,INT8U*
 	DataTimeGet(&endTime);
 	INT8U buff6012[DATA_CONTENT_LEN];
 	memset(buff6012,0,DATA_CONTENT_LEN);
-
+	buff6012[bufflen++] = 0x55;
 	memcpy(&buff6012[bufflen],meterAddr.addr,sizeof(TSA));//采集通信地址
 	bufflen += sizeof(TSA);
 
