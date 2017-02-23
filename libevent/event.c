@@ -325,7 +325,7 @@ INT8U Getevent_Record(INT8U event_no,OI_698 *oi_array,INT8U oi_index,INT8U *real
 					break;
 			}
 		 }
-		if (Getbuf!=NULL)		//TODO:  是否该处释放？？？？
+		 if (Getbuf!=NULL)
 			free(Getbuf);
 		 record_para->datalen =*real_index;//最终长度
 	}else{
@@ -453,10 +453,13 @@ INT8U Get_CurrResult(INT8U *Rbuf,INT8U *Index,
     INT8U datatype=0,sourcelen=0;
     Get_Source(Source,S_type,&datatype,&sourcelen);
     Rbuf[(*Index)++] = datatype;
+    if(datatype==s_tsa)
+    	Rbuf[(*Index)++] = sourcelen;
     if(sourcelen>0)
     	memcpy(&Rbuf[(*Index)],Source,sourcelen);
     (*Index)+=sourcelen;
 	Rbuf[(*Index)++] = dtstructure;//structure
+	Rbuf[(*Index)++] = 0x02;
 	Rbuf[(*Index)++] = 0x06;
 	Rbuf[(*Index)++] = (Num>>24)&0x000000ff;
 	Rbuf[(*Index)++] = (Num>>16)&0x000000ff;
