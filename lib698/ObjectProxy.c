@@ -20,30 +20,30 @@ extern ProgramInfo *memp;
 extern void getoad(INT8U *data,OAD *oad);
 
 
-//void ProxyListResponse(PROXY_GETLIST *list,INT8U oadnum,RESULT_NORMAL response,INT8U *sendbuf)
-//{
-//	CSINFO csinfo;
-//	int apduplace =0;
-//	int index=0, hcsi=0;
+void ProxyListResponse(PROXY_GETLIST *list,INT8U oadnum,RESULT_NORMAL response,INT8U *sendbuf)
+{
+	CSINFO csinfo;
+	int apduplace =0;
+	int index=0, hcsi=0;
 //	memcpy(&csinfo,list->csinfo,sizeof(CSINFO));
-//
-//	csinfo.dir = 1;
-//	csinfo.prm = 0;
-//	index = FrameHead(csinfo,sendbuf);
-//	hcsi = index;
-//	index = index + 2;
-//
-//	apduplace = index;		//记录APDU 起始位置
-//	sendbuf[index++] = PROXY_RESPONSE;
-//	sendbuf[index++] = ProxyGetResponseList;
-//	sendbuf[index++] = list->piid;	//	piid
-//
-//
-//
-//	FrameTail(sendbuf,index,hcsi);
+
+	csinfo.dir = 1;
+	csinfo.prm = 1;
+	index = FrameHead(csinfo,sendbuf);
+	hcsi = index;
+	index = index + 2;
+
+	apduplace = index;		//记录APDU 起始位置
+	sendbuf[index++] = PROXY_RESPONSE;
+	sendbuf[index++] = ProxyGetResponseList;
+	sendbuf[index++] = list->piid;	//	piid
+
+
+
+	FrameTail(sendbuf,index,hcsi);
 //	if(pSendfun!=NULL)
 //		pSendfun(comfd,sendbuf,index+3);
-//}
+}
 
 int getProxylist(INT8U *data,PROXY_GETLIST *getlist)
 {
