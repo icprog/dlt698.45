@@ -354,11 +354,12 @@ int NETWorker(struct aeEventLoop* ep, long long id, void* clientData) {
     CommBlock* nst = (CommBlock*)clientData;
     clearcount(1);
 
-    printf("nst->phy_connect_fd %d\n", nst->phy_connect_fd);
-
+    printf("nst->phy_connect_fd %d - %s:%d\n", nst->phy_connect_fd, IPaddr, Class25.master.master[0].port);
     if (nst->phy_connect_fd <= 0) {
+        char errmsg[256];
+        memset(errmsg, 0x00, sizeof(errmsg));
         initComPara(nst);
-        nst->phy_connect_fd = anetTcpConnect(NULL, IPaddr, Class25.master.master[0].port);
+        nst->phy_connect_fd = anetTcpConnect(errmsg, IPaddr, Class25.master.master[0].port);
         if (nst->phy_connect_fd > 0) {
             asyslog(LOG_INFO, "链接主站(主站地址:%s,结果:%d)", IPaddr, nst->phy_connect_fd);
             if (aeCreateFileEvent(ep, nst->phy_connect_fd, AE_READABLE, NETRead, nst) < 0) {
@@ -371,6 +372,9 @@ int NETWorker(struct aeEventLoop* ep, long long id, void* clientData) {
                 asyslog(LOG_INFO, "与主站链路建立成功");
                 gpofun("/dev/gpoONLINE_LED", 1);
             }
+        }
+        else{
+        	asyslog(LOG_WARNING, "主站链接失败，(%d)[%s]", nst->phy_connect_fd, errmsg);
         }
     } else {
         TS ts = {};
@@ -464,16 +468,9 @@ void enviromentCheck(int argc, char* argv[]) {
     asyslog(LOG_INFO, "主站通信地址(2)为：%d.%d.%d.%d:%d", Class25.master.master[1].ip[1], Class25.master.master[1].ip[2],Class25.master.master[1].ip[3],Class25.master.master[1].ip[4],Class25.master.master[1].port);
 
     //检查运行参数
-    if (argc <= 2) {
-    	memset(IPaddr, 0, sizeof(IPaddr));
-        snprintf(IPaddr, sizeof(IPaddr), "%d.%d.%d.%d", Class25.master.master[0].ip[1], Class25.master.master[0].ip[2],Class25.master.master[0].ip[3],Class25.master.master[0].ip[4]);
-        asyslog(LOG_INFO, "确定：主站通信地址为：%s\n", IPaddr);
-    }else{
-        //解析通信参数
-        memset(IPaddr, 0, sizeof(IPaddr));
-        memcpy(IPaddr, argv[1], strlen(argv[1]));
-        asyslog(LOG_INFO, "确定：主站通信地址为：%s\n", IPaddr);
-    }
+	memset(IPaddr, 0, sizeof(IPaddr));
+	snprintf(IPaddr, sizeof(IPaddr), "%d.%d.%d.%d", Class25.master.master[0].ip[1], Class25.master.master[0].ip[2],Class25.master.master[0].ip[3],Class25.master.master[0].ip[4]);
+	asyslog(LOG_INFO, "确定：主站通信地址为：%s\n", IPaddr);
 
     //向cjmain报告启动
     JProgramInfo = OpenShMem("ProgramInfo", sizeof(ProgramInfo), NULL);
@@ -506,9 +503,8 @@ void InitClass4300()
 	nets_comstat.myAppVar.expect_connect_timeout = 56400;
 }
 
-
 int main(int argc, char* argv[]) {
-	printf("version 1012\n");
+	printf("version 1013\n");
     // daemon(0,0);
     enviromentCheck(argc, argv);
     InitClass4300();
