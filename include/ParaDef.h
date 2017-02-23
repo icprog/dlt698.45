@@ -29,9 +29,9 @@
 
 
 #define MMQNAMEMAXLEN    	32		//消息队列名称长度
-#define MAXSIZ_PROXY_485    256
+#define MAXSIZ_PROXY_485    2048
 #define MAXNUM_PROXY_485    25
-#define MAXSIZ_PROXY_NET    256
+#define MAXSIZ_PROXY_NET    2048
 #define MAXNUM_PROXY_NET    25
 
 ///////////////////////////////////////////////////////////////

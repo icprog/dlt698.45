@@ -453,10 +453,13 @@ INT8U Get_CurrResult(INT8U *Rbuf,INT8U *Index,
     INT8U datatype=0,sourcelen=0;
     Get_Source(Source,S_type,&datatype,&sourcelen);
     Rbuf[(*Index)++] = datatype;
+    if(datatype==s_tsa)
+    	Rbuf[(*Index)++] = sourcelen;
     if(sourcelen>0)
     	memcpy(&Rbuf[(*Index)],Source,sourcelen);
     (*Index)+=sourcelen;
 	Rbuf[(*Index)++] = dtstructure;//structure
+	Rbuf[(*Index)++] = 0x02;
 	Rbuf[(*Index)++] = 0x06;
 	Rbuf[(*Index)++] = (Num>>24)&0x000000ff;
 	Rbuf[(*Index)++] = (Num>>16)&0x000000ff;

@@ -267,7 +267,7 @@ const static mmq_attribute mmq_register[]=
 	{cjcomm,PROXY_485_MQ_NAME,MAXSIZ_PROXY_NET,MAXNUM_PROXY_NET},
 	{cjdeal,PROXY_NET_MQ_NAME,MAXSIZ_PROXY_485,MAXNUM_PROXY_485},
 };
-void createmq()
+void Createmq()
 {
 	struct mq_attr attr;
 	INT32U mqnum_glb=0;
@@ -286,6 +286,7 @@ void createmq()
 		{
 			if(mqs_glb[i] != -1)
 				continue;
+			loop = 1;
 			attr.mq_maxmsg = mmq_register[i].maxnum;
 			attr.mq_msgsize = mmq_register[i].maxsiz;
 			if((mqs_glb[i] =mmq_create((INT8S*)mmq_register[i].name,&attr,O_RDONLY)) <0)
@@ -294,7 +295,7 @@ void createmq()
 				 const int rc= getrlimit(RLIMIT_MSGQUEUE, &limit);
 				 if(rc!=0)
 				 {
-				 	fprintf(stderr,"\n get limit failed\n");
+				 	fprintf(stderr,"\nCreatemq get limit failed\n");
 				 }
 				 else
 				 {
@@ -331,7 +332,10 @@ int main(int argc, char *argv[])
 		if (strcmp("all",argv[1])==0)
 			ReadSystemInfo();
 	}
+
+	Createmq();
 	fprintf(stderr,"\ncjmain run!");
+
 	ProgInit();
 	time_t resetStart=0;
 	DevResetNum =JProgramInfo->oi_changed.reset;

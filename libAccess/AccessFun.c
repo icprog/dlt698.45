@@ -402,45 +402,45 @@ int readCoverClass(OI_698 oi,INT16U seqno,void *blockdata,int datalen,int type)
 /*
  * 计算某个普通采集方案一天需要存几次，是否与采集任务里面的执行频率有关？
  */
-INT16U CalcFreq(CLASS_6015 class6015)
-{
-	INT16U freq=0;
-	INT8U  unit=0;
-	INT16U value=0;
-	switch(class6015.data.type)
-	{
-	case 0://采集当前数据
-	case 1://采集上第n次
-	case 2://按冻结时标采集
-		freq = 1;
-		break;
-	case 3://按时标间隔采集
-		unit = class6015.data.data[0];
-		value = (class6015.data.data[1]<<8) + class6015.data.data[2];
-		break;
-	}
-	if(class6015.data.type == 3)
-	{
-		switch(unit)
-		{
-		case 0:
-			freq = 24*60*60/value;
-			break;
-		case 1:
-			freq = 24*60/value;
-			break;
-		case 2:
-			freq = 24/value;
-			break;
-		case 3:
-		case 4:
-		case 5:
-			freq = 1;
-			break;
-		}
-	}
-	return freq;
-}
+//INT16U CalcFreq(CLASS_6015 class6015)
+//{
+//	INT16U freq=0;
+//	INT8U  unit=0;
+//	INT16U value=0;
+//	switch(class6015.data.type)
+//	{
+//	case 0://采集当前数据
+//	case 1://采集上第n次
+//	case 2://按冻结时标采集
+//		freq = 1;
+//		break;
+//	case 3://按时标间隔采集
+//		unit = class6015.data.data[0];
+//		value = (class6015.data.data[1]<<8) + class6015.data.data[2];
+//		break;
+//	}
+//	if(class6015.data.type == 3)
+//	{
+//		switch(unit)
+//		{
+//		case 0:
+//			freq = 24*60*60/value;
+//			break;
+//		case 1:
+//			freq = 24*60/value;
+//			break;
+//		case 2:
+//			freq = 24/value;
+//			break;
+//		case 3:
+//		case 4:
+//		case 5:
+//			freq = 1;
+//			break;
+//		}
+//	}
+//	return freq;
+//}
 void getTaskFileName(INT8U taskid,TS ts,char *fname)
 {
 	char dirname[FILENAMELEN]={};
@@ -467,14 +467,14 @@ int GetPosofOAD(INT8U *file_buf,OAD oad_master,OAD oad_relate,HEAD_UNIT *head_un
 {
 	int i=0,j=0,datapos=0,curlen=0,valid_cnt = 0;
 	OAD oad_hm,oad_hr;
-	fprintf(stderr,"\n--GetPosofOAD--unitnum=%d\n",unitnum);
+//	fprintf(stderr,"\n--GetPosofOAD--unitnum=%d\n",unitnum);
 	memset(&oad_hm,0xee,sizeof(OAD));
 	memset(&oad_hr,0xee,sizeof(OAD));
 	for(i=0;i<unitnum;i++)
 	{
 		curlen = GetFileOadLen(head_unit[i].num[1],head_unit[i].num[0]);
-		fprintf(stderr,"\n%02x %02x\n",head_unit[i].num[1],head_unit[i].num[0]);
-		fprintf(stderr,"\n-head_unit[%d].type=%d-GetPosofOAD--curlen=%d,valid_cnt=%d\n",i,head_unit[i].type,curlen,valid_cnt);
+//		fprintf(stderr,"\n%02x %02x\n",head_unit[i].num[1],head_unit[i].num[0]);
+//		fprintf(stderr,"\n-head_unit[%d].type=%d-GetPosofOAD--curlen=%d,valid_cnt=%d\n",i,head_unit[i].type,curlen,valid_cnt);
 		if(head_unit[i].type == 1)
 		{
 			memcpy(&oad_hr,&head_unit[i].oad,sizeof(OAD));
@@ -490,21 +490,21 @@ int GetPosofOAD(INT8U *file_buf,OAD oad_master,OAD oad_relate,HEAD_UNIT *head_un
 		{
 			memcpy(&oad_hm,&head_unit[i].oad,sizeof(OAD));
 		}
-		fprintf(stderr,"\nhead master oad:%04x%02x%02x\n",oad_hm.OI,oad_hm.attflg,oad_hm.attrindex);
-		fprintf(stderr,"\nhead relate oad:%04x%02x%02x\n",oad_hr.OI,oad_hr.attflg,oad_hr.attrindex);
-		fprintf(stderr,"\nbaow master oad:%04x%02x%02x\n",oad_master.OI,oad_master.attflg,oad_master.attrindex);
-		fprintf(stderr,"\nbaow relate oad:%04x%02x%02x\n",oad_relate.OI,oad_relate.attflg,oad_relate.attrindex);
+//		fprintf(stderr,"\nhead master oad:%04x%02x%02x\n",oad_hm.OI,oad_hm.attflg,oad_hm.attrindex);
+//		fprintf(stderr,"\nhead relate oad:%04x%02x%02x\n",oad_hr.OI,oad_hr.attflg,oad_hr.attrindex);
+//		fprintf(stderr,"\nbaow master oad:%04x%02x%02x\n",oad_master.OI,oad_master.attflg,oad_master.attrindex);
+//		fprintf(stderr,"\nbaow relate oad:%04x%02x%02x\n",oad_relate.OI,oad_relate.attflg,oad_relate.attrindex);
 		if(memcmp(&oad_hm,&oad_master,sizeof(OAD))==0 && memcmp(&oad_hr,&oad_relate,sizeof(OAD))==0)
 		{
 			fprintf(stderr,"\n-----oad equal!\n");
 			memcpy(tmpbuf,&file_buf[datapos],curlen);
-			fprintf(stderr,"\n文件中的数据:");
-			for(j=0;j<400;j++)
-			{
-				if(j%20==0)
-					fprintf(stderr,"\n");
-				fprintf(stderr," %02x",file_buf[j]);
-			}
+//			fprintf(stderr,"\n文件中的数据:");
+//			for(j=0;j<400;j++)
+//			{
+//				if(j%20==0)
+//					fprintf(stderr,"\n");
+//				fprintf(stderr," %02x",file_buf[j]);
+//			}
 			fprintf(stderr,"\n");
 			fprintf(stderr,"\n文件中取出的数据(%d)datapos=%d:",curlen,datapos);
 			for(j=0;j<curlen;j++)
@@ -512,8 +512,8 @@ int GetPosofOAD(INT8U *file_buf,OAD oad_master,OAD oad_relate,HEAD_UNIT *head_un
 			fprintf(stderr,"\n");
 			return curlen;
 		}
-		else
-			fprintf(stderr,"\n-----oad not equal!\n");
+//		else
+//			fprintf(stderr,"\n-----oad not equal!\n");
 		if(head_unit[i].type == 0)
 			datapos += curlen;
 
@@ -525,6 +525,95 @@ int GetPosofOAD(INT8U *file_buf,OAD oad_master,OAD oad_relate,HEAD_UNIT *head_un
 	}
 	return 0;
 }
+INT16U CalcMinFromZero(INT8U hour,INT8U min)
+{
+	INT16U sec = 0;
+	sec = hour;
+	sec = (sec << 8) +min;
+	return sec;
+}
+INT8U CalcKBType(INT8U type)
+{
+	INT8U ret = 0xee;
+	switch(type)
+	{
+	case 0:
+		ret = 0b00000010;//前闭后开
+		break;
+	case 1:
+		ret = 0b00000001;//前开后闭
+		break;
+	case 2:
+		ret = 0b00000011;//前闭后闭
+		break;
+	case 3:
+		ret = 0b00000000;//前开后开
+		break;
+	default:break;
+	}
+	return ret;//不合法
+}
+INT8U CalcFreq(TI runti,CLASS_6015 class6015,INT16U startmin,INT16U endmin)//不管开闭
+{
+	INT16U rate = 0;//倍率
+	INT16U sec_unit = 0;
+	INT8U  inval_flg = 0;
+	if(class6015.cjtype == 3)//按时标间隔采集
+	{
+		if(endmin <= startmin || runti.units > 2)
+			return 0;//无效设置
+		switch(runti.units)
+		{
+		case 0:
+			rate = 1;
+			if(runti.interval > 60)//如果就要设置90秒呢
+				inval_flg = 1;
+			break;
+		case 1:
+			rate = 60;
+			if(runti.interval > 60)//如果就要设置90分钟呢
+				inval_flg = 1;
+			break;
+		case 2:
+			rate = 3600;
+			if(runti.interval > 24)//如果就要设置1天半呢
+				inval_flg = 1;
+			break;
+		default:
+			break;//没有这种情况
+		}
+		if(inval_flg == 1)
+			return 0;
+		sec_unit = (runti.interval * rate);
+		return (endmin-startmin)/sec_unit;
+	}
+	return 1;
+}
+//读取taskid相应的配置结构体，return 1成功，0失败
+INT8U ReadTaskInfo(INT8U taskid,TASKSET_INFO *tasknor_info)//读取普通采集方案配置
+{
+	CLASS_6015	class6015={};
+	CLASS_6013	class6013={};
+	memset(tasknor_info,0x00,sizeof(TASKSET_INFO));
+	memset(&class6013,0,sizeof(CLASS_6013));
+	memset(&class6015,0,sizeof(CLASS_6015));
+	if(readCoverClass(0x6013,taskid,&class6013,sizeof(class6013),coll_para_save) == 1)
+	{
+		if(class6013.cjtype != 1)//
+			return 0;
+		if(readCoverClass(0x6015,class6013.sernum,&class6015,sizeof(CLASS_6015),coll_para_save) == 1)
+		{
+			tasknor_info->startmin = CalcMinFromZero(class6013.runtime.runtime[0].beginHour,class6013.runtime.runtime[0].beginMin);//按照设置一个时段来
+			tasknor_info->endmin = CalcMinFromZero(class6013.runtime.runtime[0].endHour,class6013.runtime.runtime[0].endMin);//按照设置一个时段来
+			tasknor_info->runtime = CalcFreq(class6013.interval,class6015,tasknor_info->startmin,tasknor_info->endmin);
+			tasknor_info->KBtype = CalcKBType(class6013.runtime.type);
+			tasknor_info->memdep = class6015.deepsize;
+			memcpy(&tasknor_info->csds,&class6015.csds,sizeof(CSD_ARRAYTYPE));
+			return 1;
+		}
+	}
+	return 0;
+}
 /*
  * 读取抄表数据，读取某个测量点某任务某天一整块数据，放在内存里，根据需要提取数据,并根据csd组报文
  */
@@ -532,42 +621,18 @@ int ComposeSendBuff(TS *ts,INT8U seletype,INT8U taskid,TSA *tsa_con,INT8U tsa_nu
 {
 	OAD  oadm,oadr;
 	FILE *fp  = NULL;
-	INT16U headlen=0,blocklen=0,unitnum=0,freq=0,sendindex=0,retlen=0,schpos=0;
+	INT16U headlen=0,blocklen=0,unitnum=0,sendindex=0,retlen=0,schpos=0;
 	INT8U *databuf_tmp=NULL;
 	INT8U tmpbuf[256];
 	INT8U headl[2],blockl[2];
 	int i=0,j=0,k=0,m=0;
-	CLASS_6015	class6015={};
-	CLASS_6013	class6013={};
 	HEAD_UNIT *head_unit = NULL;
+	TASKSET_INFO tasknor_info;
 	TS ts_now;
 	TSGet(&ts_now);
 	char	fname[FILENAMELEN]={};
-	memset(&class6013,0,sizeof(CLASS_6013));
-	readCoverClass(0x6013,taskid,&class6013,sizeof(class6013),coll_para_save);
-	memset(&class6015,0,sizeof(CLASS_6015));
-	readCoverClass(0x6015,class6013.sernum,&class6015,sizeof(CLASS_6015),coll_para_save);
-	freq = CalcFreq(class6015);
-	////////////////////////////////////////////////////////////////////////////////test
-//	memset(&class6015,0xee,sizeof(CLASS_6015));
-//	class6015.csds.num = 1;
-//	class6015.csds.csd[0].type=1;
-//	class6015.csds.csd[0].csd.road.oad.OI =0x5004;
-//	class6015.csds.csd[0].csd.road.oad.attflg = 0x02;
-//	class6015.csds.csd[0].csd.road.oad.attrindex = 0x00;
-//	class6015.csds.csd[0].csd.road.num = 3;
-//	class6015.csds.csd[0].csd.road.oads[0].OI = 0x2021;
-//	class6015.csds.csd[0].csd.road.oads[0].attflg = 0x02;
-//	class6015.csds.csd[0].csd.road.oads[0].attrindex = 0x00;
-//	class6015.csds.csd[0].csd.road.oads[1].OI = 0x0010;
-//	class6015.csds.csd[0].csd.road.oads[1].attflg = 0x02;
-//	class6015.csds.csd[0].csd.road.oads[1].attrindex = 0x00;
-//	class6015.csds.csd[0].csd.road.oads[2].OI = 0x0020;
-//	class6015.csds.csd[0].csd.road.oads[2].attflg = 0x02;
-//	class6015.csds.csd[0].csd.road.oads[2].attrindex = 0x00;
-//	freq = 1;
-//	taskid=1;
-	//////////////////////////////////////////////////////////////////////////////////test
+	if(ReadTaskInfo(taskid,&tasknor_info)!=1)
+		return 0;
 
 	getTaskFileName(taskid,ts_now,fname);
 	fp = fopen(fname,"r");
@@ -602,34 +667,35 @@ int ComposeSendBuff(TS *ts,INT8U seletype,INT8U taskid,TSA *tsa_con,INT8U tsa_nu
 				break;
 			for(i=0;i<tsa_num;i++)
 			{
-				for(m=0;m<freq;m++)
+				for(m=0;m<tasknor_info.runtime;m++)
 				{
-					schpos = m*blocklen/freq;
-					fprintf(stderr,"\n1addr1:%02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x",
-							databuf_tmp[schpos+16],databuf_tmp[schpos+15],databuf_tmp[schpos+14],databuf_tmp[schpos+13],
-							databuf_tmp[schpos+12],databuf_tmp[schpos+11],databuf_tmp[schpos+10],databuf_tmp[schpos+9],
-							databuf_tmp[schpos+8],databuf_tmp[schpos+7],databuf_tmp[schpos+6],	databuf_tmp[schpos+5],
-							databuf_tmp[schpos+4],databuf_tmp[schpos+3],databuf_tmp[schpos+2],databuf_tmp[schpos+1]);
-					fprintf(stderr,"\n1addr2:%02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x",
-							tsa_con[i].addr[16],tsa_con[i].addr[15],tsa_con[i].addr[14],tsa_con[i].addr[13],
-							tsa_con[i].addr[12],tsa_con[i].addr[11],tsa_con[i].addr[10],tsa_con[i].addr[9],
-							tsa_con[i].addr[8],tsa_con[i].addr[7],tsa_con[i].addr[6],	tsa_con[i].addr[5],
-							tsa_con[i].addr[4],tsa_con[i].addr[3],tsa_con[i].addr[2],tsa_con[i].addr[1],tsa_con[i].addr[0]);
-					if(memcmp(&databuf_tmp[schpos+1],&tsa_con[i].addr[1],16)==0)//找到了存储结构的位置，一个存储结构可能含有unitnum个单元
+					schpos = m*blocklen/tasknor_info.runtime;
+//					fprintf(stderr,"\n1addr1:%02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x",
+//							databuf_tmp[schpos+16],databuf_tmp[schpos+15],databuf_tmp[schpos+14],databuf_tmp[schpos+13],
+//							databuf_tmp[schpos+12],databuf_tmp[schpos+11],databuf_tmp[schpos+10],databuf_tmp[schpos+9],
+//							databuf_tmp[schpos+8],databuf_tmp[schpos+7],databuf_tmp[schpos+6],	databuf_tmp[schpos+5],
+//							databuf_tmp[schpos+4],databuf_tmp[schpos+3],databuf_tmp[schpos+2],databuf_tmp[schpos+1],databuf_tmp[schpos]);
+//					fprintf(stderr,"\n1addr2:%02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x",
+//							tsa_con[i].addr[16],tsa_con[i].addr[15],tsa_con[i].addr[14],tsa_con[i].addr[13],
+//							tsa_con[i].addr[12],tsa_con[i].addr[11],tsa_con[i].addr[10],tsa_con[i].addr[9],
+//							tsa_con[i].addr[8],tsa_con[i].addr[7],tsa_con[i].addr[6],	tsa_con[i].addr[5],
+//							tsa_con[i].addr[4],tsa_con[i].addr[3],tsa_con[i].addr[2],tsa_con[i].addr[1],tsa_con[i].addr[0]);
+					if(memcmp(&databuf_tmp[schpos+1],&tsa_con[i].addr[0],17)==0)//找到了存储结构的位置，一个存储结构可能含有unitnum个单元
 					{
+						fprintf(stderr,"\n@@@find addr:\n");
 						fprintf(stderr,"\naddr1:%02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x",
 								databuf_tmp[schpos+16],databuf_tmp[schpos+15],databuf_tmp[schpos+14],databuf_tmp[schpos+13],
 								databuf_tmp[schpos+12],databuf_tmp[schpos+11],databuf_tmp[schpos+10],databuf_tmp[schpos+9],
 								databuf_tmp[schpos+8],databuf_tmp[schpos+7],databuf_tmp[schpos+6],	databuf_tmp[schpos+5],
 								databuf_tmp[schpos+4],databuf_tmp[schpos+3],databuf_tmp[schpos+2],databuf_tmp[schpos+1]);
-						fprintf(stderr,"\naddr2:%02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x",
-								databuf_tmp[schpos+16],databuf_tmp[schpos+15],databuf_tmp[schpos+14],databuf_tmp[schpos+13],
-								databuf_tmp[schpos+12],databuf_tmp[schpos+11],databuf_tmp[schpos+10],databuf_tmp[schpos+9],
-								databuf_tmp[schpos+8],databuf_tmp[schpos+7],databuf_tmp[schpos+6],	databuf_tmp[schpos+5],
-								databuf_tmp[schpos+4],databuf_tmp[schpos+3],databuf_tmp[schpos+2],databuf_tmp[schpos+1]);
+//						fprintf(stderr,"\naddr2:%02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x",
+//								databuf_tmp[schpos+16],databuf_tmp[schpos+15],databuf_tmp[schpos+14],databuf_tmp[schpos+13],
+//								databuf_tmp[schpos+12],databuf_tmp[schpos+11],databuf_tmp[schpos+10],databuf_tmp[schpos+9],
+//								databuf_tmp[schpos+8],databuf_tmp[schpos+7],databuf_tmp[schpos+6],	databuf_tmp[schpos+5],
+//								databuf_tmp[schpos+4],databuf_tmp[schpos+3],databuf_tmp[schpos+2],databuf_tmp[schpos+1]);
 						for(j=0;j<csds.num;j++)
 						{
-							fprintf(stderr,"\n-------%d:(type=%d)\n",j,csds.csd[j].type);
+//							fprintf(stderr,"\n-------%d:(type=%d)\n",j,csds.csd[j].type);
 							if(csds.csd[j].type != 0 && csds.csd[j].type != 1)
 								continue;
 							if(csds.csd[j].type == 1)
@@ -723,11 +789,11 @@ INT16U GetTSANum()
 	}
 	return TSA_num;
 }
-void GetTSACon(MY_MS meters,TSA *tsa_con,INT16U tsa_num)
+INT16U GetTSACon(MY_MS meters,TSA *tsa_con,INT16U tsa_num)
 {
 	INT16U i=0,TSA_num=0;
 	CLASS_6001 meter = { };
-	for (i = 1; i < 1200; i++) {
+	for (i = 1; i < tsa_num; i++) {
 		if (readParaClass(0x6000, &meter, i) == 1) {
 
 			if (meter.sernum != 0 && meter.sernum != 0xffff) {
@@ -747,11 +813,10 @@ void GetTSACon(MY_MS meters,TSA *tsa_con,INT16U tsa_num)
 							meter.basicinfo.addr.addr[4],meter.basicinfo.addr.addr[3],meter.basicinfo.addr.addr[2],meter.basicinfo.addr.addr[1],meter.basicinfo.addr.addr[0]);
 					TSA_num++;
 				}
-				if(TSA_num >= tsa_num)
-					break;
 			}
 		}
 	}
+	return TSA_num;
 }
 /*
  * 根据招测类型组织报文
@@ -760,13 +825,15 @@ void GetTSACon(MY_MS meters,TSA *tsa_con,INT16U tsa_num)
 INT8U getSelector(RSD select, INT8U selectype, CSD_ARRAYTYPE csds, INT8U *data, int *datalen)
 {
 	TS ts_info[2];//时标选择，根据普通采集方案存储时标选择进行，此处默认为相对当日0点0分 todo
-	INT8U taskid,tsa_num=0;
+	INT8U taskid;//,tsa_num=0;
 	TSA *tsa_con = NULL;
-	tsa_num = GetTSANum();//得到tsa个数
-	fprintf(stderr,"\n---tsa_num=%d\n",tsa_num);
-	tsa_con = malloc(tsa_num*sizeof(TSA));
+	INT16U tsa_num=0,TSA_num=0;
+//	tsa_num = GetTSANum();//得到tsa个数
+//	fprintf(stderr,"\n---tsa_num=%d\n",tsa_num);
 	int i=0;
-//	taskid = GetTaskId(rcsd);//根据rcsd得到应该去哪个任务里找，如果涉及到多个任务呢？应该不会
+	tsa_num = getFileRecordNum(0x6000);
+	tsa_con = malloc(tsa_num*sizeof(TSA));
+//	taskid = GetTaskId(rcsd);//根据rcsd得到应该去哪个任务里找，如果涉及到多个任务呢？
 	//测试写死
 	///////////////////////////////////////////////////////////////test
 //	tsa_num = 3;
@@ -834,8 +901,8 @@ INT8U getSelector(RSD select, INT8U selectype, CSD_ARRAYTYPE csds, INT8U *data, 
 		//////////////////////////////////////////////////////////////////////test
 		TSGet(&ts_info[0]);
 		//////////////////////////////////////////////////////////////////////test
-		GetTSACon(select.selec5.meters,tsa_con,tsa_num);
-		for(i=0;i<tsa_num;i++)
+		TSA_num = GetTSACon(select.selec5.meters,tsa_con,tsa_num);
+		for(i=0;i<TSA_num;i++)
 			fprintf(stderr,"\n1addr3:%02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x",
 					tsa_con[i].addr[16],tsa_con[i].addr[15],tsa_con[i].addr[14],tsa_con[i].addr[13],
 					tsa_con[i].addr[12],tsa_con[i].addr[11],tsa_con[i].addr[10],tsa_con[i].addr[9],
@@ -844,8 +911,8 @@ INT8U getSelector(RSD select, INT8U selectype, CSD_ARRAYTYPE csds, INT8U *data, 
 		*datalen = ComposeSendBuff(&ts_info[0],selectype,taskid,tsa_con,tsa_num,csds,data);
 		break;
 	case 7://例子中招测实时数据方法
-		GetTSACon(select.selec7.meters,tsa_con,tsa_num);
-		for(i=0;i<tsa_num;i++)
+		TSA_num = GetTSACon(select.selec7.meters,tsa_con,tsa_num);
+		for(i=0;i<TSA_num;i++)
 			fprintf(stderr,"\n1addr3:%02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x",
 					tsa_con[i].addr[16],tsa_con[i].addr[15],tsa_con[i].addr[14],tsa_con[i].addr[13],
 					tsa_con[i].addr[12],tsa_con[i].addr[11],tsa_con[i].addr[10],tsa_con[i].addr[9],
@@ -856,9 +923,9 @@ INT8U getSelector(RSD select, INT8U selectype, CSD_ARRAYTYPE csds, INT8U *data, 
 	default:
 		break;
 	}
-	free(tsa_con);
 	fprintf(stderr,"\n报文(%d)：",*datalen);
 	for(i=0;i<*datalen;i++)
 		fprintf(stderr," %02x",data[i]);
+	free(tsa_con);
 	return 0;
 }
