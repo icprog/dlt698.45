@@ -43,7 +43,14 @@ typedef enum
 	calc_voltage_save=9,	    //电压合格率存储
 	coll_data_save=10
 }SaveFile_type;
-
+typedef struct {
+	INT8U  runtime;  //一天执行次数，日月年冻结和实时数据无效，置位1，由执行频率计算，主要针对负荷曲线，0表示对于这个采集方案任务无效
+	INT16U startmin; //相对当日零点零分开始执行分钟数，主要针对负荷曲线
+	INT16U endmin;   //相对当日零点零分结束执行分钟数，主要针对负荷曲线
+	INT8U  KBtype;   //开闭方式 0000 0011前闭后闭 0000 0000前开后开,以此类推
+	INT16U memdep;   //存储深度
+	CSD_ARRAYTYPE    csds;   //采集方案号
+}TASKSET_INFO;
 /*
  * 方法：Clean()清空
  * 输入参数：oi对象标识
@@ -156,6 +163,7 @@ extern long getFileRecordNum(OI_698 oi);
 extern INT8U getSelector(RSD select, INT8U selectype, CSD_ARRAYTYPE csds, INT8U *data, int *datalen);
 
 
-
+extern INT8U ReadTaskInfo(INT8U taskid,TASKSET_INFO *tasknor_info);
+extern void getTaskFileName(INT8U taskid,TS ts,char *fname);
 
 #endif /* ACCESS_H_ */
