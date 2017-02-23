@@ -197,19 +197,6 @@ typedef struct {
 	INT8U enable1;						//是否启用
 } CLASS_4204;	//终端广播校时
 
-//typedef struct {
-//	FactoryVersion verinfo;
-//	DateTimeBCD  productDate;
-//	INT8U oinum;
-//	OI_698 ois[10];
-//	INT8U protocolnum;
-//	INT8U protocol[8][OCTET_STRING_LEN];
-//	INT8U follow_report;
-//	INT8U auto_report;
-//	INT8U talk_master;
-//	INT8U oadnum;
-//	OAD  oads[10];
-//} CLASS_4300;
 ///////////////////////////////////////////////////////////////////////////////
 /********************************************************
  *				A.7　采集监控类对象
