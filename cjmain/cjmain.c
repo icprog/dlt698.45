@@ -7,13 +7,13 @@
 #include "sys/reboot.h"
 #include <wait.h>
 #include <errno.h>
-
+#include <mqueue.h>
 #include "ParaDef.h"
 #include "PublicFunction.h"
 #include "AccessFun.h"
 #include "cjmain.h"
-#include <dirent.h>
-#define PATH_MAX 256
+#include "../libMq/libmmq.h"
+
 int DevResetNum=0;
 void Runled()
 {
@@ -191,56 +191,6 @@ void ProjectMainExit(int signo)
 	return ;
 }
 
-INT32S prog_find_pid_by_name(INT8S* ProcName, INT32S* foundpid)
-{
-	DIR             *dir;
-	struct dirent   *d;
-	int             pid, i;
-	char            *s;
-	int pnlen;
-	i = 0;
-	foundpid[0] = 0;
-	pnlen = strlen((const char*)ProcName);
-	/* Open the /proc directory. */
-	dir = opendir("/proc");
-	if (!dir)
-	{
-			printf("cannot open /proc");
-			return -1;
-	}
-	/* Walk through the directory. */
-	while ((d = readdir(dir)) != NULL) {
-			char exe [PATH_MAX+1];
-			char path[PATH_MAX+1];
-			int len;
-			int namelen;
-			/* See if this is a process */
-			if ((pid = atoi(d->d_name)) == 0)
-				continue;
-			snprintf(exe, sizeof(exe), "/proc/%s/exe", d->d_name);
-			if ((len = readlink(exe, path, PATH_MAX)) < 0)
-					continue;
-			path[len] = '\0';
-			/* Find ProcName */
-			s = strrchr(path, '/');
-			if(s == NULL) continue;
-			s++;
-			/* we don't need small name len */
-			namelen = strlen(s);
-			if(namelen < pnlen)     continue;
-			if(!strncmp((const char*)ProcName, s, pnlen)) {
-					/* to avoid subname like search proc tao but proc taolinke matched */
-					if(s[pnlen] == ' ' || s[pnlen] == '\0') {
-							foundpid[i] = pid;
-							i++;
-					}
-			}
-	}
-	foundpid[i] = 0;
-	closedir(dir);
-	return  i;
-}
-
 /*
  * 初始化操作
  * */
@@ -311,34 +261,59 @@ time_t ifDevReset()
 	return 0;
 }
 
-#define MMQNAMEMAXLEN    	32		//消息队列名称长度
-#define MAXSIZ_PROXY_485    256
-#define MAXNUM_PROXY_NET    25
-typedef enum
-{
-	 cjcomm,
-	 cjdeal
-}PROGS_ID;
-
-typedef struct
-{
-	PROGS_ID pid;    //消息队列服务器端进程号
-	INT8U    name[MMQNAMEMAXLEN]; //消息队列名称
-	INT32U   maxsiz; //数据缓冲容量最大值
-	INT32U   maxnum; //mq最大消息个数
-}mmq_attribute;
 
 const static mmq_attribute mmq_register[]=
 {
-	{cjcomm,PROXY_485_MQ_NAME,MAXSIZ_EVENT_REQ,MAXNUM_EVENT_REQ},
-	{cjdeal,SAVE_LARGE_MQ,MAXSIZ_SAVEL_REQ,MAXNUM_SAVEL_REQ},
-}
+	{cjcomm,PROXY_485_MQ_NAME,MAXSIZ_PROXY_NET,MAXNUM_PROXY_NET},
+	{cjdeal,PROXY_NET_MQ_NAME,MAXSIZ_PROXY_485,MAXNUM_PROXY_485},
+};
 void createmq()
 {
 	struct mq_attr attr;
-	mmq_create((INT8S*)PROXY_485_MQ_NAME,&attr,O_RDONLY);
-	mmq_create((INT8S*)PROXY_NET_MQ_NAME,&attr,O_RDONLY);
+	INT32U mqnum_glb=0;
+	int* mqs_glb=NULL;
+	int i=0;
+	mqnum_glb = sizeof(mmq_register)/sizeof(mmq_attribute);
+	mqs_glb = (int*) malloc(mqnum_glb*sizeof(int));
+	for(i=0; i< mqnum_glb; i++)
+		mqs_glb[i] = -1;
 
+	int loop = 1;
+	while(loop==1)
+	{
+		loop = 0;
+		for(i=0; i< mqnum_glb; i++)
+		{
+			if(mqs_glb[i] != -1)
+				continue;
+			attr.mq_maxmsg = mmq_register[i].maxnum;
+			attr.mq_msgsize = mmq_register[i].maxsiz;
+			if((mqs_glb[i] =mmq_create((INT8S*)mmq_register[i].name,&attr,O_RDONLY)) <0)
+			{
+				 struct rlimit limit= {RLIM_INFINITY, RLIM_INFINITY};
+				 const int rc= getrlimit(RLIMIT_MSGQUEUE, &limit);
+				 if(rc!=0)
+				 {
+				 	fprintf(stderr,"\n get limit failed\n");
+				 }
+				 else
+				 {
+				 	fprintf(stderr,"\n softlimit=%ld,hardlimit=%ld \n", limit.rlim_cur, limit.rlim_max );
+				 	if(limit.rlim_cur != limit.rlim_max)
+				 	{
+				 		limit.rlim_cur = limit.rlim_max;//819200
+				 	}
+				 	else
+				 	{
+				 		limit.rlim_cur = 1024000;
+				 		limit.rlim_max = 1024000;
+				 	}
+				 	setrlimit(RLIMIT_MSGQUEUE,&limit);
+				 }
+				 usleep(100*1000);
+			}
+		}
+	}
 }
 int main(int argc, char *argv[])
 {
@@ -371,7 +346,7 @@ int main(int argc, char *argv[])
 			switch(JProgramInfo->Projects[i].ProjectState)
 			{
 				case NeedKill:
-					fprintf(stderr,"\n进程:%s %s  PID=%d 异常！",JProgramInfo->Projects[i].ProjectName,JProgramInfo->Projects[i].argv[0],JProgramInfo->Projects[i].ProjectID);
+					fprintf(stderr,"\n进程:%s %s  PID=%d 异常！ i=%d",JProgramInfo->Projects[i].ProjectName,JProgramInfo->Projects[i].argv[0],JProgramInfo->Projects[i].ProjectID,i);
 					if(ProjectKill(JProgramInfo->Projects[i])==1)
 						JProgramInfo->Projects[i].ProjectState = NeedStart;
 					break;

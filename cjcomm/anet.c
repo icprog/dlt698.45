@@ -268,6 +268,7 @@ static int anetTcpGenericConnect(char* err, char* addr, int port, char* source_a
         anetSetError(err, "%s", gai_strerror(rv));
         return ANET_ERR;
     }
+
     for (p = servinfo; p != NULL; p = p->ai_next) {
         /* Try to create the socket and to connect it.
          * If we fail in the socket() call, or on connect(), we retry with

@@ -70,8 +70,12 @@ int InitPara()
  *********************************************************/
 int main(int argc, char *argv[])
 {
+	pid_t pids[128];
     struct sigaction sa = {};
     Setsig(&sa, QuitProcess);
+
+    if (prog_find_pid_by_name((INT8S*)argv[0], pids) > 1)
+		return EXIT_SUCCESS;
 
 	fprintf(stderr,"\n[cjdeal]:cjdeal run!");
 	if(InitPro(&JProgramInfo,argc,argv)==0){
