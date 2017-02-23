@@ -485,7 +485,7 @@ void enviromentCheck(int argc, char* argv[]) {
     initComPara(&serv_comstat);
 }
 
-void InitClass4300()
+void InitCommPara()
 {
 	CLASS19	 oi4300={};
 	int	 ret=0,i=0;
@@ -516,8 +516,7 @@ int main(int argc, char* argv[]) {
 		return EXIT_SUCCESS;
     // daemon(0,0);
     enviromentCheck(argc, argv);
-    InitClass4300();
-
+    InitCommPara();
     //开始通信模块维护、红外与维护串口线程
     CreateATWorker();
     //开启网络IO事件处理框架

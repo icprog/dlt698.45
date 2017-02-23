@@ -14,6 +14,7 @@
 #include "Objectdef.h"
 #include "EventObject.h"
 #include "PublicFunction.h"
+#include "event.h"
 
 extern void get_BasicUnit(INT8U *source,INT16U *sourceindex,INT8U *dest,INT16U *destindex);
 extern ProgramInfo *memp;
@@ -99,21 +100,6 @@ INT16U set3106(OAD oad,INT8U *data,INT8U *DAR)
 	return source_index;
 }
 
-INT16U set310d(OAD oad,INT8U *data,INT8U *DAR)
-{
-	Event310D_Object tmp310d={};
-	INT16U  source_index=0,dest_index=0;
-	int 	saveflg=0;
-
-	saveflg = readCoverClass(oad.OI,0,&tmp310d,sizeof(Event310D_Object),event_para_save);
-	fprintf(stderr,"\n[310d]电能表飞走事件 阈值=%d 任务号=%d\n",tmp310d.poweroffset_obj.power_offset,tmp310d.poweroffset_obj.task_no);
-	get_BasicUnit(data,&source_index,(INT8U *)&tmp310d.poweroffset_obj,&dest_index);
-	fprintf(stderr,"\n：属性6 阈值=%d 任务号=%d",tmp310d.poweroffset_obj.power_offset,tmp310d.poweroffset_obj.task_no);
-	saveflg = saveCoverClass(oad.OI,0,&tmp310d,sizeof(Event310D_Object),event_para_save);
-	*DAR = prtstat(saveflg);
-	return source_index;
-}
-
 INT16U set310c(OAD oad,INT8U *data,INT8U *DAR)
 {
 	INT16U source_index=0,dest_index=0;
@@ -125,6 +111,21 @@ INT16U set310c(OAD oad,INT8U *data,INT8U *DAR)
 	get_BasicUnit(data,&source_index,(INT8U *)&tmp310c.poweroffset_obj.power_offset,&dest_index);
 	fprintf(stderr,"\n电能量超差事件：属性6 阈值=%x",tmp310c.poweroffset_obj.power_offset);
 	saveflg = saveCoverClass(oad.OI,0,&tmp310c,sizeof(tmp310c),event_para_save);
+	*DAR = prtstat(saveflg);
+	return source_index;
+}
+
+INT16U set310d(OAD oad,INT8U *data,INT8U *DAR)
+{
+	Event310D_Object tmp310d={};
+	INT16U  source_index=0,dest_index=0;
+	int 	saveflg=0;
+
+	saveflg = readCoverClass(oad.OI,0,&tmp310d,sizeof(Event310D_Object),event_para_save);
+	fprintf(stderr,"\n[310d]电能表飞走事件 阈值=%d 任务号=%d\n",tmp310d.poweroffset_obj.power_offset,tmp310d.poweroffset_obj.task_no);
+	get_BasicUnit(data,&source_index,(INT8U *)&tmp310d.poweroffset_obj,&dest_index);
+	fprintf(stderr,"\n：属性6 阈值=%d 任务号=%d",tmp310d.poweroffset_obj.power_offset,tmp310d.poweroffset_obj.task_no);
+	saveflg = saveCoverClass(oad.OI,0,&tmp310d,sizeof(Event310D_Object),event_para_save);
 	*DAR = prtstat(saveflg);
 	return source_index;
 }
@@ -154,6 +155,20 @@ INT16U set310f(OAD oad,INT8U *data,INT8U *DAR)
 	get_BasicUnit(data,&source_index,(INT8U *)&tmp310f.collectfail_obj.retry_nums,&dest_index);
 	fprintf(stderr,"\n终端抄表失败事件：属性6 重试轮次=%d ",tmp310f.collectfail_obj.retry_nums);
 	saveflg = saveCoverClass(oad.OI,0,&tmp310f,sizeof(tmp310f),event_para_save);
+	*DAR = prtstat(saveflg);
+	return source_index;
+}
+
+INT16U set3110(OAD oad,INT8U *data,INT8U *DAR)
+{
+	INT16U source_index=0,dest_index=0;
+	Event3110_Object tmpobj={};
+	int saveflg = 0;
+
+	readCoverClass(oad.OI,0,&tmpobj,sizeof(tmpobj),event_para_save);
+	get_BasicUnit(data,&source_index,(INT8U *)&tmpobj.Monthtrans_obj,&dest_index);
+	fprintf(stderr,"\n月通信流量限值事件：属性6　通信流量限值=%d ",tmpobj.Monthtrans_obj.month_offset);
+	saveflg = saveCoverClass(oad.OI,0,&tmpobj,sizeof(tmpobj),event_para_save);
 	*DAR = prtstat(saveflg);
 	return source_index;
 }
@@ -245,21 +260,27 @@ INT16U set4007(OAD oad,INT8U *data)
 	}
 	return 0;
 }
-INT16U set4300(INT8U attflg,INT8U index,INT8U *data)
+
+INT16U set4300(OAD oad,INT8U *data)
 {
 	INT16U source_index=0,dest_index=0;
-	if ( attflg == 8 )//允许\禁止终端主动上报
-	{
-		INT8U autoReport=0;
-		get_BasicUnit(data,&source_index,&autoReport,&dest_index);
-		fprintf(stderr,"\n终端主动上报 : %d\n",autoReport);
+	CLASS19		class4300={};
+
+	readCoverClass(oad.OI,0,&class4300,sizeof(CLASS19),para_vari_save);
+	switch(oad.attflg) {
+	case 8:	//允许\禁止终端主动上报
+		get_BasicUnit(data,&source_index,&class4300.follow_report,&dest_index);
+		fprintf(stderr,"\n终端主动上报 : %d\n",class4300.follow_report);
+		saveCoverClass(oad.OI,0,&class4300,sizeof(CLASS19),para_vari_save);
+		break;
 	}
 	return source_index;
 }
+
 INT16U set4500(OAD oad,INT8U *data)
 {
 	INT16U source_index=0,dest_index=0;
-	CLASS25 class4500;
+	CLASS25 class4500={};
 	memset(&class4500,0,sizeof(CLASS25));
 	readCoverClass(oad.OI,0,&class4500,sizeof(CLASS25),para_vari_save);
 	fprintf(stderr,"\n先读出 主站IP %d.%d.%d.%d :%d\n",class4500.master.master[0].ip[1],class4500.master.master[0].ip[2],
@@ -308,7 +329,6 @@ INT16U set4500(OAD oad,INT8U *data)
 INT16U set4103(OAD oad,INT8U *data)
 {
 	int i=0,bytenum=0;
-	INT16U source_index=0,dest_index=0;
 	CLASS_4103 class4103;
 	memset(&class4103,0,sizeof(CLASS_4103));
 	fprintf(stderr,"\n==========%d",oad.attflg);
@@ -508,7 +528,7 @@ INT8U EventSetAttrib(OAD oad,INT8U *data)
 				set310f(oad,data,&DAR);
 				break;
 			case 0x3110:	//月通信流量超限事件阈值
-				set310f(oad,data,&DAR);
+				set3110(oad,data,&DAR);
 				break;
 		}
 		break;
@@ -544,14 +564,14 @@ void EnvironmentValue(OAD oad,INT8U *data)
 			break;
 		case 0x4030://电压合格率参数
 			break;
-		case 0x4300://
-			set4300(attr,oad.attrindex,data);
-			break;
 		case 0x4103:
 			set4103(oad,data);
 			break;
 		case 0x4204:
 			set4204(oad,data);
+			break;
+		case 0x4300://电气设备
+			set4300(oad,data);
 			break;
 		case 0x4500:
 			set4500(oad,data);
@@ -561,7 +581,7 @@ void EnvironmentValue(OAD oad,INT8U *data)
 void CollParaSet(OAD oad,INT8U *data)
 {
 	INT16U oi = oad.OI;
-	INT8U attr = oad.attflg;
+//	INT8U attr = oad.attflg;
 	fprintf(stderr,"\n采集监控类对象属性设置");
 	switch(oi)
 	{

@@ -23,6 +23,8 @@
 static char
 		*usage_set =
 					"\n--------------------参数设置----------------------------\n"	\
+					"		 【主站IP端口设置】cj ip XXX.XXX.XXX.XXX:port XXX.XXX.XXX.XXX:port 	\n"					\
+					"		 【主站apn设置】cj apn cmnet		\n"					\
 					"		 【通信地址】cj id <addr>		\n"					\
 					"-------------------------------------------------------\n\n"	\
 					;
@@ -31,6 +33,7 @@ static char
 		*usage_para =
 					"\n--------------------参变量类对象----------------------------\n"	\
 					"[电气设备] "
+					"		 【参数读取】cj para pro 4300 		\n"					\
 					"		 【数据初始化】cj para method 4300 3		\n"					\
 					"-------------------------------------------------------\n\n"	\
 					;
@@ -113,6 +116,7 @@ void prthelp()
 	fprintf(stderr,"Usage: ./cj (维护功能)  ");
 	fprintf(stderr,"help	 [help] ");
 	fprintf(stderr,"%s",usage_acs);
+	fprintf(stderr,"%s",usage_set);
 	fprintf(stderr,"%s",usage_para);
 	fprintf(stderr,"%s",usage_event);
 	fprintf(stderr,"%s",usage_coll);

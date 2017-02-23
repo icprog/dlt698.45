@@ -109,8 +109,8 @@ int BuildFrame_GetResponse(INT8U response_type,CSINFO *csinfo,INT8U oadnum,RESUL
 		sendbuf[index++] = oadnum;
 	memcpy(&sendbuf[index],response.data,response.datalen);
 	index = index + response.datalen;
-	sendbuf[index++] = 0;
-	sendbuf[index++] = 0;
+	sendbuf[index++] = 0;	//跟随上报信息域 	FollowReport
+	sendbuf[index++] = 0;	//时间标签		TimeTag
 	if(securetype!=0)//安全等级类型不为0，代表是通过安全传输下发报文，上行报文需要以不低于请求的安全级别回复
 	{
 		apduplace += composeSecurityResponse(&sendbuf[apduplace],index-apduplace);
@@ -231,6 +231,16 @@ int fill_DateTimeBCD(INT8U *data,DateTimeBCD *time)
 		memcpy(&data[1],time,sizeof(DateTimeBCD));
 		return (sizeof(DateTimeBCD)+1);
 	}
+}
+
+
+int fill_TI(INT8U *data,TI ti)
+{
+	data[0] = dtti;
+	data[1] = ti.units;
+	data[2] = (ti.interval>>8)&0xff;
+	data[3] = ti.interval&0xff;
+	return 4;
 }
 
 int fill_TSA(INT8U *data,INT8U *value,INT8U len)
@@ -452,6 +462,59 @@ int Get310c(RESULT_NORMAL *response)
 	index += create_struct(&data[index],2);	//属性６　２个元素
 	index += fill_double_long_unsigned(&data[index],tmpobj.poweroffset_obj.power_offset);
 	index += fill_unsigned(&data[index],tmpobj.poweroffset_obj.task_no);
+	response->datalen = index;
+	return 0;
+}
+
+int Get310d(RESULT_NORMAL *response)
+{
+	int index=0;
+	OAD oad={};
+	Event310D_Object	tmpobj={};
+	INT8U *data = NULL;
+
+	data = response->data;
+	oad = response->oad;
+	memset(&tmpobj,0,sizeof(Event310D_Object));
+	readCoverClass(oad.OI,0,&tmpobj,sizeof(Event310D_Object),event_para_save);
+	index += create_struct(&data[index],2);	//属性６　２个元素
+	index += fill_double_long_unsigned(&data[index],tmpobj.poweroffset_obj.power_offset);
+	index += fill_unsigned(&data[index],tmpobj.poweroffset_obj.task_no);
+	response->datalen = index;
+	return 0;
+}
+
+int Get310e(RESULT_NORMAL *response)
+{
+	int index=0;
+	OAD oad={};
+	Event310E_Object	tmpobj={};
+	INT8U *data = NULL;
+
+	data = response->data;
+	oad = response->oad;
+	memset(&tmpobj,0,sizeof(Event310E_Object));
+	readCoverClass(oad.OI,0,&tmpobj,sizeof(Event310E_Object),event_para_save);
+	index += create_struct(&data[index],2);
+	index += fill_TI(&data[index],tmpobj.powerstoppara_obj.power_offset);
+	index += fill_unsigned(&data[index],tmpobj.powerstoppara_obj.task_no);
+	response->datalen = index;
+	return 0;
+}
+
+int Get3110(RESULT_NORMAL *response)
+{
+	int index=0;
+	OAD oad={};
+	Event3110_Object	tmpobj={};
+	INT8U *data = NULL;
+
+	data = response->data;
+	oad = response->oad;
+	memset(&tmpobj,0,sizeof(Event3110_Object));
+	readCoverClass(oad.OI,0,&tmpobj,sizeof(Event3110_Object),event_para_save);
+	index += create_struct(&data[index],1);
+	index += fill_double_long_unsigned(&data[index],tmpobj.Monthtrans_obj.month_offset);
 	response->datalen = index;
 	return 0;
 }
@@ -718,15 +781,17 @@ int GetEventInfo(RESULT_NORMAL *response)
 			case 0x3106:	//停上电事件
 				Get3106(response);
 				break;
-			case 0x310d:
-
-				break;
 			case 0x310c:	//电能量超差事件阈值
 				Get310c(response);
 				break;
-			case 0x310e:
+			case 0x310d:	//电能表飞走事件阈值
+				Get310d(response);
 				break;
-			case 0x310F:
+			case 0x310e:	//电能表停走事件阈值
+				Get310e(response);
+				break;
+			case 0x3110:	//月通信流量超限事件阈值
+				Get3110(response);
 				break;
 		}
 		break;
