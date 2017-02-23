@@ -449,7 +449,14 @@ int appConnectResponse(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 	 */
 	memset(&response,0,sizeof(response));
 	response.piid_acd = request.piid;
+
+	fprintf(stderr,"\n应用连接---PIID-ACD----%02x",request.piid.data);
+
 	varconsult(&response,&request,myAppVar_p);
+
+
+
+
 	/*
 	 *存储应用会话参数结构
 	 */
@@ -464,6 +471,7 @@ int appConnectResponse(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 	index = FrameHead(csinfo,buf);
 	hcsi = index;
 	index = index + 2;
+	buf[index++] = 0x82;
 	buf[index++] = response.piid_acd.data;
 	memcpy(&buf[index],response.server_factory_version.factorycode,4);
 	index = index +4;
@@ -1008,6 +1016,7 @@ void testframe(INT8U *apdu,int len)
 		fprintf(stderr,"%02x ",buf[k]);
 	fprintf(stderr,"\n----------------------------------------\n");
 }
+
 int ProcessData(CommBlock *com)
 {
 	CSINFO csinfo={};
