@@ -88,28 +88,12 @@ INT16U set3106(OAD oad,INT8U *data,INT8U *DAR)
 {
 	Event3106_Object tmpobj={};
 	INT16U  source_index=0,dest_index=0;
-	int 	saveflg=0,i=0,j=0;
+	int 	saveflg=0;
 
 	memset(&tmpobj,0,sizeof(Event3106_Object));
 	saveflg = readCoverClass(oad.OI,0,&tmpobj,sizeof(Event3106_Object),event_para_save);
+	tmpobj.poweroff_para_obj.collect_para_obj.tsaarr.flag = 0x88;
 	get_BasicUnit(data,&source_index,(INT8U *)&tmpobj.poweroff_para_obj,&dest_index);
-	fprintf(stderr,"\n[3106]终端停上电事件 \n");
-	fprintf(stderr,"\n采集配置参数：采集标志:%02x 抄读间隔(小时):%d　抄读限值(分钟):%d",tmpobj.poweroff_para_obj.collect_para_obj.collect_flag,
-			tmpobj.poweroff_para_obj.collect_para_obj.time_space,tmpobj.poweroff_para_obj.collect_para_obj.time_threshold);
-	fprintf(stderr,"\n电能表TSA:");
-	for(j=0;j<5;j++) {
-		if(tmpobj.poweroff_para_obj.collect_para_obj.meter_tas[j].addr[0]!=0) {
-			fprintf(stderr,"\n电能表TSA[%d]:",j);
-			for(i=0;i<tmpobj.poweroff_para_obj.collect_para_obj.meter_tas[j].addr[0];i++) {
-				fprintf(stderr,"%02x",tmpobj.poweroff_para_obj.collect_para_obj.meter_tas[j].addr[i]);
-			}
-		}
-	}
-	fprintf(stderr,"\n甄别限值参数:\n最小间隔时间:%d\n最大间隔事件:%d\n起止时间偏差限值:%d\n区段偏差限值:%d\n停电发生电压限值:%d\n停电恢复电压限值:%d\n",
-			tmpobj.poweroff_para_obj.screen_para_obj.mintime_space,tmpobj.poweroff_para_obj.screen_para_obj.maxtime_space,
-			tmpobj.poweroff_para_obj.screen_para_obj.startstoptime_offset,tmpobj.poweroff_para_obj.screen_para_obj.sectortime_offset,
-			tmpobj.poweroff_para_obj.screen_para_obj.happen_voltage_limit,tmpobj.poweroff_para_obj.screen_para_obj.recover_voltage_limit);
-
 	saveflg = saveCoverClass(oad.OI,0,&tmpobj,sizeof(Event3106_Object),event_para_save);
 	*DAR = prtstat(saveflg);
 	return source_index;
@@ -511,16 +495,19 @@ INT8U EventSetAttrib(OAD oad,INT8U *data)
 			case 0x3106:	//终端停上电事件
 				set3106(oad,data,&DAR);
 				break;
-			case 0x310d:
-				set310d(oad,data,&DAR);
-				break;
-			case 0x310c:
+			case 0x310c:	//电能量超差事件阈值
 				set310c(oad,data,&DAR);
 				break;
-			case 0x310e:
+			case 0x310d:	//电能表飞走事件阈值
+				set310d(oad,data,&DAR);
+				break;
+			case 0x310e:	//电能表停走事件阈值
 				set310e(oad,data,&DAR);
 				break;
-			case 0x310F:
+			case 0x310F:	//终端抄表失败事件
+				set310f(oad,data,&DAR);
+				break;
+			case 0x3110:	//月通信流量超限事件阈值
 				set310f(oad,data,&DAR);
 				break;
 		}

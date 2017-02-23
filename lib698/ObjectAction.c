@@ -41,6 +41,10 @@ INT16U getMytypeSize(INT8U first )
 	{
 		return (sizeof(MASTER_STATION_INFO_LIST));
 	}
+	if( first == 0x88)
+	{
+		return (sizeof(TSA_ARRAYTYPE));
+	}
 	return 0 ;
 }
 
