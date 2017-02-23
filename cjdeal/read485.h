@@ -9,12 +9,16 @@
 #include "dlt645.h"
 #include "event.h"
 #include "cjsave.h"
+#include "libmmq.h"
+
 //一次从文件里读取10个6001--采集档案任务配置单元
 #define LIST6001SIZE 10
 #define TASK6012_MAX 256
 #define BUFFSIZE 256
 #define DATA_CONTENT_LEN 500
 
+
+mqd_t mqd_485_main;
 pthread_attr_t read485_attr_t;
 int thread_read4851_id,thread_read4852_id;           //485、四表合一（I型、II型、专变）
 pthread_t thread_read4851,thread_read4852;
