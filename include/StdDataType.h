@@ -204,7 +204,7 @@ typedef struct
 	INT8U dir;			//方向指示		0：客户机发出  1：服务器发出
 	INT8U prm;			//启动标识		1：客户机发起  0：服务器发起
 	INT8U gframeflg;	//分帧			1：表示APDU片段  0：完整APDU
-	INT8U sa[16];		//服务器地址		服务器地址
+	INT8U sa[OCTET_STRING_LEN];		//服务器地址		服务器地址
 	INT8U ca;			//客户机地址		0:不关注客户机地址
 	INT16U frame_length;//帧长度
 }CSINFO;

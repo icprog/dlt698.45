@@ -52,7 +52,7 @@ void setOIChange(OI_698 oi)
 	case 0x3111:	memp->oi_changed.oi3111++;	break;
 	case 0x3112:	memp->oi_changed.oi3112++;  break;
 	case 0x3114:	memp->oi_changed.oi3114++; 	break;
-	case 0x3115:	memp->oi_changed.oi3105++; 	break;
+	case 0x3115:	memp->oi_changed.oi3115++; 	break;
 	case 0x3116:	memp->oi_changed.oi3116++;	break;
 	case 0x3117:	memp->oi_changed.oi3117++;	break;
 	case 0x3118:	memp->oi_changed.oi3118++;	break;
@@ -67,6 +67,36 @@ void setOIChange(OI_698 oi)
 	case 0x4016:	memp->oi_changed.oi4016++;	break;
 	case 0xf203:	memp->oi_changed.oiF203++;  break;
 	}
+}
+
+INT16U set3105(OAD oad,INT8U *data,INT8U *DAR)
+{
+	Event3105_Object tmp3105={};
+	INT16U  source_index=0,dest_index=0;
+	int 	saveflg=0;
+
+	saveflg = readCoverClass(oad.OI,0,&tmp3105,sizeof(Event3105_Object),event_para_save);
+	fprintf(stderr,"\n[3105]电能表时钟超差事件 阈值=%d 任务号=%d\n",tmp3105.mto_obj.over_threshold,tmp3105.mto_obj.task_no);
+	get_BasicUnit(data,&source_index,(INT8U *)&tmp3105.mto_obj.over_threshold,&dest_index);
+	fprintf(stderr,"\n：属性6 阈值=%d 任务号=%d\n",tmp3105.mto_obj.over_threshold,tmp3105.mto_obj.task_no);
+	saveflg = saveCoverClass(oad.OI,0,&tmp3105,sizeof(Event3105_Object),event_para_save);
+	*DAR = prtstat(saveflg);
+	return source_index;
+}
+
+INT16U set3106(OAD oad,INT8U *data,INT8U *DAR)
+{
+	Event3106_Object tmpobj={};
+	INT16U  source_index=0,dest_index=0;
+	int 	saveflg=0;
+
+	memset(&tmpobj,0,sizeof(Event3106_Object));
+	saveflg = readCoverClass(oad.OI,0,&tmpobj,sizeof(Event3106_Object),event_para_save);
+	tmpobj.poweroff_para_obj.collect_para_obj.tsaarr.flag = 0x88;
+	get_BasicUnit(data,&source_index,(INT8U *)&tmpobj.poweroff_para_obj,&dest_index);
+	saveflg = saveCoverClass(oad.OI,0,&tmpobj,sizeof(Event3106_Object),event_para_save);
+	*DAR = prtstat(saveflg);
+	return source_index;
 }
 
 INT16U set310d(OAD oad,INT8U *data,INT8U *DAR)
@@ -459,16 +489,25 @@ INT8U EventSetAttrib(OAD oad,INT8U *data)
 		break;
 	case 6:	//配置参数
 		switch(oi) {
-			case 0x310d:
-				set310d(oad,data,&DAR);
+			case 0x3105:	//电能表时钟超差事件
+				set3105(oad,data,&DAR);
 				break;
-			case 0x310c:
+			case 0x3106:	//终端停上电事件
+				set3106(oad,data,&DAR);
+				break;
+			case 0x310c:	//电能量超差事件阈值
 				set310c(oad,data,&DAR);
 				break;
-			case 0x310e:
+			case 0x310d:	//电能表飞走事件阈值
+				set310d(oad,data,&DAR);
+				break;
+			case 0x310e:	//电能表停走事件阈值
 				set310e(oad,data,&DAR);
 				break;
-			case 0x310F:
+			case 0x310F:	//终端抄表失败事件
+				set310f(oad,data,&DAR);
+				break;
+			case 0x3110:	//月通信流量超限事件阈值
 				set310f(oad,data,&DAR);
 				break;
 		}

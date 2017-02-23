@@ -486,11 +486,32 @@ void enviromentCheck(int argc, char* argv[]) {
     initComPara(&nets_comstat);
     initComPara(&serv_comstat);
 }
+
+void InitClass4300()
+{
+	CLASS19	 oi4300={};
+	int	 ret=0,i=0;
+	memset(&oi4300,0,sizeof(CLASS19));
+	ret = readCoverClass(0x4300,0,&oi4300,sizeof(CLASS19),para_vari_save);
+	if (ret)
+		memcpy(&nets_comstat.myAppVar.server_factory_version,&oi4300.info,sizeof(FactoryVersion));
+	for(i=0;i<2;i++)
+		nets_comstat.myAppVar.FunctionConformance[i] =0xff;
+	for(i=0;i<5;i++)
+		nets_comstat.myAppVar.ProtocolConformance[i] =0xff;
+	nets_comstat.myAppVar.server_deal_maxApdu = 1024;
+	nets_comstat.myAppVar.server_recv_size = 1024;
+	nets_comstat.myAppVar.server_send_size = 1024;
+	nets_comstat.myAppVar.server_recv_maxWindow = 1;
+	nets_comstat.myAppVar.expect_connect_timeout = 56400;
+}
+
+
 int main(int argc, char* argv[]) {
 	printf("version 1012\n");
     // daemon(0,0);
     enviromentCheck(argc, argv);
-
+    InitClass4300();
 
     //开始通信模块维护、红外与维护串口线程
     CreateATWorker();
