@@ -36,6 +36,7 @@ CONNECT_Response *AppVar_p;		// 集中器协商后参数（应用层会话参数
 INT8U securetype;  //安全等级类型  01明文，02明文+MAC 03密文  04密文+MAC
 INT8U secureRN[20];//安全认证随机数，主站下发，终端回复时需用到，esam计算使用
 static INT8U	client_addr=0;
+PIID piid_g={};
 /**************************************
  * 函数功能：DL/T698.45 状态机
  * 参数含义：
