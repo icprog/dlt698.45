@@ -123,7 +123,7 @@ int Proxy_GetRequestlist(INT8U *data,CSINFO *csinfo,INT8U *sendbuf,INT8U piid)
 	memcpy(&getlist.csinfo,csinfo,sizeof(CSINFO));
 
 	mqs_send((INT8S *)PROXY_485_MQ_NAME,1,ProxyGetResponseList,(INT8U *)&getlist,sizeof(PROXY_GETLIST));
-
+	fprintf(stderr,"\n代理消息已经发出\n\n");
 //	getlist.position = 0;
 //	write2_ProxyRequestList(&getlist);
 //	memp->ProxyHappen = 1;

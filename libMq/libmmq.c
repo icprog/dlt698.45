@@ -93,6 +93,7 @@ INT32S mmq_put(mqd_t fd,INT32U time_out,mmq_head msg_head, void * buff, INT8U pr
 				msg_head.pid,msg_head.cmd,strerror(errno));
 		return -3;
 	}
+	fprintf(stderr,"\n bufsiz=%d + sizeof(mmq_head)=%d         mq_msgsize=%d",msg_head.bufsiz,sizeof(mmq_head),attr_mq.mq_msgsize);
 	if (msg_head.bufsiz+sizeof(mmq_head) >= (INT32U)attr_mq.mq_msgsize)
 	{
 		fprintf(stderr,"\n[libmmq]:pid:%d,cmd=%d,msg_head.bufsiz+sizeof(mmq_head) >= (INT32U)attr_mq.mq_msgsize",
