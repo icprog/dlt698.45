@@ -96,7 +96,7 @@ int BuildFrame_GetResponse(INT8U response_type,CSINFO *csinfo,INT8U oadnum,RESUL
 	int apduplace =0;
 	int index=0, hcsi=0;
 	csinfo->dir = 1;
-	csinfo->prm = 0;
+	csinfo->prm = 1;
 	index = FrameHead(csinfo,sendbuf);
 	hcsi = index;
 	index = index + 2;

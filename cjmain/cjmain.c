@@ -310,36 +310,36 @@ time_t ifDevReset()
 	}
 	return 0;
 }
-
-#define MMQNAMEMAXLEN    	32		//消息队列名称长度
-#define MAXSIZ_PROXY_485    256
-#define MAXNUM_PROXY_NET    25
-typedef enum
-{
-	 cjcomm,
-	 cjdeal
-}PROGS_ID;
-
-typedef struct
-{
-	PROGS_ID pid;    //消息队列服务器端进程号
-	INT8U    name[MMQNAMEMAXLEN]; //消息队列名称
-	INT32U   maxsiz; //数据缓冲容量最大值
-	INT32U   maxnum; //mq最大消息个数
-}mmq_attribute;
-
-const static mmq_attribute mmq_register[]=
-{
-	{cjcomm,PROXY_485_MQ_NAME,MAXSIZ_EVENT_REQ,MAXNUM_EVENT_REQ},
-	{cjdeal,SAVE_LARGE_MQ,MAXSIZ_SAVEL_REQ,MAXNUM_SAVEL_REQ},
-}
-void createmq()
-{
-	struct mq_attr attr;
-	mmq_create((INT8S*)PROXY_485_MQ_NAME,&attr,O_RDONLY);
-	mmq_create((INT8S*)PROXY_NET_MQ_NAME,&attr,O_RDONLY);
-
-}
+//
+//#define MMQNAMEMAXLEN    	32		//消息队列名称长度
+//#define MAXSIZ_PROXY_485    256
+//#define MAXNUM_PROXY_NET    25
+//typedef enum
+//{
+//	 cjcomm,
+//	 cjdeal
+//}PROGS_ID;
+//
+//typedef struct
+//{
+//	PROGS_ID pid;    //消息队列服务器端进程号
+//	INT8U    name[MMQNAMEMAXLEN]; //消息队列名称
+//	INT32U   maxsiz; //数据缓冲容量最大值
+//	INT32U   maxnum; //mq最大消息个数
+//}mmq_attribute;
+//
+//const static mmq_attribute mmq_register[]=
+//{
+//	{cjcomm,PROXY_485_MQ_NAME,MAXSIZ_EVENT_REQ,MAXNUM_EVENT_REQ},
+//	{cjdeal,SAVE_LARGE_MQ,MAXSIZ_SAVEL_REQ,MAXNUM_SAVEL_REQ},
+//}
+//void createmq()
+//{
+//	struct mq_attr attr;
+//	mmq_create((INT8S*)PROXY_485_MQ_NAME,&attr,O_RDONLY);
+//	mmq_create((INT8S*)PROXY_NET_MQ_NAME,&attr,O_RDONLY);
+//
+//}
 int main(int argc, char *argv[])
 {
 	pid_t pids[128];
