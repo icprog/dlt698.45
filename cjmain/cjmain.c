@@ -12,8 +12,8 @@
 #include "PublicFunction.h"
 #include "AccessFun.h"
 #include "cjmain.h"
-#include <dirent.h>
-#define PATH_MAX 256
+
+
 int DevResetNum=0;
 void Runled()
 {
@@ -191,56 +191,6 @@ void ProjectMainExit(int signo)
 	return ;
 }
 
-INT32S prog_find_pid_by_name(INT8S* ProcName, INT32S* foundpid)
-{
-	DIR             *dir;
-	struct dirent   *d;
-	int             pid, i;
-	char            *s;
-	int pnlen;
-	i = 0;
-	foundpid[0] = 0;
-	pnlen = strlen((const char*)ProcName);
-	/* Open the /proc directory. */
-	dir = opendir("/proc");
-	if (!dir)
-	{
-			printf("cannot open /proc");
-			return -1;
-	}
-	/* Walk through the directory. */
-	while ((d = readdir(dir)) != NULL) {
-			char exe [PATH_MAX+1];
-			char path[PATH_MAX+1];
-			int len;
-			int namelen;
-			/* See if this is a process */
-			if ((pid = atoi(d->d_name)) == 0)
-				continue;
-			snprintf(exe, sizeof(exe), "/proc/%s/exe", d->d_name);
-			if ((len = readlink(exe, path, PATH_MAX)) < 0)
-					continue;
-			path[len] = '\0';
-			/* Find ProcName */
-			s = strrchr(path, '/');
-			if(s == NULL) continue;
-			s++;
-			/* we don't need small name len */
-			namelen = strlen(s);
-			if(namelen < pnlen)     continue;
-			if(!strncmp((const char*)ProcName, s, pnlen)) {
-					/* to avoid subname like search proc tao but proc taolinke matched */
-					if(s[pnlen] == ' ' || s[pnlen] == '\0') {
-							foundpid[i] = pid;
-							i++;
-					}
-			}
-	}
-	foundpid[i] = 0;
-	closedir(dir);
-	return  i;
-}
-
 /*
  * 初始化操作
  * */
@@ -310,7 +260,7 @@ time_t ifDevReset()
 	}
 	return 0;
 }
-//
+
 //#define MMQNAMEMAXLEN    	32		//消息队列名称长度
 //#define MAXSIZ_PROXY_485    256
 //#define MAXNUM_PROXY_485    25

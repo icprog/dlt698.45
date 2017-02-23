@@ -504,7 +504,10 @@ void InitClass4300()
 }
 
 int main(int argc, char* argv[]) {
-	printf("version 1013\n");
+	printf("version 1015\n");
+	pid_t pids[128];
+    if (prog_find_pid_by_name((INT8S*)argv[0], pids) > 1)
+		return EXIT_SUCCESS;
     // daemon(0,0);
     enviromentCheck(argc, argv);
     InitClass4300();
@@ -532,6 +535,6 @@ int main(int argc, char* argv[]) {
     aeCreateTimeEvent(ep, 1 * 1000, NETWorker, &nets_comstat, NULL);
     aeMain(ep);
 
-    QuitProcess(&JProgramInfo->Projects[3]);
+    QuitProcess(&JProgramInfo->Projects[1]);
     return EXIT_SUCCESS;
 }
