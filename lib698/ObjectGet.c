@@ -388,10 +388,78 @@ int GetSysDateTime(RESULT_NORMAL *response)
 	return 0;
 }
 
+int Get3105(RESULT_NORMAL *response)
+{
+	int index=0;
+	OAD oad={};
+	Event3105_Object	tmpobj={};
+	INT8U *data = NULL;
+
+	data = response->data;
+	oad = response->oad;
+	memset(&tmpobj,0,sizeof(Event3105_Object));
+	readCoverClass(oad.OI,0,&tmpobj,sizeof(Event3105_Object),event_para_save);
+	index += create_struct(&data[index],2);
+	index += fill_long_unsigned(&data[index],tmpobj.mto_obj.over_threshold);
+	index += fill_unsigned(&data[index],tmpobj.mto_obj.task_no);
+	response->datalen = index;
+	return 0;
+}
+
+int Get3106(RESULT_NORMAL *response)
+{
+	int index=0;
+	OAD oad={};
+	Event3106_Object	tmpobj={};
+	INT8U *data = NULL;
+	int	i=0;
+
+	data = response->data;
+	oad = response->oad;
+	memset(&tmpobj,0,sizeof(Event3106_Object));
+	readCoverClass(oad.OI,0,&tmpobj,sizeof(Event3106_Object),event_para_save);
+	index += create_struct(&data[index],2);	//属性６　２个元素
+	index += create_struct(&data[index],4);	//停电数据采集配置参数　４个元素
+	index += fill_bit_string8(&data[index],tmpobj.poweroff_para_obj.collect_para_obj.collect_flag);
+	index += fill_unsigned(&data[index],tmpobj.poweroff_para_obj.collect_para_obj.time_space);
+	index += fill_unsigned(&data[index],tmpobj.poweroff_para_obj.collect_para_obj.time_space);
+	index += create_array(&data[index],tmpobj.poweroff_para_obj.collect_para_obj.tsaarr.num);
+	for(i=0;i<tmpobj.poweroff_para_obj.collect_para_obj.tsaarr.num;i++) {
+		index += fill_TSA(&data[index],&tmpobj.poweroff_para_obj.collect_para_obj.tsaarr.meter_tas[i].addr[1],tmpobj.poweroff_para_obj.collect_para_obj.tsaarr.meter_tas[i].addr[0]);
+	}
+	index += create_struct(&data[index],6);	//停电事件甄别限值参数　６个元素
+	index += fill_long_unsigned(&data[index],tmpobj.poweroff_para_obj.screen_para_obj.mintime_space);
+	index += fill_long_unsigned(&data[index],tmpobj.poweroff_para_obj.screen_para_obj.maxtime_space);
+	index += fill_long_unsigned(&data[index],tmpobj.poweroff_para_obj.screen_para_obj.startstoptime_offset);
+	index += fill_long_unsigned(&data[index],tmpobj.poweroff_para_obj.screen_para_obj.sectortime_offset);
+	index += fill_long_unsigned(&data[index],tmpobj.poweroff_para_obj.screen_para_obj.happen_voltage_limit);
+	index += fill_long_unsigned(&data[index],tmpobj.poweroff_para_obj.screen_para_obj.recover_voltage_limit);
+	response->datalen = index;
+	return 0;
+}
+
+int Get310c(RESULT_NORMAL *response)
+{
+	int index=0;
+	OAD oad={};
+	Event310C_Object	tmpobj={};
+	INT8U *data = NULL;
+
+	data = response->data;
+	oad = response->oad;
+	memset(&tmpobj,0,sizeof(Event310C_Object));
+	readCoverClass(oad.OI,0,&tmpobj,sizeof(Event310C_Object),event_para_save);
+	index += create_struct(&data[index],2);	//属性６　２个元素
+	index += fill_double_long_unsigned(&data[index],tmpobj.poweroffset_obj.power_offset);
+	index += fill_unsigned(&data[index],tmpobj.poweroffset_obj.task_no);
+	response->datalen = index;
+	return 0;
+}
+
 int Get4001_4002_4003(RESULT_NORMAL *response)
 {
-	int i;
-	OAD oad;
+	int i=0;
+	OAD oad={};
 	CLASS_4001_4002_4003	class_addr={};
 
 	oad = response->oad;
@@ -644,9 +712,17 @@ int GetEventInfo(RESULT_NORMAL *response)
 		break;
 	case 6:	//配置参数
 		switch(response->oad.OI) {
-			case 0x310d:
+			case 0x3105:	//电能表时间超差事件
+				Get3105(response);
 				break;
-			case 0x310c:
+			case 0x3106:	//停上电事件
+				Get3106(response);
+				break;
+			case 0x310d:
+
+				break;
+			case 0x310c:	//电能量超差事件阈值
+				Get310c(response);
 				break;
 			case 0x310e:
 				break;
