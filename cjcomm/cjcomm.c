@@ -502,6 +502,9 @@ int main(int argc, char* argv[]) {
         exit(0);
     }
 
+    //建立消息监听服务
+//    mqd_t mmpd = mmq_open(PROXY_NET_MQ_NAME,struct mq_attr *attr,INT32S flags);
+
     //建立服务端侦听
     int listen_port = anetTcpServer(NULL, 5555, "0.0.0.0", 1);
     if (listen_port >= 0) {
