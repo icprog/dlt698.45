@@ -689,16 +689,21 @@ int Get4300(RESULT_NORMAL *response)
 			index += fill_visible_string(&data[index],class_tmp.info.hardVer,4);
 			index += fill_visible_string(&data[index],class_tmp.info.hardDate,6);
 			index += fill_visible_string(&data[index],class_tmp.info.factoryExpInfo,8);
-			response->datalen = index;
 			break;
 		case 4:
-			index += create_struct(&data[index],3);
-//			index += fill_integer(&data[index],class_tmp.upleve);
-//			index += fill_time(&data[index],class_tmp.startime1);
-//			index += file_bool(&data[index],class_tmp.enable1);
-			response->datalen = index;
+			index +=fill_DateTimeBCD(&data[index],&class_tmp.date_Product);
+			break;
+		case 7:
+			index += file_bool(&data[index],class_tmp.follow_report);
+			break;
+		case 8:
+			index += file_bool(&data[index],class_tmp.active_report);
+			break;
+		case 9:
+			index += file_bool(&data[index],class_tmp.talk_master);
 			break;
 	}
+	response->datalen = index;
 	return 0;
 }
 
@@ -723,6 +728,7 @@ int GetEventRecord(RESULT_NORMAL *response)
 		return 1;
 	}
 	response->datalen = 0;
+	response->dar = other_err1;
 	fprintf(stderr,"\n获取事件数据Get_Event函数返回 0  [datalen=%d  data=%p]",datalen,data);
 	if (data!=NULL)
 		free(data);
@@ -1059,11 +1065,11 @@ int doGetnormal(RESULT_NORMAL *response)
 		case 3:			//事件类对象读取
 			GetEventInfo(response);
 			break;
-		case 6:			//采集监控类对象
-			GetCollPara(response);
-			break;
 		case 4:			//参变量类对象
 			GetEnvironmentValue(response);
+			break;
+		case 6:			//采集监控类对象
+			GetCollPara(response);
 			break;
 		case 0xF:		//文件类/esam类/设备类
 			GetDeviceIo(response);

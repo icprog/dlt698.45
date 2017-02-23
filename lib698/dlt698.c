@@ -21,7 +21,7 @@ extern int getRequestNormalList(INT8U *data,CSINFO *csinfo,INT8U *sendbuf);
 extern int doReponse(int server,int reponse,CSINFO *csinfo,PIID piid,OAD oad,int dar,INT8U *data,INT8U *buf);
 extern int setRequestNormal(INT8U *data,OAD oad,CSINFO *csinfo,INT8U *buf);
 extern int setRequestNormalList(INT8U *Object,CSINFO *csinfo,INT8U *buf);
-extern int Proxy_GetRequestlist(INT8U *data,CSINFO *csinfo,INT8U *sendbuf,INT8U piid);
+extern int Proxy_GetRequestlist(INT8U *data,CSINFO *csinfo,INT8U *sendbuf);
 extern unsigned short tryfcs16(unsigned char *cp, int  len);
 extern INT32S secureConnectRequest(SignatureSecurity* securityInfo ,SecurityData* RetInfo);
 INT8S (*pSendfun)(int fd,INT8U* sndbuf,INT16U sndlen);
@@ -35,7 +35,7 @@ CONNECT_Response *myAppVar_p;	// 集中器支持参数（应用层会话参数�
 CONNECT_Response *AppVar_p;		// 集中器协商后参数（应用层会话参数）
 INT8U securetype;  //安全等级类型  01明文，02明文+MAC 03密文  04密文+MAC
 INT8U secureRN[20];//安全认证随机数，主站下发，终端回复时需用到，esam计算使用
-PIID piid_g={};
+static INT8U	client_addr=0;
 /**************************************
  * 函数功能：DL/T698.45 状态机
  * 参数含义：
@@ -249,13 +249,13 @@ int Link_Request(LINK_Request request,INT8U *addr,INT8U *buf)
 {
 	int index=0, hcsi=0,i=0;
 	CSINFO csinfo={};
-
 	csinfo.dir = 1;		//服务器发出
 	csinfo.prm = 0; 	//服务器发出
 	csinfo.funcode = 1; //链路管理
 	csinfo.sa_type = 0 ;//单地址
 	csinfo.sa_length = addr[0];//sizeof(addr)-1;//服务器地址长度
 
+	//服务器地址
 	fprintf(stderr,"sa_length = %d \n",csinfo.sa_length);
 	if(csinfo.sa_length<OCTET_STRING_LEN) {
 		for(i=0;i<csinfo.sa_length;i++) {
@@ -264,8 +264,8 @@ int Link_Request(LINK_Request request,INT8U *addr,INT8U *buf)
 	}else {
 		fprintf(stderr,"SA 长度超过定义长度，不合理！！！\n");
 	}
-//	memcpy(csinfo.sa,&addr[1],csinfo.sa_length );//服务器地址
-	csinfo.ca = 0;
+	//客户端地址
+	csinfo.ca = client_addr;
 
 	index = FrameHead(&csinfo,buf) ; //	2：hcs  hcs
 	hcsi = index;
@@ -309,6 +309,7 @@ int dealClientResponse(INT8U *apdu,CSINFO *csinfo)
 	switch(apduType)
 	{
 		case LINK_RESPONSE:
+			client_addr = csinfo->ca;		//预连接后，获取客户端地址
 			Link_Response( apdu );//预连接响应
 			break;
 		case REPORT_RESPONSE:
@@ -450,14 +451,7 @@ int appConnectResponse(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 	 */
 	memset(&response,0,sizeof(response));
 	response.piid_acd = request.piid;
-
-	fprintf(stderr,"\n应用连接---PIID-ACD----%02x",request.piid.data);
-
 	varconsult(&response,&request,myAppVar_p);
-
-
-
-
 	/*
 	 *存储应用会话参数结构
 	 */
@@ -472,7 +466,6 @@ int appConnectResponse(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 	index = FrameHead(csinfo,buf);
 	hcsi = index;
 	index = index + 2;
-	buf[index++] = 0x82;
 	buf[index++] = response.piid_acd.data;
 	memcpy(&buf[index],response.server_factory_version.factorycode,4);
 	index = index +4;
@@ -565,12 +558,12 @@ int doSetAttribute(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 
 int doGetAttribute(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
 {
-
+	PIID piid={};
 	INT8U getType = apdu[1];
 	OAD oad={};
 	INT8U *data=NULL;
-	piid_g.data = apdu[2];
-	fprintf(stderr,"\n- get type = %d PIID=%02x",getType,piid_g.data);
+	piid.data = apdu[2];
+	fprintf(stderr,"\n- get type = %d PIID=%02x",getType,piid.data);
 
 	getoad(&apdu[3],&oad);
 	data = &apdu[7];					//Data
@@ -603,12 +596,11 @@ int doProxyRequest(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
 	INT8U *data=NULL;
 
 	piid.data = apdu[2];
-	data = &apdu[3];
 	fprintf(stderr,"\n代理 PIID %02x   ",piid.data);
 	switch(getType)
 	{
 		case ProxyGetRequestList:
-			Proxy_GetRequestlist(data,csinfo,sendbuf,piid.data);
+			Proxy_GetRequestlist(data,csinfo,sendbuf);
 			break;
 		case ProxyGetRequestRecord:
 			break;
@@ -1017,7 +1009,6 @@ void testframe(INT8U *apdu,int len)
 		fprintf(stderr,"%02x ",buf[k]);
 	fprintf(stderr,"\n----------------------------------------\n");
 }
-
 int ProcessData(CommBlock *com)
 {
 	CSINFO csinfo={};
