@@ -54,7 +54,8 @@ void write_apn(char *apn)
 	fp = NULL;
 }
 
-void write_userpwd(unsigned char* user, unsigned char* pwd) {
+void write_userpwd(unsigned char* user, unsigned char* pwd)
+{
     FILE* fp = NULL;
     fp       = fopen("/etc/ppp/chap-secrets", "w");
     fprintf(fp, "\"%s\" * \"%s\" *", user, pwd);

@@ -45,21 +45,24 @@ int StateProcess(int* step,int* rev_delay,int delay_num, int* rev_tail,int* rev_
 {
 	int length=0,i=0;
 
-//	fprintf(stderr,"\nstep = %d\n",*step);
+	fprintf(stderr,"\nstep = %d,stepadd = %04x\n",*step,&step);
 	switch(*step)
 	{
 		case 0:		 // 找到第一个 0x68
 			while(*rev_head!=*rev_tail)
 			{
-//				fprintf(stderr,"NetRevBuf[*rev_tail] = %02x ",NetRevBuf[*rev_tail]);
+				fprintf(stderr,"NetRevBuf[*rev_tail] = %02x  head=%d  tail=%d ",NetRevBuf[*rev_tail],*rev_head,*rev_tail);
 				if (NetRevBuf[*rev_tail]== 0x68)
 				{
 					*step = 1;
+					fprintf(stderr,"111step=%d,stepadd1 = %04x next = %d pre = %d \n",*step,&step,*(step+1),*(step-1));
 					break;
 				}else {
 					*rev_tail = (*rev_tail + 1)% FRAMELEN;
+					fprintf(stderr,"rev_tail=%d\n",*rev_tail);
 				}
 			}
+			fprintf(stderr,"break   step=%d,stepadd2=%04x next= %d pre =%d\n",*step,&step,*(step+1),*(step-1));
 			break;
 		case 1:	   //从rev_tail2开始 跨长度字节找 0x16
 			if(((*rev_head-*rev_tail+FRAMELEN)%FRAMELEN) >= 3)
@@ -122,6 +125,7 @@ int StateProcess(int* step,int* rev_delay,int delay_num, int* rev_tail,int* rev_
 		default :
 			break;
 	}
+	fprintf(stderr,"return step=%d\n",*step);
 	return 0;
 }
 
@@ -1050,6 +1054,7 @@ int ProcessData(CommBlock *com)
 	pSendfun = com->p_send;
 	comfd = com->phy_connect_fd;
 	hcsok = CheckHead( Rcvbuf ,&csinfo);
+//	com->taskaddr = csinfo.ca;
 	fcsok = CheckTail( Rcvbuf ,csinfo.frame_length);
 	if ((hcsok==1) && (fcsok==1))
 	{

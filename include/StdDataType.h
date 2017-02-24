@@ -700,8 +700,6 @@ typedef struct
 	PIID piid;
 }SET_Request;
 
-
-
 typedef struct
 {
 	INT16U sernum;
@@ -713,7 +711,6 @@ typedef struct
 	INT8U usertype;
 	INT8U connectype;
 	TSA cjqaddr;
-
 }MeterInfoUnit;
 
 typedef struct{
