@@ -599,6 +599,7 @@ INT8S DealRecvMsg(mmq_head mq_h, INT8U *rev_485_buf,INT8U port485)
 //处理代理等实时请求
 INT8S dealRealTimeRequst(INT8U port485)
 {
+	mqd_t mqd_485_main;
 	INT8S result = -1;
 	if(mqd_485_main<0)
 	{
@@ -609,9 +610,19 @@ INT8S dealRealTimeRequst(INT8U port485)
 	INT8U  rev_485_buf[4092];
 	INT8S ret;
 	mmq_head mq_h;
+
+	struct mq_attr attr_mq;
+	mqd_485_main = mmq_open((INT8S *)PROXY_485_MQ_NAME,&attr_mq,O_RDONLY);
+
+
 	while(1)
 	{
 		ret = mmq_get(mqd_485_main, 10, &mq_h, rev_485_buf);
+		mq_getattr(mqd_485_main, &attr_mq);
+		fprintf(stderr,"\nmax=%ld    cur=%ld\n",attr_mq.mq_maxmsg,attr_mq.mq_curmsgs);
+		fprintf(stderr,"\nret = %d\n",ret);
+
+
 		if (ret>0)
 		{
 			//备份当前comfd4851 comfd4852，代理执行完后重新赋值
@@ -641,9 +652,10 @@ INT8S dealRealTimeRequst(INT8U port485)
 		else
 		{
 			fprintf(stderr,"\n dealRealTimeRequst result = %d",result);
-			return result;
+			break;
 		}
 	}
+	mmq_close(mqd_485_main);
 	return result;
 }
 INT8S deal6015_698(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8U port485)
@@ -1515,8 +1527,6 @@ void read485_proccess() {
 	//读取所有任务文件
 	init6013ListFrom6012File();
 
-	struct mq_attr attr_485_main;
-	mqd_485_main = mmq_open((INT8S *)PROXY_485_MQ_NAME,&attr_485_main,O_RDONLY);
 
 	INT8U i485port1 = 1;
 	pthread_attr_init(&read485_attr_t);

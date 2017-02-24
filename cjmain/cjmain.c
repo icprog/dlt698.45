@@ -13,7 +13,8 @@
 #include "AccessFun.h"
 #include "cjmain.h"
 #include "../libMq/libmmq.h"
-
+int* mqs_glb=NULL;
+INT32U mqnum_glb=0;
 int DevResetNum=0;
 void Runled()
 {
@@ -45,6 +46,21 @@ void ProjectCheck(ProjectInfo *proinfo)
 			proinfo->ProjectState=NeedKill;
 			proinfo->WaitTimes=0;
 		}
+	}
+}
+void mqs_clear()
+{
+	INT32U i;
+	if(mqs_glb != NULL)
+	{
+		for(i=0;i < mqnum_glb;i++)
+		{
+			fprintf(stderr,"\n关闭消息队列 %d",mqs_glb[i]);
+			mmq_close(mqs_glb[i]);
+		}
+		free(mqs_glb);
+		mqs_glb = NULL;
+		mqnum_glb = 0;
 	}
 }
 
@@ -182,6 +198,7 @@ void shmm_destroy()
 void ProjectMainExit(int signo)
 {
 	fprintf(stderr,"\ncjmain exit\n");
+	mqs_clear();
 	close_named_sem(SEMNAME_SPI0_0);
 	sem_unlink(SEMNAME_SPI0_0);
 	close_named_sem(SEMNAME_PARA_SAVE);
@@ -270,8 +287,8 @@ const static mmq_attribute mmq_register[]=
 void Createmq()
 {
 	struct mq_attr attr;
-	INT32U mqnum_glb=0;
-	int* mqs_glb=NULL;
+
+
 	int i=0;
 	mqnum_glb = sizeof(mmq_register)/sizeof(mmq_attribute);
 	mqs_glb = (int*) malloc(mqnum_glb*sizeof(int));
@@ -313,6 +330,7 @@ void Createmq()
 				 }
 				 usleep(100*1000);
 			}
+			fprintf(stderr,"\n Createmq  glb[%d] = %d",i,mqs_glb[i]);
 		}
 	}
 }
