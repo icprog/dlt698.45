@@ -1048,6 +1048,7 @@ int ProcessData(CommBlock *com)
 	pSendfun = com->p_send;
 	comfd = com->phy_connect_fd;
 	hcsok = CheckHead( Rcvbuf ,&csinfo);
+	com->taskaddr = csinfo.ca;
 	fcsok = CheckTail( Rcvbuf ,csinfo.frame_length);
 	if ((hcsok==1) && (fcsok==1))
 	{
