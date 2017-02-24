@@ -23,7 +23,7 @@ INT8S (*pSendfun_report)(int fd,INT8U* sndbuf,INT16U sndlen);
 INT8U Report_Event(CommBlock *com,Reportevent report_event){
 
 	int apduplace =0;
-	int index=0, hcsi=0;
+	int index=0, hcsi=0,temindex=0;
 	pSendfun_report = com->p_send;
 	CSINFO csinfo;
 	csinfo.dir = 1;
@@ -33,46 +33,54 @@ INT8U Report_Event(CommBlock *com,Reportevent report_event){
 	csinfo.sa_type = 0;
 	INT8U sa_len=com->serveraddr[0]+1;
 	memcpy(csinfo.sa,&com->serveraddr[1],sa_len);
-	csinfo.ca = com->taskaddr;
+//	csinfo.ca = com->taskaddr;
     csinfo.sa_length = sa_len;
-	INT8U sendbuf_report[256];
+	INT8U sendbuf_report[300],tem_buf[100];
 	index = FrameHead(&csinfo,sendbuf_report);
-	hcsi = index;
+	hcsi = index;  //两字节校验
 	index = index + 2;
-
 	apduplace = index;		//记录APDU 起始位置
-	sendbuf_report[index++] = REPORT_NOTIFICATION;
-	sendbuf_report[index++] = REPORTNOTIFICATIONLIST;
-	sendbuf_report[index++] = 0B10000000;	//	piid
-	sendbuf_report[index++] = 1; //个数
-	sendbuf_report[index++] = dtoad;//OAD数据
+	tem_buf[temindex++] = REPORT_NOTIFICATION;
+	tem_buf[temindex++] = REPORTNOTIFICATIONLIST;
+	tem_buf[temindex++] = 0B10000000;	//	piid
+	tem_buf[temindex++] = 1; //个数
+	tem_buf[temindex++] = dtoad;//OAD数据
 	OAD oad;
 	oad.OI=report_event.oi;
 	oad.attflg=2;
 	oad.attrindex=0;
-	sendbuf_report[index++] = oad.OI&0x00ff;
-	sendbuf_report[index++] = ((oad.OI>>8)&0x00ff);
-	sendbuf_report[index++] = oad.attflg;
-	sendbuf_report[index++] = oad.attrindex;
+	tem_buf[temindex++] = oad.OI&0x00ff;
+	tem_buf[temindex++] = ((oad.OI>>8)&0x00ff);
+	tem_buf[temindex++] = oad.attflg;
+	tem_buf[temindex++] = oad.attrindex;
 
 	INT8U *data=NULL;
 	int datalen=0;
 	if(Get_Event(oad,1,&data,&datalen,(ProgramInfo*)com->shmem) == 1){
 		if(data!=NULL && datalen>0 && datalen<256){
-			memcpy(&sendbuf_report[index],data,datalen);
-			sendbuf_report[index++] = 1; //data
+			tem_buf[temindex++] = 1; //data
+			memcpy(&tem_buf[temindex],data,datalen);
+			temindex +=datalen;
 		}else
-			sendbuf_report[index++] = 0; //data
+			tem_buf[temindex++] = 0; //data
 	}
 	if (data!=NULL)
 		free(data);
+
+	if(com->f101.active == 1){
+		sendbuf_report[index++]=16; //SECURIGY-REQUEST
+		sendbuf_report[index++]=0;  //明文应用数据单元
+		INT16U seclen=composeAutoReport(tem_buf,temindex);
+		if(seclen>0){
+			memcpy(&sendbuf_report[index],tem_buf,seclen);
+			index +=seclen;
+		}
+	}else{
+       memcpy(&sendbuf_report[index],tem_buf,temindex);
+       index +=temindex;
+	}
 	sendbuf_report[index++] = 0;	//跟随上报信息域 	FollowReport
 	sendbuf_report[index++] = 0;	//时间标签		TimeTag
-//	if(com->securetype!=0)//安全等级类型不为0，代表是通过安全传输下发报文，上行报文需要以不低于请求的安全级别回复
-//	{
-//		apduplace += composeSecurityResponse(&sendbuf_report[apduplace],index-apduplace);
-//		index=apduplace;
-//	}
 	FrameTail(sendbuf_report,index,hcsi);
 	if(pSendfun_report!=NULL)
 		pSendfun_report(com->phy_connect_fd,sendbuf_report,index+3);

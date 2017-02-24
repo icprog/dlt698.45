@@ -168,7 +168,7 @@ void GenericRead(struct aeEventLoop* eventLoop, int fd, void* clientData, int ma
             nst->RHead = (nst->RHead + 1) % BUFLEN;
         }
         bufsyslog(nst->RecBuf, "Recv:", nst->RHead, nst->RTail, BUFLEN);
-
+        fprintf(stderr,"Recv: head=%d, tail=%d BUFLEN=%d \n", nst->RHead, nst->RTail, BUFLEN);
         for (int k = 0; k < 3; k++) {
             int len = 0;
             for (int i = 0; i < 5; i++) {
@@ -346,6 +346,7 @@ void NETRead(struct aeEventLoop* eventLoop, int fd, void* clientData, int mask) 
         for (int k = 0; k < 5; k++) {
             int len = 0;
             for (int i = 0; i < 5; i++) {
+//            	fprintf(stderr,"deal_step=%d taskaddr=%d\n",nst->deal_step,nst->taskaddr);
                 len = StateProcess(&nst->deal_step, &nst->rev_delay, 10, &nst->RTail, &nst->RHead, nst->RecBuf, nst->DealBuf);
                 if (len > 0) {
                     break;

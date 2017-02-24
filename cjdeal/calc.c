@@ -33,6 +33,7 @@ INT8U 	CalcPointNum;		//需要统计的最大个数
 CLASS_4030 obj_offset={};
 CLASS_4016 feilv_para={};
 StatisticsPointProp StatisticsPoint[MAXNUM_IMPORTANTUSR];
+Gongdian_tj gongdian_tj;
 /*
  * 	山东要求：电压合格率统计，在停上电1分钟及停电期间，不进行电压合格统计
  * =1:满足上电1分钟要求，可以进行电压合格率统计
@@ -890,34 +891,64 @@ void CpyAcsDataFromPubData(POINT_CALC_TYPE* point_hander)
 void calc_thread()
 {
 	INT8U valid = 0;
+	TS oldts,newts;
+	TSGet(&oldts);
+	TSGet(&newts);
+
     while(1){
+    	TSGet(&newts);
 		/*根据系统参数确定测量点信息，内容保存到point相关处*/
 		get_point_para(&point[0]);       //初始化测量点参数
 		CpyAcsDataFromPubData(&point[0]);//初始化交采数据从共享内存
-		#ifdef SHANDONG
-			valid = getcalcvalid();
-		#else
-			valid = 1;
-		#endif
-		//电压合格率统计
-	    if(valid == 1){
-			voltage_calc();
-			saveCoverClass(0x4030,0,StatisticsPoint,sizeof(StatisticsPoint),calc_voltage_save);
-	    }
-	    usleep(100*1000);
+		//电压合格率
+		voltage_calc();
+		//供电时间
+		//如果跨天，日供电清零
+        if(oldts.Day != newts.Day)
+        	gongdian_tj.day_gongdian=0;
+
+        //如果跨月，月供电清零
+        if(oldts.Month != newts.Month)
+        	gongdian_tj.month_gongdian = 0;
+
+		//所有数据每分钟一存
+		if(oldts.Minute != newts.Minute){
+			//存储电压合格率
+		   saveCoverClass(0x4030,0,StatisticsPoint,sizeof(StatisticsPoint),calc_voltage_save);
+		   //日月供电加1分钟
+		   gongdian_tj.day_gongdian++;
+		   gongdian_tj.month_gongdian++;
+		   memcpy(&gongdian_tj.ts,&newts,sizeof(TS));
+		   saveCoverClass(0x2203,0,&gongdian_tj,sizeof(Gongdian_tj),calc_voltage_save);
+		}
+	    usleep(1000*1000);
   }
   pthread_detach(pthread_self());
   pthread_exit(&thread_calc);
 }
 
+INT8U Init_Para(){
+	memset(StatisticsPoint,0,sizeof(StatisticsPointProp)*MAXNUM_IMPORTANTUSR);
+	memset(point,0,sizeof(POINT_CALC_TYPE)*MAXNUM_IMPORTANTUSR_CALC);
+	ReadPubData();
+	memset(&gongdian_tj,0,sizeof(Gongdian_tj));
+	readCoverClass(0x2203,0,&gongdian_tj,sizeof(Gongdian_tj),calc_voltage_save);
+	TS newts;
+	TSGet(&newts);
+	//如果跨天 日供电清零
+	if(gongdian_tj.ts.Day != newts.Day)
+		gongdian_tj.day_gongdian = 0;
+	//如果跨月 月供电清零
+	if(gongdian_tj.ts.Month != newts.Month)
+		gongdian_tj.month_gongdian = 0;
+	return 1;
+}
 /*
  * 统计主函数
  */
 void calc_proccess()
 {
-	memset(StatisticsPoint,0,sizeof(StatisticsPointProp)*MAXNUM_IMPORTANTUSR);
-	memset(point,0,sizeof(POINT_CALC_TYPE)*MAXNUM_IMPORTANTUSR_CALC);
-	ReadPubData();
+	Init_Para();
 	pthread_attr_init(&calc_attr_t);
 	pthread_attr_setstacksize(&calc_attr_t,2048*1024);
 	pthread_attr_setdetachstate(&calc_attr_t,PTHREAD_CREATE_DETACHED);
