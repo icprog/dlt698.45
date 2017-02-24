@@ -68,11 +68,11 @@ INT8U Report_Event(CommBlock *com,Reportevent report_event){
 		free(data);
 	sendbuf_report[index++] = 0;	//跟随上报信息域 	FollowReport
 	sendbuf_report[index++] = 0;	//时间标签		TimeTag
-	if(com->securetype!=0)//安全等级类型不为0，代表是通过安全传输下发报文，上行报文需要以不低于请求的安全级别回复
-	{
-		apduplace += composeSecurityResponse(&sendbuf_report[apduplace],index-apduplace);
-		index=apduplace;
-	}
+//	if(com->securetype!=0)//安全等级类型不为0，代表是通过安全传输下发报文，上行报文需要以不低于请求的安全级别回复
+//	{
+//		apduplace += composeSecurityResponse(&sendbuf_report[apduplace],index-apduplace);
+//		index=apduplace;
+//	}
 	FrameTail(sendbuf_report,index,hcsi);
 	if(pSendfun_report!=NULL)
 		pSendfun_report(com->phy_connect_fd,sendbuf_report,index+3);
