@@ -196,6 +196,26 @@ typedef struct
     INT8U  Week;
 }TS;
 
+
+typedef union {//frame's length
+	INT16U u16b;//convenient to set value to 0
+	struct {//only for little endian frame!
+		INT16U len	: 14;//length
+		INT16U rev	: 2;//reserve
+	} length;
+} lengthUN;
+
+typedef union {//control code
+	INT8U u8b;//convenient to set value to 0
+	struct {//only for little endian mathine!
+		INT8U func		: 3;//function code
+		INT8U rev		: 2;//reserve
+		INT8U divS		: 1;//dived frame flag
+		INT8U prm		: 1;//promote flag
+		INT8U dir		: 1;//direction flag
+	} ctl;
+} ctlUN;
+
 typedef struct
 {
 	INT8U sa_type;		//服务器地址类型	0:单地址   1:通配地址   2：组地址   3：广播地址

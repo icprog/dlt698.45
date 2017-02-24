@@ -15,6 +15,8 @@
 #include "Objectdef.h"
 #include "event.h"
 #include "secure.h"
+#include "basedef.h"
+
 void get_BasicUnit(INT8U *source,INT16U *sourceindex,INT8U *dest,INT16U *destindex);
 extern void FrameTail(INT8U *buf,int index,int hcsi);
 extern int FrameHead(CSINFO *csinfo,INT8U *buf);
@@ -252,6 +254,7 @@ int get_BasicRCSD(INT8U *source,CSD_ARRAYTYPE *csds)
 	}
 	return index;
 }
+
 void get_BasicUnit(INT8U *source,INT16U *sourceindex,INT8U *dest,INT16U *destindex)
 {
 	INT8U choicetype;
@@ -263,7 +266,9 @@ void get_BasicUnit(INT8U *source,INT16U *sourceindex,INT8U *dest,INT16U *destind
 	INT8U 	type = source[0];
 
 	fprintf(stderr,"\ntype = %02x  sourceindex=%d ",type,*sourceindex);
+	A_FPRINTF("dest[0] :%02X\n", dest[0]);
 	dest_sumindex = getMytypeSize(dest[0]);
+	A_FPRINTF("dest[0] :%02X\n", dest[0]);
 	if (dest_sumindex>0)
 	{
 		dest[0] = type;
