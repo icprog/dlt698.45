@@ -135,35 +135,51 @@ int StateProcess(CommBlock* nst, int delay_num)
  */
 int CheckHead(unsigned char* buf ,CSINFO *csinfo)
 {
-	unsigned char b1=0, b2=0, hsc1=0, hsc2=0 ,sa_length=0 ,ctrl=0;
-	unsigned short cs16=0;
+	INT8U sa_length=0;
+	INT16U	cs16=0;//程序计算的校验码
+	INT16U	fcs16=0;//从帧中取出的校验码
+	ctlUN ctl;
+	lengthUN frameLen;
 
 	if(buf[0]==0x68  && csinfo!=NULL)
 	{
 		sa_length 	= (buf[4]& 0x0f) + 1; 		/*服务器地址长度 0,1,，，15 表示 1,2,，，16*/
-		cs16 = tryfcs16(&buf[1], sa_length + 5);
-		b1 = (cs16 & 0x00ff);
-		b2 = ((cs16 >> 8) & 0x00ff);
-		hsc1 = buf[5+ sa_length + 1];
-		hsc2 = buf[5+ sa_length + 2];
-//		fprintf(stderr,"\nhsc1= %02x b1=%02x hsc2=%02x b2=%02x\n",hsc1,b1,hsc2,b2);
-		if (hsc1 == b1 && hsc2 == b2)
-		{
-			ctrl 	= buf[3];
-			csinfo->frame_length = (((buf[2]&0x003f) << 8) + buf[1]) & 0x03FFF;
-			csinfo->funcode = ctrl & 0x03;
-			csinfo->dir = (ctrl & 0x80)>>7;
-			csinfo->prm = (ctrl & 0x40)>>6;
-			csinfo->gframeflg= (ctrl & 0x20)>>5;
-			csinfo->sa_type 	= (buf[4]& 0xc0) >> 6;	/*0:单地址   1：通配地址   2：组地址   3：广播地址*/
-			memcpy(csinfo->sa,&buf[5],sa_length);		/*服务器地址*/
-			csinfo->ca 	 = buf[5+ sa_length]; 			/*客户机地址*/
-			csinfo->sa_length = sa_length;
-			return 1;
-		}else
-		{
-			fprintf(stderr,"\n帧头校验错误!");
+		cs16 = tryfcs16(&buf[1], sa_length + 5);//小端存储 低位在左 高位在右
+
+		memcpy(&fcs16, &buf[5+ sa_length + 1], 2);//小端机器用法, 不可移植到大端机器
+		if(fcs16 != cs16) {
+			fprintf(stderr, "\n帧头校验错误!\n");
+			return 0;
 		}
+
+		memcpy(&frameLen, &buf[1], 2);
+		memcpy(&ctl, &buf[3], 1);
+		fprintf(stderr,"\nframe length: %d\n", frameLen.length.len);
+		fprintf(stderr,"direction: %s\n", ctl.ctl.dir?"send by server":"send by client");
+		fprintf(stderr,"prm: %s\n", ctl.ctl.prm?"send by client":"send by server");
+		fprintf(stderr,"divS: %s\n", ctl.ctl.divS?"part of APDU":"Whole APDU");
+		switch (ctl.ctl.func) {
+		case 1:
+			fprintf(stderr,"登录, 心跳, 退出登录\n");
+			break;
+		case 3:
+			fprintf(stderr,"应用连接管理及数据交换服务\n");
+			break;
+		default:
+			fprintf(stderr,"功能码未定义\n");
+			break;
+		}
+
+		csinfo->frame_length = frameLen.length.len;//帧长度
+		csinfo->funcode		= ctl.ctl.func;//功能码
+		csinfo->dir			= ctl.ctl.dir;
+		csinfo->prm			= ctl.ctl.prm;
+		csinfo->gframeflg	= ctl.ctl.divS;
+		csinfo->sa_type		= (buf[4]& 0xc0) >> 6;	/*0:单地址   1：通配地址   2：组地址   3：广播地址*/
+		memcpy(csinfo->sa, &buf[5], sa_length);		/*服务器地址*/
+		csinfo->ca			= buf[5+ sa_length]; 			/*客户机地址*/
+		csinfo->sa_length	= sa_length;
+		return 1;
 	}
 	return 0;
 }
@@ -174,20 +190,14 @@ int CheckHead(unsigned char* buf ,CSINFO *csinfo)
 int CheckTail(unsigned char * buf,INT16U length)
 {
 	INT16U cs16=0;
-	INT8U b1=0, b2=0, fsc1=0, fsc2=0 ;
-	if( buf[0]==0x68  )
-	{
-		fprintf(stderr,"frame length(-2) = %d ",length);
+	INT16U fcs16=0;
+
+	if( buf[0]==0x68 ) {
 		cs16 = tryfcs16(&buf[1], length-2);
-		b1 = (cs16 & 0x00ff);
-		b2 = ((cs16 >> 8) & 0x00ff);
-		fsc1 = buf[length - 1];
-		fsc2 = buf[length];
-//		fprintf(stderr,"\nfsc1= %02x b1=%02x     fsc2=%02x b2=%02x\n",fsc1,b1,fsc2,b2);
-		if (fsc1 == b1 && fsc2 == b2)
-		{
+		memcpy(&fcs16, &buf[length - 1], 2);
+		if (cs16 == fcs16) {
 			return 1;
-		}else {
+		} else {
 			fprintf(stderr,"\n帧尾校验错误!");
 		}
 	}
@@ -233,13 +243,11 @@ int FrameHead(CSINFO *csinfo,INT8U *buf)
 	buf[i++]= 0x68;//起始码
 	buf[i++]= 0;	//长度
 	buf[i++]= 0;
-//	fprintf(stderr,"控制码 i=%d",i);
 	buf[i++]= CtrlWord(*csinfo);
 	buf[i++]= (csinfo->sa_type<<6) | (0<<4) | ((csinfo->sa_length-1) & 0xf);
 	memcpy(&buf[i],csinfo->sa,csinfo->sa_length );
 	i = i + csinfo->sa_length;
 	buf[i++]=csinfo->ca;
-//	fprintf(stderr,"i=%d\n",i);
 	return i;
 }
 
