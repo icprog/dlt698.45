@@ -22,11 +22,13 @@
 #define	 EVENT_REC			"/nand/event/record"		//事件记录目录
 #define	 EVENT_CURR			"/nand/event/current"		//当前值记录表
 
+#define	 VARI_DIR			"/nand/data"				//变量类数据文件目录
+#define	 VARI_DATA				"/nand/data/vari.dat"		//变量类数据存储
 #define	 PARADIR				"/nand/para"				//参变量文件（4000） 采集监控类文件（6000）
 #define	 DEMANDDIR				"/nand/demand"				//需量类数据
 #define	 FREEZEDIR				"/nand/freeze"				//冻结类数据存储
 #define	 CALCDIR				"/nand/calc"				//统计类数据存储
-#define	 INITDIR			"/nor/init"					//初始化参数文件
+#define	 INITDIR				"/nor/init"					//初始化参数文件
 #define	 TASKDATA				"/nand/task"				//任务采集存储文件
 
 //文件存储类型
