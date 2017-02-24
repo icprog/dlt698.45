@@ -743,4 +743,15 @@ typedef struct{
 	Reportevent report_event[15];
 }NeedReport_Event;
 
+typedef struct{
+	INT32U day_gongdian;
+	INT32U month_gongdian;
+	TS ts;
+}Gongdian_tj;//2203 供电时间统计
+
+typedef struct{
+	INT32U day_reset;
+	INT32U month_reset;
+	TS ts;
+}Reset_tj;//2204 //复位次数统计
 #endif
