@@ -512,7 +512,9 @@ void enviromentCheck(int argc, char* argv[]) {
 void DealMMQMsg(struct aeEventLoop* eventLoop, int fd, void* clientData, int mask) {
 	INT8U getBuf[MAXSIZ_PROXY_NET];
 	mmq_head headBuf;
-	int res = mmq_get(fd, INT32U 1, &headBuf, getBuf);
+	int res = mmq_get(fd, 1, &headBuf, getBuf);
+	asyslog(LOG_INFO, "获取到抄表模块的消息 cmd = %d size = %d res = %d", headBuf.cmd, headBuf.bufsiz, res);
+	ProxyListResponse((PROXY_GETLIST *)getBuf, (CommBlock *)clientData);
 	return;
 }
 
@@ -539,7 +541,7 @@ int main(int argc, char* argv[]) {
     mmqAttr.mq_msgsize = MAXSIZ_PROXY_NET;
     mqd_t mmpd = mmq_open(PROXY_NET_MQ_NAME, &mmqAttr, O_RDONLY);
     if (mmpd >= 0) {
-        aeCreateFileEvent(ep, mmpd, AE_READABLE, DealMMQMsg, &serv_comstat);
+        aeCreateFileEvent(ep, mmpd, AE_READABLE, DealMMQMsg, &nets_comstat);
     }
 
     //建立服务端侦听
