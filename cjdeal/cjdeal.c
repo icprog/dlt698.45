@@ -21,11 +21,13 @@
 #include "event.h"
 #include "calc.h"
 #include "ParaDef.h"
+#include "EventObject.h"
 
 ProgramInfo* JProgramInfo=NULL;
 int ProIndex=0;
-INT8U poweroffon_state = 0;
-MeterPower MeterPowerInfo[POWEROFFON_NUM];
+INT8U poweroffon_state = 0; //停上电抄读标志 0无效，1抄读，2抄读完毕
+MeterPower MeterPowerInfo[POWEROFFON_NUM]; //当poweroffon_state为1时，抄读其中tsa得停上电时间，
+                                           //赋值给其中得停上电时间，同时置VALID为1,全部抄完后，置poweroffon_state为2
 /*********************************************************
  *程序入口函数-----------------------------------------------------------------------------------------------------------
  *程序退出前处理，杀死其他所有进程 清楚共享内存
