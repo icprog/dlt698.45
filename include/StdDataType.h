@@ -701,16 +701,16 @@ typedef struct
 }SET_Request;
 
 typedef struct{
-	LINK_Request link_request;
-	int phy_connect_fd;
+
+    int phy_connect_fd;
 	INT8U linkstate;
 	INT8U testcounter;
 	INT8U serveraddr[16];
-        INT8U taskaddr;                 //客户机地址
 	INT8U SendBuf[BUFLEN];			//发送数据
 	INT8U DealBuf[FRAMELEN];  		//保存接口函数处理长度
 	INT8U RecBuf[BUFLEN]; 			//接收数
-	int RHead,RTail;				//接收报文头指针，尾指针
+//	   INT8U taskaddr;                 //客户机地址
+ 	int RHead,RTail;				//接收报文头指针，尾指针
 	int deal_step;					//数据接收状态机处理标记
 	int	rev_delay;					//接收延时
 	INT8U securetype;				//安全类型
@@ -719,6 +719,7 @@ typedef struct{
 	CONNECT_Response AppVar;		//与主站协商后的应用层会话参数
 	void* shmem;
 	INT8S (*p_send)(int fd,INT8U * buf,INT16U len);
+	LINK_Request link_request;
 }CommBlock;
 
 typedef struct
