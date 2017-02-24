@@ -606,12 +606,12 @@ INT8S dealRealTimeRequst(INT8U port485)
 		fprintf(stderr,"S485_1_REV_MAIN_MQ:mq_open_ret=%d\n",mqd_485_main);
 		return result;
 	}
-	fprintf(stderr,"\n dealRealTimeRequst mqd_485_main = %d buffsize = %d",mqd_485_main,sizeof(PROXY_GETLIST));
 	INT8U  rev_485_buf[2048];
 	INT8S ret;
-	mmq_head mq_h;
+
 	while(1)
 	{
+		mmq_head mq_h;
 		ret = mmq_get(mqd_485_main, 1, &mq_h, rev_485_buf);
 		fprintf(stderr,"\n ret = %d",ret);
 		if (ret>0)
@@ -643,10 +643,11 @@ INT8S dealRealTimeRequst(INT8U port485)
 		else
 		{
 			fprintf(stderr,"\n dealRealTimeRequst result = %d",result);
-			//break;
+			break;
 		}
 		usleep(1000*1000);
 	}
+
 	return result;
 }
 INT8S deal6015_698(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8U port485)

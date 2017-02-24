@@ -23,7 +23,7 @@
 #include "cjcomm.h"
 #include "dlt698def.h"
 #include "event.h"
-#include "libmmq.h"
+#include "../libMq/libmmq.h"
 
 //共享内存地址
 static ProgramInfo* JProgramInfo = NULL;

@@ -267,10 +267,21 @@ INT16U set4300(OAD oad,INT8U *data)
 	CLASS19		class4300={};
 
 	readCoverClass(oad.OI,0,&class4300,sizeof(CLASS19),para_vari_save);
+	fprintf(stderr,"oi =%04x,attflg=%d\n",oad.OI,oad.attflg);
 	switch(oad.attflg) {
-	case 8:	//允许\禁止终端主动上报
+	case 7:	//允许跟随上报
 		get_BasicUnit(data,&source_index,&class4300.follow_report,&dest_index);
-		fprintf(stderr,"\n终端主动上报 : %d\n",class4300.follow_report);
+		fprintf(stderr,"\n允许跟随上报 : %d",class4300.follow_report);
+		saveCoverClass(oad.OI,0,&class4300,sizeof(CLASS19),para_vari_save);
+		break;
+	case 8:	//允许\禁止终端主动上报
+		get_BasicUnit(data,&source_index,&class4300.active_report,&dest_index);
+		fprintf(stderr,"\n终端主动上报 : %d",class4300.active_report);
+		saveCoverClass(oad.OI,0,&class4300,sizeof(CLASS19),para_vari_save);
+		break;
+	case 9:	//允许与主站通话
+		get_BasicUnit(data,&source_index,&class4300.talk_master,&dest_index);
+		fprintf(stderr,"\n允许与主站通话 : %d",class4300.talk_master);
 		saveCoverClass(oad.OI,0,&class4300,sizeof(CLASS19),para_vari_save);
 		break;
 	}

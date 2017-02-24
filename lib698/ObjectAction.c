@@ -72,6 +72,8 @@ int doReponse(int server,int reponse,CSINFO *csinfo,PIID piid,OAD oad,int dar,IN
 		memcpy(&buf[index],&data,sizeof(data));
 		index = index + sizeof(data);
 	}
+	buf[index++] = 0;	//跟随上报信息域 	FollowReport
+	buf[index++] = 0;	//时间标签		TimeTag
 	FrameTail(buf,index,hcsi);
 
 	if(pSendfun!=NULL)

@@ -20,30 +20,30 @@ extern ProgramInfo *memp;
 extern void getoad(INT8U *data,OAD *oad);
 
 
-//void ProxyListResponse(PROXY_GETLIST *list,INT8U oadnum,RESULT_NORMAL response,INT8U *sendbuf)
-//{
-//	CSINFO csinfo;
-//	int apduplace =0;
-//	int index=0, hcsi=0;
+void ProxyListResponse(PROXY_GETLIST *list,INT8U oadnum,RESULT_NORMAL response,INT8U *sendbuf)
+{
+	CSINFO csinfo;
+	int apduplace =0;
+	int index=0, hcsi=0;
 //	memcpy(&csinfo,list->csinfo,sizeof(CSINFO));
-//
-//	csinfo.dir = 1;
-//	csinfo.prm = 0;
-//	index = FrameHead(csinfo,sendbuf);
-//	hcsi = index;
-//	index = index + 2;
-//
-//	apduplace = index;		//记录APDU 起始位置
-//	sendbuf[index++] = PROXY_RESPONSE;
-//	sendbuf[index++] = ProxyGetResponseList;
-//	sendbuf[index++] = list->piid;	//	piid
-//
-//
-//
-//	FrameTail(sendbuf,index,hcsi);
+
+	csinfo.dir = 1;
+	csinfo.prm = 1;
+	index = FrameHead(csinfo,sendbuf);
+	hcsi = index;
+	index = index + 2;
+
+	apduplace = index;		//记录APDU 起始位置
+	sendbuf[index++] = PROXY_RESPONSE;
+	sendbuf[index++] = ProxyGetResponseList;
+	sendbuf[index++] = list->piid;	//	piid
+
+
+
+	FrameTail(sendbuf,index,hcsi);
 //	if(pSendfun!=NULL)
 //		pSendfun(comfd,sendbuf,index+3);
-//}
+}
 
 int getProxylist(INT8U *data,PROXY_GETLIST *getlist)
 {
@@ -52,7 +52,7 @@ int getProxylist(INT8U *data,PROXY_GETLIST *getlist)
 	INT16U timeout=0;
 	OAD oadtmp;
 	getlist->num = data[iindex++];// sequence of 代理
-
+	fprintf(stderr,"\n---%d",getlist->num);
 	for(i=0;i<getlist->num;i++)
 	{
 		num = data[iindex];
@@ -80,6 +80,9 @@ INT8S mqs_send(INT8S* mqname,INT16U pid,INT32U cmd,INT8U* buf,INT32U bufsiz)
 	mqd_t mqd;
 	struct mq_attr attr;
 	mqd = mmq_open((INT8S*)mqname , &attr, O_WRONLY);
+
+	fprintf(stderr,"\nmax =%ld   curr =%ld   flags=%ld",attr.mq_maxmsg,attr.mq_curmsgs,attr.mq_flags);
+
 	if(mqd <0)
 	{
 		fprintf(stderr,"\nmmq_open %s failed!",mqname);
@@ -102,11 +105,13 @@ int Proxy_GetRequestlist(INT8U *data,CSINFO *csinfo,INT8U *sendbuf,INT8U piid)
 {
 	INT16U timeout=0 ;
 	int i=0,j=0;
+	fprintf(stderr,"\n----------------111\n");
 	PROXY_GETLIST getlist;
 	timeout = data[0] ;
 	timeout = timeout <<8 | data[1];
 	getlist.timeout = timeout;
 	getlist.piid = piid;
+	fprintf(stderr,"\n----------------\n");
 	getProxylist(&data[2],&getlist);
 	fprintf(stderr,"\nProxy_GetRequestlist, timeout =%d  代理的对象属性读取数量 %d",timeout,getlist.num);
 	for(i=0;i<getlist.num;i++)
