@@ -377,8 +377,6 @@ typedef struct
 	INT8U data[512];	//请求结果
 }PROXY_GETLIST;
 
-#pragma pack(4)
-
 typedef struct{
 	LINK_Request link_request;
 	int phy_connect_fd;
