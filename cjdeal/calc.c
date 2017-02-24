@@ -22,6 +22,7 @@
 #include "AccessFun.h"
 #include "Objectdef.h"
 #include "PublicFunction.h"
+#include "event.h"
 
 //#ifdef SPTF_III
 //SumGroup_TYPE sumgroup[MAXNUM_SUMGROUP];
@@ -34,6 +35,9 @@ CLASS_4030 obj_offset={};
 CLASS_4016 feilv_para={};
 StatisticsPointProp StatisticsPoint[MAXNUM_IMPORTANTUSR];
 Gongdian_tj gongdian_tj;
+extern ProgramInfo* JProgramInfo;
+extern INT8U poweroffon_state;
+extern MeterPower MeterPowerInfo[POWEROFFON_NUM];
 /*
  * 	山东要求：电压合格率统计，在停上电1分钟及停电期间，不进行电压合格统计
  * =1:满足上电1分钟要求，可以进行电压合格率统计
@@ -921,6 +925,8 @@ void calc_thread()
 		   memcpy(&gongdian_tj.ts,&newts,sizeof(TS));
 		   saveCoverClass(0x2203,0,&gongdian_tj,sizeof(Gongdian_tj),calc_voltage_save);
 		}
+		//判断停上电
+		Event_3106(JProgramInfo,MeterPowerInfo,&poweroffon_state);
 	    usleep(1000*1000);
   }
   pthread_detach(pthread_self());

@@ -20,9 +20,12 @@
 #include "acs.h"
 #include "event.h"
 #include "calc.h"
+#include "ParaDef.h"
 
 ProgramInfo* JProgramInfo=NULL;
 int ProIndex=0;
+INT8U poweroffon_state = 0;
+MeterPower MeterPowerInfo[POWEROFFON_NUM];
 /*********************************************************
  *程序入口函数-----------------------------------------------------------------------------------------------------------
  *程序退出前处理，杀死其他所有进程 清楚共享内存
@@ -90,8 +93,8 @@ int main(int argc, char *argv[])
 	InitPara();
 	//485、四表合一
 	read485_proccess();
-	//统计计算 电压合格率等
-	// calc_proccess();
+	//统计计算 电压合格率 停电事件等
+	calc_proccess();
 	//载波
 	//readplc_proccess();
 	//液晶、控制
