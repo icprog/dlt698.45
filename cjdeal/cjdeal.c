@@ -83,6 +83,9 @@ int main(int argc, char *argv[])
 		return EXIT_FAILURE;
 	}
 
+	struct mq_attr attr_485_main;
+	mqd_485_main = mmq_open((INT8S *)PROXY_485_MQ_NAME,&attr_485_main,O_RDONLY);
+
 	//载入档案、参数
 	InitPara();
 	//485、四表合一

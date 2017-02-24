@@ -51,7 +51,7 @@ typedef struct {
 
 
 extern void read485_proccess();
-
+mqd_t mqd_485_main;
 TASK_CFG list6013[TASK6012_MAX];
 INT32S comfd4851;
 INT32S comfd4852;
