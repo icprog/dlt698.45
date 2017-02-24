@@ -72,7 +72,7 @@ void write_userpwd(unsigned char* user, unsigned char* pwd)
     fprintf(fp, "nodetach\n");
     fprintf(fp, "usepeerdns\n");
     fprintf(fp, "noipdefault\n");
-    // fprintf(fp,"defaultroute\n");
+    fprintf(fp, "defaultroute\n");
     fprintf(fp, "user \"%s\"\n", user);
     fprintf(fp, "0.0.0.0:0.0.0.0\n");
     fprintf(fp, "ipcp-accept-local\n");
