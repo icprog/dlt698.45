@@ -599,6 +599,7 @@ INT8S DealRecvMsg(mmq_head mq_h, INT8U *rev_485_buf,INT8U port485)
 //处理代理等实时请求
 INT8S dealRealTimeRequst(INT8U port485)
 {
+
 	INT8S result = -1;
 	if(mqd_485_main<0)
 	{
@@ -606,12 +607,13 @@ INT8S dealRealTimeRequst(INT8U port485)
 		return result;
 	}
 	fprintf(stderr,"\n dealRealTimeRequst mqd_485_main = %d buffsize = %d",mqd_485_main,sizeof(PROXY_GETLIST));
-	INT8U  rev_485_buf[4092];
+	INT8U  rev_485_buf[2048];
 	INT8S ret;
 	mmq_head mq_h;
 	while(1)
 	{
-		ret = mmq_get(mqd_485_main, 10, &mq_h, rev_485_buf);
+		ret = mmq_get(mqd_485_main, 1, &mq_h, rev_485_buf);
+		fprintf(stderr,"\n ret = %d",ret);
 		if (ret>0)
 		{
 			//备份当前comfd4851 comfd4852，代理执行完后重新赋值
@@ -625,7 +627,7 @@ INT8S dealRealTimeRequst(INT8U port485)
 				comfd_BK = comfd4852;
 			}
 
-			fprintf(stderr, "-----------------vs485_main recvMsg!!!    cmd=%d!!!---------------\n", mq_h.cmd);
+			fprintf(stderr, "\n\n-----------------vs485_main recvMsg!!!    cmd=%d!!!---------------\n", mq_h.cmd);
 			DealRecvMsg(mq_h, rev_485_buf,port485);
 
 			if(port485 == S4851)
@@ -641,8 +643,9 @@ INT8S dealRealTimeRequst(INT8U port485)
 		else
 		{
 			fprintf(stderr,"\n dealRealTimeRequst result = %d",result);
-			return result;
+			//break;
 		}
+		usleep(1000*1000);
 	}
 	return result;
 }
@@ -1435,6 +1438,7 @@ void read485_thread(void* i485port) {
 	INT16S tastIndexIndex = -1;
 
 	while (1) {
+
 		dealRealTimeRequst(port);
 		tastIndexIndex = getNextTastIndexIndex();
 
@@ -1488,10 +1492,9 @@ void read485_thread(void* i485port) {
 			saveCoverClass(0x6035, result6035.taskID, &result6035,
 					sizeof(CLASS_6035), coll_para_save);
 		} else {
-			dealRealTimeRequst(port);
 			fprintf(stderr, "\n 当前无任务可执行");
 		}
-		sleep(10);
+		sleep(1);
 	}
 
 	pthread_detach(pthread_self());
@@ -1514,9 +1517,6 @@ void read485_thread(void* i485port) {
 void read485_proccess() {
 	//读取所有任务文件
 	init6013ListFrom6012File();
-
-	struct mq_attr attr_485_main;
-	mqd_485_main = mmq_open((INT8S *)PROXY_485_MQ_NAME,&attr_485_main,O_RDONLY);
 
 	INT8U i485port1 = 1;
 	pthread_attr_init(&read485_attr_t);
