@@ -68,6 +68,7 @@ void write_userpwd(unsigned char* user, unsigned char* pwd)
     fp = fopen("/etc/ppp/peers/cdma2000", "w");
     fprintf(fp, "/dev/mux1\n");
     fprintf(fp, "115200\n");
+    fprintf(fp, "modem\n");
     fprintf(fp, "debug\n");
     fprintf(fp, "nodetach\n");
     fprintf(fp, "usepeerdns\n");
