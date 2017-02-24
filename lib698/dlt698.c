@@ -230,13 +230,11 @@ int FrameHead(CSINFO *csinfo,INT8U *buf)
 	buf[i++]= 0x68;//起始码
 	buf[i++]= 0;	//长度
 	buf[i++]= 0;
-//	fprintf(stderr,"控制码 i=%d",i);
 	buf[i++]= CtrlWord(*csinfo);
 	buf[i++]= (csinfo->sa_type<<6) | (0<<4) | ((csinfo->sa_length-1) & 0xf);
 	memcpy(&buf[i],csinfo->sa,csinfo->sa_length );
 	i = i + csinfo->sa_length;
 	buf[i++]=csinfo->ca;
-//	fprintf(stderr,"i=%d\n",i);
 	return i;
 }
 

@@ -18,31 +18,39 @@
 
 extern ProgramInfo *memp;
 extern void getoad(INT8U *data,OAD *oad);
+extern int FrameHead(CSINFO *csinfo,INT8U *buf);
+extern void FrameTail(INT8U *buf,int index,int hcsi);
 
-
-void ProxyListResponse(PROXY_GETLIST *list,INT8U oadnum,RESULT_NORMAL response,INT8U *sendbuf)
+void ProxyListResponse(PROXY_GETLIST *list,CommBlock *com)
 {
+	if (com==NULL || list==NULL)
+		return;
 	CSINFO csinfo;
-	int apduplace =0;
-	int index=0, hcsi=0;
-//	memcpy(&csinfo,list->csinfo,sizeof(CSINFO));
+	INT8U *sendbuf = com->SendBuf;
+	int index=0, hcsi=0,datalen=0 ,apduplace =0;
 
+	memcpy(&csinfo,&list->csinfo,sizeof(CSINFO));
 	csinfo.dir = 1;
 	csinfo.prm = 1;
-	index = FrameHead(csinfo,sendbuf);
+
+	index = FrameHead(&csinfo,sendbuf);
 	hcsi = index;
 	index = index + 2;
 
 	apduplace = index;		//记录APDU 起始位置
 	sendbuf[index++] = PROXY_RESPONSE;
 	sendbuf[index++] = ProxyGetResponseList;
-	sendbuf[index++] = list->piid;	//	piid
-
-
-
+	sendbuf[index++] = list->piid;
+	datalen = list->datalen ;
+	if (datalen > 512)
+		datalen =512;
+	memcpy(sendbuf,list->data,datalen);
+	index = index + datalen;
+	sendbuf[index++] = 0;
+	sendbuf[index++] = 0;
 	FrameTail(sendbuf,index,hcsi);
-//	if(pSendfun!=NULL)
-//		pSendfun(comfd,sendbuf,index+3);
+	if(com->p_send!=NULL)
+		com->p_send(com->phy_connect_fd,sendbuf,index+3);
 }
 
 int getProxylist(INT8U *data,PROXY_GETLIST *getlist)
@@ -105,13 +113,11 @@ int Proxy_GetRequestlist(INT8U *data,CSINFO *csinfo,INT8U *sendbuf,INT8U piid)
 {
 	INT16U timeout=0 ;
 	int i=0,j=0;
-	fprintf(stderr,"\n----------------111\n");
 	PROXY_GETLIST getlist;
 	timeout = data[0] ;
 	timeout = timeout <<8 | data[1];
 	getlist.timeout = timeout;
 	getlist.piid = piid;
-	fprintf(stderr,"\n----------------\n");
 	getProxylist(&data[2],&getlist);
 	fprintf(stderr,"\nProxy_GetRequestlist, timeout =%d  代理的对象属性读取数量 %d",timeout,getlist.num);
 	for(i=0;i<getlist.num;i++)
@@ -129,8 +135,5 @@ int Proxy_GetRequestlist(INT8U *data,CSINFO *csinfo,INT8U *sendbuf,INT8U piid)
 
 	mqs_send((INT8S *)PROXY_485_MQ_NAME,1,ProxyGetResponseList,(INT8U *)&getlist,sizeof(PROXY_GETLIST));
 	fprintf(stderr,"\n代理消息已经发出\n\n");
-//	getlist.position = 0;
-//	write2_ProxyRequestList(&getlist);
-//	memp->ProxyHappen = 1;
 	return 1;
 }

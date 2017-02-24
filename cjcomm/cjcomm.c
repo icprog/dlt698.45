@@ -200,7 +200,7 @@ void initComPara(CommBlock* compara) {
 	CLASS_4001_4002_4003 c4001;
 	memset(&c4001, 0x00, sizeof(c4001));
 	readCoverClass(0x4001, 0, &c4001, sizeof(c4001), para_vari_save);
-	asyslog(LOG_INFO, "逻辑地址长度：%d\n", c4001.curstom_num);
+	asyslog(LOG_INFO, "逻辑地址长度：%d\n", c4001.curstom_num[0]);
     memcpy(compara->serveraddr, c4001.curstom_num, 16);
     compara->phy_connect_fd = -1;
     compara->testcounter    = 0;
