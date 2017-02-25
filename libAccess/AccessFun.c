@@ -400,7 +400,7 @@ int readCoverClass(OI_698 oi,INT16U seqno,void *blockdata,int datalen,int type)
 /*
  * 参变量数据存储及读取接口
  * oi: 需要存储OI值
- * blockdata:  需要存储数据, 存储格式为:　有效长度 + OAD + Data
+ * blockdata:  需要存储数据, 存储格式为:　有效长度 Data
  * datalen :   需要存储数据长度,不能超过64个字节
  * =-1 ：存储失败
  * */
@@ -410,9 +410,11 @@ int saveVariData(OI_698 oi,void *blockdata,int datalen)
 	int		offset=-1;
 	FILE 	*fp=NULL;
 	int	  	fd=0;
-	sem_t   *sem_save=NULL;
+	char	wbuf[VARI_LEN]={};
+//	sem_t   *sem_save=NULL;
 
 	offset = getvarioffset(oi);
+	fprintf(stderr,"offset=%d\n",offset);
 	if(offset == -1) {
 		fprintf(stderr,"没有相关OI=%04x的存储信息，不可保存!!!\n",oi);
 		return -1;
@@ -425,7 +427,7 @@ int saveVariData(OI_698 oi,void *blockdata,int datalen)
 		fprintf(stderr,"存储数据为空，不可保存\n");
 		return -1;
 	}
-	sem_save = InitSem();
+//	sem_save = InitSem();
 	makeSubDir(VARI_DIR);
 	if(access(VARI_DATA,F_OK)!=0)
 	{
@@ -436,35 +438,40 @@ int saveVariData(OI_698 oi,void *blockdata,int datalen)
 		fprintf(stderr,"替换文件\n");
 	}
 	if (fp != NULL) {
+		memset(&wbuf,0,sizeof(wbuf));
+		wbuf[0] = datalen;
+		memcpy(&wbuf[1],blockdata,datalen);
+		fprintf(stderr,"set to %d",offset*VARI_LEN);
 		fseek(fp, offset*VARI_LEN, SEEK_SET);
-		ret = fwrite(blockdata, datalen,1,fp);
+		//fwrite(&datalen,sizeof(int),1,fp);			//数据有效长度
+		ret = fwrite(wbuf,VARI_LEN,1,fp);			//数据内容
 		fd = fileno(fp);
 		fsync(fd);
 		fclose(fp);
 	} else {
 		ret = 0;
 	}
-	CloseSem(sem_save);
+//	CloseSem(sem_save);
 	return ret;
 }
 
 /*
  *　　读取数据值
- *　　　  oad: 需要读取的oad值
+ *　　　  oi: 需要读取的oi值的所有属性值
  *　　　  oadnum: 需要读取oad个数
  *　　　　　blockdata:返回数据
  *　　　　　len:　blockdata空间大小，需要申请blockdata申请空间大小为：oad个数×VARI_LEN
  *　　　函数返回值：数据长度 =-1,读取失败
- *  */
-int  readVariData(OAD *oad,int oadnum,void *blockdata,int len)
+ * */
+int  readVariData(OI_698 *oi,int oadnum,void *blockdata,int len)
 {
 	FILE 	*fp=NULL;
 	int 	i=0,offset=-1,retlen=-1,readlen=0;
 	sem_t   *sem_save=NULL;
 	INT8U	tmpbuf[VARI_LEN]={};
 
-	if(oadnum*VARI_LEN >= len) {
-		fprintf(stderr,"读取数据长度[%d]大于申请返回数据空间[%d]，返回失败!!!\n",oadnum*VARI_LEN,len);
+	if(len >= oadnum*VARI_LEN) {
+		fprintf(stderr,"读取数据长度[%d]大于申请返回数据空间[%d]，返回失败!!!\n",len,oadnum*VARI_LEN);
 		return -1;
 	}
 	if(blockdata==NULL) {
@@ -476,24 +483,34 @@ int  readVariData(OAD *oad,int oadnum,void *blockdata,int len)
 	fp = fopen(VARI_DATA, "r");
 	if (fp != NULL) {
 		retlen = 0;
-		for(i=0; i < oadnum;i++)
-		{
-			offset = getvarioffset(oad[i].OI);
+		if(oadnum==1) {		//只读取一个，返回实际数据长度
+			offset = getvarioffset(oi[0]);
+			fprintf(stderr,"oi = %04x, offset=%d site=%d\n",oi[0],offset,offset*VARI_LEN);
 			if(offset!=-1) {
 				fseek(fp, offset*VARI_LEN, SEEK_SET);
-				memset(tmpbuf,0,sizeof(tmpbuf));
+				memset(blockdata,0,len);
 				readlen=fread(tmpbuf,VARI_LEN,1,fp);	//读一个块数据
+				fprintf(stderr,"readlen=%d\n",readlen);
 				if(readlen==1) {
-					if(tmpbuf[0]==0 || tmpbuf[0]>VARI_LEN) {	//无此oi数据,返回0,即NULL
-						memcpy((char *)blockdata+retlen,&oad,sizeof(OAD));
-						retlen+=sizeof(OAD);
-						retlen++;	//数据为：null
+					fprintf(stderr,"tmpbuf[0]=%d\n",tmpbuf[0]);
+					memcpy((char *)blockdata+retlen,&tmpbuf[1],len);	//第一个字节为有效长度
+					retlen+=len;
+				}
+			}else retlen=0;
+		}else {
+			retlen = 0;
+			for(i=0; i < oadnum;i++) {
+				offset = getvarioffset(oi[i]);
+				if(offset!=-1) {
+					fseek(fp, offset*VARI_LEN, SEEK_SET);
+					memset(tmpbuf,0,sizeof(tmpbuf));
+					readlen=fread(tmpbuf,VARI_LEN,1,fp);	//读一个块数据
+					if(readlen==1) {
+						memcpy((char *)blockdata+retlen,&tmpbuf,VARI_LEN);	//第一个字节为有效长度
+						retlen+=tmpbuf[0];
 					}else {
-						if(tmpbuf[1]==((oad->OI>>8)&0xff) && tmpbuf[2]==((oad->OI)&0xff)) {
-							//暂时考虑读取所有属性，不单独读取某一个属性
-							memcpy((char *)blockdata+retlen,&tmpbuf[1],tmpbuf[0]);
-							retlen+=tmpbuf[0];
-						}
+						memset(blockdata+retlen,0,len);
+						retlen+=VARI_LEN;
 					}
 				}
 			}
@@ -503,6 +520,7 @@ int  readVariData(OAD *oad,int oadnum,void *blockdata,int len)
 	{
 		retlen = 0;
 	}
+	fprintf(stderr,"retlen=%d\n",retlen);
 	CloseSem(sem_save);
 	return retlen;
 }

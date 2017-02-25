@@ -44,7 +44,7 @@ const static CLASS_INFO  class_info[] ={
  * 	　根据vari_data表中定义各个OI在文件中存放的偏移位置offsit，用于数据的定位查找
  * 	　每个oi按照规约内容存放: 类型＋数据
  * */
-#define		VARI_LEN		64		//每个ｏｉ占用的位置空间
+
 typedef struct
 {
 	OI_698		oi;				//对象标识OI

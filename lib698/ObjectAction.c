@@ -15,7 +15,10 @@
 #include "Objectdef.h"
 #include "event.h"
 #include "secure.h"
+#include "basedef.h"
+
 void get_BasicUnit(INT8U *source,INT16U *sourceindex,INT8U *dest,INT16U *destindex);
+extern INT8U Reset_add();
 extern void FrameTail(INT8U *buf,int index,int hcsi);
 extern int FrameHead(CSINFO *csinfo,INT8U *buf);
 extern INT8S (*pSendfun)(int fd,INT8U* sndbuf,INT16U sndlen);
@@ -252,6 +255,7 @@ int get_BasicRCSD(INT8U *source,CSD_ARRAYTYPE *csds)
 	}
 	return index;
 }
+
 void get_BasicUnit(INT8U *source,INT16U *sourceindex,INT8U *dest,INT16U *destindex)
 {
 	INT8U choicetype;
@@ -263,7 +267,9 @@ void get_BasicUnit(INT8U *source,INT16U *sourceindex,INT8U *dest,INT16U *destind
 	INT8U 	type = source[0];
 
 	fprintf(stderr,"\ntype = %02x  sourceindex=%d ",type,*sourceindex);
+	A_FPRINTF("dest[0] :%02X\n", dest[0]);
 	dest_sumindex = getMytypeSize(dest[0]);
+	A_FPRINTF("dest[0] :%02X\n", dest[0]);
 	if (dest_sumindex>0)
 	{
 		dest[0] = type;
@@ -703,6 +709,7 @@ void TerminalInfo(INT16U attr_act,INT8U *data)
 	{
 		case 1://设备复位
 			memp->oi_changed.reset++;
+			Reset_add();
 			fprintf(stderr,"\n4300 设备复位！");
 			break;
 		case 3://数据初始化

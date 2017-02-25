@@ -278,7 +278,6 @@ time_t ifDevReset()
 	return 0;
 }
 
-
 const static mmq_attribute mmq_register[]=
 {
 	{cjcomm,PROXY_485_MQ_NAME,MAXSIZ_PROXY_NET,MAXNUM_PROXY_NET},
@@ -334,6 +333,7 @@ void Createmq()
 		}
 	}
 }
+
 int main(int argc, char *argv[])
 {
 	pid_t pids[128];
@@ -388,6 +388,8 @@ int main(int argc, char *argv[])
 			}
 			JProgramInfo->Projects[i].WaitTimes++;
 		}
+		///test 注释
+/*
 		if (resetStart==0)
 			resetStart = ifDevReset();
 		else
@@ -395,9 +397,11 @@ int main(int argc, char *argv[])
 			fprintf(stderr,"\n...%ld",time(NULL));
 			if (abs(time(NULL)-resetStart)>=5)
 			{
+				//TODO:复位之前保证硬件初始化上送应答帧、统计数据存储成功、电量的存储
 				system("reboot");
 			}
 		}
+*/
    	}
 	return EXIT_SUCCESS;//退出
 }

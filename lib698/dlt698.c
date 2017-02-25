@@ -41,82 +41,82 @@ PIID piid_g={};
  * 函数功能：DL/T698.45 状态机
  * 参数含义：
  **************************************/
-int StateProcess(int* step,int* rev_delay,int delay_num, int* rev_tail,int* rev_head,INT8U *NetRevBuf,INT8U* dealbuf)
+int StateProcess(CommBlock* nst, int delay_num)
 {
 	int length=0,i=0;
 
-//	fprintf(stderr,"\nstep = %d,stepadd = %04x\n",*step,&step);
-	switch(*step)
+	switch(nst->deal_step)
 	{
 		case 0:		 // 找到第一个 0x68
-			while(*rev_head!=*rev_tail)
+			while(nst->RHead!=nst->RTail)
 			{
-//				fprintf(stderr,"NetRevBuf[*rev_tail] = %02x  head=%d  tail=%d ",NetRevBuf[*rev_tail],*rev_head,*rev_tail);
-				if (NetRevBuf[*rev_tail]== 0x68)
+				if (nst->RecBuf[nst->RTail]== 0x68)
 				{
-					*step = 1;
-//					fprintf(stderr,"111step=%d,stepadd1 = %04x next = %d pre = %d \n",*step,&step,*(step+1),*(step-1));
+//					*step = 1;
+					nst->deal_step = 1;
+					printf("step = %d\n", nst->deal_step);
+					printf("step = %d\n", nst->deal_step);
+					//nst->deal_step = 1;
 					break;
 				}else {
-					*rev_tail = (*rev_tail + 1)% FRAMELEN;
-//					fprintf(stderr,"rev_tail=%d\n",*rev_tail);
+					nst->RTail = (nst->RTail + 1)% FRAMELEN;
+					fprintf(stderr,"rev_tail=%d\n",nst->RTail);
 				}
 			}
-//			fprintf(stderr,"break   step=%d,stepadd2=%04x next= %d pre =%d\n",*step,&step,*(step+1),*(step-1));
 			break;
 		case 1:	   //从rev_tail2开始 跨长度字节找 0x16
-			if(((*rev_head-*rev_tail+FRAMELEN)%FRAMELEN) >= 3)
+			if(((nst->RHead-nst->RTail+FRAMELEN)%FRAMELEN) >= 3)
 			{
 //				fprintf(stderr,"\nNetRevBuf[*rev_tail] = %02x  %02x\n ",NetRevBuf[(*rev_tail+ 2)%FRAMELEN],NetRevBuf[(*rev_tail+ 1)%FRAMELEN]);
-				length = (NetRevBuf[(*rev_tail+ 2 + FRAMELEN )%FRAMELEN] << 8) + NetRevBuf[(*rev_tail+ 1 + FRAMELEN)%FRAMELEN];
+				length = (nst->RecBuf[(nst->RTail+ 2 + FRAMELEN )%FRAMELEN] << 8) + nst->RecBuf[(nst->RTail+ 1 + FRAMELEN)%FRAMELEN];
 				length = (length) & 0x03FFF;//bit15 bit14 保留
 //				fprintf(stderr,"\nlength = %d \n",length);
 				if (length <= 0)//长度异常
 				{
-					*rev_tail = (*rev_tail + 1)% FRAMELEN;
-					*step = 0;
+					nst->RTail = (nst->RTail + 1)% FRAMELEN;
+					nst->deal_step = 0;
 					break;
 				}else {
 //					fprintf(stderr,"*rev_head = %d *rev_tail = %d ",*rev_head,*rev_tail);
-					if((*rev_head-*rev_tail+FRAMELEN)%FRAMELEN >= (length+2))//长度length为除 68和16 以外的字节数
+					if((nst->RHead-nst->RTail+FRAMELEN)%FRAMELEN >= (length+2))//长度length为除 68和16 以外的字节数
 					{
-						if(NetRevBuf[ (*rev_tail + length + 1 + FRAMELEN)% FRAMELEN ]== 0x16)
+						if(nst->RecBuf[ (nst->RTail + length + 1 + FRAMELEN)% FRAMELEN ]== 0x16)
 						{
-							*rev_delay = 0;
+							nst->rev_delay = 0;
 //							fprintf(stderr,"RRR=[%d]\n",length+2);
 							for(i=0;i<(length+2);i++)
 							{
-								dealbuf[i] = NetRevBuf[*rev_tail];
+								nst->DealBuf[i] = nst->RecBuf[nst->RTail];
 //								fprintf(stderr,"%02x ",dealbuf[i]);
-								*rev_tail = (*rev_tail + 1) % FRAMELEN;
+								nst->RTail = (nst->RTail + 1) % FRAMELEN;
 							}
-							*step = 0;//进入下一步
+							nst->deal_step = 0;//进入下一步
 							return (length+2);
 						}
 						else
 						{
-							if (*rev_delay < delay_num)
+							if (nst->rev_delay < delay_num)
 							{
-								(*rev_delay)++;
+								(nst->rev_delay)++;
 								break;
 							}else
 							{
-								*rev_delay = 0;
-								*rev_tail = (*rev_tail +1 )% FRAMELEN;
-								*step = 0;//返回第一步
+								nst->rev_delay = 0;
+								nst->RTail = (nst->RTail +1 )% FRAMELEN;
+								nst->deal_step = 0;//返回第一步
 							}
 						}
 					}else
 					{
-							if (*rev_delay < delay_num)
+							if (nst->rev_delay < delay_num)
 							{
-								(*rev_delay)++;
+								(nst->rev_delay)++;
 								break;
 							}else
 							{
-								*rev_delay = 0;
-								*rev_tail = (*rev_tail +1 )% FRAMELEN;
-								*step = 0;
+								nst->rev_delay = 0;
+								nst->RTail = (nst->RTail +1 )% FRAMELEN;
+								nst->deal_step = 0;
 							}
 					}
 				}
@@ -125,7 +125,6 @@ int StateProcess(int* step,int* rev_delay,int delay_num, int* rev_tail,int* rev_
 		default :
 			break;
 	}
-//	fprintf(stderr,"return step=%d\n",*step);
 	return 0;
 }
 
@@ -136,35 +135,51 @@ int StateProcess(int* step,int* rev_delay,int delay_num, int* rev_tail,int* rev_
  */
 int CheckHead(unsigned char* buf ,CSINFO *csinfo)
 {
-	unsigned char b1=0, b2=0, hsc1=0, hsc2=0 ,sa_length=0 ,ctrl=0;
-	unsigned short cs16=0;
+	INT8U sa_length=0;
+	INT16U	cs16=0;//程序计算的校验码
+	INT16U	fcs16=0;//从帧中取出的校验码
+	ctlUN ctl;
+	lengthUN frameLen;
 
 	if(buf[0]==0x68  && csinfo!=NULL)
 	{
 		sa_length 	= (buf[4]& 0x0f) + 1; 		/*服务器地址长度 0,1,，，15 表示 1,2,，，16*/
-		cs16 = tryfcs16(&buf[1], sa_length + 5);
-		b1 = (cs16 & 0x00ff);
-		b2 = ((cs16 >> 8) & 0x00ff);
-		hsc1 = buf[5+ sa_length + 1];
-		hsc2 = buf[5+ sa_length + 2];
-//		fprintf(stderr,"\nhsc1= %02x b1=%02x hsc2=%02x b2=%02x\n",hsc1,b1,hsc2,b2);
-		if (hsc1 == b1 && hsc2 == b2)
-		{
-			ctrl 	= buf[3];
-			csinfo->frame_length = (((buf[2]&0x003f) << 8) + buf[1]) & 0x03FFF;
-			csinfo->funcode = ctrl & 0x03;
-			csinfo->dir = (ctrl & 0x80)>>7;
-			csinfo->prm = (ctrl & 0x40)>>6;
-			csinfo->gframeflg= (ctrl & 0x20)>>5;
-			csinfo->sa_type 	= (buf[4]& 0xc0) >> 6;	/*0:单地址   1：通配地址   2：组地址   3：广播地址*/
-			memcpy(csinfo->sa,&buf[5],sa_length);		/*服务器地址*/
-			csinfo->ca 	 = buf[5+ sa_length]; 			/*客户机地址*/
-			csinfo->sa_length = sa_length;
-			return 1;
-		}else
-		{
-			fprintf(stderr,"\n帧头校验错误!");
+		cs16 = tryfcs16(&buf[1], sa_length + 5);//小端存储 低位在左 高位在右
+
+		memcpy(&fcs16, &buf[5+ sa_length + 1], 2);//小端机器用法, 不可移植到大端机器
+		if(fcs16 != cs16) {
+			fprintf(stderr, "\n帧头校验错误!\n");
+			return 0;
 		}
+
+		memcpy(&frameLen, &buf[1], 2);
+		memcpy(&ctl, &buf[3], 1);
+		fprintf(stderr,"\nframe length: %d\n", frameLen.length.len);
+		fprintf(stderr,"direction: %s\n", ctl.ctl.dir?"send by server":"send by client");
+		fprintf(stderr,"prm: %s\n", ctl.ctl.prm?"send by client":"send by server");
+		fprintf(stderr,"divS: %s\n", ctl.ctl.divS?"part of APDU":"Whole APDU");
+		switch (ctl.ctl.func) {
+		case 1:
+			fprintf(stderr,"登录, 心跳, 退出登录\n");
+			break;
+		case 3:
+			fprintf(stderr,"应用连接管理及数据交换服务\n");
+			break;
+		default:
+			fprintf(stderr,"功能码未定义\n");
+			break;
+		}
+
+		csinfo->frame_length = frameLen.length.len;//帧长度
+		csinfo->funcode		= ctl.ctl.func;//功能码
+		csinfo->dir			= ctl.ctl.dir;
+		csinfo->prm			= ctl.ctl.prm;
+		csinfo->gframeflg	= ctl.ctl.divS;
+		csinfo->sa_type		= (buf[4]& 0xc0) >> 6;	/*0:单地址   1：通配地址   2：组地址   3：广播地址*/
+		memcpy(csinfo->sa, &buf[5], sa_length);		/*服务器地址*/
+		csinfo->ca			= buf[5+ sa_length]; 			/*客户机地址*/
+		csinfo->sa_length	= sa_length;
+		return 1;
 	}
 	return 0;
 }
@@ -175,20 +190,14 @@ int CheckHead(unsigned char* buf ,CSINFO *csinfo)
 int CheckTail(unsigned char * buf,INT16U length)
 {
 	INT16U cs16=0;
-	INT8U b1=0, b2=0, fsc1=0, fsc2=0 ;
-	if( buf[0]==0x68  )
-	{
-		fprintf(stderr,"frame length(-2) = %d ",length);
+	INT16U fcs16=0;
+
+	if( buf[0]==0x68 ) {
 		cs16 = tryfcs16(&buf[1], length-2);
-		b1 = (cs16 & 0x00ff);
-		b2 = ((cs16 >> 8) & 0x00ff);
-		fsc1 = buf[length - 1];
-		fsc2 = buf[length];
-//		fprintf(stderr,"\nfsc1= %02x b1=%02x     fsc2=%02x b2=%02x\n",fsc1,b1,fsc2,b2);
-		if (fsc1 == b1 && fsc2 == b2)
-		{
+		memcpy(&fcs16, &buf[length - 1], 2);
+		if (cs16 == fcs16) {
 			return 1;
-		}else {
+		} else {
 			fprintf(stderr,"\n帧尾校验错误!");
 		}
 	}
@@ -234,13 +243,11 @@ int FrameHead(CSINFO *csinfo,INT8U *buf)
 	buf[i++]= 0x68;//起始码
 	buf[i++]= 0;	//长度
 	buf[i++]= 0;
-//	fprintf(stderr,"控制码 i=%d",i);
 	buf[i++]= CtrlWord(*csinfo);
 	buf[i++]= (csinfo->sa_type<<6) | (0<<4) | ((csinfo->sa_length-1) & 0xf);
 	memcpy(&buf[i],csinfo->sa,csinfo->sa_length );
 	i = i + csinfo->sa_length;
 	buf[i++]=csinfo->ca;
-//	fprintf(stderr,"i=%d\n",i);
 	return i;
 }
 
