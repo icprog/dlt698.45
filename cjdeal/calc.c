@@ -23,6 +23,8 @@
 #include "Objectdef.h"
 #include "PublicFunction.h"
 #include "event.h"
+#include "EventObject.h"
+#include "CalcObject.h"
 
 //#ifdef SPTF_III
 //SumGroup_TYPE sumgroup[MAXNUM_SUMGROUP];
@@ -91,6 +93,7 @@ INT8U write_calc_stru(POINT_CALC_TYPE *pcalc)
 			//读交采和485表进行统计
            if(meter.basicinfo.port.OI == 0xF201 || meter.basicinfo.port.OI == 0xF208){
         	   pcalc[num].PointNo=meter.sernum;
+        	   memcpy(&pcalc[num].tsa,&meter.basicinfo.addr,sizeof(TSA));
         	   if(meter.basicinfo.port.OI == 0xF201)
         		   pcalc[num].Type=JIAOCAI_TYPE;
         	   else if(meter.basicinfo.port.OI == 0xF208)
@@ -397,7 +400,7 @@ void voltage_calc(){
 			Rate = (((FP32)point[i].Result_m.tjUa.xx_count+(FP32)point[i].Result_m.tjUa.x_count)/(FP32)point[i].Result_m.tjUa.U_Count)*RAT_COEF;
 			point[i].Result_m.tjUa.x_Rate = Rate>100?100:Rate;
 			point[i].Result_m.tjUa.ok_Rate = 100.00-point[i].Result_m.tjUa.x_Rate-point[i].Result_m.tjUa.s_Rate;
-			//统计数据给共享内存赋值
+			//统计数据给内存赋值
 			CpPubdata_U(point[i].Result.tjUa,&StatisticsPoint[i].DayResu.tjUa);
 			CpPubdata_U(point[i].Result_m.tjUa,&StatisticsPoint[i].MonthResu.tjUa);
 			StatisticsPoint[i].PointNo = point[i].PointNo;
@@ -518,6 +521,7 @@ void voltage_calc(){
 			memset((INT8U*)&StatisticsPoint[i].DayResu.tjUc,0xee,sizeof(StatisticsPoint[i].DayResu.tjUc));
 			memset((INT8U*)&StatisticsPoint[i].MonthResu.tjUc,0xee,sizeof(StatisticsPoint[i].MonthResu.tjUc));
 		}
+		memcpy(&StatisticsPoint[i].tsa,&point[i].tsa,sizeof(TSA));
 	}
 }
 /*
@@ -577,7 +581,7 @@ void ReadPubData()
 		memset(&point[i].Result_m.tjUc,0,sizeof(point[i].Result_m.tjUc));
 
 	}
-	if(readCoverClass(0x4030,0,StatisticsPoint,sizeof(StatisticsPoint),calc_voltage_save)<=0)
+	if(readCoverClass(0x2130,0,StatisticsPoint,sizeof(StatisticsPoint),calc_voltage_save)<=0)
 	{
 		return;
 	}
@@ -918,7 +922,7 @@ void calc_thread()
 		//所有数据每分钟一存
 		if(oldts.Minute != newts.Minute){
 			//存储电压合格率
-		   saveCoverClass(0x4030,0,StatisticsPoint,sizeof(StatisticsPoint),calc_voltage_save);
+		   saveCoverClass(0x2130,0,StatisticsPoint,sizeof(StatisticsPoint),calc_voltage_save);
 		   //日月供电加1分钟
 		   gongdian_tj.day_gongdian++;
 		   gongdian_tj.month_gongdian++;
