@@ -330,6 +330,7 @@ typedef struct {
 
 typedef struct
 {
+	INT8U dinum;
 	INT8U DI_1[DI07_NUM_601F][4];
 	INT8U DI_2[DI07_NUM_601F][4];
 }C601F_07Flag;
