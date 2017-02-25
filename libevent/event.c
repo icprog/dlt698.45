@@ -12,6 +12,7 @@
 #include "AccessFun.h"
 #include "Shmem.h"
 #include "Objectdef.h"
+#include "ParaDef.h"
 
 //测量点、事件参数
 static TSA TSA_LIST[MAX_POINT_NUM];
@@ -22,7 +23,7 @@ static Curr_Data curr_data[MAX_POINT_NUM];
 static INT16U currnum=0;
 //当前事件参数变更状态
 static OI_CHANGE oi_chg;
-MeterPower MeterPowerInfo[3+1];//台区公共表加０－３个电能表
+//MeterPower MeterPowerInfo[3+1];//台区公共表加０－３个电能表
 MeterPower TermialPowerInfo;//终端停上电时间信息
 /*
  * 说明：
@@ -271,7 +272,7 @@ INT8U Getevent_Record(INT8U event_no,OI_698 *oi_array,INT8U oi_index,INT8U *real
 	if(Getbuf!=NULL && Getlen>0){
 		 record_para->dar = 1;
 		 if(record_para->data == NULL)
-			 record_para->data=(INT8U*)malloc(Getlen*num);//先按最大长度分配
+			 record_para->data=(INT8U*)malloc(Getlen*num+1);//先按最大长度分配
 
 		 memset(&record_para->data[0],0,Getlen);
 		 record_para->data[0] +=1;		//SEQUENCE OF A-RecordRow
@@ -390,22 +391,11 @@ INT8U Getevent_Record_Selector(RESULT_RECORD *record_para,ProgramInfo* prginfo_e
 /*
  * 事件需要上报
  */
-INT8U Need_Report(OI_698 oi,INT8U eventno){
-	INT8U Sbuf[300];
-	int index=0;
-    //报文链路层报文头部
-    //此处根据698协议
-    //从文件读取记录
-//	INT8U *Getbuf=NULL;//因为记录为变长，只能采用二级指针，动态分配
-//	int Getlen=0;//记录长度
-//	Get_Event(oi,eventno,(INT8U**)&Getbuf,&Getlen);
-//	if(Getbuf!=NULL){
-//		memcpy(&Sbuf[index],Getbuf,Getlen);
-//		index+=Getlen;
-//		free(Getbuf);
-//	}
-	//报文链路层报文尾部
-	//调用发送函数
+INT8U Need_Report(OI_698 oi,INT8U eventno,ProgramInfo* prginfo_event){
+	prginfo_event->needreport_event.event_num++;
+	prginfo_event->needreport_event.event_num=prginfo_event->needreport_event.event_num%15;
+	prginfo_event->needreport_event.report_event[prginfo_event->needreport_event.event_num].oi=oi;
+	prginfo_event->needreport_event.report_event[prginfo_event->needreport_event.event_num].eventno=eventno;
 	return 1;
 }
 
@@ -599,7 +589,7 @@ INT8U Event_3100(INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 		saveCoverClass(0x3100,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,event_current_save);
 		//判断是否要上报
 		if(prginfo_event->event_obj.Event3100_obj.reportflag)
-			Need_Report(0x3100,crrentnum);
+			Need_Report(0x3100,crrentnum,prginfo_event);
     }
     return 1;
 }
@@ -652,7 +642,7 @@ INT8U Event_3101(INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 		saveCoverClass(0x3101,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,event_current_save);
 		//判断是否要上报
 		if(prginfo_event->event_obj.Event3101_obj.reportflag)
-			Need_Report(0x3101,crrentnum);
+			Need_Report(0x3101,crrentnum,prginfo_event);
     }
     return 1;
 }
@@ -731,7 +721,7 @@ INT8U Event_3104(INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 		saveCoverClass(0x3104,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,event_current_save);
 		//判断是否要上报
 		if(prginfo_event->event_obj.Event3104_obj.reportflag)
-			Need_Report(0x3104,crrentnum);
+			Need_Report(0x3104,crrentnum,prginfo_event);
     }
     return 1;
 }
@@ -787,7 +777,7 @@ INT8U Event_3105(TSA tsa,INT8U taskno,INT8U* data,INT8U len,ProgramInfo* prginfo
 		saveCoverClass(0x3105,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,event_current_save);
 		//判断是否要上报
 		if(prginfo_event->event_obj.Event3105_obj.event_obj.reportflag)
-			Need_Report(0x3105,crrentnum);
+			Need_Report(0x3105,crrentnum,prginfo_event);
     }else
         return 0;
     return 1;
@@ -879,25 +869,15 @@ void SendERC3106(INT8U flag,INT8U Erctype,ProgramInfo* prginfo_event)
 	saveCoverClass(0x3106,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,event_current_save);
 	//判断是否要上报
 	if(prginfo_event->event_obj.Event3106_obj.event_obj.reportflag)
-		Need_Report(0x3106,crrentnum);
-}
-
-/*
- * 告知485发送获取测量点的停上电时间消息，考虑共享内存
- */
-BOOLEAN SendMeterReadindMsg()
-{
-	//抄表可根据参数进行抄表
-    //设置一个共享内存参数，告知抄表要进行抄表，抄表可自行判断要抄表得电表
-	return TRUE;
+		Need_Report(0x3106,crrentnum,prginfo_event);
 }
 
 //判断终端与电能表的时间偏差
-BOOLEAN MeterDiff(ProgramInfo* prginfo_event)
+BOOLEAN MeterDiff(ProgramInfo* prginfo_event,MeterPower *MeterPowerInfo)
 {
 	int i = 0;
 //	fprintf(stderr,"MeterDiff In,RecPointNum=%d,MsgNum=%d!!\r\n");
-	for(i = 0;i<4;i++)
+	for(i = 0;i<POWEROFFON_NUM;i++)
 	{
 		if(MeterPowerInfo[i].Valid)
 		{
@@ -976,10 +956,56 @@ INT8U fileread(char *FileName, void *source, INT32U size)
 	}
 	return ret;
 }
+
+INT8U Get_meter_powoffon(ProgramInfo* prginfo_event,MeterPower *MeterPowerInfo,INT8U *state){
+	CLASS_6001	 meter={};
+	CLASS11		coll={};
+	int			i=0,j=0,blknum=0;
+	INT16U		oi = 0x6000;
+
+	if(readInterClass(oi,&coll)==-1)  return 0;
+	fprintf(stderr,"采集档案配置表CLASS_11--------------");
+	fprintf(stderr,"逻辑名:%s    当前=%d     最大=%d\n",coll.logic_name,coll.curr_num,coll.max_num);
+
+	blknum = getFileRecordNum(oi);
+	if(blknum == -1) {
+		fprintf(stderr,"未找到OI=%04x的相关信息配置内容！！！\n",oi);
+		return 0;
+	}else if(blknum == -2){
+		fprintf(stderr,"采集档案表不是整数，检查文件完整性！！！\n");
+		return 0;
+	}
+	//如果有效
+    if((prginfo_event->event_obj.Event3106_obj.poweroff_para_obj.collect_para_obj.collect_flag&0x01) == 1){
+    	//随机
+    	if((prginfo_event->event_obj.Event3106_obj.poweroff_para_obj.collect_para_obj.collect_flag&0x02) == 2){
+             for(i=0;i<blknum;i++){
+            	 if(readParaClass(oi,&meter,i)==1){
+            		 if(meter.basicinfo.port.OI == 0xF201){
+						 MeterPowerInfo[i].ERC3106State = 1;
+						 MeterPowerInfo[i].Valid = 0;
+						 memcpy(&MeterPowerInfo[i].tsa,&meter.basicinfo.addr,TSA_LEN);
+						 if(i>2)
+							 break;
+            		 }
+               }
+             }
+    	}else{
+    		for(j=0;j<prginfo_event->event_obj.Event3106_obj.poweroff_para_obj.collect_para_obj.tsaarr.num;j++){
+    			 MeterPowerInfo[j].ERC3106State = 1;
+			     MeterPowerInfo[j].Valid = 0;
+			     memcpy(&MeterPowerInfo[j].tsa,&prginfo_event->event_obj.Event3106_obj.poweroff_para_obj.collect_para_obj.tsaarr.meter_tas[j],TSA_LEN);
+    		}
+
+    	}
+    	*state=1;
+    }
+	return 1;
+}
 /*
  * 终端停/上电事件5-停电事件-放在交采模块
  */
-INT8U Event_3106(EVENTREALDATA Realdata,ProgramInfo* prginfo_event) {
+INT8U Event_3106(ProgramInfo* prginfo_event,MeterPower *MeterPowerInfo,INT8U *state) {
 	if(oi_chg.oi3106 != prginfo_event->oi_changed.oi3106){
 		readCoverClass(0x3106,0,&prginfo_event->event_obj.Event3106_obj,sizeof(prginfo_event->event_obj.Event3106_obj),event_para_save);
 		oi_chg.oi3106 = prginfo_event->oi_changed.oi3106;
@@ -987,7 +1013,6 @@ INT8U Event_3106(EVENTREALDATA Realdata,ProgramInfo* prginfo_event) {
 	if (prginfo_event->event_obj.Event3106_obj.event_obj.enableflag == 0) {
 		return 0;
 	}
-	MeterDiff(prginfo_event);
 	BOOLEAN gpio_5V=pwr_has();
 	time_t time_of_now;
 	time_of_now = time(NULL);
@@ -1000,15 +1025,17 @@ INT8U Event_3106(EVENTREALDATA Realdata,ProgramInfo* prginfo_event) {
 	INT16U maxtime_space=prginfo_event->event_obj.Event3106_obj.poweroff_para_obj.screen_para_obj.maxtime_space;
 	//判断下电
 	if(TermialPowerInfo.ERC3106State == POWER_START){
-		if(Realdata.Voltage[0].value == 0)
+		if(prginfo_event->ACSRealData.Ua == 0)
 				off_time ++;
 			else
 				off_time = 0;
+		if(*state == 2)
+			MeterDiff(prginfo_event,MeterPowerInfo);
 		//二型集中器没有电池只有电容，所以不能够读出底板是否有电，且二型集中器只有一相电压，停上电事件在硬件复位时不能产生，
 		//所以判断时，需要判断当前电压大于一个定值且小时参数时，产生事件(大于的定时暂定为10v交采已经将实时电压值乘以１０).
-		if((Realdata.Voltage[0].Available==TRUE)
-				&&((Realdata.Voltage[0].value>100&&Realdata.Voltage[0].value<poweroff_happen_vlim)
-				||(Realdata.Voltage[0].value == 0 && off_time>5)))
+		if((prginfo_event->ACSRealData.Available==TRUE)
+				&&((prginfo_event->ACSRealData.Ua>100 && prginfo_event->ACSRealData.Ua<poweroff_happen_vlim)
+				||(prginfo_event->ACSRealData.Ua == 0 && off_time>5)))
 	    //一型集中器
 //		if((((Realdata.U[0].value<poweroff_happen_vlim)&&(Realdata.U[1].value<poweroff_happen_vlim)
 //						&&(Realdata.U[2].value<poweroff_happen_vlim))&&((Realdata.U[0].value|Realdata.U[1].value|Realdata.U[2].value)>0)&&gpio_5V)
@@ -1021,14 +1048,14 @@ INT8U Event_3106(EVENTREALDATA Realdata,ProgramInfo* prginfo_event) {
 			//电压低于限值，且底板有电，产生下电事件
 			TermialPowerInfo.ERC3106State = POWER_OFF;
 			localtime_r((const time_t*)&time_of_now, &TermialPowerInfo.PoweroffTime);
-			ERC3106log(0,Realdata.Voltage[0].value,TermialPowerInfo.PoweroffTime);//调试加入log
+			ERC3106log(0,prginfo_event->ACSRealData.Ua,TermialPowerInfo.PoweroffTime);//调试加入log
 
 			filewrite(ERC3106PATH,&TermialPowerInfo,sizeof(TermialPowerInfo));
 			SendERC3106(flag,0,prginfo_event);
 		}
 	}else if(TermialPowerInfo.ERC3106State == POWER_OFF){
 		//II型
-		if((Realdata.Voltage[0].Available&&Realdata.Voltage[0].value>recover_voltage_limit))
+		if((prginfo_event->ACSRealData.Available && prginfo_event->ACSRealData.Ua>recover_voltage_limit))
         //I型
 		//if((Realdata.U[0].Available&&Realdata.U[0].value>recover_voltage_limit)
         //			||(Realdata.U[1].Available&&Realdata.U[1].value>recover_voltage_limit)
@@ -1040,21 +1067,18 @@ INT8U Event_3106(EVENTREALDATA Realdata,ProgramInfo* prginfo_event) {
 
 			filewrite(ERC3106PATH,&TermialPowerInfo,sizeof(TermialPowerInfo));
 			int interval = difftime(mktime(&TermialPowerInfo.PoweronTime),mktime(&TermialPowerInfo.PoweroffTime));
-			ERC3106log(1,Realdata.Voltage[0].value,TermialPowerInfo.PoweronTime);//调试加入log
+			ERC3106log(1,prginfo_event->ACSRealData.Ua,TermialPowerInfo.PoweronTime);//调试加入log
 
 			//如果上电时间大于停电时间或者停上电时间间隔小于最小间隔或者大于最大间隔不产生下电事件
 			if((interval > mintime_space*60)&&(interval < maxtime_space*60)) {
-				fprintf(stderr,"上电时间满足f98参数：interval=%d\n",interval);
+				fprintf(stderr,"上电时间满足参数：interval=%d\n",interval);
 				flag = 0x01;
 			}
 
-			//如果初步判断事件有效，向485发送抄表消息,待判断事件有效性之后，再发送消息
-			if(SendMeterReadindMsg())
-			{
-				fprintf(stderr,"SendMeterReadindMsg ok\n");
+			//如果初步判断事件有效，置标志位，通知抄表停上电事件
+			if(Get_meter_powoffon(prginfo_event,MeterPowerInfo,state) == 1){
 				TermialPowerInfo.Valid = POWER_START;
 				filewrite(ERC3106PATH,&TermialPowerInfo,sizeof(TermialPowerInfo));
-				return 0;
 			}
 			TermialPowerInfo.ERC3106State = POWER_START;
 			filewrite(ERC3106PATH,&TermialPowerInfo,sizeof(TermialPowerInfo));
@@ -1153,7 +1177,7 @@ INT8U Event_3107(INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 		saveCoverClass(0x3107,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,event_current_save);
 		//判断是否要上报
 		if(prginfo_event->event_obj.Event3107_obj.event_obj.reportflag)
-			Need_Report(0x3107,crrentnum);
+			Need_Report(0x3107,crrentnum,prginfo_event);
     }
     return 1;
 }
@@ -1196,7 +1220,7 @@ INT8U Event_3108(INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 		saveCoverClass(0x3108,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,event_current_save);
 		//判断是否要上报
 		if(prginfo_event->event_obj.Event3108_obj.event_obj.reportflag)
-			Need_Report(0x3108,crrentnum);
+			Need_Report(0x3108,crrentnum,prginfo_event);
 	}
     return 1;
 }
@@ -1239,7 +1263,7 @@ INT8U Event_3109(INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 		saveCoverClass(0x3109,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,event_current_save);
 		//判断是否要上报
 		if(prginfo_event->event_obj.Event3109_obj.reportflag)
-			Need_Report(0x3109,crrentnum);
+			Need_Report(0x3109,crrentnum,prginfo_event);
     }
     return 1;
 }
@@ -1278,7 +1302,7 @@ INT8U Event_310A(MachineError_type errtype,ProgramInfo* prginfo_event) {
 	saveCoverClass(0x310A,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,event_current_save);
 	//判断是否要上报
 	if(prginfo_event->event_obj.Event310A_obj.reportflag)
-		Need_Report(0x310A,crrentnum);
+		Need_Report(0x310A,crrentnum,prginfo_event);
     return 1;
 }
 
@@ -1335,7 +1359,7 @@ INT8U Event_310B(TSA tsa, INT8U taskno,INT8U* data,INT8U len,ProgramInfo* prginf
 			saveCoverClass(0x310B,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,event_current_save);
 			//判断是否要上报
 			if(prginfo_event->event_obj.Event310B_obj.event_obj.reportflag)
-				Need_Report(0x310B,crrentnum);
+				Need_Report(0x310B,crrentnum,prginfo_event);
     	}
     }
     //更新数据
@@ -1423,7 +1447,7 @@ INT8U Event_310C(TSA tsa, INT8U taskno,INT8U* data,INT8U len,ProgramInfo* prginf
 			saveCoverClass(0x310C,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,event_current_save);
 			//判断是否要上报
 			if(prginfo_event->event_obj.Event310C_obj.event_obj.reportflag)
-				Need_Report(0x310C,crrentnum);
+				Need_Report(0x310C,crrentnum,prginfo_event);
 		 }
 	 }
     //更新数据
@@ -1511,7 +1535,7 @@ INT8U Event_310D(TSA tsa, INT8U taskno,INT8U* data,INT8U len,ProgramInfo* prginf
 			saveCoverClass(0x310D,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,event_current_save);
 			//判断是否要上报
 			if(prginfo_event->event_obj.Event310D_obj.event_obj.reportflag)
-				Need_Report(0x310D,crrentnum);
+				Need_Report(0x310D,crrentnum,prginfo_event);
 		 }
 	 }
 	//更新数据
@@ -1590,7 +1614,7 @@ INT8U Event_310E(TSA tsa, INT8U taskno,INT8U* data,INT8U len,ProgramInfo* prginf
 			saveCoverClass(0x310E,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,event_current_save);
 			//判断是否要上报
 			if(prginfo_event->event_obj.Event310E_obj.event_obj.reportflag)
-				Need_Report(0x310E,crrentnum);
+				Need_Report(0x310E,crrentnum,prginfo_event);
 		}
 	}else
 		Refresh_Data(tsa,newdata,1);//更新数据
@@ -1650,7 +1674,7 @@ INT8U Event_310F(TSA tsa, INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 	saveCoverClass(0x310F,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,event_current_save);
 	//判断是否要上报
 	if(prginfo_event->event_obj.Event310F_obj.event_obj.reportflag)
-		Need_Report(0x310F,crrentnum);
+		Need_Report(0x310F,crrentnum,prginfo_event);
     return 1;
 }
 
@@ -1702,7 +1726,7 @@ INT8U Event_3110(INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 		saveCoverClass(0x3110,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,event_current_save);
 		//判断是否要上报
 		if(prginfo_event->event_obj.Event3110_obj.event_obj.reportflag)
-			Need_Report(0x3110,crrentnum);
+			Need_Report(0x3110,crrentnum,prginfo_event);
 		return 1;
     }
     return 1;
@@ -1773,7 +1797,7 @@ INT8U Event_3111(TSA tsa, INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 	saveCoverClass(0x3111,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,event_current_save);
 	//判断是否要上报
 	if(prginfo_event->event_obj.Event3111_obj.reportflag)
-		Need_Report(0x3111,crrentnum);
+		Need_Report(0x3111,crrentnum,prginfo_event);
     return 1;
 }
 
@@ -1829,7 +1853,7 @@ INT8U Event_3112(TSA tsa, INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 	saveCoverClass(0x3112,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,event_current_save);
 	//判断是否要上报
 	if(prginfo_event->event_obj.Event3112_obj.reportflag)
-		Need_Report(0x3112,crrentnum);
+		Need_Report(0x3112,crrentnum,prginfo_event);
     return 1;
 }
 
@@ -1883,7 +1907,7 @@ INT8U Event_311A(TSA tsa, INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 		saveCoverClass(0x311A,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,event_current_save);
 		//判断是否要上报
 		if(prginfo_event->event_obj.Event311A_obj.event_obj.reportflag)
-			Need_Report(0x311A,crrentnum);
+			Need_Report(0x311A,crrentnum,prginfo_event);
 	}
     return 1;
 }
@@ -1928,7 +1952,7 @@ INT8U Event_311B(TSA tsa, INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 		saveCoverClass(0x311B,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,3);
 		//判断是否要上报
 		if(prginfo_event->event_obj.Event311B_obj.reportflag)
-			Need_Report(0x311B,crrentnum);
+			Need_Report(0x311B,crrentnum,prginfo_event);
     }
     return 1;
 }
@@ -1969,7 +1993,7 @@ INT8U Event_311C(TSA tsa, INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 		saveCoverClass(0x311C,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,event_current_save);
 		//判断是否要上报
 		if(prginfo_event->event_obj.Event311C_obj.event_obj.reportflag)
-			Need_Report(0x311C,crrentnum);
+			Need_Report(0x311C,crrentnum,prginfo_event);
 	}
     return 1;
 }
@@ -2027,7 +2051,7 @@ INT8U Event_3114(DateTimeBCD data,ProgramInfo* prginfo_event) {
 		saveCoverClass(0x3114,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,3);
 		//判断是否要上报
 		if(prginfo_event->event_obj.Event3114_obj.reportflag)
-			Need_Report(0x3114,crrentnum);
+			Need_Report(0x3114,crrentnum,prginfo_event);
     }
     return 1;
 }
@@ -2094,7 +2118,7 @@ INT8U Event_3117(INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 		saveCoverClass(0x3117,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,event_current_save);
 		//判断是否要上报
 		if(prginfo_event->event_obj.Event3117_obj.reportflag)
-			Need_Report(0x3117,crrentnum);
+			Need_Report(0x3117,crrentnum,prginfo_event);
     }
     return 1;
 }
@@ -2141,7 +2165,7 @@ INT8U Event_3118(INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 		saveCoverClass(0x3118,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,event_current_save);
 		//判断是否要上报
 		if(prginfo_event->event_obj.Event3118_obj.reportflag)
-			Need_Report(0x3118,crrentnum);
+			Need_Report(0x3118,crrentnum,prginfo_event);
     }
     return 1;
 }
@@ -2179,7 +2203,7 @@ INT8U Event_3119(INT8U type, INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 		saveCoverClass(0x3119,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,event_current_save);
 		//判断是否要上报
 		if(prginfo_event->event_obj.Event3119_obj.reportflag)
-			Need_Report(0x3119,crrentnum);
+			Need_Report(0x3119,crrentnum,prginfo_event);
     }
     return 1;
 }
@@ -2237,7 +2261,7 @@ INT8U Event_3200(INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 		saveCoverClass(0x3200,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,event_current_save);
 		//判断是否要上报
 		if(prginfo_event->event_obj.Event3200_obj.reportflag)
-			Need_Report(0x3200,crrentnum);
+			Need_Report(0x3200,crrentnum,prginfo_event);
     }
     return 1;
 }
@@ -2289,7 +2313,7 @@ INT8U Event_3201(INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 		saveCoverClass(0x3201,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,event_current_save);
 		//判断是否要上报
 		if(prginfo_event->event_obj.Event3201_obj.reportflag)
-			Need_Report(0x3201,crrentnum);
+			Need_Report(0x3201,crrentnum,prginfo_event);
     }
     return 1;
 }
@@ -2330,7 +2354,7 @@ INT8U Event_3202(INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 		saveCoverClass(0x3202,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,event_current_save);
 		//判断是否要上报
 		if(prginfo_event->event_obj.Event3202_obj.reportflag)
-			Need_Report(0x3202,crrentnum);
+			Need_Report(0x3202,crrentnum,prginfo_event);
 	 }
     return 1;
 }
@@ -2377,7 +2401,7 @@ INT8U Event_3203(INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 		saveCoverClass(0x3203,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,event_current_save);
 		//判断是否要上报
 		if(prginfo_event->event_obj.Event3203_obj.reportflag)
-			Need_Report(0x3203,crrentnum);
+			Need_Report(0x3203,crrentnum,prginfo_event);
 	}
     return 1;
 }

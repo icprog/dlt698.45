@@ -33,7 +33,7 @@ INT8U Report_Event(CommBlock *com,Reportevent report_event){
 	csinfo.sa_type = 0;
 	INT8U sa_len=com->serveraddr[0]+1;
 	memcpy(csinfo.sa,&com->serveraddr[1],sa_len);
-	csinfo.ca = com->taskaddr;
+//	csinfo.ca = com->taskaddr;
     csinfo.sa_length = sa_len;
 	INT8U sendbuf_report[300],tem_buf[100];
 	index = FrameHead(&csinfo,sendbuf_report);

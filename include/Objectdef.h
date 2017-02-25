@@ -375,6 +375,7 @@ typedef struct
 	INT16U num;			//个数
 	GETOBJS objs[10];	//代理请求列表
 	INT8U data[512];	//请求结果
+	INT16U datalen;		//数据长度
 }PROXY_GETLIST;
 
 typedef struct{
@@ -396,7 +397,7 @@ typedef struct{
 	CLASS_F101 f101;				//安全模式信息
 	void* shmem;
 	INT8S (*p_send)(int fd,INT8U * buf,INT16U len);
-	INT8U taskaddr;                 //客户机地址
+    INT8U taskaddr;                 //客户机地址
 }CommBlock;
 ////////////////////////////////////////////////////////////////////
 
