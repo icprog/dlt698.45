@@ -455,7 +455,7 @@ void* ATWorker(void* args) {
 
             char cimi[64];
             memset(cimi, 0x00, sizeof(cimi));
-            if (sscanf((char *)&Mrecvbuf[0],"AT+CIMI%s",cimi)==1) {
+            if (sscanf((char *)&Mrecvbuf[0],"%*[^0-9]%[0-9]",cimi)==1) {
                 asyslog(LOG_INFO, "CIMI = %s\n", cimi);
                 for (int i = 0; i < 2; i++) {
                 	if(strncmp(cimiType[i], cimi, 5) == 0){
