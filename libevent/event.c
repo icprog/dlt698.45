@@ -976,9 +976,9 @@ INT8U Get_meter_powoffon(ProgramInfo* prginfo_event,MeterPower *MeterPowerInfo,I
 		return 0;
 	}
 	//如果有效
-    if(prginfo_event->event_obj.Event3106_obj.poweroff_para_obj.collect_para_obj.collect_flag&0x01 == 1){
+    if((prginfo_event->event_obj.Event3106_obj.poweroff_para_obj.collect_para_obj.collect_flag&0x01) == 1){
     	//随机
-    	if(prginfo_event->event_obj.Event3106_obj.poweroff_para_obj.collect_para_obj.collect_flag&0x02 == 2){
+    	if((prginfo_event->event_obj.Event3106_obj.poweroff_para_obj.collect_para_obj.collect_flag&0x02) == 2){
              for(i=0;i<blknum;i++){
             	 if(readParaClass(oi,&meter,i)==1){
             		 if(meter.basicinfo.port.OI == 0xF201){
@@ -991,7 +991,7 @@ INT8U Get_meter_powoffon(ProgramInfo* prginfo_event,MeterPower *MeterPowerInfo,I
                }
              }
     	}else{
-    		for(j=0;i<prginfo_event->event_obj.Event3106_obj.poweroff_para_obj.collect_para_obj.tsaarr.num;j++){
+    		for(j=0;j<prginfo_event->event_obj.Event3106_obj.poweroff_para_obj.collect_para_obj.tsaarr.num;j++){
     			 MeterPowerInfo[j].ERC3106State = 1;
 			     MeterPowerInfo[j].Valid = 0;
 			     memcpy(&MeterPowerInfo[j].tsa,&prginfo_event->event_obj.Event3106_obj.poweroff_para_obj.collect_para_obj.tsaarr.meter_tas[j],TSA_LEN);
