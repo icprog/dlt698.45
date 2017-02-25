@@ -584,7 +584,7 @@ void ReadPubData()
 		memset(&point[i].Result_m.tjUc,0,sizeof(point[i].Result_m.tjUc));
 
 	}
-//	if(readCoverClass(0x2130,0,StatisticsPoint,sizeof(StatisticsPoint),calc_voltage_save)<=0)
+	if(readCoverClass(0x2130,0,StatisticsPoint,sizeof(StatisticsPoint),calc_voltage_save)<=0)
 	{
 		return;
 	}
@@ -1001,7 +1001,7 @@ INT8U Init_Para(){
 	memset(&max_ptongji,0,sizeof(max_ptongji));
 	ReadPubData();
 	memset(&gongdian_tj,0,sizeof(Gongdian_tj));
-//	readCoverClass(0x2203,0,&gongdian_tj,sizeof(Gongdian_tj),calc_voltage_save);
+	readCoverClass(0x2203,0,&gongdian_tj,sizeof(Gongdian_tj),calc_voltage_save);
 	TS newts;
 	TSGet(&newts);
 	//如果跨天 日供电清零
