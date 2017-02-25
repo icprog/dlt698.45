@@ -214,6 +214,21 @@ INT16S getclassinfo(OI_698 oi,CLASS_INFO *classinfo)
 }
 
 /*
+ * 根据oi参数，查找相应的Variable_Class的结构体数据
+ * */
+int getvarioffset(OI_698 oi)
+{
+	int i=0;
+	for(i=0; i < sizeof(vari_data)/sizeof(Variable_Class);i++)
+	{
+		if(vari_data[i].oi == oi) {
+			return vari_data[i].offset;
+		}
+	}
+	return -1;
+}
+
+/*
 char filename[256][256];
 int len = 0;
 int trave_dir(char* path, int depth)
