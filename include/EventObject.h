@@ -82,7 +82,7 @@ typedef struct
 {
 	INT8U	flag;
 	INT8U	num;
-	TSA 	meter_tas[5];     //需要抄读停电事件电能表
+	TSA 	meter_tas[POWEROFFON_NUM];     //需要抄读停电事件电能表
 }TSA_ARRAYTYPE;
 //停电书记采集配置参数
 typedef struct
@@ -389,5 +389,13 @@ const static EVENT_CLASS_INFO  event_class_len[] ={
 		{0x3117,sizeof(Class7_Object)},		{0x3118,sizeof(Class7_Object)},		{0x3119,sizeof(Class7_Object)},		{0x311A,sizeof(Event311A_Object)},	{0x311B,sizeof(Class7_Object)},
 		{0x311C,sizeof(Event311C_Object)},	{0x3200,sizeof(Class7_Object)},		{0x3201,sizeof(Class7_Object)},		{0x3202,sizeof(Class7_Object)},		{0x3203,sizeof(Class7_Object)},
 };
+
+typedef struct{
+	INT8U Valid;
+	TSA tsa;	//TSA
+	INT8U ERC3106State;
+	struct tm PoweroffTime;//停电时间
+	struct tm PoweronTime;//上电时间
+}MeterPower;//电能停上电结构
 
 #endif

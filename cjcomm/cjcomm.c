@@ -172,7 +172,7 @@ void GenericRead(struct aeEventLoop* eventLoop, int fd, void* clientData, int ma
         for (int k = 0; k < 3; k++) {
             int len = 0;
             for (int i = 0; i < 5; i++) {
-                len = StateProcess(&nst->deal_step, &nst->rev_delay, 10, &nst->RTail, &nst->RHead, nst->RecBuf, nst->DealBuf);
+                len = StateProcess(nst, 10);
                 if (len > 0) {
                     break;
                 }
@@ -347,7 +347,8 @@ void NETRead(struct aeEventLoop* eventLoop, int fd, void* clientData, int mask) 
             int len = 0;
             for (int i = 0; i < 5; i++) {
 //            	fprintf(stderr,"deal_step=%d taskaddr=%d\n",nst->deal_step,nst->taskaddr);
-                len = StateProcess(&nst->deal_step, &nst->rev_delay, 10, &nst->RTail, &nst->RHead, nst->RecBuf, nst->DealBuf);
+            	printf("aaaaaa%d\n", sizeof(nst->deal_step));
+                len = StateProcess(nst, 10);
                 if (len > 0) {
                     break;
                 }
@@ -509,7 +510,11 @@ void enviromentCheck(int argc, char* argv[]) {
 }
 
 void DealMMQMsg(struct aeEventLoop* eventLoop, int fd, void* clientData, int mask) {
-
+	INT8U getBuf[MAXSIZ_PROXY_NET];
+	mmq_head headBuf;
+	int res = mmq_get(fd, 1, &headBuf, getBuf);
+	asyslog(LOG_INFO, "获取到抄表模块的消息 cmd = %d size = %d res = %d", headBuf.cmd, headBuf.bufsiz, res);
+	ProxyListResponse((PROXY_GETLIST *)getBuf, (CommBlock *)clientData);
 	return;
 }
 
@@ -532,13 +537,12 @@ int main(int argc, char* argv[]) {
 
     //建立消息监听服务
     struct mq_attr mmqAttr;
-    mmqAttr.mq_maxmsg = 128;
-    mmqAttr.mq_msgsize = 4096;
+    mmqAttr.mq_maxmsg = MAXNUM_PROXY_NET;
+    mmqAttr.mq_msgsize = MAXSIZ_PROXY_NET;
     mqd_t mmpd = mmq_open(PROXY_NET_MQ_NAME, &mmqAttr, O_RDONLY);
     if (mmpd >= 0) {
-        aeCreateFileEvent(ep, mmpd, AE_READABLE, DealMMQMsg, &serv_comstat);
+        aeCreateFileEvent(ep, mmpd, AE_READABLE, DealMMQMsg, &nets_comstat);
     }
-
 
     //建立服务端侦听
     int listen_port = anetTcpServer(NULL, 5555, "0.0.0.0", 1);

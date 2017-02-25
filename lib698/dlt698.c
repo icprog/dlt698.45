@@ -41,82 +41,82 @@ PIID piid_g={};
  * 函数功能：DL/T698.45 状态机
  * 参数含义：
  **************************************/
-int StateProcess(int* step,int* rev_delay,int delay_num, int* rev_tail,int* rev_head,INT8U *NetRevBuf,INT8U* dealbuf)
+int StateProcess(CommBlock* nst, int delay_num)
 {
 	int length=0,i=0;
 
-	fprintf(stderr,"\nstep = %d,stepadd = %04x\n",*step,&step);
-	switch(*step)
+	switch(nst->deal_step)
 	{
 		case 0:		 // 找到第一个 0x68
-			while(*rev_head!=*rev_tail)
+			while(nst->RHead!=nst->RTail)
 			{
-				fprintf(stderr,"NetRevBuf[*rev_tail] = %02x  head=%d  tail=%d ",NetRevBuf[*rev_tail],*rev_head,*rev_tail);
-				if (NetRevBuf[*rev_tail]== 0x68)
+				if (nst->RecBuf[nst->RTail]== 0x68)
 				{
-					*step = 1;
-					fprintf(stderr,"111step=%d,stepadd1 = %04x next = %d pre = %d \n",*step,&step,*(step+1),*(step-1));
+//					*step = 1;
+					nst->deal_step = 1;
+					printf("step = %d\n", nst->deal_step);
+					printf("step = %d\n", nst->deal_step);
+					//nst->deal_step = 1;
 					break;
 				}else {
-					*rev_tail = (*rev_tail + 1)% FRAMELEN;
-					fprintf(stderr,"rev_tail=%d\n",*rev_tail);
+					nst->RTail = (nst->RTail + 1)% FRAMELEN;
+					fprintf(stderr,"rev_tail=%d\n",nst->RTail);
 				}
 			}
-			fprintf(stderr,"break   step=%d,stepadd2=%04x next= %d pre =%d\n",*step,&step,*(step+1),*(step-1));
 			break;
 		case 1:	   //从rev_tail2开始 跨长度字节找 0x16
-			if(((*rev_head-*rev_tail+FRAMELEN)%FRAMELEN) >= 3)
+			if(((nst->RHead-nst->RTail+FRAMELEN)%FRAMELEN) >= 3)
 			{
 //				fprintf(stderr,"\nNetRevBuf[*rev_tail] = %02x  %02x\n ",NetRevBuf[(*rev_tail+ 2)%FRAMELEN],NetRevBuf[(*rev_tail+ 1)%FRAMELEN]);
-				length = (NetRevBuf[(*rev_tail+ 2 + FRAMELEN )%FRAMELEN] << 8) + NetRevBuf[(*rev_tail+ 1 + FRAMELEN)%FRAMELEN];
+				length = (nst->RecBuf[(nst->RTail+ 2 + FRAMELEN )%FRAMELEN] << 8) + nst->RecBuf[(nst->RTail+ 1 + FRAMELEN)%FRAMELEN];
 				length = (length) & 0x03FFF;//bit15 bit14 保留
 //				fprintf(stderr,"\nlength = %d \n",length);
 				if (length <= 0)//长度异常
 				{
-					*rev_tail = (*rev_tail + 1)% FRAMELEN;
-					*step = 0;
+					nst->RTail = (nst->RTail + 1)% FRAMELEN;
+					nst->deal_step = 0;
 					break;
 				}else {
 //					fprintf(stderr,"*rev_head = %d *rev_tail = %d ",*rev_head,*rev_tail);
-					if((*rev_head-*rev_tail+FRAMELEN)%FRAMELEN >= (length+2))//长度length为除 68和16 以外的字节数
+					if((nst->RHead-nst->RTail+FRAMELEN)%FRAMELEN >= (length+2))//长度length为除 68和16 以外的字节数
 					{
-						if(NetRevBuf[ (*rev_tail + length + 1 + FRAMELEN)% FRAMELEN ]== 0x16)
+						if(nst->RecBuf[ (nst->RTail + length + 1 + FRAMELEN)% FRAMELEN ]== 0x16)
 						{
-							*rev_delay = 0;
+							nst->rev_delay = 0;
 //							fprintf(stderr,"RRR=[%d]\n",length+2);
 							for(i=0;i<(length+2);i++)
 							{
-								dealbuf[i] = NetRevBuf[*rev_tail];
+								nst->DealBuf[i] = nst->RecBuf[nst->RTail];
 //								fprintf(stderr,"%02x ",dealbuf[i]);
-								*rev_tail = (*rev_tail + 1) % FRAMELEN;
+								nst->RTail = (nst->RTail + 1) % FRAMELEN;
 							}
-							*step = 0;//进入下一步
+							nst->deal_step = 0;//进入下一步
 							return (length+2);
 						}
 						else
 						{
-							if (*rev_delay < delay_num)
+							if (nst->rev_delay < delay_num)
 							{
-								(*rev_delay)++;
+								(nst->rev_delay)++;
 								break;
 							}else
 							{
-								*rev_delay = 0;
-								*rev_tail = (*rev_tail +1 )% FRAMELEN;
-								*step = 0;//返回第一步
+								nst->rev_delay = 0;
+								nst->RTail = (nst->RTail +1 )% FRAMELEN;
+								nst->deal_step = 0;//返回第一步
 							}
 						}
 					}else
 					{
-							if (*rev_delay < delay_num)
+							if (nst->rev_delay < delay_num)
 							{
-								(*rev_delay)++;
+								(nst->rev_delay)++;
 								break;
 							}else
 							{
-								*rev_delay = 0;
-								*rev_tail = (*rev_tail +1 )% FRAMELEN;
-								*step = 0;
+								nst->rev_delay = 0;
+								nst->RTail = (nst->RTail +1 )% FRAMELEN;
+								nst->deal_step = 0;
 							}
 					}
 				}
@@ -125,7 +125,6 @@ int StateProcess(int* step,int* rev_delay,int delay_num, int* rev_tail,int* rev_
 		default :
 			break;
 	}
-	fprintf(stderr,"return step=%d\n",*step);
 	return 0;
 }
 

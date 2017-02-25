@@ -527,10 +527,10 @@ int GetPosofOAD(INT8U *file_buf,OAD oad_master,OAD oad_relate,HEAD_UNIT *head_un
 }
 INT16U CalcMinFromZero(INT8U hour,INT8U min)
 {
-	INT16U sec = 0;
-	sec = hour;
-	sec = (sec << 8) +min;
-	return sec;
+	INT16U minfromzero = 0;
+	minfromzero = hour;
+	minfromzero = minfromzero*60 +min;
+	return minfromzero;
 }
 INT8U CalcKBType(INT8U type)
 {
@@ -553,12 +553,12 @@ INT8U CalcKBType(INT8U type)
 	}
 	return ret;//不合法
 }
-INT8U CalcFreq(TI runti,CLASS_6015 class6015,INT16U startmin,INT16U endmin)//不管开闭
+INT16U CalcFreq(TI runti,CLASS_6015 class6015,INT16U startmin,INT16U endmin)//不管开闭
 {
 	INT16U rate = 0;//倍率
 	INT16U sec_unit = 0;
 	INT8U  inval_flg = 0;
-	if(class6015.cjtype == 3)//按时标间隔采集
+	if(class6015.cjtype == 3 || class6015.cjtype == 0)//按时标间隔采集
 	{
 		if(endmin <= startmin || runti.units > 2)
 			return 0;//无效设置
@@ -585,7 +585,8 @@ INT8U CalcFreq(TI runti,CLASS_6015 class6015,INT16U startmin,INT16U endmin)//不
 		if(inval_flg == 1)
 			return 0;
 		sec_unit = (runti.interval * rate);
-		return (endmin-startmin)/sec_unit;
+		fprintf(stderr,"\n---@@@-开始分钟数：%d 结束分钟数：%d 间隔秒数%d 次数:%d\n",startmin,endmin,sec_unit,((endmin-startmin)*60)/sec_unit);
+		return ((endmin-startmin)*60)/sec_unit;
 	}
 	return 1;
 }
@@ -604,8 +605,10 @@ INT8U ReadTaskInfo(INT8U taskid,TASKSET_INFO *tasknor_info)//读取普通采集�
 		if(readCoverClass(0x6015,class6013.sernum,&class6015,sizeof(CLASS_6015),coll_para_save) == 1)
 		{
 			tasknor_info->startmin = CalcMinFromZero(class6013.runtime.runtime[0].beginHour,class6013.runtime.runtime[0].beginMin);//按照设置一个时段来
+			fprintf(stderr,"\n--任务里结束小时%d，结束分钟%d\n",class6013.runtime.runtime[0].endHour,class6013.runtime.runtime[0].endMin);
 			tasknor_info->endmin = CalcMinFromZero(class6013.runtime.runtime[0].endHour,class6013.runtime.runtime[0].endMin);//按照设置一个时段来
 			tasknor_info->runtime = CalcFreq(class6013.interval,class6015,tasknor_info->startmin,tasknor_info->endmin);
+			fprintf(stderr,"\n---@@@---任务%d执行次数%d\n",taskid,tasknor_info->runtime);
 			tasknor_info->KBtype = CalcKBType(class6013.runtime.type);
 			tasknor_info->memdep = class6015.deepsize;
 			memcpy(&tasknor_info->csds,&class6015.csds,sizeof(CSD_ARRAYTYPE));
@@ -897,10 +900,11 @@ INT8U getSelector(RSD select, INT8U selectype, CSD_ARRAYTYPE csds, INT8U *data, 
 	{
 	case 5://例子中招测冻结数据，包括分钟小时日月冻结数据招测方法
 		memcpy(&ts_info[0],&select.selec5.collect_save,sizeof(DateTimeBCD));
+		fprintf(stderr,"\n--招测冻结 ts=%04d-%02d-%02d %02d:%02d\n",ts_info[0].Year,ts_info[0].Month,ts_info[0].Day,ts_info[0].Hour,ts_info[0].Minute);
 //		ReadNorData(ts_info,taskid,tsa_con,tsa_num);
-		//////////////////////////////////////////////////////////////////////test
+//		//////////////////////////////////////////////////////////////////////test
 		TSGet(&ts_info[0]);
-		//////////////////////////////////////////////////////////////////////test
+//		//////////////////////////////////////////////////////////////////////test
 		TSA_num = GetTSACon(select.selec5.meters,tsa_con,tsa_num);
 		for(i=0;i<TSA_num;i++)
 			fprintf(stderr,"\n1addr3:%02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x",
@@ -918,6 +922,10 @@ INT8U getSelector(RSD select, INT8U selectype, CSD_ARRAYTYPE csds, INT8U *data, 
 					tsa_con[i].addr[12],tsa_con[i].addr[11],tsa_con[i].addr[10],tsa_con[i].addr[9],
 					tsa_con[i].addr[8],tsa_con[i].addr[7],tsa_con[i].addr[6],	tsa_con[i].addr[5],
 					tsa_con[i].addr[4],tsa_con[i].addr[3],tsa_con[i].addr[2],tsa_con[i].addr[1],tsa_con[i].addr[0]);
+		memcpy(&ts_info[0],&select.selec7.collect_save_star,sizeof(DateTimeBCD));
+		memcpy(&ts_info[1],&select.selec7.collect_save_finish,sizeof(DateTimeBCD));
+		fprintf(stderr,"\n--招测实时开始时间 ts=%04d-%02d-%02d %02d:%02d\n",ts_info[0].Year,ts_info[0].Month,ts_info[0].Day,ts_info[0].Hour,ts_info[0].Minute);
+		fprintf(stderr,"\n--招测实时完成时间 ts=%04d-%02d-%02d %02d:%02d\n",ts_info[1].Year,ts_info[1].Month,ts_info[1].Day,ts_info[1].Hour,ts_info[1].Minute);
 		*datalen = ComposeSendBuff(&ts_info[0],selectype,taskid,tsa_con,tsa_num,csds,data);
 		break;
 	default:

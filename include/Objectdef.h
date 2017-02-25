@@ -378,8 +378,6 @@ typedef struct
 	INT16U datalen;		//数据长度
 }PROXY_GETLIST;
 
-#pragma pack(4)
-
 typedef struct{
 	LINK_Request link_request;
 	int phy_connect_fd;
