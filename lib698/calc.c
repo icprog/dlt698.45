@@ -321,4 +321,70 @@ INT8U Get_Voltagehegelv(INT8U *buf,INT8U *len,TSA tsa,OAD oad){
 	return 1;
 }
 
+/*
+ * 获取最大功率及发生时间 2140 2141
+ */
+INT8U Get_Maxp(INT8U *buf,INT8U *len,TSA tsa,OAD oad){
+	Max_ptongji max_ptongji[MAXNUM_IMPORTANTUSR_CALC];
+	*len=0;
+	buf[(*len)++]=dtstructure;//structure
+	buf[(*len)++]=2; //数量
+	if(readCoverClass(0x2140,0,&max_ptongji,sizeof(max_ptongji),calc_voltage_save)==1)
+	{
+       INT8U i=0;
+       for(i=0;i<MAXNUM_IMPORTANTUSR;i++){
+    	   if(memcmp(&max_ptongji[i].tsa,&tsa,sizeof(TSA)) == 0){
+               if(oad.OI==0x2140 && oad.attflg==2){
+            	   buf[(*len)++]=dtdoublelongunsigned;//dtdoublelongunsigned
+            	   buf[(*len)++]=max_ptongji[i].mp.d_max&0x000000ff;
+            	   buf[(*len)++]=((max_ptongji[i].mp.d_max>>8)&0x000000ff);
+            	   buf[(*len)++]=((max_ptongji[i].mp.d_max>>16)&0x000000ff);
+            	   buf[(*len)++]=((max_ptongji[i].mp.d_max>>24)&0x000000ff);
 
+				   buf[(*len)++]=dtdatetimes;//dtdoublelongunsigned
+				   buf[(*len)++]=max_ptongji[i].mp.d_ts.Year&0x00ff;
+				   buf[(*len)++]=((max_ptongji[i].mp.d_ts.Year>>8)&0x00ff);
+				   buf[(*len)++]=max_ptongji[i].mp.d_ts.Month;
+				   buf[(*len)++]=max_ptongji[i].mp.d_ts.Day;
+				   buf[(*len)++]=max_ptongji[i].mp.d_ts.Hour;
+				   buf[(*len)++]=max_ptongji[i].mp.d_ts.Minute;
+				   buf[(*len)++]=max_ptongji[i].mp.d_ts.Sec;
+
+               }else if(oad.OI==0x2141 && oad.attflg==2){
+            	   buf[(*len)++]=dtdoublelongunsigned;//dtdoublelongunsigned
+				   buf[(*len)++]=max_ptongji[i].mp.m_max&0x000000ff;
+				   buf[(*len)++]=((max_ptongji[i].mp.m_max>>8)&0x000000ff);
+				   buf[(*len)++]=((max_ptongji[i].mp.m_max>>16)&0x000000ff);
+				   buf[(*len)++]=((max_ptongji[i].mp.m_max>>24)&0x000000ff);
+
+				   buf[(*len)++]=dtdatetimes;//dtdoublelongunsigned
+				   buf[(*len)++]=max_ptongji[i].mp.m_ts.Year&0x00ff;
+				   buf[(*len)++]=((max_ptongji[i].mp.m_ts.Year>>8)&0x00ff);
+				   buf[(*len)++]=max_ptongji[i].mp.m_ts.Month;
+				   buf[(*len)++]=max_ptongji[i].mp.m_ts.Day;
+				   buf[(*len)++]=max_ptongji[i].mp.m_ts.Hour;
+				   buf[(*len)++]=max_ptongji[i].mp.m_ts.Minute;
+				   buf[(*len)++]=max_ptongji[i].mp.m_ts.Sec;
+               }
+               break;
+    	   }
+       }
+	}
+	else{
+		buf[(*len)++]=dtdoublelongunsigned;//dtdoublelongunsigned
+	   buf[(*len)++]=0;
+	   buf[(*len)++]=0;
+	   buf[(*len)++]=0;
+	   buf[(*len)++]=0;
+
+	   buf[(*len)++]=dtdatetimes;//dtdoublelongunsigned
+	   buf[(*len)++]=0;
+	   buf[(*len)++]=0;
+	   buf[(*len)++]=0;
+	   buf[(*len)++]=0;
+	   buf[(*len)++]=0;
+	   buf[(*len)++]=0;
+	   buf[(*len)++]=0;
+	}
+	return 1;
+}

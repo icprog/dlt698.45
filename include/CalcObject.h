@@ -197,14 +197,6 @@ typedef struct{
 	unsigned char max_time[3];			//相电流最大值发生时间
 }DIANLIU_TJ;
 
-typedef struct{
-	int max;							//功率最大值
-	unsigned char max_time[3];			//功率最大值发生时间
-	int min;
-	unsigned char min_time[3];			//功率最小值发生时间
-	int zero_count;						//功率为零时间		(min)
-}GONGLV_TJ;
-
 //记录不平衡度值
 typedef struct{
 
@@ -327,11 +319,6 @@ typedef struct{
 	short int cos_qduan2;				//功率因数区段2累计时间
 	short int cos_qduan3;				//功率因数区段3累计时间
 	//---------------------------------
-	GONGLV_TJ tjP;						//总功率统计									二类数据F25
-	GONGLV_TJ tjPa;						//A相功率统计
-	GONGLV_TJ tjPb;						//B相功率统计
-	GONGLV_TJ tjPc;						//C相功率统计
-	//---------------------------------
 	DIANLIU_TJ tjSzP;					//视在功率越限统计(借用电流统计数据结构)		二类数据30
 //	GONGLV_TJ  tjXuliang;				//交采需量统计
 //	MaxDemand tjXuliang;				//交采需量统计
@@ -344,7 +331,6 @@ typedef struct{
 //	PHASE_PROPERTY PHASE_prop_last;//测量点前一次断相记录   二类数据
 //	OldXuLiangSet tjXuliang_Old;
 }TONGJI_RESULT;//数据统计项
-
 typedef struct{
 	int PointNo;    	  		//测量点号
 	int Type;			  		//测量点类型               2交采类型    3电表485  4电表载波
@@ -352,7 +338,7 @@ typedef struct{
 	TONGJI_RESULT Result; 		//日统计值
 	TONGJI_RESULT Result_m; 	//月统计值
 	int valid;					//有效标识
-	TSA tsa;                    //tsa
+	TSA tsa;
 }POINT_CALC_TYPE;
 typedef struct{
 	INT32U s_Rate;//电压上限率
@@ -387,4 +373,18 @@ typedef struct{
 	INT32U PointNo; //测量点
 	TSA tsa;
 }StatisticsPointProp;//测量点统计结果
+
+typedef struct{
+	INT32U d_max;
+	TS d_ts;
+	INT32U m_max;
+	TS m_ts;
+}Max_p;
+typedef struct{
+	TSA tsa;
+	Max_p mp;
+	Max_p mpa;
+	Max_p mpb;
+	Max_p mpc;
+}Max_ptongji;
 #endif
