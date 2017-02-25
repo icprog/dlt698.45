@@ -25,7 +25,8 @@ static char
 					"\n--------------------参数设置----------------------------\n"	\
 					"		 【主站IP端口设置】cj ip XXX.XXX.XXX.XXX:port XXX.XXX.XXX.XXX:port 	\n"					\
 					"		 【主站apn设置】cj apn cmnet		\n"					\
-					"		 【通信地址】cj id <addr>		\n"					\
+					"		 【cdma电信用户名密码设置】cj usr-pwd 　user  password		\n"					\
+					"		 【通信地址】cj id <addr>	如：地址为123456  :cj id 12 34 56	\n"					\
 					"-------------------------------------------------------\n\n"	\
 					;
 

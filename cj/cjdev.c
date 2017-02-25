@@ -54,7 +54,8 @@ void write_apn(char *apn)
 	fp = NULL;
 }
 
-void write_userpwd(unsigned char* user, unsigned char* pwd) {
+void write_userpwd(unsigned char* user, unsigned char* pwd)
+{
     FILE* fp = NULL;
     fp       = fopen("/etc/ppp/chap-secrets", "w");
     fprintf(fp, "\"%s\" * \"%s\" *", user, pwd);
@@ -67,11 +68,12 @@ void write_userpwd(unsigned char* user, unsigned char* pwd) {
     fp = fopen("/etc/ppp/peers/cdma2000", "w");
     fprintf(fp, "/dev/mux1\n");
     fprintf(fp, "115200\n");
+    fprintf(fp, "modem\n");
     fprintf(fp, "debug\n");
     fprintf(fp, "nodetach\n");
     fprintf(fp, "usepeerdns\n");
     fprintf(fp, "noipdefault\n");
-    // fprintf(fp,"defaultroute\n");
+    fprintf(fp, "defaultroute\n");
     fprintf(fp, "user \"%s\"\n", user);
     fprintf(fp, "0.0.0.0:0.0.0.0\n");
     fprintf(fp, "ipcp-accept-local\n");

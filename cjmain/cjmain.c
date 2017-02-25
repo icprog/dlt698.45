@@ -278,7 +278,6 @@ time_t ifDevReset()
 	return 0;
 }
 
-
 const static mmq_attribute mmq_register[]=
 {
 	{cjcomm,PROXY_485_MQ_NAME,MAXSIZ_PROXY_NET,MAXNUM_PROXY_NET},
@@ -334,6 +333,7 @@ void Createmq()
 		}
 	}
 }
+
 int main(int argc, char *argv[])
 {
 	pid_t pids[128];

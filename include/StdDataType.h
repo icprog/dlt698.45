@@ -196,6 +196,26 @@ typedef struct
     INT8U  Week;
 }TS;
 
+
+typedef union {//frame's length
+	INT16U u16b;//convenient to set value to 0
+	struct {//only for little endian frame!
+		INT16U len	: 14;//length
+		INT16U rev	: 2;//reserve
+	} length;
+} lengthUN;
+
+typedef union {//control code
+	INT8U u8b;//convenient to set value to 0
+	struct {//only for little endian mathine!
+		INT8U func		: 3;//function code
+		INT8U rev		: 2;//reserve
+		INT8U divS		: 1;//dived frame flag
+		INT8U prm		: 1;//promote flag
+		INT8U dir		: 1;//direction flag
+	} ctl;
+} ctlUN;
+
 typedef struct
 {
 	INT8U sa_type;		//服务器地址类型	0:单地址   1:通配地址   2：组地址   3：广播地址
@@ -700,27 +720,6 @@ typedef struct
 	PIID piid;
 }SET_Request;
 
-typedef struct{
-	LINK_Request link_request;
-	int phy_connect_fd;
-	INT8U linkstate;
-	INT8U testcounter;
-	INT8U serveraddr[16];
-        INT8U taskaddr;                 //客户机地址
-	INT8U SendBuf[BUFLEN];			//发送数据
-	INT8U DealBuf[FRAMELEN];  		//保存接口函数处理长度
-	INT8U RecBuf[BUFLEN]; 			//接收数
-	int RHead,RTail;				//接收报文头指针，尾指针
-	int deal_step;					//数据接收状态机处理标记
-	int	rev_delay;					//接收延时
-	INT8U securetype;				//安全类型
-	LINK_Response linkResponse;		//心跳确认
-	CONNECT_Response myAppVar;		//集中器支持的应用层会话参数
-	CONNECT_Response AppVar;		//与主站协商后的应用层会话参数
-	void* shmem;
-	INT8S (*p_send)(int fd,INT8U * buf,INT16U len);
-}CommBlock;
-
 typedef struct
 {
 	INT16U sernum;
@@ -732,7 +731,6 @@ typedef struct
 	INT8U usertype;
 	INT8U connectype;
 	TSA cjqaddr;
-
 }MeterInfoUnit;
 
 typedef struct{
@@ -745,4 +743,15 @@ typedef struct{
 	Reportevent report_event[15];
 }NeedReport_Event;
 
+typedef struct{
+	INT32U day_gongdian;
+	INT32U month_gongdian;
+	TS ts;
+}Gongdian_tj;//2203 供电时间统计
+
+typedef struct{
+	INT32U day_reset;
+	INT32U month_reset;
+	TS ts;
+}Reset_tj;//2204 //复位次数统计
 #endif

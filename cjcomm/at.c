@@ -468,10 +468,11 @@ void* ATWorker(void* args) {
         }
         close(sMux0);
 
-        asyslog(LOG_INFO, "拨号类型：%s\n", (callType == 1)? "GPRS": "CDMA2000");
         if(callType == 1){
+        	asyslog(LOG_INFO, "拨号类型：GPRS\n");
         	system("pppd call gprs &");
         }else {
+        	asyslog(LOG_INFO, "拨号类型：CDMA2000\n");
         	system("pppd call cdma2000 &");
         }
 
