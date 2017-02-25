@@ -37,14 +37,6 @@ typedef enum {
     s_oi=80 //OI 80
 }Source_Typ;
 
-typedef struct{
-	INT8U Valid;
-	INT8U MpNo;	//测量点号
-	INT8U ERC3106State;
-	struct tm PoweroffTime;//停电时间
-	struct tm PoweronTime;//上电时间
-}MeterPower;//电能停上电结构
-
 #define POWER_START 0 //上电初始状态
 #define POWER_ON 1 //上电状态
 #define POWER_OFF 2 //停电状态
@@ -80,7 +72,7 @@ extern INT8U Event_3105(TSA tsa, INT8U taskno,INT8U* data,INT8U len,ProgramInfo*
 /*
  * 终端停/上电事件5-停电事件-放在交采模块 prginfo_event共享内存
  */
-extern INT8U Event_3106(EVENTREALDATA Realdata,ProgramInfo* prginfo_event);
+extern INT8U Event_3106(ProgramInfo* prginfo_event,MeterPower *MeterPowerInfo,INT8U *state);
 /*
  * 分析交采数据，产生对应的配置事件。
  */

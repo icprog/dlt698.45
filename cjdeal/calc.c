@@ -22,18 +22,23 @@
 #include "AccessFun.h"
 #include "Objectdef.h"
 #include "PublicFunction.h"
+#include "event.h"
+#include "EventObject.h"
+#include "CalcObject.h"
 
 //#ifdef SPTF_III
 //SumGroup_TYPE sumgroup[MAXNUM_SUMGROUP];
 //#endif
 POINT_CALC_TYPE point[MAXNUM_IMPORTANTUSR_CALC];
-MaxDemand tjXuliang_acs;				//日冻结交采需量统计
-MaxDemand tjXuliang_acs_m;				//月冻结交采需量统计
 INT8U 	CalcPointNum;		//需要统计的最大个数
 CLASS_4030 obj_offset={};
 CLASS_4016 feilv_para={};
 StatisticsPointProp StatisticsPoint[MAXNUM_IMPORTANTUSR];
 Gongdian_tj gongdian_tj;
+Max_ptongji max_ptongji[MAXNUM_IMPORTANTUSR_CALC];
+extern ProgramInfo* JProgramInfo;
+extern INT8U poweroffon_state;
+extern MeterPower MeterPowerInfo[POWEROFFON_NUM];
 /*
  * 	山东要求：电压合格率统计，在停上电1分钟及停电期间，不进行电压合格统计
  * =1:满足上电1分钟要求，可以进行电压合格率统计
@@ -74,7 +79,9 @@ INT8U write_calc_stru(POINT_CALC_TYPE *pcalc)
 	INT16U oi=0x6000;
 	int	i=0,blknum=0,num=0;
 	if(readInterClass(oi,&coll)==-1) return 0;
+	fprintf(stderr,"wenjan .... \n");
 	blknum = getFileRecordNum(oi);
+	fprintf(stderr,"blknum=%d .... \n",blknum);
 	if(blknum == -1) {
 		fprintf(stderr,"未找到OI=%04x的相关信息配置内容！！！\n",oi);
 		return 0;
@@ -83,10 +90,13 @@ INT8U write_calc_stru(POINT_CALC_TYPE *pcalc)
 		return 0;
 	}
 	for(i=0;i<blknum;i++){
+		fprintf(stderr,"i=%d\n",i);
 		if(readParaClass(oi,&meter,i)==1) {
+			fprintf(stderr,"port.OI=%x\n",meter.basicinfo.port.OI);
 			//读交采和485表进行统计
            if(meter.basicinfo.port.OI == 0xF201 || meter.basicinfo.port.OI == 0xF208){
         	   pcalc[num].PointNo=meter.sernum;
+        	   memcpy(&pcalc[num].tsa,&meter.basicinfo.addr,sizeof(TSA));
         	   if(meter.basicinfo.port.OI == 0xF201)
         		   pcalc[num].Type=JIAOCAI_TYPE;
         	   else if(meter.basicinfo.port.OI == 0xF208)
@@ -338,10 +348,10 @@ void voltage_calc(){
 	if(first){
 		first=0;
 		lastchgoi4030 = JProgramInfo->oi_changed.oi4030;
-		readParaClass(0x4030,&obj_offset,0);
+		readCoverClass(0x4030,0,&obj_offset,sizeof(obj_offset),para_vari_save);
 	}
 	if(lastchgoi4030!=JProgramInfo->oi_changed.oi4030){
-		readParaClass(0x4030,&obj_offset,0);
+		readCoverClass(0x4030,0,&obj_offset,sizeof(obj_offset),para_vari_save);
 		if(lastchgoi4030!=JProgramInfo->oi_changed.oi4030) {
 			lastchgoi4030++;
 			if(lastchgoi4030==0) lastchgoi4030=1;
@@ -393,7 +403,7 @@ void voltage_calc(){
 			Rate = (((FP32)point[i].Result_m.tjUa.xx_count+(FP32)point[i].Result_m.tjUa.x_count)/(FP32)point[i].Result_m.tjUa.U_Count)*RAT_COEF;
 			point[i].Result_m.tjUa.x_Rate = Rate>100?100:Rate;
 			point[i].Result_m.tjUa.ok_Rate = 100.00-point[i].Result_m.tjUa.x_Rate-point[i].Result_m.tjUa.s_Rate;
-			//统计数据给共享内存赋值
+			//统计数据给内存赋值
 			CpPubdata_U(point[i].Result.tjUa,&StatisticsPoint[i].DayResu.tjUa);
 			CpPubdata_U(point[i].Result_m.tjUa,&StatisticsPoint[i].MonthResu.tjUa);
 			StatisticsPoint[i].PointNo = point[i].PointNo;
@@ -514,6 +524,7 @@ void voltage_calc(){
 			memset((INT8U*)&StatisticsPoint[i].DayResu.tjUc,0xee,sizeof(StatisticsPoint[i].DayResu.tjUc));
 			memset((INT8U*)&StatisticsPoint[i].MonthResu.tjUc,0xee,sizeof(StatisticsPoint[i].MonthResu.tjUc));
 		}
+		memcpy(&StatisticsPoint[i].tsa,&point[i].tsa,sizeof(TSA));
 	}
 }
 /*
@@ -573,7 +584,7 @@ void ReadPubData()
 		memset(&point[i].Result_m.tjUc,0,sizeof(point[i].Result_m.tjUc));
 
 	}
-	if(readCoverClass(0x4030,0,StatisticsPoint,sizeof(StatisticsPoint),calc_voltage_save)<=0)
+//	if(readCoverClass(0x2130,0,StatisticsPoint,sizeof(StatisticsPoint),calc_voltage_save)<=0)
 	{
 		return;
 	}
@@ -623,10 +634,10 @@ int GetRatesNo(const TS ts_t)
 	if(first){
 		first=0;
 		lastchgoi4016 = JProgramInfo->oi_changed.oi4016;
-		readParaClass(0x4030,&obj_offset,0);
+		readCoverClass(0x4016,0,&feilv_para,sizeof(feilv_para),para_vari_save);
 	}
 	if(lastchgoi4016!=JProgramInfo->oi_changed.oi4016){
-		readParaClass(0x4030,&obj_offset,0);
+		readCoverClass(0x4016,0,&feilv_para,sizeof(feilv_para),para_vari_save);
 		if(lastchgoi4016!=JProgramInfo->oi_changed.oi4016) {
 			lastchgoi4016++;
 			if(lastchgoi4016==0) lastchgoi4016=1;
@@ -878,12 +889,48 @@ void CpyAcsDataFromPubData(POINT_CALC_TYPE* point_hander)
 		point_hander[PointIndex].Realdata.f_Q_energy[i].value = JProgramInfo->ACSEnergy.NegQt_Rate[i]*kw2w/64;
 		point_hander[PointIndex].Realdata.f_Q_energy[i].Available = TRUE;
 	}
+}
 
-//	JProgramInfo->ACSRealData.YUaUb;
-//	JProgramInfo->ACSRealData.YUaUc;
-//	JProgramInfo->ACSRealData.YUbUc;
-
-
+INT8U Getp_max(){
+	int i;
+	for(i=0; i< MAXNUM_IMPORTANTUSR_CALC ;i++)
+	{
+		if(point[i].valid!=TRUE)continue;
+		memcpy(&max_ptongji[i].tsa,&point[i].tsa,sizeof(TSA));
+		if(max_ptongji[i].mp.d_max<point[i].Realdata.CP.value){
+			max_ptongji[i].mp.d_max=point[i].Realdata.CP.value;
+			TSGet(&max_ptongji[i].mp.d_ts);
+		}
+		if(max_ptongji[i].mp.m_max<point[i].Realdata.CP.value){
+			max_ptongji[i].mp.m_max=point[i].Realdata.CP.value;
+			TSGet(&max_ptongji[i].mp.m_ts);
+		}
+		if(max_ptongji[i].mpa.d_max<point[i].Realdata.CPa.value){
+			max_ptongji[i].mpa.d_max=point[i].Realdata.CPa.value;
+			TSGet(&max_ptongji[i].mpa.d_ts);
+		}
+		if(max_ptongji[i].mpa.m_max<point[i].Realdata.CPa.value){
+			max_ptongji[i].mpa.m_max=point[i].Realdata.CPa.value;
+			TSGet(&max_ptongji[i].mpa.m_ts);
+		}
+		if(max_ptongji[i].mpb.d_max<point[i].Realdata.Pb.value){
+			max_ptongji[i].mpb.d_max=point[i].Realdata.Pb.value;
+			TSGet(&max_ptongji[i].mpb.d_ts);
+		}
+		if(max_ptongji[i].mpb.m_max<point[i].Realdata.Pb.value){
+			max_ptongji[i].mpb.m_max=point[i].Realdata.Pb.value;
+			TSGet(&max_ptongji[i].mpb.m_ts);
+		}
+		if(max_ptongji[i].mpc.d_max<point[i].Realdata.Pc.value){
+			max_ptongji[i].mpc.d_max=point[i].Realdata.Pc.value;
+			TSGet(&max_ptongji[i].mpc.d_ts);
+		}
+		if(max_ptongji[i].mpc.m_max<point[i].Realdata.Pc.value){
+			max_ptongji[i].mpc.m_max=point[i].Realdata.Pc.value;
+			TSGet(&max_ptongji[i].mpc.m_ts);
+		}
+	}
+		return 1;
 }
 /*
  * 统计主线程
@@ -904,23 +951,44 @@ void calc_thread()
 		voltage_calc();
 		//供电时间
 		//如果跨天，日供电清零
-        if(oldts.Day != newts.Day)
-        	gongdian_tj.day_gongdian=0;
+		INT8U mpi=0;
+        if(oldts.Day != newts.Day){
+    		gongdian_tj.day_gongdian = 0;
+    		for(mpi=0;mpi<MAXNUM_IMPORTANTUSR_CALC;mpi++){
+				max_ptongji[mpi].mp.d_max = 0;
+				max_ptongji[mpi].mpa.d_max = 0;
+				max_ptongji[mpi].mpb.d_max = 0;
+				max_ptongji[mpi].mpc.d_max = 0;
+    		}
+    	}
 
         //如果跨月，月供电清零
-        if(oldts.Month != newts.Month)
-        	gongdian_tj.month_gongdian = 0;
-
+        if(oldts.Month != newts.Month){
+    		gongdian_tj.month_gongdian = 0;
+    		for(mpi=0;mpi<MAXNUM_IMPORTANTUSR_CALC;mpi++){
+				max_ptongji[mpi].mp.m_max = 0;
+				max_ptongji[mpi].mpa.m_max = 0;
+				max_ptongji[mpi].mpb.m_max = 0;
+				max_ptongji[mpi].mpc.m_max = 0;
+    		}
+    	}
+        //统计最大功率及发生时间
+        Getp_max();
 		//所有数据每分钟一存
 		if(oldts.Minute != newts.Minute){
-			//存储电压合格率
-		   saveCoverClass(0x4030,0,StatisticsPoint,sizeof(StatisticsPoint),calc_voltage_save);
+		   //存储电压合格率
+		   saveCoverClass(0x2130,0,StatisticsPoint,sizeof(StatisticsPoint),calc_voltage_save);
 		   //日月供电加1分钟
 		   gongdian_tj.day_gongdian++;
 		   gongdian_tj.month_gongdian++;
 		   memcpy(&gongdian_tj.ts,&newts,sizeof(TS));
+		   //存储供电时间
 		   saveCoverClass(0x2203,0,&gongdian_tj,sizeof(Gongdian_tj),calc_voltage_save);
+		   //存储最大功率及发生时间
+		   saveCoverClass(0x2140,0,max_ptongji,sizeof(max_ptongji),calc_voltage_save);
 		}
+//		//判断停上电
+		Event_3106(JProgramInfo,MeterPowerInfo,&poweroffon_state);
 	    usleep(1000*1000);
   }
   pthread_detach(pthread_self());
@@ -930,17 +998,33 @@ void calc_thread()
 INT8U Init_Para(){
 	memset(StatisticsPoint,0,sizeof(StatisticsPointProp)*MAXNUM_IMPORTANTUSR);
 	memset(point,0,sizeof(POINT_CALC_TYPE)*MAXNUM_IMPORTANTUSR_CALC);
+	memset(&max_ptongji,0,sizeof(max_ptongji));
 	ReadPubData();
 	memset(&gongdian_tj,0,sizeof(Gongdian_tj));
-	readCoverClass(0x2203,0,&gongdian_tj,sizeof(Gongdian_tj),calc_voltage_save);
+//	readCoverClass(0x2203,0,&gongdian_tj,sizeof(Gongdian_tj),calc_voltage_save);
 	TS newts;
 	TSGet(&newts);
 	//如果跨天 日供电清零
-	if(gongdian_tj.ts.Day != newts.Day)
+	INT8U mpi=0;
+	if(gongdian_tj.ts.Day != newts.Day){
 		gongdian_tj.day_gongdian = 0;
+		for(mpi=0;mpi<MAXNUM_IMPORTANTUSR_CALC;mpi++){
+			max_ptongji[mpi].mp.d_max = 0;
+			max_ptongji[mpi].mpa.d_max = 0;
+			max_ptongji[mpi].mpb.d_max = 0;
+			max_ptongji[mpi].mpc.d_max = 0;
+		}
+	}
 	//如果跨月 月供电清零
-	if(gongdian_tj.ts.Month != newts.Month)
+	if(gongdian_tj.ts.Month != newts.Month){
 		gongdian_tj.month_gongdian = 0;
+		for(mpi=0;mpi<MAXNUM_IMPORTANTUSR_CALC;mpi++){
+			max_ptongji[mpi].mp.m_max = 0;
+			max_ptongji[mpi].mpa.m_max = 0;
+			max_ptongji[mpi].mpb.m_max = 0;
+			max_ptongji[mpi].mpc.m_max = 0;
+		}
+	}
 	return 1;
 }
 /*
