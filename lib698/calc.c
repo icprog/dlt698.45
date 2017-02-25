@@ -21,13 +21,20 @@
 /*
  * 硬件复位43000100 调用
  */
-INT8U Reset_add(){
-	Reset_tj reset_tj;
+INT8U Reset_add()
+{
+	Reset_tj reset_tj={};
+	TS 		newts={};
+	int	  	len=0;
+	OI_698	oi=0x2204;
+
 	memset(&reset_tj,0,sizeof(Reset_tj));
-	TS newts;
 	TSGet(&newts);
-	if(readCoverClass(0x2204,0,&reset_tj,sizeof(Reset_tj),calc_voltage_save)==1)
-	{
+	fprintf(stderr," Reset_add: %d-%d-%d\n",newts.Year,newts.Month,newts.Day);
+	len = readVariData(&oi,1,&reset_tj,sizeof(Reset_tj));
+	if(len > 0) { 	//读取到数据
+		fprintf(stderr,"read day_reset=%d,mon_reset=%d\n",reset_tj.day_reset,reset_tj.month_reset);
+		fprintf(stderr,"Day=%d,newts=%d  Mon=%d,newts=%d\n",reset_tj.ts.Day,newts.Day,reset_tj.ts.Month,newts.Month);
 		//如果跨天 日供电清零
 		if(reset_tj.ts.Day != newts.Day)
 			reset_tj.day_reset = 0;
@@ -37,8 +44,9 @@ INT8U Reset_add(){
 	}
 	reset_tj.day_reset++;
 	reset_tj.month_reset++;
+	fprintf(stderr,"day_reset=%d,mon_reset=%d\n",reset_tj.day_reset,reset_tj.month_reset);
     memcpy(&reset_tj.ts,&newts,sizeof(TS));
-	saveCoverClass(0x2204,0,&reset_tj,sizeof(Reset_tj),calc_voltage_save);
+    saveVariData(oi,&reset_tj,sizeof(Reset_tj));
 	return 1;
 }
 

@@ -35,10 +35,30 @@ typedef struct
    char			file_name[FILENAMELEN];			//对象保存名字
 }CLASS_INFO;
 
-
 const static CLASS_INFO  class_info[] ={
 		{0x6000,sizeof(CLASS11),sizeof(CLASS_6001),OCTET_STRING_LEN,"6000","/nand/para/table6000.par"},		//采集档案配置表
 };
+
+/*　　变量类对象的数据存储文件结构
+ * 	　每个对象标识OI占用64个字节
+ * 	　根据vari_data表中定义各个OI在文件中存放的偏移位置offsit，用于数据的定位查找
+ * 	　每个oi按照规约内容存放: 类型＋数据
+ * */
+
+typedef struct
+{
+	OI_698		oi;				//对象标识OI
+	int			offset;			//文件中编译位置
+}Variable_Class;
+
+const static  Variable_Class vari_data[] ={
+		{0x2000,0}, {0x2001,1}, {0x2002,2}, {0x2003,3}, {0x2004,4}, {0x2005,5}, {0x2006,6}, {0x2007,7}, {0x2008,8}, {0x2009,9},
+		{0x200A,10},{0x200B,11},{0x200C,12},{0x200D,13},{0x200E,14},{0x200F,15},{0x2010,16},{0x2011,17},{0x2012,18},{0x2013,19},
+		{0x2014,20},{0x2017,21},{0x2018,22},{0x2019,23},{0x201A,24},{0x201B,25},{0x201C,26},{0x2026,27},{0x2027,28},{0x2028,29},
+		{0x2029,30},{0x202A,31},{0x202C,32},{0x202D,33},{0x202E,34},{0x2031,35},{0x2032,36},{0x2040,37},{0x2041,38},{0x2031,39},
+		{0x2032,40},{0x2033,41},{0x2140,42},{0x2141,43},{0x2200,44},{0x2203,45},{0x2204,46},
+};
+
 typedef struct{
 	INT8U type;//0：oad 1：road
 	OAD   oad;
@@ -65,6 +85,8 @@ extern INT16S getclassinfo(OI_698 oi,CLASS_INFO *classinfo);
 
 extern INT8U block_file_sync(char *fname,void *blockdata,int size,int headsize,int index);
 extern INT8U save_block_file(char *fname,void *blockdata,int size,int headsize,int index);
+
+extern int getvarioffset(OI_698 oi);
 
 extern sem_t * InitSem();
 extern void CloseSem(sem_t * sem_parasave);

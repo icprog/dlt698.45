@@ -1245,8 +1245,8 @@ INT8U deal6015(CLASS_6015 st6015, INT8U port485,CLASS_6035* st6035) {
 
 				if(dataLen > 0)
 				{
-					int bufflen = compose6012Buff(startTime,list6001[mpIndex].basicinfo.addr,dataLen,dataContent);
-					SaveNorData(st6035->taskID,dataContent,bufflen);
+//					int bufflen = compose6012Buff(startTime,list6001[mpIndex].basicinfo.addr,dataLen,dataContent);
+//					SaveNorData(st6035->taskID,dataContent,bufflen);
 				}
 				else
 				{

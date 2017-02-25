@@ -79,7 +79,9 @@ INT8U write_calc_stru(POINT_CALC_TYPE *pcalc)
 	INT16U oi=0x6000;
 	int	i=0,blknum=0,num=0;
 	if(readInterClass(oi,&coll)==-1) return 0;
+	fprintf(stderr,"wenjan .... \n");
 	blknum = getFileRecordNum(oi);
+	fprintf(stderr,"blknum=%d .... \n",blknum);
 	if(blknum == -1) {
 		fprintf(stderr,"未找到OI=%04x的相关信息配置内容！！！\n",oi);
 		return 0;
@@ -88,7 +90,9 @@ INT8U write_calc_stru(POINT_CALC_TYPE *pcalc)
 		return 0;
 	}
 	for(i=0;i<blknum;i++){
+		fprintf(stderr,"i=%d\n",i);
 		if(readParaClass(oi,&meter,i)==1) {
+			fprintf(stderr,"port.OI=%x\n",meter.basicinfo.port.OI);
 			//读交采和485表进行统计
            if(meter.basicinfo.port.OI == 0xF201 || meter.basicinfo.port.OI == 0xF208){
         	   pcalc[num].PointNo=meter.sernum;
@@ -344,10 +348,10 @@ void voltage_calc(){
 	if(first){
 		first=0;
 		lastchgoi4030 = JProgramInfo->oi_changed.oi4030;
-		readParaClass(0x4030,&obj_offset,0);
+		readCoverClass(0x4030,0,&obj_offset,sizeof(obj_offset),para_vari_save);
 	}
 	if(lastchgoi4030!=JProgramInfo->oi_changed.oi4030){
-		readParaClass(0x4030,&obj_offset,0);
+		readCoverClass(0x4030,0,&obj_offset,sizeof(obj_offset),para_vari_save);
 		if(lastchgoi4030!=JProgramInfo->oi_changed.oi4030) {
 			lastchgoi4030++;
 			if(lastchgoi4030==0) lastchgoi4030=1;
@@ -630,10 +634,10 @@ int GetRatesNo(const TS ts_t)
 	if(first){
 		first=0;
 		lastchgoi4016 = JProgramInfo->oi_changed.oi4016;
-		readParaClass(0x4030,&obj_offset,0);
+		readCoverClass(0x4016,0,&feilv_para,sizeof(feilv_para),para_vari_save);
 	}
 	if(lastchgoi4016!=JProgramInfo->oi_changed.oi4016){
-		readParaClass(0x4030,&obj_offset,0);
+		readCoverClass(0x4016,0,&feilv_para,sizeof(feilv_para),para_vari_save);
 		if(lastchgoi4016!=JProgramInfo->oi_changed.oi4016) {
 			lastchgoi4016++;
 			if(lastchgoi4016==0) lastchgoi4016=1;
@@ -983,7 +987,7 @@ void calc_thread()
 		   //存储最大功率及发生时间
 		   saveCoverClass(0x2140,0,max_ptongji,sizeof(max_ptongji),calc_voltage_save);
 		}
-		//判断停上电
+//		//判断停上电
 		Event_3106(JProgramInfo,MeterPowerInfo,&poweroffon_state);
 	    usleep(1000*1000);
   }
