@@ -330,8 +330,8 @@ typedef struct {
 
 typedef struct
 {
-	INT8U DI_1[10][4];
-	INT8U DI_2[10][4];
+	INT8U DI_1[DI07_NUM_601F][4];
+	INT8U DI_2[DI07_NUM_601F][4];
 }C601F_07Flag;
 
 typedef struct {
@@ -383,7 +383,6 @@ typedef struct{
 	INT8U linkstate;
 	INT8U testcounter;
 	INT8U serveraddr[16];
-    INT8U taskaddr;                 //客户机地址
 	INT8U SendBuf[BUFLEN];			//发送数据
 	INT8U DealBuf[FRAMELEN];  		//保存接口函数处理长度
 	INT8U RecBuf[BUFLEN]; 			//接收数
@@ -397,6 +396,7 @@ typedef struct{
 	CLASS_F101 f101;				//安全模式信息
 	void* shmem;
 	INT8S (*p_send)(int fd,INT8U * buf,INT16U len);
+	INT8U taskaddr;                 //客户机地址
 }CommBlock;
 ////////////////////////////////////////////////////////////////////
 

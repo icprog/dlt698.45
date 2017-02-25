@@ -54,8 +54,8 @@ INT32S mmq_get(mqd_t fd, INT32U time_out,mmq_head* msg_head, void* buff)
 	if (time_out > 3600 || time_out <0)
 		return -5;
 	INT8S* pmsg = (INT8S*)malloc(attr_mq.mq_msgsize);
-	fprintf(stderr,"\n mmq_get ---attr_mq.mq_msgsize = %ld\n",attr_mq.mq_msgsize);
-	fprintf(stderr,"\n pmsg = %p\n",pmsg);
+	//fprintf(stderr,"\n mmq_get ---attr_mq.mq_msgsize = %ld\n",attr_mq.mq_msgsize);
+	//fprintf(stderr,"\n pmsg = %p\n",pmsg);
 	memset(pmsg,0,attr_mq.mq_msgsize);
 	if (time_out == 0) {
 		cnt = mq_receive(fd,(char*) pmsg, attr_mq.mq_msgsize+1, &prio);
@@ -68,15 +68,17 @@ INT32S mmq_get(mqd_t fd, INT32U time_out,mmq_head* msg_head, void* buff)
 		tm.tv_nsec += 1000*1000*time_out*100;
 		cnt = mq_timedreceive(fd,(char*) pmsg, attr_mq.mq_msgsize+1,&prio, &tm);
 	}
-	if(cnt  == -1)
-	{
-		fprintf(stderr,"\n[libmmq]:pid:%d,cmd=%ld,mmq_get failed:%s(curmsgs=%d,maxmsg=%ld)",
-							msg_head->pid,msg_head->cmd,strerror(errno),attr_mq.mq_curmsgs,attr_mq.mq_maxmsg);
-	}
+#if 0
+	#endif
 	if(cnt >0)
 	{
 		memcpy(msg_head,pmsg,sizeof(mmq_head));
 		memcpy(buff,&pmsg[sizeof(mmq_head)],msg_head->bufsiz);
+
+		fprintf(stderr,"\n\n***********cnt = %d",cnt);
+		fprintf(stderr,"\n[libmmq]:pid:%d,cmd=%ld,bufsize = %ld  curmsgs=%d,maxmsg=%ld ",
+									msg_head->pid,msg_head->cmd,msg_head->bufsiz,attr_mq.mq_curmsgs,attr_mq.mq_maxmsg);
+
 	}
 	if(pmsg != NULL)
 	{
