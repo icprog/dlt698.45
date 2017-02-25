@@ -378,7 +378,7 @@ int NETWorker(struct aeEventLoop* ep, long long id, void* clientData) {
     CommBlock* nst = (CommBlock*)clientData;
     clearcount(1);
 
-    printf("nst->phy_connect_fd %d - %s:%d\n", nst->phy_connect_fd, IPaddr, Class25.master.master[0].port);
+//    printf("nst->phy_connect_fd %d - %s:%d\n", nst->phy_connect_fd, IPaddr, Class25.master.master[0].port);
     if (nst->phy_connect_fd <= 0) {
         char errmsg[256];
         memset(errmsg, 0x00, sizeof(errmsg));

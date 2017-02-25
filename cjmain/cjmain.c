@@ -207,7 +207,17 @@ void ProjectMainExit(int signo)
 	exit(0);
 	return ;
 }
-
+int Checkupdate()
+{
+	if(access("/dos/cjgwn",0) == 0)
+	{
+		fprintf(stderr,"\n/dos/gwn exists...");
+		system("chmod 777 /dos/cjgwn/update.sh");
+		system("/dos/cjgwn/update.sh &");
+		return 1;
+	}
+	return 0;
+}
 /*
  * 初始化操作
  * */
@@ -337,7 +347,7 @@ void Createmq()
 int main(int argc, char *argv[])
 {
 	pid_t pids[128];
-	int i=0;
+	int i=0,upstate=0;
 	struct sigaction sa1;
 
 	Setsig(&sa1,ProjectMainExit);
@@ -356,12 +366,14 @@ int main(int argc, char *argv[])
 
 	ProgInit();
 	time_t resetStart=0;
+	upstate = 0;
 	DevResetNum =JProgramInfo->oi_changed.reset;
 	while(1)
    	{
 		sleep(1);
 		Watchdog(5);
 		Runled();
+
 		for(i=0;i<PROJECTCOUNT;i++)
 		{
 			ProjectCheck(&JProgramInfo->Projects[i]);
@@ -398,6 +410,8 @@ int main(int argc, char *argv[])
 				system("reboot");
 			}
 		}
+		if ( upstate==0 )
+			upstate = Checkupdate();
    	}
 	return EXIT_SUCCESS;//退出
 }

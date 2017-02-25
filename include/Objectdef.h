@@ -275,7 +275,7 @@ typedef struct {
 typedef struct {
 //	INT8U name[OCTET_STRING_LEN];		//参数变量接口类逻辑名
 	INT8U sernum;						//方案序号
-	ROAD road[10];						//采集的事件数据
+	ARRAY_ROAD roads;						//采集的事件数据
 	MY_MS  ms;							//采集类型
 	INT8U ifreport;						//上报标识
 	INT16U deepsize;					//存储深度

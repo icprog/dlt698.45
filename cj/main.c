@@ -212,6 +212,11 @@ int main(int argc, char *argv[])
 		cjframe(argc,argv);
 		return EXIT_SUCCESS;
 	}
+	if (strcmp("fangan")==0)
+	{
+		fprintf(stderr,"\n事件采集方案\n");
+		cjfangAn();
+	}
 	prthelp();
 	return EXIT_SUCCESS;
 }

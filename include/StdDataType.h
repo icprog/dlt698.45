@@ -458,6 +458,11 @@ typedef struct
 {
 	CSD_ARRAYTYPE csds;	//csd数组
 }RCSD;	/*记录列选择描述符*/
+typedef struct{
+	INT8U flag;
+	INT8U num;
+	ROAD road[10];
+}ARRAY_ROAD;
 
 typedef struct
 {
