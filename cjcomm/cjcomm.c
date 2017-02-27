@@ -167,7 +167,6 @@ void GenericRead(struct aeEventLoop* eventLoop, int fd, void* clientData, int ma
             nst->RHead = (nst->RHead + 1) % BUFLEN;
         }
         bufsyslog(nst->RecBuf, "Recv:", nst->RHead, nst->RTail, BUFLEN);
-        fprintf(stderr, "Recv: head=%d, tail=%d BUFLEN=%d \n", nst->RHead, nst->RTail, BUFLEN);
         for (int k = 0; k < 3; k++) {
             int len = 0;
             for (int i = 0; i < 5; i++) {
@@ -199,7 +198,6 @@ void initComPara(CommBlock* compara) {
     CLASS_4001_4002_4003 c4001;
     memset(&c4001, 0x00, sizeof(c4001));
     readCoverClass(0x4001, 0, &c4001, sizeof(c4001), para_vari_save);
-    asyslog(LOG_INFO, "逻辑地址长度：%d\n", c4001.curstom_num[0]);
     memcpy(compara->serveraddr, c4001.curstom_num, 16);
     compara->phy_connect_fd = -1;
     compara->testcounter    = 0;
@@ -343,8 +341,6 @@ void NETRead(struct aeEventLoop* eventLoop, int fd, void* clientData, int mask) 
         for (int k = 0; k < 5; k++) {
             int len = 0;
             for (int i = 0; i < 5; i++) {
-                //            	fprintf(stderr,"deal_step=%d taskaddr=%d\n",nst->deal_step,nst->taskaddr);
-                printf("aaaaaa%d\n", sizeof(nst->deal_step));
                 len = StateProcess(nst, 10);
                 if (len > 0) {
                     break;
@@ -376,14 +372,13 @@ int NETWorker(struct aeEventLoop* ep, long long id, void* clientData) {
     CommBlock* nst = (CommBlock*)clientData;
     clearcount(1);
 
-    printf("nst->phy_connect_fd %d - %s:%d\n", nst->phy_connect_fd, IPaddr, Class25.master.master[0].port);
     if (nst->phy_connect_fd <= 0) {
         char errmsg[256];
         memset(errmsg, 0x00, sizeof(errmsg));
-        initComPara(nst);
+//        initComPara(nst);
         nst->phy_connect_fd = anetTcpConnect(errmsg, IPaddr, Class25.master.master[0].port);
         if (nst->phy_connect_fd > 0) {
-            asyslog(LOG_INFO, "链接主站(主站地址:%s,结果:%d)", IPaddr, nst->phy_connect_fd);
+//            asyslog(LOG_INFO, "链接主站(主站地址:%s,结果:%d)", IPaddr, nst->phy_connect_fd);
             if (aeCreateFileEvent(ep, nst->phy_connect_fd, AE_READABLE, NETRead, nst) < 0) {
                 close(nst->phy_connect_fd);
                 nst->phy_connect_fd = -1;
@@ -394,7 +389,7 @@ int NETWorker(struct aeEventLoop* ep, long long id, void* clientData) {
                 gpofun("/dev/gpoONLINE_LED", 1);
             }
         } else {
-            asyslog(LOG_WARNING, "主站链接失败，(%d)[%s]", nst->phy_connect_fd, errmsg);
+//            asyslog(LOG_WARNING, "主站链接失败，(%d)[%s]", nst->phy_connect_fd, errmsg);
         }
     } else {
         TS ts = {};

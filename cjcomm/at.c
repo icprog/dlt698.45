@@ -491,33 +491,18 @@ int gsmDecodePdu(const char* pSrc, SM_PARAM* pDst) {
 
 void checkSms(int port) {
     for (int timeout = 0; timeout < 50; timeout++) {
-        char Mrecvbuf[128];
-
-        SendATCommand("\rAT+CMGL=0\r", 11, port);
-        delay(1000);
-        memset(Mrecvbuf, 0, 128);
-        RecieveFromComm(Mrecvbuf, 128, port);
-
-        char cimi[64];
-        memset(cimi, 0x00, sizeof(cimi));
-        if (sscanf((char*)&Mrecvbuf[0], "%*[^0-9]%[0-9]", cimi) == 1) {
-            asyslog(LOG_INFO, "CMGL = %s\n", cimi);
-            break;
-        }
-    }
-
-    for (int timeout = 0; timeout < 50; timeout++) {
         char Mrecvbuf[512];
 
-        SendATCommand("\rAT+CMGR=0\r", 11, port);
-        delay(1000);
+//        SendATCommand("\rAT+CMGR=0\r", 11, port);
+        SendATCommand("\rAT+CMGL=0\r", 11, port);
+        delay(3000);
         memset(Mrecvbuf, 0, 512);
         RecieveFromComm(Mrecvbuf, 512, port);
 
         char cimi[256];
         memset(cimi, 0x00, sizeof(cimi));
         char* position = strstr(Mrecvbuf, "0891683108");
-        if (position != Mrecvbuf) {
+        if (position != Mrecvbuf && position != NULL) {
             if (sscanf(position, "%[0-9|A-F]", cimi) == 1) {
                 asyslog(LOG_INFO, "CMGR = %s\n", cimi);
                 SM_PARAM smpara;
