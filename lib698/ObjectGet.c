@@ -122,135 +122,6 @@ int BuildFrame_GetResponse(INT8U response_type,CSINFO *csinfo,INT8U oadnum,RESUL
 	return (index+3);
 }
 
-int  create_OAD(INT8U *data,OAD oad)
-{
-	data[0] = ( oad.OI >> 8 ) & 0xff;
-	data[1] = oad.OI & 0xff;
-	data[2] = oad.attflg;
-	data[3] = oad.attrindex;
-	return 4;
-}
-
-int create_array(INT8U *data,INT8U numm)
-{
-	data[0] = dtarray;
-	data[1] = numm;
-	return 2;
-}
-int create_struct(INT8U *data,INT8U numm)
-{
-	data[0] = dtstructure;
-	data[1] = numm;
-	return 2;
-}
-int file_bool(INT8U *data,INT8U value)
-{
-	data[0] = dtbool;
-	data[1] = value;
-	return 2;
-}
-int fill_bit_string8(INT8U *data,INT8U bits)
-{
-	//TODO : 默认8bit ，不符合A-XDR规范
-	data[0] = dtbitstring;
-	data[1] = 0x08;
-	data[2] = bits;
-	return 3;
-}
-
-int fill_double_long_unsigned(INT8U *data,INT32U value)
-{
-	data[0] = dtdoublelongunsigned;
-	data[1] = (value & 0xFF000000) >> 24 ;
-	data[2] = (value & 0x00FF0000) >> 16 ;
-	data[3] = (value & 0x0000FF00) >> 8 ;
-	data[4] =  value & 0x000000FF;
-	return 5;
-}
-
-int fill_octet_string(INT8U *data,char *value,INT8U len)
-{
-	data[0] = dtoctetstring;
-	data[1] = len;
-	memcpy(&data[2],value,len);
-	return (len+2);
-}
-
-int fill_visible_string(INT8U *data,char *value,INT8U len)
-{
-	data[0] = dtvisiblestring;
-	data[1] = len;
-	memcpy(&data[2],value,len);
-	return (len+2);
-}
-
-int fill_integer(INT8U *data,INT8U value)
-{
-	data[0] = dtinteger;
-	data[1] = value;
-	return 2;
-}
-int fill_unsigned(INT8U *data,INT8U value)
-{
-	data[0] = dtunsigned;
-	data[1] = value;
-	return 2;
-}
-
-int fill_long_unsigned(INT8U *data,INT16U value)
-{
-	data[0] = dtlongunsigned;
-	data[1] = (value & 0xFF00)>>8;
-	data[2] = value & 0x00FF;
-	return 3;
-}
-int fill_enum(INT8U *data,INT8U value)
-{
-	data[0] = dtenum;
-	data[1] = value;
-	return 2;
-}
-int fill_time(INT8U *data,INT8U *value)
-{
-	data[0] = dttime;
-	memcpy(&data[1],&value[0],3);
-	return 4;
-}
-
-int fill_DateTimeBCD(INT8U *data,DateTimeBCD *time)
-{
-	DateTimeBCD  init_datatimes={};
-
-	memset(&init_datatimes,0xEE,sizeof(DateTimeBCD));
-	if(memcmp(time,&init_datatimes,sizeof(DateTimeBCD))==0) {		//时间无效，上送NULL（0）
-		data[0] = 0;
-		return 1;
-	}else {
-		data[0] = dtdatetimes;
-		time->year.data = time->year.data >>8 | time->year.data<<8;
-		memcpy(&data[1],time,sizeof(DateTimeBCD));
-		return (sizeof(DateTimeBCD)+1);
-	}
-}
-
-
-int fill_TI(INT8U *data,TI ti)
-{
-	data[0] = dtti;
-	data[1] = ti.units;
-	data[2] = (ti.interval>>8)&0xff;
-	data[3] = ti.interval&0xff;
-	return 4;
-}
-
-int fill_TSA(INT8U *data,INT8U *value,INT8U len)
-{
-	data[0] = dttsa;
-	data[1] = len;
-	memcpy(&data[2],value,len);
-	return (len+2);
-}
-
 
 int GetMeterInfo(RESULT_NORMAL *response)
 {
@@ -707,106 +578,6 @@ int Get4300(RESULT_NORMAL *response)
 	return 0;
 }
 
-int GetEventRecord(RESULT_NORMAL *response)
-{
-	INT8U *data=NULL;
-	int datalen=0;
-
-	if ( Get_Event(response->oad,response->oad.attrindex,&data,&datalen,memp) == 1 )
-	{
-		if (datalen > 512 || data==NULL)
-		{
-			fprintf(stderr,"\n获取事件数据Get_Event函数异常! [datalen=%d  data=%p]",datalen,data);
-			if (data!=NULL)
-				free(data);
-			return 0;
-		}
-		memcpy(response->data,data,datalen);
-		response->datalen = datalen;
-		if (data!=NULL)
-			free(data);
-		return 1;
-	}
-	response->datalen = 0;
-	response->dar = other_err1;
-	fprintf(stderr,"\n获取事件数据Get_Event函数返回 0  [datalen=%d  data=%p]",datalen,data);
-	if (data!=NULL)
-		free(data);
-	return 1;
-}
-
-int GetClass7attr(RESULT_NORMAL *response)
-{
-	INT8U *data = NULL;
-	OAD oad={};
-	Class7_Object	class7={};
-	int index=0;
-	data = response->data;
-	oad = response->oad;
-	memset(&class7,sizeof(Class7_Object),0);
-	readCoverClass(oad.OI,0,&class7,sizeof(Class7_Object),event_para_save);
-	switch(oad.attflg) {
-	case 1:	//逻辑名
-		break;
-	case 3:	//关联属性表
-		break;
-	case 4:	//当前记录数
-		break;
-	case 5:	//最大记录数
-		break;
-	case 8: //上报标识
-		break;
-	case 9: //有效标识
-		index += file_bool(&data[0],class7.enableflag);
-		break;
-	}
-	response->datalen = index;
-	return 0;
-}
-
-int GetEventInfo(RESULT_NORMAL *response)
-{
-	fprintf(stderr,"GetEventInfo OI=%x,attflg=%d,attrindex=%d \n",response->oad.OI,response->oad.attflg,response->oad.attrindex);
-	switch(response->oad.attflg) {
-	case 2:		//事件记录表
-		GetEventRecord(response);
-		break;
-	case 1:	//逻辑名
-	case 3:	//关联属性表
-	case 4:	//当前记录数
-	case 5:	//最大记录数
-	case 8: //上报标识
-	case 9: //有效标识
-		GetClass7attr(response);
-		break;
-	case 6:	//配置参数
-		switch(response->oad.OI) {
-			case 0x3105:	//电能表时间超差事件
-				Get3105(response);
-				break;
-			case 0x3106:	//停上电事件
-				Get3106(response);
-				break;
-			case 0x310c:	//电能量超差事件阈值
-				Get310c(response);
-				break;
-			case 0x310d:	//电能表飞走事件阈值
-				Get310d(response);
-				break;
-			case 0x310e:	//电能表停走事件阈值
-				Get310e(response);
-				break;
-			case 0x3110:	//月通信流量超限事件阈值
-				Get3110(response);
-				break;
-		}
-		break;
-	case 7:
-		GetEventRecord(response);
-		break;
-	}
-	return 0;
-}
 
 int getSel1_coll(RESULT_RECORD *record)
 {
@@ -984,6 +755,142 @@ int getRequestRecord(OAD oad,INT8U *data,CSINFO *csinfo,INT8U *sendbuf)
 //	securetype = 0;		//清除安全等级标识
 	return 1;
 }
+
+int GetVariable(RESULT_NORMAL *response)
+{
+	int	  	len=0;
+	INT8U	databuf[VARI_LEN]={};
+	INT8U *data = NULL;
+	int index=0;
+
+	data = response->data;
+	memset(&databuf,0,sizeof(databuf));
+	len = readVariData(&response->oad.OI,&databuf,VARI_LEN);
+	if(len>0) {
+		switch(response->oad.OI)
+		{
+			case 0x2200:	//通信流量
+				Get_2200(response->oad.OI,databuf,data,&index);
+				break;
+			case 0x2203:	//供电时间
+				Get_2203(response->oad.OI,databuf,data,&index);
+				break;
+			case 0x2204:	//复位次数
+				Get_2204(response->oad.OI,databuf,data,&index);
+				break;
+		}
+		response->datalen = index;
+		fprintf(stderr,"datalen=%d \n",response->datalen);
+	}else if(len==0){
+		response->datalen = 0;	//无数据
+	}else {
+		response->datalen = 0;	//无数据
+		fprintf(stderr,"\n读取的OI=%04x ,不在变量类对象文件%s中，请从其他文件获取!!!\n",response->oad.OI,VARI_DATA);
+	}
+	return 1;
+}
+
+int GetEventRecord(RESULT_NORMAL *response)
+{
+	INT8U *data=NULL;
+	int datalen=0;
+
+	if ( Get_Event(response->oad,response->oad.attrindex,&data,&datalen,memp) == 1 )
+	{
+		if (datalen > 512 || data==NULL)
+		{
+			fprintf(stderr,"\n获取事件数据Get_Event函数异常! [datalen=%d  data=%p]",datalen,data);
+			if (data!=NULL)
+				free(data);
+			return 0;
+		}
+		memcpy(response->data,data,datalen);
+		response->datalen = datalen;
+		if (data!=NULL)
+			free(data);
+		return 1;
+	}
+	response->datalen = 0;
+	response->dar = other_err1;
+	fprintf(stderr,"\n获取事件数据Get_Event函数返回 0  [datalen=%d  data=%p]",datalen,data);
+	if (data!=NULL)
+		free(data);
+	return 1;
+}
+
+int GetClass7attr(RESULT_NORMAL *response)
+{
+	INT8U *data = NULL;
+	OAD oad={};
+	Class7_Object	class7={};
+	int index=0;
+	data = response->data;
+	oad = response->oad;
+	memset(&class7,sizeof(Class7_Object),0);
+	readCoverClass(oad.OI,0,&class7,sizeof(Class7_Object),event_para_save);
+	switch(oad.attflg) {
+	case 1:	//逻辑名
+		break;
+	case 3:	//关联属性表
+		break;
+	case 4:	//当前记录数
+		break;
+	case 5:	//最大记录数
+		break;
+	case 8: //上报标识
+		break;
+	case 9: //有效标识
+		index += file_bool(&data[0],class7.enableflag);
+		break;
+	}
+	response->datalen = index;
+	return 0;
+}
+
+int GetEventInfo(RESULT_NORMAL *response)
+{
+	fprintf(stderr,"GetEventInfo OI=%x,attflg=%d,attrindex=%d \n",response->oad.OI,response->oad.attflg,response->oad.attrindex);
+	switch(response->oad.attflg) {
+	case 2:		//事件记录表
+		GetEventRecord(response);
+		break;
+	case 1:	//逻辑名
+	case 3:	//关联属性表
+	case 4:	//当前记录数
+	case 5:	//最大记录数
+	case 8: //上报标识
+	case 9: //有效标识
+		GetClass7attr(response);
+		break;
+	case 6:	//配置参数
+		switch(response->oad.OI) {
+			case 0x3105:	//电能表时间超差事件
+				Get3105(response);
+				break;
+			case 0x3106:	//停上电事件
+				Get3106(response);
+				break;
+			case 0x310c:	//电能量超差事件阈值
+				Get310c(response);
+				break;
+			case 0x310d:	//电能表飞走事件阈值
+				Get310d(response);
+				break;
+			case 0x310e:	//电能表停走事件阈值
+				Get310e(response);
+				break;
+			case 0x3110:	//月通信流量超限事件阈值
+				Get3110(response);
+				break;
+		}
+		break;
+	case 7:
+		GetEventRecord(response);
+		break;
+	}
+	return 0;
+}
+
 int GetEnvironmentValue(RESULT_NORMAL *response)
 {
 	switch(response->oad.OI)
@@ -1052,7 +959,6 @@ int GetDeviceIo(RESULT_NORMAL *response)
 			GetYxPara(response);
 			break;
 	}
-
 	return 1;
 }
 int doGetnormal(RESULT_NORMAL *response)
@@ -1062,6 +968,9 @@ int doGetnormal(RESULT_NORMAL *response)
 
 	fprintf(stderr,"\ngetRequestNormal----------  oi =%04x  \n",oi);
 	switch(oihead) {
+		case 2:			//变量类对象
+			GetVariable(response);
+			break;
 		case 3:			//事件类对象读取
 			GetEventInfo(response);
 			break;
@@ -1121,6 +1030,7 @@ int getRequestNormalList(INT8U *data,CSINFO *csinfo,INT8U *sendbuf)
 	{
 		memset(TmpDataBuf,0,sizeof(TmpDataBuf));
 		memcpy(oadtmp,&data[1 + i*4],4);
+		response.dar = 0;
 		getoad(oadtmp, &response.oad);
 		response.datalen = 0;
 		response.data = TmpDataBuf + 5;
@@ -1136,9 +1046,9 @@ int getRequestNormalList(INT8U *data,CSINFO *csinfo,INT8U *sendbuf)
 		}
 		else
 		{
-			TmpDataBufList[listindex + 4] = 0;//错误
-			TmpDataBufList[listindex + 5] = response.dar;  //  0-3(oad)   4(choice)  5(dar)
-			listindex = listindex + 6;
+//			TmpDataBufList[listindex + 4] = 0;//错误
+			TmpDataBufList[listindex + 4] = response.dar;  //  0-3(oad)   4(choice)  5(dar)
+			listindex = listindex + 5;
 		}
 	}
 	response.data = TmpDataBufList;
