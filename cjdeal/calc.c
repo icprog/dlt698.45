@@ -584,7 +584,7 @@ void ReadPubData()
 		memset(&point[i].Result_m.tjUc,0,sizeof(point[i].Result_m.tjUc));
 
 	}
-//	if(readCoverClass(0x2130,0,StatisticsPoint,sizeof(StatisticsPoint),calc_voltage_save)<=0)
+	if(readCoverClass(0x2130,0,StatisticsPoint,sizeof(StatisticsPoint),calc_voltage_save)<=0)
 	{
 		return;
 	}
@@ -953,7 +953,7 @@ void calc_thread()
 		//如果跨天，日供电清零
 		INT8U mpi=0;
         if(oldts.Day != newts.Day){
-    		gongdian_tj.day_gongdian = 0;
+    		gongdian_tj.gongdian.day_tj = 0;
     		for(mpi=0;mpi<MAXNUM_IMPORTANTUSR_CALC;mpi++){
 				max_ptongji[mpi].mp.d_max = 0;
 				max_ptongji[mpi].mpa.d_max = 0;
@@ -964,7 +964,7 @@ void calc_thread()
 
         //如果跨月，月供电清零
         if(oldts.Month != newts.Month){
-    		gongdian_tj.month_gongdian = 0;
+        	gongdian_tj.gongdian.month_tj = 0;
     		for(mpi=0;mpi<MAXNUM_IMPORTANTUSR_CALC;mpi++){
 				max_ptongji[mpi].mp.m_max = 0;
 				max_ptongji[mpi].mpa.m_max = 0;
@@ -980,12 +980,12 @@ void calc_thread()
 			//存储电压合格率
 			saveCoverClass(0x2130,0,StatisticsPoint,sizeof(StatisticsPoint),calc_voltage_save);
 			//日月供电加1分钟
-			gongdian_tj.day_gongdian++;
-			gongdian_tj.month_gongdian++;
+			gongdian_tj.gongdian.day_tj++;
+			gongdian_tj.gongdian.month_tj++;
 			memcpy(&gongdian_tj.ts,&newts,sizeof(TS));
 			//存储供电时间
 			//saveCoverClass(0x2203,0,&gongdian_tj,sizeof(Gongdian_tj),calc_voltage_save);
-			fprintf(stderr,"day_gongdian=%d,month_gongdian=%d\n",gongdian_tj.day_gongdian,gongdian_tj.month_gongdian);
+			fprintf(stderr,"day_gongdian=%d,month_gongdian=%d\n",gongdian_tj.gongdian.day_tj,gongdian_tj.gongdian.month_tj);
 			saveVariData(0x2203,&gongdian_tj,sizeof(Gongdian_tj));
 			//存储最大功率及发生时间
 			saveCoverClass(0x2140,0,max_ptongji,sizeof(max_ptongji),calc_voltage_save);
@@ -1005,14 +1005,14 @@ INT8U Init_Para(){
 	ReadPubData();
 	memset(&gongdian_tj,0,sizeof(Gongdian_tj));
 	readVariData(0x2203,&gongdian_tj,sizeof(Gongdian_tj));
-	fprintf(stderr,"init :day_gongdian=%d,month_gongdian=%d\n",gongdian_tj.day_gongdian,gongdian_tj.month_gongdian);
+	fprintf(stderr,"init :day_gongdian=%d,month_gongdian=%d\n",gongdian_tj.gongdian.day_tj,gongdian_tj.gongdian.month_tj);
 	//2140 max_ptongji,sizeof(max_ptongji)*MAXNUM_IMPORTANTUSR_CALC
 	TS newts;
 	TSGet(&newts);
 	//如果跨天 日供电清零
 	INT8U mpi=0;
 	if(gongdian_tj.ts.Day != newts.Day){
-		gongdian_tj.day_gongdian = 0;
+		gongdian_tj.gongdian.day_tj = 0;
 		for(mpi=0;mpi<MAXNUM_IMPORTANTUSR_CALC;mpi++){
 			max_ptongji[mpi].mp.d_max = 0;
 			max_ptongji[mpi].mpa.d_max = 0;
@@ -1022,7 +1022,7 @@ INT8U Init_Para(){
 	}
 	//如果跨月 月供电清零
 	if(gongdian_tj.ts.Month != newts.Month){
-		gongdian_tj.month_gongdian = 0;
+		gongdian_tj.gongdian.month_tj = 0;
 		for(mpi=0;mpi<MAXNUM_IMPORTANTUSR_CALC;mpi++){
 			max_ptongji[mpi].mp.m_max = 0;
 			max_ptongji[mpi].mpa.m_max = 0;

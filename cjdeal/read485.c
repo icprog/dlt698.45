@@ -268,6 +268,7 @@ void print6015(CLASS_6015 class6015) {
 					memcpy(testArray[0].flag07.DI_1[0], freezeflag07_1, 4);
 					memcpy(testArray[0].flag07.DI_1[1], freezeflag07_2, 4);
 					memcpy(testArray[0].flag07.DI_1[2], freezeflag07_3, 4);
+					testArray[0].flag07.dinum = 1;
 				}
 
 		if (class6015.csds.csd[i].type == 0) {
@@ -276,16 +277,19 @@ void print6015(CLASS_6015 class6015) {
 			{
 				memcpy(&testArray[1].flag698.oad, &class6015.csds.csd[i].csd.oad,sizeof(OAD));
 				memcpy(testArray[1].flag07.DI_1[0], flag07_0CF33, 4);
+				testArray[1].flag07.dinum = 1;
 			}
 			if(class6015.csds.csd[i].csd.oad.OI== 0x2000)
 			{
 				memcpy(&testArray[2].flag698.oad, &class6015.csds.csd[i].csd.oad,sizeof(OAD));
 				memcpy(testArray[2].flag07.DI_1[0], flag07_0CF25_1, 4);
+				testArray[2].flag07.dinum = 1;
 			}
 			if(class6015.csds.csd[i].csd.oad.OI== 0x2001)
 			{
 				memcpy(&testArray[3].flag698.oad, &class6015.csds.csd[i].csd.oad,sizeof(OAD));
 				memcpy(testArray[3].flag07.DI_1[0], flag07_0CF25_2, 4);
+				testArray[3].flag07.dinum = 1;
 			}
 #if 0
 			INT8U flag07_date[4] = { 0x01, 0x01, 0x00, 0x04 };//电能表日历时钟-日期
@@ -656,7 +660,9 @@ INT16S request698_07DataSingle(FORMAT07* format07, INT8U* SendBuf,INT16S SendLen
 	INT16S buffLen = -1;
 	memset(&RecvBuff[0], 0, 256);
 	SendDataTo485(comfd4851, SendBuf, SendLen);
+	fprintf(stderr,"\n 11111111111111");
 	st6035->sendMsgNum++;
+	fprintf(stderr,"\n 22222222222222");
 	RecvLen = ReceDataFrom485(comfd4851, 500, RecvBuff);
 	if (RecvLen > 0)
 	{
@@ -685,6 +691,7 @@ INT16S request698_07DataSingle(FORMAT07* format07, INT8U* SendBuf,INT16S SendLen
 			}
 		}
 	}
+	fprintf(stderr,"request698_07DataSingle buffLen = %d",buffLen);
 	return buffLen;
 }
 INT16S request698_07Data(INT8U* DI07,INT8U* dataContent,CLASS_6001 meter,CLASS_6035* st6035)
@@ -739,7 +746,7 @@ INT16S request698_07Data(INT8U* DI07,INT8U* dataContent,CLASS_6001 meter,CLASS_6
  * 698 OAD 和 645 07规约 数据标识转换
  * dir:0-通过698OAD找64507DI 1-通过64507DI找698OAD
  * */
-INT8S CSDMap07DI(MY_CSD strCAD, INT8U strDIList[DI07_NUM_601F][4]) {
+INT8S CSDMap07DI(MY_CSD strCAD, C601F_07Flag* obj601F_07Flag) {
 	fprintf(stderr, "\n CSDMap07DI--------start--------\n");
 	printMY_CSD(strCAD);
 
@@ -751,7 +758,7 @@ INT8S CSDMap07DI(MY_CSD strCAD, INT8U strDIList[DI07_NUM_601F][4]) {
 			if (memcmp(&strCAD.csd.oad, &testArray[index].flag698.oad,
 					sizeof(OAD)) == 0) {
 				fprintf(stderr, "\n find CSDMap07DI OAD");
-				memcpy(strDIList, testArray[index].flag07.DI_1, 40);
+				memcpy(obj601F_07Flag, &testArray[index].flag07, sizeof(C601F_07Flag));
 				return 1;
 			}
 		}
@@ -759,7 +766,7 @@ INT8S CSDMap07DI(MY_CSD strCAD, INT8U strDIList[DI07_NUM_601F][4]) {
 			if (memcmp(&strCAD.csd.road, &testArray[index].flag698.road,
 					sizeof(ROAD)) == 0) {
 				fprintf(stderr, "\n find CSDMap07DI ROAD");
-				memcpy(strDIList, testArray[index].flag07.DI_1, 40);
+				memcpy(obj601F_07Flag, &testArray[index].flag07, sizeof(C601F_07Flag));
 				return 1;
 			}
 		}
@@ -786,13 +793,13 @@ INT16U dealProxy_645_07(GETOBJS obj07,INT8U* dataContent)
 		OADtoBuff(obj07.oads[oadIndex],&dataContent[dataLen]);
 		dataLen += sizeof(OAD);
 
-		INT8U DIList[DI07_NUM_601F][4];
-		memset(DIList, 0, 40);
+		C601F_07Flag obj601F_07Flag;
+		memset(&obj601F_07Flag,0,sizeof(C601F_07Flag));
 		MY_CSD strCAD;
 		strCAD.type = 0;
 		memcpy(&strCAD.csd.oad,&obj07.oads[oadIndex],sizeof(OAD));
 
-		if(CSDMap07DI(strCAD,DIList)!=1)
+		if(CSDMap07DI(strCAD,&obj601F_07Flag)!=1)
 		{
 			fprintf(stderr,"\n 找不到%04x%02x%02x对应07数据项",strCAD.csd.oad.OI,strCAD.csd.oad.attflg,strCAD.csd.oad.attrindex);
 			continue;
@@ -801,9 +808,9 @@ INT16U dealProxy_645_07(GETOBJS obj07,INT8U* dataContent)
 		dataFlagPos = dataLen;
 		dataContent[dataLen++] = 0x01;//默认有数据
 
-		for(diIndex=0;diIndex<DI07_NUM_601F;diIndex++)
+		for(diIndex=0;diIndex<obj601F_07Flag.dinum;diIndex++)
 		{
-			singledataLen = request698_07Data(DIList[diIndex],&dataContent[dataLen],meter,&inValid6035);
+			singledataLen = request698_07Data(obj601F_07Flag.DI_1[diIndex],&dataContent[dataLen],meter,&inValid6035);
 			if(singledataLen >= 0)
 			{
 				dataLen += singledataLen;
@@ -991,16 +998,17 @@ INT16U deal6015_698(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8
  * DI07List[10][4]是一个CSD对应的07数据标识列表
  * dataContent里保存一个任务抄上来的所有数据，不带数据标识
  * */
-INT16U request698_07DataList(INT8U DI07List[DI07_NUM_601F][4], CLASS_6001 meter,INT8U* dataContent,CLASS_6035* st6035,INT8U port485)
+INT16U request698_07DataList(	C601F_07Flag obj601F_07Flag, CLASS_6001 meter,INT8U* dataContent,CLASS_6035* st6035,INT8U port485)
 {
 	INT16U DataLen = 0;	//暂存正常抄读的数据长度
 	INT8U index;
 	INT16U singleBuffLen = 0;
 	INT8U isSuccess = 1;
-	for (index = 0; index < DI07_NUM_601F; index++)
+	fprintf(stderr,"\n\n-------request698_07DataList obj601F_07Flag.dinum = %d",obj601F_07Flag.dinum);
+	for (index = 0; index < obj601F_07Flag.dinum; index++)
 	{
 		dealRealTimeRequst(port485);
-		singleBuffLen = request698_07Data(DI07List[index],&dataContent[DataLen],meter,st6035);
+		singleBuffLen = request698_07Data(obj601F_07Flag.DI_1[index],&dataContent[DataLen],meter,st6035);
 
 		if(singleBuffLen > 0)
 		{
@@ -1042,14 +1050,14 @@ INT16U deal6015_07(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8U
 		break;
 	}
 
-	INT8U DIList[DI07_NUM_601F][4];
-	memset(DIList, 0, 4*DI07_NUM_601F);
+	C601F_07Flag obj601F_07Flag;
+	memset(&obj601F_07Flag,0,sizeof(C601F_07Flag));
 
 	INT8U dataIndex = 0;
 
 	for (dataIndex = 0; dataIndex < st6015.csds.num; dataIndex++) {
-		if (CSDMap07DI(st6015.csds.csd[dataIndex], DIList) == 1) {
-			datalen = request698_07DataList(DIList, to6001,&dataContent[totaldataLen],st6035,port485);
+		if (CSDMap07DI(st6015.csds.csd[dataIndex], &obj601F_07Flag) == 1) {
+			datalen = request698_07DataList(obj601F_07Flag, to6001,&dataContent[totaldataLen],st6035,port485);
 			totaldataLen += datalen;
 			fprintf(stderr,"\n deal6015_07 totaldataLen = %d,datalen=%d",totaldataLen,datalen);
 			if(totaldataLen >= DATA_CONTENT_LEN)
@@ -1590,56 +1598,64 @@ void initTestArray()
 	testArray[5].flag698.oad.attflg = 0x02;
 	testArray[5].flag698.oad.attrindex = 0x00;
 	memcpy(testArray[5].flag07.DI_1[0], flag07_0CF33, 4);
+	testArray[5].flag07.dinum = 1;
 
 	//当前反向有功总电能示值
 	testArray[6].flag698.oad.OI = 0x0020;
 	testArray[6].flag698.oad.attflg = 0x02;
 	testArray[6].flag698.oad.attrindex = 0x00;
 	memcpy(testArray[6].flag07.DI_1[0], flag07_0CF34, 4);
+	testArray[6].flag07.dinum = 1;
 
 	//当前组合有功总电能示值
 	testArray[7].flag698.oad.OI = 0x0000;
 	testArray[7].flag698.oad.attflg = 0x02;
 	testArray[7].flag698.oad.attrindex = 0x00;
 	memcpy(testArray[7].flag07.DI_1[0], flag07_0CF177, 4);
+	testArray[7].flag07.dinum = 1;
 
 	//当前组合无功1
 	testArray[8].flag698.oad.OI = 0x0030;
 	testArray[8].flag698.oad.attflg = 0x02;
 	testArray[8].flag698.oad.attrindex = 0x01;
 	memcpy(testArray[8].flag07.DI_1[0], flag07_0CZHWG1, 4);
+	testArray[8].flag07.dinum = 1;
 
 	//当前组合无功2
 	testArray[9].flag698.oad.OI = 0x0040;
 	testArray[9].flag698.oad.attflg = 0x02;
 	testArray[9].flag698.oad.attrindex = 0x01;
 	memcpy(testArray[9].flag07.DI_1[0], flag07_0CZHWG2, 4);
-
+	testArray[9].flag07.dinum = 1;
 
 	//第一象限无功
 	testArray[10].flag698.oad.OI = 0x0050;
 	testArray[10].flag698.oad.attflg = 0x02;
 	testArray[10].flag698.oad.attrindex = 0x00;
 	memcpy(testArray[10].flag07.DI_1[0], flag07_0C1XXWG, 4);
-
+	testArray[10].flag07.dinum = 1;
 
 	//第二象限无功
 	testArray[11].flag698.oad.OI = 0x0060;
 	testArray[11].flag698.oad.attflg = 0x02;
 	testArray[11].flag698.oad.attrindex = 0x00;
 	memcpy(testArray[11].flag07.DI_1[0], flag07_0C2XXWG, 4);
+	testArray[11].flag07.dinum = 1;
 
 	//第三象限无功
 	testArray[12].flag698.oad.OI = 0x0070;
 	testArray[12].flag698.oad.attflg = 0x02;
 	testArray[12].flag698.oad.attrindex = 0x00;
 	memcpy(testArray[12].flag07.DI_1[0], flag07_0C3XXWG, 4);
+	testArray[12].flag07.dinum = 1;
 
 	//第四象限无功
 	testArray[13].flag698.oad.OI = 0x0080;
 	testArray[13].flag698.oad.attflg = 0x02;
 	testArray[13].flag698.oad.attrindex = 0x00;
 	memcpy(testArray[13].flag07.DI_1[0], flag07_0C4XXWG, 4);
+	testArray[13].flag07.dinum = 1;
+
 }
 void read485_proccess() {
 	//读取所有任务文件
