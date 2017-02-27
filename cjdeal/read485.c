@@ -867,7 +867,7 @@ INT8S dealProxy(PROXY_GETLIST* getlist,INT8U port485)
 			continue;
 		}
 		getlist->data[totalLen++] = getlist->objs[index].num;
-#ifdef TESTDEF
+#ifdef TESTDEF1
 		if(obj6001.basicinfo.protocol == DLT_645_07)
 #endif
 		{
@@ -1002,7 +1002,7 @@ INT16U request698_07DataList(	C601F_07Flag obj601F_07Flag, CLASS_6001 meter,INT8
 {
 	INT16U DataLen = 0;	//暂存正常抄读的数据长度
 	INT8U index;
-	INT16U singleBuffLen = 0;
+	INT16S singleBuffLen = 0;
 	INT8U isSuccess = 1;
 	fprintf(stderr,"\n\n-------request698_07DataList obj601F_07Flag.dinum = %d",obj601F_07Flag.dinum);
 	for (index = 0; index < obj601F_07Flag.dinum; index++)
@@ -1245,8 +1245,8 @@ INT8U deal6015(CLASS_6015 st6015, INT8U port485,CLASS_6035* st6035) {
 
 				if(dataLen > 0)
 				{
-//					int bufflen = compose6012Buff(startTime,list6001[mpIndex].basicinfo.addr,dataLen,dataContent);
-//					SaveNorData(st6035->taskID,dataContent,bufflen);
+					int bufflen = compose6012Buff(startTime,list6001[mpIndex].basicinfo.addr,dataLen,dataContent);
+					SaveNorData(st6035->taskID,dataContent,bufflen);
 				}
 				else
 				{
@@ -1568,7 +1568,7 @@ void read485_thread(void* i485port) {
 			saveCoverClass(0x6035, result6035.taskID, &result6035,
 					sizeof(CLASS_6035), coll_para_save);
 		} else {
-			fprintf(stderr, "\n 当前无任务可执行");
+			//fprintf(stderr, "\n 当前无任务可执行");
 		}
 		sleep(1);
 	}
