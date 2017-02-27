@@ -976,16 +976,19 @@ void calc_thread()
         Getp_max();
 		//所有数据每分钟一存
 		if(oldts.Minute != newts.Minute){
-		   //存储电压合格率
-		   saveCoverClass(0x2130,0,StatisticsPoint,sizeof(StatisticsPoint),calc_voltage_save);
-		   //日月供电加1分钟
-		   gongdian_tj.day_gongdian++;
-		   gongdian_tj.month_gongdian++;
-		   memcpy(&gongdian_tj.ts,&newts,sizeof(TS));
-		   //存储供电时间
-		   saveCoverClass(0x2203,0,&gongdian_tj,sizeof(Gongdian_tj),calc_voltage_save);
-		   //存储最大功率及发生时间
-		   saveCoverClass(0x2140,0,max_ptongji,sizeof(max_ptongji),calc_voltage_save);
+			oldts.Minute = newts.Minute;
+			//存储电压合格率
+			saveCoverClass(0x2130,0,StatisticsPoint,sizeof(StatisticsPoint),calc_voltage_save);
+			//日月供电加1分钟
+			gongdian_tj.day_gongdian++;
+			gongdian_tj.month_gongdian++;
+			memcpy(&gongdian_tj.ts,&newts,sizeof(TS));
+			//存储供电时间
+			//saveCoverClass(0x2203,0,&gongdian_tj,sizeof(Gongdian_tj),calc_voltage_save);
+			fprintf(stderr,"day_gongdian=%d,month_gongdian=%d\n",gongdian_tj.day_gongdian,gongdian_tj.month_gongdian);
+			saveVariData(0x2203,&gongdian_tj,sizeof(Gongdian_tj));
+			//存储最大功率及发生时间
+			saveCoverClass(0x2140,0,max_ptongji,sizeof(max_ptongji),calc_voltage_save);
 		}
 //		//判断停上电
 		Event_3106(JProgramInfo,MeterPowerInfo,&poweroffon_state);
@@ -998,10 +1001,12 @@ void calc_thread()
 INT8U Init_Para(){
 	memset(StatisticsPoint,0,sizeof(StatisticsPointProp)*MAXNUM_IMPORTANTUSR);
 	memset(point,0,sizeof(POINT_CALC_TYPE)*MAXNUM_IMPORTANTUSR_CALC);
-	memset(&max_ptongji,0,sizeof(max_ptongji));
+	memset(max_ptongji,0,sizeof(max_ptongji));
 	ReadPubData();
 	memset(&gongdian_tj,0,sizeof(Gongdian_tj));
-//	readCoverClass(0x2203,0,&gongdian_tj,sizeof(Gongdian_tj),calc_voltage_save);
+	readVariData(0x2203,&gongdian_tj,sizeof(Gongdian_tj));
+	fprintf(stderr,"init :day_gongdian=%d,month_gongdian=%d\n",gongdian_tj.day_gongdian,gongdian_tj.month_gongdian);
+	//2140 max_ptongji,sizeof(max_ptongji)*MAXNUM_IMPORTANTUSR_CALC
 	TS newts;
 	TSGet(&newts);
 	//如果跨天 日供电清零
