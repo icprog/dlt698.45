@@ -776,15 +776,7 @@ INT8S CSDMap07DI(MY_CSD strCAD, C601F_07Flag* obj601F_07Flag) {
 	fprintf(stderr, "\n CSDMap07DI--------end--------\n");
 	return result;
 }
-//OAD转换为报文
-INT8U OADtoBuff(OAD fromOAD,INT8U* buff)
-{
-	memcpy(&buff[0],&fromOAD,sizeof(OAD));
-	INT8U tmp = buff[0];
-	buff[0] = buff[1];
-	buff[1] = tmp;
-	return sizeof(OAD);
-}
+
 INT16U dealProxy_645_07(GETOBJS obj07,INT8U* dataContent)
 {
 	INT16U singledataLen = -1;
@@ -956,7 +948,7 @@ INT8S dealRealTimeRequst(INT8U port485)
 		}
 		else
 		{
-			//break;
+			break;
 		}
 		usleep(1000*1000);
 	}
