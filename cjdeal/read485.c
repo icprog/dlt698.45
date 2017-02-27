@@ -11,6 +11,7 @@
 #include <string.h>
 #include <time.h>
 #include "read485.h"
+#include "dlt698def.h"
 
 extern ProgramInfo* JProgramInfo;
 
@@ -590,7 +591,8 @@ INT8U getASNInfo(FORMAT07* DI07,Base_DataType* dataType)
 		fprintf(stderr,"\n 1-----getASNInfo dataType = %d",*dataType);
 	}
 	if((memcmp(freezeflag07_2,DI07->DI,4) == 0)||(memcmp(freezeflag07_3,DI07->DI,4) == 0)
-			||(memcmp(flag07_0CF33,DI07->DI,4) == 0))
+			||(memcmp(flag07_0CF33,DI07->DI,4) == 0)||(memcmp(flag07_0CF34,DI07->DI,4) == 0)
+			||(memcmp(flag07_0CF177,DI07->DI,4) == 0))
 	{
 		*dataType = dtdoublelongunsigned;
 		unitNum = 5;
@@ -660,9 +662,7 @@ INT16S request698_07DataSingle(FORMAT07* format07, INT8U* SendBuf,INT16S SendLen
 	INT16S buffLen = -1;
 	memset(&RecvBuff[0], 0, 256);
 	SendDataTo485(comfd4851, SendBuf, SendLen);
-	fprintf(stderr,"\n 11111111111111");
 	st6035->sendMsgNum++;
-	fprintf(stderr,"\n 22222222222222");
 	RecvLen = ReceDataFrom485(comfd4851, 500, RecvBuff);
 	if (RecvLen > 0)
 	{
@@ -718,6 +718,12 @@ INT16S request698_07Data(INT8U* DI07,INT8U* dataContent,CLASS_6001 meter,CLASS_6
 	fprintf(stderr, "\nDI = %02x%02x%02x%02x\n",DI07[0],DI07[1],DI07[2],DI07[3]);
 
 	Data07.Ctrl = CTRL_Read_07;
+	if(meter.basicinfo.addr.addr[0] > 6)
+	{
+		meter.basicinfo.addr.addr[0] = 6;
+		fprintf(stderr,"request698_07Data 电表地址长度大于6");
+	}
+
 	memcpy(&Data07.Addr, &meter.basicinfo.addr.addr[1], meter.basicinfo.addr.addr[0]);
 	memcpy(&Data07.DI, DI07, 4);
 
@@ -867,7 +873,7 @@ INT8S dealProxy(PROXY_GETLIST* getlist,INT8U port485)
 			continue;
 		}
 		getlist->data[totalLen++] = getlist->objs[index].num;
-#ifdef TESTDEF
+#ifdef TESTDEF1
 		if(obj6001.basicinfo.protocol == DLT_645_07)
 #endif
 		{
@@ -877,7 +883,20 @@ INT8S dealProxy(PROXY_GETLIST* getlist,INT8U port485)
 				totalLen += singleLen;
 			}
 		}
-
+#ifdef TESTDEF
+		fprintf(stderr,"\n\ndealProxy 代理返回报文 长度：%d :",totalLen);
+		INT16U tIndex;
+		for(tIndex = 0;tIndex < totalLen;tIndex++)
+		{
+			fprintf(stderr,"%02x ",getlist->data[tIndex]);
+			if((tIndex+1)%20 ==0)
+			{
+				fprintf(stderr,"\n");
+			}
+		}
+#endif
+		mqs_send((INT8S *)PROXY_NET_MQ_NAME,1,ProxySetResponseList,(INT8U *)getlist,sizeof(PROXY_GETLIST));
+		fprintf(stderr,"\n代理消息已经发出\n\n");
 
 	}
 
@@ -948,7 +967,7 @@ INT8S dealRealTimeRequst(INT8U port485)
 		}
 		else
 		{
-			break;
+			//break;
 		}
 		usleep(1000*1000);
 	}
@@ -1002,7 +1021,7 @@ INT16U request698_07DataList(	C601F_07Flag obj601F_07Flag, CLASS_6001 meter,INT8
 {
 	INT16U DataLen = 0;	//暂存正常抄读的数据长度
 	INT8U index;
-	INT16U singleBuffLen = 0;
+	INT16S singleBuffLen = 0;
 	INT8U isSuccess = 1;
 	fprintf(stderr,"\n\n-------request698_07DataList obj601F_07Flag.dinum = %d",obj601F_07Flag.dinum);
 	for (index = 0; index < obj601F_07Flag.dinum; index++)
@@ -1245,8 +1264,8 @@ INT8U deal6015(CLASS_6015 st6015, INT8U port485,CLASS_6035* st6035) {
 
 				if(dataLen > 0)
 				{
-//					int bufflen = compose6012Buff(startTime,list6001[mpIndex].basicinfo.addr,dataLen,dataContent);
-//					SaveNorData(st6035->taskID,dataContent,bufflen);
+					int bufflen = compose6012Buff(startTime,list6001[mpIndex].basicinfo.addr,dataLen,dataContent);
+					SaveNorData(st6035->taskID,dataContent,bufflen);
 				}
 				else
 				{
@@ -1568,7 +1587,7 @@ void read485_thread(void* i485port) {
 			saveCoverClass(0x6035, result6035.taskID, &result6035,
 					sizeof(CLASS_6035), coll_para_save);
 		} else {
-			fprintf(stderr, "\n 当前无任务可执行");
+			//fprintf(stderr, "\n 当前无任务可执行");
 		}
 		sleep(1);
 	}
