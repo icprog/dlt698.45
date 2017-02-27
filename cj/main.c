@@ -212,10 +212,11 @@ int main(int argc, char *argv[])
 		cjframe(argc,argv);
 		return EXIT_SUCCESS;
 	}
-	if (strcmp("fangan")==0)
+	if (strcmp("cjread",argv[1])==0)
 	{
-		fprintf(stderr,"\n事件采集方案\n");
-		cjfangAn();
+		fprintf(stderr,"\n查看任务抄表数据\n");
+		cjread(argc,argv);
+		return EXIT_SUCCESS;
 	}
 	prthelp();
 	return EXIT_SUCCESS;

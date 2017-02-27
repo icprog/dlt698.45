@@ -60,7 +60,13 @@
 #define	STATE_MAXNUM			8			//开关量单元最大个数
 
 #define EVENT_OI_MAXNUM			30			//终端需要判断事件
+
+#define	VARI_LEN				64			//变量类对象每个oi占用的位置空间
+//一个CSD 对应07数据项个数 数组
+#define DI07_NUM_601F 			10
+
 #define POWEROFFON_NUM          10          //停上电事件需要抄读得测量点最大数
+
 ////////////////////////////////////////////////////////////////
 
 /*
