@@ -768,6 +768,8 @@ INT16S parseSecurityResponse(INT8U* RN,INT8U* apdu)//apdu负责传入和传出�
 	else
 		return -1;//无效应用数据单元标示
 }
+
+
 //OAD转换为报文
 INT8U OADtoBuff(OAD fromOAD,INT8U* buff)
 {
@@ -777,6 +779,7 @@ INT8U OADtoBuff(OAD fromOAD,INT8U* buff)
 	buff[1] = tmp;
 	return sizeof(OAD);
 }
+
 INT16S fillGetRequestAPDU(INT8U* sendBuf,CLASS_6015 obj6015,INT8U requestType)
 {
 	INT16S length = 0;
