@@ -786,8 +786,18 @@ int ComposeSendBuff(TS *ts,INT8U seletype,INT8U taskid,TSA *tsa_con,INT8U tsa_nu
 		blocklen = (blockl[0]<<8) + blockl[1];
 		unitnum = (headlen-4)/sizeof(HEAD_UNIT);
 		databuf_tmp = (INT8U *)malloc(blocklen);
+		if(databuf_tmp == NULL)
+		{
+			fprintf(stderr,"\n分配内存给databuf_tmp失败！\n");
+			return 0;
+		}
 
 		head_unit = (HEAD_UNIT *)malloc(headlen-4);
+		if(head_unit == NULL)
+		{
+			fprintf(stderr,"\n分配内存给head_unit失败！\n");
+			return 0;
+		}
 		fread(head_unit,headlen-4,1,fp);
 
 		fseek(fp,headlen,SEEK_SET);//跳过文件头
