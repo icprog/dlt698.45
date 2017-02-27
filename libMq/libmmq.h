@@ -63,4 +63,6 @@ extern INT32S mmq_put(mqd_t fd,INT32U time_out,mmq_head msg_head, void * buff, I
 *如果调用进程在消息队列 mqdes 绑定了通知请求，那么这个请求被删除，此后其它进程就可以绑定通知请求到此消息队列。
 */
 extern INT32S mmq_close(mqd_t fd);
+
+extern INT8S mqs_send(INT8S* mqname,INT16U pid,INT32U cmd,INT8U* buf,INT32U bufsiz);
 #endif /* MQ_COMM_H_ */
