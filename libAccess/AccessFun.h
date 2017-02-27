@@ -155,6 +155,7 @@ extern int readCoverClass(OI_698 oi,INT16U seqno,void *blockdata,int datalen,int
  *************************************/
 extern long getFileRecordNum(OI_698 oi);
 
+//////////////////////////////////////////////////////////////////////////////////////
 //extern int write2_ProxyRequestList(PROXY_GETLIST *list);
 //
 //extern int read_ProxyRequestList(PROXY_GETLIST *list);
@@ -171,13 +172,13 @@ extern int saveVariData(OI_698 oi,void *blockdata,int datalen);
 
 /*
  *　　读取数据值
- *　　　  oad: 需要读取的oad值
- *　　　  oadnum: 需要读取oad个数
+ *　　　  oi: 需要读取的oi值的所有属性值
  *　　　　　blockdata:返回数据
  *　　　　　len:　blockdata空间大小，需要申请blockdata申请空间大小为：oad个数×VARI_LEN
  *　　　函数返回值：数据长度 =-1,读取失败
- *  */
-extern int  readVariData(OI_698 *oi,int oadnum,void *blockdata,int len);
+ * */
+extern int readVariData(OI_698 oi,void *blockdata,int len);
+//////////////////////////////////////////////////////////////////////////////////////
 ///////////////数据文件存储
 
 extern INT8U getSelector(RSD select, INT8U selectype, CSD_ARRAYTYPE csds, INT8U *data, int *datalen);
