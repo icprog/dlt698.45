@@ -85,224 +85,6 @@ int doReponse(int server,int reponse,CSINFO *csinfo,PIID piid,OAD oad,int dar,IN
 		pSendfun(comfd,buf,index+3);
 	return (index+3);
 }
-int getArrayNum(INT8U *source,INT8U *dest)
-{
-	dest[0] = source[1];
-	return 2;//source[0] 0x1 (array type)   source[1] =num
-}
-int getUnsigned(INT8U *source,INT8U *dest)
-{
-	dest[0] = source[1];
-	return 2;//source[0] 0x11(unsigned type)   source[1] =data
-}
-int getROAD(INT8U *source,ROAD *dest)
-{
-	INT8U oadtmp[4]={};
-	int i=0,oadnum=0,index=1;
-
-	memset(oadtmp,0,4);
-	oadtmp[0] = source[index+1];
-	oadtmp[1] = source[index+0];
-	oadtmp[2] = source[index+2];
-	oadtmp[3] = source[index+3];
-	memcpy(&dest->oad,oadtmp,4);//source[0] == ROAD type (0x52)
-	index += 4;
-	dest->num = source[index++];
-	oadnum = dest->num;
-	memset(oadtmp,0,4);
-	for(i=0; i<oadnum;i++)
-	{
-		oadtmp[0] = source[index+1];
-		oadtmp[1] = source[index+0];
-		oadtmp[2] = source[index+2];
-		oadtmp[3] = source[index+3];
-		memcpy(&dest->oads[i],oadtmp,4);
-		index +=4;
-	}
-	return index;
-}
-int getTI(INT8U *source,INT8U *dest)
-{
-	dest[0] = source[0];//单位
-	dest[2] = source[1];//long unsigned数值
-	dest[1] = source[2];//
-	return 3;
-}
-int getBool(INT8U *source,INT8U *dest)
-{
-	dest[0] = source[1];
-	return 2;//source[0] 0x1 (bool type)   source[1] =value
-}
-
-int getLongUnsigned(INT8U *source,INT8U *dest)
-{
-	dest[1] = source[1];
-	dest[0] = source[2];
-	return 3;
-}
-int getDateTimeBCD(INT8U *source,INT8U *dest)
-{
-	dest[1] = source[0];//年
-	dest[0] = source[1];
-	dest[2] = source[2];//月
-	dest[3] = source[3];//日
-	dest[4] = source[4];//时
-	dest[5] = source[5];//分
-	dest[6] = source[6];//秒
-	return sizeof(DateTimeBCD);
-}
-int getMS(INT8U *source,INT8U *dest)
-{
-	INT8U choicetype=0;
-	choicetype = source[0];
-	switch (choicetype)
-	{
-		case 0:
-		case 1:
-			dest[0] = source[0];  //0表示 没有电表  1表示 全部电表
-			fprintf(stderr,"\n		MS:Choice =%02x ",source[0]);
-			return 1;
-		case 2:
-			break;
-		case 3:
-			break;
-		case 4:
-			break;
-	}
-	return 0;
-}
-/*
- * 解析选择方法类型 RSD
- */
-int get_BasicRSD(INT8U *source,INT8U *dest,INT8U *type)
-{
-	INT16U source_sumindex=0,source_index=0,dest_index=0;
-	int index = 0;
-	INT8U tmpbuf[2];
-	Selector4 select4;
-	Selector6 select6;
-	Selector9 select9;
-	Selector10 select10;
-	Selector1 select1;
-	Selector2 select2;
-
-	*type = source[0];//选择方法
-	switch(*type )
-	{
-		case 0:
-			dest[0] = 0;
-			index = 1;
-			break;
-		case 1:
-			memset(&select1,0,sizeof(select1));
-			select1.oad.OI= (source[1]<<8) | source[2];
-			select1.oad.attflg = source[3];
-			select1.oad.attrindex = source[4];
-			select1.data.type = 0xAA;
-			get_BasicUnit(&source[5]+source_sumindex,&source_index,(INT8U *)&select1.data,&dest_index);
-			source_sumindex += source_index;
-			memcpy(dest,&select1,sizeof(select1));
-			index = source_sumindex + 4 + 1;//4:oad  1:type   source_sumindex:解析data的内容长度
-			fprintf(stderr,"\n index = %d    !!!!!!!!!!!\n",index);
-			break;
-		case 2:
-			memset(&select2,0,sizeof(select2));
-			select2.oad.OI= (source[1]<<8) | source[2];
-			select2.oad.attflg = source[3];
-			select2.oad.attrindex = source[4];
-			select2.data_from.type = 0xAA;
-			get_BasicUnit(&source[5]+source_sumindex,&source_index,(INT8U *)&select2.data_from,&dest_index);
-			source_sumindex += source_index;
-			select2.data_to.type = 0xAA;
-			get_BasicUnit(&source[5]+source_sumindex,&source_index,(INT8U *)&select2.data_to,&dest_index);
-			source_sumindex += source_index;
-			select2.data_jiange.type = 0xAA;
-			get_BasicUnit(&source[5]+source_sumindex,&source_index,(INT8U *)&select2.data_jiange,&dest_index);
-			source_sumindex += source_index;
-			memcpy(dest,&select2,sizeof(select2));
-			index = source_sumindex + 4;
-			break;
-		case 3:
-			break;
-		case 4:
-		case 5:
-			index = getDateTimeBCD(&source[1],(INT8U *)&select4.collect_star);
-			fprintf(stderr,"\n--- %02x %02x --",source[1+index],source[1+index+1]);
-			source[index] = 0x5c;//报文中没有MS的类型字节，自己添加一个
-			get_BasicUnit(&source[index],&source_index,(INT8U *)&select4.meters,&dest_index);
-
-			source_sumindex += source_index;
-			index += source_sumindex;
-			memcpy(dest,&select4,sizeof(select4));
-			break;
-		case 6:
-		case 7:
-		case 8:
-			index++;	//type
-			index += getDateTimeBCD(&source[index],(INT8U *)&select6.collect_star);
-			index += getDateTimeBCD(&source[index],(INT8U *)&select6.collect_finish);
-			index += getTI(&source[index],(INT8U *)&select6.ti);
-			index += getMS(&source[18],&select6.meters.mstype);
-			memcpy(dest,&select6,sizeof(select6));
-			break;
-		case 9:
-			select9.recordn = source[1];
-			memcpy(dest,&select9,sizeof(select9));
-			index = 2;
-			break;
-		case 10:
-			select10.recordn = source[0];
-			get_BasicUnit(&source[1],&source_index,(INT8U *)&select10.meters.mstype,&dest_index);
-			index = source_index + sizeof(DateTimeBCD)+ sizeof(DateTimeBCD)+ sizeof(TI);
-			memcpy(dest,&select10,sizeof(select10));
-			break;
-	}
-	return index;
-}
-/*
- * 解析记录列选择 RCSD
- */
-int get_BasicRCSD(INT8U *source,CSD_ARRAYTYPE *csds)
-{
-	INT8U oadtmp[4];
-	int i=0,index=0,j=0;
-	INT8U num=0;
-	num = source[index++];
-	fprintf(stderr,"get RCSD num=%d\n",num);
-	csds->num = num;
-	for(i=0;i<num ;i++)
-	{
-		csds->csd[i].type = source[index++];
-		if (csds->csd[i].type  == 1)
-		{//road
-			oadtmp[0] = source[index+1];
-			oadtmp[1] = source[index+0];
-			oadtmp[2] = source[index+2];
-			oadtmp[3] = source[index+3];
-			memcpy(&csds->csd[i].csd.road.oad,oadtmp,4);
-			index = index +4;
-			csds->csd[i].csd.road.num = source[index++];
-			for(j=0;j<csds->csd[i].csd.road.num;j++)
-			{
-				oadtmp[0] = source[index+1];
-				oadtmp[1] = source[index+0];
-				oadtmp[2] = source[index+2];
-				oadtmp[3] = source[index+3];
-				index = index +4;
-				memcpy(&csds->csd[i].csd.road.oads[j],oadtmp,4);
-			}
-		}else
-		{//oad  6字节
-			oadtmp[0] = source[index+1];
-			oadtmp[1] = source[index+0];
-			oadtmp[2] = source[index+2];
-			oadtmp[3] = source[index+3];
-			index = index + 4;
-			memcpy(&csds->csd[i].csd.road.oad,oadtmp,4);
-		}
-	}
-	return index;
-}
 
 void get_BasicUnit(INT8U *source,INT16U *sourceindex,INT8U *dest,INT16U *destindex)
 {
@@ -766,6 +548,73 @@ void EventCjFangAnInfo(INT16U attr_act,INT8U *data)
 			break;
 	}
 }
+
+/* 601d :上报方案
+ * */
+void AddReportInfo(INT8U *data)
+{
+	CLASS_601D	 reportplan={};
+	int i=0,k=0,saveflg=0;
+	INT8U addnum = data[1];
+	INT8U roadnum=0;
+	int index=0;
+	INT16U source_sumindex=0,source_index=0,dest_sumindex=0,dest_index=0;
+
+	fprintf(stderr,"\n添加个数 %d",addnum);
+//	for(k=0; k<addnum; k++)
+//	{
+//		memset(&reportplan,0,sizeof(CLASS_601D));
+//		index += getUnsigned(&data[index],(INT8U *)&eventFangAn.sernum);
+//		index += getArrayNum(&data[index],(INT8U *)&eventFangAn.roads.num);
+//		for(i=0;i<eventFangAn.roads.num;i++)
+//			index += getROAD(&data[index],&eventFangAn.roads.road[i]);
+//		index += 1;//getMS没解释类型字节
+//		index += getMS(&data[index],&eventFangAn.ms.mstype);
+//		index += getBool(&data[index],&eventFangAn.ifreport);
+//		index += getLongUnsigned(&data[index],(INT8U *)&eventFangAn.deepsize);
+//
+//		fprintf(stderr,"\n第 %d 个事件方案  ID=%d   (%d 个ROAD)",k,eventFangAn.sernum,eventFangAn.roads.num);
+//		int j=0,w=0;
+//		for(j=0;j<eventFangAn.roads.num;j++)
+//		{
+//			fprintf(stderr,"\nROAD%d",j);
+//			fprintf(stderr,"\n[oad %x %02x %02x]",eventFangAn.roads.road[j].oad.OI,eventFangAn.roads.road[j].oad.attflg,eventFangAn.roads.road[j].oad.attrindex);
+//			for(w=0;w<eventFangAn.roads.road[j].num;w++)
+//			{
+//				fprintf(stderr,"\n[%x %02x %02x]",eventFangAn.roads.road[j].oads[w].OI,eventFangAn.roads.road[j].oads[w].attflg,eventFangAn.roads.road[j].oads[w].attrindex);
+//			}
+//		}
+//		fprintf(stderr,"\nMStype = %d  data=%d",eventFangAn.ms.mstype,eventFangAn.ms.ms.allmeter_null);
+//		fprintf(stderr,"\n上报标识 = %d ",eventFangAn.ifreport);
+//		fprintf(stderr,"\n存储深度 = %d\n",eventFangAn.deepsize);
+//
+//		saveflg = saveCoverClass(0x6017,eventFangAn.sernum,&eventFangAn,sizeof(eventFangAn),coll_para_save);
+//		if (saveflg==1)
+//			fprintf(stderr,"\n采集方案 %d 保存成功",eventFangAn.sernum);
+//		else
+//			fprintf(stderr,"\n采集方案 %d 保存失败",eventFangAn.sernum);
+//
+//	}
+}
+
+void ReportInfo(INT16U attr_act,INT8U *data)
+{
+	switch(attr_act)
+	{
+		case 127:	//方法 127:Add(array 上报方案)
+			fprintf(stderr,"\nAdd 上报方案");
+			AddReportInfo(data);
+			break;
+		case 128:	//方法 128:Delete(array 方案编号)
+
+			break;
+		case 129:	//方法 129:Clear( )
+			fprintf(stderr,"\n清空上报方案集");
+			clearClass(0x601D);
+			break;
+	}
+}
+
 void TaskInfo(INT16U attr_act,INT8U *data)
 {
 	switch(attr_act)
@@ -1044,6 +893,9 @@ int doObjectAction(OAD oad,INT8U *data)
 	}
 	switch(oi)
 	{
+		case 0x4300:	//终端对象
+			TerminalInfo(attr_act,data);
+			break;
 		case 0x6000:	//采集档案配置表
 			MeterInfo(attr_act,data);
 			break;
@@ -1058,9 +910,10 @@ int doObjectAction(OAD oad,INT8U *data)
 		case 0x6016:	//事件采集方案
 			EventCjFangAnInfo(attr_act,data);
 			break;
-		case 0x4300:	//终端对象
-			TerminalInfo(attr_act,data);
+		case 0x601C:	//上报方案
+			ReportInfo(attr_act,data);
 			break;
+
 		case 0xF001: //文件传输
 			FileTransMothod(attr_act,data);
 			break;
