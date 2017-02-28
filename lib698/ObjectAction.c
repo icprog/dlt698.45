@@ -48,6 +48,8 @@ INT16U getMytypeSize(INT8U first )
 	{
 		return (sizeof(TSA_ARRAYTYPE));
 	}
+	if ( first == 0x77)
+		return (sizeof(ARRAY_ROAD));
 	return 0 ;
 }
 
@@ -83,7 +85,42 @@ int doReponse(int server,int reponse,CSINFO *csinfo,PIID piid,OAD oad,int dar,IN
 		pSendfun(comfd,buf,index+3);
 	return (index+3);
 }
+int getArrayNum(INT8U *source,INT8U *dest)
+{
+	dest[0] = source[1];
+	return 2;//source[0] 0x1 (array type)   source[1] =num
+}
+int getUnsigned(INT8U *source,INT8U *dest)
+{
+	dest[0] = source[1];
+	return 2;//source[0] 0x11(unsigned type)   source[1] =data
+}
+int getROAD(INT8U *source,ROAD *dest)
+{
+	INT8U oadtmp[4]={};
+	int i=0,oadnum=0,index=1;
 
+	memset(oadtmp,0,4);
+	oadtmp[0] = source[index+1];
+	oadtmp[1] = source[index+0];
+	oadtmp[2] = source[index+2];
+	oadtmp[3] = source[index+3];
+	memcpy(&dest->oad,oadtmp,4);//source[0] == ROAD type (0x52)
+	index += 4;
+	dest->num = source[index++];
+	oadnum = dest->num;
+	memset(oadtmp,0,4);
+	for(i=0; i<oadnum;i++)
+	{
+		oadtmp[0] = source[index+1];
+		oadtmp[1] = source[index+0];
+		oadtmp[2] = source[index+2];
+		oadtmp[3] = source[index+3];
+		memcpy(&dest->oads[i],oadtmp,4);
+		index +=4;
+	}
+	return index;
+}
 int getTI(INT8U *source,INT8U *dest)
 {
 	dest[0] = source[0];//单位
@@ -91,7 +128,18 @@ int getTI(INT8U *source,INT8U *dest)
 	dest[1] = source[2];//
 	return 3;
 }
+int getBool(INT8U *source,INT8U *dest)
+{
+	dest[0] = source[1];
+	return 2;//source[0] 0x1 (bool type)   source[1] =value
+}
 
+int getLongUnsigned(INT8U *source,INT8U *dest)
+{
+	dest[1] = source[1];
+	dest[0] = source[2];
+	return 3;
+}
 int getDateTimeBCD(INT8U *source,INT8U *dest)
 {
 	dest[1] = source[0];//年
@@ -577,20 +625,52 @@ void AddCjiFangAnInfo(INT8U *data)
 			fprintf(stderr,"\n采集方案 %d 保存失败",fangAn.sernum);
 	}
 }
+
 void AddEventCjiFangAnInfo(INT8U *data)
 {
 	CLASS_6017 eventFangAn={};
-	int k=0;
+	int i=0,k=0,saveflg=0;
 	INT8U addnum = data[1];
+	INT8U roadnum=0;
+	int index=0;
 	INT16U source_sumindex=0,source_index=0,dest_sumindex=0,dest_index=0;
-	fprintf(stderr,"\nsizeof Event-fangAn=%d",sizeof(eventFangAn));
+
+	data += 4;
+
 	fprintf(stderr,"\n添加个数 %d",addnum);
 	for(k=0; k<addnum; k++)
 	{
 		memset(&eventFangAn,0,sizeof(eventFangAn));
-		get_BasicUnit(&data[2]+source_sumindex,&source_index,(INT8U *)&eventFangAn.sernum,&dest_index);
-		source_sumindex += source_index;
-		dest_sumindex += dest_index;
+		index += getUnsigned(&data[index],(INT8U *)&eventFangAn.sernum);
+		index += getArrayNum(&data[index],(INT8U *)&eventFangAn.roads.num);
+		for(i=0;i<eventFangAn.roads.num;i++)
+			index += getROAD(&data[index],&eventFangAn.roads.road[i]);
+		index += 1;//getMS没解释类型字节
+		index += getMS(&data[index],&eventFangAn.ms.mstype);
+		index += getBool(&data[index],&eventFangAn.ifreport);
+		index += getLongUnsigned(&data[index],(INT8U *)&eventFangAn.deepsize);
+
+		fprintf(stderr,"\n第 %d 个事件方案  ID=%d   (%d 个ROAD)",k,eventFangAn.sernum,eventFangAn.roads.num);
+		int j=0,w=0;
+		for(j=0;j<eventFangAn.roads.num;j++)
+		{
+			fprintf(stderr,"\nROAD%d",j);
+			fprintf(stderr,"\n[oad %x %02x %02x]",eventFangAn.roads.road[j].oad.OI,eventFangAn.roads.road[j].oad.attflg,eventFangAn.roads.road[j].oad.attrindex);
+			for(w=0;w<eventFangAn.roads.road[j].num;w++)
+			{
+				fprintf(stderr,"\n[%x %02x %02x]",eventFangAn.roads.road[j].oads[w].OI,eventFangAn.roads.road[j].oads[w].attflg,eventFangAn.roads.road[j].oads[w].attrindex);
+			}
+		}
+		fprintf(stderr,"\nMStype = %d  data=%d",eventFangAn.ms.mstype,eventFangAn.ms.ms.allmeter_null);
+		fprintf(stderr,"\n上报标识 = %d ",eventFangAn.ifreport);
+		fprintf(stderr,"\n存储深度 = %d\n",eventFangAn.deepsize);
+
+		saveflg = saveCoverClass(0x6017,eventFangAn.sernum,&eventFangAn,sizeof(eventFangAn),coll_para_save);
+		if (saveflg==1)
+			fprintf(stderr,"\n采集方案 %d 保存成功",eventFangAn.sernum);
+		else
+			fprintf(stderr,"\n采集方案 %d 保存失败",eventFangAn.sernum);
+
 	}
 }
 void AddTaskInfo(INT8U *data)
