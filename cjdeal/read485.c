@@ -11,6 +11,7 @@
 #include <string.h>
 #include <time.h>
 #include "read485.h"
+#include "dlt698def.h"
 
 extern ProgramInfo* JProgramInfo;
 
@@ -590,7 +591,8 @@ INT8U getASNInfo(FORMAT07* DI07,Base_DataType* dataType)
 		fprintf(stderr,"\n 1-----getASNInfo dataType = %d",*dataType);
 	}
 	if((memcmp(freezeflag07_2,DI07->DI,4) == 0)||(memcmp(freezeflag07_3,DI07->DI,4) == 0)
-			||(memcmp(flag07_0CF33,DI07->DI,4) == 0))
+			||(memcmp(flag07_0CF33,DI07->DI,4) == 0)||(memcmp(flag07_0CF34,DI07->DI,4) == 0)
+			||(memcmp(flag07_0CF177,DI07->DI,4) == 0))
 	{
 		*dataType = dtdoublelongunsigned;
 		unitNum = 5;
@@ -660,9 +662,7 @@ INT16S request698_07DataSingle(FORMAT07* format07, INT8U* SendBuf,INT16S SendLen
 	INT16S buffLen = -1;
 	memset(&RecvBuff[0], 0, 256);
 	SendDataTo485(comfd4851, SendBuf, SendLen);
-	fprintf(stderr,"\n 11111111111111");
 	st6035->sendMsgNum++;
-	fprintf(stderr,"\n 22222222222222");
 	RecvLen = ReceDataFrom485(comfd4851, 500, RecvBuff);
 	if (RecvLen > 0)
 	{
@@ -718,6 +718,12 @@ INT16S request698_07Data(INT8U* DI07,INT8U* dataContent,CLASS_6001 meter,CLASS_6
 	fprintf(stderr, "\nDI = %02x%02x%02x%02x\n",DI07[0],DI07[1],DI07[2],DI07[3]);
 
 	Data07.Ctrl = CTRL_Read_07;
+	if(meter.basicinfo.addr.addr[0] > 6)
+	{
+		meter.basicinfo.addr.addr[0] = 6;
+		fprintf(stderr,"request698_07Data 电表地址长度大于6");
+	}
+
 	memcpy(&Data07.Addr, &meter.basicinfo.addr.addr[1], meter.basicinfo.addr.addr[0]);
 	memcpy(&Data07.DI, DI07, 4);
 
@@ -877,7 +883,20 @@ INT8S dealProxy(PROXY_GETLIST* getlist,INT8U port485)
 				totalLen += singleLen;
 			}
 		}
-
+#ifdef TESTDEF
+		fprintf(stderr,"\n\ndealProxy 代理返回报文 长度：%d :",totalLen);
+		INT16U tIndex;
+		for(tIndex = 0;tIndex < totalLen;tIndex++)
+		{
+			fprintf(stderr,"%02x ",getlist->data[tIndex]);
+			if((tIndex+1)%20 ==0)
+			{
+				fprintf(stderr,"\n");
+			}
+		}
+#endif
+		mqs_send((INT8S *)PROXY_NET_MQ_NAME,1,ProxySetResponseList,(INT8U *)getlist,sizeof(PROXY_GETLIST));
+		fprintf(stderr,"\n代理消息已经发出\n\n");
 
 	}
 

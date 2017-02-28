@@ -59,6 +59,25 @@ const static  Variable_Class vari_data[] ={
 		{0x2032,40},{0x2033,41},{0x2140,42},{0x2141,43},{0x2200,44},{0x2203,45},{0x2204,46},
 };
 
+typedef struct
+{
+	OI_698		oi;				//对象标识OI
+	int			offset;			//文件中编译位置
+	int			datalen;		//每个类数据长度
+}Variable_TJ_Class;
+/*1个TSA的数据偏移字节数，
+ * */
+#define TJ_TSA_LEN		608		//1个TSA占用的字节数
+const static  Variable_TJ_Class vari_tj_data[] ={
+		{0x2131,0,64},//当月A相电压合格率			64个字节
+		{0x2132,1,64},//当月B相电压合格率
+		{0x2133,2,64},//当月C相电压合格率
+		{0x2140,3,64},//日最大有功功率及发生时间		64个
+		{0x2141,4,64},//月最大有功功率及发生时间
+//		{0x2100,176},//分钟区间统计	1440点*12个字节＝17280		文件太大，考虑单独放置
+		{0x2101,5,288},//小时区间统计	24*12=288
+};
+
 typedef struct{
 	INT8U type;//0：oad 1：road
 	OAD   oad;
@@ -86,7 +105,7 @@ extern INT16S getclassinfo(OI_698 oi,CLASS_INFO *classinfo);
 extern INT8U block_file_sync(char *fname,void *blockdata,int size,int headsize,int index);
 extern INT8U save_block_file(char *fname,void *blockdata,int size,int headsize,int index);
 
-extern int getvarioffset(OI_698 oi);
+extern int getvarioffset(OI_698 oi,int coll_seqnum,int *offset,int *blklen);
 
 extern sem_t * InitSem();
 extern void CloseSem(sem_t * sem_parasave);

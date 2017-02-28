@@ -263,7 +263,7 @@ int GetSysDateTime(RESULT_NORMAL *response)
 	switch(oad.attflg )
 	{
 		case 2://安全模式选择
-			response->datalen = fill_DateTimeBCD(response->data,&time);
+			response->datalen = fill_date_time_s(response->data,&time);
 			break;
 	}
 	return 0;
@@ -562,7 +562,7 @@ int Get4300(RESULT_NORMAL *response)
 			index += fill_visible_string(&data[index],class_tmp.info.factoryExpInfo,8);
 			break;
 		case 4:
-			index +=fill_DateTimeBCD(&data[index],&class_tmp.date_Product);
+			index +=fill_date_time_s(&data[index],&class_tmp.date_Product);
 			break;
 		case 7:
 			index += file_bool(&data[index],class_tmp.follow_report);
@@ -599,8 +599,8 @@ int getSel1_coll(RESULT_RECORD *record)
 		index += create_struct(&data[index],8);
 		index += fill_unsigned(&data[index],classoi.taskID);
 		index += fill_enum(&data[index],classoi.taskState);
-		index += fill_DateTimeBCD(&data[index],&classoi.starttime);
-		index += fill_DateTimeBCD(&data[index],&classoi.endtime);
+		index += fill_date_time_s(&data[index],&classoi.starttime);
+		index += fill_date_time_s(&data[index],&classoi.endtime);
 		index += fill_long_unsigned(&data[index],classoi.totalMSNum);
 		index += fill_long_unsigned(&data[index],classoi.successMSNum);
 		index += fill_long_unsigned(&data[index],classoi.sendMsgNum);
@@ -765,7 +765,7 @@ int GetVariable(RESULT_NORMAL *response)
 
 	data = response->data;
 	memset(&databuf,0,sizeof(databuf));
-	len = readVariData(&response->oad.OI,&databuf,VARI_LEN);
+	len = readVariData(response->oad.OI,0,&databuf,VARI_LEN);
 	if(len>0) {
 		switch(response->oad.OI)
 		{

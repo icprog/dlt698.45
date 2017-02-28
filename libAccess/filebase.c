@@ -216,13 +216,25 @@ INT16S getclassinfo(OI_698 oi,CLASS_INFO *classinfo)
 /*
  * 根据oi参数，查找相应的Variable_Class的结构体数据
  * */
-int getvarioffset(OI_698 oi)
+int getvarioffset(OI_698 oi,int coll_seqnum,int *offset,int *blklen)
 {
 	int i=0;
+
 	for(i=0; i < sizeof(vari_data)/sizeof(Variable_Class);i++)
 	{
 		if(vari_data[i].oi == oi) {
-			return vari_data[i].offset;
+			*blklen = VARI_LEN;
+			*offset = vari_data[i].offset*VARI_LEN;
+			return 1;
+		}
+	}
+	*offset=0;
+	for(i=0; i < sizeof(vari_tj_data)/sizeof(Variable_TJ_Class);i++)
+	{
+		*offset += vari_tj_data[i].datalen;
+		if(vari_tj_data[i].oi == oi) {
+			*blklen = vari_tj_data[i].datalen;
+			return 2;
 		}
 	}
 	return -1;
