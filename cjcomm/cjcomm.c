@@ -63,6 +63,7 @@ void QuitProcess(int sig) {
     IfrDestory();
     SerialDestory();
     ServerDestory();
+    MmqDestory();
 
     //关闭打开的接口
     asyslog(LOG_INFO, "开始关闭终端对主站链接接口(%d)", nets_comstat.phy_connect_fd);
@@ -168,7 +169,6 @@ void initComPara(CommBlock* compara) {
     ret = readCoverClass(0xf101, 0, &oif101, sizeof(CLASS_F101), para_vari_save);
     memcpy(&compara->f101, &oif101, sizeof(CLASS_F101));
 }
-
 
 void NETRead(struct aeEventLoop* eventLoop, int fd, void* clientData, int mask) {
     CommBlock* nst = (CommBlock*)clientData;
@@ -304,6 +304,7 @@ int main(int argc, char* argv[]) {
     enviromentCheck(argc, argv);
     //开始通信模块维护、红外与维护串口线程
     CreateATWorker();
+
     //开启网络IO事件处理框架
     aeEventLoop* ep;
     ep = aeCreateEventLoop(128);

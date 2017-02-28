@@ -32,6 +32,17 @@ void MmqInit(void) {
 	mmqd = -1;
 }
 
+/*
+ * 用于程序退出时调用
+ */
+void MmqDestory(void) {
+	//关闭资源
+    asyslog(LOG_INFO, "关闭消息监听服务(%d)", mmqd);
+    mmq_close(mmqd);
+    mmqd = -1;
+}
+
+
 void MmqRead(struct aeEventLoop* eventLoop, int fd, void* clientData, int mask) {
     INT8U getBuf[MAXSIZ_PROXY_NET];
     mmq_head headBuf;
