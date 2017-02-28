@@ -44,7 +44,7 @@ void ProxyListResponse(PROXY_GETLIST *list,CommBlock *com)
 	datalen = list->datalen ;
 	if (datalen > 512)
 		datalen =512;
-	memcpy(sendbuf,list->data,datalen);
+	memcpy(&sendbuf[index],list->data,datalen);
 	index = index + datalen;
 	sendbuf[index++] = 0;
 	sendbuf[index++] = 0;
@@ -81,33 +81,6 @@ int getProxylist(INT8U *data,PROXY_GETLIST *getlist)
 		}
 	}
 	return iindex;
-}
-INT8S mqs_send(INT8S* mqname,INT16U pid,INT32U cmd,INT8U* buf,INT32U bufsiz)
-{
-	mmq_head head;
-	mqd_t mqd;
-	struct mq_attr attr;
-	mqd = mmq_open((INT8S*)mqname , &attr, O_WRONLY);
-
-	fprintf(stderr,"\nmax =%ld   curr =%ld   flags=%ld",attr.mq_maxmsg,attr.mq_curmsgs,attr.mq_flags);
-
-	if(mqd <0)
-	{
-		fprintf(stderr,"\nmmq_open %s failed!",mqname);
-		return -1;
-	}
-	head.pid = pid;
-	head.cmd = cmd;
-	head.bufsiz = bufsiz;
-	if(mmq_put(mqd,3,head,buf,0) <0)
-	{
-		fprintf(stderr,"\nmmq_put %s failed!",mqname);
-		mmq_close(mqd);
-		return -2;
-	}
-	fprintf(stderr,"\nmq(%s)=%d,mq_curmsgs=%ld,mq_maxmsg=%ld",mqname,mqd,attr.mq_curmsgs,attr.mq_maxmsg);
-	mmq_close(mqd);
-	return 0;
 }
 int Proxy_GetRequestlist(INT8U *data,CSINFO *csinfo,INT8U *sendbuf,INT8U piid)
 {

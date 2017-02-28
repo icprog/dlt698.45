@@ -30,7 +30,7 @@ INT8U Reset_add()
 	memset(&reset_tj,0,sizeof(Reset_tj));
 	TSGet(&newts);
 	fprintf(stderr," Reset_add: %d-%d-%d\n",newts.Year,newts.Month,newts.Day);
-	len = readVariData(0x2204,&reset_tj,sizeof(Reset_tj));
+	len = readVariData(0x2204,0,&reset_tj,sizeof(Reset_tj));
 	if(len > 0) { 	//读取到数据
 		fprintf(stderr,"read day_reset=%d,mon_reset=%d\n",reset_tj.reset.day_tj,reset_tj.reset.month_tj);
 		fprintf(stderr,"Day=%d,newts=%d  Mon=%d,newts=%d\n",reset_tj.ts.Day,newts.Day,reset_tj.ts.Month,newts.Month);
@@ -45,7 +45,7 @@ INT8U Reset_add()
 	reset_tj.reset.month_tj++;
 	fprintf(stderr,"day_reset=%d,mon_reset=%d\n",reset_tj.reset.day_tj,reset_tj.reset.month_tj);
     memcpy(&reset_tj.ts,&newts,sizeof(TS));
-    saveVariData(0x2204,&reset_tj,sizeof(Reset_tj));
+    saveVariData(0x2204,0,&reset_tj,sizeof(Reset_tj));
 	return 1;
 }
 
@@ -99,212 +99,58 @@ INT8U Get_2204(OI_698 oi,INT8U *sourcebuf,INT8U *buf,int *len)
  */
 INT8U Get_Voltagehegelv(INT8U *buf,INT8U *len,TSA tsa,OAD oad){
 	StatisticsPointProp StatisticsPoint[MAXNUM_IMPORTANTUSR];
+	INT8U i=0;
+
 	*len=0;
-	buf[(*len)++]=dtstructure;//structure
-	buf[(*len)++]=2; //数量
-	if(readCoverClass(0x2130,0,&StatisticsPoint,sizeof(StatisticsPoint),calc_voltage_save)==1)
-	{
-       INT8U i=0;
-       for(i=0;i<MAXNUM_IMPORTANTUSR;i++){
-    	   if(memcmp(&StatisticsPoint[i].tsa,&tsa,sizeof(TSA)) == 0){
-
-               if(oad.OI==0x2131 && oad.attflg==2){
-            	   buf[(*len)++]=dtstructure;//structure
-            	   buf[(*len)++]=5; //数量
-            	   buf[(*len)++]=dtdoublelongunsigned;//dtdoublelongunsigned
-            	   buf[(*len)++]=StatisticsPoint[i].DayResu.tjUa.U_Count&0x000000ff;
-            	   buf[(*len)++]=((StatisticsPoint[i].DayResu.tjUa.U_Count>>8)&0x000000ff);
-            	   buf[(*len)++]=((StatisticsPoint[i].DayResu.tjUa.U_Count>>16)&0x000000ff);
-            	   buf[(*len)++]=((StatisticsPoint[i].DayResu.tjUa.U_Count>>24)&0x000000ff);
-            	   buf[(*len)++]=dtlongunsigned; //longunsigned
-            	   buf[(*len)++]=StatisticsPoint[i].DayResu.tjUa.ok_Rate&0x000000ff;
-            	   buf[(*len)++]=((StatisticsPoint[i].DayResu.tjUa.ok_Rate>>8)&0x000000ff);
-            	   buf[(*len)++]=dtlongunsigned; //longunsigned
-            	   buf[(*len)++]=((100-StatisticsPoint[i].DayResu.tjUa.ok_Rate)&0x000000ff);
-            	   buf[(*len)++]=(((100-StatisticsPoint[i].DayResu.tjUa.ok_Rate)>>8)&0x000000ff);
-				   buf[(*len)++]=dtdoublelongunsigned;//dtdoublelongunsigned
-				   buf[(*len)++]=0;
-				   buf[(*len)++]=0;
-				   buf[(*len)++]=StatisticsPoint[i].DayResu.tjUa.s_count&0x00ff;
-				   buf[(*len)++]=(StatisticsPoint[i].DayResu.tjUa.s_count>>8)&0x00ff;
-				   buf[(*len)++]=dtdoublelongunsigned;//dtdoublelongunsigned
-				   buf[(*len)++]=0;
-				   buf[(*len)++]=0;
-				   buf[(*len)++]=StatisticsPoint[i].DayResu.tjUa.x_count&0x00ff;
-				   buf[(*len)++]=(StatisticsPoint[i].DayResu.tjUa.x_count>>8)&0x00ff;
-
-				   buf[(*len)++]=dtstructure;//structure
-				   buf[(*len)++]=5; //数量
-				   buf[(*len)++]=dtdoublelongunsigned;//dtdoublelongunsigned
-				   buf[(*len)++]=StatisticsPoint[i].MonthResu.tjUa.U_Count&0x000000ff;
-				   buf[(*len)++]=((StatisticsPoint[i].MonthResu.tjUa.U_Count>>8)&0x000000ff);
-				   buf[(*len)++]=((StatisticsPoint[i].MonthResu.tjUa.U_Count>>16)&0x000000ff);
-				   buf[(*len)++]=((StatisticsPoint[i].MonthResu.tjUa.U_Count>>24)&0x000000ff);
-				   buf[(*len)++]=dtlongunsigned; //longunsigned
-				   buf[(*len)++]=StatisticsPoint[i].MonthResu.tjUa.ok_Rate&0x000000ff;
-				   buf[(*len)++]=((StatisticsPoint[i].MonthResu.tjUa.ok_Rate>>8)&0x000000ff);
-				   buf[(*len)++]=dtlongunsigned; //longunsigned
-				   buf[(*len)++]=((100-StatisticsPoint[i].MonthResu.tjUa.ok_Rate)&0x000000ff);
-				   buf[(*len)++]=(((100-StatisticsPoint[i].MonthResu.tjUa.ok_Rate)>>8)&0x000000ff);
-				   buf[(*len)++]=dtdoublelongunsigned;//dtdoublelongunsigned
-				   buf[(*len)++]=0;
-				   buf[(*len)++]=0;
-				   buf[(*len)++]=StatisticsPoint[i].MonthResu.tjUa.s_count&0x00ff;
-				   buf[(*len)++]=(StatisticsPoint[i].MonthResu.tjUa.s_count>>8)&0x00ff;
-				   buf[(*len)++]=dtdoublelongunsigned;//dtdoublelongunsigned
-				   buf[(*len)++]=0;
-				   buf[(*len)++]=0;
-				   buf[(*len)++]=StatisticsPoint[i].MonthResu.tjUa.x_count&0x00ff;
-				   buf[(*len)++]=(StatisticsPoint[i].MonthResu.tjUa.x_count>>8)&0x00ff;
-               }else if(oad.OI==0x2132 && oad.attflg==2){
-            	   buf[(*len)++]=dtstructure;//structure
-            	   buf[(*len)++]=5; //数量
-            	   buf[(*len)++]=dtdoublelongunsigned;//dtdoublelongunsigned
-            	   buf[(*len)++]=StatisticsPoint[i].DayResu.tjUb.U_Count&0x000000ff;
-            	   buf[(*len)++]=((StatisticsPoint[i].DayResu.tjUb.U_Count>>8)&0x000000ff);
-            	   buf[(*len)++]=((StatisticsPoint[i].DayResu.tjUb.U_Count>>16)&0x000000ff);
-            	   buf[(*len)++]=((StatisticsPoint[i].DayResu.tjUb.U_Count>>24)&0x000000ff);
-            	   buf[(*len)++]=dtlongunsigned; //longunsigned
-            	   buf[(*len)++]=StatisticsPoint[i].DayResu.tjUb.ok_Rate&0x000000ff;
-            	   buf[(*len)++]=((StatisticsPoint[i].DayResu.tjUb.ok_Rate>>8)&0x000000ff);
-            	   buf[(*len)++]=dtlongunsigned; //longunsigned
-            	   buf[(*len)++]=((100-StatisticsPoint[i].DayResu.tjUb.ok_Rate)&0x000000ff);
-            	   buf[(*len)++]=(((100-StatisticsPoint[i].DayResu.tjUb.ok_Rate)>>8)&0x000000ff);
-				   buf[(*len)++]=dtdoublelongunsigned;//dtdoublelongunsigned
-				   buf[(*len)++]=0;
-				   buf[(*len)++]=0;
-				   buf[(*len)++]=StatisticsPoint[i].DayResu.tjUb.s_count&0x00ff;
-				   buf[(*len)++]=(StatisticsPoint[i].DayResu.tjUb.s_count>>8)&0x00ff;
-				   buf[(*len)++]=dtdoublelongunsigned;//dtdoublelongunsigned
-				   buf[(*len)++]=0;
-				   buf[(*len)++]=0;
-				   buf[(*len)++]=StatisticsPoint[i].DayResu.tjUb.x_count&0x00ff;
-				   buf[(*len)++]=(StatisticsPoint[i].DayResu.tjUb.x_count>>8)&0x00ff;
-
-				   buf[(*len)++]=dtstructure;//structure
-				   buf[(*len)++]=5; //数量
-				   buf[(*len)++]=dtdoublelongunsigned;//dtdoublelongunsigned
-				   buf[(*len)++]=StatisticsPoint[i].MonthResu.tjUb.U_Count&0x000000ff;
-				   buf[(*len)++]=((StatisticsPoint[i].MonthResu.tjUb.U_Count>>8)&0x000000ff);
-				   buf[(*len)++]=((StatisticsPoint[i].MonthResu.tjUb.U_Count>>16)&0x000000ff);
-				   buf[(*len)++]=((StatisticsPoint[i].MonthResu.tjUb.U_Count>>24)&0x000000ff);
-				   buf[(*len)++]=dtlongunsigned; //longunsigned
-				   buf[(*len)++]=StatisticsPoint[i].MonthResu.tjUb.ok_Rate&0x000000ff;
-				   buf[(*len)++]=((StatisticsPoint[i].MonthResu.tjUb.ok_Rate>>8)&0x000000ff);
-				   buf[(*len)++]=dtlongunsigned; //longunsigned
-				   buf[(*len)++]=((100-StatisticsPoint[i].MonthResu.tjUb.ok_Rate)&0x000000ff);
-				   buf[(*len)++]=(((100-StatisticsPoint[i].MonthResu.tjUb.ok_Rate)>>8)&0x000000ff);
-				   buf[(*len)++]=dtdoublelongunsigned;//dtdoublelongunsigned
-				   buf[(*len)++]=0;
-				   buf[(*len)++]=0;
-				   buf[(*len)++]=StatisticsPoint[i].MonthResu.tjUb.s_count&0x00ff;
-				   buf[(*len)++]=(StatisticsPoint[i].MonthResu.tjUb.s_count>>8)&0x00ff;
-				   buf[(*len)++]=dtdoublelongunsigned;//dtdoublelongunsigned
-				   buf[(*len)++]=0;
-				   buf[(*len)++]=0;
-				   buf[(*len)++]=StatisticsPoint[i].MonthResu.tjUb.x_count&0x00ff;
-				   buf[(*len)++]=(StatisticsPoint[i].MonthResu.tjUb.x_count>>8)&0x00ff;
-               }else if(oad.OI==0x2133 && oad.attflg==2){
-            	   buf[(*len)++]=dtstructure;//structure
-            	   buf[(*len)++]=5; //数量
-            	   buf[(*len)++]=dtdoublelongunsigned;//dtdoublelongunsigned
-            	   buf[(*len)++]=StatisticsPoint[i].DayResu.tjUc.U_Count&0x000000ff;
-            	   buf[(*len)++]=((StatisticsPoint[i].DayResu.tjUc.U_Count>>8)&0x000000ff);
-            	   buf[(*len)++]=((StatisticsPoint[i].DayResu.tjUc.U_Count>>16)&0x000000ff);
-            	   buf[(*len)++]=((StatisticsPoint[i].DayResu.tjUc.U_Count>>24)&0x000000ff);
-            	   buf[(*len)++]=dtlongunsigned; //longunsigned
-            	   buf[(*len)++]=StatisticsPoint[i].DayResu.tjUc.ok_Rate&0x000000ff;
-            	   buf[(*len)++]=((StatisticsPoint[i].DayResu.tjUc.ok_Rate>>8)&0x000000ff);
-            	   buf[(*len)++]=dtlongunsigned; //longunsigned
-            	   buf[(*len)++]=((100-StatisticsPoint[i].DayResu.tjUc.ok_Rate)&0x000000ff);
-            	   buf[(*len)++]=(((100-StatisticsPoint[i].DayResu.tjUc.ok_Rate)>>8)&0x000000ff);
-				   buf[(*len)++]=dtdoublelongunsigned;//dtdoublelongunsigned
-				   buf[(*len)++]=0;
-				   buf[(*len)++]=0;
-				   buf[(*len)++]=StatisticsPoint[i].DayResu.tjUc.s_count&0x00ff;
-				   buf[(*len)++]=(StatisticsPoint[i].DayResu.tjUc.s_count>>8)&0x00ff;
-				   buf[(*len)++]=dtdoublelongunsigned;//dtdoublelongunsigned
-				   buf[(*len)++]=0;
-				   buf[(*len)++]=0;
-				   buf[(*len)++]=StatisticsPoint[i].DayResu.tjUc.x_count&0x00ff;
-				   buf[(*len)++]=(StatisticsPoint[i].DayResu.tjUc.x_count>>8)&0x00ff;
-
-				   buf[(*len)++]=dtstructure;//structure
-				   buf[(*len)++]=5; //数量
-				   buf[(*len)++]=dtdoublelongunsigned;//dtdoublelongunsigned
-				   buf[(*len)++]=StatisticsPoint[i].MonthResu.tjUc.U_Count&0x000000ff;
-				   buf[(*len)++]=((StatisticsPoint[i].MonthResu.tjUc.U_Count>>8)&0x000000ff);
-				   buf[(*len)++]=((StatisticsPoint[i].MonthResu.tjUc.U_Count>>16)&0x000000ff);
-				   buf[(*len)++]=((StatisticsPoint[i].MonthResu.tjUc.U_Count>>24)&0x000000ff);
-				   buf[(*len)++]=dtlongunsigned; //longunsigned
-				   buf[(*len)++]=StatisticsPoint[i].MonthResu.tjUc.ok_Rate&0x000000ff;
-				   buf[(*len)++]=((StatisticsPoint[i].MonthResu.tjUc.ok_Rate>>8)&0x000000ff);
-				   buf[(*len)++]=dtlongunsigned; //longunsigned
-				   buf[(*len)++]=((100-StatisticsPoint[i].MonthResu.tjUc.ok_Rate)&0x000000ff);
-				   buf[(*len)++]=(((100-StatisticsPoint[i].MonthResu.tjUc.ok_Rate)>>8)&0x000000ff);
-				   buf[(*len)++]=dtdoublelongunsigned;//dtdoublelongunsigned
-				   buf[(*len)++]=0;
-				   buf[(*len)++]=0;
-				   buf[(*len)++]=StatisticsPoint[i].MonthResu.tjUc.s_count&0x00ff;
-				   buf[(*len)++]=(StatisticsPoint[i].MonthResu.tjUc.s_count>>8)&0x00ff;
-				   buf[(*len)++]=dtdoublelongunsigned;//dtdoublelongunsigned
-				   buf[(*len)++]=0;
-				   buf[(*len)++]=0;
-				   buf[(*len)++]=StatisticsPoint[i].MonthResu.tjUc.x_count&0x00ff;
-				   buf[(*len)++]=(StatisticsPoint[i].MonthResu.tjUc.x_count>>8)&0x00ff;
-               }
-               break;
-    	   }
-       }
-	}
-	else{
-		buf[(*len)++]=dtstructure;//structure
-	   buf[(*len)++]=5; //数量
-	   buf[(*len)++]=dtdoublelongunsigned;//dtdoublelongunsigned
-	   buf[(*len)++]=0;
-	   buf[(*len)++]=0;
-	   buf[(*len)++]=0;
-	   buf[(*len)++]=0;
-	   buf[(*len)++]=dtlongunsigned; //longunsigned
-	   buf[(*len)++]=0;
-	   buf[(*len)++]=0;
-	   buf[(*len)++]=dtlongunsigned; //longunsigned
-	   buf[(*len)++]=0;
-	   buf[(*len)++]=0;
-	   buf[(*len)++]=dtdoublelongunsigned;//dtdoublelongunsigned
-	   buf[(*len)++]=0;
-	   buf[(*len)++]=0;
-	   buf[(*len)++]=0;
-	   buf[(*len)++]=0;
-	   buf[(*len)++]=dtdoublelongunsigned;//dtdoublelongunsigned
-	   buf[(*len)++]=0;
-	   buf[(*len)++]=0;
-	   buf[(*len)++]=0;
-	   buf[(*len)++]=0;
-
-	   buf[(*len)++]=dtstructure;//structure
-	   buf[(*len)++]=5; //数量
-	   buf[(*len)++]=dtdoublelongunsigned;//dtdoublelongunsigned
-	   buf[(*len)++]=0;
-	   buf[(*len)++]=0;
-	   buf[(*len)++]=0;
-	   buf[(*len)++]=0;
-	   buf[(*len)++]=dtlongunsigned; //longunsigned
-	   buf[(*len)++]=0;
-	   buf[(*len)++]=0;
-	   buf[(*len)++]=dtlongunsigned; //longunsigned
-	   buf[(*len)++]=0;
-	   buf[(*len)++]=0;
-	   buf[(*len)++]=dtdoublelongunsigned;//dtdoublelongunsigned
-	   buf[(*len)++]=0;
-	   buf[(*len)++]=0;
-	   buf[(*len)++]=0;
-	   buf[(*len)++]=0;
-	   buf[(*len)++]=dtdoublelongunsigned;//dtdoublelongunsigned
-	   buf[(*len)++]=0;
-	   buf[(*len)++]=0;
-	   buf[(*len)++]=0;
-	   buf[(*len)++]=0;
+	for(i=0;i<MAXNUM_IMPORTANTUSR;i++){
+	   if(readVariData(oad.OI,i,&StatisticsPoint[i],sizeof(StatisticsPoint))) {
+		   if(memcmp(&StatisticsPoint[i].tsa,&tsa,sizeof(TSA)) == 0){
+			   if(oad.OI==0x2131 && oad.attflg==2){
+					*len += create_struct(&buf[*len],2);
+					*len += create_struct(&buf[*len],5);
+					*len += fill_double_long_unsigned(&buf[*len],StatisticsPoint[i].DayResu.tjUa.U_Count);
+					*len += fill_long_unsigned(&buf[*len],StatisticsPoint[i].DayResu.tjUa.ok_Rate);
+					*len += fill_long_unsigned(&buf[*len],100-StatisticsPoint[i].DayResu.tjUa.ok_Rate);	//电压超限率
+					*len += fill_long_unsigned(&buf[*len],StatisticsPoint[i].DayResu.tjUa.s_count);
+					*len += fill_double_long_unsigned(&buf[*len],StatisticsPoint[i].DayResu.tjUa.x_count);
+					*len += create_struct(&buf[*len],5);
+					*len += fill_double_long_unsigned(&buf[*len],StatisticsPoint[i].MonthResu.tjUa.U_Count);
+					*len += fill_long_unsigned(&buf[*len],StatisticsPoint[i].MonthResu.tjUa.ok_Rate);
+					*len += fill_long_unsigned(&buf[*len],100-StatisticsPoint[i].MonthResu.tjUa.ok_Rate);	//电压超限率
+					*len += fill_long_unsigned(&buf[*len],StatisticsPoint[i].MonthResu.tjUa.s_count);
+					*len += fill_double_long_unsigned(&buf[*len],StatisticsPoint[i].MonthResu.tjUa.x_count);
+			   }else if(oad.OI==0x2132 && oad.attflg==2){
+				   	*len += create_struct(&buf[*len],2);
+					*len += create_struct(&buf[*len],5);
+					*len += fill_double_long_unsigned(&buf[*len],StatisticsPoint[i].DayResu.tjUb.U_Count);
+					*len += fill_long_unsigned(&buf[*len],StatisticsPoint[i].DayResu.tjUb.ok_Rate);
+					*len += fill_long_unsigned(&buf[*len],100-StatisticsPoint[i].DayResu.tjUb.ok_Rate);	//电压超限率
+					*len += fill_long_unsigned(&buf[*len],StatisticsPoint[i].DayResu.tjUb.s_count);
+					*len += fill_double_long_unsigned(&buf[*len],StatisticsPoint[i].DayResu.tjUb.x_count);
+					*len += create_struct(&buf[*len],5);
+					*len += fill_double_long_unsigned(&buf[*len],StatisticsPoint[i].MonthResu.tjUb.U_Count);
+					*len += fill_long_unsigned(&buf[*len],StatisticsPoint[i].MonthResu.tjUb.ok_Rate);
+					*len += fill_long_unsigned(&buf[*len],100-StatisticsPoint[i].MonthResu.tjUb.ok_Rate);	//电压超限率
+					*len += fill_long_unsigned(&buf[*len],StatisticsPoint[i].MonthResu.tjUb.s_count);
+					*len += fill_double_long_unsigned(&buf[*len],StatisticsPoint[i].MonthResu.tjUb.x_count);
+			   }else if(oad.OI==0x2133 && oad.attflg==2){
+				   	*len += create_struct(&buf[*len],2);
+					*len += create_struct(&buf[*len],5);
+					*len += fill_double_long_unsigned(&buf[*len],StatisticsPoint[i].DayResu.tjUc.U_Count);
+					*len += fill_long_unsigned(&buf[*len],StatisticsPoint[i].DayResu.tjUc.ok_Rate);
+					*len += fill_long_unsigned(&buf[*len],100-StatisticsPoint[i].DayResu.tjUc.ok_Rate);	//电压超限率
+					*len += fill_long_unsigned(&buf[*len],StatisticsPoint[i].DayResu.tjUc.s_count);
+					*len += fill_double_long_unsigned(&buf[*len],StatisticsPoint[i].DayResu.tjUc.x_count);
+					*len += create_struct(&buf[*len],5);
+					*len += fill_double_long_unsigned(&buf[*len],StatisticsPoint[i].MonthResu.tjUc.U_Count);
+					*len += fill_long_unsigned(&buf[*len],StatisticsPoint[i].MonthResu.tjUc.ok_Rate);
+					*len += fill_long_unsigned(&buf[*len],100-StatisticsPoint[i].MonthResu.tjUc.ok_Rate);	//电压超限率
+					*len += fill_long_unsigned(&buf[*len],StatisticsPoint[i].MonthResu.tjUc.s_count);
+					*len += fill_double_long_unsigned(&buf[*len],StatisticsPoint[i].MonthResu.tjUc.x_count);
+			   }
+		   }
+	   }
+	   break;
 	}
 	return 1;
 }
@@ -315,64 +161,22 @@ INT8U Get_Voltagehegelv(INT8U *buf,INT8U *len,TSA tsa,OAD oad){
 INT8U Get_Maxp(INT8U *buf,INT8U *len,TSA tsa,OAD oad){
 	Max_ptongji max_ptongji[MAXNUM_IMPORTANTUSR_CALC];
 	*len=0;
-	buf[(*len)++]=dtstructure;//structure
-	buf[(*len)++]=2; //数量
-	if(readCoverClass(0x2140,0,&max_ptongji,sizeof(max_ptongji),calc_voltage_save)==1)
-	{
-       INT8U i=0;
-       for(i=0;i<MAXNUM_IMPORTANTUSR;i++){
-    	   if(memcmp(&max_ptongji[i].tsa,&tsa,sizeof(TSA)) == 0){
-               if(oad.OI==0x2140 && oad.attflg==2){
-            	   buf[(*len)++]=dtdoublelongunsigned;//dtdoublelongunsigned
-            	   buf[(*len)++]=max_ptongji[i].mp.d_max&0x000000ff;
-            	   buf[(*len)++]=((max_ptongji[i].mp.d_max>>8)&0x000000ff);
-            	   buf[(*len)++]=((max_ptongji[i].mp.d_max>>16)&0x000000ff);
-            	   buf[(*len)++]=((max_ptongji[i].mp.d_max>>24)&0x000000ff);
-
-				   buf[(*len)++]=dtdatetimes;//dtdoublelongunsigned
-				   buf[(*len)++]=max_ptongji[i].mp.d_ts.Year&0x00ff;
-				   buf[(*len)++]=((max_ptongji[i].mp.d_ts.Year>>8)&0x00ff);
-				   buf[(*len)++]=max_ptongji[i].mp.d_ts.Month;
-				   buf[(*len)++]=max_ptongji[i].mp.d_ts.Day;
-				   buf[(*len)++]=max_ptongji[i].mp.d_ts.Hour;
-				   buf[(*len)++]=max_ptongji[i].mp.d_ts.Minute;
-				   buf[(*len)++]=max_ptongji[i].mp.d_ts.Sec;
-
-               }else if(oad.OI==0x2141 && oad.attflg==2){
-            	   buf[(*len)++]=dtdoublelongunsigned;//dtdoublelongunsigned
-				   buf[(*len)++]=max_ptongji[i].mp.m_max&0x000000ff;
-				   buf[(*len)++]=((max_ptongji[i].mp.m_max>>8)&0x000000ff);
-				   buf[(*len)++]=((max_ptongji[i].mp.m_max>>16)&0x000000ff);
-				   buf[(*len)++]=((max_ptongji[i].mp.m_max>>24)&0x000000ff);
-
-				   buf[(*len)++]=dtdatetimes;//dtdoublelongunsigned
-				   buf[(*len)++]=max_ptongji[i].mp.m_ts.Year&0x00ff;
-				   buf[(*len)++]=((max_ptongji[i].mp.m_ts.Year>>8)&0x00ff);
-				   buf[(*len)++]=max_ptongji[i].mp.m_ts.Month;
-				   buf[(*len)++]=max_ptongji[i].mp.m_ts.Day;
-				   buf[(*len)++]=max_ptongji[i].mp.m_ts.Hour;
-				   buf[(*len)++]=max_ptongji[i].mp.m_ts.Minute;
-				   buf[(*len)++]=max_ptongji[i].mp.m_ts.Sec;
-               }
-               break;
-    	   }
-       }
-	}
-	else{
-		buf[(*len)++]=dtdoublelongunsigned;//dtdoublelongunsigned
-	   buf[(*len)++]=0;
-	   buf[(*len)++]=0;
-	   buf[(*len)++]=0;
-	   buf[(*len)++]=0;
-
-	   buf[(*len)++]=dtdatetimes;//dtdoublelongunsigned
-	   buf[(*len)++]=0;
-	   buf[(*len)++]=0;
-	   buf[(*len)++]=0;
-	   buf[(*len)++]=0;
-	   buf[(*len)++]=0;
-	   buf[(*len)++]=0;
-	   buf[(*len)++]=0;
+    INT8U i=0;
+	for(i=0;i<MAXNUM_IMPORTANTUSR;i++){
+	   if(readVariData(0x2140,i,&max_ptongji[i],sizeof(Max_ptongji))) {
+		   if(memcmp(&max_ptongji[i].tsa,&tsa,sizeof(TSA)) == 0){
+			   if(oad.OI==0x2140 && oad.attflg==2){
+				   *len += create_struct(&buf[*len],2);
+				   *len += fill_double_long_unsigned(&buf[*len],max_ptongji[i].mp.d_max);
+				   fill_date_time_s(&buf[*len],&max_ptongji[i].mp.d_ts);
+			   }else if(oad.OI==0x2141 && oad.attflg==2){
+				   *len += create_struct(&buf[*len],2);
+				   *len += fill_double_long_unsigned(&buf[*len],max_ptongji[i].mp.m_max);
+				   fill_date_time_s(&buf[*len],&max_ptongji[i].mp.m_ts);
+			   }
+			   break;
+		   }
+	   }
 	}
 	return 1;
 }

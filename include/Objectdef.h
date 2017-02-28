@@ -22,6 +22,11 @@ typedef struct {
 	INT16U max_num;					//最大元素个数
 } CLASS11;			//集合接口类
 
+
+typedef struct {
+
+} CLASS14;			//区间统计接口类
+
 typedef struct {
 	INT8U logic_name[OCTET_STRING_LEN];			//逻辑名
 	INT16U device_num;					 //设备对象数量
@@ -143,6 +148,7 @@ typedef struct{
 	Day_Mon_TJ	reset;
 	TS ts;
 }Reset_tj;//2204 //复位次数统计
+
 
 /////////////////////////////////////////////////////////////////////////////
 /********************************************************
@@ -298,7 +304,7 @@ typedef struct {
 typedef struct {
 //	INT8U name[OCTET_STRING_LEN];		//参数变量接口类逻辑名
 	INT8U sernum;						//方案序号
-	ROAD road[10];						//采集的事件数据
+	ARRAY_ROAD roads;						//采集的事件数据
 	MY_MS  ms;							//采集类型
 	INT8U ifreport;						//上报标识
 	INT16U deepsize;					//存储深度

@@ -52,15 +52,10 @@ int StateProcess(CommBlock* nst, int delay_num)
 			{
 				if (nst->RecBuf[nst->RTail]== 0x68)
 				{
-//					*step = 1;
 					nst->deal_step = 1;
-					printf("step = %d\n", nst->deal_step);
-					printf("step = %d\n", nst->deal_step);
-					//nst->deal_step = 1;
 					break;
 				}else {
 					nst->RTail = (nst->RTail + 1)% FRAMELEN;
-					fprintf(stderr,"rev_tail=%d\n",nst->RTail);
 				}
 			}
 			break;

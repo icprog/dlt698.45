@@ -54,7 +54,7 @@ void write_apn(char *apn)
 	fp = NULL;
 }
 
-void write_userpwd(unsigned char* user, unsigned char* pwd)
+void write_userpwd(unsigned char* user, unsigned char* pwd, unsigned char* apn)
 {
     FILE* fp = NULL;
     fp       = fopen("/etc/ppp/chap-secrets", "w");
@@ -79,6 +79,29 @@ void write_userpwd(unsigned char* user, unsigned char* pwd)
     fprintf(fp, "ipcp-accept-local\n");
     fprintf(fp, "connect 'chat -s -v -f /etc/ppp/cdma2000-connect-chat'\n");
     fprintf(fp, "disconnect \"chat -s -v -f /etc/ppp/gprs-disconnect-chat\"\n");
+    fclose(fp);
+
+    fp = fopen("/etc/ppp/cdma2000-connect-chat", "w");
+    fprintf(fp,"TIMEOUT        5\n");
+    fprintf(fp,"ABORT        \"DELAYED\"\n");
+    fprintf(fp,"ABORT        \"BUSY\"\n");
+    fprintf(fp,"ABORT        \"ERROR\"\n");
+    fprintf(fp,"ABORT        \"NO DIALTONE\"\n");
+    fprintf(fp,"ABORT        \"NO CARRIER\"\n");
+    fprintf(fp,"'' AT\n");
+    fprintf(fp,"TIMEOUT        5\n");
+    fprintf(fp,"'OK-+++\c-OK' ATZ\n");
+    fprintf(fp,"TIMEOUT        20\n");
+    fprintf(fp,"OK        AT+CREG?\n");
+    fprintf(fp,"TIMEOUT        10\n");
+    fprintf(fp,"OK        AT$MYNETCON=0,\"USERPWD\",\"%s,%s\"\n", user, pwd);
+    fprintf(fp,"TIMEOUT        10\n");
+    fprintf(fp,"OK        AT$MYNETCON=0,\"APN\",\"%s\"\n", apn);
+    fprintf(fp,"TIMEOUT        10\n");
+    fprintf(fp,"OK        AT$MYNETCON=0,\"AUTH\",1\n");
+    fprintf(fp,"TIMEOUT        10\n");
+    fprintf(fp,"OK ATDT#777\n");
+    fprintf(fp,"CONNECT ''\n");
     fclose(fp);
 }
 
@@ -147,8 +170,8 @@ void SetUsrPwd(int argc, char *argv[])
 	CLASS25 class4500;
 	memset(&class4500, 0x00, sizeof(class4500));
 
-	if(argc == 4){
-		write_userpwd(argv[2], argv[3]);
+	if(argc == 5){
+		write_userpwd(argv[2], argv[3], argv[4]);
 		readCoverClass(0x4500,0,&class4500,sizeof(CLASS25),para_vari_save);
 		class4500.commconfig.userName[0] = strlen(argv[2]);
 		memcpy(&class4500.commconfig.userName[1], argv[2], strlen(argv[2]));
@@ -301,4 +324,9 @@ void inoutdev_process(int argc, char *argv[])
 			}
 		}
 	}
+}
+void cjfangAn()
+{
+	CLASS_6017 obj6017;
+
 }

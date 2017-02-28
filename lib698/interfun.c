@@ -107,7 +107,7 @@ int fill_time(INT8U *data,INT8U *value)
 	return 4;
 }
 
-int fill_DateTimeBCD(INT8U *data,DateTimeBCD *time)
+int fill_date_time_s(INT8U *data,DateTimeBCD *time)
 {
 	DateTimeBCD  init_datatimes={};
 

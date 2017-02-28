@@ -584,15 +584,11 @@ void ReadPubData()
 		memset(&point[i].Result_m.tjUc,0,sizeof(point[i].Result_m.tjUc));
 
 	}
-	if(readCoverClass(0x2130,0,StatisticsPoint,sizeof(StatisticsPoint),calc_voltage_save)<=0)
-	{
-		return;
-	}
-
 	for(i=0; i< MAXNUM_IMPORTANTUSR_CALC ;i++)
 	{
 		if(point[i].valid != 1)
 			continue;
+		readVariData(0x2130,i,&StatisticsPoint[0],sizeof(StatisticsPointProp));
 	//	if (point[i].Type!= JIAOCAI_TYPE)
 	//		continue;
 #ifdef CCTT_II
@@ -899,35 +895,35 @@ INT8U Getp_max(){
 		memcpy(&max_ptongji[i].tsa,&point[i].tsa,sizeof(TSA));
 		if(max_ptongji[i].mp.d_max<point[i].Realdata.CP.value){
 			max_ptongji[i].mp.d_max=point[i].Realdata.CP.value;
-			TSGet(&max_ptongji[i].mp.d_ts);
+			DataTimeGet(&max_ptongji[i].mp.d_ts);
 		}
 		if(max_ptongji[i].mp.m_max<point[i].Realdata.CP.value){
 			max_ptongji[i].mp.m_max=point[i].Realdata.CP.value;
-			TSGet(&max_ptongji[i].mp.m_ts);
+			DataTimeGet(&max_ptongji[i].mp.m_ts);
 		}
 		if(max_ptongji[i].mpa.d_max<point[i].Realdata.CPa.value){
 			max_ptongji[i].mpa.d_max=point[i].Realdata.CPa.value;
-			TSGet(&max_ptongji[i].mpa.d_ts);
+			DataTimeGet(&max_ptongji[i].mpa.d_ts);
 		}
 		if(max_ptongji[i].mpa.m_max<point[i].Realdata.CPa.value){
 			max_ptongji[i].mpa.m_max=point[i].Realdata.CPa.value;
-			TSGet(&max_ptongji[i].mpa.m_ts);
+			DataTimeGet(&max_ptongji[i].mpa.m_ts);
 		}
 		if(max_ptongji[i].mpb.d_max<point[i].Realdata.Pb.value){
 			max_ptongji[i].mpb.d_max=point[i].Realdata.Pb.value;
-			TSGet(&max_ptongji[i].mpb.d_ts);
+			DataTimeGet(&max_ptongji[i].mpb.d_ts);
 		}
 		if(max_ptongji[i].mpb.m_max<point[i].Realdata.Pb.value){
 			max_ptongji[i].mpb.m_max=point[i].Realdata.Pb.value;
-			TSGet(&max_ptongji[i].mpb.m_ts);
+			DataTimeGet(&max_ptongji[i].mpb.m_ts);
 		}
 		if(max_ptongji[i].mpc.d_max<point[i].Realdata.Pc.value){
 			max_ptongji[i].mpc.d_max=point[i].Realdata.Pc.value;
-			TSGet(&max_ptongji[i].mpc.d_ts);
+			DataTimeGet(&max_ptongji[i].mpc.d_ts);
 		}
 		if(max_ptongji[i].mpc.m_max<point[i].Realdata.Pc.value){
 			max_ptongji[i].mpc.m_max=point[i].Realdata.Pc.value;
-			TSGet(&max_ptongji[i].mpc.m_ts);
+			DataTimeGet(&max_ptongji[i].mpc.m_ts);
 		}
 	}
 		return 1;
@@ -977,18 +973,17 @@ void calc_thread()
 		//所有数据每分钟一存
 		if(oldts.Minute != newts.Minute){
 			oldts.Minute = newts.Minute;
-			//存储电压合格率
-			saveCoverClass(0x2130,0,StatisticsPoint,sizeof(StatisticsPoint),calc_voltage_save);
+			//存储电压合格率	TODO:只存储交采
+			saveVariData(0x2130,0,&StatisticsPoint[0],sizeof(StatisticsPointProp));
 			//日月供电加1分钟
 			gongdian_tj.gongdian.day_tj++;
 			gongdian_tj.gongdian.month_tj++;
 			memcpy(&gongdian_tj.ts,&newts,sizeof(TS));
 			//存储供电时间
-			//saveCoverClass(0x2203,0,&gongdian_tj,sizeof(Gongdian_tj),calc_voltage_save);
 			fprintf(stderr,"day_gongdian=%d,month_gongdian=%d\n",gongdian_tj.gongdian.day_tj,gongdian_tj.gongdian.month_tj);
-			saveVariData(0x2203,&gongdian_tj,sizeof(Gongdian_tj));
-			//存储最大功率及发生时间
-			saveCoverClass(0x2140,0,max_ptongji,sizeof(max_ptongji),calc_voltage_save);
+			saveVariData(0x2203,0,&gongdian_tj,sizeof(Gongdian_tj));
+			//存储最大功率及发生时间	TODO:只存储交采
+			saveVariData(0x2140,0,&max_ptongji[0],sizeof(Max_ptongji));
 		}
 //		//判断停上电
 		Event_3106(JProgramInfo,MeterPowerInfo,&poweroffon_state);
@@ -1004,7 +999,7 @@ INT8U Init_Para(){
 	memset(max_ptongji,0,sizeof(max_ptongji));
 	ReadPubData();
 	memset(&gongdian_tj,0,sizeof(Gongdian_tj));
-	readVariData(0x2203,&gongdian_tj,sizeof(Gongdian_tj));
+	readVariData(0x2203,0,&gongdian_tj,sizeof(Gongdian_tj));
 	fprintf(stderr,"init :day_gongdian=%d,month_gongdian=%d\n",gongdian_tj.gongdian.day_tj,gongdian_tj.gongdian.month_tj);
 	//2140 max_ptongji,sizeof(max_ptongji)*MAXNUM_IMPORTANTUSR_CALC
 	TS newts;
