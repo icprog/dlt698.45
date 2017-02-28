@@ -967,7 +967,7 @@ INT8S dealRealTimeRequst(INT8U port485)
 		}
 		else
 		{
-			//break;
+			break;
 		}
 		usleep(1000*1000);
 	}

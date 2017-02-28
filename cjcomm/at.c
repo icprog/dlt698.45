@@ -529,8 +529,10 @@ void* ATWorker(void* args) {
         system("pkill gsmMuxd");
         sleep(3);
 
+        asyslog(LOG_INFO, "模块去电...");
         gpofun("/dev/gpoGPRS_POWER", 0);
-        sleep(4);
+        sleep(5);
+        asyslog(LOG_INFO, "模块上电...");
         gpofun("/dev/gpoGPRS_POWER", 1);
         gpofun("/dev/gpoGPRS_RST", 1);
         gpofun("/dev/gpoGPRS_SWITCH", 1);
@@ -644,7 +646,8 @@ void* ATWorker(void* args) {
             }
         }
 
-        for (int timeout = 0; timeout < 50; timeout++) {
+        int reg_ok = 0;
+        for (int timeout = 0; timeout < 80; timeout++) {
             char Mrecvbuf[128];
 
             SendATCommand("\rAT+CREG?\r", 10, sMux0);
@@ -656,9 +659,14 @@ void* ATWorker(void* args) {
             if (sscanf(Mrecvbuf, "%*[^:]: %d,%d", &k, &l) == 2) {
                 asyslog(LOG_INFO, "GprsCREG = %d,%d\n", k, l);
                 if (l == 1 || l == 5) {
+                	reg_ok = 1;
                     break;
                 }
             }
+        }
+        if (reg_ok == 0){
+        	asyslog(LOG_INFO, "注册网络失败");
+        	goto err;
         }
 
         char* cimiType[] = {
