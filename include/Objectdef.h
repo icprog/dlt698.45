@@ -333,11 +333,11 @@ typedef struct{
 }REPORT_DATA;
 
 typedef struct {
-	INT8U reportnum;	                //方案编号
-	ARRAY_OAD chann_oad;				//上报通道
-	TI		timeout;					//上报相应超时时间
-	INT8U   maxreportnum;				//最大上报次数
-	REPORT_DATA		reportdata;			//上报数据
+	INT8U 		reportnum;	            //方案编号
+	ARRAY_OAD 	chann_oad;				//上报通道
+	TI			timeout;				//上报相应超时时间
+	INT8U   	maxreportnum;			//最大上报次数
+	REPORT_DATA	reportdata;				//上报数据
 } CLASS_601D;              //上报方案
 
 typedef struct
