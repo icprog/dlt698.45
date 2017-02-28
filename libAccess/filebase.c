@@ -721,7 +721,7 @@ INT8U save_block_file(char *fname,void *blockdata,int size,int headsize,int inde
 sem_t * InitSem()
 {
 //	return NULL;
-	int			val=0;
+//	int			val=0;
 	sem_t * 	sem_parasave=NULL;	//参数文件存储信号量
 	//打开信号量
 	sem_parasave = open_named_sem(SEMNAME_PARA_SAVE);

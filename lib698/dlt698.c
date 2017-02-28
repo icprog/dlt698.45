@@ -52,15 +52,10 @@ int StateProcess(CommBlock* nst, int delay_num)
 			{
 				if (nst->RecBuf[nst->RTail]== 0x68)
 				{
-//					*step = 1;
 					nst->deal_step = 1;
-					printf("step = %d\n", nst->deal_step);
-					printf("step = %d\n", nst->deal_step);
-					//nst->deal_step = 1;
 					break;
 				}else {
 					nst->RTail = (nst->RTail + 1)% FRAMELEN;
-					fprintf(stderr,"rev_tail=%d\n",nst->RTail);
 				}
 			}
 			break;
@@ -768,6 +763,8 @@ INT16S parseSecurityResponse(INT8U* RN,INT8U* apdu)//apdu负责传入和传出�
 	else
 		return -1;//无效应用数据单元标示
 }
+
+
 //OAD转换为报文
 INT8U OADtoBuff(OAD fromOAD,INT8U* buff)
 {
@@ -777,6 +774,7 @@ INT8U OADtoBuff(OAD fromOAD,INT8U* buff)
 	buff[1] = tmp;
 	return sizeof(OAD);
 }
+
 INT16S fillGetRequestAPDU(INT8U* sendBuf,CLASS_6015 obj6015,INT8U requestType)
 {
 	INT16S length = 0;
