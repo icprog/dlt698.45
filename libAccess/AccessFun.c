@@ -625,6 +625,62 @@ int  readVariData(OI_698 oi,void *blockdata,int len)
 //	}
 //	return freq;
 //}
+//lyl
+INT8U datafile_write(char *FileName, void *source, int size, int offset)
+{
+	FILE *fp=NULL;
+	int	  fd=0;
+	INT8U res=0;
+	int num=0;
+	INT8U	*blockdata=NULL;
+//	int i=0;
+
+	blockdata = malloc(size);
+	if(blockdata!=NULL) {
+		memcpy(blockdata,source,size);
+	} else {
+		return 0;//error
+	}
+
+	if(access(FileName,F_OK)!=0)
+	{
+		fp = fopen((char*) FileName, "w+");
+		fprintf(stderr,"创建文件--%s\n",FileName);
+	}else {
+		fp = fopen((char*) FileName, "r+");
+		fprintf(stderr,"替换文件\n");
+	}
+	if (fp != NULL) {
+		fseek(fp, offset, SEEK_SET);
+		num = fwrite(blockdata, size,1,fp);
+		fd = fileno(fp);
+		fsync(fd);
+		fclose(fp);
+		if(num == 1) {
+			res = 1;
+		}else res = 0;
+	} else {
+		res = 0;
+	}
+	free(blockdata);//add by nl1031
+	return res;
+}
+INT8U datafile_read(char *FileName, void *source, int size, int offset)
+{
+	FILE 	*fp=NULL;
+	int 	num=0,ret=0;
+	fp = fopen(FileName, "r");
+	if (fp != NULL) {
+		fseek(fp, offset, SEEK_SET);
+		num=fread(source,1 ,size,fp);
+		if(num==(size)) 			//读取了size字节数据
+				ret = 1;
+			else ret = 0;
+		fclose(fp);
+	} else
+		ret = 0;
+	return ret;
+}
 void getTaskFileName(INT8U taskid,TS ts,char *fname)
 {
 	char dirname[FILENAMELEN]={};
@@ -801,6 +857,32 @@ INT8U ReadTaskInfo(INT8U taskid,TASKSET_INFO *tasknor_info)//读取普通采集�
 	}
 	return 0;
 }
+typedef struct {
+	INT16U onenum;//单元个数
+	INT16U onelen;//单元长度
+	INT16U frmindex;//发送索引
+}FRM_HEAD;
+void savefrm(INT16U frmlen,INT16U frmnum,INT8U lastflg,INT8U *databuf)
+{
+	FRM_HEAD frm_head;
+	char fname[60];
+	memset(fname,0x00,60);
+	memset(&frm_head,0x00,sizeof(FRM_HEAD));
+	sprintf(fname,"/nand/frm.dat");
+	if(frmnum == 0)//第一帧，组文件头
+	{
+		frm_head.onelen = frmlen;
+		frm_head.frmindex = 0;
+		datafile_write(fname, &frm_head, sizeof(FRM_HEAD), 0);//存储文件头
+	}
+	if(lastflg == 1)
+	{
+		frm_head.onenum = frmnum;//存储完成写为单元数量,未完成为0
+		datafile_write(fname, &frm_head, sizeof(FRM_HEAD), 0);//更改文件头
+		return;//只修改分帧完成标志
+	}
+	datafile_write(fname, databuf, frm_head.onelen, frmlen*frmnum+sizeof(FRM_HEAD));//存储数据文件
+}
 /*
  * 读取抄表数据，读取某个测量点某任务某天一整块数据，放在内存里，根据需要提取数据,并根据csd组报文
  */
@@ -808,7 +890,7 @@ int ComposeSendBuff(TS *ts,INT8U seletype,INT8U taskid,TSA *tsa_con,INT8U tsa_nu
 {
 	OAD  oadm,oadr;
 	FILE *fp  = NULL;
-	INT16U headlen=0,blocklen=0,unitnum=0,sendindex=0,retlen=0,schpos=0;
+	INT16U headlen=0,blocklen=0,unitnum=0,sendindex=0,retlen=0,schpos=0,frmlen=0,frmnum=0,frmflg=0;
 	INT8U *databuf_tmp=NULL;
 	INT8U tmpbuf[256];
 	INT8U headl[2],blockl[2];
@@ -864,88 +946,43 @@ int ComposeSendBuff(TS *ts,INT8U seletype,INT8U taskid,TSA *tsa_con,INT8U tsa_nu
 				break;
 			for(i=0;i<tsa_num;i++)
 			{
+				if(memcmp(&databuf_tmp[schpos+1],&tsa_con[i].addr[0],17)!=0)
+					continue;
+				fprintf(stderr,"\n@@@find addr:\n");
+				fprintf(stderr,"\naddr1:%02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x",
+						databuf_tmp[schpos+16],databuf_tmp[schpos+15],databuf_tmp[schpos+14],databuf_tmp[schpos+13],
+						databuf_tmp[schpos+12],databuf_tmp[schpos+11],databuf_tmp[schpos+10],databuf_tmp[schpos+9],
+						databuf_tmp[schpos+8],databuf_tmp[schpos+7],databuf_tmp[schpos+6],	databuf_tmp[schpos+5],
+						databuf_tmp[schpos+4],databuf_tmp[schpos+3],databuf_tmp[schpos+2],databuf_tmp[schpos+1]);
+				fprintf(stderr,"\n1addr2:%02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x",
+						tsa_con[i].addr[16],tsa_con[i].addr[15],tsa_con[i].addr[14],tsa_con[i].addr[13],
+						tsa_con[i].addr[12],tsa_con[i].addr[11],tsa_con[i].addr[10],tsa_con[i].addr[9],
+						tsa_con[i].addr[8],tsa_con[i].addr[7],tsa_con[i].addr[6],	tsa_con[i].addr[5],
+						tsa_con[i].addr[4],tsa_con[i].addr[3],tsa_con[i].addr[2],tsa_con[i].addr[1],tsa_con[i].addr[0]);
 				for(m=0;m<tasknor_info.runtime;m++)
 				{
 					schpos = m*blocklen/tasknor_info.runtime;
-//					fprintf(stderr,"\n1addr1:%02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x",
-//							databuf_tmp[schpos+16],databuf_tmp[schpos+15],databuf_tmp[schpos+14],databuf_tmp[schpos+13],
-//							databuf_tmp[schpos+12],databuf_tmp[schpos+11],databuf_tmp[schpos+10],databuf_tmp[schpos+9],
-//							databuf_tmp[schpos+8],databuf_tmp[schpos+7],databuf_tmp[schpos+6],	databuf_tmp[schpos+5],
-//							databuf_tmp[schpos+4],databuf_tmp[schpos+3],databuf_tmp[schpos+2],databuf_tmp[schpos+1],databuf_tmp[schpos]);
-//					fprintf(stderr,"\n1addr2:%02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x",
-//							tsa_con[i].addr[16],tsa_con[i].addr[15],tsa_con[i].addr[14],tsa_con[i].addr[13],
-//							tsa_con[i].addr[12],tsa_con[i].addr[11],tsa_con[i].addr[10],tsa_con[i].addr[9],
-//							tsa_con[i].addr[8],tsa_con[i].addr[7],tsa_con[i].addr[6],	tsa_con[i].addr[5],
-//							tsa_con[i].addr[4],tsa_con[i].addr[3],tsa_con[i].addr[2],tsa_con[i].addr[1],tsa_con[i].addr[0]);
-					if(memcmp(&databuf_tmp[schpos+1],&tsa_con[i].addr[0],17)==0)//找到了存储结构的位置，一个存储结构可能含有unitnum个单元
+					for(j=0;j<csds.num;j++)
 					{
-						fprintf(stderr,"\n@@@find addr:\n");
-						fprintf(stderr,"\naddr1:%02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x",
-								databuf_tmp[schpos+16],databuf_tmp[schpos+15],databuf_tmp[schpos+14],databuf_tmp[schpos+13],
-								databuf_tmp[schpos+12],databuf_tmp[schpos+11],databuf_tmp[schpos+10],databuf_tmp[schpos+9],
-								databuf_tmp[schpos+8],databuf_tmp[schpos+7],databuf_tmp[schpos+6],	databuf_tmp[schpos+5],
-								databuf_tmp[schpos+4],databuf_tmp[schpos+3],databuf_tmp[schpos+2],databuf_tmp[schpos+1]);
-//						fprintf(stderr,"\naddr2:%02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x",
-//								databuf_tmp[schpos+16],databuf_tmp[schpos+15],databuf_tmp[schpos+14],databuf_tmp[schpos+13],
-//								databuf_tmp[schpos+12],databuf_tmp[schpos+11],databuf_tmp[schpos+10],databuf_tmp[schpos+9],
-//								databuf_tmp[schpos+8],databuf_tmp[schpos+7],databuf_tmp[schpos+6],	databuf_tmp[schpos+5],
-//								databuf_tmp[schpos+4],databuf_tmp[schpos+3],databuf_tmp[schpos+2],databuf_tmp[schpos+1]);
-						for(j=0;j<csds.num;j++)
-						{
 //							fprintf(stderr,"\n-------%d:(type=%d)\n",j,csds.csd[j].type);
-							if(csds.csd[j].type != 0 && csds.csd[j].type != 1)
-								continue;
-							if(csds.csd[j].type == 1)
+						if(csds.csd[j].type != 0 && csds.csd[j].type != 1)
+							continue;
+						if(csds.csd[j].type == 1)
+						{
+							SendBuf[sendindex++] = 0x01;//aray
+							SendBuf[sendindex++] = csds.csd[j].csd.road.num;
+							for(k=0;k<csds.csd[j].csd.road.num;k++)
 							{
-								SendBuf[sendindex++] = 0x01;//aray
-								SendBuf[sendindex++] = csds.csd[j].csd.road.num;
-								for(k=0;k<csds.csd[j].csd.road.num;k++)
-								{
-									memset(tmpbuf,0x00,256);
-									memcpy(&oadm,&csds.csd[j].csd.road.oads[k],sizeof(OAD));
-									memcpy(&oadr,&csds.csd[j].csd.road.oad,sizeof(OAD));
+								memset(tmpbuf,0x00,256);
+								memcpy(&oadm,&csds.csd[j].csd.road.oads[k],sizeof(OAD));
+								memcpy(&oadr,&csds.csd[j].csd.road.oad,sizeof(OAD));
 //									fprintf(stderr,"\nmaster oad:%04x%02x%02x\n",oadm.OI,oadm.attflg,oadm.attrindex);
 //									fprintf(stderr,"\nrelate oad:%04x%02x%02x\n",oadr.OI,oadr.attflg,oadr.attrindex);
-									if((retlen = GetPosofOAD(&databuf_tmp[schpos],oadm,oadr,head_unit,unitnum,tmpbuf))==0)
-										SendBuf[sendindex++] = 0;
-									else
-									{
-//										fprintf(stderr,"\n--type=1--tmpbuf[0]=%02x\n",tmpbuf[0]);
-										if(tmpbuf[0]==0)//NULL
-											SendBuf[sendindex++] = 0;
-										else
-										{
-											memcpy(&SendBuf[sendindex],tmpbuf,retlen);
-											sendindex += retlen;
-										}
-									}
-//									fprintf(stderr,"\n---1----k=%d retlen=%d\n",k,retlen);
-								}
-							}
-							if(csds.csd[j].type == 0)
-							{
-								if(csds.csd[j].csd.oad.OI == 0x202a)
-								{
-									SendBuf[sendindex++]=0x55;
-									for(k=1;k<17;k++)
-									{
-//										fprintf(stderr,"\n--databuf_tmp[%d+%d]=%d\n",schpos,k,databuf_tmp[schpos+k]);
-										if(databuf_tmp[schpos+k]==0)
-											continue;
-										memcpy(&SendBuf[sendindex],&databuf_tmp[schpos+k],databuf_tmp[schpos+k]+1);
-										sendindex += databuf_tmp[schpos+k]+1;
-										break;
-									}
-									continue;
-								}
-								memset(tmpbuf,0x00,256);
-								memcpy(&oadm,&csds.csd[j].csd.oad,sizeof(OAD));
-								memset(&oadr,0xee,sizeof(OAD));
 								if((retlen = GetPosofOAD(&databuf_tmp[schpos],oadm,oadr,head_unit,unitnum,tmpbuf))==0)
 									SendBuf[sendindex++] = 0;
 								else
 								{
-//									fprintf(stderr,"\n--type=0--tmpbuf[0]=%02x\n",tmpbuf[0]);
+//										fprintf(stderr,"\n--type=1--tmpbuf[0]=%02x\n",tmpbuf[0]);
 									if(tmpbuf[0]==0)//NULL
 										SendBuf[sendindex++] = 0;
 									else
@@ -954,18 +991,71 @@ int ComposeSendBuff(TS *ts,INT8U seletype,INT8U taskid,TSA *tsa_con,INT8U tsa_nu
 										sendindex += retlen;
 									}
 								}
-//								fprintf(stderr,"\n---0----k=%d retlen=%d\n",k,retlen);
+//									fprintf(stderr,"\n---1----k=%d retlen=%d\n",k,retlen);
 							}
 						}
-	//					return sendindex;
-						continue;
+						if(csds.csd[j].type == 0)
+						{
+							if(csds.csd[j].csd.oad.OI == 0x202a)
+							{
+								SendBuf[sendindex++]=0x55;
+								for(k=1;k<17;k++)
+								{
+//										fprintf(stderr,"\n--databuf_tmp[%d+%d]=%d\n",schpos,k,databuf_tmp[schpos+k]);
+									if(databuf_tmp[schpos+k]==0)
+										continue;
+									memcpy(&SendBuf[sendindex],&databuf_tmp[schpos+k],databuf_tmp[schpos+k]+1);
+									sendindex += databuf_tmp[schpos+k]+1;
+									break;
+								}
+								continue;
+							}
+							memset(tmpbuf,0x00,256);
+							memcpy(&oadm,&csds.csd[j].csd.oad,sizeof(OAD));
+							memset(&oadr,0xee,sizeof(OAD));
+							if((retlen = GetPosofOAD(&databuf_tmp[schpos],oadm,oadr,head_unit,unitnum,tmpbuf))==0)
+								SendBuf[sendindex++] = 0;
+							else
+							{
+//									fprintf(stderr,"\n--type=0--tmpbuf[0]=%02x\n",tmpbuf[0]);
+								if(tmpbuf[0]==0)//NULL
+									SendBuf[sendindex++] = 0;
+								else
+								{
+									memcpy(&SendBuf[sendindex],tmpbuf,retlen);
+									sendindex += retlen;
+								}
+							}
+//								fprintf(stderr,"\n---0----k=%d retlen=%d\n",k,retlen);
+						}
 					}
+//						return sendindex;
+					fprintf(stderr,"\n-------sendindex = %d\n",sendindex);
+
+					if(frmnum == 0)
+					{
+						frmlen = sendindex;//每帧长度相同
+					}
+					if(sendindex > 1000)//1000为分帧最大长度，以后根据参数决定大小
+					{
+						frmflg = 1;//需要分帧
+						savefrm(frmlen,frmnum,0,SendBuf);
+						sendindex = 0;
+					}
+					frmnum++;
+					continue;
 				}
 			}
 		}
 	}
 	free(databuf_tmp);
 	free(head_unit);
+	if(frmflg==1)
+	{
+		fprintf(stderr,"\n---分帧了\n");
+		sendindex = 0xffff;//如果分帧了
+		savefrm(frmlen,frmnum,1,SendBuf);//修改分帧完成标志
+	}
 	return sendindex;
 }
 INT16U GetTSANum()
