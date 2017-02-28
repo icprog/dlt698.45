@@ -86,7 +86,7 @@ INT16S composeProtocol07(FORMAT07* format07, INT8U* sendBuf)
 	INT8U addrBuff[6] = {0};
 	reversebuff(format07->Addr,6,addrBuff);
 
-#ifdef TESTDEF1
+#ifdef TESTDEF
 	INT8U meterAddr[6] = {0x71,0x05,0x17,0x28,0x15,0x00};
 	memcpy(addrBuff,meterAddr,6);
 #endif
