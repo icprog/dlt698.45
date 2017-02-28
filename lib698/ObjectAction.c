@@ -424,7 +424,7 @@ void AddEventCjiFangAnInfo(INT8U *data)
 	{
 		memset(&eventFangAn,0,sizeof(eventFangAn));
 		index += getUnsigned(&data[index],(INT8U *)&eventFangAn.sernum);
-		index += getArrayNum(&data[index],(INT8U *)&eventFangAn.roads.num);
+		index += getArray(&data[index],(INT8U *)&eventFangAn.roads.num);
 		for(i=0;i<eventFangAn.roads.num;i++)
 			index += getROAD(&data[index],&eventFangAn.roads.road[i]);
 		index += 1;//getMS没解释类型字节
@@ -555,15 +555,19 @@ void AddReportInfo(INT8U *data)
 {
 	CLASS_601D	 reportplan={};
 	int i=0,k=0,saveflg=0;
-	INT8U addnum = data[1];
+	INT8U addnum = 0 ,strunum = 0;
 	INT8U roadnum=0;
 	int index=0;
 	INT16U source_sumindex=0,source_index=0,dest_sumindex=0,dest_index=0;
 
+	index += getArray(&data[index],&addnum);
 	fprintf(stderr,"\n添加个数 %d",addnum);
 	for(k=0; k<addnum; k++)
 	{
-//		memset(&reportplan,0,sizeof(CLASS_601D));
+		memset(&reportplan,0,sizeof(CLASS_601D));
+		index += getStructure(&data[index],&strunum);
+		index += getUnsigned(&data[index],&reportplan.reportnum);
+//		index += getOAD(1,&data[index],&reportplan.chann_oad.);
 //		index += getUnsigned(&data[index],(INT8U *)&eventFangAn.sernum);
 //		index += getArrayNum(&data[index],(INT8U *)&eventFangAn.roads.num);
 //		for(i=0;i<eventFangAn.roads.num;i++)
