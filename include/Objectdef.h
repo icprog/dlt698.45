@@ -322,13 +322,12 @@ typedef struct{
 	RSD		rsd;
 }RecordData;
 
-typedef struct{
+typedef union{
 	OAD			oad;
 	RecordData	recorddata;
 }DataUnit;
 
-typedef struct
-{
+typedef struct{
 	INT8U		type;	//上报类型　0:OAD对象属性数据【终端数据】　1:RecordData:上报记录型对象属性[电表]
 	DataUnit	data;
 }REPORT_DATA;
