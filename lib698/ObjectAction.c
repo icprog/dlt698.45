@@ -554,11 +554,11 @@ void EventCjFangAnInfo(INT16U attr_act,INT8U *data)
 void AddReportInfo(INT8U *data)
 {
 	CLASS_601D	 reportplan={};
-	int i=0,k=0,saveflg=0;
-	INT8U addnum = 0 ,strunum = 0;
+	int k=0,j=0,saveflg=0;
+	INT8U addnum = 0,strunum = 0;
 	INT8U roadnum=0;
 	int index=0;
-	INT16U source_sumindex=0,source_index=0,dest_sumindex=0,dest_index=0;
+//	INT16U source_sumindex=0,source_index=0,dest_sumindex=0,dest_index=0;
 
 	index += getArray(&data[index],&addnum);
 	fprintf(stderr,"\n添加个数 %d",addnum);
@@ -567,16 +567,24 @@ void AddReportInfo(INT8U *data)
 		memset(&reportplan,0,sizeof(CLASS_601D));
 		index += getStructure(&data[index],&strunum);
 		index += getUnsigned(&data[index],&reportplan.reportnum);
-//		index += getOAD(1,&data[index],&reportplan.chann_oad.);
-//		index += getUnsigned(&data[index],(INT8U *)&eventFangAn.sernum);
-//		index += getArrayNum(&data[index],(INT8U *)&eventFangAn.roads.num);
-//		for(i=0;i<eventFangAn.roads.num;i++)
-//			index += getROAD(&data[index],&eventFangAn.roads.road[i]);
-//		index += 1;//getMS没解释类型字节
-//		index += getMS(&data[index],&eventFangAn.ms.mstype);
-//		index += getBool(&data[index],&eventFangAn.ifreport);
-//		index += getLongUnsigned(&data[index],(INT8U *)&eventFangAn.deepsize);
-//
+		index += getArray(&data[index],&reportplan.chann_oad.num);
+		for(j=0;j<reportplan.chann_oad.num;j++) {
+			index += getOAD(1,&data[index],&reportplan.chann_oad.oadarr[j]);
+		}
+		index += getTI(1,&data[index],&reportplan.timeout);
+		index += getUnsigned(&data[index],&reportplan.maxreportnum);
+		index += getStructure(&data[index],&strunum);
+		index += getUnsigned(&data[index],&reportplan.reportdata.type);
+		switch(reportplan.reportdata.type) {
+		case 0:	//OAD
+			index += getOAD(1,&data[index],&reportplan.reportdata.data.oad);
+			break;
+		case 1://RecordData
+			index += getOAD(1,&data[index],&reportplan.reportdata.data.recorddata.oad);
+//			index += getOAD(1,&data[index],&reportplan.reportdata.data.recorddata.rcsd);
+//			index += getOAD(1,&data[index],&reportplan.reportdata.data.recorddata.rsd);
+			break;
+		}
 //		fprintf(stderr,"\n第 %d 个事件方案  ID=%d   (%d 个ROAD)",k,eventFangAn.sernum,eventFangAn.roads.num);
 //		int j=0,w=0;
 //		for(j=0;j<eventFangAn.roads.num;j++)

@@ -49,6 +49,7 @@ extern int getBool(INT8U *source,INT8U *dest);		//3
 extern int getUnsigned(INT8U *source,INT8U *dest);	//0x11
 extern int getLongUnsigned(INT8U *source,INT8U *dest);//0x12
 extern int getDateTimeS(INT8U type,INT8U *source,INT8U *dest);//0x1C
+extern int getOAD(INT8U type,INT8U *source,OAD *oad);		//0x51
 extern int getROAD(INT8U *source,ROAD *dest);		//0x52
 extern int getTI(INT8U type,INT8U *source,TI *ti);		//0x54
 extern int get_BasicRSD(INT8U *source,INT8U *dest,INT8U *type);	//0x5A
