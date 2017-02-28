@@ -103,7 +103,7 @@ INT8U Get_Voltagehegelv(INT8U *buf,INT8U *len,TSA tsa,OAD oad){
 
 	*len=0;
 	for(i=0;i<MAXNUM_IMPORTANTUSR;i++){
-	   if(readVariData(oad.OI,i,&StatisticsPoint[i],sizeof(StatisticsPoint))) {
+	   if(readVariData(oad.OI,i,&StatisticsPoint[i],sizeof(StatisticsPointProp))) {
 		   if(memcmp(&StatisticsPoint[i].tsa,&tsa,sizeof(TSA)) == 0){
 			   if(oad.OI==0x2131 && oad.attflg==2){
 					*len += create_struct(&buf[*len],2);

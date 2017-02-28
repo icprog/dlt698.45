@@ -561,8 +561,8 @@ void AddReportInfo(INT8U *data)
 	INT16U source_sumindex=0,source_index=0,dest_sumindex=0,dest_index=0;
 
 	fprintf(stderr,"\n添加个数 %d",addnum);
-//	for(k=0; k<addnum; k++)
-//	{
+	for(k=0; k<addnum; k++)
+	{
 //		memset(&reportplan,0,sizeof(CLASS_601D));
 //		index += getUnsigned(&data[index],(INT8U *)&eventFangAn.sernum);
 //		index += getArrayNum(&data[index],(INT8U *)&eventFangAn.roads.num);
@@ -593,8 +593,8 @@ void AddReportInfo(INT8U *data)
 //			fprintf(stderr,"\n采集方案 %d 保存成功",eventFangAn.sernum);
 //		else
 //			fprintf(stderr,"\n采集方案 %d 保存失败",eventFangAn.sernum);
-//
-//	}
+
+	}
 }
 
 void ReportInfo(INT16U attr_act,INT8U *data)

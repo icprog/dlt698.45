@@ -142,24 +142,43 @@ int fill_TSA(INT8U *data,INT8U *value,INT8U len)
 }
 
 ///////////////////////////////////////////////////////////////////////////
-int getArrayNum(INT8U *source,INT8U *dest)
+int getArrayNum(INT8U *source,INT8U *dest)		//1
 {
 	dest[0] = source[1];
 	return 2;//source[0] 0x1 (array type)   source[1] =num
 }
 
-int getBool(INT8U *source,INT8U *dest)
+int getBool(INT8U *source,INT8U *dest)		//3
 {
 	dest[0] = source[1];
 	return 2;//source[0] 0x1 (bool type)   source[1] =value
 }
 
-int getUnsigned(INT8U *source,INT8U *dest)
+int getUnsigned(INT8U *source,INT8U *dest)	//0x11
 {
 	dest[0] = source[1];
 	return 2;//source[0] 0x11(unsigned type)   source[1] =data
 }
-int getROAD(INT8U *source,ROAD *dest)
+
+int getLongUnsigned(INT8U *source,INT8U *dest)	//0x12
+{
+	dest[1] = source[1];
+	dest[0] = source[2];
+	return 3;
+}
+
+int getDateTimeS(INT8U *source,INT8U *dest)		//0x1C
+{
+	dest[1] = source[0];//年
+	dest[0] = source[1];
+	dest[2] = source[2];//月
+	dest[3] = source[3];//日
+	dest[4] = source[4];//时
+	dest[5] = source[5];//分
+	dest[6] = source[6];//秒
+	return sizeof(DateTimeBCD);
+}
+int getROAD(INT8U *source,ROAD *dest)		//0x52
 {
 	INT8U oadtmp[4]={};
 	int i=0,oadnum=0,index=1;
@@ -194,23 +213,8 @@ int getTI(INT8U *source,INT8U *dest)
 }
 
 
-int getLongUnsigned(INT8U *source,INT8U *dest)
-{
-	dest[1] = source[1];
-	dest[0] = source[2];
-	return 3;
-}
-int getDateTimeS(INT8U *source,INT8U *dest)
-{
-	dest[1] = source[0];//年
-	dest[0] = source[1];
-	dest[2] = source[2];//月
-	dest[3] = source[3];//日
-	dest[4] = source[4];//时
-	dest[5] = source[5];//分
-	dest[6] = source[6];//秒
-	return sizeof(DateTimeBCD);
-}
+
+
 int getMS(INT8U *source,INT8U *dest)
 {
 	INT8U choicetype=0;
