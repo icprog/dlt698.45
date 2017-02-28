@@ -15,10 +15,12 @@
 #include "Objectdef.h"
 #include "event.h"
 #include "secure.h"
-#include "b
+#include "basedef.h"
+
 
 //1 liuhongli
 //2:fanzhihong
+//3: liu
 void get_BasicUnit(INT8U *source,INT16U *sourceindex,INT8U *dest,INT16U *destindex);
 extern INT8U Reset_add();
 extern void FrameTail(INT8U *buf,int index,int hcsi);
@@ -913,10 +915,10 @@ void FileTransMothod(INT16U attr_act,INT8U *data)
 				goto err;
 			}
 
-			snprintf((char *)path,sizeof(path), "/nand/UpFiles/u%s.%s.%s", name, sub_name, version);
+			snprintf(path,sizeof(path), "/nand/UpFiles/u%s.%s.%s", name, sub_name, version);
 
 			fprintf(stderr,"启动传输 文件名:%s,文件长度:%d,文件校验%02x,块长度%d\n", path, file_length, crc, block_length);
-			createFile((char *)path, file_length, crc, block_length);
+			createFile(path, file_length, crc, block_length);
 			break;
 		case 8://写文件
 			if(data[0] == 0x02 && data[1] == 0x02)
@@ -1033,7 +1035,6 @@ void EsamMothod(INT16U attr_act,INT8U *data)
 				break;
 		}
 }
-
 int doObjectAction(OAD oad,INT8U *data)
 {
 	INT16U oi = oad.OI;
