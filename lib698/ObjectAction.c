@@ -18,6 +18,7 @@
 #include "basedef.h"
 
 //4:fzhs
+//3: liu
 void get_BasicUnit(INT8U *source,INT16U *sourceindex,INT8U *dest,INT16U *destindex);
 extern INT8U Reset_add();
 extern void FrameTail(INT8U *buf,int index,int hcsi);
