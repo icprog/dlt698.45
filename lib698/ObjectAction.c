@@ -17,14 +17,6 @@
 #include "secure.h"
 #include "basedef.h"
 
-//4:fzhs
-//0:liu2
-//5:liu3
-//1 liuhongli
-//2:fanzhihong
-//3: liu
-//4:liu1
-//5:fzh5
 void get_BasicUnit(INT8U *source,INT16U *sourceindex,INT8U *dest,INT16U *destindex);
 extern INT8U Reset_add();
 extern void FrameTail(INT8U *buf,int index,int hcsi);
