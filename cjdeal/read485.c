@@ -269,7 +269,7 @@ void print6015(CLASS_6015 class6015) {
 					memcpy(testArray[0].flag07.DI_1[0], freezeflag07_1, 4);
 					memcpy(testArray[0].flag07.DI_1[1], freezeflag07_2, 4);
 					memcpy(testArray[0].flag07.DI_1[2], freezeflag07_3, 4);
-					testArray[0].flag07.dinum = 1;
+					testArray[0].flag07.dinum = 3;
 				}
 
 		if (class6015.csds.csd[i].type == 0) {
@@ -793,7 +793,6 @@ INT16U dealProxy_645_07(GETOBJS obj07,INT8U* dataContent)
 
 	INT8U oadIndex;
 	INT8U diIndex;
-	dataContent[dataLen++] = obj07.num;
 	for(oadIndex = 0;oadIndex < obj07.num;oadIndex++)
 	{
 		OADtoBuff(obj07.oads[oadIndex],&dataContent[dataLen]);
@@ -850,8 +849,9 @@ INT8S dealProxy(PROXY_GETLIST* getlist,INT8U port485)
 	for(index = 0;index < getlist->num;index++)
 	{
 		CLASS_6001 obj6001 = {};
-		memcpy(&getlist->data[totalLen],getlist->objs[index].tsa.addr,sizeof(TSA));
-		totalLen += sizeof(TSA);
+		INT8U addlen = getlist->objs[index].tsa.addr[0]+1;
+		memcpy(&getlist->data[totalLen],getlist->objs[index].tsa.addr,addlen);
+		totalLen += addlen;
 
 		//通过表地址找 6001
 		if(get6001Obj2TSA(getlist->objs[index].tsa,&obj6001) != 1 )
@@ -873,6 +873,7 @@ INT8S dealProxy(PROXY_GETLIST* getlist,INT8U port485)
 			continue;
 		}
 		getlist->data[totalLen++] = getlist->objs[index].num;
+		fprintf(stderr,"\n OAD num = %d",getlist->objs[index].num);
 #ifdef TESTDEF1
 		if(obj6001.basicinfo.protocol == DLT_645_07)
 #endif
@@ -1547,8 +1548,7 @@ void read485_thread(void* i485port) {
 			memset(&result6035, 0xee, sizeof(CLASS_6035));
 			result6035.taskID = list6013[tastIndexIndex].basicInfo.taskID;
 			result6035.taskState = IN_OPR;
-			memcpy(&result6035.starttime,&list6013[tastIndexIndex].basicInfo.startime,sizeof(DateTimeBCD));
-			memcpy(&result6035.endtime,&list6013[tastIndexIndex].basicInfo.endtime,sizeof(DateTimeBCD));
+			DataTimeGet(&result6035.starttime);
 
 			CLASS_6015 to6015;	//采集方案集
 			memset(&to6015, 0, sizeof(CLASS_6015));
@@ -1586,6 +1586,13 @@ void read485_thread(void* i485port) {
 			list6013[tastIndexIndex].run_flg = 0;
 			saveCoverClass(0x6035, result6035.taskID, &result6035,
 					sizeof(CLASS_6035), coll_para_save);
+
+			fprintf(stderr,"\n发送报文数量：%d  接受报文数量：%d",result6035.sendMsgNum,result6035.rcvMsgNum);
+			//判断485故障事件
+			if((result6035.sendMsgNum > 0)&&(result6035.rcvMsgNum<=0))
+			{
+				Event_310A(c485_err,JProgramInfo);
+			}
 		} else {
 			//fprintf(stderr, "\n 当前无任务可执行");
 		}
