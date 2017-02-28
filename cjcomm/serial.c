@@ -118,6 +118,7 @@ void GenericRead(struct aeEventLoop* eventLoop, int fd, void* clientData, int ma
  *所有模块共享的写入函数，所有模块共享使用
  */
 INT8S GenericWrite(int fd, INT8U* buf, INT16U len) {
+	asyslog(LOG_WARNING, "发送报文(长度:%d)", len);
     int ret = anetWrite(fd, buf, (int)len);
     if (ret != len) {
         asyslog(LOG_WARNING, "报文发送失败(长度:%d,错误:%d)", len, errno);

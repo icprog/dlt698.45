@@ -53,7 +53,7 @@ int RegularMmq(struct aeEventLoop* ep, long long id, void* clientData){
     if (mmqd < 0) {
     	mmqd = mmq_open((unsigned char *)PROXY_NET_MQ_NAME, &mmqAttr, O_RDONLY);
         if (mmqd >= 0) {
-            aeCreateFileEvent(ep, mmqd, AE_READABLE, MmqRead, NULL);
+            aeCreateFileEvent(ep, mmqd, AE_READABLE, MmqRead, clientData);
         } else {
     		asyslog(LOG_ERR, "消息队列监听建立失败，1分钟后重建");
     		return 60 * 1000;
@@ -67,7 +67,7 @@ int RegularMmq(struct aeEventLoop* ep, long long id, void* clientData){
  */
 int StartMmq(struct aeEventLoop* ep, long long id, void* clientData){
 	MmqInit();
-	Mmq_Task_Id = aeCreateTimeEvent(ep, 1000, RegularMmq, NULL, NULL);
+	Mmq_Task_Id = aeCreateTimeEvent(ep, 1000, RegularMmq, clientData, NULL);
 	asyslog(LOG_INFO, "监听服务器时间事件注册完成(%lld)", Mmq_Task_Id);
 	return 1;
 }

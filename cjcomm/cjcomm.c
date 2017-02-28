@@ -316,7 +316,7 @@ int main(int argc, char* argv[]) {
     StartSerial(ep, 0, NULL);
     StartServer(ep, 0, NULL);
 //    StartVerifiTime(ep, 0, JProgramInfo);
-    StartMmq(ep, 0, NULL);
+    StartMmq(ep, 0, &nets_comstat);
 
 
     //建立网络连接（以太网、GPRS）维护事件
