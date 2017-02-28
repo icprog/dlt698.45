@@ -23,7 +23,8 @@
 #define	 EVENT_CURR			"/nand/event/current"		//当前值记录表
 
 #define	 VARI_DIR			"/nand/data"				//变量类数据文件目录
-#define	 VARI_DATA				"/nand/data/vari.dat"		//变量类数据存储
+#define	 VARI_DATA				"/nand/data/vari.dat"		//变量类-计量、采集子类数据存储
+#define	 VARI_DATA_TJ			"/nand/data/vari_tj.dat"		//变量类－统计子类数据存储
 #define	 PARADIR				"/nand/para"				//参变量文件（4000） 采集监控类文件（6000）
 #define	 DEMANDDIR				"/nand/demand"				//需量类数据
 #define	 FREEZEDIR				"/nand/freeze"				//冻结类数据存储
@@ -168,7 +169,7 @@ extern long getFileRecordNum(OI_698 oi);
  * datalen :   需要存储数据长度,不能超过64个字节
  * =-1 ：存储失败
  * */
-extern int saveVariData(OI_698 oi,void *blockdata,int datalen);
+extern int saveVariData(OI_698 oi,int coll_seqnum,void *blockdata,int datalen);
 
 /*
  *　　读取数据值
@@ -177,7 +178,7 @@ extern int saveVariData(OI_698 oi,void *blockdata,int datalen);
  *　　　　　len:　blockdata空间大小，需要申请blockdata申请空间大小为：oad个数×VARI_LEN
  *　　　函数返回值：数据长度 =-1,读取失败
  * */
-extern int readVariData(OI_698 oi,void *blockdata,int len);
+extern int  readVariData(OI_698 oi,int coll_seqnum,void *blockdata,int len);
 //////////////////////////////////////////////////////////////////////////////////////
 ///////////////数据文件存储
 

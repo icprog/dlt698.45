@@ -44,7 +44,7 @@ void ProxyListResponse(PROXY_GETLIST *list,CommBlock *com)
 	datalen = list->datalen ;
 	if (datalen > 512)
 		datalen =512;
-	memcpy(sendbuf,list->data,datalen);
+	memcpy(&sendbuf[index],list->data,datalen);
 	index = index + datalen;
 	sendbuf[index++] = 0;
 	sendbuf[index++] = 0;

@@ -325,3 +325,8 @@ void inoutdev_process(int argc, char *argv[])
 		}
 	}
 }
+void cjfangAn()
+{
+	CLASS_6017 obj6017;
+
+}

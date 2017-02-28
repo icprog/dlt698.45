@@ -376,9 +376,9 @@ typedef struct{
 
 typedef struct{
 	INT32U d_max;
-	TS d_ts;
+	DateTimeBCD d_ts;
 	INT32U m_max;
-	TS m_ts;
+	DateTimeBCD m_ts;
 }Max_p;
 typedef struct{
 	TSA tsa;

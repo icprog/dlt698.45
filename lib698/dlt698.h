@@ -39,7 +39,7 @@ extern int fill_unsigned(INT8U *data,INT8U value);
 extern int fill_long_unsigned(INT8U *data,INT16U value);
 extern int fill_enum(INT8U *data,INT8U value);
 extern int fill_time(INT8U *data,INT8U *value);
-extern int fill_DateTimeBCD(INT8U *data,DateTimeBCD *time);
+extern int fill_date_time_s(INT8U *data,DateTimeBCD *time);
 extern int fill_TI(INT8U *data,TI ti);
 extern int fill_TSA(INT8U *data,INT8U *value,INT8U len);
 
