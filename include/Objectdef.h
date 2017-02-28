@@ -333,12 +333,24 @@ typedef struct{
 }REPORT_DATA;
 
 typedef struct {
-	INT8U reportnum;	                //方案编号
-	ARRAY_OAD chann_oad;				//上报通道
-	TI		timeout;					//上报相应超时时间
-	INT8U   maxreportnum;				//最大上报次数
-	REPORT_DATA		reportdata;			//上报数据
+	INT8U 		reportnum;	            //方案编号
+	ARRAY_OAD 	chann_oad;				//上报通道
+	TI			timeout;				//上报相应超时时间
+	INT8U   	maxreportnum;			//最大上报次数
+	REPORT_DATA	reportdata;				//上报数据
 } CLASS_601D;              //上报方案
+
+typedef struct
+{
+	INT8U dinum;
+	INT8U DI_1[DI07_NUM_601F][4];
+	INT8U DI_2[DI07_NUM_601F][4];
+}C601F_07Flag;
+
+typedef struct {
+	CSD flag698;
+	C601F_07Flag flag07;
+} CLASS_601F;			//采集规则
 
 typedef struct {
 	INT8U taskID;		                //任务ID
@@ -386,18 +398,6 @@ typedef struct {
 	StateUnitArray statearri;		//开关量单元属性2
 	StateAtti4 state4;			//开关量属性
 } CLASS_f203;			//开关量输入
-
-typedef struct
-{
-	INT8U dinum;
-	INT8U DI_1[DI07_NUM_601F][4];
-	INT8U DI_2[DI07_NUM_601F][4];
-}C601F_07Flag;
-
-typedef struct {
-	CSD flag698;
-	C601F_07Flag flag07;
-} CLASS_601F;			//开关量输入
 
 /////////////////////////////////////////////////////////////////////
 typedef struct
