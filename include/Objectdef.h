@@ -310,6 +310,48 @@ typedef struct {
 	INT16U deepsize;					//存储深度
 } CLASS_6017;					//事件采集方案
 
+typedef struct
+{
+	INT8U	num;
+	OAD     oadarr[REPORT_CHANN_OAD_NUM];
+}ARRAY_OAD;
+
+typedef struct{
+	OAD		oad;
+	RCSD	rcsd;
+	RSD		rsd;
+}RecordData;
+
+typedef union{
+	OAD			oad;
+	RecordData	recorddata;
+}DataUnit;
+
+typedef struct{
+	INT8U		type;	//上报类型　0:OAD对象属性数据【终端数据】　1:RecordData:上报记录型对象属性[电表]
+	DataUnit	data;
+}REPORT_DATA;
+
+typedef struct {
+	INT8U 		reportnum;	            //方案编号
+	ARRAY_OAD 	chann_oad;				//上报通道
+	TI			timeout;				//上报相应超时时间
+	INT8U   	maxreportnum;			//最大上报次数
+	REPORT_DATA	reportdata;				//上报数据
+} CLASS_601D;              //上报方案
+
+typedef struct
+{
+	INT8U dinum;
+	INT8U DI_1[DI07_NUM_601F][4];
+	INT8U DI_2[DI07_NUM_601F][4];
+}C601F_07Flag;
+
+typedef struct {
+	CSD flag698;
+	C601F_07Flag flag07;
+} CLASS_601F;			//采集规则
+
 typedef struct {
 	INT8U taskID;		                //任务ID
 	TASK_STATE taskState;				//任务执行状态
@@ -356,18 +398,6 @@ typedef struct {
 	StateUnitArray statearri;		//开关量单元属性2
 	StateAtti4 state4;			//开关量属性
 } CLASS_f203;			//开关量输入
-
-typedef struct
-{
-	INT8U dinum;
-	INT8U DI_1[DI07_NUM_601F][4];
-	INT8U DI_2[DI07_NUM_601F][4];
-}C601F_07Flag;
-
-typedef struct {
-	CSD flag698;
-	C601F_07Flag flag07;
-} CLASS_601F;			//开关量输入
 
 /////////////////////////////////////////////////////////////////////
 typedef struct
