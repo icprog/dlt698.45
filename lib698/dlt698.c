@@ -473,6 +473,7 @@ int appConnectResponse(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 	index = FrameHead(csinfo,buf);
 	hcsi = index;
 	index = index + 2;
+	buf[index++] = CONNECT_RESPONSE;
 	buf[index++] = response.piid_acd.data;
 	memcpy(&buf[index],response.server_factory_version.factorycode,4);
 	index = index +4;
