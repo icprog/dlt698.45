@@ -884,6 +884,7 @@ INT8S dealProxy(PROXY_GETLIST* getlist,INT8U port485)
 				totalLen += singleLen;
 			}
 		}
+		getlist->datalen = totalLen;
 #ifdef TESTDEF
 		fprintf(stderr,"\n\ndealProxy 代理返回报文 长度：%d :",totalLen);
 		INT16U tIndex;
