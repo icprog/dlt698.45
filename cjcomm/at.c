@@ -493,7 +493,6 @@ void checkSms(int port) {
     for (int timeout = 0; timeout < 50; timeout++) {
         char Mrecvbuf[512];
 
-//        SendATCommand("\rAT+CMGR=0\r", 11, port);
         SendATCommand("\rAT+CMGL=0\r", 11, port);
         delay(3000);
         memset(Mrecvbuf, 0, 512);
@@ -514,6 +513,9 @@ void checkSms(int port) {
                 fprintf(stderr, "\n---\n");
                 break;
             }
+        } else {
+        	asyslog(LOG_NOTICE, "无短信内容，等待下次检查...");
+        	break;
         }
     }
 }
