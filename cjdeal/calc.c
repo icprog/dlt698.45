@@ -94,12 +94,13 @@ INT8U write_calc_stru(POINT_CALC_TYPE *pcalc)
 		if(readParaClass(oi,&meter,i)==1) {
 			fprintf(stderr,"port.OI=%x\n",meter.basicinfo.port.OI);
 			//读交采和485表进行统计
-           if(meter.basicinfo.port.OI == 0xF201 || meter.basicinfo.port.OI == 0xF208){
+         //  if(meter.basicinfo.port.OI == 0xF201 || meter.basicinfo.port.OI == 0xF208){
+			if(meter.basicinfo.port.OI == 0xF208){
         	   pcalc[num].PointNo=meter.sernum;
         	   memcpy(&pcalc[num].tsa,&meter.basicinfo.addr,sizeof(TSA));
-        	   if(meter.basicinfo.port.OI == 0xF201)
+        	   if(meter.basicinfo.port.OI == 0xF208)
         		   pcalc[num].Type=JIAOCAI_TYPE;
-        	   else if(meter.basicinfo.port.OI == 0xF208)
+        	   else if(meter.basicinfo.port.OI == 0xF201)
         		   pcalc[num].Type=METER_485_TYPE;
         	   else
         		   pcalc[num].Type=METER_485_TYPE;
@@ -588,7 +589,8 @@ void ReadPubData()
 	{
 		if(point[i].valid != 1)
 			continue;
-		readVariData(0x2130,i,&StatisticsPoint[0],sizeof(StatisticsPointProp));
+		readVariData(0x2130,i,&StatisticsPoint[i],sizeof(StatisticsPointProp));
+		readVariData(0x2140,i,&max_ptongji[i],sizeof(Max_ptongji));
 	//	if (point[i].Type!= JIAOCAI_TYPE)
 	//		continue;
 #ifdef CCTT_II
@@ -983,7 +985,11 @@ void calc_thread()
 			fprintf(stderr,"day_gongdian=%d,month_gongdian=%d\n",gongdian_tj.gongdian.day_tj,gongdian_tj.gongdian.month_tj);
 			saveVariData(0x2203,0,&gongdian_tj,sizeof(Gongdian_tj));
 			//存储最大功率及发生时间	TODO:只存储交采
-			saveVariData(0x2140,0,&max_ptongji[0],sizeof(Max_ptongji));
+			INT8U i=0;
+			for(i=0; i< MAXNUM_IMPORTANTUSR_CALC ;i++)
+			{
+			   saveVariData(0x2140,0,&max_ptongji[i],sizeof(Max_ptongji));
+			}
 		}
 //		//判断停上电
 		Event_3106(JProgramInfo,MeterPowerInfo,&poweroffon_state);
