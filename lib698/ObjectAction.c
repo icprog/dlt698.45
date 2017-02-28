@@ -15,8 +15,9 @@
 #include "Objectdef.h"
 #include "event.h"
 #include "secure.h"
-#include "basedef.h"
+#include "b
 
+//2:fanzhihong
 void get_BasicUnit(INT8U *source,INT16U *sourceindex,INT8U *dest,INT16U *destindex);
 extern INT8U Reset_add();
 extern void FrameTail(INT8U *buf,int index,int hcsi);
