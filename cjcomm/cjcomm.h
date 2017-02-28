@@ -27,6 +27,8 @@ void setSINSTR(INT16U SINSTR);
 void setPPPIP(INT8U PPPIP[]);
 void saveCurrClass25(void);
 
+int StartMmq(struct aeEventLoop* ep, long long id, void* clientData);
+
 INT8U GetTimeOffsetFlag(void);
 void Getk(LINK_Response link, ProgramInfo* JProgramInfo);
 
