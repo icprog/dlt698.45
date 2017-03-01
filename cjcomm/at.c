@@ -260,7 +260,7 @@ int ATMYSOCKETLED(unsigned char step, int ComPort) {
 }
 
 //查看拨号程序是否获取到ip地址
-int tryifconfig() {
+int tryifconfig(CLASS25* class25) {
     int sock;
     struct sockaddr_in sin;
     struct ifreq ifr;
@@ -276,8 +276,15 @@ int tryifconfig() {
     }
     memcpy(&sin, &ifr.ifr_addr, sizeof(sin));
     if (sin.sin_addr.s_addr > 0) {
-        asyslog(LOG_INFO, "获取到正确的IP地址%s\n", inet_ntoa(sin.sin_addr));
-        //                setPPPIP(inet_ntoa(sin.sin_addr));
+        int ips[4];
+        memset(ips, 0x00, sizeof(ips));
+        sscanf(inet_ntoa(sin.sin_addr), "%d.%d.%d.%d", &ips[0],&ips[1],&ips[2],&ips[3]);
+        asyslog(LOG_INFO, "获取到正确的IP地址%d.%d.%d.%d\n", ips[0],ips[1],ips[2],ips[3]);
+        class25->pppip[0] = 4;
+        class25->pppip[0] = ips[0];
+        class25->pppip[0] = ips[1];
+        class25->pppip[0] = ips[2];
+        class25->pppip[0] = ips[3];
         close(sock);
         return 1;
     }
@@ -520,6 +527,7 @@ void checkSms(int port) {
 }
 
 void* ATWorker(void* args) {
+	CLASS25* class25 = (CLASS25*)args;
     while (1) {
         if (NeedDoAt == 0) {
             goto wait;
@@ -624,7 +632,7 @@ void* ATWorker(void* args) {
             memset(CCID, 0, 32);
             if (sscanf(Mrecvbuf, "%*[^\"]\"%[0-9|A-Z|a-z]", CCID) == 1) {
                 asyslog(LOG_INFO, "CCID: %s\n", CCID);
-                setCCID(CCID);
+                memcpy(class25->ccid, CCID, sizeof(32));
                 break;
             }
         }
@@ -641,7 +649,7 @@ void* ATWorker(void* args) {
             if (sscanf(Mrecvbuf, "%*[^:]: %d,%d", &k, &l) == 2) {
                 asyslog(LOG_INFO, "GprsCSQ = %d,%d\n", k, l);
                 if (k != 99) {
-                    setSINSTR(k);
+                	class25->signalStrength = k;
                     break;
                 }
             }
@@ -709,9 +717,9 @@ void* ATWorker(void* args) {
 
         for (int i = 0; i < 50; i++) {
             sleep(1);
-            if (tryifconfig() == 1) {
+            if (tryifconfig(class25) == 1) {
                 //拨号成功，存储参数，以备召唤
-                saveCurrClass25();
+            	 saveCoverClass(0x4500, 0, class25, sizeof(CLASS25), para_init_save);
                 break;
             }
         }
@@ -736,11 +744,11 @@ void* ATWorker(void* args) {
     return NULL;
 }
 
-void CreateATWorker(void) {
+void CreateATWorker(void* clientdata) {
     pthread_attr_t attr;
     pthread_attr_init(&attr);
     pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
 
     pthread_t temp_key;
-    pthread_create(&temp_key, &attr, ATWorker, NULL);
+    pthread_create(&temp_key, &attr, ATWorker, clientdata);
 }

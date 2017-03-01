@@ -17,7 +17,6 @@
 #include "assert.h"
 #include "at.h"
 
-#include "AccessFun.h"
 #include "PublicFunction.h"
 #include "cjcomm.h"
 #include "dlt698def.h"
@@ -25,31 +24,10 @@
 
 //共享内存地址
 static ProgramInfo* JProgramInfo = NULL;
+static CLASS25 Class25;
 
 ProgramInfo* getShareMem(void) {
     return JProgramInfo;
-}
-
-static CLASS25 Class25;
-
-void saveCurrClass25(void) {
-    saveCoverClass(0x4500, 0, (void*)&Class25, sizeof(CLASS25), para_init_save);
-}
-
-void setCCID(INT8U CCID[]) {
-    memcpy(Class25.ccid, CCID, 20);
-}
-
-void setIMSI(INT8U IMSI[]) {
-    memcpy(Class25.imsi, IMSI, 20);
-}
-
-void setSINSTR(INT16U SINSTR) {
-    Class25.signalStrength = SINSTR;
-}
-
-void setPPPIP(INT8U PPPIP[]) {
-    memcpy(Class25.pppip, PPPIP, 20);
 }
 
 void clearcount(int index) {
@@ -168,6 +146,13 @@ void initComPara(CommBlock* compara) {
  * 进程初始化
  *********************************************************/
 void enviromentCheck(int argc, char* argv[]) {
+
+    pid_t pids[128];
+    if (prog_find_pid_by_name((INT8S*)argv[0], pids) > 1) {
+    	asyslog(LOG_ERR, "CJCOMM进程仍在运行,进程号[%d]，程序退出...", pids[0]);
+        return EXIT_SUCCESS;
+    }
+
     //绑定信号处理了函数
     struct sigaction sa = {};
     Setsig(&sa, QuitProcess);
@@ -190,20 +175,16 @@ void enviromentCheck(int argc, char* argv[]) {
 
 int main(int argc, char* argv[]) {
     printf("version 1015\n");
-    pid_t pids[128];
-    if (prog_find_pid_by_name((INT8S*)argv[0], pids) > 1)
-        return EXIT_SUCCESS;
-    // daemon(0,0);
 
     enviromentCheck(argc, argv);
-    //开始通信模块维护、红外与维护串口线程
-    CreateATWorker();
+
+    CreateATWorker(&Class25);
 
     //开启网络IO事件处理框架
     aeEventLoop* ep;
     ep = aeCreateEventLoop(128);
     if (ep == NULL) {
-        asyslog(LOG_ERR, "事件循环创建失败，程序终止。\n");
+        asyslog(LOG_ERR, "事件处理框架创建失败，程序终止。\n");
         exit(0);
     }
 

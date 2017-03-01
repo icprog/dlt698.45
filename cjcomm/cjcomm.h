@@ -7,11 +7,13 @@
 #include <netinet/tcp.h>
 #include <sys/ioctl.h>
 #include <arpa/inet.h>
-#include "StdDataType.h"
-#include "PublicFunction.h"
+
+#include "ae.h"
 #include "dlt698.h"
 #include "event.h"
-#include "ae.h"
+#include "AccessFun.h"
+#include "StdDataType.h"
+#include "PublicFunction.h"
 
 void initComPara(CommBlock* compara);
 
