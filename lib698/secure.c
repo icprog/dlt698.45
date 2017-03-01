@@ -81,7 +81,7 @@ INT32S secureConnectRequest(SignatureSecurity* securityInfo ,SecurityData* RetIn
      return ret;
 }
 /**********************************************************************
-*处理主动上报，主站回复报文同esam交互部分
+*处理主动上报，主站回复报文同esam交互部分(按照宣贯资料来操作，需要RN。芯片手册需要MAC)
  **********************************************************************/
 INT32S secureResponseData(INT8U* RN,INT8U* apdu)
 {
