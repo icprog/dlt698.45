@@ -571,7 +571,7 @@ INT8U Get_StandardUnit(OI_698 oi,INT8U *Rbuf,INT8U *Index,
  */
 INT8U Getcurrno(INT16U *currno,INT16U maxno){
 	fprintf(stderr,"[event]currno=%d maxno=%d \n",*currno,maxno);
-	maxno==0?15:maxno;
+	maxno=0?15:maxno;
 	if(*currno>maxno)
 		*currno=1;
 	return 1;

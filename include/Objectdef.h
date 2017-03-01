@@ -319,6 +319,7 @@ typedef struct
 typedef struct{
 	OAD		oad;
 	RCSD	rcsd;
+	INT8U 	selectType;//选择类型
 	RSD		rsd;
 }RecordData;
 

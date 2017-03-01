@@ -58,4 +58,5 @@ extern int get_BasicRCSD(INT8U *source,CSD_ARRAYTYPE *csds);	//0x60
 
 /*----------------------具体OI类组帧函数----------------------*/
 extern int Get_6000(INT8U seqnum,INT8U *data);
+extern int Get_6035(INT8U seqnum,INT8U *data);
 #endif

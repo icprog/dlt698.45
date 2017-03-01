@@ -593,31 +593,29 @@ void AddReportInfo(INT8U *data)
 			break;
 		case 1://RecordData
 			index += getOAD(1,&data[index],&reportplan.reportdata.data.recorddata.oad);
-//			index += getOAD(1,&data[index],&reportplan.reportdata.data.recorddata.rcsd);
-//			index += getOAD(1,&data[index],&reportplan.reportdata.data.recorddata.rsd);
+			index += get_BasicRCSD(&data[index],&reportplan.reportdata.data.recorddata.rcsd.csds);
+			index += get_BasicRSD(&data[index],(INT8U *)&reportplan.reportdata.data.recorddata.rsd,&reportplan.reportdata.data.recorddata.selectType);
 			break;
 		}
-//		fprintf(stderr,"\n第 %d 个事件方案  ID=%d   (%d 个ROAD)",k,eventFangAn.sernum,eventFangAn.roads.num);
-//		int j=0,w=0;
-//		for(j=0;j<eventFangAn.roads.num;j++)
-//		{
-//			fprintf(stderr,"\nROAD%d",j);
-//			fprintf(stderr,"\n[oad %x %02x %02x]",eventFangAn.roads.road[j].oad.OI,eventFangAn.roads.road[j].oad.attflg,eventFangAn.roads.road[j].oad.attrindex);
-//			for(w=0;w<eventFangAn.roads.road[j].num;w++)
-//			{
-//				fprintf(stderr,"\n[%x %02x %02x]",eventFangAn.roads.road[j].oads[w].OI,eventFangAn.roads.road[j].oads[w].attflg,eventFangAn.roads.road[j].oads[w].attrindex);
-//			}
-//		}
-//		fprintf(stderr,"\nMStype = %d  data=%d",eventFangAn.ms.mstype,eventFangAn.ms.ms.allmeter_null);
-//		fprintf(stderr,"\n上报标识 = %d ",eventFangAn.ifreport);
-//		fprintf(stderr,"\n存储深度 = %d\n",eventFangAn.deepsize);
-//
-//		saveflg = saveCoverClass(0x6017,eventFangAn.sernum,&eventFangAn,sizeof(eventFangAn),coll_para_save);
-//		if (saveflg==1)
-//			fprintf(stderr,"\n采集方案 %d 保存成功",eventFangAn.sernum);
-//		else
-//			fprintf(stderr,"\n采集方案 %d 保存失败",eventFangAn.sernum);
-
+		saveflg = saveCoverClass(0x601d,reportplan.reportnum,&reportplan,sizeof(CLASS_601D),coll_para_save);
+		if (saveflg==1)
+			fprintf(stderr,"\n采集任务 %d 保存成功",reportplan.reportnum);
+		else
+			fprintf(stderr,"\n采集任务 %d 保存失败",reportplan.reportnum);
+	}
+	fprintf(stderr,"\n[1]上报方案编号 [2]上报通道 [3]上报响应超时时间 [4]最大上报次数 [5]上报内容 {[5.1]类型(0:OAD,1:RecordData) [5.2]数据}");
+	fprintf(stderr,"\n[1]上报方案编号:%d \n",reportplan.reportnum);
+	fprintf(stderr,"[2]OAD[%d] ",reportplan.chann_oad.num);
+	for(j=0;j<reportplan.chann_oad.num;j++) {
+		fprintf(stderr,"%04x-%02x%02x ",reportplan.chann_oad.oadarr[j].OI,reportplan.chann_oad.oadarr[j].attflg,reportplan.chann_oad.oadarr[j].attrindex);
+	}
+	fprintf(stderr," [3]TI %d-%d ",reportplan.timeout.units,reportplan.timeout.interval);
+	fprintf(stderr," [4]%d ",reportplan.maxreportnum);
+	fprintf(stderr," [5.1]%d ",reportplan.reportdata.type);
+	if(reportplan.reportdata.type==0) {
+		fprintf(stderr," [5.2]OAD:%04x-%02x%02x ",reportplan.reportdata.data.oad.OI,reportplan.reportdata.data.oad.attflg,reportplan.reportdata.data.oad.attrindex);
+	}else {
+//		fprintf(stderr," [5.2]OAD:%04x-%02x%02x ",reportplan.reportdata.data.oad.OI,reportplan.reportdata.data.oad.attflg,reportplan.reportdata.data.oad.attrindex);
 	}
 }
 

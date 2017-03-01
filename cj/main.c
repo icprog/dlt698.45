@@ -141,6 +141,15 @@ void dog_feed()
 	system("pkill cjdeal");
 	system("pkill gsmMuxd");
 }
+
+INT8U Getcurrno(INT16U *currno,INT16U maxno){
+	fprintf(stderr,"[event]currno=%d maxno=%d \n",*currno,maxno);
+	maxno=0?15:maxno;
+	if(*currno>maxno)
+		*currno=1;
+	return 1;
+}
+
 int main(int argc, char *argv[])
 {
 	usleep(10);
@@ -218,6 +227,9 @@ int main(int argc, char *argv[])
 		cjread(argc,argv);
 		return EXIT_SUCCESS;
 	}
+
 	prthelp();
 	return EXIT_SUCCESS;
 }
+
+

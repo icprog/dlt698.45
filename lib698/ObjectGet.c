@@ -562,10 +562,7 @@ int Get4300(RESULT_NORMAL *response)
 
 int getSel1_coll(RESULT_RECORD *record)
 {
-	CLASS_6001 meter={};
 	int ret=0;
-	INT8U	data[512];
-	CLASS_6035	classoi={};
 	int		index = 0;
 	INT8U	taskid=0;
 
@@ -595,20 +592,11 @@ int getSel1_coll(RESULT_RECORD *record)
 					taskid = record->select.selec1.data.data[0];
 				}
 				fprintf(stderr,"taskid=%d\n",taskid);
-				if (readCoverClass(record->select.selec1.oad.OI,taskid,&classoi,sizeof(CLASS_6035),coll_para_save))
-				{
-					data[index++] = 1;		//1条记录     [1] SEQUENCE OF A-RecordRow
-					index += create_struct(&data[index],8);
-					index += fill_unsigned(&data[index],classoi.taskID);
-					index += fill_enum(&data[index],classoi.taskState);
-					index += fill_date_time_s(&data[index],&classoi.starttime);
-					index += fill_date_time_s(&data[index],&classoi.endtime);
-					index += fill_long_unsigned(&data[index],classoi.totalMSNum);
-					index += fill_long_unsigned(&data[index],classoi.successMSNum);
-					index += fill_long_unsigned(&data[index],classoi.sendMsgNum);
-					index += fill_long_unsigned(&data[index],classoi.rcvMsgNum);
-				}else
-					data[index++] = 0;
+				record->data[index++] = 1;		//1条记录     [1] SEQUENCE OF A-RecordRow
+				Get_6035(taskid,&record->data[index]);
+				if(index==0) {	//0条记录     [1] SEQUENCE OF A-RecordRow
+					record->data[0] = 0;
+				}
 				record->datalen = index;
 				break;
 			}

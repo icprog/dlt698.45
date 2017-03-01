@@ -445,3 +445,22 @@ int Get_6000(INT8U seqnum,INT8U *data)
 	return index;
 }
 
+int Get_6035(INT8U taskid,INT8U *data)
+{
+	int 	index=0;
+	CLASS_6035	classoi={};
+
+	if (readCoverClass(0x6035,taskid,&classoi,sizeof(CLASS_6035),coll_para_save))
+	{
+		index += create_struct(&data[index],8);
+		index += fill_unsigned(&data[index],classoi.taskID);
+		index += fill_enum(&data[index],classoi.taskState);
+		index += fill_date_time_s(&data[index],&classoi.starttime);
+		index += fill_date_time_s(&data[index],&classoi.endtime);
+		index += fill_long_unsigned(&data[index],classoi.totalMSNum);
+		index += fill_long_unsigned(&data[index],classoi.successMSNum);
+		index += fill_long_unsigned(&data[index],classoi.sendMsgNum);
+		index += fill_long_unsigned(&data[index],classoi.rcvMsgNum);
+	}
+	return index;
+}
