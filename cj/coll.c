@@ -13,6 +13,7 @@
 #include "Objectdef.h"
 #include "main.h"
 #include "dlt698.h"
+#include "PublicFunction.h"
 
 typedef enum{
 	coll_bps=1,
@@ -555,5 +556,145 @@ void cjframe(int argc, char *argv[])
 			tempbuf[i] = (INT8U)tmp;
 		}
 		testframe(tempbuf,len);
+	}
+}
+/*
+ * 读取文件头长度和块数据长度
+ */
+void ReadFileHeadLen(FILE *fp,INT16U *headlen,INT16U *blocklen)
+{
+	INT16U headlength=0,blocklength=0;
+	fread(&headlength,2,1,fp);
+	*headlen = ((headlength>>8)+((headlength&0xff)<<8));
+	fread(&blocklength,2,1,fp);
+	*blocklen = ((blocklength>>8)+((blocklength&0xff)<<8));
+}
+typedef struct{
+	INT8U type;//0：oad 1：road
+	OAD   oad;
+	INT8U num[2];//长度或个数，类型为0，表示长度；类型为1，表示个数
+}HEAD_UNIT;
+void ReadFileHead(FILE *fp,INT16U headlen,INT16U unitlen,INT16U unitnum,INT8U *headbuf)
+{
+	HEAD_UNIT *headunit = NULL;
+//	INT16U unitlen = 0,unitnum = 0;
+//	INT16U headlen=0;
+	int i=0;
+	fread(headbuf,headlen,1,fp);
+	headunit = malloc(headlen-4);
+	memcpy(headunit,&headbuf[4],headlen-4);
+	for(i=0;i<unitnum;i++)
+	{
+		fprintf(stderr,"\ntype:");
+		fprintf(stderr,"%02x",headunit[i].type);
+		fprintf(stderr,"oad:");
+		fprintf(stderr,"%04x%02x%02x",headunit[i].oad.OI,headunit[i].oad.attflg,headunit[i].oad.attrindex);
+		fprintf(stderr," num:");
+		fprintf(stderr,"%02x%02x",headunit[i].num[0],headunit[i].num[1]);
+	}
+	fprintf(stderr,"\n");
+	free(headunit);
+}
+/*
+ * 读取抄表数据，读取某个测量点某任务某天一整块数据，放在内存里，根据需要提取数据,并根据csd
+ */
+void ReadNorData(TS ts,INT8U taskid,INT8U *tsa)
+{
+	FILE *fp  = NULL;
+	INT16U headlen=0,unitlen=0,unitnum=0,readlen=0;
+	INT8U *databuf_tmp=NULL;
+	INT8U *headbuf=NULL;
+	int i=0,j=0;
+	int savepos=0;
+	TS ts_now;
+	TSGet(&ts_now);
+	char	fname[128]={};
+	TASKSET_INFO tasknor_info;
+	taskid=1;
+	if(ReadTaskInfo(taskid,&tasknor_info)!=1)
+		return;
+	getTaskFileName(taskid,ts_now,fname);
+	fp = fopen(fname,"r");
+	if(fp == NULL)//文件没内容 组文件头，如果文件已存在，提取文件头信息
+	{
+		fprintf(stderr,"\nopen file %s fail\n",fname);
+		return;
+	}
+	ReadFileHeadLen(fp,&headlen,&unitlen);
+	headbuf = (INT8U *)malloc(headlen);
+	unitnum = (headlen-4)/sizeof(HEAD_UNIT);
+	ReadFileHead(fp,headlen,unitlen,unitnum,headbuf);
+	databuf_tmp = malloc(unitlen);
+	fseek(fp,headlen,SEEK_SET);//跳过文件头
+	while(!feof(fp))//找存储结构位置
+	{
+		//00 00 00 00 00 00 00 00 07 05 00 00 00 00 00 01
+		//00 00 00 00 00 00 00 00 00 07 05 00 00 00 00 00 01
+		readlen = fread(databuf_tmp,unitlen,1,fp);
+		fprintf(stderr,"\n----读出来的长度readlen=%d,块大小unitlen=%d\n",readlen,unitlen);
+		if(readlen == 0)
+			break;
+		fprintf(stderr,"\n");
+		fprintf(stderr,"\n传进来的TSA：");
+		for(i=0;i<TSA_LEN;i++)
+			fprintf(stderr," %02x",tsa[i]);
+		for(i=0;i<TSA_LEN;i++)
+			fprintf(stderr," %02x",databuf_tmp[i+1]);
+		if(memcmp(&databuf_tmp[1],&tsa[0],17)==0)//找到了存储结构的位置，一个存储结构可能含有unitnum个单元
+		{
+			savepos=ftell(fp)-unitlen;//对应的放到对应的位置
+			break;
+		}
+	}
+	fprintf(stderr,"\n----(pos:%d):\n",savepos);
+	if(savepos==0)//没找到的不打印
+		return;
+	fprintf(stderr,"\n要求的tsa:");
+	for(j=0;j<17;j++)
+		fprintf(stderr,"%02x ",tsa[j]);
+	fprintf(stderr,"\n文件中的数据(pos:%d):",savepos);
+	fseek(fp,savepos,SEEK_SET);//
+	fread(databuf_tmp,unitlen,1,fp);
+//		for(j=0;j<unitlen;j++)
+//		{
+//			fprintf(stderr,"%02x ",databuf_tmp[j]);
+//		}
+	fprintf(stderr,"\n---存储单元数：%d 每个单元长度:%d\n",tasknor_info.runtime,unitlen/tasknor_info.runtime);
+	fprintf(stderr,"\n文件%s存储的数据(%d)：",fname,unitlen);
+	fprintf(stderr,"\n");
+
+	for(i=0;i<unitlen;i++)
+	{
+		if(i%(unitlen/tasknor_info.runtime) == 0)
+			fprintf(stderr,"\n%d:",i/(unitlen/tasknor_info.runtime));
+
+		fprintf(stderr," %02x",databuf_tmp[i]);
+	}
+
+}
+void cjread(int argc, char *argv[])
+{
+	INT8U tsa[17];
+	INT8U taskid=0;
+	TS ts_now;
+	int len=0,i=0,tmp=0;
+	fprintf(stderr,"\nargc =%d",argc);
+	if (argc>3)
+	{
+		len = argc - 3;//cj test 05 02 23 34 54 67
+		sscanf(argv[2],"%d",&tmp);
+		if(tmp >= 256)
+			return;
+		if (len>18)
+			return;
+		taskid = tmp;
+		memset(tsa,0,17);
+		for(i=0;i<len;i++)
+		{
+			sscanf(argv[i+3],"%02x",&tmp);
+			tsa[i] = (INT8U)tmp;
+		}
+		TSGet(&ts_now);
+		ReadNorData(ts_now,taskid,tsa);
 	}
 }

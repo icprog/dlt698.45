@@ -25,7 +25,8 @@ static char
 					"\n--------------------参数设置----------------------------\n"	\
 					"		 【主站IP端口设置】cj ip XXX.XXX.XXX.XXX:port XXX.XXX.XXX.XXX:port 	\n"					\
 					"		 【主站apn设置】cj apn cmnet		\n"					\
-					"		 【通信地址】cj id <addr>		\n"					\
+					"		 【cdma电信用户名密码设置】cj usr-pwd 　user  password		\n"					\
+					"		 【通信地址】cj id <addr>	如：地址为123456  :cj id 12 34 56	\n"					\
 					"-------------------------------------------------------\n\n"	\
 					;
 
@@ -192,6 +193,13 @@ int main(int argc, char *argv[])
 		inoutdev_process(argc,argv);
 		return EXIT_SUCCESS;
 	}
+
+	if(strcmp("usr-pwd",argv[1])==0)
+	{
+		SetUsrPwd(argc, argv);
+		return EXIT_SUCCESS;
+	}
+
 	if(strcmp("acs",argv[1])==0)
 	{
 		fprintf(stderr,"%s",usage_acs);
@@ -202,6 +210,12 @@ int main(int argc, char *argv[])
 	{
 		fprintf(stderr,"\n自组报文\n");
 		cjframe(argc,argv);
+		return EXIT_SUCCESS;
+	}
+	if (strcmp("cjread",argv[1])==0)
+	{
+		fprintf(stderr,"\n查看任务抄表数据\n");
+		cjread(argc,argv);
 		return EXIT_SUCCESS;
 	}
 	prthelp();

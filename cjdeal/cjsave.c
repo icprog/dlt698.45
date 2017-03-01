@@ -154,25 +154,13 @@ INT8U datafile_read(char *FileName, void *source, int size, int offset)
 /*
  * 读取文件头长度和块数据长度
  */
-INT8U ReadFileHeadLen(char *fname,INT16U *headlen,INT16U *blocklen)
+void ReadFileHeadLen(FILE *fp,INT16U *headlen,INT16U *blocklen)
 {
-	FILE *fp = NULL;
 	INT16U headlength=0,blocklength=0;
-	fp = fopen(fname,"r");
-	if(fp==NULL)
-	{
-		fprintf(stderr,"\n%s open error,file not exist!\n",fname);
-		return 0;
-	}
-	else
-	{
-		fread(&headlength,2,1,fp);
-		*headlen = ((headlength>>8)+((headlength&0xff)<<8));
-		fread(&blocklength,2,1,fp);
-		*blocklen = ((blocklength>>8)+((blocklength&0xff)<<8));
-		fclose(fp);
-	}
-	return 1;
+	fread(&headlength,2,1,fp);
+	*headlen = ((headlength>>8)+((headlength&0xff)<<8));
+	fread(&blocklength,2,1,fp);
+	*blocklen = ((blocklength>>8)+((blocklength&0xff)<<8));
 }
 void ReadFileHead(char *fname,INT16U headlen,INT16U unitlen,INT16U unitnum,INT8U *headbuf)
 {
@@ -312,7 +300,7 @@ void CreateSaveHead(char *fname,CSD_ARRAYTYPE csds,INT16U *headlen,INT16U *unitl
 /*
  * 存储普通采集方案数据，
  * 数据格式：文件头结构：标注文件TSA和时标及csd格式，开始4个字节为文件头长度和每个数据单元长度 数据结构：存储各数据项值
- *分测量点存储，一个TSA的全部数据放到一起，例如24个点的曲线数据，则按采集个数编号放入到一个位置,减少索引时间
+ * 分测量点存储，一个TSA的全部数据放到一起，例如24个点的曲线数据，则按采集个数编号放入到一个位置,减少索引时间
  */
 void SaveNorData(INT8U taskid,INT8U *databuf,int datalen)
 {
@@ -320,7 +308,7 @@ void SaveNorData(INT8U taskid,INT8U *databuf,int datalen)
 	FILE *fp;
 	char	fname[FILENAMELEN]={};
 	INT8U *databuf_tmp=NULL;
-	int savepos=0,i=0;
+	int savepos=0,currpos=0,i=0;
 	INT16U headlen=0,unitlen=0,unitnum=0,unitseq=0;
 //	CLASS_6015	class6015={};
 //	CLASS_6013	class6013={};
@@ -335,17 +323,11 @@ void SaveNorData(INT8U taskid,INT8U *databuf,int datalen)
 	{
 		CreateSaveHead(fname,tasknor_info.csds,&headlen,&unitlen,&unitnum,tasknor_info.runtime,1);//写文件头信息并返回
 		databuf_tmp = malloc(unitlen);
-		savepos=headlen;
+		savepos=0;
 	}
 	else
 	{
-		if(ReadFileHeadLen(fname,&headlen,&unitlen) == 0)
-		{
-			fprintf(stderr,"\n--文件头读取失败\n");
-			return ;
-		}
-		else
-			fprintf(stderr,"\n----文件头读取成功unitlen=%d\n",unitlen);
+		ReadFileHeadLen(fp,&headlen,&unitlen);
 		databuf_tmp = malloc(unitlen);
 		fseek(fp,headlen,SEEK_SET);//跳过文件头
 		while(!feof(fp))
@@ -353,6 +335,7 @@ void SaveNorData(INT8U taskid,INT8U *databuf,int datalen)
 			if(fread(databuf_tmp,unitlen,1,fp)==0)
 			{
 //				fseek(fp,headlen,SEEK_SET);//回到文件头末尾
+				fprintf(stderr,"\n-----savepos=%d,ftell(fp)=%d\n",savepos,(int)ftell(fp));
 				break;
 			}
 			fprintf(stderr,"\n文件中地址：");
@@ -375,24 +358,35 @@ void SaveNorData(INT8U taskid,INT8U *databuf,int datalen)
 				fprintf(stderr,"\n-----savepos=%d,ftell(fp)=%d\n",savepos,(int)ftell(fp));
 		}
 	}
-	fprintf(stderr,"\n-------------savepos=%d\n",savepos);
-	if(savepos==0 || savepos==headlen)//存储位置为0.说明文件中没找到，则应添加而不是覆盖
+	if(fp != NULL)
+		currpos = ftell(fp);
+	fprintf(stderr,"\n-------%%%%@@@------currpos=%d:%d\n",currpos,headlen+unitlen);
+	if(savepos==0)//存储位置为0.说明文件中没找到，则应添加而不是覆盖
 	{
-		if(savepos==0)
-			savepos=ftell(fp);
+		if(currpos == 0)//第一个存储的
+			savepos=headlen;
+		else
+			savepos=currpos;
 		fprintf(stderr,"\n-------1------savepos=%d\n",savepos);
 		memset(databuf_tmp,0x00,unitlen);
 		for(i=0;i<tasknor_info.runtime;i++)
 			memcpy(&databuf_tmp[unitlen*i/tasknor_info.runtime],databuf,17);//每个小单元地址附上
 	}
 	unitseq = (ts_now.Hour*60*60+ts_now.Minute*60+ts_now.Sec)/((24*60*60)/tasknor_info.runtime)+1;
+	fprintf(stderr,"\n-----unitseq=%d\n",unitseq);
 	if(unitseq > tasknor_info.runtime)
+	{
+		if(databuf_tmp != NULL)
+			free(databuf_tmp);
 		return ;//出错了，序列号超过了总长度
+	}
+	fprintf(stderr,"\n-----unitlen*(unitseq-1)/tasknor_info.runtime=%d\n",unitlen*(unitseq-1)/tasknor_info.runtime);
 	memcpy(&databuf_tmp[unitlen*(unitseq-1)/tasknor_info.runtime],databuf,datalen);
 	if(datalen != unitlen/tasknor_info.runtime)
 	{
-		fprintf(stderr,"\n----长度不对，不保存datalen=%d unitlen=%d,(unitlen-41)/3+41=%d\n",datalen , unitlen,unitlen/tasknor_info.runtime);
-		free(databuf_tmp);
+		fprintf(stderr,"\n----长度不对，不保存datalen=%d unitlen=%d,tasknor_info.runtime=%d\n",datalen,unitlen,tasknor_info.runtime);
+		if(databuf_tmp != NULL)
+			free(databuf_tmp);
 		return ;//长度不对
 	}
 	else
@@ -402,61 +396,40 @@ void SaveNorData(INT8U taskid,INT8U *databuf,int datalen)
 	}
 	if(fp!=NULL)
 		fclose(fp);
-	free(databuf_tmp);
+	if(databuf_tmp != NULL)
+		free(databuf_tmp);
 }
 /*
- * 读取抄表数据，读取某个测量点某任务某天一整块数据，放在内存里，根据需要提取数据,并根据csd
+ * 读取一个任务下的某个测量点某数据
  */
-//void ReadNorData(TS ts,INT8U taskid,TSA *tsa_con,INT8U tsa_num)
+void GetNorData(TS ts,INT8U taskid,INT8U *tsa)
+{
+	;
+}
+///*
+// * 读取抄表数据，读取某个测量点某任务某天一整块数据，放在内存里，根据需要提取数据,并根据csd
+// */
+//void ReadNorData(TS ts,INT8U taskid,INT8U *tsa)
 //{
 //	FILE *fp  = NULL;
-//	INT16U headlen=0,unitlen=0,unitnum=0,freq=0;
+//	INT16U headlen=0,unitlen=0,unitnum=0,readlen=0;
 //	INT8U *databuf_tmp=NULL;
 //	INT8U *headbuf=NULL;
-//	int i=0,j=0,mm=0;
-//	int *savepos=NULL;
-//	CLASS_6015	class6015={};
-//	CLASS_6013	class6013={};
+//	int i=0,j=0;
+//	int savepos=0;
 //	TS ts_now;
 //	TSGet(&ts_now);
 //	char	fname[FILENAMELEN]={};
-//	memset(&class6013,0,sizeof(CLASS_6013));
-//	readCoverClass(0x6013,taskid,&class6013,sizeof(class6013),coll_para_save);
-//	memset(&class6015,0,sizeof(CLASS_6015));
-//	readCoverClass(0x6015,class6013.sernum,&class6015,sizeof(CLASS_6015),coll_para_save);
-//	freq = CalcFreq(class6015);
-//	////////////////////////////////////////////////////////////////////////////////test
-//	memset(&class6015,0xee,sizeof(CLASS_6015));
-//	class6015.csds.num = 1;
-//	class6015.csds.csd[0].type=1;
-//	class6015.csds.csd[0].csd.road.oad.OI =0x5004;
-//	class6015.csds.csd[0].csd.road.oad.attflg = 0x02;
-//	class6015.csds.csd[0].csd.road.oad.attrindex = 0x00;
-//	class6015.csds.csd[0].csd.road.num = 3;
-//	class6015.csds.csd[0].csd.road.oads[0].OI = 0x2021;
-//	class6015.csds.csd[0].csd.road.oads[0].attflg = 0x02;
-//	class6015.csds.csd[0].csd.road.oads[0].attrindex = 0x00;
-//	class6015.csds.csd[0].csd.road.oads[1].OI = 0x0010;
-//	class6015.csds.csd[0].csd.road.oads[1].attflg = 0x02;
-//	class6015.csds.csd[0].csd.road.oads[1].attrindex = 0x00;
-//	class6015.csds.csd[0].csd.road.oads[2].OI = 0x0020;
-//	class6015.csds.csd[0].csd.road.oads[2].attflg = 0x02;
-//	class6015.csds.csd[0].csd.road.oads[2].attrindex = 0x00;
-//	freq = 1;
+//	TASKSET_INFO tasknor_info;
 //	taskid=1;
-//	//////////////////////////////////////////////////////////////////////////////////test
-//
+//	if(ReadTaskInfo(taskid,&tasknor_info)!=1)
+//		return;
 //	getTaskFileName(taskid,ts_now,fname);
-//	//test
-////	freq=1;
-//	//test
-////	CreateSaveHead(fname,class6015.csds,&headlen,&unitlen,&unitnum,freq,0);//读取文件头信息
 //	ReadFileHeadLen(fname,&headlen,&unitlen);
 //	headbuf = (INT8U *)malloc(headlen);
 //	unitnum = (headlen-4)/sizeof(HEAD_UNIT);
 //	ReadFileHead(fname,headlen,unitlen,unitnum,headbuf);
 //	databuf_tmp = malloc(unitlen);
-//	savepos = (int *)malloc(tsa_num*sizeof(int));
 //	fp = fopen(fname,"r");
 //	if(fp == NULL)//文件没内容 组文件头，如果文件已存在，提取文件头信息
 //	{
@@ -469,49 +442,44 @@ void SaveNorData(INT8U taskid,INT8U *databuf,int datalen)
 //		{
 //			//00 00 00 00 00 00 00 00 07 05 00 00 00 00 00 01
 //			//00 00 00 00 00 00 00 00 00 07 05 00 00 00 00 00 01
-//			fread(databuf_tmp,unitlen,1,fp);
-//			fprintf(stderr,"\n文件%s存储的数据(%d)：",fname,unitlen);
-//			for(i=0;i<unitlen;i++)
-//				fprintf(stderr," %02x",databuf_tmp[i]);
-//			fprintf(stderr,"\n");
-//			fprintf(stderr,"\n传进来的TSA(%d)：",tsa_num);
-//			for(i=0;i<TSA_LEN;i++)
-//				fprintf(stderr," %02x",tsa_con[0].addr[i]);
-//			fprintf(stderr,"\n");
-//			for(i=0;i<TSA_LEN;i++)
-//				fprintf(stderr," %02x",tsa_con[1].addr[i]);
-//			fprintf(stderr,"\n");
-//			for(i=0;i<TSA_LEN;i++)
-//				fprintf(stderr," %02x",tsa_con[2].addr[i]);
-//			fprintf(stderr,"\n");
-//			fprintf(stderr,"\n====%d\n",mm);
-//			for(i=0;i<tsa_num;i++)
-//			{
-//				if(memcmp(&databuf_tmp[1],&tsa_con[i].addr[1],16)==0)//找到了存储结构的位置，一个存储结构可能含有unitnum个单元
-//				{
-//					savepos[i]=ftell(fp)-unitlen;//对应的放到对应的位置
-//					mm++;
-//				}
-//			}
-//			if(mm >= tsa_num)
+//			readlen = fread(databuf_tmp,unitlen,1,fp);
+//			fprintf(stderr,"\n----读出来的长度readlen=%d,块大小unitlen=%d\n",readlen,unitlen);
+//			if(readlen == 0)
 //				break;
-//		}
-//		for(i=0;i<tsa_num;i++)
-//		{
-//			if(savepos[i]==0)//没找到的不打印
-//				continue;
-//			fprintf(stderr,"\n要求的tsa:");
-//			for(j=0;j<17;j++)
-//				fprintf(stderr,"%02x ",tsa_con[i].addr[j]);
-//			fprintf(stderr,"\n文件中的数据(pos:%d):",savepos[i]);
-//			fseek(fp,savepos[i],SEEK_SET);//
-//			fread(databuf_tmp,unitlen,1,fp);
-//			for(j=0;j<unitlen;j++)
-//				fprintf(stderr,"%02x ",databuf_tmp[j]);
 //			fprintf(stderr,"\n");
+//			fprintf(stderr,"\n传进来的TSA：");
+//			for(i=0;i<TSA_LEN;i++)
+//				fprintf(stderr," %02x",tsa[i]);
+//			for(i=0;i<TSA_LEN;i++)
+//				fprintf(stderr," %02x",databuf_tmp[i+1]);
+//			if(memcmp(&databuf_tmp[1],&tsa[0],17)==0)//找到了存储结构的位置，一个存储结构可能含有unitnum个单元
+//				savepos=ftell(fp)-unitlen;//对应的放到对应的位置
 //		}
+//		fprintf(stderr,"\n----(pos:%d):\n",savepos);
+//		if(savepos==0)//没找到的不打印
+//			return;
+//		fprintf(stderr,"\n要求的tsa:");
+//		for(j=0;j<17;j++)
+//			fprintf(stderr,"%02x ",tsa[j]);
+//		fprintf(stderr,"\n文件中的数据(pos:%d):",savepos);
+//		fseek(fp,savepos,SEEK_SET);//
+//		fread(databuf_tmp,unitlen,1,fp);
+////		for(j=0;j<unitlen;j++)
+////		{
+////			fprintf(stderr,"%02x ",databuf_tmp[j]);
+////		}
+//		fprintf(stderr,"\n文件%s存储的数据(%d)：",fname,unitlen);
+//		fprintf(stderr,"\n");
+//
+//		for(i=0;i<unitlen;i++)
+//		{
+//			if(i%(unitlen/tasknor_info.runtime) == 0)
+//				fprintf(stderr,"\n%d:",i/(unitlen/tasknor_info.runtime));
+//
+//			fprintf(stderr," %02x",databuf_tmp[i]);
+//		}
+//
 //	}
-//	free(savepos);
 //}
 //INT16U GetFileOadLen(INT8U units,INT8U tens)//个位十位转化为一个INT16U
 //{

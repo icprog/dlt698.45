@@ -22,6 +22,11 @@ typedef struct {
 	INT16U max_num;					//最大元素个数
 } CLASS11;			//集合接口类
 
+
+typedef struct {
+
+} CLASS14;			//区间统计接口类
+
 typedef struct {
 	INT8U logic_name[OCTET_STRING_LEN];			//逻辑名
 	INT16U device_num;					 //设备对象数量
@@ -120,6 +125,30 @@ typedef struct {
 	NETCONFIG IP;						//终端IP
 	INT8U mac[OCTET_STRING_LEN];						//MAC地址
 } CLASS26;						//以太网通信接口类
+
+/////////////////////////////////////////////////////////////////////////////
+/********************************************************
+ *				 A.3 变量类对象
+ ********************************************************/
+typedef struct{
+	INT32U day_tj;
+	INT32U month_tj;
+}Day_Mon_TJ;	//日月统计值
+
+typedef struct{
+	Day_Mon_TJ	flow;
+}Flow_tj;//2200	通信流量统计
+
+typedef struct{
+	Day_Mon_TJ	gongdian;
+	TS ts;
+}Gongdian_tj;//2203 供电时间统计
+
+typedef struct{
+	Day_Mon_TJ	reset;
+	TS ts;
+}Reset_tj;//2204 //复位次数统计
+
 
 /////////////////////////////////////////////////////////////////////////////
 /********************************************************
@@ -275,11 +304,53 @@ typedef struct {
 typedef struct {
 //	INT8U name[OCTET_STRING_LEN];		//参数变量接口类逻辑名
 	INT8U sernum;						//方案序号
-	ROAD road[10];						//采集的事件数据
+	ARRAY_ROAD roads;						//采集的事件数据
 	MY_MS  ms;							//采集类型
 	INT8U ifreport;						//上报标识
 	INT16U deepsize;					//存储深度
 } CLASS_6017;					//事件采集方案
+
+typedef struct
+{
+	INT8U	num;
+	OAD     oadarr[REPORT_CHANN_OAD_NUM];
+}ARRAY_OAD;
+
+typedef struct{
+	OAD		oad;
+	RCSD	rcsd;
+	RSD		rsd;
+}RecordData;
+
+typedef union{
+	OAD			oad;
+	RecordData	recorddata;
+}DataUnit;
+
+typedef struct{
+	INT8U		type;	//上报类型　0:OAD对象属性数据【终端数据】　1:RecordData:上报记录型对象属性[电表]
+	DataUnit	data;
+}REPORT_DATA;
+
+typedef struct {
+	INT8U 		reportnum;	            //方案编号
+	ARRAY_OAD 	chann_oad;				//上报通道
+	TI			timeout;				//上报相应超时时间
+	INT8U   	maxreportnum;			//最大上报次数
+	REPORT_DATA	reportdata;				//上报数据
+} CLASS_601D;              //上报方案
+
+typedef struct
+{
+	INT8U dinum;
+	INT8U DI_1[DI07_NUM_601F][4];
+	INT8U DI_2[DI07_NUM_601F][4];
+}C601F_07Flag;
+
+typedef struct {
+	CSD flag698;
+	C601F_07Flag flag07;
+} CLASS_601F;			//采集规则
 
 typedef struct {
 	INT8U taskID;		                //任务ID
@@ -328,17 +399,6 @@ typedef struct {
 	StateAtti4 state4;			//开关量属性
 } CLASS_f203;			//开关量输入
 
-typedef struct
-{
-	INT8U DI_1[10][4];
-	INT8U DI_2[10][4];
-}C601F_07Flag;
-
-typedef struct {
-	CSD flag698;
-	C601F_07Flag flag07;
-} CLASS_601F;			//开关量输入
-
 /////////////////////////////////////////////////////////////////////
 typedef struct
 {
@@ -375,8 +435,30 @@ typedef struct
 	INT16U num;			//个数
 	GETOBJS objs[10];	//代理请求列表
 	INT8U data[512];	//请求结果
+	INT16U datalen;		//数据长度
 }PROXY_GETLIST;
 
+typedef struct{
+	LINK_Request link_request;
+	int phy_connect_fd;
+	INT8U linkstate;
+	INT8U testcounter;
+	INT8U serveraddr[16];
+	INT8U SendBuf[BUFLEN];			//发送数据
+	INT8U DealBuf[FRAMELEN];  		//保存接口函数处理长度
+	INT8U RecBuf[BUFLEN]; 			//接收数
+	int RHead,RTail;				//接收报文头指针，尾指针
+	int deal_step;					//数据接收状态机处理标记
+	int	rev_delay;					//接收延时
+	INT8U securetype;				//安全类型
+	LINK_Response linkResponse;		//心跳确认
+	CONNECT_Response myAppVar;		//集中器支持的应用层会话参数
+	CONNECT_Response AppVar;		//与主站协商后的应用层会话参数
+	CLASS_F101 f101;				//安全模式信息
+	void* shmem;
+	INT8S (*p_send)(int fd,INT8U * buf,INT16U len);
+    INT8U taskaddr;                 //客户机地址
+}CommBlock;
 ////////////////////////////////////////////////////////////////////
 
 #endif /* OBJECTACTION_H_ */

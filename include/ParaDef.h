@@ -29,9 +29,9 @@
 
 
 #define MMQNAMEMAXLEN    	32		//消息队列名称长度
-#define MAXSIZ_PROXY_485    256
+#define MAXSIZ_PROXY_485    2048
 #define MAXNUM_PROXY_485    25
-#define MAXSIZ_PROXY_NET    256
+#define MAXSIZ_PROXY_NET    2048
 #define MAXNUM_PROXY_NET    25
 
 ///////////////////////////////////////////////////////////////
@@ -54,12 +54,20 @@
 #define VISIBLE_STRING_LEN		40
 #define COLLCLASS_MAXNUM		1024		//定义集合类最大元素个数
 
+#define	REPORT_CHANN_OAD_NUM	10			//上报方案 array OAD最大个数
 #define CLASS7_OAD_NUM			10			//关联对象属性表
 #define MAX_PERIOD_RATE   		48      	//支持的最到终端费率时段数
 
 #define	STATE_MAXNUM			8			//开关量单元最大个数
 
 #define EVENT_OI_MAXNUM			30			//终端需要判断事件
+
+#define	VARI_LEN				64			//变量类对象每个oi占用的位置空间
+//一个CSD 对应07数据项个数 数组
+#define DI07_NUM_601F 			10
+
+#define POWEROFFON_NUM          10          //停上电事件需要抄读得测量点最大数
+
 ////////////////////////////////////////////////////////////////
 
 /*

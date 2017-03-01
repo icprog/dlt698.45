@@ -18,7 +18,7 @@
 #define DATA_CONTENT_LEN 500
 
 
-mqd_t mqd_485_main;
+
 pthread_attr_t read485_attr_t;
 int thread_read4851_id,thread_read4852_id;           //485、四表合一（I型、II型、专变）
 pthread_t thread_read4851,thread_read4852;
@@ -51,12 +51,13 @@ typedef struct {
 
 
 extern void read485_proccess();
-
+mqd_t mqd_485_main;
 TASK_CFG list6013[TASK6012_MAX];
 INT32S comfd4851;
 INT32S comfd4852;
 //以下是测试用的假数据
 #ifdef TESTDEF
-CLASS_601F testArray[5];
+#define TESTARRAYNUM 20
+CLASS_601F testArray[TESTARRAYNUM];
 #endif
 #endif /* READ485_H_ */

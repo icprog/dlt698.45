@@ -22,11 +22,14 @@
 #define	 EVENT_REC			"/nand/event/record"		//事件记录目录
 #define	 EVENT_CURR			"/nand/event/current"		//当前值记录表
 
+#define	 VARI_DIR			"/nand/data"				//变量类数据文件目录
+#define	 VARI_DATA				"/nand/data/vari.dat"		//变量类-计量、采集子类数据存储
+#define	 VARI_DATA_TJ			"/nand/data/vari_tj.dat"		//变量类－统计子类数据存储
 #define	 PARADIR				"/nand/para"				//参变量文件（4000） 采集监控类文件（6000）
 #define	 DEMANDDIR				"/nand/demand"				//需量类数据
 #define	 FREEZEDIR				"/nand/freeze"				//冻结类数据存储
 #define	 CALCDIR				"/nand/calc"				//统计类数据存储
-#define	 INITDIR			"/nor/init"					//初始化参数文件
+#define	 INITDIR				"/nor/init"					//初始化参数文件
 #define	 TASKDATA				"/nand/task"				//任务采集存储文件
 
 //文件存储类型
@@ -44,7 +47,7 @@ typedef enum
 	coll_data_save=10
 }SaveFile_type;
 typedef struct {
-	INT8U  runtime;  //一天执行次数，日月年冻结和实时数据无效，置位1，由执行频率计算，主要针对负荷曲线，0表示对于这个采集方案任务无效
+	INT16U  runtime;  //一天执行次数，日月年冻结和实时数据无效，置位1，由执行频率计算，主要针对负荷曲线，0表示对于这个采集方案任务无效
 	INT16U startmin; //相对当日零点零分开始执行分钟数，主要针对负荷曲线
 	INT16U endmin;   //相对当日零点零分结束执行分钟数，主要针对负荷曲线
 	INT8U  KBtype;   //开闭方式 0000 0011前闭后闭 0000 0000前开后开,以此类推
@@ -153,11 +156,30 @@ extern int readCoverClass(OI_698 oi,INT16U seqno,void *blockdata,int datalen,int
  *************************************/
 extern long getFileRecordNum(OI_698 oi);
 
+//////////////////////////////////////////////////////////////////////////////////////
 //extern int write2_ProxyRequestList(PROXY_GETLIST *list);
 //
 //extern int read_ProxyRequestList(PROXY_GETLIST *list);
 //////////////////////////////////////////////////////////////////////////////////////
+///////////////变量数据类存储
+/*
+ * 变量数据存储及读取接口
+ * oi: 需要存储OI值
+ * blockdata:  需要存储数据, 存储格式为:　有效长度 + OAD + Data
+ * datalen :   需要存储数据长度,不能超过64个字节
+ * =-1 ：存储失败
+ * */
+extern int saveVariData(OI_698 oi,int coll_seqnum,void *blockdata,int datalen);
 
+/*
+ *　　读取数据值
+ *　　　  oi: 需要读取的oi值的所有属性值
+ *　　　　　blockdata:返回数据
+ *　　　　　len:　blockdata空间大小，需要申请blockdata申请空间大小为：oad个数×VARI_LEN
+ *　　　函数返回值：数据长度 =-1,读取失败
+ * */
+extern int  readVariData(OI_698 oi,int coll_seqnum,void *blockdata,int len);
+//////////////////////////////////////////////////////////////////////////////////////
 ///////////////数据文件存储
 
 extern INT8U getSelector(RSD select, INT8U selectype, CSD_ARRAYTYPE csds, INT8U *data, int *datalen);

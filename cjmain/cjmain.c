@@ -13,7 +13,8 @@
 #include "AccessFun.h"
 #include "cjmain.h"
 #include "../libMq/libmmq.h"
-
+int* mqs_glb=NULL;
+INT32U mqnum_glb=0;
 int DevResetNum=0;
 void Runled()
 {
@@ -45,6 +46,21 @@ void ProjectCheck(ProjectInfo *proinfo)
 			proinfo->ProjectState=NeedKill;
 			proinfo->WaitTimes=0;
 		}
+	}
+}
+void mqs_clear()
+{
+	INT32U i;
+	if(mqs_glb != NULL)
+	{
+		for(i=0;i < mqnum_glb;i++)
+		{
+			fprintf(stderr,"\n关闭消息队列 %d",mqs_glb[i]);
+			mmq_close(mqs_glb[i]);
+		}
+		free(mqs_glb);
+		mqs_glb = NULL;
+		mqnum_glb = 0;
 	}
 }
 
@@ -182,6 +198,7 @@ void shmm_destroy()
 void ProjectMainExit(int signo)
 {
 	fprintf(stderr,"\ncjmain exit\n");
+	mqs_clear();
 	close_named_sem(SEMNAME_SPI0_0);
 	sem_unlink(SEMNAME_SPI0_0);
 	close_named_sem(SEMNAME_PARA_SAVE);
@@ -190,7 +207,17 @@ void ProjectMainExit(int signo)
 	exit(0);
 	return ;
 }
-
+int Checkupdate()
+{
+	if(access("/dos/cjgwn",0) == 0)
+	{
+		fprintf(stderr,"\n/dos/gwn exists...");
+		system("chmod 777 /dos/cjgwn/update.sh");
+		system("/dos/cjgwn/update.sh &");
+		return 1;
+	}
+	return 0;
+}
 /*
  * 初始化操作
  * */
@@ -261,17 +288,16 @@ time_t ifDevReset()
 	return 0;
 }
 
-
 const static mmq_attribute mmq_register[]=
 {
 	{cjcomm,PROXY_485_MQ_NAME,MAXSIZ_PROXY_NET,MAXNUM_PROXY_NET},
 	{cjdeal,PROXY_NET_MQ_NAME,MAXSIZ_PROXY_485,MAXNUM_PROXY_485},
 };
-void createmq()
+void Createmq()
 {
 	struct mq_attr attr;
-	INT32U mqnum_glb=0;
-	int* mqs_glb=NULL;
+
+
 	int i=0;
 	mqnum_glb = sizeof(mmq_register)/sizeof(mmq_attribute);
 	mqs_glb = (int*) malloc(mqnum_glb*sizeof(int));
@@ -286,6 +312,7 @@ void createmq()
 		{
 			if(mqs_glb[i] != -1)
 				continue;
+			loop = 1;
 			attr.mq_maxmsg = mmq_register[i].maxnum;
 			attr.mq_msgsize = mmq_register[i].maxsiz;
 			if((mqs_glb[i] =mmq_create((INT8S*)mmq_register[i].name,&attr,O_RDONLY)) <0)
@@ -294,7 +321,7 @@ void createmq()
 				 const int rc= getrlimit(RLIMIT_MSGQUEUE, &limit);
 				 if(rc!=0)
 				 {
-				 	fprintf(stderr,"\n get limit failed\n");
+				 	fprintf(stderr,"\nCreatemq get limit failed\n");
 				 }
 				 else
 				 {
@@ -312,13 +339,15 @@ void createmq()
 				 }
 				 usleep(100*1000);
 			}
+			fprintf(stderr,"\n Createmq  glb[%d] = %d",i,mqs_glb[i]);
 		}
 	}
 }
+
 int main(int argc, char *argv[])
 {
 	pid_t pids[128];
-	int i=0;
+	int i=0,upstate=0;
 	struct sigaction sa1;
 
 	Setsig(&sa1,ProjectMainExit);
@@ -331,9 +360,13 @@ int main(int argc, char *argv[])
 		if (strcmp("all",argv[1])==0)
 			ReadSystemInfo();
 	}
+
+	Createmq();
 	fprintf(stderr,"\ncjmain run!");
+
 	ProgInit();
 	time_t resetStart=0;
+	upstate = 0;
 	DevResetNum =JProgramInfo->oi_changed.reset;
 	while(1)
    	{
@@ -366,6 +399,7 @@ int main(int argc, char *argv[])
 			}
 			JProgramInfo->Projects[i].WaitTimes++;
 		}
+		///test 注释
 		if (resetStart==0)
 			resetStart = ifDevReset();
 		else
@@ -373,9 +407,12 @@ int main(int argc, char *argv[])
 			fprintf(stderr,"\n...%ld",time(NULL));
 			if (abs(time(NULL)-resetStart)>=5)
 			{
+				//TODO:复位之前保证硬件初始化上送应答帧、统计数据存储成功、电量的存储
 				system("reboot");
 			}
 		}
+		if ( upstate==0 )
+			upstate = Checkupdate();
    	}
 	return EXIT_SUCCESS;//退出
 }

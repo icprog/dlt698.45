@@ -20,9 +20,14 @@
 #include "acs.h"
 #include "event.h"
 #include "calc.h"
+#include "ParaDef.h"
+#include "EventObject.h"
 
 ProgramInfo* JProgramInfo=NULL;
 int ProIndex=0;
+INT8U poweroffon_state = 0; //停上电抄读标志 0无效，1抄读，2抄读完毕
+MeterPower MeterPowerInfo[POWEROFFON_NUM]; //当poweroffon_state为1时，抄读其中ERC3106State=1得tsa得停上电时间，
+                                           //赋值给结构体中得停上电时间，同时置VALID为1,全部抄完后，置poweroffon_state为2
 /*********************************************************
  *程序入口函数-----------------------------------------------------------------------------------------------------------
  *程序退出前处理，杀死其他所有进程 清楚共享内存
@@ -83,12 +88,15 @@ int main(int argc, char *argv[])
 		return EXIT_FAILURE;
 	}
 
+	struct mq_attr attr_485_main;
+	mqd_485_main = mmq_open((INT8S *)PROXY_485_MQ_NAME,&attr_485_main,O_RDONLY);
+
 	//载入档案、参数
 	InitPara();
 	//485、四表合一
 	read485_proccess();
-	//统计计算 电压合格率等
-	// calc_proccess();
+	//统计计算 电压合格率 停电事件等
+	//calc_proccess();
 	//载波
 	//readplc_proccess();
 	//液晶、控制

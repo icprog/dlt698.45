@@ -130,13 +130,11 @@ int delClassBySeq(OI_698 oi,void *blockdata,int seqnum)
 	INT16S	infoi=-1;
 	sem_t   *sem_save=NULL;
 
-	sem_save = InitSem();
-
 	infoi = getclassinfo(oi,&info);
 	if(infoi == -1) {
-		CloseSem(sem_save);
 		return -1;
 	}
+	sem_save = InitSem();
 	if(class_info[infoi].interface_len!=0) {		//该存储单元内部包含的类的公共属性
 		if(seqnum>0)
 			WriteInterfaceClass(oi,seqnum,Delete);
@@ -250,15 +248,14 @@ int	readInterClass(OI_698 oi,void *dest)
 int saveParaClass(OI_698 oi,void *blockdata,int seqnum)
 {
 	int 	ret=-1;
-	INT16U	infoi=-1;
+	INT16S	infoi=-1;
 	sem_t   *sem_save=NULL;
 
-	sem_save = InitSem();
 	infoi = getclassinfo(oi,&info);
 	if(infoi == -1) {
-		CloseSem(sem_save);
 		return -1;
 	}
+	sem_save = InitSem();
 	if(class_info[infoi].interface_len!=0) {		//该存储单元内部包含的类的公共属性
 		WriteInterfaceClass(oi,seqnum,AddUpdate);
 	}
@@ -278,14 +275,15 @@ int saveParaClass(OI_698 oi,void *blockdata,int seqnum)
 int  readParaClass(OI_698 oi,void *blockdata,int seqnum)
 {
 	int 	ret=-1;
-	INT16U	infoi=-1;
+	INT16S	infoi=-1;
 	sem_t   *sem_save=NULL;
 
-	sem_save = InitSem();
 	infoi = getclassinfo(oi,&info);
 	if(infoi==-1) {
+		fprintf(stderr,"infoi=%d\n",infoi);
 		return -1;
 	}
+	sem_save = InitSem();
 	ret = block_file_sync((char *)class_info[infoi].file_name,blockdata,class_info[infoi].unit_len,class_info[infoi].interface_len,seqnum);
 	CloseSem(sem_save);
 	return ret;
@@ -372,9 +370,11 @@ int readCoverClass(OI_698 oi,INT16U seqno,void *blockdata,int datalen,int type)
 //			fprintf(stderr,"ret=%d\n",ret);
 		}else  {		//无配置文件，读取系统初始化参数
 			memset(fname,0,sizeof(fname));
-			readFileName(oi,seqno,para_init_save,fname);
+			ret = readFileName(oi,seqno,para_init_save,fname);
 //			fprintf(stderr,"read /nor/init的参数文件：  Class %s filelen=%d\n",fname,datalen);
-			ret = block_file_sync(fname,blockdata,datalen,0,0);
+			if(ret==0) {	//文件存在
+				ret = block_file_sync(fname,blockdata,datalen,0,0);
+			}
 		}
 		break;
 	case para_init_save:
@@ -396,6 +396,223 @@ int readCoverClass(OI_698 oi,INT16U seqno,void *blockdata,int datalen,int type)
 	CloseSem(sem_save);
 	return ret;
 }
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+/*
+ * 参变量数据存储及读取接口
+ * oi: 需要存储OI值
+ * blockdata:  需要存储数据, 存储格式为:　有效长度 Data
+ * datalen :   需要存储数据长度,不能超过64个字节
+ * =-1 ：存储失败
+ * */
+int saveVariData(OI_698 oi,int coll_seqnum,void *blockdata,int datalen)
+{
+	int 	ret=-1;
+	int		offset=-1,type=-1;
+	FILE 	*fp=NULL;
+	int	  	fd=0;
+	int		blklen=0;
+	char	*wbuf=NULL;
+	char	filename[FILENAMELEN];
+	sem_t   *sem_save=NULL;
+
+	if(blockdata==NULL) {
+		fprintf(stderr,"存储数据为空，不可保存\n");
+		return -1;
+	}
+	type = getvarioffset(oi,coll_seqnum,&offset,&blklen);
+	fprintf(stderr,"offset=%d ,blklen=%d, type=%d\n",offset,blklen,type);
+	if(type == -1) {
+		fprintf(stderr,"没有相关OI=%04x的存储信息，不可保存!!!\n",oi);
+		return -1;
+	}
+	if(datalen>=blklen) {
+		fprintf(stderr,"存储信息[%d]大于等于限定大小[%d]字节，不可保存!!!\n",datalen,blklen);
+		return -1;
+	}
+	sem_save = InitSem();
+	makeSubDir(VARI_DIR);
+	memset(&filename,0,sizeof(filename));
+	switch(type) {
+	case 1:
+		memcpy(filename,VARI_DATA,sizeof(VARI_DATA));
+		break;
+	case 2:
+		memcpy(filename,VARI_DATA_TJ,sizeof(VARI_DATA_TJ));
+		break;
+	}
+	if(access(filename,F_OK)!=0)
+	{
+		fp = fopen(filename, "w+");
+		fprintf(stderr,"创建文件 %s\n",filename);
+	}else {
+		fp = fopen(filename, "r+");
+		fprintf(stderr,"替换文件 %s\n",filename);
+	}
+	if (fp != NULL) {
+		if(wbuf==NULL) {
+			wbuf = malloc(blklen);
+			memset(wbuf,0,blklen);
+			wbuf[0] = datalen;
+			memcpy(wbuf+1,blockdata,datalen);
+			fprintf(stderr,"set to %d, datalen=%d ",offset,datalen);
+			fseek(fp, offset, SEEK_SET);
+			//fwrite(&datalen,sizeof(int),1,fp);			//数据有效长度
+			ret = fwrite(wbuf,blklen,1,fp);			//数据内容
+			fd = fileno(fp);
+			fsync(fd);
+			if(wbuf!=NULL) {
+				free(wbuf);
+			}
+		}else ret = -1;
+		fclose(fp);
+	} else {
+		ret = 0;
+	}
+	CloseSem(sem_save);
+	return ret;
+}
+
+/*
+ *　　读取数据值
+ *　　　  oi: 需要读取的oi值的所有属性值
+ *　　　  coll_seqnum: 采集任务中TSA对应配置序号，从０开始
+ *　　　　　blockdata:返回数据
+ *　　　　　len:　blockdata空间大小，需要申请blockdata申请空间大小为：oad个数×VARI_LEN
+ *　　　函数返回值：数据长度 =-1,读取失败
+ * */
+int  readVariData(OI_698 oi,int coll_seqnum,void *blockdata,int len)
+{
+	FILE 	*fp=NULL;
+	int 	offset=-1,typelen=-1,retlen=-1,readlen=0;
+	sem_t   *sem_save=NULL;
+	int		blklen=0;
+	char	*rbuf=NULL;
+
+	if(len > VARI_LEN) {
+		fprintf(stderr,"读取数据长度[%d]大于申请返回数据空间[%d]，返回失败!!!\n",len,VARI_LEN);
+		return -1;
+	}
+	if(blockdata==NULL) {
+		fprintf(stderr,"数据空间为空，返回失败!!!\n");
+		return -1;
+	}
+	memset(blockdata,0,len);
+	sem_save = InitSem();
+
+	retlen = 0;
+	typelen = getvarioffset(oi,coll_seqnum,&offset,&blklen);
+	switch(typelen) {
+	case -1:
+		retlen = -1;
+		break;
+	case 1:
+		fp = fopen(VARI_DATA, "r");
+		break;
+	case 2:
+		fp = fopen(VARI_DATA_TJ, "r");
+		break;
+	}
+	if (fp != NULL) {
+		fseek(fp, offset, SEEK_SET);
+		memset(blockdata,0,len);
+		if(rbuf==NULL) {
+			rbuf = malloc(blklen);
+			memset(rbuf,0,blklen);
+			readlen=fread(rbuf,blklen,1,fp);	//读一个块数据
+			if(readlen==1) {
+				fprintf(stderr,"rbuf[0]=%d\n",rbuf[0]);
+				if(rbuf[0]==0) {
+					retlen = 0;
+				}else {
+					memcpy((char *)blockdata+retlen,&rbuf[1],len);	//第一个字节为有效长度
+					retlen+=len;
+				}
+			}
+			if(rbuf!=NULL) {
+				fprintf(stderr,"free rbuf\n");
+				free(rbuf);
+			}
+		}
+		fclose(fp);
+	}
+	fprintf(stderr,"retlen=%d\n",retlen);
+	CloseSem(sem_save);
+	return retlen;
+}
+/*
+ *　　读取数据值
+ *　　　  oi: 需要读取的oi值的所有属性值
+ *　　　  oadnum: 需要读取oad个数
+ *　　　　　blockdata:返回数据
+ *　　　　　len:　blockdata空间大小，需要申请blockdata申请空间大小为：oad个数×VARI_LEN
+ *　　　函数返回值：数据长度 =-1,读取失败
+ * */
+//int  readVariData(OI_698 *oi,int oadnum,void *blockdata,int len)
+//{
+//	FILE 	*fp=NULL;
+//	int 	i=0,offset=-1,retlen=-1,readlen=0;
+//	sem_t   *sem_save=NULL;
+//	INT8U	tmpbuf[VARI_LEN]={};
+//
+//	if(len > oadnum*VARI_LEN) {
+//		fprintf(stderr,"读取数据长度[%d]大于申请返回数据空间[%d]，返回失败!!!\n",len,oadnum*VARI_LEN);
+//		return -1;
+//	}
+//	if(blockdata==NULL) {
+//		fprintf(stderr,"数据空间为空，返回失败!!!\n");
+//		return -1;
+//	}
+//	memset(blockdata,0,len);
+//	sem_save = InitSem();
+//	fp = fopen(VARI_DATA, "r");
+//	if (fp != NULL) {
+//		retlen = 0;
+//		if(oadnum==1) {		//只读取一个，返回实际数据长度
+//			offset = getvarioffset(oi[0]);
+//			fprintf(stderr,"oi = %04x, offset=%d site=%d\n",oi[0],offset,offset*VARI_LEN);
+//			if(offset!=-1) {
+//				fseek(fp, offset*VARI_LEN, SEEK_SET);
+//				memset(blockdata,0,len);
+//				readlen=fread(tmpbuf,VARI_LEN,1,fp);	//读一个块数据
+//				fprintf(stderr,"readlen=%d\n",readlen);
+//				if(readlen==1) {
+//					fprintf(stderr,"tmpbuf[0]=%d\n",tmpbuf[0]);
+//					if(tmpbuf[0]==0) {
+//						retlen = 0;
+//					}else {
+//						memcpy((char *)blockdata+retlen,&tmpbuf[1],len);	//第一个字节为有效长度
+//						retlen+=len;
+//					}
+//				}
+//			}else retlen=-1;
+//		}else {		//目前没有多个读取情况，功能未测试
+//			retlen = 0;
+//			for(i=0; i < oadnum;i++) {
+//				offset = getvarioffset(oi[i]);
+//				if(offset!=-1) {
+//					fseek(fp, offset*VARI_LEN, SEEK_SET);
+//					memset(tmpbuf,0,sizeof(tmpbuf));
+//					readlen=fread(tmpbuf,VARI_LEN,1,fp);	//读一个块数据
+//					if(readlen==1) {
+//						memcpy((char *)blockdata+retlen,&tmpbuf,VARI_LEN);	//第一个字节为有效长度
+//						retlen+=tmpbuf[0];
+//					}else {
+//						memset(blockdata+retlen,0,len);
+//						retlen+=VARI_LEN;
+//					}
+//				}
+//			}
+//		}
+//		fclose(fp);
+//	}else
+//	{
+//		retlen = -1;
+//	}
+//	fprintf(stderr,"retlen=%d\n",retlen);
+//	CloseSem(sem_save);
+//	return retlen;
+//}
+
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -527,10 +744,10 @@ int GetPosofOAD(INT8U *file_buf,OAD oad_master,OAD oad_relate,HEAD_UNIT *head_un
 }
 INT16U CalcMinFromZero(INT8U hour,INT8U min)
 {
-	INT16U sec = 0;
-	sec = hour;
-	sec = (sec << 8) +min;
-	return sec;
+	INT16U minfromzero = 0;
+	minfromzero = hour;
+	minfromzero = minfromzero*60 +min;
+	return minfromzero;
 }
 INT8U CalcKBType(INT8U type)
 {
@@ -553,12 +770,12 @@ INT8U CalcKBType(INT8U type)
 	}
 	return ret;//不合法
 }
-INT8U CalcFreq(TI runti,CLASS_6015 class6015,INT16U startmin,INT16U endmin)//不管开闭
+INT16U CalcFreq(TI runti,CLASS_6015 class6015,INT16U startmin,INT16U endmin)//不管开闭
 {
 	INT16U rate = 0;//倍率
 	INT16U sec_unit = 0;
 	INT8U  inval_flg = 0;
-	if(class6015.cjtype == 3)//按时标间隔采集
+	if(class6015.cjtype == 3 || class6015.cjtype == 0)//按时标间隔采集
 	{
 		if(endmin <= startmin || runti.units > 2)
 			return 0;//无效设置
@@ -585,7 +802,8 @@ INT8U CalcFreq(TI runti,CLASS_6015 class6015,INT16U startmin,INT16U endmin)//不
 		if(inval_flg == 1)
 			return 0;
 		sec_unit = (runti.interval * rate);
-		return (endmin-startmin)/sec_unit;
+		fprintf(stderr,"\n---@@@-开始分钟数：%d 结束分钟数：%d 间隔秒数%d 次数:%d\n",startmin,endmin,sec_unit,((endmin-startmin)*60)/sec_unit);
+		return ((endmin-startmin)*60)/sec_unit;
 	}
 	return 1;
 }
@@ -604,8 +822,10 @@ INT8U ReadTaskInfo(INT8U taskid,TASKSET_INFO *tasknor_info)//读取普通采集�
 		if(readCoverClass(0x6015,class6013.sernum,&class6015,sizeof(CLASS_6015),coll_para_save) == 1)
 		{
 			tasknor_info->startmin = CalcMinFromZero(class6013.runtime.runtime[0].beginHour,class6013.runtime.runtime[0].beginMin);//按照设置一个时段来
+			fprintf(stderr,"\n--任务里结束小时%d，结束分钟%d\n",class6013.runtime.runtime[0].endHour,class6013.runtime.runtime[0].endMin);
 			tasknor_info->endmin = CalcMinFromZero(class6013.runtime.runtime[0].endHour,class6013.runtime.runtime[0].endMin);//按照设置一个时段来
 			tasknor_info->runtime = CalcFreq(class6013.interval,class6015,tasknor_info->startmin,tasknor_info->endmin);
+			fprintf(stderr,"\n---@@@---任务%d执行次数%d\n",taskid,tasknor_info->runtime);
 			tasknor_info->KBtype = CalcKBType(class6013.runtime.type);
 			tasknor_info->memdep = class6015.deepsize;
 			memcpy(&tasknor_info->csds,&class6015.csds,sizeof(CSD_ARRAYTYPE));
@@ -652,8 +872,18 @@ int ComposeSendBuff(TS *ts,INT8U seletype,INT8U taskid,TSA *tsa_con,INT8U tsa_nu
 		blocklen = (blockl[0]<<8) + blockl[1];
 		unitnum = (headlen-4)/sizeof(HEAD_UNIT);
 		databuf_tmp = (INT8U *)malloc(blocklen);
+		if(databuf_tmp == NULL)
+		{
+			fprintf(stderr,"\n分配内存给databuf_tmp失败！\n");
+			return 0;
+		}
 
 		head_unit = (HEAD_UNIT *)malloc(headlen-4);
+		if(head_unit == NULL)
+		{
+			fprintf(stderr,"\n分配内存给head_unit失败！\n");
+			return 0;
+		}
 		fread(head_unit,headlen-4,1,fp);
 
 		fseek(fp,headlen,SEEK_SET);//跳过文件头
@@ -897,10 +1127,11 @@ INT8U getSelector(RSD select, INT8U selectype, CSD_ARRAYTYPE csds, INT8U *data, 
 	{
 	case 5://例子中招测冻结数据，包括分钟小时日月冻结数据招测方法
 		memcpy(&ts_info[0],&select.selec5.collect_save,sizeof(DateTimeBCD));
+		fprintf(stderr,"\n--招测冻结 ts=%04d-%02d-%02d %02d:%02d\n",ts_info[0].Year,ts_info[0].Month,ts_info[0].Day,ts_info[0].Hour,ts_info[0].Minute);
 //		ReadNorData(ts_info,taskid,tsa_con,tsa_num);
-		//////////////////////////////////////////////////////////////////////test
+//		//////////////////////////////////////////////////////////////////////test
 		TSGet(&ts_info[0]);
-		//////////////////////////////////////////////////////////////////////test
+//		//////////////////////////////////////////////////////////////////////test
 		TSA_num = GetTSACon(select.selec5.meters,tsa_con,tsa_num);
 		for(i=0;i<TSA_num;i++)
 			fprintf(stderr,"\n1addr3:%02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x",
@@ -918,6 +1149,10 @@ INT8U getSelector(RSD select, INT8U selectype, CSD_ARRAYTYPE csds, INT8U *data, 
 					tsa_con[i].addr[12],tsa_con[i].addr[11],tsa_con[i].addr[10],tsa_con[i].addr[9],
 					tsa_con[i].addr[8],tsa_con[i].addr[7],tsa_con[i].addr[6],	tsa_con[i].addr[5],
 					tsa_con[i].addr[4],tsa_con[i].addr[3],tsa_con[i].addr[2],tsa_con[i].addr[1],tsa_con[i].addr[0]);
+		memcpy(&ts_info[0],&select.selec7.collect_save_star,sizeof(DateTimeBCD));
+		memcpy(&ts_info[1],&select.selec7.collect_save_finish,sizeof(DateTimeBCD));
+		fprintf(stderr,"\n--招测实时开始时间 ts=%04d-%02d-%02d %02d:%02d\n",ts_info[0].Year,ts_info[0].Month,ts_info[0].Day,ts_info[0].Hour,ts_info[0].Minute);
+		fprintf(stderr,"\n--招测实时完成时间 ts=%04d-%02d-%02d %02d:%02d\n",ts_info[1].Year,ts_info[1].Month,ts_info[1].Day,ts_info[1].Hour,ts_info[1].Minute);
 		*datalen = ComposeSendBuff(&ts_info[0],selectype,taskid,tsa_con,tsa_num,csds,data);
 		break;
 	default:

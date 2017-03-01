@@ -18,32 +18,40 @@
 
 extern ProgramInfo *memp;
 extern void getoad(INT8U *data,OAD *oad);
+extern int FrameHead(CSINFO *csinfo,INT8U *buf);
+extern void FrameTail(INT8U *buf,int index,int hcsi);
 
+void ProxyListResponse(PROXY_GETLIST *list,CommBlock *com)
+{
+	if (com==NULL || list==NULL)
+		return;
+	CSINFO csinfo;
+	INT8U *sendbuf = com->SendBuf;
+	int index=0, hcsi=0,datalen=0 ,apduplace =0;
 
-//void ProxyListResponse(PROXY_GETLIST *list,INT8U oadnum,RESULT_NORMAL response,INT8U *sendbuf)
-//{
-//	CSINFO csinfo;
-//	int apduplace =0;
-//	int index=0, hcsi=0;
-//	memcpy(&csinfo,list->csinfo,sizeof(CSINFO));
-//
-//	csinfo.dir = 1;
-//	csinfo.prm = 0;
-//	index = FrameHead(csinfo,sendbuf);
-//	hcsi = index;
-//	index = index + 2;
-//
-//	apduplace = index;		//记录APDU 起始位置
-//	sendbuf[index++] = PROXY_RESPONSE;
-//	sendbuf[index++] = ProxyGetResponseList;
-//	sendbuf[index++] = list->piid;	//	piid
-//
-//
-//
-//	FrameTail(sendbuf,index,hcsi);
-//	if(pSendfun!=NULL)
-//		pSendfun(comfd,sendbuf,index+3);
-//}
+	memcpy(&csinfo,&list->csinfo,sizeof(CSINFO));
+	csinfo.dir = 1;
+	csinfo.prm = 1;
+
+	index = FrameHead(&csinfo,sendbuf);
+	hcsi = index;
+	index = index + 2;
+
+	apduplace = index;		//记录APDU 起始位置
+	sendbuf[index++] = PROXY_RESPONSE;
+	sendbuf[index++] = ProxyGetResponseList;
+	sendbuf[index++] = list->piid;
+	datalen = list->datalen ;
+	if (datalen > 512)
+		datalen =512;
+	memcpy(&sendbuf[index],list->data,datalen);
+	index = index + datalen;
+	sendbuf[index++] = 0;
+	sendbuf[index++] = 0;
+	FrameTail(sendbuf,index,hcsi);
+	if(com->p_send!=NULL)
+		com->p_send(com->phy_connect_fd,sendbuf,index+3);
+}
 
 int getProxylist(INT8U *data,PROXY_GETLIST *getlist)
 {
@@ -52,7 +60,7 @@ int getProxylist(INT8U *data,PROXY_GETLIST *getlist)
 	INT16U timeout=0;
 	OAD oadtmp;
 	getlist->num = data[iindex++];// sequence of 代理
-
+	fprintf(stderr,"\n---%d",getlist->num);
 	for(i=0;i<getlist->num;i++)
 	{
 		num = data[iindex];
@@ -73,30 +81,6 @@ int getProxylist(INT8U *data,PROXY_GETLIST *getlist)
 		}
 	}
 	return iindex;
-}
-INT8S mqs_send(INT8S* mqname,INT16U pid,INT32U cmd,INT8U* buf,INT32U bufsiz)
-{
-	mmq_head head;
-	mqd_t mqd;
-	struct mq_attr attr;
-	mqd = mmq_open((INT8S*)mqname , &attr, O_WRONLY);
-	if(mqd <0)
-	{
-		fprintf(stderr,"\nmmq_open %s failed!",mqname);
-		return -1;
-	}
-	head.pid = pid;
-	head.cmd = cmd;
-	head.bufsiz = bufsiz;
-	if(mmq_put(mqd,3,head,buf,0) <0)
-	{
-		fprintf(stderr,"\nmmq_put %s failed!",mqname);
-		mmq_close(mqd);
-		return -2;
-	}
-	fprintf(stderr,"\nmq(%s)=%d,mq_curmsgs=%ld,mq_maxmsg=%ld",mqname,mqd,attr.mq_curmsgs,attr.mq_maxmsg);
-	mmq_close(mqd);
-	return 0;
 }
 int Proxy_GetRequestlist(INT8U *data,CSINFO *csinfo,INT8U *sendbuf,INT8U piid)
 {
@@ -123,9 +107,6 @@ int Proxy_GetRequestlist(INT8U *data,CSINFO *csinfo,INT8U *sendbuf,INT8U piid)
 	memcpy(&getlist.csinfo,csinfo,sizeof(CSINFO));
 
 	mqs_send((INT8S *)PROXY_485_MQ_NAME,1,ProxyGetResponseList,(INT8U *)&getlist,sizeof(PROXY_GETLIST));
-
-//	getlist.position = 0;
-//	write2_ProxyRequestList(&getlist);
-//	memp->ProxyHappen = 1;
+	fprintf(stderr,"\n代理消息已经发出\n\n");
 	return 1;
 }

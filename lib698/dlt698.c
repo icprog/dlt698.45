@@ -21,7 +21,7 @@ extern int getRequestNormalList(INT8U *data,CSINFO *csinfo,INT8U *sendbuf);
 extern int doReponse(int server,int reponse,CSINFO *csinfo,PIID piid,OAD oad,int dar,INT8U *data,INT8U *buf);
 extern int setRequestNormal(INT8U *data,OAD oad,CSINFO *csinfo,INT8U *buf);
 extern int setRequestNormalList(INT8U *Object,CSINFO *csinfo,INT8U *buf);
-extern int Proxy_GetRequestlist(INT8U *data,CSINFO *csinfo,INT8U *sendbuf,INT8U piid);
+extern int Proxy_GetRequestlist(INT8U *data,CSINFO *csinfo,INT8U *sendbuf);
 extern unsigned short tryfcs16(unsigned char *cp, int  len);
 extern INT32S secureConnectRequest(SignatureSecurity* securityInfo ,SecurityData* RetInfo);
 INT8S (*pSendfun)(int fd,INT8U* sndbuf,INT16U sndlen);
@@ -35,84 +35,83 @@ CONNECT_Response *myAppVar_p;	// 集中器支持参数（应用层会话参数�
 CONNECT_Response *AppVar_p;		// 集中器协商后参数（应用层会话参数）
 INT8U securetype;  //安全等级类型  01明文，02明文+MAC 03密文  04密文+MAC
 INT8U secureRN[20];//安全认证随机数，主站下发，终端回复时需用到，esam计算使用
+static INT8U	client_addr=0;
 PIID piid_g={};
 /**************************************
  * 函数功能：DL/T698.45 状态机
  * 参数含义：
  **************************************/
-int StateProcess(int* step,int* rev_delay,int delay_num, int* rev_tail,int* rev_head,INT8U *NetRevBuf,INT8U* dealbuf)
+int StateProcess(CommBlock* nst, int delay_num)
 {
 	int length=0,i=0;
 
-//	fprintf(stderr,"\nstep = %d\n",*step);
-	switch(*step)
+	switch(nst->deal_step)
 	{
 		case 0:		 // 找到第一个 0x68
-			while(*rev_head!=*rev_tail)
+			while(nst->RHead!=nst->RTail)
 			{
-//				fprintf(stderr,"NetRevBuf[*rev_tail] = %02x ",NetRevBuf[*rev_tail]);
-				if (NetRevBuf[*rev_tail]== 0x68)
+				if (nst->RecBuf[nst->RTail]== 0x68)
 				{
-					*step = 1;
+					nst->deal_step = 1;
 					break;
 				}else {
-					*rev_tail = (*rev_tail + 1)% FRAMELEN;
+					nst->RTail = (nst->RTail + 1)% FRAMELEN;
 				}
 			}
 			break;
 		case 1:	   //从rev_tail2开始 跨长度字节找 0x16
-			if(((*rev_head-*rev_tail+FRAMELEN)%FRAMELEN) >= 3)
+			if(((nst->RHead-nst->RTail+FRAMELEN)%FRAMELEN) >= 3)
 			{
 //				fprintf(stderr,"\nNetRevBuf[*rev_tail] = %02x  %02x\n ",NetRevBuf[(*rev_tail+ 2)%FRAMELEN],NetRevBuf[(*rev_tail+ 1)%FRAMELEN]);
-				length = (NetRevBuf[(*rev_tail+ 2 + FRAMELEN )%FRAMELEN] << 8) + NetRevBuf[(*rev_tail+ 1 + FRAMELEN)%FRAMELEN];
+				length = (nst->RecBuf[(nst->RTail+ 2 + FRAMELEN )%FRAMELEN] << 8) + nst->RecBuf[(nst->RTail+ 1 + FRAMELEN)%FRAMELEN];
 				length = (length) & 0x03FFF;//bit15 bit14 保留
 //				fprintf(stderr,"\nlength = %d \n",length);
 				if (length <= 0)//长度异常
 				{
-					*rev_tail = (*rev_tail + 1)% FRAMELEN;
-					*step = 0;
+					nst->RTail = (nst->RTail + 1)% FRAMELEN;
+					nst->deal_step = 0;
 					break;
 				}else {
 //					fprintf(stderr,"*rev_head = %d *rev_tail = %d ",*rev_head,*rev_tail);
-					if((*rev_head-*rev_tail+FRAMELEN)%FRAMELEN >= (length+2))//长度length为除 68和16 以外的字节数
+					if((nst->RHead-nst->RTail+FRAMELEN)%FRAMELEN >= (length+2))//长度length为除 68和16 以外的字节数
 					{
-						if(NetRevBuf[ (*rev_tail + length + 1 + FRAMELEN)% FRAMELEN ]== 0x16)
+						if(nst->RecBuf[ (nst->RTail + length + 1 + FRAMELEN)% FRAMELEN ]== 0x16)
 						{
-							*rev_delay = 0;
+							nst->rev_delay = 0;
 //							fprintf(stderr,"RRR=[%d]\n",length+2);
 							for(i=0;i<(length+2);i++)
 							{
-								dealbuf[i] = NetRevBuf[*rev_tail];
+								nst->DealBuf[i] = nst->RecBuf[nst->RTail];
 //								fprintf(stderr,"%02x ",dealbuf[i]);
-								*rev_tail = (*rev_tail + 1) % FRAMELEN;
+								nst->RTail = (nst->RTail + 1) % FRAMELEN;
 							}
-							*step = 0;//进入下一步
+							nst->deal_step = 0;//进入下一步
 							return (length+2);
 						}
 						else
 						{
-							if (*rev_delay < delay_num)
+							if (nst->rev_delay < delay_num)
 							{
-								(*rev_delay)++;
+								(nst->rev_delay)++;
 								break;
 							}else
 							{
-								*rev_delay = 0;
-								*rev_tail = (*rev_tail +1 )% FRAMELEN;
-								*step = 0;//返回第一步
+								nst->rev_delay = 0;
+								nst->RTail = (nst->RTail +1 )% FRAMELEN;
+								nst->deal_step = 0;//返回第一步
 							}
 						}
 					}else
 					{
-							if (*rev_delay < delay_num)
+							if (nst->rev_delay < delay_num)
 							{
-								(*rev_delay)++;
+								(nst->rev_delay)++;
 								break;
 							}else
 							{
-								*rev_delay = 0;
-								*rev_tail = (*rev_tail +1 )% FRAMELEN;
-								*step = 0;
+								nst->rev_delay = 0;
+								nst->RTail = (nst->RTail +1 )% FRAMELEN;
+								nst->deal_step = 0;
 							}
 					}
 				}
@@ -131,35 +130,51 @@ int StateProcess(int* step,int* rev_delay,int delay_num, int* rev_tail,int* rev_
  */
 int CheckHead(unsigned char* buf ,CSINFO *csinfo)
 {
-	unsigned char b1=0, b2=0, hsc1=0, hsc2=0 ,sa_length=0 ,ctrl=0;
-	unsigned short cs16=0;
+	INT8U sa_length=0;
+	INT16U	cs16=0;//程序计算的校验码
+	INT16U	fcs16=0;//从帧中取出的校验码
+	ctlUN ctl;
+	lengthUN frameLen;
 
 	if(buf[0]==0x68  && csinfo!=NULL)
 	{
 		sa_length 	= (buf[4]& 0x0f) + 1; 		/*服务器地址长度 0,1,，，15 表示 1,2,，，16*/
-		cs16 = tryfcs16(&buf[1], sa_length + 5);
-		b1 = (cs16 & 0x00ff);
-		b2 = ((cs16 >> 8) & 0x00ff);
-		hsc1 = buf[5+ sa_length + 1];
-		hsc2 = buf[5+ sa_length + 2];
-//		fprintf(stderr,"\nhsc1= %02x b1=%02x hsc2=%02x b2=%02x\n",hsc1,b1,hsc2,b2);
-		if (hsc1 == b1 && hsc2 == b2)
-		{
-			ctrl 	= buf[3];
-			csinfo->frame_length = (((buf[2]&0x003f) << 8) + buf[1]) & 0x03FFF;
-			csinfo->funcode = ctrl & 0x03;
-			csinfo->dir = (ctrl & 0x80)>>7;
-			csinfo->prm = (ctrl & 0x40)>>6;
-			csinfo->gframeflg= (ctrl & 0x20)>>5;
-			csinfo->sa_type 	= (buf[4]& 0xc0) >> 6;	/*0:单地址   1：通配地址   2：组地址   3：广播地址*/
-			memcpy(csinfo->sa,&buf[5],sa_length);		/*服务器地址*/
-			csinfo->ca 	 = buf[5+ sa_length]; 			/*客户机地址*/
-			csinfo->sa_length = sa_length;
-			return 1;
-		}else
-		{
-			fprintf(stderr,"\n帧头校验错误!");
+		cs16 = tryfcs16(&buf[1], sa_length + 5);//小端存储 低位在左 高位在右
+
+		memcpy(&fcs16, &buf[5+ sa_length + 1], 2);//小端机器用法, 不可移植到大端机器
+		if(fcs16 != cs16) {
+			fprintf(stderr, "\n帧头校验错误!\n");
+			return 0;
 		}
+
+		memcpy(&frameLen, &buf[1], 2);
+		memcpy(&ctl, &buf[3], 1);
+		fprintf(stderr,"\nframe length: %d\n", frameLen.length.len);
+		fprintf(stderr,"direction: %s\n", ctl.ctl.dir?"send by server":"send by client");
+		fprintf(stderr,"prm: %s\n", ctl.ctl.prm?"send by client":"send by server");
+		fprintf(stderr,"divS: %s\n", ctl.ctl.divS?"part of APDU":"Whole APDU");
+		switch (ctl.ctl.func) {
+		case 1:
+			fprintf(stderr,"登录, 心跳, 退出登录\n");
+			break;
+		case 3:
+			fprintf(stderr,"应用连接管理及数据交换服务\n");
+			break;
+		default:
+			fprintf(stderr,"功能码未定义\n");
+			break;
+		}
+
+		csinfo->frame_length = frameLen.length.len;//帧长度
+		csinfo->funcode		= ctl.ctl.func;//功能码
+		csinfo->dir			= ctl.ctl.dir;
+		csinfo->prm			= ctl.ctl.prm;
+		csinfo->gframeflg	= ctl.ctl.divS;
+		csinfo->sa_type		= (buf[4]& 0xc0) >> 6;	/*0:单地址   1：通配地址   2：组地址   3：广播地址*/
+		memcpy(csinfo->sa, &buf[5], sa_length);		/*服务器地址*/
+		csinfo->ca			= buf[5+ sa_length]; 			/*客户机地址*/
+		csinfo->sa_length	= sa_length;
+		return 1;
 	}
 	return 0;
 }
@@ -170,20 +185,14 @@ int CheckHead(unsigned char* buf ,CSINFO *csinfo)
 int CheckTail(unsigned char * buf,INT16U length)
 {
 	INT16U cs16=0;
-	INT8U b1=0, b2=0, fsc1=0, fsc2=0 ;
-	if( buf[0]==0x68  )
-	{
-		fprintf(stderr,"frame length(-2) = %d ",length);
+	INT16U fcs16=0;
+
+	if( buf[0]==0x68 ) {
 		cs16 = tryfcs16(&buf[1], length-2);
-		b1 = (cs16 & 0x00ff);
-		b2 = ((cs16 >> 8) & 0x00ff);
-		fsc1 = buf[length - 1];
-		fsc2 = buf[length];
-//		fprintf(stderr,"\nfsc1= %02x b1=%02x     fsc2=%02x b2=%02x\n",fsc1,b1,fsc2,b2);
-		if (fsc1 == b1 && fsc2 == b2)
-		{
+		memcpy(&fcs16, &buf[length - 1], 2);
+		if (cs16 == fcs16) {
 			return 1;
-		}else {
+		} else {
 			fprintf(stderr,"\n帧尾校验错误!");
 		}
 	}
@@ -229,13 +238,11 @@ int FrameHead(CSINFO *csinfo,INT8U *buf)
 	buf[i++]= 0x68;//起始码
 	buf[i++]= 0;	//长度
 	buf[i++]= 0;
-//	fprintf(stderr,"控制码 i=%d",i);
 	buf[i++]= CtrlWord(*csinfo);
 	buf[i++]= (csinfo->sa_type<<6) | (0<<4) | ((csinfo->sa_length-1) & 0xf);
 	memcpy(&buf[i],csinfo->sa,csinfo->sa_length );
 	i = i + csinfo->sa_length;
 	buf[i++]=csinfo->ca;
-//	fprintf(stderr,"i=%d\n",i);
 	return i;
 }
 
@@ -249,13 +256,13 @@ int Link_Request(LINK_Request request,INT8U *addr,INT8U *buf)
 {
 	int index=0, hcsi=0,i=0;
 	CSINFO csinfo={};
-
 	csinfo.dir = 1;		//服务器发出
 	csinfo.prm = 0; 	//服务器发出
 	csinfo.funcode = 1; //链路管理
 	csinfo.sa_type = 0 ;//单地址
 	csinfo.sa_length = addr[0];//sizeof(addr)-1;//服务器地址长度
 
+	//服务器地址
 	fprintf(stderr,"sa_length = %d \n",csinfo.sa_length);
 	if(csinfo.sa_length<OCTET_STRING_LEN) {
 		for(i=0;i<csinfo.sa_length;i++) {
@@ -264,8 +271,8 @@ int Link_Request(LINK_Request request,INT8U *addr,INT8U *buf)
 	}else {
 		fprintf(stderr,"SA 长度超过定义长度，不合理！！！\n");
 	}
-//	memcpy(csinfo.sa,&addr[1],csinfo.sa_length );//服务器地址
-	csinfo.ca = 0;
+	//客户端地址
+	csinfo.ca = client_addr;
 
 	index = FrameHead(&csinfo,buf) ; //	2：hcs  hcs
 	hcsi = index;
@@ -309,6 +316,7 @@ int dealClientResponse(INT8U *apdu,CSINFO *csinfo)
 	switch(apduType)
 	{
 		case LINK_RESPONSE:
+			client_addr = csinfo->ca;		//预连接后，获取客户端地址
 			Link_Response( apdu );//预连接响应
 			break;
 		case REPORT_RESPONSE:
@@ -450,14 +458,7 @@ int appConnectResponse(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 	 */
 	memset(&response,0,sizeof(response));
 	response.piid_acd = request.piid;
-
-	fprintf(stderr,"\n应用连接---PIID-ACD----%02x",request.piid.data);
-
 	varconsult(&response,&request,myAppVar_p);
-
-
-
-
 	/*
 	 *存储应用会话参数结构
 	 */
@@ -472,7 +473,7 @@ int appConnectResponse(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 	index = FrameHead(csinfo,buf);
 	hcsi = index;
 	index = index + 2;
-	buf[index++] = 0x82;
+	buf[index++] = CONNECT_RESPONSE;
 	buf[index++] = response.piid_acd.data;
 	memcpy(&buf[index],response.server_factory_version.factorycode,4);
 	index = index +4;
@@ -565,12 +566,12 @@ int doSetAttribute(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 
 int doGetAttribute(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
 {
-
+	PIID piid={};
 	INT8U getType = apdu[1];
 	OAD oad={};
 	INT8U *data=NULL;
-	piid_g.data = apdu[2];
-	fprintf(stderr,"\n- get type = %d PIID=%02x",getType,piid_g.data);
+	piid.data = apdu[2];
+	fprintf(stderr,"\n- get type = %d PIID=%02x",getType,piid.data);
 
 	getoad(&apdu[3],&oad);
 	data = &apdu[7];					//Data
@@ -608,7 +609,8 @@ int doProxyRequest(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
 	switch(getType)
 	{
 		case ProxyGetRequestList:
-			Proxy_GetRequestlist(data,csinfo,sendbuf,piid.data);
+			fprintf(stderr,"\n==========\n");
+			Proxy_GetRequestlist(data,csinfo,sendbuf);
 			break;
 		case ProxyGetRequestRecord:
 			break;
@@ -761,6 +763,8 @@ INT16S parseSecurityResponse(INT8U* RN,INT8U* apdu)//apdu负责传入和传出�
 	else
 		return -1;//无效应用数据单元标示
 }
+
+
 //OAD转换为报文
 INT8U OADtoBuff(OAD fromOAD,INT8U* buff)
 {
@@ -770,6 +774,7 @@ INT8U OADtoBuff(OAD fromOAD,INT8U* buff)
 	buff[1] = tmp;
 	return sizeof(OAD);
 }
+
 INT16S fillGetRequestAPDU(INT8U* sendBuf,CLASS_6015 obj6015,INT8U requestType)
 {
 	INT16S length = 0;
@@ -1040,7 +1045,6 @@ void testframe(INT8U *apdu,int len)
 		fprintf(stderr,"%02x ",buf[k]);
 	fprintf(stderr,"\n----------------------------------------\n");
 }
-
 int ProcessData(CommBlock *com)
 {
 	CSINFO csinfo={};
@@ -1055,6 +1059,7 @@ int ProcessData(CommBlock *com)
 	pSendfun = com->p_send;
 	comfd = com->phy_connect_fd;
 	hcsok = CheckHead( Rcvbuf ,&csinfo);
+//	com->taskaddr = csinfo.ca;
 	fcsok = CheckTail( Rcvbuf ,csinfo.frame_length);
 	if ((hcsok==1) && (fcsok==1))
 	{

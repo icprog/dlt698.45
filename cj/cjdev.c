@@ -53,6 +53,58 @@ void write_apn(char *apn)
 	fclose(fp);
 	fp = NULL;
 }
+
+void write_userpwd(unsigned char* user, unsigned char* pwd, unsigned char* apn)
+{
+    FILE* fp = NULL;
+    fp       = fopen("/etc/ppp/chap-secrets", "w");
+    fprintf(fp, "\"%s\" * \"%s\" *", user, pwd);
+    fclose(fp);
+
+    fp = fopen("/etc/ppp/pap-secrets", "w");
+    fprintf(fp, "\"%s\" * \"%s\" *", user, pwd);
+    fclose(fp);
+
+    fp = fopen("/etc/ppp/peers/cdma2000", "w");
+    fprintf(fp, "/dev/mux1\n");
+    fprintf(fp, "115200\n");
+    fprintf(fp, "modem\n");
+    fprintf(fp, "debug\n");
+    fprintf(fp, "nodetach\n");
+    fprintf(fp, "usepeerdns\n");
+    fprintf(fp, "noipdefault\n");
+    fprintf(fp, "defaultroute\n");
+    fprintf(fp, "user \"%s\"\n", user);
+    fprintf(fp, "0.0.0.0:0.0.0.0\n");
+    fprintf(fp, "ipcp-accept-local\n");
+    fprintf(fp, "connect 'chat -s -v -f /etc/ppp/cdma2000-connect-chat'\n");
+    fprintf(fp, "disconnect \"chat -s -v -f /etc/ppp/gprs-disconnect-chat\"\n");
+    fclose(fp);
+
+    fp = fopen("/etc/ppp/cdma2000-connect-chat", "w");
+    fprintf(fp,"TIMEOUT        5\n");
+    fprintf(fp,"ABORT        \"DELAYED\"\n");
+    fprintf(fp,"ABORT        \"BUSY\"\n");
+    fprintf(fp,"ABORT        \"ERROR\"\n");
+    fprintf(fp,"ABORT        \"NO DIALTONE\"\n");
+    fprintf(fp,"ABORT        \"NO CARRIER\"\n");
+    fprintf(fp,"'' AT\n");
+    fprintf(fp,"TIMEOUT        5\n");
+    fprintf(fp,"'OK-+++\c-OK' ATZ\n");
+    fprintf(fp,"TIMEOUT        20\n");
+    fprintf(fp,"OK        AT+CREG?\n");
+    fprintf(fp,"TIMEOUT        10\n");
+    fprintf(fp,"OK        AT$MYNETCON=0,\"USERPWD\",\"%s,%s\"\n", user, pwd);
+    fprintf(fp,"TIMEOUT        10\n");
+    fprintf(fp,"OK        AT$MYNETCON=0,\"APN\",\"%s\"\n", apn);
+    fprintf(fp,"TIMEOUT        10\n");
+    fprintf(fp,"OK        AT$MYNETCON=0,\"AUTH\",1\n");
+    fprintf(fp,"TIMEOUT        10\n");
+    fprintf(fp,"OK ATDT#777\n");
+    fprintf(fp,"CONNECT ''\n");
+    fclose(fp);
+}
+
 void printF203()
 {
 	CLASS_f203	oif203={};
@@ -111,6 +163,27 @@ void getipnum(MASTER_STATION_INFO *info,char *argv)
 	info[0].ip[2] = ipnum2;
 	info[0].ip[3] = ipnum3;
 	info[0].ip[4] = ipnum4;
+}
+
+void SetUsrPwd(int argc, char *argv[])
+{
+	CLASS25 class4500;
+	memset(&class4500, 0x00, sizeof(class4500));
+
+	if(argc == 5){
+		write_userpwd(argv[2], argv[3], argv[4]);
+		readCoverClass(0x4500,0,&class4500,sizeof(CLASS25),para_vari_save);
+		class4500.commconfig.userName[0] = strlen(argv[2]);
+		memcpy(&class4500.commconfig.userName[1], argv[2], strlen(argv[2]));
+		class4500.commconfig.passWord[0] = strlen(argv[3]);
+		memcpy(&class4500.commconfig.passWord[1], argv[3], strlen(argv[3]));
+		saveCoverClass(0x4500,0,&class4500,sizeof(CLASS25),para_vari_save);
+	}
+	else{
+		readCoverClass(0x4500,0,&class4500,sizeof(CLASS25),para_vari_save);
+		fprintf(stderr, "用户名：%s\t密码：%s\n", &class4500.commconfig.userName[1], &class4500.commconfig.passWord[1]);
+	}
+
 }
 void SetIPort(int argc, char *argv[])
 {
@@ -251,4 +324,9 @@ void inoutdev_process(int argc, char *argv[])
 			}
 		}
 	}
+}
+void cjfangAn()
+{
+	CLASS_6017 obj6017;
+
 }

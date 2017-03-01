@@ -214,6 +214,33 @@ INT16S getclassinfo(OI_698 oi,CLASS_INFO *classinfo)
 }
 
 /*
+ * 根据oi参数，查找相应的Variable_Class的结构体数据
+ * */
+int getvarioffset(OI_698 oi,int coll_seqnum,int *offset,int *blklen)
+{
+	int i=0;
+
+	for(i=0; i < sizeof(vari_data)/sizeof(Variable_Class);i++)
+	{
+		if(vari_data[i].oi == oi) {
+			*blklen = VARI_LEN;
+			*offset = vari_data[i].offset*VARI_LEN;
+			return 1;
+		}
+	}
+	*offset=0;
+	for(i=0; i < sizeof(vari_tj_data)/sizeof(Variable_TJ_Class);i++)
+	{
+		*offset += vari_tj_data[i].datalen;
+		if(vari_tj_data[i].oi == oi) {
+			*blklen = vari_tj_data[i].datalen;
+			return 2;
+		}
+	}
+	return -1;
+}
+
+/*
 char filename[256][256];
 int len = 0;
 int trave_dir(char* path, int depth)
@@ -706,7 +733,7 @@ INT8U save_block_file(char *fname,void *blockdata,int size,int headsize,int inde
 sem_t * InitSem()
 {
 //	return NULL;
-	int			val=0;
+//	int			val=0;
 	sem_t * 	sem_parasave=NULL;	//参数文件存储信号量
 	//打开信号量
 	sem_parasave = open_named_sem(SEMNAME_PARA_SAVE);
