@@ -8,12 +8,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include "ae.h"
-#include "anet.h"
-#include "dlt698def.h"
 #include "cjcomm.h"
-#include "AccessFun.h"
-#include "PublicFunction.h"
 
 static INT32S timeoffset[50];    //终端精准校时 默认最近心跳时间总个数50次
 static INT8U crrntimen      = 0; //终端精准校时 当前接手心跳数

@@ -7,20 +7,12 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
-
+#include <assert.h>
 #include <net/if.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
 
-#include "ae.h"
-#include "anet.h"
-#include "assert.h"
-#include "at.h"
-
-#include "PublicFunction.h"
 #include "cjcomm.h"
-#include "dlt698def.h"
-#include "event.h"
 
 //共享内存地址
 static ProgramInfo* JProgramInfo = NULL;
@@ -82,7 +74,6 @@ void Comm_task(CommBlock* compara) {
         if (compara->testcounter >= 2) {
             close(compara->phy_connect_fd);
             compara->phy_connect_fd = -1;
-            SetOffline();
             AT_POWOFF();
             compara->testcounter = 0;
             return;
@@ -146,11 +137,10 @@ void initComPara(CommBlock* compara) {
  * 进程初始化
  *********************************************************/
 void enviromentCheck(int argc, char* argv[]) {
-
     pid_t pids[128];
     if (prog_find_pid_by_name((INT8S*)argv[0], pids) > 1) {
-    	asyslog(LOG_ERR, "CJCOMM进程仍在运行,进程号[%d]，程序退出...", pids[0]);
-        return EXIT_SUCCESS;
+        asyslog(LOG_ERR, "CJCOMM进程仍在运行,进程号[%d]，程序退出...", pids[0]);
+        exit(0);
     }
 
     //绑定信号处理了函数

@@ -18,19 +18,6 @@
 #include "cjcomm.h"
 #include "at.h"
 
-static int NeedDoAt = 1;
-static int ledPort  = -1;
-
-void SetOnline(void) {
-    asyslog(LOG_NOTICE, "设置不需要AT拨号");
-    NeedDoAt = 0;
-}
-
-void SetOffline(void) {
-    asyslog(LOG_NOTICE, "设置需要AT拨号");
-    NeedDoAt = 1;
-}
-
 int checkgprs_exist() {
     INT8S gprsid  = 0;
     INT8S gprs_s0 = -1, gprs_s1 = -1, gprs_s2 = -1;
@@ -201,64 +188,6 @@ int RecieveFromComm(char* buf, int mlen, int com) {
     return (len < 0) ? 0 : len;
 }
 
-/************************************************************
- * 函数功能：控制无线模块net灯
- * *********************************************************/
-int ATMYSOCKETLED(unsigned char step, int ComPort) {
-    int timeout = 0, i, scid, Len;
-    char scidstr[50];
-    memset(scidstr, 0, 50);
-    ComPort = ledPort;
-    fprintf(stderr, "AT MYSOCKETLED %d\n", ComPort);
-    do {
-        scid = 0;
-        timeout++;
-        switch (step) {
-            case 1:
-                fprintf(stderr, "步骤1：受限的网路服务；无SIM卡或需输入PIN码；正在搜索网络；正在进行用户鉴权等\n");
-                SendATCommand("AT$MYSOCKETLED=0\r", 17, ComPort);
-                break;
-            case 2:
-                fprintf(stderr, "步骤2：模块处于待机状态\n");
-                SendATCommand("AT$MYSOCKETLED=1\r", 17, ComPort);
-                break;
-            case 3:
-                fprintf(stderr, "步骤3：PDP激活状态，并已获取IP地址\n");
-                SendATCommand("AT$MYSOCKETLED=0\r", 17, ComPort);
-                break;
-            case 4:
-                fprintf(stderr, "步骤4：Socket链接已建立\n");
-                SendATCommand("AT$MYSOCKETLED=1\r", 17, ComPort);
-                break;
-            default:
-                break;
-        }
-        delay(5000);
-        INT8U Mrecvbuf[RES_LENGTH];
-        memset(Mrecvbuf, 0, RES_LENGTH);
-        Len = RecieveFromComm(Mrecvbuf, RES_LENGTH, ComPort);
-        if (Len > 0) {
-            for (i = 0; i < Len; i++) {
-                fprintf(stderr, "%c", Mrecvbuf[i]);
-            }
-            fprintf(stderr, "\n");
-        }
-
-        for (i = 0; i < Len; i++) {
-            if ((Mrecvbuf[i] == 'O') && (Mrecvbuf[i + 1] == 'K')) {
-                scid = 1;
-            }
-        }
-        if (scid == 1)
-            break;
-
-    } while (timeout < 5);
-    if (timeout >= 5)
-        return 0;
-
-    return 1;
-}
-
 //查看拨号程序是否获取到ip地址
 int tryifconfig(CLASS25* class25) {
     int sock;
@@ -278,8 +207,8 @@ int tryifconfig(CLASS25* class25) {
     if (sin.sin_addr.s_addr > 0) {
         int ips[4];
         memset(ips, 0x00, sizeof(ips));
-        sscanf(inet_ntoa(sin.sin_addr), "%d.%d.%d.%d", &ips[0],&ips[1],&ips[2],&ips[3]);
-        asyslog(LOG_INFO, "获取到正确的IP地址%d.%d.%d.%d\n", ips[0],ips[1],ips[2],ips[3]);
+        sscanf(inet_ntoa(sin.sin_addr), "%d.%d.%d.%d", &ips[0], &ips[1], &ips[2], &ips[3]);
+        asyslog(LOG_INFO, "获取到正确的IP地址%d.%d.%d.%d\n", ips[0], ips[1], ips[2], ips[3]);
         class25->pppip[0] = 4;
         class25->pppip[0] = ips[0];
         class25->pppip[0] = ips[1];
@@ -295,9 +224,9 @@ int tryifconfig(CLASS25* class25) {
 void AT_POWOFF() {
     //关闭打开的服务
     asyslog(LOG_INFO, "开始关闭外部服务（gtpget、ppp-off、gsmMuxd）");
-    system("pkill ftpget");
     system("ppp-off");
-    system("pkill gsmMuxd");
+    absoluteKill("ftpget", 15);
+    absoluteKill("gsmMuxd", 15);
     sleep(3);
     gpofun("/dev/gpoGPRS_POWER", 0);
 }
@@ -496,6 +425,9 @@ int gsmDecodePdu(const char* pSrc, SM_PARAM* pDst) {
 }
 
 void checkSms(int port) {
+    if (port < 0) {
+        return;
+    }
     for (int timeout = 0; timeout < 50; timeout++) {
         char Mrecvbuf[512];
 
@@ -526,22 +458,53 @@ void checkSms(int port) {
     }
 }
 
+int absoluteKill(char * name, int timeout){
+	pid_t pids[128];
+	for (int i = 0; i < timeout; i++){
+		memset(pids, 0x00, sizeof(pids));
+		if (prog_find_pid_by_name(name, pids) >= 1) {
+			char command[64];
+			memset(command, 0x00, sizeof(command));
+			sprintf(command, "kill %d", pids[0]);
+			system(command);
+			asyslog(LOG_INFO, "正在停止进程[%s],进程号[%d],使用的终止命令[%s]", name, pids[0], command);
+		} else
+		{
+			return 0;
+		}
+		sleep(1);
+	}
+	return -1;
+}
+
 void* ATWorker(void* args) {
-	CLASS25* class25 = (CLASS25*)args;
+    CLASS25* class25 = (CLASS25*)args;
+    int sMux0 = -1;
+    int sMux1 = -1;
+
     while (1) {
-        if (NeedDoAt == 0) {
+        if (GetOnlineType() != 0) {
             goto wait;
         }
 
-        system("pkill ftpget");
+        /*
+         * 清除外部程序
+         */
+        asyslog(LOG_INFO, "清除外部程序...");
         system("ppp-off");
-        system("pkill gsmMuxd");
-        sleep(3);
+        absoluteKill("ftpget", 15);
+        absoluteKill("gsmMuxd", 15);
 
-        asyslog(LOG_INFO, "模块去电...");
+        if (GetOnlineType() != 0) {
+            goto wait;
+        }
+
+        /*
+         * 重置模块状态
+         */
+        asyslog(LOG_INFO, "重置模块状态...");
         gpofun("/dev/gpoGPRS_POWER", 0);
         sleep(5);
-        asyslog(LOG_INFO, "模块上电...");
         gpofun("/dev/gpoGPRS_POWER", 1);
         gpofun("/dev/gpoGPRS_RST", 1);
         gpofun("/dev/gpoGPRS_SWITCH", 1);
@@ -555,13 +518,19 @@ void* ATWorker(void* args) {
         gpofun("/dev/gpoGPRS_SWITCH", 1);
         sleep(10);
 
+        if (GetOnlineType() != 0) {
+            goto wait;
+        }
+
+        /*
+         * 处理AT参数，等待注册状态。
+         */
         asyslog(LOG_INFO, "打开串口复用模块");
         system("mux.sh &");
         sleep(10);
 
-        int sMux0 = OpenMuxCom(0, 115200, (unsigned char*)"none", 1, 8); // 0
-        int sMux1 = OpenMuxCom(1, 115200, (unsigned char*)"none", 1, 8);
-        ledPort   = sMux1;
+        sMux0     = OpenMuxCom(0, 115200, (unsigned char*)"none", 1, 8); // 0
+        sMux1     = OpenMuxCom(1, 115200, (unsigned char*)"none", 1, 8);
         if (sMux0 < 0 || sMux1 < 0) {
             close(sMux0);
             close(sMux1);
@@ -649,7 +618,7 @@ void* ATWorker(void* args) {
             if (sscanf(Mrecvbuf, "%*[^:]: %d,%d", &k, &l) == 2) {
                 asyslog(LOG_INFO, "GprsCSQ = %d,%d\n", k, l);
                 if (k != 99) {
-                	class25->signalStrength = k;
+                    class25->signalStrength = k;
                     break;
                 }
             }
@@ -707,6 +676,13 @@ void* ATWorker(void* args) {
         }
         close(sMux0);
 
+        if (GetOnlineType() != 0) {
+            goto wait;
+        }
+
+        /*
+         * 运行拨号脚本
+         */
         if (callType == 1) {
             asyslog(LOG_INFO, "拨号类型：GPRS\n");
             system("pppd call gprs &");
@@ -719,7 +695,7 @@ void* ATWorker(void* args) {
             sleep(1);
             if (tryifconfig(class25) == 1) {
                 //拨号成功，存储参数，以备召唤
-            	 saveCoverClass(0x4500, 0, class25, sizeof(CLASS25), para_init_save);
+                saveCoverClass(0x4500, 0, class25, sizeof(CLASS25), para_init_save);
                 break;
             }
         }
@@ -728,15 +704,19 @@ void* ATWorker(void* args) {
     wait:
         //等待在线状态为“否”，重新拨号
         while (1) {
-            checkSms(sMux1);
-            usleep(200);
-            if (NeedDoAt == 1) {
-                break;
+            static int step = 0;
+            if (step % 60 == 0) {
+                checkSms(sMux1);
+                step = 0;
+            }
+            step++;
+            sleep(1);
+            if (GetOnlineType() == 0) {
+                goto err;
             }
         }
 
     err:
-        //拨号出错，重试
         sleep(1);
         continue;
     }
