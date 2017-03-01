@@ -155,10 +155,10 @@ void Collect6000(OI_698	oi)
 		if(readParaClass(oi,&meter,i)==1) {
 			if(meter.sernum!=0 && meter.sernum!=0xffff) {
 				fprintf(stderr,"\n序号:%d ",meter.sernum);
-				fprintf(stderr,"[1]");
+				fprintf(stderr,"[1]%d-%d-",meter.basicinfo.addr.addr[0],meter.basicinfo.addr.addr[1]);
 				if(meter.basicinfo.addr.addr[0]>TSA_LEN)   fprintf(stderr,"TSA 长度[%d]超过17个字节，错误！！！\n",meter.basicinfo.addr.addr[0]);
-				for(j=0;j<meter.basicinfo.addr.addr[0];j++) {
-					fprintf(stderr,"%02x",meter.basicinfo.addr.addr[j+1]);
+				for(j=0;j<(meter.basicinfo.addr.addr[1]+1);j++) {
+					fprintf(stderr,"%02x",meter.basicinfo.addr.addr[j+2]);
 //				fprintf(stderr,"[1]%02x%02x%02x%02x%02x%02x ",
 //						meter.basicinfo.addr.addr[0],meter.basicinfo.addr.addr[1],meter.basicinfo.addr.addr[2],meter.basicinfo.addr.addr[3],
 //						meter.basicinfo.addr.addr[4],meter.basicinfo.addr.addr[5]);
@@ -174,8 +174,8 @@ void Collect6000(OI_698	oi)
 				fprintf(stderr,"[8]%s ",getenum(coll_wiretype,meter.basicinfo.connectype));
 				fprintf(stderr,"[9]%d [10]%d ",meter.basicinfo.ratedU,meter.basicinfo.ratedI);
 				fprintf(stderr,"[11]");
-				for(j=0;j<meter.extinfo.cjq_addr.addr[0];j++) {
-					fprintf(stderr,"%02x",meter.extinfo.cjq_addr.addr[j+1]);
+				for(j=0;j<(meter.extinfo.cjq_addr.addr[1]+1);j++) {
+					fprintf(stderr,"%02x",meter.extinfo.cjq_addr.addr[j+2]);
 				}
 				fprintf(stderr," [12]");
 				for(j=0;j<meter.extinfo.asset_code[0];j++) {

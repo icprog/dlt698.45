@@ -8,13 +8,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include "ae.h"
-#include "anet.h"
-#include "rlog.h"
-#include "dlt698def.h"
 #include "cjcomm.h"
-#include "AccessFun.h"
-#include "PublicFunction.h"
 
 //维护串口监听、处理结构体
 static CommBlock ServerObject;
@@ -25,16 +19,16 @@ static int listen_port;
  * 模块*内部*使用的初始化参数
  */
 void ServerInit(void) {
-	asyslog(LOG_INFO, "初始化监听服务器模块...");
-	listen_port = -1;
-	initComPara(&ServerObject);
+    asyslog(LOG_INFO, "初始化监听服务器模块...");
+    listen_port = -1;
+    initComPara(&ServerObject);
 }
 
 /*
  * 用于程序退出时调用
  */
 void ServerDestory(void) {
-	//关闭资源
+    //关闭资源
     asyslog(LOG_INFO, "关闭监听服务器(%d)", ServerObject.phy_connect_fd);
     close(ServerObject.phy_connect_fd);
     ServerObject.phy_connect_fd = -1;
@@ -46,8 +40,8 @@ void ServerDestory(void) {
 
 void CreateAptSer(struct aeEventLoop* eventLoop, int fd, void* clientData, int mask) {
     CommBlock* nst = (CommBlock*)clientData;
-	char errmsg[128];
-	memset(errmsg, 0x00, sizeof(errmsg));
+    char errmsg[128];
+    memset(errmsg, 0x00, sizeof(errmsg));
 
     //如果已经接受主站连接，先关闭
     if (nst->phy_connect_fd > 0) {
@@ -74,18 +68,18 @@ void CreateAptSer(struct aeEventLoop* eventLoop, int fd, void* clientData, int m
 /*
  * 模块维护循环
  */
-int RegularServer(struct aeEventLoop* ep, long long id, void* clientData){
-	CommBlock* nst = (CommBlock*)clientData;
-	char errmsg[128];
-	memset(errmsg, 0x00, sizeof(errmsg));
+int RegularServer(struct aeEventLoop* ep, long long id, void* clientData) {
+    CommBlock* nst = (CommBlock*)clientData;
+    char errmsg[128];
+    memset(errmsg, 0x00, sizeof(errmsg));
     if (listen_port < 0) {
-    	listen_port = anetTcpServer(errmsg, 5555, "0.0.0.0", 1);
-    	if (listen_port >= 0) {
-    	    aeCreateFileEvent(ep, listen_port, AE_READABLE, CreateAptSer, nst);
-    	} else {
-    		asyslog(LOG_ERR, "网络监听建立失败，1分钟后重建，出错原因(%s)", errmsg);
-    		return 60 * 1000;
-    	}
+        listen_port = anetTcpServer(errmsg, 5555, "0.0.0.0", 1);
+        if (listen_port >= 0) {
+            aeCreateFileEvent(ep, listen_port, AE_READABLE, CreateAptSer, nst);
+        } else {
+            asyslog(LOG_ERR, "网络监听建立失败，1分钟后重建，出错原因(%s)", errmsg);
+            return 60 * 1000;
+        }
     }
     return 1000;
 }
@@ -93,9 +87,9 @@ int RegularServer(struct aeEventLoop* ep, long long id, void* clientData){
 /*
  * 供外部使用的初始化函数，并开启维护循环
  */
-int StartServer(struct aeEventLoop* ep, long long id, void* clientData){
-	ServerInit();
-	Server_Task_Id = aeCreateTimeEvent(ep, 1000, RegularServer, &ServerObject, NULL);
-	asyslog(LOG_INFO, "监听服务器时间事件注册完成(%lld)", Server_Task_Id);
-	return 1;
+int StartServer(struct aeEventLoop* ep, long long id, void* clientData) {
+    ServerInit();
+    Server_Task_Id = aeCreateTimeEvent(ep, 1000, RegularServer, &ServerObject, NULL);
+    asyslog(LOG_INFO, "监听服务器时间事件注册完成(%lld)", Server_Task_Id);
+    return 1;
 }

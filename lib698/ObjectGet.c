@@ -139,29 +139,9 @@ int GetMeterInfo(RESULT_NORMAL *response)
 	fprintf(stderr,"GetMeterInfo oad.oi=%04x blknum=%d\n",oad.OI,blknum);
 	if(blknum<=1)	return 0;
 	index += create_array(&data[index],blknum-1);		//个数-1：文件第一个块为空 电表总数
-	for(i=0;i<blknum;i++) {
-		if(readParaClass(oad.OI,&meter,i)==1) {
-			index += create_struct(&data[index],4);		//属性2：struct 四个元素
-			index += fill_long_unsigned(&data[index],meter.sernum);		//配置序号
-			index += create_struct(&data[index],10);					//基本信息:10个元素
-			index += fill_TSA(&data[index],(INT8U *)&meter.basicinfo.addr.addr[1],meter.basicinfo.addr.addr[0]);		//TSA
-			index += fill_enum(&data[index],meter.basicinfo.baud);			//波特率
-			index += fill_enum(&data[index],meter.basicinfo.protocol);		//规约类型
-			data[index++] = dtoad;
-			index += create_OAD(&data[index],meter.basicinfo.port);		//端口
-			index += fill_octet_string(&data[index],(char *)&meter.basicinfo.pwd[1],meter.basicinfo.pwd[0]);		//通信密码
-			index += fill_unsigned(&data[index],meter.basicinfo.ratenum);		//费率个数
-			index += fill_unsigned(&data[index],meter.basicinfo.usrtype);		//用户类型
-			index += fill_enum(&data[index],meter.basicinfo.connectype);		//接线方式
-			index += fill_long_unsigned(&data[index],meter.basicinfo.ratedU);		//额定电压
-			index += fill_long_unsigned(&data[index],meter.basicinfo.ratedI);		//额定电流
-			index += create_struct(&data[index],4);					//扩展信息:4个元素
-			index += fill_TSA(&data[index],(INT8U *)&meter.extinfo.cjq_addr.addr[1],meter.extinfo.cjq_addr.addr[0]);		//TSA
-			index += fill_octet_string(&data[index],(char *)&meter.extinfo.asset_code[1],meter.extinfo.asset_code[0]);	//资产号
-			index += fill_long_unsigned(&data[index],meter.extinfo.pt);		//PT
-			index += fill_long_unsigned(&data[index],meter.extinfo.ct);		//CT
-			index += create_array(&data[index],0);					//附属信息:0个元素
-		}
+	for(i=0;i<blknum;i++)
+	{
+		index += Get_6000(i,&data[index]);
 	}
 	response->datalen = index;
 	return 0;
@@ -578,39 +558,62 @@ int Get4300(RESULT_NORMAL *response)
 	return 0;
 }
 
+///
 
 int getSel1_coll(RESULT_RECORD *record)
 {
+	CLASS_6001 meter={};
 	int ret=0;
+	INT8U	data[512];
 	CLASS_6035	classoi={};
-	INT8U 	data[512];
 	int		index = 0;
 	INT8U	taskid=0;
 
 //	record->data = data;
-	data[index++] = 1;		//1条记录     [1] SEQUENCE OF A-RecordRow
-	switch(record->select.selec1.oad.OI) {
-	case 0x6035:
-		if(record->select.selec1.data.type == dtunsigned) {
-			taskid = record->select.selec1.data.data[0];
-		}
-		fprintf(stderr,"taskid=%d\n",taskid);
-		readCoverClass(record->select.selec1.oad.OI,taskid,&classoi,sizeof(CLASS_6035),coll_para_save);
-		index += create_struct(&data[index],8);
-		index += fill_unsigned(&data[index],classoi.taskID);
-		index += fill_enum(&data[index],classoi.taskState);
-		index += fill_date_time_s(&data[index],&classoi.starttime);
-		index += fill_date_time_s(&data[index],&classoi.endtime);
-		index += fill_long_unsigned(&data[index],classoi.totalMSNum);
-		index += fill_long_unsigned(&data[index],classoi.successMSNum);
-		index += fill_long_unsigned(&data[index],classoi.sendMsgNum);
-		index += fill_long_unsigned(&data[index],classoi.rcvMsgNum);
-		record->datalen = index;
-		break;
-	}
-	if(record->data==NULL) {
-		record->data = malloc(index);
-		memcpy(record->data,data,index);
+//	data[index++] = 1;		//1条记录     [1] SEQUENCE OF A-RecordRow
+	switch(record->select.selec1.oad.OI)
+	{
+			case 0x6001:
+			{
+				fprintf(stderr,"\n  record for 6001\n");
+				if(record->select.selec1.data.type == dtlongunsigned) {
+					taskid = record->select.selec1.data.data[0];
+				}
+				fprintf(stderr,"\n  record for 6001  - taskid=%d\n",taskid);
+				record->data[index++] = 1;		//1条记录     [1] SEQUENCE OF A-RecordRow
+				index += Get_6000(taskid,&record->data[index]);
+				if(index==0) {	//0条记录     [1] SEQUENCE OF A-RecordRow
+					record->data[0] = 0;
+				}
+				record->datalen = index;
+				fprintf(stderr,"\nrecord->datalen = %d",record->datalen);
+				break;
+			}
+			case 0x6035:
+			{
+				if(record->select.selec1.data.type == dtunsigned) {
+					taskid = record->select.selec1.data.data[0];
+				}
+				fprintf(stderr,"taskid=%d\n",taskid);
+				if (readCoverClass(record->select.selec1.oad.OI,taskid,&classoi,sizeof(CLASS_6035),coll_para_save))
+				{
+					data[index++] = 1;		//1条记录     [1] SEQUENCE OF A-RecordRow
+					index += create_struct(&data[index],8);
+					index += fill_unsigned(&data[index],classoi.taskID);
+					index += fill_enum(&data[index],classoi.taskState);
+					index += fill_date_time_s(&data[index],&classoi.starttime);
+					index += fill_date_time_s(&data[index],&classoi.endtime);
+					index += fill_long_unsigned(&data[index],classoi.totalMSNum);
+					index += fill_long_unsigned(&data[index],classoi.successMSNum);
+					index += fill_long_unsigned(&data[index],classoi.sendMsgNum);
+					index += fill_long_unsigned(&data[index],classoi.rcvMsgNum);
+				}else
+					data[index++] = 0;
+				record->datalen = index;
+				break;
+			}
+			default:
+				fprintf(stderr,"\nrecord switch default!");
 	}
 	return ret;
 }
@@ -645,7 +648,6 @@ int doGetrecord(RESULT_RECORD *record)
 	case 5:
 	case 7:
 //		getSelector(record->select, record->selectType,record->rcsd.csds,(INT8U *)&record->data,&index);
-		record->data = malloc(2000);
 		getSelector(record->select, record->selectType,record->rcsd.csds,(INT8U *)record->data,&index);
 		record->datalen = index;
 //		fprintf(stderr,"\nreturn len =%d\n",index);
@@ -749,9 +751,7 @@ int getRequestRecord(OAD oad,INT8U *data,CSINFO *csinfo,INT8U *sendbuf)
 	}
 	doGetrecord(&record);
 	BuildFrame_GetResponseRecord(GET_REQUEST_RECORD,csinfo,record,sendbuf);
-	if(record.data!=NULL) {				//TODO：是否位置合适么？中间是否有退出情况
-		free(record.data);
-	}
+
 //	securetype = 0;		//清除安全等级标识
 	return 1;
 }

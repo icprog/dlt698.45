@@ -8,7 +8,7 @@
 #ifndef LIB698DEF_H_
 #define LIB698DEF_H_
 
-#define MAXSIZ_FAM	1600
+
 
 #define LINK_REQUEST   1
 #define LINK_RESPONSE  129

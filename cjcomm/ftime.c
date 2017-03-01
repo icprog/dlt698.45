@@ -8,13 +8,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include "ae.h"
-#include "anet.h"
-#include "rlog.h"
-#include "dlt698def.h"
 #include "cjcomm.h"
-#include "AccessFun.h"
-#include "PublicFunction.h"
 
 static INT32S timeoffset[50];    //终端精准校时 默认最近心跳时间总个数50次
 static INT8U crrntimen      = 0; //终端精准校时 当前接手心跳数
@@ -22,12 +16,12 @@ static INT8U timeoffsetflag = 0; //终端精准校时 开始标志
 
 static long long Veri_Time_Task_Id;
 
-INT8U GetTimeOffsetFlag(void){
-	return timeoffsetflag;
+INT8U GetTimeOffsetFlag(void) {
+    return timeoffsetflag;
 }
 
 int VerifiTime(struct aeEventLoop* ep, long long id, void* clientData) {
-	ProgramInfo* JProgramInfo = (ProgramInfo*)clientData;
+    ProgramInfo* JProgramInfo = (ProgramInfo*)clientData;
     TS jzqtime;
     TSGet(&jzqtime); //集中器时间
 
@@ -115,8 +109,8 @@ void Getk(LINK_Response link, ProgramInfo* JProgramInfo) {
 /*
  * 供外部使用的初始化函数，并开启维护循环
  */
-int StartVerifiTime(struct aeEventLoop* ep, long long id, void* clientData){
-	Veri_Time_Task_Id = aeCreateTimeEvent(ep, 1000, VerifiTime, clientData, NULL);
-	asyslog(LOG_INFO, "精确校时事件注册完成(%lld)", Veri_Time_Task_Id);
-	return 1;
+int StartVerifiTime(struct aeEventLoop* ep, long long id, void* clientData) {
+    Veri_Time_Task_Id = aeCreateTimeEvent(ep, 1000, VerifiTime, clientData, NULL);
+    asyslog(LOG_INFO, "精确校时事件注册完成(%lld)", Veri_Time_Task_Id);
+    return 1;
 }

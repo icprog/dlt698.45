@@ -19,6 +19,8 @@
 #include <linux/serial.h>
 #include <sys/ioctl.h>
 #include <dirent.h>
+#include <syslog.h>
+#include <stdarg.h>
 
 /* BCD码转int32u
  *参数：bcd为bcd码头指针，len为bcd码长度，order为positive正序/inverted反序，dint转换结果
@@ -835,6 +837,41 @@ INT32S prog_find_pid_by_name(INT8S* ProcName, INT32S* foundpid)
 	foundpid[i] = 0;
 	closedir(dir);
 	return  i;
+}
+
+
+/*
+ *     LOG_ERR        发生错误
+ *     LOG_WARNING    警告信息
+ *     LOG_INFO       系统变量、状态信息
+ *     LOG_DEBUG      调试信息
+ *
+ */
+
+void asyslog(int priority, const char* fmt, ...) {
+    va_list argp;
+    va_start(argp, fmt);
+    vsyslog(priority, fmt, argp);
+    vprintf(fmt, argp);
+    printf("\n");
+    va_end(argp);
+}
+
+void bufsyslog(const INT8U* buf, const char* title, int head, int tail, int len) {
+    int count = 0;
+    char msg[9009];
+    memset(msg, '\0', sizeof(msg));
+    snprintf(msg, 6, "%s", title);
+    while (head != tail) {
+        sprintf(msg + 5 + count * 3, " %02x", buf[tail]);
+        tail = (tail + 1) % len;
+        count++;
+        if (count > 3000) {
+            break;
+        }
+    }
+    syslog(LOG_INFO, "%s", msg);
+    printf("%s\n", msg);
 }
 
 #endif /*JPublicFunctionH*/
