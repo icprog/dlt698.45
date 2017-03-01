@@ -273,9 +273,6 @@ INT8U Getevent_Record(INT8U event_no,OI_698 *oi_array,INT8U oi_index,INT8U *real
 	if(Getbuf!=NULL && Getlen>0){
 		fprintf(stderr,"Getlen=%d \n",Getlen);
 		 record_para->dar = 1;
-		 if(record_para->data == NULL)
-			 record_para->data=(INT8U*)malloc(Getlen*num+1);//先按最大长度分配
-
 		 memset(&record_para->data[0],0,Getlen);
 		 record_para->data[0] +=1;		//SEQUENCE OF A-RecordRow
          (*real_index)++;
