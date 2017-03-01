@@ -60,7 +60,7 @@ void CreateAptSer(struct aeEventLoop* eventLoop, int fd, void* clientData, int m
     nst->phy_connect_fd = anetTcpAccept(errmsg, fd, NULL, 0, NULL);
     if (nst->phy_connect_fd > 0) {
         asyslog(LOG_INFO, "建立主站反向链接(结果:%d)", nst->phy_connect_fd);
-        if (aeCreateFileEvent(eventLoop, nst->phy_connect_fd, AE_READABLE, NETRead, nst) == -1) {
+        if (aeCreateFileEvent(eventLoop, nst->phy_connect_fd, AE_READABLE, ClientRead, nst) == -1) {
             aeDeleteFileEvent(eventLoop, nst->phy_connect_fd, AE_READABLE);
             close(fd);
         }

@@ -27,10 +27,9 @@
 //共享内存地址
 static ProgramInfo* JProgramInfo = NULL;
 
-static char IPaddr[24];
-//以太网、GPRS、侦听服务端处理对象
-static CommBlock nets_comstat;
-
+ProgramInfo* getShareMem(void){
+	return JProgramInfo;
+}
 
 static CLASS25 Class25;
 
@@ -64,10 +63,9 @@ void QuitProcess(int sig) {
     SerialDestory();
     ServerDestory();
     MmqDestory();
+    ClientDestory();
 
     //关闭打开的接口
-    asyslog(LOG_INFO, "开始关闭终端对主站链接接口(%d)", nets_comstat.phy_connect_fd);
-    close(nets_comstat.phy_connect_fd);
 
     //关闭AT模块
     asyslog(LOG_INFO, "关闭AT模块电源");
@@ -170,90 +168,6 @@ void initComPara(CommBlock* compara) {
     memcpy(&compara->f101, &oif101, sizeof(CLASS_F101));
 }
 
-void NETRead(struct aeEventLoop* eventLoop, int fd, void* clientData, int mask) {
-    CommBlock* nst = (CommBlock*)clientData;
-
-    //判断fd中有多少需要接收的数据
-    int revcount = 0;
-    ioctl(fd, FIONREAD, &revcount);
-
-    //关闭异常端口
-    if (revcount == 0) {
-        asyslog(LOG_WARNING, "链接出现异常，关闭端口、取消监听");
-        aeDeleteFileEvent(eventLoop, fd, AE_READABLE);
-        close(fd);
-        nst->phy_connect_fd = -1;
-        SetOffline();
-    }
-
-    if (revcount > 0) {
-        for (int j = 0; j < revcount; j++) {
-            read(fd, &nst->RecBuf[nst->RHead], 1);
-            nst->RHead = (nst->RHead + 1) % BUFLEN;
-        }
-        bufsyslog(nst->RecBuf, "Recv:", nst->RHead, nst->RTail, BUFLEN);
-
-        for (int k = 0; k < 5; k++) {
-            int len = 0;
-            for (int i = 0; i < 5; i++) {
-                len = StateProcess(nst, 10);
-                if (len > 0) {
-                    break;
-                }
-            }
-            if (len <= 0) {
-                break;
-            }
-
-            if (len > 0) {
-                int apduType = ProcessData(nst);
-                switch (apduType) {
-                    case LINK_RESPONSE:
-                        if (GetTimeOffsetFlag() == 1) {
-                            Getk(nst->linkResponse, JProgramInfo);
-                        }
-                        nst->linkstate   = build_connection;
-                        nst->testcounter = 0;
-                        break;
-                    default:
-                        break;
-                }
-            }
-        }
-    }
-}
-
-int NETWorker(struct aeEventLoop* ep, long long id, void* clientData) {
-    CommBlock* nst = (CommBlock*)clientData;
-    clearcount(1);
-
-    if (nst->phy_connect_fd <= 0) {
-        char errmsg[256];
-        memset(errmsg, 0x00, sizeof(errmsg));
-        initComPara(nst);
-        nst->phy_connect_fd = anetTcpConnect(errmsg, IPaddr, Class25.master.master[0].port);
-        if (nst->phy_connect_fd > 0) {
-//            asyslog(LOG_INFO, "链接主站(主站地址:%s,结果:%d)", IPaddr, nst->phy_connect_fd);
-            if (aeCreateFileEvent(ep, nst->phy_connect_fd, AE_READABLE, NETRead, nst) < 0) {
-                close(nst->phy_connect_fd);
-                nst->phy_connect_fd = -1;
-            } else {
-                anetTcpKeepAlive(NULL, nst->phy_connect_fd);
-                SetOnline();
-                asyslog(LOG_INFO, "与主站链路建立成功");
-                gpofun("/dev/gpoONLINE_LED", 1);
-            }
-        } else {
-//            asyslog(LOG_WARNING, "主站链接失败，(%d)[%s]", nst->phy_connect_fd, errmsg);
-        }
-    } else {
-        TS ts = {};
-        TSGet(&ts);
-        Comm_task(nst);
-    }
-
-    return 2000;
-}
 
 /*********************************************************
  * 进程初始化
@@ -272,24 +186,11 @@ void enviromentCheck(int argc, char* argv[]) {
     asyslog(LOG_INFO, "侦听端口列表：%d", Class25.commconfig.listenPort[0]);
     asyslog(LOG_INFO, "超时时间，重发次数：%02x", Class25.commconfig.timeoutRtry);
     asyslog(LOG_INFO, "心跳周期秒：%d", Class25.commconfig.heartBeat);
-    asyslog(LOG_INFO, "主站通信地址(1)为：%d.%d.%d.%d:%d", Class25.master.master[0].ip[1], Class25.master.master[0].ip[2],
-            Class25.master.master[0].ip[3], Class25.master.master[0].ip[4], Class25.master.master[0].port);
-    asyslog(LOG_INFO, "主站通信地址(2)为：%d.%d.%d.%d:%d", Class25.master.master[1].ip[1], Class25.master.master[1].ip[2],
-            Class25.master.master[1].ip[3], Class25.master.master[1].ip[4], Class25.master.master[1].port);
-
-    //检查运行参数
-    memset(IPaddr, 0, sizeof(IPaddr));
-    snprintf(IPaddr, sizeof(IPaddr), "%d.%d.%d.%d", Class25.master.master[0].ip[1], Class25.master.master[0].ip[2],
-             Class25.master.master[0].ip[3], Class25.master.master[0].ip[4]);
-    asyslog(LOG_INFO, "确定：主站通信地址为：%s\n", IPaddr);
 
     //向cjmain报告启动
     JProgramInfo = OpenShMem("ProgramInfo", sizeof(ProgramInfo), NULL);
     memcpy(JProgramInfo->Projects[1].ProjectName, "cjcomm", sizeof("cjcomm"));
     JProgramInfo->Projects[1].ProjectID = getpid();
-
-    //初始化通信对象参数
-    initComPara(&nets_comstat);
 }
 
 
@@ -317,11 +218,8 @@ int main(int argc, char* argv[]) {
     StartSerial(ep, 0, NULL);
     StartServer(ep, 0, NULL);
     StartVerifiTime(ep, 0, JProgramInfo);
-    StartMmq(ep, 0, &nets_comstat);
+    StartClient(ep, 0, &Class25);
 
-
-    //建立网络连接（以太网、GPRS）维护事件
-    aeCreateTimeEvent(ep, 1 * 1000, NETWorker, &nets_comstat, NULL);
     aeMain(ep);
 
     QuitProcess(&JProgramInfo->Projects[1]);

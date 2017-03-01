@@ -14,7 +14,6 @@
 
 void initComPara(CommBlock* compara);
 
-void NETRead(struct aeEventLoop* eventLoop, int fd, void* clientData, int mask);
 void GenericRead(struct aeEventLoop* eventLoop, int fd, void* clientData, int mask);
 INT8S GenericWrite(int fd, INT8U* buf, INT16U len);
 
@@ -27,6 +26,13 @@ void setSINSTR(INT16U SINSTR);
 void setPPPIP(INT8U PPPIP[]);
 void saveCurrClass25(void);
 
+ProgramInfo* getShareMem(void);
+
+void ClientDestory(void);
+int StartClient(struct aeEventLoop* ep, long long id, void* clientData);
+void ClientRead(struct aeEventLoop* eventLoop, int fd, void* clientData, int mask);
+
+void MmqDestory(void);
 int StartMmq(struct aeEventLoop* ep, long long id, void* clientData);
 int StartVerifiTime(struct aeEventLoop* ep, long long id, void* clientData);
 
