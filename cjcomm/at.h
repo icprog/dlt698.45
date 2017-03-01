@@ -22,7 +22,9 @@ typedef struct {
 } SM_PARAM;
 
 void AT_POWOFF();
-void CreateATWorker(void);
+
+void CreateATWorker(void* clientdata);
+
 void SetOnline(void);
 void SetOffline(void);
 int ATMYSOCKETLED(unsigned char step, int ComPort);
