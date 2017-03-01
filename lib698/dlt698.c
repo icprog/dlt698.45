@@ -733,7 +733,11 @@ INT16U composeAutoReport(INT8U* SendApdu,INT16U length)
 	 fd = Esam_Init(fd,(INT8U*)ACS_SPI_DEV);
 	 if(fd<0) return 0;
 	 retLen = Esam_ReportEncrypt(fd,&SendApdu[1],length-1,RN,MAC);
-	 if(retLen<=0) return 0;
+	 if(retLen<=0)
+	 {
+		 Esam_Clear(fd);
+		 return 0;
+	 }
 	 SendApdu[length]=0x02;//数据验证信息类型RN_MAC
 	 SendApdu[length+1]=0x0C;//随机数长度
 	 memcpy(&SendApdu[length+2],RN,12);//12个随机数，固定大小
