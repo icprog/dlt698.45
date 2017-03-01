@@ -16,7 +16,6 @@
 #include "anet.h"
 #include "assert.h"
 #include "at.h"
-#include "rlog.h"
 
 #include "AccessFun.h"
 #include "PublicFunction.h"
@@ -27,8 +26,8 @@
 //共享内存地址
 static ProgramInfo* JProgramInfo = NULL;
 
-ProgramInfo* getShareMem(void){
-	return JProgramInfo;
+ProgramInfo* getShareMem(void) {
+    return JProgramInfo;
 }
 
 static CLASS25 Class25;
@@ -64,8 +63,6 @@ void QuitProcess(int sig) {
     ServerDestory();
     MmqDestory();
     ClientDestory();
-
-    //关闭打开的接口
 
     //关闭AT模块
     asyslog(LOG_INFO, "关闭AT模块电源");
@@ -127,7 +124,6 @@ void Comm_task(CommBlock* compara) {
     }
 }
 
-
 void initComPara(CommBlock* compara) {
     int ret = 0, i = 0;
     CLASS19 oi4300    = {};
@@ -168,7 +164,6 @@ void initComPara(CommBlock* compara) {
     memcpy(&compara->f101, &oif101, sizeof(CLASS_F101));
 }
 
-
 /*********************************************************
  * 进程初始化
  *********************************************************/
@@ -192,8 +187,6 @@ void enviromentCheck(int argc, char* argv[]) {
     memcpy(JProgramInfo->Projects[1].ProjectName, "cjcomm", sizeof("cjcomm"));
     JProgramInfo->Projects[1].ProjectID = getpid();
 }
-
-
 
 int main(int argc, char* argv[]) {
     printf("version 1015\n");
@@ -222,6 +215,7 @@ int main(int argc, char* argv[]) {
 
     aeMain(ep);
 
-    QuitProcess(&JProgramInfo->Projects[1]);
+    //退出信号
+    QuitProcess(99);
     return EXIT_SUCCESS;
 }

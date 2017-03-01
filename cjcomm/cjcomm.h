@@ -10,6 +10,7 @@
 #include "StdDataType.h"
 #include "PublicFunction.h"
 #include "dlt698.h"
+#include "event.h"
 #include "ae.h"
 
 void initComPara(CommBlock* compara);
@@ -27,7 +28,8 @@ void setPPPIP(INT8U PPPIP[]);
 void saveCurrClass25(void);
 
 ProgramInfo* getShareMem(void);
-
+void Comm_task(CommBlock* compara);
+void clearcount(int index);
 void ClientDestory(void);
 int StartClient(struct aeEventLoop* ep, long long id, void* clientData);
 void ClientRead(struct aeEventLoop* eventLoop, int fd, void* clientData, int mask);

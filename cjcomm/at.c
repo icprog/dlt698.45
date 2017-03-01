@@ -16,7 +16,6 @@
 #include "PublicFunction.h"
 #include "dlt698def.h"
 #include "cjcomm.h"
-#include "rlog.h"
 #include "at.h"
 
 static int NeedDoAt = 1;
@@ -458,7 +457,7 @@ int gsmDecodePdu(const char* pSrc, SM_PARAM* pDst) {
     gsmSerializeNumbers(pSrc, pDst->TP_SCTS, 14); // 服务时间戳字符串(TP_SCTS)
     pSrc += 14;                                   // 指针后移
     gsmString2Bytes(pSrc, &tmp, 2);               // 用户信息长度(TP-UDL)
-    pSrc += 2; // 指针后移
+    pSrc += 2;                                    // 指针后移
 
     if (pDst->TP_DCS == GSM_7BIT) {
         // 7-bit解码
@@ -514,8 +513,8 @@ void checkSms(int port) {
                 break;
             }
         } else {
-        	asyslog(LOG_NOTICE, "无短信内容，等待下次检查...");
-        	break;
+            asyslog(LOG_NOTICE, "无短信内容，等待下次检查...");
+            break;
         }
     }
 }
@@ -661,14 +660,14 @@ void* ATWorker(void* args) {
             if (sscanf(Mrecvbuf, "%*[^:]: %d,%d", &k, &l) == 2) {
                 asyslog(LOG_INFO, "GprsCREG = %d,%d\n", k, l);
                 if (l == 1 || l == 5) {
-                	reg_ok = 1;
+                    reg_ok = 1;
                     break;
                 }
             }
         }
-        if (reg_ok == 0){
-        	asyslog(LOG_INFO, "注册网络失败");
-        	goto err;
+        if (reg_ok == 0) {
+            asyslog(LOG_INFO, "注册网络失败");
+            goto err;
         }
 
         char* cimiType[] = {
