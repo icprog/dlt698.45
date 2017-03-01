@@ -414,4 +414,34 @@ int get_BasicRCSD(INT8U *source,CSD_ARRAYTYPE *csds)	//0x60
 	return index;
 }
 
+int Get_6000(INT8U seqnum,INT8U *data)
+{
+	int 	index=0;
+	CLASS_6001 meter={};
+
+	if(readParaClass(0x6000,&meter,seqnum)==1) {
+		fprintf(stderr,"\n 6000 read meter ok");
+		index += create_struct(&data[index],4);		//属性2：struct 四个元素
+		index += fill_long_unsigned(&data[index],meter.sernum);		//配置序号
+		index += create_struct(&data[index],10);					//基本信息:10个元素
+		index += fill_TSA(&data[index],(INT8U *)&meter.basicinfo.addr.addr[1],meter.basicinfo.addr.addr[0]);		//TSA
+		index += fill_enum(&data[index],meter.basicinfo.baud);			//波特率
+		index += fill_enum(&data[index],meter.basicinfo.protocol);		//规约类型
+		data[index++] = dtoad;
+		index += create_OAD(&data[index],meter.basicinfo.port);		//端口
+		index += fill_octet_string(&data[index],(char *)&meter.basicinfo.pwd[1],meter.basicinfo.pwd[0]);		//通信密码
+		index += fill_unsigned(&data[index],meter.basicinfo.ratenum);		//费率个数
+		index += fill_unsigned(&data[index],meter.basicinfo.usrtype);		//用户类型
+		index += fill_enum(&data[index],meter.basicinfo.connectype);		//接线方式
+		index += fill_long_unsigned(&data[index],meter.basicinfo.ratedU);		//额定电压
+		index += fill_long_unsigned(&data[index],meter.basicinfo.ratedI);		//额定电流
+		index += create_struct(&data[index],4);					//扩展信息:4个元素
+		index += fill_TSA(&data[index],(INT8U *)&meter.extinfo.cjq_addr.addr[1],meter.extinfo.cjq_addr.addr[0]);		//TSA
+		index += fill_octet_string(&data[index],(char *)&meter.extinfo.asset_code[1],meter.extinfo.asset_code[0]);	//资产号
+		index += fill_long_unsigned(&data[index],meter.extinfo.pt);		//PT
+		index += fill_long_unsigned(&data[index],meter.extinfo.ct);		//CT
+		index += create_array(&data[index],0);					//附属信息:0个元素
+	}
+	return index;
+}
 
