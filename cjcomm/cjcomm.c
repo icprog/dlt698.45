@@ -118,15 +118,17 @@ void initComPara(CommBlock* compara) {
     ret = readCoverClass(0x4300, 0, &oi4300, sizeof(CLASS19), para_vari_save);
     if (ret)
         memcpy(&compara->myAppVar.server_factory_version, &oi4300.info, sizeof(FactoryVersion));
-    for (i                                       = 0; i < 2; i++)
+    for (i = 0; i < 2; i++) {
         compara->myAppVar.FunctionConformance[i] = 0xff;
-    for (i                                       = 0; i < 5; i++)
+    }
+    for (i = 0; i < 5; i++) {
         compara->myAppVar.ProtocolConformance[i] = 0xff;
-    compara->myAppVar.server_deal_maxApdu        = 1024;
-    compara->myAppVar.server_recv_size           = 1024;
-    compara->myAppVar.server_send_size           = 1024;
-    compara->myAppVar.server_recv_maxWindow      = 1;
-    compara->myAppVar.expect_connect_timeout     = 56400;
+    }
+    compara->myAppVar.server_deal_maxApdu    = 1024;
+    compara->myAppVar.server_recv_size       = 1024;
+    compara->myAppVar.server_send_size       = 1024;
+    compara->myAppVar.server_recv_maxWindow  = 1;
+    compara->myAppVar.expect_connect_timeout = 56400;
     //--------------------
     memset(&oif101, 0, sizeof(CLASS_F101));
     ret = readCoverClass(0xf101, 0, &oif101, sizeof(CLASS_F101), para_vari_save);
