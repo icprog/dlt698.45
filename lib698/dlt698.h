@@ -43,13 +43,15 @@ extern int fill_date_time_s(INT8U *data,DateTimeBCD *time);
 extern int fill_TI(INT8U *data,TI ti);
 extern int fill_TSA(INT8U *data,INT8U *value,INT8U len);
 /*----------------------接口类及对象实例的数据类型解析----------------------*/
-extern int getArrayNum(INT8U *source,INT8U *dest);	//1
+extern int getArray(INT8U *source,INT8U *dest);	//1
+extern int getStructure(INT8U *source,INT8U *dest);	//2
 extern int getBool(INT8U *source,INT8U *dest);		//3
 extern int getUnsigned(INT8U *source,INT8U *dest);	//0x11
 extern int getLongUnsigned(INT8U *source,INT8U *dest);//0x12
-extern int getDateTimeS(INT8U *source,INT8U *dest);//0x1C
+extern int getDateTimeS(INT8U type,INT8U *source,INT8U *dest);//0x1C
+extern int getOAD(INT8U type,INT8U *source,OAD *oad);		//0x51
 extern int getROAD(INT8U *source,ROAD *dest);		//0x52
-extern int getTI(INT8U *source,INT8U *dest);		//0x54
+extern int getTI(INT8U type,INT8U *source,TI *ti);		//0x54
 extern int get_BasicRSD(INT8U *source,INT8U *dest,INT8U *type);	//0x5A
 extern int getMS(INT8U *source,INT8U *dest);		//0x5C
 extern int get_BasicRCSD(INT8U *source,CSD_ARRAYTYPE *csds);	//0x60
