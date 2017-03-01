@@ -339,6 +339,7 @@ typedef struct {
 	Terminal_timeoffset t_timeoffset;    	//终端精准校时参数
 	INT8U ProxyHappen;
     NeedReport_Event needreport_event;      //需要上报得事件参数
+    AutoTaskStrap	autotask[MAXNUM_AUTOTASK];
 }ProgramInfo; //程序信息结构
 
 #endif /* GTYPE_H_ */

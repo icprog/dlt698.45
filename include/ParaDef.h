@@ -34,6 +34,7 @@
 #define MAXSIZ_PROXY_NET    2048
 #define MAXNUM_PROXY_NET    25
 
+#define MAXNUM_AUTOTASK		20					//采用上报方案的任务最大数
 ///////////////////////////////////////////////////////////////
 /*
  * 	终端类相关容量及参数定义
