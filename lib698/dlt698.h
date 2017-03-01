@@ -18,7 +18,7 @@ extern INT8U Get_2203(OI_698 oi,INT8U *sourcebuf,INT8U *buf,int *len);
 extern INT8U Get_2204(OI_698 oi,INT8U *sourcebuf,INT8U *buf,int *len);
 
 /*----------------------抄表相关*************************/
-INT16S composeProtocol698_GetRequest(INT8U*,CLASS_6015,TSA);
+extern INT16S composeProtocol698_GetRequest(INT8U*,CLASS_6015,TSA);
 //OAD转换为报文
 extern INT8U OADtoBuff(OAD fromOAD,INT8U* buff);
 

@@ -810,8 +810,7 @@ INT16S fillGetRequestAPDU(INT8U* sendBuf,CLASS_6015 obj6015,INT8U requestType)
 
 	if(obj6015.cjtype == TYPE_LAST)
 	{
-		sendBuf[length++] = 0x09;//Selector = 9 选取上n条记录
-		sendBuf[length++] = 0x01;//选取上1条记录
+
 		for(csdIndex = 0;csdIndex < obj6015.csds.num;csdIndex++)
 		{
 			/*采集当前数据*/
@@ -819,6 +818,10 @@ INT16S fillGetRequestAPDU(INT8U* sendBuf,CLASS_6015 obj6015,INT8U requestType)
 			{
 				len = OADtoBuff(obj6015.csds.csd[csdIndex].csd.road.oad,&sendBuf[length]);
 				length +=len;
+				// RCSD应该用哪一种不知道该怎么定 此处填9是根据测试报文填写的
+				sendBuf[length++] = 0x09;//Selector = 9 选取上n条记录
+				sendBuf[length++] = 0x01;//选取上1条记录
+
 				sendBuf[length++] = obj6015.csds.csd[csdIndex].csd.road.num;//OAD num
 				INT8U oadsIndex;
 				for (oadsIndex = 0; oadsIndex < obj6015.csds.csd[csdIndex].csd.road.num; oadsIndex++)
@@ -861,6 +864,8 @@ INT8S getRequestType(INT8U cjtype,INT8U csdcount)
 
 		case TYPE_LAST:
 			{
+				requestType = GET_REQUEST_RECORD;
+#ifdef TESTDEF
 				if(csdcount == 1)
 				{
 					requestType = GET_REQUEST_RECORD;
@@ -869,6 +874,8 @@ INT8S getRequestType(INT8U cjtype,INT8U csdcount)
 				{
 					requestType = GET_REQUEST_RECORD_LIST;
 				}
+#endif
+
 				break;
 			}
 
@@ -919,8 +926,8 @@ INT16S composeProtocol698_GetRequest(INT8U* 	sendBuf,CLASS_6015 obj6015,TSA mete
 	return (sendLen + 3);			//3: cs cs 16
 
 }
-#ifdef TESTDEF1
-int analyzeProtocol698(INT8U* Rcvbuf,)
+#if TESTDEF1
+int analyzeProtocol698(INT8U* Rcvbuf)
 {
 	CSINFO csinfo={};
 	int hcsok = 0 ,fcsok = 0;
