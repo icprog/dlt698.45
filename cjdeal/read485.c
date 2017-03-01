@@ -545,6 +545,7 @@ INT8U checkEvent(CLASS_6001 meter,FORMAT07 resultData07,INT16U taskID)
 
 	if(memcmp(flag07_0CF33,resultData07.DI,4)==0)
 	{
+		fprintf(stderr,"\n\n ====================");
 		ret = Event_310B(meter.basicinfo.addr,taskID,resultData07.Data,resultData07.Length,JProgramInfo);
 
 		ret = Event_310C(meter.basicinfo.addr,taskID,resultData07.Data,resultData07.Length,JProgramInfo,meter);
