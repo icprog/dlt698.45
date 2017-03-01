@@ -234,10 +234,9 @@ INT8U Get_Event(OAD oad,INT8U eventno,INT8U** Getbuf,int *Getlen,ProgramInfo* pr
 		   break;
 	}
 	_currno=currno-(eventno-1);
-//	if(maxno==0)
-//		maxno=15;
-//	if(_currno<=0 || _currno>maxno)
-//		_currno = maxno;
+	maxno==0?15:maxno;
+	if(_currno<=0 || _currno>maxno)
+		_currno = 1;
 	fprintf(stderr,"currno=%d,maxno=%d pno=%d\n",currno,maxno,prginfo_event->event_obj.Event310E_obj.event_obj.crrentnum);
 	SaveFile_type savefiletype = event_record_save;
 	switch(oad.attflg){
@@ -572,6 +571,7 @@ INT8U Get_StandardUnit(OI_698 oi,INT8U *Rbuf,INT8U *Index,
  */
 INT8U Getcurrno(INT16U *currno,INT16U maxno){
 	fprintf(stderr,"[event]currno=%d maxno=%d \n",*currno,maxno);
+	maxno==0?15:maxno;
 	if(*currno>maxno)
 		*currno=1;
 	return 1;
