@@ -234,9 +234,11 @@ INT8U Get_Event(OAD oad,INT8U eventno,INT8U** Getbuf,int *Getlen,ProgramInfo* pr
 		   break;
 	}
 	_currno=currno-(eventno-1);
-	if(_currno<=0 || _currno>maxno)
-		_currno = maxno;
-	fprintf(stderr,"currno=%d,maxno=%d\n",currno,maxno);
+//	if(maxno==0)
+//		maxno=15;
+//	if(_currno<=0 || _currno>maxno)
+//		_currno = maxno;
+	fprintf(stderr,"currno=%d,maxno=%d pno=%d\n",currno,maxno,prginfo_event->event_obj.Event310E_obj.event_obj.crrentnum);
 	SaveFile_type savefiletype = event_record_save;
 	switch(oad.attflg){
 	     case 2:
@@ -270,6 +272,7 @@ INT8U Getevent_Record(INT8U event_no,OI_698 *oi_array,INT8U oi_index,INT8U *real
 	int Getlen=0;//记录长度
 	Get_Event(record_para->oad,event_no,(INT8U**)&Getbuf,&Getlen,prginfo_event);
 	if(Getbuf!=NULL && Getlen>0){
+		fprintf(stderr,"Getlen=%d \n",Getlen);
 		 record_para->dar = 1;
 		 if(record_para->data == NULL)
 			 record_para->data=(INT8U*)malloc(Getlen*num+1);//先按最大长度分配
@@ -365,11 +368,15 @@ INT8U Getevent_Record_Selector(RESULT_RECORD *record_para,ProgramInfo* prginfo_e
 			}
 		}
 	 }
+	 int j=0;
+	 for(j=0;j<oi_index;j++)
+		 fprintf(stderr,"j:%04x \n",oi_array[j]);
 	 if(oi_index > 0){
 		 switch(record_para->selectType){
 			 case 9:
 			 {
 				event_no=record_para->select.selec9.recordn;
+				fprintf(stderr,"event_no=%d \n",event_no);
 				Getevent_Record(event_no,oi_array,oi_index,
 						&real_index,1,record_para,prginfo_event);
 			 }
@@ -428,7 +435,7 @@ INT8U Get_Source(INT8U *Source,Source_Typ S_type,
 			break;
 		case s_tsa:
 			*Data_type=85;
-		    *Len=(Source[0]+1+1);
+		    *Len=(Source[0]+1);
 			break;
 		case s_oad:
 			*Data_type=81;
