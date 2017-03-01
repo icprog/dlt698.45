@@ -392,10 +392,27 @@ INT8U Getevent_Record_Selector(RESULT_RECORD *record_para,ProgramInfo* prginfo_e
  * 事件需要上报
  */
 INT8U Need_Report(OI_698 oi,INT8U eventno,ProgramInfo* prginfo_event){
-	prginfo_event->needreport_event.event_num++;
-	prginfo_event->needreport_event.event_num=prginfo_event->needreport_event.event_num%15;
-	prginfo_event->needreport_event.report_event[prginfo_event->needreport_event.event_num].oi=oi;
-	prginfo_event->needreport_event.report_event[prginfo_event->needreport_event.event_num].eventno=eventno;
+	static INT8U lastchgoi4300=0;
+	static INT8U first=1;
+	static CLASS19 class19;
+	if(first){
+		first=0;
+		lastchgoi4300 = prginfo_event->oi_changed.oi4300;
+		readCoverClass(0x4300,0,&class19,sizeof(class19),para_vari_save);
+	}
+	if(lastchgoi4300!=prginfo_event->oi_changed.oi4300){
+		readCoverClass(0x4300,0,&class19,sizeof(class19),para_vari_save);
+		if(lastchgoi4300!=prginfo_event->oi_changed.oi4300) {
+			lastchgoi4300++;
+			if(lastchgoi4300==0) lastchgoi4300=1;
+		}
+	}
+	if(class19.active_report == 1 && class19.talk_master == 1){
+		prginfo_event->needreport_event.event_num++;
+		prginfo_event->needreport_event.event_num=prginfo_event->needreport_event.event_num%15;
+		prginfo_event->needreport_event.report_event[prginfo_event->needreport_event.event_num].oi=oi;
+		prginfo_event->needreport_event.report_event[prginfo_event->needreport_event.event_num].eventno=eventno;
+	}
 	return 1;
 }
 
