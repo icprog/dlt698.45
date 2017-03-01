@@ -61,6 +61,7 @@ typedef struct {
 	INT8U oi4030;       //电压合格率统计
 	INT8U oi4500;		//通讯参数
 	INT8U reset;		/*4300方法1，设备复位*/
+	Int8U oi4300;       //设备管理接口类
 }OI_CHANGE;
 
 //交采系数
@@ -339,6 +340,7 @@ typedef struct {
 	Terminal_timeoffset t_timeoffset;    	//终端精准校时参数
 	INT8U ProxyHappen;
     NeedReport_Event needreport_event;      //需要上报得事件参数
+    AutoTaskStrap	autotask[MAXNUM_AUTOTASK];
 }ProgramInfo; //程序信息结构
 
 #endif /* GTYPE_H_ */

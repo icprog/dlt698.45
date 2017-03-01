@@ -311,20 +311,32 @@ void get_BasicUnit(INT8U *source,INT16U *sourceindex,INT8U *dest,INT16U *destind
 	*destindex = dest_sumindex;
 }
 
-void AddBatchMeterInfo(INT8U *data)
+void AddBatchMeterInfo(INT8U *data,INT8U type)
 {
 	CLASS_6001 meter={};
 	int k=0,saveflg=0;
-	INT8U addnum = data[1];
+	INT8U *dealdata;
+	INT8U addnum;// = data[1];
 	INT16U source_sumindex=0,source_index=0,dest_sumindex=0,dest_index=0;
 //	fprintf(stderr,"\naddnum=%d",addnum);
 
 //	fprintf(stderr,"\nCLASS_6001 BASIC_OBJECT=%d, EXTEND_OBJECT=%d",sizeof(BASIC_OBJECT),sizeof(EXTEND_OBJECT));
 
+	if (type == 127)
+	{
+		dealdata = data;
+		addnum = 1;
+	}else if (type == 128)
+	{
+		dealdata = &data[2];
+		addnum = data[1];
+	}
+
 	for(k=0; k<addnum; k++)
 	{
 		memset(&meter,0,sizeof(meter));
-		get_BasicUnit(&data[2]+source_sumindex,&source_index,(INT8U *)&meter.sernum,&dest_index);
+//		get_BasicUnit(&data[2]+source_sumindex,&source_index,(INT8U *)&meter.sernum,&dest_index);
+		get_BasicUnit(dealdata +source_sumindex,&source_index,(INT8U *)&meter.sernum,&dest_index);
 		source_sumindex += source_index;
 		dest_sumindex += dest_index;
 		fprintf(stderr,"\n\nAddBatchMeterInfo  index = %d ,sumindex = %d",source_index,source_sumindex);
@@ -840,10 +852,10 @@ void MeterInfo(INT16U attr_act,INT8U *data)
 	switch(attr_act)
 	{
 		case 127://方法 127:Add (采集档案配置单元)
-			AddBatchMeterInfo(data);
+			AddBatchMeterInfo(data,attr_act);
 			break;
 		case 128://方法 128:AddBatch(array 采集档案配置单元)
-			AddBatchMeterInfo(data);
+			AddBatchMeterInfo(data,attr_act);
 			break;
 		case 129://方法 129:Update(配置序号,基本信息)
 			break;

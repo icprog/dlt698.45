@@ -158,11 +158,11 @@ void getipnum(MASTER_STATION_INFO *info,char *argv)
 {
 	int ipnum1=0,ipnum2=0,ipnum3=0,ipnum4=0,port1;
 	sscanf((const char*)argv, "%d.%d.%d.%d:%d",&ipnum1,&ipnum2,&ipnum3,&ipnum4,&port1);
-	info[0].port = port1;
-	info[0].ip[1] = ipnum1;
-	info[0].ip[2] = ipnum2;
-	info[0].ip[3] = ipnum3;
-	info[0].ip[4] = ipnum4;
+	info[0].port =  port1;
+	info[0].ip[1] = (INT8U)ipnum1;
+	info[0].ip[2] = (INT8U)ipnum2;
+	info[0].ip[3] = (INT8U)ipnum3;
+	info[0].ip[4] = (INT8U)ipnum4;
 }
 
 void SetUsrPwd(int argc, char *argv[])
