@@ -24,7 +24,7 @@ extern int FrameHead(CSINFO *csinfo,INT8U *buf);
 extern INT8S (*pSendfun)(int fd,INT8U* sndbuf,INT16U sndlen);
 extern int comfd;
 extern ProgramInfo *memp;
-
+extern PIID piid_g;
 
 INT16U getMytypeSize(INT8U first )
 {
@@ -68,7 +68,7 @@ int doReponse(int server,int reponse,CSINFO *csinfo,PIID piid,OAD oad,int dar,IN
 	buf[index] = reponse;
 	index++;
 //	fprintf(stderr,"piid.data[%d]=%02x\n",index,piid.data);
-	buf[index] = piid.data;
+	buf[index] = piid_g.data;
 	index++;
 	index += create_OAD(&buf[index],oad);
 	buf[index] = dar;
@@ -424,7 +424,7 @@ void AddEventCjiFangAnInfo(INT8U *data)
 	{
 		memset(&eventFangAn,0,sizeof(eventFangAn));
 		index += getUnsigned(&data[index],(INT8U *)&eventFangAn.sernum);
-		index += getArrayNum(&data[index],(INT8U *)&eventFangAn.roads.num);
+		index += getArray(&data[index],(INT8U *)&eventFangAn.roads.num);
 		for(i=0;i<eventFangAn.roads.num;i++)
 			index += getROAD(&data[index],&eventFangAn.roads.road[i]);
 		index += 1;//getMS没解释类型字节
@@ -554,25 +554,37 @@ void EventCjFangAnInfo(INT16U attr_act,INT8U *data)
 void AddReportInfo(INT8U *data)
 {
 	CLASS_601D	 reportplan={};
-	int i=0,k=0,saveflg=0;
-	INT8U addnum = data[1];
+	int k=0,j=0,saveflg=0;
+	INT8U addnum = 0,strunum = 0;
 	INT8U roadnum=0;
 	int index=0;
-	INT16U source_sumindex=0,source_index=0,dest_sumindex=0,dest_index=0;
+//	INT16U source_sumindex=0,source_index=0,dest_sumindex=0,dest_index=0;
 
+	index += getArray(&data[index],&addnum);
 	fprintf(stderr,"\n添加个数 %d",addnum);
 	for(k=0; k<addnum; k++)
 	{
-//		memset(&reportplan,0,sizeof(CLASS_601D));
-//		index += getUnsigned(&data[index],(INT8U *)&eventFangAn.sernum);
-//		index += getArrayNum(&data[index],(INT8U *)&eventFangAn.roads.num);
-//		for(i=0;i<eventFangAn.roads.num;i++)
-//			index += getROAD(&data[index],&eventFangAn.roads.road[i]);
-//		index += 1;//getMS没解释类型字节
-//		index += getMS(&data[index],&eventFangAn.ms.mstype);
-//		index += getBool(&data[index],&eventFangAn.ifreport);
-//		index += getLongUnsigned(&data[index],(INT8U *)&eventFangAn.deepsize);
-//
+		memset(&reportplan,0,sizeof(CLASS_601D));
+		index += getStructure(&data[index],&strunum);
+		index += getUnsigned(&data[index],&reportplan.reportnum);
+		index += getArray(&data[index],&reportplan.chann_oad.num);
+		for(j=0;j<reportplan.chann_oad.num;j++) {
+			index += getOAD(1,&data[index],&reportplan.chann_oad.oadarr[j]);
+		}
+		index += getTI(1,&data[index],&reportplan.timeout);
+		index += getUnsigned(&data[index],&reportplan.maxreportnum);
+		index += getStructure(&data[index],&strunum);
+		index += getUnsigned(&data[index],&reportplan.reportdata.type);
+		switch(reportplan.reportdata.type) {
+		case 0:	//OAD
+			index += getOAD(1,&data[index],&reportplan.reportdata.data.oad);
+			break;
+		case 1://RecordData
+			index += getOAD(1,&data[index],&reportplan.reportdata.data.recorddata.oad);
+//			index += getOAD(1,&data[index],&reportplan.reportdata.data.recorddata.rcsd);
+//			index += getOAD(1,&data[index],&reportplan.reportdata.data.recorddata.rsd);
+			break;
+		}
 //		fprintf(stderr,"\n第 %d 个事件方案  ID=%d   (%d 个ROAD)",k,eventFangAn.sernum,eventFangAn.roads.num);
 //		int j=0,w=0;
 //		for(j=0;j<eventFangAn.roads.num;j++)

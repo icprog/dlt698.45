@@ -30,7 +30,7 @@
 								</option>
 								<inputType id="org.eclipse.cdt.cross.arm.gnu.sourcery.app.linux.assembler.base.input.806880003" superClass="org.eclipse.cdt.cross.arm.gnu.sourcery.app.linux.assembler.base.input"/>
 							</tool>
-							<tool command="arm-none-linux-gnueabi-gcc  -fPIC -shared" id="org.eclipse.cdt.cross.arm.gnu.sourcery.app.linux.elf.c.compiler.release.911802362" name="ARM Sourcery Linux GCC C Compiler" superClass="org.eclipse.cdt.cross.arm.gnu.sourcery.app.linux.elf.c.compiler.release">
+							<tool command="arm-none-linux-gnueabi-gcc  -fPIC -shared " id="org.eclipse.cdt.cross.arm.gnu.sourcery.app.linux.elf.c.compiler.release.911802362" name="ARM Sourcery Linux GCC C Compiler" superClass="org.eclipse.cdt.cross.arm.gnu.sourcery.app.linux.elf.c.compiler.release">
 								<option id="org.eclipse.cdt.cross.arm.gnu.c.compiler.option.optimization.level.1182806159" name="Optimization level" superClass="org.eclipse.cdt.cross.arm.gnu.c.compiler.option.optimization.level" value="org.eclipse.cdt.cross.arm.gnu.base.option.optimization.level.size" valueType="enumerated"/>
 								<option id="org.eclipse.cdt.cross.arm.gnu.c.compiler.option.include.paths.1900050041" name="Include paths (-I)" superClass="org.eclipse.cdt.cross.arm.gnu.c.compiler.option.include.paths" valueType="includePath">
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/include}&quot;"/>
