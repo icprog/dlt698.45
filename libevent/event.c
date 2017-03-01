@@ -234,7 +234,7 @@ INT8U Get_Event(OAD oad,INT8U eventno,INT8U** Getbuf,int *Getlen,ProgramInfo* pr
 		   break;
 	}
 	_currno=currno-(eventno-1);
-	maxno==0?15:maxno;
+	maxno=0?15:maxno;
 	if(_currno<=0 || _currno>maxno)
 		_currno = 1;
 	fprintf(stderr,"currno=%d,maxno=%d pno=%d\n",currno,maxno,prginfo_event->event_obj.Event310E_obj.event_obj.crrentnum);
@@ -466,8 +466,8 @@ INT8U Get_CurrResult(INT8U *Rbuf,INT8U *Index,
     INT8U datatype=0,sourcelen=0;
     Get_Source(Source,S_type,&datatype,&sourcelen);
     Rbuf[(*Index)++] = datatype;
-    if(datatype==s_tsa)
-    	Rbuf[(*Index)++] = sourcelen;
+//    if(datatype==s_tsa)
+//    	Rbuf[(*Index)++] = sourcelen;
     if(sourcelen>0)
     	memcpy(&Rbuf[(*Index)],Source,sourcelen);
     (*Index)+=sourcelen;
@@ -570,7 +570,7 @@ INT8U Get_StandardUnit(OI_698 oi,INT8U *Rbuf,INT8U *Index,
  * 每个事件记录数不超过设定得最大记录数，默认15个
  */
 INT8U Getcurrno(INT16U *currno,INT16U maxno){
-	fprintf(stderr,"[event]currno=%d maxno=%d \n",*currno,maxno);
+	//fprintf(stderr,"[event]currno=%d maxno=%d \n",*currno,maxno);
 	maxno=0?15:maxno;
 	if(*currno>maxno)
 		*currno=1;
@@ -1630,6 +1630,7 @@ INT8U Event_310E(TSA tsa, INT8U taskno,INT8U* data,INT8U len,ProgramInfo* prginf
 			prginfo_event->event_obj.Event310E_obj.event_obj.crrentnum++;
 			fprintf(stderr,"[event]after currentnum=%d \n",prginfo_event->event_obj.Event310E_obj.event_obj.crrentnum);
 			Getcurrno(&prginfo_event->event_obj.Event310E_obj.event_obj.crrentnum,prginfo_event->event_obj.Event310E_obj.event_obj.maxnum);
+			fprintf(stderr,"[event]sssafter currentnum=%d \n",prginfo_event->event_obj.Event310E_obj.event_obj.crrentnum);
 			INT32U crrentnum = prginfo_event->event_obj.Event310E_obj.event_obj.crrentnum;
 			INT8U index=0;
 			//标准数据单元
