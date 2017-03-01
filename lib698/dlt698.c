@@ -570,8 +570,8 @@ int doGetAttribute(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
 	INT8U getType = apdu[1];
 	OAD oad={};
 	INT8U *data=NULL;
-	piid.data = apdu[2];
-	fprintf(stderr,"\n- get type = %d PIID=%02x",getType,piid.data);
+	piid_g.data = apdu[2];
+	fprintf(stderr,"\n- get type = %d PIID=%02x",getType,piid_g.data);
 
 	getoad(&apdu[3],&oad);
 	data = &apdu[7];					//Data
@@ -603,7 +603,7 @@ int doProxyRequest(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
 	INT8U getType = apdu[1];
 	INT8U *data=NULL;
 
-	piid.data = apdu[2];
+	piid_g.data = apdu[2];
 	data = &apdu[3];
 	fprintf(stderr,"\n代理 PIID %02x   ",piid.data);
 	switch(getType)
@@ -634,7 +634,7 @@ int doActionRequest(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 	OAD  oad={};
 	INT8U *data=NULL;
 	INT8U request_choice = apdu[1];		//ACTION-Request
-	piid.data = apdu[2];				//PIID
+	piid_g.data = apdu[2];				//PIID
 //	memcpy(&omd,&apdu[3],4);			//OAD
 	oad.OI= (apdu[3]<<8) | apdu[4];
 	oad.attflg = apdu[5];

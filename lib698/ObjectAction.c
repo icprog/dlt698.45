@@ -24,7 +24,7 @@ extern int FrameHead(CSINFO *csinfo,INT8U *buf);
 extern INT8S (*pSendfun)(int fd,INT8U* sndbuf,INT16U sndlen);
 extern int comfd;
 extern ProgramInfo *memp;
-
+extern PIID piid_g;
 
 INT16U getMytypeSize(INT8U first )
 {
@@ -68,7 +68,7 @@ int doReponse(int server,int reponse,CSINFO *csinfo,PIID piid,OAD oad,int dar,IN
 	buf[index] = reponse;
 	index++;
 //	fprintf(stderr,"piid.data[%d]=%02x\n",index,piid.data);
-	buf[index] = piid.data;
+	buf[index] = piid_g.data;
 	index++;
 	index += create_OAD(&buf[index],oad);
 	buf[index] = dar;
