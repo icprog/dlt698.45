@@ -8,13 +8,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include "ae.h"
-#include "anet.h"
-#include "dlt698def.h"
 #include "cjcomm.h"
-#include "AccessFun.h"
-#include "PublicFunction.h"
-#include "libmmq.h"
 
 //建立消息监听服务
 static long long Mmq_Task_Id;

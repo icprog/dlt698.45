@@ -61,6 +61,7 @@ typedef struct {
 	INT8U oi4030;       //电压合格率统计
 	INT8U oi4500;		//通讯参数
 	INT8U reset;		/*4300方法1，设备复位*/
+	INT8U oi4300;       //设备管理接口类
 }OI_CHANGE;
 
 //交采系数

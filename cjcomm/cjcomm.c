@@ -7,20 +7,12 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
-
+#include <assert.h>
 #include <net/if.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
 
-#include "ae.h"
-#include "anet.h"
-#include "assert.h"
-#include "at.h"
-
-#include "PublicFunction.h"
 #include "cjcomm.h"
-#include "dlt698def.h"
-#include "event.h"
 
 //共享内存地址
 static ProgramInfo* JProgramInfo = NULL;
@@ -82,7 +74,6 @@ void Comm_task(CommBlock* compara) {
         if (compara->testcounter >= 2) {
             close(compara->phy_connect_fd);
             compara->phy_connect_fd = -1;
-            SetOffline();
             AT_POWOFF();
             compara->testcounter = 0;
             return;
@@ -127,15 +118,17 @@ void initComPara(CommBlock* compara) {
     ret = readCoverClass(0x4300, 0, &oi4300, sizeof(CLASS19), para_vari_save);
     if (ret)
         memcpy(&compara->myAppVar.server_factory_version, &oi4300.info, sizeof(FactoryVersion));
-    for (i                                       = 0; i < 2; i++)
+    for (i = 0; i < 2; i++) {
         compara->myAppVar.FunctionConformance[i] = 0xff;
-    for (i                                       = 0; i < 5; i++)
+    }
+    for (i = 0; i < 5; i++) {
         compara->myAppVar.ProtocolConformance[i] = 0xff;
-    compara->myAppVar.server_deal_maxApdu        = 1024;
-    compara->myAppVar.server_recv_size           = 1024;
-    compara->myAppVar.server_send_size           = 1024;
-    compara->myAppVar.server_recv_maxWindow      = 1;
-    compara->myAppVar.expect_connect_timeout     = 56400;
+    }
+    compara->myAppVar.server_deal_maxApdu    = 1024;
+    compara->myAppVar.server_recv_size       = 1024;
+    compara->myAppVar.server_send_size       = 1024;
+    compara->myAppVar.server_recv_maxWindow  = 1;
+    compara->myAppVar.expect_connect_timeout = 56400;
     //--------------------
     memset(&oif101, 0, sizeof(CLASS_F101));
     ret = readCoverClass(0xf101, 0, &oif101, sizeof(CLASS_F101), para_vari_save);
@@ -146,11 +139,10 @@ void initComPara(CommBlock* compara) {
  * 进程初始化
  *********************************************************/
 void enviromentCheck(int argc, char* argv[]) {
-
     pid_t pids[128];
     if (prog_find_pid_by_name((INT8S*)argv[0], pids) > 1) {
-    	asyslog(LOG_ERR, "CJCOMM进程仍在运行,进程号[%d]，程序退出...", pids[0]);
-        return EXIT_SUCCESS;
+        asyslog(LOG_ERR, "CJCOMM进程仍在运行,进程号[%d]，程序退出...", pids[0]);
+        exit(0);
     }
 
     //绑定信号处理了函数

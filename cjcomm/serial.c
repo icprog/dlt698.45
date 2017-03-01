@@ -8,11 +8,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include "ae.h"
-#include "dlt698def.h"
 #include "cjcomm.h"
-#include "AccessFun.h"
-#include "PublicFunction.h"
 
 //维护串口监听、处理结构体
 static CommBlock SerialObject;

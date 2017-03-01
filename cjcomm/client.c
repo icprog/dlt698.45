@@ -8,13 +8,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include "ae.h"
-#include "at.h"
-#include "anet.h"
-#include "dlt698def.h"
 #include "cjcomm.h"
-#include "AccessFun.h"
-#include "PublicFunction.h"
 
 /*
  * 本文件内存放客户端模式代码，专门处理客户端模式数据收发
@@ -25,13 +19,22 @@
 static CommBlock ClientObject;
 static long long Client_Task_Id;
 static MASTER_STATION_INFO IpPool[4];
+static int OnlineType; // 0:没在线 1:GPRS 2:以太网
 
 /*
  * 模块*内部*使用的初始化参数
  */
 void ClientInit(void) {
+    OnlineType = 0;
     asyslog(LOG_INFO, "初始化（客户端模式）模块...");
     initComPara(&ClientObject);
+}
+
+/*
+ * 获取当前在线状态
+ */
+int GetOnlineType(void) {
+    return OnlineType;
 }
 
 /*
@@ -57,7 +60,6 @@ void ClientRead(struct aeEventLoop* eventLoop, int fd, void* clientData, int mas
         aeDeleteFileEvent(eventLoop, fd, AE_READABLE);
         close(fd);
         nst->phy_connect_fd = -1;
-        SetOffline();
     }
 
     if (revcount > 0) {
@@ -118,6 +120,7 @@ int RegularClient(struct aeEventLoop* ep, long long id, void* clientData) {
         char errmsg[256];
         memset(errmsg, 0x00, sizeof(errmsg));
         initComPara(nst);
+        OnlineType = 0;
         MASTER_STATION_INFO ip_port = getNextIpPort();
         nst->phy_connect_fd         = anetTcpConnect(errmsg, (char*)ip_port.ip, ip_port.port);
         if (nst->phy_connect_fd > 0) {
@@ -127,12 +130,10 @@ int RegularClient(struct aeEventLoop* ep, long long id, void* clientData) {
                 nst->phy_connect_fd = -1;
             } else {
                 anetTcpKeepAlive(NULL, nst->phy_connect_fd);
-                SetOnline();
                 asyslog(LOG_INFO, "与主站链路建立成功");
                 gpofun("/dev/gpoONLINE_LED", 1);
+                OnlineType = 1;
             }
-        } else {
-            //            asyslog(LOG_WARNING, "主站链接失败，(%d)[%s]", nst->phy_connect_fd, errmsg);
         }
     } else {
         TS ts = {};
