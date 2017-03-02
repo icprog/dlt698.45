@@ -53,7 +53,7 @@ INT16U getMytypeSize(INT8U first )
 	return 0 ;
 }
 
-int doReponse(int server,int reponse,CSINFO *csinfo,PIID piid,OAD oad,int dar,INT8U *data,INT8U *buf)
+int doReponse(int server,int reponse,CSINFO *csinfo,int datalen,INT8U *data,INT8U *buf)
 {
 	int index=0, hcsi=0;
 
@@ -67,16 +67,12 @@ int doReponse(int server,int reponse,CSINFO *csinfo,PIID piid,OAD oad,int dar,IN
 	index++;
 	buf[index] = reponse;
 	index++;
-//	fprintf(stderr,"piid.data[%d]=%02x\n",index,piid.data);
 	buf[index] = piid_g.data;
 	index++;
-	index += create_OAD(&buf[index],oad);
-	buf[index] = dar;
-	index++;
-	if(data!=NULL) {
-		memcpy(&buf[index],&data,sizeof(data));
-		index = index + sizeof(data);
-	}
+
+	memcpy(&buf[index],data,datalen);
+	index = index + datalen;
+
 	buf[index++] = 0;	//跟随上报信息域 	FollowReport
 	buf[index++] = 0;	//时间标签		TimeTag
 	FrameTail(buf,index,hcsi);
@@ -366,7 +362,7 @@ void AddBatchMeterInfo(INT8U *data,INT8U type)
 			fprintf(stderr,"\n采集档案配置 %d 保存失败",meter.sernum);
 	}
 }
-void AddCjiFangAnInfo(INT8U *data)
+void AddCjiFangAnInfo(INT8U *data,Action_result *act_ret)
 {
 	INT8U *buf;
 	CLASS_6015 fangAn={};
@@ -389,7 +385,7 @@ void AddCjiFangAnInfo(INT8U *data)
 		fprintf(stderr,"\n采集内容(data) 类型：%02x  data=%d",fangAn.data.type,fangAn.data.data[0]);
 		buf = (INT8U *)&fangAn.csds.flag;
 		fprintf(stderr,"\ncsd:");
-		INT8U type=0,w;
+		INT8U type=0,w=0;
 		for(int i=0; i<10;i++)
 		{
 			type = fangAn.csds.csd[i].type;
@@ -413,11 +409,15 @@ void AddCjiFangAnInfo(INT8U *data)
 		fprintf(stderr,"\n");
 
 		saveflg = saveCoverClass(0x6015,fangAn.sernum,&fangAn,sizeof(fangAn),coll_para_save);
-		if (saveflg==1)
+		if (saveflg==1) {
+			act_ret->DAR = success;
 			fprintf(stderr,"\n采集方案 %d 保存成功",fangAn.sernum);
-		else
+		}else {
+			act_ret->DAR = refuse_rw;
 			fprintf(stderr,"\n采集方案 %d 保存失败",fangAn.sernum);
+		}
 	}
+	act_ret->datalen = source_sumindex+2;	//2 array + num
 }
 
 void AddEventCjiFangAnInfo(INT8U *data)
@@ -467,7 +467,7 @@ void AddEventCjiFangAnInfo(INT8U *data)
 
 	}
 }
-void AddTaskInfo(INT8U *data)
+void AddTaskInfo(INT8U *data,Action_result *act_ret)
 {
 	CLASS_6013 task={};
 	int k=0,saveflg=0;
@@ -497,13 +497,17 @@ void AddTaskInfo(INT8U *data)
 		fprintf(stderr,"\n结束  %d时 %d分  ",task.runtime.runtime[0].endHour,task.runtime.runtime[0].endMin);
 
 		saveflg = saveCoverClass(0x6013,task.taskID,&task,sizeof(task),coll_para_save);
-		if (saveflg==1)
+		if (saveflg==1) {
+			act_ret->DAR = success;
 			fprintf(stderr,"\n采集任务 %d 保存成功",task.sernum);
-		else
+		}else {
+			act_ret->DAR = refuse_rw;
 			fprintf(stderr,"\n采集任务 %d 保存失败",task.sernum);
-
+		}
 	}
+	act_ret->datalen = source_sumindex;
 }
+
 void Set_CSD(INT8U *data)
 {
 	CSD    csd;
@@ -520,13 +524,13 @@ void Set_CSD(INT8U *data)
 //		SetCjFangAnCSD(CSD,k);
 	}
 }
-void CjiFangAnInfo(INT16U attr_act,INT8U *data)
+void CjiFangAnInfo(INT16U attr_act,INT8U *data,Action_result *act_ret)
 {
 	switch(attr_act)
 	{
 		case 127:	//方法 127:Add (array 普通采集方案)
 			fprintf(stderr,"\n添加普通采集方案");
-			AddCjiFangAnInfo(data);
+			AddCjiFangAnInfo(data,act_ret);
 			break;
 		case 128:	//方法 128:Delete(array 方案编号)
 //			DeleteCjFangAn(data[1]);
@@ -561,6 +565,53 @@ void EventCjFangAnInfo(INT16U attr_act,INT8U *data)
 	}
 }
 
+void print_rcsd(CSD_ARRAYTYPE csds)
+{
+	int i=0,w=0;
+	for(i=0; i<csds.num;i++)
+	{
+		if (csds.csd[i].type==0)
+		{
+			fprintf(stderr,"<%d>OAD%04x-%02x%02x ",i,csds.csd[i].csd.oad.OI,csds.csd[i].csd.oad.attflg,csds.csd[i].csd.oad.attrindex);
+		}else if (csds.csd[i].type==1)
+		{
+			fprintf(stderr,"<%d>ROAD:%04x-%02x%02x ",i,
+					csds.csd[i].csd.road.oad.OI,csds.csd[i].csd.road.oad.attflg,csds.csd[i].csd.road.oad.attrindex);
+			if(csds.csd[i].csd.road.num >= 16) {
+				fprintf(stderr,"csd overvalue 16 error\n");
+				return;
+			}
+			for(w=0;w<csds.csd[i].csd.road.num;w++)
+			{
+				fprintf(stderr,"<关联OAD..%d>%04x-%02x%02x ",w,
+						csds.csd[i].csd.road.oads[w].OI,csds.csd[i].csd.road.oads[w].attflg,csds.csd[i].csd.road.oads[w].attrindex);
+			}
+		}
+	}
+}
+
+void print_601d(CLASS_601D	 reportplan)
+{
+	int j=0;
+	fprintf(stderr,"\n[1]上报方案编号 [2]上报通道 [3]上报响应超时时间 [4]最大上报次数 [5]上报内容 {[5.1]类型(0:OAD,1:RecordData) [5.2]数据 [5.3]RSD}");
+	fprintf(stderr,"\n[1]上报方案编号:%d \n",reportplan.reportnum);
+	fprintf(stderr,"[2]OAD[%d] ",reportplan.chann_oad.num);
+	for(j=0;j<reportplan.chann_oad.num;j++) {
+		fprintf(stderr,"%04x-%02x%02x ",reportplan.chann_oad.oadarr[j].OI,reportplan.chann_oad.oadarr[j].attflg,reportplan.chann_oad.oadarr[j].attrindex);
+	}
+	fprintf(stderr," [3]TI %d-%d ",reportplan.timeout.units,reportplan.timeout.interval);
+	fprintf(stderr," [4]%d ",reportplan.maxreportnum);
+	fprintf(stderr," [5.1]%d ",reportplan.reportdata.type);
+	if(reportplan.reportdata.type==0) {
+		fprintf(stderr," [5.2]OAD:%04x-%02x%02x ",reportplan.reportdata.data.oad.OI,reportplan.reportdata.data.oad.attflg,reportplan.reportdata.data.oad.attrindex);
+	}else {
+		fprintf(stderr," [5.2]OAD:%04x-%02x%02x ",reportplan.reportdata.data.oad.OI,reportplan.reportdata.data.oad.attflg,reportplan.reportdata.data.oad.attrindex);
+		print_rcsd(reportplan.reportdata.data.recorddata.csds);
+		fprintf(stderr," [5.4]RSD类型:%d ",reportplan.reportdata.data.recorddata.selectType);
+	}
+	fprintf(stderr,"\n\n");
+}
+
 /* 601d :上报方案
  * */
 void AddReportInfo(INT8U *data)
@@ -592,31 +643,21 @@ void AddReportInfo(INT8U *data)
 			index += getOAD(1,&data[index],&reportplan.reportdata.data.oad);
 			break;
 		case 1://RecordData
+			index += getStructure(&data[index],&strunum);
+			fprintf(stderr,"RecordData strnum=%d\n",strunum);
 			index += getOAD(1,&data[index],&reportplan.reportdata.data.recorddata.oad);
-			index += get_BasicRCSD(&data[index],&reportplan.reportdata.data.recorddata.rcsd.csds);
-			index += get_BasicRSD(&data[index],(INT8U *)&reportplan.reportdata.data.recorddata.rsd,&reportplan.reportdata.data.recorddata.selectType);
+			index += get_BasicRCSD(1,&data[index],&reportplan.reportdata.data.recorddata.csds);
+			index += get_BasicRSD(1,&data[index],(INT8U *)&reportplan.reportdata.data.recorddata.rsd,&reportplan.reportdata.data.recorddata.selectType);
 			break;
 		}
+		print_601d(reportplan);
 		saveflg = saveCoverClass(0x601d,reportplan.reportnum,&reportplan,sizeof(CLASS_601D),coll_para_save);
 		if (saveflg==1)
-			fprintf(stderr,"\n采集任务 %d 保存成功",reportplan.reportnum);
+			fprintf(stderr,"\n上报任务 %d 保存成功",reportplan.reportnum);
 		else
-			fprintf(stderr,"\n采集任务 %d 保存失败",reportplan.reportnum);
+			fprintf(stderr,"\n上报任务 %d 保存失败",reportplan.reportnum);
 	}
-	fprintf(stderr,"\n[1]上报方案编号 [2]上报通道 [3]上报响应超时时间 [4]最大上报次数 [5]上报内容 {[5.1]类型(0:OAD,1:RecordData) [5.2]数据}");
-	fprintf(stderr,"\n[1]上报方案编号:%d \n",reportplan.reportnum);
-	fprintf(stderr,"[2]OAD[%d] ",reportplan.chann_oad.num);
-	for(j=0;j<reportplan.chann_oad.num;j++) {
-		fprintf(stderr,"%04x-%02x%02x ",reportplan.chann_oad.oadarr[j].OI,reportplan.chann_oad.oadarr[j].attflg,reportplan.chann_oad.oadarr[j].attrindex);
-	}
-	fprintf(stderr," [3]TI %d-%d ",reportplan.timeout.units,reportplan.timeout.interval);
-	fprintf(stderr," [4]%d ",reportplan.maxreportnum);
-	fprintf(stderr," [5.1]%d ",reportplan.reportdata.type);
-	if(reportplan.reportdata.type==0) {
-		fprintf(stderr," [5.2]OAD:%04x-%02x%02x ",reportplan.reportdata.data.oad.OI,reportplan.reportdata.data.oad.attflg,reportplan.reportdata.data.oad.attrindex);
-	}else {
-//		fprintf(stderr," [5.2]OAD:%04x-%02x%02x ",reportplan.reportdata.data.oad.OI,reportplan.reportdata.data.oad.attflg,reportplan.reportdata.data.oad.attrindex);
-	}
+
 }
 
 void ReportInfo(INT16U attr_act,INT8U *data)
@@ -637,12 +678,12 @@ void ReportInfo(INT16U attr_act,INT8U *data)
 	}
 }
 
-void TaskInfo(INT16U attr_act,INT8U *data)
+void TaskInfo(INT16U attr_act,INT8U *data,Action_result *act_ret)
 {
 	switch(attr_act)
 	{
 		case 127://方法 127:Add (任务配置单元)
-			AddTaskInfo(data);
+			AddTaskInfo(data,act_ret);
 			break;
 		case 128://方法 128:Delete(array任务 ID )
 
@@ -902,12 +943,12 @@ void EsamMothod(INT16U attr_act,INT8U *data)
 				break;
 		}
 }
-int doObjectAction(OAD oad,INT8U *data)
+int doObjectAction(OAD oad,INT8U *data,Action_result *act_ret)
 {
 	INT16U oi = oad.OI;
 	INT8U attr_act = oad.attflg;
 	INT8U oihead = (oi & 0xF000) >>12;
-	fprintf(stderr,"\n----------  oi =%04x",oi);
+	fprintf(stderr,"\n----------  oi =%04x   ",oi);
 	switch(oihead) {
 	case 3:			//事件类对象方法操作
 		EventMothod(oad,data);
@@ -924,10 +965,10 @@ int doObjectAction(OAD oad,INT8U *data)
 		case 0x6002:	//搜表
 			break;
 		case 0x6012:	//任务配置表
-			TaskInfo(attr_act,data);
+			TaskInfo(attr_act,data,act_ret);
 			break;
 		case 0x6014:	//普通采集方案集
-			CjiFangAnInfo(attr_act,data);
+			CjiFangAnInfo(attr_act,data,act_ret);
 			break;
 		case 0x6016:	//事件采集方案
 			EventCjFangAnInfo(attr_act,data);
@@ -935,7 +976,6 @@ int doObjectAction(OAD oad,INT8U *data)
 		case 0x601C:	//上报方案
 			ReportInfo(attr_act,data);
 			break;
-
 		case 0xF001: //文件传输
 			FileTransMothod(attr_act,data);
 			break;

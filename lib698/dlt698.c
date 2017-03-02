@@ -18,7 +18,7 @@ extern int doObjectAction();
 extern int getRequestRecord(OAD oad,INT8U *data,CSINFO *csinfo,INT8U *sendbuf);
 extern int getRequestNormal(OAD oad,INT8U *data,CSINFO *csinfo,INT8U *sendbuf);
 extern int getRequestNormalList(INT8U *data,CSINFO *csinfo,INT8U *sendbuf);
-extern int doReponse(int server,int reponse,CSINFO *csinfo,PIID piid,OAD oad,int dar,INT8U *data,INT8U *buf);
+extern int doReponse(int server,int reponse,CSINFO *csinfo,int datalen,INT8U *data,INT8U *buf);
 extern int setRequestNormal(INT8U *data,OAD oad,CSINFO *csinfo,INT8U *buf);
 extern int setRequestNormalList(INT8U *Object,CSINFO *csinfo,INT8U *buf);
 extern int Proxy_GetRequestlist(INT8U *data,CSINFO *csinfo,INT8U *sendbuf);
@@ -37,6 +37,7 @@ INT8U securetype;  //安全等级类型  01明文，02明文+MAC 03密文  04密
 INT8U secureRN[20];//安全认证随机数，主站下发，终端回复时需用到，esam计算使用
 static INT8U	client_addr=0;
 PIID piid_g={};
+
 /**************************************
  * 函数功能：DL/T698.45 状态机
  * 参数含义：
@@ -535,24 +536,30 @@ int appConnectResponse(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 		pSendfun(comfd,buf,index+3);
 	return (index+3);
 }
+
 int doSetAttribute(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 {
 	int  DAR=success;
-	PIID piid={};
+	int	 index=0;
 	INT8U setType = apdu[1];
 	OAD oad={};
 	INT8U *data=NULL;
-	piid.data = apdu[2];
-	oad.OI = (apdu[3]<<8) | apdu[4];
-	oad.attflg = apdu[5];
-	oad.attrindex = apdu[6];
-	data = &apdu[7];					//Data
+	piid_g.data = apdu[2];
+	Action_result	act_ret={};
 
 	switch(setType)
 	{
 		case SET_REQUEST_NORMAL:
+			memset(TmpDataBuf,0,sizeof(TmpDataBuf));
 			DAR = setRequestNormal(data,oad,csinfo,buf);
-			doReponse(SET_RESPONSE,SET_REQUEST_NORMAL,csinfo,piid,oad,DAR,NULL,buf);
+			oad.OI= (apdu[3]<<8) | apdu[4];
+			oad.attflg = apdu[5];
+			oad.attrindex = apdu[6];
+			DAR = doObjectAction(oad,data,&act_ret);
+			data = &apdu[7];					//Data
+			index += create_OAD(&TmpDataBuf[index],oad);
+			TmpDataBuf[index++] = DAR;
+			doReponse(SET_RESPONSE,SET_REQUEST_NORMAL,csinfo,index,TmpDataBuf,buf);
 			break;
 		case SET_REQUEST_NORMAL_LIST:
 			setRequestNormalList(&apdu[3],csinfo,buf);
@@ -627,27 +634,52 @@ int doProxyRequest(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
 	}
 	return 1;
 }
+
 int doActionRequest(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 {
 	int  DAR=success;
-	PIID piid={};
+	int	 seqnum = 0,i=0;
+	int	 index = 0,apdu_index=0;
 	OAD  oad={};
 	INT8U *data=NULL;
-	INT8U request_choice = apdu[1];		//ACTION-Request
-	piid_g.data = apdu[2];				//PIID
-//	memcpy(&omd,&apdu[3],4);			//OAD
-	oad.OI= (apdu[3]<<8) | apdu[4];
-	oad.attflg = apdu[5];
-	oad.attrindex = apdu[6];
-	data = &apdu[7];					//Data
-	fprintf(stderr,"\n-------- request choice = %d omd OI = %04x  method=%d",request_choice,oad.OI,oad.attrindex);
+	INT8U request_choice = apdu[apdu_index+1];		//ACTION-Request
+	piid_g.data = apdu[apdu_index+2];				//PIID
+	Action_result	act_ret={};
+
+	fprintf(stderr,"\n-------- request choice = %d",request_choice);
 	switch(request_choice)
 	{
 		case ACTIONREQUEST:
-			DAR = doObjectAction(oad,data);
-			doReponse(ACTION_RESPONSE,ActionResponseNormal,csinfo,piid,oad,DAR,NULL,buf);
+			memset(TmpDataBuf,0,sizeof(TmpDataBuf));
+			index = 0;
+			oad.OI= (apdu[apdu_index+3]<<8) | apdu[apdu_index+4];
+			oad.attflg = apdu[apdu_index+5];
+			oad.attrindex = apdu[apdu_index+6];
+			DAR = doObjectAction(oad,data,&act_ret);
+			data = &apdu[apdu_index+7];					//Data
+			index += create_OAD(&TmpDataBuf[index],oad);
+			TmpDataBuf[index++] = DAR;
+			doReponse(ACTION_RESPONSE,ActionResponseNormal,csinfo,index,TmpDataBuf,buf);
 			break;
 		case ACTIONREQUEST_LIST:
+			index = 0;
+			apdu_index = 3;
+			data = &apdu[apdu_index];					//Data
+			seqnum = apdu[apdu_index++];		//3
+			fprintf(stderr,"seqnum = %d\n",seqnum);
+			index += create_array(&TmpDataBuf[index],seqnum);
+			for(i=0;i<seqnum;i++) {
+				oad.OI= (apdu[apdu_index]<<8) | apdu[apdu_index+1];
+				apdu_index+=2;
+				oad.attflg = apdu[apdu_index++];
+				oad.attrindex = apdu[apdu_index++];
+				index += create_OAD(&TmpDataBuf[index],oad);
+				doObjectAction(oad,&apdu[apdu_index],&act_ret);
+				TmpDataBuf[index++] = act_ret.DAR;
+				apdu_index += act_ret.datalen;
+				fprintf(stderr,"OAD=%04x_%02x%02x act_ret=%d\n",oad.OI,oad.attflg,oad.attrindex,act_ret.datalen);
+			}
+			doReponse(ACTION_RESPONSE,ActionResponseNormalList,csinfo,index,TmpDataBuf,buf);
 			break;
 		case ACTIONTHENGET_REQUEST_NORMAL_LIST:
 			break;
