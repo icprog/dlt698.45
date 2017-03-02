@@ -921,31 +921,6 @@ void savefrm(INT16U unitlen,INT16U unitnum_file,INT8U lastflg,INT8U *databuf,int
 	datafile_write(fname, databuf, datalen, unitlen*unitnum_file+sizeof(FRM_HEAD));//存储数据文件
 }
 /*
- * 参数oadm为关联对相属性oad，oadr对象oad，oadr描述oadm，若无描述，则oadr为0x0000
- * 返回0，表示没找到匹配的任务号
- */
-INT8U FindOIFromTask(OAD oadm,OAD oadr)
-{
-	int i=0;
-	CLASS_6015	class6015={};
-	CLASS_6013	class6013={};
-	for(i=0;i<256;i++)
-	{
-		memset(&class6013,0,sizeof(CLASS_6013));
-		memset(&class6015,0,sizeof(CLASS_6015));
-		if(readCoverClass(0x6013,i+1,&class6013,sizeof(class6013),coll_para_save) == 1)
-		{
-			if(class6013.cjtype != 1)//
-				continue;
-			if(readCoverClass(0x6015,class6013.sernum,&class6015,sizeof(CLASS_6015),coll_para_save) == 1)
-			{
-				class6015.csds
-			}
-		}
-	}
-	return 0;
-}
-/*
  * 读取抄表数据，读取某个测量点某任务某天一整块数据，放在内存里，根据需要提取数据,并根据csd组报文
  */
 int ComposeSendBuff(TS *ts,INT8U seletype,INT8U taskid,TSA *tsa_con,INT8U tsa_num,CSD_ARRAYTYPE csds,INT8U *SendBuf)
