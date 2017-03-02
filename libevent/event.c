@@ -293,8 +293,14 @@ INT8U Getevent_Record(INT8U event_no,OI_698 *oi_array,INT8U oi_index,INT8U *real
 					(*real_index) +=8;
 					break;
 				case 0x2020://事件结束时间
-					memcpy(&record_para->data[*real_index],&Getbuf[STANDARD_ENDTIME_INDEX],8);
-					(*real_index) +=8;
+					{
+						if(Getbuf[STANDARD_ENDTIME_INDEX]==dtdatetimes){
+							memcpy(&record_para->data[*real_index],&Getbuf[STANDARD_ENDTIME_INDEX],8);
+							(*real_index) +=8;
+						}else if(Getbuf[STANDARD_ENDTIME_INDEX]==0){
+							record_para->data[(*real_index)++]=0;
+						}
+					}
 					break;
 				case 0x2024://事件发生源
 				{
@@ -521,12 +527,16 @@ INT8U Get_StandardUnit(OI_698 oi,INT8U *Rbuf,INT8U *Index,
 	Rbuf[(*Index)++] = ntime.min.data;//13
 	Rbuf[(*Index)++] = ntime.sec.data;//14
 	//事件结束时间
-	Rbuf[(*Index)++] = dtdatetimes;//15
+
 	if(oi==0x311C){
+		Rbuf[(*Index)++] = dtdatetimes;//15
 		memset(&Rbuf[*Index],DATA_FF,sizeof(ntime));//TODO
 		(*Index)+=sizeof(ntime);//0
+	}else if(oi==0x3105 || oi==0x310A || oi==0x310B || oi==0x310C || oi==0x310D || oi==0x310E){
+		Rbuf[(*Index)++] = 0;//15无结束时间
 	}
 	else{
+		Rbuf[(*Index)++] = dtdatetimes;//15
 		Rbuf[(*Index)++] = ((ntime.year.data>>8)&0x00ff);//16
 		Rbuf[(*Index)++] = ((ntime.year.data)&0x00ff);//17
 		Rbuf[(*Index)++] = ntime.month.data;//18
