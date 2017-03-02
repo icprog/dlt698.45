@@ -96,61 +96,6 @@ INT16U CalcHeadUnitNum(CSD_ARRAYTYPE csds)
 	else
 		return headunit_num;
 }
-INT8U datafile_write(char *FileName, void *source, int size, int offset)
-{
-	FILE *fp=NULL;
-	int	  fd=0;
-	INT8U res=0;
-	int num=0;
-	INT8U	*blockdata=NULL;
-//	int i=0;
-
-	blockdata = malloc(size);
-	if(blockdata!=NULL) {
-		memcpy(blockdata,source,size);
-	} else {
-		return 0;//error
-	}
-
-	if(access(FileName,F_OK)!=0)
-	{
-		fp = fopen((char*) FileName, "w+");
-		fprintf(stderr,"创建文件--%s\n",FileName);
-	}else {
-		fp = fopen((char*) FileName, "r+");
-		fprintf(stderr,"替换文件\n");
-	}
-	if (fp != NULL) {
-		fseek(fp, offset, SEEK_SET);
-		num = fwrite(blockdata, size,1,fp);
-		fd = fileno(fp);
-		fsync(fd);
-		fclose(fp);
-		if(num == 1) {
-			res = 1;
-		}else res = 0;
-	} else {
-		res = 0;
-	}
-	free(blockdata);//add by nl1031
-	return res;
-}
-INT8U datafile_read(char *FileName, void *source, int size, int offset)
-{
-	FILE 	*fp=NULL;
-	int 	num=0,ret=0;
-	fp = fopen(FileName, "r");
-	if (fp != NULL) {
-		fseek(fp, offset, SEEK_SET);
-		num=fread(source,1 ,size,fp);
-		if(num==(size)) 			//读取了size字节数据
-				ret = 1;
-			else ret = 0;
-		fclose(fp);
-	} else
-		ret = 0;
-	return ret;
-}
 /*
  * 读取文件头长度和块数据长度
  */
@@ -398,13 +343,6 @@ void SaveNorData(INT8U taskid,INT8U *databuf,int datalen)
 		fclose(fp);
 	if(databuf_tmp != NULL)
 		free(databuf_tmp);
-}
-/*
- * 读取一个任务下的某个测量点某数据
- */
-void GetNorData(TS ts,INT8U taskid,INT8U *tsa)
-{
-	;
 }
 ///*
 // * 读取抄表数据，读取某个测量点某任务某天一整块数据，放在内存里，根据需要提取数据,并根据csd
