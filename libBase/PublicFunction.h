@@ -10,9 +10,11 @@
 
 #include <signal.h>
 #include <semaphore.h>
+#include <syslog.h>
 #include "Shmem.h"
 #include "StdDataType.h"
 #include "ParaDef.h"
+
 extern void setsystime(DateTimeBCD datetime);
 extern void TSGet(TS *ts);
 extern INT8U TScompare(TS ts1,TS ts2);
@@ -73,4 +75,11 @@ extern void close_named_sem(const char* name);
  * 数据从大到小排序 arr数组 len长度
  */
 extern INT8U getarryb2s(INT32S *arr,INT8U len);
+
+/*
+ * 日志处理函数
+ */
+void asyslog(int priority, const char* fmt, ...);
+void bufsyslog(const INT8U* buf, const char* title, int head, int tail, int len);
+
 #endif /* PUBLICFUNCTION_H_ */

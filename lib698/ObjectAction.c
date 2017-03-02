@@ -24,7 +24,7 @@ extern int FrameHead(CSINFO *csinfo,INT8U *buf);
 extern INT8S (*pSendfun)(int fd,INT8U* sndbuf,INT16U sndlen);
 extern int comfd;
 extern ProgramInfo *memp;
-
+extern PIID piid_g;
 
 INT16U getMytypeSize(INT8U first )
 {
@@ -68,7 +68,7 @@ int doReponse(int server,int reponse,CSINFO *csinfo,PIID piid,OAD oad,int dar,IN
 	buf[index] = reponse;
 	index++;
 //	fprintf(stderr,"piid.data[%d]=%02x\n",index,piid.data);
-	buf[index] = piid.data;
+	buf[index] = piid_g.data;
 	index++;
 	index += create_OAD(&buf[index],oad);
 	buf[index] = dar;
@@ -311,20 +311,32 @@ void get_BasicUnit(INT8U *source,INT16U *sourceindex,INT8U *dest,INT16U *destind
 	*destindex = dest_sumindex;
 }
 
-void AddBatchMeterInfo(INT8U *data)
+void AddBatchMeterInfo(INT8U *data,INT8U type)
 {
 	CLASS_6001 meter={};
 	int k=0,saveflg=0;
-	INT8U addnum = data[1];
+	INT8U *dealdata;
+	INT8U addnum;// = data[1];
 	INT16U source_sumindex=0,source_index=0,dest_sumindex=0,dest_index=0;
 //	fprintf(stderr,"\naddnum=%d",addnum);
 
 //	fprintf(stderr,"\nCLASS_6001 BASIC_OBJECT=%d, EXTEND_OBJECT=%d",sizeof(BASIC_OBJECT),sizeof(EXTEND_OBJECT));
 
+	if (type == 127)
+	{
+		dealdata = data;
+		addnum = 1;
+	}else if (type == 128)
+	{
+		dealdata = &data[2];
+		addnum = data[1];
+	}
+
 	for(k=0; k<addnum; k++)
 	{
 		memset(&meter,0,sizeof(meter));
-		get_BasicUnit(&data[2]+source_sumindex,&source_index,(INT8U *)&meter.sernum,&dest_index);
+//		get_BasicUnit(&data[2]+source_sumindex,&source_index,(INT8U *)&meter.sernum,&dest_index);
+		get_BasicUnit(dealdata +source_sumindex,&source_index,(INT8U *)&meter.sernum,&dest_index);
 		source_sumindex += source_index;
 		dest_sumindex += dest_index;
 		fprintf(stderr,"\n\nAddBatchMeterInfo  index = %d ,sumindex = %d",source_index,source_sumindex);
@@ -424,7 +436,7 @@ void AddEventCjiFangAnInfo(INT8U *data)
 	{
 		memset(&eventFangAn,0,sizeof(eventFangAn));
 		index += getUnsigned(&data[index],(INT8U *)&eventFangAn.sernum);
-		index += getArrayNum(&data[index],(INT8U *)&eventFangAn.roads.num);
+		index += getArray(&data[index],(INT8U *)&eventFangAn.roads.num);
 		for(i=0;i<eventFangAn.roads.num;i++)
 			index += getROAD(&data[index],&eventFangAn.roads.road[i]);
 		index += 1;//getMS没解释类型字节
@@ -554,47 +566,57 @@ void EventCjFangAnInfo(INT16U attr_act,INT8U *data)
 void AddReportInfo(INT8U *data)
 {
 	CLASS_601D	 reportplan={};
-	int i=0,k=0,saveflg=0;
-	INT8U addnum = data[1];
+	int k=0,j=0,saveflg=0;
+	INT8U addnum = 0,strunum = 0;
 	INT8U roadnum=0;
 	int index=0;
-	INT16U source_sumindex=0,source_index=0,dest_sumindex=0,dest_index=0;
+//	INT16U source_sumindex=0,source_index=0,dest_sumindex=0,dest_index=0;
 
+	index += getArray(&data[index],&addnum);
 	fprintf(stderr,"\n添加个数 %d",addnum);
-//	for(k=0; k<addnum; k++)
-//	{
-//		memset(&reportplan,0,sizeof(CLASS_601D));
-//		index += getUnsigned(&data[index],(INT8U *)&eventFangAn.sernum);
-//		index += getArrayNum(&data[index],(INT8U *)&eventFangAn.roads.num);
-//		for(i=0;i<eventFangAn.roads.num;i++)
-//			index += getROAD(&data[index],&eventFangAn.roads.road[i]);
-//		index += 1;//getMS没解释类型字节
-//		index += getMS(&data[index],&eventFangAn.ms.mstype);
-//		index += getBool(&data[index],&eventFangAn.ifreport);
-//		index += getLongUnsigned(&data[index],(INT8U *)&eventFangAn.deepsize);
-//
-//		fprintf(stderr,"\n第 %d 个事件方案  ID=%d   (%d 个ROAD)",k,eventFangAn.sernum,eventFangAn.roads.num);
-//		int j=0,w=0;
-//		for(j=0;j<eventFangAn.roads.num;j++)
-//		{
-//			fprintf(stderr,"\nROAD%d",j);
-//			fprintf(stderr,"\n[oad %x %02x %02x]",eventFangAn.roads.road[j].oad.OI,eventFangAn.roads.road[j].oad.attflg,eventFangAn.roads.road[j].oad.attrindex);
-//			for(w=0;w<eventFangAn.roads.road[j].num;w++)
-//			{
-//				fprintf(stderr,"\n[%x %02x %02x]",eventFangAn.roads.road[j].oads[w].OI,eventFangAn.roads.road[j].oads[w].attflg,eventFangAn.roads.road[j].oads[w].attrindex);
-//			}
-//		}
-//		fprintf(stderr,"\nMStype = %d  data=%d",eventFangAn.ms.mstype,eventFangAn.ms.ms.allmeter_null);
-//		fprintf(stderr,"\n上报标识 = %d ",eventFangAn.ifreport);
-//		fprintf(stderr,"\n存储深度 = %d\n",eventFangAn.deepsize);
-//
-//		saveflg = saveCoverClass(0x6017,eventFangAn.sernum,&eventFangAn,sizeof(eventFangAn),coll_para_save);
-//		if (saveflg==1)
-//			fprintf(stderr,"\n采集方案 %d 保存成功",eventFangAn.sernum);
-//		else
-//			fprintf(stderr,"\n采集方案 %d 保存失败",eventFangAn.sernum);
-//
-//	}
+	for(k=0; k<addnum; k++)
+	{
+		memset(&reportplan,0,sizeof(CLASS_601D));
+		index += getStructure(&data[index],&strunum);
+		index += getUnsigned(&data[index],&reportplan.reportnum);
+		index += getArray(&data[index],&reportplan.chann_oad.num);
+		for(j=0;j<reportplan.chann_oad.num;j++) {
+			index += getOAD(1,&data[index],&reportplan.chann_oad.oadarr[j]);
+		}
+		index += getTI(1,&data[index],&reportplan.timeout);
+		index += getUnsigned(&data[index],&reportplan.maxreportnum);
+		index += getStructure(&data[index],&strunum);
+		index += getUnsigned(&data[index],&reportplan.reportdata.type);
+		switch(reportplan.reportdata.type) {
+		case 0:	//OAD
+			index += getOAD(1,&data[index],&reportplan.reportdata.data.oad);
+			break;
+		case 1://RecordData
+			index += getOAD(1,&data[index],&reportplan.reportdata.data.recorddata.oad);
+			index += get_BasicRCSD(&data[index],&reportplan.reportdata.data.recorddata.rcsd.csds);
+			index += get_BasicRSD(&data[index],(INT8U *)&reportplan.reportdata.data.recorddata.rsd,&reportplan.reportdata.data.recorddata.selectType);
+			break;
+		}
+		saveflg = saveCoverClass(0x601d,reportplan.reportnum,&reportplan,sizeof(CLASS_601D),coll_para_save);
+		if (saveflg==1)
+			fprintf(stderr,"\n采集任务 %d 保存成功",reportplan.reportnum);
+		else
+			fprintf(stderr,"\n采集任务 %d 保存失败",reportplan.reportnum);
+	}
+	fprintf(stderr,"\n[1]上报方案编号 [2]上报通道 [3]上报响应超时时间 [4]最大上报次数 [5]上报内容 {[5.1]类型(0:OAD,1:RecordData) [5.2]数据}");
+	fprintf(stderr,"\n[1]上报方案编号:%d \n",reportplan.reportnum);
+	fprintf(stderr,"[2]OAD[%d] ",reportplan.chann_oad.num);
+	for(j=0;j<reportplan.chann_oad.num;j++) {
+		fprintf(stderr,"%04x-%02x%02x ",reportplan.chann_oad.oadarr[j].OI,reportplan.chann_oad.oadarr[j].attflg,reportplan.chann_oad.oadarr[j].attrindex);
+	}
+	fprintf(stderr," [3]TI %d-%d ",reportplan.timeout.units,reportplan.timeout.interval);
+	fprintf(stderr," [4]%d ",reportplan.maxreportnum);
+	fprintf(stderr," [5.1]%d ",reportplan.reportdata.type);
+	if(reportplan.reportdata.type==0) {
+		fprintf(stderr," [5.2]OAD:%04x-%02x%02x ",reportplan.reportdata.data.oad.OI,reportplan.reportdata.data.oad.attflg,reportplan.reportdata.data.oad.attrindex);
+	}else {
+//		fprintf(stderr," [5.2]OAD:%04x-%02x%02x ",reportplan.reportdata.data.oad.OI,reportplan.reportdata.data.oad.attflg,reportplan.reportdata.data.oad.attrindex);
+	}
 }
 
 void ReportInfo(INT16U attr_act,INT8U *data)
@@ -637,7 +659,7 @@ void TerminalInfo(INT16U attr_act,INT8U *data)
 	switch(attr_act)
 	{
 		case 1://设备复位
-			memp->oi_changed.reset++;
+			memp->oi_changed.oi4300++;
 			Reset_add();
 			fprintf(stderr,"\n4300 设备复位！");
 			break;
@@ -828,10 +850,10 @@ void MeterInfo(INT16U attr_act,INT8U *data)
 	switch(attr_act)
 	{
 		case 127://方法 127:Add (采集档案配置单元)
-			AddBatchMeterInfo(data);
+			AddBatchMeterInfo(data,attr_act);
 			break;
 		case 128://方法 128:AddBatch(array 采集档案配置单元)
-			AddBatchMeterInfo(data);
+			AddBatchMeterInfo(data,attr_act);
 			break;
 		case 129://方法 129:Update(配置序号,基本信息)
 			break;

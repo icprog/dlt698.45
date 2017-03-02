@@ -333,7 +333,6 @@ INT16U set4500(OAD oad,INT8U *data)
 
 		saveCoverClass(oad.OI,0,&class4500,sizeof(CLASS25),para_vari_save);
 	}
-//	memp->oi_changed.reset++;
 	memp->oi_changed.oi4500++;
 	return 1;
 }

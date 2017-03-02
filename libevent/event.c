@@ -234,9 +234,12 @@ INT8U Get_Event(OAD oad,INT8U eventno,INT8U** Getbuf,int *Getlen,ProgramInfo* pr
 		   break;
 	}
 	_currno=currno-(eventno-1);
+	//maxno=0?15:maxno;
+	if(maxno == 0)
+		maxno=15;
 	if(_currno<=0 || _currno>maxno)
-		_currno = maxno;
-	fprintf(stderr,"currno=%d,maxno=%d\n",currno,maxno);
+		_currno = 1;
+	//fprintf(stderr,"currno=%d,maxno=%d pno=%d\n",currno,maxno,prginfo_event->event_obj.Event310E_obj.event_obj.crrentnum);
 	SaveFile_type savefiletype = event_record_save;
 	switch(oad.attflg){
 	     case 2:
@@ -270,6 +273,7 @@ INT8U Getevent_Record(INT8U event_no,OI_698 *oi_array,INT8U oi_index,INT8U *real
 	int Getlen=0;//记录长度
 	Get_Event(record_para->oad,event_no,(INT8U**)&Getbuf,&Getlen,prginfo_event);
 	if(Getbuf!=NULL && Getlen>0){
+		fprintf(stderr,"Getlen=%d \n",Getlen);
 		 record_para->dar = 1;
 		 if(record_para->data == NULL)
 			 record_para->data=(INT8U*)malloc(Getlen*num+1);//先按最大长度分配
@@ -289,8 +293,14 @@ INT8U Getevent_Record(INT8U event_no,OI_698 *oi_array,INT8U oi_index,INT8U *real
 					(*real_index) +=8;
 					break;
 				case 0x2020://事件结束时间
-					memcpy(&record_para->data[*real_index],&Getbuf[STANDARD_ENDTIME_INDEX],8);
-					(*real_index) +=8;
+					{
+						if(Getbuf[STANDARD_ENDTIME_INDEX]==dtdatetimes){
+							memcpy(&record_para->data[*real_index],&Getbuf[STANDARD_ENDTIME_INDEX],8);
+							(*real_index) +=8;
+						}else if(Getbuf[STANDARD_ENDTIME_INDEX]==0){
+							record_para->data[(*real_index)++]=0;
+						}
+					}
 					break;
 				case 0x2024://事件发生源
 				{
@@ -301,7 +311,7 @@ INT8U Getevent_Record(INT8U event_no,OI_698 *oi_array,INT8U oi_index,INT8U *real
 							len=0;
 							break;
 						case s_tsa:
-							len=Getbuf[STANDARD_SOURCE_INDEX+1]+2;
+							len=Getbuf[STANDARD_SOURCE_INDEX+1]+1;
 							break;
 						case s_oad:
 							len=5;
@@ -365,11 +375,15 @@ INT8U Getevent_Record_Selector(RESULT_RECORD *record_para,ProgramInfo* prginfo_e
 			}
 		}
 	 }
+	 int j=0;
+	 for(j=0;j<oi_index;j++)
+		 fprintf(stderr,"j:%04x \n",oi_array[j]);
 	 if(oi_index > 0){
 		 switch(record_para->selectType){
 			 case 9:
 			 {
 				event_no=record_para->select.selec9.recordn;
+				fprintf(stderr,"event_no=%d \n",event_no);
 				Getevent_Record(event_no,oi_array,oi_index,
 						&real_index,1,record_para,prginfo_event);
 			 }
@@ -392,10 +406,27 @@ INT8U Getevent_Record_Selector(RESULT_RECORD *record_para,ProgramInfo* prginfo_e
  * 事件需要上报
  */
 INT8U Need_Report(OI_698 oi,INT8U eventno,ProgramInfo* prginfo_event){
-	prginfo_event->needreport_event.event_num++;
-	prginfo_event->needreport_event.event_num=prginfo_event->needreport_event.event_num%15;
-	prginfo_event->needreport_event.report_event[prginfo_event->needreport_event.event_num].oi=oi;
-	prginfo_event->needreport_event.report_event[prginfo_event->needreport_event.event_num].eventno=eventno;
+	static INT8U lastchgoi4300=0;
+	static INT8U first=1;
+	static CLASS19 class19;
+	if(first){
+		first=0;
+		lastchgoi4300 = prginfo_event->oi_changed.oi4300;
+		readCoverClass(0x4300,0,&class19,sizeof(class19),para_vari_save);
+	}
+	if(lastchgoi4300!=prginfo_event->oi_changed.oi4300){
+		readCoverClass(0x4300,0,&class19,sizeof(class19),para_vari_save);
+		if(lastchgoi4300!=prginfo_event->oi_changed.oi4300) {
+			lastchgoi4300++;
+			if(lastchgoi4300==0) lastchgoi4300=1;
+		}
+	}
+	if(class19.active_report == 1 && class19.talk_master == 1){
+		prginfo_event->needreport_event.event_num++;
+		prginfo_event->needreport_event.event_num=prginfo_event->needreport_event.event_num%15;
+		prginfo_event->needreport_event.report_event[prginfo_event->needreport_event.event_num].oi=oi;
+		prginfo_event->needreport_event.report_event[prginfo_event->needreport_event.event_num].eventno=eventno;
+	}
 	return 1;
 }
 
@@ -411,7 +442,7 @@ INT8U Get_Source(INT8U *Source,Source_Typ S_type,
 			break;
 		case s_tsa:
 			*Data_type=85;
-		    *Len=(Source[0]+1+1);
+		    *Len=(Source[0]+1);
 			break;
 		case s_oad:
 			*Data_type=81;
@@ -443,8 +474,8 @@ INT8U Get_CurrResult(INT8U *Rbuf,INT8U *Index,
     INT8U datatype=0,sourcelen=0;
     Get_Source(Source,S_type,&datatype,&sourcelen);
     Rbuf[(*Index)++] = datatype;
-    if(datatype==s_tsa)
-    	Rbuf[(*Index)++] = sourcelen;
+//    if(datatype==s_tsa)
+//    	Rbuf[(*Index)++] = sourcelen;
     if(sourcelen>0)
     	memcpy(&Rbuf[(*Index)],Source,sourcelen);
     (*Index)+=sourcelen;
@@ -496,12 +527,16 @@ INT8U Get_StandardUnit(OI_698 oi,INT8U *Rbuf,INT8U *Index,
 	Rbuf[(*Index)++] = ntime.min.data;//13
 	Rbuf[(*Index)++] = ntime.sec.data;//14
 	//事件结束时间
-	Rbuf[(*Index)++] = dtdatetimes;//15
+
 	if(oi==0x311C){
+		Rbuf[(*Index)++] = dtdatetimes;//15
 		memset(&Rbuf[*Index],DATA_FF,sizeof(ntime));//TODO
 		(*Index)+=sizeof(ntime);//0
+	}else if(oi==0x3105 || oi==0x310A || oi==0x310B || oi==0x310C || oi==0x310D || oi==0x310E){
+		Rbuf[(*Index)++] = 0;//15无结束时间
 	}
 	else{
+		Rbuf[(*Index)++] = dtdatetimes;//15
 		Rbuf[(*Index)++] = ((ntime.year.data>>8)&0x00ff);//16
 		Rbuf[(*Index)++] = ((ntime.year.data)&0x00ff);//17
 		Rbuf[(*Index)++] = ntime.month.data;//18
@@ -514,8 +549,8 @@ INT8U Get_StandardUnit(OI_698 oi,INT8U *Rbuf,INT8U *Index,
 	INT8U datatype=0,sourcelen=0;
 	Get_Source(Source,S_type,&datatype,&sourcelen);
 	Rbuf[(*Index)++] = datatype;//23
-	if(datatype==s_tsa)
-		Rbuf[(*Index)++] = sourcelen;//0
+//	if(datatype==s_tsa)
+//		Rbuf[(*Index)++] = sourcelen;//0
 	if(sourcelen>0)
 		memcpy(&Rbuf[(*Index)],Source,sourcelen);
 	(*Index)+=sourcelen;
@@ -546,10 +581,14 @@ INT8U Get_StandardUnit(OI_698 oi,INT8U *Rbuf,INT8U *Index,
 /*
  * 每个事件记录数不超过设定得最大记录数，默认15个
  */
-INT8U Getcurrno(INT16U *currno,INT16U maxno){
-	if(*currno>maxno)
-		*currno=1;
-	return 1;
+INT16U Getcurrno(INT16U currno,INT16U maxno){
+	fprintf(stderr,"[event]currno=%d maxno=%d \n",currno,maxno);
+	if(maxno == 0)
+		maxno=15;
+	fprintf(stderr,"maxno=%d \n",maxno);
+	if(currno>maxno)
+		return 1;
+	return currno;
 }
 /*
  * 终端初始化事件1 可以698规约解析actionrequest 调用该接口，data为OAD
@@ -571,7 +610,7 @@ INT8U Event_3100(INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
     	INT8U Save_buf[256];
 		bzero(Save_buf, sizeof(Save_buf));
 		prginfo_event->event_obj.Event3100_obj.crrentnum++;
-		Getcurrno(&prginfo_event->event_obj.Event3100_obj.crrentnum,prginfo_event->event_obj.Event3100_obj.maxnum);
+		prginfo_event->event_obj.Event3100_obj.crrentnum=Getcurrno(prginfo_event->event_obj.Event3100_obj.crrentnum,prginfo_event->event_obj.Event3100_obj.maxnum);
 		INT32U crrentnum = prginfo_event->event_obj.Event3100_obj.crrentnum;
 		INT8U index=0;
 		//标准数据单元
@@ -610,7 +649,7 @@ INT8U Event_3101(INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
     	INT8U Save_buf[256];
 		bzero(Save_buf, sizeof(Save_buf));
 		prginfo_event->event_obj.Event3101_obj.crrentnum++;
-		Getcurrno(&prginfo_event->event_obj.Event3101_obj.crrentnum,prginfo_event->event_obj.Event3101_obj.maxnum);
+		prginfo_event->event_obj.Event3101_obj.crrentnum=Getcurrno(prginfo_event->event_obj.Event3101_obj.crrentnum,prginfo_event->event_obj.Event3101_obj.maxnum);
 		INT32U crrentnum = prginfo_event->event_obj.Event3101_obj.crrentnum;
 		INT8U index=0;
 		//标准数据单元
@@ -663,7 +702,7 @@ INT8U Event_3104(INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
     	INT8U Save_buf[256];
 		bzero(Save_buf, sizeof(Save_buf));
 		prginfo_event->event_obj.Event3104_obj.crrentnum++;
-		Getcurrno(&prginfo_event->event_obj.Event3104_obj.crrentnum,prginfo_event->event_obj.Event3104_obj.maxnum);
+		prginfo_event->event_obj.Event3104_obj.crrentnum=Getcurrno(prginfo_event->event_obj.Event3104_obj.crrentnum,prginfo_event->event_obj.Event3104_obj.maxnum);
 		INT32U crrentnum = prginfo_event->event_obj.Event3104_obj.crrentnum;
 		INT8U index=0;
 		//标准数据单元
@@ -759,7 +798,7 @@ INT8U Event_3105(TSA tsa,INT8U taskno,INT8U* data,INT8U len,ProgramInfo* prginfo
 		bzero(Save_buf, sizeof(Save_buf));
 		//更新当前记录数
 		prginfo_event->event_obj.Event3105_obj.event_obj.crrentnum++;
-		Getcurrno(&prginfo_event->event_obj.Event3105_obj.event_obj.crrentnum,prginfo_event->event_obj.Event3105_obj.event_obj.maxnum);
+		prginfo_event->event_obj.Event3105_obj.event_obj.crrentnum=Getcurrno(prginfo_event->event_obj.Event3105_obj.event_obj.crrentnum,prginfo_event->event_obj.Event3105_obj.event_obj.maxnum);
 		INT32U crrentnum = prginfo_event->event_obj.Event3105_obj.event_obj.crrentnum;
 		INT8U index=0;
 		//标准数据单元
@@ -849,7 +888,7 @@ void SendERC3106(INT8U flag,INT8U Erctype,ProgramInfo* prginfo_event)
 	INT8U Save_buf[256];
 	bzero(Save_buf, sizeof(Save_buf));
 	prginfo_event->event_obj.Event3106_obj.event_obj.crrentnum++;
-	Getcurrno(&prginfo_event->event_obj.Event3106_obj.event_obj.crrentnum,prginfo_event->event_obj.Event3106_obj.event_obj.maxnum);
+	prginfo_event->event_obj.Event3106_obj.event_obj.crrentnum=Getcurrno(prginfo_event->event_obj.Event3106_obj.event_obj.crrentnum,prginfo_event->event_obj.Event3106_obj.event_obj.maxnum);
 	INT32U crrentnum = prginfo_event->event_obj.Event3106_obj.event_obj.crrentnum;
 	INT8U index=0;
 	//标准数据单元
@@ -1158,7 +1197,7 @@ INT8U Event_3107(INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 		bzero(Save_buf, sizeof(Save_buf));
 		//更新当前记录数
 		prginfo_event->event_obj.Event3107_obj.event_obj.crrentnum++;
-		Getcurrno(&prginfo_event->event_obj.Event3107_obj.event_obj.crrentnum,prginfo_event->event_obj.Event3107_obj.event_obj.maxnum);
+		prginfo_event->event_obj.Event3107_obj.event_obj.crrentnum=Getcurrno(prginfo_event->event_obj.Event3107_obj.event_obj.crrentnum,prginfo_event->event_obj.Event3107_obj.event_obj.maxnum);
 		INT32U crrentnum = prginfo_event->event_obj.Event3107_obj.event_obj.crrentnum;
 		INT8U index=0;
 		//标准数据单元
@@ -1201,7 +1240,7 @@ INT8U Event_3108(INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 		bzero(Save_buf, sizeof(Save_buf));
 		//更新当前记录数
 		prginfo_event->event_obj.Event3108_obj.event_obj.crrentnum++;
-		Getcurrno(&prginfo_event->event_obj.Event3108_obj.event_obj.crrentnum,prginfo_event->event_obj.Event3108_obj.event_obj.maxnum);
+		prginfo_event->event_obj.Event3108_obj.event_obj.crrentnum=Getcurrno(prginfo_event->event_obj.Event3108_obj.event_obj.crrentnum,prginfo_event->event_obj.Event3108_obj.event_obj.maxnum);
 		INT32U crrentnum = prginfo_event->event_obj.Event3108_obj.event_obj.crrentnum;
 		INT8U index=0;
 		//标准数据单元
@@ -1241,7 +1280,7 @@ INT8U Event_3109(INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 		bzero(Save_buf, sizeof(Save_buf));
 		//更新当前记录数
 		prginfo_event->event_obj.Event3109_obj.crrentnum++;
-		Getcurrno(&prginfo_event->event_obj.Event3109_obj.crrentnum,prginfo_event->event_obj.Event3109_obj.maxnum);
+		prginfo_event->event_obj.Event3109_obj.crrentnum=Getcurrno(prginfo_event->event_obj.Event3109_obj.crrentnum,prginfo_event->event_obj.Event3109_obj.maxnum);
 		INT32U crrentnum = prginfo_event->event_obj.Event3109_obj.crrentnum;
 		INT8U index=0;
 		//标准数据单元
@@ -1284,7 +1323,7 @@ INT8U Event_310A(MachineError_type errtype,ProgramInfo* prginfo_event) {
     bzero(Save_buf, sizeof(Save_buf));
     //更新当前记录数
     prginfo_event->event_obj.Event310A_obj.crrentnum++;
-    Getcurrno(&prginfo_event->event_obj.Event310A_obj.crrentnum,prginfo_event->event_obj.Event310A_obj.maxnum);
+    prginfo_event->event_obj.Event310A_obj.crrentnum=Getcurrno(prginfo_event->event_obj.Event310A_obj.crrentnum,prginfo_event->event_obj.Event310A_obj.maxnum);
     INT32U crrentnum = prginfo_event->event_obj.Event310A_obj.crrentnum;
     INT8U index=0;
 	//标准数据单元
@@ -1317,7 +1356,7 @@ INT8U Event_310B(TSA tsa, INT8U taskno,INT8U* data,INT8U len,ProgramInfo* prginf
     if (prginfo_event->event_obj.Event310B_obj.event_obj.enableflag == 0) {
         return 0;
     }
-    if(prginfo_event->event_obj.Event3105_obj.mto_obj.task_no!=taskno)
+    if(prginfo_event->event_obj.Event310B_obj.meter_down_obj.task_no!=taskno)
     	return 0;
 
     if(data==NULL)
@@ -1325,43 +1364,45 @@ INT8U Event_310B(TSA tsa, INT8U taskno,INT8U* data,INT8U len,ProgramInfo* prginf
     INT32U newdata=(data[0]<<24)+(data[1]<<16)+(data[2]<<8)+data[3];
     INT32U olddata=0;
     TS ts;
-    if(Get_Mdata(tsa,&olddata,&ts) == 1){
-    	if(olddata>newdata){
-    		INT8U Save_buf[256];
-			bzero(Save_buf, sizeof(Save_buf));
-			prginfo_event->event_obj.Event310B_obj.event_obj.crrentnum++;
-			Getcurrno(&prginfo_event->event_obj.Event310B_obj.event_obj.crrentnum,prginfo_event->event_obj.Event310B_obj.event_obj.maxnum);
-			INT32U crrentnum = prginfo_event->event_obj.Event310B_obj.event_obj.crrentnum;
-			INT8U index=0;
-			//标准数据单元
-			Get_StandardUnit(0x310B,Save_buf,&index,crrentnum,(INT8U*)&tsa,s_tsa);
-			//属性3有关联数据
-			Save_buf[index++]=dtdoublelongunsigned;//double-long-unsigned
-			Save_buf[index++]=(olddata>>24)&0x000000ff;
-			Save_buf[index++]=(olddata>>16)&0x000000ff;
-			Save_buf[index++]=(olddata>>8)&0x000000ff;
-			Save_buf[index++]=olddata&0x000000ff;
-			Save_buf[index++]=dtdoublelongunsigned;//double-long-unsigned
-			Save_buf[index++]=(newdata>>24)&0x000000ff;
-			Save_buf[index++]=(newdata>>16)&0x000000ff;
-			Save_buf[index++]=(newdata>>8)&0x000000ff;
-			Save_buf[index++]=newdata&0x000000ff;
-			Save_buf[STANDARD_NUM_INDEX]+=2;
-
-			//存储更改后得参数
-			saveCoverClass(0x310B,(INT16U)crrentnum,(void *)&prginfo_event->event_obj.Event310B_obj,sizeof(Event310B_Object),event_para_save);
-			//存储记录集
-			saveCoverClass(0x310B,(INT16U)crrentnum,(void *)Save_buf,(int)index,event_record_save);
-			//存储当前记录值
-			INT8U Currbuf[50]={};memset(Currbuf,0,50);
-			INT8U Currindex=0;
-			Get_CurrResult(Currbuf,&Currindex,(INT8U*)&tsa,s_tsa,crrentnum,0);
-			saveCoverClass(0x310B,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,event_current_save);
-			//判断是否要上报
-			if(prginfo_event->event_obj.Event310B_obj.event_obj.reportflag)
-				Need_Report(0x310B,crrentnum,prginfo_event);
-    	}
+    if(Get_Mdata(tsa,&olddata,&ts) == 0){
+    	Refresh_Data(tsa,newdata,0);//更新数据
+    	return 0;
     }
+	if(olddata>newdata){
+		INT8U Save_buf[256];
+		bzero(Save_buf, sizeof(Save_buf));
+		prginfo_event->event_obj.Event310B_obj.event_obj.crrentnum++;
+		prginfo_event->event_obj.Event310B_obj.event_obj.crrentnum=Getcurrno(prginfo_event->event_obj.Event310B_obj.event_obj.crrentnum,prginfo_event->event_obj.Event310B_obj.event_obj.maxnum);
+		INT32U crrentnum = prginfo_event->event_obj.Event310B_obj.event_obj.crrentnum;
+		INT8U index=0;
+		//标准数据单元
+		Get_StandardUnit(0x310B,Save_buf,&index,crrentnum,(INT8U*)&tsa,s_tsa);
+		//属性3有关联数据
+		Save_buf[index++]=dtdoublelongunsigned;//double-long-unsigned
+		Save_buf[index++]=(olddata>>24)&0x000000ff;
+		Save_buf[index++]=(olddata>>16)&0x000000ff;
+		Save_buf[index++]=(olddata>>8)&0x000000ff;
+		Save_buf[index++]=olddata&0x000000ff;
+		Save_buf[index++]=dtdoublelongunsigned;//double-long-unsigned
+		Save_buf[index++]=(newdata>>24)&0x000000ff;
+		Save_buf[index++]=(newdata>>16)&0x000000ff;
+		Save_buf[index++]=(newdata>>8)&0x000000ff;
+		Save_buf[index++]=newdata&0x000000ff;
+		Save_buf[STANDARD_NUM_INDEX]+=2;
+
+		//存储更改后得参数
+		saveCoverClass(0x310B,(INT16U)crrentnum,(void *)&prginfo_event->event_obj.Event310B_obj,sizeof(Event310B_Object),event_para_save);
+		//存储记录集
+		saveCoverClass(0x310B,(INT16U)crrentnum,(void *)Save_buf,(int)index,event_record_save);
+		//存储当前记录值
+		INT8U Currbuf[50]={};memset(Currbuf,0,50);
+		INT8U Currindex=0;
+		Get_CurrResult(Currbuf,&Currindex,(INT8U*)&tsa,s_tsa,crrentnum,0);
+		saveCoverClass(0x310B,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,event_current_save);
+		//判断是否要上报
+		if(prginfo_event->event_obj.Event310B_obj.event_obj.reportflag)
+			Need_Report(0x310B,crrentnum,prginfo_event);
+	}
     //更新数据
     Refresh_Data(tsa,newdata,0);
     return 1;
@@ -1379,15 +1420,17 @@ INT8U Event_310C(TSA tsa, INT8U taskno,INT8U* data,INT8U len,ProgramInfo* prginf
     if (prginfo_event->event_obj.Event310C_obj.event_obj.enableflag == 0) {
         return 0;
     }
-    if(prginfo_event->event_obj.Event3105_obj.mto_obj.task_no!=taskno)
+    if(prginfo_event->event_obj.Event310C_obj.poweroffset_obj.task_no!=taskno)
        	return 0;
     if(data==NULL)
     	return 0;
     INT32U newdata=(data[0]<<24)+(data[1]<<16)+(data[2]<<8)+data[3];
 	INT32U olddata=0;
 	TS ts;
-	if(Get_Mdata(tsa,&olddata,&ts) == 0)
+	if(Get_Mdata(tsa,&olddata,&ts) == 0){
+		Refresh_Data(tsa,newdata,0);//更新数据
 		return 0;
+	}
 	/*===============TODO根据共享内存或者直接读取文件 获取该表参数*/
    // CLASS_6001 meter={};
     INT32U power_offset=prginfo_event->event_obj.Event310C_obj.poweroffset_obj.power_offset;//超差值
@@ -1419,7 +1462,7 @@ INT8U Event_310C(TSA tsa, INT8U taskno,INT8U* data,INT8U len,ProgramInfo* prginf
 			INT8U Save_buf[256];
 			bzero(Save_buf, sizeof(Save_buf));
 			prginfo_event->event_obj.Event310C_obj.event_obj.crrentnum++;
-			Getcurrno(&prginfo_event->event_obj.Event310C_obj.event_obj.crrentnum,prginfo_event->event_obj.Event310C_obj.event_obj.maxnum);
+			prginfo_event->event_obj.Event310C_obj.event_obj.crrentnum=Getcurrno(prginfo_event->event_obj.Event310C_obj.event_obj.crrentnum,prginfo_event->event_obj.Event310C_obj.event_obj.maxnum);
 			INT32U crrentnum = prginfo_event->event_obj.Event310C_obj.event_obj.crrentnum;
 			INT8U index=0;
 			//标准数据单元
@@ -1466,7 +1509,7 @@ INT8U Event_310D(TSA tsa, INT8U taskno,INT8U* data,INT8U len,ProgramInfo* prginf
 	if (prginfo_event->event_obj.Event310D_obj.event_obj.enableflag == 0) {
 	        return 0;
 	}
-	 if(prginfo_event->event_obj.Event3105_obj.mto_obj.task_no!=taskno)
+	 if(prginfo_event->event_obj.Event310D_obj.poweroffset_obj.task_no!=taskno)
 		 return 0;
 
 	if(data==NULL)
@@ -1474,8 +1517,10 @@ INT8U Event_310D(TSA tsa, INT8U taskno,INT8U* data,INT8U len,ProgramInfo* prginf
 	INT32U newdata=(data[0]<<24)+(data[1]<<16)+(data[2]<<8)+data[3];
 	INT32U olddata=0;
 	TS ts;
-	if(Get_Mdata(tsa,&olddata,&ts) == 0)
+	if(Get_Mdata(tsa,&olddata,&ts) == 0){
+		Refresh_Data(tsa,newdata,0);//更新数据
 		return 0;
+	}
 	/*===============TODO根据共享内存或者直接读取文件 获取该表参数*/
 	//CLASS_6001 meter={};
 	INT32U power_offset=prginfo_event->event_obj.Event310D_obj.poweroffset_obj.power_offset;//超差值
@@ -1507,7 +1552,7 @@ INT8U Event_310D(TSA tsa, INT8U taskno,INT8U* data,INT8U len,ProgramInfo* prginf
 			INT8U Save_buf[256];
 			bzero(Save_buf, sizeof(Save_buf));
 			prginfo_event->event_obj.Event310D_obj.event_obj.crrentnum++;
-			Getcurrno(&prginfo_event->event_obj.Event310D_obj.event_obj.crrentnum,prginfo_event->event_obj.Event310D_obj.event_obj.maxnum);
+			prginfo_event->event_obj.Event310D_obj.event_obj.crrentnum=Getcurrno(prginfo_event->event_obj.Event310D_obj.event_obj.crrentnum,prginfo_event->event_obj.Event310D_obj.event_obj.maxnum);
 			INT32U crrentnum = prginfo_event->event_obj.Event310D_obj.event_obj.crrentnum;
 			INT8U index=0;
 			//标准数据单元
@@ -1554,13 +1599,17 @@ INT8U Event_310E(TSA tsa, INT8U taskno,INT8U* data,INT8U len,ProgramInfo* prginf
     if (prginfo_event->event_obj.Event310E_obj.event_obj.enableflag == 0) {
         return 0;
     }
-    if(prginfo_event->event_obj.Event3105_obj.mto_obj.task_no!=taskno)
+    fprintf(stderr,"[event]%d %d \n",prginfo_event->event_obj.Event310E_obj.powerstoppara_obj.task_no,taskno);
+    if(prginfo_event->event_obj.Event310E_obj.powerstoppara_obj.task_no!=taskno)
        	return 0;
     INT32U newdata=(data[0]<<24)+(data[1]<<16)+(data[2]<<8)+data[3];
 	INT32U olddata=0;
 	TS ts;
-	if(Get_Mdata(tsa,&olddata,&ts) == 0)
+	if(Get_Mdata(tsa,&olddata,&ts) == 0){
+		Refresh_Data(tsa,newdata,1);//更新数据
+		fprintf(stderr,"tsa=%02x%02x%02x%02x%02x%02x \n",tsa.addr[0],tsa.addr[1],tsa.addr[2],tsa.addr[3],tsa.addr[4],tsa.addr[5],tsa.addr[6]);
 		return 0;
+	}
 	if(olddata == newdata){
 		//若正向有功值相同
 		TS currtime;
@@ -1588,10 +1637,16 @@ INT8U Event_310E(TSA tsa, INT8U taskno,INT8U* data,INT8U len,ProgramInfo* prginf
 				break;
 			}
 		if(tcha>offset && offset>0){
+			fprintf(stderr,"[event]tcha=%d offset=%d \n",tcha,offset);
 			INT8U Save_buf[256];
 			bzero(Save_buf, sizeof(Save_buf));
+			fprintf(stderr,"[event]before currentnum=%d \n",prginfo_event->event_obj.Event310E_obj.event_obj.crrentnum);
 			prginfo_event->event_obj.Event310E_obj.event_obj.crrentnum++;
-			Getcurrno(&prginfo_event->event_obj.Event310E_obj.event_obj.crrentnum,prginfo_event->event_obj.Event310E_obj.event_obj.maxnum);
+			fprintf(stderr,"[event]after currentnum=%d \n",prginfo_event->event_obj.Event310E_obj.event_obj.crrentnum);
+			prginfo_event->event_obj.Event310E_obj.event_obj.crrentnum=Getcurrno(prginfo_event->event_obj.Event310E_obj.event_obj.crrentnum,prginfo_event->event_obj.Event310E_obj.event_obj.maxnum);
+			//INT16U *aa=&prginfo_event->event_obj.Event310E_obj.event_obj.crrentnum;
+			fprintf(stderr,"[event]sssafter currentnum=%d \n",prginfo_event->event_obj.Event310E_obj.event_obj.crrentnum);
+			//fprintf(stderr,"[event]sssafter aa=%d \n",*aa);
 			INT32U crrentnum = prginfo_event->event_obj.Event310E_obj.event_obj.crrentnum;
 			INT8U index=0;
 			//标准数据单元
@@ -1616,8 +1671,8 @@ INT8U Event_310E(TSA tsa, INT8U taskno,INT8U* data,INT8U len,ProgramInfo* prginf
 			if(prginfo_event->event_obj.Event310E_obj.event_obj.reportflag)
 				Need_Report(0x310E,crrentnum,prginfo_event);
 		}
-	}else
-		Refresh_Data(tsa,newdata,1);//更新数据
+	}
+	Refresh_Data(tsa,newdata,1);//更新数据
     return 1;
 }
 
@@ -1635,7 +1690,7 @@ INT8U Event_310F(TSA tsa, INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
     INT8U Save_buf[256];
 	bzero(Save_buf, sizeof(Save_buf));
 	prginfo_event->event_obj.Event310F_obj.event_obj.crrentnum++;
-	Getcurrno(&prginfo_event->event_obj.Event310F_obj.event_obj.crrentnum,prginfo_event->event_obj.Event310F_obj.event_obj.maxnum);
+	prginfo_event->event_obj.Event310F_obj.event_obj.crrentnum=Getcurrno(prginfo_event->event_obj.Event310F_obj.event_obj.crrentnum,prginfo_event->event_obj.Event310F_obj.event_obj.maxnum);
 	INT32U crrentnum = prginfo_event->event_obj.Event310F_obj.event_obj.crrentnum;
 	INT8U index=0;
 	//标准数据单元
@@ -1696,7 +1751,7 @@ INT8U Event_3110(INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
     	INT8U Save_buf[256];
 		bzero(Save_buf, sizeof(Save_buf));
 		prginfo_event->event_obj.Event3110_obj.event_obj.crrentnum++;
-		Getcurrno(&prginfo_event->event_obj.Event3110_obj.event_obj.crrentnum,prginfo_event->event_obj.Event3110_obj.event_obj.maxnum);
+		prginfo_event->event_obj.Event3110_obj.event_obj.crrentnum=Getcurrno(prginfo_event->event_obj.Event3110_obj.event_obj.crrentnum,prginfo_event->event_obj.Event3110_obj.event_obj.maxnum);
 		INT32U crrentnum = prginfo_event->event_obj.Event3110_obj.event_obj.crrentnum;
 		INT8U index=0;
 		//标准数据单元
@@ -1748,7 +1803,7 @@ INT8U Event_3111(TSA tsa, INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 	INT8U Save_buf[256];
 	bzero(Save_buf, sizeof(Save_buf));
 	prginfo_event->event_obj.Event3111_obj.crrentnum++;
-	Getcurrno(&prginfo_event->event_obj.Event3111_obj.crrentnum,prginfo_event->event_obj.Event3111_obj.maxnum);
+	prginfo_event->event_obj.Event3111_obj.crrentnum=Getcurrno(prginfo_event->event_obj.Event3111_obj.crrentnum,prginfo_event->event_obj.Event3111_obj.maxnum);
 	INT32U crrentnum = prginfo_event->event_obj.Event3111_obj.crrentnum;
 	INT8U index=0;
 	//标准数据单元
@@ -1816,7 +1871,7 @@ INT8U Event_3112(TSA tsa, INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 	INT8U Save_buf[256];
 	bzero(Save_buf, sizeof(Save_buf));
 	prginfo_event->event_obj.Event3112_obj.crrentnum++;
-	Getcurrno(&prginfo_event->event_obj.Event3112_obj.crrentnum,prginfo_event->event_obj.Event3112_obj.maxnum);
+	prginfo_event->event_obj.Event3112_obj.crrentnum=Getcurrno(prginfo_event->event_obj.Event3112_obj.crrentnum,prginfo_event->event_obj.Event3112_obj.maxnum);
 	INT32U crrentnum = prginfo_event->event_obj.Event3112_obj.crrentnum;
 	INT8U index=0;
 	//标准数据单元
@@ -1876,7 +1931,7 @@ INT8U Event_311A(TSA tsa, INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 		INT8U Save_buf[256];
 		bzero(Save_buf, sizeof(Save_buf));
 		prginfo_event->event_obj.Event311A_obj.event_obj.crrentnum++;
-		Getcurrno(&prginfo_event->event_obj.Event311A_obj.event_obj.crrentnum,prginfo_event->event_obj.Event311A_obj.event_obj.maxnum);
+		prginfo_event->event_obj.Event311A_obj.event_obj.crrentnum=Getcurrno(prginfo_event->event_obj.Event311A_obj.event_obj.crrentnum,prginfo_event->event_obj.Event311A_obj.event_obj.maxnum);
 		INT32U crrentnum = prginfo_event->event_obj.Event311A_obj.event_obj.crrentnum;
 		INT8U index=0;
 		//标准数据单元
@@ -1928,7 +1983,7 @@ INT8U Event_311B(TSA tsa, INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
     	INT8U Save_buf[256];
 		bzero(Save_buf, sizeof(Save_buf));
 		prginfo_event->event_obj.Event311B_obj.crrentnum++;
-		Getcurrno(&prginfo_event->event_obj.Event311B_obj.crrentnum,prginfo_event->event_obj.Event311B_obj.maxnum);
+		prginfo_event->event_obj.Event311B_obj.crrentnum=Getcurrno(prginfo_event->event_obj.Event311B_obj.crrentnum,prginfo_event->event_obj.Event311B_obj.maxnum);
 		INT32U crrentnum = prginfo_event->event_obj.Event311B_obj.crrentnum;
 		INT8U index=0;
 		//标准数据单元
@@ -1973,7 +2028,7 @@ INT8U Event_311C(TSA tsa, INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 		INT8U Save_buf[256];
 		bzero(Save_buf, sizeof(Save_buf));
 		prginfo_event->event_obj.Event311C_obj.event_obj.crrentnum++;
-		Getcurrno(&prginfo_event->event_obj.Event311C_obj.event_obj.crrentnum,prginfo_event->event_obj.Event311C_obj.event_obj.maxnum);
+		prginfo_event->event_obj.Event311C_obj.event_obj.crrentnum=Getcurrno(prginfo_event->event_obj.Event311C_obj.event_obj.crrentnum,prginfo_event->event_obj.Event311C_obj.event_obj.maxnum);
 		INT32U crrentnum = prginfo_event->event_obj.Event311C_obj.event_obj.crrentnum;
 		INT8U index=0;
 		//标准数据单元
@@ -2014,7 +2069,7 @@ INT8U Event_3114(DateTimeBCD data,ProgramInfo* prginfo_event) {
 		INT8U Save_buf[256];
 		bzero(Save_buf, sizeof(Save_buf));
 		prginfo_event->event_obj.Event3114_obj.crrentnum++;
-		Getcurrno(&prginfo_event->event_obj.Event3114_obj.crrentnum,prginfo_event->event_obj.Event3114_obj.maxnum);
+		prginfo_event->event_obj.Event3114_obj.crrentnum=Getcurrno(prginfo_event->event_obj.Event3114_obj.crrentnum,prginfo_event->event_obj.Event3114_obj.maxnum);
 		INT32U crrentnum = prginfo_event->event_obj.Event3114_obj.crrentnum;
 		INT8U index=0;
 		//标准数据单元
@@ -2100,7 +2155,7 @@ INT8U Event_3117(INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 		INT8U Save_buf[256];
 		bzero(Save_buf, sizeof(Save_buf));
 		prginfo_event->event_obj.Event3117_obj.crrentnum++;
-		Getcurrno(&prginfo_event->event_obj.Event3117_obj.crrentnum,prginfo_event->event_obj.Event3117_obj.maxnum);
+		prginfo_event->event_obj.Event3117_obj.crrentnum=Getcurrno(prginfo_event->event_obj.Event3117_obj.crrentnum,prginfo_event->event_obj.Event3117_obj.maxnum);
 		INT32U crrentnum = prginfo_event->event_obj.Event3117_obj.crrentnum;
 		INT8U index=0;
 		//标准数据单元
@@ -2139,7 +2194,7 @@ INT8U Event_3118(INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 		INT8U Save_buf[256];
 		bzero(Save_buf, sizeof(Save_buf));
 		prginfo_event->event_obj.Event3118_obj.crrentnum++;
-		Getcurrno(&prginfo_event->event_obj.Event3118_obj.crrentnum,prginfo_event->event_obj.Event3118_obj.maxnum);
+		prginfo_event->event_obj.Event3118_obj.crrentnum=Getcurrno(prginfo_event->event_obj.Event3118_obj.crrentnum,prginfo_event->event_obj.Event3118_obj.maxnum);
 		INT32U crrentnum = prginfo_event->event_obj.Event3118_obj.crrentnum;
 		INT8U index=0;
 		//标准数据单元
@@ -2185,7 +2240,7 @@ INT8U Event_3119(INT8U type, INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 		INT8U Save_buf[256];
 		bzero(Save_buf, sizeof(Save_buf));
 		prginfo_event->event_obj.Event3119_obj.crrentnum++;
-		Getcurrno(&prginfo_event->event_obj.Event3119_obj.crrentnum,prginfo_event->event_obj.Event3119_obj.maxnum);
+		prginfo_event->event_obj.Event3119_obj.crrentnum=Getcurrno(prginfo_event->event_obj.Event3119_obj.crrentnum,prginfo_event->event_obj.Event3119_obj.maxnum);
 		INT32U crrentnum = prginfo_event->event_obj.Event3119_obj.crrentnum;
 		INT8U index=0;
 		//标准数据单元
@@ -2224,7 +2279,7 @@ INT8U Event_3200(INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 		INT8U Save_buf[256];
 		bzero(Save_buf, sizeof(Save_buf));
 		prginfo_event->event_obj.Event3200_obj.crrentnum++;
-		Getcurrno(&prginfo_event->event_obj.Event3200_obj.crrentnum,prginfo_event->event_obj.Event3200_obj.maxnum);
+		prginfo_event->event_obj.Event3200_obj.crrentnum=Getcurrno(prginfo_event->event_obj.Event3200_obj.crrentnum,prginfo_event->event_obj.Event3200_obj.maxnum);
 		INT32U crrentnum = prginfo_event->event_obj.Event3200_obj.crrentnum;
 		INT8U index=0;
 		//标准数据单元
@@ -2282,7 +2337,7 @@ INT8U Event_3201(INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 		INT8U Save_buf[256];
 		bzero(Save_buf, sizeof(Save_buf));
 		prginfo_event->event_obj.Event3201_obj.crrentnum++;
-		Getcurrno(&prginfo_event->event_obj.Event3201_obj.crrentnum,prginfo_event->event_obj.Event3201_obj.maxnum);
+		prginfo_event->event_obj.Event3201_obj.crrentnum=Getcurrno(prginfo_event->event_obj.Event3201_obj.crrentnum,prginfo_event->event_obj.Event3201_obj.maxnum);
 		INT32U crrentnum = prginfo_event->event_obj.Event3201_obj.crrentnum;
 		INT8U index=0;
 		//标准数据单元
@@ -2336,7 +2391,7 @@ INT8U Event_3202(INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 		INT8U Save_buf[256];
 		bzero(Save_buf, sizeof(Save_buf));
 		prginfo_event->event_obj.Event3202_obj.crrentnum++;
-		Getcurrno(&prginfo_event->event_obj.Event3202_obj.crrentnum,prginfo_event->event_obj.Event3202_obj.maxnum);
+		prginfo_event->event_obj.Event3202_obj.crrentnum=Getcurrno(prginfo_event->event_obj.Event3202_obj.crrentnum,prginfo_event->event_obj.Event3202_obj.maxnum);
 		INT32U crrentnum = prginfo_event->event_obj.Event3202_obj.crrentnum;
 		INT8U index=0;
 		//标准数据单元
@@ -2376,7 +2431,7 @@ INT8U Event_3203(INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 		INT8U Save_buf[256];
 		bzero(Save_buf, sizeof(Save_buf));
 		prginfo_event->event_obj.Event3203_obj.crrentnum++;
-		Getcurrno(&prginfo_event->event_obj.Event3203_obj.crrentnum,prginfo_event->event_obj.Event3203_obj.maxnum);
+		prginfo_event->event_obj.Event3203_obj.crrentnum=Getcurrno(prginfo_event->event_obj.Event3203_obj.crrentnum,prginfo_event->event_obj.Event3203_obj.maxnum);
 		INT32U crrentnum = prginfo_event->event_obj.Event3203_obj.crrentnum;
 		INT8U index=0;
 		//标准数据单元

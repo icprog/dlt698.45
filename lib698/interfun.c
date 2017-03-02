@@ -142,24 +142,82 @@ int fill_TSA(INT8U *data,INT8U *value,INT8U len)
 }
 
 ///////////////////////////////////////////////////////////////////////////
-int getArrayNum(INT8U *source,INT8U *dest)
+int getArray(INT8U *source,INT8U *dest)		//1
 {
 	dest[0] = source[1];
 	return 2;//source[0] 0x1 (array type)   source[1] =num
 }
 
-int getBool(INT8U *source,INT8U *dest)
+int getStructure(INT8U *source,INT8U *dest)		//2
 {
 	dest[0] = source[1];
-	return 2;//source[0] 0x1 (bool type)   source[1] =value
+	return 2;//source[0] 0x2 (stru type)   source[1] =num
 }
 
-int getUnsigned(INT8U *source,INT8U *dest)
+int getBool(INT8U *source,INT8U *dest)		//3
+{
+	dest[0] = source[1];
+	return 2;//source[0] 0x3 (bool type)   source[1] =value
+}
+
+int getUnsigned(INT8U *source,INT8U *dest)	//0x11
 {
 	dest[0] = source[1];
 	return 2;//source[0] 0x11(unsigned type)   source[1] =data
 }
-int getROAD(INT8U *source,ROAD *dest)
+
+int getLongUnsigned(INT8U *source,INT8U *dest)	//0x12
+{
+	dest[1] = source[1];
+	dest[0] = source[2];
+	return 3;
+}
+
+/*
+ * type: =1 包含类型描述字节
+ * 		　=0 不包含类型描述字节
+ */
+int getDateTimeS(INT8U type,INT8U *source,INT8U *dest)		//0x1C
+{
+	if(type==1) {
+		dest[1] = source[1];//年
+		dest[0] = source[2];
+		dest[2] = source[3];//月
+		dest[3] = source[4];//日
+		dest[4] = source[5];//时
+		dest[5] = source[6];//分
+		dest[6] = source[7];//秒
+		return (sizeof(DateTimeBCD)+1);
+	}else {
+		dest[1] = source[0];//年
+		dest[0] = source[1];
+		dest[2] = source[2];//月
+		dest[3] = source[3];//日
+		dest[4] = source[4];//时
+		dest[5] = source[5];//分
+		dest[6] = source[6];//秒
+		return sizeof(DateTimeBCD);
+	}
+}
+
+int getOAD(INT8U type,INT8U *source,OAD *oad)		//0x51
+{
+	if(type==1) {
+		oad->OI = source[1];
+		oad->OI = (oad->OI <<8) | source[2];
+		oad->attflg = source[3];
+		oad->attrindex = source[4];
+		return (sizeof(OAD)+1);
+	}else {
+		oad->OI = source[0];
+		oad->OI = (oad->OI <<8) | source[1];
+		oad->attflg = source[2];
+		oad->attrindex = source[3];
+		return (sizeof(OAD));
+	}
+}
+
+int getROAD(INT8U *source,ROAD *dest)		//0x52
 {
 	INT8U oadtmp[4]={};
 	int i=0,oadnum=0,index=1;
@@ -185,56 +243,26 @@ int getROAD(INT8U *source,ROAD *dest)
 	}
 	return index;
 }
-int getTI(INT8U *source,INT8U *dest)
-{
-	dest[0] = source[0];//单位
-	dest[2] = source[1];//long unsigned数值
-	dest[1] = source[2];//
-	return 3;
-}
 
-
-int getLongUnsigned(INT8U *source,INT8U *dest)
+int getTI(INT8U type,INT8U *source,TI *ti)	//0x54
 {
-	dest[1] = source[1];
-	dest[0] = source[2];
-	return 3;
-}
-int getDateTimeS(INT8U *source,INT8U *dest)
-{
-	dest[1] = source[0];//年
-	dest[0] = source[1];
-	dest[2] = source[2];//月
-	dest[3] = source[3];//日
-	dest[4] = source[4];//时
-	dest[5] = source[5];//分
-	dest[6] = source[6];//秒
-	return sizeof(DateTimeBCD);
-}
-int getMS(INT8U *source,INT8U *dest)
-{
-	INT8U choicetype=0;
-	choicetype = source[0];
-	switch (choicetype)
-	{
-		case 0:
-		case 1:
-			dest[0] = source[0];  //0表示 没有电表  1表示 全部电表
-			fprintf(stderr,"\n		MS:Choice =%02x ",source[0]);
-			return 1;
-		case 2:
-			break;
-		case 3:
-			break;
-		case 4:
-			break;
+	if(type==1) {
+		ti->units = source[1];//单位
+		ti->interval = source[2];	//long unsigned数值
+		ti->interval = (ti->interval <<8) | source[3];//
+		return (sizeof(TI)+1);
+	}else {
+		ti->units = source[0];//单位
+		ti->interval = source[1];	//long unsigned数值
+		ti->interval = (ti->interval <<8) | source[2];//
+		return (sizeof(TI));
 	}
-	return 0;
 }
+
 /*
  * 解析选择方法类型 RSD
  */
-int get_BasicRSD(INT8U *source,INT8U *dest,INT8U *type)
+int get_BasicRSD(INT8U *source,INT8U *dest,INT8U *type)		//0x5A
 {
 	INT16U source_sumindex=0,source_index=0,dest_index=0;
 	int index = 0;
@@ -286,7 +314,7 @@ int get_BasicRSD(INT8U *source,INT8U *dest,INT8U *type)
 			break;
 		case 4:
 		case 5:
-			index = getDateTimeS(&source[1],(INT8U *)&select4.collect_star);
+			index = getDateTimeS(0,&source[1],(INT8U *)&select4.collect_star);
 			fprintf(stderr,"\n--- %02x %02x --",source[1+index],source[1+index+1]);
 			source[index] = 0x5c;//报文中没有MS的类型字节，自己添加一个
 			get_BasicUnit(&source[index],&source_index,(INT8U *)&select4.meters,&dest_index);
@@ -299,9 +327,9 @@ int get_BasicRSD(INT8U *source,INT8U *dest,INT8U *type)
 		case 7:
 		case 8:
 			index++;	//type
-			index += getDateTimeS(&source[index],(INT8U *)&select6.collect_star);
-			index += getDateTimeS(&source[index],(INT8U *)&select6.collect_finish);
-			index += getTI(&source[index],(INT8U *)&select6.ti);
+			index += getDateTimeS(0,&source[index],(INT8U *)&select6.collect_star);
+			index += getDateTimeS(0,&source[index],(INT8U *)&select6.collect_finish);
+			index += getTI(0,&source[index],&select6.ti);
 			index += getMS(&source[18],&select6.meters.mstype);
 			memcpy(dest,&select6,sizeof(select6));
 			break;
@@ -319,12 +347,34 @@ int get_BasicRSD(INT8U *source,INT8U *dest,INT8U *type)
 	}
 	return index;
 }
+
+int getMS(INT8U *source,INT8U *dest)		//0x5C
+{
+	INT8U choicetype=0;
+	choicetype = source[0];
+	switch (choicetype)
+	{
+		case 0:
+		case 1:
+			dest[0] = source[0];  //0表示 没有电表  1表示 全部电表
+			fprintf(stderr,"\n		MS:Choice =%02x ",source[0]);
+			return 1;
+		case 2:
+			break;
+		case 3:
+			break;
+		case 4:
+			break;
+	}
+	return 0;
+}
+
 /*
  * 解析记录列选择 RCSD
  */
-int get_BasicRCSD(INT8U *source,CSD_ARRAYTYPE *csds)
+int get_BasicRCSD(INT8U *source,CSD_ARRAYTYPE *csds)	//0x60
 {
-	INT8U oadtmp[4];
+	INT8U oadtmp[4]={};
 	int i=0,index=0,j=0;
 	INT8U num=0;
 	num = source[index++];
@@ -364,4 +414,53 @@ int get_BasicRCSD(INT8U *source,CSD_ARRAYTYPE *csds)
 	return index;
 }
 
+int Get_6000(INT8U seqnum,INT8U *data)
+{
+	int 	index=0;
+	CLASS_6001 meter={};
 
+	if(readParaClass(0x6000,&meter,seqnum)==1) {
+		fprintf(stderr,"\n 6000 read meter ok");
+		index += create_struct(&data[index],4);		//属性2：struct 四个元素
+		index += fill_long_unsigned(&data[index],meter.sernum);		//配置序号
+		index += create_struct(&data[index],10);					//基本信息:10个元素
+		index += fill_TSA(&data[index],(INT8U *)&meter.basicinfo.addr.addr[1],meter.basicinfo.addr.addr[0]);		//TSA
+		index += fill_enum(&data[index],meter.basicinfo.baud);			//波特率
+		index += fill_enum(&data[index],meter.basicinfo.protocol);		//规约类型
+		data[index++] = dtoad;
+		index += create_OAD(&data[index],meter.basicinfo.port);		//端口
+		index += fill_octet_string(&data[index],(char *)&meter.basicinfo.pwd[1],meter.basicinfo.pwd[0]);		//通信密码
+		index += fill_unsigned(&data[index],meter.basicinfo.ratenum);		//费率个数
+		index += fill_unsigned(&data[index],meter.basicinfo.usrtype);		//用户类型
+		index += fill_enum(&data[index],meter.basicinfo.connectype);		//接线方式
+		index += fill_long_unsigned(&data[index],meter.basicinfo.ratedU);		//额定电压
+		index += fill_long_unsigned(&data[index],meter.basicinfo.ratedI);		//额定电流
+		index += create_struct(&data[index],4);					//扩展信息:4个元素
+		index += fill_TSA(&data[index],(INT8U *)&meter.extinfo.cjq_addr.addr[1],meter.extinfo.cjq_addr.addr[0]);		//TSA
+		index += fill_octet_string(&data[index],(char *)&meter.extinfo.asset_code[1],meter.extinfo.asset_code[0]);	//资产号
+		index += fill_long_unsigned(&data[index],meter.extinfo.pt);		//PT
+		index += fill_long_unsigned(&data[index],meter.extinfo.ct);		//CT
+		index += create_array(&data[index],0);					//附属信息:0个元素
+	}
+	return index;
+}
+
+int Get_6035(INT8U taskid,INT8U *data)
+{
+	int 	index=0;
+	CLASS_6035	classoi={};
+
+	if (readCoverClass(0x6035,taskid,&classoi,sizeof(CLASS_6035),coll_para_save))
+	{
+		index += create_struct(&data[index],8);
+		index += fill_unsigned(&data[index],classoi.taskID);
+		index += fill_enum(&data[index],classoi.taskState);
+		index += fill_date_time_s(&data[index],&classoi.starttime);
+		index += fill_date_time_s(&data[index],&classoi.endtime);
+		index += fill_long_unsigned(&data[index],classoi.totalMSNum);
+		index += fill_long_unsigned(&data[index],classoi.successMSNum);
+		index += fill_long_unsigned(&data[index],classoi.sendMsgNum);
+		index += fill_long_unsigned(&data[index],classoi.rcvMsgNum);
+	}
+	return index;
+}

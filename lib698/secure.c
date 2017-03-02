@@ -81,7 +81,7 @@ INT32S secureConnectRequest(SignatureSecurity* securityInfo ,SecurityData* RetIn
      return ret;
 }
 /**********************************************************************
-*处理主动上报，主站回复报文同esam交互部分
+*处理主动上报，主站回复报文同esam交互部分(按照宣贯资料来操作，需要RN。芯片手册需要MAC)
  **********************************************************************/
 INT32S secureResponseData(INT8U* RN,INT8U* apdu)
 {
@@ -96,7 +96,11 @@ INT32S secureResponseData(INT8U* RN,INT8U* apdu)
     	MACindex=2+2+len;
     else if(len>0 && len<256)
     	MACindex=2+1+len;
-    else return -1;
+    else
+    	{
+    		Esam_Clear(fd);
+    		return -1;
+    	}
 
     ret =Esam_DencryptReport( fd,  RN, &apdu[MACindex], &apdu[2], apdu);
      Esam_Clear(fd);
@@ -346,14 +350,16 @@ INT16U getEsamAttribute(OAD oad,INT8U *retBuff)
 		fprintf(stderr,"get esam attribute 11111\n");
 		INT32S fd=-1;
 		fd = Esam_Init(fd,(INT8U*)ACS_SPI_DEV);
+		 if(fd<0) return 0;
 		if(fd>0)
 		{
 			retLen = Esam_GetTermiInfo(fd,&esamInfo);
 			if(retLen>0)
 				memcpy(&tv_store,&tv_new,sizeof(tv_store));//更新存储时间
 		}
-		if(fd<=0 || retLen<0) //打开esam失败，返回DAR错误0x16
+		if( retLen<0) //打开esam失败，返回DAR错误0x16
 		{
+			Esam_Clear(fd);
 			return 0;
 		}
 		if(fd>0)	Esam_Clear(fd);
@@ -433,9 +439,17 @@ INT32S esamMethodKeyUpdate(INT8U *Data2)
 		if(fd>0)
 		{
 			tmplen = UnitParse(&Data2[2+secureLen+1],(INT8U *)&sidmac,0x01);//填充sidmac中sid部分
-			if(tmplen<=0) return -2;
+			if(tmplen<=0)
+			{
+				Esam_Clear(fd);
+				return -2;
+			}
 			tmplen = UnitParse(&Data2[2+secureLen+1+tmplen],sidmac.mac,0x02);//填充mac
-			if(tmplen<=0) return -3;
+			if(tmplen<=0)
+			{
+				Esam_Clear(fd);
+				return -3;
+			}
 			tmplen = Esam_SymKeyUpdate(fd,sidmac,&Data2[3]);//秘钥更新
 			if(fd>0) Esam_Clear(fd);
 			return tmplen;
@@ -462,7 +476,11 @@ INT32S esamMethodCcieSession(INT8U *Data2)
 		if(fd>0)
 		{
 			tmplen = UnitParse(&Data2[2+secureLen+1],(INT8U *)&sid,0x01);//填充sidmac中sid部分
-			if(tmplen<=0) return -2;
+			if(tmplen<=0)
+			{
+				 Esam_Clear(fd);
+				return -2;
+			}
 			tmplen = Esam_CcieSession(fd,sid,&Data2[3]);//证书更新///协商时效门限
 			if(fd>0)  Esam_Clear(fd);
 			return tmplen;

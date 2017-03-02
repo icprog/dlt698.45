@@ -319,6 +319,7 @@ typedef struct
 typedef struct{
 	OAD		oad;
 	RCSD	rcsd;
+	INT8U 	selectType;//选择类型
 	RSD		rsd;
 }RecordData;
 
@@ -438,6 +439,14 @@ typedef struct
 	INT16U datalen;		//数据长度
 }PROXY_GETLIST;
 
+/*
+ * 任务启动识别信息
+ */
+typedef struct{
+	INT8U ID;		//任务编号
+	INT8U SerNo;	//方案编号
+	time_t nexttime;//执行时间
+}AutoTaskStrap;
 typedef struct{
 	LINK_Request link_request;
 	int phy_connect_fd;

@@ -14,7 +14,7 @@
 #include "dlt698def.h"
 
 extern ProgramInfo* JProgramInfo;
-
+extern INT8U poweroffon_state;
 #ifdef TESTDEF
 INT8U flag07_0CF177[4] =  {0x00,0xff,0x00,0x00};//当前组合有功总电能示值
 INT8U flag07_0CF33[4] =   {0x00,0xff,0x01,0x00};//当前正向有功总电能示值
@@ -495,7 +495,7 @@ void SendDataTo485(INT32S fd, INT8U *sendbuf, INT16U sendlen) {
 //	DbPrt1("S:", (char *) sendbuf, sendlen, NULL);
 }
 //根据TSA从文件中找出6001
-INT8U get6001Obj2TSA(TSA addr,CLASS_6001* targetMeter)
+INT8U get6001ObjByTSA(TSA addr,CLASS_6001* targetMeter)
 {
 	INT8U ret = 0;
 	TSA targetMeterAddr;
@@ -545,13 +545,14 @@ INT8U checkEvent(CLASS_6001 meter,FORMAT07 resultData07,INT16U taskID)
 
 	if(memcmp(flag07_0CF33,resultData07.DI,4)==0)
 	{
+		fprintf(stderr,"\n\n&&&&&&&&&&&checkEvent taskID = %d  mter.sernum = %d\n\n",taskID,meter.sernum);
 		ret = Event_310B(meter.basicinfo.addr,taskID,resultData07.Data,resultData07.Length,JProgramInfo);
 
 		ret = Event_310C(meter.basicinfo.addr,taskID,resultData07.Data,resultData07.Length,JProgramInfo,meter);
 
 		ret = Event_310D(meter.basicinfo.addr,taskID,resultData07.Data,resultData07.Length,JProgramInfo,meter);
 
-		ret = Event_310B(meter.basicinfo.addr,taskID,resultData07.Data,resultData07.Length,JProgramInfo);
+		ret = Event_310E(meter.basicinfo.addr,taskID,resultData07.Data,resultData07.Length,JProgramInfo);
 	}
 	if((memcmp(flag07_date,resultData07.DI,4)==0)||(memcmp(flag07_time,resultData07.DI,4)==0))
 	{
@@ -711,20 +712,20 @@ INT16S request698_07Data(INT8U* DI07,INT8U* dataContent,CLASS_6001 meter,CLASS_6
 		fprintf(stderr,"\n 无效的数据标识");
 		return retLen;
 	}
-	fprintf(stderr, "\n meterAddr len = %d addr = %02x%02x%02x%02x%02x%02x",
+	fprintf(stderr, "\n meterAddr len = %d addr = %02x%02x%02x%02x%02x%02x%02x%02x",
 			meter.basicinfo.addr.addr[0], meter.basicinfo.addr.addr[1], meter.basicinfo.addr.addr[2],
 			meter.basicinfo.addr.addr[3], meter.basicinfo.addr.addr[4], meter.basicinfo.addr.addr[5],
-			meter.basicinfo.addr.addr[6]);
+			meter.basicinfo.addr.addr[6],meter.basicinfo.addr.addr[7],meter.basicinfo.addr.addr[68]);
 	fprintf(stderr, "\nDI = %02x%02x%02x%02x\n",DI07[0],DI07[1],DI07[2],DI07[3]);
 
 	Data07.Ctrl = CTRL_Read_07;
-	if(meter.basicinfo.addr.addr[0] > 6)
+	if(meter.basicinfo.addr.addr[1] > 5)
 	{
-		meter.basicinfo.addr.addr[0] = 6;
+		meter.basicinfo.addr.addr[1] = 5;
 		fprintf(stderr,"request698_07Data 电表地址长度大于6");
 	}
 
-	memcpy(&Data07.Addr, &meter.basicinfo.addr.addr[1], meter.basicinfo.addr.addr[0]);
+	memcpy(&Data07.Addr, &meter.basicinfo.addr.addr[2], 6);
 	memcpy(&Data07.DI, DI07, 4);
 
 	SendLen = composeProtocol07(&Data07, SendBuff);
@@ -854,7 +855,7 @@ INT8S dealProxy(PROXY_GETLIST* getlist,INT8U port485)
 		totalLen += addlen;
 
 		//通过表地址找 6001
-		if(get6001Obj2TSA(getlist->objs[index].tsa,&obj6001) != 1 )
+		if(get6001ObjByTSA(getlist->objs[index].tsa,&obj6001) != 1 )
 		{
 			fprintf(stderr," dealProxy--------2 未找到相应6001");
 			getlist->data[totalLen++] = 0;//没有数据
@@ -884,6 +885,7 @@ INT8S dealProxy(PROXY_GETLIST* getlist,INT8U port485)
 				totalLen += singleLen;
 			}
 		}
+		getlist->datalen = totalLen;
 #ifdef TESTDEF
 		fprintf(stderr,"\n\ndealProxy 代理返回报文 长度：%d :",totalLen);
 		INT16U tIndex;
@@ -986,14 +988,18 @@ INT16U deal6015_698(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8
 	INT8U sendbuff[BUFFSIZE];
 	INT8U recvbuff[BUFFSIZE];
 	memset(sendbuff, 0, BUFFSIZE);
-
+#ifdef TESTDEF
+	to6001.basicinfo.addr.addr[0] = 6;
+	INT8U fakeAddr[6] = {0x11,0x11,0x11,0x11,0x11,0x11};
+	memcpy(&to6001.basicinfo.addr.addr[1],fakeAddr,6);
+#endif
 	sendLen = composeProtocol698_GetRequest(sendbuff, st6015, to6001.basicinfo.addr);
 	if(sendLen < 0)
 	{
 		fprintf(stderr,"deal6015_698  sendLen < 0");
 		return retLen;
 	}
-#if TSETDEF1
+
 	subindex = 0;
 	while(subindex < 3)
 	{
@@ -1004,13 +1010,11 @@ INT16U deal6015_698(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8
 		if(recvLen > 0)
 		{
 			st6035->rcvMsgNum++;
-			recsta = analyzeProtocol698(format07, RecvBuff, RecvLen, &nextFlag);
+		//	recsta = analyzeProtocol698(format07, RecvBuff, RecvLen);
 		}
 
 		subindex++;
 	}
-#endif
-
 
 	return retLen;
 }
@@ -1107,7 +1111,7 @@ INT16U deal6015_singlemeter(CLASS_6015 st6015, CLASS_6001 obj6001,CLASS_6035* st
 	}
 
 	switch (obj6001.basicinfo.protocol) {
-#ifndef TESTDEF
+#ifndef TESTDEF1
 	case DLT_645_07:
 		ret = deal6015_07(st6015, obj6001,st6035,dataContent,port485);
 	break;
@@ -1529,9 +1533,47 @@ INT8U init6013ListFrom6012File() {
 void read485_thread(void* i485port) {
 	INT8U port = *(INT8U*) i485port;
 	fprintf(stderr, "\n port = %d", port);
+
+	//上电先抄读停上电事件
+	if(poweroffon_state == 1)
+	{
+		//readMeterPowerInfo(port);
+	}
+
 	comfd4851 = -1;
 	INT8U ret = 0;
 	INT16S tastIndexIndex = -1;
+#ifdef TESTDEF1
+	INT8S result = getComfdBy6001(3,1);
+	if(result != 1)
+	{
+		fprintf(stderr,"\n 打开串口失败");
+	}
+	INT8U jinchang[25] = {0x68,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0x68,0x14,0x0D,
+						0x34,0x33,0xFF,0x37,0x35,0x33,0x33,0x33,0x44,0x44,
+						0x44,0x44,0x44,0xAA,0x16};
+	INT8U chgAddr[18]= {0x68,0xAA,0xAA,0xAA,0xAA,0xAA,0xAA,0x68,0x15,0x06,
+						0x44,0x44,0x44,0x44,0x44,0x44,0x7F,0x16};
+	INT16S RecvLen = -1;
+	INT8U RecvBuff[256] = {0};
+
+	SendDataTo485(comfd4851, jinchang, 25);
+	RecvLen = ReceDataFrom485(comfd4851, 500, RecvBuff);
+	if (RecvLen > 0)
+	{
+		fprintf(stderr,"\n 进场报文收到回复");
+	}
+	sleep(5);
+
+	memset(RecvBuff,0,256);
+	SendDataTo485(comfd4851, chgAddr, 18);
+	RecvLen = ReceDataFrom485(comfd4851, 500, RecvBuff);
+	if (RecvLen > 0)
+	{
+		fprintf(stderr,"\n 修改地址报文收到回复");
+	}
+	return;
+#endif
 
 	while (1) {
 
@@ -1683,7 +1725,41 @@ void initTestArray()
 	testArray[13].flag07.dinum = 1;
 
 }
+INT8S readMeterPowerInfo(INT8U port485)
+{
+	fprintf(stderr,"\n\n上电抄读停上电事件 readMeterPowerInfo");
+	INT8S result = -1;
+	MeterPower MeterPowerInfo[POWEROFFON_NUM]; //当poweroffon_state为1时，抄读其中ERC3106State=1得tsa得停上电时间，
+	                                           //赋值给结构体中得停上电时间，同时置VALID为1,全部抄完后，置poweroffon_state为2
+	INT8U meterIndex;
+	for(meterIndex = 0; meterIndex < POWEROFFON_NUM; meterIndex++)
+	{
+		if(MeterPowerInfo[meterIndex].ERC3106State==1)
+		{
+			CLASS_6001 obj6001;
+			//通过表地址找 6001
+			if(get6001ObjByTSA(MeterPowerInfo[meterIndex].tsa,&obj6001) != 1 )
+			{
+				fprintf(stderr," dealProxy--------2 未找到相应6001");
+				continue;
+			}
+			if(is485OAD(obj6001.basicinfo.port,port485) == 0)
+			{
+				fprintf(stderr," dealProxy--------3 非本端口测量点");
+				continue;
+			}
+			if(getComfdBy6001(obj6001.basicinfo.port.attrindex,port485) != 1)
+			{
+				fprintf(stderr," dealProxy--------4");
+				continue;
+			}
+
+		}
+	}
+	return result;
+}
 void read485_proccess() {
+
 	//读取所有任务文件
 	init6013ListFrom6012File();
 #ifdef TESTDEF

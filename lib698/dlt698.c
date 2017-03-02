@@ -473,6 +473,7 @@ int appConnectResponse(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 	index = FrameHead(csinfo,buf);
 	hcsi = index;
 	index = index + 2;
+	buf[index++] = CONNECT_RESPONSE;
 	buf[index++] = response.piid_acd.data;
 	memcpy(&buf[index],response.server_factory_version.factorycode,4);
 	index = index +4;
@@ -569,8 +570,8 @@ int doGetAttribute(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
 	INT8U getType = apdu[1];
 	OAD oad={};
 	INT8U *data=NULL;
-	piid.data = apdu[2];
-	fprintf(stderr,"\n- get type = %d PIID=%02x",getType,piid.data);
+	piid_g.data = apdu[2];
+	fprintf(stderr,"\n- get type = %d PIID=%02x",getType,piid_g.data);
 
 	getoad(&apdu[3],&oad);
 	data = &apdu[7];					//Data
@@ -602,7 +603,7 @@ int doProxyRequest(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
 	INT8U getType = apdu[1];
 	INT8U *data=NULL;
 
-	piid.data = apdu[2];
+	piid_g.data = apdu[2];
 	data = &apdu[3];
 	fprintf(stderr,"\n代理 PIID %02x   ",piid.data);
 	switch(getType)
@@ -633,7 +634,7 @@ int doActionRequest(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 	OAD  oad={};
 	INT8U *data=NULL;
 	INT8U request_choice = apdu[1];		//ACTION-Request
-	piid.data = apdu[2];				//PIID
+	piid_g.data = apdu[2];				//PIID
 //	memcpy(&omd,&apdu[3],4);			//OAD
 	oad.OI= (apdu[3]<<8) | apdu[4];
 	oad.attflg = apdu[5];
@@ -730,17 +731,20 @@ INT16U composeAutoReport(INT8U* SendApdu,INT16U length)
 	 INT8U RN[12];
 	 INT8U MAC[4];
 	 fd = Esam_Init(fd,(INT8U*)ACS_SPI_DEV);
-	 if(fd<0) return -3;
+	 if(fd<0) return 0;
 	 retLen = Esam_ReportEncrypt(fd,&SendApdu[1],length-1,RN,MAC);
-	 if(retLen<=0) return 0;
+	 if(retLen<=0)
+	 {
+		 Esam_Clear(fd);
+		 return 0;
+	 }
 	 SendApdu[length]=0x02;//数据验证信息类型RN_MAC
 	 SendApdu[length+1]=0x0C;//随机数长度
 	 memcpy(&SendApdu[length+2],RN,12);//12个随机数，固定大小
 	 SendApdu[length+2+12]=0x04;//mac长度
 	 memcpy(&SendApdu[length+2+12+1],MAC,4);//MAC,固定大小
-	 if(retLen<=0) return 0;
 	 Esam_Clear(fd);
-	 return length+1+12+1+4;
+	 return  length + 1+12+1+4;
 }
 /**********************************************************************
  *  终端主动上报后,解析主站回复数据SECURITY-response， apdu[0]=144;apdu[1]应用数据单元
@@ -806,8 +810,7 @@ INT16S fillGetRequestAPDU(INT8U* sendBuf,CLASS_6015 obj6015,INT8U requestType)
 
 	if(obj6015.cjtype == TYPE_LAST)
 	{
-		sendBuf[length++] = 0x09;//Selector = 9 选取上n条记录
-		sendBuf[length++] = 0x01;//选取上1条记录
+
 		for(csdIndex = 0;csdIndex < obj6015.csds.num;csdIndex++)
 		{
 			/*采集当前数据*/
@@ -815,6 +818,10 @@ INT16S fillGetRequestAPDU(INT8U* sendBuf,CLASS_6015 obj6015,INT8U requestType)
 			{
 				len = OADtoBuff(obj6015.csds.csd[csdIndex].csd.road.oad,&sendBuf[length]);
 				length +=len;
+				// RCSD应该用哪一种不知道该怎么定 此处填9是根据测试报文填写的
+				sendBuf[length++] = 0x09;//Selector = 9 选取上n条记录
+				sendBuf[length++] = 0x01;//选取上1条记录
+
 				sendBuf[length++] = obj6015.csds.csd[csdIndex].csd.road.num;//OAD num
 				INT8U oadsIndex;
 				for (oadsIndex = 0; oadsIndex < obj6015.csds.csd[csdIndex].csd.road.num; oadsIndex++)
@@ -857,6 +864,8 @@ INT8S getRequestType(INT8U cjtype,INT8U csdcount)
 
 		case TYPE_LAST:
 			{
+				requestType = GET_REQUEST_RECORD;
+#ifdef TESTDEF
 				if(csdcount == 1)
 				{
 					requestType = GET_REQUEST_RECORD;
@@ -865,6 +874,8 @@ INT8S getRequestType(INT8U cjtype,INT8U csdcount)
 				{
 					requestType = GET_REQUEST_RECORD_LIST;
 				}
+#endif
+
 				break;
 			}
 
@@ -915,8 +926,8 @@ INT16S composeProtocol698_GetRequest(INT8U* 	sendBuf,CLASS_6015 obj6015,TSA mete
 	return (sendLen + 3);			//3: cs cs 16
 
 }
-#ifdef TESTDEF1
-int analyzeProtocol698(INT8U* Rcvbuf,)
+#if TESTDEF1
+int analyzeProtocol698(INT8U* Rcvbuf)
 {
 	CSINFO csinfo={};
 	int hcsok = 0 ,fcsok = 0;
