@@ -344,13 +344,6 @@ void SaveNorData(INT8U taskid,INT8U *databuf,int datalen)
 	if(databuf_tmp != NULL)
 		free(databuf_tmp);
 }
-/*
- * 读取一个任务下的某个测量点某数据
- */
-void GetNorData(TS ts,INT8U taskid,INT8U *tsa)
-{
-	;
-}
 ///*
 // * 读取抄表数据，读取某个测量点某任务某天一整块数据，放在内存里，根据需要提取数据,并根据csd
 // */
