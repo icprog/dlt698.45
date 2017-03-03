@@ -187,5 +187,6 @@ extern INT8U getSelector(RSD select, INT8U selectype, CSD_ARRAYTYPE csds, INT8U 
 
 extern INT8U ReadTaskInfo(INT8U taskid,TASKSET_INFO *tasknor_info);
 extern void getTaskFileName(INT8U taskid,TS ts,char *fname);
-
+extern INT8U datafile_write(char *FileName, void *source, int size, int offset);
+extern INT8U datafile_read(char *FileName, void *source, int size, int offset);
 #endif /* ACCESS_H_ */
