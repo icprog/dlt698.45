@@ -16,8 +16,9 @@
 
 /*
  * 计算某个OI的数据长度，指针对抄表数据 todo 先写个简单的，以后完善 而且没有考虑费率
+ * attr_flg:0 全部属性 非0 一个属性  例如20000200 则为全部属性 20000201则为一个属性
  */
-INT16U CalcOIDataLen(OI_698 oi)
+INT16U CalcOIDataLen(OI_698 oi,INT8U attr_flg)
 {
 	FILE *fp;
 	char ln[60];
@@ -26,9 +27,14 @@ INT16U CalcOIDataLen(OI_698 oi)
 	INT8U ic_type = 1;
 
 	if(oi>=0x0000 && oi<0x2000)
-		return 27;//长度4+1个字节数据类型
-	if(oi == 2140 || oi == 2141)//struct 类型要在原长度基础上+3
-		return (11+3)*(MET_RATE+1)+1+1;
+	{
+		if(attr_flg == 0)
+			return 27;//长度4+1个字节数据类型
+		else
+			return 4;
+	}
+//	if(oi == 2140 || oi == 2141)//struct 类型要在原长度基础上+3
+//		return (11+3)*(MET_RATE+1)+1+1;
 	fp = fopen("/nor/config/OI_TYPE.cfg","r");
 	if(fp == NULL)
 	{
@@ -63,10 +69,16 @@ INT16U CalcOIDataLen(OI_698 oi)
 		{
 		case 1:
 		case 2:
-			oi_len = oi_len*(MET_RATE+1)+1+1;//+类型+个数
+			if(attr_flg == 0)
+				oi_len = oi_len*(MET_RATE+1)+1+1;//+类型+个数
+			else
+				oi_len = oi_len+1;//+类型+个数
 			break;
 		case 3:
-			oi_len = oi_len*3+1+1;//三相
+			if(attr_flg == 0)
+				oi_len = oi_len*3+1+1;//三相
+			else
+				oi_len = oi_len+1;//+类型+个数
 			break;
 		default:
 			break;
@@ -183,7 +195,7 @@ void CreateSaveHead(char *fname,CSD_ARRAYTYPE csds,INT16U *headlen,INT16U *unitl
 			headbuf[pindex++] = csds.csd[i].csd.oad.attflg;
 			headbuf[pindex++] = csds.csd[i].csd.oad.attrindex;
 			fprintf(stderr,"\n-0--csds.csd[i].csd.oad.OI = %04x\n",csds.csd[i].csd.oad.OI);
-			len_tmp = CalcOIDataLen(csds.csd[i].csd.oad.OI);//多一个数据类型
+			len_tmp = CalcOIDataLen(csds.csd[i].csd.oad.OI,csds.csd[i].csd.oad.attrindex);//多一个数据类型
 			fprintf(stderr,"\nlen_tmp=%d\n",len_tmp);
 			headbuf[pindex++] = (len_tmp & 0xff00) >> 8;
 			headbuf[pindex++] = len_tmp & 0x00ff;
@@ -216,7 +228,7 @@ void CreateSaveHead(char *fname,CSD_ARRAYTYPE csds,INT16U *headlen,INT16U *unitl
 				headbuf[pindex++] = (csds.csd[i].csd.road.oads[j].OI & 0xff00) >> 8;
 				headbuf[pindex++] = csds.csd[i].csd.road.oads[j].attflg;
 				headbuf[pindex++] = csds.csd[i].csd.road.oads[j].attrindex;
-				len_tmp = CalcOIDataLen(csds.csd[i].csd.road.oads[j].OI);//多一个数据类型
+				len_tmp = CalcOIDataLen(csds.csd[i].csd.road.oads[j].OI,csds.csd[i].csd.oad.attrindex);//多一个数据类型
 				fprintf(stderr,"\n--2-len_tmp=%d\n",len_tmp);
 				headbuf[pindex++] = (len_tmp & 0xff00) >> 8;
 				headbuf[pindex++] = len_tmp & 0x00ff;

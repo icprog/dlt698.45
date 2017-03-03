@@ -831,7 +831,7 @@ INT16U CalcFreq(TI runti,CLASS_6015 class6015,INT16U startmin,INT16U endmin)//�
 	INT16U rate = 0;//倍率
 	INT16U sec_unit = 0;
 	INT8U  inval_flg = 0;
-	if(class6015.cjtype == 3)// || class6015.cjtype == 0)//按时标间隔采集
+	if(class6015.cjtype == 3 || class6015.cjtype == 0)//按时标间隔采集
 	{
 		if(endmin <= startmin || runti.units > 2)
 			return 0;//无效设置
