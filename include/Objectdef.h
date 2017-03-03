@@ -318,8 +318,8 @@ typedef struct
 
 typedef struct{
 	OAD		oad;
-	RCSD	rcsd;
-	INT8U 	selectType;//选择类型
+	CSD_ARRAYTYPE csds;	//RCSD csd数组
+	INT8U 	selectType;// rsd 选择类型
 	RSD		rsd;
 }RecordData;
 

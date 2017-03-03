@@ -20,9 +20,6 @@ extern int FrameHead(CSINFO *csinfo,INT8U *buf);
 extern void FrameTail(INT8U *buf,int index,int hcsi);
 extern INT8U Get_Event(OAD oad,INT8U eventno,INT8U** Getbuf,int *Getlen,ProgramInfo* prginfo_event);
 extern INT8U Getevent_Record_Selector(RESULT_RECORD *record_para,ProgramInfo* prginfo_event);
-extern void getoad(INT8U *data,OAD *oad);
-extern int get_BasicRCSD(INT8U *source,CSD_ARRAYTYPE *csds);
-extern int get_BasicRSD(INT8U *source,INT8U *dest,INT8U *type);
 extern INT16S composeSecurityResponse(INT8U* SendApdu,INT16U Length);
 extern int comfd;
 extern INT8U TmpDataBuf[MAXSIZ_FAM];
@@ -570,38 +567,38 @@ int getSel1_coll(RESULT_RECORD *record)
 //	data[index++] = 1;		//1条记录     [1] SEQUENCE OF A-RecordRow
 	switch(record->select.selec1.oad.OI)
 	{
-			case 0x6001:
-			{
-				fprintf(stderr,"\n  record for 6001\n");
-				if(record->select.selec1.data.type == dtlongunsigned) {
-					taskid = record->select.selec1.data.data[0];
-				}
-				fprintf(stderr,"\n  record for 6001  - taskid=%d\n",taskid);
-				record->data[index++] = 1;		//1条记录     [1] SEQUENCE OF A-RecordRow
-				index += Get_6000(taskid,&record->data[index]);
-				if(index==0) {	//0条记录     [1] SEQUENCE OF A-RecordRow
-					record->data[0] = 0;
-				}
-				record->datalen = index;
-				fprintf(stderr,"\nrecord->datalen = %d",record->datalen);
-				break;
+		case 0x6001:
+		{
+			fprintf(stderr,"\n  record for 6001\n");
+			if(record->select.selec1.data.type == dtlongunsigned) {
+				taskid = record->select.selec1.data.data[0];
 			}
-			case 0x6035:
-			{
-				if(record->select.selec1.data.type == dtunsigned) {
-					taskid = record->select.selec1.data.data[0];
-				}
-				fprintf(stderr,"taskid=%d\n",taskid);
-				record->data[index++] = 1;		//1条记录     [1] SEQUENCE OF A-RecordRow
-				Get_6035(taskid,&record->data[index]);
-				if(index==0) {	//0条记录     [1] SEQUENCE OF A-RecordRow
-					record->data[0] = 0;
-				}
-				record->datalen = index;
-				break;
+			fprintf(stderr,"\n  record for 6001  - taskid=%d\n",taskid);
+			record->data[index++] = 1;		//1条记录     [1] SEQUENCE OF A-RecordRow
+			index += Get_6000(taskid,&record->data[index]);
+			if(index==0) {	//0条记录     [1] SEQUENCE OF A-RecordRow
+				record->data[0] = 0;
 			}
-			default:
-				fprintf(stderr,"\nrecord switch default!");
+			record->datalen = index;
+			fprintf(stderr,"\nrecord->datalen = %d",record->datalen);
+			break;
+		}
+		case 0x6035:
+		{
+			if(record->select.selec1.data.type == dtunsigned) {
+				taskid = record->select.selec1.data.data[0];
+			}
+			fprintf(stderr,"taskid=%d\n",taskid);
+			record->data[index++] = 1;		//1条记录     [1] SEQUENCE OF A-RecordRow
+			Get_6035(taskid,&record->data[index]);
+			if(index==0) {	//0条记录     [1] SEQUENCE OF A-RecordRow
+				record->data[0] = 0;
+			}
+			record->datalen = index;
+			break;
+		}
+		default:
+			fprintf(stderr,"\nrecord switch default!");
 	}
 	return ret;
 }
@@ -712,10 +709,10 @@ int getRequestRecord(OAD oad,INT8U *data,CSINFO *csinfo,INT8U *sendbuf)
 	record.data = TmpDataBuf;
 	record.datalen = 0;
 	fprintf(stderr,"\nGetRequestRecord   oi=%x  %02x  %02x",record.oad.OI,record.oad.attflg,record.oad.attrindex);
-	index = get_BasicRSD(&data[index],(INT8U *)&record.select,&record.selectType);
+	index = get_BasicRSD(0,&data[index],(INT8U *)&record.select,&record.selectType);
 	fprintf(stderr,"\nRSD Select%d     data[%d] = %02x",record.selectType,index,data[index]);
 
-	index +=get_BasicRCSD(&data[index],&record.rcsd.csds);
+	index +=get_BasicRCSD(0,&data[index],&record.rcsd.csds);
 
 
 	//record.rcsd.csds.csd[i].csd.oad.OI

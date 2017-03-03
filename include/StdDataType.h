@@ -293,6 +293,12 @@ typedef struct
 
 typedef struct
 {
+	INT8U 	DAR;		//返回 DAR结果
+	int		datalen;	//返回 数据帧长度字节
+}Action_result;
+
+typedef struct
+{
 	INT8U data;
 }PIID_ACD;
 typedef struct
