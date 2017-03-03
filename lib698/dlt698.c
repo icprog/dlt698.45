@@ -808,7 +808,7 @@ INT16S fillGetRequestAPDU(INT8U* sendBuf,CLASS_6015 obj6015,INT8U requestType)
 		}
 	}
 
-	if(obj6015.cjtype == TYPE_LAST)
+	if((obj6015.cjtype == TYPE_LAST)||(obj6015.cjtype == TYPE_FREEZE))
 	{
 
 		for(csdIndex = 0;csdIndex < obj6015.csds.num;csdIndex++)
@@ -880,7 +880,7 @@ INT8S getRequestType(INT8U cjtype,INT8U csdcount)
 			}
 
 		case TYPE_FREEZE:
-
+			requestType = GET_REQUEST_RECORD;
 			break;
 		case TYPE_INTERVAL:
 			break;
@@ -898,9 +898,12 @@ INT16S composeProtocol698_GetRequest(INT8U* 	sendBuf,CLASS_6015 obj6015,TSA mete
 	csinfo.prm = 1; 	//服务器发出
 	csinfo.funcode = 3; //链路管理
 	csinfo.sa_type = 0 ;//单地址
-	csinfo.sa_length = meterAddr.addr[0]&0x0f;//sizeof(addr)-1;//服务器地址长度
+	fprintf(stderr," \n\n composeProtocol698_GetRequest  meterAddr : %02x  %02x  %02x%02x%02x%02x%02x%02x%02x\n\n",
+			meterAddr.addr[0],meterAddr.addr[1],meterAddr.addr[2],meterAddr.addr[3],meterAddr.addr[4],
+			meterAddr.addr[5],meterAddr.addr[6],meterAddr.addr[7],meterAddr.addr[8]);
+	csinfo.sa_length = (meterAddr.addr[1]&0x0f) + 1;//sizeof(addr)-1;//服务器地址长度
 
-	memcpy(csinfo.sa,&meterAddr.addr[1],csinfo.sa_length );//服务器地址
+	memcpy(csinfo.sa,&meterAddr.addr[2],csinfo.sa_length);//服务器地址
 	csinfo.ca = 0x02;
 
 	fprintf(stderr,"sa_length = %d \n",csinfo.sa_length);
@@ -926,31 +929,98 @@ INT16S composeProtocol698_GetRequest(INT8U* 	sendBuf,CLASS_6015 obj6015,TSA mete
 	return (sendLen + 3);			//3: cs cs 16
 
 }
-#if TESTDEF1
-int analyzeProtocol698(INT8U* Rcvbuf)
+INT16U getFECount(INT8U* recvBuf, const INT16U recvLen)//得到待解析报文中前导符FE的个数
 {
+	INT16U i, count=0;
+	for (i=0; i<recvLen; i++)
+	{
+		if (recvBuf[i] == 0x68)
+		{
+			count = i;
+			break;
+		}
+	}
+	return count;
+}
+/*
+ * 返回值 getType : GET_REQUEST_NORMAL   GET_REQUEST_NORMAL_LIST GET_REQUEST_RECORD GET_REQUEST_RECORD_LIST
+ * resultCount ： OAD  或者 ROAD数量
+ * recvLen：接受报文字节数 所有报文+ FEFE
+ * apduDataStartIndex： 返回数据开始位置
+ * dataLen： 数据部分长度
+ * */
+//解析抄表回复报文
+INT8U analyzeProtocol698(INT8U* Rcvbuf,INT8U* resultCount,INT16S recvLen,INT8U* apduDataStartIndex,INT16S* dataLen)
+{
+	fprintf(stderr,"\nanalyzeProtocol698---\n");
+	INT16U count = getFECount(Rcvbuf, recvLen);//得到待解析报文中前导符FE的个数
+	Rcvbuf += count;
+	INT8U startIndex = count;
+	*dataLen = recvLen - count;
+	INT8U getType = 0;
 	CSINFO csinfo={};
 	int hcsok = 0 ,fcsok = 0;
 	INT8U *apdu= NULL;
 
 	hcsok = CheckHead( Rcvbuf ,&csinfo);
 	fcsok = CheckTail( Rcvbuf ,csinfo.frame_length);
+	fprintf(stderr,"\n hcsok = %d fcsok = %d\n",hcsok,fcsok);
 	if ((hcsok==1) && (fcsok==1))
 	{
 		fprintf(stderr,"\nsa_length=%d\n",csinfo.sa_length);
 		apdu = &Rcvbuf[csinfo.sa_length+8];
-		if (csinfo.dir==1 && csinfo.prm == 1)	/*服务器对客户机请求的响应	（电表应答）*/
+		startIndex += csinfo.sa_length+8;
+		*dataLen = *dataLen - (csinfo.sa_length+8);
+		fprintf(stderr,"\n apdu: %02x %02x %02x %02x %02x %02x",apdu[0],apdu[1],apdu[2],apdu[3],apdu[4],apdu[5]);
+
+		if(apdu[0] == GET_REQUEST_RESPONSE)
 		{
-			fprintf(stderr,"\n服务器对客户机请求的响应	（电表应答）");
-			//MeterEcho();
-		}else
-		{
-			fprintf(stderr,"\n控制码解析错误(传输方向与启动位错误)");
-		}
-	}
-	return 1;
-}
+			getType = apdu[1];
+			if((getType == GET_REQUEST_NORMAL)||(getType == GET_REQUEST_RECORD))
+			{
+				*resultCount = 1;
+				startIndex += 3;
+				*dataLen = *dataLen - (3+3);
+			}
+			if((getType == GET_REQUEST_NORMAL_LIST)||(getType == GET_REQUEST_RECORD_LIST))
+			{
+				*resultCount = apdu[3];
+				startIndex += 4;
+				*dataLen = *dataLen - (4+3);
+			}
+			*apduDataStartIndex = startIndex;
+#if 0
+			switch(apdu[1])
+			{
+				case GET_REQUEST_NORMAL:
+					dealResponse_RequestNormal(oad,data,csinfo,sendbuf);
+					break;
+				case GET_REQUEST_NORMAL_LIST:
+					/*重新定位数据指针地址*/
+					data = &apdu[3];
+					dealResponse_RequestNormalList(data,csinfo,sendbuf);
+					break;
+				case GET_REQUEST_RECORD:
+					dealResponse_RequestRecord(oad,data,csinfo,sendbuf);
+					break;
+				case GET_REQUEST_RECORD_LIST:
+					break;
+				case GET_REQUEST_RECORD_NEXT:
+					break;
+
+			}
 #endif
+		}
+		else
+		{
+			fprintf(stderr,"\nanalyzeProtocol698 校验错误");
+		}
+
+
+	}
+	return getType;
+}
+
 int doReleaseConnect(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
 {
 	int apduplace =0,index=0, hcsi=0;
