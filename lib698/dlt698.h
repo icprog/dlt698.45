@@ -48,14 +48,20 @@ extern int fill_RCSD(INT8U type,INT8U *data,CSD_ARRAYTYPE csds);
 extern int getArray(INT8U *source,INT8U *dest);	//1
 extern int getStructure(INT8U *source,INT8U *dest);	//2
 extern int getBool(INT8U *source,INT8U *dest);		//3
+extern int getDouble(INT8U *source,INT8U *dest);	//5 6
+extern int getOctetstring(INT8U type,INT8U *source,INT8U *tsa);   //9
+extern int getVisibleString(INT8U *source,INT8U *dest);		//0x0A
 extern int getUnsigned(INT8U *source,INT8U *dest);	//0x11
 extern int getLongUnsigned(INT8U *source,INT8U *dest);//0x12
+extern int getEnum(INT8U type,INT8U *source,INT8U *enumvalue);	//0x16
 extern int getDateTimeS(INT8U type,INT8U *source,INT8U *dest);//0x1C
+extern int getOI(INT8U type,INT8U *source,OI_698 oi);		//0x50
 extern int getOAD(INT8U type,INT8U *source,OAD *oad);		//0x51
 extern int getROAD(INT8U *source,ROAD *dest);		//0x52
 extern int getTI(INT8U type,INT8U *source,TI *ti);		//0x54
 extern int get_BasicRSD(INT8U type,INT8U *source,INT8U *dest,INT8U *seletype);	//0x5A
-extern int getMS(INT8U *source,INT8U *dest);		//0x5C
+extern int getCSD(INT8U type,INT8U *source,MY_CSD* csd);		//0X5B
+extern int getMS(INT8U type,INT8U *source,INT8U *dest);		//0x5C
 extern int get_BasicRCSD(INT8U type,INT8U *source,CSD_ARRAYTYPE *csds);	//0x60
 extern int get_Data(INT8U *source,INT8U *dest);
 /*----------------------具体OI类组帧函数----------------------*/

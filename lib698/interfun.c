@@ -27,18 +27,21 @@ int create_array(INT8U *data,INT8U numm)
 	data[1] = numm;
 	return 2;
 }
+
 int create_struct(INT8U *data,INT8U numm)
 {
 	data[0] = dtstructure;
 	data[1] = numm;
 	return 2;
 }
+
 int file_bool(INT8U *data,INT8U value)
 {
 	data[0] = dtbool;
 	data[1] = value;
 	return 2;
 }
+
 int fill_bit_string8(INT8U *data,INT8U bits)
 {
 	//TODO : 默认8bit ，不符合A-XDR规范
@@ -119,7 +122,7 @@ int fill_date_time_s(INT8U *data,DateTimeBCD *time)
 		data[0] = dtdatetimes;
 		time->year.data = time->year.data >>8 | time->year.data<<8;
 		memcpy(&data[1],time,sizeof(DateTimeBCD));
-		return (sizeof(DateTimeBCD)+1);
+		return (7+1);
 	}
 }
 
@@ -218,7 +221,8 @@ int getArray(INT8U *source,INT8U *dest)		//1
 
 int getStructure(INT8U *source,INT8U *dest)		//2
 {
-	dest[0] = source[1];
+	if (dest!=NULL)
+		dest[0] = source[1];
 	return 2;//source[0] 0x2 (stru type)   source[1] =num
 }
 
@@ -226,6 +230,39 @@ int getBool(INT8U *source,INT8U *dest)		//3
 {
 	dest[0] = source[1];
 	return 2;//source[0] 0x3 (bool type)   source[1] =value
+}
+
+int getDouble(INT8U *source,INT8U *dest)	//5  and 6
+{
+	dest[0] = source[4];
+	dest[1] = source[3];
+	dest[2] = source[2];
+	dest[3] = source[1];
+	return 4;
+}
+
+/*
+ *  type ==1 存在类型字节
+ */
+int getOctetstring(INT8U type,INT8U *source,INT8U *tsa)   //9
+{
+	if (type==1 || type==0)
+	{
+		INT8U num = source[type];//字节数
+		memcpy(tsa, &source[type],num+1);
+		return (num + type + 1);	// 1:长度字节
+	}
+	return 0;
+}
+
+int getVisibleString(INT8U *source,INT8U *dest)	//0x10
+{
+	int	len=VISIBLE_STRING_LEN;
+	if(source[0]<VISIBLE_STRING_LEN) {
+		len = source[0]+1;			// source[0]表示类型，source[1]表示长度，字符串长度加 长度字节本身
+	}else fprintf(stderr,"VisibleString over %d\n",VISIBLE_STRING_LEN);
+	memcpy(&dest[0],&source[1],len);
+	return len+1;
 }
 
 int getUnsigned(INT8U *source,INT8U *dest)	//0x11
@@ -241,47 +278,53 @@ int getLongUnsigned(INT8U *source,INT8U *dest)	//0x12
 	return 3;
 }
 
+int getEnum(INT8U type,INT8U *source,INT8U *enumvalue)	//16
+{
+	if (type==1 || type==0)
+	{
+		*enumvalue = source[type];
+		return (1 + type);
+	}
+	return 0;
+}
+
 /*
  * type: =1 包含类型描述字节
  * 		　=0 不包含类型描述字节
  */
 int getDateTimeS(INT8U type,INT8U *source,INT8U *dest)		//0x1C
 {
-	if(type==1) {
-		dest[1] = source[1];//年
-		dest[0] = source[2];
-		dest[2] = source[3];//月
-		dest[3] = source[4];//日
-		dest[4] = source[5];//时
-		dest[5] = source[6];//分
-		dest[6] = source[7];//秒
-		return (sizeof(DateTimeBCD)+1);
-	}else {
-		dest[1] = source[0];//年
-		dest[0] = source[1];
-		dest[2] = source[2];//月
-		dest[3] = source[3];//日
-		dest[4] = source[4];//时
-		dest[5] = source[5];//分
-		dest[6] = source[6];//秒
-		return sizeof(DateTimeBCD);
+	if((type == 1) || (type == 0)) {
+		dest[1] = source[type+1];//年
+		dest[0] = source[type+2];
+		dest[2] = source[type+3];//月
+		dest[3] = source[type+4];//日
+		dest[4] = source[type+5];//时
+		dest[5] = source[type+6];//分
+		dest[6] = source[type+7];//秒
+		return (7+type);
 	}
+	return 0;
+}
+
+int getOI(INT8U type,INT8U *source,OI_698 oi)		//0x50
+{
+	if((type == 1) || (type == 0)) {
+		oi = source[type];
+		oi = (oi<<8) + source[type+1];
+		return (type+2);
+	}
+	return 0;
 }
 
 int getOAD(INT8U type,INT8U *source,OAD *oad)		//0x51
 {
-	if(type==1) {
-		oad->OI = source[1];
-		oad->OI = (oad->OI <<8) | source[2];
-		oad->attflg = source[3];
-		oad->attrindex = source[4];
-		return (sizeof(OAD)+1);
-	}else {
-		oad->OI = source[0];
-		oad->OI = (oad->OI <<8) | source[1];
-		oad->attflg = source[2];
-		oad->attrindex = source[3];
-		return (sizeof(OAD));
+	if((type == 1) || (type == 0)) {
+		oad->OI = source[type];
+		oad->OI = (oad->OI <<8) | source[type+1];
+		oad->attflg = source[type+2];
+		oad->attrindex = source[type+3];
+		return (4+1);
 	}
 }
 
@@ -314,19 +357,13 @@ int getROAD(INT8U *source,ROAD *dest)		//0x52
 
 int getTI(INT8U type,INT8U *source,TI *ti)	//0x54
 {
-	if(type==1) {
-		ti->units = source[1];//单位
-		ti->interval = source[2];	//long unsigned数值
-		ti->interval = (ti->interval <<8) | source[3];//
-		return (sizeof(TI)+1);
-	}else {
-		ti->units = source[0];//单位
-		ti->interval = source[1];	//long unsigned数值
-		ti->interval = (ti->interval <<8) | source[2];//
-		return (sizeof(TI));
+	if((type==1) || (type==0)) {
+		ti->units = source[type];//单位
+		ti->interval = source[type+1];	//long unsigned数值
+		ti->interval = (ti->interval <<8) | source[type+2];//
+		return (3+type);    //不能取sizeof(TI) 设计结构体对齐方式，返回值要处理规约数据内容
 	}
 }
-
 
 int get_Data(INT8U *source,INT8U *dest)
 {
@@ -382,17 +419,15 @@ int get_BasicRSD(INT8U type,INT8U *source,INT8U *dest,INT8U *seletype)		//0x5A
 			break;
 		case 2:
 			memset(&select2,0,sizeof(select2));
-			select2.oad.OI= (source[index++]<<8) | source[index++];
-			select2.oad.attflg = source[index++];
-			select2.oad.attrindex = source[index++];
+			getOAD(0,&source[index],&select2.oad);
 			select2.data_from.type = 0xAA;
-			get_BasicUnit(&source[index++]+source_sumindex,&source_index,(INT8U *)&select2.data_from,&dest_index);
+//			get_BasicUnit(&source[index++]+source_sumindex,&source_index,(INT8U *)&select2.data_from,&dest_index);
 			source_sumindex += source_index;
 			select2.data_to.type = 0xAA;
-			get_BasicUnit(&source[index++]+source_sumindex,&source_index,(INT8U *)&select2.data_to,&dest_index);
+//			get_BasicUnit(&source[index++]+source_sumindex,&source_index,(INT8U *)&select2.data_to,&dest_index);
 			source_sumindex += source_index;
 			select2.data_jiange.type = 0xAA;
-			get_BasicUnit(&source[index++]+source_sumindex,&source_index,(INT8U *)&select2.data_jiange,&dest_index);
+//			get_BasicUnit(&source[index++]+source_sumindex,&source_index,(INT8U *)&select2.data_jiange,&dest_index);
 			source_sumindex += source_index;
 			memcpy(dest,&select2,sizeof(select2));
 			index += source_sumindex;// + 4;
@@ -401,11 +436,9 @@ int get_BasicRSD(INT8U type,INT8U *source,INT8U *dest,INT8U *seletype)		//0x5A
 			break;
 		case 4:
 		case 5:
-			index = getDateTimeS(0,&source[index],(INT8U *)&select4.collect_star);
+			index += getDateTimeS(0,&source[index],(INT8U *)&select4.collect_star);
 			fprintf(stderr,"\n--- %02x %02x --",source[1+index],source[1+index+1]);
-			source[index++] = 0x5c;//报文中没有MS的类型字节，自己添加一个
-			get_BasicUnit(&source[index],&source_index,(INT8U *)&select4.meters,&dest_index);
-
+			index += getMS(0,&source[index],(INT8U *)&select4.meters);
 			source_sumindex += source_index;
 			index += source_sumindex;
 			memcpy(dest,&select4,sizeof(select4));
@@ -413,11 +446,11 @@ int get_BasicRSD(INT8U type,INT8U *source,INT8U *dest,INT8U *seletype)		//0x5A
 		case 6:
 		case 7:
 		case 8:
-			index++;	//type
+//			index++;	//type
 			index += getDateTimeS(0,&source[index],(INT8U *)&select6.collect_star);
 			index += getDateTimeS(0,&source[index],(INT8U *)&select6.collect_finish);
 			index += getTI(0,&source[index],&select6.ti);
-			index += getMS(&source[index],&select6.meters.mstype);
+			index += getMS(0,&source[index],&select6.meters.mstype);
 			memcpy(dest,&select6,sizeof(select6));
 			break;
 		case 9:
@@ -426,26 +459,57 @@ int get_BasicRSD(INT8U type,INT8U *source,INT8U *dest,INT8U *seletype)		//0x5A
 			index = 2;
 			break;
 		case 10:
-			select10.recordn = source[index];
-			get_BasicUnit(&source[index],&source_index,(INT8U *)&select10.meters.mstype,&dest_index);
-			index = source_index + sizeof(DateTimeBCD)+ sizeof(DateTimeBCD)+ sizeof(TI);
+			index += getUnsigned(&source[index],(INT8U *)&select10.recordn);
+			index += getMS(1,&source[index],&select10.meters.mstype);
 			memcpy(dest,&select10,sizeof(select10));
 			break;
 	}
 	return index;
 }
 
-int getMS(INT8U *source,INT8U *dest)		//0x5C
+int getCSD(INT8U type,INT8U *source,MY_CSD* csd)		//0X5B
+{
+	int index = type;//是否存在类型字节
+	if (type==0 || type==1)
+	{
+		csd->type = source[index++];
+		if (csd->type==0)//OAD
+		{
+			getOAD(0,&source[index],&csd->csd.oad);
+			index = index + sizeof(OAD);
+			return index;
+		}else if (csd->type==1)//ROAD
+		{
+			getOAD(0,&source[index],&csd->csd.road.oad);
+			index = index + sizeof(OAD);
+			csd->csd.road.num = source[index++];
+			int k=0;
+			for(k=0;k<csd->csd.road.num;k++)
+			{
+				getOAD(0,&source[index],&csd->csd.road.oads[k]);
+				index = index + 4;
+			}
+			return index;
+		}
+	}
+	return 0;
+}
+int getMS(INT8U type,INT8U *source,INT8U *dest)		//0x5C
 {
 	INT8U choicetype=0;
-	choicetype = source[0];
+	if(type>1) {
+		fprintf(stderr,"MS 类型标识不符 type=%d\n",type);
+		return 0;
+	}
+	choicetype = source[type];//0
 	switch (choicetype)
 	{
 		case 0:
 		case 1:
-			dest[0] = source[0];  //0表示 没有电表  1表示 全部电表
+			dest[0] = source[type];  //0表示 没有电表  1表示 全部电表	//区分MS类型，人工加入一个字节，报文中无此说明
+			dest[1] = source[type];
 			fprintf(stderr,"\n		MS:Choice =%02x ",source[0]);
-			return 1;
+			return 1+type;
 		case 2:
 			break;
 		case 3:
