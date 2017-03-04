@@ -15,6 +15,7 @@
 
 extern ProgramInfo* JProgramInfo;
 extern INT8U poweroffon_state;
+extern MeterPower MeterPowerInfo[POWEROFFON_NUM];
 #ifdef TESTDEF
 INT8U flag07_0CF177[4] =  {0x00,0xff,0x00,0x00};//当前组合有功总电能示值
 INT8U flag07_0CF33[4] =   {0x00,0xff,0x01,0x00};//当前正向有功总电能示值
@@ -26,7 +27,11 @@ INT8U flag07_0C2XXWG[4] =  {0x00,0xff,0x60,0x00};//第二象限无功
 INT8U flag07_0C3XXWG[4] =  {0x00,0xff,0x70,0x00};//第三象限无功
 INT8U flag07_0C4XXWG[4] =  {0x00,0xff,0x80,0x00};//第四象限无功
 INT8U flag07_0CF25_1[4] = {0x00,0xff,0x01,0x02};//当前电压
+INT8U flag07_0CF25_1_A[4] = {0x00,0x01,0x01,0x02};//当前A相电压
 INT8U flag07_0CF25_2[4] = {0x00,0xff,0x02,0x02};//当前电流
+INT8U flag07_0CF25_2_A[4] = {0x00,0x01,0x02,0x02};//当前A相电流
+INT8U flag07_0CF25_3[4] = {0x00,0xff,0x03,0x02};//当前有功功率
+INT8U flag07_0CF25_4[4] = {0x00,0xff,0x04,0x02};//当前无功功率
 INT8U freezeflag07_1[4] = {0x01,0x00,0x06,0x05};//上一次日冻结时标
 INT8U freezeflag07_2[4] = {0x01,0x01,0x06,0x05};//上一次日冻结正向有功总电能示值
 INT8U freezeflag07_3[4] = {0x01,0x02,0x06,0x05};//上一次日冻结反向有功总电能示值
@@ -272,33 +277,6 @@ void print6015(CLASS_6015 class6015) {
 					testArray[0].flag07.dinum = 3;
 				}
 
-		if (class6015.csds.csd[i].type == 0) {
-			fprintf(stderr,"\n 2-----class6015.csds.csd[i].csd.oad = %04x",class6015.csds.csd[i].csd.oad.OI);
-			if(class6015.csds.csd[i].csd.oad.OI== 0x0010)
-			{
-				memcpy(&testArray[1].flag698.oad, &class6015.csds.csd[i].csd.oad,sizeof(OAD));
-				memcpy(testArray[1].flag07.DI_1[0], flag07_0CF33, 4);
-				testArray[1].flag07.dinum = 1;
-			}
-			if(class6015.csds.csd[i].csd.oad.OI== 0x2000)
-			{
-				memcpy(&testArray[2].flag698.oad, &class6015.csds.csd[i].csd.oad,sizeof(OAD));
-				memcpy(testArray[2].flag07.DI_1[0], flag07_0CF25_1, 4);
-				testArray[2].flag07.dinum = 1;
-			}
-			if(class6015.csds.csd[i].csd.oad.OI== 0x2001)
-			{
-				memcpy(&testArray[3].flag698.oad, &class6015.csds.csd[i].csd.oad,sizeof(OAD));
-				memcpy(testArray[3].flag07.DI_1[0], flag07_0CF25_2, 4);
-				testArray[3].flag07.dinum = 1;
-			}
-#if 0
-			INT8U flag07_date[4] = { 0x01, 0x01, 0x00, 0x04 };//电能表日历时钟-日期
-			memcpy(testArray[0].flag07.DI_1[3], flag07_date, 4);
-			INT8U flag07_time[4] = { 0x02, 0x01, 0x00, 0x04 };//电能表日历时钟-时间
-			memcpy(testArray[0].flag07.DI_1[4], flag07_time, 4);
-#endif
-		}
 
 #endif
 
@@ -405,7 +383,7 @@ void printbuff(const char* prefix, INT8U* buff, INT32U len, const char* format,
  * 输出；*str：接收缓冲区
  * 返回：>0：完整报文；=0:接收长度为0；-1：乱码，无完整报文
  */
-INT16S ReceDataFrom485(INT32S fd, INT16U delayms, INT8U *str) {
+INT16S ReceDataFrom485(METER_PROTOCOL meterPro,INT32S fd, INT16U delayms, INT8U *str) {
 	INT8U TmprevBuf[256];	//接收报文临时缓冲区
 	INT8U prtstr[50];
 	INT16U len_Total = 0, len, rec_step, rec_head, rec_tail, DataLen, i, j;
@@ -415,7 +393,7 @@ INT16S ReceDataFrom485(INT32S fd, INT16U delayms, INT8U *str) {
 
 	memset(TmprevBuf, 0, 256);
 	rec_head = rec_tail = rec_step = DataLen = 0;
-	fprintf(stderr, "delayms=%d, 111111111111111\n", delayms);
+	fprintf(stderr, "\n ReceDataFrom485 delayms=%d\n", delayms);
 	usleep(delayms * 1000);
 
 	for (j = 0; j < 15; j++) {
@@ -451,20 +429,59 @@ INT16S ReceDataFrom485(INT32S fd, INT16U delayms, INT8U *str) {
 			}
 			break;
 		case 1:
-			if ((rec_head - rec_tail) >= 10) {
-				if (str[rec_tail] == 0x68 && str[rec_tail + 7] == 0x68) {
-					DataLen = str[rec_tail + 9];	//获取报文数据块长度
-					rec_step = 2;
-					break;
-				} else
-					rec_tail++;
+			{
+				if(meterPro == DLT_645_07)
+				{
+					if ((rec_head - rec_tail) >= 10)
+					{
+						if (str[rec_tail] == 0x68 && str[rec_tail + 7] == 0x68)
+						{
+							DataLen = str[rec_tail + 9];	//获取报文数据块长度
+							rec_step = 2;
+							break;
+						} else
+							rec_tail++;
+					}
+				}
+				if(meterPro == DLT_698)
+				{
+					if ((rec_head - rec_tail) >= 3)
+					{
+							if (str[rec_tail] == 0x68)
+							{
+								DataLen = (str[rec_tail + 2]<<8);
+								DataLen += str[rec_tail + 1];	//获取报文数据块长度
+								rec_step = 2;
+								break;
+							} else
+								rec_tail++;
+					}
+				}
 			}
+
+
 			break;
 		case 2:
-			if ((rec_head - rec_tail) >= (DataLen + 2)) {
-				if (str[rec_tail + 9 + DataLen + 2] == 0x16) {
-//					DbPrt1("R:",(char *)str, rec_head, NULL);
-					return rec_head;
+			{
+				if(meterPro == DLT_645_07)
+				{
+					if ((rec_head - rec_tail) >= (DataLen + 2))
+					{
+						if (str[rec_tail + 9 + DataLen + 2] == 0x16) {
+							return rec_head;
+						}
+					}
+				}
+				if(meterPro == DLT_698)
+				{
+					//fprintf(stderr,"\n\n rec_head = %d rec_tail = %d DataLen = %d\n\n",rec_head,rec_tail,DataLen);
+					//fprintf(stderr,"str[rec_tail + DataLen +1] = %02x",str[rec_tail + DataLen +1]);
+					if ((rec_head - rec_tail) >= (DataLen + 1))
+					{
+							if (str[rec_tail + DataLen +1] == 0x16) {
+								return rec_head;
+							}
+					}
 				}
 			}
 			break;
@@ -664,7 +681,7 @@ INT16S request698_07DataSingle(FORMAT07* format07, INT8U* SendBuf,INT16S SendLen
 	memset(&RecvBuff[0], 0, 256);
 	SendDataTo485(comfd4851, SendBuf, SendLen);
 	st6035->sendMsgNum++;
-	RecvLen = ReceDataFrom485(comfd4851, 500, RecvBuff);
+	RecvLen = ReceDataFrom485(DLT_645_07,comfd4851, 500, RecvBuff);
 	if (RecvLen > 0)
 	{
 		buffLen = 0;
@@ -715,7 +732,7 @@ INT16S request698_07Data(INT8U* DI07,INT8U* dataContent,CLASS_6001 meter,CLASS_6
 	fprintf(stderr, "\n meterAddr len = %d addr = %02x%02x%02x%02x%02x%02x%02x%02x",
 			meter.basicinfo.addr.addr[0], meter.basicinfo.addr.addr[1], meter.basicinfo.addr.addr[2],
 			meter.basicinfo.addr.addr[3], meter.basicinfo.addr.addr[4], meter.basicinfo.addr.addr[5],
-			meter.basicinfo.addr.addr[6],meter.basicinfo.addr.addr[7],meter.basicinfo.addr.addr[68]);
+			meter.basicinfo.addr.addr[6],meter.basicinfo.addr.addr[7],meter.basicinfo.addr.addr[8]);
 	fprintf(stderr, "\nDI = %02x%02x%02x%02x\n",DI07[0],DI07[1],DI07[2],DI07[3]);
 
 	Data07.Ctrl = CTRL_Read_07;
@@ -977,22 +994,68 @@ INT8S dealRealTimeRequst(INT8U port485)
 
 	return result;
 }
-INT16U deal6015_698(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8U port485)
+INT16S deal698RequestResponse(INT8U getResponseType,INT16U apdudataLen,INT8U csdNum,INT8U* apdudata,INT8U* dataContent)
+{
+	INT16U dataIndex =0;
+	INT16S retLen = 0;
+#ifdef TESTDEF
+	fprintf(stderr,"deal698RequestResponse Buf[%d] = ",apdudataLen);
+	for(dataIndex = 0;dataIndex < apdudataLen;dataIndex++)
+	{
+		fprintf(stderr,"%02x ",apdudata[dataIndex]);
+		if((dataIndex+1)%20 ==0)
+		{
+			fprintf(stderr,"\n");
+		}
+	}
+#endif
+#if 0
+
+	switch(getResponseType)
+	{
+		case GET_REQUEST_NORMAL_LIST:
+		{
+
+			INT8U oadIndex;
+			for(oadIndex=0;oadIndex < csdNum;oadIndex++)
+			{
+				OI_698 rcvOI = apdudata[dataIndex]<<8 + apdudata[dataIndex+1];
+				INT16U oiDataLen = CalcOIDataLen(rcvOI);
+				fprintf(stderr,"\n rcvOI = %04x  len = %d\n",rcvOI,oiDataLen);
+				if(oiDataLen >0)
+				{
+					if(apdudata[dataIndex+4] == 1)
+					{
+					}
+				}
+				else
+				{
+
+				}
+				INT8U oadDI[4];
+				memcpy(oadDI,&apdudata[dataIndex],4);
+				dataIndex += 4;
+			}
+		}
+		break;
+	}
+#endif
+	return retLen;
+}
+INT16U deal6015_698(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8U* dataContent,INT8U port485)
 {
 	dealRealTimeRequst(port485);
-	fprintf(stderr, "\n deal6015_698  meter = %d", to6001.sernum);
-	INT16U retLen = 0;
+	fprintf(stderr, "\n deal6015_698-------------------  meter = %d\n", to6001.sernum);
+	INT8U getResponseType = 0;
+	INT16S retLen = 0;
 	INT16S sendLen = 0;
 	INT16S recvLen = 0;
 	INT8U subindex = 0;
 	INT8U sendbuff[BUFFSIZE];
 	INT8U recvbuff[BUFFSIZE];
+
 	memset(sendbuff, 0, BUFFSIZE);
-#ifdef TESTDEF
-	to6001.basicinfo.addr.addr[0] = 6;
-	INT8U fakeAddr[6] = {0x11,0x11,0x11,0x11,0x11,0x11};
-	memcpy(&to6001.basicinfo.addr.addr[1],fakeAddr,6);
-#endif
+
 	sendLen = composeProtocol698_GetRequest(sendbuff, st6015, to6001.basicinfo.addr);
 	if(sendLen < 0)
 	{
@@ -1006,16 +1069,27 @@ INT16U deal6015_698(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8
 		memset(recvbuff, 0, BUFFSIZE);
 		SendDataTo485(comfd4851, sendbuff, sendLen);
 		st6035->sendMsgNum++;
-		recvLen = ReceDataFrom485(comfd4851, 500, recvbuff);
+		recvLen = ReceDataFrom485(DLT_698,comfd4851, 500, recvbuff);
+		fprintf(stderr,"\n\n recvLen = %d \n",recvLen);
 		if(recvLen > 0)
 		{
 			st6035->rcvMsgNum++;
-		//	recsta = analyzeProtocol698(format07, RecvBuff, RecvLen);
-		}
+			INT8U csdNum = 0;
+			INT16S dataLen = recvLen;
+			INT8U apduDataStartIndex = 0;
+			getResponseType = analyzeProtocol698(recvbuff,&csdNum,recvLen,&apduDataStartIndex,&dataLen);
+			fprintf(stderr,"\n getResponseType = %d  csdNum = %d dataLen = %d \n",getResponseType,csdNum,dataLen);
+			if(getResponseType > 0)
+			{
+				deal698RequestResponse(getResponseType,dataLen,csdNum,&recvbuff[apduDataStartIndex],dataContent);
+				break;
+			}
 
+		}
 		subindex++;
 	}
 
+	fprintf(stderr, "\n deal6015_698-------------------  retLen = %d\n", retLen);
 	return retLen;
 }
 /*
@@ -1116,7 +1190,7 @@ INT16U deal6015_singlemeter(CLASS_6015 st6015, CLASS_6001 obj6001,CLASS_6035* st
 		ret = deal6015_07(st6015, obj6001,st6035,dataContent,port485);
 	break;
 	default:
-		ret = deal6015_698(st6015,obj6001,st6035,port485);
+		ret = deal6015_698(st6015,obj6001,st6035,dataContent,port485);
 #else
 	case DLT_645_07:
 	case DLT_698:
@@ -1533,13 +1607,13 @@ INT8U init6013ListFrom6012File() {
 void read485_thread(void* i485port) {
 	INT8U port = *(INT8U*) i485port;
 	fprintf(stderr, "\n port = %d", port);
-
+#ifdef TESTDEF1
 	//上电先抄读停上电事件
 	if(poweroffon_state == 1)
 	{
-		//readMeterPowerInfo(port);
+		readMeterPowerInfo(port);
 	}
-
+#endif
 	comfd4851 = -1;
 	INT8U ret = 0;
 	INT16S tastIndexIndex = -1;
@@ -1661,6 +1735,54 @@ void initTestArray()
 {
 	//当前正向有功总电能示值
 	memset(testArray,0,sizeof(CLASS_601F)*20);
+#if 0
+			memcpy(&testArray[1].flag698.oad, &class6015.csds.csd[i].csd.oad,sizeof(OAD));
+			memcpy(testArray[1].flag07.DI_1[0], flag07_0CF33, 4);
+			testArray[1].flag07.dinum = 1;
+		}
+		if(class6015.csds.csd[i].csd.oad.OI== 0x2000)
+		{
+			memcpy(&testArray[2].flag698.oad, &class6015.csds.csd[i].csd.oad,sizeof(OAD));
+			memcpy(testArray[2].flag07.DI_1[0], flag07_0CF25_1, 4);
+			testArray[2].flag07.dinum = 1;
+		}
+		if(class6015.csds.csd[i].csd.oad.OI== 0x2001)
+		{
+			memcpy(&testArray[3].flag698.oad, &class6015.csds.csd[i].csd.oad,sizeof(OAD));
+			memcpy(testArray[3].flag07.DI_1[0], flag07_0CF25_2, 4);
+			testArray[3].flag07.dinum = 1;
+		}
+
+		INT8U flag07_date[4] = { 0x01, 0x01, 0x00, 0x04 };//电能表日历时钟-日期
+		memcpy(testArray[0].flag07.DI_1[3], flag07_date, 4);
+		INT8U flag07_time[4] = { 0x02, 0x01, 0x00, 0x04 };//电能表日历时钟-时间
+		memcpy(testArray[0].flag07.DI_1[4], flag07_time, 4);
+
+#endif
+
+	testArray[1].flag698.oad.OI = 0x2021;
+	testArray[1].flag698.oad.attflg = 0x02;
+	testArray[1].flag698.oad.attrindex = 0x00;
+	memcpy(testArray[1].flag07.DI_1[0], freezeflag07_1, 4);
+	testArray[1].flag07.dinum = 1;
+
+	testArray[2].flag698.oad.OI = 0x2004;
+	testArray[2].flag698.oad.attflg = 0x02;
+	testArray[2].flag698.oad.attrindex = 0x00;
+	memcpy(testArray[2].flag07.DI_1[0], flag07_0CF25_3, 4);
+	testArray[2].flag07.dinum = 1;
+
+	testArray[3].flag698.oad.OI = 0x2005;
+	testArray[3].flag698.oad.attflg = 0x02;
+	testArray[3].flag698.oad.attrindex = 0x00;
+	memcpy(testArray[3].flag07.DI_1[0], flag07_0CF25_4, 4);
+	testArray[3].flag07.dinum = 1;
+
+	testArray[4].flag698.oad.OI = 0x2000;
+	testArray[4].flag698.oad.attflg = 0x02;
+	testArray[4].flag698.oad.attrindex = 0x01;
+	memcpy(testArray[4].flag07.DI_1[0], flag07_0CF25_1_A, 4);
+	testArray[4].flag07.dinum = 1;
 
 	testArray[5].flag698.oad.OI = 0x0010;
 	testArray[5].flag698.oad.attflg = 0x02;
@@ -1724,13 +1846,24 @@ void initTestArray()
 	memcpy(testArray[13].flag07.DI_1[0], flag07_0C4XXWG, 4);
 	testArray[13].flag07.dinum = 1;
 
+	testArray[14].flag698.oad.OI = 0x2001;
+	testArray[14].flag698.oad.attflg = 0x02;
+	testArray[14].flag698.oad.attrindex = 0x01;
+	memcpy(testArray[14].flag07.DI_1[0], flag07_0CF25_2_A, 4);
+	testArray[14].flag07.dinum = 1;
+
+}
+INT8S readMeterPowerInfo_singleMeter(CLASS_6001 obj6001,INT8U meterIndex)
+{
+	INT8S result = -1;
+
+	return result;
 }
 INT8S readMeterPowerInfo(INT8U port485)
 {
 	fprintf(stderr,"\n\n上电抄读停上电事件 readMeterPowerInfo");
 	INT8S result = -1;
-	MeterPower MeterPowerInfo[POWEROFFON_NUM]; //当poweroffon_state为1时，抄读其中ERC3106State=1得tsa得停上电时间，
-	                                           //赋值给结构体中得停上电时间，同时置VALID为1,全部抄完后，置poweroffon_state为2
+
 	INT8U meterIndex;
 	for(meterIndex = 0; meterIndex < POWEROFFON_NUM; meterIndex++)
 	{
@@ -1754,6 +1887,7 @@ INT8S readMeterPowerInfo(INT8U port485)
 				continue;
 			}
 
+			readMeterPowerInfo_singleMeter(obj6001,meterIndex);
 		}
 	}
 	return result;

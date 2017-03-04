@@ -21,6 +21,7 @@ extern INT8U Get_2204(OI_698 oi,INT8U *sourcebuf,INT8U *buf,int *len);
 extern INT16S composeProtocol698_GetRequest(INT8U*,CLASS_6015,TSA);
 //OAD转换为报文
 extern INT8U OADtoBuff(OAD fromOAD,INT8U* buff);
+extern INT8U analyzeProtocol698(INT8U* Rcvbuf,INT8U* resultCount,INT16S recvLen,INT8U* apduDataStartIndex,INT16S* dataLen);
 
 extern void ProxyListResponse(PROXY_GETLIST *list,CommBlock *com);
 int createFile(const char * path, int length, unsigned char crc, unsigned short bs);
