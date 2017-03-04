@@ -123,7 +123,6 @@ int fill_date_time_s(INT8U *data,DateTimeBCD *time)
 	}
 }
 
-
 int fill_TI(INT8U *data,TI ti)
 {
 	data[0] = dtti;
@@ -139,6 +138,75 @@ int fill_TSA(INT8U *data,INT8U *value,INT8U len)
 	data[1] = len;
 	memcpy(&data[2],value,len);
 	return (len+2);
+}
+
+int fill_MS(INT8U *data,MY_MS myms)		//0x5C
+{
+	INT8U choicetype=0;
+
+	data[0] = dtms;
+	choicetype = myms.mstype;
+	switch (choicetype)
+	{
+		case 0:
+			data[1] = 0;//myms.ms.nometer_null;  //0表示 没有电表  1表示 全部电表
+			return 2;
+		case 1:
+			data[1] = 1;//myms.ms.allmeter_null;  //0表示 没有电表  1表示 全部电表
+			return 2;
+		case 2:
+			break;
+		case 3:
+			break;
+		case 4:
+			break;
+	}
+	return 0;
+}
+int fill_RCSD(INT8U type,INT8U *data,CSD_ARRAYTYPE csds)
+{
+	int 	num=0,i=0,k=0;
+	int		index=0;
+
+	if(type==1) {		//需要填充类型描述
+		data[index++] = dtrcsd;
+	}
+	num = csds.num;
+	if(num==0) {		//OAD
+		index += create_OAD(&data[index],csds.csd[0].csd.oad);
+	}else {				//RCSD
+		data[index++] = num;
+		for(i=0;i<num;i++)
+		{
+			data[index++] = csds.csd[i].type;	//第 i 个csd类型
+			fprintf(stderr,"num=%d type=%d\n",num,csds.csd[i].type);
+			fprintf(stderr,"oi=%04x_%02x_%02x\n",csds.csd[i].csd.oad.OI,csds.csd[i].csd.oad.attflg,csds.csd[i].csd.oad.attrindex);
+			if (csds.csd[i].type ==0)		//对象属性描述符 OAD
+			{
+				index += create_OAD(&data[index],csds.csd[i].csd.oad);
+			}else	{						//记录型对象属性描述符 [1] ROAD
+				index += create_OAD(&data[index],csds.csd[i].csd.road.oad);
+				for(k=0; k<csds.csd[i].csd.road.num; k++)
+				{
+					index += create_OAD(&data[index],csds.csd[i].csd.road.oads[k]);	//关联对象属性描述符  SEQUENCE OF OAD
+				}
+			}
+		}
+	}
+	return index;
+}
+
+int fill_Data(INT8U *data,INT8U *value)
+{
+	INT8U type=0;
+	fprintf(stderr,"value=%02x  %02x\n",value[0],value[1]);
+	type = value[0];
+	switch(type) {
+	case dtunsigned:
+		fill_unsigned(data,value[1]);
+		return 2;
+	}
+	return 0;
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -259,6 +327,24 @@ int getTI(INT8U type,INT8U *source,TI *ti)	//0x54
 	}
 }
 
+
+int get_Data(INT8U *source,INT8U *dest)
+{
+	int type=0;
+	type = source[0];
+	switch(type){
+	case dtunsigned:
+		dest[0] = type;
+		dest[1] = source[1];
+		return 2;
+	case dtlongunsigned:
+		dest[0] = type;
+		dest[1] = source[1];
+		dest[2] = source[2];
+		return 3;
+	}
+	return 0;
+}
 /*
  * 解析选择方法类型 RSD
  */
@@ -280,6 +366,7 @@ int get_BasicRSD(INT8U type,INT8U *source,INT8U *dest,INT8U *seletype)		//0x5A
 		fprintf(stderr,"classtype=%02x\n",classtype);
 	}
 	*seletype = source[index++];//选择方法
+	fprintf(stderr,"\n\n----------seletype=%02x\n",*seletype);
 	switch(*seletype )
 	{
 		case 0:
@@ -288,15 +375,10 @@ int get_BasicRSD(INT8U type,INT8U *source,INT8U *dest,INT8U *seletype)		//0x5A
 			break;
 		case 1:
 			memset(&select1,0,sizeof(select1));
-			select1.oad.OI= (source[index++]<<8) | source[index++];
-			select1.oad.attflg = source[index++];
-			select1.oad.attrindex = source[index++];
-			select1.data.type = 0xAA;
-			get_BasicUnit(&source[index++]+source_sumindex,&source_index,(INT8U *)&select1.data,&dest_index);
-			source_sumindex += source_index;
+			index += getOAD(0,&source[index],&select1.oad);
+			index += get_Data(&source[index],&select1.data.type);
 			memcpy(dest,&select1,sizeof(select1));
-			index += source_sumindex;// + 4 + 1;//4:oad  1:type   source_sumindex:解析data的内容长度
-			fprintf(stderr,"\n index = %d    !!!!!!!!!!!\n",index);
+			fprintf(stderr,"\n index = %d   select1 OI=%04x !!!!!!!!!!!\n",index,select1.oad.OI);
 			break;
 		case 2:
 			memset(&select2,0,sizeof(select2));
@@ -423,7 +505,11 @@ int get_BasicRCSD(INT8U type,INT8U *source,CSD_ARRAYTYPE *csds)	//0x60
 	return index;
 }
 
-int Get_6000(INT8U seqnum,INT8U *data)
+////////////////////////////////////////////////////////////
+/*
+ * 采集档案配置单元
+ * */
+int Get_6001(INT8U seqnum,INT8U *data)
 {
 	int 	index=0;
 	CLASS_6001 meter={};
@@ -454,6 +540,71 @@ int Get_6000(INT8U seqnum,INT8U *data)
 	return index;
 }
 
+/*
+ * 任务配置单元
+ * */
+int Get_6013(INT8U taskid,INT8U *data)
+{
+	int 	index=0,i=0;
+	CLASS_6013 task={};
+
+	if (readCoverClass(0x6013,taskid,&task,sizeof(CLASS_6013),coll_para_save)) {
+		fprintf(stderr,"\n 6013 read meter ok");
+		index += create_struct(&data[index],12);		//属性2：struct 12个元素
+		index += fill_unsigned(&data[index],task.taskID);		//配置序号
+		index += fill_TI(&data[index],task.interval);			//执行频率
+		index += fill_enum(&data[index],task.cjtype);			//方案类型
+		index += fill_unsigned(&data[index],task.sernum);			//方案序号
+		index += fill_date_time_s(&data[index],&task.startime);		//开始时间
+		index += fill_date_time_s(&data[index],&task.endtime);		//结束时间
+		index += fill_TI(&data[index],task.delay);				//延时
+		index += fill_enum(&data[index],task.runprio);			//执行优先级
+		index += fill_enum(&data[index],task.state);			//任务状态
+		index += fill_long_unsigned(&data[index],task.befscript); //任务开始前脚本
+		index += fill_long_unsigned(&data[index],task.aftscript); //任务完成后脚本
+		index += create_struct(&data[index],2);					//任务运行时段:2个元素
+		index += fill_enum(&data[index],task.runtime.type);
+		index += create_array(&data[index],task.runtime.num);	  //时段表
+		for(i=0;i<task.runtime.num;i++) {
+			index += create_struct(&data[index],4);
+			index += fill_unsigned(&data[index],task.runtime.runtime[i].beginHour);
+			index += fill_unsigned(&data[index],task.runtime.runtime[i].beginMin);
+			index += fill_unsigned(&data[index],task.runtime.runtime[i].endHour);
+			index += fill_unsigned(&data[index],task.runtime.runtime[i].endMin);
+		}
+	}
+	return index;
+}
+
+/*
+ * 普通采集方案
+ * */
+int Get_6015(INT8U seqnum,INT8U *data)
+{
+	int 	index=0;
+	CLASS_6015 coll={};
+
+	if (readCoverClass(0x6015,seqnum,&coll,sizeof(CLASS_6015),coll_para_save)) {
+		fprintf(stderr,"\n 6015 read coll ok");
+		index += create_struct(&data[index],6);		//属性2：struct 6个元素
+		index += fill_unsigned(&data[index],coll.sernum);		//方案序号
+		index += fill_long_unsigned(&data[index],coll.deepsize);	//存储深度
+		index += create_struct(&data[index],2);		//属性2：struct 2个元素
+
+		fprintf(stderr,"coll.cjtype = %d\n",coll.cjtype);
+//		index += fill_unsigned(&data[index],coll.cjtype);		//采集类型
+		index += fill_unsigned(&data[index],0);		////////test//采集类型
+		data[index++] = coll.data.data[0];
+//		index += fill_Data(&data[index],&coll.data.type);		//数据
+		index += fill_MS(&data[index],coll.mst);		//电能表集合MS
+		index += fill_enum(&data[index],coll.savetimeflag);		//存储时标选择
+	}
+	return index;
+}
+
+/*
+ * 采集任务监控单元
+ * */
 int Get_6035(INT8U taskid,INT8U *data)
 {
 	int 	index=0;

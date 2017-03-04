@@ -307,7 +307,7 @@ void get_BasicUnit(INT8U *source,INT16U *sourceindex,INT8U *dest,INT16U *destind
 	*destindex = dest_sumindex;
 }
 
-void AddBatchMeterInfo(INT8U *data,INT8U type)
+void AddBatchMeterInfo(INT8U *data,INT8U type,Action_result *act_ret)
 {
 	CLASS_6001 meter={};
 	int k=0,saveflg=0;
@@ -361,6 +361,8 @@ void AddBatchMeterInfo(INT8U *data,INT8U type)
 		else
 			fprintf(stderr,"\n采集档案配置 %d 保存失败",meter.sernum);
 	}
+	act_ret->datalen= source_sumindex;
+	act_ret->DAR = success;
 }
 void AddCjiFangAnInfo(INT8U *data,Action_result *act_ret)
 {
@@ -369,8 +371,10 @@ void AddCjiFangAnInfo(INT8U *data,Action_result *act_ret)
 	int k=0,saveflg=0;
 	INT8U addnum = data[1];
 	INT16U source_sumindex=0,source_index=0,dest_sumindex=0,dest_index=0;
+
 	fprintf(stderr,"\nsizeof fangAn=%d",sizeof(fangAn));
 	fprintf(stderr,"\n添加个数 %d",addnum);
+	act_ret->DAR = success;
 	for(k=0; k<addnum; k++)
 	{
 		memset(&fangAn,0xee,sizeof(fangAn));
@@ -382,7 +386,7 @@ void AddCjiFangAnInfo(INT8U *data,Action_result *act_ret)
 		fprintf(stderr,"\n方案号 ：%d ",fangAn.sernum);
 		fprintf(stderr,"\n存储深度 ：%d ",fangAn.deepsize);
 		fprintf(stderr,"\n采集类型 ：%d ",fangAn.cjtype);
-		fprintf(stderr,"\n采集内容(data) 类型：%02x  data=%d",fangAn.data.type,fangAn.data.data[0]);
+		fprintf(stderr,"\n采集内容(data) 类型：%02x  data=%d %d",fangAn.data.type,fangAn.data.data[0],fangAn.data.data[1]);
 		buf = (INT8U *)&fangAn.csds.flag;
 		fprintf(stderr,"\ncsd:");
 		INT8U type=0,w=0;
@@ -410,7 +414,6 @@ void AddCjiFangAnInfo(INT8U *data,Action_result *act_ret)
 
 		saveflg = saveCoverClass(0x6015,fangAn.sernum,&fangAn,sizeof(fangAn),coll_para_save);
 		if (saveflg==1) {
-			act_ret->DAR = success;
 			fprintf(stderr,"\n采集方案 %d 保存成功",fangAn.sernum);
 		}else {
 			act_ret->DAR = refuse_rw;
@@ -886,15 +889,15 @@ void FileTransMothod(INT16U attr_act,INT8U *data)
 err:
 	return;
 }
-void MeterInfo(INT16U attr_act,INT8U *data)
+void MeterInfo(INT16U attr_act,INT8U *data,Action_result *act_ret)
 {
 	switch(attr_act)
 	{
 		case 127://方法 127:Add (采集档案配置单元)
-			AddBatchMeterInfo(data,attr_act);
+			AddBatchMeterInfo(data,attr_act,act_ret);
 			break;
 		case 128://方法 128:AddBatch(array 采集档案配置单元)
-			AddBatchMeterInfo(data,attr_act);
+			AddBatchMeterInfo(data,attr_act,act_ret);
 			break;
 		case 129://方法 129:Update(配置序号,基本信息)
 			break;
@@ -960,7 +963,7 @@ int doObjectAction(OAD oad,INT8U *data,Action_result *act_ret)
 			TerminalInfo(attr_act,data);
 			break;
 		case 0x6000:	//采集档案配置表
-			MeterInfo(attr_act,data);
+			MeterInfo(attr_act,data,act_ret);
 			break;
 		case 0x6002:	//搜表
 			break;

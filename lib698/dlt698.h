@@ -42,6 +42,7 @@ extern int fill_time(INT8U *data,INT8U *value);
 extern int fill_date_time_s(INT8U *data,DateTimeBCD *time);
 extern int fill_TI(INT8U *data,TI ti);
 extern int fill_TSA(INT8U *data,INT8U *value,INT8U len);
+extern int fill_RCSD(INT8U type,INT8U *data,CSD_ARRAYTYPE csds);
 /*----------------------接口类及对象实例的数据类型解析----------------------*/
 extern int getArray(INT8U *source,INT8U *dest);	//1
 extern int getStructure(INT8U *source,INT8U *dest);	//2
@@ -55,8 +56,10 @@ extern int getTI(INT8U type,INT8U *source,TI *ti);		//0x54
 extern int get_BasicRSD(INT8U type,INT8U *source,INT8U *dest,INT8U *seletype);	//0x5A
 extern int getMS(INT8U *source,INT8U *dest);		//0x5C
 extern int get_BasicRCSD(INT8U type,INT8U *source,CSD_ARRAYTYPE *csds);	//0x60
-
+extern int get_Data(INT8U *source,INT8U *dest);
 /*----------------------具体OI类组帧函数----------------------*/
-extern int Get_6000(INT8U seqnum,INT8U *data);
+extern int Get_6001(INT8U seqnum,INT8U *data);
+extern int Get_6013(INT8U taskid,INT8U *data);
+extern int Get_6015(INT8U seqnum,INT8U *data);
 extern int Get_6035(INT8U seqnum,INT8U *data);
 #endif
