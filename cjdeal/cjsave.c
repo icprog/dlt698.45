@@ -16,8 +16,9 @@
 
 /*
  * 计算某个OI的数据长度，指针对抄表数据 todo 先写个简单的，以后完善 而且没有考虑费率
+ * attr_flg:0 全部属性 非0 一个属性  例如20000200 则为全部属性 20000201则为一个属性
  */
-INT16U CalcOIDataLen(OI_698 oi)
+INT16U CalcOIDataLen(OI_698 oi,INT8U attr_flg)
 {
 	FILE *fp;
 	char ln[60];
@@ -26,9 +27,14 @@ INT16U CalcOIDataLen(OI_698 oi)
 	INT8U ic_type = 1;
 
 	if(oi>=0x0000 && oi<0x2000)
-		return 27;//长度4+1个字节数据类型
-	if(oi == 2140 || oi == 2141)//struct 类型要在原长度基础上+3
-		return (11+3)*(MET_RATE+1)+1+1;
+	{
+		if(attr_flg == 0)
+			return 27;//长度4+1个字节数据类型
+		else
+			return 4;
+	}
+//	if(oi == 2140 || oi == 2141)//struct 类型要在原长度基础上+3
+//		return (11+3)*(MET_RATE+1)+1+1;
 	fp = fopen("/nor/config/OI_TYPE.cfg","r");
 	if(fp == NULL)
 	{
@@ -63,10 +69,16 @@ INT16U CalcOIDataLen(OI_698 oi)
 		{
 		case 1:
 		case 2:
-			oi_len = oi_len*(MET_RATE+1)+1+1;//+类型+个数
+			if(attr_flg == 0)
+				oi_len = oi_len*(MET_RATE+1)+1+1;//+类型+个数
+			else
+				oi_len = oi_len+1;//+类型+个数
 			break;
 		case 3:
-			oi_len = oi_len*3+1+1;//三相
+			if(attr_flg == 0)
+				oi_len = oi_len*3+1+1;//三相
+			else
+				oi_len = oi_len+1;//+类型+个数
 			break;
 		default:
 			break;
@@ -95,61 +107,6 @@ INT16U CalcHeadUnitNum(CSD_ARRAYTYPE csds)
 		return 0;
 	else
 		return headunit_num;
-}
-INT8U datafile_write(char *FileName, void *source, int size, int offset)
-{
-	FILE *fp=NULL;
-	int	  fd=0;
-	INT8U res=0;
-	int num=0;
-	INT8U	*blockdata=NULL;
-//	int i=0;
-
-	blockdata = malloc(size);
-	if(blockdata!=NULL) {
-		memcpy(blockdata,source,size);
-	} else {
-		return 0;//error
-	}
-
-	if(access(FileName,F_OK)!=0)
-	{
-		fp = fopen((char*) FileName, "w+");
-		fprintf(stderr,"创建文件--%s\n",FileName);
-	}else {
-		fp = fopen((char*) FileName, "r+");
-		fprintf(stderr,"替换文件\n");
-	}
-	if (fp != NULL) {
-		fseek(fp, offset, SEEK_SET);
-		num = fwrite(blockdata, size,1,fp);
-		fd = fileno(fp);
-		fsync(fd);
-		fclose(fp);
-		if(num == 1) {
-			res = 1;
-		}else res = 0;
-	} else {
-		res = 0;
-	}
-	free(blockdata);//add by nl1031
-	return res;
-}
-INT8U datafile_read(char *FileName, void *source, int size, int offset)
-{
-	FILE 	*fp=NULL;
-	int 	num=0,ret=0;
-	fp = fopen(FileName, "r");
-	if (fp != NULL) {
-		fseek(fp, offset, SEEK_SET);
-		num=fread(source,1 ,size,fp);
-		if(num==(size)) 			//读取了size字节数据
-				ret = 1;
-			else ret = 0;
-		fclose(fp);
-	} else
-		ret = 0;
-	return ret;
 }
 /*
  * 读取文件头长度和块数据长度
@@ -238,7 +195,7 @@ void CreateSaveHead(char *fname,CSD_ARRAYTYPE csds,INT16U *headlen,INT16U *unitl
 			headbuf[pindex++] = csds.csd[i].csd.oad.attflg;
 			headbuf[pindex++] = csds.csd[i].csd.oad.attrindex;
 			fprintf(stderr,"\n-0--csds.csd[i].csd.oad.OI = %04x\n",csds.csd[i].csd.oad.OI);
-			len_tmp = CalcOIDataLen(csds.csd[i].csd.oad.OI);//多一个数据类型
+			len_tmp = CalcOIDataLen(csds.csd[i].csd.oad.OI,csds.csd[i].csd.oad.attrindex);//多一个数据类型
 			fprintf(stderr,"\nlen_tmp=%d\n",len_tmp);
 			headbuf[pindex++] = (len_tmp & 0xff00) >> 8;
 			headbuf[pindex++] = len_tmp & 0x00ff;
@@ -271,7 +228,7 @@ void CreateSaveHead(char *fname,CSD_ARRAYTYPE csds,INT16U *headlen,INT16U *unitl
 				headbuf[pindex++] = (csds.csd[i].csd.road.oads[j].OI & 0xff00) >> 8;
 				headbuf[pindex++] = csds.csd[i].csd.road.oads[j].attflg;
 				headbuf[pindex++] = csds.csd[i].csd.road.oads[j].attrindex;
-				len_tmp = CalcOIDataLen(csds.csd[i].csd.road.oads[j].OI);//多一个数据类型
+				len_tmp = CalcOIDataLen(csds.csd[i].csd.road.oads[j].OI,csds.csd[i].csd.oad.attrindex);//多一个数据类型
 				fprintf(stderr,"\n--2-len_tmp=%d\n",len_tmp);
 				headbuf[pindex++] = (len_tmp & 0xff00) >> 8;
 				headbuf[pindex++] = len_tmp & 0x00ff;
@@ -398,13 +355,6 @@ void SaveNorData(INT8U taskid,INT8U *databuf,int datalen)
 		fclose(fp);
 	if(databuf_tmp != NULL)
 		free(databuf_tmp);
-}
-/*
- * 读取一个任务下的某个测量点某数据
- */
-void GetNorData(TS ts,INT8U taskid,INT8U *tsa)
-{
-	;
 }
 ///*
 // * 读取抄表数据，读取某个测量点某任务某天一整块数据，放在内存里，根据需要提取数据,并根据csd
