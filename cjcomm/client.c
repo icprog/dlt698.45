@@ -120,7 +120,7 @@ int RegularClient(struct aeEventLoop* ep, long long id, void* clientData) {
         char errmsg[256];
         memset(errmsg, 0x00, sizeof(errmsg));
         initComPara(nst);
-        OnlineType = 0;
+        OnlineType                  = 0;
         MASTER_STATION_INFO ip_port = getNextIpPort();
         nst->phy_connect_fd         = anetTcpConnect(errmsg, (char*)ip_port.ip, ip_port.port);
         if (nst->phy_connect_fd > 0) {

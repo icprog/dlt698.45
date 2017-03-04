@@ -64,34 +64,28 @@ INT32S gpio_writebytes(char* devpath, INT8S* vals, INT32S valnum) {
 
 //二型集中器没有电池只有电容，所以不能够读出底板是否有电，且二型集中器只有一相电压，停上电事件在硬件复位时不能产生，
 //所以判断时，需要判断当前电压大于一个定值且小时参数时，产生事件(大于的定时暂定为10v交采已经将实时电压值乘以１０).
-BOOLEAN pwr_has_byVolt(INT8U valid,INT32U volt,INT16U limit)
-{
-	if((valid==TRUE) && ((volt > 100 && volt < limit) || (volt < 30))) {
-		return FALSE;
-	}
-	return TRUE;		//上电
+BOOLEAN pwr_has_byVolt(INT8U valid, INT32U volt, INT16U limit) {
+    if ((valid == TRUE) && ((volt > 100 && volt < limit) || (volt < 30))) {
+        return FALSE;
+    }
+    return TRUE; //上电
 }
 
 /*
  * 底板电源是否有电
  */
-BOOLEAN pwr_has()
-{
-	INT32U state=0;
-	int fd=-1;
-	if((fd = open(DEV_MAINPOWER, O_RDWR | O_NDELAY)) > 0)
-	{
-		read(fd,&state,1);
-		close(fd);
-	}
-	if((state&0x01)==1)
-	{
-		return TRUE;
-	}
-	else
-	{
-		return FALSE;
-	}
+BOOLEAN pwr_has() {
+    INT32U state = 0;
+    int fd       = -1;
+    if ((fd = open(DEV_MAINPOWER, O_RDWR | O_NDELAY)) > 0) {
+        read(fd, &state, 1);
+        close(fd);
+    }
+    if ((state & 0x01) == 1) {
+        return TRUE;
+    } else {
+        return FALSE;
+    }
 }
 
 /*
@@ -102,19 +96,18 @@ BOOLEAN pwr_has()
  *    将 /dev/gpioADC_SWITCH=1（终端工作充电模式）
  *
  */
-BOOLEAN bettery_getV(FP32* clock_bt,FP32* tmnl_bt)
-{
-	int fd=-1;
-	unsigned int adc_result[2]={};
-	if((fd = open(DEV_ADC, O_RDWR | O_SYNC)) == -1)
-		return FALSE;
+BOOLEAN bettery_getV(FP32* clock_bt, FP32* tmnl_bt) {
+    int fd                     = -1;
+    unsigned int adc_result[2] = {};
+    if ((fd = open(DEV_ADC, O_RDWR | O_SYNC)) == -1)
+        return FALSE;
 
-	gpio_writebyte(DEV_ADC_SWITCH,0);
-	sleep(1);
-	read(fd,adc_result,2*sizeof(unsigned int));
-	gpio_writebyte(DEV_ADC_SWITCH,1);
-	*clock_bt = adc_result[0]*1.0/1023*6.6;
-	*tmnl_bt = adc_result[1]*1.0/1023*6.6;
+    gpio_writebyte(DEV_ADC_SWITCH, 0);
+    sleep(1);
+    read(fd, adc_result, 2 * sizeof(unsigned int));
+    gpio_writebyte(DEV_ADC_SWITCH, 1);
+    *clock_bt = adc_result[0] * 1.0 / 1023 * 6.6;
+    *tmnl_bt  = adc_result[1] * 1.0 / 1023 * 6.6;
     close(fd);
-	return TRUE;
+    return TRUE;
 }
