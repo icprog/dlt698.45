@@ -81,4 +81,10 @@ extern INT8U getarryb2s(INT32S* arr, INT8U len);
 void asyslog(int priority, const char* fmt, ...);
 void bufsyslog(const INT8U* buf, const char* title, int head, int tail, int len);
 
+
+/*
+ * 数据处理
+ * */
+INT8U getBase_DataTypeLen(Base_DataType dataType);
+
 #endif /* PUBLICFUNCTION_H_ */

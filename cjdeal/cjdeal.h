@@ -7,4 +7,5 @@ extern ProgramInfo* JProgramInfo;
 
 extern void DealState(ProgramInfo* prginfo);
 extern void read_oif203_para();
+
 #endif
