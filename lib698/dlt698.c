@@ -27,6 +27,7 @@ extern int Proxy_GetRequestlist(INT8U *data,CSINFO *csinfo,INT8U *sendbuf);
 extern unsigned short tryfcs16(unsigned char *cp, int  len);
 extern INT32S secureConnectRequest(SignatureSecurity* securityInfo ,SecurityData* RetInfo);
 INT8S (*pSendfun)(int fd,INT8U* sndbuf,INT16U sndlen);
+extern void  Get698_event(OAD oad,ProgramInfo* prginfo_event);
 int comfd = 0;
 INT8U ClientPiid=0;
 INT8U TmpDataBuf[MAXSIZ_FAM];
@@ -553,6 +554,7 @@ int doSetAttribute(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 			index += create_OAD(&TmpDataBuf[index],oad);
 			TmpDataBuf[index++] = DAR;
 			doReponse(SET_RESPONSE,SET_REQUEST_NORMAL,csinfo,index,TmpDataBuf,buf);
+			Get698_event(oad,memp);
 			break;
 		case SET_REQUEST_NORMAL_LIST:
 			setRequestNormalList(&apdu[3],csinfo,buf);
@@ -561,6 +563,7 @@ int doSetAttribute(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 
 			break;
 	}
+
 	return 1;
 }
 
@@ -655,6 +658,7 @@ int doActionRequest(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 			index += create_OAD(&TmpDataBuf[index],oad);
 			TmpDataBuf[index++] = DAR;
 			doReponse(ACTION_RESPONSE,ActionResponseNormal,csinfo,index,TmpDataBuf,buf);
+			Get698_event(oad,memp);
 			break;
 		case ACTIONREQUEST_LIST:
 			index = 0;

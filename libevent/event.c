@@ -2460,3 +2460,18 @@ INT8U Event_3203(INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 	}
     return 1;
 }
+
+/*
+ * 698guiyue规约库判断初始化事件、终端对时事件
+ */
+void  Get698_event(OAD oad,ProgramInfo* prginfo_event)
+{
+    if(oad.OI == 0x4300 && (oad.attflg == 3 || oad.attflg == 5 || oad.attflg == 6)){
+    	Event_3100(NULL,0,prginfo_event);
+    }else if(oad.OI == 0x4000 && oad.attflg == 2){
+    	DateTimeBCD datetime;
+    	DataTimeGet(&datetime);
+    	Event_3114(datetime,prginfo_event);
+    }
+
+}

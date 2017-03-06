@@ -179,4 +179,8 @@ extern INT8U Event_3202(INT8U* data,INT8U len,ProgramInfo* prginfo_event);
  * 电控告警事件记录  data为事件源OI+控制对象OI+电控定值long64  prginfo_event共享内存
  */
 extern INT8U Event_3203(INT8U* data,INT8U len,ProgramInfo* prginfo_event);
+/*
+ * 698guiyue规约库判断初始化事件、终端对时事件
+ */
+extern void  Get698_event(OAD oad,ProgramInfo* prginfo_event);
 #endif

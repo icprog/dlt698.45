@@ -205,7 +205,7 @@ int GetSysDateTime(RESULT_NORMAL *response)
 	INT8U *data=NULL;
 	OAD oad;
 	DateTimeBCD time;
-
+	system((const char*)"hwclock -s");
 	oad = response->oad;
 	data = response->data;
 	DataTimeGet(&time);
@@ -415,14 +415,13 @@ int Get4006(RESULT_NORMAL *response)
 {
 	int index=0;
 	INT8U *data = NULL;
-	OAD oad;
+	OAD oad={};
 	CLASS_4006	class_tmp={};
 	data = response->data;
 	oad = response->oad;
 	memset(&class_tmp,0,sizeof(CLASS_4006));
 	readCoverClass(oad.OI,0,&class_tmp,sizeof(CLASS_4006),para_vari_save);
-	class_tmp.clocksource = 1;//时钟芯片
-	class_tmp.state = 0;//可用
+	fprintf(stderr,"时钟源：%d 　状态：%d\n",class_tmp.clocksource,class_tmp.state);
 	switch(oad.attflg )
 	{
 		case 2:
@@ -691,10 +690,6 @@ int doGetrecord(OAD oad,INT8U *data,RESULT_RECORD *record)
 	int		dest_index=0;		//getreponse 指针
 	INT8U 	SelectorN =0;
 
-//	memset(TmpDataBuf,0,sizeof(TmpDataBuf));
-//	record->oad = oad;
-//	record->data = TmpDataBuf;
-//	record->datalen = 0;
 	fprintf(stderr,"\nGetRequestRecord   oi=%x  %02x  %02x",record->oad.OI,record->oad.attflg,record->oad.attrindex);
 	source_index = get_BasicRSD(0,&data[source_index],(INT8U *)&record->select,&record->selectType);
 	fprintf(stderr,"\nRSD Select%d     data[%d] = %02x",record->selectType,source_index,data[source_index]);
