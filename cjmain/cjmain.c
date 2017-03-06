@@ -20,6 +20,19 @@ void Runled()
 {
 	gpio_writebyte((char*)DEV_LED_RUN, 1); //运行灯常亮
 }
+void SyncRtc(TS ts)
+{
+	static int oldmin=0;
+	if (oldmin != ts.Minute)
+	{
+		oldmin = ts.Minute;
+		if (ts.Minute == 20)
+		{
+			fprintf(stderr,"\n同步RTC!!");
+			system((const char*)"hwclock -s");
+		}
+	}
+}
 
 void Watchdog(int dogmin)//硬件看门狗
 {
@@ -349,6 +362,7 @@ int main(int argc, char *argv[])
 	pid_t pids[128];
 	int i=0,upstate=0;
 	struct sigaction sa1;
+	TS ts;
 
 	Setsig(&sa1,ProjectMainExit);
 	JProgramInfo = (ProgramInfo*)CreateShMem("ProgramInfo",sizeof(ProgramInfo),NULL);
@@ -373,6 +387,9 @@ int main(int argc, char *argv[])
 		sleep(1);
 		Watchdog(5);
 		Runled();
+
+		TSGet(&ts);
+		SyncRtc(ts);
 		for(i=0;i<PROJECTCOUNT;i++)
 		{
 			ProjectCheck(&JProgramInfo->Projects[i]);

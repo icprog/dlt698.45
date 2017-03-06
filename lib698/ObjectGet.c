@@ -205,7 +205,7 @@ int GetSysDateTime(RESULT_NORMAL *response)
 	INT8U *data=NULL;
 	OAD oad;
 	DateTimeBCD time;
-
+	system((const char*)"hwclock -s");
 	oad = response->oad;
 	data = response->data;
 	DataTimeGet(&time);
