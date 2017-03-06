@@ -79,6 +79,7 @@ INT16U set3105(OAD oad,INT8U *data,INT8U *DAR)  //属性6
 
 	saveflg = readCoverClass(oad.OI,0,&tmp3105,sizeof(Event3105_Object),event_para_save);
 	fprintf(stderr,"\n[3105]电能表时钟超差事件 阈值=%d 任务号=%d\n",tmp3105.mto_obj.over_threshold,tmp3105.mto_obj.task_no);
+	index += getStructure(&data[index],NULL);
 	index += getLongUnsigned(&data[index],(INT8U *)&tmp3105.mto_obj.over_threshold);
 	index += getUnsigned(&data[index],(INT8U *)&tmp3105.mto_obj.task_no);
 	fprintf(stderr,"\n：属性6 阈值=%d 任务号=%d\n",tmp3105.mto_obj.over_threshold,tmp3105.mto_obj.task_no);
@@ -95,10 +96,9 @@ INT16U set3106(OAD oad,INT8U *data,INT8U *DAR)
 	int index=0;
 	memset(&tmpobj,0,sizeof(Event3106_Object));
 	saveflg = readCoverClass(oad.OI,0,&tmpobj,sizeof(Event3106_Object),event_para_save);
-	tmpobj.poweroff_para_obj.collect_para_obj.tsaarr.flag = 0x88;
 	index += getStructure(&data[index],NULL);
 	index += getStructure(&data[index],NULL);
-	index += getUnsigned(&data[index],&tmpobj.poweroff_para_obj.collect_para_obj.collect_flag);
+	index += getBitString(1,&data[index],&tmpobj.poweroff_para_obj.collect_para_obj.collect_flag);
 	index += getUnsigned(&data[index],&tmpobj.poweroff_para_obj.collect_para_obj.time_space);
 	index += getUnsigned(&data[index],&tmpobj.poweroff_para_obj.collect_para_obj.time_threshold);
 	INT8U arraysize =0;
@@ -130,8 +130,9 @@ INT16U set310c(OAD oad,INT8U *data,INT8U *DAR)	 //超差  属性6
 
 	readCoverClass(oad.OI,0,&tmp310c,sizeof(tmp310c),event_para_save);
 	fprintf(stderr,"\n[310c]阈值=%x",tmp310c.poweroffset_obj.power_offset);
-	index += getDoubleLongUnsigned(&data[index],(INT8U *)&tmp310c.poweroffset_obj.power_offset);
-	index += getDoubleLongUnsigned(&data[index],(INT8U *)&tmp310c.poweroffset_obj.task_no);
+	index += getStructure(&data[index],NULL);
+	index += getDouble(&data[index],(INT8U *)&tmp310c.poweroffset_obj.power_offset);
+	index += getDouble(&data[index],(INT8U *)&tmp310c.poweroffset_obj.task_no);
 	fprintf(stderr,"\n电能量超差事件：属性6 阈值=%x",tmp310c.poweroffset_obj.power_offset);
 	saveflg = saveCoverClass(oad.OI,0,&tmp310c,sizeof(tmp310c),event_para_save);
 	*DAR = prtstat(saveflg);
@@ -146,6 +147,7 @@ INT16U set310d(OAD oad,INT8U *data,INT8U *DAR)	//电能表飞走  属性6
 
 	saveflg = readCoverClass(oad.OI,0,&tmp310d,sizeof(Event310D_Object),event_para_save);
 	fprintf(stderr,"\n[310d]电能表飞走事件 阈值=%d 任务号=%d\n",tmp310d.poweroffset_obj.power_offset,tmp310d.poweroffset_obj.task_no);
+	index += getStructure(&data[index],NULL);
 	index += getDouble(&data[index],(INT8U *)&tmp310d.poweroffset_obj.power_offset);
 	index += getDouble(&data[index],(INT8U *)&tmp310d.poweroffset_obj.task_no);
 	fprintf(stderr,"\n：属性6 阈值=%d 任务号=%d",tmp310d.poweroffset_obj.power_offset,tmp310d.poweroffset_obj.task_no);
@@ -156,14 +158,14 @@ INT16U set310d(OAD oad,INT8U *data,INT8U *DAR)	//电能表飞走  属性6
 
 INT16U set310e(OAD oad,INT8U *data,INT8U *DAR)	//电能表停走	属性6
 {
-	INT16U source_index=0,dest_index=0;
 	Event310E_Object tmp310e={};
 	int 	saveflg=0;
 	int		index=0;
 
 	readCoverClass(oad.OI,0,&tmp310e,sizeof(tmp310e),event_para_save);
 	fprintf(stderr,"\ntmp310e 阈值=%d 单位=%d",tmp310e.powerstoppara_obj.power_offset.interval,tmp310e.powerstoppara_obj.power_offset.units);
-	index += getTI(1,&data[index],(INT8U *)&tmp310e.powerstoppara_obj.power_offset);
+	index += getStructure(&data[index],NULL);
+	index += getTI(1,&data[index],&tmp310e.powerstoppara_obj.power_offset);
 	index += getUnsigned(&data[index],(INT8U *)&tmp310e.powerstoppara_obj.task_no);
 	fprintf(stderr,"\n电能表停走事件：属性6 阈值=%d 单位=%d",tmp310e.powerstoppara_obj.power_offset.interval,tmp310e.powerstoppara_obj.power_offset.units);
 	saveflg = saveCoverClass(oad.OI,0,&tmp310e,sizeof(tmp310e),event_para_save);
@@ -178,6 +180,7 @@ INT16U set310f(OAD oad,INT8U *data,INT8U *DAR)		//终端抄表失败  属性6
 	int		index=0;
 
 	readCoverClass(oad.OI,0,&tmp310f,sizeof(tmp310f),event_para_save);
+	index += getStructure(&data[index],NULL);
 	index += getUnsigned(&data[index],(INT8U *)&tmp310f.collectfail_obj.retry_nums);
 	index += getUnsigned(&data[index],(INT8U *)&tmp310f.collectfail_obj.task_no);
 	fprintf(stderr,"\n终端抄表失败事件：属性6 重试轮次=%d ",tmp310f.collectfail_obj.retry_nums);
@@ -193,6 +196,7 @@ INT16U set3110(OAD oad,INT8U *data,INT8U *DAR)		//月通信流量超限  属性6
 	int saveflg = 0;
 
 	readCoverClass(oad.OI,0,&tmpobj,sizeof(tmpobj),event_para_save);
+	index += getStructure(&data[index],NULL);
 	index += getDouble(&data[index],(INT8U *)&tmpobj.Monthtrans_obj.month_offset);
 	fprintf(stderr,"\n月通信流量限值事件：属性6　通信流量限值=%d ",tmpobj.Monthtrans_obj.month_offset);
 	saveflg = saveCoverClass(oad.OI,0,&tmpobj,sizeof(tmpobj),event_para_save);
@@ -208,9 +212,9 @@ INT16U set4000(OAD oad,INT8U *data)
 	if ( oad.attflg == 2 )
 	{
 		DataTimeGet(&datetime);
-		Event_3114(datetime,memp);//对时，产生事件
 		index += getDateTimeS(1,&data[index],(INT8U *)&datetime);
 		setsystime(datetime);
+		Event_3114(datetime,memp);//对时，产生事件			//TODO:  上送设置应答帧之后才能响应事件处理
 	}
 	return index;
 }
@@ -219,6 +223,7 @@ INT16U set4001_4002_4003(OAD oad,INT8U *data)	//通信地址，表号，客户�
 {
 	int datalen=0;
 	int		index=0;
+	int 	saveflg = 0;
 	CLASS_4001_4002_4003	class_addr={};
 	int i=0;
 	memset(&class_addr,0,sizeof(CLASS_4001_4002_4003));
@@ -232,7 +237,7 @@ INT16U set4001_4002_4003(OAD oad,INT8U *data)	//通信地址，表号，客户�
 		for(i=0;i<datalen;i++) {
 			fprintf(stderr,"%02x ",class_addr.curstom_num[i]);
 		}
-		saveCoverClass(oad.OI,0,&class_addr,sizeof(CLASS_4001_4002_4003),para_vari_save);
+		saveflg = saveCoverClass(oad.OI,0,&class_addr,sizeof(CLASS_4001_4002_4003),para_vari_save);
 	}
 	return index;
 }
@@ -423,9 +428,9 @@ INT16U set4103(OAD oad,INT8U *data)
 	readCoverClass(oad.OI,0,&class4103,sizeof(CLASS_4103),para_vari_save);
 	if (oad.attflg == 2 )
 	{
-		index += getVisibleString(&data[index],&class4103.assetcode);
+		index += getVisibleString(&data[index],(INT8U *)&class4103.assetcode);
 		fprintf(stderr,"\n【资产管理编码】%d :",class4103.assetcode[0]);
-		for(i=0;i<class4103.assetcode;i++)
+		for(i=0;i<class4103.assetcode[0];i++)
 			fprintf(stderr,"%02x ",class4103.assetcode[i+1]);
 		fprintf(stderr,"\n");
 		saveCoverClass(oad.OI,0,&class4103,sizeof(CLASS_4103),para_vari_save);
@@ -710,9 +715,8 @@ void DeviceIoSetAttrib(OAD oad,INT8U *data)
 }
 int setRequestNormal(INT8U *data,OAD oad,CSINFO *csinfo,INT8U *buf)
 {
-	INT16U oi = oad.OI;
 	INT8U oihead = (oad.OI&0xF000) >>12;
-	fprintf(stderr,"\n对象属性设置  【 %04x 】",oi);
+	fprintf(stderr,"\n对象属性设置  【 %04x 】",oad.OI);
 
 	switch(oihead)
 	{
@@ -728,7 +732,7 @@ int setRequestNormal(INT8U *data,OAD oad,CSINFO *csinfo,INT8U *buf)
 		case 0xf:		//输入输出设备类对象 + ESAM接口类对象
 			DeviceIoSetAttrib(oad,data);
 	}
-	setOIChange(oi);
+	setOIChange(oad.OI);
 	return success;
 }
 int setRequestNormalList(INT8U *data,OAD oad)

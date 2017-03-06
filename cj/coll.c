@@ -128,7 +128,7 @@ char *getenum(int type,int val)
 /*
  * 采集档案配置表
  * */
-void Collect6000(OI_698	oi)
+void print6000(OI_698	oi)
 {
 	CLASS_6001	 meter={};
 	CLASS11		coll={};
@@ -187,6 +187,100 @@ void Collect6000(OI_698	oi)
 		}
 	}
 	fprintf(stderr,"\n");
+}
+
+/*
+ * 采集档案配置单元
+ * */
+void Collect6000(int argc, char *argv[])
+{
+	CLASS_6001	 meter={};
+	CLASS11		coll={};
+	int		ret = -1, pi=0, po=0;
+	int		i=0;
+	int 	tmp[30]={};
+
+	if(strcmp("pro",argv[2])==0) {
+		if(argc<5) {
+			print6000(0x6000);
+		}else if(argc==5) {
+			fprintf(stderr,"添加一个采集档案配置单元：[0]配置序号 ");
+			fprintf(stderr,"基本信息:[1]通信地址  [2]波特率  [3]规约  [4]端口OAD  [5]通信密码  [6]费率个数  [7]用户类型  [8]接线方式  [9]额定电压  [10]额定电流 \n");
+			fprintf(stderr,"扩展信息:[11]采集器地址 [12]资产号 [13]PT [14]CT\n");
+		}else {
+//			memset(&meter,0,sizeof(CLASS_6001));
+//			pi = 4;
+//			po = 0;
+//			sscanf(argv[pi],"%d",&tmp[po]);
+//			meter.sernum = tmp[po];
+//			pi++;
+//			po++;
+//			sscanf(argv[pi],"%d",&tmp[po]);
+//			meter.basicinfo.addr.addr[0]=tmp[po];
+//			sscanf(argv[pi],"%02x-%02x",&tmp[po],&tmp[po+1]);
+//			class6013.interval.units = tmp[po];
+//			class6013.interval.interval = tmp[po+1];
+//			pi++;
+//			po=po+2;
+//			sscanf(argv[pi],"%d",&tmp[po]);
+//			class6013.cjtype = tmp[po];
+//			pi++;
+//			po++;
+//			sscanf(argv[pi],"%d",&tmp[po]);
+//			class6013.sernum = tmp[po];
+//			pi++;
+//			po++;
+//			sscanf(argv[pi],"%d-%d-%d",&tmp[po],&tmp[po+1],&tmp[po+2]);
+//			class6013.startime.year.data = tmp[po];
+//			class6013.startime.month.data = tmp[po+1];
+//			class6013.startime.day.data = tmp[po+2];
+//			pi++;
+//			po=po+3;
+//			sscanf(argv[pi],"%d:%d:%d",&tmp[po],&tmp[po+1],&tmp[po+2]);
+//			class6013.startime.hour.data = tmp[po];
+//			class6013.startime.min.data = tmp[po+1];
+//			class6013.startime.sec.data = tmp[po+2];
+//			pi++;
+//			po=po+3;
+//			sscanf(argv[pi],"%d-%d-%d",&tmp[po],&tmp[po+1],&tmp[po+2]);
+//			class6013.endtime.year.data = tmp[po];
+//			class6013.endtime.month.data = tmp[po+1];
+//			class6013.endtime.day.data = tmp[po+2];
+//			pi++;
+//			po=po+3;
+//			sscanf(argv[pi],"%d:%d:%d",&tmp[po],&tmp[po+1],&tmp[po+2]);
+//			class6013.endtime.hour.data = tmp[po];
+//			class6013.endtime.min.data = tmp[po+1];
+//			class6013.endtime.sec.data = tmp[po+2];
+//			pi++;
+//			po=po+3;
+//			sscanf(argv[pi],"%d-%d",&tmp[po],&tmp[po+1]);
+//			class6013.delay.units = tmp[po];
+//			class6013.delay.interval = tmp[po+1];
+//			pi++;
+//			po=po+2;
+//			sscanf(argv[pi],"%d",&tmp[po]);
+//			class6013.runprio = tmp[po];
+//			pi++;
+//			po++;
+//			sscanf(argv[pi],"%d",&tmp[po]);
+//			class6013.state = tmp[po];
+//			pi++;
+//			po++;
+//			sscanf(argv[pi],"%d",&tmp[po]);
+//			class6013.runtime.type = tmp[po];
+//			pi++;
+//			po++;
+//			sscanf(argv[pi],"%d:%d-%d:%d",&tmp[po],&tmp[po+1],&tmp[po+2],&tmp[po+3]);
+//			class6013.runtime.runtime[0].beginHour=tmp[po];
+//			class6013.runtime.runtime[0].beginMin=tmp[po+1];
+//			class6013.runtime.runtime[0].endHour=tmp[po+2];
+//			class6013.runtime.runtime[0].endMin=tmp[po+3];
+//			pi++;
+//			po=po+4;
+//			saveCoverClass(oi,class6013.taskID,&class6013,sizeof(CLASS_6013),coll_para_save);
+		}
+	}
 }
 
 void print6013(CLASS_6013 class6013)
@@ -523,7 +617,7 @@ void coll_process(int argc, char *argv[])
 			oi = tmp;
 			switch(oi) {
 			case 0x6000:
-				Collect6000(oi);
+				Collect6000(argc,argv);
 				break;
 			case 0x6013:
 				Task6013(argc,argv);

@@ -166,6 +166,30 @@ int fill_MS(INT8U *data,MY_MS myms)		//0x5C
 	}
 	return 0;
 }
+
+int fill_CSD(INT8U type,INT8U *data,MY_CSD csd)
+{
+	int 	num=0,i=0;
+	int		index=0;
+
+	if(type==1) {		//需要填充类型描述
+		data[index++] = dtcsd;
+	}
+	data[index++] = csd.type;
+	if(csd.type == 0) {	//oad
+		index += create_OAD(&data[index],csd.csd.oad);
+	}else if(csd.type == 1) {	//road
+		index += create_OAD(&data[index],csd.csd.road.oad);
+		num = csd.csd.road.num;
+		data[index++] = num;
+		for(i=0;i<num;i++)
+		{
+			index += create_OAD(&data[index],csd.csd.road.oads[i]);
+		}
+	}
+	return index;
+}
+
 int fill_RCSD(INT8U type,INT8U *data,CSD_ARRAYTYPE csds)
 {
 	int 	num=0,i=0,k=0;
@@ -232,6 +256,22 @@ int getBool(INT8U *source,INT8U *dest)		//3
 	return 2;//source[0] 0x3 (bool type)   source[1] =value
 }
 
+int getBitString(INT8U type,INT8U *source,INT8U *dest)   //4
+{
+	int  bits=0,bytes=0;
+	if (type==1 || type==0)
+	{
+		bits = source[type];		//位串
+		bytes = bits/8;
+		if(bits%8) {
+			bytes += 1;
+		}
+		memcpy(dest, &source[type+1],bytes);
+		return (bytes + type + 1);		// 1:长度字节
+	}
+	return 0;
+}
+
 int getDouble(INT8U *source,INT8U *dest)	//5  and 6
 {
 	dest[0] = source[4];
@@ -295,13 +335,13 @@ int getEnum(INT8U type,INT8U *source,INT8U *enumvalue)	//16
 int getDateTimeS(INT8U type,INT8U *source,INT8U *dest)		//0x1C
 {
 	if((type == 1) || (type == 0)) {
-		dest[1] = source[type+1];//年
-		dest[0] = source[type+2];
-		dest[2] = source[type+3];//月
-		dest[3] = source[type+4];//日
-		dest[4] = source[type+5];//时
-		dest[5] = source[type+6];//分
-		dest[6] = source[type+7];//秒
+		dest[1] = source[type+0];//年
+		dest[0] = source[type+1];
+		dest[2] = source[type+2];//月
+		dest[3] = source[type+3];//日
+		dest[4] = source[type+4];//时
+		dest[5] = source[type+5];//分
+		dest[6] = source[type+6];//秒
 		return (7+type);
 	}
 	return 0;
@@ -324,8 +364,9 @@ int getOAD(INT8U type,INT8U *source,OAD *oad)		//0x51
 		oad->OI = (oad->OI <<8) | source[type+1];
 		oad->attflg = source[type+2];
 		oad->attrindex = source[type+3];
-		return (4+1);
+		return (4+type);
 	}
+	return 0;
 }
 
 int getROAD(INT8U *source,ROAD *dest)		//0x52
@@ -367,18 +408,43 @@ int getTI(INT8U type,INT8U *source,TI *ti)	//0x54
 
 int get_Data(INT8U *source,INT8U *dest)
 {
-	int type=0;
+	int type=0,i=0;
 	type = source[0];
+	dest[0] = type;
 	switch(type){
 	case dtunsigned:
-		dest[0] = type;
 		dest[1] = source[1];
 		return 2;
 	case dtlongunsigned:
-		dest[0] = type;
 		dest[1] = source[1];
 		dest[2] = source[2];
 		return 3;
+	case dtfloat64:
+	case dtlong64:
+	case dtlong64unsigned:
+		for(i=0 ; i<8; i++)
+			dest[8-i] = source[i+1];	//dest[8] ,7 ,6 ,5, 4 ,3 ,2 ,1   dest[0]:type
+		return 8 + 1;
+	case dtenum:
+		dest[1] = source[1];
+		return 2;
+	case dtfloat32:
+		for(i=0 ; i<4; i++)
+			dest[4-i] = source[i+1];	//dest[4] ,3 ,2 ,1   dest[0]:type
+		return 4 + 1;
+	case dtdatetime:
+		dest[2] = source[1];//年
+		dest[1] = source[2];
+		dest[3] = source[3];//月
+		dest[4] = source[4];//日
+		dest[5] = source[5];//时
+		dest[6] = source[6];//分
+		dest[7] = source[7];//秒
+		return 7 + 1;
+	case dttsa:
+		i = source[1];//长度
+		memcpy(&dest[1],&source[1],i+1);
+		return i+1;
 	}
 	return 0;
 }
@@ -645,7 +711,7 @@ int Get_6013(INT8U taskid,INT8U *data)
  * */
 int Get_6015(INT8U seqnum,INT8U *data)
 {
-	int 	index=0;
+	int 	index=0,i=0;
 	CLASS_6015 coll={};
 
 	if (readCoverClass(0x6015,seqnum,&coll,sizeof(CLASS_6015),coll_para_save)) {
@@ -656,10 +722,18 @@ int Get_6015(INT8U seqnum,INT8U *data)
 		index += create_struct(&data[index],2);		//属性2：struct 2个元素
 
 		fprintf(stderr,"coll.cjtype = %d\n",coll.cjtype);
-//		index += fill_unsigned(&data[index],coll.cjtype);		//采集类型
-		index += fill_unsigned(&data[index],0);		////////test//采集类型
+		index += fill_unsigned(&data[index],coll.cjtype);		//采集类型
 		data[index++] = coll.data.data[0];
-//		index += fill_Data(&data[index],&coll.data.type);		//数据
+		index += fill_Data(&data[index],&coll.data.type);		//数据
+		if(coll.csds.num > MY_CSD_NUM) {
+			coll.csds.num = MY_CSD_NUM;
+			fprintf(stderr,"采集档案记录列选择大于限值 %d\n",coll.csds.num );
+		}
+		fprintf(stderr,"采集档案记录列: array=%d\n",coll.csds.num);
+		index += create_array(&data[index],coll.csds.num);
+		for(i=0;i<coll.csds.num;i++) {
+			index += fill_CSD(1,&data[index],coll.csds.csd[i]);
+		}
 		index += fill_MS(&data[index],coll.mst);		//电能表集合MS
 		index += fill_enum(&data[index],coll.savetimeflag);		//存储时标选择
 	}
