@@ -327,6 +327,7 @@ void print6013(CLASS_6013 class6013)
 	fprintf(stderr,"[7]%s  ",getenum(task_prio,class6013.runprio));
 	fprintf(stderr,"[8]%s  [9]%d  [10]%d ",getenum(task_status,class6013.state),class6013.befscript,class6013.aftscript);
 	fprintf(stderr,"[11]%s ",getenum(task_runtime,class6013.runtime.type));
+	fprintf(stderr,"运行时段:%d",class6013.runtime.num);
 	for(i=0;i<class6013.runtime.num;i++) {
 		fprintf(stderr,"[%d:%d %d:%d] ",class6013.runtime.runtime[i].beginHour,class6013.runtime.runtime[i].beginMin,
 									    class6013.runtime.runtime[i].endHour,class6013.runtime.runtime[i].endMin);
