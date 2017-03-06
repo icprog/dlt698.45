@@ -18,8 +18,12 @@
 static ProgramInfo* JProgramInfo = NULL;
 static CLASS25 Class25;
 
-ProgramInfo* getShareMem(void) {
-    return JProgramInfo;
+void EventAutoReport(CommBlock* nst) {
+    static int local_index = 0;
+    if (local_index != JProgramInfo->needreport_event.event_num) {
+        local_index = JProgramInfo->needreport_event.event_num;
+        Report_Event(nst, JProgramInfo->needreport_event.report_event[local_index]);
+    }
 }
 
 void clearcount(int index) {
@@ -80,9 +84,8 @@ void Comm_task(CommBlock* compara) {
         } else if (compara->linkstate == close_connection) //物理通道建立完成后，如果请求状态为close，则需要建立连接
         {
             WriteLinkRequest(build_connection, heartbeat, &compara->link_request);
-            asyslog(LOG_INFO, "建立链接 %02d-%02d-%02d %d:%d:%d\n", compara->link_request.time.year,
-                    compara->link_request.time.month, compara->link_request.time.day_of_month, compara->link_request.time.hour,
-                    compara->link_request.time.minute, compara->link_request.time.second);
+            asyslog(LOG_INFO, "建立链接 %02d-%02d-%02d %d:%d:%d\n", compara->link_request.time.year, compara->link_request.time.month,
+                    compara->link_request.time.day_of_month, compara->link_request.time.hour, compara->link_request.time.minute, compara->link_request.time.second);
             sendlen = Link_Request(compara->link_request, compara->serveraddr, compara->SendBuf);
         } else {
             WriteLinkRequest(heart_beat, heartbeat, &compara->link_request);
