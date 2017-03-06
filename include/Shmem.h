@@ -12,7 +12,7 @@
 #include "EventObject.h"
 #include "ParaDef.h"
 
-#pragma pack(1)				//结构体一个字节对齐
+//#pragma pack(1)				//结构体一个字节对齐
 
 typedef struct {
 	INT8U	oi3100;				//终端初始化事件

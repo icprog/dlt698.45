@@ -2,6 +2,7 @@
  * main.c
  *
  *  Created on: Jan 5, 2017
+ *
  *      Author: ava
  */
 
@@ -56,6 +57,7 @@ static char
 					"[清除配置]cj coll clear <oi>	\n"					\
 					"[删除一个配置单元]cj coll delete <oi> <id>  	id=【1..255】	\n"		\
 					"[采集档案配置表读取]cj coll pro 6000	\n"					\
+					"[增加一个采集档案配置表]查看帮助：cj coll add 6000	\n"					\
 					"[任务配置单元] cj coll pro 6013 <任务号> [读取任务配置单元]\n" 		\
 					"			  cj coll pro 6013 任务ID 执行频率 方案类型 方案编号 开始时间 结束时间 延时 执行优先级 状态 运行时段 起始小时:起始分钟 结束小时:结束分钟\n"	\
 					"             cj coll pro 6013 1 1-5 1 1 2016-11-11 0:0:0 2099-9-9 9:9:9 1-2 2 1 0 0:0-23:59\n" 		\

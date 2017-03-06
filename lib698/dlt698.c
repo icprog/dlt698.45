@@ -16,6 +16,7 @@
 extern int doObjectAction();
 //extern int doActionReponse(int reponse,CSINFO *csinfo,PIID piid,OMD omd,int dar,INT8U *data,INT8U *buf);
 extern int getRequestRecord(OAD oad,INT8U *data,CSINFO *csinfo,INT8U *sendbuf);
+extern int getRequestRecordList(INT8U *data,CSINFO *csinfo,INT8U *sendbuf);
 extern int getRequestNormal(OAD oad,INT8U *data,CSINFO *csinfo,INT8U *sendbuf);
 extern int getRequestNormalList(INT8U *data,CSINFO *csinfo,INT8U *sendbuf);
 extern int doReponse(int server,int reponse,CSINFO *csinfo,int datalen,INT8U *data,INT8U *buf);
@@ -540,18 +541,14 @@ int doSetAttribute(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 	OAD oad={};
 	INT8U *data=NULL;
 	piid_g.data = apdu[2];
-	Action_result	act_ret={};
 
 	switch(setType)
 	{
 		case SET_REQUEST_NORMAL:
 			memset(TmpDataBuf,0,sizeof(TmpDataBuf));
-			DAR = setRequestNormal(data,oad,csinfo,buf);
-			oad.OI= (apdu[3]<<8) | apdu[4];
-			oad.attflg = apdu[5];
-			oad.attrindex = apdu[6];
-			DAR = doObjectAction(oad,data,&act_ret);
+			getOAD(0,&apdu[3],&oad);
 			data = &apdu[7];					//Data
+			DAR = setRequestNormal(data,oad,csinfo,buf);
 			index += create_OAD(&TmpDataBuf[index],oad);
 			TmpDataBuf[index++] = DAR;
 			doReponse(SET_RESPONSE,SET_REQUEST_NORMAL,csinfo,index,TmpDataBuf,buf);

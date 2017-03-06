@@ -2,7 +2,7 @@
 #define STDDATATYPE_H_
 
 #include "ParaDef.h"
-#pragma pack(1)				//结构体一个字节对齐
+//#pragma pack(1)				//结构体一个字节对齐
 typedef unsigned char  BOOLEAN;
 typedef unsigned char  INT8U;                    /* Unsigned  8 bit quantity                           */
 typedef signed   char  INT8S;                    /* Signed    8 bit quantity                           */
@@ -328,7 +328,7 @@ typedef struct
 
 typedef struct
 {
-	INT8U addr[TSA_LEN];
+	INT8U addr[TSA_LEN];	// addr[0] :array num  addr[1]: TSA_len(后面数据帧为tsa_len+1) addr[2]...addr[2+TSA_len+1]
 }TSA;
 typedef struct
 {
@@ -457,7 +457,7 @@ typedef struct
 {
 	INT8U flag;			//解析时的标记，在应用程序中无意义
 	INT8U num;
-	MY_CSD csd[10];//CSD
+	MY_CSD csd[MY_CSD_NUM];//CSD
 }CSD_ARRAYTYPE;
 
 typedef struct

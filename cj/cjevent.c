@@ -43,9 +43,9 @@ void printClass3106()
 			tmpobj.poweroff_para_obj.collect_para_obj.time_space,tmpobj.poweroff_para_obj.collect_para_obj.time_threshold);
 	fprintf(stderr,"\n电能表TSA:");
 	for(j=0;j<tmpobj.poweroff_para_obj.collect_para_obj.tsaarr.num;j++) {
-		fprintf(stderr,"\n电能表TSA[%d]:",j);
+		fprintf(stderr,"\n--TSA[%d]%d-%d:",j,tmpobj.poweroff_para_obj.collect_para_obj.tsaarr.meter_tas[j].addr[0],tmpobj.poweroff_para_obj.collect_para_obj.tsaarr.meter_tas[j].addr[1]);
 		for(i=0;i<tmpobj.poweroff_para_obj.collect_para_obj.tsaarr.meter_tas[j].addr[0];i++) {
-			fprintf(stderr,"%02x",tmpobj.poweroff_para_obj.collect_para_obj.tsaarr.meter_tas[j].addr[i]);
+			fprintf(stderr,"%02x",tmpobj.poweroff_para_obj.collect_para_obj.tsaarr.meter_tas[j].addr[i+2]);
 		}
 	}
 	fprintf(stderr,"\n甄别限值参数:\n最小间隔时间:%d\n最大间隔事件:%d\n起止时间偏差限值:%d\n区段偏差限值:%d\n停电发生电压限值:%d\n停电恢复电压限值:%d\n",

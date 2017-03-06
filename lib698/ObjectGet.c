@@ -205,7 +205,7 @@ int GetSysDateTime(RESULT_NORMAL *response)
 	INT8U *data=NULL;
 	OAD oad;
 	DateTimeBCD time;
-
+	system((const char*)"hwclock -s");
 	oad = response->oad;
 	data = response->data;
 	DataTimeGet(&time);
@@ -252,7 +252,7 @@ int Get3106(RESULT_NORMAL *response)
 	index += create_struct(&data[index],4);	//停电数据采集配置参数　４个元素
 	index += fill_bit_string8(&data[index],tmpobj.poweroff_para_obj.collect_para_obj.collect_flag);
 	index += fill_unsigned(&data[index],tmpobj.poweroff_para_obj.collect_para_obj.time_space);
-	index += fill_unsigned(&data[index],tmpobj.poweroff_para_obj.collect_para_obj.time_space);
+	index += fill_unsigned(&data[index],tmpobj.poweroff_para_obj.collect_para_obj.time_threshold);
 	index += create_array(&data[index],tmpobj.poweroff_para_obj.collect_para_obj.tsaarr.num);
 	for(i=0;i<tmpobj.poweroff_para_obj.collect_para_obj.tsaarr.num;i++) {
 		index += fill_TSA(&data[index],&tmpobj.poweroff_para_obj.collect_para_obj.tsaarr.meter_tas[i].addr[1],tmpobj.poweroff_para_obj.collect_para_obj.tsaarr.meter_tas[i].addr[0]);
@@ -318,6 +318,24 @@ int Get310e(RESULT_NORMAL *response)
 	index += create_struct(&data[index],2);
 	index += fill_TI(&data[index],tmpobj.powerstoppara_obj.power_offset);
 	index += fill_unsigned(&data[index],tmpobj.powerstoppara_obj.task_no);
+	response->datalen = index;
+	return 0;
+}
+
+int Get310f(RESULT_NORMAL *response)
+{
+	int index=0;
+	OAD oad={};
+	Event310F_Object	tmpobj={};
+	INT8U *data = NULL;
+
+	data = response->data;
+	oad = response->oad;
+	memset(&tmpobj,0,sizeof(Event310F_Object));
+	readCoverClass(oad.OI,0,&tmpobj,sizeof(Event310F_Object),event_para_save);
+	index += create_struct(&data[index],2);
+	index += fill_unsigned(&data[index],tmpobj.collectfail_obj.retry_nums);
+	index += fill_unsigned(&data[index],tmpobj.collectfail_obj.task_no);
 	response->datalen = index;
 	return 0;
 }
@@ -527,6 +545,75 @@ int Get4300(RESULT_NORMAL *response)
 	return 0;
 }
 
+void printrcsd(RCSD rcsd)
+{
+	int i=0;
+	int k=0;
+	for(i = 0; i<rcsd.csds.num;i++)
+	{
+		if (rcsd.csds.csd[i].type == 1)
+		{
+			fprintf(stderr,"\n");
+			fprintf(stderr,"\nROAD     %04x %02x %02x",rcsd.csds.csd[i].csd.road.oad.OI,rcsd.csds.csd[i].csd.road.oad.attflg,rcsd.csds.csd[i].csd.road.oad.attrindex);
+			for(k=0;k<rcsd.csds.csd[i].csd.road.num;k++)
+				fprintf(stderr,"\n     		oad %04x %02x %02x",rcsd.csds.csd[i].csd.road.oads[k].OI,rcsd.csds.csd[i].csd.road.oads[k].attflg,rcsd.csds.csd[i].csd.road.oads[k].attrindex);
+		}else
+		{
+			fprintf(stderr,"\nOAD     %04x %02x %02x",rcsd.csds.csd[i].csd.oad.OI,rcsd.csds.csd[i].csd.oad.attflg,rcsd.csds.csd[i].csd.oad.attrindex);
+		}
+	}
+}
+void printSel5(RESULT_RECORD record)
+{
+	fprintf(stderr,"\n%d年 %d月 %d日 %d时:%d分:%d秒",
+					record.select.selec5.collect_save.year.data,record.select.selec5.collect_save.month.data,
+					record.select.selec5.collect_save.day.data,record.select.selec5.collect_save.hour.data,
+					record.select.selec5.collect_save.min.data,record.select.selec5.collect_save.sec.data);
+	fprintf(stderr,"\nMS-TYPE %d  ",record.select.selec5.meters.mstype);
+	printrcsd(record.rcsd);
+}
+
+void printSel7(RESULT_RECORD record)
+{
+	fprintf(stderr,"\n采集存储时间起始值：%d-%d-%d %d:%d:%d",
+					record.select.selec7.collect_save_star.year.data,record.select.selec7.collect_save_star.month.data,
+					record.select.selec7.collect_save_star.day.data,record.select.selec7.collect_save_star.hour.data,
+					record.select.selec7.collect_save_star.min.data,record.select.selec7.collect_save_star.sec.data);
+	fprintf(stderr,"\n采集存储时间结束值：%d-%d-%d %d:%d:%d",
+					record.select.selec7.collect_save_finish.year.data,record.select.selec7.collect_save_finish.month.data,
+					record.select.selec7.collect_save_finish.day.data,record.select.selec7.collect_save_finish.hour.data,
+					record.select.selec7.collect_save_finish.min.data,record.select.selec7.collect_save_finish.sec.data);
+	fprintf(stderr,"\n时间间隔TI 单位:%d[秒-0，分-1，时-2，日-3，月-4，年-5],间隔:%x",record.select.selec7.ti.units,record.select.selec7.ti.interval);
+	fprintf(stderr,"\n电能表集合MS 类型：%d\n",record.select.selec7.meters.mstype);
+	printrcsd(record.rcsd);
+}
+
+void printSel9(RESULT_RECORD record)
+{
+	fprintf(stderr,"\nSelector9:指定选取上第n次记录\n");
+	fprintf(stderr,"\n选取上第%d次记录 ",record.select.selec9.recordn);
+	fprintf(stderr,"\nRCSD个数：%d",record.rcsd.csds.num);
+	printrcsd(record.rcsd);
+}
+
+void printrecord(RESULT_RECORD record)
+{
+	switch(record.selectType){
+	case 1:
+		fprintf(stderr,"\nOAD %04x %02x %02x",record.select.selec1.oad.OI,record.select.selec1.oad.attflg,record.select.selec1.oad.attrindex);
+		fprintf(stderr,"\nData Type= %02x  Value=%d ",record.select.selec1.data.type,record.select.selec1.data.data[0]);
+		break;
+	case 5:
+		printSel5(record);
+		break;
+	case 7:
+		printSel7(record);
+		break;
+	case 9:
+		printSel9(record);
+		break;
+	}
+}
 ///
 int getSel1_coll(RESULT_RECORD *record)
 {
@@ -604,10 +691,10 @@ int doGetrecord(OAD oad,INT8U *data,RESULT_RECORD *record)
 	int		dest_index=0;		//getreponse 指针
 	INT8U 	SelectorN =0;
 
-	memset(TmpDataBuf,0,sizeof(TmpDataBuf));
-	record->oad = oad;
-	record->data = TmpDataBuf;
-	record->datalen = 0;
+//	memset(TmpDataBuf,0,sizeof(TmpDataBuf));
+//	record->oad = oad;
+//	record->data = TmpDataBuf;
+//	record->datalen = 0;
 	fprintf(stderr,"\nGetRequestRecord   oi=%x  %02x  %02x",record->oad.OI,record->oad.attflg,record->oad.attrindex);
 	source_index = get_BasicRSD(0,&data[source_index],(INT8U *)&record->select,&record->selectType);
 	fprintf(stderr,"\nRSD Select%d     data[%d] = %02x",record->selectType,source_index,data[source_index]);
@@ -654,79 +741,14 @@ int doGetrecord(OAD oad,INT8U *data,RESULT_RECORD *record)
 	return source_index;
 }
 
-void printrcsd(RCSD rcsd)
-{
-	int i=0;
-	int k=0;
-	for(i = 0; i<rcsd.csds.num;i++)
-	{
-		if (rcsd.csds.csd[i].type == 1)
-		{
-			fprintf(stderr,"\n");
-			fprintf(stderr,"\nROAD     %04x %02x %02x",rcsd.csds.csd[i].csd.road.oad.OI,rcsd.csds.csd[i].csd.road.oad.attflg,rcsd.csds.csd[i].csd.road.oad.attrindex);
-			for(k=0;k<rcsd.csds.csd[i].csd.road.num;k++)
-				fprintf(stderr,"\n     		oad %04x %02x %02x",rcsd.csds.csd[i].csd.road.oads[k].OI,rcsd.csds.csd[i].csd.road.oads[k].attflg,rcsd.csds.csd[i].csd.road.oads[k].attrindex);
-		}else
-		{
-			fprintf(stderr,"\nOAD     %04x %02x %02x",rcsd.csds.csd[i].csd.oad.OI,rcsd.csds.csd[i].csd.oad.attflg,rcsd.csds.csd[i].csd.oad.attrindex);
-		}
-	}
-}
-void printSel5(RESULT_RECORD record)
-{
-	fprintf(stderr,"\n%d年 %d月 %d日 %d时:%d分:%d秒",
-					record.select.selec5.collect_save.year.data,record.select.selec5.collect_save.month.data,
-					record.select.selec5.collect_save.day.data,record.select.selec5.collect_save.hour.data,
-					record.select.selec5.collect_save.min.data,record.select.selec5.collect_save.sec.data);
-	fprintf(stderr,"\nMS-TYPE %d  ",record.select.selec5.meters.mstype);
-	printrcsd(record.rcsd);
-}
-
-void printSel7(RESULT_RECORD record)
-{
-	fprintf(stderr,"\n采集存储时间起始值：%d-%d-%d %d:%d:%d",
-					record.select.selec7.collect_save_star.year.data,record.select.selec7.collect_save_star.month.data,
-					record.select.selec7.collect_save_star.day.data,record.select.selec7.collect_save_star.hour.data,
-					record.select.selec7.collect_save_star.min.data,record.select.selec7.collect_save_star.sec.data);
-	fprintf(stderr,"\n采集存储时间结束值：%d-%d-%d %d:%d:%d",
-					record.select.selec7.collect_save_finish.year.data,record.select.selec7.collect_save_finish.month.data,
-					record.select.selec7.collect_save_finish.day.data,record.select.selec7.collect_save_finish.hour.data,
-					record.select.selec7.collect_save_finish.min.data,record.select.selec7.collect_save_finish.sec.data);
-	fprintf(stderr,"\n时间间隔TI 单位:%d[秒-0，分-1，时-2，日-3，月-4，年-5],间隔:%x",record.select.selec7.ti.units,record.select.selec7.ti.interval);
-	fprintf(stderr,"\n电能表集合MS 类型：%d\n",record.select.selec7.meters.mstype);
-	printrcsd(record.rcsd);
-}
-
-void printSel9(RESULT_RECORD record)
-{
-	fprintf(stderr,"\nSelector9:指定选取上第n次记录\n");
-	fprintf(stderr,"\n选取上第%d次记录 ",record.select.selec9.recordn);
-	fprintf(stderr,"\nRCSD个数：%d",record.rcsd.csds.num);
-	printrcsd(record.rcsd);
-}
-
-void printrecord(RESULT_RECORD record)
-{
-	switch(record.selectType){
-	case 1:
-		fprintf(stderr,"\nOAD %04x %02x %02x",record.select.selec1.oad.OI,record.select.selec1.oad.attflg,record.select.selec1.oad.attrindex);
-		fprintf(stderr,"\nData Type= %02x  Value=%d ",record.select.selec1.data.type,record.select.selec1.data.data[0]);
-		break;
-	case 5:
-		printSel5(record);
-		break;
-	case 7:
-		printSel7(record);
-		break;
-	case 9:
-		printSel9(record);
-		break;
-	}
-}
-
 int getRequestRecord(OAD oad,INT8U *data,CSINFO *csinfo,INT8U *sendbuf)
 {
 	RESULT_RECORD record;
+
+	memset(TmpDataBuf,0,sizeof(TmpDataBuf));
+	record.oad = oad;
+	record.data = TmpDataBuf;
+	record.datalen = 0;
 	doGetrecord(oad,data,&record);
 	BuildFrame_GetResponseRecord(GET_REQUEST_RECORD,csinfo,record,sendbuf);
 
@@ -753,6 +775,7 @@ int getRequestRecordList(INT8U *data,CSINFO *csinfo,INT8U *sendbuf)
 		record.data = TmpDataBuf;
 		record.datalen = 0;
 		sourceindex += getOAD(0,&data[sourceindex],&oad);
+		record.oad = oad;
 		sourceindex += doGetrecord(oad,&data[sourceindex],&record);
 		memcpy(&TmpDataBufList[destindex],record.data,record.datalen);
 		destindex += record.datalen;
@@ -889,6 +912,9 @@ int GetEventInfo(RESULT_NORMAL *response)
 				break;
 			case 0x310e:	//电能表停走事件阈值
 				Get310e(response);
+				break;
+			case 0x310f:	//终端抄表失败事件
+				Get310f(response);
 				break;
 			case 0x3110:	//月通信流量超限事件阈值
 				Get3110(response);
