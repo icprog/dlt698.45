@@ -600,7 +600,7 @@ INT8U block_file_sync(char *fname,void *blockdata,int size,int headsize,int inde
 	INT16U  *readcrc2=NULL;
 	INT16U  ret=0;
 
-	fprintf(stderr,"\n read file :%s　size=%d\n",fname,size);
+//	fprintf(stderr,"\n read file :%s　size=%d\n",fname,size);
 	if(fname==NULL || strlen(fname)<=4 || size<2) 	return 0;
 
 	//文件默认最后两个字节为CRC16校验，原结构体尺寸如果不是4个字节对齐，进行补齐，加CRC16
@@ -712,9 +712,9 @@ INT8U save_block_file(char *fname,void *blockdata,int size,int headsize,int inde
 	offset = headsize+sizenew*index;
 	if(file_write(fname,blockdata,sizenew,offset)==1) {
 		for(i=0;i<3;i++) {
-			fprintf(stderr,"read fname=%s,size=%d,sizenew=%d\n",fname,size,sizenew);
+//			fprintf(stderr,"read fname=%s,size=%d,sizenew=%d\n",fname,size,sizenew);
 			if(file_read(fname,blockdata,sizenew,offset,&readcrc)==1) {						//源文件正确，备份参数文件
-				fprintf(stderr,"保存文件成功，备份文件,crc=%04x\n",readcrc);
+//				fprintf(stderr,"保存文件成功，备份文件,crc=%04x\n",readcrc);
 				ret = block_file_sync(fname,blockdata,size,headsize,index);			//配置文件同步处理
 //				fprintf(stderr,"**********block_file_sync ret=%d\n",ret);
 				if(ret==1) 	break;

@@ -313,6 +313,7 @@ INT16U set4007(OAD oad,INT8U *data)
 		fprintf(stderr,"\n【显示电能小数位】 %d",class4007.energydata_dec);
 		fprintf(stderr,"\n【显示功率小数位】 %d",class4007.powerdata_dec);
 		saveCoverClass(oad.OI,0,&class4007,sizeof(CLASS_4007),para_vari_save);
+		return index;
 	}
 	return 0;
 }
@@ -342,19 +343,22 @@ INT16U set4204(OAD oad,INT8U *data)
 {
 	int	index=0;
 	CLASS_4204 class4204={};
+	int	saveflg=0;
 	memset(&class4204,0,sizeof(CLASS_4204));
 	fprintf(stderr,"\n==========%d",oad.attflg);
 	readCoverClass(oad.OI,0,&class4204,sizeof(CLASS_4204),para_vari_save);
 	if (oad.attflg == 2 )
 	{
 		index += getStructure(&data[index],NULL);
-		index += getOctetstring(1,&data[index],(INT8U *)&class4204.startime);
+		index += getTime(1,&data[index],(INT8U *)&class4204.startime);
 		index += getBool(&data[index],(INT8U *)&class4204.enable);
 		fprintf(stderr,"\n【终端广播校时,属性2】:");
 		fprintf(stderr,"\ntime : %02x %02x %02x",class4204.startime[0],class4204.startime[1],class4204.startime[2]);
 		fprintf(stderr,"\nenable: %d",class4204.enable);
 		fprintf(stderr,"\n");
-		saveCoverClass(oad.OI,0,&class4204,sizeof(CLASS_4204),para_vari_save);
+		saveflg = saveCoverClass(oad.OI,0,&class4204,sizeof(CLASS_4204),para_vari_save);
+		fprintf(stderr,"index=%d saveflg=%d\n",index,saveflg);
+		return index;
 	}else if(oad.attflg == 3)
 	{
 		index += getStructure(&data[index],NULL);
@@ -367,6 +371,7 @@ INT16U set4204(OAD oad,INT8U *data)
 		fprintf(stderr,"\n误差 = %d",class4204.upleve);
 		fprintf(stderr,"\n");
 		saveCoverClass(oad.OI,0,&class4204,sizeof(CLASS_4204),para_vari_save);
+		return index;
 	}
 	return 0;
 }
@@ -667,10 +672,10 @@ void EnvironmentValue(OAD oad,INT8U *data)
 			break;
 		case 0x4030://电压合格率参数
 			break;
-		case 0x4103:
+		case 0x4103://资产管理编码
 			set4103(oad,data);
 			break;
-		case 0x4204:
+		case 0x4204://终端广播校时
 			set4204(oad,data);
 			break;
 		case 0x4300://电气设备

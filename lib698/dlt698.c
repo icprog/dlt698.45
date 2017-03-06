@@ -549,9 +549,10 @@ int doSetAttribute(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 			memset(TmpDataBuf,0,sizeof(TmpDataBuf));
 			getOAD(0,&apdu[3],&oad);
 			data = &apdu[7];					//Data
-			DAR = setRequestNormal(data,oad,csinfo,buf);
+			DAR = setRequestNormal(data,oad,NULL,buf);
+			fprintf(stderr,"setRequestNormal dar = %d\n",DAR);
 			index += create_OAD(&TmpDataBuf[index],oad);
-			TmpDataBuf[index++] = DAR;
+			TmpDataBuf[index++] = (INT8U)DAR;
 			doReponse(SET_RESPONSE,SET_REQUEST_NORMAL,csinfo,index,TmpDataBuf,buf);
 			Get698_event(oad,memp);
 			break;

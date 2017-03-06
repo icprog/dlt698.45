@@ -78,6 +78,7 @@ int doReponse(int server,int reponse,CSINFO *csinfo,int datalen,INT8U *data,INT8
 	buf[index++] = 0;	//时间标签		TimeTag
 	FrameTail(buf,index,hcsi);
 
+
 	if(pSendfun!=NULL)
 		pSendfun(comfd,buf,index+3);
 	return (index+3);

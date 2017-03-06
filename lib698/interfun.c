@@ -329,6 +329,16 @@ int getEnum(INT8U type,INT8U *source,INT8U *enumvalue)	//16
 	return 0;
 }
 
+int getTime(INT8U type,INT8U *source,INT8U *dest) 	//0x1B
+{
+	if((type == 1) || (type == 0)) {
+		dest[0] = source[type+0];//时
+		dest[1] = source[type+1];//分
+		dest[2] = source[type+2];//秒
+		return (3+type);
+	}
+	return 0;
+}
 /*
  * type: =1 包含类型描述字节
  * 		　=0 不包含类型描述字节
