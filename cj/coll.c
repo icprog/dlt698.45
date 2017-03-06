@@ -195,90 +195,120 @@ void print6000(OI_698	oi)
 void Collect6000(int argc, char *argv[])
 {
 	CLASS_6001	 meter={};
-	CLASS11		coll={};
 	int		ret = -1, pi=0, po=0;
 	int		i=0;
-	int 	tmp[30]={};
+	int 	tmp[50]={};
 
 	if(strcmp("pro",argv[2])==0) {
 		if(argc<5) {
 			print6000(0x6000);
-		}else if(argc==5) {
-			fprintf(stderr,"添加一个采集档案配置单元：[0]配置序号 ");
-			fprintf(stderr,"基本信息:[1]通信地址  [2]波特率  [3]规约  [4]端口OAD  [5]通信密码  [6]费率个数  [7]用户类型  [8]接线方式  [9]额定电压  [10]额定电流 \n");
-			fprintf(stderr,"扩展信息:[11]采集器地址 [12]资产号 [13]PT [14]CT\n");
+		}
+	}if(strcmp("add",argv[2])==0) {
+		if(argc<5) {
+			fprintf(stderr,"\n添加一个采集档案配置单元：配置项0-12：\n[0]配置序号 \n");
+			fprintf(stderr,"基本信息:[1]通信地址  [2]波特率  [3]规约  [4]端口OAD  [5]费率个数  [6]用户类型  [7]接线方式  [8]额定电压  [9]额定电流 \n");
+			fprintf(stderr,"扩展信息:[10]采集器地址 [11]PT [12]CT\n");
+			fprintf(stderr,"配置说明:\n【1】通信地址TSA，【10】采集器地址:第一个字节为TSA长度如： 05 12 34 56 78 9A\n");
+			fprintf(stderr,"【2】波特率:300bps(0),600bps(1),1200bps(2),2400bps(3),4800bps(4),7200bps(5),9600bps(6),19200bps(7),38400bps(8),57600bps(9),115200bps(10),自适应(255)\n");
+			fprintf(stderr,"【3】规约:未知(0),DL/T645-1997(1),DL/T645-2007(2),DL/T698.45(3),CJ/T188-2004(4)\n");
+			fprintf(stderr,"【4】OAD:格式输入 04x-04x，如OAD=f2010201, 输入：f201-0201\n");
+			fprintf(stderr,"【7】接线方式:未知(0),单相(1),三相三线(2),三相四线(3)\n");
+			fprintf(stderr,"例如<配置序号1的内容>：cj coll add 6000 1 06 18 00 03 35 15 52 2 2 f201-0201 4 1 2 220 15 0 2200 1500\n");
 		}else {
-//			memset(&meter,0,sizeof(CLASS_6001));
-//			pi = 4;
-//			po = 0;
-//			sscanf(argv[pi],"%d",&tmp[po]);
-//			meter.sernum = tmp[po];
-//			pi++;
-//			po++;
-//			sscanf(argv[pi],"%d",&tmp[po]);
-//			meter.basicinfo.addr.addr[0]=tmp[po];
-//			sscanf(argv[pi],"%02x-%02x",&tmp[po],&tmp[po+1]);
-//			class6013.interval.units = tmp[po];
-//			class6013.interval.interval = tmp[po+1];
-//			pi++;
-//			po=po+2;
-//			sscanf(argv[pi],"%d",&tmp[po]);
-//			class6013.cjtype = tmp[po];
-//			pi++;
-//			po++;
-//			sscanf(argv[pi],"%d",&tmp[po]);
-//			class6013.sernum = tmp[po];
-//			pi++;
-//			po++;
-//			sscanf(argv[pi],"%d-%d-%d",&tmp[po],&tmp[po+1],&tmp[po+2]);
-//			class6013.startime.year.data = tmp[po];
-//			class6013.startime.month.data = tmp[po+1];
-//			class6013.startime.day.data = tmp[po+2];
-//			pi++;
-//			po=po+3;
-//			sscanf(argv[pi],"%d:%d:%d",&tmp[po],&tmp[po+1],&tmp[po+2]);
-//			class6013.startime.hour.data = tmp[po];
-//			class6013.startime.min.data = tmp[po+1];
-//			class6013.startime.sec.data = tmp[po+2];
-//			pi++;
-//			po=po+3;
-//			sscanf(argv[pi],"%d-%d-%d",&tmp[po],&tmp[po+1],&tmp[po+2]);
-//			class6013.endtime.year.data = tmp[po];
-//			class6013.endtime.month.data = tmp[po+1];
-//			class6013.endtime.day.data = tmp[po+2];
-//			pi++;
-//			po=po+3;
-//			sscanf(argv[pi],"%d:%d:%d",&tmp[po],&tmp[po+1],&tmp[po+2]);
-//			class6013.endtime.hour.data = tmp[po];
-//			class6013.endtime.min.data = tmp[po+1];
-//			class6013.endtime.sec.data = tmp[po+2];
-//			pi++;
-//			po=po+3;
-//			sscanf(argv[pi],"%d-%d",&tmp[po],&tmp[po+1]);
-//			class6013.delay.units = tmp[po];
-//			class6013.delay.interval = tmp[po+1];
-//			pi++;
-//			po=po+2;
-//			sscanf(argv[pi],"%d",&tmp[po]);
-//			class6013.runprio = tmp[po];
-//			pi++;
-//			po++;
-//			sscanf(argv[pi],"%d",&tmp[po]);
-//			class6013.state = tmp[po];
-//			pi++;
-//			po++;
-//			sscanf(argv[pi],"%d",&tmp[po]);
-//			class6013.runtime.type = tmp[po];
-//			pi++;
-//			po++;
-//			sscanf(argv[pi],"%d:%d-%d:%d",&tmp[po],&tmp[po+1],&tmp[po+2],&tmp[po+3]);
-//			class6013.runtime.runtime[0].beginHour=tmp[po];
-//			class6013.runtime.runtime[0].beginMin=tmp[po+1];
-//			class6013.runtime.runtime[0].endHour=tmp[po+2];
-//			class6013.runtime.runtime[0].endMin=tmp[po+3];
-//			pi++;
-//			po=po+4;
-//			saveCoverClass(oi,class6013.taskID,&class6013,sizeof(CLASS_6013),coll_para_save);
+			memset(&meter,0,sizeof(CLASS_6001));
+			pi = 4;
+			po = 0;
+			sscanf(argv[pi],"%d",&tmp[po]);
+			meter.sernum = tmp[po];
+			pi++;
+			po++;
+			fprintf(stderr,"sernum=%d ",meter.sernum);
+			///TSA
+			sscanf(argv[pi],"%d",&tmp[po]);
+			meter.basicinfo.addr.addr[1]=tmp[po];	// addr[0] :array num  addr[1]: TSA_len(后面数据帧为tsa_len+1) addr[2]...addr[2+TSA_len+1]
+			pi++;
+			po++;
+			for(i=0;i<(meter.basicinfo.addr.addr[1]);i++) {
+				sscanf(argv[pi],"%02x",&tmp[po]);
+				meter.basicinfo.addr.addr[2+i] = tmp[po];
+				pi++;
+				po++;
+			}
+			meter.basicinfo.addr.addr[0]=meter.basicinfo.addr.addr[1]+1;
+			meter.basicinfo.addr.addr[1]=meter.basicinfo.addr.addr[1]-1;
+
+			fprintf(stderr,"TSA=%d-%d ",meter.basicinfo.addr.addr[0],meter.basicinfo.addr.addr[1]);
+			for(i=0;i<(meter.basicinfo.addr.addr[1]+1);i++) {
+				fprintf(stderr,"%02x ",meter.basicinfo.addr.addr[i+2]);
+			}
+
+			//////
+			sscanf(argv[pi],"%d",&tmp[po]);
+			meter.basicinfo.baud = tmp[po];
+			pi++;
+			po++;
+			fprintf(stderr,"\nbaud=%d ",meter.basicinfo.baud);
+
+			sscanf(argv[pi],"%d",&tmp[po]);
+			meter.basicinfo.protocol = tmp[po];
+			pi++;
+			po++;
+			fprintf(stderr,"\nprotocol=%d ",meter.basicinfo.protocol);
+
+			sscanf(argv[pi],"%04x-%04x",&tmp[po],&tmp[po+1]);
+			meter.basicinfo.port.OI = tmp[po];
+			meter.basicinfo.port.attflg = (tmp[po+1]>>8) & 0xff;
+			meter.basicinfo.port.attrindex = tmp[po+1] & 0xff;
+			pi++;
+			po=po+2;
+			fprintf(stderr,"\nOAD=%04x %02x%02x ",meter.basicinfo.port.OI,meter.basicinfo.port.attflg,meter.basicinfo.port.attrindex);
+			memset(&meter.basicinfo.pwd,0,sizeof(meter.basicinfo.pwd));
+			sscanf(argv[pi],"%d",&tmp[po]);
+			meter.basicinfo.ratenum = tmp[po];
+			pi++;
+			po++;
+			sscanf(argv[pi],"%d",&tmp[po]);
+			meter.basicinfo.usrtype = tmp[po];
+			pi++;
+			po++;
+			sscanf(argv[pi],"%d",&tmp[po]);
+			meter.basicinfo.connectype = tmp[po];
+			pi++;
+			po++;
+			sscanf(argv[pi],"%d",&tmp[po]);
+			meter.basicinfo.ratedU = tmp[po];
+			pi++;
+			po++;
+			sscanf(argv[pi],"%d",&tmp[po]);
+			meter.basicinfo.ratedI = tmp[po];
+			pi++;
+			po++;
+			sscanf(argv[pi],"%d",&tmp[po]);
+			meter.extinfo.cjq_addr.addr[1]=tmp[po];	// addr[0] :array num  addr[1]: TSA_len(后面数据帧为tsa_len+1) addr[2]...addr[2+TSA_len+1]
+			pi++;
+			po++;
+			////TSA
+			for(i=0;i<(meter.extinfo.cjq_addr.addr[1]);i++) {
+				sscanf(argv[pi],"%02x",&tmp[po]);
+				meter.extinfo.cjq_addr.addr[2+i] = tmp[po];
+				pi++;
+				po++;
+			}
+			meter.extinfo.cjq_addr.addr[0]=meter.extinfo.cjq_addr.addr[1]+1;
+			if(meter.extinfo.cjq_addr.addr[1]!=0) {
+				meter.extinfo.cjq_addr.addr[1]=meter.extinfo.cjq_addr.addr[1]-1;
+			}
+			///////
+			sscanf(argv[pi],"%d",&tmp[po]);
+			meter.extinfo.pt = tmp[po];
+			pi++;
+			po++;
+			sscanf(argv[pi],"%d",&tmp[po]);
+			meter.extinfo.ct = tmp[po];
+			pi++;
+			po++;
+			ret = saveParaClass(0x6000,&meter,meter.sernum);
+			fprintf(stderr,"保存采集档案配置单元 序号 %d, ret=%d\n",meter.sernum,ret);
 		}
 	}
 }
