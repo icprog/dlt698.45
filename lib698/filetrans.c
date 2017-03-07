@@ -33,7 +33,6 @@
 //每次只能同时升级一个文件
 static unsigned char checksum;
 static unsigned short blocksize;
-static unsigned char checksumtmp;
 static unsigned char file_path[256];
 
 int createFile(const char* path, int length, unsigned char crc, unsigned short bs) {
@@ -42,9 +41,9 @@ int createFile(const char* path, int length, unsigned char crc, unsigned short b
     if (length > 5 * 1024 * 1024) {
         return 112;
     }
-    checksum    = crc;
-    checksumtmp = 0x00;
-    blocksize   = bs;
+
+    checksum  = crc;
+    blocksize = bs;
 
     //文件夹不存在,创建文件夹
     if (access("/nand/UpFiles", F_OK) != 0) {
@@ -72,6 +71,37 @@ int createFile(const char* path, int length, unsigned char crc, unsigned short b
     return 0;
 }
 
+int CheckFileSum(void) {
+    FILE* fp = NULL;
+
+    fp = fopen((const char*)file_path, "r+");
+    if (fp == NULL) {
+        return 107;
+    }
+
+    //获取文件长度
+    struct stat mstats;
+    stat(file_path, &mstats);
+    fprintf(stderr, "文件校验，长度(%d)", mstats.st_size);
+
+    char buf[1024];
+    int file_length        = mstats.st_size;
+    unsigned char local_cs = 0x00;
+
+    while (file_length > 0) {
+        int current_length = (file_length > 1024) ? 1024 : file_length;
+        fread(buf, current_length, 1, fp);
+        for (int i = 0; i < current_length; i++) {
+            local_cs += buf[i];
+            local_cs %= 256;
+        }
+        file_length -= current_length;
+    }
+    fclose(fp);
+
+    fprintf(stderr, "文件校验结果，应为(%02x)，实为(%02x)", checksum, local_cs);
+}
+
 int appendFile(int shift, int length, unsigned char* buf) {
     FILE* fp = NULL;
 
@@ -80,31 +110,24 @@ int appendFile(int shift, int length, unsigned char* buf) {
         return 104;
     }
 
-    //打开文件，并写入空值对文件进行填充
     fp = fopen((const char*)file_path, "r+");
-    if (fp != NULL) {
-        fseek(fp, shift * blocksize, SEEK_SET);
-        fwrite(buf, length, 1, fp);
-        fclose(fp);
-        for (int j = 0; j < length; j++) {
-            checksumtmp += buf[j];
-        }
-        struct stat mstats;
-        stat(file_path, &mstats);
-        int res = (int)((shift * blocksize + length) * 100.0) / mstats.st_size;
-        if (res == 100) {
-            printf("checksumtmp = %d-%d\n", checksumtmp, checksum);
-            if (checksumtmp == checksum) {
-                return 100;
-            } else {
-                return 107;
-            }
-        } else {
-            return res;
-        }
-    } else {
+    if (fp == NULL) {
         return 105;
     }
 
-    return 0;
+    fseek(fp, shift * blocksize, SEEK_SET);
+    fwrite(buf, length, 1, fp);
+    fclose(fp);
+
+    //获取文件长度
+    struct stat mstats;
+    stat(file_path, &mstats);
+    int res = (int)((shift * blocksize + length) * 100.0) / mstats.st_size;
+
+    if (shift * blocksize + length != mstats.st_size) {
+        return res;
+    }
+
+    return CheckFileSum();
+    // return 107;
 }

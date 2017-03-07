@@ -86,7 +86,7 @@ void ClientRead(struct aeEventLoop* eventLoop, int fd, void* clientData, int mas
                 switch (apduType) {
                     case LINK_RESPONSE:
                         if (GetTimeOffsetFlag() == 1) {
-                            Getk(nst->linkResponse, getShareMem());
+                            Getk(nst->linkResponse, nst->shmem);
                         }
                         nst->linkstate   = build_connection;
                         nst->testcounter = 0;
@@ -103,8 +103,7 @@ MASTER_STATION_INFO getNextIpPort(void) {
     static int index = 0;
     MASTER_STATION_INFO res;
     memset(&res, 0x00, sizeof(MASTER_STATION_INFO));
-    snprintf((char*)res.ip, sizeof(res.ip), "%d.%d.%d.%d", IpPool[index].ip[1], IpPool[index].ip[2], IpPool[index].ip[3],
-             IpPool[index].ip[4]);
+    snprintf((char*)res.ip, sizeof(res.ip), "%d.%d.%d.%d", IpPool[index].ip[1], IpPool[index].ip[2], IpPool[index].ip[3], IpPool[index].ip[4]);
     res.port = IpPool[index].port;
     index++;
     index %= 2;
@@ -136,9 +135,9 @@ int RegularClient(struct aeEventLoop* ep, long long id, void* clientData) {
             }
         }
     } else {
-        TS ts = {};
-        TSGet(&ts);
         Comm_task(nst);
+        EventAutoReport(nst);
+        CalculateTransFlow(nst->shmem);
     }
 
     return 2000;
@@ -150,10 +149,10 @@ int RegularClient(struct aeEventLoop* ep, long long id, void* clientData) {
 int StartClient(struct aeEventLoop* ep, long long id, void* clientData) {
     CLASS25* class25 = (CLASS25*)clientData;
     memcpy(&IpPool, &class25->master.master, sizeof(IpPool));
-    asyslog(LOG_INFO, "主站通信地址(1)为：%d.%d.%d.%d:%d", class25->master.master[0].ip[1], class25->master.master[0].ip[2],
-            class25->master.master[0].ip[3], class25->master.master[0].ip[4], class25->master.master[0].port);
-    asyslog(LOG_INFO, "主站通信地址(2)为：%d.%d.%d.%d:%d", class25->master.master[1].ip[1], class25->master.master[1].ip[2],
-            class25->master.master[1].ip[3], class25->master.master[1].ip[4], class25->master.master[1].port);
+    asyslog(LOG_INFO, "主站通信地址(1)为：%d.%d.%d.%d:%d", class25->master.master[0].ip[1], class25->master.master[0].ip[2], class25->master.master[0].ip[3],
+            class25->master.master[0].ip[4], class25->master.master[0].port);
+    asyslog(LOG_INFO, "主站通信地址(2)为：%d.%d.%d.%d:%d", class25->master.master[1].ip[1], class25->master.master[1].ip[2], class25->master.master[1].ip[3],
+            class25->master.master[1].ip[4], class25->master.master[1].port);
 
     ClientInit();
     Client_Task_Id = aeCreateTimeEvent(ep, 1000, RegularClient, &ClientObject, NULL);
