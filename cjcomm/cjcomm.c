@@ -21,7 +21,9 @@ static CLASS25 Class25;
 void EventAutoReport(CommBlock* nst) {
     static int local_index = 0;
     if (local_index != JProgramInfo->needreport_event.event_num) {
-        local_index = JProgramInfo->needreport_event.event_num;
+        //循环存储16个
+        local_index += 1;
+        local_index %= 16;
         Report_Event(nst, JProgramInfo->needreport_event.report_event[local_index]);
     }
 }
