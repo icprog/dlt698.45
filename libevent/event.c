@@ -326,7 +326,8 @@ INT8U Getevent_Record(INT8U event_no,OI_698 *oi_array,INT8U oi_index,INT8U *real
 							len=3;
 							break;
 					}
-					 memcpy(&record_para->data[*real_index],&Getbuf[23],len);
+					if(len>0)
+						memcpy(&record_para->data[*real_index],&Getbuf[23],len);
 					 *real_index +=len;
 				}
 				break;
