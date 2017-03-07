@@ -216,7 +216,14 @@ void ProjectMainExit(int signo)
 	sem_unlink(SEMNAME_SPI0_0);
 	close_named_sem(SEMNAME_PARA_SAVE);
 	sem_unlink(SEMNAME_PARA_SAVE);
+	close_named_sem(DISPATCH_TASK_485_1);
+	sem_unlink(DISPATCH_TASK_485_1);
+	close_named_sem(DISPATCH_TASK_485_2);
+	sem_unlink(DISPATCH_TASK_485_2);
+	close_named_sem(DISPATCH_TASK_PLC);
+	sem_unlink(DISPATCH_TASK_PLC);
 	shmm_destroy();
+
 	exit(0);
 	return ;
 }
@@ -236,7 +243,7 @@ int Checkupdate()
  * */
 void ProgInit()
 {
-	sem_t * sem_spi=NULL,*sem_parasave=NULL;	//SPI通信信号量
+	sem_t * sem_spi=NULL,*sem_parasave=NULL,*sem_4851=NULL,*sem_4852=NULL,*sem_plc=NULL;	//SPI通信信号量
 	int		val;
 
 	//此设置决定集中器电池工作，并保证在下电情况下，长按向下按键唤醒功能
@@ -244,8 +251,18 @@ void ProgInit()
 	//信号量建立
 	sem_spi = create_named_sem(SEMNAME_SPI0_0,1);							//TODO:放入vmain
 	sem_getvalue(sem_spi, &val);
+
 	sem_parasave = create_named_sem(SEMNAME_PARA_SAVE,1);
 	sem_getvalue(sem_parasave, &val);
+
+	sem_4851 = create_named_sem(DISPATCH_TASK_485_1,1);
+	sem_getvalue(sem_4851, &val);
+
+	sem_4852 = create_named_sem(DISPATCH_TASK_485_2,1);
+	sem_getvalue(sem_4852, &val);
+
+	sem_plc = create_named_sem(DISPATCH_TASK_PLC,1);
+	sem_getvalue(sem_plc, &val);
 	fprintf(stderr,"process The sem is %d\n", val);
 	InitClass4300();
 	//初始化事件参数，调用文件

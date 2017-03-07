@@ -8,7 +8,6 @@
 #include <sys/ioctl.h>
 #include <arpa/inet.h>
 
-
 #include "ae.h"
 #include "at.h"
 #include "ae.h"
@@ -21,11 +20,12 @@
 #include "PublicFunction.h"
 
 void initComPara(CommBlock* compara);
+void CalculateTransFlow(ProgramInfo* prginfo_event);
+void EventAutoReport(CommBlock* nst);
 
 void GenericRead(struct aeEventLoop* eventLoop, int fd, void* clientData, int mask);
 INT8S GenericWrite(int fd, INT8U* buf, INT16U len);
 
-ProgramInfo* getShareMem(void);
 void Comm_task(CommBlock* compara);
 void clearcount(int index);
 int GetOnlineType(void);
@@ -42,7 +42,6 @@ void Getk(LINK_Response link, ProgramInfo* JProgramInfo);
 
 void ServerDestory(void);
 int StartServer(struct aeEventLoop* ep, long long id, void* clientData);
-
 
 void IfrDestory(void);
 int StartIfr(struct aeEventLoop* ep, long long id, void* clientData);
