@@ -137,6 +137,7 @@ int RegularClient(struct aeEventLoop* ep, long long id, void* clientData) {
     } else {
         Comm_task(nst);
         EventAutoReport(nst);
+        CalculateTransFlow(nst->shmem);
     }
 
     return 2000;
