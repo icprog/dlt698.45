@@ -135,9 +135,8 @@ int RegularClient(struct aeEventLoop* ep, long long id, void* clientData) {
             }
         }
     } else {
-        TS ts = {};
-        TSGet(&ts);
         Comm_task(nst);
+        EventAutoReport(nst);
     }
 
     return 2000;
