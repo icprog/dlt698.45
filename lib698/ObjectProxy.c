@@ -75,7 +75,7 @@ int getProxylist(INT8U *data,PROXY_GETLIST *getlist)
 		getlist->objs[i].num = oadnum;
 		for(k=0; k<oadnum; k++)
 		{
-			getoad(&data[iindex],&oadtmp);
+			getOAD(0,&data[iindex],&oadtmp);
 			memcpy(&getlist->objs[i].oads[k],&oadtmp,sizeof(oadtmp));
 			iindex = iindex + 4;
 		}

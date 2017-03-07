@@ -11,3 +11,4 @@ vmsgr/*
 !.cproject
 !*.cfg
 cjtest/
+bin_arm/

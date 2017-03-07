@@ -11,11 +11,13 @@
 #include "Esam.h"
 #include "ParaDef.h"
 #include "Shmem.h"
+#include "PublicFunction.h"
 #define LIB698_VER 	1
 
 extern int doObjectAction();
 //extern int doActionReponse(int reponse,CSINFO *csinfo,PIID piid,OMD omd,int dar,INT8U *data,INT8U *buf);
 extern int getRequestRecord(OAD oad,INT8U *data,CSINFO *csinfo,INT8U *sendbuf);
+extern int getRequestRecordList(INT8U *data,CSINFO *csinfo,INT8U *sendbuf);
 extern int getRequestNormal(OAD oad,INT8U *data,CSINFO *csinfo,INT8U *sendbuf);
 extern int getRequestNormalList(INT8U *data,CSINFO *csinfo,INT8U *sendbuf);
 extern int doReponse(int server,int reponse,CSINFO *csinfo,int datalen,INT8U *data,INT8U *buf);
@@ -25,6 +27,7 @@ extern int Proxy_GetRequestlist(INT8U *data,CSINFO *csinfo,INT8U *sendbuf);
 extern unsigned short tryfcs16(unsigned char *cp, int  len);
 extern INT32S secureConnectRequest(SignatureSecurity* securityInfo ,SecurityData* RetInfo);
 INT8S (*pSendfun)(int fd,INT8U* sndbuf,INT16U sndlen);
+extern void  Get698_event(OAD oad,ProgramInfo* prginfo_event);
 int comfd = 0;
 INT8U ClientPiid=0;
 INT8U TmpDataBuf[MAXSIZ_FAM];
@@ -331,12 +334,7 @@ int long_unsigned(INT8U *value,INT8U *buf)
 	value[1]= buf[0];
 	return 2;
 }
-void getoad(INT8U *data,OAD *oad)
-{
-	oad->OI = data[0]<<8 | data[1];
-	oad->attflg = data[2];
-	oad->attrindex = data[3];
-}
+
 void GetconnetRequest(CONNECT_Request *request,INT8U *apdu)
 {
 	int index=0, bytenum=0;
@@ -545,21 +543,19 @@ int doSetAttribute(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 	OAD oad={};
 	INT8U *data=NULL;
 	piid_g.data = apdu[2];
-	Action_result	act_ret={};
 
 	switch(setType)
 	{
 		case SET_REQUEST_NORMAL:
 			memset(TmpDataBuf,0,sizeof(TmpDataBuf));
-			DAR = setRequestNormal(data,oad,csinfo,buf);
-			oad.OI= (apdu[3]<<8) | apdu[4];
-			oad.attflg = apdu[5];
-			oad.attrindex = apdu[6];
-			DAR = doObjectAction(oad,data,&act_ret);
+			getOAD(0,&apdu[3],&oad);
 			data = &apdu[7];					//Data
+			DAR = setRequestNormal(data,oad,NULL,buf);
+			fprintf(stderr,"setRequestNormal dar = %d\n",DAR);
 			index += create_OAD(&TmpDataBuf[index],oad);
-			TmpDataBuf[index++] = DAR;
+			TmpDataBuf[index++] = (INT8U)DAR;
 			doReponse(SET_RESPONSE,SET_REQUEST_NORMAL,csinfo,index,TmpDataBuf,buf);
+			Get698_event(oad,memp);
 			break;
 		case SET_REQUEST_NORMAL_LIST:
 			setRequestNormalList(&apdu[3],csinfo,buf);
@@ -568,6 +564,7 @@ int doSetAttribute(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 
 			break;
 	}
+
 	return 1;
 }
 
@@ -580,7 +577,7 @@ int doGetAttribute(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
 	piid_g.data = apdu[2];
 	fprintf(stderr,"\n- get type = %d PIID=%02x",getType,piid_g.data);
 
-	getoad(&apdu[3],&oad);
+	getOAD(0,&apdu[3],&oad);
 	data = &apdu[7];					//Data
 
 	switch(getType)
@@ -589,7 +586,6 @@ int doGetAttribute(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
 			getRequestNormal(oad,data,csinfo,sendbuf);
 			break;
 		case GET_REQUEST_NORMAL_LIST:
-			/*重新定位数据指针地址*/
 			data = &apdu[3];
 			getRequestNormalList(data,csinfo,sendbuf);
 			break;
@@ -597,6 +593,9 @@ int doGetAttribute(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
 			getRequestRecord(oad,data,csinfo,sendbuf);
 			break;
 		case GET_REQUEST_RECORD_LIST:
+			/*重新定位数据指针地址*/
+			data = &apdu[3];
+			getRequestRecordList(data,csinfo,sendbuf);
 			break;
 		case GET_REQUEST_RECORD_NEXT:
 			break;
@@ -655,11 +654,12 @@ int doActionRequest(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 			oad.OI= (apdu[apdu_index+3]<<8) | apdu[apdu_index+4];
 			oad.attflg = apdu[apdu_index+5];
 			oad.attrindex = apdu[apdu_index+6];
-			DAR = doObjectAction(oad,data,&act_ret);
 			data = &apdu[apdu_index+7];					//Data
+			DAR = doObjectAction(oad,data,&act_ret);
 			index += create_OAD(&TmpDataBuf[index],oad);
 			TmpDataBuf[index++] = DAR;
 			doReponse(ACTION_RESPONSE,ActionResponseNormal,csinfo,index,TmpDataBuf,buf);
+			Get698_event(oad,memp);
 			break;
 		case ACTIONREQUEST_LIST:
 			index = 0;
@@ -842,25 +842,53 @@ INT16S fillGetRequestAPDU(INT8U* sendBuf,CLASS_6015 obj6015,INT8U requestType)
 
 	if((obj6015.cjtype == TYPE_LAST)||(obj6015.cjtype == TYPE_FREEZE))
 	{
-
 		for(csdIndex = 0;csdIndex < obj6015.csds.num;csdIndex++)
 		{
-			/*采集当前数据*/
+			/*采集上N次数据*/
 			if(obj6015.csds.csd[csdIndex].type == 1)//ROAD
 			{
 				len = OADtoBuff(obj6015.csds.csd[csdIndex].csd.road.oad,&sendBuf[length]);
 				length +=len;
-				// RCSD应该用哪一种不知道该怎么定 此处填9是根据测试报文填写的
-				sendBuf[length++] = 0x09;//Selector = 9 选取上n条记录
-				sendBuf[length++] = 0x01;//选取上1条记录
+				if(obj6015.cjtype == TYPE_LAST)
+				{
+					// selector 9
+					sendBuf[length++] = 0x09;//Selector = 9 选取上n条记录
+					sendBuf[length++] = 0x01;//选取上1条记录
+					sendBuf[length++] = obj6015.csds.csd[csdIndex].csd.road.num;//OAD num
+				}
 
-				sendBuf[length++] = obj6015.csds.csd[csdIndex].csd.road.num;//OAD num
 				INT8U oadsIndex;
 				for (oadsIndex = 0; oadsIndex < obj6015.csds.csd[csdIndex].csd.road.num; oadsIndex++)
 				{
-					sendBuf[length++] = 0;//OAD
-					len = OADtoBuff(obj6015.csds.csd[csdIndex].csd.road.oads[oadsIndex],&sendBuf[length]);
-					length +=len;
+					if((obj6015.cjtype == TYPE_FREEZE)&&(oadsIndex==0))
+					{
+						sendBuf[length++] = 0x01;// selector 1 按冻结时标采集
+						len = OADtoBuff(obj6015.csds.csd[csdIndex].csd.road.oads[oadsIndex],&sendBuf[length]);
+						DateTimeBCD timeStamp;
+						DataTimeGet(&timeStamp);
+
+						sendBuf[length++] = 0x1c;
+						INT16U tmpTime = timeStamp.year.data;
+						sendBuf[length++] = ((tmpTime/1000) << 4) + (tmpTime%1000)/100;
+						tmpTime = tmpTime%100;
+						sendBuf[length++] = ((tmpTime/10)<<4) + (tmpTime%10);
+						tmpTime = timeStamp.month.data;
+						sendBuf[length++] = ((tmpTime/10)<<4) + (tmpTime%10);
+						tmpTime = timeStamp.day.data;
+						sendBuf[length++] = ((tmpTime/10)<<4) + (tmpTime%10);
+						sendBuf[length++] = 0x00;
+						sendBuf[length++] = 0x00;
+						sendBuf[length++] = 0x00;
+						sendBuf[length++] = obj6015.csds.csd[csdIndex].csd.road.num -1;
+					}
+					else
+					{
+						sendBuf[length++] = 0;//OAD
+						len = OADtoBuff(obj6015.csds.csd[csdIndex].csd.road.oads[oadsIndex],&sendBuf[length]);
+						length +=len;
+					}
+
+
 				}
 
 			}
@@ -872,6 +900,7 @@ INT16S fillGetRequestAPDU(INT8U* sendBuf,CLASS_6015 obj6015,INT8U requestType)
 
 		}
 	}
+
 	return length;
 
 }

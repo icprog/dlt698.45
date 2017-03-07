@@ -11,7 +11,7 @@
 #include "ParaDef.h"
 #include "StdDataType.h"
 
-#pragma pack(1)				//结构体一个字节对齐
+//#pragma pack(1)				//结构体一个字节对齐
 /////////////////////////////////////////////////////////////////////////
 /********************************************************
  *				接口类公共属性结构
@@ -221,7 +221,7 @@ typedef struct {
 typedef struct {
 	INT8U startime[3];	//广播校时启动时间 time类型 octet-string(SIZE(3))
 	INT8U enable;						//是否启用
-	INT8U upleve;						//时钟误差阀值
+	INT8S upleve;						//时钟误差阀值
 	INT8U startime1[3];	//终端广播校时启动时间
 	INT8U enable1;						//是否启用
 } CLASS_4204;	//终端广播校时

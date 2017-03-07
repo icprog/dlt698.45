@@ -4,7 +4,7 @@
 #include "ParaDef.h"
 #include "StdDataType.h"
 
-#pragma pack(1)				//结构体一个字节对齐
+//#pragma pack(1)				//结构体一个字节对齐
 
 /*
  * 特殊终端事件:Event3105_Object,Event3106_Object,Event3107_Object,Event3108_Object,

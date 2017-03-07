@@ -27,9 +27,11 @@ extern INT8U TmpDataBufList[MAXSIZ_FAM*2];
 extern INT8U securetype;
 extern ProgramInfo *memp;
 extern PIID piid_g;
+
+
 int BuildFrame_GetResponseRecord(INT8U response_type,CSINFO *csinfo,RESULT_RECORD record,INT8U *sendbuf)
 {
-	int index=0, hcsi=0,num=0,i=0,k=0;
+	int index=0, hcsi=0;
 	csinfo->dir = 1;
 	csinfo->prm = 0;
 	index = FrameHead(csinfo,sendbuf);
@@ -38,40 +40,10 @@ int BuildFrame_GetResponseRecord(INT8U response_type,CSINFO *csinfo,RESULT_RECOR
 	sendbuf[index++] = GET_RESPONSE;
 	sendbuf[index++] = response_type;
 	sendbuf[index++] = piid_g.data;	//	piid
-	index += create_OAD(&sendbuf[index],record.oad);
-	num = record.rcsd.csds.num;
-	if(num==0) {
-		switch(record.selectType) {
-		case 1:		//Select1
-			sendbuf[index++] = 1;	//一行记录M列属性描述符 	RCSD
-			sendbuf[index++] = 0;	//OAD
-			record.select.selec1.oad.attrindex = 0;		//上送属性下所有索引值
-			index += create_OAD(&sendbuf[index],record.select.selec1.oad);
-			break;
-		}
-	}else {
-		sendbuf[index++] = num;
-		for(i=0;i<num;i++)
-		{
-			sendbuf[index++] = record.rcsd.csds.csd[i].type;	//第 i 个csd类型
-			fprintf(stderr,"num=%d type=%d\n",num,record.rcsd.csds.csd[i].type);
-			fprintf(stderr,"oi=%04x_%02x_%02x\n",record.rcsd.csds.csd[i].csd.oad.OI,record.rcsd.csds.csd[i].csd.oad.attflg,record.rcsd.csds.csd[i].csd.oad.attrindex);
-			if (record.rcsd.csds.csd[i].type ==0)
-			{
-				index += create_OAD(&sendbuf[index],record.rcsd.csds.csd[i].csd.oad);
-			}else
-			{
-				index += create_OAD(&sendbuf[index],record.rcsd.csds.csd[i].csd.road.oad);
-				for(k=0; k<record.rcsd.csds.csd[i].csd.road.num; k++)
-				{
-					index += create_OAD(&sendbuf[index],record.rcsd.csds.csd[i].csd.road.oads[k]);
-				}
-			}
-		}
-	}
+
 	if (record.datalen > 0)
 	{
-		sendbuf[index++] = 1;//choice 1  ,SEQUENCE OF A-RecordRow
+//		sendbuf[index++] = 1;//choice 1  ,SEQUENCE OF A-RecordRow
 		memcpy(&sendbuf[index],record.data,record.datalen);
 		index = index + record.datalen;
 	}else
@@ -138,7 +110,7 @@ int GetMeterInfo(RESULT_NORMAL *response)
 	index += create_array(&data[index],blknum-1);		//个数-1：文件第一个块为空 电表总数
 	for(i=0;i<blknum;i++)
 	{
-		index += Get_6000(i,&data[index]);
+		index += Get_6001(i,&data[index]);
 	}
 	response->datalen = index;
 	return 0;
@@ -233,7 +205,7 @@ int GetSysDateTime(RESULT_NORMAL *response)
 	INT8U *data=NULL;
 	OAD oad;
 	DateTimeBCD time;
-
+	system((const char*)"hwclock -s");
 	oad = response->oad;
 	data = response->data;
 	DataTimeGet(&time);
@@ -280,7 +252,7 @@ int Get3106(RESULT_NORMAL *response)
 	index += create_struct(&data[index],4);	//停电数据采集配置参数　４个元素
 	index += fill_bit_string8(&data[index],tmpobj.poweroff_para_obj.collect_para_obj.collect_flag);
 	index += fill_unsigned(&data[index],tmpobj.poweroff_para_obj.collect_para_obj.time_space);
-	index += fill_unsigned(&data[index],tmpobj.poweroff_para_obj.collect_para_obj.time_space);
+	index += fill_unsigned(&data[index],tmpobj.poweroff_para_obj.collect_para_obj.time_threshold);
 	index += create_array(&data[index],tmpobj.poweroff_para_obj.collect_para_obj.tsaarr.num);
 	for(i=0;i<tmpobj.poweroff_para_obj.collect_para_obj.tsaarr.num;i++) {
 		index += fill_TSA(&data[index],&tmpobj.poweroff_para_obj.collect_para_obj.tsaarr.meter_tas[i].addr[1],tmpobj.poweroff_para_obj.collect_para_obj.tsaarr.meter_tas[i].addr[0]);
@@ -346,6 +318,24 @@ int Get310e(RESULT_NORMAL *response)
 	index += create_struct(&data[index],2);
 	index += fill_TI(&data[index],tmpobj.powerstoppara_obj.power_offset);
 	index += fill_unsigned(&data[index],tmpobj.powerstoppara_obj.task_no);
+	response->datalen = index;
+	return 0;
+}
+
+int Get310f(RESULT_NORMAL *response)
+{
+	int index=0;
+	OAD oad={};
+	Event310F_Object	tmpobj={};
+	INT8U *data = NULL;
+
+	data = response->data;
+	oad = response->oad;
+	memset(&tmpobj,0,sizeof(Event310F_Object));
+	readCoverClass(oad.OI,0,&tmpobj,sizeof(Event310F_Object),event_para_save);
+	index += create_struct(&data[index],2);
+	index += fill_unsigned(&data[index],tmpobj.collectfail_obj.retry_nums);
+	index += fill_unsigned(&data[index],tmpobj.collectfail_obj.task_no);
 	response->datalen = index;
 	return 0;
 }
@@ -425,14 +415,13 @@ int Get4006(RESULT_NORMAL *response)
 {
 	int index=0;
 	INT8U *data = NULL;
-	OAD oad;
+	OAD oad={};
 	CLASS_4006	class_tmp={};
 	data = response->data;
 	oad = response->oad;
 	memset(&class_tmp,0,sizeof(CLASS_4006));
 	readCoverClass(oad.OI,0,&class_tmp,sizeof(CLASS_4006),para_vari_save);
-	class_tmp.clocksource = 1;//时钟芯片
-	class_tmp.state = 0;//可用
+	fprintf(stderr,"时钟源：%d 　状态：%d\n",class_tmp.clocksource,class_tmp.state);
 	switch(oad.attflg )
 	{
 		case 2:
@@ -555,99 +544,6 @@ int Get4300(RESULT_NORMAL *response)
 	return 0;
 }
 
-///
-
-int getSel1_coll(RESULT_RECORD *record)
-{
-	int ret=0;
-	int		index = 0;
-	INT8U	taskid=0;
-
-//	record->data = data;
-//	data[index++] = 1;		//1条记录     [1] SEQUENCE OF A-RecordRow
-	switch(record->select.selec1.oad.OI)
-	{
-		case 0x6001:
-		{
-			fprintf(stderr,"\n  record for 6001\n");
-			if(record->select.selec1.data.type == dtlongunsigned) {
-				taskid = record->select.selec1.data.data[0];
-			}
-			fprintf(stderr,"\n  record for 6001  - taskid=%d\n",taskid);
-			record->data[index++] = 1;		//1条记录     [1] SEQUENCE OF A-RecordRow
-			index += Get_6000(taskid,&record->data[index]);
-			if(index==0) {	//0条记录     [1] SEQUENCE OF A-RecordRow
-				record->data[0] = 0;
-			}
-			record->datalen = index;
-			fprintf(stderr,"\nrecord->datalen = %d",record->datalen);
-			break;
-		}
-		case 0x6035:
-		{
-			if(record->select.selec1.data.type == dtunsigned) {
-				taskid = record->select.selec1.data.data[0];
-			}
-			fprintf(stderr,"taskid=%d\n",taskid);
-			record->data[index++] = 1;		//1条记录     [1] SEQUENCE OF A-RecordRow
-			Get_6035(taskid,&record->data[index]);
-			if(index==0) {	//0条记录     [1] SEQUENCE OF A-RecordRow
-				record->data[0] = 0;
-			}
-			record->datalen = index;
-			break;
-		}
-		default:
-			fprintf(stderr,"\nrecord switch default!");
-	}
-	return ret;
-}
-/*
- * 选择方法1: 读取指定对象指定值
- * */
-int getSelector1(RESULT_RECORD *record)
-{
-	int  ret=0;
-	INT8U oihead = (record->oad.OI & 0xF000) >>12;
-
-	switch(oihead) {
-	case 6:			//采集监控类对象
-		fprintf(stderr,"\n读取采集监控对象\n");
-		getSel1_coll(record);
-		break;
-	}
-	return ret;
-}
-
-int doGetrecord(RESULT_RECORD *record)
-{
-	INT8U SelectorN = record->selectType;
-	fprintf(stderr,"\n- getRequestRecord SelectorN=%d OI = %04x  attrib=%d  index=%d",SelectorN,record->oad.OI,record->oad.attflg,record->oad.attrindex);
-	int index=0;
-
-	switch(SelectorN) {
-	case 1:		//指定对象指定值
-		getSelector1(record);
-	break;
-
-	case 5:
-	case 7:
-//		getSelector(record->select, record->selectType,record->rcsd.csds,(INT8U *)&record->data,&index);
-		getSelector(record->select, record->selectType,record->rcsd.csds,(INT8U *)record->data,&index);
-		record->datalen = index;
-//		fprintf(stderr,"\nreturn len =%d\n",index);
-//		fprintf(stderr,"\n报文(%d)：",index);
-//		for(i=0;i<index;i++)
-//			fprintf(stderr," %02x",record->data[i]);
-		break;
-	case 9:		//指定读取上第n次记录
-		Getevent_Record_Selector(record,memp);
-		break;
-	}
-	fprintf(stderr,"\n---doGetrecord end\n");
-	return 1;
-}
-
 void printrcsd(RCSD rcsd)
 {
 	int i=0;
@@ -699,47 +595,195 @@ void printSel9(RESULT_RECORD record)
 	printrcsd(record.rcsd);
 }
 
+void printrecord(RESULT_RECORD record)
+{
+	switch(record.selectType){
+	case 1:
+		fprintf(stderr,"\nOAD %04x %02x %02x",record.select.selec1.oad.OI,record.select.selec1.oad.attflg,record.select.selec1.oad.attrindex);
+		fprintf(stderr,"\nData Type= %02x  Value=%d ",record.select.selec1.data.type,record.select.selec1.data.data[0]);
+		break;
+	case 5:
+		printSel5(record);
+		break;
+	case 7:
+		printSel7(record);
+		break;
+	case 9:
+		printSel9(record);
+		break;
+	}
+}
+///
+int getSel1_coll(RESULT_RECORD *record)
+{
+	int ret=0;
+	int		index = 0;
+	int		taskid=0;
+
+//	record->data = data;
+//	data[index++] = 1;		//1条记录     [1] SEQUENCE OF A-RecordRow
+	switch(record->select.selec1.oad.OI)
+	{
+		case 0x6001:
+		{
+			if(record->select.selec1.data.type == dtlongunsigned) {
+				taskid = (record->select.selec1.data.data[0]<<8 | record->select.selec1.data.data[1]);
+			}
+			fprintf(stderr,"\n  record for 6001  - taskid=%d\n",taskid);
+			index += Get_6001(taskid,&record->data[index]);
+			break;
+		}
+		case 0x6013:
+			if(record->select.selec1.data.type == dtunsigned) {
+				taskid = record->select.selec1.data.data[0];
+			}
+			fprintf(stderr,"\n  record for 6012  - taskid=%d\n",taskid);
+			index += Get_6013(taskid,&record->data[index]);
+			break;
+		case 0x6015:
+			if(record->select.selec1.data.type == dtunsigned) {
+				taskid = record->select.selec1.data.data[0];
+			}
+			fprintf(stderr,"\n  record for 6014  - taskid=%d\n",taskid);
+			index += Get_6015(taskid,&record->data[index]);
+			break;
+		case 0x6035:
+		{
+			if(record->select.selec1.data.type == dtunsigned) {
+				taskid = record->select.selec1.data.data[0];
+			}
+			fprintf(stderr,"taskid=%d\n",taskid);
+			index += Get_6035(taskid,&record->data[index]);
+			break;
+		}
+		default:
+			fprintf(stderr,"\nrecord switch default!");
+	}
+	if(index==0) {	//0条记录     [1] SEQUENCE OF A-RecordRow
+		record->data[0] = 0;
+	}
+	record->datalen = index;
+	fprintf(stderr,"\nrecord->datalen = %d",record->datalen);
+	return ret;
+}
+/*
+ * 选择方法1: 读取指定对象指定值
+ * */
+int getSelector1(RESULT_RECORD *record)
+{
+	int  ret=0;
+	INT8U oihead = (record->oad.OI & 0xF000) >>12;
+
+	switch(oihead) {
+	case 6:			//采集监控类对象
+		fprintf(stderr,"\n读取采集监控对象\n");
+		getSel1_coll(record);
+		break;
+	}
+	return ret;
+}
+
+
+int doGetrecord(OAD oad,INT8U *data,RESULT_RECORD *record)
+{
+	int 	source_index=0;		//getrecord 指针
+	int		dest_index=0;		//getreponse 指针
+	INT8U 	SelectorN =0;
+
+	fprintf(stderr,"\nGetRequestRecord   oi=%x  %02x  %02x",record->oad.OI,record->oad.attflg,record->oad.attrindex);
+	source_index = get_BasicRSD(0,&data[source_index],(INT8U *)&record->select,&record->selectType);
+	fprintf(stderr,"\nRSD Select%d     data[%d] = %02x",record->selectType,source_index,data[source_index]);
+	source_index +=get_BasicRCSD(0,&data[source_index],&record->rcsd.csds);
+	//record.rcsd.csds.csd[i].csd.oad.OI
+	SelectorN = record->selectType;
+	fprintf(stderr,"\n- getRequestRecord SelectorN=%d OI = %04x  attrib=%d  index=%d",SelectorN,record->oad.OI,record->oad.attflg,record->oad.attrindex);
+	printrecord(*record);
+	dest_index += create_OAD(&record->data[dest_index],record->oad);
+	switch(SelectorN) {
+	case 1:		//指定对象指定值
+		record->data[dest_index++] = 1;	//一行记录M列属性描述符 	RCSD
+		record->data[dest_index++] = 0;	//OAD
+		record->select.selec1.oad.attrindex = 0;		//上送属性下所有索引值
+		dest_index += create_OAD(&record->data[dest_index],record->select.selec1.oad);
+		record->data[dest_index++] = 1; //CHOICE  [1]  data
+		record->data[dest_index++] = 1; //M = 1  Sequence  of A-RecordRow
+		record->data = &TmpDataBuf[dest_index];		//修改record的数据帧的位置
+		getSelector1(record);
+		record->data = TmpDataBuf;				//data 指向回复报文帧头
+		record->datalen += dest_index;			//数据长度+ResultRecord
+	break;
+	case 5:
+	case 7:
+		dest_index +=fill_RCSD(0,&record->data[dest_index],record->rcsd.csds);
+		record->data = &TmpDataBuf[dest_index];
+		getSelector(record->select, record->selectType,record->rcsd.csds,(INT8U *)record->data,(int *)&record->datalen);
+		record->data = TmpDataBuf;				//data 指向回复报文帧头
+		record->datalen += dest_index;			//数据长度+ResultRecord
+//		fprintf(stderr,"\nreturn len =%d\n",index);
+//		fprintf(stderr,"\n报文(%d)：",index);
+//		for(i=0;i<index;i++)
+//			fprintf(stderr," %02x",record->data[i]);
+		break;
+	case 9:		//指定读取上第n次记录
+		dest_index +=fill_RCSD(0,&record->data[dest_index],record->rcsd.csds);
+		record->data = &TmpDataBuf[dest_index];
+		Getevent_Record_Selector(record,memp);
+		record->data = TmpDataBuf;				//data 指向回复报文帧头
+		record->datalen += dest_index;			//数据长度+ResultRecord
+		break;
+	}
+	fprintf(stderr,"\n---doGetrecord end\n");
+	return source_index;
+}
+
 int getRequestRecord(OAD oad,INT8U *data,CSINFO *csinfo,INT8U *sendbuf)
 {
 	RESULT_RECORD record;
 
-	int index=0;
 	memset(TmpDataBuf,0,sizeof(TmpDataBuf));
 	record.oad = oad;
 	record.data = TmpDataBuf;
 	record.datalen = 0;
-	fprintf(stderr,"\nGetRequestRecord   oi=%x  %02x  %02x",record.oad.OI,record.oad.attflg,record.oad.attrindex);
-	index = get_BasicRSD(0,&data[index],(INT8U *)&record.select,&record.selectType);
-	fprintf(stderr,"\nRSD Select%d     data[%d] = %02x",record.selectType,index,data[index]);
-
-	index +=get_BasicRCSD(0,&data[index],&record.rcsd.csds);
-
-
-	//record.rcsd.csds.csd[i].csd.oad.OI
-	if (record.selectType == 1)
-	{
-		fprintf(stderr,"\nOAD %04x %02x %02x",record.select.selec1.oad.OI,record.select.selec1.oad.attflg,record.select.selec1.oad.attrindex);
-		fprintf(stderr,"\nData Type= %02x  Value=%d ",record.select.selec1.data.type,record.select.selec1.data.data[0]);
-
-	}
-	if(record.selectType==5)
-	{
-		printSel5(record);
-	}
-	if(record.selectType==7)
-	{
-		printSel7(record);
-	}
-	if(record.selectType==9)
-	{
-		printSel9(record);
-	}
-	doGetrecord(&record);
+	doGetrecord(oad,data,&record);
 	BuildFrame_GetResponseRecord(GET_REQUEST_RECORD,csinfo,record,sendbuf);
 
 //	securetype = 0;		//清除安全等级标识
 	return 1;
 }
+
+
+int getRequestRecordList(INT8U *data,CSINFO *csinfo,INT8U *sendbuf)
+{
+	RESULT_RECORD record={};
+	OAD	oad={};
+	int i=0;
+	int recordnum = 0;
+	int destindex=0;
+	int sourceindex=0;
+
+	memset(TmpDataBufList,0,sizeof(TmpDataBufList));
+	recordnum = data[sourceindex++];
+	fprintf(stderr,"getRequestRecordList  Result-record=%d \n ",recordnum);
+	TmpDataBufList[destindex++] = recordnum;
+	for(i=0;i<recordnum;i++) {
+		memset(TmpDataBuf,0,sizeof(TmpDataBuf));
+		record.data = TmpDataBuf;
+		record.datalen = 0;
+		sourceindex += getOAD(0,&data[sourceindex],&oad);
+		record.oad = oad;
+		sourceindex += doGetrecord(oad,&data[sourceindex],&record);
+		memcpy(&TmpDataBufList[destindex],record.data,record.datalen);
+		destindex += record.datalen;
+	}
+	record.data = TmpDataBufList;
+	record.datalen = destindex;
+	BuildFrame_GetResponseRecord(GET_REQUEST_RECORD,csinfo,record,sendbuf);
+///	securetype = 0;		//清除安全等级标识
+	return 1;
+}
+
+
+
 
 int GetVariable(RESULT_NORMAL *response)
 {
@@ -863,6 +907,9 @@ int GetEventInfo(RESULT_NORMAL *response)
 				break;
 			case 0x310e:	//电能表停走事件阈值
 				Get310e(response);
+				break;
+			case 0x310f:	//终端抄表失败事件
+				Get310f(response);
 				break;
 			case 0x3110:	//月通信流量超限事件阈值
 				Get3110(response);
@@ -1016,7 +1063,7 @@ int getRequestNormalList(INT8U *data,CSINFO *csinfo,INT8U *sendbuf)
 		memset(TmpDataBuf,0,sizeof(TmpDataBuf));
 		memcpy(oadtmp,&data[1 + i*4],4);
 		response.dar = 0;
-		getoad(oadtmp, &response.oad);
+		getOAD(0,oadtmp, &response.oad);
 		response.datalen = 0;
 		response.data = TmpDataBuf + 5;
 		fprintf(stderr,"\n【%d】OI = %x  %02x  %02x",i,response.oad.OI,response.oad.attflg,response.oad.attrindex);

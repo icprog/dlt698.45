@@ -326,7 +326,8 @@ INT8U Getevent_Record(INT8U event_no,OI_698 *oi_array,INT8U oi_index,INT8U *real
 							len=3;
 							break;
 					}
-					 memcpy(&record_para->data[*real_index],&Getbuf[23],len);
+					if(len>0)
+						memcpy(&record_para->data[*real_index],&Getbuf[23],len);
 					 *real_index +=len;
 				}
 				break;
@@ -2459,4 +2460,19 @@ INT8U Event_3203(INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 			Need_Report(0x3203,crrentnum,prginfo_event);
 	}
     return 1;
+}
+
+/*
+ * 698guiyue规约库判断初始化事件、终端对时事件
+ */
+void  Get698_event(OAD oad,ProgramInfo* prginfo_event)
+{
+    if(oad.OI == 0x4300 && (oad.attflg == 3 || oad.attflg == 5 || oad.attflg == 6)){
+    	Event_3100(NULL,0,prginfo_event);
+    }else if(oad.OI == 0x4000 && oad.attflg == 2){
+    	DateTimeBCD datetime;
+    	DataTimeGet(&datetime);
+    	Event_3114(datetime,prginfo_event);
+    }
+
 }
