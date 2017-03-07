@@ -769,20 +769,26 @@ void asyslog(int priority, const char* fmt, ...) {
 }
 
 void bufsyslog(const INT8U* buf, const char* title, int head, int tail, int len) {
-    int count = 0;
-    char msg[9009];
-    memset(msg, '\0', sizeof(msg));
-    snprintf(msg, 6, "%s", title);
+    int local_head = head;
+    int local_tail = tail;
+    int count      = 0;
+    char msg[1024];
+    memset(msg, ' ', sizeof(msg));
+    syslog(LOG_INFO, "head&tail (%d,%d)%s", local_head, local_tail, title);
+    fprintf(stderr, "head&tail (%d,%d)%s\n", local_head, local_tail, title);
     while (head != tail) {
-        sprintf(msg + 5 + count * 3, " %02x", buf[tail]);
-        tail = (tail + 1) % len;
+        sprintf(msg + count * 3, "%02x ", buf[tail]);
         count++;
-        if (count > 3000) {
-            break;
+        tail = (tail + 1) % len;
+        if (count > 50) {
+            syslog(LOG_INFO, "%s", msg);
+            fprintf(stderr, "%s\n", msg);
+            count = 0;
+            memset(msg, ' ', sizeof(msg));
         }
     }
-    syslog(LOG_INFO, "len(%d)[%s]", len, msg);
-    printf("%s\n", msg);
+    syslog(LOG_INFO, "%s", msg);
+    fprintf(stderr, "%s\n", msg);
 }
 
 #endif /*JPublicFunctionH*/

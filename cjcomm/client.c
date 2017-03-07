@@ -86,7 +86,7 @@ void ClientRead(struct aeEventLoop* eventLoop, int fd, void* clientData, int mas
                 switch (apduType) {
                     case LINK_RESPONSE:
                         if (GetTimeOffsetFlag() == 1) {
-                            Getk(nst->linkResponse, clientData.shmem);
+                            Getk(nst->linkResponse, nst->shmem);
                         }
                         nst->linkstate   = build_connection;
                         nst->testcounter = 0;
