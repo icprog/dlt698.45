@@ -146,6 +146,9 @@
 
 #define SEMNAME_SPI0_0 		"sem_spi0_0" //专变、I型集中器交采和esam的spi通信互斥信号量
 #define	SEMNAME_PARA_SAVE	"sem_parasave"			//参数文件存储
+#define	DISPATCH_TASK_485_1	"diapatch_task_4851"			//485 1任务
+#define	DISPATCH_TASK_485_2	"diapatch_task_4852"			//485 2任务
+#define	DISPATCH_TASK_PLC	"diapatch_task_plc"			//载波
 ////////////////////////////////////////////////////////////////
 
 /*
