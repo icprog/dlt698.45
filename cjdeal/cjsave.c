@@ -71,14 +71,14 @@ INT16U CalcOIDataLen(OI_698 oi,INT8U attr_flg)
 		case 2:
 			if(attr_flg == 0)
 				oi_len = oi_len*(MET_RATE+1)+1+1;//+类型+个数
-			else
-				oi_len = oi_len+1;//+类型+个数
 			break;
 		case 3:
 			if(attr_flg == 0)
 				oi_len = oi_len*3+1+1;//三相
-			else
-				oi_len = oi_len+1;//+类型+个数
+			break;
+		case 4:
+			if(attr_flg == 0)
+				oi_len = oi_len*4+1+1;//总及分项
 			break;
 		default:
 			break;
