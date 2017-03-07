@@ -11,6 +11,7 @@
 #include "Esam.h"
 #include "ParaDef.h"
 #include "Shmem.h"
+#include "PublicFunction.h"
 #define LIB698_VER 	1
 
 extern int doObjectAction();
@@ -26,6 +27,7 @@ extern int Proxy_GetRequestlist(INT8U *data,CSINFO *csinfo,INT8U *sendbuf);
 extern unsigned short tryfcs16(unsigned char *cp, int  len);
 extern INT32S secureConnectRequest(SignatureSecurity* securityInfo ,SecurityData* RetInfo);
 INT8S (*pSendfun)(int fd,INT8U* sndbuf,INT16U sndlen);
+extern void  Get698_event(OAD oad,ProgramInfo* prginfo_event);
 int comfd = 0;
 INT8U ClientPiid=0;
 INT8U TmpDataBuf[MAXSIZ_FAM];
@@ -548,10 +550,12 @@ int doSetAttribute(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 			memset(TmpDataBuf,0,sizeof(TmpDataBuf));
 			getOAD(0,&apdu[3],&oad);
 			data = &apdu[7];					//Data
-			DAR = setRequestNormal(data,oad,csinfo,buf);
+			DAR = setRequestNormal(data,oad,NULL,buf);
+			fprintf(stderr,"setRequestNormal dar = %d\n",DAR);
 			index += create_OAD(&TmpDataBuf[index],oad);
-			TmpDataBuf[index++] = DAR;
+			TmpDataBuf[index++] = (INT8U)DAR;
 			doReponse(SET_RESPONSE,SET_REQUEST_NORMAL,csinfo,index,TmpDataBuf,buf);
+			Get698_event(oad,memp);
 			break;
 		case SET_REQUEST_NORMAL_LIST:
 			setRequestNormalList(&apdu[3],csinfo,buf);
@@ -560,6 +564,7 @@ int doSetAttribute(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 
 			break;
 	}
+
 	return 1;
 }
 
@@ -654,6 +659,7 @@ int doActionRequest(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 			index += create_OAD(&TmpDataBuf[index],oad);
 			TmpDataBuf[index++] = DAR;
 			doReponse(ACTION_RESPONSE,ActionResponseNormal,csinfo,index,TmpDataBuf,buf);
+			Get698_event(oad,memp);
 			break;
 		case ACTIONREQUEST_LIST:
 			index = 0;
@@ -836,25 +842,53 @@ INT16S fillGetRequestAPDU(INT8U* sendBuf,CLASS_6015 obj6015,INT8U requestType)
 
 	if((obj6015.cjtype == TYPE_LAST)||(obj6015.cjtype == TYPE_FREEZE))
 	{
-
 		for(csdIndex = 0;csdIndex < obj6015.csds.num;csdIndex++)
 		{
-			/*采集当前数据*/
+			/*采集上N次数据*/
 			if(obj6015.csds.csd[csdIndex].type == 1)//ROAD
 			{
 				len = OADtoBuff(obj6015.csds.csd[csdIndex].csd.road.oad,&sendBuf[length]);
 				length +=len;
-				// RCSD应该用哪一种不知道该怎么定 此处填9是根据测试报文填写的
-				sendBuf[length++] = 0x09;//Selector = 9 选取上n条记录
-				sendBuf[length++] = 0x01;//选取上1条记录
+				if(obj6015.cjtype == TYPE_LAST)
+				{
+					// selector 9
+					sendBuf[length++] = 0x09;//Selector = 9 选取上n条记录
+					sendBuf[length++] = 0x01;//选取上1条记录
+					sendBuf[length++] = obj6015.csds.csd[csdIndex].csd.road.num;//OAD num
+				}
 
-				sendBuf[length++] = obj6015.csds.csd[csdIndex].csd.road.num;//OAD num
 				INT8U oadsIndex;
 				for (oadsIndex = 0; oadsIndex < obj6015.csds.csd[csdIndex].csd.road.num; oadsIndex++)
 				{
-					sendBuf[length++] = 0;//OAD
-					len = OADtoBuff(obj6015.csds.csd[csdIndex].csd.road.oads[oadsIndex],&sendBuf[length]);
-					length +=len;
+					if((obj6015.cjtype == TYPE_FREEZE)&&(oadsIndex==0))
+					{
+						sendBuf[length++] = 0x01;// selector 1 按冻结时标采集
+						len = OADtoBuff(obj6015.csds.csd[csdIndex].csd.road.oads[oadsIndex],&sendBuf[length]);
+						DateTimeBCD timeStamp;
+						DataTimeGet(&timeStamp);
+
+						sendBuf[length++] = 0x1c;
+						INT16U tmpTime = timeStamp.year.data;
+						sendBuf[length++] = ((tmpTime/1000) << 4) + (tmpTime%1000)/100;
+						tmpTime = tmpTime%100;
+						sendBuf[length++] = ((tmpTime/10)<<4) + (tmpTime%10);
+						tmpTime = timeStamp.month.data;
+						sendBuf[length++] = ((tmpTime/10)<<4) + (tmpTime%10);
+						tmpTime = timeStamp.day.data;
+						sendBuf[length++] = ((tmpTime/10)<<4) + (tmpTime%10);
+						sendBuf[length++] = 0x00;
+						sendBuf[length++] = 0x00;
+						sendBuf[length++] = 0x00;
+						sendBuf[length++] = obj6015.csds.csd[csdIndex].csd.road.num -1;
+					}
+					else
+					{
+						sendBuf[length++] = 0;//OAD
+						len = OADtoBuff(obj6015.csds.csd[csdIndex].csd.road.oads[oadsIndex],&sendBuf[length]);
+						length +=len;
+					}
+
+
 				}
 
 			}
@@ -866,6 +900,7 @@ INT16S fillGetRequestAPDU(INT8U* sendBuf,CLASS_6015 obj6015,INT8U requestType)
 
 		}
 	}
+
 	return length;
 
 }

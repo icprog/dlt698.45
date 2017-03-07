@@ -22,6 +22,7 @@ extern INT8U Reset_add();
 extern void FrameTail(INT8U *buf,int index,int hcsi);
 extern int FrameHead(CSINFO *csinfo,INT8U *buf);
 extern INT8S (*pSendfun)(int fd,INT8U* sndbuf,INT16U sndlen);
+extern void  Get698_event(OAD oad,ProgramInfo* prginfo_event);
 extern int comfd;
 extern ProgramInfo *memp;
 extern PIID piid_g;
@@ -76,6 +77,7 @@ int doReponse(int server,int reponse,CSINFO *csinfo,int datalen,INT8U *data,INT8
 	buf[index++] = 0;	//跟随上报信息域 	FollowReport
 	buf[index++] = 0;	//时间标签		TimeTag
 	FrameTail(buf,index,hcsi);
+
 
 	if(pSendfun!=NULL)
 		pSendfun(comfd,buf,index+3);
@@ -480,9 +482,7 @@ void AddEventCjiFangAnInfo(INT8U *data)
 	CLASS_6017 eventFangAn={};
 	int i=0,k=0,saveflg=0;
 	INT8U addnum = data[1];
-	INT8U roadnum=0;
 	int index=0;
-	INT16U source_sumindex=0,source_index=0,dest_sumindex=0,dest_index=0;
 
 	data += 4;
 
@@ -550,6 +550,7 @@ void AddTaskInfo(INT8U *data,Action_result *act_ret)
 		index += getEnum(1,&dealdata[index],&task.runtime.type);
 		INT8U arraysize=0;
 		index += getArray(&dealdata[index],&arraysize);
+		task.runtime.num = arraysize;
 		int w=0;
 		for(w=0;w<arraysize;w++)
 		{
@@ -681,7 +682,7 @@ void AddReportInfo(INT8U *data)
 	CLASS_601D	 reportplan={};
 	int k=0,j=0,saveflg=0;
 	INT8U addnum = 0,strunum = 0;
-	INT8U roadnum=0;
+//	INT8U roadnum=0;
 	int index=0;
 //	INT16U source_sumindex=0,source_index=0,dest_sumindex=0,dest_index=0;
 
@@ -770,7 +771,7 @@ void TerminalInfo(INT16U attr_act,INT8U *data)
 		case 5://事件初始化
 		case 6://需量初始化
 			dataInit(attr_act);
-			Event_3100(NULL,0,memp);//初始化，产生事件
+			//Event_3100(NULL,0,memp);//初始化，产生事件
 			fprintf(stderr,"\n终端数据初始化!");
 			break;
 	}

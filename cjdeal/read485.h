@@ -23,6 +23,7 @@ pthread_attr_t read485_attr_t;
 int thread_read4851_id,thread_read4852_id;           //485、四表合一（I型、II型、专变）
 pthread_t thread_read4851,thread_read4852;
 
+extern INT16U CalcOIDataLen(OI_698 oi,INT8U attr_flg);
 
 typedef enum{
 	PROTOCOL_UNKNOWN = 0,

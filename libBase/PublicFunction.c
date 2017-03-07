@@ -791,4 +791,36 @@ void bufsyslog(const INT8U* buf, const char* title, int head, int tail, int len)
     fprintf(stderr, "%s\n", msg);
 }
 
+INT8U getBase_DataTypeLen(Base_DataType dataType)
+{
+	INT8U length = 0;
+	switch(dataType)
+	{
+		case dtenum:
+		case dtbool:
+		case dtinteger:
+		case dtunsigned:
+			length = 1;
+			break;
+		case dtlong:
+		case dtlongunsigned:
+			length = 2;
+			break;
+		case dtfloat32:
+		case dtdoublelong:
+		case dtdoublelongunsigned:
+			length = 4;
+			break;
+		case dtdatetimes:
+			length = 7;
+			break;
+		default:
+				length = 0;
+	}
+	if(length == 0)
+	{
+		fprintf(stderr,"\n getBase_DataTypeLen unknown dataType = %02x \n",dataType);
+	}
+	return length;
+}
 #endif /*JPublicFunctionH*/

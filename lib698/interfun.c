@@ -143,6 +143,29 @@ int fill_TSA(INT8U *data,INT8U *value,INT8U len)
 	return (len+2);
 }
 
+int fill_CSD(INT8U type,INT8U *data,MY_CSD csd)		//0x5b
+{
+	int 	num=0,i=0;
+	int		index=0;
+
+	if(type==1) {		//需要填充类型描述
+		data[index++] = dtcsd;
+	}
+	data[index++] = csd.type;
+	if(csd.type == 0) {	//oad
+		index += create_OAD(&data[index],csd.csd.oad);
+	}else if(csd.type == 1) {	//road
+		index += create_OAD(&data[index],csd.csd.road.oad);
+		num = csd.csd.road.num;
+		data[index++] = num;
+		for(i=0;i<num;i++)
+		{
+			index += create_OAD(&data[index],csd.csd.road.oads[i]);
+		}
+	}
+	return index;
+}
+
 int fill_MS(INT8U *data,MY_MS myms)		//0x5C
 {
 	INT8U choicetype=0;
@@ -167,32 +190,9 @@ int fill_MS(INT8U *data,MY_MS myms)		//0x5C
 	return 0;
 }
 
-int fill_CSD(INT8U type,INT8U *data,MY_CSD csd)
+int fill_RCSD(INT8U type,INT8U *data,CSD_ARRAYTYPE csds)		//0x60
 {
-	int 	num=0,i=0;
-	int		index=0;
-
-	if(type==1) {		//需要填充类型描述
-		data[index++] = dtcsd;
-	}
-	data[index++] = csd.type;
-	if(csd.type == 0) {	//oad
-		index += create_OAD(&data[index],csd.csd.oad);
-	}else if(csd.type == 1) {	//road
-		index += create_OAD(&data[index],csd.csd.road.oad);
-		num = csd.csd.road.num;
-		data[index++] = num;
-		for(i=0;i<num;i++)
-		{
-			index += create_OAD(&data[index],csd.csd.road.oads[i]);
-		}
-	}
-	return index;
-}
-
-int fill_RCSD(INT8U type,INT8U *data,CSD_ARRAYTYPE csds)
-{
-	int 	num=0,i=0,k=0;
+	int 	num=0,i=0;//,k=0;
 	int		index=0;
 
 	if(type==1) {		//需要填充类型描述
@@ -201,23 +201,24 @@ int fill_RCSD(INT8U type,INT8U *data,CSD_ARRAYTYPE csds)
 	num = csds.num;
 	if(num==0) {		//OAD
 		index += create_OAD(&data[index],csds.csd[0].csd.oad);
-	}else {				//RCSD
+	}else {				//RCSD		SEQUENCE OF CSD
 		data[index++] = num;
 		for(i=0;i<num;i++)
 		{
-			data[index++] = csds.csd[i].type;	//第 i 个csd类型
-			fprintf(stderr,"num=%d type=%d\n",num,csds.csd[i].type);
-			fprintf(stderr,"oi=%04x_%02x_%02x\n",csds.csd[i].csd.oad.OI,csds.csd[i].csd.oad.attflg,csds.csd[i].csd.oad.attrindex);
-			if (csds.csd[i].type ==0)		//对象属性描述符 OAD
-			{
-				index += create_OAD(&data[index],csds.csd[i].csd.oad);
-			}else	{						//记录型对象属性描述符 [1] ROAD
-				index += create_OAD(&data[index],csds.csd[i].csd.road.oad);
-				for(k=0; k<csds.csd[i].csd.road.num; k++)
-				{
-					index += create_OAD(&data[index],csds.csd[i].csd.road.oads[k]);	//关联对象属性描述符  SEQUENCE OF OAD
-				}
-			}
+			index +=  fill_CSD(0,&data[index],csds.csd[i]);
+//			data[index++] = csds.csd[i].type;	//第 i 个csd类型
+//			fprintf(stderr,"num=%d type=%d\n",num,csds.csd[i].type);
+//			fprintf(stderr,"oi=%04x_%02x_%02x\n",csds.csd[i].csd.oad.OI,csds.csd[i].csd.oad.attflg,csds.csd[i].csd.oad.attrindex);
+//			if (csds.csd[i].type ==0)		//对象属性描述符 OAD
+//			{
+//				index += create_OAD(&data[index],csds.csd[i].csd.oad);
+//			}else	{						//记录型对象属性描述符 [1] ROAD
+//				index += create_OAD(&data[index],csds.csd[i].csd.road.oad);
+//				for(k=0; k<csds.csd[i].csd.road.num; k++)
+//				{
+//					index += create_OAD(&data[index],csds.csd[i].csd.road.oads[k]);	//关联对象属性描述符  SEQUENCE OF OAD
+//				}
+//			}
 		}
 	}
 	return index;
@@ -328,6 +329,16 @@ int getEnum(INT8U type,INT8U *source,INT8U *enumvalue)	//16
 	return 0;
 }
 
+int getTime(INT8U type,INT8U *source,INT8U *dest) 	//0x1B
+{
+	if((type == 1) || (type == 0)) {
+		dest[0] = source[type+0];//时
+		dest[1] = source[type+1];//分
+		dest[2] = source[type+2];//秒
+		return (3+type);
+	}
+	return 0;
+}
 /*
  * type: =1 包含类型描述字节
  * 		　=0 不包含类型描述字节
