@@ -311,7 +311,7 @@ typedef struct
 {
 	OAD oad;
 	INT8U num;
-	OAD oads[16];
+	OAD oads[ROAD_OADS_NUM];
 }ROAD;					/*记录型对象属性描述符*/
 
 typedef struct

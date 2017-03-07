@@ -873,7 +873,7 @@ INT8U ReadTaskInfo(INT8U taskid,TASKSET_INFO *tasknor_info)//读取普通采集�
 	memset(&class6015,0,sizeof(CLASS_6015));
 	if(readCoverClass(0x6013,taskid,&class6013,sizeof(class6013),coll_para_save) == 1)
 	{
-		if(class6013.cjtype != 1)//
+		if(class6013.cjtype != 1 || class6013.state != 1)//
 			return 0;
 		if(readCoverClass(0x6015,class6013.sernum,&class6015,sizeof(CLASS_6015),coll_para_save) == 1)
 		{
@@ -935,11 +935,12 @@ int ComposeSendBuff(TS *ts,INT8U seletype,INT8U taskid,TSA *tsa_con,INT8U tsa_nu
 	HEAD_UNIT *head_unit = NULL;
 	TASKSET_INFO tasknor_info;
 	TS ts_now;
-	TSGet(&ts_now);
+//	TSGet(&ts_now);
 	char	fname[FILENAMELEN]={};
 	if(ReadTaskInfo(taskid,&tasknor_info)!=1)
 		return 0;
 
+	memcpy(&ts_now,ts,sizeof(TS));
 	getTaskFileName(taskid,ts_now,fname);
 	fp = fopen(fname,"r");
 	if(fp == NULL)//文件没内容 组文件头，如果文件已存在，提取文件头信息
@@ -1146,6 +1147,57 @@ INT16U GetTSACon(MY_MS meters,TSA *tsa_con,INT16U tsa_num)
 	}
 	return TSA_num;
 }
+INT8U DevideCSDs(CSD_ARRAYTYPE csds,ROAD_ITEM *item_road)
+{
+	CLASS_6015	class6015={};
+	CLASS_6013	class6013={};
+	memset(&class6013,0,sizeof(CLASS_6013));
+	memset(&class6015,0,sizeof(CLASS_6015));
+	int i=0,j=0,pindex=0;
+	for(i=0;i<256;i++)//先比较有没有跟现成采集方案匹配的，有直接返回taskid，没有返回0
+	{
+		if(readCoverClass(0x6013,i+1,&class6013,sizeof(class6013),coll_para_save) == 1)
+		{
+			if(class6013.cjtype != 1 || class6013.state != 1)//
+				continue;
+			if(readCoverClass(0x6015,class6013.sernum,&class6015,sizeof(CLASS_6015),coll_para_save) == 1)
+			{
+				if(memcmp(&class6015.csds,&csds,sizeof(CSD_ARRAYTYPE))==1)
+					return i+1;
+			}
+		}
+	}
+	if(csds.num > MY_CSD_NUM)//超了
+		csds.num = MY_CSD_NUM;
+	for(i=0;i<csds.num;i++)
+	{
+		switch(csds.csd[i].type)
+		{
+		case 0://OAD类型，第一个oad为0x00000000，第二个oad为OAD
+			item_road[pindex].road_num++;
+			item_road->oad[pindex][0].OI=0x0000;
+			item_road->oad[pindex][0].attflg=0x00;
+			item_road->oad[pindex][0].attrindex=0x00;
+			memcpy(&item_road->oad[pindex][1],&csds.csd[i].csd.oad,sizeof(OAD));
+			pindex++;
+			break;
+		case 1:
+			item_road[pindex].road_num++;
+			if(csds.csd[i].csd.road.num > ROAD_OADS_NUM)
+				csds.csd[i].csd.road.num = ROAD_OADS_NUM;
+			for(j=0;j<csds.csd[i].csd.road.num;j++)
+			{
+				memcpy(&item_road->oad[pindex][0],&csds.csd[i].csd.road.oad,sizeof(OAD));
+				memcpy(&item_road->oad[pindex][1],&csds.csd[i].csd.road.oads[j],sizeof(OAD));
+				pindex++;
+			}
+			break;
+		default:break;
+		}
+	}
+	return 0;
+
+}
 /*
  * 根据招测类型组织报文
  * 如果MS选取的测量点过多，不能同时上报，分帧
@@ -1156,11 +1208,13 @@ INT8U getSelector(RSD select, INT8U selectype, CSD_ARRAYTYPE csds, INT8U *data, 
 	INT8U taskid;//,tsa_num=0;
 	TSA *tsa_con = NULL;
 	INT16U tsa_num=0,TSA_num=0;
+	ROAD_ITEM item_road;
+	memset(&item_road,0x00,sizeof(ROAD_ITEM));
 	int i=0;
 	tsa_num = getFileRecordNum(0x6000);
 	tsa_con = malloc(tsa_num*sizeof(TSA));
 	//测试写死
-	taskid = 1;
+//	taskid = 1;
 	///////////////////////////////////////////////////////////////test
 	fprintf(stderr,"\n-----selectype=%d\n",selectype);
 	switch(selectype)
@@ -1179,7 +1233,10 @@ INT8U getSelector(RSD select, INT8U selectype, CSD_ARRAYTYPE csds, INT8U *data, 
 					tsa_con[i].addr[12],tsa_con[i].addr[11],tsa_con[i].addr[10],tsa_con[i].addr[9],
 					tsa_con[i].addr[8],tsa_con[i].addr[7],tsa_con[i].addr[6],	tsa_con[i].addr[5],
 					tsa_con[i].addr[4],tsa_con[i].addr[3],tsa_con[i].addr[2],tsa_con[i].addr[1],tsa_con[i].addr[0]);
-		*datalen = ComposeSendBuff(&ts_info[0],selectype,taskid,tsa_con,tsa_num,csds,data);
+		if((taskid = DevideCSDs(csds,&item_road)) != 0)
+			*datalen = ComposeSendBuff(&ts_info[0],selectype,taskid,tsa_con,tsa_num,csds,data);
+		else
+			;//加分别区road函数
 		break;
 	case 7://例子中招测实时数据方法
 		TSA_num = GetTSACon(select.selec7.meters,tsa_con,tsa_num);
@@ -1193,7 +1250,10 @@ INT8U getSelector(RSD select, INT8U selectype, CSD_ARRAYTYPE csds, INT8U *data, 
 		memcpy(&ts_info[1],&select.selec7.collect_save_finish,sizeof(DateTimeBCD));
 		fprintf(stderr,"\n--招测实时开始时间 ts=%04d-%02d-%02d %02d:%02d\n",ts_info[0].Year,ts_info[0].Month,ts_info[0].Day,ts_info[0].Hour,ts_info[0].Minute);
 		fprintf(stderr,"\n--招测实时完成时间 ts=%04d-%02d-%02d %02d:%02d\n",ts_info[1].Year,ts_info[1].Month,ts_info[1].Day,ts_info[1].Hour,ts_info[1].Minute);
-		*datalen = ComposeSendBuff(&ts_info[0],selectype,taskid,tsa_con,tsa_num,csds,data);
+		if((taskid = DevideCSDs(csds,&item_road)) != 0)
+			*datalen = ComposeSendBuff(&ts_info[0],selectype,taskid,tsa_con,tsa_num,csds,data);
+		else
+			;//加分别区road函数
 		break;
 	default:
 		break;
