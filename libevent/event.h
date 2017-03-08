@@ -158,6 +158,10 @@ extern INT8U Event_3117(INT8U* data,INT8U len,ProgramInfo* prginfo_event);
  */
 extern INT8U Event_3118(INT8U* data,INT8U len,ProgramInfo* prginfo_event);
 /*
+ * 电能表开盖事件 DATA记录，len长度
+ */
+INT8U Event_301B(INT8U* data,INT8U len,ProgramInfo* prginfo_event);
+/*
  * 终端电流回路异常事件23,II型集中器没有电流，暂时不处理,type为0,1 短路、开路 prginfo_event共享内存
  */
 extern INT8U Event_3119(INT8U type, INT8U* data,INT8U len,ProgramInfo* prginfo_event);
