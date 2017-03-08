@@ -248,8 +248,8 @@ INT16S getNextTastIndexIndex() {
 		if (list6013[tIndex].basicInfo.taskID == 0) {
 			continue;
 		}
-		fprintf(stderr, "\n ---------list6013[%d].basicInfo.taskID = %d ",
-				tIndex, list6013[tIndex].basicInfo.taskID);
+	//	fprintf(stderr, "\n ---------list6013[%d].basicInfo.taskID = %d ",
+	//			tIndex, list6013[tIndex].basicInfo.taskID);
 		//run_flg > 0说明应该抄读还没有抄
 		if (list6013[tIndex].run_flg > 0) {
 			fprintf(stderr, "\n  getNextTastIndexIndex-2222");
@@ -310,7 +310,7 @@ INT8U init6013ListFrom6012File() {
 			list6013[tIndex].ts_next.Day = ts_now.Day;
 			list6013[tIndex].ts_next.Hour = ts_now.Hour;
 			list6013[tIndex].ts_next.Minute = ts_now.Minute;
-			print6013(list6013[tIndex].basicInfo);
+			//print6013(list6013[tIndex]);
 		}
 	}
 

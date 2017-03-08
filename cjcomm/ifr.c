@@ -14,6 +14,10 @@
 static CommBlock FirObject;
 static long long Serial_Task_Id;
 
+static int GlobBand[]  = { 300, 600, 1200, 2400, 4800, 7200, 9600, 19200, 38400, 57600, 115200 };
+static char* GlobCrc[] = { "none", "odd", "even" };
+static int GlobData[]  = { 0, 1, 2, 3, 4, 5, 6, 7, 8 };
+static int GlobStop[]  = { 0, 1, 2 };
 /*
  * 模块*内部*使用的初始化参数
  */
@@ -36,9 +40,20 @@ void IfrDestory(void) {
  * 模块维护循环
  */
 int RegularIfr(struct aeEventLoop* ep, long long id, void* clientData) {
-    CommBlock* nst = (CommBlock*)clientData;
+    CLASS_f202 oif202 = {};
+    CommBlock* nst    = (CommBlock*)clientData;
+
     if (nst->phy_connect_fd < 0) {
-        if ((nst->phy_connect_fd = OpenCom(3, 2400, (unsigned char*)"even", 1, 8)) <= 0) {
+        if (readCoverClass(0xf202, 0, &oif202, sizeof(CLASS_f202), para_vari_save) > 0) {
+            fprintf(stderr, "红外模块读取参数：波特率(%d)，校验方式(%s)，数据位(%d)，停止位(%d)\n", GlobBand[oif202.devpara.baud],
+                    GlobCrc[oif202.devpara.verify], GlobData[oif202.devpara.databits], GlobStop[oif202.devpara.stopbits]);
+            nst->phy_connect_fd =
+            OpenCom(2, GlobBand[oif202.devpara.baud], GlobCrc[oif202.devpara.verify], GlobStop[oif202.devpara.stopbits], GlobData[oif202.devpara.databits]);
+        } else {
+            nst->phy_connect_fd = OpenCom(3, 2400, (unsigned char*)"even", 1, 8);
+        }
+
+        if (nst->phy_connect_fd <= 0) {
             asyslog(LOG_ERR, "红外串口打开失败");
         } else {
             if (aeCreateFileEvent(ep, nst->phy_connect_fd, AE_READABLE, GenericRead, nst) < 0) {

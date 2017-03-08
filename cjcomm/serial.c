@@ -14,6 +14,11 @@
 static CommBlock SerialObject;
 static long long Serial_Task_Id;
 
+static int GlobBand[]  = { 300, 600, 1200, 2400, 4800, 7200, 9600, 19200, 38400, 57600, 115200 };
+static char* GlobCrc[] = { "none", "odd", "even" };
+static int GlobData[]  = { 0, 1, 2, 3, 4, 5, 6, 7, 8 };
+static int GlobStop[]  = { 0, 1, 2 };
+
 /*
  * 模块*内部*使用的初始化参数
  */
@@ -36,9 +41,20 @@ void SerialDestory(void) {
  * 模块维护循环
  */
 int RegularSerial(struct aeEventLoop* ep, long long id, void* clientData) {
-    CommBlock* nst = (CommBlock*)clientData;
+    CLASS_f201 oif201 = {};
+    CommBlock* nst    = (CommBlock*)clientData;
+
     if (nst->phy_connect_fd < 0) {
-        if ((nst->phy_connect_fd = OpenCom(4, 9600, (unsigned char*)"even", 1, 8)) <= 0) {
+        if (readCoverClass(0xf201, 0, &oif201, sizeof(CLASS_f201), para_vari_save) > 0) {
+            fprintf(stderr, "维护串口模块读取参数：波特率(%d)，校验方式(%s)，数据位(%d)，停止位(%d)\n", GlobBand[oif201.devpara.baud],
+                    GlobCrc[oif201.devpara.verify], GlobData[oif201.devpara.databits], GlobStop[oif201.devpara.stopbits]);
+            nst->phy_connect_fd =
+            OpenCom(2, GlobBand[oif201.devpara.baud], GlobCrc[oif201.devpara.verify], GlobStop[oif201.devpara.stopbits], GlobData[oif201.devpara.databits]);
+        } else {
+            nst->phy_connect_fd = OpenCom(3, 2400, (unsigned char*)"even", 1, 8);
+        }
+
+        if (nst->phy_connect_fd <= 0) {
             asyslog(LOG_ERR, "维护串口打开失败");
         } else {
             if (aeCreateFileEvent(ep, nst->phy_connect_fd, AE_READABLE, GenericRead, nst) < 0) {

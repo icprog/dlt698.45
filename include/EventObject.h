@@ -338,6 +338,7 @@ typedef struct
 	Class7_Object Event3201_obj;    //电控跳闸记录28
 	Class7_Object Event3202_obj;    //购电参数设置记录29
 	Class7_Object Event3203_obj;    //电控告警事件记录30
+	Class7_Object Event301B_obj;    //电能表开盖事件31
 }TerminalEvent_Object;
 
 /*
@@ -388,6 +389,7 @@ const static EVENT_CLASS_INFO  event_class_len[] ={
 		{0x3111,sizeof(Class7_Object)},		{0x3112,sizeof(Class7_Object)},		{0x3114,sizeof(Class7_Object)},		{0x3115,sizeof(Class7_Object)},		{0x3116,sizeof(Event3116_Object)},
 		{0x3117,sizeof(Class7_Object)},		{0x3118,sizeof(Class7_Object)},		{0x3119,sizeof(Class7_Object)},		{0x311A,sizeof(Event311A_Object)},	{0x311B,sizeof(Class7_Object)},
 		{0x311C,sizeof(Event311C_Object)},	{0x3200,sizeof(Class7_Object)},		{0x3201,sizeof(Class7_Object)},		{0x3202,sizeof(Class7_Object)},		{0x3203,sizeof(Class7_Object)},
+		{0x301B,sizeof(Class7_Object)}
 };
 
 typedef struct{

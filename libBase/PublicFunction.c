@@ -820,4 +820,25 @@ INT8U getBase_DataTypeLen(Base_DataType dataType) {
     }
     return length;
 }
+
+//反转buff
+INT8S reversebuff(INT8U* buff,INT32U len,INT8U* invbuff)
+{
+	if(buff==NULL)
+		return -1;
+	if(len == 0)
+		return -2;
+	if(invbuff == NULL)
+		return -3;
+	INT8U* buftmp =(INT8U*)malloc(len);
+	memcpy(buftmp,buff,len);
+	INT32U i=0;
+	for(i=0; i < len; i++)
+	{
+		invbuff[i] = buftmp[len-i-1];
+	}
+	free(buftmp);
+	buftmp = NULL;
+	return 0;
+}
 #endif /*JPublicFunctionH*/
