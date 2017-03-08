@@ -480,7 +480,7 @@ void event_process(int argc, char *argv[])
 			}
 		}
 		if(strcmp("enable",argv[2])==0){
-			INT8U flag=0;
+			int flag=0;
 			sscanf(argv[4],"%d",&flag);
 			CLASS19 class19;
             if(oi == 0x301B){
