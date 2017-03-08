@@ -483,6 +483,7 @@ void event_process(int argc, char *argv[])
 			int flag=0;
 			sscanf(argv[4],"%d",&flag);
 			CLASS19 class19;
+			memset(&class19,0,sizeof(CLASS19));
             if(oi == 0x301B){
             	if(flag == 1){
 					JProgramInfo->event_obj.Event301B_obj.enableflag=TRUE;

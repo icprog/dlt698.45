@@ -410,6 +410,7 @@ INT8U Need_Report(OI_698 oi,INT8U eventno,ProgramInfo* prginfo_event){
 	static INT8U lastchgoi4300=0;
 	static INT8U first=1;
 	static CLASS19 class19;
+	memset(&class19,0,sizeof(CLASS19));
 	if(first){
 		first=0;
 		lastchgoi4300 = prginfo_event->oi_changed.oi4300;
