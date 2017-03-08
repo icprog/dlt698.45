@@ -328,6 +328,7 @@ typedef struct{
 	INT32S f_Qsz_energy_all;
 	INT32S f_Qsz_energy[MAXVAL_RATENUM];//实时反向无功总电能  44  48
 }ENERGY_PROPERTY_SET;
+
 typedef struct {
 	ACCoe_SAVE Accoepara;
 	INT32U 			ac_chip_type; 		//==0x820900:	RN8029芯片，III型集中器	//==1： ATT7022D-E芯片 	//==0x7022E0:	ATT7022E-D芯片

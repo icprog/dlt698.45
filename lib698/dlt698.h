@@ -19,6 +19,11 @@ extern INT8U analyzeProtocol698(INT8U* Rcvbuf,INT8U* resultCount,INT16S recvLen,
 extern void ProxyListResponse(PROXY_GETLIST *list,CommBlock *com);
 int createFile(const char * path, int length, unsigned char crc, unsigned short bs);
 int appendFile(int shift, int length, unsigned char *buf);
+
+/*规约类型打印
+ * */
+extern void printMS(MY_MS ms);
+extern void printrcsd(RCSD rcsd);
 /*----------------------接口类及对象实例的基本数据类型组帧----------------------*/
 extern int create_OAD(INT8U *data,OAD oad);
 extern int create_array(INT8U *data,INT8U numm);
@@ -57,7 +62,7 @@ extern int getROAD(INT8U *source,ROAD *dest);				//0x52
 extern int getTI(INT8U type,INT8U *source,TI *ti);			//0x54
 extern int get_BasicRSD(INT8U type,INT8U *source,INT8U *dest,INT8U *seletype);	//0x5A
 extern int getCSD(INT8U type,INT8U *source,MY_CSD* csd);		//0X5B
-extern int getMS(INT8U type,INT8U *source,INT8U *dest);			//0x5C
+extern int getMS(INT8U type,INT8U *source,MY_MS *ms);			//0x5C
 extern int get_BasicRCSD(INT8U type,INT8U *source,CSD_ARRAYTYPE *csds);	//0x60
 extern int get_Data(INT8U *source,INT8U *dest);
 /*----------------------具体OI类组帧函数----------------------*/

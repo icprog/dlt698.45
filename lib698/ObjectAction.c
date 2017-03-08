@@ -435,7 +435,7 @@ void AddCjiFangAnInfo(INT8U *data,Action_result *act_ret)
 		}
 		fprintf(stderr,"\n%02x %02x %02x %02x %02x %02x %02x ",
 				dealdata[index],dealdata[index+1],dealdata[index+2],dealdata[index+3],dealdata[index+4],dealdata[index+5],dealdata[index+6]);
-		index+= getMS(1,&dealdata[index],(INT8U *)&fangAn.mst);
+		index+= getMS(1,&dealdata[index],&fangAn.mst);
 		index+= getEnum(1,&dealdata[index],&fangAn.savetimeflag);
 		fprintf(stderr,"\n方案号 ：%d ",fangAn.sernum);
 		fprintf(stderr,"\n存储深度 ：%d ",fangAn.deepsize);
@@ -494,7 +494,7 @@ void AddEventCjiFangAnInfo(INT8U *data)
 		index += getArray(&data[index],(INT8U *)&eventFangAn.roads.num);
 		for(i=0;i<eventFangAn.roads.num;i++)
 			index += getROAD(&data[index],&eventFangAn.roads.road[i]);
-		index += getMS(0,&data[index],&eventFangAn.ms.mstype);
+		index += getMS(0,&data[index],&eventFangAn.ms);
 		index += getBool(&data[index],&eventFangAn.ifreport);
 		index += getLongUnsigned(&data[index],(INT8U *)&eventFangAn.deepsize);
 
