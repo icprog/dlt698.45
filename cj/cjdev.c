@@ -311,12 +311,56 @@ void inoutdev_process(int argc, char* argv[]) {
 void cjfangAn() {
     CLASS_6017 obj6017;
 }
+void SetF201(int argc, char* argv[]) {
+    CLASS_f201 oif201 = {};
 
-void SetF201(INT8U band, INT8U crc, INT8U data, INT8U stop) {
-    CLASS_f201 oif201       = {};
-    oif201.devpara.baud     = band;
-    oif201.devpara.verify   = crc;
-    oif201.devpara.databits = data;
-    oif201.devpara.stopbits = stop;
+    if (argc != 6 || (atoi(argv[2]) < 0 && atoi(argv[2]) > 255) || (atoi(argv[3]) < 0 && atoi(argv[3]) > 2) || (atoi(argv[4]) > 5 && atoi(argv[4]) > 8) ||
+        (atoi(argv[5]) < 0 && atoi(argv[5]) > 2)) {
+        fprintf(stderr, "使用方法，括号内的数字是需要设置的参数\n");
+
+        fprintf(stderr, "波特率：bps300(0),bps600(1),bps1200(2),bps2400(3),bps4800(4),bps7200(5),\nbps9600(6),bps19200(7),bps38400(8),bps57600(9),bps115200(10)"
+                        ",auto(255)\n");
+        fprintf(stderr, "校验方式：none(0), odd(1), even(2)\n");
+        fprintf(stderr, "数据位：d5(5), d6(6), d7(7),d8(8)\n");
+        fprintf(stderr, "停止位：stop0(0), stop1(1), stop2(2)\n");
+
+        if (readCoverClass(0xf201, 0, &oif201, sizeof(CLASS_f201), para_vari_save) > 0) {
+            fprintf(stderr, "当前：波特率(%d)，校验方式(%d)，数据位(%d)，停止位(%d)\n", oif201.devpara.baud, oif201.devpara.verify, oif201.devpara.databits,
+                    oif201.devpara.stopbits);
+        }
+        return;
+    }
+
+    oif201.devpara.baud     = atoi(argv[2]);
+    oif201.devpara.verify   = atoi(argv[3]);
+    oif201.devpara.databits = atoi(argv[4]);
+    oif201.devpara.stopbits = atoi(argv[5]);
     saveCoverClass(0xf201, 0, &oif201, sizeof(CLASS_f201), para_vari_save);
+}
+
+void SetF202(int argc, char* argv[]) {
+    CLASS_f202 oif202 = {};
+
+    if (argc != 6 || (atoi(argv[2]) < 0 && atoi(argv[2]) > 255) || (atoi(argv[3]) < 0 && atoi(argv[3]) > 2) || (atoi(argv[4]) > 5 && atoi(argv[4]) > 8) ||
+        (atoi(argv[5]) < 0 && atoi(argv[5]) > 2)) {
+        fprintf(stderr, "使用方法，括号内的数字是需要设置的参数\n");
+
+        fprintf(stderr, "波特率：bps300(0),bps600(1),bps1200(2),bps2400(3),bps4800(4),bps7200(5),\nbps9600(6),bps19200(7),bps38400(8),bps57600(9),bps115200(10)"
+                        ",auto(255)\n");
+        fprintf(stderr, "校验方式：none(0), odd(1), even(2)\n");
+        fprintf(stderr, "数据位：d5(5), d6(6), d7(7),d8(8)\n");
+        fprintf(stderr, "停止位:stop0(0), stop1(1), stop2(2)\n");
+
+        if (readCoverClass(0xf202, 0, &oif202, sizeof(CLASS_f202), para_vari_save) > 0) {
+            fprintf(stderr, "当前：波特率(%d)，校验方式(%d)，数据位(%d)，停止位(%d)\n", oif202.devpara.baud, oif202.devpara.verify, oif202.devpara.databits,
+                    oif202.devpara.stopbits);
+        }
+        return;
+    }
+
+    oif202.devpara.baud     = atoi(argv[2]);
+    oif202.devpara.verify   = atoi(argv[3]);
+    oif202.devpara.databits = atoi(argv[4]);
+    oif202.devpara.stopbits = atoi(argv[5]);
+    saveCoverClass(0xf202, 0, &oif202, sizeof(CLASS_f202), para_vari_save);
 }
