@@ -1747,7 +1747,7 @@ INT8U Event_310F(TSA tsa, INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 /*
  * 月通信流量超限事件 data为当月已经发生流量 字节由高到低
  */
-INT8U Event_3110(INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
+INT8U Event_3110(INT32U data,INT8U len,ProgramInfo* prginfo_event) {
 	if(oi_chg.oi3110 != prginfo_event->oi_changed.oi3110){
 		readCoverClass(0x3110,0,&prginfo_event->event_obj.Event3110_obj,sizeof(prginfo_event->event_obj.Event3110_obj),event_para_save);
 		oi_chg.oi3110 = prginfo_event->oi_changed.oi3110;
@@ -1756,10 +1756,9 @@ INT8U Event_3110(INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
         return 0;
     }
     static INT8U flag=0;
-    INT32U monthbytes=(data[0]<<24)+(data[1]<<16)+(data[2]<<8)+data[3];
     INT32U offset=prginfo_event->event_obj.Event3110_obj.Monthtrans_obj.month_offset;
     //通信处判断还是这里判断 TODO
-    if(monthbytes>offset){
+    if(data>offset){
     	if(flag==0){
     	    flag=1;
 			INT8U Save_buf[256];
@@ -1773,10 +1772,10 @@ INT8U Event_3110(INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 			//属性3有关联数据
 			//事件发生后已发生通信流量 //22004202
 			Save_buf[index++]=dtdoublelongunsigned;//double-long-unsiged
-			Save_buf[index++]=data[0];
-			Save_buf[index++]=data[1];
-			Save_buf[index++]=data[2];
-			Save_buf[index++]=data[3];
+			Save_buf[index++]=(data>>24)&0x000000ff;
+			Save_buf[index++]=(data>>16)&0x000000ff;
+			Save_buf[index++]=(data>>8)&0x000000ff;
+			Save_buf[index++]=data&0x000000ff;
 			//月通信流量门限 //31100601
 			Save_buf[index++]=dtdoublelongunsigned;//double-long-unsigned
 			Save_buf[index++]=(offset>>24)&0x000000ff;
