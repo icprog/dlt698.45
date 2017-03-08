@@ -30,7 +30,7 @@ void CalculateTransFlow(ProgramInfo* prginfo_event) {
     if (first_flag == 1) {
         first_flag = 0;
         memset(&c2200, 0x00, sizeof(c2200));
-        // readCoverClass(0x2200, 0, &c2200, sizeof(c2200), para_vari_save);
+        // readVariData(0x2200, 0, &c2200, sizeof(c2200), para_vari_save);
         asyslog(LOG_INFO, "初始化月流量统计(%lld)", c2200.flow.month_tj);
     }
 

@@ -107,12 +107,12 @@ void printF203() {
     fprintf(stderr, "[F203]开关量输入\n");
     fprintf(stderr, "逻辑名 %s\n", oif203.class22.logic_name);
     fprintf(stderr, "设备对象数量：%d\n", oif203.class22.device_num);
-    fprintf(stderr, "属性2：ST=%d_%d_%d_%d %d_%d_%d_%d\n", oif203.statearri.stateunit[0].ST, oif203.statearri.stateunit[1].ST,
-            oif203.statearri.stateunit[2].ST, oif203.statearri.stateunit[3].ST, oif203.statearri.stateunit[4].ST,
-            oif203.statearri.stateunit[5].ST, oif203.statearri.stateunit[6].ST, oif203.statearri.stateunit[7].ST);
+    fprintf(stderr, "属性2：ST=%d_%d_%d_%d %d_%d_%d_%d\n", oif203.statearri.stateunit[0].ST, oif203.statearri.stateunit[1].ST, oif203.statearri.stateunit[2].ST,
+            oif203.statearri.stateunit[3].ST, oif203.statearri.stateunit[4].ST, oif203.statearri.stateunit[5].ST, oif203.statearri.stateunit[6].ST,
+            oif203.statearri.stateunit[7].ST);
     fprintf(stderr, "属性2：CD=%d_%d_%d_%d %d_%d_%d_%d\n\n", oif203.statearri.stateunit[0].CD, oif203.statearri.stateunit[1].CD,
-            oif203.statearri.stateunit[2].CD, oif203.statearri.stateunit[3].CD, oif203.statearri.stateunit[4].CD,
-            oif203.statearri.stateunit[5].CD, oif203.statearri.stateunit[6].CD, oif203.statearri.stateunit[7].CD);
+            oif203.statearri.stateunit[2].CD, oif203.statearri.stateunit[3].CD, oif203.statearri.stateunit[4].CD, oif203.statearri.stateunit[5].CD,
+            oif203.statearri.stateunit[6].CD, oif203.statearri.stateunit[7].CD);
     fprintf(stderr, "属性4：接入标志=%02x\n", oif203.state4.StateAcessFlag);
     fprintf(stderr, "属性4：属性标志=%02x\n", oif203.state4.StatePropFlag);
 }
@@ -185,10 +185,10 @@ void SetIPort(int argc, char* argv[]) {
     memset(&master, 0, sizeof(MASTER_STATION_INFO_LIST));
     memset(&class4500, 0, sizeof(CLASS25));
     readCoverClass(0x4500, 0, &class4500, sizeof(CLASS25), para_vari_save);
-    fprintf(stderr, "\n先读出 主IP %d.%d.%d.%d :%d\n", class4500.master.master[0].ip[1], class4500.master.master[0].ip[2],
-            class4500.master.master[0].ip[3], class4500.master.master[0].ip[4], class4500.master.master[0].port);
-    fprintf(stderr, "\n先读出 备IP %d.%d.%d.%d :%d\n", class4500.master.master[1].ip[1], class4500.master.master[1].ip[2],
-            class4500.master.master[1].ip[3], class4500.master.master[1].ip[4], class4500.master.master[1].port);
+    fprintf(stderr, "\n先读出 主IP %d.%d.%d.%d :%d\n", class4500.master.master[0].ip[1], class4500.master.master[0].ip[2], class4500.master.master[0].ip[3],
+            class4500.master.master[0].ip[4], class4500.master.master[0].port);
+    fprintf(stderr, "\n先读出 备IP %d.%d.%d.%d :%d\n", class4500.master.master[1].ip[1], class4500.master.master[1].ip[2], class4500.master.master[1].ip[3],
+            class4500.master.master[1].ip[4], class4500.master.master[1].port);
     int i   = 0;
     int num = argc - 2;
     if (num > 0 && num < 4) {
@@ -197,10 +197,10 @@ void SetIPort(int argc, char* argv[]) {
             getipnum(&master.master[i], argv[2 + i]);
         }
         memcpy(&class4500.master, &master, sizeof(MASTER_STATION_INFO_LIST));
-        fprintf(stderr, "\n存储前 主IP %d.%d.%d.%d :%d\n", class4500.master.master[0].ip[1], class4500.master.master[0].ip[2],
-                class4500.master.master[0].ip[3], class4500.master.master[0].ip[4], class4500.master.master[0].port);
-        fprintf(stderr, "\n存储前 备IP %d.%d.%d.%d :%d\n", class4500.master.master[1].ip[1], class4500.master.master[1].ip[2],
-                class4500.master.master[1].ip[3], class4500.master.master[1].ip[4], class4500.master.master[1].port);
+        fprintf(stderr, "\n存储前 主IP %d.%d.%d.%d :%d\n", class4500.master.master[0].ip[1], class4500.master.master[0].ip[2], class4500.master.master[0].ip[3],
+                class4500.master.master[0].ip[4], class4500.master.master[0].port);
+        fprintf(stderr, "\n存储前 备IP %d.%d.%d.%d :%d\n", class4500.master.master[1].ip[1], class4500.master.master[1].ip[2], class4500.master.master[1].ip[3],
+                class4500.master.master[1].ip[4], class4500.master.master[1].port);
         saveCoverClass(0x4500, 0, &class4500, sizeof(CLASS25), para_vari_save);
     }
 }
@@ -310,4 +310,13 @@ void inoutdev_process(int argc, char* argv[]) {
 }
 void cjfangAn() {
     CLASS_6017 obj6017;
+}
+
+void SetF201(INT8U band, INT8U crc, INT8U data, INT8U stop) {
+    CLASS_f201 oif201       = {};
+    oif201.devpara.baud     = band;
+    oif201.devpara.verify   = crc;
+    oif201.devpara.databits = data;
+    oif201.devpara.stopbits = stop;
+    saveCoverClass(0xf201, 0, &oif201, sizeof(CLASS_f201), para_vari_save);
 }
