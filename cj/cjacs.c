@@ -21,7 +21,7 @@
 #include "att7022e.h"
 #include "rn8209.h"
 #include "main.h"
-
+extern ProgramInfo* JProgramInfo ;
 #define 	W_APQ0		8
 #define 	W_APQ1		1
 #define 	W_APQ2		7
@@ -63,7 +63,6 @@ INT32U 		K_vrms=1;	        		//RN8209读取电压的系数
 INT32S		VersionID=-1;		//att7022e 改版记录
 INT32U		WireType;		//ATT7022e 接线方式，0x0600:三相四，0x1200：三相三
 
-ProgramInfo* JProgramInfo = NULL;
 
 void realdataprint(_RealData realdata)
 {

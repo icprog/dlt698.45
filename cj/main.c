@@ -17,9 +17,11 @@
 #include <mqueue.h>
 #include <semaphore.h>
 #include <termios.h>
-
+#include "Shmem.h"
 #include "StdDataType.h"
 #include "main.h"
+#include "AccessFun.h"
+ProgramInfo* JProgramInfo = NULL;
 
 static char
 		*usage_set =
@@ -152,9 +154,11 @@ INT8U Getcurrno(INT16U *currno,INT16U maxno){
 	return 1;
 }
 
+
 int main(int argc, char *argv[])
 {
 	usleep(10);
+
 	if(argc<2) {
 		prthelp();
 		return EXIT_SUCCESS;
