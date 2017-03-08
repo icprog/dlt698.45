@@ -17,9 +17,11 @@
 #include <mqueue.h>
 #include <semaphore.h>
 #include <termios.h>
-
+#include "Shmem.h"
 #include "StdDataType.h"
 #include "main.h"
+#include "AccessFun.h"
+ProgramInfo* JProgramInfo = NULL;
 
 static char* usage_set = "\n--------------------参数设置----------------------------\n"
                          "		 【主站IP端口设置】cj ip XXX.XXX.XXX.XXX:port XXX.XXX.XXX.XXX:port 	\n"
@@ -62,6 +64,9 @@ static char* usage_event = "--------------------事件类对象-----------------
                            "	[设置采集终端初始化事件] cj event pro 3100 1 16 1 1 0 \n"
                            "	[设置终端状态量变位事件] cj event pro 3104 1 16 1 1 5 201E-4200 F203-4201 F203-4202 F203-4203 F203-4204 F203-4205\n"
                            "[读取事件记录] cj event record <oi> 0（所有）/n（记录n）:例如：读取采集终端初始化事件记录 cj event record 0x3100 0（所有）/1(记录1)"
+   "[设置电能表开盖事件有效/无效] cj event enable 301B 1/0 1有效 0无效 \n"
+		                   "[设置停上电事件有效/无效] cj event enable 3106 1/0 1有效 0无效 \n"
+		                   "[设置对时事件有效/无效] cj event enable 3114 1/0 1有效 0无效 \n"
                            "-------------------------------------------------------\n\n";
 
 static char* usage_acs = "--------------------终端交采计量校表及维护命令----------------------------\n"

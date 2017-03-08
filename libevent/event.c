@@ -2242,6 +2242,44 @@ INT8U Event_3118(INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 }
 
 /*
+ * 电能表开盖事件
+ */
+INT8U Event_301B(INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
+	if(oi_chg.oi301B != prginfo_event->oi_changed.oi301B){
+		readCoverClass(0x301B,0,&prginfo_event->event_obj.Event301B_obj,sizeof(prginfo_event->event_obj.Event301B_obj),event_para_save);
+		oi_chg.oi301B = prginfo_event->oi_changed.oi301B;
+	}
+    if (prginfo_event->event_obj.Event301B_obj.enableflag == 0) {
+        return 0;
+    }
+
+    if(1){
+		INT8U Save_buf[256];
+		bzero(Save_buf, sizeof(Save_buf));
+		prginfo_event->event_obj.Event301B_obj.crrentnum++;
+		prginfo_event->event_obj.Event301B_obj.crrentnum=Getcurrno(prginfo_event->event_obj.Event301B_obj.crrentnum,prginfo_event->event_obj.Event301B_obj.maxnum);
+		INT32U crrentnum = prginfo_event->event_obj.Event301B_obj.crrentnum;
+		INT8U index=0;
+		//标准数据单元
+		Get_StandardUnit(0x301B,Save_buf,&index,crrentnum,NULL,s_null);
+
+		//存储更改后得参数
+		saveCoverClass(0x301B,(INT16U)crrentnum,(void *)&prginfo_event->event_obj.Event301B_obj,sizeof(Class7_Object),event_para_save);
+		//存储记录集
+		saveCoverClass(0x301B,(INT16U)crrentnum,(void *)Save_buf,(int)index,event_record_save);
+		//存储当前记录值
+		INT8U Currbuf[50]={};memset(Currbuf,0,50);
+		INT8U Currindex=0;
+		Get_CurrResult(Currbuf,&Currindex,NULL,s_null,crrentnum,0);
+		saveCoverClass(0x301B,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,event_current_save);
+		//判断是否要上报
+		if(prginfo_event->event_obj.Event301B_obj.reportflag)
+			Need_Report(0x301B,crrentnum,prginfo_event);
+    }
+    return 1;
+}
+
+/*
  * 终端电流回路异常事件23,II型集中器没有电流，暂时不处理,type为0,1 短路、开路
  */
 INT8U Event_3119(INT8U type, INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
