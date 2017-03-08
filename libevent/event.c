@@ -1191,9 +1191,11 @@ INT8U Event_3107(INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
     if (prginfo_event->event_obj.Event3107_obj.event_obj.enableflag == 0) {
         return 0;
     }
+    static INT8U flag=0;
     INT32S moniliang=(data[0]<<24)+(data[1]<<16)+(data[2]<<8)+data[3];
     INT32S offset=prginfo_event->event_obj.Event3107_obj.analogtop_obj.top_limit;
-    if(moniliang>offset){
+    if(moniliang>offset && flag==0){
+    	flag=1;
 		INT8U Save_buf[256];
 		bzero(Save_buf, sizeof(Save_buf));
 		//更新当前记录数
@@ -1218,7 +1220,8 @@ INT8U Event_3107(INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 		//判断是否要上报
 		if(prginfo_event->event_obj.Event3107_obj.event_obj.reportflag)
 			Need_Report(0x3107,crrentnum,prginfo_event);
-    }
+    }else
+    	flag=0;
     return 1;
 }
 
@@ -1233,10 +1236,11 @@ INT8U Event_3108(INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
     if (prginfo_event->event_obj.Event3108_obj.event_obj.enableflag == 0) {
         return 0;
     }
-
+    static INT8U flag=0;
     INT32S moniliang=(data[0]<<24)+(data[1]<<16)+(data[2]<<8)+data[3];
 	INT32S offset=prginfo_event->event_obj.Event3108_obj.analogbom_obj.bom_limit;
-	if(moniliang<offset){
+	if(moniliang<offset && flag==0){
+		flag=1;
 		INT8U Save_buf[256];
 		bzero(Save_buf, sizeof(Save_buf));
 		//更新当前记录数
@@ -1261,7 +1265,8 @@ INT8U Event_3108(INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 		//判断是否要上报
 		if(prginfo_event->event_obj.Event3108_obj.event_obj.reportflag)
 			Need_Report(0x3108,crrentnum,prginfo_event);
-	}
+	}else
+		flag=0;
     return 1;
 }
 
@@ -1745,10 +1750,12 @@ INT8U Event_3110(INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
     if (prginfo_event->event_obj.Event3110_obj.event_obj.enableflag == 0) {
         return 0;
     }
+    static INT8U flag=0;
     INT32U monthbytes=(data[0]<<24)+(data[1]<<16)+(data[2]<<8)+data[3];
     INT32U offset=prginfo_event->event_obj.Event3110_obj.Monthtrans_obj.month_offset;
     //通信处判断还是这里判断 TODO
-    if(monthbytes>offset){
+    if(monthbytes>offset && flag==0){
+    	flag=1;
     	INT8U Save_buf[256];
 		bzero(Save_buf, sizeof(Save_buf));
 		prginfo_event->event_obj.Event3110_obj.event_obj.crrentnum++;
@@ -1784,7 +1791,8 @@ INT8U Event_3110(INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 		if(prginfo_event->event_obj.Event3110_obj.event_obj.reportflag)
 			Need_Report(0x3110,crrentnum,prginfo_event);
 		return 1;
-    }
+    }else
+    	flag=0;
     return 1;
 }
 
