@@ -59,6 +59,7 @@
 
 #define	REPORT_CHANN_OAD_NUM	10			//上报方案 array OAD最大个数
 #define MY_CSD_NUM				20			//my_csd数组最大各数
+#define ROAD_OADS_NUM           16          //ROAD结构体里oads的最大个数
 #define CLASS7_OAD_NUM			10			//关联对象属性表
 #define MAX_PERIOD_RATE   		48      	//支持的最到终端费率时段数
 
@@ -146,6 +147,9 @@
 
 #define SEMNAME_SPI0_0 		"sem_spi0_0" //专变、I型集中器交采和esam的spi通信互斥信号量
 #define	SEMNAME_PARA_SAVE	"sem_parasave"			//参数文件存储
+#define	DISPATCH_TASK_485_1	"diapatch_task_4851"			//485 1任务
+#define	DISPATCH_TASK_485_2	"diapatch_task_4852"			//485 2任务
+#define	DISPATCH_TASK_PLC	"diapatch_task_plc"			//载波
 ////////////////////////////////////////////////////////////////
 
 /*

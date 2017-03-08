@@ -84,6 +84,8 @@ INT16S composeProtocol07(FORMAT07* format07, INT8U* sendBuf)
 {
 	INT16U i;
 	INT8U addrBuff[6] = {0};
+	fprintf(stderr,"composeProtocol07 format07->Addr = %02x%02x%02x%02x%02x%02x",
+			format07->Addr[0],format07->Addr[1],format07->Addr[2],format07->Addr[3],format07->Addr[4],format07->Addr[5]);
 	reversebuff(format07->Addr,6,addrBuff);
 
 #ifdef TESTDEF1

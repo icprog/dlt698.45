@@ -216,8 +216,8 @@ void CreateSaveHead(char *fname,CSD_ARRAYTYPE csds,INT16U *headlen,INT16U *unitl
 			headbuf[pindex++] = len_tmp & 0x00ff;
 			if(csds.csd[i].csd.road.num == 0xee)
 				continue;
-			if(csds.csd[i].csd.road.num > 16)//超了
-				csds.csd[i].csd.road.num = 16;
+			if(csds.csd[i].csd.road.num > ROAD_OADS_NUM)//超了
+				csds.csd[i].csd.road.num = ROAD_OADS_NUM;
 			for(j=0;j<csds.csd[i].csd.road.num;j++)
 			{
 				fprintf(stderr,"\n-2--csds.csd[i].csd.oad.OI = %04x\n",csds.csd[i].csd.road.oads[j].OI);

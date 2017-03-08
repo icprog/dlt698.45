@@ -13,7 +13,6 @@
 
 //一次从文件里读取10个6001--采集档案任务配置单元
 #define LIST6001SIZE 10
-#define TASK6012_MAX 256
 #define BUFFSIZE 256
 #define DATA_CONTENT_LEN 500
 
@@ -41,11 +40,6 @@ typedef struct
 	INT8U port;			//端口
 }BasicInfo6001;
 
-typedef struct {
-	INT8U run_flg;//累计需要抄读次数 抄读一次后置为0   到下一次抄读时间置为1
-	TS ts_next;//下一次抄表时刻
-	CLASS_6013 basicInfo;
-}TASK_CFG;
 
 //698 OAD 和 645 07规约 数据标识对应关系
 
@@ -53,9 +47,11 @@ typedef struct {
 
 extern void read485_proccess();
 mqd_t mqd_485_main;
-TASK_CFG list6013[TASK6012_MAX];
+
 INT32S comfd4851;
 INT32S comfd4852;
+INT8U i485port1;
+INT8U i485port2;
 //以下是测试用的假数据
 #ifdef TESTDEF
 #define TESTARRAYNUM 20

@@ -20,6 +20,8 @@
 #include "PublicFunction.h"
 
 void initComPara(CommBlock* compara);
+void CalculateTransFlow(ProgramInfo* prginfo_event);
+void EventAutoReport(CommBlock* nst);
 
 void GenericRead(struct aeEventLoop* eventLoop, int fd, void* clientData, int mask);
 INT8S GenericWrite(int fd, INT8U* buf, INT16U len);

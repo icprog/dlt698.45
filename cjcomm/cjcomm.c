@@ -18,10 +18,71 @@
 static ProgramInfo* JProgramInfo = NULL;
 static CLASS25 Class25;
 
+void CalculateTransFlow(ProgramInfo* prginfo_event) {
+    static Flow_tj c2200;
+    //统计临时变量
+    static long long rtx_bytes = 0;
+    static long long rx_bytes  = 0;
+    static long long tx_bytes  = 0;
+    static int localMin        = 0;
+
+    static int first_flag = 1;
+    if (first_flag == 1) {
+        first_flag = 0;
+        memset(&c2200, 0x00, sizeof(c2200));
+        // readVariData(0x2200, 0, &c2200, sizeof(c2200), para_vari_save);
+        asyslog(LOG_INFO, "初始化月流量统计(%lld)", c2200.flow.month_tj);
+    }
+
+    TS ts = {};
+    TSGet(&ts);
+    if (localMin != ts.Minute) {
+        localMin = ts.Minute;
+    } else {
+        return;
+    }
+
+    FILE* rfd = fopen("/sys/class/net/eth0/statistics/rx_bytes", "r");
+    FILE* tfd = fopen("/sys/class/net/eth0/statistics/tx_bytes", "r");
+    if (rfd == NULL || tfd == NULL) {
+        asyslog(LOG_INFO, "未检测到端口(PPP0)打开");
+        fclose(rfd);
+        fclose(tfd);
+        return;
+    }
+
+    fscanf(rfd, "%lld", &rx_bytes);
+    fscanf(tfd, "%lld", &tx_bytes);
+
+    fclose(rfd);
+    fclose(tfd);
+
+    //说明ppp0重新拨号了
+    if (rtx_bytes > rx_bytes + tx_bytes) {
+        rtx_bytes = 0;
+    }
+
+    if (ts.Minute % 2 == 0) {
+        asyslog(LOG_INFO, "20分钟月流量统计，未统计流量%lld", (rx_bytes + tx_bytes) - rtx_bytes);
+        c2200.flow.month_tj += (rx_bytes + tx_bytes) - rtx_bytes;
+        // saveCoverClass(0x2200, 0, &c2200, sizeof(c2200), para_init_save);
+        rtx_bytes = rx_bytes + tx_bytes;
+        Event_3110(c2200.flow.month_tj, sizeof(c2200.flow), prginfo_event);
+    }
+
+    return;
+}
+
 void EventAutoReport(CommBlock* nst) {
     static int local_index = 0;
+    if (JProgramInfo->needreport_event.event_num >= 16 || JProgramInfo->needreport_event.event_num < 0) {
+        asyslog(LOG_ERR, "事件上报模块发生严重错误！事件序号越限(%d)", JProgramInfo->needreport_event.event_num);
+        return;
+    }
     if (local_index != JProgramInfo->needreport_event.event_num) {
-        local_index = JProgramInfo->needreport_event.event_num;
+        //循环存储16个
+        local_index += 1;
+        local_index %= 16;
         Report_Event(nst, JProgramInfo->needreport_event.report_event[local_index]);
     }
 }
