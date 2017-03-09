@@ -4,6 +4,7 @@
 #define DLT698_H_
 #include "Objectdef.h"
 
+extern int getTsas(MY_MS ms,INT8U **tsas);
 extern int doObjectAction(OAD oad,INT8U *data,Action_result *result);
 extern int StateProcess(CommBlock* nst, int delay_num);
 extern int ProcessData(CommBlock *com);

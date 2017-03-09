@@ -118,10 +118,77 @@ int selector10getdata(TSA tsa,INT8U num,CSD_ARRAYTYPE *csds, INT8U *databuf)
  *			  		}
  *
  */
+
 //根据type填充tsas ; 返回TS 的数量
-int getTsas(MY_MS ms,TSA **tsas)
+int getTsas(MY_MS ms,INT8U **tsas)
 {
-	return 0;
+	int  tsa_num = 0;
+	int	 record_num = 0;
+	int	 i=0,j=0;
+	CLASS_6001	 meter={};
+
+	if(ms.mstype == 0) { //无电能表
+		tsa_num = 0;
+		return tsa_num;
+	}
+	record_num = getFileRecordNum(0x6000);
+	*tsas = malloc(record_num*sizeof(TSA));
+	fprintf(stderr," tsas  p=%p record_num=%d",*tsas,record_num);
+	tsa_num = 0;
+	for(i=0;i<record_num;i++) {
+		if(readParaClass(0x6000,&meter,i)==1) {
+			if(meter.sernum!=0 && meter.sernum!=0xffff) {
+				switch(ms.mstype) {
+				case 1:	//全部用户地址
+					fprintf(stderr,"\nTSA: %d-",meter.basicinfo.addr.addr[0]);
+					for(j=0;j<meter.basicinfo.addr.addr[0];j++) {
+						fprintf(stderr,"-%02x",meter.basicinfo.addr.addr[j+1]);
+					}
+					memcpy(*tsas+(tsa_num*sizeof(TSA)),&meter.basicinfo.addr,sizeof(TSA));
+					tsa_num++;
+					break;
+				case 2:	//一组用户类型
+					for(j=0;j<ms.ms.userType[0];j++) {
+						if(meter.basicinfo.usrtype == ms.ms.userType[j+1]) {
+							memcpy(*tsas+(tsa_num*sizeof(TSA)),&meter.basicinfo.addr,sizeof(TSA));
+							tsa_num++;
+							break;
+						}
+					}
+					break;
+				case 3:	//一组用户地址
+					for(j=0;j<ms.ms.userAddr[0];j++) {
+						if(memcmp(&ms.ms.userAddr[j+1],&meter.basicinfo.addr,sizeof(TSA))==0) {  //TODO:TSA下发的地址是否按照00：长度，01：TSA长度格式
+							memcpy(*tsas+(tsa_num*sizeof(TSA)),&meter.basicinfo.addr,sizeof(TSA));
+							tsa_num++;
+							break;
+						}
+					}
+					break;
+				case 4:	//一组配置序号
+					for(j=0;j<ms.ms.configSerial[0];j++) {
+						if(meter.sernum == ms.ms.configSerial[j+1]) {
+							memcpy(*tsas+(tsa_num*sizeof(TSA)),&meter.basicinfo.addr,sizeof(TSA));
+							tsa_num++;
+							break;
+						}
+					}
+					break;
+				case 5://一组用户类型区间
+
+					break;
+				case 6://一组用户地址区间
+
+					break;
+				case 7://一组配置序号区间
+
+					break;
+				}
+			}
+		}
+	}
+	fprintf(stderr,"\nms.mstype = %d,tsa_num = %d",ms.mstype,tsa_num);
+	return tsa_num;
 }
 
 int doAutoReport(CLASS_601D report,CommBlock* com)
