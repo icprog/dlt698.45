@@ -17,6 +17,7 @@
 //共享内存地址
 static ProgramInfo* JProgramInfo = NULL;
 static CLASS25 Class25;
+static int ProgIndex = 0;
 
 void CalculateTransFlow(ProgramInfo* prginfo_event) {
     static Flow_tj c2200;
@@ -102,12 +103,7 @@ void QuitProcess(int sig) {
     //关闭AT模块
     asyslog(LOG_INFO, "关闭AT模块电源");
     AT_POWOFF();
-
-    //等待处理完成
-    asyslog(LOG_INFO, "等待(2秒)清理工作完成……");
-    sleep(2);
-
-    exit(0);
+    asyslog(LOG_INFO, "通信模块退出完成...");
 }
 
 void WriteLinkRequest(INT8U link_type, INT16U heartbeat, LINK_Request* link_req) {
@@ -224,9 +220,10 @@ void enviromentCheck(int argc, char* argv[]) {
     asyslog(LOG_INFO, "心跳周期秒：%d", Class25.commconfig.heartBeat);
 
     //向cjmain报告启动
+    ProgIndex    = atoi(argv[1]);
     JProgramInfo = OpenShMem("ProgramInfo", sizeof(ProgramInfo), NULL);
-    memcpy(JProgramInfo->Projects[1].ProjectName, "cjcomm", sizeof("cjcomm"));
-    JProgramInfo->Projects[1].ProjectID = getpid();
+    memcpy(JProgramInfo->Projects[ProgIndex].ProjectName, "cjcomm", sizeof("cjcomm"));
+    JProgramInfo->Projects[ProgIndex].ProjectID = getpid();
 }
 
 int main(int argc, char* argv[]) {

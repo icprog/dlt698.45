@@ -68,11 +68,7 @@ void Watchdog(int count) //硬件看门狗
 int ReadSystemInfo() {
     int ProgsNum = 1;
 
-    char Strbuf[256]          = {};
-    char pname[PRONAMEMAXLEN] = {};
-    char argv1[ARGVMAXLEN]    = {};
-    char argv2[ARGVMAXLEN]    = {};
-    char argv3[ARGVMAXLEN]    = {};
+    char Strbuf[256] = {};
 
     //初始化共享内存参数
     for (int i = 0; i < PROJECTCOUNT; i++) {
@@ -112,10 +108,10 @@ int ReadSystemInfo() {
 
         JProgramInfo->Projects[index].ProjectState = NeedStart;
         JProgramInfo->Projects[index].WaitTimes    = 0;
-        sprintf(JProgramInfo->Projects[0].argv[0], "%d", index);
+        sprintf(JProgramInfo->Projects[index].argv[0], "%d", index);
 
         memset(Strbuf, 0x00, sizeof(Strbuf));
-        asyslog(LOG_WARNING, "需要启动程序[%s][%d]", JProgramInfo->Projects[index].ProjectName, index);
+        asyslog(LOG_WARNING, "需要启动程序[%s][%s][%d]", JProgramInfo->Projects[index].ProjectName, JProgramInfo->Projects[index].argv[0], index);
         ProgsNum++;
     }
 
@@ -239,7 +235,10 @@ void CreateSem() {
 /*
  * 初始化操作
  * */
-void FillSharedMem() {
+void InitSharedMem(int argc, char* argv[]) {
+    JProgramInfo = (ProgramInfo*)CreateShMem("ProgramInfo", sizeof(ProgramInfo), NULL);
+    asyslog(LOG_ERR, "打开共享内存，地址[%d]，大小[%d]", JProgramInfo, sizeof(ProgramInfo));
+
     InitClass4300();
 
     readCoverClass(0x3100, 0, &JProgramInfo->event_obj.Event3100_obj, sizeof(JProgramInfo->event_obj.Event3100_obj), event_para_save);
@@ -327,7 +326,7 @@ int ProjectExecute(ProjectInfo proinfo, int i) {
 
     if (pid == 0) {
         //子进程代码运行部分
-        asyslog(LOG_WARNING, "程序启动[%s]", (char*)proinfo.ProjectName);
+        asyslog(LOG_WARNING, "程序启动[%s %s %s %s %s]", (char*)proinfo.ProjectName, proinfo.argv[0], proinfo.argv[1], proinfo.argv[2], proinfo.argv[3]);
         execlp((char*)proinfo.ProjectName, (char*)proinfo.ProjectName, proinfo.argv[0], proinfo.argv[1], proinfo.argv[2], proinfo.argv[3], NULL);
         return 0;
     }
@@ -350,7 +349,7 @@ void ProjectCheck(ProjectInfo* proinfo) {
 void checkProgsState(int ProgsNum) {
     ProjectInfo* pis = JProgramInfo->Projects;
 
-    for (int i = 0; i < ProgsNum; i++) {
+    for (int i = 1; i < ProgsNum; i++) {
         ProjectCheck(&JProgramInfo->Projects[i]);
         switch (JProgramInfo->Projects[i].ProjectState) {
             case NeedKill:
@@ -401,7 +400,6 @@ void checkDevReset() {
             break;
         case 1:
             if (abs(time(NULL) - oldtime) >= 5) {
-                // TODO:复位之前保证硬件初始化上送应答帧、统计数据存储成功、电量的存储
                 system("reboot");
             }
             break;
@@ -430,18 +428,13 @@ int main(int argc, char* argv[]) {
     // struct sigaction sa1;
     // Setsig(&sa1, ProjectMainExit);
 
-    JProgramInfo = (ProgramInfo*)CreateShMem("ProgramInfo", sizeof(ProgramInfo), NULL);
-    asyslog(LOG_ERR, "打开共享内存，地址[%d]，大小[%d]", JProgramInfo, sizeof(ProgramInfo));
-
-    if (argc >= 2) {
-        if (strncmp("all", argv[1], 3) == 0) {
-            ProgsNum = ReadSystemInfo();
-        }
-    }
-
     Createmq();
     CreateSem();
-    FillSharedMem();
+    InitSharedMem(argc, argv);
+
+    if (argc >= 2 && strncmp("all", argv[1], 3) == 0) {
+        ProgsNum = ReadSystemInfo();
+    }
 
     while (1) {
         sleep(1);
@@ -464,5 +457,6 @@ int main(int argc, char* argv[]) {
         //检查设备是否需要重启
         checkDevReset();
     }
-    return EXIT_SUCCESS; //退出
+
+    exit(1);
 }
