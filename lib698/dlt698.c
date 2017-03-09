@@ -854,38 +854,39 @@ INT16S fillGetRequestAPDU(INT8U* sendBuf,CLASS_6015 obj6015,INT8U requestType)
 					// selector 9
 					sendBuf[length++] = 0x09;//Selector = 9 选取上n条记录
 					sendBuf[length++] = 0x01;//选取上1条记录
-					sendBuf[length++] = obj6015.csds.csd[csdIndex].csd.road.num;//OAD num
 				}
+				if(obj6015.cjtype == TYPE_FREEZE)
+				{
+					// selector 9
+					sendBuf[length++] = 0x01;//Selector = 1
+					//冻结时标OAD
+					sendBuf[length++] = 0x20;
+					sendBuf[length++] = 0x21;
+					sendBuf[length++] = 0x02;
+					sendBuf[length++] = 0x00;
+
+					DateTimeBCD timeStamp;
+					DataTimeGet(&timeStamp);
+
+					sendBuf[length++] = 0x1c;
+					INT16U tmpTime = timeStamp.year.data;
+					sendBuf[length++] = (tmpTime>>8)&0x00ff;
+					sendBuf[length++] = tmpTime&0x00ff;
+					sendBuf[length++] = timeStamp.month.data;
+					sendBuf[length++] = timeStamp.day.data;
+					sendBuf[length++] = 0x00;
+					sendBuf[length++] = 0x00;
+					sendBuf[length++] = 0x00;
+				}
+				sendBuf[length++] = obj6015.csds.csd[csdIndex].csd.road.num;//OAD num
 
 				INT8U oadsIndex;
 				for (oadsIndex = 0; oadsIndex < obj6015.csds.csd[csdIndex].csd.road.num; oadsIndex++)
 				{
-					if((obj6015.cjtype == TYPE_FREEZE)&&(oadsIndex==0))
-					{
-						sendBuf[length++] = 0x01;// selector 1 按冻结时标采集
-						len = OADtoBuff(obj6015.csds.csd[csdIndex].csd.road.oads[oadsIndex],&sendBuf[length]);
-						DateTimeBCD timeStamp;
-						DataTimeGet(&timeStamp);
 
-						sendBuf[length++] = 0x1c;
-						INT16U tmpTime = timeStamp.year.data;
-						sendBuf[length++] = tmpTime&0x00ff;
-						sendBuf[length++] = (tmpTime>>8)&0x00ff;
-						sendBuf[length++] = timeStamp.month.data;
-						sendBuf[length++] = timeStamp.day.data;
-						sendBuf[length++] = 0x00;
-						sendBuf[length++] = 0x00;
-						sendBuf[length++] = 0x00;
-						sendBuf[length++] = obj6015.csds.csd[csdIndex].csd.road.num -1;
-					}
-					else
-					{
-						sendBuf[length++] = 0;//OAD
-						len = OADtoBuff(obj6015.csds.csd[csdIndex].csd.road.oads[oadsIndex],&sendBuf[length]);
-						length +=len;
-					}
-
-
+					sendBuf[length++] = 0;//OAD
+					len = OADtoBuff(obj6015.csds.csd[csdIndex].csd.road.oads[oadsIndex],&sendBuf[length]);
+					length +=len;
 				}
 
 			}

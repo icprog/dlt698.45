@@ -51,6 +51,7 @@ mqd_t mqd_485_main;
 INT32S comfd4851;
 INT32S comfd4852;
 INT8U i485port1;
+INT8U readState;//是否正在处理实时消息
 INT8U i485port2;
 //以下是测试用的假数据
 #ifdef TESTDEF
