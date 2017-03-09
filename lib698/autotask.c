@@ -119,11 +119,15 @@ int selector10getdata(TSA tsa,INT8U num,CSD_ARRAYTYPE *csds, INT8U *databuf)
  *
  */
 
-//根据type填充tsas ; 返回TS 的数量
+/*
+ * 根据ms.type填充tsas ; 返回TS 的数量
+ * 注意调用后，释放**tsas的内存
+ */
 int getTsas(MY_MS ms,INT8U **tsas)
 {
 	int  tsa_num = 0;
 	int	 record_num = 0;
+	int	 tsa_len = 0;
 	int	 i=0,j=0;
 	CLASS_6001	 meter={};
 
@@ -157,7 +161,8 @@ int getTsas(MY_MS ms,INT8U **tsas)
 					}
 					break;
 				case 3:	//一组用户地址
-					for(j=0;j<ms.ms.userAddr[0];j++) {
+					tsa_len = (ms.ms.userAddr[0].addr[0]<<8) | ms.ms.userAddr[0].addr[1];
+					for(j=0;j<tsa_len;j++) {
 						if(memcmp(&ms.ms.userAddr[j+1],&meter.basicinfo.addr,sizeof(TSA))==0) {  //TODO:TSA下发的地址是否按照00：长度，01：TSA长度格式
 							memcpy(*tsas+(tsa_num*sizeof(TSA)),&meter.basicinfo.addr,sizeof(TSA));
 							tsa_num++;
@@ -212,7 +217,7 @@ int doAutoReport(CLASS_601D report,CommBlock* com)
 		csds = &report.reportdata.data.recorddata.csds;							// 方案中 rcsd
 		recordnum = report.reportdata.data.recorddata.rsd.selec10.recordn; 		// 上 n 条记录
 		mstype = report.reportdata.data.recorddata.rsd.selec10.meters.mstype; 	// 方案中 MS的类型
-		tsanum = getTsas(report.reportdata.data.recorddata.rsd.selec10.meters,&tsa);
+		tsanum = getTsas(report.reportdata.data.recorddata.rsd.selec10.meters,(INT8U **)&tsa);
 		for(i=0; i<tsanum ; i++)
 		{
 			memset(TmpDataBuf,0,sizeof(TmpDataBuf));
@@ -244,6 +249,9 @@ int doAutoReport(CLASS_601D report,CommBlock* com)
 			if(com->p_send!=NULL)
 				com->p_send(com->phy_connect_fd,sendbuf,index+3);
 
+		}
+		if(tsa!=NULL) {
+			free(tsa);
 		}
 	}else
 	{
