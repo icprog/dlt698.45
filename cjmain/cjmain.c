@@ -20,15 +20,12 @@
 #include "../libMq/libmmq.h"
 
 static ProgramInfo* JProgramInfo = NULL;
+static int mmqFds[MAX_MMQ_SIZE];
 
 const static mmq_attribute mmq_register[] = {
     { cjcomm, PROXY_485_MQ_NAME, MAXSIZ_PROXY_NET, MAXNUM_PROXY_NET },
     { cjdeal, PROXY_NET_MQ_NAME, MAXSIZ_PROXY_485, MAXNUM_PROXY_485 },
 };
-
-static int mmqFds[MAX_MMQ_SIZE];
-
-static int DevResetNum = 0;
 
 void Runled(int state) {
     gpio_writebyte((char*)DEV_LED_RUN, state);
@@ -94,7 +91,7 @@ int ReadSystemInfo() {
     }
 
     while (fgets(Strbuf, sizeof(Strbuf), fp)) {
-        int index = 0;
+        int index = 0, foo = 0;
 
         //获取序号
         if (sscanf(Strbuf, "%d=%s %s %s %s", &index, JProgramInfo->Projects[0].ProjectName, JProgramInfo->Projects[0].argv[1],
@@ -103,7 +100,7 @@ int ReadSystemInfo() {
         }
 
         //获取参数
-        if (sscanf(Strbuf, "%d=%s %s %s %s", &index, JProgramInfo->Projects[index].ProjectName, JProgramInfo->Projects[index].argv[1],
+        if (sscanf(Strbuf, "%d=%s %s %s %s", &foo, JProgramInfo->Projects[index].ProjectName, JProgramInfo->Projects[index].argv[1],
                    JProgramInfo->Projects[index].argv[2], JProgramInfo->Projects[index].argv[3]) < 1) {
             continue;
         }
@@ -210,34 +207,41 @@ void Checkupdate() {
     }
     return;
 }
-/*
- * 初始化操作
- * */
-void ProgInit() {
-    sem_t *sem_spi = NULL, *sem_parasave = NULL, *sem_4851 = NULL, *sem_4852 = NULL, *sem_plc = NULL; // SPI通信信号量
+
+void CreateSem() {
     int val;
+    sem_t* sem;
 
     //此设置决定集中器电池工作，并保证在下电情况下，长按向下按键唤醒功能
     gpio_writebyte(DEV_BAT_SWITCH, (INT8S)1);
+
     //信号量建立
-    sem_spi = create_named_sem(SEMNAME_SPI0_0, 1); // TODO:放入vmain
-    sem_getvalue(sem_spi, &val);
+    sem = create_named_sem(SEMNAME_SPI0_0, 1);
+    sem_getvalue(sem, &val);
+    asyslog(LOG_INFO, "SPI信号量建立，初始值[%d]", val);
 
-    sem_parasave = create_named_sem(SEMNAME_PARA_SAVE, 1);
-    sem_getvalue(sem_parasave, &val);
+    sem = create_named_sem(SEMNAME_PARA_SAVE, 1);
+    sem_getvalue(sem, &val);
+    asyslog(LOG_INFO, "PARA_SAVE信号量建立，初始值[%d]", val);
 
-    sem_4851 = create_named_sem(DISPATCH_TASK_485_1, 1);
-    sem_getvalue(sem_4851, &val);
+    sem = create_named_sem(DISPATCH_TASK_485_1, 1);
+    sem_getvalue(sem, &val);
+    asyslog(LOG_INFO, "4851信号量建立，初始值[%d]", val);
 
-    sem_4852 = create_named_sem(DISPATCH_TASK_485_2, 1);
-    sem_getvalue(sem_4852, &val);
+    sem = create_named_sem(DISPATCH_TASK_485_2, 1);
+    sem_getvalue(sem, &val);
+    asyslog(LOG_INFO, "4852信号量建立，初始值[%d]", val);
 
-    sem_plc = create_named_sem(DISPATCH_TASK_PLC, 1);
-    sem_getvalue(sem_plc, &val);
-    fprintf(stderr, "process The sem is %d\n", val);
+    sem = create_named_sem(DISPATCH_TASK_PLC, 1);
+    sem_getvalue(sem, &val);
+    asyslog(LOG_INFO, "TASK_PLC信号量建立，初始值[%d]", val);
+}
+/*
+ * 初始化操作
+ * */
+void FillSharedMem() {
     InitClass4300();
-    //初始化事件参数，调用文件
-    // JProgramInfo
+
     readCoverClass(0x3100, 0, &JProgramInfo->event_obj.Event3100_obj, sizeof(JProgramInfo->event_obj.Event3100_obj), event_para_save);
     readCoverClass(0x3101, 0, &JProgramInfo->event_obj.Event3101_obj, sizeof(JProgramInfo->event_obj.Event3101_obj), event_para_save);
     readCoverClass(0x3104, 0, &JProgramInfo->event_obj.Event3104_obj, sizeof(JProgramInfo->event_obj.Event3104_obj), event_para_save);
@@ -269,23 +273,7 @@ void ProgInit() {
     readCoverClass(0x3202, 0, &JProgramInfo->event_obj.Event3202_obj, sizeof(JProgramInfo->event_obj.Event3202_obj), event_para_save);
     readCoverClass(0x3203, 0, &JProgramInfo->event_obj.Event3203_obj, sizeof(JProgramInfo->event_obj.Event3203_obj), event_para_save);
 }
-time_t ifDevReset() {
-    int i = 0;
-    if (DevResetNum != JProgramInfo->oi_changed.reset) {
-        fprintf(stderr, "\ncjmain判断需要设备复位");
-        for (i = 1; i < PROJECTCOUNT; i++) {
-            if (JProgramInfo->Projects[i].ProjectID > 0) {
-                fprintf(stderr, "\nID=%d  %s  需要停止", JProgramInfo->Projects[i].ProjectID, JProgramInfo->Projects[i].ProjectName);
-                JProgramInfo->Projects[i].ProjectState = NeedStop;
-            }
-        }
-        DevResetNum = JProgramInfo->oi_changed.reset;
-        return (time(NULL));
-    }
-    return 0;
-}
 
-;
 int LAPI_Fork2(void) {
     pid_t pid;
 
@@ -391,7 +379,47 @@ void checkProgsState(int ProgsNum) {
     }
 }
 
+void checkDevReset() {
+    static int state      = 0;
+    static int oldtime    = 0;
+    static int first_flag = 1;
+    static int DevResetNum;
+
+    if (first_flag == 1) {
+        first_flag  = 0;
+        DevResetNum = JProgramInfo->oi_changed.reset;
+    }
+
+    switch (state) {
+        case 0:
+            if (DevResetNum == JProgramInfo->oi_changed.reset) {
+                return;
+            } else {
+                state   = 1;
+                oldtime = time(NULL);
+            }
+            break;
+        case 1:
+            if (abs(time(NULL) - oldtime) >= 5) {
+                // TODO:复位之前保证硬件初始化上送应答帧、统计数据存储成功、电量的存储
+                system("reboot");
+            }
+            break;
+    }
+    asyslog(LOG_WARNING, "检测到设备需要复位");
+
+    for (int i = 1; i < PROJECTCOUNT; i++) {
+        if (JProgramInfo->Projects[i].ProjectID > 0) {
+            JProgramInfo->Projects[i].ProjectState = NeedStop;
+        }
+    }
+    DevResetNum = JProgramInfo->oi_changed.reset;
+    return (time(NULL));
+}
+
 int main(int argc, char* argv[]) {
+    int ProgsNum = 0;
+
     //检查是否已经有程序在运行
     pid_t pids[128];
     if (prog_find_pid_by_name((INT8S*)argv[0], pids) > 1) {
@@ -405,19 +433,16 @@ int main(int argc, char* argv[]) {
     JProgramInfo = (ProgramInfo*)CreateShMem("ProgramInfo", sizeof(ProgramInfo), NULL);
     asyslog(LOG_ERR, "打开共享内存，地址[%d]，大小[%d]", JProgramInfo, sizeof(ProgramInfo));
 
-    int ProgsNum = 0;
     if (argc >= 2) {
-        if (strcmp("all", argv[1]) == 0) {
+        if (strncmp("all", argv[1], 3) == 0) {
             ProgsNum = ReadSystemInfo();
         }
     }
 
     Createmq();
-    fprintf(stderr, "\ncjmain run!");
+    CreateSem();
+    FillSharedMem();
 
-    ProgInit();
-    time_t resetStart = 0;
-    DevResetNum       = JProgramInfo->oi_changed.reset;
     while (1) {
         sleep(1);
 
@@ -436,16 +461,8 @@ int main(int argc, char* argv[]) {
         //检查程序更新
         Checkupdate();
 
-        /// test 注释
-        if (resetStart == 0)
-            resetStart = ifDevReset();
-        else {
-            fprintf(stderr, "\n...%ld", time(NULL));
-            if (abs(time(NULL) - resetStart) >= 5) {
-                // TODO:复位之前保证硬件初始化上送应答帧、统计数据存储成功、电量的存储
-                system("reboot");
-            }
-        }
+        //检查设备是否需要重启
+        checkDevReset();
     }
     return EXIT_SUCCESS; //退出
 }
