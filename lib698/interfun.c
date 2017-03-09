@@ -66,7 +66,7 @@ void print_rcsd(CSD_ARRAYTYPE csds)
 			fprintf(stderr,"<%d>OAD%04x-%02x%02x ",i,csds.csd[i].csd.oad.OI,csds.csd[i].csd.oad.attflg,csds.csd[i].csd.oad.attrindex);
 		}else if (csds.csd[i].type==1)
 		{
-			fprintf(stderr,"<%d>");
+			fprintf(stderr,"<%d>",i);
 			print_road(csds.csd[i].csd.road);
 		}
 	}

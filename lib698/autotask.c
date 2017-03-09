@@ -119,16 +119,17 @@ int selector10getdata(TSA tsa,INT8U num,CSD_ARRAYTYPE *csds, INT8U *databuf)
  *
  */
 //根据type填充tsas ; 返回TS 的数量
-int getTsas(INT8U type,TSA *tsas)
+int getTsas(MY_MS ms,TSA **tsas)
 {
 	return 0;
 }
+
 int doAutoReport(CLASS_601D report,CommBlock* com)
 {
 	if (com==NULL)
 		return 0;
 	INT8U *sendbuf = com->SendBuf;
-	TSA tsa[255]={};
+	TSA *tsa=NULL;
 
 	fprintf(stderr,"\ndo AutoReport!!!");
 	CSINFO csinfo;
@@ -144,7 +145,7 @@ int doAutoReport(CLASS_601D report,CommBlock* com)
 		csds = &report.reportdata.data.recorddata.csds;							// 方案中 rcsd
 		recordnum = report.reportdata.data.recorddata.rsd.selec10.recordn; 		// 上 n 条记录
 		mstype = report.reportdata.data.recorddata.rsd.selec10.meters.mstype; 	// 方案中 MS的类型
-		tsanum = getTsas(mstype,tsa);
+		tsanum = getTsas(report.reportdata.data.recorddata.rsd.selec10.meters,&tsa);
 		for(i=0; i<tsanum ; i++)
 		{
 			memset(TmpDataBuf,0,sizeof(TmpDataBuf));

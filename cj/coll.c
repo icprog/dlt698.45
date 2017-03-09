@@ -573,15 +573,14 @@ void Task6015(int argc, char *argv[])
 	}
 }
 
-void print6017(CLASS_6017 eventFangAn)
+void print_6017(CLASS_6017 eventFangAn)
 {
-	INT8U type=0, j=0;
+	INT8U j=0;
 
 	fprintf(stderr,"\n事件采集方案：[1]方案编号 [2]采集事件数据ROAD [3]电能表集合MS [4]上报标识 [5]存储深度");
 
 	fprintf(stderr,"\n[1]方案编号  (%d 个ROAD)",eventFangAn.sernum);
 	fprintf(stderr,"\n[2]ROAD[%d]",eventFangAn.roads.num);
-	print_road();
 	for(j=0;j<eventFangAn.roads.num;j++)
 	{
 		print_road(eventFangAn.roads.road[j]);
