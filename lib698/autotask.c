@@ -202,7 +202,7 @@ INT16U  composeAutoTask(AutoTaskStrap* list ,CommBlock* com)
 				return 1;
 			}else
 			{
-				fprintf(stderr,"\n任务参数丢失！");
+//				fprintf(stderr,"\n任务参数丢失！");
 			}
 		}
 	}

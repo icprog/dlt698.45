@@ -1332,6 +1332,7 @@ void DealRN8209(void)
     }
     sem_post(sem_check_fd);
     realdata.Ua = (realdata.Ua + (trans_regist_rn8209(val))) / 2; //转换，获取电压当前值
+    realdata.Available=TRUE;
     fprintf(stderr, "当前电压值为： %d %d\n", realdata.Ua,trans_regist_rn8209(val));
 }
 /////////////////////////////////////////////////////////////
@@ -1439,6 +1440,8 @@ void *thread_deal_acs()
 			break;
 		}
 		//拷贝实时数据和电能量数据到pubdata共享内存结构体中。为了液晶的轮显数据
+
+		//fprintf(stderr,"==========================acs:JProgramInfo->ACSRealData.Available=%d========================== \n",JProgramInfo->ACSRealData.Available);
 		memcpy(&JProgramInfo->ACSRealData,&realdata,sizeof(_RealData));
 		memcpy(&JProgramInfo->ACSEnergy,&energysum,sizeof(ACEnergy_Sum));
 		usleep(300000);				//300ms

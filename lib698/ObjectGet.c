@@ -43,7 +43,6 @@ int BuildFrame_GetResponseRecord(INT8U response_type,CSINFO *csinfo,RESULT_RECOR
 
 	if (record.datalen > 0)
 	{
-//		sendbuf[index++] = 1;//choice 1  ,SEQUENCE OF A-RecordRow
 		memcpy(&sendbuf[index],record.data,record.datalen);
 		index = index + record.datalen;
 	}else
@@ -551,7 +550,7 @@ void printSel5(RESULT_RECORD record)
 					record.select.selec5.collect_save.day.data,record.select.selec5.collect_save.hour.data,
 					record.select.selec5.collect_save.min.data,record.select.selec5.collect_save.sec.data);
 	fprintf(stderr,"\nMS-TYPE %d  ",record.select.selec5.meters.mstype);
-	printrcsd(record.rcsd);
+	print_rcsd(record.rcsd.csds);
 }
 
 void printSel7(RESULT_RECORD record)
@@ -566,7 +565,7 @@ void printSel7(RESULT_RECORD record)
 					record.select.selec7.collect_save_finish.min.data,record.select.selec7.collect_save_finish.sec.data);
 	fprintf(stderr,"\n时间间隔TI 单位:%d[秒-0，分-1，时-2，日-3，月-4，年-5],间隔:%x",record.select.selec7.ti.units,record.select.selec7.ti.interval);
 	fprintf(stderr,"\n电能表集合MS 类型：%d\n",record.select.selec7.meters.mstype);
-	printrcsd(record.rcsd);
+	print_rcsd(record.rcsd.csds);
 }
 
 void printSel9(RESULT_RECORD record)
@@ -574,7 +573,7 @@ void printSel9(RESULT_RECORD record)
 	fprintf(stderr,"\nSelector9:指定选取上第n次记录\n");
 	fprintf(stderr,"\n选取上第%d次记录 ",record.select.selec9.recordn);
 	fprintf(stderr,"\nRCSD个数：%d",record.rcsd.csds.num);
-	printrcsd(record.rcsd);
+	print_rcsd(record.rcsd.csds);
 }
 
 void printrecord(RESULT_RECORD record)
