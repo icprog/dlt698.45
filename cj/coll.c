@@ -573,6 +573,154 @@ void Task6015(int argc, char *argv[])
 	}
 }
 
+void print_6017(CLASS_6017 eventFangAn)
+{
+	INT8U j=0;
+
+	fprintf(stderr,"\n事件采集方案：[1]方案编号 [2]采集事件数据ROAD [3]电能表集合MS [4]上报标识 [5]存储深度");
+
+	fprintf(stderr,"\n[1]方案编号  (%d 个ROAD)",eventFangAn.sernum);
+	fprintf(stderr,"\n[2]ROAD[%d]",eventFangAn.roads.num);
+	for(j=0;j<eventFangAn.roads.num;j++)
+	{
+		print_road(eventFangAn.roads.road[j]);
+	}
+	fprintf(stderr,"\n[3]");
+	printMS(eventFangAn.ms);
+	fprintf(stderr,"\n[4]%d ",eventFangAn.ifreport);
+	fprintf(stderr,"\n[5]%d\n",eventFangAn.deepsize);
+}
+
+//事件上报方案
+void Event6017(int argc, char *argv[])
+{
+	int		ret = -1;
+	int		i=0;
+	int 	tmp[30]={};
+	INT8U	taskid=0;
+	OI_698	oi=0;
+	CLASS_6017 eventFangAn={};
+
+	sscanf(argv[3],"%04x",&tmp[0]);
+	oi = tmp[0];
+	if(strcmp("clear",argv[2])==0) {
+		ret = clearClass(oi);
+		if(ret==-1) {
+			fprintf(stderr,"清空出错=%d",ret);
+		}
+	}
+	if(strcmp("delete",argv[2])==0) {
+		if(argc==5) {
+			sscanf(argv[4],"%d",&tmp[0]);
+			taskid = tmp[0];
+			if(deleteClass(oi,taskid)==1) {
+				fprintf(stderr,"删除一个配置单元oi【%04x】【%d】成功",oi,taskid);
+			}
+		}else fprintf(stderr,"参数错误，查看cj help");
+	}else {
+		if(strcmp("pro",argv[2])==0) {
+			if(argc<5) {
+				for(i=0;i<=255;i++) {
+					taskid = i;
+					memset(&eventFangAn,0,sizeof(CLASS_6017));
+					if(readCoverClass(oi,taskid,&eventFangAn,sizeof(CLASS_6017),coll_para_save)== 1) {
+						print_6017(eventFangAn);
+					}else {
+//						fprintf(stderr,"任务ID=%d 无任务配置单元",taskid);
+					}
+				}
+			}else if(argc==5) {
+				sscanf(argv[4],"%d",&tmp[0]);
+				taskid = tmp[0];
+				fprintf(stderr,"taskid=%d\n",taskid);
+				memset(&eventFangAn,0,sizeof(CLASS_6017));
+				if(readCoverClass(oi,taskid,&eventFangAn,sizeof(CLASS_6017),coll_para_save)==1) {
+					print_6017(eventFangAn);
+				}else {
+					fprintf(stderr,"无任务配置单元");
+				}
+			}
+		}
+	}
+}
+
+void print_601d(CLASS_601D	 reportplan)
+{
+	int j=0;
+	fprintf(stderr,"\n[1]上报方案编号 [2]上报通道 [3]上报响应超时时间 [4]最大上报次数 [5]上报内容 {[5.1]类型(0:OAD,1:RecordData) [5.2]数据 [5.3]RSD}");
+	fprintf(stderr,"\n[1]上报方案编号:%d \n",reportplan.reportnum);
+	fprintf(stderr,"[2]OAD[%d] ",reportplan.chann_oad.num);
+	for(j=0;j<reportplan.chann_oad.num;j++) {
+		fprintf(stderr,"%04x-%02x%02x ",reportplan.chann_oad.oadarr[j].OI,reportplan.chann_oad.oadarr[j].attflg,reportplan.chann_oad.oadarr[j].attrindex);
+	}
+	fprintf(stderr," [3]TI %d-%d ",reportplan.timeout.units,reportplan.timeout.interval);
+	fprintf(stderr," [4]%d ",reportplan.maxreportnum);
+	fprintf(stderr," [5.1]%d ",reportplan.reportdata.type);
+	if(reportplan.reportdata.type==0) {
+		fprintf(stderr," [5.2]OAD:%04x-%02x%02x ",reportplan.reportdata.data.oad.OI,reportplan.reportdata.data.oad.attflg,reportplan.reportdata.data.oad.attrindex);
+	}else {
+		fprintf(stderr," [5.2]OAD:%04x-%02x%02x ",reportplan.reportdata.data.oad.OI,reportplan.reportdata.data.oad.attflg,reportplan.reportdata.data.oad.attrindex);
+		print_rcsd(reportplan.reportdata.data.recorddata.csds);
+		fprintf(stderr," [5.4]");
+		print_rsd(reportplan.reportdata.data.recorddata.selectType,reportplan.reportdata.data.recorddata.rsd);
+	}
+	fprintf(stderr,"\n\n");
+}
+
+//任务上报方案
+void Report601d(int argc, char *argv[])
+{
+	int		ret = -1;
+	int		i=0;
+	int 	tmp[30]={};
+	INT8U	taskid=0;
+	OI_698	oi=0;
+	CLASS_601D	 reportplan={};
+
+	sscanf(argv[3],"%04x",&tmp[0]);
+	oi = tmp[0];
+	if(strcmp("clear",argv[2])==0) {
+		ret = clearClass(oi);
+		if(ret==-1) {
+			fprintf(stderr,"清空出错=%d",ret);
+		}
+	}
+	if(strcmp("delete",argv[2])==0) {
+		if(argc==5) {
+			sscanf(argv[4],"%d",&tmp[0]);
+			taskid = tmp[0];
+			if(deleteClass(oi,taskid)==1) {
+				fprintf(stderr,"删除一个配置单元oi【%04x】【%d】成功",oi,taskid);
+			}
+		}else fprintf(stderr,"参数错误，查看cj help");
+	}else {
+		if(strcmp("pro",argv[2])==0) {
+			if(argc<5) {
+				for(i=0;i<=255;i++) {
+					taskid = i;
+					memset(&reportplan,0,sizeof(CLASS_601D));
+					if(readCoverClass(oi,taskid,&reportplan,sizeof(CLASS_601D),coll_para_save)== 1) {
+						print_601d(reportplan);
+					}else {
+//						fprintf(stderr,"任务ID=%d 无任务配置单元",taskid);
+					}
+				}
+			}else if(argc==5) {
+				sscanf(argv[4],"%d",&tmp[0]);
+				taskid = tmp[0];
+				fprintf(stderr,"taskid=%d\n",taskid);
+				memset(&reportplan,0,sizeof(CLASS_601D));
+				if(readCoverClass(oi,taskid,&reportplan,sizeof(CLASS_601D),coll_para_save)==1) {
+					print_601d(reportplan);
+				}else {
+					fprintf(stderr,"无任务配置单元");
+				}
+			}
+		}
+	}
+}
+
+
 void print6035(CLASS_6035 class6035)
 {
 	fprintf(stderr,"[6035]采集任务监控单元 \n");
@@ -655,6 +803,12 @@ void coll_process(int argc, char *argv[])
 				break;
 			case 0x6015:
 				Task6015(argc,argv);
+				break;
+			case 0x6017:
+				Event6017(argc,argv);
+				break;
+			case 0x601d:
+				Report601d(argc,argv);
 				break;
 			case 0x6035:
 				Task6035(argc,argv);
