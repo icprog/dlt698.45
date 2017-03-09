@@ -4,7 +4,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include "PublicFunction.h"
+#include "../libBase/PublicFunction.h"
 
 INT8U getCS645(INT8U* buf, const INT16U len)
 {

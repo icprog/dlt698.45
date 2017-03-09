@@ -509,9 +509,10 @@ void event_process(int argc, char *argv[])
             }
             else if(oi == 0x3106){
 				if(flag == 1){
+					fprintf(stderr,"oi=%04x flag=%d\n",oi,flag);
 					JProgramInfo->event_obj.Event3106_obj.event_obj.enableflag=TRUE;
 					JProgramInfo->event_obj.Event3106_obj.event_obj.reportflag=TRUE;
-					saveCoverClass(oi,0,(void *)&JProgramInfo->event_obj.Event3106_obj,sizeof(Event3106_Object),para_init_save);
+					saveCoverClass(oi,0,(void *)&JProgramInfo->event_obj.Event3106_obj,sizeof(Event3106_Object),event_para_save);
 					JProgramInfo->oi_changed.oi3106++;
 					readCoverClass(0x4300,0,&class19,sizeof(class19),para_vari_save);
 					class19.active_report =1;
@@ -521,7 +522,7 @@ void event_process(int argc, char *argv[])
 				}else{
 					JProgramInfo->event_obj.Event3106_obj.event_obj.enableflag=FALSE;
 					JProgramInfo->event_obj.Event3106_obj.event_obj.reportflag=FALSE;
-					saveCoverClass(oi,0,(void *)&JProgramInfo->event_obj.Event3106_obj,sizeof(Event3106_Object),para_init_save);
+					saveCoverClass(oi,0,(void *)&JProgramInfo->event_obj.Event3106_obj,sizeof(Event3106_Object),event_para_save);
 					JProgramInfo->oi_changed.oi3106++;
 					readCoverClass(0x4300,0,&class19,sizeof(class19),para_vari_save);
 					class19.active_report =0;
@@ -534,7 +535,7 @@ void event_process(int argc, char *argv[])
 				if(flag == 1){
 					JProgramInfo->event_obj.Event3114_obj.enableflag=TRUE;
 					JProgramInfo->event_obj.Event3114_obj.reportflag=TRUE;
-					saveCoverClass(oi,0,(void *)&JProgramInfo->event_obj.Event3114_obj,sizeof(Class7_Object),para_init_save);
+					saveCoverClass(oi,0,(void *)&JProgramInfo->event_obj.Event3114_obj,sizeof(Class7_Object),event_para_save);
 					JProgramInfo->oi_changed.oi3114++;
 					readCoverClass(0x4300,0,&class19,sizeof(class19),para_vari_save);
 					class19.active_report =1;
@@ -544,7 +545,7 @@ void event_process(int argc, char *argv[])
 				}else{
 					JProgramInfo->event_obj.Event3114_obj.enableflag=FALSE;
 					JProgramInfo->event_obj.Event3114_obj.reportflag=FALSE;
-					saveCoverClass(oi,0,(void *)&JProgramInfo->event_obj.Event3114_obj,sizeof(Class7_Object),para_init_save);
+					saveCoverClass(oi,0,(void *)&JProgramInfo->event_obj.Event3114_obj,sizeof(Class7_Object),event_para_save);
 					JProgramInfo->oi_changed.oi3114++;
 					readCoverClass(0x4300,0,&class19,sizeof(class19),para_vari_save);
 					class19.active_report =0;

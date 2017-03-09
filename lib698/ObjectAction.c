@@ -467,25 +467,20 @@ void AddCjiFangAnInfo(INT8U *data,Action_result *act_ret)
 		fprintf(stderr,"\n");
 
 		saveflg = saveCoverClass(0x6015,fangAn.sernum,&fangAn,sizeof(fangAn),coll_para_save);
-		if (saveflg==1)
-			fprintf(stderr,"\n采集方案 %d 保存成功",fangAn.sernum);
-		else {
-			act_ret->DAR = refuse_rw;
-			fprintf(stderr,"\n采集方案 %d 保存失败",fangAn.sernum);
-		}
+		act_ret->DAR = prtstat(saveflg);
 	}
 	act_ret->datalen = index+2;	//2 array + num
 }
 
-void AddEventCjiFangAnInfo(INT8U *data)
+void AddEventCjiFangAnInfo(INT8U *data,Action_result *act_ret)
 {
 	CLASS_6017 eventFangAn={};
 	int i=0,k=0,saveflg=0;
-	INT8U addnum = data[1];
+	INT8U addnum = 0;
 	int index=0;
 
-	data += 4;
-
+	index += getArray(&data[index],&addnum);
+	index += getStructure(&data[index],NULL);
 	fprintf(stderr,"\n添加个数 %d",addnum);
 	for(k=0; k<addnum; k++)
 	{
@@ -498,29 +493,12 @@ void AddEventCjiFangAnInfo(INT8U *data)
 		index += getBool(&data[index],&eventFangAn.ifreport);
 		index += getLongUnsigned(&data[index],(INT8U *)&eventFangAn.deepsize);
 
-		fprintf(stderr,"\n第 %d 个事件方案  ID=%d   (%d 个ROAD)",k,eventFangAn.sernum,eventFangAn.roads.num);
-		int j=0,w=0;
-		for(j=0;j<eventFangAn.roads.num;j++)
-		{
-			fprintf(stderr,"\nROAD%d",j);
-			fprintf(stderr,"\n[oad %x %02x %02x]",eventFangAn.roads.road[j].oad.OI,eventFangAn.roads.road[j].oad.attflg,eventFangAn.roads.road[j].oad.attrindex);
-			for(w=0;w<eventFangAn.roads.road[j].num;w++)
-			{
-				fprintf(stderr,"\n[%x %02x %02x]",eventFangAn.roads.road[j].oads[w].OI,eventFangAn.roads.road[j].oads[w].attflg,eventFangAn.roads.road[j].oads[w].attrindex);
-			}
-		}
-		fprintf(stderr,"\nMStype = %d  data=%d",eventFangAn.ms.mstype,eventFangAn.ms.ms.allmeter_null);
-		fprintf(stderr,"\n上报标识 = %d ",eventFangAn.ifreport);
-		fprintf(stderr,"\n存储深度 = %d\n",eventFangAn.deepsize);
-
 		saveflg = saveCoverClass(0x6017,eventFangAn.sernum,&eventFangAn,sizeof(eventFangAn),coll_para_save);
-		if (saveflg==1)
-			fprintf(stderr,"\n采集方案 %d 保存成功",eventFangAn.sernum);
-		else
-			fprintf(stderr,"\n采集方案 %d 保存失败",eventFangAn.sernum);
-
+		act_ret->DAR = prtstat(saveflg);
 	}
+	act_ret->datalen = index;
 }
+
 void AddTaskInfo(INT8U *data,Action_result *act_ret)
 {
 	act_ret->DAR = success;
@@ -573,14 +551,9 @@ void AddTaskInfo(INT8U *data,Action_result *act_ret)
 		fprintf(stderr,"\n结束  %d时 %d分  ",task.runtime.runtime[0].endHour,task.runtime.runtime[0].endMin);
 
 		saveflg = saveCoverClass(0x6013,task.taskID,&task,sizeof(task),coll_para_save);
-		if (saveflg==1)
-			fprintf(stderr,"\n采集任务 %d 保存成功",task.sernum);
-		else {
-			act_ret->DAR = refuse_rw;
-			fprintf(stderr,"\n采集任务 %d 保存失败",task.sernum);
-		}
+		act_ret->DAR = prtstat(saveflg);
 	}
-	act_ret->datalen = index;
+	act_ret->datalen = index+2;		//2:array
 }
 
 void Set_CSD(INT8U *data)
@@ -607,13 +580,13 @@ void CjiFangAnInfo(INT16U attr_act,INT8U *data,Action_result *act_ret)
 			break;
 	}
 }
-void EventCjFangAnInfo(INT16U attr_act,INT8U *data)
+void EventCjFangAnInfo(INT16U attr_act,INT8U *data,Action_result *act_ret)
 {
 	switch(attr_act)
 	{
 		case 127:	//方法 127:Add(array 事件采集方案)
 			fprintf(stderr,"\n添加事件采集方案");
-			AddEventCjiFangAnInfo(data);
+			AddEventCjiFangAnInfo(data,act_ret);
 			break;
 		case 128:	//方法 128:Delete(array 方案编号)
 	//		DeleteEventCjFangAn(data[1]);
@@ -625,31 +598,6 @@ void EventCjFangAnInfo(INT16U attr_act,INT8U *data)
 		case 130:	//方法 130:Set_CSD(方案编号,array CSD)
 	//		UpdateReportFlag(data);
 			break;
-	}
-}
-
-void print_rcsd(CSD_ARRAYTYPE csds)
-{
-	int i=0,w=0;
-	for(i=0; i<csds.num;i++)
-	{
-		if (csds.csd[i].type==0)
-		{
-			fprintf(stderr,"<%d>OAD%04x-%02x%02x ",i,csds.csd[i].csd.oad.OI,csds.csd[i].csd.oad.attflg,csds.csd[i].csd.oad.attrindex);
-		}else if (csds.csd[i].type==1)
-		{
-			fprintf(stderr,"<%d>ROAD:%04x-%02x%02x ",i,
-					csds.csd[i].csd.road.oad.OI,csds.csd[i].csd.road.oad.attflg,csds.csd[i].csd.road.oad.attrindex);
-			if(csds.csd[i].csd.road.num >= 16) {
-				fprintf(stderr,"csd overvalue 16 error\n");
-				return;
-			}
-			for(w=0;w<csds.csd[i].csd.road.num;w++)
-			{
-				fprintf(stderr,"<关联OAD..%d>%04x-%02x%02x ",w,
-						csds.csd[i].csd.road.oads[w].OI,csds.csd[i].csd.road.oads[w].attflg,csds.csd[i].csd.road.oads[w].attrindex);
-			}
-		}
 	}
 }
 
@@ -670,14 +618,15 @@ void print_601d(CLASS_601D	 reportplan)
 	}else {
 		fprintf(stderr," [5.2]OAD:%04x-%02x%02x ",reportplan.reportdata.data.oad.OI,reportplan.reportdata.data.oad.attflg,reportplan.reportdata.data.oad.attrindex);
 		print_rcsd(reportplan.reportdata.data.recorddata.csds);
-		fprintf(stderr," [5.4]RSD类型:%d ",reportplan.reportdata.data.recorddata.selectType);
+		fprintf(stderr," [5.4]");
+		print_rsd(reportplan.reportdata.data.recorddata.selectType,reportplan.reportdata.data.recorddata.rsd);
 	}
 	fprintf(stderr,"\n\n");
 }
 
 /* 601d :上报方案
  * */
-void AddReportInfo(INT8U *data)
+void AddReportInfo(INT8U *data,Action_result *act_ret)
 {
 	CLASS_601D	 reportplan={};
 	int k=0,j=0,saveflg=0;
@@ -715,21 +664,19 @@ void AddReportInfo(INT8U *data)
 		}
 		print_601d(reportplan);
 		saveflg = saveCoverClass(0x601d,reportplan.reportnum,&reportplan,sizeof(CLASS_601D),coll_para_save);
-		if (saveflg==1)
-			fprintf(stderr,"\n上报任务 %d 保存成功",reportplan.reportnum);
-		else
-			fprintf(stderr,"\n上报任务 %d 保存失败",reportplan.reportnum);
+		act_ret->DAR = prtstat(saveflg);
 	}
-
+	fprintf(stderr,"601d  return index=%d\n",index);
+	act_ret->datalen = index;
 }
 
-void ReportInfo(INT16U attr_act,INT8U *data)
+void ReportInfo(INT16U attr_act,INT8U *data,Action_result *act_ret)
 {
 	switch(attr_act)
 	{
 		case 127:	//方法 127:Add(array 上报方案)
 			fprintf(stderr,"\nAdd 上报方案");
-			AddReportInfo(data);
+			AddReportInfo(data,act_ret);
 			break;
 		case 128:	//方法 128:Delete(array 方案编号)
 
@@ -1034,10 +981,14 @@ int doObjectAction(OAD oad,INT8U *data,Action_result *act_ret)
 			CjiFangAnInfo(attr_act,data,act_ret);
 			break;
 		case 0x6016:	//事件采集方案
-			EventCjFangAnInfo(attr_act,data);
+			EventCjFangAnInfo(attr_act,data,act_ret);
+			break;
+		case 0x6018:	//透明方案集
 			break;
 		case 0x601C:	//上报方案
-			ReportInfo(attr_act,data);
+			ReportInfo(attr_act,data,act_ret);
+			break;
+		case 0x601E:	//采集规则库
 			break;
 		case 0xF001: //文件传输
 			FileTransMothod(attr_act,data);

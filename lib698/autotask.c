@@ -10,6 +10,9 @@
 #include "../include/Objectdef.h"
 #include "../libBase/PublicFunction.h"
 #include "../libAccess/AccessFun.h"
+#include "dlt698def.h"
+extern INT8U TmpDataBuf[MAXSIZ_FAM];
+extern INT8U TmpDataBufList[MAXSIZ_FAM*2];
 /*
  * datetime 开始时间
  * ti 间隔
@@ -89,13 +92,99 @@ void init_autotask(CLASS_6013 class6013,AutoTaskStrap* list)
 		index++;
 	}
 }
-int doAutoReport(CLASS_601D report)
+int selector10getdata(TSA tsa,INT8U num,CSD_ARRAYTYPE *csds, INT8U *databuf)
 {
-	fprintf(stderr,"\ndo AutoReport!!!");
 
+	return 0;
+}
+
+/*按 selector10 中 上n条记录   和    MS .TSA 去查询数据
+ *
+ *  REPORT_NOTIFICATION
+ *  REPROTNOTIFICATIONRECORDLIST
+ *	PIID
+ *	SEQUENCE OF A-ReportRecord
+ *		num:  0		A-ReportRecord  某一个电表（TSA）的 ROAD或 OAD 的记录
+ *			  		{
+ *
+ *			  		}
+ *			  1		A-ReportRecord
+ *			  		{
+ *			  			如果没有数据  DAR 0
+ *			  		}
+ *			  2		A-ReportRecord
+ *			  		{
+ *			  			...
+ *			  		}
+ *
+ */
+//根据type填充tsas ; 返回TS 的数量
+int getTsas(MY_MS ms,TSA **tsas)
+{
+	return 0;
+}
+
+int doAutoReport(CLASS_601D report,CommBlock* com)
+{
+	if (com==NULL)
+		return 0;
+	INT8U *sendbuf = com->SendBuf;
+	TSA *tsa=NULL;
+
+	fprintf(stderr,"\ndo AutoReport!!!");
+	CSINFO csinfo;
+	CSD_ARRAYTYPE *csds;
+	INT8U mstype=0;
+	int tsanum = 0 , i=0,index=0 ,recordnum=0;
+
+	if (report.reportdata.type==0)//OAD
+	{
+
+	}else if(report.reportdata.type==1)//RecordData
+	{
+		csds = &report.reportdata.data.recorddata.csds;							// 方案中 rcsd
+		recordnum = report.reportdata.data.recorddata.rsd.selec10.recordn; 		// 上 n 条记录
+		mstype = report.reportdata.data.recorddata.rsd.selec10.meters.mstype; 	// 方案中 MS的类型
+		tsanum = getTsas(report.reportdata.data.recorddata.rsd.selec10.meters,&tsa);
+		for(i=0; i<tsanum ; i++)
+		{
+			memset(TmpDataBuf,0,sizeof(TmpDataBuf));
+			selector10getdata(tsa[i], recordnum, csds, TmpDataBuf);
+
+//			csinfo.dir = 1;
+//			csinfo.prm = 1;
+//			index = FrameHead(&csinfo,sendbuf);
+//			hcsi = index;
+//			index = index + 2;
+//
+//			apduplace = index;		//记录APDU 起始位置
+//			sendbuf[index++] = REPORT_NOTIFICATION;
+//			sendbuf[index++] = REPROTNOTIFICATIONRECORDLIST;
+//			sendbuf[index++] = 0;//PIID
+
+			if (report.reportdata.type==1)//RecordData
+			{
+
+			}else if(report.reportdata.type==0)//OAD
+			{
+
+			}else
+				return 0;
+
+			sendbuf[index++] = 0;
+			sendbuf[index++] = 0;
+//			FrameTail(sendbuf,index,hcsi);
+			if(com->p_send!=NULL)
+				com->p_send(com->phy_connect_fd,sendbuf,index+3);
+
+		}
+	}else
+	{
+		return 0;
+	}
 	return 1;
 }
-INT16U  composeAutoTask(AutoTaskStrap* list)
+INT16U  composeAutoTask(AutoTaskStrap* list ,CommBlock* com)
 {
 	int i=0;
 	time_t timenow = time(NULL);
@@ -109,12 +198,12 @@ INT16U  composeAutoTask(AutoTaskStrap* list)
 				fprintf(stderr,"\ni=%d 任务【 %d 】 	 开始执行   上报方案编号【 %d 】",i,list[i].ID,list[i].SerNo);
 				CLASS_601D class601d;
 				if (readCoverClass(0x601D, list[i].SerNo, &class601d, sizeof(CLASS_601D),coll_para_save) == 1)
-					doAutoReport(class601d);
+					doAutoReport(class601d,com);
 				list[i].nexttime = calcnexttime(class6013.interval,class6013.startime);
 				return 1;
 			}else
 			{
-				fprintf(stderr,"\n任务参数丢失！");
+//				fprintf(stderr,"\n任务参数丢失！");
 			}
 		}
 	}

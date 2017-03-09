@@ -452,7 +452,7 @@ int main(int argc, char *argv[])
 	//液晶、控制
 	//guictrl_proccess();
 	//交采
-	//acs_process();
+	acs_process();
 
 	while(1)
    	{
