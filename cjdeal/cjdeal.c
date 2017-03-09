@@ -248,8 +248,8 @@ INT16S getNextTastIndexIndex() {
 		if (list6013[tIndex].basicInfo.taskID == 0) {
 			continue;
 		}
-		fprintf(stderr, "\n ---------list6013[%d].basicInfo.taskID = %d ",
-				tIndex, list6013[tIndex].basicInfo.taskID);
+	//	fprintf(stderr, "\n ---------list6013[%d].basicInfo.taskID = %d ",
+	//			tIndex, list6013[tIndex].basicInfo.taskID);
 		//run_flg > 0说明应该抄读还没有抄
 		if (list6013[tIndex].run_flg > 0) {
 			fprintf(stderr, "\n  getNextTastIndexIndex-2222");
@@ -310,7 +310,7 @@ INT8U init6013ListFrom6012File() {
 			list6013[tIndex].ts_next.Day = ts_now.Day;
 			list6013[tIndex].ts_next.Hour = ts_now.Hour;
 			list6013[tIndex].ts_next.Minute = ts_now.Minute;
-			print6013(list6013[tIndex].basicInfo);
+			//print6013(list6013[tIndex]);
 		}
 	}
 
@@ -446,13 +446,13 @@ int main(int argc, char *argv[])
 	//485、四表合一
 	read485_proccess();
 	//统计计算 电压合格率 停电事件等
-//	calc_proccess();
+	calc_proccess();
 	//载波
 	//readplc_proccess();
 	//液晶、控制
 	//guictrl_proccess();
 	//交采
-	//acs_process();
+	acs_process();
 
 	while(1)
    	{

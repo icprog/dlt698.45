@@ -941,6 +941,7 @@ void calc_thread()
 	TSGet(&newts);
 
     while(1){
+    	valid++;
     	TSGet(&newts);
 		/*根据系统参数确定测量点信息，内容保存到point相关处*/
 		get_point_para(&point[0]);       //初始化测量点参数
@@ -991,8 +992,10 @@ void calc_thread()
 			   saveVariData(0x2140,0,&max_ptongji[i],sizeof(Max_ptongji));
 			}
 		}
-//		//判断停上电
-		Event_3106(JProgramInfo,MeterPowerInfo,&poweroffon_state);
+		fprintf(stderr,"poweroffon_state=%d \n",poweroffon_state);
+		//判断停上电
+		if(valid>5)//等待5秒
+			Event_3106(JProgramInfo,MeterPowerInfo,&poweroffon_state);
 	    usleep(1000*1000);
   }
   pthread_detach(pthread_self());

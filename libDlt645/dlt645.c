@@ -4,26 +4,8 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
-//反转buff
-INT8S reversebuff(INT8U* buff,INT32U len,INT8U* invbuff)
-{
-	if(buff==NULL)
-		return -1;
-	if(len == 0)
-		return -2;
-	if(invbuff == NULL)
-		return -3;
-	INT8U* buftmp =(INT8U*)malloc(len);
-	memcpy(buftmp,buff,len);
-	INT32U i=0;
-	for(i=0; i < len; i++)
-	{
-		invbuff[i] = buftmp[len-i-1];
-	}
-	free(buftmp);
-	buftmp = NULL;
-	return 0;
-}
+#include "../libBase/PublicFunction.h"
+
 INT8U getCS645(INT8U* buf, const INT16U len)
 {
 	INT16U i, cs=0;

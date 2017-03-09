@@ -116,7 +116,7 @@ extern INT8U Event_310F(TSA tsa, INT8U* data,INT8U len,ProgramInfo* prginfo_even
 /*
  * 月通信流量超限事件 data为当月已经发生流量 字节由高到低 prginfo_event共享内存
  */
-extern INT8U Event_3110(INT8U* data,INT8U len,ProgramInfo* prginfo_event);
+extern INT8U Event_3110(INT32U data,INT8U len,ProgramInfo* prginfo_event);
 /*
  * 发现未知电能表事件 抄表搜表可以判断出表信息，直接可调用该接口，默认data为整个电能表信息 prginfo_event共享内存
  */
@@ -157,6 +157,10 @@ extern INT8U Event_3117(INT8U* data,INT8U len,ProgramInfo* prginfo_event);
  * 终端编程记录 data为多个OAD集合，第一个字节为数量，后面是多个4个字节得OAD prginfo_event共享内存
  */
 extern INT8U Event_3118(INT8U* data,INT8U len,ProgramInfo* prginfo_event);
+/*
+ * 电能表开盖事件 DATA记录，len长度
+ */
+INT8U Event_301B(INT8U* data,INT8U len,ProgramInfo* prginfo_event);
 /*
  * 终端电流回路异常事件23,II型集中器没有电流，暂时不处理,type为0,1 短路、开路 prginfo_event共享内存
  */

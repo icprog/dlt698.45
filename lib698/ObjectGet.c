@@ -43,7 +43,6 @@ int BuildFrame_GetResponseRecord(INT8U response_type,CSINFO *csinfo,RESULT_RECOR
 
 	if (record.datalen > 0)
 	{
-//		sendbuf[index++] = 1;//choice 1  ,SEQUENCE OF A-RecordRow
 		memcpy(&sendbuf[index],record.data,record.datalen);
 		index = index + record.datalen;
 	}else
@@ -544,24 +543,6 @@ int Get4300(RESULT_NORMAL *response)
 	return 0;
 }
 
-void printrcsd(RCSD rcsd)
-{
-	int i=0;
-	int k=0;
-	for(i = 0; i<rcsd.csds.num;i++)
-	{
-		if (rcsd.csds.csd[i].type == 1)
-		{
-			fprintf(stderr,"\n");
-			fprintf(stderr,"\nROAD     %04x %02x %02x",rcsd.csds.csd[i].csd.road.oad.OI,rcsd.csds.csd[i].csd.road.oad.attflg,rcsd.csds.csd[i].csd.road.oad.attrindex);
-			for(k=0;k<rcsd.csds.csd[i].csd.road.num;k++)
-				fprintf(stderr,"\n     		oad %04x %02x %02x",rcsd.csds.csd[i].csd.road.oads[k].OI,rcsd.csds.csd[i].csd.road.oads[k].attflg,rcsd.csds.csd[i].csd.road.oads[k].attrindex);
-		}else
-		{
-			fprintf(stderr,"\nOAD     %04x %02x %02x",rcsd.csds.csd[i].csd.oad.OI,rcsd.csds.csd[i].csd.oad.attflg,rcsd.csds.csd[i].csd.oad.attrindex);
-		}
-	}
-}
 void printSel5(RESULT_RECORD record)
 {
 	fprintf(stderr,"\n%d年 %d月 %d日 %d时:%d分:%d秒",
@@ -569,7 +550,7 @@ void printSel5(RESULT_RECORD record)
 					record.select.selec5.collect_save.day.data,record.select.selec5.collect_save.hour.data,
 					record.select.selec5.collect_save.min.data,record.select.selec5.collect_save.sec.data);
 	fprintf(stderr,"\nMS-TYPE %d  ",record.select.selec5.meters.mstype);
-	printrcsd(record.rcsd);
+	print_rcsd(record.rcsd.csds);
 }
 
 void printSel7(RESULT_RECORD record)
@@ -584,7 +565,7 @@ void printSel7(RESULT_RECORD record)
 					record.select.selec7.collect_save_finish.min.data,record.select.selec7.collect_save_finish.sec.data);
 	fprintf(stderr,"\n时间间隔TI 单位:%d[秒-0，分-1，时-2，日-3，月-4，年-5],间隔:%x",record.select.selec7.ti.units,record.select.selec7.ti.interval);
 	fprintf(stderr,"\n电能表集合MS 类型：%d\n",record.select.selec7.meters.mstype);
-	printrcsd(record.rcsd);
+	print_rcsd(record.rcsd.csds);
 }
 
 void printSel9(RESULT_RECORD record)
@@ -592,7 +573,7 @@ void printSel9(RESULT_RECORD record)
 	fprintf(stderr,"\nSelector9:指定选取上第n次记录\n");
 	fprintf(stderr,"\n选取上第%d次记录 ",record.select.selec9.recordn);
 	fprintf(stderr,"\nRCSD个数：%d",record.rcsd.csds.num);
-	printrcsd(record.rcsd);
+	print_rcsd(record.rcsd.csds);
 }
 
 void printrecord(RESULT_RECORD record)
@@ -731,6 +712,10 @@ int doGetrecord(OAD oad,INT8U *data,RESULT_RECORD *record)
 		record->data = TmpDataBuf;				//data 指向回复报文帧头
 		record->datalen += dest_index;			//数据长度+ResultRecord
 		break;
+	case 10:	//指定读取最新的n条记录
+
+
+		break;
 	}
 	fprintf(stderr,"\n---doGetrecord end\n");
 	return source_index;
@@ -781,9 +766,6 @@ int getRequestRecordList(INT8U *data,CSINFO *csinfo,INT8U *sendbuf)
 ///	securetype = 0;		//清除安全等级标识
 	return 1;
 }
-
-
-
 
 int GetVariable(RESULT_NORMAL *response)
 {

@@ -289,6 +289,7 @@ int  readParaClass(OI_698 oi,void *blockdata,int seqnum)
 	return ret;
 }
 
+
 /////////////////////////////////////////////////////////////////////////////////////////
 
 /*
@@ -365,7 +366,7 @@ int readCoverClass(OI_698 oi,INT16U seqno,void *blockdata,int datalen,int type)
 	case acs_energy_save:
 		ret = readFileName(oi,seqno,type,fname);
 		if(ret==0) {		//文件存在
-			fprintf(stderr,"readClass %s filelen=%d\n",fname,datalen);
+//			fprintf(stderr,"readClass %s filelen=%d\n",fname,datalen);
 			ret = block_file_sync(fname,blockdata,datalen,0,0);
 //			fprintf(stderr,"ret=%d\n",ret);
 		}else  {		//无配置文件，读取系统初始化参数

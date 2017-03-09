@@ -138,6 +138,8 @@ int RegularClient(struct aeEventLoop* ep, long long id, void* clientData) {
         Comm_task(nst);
         EventAutoReport(nst);
         CalculateTransFlow(nst->shmem);
+        //暂时忽略函数返回
+        // composeAutoTask(nst);
     }
 
     return 2000;
@@ -156,6 +158,7 @@ int StartClient(struct aeEventLoop* ep, long long id, void* clientData) {
 
     ClientInit();
     Client_Task_Id = aeCreateTimeEvent(ep, 1000, RegularClient, &ClientObject, NULL);
+
     asyslog(LOG_INFO, "监听服务器时间事件注册完成(%lld)", Client_Task_Id);
     StartMmq(ep, 0, &ClientObject);
     return 1;

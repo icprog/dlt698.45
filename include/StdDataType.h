@@ -340,12 +340,12 @@ typedef union
 {
 	INT8U nometer_null;
 	INT8U allmeter_null;
-	INT8U userType[32];
-	TSA	userAddr[32];
-	INT16U configSerial[32];
-	Region type[32];
-	Region addr[32];
-	Region serial[32];
+	INT8U userType[COLLCLASS_MAXNUM];
+	TSA	userAddr[COLLCLASS_MAXNUM];
+	INT16U configSerial[COLLCLASS_MAXNUM];	//configSerial[0]:表示后面有效的序列个数
+	Region type[COLLCLASS_MAXNUM];
+	Region addr[COLLCLASS_MAXNUM];
+	Region serial[COLLCLASS_MAXNUM];
 }MS;
 typedef struct
 {
