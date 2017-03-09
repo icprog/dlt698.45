@@ -10,6 +10,7 @@
 #include "../include/Objectdef.h"
 #include "../libBase/PublicFunction.h"
 #include "../libAccess/AccessFun.h"
+#include "dlt698def.h"
 /*
  * datetime 开始时间
  * ti 间隔
@@ -89,13 +90,53 @@ void init_autotask(CLASS_6013 class6013,AutoTaskStrap* list)
 		index++;
 	}
 }
-int doAutoReport(CLASS_601D report)
+//int selector10getdata(MS ms,)
+//{
+//
+//	return 0;
+//}
+int doAutoReport(CLASS_601D report,CommBlock* com)
 {
+	if (com==NULL)
+		return 0;
+	INT8U *sendbuf = com->SendBuf;
 	fprintf(stderr,"\ndo AutoReport!!!");
+	CSINFO csinfo;
+	int index=0, hcsi=0,datalen=0 ,apduplace =0;
 
+//	memcpy(&csinfo,&com->->csinfo,sizeof(CSINFO));
+	csinfo.dir = 1;
+	csinfo.prm = 1;
+	index = FrameHead(&csinfo,sendbuf);
+	hcsi = index;
+	index = index + 2;
+
+	apduplace = index;		//记录APDU 起始位置
+	sendbuf[index++] = REPORT_NOTIFICATION;
+	sendbuf[index++] = REPROTNOTIFICATIONRECORDLIST;
+	sendbuf[index++] = 0;
+	/*
+	 *	PIID
+	 *	SEQUENCE OF A-ReportRecord
+	 *		num:  A-ReportRecord
+	 */
+	if (report.reportdata.type==1)//RecordData
+	{
+
+	}else if(report.reportdata.type==0)//OAD
+	{
+
+	}else
+		return 0;
+
+	sendbuf[index++] = 0;
+	sendbuf[index++] = 0;
+	FrameTail(sendbuf,index,hcsi);
+	if(com->p_send!=NULL)
+		com->p_send(com->phy_connect_fd,sendbuf,index+3);
 	return 1;
 }
-INT16U  composeAutoTask(AutoTaskStrap* list)
+INT16U  composeAutoTask(AutoTaskStrap* list ,CommBlock* com)
 {
 	int i=0;
 	time_t timenow = time(NULL);
@@ -109,7 +150,7 @@ INT16U  composeAutoTask(AutoTaskStrap* list)
 				fprintf(stderr,"\ni=%d 任务【 %d 】 	 开始执行   上报方案编号【 %d 】",i,list[i].ID,list[i].SerNo);
 				CLASS_601D class601d;
 				if (readCoverClass(0x601D, list[i].SerNo, &class601d, sizeof(CLASS_601D),coll_para_save) == 1)
-					doAutoReport(class601d);
+					doAutoReport(class601d,com);
 				list[i].nexttime = calcnexttime(class6013.interval,class6013.startime);
 				return 1;
 			}else
