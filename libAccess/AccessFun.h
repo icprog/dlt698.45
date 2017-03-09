@@ -54,9 +54,14 @@ typedef struct {
 	INT16U memdep;   //存储深度
 	CSD_ARRAYTYPE    csds;   //采集方案号
 }TASKSET_INFO;
+typedef struct {//0ad_r为描述性oad，如50040200，0ad_m为关联属性oad，如类型就是oad，则第一个写为00000000
+	INT8U taskid;
+	OAD oad_m;
+	OAD oad_r;
+}OAD_MR;
 typedef struct {
-	INT16U road_num;//涉及到的road个数，每一个都写成road，oad的关联属性oad写为0000
-	OAD oad[MY_CSD_NUM*ROAD_OADS_NUM][2];//0ad[][0]为描述性oad，如50040200，0ad[][1]为关联属性oad，如类型就是oad，则第一个写为00000000
+	INT16U oadmr_num;//涉及到的road个数，每一个都写成二维OAD_MR，oad类型的关联属性oad_r写为0000
+	OAD_MR oad[MY_CSD_NUM*ROAD_OADS_NUM];
 }ROAD_ITEM;//将招测csd分解为多个oad
 /*
  * 方法：Clean()清空
@@ -193,4 +198,5 @@ extern INT8U ReadTaskInfo(INT8U taskid,TASKSET_INFO *tasknor_info);
 extern void getTaskFileName(INT8U taskid,TS ts,char *fname);
 extern INT8U datafile_write(char *FileName, void *source, int size, int offset);
 extern INT8U datafile_read(char *FileName, void *source, int size, int offset);
+extern INT16U CalcOIDataLen(OI_698 oi,INT8U attr_flg);
 #endif /* ACCESS_H_ */
