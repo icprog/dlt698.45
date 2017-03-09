@@ -45,6 +45,7 @@ typedef struct {
 	INT8U	oi3201;				//电控跳闸记录
 	INT8U	oi3202;				//购电参数设置记录
 	INT8U	oi3203;				//电控告警事件记录
+	INT8U   oi301B;       //电能表开表盖事件
 ////////////////////////////////////////////////////////
 	INT8U	oi4016;			//当前套日时段表
 	INT8U 	oi4030;      	 //电压合格率统计
@@ -63,6 +64,7 @@ typedef struct {
 	INT8U oi6051;		/*实时监控采集方案集属性变更*/
 ////////////////////////////////////////////////////////
 	INT8U oiF203;             //开关量
+
 
 }OI_CHANGE;
 
@@ -328,6 +330,7 @@ typedef struct{
 	INT32S f_Qsz_energy_all;
 	INT32S f_Qsz_energy[MAXVAL_RATENUM];//实时反向无功总电能  44  48
 }ENERGY_PROPERTY_SET;
+
 typedef struct {
 	ACCoe_SAVE Accoepara;
 	INT32U 			ac_chip_type; 		//==0x820900:	RN8029芯片，III型集中器	//==1： ATT7022D-E芯片 	//==0x7022E0:	ATT7022E-D芯片

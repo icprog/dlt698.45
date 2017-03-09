@@ -12,7 +12,7 @@
 #include "libmmq.h"
 
 //一次从文件里读取10个6001--采集档案任务配置单元
-#define LIST6001SIZE 10
+#define LIST6001SIZE 20
 #define BUFFSIZE 256
 #define DATA_CONTENT_LEN 500
 

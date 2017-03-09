@@ -544,24 +544,6 @@ int Get4300(RESULT_NORMAL *response)
 	return 0;
 }
 
-void printrcsd(RCSD rcsd)
-{
-	int i=0;
-	int k=0;
-	for(i = 0; i<rcsd.csds.num;i++)
-	{
-		if (rcsd.csds.csd[i].type == 1)
-		{
-			fprintf(stderr,"\n");
-			fprintf(stderr,"\nROAD     %04x %02x %02x",rcsd.csds.csd[i].csd.road.oad.OI,rcsd.csds.csd[i].csd.road.oad.attflg,rcsd.csds.csd[i].csd.road.oad.attrindex);
-			for(k=0;k<rcsd.csds.csd[i].csd.road.num;k++)
-				fprintf(stderr,"\n     		oad %04x %02x %02x",rcsd.csds.csd[i].csd.road.oads[k].OI,rcsd.csds.csd[i].csd.road.oads[k].attflg,rcsd.csds.csd[i].csd.road.oads[k].attrindex);
-		}else
-		{
-			fprintf(stderr,"\nOAD     %04x %02x %02x",rcsd.csds.csd[i].csd.oad.OI,rcsd.csds.csd[i].csd.oad.attflg,rcsd.csds.csd[i].csd.oad.attrindex);
-		}
-	}
-}
 void printSel5(RESULT_RECORD record)
 {
 	fprintf(stderr,"\n%d年 %d月 %d日 %d时:%d分:%d秒",
@@ -731,6 +713,10 @@ int doGetrecord(OAD oad,INT8U *data,RESULT_RECORD *record)
 		record->data = TmpDataBuf;				//data 指向回复报文帧头
 		record->datalen += dest_index;			//数据长度+ResultRecord
 		break;
+	case 10:	//指定读取最新的n条记录
+
+
+		break;
 	}
 	fprintf(stderr,"\n---doGetrecord end\n");
 	return source_index;
@@ -781,9 +767,6 @@ int getRequestRecordList(INT8U *data,CSINFO *csinfo,INT8U *sendbuf)
 ///	securetype = 0;		//清除安全等级标识
 	return 1;
 }
-
-
-
 
 int GetVariable(RESULT_NORMAL *response)
 {

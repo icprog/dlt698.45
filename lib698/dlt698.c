@@ -13,7 +13,7 @@
 #include "Shmem.h"
 #include "PublicFunction.h"
 #define LIB698_VER 	1
-
+#define TESTDEF
 extern int doObjectAction();
 //extern int doActionReponse(int reponse,CSINFO *csinfo,PIID piid,OMD omd,int dar,INT8U *data,INT8U *buf);
 extern int getRequestRecord(OAD oad,INT8U *data,CSINFO *csinfo,INT8U *sendbuf);
@@ -869,13 +869,10 @@ INT16S fillGetRequestAPDU(INT8U* sendBuf,CLASS_6015 obj6015,INT8U requestType)
 
 						sendBuf[length++] = 0x1c;
 						INT16U tmpTime = timeStamp.year.data;
-						sendBuf[length++] = ((tmpTime/1000) << 4) + (tmpTime%1000)/100;
-						tmpTime = tmpTime%100;
-						sendBuf[length++] = ((tmpTime/10)<<4) + (tmpTime%10);
-						tmpTime = timeStamp.month.data;
-						sendBuf[length++] = ((tmpTime/10)<<4) + (tmpTime%10);
-						tmpTime = timeStamp.day.data;
-						sendBuf[length++] = ((tmpTime/10)<<4) + (tmpTime%10);
+						sendBuf[length++] = tmpTime&0x00ff;
+						sendBuf[length++] = (tmpTime>>8)&0x00ff;
+						sendBuf[length++] = timeStamp.month.data;
+						sendBuf[length++] = timeStamp.day.data;
 						sendBuf[length++] = 0x00;
 						sendBuf[length++] = 0x00;
 						sendBuf[length++] = 0x00;
@@ -926,7 +923,7 @@ INT8S getRequestType(INT8U cjtype,INT8U csdcount)
 		case TYPE_LAST:
 			{
 				requestType = GET_REQUEST_RECORD;
-#ifdef TESTDEF
+
 				if(csdcount == 1)
 				{
 					requestType = GET_REQUEST_RECORD;
@@ -935,7 +932,6 @@ INT8S getRequestType(INT8U cjtype,INT8U csdcount)
 				{
 					requestType = GET_REQUEST_RECORD_LIST;
 				}
-#endif
 
 				break;
 			}
@@ -948,7 +944,7 @@ INT8S getRequestType(INT8U cjtype,INT8U csdcount)
 	}
 	return requestType;
 }
-INT16S composeProtocol698_GetRequest(INT8U* 	sendBuf,CLASS_6015 obj6015,TSA meterAddr)
+INT16S composeProtocol698_GetRequest(INT8U* sendBuf,CLASS_6015 obj6015,TSA meterAddr)
 {
 	INT8U PIID = 0x02;
 	int sendLen = 0, hcsi = 0,apdulen = 0;
@@ -959,12 +955,34 @@ INT16S composeProtocol698_GetRequest(INT8U* 	sendBuf,CLASS_6015 obj6015,TSA mete
 	csinfo.prm = 1; 	//服务器发出
 	csinfo.funcode = 3; //链路管理
 	csinfo.sa_type = 0 ;//单地址
+
+#ifdef TESTDEF1
+	meterAddr.addr[0] = 7;
+	meterAddr.addr[1] = 5;
+	meterAddr.addr[2] = 0x11;
+	meterAddr.addr[3] = 0x22;
+	meterAddr.addr[4] = 0x33;
+	meterAddr.addr[5] = 0x44;
+	meterAddr.addr[6] = 0x55;
+	meterAddr.addr[7] = 0x66;
+#endif
+
+	INT8U reverseAddr[OCTET_STRING_LEN]= {0};
 	fprintf(stderr," \n\n composeProtocol698_GetRequest  meterAddr : %02x  %02x  %02x%02x%02x%02x%02x%02x%02x\n\n",
 			meterAddr.addr[0],meterAddr.addr[1],meterAddr.addr[2],meterAddr.addr[3],meterAddr.addr[4],
 			meterAddr.addr[5],meterAddr.addr[6],meterAddr.addr[7],meterAddr.addr[8]);
 	csinfo.sa_length = (meterAddr.addr[1]&0x0f) + 1;//sizeof(addr)-1;//服务器地址长度
 
-	memcpy(csinfo.sa,&meterAddr.addr[2],csinfo.sa_length);//服务器地址
+	reversebuff(&meterAddr.addr[2],csinfo.sa_length,reverseAddr);
+
+	fprintf(stderr," \n reverseAddr[%d] = ",csinfo.sa_length);
+	INT8U prtIndex;
+	for(prtIndex = 0;prtIndex < csinfo.sa_length;prtIndex++)
+	{
+		fprintf(stderr," %02x",reverseAddr[prtIndex]);
+	}
+
+	memcpy(csinfo.sa,reverseAddr,csinfo.sa_length);//服务器地址
 	csinfo.ca = 0x02;
 
 	fprintf(stderr,"sa_length = %d \n",csinfo.sa_length);

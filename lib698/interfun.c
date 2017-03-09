@@ -12,6 +12,43 @@
 #include "Objectdef.h"
 #include "dlt698.h"
 
+//////////////////////////////////////////////////////////////////////
+void printMS(MY_MS ms)
+{
+	int i=0;
+	fprintf(stderr,"电能表集合打印：MS choice=%d\n",ms.mstype);
+	switch(ms.mstype) {
+	case 0:	fprintf(stderr,"无电能表");		break;
+	case 1:	fprintf(stderr,"全部用户地址");	break;
+	case 4://一组配置序号
+		fprintf(stderr,"一组配置序号：个数=%d\n ",ms.ms.configSerial[0]);
+		if(ms.ms.configSerial[0] > COLLCLASS_MAXNUM) fprintf(stderr,"配置序号 超过限值 %d ,error !!!!!!",COLLCLASS_MAXNUM);
+		for(i=0;i<ms.ms.configSerial[0];i++) {
+			fprintf(stderr,"%d ",ms.ms.configSerial[i+1]);
+		}
+		break;
+	}
+}
+void printrcsd(RCSD rcsd)
+{
+	int i=0;
+	int k=0;
+	for(i = 0; i<rcsd.csds.num;i++)
+	{
+		if (rcsd.csds.csd[i].type == 1)
+		{
+			fprintf(stderr,"\n");
+			fprintf(stderr,"\nROAD     %04x %02x %02x",rcsd.csds.csd[i].csd.road.oad.OI,rcsd.csds.csd[i].csd.road.oad.attflg,rcsd.csds.csd[i].csd.road.oad.attrindex);
+			for(k=0;k<rcsd.csds.csd[i].csd.road.num;k++)
+				fprintf(stderr,"\n     		oad %04x %02x %02x",rcsd.csds.csd[i].csd.road.oads[k].OI,rcsd.csds.csd[i].csd.road.oads[k].attflg,rcsd.csds.csd[i].csd.road.oads[k].attrindex);
+		}else
+		{
+			fprintf(stderr,"\nOAD     %04x %02x %02x",rcsd.csds.csd[i].csd.oad.OI,rcsd.csds.csd[i].csd.oad.attflg,rcsd.csds.csd[i].csd.oad.attrindex);
+		}
+	}
+}
+
+//////////////////////////////////////////////////////////////////////
 int  create_OAD(INT8U *data,OAD oad)
 {
 	data[0] = ( oad.OI >> 8 ) & 0xff;
@@ -415,6 +452,7 @@ int getTI(INT8U type,INT8U *source,TI *ti)	//0x54
 		ti->interval = (ti->interval <<8) | source[type+2];//
 		return (3+type);    //不能取sizeof(TI) 设计结构体对齐方式，返回值要处理规约数据内容
 	}
+	return 0;
 }
 
 int get_Data(INT8U *source,INT8U *dest)
@@ -465,8 +503,8 @@ int get_Data(INT8U *source,INT8U *dest)
 int get_BasicRSD(INT8U type,INT8U *source,INT8U *dest,INT8U *seletype)		//0x5A
 {
 	INT16U source_sumindex=0,source_index=0,dest_index=0;
-	int index = 0;
-	INT8U tmpbuf[2];
+	int index = 0,i=0;
+	INT16U tmpbuf[COLLCLASS_MAXNUM];
 	Selector4 select4;
 	Selector6 select6;
 	Selector9 select9;
@@ -480,7 +518,7 @@ int get_BasicRSD(INT8U type,INT8U *source,INT8U *dest,INT8U *seletype)		//0x5A
 		fprintf(stderr,"classtype=%02x\n",classtype);
 	}
 	*seletype = source[index++];//选择方法
-	fprintf(stderr,"\n\n----------seletype=%02x\n",*seletype);
+	fprintf(stderr,"\n\n----------seletype=%d\n",*seletype);
 	switch(*seletype )
 	{
 		case 0:
@@ -515,9 +553,7 @@ int get_BasicRSD(INT8U type,INT8U *source,INT8U *dest,INT8U *seletype)		//0x5A
 		case 5:
 			index += getDateTimeS(0,&source[index],(INT8U *)&select4.collect_star);
 			fprintf(stderr,"\n--- %02x %02x --",source[1+index],source[1+index+1]);
-			index += getMS(0,&source[index],(INT8U *)&select4.meters);
-			source_sumindex += source_index;
-			index += source_sumindex;
+			index += getMS(0,&source[index],&select4.meters);
 			memcpy(dest,&select4,sizeof(select4));
 			break;
 		case 6:
@@ -527,7 +563,7 @@ int get_BasicRSD(INT8U type,INT8U *source,INT8U *dest,INT8U *seletype)		//0x5A
 			index += getDateTimeS(0,&source[index],(INT8U *)&select6.collect_star);
 			index += getDateTimeS(0,&source[index],(INT8U *)&select6.collect_finish);
 			index += getTI(0,&source[index],&select6.ti);
-			index += getMS(0,&source[index],&select6.meters.mstype);
+			index += getMS(0,&source[index],&select6.meters);
 			memcpy(dest,&select6,sizeof(select6));
 			break;
 		case 9:
@@ -536,8 +572,9 @@ int get_BasicRSD(INT8U type,INT8U *source,INT8U *dest,INT8U *seletype)		//0x5A
 			index = 2;
 			break;
 		case 10:
-			index += getUnsigned(&source[index],(INT8U *)&select10.recordn);
-			index += getMS(1,&source[index],&select10.meters.mstype);
+			select10.recordn = source[index++];
+			index += getMS(0,&source[index],&select10.meters);
+			printMS(select10.meters);
 			memcpy(dest,&select10,sizeof(select10));
 			break;
 	}
@@ -571,27 +608,49 @@ int getCSD(INT8U type,INT8U *source,MY_CSD* csd)		//0X5B
 	}
 	return 0;
 }
-int getMS(INT8U type,INT8U *source,INT8U *dest)		//0x5C
+int getMS(INT8U type,INT8U *source,MY_MS *ms)		//0x5C
 {
 	INT8U choicetype=0;
+	int	  seqnum = 0,seqlen = 0,i=0;
 	if(type>1) {
 		fprintf(stderr,"MS 类型标识不符 type=%d\n",type);
 		return 0;
 	}
 	choicetype = source[type];//0
+	fprintf(stderr,"MS:Choice = %d\n",choicetype);
 	switch (choicetype)
 	{
 		case 0:
 		case 1:
-			dest[0] = source[type];  //0表示 没有电表  1表示 全部电表	//区分MS类型，人工加入一个字节，报文中无此说明
-			dest[1] = source[type];
-			fprintf(stderr,"\n		MS:Choice =%02x ",source[0]);
+			ms->mstype = source[type];  //0表示 没有电表  1表示 全部电表	//区分MS类型，人工加入一个字节，报文中无此说明
+			ms->mstype = source[type];
 			return 1+type;
 		case 2:
 			break;
 		case 3:
 			break;
-		case 4:
+		case 4:	//一组配置序号  	[4] 	SEQUENCE OF long-unsigned
+			type++;
+			seqlen = source[type];	//sequence 的长度
+			if(seqlen & 0x80) {		// 只考虑长度最多两个字节情况
+				seqnum = (source[type] << 8) | source[type+1];
+				type += 2;
+			}else {
+				seqnum = seqlen;
+				type += 1;
+			}
+			fprintf(stderr,"type=%d\n",type);
+			if(seqnum>COLLCLASS_MAXNUM) {
+				fprintf(stderr,"sequence of num 大于容量 %d,无法处理！！！",COLLCLASS_MAXNUM);
+				return 1+type;
+			}
+			ms->mstype = choicetype;
+			ms->ms.configSerial[0] = seqnum;
+			fprintf(stderr,"choicetype=%d,seqnum=%d\n",choicetype,seqnum);
+			for(i=0;i<seqnum;i++) {
+				ms->ms.configSerial[i+1] = (source[type]<<8)|source[type+1];
+				type = type+2;
+			}
 			break;
 	}
 	return 0;
