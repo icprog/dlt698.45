@@ -66,7 +66,7 @@ int getProxylist(INT8U *data,PROXY_GETLIST *getlist)
 		num = data[iindex];
 		if (num>sizeof(getlist->objs[i].tsa))
 			num = sizeof(getlist->objs[i].tsa);
-		memcpy(&getlist->objs[i].tsa,&data[iindex],num);
+		memcpy(&getlist->objs[i].tsa,&data[iindex],num+1);
 		iindex = iindex + num +1;
 		timeout = data[iindex];
 		getlist->objs[i].onetimeout = timeout<<8 |data[iindex+1];
