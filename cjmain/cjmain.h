@@ -8,8 +8,8 @@
 #include <fcntl.h>
 #include "PublicFunction.h"
 
-ProgramInfo* JProgramInfo=NULL;
-
 extern void InitClass4300();
+
+#define MAX_MMQ_SIZE 32
 
 #endif
