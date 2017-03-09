@@ -16,7 +16,7 @@
 void printMS(MY_MS ms)
 {
 	int i=0;
-	fprintf(stderr,"电能表集合打印：MS choice=%d\n",ms.mstype);
+	fprintf(stderr,"电能表集合：MS choice=%d\n",ms.mstype);
 	switch(ms.mstype) {
 	case 0:	fprintf(stderr,"无电能表");		break;
 	case 1:	fprintf(stderr,"全部用户地址");	break;
@@ -29,25 +29,48 @@ void printMS(MY_MS ms)
 		break;
 	}
 }
-void printrcsd(RCSD rcsd)
+
+void print_rsd(INT8U choice,RSD rsd)
 {
-	int i=0;
-	int k=0;
-	for(i = 0; i<rcsd.csds.num;i++)
-	{
-		if (rcsd.csds.csd[i].type == 1)
-		{
-			fprintf(stderr,"\n");
-			fprintf(stderr,"\nROAD     %04x %02x %02x",rcsd.csds.csd[i].csd.road.oad.OI,rcsd.csds.csd[i].csd.road.oad.attflg,rcsd.csds.csd[i].csd.road.oad.attrindex);
-			for(k=0;k<rcsd.csds.csd[i].csd.road.num;k++)
-				fprintf(stderr,"\n     		oad %04x %02x %02x",rcsd.csds.csd[i].csd.road.oads[k].OI,rcsd.csds.csd[i].csd.road.oads[k].attflg,rcsd.csds.csd[i].csd.road.oads[k].attrindex);
-		}else
-		{
-			fprintf(stderr,"\nOAD     %04x %02x %02x",rcsd.csds.csd[i].csd.oad.OI,rcsd.csds.csd[i].csd.oad.attflg,rcsd.csds.csd[i].csd.oad.attrindex);
-		}
+	fprintf(stderr,"RSD:choice=%d\n",choice);
+	switch(choice) {
+	case 10:
+		fprintf(stderr,"Select10为指定选取最新的 %d 条记录:\n",rsd.selec10.recordn);
+		printMS(rsd.selec10.meters);
+		break;
 	}
 }
 
+void print_road(ROAD road)
+{
+	int w=0;
+	fprintf(stderr,"ROAD:%04x-%02x%02x ",road.oad.OI,road.oad.attflg,road.oad.attrindex);
+	if(road.num >= 16) {
+		fprintf(stderr,"csd overvalue 16 error\n");
+		return;
+	}
+	for(w=0;w<road.num;w++)
+	{
+		fprintf(stderr,"<关联OAD..%d>%04x-%02x%02x ",w,road.oads[w].OI,road.oads[w].attflg,road.oads[w].attrindex);
+	}
+	fprintf(stderr,"\n");
+}
+
+void print_rcsd(CSD_ARRAYTYPE csds)
+{
+	int i=0;
+	for(i=0; i<csds.num;i++)
+	{
+		if (csds.csd[i].type==0)
+		{
+			fprintf(stderr,"<%d>OAD%04x-%02x%02x ",i,csds.csd[i].csd.oad.OI,csds.csd[i].csd.oad.attflg,csds.csd[i].csd.oad.attrindex);
+		}else if (csds.csd[i].type==1)
+		{
+			fprintf(stderr,"<%d>");
+			print_road(csds.csd[i].csd.road);
+		}
+	}
+}
 //////////////////////////////////////////////////////////////////////
 int  create_OAD(INT8U *data,OAD oad)
 {
@@ -651,7 +674,7 @@ int getMS(INT8U type,INT8U *source,MY_MS *ms)		//0x5C
 				ms->ms.configSerial[i+1] = (source[type]<<8)|source[type+1];
 				type = type+2;
 			}
-			break;
+			return type;
 	}
 	return 0;
 }
