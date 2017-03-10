@@ -49,20 +49,24 @@ void RegularAutoTask(struct aeEventLoop* ep, CommBlock* nst) {
         return;
     }
 
-    //调用日常通信接口
-    int res = composeAutoTask(shmem->autotask);
+    for (int i = 0; i < MAXNUM_AUTOTASK; i++) {
+        //调用日常通信接口
+        int res = composeAutoTask(shmem->autotask[i]);
 
-    if (res == 2) {
-        //第一次调用此函数，启动任务上报
-        MoreContentSign = callAutoReport(nst, 0);
-        //不再调用此函数标志
-        stopSign = 1;
-        //标示上报任务尚未获得确认
-        conformSign  = 0;
-        conformTimes = 1;
-        //注册时间事件，检查确认状态
-        conformCheckId = aeCreateTimeEvent(ep, 5000, ConformCheck, nst, NULL);
-        asyslog(LOG_INFO, "检查到上报任务，调用上报函数、初始化上报状态、注册时间事件(%d)", conformCheckId);
+        if (res == 2) {
+            //第一次调用此函数，启动任务上报
+            MoreContentSign = callAutoReport(nst, 0);
+            //不再调用此函数标志
+            stopSign = 1;
+            //标示上报任务尚未获得确认
+            conformSign  = 0;
+            conformTimes = 1;
+            //注册时间事件，检查确认状态
+            conformCheckId = aeCreateTimeEvent(ep, 5000, ConformCheck, nst, NULL);
+            asyslog(LOG_INFO, "检查到上报任务，调用上报函数、初始化上报状态、注册时间事件(%d)", conformCheckId);
+
+            break;
+        }
     }
 }
 
