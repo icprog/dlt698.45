@@ -83,6 +83,7 @@ void ClientRead(struct aeEventLoop* eventLoop, int fd, void* clientData, int mas
 
             if (len > 0) {
                 int apduType = ProcessData(nst);
+                fprintf(stderr,"apduType=%d\n",apduType);
                 ConformAutoTask(eventLoop, nst, apduType);
                 switch (apduType) {
                     case LINK_RESPONSE:

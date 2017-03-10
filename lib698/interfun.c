@@ -97,6 +97,7 @@ INT16U getTItoSec(TI ti)
 		default:
 			break;
 	}
+	return sec;
 }
 //////////////////////////////////////////////////////////////////////
 int  create_OAD(INT8U *data,OAD oad)

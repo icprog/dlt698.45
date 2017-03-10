@@ -11,6 +11,7 @@
 #include "../libBase/PublicFunction.h"
 #include "../libAccess/AccessFun.h"
 #include "dlt698def.h"
+#include "dlt698.h"
 extern INT8U TmpDataBuf[MAXSIZ_FAM];
 extern INT8U TmpDataBufList[MAXSIZ_FAM*2];
 extern void FrameTail(INT8U *buf,int index,int hcsi);
@@ -39,6 +40,7 @@ time_t calcnexttime(TI ti,DateTimeBCD datetime)
 	timestart = tmtotime_t(ptm);//开始时间
 	timenow = time(NULL);//当前时间
 	jiange = getTItoSec(ti);
+	fprintf(stderr,"jiange = %d 秒\n",jiange);
 	if (timenow > timestart)
 	{
 		timetmp = timenow - timestart;
@@ -299,7 +301,7 @@ INT16U  composeAutoTask(AutoTaskStrap *list)
 			{
 				list->ReportNum = class601d.reportnum;
 				list->OverTime = getTItoSec(class601d.timeout);
-				if (GetReportData(class601d) == 1)//数据组织好了
+				//if (GetReportData(class601d) == 1)//数据组织好了
 					ret = 2;
 			}
 			list->nexttime = calcnexttime(class6013.interval,class6013.startime);
