@@ -21,6 +21,8 @@
 #include "StdDataType.h"
 #include "main.h"
 #include "AccessFun.h"
+
+#include "dlt698.h"
 ProgramInfo* JProgramInfo = NULL;
 
 static char* usage_set = "\n--------------------参数设置----------------------------\n"
@@ -144,6 +146,37 @@ int main(int argc, char* argv[]) {
         prthelp();
         return EXIT_SUCCESS;
     }
+    if (strcmp("ms", argv[1]) == 0) {
+    	   JProgramInfo = OpenShMem("ProgramInfo", sizeof(ProgramInfo), NULL);
+    	   composeAutoTask(JProgramInfo->autotask);
+    	return EXIT_SUCCESS;
+
+
+
+    	MY_MS ms={};
+    	TSA   *tsas=NULL;
+    	int	tsa_num = 0,i=0,j=0;
+    	ms.mstype = 4;
+    	ms.ms.configSerial[0]=3;
+    	ms.ms.configSerial[1]=2;
+    	ms.ms.configSerial[2]=16;
+    	ms.ms.configSerial[3]=17;
+    	tsa_num = getTsas(ms,(INT8U **)&tsas);
+    	fprintf(stderr,"get tsa_num=%d,tsas=%p\n",tsa_num,tsas);
+    	for(i=0;i<tsa_num;i++) {
+    		fprintf(stderr,"\nTSA%d: %d-",i,tsas[i].addr[0]);
+    		for(j=0;j<tsas[i].addr[0];j++) {
+    			fprintf(stderr,"-%02x",tsas[i].addr[j+1]);
+    		}
+    	}
+    	if(tsas!=NULL) {
+    		free(tsas);
+    	}
+    	return EXIT_SUCCESS;
+    }
+
+
+
     if (strcmp("ip", argv[1]) == 0) {
         SetIPort(argc, argv);
         return EXIT_SUCCESS;

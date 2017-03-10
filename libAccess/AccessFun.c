@@ -1641,7 +1641,7 @@ INT8U getaskData(OAD oad_h,INT8U seletype,ZC_TIMEINTERVL timeinte,TSA *tsa_con,I
 	}
 	return 0;
 }
-INT8U getSelector(RSD select, INT8U selectype, CSD_ARRAYTYPE csds, INT8U *data, int *datalen,OAD oad_h)
+INT8U getSelector(OAD oad_h,RSD select, INT8U selectype, CSD_ARRAYTYPE csds, INT8U *data, int *datalen)
 {
 	INT16U tsa_num=0;
 	ZC_TIMEINTERVL timeinte;
