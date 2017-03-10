@@ -35,6 +35,8 @@ int ConformCheck(struct aeEventLoop* ep, long long id, void* clientData) {
     if (conformTimes == 0) {
         stopSign    = 0;
         conformSign = 0;
+        //强制确认数据帧，跳下一帧发送
+        MoreContentSign = callAutoReport(nst, 1);
         return AE_NOMORE;
     }
 
@@ -51,7 +53,7 @@ void RegularAutoTask(struct aeEventLoop* ep, CommBlock* nst) {
 
     for (int i = 0; i < MAXNUM_AUTOTASK; i++) {
         //调用日常通信接口
-        int res = composeAutoTask(shmem->autotask[i]);
+        int res = composeAutoTask(&shmem->autotask[i]);
 
         if (res == 2) {
             //第一次调用此函数，启动任务上报
@@ -78,6 +80,7 @@ void ConformAutoTask(struct aeEventLoop* ep, CommBlock* nst, int res) {
             aeDeleteTimeEvent(ep, conformCheckId);
             conformCheckId = aeCreateTimeEvent(ep, 5000, ConformCheck, nst, NULL);
             asyslog(LOG_INFO, "重新注册时间事件，任务序号(%d)", conformCheckId);
+            MoreContentSign = callAutoReport(nst, 1);
         } else {
             stopSign    = 0;
             conformSign = 1;
