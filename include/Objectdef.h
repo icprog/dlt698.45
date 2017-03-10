@@ -443,6 +443,8 @@ typedef struct {
 typedef struct {
     INT8U ID;        //任务编号
     INT8U SerNo;     //方案编号
+    INT8U ReportNum;	//上报次数
+    INT16U  OverTime;	//上报响应超时时间，单位：秒
     time_t nexttime; //执行时间
 } AutoTaskStrap;
 typedef struct {

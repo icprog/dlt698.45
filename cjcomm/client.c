@@ -83,6 +83,7 @@ void ClientRead(struct aeEventLoop* eventLoop, int fd, void* clientData, int mas
 
             if (len > 0) {
                 int apduType = ProcessData(nst);
+                ConformAutoTask(eventLoop, nst, apduType);
                 switch (apduType) {
                     case LINK_RESPONSE:
                         if (GetTimeOffsetFlag() == 1) {
@@ -139,7 +140,7 @@ int RegularClient(struct aeEventLoop* ep, long long id, void* clientData) {
         EventAutoReport(nst);
         CalculateTransFlow(nst->shmem);
         //暂时忽略函数返回
-        // composeAutoTask(nst);
+        RegularAutoTask(ep, nst);
     }
 
     return 2000;

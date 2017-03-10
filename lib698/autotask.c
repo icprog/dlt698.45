@@ -303,29 +303,27 @@ int GetReportData(CLASS_601D report)
 	}
 	return ret;
 }
-INT16U  composeAutoTask(AutoTaskStrap* list)//,CommBlock* com)
+INT16U  composeAutoTask(AutoTaskStrap *list)//,CommBlock* com)
 {
 	int i=0, ret=0;
 	time_t timenow = time(NULL);
 	CLASS_6013 class6013={};
 	CLASS_601D class601d={};
-	for(i=0; i< MAXNUM_AUTOTASK ;i++)
+
+	if(timenow >= list->nexttime)
 	{
-		if(timenow >= list[i].nexttime)
+		if (readCoverClass(0x6013, list->ID, &class6013, sizeof(CLASS_6013),coll_para_save) == 1)
 		{
-			if (readCoverClass(0x6013, list[i].ID, &class6013, sizeof(CLASS_6013),coll_para_save) == 1)
+			fprintf(stderr,"\ni=%d 任务【 %d 】 	 开始执行   上报方案编号【 %d 】",i,list->ID,list->SerNo);
+			if (readCoverClass(0x601D, list->SerNo, &class601d, sizeof(CLASS_601D),coll_para_save) == 1)
 			{
-				fprintf(stderr,"\ni=%d 任务【 %d 】 	 开始执行   上报方案编号【 %d 】",i,list[i].ID,list[i].SerNo);
-				if (readCoverClass(0x601D, list[i].SerNo, &class601d, sizeof(CLASS_601D),coll_para_save) == 1)
-				{
-					if (GetReportData(class601d) == 1)//数据组织好了
-						ret = 2;
-				}
-				list[i].nexttime = calcnexttime(class6013.interval,class6013.startime);
-			}else
-			{
-//				fprintf(stderr,"\n任务参数丢失！");
+				if (GetReportData(class601d) == 1)//数据组织好了
+					ret = 2;
 			}
+			list->nexttime = calcnexttime(class6013.interval,class6013.startime);
+		}else
+		{
+//				fprintf(stderr,"\n任务参数丢失！");
 		}
 	}
 	return ret;
