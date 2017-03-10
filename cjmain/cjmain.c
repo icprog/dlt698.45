@@ -445,7 +445,7 @@ int main(int argc, char* argv[]) {
         //点亮运行灯
         Runled(1);
 
-        //每分钟校时
+        //每20分钟校时
         SyncRtc();
 
         //检车程序运行状态
