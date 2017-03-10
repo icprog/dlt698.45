@@ -13,6 +13,8 @@
 #include "dlt698def.h"
 extern INT8U TmpDataBuf[MAXSIZ_FAM];
 extern INT8U TmpDataBufList[MAXSIZ_FAM*2];
+extern void FrameTail(INT8U *buf,int index,int hcsi);
+extern int FrameHead(CSINFO *csinfo,INT8U *buf);
 /*
  * datetime 开始时间
  * ti 间隔
@@ -92,100 +94,135 @@ void init_autotask(CLASS_6013 class6013,AutoTaskStrap* list)
 		index++;
 	}
 }
-int selector10getdata(TSA tsa,INT8U num,CSD_ARRAYTYPE *csds, INT8U *databuf)
+int fillcsinfo(CSINFO *csinfo,INT8U *addr,INT8U clientaddr)
 {
-
-	return 0;
+	int i=0;
+	csinfo->dir = 1;		//服务器发出
+	csinfo->prm = 0; 	//服务器发出
+	csinfo->funcode = 3; //用户数据
+	csinfo->sa_type = 0 ;//单地址
+	csinfo->sa_length = addr[0] ;
+	//服务器地址
+	fprintf(stderr,"sa_length = %d \n",csinfo->sa_length);
+	if(csinfo->sa_length<OCTET_STRING_LEN) {
+		for(i=0;i<csinfo->sa_length;i++) {
+			csinfo->sa[i] = addr[csinfo->sa_length-i];
+		}
+	}else {
+		fprintf(stderr,"SA 长度超过定义长度，不合理！！！\n");
+		return 0;
+	}
+	//客户端地址
+	csinfo->ca = clientaddr;
+	return 1;
 }
-
-/*按 selector10 中 上n条记录   和    MS .TSA 去查询数据
- *
- *  REPORT_NOTIFICATION
- *  REPROTNOTIFICATIONRECORDLIST
- *	PIID
- *	SEQUENCE OF A-ReportRecord
- *		num:  0		A-ReportRecord  某一个电表（TSA）的 ROAD或 OAD 的记录
- *			  		{
- *
- *			  		}
- *			  1		A-ReportRecord
- *			  		{
- *			  			如果没有数据  DAR 0
- *			  		}
- *			  2		A-ReportRecord
- *			  		{
- *			  			...
- *			  		}
+/*
  *
  */
-//根据type填充tsas ; 返回TS 的数量
-int getTsas(INT8U type,TSA *tsas)
+long int readFrameDataFile(char *filename,int offset,INT8U *buf,int *datalen)
 {
+	FILE *fp=NULL;
+	int bytelen=0;
+
+	fp = fopen(filename,"r");
+	if (fp!=NULL && buf!=NULL)
+	{
+		fseek(fp,offset,0);		 			//定位到文件指定偏移位置
+		if (fread(&bytelen,2,1,fp) <=0)	 	//读出数据报文长度
+			return 0;
+		if (fread(buf,bytelen,1,fp) <=0 ) 	//按数据报文长度，读出全部字节
+			return 0;
+		*datalen = bytelen;
+		return (ftell(fp));		 			//返回当前偏移位置
+	}
 	return 0;
 }
-int doAutoReport(CLASS_601D report,CommBlock* com)
+/*
+ * 通讯进程循环调用 callAutoReport
+ *
+ *  ifecho ：  0 没收到确认，或第一次调用    1 收到确认
+ *  返回    :  1  需要继续发送   0 发送完成
+ */
+int callAutoReport(CLASS_601D report,CommBlock* com, INT8U ifecho)
 {
 	if (com==NULL)
 		return 0;
+
 	INT8U *sendbuf = com->SendBuf;
-	TSA tsa[255]={};
+	static int nowoffset = 0;
+	static int nextoffset = 0;
+	static int sendcounter =0;
+	int datalen = 0, j=0,index=0 ,hcsi=0,apduplace=0;
+	CSINFO csinfo={};
 
-	fprintf(stderr,"\ndo AutoReport!!!");
-	CSINFO csinfo;
-	CSD_ARRAYTYPE *csds;
-	INT8U mstype=0;
-	int tsanum = 0 , i=0,index=0 ,recordnum=0;
+	memset(TmpDataBuf,0,sizeof(TmpDataBuf));
+	if (ifecho == 1 || sendcounter > 2)//上一次给确认了或者发送计数大于上报次数限制
+	{
+		nowoffset = nextoffset;
+		sendcounter = 0;
+	}
+	sendcounter++;
+	datalen = 0;
+	fprintf(stderr,"\n当前偏移位置 nowoffset = %d  ",nowoffset);
+	nextoffset = readFrameDataFile("/nand/datafile",nowoffset,TmpDataBuf,&datalen);
+	fprintf(stderr,"\n读出 (%d)：",datalen);
+	for(j=0; j<datalen; j++)
+	{
+		if (j%20==0)fprintf(stderr,"\n");
+		fprintf(stderr,"%02x ",TmpDataBuf[j]);
+	}
+	fprintf(stderr,"\n下帧偏移位置 nextoffset = %d ",nextoffset);
+	if (nextoffset == 0)
+	{
+		fprintf(stderr,"\n发送完毕！");
+		nowoffset = 0;
+		sendcounter = 0;
+		return 0;
+	}
 
+	index = 0;
+	if (fillcsinfo(&csinfo,com->serveraddr,com->taskaddr)==0)
+		return 0;
+	index = FrameHead(&csinfo,sendbuf);
+	hcsi = index;
+	index = index + 2;
+	apduplace = index;		//记录APDU 起始位置
+	sendbuf[index++] = REPORT_NOTIFICATION;
+	sendbuf[index++] = REPROTNOTIFICATIONRECORDLIST;
+	sendbuf[index++] = 0;	//PIID
+
+	memcpy(sendbuf,TmpDataBuf,datalen);//将读出的数据拷贝
+	index +=datalen;
+
+	sendbuf[index++] = 0;
+	sendbuf[index++] = 0;
+	FrameTail(sendbuf,index,hcsi);
+	if(com->p_send!=NULL)
+		com->p_send(com->phy_connect_fd,sendbuf,index+3);
+
+	return 1;
+}
+
+int GetReportData(CLASS_601D report)
+{
 	if (report.reportdata.type==0)//OAD
 	{
 
 	}else if(report.reportdata.type==1)//RecordData
 	{
-		csds = &report.reportdata.data.recorddata.csds;							// 方案中 rcsd
-		recordnum = report.reportdata.data.recorddata.rsd.selec10.recordn; 		// 上 n 条记录
-		mstype = report.reportdata.data.recorddata.rsd.selec10.meters.mstype; 	// 方案中 MS的类型
-		tsanum = getTsas(mstype,tsa);
-		for(i=0; i<tsanum ; i++)
-		{
-			memset(TmpDataBuf,0,sizeof(TmpDataBuf));
-			selector10getdata(tsa[i], recordnum, csds, TmpDataBuf);
-
-//			csinfo.dir = 1;
-//			csinfo.prm = 1;
-//			index = FrameHead(&csinfo,sendbuf);
-//			hcsi = index;
-//			index = index + 2;
-//
-//			apduplace = index;		//记录APDU 起始位置
-//			sendbuf[index++] = REPORT_NOTIFICATION;
-//			sendbuf[index++] = REPROTNOTIFICATIONRECORDLIST;
-//			sendbuf[index++] = 0;//PIID
-
-			if (report.reportdata.type==1)//RecordData
-			{
-
-			}else if(report.reportdata.type==0)//OAD
-			{
-
-			}else
-				return 0;
-
-			sendbuf[index++] = 0;
-			sendbuf[index++] = 0;
-//			FrameTail(sendbuf,index,hcsi);
-			if(com->p_send!=NULL)
-				com->p_send(com->phy_connect_fd,sendbuf,index+3);
-
-		}
-	}else
-	{
-		return 0;
+		if  (
+				getSelector(report.reportdata.data.oad,
+							report.reportdata.data.recorddata.rsd,
+							report.reportdata.data.recorddata.selectType,
+							report.reportdata.data.recorddata.csds,NULL, NULL)==1
+			)
+			return 1;
 	}
-	return 1;
+	return 0;
 }
-INT16U  composeAutoTask(AutoTaskStrap* list ,CommBlock* com)
+INT16U  composeAutoTask(AutoTaskStrap* list )//,CommBlock* com)
 {
-	int i=0;
+	int i=0, ret=0;
 	time_t timenow = time(NULL);
 	for(i=0; i< MAXNUM_AUTOTASK ;i++)
 	{
@@ -197,14 +234,16 @@ INT16U  composeAutoTask(AutoTaskStrap* list ,CommBlock* com)
 				fprintf(stderr,"\ni=%d 任务【 %d 】 	 开始执行   上报方案编号【 %d 】",i,list[i].ID,list[i].SerNo);
 				CLASS_601D class601d;
 				if (readCoverClass(0x601D, list[i].SerNo, &class601d, sizeof(CLASS_601D),coll_para_save) == 1)
-					doAutoReport(class601d,com);
+				{
+					if (GetReportData(class601d) == 1)//数据组织好了
+						ret = 2;
+				}
 				list[i].nexttime = calcnexttime(class6013.interval,class6013.startime);
-				return 1;
 			}else
 			{
 //				fprintf(stderr,"\n任务参数丢失！");
 			}
 		}
 	}
-	return 0;
+	return ret;
 }

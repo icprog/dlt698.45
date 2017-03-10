@@ -186,7 +186,7 @@ extern int  readVariData(OI_698 oi,int coll_seqnum,void *blockdata,int len);
 //////////////////////////////////////////////////////////////////////////////////////
 ///////////////数据文件存储
 
-extern INT8U getSelector(RSD select, INT8U selectype, CSD_ARRAYTYPE csds, INT8U *data, int *datalen);
+extern INT8U getSelector(OAD oad,RSD select, INT8U selectype, CSD_ARRAYTYPE csds, INT8U *data, int *datalen);
 
 
 extern INT8U ReadTaskInfo(INT8U taskid,TASKSET_INFO *tasknor_info);

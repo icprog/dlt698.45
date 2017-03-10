@@ -1203,7 +1203,7 @@ INT8U DevideCSDs(CSD_ARRAYTYPE csds,ROAD_ITEM *item_road)
  * 根据招测类型组织报文
  * 如果MS选取的测量点过多，不能同时上报，分帧
  */
-INT8U getSelector(RSD select, INT8U selectype, CSD_ARRAYTYPE csds, INT8U *data, int *datalen)
+INT8U getSelector(OAD oad ,RSD select, INT8U selectype, CSD_ARRAYTYPE csds, INT8U *data, int *datalen)
 {
 	TS ts_info[2];//时标选择，根据普通采集方案存储时标选择进行，此处默认为相对当日0点0分 todo
 	INT8U taskid;//,tsa_num=0;
