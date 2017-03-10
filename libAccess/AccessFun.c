@@ -827,7 +827,7 @@ INT8U CalcKBType(INT8U type)
 	}
 	return ret;//不合法
 }
-INT16U CalcFreq(TI runti,CLASS_6015 class6015,INT16U startmin,INT16U endmin)//不管开闭
+INT16U CalcFreq(TI runti,CLASS_6015 class6015,INT16U startmin,INT16U endmin,INT16U *sec_freq)//不管开闭
 {
 	INT16U rate = 0;//倍率
 	INT16U sec_unit = 0;
@@ -859,6 +859,7 @@ INT16U CalcFreq(TI runti,CLASS_6015 class6015,INT16U startmin,INT16U endmin)//�
 		if(inval_flg == 1)
 			return 0;
 		sec_unit = (runti.interval * rate);
+		*sec_freq = sec_unit;
 		fprintf(stderr,"\n---@@@-开始分钟数：%d 结束分钟数：%d 间隔秒数%d 次数:%d\n",startmin,endmin,sec_unit,((endmin-startmin)*60)/sec_unit);
 		return ((endmin-startmin)*60)/sec_unit+1;
 	}
@@ -881,7 +882,7 @@ INT8U ReadTaskInfo(INT8U taskid,TASKSET_INFO *tasknor_info)//读取普通采集�
 			tasknor_info->startmin = CalcMinFromZero(class6013.runtime.runtime[0].beginHour,class6013.runtime.runtime[0].beginMin);//按照设置一个时段来
 			fprintf(stderr,"\n--任务里结束小时%d，结束分钟%d\n",class6013.runtime.runtime[0].endHour,class6013.runtime.runtime[0].endMin);
 			tasknor_info->endmin = CalcMinFromZero(class6013.runtime.runtime[0].endHour,class6013.runtime.runtime[0].endMin);//按照设置一个时段来
-			tasknor_info->runtime = CalcFreq(class6013.interval,class6015,tasknor_info->startmin,tasknor_info->endmin);
+			tasknor_info->runtime = CalcFreq(class6013.interval,class6015,tasknor_info->startmin,tasknor_info->endmin,&tasknor_info->freq);
 			fprintf(stderr,"\n---@@@---任务%d执行次数%d\n",taskid,tasknor_info->runtime);
 			tasknor_info->KBtype = CalcKBType(class6013.runtime.type);
 			tasknor_info->memdep = class6015.deepsize;
@@ -896,6 +897,24 @@ typedef struct {
 	INT16U onelen;//单元长度
 	INT16U frmindex;//发送索引
 }FRM_HEAD;
+/*
+ *databuf前两个字节为本帧长度,datalen为数据长度
+ */
+void saveonefrm(INT8U *frmbuf,INT16U frmlen)
+{
+	char fname[60];
+	FILE *fp = NULL;
+	memset(fname,0x00,60);
+	sprintf(fname,"/nand/frm.dat");
+	fp = fopen(fname,"a+");//附加形式打开
+	if(fp != NULL)
+	{
+
+		fwrite(frmbuf,frmlen,1,fp);
+	}
+	else
+		fprintf(stderr,"\nopen file /nand/frm.dat fail!!!!\n");
+}
 /*
  * unitlen：单元长度 unitnum_file：文件里最后一个单元索引
  */
@@ -1266,7 +1285,7 @@ INT8U GetTaskidFromCSDs(CSD_ARRAYTYPE csds,ROAD_ITEM *item_road)
 		switch(csds.csd[i].type)
 		{
 		case 0://OAD类型，第一个oad为0x00000000，第二个oad为OAD
-			if(csds.csd[i].csd.oad.OI == 0x4001 || csds.csd[i].csd.oad.OI == 0x6040 ||//时标和地址不统计在内
+			if(csds.csd[i].csd.oad.OI == 0x202a || csds.csd[i].csd.oad.OI == 0x6040 ||//时标和地址不统计在内
 					csds.csd[i].csd.oad.OI == 0x6041 || csds.csd[i].csd.oad.OI == 0x6042)
 				break;
 			item_road->oad[item_road->oadmr_num].oad_r.OI=0x0000;
@@ -1340,72 +1359,369 @@ INT8U GetTaskidFromCSDs(CSD_ARRAYTYPE csds,ROAD_ITEM *item_road)
 	return taskno;
 }
 /*
- * 根据招测类型组织报文
- * 如果MS选取的测量点过多，不能同时上报，分帧
+ * 得到时间区间，某年月日，某点某分到某点某分
  */
-INT8U getSelector(OAD oad ,RSD select, INT8U selectype, CSD_ARRAYTYPE csds, INT8U *data, int *datalen)
+typedef struct {
+	ComBCD4 year;
+	ComBCD2 month;
+	ComBCD2 day;
+	ComBCD2 start_hour;
+	ComBCD2 start_min;
+	ComBCD2 end_hour;
+	ComBCD2 end_min;
+	INT8U last_time;//上几次，针对selector10
+}ZC_TIMEINTERVL;//招测时间段
+INT8U getTimeInterval(RSD select,INT8U selectype,ZC_TIMEINTERVL *timeinte)
 {
-	TS ts_info[2];//时标选择，根据普通采集方案存储时标选择进行，此处默认为相对当日0点0分 todo
-	INT8U taskid;//,tsa_num=0;
-	TSA *tsa_con = NULL;
-	INT16U tsa_num=0,TSA_num=0;
-	ROAD_ITEM item_road;
-	memset(&item_road,0x00,sizeof(ROAD_ITEM));
-	int i=0;
-	tsa_num = getFileRecordNum(0x6000);
-	tsa_con = malloc(tsa_num*sizeof(TSA));
-	//测试写死
-//	taskid = 1;
-	///////////////////////////////////////////////////////////////test
-	fprintf(stderr,"\n-----selectype=%d\n",selectype);
+	TS ts_now;
+	TSGet(&ts_now);
 	switch(selectype)
 	{
-	case 5://例子中招测冻结数据，包括分钟小时日月冻结数据招测方法
-		memcpy(&ts_info[0],&select.selec5.collect_save,sizeof(DateTimeBCD));
-		fprintf(stderr,"\n--招测冻结 ts=%04d-%02d-%02d %02d:%02d\n",ts_info[0].Year,ts_info[0].Month,ts_info[0].Day,ts_info[0].Hour,ts_info[0].Minute);
-//		ReadNorData(ts_info,taskid,tsa_con,tsa_num);
-//		//////////////////////////////////////////////////////////////////////test
-		TSGet(&ts_info[0]);
-//		//////////////////////////////////////////////////////////////////////test
-		TSA_num = GetTSACon(select.selec5.meters,tsa_con,tsa_num);
-		for(i=0;i<TSA_num;i++)
-			fprintf(stderr,"\n1addr3:%02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x",
-					tsa_con[i].addr[16],tsa_con[i].addr[15],tsa_con[i].addr[14],tsa_con[i].addr[13],
-					tsa_con[i].addr[12],tsa_con[i].addr[11],tsa_con[i].addr[10],tsa_con[i].addr[9],
-					tsa_con[i].addr[8],tsa_con[i].addr[7],tsa_con[i].addr[6],	tsa_con[i].addr[5],
-					tsa_con[i].addr[4],tsa_con[i].addr[3],tsa_con[i].addr[2],tsa_con[i].addr[1],tsa_con[i].addr[0]);
-		if((taskid = GetTaskidFromCSDs(csds,&item_road)) != 0)
-			*datalen = ComposeSendBuff(&ts_info[0],selectype,taskid,tsa_con,tsa_num,csds,data);
-		else
-			fprintf(stderr,"\nselector 5招测涉及到多个任务\n");//招测涉及到多个任务
+	case 5:
+		timeinte->year = select.selec5.collect_save.year;
+		timeinte->month = select.selec5.collect_save.month;
+		timeinte->day = select.selec5.collect_save.day;
+		timeinte->start_hour = select.selec5.collect_save.hour;
+		timeinte->start_min = select.selec5.collect_save.min;
+		timeinte->end_hour = select.selec5.collect_save.hour;
+		timeinte->end_min = select.selec5.collect_save.min;
 		break;
-	case 7://例子中招测实时数据方法
-		TSA_num = GetTSACon(select.selec7.meters,tsa_con,tsa_num);
-		for(i=0;i<TSA_num;i++)
-			fprintf(stderr,"\n1addr3:%02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x",
-					tsa_con[i].addr[16],tsa_con[i].addr[15],tsa_con[i].addr[14],tsa_con[i].addr[13],
-					tsa_con[i].addr[12],tsa_con[i].addr[11],tsa_con[i].addr[10],tsa_con[i].addr[9],
-					tsa_con[i].addr[8],tsa_con[i].addr[7],tsa_con[i].addr[6],	tsa_con[i].addr[5],
-					tsa_con[i].addr[4],tsa_con[i].addr[3],tsa_con[i].addr[2],tsa_con[i].addr[1],tsa_con[i].addr[0]);
-		memcpy(&ts_info[0],&select.selec7.collect_save_star,sizeof(DateTimeBCD));
-		memcpy(&ts_info[1],&select.selec7.collect_save_finish,sizeof(DateTimeBCD));
-		fprintf(stderr,"\n--招测实时开始时间 ts=%04d-%02d-%02d %02d:%02d\n",ts_info[0].Year,ts_info[0].Month,ts_info[0].Day,ts_info[0].Hour,ts_info[0].Minute);
-		fprintf(stderr,"\n--招测实时完成时间 ts=%04d-%02d-%02d %02d:%02d\n",ts_info[1].Year,ts_info[1].Month,ts_info[1].Day,ts_info[1].Hour,ts_info[1].Minute);
-		if((taskid = GetTaskidFromCSDs(csds,&item_road)) != 0)
-			*datalen = ComposeSendBuff(&ts_info[0],selectype,taskid,tsa_con,tsa_num,csds,data);
-		else
-			fprintf(stderr,"\nselector 7招测涉及到多个任务\n");//招测涉及到多个任务
+	case 7:
+		if(select.selec7.collect_save_star.year.data != select.selec7.collect_save_finish.year.data ||
+				select.selec7.collect_save_star.month.data != select.selec7.collect_save_finish.month.data ||
+				select.selec7.collect_save_star.day.data != select.selec7.collect_save_finish.day.data)
+			return 1;//暂时不支持跨日招测
+		timeinte->year = select.selec7.collect_save_star.year;
+		timeinte->month = select.selec7.collect_save_star.month;
+		timeinte->day = select.selec7.collect_save_star.day;
+		timeinte->start_hour = select.selec7.collect_save_star.hour;
+		timeinte->start_min = select.selec7.collect_save_star.min;
+		timeinte->end_hour = select.selec7.collect_save_finish.hour;
+		timeinte->end_min = select.selec7.collect_save_finish.min;
 		break;
-	default:
+	case 10://上报上几次
+		select.selec10.recordn=0;//上几次
+		timeinte->year.data = ts_now.Year;
+		timeinte->month.data = ts_now.Month;
+		timeinte->day.data = ts_now.Day;
+		timeinte->start_hour.data = ts_now.Hour;
+		timeinte->start_min.data = ts_now.Minute;
+		timeinte->end_hour.data = ts_now.Hour;
+		timeinte->end_min.data = ts_now.Minute;
 		break;
+	default:break;
 	}
-//	fprintf(stderr,"\n报文(%d)：",*datalen);
-//	for(i=0;i<*datalen;i++)
-//		fprintf(stderr," %02x",data[i]);
-	free(tsa_con);
-	/////////////////////////////////////test
-	if(*datalen > 1000)
-		*datalen = 0;//分帧了
-	////////////////////////////////////test
 	return 0;
 }
+INT16U getTSASE4(MS ms,TSA *tsa)
+{
+	INT16U i=0,TSA_num=0;
+	CLASS_6001 meter = { };
+	for(i=0;i<ms.configSerial[0];i++)//第0个表示个数
+	{
+		if (readParaClass(0x6000, &meter, ms.configSerial[i+1]) == 1) {
+
+			if (meter.sernum != 0 && meter.sernum != 0xffff) {
+				if(meter.basicinfo.port.attrindex == 1 || meter.basicinfo.port.attrindex == 2)
+				{
+					memcpy(&tsa[TSA_num],&meter.basicinfo.addr,sizeof(TSA));
+					TSA_num++;
+				}
+			}
+		}
+	}
+	return TSA_num;
+}
+
+INT8U getTSAInterval(RSD select,INT8U selectype,TSA *tsa_group)
+{
+	TS ts_now;
+	TSGet(&ts_now);
+	MY_MS ms_curr;
+	INT16U tsa_num = 0;
+	memset(&ms_curr,0x00,sizeof(MY_MS));
+//	INT16U tsa_num = getFileRecordNum(0x6000);
+//	if(tsa_num == 0)//没设置测量点
+//	{
+//		fprintf(stderr,"\n no document!!!\n");
+//		return 0;
+//	}
+//	else
+//		fprintf(stderr,"\n document num : %d\n",tsa_num);
+	switch(selectype)
+	{
+	case 5:
+		break;
+	case 7:
+		break;
+	case 10://上报上几次
+		memcpy(&ms_curr,&select.selec10.meters,sizeof(MY_MS));
+		break;
+	default:break;
+	}
+	switch(ms_curr.mstype)
+	{
+	case 0:
+		break;
+	case 1:
+		break;
+	case 2:
+		break;
+	case 3:
+		break;
+	case 4://SEQUENCE OF long-unsigned
+		tsa_num = getTSASE4(ms_curr.ms,tsa_group);
+		break;
+	case 5:
+		break;
+	case 6:
+		break;
+	case 7:
+		break;
+	default:break;
+	}
+	return tsa_num;
+}
+INT8U getaskData(OAD oad_h,INT8U seletype,ZC_TIMEINTERVL timeinte,TSA *tsa_con,INT16U tsa_num,CSD_ARRAYTYPE csds)//,ROAD_ITEM item_road)
+{
+	TASKSET_INFO tasknor_info;
+	ROAD_ITEM item_road;
+	TS ts_file;
+	INT16U headlen=0,blocklen=0,unitnum=0,retlen=0,schpos=0,tsa_cnt=0,tsa_pos=0;//tsa_cnt为一帧报文包含的tsa个数
+	INT16U frmindex=0;//前两个字节为长度
+	INT16U start_seq=0,end_seq=0,circle_max=300;//开始序号和结束序号，有招测的冻结时标决定，如果为selector5，则两个序列号一样
+	INT8U headl[2],blockl[2],tmpbuf[256],onefrmbuf[2000],onefrmhead[200];//onefrmbuf前两个字节为长度
+	INT8U *databuf_tmp=NULL;
+	INT8U taskid=0;
+	HEAD_UNIT *head_unit = NULL;
+	int i=0,j=0;
+	FILE *fp  = NULL;
+	char	fname[FILENAMELEN]={};
+	if((taskid = GetTaskidFromCSDs(csds,&item_road)) == 0)//暂时不支持招测的不在一个采集方案
+		return 0;
+	if(ReadTaskInfo(taskid,&tasknor_info)!=1)//得到任务信息
+		return 0;
+	//////////////////////////////////计算每帧的头
+	onefrmhead[frmindex++]=0;
+	onefrmhead[frmindex++]=0;//前两个字节是长度
+	memcpy(&onefrmhead[frmindex],&oad_h,sizeof(OAD));
+	frmindex += sizeof(OAD);
+	onefrmhead[frmindex++]=seletype;
+	memcpy(&onefrmhead[frmindex],&csds,sizeof(CSD_ARRAYTYPE));
+	tsa_pos = frmindex;
+	onefrmhead[frmindex++]=0;//tsa_cnt
+	///////////////////////////////////
+	ts_file.Year = timeinte.year.data;
+	ts_file.Month = timeinte.month.data;
+	ts_file.Day = timeinte.day.data;
+	ts_file.Hour = timeinte.start_hour.data;
+	ts_file.Minute = timeinte.start_min.data;
+	ts_file.Sec = 0;
+	getTaskFileName(taskid,ts_file,fname);//得到要抄读的文件名称
+	if(fp == NULL)//文件没内容，退出，如果文件已存在，提取文件头信息
+	{
+		fprintf(stderr,"\n-----file %s not exist\n",fname);
+		return 0;
+	}
+	else
+	{
+		fread(headl,2,1,fp);
+		headlen = headl[0];
+		headlen = (headl[0]<<8) + headl[1];
+		fread(&blockl,2,1,fp);
+//		fprintf(stderr,"\nblocklen=%02x %02x\n",blockl[1],blockl[0]);
+		blocklen = blockl[0];
+		blocklen = (blockl[0]<<8) + blockl[1];
+		unitnum = (headlen-4)/sizeof(HEAD_UNIT);
+		databuf_tmp = (INT8U *)malloc(blocklen);
+		if(databuf_tmp == NULL)
+		{
+			fprintf(stderr,"\n分配内存给databuf_tmp失败！\n");
+			return 0;
+		}
+
+		head_unit = (HEAD_UNIT *)malloc(headlen-4);
+		if(head_unit == NULL)
+		{
+			fprintf(stderr,"\n分配内存给head_unit失败！\n");
+			return 0;
+		}
+		fread(head_unit,headlen-4,1,fp);
+
+		fseek(fp,headlen,SEEK_SET);//跳过文件头
+		while(!feof(fp))//找存储结构位置
+		{
+//			fprintf(stderr,"\n-------------8---blocklen=%d,headlen=%d,tsa_num=%d\n",blocklen,headlen,tsa_num);
+			//00 00 00 00 00 00 00 00 07 05 00 00 00 00 00 01
+			//00 00 00 00 00 00 00 00 00 07 05 00 00 00 00 00 01
+			memset(databuf_tmp,0xee,blocklen);
+			if(fread(databuf_tmp,blocklen,1,fp) == 0)
+				break;
+			memset(onefrmbuf,0x00,2000);
+			for(i=0;i<tsa_num;i++)
+			{
+				if(memcmp(&databuf_tmp[schpos+1],&tsa_con[i].addr[0],TSA_LEN)!=0)
+					continue;
+				switch(seletype)
+				{
+				case 5:
+				case 7:
+					break;
+				case 10:
+					if( ts_file.Hour*60+ts_file.Minute < tasknor_info.startmin)
+						return 0;//招测不在抄表时间段内，正常情况下不会出现
+					start_seq = (ts_file.Hour*60+ts_file.Minute-tasknor_info.startmin)/tasknor_info.freq;
+					end_seq = start_seq+timeinte.last_time;
+					break;
+				default:break;
+				}
+				while(circle_max--)//最多循环300次，防止无限循环，288时为5分钟一个测量点
+				{
+					schpos = start_seq*blocklen/tasknor_info.runtime;
+					if(seletype == 10)
+						start_seq--;
+					else
+						start_seq++;
+
+					for(j=0;j<item_road.oadmr_num;j++)
+					{
+						memset(tmpbuf,0x00,256);
+						if((retlen = GetPosofOAD(&databuf_tmp[schpos],item_road.oad[j].oad_m,item_road.oad[j].oad_r,head_unit,unitnum,tmpbuf))==0)//得到每一个oad在块数据中的偏移
+							onefrmbuf[frmindex++] = 0;
+						else
+						{
+							switch(tmpbuf[0])
+							{
+							case 0:
+								onefrmbuf[frmindex++] = 0;
+								break;
+							case 1://array
+								retlen = CalcOIDataLen(item_road.oad[j].oad_m.OI,1);
+								retlen = retlen*tmpbuf[1]+2;//2代表一个array类型加一个个数
+								memcpy(&onefrmbuf[frmindex],tmpbuf,retlen);
+								frmindex += retlen;
+								break;
+							default:
+								memcpy(&onefrmbuf[frmindex],tmpbuf,retlen);
+								frmindex += retlen;
+								break;
+							}
+
+						}
+					}
+					tsa_cnt++;
+					if(frmindex >= 1000)
+					{
+						onefrmbuf[0]=frmindex & 0xff;
+						onefrmbuf[1]=(frmindex>>8) & 0xff;//计算长度
+						onefrmbuf[tsa_pos] = tsa_cnt;
+						saveonefrm(onefrmbuf,frmindex);//存1帧
+						//////////////////////////////////计算每帧的头
+						frmindex=0;
+						tsa_cnt=0;
+						memset(onefrmbuf,0x00,2000);
+						onefrmhead[frmindex++]=0;
+						onefrmhead[frmindex++]=0;//前两个字节是长度
+						memcpy(&onefrmhead[frmindex],&oad_h,sizeof(OAD));
+						frmindex += sizeof(OAD);
+						onefrmhead[frmindex++]=seletype;
+						memcpy(&onefrmhead[frmindex],&csds,sizeof(CSD_ARRAYTYPE));
+						tsa_pos = frmindex;
+						onefrmhead[frmindex++]=0;//tsa_cnt
+						///////////////////////////////////
+					}
+
+					if(start_seq == end_seq)
+						break;
+				}
+				if(circle_max == 0)
+					fprintf(stderr,"\n循环溢出!\n");
+			}
+		}
+	}
+	return 0;
+}
+INT8U getSelector(OAD oad_h,RSD select, INT8U selectype, CSD_ARRAYTYPE csds, INT8U *data, int *datalen)
+{
+	INT16U tsa_num=0;
+	ZC_TIMEINTERVL timeinte;
+	TSA tsa_group[MAX_POINT_NUM];
+	memset(&timeinte,0x00,sizeof(ZC_TIMEINTERVL));
+	memset(tsa_group,0x00,MAX_POINT_NUM*sizeof(TSA));
+	if(getTimeInterval(select,selectype,&timeinte)==1)//跨日读数据，暂时不支持
+		return 0;
+	if((tsa_num = getTSAInterval(select,selectype,tsa_group))==0)//无测量点
+		return 0;
+	getaskData(oad_h,selectype,timeinte,tsa_group,tsa_num,csds);
+	return 0;
+}
+///*
+// * 根据招测类型组织报文
+// * 如果MS选取的测量点过多，不能同时上报，分帧
+// */
+//INT8U getSelector(RSD select, INT8U selectype, CSD_ARRAYTYPE csds, INT8U *data, int *datalen)
+//{
+//	TS ts_info[2];//时标选择，根据普通采集方案存储时标选择进行，此处默认为相对当日0点0分 todo
+//	INT8U taskid;//,tsa_num=0;
+//	TSA *tsa_con = NULL;
+//	INT16U tsa_num=0,TSA_num=0;
+//	ROAD_ITEM item_road;
+//	memset(&item_road,0x00,sizeof(ROAD_ITEM));
+//	int i=0;
+//	tsa_num = getFileRecordNum(0x6000);
+//	tsa_con = malloc(tsa_num*sizeof(TSA));
+//	//测试写死
+////	taskid = 1;
+//	///////////////////////////////////////////////////////////////test
+//	fprintf(stderr,"\n-----selectype=%d\n",selectype);
+//	switch(selectype)
+//	{
+//	case 5://例子中招测冻结数据，包括分钟小时日月冻结数据招测方法
+//		memcpy(&ts_info[0],&select.selec5.collect_save,sizeof(DateTimeBCD));
+//		fprintf(stderr,"\n--招测冻结 ts=%04d-%02d-%02d %02d:%02d\n",ts_info[0].Year,ts_info[0].Month,ts_info[0].Day,ts_info[0].Hour,ts_info[0].Minute);
+////		ReadNorData(ts_info,taskid,tsa_con,tsa_num);
+////		//////////////////////////////////////////////////////////////////////test
+//		TSGet(&ts_info[0]);
+////		//////////////////////////////////////////////////////////////////////test
+//		TSA_num = GetTSACon(select.selec5.meters,tsa_con,tsa_num);
+//		for(i=0;i<TSA_num;i++)
+//			fprintf(stderr,"\n1addr3:%02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x",
+//					tsa_con[i].addr[16],tsa_con[i].addr[15],tsa_con[i].addr[14],tsa_con[i].addr[13],
+//					tsa_con[i].addr[12],tsa_con[i].addr[11],tsa_con[i].addr[10],tsa_con[i].addr[9],
+//					tsa_con[i].addr[8],tsa_con[i].addr[7],tsa_con[i].addr[6],	tsa_con[i].addr[5],
+//					tsa_con[i].addr[4],tsa_con[i].addr[3],tsa_con[i].addr[2],tsa_con[i].addr[1],tsa_con[i].addr[0]);
+//		if((taskid = GetTaskidFromCSDs(csds,&item_road)) != 0)
+//			*datalen = ComposeSendBuff(&ts_info[0],selectype,taskid,tsa_con,tsa_num,csds,data);
+//		else
+//			fprintf(stderr,"\nselector 5招测涉及到多个任务\n");//招测涉及到多个任务
+//		break;
+//	case 7://例子中招测实时数据方法
+//		TSA_num = GetTSACon(select.selec7.meters,tsa_con,tsa_num);
+//		for(i=0;i<TSA_num;i++)
+//			fprintf(stderr,"\n1addr3:%02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x",
+//					tsa_con[i].addr[16],tsa_con[i].addr[15],tsa_con[i].addr[14],tsa_con[i].addr[13],
+//					tsa_con[i].addr[12],tsa_con[i].addr[11],tsa_con[i].addr[10],tsa_con[i].addr[9],
+//					tsa_con[i].addr[8],tsa_con[i].addr[7],tsa_con[i].addr[6],	tsa_con[i].addr[5],
+//					tsa_con[i].addr[4],tsa_con[i].addr[3],tsa_con[i].addr[2],tsa_con[i].addr[1],tsa_con[i].addr[0]);
+//		memcpy(&ts_info[0],&select.selec7.collect_save_star,sizeof(DateTimeBCD));
+//		memcpy(&ts_info[1],&select.selec7.collect_save_finish,sizeof(DateTimeBCD));
+//		fprintf(stderr,"\n--招测实时开始时间 ts=%04d-%02d-%02d %02d:%02d\n",ts_info[0].Year,ts_info[0].Month,ts_info[0].Day,ts_info[0].Hour,ts_info[0].Minute);
+//		fprintf(stderr,"\n--招测实时完成时间 ts=%04d-%02d-%02d %02d:%02d\n",ts_info[1].Year,ts_info[1].Month,ts_info[1].Day,ts_info[1].Hour,ts_info[1].Minute);
+//		if((taskid = GetTaskidFromCSDs(csds,&item_road)) != 0)
+//			*datalen = ComposeSendBuff(&ts_info[0],selectype,taskid,tsa_con,tsa_num,csds,data);
+//		else
+//			fprintf(stderr,"\nselector 7招测涉及到多个任务\n");//招测涉及到多个任务
+//		break;
+//	default:
+//		break;
+//	}
+////	fprintf(stderr,"\n报文(%d)：",*datalen);
+////	for(i=0;i<*datalen;i++)
+////		fprintf(stderr," %02x",data[i]);
+//	free(tsa_con);
+//	/////////////////////////////////////test
+//	if(*datalen > 1000)
+//		*datalen = 0;//分帧了
+//	////////////////////////////////////test
+//	return 0;
+//}
