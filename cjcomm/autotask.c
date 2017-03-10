@@ -13,8 +13,9 @@
 //停止日常上报检测标志
 static int stopSign = 0;
 //上报确认标志
-static int conformSign  = 0;
-static int conformTimes = 0;
+static int conformSign     = 0;
+static int conformTimes    = 0;
+static int conformOverTime = 0;
 //是否还有更多报文标示
 static int MoreContentSign = 0;
 //时间任务序号
@@ -39,10 +40,9 @@ int ConformCheck(struct aeEventLoop* ep, long long id, void* clientData) {
         MoreContentSign = callAutoReport(nst, 1);
         return AE_NOMORE;
     }
-
     conformTimes--;
 
-    return 5000;
+    return conformOverTime * 1000;
 }
 
 void RegularAutoTask(struct aeEventLoop* ep, CommBlock* nst) {
@@ -61,12 +61,12 @@ void RegularAutoTask(struct aeEventLoop* ep, CommBlock* nst) {
             //不再调用此函数标志
             stopSign = 1;
             //标示上报任务尚未获得确认
-            conformSign  = 0;
-            conformTimes = 1;
+            conformSign     = 0;
+            conformTimes    = shmem->autotask[i].ReportNum;
+            conformOverTime = shmem->autotask[i].OverTime;
             //注册时间事件，检查确认状态
-            conformCheckId = aeCreateTimeEvent(ep, 5000, ConformCheck, nst, NULL);
-            asyslog(LOG_INFO, "检查到上报任务，调用上报函数、初始化上报状态、注册时间事件(%d)", conformCheckId);
-
+            conformCheckId = aeCreateTimeEvent(ep, conformOverTime * 1000, ConformCheck, nst, NULL);
+            asyslog(LOG_INFO, "检查到上报任务，初始化上报状态(次数=%d-时间=%d)、注册时间事件(%d)", conformTimes， conformOverTime，conformCheckId);
             break;
         }
     }
@@ -78,7 +78,7 @@ void ConformAutoTask(struct aeEventLoop* ep, CommBlock* nst, int res) {
         if (MoreContentSign == 1) {
             asyslog(LOG_INFO, "发现更多的报文，注销之前的时间检查函数，任务序号(%d)", conformCheckId);
             aeDeleteTimeEvent(ep, conformCheckId);
-            conformCheckId = aeCreateTimeEvent(ep, 5000, ConformCheck, nst, NULL);
+            conformCheckId = aeCreateTimeEvent(ep, conformOverTime * 1000, ConformCheck, nst, NULL);
             asyslog(LOG_INFO, "重新注册时间事件，任务序号(%d)", conformCheckId);
             MoreContentSign = callAutoReport(nst, 1);
         } else {
