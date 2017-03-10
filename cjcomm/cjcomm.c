@@ -104,6 +104,7 @@ void QuitProcess(int sig) {
     asyslog(LOG_INFO, "关闭AT模块电源");
     AT_POWOFF();
     asyslog(LOG_INFO, "通信模块退出完成...");
+    exit(0);
 }
 
 void WriteLinkRequest(INT8U link_type, INT16U heartbeat, LINK_Request* link_req) {
