@@ -49,4 +49,7 @@ int StartIfr(struct aeEventLoop* ep, long long id, void* clientData);
 void SerialDestory(void);
 int StartSerial(struct aeEventLoop* ep, long long id, void* clientData);
 
+void ConformAutoTask(struct aeEventLoop* ep, CommBlock* nst, int res);
+void RegularAutoTask(struct aeEventLoop* ep, CommBlock* nst);
+
 #endif
