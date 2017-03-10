@@ -340,8 +340,8 @@ typedef union
 {
 	INT8U nometer_null;
 	INT8U allmeter_null;
-	INT8U userType[COLLCLASS_MAXNUM];
-	TSA	userAddr[COLLCLASS_MAXNUM];
+	INT8U userType[COLLCLASS_MAXNUM];		//userType[0]:表示后面有效的序列个数
+	TSA	userAddr[COLLCLASS_MAXNUM];			//userAddr[0]:表示后面的有效TSA个数
 	INT16U configSerial[COLLCLASS_MAXNUM];	//configSerial[0]:表示后面有效的序列个数
 	Region type[COLLCLASS_MAXNUM];
 	Region addr[COLLCLASS_MAXNUM];

@@ -41,6 +41,7 @@ INT8U freezeflag07_2[4] = {0x01,0x01,0x06,0x05};//上一次日冻结正向有功
 INT8U freezeflag07_3[4] = {0x01,0x02,0x06,0x05};//上一次日冻结反向有功总电能示值
 INT8U flag07_date[4] 	= {0x01,0x01,0x00,0x04};//电能表日历时钟-日期
 INT8U flag07_time[4]	= {0x02,0x01,0x00,0x04};//电能表日历时钟-时间
+INT8U flag07_tingshangdian[4] = {0x01,0x00,0x11,0x03};//上一次停上电记录
 #endif
 
 
@@ -667,7 +668,7 @@ void SendDataTo485(INT8U port485, INT8U *sendbuf, INT16U sendlen) {
 INT8U get6001ObjByTSA(TSA addr,CLASS_6001* targetMeter)
 {
 	INT8U ret = 0;
-	TSA targetMeterAddr;
+
 	int fileIndex = 0;
 	int recordnum = 0;
 	INT16U oi = 0x6000;
@@ -686,7 +687,13 @@ INT8U get6001ObjByTSA(TSA addr,CLASS_6001* targetMeter)
 		{
 			if(targetMeter->sernum!=0 && targetMeter->sernum!=0xffff)
 			{
-				if(memcmp(targetMeterAddr.addr,targetMeter->basicinfo.addr.addr,sizeof(TSA))==0)
+				fprintf(stderr,"\n addr.addr = %02x%02x%02x%02x%02x%02x%02x%02x",
+						addr.addr[0],addr.addr[1],addr.addr[2],addr.addr[3],addr.addr[4],addr.addr[5],addr.addr[6],addr.addr[7]);
+				fprintf(stderr,"\ntargetMeter.addr = %02x%02x%02x%02x%02x%02x%02x%02x",
+						targetMeter->basicinfo.addr.addr[0],targetMeter->basicinfo.addr.addr[1],targetMeter->basicinfo.addr.addr[2],
+						targetMeter->basicinfo.addr.addr[3],targetMeter->basicinfo.addr.addr[4],targetMeter->basicinfo.addr.addr[5],
+						targetMeter->basicinfo.addr.addr[6],targetMeter->basicinfo.addr.addr[7]);
+				if(memcmp(addr.addr,targetMeter->basicinfo.addr.addr,addr.addr[0])==0)
 				{
 					isMeterExist = 1;
 					ret = 1;
@@ -1069,6 +1076,12 @@ INT8U parseSingleOADData(INT8U isProxyResponse,INT8U* oadData,INT8U* dataContent
 		INT8U singledataLen = length-startIndex;
 		memcpy(&dataContent[dataLen],&oadData[startIndex],singledataLen);
 		dataLen += singledataLen;
+		//长度不够 CalcOIDataLen 后面补0
+		if((singledataLen < oiDataLen)&&(isProxyResponse == 0))
+		{
+			memset(&dataContent[dataLen],0,oiDataLen-singledataLen);
+			dataLen = dataLen + oiDataLen - singledataLen;
+		}
 
 		fprintf(stderr,"\n dataLen = %d\n",dataLen);
 	}
@@ -1111,6 +1124,15 @@ INT16S deal698RequestResponse(INT8U isProxyResponse,INT8U getResponseType,INT16U
 
 	switch(getResponseType)
 	{
+	case GET_REQUEST_NORMAL:
+		{
+			fprintf(stderr,"\n apdudataIndex = %d dataContentIndex = %d dataContentLen = %d \n",apdudataIndex,dataContentIndex,dataContentLen);
+			oaddataLen = parseSingleOADData(isProxyResponse,&apdudata[apdudataIndex],&dataContent[dataContentIndex],&dataContentLen);
+			dataContentIndex += dataContentLen;
+			apdudataIndex += oaddataLen;
+		}
+		break;
+
 		case GET_REQUEST_NORMAL_LIST:
 		{
 			INT8U oadIndex;
@@ -1151,7 +1173,7 @@ INT16U dealProxy_698(CLASS_6001 obj6001,GETOBJS obj07,INT8U* dataContent,INT8U p
 
 	INT16S sendLen = 0;
 	INT16S recvLen = 0;
-	INT16U dataLen = 0;
+	INT16U retdataLen = 0;
 	INT8U sendbuff[BUFFSIZE];
 	INT8U recvbuff[BUFFSIZE];
 
@@ -1161,7 +1183,7 @@ INT16U dealProxy_698(CLASS_6001 obj6001,GETOBJS obj07,INT8U* dataContent,INT8U p
 	if(sendLen < 0)
 	{
 		fprintf(stderr,"deal6015_698  sendLen < 0");
-		return dataLen;
+		return retdataLen;
 	}
 
 	INT8U subindex = 0;
@@ -1179,20 +1201,20 @@ INT16U dealProxy_698(CLASS_6001 obj6001,GETOBJS obj07,INT8U* dataContent,INT8U p
 			INT8U apduDataStartIndex = 0;
 			INT8U getResponseType = analyzeProtocol698(recvbuff,&csdNum,recvLen,&apduDataStartIndex,&dataLen);
 			fprintf(stderr,"\n dealProxy_698 getResponseType = %d  csdNum = %d dataLen = %d \n",getResponseType,csdNum,dataLen);
-			if(getResponseType == GET_REQUEST_NORMAL_LIST)
+			if((getResponseType == GET_REQUEST_NORMAL_LIST)||(getResponseType == GET_REQUEST_NORMAL))
 			{
-				dataLen = deal698RequestResponse(1,getResponseType,dataLen,csdNum,&recvbuff[apduDataStartIndex],dataContent);
+				retdataLen = deal698RequestResponse(1,getResponseType,dataLen,csdNum,&recvbuff[apduDataStartIndex],dataContent);
 				break;
 			}
 			else
 			{
-				dataLen = 0;
+				retdataLen = 0;
 			}
 		}
 		subindex++;
 	}
 
-	return dataLen;
+	return retdataLen;
 }
 INT16U dealProxy_645_07(GETOBJS obj07,INT8U* dataContent,INT8U port485)
 {
@@ -1244,7 +1266,26 @@ INT16U dealProxy_645_07(GETOBJS obj07,INT8U* dataContent,INT8U port485)
 }
 INT8S dealProxy(PROXY_GETLIST* getlist,INT8U port485)
 {
+#ifdef TESTDEF1
+	getlist->num = 1;
+	getlist->objs[0].num = 2;
+	getlist->objs[0].oads[0].OI = 0x0010;
+	getlist->objs[0].oads[0].attflg = 0x20;
+	getlist->objs[0].oads[0].attrindex = 0x00;
+	getlist->objs[0].oads[1].OI = 0x0020;
+	getlist->objs[0].oads[1].attflg = 0x20;
+	getlist->objs[0].oads[1].attrindex = 0x00;
+	getlist->objs[0].tsa.addr[0] = 0x07;
+	getlist->objs[0].tsa.addr[1] = 0x05;
+	getlist->objs[0].tsa.addr[2] = 0x11;
+	getlist->objs[0].tsa.addr[3] = 0x11;
+	getlist->objs[0].tsa.addr[4] = 0x11;
+	getlist->objs[0].tsa.addr[5] = 0x11;
+	getlist->objs[0].tsa.addr[6] = 0x11;
+	getlist->objs[0].tsa.addr[7] = 0x11;
+#endif
 	INT8S result = -1;
+#ifdef TESTDEF
 	//判断代理是否已经超时
 	time_t nowtime = time(NULL);
 	fprintf(stderr,"\n\n getlist->timeout = %d",getlist->timeout);
@@ -1254,6 +1295,7 @@ INT8S dealProxy(PROXY_GETLIST* getlist,INT8U port485)
 		getlist->status = 3;
 		return result;
 	}
+#endif
 	fprintf(stderr,"\n dealProxy--------1 objs num = %d :",getlist->num);
 	DbgPrintToFile1(port485,"dealProxy--------1 objs num = %d :", getlist->num);
 
@@ -1264,13 +1306,13 @@ INT8S dealProxy(PROXY_GETLIST* getlist,INT8U port485)
 	for(index = 0;index < getlist->num;index++)
 	{
 		CLASS_6001 obj6001 = {};
-		INT8U addlen = getlist->objs[index].tsa.addr[1]+1;
-		memcpy(&getlist->data[totalLen],&getlist->objs[index].tsa.addr[1],addlen);
+		INT8U addlen = getlist->objs[index].tsa.addr[0]+1;
+		memcpy(&getlist->data[totalLen],&getlist->objs[index].tsa.addr[0],addlen);
 		totalLen += addlen;
 		DbgPrintToFile1(port485,"dealProxy--------1 addr:%02x%02x%02x%02x%02x%02x%02x%02x",
 				getlist->objs[index].tsa.addr[0],getlist->objs[index].tsa.addr[1],getlist->objs[index].tsa.addr[2]
 				,getlist->objs[index].tsa.addr[3],getlist->objs[index].tsa.addr[4],getlist->objs[index].tsa.addr[5]
-				,getlist->objs[index].tsa.addr[6],getlist->objs[index].tsa.addr[8]);
+				,getlist->objs[index].tsa.addr[6],getlist->objs[index].tsa.addr[7]);
 		//通过表地址找 6001
 		if(get6001ObjByTSA(getlist->objs[index].tsa,&obj6001) != 1 )
 		{
@@ -1279,14 +1321,9 @@ INT8S dealProxy(PROXY_GETLIST* getlist,INT8U port485)
 			getlist->data[totalLen++] = 0;//没有数据
 			continue;
 		}
-		if(is485OAD(obj6001.basicinfo.port,port485) == 0)
-		{
-			fprintf(stderr," dealProxy--------3 非本端口测量点");
-			DbgPrintToFile1(port485,"dealProxy--------3 非本端口测量点");
-			getlist->data[totalLen++] = 0;//没有数据
-			continue;
-		}
-		if(getComfdBy6001(obj6001.basicinfo.port.attrindex,port485) != 1)
+		INT8U portUse = obj6001.basicinfo.port.attrindex -1;
+		DbgPrintToFile1(portUse," portUse = %d",portUse);
+		if(getComfdBy6001(obj6001.basicinfo.baud,portUse) != 1)
 		{
 			fprintf(stderr," dealProxy--------4");
 			getlist->data[totalLen++] = 0;//没有数据
@@ -1294,23 +1331,25 @@ INT8S dealProxy(PROXY_GETLIST* getlist,INT8U port485)
 		}
 		getlist->data[totalLen++] = getlist->objs[index].num;
 		fprintf(stderr,"\n OAD num = %d",getlist->objs[index].num);
-		DbgPrintToFile1(port485," OAD num = %d",getlist->objs[index].num);
+		DbgPrintToFile1(portUse," OAD num = %d",getlist->objs[index].num);
 
 		switch(obj6001.basicinfo.protocol)
 		{
 		case DLT_645_07:
-			singleLen = dealProxy_645_07(getlist->objs[index],&getlist->data[totalLen],port485);
+			singleLen = dealProxy_645_07(getlist->objs[index],&getlist->data[totalLen],portUse);
 			break;
 		default:
-			singleLen = dealProxy_698(obj6001,getlist->objs[index],&getlist->data[totalLen],port485);
+			singleLen = dealProxy_698(obj6001,getlist->objs[index],&getlist->data[totalLen],portUse);
 		}
-
+		DbgPrintToFile1(portUse," singleLen = %d",singleLen);
 		if(singleLen > 0)
 		{
 			totalLen += singleLen;
 		}
 
 		getlist->datalen = totalLen;
+
+		DbPrt1(portUse,"发送代理消息",(char *)getlist->data, totalLen, NULL);
 #ifdef TESTDEF
 		fprintf(stderr,"\n\ndealProxy 代理返回报文 长度：%d :",totalLen);
 		INT16U tIndex;
@@ -1349,9 +1388,124 @@ INT8S DealRecvMsg(mmq_head mq_h, INT8U *rev_485_buf,INT8U port485)
 	}
 	return result;
 }
+INT8S readMeterPowerInfo()
+{
+	fprintf(stderr,"\n\n上电抄读停上电事件 readMeterPowerInfo");
+	INT8S result = -1;
+
+	INT8U meterIndex;
+
+	for(meterIndex = 0; meterIndex < POWEROFFON_NUM; meterIndex++)
+	{
+		fprintf(stderr,"\nMeterPowerInfo[%d] ARRD = %02x%02x%02x%02x%02x%02x%02x%02x  ERC3106State = %d \n",meterIndex,
+				MeterPowerInfo[meterIndex].tsa.addr[0],MeterPowerInfo[meterIndex].tsa.addr[1],MeterPowerInfo[meterIndex].tsa.addr[2],
+				MeterPowerInfo[meterIndex].tsa.addr[3],MeterPowerInfo[meterIndex].tsa.addr[4],MeterPowerInfo[meterIndex].tsa.addr[5],
+				MeterPowerInfo[meterIndex].tsa.addr[6],MeterPowerInfo[meterIndex].tsa.addr[7],
+				MeterPowerInfo[meterIndex].ERC3106State);
+		if(MeterPowerInfo[meterIndex].ERC3106State==1)
+		{
+			CLASS_6001 obj6001;
+			//通过表地址找 6001
+			if(get6001ObjByTSA(MeterPowerInfo[meterIndex].tsa,&obj6001) != 1 )
+			{
+				fprintf(stderr," readMeterPowerInfo-------1 未找到相应6001");
+				continue;
+			}
+
+
+			if(getComfdBy6001(obj6001.basicinfo.baud,obj6001.basicinfo.port.attrindex-1) != 1)
+			{
+				fprintf(stderr," readMeterPowerInfo--------2");
+				continue;
+			}
+			INT8U port485 = obj6001.basicinfo.port.attrindex-1;
+
+			CLASS_6035 invalidst6035;
+			INT8U dataContent[100];
+			memset(dataContent,0,100);
+
+			switch(obj6001.basicinfo.protocol)
+			{
+			case DLT_645_07:
+				{
+					 request698_07Data(flag07_tingshangdian,dataContent,obj6001,&invalidst6035,port485);
+				}
+				break;
+			default:
+				{
+					CLASS_6015 st6015;
+					memset(&st6015,0,sizeof(CLASS_6015));
+					st6015.cjtype = TYPE_NULL;
+					st6015.csds.num = 1;
+					st6015.csds.csd[0].type = 0;
+					st6015.csds.csd[0].csd.oad.OI = 0x3106;
+					st6015.csds.csd[0].csd.oad.attflg = 02;
+					st6015.csds.csd[0].csd.oad.attrindex = 01;
+					INT16S sendLen = 0;
+					INT16S recvLen = 0;
+
+					INT8U sendbuff[BUFFSIZE];
+					INT8U recvbuff[BUFFSIZE];
+
+					memset(sendbuff, 0, BUFFSIZE);
+
+					sendLen = composeProtocol698_GetRequest(sendbuff, st6015, obj6001.basicinfo.addr);
+					if(sendLen < 0)
+					{
+						fprintf(stderr,"deal6015_698  sendLen < 0");
+						continue;
+					}
+
+					INT8U subindex = 0;
+					while(subindex < 3)
+					{
+						memset(recvbuff, 0, BUFFSIZE);
+						SendDataTo485(port485, sendbuff, sendLen);
+						recvLen = ReceDataFrom485(DLT_698,port485, 500, recvbuff);
+						fprintf(stderr,"\n\n recvLen = %d \n",recvLen);
+						if(recvLen > 0)
+						{
+
+							INT8U csdNum = 0;
+							INT16S dataLen = recvLen;
+							INT8U apduDataStartIndex = 0;
+							INT8U getResponseType = analyzeProtocol698(recvbuff,&csdNum,recvLen,&apduDataStartIndex,&dataLen);
+							fprintf(stderr,"\n getResponseType = %d  csdNum = %d dataLen = %d \n",getResponseType,csdNum,dataLen);
+							if(getResponseType > 0)
+							{
+								deal698RequestResponse(0,getResponseType,dataLen,csdNum,&recvbuff[apduDataStartIndex],dataContent);
+								break;
+							}
+
+						}
+						subindex++;
+					}
+				}
+
+			}
+		}
+	}
+	return result;
+}
 //处理代理等实时请求
 INT8S dealRealTimeRequst(INT8U port485)
 {
+	while(readState)
+	{
+		DbgPrintToFile1(port485,"\n 另一个线程正在处理消息 dealRealTimeRequst \n");
+		sleep(1);
+	}
+	fprintf(stderr,"\n poweroffon_state = %d",poweroffon_state);
+	//先抄读停上电事件
+	if(poweroffon_state == 1)
+	{
+		readState = 1;
+		DbgPrintToFile1(port485,"poweroffon_state=%d!!!---------------",poweroffon_state);
+		readMeterPowerInfo();
+		poweroffon_state =2;
+		readState = 0;
+	}
+
 	INT8S result = -1;
 	if(mqd_485_main<0)
 	{
@@ -1365,32 +1519,18 @@ INT8S dealRealTimeRequst(INT8U port485)
 	{
 		mmq_head mq_h;
 		ret = mmq_get(mqd_485_main, 1, &mq_h, rev_485_buf);
-
+#ifdef TESTDEF1
+		ret = 1;
+		mq_h.cmd = 1;
+#endif
 		if (ret>0)
 		{
-			//备份当前comfd4851 comfd4852，代理执行完后重新赋值
-			INT32S comfd_BK = -1;
-			if(port485 == S4851)
-			{
-				comfd_BK = comfd4851;
-			}
-			if(port485 == S4852)
-			{
-				comfd_BK = comfd4852;
-			}
-
+			readState = 1;
 			fprintf(stderr, "\n\n-----------------vs485_main recvMsg!!!    cmd=%d!!!---------------\n", mq_h.cmd);
 			DbgPrintToFile1(port485,"485收到消息    cmd=%d!!!---------------", mq_h.cmd);
 			DealRecvMsg(mq_h, rev_485_buf,port485);
 			DbgPrintToFile1(port485,"485处理消息结束   cmd=%d!!!---------------", mq_h.cmd);
-			if(port485 == S4851)
-			{
-				comfd4851 = comfd_BK;
-			}
-			if(port485 == S4852)
-			{
-				comfd4851 = comfd_BK;
-			}
+			readState = 0;
 			continue;
 		}
 		else
@@ -1520,18 +1660,13 @@ INT16U deal6015_07(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8U
 	for (dataIndex = 0; dataIndex < st6015.csds.num; dataIndex++) {
 		if (CSDMap07DI(st6015.csds.csd[dataIndex], &obj601F_07Flag) == 1)
 		{
-			datalen = request698_07DataList(obj601F_07Flag, to6001,&dataContent[totaldataLen],st6035,port485);
-			if(datalen<=0)
-			{
-				fprintf(stderr,"\n 抄读失败\n");
-				if (st6015.csds.csd[dataIndex].type == 0)
-				{
-					datalen = CalcOIDataLen(st6015.csds.csd[dataIndex].csd.oad.OI,st6015.csds.csd[dataIndex].csd.oad.attrindex);
-					memset(&dataContent[totaldataLen],0,datalen);
-				}
-			}
+			//存储要求的固定长度 长度不够后面补0
+			INT16U formatLen = CalcOIDataLen(st6015.csds.csd[dataIndex].csd.oad.OI,st6015.csds.csd[dataIndex].csd.oad.attrindex);
+			memset(&dataContent[totaldataLen],0,formatLen);
 
-			totaldataLen += datalen;
+			datalen = request698_07DataList(obj601F_07Flag, to6001,&dataContent[totaldataLen],st6035,port485);
+
+			totaldataLen += formatLen;
 			fprintf(stderr,"\n deal6015_07 totaldataLen = %d,datalen=%d",totaldataLen,datalen);
 			if(totaldataLen >= DATA_CONTENT_LEN)
 			{
@@ -1743,7 +1878,6 @@ INT8U deal6015(CLASS_6015 st6015, INT8U port485,CLASS_6035* st6035) {
 		memset(list6001, 0, LIST6001SIZE * sizeof(CLASS_6001));
 		result = readList6001FromFile(list6001, groupindex, recordnum,
 				st6015.mst, port485);
-		dealRealTimeRequst(port485);
 		for (mpIndex = 0; mpIndex < LIST6001SIZE; mpIndex++)
 		{
 			if (list6001[mpIndex].sernum > 0)
@@ -1820,13 +1954,6 @@ INT16S getTaskIndex(INT8U port)
 void read485_thread(void* i485port) {
 	INT8U port = *(INT8U*) i485port;
 	fprintf(stderr, "\n port = %d", port);
-#ifdef TESTDEF1
-	//上电先抄读停上电事件
-	if(poweroffon_state == 1)
-	{
-		readMeterPowerInfo(port);
-	}
-#endif
 
 	INT8U ret = 0;
 
@@ -2069,54 +2196,18 @@ void initTestArray()
 	testArray[14].flag07.dinum = 1;
 
 }
-INT8S readMeterPowerInfo_singleMeter(CLASS_6001 obj6001,INT8U meterIndex)
-{
-	INT8S result = -1;
 
-	return result;
-}
-INT8S readMeterPowerInfo(INT8U port485)
-{
-	fprintf(stderr,"\n\n上电抄读停上电事件 readMeterPowerInfo");
-	INT8S result = -1;
-
-	INT8U meterIndex;
-	for(meterIndex = 0; meterIndex < POWEROFFON_NUM; meterIndex++)
-	{
-		if(MeterPowerInfo[meterIndex].ERC3106State==1)
-		{
-			CLASS_6001 obj6001;
-			//通过表地址找 6001
-			if(get6001ObjByTSA(MeterPowerInfo[meterIndex].tsa,&obj6001) != 1 )
-			{
-				fprintf(stderr," dealProxy--------2 未找到相应6001");
-				continue;
-			}
-			if(is485OAD(obj6001.basicinfo.port,port485) == 0)
-			{
-				fprintf(stderr," dealProxy--------3 非本端口测量点");
-				continue;
-			}
-			if(getComfdBy6001(obj6001.basicinfo.port.attrindex,port485) != 1)
-			{
-				fprintf(stderr," dealProxy--------4");
-				continue;
-			}
-
-			readMeterPowerInfo_singleMeter(obj6001,meterIndex);
-		}
-	}
-	return result;
-}
 void read485_proccess() {
 
 #ifdef TESTDEF
 	initTestArray();
 #endif
+
 	i485port1 = 1;
 	i485port2 = 2;
 	comfd4851 = -1;
 	comfd4852 = -1;
+	readState = 0;
 
 	pthread_attr_init(&read485_attr_t);
 	pthread_attr_setstacksize(&read485_attr_t, 2048 * 1024);

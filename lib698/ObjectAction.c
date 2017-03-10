@@ -983,8 +983,12 @@ int doObjectAction(OAD oad,INT8U *data,Action_result *act_ret)
 		case 0x6016:	//事件采集方案
 			EventCjFangAnInfo(attr_act,data,act_ret);
 			break;
+		case 0x6018:	//透明方案集
+			break;
 		case 0x601C:	//上报方案
 			ReportInfo(attr_act,data,act_ret);
+			break;
+		case 0x601E:	//采集规则库
 			break;
 		case 0xF001: //文件传输
 			FileTransMothod(attr_act,data);
