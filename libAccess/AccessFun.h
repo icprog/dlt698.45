@@ -50,6 +50,7 @@ typedef struct {
 	INT16U  runtime;  //一天执行次数，日月年冻结和实时数据无效，置位1，由执行频率计算，主要针对负荷曲线，0表示对于这个采集方案任务无效
 	INT16U startmin; //相对当日零点零分开始执行分钟数，主要针对负荷曲线
 	INT16U endmin;   //相对当日零点零分结束执行分钟数，主要针对负荷曲线
+	INT16U freq;     //执行频率
 	INT8U  KBtype;   //开闭方式 0000 0011前闭后闭 0000 0000前开后开,以此类推
 	INT16U memdep;   //存储深度
 	CSD_ARRAYTYPE    csds;   //采集方案号
@@ -191,7 +192,7 @@ extern int  readVariData(OI_698 oi,int coll_seqnum,void *blockdata,int len);
 //////////////////////////////////////////////////////////////////////////////////////
 ///////////////数据文件存储
 
-extern INT8U getSelector(RSD select, INT8U selectype, CSD_ARRAYTYPE csds, INT8U *data, int *datalen);
+extern INT8U getSelector(RSD select, INT8U selectype, CSD_ARRAYTYPE csds, INT8U *data, int *datalen,OAD oad_h);
 
 
 extern INT8U ReadTaskInfo(INT8U taskid,TASKSET_INFO *tasknor_info);
