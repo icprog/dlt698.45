@@ -311,6 +311,7 @@ INT8U init6013ListFrom6012File() {
 			list6013[tIndex].ts_next.Hour = ts_now.Hour;
 			list6013[tIndex].ts_next.Minute = ts_now.Minute;
 			//print6013(list6013[tIndex]);
+			init_autotask(class6013,JProgramInfo->autotask);
 		}
 	}
 
@@ -405,7 +406,7 @@ void dispatchTask_proccess()
 	taskIndex485_2 = -1;
 	taskIndex_plc = -1;
 
-	//读取所有任务文件
+	//读取所有任务文件		TODO：参数下发后需要更新内存值
 	init6013ListFrom6012File();
 
 	pthread_attr_init(&dispatchTask_attr_t);

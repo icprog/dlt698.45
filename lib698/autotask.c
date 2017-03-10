@@ -28,6 +28,8 @@ time_t calcnexttime(TI ti,DateTimeBCD datetime)
 	TS ptm;
 	if (ti.interval<=0)
 		return 0;
+
+	fprintf(stderr,"任务开始时间 %04d-%02d-%02d %02d:%02d:%02d\n",datetime.year.data,datetime.month.data,datetime.day.data,datetime.hour.data,datetime.min.data,datetime.sec.data);
 	ptm.Year = datetime.year.data;
 	ptm.Month = datetime.month.data;
 	ptm.Day = datetime.day.data;
@@ -87,12 +89,15 @@ time_t calcnexttime(TI ti,DateTimeBCD datetime)
 void init_autotask(CLASS_6013 class6013,AutoTaskStrap* list)
 {
 	static int index=0;
-
+	struct tm tmp_tm;
 	if(class6013.cjtype == rept)
 	{
 		list[index].ID = class6013.taskID;
 		list[index].SerNo = class6013.sernum;
 		list[index].nexttime = calcnexttime(class6013.interval,class6013.startime);
+		fprintf(stderr,"\ninit_autotask [ %d 任务 %d 方案 %d  下次时间 %ld ]",index,list[index].ID ,list[index].SerNo,list[index].nexttime );
+		localtime_r(&list[index].nexttime,&tmp_tm);
+		fprintf(stderr,"下次时间 %04d-%02d-%02d %02d:%02d:%02d\n",tmp_tm.tm_year+1900,tmp_tm.tm_mon+1,tmp_tm.tm_mday,tmp_tm.tm_hour,tmp_tm.tm_min,tmp_tm.tm_sec);
 		index++;
 	}
 }
@@ -224,7 +229,7 @@ long int readFrameDataFile(char *filename,int offset,INT8U *buf,int *datalen)
  *  ifecho ：  0 没收到确认，或第一次调用    1 收到确认
  *  返回    :  1  需要继续发送   0 发送完成
  */
-int callAutoReport(CLASS_601D report,CommBlock* com, INT8U ifecho)
+int callAutoReport(CommBlock* com, INT8U ifecho)
 {
 	if (com==NULL)
 		return 0;
@@ -235,7 +240,7 @@ int callAutoReport(CLASS_601D report,CommBlock* com, INT8U ifecho)
 	int datalen = 0, j=0,index=0 ,hcsi=0,apduplace=0;
 	CSINFO csinfo={};
 
-	memset(TmpDataBuf,0,sizeof(TmpDataBuf));
+	memset(TmpDataBuf,0,sizeof(TmpDataBuf));  //长度 1600
 	if (ifecho == 1 || sendcounter > 2)//上一次给确认了或者发送计数大于上报次数限制
 	{
 		nowoffset = nextoffset;
@@ -285,34 +290,32 @@ int callAutoReport(CLASS_601D report,CommBlock* com, INT8U ifecho)
 
 int GetReportData(CLASS_601D report)
 {
+	int  ret = 0;
 	if (report.reportdata.type==0)//OAD
 	{
 
 	}else if(report.reportdata.type==1)//RecordData
 	{
-		if  (
-				getSelector(report.reportdata.data.oad,
+		ret = getSelector(report.reportdata.data.oad,
 							report.reportdata.data.recorddata.rsd,
 							report.reportdata.data.recorddata.selectType,
-							report.reportdata.data.recorddata.csds,NULL, NULL)==1
-			)
-			return 1;
+							report.reportdata.data.recorddata.csds,NULL, NULL);
 	}
-	return 0;
+	return ret;
 }
-INT16U  composeAutoTask(AutoTaskStrap* list )//,CommBlock* com)
+INT16U  composeAutoTask(AutoTaskStrap* list)//,CommBlock* com)
 {
 	int i=0, ret=0;
 	time_t timenow = time(NULL);
+	CLASS_6013 class6013={};
+	CLASS_601D class601d={};
 	for(i=0; i< MAXNUM_AUTOTASK ;i++)
 	{
 		if(timenow >= list[i].nexttime)
 		{
-			CLASS_6013 class6013;
 			if (readCoverClass(0x6013, list[i].ID, &class6013, sizeof(CLASS_6013),coll_para_save) == 1)
 			{
 				fprintf(stderr,"\ni=%d 任务【 %d 】 	 开始执行   上报方案编号【 %d 】",i,list[i].ID,list[i].SerNo);
-				CLASS_601D class601d;
 				if (readCoverClass(0x601D, list[i].SerNo, &class601d, sizeof(CLASS_601D),coll_para_save) == 1)
 				{
 					if (GetReportData(class601d) == 1)//数据组织好了

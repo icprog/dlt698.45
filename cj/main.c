@@ -147,6 +147,12 @@ int main(int argc, char* argv[]) {
         return EXIT_SUCCESS;
     }
     if (strcmp("ms", argv[1]) == 0) {
+    	   JProgramInfo = OpenShMem("ProgramInfo", sizeof(ProgramInfo), NULL);
+    	   composeAutoTask(JProgramInfo->autotask);
+    	return EXIT_SUCCESS;
+
+
+
     	MY_MS ms={};
     	TSA   *tsas=NULL;
     	int	tsa_num = 0,i=0,j=0;
