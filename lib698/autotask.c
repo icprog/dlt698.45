@@ -224,7 +224,7 @@ long int readFrameDataFile(char *filename,int offset,INT8U *buf,int *datalen)
  *  ifecho ：  0 没收到确认，或第一次调用    1 收到确认
  *  返回    :  1  需要继续发送   0 发送完成
  */
-int callAutoReport(CLASS_601D report,CommBlock* com, INT8U ifecho)
+int callAutoReport(CommBlock* com, INT8U ifecho)
 {
 	if (com==NULL)
 		return 0;
