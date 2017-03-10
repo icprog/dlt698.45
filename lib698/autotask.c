@@ -38,27 +38,7 @@ time_t calcnexttime(TI ti,DateTimeBCD datetime)
 	ptm.Sec = datetime.sec.data;
 	timestart = tmtotime_t(ptm);//开始时间
 	timenow = time(NULL);//当前时间
-	switch(ti.units)
-	{
-		case 0://秒
-			jiange = ti.interval;
-			break;
-		case 1://分
-			jiange = ti.interval * 60;
-			break;
-		case 2://时
-			jiange =  ti.interval * 3600;
-			break;
-		case 3://日
-			jiange = ti.interval * 3600 *24;
-			break;
-		case 4://月
-			break;
-		case 5://年
-			break;
-		default :
-			break;
-	}
+	jiange = getTItoSec(ti);
 	if (timenow > timestart)
 	{
 		timetmp = timenow - timestart;
@@ -241,7 +221,7 @@ int callAutoReport(CommBlock* com, INT8U ifecho)
 	CSINFO csinfo={};
 
 	memset(TmpDataBuf,0,sizeof(TmpDataBuf));  //长度 1600
-	if (ifecho == 1 || sendcounter > 2)//上一次给确认了或者发送计数大于上报次数限制
+	if (ifecho == 1 )//上一次给确认了或者发送计数大于上报次数限制,通信也置位，默认主站收到报文
 	{
 		nowoffset = nextoffset;
 		sendcounter = 0;
@@ -303,7 +283,7 @@ int GetReportData(CLASS_601D report)
 	}
 	return ret;
 }
-INT16U  composeAutoTask(AutoTaskStrap *list)//,CommBlock* com)
+INT16U  composeAutoTask(AutoTaskStrap *list)
 {
 	int i=0, ret=0;
 	time_t timenow = time(NULL);
@@ -317,6 +297,8 @@ INT16U  composeAutoTask(AutoTaskStrap *list)//,CommBlock* com)
 			fprintf(stderr,"\ni=%d 任务【 %d 】 	 开始执行   上报方案编号【 %d 】",i,list->ID,list->SerNo);
 			if (readCoverClass(0x601D, list->SerNo, &class601d, sizeof(CLASS_601D),coll_para_save) == 1)
 			{
+				list->ReportNum = class601d.reportnum;
+				list->OverTime = getTItoSec(class601d.timeout);
 				if (GetReportData(class601d) == 1)//数据组织好了
 					ret = 2;
 			}
