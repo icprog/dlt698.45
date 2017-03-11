@@ -14,6 +14,7 @@ extern void testframe(INT8U *apdu,int len);
 extern INT8U Report_Event(CommBlock *com,Reportevent report_event);
 extern INT16U composeAutoReport(INT8U* SendApdu,INT16U length);
 extern INT16U  composeAutoTask(AutoTaskStrap* list);
+extern int getTsas(MY_MS ms,INT8U **tsas);
 
 /*----------------------抄表相关*************************/
 extern INT16S composeProtocol698_GetRequest(INT8U*, CLASS_6015, TSA);

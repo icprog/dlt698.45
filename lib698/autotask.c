@@ -301,7 +301,7 @@ INT16U  composeAutoTask(AutoTaskStrap *list)
 			{
 				list->ReportNum = class601d.reportnum;
 				list->OverTime = getTItoSec(class601d.timeout);
-				//if (GetReportData(class601d) == 1)//数据组织好了
+				if (GetReportData(class601d) == 1)//数据组织好了
 					ret = 2;
 			}
 			list->nexttime = calcnexttime(class6013.interval,class6013.startime);
