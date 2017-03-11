@@ -15,6 +15,7 @@ extern INT8U Report_Event(CommBlock *com,Reportevent report_event);
 extern INT16U composeAutoReport(INT8U* SendApdu,INT16U length);
 extern INT16U  composeAutoTask(AutoTaskStrap* list);
 extern int GetReportData(CLASS_601D report);
+extern int getTsas(MY_MS ms,INT8U **tsas);	//注意：！！！！！函数调用需要外部释放内存
 
 /*----------------------抄表相关*************************/
 extern INT16S composeProtocol698_GetRequest(INT8U*, CLASS_6015, TSA);
