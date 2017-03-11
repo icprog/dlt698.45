@@ -147,8 +147,11 @@ int main(int argc, char* argv[]) {
         return EXIT_SUCCESS;
     }
     if (strcmp("ms", argv[1]) == 0) {
-    	   JProgramInfo = OpenShMem("ProgramInfo", sizeof(ProgramInfo), NULL);
-    	   composeAutoTask(JProgramInfo->autotask);
+    	int ret=0;
+    	CLASS_601D class601d={};
+    	if (readCoverClass(0x601D, 64, &class601d, sizeof(CLASS_601D),coll_para_save) == 1){
+    		ret = GetReportData(class601d);
+    	}
     	return EXIT_SUCCESS;
 
 
