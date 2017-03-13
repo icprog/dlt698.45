@@ -15,7 +15,12 @@
 #define LIST6001SIZE 20
 #define BUFFSIZE 256
 #define DATA_CONTENT_LEN 500
+#define NUM_07DI_698OAD 100
 
+#define DF07_BYTES  4
+#define DF07_INFO_BYTES  50
+#define MAXLEN_1LINE  100
+#define CLASS_601F_CFG_FILE "/nor/config/07DI_698OAD.cfg"
 
 
 pthread_attr_t read485_attr_t;
@@ -39,6 +44,13 @@ typedef struct
 	METER_PROTOCOL protocol;		//规约类型
 	INT8U port;			//端口
 }BasicInfo6001;
+//OAD+数据
+typedef struct
+{
+	INT8U oad[4];
+	INT8U datalen;
+	INT8U data[50];
+}OAD_DATA;
 
 
 //698 OAD 和 645 07规约 数据标识对应关系
@@ -46,16 +58,18 @@ typedef struct
 
 
 extern void read485_proccess();
+
 mqd_t mqd_485_main;
+mqd_t mqd_485_1_task;
+mqd_t mqd_485_2_task;
 
 INT32S comfd4851;
 INT32S comfd4852;
 INT8U i485port1;
 INT8U readState;//是否正在处理实时消息
 INT8U i485port2;
-//以下是测试用的假数据
-#ifdef TESTDEF
-#define TESTARRAYNUM 20
-CLASS_601F testArray[TESTARRAYNUM];
-#endif
+
+INT8U map07DI_698OAD_NUM;
+CLASS_601F map07DI_698OAD[NUM_07DI_698OAD];
+
 #endif /* READ485_H_ */

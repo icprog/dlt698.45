@@ -841,4 +841,47 @@ INT8S reversebuff(INT8U* buff,INT32U len,INT8U* invbuff)
 	buftmp = NULL;
 	return 0;
 }
+
+
+INT32S asc2bcd(INT8U* asc, INT32U len, INT8U* bcd,ORDER order) {
+	INT32U i,  k;
+	if(asc == NULL)
+		return -1;
+	if(len == 0)
+		return -2;
+	if(len %2 != 0 )
+		return -3;
+	if(order != positive && order != inverted)
+			return -4;
+	INT8U* ascb = (INT8U*)malloc(len);
+	if(ascb == NULL)
+		return -5;
+	memcpy(ascb,asc,len);
+	for (i = 0; i < len; i++) {
+		if (ascb[i] <= '9' && ascb[i] >= '0')
+			ascb[i] = ascb[i] - '0';
+		else if(ascb[i] <= 'f' && ascb[i] >= 'a')
+		{
+			ascb[i] = ascb[i] - 'W';
+		}
+		else if(ascb[i] <= 'F' && ascb[i] >= 'A')
+		{
+			ascb[i] = ascb[i] - '7';
+		}
+	}
+	for (i = 0, k = 0; i < len / 2; i++) {
+		bcd[i] = (ascb[k] << 4) | ascb[k + 1];
+		k++;
+		k++;
+	}
+	if(order == inverted)
+		reversebuff(bcd,len/2,bcd);
+	if(ascb != NULL)
+	{
+		free(ascb);
+		ascb = NULL;
+	}
+	return len/2;
+}
+
 #endif /*JPublicFunctionH*/

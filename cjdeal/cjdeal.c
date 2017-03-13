@@ -242,14 +242,13 @@ INT16S getNextTastIndexIndex() {
 	INT16S taskIndex = -1;
 	INT16U tIndex = 0;
 
-	for (tIndex = 0; tIndex < TASK6012_MAX; tIndex++)
+	for (tIndex = 0; tIndex < total_tasknum; tIndex++)
 	{
-
 		if (list6013[tIndex].basicInfo.taskID == 0) {
 			continue;
 		}
-	//	fprintf(stderr, "\n ---------list6013[%d].basicInfo.taskID = %d ",
-	//			tIndex, list6013[tIndex].basicInfo.taskID);
+		fprintf(stderr, "\n ---------list6013[%d].basicInfo.taskID = %d ",
+				tIndex, list6013[tIndex].basicInfo.taskID);
 		//run_flg > 0说明应该抄读还没有抄
 		if (list6013[tIndex].run_flg > 0) {
 			fprintf(stderr, "\n  getNextTastIndexIndex-2222");
@@ -262,9 +261,14 @@ INT16S getNextTastIndexIndex() {
 			}
 			TS tsNow = { };
 			TSGet(&tsNow);
-			if (TScompare(tsNow, list6013[tIndex].ts_next) == 1) {
+			if (TScompare(tsNow, list6013[tIndex].ts_next) < 2)
+			{
 				list6013[tIndex].run_flg = 1;
 				fprintf(stderr, "\n  getNextTastIndexIndex-4444");
+			}
+			else
+			{
+				continue;
 			}
 		}
 
@@ -291,6 +295,9 @@ INT16S getNextTastIndexIndex() {
  * 从文件里把所有的任务单元读上来
  * */
 INT8U init6013ListFrom6012File() {
+
+	total_tasknum = 0;
+
 	//list6013  初始化下一次抄表时间
 	TS ts_now;
 	TSGet(&ts_now);
@@ -304,66 +311,30 @@ INT8U init6013ListFrom6012File() {
 	for (tIndex = 0; tIndex < TASK6012_MAX; tIndex++) {
 		if (readCoverClass(oi, tIndex, &class6013, sizeof(CLASS_6013),
 				coll_para_save) == 1) {
-			memcpy(&list6013[tIndex].basicInfo, &class6013, sizeof(CLASS_6013));
-			list6013[tIndex].ts_next.Year = ts_now.Year;
-			list6013[tIndex].ts_next.Month = ts_now.Month;
-			list6013[tIndex].ts_next.Day = ts_now.Day;
-			list6013[tIndex].ts_next.Hour = ts_now.Hour;
-			list6013[tIndex].ts_next.Minute = ts_now.Minute;
+
 			//print6013(list6013[tIndex]);
-			init_autotask(class6013,JProgramInfo->autotask);
+			if(class6013.cjtype == rept)
+			{
+				init_autotask(class6013,JProgramInfo->autotask);
+			}
+			else
+			{
+				memcpy(&list6013[total_tasknum].basicInfo, &class6013, sizeof(CLASS_6013));
+				list6013[total_tasknum].ts_next.Year = ts_now.Year;
+				list6013[total_tasknum].ts_next.Month = ts_now.Month;
+				list6013[total_tasknum].ts_next.Day = ts_now.Day;
+				list6013[total_tasknum].ts_next.Hour = ts_now.Hour;
+				list6013[total_tasknum].ts_next.Minute = ts_now.Minute;
+				total_tasknum++;
+			}
+
+
 		}
 	}
 
 	return result;
 }
-/*
- * port: 1:485 1; 2:485 2;31:plc
- *
- * */
-INT8U setTaskIndex(INT16S tastIndexIndex,INT8U port)
-{
-	fprintf(stderr,"\nsetTaskIndex port = %d tastIndexIndex = %d \n",port,tastIndexIndex);
 
-	int		val;
-	sem_t * sem_fd=NULL;
-
-	switch(port)
-	{
-	case 2:
-		sem_fd = open_named_sem(DISPATCH_TASK_485_2);
-		break;
-	case 31:
-		sem_fd = open_named_sem(DISPATCH_TASK_PLC);
-		break;
-	default:
-		sem_fd = open_named_sem(DISPATCH_TASK_485_1);
-	}
-	if(sem_fd == NULL)
-	{
-		fprintf(stderr,"\n  open_named_sem error \n");
-		return 0;
-	}
-	sem_wait(sem_fd);
-	switch(port)
-	{
-	case 2:
-		taskIndex485_2 = tastIndexIndex;
-		break;
-	case 31:
-		taskIndex_plc = tastIndexIndex;
-		break;
-	default:
-		taskIndex485_1 = tastIndexIndex;
-	}
-	sem_post(sem_fd);
-	sem_getvalue(sem_fd, &val);
-	fprintf(stderr,"process <vd> The sem is %d\n", val);
-
-	sem_close(sem_fd);
-
-	return 1;
-}
 void dispatch_thread()
 {
 	//运行调度任务进程
@@ -381,11 +352,10 @@ void dispatch_thread()
 					tastIndex, list6013[tastIndex].basicInfo.taskID);
 			//计算下一次抄读此任务的时间
 			getTaskNextTime(tastIndex);
-			setTaskIndex(tastIndex,1);
-			setTaskIndex(tastIndex,2);
-			setTaskIndex(tastIndex,31);
-
-			fprintf(stderr,"\n taskIndex485_1 = %d taskIndex485_2 = %d\n",taskIndex485_1,taskIndex485_2);
+			INT8S ret = mqs_send((INT8S *)TASKID_485_2_MQ_NAME,1,1,(INT8U *)&tastIndex,sizeof(INT16S));
+			fprintf(stderr,"\n 向485 2线程发送任务ID = %d \n",ret);
+			ret = mqs_send((INT8S *)TASKID_485_1_MQ_NAME,1,1,(INT8U *)&tastIndex,sizeof(INT16S));
+			fprintf(stderr,"\n 向485 1线程发送任务ID = %d \n",ret);
 			//TODO
 			list6013[tastIndex].run_flg = 0;
 
@@ -402,10 +372,6 @@ void dispatch_thread()
 }
 void dispatchTask_proccess()
 {
-	taskIndex485_1 = -1;
-	taskIndex485_2 = -1;
-	taskIndex_plc = -1;
-
 	//读取所有任务文件		TODO：参数下发后需要更新内存值
 	init6013ListFrom6012File();
 
@@ -437,8 +403,6 @@ int main(int argc, char *argv[])
 		return EXIT_FAILURE;
 	}
 
-	struct mq_attr attr_485_main;
-	mqd_485_main = mmq_open((INT8S *)PROXY_485_MQ_NAME,&attr_485_main,O_RDONLY);
 
 	//载入档案、参数
 	InitPara();
@@ -447,7 +411,7 @@ int main(int argc, char *argv[])
 	//485、四表合一
 	read485_proccess();
 	//统计计算 电压合格率 停电事件等
-	calc_proccess();
+	//calc_proccess();
 	//载波
 	//readplc_proccess();
 	//液晶、控制
