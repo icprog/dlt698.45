@@ -158,7 +158,9 @@ int getTsas(MY_MS ms,INT8U **tsas)
 					}
 					break;
 				case 4:	//一组配置序号
+					fprintf(stderr,"\n招测序号集(%d)",ms.ms.configSerial[0]);
 					for(j=0;j<ms.ms.configSerial[0];j++) {
+						fprintf(stderr," %04x",ms.ms.configSerial[j+1]);
 						if(meter.sernum == ms.ms.configSerial[j+1]) {
 							memcpy(*tsas+(tsa_num*sizeof(TSA)),&meter.basicinfo.addr,sizeof(TSA));
 							tsa_num++;

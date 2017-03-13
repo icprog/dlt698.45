@@ -17,6 +17,7 @@
 #include "PublicFunction.h"
 #include "AccessFun.h"
 #include "cjmain.h"
+#include "../lib698/dlt698.h"
 #include "../libMq/libmmq.h"
 
 static ProgramInfo* JProgramInfo = NULL;
