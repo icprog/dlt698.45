@@ -871,30 +871,30 @@ INT16U CalcFreq(TI runti,CLASS_6015 class6015,INT16U startmin,INT16U endmin,INT1
 			return 0;//无效设置
 		switch(runti.units)
 		{
-		case 0:
+		case 0://秒
 			rate = 1;
-			if(runti.interval > 60)//如果就要设置90秒呢
+			if(runti.interval >= 60)//如果就要设置90秒呢
 				inval_flg = 1;
 			break;
-		case 1:
+		case 1://分钟
 			rate = 60;
-			if(runti.interval > 60)//如果就要设置90分钟呢
+			if(runti.interval >= 60)//如果就要设置90分钟呢
 				inval_flg = 1;
 			break;
-		case 2:
+		case 2://小时
 			rate = 3600;
-			if(runti.interval > 24)//如果就要设置1天半呢
+			if(runti.interval >= 60)//如果就要设置1个半小时呢
 				inval_flg = 1;
 			break;
 		default:
 			break;//没有这种情况
 		}
-		if(inval_flg == 1)
+		if(inval_flg == 1)//todo
 			return 0;
 		sec_unit = (runti.interval * rate);
 		fprintf(stderr,"\nsec_unit = %d,interval=%d(%d)\n",sec_unit,runti.interval,runti.units);
 		*sec_freq = sec_unit;
-		fprintf(stderr,"\n---@@@-开始分钟数：%d 结束分钟数：%d 间隔秒数%d 次数:%d\n",startmin,endmin,sec_unit,((endmin-startmin)*60)/sec_unit,((endmin-startmin)*60)/sec_unit+1);
+		fprintf(stderr,"\n---@@@-开始分钟数：%d 结束分钟数：%d 间隔秒数%d 次数:%d---%d\n",startmin,endmin,sec_unit,((endmin-startmin)*60)/sec_unit,((endmin-startmin)*60)/sec_unit+1);
 		return ((endmin-startmin)*60)/sec_unit+1;
 	}
 	return 1;
@@ -1620,6 +1620,7 @@ int getrecordno(INT8U starthour,INT8U startmin,int interval)
 	TS ts_now;
 	int recordno = 0;
 	TSGet(&ts_now);
+	fprintf(stderr,"\ninterval = %d\n",interval);
 	recordno = (ts_now.Hour*60 + ts_now.Minute) - (starthour*60 + startmin);
 	recordno = recordno/(interval/60);
 	fprintf(stderr,"\n当前：%d:%d 任务开始：%d:%d 任务间隔:%d 记录序号%d\n",ts_now.Hour,ts_now.Minute,starthour,startmin,interval,recordno);
@@ -1656,7 +1657,7 @@ void intToBuf(int value,INT8U *buf)
 	buf[0] = value&0x00ff;
 	buf[1] = (value>>8) & 0x0ff;
 }
-int collectData(ROAD_ITEM item_road,INT8U *databuf,INT8U *srcbuf,OAD_INDEX *oad_offset,int unitnum)
+int collectData(INT8U *databuf,INT8U *srcbuf,OAD_INDEX *oad_offset,int oadnum)
 {
 	int i=0,j=0;
 	INT8U tmpbuf[256];
@@ -1666,7 +1667,7 @@ int collectData(ROAD_ITEM item_road,INT8U *databuf,INT8U *srcbuf,OAD_INDEX *oad_
 //	for(i=0;i<item_road.oadmr_num;i++)
 	{
 		memset(tmpbuf,0x00,256);
-		for(j=0;j<unitnum;j++)
+		for(j=0;j<oadnum;j++)
 		{
 			fprintf(stderr,"j=%d, len = %d, offset=%d\n",j,oad_offset[j].len,oad_offset[j].offset);
 			fprintf(stderr,"oad_m=%04x,oad_r=%04x\n",oad_offset[j].oad_m.OI,oad_offset[j].oad_r.OI);
@@ -1783,6 +1784,7 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds,INT8U rec
 	GetOADPosofUnit(item_road,headunit,unitnum,oad_offset);//得到每一个oad在块数据中的偏移
 	fprintf(stderr,"\n----------4\n");
 	recordlen = blocksize/tasknor_info.runtime;//计算每条记录的字节数
+	fprintf(stderr,"\nrecordlen = %d,freq=%d\n",recordlen,tasknor_info.freq);
 	recordno = getrecordno(tasknor_info.starthour,tasknor_info.startmin,tasknor_info.freq);
 
 
@@ -1824,7 +1826,7 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds,INT8U rec
 			fread(recordbuf,recordlen,1,fp);
 			printRecordBytes(recordbuf,recordlen);
 			//7\根据csds挑选数据，组织存储缓存
-			indexn += collectData(item_road,&onefrmbuf[indexn],recordbuf,oad_offset,unitnum);
+			indexn += collectData(&onefrmbuf[indexn],recordbuf,oad_offset,item_road.oadmr_num);
 
 			if (indexn>=1000)
 			{

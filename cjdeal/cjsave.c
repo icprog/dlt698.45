@@ -59,10 +59,10 @@ INT16U CalcHeadRcsdUnitNum(CSD_ARRAYTYPE csds)
 	{
 		if(csds.csd[i].type != 0 && csds.csd[i].type != 1)
 			continue;
-		if(csds.csd[i].type == 1)
-			headunit_num += csds.csd[i].csd.road.num+1;//加上本身
-		else
+		if(csds.csd[i].type == 0)
 			headunit_num++;
+		if(csds.csd[i].type == 1)
+			headunit_num += csds.csd[i].csd.road.num;
 	}
 	if(headunit_num == 4)
 		return 0;
