@@ -741,7 +741,7 @@ INT8U getASNInfo(FORMAT07* DI07,Base_DataType* dataType)
 			&&(map07DI_698OAD[index].flag07.DI_1[2]==DI07->DI[2]))
 		{
 			*dataType = map07DI_698OAD[index].datatype;
-			if()
+			if(DI07->DI[1]==0xff)
 			{
 				unitNum = map07DI_698OAD[index].unitnum;
 			}
@@ -749,8 +749,50 @@ INT8U getASNInfo(FORMAT07* DI07,Base_DataType* dataType)
 		}
 
 	}
-#endif
 
+	if(memcmp(flag07_0CF25_2,DI07->DI,4) == 0)
+	{
+		*dataType = dtdoublelong;
+		unitNum = 3;
+		INT8U f25_2_buff[12] = {0};
+		memcpy(&f25_2_buff[1],&DI07->Data[0],3);
+		memcpy(&f25_2_buff[5],&DI07->Data[3],3);
+		memcpy(&f25_2_buff[9],&DI07->Data[6],3);
+		memcpy(&DI07->Data[0],&f25_2_buff[0],12);
+		DI07->Length += 3;
+	}
+	if(memcmp(flag07_0CF25_2_A,DI07->DI,4) == 0)
+	{
+		*dataType = dtdoublelong;
+		unitNum = 1;
+		INT8U f25_2_buff[4] = {0};
+		memcpy(&f25_2_buff[1],&DI07->Data[0],3);
+		memcpy(&DI07->Data[0],&f25_2_buff[0],4);
+		DI07->Length += 1;
+	}
+	if((memcmp(flag07_0CF25_3,DI07->DI,4) == 0)||(memcmp(flag07_0CF25_4,DI07->DI,4) == 0))
+	{
+			*dataType = dtdoublelong;
+			unitNum = 4;
+			INT8U f25_3_buff[16] = {0};
+			memcpy(&f25_3_buff[1],&DI07->Data[0],3);
+			memcpy(&f25_3_buff[5],&DI07->Data[3],3);
+			memcpy(&f25_3_buff[9],&DI07->Data[6],3);
+			memcpy(&f25_3_buff[13],&DI07->Data[9],3);
+			memcpy(&DI07->Data[0],&f25_3_buff[0],16);
+			DI07->Length += 4;
+		}
+
+		//冻结时标数据07为5个字节 698为7个 需要特殊处理
+		if(memcmp(freezeflag07_1,DI07->DI,4) == 0)
+		{
+			*dataType = dtdatetimes;
+			DI07->Length += 2;
+			fprintf(stderr,"\n 1-----getASNInfo dataType = %d",*dataType);
+		}
+
+
+#else
 	//电压
 	if(memcmp(flag07_0CF25_1,DI07->DI,4) == 0)
 	{
@@ -818,7 +860,7 @@ INT8U getASNInfo(FORMAT07* DI07,Base_DataType* dataType)
 		unitNum = 5;
 		fprintf(stderr,"\n 2-----getASNInfo dataType = %d",*dataType);
 	}
-
+#endif
 	return unitNum;
 }
 

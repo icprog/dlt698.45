@@ -348,7 +348,7 @@ void dispatch_thread()
 
 		if (tastIndex > -1)
 		{
-			fprintf(stderr, "\n\n\n\n\n*************任务开始执行 ************ tastIndexIndex = %d taskID = %d*****************\n",
+			fprintf(stderr, "\n\n\n\n*************任务开始执行 ************ tastIndexIndex = %d taskID = %d*****************\n",
 					tastIndex, list6013[tastIndex].basicInfo.taskID);
 			//计算下一次抄读此任务的时间
 			getTaskNextTime(tastIndex);
