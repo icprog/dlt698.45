@@ -141,45 +141,47 @@ INT8U Getcurrno(INT16U* currno, INT16U maxno) {
     return 1;
 }
 
-INT16U FixHeadUnit(INT8U* headbuf) {
-    static INT8U head_oad[4][4]  = { { 0x20, 0x2a, 0x02, 0x00 }, { 0x60, 0x40, 0x02, 0x00 }, { 0x60, 0x41, 0x02, 0x00 }, { 0x60, 0x42, 0x02, 0x00 } };
-    static INT8U head_oad_len[4] = { 0x0012, 0x0008, 0x0008, 0x0008 };
-    int i = 0, index = 0;
-    HEAD_UNIT unit[4] = {};
-
-    for (i = 0; i < 4; i++) {
-        memset(&unit[i].oad_m, 0, sizeof(OAD));
-        unit[i].oad_r.OI     = head_oad[i][0];
-        unit[i].oad_r.OI     = (unit[i].oad_r.OI << 8) | head_oad[i][1];
-        unit[i].oad_r.attflg = head_oad[i][2];
-        unit[i].len          = head_oad_len[i];
-    }
-    if (headbuf != NULL) {
-        memcpy(headbuf, unit, sizeof(unit));
-        index += sizeof(unit);
-    }
-    return index;
+INT16U FixHeadUnit(INT8U *headbuf,INT8U *fixlen) {
+	static INT8U head_oad[4][4]={{0x20,0x2a,0x02,0x00},{0x60,0x40,0x02,0x00},{0x60,0x41,0x02,0x00},{0x60,0x42,0x02,0x00}};
+	static INT8U head_oad_len[4]={0x0012,0x0008,0x0008,0x0008};
+	int	  i=0,index=0;
+	HEAD_UNIT	unit[4]={};
+	*fixlen = 0;
+	for(i=0;i<4;i++) {
+		memset(&unit[i].oad_m,0,sizeof(OAD));
+		unit[i].oad_r.OI = head_oad[i][0];
+		unit[i].oad_r.OI = (unit[i].oad_r.OI<<8) | head_oad[i][1];
+		unit[i].oad_r.attflg = head_oad[i][2];
+		unit[i].len = head_oad_len[i];
+		*fixlen += head_oad_len[i];
+	}
+	if(headbuf!=NULL) {
+		memcpy(headbuf,unit,sizeof(unit));
+		index += sizeof(unit);
+	}
+	return index;
 }
 
 INT16U CalcHeadRcsdUnitNum(CSD_ARRAYTYPE csds) {
-    INT16U headunit_num = 4; // FixHeadUnit 固定TSA+3个时标的HEAD_UNIT长度
-    int i               = 0;
-    if (csds.num > MY_CSD_NUM) {
-        fprintf(stderr, "rcsd 个数超过限值 %d!!!!!!!!!!\n", MY_CSD_NUM);
-        csds.num = MY_CSD_NUM;
-    }
-    for (i = 0; i < csds.num; i++) {
-        if (csds.csd[i].type != 0 && csds.csd[i].type != 1)
-            continue;
-        if (csds.csd[i].type == 1)
-            headunit_num += csds.csd[i].csd.road.num + 1; //加上本身
-        else
-            headunit_num++;
-    }
-    if (headunit_num == 4)
-        return 0;
-    else
-        return headunit_num;
+	INT16U headunit_num=4;		//FixHeadUnit 固定TSA+3个时标的HEAD_UNIT长度
+	int i=0;
+	if(csds.num>MY_CSD_NUM) {
+		fprintf(stderr,"rcsd 个数超过限值 %d!!!!!!!!!!\n",MY_CSD_NUM);
+		csds.num = MY_CSD_NUM;
+	}
+	for(i=0;i<csds.num;i++)
+	{
+		if(csds.csd[i].type != 0 && csds.csd[i].type != 1)
+			continue;
+		if(csds.csd[i].type == 1)
+			headunit_num += csds.csd[i].csd.road.num+1;//加上本身
+		else
+			headunit_num++;
+	}
+	if(headunit_num == 4)
+		return 0;
+	else
+		return headunit_num;
 }
 /*
  * 计算某个OI的数据长度，指针对抄表数据 todo 先写个简单的，以后完善 而且没有考虑费率
@@ -194,66 +196,74 @@ INT16U CalcHeadRcsdUnitNum(CSD_ARRAYTYPE csds) {
  * 11：换算：-1   如果12：表示换算：-2,  02：表示换算：+2
  */
 INT16U CalcOILen(OAD oad, INT8U rate) {
-    FILE* fp;
-    char ln[60];
-    char lnf[4];
-    INT16U oi_len = 0;
-    INT8U ic_type = 1;
+	FILE *fp;
+	char ln[60];
+	char lnf[4];
+	INT16U oi_len=0,oi_tmp = 0;
+	INT8U ic_type = 1;
 
-    // TODO:  MET_RATE 替换成6000档案的电表费率个数rate
-    if (oad.OI >= 0x0000 && oad.OI < 0x2000) //接口IC的1,2类，每个数据长度固定为4个字节
-    {
-        if (oad.attrindex == 0) {        //全部属性
-            oi_len += 2;                 //数组+元素个数
-            oi_len = 5 * (MET_RATE + 1); // 5:数据类型描述+数据,(MET_RATE+1):总及4费率
-            return oi_len;
-        } else
-            return (4 + 1); // 4:数据长度+1个字节数据类型
-    }
-    fp = fopen("/nor/config/OI_TYPE.cfg", "r");
-    if (fp == NULL) {
-        fprintf(stderr, "\nOI_TYPE.cfg do not exist,hard error!!\n");
-        return 0;
-    }
-    while (1) {
-        memset(ln, 0x00, 60);
-        fscanf(fp, "%s", ln);
-        if (strncmp(ln, "begin", 5) == 0)
-            continue;
-        if (strncmp(ln, "end", 3) == 0)
-            break;
-        if (strncmp(ln, "//", 2) == 0)
-            continue;
+	//TODO:  MET_RATE 替换成6000档案的电表费率个数rate
+	if(oad.OI>=0x0000 && oad.OI<0x2000)		//接口IC的1,2类，每个数据长度固定为4个字节
+	{
+		if(oad.attrindex == 0){	//全部属性
+			oi_len += 2;			//数组+元素个数
+			oi_len += 5*(MET_RATE+1);	//5:数据类型描述+数据,(MET_RATE+1):总及4费率
+			return oi_len;
+		}
+		else
+			return (4+1);	//4:数据长度+1个字节数据类型
+	}
+	fp = fopen("/nor/config/OI_TYPE.cfg","r");
+	if(fp == NULL)
+	{
+		fprintf(stderr,"\nOI_TYPE.cfg do not exist,hard error!!\n");
+		return 0;
+	}
+	while(1)
+	{
+		memset(ln,0x00,60);
+		fscanf(fp,"%s",ln);
+		if(strncmp(ln,"begin",5) == 0) continue;
+		if(strncmp(ln,"end",3) == 0) break;
+		if(strncmp(ln,"//",2) == 0) continue;
 
-        memset(lnf, 0x00, 4);
-        memcpy(lnf, &ln[0], 4);
+		memset(lnf,0x00,4);
+		memcpy(lnf,&ln[0],4);
 
-        if (strtol(lnf, NULL, 16) != oad.OI)
-            continue;
-        memset(lnf, 0x00, 4);
-        memcpy(lnf, &ln[8], 3);
-        oi_len = strtol(lnf, NULL, 10);
-        memset(lnf, 0x00, 4);
-        memcpy(lnf, &ln[12], 2);
-        ic_type = strtol(lnf, NULL, 10);
-        break;
-    }
-    fclose(fp);
-    if (oi_len != 0 && ic_type != 0) {
-        switch (ic_type) {
-            case 3: //分相变量接口类
-                if (oad.attrindex == 0)
-                    oi_len = oi_len * 3 + 1 + 1; //三相
-                break;
-            case 4: //功率接口类
-                if (oad.attrindex == 0)
-                    oi_len = oi_len * MET_RATE + 1 + 1; //总及分项
-                break;
-            default:
-                break;
-        }
-    }
-    return (oi_len + 1); //返回长度+1个字节数据类型描述
+
+		oi_tmp = strtol(lnf,NULL,16);
+//		if(strtol(lnf,NULL,16) != oad.OI)
+		fprintf(stderr,"\n------oi_tmp=%04x--%s\n",oi_tmp,ln);
+		if(oi_tmp != oad.OI)
+			continue;
+		memset(lnf,0x00,4);
+		memcpy(lnf,&ln[8],3);
+		oi_len = strtol(lnf,NULL,10)+1;		//返回长度+1个字节数据类型描述
+		memset(lnf,0x00,4);
+		memcpy(lnf,&ln[12],2);
+		ic_type = strtol(lnf,NULL,10);
+		fprintf(stderr,"oi=%04x ,oi_len=%d,ic_type=%d",oad.OI,oi_len,ic_type);
+		break;
+	}
+	fclose(fp);
+	if(oi_len != 0 && ic_type != 0)
+	{
+		switch(ic_type)
+		{
+		case 3:	//分相变量接口类
+			if(oad.attrindex == 0)
+				oi_len = oi_len*3+1+1;//三相			+1：数组， +1：元素个数
+			break;
+		case 4://功率接口类
+			if(oad.attrindex == 0)
+				oi_len = oi_len*4+1+1;//总及分项
+			break;
+		default:
+			break;
+		}
+	}
+	fprintf(stderr,"return oi_len=%d\n",oi_len);
+	return oi_len;
 }
 
 INT8U getOneUnit(INT8U* headbuf, OAD oad_m, OAD oad_r, INT16U len) {
@@ -311,7 +321,8 @@ void CreateSaveHead(char* fname, CSD_ARRAYTYPE csds, INT16U* headlen, INT16U* un
     headbuf[pindex++] = (*headlen & 0x00ff);
     headbuf[pindex++] = 0x00;
     headbuf[pindex++] = 0x00; //长度
-    pindex += FixHeadUnit(&headbuf[pindex]);
+    int framlen=0;
+    pindex += FixHeadUnit(&headbuf[pindex],&framlen);
     if (csds.num > MY_CSD_NUM) //超了
         csds.num = MY_CSD_NUM;
     for (i = 0; i < csds.num; i++) {

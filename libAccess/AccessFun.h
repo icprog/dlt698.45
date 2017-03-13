@@ -196,7 +196,7 @@ extern int  readVariData(OI_698 oi,int coll_seqnum,void *blockdata,int len);
 
 extern INT8U getSelector(OAD oad_h,RSD select, INT8U selectype, CSD_ARRAYTYPE csds, INT8U *data, int *datalen);
 
-
+//extern void ReadFileHeadLen(FILE *fp,int *headlen,int *blocklen);
 extern INT8U ReadTaskInfo(INT8U taskid,TASKSET_INFO *tasknor_info);
 extern void getTaskFileName(INT8U taskid,TS ts,char *fname);
 extern INT8U datafile_write(char *FileName, void *source, int size, int offset);
