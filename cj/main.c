@@ -423,7 +423,7 @@ int main(int argc, char* argv[]) {
         //        	fclose(fp);
         //     	}
         CLASS_601D class601d = {};
-        if (readCoverClass(0x601D, 64, &class601d, sizeof(CLASS_601D), coll_para_save) == 1) {
+        if (readCoverClass(0x601D, 62, &class601d, sizeof(CLASS_601D), coll_para_save) == 1) {
             ret = GetReportData(class601d);
         }
         return EXIT_SUCCESS;
