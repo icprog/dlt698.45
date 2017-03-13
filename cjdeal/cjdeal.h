@@ -17,6 +17,7 @@ typedef struct {
 	CLASS_6013 basicInfo;
 }TASK_CFG;
 
+INT8U total_tasknum;
 TASK_CFG list6013[TASK6012_MAX];
 
 //任务调度
@@ -24,7 +25,4 @@ pthread_attr_t dispatchTask_attr_t;
 int thread_dispatchTask_id;
 pthread_t thread_dispatchTask;
 
-INT16S taskIndex485_1;
-INT16S taskIndex485_2;
-INT16S taskIndex_plc;
 #endif

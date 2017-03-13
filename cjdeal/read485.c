@@ -978,9 +978,14 @@ INT8S OADMap07DI(OI_698 roadOI,OAD sourceOAD, C601F_07Flag* obj601F_07Flag) {
 				,map07DI_698OAD[index].flag698.OI,map07DI_698OAD[index].flag698.attflg,map07DI_698OAD[index].flag698.attrindex);
 #endif
 		if((memcmp(&roadOI,&map07DI_698OAD[index].roadOI,sizeof(OI_698))==0)
-				&&(memcmp(&sourceOAD,&map07DI_698OAD[index].flag698,sizeof(OAD))==0))
+				&&(memcmp(&sourceOAD.OI,&map07DI_698OAD[index].flag698.OI,sizeof(OI_698))==0))
 		{
+
 			memcpy(obj601F_07Flag, &map07DI_698OAD[index].flag07, sizeof(C601F_07Flag));
+			if(sourceOAD.attflg != 0x02)
+			{
+				obj601F_07Flag->DI_1[0][1] = sourceOAD.attrindex;
+			}
 			return 1;
 		}
 	}
@@ -1786,7 +1791,7 @@ INT16U deal6015_07(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8U
 		}
 		else
 		{
-			datalen = request07_singleOAD(0x0000,st6015.csds.csd[dataIndex].csd.oad,to6001,st6035,dataContent,port485);
+			datalen = request07_singleOAD(0x0000,st6015.csds.csd[dataIndex].csd.oad,to6001,st6035,&dataContent[totaldataLen],port485);
 			totaldataLen += datalen;
 		}
 	}
@@ -2026,42 +2031,53 @@ INT16S getTaskIndex(INT8U port)
 {
 	INT16S taskIndex = -1;
 
+	INT8U  rev_485_buf[256];
+	INT32S ret;
+	mmq_head mq_h;
 
-	int		val;
-	sem_t * sem_fd=NULL;
 
 	switch(port)
 	{
-	case 2:
-		sem_fd = open_named_sem(DISPATCH_TASK_485_2);
+		case 2:
+		{
+			if(mqd_485_2_task < 0)
+			{
+				fprintf(stderr,"mqd_485_2_task:mq_open_ret=%d\n",mqd_485_2_task);
+				return taskIndex;
+			}
+			ret = mmq_get(mqd_485_2_task, 1, &mq_h, rev_485_buf);
+			if(ret > 0)
+			{
+				fprintf(stderr,"mqd_485_2_task 接受消息 mq_h.cmd = %d rev_485_buf[0] = %d",mq_h.cmd,rev_485_buf[0]);
+				if(mq_h.cmd ==1)
+				{
+					taskIndex  = rev_485_buf[0];
+				}
+			}
+		}
 		break;
 	case 31:
-		sem_fd = open_named_sem(DISPATCH_TASK_PLC);
-		break;
-	default:
-		sem_fd = open_named_sem(DISPATCH_TASK_485_1);
-	}
 
-	sem_wait(sem_fd);
-	switch(port)
-	{
-	case 2:
-		taskIndex  = taskIndex485_2;
-		taskIndex485_2 = -1;
 		break;
-	case 31:
-		taskIndex  = taskIndex_plc;
-		taskIndex_plc = -1;
-		break;
-	default:
-		taskIndex  = taskIndex485_1;
-		taskIndex485_1 = -1;
-	}
-	sem_post(sem_fd);
-	sem_getvalue(sem_fd, &val);
+		default:
+		{
+				if(mqd_485_1_task < 0)
+				{
+					fprintf(stderr,"mqd_485_1_task:mq_open_ret=%d\n",mqd_485_1_task);
+					return taskIndex;
+				}
+				ret = mmq_get(mqd_485_1_task, 1, &mq_h, rev_485_buf);
+				if(ret > 0)
+				{
+					fprintf(stderr,"mqd_485_2_task 接受消息 mq_h.cmd = %d rev_485_buf[0] = %d",mq_h.cmd,rev_485_buf[0]);
+					if(mq_h.cmd ==1)
+					{
+						taskIndex  = rev_485_buf[0];
+					}
+				}
+			}
 
-	sem_close(sem_fd);
-
+		}
 	return taskIndex;
 }
 void read485_thread(void* i485port) {
@@ -2301,15 +2317,23 @@ INT8U initMap07DI_698OAD()
 
 void read485_proccess() {
 
-#ifdef TESTDEF
 	map07DI_698OAD_NUM = initMap07DI_698OAD();
-#endif
 
 	i485port1 = 1;
 	i485port2 = 2;
 	comfd4851 = -1;
 	comfd4852 = -1;
 	readState = 0;
+
+	struct mq_attr attr_485_main;
+	mqd_485_main = mmq_open((INT8S *)PROXY_485_MQ_NAME,&attr_485_main,O_RDONLY);
+
+	struct mq_attr attr_485_1_task;
+	mqd_485_1_task = mmq_open((INT8S *)TASKID_485_1_MQ_NAME,&attr_485_1_task,O_RDONLY);
+
+	struct mq_attr attr_485_2_task;
+	mqd_485_2_task = mmq_open((INT8S *)TASKID_485_2_MQ_NAME,&attr_485_2_task,O_RDONLY);
+
 
 	pthread_attr_init(&read485_attr_t);
 	pthread_attr_setstacksize(&read485_attr_t, 2048 * 1024);

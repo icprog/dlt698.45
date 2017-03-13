@@ -26,6 +26,8 @@ static int mmqFds[MAX_MMQ_SIZE];
 const static mmq_attribute mmq_register[] = {
     { cjcomm, PROXY_485_MQ_NAME, MAXSIZ_PROXY_NET, MAXNUM_PROXY_NET },
     { cjdeal, PROXY_NET_MQ_NAME, MAXSIZ_PROXY_485, MAXNUM_PROXY_485 },
+    { cjdeal, TASKID_485_1_MQ_NAME, MAXSIZ_TASKID_QUEUE, MAXNUM_TASKID_QUEUE },
+    { cjdeal, TASKID_485_2_MQ_NAME, MAXSIZ_TASKID_QUEUE, MAXNUM_TASKID_QUEUE }
 };
 
 void Runled(int state) {
@@ -177,12 +179,7 @@ void ProjectMainExit(int signo) {
     sem_unlink(SEMNAME_SPI0_0);
     close_named_sem(SEMNAME_PARA_SAVE);
     sem_unlink(SEMNAME_PARA_SAVE);
-    close_named_sem(DISPATCH_TASK_485_1);
-    sem_unlink(DISPATCH_TASK_485_1);
-    close_named_sem(DISPATCH_TASK_485_2);
-    sem_unlink(DISPATCH_TASK_485_2);
-    close_named_sem(DISPATCH_TASK_PLC);
-    sem_unlink(DISPATCH_TASK_PLC);
+
     shmm_destroy();
 
     exit(0);
@@ -221,17 +218,6 @@ void CreateSem() {
     sem_getvalue(sem, &val);
     asyslog(LOG_INFO, "PARA_SAVE信号量建立，初始值[%d]", val);
 
-    sem = create_named_sem(DISPATCH_TASK_485_1, 1);
-    sem_getvalue(sem, &val);
-    asyslog(LOG_INFO, "4851信号量建立，初始值[%d]", val);
-
-    sem = create_named_sem(DISPATCH_TASK_485_2, 1);
-    sem_getvalue(sem, &val);
-    asyslog(LOG_INFO, "4852信号量建立，初始值[%d]", val);
-
-    sem = create_named_sem(DISPATCH_TASK_PLC, 1);
-    sem_getvalue(sem, &val);
-    asyslog(LOG_INFO, "TASK_PLC信号量建立，初始值[%d]", val);
 }
 /*
  * 初始化操作

@@ -33,7 +33,8 @@
 #define MAXNUM_PROXY_485    25
 #define MAXSIZ_PROXY_NET    2048
 #define MAXNUM_PROXY_NET    25
-
+#define MAXSIZ_TASKID_QUEUE    256
+#define MAXNUM_TASKID_QUEUE    25
 #define MAXNUM_AUTOTASK		20					//采用上报方案的任务最大数
 
 #define MAXSIZ_FAM	1600						//
@@ -140,6 +141,9 @@
 #define PROXY_485_MQ_NAME			"/proxy_485_mq"		//485抄表过程接收代理请求消息队列
 #define PROXY_NET_MQ_NAME			"/proxy_net_mq"		//通讯进程代理应答接收消息队列
 
+#define TASKID_485_1_MQ_NAME		"/taskid_485_1_mq"		//485 1抄表 任务ID 队列
+#define	TASKID_485_2_MQ_NAME		"/taskid_485_2_mq"		//485 2抄表 任务ID 队列
+#define TASKID_plc_MQ_NAME			"/taskid_plc_mq"		//载波 抄表 任务ID 队列
 /////////////////////////////////////////////////////////////////
 
 /*
@@ -148,9 +152,7 @@
 
 #define SEMNAME_SPI0_0 		"sem_spi0_0" //专变、I型集中器交采和esam的spi通信互斥信号量
 #define	SEMNAME_PARA_SAVE	"sem_parasave"			//参数文件存储
-#define	DISPATCH_TASK_485_1	"diapatch_task_4851"			//485 1任务
-#define	DISPATCH_TASK_485_2	"diapatch_task_4852"			//485 2任务
-#define	DISPATCH_TASK_PLC	"diapatch_task_plc"			//载波
+
 ////////////////////////////////////////////////////////////////
 
 /*
