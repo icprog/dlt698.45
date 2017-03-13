@@ -115,12 +115,12 @@ typedef struct {
 } NETCONFIG;
 
 typedef struct {
-    INT8U name[OCTET_STRING_LEN];  //逻辑名
-    COMM_CONFIG_2 commconfig;      //通信配置
-    MASTER_STATION_INFO master[4]; //主站通信参数表
-    NETCONFIG IP;                  //终端IP
-    INT8U mac[OCTET_STRING_LEN];   // MAC地址
-} CLASS26;                         //以太网通信接口类
+    INT8U name[OCTET_STRING_LEN];    //逻辑名
+    COMM_CONFIG_2 commconfig;        //通信配置
+    MASTER_STATION_INFO_LIST master; //主站通信参数
+    NETCONFIG IP;                    //终端IP
+    INT8U mac[OCTET_STRING_LEN];     // MAC地址
+} CLASS26;                           //以太网通信接口类
 
 /////////////////////////////////////////////////////////////////////////////
 /********************************************************
@@ -443,8 +443,8 @@ typedef struct {
 typedef struct {
     INT8U ID;        //任务编号
     INT8U SerNo;     //方案编号
-    INT8U ReportNum;	//上报次数
-    INT16U  OverTime;	//上报响应超时时间，单位：秒
+    INT8U ReportNum; //上报次数
+    INT16U OverTime; //上报响应超时时间，单位：秒
     time_t nexttime; //执行时间
 } AutoTaskStrap;
 typedef struct {

@@ -178,6 +178,7 @@ void SetUsrPwd(int argc, char* argv[]) {
         fprintf(stderr, "用户名：%s\t密码：%s\n", &class4500.commconfig.userName[1], &class4500.commconfig.passWord[1]);
     }
 }
+
 void SetIPort(int argc, char* argv[]) {
     CLASS25 class4500;
     MASTER_STATION_INFO_LIST master;
@@ -202,6 +203,33 @@ void SetIPort(int argc, char* argv[]) {
         fprintf(stderr, "\n存储前 备IP %d.%d.%d.%d :%d\n", class4500.master.master[1].ip[1], class4500.master.master[1].ip[2], class4500.master.master[1].ip[3],
                 class4500.master.master[1].ip[4], class4500.master.master[1].port);
         saveCoverClass(0x4500, 0, &class4500, sizeof(CLASS25), para_vari_save);
+    }
+}
+
+void SetNetIPort(int argc, char* argv[]) {
+    CLASS26 class4510;
+    MASTER_STATION_INFO_LIST master;
+
+    memset(&master, 0, sizeof(MASTER_STATION_INFO_LIST));
+    memset(&class4510, 0, sizeof(CLASS26));
+    readCoverClass(0x4510, 0, &class4510, sizeof(CLASS26), para_vari_save);
+    fprintf(stderr, "\n先读出 主IP %d.%d.%d.%d :%d\n", class4510.master.master[0].ip[1], class4510.master.master[0].ip[2], class4510.master.master[0].ip[3],
+            class4510.master.master[0].ip[4], class4510.master.master[0].port);
+    fprintf(stderr, "\n先读出 备IP %d.%d.%d.%d :%d\n", class4510.master.master[1].ip[1], class4510.master.master[1].ip[2], class4510.master.master[1].ip[3],
+            class4510.master.master[1].ip[4], class4510.master.master[1].port);
+    int i   = 0;
+    int num = argc - 2;
+    if (num > 0 && num < 4) {
+        master.masternum = num;
+        for (i = 0; i < num; i++) {
+            getipnum(&master.master[i], argv[2 + i]);
+        }
+        memcpy(&class4510.master, &master, sizeof(MASTER_STATION_INFO_LIST));
+        fprintf(stderr, "\n存储前 主IP %d.%d.%d.%d :%d\n", class4510.master.master[0].ip[1], class4510.master.master[0].ip[2], class4510.master.master[0].ip[3],
+                class4510.master.master[0].ip[4], class4510.master.master[0].port);
+        fprintf(stderr, "\n存储前 备IP %d.%d.%d.%d :%d\n", class4510.master.master[1].ip[1], class4510.master.master[1].ip[2], class4510.master.master[1].ip[3],
+                class4510.master.master[1].ip[4], class4510.master.master[1].port);
+        saveCoverClass(0x4510, 0, &class4510, sizeof(CLASS26), para_vari_save);
     }
 }
 
