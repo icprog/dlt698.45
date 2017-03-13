@@ -732,9 +732,25 @@ INT8U checkEvent(CLASS_6001 meter,FORMAT07 resultData07,INT16U taskID)
 INT8U getASNInfo(FORMAT07* DI07,Base_DataType* dataType)
 {
 	fprintf(stderr, "\n getASNInfo DI07 = %02x%02x%02x%02x",DI07->DI[3],DI07->DI[2],DI07->DI[1],DI07->DI[0]);
-
-
 	INT8U unitNum = 1;
+#if 0
+	INT8U index;
+	for (index = 0; index < map07DI_698OAD_NUM; index++)
+	{
+		if((map07DI_698OAD[index].flag07.DI_1[3]==DI07->DI[3])
+			&&(map07DI_698OAD[index].flag07.DI_1[2]==DI07->DI[2]))
+		{
+			*dataType = map07DI_698OAD[index].datatype;
+			if()
+			{
+				unitNum = map07DI_698OAD[index].unitnum;
+			}
+			break;
+		}
+
+	}
+#endif
+
 	//电压
 	if(memcmp(flag07_0CF25_1,DI07->DI,4) == 0)
 	{
@@ -982,7 +998,7 @@ INT8S OADMap07DI(OI_698 roadOI,OAD sourceOAD, C601F_07Flag* obj601F_07Flag) {
 		{
 
 			memcpy(obj601F_07Flag, &map07DI_698OAD[index].flag07, sizeof(C601F_07Flag));
-			if(sourceOAD.attflg != 0x02)
+			if(sourceOAD.attrindex != 0x00)
 			{
 				obj601F_07Flag->DI_1[0][1] = sourceOAD.attrindex;
 			}
