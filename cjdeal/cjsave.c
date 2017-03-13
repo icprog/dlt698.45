@@ -85,8 +85,8 @@ INT16U CalcOILen(OAD oad,INT8U rate)
 {
 	FILE *fp;
 	char ln[60];
-	char lnf[4];
-	INT16U oi_len=0;
+	char lnf[5];
+	INT16U oi_len=0,oi_tmp = 0;
 	INT8U ic_type = 1;
 
 	//TODO:  MET_RATE 替换成6000档案的电表费率个数rate
@@ -114,10 +114,13 @@ INT16U CalcOILen(OAD oad,INT8U rate)
 		if(strncmp(ln,"end",3) == 0) break;
 		if(strncmp(ln,"//",2) == 0) continue;
 
-		memset(lnf,0x00,4);
+		memset(lnf,0x00,5);
 		memcpy(lnf,&ln[0],4);
-
-		if(strtol(lnf,NULL,16) != oad.OI)
+		fprintf(stderr," lnf=%s\n",lnf);
+		oi_tmp = strtol(lnf,NULL,16);
+//		if(strtol(lnf,NULL,16) != oad.OI)
+		fprintf(stderr,"\n------oi_tmp=%04x--%s\n",oi_tmp,ln);
+		if(oi_tmp != oad.OI)
 			continue;
 		memset(lnf,0x00,4);
 		memcpy(lnf,&ln[8],3);
