@@ -36,6 +36,8 @@ INT8U flag07_0CF25_1[4] = {0x00,0xff,0x01,0x02};//当前电压
 INT8U flag07_0CF25_1_A[4] = {0x00,0x01,0x01,0x02};//当前A相电压
 INT8U flag07_0CF25_2[4] = {0x00,0xff,0x02,0x02};//当前电流
 INT8U flag07_0CF25_2_A[4] = {0x00,0x01,0x02,0x02};//当前A相电流
+INT8U flag07_0CF25_2_B[4] = {0x00,0x02,0x02,0x02};//当前B相电流
+INT8U flag07_0CF25_2_C[4] = {0x00,0x03,0x02,0x02};//当前C相电流
 INT8U flag07_0CF25_3[4] = {0x00,0xff,0x03,0x02};//当前有功功率
 INT8U flag07_0CF25_4[4] = {0x00,0xff,0x04,0x02};//当前无功功率
 INT8U freezeflag07_1[4] = {0x01,0x00,0x06,0x05};//上一次日冻结时标
@@ -733,12 +735,12 @@ INT8U getASNInfo(FORMAT07* DI07,Base_DataType* dataType)
 {
 	fprintf(stderr, "\n getASNInfo DI07 = %02x%02x%02x%02x",DI07->DI[3],DI07->DI[2],DI07->DI[1],DI07->DI[0]);
 	INT8U unitNum = 1;
-#if 0
+#if 1
 	INT8U index;
 	for (index = 0; index < map07DI_698OAD_NUM; index++)
 	{
-		if((map07DI_698OAD[index].flag07.DI_1[3]==DI07->DI[3])
-			&&(map07DI_698OAD[index].flag07.DI_1[2]==DI07->DI[2]))
+		if((map07DI_698OAD[index].flag07.DI_1[0][3]==DI07->DI[3])
+			&&(map07DI_698OAD[index].flag07.DI_1[0][2]==DI07->DI[2]))
 		{
 			*dataType = map07DI_698OAD[index].datatype;
 			if(DI07->DI[1]==0xff)
@@ -749,19 +751,21 @@ INT8U getASNInfo(FORMAT07* DI07,Base_DataType* dataType)
 		}
 
 	}
-
+	//电流 功率 特殊处理  07回来的是3个字节  6984个字节
 	if(memcmp(flag07_0CF25_2,DI07->DI,4) == 0)
 	{
 		*dataType = dtdoublelong;
 		unitNum = 3;
 		INT8U f25_2_buff[12] = {0};
-		memcpy(&f25_2_buff[1],&DI07->Data[0],3);
-		memcpy(&f25_2_buff[5],&DI07->Data[3],3);
-		memcpy(&f25_2_buff[9],&DI07->Data[6],3);
+		memcpy(&f25_2_buff[0],&DI07->Data[0],3);
+		memcpy(&f25_2_buff[4],&DI07->Data[3],3);
+		memcpy(&f25_2_buff[8],&DI07->Data[6],3);
 		memcpy(&DI07->Data[0],&f25_2_buff[0],12);
 		DI07->Length += 3;
 	}
-	if(memcmp(flag07_0CF25_2_A,DI07->DI,4) == 0)
+	if((memcmp(flag07_0CF25_2_A,DI07->DI,4) == 0)
+			||(memcmp(flag07_0CF25_2_B,DI07->DI,4) == 0)
+			||(memcmp(flag07_0CF25_2_C,DI07->DI,4) == 0))
 	{
 		*dataType = dtdoublelong;
 		unitNum = 1;
@@ -772,25 +776,65 @@ INT8U getASNInfo(FORMAT07* DI07,Base_DataType* dataType)
 	}
 	if((memcmp(flag07_0CF25_3,DI07->DI,4) == 0)||(memcmp(flag07_0CF25_4,DI07->DI,4) == 0))
 	{
-			*dataType = dtdoublelong;
-			unitNum = 4;
-			INT8U f25_3_buff[16] = {0};
-			memcpy(&f25_3_buff[1],&DI07->Data[0],3);
-			memcpy(&f25_3_buff[5],&DI07->Data[3],3);
-			memcpy(&f25_3_buff[9],&DI07->Data[6],3);
-			memcpy(&f25_3_buff[13],&DI07->Data[9],3);
-			memcpy(&DI07->Data[0],&f25_3_buff[0],16);
-			DI07->Length += 4;
-		}
-
-		//冻结时标数据07为5个字节 698为7个 需要特殊处理
-		if(memcmp(freezeflag07_1,DI07->DI,4) == 0)
+		*dataType = dtdoublelong;
+		unitNum = 4;
+		INT8U f25_3_buff[16] = {0};
+		memcpy(&f25_3_buff[1],&DI07->Data[0],3);
+		memcpy(&f25_3_buff[5],&DI07->Data[3],3);
+		memcpy(&f25_3_buff[9],&DI07->Data[6],3);
+		memcpy(&f25_3_buff[13],&DI07->Data[9],3);
+		memcpy(&DI07->Data[0],&f25_3_buff[0],16);
+		DI07->Length += 4;
+	}
+	//冻结时标数据07为5个字节 698为7个 需要特殊处理
+	if(memcmp(freezeflag07_1,DI07->DI,4) == 0)
+	{
+		INT16U year  = (DI07->Data[4] >> 4)*10 + (DI07->Data[4]&0x0f) + 2000;
+		INT8U month = (DI07->Data[3] >> 4)*10 + (DI07->Data[3]&0x0f);
+		INT8U day = (DI07->Data[2] >> 4)*10 + (DI07->Data[2]&0x0f);
+		memset(DI07->Data,0,7);
+		DI07->Data[0] = (year>>8)&0x00ff;
+		DI07->Data[1] = year&0x00ff;
+		DI07->Data[2] = month;
+		DI07->Data[3] = day;
+		*dataType = dtdatetimes;
+		DI07->Length += 2;
+		fprintf(stderr,"\n 1-----getASNInfo dataType = %d",*dataType);
+	}
+	else
+	{
+		INT8U unitIndex;
+		INT8U unitSize = (DI07->Length-4)/unitNum;
+		fprintf(stderr,"DI07->Length = %d unitNum = %d unitSize = %d",DI07->Length,unitNum,unitSize);
+		for(unitIndex = 0;unitIndex < unitNum; unitIndex++)
 		{
-			*dataType = dtdatetimes;
-			DI07->Length += 2;
-			fprintf(stderr,"\n 1-----getASNInfo dataType = %d",*dataType);
+			//目前07单个数据单元最大字节数为4
+			INT8U reverBuff[4] = {0};
+			INT32U value = 0;
+			INT8U dataIndex = unitIndex*unitSize;
+			bcd2int32u(&DI07->Data[dataIndex],unitSize,inverted,&value);
+			fprintf(stderr,"\n value = %d",value);
+
+			memcpy(&DI07->Data[dataIndex],&value,unitSize);
+
+			//fprintf(stderr,"\n pppppp DI07->Data = %02x %02x %02x %02x",DI07->Data[dataIndex],DI07->Data[dataIndex+1],DI07->Data[dataIndex+2],DI07->Data[dataIndex+3]);
+			//fprintf(stderr,"\n qqqqq reverBuff = %02x %02x %02x %02x",reverBuff[0],reverBuff[1],reverBuff[2],reverBuff[3]);
+			if(unitSize == 2)
+			{
+				fprintf(stderr,"\n 123123  DI07->Data[%d] = %d  DI07->Data[%d+1] = %d",dataIndex,dataIndex,DI07->Data[dataIndex],DI07->Data[dataIndex+1]);
+				INT8U tmpvalue = DI07->Data[dataIndex];
+				DI07->Data[dataIndex] = DI07->Data[dataIndex+1];
+				DI07->Data[dataIndex+1] = tmpvalue;
+			}
+			else
+			{
+				reversebuff(&DI07->Data[dataIndex], 4, reverBuff);
+				memcpy(&DI07->Data[dataIndex],reverBuff,unitSize);
+			}
+
 		}
 
+	}
 
 #else
 	//电压
