@@ -889,7 +889,6 @@ void ReadNorData(TS ts,INT8U taskid,INT8U *tsa)
 	TSGet(&ts_now);
 	char	fname[128]={};
 	TASKSET_INFO tasknor_info;
-	taskid=1;
 	if(ReadTaskInfo(taskid,&tasknor_info)!=1)
 		return;
 	getTaskFileName(taskid,ts_now,fname);
@@ -917,6 +916,7 @@ void ReadNorData(TS ts,INT8U taskid,INT8U *tsa)
 		fprintf(stderr,"\n传进来的TSA：");
 		for(i=0;i<TSA_LEN;i++)
 			fprintf(stderr," %02x",tsa[i]);
+		fprintf(stderr,"\n文件里的TSA：");
 		for(i=0;i<TSA_LEN;i++)
 			fprintf(stderr," %02x",databuf_tmp[i+1]);
 		if(memcmp(&databuf_tmp[1],&tsa[0],17)==0)//找到了存储结构的位置，一个存储结构可能含有unitnum个单元

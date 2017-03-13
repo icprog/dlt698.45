@@ -76,14 +76,14 @@ void CalculateTransFlow(ProgramInfo* prginfo_event) {
 
 void EventAutoReport(CommBlock* nst) {
     static int local_index = 0;
-    if (JProgramInfo->needreport_event.event_num >= 16 || JProgramInfo->needreport_event.event_num < 0) {
+    if (JProgramInfo->needreport_event.event_num > 16 || JProgramInfo->needreport_event.event_num < 0) {
         asyslog(LOG_ERR, "事件上报模块发生严重错误！事件序号越限(%d)", JProgramInfo->needreport_event.event_num);
         return;
     }
     if (local_index != JProgramInfo->needreport_event.event_num) {
         //循环存储16个
         local_index += 1;
-        local_index %= 15;
+        local_index %= 16;
         Report_Event(nst, JProgramInfo->needreport_event.report_event[local_index]);
     }
 }
@@ -104,6 +104,7 @@ void QuitProcess(int sig) {
     asyslog(LOG_INFO, "关闭AT模块电源");
     AT_POWOFF();
     asyslog(LOG_INFO, "通信模块退出完成...");
+    exit(0);
 }
 
 void WriteLinkRequest(INT8U link_type, INT16U heartbeat, LINK_Request* link_req) {

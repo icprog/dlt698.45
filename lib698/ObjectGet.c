@@ -697,7 +697,7 @@ int doGetrecord(OAD oad,INT8U *data,RESULT_RECORD *record)
 	case 7:
 		dest_index +=fill_RCSD(0,&record->data[dest_index],record->rcsd.csds);
 		record->data = &TmpDataBuf[dest_index];
-		getSelector(record->select, record->selectType,record->rcsd.csds,(INT8U *)record->data,(int *)&record->datalen);
+		getSelector(oad,record->select, record->selectType,record->rcsd.csds,(INT8U *)record->data,(int *)&record->datalen);
 		record->data = TmpDataBuf;				//data 指向回复报文帧头
 		record->datalen += dest_index;			//数据长度+ResultRecord
 //		fprintf(stderr,"\nreturn len =%d\n",index);

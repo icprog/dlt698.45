@@ -71,6 +71,34 @@ void print_rcsd(CSD_ARRAYTYPE csds)
 		}
 	}
 }
+
+////////////////////////////////////////////////////////////////////
+INT16U getTItoSec(TI ti)
+{
+	INT16U sec = 0;
+	switch(ti.units)
+	{
+		case 0://秒
+			sec = ti.interval;
+			break;
+		case 1://分
+			sec = ti.interval * 60;
+			break;
+		case 2://时
+			sec =  ti.interval * 3600;
+			break;
+		case 3://日
+			sec = ti.interval * 3600 *24;
+			break;
+		case 4://月
+			break;
+		case 5://年
+			break;
+		default:
+			break;
+	}
+	return sec;
+}
 //////////////////////////////////////////////////////////////////////
 int  create_OAD(INT8U *data,OAD oad)
 {

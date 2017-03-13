@@ -2016,7 +2016,6 @@ INT8U deal6015(CLASS_6015 st6015, INT8U port485,CLASS_6035* st6035) {
 				{
 					fprintf(stderr,"\n deal6015:失败");
 				}
-
 			}
 		}
 	}

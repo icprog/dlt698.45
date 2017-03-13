@@ -17,6 +17,7 @@
 #include "PublicFunction.h"
 #include "AccessFun.h"
 #include "cjmain.h"
+#include "../lib698/dlt698.h"
 #include "../libMq/libmmq.h"
 
 static ProgramInfo* JProgramInfo = NULL;
@@ -445,8 +446,8 @@ int main(int argc, char* argv[]) {
         //点亮运行灯
         Runled(1);
 
-        //每分钟校时
-        SyncRtc();
+        //每20分钟校时
+//        SyncRtc();
 
         //检车程序运行状态
         checkProgsState(ProgsNum);
