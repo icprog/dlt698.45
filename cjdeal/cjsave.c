@@ -121,10 +121,11 @@ INT16U CalcOILen(OAD oad,INT8U rate)
 			continue;
 		memset(lnf,0x00,4);
 		memcpy(lnf,&ln[8],3);
-		oi_len = strtol(lnf,NULL,10)+1;
+		oi_len = strtol(lnf,NULL,10)+1;		//返回长度+1个字节数据类型描述
 		memset(lnf,0x00,4);
 		memcpy(lnf,&ln[12],2);
 		ic_type = strtol(lnf,NULL,10);
+		fprintf(stderr,"oi=%04x ,oi_len=%d,ic_type=%d",oad.OI,oi_len,ic_type);
 		break;
 	}
 	fclose(fp);
@@ -134,7 +135,7 @@ INT16U CalcOILen(OAD oad,INT8U rate)
 		{
 		case 3:	//分相变量接口类
 			if(oad.attrindex == 0)
-				oi_len = oi_len*3+1+1;//三相
+				oi_len = oi_len*3+1+1;//三相			+1：数组， +1：元素个数
 			break;
 		case 4://功率接口类
 			if(oad.attrindex == 0)
@@ -144,7 +145,8 @@ INT16U CalcOILen(OAD oad,INT8U rate)
 			break;
 		}
 	}
-	return oi_len;	//返回长度+1个字节数据类型描述
+	fprintf(stderr,"return oi_len=%d\n",oi_len);
+	return oi_len;
 }
 
 INT8U getOneUnit(INT8U *headbuf,OAD oad_m,OAD oad_r,INT16U len)

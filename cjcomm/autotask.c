@@ -54,8 +54,7 @@ void RegularAutoTask(struct aeEventLoop* ep, CommBlock* nst) {
     for (int i = 0; i < MAXNUM_AUTOTASK; i++) {
         //调用日常通信接口
         int res = composeAutoTask(&shmem->autotask[i]);
-
-        if (res == 2) {
+         if (res == 2) {
             //第一次调用此函数，启动任务上报
             MoreContentSign = callAutoReport(nst, 0);
             //不再调用此函数标志

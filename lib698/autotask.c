@@ -197,8 +197,11 @@ long int readFrameDataFile(char *filename,int offset,INT8U *buf,int *datalen)
 	if (fp!=NULL && buf!=NULL)
 	{
 		fseek(fp,offset,0);		 			//定位到文件指定偏移位置
-		if (fread(&bytelen,2,1,fp) <=0)	 	//读出数据报文长度
-			return 0;
+		//if (fread(&bytelen,2,1,fp) <=0)	 	//读出数据报文长度
+		fread(&bytelen,2,1,fp);
+		fprintf(stderr,"bytelen=%d\n",bytelen);
+//			return 0;
+
 		if (fread(buf,bytelen,1,fp) <=0 ) 	//按数据报文长度，读出全部字节
 			return 0;
 		*datalen = bytelen;
@@ -233,7 +236,7 @@ int callAutoReport(CommBlock* com, INT8U ifecho)
 	sendcounter++;
 	datalen = 0;
 	fprintf(stderr,"\n当前偏移位置 nowoffset = %d  ",nowoffset);
-	nextoffset = readFrameDataFile("/nand/datafile",nowoffset,TmpDataBuf,&datalen);
+	nextoffset = readFrameDataFile("/nand/frmdata",nowoffset,TmpDataBuf,&datalen);
 	fprintf(stderr,"\n读出 (%d)：",datalen);
 	for(j=0; j<datalen; j++)
 	{
@@ -260,7 +263,7 @@ int callAutoReport(CommBlock* com, INT8U ifecho)
 	sendbuf[index++] = REPROTNOTIFICATIONRECORDLIST;
 	sendbuf[index++] = 0;	//PIID
 
-	memcpy(sendbuf,TmpDataBuf,datalen);//将读出的数据拷贝
+	memcpy(&sendbuf[index],TmpDataBuf,datalen);//将读出的数据拷贝
 	index +=datalen;
 
 	sendbuf[index++] = 0;
@@ -303,6 +306,7 @@ INT16U  composeAutoTask(AutoTaskStrap *list)
 			{
 				list->ReportNum = class601d.reportnum;
 				list->OverTime = getTItoSec(class601d.timeout);
+				fprintf(stderr,"list->SerNo = %d\n",list->SerNo);
 				if (GetReportData(class601d) == 1)//数据组织好了
 					ret = 2;
 			}
