@@ -340,7 +340,10 @@ typedef struct {
 } C601F_07Flag;
 
 typedef struct {
-    CSD flag698;
+	OI_698 roadOI;//实时数据 0000  日冻结数据5004
+    OAD flag698;
+    INT8U unitnum;
+    INT8U datatype;
     C601F_07Flag flag07;
 } CLASS_601F; //采集规则
 
