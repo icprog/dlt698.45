@@ -191,24 +191,6 @@ INT8U filterInvalidTask(INT16U taskIndex) {
 }
 
 /*
- * 计算下一次抄读该任务的时间
- *
- * */
-void getTaskNextTime(INT16U taskIndex) {
-	TSGet(&list6013[taskIndex].ts_next);
-	fprintf(stderr,"\n getTaskNextTime 任务ID = %d",list6013[taskIndex].basicInfo.taskID);
-	fprintf(stderr,"\n 本次抄表时间 %04d-%02d-%02d %02d:%02d:%02d",
-			list6013[taskIndex].ts_next.Year,list6013[taskIndex].ts_next.Month,list6013[taskIndex].ts_next.Day,
-			list6013[taskIndex].ts_next.Hour,list6013[taskIndex].ts_next.Minute,list6013[taskIndex].ts_next.Sec);
-	tminc(&list6013[taskIndex].ts_next,
-			list6013[taskIndex].basicInfo.interval.units,
-			list6013[taskIndex].basicInfo.interval.interval);
-	fprintf(stderr,"\n 下次抄表时间 %04d-%02d-%02d %02d:%02d:%02d",
-				list6013[taskIndex].ts_next.Year,list6013[taskIndex].ts_next.Month,list6013[taskIndex].ts_next.Day,
-				list6013[taskIndex].ts_next.Hour,list6013[taskIndex].ts_next.Minute,list6013[taskIndex].ts_next.Sec);
-
-}
-/*
  * 比较当前时间应该先抄读哪一个任务
  * 比较权重 优先级 >  采集类型（年>月>日>分） > run_flg
  * 返回
@@ -259,9 +241,9 @@ INT16S getNextTastIndexIndex() {
 				fprintf(stderr, "\n  getNextTastIndexIndex-3333");
 				continue;
 			}
-			TS tsNow = { };
-			TSGet(&tsNow);
-			if (TScompare(tsNow, list6013[tIndex].ts_next) < 2)
+
+			time_t timenow = time(NULL);
+			if(timenow >= list6013[tIndex].ts_next)
 			{
 				list6013[tIndex].run_flg = 1;
 				fprintf(stderr, "\n  getNextTastIndexIndex-4444");
@@ -320,11 +302,9 @@ INT8U init6013ListFrom6012File() {
 			else
 			{
 				memcpy(&list6013[total_tasknum].basicInfo, &class6013, sizeof(CLASS_6013));
-				list6013[total_tasknum].ts_next.Year = ts_now.Year;
-				list6013[total_tasknum].ts_next.Month = ts_now.Month;
-				list6013[total_tasknum].ts_next.Day = ts_now.Day;
-				list6013[total_tasknum].ts_next.Hour = ts_now.Hour;
-				list6013[total_tasknum].ts_next.Minute = ts_now.Minute;
+				time_t timenow = time(NULL);
+				list6013[total_tasknum].ts_next  = timenow;
+
 				total_tasknum++;
 			}
 
@@ -350,8 +330,9 @@ void dispatch_thread()
 		{
 			fprintf(stderr, "\n\n\n\n*************任务开始执行 ************ tastIndexIndex = %d taskID = %d*****************\n",
 					tastIndex, list6013[tastIndex].basicInfo.taskID);
-			//计算下一次抄读此任务的时间
-			getTaskNextTime(tastIndex);
+			//计算下一次抄读此任务的时间;
+			list6013[tastIndex].ts_next = calcnexttime(list6013[tastIndex].basicInfo.interval,list6013[tastIndex].basicInfo.startime);
+
 			INT8S ret = mqs_send((INT8S *)TASKID_485_2_MQ_NAME,1,1,(INT8U *)&tastIndex,sizeof(INT16S));
 			fprintf(stderr,"\n 向485 2线程发送任务ID = %d \n",ret);
 			ret = mqs_send((INT8S *)TASKID_485_1_MQ_NAME,1,1,(INT8U *)&tastIndex,sizeof(INT16S));

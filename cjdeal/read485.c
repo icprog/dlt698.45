@@ -2001,20 +2001,15 @@ INT16U compose6012Buff(DateTimeBCD startTime,TSA meterAddr,INT16U dataLen,INT8U*
 	buff6012[bufflen++] = 0x55;
 	memcpy(&buff6012[bufflen],meterAddr.addr,sizeof(TSA));//采集通信地址
 	bufflen += sizeof(TSA);
-
 	fprintf(stderr,"\n 采集通信地址：");
 	for(;index < bufflen;index++)
 	{
 		fprintf(stderr," %02x",buff6012[index]);
 	}
 
-	INT8U DateTimeBCDLen = sizeof(DateTimeBCD)-1;
 
 	index = bufflen;
-	buff6012[bufflen++] = dtdatetimes;
-	memcpy(&buff6012[bufflen],&startTime,DateTimeBCDLen);//采集启动时标
-	bufflen += DateTimeBCDLen;
-
+	bufflen += fill_date_time_s(&buff6012[bufflen],&startTime);
 	fprintf(stderr,"\n 采集启动时标：");
 	fprintf(stderr,"index = %d bufflen = %d",index,bufflen);
 	for(;index < bufflen;index++)
@@ -2023,10 +2018,7 @@ INT16U compose6012Buff(DateTimeBCD startTime,TSA meterAddr,INT16U dataLen,INT8U*
 	}
 
 	index = bufflen;
-	buff6012[bufflen++] = dtdatetimes;
-	memcpy(&buff6012[bufflen],&endTime,DateTimeBCDLen);//采集成功时标
-	bufflen += DateTimeBCDLen;
-
+	bufflen += fill_date_time_s(&buff6012[bufflen],&endTime);
 	fprintf(stderr,"\n 采集成功时标：");
 	fprintf(stderr,"index = %d bufflen = %d",index,bufflen);
 	for(;index < bufflen;index++)
@@ -2035,10 +2027,7 @@ INT16U compose6012Buff(DateTimeBCD startTime,TSA meterAddr,INT16U dataLen,INT8U*
 	}
 
 	index = bufflen;
-	buff6012[bufflen++] = dtdatetimes;
-	memcpy(&buff6012[bufflen],&endTime,DateTimeBCDLen);//采集存储时标
-	bufflen += DateTimeBCDLen;
-
+	bufflen += fill_date_time_s(&buff6012[bufflen],&endTime);
 	fprintf(stderr,"\n 采集存储时标：");
 	fprintf(stderr,"index = %d bufflen = %d",index,bufflen);
 	for(;index < bufflen;index++)
