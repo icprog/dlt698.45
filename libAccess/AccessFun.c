@@ -1577,7 +1577,7 @@ int findTsa(TSA tsa,FILE *fp,int headsize,int blocksize)
 	INT8U  tsa_tmp[TSA_LEN + 1];
 	int offset = headsize;
 
-	fprintf(stderr,"\n目的tsa addr: %d-",tsa.addr[0]);
+	fprintf(stderr,"\noffset=%d,需要查找 TSA: %d-",offset,tsa.addr[0]);
 	for(i=0;i<(tsa.addr[0]+1);i++) {
 		fprintf(stderr,"-%02x",tsa.addr[i]);
 	}
@@ -1587,13 +1587,13 @@ int findTsa(TSA tsa,FILE *fp,int headsize,int blocksize)
 		{
 			return 0;
 		}
-//		fprintf(stderr,"\nnow addr: %d-",tsa.addr[0]);
-		for(i=0;i<(tsa.addr[0]+1);i++) {
-			fprintf(stderr,"-%02x",tsa_tmp[i]);
-		}
+//		fprintf(stderr,"\n任务保存 TSA: ");
+//		for(i=0;i<(tsa.addr[0]+2);i++) {
+//			fprintf(stderr,"-%02x",tsa_tmp[i]);
+//		}
 		if(memcmp(&tsa_tmp[1],&tsa.addr[0],tsa.addr[0])==0)
 		{
-			fprintf(stderr,"\nfind addr: %d-",tsa.addr[0]);
+			fprintf(stderr,"\n找到匹配 addr: %d-",tsa.addr[0]);
 			for(i=0;i<(tsa.addr[0]+1);i++) {
 				fprintf(stderr,"-%02x",tsa.addr[i]);
 			}
@@ -1718,7 +1718,21 @@ int collectData(INT8U *databuf,INT8U *srcbuf,OAD_INDEX *oad_offset,int oadnum)
 	return pindex;
 }
 
+int fillTsaNullData(INT8U *databuf,TSA tsa,int oadnum)
+{
+	int pindex = 0;
+	int i=0;
+	if(oadnum==1) return pindex;
 
+	databuf[pindex++] = dttsa;
+	memcpy(&databuf[pindex],&tsa,(tsa.addr[0]+1));
+	pindex += (tsa.addr[0]+1);
+	for(i=0;i<(oadnum-1);i++) {
+		databuf[pindex++] = 0;
+	}
+	fprintf(stderr,"fillTsaNullData----index=%d\n",pindex);
+	return pindex;
+}
 
 INT16S GetTaskHead(FILE *fp,INT16U *head_len,INT16U *tsa_len,HEAD_UNIT **head_unit)
 {
@@ -1799,7 +1813,7 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds,INT8U rec
 	fprintf(stderr,"\nmstype=%d recordno=%d\n",select.selec10.meters.mstype,recordno);
 
 	tsa_num = getTsas(select.selec10.meters,(INT8U **)&tsa_group);
-	fprintf(stderr,"get tsa_num=%d,tsa_group=%p\n",tsa_num,tsa_group);
+	fprintf(stderr,"get 需要上报的：tsa_num=%d,tsa_group=%p\n",tsa_num,tsa_group);
 	for(i=0;i<tsa_num;i++) {
 		fprintf(stderr,"\nTSA%d: %d-",i,tsa_group[i].addr[0]);
 		for(j=0;j<tsa_group[i].addr[0];j++) {
@@ -1816,14 +1830,18 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds,INT8U rec
 	for(i =0; i< tsa_num; i++)
 	{
 		offsetTsa = findTsa(tsa_group[i],fp,headsize,blocksize);
-//		fprintf(stderr,"\n-----offsetTsa = %d\n",offsetTsa);
-		if(offsetTsa == 0)
-			continue;
+		fprintf(stderr,"\n-----offsetTsa = %d\n",offsetTsa);
 		//4\计算当前点
 		currecord = getrecordno(tasknor_info.starthour,tasknor_info.startmin,tasknor_info.freq);//freq为执行间隔,单位分钟
 //		for(j=0; j<recordn ; j++)
 		for(j=1; j<=recordn;j++)		//test
 		{
+			if(offsetTsa == 0) {
+				fprintf(stderr,"task未找到数据,i=%d\n",i);
+				indexn += fillTsaNullData(&onefrmbuf[indexn],tsa_group[i],item_road.oadmr_num);
+				recordnum++;
+				continue;
+			}
 			//5\定位指定的点（行）, 返回offset
 			recordoffset = findrecord(offsetTsa,recordlen,currecord-j);//selector10 例如当前在10，上1为10-0=10 上2为10-1=9
 			memset(recordbuf,0x00,sizeof(recordbuf));
