@@ -530,7 +530,7 @@ int main(int argc, char* argv[]) {
     }
     if (strcmp("taskdata", argv[1]) == 0) {
     	fprintf(stderr, "\n分析任务数据文件内容\n");
-    	analyTaskData(argv[2]);
+    	analyTaskData(argc,argv);
     	return EXIT_SUCCESS;
     }
     prthelp();
