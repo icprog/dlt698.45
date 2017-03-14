@@ -479,6 +479,11 @@ int main(int argc, char* argv[]) {
         SetF202(argc, argv);
         return EXIT_SUCCESS;
     }
+    if (strcmp("taskdata", argv[1]) == 0) {
+    	fprintf(stderr, "\n分析任务数据文件内容\n");
+    	analyTaskData(argv[2]);
+    	return EXIT_SUCCESS;
+    }
     prthelp();
     return EXIT_SUCCESS;
 }
