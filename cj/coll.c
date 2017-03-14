@@ -1083,9 +1083,12 @@ void analyTaskData(char *filename)
 				{
 					fprintf(stderr,"\n%04x . %04x  %02d字节     |",length[i].oad_m.OI,length[i].oad_r.OI,length[i].len);
 					memset(buf,0,50);
-					fread(buf,length[i].len,1,fp);
-					for(j=0;j<length[i].len;j++)
-						fprintf(stderr,"%02x ",buf[j]);
+					if (fread(buf,length[i].len,1,fp)>0)
+					{
+						for(j=0;j<length[i].len;j++)
+							fprintf(stderr,"%02x ",buf[j]);
+					}else
+						break;
 				}
 			}
 		}
