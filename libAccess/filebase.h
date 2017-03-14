@@ -79,10 +79,11 @@ const static  Variable_TJ_Class vari_tj_data[] ={
 };
 
 typedef struct{
-	OAD   oad_m;
-	OAD   oad_r;
-	INT16U len;
+	OAD   oad_m;	//主OAD		oad 不存在主OAD，填0 ，road  存在主oad，如50040200
+	OAD   oad_r;	//关联OAD
+	INT16U len;		//oad 的数据长度，包括类型描述
 }HEAD_UNIT;
+
 typedef struct{
 	OAD    oad_m;
 	OAD    oad_r;

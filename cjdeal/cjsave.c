@@ -47,6 +47,9 @@ INT16U FixHeadUnit(INT8U *headbuf,INT8U *fixlen)
 	return index;
 }
 
+/*
+ * 根据招测的RCSD计算招测的OI个数
+ * */
 INT16U CalcHeadRcsdUnitNum(CSD_ARRAYTYPE csds)
 {
 	INT16U headunit_num=4;		//FixHeadUnit 固定TSA+3个时标的HEAD_UNIT长度
@@ -114,7 +117,7 @@ INT16U CalcOILen(OAD oad,INT8U rate)
 		if(strncmp(ln,"end",3) == 0) break;
 		if(strncmp(ln,"//",2) == 0) continue;
 
-		memset(lnf,0x00,5);
+		memset(lnf,0x00,sizeof(lnf));
 		memcpy(lnf,&ln[0],4);
 		fprintf(stderr," lnf=%s\n",lnf);
 		oi_tmp = strtol(lnf,NULL,16);
@@ -122,10 +125,10 @@ INT16U CalcOILen(OAD oad,INT8U rate)
 		fprintf(stderr,"\n------oi_tmp=%04x--%s\n",oi_tmp,ln);
 		if(oi_tmp != oad.OI)
 			continue;
-		memset(lnf,0x00,4);
+		memset(lnf,0x00,sizeof(lnf));
 		memcpy(lnf,&ln[8],3);
 		oi_len = strtol(lnf,NULL,10)+1;		//返回长度+1个字节数据类型描述
-		memset(lnf,0x00,4);
+		memset(lnf,0x00,sizeof(lnf));
 		memcpy(lnf,&ln[12],2);
 		ic_type = strtol(lnf,NULL,10);
 		fprintf(stderr,"oi=%04x ,oi_len=%d,ic_type=%d",oad.OI,oi_len,ic_type);

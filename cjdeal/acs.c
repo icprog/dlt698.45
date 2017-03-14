@@ -1068,7 +1068,7 @@ void InitClass4016()
 			class4016.Period_Rate[i].hour = i;
 			class4016.Period_Rate[i].min = 0;
 			class4016.Period_Rate[i].rateno = (i%4)+1;
-			fprintf(stderr,"%d: hour:min=%d:%d rate=%d\n",i,class4016.Period_Rate[i].hour,class4016.Period_Rate[i].min,class4016.Period_Rate[i].rateno);
+//			fprintf(stderr,"%d: hour:min=%d:%d rate=%d\n",i,class4016.Period_Rate[i].hour,class4016.Period_Rate[i].min,class4016.Period_Rate[i].rateno);
 		}
 	}
 }

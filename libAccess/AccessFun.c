@@ -747,7 +747,7 @@ void GetOADPosofUnit(ROAD_ITEM item_road,HEAD_UNIT *head_unit,INT8U unitnum,OAD_
 		datapos=0;
 		for(j=0;j<unitnum;j++)
 		{
-			fprintf(stderr,"j=%d,len=%d,datapos=%d\n",j,head_unit[j].len,datapos);
+//			fprintf(stderr,"j=%d,len=%d,datapos=%d\n",j,head_unit[j].len,datapos);
 			memcpy(&oad_offset[i].oad_m,&item_road.oad[i].oad_m,sizeof(OAD));
 			memcpy(&oad_offset[i].oad_r,&item_road.oad[i].oad_r,sizeof(OAD));
 			if(memcmp(&item_road.oad[i].oad_m,&head_unit[j].oad_m,sizeof(OAD))==0 &&
@@ -1569,9 +1569,11 @@ void ReadFileHeadLen(FILE *fp,int *headlen,int *blocklen)
 	fread(&blocklength,2,1,fp);
 	*blocklen = ((blocklength>>8)+((blocklength&0xff)<<8));
 }
+
 int findTsa(TSA tsa,FILE *fp,int headsize,int blocksize)
 {
 	int i=0;
+
 	rewind(fp);
 	fseek(fp,headsize,SEEK_CUR);
 	INT8U  tsa_tmp[TSA_LEN + 1];
@@ -1588,13 +1590,13 @@ int findTsa(TSA tsa,FILE *fp,int headsize,int blocksize)
 			return 0;
 		}
 		fprintf(stderr,"\nnow addr: %d-",tsa.addr[0]);
-		for(i=0;i<18;i++) {
+		for(i=0;i<(tsa.addr[0]+1);i++) {
 			fprintf(stderr,"-%02x",tsa_tmp[i]);
 		}
 		if(memcmp(&tsa_tmp[1],&tsa.addr[0],tsa.addr[0])==0)
 		{
 			fprintf(stderr,"\nfind addr: %d-",tsa.addr[0]);
-			for(i=0;i<tsa.addr[0];i++) {
+			for(i=0;i<(tsa.addr[0]+1);i++) {
 				fprintf(stderr,"-%02x",tsa.addr[i]);
 			}
 			break;
@@ -1622,7 +1624,9 @@ int getrecordno(INT8U starthour,INT8U startmin,int interval)
 	TSGet(&ts_now);
 	fprintf(stderr,"\ninterval = %d\n",interval);
 	recordno = (ts_now.Hour*60 + ts_now.Minute) - (starthour*60 + startmin);
-	recordno = recordno/(interval/60);
+	if(interval!=0) {
+		recordno = recordno/(interval/60);
+	}else recordno = 1;		//冻结抄读
 	fprintf(stderr,"\n当前：%d:%d 任务开始：%d:%d 任务间隔:%d 记录序号%d\n",ts_now.Hour,ts_now.Minute,starthour,startmin,interval,recordno);
 	return recordno;
 }
@@ -1636,7 +1640,7 @@ void printRecordBytes(INT8U *data,int datalen)
 	}
 	fprintf(stderr,"\n");
 }
-int initFrameHead(INT8U *buf,OAD oad,RSD select,INT8U selectype,CSD_ARRAYTYPE csds)
+int initFrameHead(INT8U *buf,OAD oad,RSD select,INT8U selectype,CSD_ARRAYTYPE csds,INT8U *seqnumindex)
 {
 	int indexn=0 ,i=0 ;
 
@@ -1649,7 +1653,10 @@ int initFrameHead(INT8U *buf,OAD oad,RSD select,INT8U selectype,CSD_ARRAYTYPE cs
 		indexn += fill_CSD(0,&buf[indexn],csds.csd[i]);		//填充 CSD
 	}
 	buf[indexn++] = 1;	//结果类型 数据
+	*seqnumindex = indexn+2;
 	buf[indexn++] = 1;	//sequence of 长度
+
+	fprintf(stderr,"seqnumindex = %d\n",*seqnumindex);
 	return indexn;
 }
 void intToBuf(int value,INT8U *buf)
@@ -1676,7 +1683,7 @@ int collectData(INT8U *databuf,INT8U *srcbuf,OAD_INDEX *oad_offset,int oadnum)
 			else
 			{
 				memcpy(tmpbuf,&srcbuf[oad_offset[j].offset],oad_offset[j].len);
-				fprintf(stderr,"tmpbuf[0]=%02x\n",tmpbuf[0]);
+//				fprintf(stderr,"tmpbuf[0]=%02x\n",tmpbuf[0]);
 				switch(tmpbuf[0])
 				{
 				case 0:
@@ -1751,6 +1758,7 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds,INT8U rec
 	TASKSET_INFO tasknor_info;
 	INT16U  blocksize=0,headsize=0;
 	int offsetTsa = 0,recordoffset = 0,unitnum=0,i=0,j=0,indexn=0,recordlen = 0,recordno = 0,currecord = 0,tsa_num=0,framesum=0;
+	INT8U recordnum=0,seqnumindex=0;
 	TSA *tsa_group = NULL;
 
 	if((taskid = GetTaskidFromCSDs(csds,&item_road)) == 0)//暂时不支持招测的不在一个采集方案
@@ -1804,19 +1812,19 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds,INT8U rec
 	memset(onefrmbuf,0,sizeof(onefrmbuf));
 	//初始化分帧头
 	indexn = 2;
-	indexn += initFrameHead(&onefrmbuf[indexn],oad,select,selectype,csds);
+	indexn += initFrameHead(&onefrmbuf[indexn],oad,select,selectype,csds,&seqnumindex);
 
 	//3\定位TSA , 返回offset
 	for(i =0; i< tsa_num; i++)
 	{
 		offsetTsa = findTsa(tsa_group[i],fp,headsize,blocksize);
-		fprintf(stderr,"\n-----offsetTsa = %d\n",offsetTsa);
+//		fprintf(stderr,"\n-----offsetTsa = %d\n",offsetTsa);
 		if(offsetTsa == 0)
 			continue;
 		//4\计算当前点
 		currecord = getrecordno(tasknor_info.starthour,tasknor_info.startmin,tasknor_info.freq);//freq为执行间隔,单位分钟
 //		for(j=0; j<recordn ; j++)
-			for(j=1; j<=recordn ; j++)		//test
+		for(j=1; j<=recordn;j++)		//test
 		{
 			//5\定位指定的点（行）, 返回offset
 			recordoffset = findrecord(offsetTsa,recordlen,currecord-j);//selector10 例如当前在10，上1为10-0=10 上2为10-1=9
@@ -1827,7 +1835,8 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds,INT8U rec
 			printRecordBytes(recordbuf,recordlen);
 			//7\根据csds挑选数据，组织存储缓存
 			indexn += collectData(&onefrmbuf[indexn],recordbuf,oad_offset,item_road.oadmr_num);
-
+			recordnum++;
+			fprintf(stderr,"recordnum=%d  seqnumindex=%d\n",recordnum,seqnumindex);
 			if (indexn>=1000)
 			{
 				framesum++;
@@ -1835,7 +1844,9 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds,INT8U rec
 				intToBuf((indexn-2),onefrmbuf);		//帧长度保存帧的数据长度
 				saveOneFrame(onefrmbuf,indexn,myfp);
 				indexn = 2;
-				indexn += initFrameHead(&onefrmbuf[indexn],oad,select,selectype,csds);
+				indexn += initFrameHead(&onefrmbuf[indexn],oad,select,selectype,csds,&seqnumindex);
+				onefrmbuf[seqnumindex] = recordnum;
+				recordnum = 0;
 				break;
 			}
 		}
@@ -1846,23 +1857,24 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds,INT8U rec
 	}
 
 	if(framesum==0) {
-		fprintf(stderr,"saveOneFrame !!!!!!!!!!!!!!!!\n");
+		fprintf(stderr,"saveOneFrame  seqnumindex=%d,  recordnum=%d!!!!!!!!!!!!!!!!\n",seqnumindex,recordnum);
 		intToBuf((indexn-2),onefrmbuf);
+		onefrmbuf[seqnumindex] = recordnum;
 		saveOneFrame(onefrmbuf,indexn,myfp);
 	}
-	fprintf(stderr,"\n---------------------------------3-------------------------------------------------------------\n");
+//	fprintf(stderr,"\n---------------------------------3-------------------------------------------------------------\n");
 	if(tsa_group != NULL)
 		free(tsa_group);
-	fprintf(stderr,"\n---------------------------------3.5-------------------------------------------------------------\n");
+//	fprintf(stderr,"\n---------------------------------3.5-------------------------------------------------------------\n");
 	if(headunit!=NULL){
 		free(headunit);
 	}
-	fprintf(stderr,"\n---------------------------------4-------------------------------------------------------------\n");
+//	fprintf(stderr,"\n---------------------------------4-------------------------------------------------------------\n");
 	if(fp != NULL)
 		fclose(fp);
 	if(myfp != NULL)
 		fclose(myfp);
-	fprintf(stderr,"\n---------------------------------5-------------------------------------------------------------\n");
+//	fprintf(stderr,"\n---------------------------------5-------------------------------------------------------------\n");
 	return 0;
 }
 //INT8U getaskData(OAD oad_h,INT8U seletype,ZC_TIMEINTERVL timeinte,TSA *tsa_con,INT16U tsa_num,CSD_ARRAYTYPE csds)//,ROAD_ITEM item_road)

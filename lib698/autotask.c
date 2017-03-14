@@ -40,7 +40,7 @@ time_t calcnexttime(TI ti,DateTimeBCD datetime)
 	timestart = tmtotime_t(ptm);//开始时间
 	timenow = time(NULL);//当前时间
 	jiange = getTItoSec(ti);
-	fprintf(stderr,"jiange = %d 秒\n",jiange);
+	fprintf(stderr,"TI:%d-%d, jiange = %d 秒\n",ti.units,ti.interval,jiange);
 	if (timenow > timestart)
 	{
 		timetmp = timenow - timestart;
