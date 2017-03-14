@@ -1057,23 +1057,24 @@ void analyTaskData(char *filename)
 				memset(buf,0,50);
 				fread(buf,10,1,fp);
 				getOADf(0,&buf[0],&oad);
-				memcpy(&length[indexn].oad_m,&oad,sizeof(oad));
+				memcpy(&length[i].oad_m,&oad,sizeof(oad));
 				fprintf(stderr,"\n【%02d】  %04x-%02x-%02x   ",i,oad.OI,oad.attflg,oad.attrindex);
 				getOADf(0,&buf[4],&oad);
-				memcpy(&length[indexn].oad_r,&oad,sizeof(oad));
+				memcpy(&length[i].oad_r,&oad,sizeof(oad));
 				fprintf(stderr,  "%04x-%02x-%02x   ",oad.OI,oad.attflg,oad.attrindex);
-				length[indexn].len = buf_int2(&buf[8]);
-				fprintf(stderr," %02d 字节        |   ",length[indexn].len);
+				length[i].len = buf_int2(&buf[8]);
+				fprintf(stderr," %02d 字节        |   ",length[i].len);
 				indexn++;
 				for(j=0;j<10;j++)
 					fprintf(stderr,"%02x ",buf[j]);
 				if (i==3)
 					fprintf(stderr,"\n");
-				A_record += length[indexn].len;
+				A_record += length[i].len;
 			}
 			int recordnum =0;
-			recordnum =
-			fprintf(stderr,"\n 每记录长 %d 字节   ",A_record);
+			fprintf(stderr,"\nA_TSAblock=%d  A_record=%d",A_TSAblock,A_record);
+			recordnum = A_TSAblock/A_record;
+			fprintf(stderr,"\n 每记录长 %d 字节  共计 %d条记录 ",A_record,recordnum);
 			for(i=0;i<indexn;i++)
 			{
 				fprintf(stderr,"\n%04x , %04x  %02d字节     |",length[i].oad_m.OI,length[i].oad_r.OI,length[i].len);
