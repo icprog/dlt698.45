@@ -34,7 +34,7 @@ extern void print_road(ROAD road);
 extern void print_rcsd(CSD_ARRAYTYPE csds);
 extern void print_rsd(INT8U choice, RSD rsd);
 /**/
-INT16U getTItoSec(TI ti);
+extern int getTItoSec(TI ti);
 /*----------------------接口类及对象实例的基本数据类型组帧----------------------*/
 extern int create_OAD(INT8U* data, OAD oad);
 extern int create_array(INT8U* data, INT8U numm);

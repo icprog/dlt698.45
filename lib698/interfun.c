@@ -73,9 +73,9 @@ void print_rcsd(CSD_ARRAYTYPE csds)
 }
 
 ////////////////////////////////////////////////////////////////////
-INT16U getTItoSec(TI ti)
+int getTItoSec(TI ti)
 {
-	INT16U sec = 0;
+	int  sec = 0;
 	switch(ti.units)
 	{
 		case 0://秒
@@ -97,6 +97,7 @@ INT16U getTItoSec(TI ti)
 		default:
 			break;
 	}
+	fprintf(stderr,"get TI(%d-%d) sec=%d\n",ti.units,ti.interval,sec);
 	return sec;
 }
 //////////////////////////////////////////////////////////////////////

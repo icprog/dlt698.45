@@ -12,12 +12,11 @@
 #define delay(A) usleep((A)*1000)
 //////////////////////////////////////////////////////////////
 #define _CFGDIR_ 			"/nor/config"
-#define _ACSDIR_			"/nand/acs"
+#define _ACSDIR_			"/nor/acs"
 ///////////////////////////////////////////////////////////////
 /*
  * 	进程间通讯相关限值
  * */
-
 #define ARGVMAXLEN			50					//参数最大长度
 #define PRONAMEMAXLEN		50					//进程名称最大长度
 #define	PROJECTCOUNT		10					//守护进程可以支持的最多进程数
