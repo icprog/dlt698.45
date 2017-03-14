@@ -390,64 +390,15 @@ int main(int argc, char* argv[]) {
         return EXIT_SUCCESS;
     }
     if (strcmp("ms", argv[1]) == 0) {
-        int ret = 0, i = 0;
-        //    	FILE *fp  = NULL;
-        //    	INT8U headl[2],blockl[2];
-        //    	INT16U	headlen,blocklen,unitnum;
-        //    	char *databuf_tmp=NULL;
-        //    	INT8U tmpbufff[150];
-        //    	HEAD_UNIT	*head_unit=NULL;
-        //    	fp = fopen("/nand/task/002/20170311.dat","r");
-        //    	if(fp == NULL)//文件没内容，退出，如果文件已存在，提取文件头信息
-        //    	{
-        //    		fprintf(stderr,"\n-----file not exist\n");
-        //    		return 0;
-        //    	}
-        //    	else
-        //    	{
-        //    		INT16S GetTaskHead(FILE *fp,INT16U *head_len,INT16U *tsa_len,INT8U **head_unit)
-
-        //    		unitnum = GetTaskHead(fp,&headlen,&blocklen,&head_unit);
-        //    		fprintf(stderr,"unitnum=%d\n",unitnum);
-        //    		for(i=0;i<unitnum;i++)
-        //    			fprintf(stderr,"%04x%02x%02x:%04x%02x%02x:%04x\n",
-        //    					head_unit[i].oad_m.OI,head_unit[i].oad_m.attflg,head_unit[i].oad_m.attrindex,
-        //    					head_unit[i].oad_r.OI,head_unit[i].oad_r.attflg,head_unit[i].oad_r.attrindex,head_unit[i].len);
-        ////    		for(i=0;i<headlen-4;i++)
-        ////    			fprintf(stderr,"%02x ",tmpbufff[i]);
-        //       		if(head_unit!=NULL){
-        //        			fprintf(stderr,"head_unit p=%p\n",head_unit);
-        //        			free(head_unit);
-        //     		}
-        //    		fprintf(stderr,"\n---------------------------\n");
-        //        	fclose(fp);
-        //     	}
-        CLASS_601D class601d = {};
-        if (readCoverClass(0x601D, 62, &class601d, sizeof(CLASS_601D), coll_para_save) == 1) {
-            ret = GetReportData(class601d);
-        }
-        return EXIT_SUCCESS;
-
-        //    	MY_MS ms={};
-        //    	TSA   *tsas=NULL;
-        //    	int	tsa_num = 0,i=0,j=0;
-        //    	ms.mstype = 4;
-        //    	ms.ms.configSerial[0]=3;
-        //    	ms.ms.configSerial[1]=2;
-        //    	ms.ms.configSerial[2]=16;
-        //    	ms.ms.configSerial[3]=17;
-        //    	tsa_num = getTsas(ms,(INT8U **)&tsas);
-        //    	fprintf(stderr,"get tsa_num=%d,tsas=%p\n",tsa_num,tsas);
-        //    	for(i=0;i<tsa_num;i++) {
-        //    		fprintf(stderr,"\nTSA%d: %d-",i,tsas[i].addr[0]);
-        //    		for(j=0;j<tsas[i].addr[0];j++) {
-        //    			fprintf(stderr,"-%02x",tsas[i].addr[j+1]);
-        //    		}
-        //    	}
-        //    	if(tsas!=NULL) {
-        //    		free(tsas);
-        //    	}
-        return EXIT_SUCCESS;
+    	int taskid=0;
+		int ret = 0;
+		taskid = atoi(argv[2]);
+		fprintf(stderr,"taskid=%d\n",taskid);
+		CLASS_601D class601d = {};
+		if (readCoverClass(0x601D, taskid, &class601d, sizeof(CLASS_601D), coll_para_save) == 1) {
+			ret = GetReportData(class601d);
+		}
+		return EXIT_SUCCESS;
     }
 
     if (strcmp("ip", argv[1]) == 0) {
