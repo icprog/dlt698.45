@@ -1075,13 +1075,18 @@ void analyTaskData(char *filename)
 			fprintf(stderr,"\nA_TSAblock=%d  A_record=%d",A_TSAblock,A_record);
 			recordnum = A_TSAblock/A_record;
 			fprintf(stderr,"\n 每记录长 %d 字节  共计 %d条记录 ",A_record,recordnum);
-			for(i=0;i<indexn;i++)
+			int k=0;
+			for(k=0;k<recordnum;k++)
 			{
-				fprintf(stderr,"\n%04x , %04x  %02d字节     |",length[i].oad_m.OI,length[i].oad_r.OI,length[i].len);
-				memset(buf,0,50);
-				fread(buf,length[i].len,1,fp);
-				for(j=0;j<length[i].len;j++)
-					fprintf(stderr,"%02x ",buf[j]);
+				fprintf(stderr,"\n记录%d",k);
+				for(i=0;i<indexn;i++)
+				{
+					fprintf(stderr,"\n%04x . %04x  %02d字节     |",length[i].oad_m.OI,length[i].oad_r.OI,length[i].len);
+					memset(buf,0,50);
+					fread(buf,length[i].len,1,fp);
+					for(j=0;j<length[i].len;j++)
+						fprintf(stderr,"%02x ",buf[j]);
+				}
 			}
 		}
 	}
