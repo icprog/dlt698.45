@@ -13,7 +13,7 @@ extern void read_oif203_para();
 
 typedef struct {
 	INT8U run_flg;//累计需要抄读次数 抄读一次后置为0   到下一次抄读时间置为1
-	TS ts_next;//下一次抄表时刻
+	time_t ts_next;//下一次抄表时刻
 	CLASS_6013 basicInfo;
 }TASK_CFG;
 
