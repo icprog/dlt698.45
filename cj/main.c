@@ -390,9 +390,11 @@ int main(int argc, char* argv[]) {
         return EXIT_SUCCESS;
     }
     if (strcmp("ms", argv[1]) == 0) {
-    	int taskid=0;
+    	int taskid=64;
 		int ret = 0;
-		taskid = atoi(argv[2]);
+		if(argc>=3) {
+			taskid = atoi(argv[2]);
+		}
 		fprintf(stderr,"taskid=%d\n",taskid);
 		CLASS_601D class601d = {};
 		if (readCoverClass(0x601D, taskid, &class601d, sizeof(CLASS_601D), coll_para_save) == 1) {

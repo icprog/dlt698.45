@@ -290,9 +290,7 @@ int  readParaClass(OI_698 oi,void *blockdata,int seqnum)
 	return ret;
 }
 
-
 /////////////////////////////////////////////////////////////////////////////////////////
-
 /*
  * 输入参数：	oi:对象标识，seqno:记录序号，blockdata:存储数据，savelen：存储长度，
  * 			type：存储类型【	根据宏定义SaveFile_type 】
@@ -1589,7 +1587,7 @@ int findTsa(TSA tsa,FILE *fp,int headsize,int blocksize)
 		{
 			return 0;
 		}
-		fprintf(stderr,"\nnow addr: %d-",tsa.addr[0]);
+//		fprintf(stderr,"\nnow addr: %d-",tsa.addr[0]);
 		for(i=0;i<(tsa.addr[0]+1);i++) {
 			fprintf(stderr,"-%02x",tsa_tmp[i]);
 		}
@@ -1857,7 +1855,7 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds,INT8U rec
 	}
 
 	if(framesum==0) {
-		fprintf(stderr,"saveOneFrame  seqnumindex=%d,  recordnum=%d!!!!!!!!!!!!!!!!\n",seqnumindex,recordnum);
+		fprintf(stderr,"\n indexn = %d saveOneFrame  seqnumindex=%d,  recordnum=%d!!!!!!!!!!!!!!!!\n",indexn,seqnumindex,recordnum);
 		intToBuf((indexn-2),onefrmbuf);
 		onefrmbuf[seqnumindex] = recordnum;
 		saveOneFrame(onefrmbuf,indexn,myfp);

@@ -198,12 +198,28 @@ void Collect6000(int argc, char *argv[])
 	int		ret = -1, pi=0, po=0;
 	int		i=0;
 	int 	tmp[50]={};
+	int		seqno=0;
 
 	if(strcmp("pro",argv[2])==0) {
 		if(argc<5) {
 			print6000(0x6000);
 		}
-	}if(strcmp("add",argv[2])==0) {
+	}
+	if(strcmp("delete",argv[2])==0) {
+		if(argc==5) {
+			seqno = atoi(argv[4]);
+			fprintf(stderr,"删除 采集档案配置序号： %d\n",seqno);
+			if(readParaClass(0x6000,&meter,seqno)==1) {
+				if(seqno == meter.sernum) {
+					meter.sernum = 0;
+					ret = saveParaClass(0x6000,&meter,seqno);
+					if(ret==1)
+						fprintf(stderr,"删除 序号 %d 成功, ret=%d\n",seqno,ret);
+				}
+			}
+		}
+	}
+	if(strcmp("add",argv[2])==0) {
 		if(argc<5) {
 			fprintf(stderr,"\n添加一个采集档案配置单元：配置项0-12：\n[0]配置序号 \n");
 			fprintf(stderr,"基本信息:[1]通信地址  [2]波特率  [3]规约  [4]端口OAD  [5]费率个数  [6]用户类型  [7]接线方式  [8]额定电压  [9]额定电流 \n");
