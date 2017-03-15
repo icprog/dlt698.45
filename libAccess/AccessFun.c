@@ -86,7 +86,6 @@ void clearDemand()
 	system("rm -rf /nand/demand");
 }
 
-
 /*
  * 数据区初始化接口函数
  * 返回值 =0: 删除成功
@@ -614,7 +613,7 @@ int  readVariData(OI_698 oi,int coll_seqnum,void *blockdata,int len)
 //}
 
 
-///////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////task数据存储接口////////////////////////////////////////////////////////////////////
 
 /*
  * 计算某个普通采集方案一天需要存几次，是否与采集任务里面的执行频率有关？
@@ -666,7 +665,6 @@ INT8U datafile_write(char *FileName, void *source, int size, int offset)
 	INT8U res=0;
 	int num=0;
 	INT8U	*blockdata=NULL;
-//	int i=0;
 
 	blockdata = malloc(size);
 	if(blockdata!=NULL) {
@@ -698,6 +696,7 @@ INT8U datafile_write(char *FileName, void *source, int size, int offset)
 	free(blockdata);//add by nl1031
 	return res;
 }
+
 INT8U datafile_read(char *FileName, void *source, int size, int offset)
 {
 	FILE 	*fp=NULL;
@@ -707,13 +706,14 @@ INT8U datafile_read(char *FileName, void *source, int size, int offset)
 		fseek(fp, offset, SEEK_SET);
 		num=fread(source,1 ,size,fp);
 		if(num==(size)) 			//读取了size字节数据
-				ret = 1;
-			else ret = 0;
+			ret = 1;
+		else ret = 0;
 		fclose(fp);
 	} else
 		ret = 0;
 	return ret;
 }
+
 void getTaskFileName(INT8U taskid,TS ts,char *fname)
 {
 	char dirname[FILENAMELEN]={};
@@ -727,6 +727,7 @@ void getTaskFileName(INT8U taskid,TS ts,char *fname)
 	sprintf(fname,"%s/%03d/%04d%02d%02d.dat",TASKDATA,taskid,ts.Year,ts.Month,ts.Day);
 //	fprintf(stderr,"getFileName fname=%s\n",fname);
 }
+
 INT16U GetFileOadLen(INT8U units,INT8U tens)//个位十位转化为一个INT16U
 {
 	INT16U total = 0;
@@ -830,6 +831,7 @@ void GetOADPosofUnit(ROAD_ITEM item_road,HEAD_UNIT *head_unit,INT8U unitnum,OAD_
 //	}
 //	return 0;
 //}
+
 INT16U CalcMinFromZero(INT8U hour,INT8U min)
 {
 	INT16U minfromzero = 0;
@@ -1311,6 +1313,7 @@ INT16U GetTSACon(MY_MS meters,TSA *tsa_con,INT16U tsa_num)
 	}
 	return TSA_num;
 }
+
 INT8U GetTaskidFromCSDs(CSD_ARRAYTYPE csds,ROAD_ITEM *item_road)
 {
 	CLASS_6015	class6015={};
@@ -1522,6 +1525,7 @@ INT16U getTSASE4(MS ms,TSA *tsa)
 //	}
 //	return tsa_num;
 //}
+
 FILE* opendatafile(INT8U taskid)
 {
 	FILE *fp = NULL;
@@ -1533,6 +1537,7 @@ FILE* opendatafile(INT8U taskid)
 	fp =fopen(fname,"r");
 	return fp;
 }
+
 FILE* openFramefile()
 {
 	FILE *fp = NULL;

@@ -15,6 +15,7 @@
 #include "dlt698.h"
 #include "PublicFunction.h"
 
+char name1[128]={};
 typedef enum{
 	coll_bps=1,
 	coll_protocol,
@@ -31,9 +32,7 @@ typedef enum{
 
 char *getenum(int type,int val)
 {
-	char name1[128]={};
 	char *name=NULL;
-
 	name = name1;
 	memset(name1,0,sizeof(name1));
 //	fprintf(stderr,"val=%d ,type=%d\n",val,type);

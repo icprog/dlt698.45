@@ -64,7 +64,7 @@ typedef struct {
     INT8U proxyIp[OCTET_STRING_LEN];    //代理服务器地址
     INT16U proxyPort;                   //代理端口
     INT8U timeoutRtry;                  //超时时间，重发次数
-    INT8U heartBeat;                    //心跳周期秒
+    INT16U heartBeat;                    //心跳周期秒
 } COMM_CONFIG_1;
 typedef struct {
     INT8U workModel;                 //工作模式 enum{混合模式(0),客户机模式(1),服务器模式(2)},
@@ -74,7 +74,7 @@ typedef struct {
     INT8U proxyIp[OCTET_STRING_LEN]; //代理服务器地址
     INT16U proxyPort;                //代理端口
     INT8U timeoutRtry;               //超时时间，重发次数
-    INT8U heartBeat;                 //心跳周期秒
+    INT16U heartBeat;                 //心跳周期秒
 } COMM_CONFIG_2;
 
 typedef struct {
