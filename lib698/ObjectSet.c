@@ -221,6 +221,7 @@ INT16U set4000(OAD oad,INT8U *data)
 	case 3://校时模式
 		index += getEnum(1,&data[index],&class_tmp.type);
 		saveflg = saveCoverClass(oad.OI,0,&class_tmp,sizeof(CLASS_4000),para_vari_save);
+		memp->oi_changed.oi4000++;
 		break;
 	case 4:		//精准校时模式
 		index += getStructure(&data[index],NULL);
@@ -230,6 +231,7 @@ INT16U set4000(OAD oad,INT8U *data)
 		index += getUnsigned(&data[index],&class_tmp.delay);
 		index += getUnsigned(&data[index],&class_tmp.num_min);
 		saveflg = saveCoverClass(oad.OI,0,&class_tmp,sizeof(CLASS_4000),para_vari_save);
+		memp->oi_changed.oi4000++;
 		break;
 	}
 	return index;
