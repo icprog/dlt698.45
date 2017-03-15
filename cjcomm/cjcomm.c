@@ -75,8 +75,16 @@ void CalculateTransFlow(ProgramInfo* prginfo_event) {
 }
 
 void EventAutoReport(CommBlock* nst) {
+    static int initflag    = 0;
     static int local_index = 0;
-    if (JProgramInfo->needreport_event.event_num > 16 || JProgramInfo->needreport_event.event_num < 0) {
+
+    if (initflag == 0) {
+        initflag = 1;
+
+        local_index = JProgramInfo->needreport_event.event_num;
+    }
+
+    if (JProgramInfo->needreport_event.event_num > 15 || JProgramInfo->needreport_event.event_num < 0) {
         asyslog(LOG_ERR, "事件上报模块发生严重错误！事件序号越限(%d)", JProgramInfo->needreport_event.event_num);
         return;
     }
