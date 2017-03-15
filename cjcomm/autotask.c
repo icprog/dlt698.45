@@ -54,7 +54,7 @@ void RegularAutoTask(struct aeEventLoop* ep, CommBlock* nst) {
     for (int i = 0; i < MAXNUM_AUTOTASK; i++) {
         //调用日常通信接口
         int res = composeAutoTask(&shmem->autotask[i]);
-         if (res == 2) {
+        if (res == 2) {
             //第一次调用此函数，启动任务上报
             MoreContentSign = callAutoReport(nst, 0);
             //不再调用此函数标志
@@ -65,7 +65,7 @@ void RegularAutoTask(struct aeEventLoop* ep, CommBlock* nst) {
             conformOverTime = shmem->autotask[i].OverTime;
             //注册时间事件，检查确认状态
             conformCheckId = aeCreateTimeEvent(ep, conformOverTime * 1000, ConformCheck, nst, NULL);
-            asyslog(LOG_INFO, "检查到上报任务，初始化上报状态(次数=%d-时间=%d)、注册时间事件(%d)", conformTimes, conformOverTime,conformCheckId);
+            asyslog(LOG_INFO, "检查到上报任务，初始化上报状态(次数=%d-时间=%d)、注册时间事件(%d)", conformTimes, conformOverTime, conformCheckId);
             break;
         }
     }
@@ -74,12 +74,12 @@ void RegularAutoTask(struct aeEventLoop* ep, CommBlock* nst) {
 void ConformAutoTask(struct aeEventLoop* ep, CommBlock* nst, int res) {
     if (res == 8 || stopSign == 1) {
         //有更多的报文
+        MoreContentSign = callAutoReport(nst, 1);
         if (MoreContentSign == 1) {
             asyslog(LOG_INFO, "发现更多的报文，注销之前的时间检查函数，任务序号(%d)", conformCheckId);
             aeDeleteTimeEvent(ep, conformCheckId);
             conformCheckId = aeCreateTimeEvent(ep, conformOverTime * 1000, ConformCheck, nst, NULL);
             asyslog(LOG_INFO, "重新注册时间事件，任务序号(%d)", conformCheckId);
-            MoreContentSign = callAutoReport(nst, 1);
         } else {
             stopSign    = 0;
             conformSign = 1;
