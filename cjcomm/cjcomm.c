@@ -83,8 +83,8 @@ void EventAutoReport(CommBlock* nst) {
     if (local_index != JProgramInfo->needreport_event.event_num) {
         //循环存储16个
         local_index += 1;
-        local_index %= 16;
-        Report_Event(nst, JProgramInfo->needreport_event.report_event[local_index]);
+        local_index %= 15;
+        Report_Event(nst, JProgramInfo->needreport_event.report_event[local_index], 2);
     }
 }
 
