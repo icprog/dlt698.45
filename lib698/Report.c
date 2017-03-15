@@ -23,7 +23,7 @@ INT8S (*pSendfun_report)(int fd,INT8U* sndbuf,INT16U sndlen);
 INT8U Report_Event(CommBlock *com,Reportevent report_event,INT8U report_type){
 
 	int apduplace =0;
-	int index=0, hcsi=0,temindex=0;
+	int index=0, hcsi=0,temindex=0,i=0;
 	pSendfun_report = com->p_send;
 	CSINFO csinfo;
 	csinfo.dir = 1;
@@ -31,9 +31,11 @@ INT8U Report_Event(CommBlock *com,Reportevent report_event,INT8U report_type){
 	csinfo.funcode = 0x03;
 	csinfo.gframeflg = 0;
 	csinfo.sa_type = 0;
-	INT8U sa_len=com->serveraddr[0]+1;
-	memcpy(csinfo.sa,&com->serveraddr[1],sa_len);
-//	csinfo.ca = com->taskaddr;
+	INT8U sa_len=com->serveraddr[0];
+	for(i=0;i<sa_len;i++) {
+		csinfo.sa[i] = com->serveraddr[sa_len-i];
+	}
+	csinfo.ca = com->taskaddr;
     csinfo.sa_length = sa_len;
 	INT8U sendbuf_report[300],tem_buf[100];
 	index = FrameHead(&csinfo,sendbuf_report);
