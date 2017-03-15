@@ -204,14 +204,31 @@ int GetSysDateTime(RESULT_NORMAL *response)
 	INT8U *data=NULL;
 	OAD oad;
 	DateTimeBCD time;
-	system((const char*)"hwclock -s");
+	CLASS_4000	class_tmp={};
+	int index=0;
+
 	oad = response->oad;
 	data = response->data;
-	DataTimeGet(&time);
 	switch(oad.attflg )
 	{
 		case 2://安全模式选择
+			system((const char*)"hwclock -s");
+			DataTimeGet(&time);
 			response->datalen = fill_date_time_s(response->data,&time);
+			break;
+		case 3://校时模式
+			readCoverClass(oad.OI,0,&class_tmp,sizeof(CLASS_4000),para_vari_save);
+			response->datalen = fill_enum(&data[index],class_tmp.type);
+			break;
+		case 4://精准校时模式
+			readCoverClass(oad.OI,0,&class_tmp,sizeof(CLASS_4000),para_vari_save);
+			index += create_struct(&data[index],5);
+			index += fill_unsigned(&data[index],class_tmp.hearbeatnum);
+			index += fill_unsigned(&data[index],class_tmp.tichu_max);
+			index += fill_unsigned(&data[index],class_tmp.tichu_min);
+			index += fill_unsigned(&data[index],class_tmp.delay);
+			index += fill_unsigned(&data[index],class_tmp.num_min);
+			response->datalen = index;
 			break;
 	}
 	return 0;
