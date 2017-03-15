@@ -489,10 +489,9 @@ void AddEventCjiFangAnInfo(INT8U *data,Action_result *act_ret)
 		index += getArray(&data[index],(INT8U *)&eventFangAn.roads.num);
 		for(i=0;i<eventFangAn.roads.num;i++)
 			index += getROAD(&data[index],&eventFangAn.roads.road[i]);
-		index += getMS(0,&data[index],&eventFangAn.ms);
+		index += getMS(1,&data[index],&eventFangAn.ms);
 		index += getBool(&data[index],&eventFangAn.ifreport);
 		index += getLongUnsigned(&data[index],(INT8U *)&eventFangAn.deepsize);
-
 		saveflg = saveCoverClass(0x6017,eventFangAn.sernum,&eventFangAn,sizeof(eventFangAn),coll_para_save);
 		act_ret->DAR = prtstat(saveflg);
 	}
