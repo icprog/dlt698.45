@@ -821,83 +821,83 @@ INT16S fillGetRequestAPDU(INT8U* sendBuf,CLASS_6015 obj6015,INT8U requestType)
 		sendBuf[length++] = obj6015.csds.num;
 	}
 
-		if(obj6015.cjtype == TYPE_NULL)
+	if(obj6015.cjtype == TYPE_NULL)
+	{
+		for(csdIndex = 0;csdIndex < obj6015.csds.num;csdIndex++)
 		{
-			for(csdIndex = 0;csdIndex < obj6015.csds.num;csdIndex++)
+			/*采集当前数据*/
+			if(obj6015.csds.csd[csdIndex].type == 0)//OAD
 			{
-				/*采集当前数据*/
-				if(obj6015.csds.csd[csdIndex].type == 0)//OAD
+				len = OADtoBuff(obj6015.csds.csd[csdIndex].csd.oad,&sendBuf[length]);
+				length +=len;
+			}
+			else
+			{
+				fprintf(stderr,"fillGetRequestAPDU not OAD obj6015.sernum = %d,obj6015.cjtype = %d",
+						obj6015.sernum,obj6015.cjtype);
+			}
+
+		}
+	}
+
+	if((obj6015.cjtype == TYPE_LAST)||(obj6015.cjtype == TYPE_FREEZE))
+	{
+		for(csdIndex = 0;csdIndex < obj6015.csds.num;csdIndex++)
+		{
+			/*采集上N次数据*/
+			if(obj6015.csds.csd[csdIndex].type == 1)//ROAD
+			{
+				len = OADtoBuff(obj6015.csds.csd[csdIndex].csd.road.oad,&sendBuf[length]);
+				length +=len;
+				if(obj6015.cjtype == TYPE_LAST)
 				{
-					len = OADtoBuff(obj6015.csds.csd[csdIndex].csd.oad,&sendBuf[length]);
-					length +=len;
+					// selector 9
+					sendBuf[length++] = 0x09;//Selector = 9 选取上n条记录
+					sendBuf[length++] = 0x01;//选取上1条记录
 				}
-				else
+				if(obj6015.cjtype == TYPE_FREEZE)
 				{
-					fprintf(stderr,"fillGetRequestAPDU not OAD obj6015.sernum = %d,obj6015.cjtype = %d",
-							obj6015.sernum,obj6015.cjtype);
+					// selector 9
+					sendBuf[length++] = 0x01;//Selector = 1
+					//冻结时标OAD
+					sendBuf[length++] = 0x20;
+					sendBuf[length++] = 0x21;
+					sendBuf[length++] = 0x02;
+					sendBuf[length++] = 0x00;
+
+					DateTimeBCD timeStamp;
+					DataTimeGet(&timeStamp);
+
+					sendBuf[length++] = 0x1c;
+					INT16U tmpTime = timeStamp.year.data;
+					sendBuf[length++] = (tmpTime>>8)&0x00ff;
+					sendBuf[length++] = tmpTime&0x00ff;
+					sendBuf[length++] = timeStamp.month.data;
+					sendBuf[length++] = timeStamp.day.data;
+					sendBuf[length++] = 0x00;
+					sendBuf[length++] = 0x00;
+					sendBuf[length++] = 0x00;
+				}
+				sendBuf[length++] = obj6015.csds.csd[csdIndex].csd.road.num;//OAD num
+
+				INT8U oadsIndex;
+				for (oadsIndex = 0; oadsIndex < obj6015.csds.csd[csdIndex].csd.road.num; oadsIndex++)
+				{
+
+					sendBuf[length++] = 0;//OAD
+					len = OADtoBuff(obj6015.csds.csd[csdIndex].csd.road.oads[oadsIndex],&sendBuf[length]);
+					length +=len;
 				}
 
 			}
-		}
-
-		if((obj6015.cjtype == TYPE_LAST)||(obj6015.cjtype == TYPE_FREEZE))
-		{
-			for(csdIndex = 0;csdIndex < obj6015.csds.num;csdIndex++)
+			else
 			{
-				/*采集上N次数据*/
-				if(obj6015.csds.csd[csdIndex].type == 1)//ROAD
-				{
-					len = OADtoBuff(obj6015.csds.csd[csdIndex].csd.road.oad,&sendBuf[length]);
-					length +=len;
-					if(obj6015.cjtype == TYPE_LAST)
-					{
-						// selector 9
-						sendBuf[length++] = 0x09;//Selector = 9 选取上n条记录
-						sendBuf[length++] = 0x01;//选取上1条记录
-					}
-					if(obj6015.cjtype == TYPE_FREEZE)
-					{
-						// selector 9
-						sendBuf[length++] = 0x01;//Selector = 1
-						//冻结时标OAD
-						sendBuf[length++] = 0x20;
-						sendBuf[length++] = 0x21;
-						sendBuf[length++] = 0x02;
-						sendBuf[length++] = 0x00;
-
-						DateTimeBCD timeStamp;
-						DataTimeGet(&timeStamp);
-
-						sendBuf[length++] = 0x1c;
-						INT16U tmpTime = timeStamp.year.data;
-						sendBuf[length++] = (tmpTime>>8)&0x00ff;
-						sendBuf[length++] = tmpTime&0x00ff;
-						sendBuf[length++] = timeStamp.month.data;
-						sendBuf[length++] = timeStamp.day.data;
-						sendBuf[length++] = 0x00;
-						sendBuf[length++] = 0x00;
-						sendBuf[length++] = 0x00;
-					}
-					sendBuf[length++] = obj6015.csds.csd[csdIndex].csd.road.num;//OAD num
-
-					INT8U oadsIndex;
-					for (oadsIndex = 0; oadsIndex < obj6015.csds.csd[csdIndex].csd.road.num; oadsIndex++)
-					{
-
-						sendBuf[length++] = 0;//OAD
-						len = OADtoBuff(obj6015.csds.csd[csdIndex].csd.road.oads[oadsIndex],&sendBuf[length]);
-						length +=len;
-					}
-
-				}
-				else
-				{
-					fprintf(stderr,"fillGetRequestAPDU not ROAD obj6015.sernum = %d,obj6015.cjtype = %d",
-							obj6015.sernum,obj6015.cjtype);
-				}
-
+				fprintf(stderr,"fillGetRequestAPDU not ROAD obj6015.sernum = %d,obj6015.cjtype = %d",
+						obj6015.sernum,obj6015.cjtype);
 			}
+
 		}
+	}
 
 	return length;
 
