@@ -331,7 +331,7 @@ INT8U Getevent_Record(INT8U event_no,OI_698 *oi_array,INT8U oi_index,INT8U *real
 							break;
 					}
 					if(len>0)
-						memcpy(&record_para->data[*real_index],&Getbuf[23],len);
+						memcpy(&record_para->data[*real_index],&Getbuf[STANDARD_SOURCE_INDEX],len);
 					 *real_index +=len;
 				}
 				break;
@@ -903,6 +903,7 @@ void SendERC3106(INT8U flag,INT8U Erctype,ProgramInfo* prginfo_event)
 	Get_StandardUnit(0x3106,Save_buf,&index,crrentnum,(INT8U*)&Erctype,s_enum);
 	//属性标志
 	Save_buf[index++]=dtbitstring;//bit-string
+	Save_buf[index++]=0x08;//len
 	Save_buf[index++]=flag;
 	Save_buf[STANDARD_NUM_INDEX]+=1;
 	//存储更改后得参数
@@ -2365,6 +2366,7 @@ INT8U Event_3200(INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
         index+=2;
         //跳闸轮次bit-string(SIZE(8))
         Save_buf[index++]=dtbitstring;//BIT-STRING
+        Save_buf[index++]=0x08;
         Save_buf[index++]=data[2+8+2];
         //功控定值long64
         Save_buf[index++]=dtlong64;//long64
@@ -2418,6 +2420,7 @@ INT8U Event_3201(INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
         index+=2;
         //跳闸轮次bit-string(SIZE(8))
         Save_buf[index++]=dtbitstring;//BIT-STRING
+        Save_buf[index++]=0x08;
         Save_buf[index++]=data[2+2];
         //电控定值long64
         Save_buf[index++]=dtlong64;//long64

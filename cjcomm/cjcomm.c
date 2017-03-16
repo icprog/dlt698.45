@@ -18,6 +18,7 @@
 static ProgramInfo* JProgramInfo = NULL;
 static CLASS25 Class25;
 static int ProgIndex = 0;
+CLASS_4000 class_4000;
 
 void CalculateTransFlow(ProgramInfo* prginfo_event) {
     static Flow_tj c2200;
@@ -75,16 +76,24 @@ void CalculateTransFlow(ProgramInfo* prginfo_event) {
 }
 
 void EventAutoReport(CommBlock* nst) {
+    static int initflag    = 0;
     static int local_index = 0;
-    if (JProgramInfo->needreport_event.event_num > 16 || JProgramInfo->needreport_event.event_num < 0) {
+
+    if (initflag == 0) {
+        initflag = 1;
+
+        local_index = JProgramInfo->needreport_event.event_num;
+    }
+
+    if (JProgramInfo->needreport_event.event_num > 15 || JProgramInfo->needreport_event.event_num < 0) {
         asyslog(LOG_ERR, "事件上报模块发生严重错误！事件序号越限(%d)", JProgramInfo->needreport_event.event_num);
         return;
     }
     if (local_index != JProgramInfo->needreport_event.event_num) {
         //循环存储16个
         local_index += 1;
-        local_index %= 16;
-        Report_Event(nst, JProgramInfo->needreport_event.report_event[local_index]);
+        local_index %= 15;
+        Report_Event(nst, JProgramInfo->needreport_event.report_event[local_index], 2);
     }
 }
 
@@ -229,7 +238,7 @@ void enviromentCheck(int argc, char* argv[]) {
 
 int main(int argc, char* argv[]) {
     printf("version 1015\n");
-
+    memset(&class_4000,0,sizeof(CLASS_4000));
     enviromentCheck(argc, argv);
 
     CreateATWorker(&Class25);

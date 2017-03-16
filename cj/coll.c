@@ -594,16 +594,16 @@ void print_6017(CLASS_6017 eventFangAn)
 
 	fprintf(stderr,"\n事件采集方案：[1]方案编号 [2]采集事件数据ROAD [3]电能表集合MS [4]上报标识 [5]存储深度");
 
-	fprintf(stderr,"\n[1]方案编号  (%d 个ROAD)",eventFangAn.sernum);
-	fprintf(stderr,"\n[2]ROAD[%d]",eventFangAn.roads.num);
+	fprintf(stderr,"\n[1]方案编号 ：%d ",eventFangAn.sernum);
+	fprintf(stderr,"\n[2]ROAD{%d}\n",eventFangAn.roads.num);
 	for(j=0;j<eventFangAn.roads.num;j++)
 	{
 		print_road(eventFangAn.roads.road[j]);
 	}
-	fprintf(stderr,"\n[3]");
+	fprintf(stderr,"[3]");
 	printMS(eventFangAn.ms);
-	fprintf(stderr,"\n[4]%d ",eventFangAn.ifreport);
-	fprintf(stderr,"\n[5]%d\n",eventFangAn.deepsize);
+	fprintf(stderr,"\n[4]%d  ",eventFangAn.ifreport);
+	fprintf(stderr,"[5]%d\n",eventFangAn.deepsize);
 }
 
 //事件上报方案
