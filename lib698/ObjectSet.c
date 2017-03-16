@@ -219,10 +219,13 @@ INT16U set4000(OAD oad,INT8U *data)
 		//Event_3114(datetime,memp);//对时，产生事件			//TODO:  上送设置应答帧之后才能响应事件处理
 		break;
 	case 3://校时模式
+		readCoverClass(oad.OI,0,&class_tmp,sizeof(CLASS_4000),para_vari_save);
 		index += getEnum(1,&data[index],&class_tmp.type);
 		saveflg = saveCoverClass(oad.OI,0,&class_tmp,sizeof(CLASS_4000),para_vari_save);
+		memp->oi_changed.oi4000++;
 		break;
 	case 4:		//精准校时模式
+		readCoverClass(oad.OI,0,&class_tmp,sizeof(CLASS_4000),para_vari_save);
 		index += getStructure(&data[index],NULL);
 		index += getUnsigned(&data[index],&class_tmp.hearbeatnum);
 		index += getUnsigned(&data[index],&class_tmp.tichu_max);
@@ -230,6 +233,7 @@ INT16U set4000(OAD oad,INT8U *data)
 		index += getUnsigned(&data[index],&class_tmp.delay);
 		index += getUnsigned(&data[index],&class_tmp.num_min);
 		saveflg = saveCoverClass(oad.OI,0,&class_tmp,sizeof(CLASS_4000),para_vari_save);
+		memp->oi_changed.oi4000++;
 		break;
 	}
 	return index;

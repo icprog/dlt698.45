@@ -18,6 +18,7 @@
 static ProgramInfo* JProgramInfo = NULL;
 static CLASS25 Class25;
 static int ProgIndex = 0;
+CLASS_4000 class_4000;
 
 void CalculateTransFlow(ProgramInfo* prginfo_event) {
     static Flow_tj c2200;
@@ -241,7 +242,7 @@ void enviromentCheck(int argc, char* argv[]) {
 
 int main(int argc, char* argv[]) {
     printf("version 1015\n");
-
+    memset(&class_4000,0,sizeof(CLASS_4000));
     enviromentCheck(argc, argv);
 
     CreateATWorker(&Class25);

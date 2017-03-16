@@ -13,7 +13,7 @@
 static INT32S timeoffset[50];    //终端精准校时 默认最近心跳时间总个数50次
 static INT8U crrntimen      = 0; //终端精准校时 当前接手心跳数
 static INT8U timeoffsetflag = 0; //终端精准校时 开始标志
-CLASS_4000 class_4000;
+extern CLASS_4000 class_4000;
 
 static long long Veri_Time_Task_Id;
 
@@ -26,14 +26,16 @@ int VerifiTime(struct aeEventLoop* ep, long long id, void* clientData) {
     TS jzqtime;
     TSGet(&jzqtime); //集中器时间
     static INT8U oi4000_flag=0;
-
-    if(oi4000_flag != JProgramInfo->oi_changed.oi4000){
+    static INT8U first =0;
+  //  fprintf(stderr,"精确对时 参数 type=%d hearbeatnum=%d \n",class_4000.type,class_4000.hearbeatnum);
+    if((oi4000_flag != JProgramInfo->oi_changed.oi4000) || first==0){
+    	first=1;
     	readCoverClass(0x4000,0,&class_4000,sizeof(CLASS_4000),para_vari_save);
     	oi4000_flag = JProgramInfo->oi_changed.oi4000;
     }
     //判断是否到开始记录心跳时间
     if (class_4000.type == 1 && class_4000.hearbeatnum > 0) {
-    	fprintf(stderr,"开始精确对时.... \n");
+    	//fprintf(stderr,"开始精确对时.... \n");
         //有效总个数是否小于主站设置得最少有效个数
         INT8U lastn = class_4000.hearbeatnum - class_4000.tichu_max - class_4000.tichu_min;
         if (lastn < class_4000.num_min || lastn == 0)
@@ -47,9 +49,11 @@ int VerifiTime(struct aeEventLoop* ep, long long id, void* clientData) {
             getarryb2s(timeoffset, crrntimen);
             INT32S allk = 0;
             INT8U index = 0;
-            for (index = class_4000.tichu_max; index < (crrntimen - class_4000.tichu_min + 1); index++) {
+            for (index = class_4000.tichu_max; index < (crrntimen - class_4000.tichu_min); index++) {
                 allk += timeoffset[index];
+                fprintf(stderr,"index=%d timeoffset=%d \n",index,timeoffset[index]);
             }
+            fprintf(stderr,"allk=%d lastn=%d \n",allk,lastn);
             INT32S avg = allk / lastn;
             fprintf(stderr,"avg=%d delay=%d .... \n",avg, class_4000.delay);
             //如果平均偏差值大于等于主站设置得阀值进行精确校时
@@ -112,10 +116,14 @@ void Getk(LINK_Response link, ProgramInfo* JProgramInfo) {
     T3.Minute = link.response_time.minute;
     T3.Sec    = link.response_time.second;
     T3.Week   = link.response_time.day_of_week;
-
+    fprintf(stderr,"T2:%d-%d-%d %d:%d:%d \n",T2.Year,T2.Month,T2.Day,T2.Hour,T2.Minute,T2.Sec);
+    fprintf(stderr,"T1:%d-%d-%d %d:%d:%d \n",T1.Year,T1.Month,T1.Day,T1.Hour,T1.Minute,T1.Sec);
+    fprintf(stderr,"T4:%d-%d-%d %d:%d:%d \n",T4.Year,T4.Month,T4.Day,T4.Hour,T4.Minute,T4.Sec);
+    fprintf(stderr,"T3:%d-%d-%d %d:%d:%d \n",T3.Year,T3.Month,T3.Day,T3.Hour,T3.Minute,T3.Sec);
     INT32S U              = difftime(tmtotime_t(T2), tmtotime_t(T1));
     INT32S V              = difftime(tmtotime_t(T4), tmtotime_t(T3));
     INT32S K              = (U - V) / 2;
+    fprintf(stderr,"U=%d V=%d k=%d\n",U,V,K);
     timeoffset[crrntimen] = K;
     crrntimen++;
     if (crrntimen == class_4000.hearbeatnum)
