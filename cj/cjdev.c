@@ -263,6 +263,24 @@ void SetID(int argc, char* argv[]) {
     }
 }
 
+void SetHEART(int argc, char* argv[]) {
+	CLASS25 class4500={};
+	memset(&class4500,0,sizeof(CLASS25));
+	readCoverClass(0x4500, 0, &class4500, sizeof(CLASS25), para_vari_save);
+	int tmpval=0;//分钟
+    if (argc > 2) {
+        sscanf(argv[2], "%d", &tmpval);
+        class4500.commconfig.heartBeat=tmpval*60;
+        saveCoverClass(0x4500, 0, &class4500, sizeof(CLASS25), para_vari_save);
+        ProgramInfo* JProgramInfo=NULL;
+        JProgramInfo = OpenShMem("ProgramInfo",sizeof(ProgramInfo),NULL);
+        JProgramInfo->oi_changed.oi4500++;
+    } else {
+        fprintf(stderr, "\n心跳周期:%d分钟 \n", (class4500.commconfig.heartBeat/60));
+    }
+}
+
+
 void SetApn(int argc, char* argv[]) {
     CLASS25 class4500;
     COMM_CONFIG_1 config1;

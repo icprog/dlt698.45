@@ -32,6 +32,8 @@ static char* usage_set = "\n--------------------参数设置及基本维护命�
                          "		 【cdma电信用户名密码设置】cj usr-pwd 　user  password		\n"
                          "		 【通信地址】cj id <addr>	如：地址为123456  :cj id 12 34 56	\n"
 						 "		 【停程序】cj dog 或者 cj stop		\n"
+		                 "[读取心跳] cj heart \n"
+		                 "[设置心跳] cj heart 1(分钟)"
                          "-------------------------------------------------------\n\n";
 
 static char* usage_para = "\n--------------------参变量类对象----------------------------\n"
@@ -175,6 +177,11 @@ int main(int argc, char* argv[])
         SetID(argc, argv);
         return EXIT_SUCCESS;
     }
+
+    if (strcmp("heart", argv[1]) == 0) {
+		SetHEART(argc, argv);
+		return EXIT_SUCCESS;
+	}
 
     if (strcmp("dog", argv[1]) == 0 || strcmp("stop", argv[1]) == 0) {
         dog_feed();
