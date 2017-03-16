@@ -76,24 +76,12 @@ void CalculateTransFlow(ProgramInfo* prginfo_event) {
 }
 
 void EventAutoReport(CommBlock* nst) {
-    static int initflag    = 0;
-    static int local_index = 0;
-
-    if (initflag == 0) {
-        initflag = 1;
-
-        local_index = JProgramInfo->needreport_event.event_num;
-    }
-
-    if (JProgramInfo->needreport_event.event_num > 15 || JProgramInfo->needreport_event.event_num < 0) {
-        asyslog(LOG_ERR, "事件上报模块发生严重错误！事件序号越限(%d)", JProgramInfo->needreport_event.event_num);
-        return;
-    }
-    if (local_index != JProgramInfo->needreport_event.event_num) {
-        //循环存储16个
-        local_index += 1;
-        local_index %= 15;
-        Report_Event(nst, JProgramInfo->needreport_event.report_event[local_index], 2);
+    for (int i = 0; i < 15; i++) {
+        if (JProgramInfo->needreport_event.report_event[i].report_flag == 1) {
+            Report_Event(nst, JProgramInfo->needreport_event.report_event[i], 2);
+            JProgramInfo->needreport_event.report_event[i].report_flag = 0;
+            break;
+        }
     }
 }
 
@@ -238,7 +226,7 @@ void enviromentCheck(int argc, char* argv[]) {
 
 int main(int argc, char* argv[]) {
     printf("version 1015\n");
-    memset(&class_4000,0,sizeof(CLASS_4000));
+    memset(&class_4000, 0, sizeof(CLASS_4000));
     enviromentCheck(argc, argv);
 
     CreateATWorker(&Class25);

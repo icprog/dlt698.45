@@ -433,6 +433,7 @@ INT8U Need_Report(OI_698 oi,INT8U eventno,ProgramInfo* prginfo_event){
 		prginfo_event->needreport_event.event_num=prginfo_event->needreport_event.event_num%15;
 		prginfo_event->needreport_event.report_event[prginfo_event->needreport_event.event_num].oi=oi;
 		prginfo_event->needreport_event.report_event[prginfo_event->needreport_event.event_num].eventno=eventno;
+		prginfo_event->needreport_event.report_event[prginfo_event->needreport_event.event_num].report_flag=1;
 	}
 	return 1;
 }
