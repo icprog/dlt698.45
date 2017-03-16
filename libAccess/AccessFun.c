@@ -297,7 +297,7 @@ int  readParaClass(OI_698 oi,void *blockdata,int seqnum)
  */
 int saveCoverClass(OI_698 oi,INT16U seqno,void *blockdata,int savelen,int type)
 {
-	int		ret = 0;
+	int		ret = refuse_rw;
 	char	fname[FILENAMELEN]={};
 	sem_t   *sem_save=NULL;
 

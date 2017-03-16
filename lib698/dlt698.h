@@ -29,18 +29,18 @@ int appendFile(int shift, int length, unsigned char* buf);
 
 /*规约类型打印
  * */
-extern INT8U prtstat(int flg);
 extern void printMS(MY_MS ms);
 extern void print_road(ROAD road);
 extern void print_rcsd(CSD_ARRAYTYPE csds);
 extern void print_rsd(INT8U choice, RSD rsd);
 /**/
 extern int getTItoSec(TI ti);
+extern void setOIChange(OI_698 oi);
 /*----------------------接口类及对象实例的基本数据类型组帧----------------------*/
 extern int create_OAD(INT8U* data, OAD oad);
 extern int create_array(INT8U* data, INT8U numm);
 extern int create_struct(INT8U* data, INT8U numm);
-extern int file_bool(INT8U* data, INT8U value);
+extern int fill_bool(INT8U* data, INT8U value);
 extern int fill_bit_string8(INT8U* data, INT8U bits);
 extern int fill_double_long_unsigned(INT8U* data, INT32U value);
 extern int fill_octet_string(INT8U* data, char* value, INT8U len);

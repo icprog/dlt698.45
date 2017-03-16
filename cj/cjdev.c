@@ -270,13 +270,13 @@ void SetHEART(int argc, char* argv[]) {
 	int tmpval=0;//分钟
     if (argc > 2) {
         sscanf(argv[2], "%d", &tmpval);
-        class4500.commconfig.heartBeat=tmpval*60;
+        class4500.commconfig.heartBeat=tmpval;
         saveCoverClass(0x4500, 0, &class4500, sizeof(CLASS25), para_vari_save);
         ProgramInfo* JProgramInfo=NULL;
         JProgramInfo = OpenShMem("ProgramInfo",sizeof(ProgramInfo),NULL);
         JProgramInfo->oi_changed.oi4500++;
     } else {
-        fprintf(stderr, "\n心跳周期:%d分钟 \n", (class4500.commconfig.heartBeat/60));
+        fprintf(stderr, "\n心跳周期:%d s \n",class4500.commconfig.heartBeat);
     }
 }
 

@@ -2620,7 +2620,7 @@ void read485_proccess() {
 	pthread_attr_init(&read485_attr_t);
 	pthread_attr_setstacksize(&read485_attr_t, 2048 * 1024);
 	pthread_attr_setdetachstate(&read485_attr_t, PTHREAD_CREATE_DETACHED);
-#if 0
+#if 1
 	while ((thread_read4851_id = pthread_create(&thread_read4851,&read485_attr_t, (void*) read485_thread, &i485port1)) != 0)
 	{
 		sleep(1);
