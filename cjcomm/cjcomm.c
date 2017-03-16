@@ -101,6 +101,7 @@ void EventAutoReport(CommBlock* nst) {
         local_index += 1;
         local_index %= 15;
         Report_Event(nst, JProgramInfo->needreport_event.report_event[local_index], 2);
+        JProgramInfo->needreport_event.report_event[local_index].report_flag = 0;
     }
 }
 
