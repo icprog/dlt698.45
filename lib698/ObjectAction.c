@@ -17,7 +17,6 @@
 #include "secure.h"
 #include "basedef.h"
 
-void get_BasicUnit(INT8U *source,INT16U *sourceindex,INT8U *dest,INT16U *destindex);
 extern INT8U Reset_add();
 extern void FrameTail(INT8U *buf,int index,int hcsi);
 extern int FrameHead(CSINFO *csinfo,INT8U *buf);
@@ -466,8 +465,7 @@ void AddCjiFangAnInfo(INT8U *data,Action_result *act_ret)
 		fprintf(stderr,"\n存储时标选择 ： %d (1:任务开始时间  2：相对当日0点0分  3:相对上日23点59分  4:相对上日0点0分  5:相对当月1日0点0分)",fangAn.savetimeflag);
 		fprintf(stderr,"\n");
 
-		saveflg = saveCoverClass(0x6015,fangAn.sernum,&fangAn,sizeof(fangAn),coll_para_save);
-		act_ret->DAR = prtstat(saveflg);
+		act_ret->DAR = saveCoverClass(0x6015,fangAn.sernum,&fangAn,sizeof(fangAn),coll_para_save);
 	}
 	act_ret->datalen = index+2;	//2 array + num
 }
@@ -492,8 +490,7 @@ void AddEventCjiFangAnInfo(INT8U *data,Action_result *act_ret)
 		index += getMS(1,&data[index],&eventFangAn.ms);
 		index += getBool(&data[index],&eventFangAn.ifreport);
 		index += getLongUnsigned(&data[index],(INT8U *)&eventFangAn.deepsize);
-		saveflg = saveCoverClass(0x6017,eventFangAn.sernum,&eventFangAn,sizeof(eventFangAn),coll_para_save);
-		act_ret->DAR = prtstat(saveflg);
+		act_ret->DAR = saveCoverClass(0x6017,eventFangAn.sernum,&eventFangAn,sizeof(eventFangAn),coll_para_save);
 	}
 	act_ret->datalen = index;
 }
@@ -549,8 +546,7 @@ void AddTaskInfo(INT8U *data,Action_result *act_ret)
 		fprintf(stderr,"\n开始  %d时 %d分  ",task.runtime.runtime[0].beginHour,task.runtime.runtime[0].beginMin);
 		fprintf(stderr,"\n结束  %d时 %d分  ",task.runtime.runtime[0].endHour,task.runtime.runtime[0].endMin);
 
-		saveflg = saveCoverClass(0x6013,task.taskID,&task,sizeof(task),coll_para_save);
-		act_ret->DAR = prtstat(saveflg);
+		act_ret->DAR = saveCoverClass(0x6013,task.taskID,&task,sizeof(task),coll_para_save);
 	}
 	act_ret->datalen = index+2;		//2:array
 }
@@ -662,8 +658,7 @@ void AddReportInfo(INT8U *data,Action_result *act_ret)
 			break;
 		}
 		print_601d(reportplan);
-		saveflg = saveCoverClass(0x601d,reportplan.reportnum,&reportplan,sizeof(CLASS_601D),coll_para_save);
-		act_ret->DAR = prtstat(saveflg);
+		act_ret->DAR = saveCoverClass(0x601d,reportplan.reportnum,&reportplan,sizeof(CLASS_601D),coll_para_save);
 	}
 	fprintf(stderr,"601d  return index=%d\n",index);
 	act_ret->datalen = index;
@@ -709,7 +704,6 @@ void TerminalInfo(INT16U attr_act,INT8U *data)
 	switch(attr_act)
 	{
 		case 1://设备复位
-			memp->oi_changed.oi4300++;
 			Reset_add();
 			fprintf(stderr,"\n4300 设备复位！");
 			break;
@@ -996,5 +990,6 @@ int doObjectAction(OAD oad,INT8U *data,Action_result *act_ret)
 			EsamMothod(attr_act,data);
 			break;
 	}
+	setOIChange(oi);
 	return success;	//DAR=0，成功	TODO：增加DAR各种错误判断
 }

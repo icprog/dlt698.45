@@ -746,6 +746,7 @@ typedef struct
 
 typedef struct{
 	OI_698 oi;
+	INT8U report_flag; //1需上报 0已上报
 	INT16U eventno;
 }Reportevent;
 

@@ -21,7 +21,7 @@ extern int getRequestRecordList(INT8U *data,CSINFO *csinfo,INT8U *sendbuf);
 extern int getRequestNormal(OAD oad,INT8U *data,CSINFO *csinfo,INT8U *sendbuf);
 extern int getRequestNormalList(INT8U *data,CSINFO *csinfo,INT8U *sendbuf);
 extern int doReponse(int server,int reponse,CSINFO *csinfo,int datalen,INT8U *data,INT8U *buf);
-extern int setRequestNormal(INT8U *data,OAD oad,CSINFO *csinfo,INT8U *buf);
+extern INT16U setRequestNormal(INT8U *data,OAD oad,INT8U *DAR,CSINFO *csinfo,INT8U *buf);
 extern int setRequestNormalList(INT8U *Object,CSINFO *csinfo,INT8U *buf);
 extern int Proxy_GetRequestlist(INT8U *data,CSINFO *csinfo,INT8U *sendbuf);
 extern unsigned short tryfcs16(unsigned char *cp, int  len);
@@ -550,7 +550,7 @@ int doSetAttribute(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 			memset(TmpDataBuf,0,sizeof(TmpDataBuf));
 			getOAD(0,&apdu[3],&oad);
 			data = &apdu[7];					//Data
-			DAR = setRequestNormal(data,oad,NULL,buf);
+			setRequestNormal(data,oad,&DAR,NULL,buf);
 			fprintf(stderr,"setRequestNormal dar = %d\n",DAR);
 			index += create_OAD(&TmpDataBuf[index],oad);
 			TmpDataBuf[index++] = (INT8U)DAR;
