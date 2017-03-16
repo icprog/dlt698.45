@@ -82,11 +82,14 @@ void EventAutoReport(CommBlock* nst) {
     if (initflag == 0) {
         initflag = 1;
 
-        // for (int i = 0; i < 15; i++) {
-        //     JProgramInfo->needreport_event.report_event[i].
-        // }
-
         local_index = JProgramInfo->needreport_event.event_num;
+
+        for (int i = 0; i < 15; i++) {
+            if (JProgramInfo->needreport_event.report_event[i].report_flag == 1) {
+                local_index = i;
+                break;
+            }
+        }
     }
 
     if (JProgramInfo->needreport_event.event_num > 15 || JProgramInfo->needreport_event.event_num < 0) {
@@ -242,7 +245,7 @@ void enviromentCheck(int argc, char* argv[]) {
 
 int main(int argc, char* argv[]) {
     printf("version 1015\n");
-    memset(&class_4000,0,sizeof(CLASS_4000));
+    memset(&class_4000, 0, sizeof(CLASS_4000));
     enviromentCheck(argc, argv);
 
     CreateATWorker(&Class25);
