@@ -85,6 +85,7 @@ INT16U set3105(OAD oad,INT8U *data,INT8U *DAR)  //属性6
 	fprintf(stderr,"\n：属性6 阈值=%d 任务号=%d\n",tmp3105.mto_obj.over_threshold,tmp3105.mto_obj.task_no);
 	saveflg = saveCoverClass(oad.OI,0,&tmp3105,sizeof(Event3105_Object),event_para_save);
 	*DAR = prtstat(saveflg);
+	memp->oi_changed.oi3105++;
 	return index;
 }
 
@@ -118,6 +119,7 @@ INT16U set3106(OAD oad,INT8U *data,INT8U *DAR)
 
 	saveflg = saveCoverClass(oad.OI,0,&tmpobj,sizeof(Event3106_Object),event_para_save);
 	*DAR = prtstat(saveflg);
+	memp->oi_changed.oi3106++;
 	return index;
 }
 
@@ -136,6 +138,7 @@ INT16U set310c(OAD oad,INT8U *data,INT8U *DAR)	 //超差  属性6
 	fprintf(stderr,"\n电能量超差事件：属性6 阈值=%x",tmp310c.poweroffset_obj.power_offset);
 	saveflg = saveCoverClass(oad.OI,0,&tmp310c,sizeof(tmp310c),event_para_save);
 	*DAR = prtstat(saveflg);
+	memp->oi_changed.oi310C++;
 	return index;
 }
 
@@ -153,6 +156,7 @@ INT16U set310d(OAD oad,INT8U *data,INT8U *DAR)	//电能表飞走  属性6
 	fprintf(stderr,"\n：属性6 阈值=%d 任务号=%d",tmp310d.poweroffset_obj.power_offset,tmp310d.poweroffset_obj.task_no);
 	saveflg = saveCoverClass(oad.OI,0,&tmp310d,sizeof(Event310D_Object),event_para_save);
 	*DAR = prtstat(saveflg);
+	memp->oi_changed.oi310D++;
 	return index;
 }
 
@@ -170,6 +174,7 @@ INT16U set310e(OAD oad,INT8U *data,INT8U *DAR)	//电能表停走	属性6
 	fprintf(stderr,"\n电能表停走事件：属性6 阈值=%d 单位=%d",tmp310e.powerstoppara_obj.power_offset.interval,tmp310e.powerstoppara_obj.power_offset.units);
 	saveflg = saveCoverClass(oad.OI,0,&tmp310e,sizeof(tmp310e),event_para_save);
 	*DAR = prtstat(saveflg);
+	memp->oi_changed.oi310E++;
 	return index;
 }
 
@@ -186,6 +191,7 @@ INT16U set310f(OAD oad,INT8U *data,INT8U *DAR)		//终端抄表失败  属性6
 	fprintf(stderr,"\n终端抄表失败事件：属性6 重试轮次=%d ",tmp310f.collectfail_obj.retry_nums);
 	saveflg = saveCoverClass(oad.OI,0,&tmp310f,sizeof(tmp310f),event_para_save);
 	*DAR = prtstat(saveflg);
+	memp->oi_changed.oi310F++;
 	return index;
 }
 
@@ -200,6 +206,7 @@ INT16U set3110(OAD oad,INT8U *data,INT8U *DAR)		//月通信流量超限  属性6
 	index += getDouble(&data[index],(INT8U *)&tmpobj.Monthtrans_obj.month_offset);
 	fprintf(stderr,"\n月通信流量限值事件：属性6　通信流量限值=%d ",tmpobj.Monthtrans_obj.month_offset);
 	saveflg = saveCoverClass(oad.OI,0,&tmpobj,sizeof(tmpobj),event_para_save);
+	memp->oi_changed.oi3100++;
 	*DAR = prtstat(saveflg);
 	return index;
 }
@@ -258,6 +265,7 @@ INT16U set4001_4002_4003(OAD oad,INT8U *data)	//通信地址，表号，客户�
 			fprintf(stderr,"%02x ",class_addr.curstom_num[i]);
 		}
 		saveflg = saveCoverClass(oad.OI,0,&class_addr,sizeof(CLASS_4001_4002_4003),para_vari_save);
+
 	}
 	return index;
 }
