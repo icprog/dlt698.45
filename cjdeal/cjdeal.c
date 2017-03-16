@@ -192,7 +192,7 @@ INT8U filterInvalidTask(INT16U taskIndex) {
 
 /*
  * 比较当前时间应该先抄读哪一个任务
- * 比较权重 优先级 >  采集类型（年>月>日>分） > run_flg
+ * 比较权重 优先级 >  采集类型（年>月>日>分） >方案类型 > run_flg
  * 返回
  * ：0-优先级一样
  * ：1-taskIndex1先执行
@@ -200,21 +200,36 @@ INT8U filterInvalidTask(INT16U taskIndex) {
  * */
 INT8U cmpTaskPrio(INT16U taskIndex1, INT16U taskIndex2) {
 
-	if (list6013[taskIndex1].basicInfo.runprio
-			> list6013[taskIndex2].basicInfo.runprio) {
+	if (list6013[taskIndex1].basicInfo.runprio > list6013[taskIndex2].basicInfo.runprio)
+	{
 		return 1;
-	} else if (list6013[taskIndex1].basicInfo.runprio
-			< list6013[taskIndex2].basicInfo.runprio) {
+	}
+	else if (list6013[taskIndex1].basicInfo.runprio < list6013[taskIndex2].basicInfo.runprio)
+	{
 		return 2;
-	} else if (list6013[taskIndex1].basicInfo.interval.units
-			> list6013[taskIndex2].basicInfo.interval.units) {
+	}
+	else if (list6013[taskIndex1].basicInfo.interval.units> list6013[taskIndex2].basicInfo.interval.units)
+	{
 		return 1;
-	} else if (list6013[taskIndex1].basicInfo.interval.units
-			< list6013[taskIndex2].basicInfo.interval.units) {
+	}
+	else if (list6013[taskIndex1].basicInfo.interval.units < list6013[taskIndex2].basicInfo.interval.units)
+	{
 		return 2;
-	} else if (list6013[taskIndex1].run_flg > list6013[taskIndex2].run_flg) {
+	}
+	else if(list6013[taskIndex1].basicInfo.cjtype > list6013[taskIndex2].basicInfo.cjtype)
+	{
 		return 1;
-	} else if (list6013[taskIndex1].run_flg < list6013[taskIndex2].run_flg) {
+	}
+	else if(list6013[taskIndex1].basicInfo.cjtype < list6013[taskIndex2].basicInfo.cjtype)
+	{
+		return 2;
+	}
+	else if (list6013[taskIndex1].run_flg > list6013[taskIndex2].run_flg)
+	{
+		return 1;
+	}
+	else if (list6013[taskIndex1].run_flg < list6013[taskIndex2].run_flg)
+	{
 		return 2;
 	}
 	return 0;
@@ -328,15 +343,17 @@ void dispatch_thread()
 
 		if (tastIndex > -1)
 		{
+#if 0
 			fprintf(stderr, "\n\n\n\n*************任务开始执行 ************ tastIndexIndex = %d taskID = %d*****************\n",
 					tastIndex, list6013[tastIndex].basicInfo.taskID);
+#endif
 			//计算下一次抄读此任务的时间;
 			list6013[tastIndex].ts_next = calcnexttime(list6013[tastIndex].basicInfo.interval,list6013[tastIndex].basicInfo.startime);
 
 			INT8S ret = mqs_send((INT8S *)TASKID_485_2_MQ_NAME,1,1,(INT8U *)&tastIndex,sizeof(INT16S));
-			fprintf(stderr,"\n 向485 2线程发送任务ID = %d \n",ret);
+			//fprintf(stderr,"\n 向485 2线程发送任务ID = %d \n",ret);
 			ret = mqs_send((INT8S *)TASKID_485_1_MQ_NAME,1,1,(INT8U *)&tastIndex,sizeof(INT16S));
-			fprintf(stderr,"\n 向485 1线程发送任务ID = %d \n",ret);
+			//fprintf(stderr,"\n 向485 1线程发送任务ID = %d \n",ret);
 			//TODO
 			list6013[tastIndex].run_flg = 0;
 
