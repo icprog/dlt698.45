@@ -427,6 +427,7 @@ INT8U Need_Report(OI_698 oi,INT8U eventno,ProgramInfo* prginfo_event){
 			lastchgoi4300=prginfo_event->oi_changed.oi4300;
 		}
 	}
+	fprintf(stderr,"libevent:active_report=%d talk_master=%d \n",class19.active_report,class19.talk_master);
 	if(class19.active_report == 1 && class19.talk_master == 1){
 		prginfo_event->needreport_event.event_num++;
 		prginfo_event->needreport_event.event_num=prginfo_event->needreport_event.event_num%15;
@@ -2082,6 +2083,7 @@ INT8U Event_3114(DateTimeBCD data,ProgramInfo* prginfo_event) {
 		readCoverClass(0x3114,0,&prginfo_event->event_obj.Event3114_obj,sizeof(prginfo_event->event_obj.Event3114_obj),event_para_save);
 		oi_chg.oi3114 = prginfo_event->oi_changed.oi3114;
 	}
+	fprintf(stderr,"libevent:3114enableflag=%d \n",prginfo_event->event_obj.Event3114_obj.enableflag);
     if (prginfo_event->event_obj.Event3114_obj.enableflag == 0) {
         return 0;
     }
