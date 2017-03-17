@@ -62,7 +62,7 @@ typedef struct
 //class_7 事件类通用结构体
 typedef struct
 {
-	OI_698 oi;           	//逻辑名
+	INT8U logic_name[OCTET_STRING_LEN]; //逻辑名
 	INT16U crrentnum;    	//当前记录数
 	INT16U maxnum;       	//最大记录数
 	BOOLEAN reportflag;  	//上报标识 1 上报 0 不上报

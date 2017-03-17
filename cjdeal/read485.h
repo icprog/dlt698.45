@@ -22,7 +22,6 @@
 #define MAXLEN_1LINE  100
 #define CLASS_601F_CFG_FILE "/nor/config/07DI_698OAD.cfg"
 
-
 pthread_attr_t read485_attr_t;
 int thread_read4851_id,thread_read4852_id;           //485、四表合一（I型、II型、专变）
 pthread_t thread_read4851,thread_read4852;
@@ -36,6 +35,7 @@ typedef enum{
 	DLT_698 = 3,
 	CJT_188 = 4,
 }METER_PROTOCOL;
+
 typedef struct
 {
 	INT16U sernum;

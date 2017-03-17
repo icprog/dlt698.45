@@ -509,14 +509,14 @@ int Get4204(RESULT_NORMAL *response)
 		case 2:
 			index += create_struct(&data[index],2);
 			index += fill_time(&data[index],class_tmp.startime);
-			index += file_bool(&data[index],class_tmp.enable);
+			index += fill_bool(&data[index],class_tmp.enable);
 			response->datalen = index;
 			break;
 		case 3:
 			index += create_struct(&data[index],3);
 			index += fill_integer(&data[index],class_tmp.upleve);
 			index += fill_time(&data[index],class_tmp.startime1);
-			index += file_bool(&data[index],class_tmp.enable1);
+			index += fill_bool(&data[index],class_tmp.enable1);
 			response->datalen = index;
 			break;
 	}
@@ -547,13 +547,13 @@ int Get4300(RESULT_NORMAL *response)
 			index +=fill_date_time_s(&data[index],&class_tmp.date_Product);
 			break;
 		case 7:
-			index += file_bool(&data[index],class_tmp.follow_report);
+			index += fill_bool(&data[index],class_tmp.follow_report);
 			break;
 		case 8:
-			index += file_bool(&data[index],class_tmp.active_report);
+			index += fill_bool(&data[index],class_tmp.active_report);
 			break;
 		case 9:
-			index += file_bool(&data[index],class_tmp.talk_master);
+			index += fill_bool(&data[index],class_tmp.talk_master);
 			break;
 	}
 	response->datalen = index;
@@ -851,24 +851,32 @@ int GetClass7attr(RESULT_NORMAL *response)
 	INT8U *data = NULL;
 	OAD oad={};
 	Class7_Object	class7={};
-	int index=0;
+	int index=0,i=0;
 	data = response->data;
 	oad = response->oad;
 	memset(&class7,sizeof(Class7_Object),0);
 	readCoverClass(oad.OI,0,&class7,sizeof(Class7_Object),event_para_save);
 	switch(oad.attflg) {
 	case 1:	//逻辑名
+		index += fill_octet_string(&data[0],(char *)&class7.logic_name,sizeof(class7.logic_name));
 		break;
 	case 3:	//关联属性表
+		index += create_array(&data[0],class7.class7_oad.num);
+		for(i=0;i<class7.class7_oad.num;i++) {
+			index += create_OAD(&data[index],class7.class7_oad.oadarr[i]);
+		}
 		break;
 	case 4:	//当前记录数
+		index += fill_long_unsigned(&data[0],class7.crrentnum);
 		break;
 	case 5:	//最大记录数
+		index += fill_long_unsigned(&data[0],class7.maxnum);
 		break;
 	case 8: //上报标识
+		index += fill_bool(&data[0],class7.reportflag);
 		break;
 	case 9: //有效标识
-		index += file_bool(&data[0],class7.enableflag);
+		index += fill_bool(&data[0],class7.enableflag);
 		break;
 	}
 	response->datalen = index;

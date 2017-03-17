@@ -297,7 +297,7 @@ int  readParaClass(OI_698 oi,void *blockdata,int seqnum)
  */
 int saveCoverClass(OI_698 oi,INT16U seqno,void *blockdata,int savelen,int type)
 {
-	int		ret = 0;
+	int		ret = refuse_rw;
 	char	fname[FILENAMELEN]={};
 	sem_t   *sem_save=NULL;
 
@@ -1335,11 +1335,13 @@ INT8U GetTaskidFromCSDs(CSD_ARRAYTYPE csds,ROAD_ITEM *item_road)
 			item_road->oad[item_road->oadmr_num].oad_m.attflg=0x00;
 			item_road->oad[item_road->oadmr_num].oad_m.attrindex=0x00;
 			memcpy(&item_road->oad[item_road->oadmr_num].oad_r,&csds.csd[i].csd.oad,sizeof(OAD));
+			item_road->oad[item_road->oadmr_num].oad_num = 0;//oad类型写为0
 			item_road->oadmr_num++;
 			break;
 		case 1:
 			if(csds.csd[i].csd.road.num > ROAD_OADS_NUM)
 				csds.csd[i].csd.road.num = ROAD_OADS_NUM;
+			item_road->oad[item_road->oadmr_num].oad_num = csds.csd[i].csd.road.num;//road类型的从oad个数写为实际从oad个数
 			for(j=0;j<csds.csd[i].csd.road.num;j++)
 			{
 				memcpy(&item_road->oad[item_road->oadmr_num].oad_m,&csds.csd[i].csd.road.oad,sizeof(OAD));
@@ -1667,7 +1669,7 @@ void intToBuf(int value,INT8U *buf)
 	buf[0] = value&0x00ff;
 	buf[1] = (value>>8) & 0x0ff;
 }
-int collectData(INT8U *databuf,INT8U *srcbuf,OAD_INDEX *oad_offset,int oadnum)
+int collectData(INT8U *databuf,INT8U *srcbuf,OAD_INDEX *oad_offset,ROAD_ITEM item_road)
 {
 	int i=0,j=0;
 	INT8U tmpbuf[256];
@@ -1677,8 +1679,14 @@ int collectData(INT8U *databuf,INT8U *srcbuf,OAD_INDEX *oad_offset,int oadnum)
 //	for(i=0;i<item_road.oadmr_num;i++)
 	{
 		memset(tmpbuf,0x00,256);
-		for(j=0;j<oadnum;j++)
+		for(j=0;j<item_road.oadmr_num;j++)
 		{
+			fprintf(stderr,"\n%04x-%04x--%d\n",item_road.oad[j].oad_m.OI,item_road.oad[j].oad_r.OI,item_road.oad[j].oad_num);
+			if(item_road.oad[j].oad_num != 0)
+			{
+				databuf[pindex++] = 0x01;
+				databuf[pindex++] = item_road.oad[j].oad_num;
+			}
 			fprintf(stderr,"j=%d, len = %d, offset=%d\n",j,oad_offset[j].len,oad_offset[j].offset);
 			fprintf(stderr,"oad_m=%04x,oad_r=%04x\n",oad_offset[j].oad_m.OI,oad_offset[j].oad_r.OI);
 			if(oad_offset[j].len == 0)//没找到
@@ -1723,17 +1731,25 @@ int collectData(INT8U *databuf,INT8U *srcbuf,OAD_INDEX *oad_offset,int oadnum)
 	return pindex;
 }
 
-int fillTsaNullData(INT8U *databuf,TSA tsa,int oadnum)
+int fillTsaNullData(INT8U *databuf,TSA tsa,ROAD_ITEM item_road)
 {
 	int pindex = 0;
 	int i=0;
-	if(oadnum==1) return pindex;
 
-	databuf[pindex++] = dttsa;
-	memcpy(&databuf[pindex],&tsa,(tsa.addr[0]+1));
-	pindex += (tsa.addr[0]+1);
-	for(i=0;i<(oadnum-1);i++) {
-		databuf[pindex++] = 0;
+	fprintf(stderr,"item_road.oadmr_num = %d",item_road.oadmr_num);
+	for(i=0;i<item_road.oadmr_num;i++) {
+		fprintf(stderr,"\nitem_road.oad[i].oad_m.OI = %04x  item_road.oad[i].oad_num = %d\n",item_road.oad[i].oad_m.OI,
+				item_road.oad[i].oad_num);
+		if(item_road.oad[i].oad_m.OI == 0x0000 && item_road.oad[i].oad_r.OI == 0x202a) {
+			databuf[pindex++] = dttsa;
+			memcpy(&databuf[pindex],&tsa,(tsa.addr[0]+1));
+			pindex += (tsa.addr[0]+1);
+		}else {
+			if((item_road.oad[i].oad_m.OI == 0x0000) || (item_road.oad[i].oad_num != 0)) {
+				databuf[pindex++] = 0;
+				fprintf(stderr,"\npindex = %d\n",pindex);
+			}
+		}
 	}
 	fprintf(stderr,"fillTsaNullData----index=%d\n",pindex);
 	return pindex;
@@ -1843,7 +1859,7 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds,INT8U rec
 		{
 			if(offsetTsa == 0) {
 				fprintf(stderr,"task未找到数据,i=%d\n",i);
-				indexn += fillTsaNullData(&onefrmbuf[indexn],tsa_group[i],item_road.oadmr_num);
+				indexn += fillTsaNullData(&onefrmbuf[indexn],tsa_group[i],item_road);
 				recordnum++;
 				continue;
 			}
@@ -1855,7 +1871,7 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds,INT8U rec
 			fread(recordbuf,recordlen,1,fp);
 			printRecordBytes(recordbuf,recordlen);
 			//7\根据csds挑选数据，组织存储缓存
-			indexn += collectData(&onefrmbuf[indexn],recordbuf,oad_offset,item_road.oadmr_num);
+			indexn += collectData(&onefrmbuf[indexn],recordbuf,oad_offset,item_road);
 			recordnum++;
 			fprintf(stderr,"recordnum=%d  seqnumindex=%d\n",recordnum,seqnumindex);
 			if (indexn>=1000)

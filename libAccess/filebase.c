@@ -701,7 +701,7 @@ INT8U save_block_file(char *fname,void *blockdata,int size,int headsize,int inde
 	int		sizenew=0,offset=0;
 	INT16U	readcrc=0;
 
-	if(fname==NULL) 	  return 0;
+	if(fname==NULL) 	  return refuse_rw;
 
 	//文件默认最后两个字节为CRC16校验，原结构体尺寸如果不是4个字节对齐，进行补齐，加CRC16
 	if(size%4==0)	sizenew = size+2;
@@ -725,7 +725,8 @@ INT8U save_block_file(char *fname,void *blockdata,int size,int headsize,int inde
 	}else {
 		syslog(LOG_NOTICE,"file_write %s error",fname);
 	}
-	return ret;
+	if(ret==1) return success;
+	else return refuse_rw;
 }
 
 

@@ -329,7 +329,11 @@ INT8U init6013ListFrom6012File() {
 
 	return result;
 }
-
+PARA_CHG_TYPE getParaChangeType()
+{
+	PARA_CHG_TYPE ret = para_no_chg;
+	return ret;
+}
 void dispatch_thread()
 {
 	//运行调度任务进程
@@ -338,6 +342,12 @@ void dispatch_thread()
 
 	while(1)
 	{
+		para_ChangeType = getParaChangeType();
+		if(para_ChangeType!=para_no_chg)
+		{
+			mqs_send((INT8S *)PROXY_485_MQ_NAME,1,MSG_CMD_PARACHG,(INT8U *)&para_ChangeType,sizeof(PARA_CHG_TYPE));
+		}
+
 		INT16S tastIndex = -1;//读取所有任务文件
 		tastIndex = getNextTastIndexIndex();
 
