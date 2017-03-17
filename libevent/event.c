@@ -424,8 +424,7 @@ INT8U Need_Report(OI_698 oi,INT8U eventno,ProgramInfo* prginfo_event){
 	if(lastchgoi4300!=prginfo_event->oi_changed.oi4300){
 		readCoverClass(0x4300,0,&class19,sizeof(class19),para_vari_save);
 		if(lastchgoi4300!=prginfo_event->oi_changed.oi4300) {
-			lastchgoi4300++;
-			if(lastchgoi4300==0) lastchgoi4300=1;
+			lastchgoi4300=prginfo_event->oi_changed.oi4300;
 		}
 	}
 	if(class19.active_report == 1 && class19.talk_master == 1){
