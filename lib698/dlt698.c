@@ -598,6 +598,7 @@ int doGetAttribute(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
 			getRequestRecordList(data,csinfo,sendbuf);
 			break;
 		case GET_REQUEST_RECORD_NEXT:
+
 			break;
 
 	}

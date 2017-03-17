@@ -233,7 +233,7 @@ int	readInterClass(OI_698 oi,void *dest)
 	}
 	fp = fopen(class_info[infoi].file_name, "r");
 	if (fp != NULL) {
-		num=fread(dest,1 ,class_info[infoi].interface_len,fp);
+		num=fread(dest,class_info[infoi].interface_len,1,fp);
 		fclose(fp);
 	}
 	return num;
@@ -256,10 +256,10 @@ int saveParaClass(OI_698 oi,void *blockdata,int seqnum)
 		return -1;
 	}
 	sem_save = InitSem();
+	ret = save_block_file((char *)class_info[infoi].file_name,blockdata,class_info[infoi].unit_len,class_info[infoi].interface_len,seqnum);
 	if(class_info[infoi].interface_len!=0) {		//该存储单元内部包含的类的公共属性
 		WriteInterfaceClass(oi,seqnum,AddUpdate);
 	}
-	ret = save_block_file((char *)class_info[infoi].file_name,blockdata,class_info[infoi].unit_len,class_info[infoi].interface_len,seqnum);
 	CloseSem(sem_save);
 	return ret;
 }
@@ -693,7 +693,7 @@ INT8U datafile_write(char *FileName, void *source, int size, int offset)
 	} else {
 		res = 0;
 	}
-	free(blockdata);//add by nl1031
+	free(blockdata);
 	return res;
 }
 
@@ -1536,6 +1536,7 @@ FILE* opendatafile(INT8U taskid)
 	TSGet(&ts_now);
 	getTaskFileName(taskid,ts_now,fname);//得到要抄读的文件名称
 	fprintf(stderr,"fname=%s\n",fname);
+	asyslog(LOG_INFO,"任务时间到，打开任务文件=%s\n",fname);
 	fp =fopen(fname,"r");
 	return fp;
 }
@@ -1895,6 +1896,7 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds,INT8U rec
 
 	if(framesum==0) {
 		fprintf(stderr,"\n indexn = %d saveOneFrame  seqnumindex=%d,  recordnum=%d!!!!!!!!!!!!!!!!\n",indexn,seqnumindex,recordnum);
+		asyslog(LOG_INFO,"任务数据文件组帧:indexn = %d , seqnumindex=%d,  recordnum=%d\n",indexn,seqnumindex,recordnum);
 		intToBuf((indexn-2),onefrmbuf);
 		onefrmbuf[seqnumindex] = recordnum;
 		saveOneFrame(onefrmbuf,indexn,myfp);

@@ -23,7 +23,7 @@
 void printClass7(Class7_Object class7)
 {
 	int i=0;
-	fprintf(stderr,"【Class7】逻辑名: %04x\n",class7.oi);
+	fprintf(stderr,"【Class7】逻辑名: %s\n",class7.logic_name);
 	fprintf(stderr,"当前记录数  最大记录数  上报标识  有效标识  关联对象属性【OAD】\n");
 	fprintf(stderr,"%d           %d           %d           %d   ",class7.crrentnum,class7.maxnum,class7.reportflag,class7.enableflag);
 	for(i=0;i<class7.class7_oad.num;i++) {
@@ -70,7 +70,7 @@ void printClass310d()
 		fprintf(stderr,"无参数文件 readflg=%d\n",readflg);
 		return;
 	};
-	fprintf(stderr,"【Event310D】电能表飞走事件: %04x\n",Event310d.event_obj.oi);
+	fprintf(stderr,"【Event310D】电能表飞走事件: %s\n",Event310d.event_obj.logic_name);
 	fprintf(stderr,"当前记录数  最大记录数  上报标识  有效标识  关联对象属性【OAD】\n");
 	fprintf(stderr,"%d           %d           %d           %d   ",
 			Event310d.event_obj.crrentnum,Event310d.event_obj.maxnum,Event310d.event_obj.reportflag,Event310d.event_obj.enableflag);
@@ -84,7 +84,7 @@ void printClass310d()
  *赋值class7-base
  */
 void Class7_BaseInit(OI_698 oi,Class7_Object *obj){
-	obj->oi=oi;
+	memset(&obj->logic_name,0,sizeof(obj->logic_name));
 	obj->crrentnum=0;
 	obj->maxnum=15;
 	obj->enableflag=0;
@@ -282,7 +282,6 @@ void event_process(int argc, char *argv[])
 				case 0x3100:	//终端初始化事件1
 				case 0x3104:	//终端状态量变位事件3
 					memset(&class7,0,sizeof(Class7_Object));
-					class7.oi = oi;
 					sscanf(argv[4],"%d",&tmp[1]);
 					class7.crrentnum = tmp[1];
 					sscanf(argv[5],"%d",&tmp[1]);
@@ -303,7 +302,7 @@ void event_process(int argc, char *argv[])
 					}
 //					fprintf(stderr," crrentnum=%d maxnum=%d reportflag=%d enableflag=%d\n",class7.crrentnum,class7.maxnum,class7.reportflag,class7.enableflag);
 //					fprintf(stderr,"class7size=%d\n",sizeof(Class7_Object));
-					saveCoverClass(class7.oi,0,&class7,sizeof(Class7_Object),event_para_save);
+					saveCoverClass(class7.logic_name,0,&class7,sizeof(Class7_Object),event_para_save);
 					break;
 				}
 			}

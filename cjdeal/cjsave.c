@@ -385,6 +385,7 @@ void SaveNorData(INT8U taskid,INT8U *databuf,int datalen)
 	else
 	{
 		fprintf(stderr,"\n----存储savepos=%d,unitlen=%d\n",savepos,unitlen);
+		asyslog(LOG_NOTICE,"任务数据存储: %s,savepos=%d,unitlen=%d",fname,savepos,unitlen);
 		datafile_write(fname, databuf_tmp, unitlen, savepos);
 	}
 	if(fp!=NULL)
