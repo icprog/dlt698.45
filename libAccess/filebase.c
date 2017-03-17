@@ -121,7 +121,7 @@ int WriteClass11(OI_698 oi,INT16U seqnum,INT8U method)
 			if(ret==1) {
 				sernum = (INT16U *)((INT8U*)unitdata+tmpinfo.index_site);
 	//			fprintf(stderr,"================WriteClass11:index=%d  sernum=%d,site=%d\n",index,*sernum,tmpinfo.index_site);
-				if(*sernum != 0 || *sernum != 0xffff) {		//当前位置不存在相关序号记录，进行添加动作
+				if(*sernum != 0 && *sernum != 0xffff) {		//当前位置不存在相关序号记录，进行添加动作
 					class11.curr_num++;
 					fprintf(stderr,"添加操作 当前元素个数=%d\n",class11.curr_num);
 				}
@@ -149,7 +149,7 @@ int WriteClass11(OI_698 oi,INT16U seqnum,INT8U method)
 void WriteInterfaceClass(OI_698 oi,INT16U seqnum,INT8U method)
 {
 	switch(oi) {
-	case 0x6001:
+	case 0x6000:
 		WriteClass11(oi,seqnum,method);
 		break;
 	}

@@ -307,6 +307,7 @@ INT16U  composeAutoTask(AutoTaskStrap *list)
 			{
 				list->ReportNum = class601d.reportnum;
 				list->OverTime = getTItoSec(class601d.timeout);
+				asyslog(LOG_INFO,"i=%d 任务【 %d 】 	 开始执行   上报方案编号【 %d 】",i,list->ID,list->SerNo);
 				fprintf(stderr,"list->SerNo = %d\n",list->SerNo);
 				if (GetReportData(class601d) == 1)//数据组织好了
 					ret = 2;

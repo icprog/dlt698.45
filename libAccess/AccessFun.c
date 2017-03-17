@@ -1536,7 +1536,7 @@ FILE* opendatafile(INT8U taskid)
 	TSGet(&ts_now);
 	getTaskFileName(taskid,ts_now,fname);//得到要抄读的文件名称
 	fprintf(stderr,"fname=%s\n",fname);
-	asyslog(LOG_INFO,"任务时间到，打开任务文件=%s\n",fname);
+	asyslog(LOG_INFO,"任务时间到: 组帧frmdata，打开任务文件=%s, taskid=%d\n",fname,taskid);
 	fp =fopen(fname,"r");
 	return fp;
 }

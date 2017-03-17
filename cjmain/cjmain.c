@@ -433,7 +433,7 @@ int main(int argc, char* argv[]) {
         Runled(1);
 
         //每20分钟校时
-  //      SyncRtc();
+        SyncRtc();
 
         //检车程序运行状态
         checkProgsState(ProgsNum);
