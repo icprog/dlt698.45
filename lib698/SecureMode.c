@@ -118,7 +118,7 @@ INT8S SMode_OADGetClass(OAD oad,SecureModel* SMPara,INT16U paraNum,INT8U apduTyp
 		if(SMode_MaskDeal(oad.OI,DefaultSecurePara[i].mask)==SMode_MaskDeal(DefaultSecurePara[i].securePara.oi,DefaultSecurePara[i].mask))
 		{
 			if(DefaultSecurePara[i].mask==0x00)//mask为0，找到完全匹配的默认安全模式参数，
-				return SMode_TypeGrade(oad.OI,apduType);//返回安全等级
+				return SMode_TypeGrade(DefaultSecurePara[i].securePara.model,apduType);//返回安全等级
 			else
 			{
 				if(masktmp==0)//初次找到‘类似’符合要求的oad，记录掩码和oi，继续寻找(好理解的说)
@@ -154,7 +154,9 @@ INT8S SMode_OADListGetClass(OAD *oad,INT16U oadNum,SecureModel* SMPara,INT16U pa
 {
 	INT8S classtmp =0x0F;
 	INT16U i=0;
-	for(i=0;i<oadNum;i++)
+	if(apduType !=GET_REQUEST && apduType!= SET_REQUEST && apduType != ACTION_REQUEST && apduType != PROXY_REQUEST)
+		return -1;
+	for(i=0;i<oadNum;i++)//可能多个oad中存在无安全模式参数的oad，此种情况忽略该oad
 	{
 		INT8S tmp = SMode_OADGetClass(*(oad+i),SMPara,paraNum,apduType);
 		if(tmp!=-1)//找到对应的安全模式
