@@ -18,7 +18,7 @@ static int listen_port;
 /*
  * 模块*内部*使用的初始化参数
  */
-void ServerInit(void) {
+static void ServerInit(void) {
     asyslog(LOG_INFO, "初始化监听服务器模块...");
     listen_port = -1;
     initComPara(&ServerObject);
