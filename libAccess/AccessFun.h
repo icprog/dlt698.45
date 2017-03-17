@@ -48,12 +48,25 @@ typedef enum
 }SaveFile_type;
 typedef struct {
 	INT16U  runtime;  //一天执行次数，日月年冻结和实时数据无效，置位1，由执行频率计算，主要针对负荷曲线，0表示对于这个采集方案任务无效
-	INT16U startmin; //相对当日零点零分开始执行分钟数，主要针对负荷曲线
-	INT16U endmin;   //相对当日零点零分结束执行分钟数，主要针对负荷曲线
+	INT16U starthour;
+	INT16U startmin; //开始执行分钟，主要针对负荷曲线
+	INT16U endhour;
+	INT16U endmin;   //结束执行分钟，主要针对负荷曲线
+	INT16U freq;     //执行频率
 	INT8U  KBtype;   //开闭方式 0000 0011前闭后闭 0000 0000前开后开,以此类推
 	INT16U memdep;   //存储深度
 	CSD_ARRAYTYPE    csds;   //采集方案号
 }TASKSET_INFO;
+typedef struct {//例如：oad_m为50040200，oad_r为00100200 关联属性oad，没有的oad_m写为00000000
+	INT8U taskid;
+	OAD oad_m;
+	OAD oad_r;
+	INT8U oad_num;//oad的写为1，road的写为从oad个数
+}OAD_MR;
+typedef struct {
+	INT16U oadmr_num;//涉及到的road个数，每一个都写成二维OAD_MR，oad类型的关联属性oad_r写为0000
+	OAD_MR oad[MY_CSD_NUM*ROAD_OADS_NUM];
+}ROAD_ITEM;//将招测csd分解为多个oad
 /*
  * 方法：Clean()清空
  * 输入参数：oi对象标识
@@ -182,10 +195,12 @@ extern int  readVariData(OI_698 oi,int coll_seqnum,void *blockdata,int len);
 //////////////////////////////////////////////////////////////////////////////////////
 ///////////////数据文件存储
 
-extern INT8U getSelector(RSD select, INT8U selectype, CSD_ARRAYTYPE csds, INT8U *data, int *datalen);
+extern INT8U getSelector(OAD oad_h,RSD select, INT8U selectype, CSD_ARRAYTYPE csds, INT8U *data, int *datalen);
 
-
+//extern void ReadFileHeadLen(FILE *fp,int *headlen,int *blocklen);
 extern INT8U ReadTaskInfo(INT8U taskid,TASKSET_INFO *tasknor_info);
 extern void getTaskFileName(INT8U taskid,TS ts,char *fname);
-
+extern INT8U datafile_write(char *FileName, void *source, int size, int offset);
+extern INT8U datafile_read(char *FileName, void *source, int size, int offset);
+extern INT16U CalcOIDataLen(OI_698 oi,INT8U attr_flg);
 #endif /* ACCESS_H_ */

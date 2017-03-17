@@ -7,26 +7,33 @@
 #include <netinet/tcp.h>
 #include <sys/ioctl.h>
 #include <arpa/inet.h>
+
+#include "ae.h"
+#include "at.h"
+#include "ae.h"
+#include "dlt698.h"
+#include "dlt698def.h"
+#include "event.h"
+#include "libmmq.h"
+#include "AccessFun.h"
 #include "StdDataType.h"
 #include "PublicFunction.h"
-#include "dlt698.h"
-#include "ae.h"
 
 void initComPara(CommBlock* compara);
+void CalculateTransFlow(ProgramInfo* prginfo_event);
+void EventAutoReport(CommBlock* nst);
 
-void NETRead(struct aeEventLoop* eventLoop, int fd, void* clientData, int mask);
 void GenericRead(struct aeEventLoop* eventLoop, int fd, void* clientData, int mask);
 INT8S GenericWrite(int fd, INT8U* buf, INT16U len);
 
+void Comm_task(CommBlock* compara);
+void clearcount(int index);
+int GetOnlineType(void);
+void ClientDestory(void);
+int StartClient(struct aeEventLoop* ep, long long id, void* clientData);
+void ClientRead(struct aeEventLoop* eventLoop, int fd, void* clientData, int mask);
 
-int getOnlineState(void);
-
-void setCCID(INT8U CCID[]);
-void setIMSI(INT8U IMSI[]);
-void setSINSTR(INT16U SINSTR);
-void setPPPIP(INT8U PPPIP[]);
-void saveCurrClass25(void);
-
+void MmqDestory(void);
 int StartMmq(struct aeEventLoop* ep, long long id, void* clientData);
 int StartVerifiTime(struct aeEventLoop* ep, long long id, void* clientData);
 
@@ -36,11 +43,13 @@ void Getk(LINK_Response link, ProgramInfo* JProgramInfo);
 void ServerDestory(void);
 int StartServer(struct aeEventLoop* ep, long long id, void* clientData);
 
-
 void IfrDestory(void);
 int StartIfr(struct aeEventLoop* ep, long long id, void* clientData);
 
 void SerialDestory(void);
 int StartSerial(struct aeEventLoop* ep, long long id, void* clientData);
+
+void ConformAutoTask(struct aeEventLoop* ep, CommBlock* nst, int res);
+void RegularAutoTask(struct aeEventLoop* ep, CommBlock* nst);
 
 #endif

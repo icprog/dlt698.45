@@ -79,11 +79,17 @@ const static  Variable_TJ_Class vari_tj_data[] ={
 };
 
 typedef struct{
-	INT8U type;//0：oad 1：road
-	OAD   oad;
-	INT8U num[2];//长度或个数，类型为0，表示长度；类型为1，表示个数
+	OAD   oad_m;	//主OAD		oad 不存在主OAD，填0 ，road  存在主oad，如50040200
+	OAD   oad_r;	//关联OAD
+	INT16U len;		//oad 的数据长度，包括类型描述
 }HEAD_UNIT;
 
+typedef struct{
+	OAD    oad_m;
+	OAD    oad_r;
+	int    offset;
+	INT16U len;
+}OAD_INDEX;//oad索引
 /*
  * 该文件定义的函数为libAccess接口库内部使用函数。不是对外接口
  * */

@@ -12,7 +12,7 @@
 #include "EventObject.h"
 #include "ParaDef.h"
 
-#pragma pack(1)				//结构体一个字节对齐
+//#pragma pack(1)				//结构体一个字节对齐
 
 typedef struct {
 	INT8U	oi3100;				//终端初始化事件
@@ -45,10 +45,15 @@ typedef struct {
 	INT8U	oi3201;				//电控跳闸记录
 	INT8U	oi3202;				//购电参数设置记录
 	INT8U	oi3203;				//电控告警事件记录
+	INT8U   oi301B;       //电能表开表盖事件
 ////////////////////////////////////////////////////////
-	INT8U	oi4016;				//当前套日时段表
+    INT8U 	oi4000;       //对时参数
+	INT8U	oi4016;			//当前套日时段表
+	INT8U 	oi4030;      	 //电压合格率统计
+	INT8U 	oi4500;			//通讯参数
+	INT8U 	reset;			/*4300方法1，设备复位*/   //没用
+	INT8U 	oi4300;       //设备管理接口类
 ////////////////////////////////////////////////////////
-	INT8U   oiF203;             //开关量
 	INT8U oi6000;		/*采集档案配置表属性变更*/
 	INT8U oi6002;		/*搜表类属性变更*/
 	INT8U oi6012;		/*任务配置表属性变更*/
@@ -58,9 +63,8 @@ typedef struct {
 	INT8U oi601C;		/*上报方案集属性变更*/
 	INT8U oi601E;		/*采集规则库属性变更*/
 	INT8U oi6051;		/*实时监控采集方案集属性变更*/
-	INT8U oi4030;       //电压合格率统计
-	INT8U oi4500;		//通讯参数
-	INT8U reset;		/*4300方法1，设备复位*/
+	INT8U oiF203;       //开关量
+
 }OI_CHANGE;
 
 //交采系数
@@ -302,15 +306,6 @@ typedef struct{
 	INT32U		Version;						//进程版本号
 	INT8U		argv[ARGCMAX][ARGVMAXLEN];		//运行参数
 }ProjectInfo; 	//子程序信息
-typedef struct{
-	DateTimeBCD dt;  //时间
-	INT8U type;      //校时标志
-	INT8U totalnum;  //最近心跳时间总个数
-	INT8U maxn;      //最大值剔除个数
-	INT8U minn;      //最小值剔除个数
-	INT8U timeoffset;//通讯延时数值 秒
-	INT8U lastnum;   //最少有效个数
-}Terminal_timeoffset;
 
 //电能量值 41
 typedef struct{
@@ -325,6 +320,7 @@ typedef struct{
 	INT32S f_Qsz_energy_all;
 	INT32S f_Qsz_energy[MAXVAL_RATENUM];//实时反向无功总电能  44  48
 }ENERGY_PROPERTY_SET;
+
 typedef struct {
 	ACCoe_SAVE Accoepara;
 	INT32U 			ac_chip_type; 		//==0x820900:	RN8029芯片，III型集中器	//==1： ATT7022D-E芯片 	//==0x7022E0:	ATT7022E-D芯片
@@ -336,9 +332,9 @@ typedef struct {
 	OI_CHANGE		oi_changed;				//相应的OI参数修改变化值，结构体相应的OI值从1-255设置参数后循环累加
 	TerminalEvent_Object event_obj;         //事件参数结构体
 	FactoryVersion  version;				//终端版本信息
-	Terminal_timeoffset t_timeoffset;    	//终端精准校时参数
 	INT8U ProxyHappen;
     NeedReport_Event needreport_event;      //需要上报得事件参数
+    AutoTaskStrap	autotask[MAXNUM_AUTOTASK];
 }ProgramInfo; //程序信息结构
 
 #endif /* GTYPE_H_ */

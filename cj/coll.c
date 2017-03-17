@@ -15,6 +15,7 @@
 #include "dlt698.h"
 #include "PublicFunction.h"
 
+char name1[128]={};
 typedef enum{
 	coll_bps=1,
 	coll_protocol,
@@ -31,9 +32,7 @@ typedef enum{
 
 char *getenum(int type,int val)
 {
-	char name1[128]={};
 	char *name=NULL;
-
 	name = name1;
 	memset(name1,0,sizeof(name1));
 //	fprintf(stderr,"val=%d ,type=%d\n",val,type);
@@ -128,7 +127,7 @@ char *getenum(int type,int val)
 /*
  * 采集档案配置表
  * */
-void Collect6000(OI_698	oi)
+void print6000(OI_698	oi)
 {
 	CLASS_6001	 meter={};
 	CLASS11		coll={};
@@ -155,10 +154,10 @@ void Collect6000(OI_698	oi)
 		if(readParaClass(oi,&meter,i)==1) {
 			if(meter.sernum!=0 && meter.sernum!=0xffff) {
 				fprintf(stderr,"\n序号:%d ",meter.sernum);
-				fprintf(stderr,"[1]");
+				fprintf(stderr,"[1]%d-%d-",meter.basicinfo.addr.addr[0],meter.basicinfo.addr.addr[1]);
 				if(meter.basicinfo.addr.addr[0]>TSA_LEN)   fprintf(stderr,"TSA 长度[%d]超过17个字节，错误！！！\n",meter.basicinfo.addr.addr[0]);
-				for(j=0;j<meter.basicinfo.addr.addr[0];j++) {
-					fprintf(stderr,"%02x",meter.basicinfo.addr.addr[j+1]);
+				for(j=0;j<(meter.basicinfo.addr.addr[1]+1);j++) {
+					fprintf(stderr,"%02x",meter.basicinfo.addr.addr[j+2]);
 //				fprintf(stderr,"[1]%02x%02x%02x%02x%02x%02x ",
 //						meter.basicinfo.addr.addr[0],meter.basicinfo.addr.addr[1],meter.basicinfo.addr.addr[2],meter.basicinfo.addr.addr[3],
 //						meter.basicinfo.addr.addr[4],meter.basicinfo.addr.addr[5]);
@@ -174,8 +173,8 @@ void Collect6000(OI_698	oi)
 				fprintf(stderr,"[8]%s ",getenum(coll_wiretype,meter.basicinfo.connectype));
 				fprintf(stderr,"[9]%d [10]%d ",meter.basicinfo.ratedU,meter.basicinfo.ratedI);
 				fprintf(stderr,"[11]");
-				for(j=0;j<meter.extinfo.cjq_addr.addr[0];j++) {
-					fprintf(stderr,"%02x",meter.extinfo.cjq_addr.addr[j+1]);
+				for(j=0;j<(meter.extinfo.cjq_addr.addr[1]+1);j++) {
+					fprintf(stderr,"%02x",meter.extinfo.cjq_addr.addr[j+2]);
 				}
 				fprintf(stderr," [12]");
 				for(j=0;j<meter.extinfo.asset_code[0];j++) {
@@ -187,6 +186,146 @@ void Collect6000(OI_698	oi)
 		}
 	}
 	fprintf(stderr,"\n");
+}
+
+/*
+ * 采集档案配置单元
+ * */
+void Collect6000(int argc, char *argv[])
+{
+	CLASS_6001	 meter={};
+	int		ret = -1, pi=0, po=0;
+	int		i=0;
+	int 	tmp[50]={};
+	int		seqno=0;
+
+	if(strcmp("pro",argv[2])==0) {
+		if(argc<5) {
+			print6000(0x6000);
+		}
+	}
+	if(strcmp("delete",argv[2])==0) {
+		if(argc==5) {
+			seqno = atoi(argv[4]);
+			fprintf(stderr,"删除 采集档案配置序号： %d\n",seqno);
+			if(readParaClass(0x6000,&meter,seqno)==1) {
+				if(seqno == meter.sernum) {
+					meter.sernum = 0;
+					ret = saveParaClass(0x6000,&meter,seqno);
+					if(ret==1)
+						fprintf(stderr,"删除 序号 %d 成功, ret=%d\n",seqno,ret);
+				}
+			}
+		}
+	}
+	if(strcmp("add",argv[2])==0) {
+		if(argc<5) {
+			fprintf(stderr,"\n添加一个采集档案配置单元：配置项0-12：\n[0]配置序号 \n");
+			fprintf(stderr,"基本信息:[1]通信地址  [2]波特率  [3]规约  [4]端口OAD  [5]费率个数  [6]用户类型  [7]接线方式  [8]额定电压  [9]额定电流 \n");
+			fprintf(stderr,"扩展信息:[10]采集器地址 [11]PT [12]CT\n");
+			fprintf(stderr,"配置说明:\n【1】通信地址TSA，【10】采集器地址:第一个字节为TSA长度如： 05 12 34 56 78 9A\n");
+			fprintf(stderr,"【2】波特率:300bps(0),600bps(1),1200bps(2),2400bps(3),4800bps(4),7200bps(5),9600bps(6),19200bps(7),38400bps(8),57600bps(9),115200bps(10),自适应(255)\n");
+			fprintf(stderr,"【3】规约:未知(0),DL/T645-1997(1),DL/T645-2007(2),DL/T698.45(3),CJ/T188-2004(4)\n");
+			fprintf(stderr,"【4】OAD:格式输入 04x-04x，如OAD=f2010201, 输入：f201-0201\n");
+			fprintf(stderr,"【7】接线方式:未知(0),单相(1),三相三线(2),三相四线(3)\n");
+			fprintf(stderr,"例如<配置序号1的内容>：cj coll add 6000 1 06 18 00 03 35 15 52 2 2 f201-0201 4 1 2 220 15 0 2200 1500\n");
+		}else {
+			memset(&meter,0,sizeof(CLASS_6001));
+			pi = 4;
+			po = 0;
+			sscanf(argv[pi],"%d",&tmp[po]);
+			meter.sernum = tmp[po];
+			pi++;
+			po++;
+			fprintf(stderr,"sernum=%d ",meter.sernum);
+			///TSA
+			sscanf(argv[pi],"%d",&tmp[po]);
+			meter.basicinfo.addr.addr[1]=tmp[po];	// addr[0] :array num  addr[1]: TSA_len(后面数据帧为tsa_len+1) addr[2]...addr[2+TSA_len+1]
+			pi++;
+			po++;
+			for(i=0;i<(meter.basicinfo.addr.addr[1]);i++) {
+				sscanf(argv[pi],"%02x",&tmp[po]);
+				meter.basicinfo.addr.addr[2+i] = tmp[po];
+				pi++;
+				po++;
+			}
+			meter.basicinfo.addr.addr[0]=meter.basicinfo.addr.addr[1]+1;
+			meter.basicinfo.addr.addr[1]=meter.basicinfo.addr.addr[1]-1;
+
+			fprintf(stderr,"TSA=%d-%d ",meter.basicinfo.addr.addr[0],meter.basicinfo.addr.addr[1]);
+			for(i=0;i<(meter.basicinfo.addr.addr[1]+1);i++) {
+				fprintf(stderr,"%02x ",meter.basicinfo.addr.addr[i+2]);
+			}
+
+			//////
+			sscanf(argv[pi],"%d",&tmp[po]);
+			meter.basicinfo.baud = tmp[po];
+			pi++;
+			po++;
+			fprintf(stderr,"\nbaud=%d ",meter.basicinfo.baud);
+
+			sscanf(argv[pi],"%d",&tmp[po]);
+			meter.basicinfo.protocol = tmp[po];
+			pi++;
+			po++;
+			fprintf(stderr,"\nprotocol=%d ",meter.basicinfo.protocol);
+
+			sscanf(argv[pi],"%04x-%04x",&tmp[po],&tmp[po+1]);
+			meter.basicinfo.port.OI = tmp[po];
+			meter.basicinfo.port.attflg = (tmp[po+1]>>8) & 0xff;
+			meter.basicinfo.port.attrindex = tmp[po+1] & 0xff;
+			pi++;
+			po=po+2;
+			fprintf(stderr,"\nOAD=%04x %02x%02x ",meter.basicinfo.port.OI,meter.basicinfo.port.attflg,meter.basicinfo.port.attrindex);
+			memset(&meter.basicinfo.pwd,0,sizeof(meter.basicinfo.pwd));
+			sscanf(argv[pi],"%d",&tmp[po]);
+			meter.basicinfo.ratenum = tmp[po];
+			pi++;
+			po++;
+			sscanf(argv[pi],"%d",&tmp[po]);
+			meter.basicinfo.usrtype = tmp[po];
+			pi++;
+			po++;
+			sscanf(argv[pi],"%d",&tmp[po]);
+			meter.basicinfo.connectype = tmp[po];
+			pi++;
+			po++;
+			sscanf(argv[pi],"%d",&tmp[po]);
+			meter.basicinfo.ratedU = tmp[po];
+			pi++;
+			po++;
+			sscanf(argv[pi],"%d",&tmp[po]);
+			meter.basicinfo.ratedI = tmp[po];
+			pi++;
+			po++;
+			sscanf(argv[pi],"%d",&tmp[po]);
+			meter.extinfo.cjq_addr.addr[1]=tmp[po];	// addr[0] :array num  addr[1]: TSA_len(后面数据帧为tsa_len+1) addr[2]...addr[2+TSA_len+1]
+			pi++;
+			po++;
+			////TSA
+			for(i=0;i<(meter.extinfo.cjq_addr.addr[1]);i++) {
+				sscanf(argv[pi],"%02x",&tmp[po]);
+				meter.extinfo.cjq_addr.addr[2+i] = tmp[po];
+				pi++;
+				po++;
+			}
+			meter.extinfo.cjq_addr.addr[0]=meter.extinfo.cjq_addr.addr[1]+1;
+			if(meter.extinfo.cjq_addr.addr[1]!=0) {
+				meter.extinfo.cjq_addr.addr[1]=meter.extinfo.cjq_addr.addr[1]-1;
+			}
+			///////
+			sscanf(argv[pi],"%d",&tmp[po]);
+			meter.extinfo.pt = tmp[po];
+			pi++;
+			po++;
+			sscanf(argv[pi],"%d",&tmp[po]);
+			meter.extinfo.ct = tmp[po];
+			pi++;
+			po++;
+			ret = saveParaClass(0x6000,&meter,meter.sernum);
+			fprintf(stderr,"保存采集档案配置单元 序号 %d, ret=%d\n",meter.sernum,ret);
+		}
+	}
 }
 
 void print6013(CLASS_6013 class6013)
@@ -203,6 +342,7 @@ void print6013(CLASS_6013 class6013)
 	fprintf(stderr,"[7]%s  ",getenum(task_prio,class6013.runprio));
 	fprintf(stderr,"[8]%s  [9]%d  [10]%d ",getenum(task_status,class6013.state),class6013.befscript,class6013.aftscript);
 	fprintf(stderr,"[11]%s ",getenum(task_runtime,class6013.runtime.type));
+	fprintf(stderr,"运行时段:%d",class6013.runtime.num);
 	for(i=0;i<class6013.runtime.num;i++) {
 		fprintf(stderr,"[%d:%d %d:%d] ",class6013.runtime.runtime[i].beginHour,class6013.runtime.runtime[i].beginMin,
 									    class6013.runtime.runtime[i].endHour,class6013.runtime.runtime[i].endMin);
@@ -448,6 +588,154 @@ void Task6015(int argc, char *argv[])
 	}
 }
 
+void print_6017(CLASS_6017 eventFangAn)
+{
+	INT8U j=0;
+
+	fprintf(stderr,"\n事件采集方案：[1]方案编号 [2]采集事件数据ROAD [3]电能表集合MS [4]上报标识 [5]存储深度");
+
+	fprintf(stderr,"\n[1]方案编号 ：%d ",eventFangAn.sernum);
+	fprintf(stderr,"\n[2]ROAD{%d}\n",eventFangAn.roads.num);
+	for(j=0;j<eventFangAn.roads.num;j++)
+	{
+		print_road(eventFangAn.roads.road[j]);
+	}
+	fprintf(stderr,"[3]");
+	printMS(eventFangAn.ms);
+	fprintf(stderr,"\n[4]%d  ",eventFangAn.ifreport);
+	fprintf(stderr,"[5]%d\n",eventFangAn.deepsize);
+}
+
+//事件上报方案
+void Event6017(int argc, char *argv[])
+{
+	int		ret = -1;
+	int		i=0;
+	int 	tmp[30]={};
+	INT8U	taskid=0;
+	OI_698	oi=0;
+	CLASS_6017 eventFangAn={};
+
+	sscanf(argv[3],"%04x",&tmp[0]);
+	oi = tmp[0];
+	if(strcmp("clear",argv[2])==0) {
+		ret = clearClass(oi);
+		if(ret==-1) {
+			fprintf(stderr,"清空出错=%d",ret);
+		}
+	}
+	if(strcmp("delete",argv[2])==0) {
+		if(argc==5) {
+			sscanf(argv[4],"%d",&tmp[0]);
+			taskid = tmp[0];
+			if(deleteClass(oi,taskid)==1) {
+				fprintf(stderr,"删除一个配置单元oi【%04x】【%d】成功",oi,taskid);
+			}
+		}else fprintf(stderr,"参数错误，查看cj help");
+	}else {
+		if(strcmp("pro",argv[2])==0) {
+			if(argc<5) {
+				for(i=0;i<=255;i++) {
+					taskid = i;
+					memset(&eventFangAn,0,sizeof(CLASS_6017));
+					if(readCoverClass(oi,taskid,&eventFangAn,sizeof(CLASS_6017),coll_para_save)== 1) {
+						print_6017(eventFangAn);
+					}else {
+//						fprintf(stderr,"任务ID=%d 无任务配置单元",taskid);
+					}
+				}
+			}else if(argc==5) {
+				sscanf(argv[4],"%d",&tmp[0]);
+				taskid = tmp[0];
+				fprintf(stderr,"taskid=%d\n",taskid);
+				memset(&eventFangAn,0,sizeof(CLASS_6017));
+				if(readCoverClass(oi,taskid,&eventFangAn,sizeof(CLASS_6017),coll_para_save)==1) {
+					print_6017(eventFangAn);
+				}else {
+					fprintf(stderr,"无任务配置单元");
+				}
+			}
+		}
+	}
+}
+
+void print_601d(CLASS_601D	 reportplan)
+{
+	int j=0;
+	fprintf(stderr,"\n[1]上报方案编号 [2]上报通道 [3]上报响应超时时间 [4]最大上报次数 [5]上报内容 {[5.1]类型(0:OAD,1:RecordData) [5.2]数据 [5.3]RSD}");
+	fprintf(stderr,"\n[1]上报方案编号:%d \n",reportplan.reportnum);
+	fprintf(stderr,"[2]OAD[%d] ",reportplan.chann_oad.num);
+	for(j=0;j<reportplan.chann_oad.num;j++) {
+		fprintf(stderr,"%04x-%02x%02x ",reportplan.chann_oad.oadarr[j].OI,reportplan.chann_oad.oadarr[j].attflg,reportplan.chann_oad.oadarr[j].attrindex);
+	}
+	fprintf(stderr," [3]TI %d-%d ",reportplan.timeout.units,reportplan.timeout.interval);
+	fprintf(stderr," [4]%d ",reportplan.maxreportnum);
+	fprintf(stderr," [5.1]%d ",reportplan.reportdata.type);
+	if(reportplan.reportdata.type==0) {
+		fprintf(stderr," [5.2]OAD:%04x-%02x%02x ",reportplan.reportdata.data.oad.OI,reportplan.reportdata.data.oad.attflg,reportplan.reportdata.data.oad.attrindex);
+	}else {
+		fprintf(stderr," [5.2]OAD:%04x-%02x%02x ",reportplan.reportdata.data.oad.OI,reportplan.reportdata.data.oad.attflg,reportplan.reportdata.data.oad.attrindex);
+		print_rcsd(reportplan.reportdata.data.recorddata.csds);
+		fprintf(stderr," [5.4]");
+		print_rsd(reportplan.reportdata.data.recorddata.selectType,reportplan.reportdata.data.recorddata.rsd);
+	}
+	fprintf(stderr,"\n\n");
+}
+
+//任务上报方案
+void Report601d(int argc, char *argv[])
+{
+	int		ret = -1;
+	int		i=0;
+	int 	tmp[30]={};
+	INT8U	taskid=0;
+	OI_698	oi=0;
+	CLASS_601D	 reportplan={};
+
+	sscanf(argv[3],"%04x",&tmp[0]);
+	oi = tmp[0];
+	if(strcmp("clear",argv[2])==0) {
+		ret = clearClass(oi);
+		if(ret==-1) {
+			fprintf(stderr,"清空出错=%d",ret);
+		}
+	}
+	if(strcmp("delete",argv[2])==0) {
+		if(argc==5) {
+			sscanf(argv[4],"%d",&tmp[0]);
+			taskid = tmp[0];
+			if(deleteClass(oi,taskid)==1) {
+				fprintf(stderr,"删除一个配置单元oi【%04x】【%d】成功",oi,taskid);
+			}
+		}else fprintf(stderr,"参数错误，查看cj help");
+	}else {
+		if(strcmp("pro",argv[2])==0) {
+			if(argc<5) {
+				for(i=0;i<=255;i++) {
+					taskid = i;
+					memset(&reportplan,0,sizeof(CLASS_601D));
+					if(readCoverClass(oi,taskid,&reportplan,sizeof(CLASS_601D),coll_para_save)== 1) {
+						print_601d(reportplan);
+					}else {
+//						fprintf(stderr,"任务ID=%d 无任务配置单元",taskid);
+					}
+				}
+			}else if(argc==5) {
+				sscanf(argv[4],"%d",&tmp[0]);
+				taskid = tmp[0];
+				fprintf(stderr,"taskid=%d\n",taskid);
+				memset(&reportplan,0,sizeof(CLASS_601D));
+				if(readCoverClass(oi,taskid,&reportplan,sizeof(CLASS_601D),coll_para_save)==1) {
+					print_601d(reportplan);
+				}else {
+					fprintf(stderr,"无任务配置单元");
+				}
+			}
+		}
+	}
+}
+
+
 void print6035(CLASS_6035 class6035)
 {
 	fprintf(stderr,"[6035]采集任务监控单元 \n");
@@ -523,13 +811,19 @@ void coll_process(int argc, char *argv[])
 			oi = tmp;
 			switch(oi) {
 			case 0x6000:
-				Collect6000(oi);
+				Collect6000(argc,argv);
 				break;
 			case 0x6013:
 				Task6013(argc,argv);
 				break;
 			case 0x6015:
 				Task6015(argc,argv);
+				break;
+			case 0x6017:
+				Event6017(argc,argv);
+				break;
+			case 0x601d:
+				Report601d(argc,argv);
 				break;
 			case 0x6035:
 				Task6035(argc,argv);
@@ -610,7 +904,6 @@ void ReadNorData(TS ts,INT8U taskid,INT8U *tsa)
 	TSGet(&ts_now);
 	char	fname[128]={};
 	TASKSET_INFO tasknor_info;
-	taskid=1;
 	if(ReadTaskInfo(taskid,&tasknor_info)!=1)
 		return;
 	getTaskFileName(taskid,ts_now,fname);
@@ -638,6 +931,7 @@ void ReadNorData(TS ts,INT8U taskid,INT8U *tsa)
 		fprintf(stderr,"\n传进来的TSA：");
 		for(i=0;i<TSA_LEN;i++)
 			fprintf(stderr," %02x",tsa[i]);
+		fprintf(stderr,"\n文件里的TSA：");
 		for(i=0;i<TSA_LEN;i++)
 			fprintf(stderr," %02x",databuf_tmp[i+1]);
 		if(memcmp(&databuf_tmp[1],&tsa[0],17)==0)//找到了存储结构的位置，一个存储结构可能含有unitnum个单元
@@ -697,4 +991,180 @@ void cjread(int argc, char *argv[])
 		TSGet(&ts_now);
 		ReadNorData(ts_now,taskid,tsa);
 	}
+}
+int buf_int(INT8U  *buf)
+{
+	int value=0;
+	value = buf[0];
+	value = (value<<8) + buf[1];
+	return value;
+}
+int buf_int2(INT8U  *buf)
+{
+	int value=0;
+	value = buf[1];
+	value = (value<<8) + buf[0];
+	return value;
+}
+int readfile_int(FILE *fp)
+{
+	INT8U buf[2]={};
+	int value=0;
+	if (fp!=NULL)
+	{
+		if(fread(buf,2,1,fp)>0)
+		{
+			//value = buf[0];
+			//value = (value<<8) + buf[1];
+			value = buf_int(buf);
+		}
+	}
+	return value;
+}
+
+int getOADf(INT8U type,INT8U *source,OAD *oad)		//0x51
+{
+	if((type == 1) || (type == 0)) {
+		oad->OI = source[type+1];
+		oad->OI = (oad->OI <<8) | source[type];
+		oad->attflg = source[type+2];
+		oad->attrindex = source[type+3];
+		return (4+type);
+	}
+	return 0;
+}
+
+typedef struct{
+	OAD   oad_m;
+	OAD   oad_r;
+	INT16U len;
+}HEAD_UNIT0;
+int findtsa(FILE *fp,int *TSA_D,int A_TSAblock)
+{
+	INT8U tmp=0,buf[20]={};
+	int begitoffset =0 ;
+	int k = 0;
+	int findok = 1;
+
+	for(;;)
+	{
+		findok = 1;
+		begitoffset = ftell(fp);
+		if (fread(&tmp,1,1,fp)<=0)
+		{
+			findok = 0;
+			break;
+		}
+		if(tmp!=0X55)
+		{
+			break;
+		}
+		fprintf(stderr,"\n标识%02x",tmp);
+		fread(&tmp,1,1,fp);
+		fprintf(stderr,"\n长度%d",tmp);
+		memset(buf,0,20);
+		fread(&buf,tmp,1,fp);
+
+		for(k=0;k<tmp;k++)
+		{
+			if(buf[k]!=TSA_D[k])
+				findok = 0;
+			fprintf(stderr,"\n %02x - %02x",buf[k],TSA_D[k]);
+		}
+		fprintf(stderr,"\nfindok = %d",findok);
+		if (findok==0)
+		{
+			fseek(fp,begitoffset+A_TSAblock,0);
+		}else
+		{
+			fseek(fp,begitoffset,0);
+			break;
+		}
+	}
+	return findok;
+}
+void analyTaskData(int argc, char* argv[])
+{
+	int TSA_D[20]={};
+	char *filename= argv[2];
+	OAD oad;
+	FILE *fp=NULL;
+	int i=0,j=0,k=0;
+	INT8U buf[50]={};
+	int indexn=0,A_record=0,A_TSAblock=0;
+	HEAD_UNIT0 length[20];
+	int haveTsa =0;
+	if (filename!=NULL)
+	{
+		if(argc>3)
+		{
+			int tsanum = argc -3;
+			haveTsa = tsanum;   //人工输入的TSA目标字节数
+			for(i=0;i<tsanum;i++)
+			{
+				sscanf(argv[i+3],"%02x",&TSA_D[i]);
+				fprintf(stderr,"%02x ",TSA_D[i]);
+			}
+		}
+		fp = fopen(filename,"r");
+		if(fp!=NULL)
+		{
+			fprintf(stderr,"\n%s\n-------------------------------------------------",filename);
+			int head_len = readfile_int(fp);
+			fprintf(stderr,"\n文件头长度 %d 字节",head_len);
+
+			A_TSAblock = readfile_int(fp);
+			fprintf(stderr,"\n每TSA数据块长 %d 字节",A_TSAblock);
+			memset(&length,0,sizeof(length));
+			int unitnum = (head_len )/sizeof(HEAD_UNIT0);
+			for(i=0;i<unitnum  ;i++)
+			{
+				memset(buf,0,50);
+				fread(buf,10,1,fp);
+				getOADf(0,&buf[0],&oad);
+				memcpy(&length[i].oad_m,&oad,sizeof(oad));
+				fprintf(stderr,"\n【%02d】  %04x-%02x-%02x   ",i,oad.OI,oad.attflg,oad.attrindex);
+				getOADf(0,&buf[4],&oad);
+				memcpy(&length[i].oad_r,&oad,sizeof(oad));
+				fprintf(stderr,  "%04x-%02x-%02x   ",oad.OI,oad.attflg,oad.attrindex);
+				length[i].len = buf_int2(&buf[8]);
+				fprintf(stderr," %02d 字节        |   ",length[i].len);
+				indexn++;
+				for(j=0;j<10;j++)
+					fprintf(stderr,"%02x ",buf[j]);
+				if (i==3)
+					fprintf(stderr,"\n");
+				A_record += length[i].len;
+			}
+			int recordnum =0;
+			fprintf(stderr,"\nA_TSAblock=%d  A_record=%d",A_TSAblock,A_record);
+			recordnum = A_TSAblock/A_record;
+			fprintf(stderr,"\n 每记录长 %d 字节  共计 %d条记录 ",A_record,recordnum);
+
+			if (findtsa(fp,TSA_D,A_TSAblock)==1)
+				fprintf(stderr,"\n====== ok");
+			else
+			{
+				fprintf(stderr,"\n====== no");
+				return;
+			}
+
+			for(k=0;k<recordnum;k++)
+			{
+				fprintf(stderr,"\n记录%d",k);
+				for(i=0;i<indexn;i++)
+				{
+					fprintf(stderr,"\n%04x . %04x  %02d字节     |",length[i].oad_m.OI,length[i].oad_r.OI,length[i].len);
+					memset(buf,0,50);
+					if (fread(buf,length[i].len,1,fp)>0)
+					{
+						for(j=0;j<length[i].len;j++)
+							fprintf(stderr,"%02x ",buf[j]);
+					}else
+						break;
+				}
+			}
+		}
+	}
+	return ;
 }

@@ -12,12 +12,11 @@
 #define delay(A) usleep((A)*1000)
 //////////////////////////////////////////////////////////////
 #define _CFGDIR_ 			"/nor/config"
-#define _ACSDIR_			"/nand/acs"
+#define _ACSDIR_			"/nor/acs"
 ///////////////////////////////////////////////////////////////
 /*
  * 	进程间通讯相关限值
  * */
-
 #define ARGVMAXLEN			50					//参数最大长度
 #define PRONAMEMAXLEN		50					//进程名称最大长度
 #define	PROJECTCOUNT		10					//守护进程可以支持的最多进程数
@@ -33,7 +32,11 @@
 #define MAXNUM_PROXY_485    25
 #define MAXSIZ_PROXY_NET    2048
 #define MAXNUM_PROXY_NET    25
+#define MAXSIZ_TASKID_QUEUE    256
+#define MAXNUM_TASKID_QUEUE    25
+#define MAXNUM_AUTOTASK		20					//采用上报方案的任务最大数
 
+#define MAXSIZ_FAM	1600						//
 ///////////////////////////////////////////////////////////////
 /*
  * 	终端类相关容量及参数定义
@@ -49,12 +52,15 @@
 /*
  * 	DL/T698.45		规约结构限值
  * */
+#define MET_RATE                4           //电表费率应该根据电表配置来，此处调试使用
 #define TSA_LEN					17
 #define OCTET_STRING_LEN		16
 #define VISIBLE_STRING_LEN		40
 #define COLLCLASS_MAXNUM		1024		//定义集合类最大元素个数
 
 #define	REPORT_CHANN_OAD_NUM	10			//上报方案 array OAD最大个数
+#define MY_CSD_NUM				20			//my_csd数组最大各数
+#define ROAD_OADS_NUM           16          //ROAD结构体里oads的最大个数
 #define CLASS7_OAD_NUM			10			//关联对象属性表
 #define MAX_PERIOD_RATE   		48      	//支持的最到终端费率时段数
 
@@ -134,6 +140,9 @@
 #define PROXY_485_MQ_NAME			"/proxy_485_mq"		//485抄表过程接收代理请求消息队列
 #define PROXY_NET_MQ_NAME			"/proxy_net_mq"		//通讯进程代理应答接收消息队列
 
+#define TASKID_485_1_MQ_NAME		"/taskid_485_1_mq"		//485 1抄表 任务ID 队列
+#define	TASKID_485_2_MQ_NAME		"/taskid_485_2_mq"		//485 2抄表 任务ID 队列
+#define TASKID_plc_MQ_NAME			"/taskid_plc_mq"		//载波 抄表 任务ID 队列
 /////////////////////////////////////////////////////////////////
 
 /*
@@ -142,6 +151,7 @@
 
 #define SEMNAME_SPI0_0 		"sem_spi0_0" //专变、I型集中器交采和esam的spi通信互斥信号量
 #define	SEMNAME_PARA_SAVE	"sem_parasave"			//参数文件存储
+
 ////////////////////////////////////////////////////////////////
 
 /*

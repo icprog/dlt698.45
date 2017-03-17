@@ -2,7 +2,7 @@
 #define STDDATATYPE_H_
 
 #include "ParaDef.h"
-#pragma pack(1)				//结构体一个字节对齐
+//#pragma pack(1)				//结构体一个字节对齐
 typedef unsigned char  BOOLEAN;
 typedef unsigned char  INT8U;                    /* Unsigned  8 bit quantity                           */
 typedef signed   char  INT8S;                    /* Signed    8 bit quantity                           */
@@ -293,6 +293,12 @@ typedef struct
 
 typedef struct
 {
+	INT8U 	DAR;		//返回 DAR结果
+	int		datalen;	//返回 数据帧长度字节
+}Action_result;
+
+typedef struct
+{
 	INT8U data;
 }PIID_ACD;
 typedef struct
@@ -305,7 +311,7 @@ typedef struct
 {
 	OAD oad;
 	INT8U num;
-	OAD oads[16];
+	OAD oads[ROAD_OADS_NUM];
 }ROAD;					/*记录型对象属性描述符*/
 
 typedef struct
@@ -322,7 +328,7 @@ typedef struct
 
 typedef struct
 {
-	INT8U addr[TSA_LEN];
+	INT8U addr[TSA_LEN];	// addr[0] :array num  addr[1]: TSA_len(后面数据帧为tsa_len+1) addr[2]...addr[2+TSA_len+1]
 }TSA;
 typedef struct
 {
@@ -334,12 +340,12 @@ typedef union
 {
 	INT8U nometer_null;
 	INT8U allmeter_null;
-	INT8U userType[32];
-	TSA	userAddr[32];
-	INT16U configSerial[32];
-	Region type[32];
-	Region addr[32];
-	Region serial[32];
+	INT8U userType[COLLCLASS_MAXNUM];		//userType[0]:表示后面有效的序列个数
+	TSA	userAddr[COLLCLASS_MAXNUM];			//userAddr[0]:表示后面的有效TSA个数
+	INT16U configSerial[COLLCLASS_MAXNUM];	//configSerial[0]:表示后面有效的序列个数
+	Region type[COLLCLASS_MAXNUM];
+	Region addr[COLLCLASS_MAXNUM];
+	Region serial[COLLCLASS_MAXNUM];
 }MS;
 typedef struct
 {
@@ -451,7 +457,7 @@ typedef struct
 {
 	INT8U flag;			//解析时的标记，在应用程序中无意义
 	INT8U num;
-	MY_CSD csd[10];//CSD
+	MY_CSD csd[MY_CSD_NUM];//CSD
 }CSD_ARRAYTYPE;
 
 typedef struct
@@ -740,6 +746,7 @@ typedef struct
 
 typedef struct{
 	OI_698 oi;
+	INT8U report_flag; //1需上报 0已上报
 	INT16U eventno;
 }Reportevent;
 

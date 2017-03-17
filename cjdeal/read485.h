@@ -12,17 +12,21 @@
 #include "libmmq.h"
 
 //一次从文件里读取10个6001--采集档案任务配置单元
-#define LIST6001SIZE 10
-#define TASK6012_MAX 256
+#define LIST6001SIZE 20
 #define BUFFSIZE 256
 #define DATA_CONTENT_LEN 500
+#define NUM_07DI_698OAD 100
 
-
+#define DF07_BYTES  4
+#define DF07_INFO_BYTES  50
+#define MAXLEN_1LINE  100
+#define CLASS_601F_CFG_FILE "/nor/config/07DI_698OAD.cfg"
 
 pthread_attr_t read485_attr_t;
 int thread_read4851_id,thread_read4852_id;           //485、四表合一（I型、II型、专变）
 pthread_t thread_read4851,thread_read4852;
 
+extern INT16U CalcOIDataLen(OI_698 oi,INT8U attr_flg);
 
 typedef enum{
 	PROTOCOL_UNKNOWN = 0,
@@ -31,6 +35,7 @@ typedef enum{
 	DLT_698 = 3,
 	CJT_188 = 4,
 }METER_PROTOCOL;
+
 typedef struct
 {
 	INT16U sernum;
@@ -39,25 +44,32 @@ typedef struct
 	METER_PROTOCOL protocol;		//规约类型
 	INT8U port;			//端口
 }BasicInfo6001;
+//OAD+数据
+typedef struct
+{
+	INT8U oad[4];
+	INT8U datalen;
+	INT8U data[50];
+}OAD_DATA;
 
-typedef struct {
-	INT8U run_flg;//累计需要抄读次数 抄读一次后置为0   到下一次抄读时间置为1
-	TS ts_next;//下一次抄表时刻
-	CLASS_6013 basicInfo;
-}TASK_CFG;
 
 //698 OAD 和 645 07规约 数据标识对应关系
 
 
 
 extern void read485_proccess();
+
 mqd_t mqd_485_main;
-TASK_CFG list6013[TASK6012_MAX];
+mqd_t mqd_485_1_task;
+mqd_t mqd_485_2_task;
+
 INT32S comfd4851;
 INT32S comfd4852;
-//以下是测试用的假数据
-#ifdef TESTDEF
-#define TESTARRAYNUM 20
-CLASS_601F testArray[TESTARRAYNUM];
-#endif
+INT8U i485port1;
+INT8U readState;//是否正在处理实时消息
+INT8U i485port2;
+
+INT8U map07DI_698OAD_NUM;
+CLASS_601F map07DI_698OAD[NUM_07DI_698OAD];
+
 #endif /* READ485_H_ */

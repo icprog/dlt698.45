@@ -11,20 +11,23 @@
 #include "Esam.h"
 #include "ParaDef.h"
 #include "Shmem.h"
+#include "PublicFunction.h"
 #define LIB698_VER 	1
-
+#define TESTDEF
 extern int doObjectAction();
 //extern int doActionReponse(int reponse,CSINFO *csinfo,PIID piid,OMD omd,int dar,INT8U *data,INT8U *buf);
 extern int getRequestRecord(OAD oad,INT8U *data,CSINFO *csinfo,INT8U *sendbuf);
+extern int getRequestRecordList(INT8U *data,CSINFO *csinfo,INT8U *sendbuf);
 extern int getRequestNormal(OAD oad,INT8U *data,CSINFO *csinfo,INT8U *sendbuf);
 extern int getRequestNormalList(INT8U *data,CSINFO *csinfo,INT8U *sendbuf);
-extern int doReponse(int server,int reponse,CSINFO *csinfo,PIID piid,OAD oad,int dar,INT8U *data,INT8U *buf);
-extern int setRequestNormal(INT8U *data,OAD oad,CSINFO *csinfo,INT8U *buf);
+extern int doReponse(int server,int reponse,CSINFO *csinfo,int datalen,INT8U *data,INT8U *buf);
+extern INT16U setRequestNormal(INT8U *data,OAD oad,INT8U *DAR,CSINFO *csinfo,INT8U *buf);
 extern int setRequestNormalList(INT8U *Object,CSINFO *csinfo,INT8U *buf);
 extern int Proxy_GetRequestlist(INT8U *data,CSINFO *csinfo,INT8U *sendbuf);
 extern unsigned short tryfcs16(unsigned char *cp, int  len);
 extern INT32S secureConnectRequest(SignatureSecurity* securityInfo ,SecurityData* RetInfo);
 INT8S (*pSendfun)(int fd,INT8U* sndbuf,INT16U sndlen);
+extern void  Get698_event(OAD oad,ProgramInfo* prginfo_event);
 int comfd = 0;
 INT8U ClientPiid=0;
 INT8U TmpDataBuf[MAXSIZ_FAM];
@@ -37,6 +40,7 @@ INT8U securetype;  //安全等级类型  01明文，02明文+MAC 03密文  04密
 INT8U secureRN[20];//安全认证随机数，主站下发，终端回复时需用到，esam计算使用
 static INT8U	client_addr=0;
 PIID piid_g={};
+
 /**************************************
  * 函数功能：DL/T698.45 状态机
  * 参数含义：
@@ -330,12 +334,7 @@ int long_unsigned(INT8U *value,INT8U *buf)
 	value[1]= buf[0];
 	return 2;
 }
-void getoad(INT8U *data,OAD *oad)
-{
-	oad->OI = data[0]<<8 | data[1];
-	oad->attflg = data[2];
-	oad->attrindex = data[3];
-}
+
 void GetconnetRequest(CONNECT_Request *request,INT8U *apdu)
 {
 	int index=0, bytenum=0;
@@ -535,24 +534,28 @@ int appConnectResponse(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 		pSendfun(comfd,buf,index+3);
 	return (index+3);
 }
+
 int doSetAttribute(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 {
 	int  DAR=success;
-	PIID piid={};
+	int	 index=0;
 	INT8U setType = apdu[1];
 	OAD oad={};
 	INT8U *data=NULL;
-	piid.data = apdu[2];
-	oad.OI = (apdu[3]<<8) | apdu[4];
-	oad.attflg = apdu[5];
-	oad.attrindex = apdu[6];
-	data = &apdu[7];					//Data
+	piid_g.data = apdu[2];
 
 	switch(setType)
 	{
 		case SET_REQUEST_NORMAL:
-			DAR = setRequestNormal(data,oad,csinfo,buf);
-			doReponse(SET_RESPONSE,SET_REQUEST_NORMAL,csinfo,piid,oad,DAR,NULL,buf);
+			memset(TmpDataBuf,0,sizeof(TmpDataBuf));
+			getOAD(0,&apdu[3],&oad);
+			data = &apdu[7];					//Data
+			setRequestNormal(data,oad,&DAR,NULL,buf);
+			fprintf(stderr,"setRequestNormal dar = %d\n",DAR);
+			index += create_OAD(&TmpDataBuf[index],oad);
+			TmpDataBuf[index++] = (INT8U)DAR;
+			doReponse(SET_RESPONSE,SET_REQUEST_NORMAL,csinfo,index,TmpDataBuf,buf);
+			Get698_event(oad,memp);
 			break;
 		case SET_REQUEST_NORMAL_LIST:
 			setRequestNormalList(&apdu[3],csinfo,buf);
@@ -561,6 +564,7 @@ int doSetAttribute(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 
 			break;
 	}
+
 	return 1;
 }
 
@@ -570,10 +574,10 @@ int doGetAttribute(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
 	INT8U getType = apdu[1];
 	OAD oad={};
 	INT8U *data=NULL;
-	piid.data = apdu[2];
-	fprintf(stderr,"\n- get type = %d PIID=%02x",getType,piid.data);
+	piid_g.data = apdu[2];
+	fprintf(stderr,"\n- get type = %d PIID=%02x",getType,piid_g.data);
 
-	getoad(&apdu[3],&oad);
+	getOAD(0,&apdu[3],&oad);
 	data = &apdu[7];					//Data
 
 	switch(getType)
@@ -582,7 +586,6 @@ int doGetAttribute(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
 			getRequestNormal(oad,data,csinfo,sendbuf);
 			break;
 		case GET_REQUEST_NORMAL_LIST:
-			/*重新定位数据指针地址*/
 			data = &apdu[3];
 			getRequestNormalList(data,csinfo,sendbuf);
 			break;
@@ -590,6 +593,9 @@ int doGetAttribute(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
 			getRequestRecord(oad,data,csinfo,sendbuf);
 			break;
 		case GET_REQUEST_RECORD_LIST:
+			/*重新定位数据指针地址*/
+			data = &apdu[3];
+			getRequestRecordList(data,csinfo,sendbuf);
 			break;
 		case GET_REQUEST_RECORD_NEXT:
 			break;
@@ -603,7 +609,7 @@ int doProxyRequest(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
 	INT8U getType = apdu[1];
 	INT8U *data=NULL;
 
-	piid.data = apdu[2];
+	piid_g.data = apdu[2];
 	data = &apdu[3];
 	fprintf(stderr,"\n代理 PIID %02x   ",piid.data);
 	switch(getType)
@@ -627,27 +633,53 @@ int doProxyRequest(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
 	}
 	return 1;
 }
+
 int doActionRequest(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 {
 	int  DAR=success;
-	PIID piid={};
+	int	 seqnum = 0,i=0;
+	int	 index = 0,apdu_index=0;
 	OAD  oad={};
 	INT8U *data=NULL;
-	INT8U request_choice = apdu[1];		//ACTION-Request
-	piid.data = apdu[2];				//PIID
-//	memcpy(&omd,&apdu[3],4);			//OAD
-	oad.OI= (apdu[3]<<8) | apdu[4];
-	oad.attflg = apdu[5];
-	oad.attrindex = apdu[6];
-	data = &apdu[7];					//Data
-	fprintf(stderr,"\n-------- request choice = %d omd OI = %04x  method=%d",request_choice,oad.OI,oad.attrindex);
+	INT8U request_choice = apdu[apdu_index+1];		//ACTION-Request
+	piid_g.data = apdu[apdu_index+2];				//PIID
+	Action_result	act_ret={};
+
+	fprintf(stderr,"\n-------- request choice = %d",request_choice);
 	switch(request_choice)
 	{
 		case ACTIONREQUEST:
-			DAR = doObjectAction(oad,data);
-			doReponse(ACTION_RESPONSE,ActionResponseNormal,csinfo,piid,oad,DAR,NULL,buf);
+			memset(TmpDataBuf,0,sizeof(TmpDataBuf));
+			index = 0;
+			oad.OI= (apdu[apdu_index+3]<<8) | apdu[apdu_index+4];
+			oad.attflg = apdu[apdu_index+5];
+			oad.attrindex = apdu[apdu_index+6];
+			data = &apdu[apdu_index+7];					//Data
+			DAR = doObjectAction(oad,data,&act_ret);
+			index += create_OAD(&TmpDataBuf[index],oad);
+			TmpDataBuf[index++] = DAR;
+			doReponse(ACTION_RESPONSE,ActionResponseNormal,csinfo,index,TmpDataBuf,buf);
+			Get698_event(oad,memp);
 			break;
 		case ACTIONREQUEST_LIST:
+			index = 0;
+			apdu_index = 3;
+			data = &apdu[apdu_index];					//Data
+			seqnum = apdu[apdu_index++];		//3
+			fprintf(stderr,"seqnum = %d\n",seqnum);
+			index += create_array(&TmpDataBuf[index],seqnum);
+			for(i=0;i<seqnum;i++) {
+				oad.OI= (apdu[apdu_index]<<8) | apdu[apdu_index+1];
+				apdu_index+=2;
+				oad.attflg = apdu[apdu_index++];
+				oad.attrindex = apdu[apdu_index++];
+				index += create_OAD(&TmpDataBuf[index],oad);
+				doObjectAction(oad,&apdu[apdu_index],&act_ret);
+				TmpDataBuf[index++] = act_ret.DAR;
+				apdu_index += act_ret.datalen;
+				fprintf(stderr,"OAD=%04x_%02x%02x act_ret=%d\n",oad.OI,oad.attflg,oad.attrindex,act_ret.datalen);
+			}
+			doReponse(ACTION_RESPONSE,ActionResponseNormalList,csinfo,index,TmpDataBuf,buf);
 			break;
 		case ACTIONTHENGET_REQUEST_NORMAL_LIST:
 			break;
@@ -808,21 +840,50 @@ INT16S fillGetRequestAPDU(INT8U* sendBuf,CLASS_6015 obj6015,INT8U requestType)
 		}
 	}
 
-	if(obj6015.cjtype == TYPE_LAST)
+	if((obj6015.cjtype == TYPE_LAST)||(obj6015.cjtype == TYPE_FREEZE))
 	{
-		sendBuf[length++] = 0x09;//Selector = 9 选取上n条记录
-		sendBuf[length++] = 0x01;//选取上1条记录
 		for(csdIndex = 0;csdIndex < obj6015.csds.num;csdIndex++)
 		{
-			/*采集当前数据*/
+			/*采集上N次数据*/
 			if(obj6015.csds.csd[csdIndex].type == 1)//ROAD
 			{
 				len = OADtoBuff(obj6015.csds.csd[csdIndex].csd.road.oad,&sendBuf[length]);
 				length +=len;
+				if(obj6015.cjtype == TYPE_LAST)
+				{
+					// selector 9
+					sendBuf[length++] = 0x09;//Selector = 9 选取上n条记录
+					sendBuf[length++] = 0x01;//选取上1条记录
+				}
+				if(obj6015.cjtype == TYPE_FREEZE)
+				{
+					// selector 9
+					sendBuf[length++] = 0x01;//Selector = 1
+					//冻结时标OAD
+					sendBuf[length++] = 0x20;
+					sendBuf[length++] = 0x21;
+					sendBuf[length++] = 0x02;
+					sendBuf[length++] = 0x00;
+
+					DateTimeBCD timeStamp;
+					DataTimeGet(&timeStamp);
+
+					sendBuf[length++] = 0x1c;
+					INT16U tmpTime = timeStamp.year.data;
+					sendBuf[length++] = (tmpTime>>8)&0x00ff;
+					sendBuf[length++] = tmpTime&0x00ff;
+					sendBuf[length++] = timeStamp.month.data;
+					sendBuf[length++] = timeStamp.day.data;
+					sendBuf[length++] = 0x00;
+					sendBuf[length++] = 0x00;
+					sendBuf[length++] = 0x00;
+				}
 				sendBuf[length++] = obj6015.csds.csd[csdIndex].csd.road.num;//OAD num
+
 				INT8U oadsIndex;
 				for (oadsIndex = 0; oadsIndex < obj6015.csds.csd[csdIndex].csd.road.num; oadsIndex++)
 				{
+
 					sendBuf[length++] = 0;//OAD
 					len = OADtoBuff(obj6015.csds.csd[csdIndex].csd.road.oads[oadsIndex],&sendBuf[length]);
 					length +=len;
@@ -837,12 +898,16 @@ INT16S fillGetRequestAPDU(INT8U* sendBuf,CLASS_6015 obj6015,INT8U requestType)
 
 		}
 	}
+
 	return length;
 
 }
+//
 INT8S getRequestType(INT8U cjtype,INT8U csdcount)
 {
+
 	INT8S requestType = -1;
+
 	switch(cjtype)
 	{
 		case TYPE_NULL:
@@ -861,6 +926,8 @@ INT8S getRequestType(INT8U cjtype,INT8U csdcount)
 
 		case TYPE_LAST:
 			{
+				requestType = GET_REQUEST_RECORD;
+
 				if(csdcount == 1)
 				{
 					requestType = GET_REQUEST_RECORD;
@@ -869,18 +936,22 @@ INT8S getRequestType(INT8U cjtype,INT8U csdcount)
 				{
 					requestType = GET_REQUEST_RECORD_LIST;
 				}
+
 				break;
 			}
 
 		case TYPE_FREEZE:
-
+			requestType = GET_REQUEST_RECORD;
 			break;
 		case TYPE_INTERVAL:
 			break;
 	}
+
+
 	return requestType;
 }
-INT16S composeProtocol698_GetRequest(INT8U* 	sendBuf,CLASS_6015 obj6015,TSA meterAddr)
+
+INT16S composeProtocol698_GetRequest(INT8U* sendBuf,CLASS_6015 obj6015,TSA meterAddr)
 {
 	INT8U PIID = 0x02;
 	int sendLen = 0, hcsi = 0,apdulen = 0;
@@ -891,9 +962,24 @@ INT16S composeProtocol698_GetRequest(INT8U* 	sendBuf,CLASS_6015 obj6015,TSA mete
 	csinfo.prm = 1; 	//服务器发出
 	csinfo.funcode = 3; //链路管理
 	csinfo.sa_type = 0 ;//单地址
-	csinfo.sa_length = meterAddr.addr[0]&0x0f;//sizeof(addr)-1;//服务器地址长度
 
-	memcpy(csinfo.sa,&meterAddr.addr[1],csinfo.sa_length );//服务器地址
+
+	INT8U reverseAddr[OCTET_STRING_LEN]= {0};
+	fprintf(stderr," \n\n composeProtocol698_GetRequest  meterAddr : %02x  %02x  %02x%02x%02x%02x%02x%02x%02x\n\n",
+			meterAddr.addr[0],meterAddr.addr[1],meterAddr.addr[2],meterAddr.addr[3],meterAddr.addr[4],
+			meterAddr.addr[5],meterAddr.addr[6],meterAddr.addr[7],meterAddr.addr[8]);
+	csinfo.sa_length = (meterAddr.addr[1]&0x0f) + 1;//sizeof(addr)-1;//服务器地址长度
+
+	reversebuff(&meterAddr.addr[2],csinfo.sa_length,reverseAddr);
+
+	fprintf(stderr," \n reverseAddr[%d] = ",csinfo.sa_length);
+	INT8U prtIndex;
+	for(prtIndex = 0;prtIndex < csinfo.sa_length;prtIndex++)
+	{
+		fprintf(stderr," %02x",reverseAddr[prtIndex]);
+	}
+
+	memcpy(csinfo.sa,reverseAddr,csinfo.sa_length);//服务器地址
 	csinfo.ca = 0x02;
 
 	fprintf(stderr,"sa_length = %d \n",csinfo.sa_length);
@@ -919,31 +1005,98 @@ INT16S composeProtocol698_GetRequest(INT8U* 	sendBuf,CLASS_6015 obj6015,TSA mete
 	return (sendLen + 3);			//3: cs cs 16
 
 }
-#ifdef TESTDEF1
-int analyzeProtocol698(INT8U* Rcvbuf,)
+INT16U getFECount(INT8U* recvBuf, const INT16U recvLen)//得到待解析报文中前导符FE的个数
 {
+	INT16U i, count=0;
+	for (i=0; i<recvLen; i++)
+	{
+		if (recvBuf[i] == 0x68)
+		{
+			count = i;
+			break;
+		}
+	}
+	return count;
+}
+/*
+ * 返回值 getType : GET_REQUEST_NORMAL   GET_REQUEST_NORMAL_LIST GET_REQUEST_RECORD GET_REQUEST_RECORD_LIST
+ * resultCount ： OAD  或者 ROAD数量
+ * recvLen：接受报文字节数 所有报文+ FEFE
+ * apduDataStartIndex： 返回数据开始位置
+ * dataLen： 数据部分长度
+ * */
+//解析抄表回复报文
+INT8U analyzeProtocol698(INT8U* Rcvbuf,INT8U* resultCount,INT16S recvLen,INT8U* apduDataStartIndex,INT16S* dataLen)
+{
+	fprintf(stderr,"\nanalyzeProtocol698---\n");
+	INT16U count = getFECount(Rcvbuf, recvLen);//得到待解析报文中前导符FE的个数
+	Rcvbuf += count;
+	INT8U startIndex = count;
+	*dataLen = recvLen - count;
+	INT8U getType = 0;
 	CSINFO csinfo={};
 	int hcsok = 0 ,fcsok = 0;
 	INT8U *apdu= NULL;
 
 	hcsok = CheckHead( Rcvbuf ,&csinfo);
 	fcsok = CheckTail( Rcvbuf ,csinfo.frame_length);
+	fprintf(stderr,"\n hcsok = %d fcsok = %d\n",hcsok,fcsok);
 	if ((hcsok==1) && (fcsok==1))
 	{
 		fprintf(stderr,"\nsa_length=%d\n",csinfo.sa_length);
 		apdu = &Rcvbuf[csinfo.sa_length+8];
-		if (csinfo.dir==1 && csinfo.prm == 1)	/*服务器对客户机请求的响应	（电表应答）*/
+		startIndex += csinfo.sa_length+8;
+		*dataLen = *dataLen - (csinfo.sa_length+8);
+		fprintf(stderr,"\n apdu: %02x %02x %02x %02x %02x %02x",apdu[0],apdu[1],apdu[2],apdu[3],apdu[4],apdu[5]);
+
+		if(apdu[0] == GET_REQUEST_RESPONSE)
 		{
-			fprintf(stderr,"\n服务器对客户机请求的响应	（电表应答）");
-			//MeterEcho();
-		}else
-		{
-			fprintf(stderr,"\n控制码解析错误(传输方向与启动位错误)");
-		}
-	}
-	return 1;
-}
+			getType = apdu[1];
+			if((getType == GET_REQUEST_NORMAL)||(getType == GET_REQUEST_RECORD))
+			{
+				*resultCount = 1;
+				startIndex += 3;
+				*dataLen = *dataLen - (3+3);
+			}
+			if((getType == GET_REQUEST_NORMAL_LIST)||(getType == GET_REQUEST_RECORD_LIST))
+			{
+				*resultCount = apdu[3];
+				startIndex += 4;
+				*dataLen = *dataLen - (4+3);
+			}
+			*apduDataStartIndex = startIndex;
+#if 0
+			switch(apdu[1])
+			{
+				case GET_REQUEST_NORMAL:
+					dealResponse_RequestNormal(oad,data,csinfo,sendbuf);
+					break;
+				case GET_REQUEST_NORMAL_LIST:
+					/*重新定位数据指针地址*/
+					data = &apdu[3];
+					dealResponse_RequestNormalList(data,csinfo,sendbuf);
+					break;
+				case GET_REQUEST_RECORD:
+					dealResponse_RequestRecord(oad,data,csinfo,sendbuf);
+					break;
+				case GET_REQUEST_RECORD_LIST:
+					break;
+				case GET_REQUEST_RECORD_NEXT:
+					break;
+
+			}
 #endif
+		}
+		else
+		{
+			fprintf(stderr,"\nanalyzeProtocol698 校验错误");
+		}
+
+
+	}
+	return getType;
+}
+
 int doReleaseConnect(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
 {
 	int apduplace =0,index=0, hcsi=0;
@@ -1063,7 +1216,7 @@ int ProcessData(CommBlock *com)
 	pSendfun = com->p_send;
 	comfd = com->phy_connect_fd;
 	hcsok = CheckHead( Rcvbuf ,&csinfo);
-//	com->taskaddr = csinfo.ca;
+	com->taskaddr = csinfo.ca;
 	fcsok = CheckTail( Rcvbuf ,csinfo.frame_length);
 	if ((hcsok==1) && (fcsok==1))
 	{

@@ -8,30 +8,29 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include "ae.h"
-#include "rlog.h"
-#include "dlt698def.h"
 #include "cjcomm.h"
-#include "AccessFun.h"
-#include "PublicFunction.h"
 
 //红外口监听、处理结构体
 static CommBlock FirObject;
 static long long Serial_Task_Id;
 
+static int GlobBand[]  = { 300, 600, 1200, 2400, 4800, 7200, 9600, 19200, 38400, 57600, 115200 };
+static char* GlobCrc[] = { "none", "odd", "even" };
+static int GlobData[]  = { 0, 1, 2, 3, 4, 5, 6, 7, 8 };
+static int GlobStop[]  = { 0, 1, 2 };
 /*
  * 模块*内部*使用的初始化参数
  */
 void IfrInit(void) {
-	asyslog(LOG_INFO, "初始化红外模块...");
-	initComPara(&FirObject);
+    asyslog(LOG_INFO, "初始化红外模块...");
+    initComPara(&FirObject);
 }
 
 /*
  * 用于程序退出时调用
  */
 void IfrDestory(void) {
-	//关闭资源
+    //关闭资源
     asyslog(LOG_INFO, "关闭红外通信接口(%d)", FirObject.phy_connect_fd);
     close(FirObject.phy_connect_fd);
     FirObject.phy_connect_fd = -1;
@@ -40,10 +39,21 @@ void IfrDestory(void) {
 /*
  * 模块维护循环
  */
-int RegularIfr(struct aeEventLoop* ep, long long id, void* clientData){
-	CommBlock* nst = (CommBlock*)clientData;
+int RegularIfr(struct aeEventLoop* ep, long long id, void* clientData) {
+    CLASS_f202 oif202 = {};
+    CommBlock* nst    = (CommBlock*)clientData;
+
     if (nst->phy_connect_fd < 0) {
-        if ((nst->phy_connect_fd = OpenCom(3, 2400, (unsigned char*)"even", 1, 8)) <= 0) {
+        if (readCoverClass(0xf202, 0, &oif202, sizeof(CLASS_f202), para_vari_save) > 0) {
+            fprintf(stderr, "红外模块读取参数：波特率(%d)，校验方式(%s)，数据位(%d)，停止位(%d)\n", GlobBand[oif202.devpara.baud],
+                    GlobCrc[oif202.devpara.verify], GlobData[oif202.devpara.databits], GlobStop[oif202.devpara.stopbits]);
+            nst->phy_connect_fd =
+            OpenCom(2, GlobBand[oif202.devpara.baud], GlobCrc[oif202.devpara.verify], GlobStop[oif202.devpara.stopbits], GlobData[oif202.devpara.databits]);
+        } else {
+            nst->phy_connect_fd = OpenCom(3, 2400, (unsigned char*)"even", 1, 8);
+        }
+
+        if (nst->phy_connect_fd <= 0) {
             asyslog(LOG_ERR, "红外串口打开失败");
         } else {
             if (aeCreateFileEvent(ep, nst->phy_connect_fd, AE_READABLE, GenericRead, nst) < 0) {
@@ -60,9 +70,9 @@ int RegularIfr(struct aeEventLoop* ep, long long id, void* clientData){
 /*
  * 供外部使用的初始化函数，并开启维护循环
  */
-int StartIfr(struct aeEventLoop* ep, long long id, void* clientData){
-	IfrInit();
-	Serial_Task_Id = aeCreateTimeEvent(ep, 1000, RegularIfr, &FirObject, NULL);
-	asyslog(LOG_INFO, "红外串口时间事件注册完成(%lld)", Serial_Task_Id);
-	return 1;
+int StartIfr(struct aeEventLoop* ep, long long id, void* clientData) {
+    IfrInit();
+    Serial_Task_Id = aeCreateTimeEvent(ep, 1000, RegularIfr, &FirObject, NULL);
+    asyslog(LOG_INFO, "红外串口时间事件注册完成(%lld)", Serial_Task_Id);
+    return 1;
 }

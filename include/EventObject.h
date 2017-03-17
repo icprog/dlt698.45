@@ -4,7 +4,7 @@
 #include "ParaDef.h"
 #include "StdDataType.h"
 
-#pragma pack(1)				//结构体一个字节对齐
+//#pragma pack(1)				//结构体一个字节对齐
 
 /*
  * 特殊终端事件:Event3105_Object,Event3106_Object,Event3107_Object,Event3108_Object,
@@ -62,7 +62,7 @@ typedef struct
 //class_7 事件类通用结构体
 typedef struct
 {
-	OI_698 oi;           	//逻辑名
+	INT8U logic_name[OCTET_STRING_LEN]; //逻辑名
 	INT16U crrentnum;    	//当前记录数
 	INT16U maxnum;       	//最大记录数
 	BOOLEAN reportflag;  	//上报标识 1 上报 0 不上报
@@ -338,6 +338,7 @@ typedef struct
 	Class7_Object Event3201_obj;    //电控跳闸记录28
 	Class7_Object Event3202_obj;    //购电参数设置记录29
 	Class7_Object Event3203_obj;    //电控告警事件记录30
+	Class7_Object Event301B_obj;    //电能表开盖事件31
 }TerminalEvent_Object;
 
 /*
@@ -388,6 +389,7 @@ const static EVENT_CLASS_INFO  event_class_len[] ={
 		{0x3111,sizeof(Class7_Object)},		{0x3112,sizeof(Class7_Object)},		{0x3114,sizeof(Class7_Object)},		{0x3115,sizeof(Class7_Object)},		{0x3116,sizeof(Event3116_Object)},
 		{0x3117,sizeof(Class7_Object)},		{0x3118,sizeof(Class7_Object)},		{0x3119,sizeof(Class7_Object)},		{0x311A,sizeof(Event311A_Object)},	{0x311B,sizeof(Class7_Object)},
 		{0x311C,sizeof(Event311C_Object)},	{0x3200,sizeof(Class7_Object)},		{0x3201,sizeof(Class7_Object)},		{0x3202,sizeof(Class7_Object)},		{0x3203,sizeof(Class7_Object)},
+		{0x301B,sizeof(Class7_Object)}
 };
 
 typedef struct{
