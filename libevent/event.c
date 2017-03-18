@@ -424,10 +424,10 @@ INT8U Need_Report(OI_698 oi,INT8U eventno,ProgramInfo* prginfo_event){
 	if(lastchgoi4300!=prginfo_event->oi_changed.oi4300){
 		readCoverClass(0x4300,0,&class19,sizeof(class19),para_vari_save);
 		if(lastchgoi4300!=prginfo_event->oi_changed.oi4300) {
-			lastchgoi4300++;
-			if(lastchgoi4300==0) lastchgoi4300=1;
+			lastchgoi4300=prginfo_event->oi_changed.oi4300;
 		}
 	}
+	fprintf(stderr,"libevent:active_report=%d talk_master=%d \n",class19.active_report,class19.talk_master);
 	if(class19.active_report == 1 && class19.talk_master == 1){
 		prginfo_event->needreport_event.event_num++;
 		prginfo_event->needreport_event.event_num=prginfo_event->needreport_event.event_num%15;
@@ -893,7 +893,6 @@ INT8U filewrite(char *FileName, void *source, int size)
 */
 void SendERC3106(INT8U flag,INT8U Erctype,ProgramInfo* prginfo_event)
 {
-	fprintf(stderr,"libevent:产生停上电 flag=%d ERCTYPE=%d \n",flag,Erctype);
 	INT8U Save_buf[256];
 	bzero(Save_buf, sizeof(Save_buf));
 	prginfo_event->event_obj.Event3106_obj.event_obj.crrentnum++;
@@ -925,7 +924,6 @@ void SendERC3106(INT8U flag,INT8U Erctype,ProgramInfo* prginfo_event)
 BOOLEAN MeterDiff(ProgramInfo* prginfo_event,MeterPower *MeterPowerInfo)
 {
 	int i = 0;
-	fprintf(stderr,"MeterDiff In,判断终端与电能表的时间偏差!!\r\n");
 	for(i = 0;i<POWEROFFON_NUM;i++)
 	{
 		if(MeterPowerInfo[i].Valid)
@@ -1056,13 +1054,10 @@ INT8U Get_meter_powoffon(ProgramInfo* prginfo_event,MeterPower *MeterPowerInfo,I
  * 终端停/上电事件5-停电事件-放在交采模块
  */
 INT8U Event_3106(ProgramInfo* prginfo_event,MeterPower *MeterPowerInfo,INT8U *state) {
-	fprintf(stderr,"\noid_chg=%d prginfo_event->oi_changed.oi3106=%d \n",oi_chg.oi3106,prginfo_event->oi_changed.oi3106);
 	if(oi_chg.oi3106 != prginfo_event->oi_changed.oi3106){
-		fprintf(stderr,"\nbbbbbboid_chg=%d prginfo_event->oi_changed.oi3106=%d \n",oi_chg.oi3106,prginfo_event->oi_changed.oi3106);
-		readCoverClass(0x3106,0,&prginfo_event->event_obj.Event3106_obj,sizeof(prginfo_event->event_obj.Event3106_obj),event_para_save);
+	    readCoverClass(0x3106,0,&prginfo_event->event_obj.Event3106_obj,sizeof(prginfo_event->event_obj.Event3106_obj),event_para_save);
 		oi_chg.oi3106 = prginfo_event->oi_changed.oi3106;
 	}
-	fprintf(stderr,"\nlibevent:3106 enableflag=%d \n",prginfo_event->event_obj.Event3106_obj.event_obj.enableflag);
 	if (prginfo_event->event_obj.Event3106_obj.event_obj.enableflag == 0) {
 		return 0;
 	}
@@ -1077,10 +1072,6 @@ INT8U Event_3106(ProgramInfo* prginfo_event,MeterPower *MeterPowerInfo,INT8U *st
 	INT16U mintime_space=prginfo_event->event_obj.Event3106_obj.poweroff_para_obj.screen_para_obj.mintime_space;
 	INT16U maxtime_space=prginfo_event->event_obj.Event3106_obj.poweroff_para_obj.screen_para_obj.maxtime_space;
 	//判断下电
-	fprintf(stderr,"libevent:ERC3106State=%d poweroff_happen_vlim=%d recover_voltage_limit=%d mintime_space=%d maxtime_space=%d \n",
-			TermialPowerInfo.ERC3106State,poweroff_happen_vlim,recover_voltage_limit,mintime_space,maxtime_space);
-	fprintf(stderr,"libevent:Ua=%d \n",prginfo_event->ACSRealData.Ua);
-	fprintf(stderr,"libevent:ACSRealData.Available=%d \n",prginfo_event->ACSRealData.Available);
 	if(TermialPowerInfo.ERC3106State == POWER_START){
 		if(prginfo_event->ACSRealData.Ua == 0)
 				off_time ++;
@@ -1088,7 +1079,6 @@ INT8U Event_3106(ProgramInfo* prginfo_event,MeterPower *MeterPowerInfo,INT8U *st
 				off_time = 0;
 		if(*state == 2)
 			MeterDiff(prginfo_event,MeterPowerInfo);
-		fprintf(stderr,"libevent off_time=%d \n",off_time);
 		//二型集中器没有电池只有电容，所以不能够读出底板是否有电，且二型集中器只有一相电压，停上电事件在硬件复位时不能产生，
 		//所以判断时，需要判断当前电压大于一个定值且小时参数时，产生事件(大于的定时暂定为10v交采已经将实时电压值乘以１０).
 		if((prginfo_event->ACSRealData.Available==TRUE)
@@ -1102,7 +1092,6 @@ INT8U Event_3106(ProgramInfo* prginfo_event,MeterPower *MeterPowerInfo,INT8U *st
 //								&&(Realdata.U[2].Available == TRUE&&Realdata.U[2].value==0&&Realdata.U[2].value<poweroff_happen_vlim)&&(!gpio_5V)))
 
 		{
-			fprintf(stderr,"libevent:产生下电事件...... \n");
 			off_time = 0;
 			//电压低于限值，且底板有电，产生下电事件
 			TermialPowerInfo.ERC3106State = POWER_OFF;
@@ -1120,7 +1109,6 @@ INT8U Event_3106(ProgramInfo* prginfo_event,MeterPower *MeterPowerInfo,INT8U *st
         //			||(Realdata.U[1].Available&&Realdata.U[1].value>recover_voltage_limit)
         //				||(Realdata.U[2].Available&&Realdata.U[2].value>recover_voltage_limit))
 		{
-			fprintf(stderr,"停电后上电\r\n");
 			TermialPowerInfo.ERC3106State = POWER_ON;
 			localtime_r((const time_t*)&time_of_now, &TermialPowerInfo.PoweronTime);
 
@@ -2095,6 +2083,7 @@ INT8U Event_3114(DateTimeBCD data,ProgramInfo* prginfo_event) {
 		readCoverClass(0x3114,0,&prginfo_event->event_obj.Event3114_obj,sizeof(prginfo_event->event_obj.Event3114_obj),event_para_save);
 		oi_chg.oi3114 = prginfo_event->oi_changed.oi3114;
 	}
+	fprintf(stderr,"libevent:3114enableflag=%d \n",prginfo_event->event_obj.Event3114_obj.enableflag);
     if (prginfo_event->event_obj.Event3114_obj.enableflag == 0) {
         return 0;
     }

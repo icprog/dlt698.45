@@ -80,6 +80,7 @@ void init_autotask(CLASS_6013 class6013,AutoTaskStrap* list)
 		fprintf(stderr,"\ninit_autotask [ %d 任务 %d 方案 %d  下次时间 %ld ]",index,list[index].ID ,list[index].SerNo,list[index].nexttime );
 		localtime_r(&list[index].nexttime,&tmp_tm);
 		fprintf(stderr,"下次时间 %04d-%02d-%02d %02d:%02d:%02d\n",tmp_tm.tm_year+1900,tmp_tm.tm_mon+1,tmp_tm.tm_mday,tmp_tm.tm_hour,tmp_tm.tm_min,tmp_tm.tm_sec);
+		asyslog(LOG_NOTICE,"任务【%d】,方案【%d】,下次时间【%04d-%02d-%02d %02d:%02d:%02d】",index,list[index].ID,tmp_tm.tm_year+1900,tmp_tm.tm_mon+1,tmp_tm.tm_mday,tmp_tm.tm_hour,tmp_tm.tm_min,tmp_tm.tm_sec);
 		index++;
 	}
 }
@@ -306,6 +307,7 @@ INT16U  composeAutoTask(AutoTaskStrap *list)
 			{
 				list->ReportNum = class601d.reportnum;
 				list->OverTime = getTItoSec(class601d.timeout);
+				asyslog(LOG_INFO,"i=%d 任务【 %d 】 	 开始执行   上报方案编号【 %d 】",i,list->ID,list->SerNo);
 				fprintf(stderr,"list->SerNo = %d\n",list->SerNo);
 				if (GetReportData(class601d) == 1)//数据组织好了
 					ret = 2;
