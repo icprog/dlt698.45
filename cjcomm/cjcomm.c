@@ -193,6 +193,16 @@ void initComPara(CommBlock* compara) {
     memcpy(&compara->f101, &oif101, sizeof(CLASS_F101));
 }
 
+void dumpPeerStat(int fd, char* info) {
+    int peerBuf[128];
+    int port = 0;
+
+    memset(peerBuf, 0x00, sizeof(peerBuf));
+    anetTcpKeepAlive(NULL, fd);
+    anetPeerToString(fd, peerBuf, sizeof(peerBuf), &port);
+    printf("[%s%s]:%d\n", info, peerBuf, port);
+}
+
 /*********************************************************
  * 进程初始化
  *********************************************************/

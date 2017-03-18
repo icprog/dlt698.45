@@ -83,7 +83,7 @@ void ClientRead(struct aeEventLoop* eventLoop, int fd, void* clientData, int mas
 
             if (len > 0) {
                 int apduType = ProcessData(nst);
-                fprintf(stderr,"apduType=%d\n",apduType);
+                fprintf(stderr, "apduType=%d\n", apduType);
                 ConformAutoTask(eventLoop, nst, apduType);
                 switch (apduType) {
                     case LINK_RESPONSE:
@@ -113,25 +113,51 @@ MASTER_STATION_INFO getNextIpPort(void) {
     return res;
 }
 
+int CertainConnect() {
+    static int step = 0;
+    static int fd   = 0;
+    static char peerBuf[32];
+    static int port = 0;
+
+    if (step == 0) {
+        MASTER_STATION_INFO ip_port = getNextIpPort();
+
+        fd = anetTcpNonBlockBindConnect(NULL, (char*)ip_port.ip, ip_port.port, "192.168.0.4");
+        if (fd > 0) {
+            step = 1;
+        }
+        return -1;
+    } else if (step < 8) {
+        memset(peerBuf, 0x00, sizeof(peerBuf));
+        if (0 == anetPeerToString(fd, peerBuf, sizeof(peerBuf), &port)) {
+            step = 0;
+            return fd;
+        } else {
+            step++;
+            return -1;
+        }
+    } else {
+        close(fd);
+        step = 0;
+    }
+}
+
 int RegularClient(struct aeEventLoop* ep, long long id, void* clientData) {
     CommBlock* nst = (CommBlock*)clientData;
     clearcount(1);
 
     if (nst->phy_connect_fd <= 0) {
-        char errmsg[256];
-        memset(errmsg, 0x00, sizeof(errmsg));
         initComPara(nst);
-        OnlineType                  = 0;
-        MASTER_STATION_INFO ip_port = getNextIpPort();
-        nst->phy_connect_fd         = anetTcpConnect(errmsg, (char*)ip_port.ip, ip_port.port);
+        OnlineType = 0;
+
+        nst->phy_connect_fd = CertainConnect();
         if (nst->phy_connect_fd > 0) {
             //            asyslog(LOG_INFO, "链接主站(主站地址:%s,结果:%d)", IPaddr, nst->phy_connect_fd);
             if (aeCreateFileEvent(ep, nst->phy_connect_fd, AE_READABLE, ClientRead, nst) < 0) {
                 close(nst->phy_connect_fd);
                 nst->phy_connect_fd = -1;
             } else {
-                anetTcpKeepAlive(NULL, nst->phy_connect_fd);
-                asyslog(LOG_INFO, "与主站链路建立成功");
+                dumpPeerStat(nst->phy_connect_fd, "客户端与主站链路建立成功");
                 gpofun("/dev/gpoONLINE_LED", 1);
                 OnlineType = 1;
             }
@@ -161,7 +187,7 @@ int StartClient(struct aeEventLoop* ep, long long id, void* clientData) {
     ClientInit();
     Client_Task_Id = aeCreateTimeEvent(ep, 1000, RegularClient, &ClientObject, NULL);
 
-    asyslog(LOG_INFO, "监听服务器时间事件注册完成(%lld)", Client_Task_Id);
+    asyslog(LOG_INFO, "客户端时间事件注册完成(%lld)", Client_Task_Id);
     StartMmq(ep, 0, &ClientObject);
     return 1;
 }
