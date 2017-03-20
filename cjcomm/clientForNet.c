@@ -13,6 +13,7 @@
 /*
  * 本文件内存放客户端模式代码，专门处理客户端模式数据收发
  * 错误处理等
+ * 以太网上线专用文件
  */
 
 //以太网、GPRS、侦听服务端处理对象
@@ -23,7 +24,7 @@ static MASTER_STATION_INFO IpPool[4];
 /*
  * 模块*内部*使用的初始化参数
  */
-void ClientInit(void) {
+void ClientForNetInit(void) {
     SetOnlineType(0);
     asyslog(LOG_INFO, "初始化（客户端模式）模块...");
     initComPara(&ClientObject);
@@ -32,7 +33,7 @@ void ClientInit(void) {
 /*
  * 用于程序退出时调用
  */
-void ClientDestory(void) {
+void ClientForNetDestory(void) {
     //关闭资源
     asyslog(LOG_INFO, "开始关闭终端对主站链接接口(%d)", ClientObject.phy_connect_fd);
     close(ClientObject.phy_connect_fd);
@@ -55,14 +56,18 @@ static int CertainConnect() {
     static int step = 0;
     static int fd   = 0;
     static char peerBuf[32];
+    static char boundBuf[32];
     static int port = 0;
 
     if (step == 0) {
         MASTER_STATION_INFO ip_port = getNextIpPort();
 
-        fd = anetTcpNonBlockBindConnect(NULL, (char*)ip_port.ip, ip_port.port, "192.168.0.4");
-        if (fd > 0) {
-            step = 1;
+        memset(boundBuf, 0x00, sizeof(boundBuf));
+        if (GetInterFaceIp("eth0", boundBuf) == 1) {
+            fd = anetTcpNonBlockBindConnect(NULL, (char*)ip_port.ip, ip_port.port, boundBuf);
+            if (fd > 0) {
+                step = 1;
+            }
         }
         return -1;
     } else if (step < 8) {
@@ -80,11 +85,11 @@ static int CertainConnect() {
     }
 }
 
-int RegularClient(struct aeEventLoop* ep, long long id, void* clientData) {
+int RegularClientForNet(struct aeEventLoop* ep, long long id, void* clientData) {
     CommBlock* nst = (CommBlock*)clientData;
     clearcount(1);
 
-    if (nst->phy_connect_fd <= 0) {
+    if (nst->phy_connect_fd <= 0 && GetOnlineType() == 0) {
         initComPara(nst);
         SetOnlineType(0);
 
@@ -122,8 +127,8 @@ int StartClientForNet(struct aeEventLoop* ep, long long id, void* clientData) {
     asyslog(LOG_INFO, "主站通信地址(2)为：%d.%d.%d.%d:%d", class26->master.master[1].ip[1], class26->master.master[1].ip[2], class26->master.master[1].ip[3],
             class26->master.master[1].ip[4], class26->master.master[1].port);
 
-    ClientInit();
-    Client_Task_Id = aeCreateTimeEvent(ep, 1000, RegularClient, &ClientObject, NULL);
+    ClientForNetInit();
+    Client_Task_Id = aeCreateTimeEvent(ep, 1000, RegularClientForNet, &ClientObject, NULL);
 
     asyslog(LOG_INFO, "客户端时间事件注册完成(%lld)", Client_Task_Id);
     StartMmq(ep, 0, &ClientObject);
