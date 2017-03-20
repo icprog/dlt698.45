@@ -39,60 +39,6 @@ void ClientDestory(void) {
     ClientObject.phy_connect_fd = -1;
 }
 
-void ClientRead(struct aeEventLoop* eventLoop, int fd, void* clientData, int mask) {
-    CommBlock* nst = (CommBlock*)clientData;
-
-    //判断fd中有多少需要接收的数据
-    int revcount = 0;
-    ioctl(fd, FIONREAD, &revcount);
-
-    //关闭异常端口
-    if (revcount == 0) {
-        asyslog(LOG_WARNING, "链接出现异常，关闭端口");
-        aeDeleteFileEvent(eventLoop, fd, AE_READABLE);
-        close(fd);
-        nst->phy_connect_fd = -1;
-    }
-
-    if (revcount > 0) {
-        for (int j = 0; j < revcount; j++) {
-            read(fd, &nst->RecBuf[nst->RHead], 1);
-            nst->RHead = (nst->RHead + 1) % BUFLEN;
-        }
-        bufsyslog(nst->RecBuf, "Recv:", nst->RHead, nst->RTail, BUFLEN);
-
-        for (int k = 0; k < 5; k++) {
-            int len = 0;
-            for (int i = 0; i < 5; i++) {
-                len = StateProcess(nst, 10);
-                if (len > 0) {
-                    break;
-                }
-            }
-            if (len <= 0) {
-                break;
-            }
-
-            if (len > 0) {
-                int apduType = ProcessData(nst);
-                fprintf(stderr, "apduType=%d\n", apduType);
-                ConformAutoTask(eventLoop, nst, apduType);
-                switch (apduType) {
-                    case LINK_RESPONSE:
-                        if (GetTimeOffsetFlag() == 1) {
-                            Getk(nst->linkResponse, nst->shmem);
-                        }
-                        nst->linkstate   = build_connection;
-                        nst->testcounter = 0;
-                        break;
-                    default:
-                        break;
-                }
-            }
-        }
-    }
-}
-
 static MASTER_STATION_INFO getNextIpPort(void) {
     static int index = 0;
     MASTER_STATION_INFO res;
@@ -168,13 +114,13 @@ int RegularClient(struct aeEventLoop* ep, long long id, void* clientData) {
 /*
  * 供外部使用的初始化函数，并开启维护循环
  */
-int StartClient(struct aeEventLoop* ep, long long id, void* clientData) {
-    CLASS25* class25 = (CLASS25*)clientData;
-    memcpy(&IpPool, &class25->master.master, sizeof(IpPool));
-    asyslog(LOG_INFO, "主站通信地址(1)为：%d.%d.%d.%d:%d", class25->master.master[0].ip[1], class25->master.master[0].ip[2], class25->master.master[0].ip[3],
-            class25->master.master[0].ip[4], class25->master.master[0].port);
-    asyslog(LOG_INFO, "主站通信地址(2)为：%d.%d.%d.%d:%d", class25->master.master[1].ip[1], class25->master.master[1].ip[2], class25->master.master[1].ip[3],
-            class25->master.master[1].ip[4], class25->master.master[1].port);
+int StartClientForNet(struct aeEventLoop* ep, long long id, void* clientData) {
+    CLASS26* class26 = (CLASS26*)clientData;
+    memcpy(&IpPool, &class26->master.master, sizeof(IpPool));
+    asyslog(LOG_INFO, "主站通信地址(1)为：%d.%d.%d.%d:%d", class26->master.master[0].ip[1], class26->master.master[0].ip[2], class26->master.master[0].ip[3],
+            class26->master.master[0].ip[4], class26->master.master[0].port);
+    asyslog(LOG_INFO, "主站通信地址(2)为：%d.%d.%d.%d:%d", class26->master.master[1].ip[1], class26->master.master[1].ip[2], class26->master.master[1].ip[3],
+            class26->master.master[1].ip[4], class26->master.master[1].port);
 
     ClientInit();
     Client_Task_Id = aeCreateTimeEvent(ep, 1000, RegularClient, &ClientObject, NULL);

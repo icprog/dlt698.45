@@ -18,7 +18,19 @@
 static ProgramInfo* JProgramInfo = NULL;
 static CLASS25 Class25;
 static int ProgIndex = 0;
+static int OnlineType; // 0:没在线 1:GPRS 2:以太网
 CLASS_4000 class_4000;
+
+/*
+ * 获取当前在线状态
+ */
+int GetOnlineType(void) {
+    return OnlineType;
+}
+
+void SetOnlineType(int type) {
+    OnlineType = type;
+}
 
 void CalculateTransFlow(ProgramInfo* prginfo_event) {
     static Flow_tj c2200;
@@ -191,6 +203,16 @@ void initComPara(CommBlock* compara) {
     memset(&oif101, 0, sizeof(CLASS_F101));
     ret = readCoverClass(0xf101, 0, &oif101, sizeof(CLASS_F101), para_vari_save);
     memcpy(&compara->f101, &oif101, sizeof(CLASS_F101));
+}
+
+void dumpPeerStat(int fd, char* info) {
+    int peerBuf[128];
+    int port = 0;
+
+    memset(peerBuf, 0x00, sizeof(peerBuf));
+    anetTcpKeepAlive(NULL, fd);
+    anetPeerToString(fd, peerBuf, sizeof(peerBuf), &port);
+    asyslog(LOG_INFO, "[%s%s]:%d\n", info, peerBuf, port);
 }
 
 /*********************************************************
