@@ -287,7 +287,80 @@ INT16S getNextTastIndexIndex() {
 	}
 	return taskIndex;
 }
+INT8U checkParaChange()
+{
 
+}
+INT8U is485OAD(OAD portOAD,INT8U port485)
+{
+	port485 += 1;//浙江测试 485 1口下的是 F201_02_02 485 2口下的是 F201_02_03
+	fprintf(stderr,"\n portOAD.OI = %04x portOAD.attflg = %d  portOAD.attrindex = %d port485 = %d \ n"
+			,portOAD.OI,portOAD.attflg,portOAD.attrindex,port485);
+	if ((portOAD.OI != 0xF201) || (portOAD.attflg != 0x02)
+			|| (portOAD.attrindex != port485)) {
+		return 0;
+	}
+	return 1;
+}
+INT8S init6000InfoFrom6000FIle()
+{
+	memset(&info6000,0,2*sizeof(INFO_6001_LIST));
+
+	INT8S result = -1;
+	INT16U meterIndex = 0;
+	CLASS_6001 meter = { };
+	INT32U index = 0;
+	int recordnum = 0;
+	INT16U oi = 0x6000;
+
+	recordnum = getFileRecordNum(oi);
+	if (recordnum == -1) {
+		fprintf(stderr, "未找到OI=%04x的相关信息配置内容！！！\n", 6000);
+		return result;
+	} else if (recordnum == -2) {
+		fprintf(stderr, "采集档案表不是整数，检查文件完整性！！！\n");
+		return result;
+	}
+	fprintf(stderr, "\n init6000InfoFrom6000FIle recordnum = %d ", recordnum);
+	/*
+	 * 根据st6015.csd 和 list6001抄表
+	 * */
+
+	for(index=0;index<recordnum;index++)
+	{
+		if(readParaClass(oi,&meter,index)==1)
+		{
+			if(meter.sernum!=0 && meter.sernum!=0xffff)
+			{
+
+				if(is485OAD(meter.basicinfo.port,1) == 1)
+				{
+					meterIndex = info6000[0].meterSum;
+					info6000[0].list6001[meterIndex] = meter.sernum;
+					info6000[0].meterSum++;
+					if(info6000[0].meterSum > MAX_METER_NUM_1_PORT)
+					{
+					    asyslog(LOG_WARNING, "485 1测量点超数量");
+						return result;
+					}
+				}
+				if(is485OAD(meter.basicinfo.port,2) == 1)
+				{
+					meterIndex = info6000[1].meterSum;
+					info6000[1].list6001[meterIndex] = meter.sernum;
+					info6000[1].meterSum++;
+					if(info6000[0].meterSum > MAX_METER_NUM_1_PORT)
+					{
+					    asyslog(LOG_WARNING, "485 2测量点超数量");
+						return result;
+					}
+				}
+			}
+		}
+	}
+	fprintf(stderr,"485 1口测量点数量 = %d   485 2口测量点数量 = %d",info6000[0].meterSum,info6000[1].meterSum);
+	return result;
+}
 /*
  * 从文件里把所有的任务单元读上来
  * */
@@ -329,9 +402,32 @@ INT8U init6013ListFrom6012File() {
 
 	return result;
 }
-PARA_CHG_TYPE getParaChangeType()
+INT8U getParaChangeType()
 {
-	PARA_CHG_TYPE ret = para_no_chg;
+	INT8U ret = para_no_chg;
+	static INT8U lastchgoi6000=0;
+	static INT8U lastchgoi6012=0;
+	static INT8U lastchgoi6014=0;
+	static INT8U first=1;
+	if(first)
+	{
+		first=0;
+		lastchgoi6000 = JProgramInfo->oi_changed.oi6000;
+		lastchgoi6012= JProgramInfo->oi_changed.oi6012;
+		lastchgoi6014= JProgramInfo->oi_changed.oi6014;
+	}
+	if(lastchgoi6000 != JProgramInfo->oi_changed.oi6000)
+	{
+		ret = ret|para_6000_chg;
+	}
+	if(lastchgoi6012 != JProgramInfo->oi_changed.oi6012)
+	{
+		ret = ret|para_6012_chg;
+	}
+	if(lastchgoi6014 != JProgramInfo->oi_changed.oi6014)
+	{
+		ret = ret|para_6014_chg;
+	}
 	return ret;
 }
 void dispatch_thread()
@@ -345,7 +441,7 @@ void dispatch_thread()
 		para_ChangeType = getParaChangeType();
 		if(para_ChangeType!=para_no_chg)
 		{
-			mqs_send((INT8S *)PROXY_485_MQ_NAME,1,MSG_CMD_PARACHG,(INT8U *)&para_ChangeType,sizeof(PARA_CHG_TYPE));
+
 		}
 
 		INT16S tastIndex = -1;//读取所有任务文件
@@ -382,7 +478,7 @@ void dispatchTask_proccess()
 {
 	//读取所有任务文件		TODO：参数下发后需要更新内存值
 	init6013ListFrom6012File();
-
+	init6000InfoFrom6000FIle();
 	pthread_attr_init(&dispatchTask_attr_t);
 	pthread_attr_setstacksize(&dispatchTask_attr_t, 2048 * 1024);
 	pthread_attr_setdetachstate(&dispatchTask_attr_t, PTHREAD_CREATE_DETACHED);

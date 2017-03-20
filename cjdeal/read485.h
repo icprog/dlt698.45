@@ -11,8 +11,7 @@
 #include "cjsave.h"
 #include "libmmq.h"
 
-//一次从文件里读取10个6001--采集档案任务配置单元
-#define LIST6001SIZE 20
+
 #define BUFFSIZE 256
 #define DATA_CONTENT_LEN 500
 #define NUM_07DI_698OAD 100
@@ -53,10 +52,6 @@ typedef struct
 }OAD_DATA;
 
 
-//698 OAD 和 645 07规约 数据标识对应关系
-
-
-
 extern void read485_proccess();
 
 mqd_t mqd_485_main;
@@ -69,6 +64,7 @@ INT8U i485port1;
 INT8U readState;//是否正在处理实时消息
 INT8U i485port2;
 
+//698 OAD 和 645 07规约 数据标识对应关系
 INT8U map07DI_698OAD_NUM;
 CLASS_601F map07DI_698OAD[NUM_07DI_698OAD];
 

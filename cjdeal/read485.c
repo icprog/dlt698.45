@@ -511,6 +511,9 @@ INT8S use6013find6015or6017(INT8U cjType,INT16U fanganID, CLASS_6015* st6015)
 			memset(st6015,0,sizeof(CLASS_6015));
 			st6015->cjtype = TYPE_LAST;
 			st6015->csds.num = st6017.roads.num;
+			st6015->deepsize = st6017.deepsize;
+			st6015->sernum = st6017.sernum;
+			memcpy(&st6015->mst,&st6017.ms,sizeof(MY_MS));
 			INT8U csdIndex = 0;
 
 			for(csdIndex = 0;csdIndex < st6015->csds.num;csdIndex++)
@@ -529,17 +532,7 @@ INT8S use6013find6015or6017(INT8U cjType,INT16U fanganID, CLASS_6015* st6015)
 	return result;
 
 }
-INT8U use6013find6017(INT16U fanganID, CLASS_6017* st6017)
-{
-	INT8U result = 0;
-	OI_698 oi = 0x6017;
-	if (readCoverClass(oi, fanganID, st6017, sizeof(CLASS_6017), coll_para_save)
-			== 1) {
 
-	}
-	return result;
-
-}
 void printbuff(const char* prefix, INT8U* buff, INT32U len, const char* format,
 		const char* space, const char* surfix) {
 	if (prefix != NULL )
@@ -744,17 +737,6 @@ INT8U get6001ObjByTSA(TSA addr,CLASS_6001* targetMeter)
 	return ret;
 }
 
-INT8U is485OAD(OAD portOAD,INT8U port485)
-{
-	port485 += 1;//浙江测试 485 1口下的是 F201_02_02 485 2口下的是 F201_02_03
-	fprintf(stderr,"\n portOAD.OI = %04x portOAD.attflg = %d  portOAD.attrindex = %d port485 = %d \ n"
-			,portOAD.OI,portOAD.attflg,portOAD.attrindex,port485);
-	if ((portOAD.OI != 0xF201) || (portOAD.attflg != 0x02)
-			|| (portOAD.attrindex != port485)) {
-		return 0;
-	}
-	return 1;
-}
 INT8U checkEvent(CLASS_6001 meter,FORMAT07 resultData07,INT16U taskID)
 {
 	INT8U ret = 0;
@@ -2275,44 +2257,7 @@ INT8U checkMeterType(MY_MS mst, INT8U port485, TSA meterAddr, OAD portOAD) {
 	}
 	return 1;
 }
-/*
- * 从文件里读取LIST6001SIZE个测量点
- * */
-INT8U readList6001FromFile(CLASS_6001* list6001, INT16U groupIndex,
-		int recordnum, MY_MS mst, INT8U port485) {
-	INT16U oi = 0x6000;
-	INT8U result = 0;
-	INT8U mIndex = 0;
-	int endIndex;
-	CLASS_6001 meter = { };
-	if (((groupIndex + 1) * LIST6001SIZE) > recordnum) {
-		endIndex = recordnum;
-	} else {
-		endIndex = (groupIndex + 1) * LIST6001SIZE;
-	}
-	INT8U dealIndex = 0;
-	for (mIndex = groupIndex * LIST6001SIZE; mIndex < endIndex; mIndex++) {
 
-		if (readParaClass(oi, &meter, mIndex) == 1) {
-
-			if (meter.sernum != 0 && meter.sernum != 0xffff) {
-				if (checkMeterType(mst, port485, meter.basicinfo.addr,
-						meter.basicinfo.port))
-				{
-						memcpy(&list6001[dealIndex],&meter,sizeof(CLASS_6001));
-						INT16U mpNO = list6001[dealIndex].sernum;
-						DbgPrintToFile1(port485,"readList6001FromFile list6001[%d] 测量点 = %d-----",dealIndex,mpNO);
-						dealIndex++;
-				}
-				else
-				{
-				}
-			}
-		}
-	}
-
-	return result;
-}
 INT16U compose6012Buff(DateTimeBCD startTime,TSA meterAddr,INT16U dataLen,INT8U* dataContent, INT8U port485)
 {
 	fprintf(stderr,"\n 存储数据  compose6012Buff--------------");
@@ -2387,68 +2332,61 @@ INT16U compose6012Buff(DateTimeBCD startTime,TSA meterAddr,INT16U dataLen,INT8U*
  * */
 INT8S deal6015or6017(INT8U cjType,CLASS_6015 st6015, INT8U port485,CLASS_6035* st6035) {
 	INT8S result = 0;
-	CLASS_6001 list6001[LIST6001SIZE];
-
-	int recordnum = 0;
-#ifdef TESTDEF1
-	//无电能表
-	if (st6015.mst.mstype == 0)
-	{
-		fprintf(stderr,"\n 采集方案配置电表为空");
-		return 0;
-	}
-#endif
+	INT16U meterIndex = 0;
 	INT16U oi = 0x6000;
-	recordnum = getFileRecordNum(oi);
-	if (recordnum == -1) {
-		fprintf(stderr, "未找到OI=%04x的相关信息配置内容！！！\n", 6000);
-		return result;
-	} else if (recordnum == -2) {
-		fprintf(stderr, "采集档案表不是整数，检查文件完整性！！！\n");
-		return result;
-	}
-	fprintf(stderr, "\n deal6015 recordnum = %d ", recordnum);
-	/*
-	 * 根据st6015.csd 和 list6001抄表
-	 * */
+	CLASS_6001 meter = { };
 
-	INT16U groupNum = (recordnum / LIST6001SIZE) + 1;
-	INT16U groupindex;
-	INT8U mpIndex;
-	for (groupindex = 0; groupindex < groupNum; groupindex++) {
-		memset(list6001, 0, LIST6001SIZE * sizeof(CLASS_6001));
-		result = readList6001FromFile(list6001, groupindex, recordnum,
-				st6015.mst, port485);
-		for (mpIndex = 0; mpIndex < LIST6001SIZE; mpIndex++)
+	INT8U port = port485-1;
+
+	for (meterIndex = 0; meterIndex < info6000[port].meterSum; meterIndex++)
+	{
+		memset(&meter,0,sizeof(CLASS_6001));
+		if (readParaClass(oi, &meter, info6000[port].list6001[meterIndex]) == 1)
 		{
-			if (list6001[mpIndex].sernum > 0)
+			if (meter.sernum != 0 && meter.sernum != 0xffff)
 			{
-				st6035->totalMSNum++;
-				fprintf(stderr,"\n\n 任务号:%d  方案号:%d deal6015 测量点 = %d-----",st6035->taskID,st6015.sernum,list6001[mpIndex].sernum);
-				DbgPrintToFile1(port485,"任务号:%d  方案号:%d deal6015 测量点 = %d-----",st6035->taskID,st6015.sernum,list6001[mpIndex].sernum);
-				INT8U dataContent[DATA_CONTENT_LEN];
-				memset(dataContent,0,DATA_CONTENT_LEN);
-				INT16S dataLen = 0;
-				DateTimeBCD startTime;
-				DataTimeGet(&startTime);
-				dataLen = deal6015or6017_singlemeter(cjType,st6015,list6001[mpIndex],st6035,dataContent,port485);
+				if (checkMeterType(st6015.mst, port485, meter.basicinfo.addr,meter.basicinfo.port))
+				{
+					st6035->totalMSNum++;
+					fprintf(stderr,"\n\n 任务号:%d  方案号:%d deal6015 测量点 = %d-----",st6035->taskID,st6015.sernum,meter.sernum);
+					DbgPrintToFile1(port485,"任务号:%d  方案号:%d deal6015 测量点 = %d-----",st6035->taskID,st6015.sernum,meter.sernum);
+					INT8U dataContent[DATA_CONTENT_LEN];
+					memset(dataContent,0,DATA_CONTENT_LEN);
+					INT16S dataLen = 0;
+					DateTimeBCD startTime;
+					DataTimeGet(&startTime);
+					dataLen = deal6015or6017_singlemeter(cjType,st6015,meter,st6035,dataContent,port485);
 
-				if(dataLen > 0)
-				{
-					int bufflen = compose6012Buff(startTime,list6001[mpIndex].basicinfo.addr,dataLen,dataContent,port485);
-					SaveNorData(st6035->taskID,dataContent,bufflen);
-				}
-				else if(dataLen == -1)
-				{
-					DbgPrintToFile1(port485,"参数变更 重新抄表");
-					return -1;
+					if(dataLen > 0)
+					{
+						int bufflen = compose6012Buff(startTime,meter.basicinfo.addr,dataLen,dataContent,port485);
+						SaveNorData(st6035->taskID,dataContent,bufflen);
+					}
+					else if(dataLen == -1)
+					{
+						DbgPrintToFile1(port485,"参数变更 重新抄表");
+						return -1;
+					}
+					else
+					{
+
+						fprintf(stderr,"\n deal6015:失败");
+					}
+
 				}
 				else
 				{
-
-					fprintf(stderr,"\n deal6015:失败");
+					asyslog(LOG_WARNING, "序号=%d的测量点 不是485 %d测量点",info6000[port].list6001[meterIndex],port485);
 				}
 			}
+			else
+			{
+				asyslog(LOG_WARNING, "序号=%d的测量点 档案错误",info6000[port].list6001[meterIndex]);
+			}
+		}
+		else
+		{
+			 asyslog(LOG_WARNING, "table6000 中不存在 序号=%d的测量点",info6000[port].list6001[meterIndex]);
 		}
 	}
 
