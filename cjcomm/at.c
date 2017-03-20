@@ -708,7 +708,7 @@ void* ATWorker(void* args) {
                 break;
             }
         }
-        sleep(10);
+        sleep(20);
 
     wait:
         //等待在线状态为“否”，重新拨号
