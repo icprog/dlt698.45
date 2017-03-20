@@ -19,43 +19,49 @@
 #include "StdDataType.h"
 #include "PublicFunction.h"
 
+//维护公共状态的函数
+void Comm_task(CommBlock* compara);
+void clearcount(int index);
+int GetOnlineType(void);
+void SetOnlineType(int type);
+
+int GetInterFaceIp(char* interface, char* ips);
+int StartVerifiTime(struct aeEventLoop* ep, long long id, void* clientData);
+
 void initComPara(CommBlock* compara);
 void CalculateTransFlow(ProgramInfo* prginfo_event);
 void EventAutoReport(CommBlock* nst);
 void dumpPeerStat(int fd, char* info);
 
-void ClientForNetDestory(void);
+//以太网通信接口
 int StartClientForNet(struct aeEventLoop* ep, long long id, void* clientData);
+void ClientForNetDestory(void);
 
-void GenericRead(struct aeEventLoop* eventLoop, int fd, void* clientData, int mask);
-INT8S GenericWrite(int fd, INT8U* buf, INT16U len);
-
-void Comm_task(CommBlock* compara);
-void clearcount(int index);
-int GetOnlineType(void);
-
-int GetInterFaceIp(char* interface, char* ips);
-void ClientDestory(void);
+// GPRS网络通信接口
 int StartClient(struct aeEventLoop* ep, long long id, void* clientData);
+void ClientDestory(void);
 
-void ClientRead(struct aeEventLoop* eventLoop, int fd, void* clientData, int mask);
-
+//消息队列通信接口
 void MmqDestory(void);
 int StartMmq(struct aeEventLoop* ep, long long id, void* clientData);
-int StartVerifiTime(struct aeEventLoop* ep, long long id, void* clientData);
 
-INT8U GetTimeOffsetFlag(void);
-void Getk(LINK_Response link, ProgramInfo* JProgramInfo);
-
+//服务端通信接口
 void ServerDestory(void);
 int StartServer(struct aeEventLoop* ep, long long id, void* clientData);
 
+//红外通信接口
 void IfrDestory(void);
 int StartIfr(struct aeEventLoop* ep, long long id, void* clientData);
 
+//维护串口通信接口
 void SerialDestory(void);
 int StartSerial(struct aeEventLoop* ep, long long id, void* clientData);
 
+//精确校时接口
+INT8U GetTimeOffsetFlag(void);
+void Getk(LINK_Response link, ProgramInfo* JProgramInfo);
+
+//任务自动上送接口
 void ConformAutoTask(struct aeEventLoop* ep, CommBlock* nst, int res);
 void RegularAutoTask(struct aeEventLoop* ep, CommBlock* nst);
 

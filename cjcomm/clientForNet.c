@@ -17,27 +17,17 @@
  */
 
 //以太网、GPRS、侦听服务端处理对象
-static CommBlock ClientObject;
+static CommBlock ClientForNetObject;
 static long long Client_Task_Id;
 static MASTER_STATION_INFO IpPool[4];
 
 /*
  * 模块*内部*使用的初始化参数
  */
-void ClientForNetInit(void) {
+static void ClientForNetInit(void) {
     SetOnlineType(0);
     asyslog(LOG_INFO, "初始化（客户端模式）模块...");
-    initComPara(&ClientObject);
-}
-
-/*
- * 用于程序退出时调用
- */
-void ClientForNetDestory(void) {
-    //关闭资源
-    asyslog(LOG_INFO, "开始关闭终端对主站链接接口(%d)", ClientObject.phy_connect_fd);
-    close(ClientObject.phy_connect_fd);
-    ClientObject.phy_connect_fd = -1;
+    initComPara(&ClientForNetObject);
 }
 
 static MASTER_STATION_INFO getNextIpPort(void) {
@@ -85,7 +75,61 @@ static int CertainConnect() {
     }
 }
 
-int RegularClientForNet(struct aeEventLoop* ep, long long id, void* clientData) {
+static void ClientForNetRead(struct aeEventLoop* eventLoop, int fd, void* clientData, int mask) {
+    CommBlock* nst = (CommBlock*)clientData;
+
+    //判断fd中有多少需要接收的数据
+    int revcount = 0;
+    ioctl(fd, FIONREAD, &revcount);
+
+    //关闭异常端口
+    if (revcount == 0) {
+        asyslog(LOG_WARNING, "链接出现异常，关闭端口");
+        aeDeleteFileEvent(eventLoop, fd, AE_READABLE);
+        close(fd);
+        nst->phy_connect_fd = -1;
+    }
+
+    if (revcount > 0) {
+        for (int j = 0; j < revcount; j++) {
+            read(fd, &nst->RecBuf[nst->RHead], 1);
+            nst->RHead = (nst->RHead + 1) % BUFLEN;
+        }
+        bufsyslog(nst->RecBuf, "Recv:", nst->RHead, nst->RTail, BUFLEN);
+
+        for (int k = 0; k < 5; k++) {
+            int len = 0;
+            for (int i = 0; i < 5; i++) {
+                len = StateProcess(nst, 10);
+                if (len > 0) {
+                    break;
+                }
+            }
+            if (len <= 0) {
+                break;
+            }
+
+            if (len > 0) {
+                int apduType = ProcessData(nst);
+                fprintf(stderr, "apduType=%d\n", apduType);
+                ConformAutoTask(eventLoop, nst, apduType);
+                switch (apduType) {
+                    case LINK_RESPONSE:
+                        if (GetTimeOffsetFlag() == 1) {
+                            Getk(nst->linkResponse, nst->shmem);
+                        }
+                        nst->linkstate   = build_connection;
+                        nst->testcounter = 0;
+                        break;
+                    default:
+                        break;
+                }
+            }
+        }
+    }
+}
+
+static int RegularClientForNet(struct aeEventLoop* ep, long long id, void* clientData) {
     CommBlock* nst = (CommBlock*)clientData;
     clearcount(1);
 
@@ -96,7 +140,7 @@ int RegularClientForNet(struct aeEventLoop* ep, long long id, void* clientData) 
         nst->phy_connect_fd = CertainConnect();
         if (nst->phy_connect_fd > 0) {
             //            asyslog(LOG_INFO, "链接主站(主站地址:%s,结果:%d)", IPaddr, nst->phy_connect_fd);
-            if (aeCreateFileEvent(ep, nst->phy_connect_fd, AE_READABLE, ClientRead, nst) < 0) {
+            if (aeCreateFileEvent(ep, nst->phy_connect_fd, AE_READABLE, ClientForNetRead, nst) < 0) {
                 close(nst->phy_connect_fd);
                 nst->phy_connect_fd = -1;
             } else {
@@ -117,6 +161,18 @@ int RegularClientForNet(struct aeEventLoop* ep, long long id, void* clientData) 
 }
 
 /*
+ *所有模块共享的写入函数，所有模块共享使用
+ */
+static int ClientForNetWrite(int fd, INT8U* buf, INT16U len) {
+    int ret = anetWrite(fd, buf, (int)len);
+    if (ret != len) {
+        asyslog(LOG_WARNING, "[客户以太网]报文发送失败(长度:%d,错误:%d-%d)", len, errno, fd);
+    }
+    bufsyslog(buf, "客户以太网发送:", len, 0, BUFLEN);
+    return ret;
+}
+
+/*
  * 供外部使用的初始化函数，并开启维护循环
  */
 int StartClientForNet(struct aeEventLoop* ep, long long id, void* clientData) {
@@ -127,10 +183,23 @@ int StartClientForNet(struct aeEventLoop* ep, long long id, void* clientData) {
     asyslog(LOG_INFO, "主站通信地址(2)为：%d.%d.%d.%d:%d", class26->master.master[1].ip[1], class26->master.master[1].ip[2], class26->master.master[1].ip[3],
             class26->master.master[1].ip[4], class26->master.master[1].port);
 
+    //绑定本地发送函数
+    ClientForNetObject.p_send = ClientForNetWrite;
+
     ClientForNetInit();
-    Client_Task_Id = aeCreateTimeEvent(ep, 1000, RegularClientForNet, &ClientObject, NULL);
+    Client_Task_Id = aeCreateTimeEvent(ep, 1000, RegularClientForNet, &ClientForNetObject, NULL);
 
     asyslog(LOG_INFO, "客户端时间事件注册完成(%lld)", Client_Task_Id);
-    StartMmq(ep, 0, &ClientObject);
+    StartMmq(ep, 0, &ClientForNetObject);
     return 1;
+}
+
+/*
+ * 用于程序退出时调用
+ */
+void ClientForNetDestory(void) {
+    //关闭资源
+    asyslog(LOG_INFO, "开始关闭终端对主站链接接口(%d)", ClientForNetObject.phy_connect_fd);
+    close(ClientForNetObject.phy_connect_fd);
+    ClientForNetObject.phy_connect_fd = -1;
 }

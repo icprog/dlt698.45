@@ -27,23 +27,13 @@ static MASTER_STATION_INFO IpPool[4];
 /*
  * 模块*内部*使用的初始化参数
  */
-void ClientInit(void) {
+static void ClientInit(void) {
     SetOnlineType(0);
     asyslog(LOG_INFO, "初始化（客户端模式）模块...");
     initComPara(&ClientObject);
 }
 
-/*
- * 用于程序退出时调用
- */
-void ClientDestory(void) {
-    //关闭资源
-    asyslog(LOG_INFO, "开始关闭终端对主站链接接口(%d)", ClientObject.phy_connect_fd);
-    close(ClientObject.phy_connect_fd);
-    ClientObject.phy_connect_fd = -1;
-}
-
-void ClientRead(struct aeEventLoop* eventLoop, int fd, void* clientData, int mask) {
+static void ClientRead(struct aeEventLoop* eventLoop, int fd, void* clientData, int mask) {
     CommBlock* nst = (CommBlock*)clientData;
 
     //判断fd中有多少需要接收的数据
@@ -170,7 +160,7 @@ static int CertainConnect() {
     }
 }
 
-int RegularClient(struct aeEventLoop* ep, long long id, void* clientData) {
+static int RegularClient(struct aeEventLoop* ep, long long id, void* clientData) {
     CommBlock* nst = (CommBlock*)clientData;
     clearcount(1);
 
@@ -202,6 +192,18 @@ int RegularClient(struct aeEventLoop* ep, long long id, void* clientData) {
 }
 
 /*
+ *所有模块共享的写入函数，所有模块共享使用
+ */
+static int ClientWrite(int fd, INT8U* buf, INT16U len) {
+    int ret = anetWrite(fd, buf, (int)len);
+    if (ret != len) {
+        asyslog(LOG_WARNING, "[客户]报文发送失败(长度:%d,错误:%d)", len, errno);
+    }
+    bufsyslog(buf, "客户发送:", len, 0, BUFLEN);
+    return ret;
+}
+
+/*
  * 供外部使用的初始化函数，并开启维护循环
  */
 int StartClient(struct aeEventLoop* ep, long long id, void* clientData) {
@@ -212,10 +214,23 @@ int StartClient(struct aeEventLoop* ep, long long id, void* clientData) {
     asyslog(LOG_INFO, "主站通信地址(2)为：%d.%d.%d.%d:%d", class25->master.master[1].ip[1], class25->master.master[1].ip[2], class25->master.master[1].ip[3],
             class25->master.master[1].ip[4], class25->master.master[1].port);
 
+    //绑定本地发送函数
+    ClientObject.p_send = ClientWrite;
+
     ClientInit();
     Client_Task_Id = aeCreateTimeEvent(ep, 1000, RegularClient, &ClientObject, NULL);
 
     asyslog(LOG_INFO, "客户端时间事件注册完成(%lld)", Client_Task_Id);
     StartMmq(ep, 0, &ClientObject);
     return 1;
+}
+
+/*
+ * 用于程序退出时调用
+ */
+void ClientDestory(void) {
+    //关闭资源
+    asyslog(LOG_INFO, "开始关闭终端对主站链接接口(%d)", ClientObject.phy_connect_fd);
+    close(ClientObject.phy_connect_fd);
+    ClientObject.phy_connect_fd = -1;
 }

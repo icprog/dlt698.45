@@ -183,7 +183,6 @@ void initComPara(CommBlock* compara) {
     compara->deal_step = 0;
     compara->rev_delay = 20;
     compara->shmem     = JProgramInfo;
-    compara->p_send    = GenericWrite;
 
     memset(&oi4300, 0, sizeof(CLASS19));
     ret = readCoverClass(0x4300, 0, &oi4300, sizeof(CLASS19), para_vari_save);
@@ -275,7 +274,7 @@ int main(int argc, char* argv[]) {
     }
 
     // StartIfr(ep, 0, NULL);
-    StartSerial(ep, 0, NULL);
+    // StartSerial(ep, 0, NULL);
     StartServer(ep, 0, NULL);
     StartVerifiTime(ep, 0, JProgramInfo);
     StartClient(ep, 0, &Class25);
