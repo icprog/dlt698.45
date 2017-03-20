@@ -24,6 +24,23 @@
 //	INT8U active_report;				//是否允许主动上报
 //	INT8U talk_master;					//是否允许与主站通话
 //} CLASS19;					//设备管理接口类
+
+void print4000()
+{
+	CLASS_4000 oi4000={};
+
+	memset(&oi4000,0,sizeof(CLASS_4000));
+	fprintf(stderr,"校时参数[4000]\n");
+	readCoverClass(0x4000,0,&oi4000,sizeof(CLASS_4000),para_vari_save);
+	fprintf(stderr,"校时模式：%d  [主站授时（0），终端精确校时（1），北斗/GPS（2），其他（255）]\n",oi4000.type);
+	fprintf(stderr,"日期时间-精准校时模式：\n");
+	fprintf(stderr,"最近心跳时间总个数：%d\n",oi4000.hearbeatnum);
+	fprintf(stderr,"最大值剔除个数：%d\n",oi4000.tichu_max);
+	fprintf(stderr,"最小值剔除个数：%d\n",oi4000.tichu_min);
+	fprintf(stderr,"通讯延时阀值：%d\n",oi4000.delay);
+	fprintf(stderr,"最小有效个数：%d\n",oi4000.num_min);
+}
+
 void print4300()
 {
 	CLASS19  oi4300={};
@@ -81,6 +98,9 @@ void para_process(int argc, char *argv[])
 			switch(oi) {
 			case 0x4300:
 				print4300();
+				break;
+			case 0x4000:
+				print4000();
 				break;
 			}
 		}
