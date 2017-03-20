@@ -7,12 +7,16 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <net/if.h>
+#include <netinet/in.h>
+#include <netinet/tcp.h>
 
 #include "cjcomm.h"
 
 /*
  * 本文件内存放客户端模式代码，专门处理客户端模式数据收发
  * 错误处理等
+ * GPRS上线专用文件
  */
 
 //以太网、GPRS、侦听服务端处理对象
@@ -105,18 +109,50 @@ static MASTER_STATION_INFO getNextIpPort(void) {
     return res;
 }
 
+int GetInterFaceIp(char* interface, char* ips) {
+    int sock;
+    struct sockaddr_in sin;
+    struct ifreq ifr;
+
+    sock = socket(AF_INET, SOCK_DGRAM, 0);
+    if (sock == -1) {
+        return -1;
+    }
+    strncpy(ifr.ifr_name, interface, IFNAMSIZ);
+    ifr.ifr_name[IFNAMSIZ - 1] = 0;
+    if (ioctl(sock, SIOCGIFADDR, &ifr) < 0) {
+        close(sock);
+        return -1;
+    }
+    memcpy(&sin, &ifr.ifr_addr, sizeof(sin));
+    if (sin.sin_addr.s_addr > 0) {
+        int ip[4];
+        memset(ip, 0x00, sizeof(ip));
+        sscanf(inet_ntoa(sin.sin_addr), "%d.%d.%d.%d", &ip[0], &ip[1], &ip[2], &ip[3]);
+        snprintf(ips, 16, "%d.%d.%d.%d\n", ip[0], ip[1], ip[2], ip[3]);
+        close(sock);
+        return 1;
+    }
+    close(sock);
+    return 0;
+}
+
 static int CertainConnect() {
     static int step = 0;
     static int fd   = 0;
     static char peerBuf[32];
+    static char boundBuf[32];
     static int port = 0;
 
     if (step == 0) {
         MASTER_STATION_INFO ip_port = getNextIpPort();
 
-        fd = anetTcpNonBlockBindConnect(NULL, (char*)ip_port.ip, ip_port.port, "192.168.0.4");
-        if (fd > 0) {
-            step = 1;
+        memset(boundBuf, 0x00, sizeof(boundBuf));
+        if (GetInterFaceIp("ppp0", boundBuf) == 1) {
+            fd = anetTcpNonBlockBindConnect(NULL, (char*)ip_port.ip, ip_port.port, boundBuf);
+            if (fd > 0) {
+                step = 1;
+            }
         }
         return -1;
     } else if (step < 8) {
@@ -138,7 +174,7 @@ int RegularClient(struct aeEventLoop* ep, long long id, void* clientData) {
     CommBlock* nst = (CommBlock*)clientData;
     clearcount(1);
 
-    if (nst->phy_connect_fd <= 0) {
+    if (nst->phy_connect_fd <= 0 && GetOnlineType() == 0) {
         initComPara(nst);
         SetOnlineType(0);
 
