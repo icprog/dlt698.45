@@ -116,11 +116,12 @@ int WriteClass11(OI_698 oi,INT16U seqnum,INT8U method)
 	if(seqnum>0 && seqnum<=MAX_POINT_NUM) {
 		switch(method) {
 		case AddUpdate:
+
 			ret = block_file_sync(tmpinfo.file_name,unitdata,tmpinfo.unit_len,tmpinfo.interface_len,seqnum);
 			if(ret==1) {
 				sernum = (INT16U *)((INT8U*)unitdata+tmpinfo.index_site);
 	//			fprintf(stderr,"================WriteClass11:index=%d  sernum=%d,site=%d\n",index,*sernum,tmpinfo.index_site);
-				if(*sernum == 0 || *sernum == 0xffff) {		//当前位置不存在相关序号记录，进行添加动作
+				if(*sernum != 0 && *sernum != 0xffff) {		//当前位置不存在相关序号记录，进行添加动作
 					class11.curr_num++;
 					fprintf(stderr,"添加操作 当前元素个数=%d\n",class11.curr_num);
 				}
@@ -148,7 +149,7 @@ int WriteClass11(OI_698 oi,INT16U seqnum,INT8U method)
 void WriteInterfaceClass(OI_698 oi,INT16U seqnum,INT8U method)
 {
 	switch(oi) {
-	case 0x6001:
+	case 0x6000:
 		WriteClass11(oi,seqnum,method);
 		break;
 	}
@@ -684,7 +685,7 @@ INT8U block_file_sync(char *fname,void *blockdata,int size,int headsize,int inde
 //		syslog(LOG_NOTICE," %s 返回数据 ",fname);
 	}else {
 //		fprintf(stderr,"\n 读取失败！！\n");
-		syslog(LOG_NOTICE," %s 读取失败! ",fname);
+//		syslog(LOG_NOTICE," %s 读取失败! ",fname);
 	}
 	free(blockdata1);
 	free(blockdata2);
