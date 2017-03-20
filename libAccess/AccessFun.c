@@ -998,6 +998,7 @@ INT16U CalcOIDataLen(OI_698 oi,INT8U attr_flg)
 		else
 			return 5;
 	}
+
 //	if(oi == 2140 || oi == 2141)//struct 类型要在原长度基础上+3
 //		return (11+3)*(MET_RATE+1)+1+1;
 	fp = fopen("/nor/config/OI_TYPE.cfg","r");
@@ -1006,6 +1007,7 @@ INT16U CalcOIDataLen(OI_698 oi,INT8U attr_flg)
 		fprintf(stderr,"\nOI_TYPE.cfg do not exist,hard error!!\n");
 		return 0;
 	}
+
 	while(1)
 	{
 		memset(ln,0x00,60);
@@ -1028,6 +1030,14 @@ INT16U CalcOIDataLen(OI_698 oi,INT8U attr_flg)
 		break;
 	}
 	fclose(fp);
+	if(oi == 0x2004)
+	{
+	     asyslog(LOG_WARNING,"  0x2004 CalcOIDataLen oi = %04x oi_len = %d ic_type = %d\n",oi,oi_len,ic_type);
+	}
+	if(oi == 0x2005)
+	{
+	     asyslog(LOG_WARNING," 0x2005 CalcOIDataLen oi = %04x oi_len = %d ic_type = %d\n",oi,oi_len,ic_type);
+	}
 	if(oi_len != 0 && ic_type != 0)
 	{
 		switch(ic_type)
