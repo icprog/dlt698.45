@@ -24,6 +24,10 @@ static CommBlock ClientForNetObject;
 static long long ClientForNet_Task_Id;
 static MASTER_STATION_INFO IpPool[4];
 
+CommBlock* GetComBlockForNet() {
+    return &ClientForNetObject;
+}
+
 /*
  *所有模块共享的写入函数，所有模块共享使用
  */
@@ -206,7 +210,6 @@ int StartClientForNet(struct aeEventLoop* ep, long long id, void* clientData) {
     ClientForNet_Task_Id = aeCreateTimeEvent(ep, 1000, RegularClientForNet, &ClientForNetObject, NULL);
     asyslog(LOG_INFO, "客户端[以太网]时间事件注册完成(%lld)", ClientForNet_Task_Id);
 
-    // StartMmq(ep, 0, &ClientForNetObject);
     return 1;
 }
 

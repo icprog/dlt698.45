@@ -24,6 +24,10 @@ static CommBlock ClientForGprsObject;
 static long long ClientForGprs_Task_Id;
 static MASTER_STATION_INFO NetIps[4];
 
+CommBlock* GetComBlockForGprs() {
+    return &ClientForGprsObject;
+}
+
 /*
  *所有模块共享的写入函数，所有模块共享使用
  */
@@ -207,7 +211,6 @@ int StartClientForGprs(struct aeEventLoop* ep, long long id, void* clientData) {
     ClientForGprs_Task_Id = aeCreateTimeEvent(ep, 1000, RegularClientForGprs, &ClientForGprsObject, NULL);
     asyslog(LOG_INFO, "客户端[GPRS]时间事件注册完成(%lld)", ClientForGprs_Task_Id);
 
-    // StartMmq(ep, 0, &ClientForGprsObject);
     return 1;
 }
 

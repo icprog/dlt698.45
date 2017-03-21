@@ -36,10 +36,12 @@ void EventAutoReport(CommBlock* nst);
 void dumpPeerStat(int fd, char* info);
 
 //以太网通信接口
+CommBlock* GetComBlockForNet();
 int StartClientForNet(struct aeEventLoop* ep, long long id, void* clientData);
 void ClientForNetDestory(void);
 
 // GPRS网络通信接口
+CommBlock* GetComBlockForGprs();
 int StartClientForGprs(struct aeEventLoop* ep, long long id, void* clientData);
 void ClientForGprsDestory(void);
 
