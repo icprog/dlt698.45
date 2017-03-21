@@ -96,8 +96,8 @@ void EventAutoReport(CommBlock* nst) {
     }
 }
 
-void clearcount(int index) {
-    JProgramInfo->Projects[index].WaitTimes = 0;
+void clearcount() {
+    JProgramInfo->Projects[ProgIndex].WaitTimes = 0;
 }
 
 void QuitProcess(int sig) {
@@ -161,31 +161,28 @@ void WriteLinkRequest(INT8U link_type, INT16U heartbeat, LINK_Request* link_req)
 }
 
 int Comm_task(CommBlock* compara) {
-    int sendlen           = 0;
-    static time_t oldtime = 0;
-    TS ts                 = {};
-    INT16U heartbeat      = 60;
+    INT16U heartbeat = 60;
 
-    time_t newtime = time(NULL);
-
-    if (abs(newtime - oldtime) > heartbeat) {
-        TSGet(&ts);
-        oldtime = newtime;
-        if (compara->testcounter >= 2) {
-            return -1;
-        } else if (compara->linkstate == close_connection) //物理通道建立完成后，如果请求状态为close，则需要建立连接
-        {
-            WriteLinkRequest(build_connection, heartbeat, &compara->link_request);
-            asyslog(LOG_INFO, "建立链接 %02d-%02d-%02d %d:%d:%d\n", compara->link_request.time.year, compara->link_request.time.month,
-                    compara->link_request.time.day_of_month, compara->link_request.time.hour, compara->link_request.time.minute, compara->link_request.time.second);
-            sendlen = Link_Request(compara->link_request, compara->serveraddr, compara->SendBuf);
-        } else {
-            WriteLinkRequest(heart_beat, heartbeat, &compara->link_request);
-            sendlen = Link_Request(compara->link_request, compara->serveraddr, compara->SendBuf);
-        }
-        compara->p_send(compara->phy_connect_fd, compara->SendBuf, sendlen);
-        compara->testcounter++;
+    if (abs(time(NULL) - compara->lasttime) < heartbeat) {
+        return 0;
     }
+    compara->lasttime = time(NULL);
+
+    if (compara->testcounter >= 2) {
+        return -1;
+    }
+
+    if (compara->linkstate == close_connection) //物理通道建立完成后，如果请求状态为close，则需要建立连接
+    {
+        WriteLinkRequest(build_connection, heartbeat, &compara->link_request);
+        int sendlen = Link_Request(compara->link_request, compara->serveraddr, compara->SendBuf);
+        compara->p_send(compara->phy_connect_fd, compara->SendBuf, sendlen);
+    } else {
+        WriteLinkRequest(heart_beat, heartbeat, &compara->link_request);
+        int sendlen = Link_Request(compara->link_request, compara->serveraddr, compara->SendBuf);
+        compara->p_send(compara->phy_connect_fd, compara->SendBuf, sendlen);
+    }
+    compara->testcounter++;
     return 0;
 }
 
@@ -201,16 +198,15 @@ void refreshComPara(CommBlock* compara) {
     compara->deal_step = 0;
     compara->rev_delay = 20;
     compara->shmem     = JProgramInfo;
+    compara->lasttime  = 0;
 }
 
 void initComPara(CommBlock* compara, INT8S (*p_send)(int fd, INT8U* buf, INT16U len)) {
-    int ret = 0, i = 0;
-    CLASS19 oi4300    = {};
-    CLASS_F101 oif101 = {};
     CLASS_4001_4002_4003 c4001;
     memset(&c4001, 0x00, sizeof(c4001));
     readCoverClass(0x4001, 0, &c4001, sizeof(c4001), para_vari_save);
     memcpy(compara->serveraddr, c4001.curstom_num, 16);
+
     compara->phy_connect_fd = -1;
     compara->testcounter    = 0;
     compara->linkstate      = close_connection;
@@ -223,15 +219,17 @@ void initComPara(CommBlock* compara, INT8S (*p_send)(int fd, INT8U* buf, INT16U 
     compara->rev_delay = 20;
     compara->shmem     = JProgramInfo;
     compara->p_send    = p_send;
+    compara->lasttime  = 0;
 
-    memset(&oi4300, 0, sizeof(CLASS19));
-    ret = readCoverClass(0x4300, 0, &oi4300, sizeof(CLASS19), para_vari_save);
-    if (ret)
-        memcpy(&compara->myAppVar.server_factory_version, &oi4300.info, sizeof(FactoryVersion));
-    for (i = 0; i < 2; i++) {
+    CLASS19 Class19 = {};
+    memset(&Class19, 0, sizeof(CLASS19));
+    if (readCoverClass(0x4300, 0, &Class19, sizeof(CLASS19), para_vari_save)) {
+        memcpy(&compara->myAppVar.server_factory_version, &Class19.info, sizeof(FactoryVersion));
+    }
+    for (int i = 0; i < 2; i++) {
         compara->myAppVar.FunctionConformance[i] = 0xff;
     }
-    for (i = 0; i < 5; i++) {
+    for (int i = 0; i < 5; i++) {
         compara->myAppVar.ProtocolConformance[i] = 0xff;
     }
     compara->myAppVar.server_deal_maxApdu    = 1024;
@@ -239,10 +237,8 @@ void initComPara(CommBlock* compara, INT8S (*p_send)(int fd, INT8U* buf, INT16U 
     compara->myAppVar.server_send_size       = 1024;
     compara->myAppVar.server_recv_maxWindow  = 1;
     compara->myAppVar.expect_connect_timeout = 56400;
-    //--------------------
-    memset(&oif101, 0, sizeof(CLASS_F101));
-    ret = readCoverClass(0xf101, 0, &oif101, sizeof(CLASS_F101), para_vari_save);
-    memcpy(&compara->f101, &oif101, sizeof(CLASS_F101));
+
+    readCoverClass(0xf101, 0, &compara->f101, sizeof(CLASS_F101), para_vari_save);
 }
 
 void dumpPeerStat(int fd, char* info) {

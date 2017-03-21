@@ -138,7 +138,7 @@ int CertainConnectForGprs(char* interface) {
 
 static int RegularClientForGprs(struct aeEventLoop* ep, long long id, void* clientData) {
     CommBlock* nst = (CommBlock*)clientData;
-    clearcount(1);
+    clearcount();
 
     if (nst->phy_connect_fd <= 0) {
         if (GetOnlineType() != 0) {

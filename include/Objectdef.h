@@ -64,7 +64,7 @@ typedef struct {
     INT8U proxyIp[OCTET_STRING_LEN];    //代理服务器地址
     INT16U proxyPort;                   //代理端口
     INT8U timeoutRtry;                  //超时时间，重发次数
-    INT16U heartBeat;                    //心跳周期秒
+    INT16U heartBeat;                   //心跳周期秒
 } COMM_CONFIG_1;
 typedef struct {
     INT8U workModel;                 //工作模式 enum{混合模式(0),客户机模式(1),服务器模式(2)},
@@ -75,7 +75,7 @@ typedef struct {
     INT8U proxyIp[OCTET_STRING_LEN]; //代理服务器地址
     INT16U proxyPort;                //代理端口
     INT8U timeoutRtry;               //超时时间，重发次数
-    INT16U heartBeat;                 //心跳周期秒
+    INT16U heartBeat;                //心跳周期秒
 } COMM_CONFIG_2;
 
 typedef struct {
@@ -341,7 +341,7 @@ typedef struct {
 } C601F_07Flag;
 
 typedef struct {
-	OI_698 roadOI;//实时数据 0000  日冻结数据5004
+    OI_698 roadOI; //实时数据 0000  日冻结数据5004
     OAD flag698;
     INT8U unitnum;
     INT8U datatype;
@@ -470,7 +470,8 @@ typedef struct {
     CLASS_F101 f101;            //安全模式信息
     void* shmem;
     INT8S (*p_send)(int fd, INT8U* buf, INT16U len);
-    INT8U taskaddr; //客户机地址
+    INT8U taskaddr;  //客户机地址
+    time_t lasttime; //最后一次通信时间
 } CommBlock;
 ////////////////////////////////////////////////////////////////////
 

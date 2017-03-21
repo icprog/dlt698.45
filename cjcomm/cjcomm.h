@@ -21,7 +21,7 @@
 
 //维护公共状态的函数
 int Comm_task(CommBlock* compara);
-void clearcount(int index);
+void clearcount();
 int GetOnlineType(void);
 void SetOnlineType(int type);
 void refreshComPara(CommBlock* compara);
