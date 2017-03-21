@@ -20,10 +20,11 @@
 #define CJCOMM_H_
 
 //维护公共状态的函数
-void Comm_task(CommBlock* compara);
+int Comm_task(CommBlock* compara);
 void clearcount(int index);
 int GetOnlineType(void);
 void SetOnlineType(int type);
+void refreshComPara(CommBlock* compara);
 
 int StartVerifiTime(struct aeEventLoop* ep, long long id, void* clientData);
 

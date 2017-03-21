@@ -160,22 +160,19 @@ void WriteLinkRequest(INT8U link_type, INT16U heartbeat, LINK_Request* link_req)
     link_req->heartbeat         = ((heartbeat << 8) & 0xff00) | ((heartbeat >> 8) & 0xff);
 }
 
-void Comm_task(CommBlock* compara) {
+int Comm_task(CommBlock* compara) {
     int sendlen           = 0;
     static time_t oldtime = 0;
     TS ts                 = {};
     INT16U heartbeat      = 60;
 
     time_t newtime = time(NULL);
+
     if (abs(newtime - oldtime) > heartbeat) {
         TSGet(&ts);
         oldtime = newtime;
         if (compara->testcounter >= 2) {
-            close(compara->phy_connect_fd);
-            compara->phy_connect_fd = -1;
-            AT_POWOFF();
-            compara->testcounter = 0;
-            return;
+            return -1;
         } else if (compara->linkstate == close_connection) //物理通道建立完成后，如果请求状态为close，则需要建立连接
         {
             WriteLinkRequest(build_connection, heartbeat, &compara->link_request);
@@ -189,6 +186,21 @@ void Comm_task(CommBlock* compara) {
         compara->p_send(compara->phy_connect_fd, compara->SendBuf, sendlen);
         compara->testcounter++;
     }
+    return 0;
+}
+
+void refreshComPara(CommBlock* compara) {
+    compara->phy_connect_fd = -1;
+    compara->testcounter    = 0;
+    compara->linkstate      = close_connection;
+    memset(compara->RecBuf, 0, sizeof(compara->RecBuf));
+    memset(compara->SendBuf, 0, sizeof(compara->SendBuf));
+    memset(compara->DealBuf, 0, sizeof(compara->DealBuf));
+    compara->RHead     = 0;
+    compara->RTail     = 0;
+    compara->deal_step = 0;
+    compara->rev_delay = 20;
+    compara->shmem     = JProgramInfo;
 }
 
 void initComPara(CommBlock* compara, INT8S (*p_send)(int fd, INT8U* buf, INT16U len)) {
@@ -268,6 +280,7 @@ int main(int argc, char* argv[]) {
     printf("version 1019\n");
     memset(&class_4000, 0, sizeof(CLASS_4000));
     enviromentCheck(argc, argv);
+    SetOnlineType(0);
 
     //开启网络IO事件处理框架
     aeEventLoop* ep;
