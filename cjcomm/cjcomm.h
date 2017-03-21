@@ -1,6 +1,3 @@
-﻿#ifndef CJCOMM_H_
-#define CJCOMM_H_
-
 #include <termios.h>
 #include <errno.h>
 #include <wait.h>
@@ -10,7 +7,7 @@
 
 #include "ae.h"
 #include "at.h"
-#include "ae.h"
+#include "anet.h"
 #include "dlt698.h"
 #include "dlt698def.h"
 #include "event.h"
@@ -19,16 +16,20 @@
 #include "StdDataType.h"
 #include "PublicFunction.h"
 
+#ifndef CJCOMM_H_
+#define CJCOMM_H_
+
 //维护公共状态的函数
 void Comm_task(CommBlock* compara);
 void clearcount(int index);
 int GetOnlineType(void);
 void SetOnlineType(int type);
 
-int GetInterFaceIp(char* interface, char* ips);
 int StartVerifiTime(struct aeEventLoop* ep, long long id, void* clientData);
 
-void initComPara(CommBlock* compara);
+int GetInterFaceIp(char* interface, char* ips);
+
+void initComPara(CommBlock* compara, INT8S (*p_send)(int fd, INT8U* buf, INT16U len));
 void CalculateTransFlow(ProgramInfo* prginfo_event);
 void EventAutoReport(CommBlock* nst);
 void dumpPeerStat(int fd, char* info);
@@ -38,8 +39,8 @@ int StartClientForNet(struct aeEventLoop* ep, long long id, void* clientData);
 void ClientForNetDestory(void);
 
 // GPRS网络通信接口
-int StartClient(struct aeEventLoop* ep, long long id, void* clientData);
-void ClientDestory(void);
+int StartClientForGprs(struct aeEventLoop* ep, long long id, void* clientData);
+void ClientForGprsDestory(void);
 
 //消息队列通信接口
 void MmqDestory(void);

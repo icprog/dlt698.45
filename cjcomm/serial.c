@@ -20,17 +20,29 @@ static int GlobData[]  = { 0, 1, 2, 3, 4, 5, 6, 7, 8 };
 static int GlobStop[]  = { 0, 1, 2 };
 
 /*
+ *所有模块共享的写入函数，所有模块共享使用
+ */
+int SerialWrite(int fd, INT8U* buf, INT16U len) {
+    int ret = anetWrite(fd, buf, (int)len);
+    if (ret != len) {
+        asyslog(LOG_WARNING, "[维护]报文发送失败(长度:%d,错误:%d)", len, errno);
+    }
+    bufsyslog(buf, "维护发送:", len, 0, BUFLEN);
+    return ret;
+}
+
+/*
  * 模块*内部*使用的初始化参数
  */
-static void SerialInit(void) {
+void SerialInit(void) {
     asyslog(LOG_INFO, "初始化维护串口模块...");
-    initComPara(&SerialObject);
+    initComPara(&SerialObject, SerialWrite);
 }
 
 /*
  * 红外、维护串口通行的读取函数，函数共享使用
  */
-static void GenericRead(struct aeEventLoop* eventLoop, int fd, void* clientData, int mask) {
+void SerialRead(struct aeEventLoop* eventLoop, int fd, void* clientData, int mask) {
     CommBlock* nst = (CommBlock*)clientData;
 
     //判断fd中有多少需要接收的数据
@@ -73,6 +85,7 @@ static void GenericRead(struct aeEventLoop* eventLoop, int fd, void* clientData,
         }
     }
 }
+
 /*
  * 模块维护循环
  */
@@ -93,7 +106,7 @@ int RegularSerial(struct aeEventLoop* ep, long long id, void* clientData) {
         if (nst->phy_connect_fd <= 0) {
             asyslog(LOG_ERR, "维护串口打开失败");
         } else {
-            if (aeCreateFileEvent(ep, nst->phy_connect_fd, AE_READABLE, GenericRead, nst) < 0) {
+            if (aeCreateFileEvent(ep, nst->phy_connect_fd, AE_READABLE, SerialRead, nst) < 0) {
                 asyslog(LOG_ERR, "维护串口监听失败");
                 close(nst->phy_connect_fd);
                 nst->phy_connect_fd = -1;
@@ -105,25 +118,10 @@ int RegularSerial(struct aeEventLoop* ep, long long id, void* clientData) {
 }
 
 /*
- *所有模块共享的写入函数，所有模块共享使用
- */
-static int SerialWrite(int fd, INT8U* buf, INT16U len) {
-    int ret = anetWrite(fd, buf, (int)len);
-    if (ret != len) {
-        asyslog(LOG_WARNING, "[维护]报文发送失败(长度:%d,错误:%d)", len, errno);
-    }
-    bufsyslog(buf, "维护发送:", len, 0, BUFLEN);
-    return ret;
-}
-
-/*
  * 供外部使用的初始化函数，并开启维护循环
  */
 int StartSerial(struct aeEventLoop* ep, long long id, void* clientData) {
     SerialInit();
-
-    //绑定本地发送函数
-    SerialObject.p_send = SerialWrite;
 
     Serial_Task_Id = aeCreateTimeEvent(ep, 1000, RegularSerial, &SerialObject, NULL);
     asyslog(LOG_INFO, "维护串口时间事件注册完成(%lld)", Serial_Task_Id);

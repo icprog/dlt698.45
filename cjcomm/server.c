@@ -16,15 +16,27 @@ static long long Server_Task_Id;
 static int listen_port;
 
 /*
- * 模块*内部*使用的初始化参数
+ *所有模块共享的写入函数，所有模块共享使用
  */
-static void ServerInit(void) {
-    asyslog(LOG_INFO, "初始化监听服务器模块...");
-    listen_port = -1;
-    initComPara(&ServerObject);
+int ServerWrite(int fd, INT8U* buf, INT16U len) {
+    int ret = anetWrite(fd, buf, (int)len);
+    if (ret != len) {
+        asyslog(LOG_WARNING, "[服务]报文发送失败(长度:%d,错误:%d)", len, errno);
+    }
+    bufsyslog(buf, "服务发送:", len, 0, BUFLEN);
+    return ret;
 }
 
-static void ServerRead(struct aeEventLoop* eventLoop, int fd, void* clientData, int mask) {
+/*
+ * 模块*内部*使用的初始化参数
+ */
+void ServerInit(void) {
+    asyslog(LOG_INFO, "初始化监听服务器模块...");
+    listen_port = -1;
+    initComPara(&ServerObject, ServerWrite);
+}
+
+void ServerRead(struct aeEventLoop* eventLoop, int fd, void* clientData, int mask) {
     CommBlock* nst = (CommBlock*)clientData;
 
     //判断fd中有多少需要接收的数据
@@ -78,7 +90,7 @@ static void ServerRead(struct aeEventLoop* eventLoop, int fd, void* clientData, 
     }
 }
 
-static void CreateAptSer(struct aeEventLoop* eventLoop, int fd, void* clientData, int mask) {
+void CreateAptSer(struct aeEventLoop* eventLoop, int fd, void* clientData, int mask) {
     CommBlock* nst = (CommBlock*)clientData;
     char errmsg[128];
     memset(errmsg, 0x00, sizeof(errmsg));
@@ -108,7 +120,7 @@ static void CreateAptSer(struct aeEventLoop* eventLoop, int fd, void* clientData
 /*
  * 模块维护循环
  */
-static int RegularServer(struct aeEventLoop* ep, long long id, void* clientData) {
+int RegularServer(struct aeEventLoop* ep, long long id, void* clientData) {
     CommBlock* nst = (CommBlock*)clientData;
     char errmsg[128];
     memset(errmsg, 0x00, sizeof(errmsg));
@@ -122,18 +134,6 @@ static int RegularServer(struct aeEventLoop* ep, long long id, void* clientData)
         }
     }
     return 1000;
-}
-
-/*
- *所有模块共享的写入函数，所有模块共享使用
- */
-static int ServerWrite(int fd, INT8U* buf, INT16U len) {
-    int ret = anetWrite(fd, buf, (int)len);
-    if (ret != len) {
-        asyslog(LOG_WARNING, "[服务]报文发送失败(长度:%d,错误:%d)", len, errno);
-    }
-    bufsyslog(buf, "服务发送:", len, 0, BUFLEN);
-    return ret;
 }
 
 /*
@@ -154,9 +154,6 @@ void ServerDestory(void) {
     asyslog(LOG_INFO, "关闭监听服务器(%d)", ServerObject.phy_connect_fd);
     close(ServerObject.phy_connect_fd);
     ServerObject.phy_connect_fd = -1;
-
-    //绑定本地发送函数
-    ServerObject.p_send = ServerWrite;
 
     //关闭监听的端口
     close(listen_port);

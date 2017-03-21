@@ -16,9 +16,7 @@
 
 //共享内存地址
 static ProgramInfo* JProgramInfo = NULL;
-static CLASS25 Class25;
-static CLASS26 Class26;
-static int ProgIndex = 0;
+static int ProgIndex             = 0;
 static int OnlineType; // 0:没在线 1:GPRS 2:以太网
 CLASS_4000 class_4000;
 
@@ -108,13 +106,42 @@ void QuitProcess(int sig) {
     SerialDestory();
     ServerDestory();
     MmqDestory();
-    ClientDestory();
+    ClientForGprsDestory();
+    ClientForNetDestory();
 
     //关闭AT模块
     asyslog(LOG_INFO, "关闭AT模块电源");
     AT_POWOFF();
     asyslog(LOG_INFO, "通信模块退出完成...");
     exit(0);
+}
+
+int GetInterFaceIp(char* interface, char* ips) {
+    int sock;
+    struct sockaddr_in sin;
+    struct ifreq ifr;
+
+    sock = socket(AF_INET, SOCK_DGRAM, 0);
+    if (sock == -1) {
+        return -1;
+    }
+    strncpy(ifr.ifr_name, interface, IFNAMSIZ);
+    ifr.ifr_name[IFNAMSIZ - 1] = 0;
+    if (ioctl(sock, SIOCGIFADDR, &ifr) < 0) {
+        close(sock);
+        return -1;
+    }
+    memcpy(&sin, &ifr.ifr_addr, sizeof(sin));
+    if (sin.sin_addr.s_addr > 0) {
+        int ip[4];
+        memset(ip, 0x00, sizeof(ip));
+        sscanf(inet_ntoa(sin.sin_addr), "%d.%d.%d.%d", &ip[0], &ip[1], &ip[2], &ip[3]);
+        snprintf(ips, 16, "%d.%d.%d.%d\n", ip[0], ip[1], ip[2], ip[3]);
+        close(sock);
+        return 1;
+    }
+    close(sock);
+    return 0;
 }
 
 void WriteLinkRequest(INT8U link_type, INT16U heartbeat, LINK_Request* link_req) {
@@ -164,7 +191,7 @@ void Comm_task(CommBlock* compara) {
     }
 }
 
-void initComPara(CommBlock* compara) {
+void initComPara(CommBlock* compara, INT8S (*p_send)(int fd, INT8U* buf, INT16U len)) {
     int ret = 0, i = 0;
     CLASS19 oi4300    = {};
     CLASS_F101 oif101 = {};
@@ -183,6 +210,7 @@ void initComPara(CommBlock* compara) {
     compara->deal_step = 0;
     compara->rev_delay = 20;
     compara->shmem     = JProgramInfo;
+    compara->p_send    = p_send;
 
     memset(&oi4300, 0, sizeof(CLASS19));
     ret = readCoverClass(0x4300, 0, &oi4300, sizeof(CLASS19), para_vari_save);
@@ -229,28 +257,6 @@ void enviromentCheck(int argc, char* argv[]) {
     struct sigaction sa = {};
     Setsig(&sa, QuitProcess);
 
-    //读取设备参数
-    readCoverClass(0x4500, 0, (void*)&Class25, sizeof(CLASS25), para_vari_save);
-    asyslog(LOG_INFO, "工作模式 enum{混合模式(0),客户机模式(1),服务器模式(2)}：%d", Class25.commconfig.workModel);
-    asyslog(LOG_INFO, "在线方式 enum{永久在线(0),被动激活(1)}：%d", Class25.commconfig.onlineType);
-    asyslog(LOG_INFO, "连接方式 enum{TCP(0),UDP(1)}：%d", Class25.commconfig.connectType);
-    asyslog(LOG_INFO, "连接应用方式 enum{主备模式(0),多连接模式(1)}：%d", Class25.commconfig.appConnectType);
-    asyslog(LOG_INFO, "侦听端口列表：%d", Class25.commconfig.listenPort[0]);
-    asyslog(LOG_INFO, "超时时间，重发次数：%02x", Class25.commconfig.timeoutRtry);
-    asyslog(LOG_INFO, "心跳周期秒：%d", Class25.commconfig.heartBeat);
-
-    //读取设备参数
-    memset(&Class26, 0, sizeof(CLASS26));
-    readCoverClass(0x4510, 0, (void*)&Class26, sizeof(CLASS26), para_vari_save);
-    asyslog(LOG_INFO, "工作模式 enum{混合模式(0),客户机模式(1),服务器模式(2)}：%d", Class26.commconfig.workModel);
-    asyslog(LOG_INFO, "连接方式 enum{TCP(0),UDP(1)}：%d", Class26.commconfig.connectType);
-    asyslog(LOG_INFO, "连接应用方式 enum{主备模式(0),多连接模式(1)}：%d", Class26.commconfig.appConnectType);
-    asyslog(LOG_INFO, "侦听端口列表：%d", Class26.commconfig.listenPort[0]);
-    asyslog(LOG_INFO, "超时时间，重发次数：%02x", Class26.commconfig.timeoutRtry);
-    asyslog(LOG_INFO, "心跳周期秒：%d", Class26.commconfig.heartBeat);
-    asyslog(LOG_INFO, "主站通信地址(1)为：%d.%d.%d.%d:%d", Class26.master.master[0].ip[1], Class26.master.master[0].ip[2], Class26.master.master[0].ip[3],
-            Class26.master.master[0].ip[4], Class26.master.master[0].port);
-
     //向cjmain报告启动
     ProgIndex    = atoi(argv[1]);
     JProgramInfo = OpenShMem("ProgramInfo", sizeof(ProgramInfo), NULL);
@@ -259,11 +265,9 @@ void enviromentCheck(int argc, char* argv[]) {
 }
 
 int main(int argc, char* argv[]) {
-    printf("version 1015\n");
+    printf("version 1019\n");
     memset(&class_4000, 0, sizeof(CLASS_4000));
     enviromentCheck(argc, argv);
-
-    CreateATWorker(&Class25);
 
     //开启网络IO事件处理框架
     aeEventLoop* ep;
@@ -277,8 +281,8 @@ int main(int argc, char* argv[]) {
     // StartSerial(ep, 0, NULL);
     StartServer(ep, 0, NULL);
     StartVerifiTime(ep, 0, JProgramInfo);
-    StartClient(ep, 0, &Class25);
-    StartClientForNet(ep, 0, &Class26);
+    StartClientForGprs(ep, 0, NULL);
+    StartClientForNet(ep, 0, NULL);
 
     aeMain(ep);
 
