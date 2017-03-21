@@ -47,6 +47,8 @@ void print_rsd(INT8U choice,RSD rsd)
 void print_road(ROAD road)
 {
 	int w=0;
+
+	asyslog(LOG_INFO,"ROAD:%04x-%02x%02x ",road.oad.OI,road.oad.attflg,road.oad.attrindex);
 	fprintf(stderr,"ROAD:%04x-%02x%02x ",road.oad.OI,road.oad.attflg,road.oad.attrindex);
 	if(road.num >= 16) {
 		fprintf(stderr,"csd overvalue 16 error\n");
@@ -54,6 +56,7 @@ void print_road(ROAD road)
 	}
 	for(w=0;w<road.num;w++)
 	{
+		asyslog(LOG_INFO,"<关联OAD..%d>%04x-%02x%02x ",w,road.oads[w].OI,road.oads[w].attflg,road.oads[w].attrindex);
 		fprintf(stderr,"<关联OAD..%d>%04x-%02x%02x ",w,road.oads[w].OI,road.oads[w].attflg,road.oads[w].attrindex);
 	}
 	fprintf(stderr,"\n");
@@ -66,9 +69,11 @@ void print_rcsd(CSD_ARRAYTYPE csds)
 	{
 		if (csds.csd[i].type==0)
 		{
+			asyslog(LOG_INFO,"<%d>OAD%04x-%02x%02x ",i,csds.csd[i].csd.oad.OI,csds.csd[i].csd.oad.attflg,csds.csd[i].csd.oad.attrindex);
 			fprintf(stderr,"<%d>OAD%04x-%02x%02x ",i,csds.csd[i].csd.oad.OI,csds.csd[i].csd.oad.attflg,csds.csd[i].csd.oad.attrindex);
 		}else if (csds.csd[i].type==1)
 		{
+			asyslog(LOG_INFO,"<%d> ",i);
 			fprintf(stderr,"<%d>",i);
 			print_road(csds.csd[i].csd.road);
 		}
@@ -155,7 +160,15 @@ int fill_double_long_unsigned(INT8U *data,INT32U value)
 
 int fill_octet_string(INT8U *data,char *value,INT8U len)
 {
+//	if(len==0) {
+//		data[0] = 0;
+//		return 1;
+//	}
 	data[0] = dtoctetstring;
+	if(len > OCTET_STRING_LEN)  {
+		fprintf(stderr,"fill_octet_string len=%d 超过限值[%d]",len,OCTET_STRING_LEN);
+		len = OCTET_STRING_LEN;
+	}
 	data[1] = len;
 	memcpy(&data[2],value,len);
 	return (len+2);

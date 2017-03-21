@@ -70,6 +70,7 @@ typedef struct {
     INT8U workModel;                 //工作模式 enum{混合模式(0),客户机模式(1),服务器模式(2)},
     INT8U connectType;               //连接方式 enum{TCP(0),UDP(1)}
     INT8U appConnectType;            //连接应用方式 enum{主备模式(0),多连接模式(1)}
+    INT16U listenPortnum;            //侦听端口数量
     INT16U listenPort[5];            //侦听端口列表
     INT8U proxyIp[OCTET_STRING_LEN]; //代理服务器地址
     INT16U proxyPort;                //代理端口
