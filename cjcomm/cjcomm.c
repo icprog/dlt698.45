@@ -17,21 +17,8 @@
 //共享内存地址
 static ProgramInfo* JProgramInfo = NULL;
 static CLASS25 Class25;
-static CLASS26 Class26;
 static int ProgIndex = 0;
-static int OnlineType; // 0:没在线 1:GPRS 2:以太网
 CLASS_4000 class_4000;
-
-/*
- * 获取当前在线状态
- */
-int GetOnlineType(void) {
-    return OnlineType;
-}
-
-void SetOnlineType(int type) {
-    OnlineType = type;
-}
 
 void CalculateTransFlow(ProgramInfo* prginfo_event) {
     static Flow_tj c2200;
@@ -206,16 +193,6 @@ void initComPara(CommBlock* compara) {
     memcpy(&compara->f101, &oif101, sizeof(CLASS_F101));
 }
 
-void dumpPeerStat(int fd, char* info) {
-    int peerBuf[128];
-    int port = 0;
-
-    memset(peerBuf, 0x00, sizeof(peerBuf));
-    anetTcpKeepAlive(NULL, fd);
-    anetPeerToString(fd, peerBuf, sizeof(peerBuf), &port);
-    asyslog(LOG_INFO, "[%s%s]:%d\n", info, peerBuf, port);
-}
-
 /*********************************************************
  * 进程初始化
  *********************************************************/
@@ -240,18 +217,6 @@ void enviromentCheck(int argc, char* argv[]) {
     asyslog(LOG_INFO, "超时时间，重发次数：%02x", Class25.commconfig.timeoutRtry);
     asyslog(LOG_INFO, "心跳周期秒：%d", Class25.commconfig.heartBeat);
 
-    //读取设备参数
-    memset(&Class26, 0, sizeof(CLASS26));
-    readCoverClass(0x4510, 0, (void*)&Class26, sizeof(CLASS26), para_vari_save);
-    asyslog(LOG_INFO, "工作模式 enum{混合模式(0),客户机模式(1),服务器模式(2)}：%d", Class26.commconfig.workModel);
-    asyslog(LOG_INFO, "连接方式 enum{TCP(0),UDP(1)}：%d", Class26.commconfig.connectType);
-    asyslog(LOG_INFO, "连接应用方式 enum{主备模式(0),多连接模式(1)}：%d", Class26.commconfig.appConnectType);
-    asyslog(LOG_INFO, "侦听端口列表：%d", Class26.commconfig.listenPort[0]);
-    asyslog(LOG_INFO, "超时时间，重发次数：%02x", Class26.commconfig.timeoutRtry);
-    asyslog(LOG_INFO, "心跳周期秒：%d", Class26.commconfig.heartBeat);
-    asyslog(LOG_INFO, "主站通信地址(1)为：%d.%d.%d.%d:%d", Class26.master.master[0].ip[1], Class26.master.master[0].ip[2], Class26.master.master[0].ip[3],
-            Class26.master.master[0].ip[4], Class26.master.master[0].port);
-
     //向cjmain报告启动
     ProgIndex    = atoi(argv[1]);
     JProgramInfo = OpenShMem("ProgramInfo", sizeof(ProgramInfo), NULL);
@@ -275,11 +240,10 @@ int main(int argc, char* argv[]) {
     }
 
     // StartIfr(ep, 0, NULL);
-    //StartSerial(ep, 0, NULL);
+//    StartSerial(ep, 0, NULL);
     StartServer(ep, 0, NULL);
     StartVerifiTime(ep, 0, JProgramInfo);
     StartClient(ep, 0, &Class25);
-    StartClientForNet(ep, 0, &Class26);
 
     aeMain(ep);
 

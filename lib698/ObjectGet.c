@@ -761,6 +761,8 @@ int doGetrecord(OAD oad,INT8U *data,RESULT_RECORD *record)
 	int 	source_index=0;		//getrecord 指针
 	int		dest_index=0;		//getreponse 指针
 	INT8U 	SelectorN =0;
+	int  	framesum=0;		//分帧
+	int		datalen=0;
 
 	fprintf(stderr,"\nGetRequestRecord   oi=%x  %02x  %02x",record->oad.OI,record->oad.attflg,record->oad.attrindex);
 	source_index = get_BasicRSD(0,&data[source_index],(INT8U *)&record->select,&record->selectType);
@@ -804,8 +806,12 @@ int doGetrecord(OAD oad,INT8U *data,RESULT_RECORD *record)
 		record->datalen += dest_index;			//数据长度+ResultRecord
 		break;
 	case 10:	//指定读取最新的n条记录
-
-
+		framesum = getSelector(record->oad,record->select,record->selectType,record->rcsd.csds,NULL,NULL);
+		if(framesum==0) {		//无分帧
+			readFrameDataFile("/nand/frmdata",0,TmpDataBuf,&datalen);
+			record->data = TmpDataBuf;				//data 指向回复报文帧头
+			record->datalen += datalen;
+		}
 		break;
 	}
 	fprintf(stderr,"\n---doGetrecord end\n");
@@ -822,7 +828,6 @@ int getRequestRecord(OAD oad,INT8U *data,CSINFO *csinfo,INT8U *sendbuf)
 	record.datalen = 0;
 	doGetrecord(oad,data,&record);
 	BuildFrame_GetResponseRecord(GET_REQUEST_RECORD,csinfo,record,sendbuf);
-
 //	securetype = 0;		//清除安全等级标识
 	return 1;
 }

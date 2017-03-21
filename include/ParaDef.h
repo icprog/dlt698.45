@@ -52,6 +52,8 @@
 /*
  * 	DL/T698.45		规约结构限值
  * */
+
+#define MAX_APDU_SIZE			1024		//协商的APDU的最大尺寸
 #define MET_RATE                4           //电表费率应该根据电表配置来，此处调试使用
 #define TSA_LEN					17
 #define OCTET_STRING_LEN		16

@@ -1858,7 +1858,6 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds,INT8U rec
 
 	unitnum = GetTaskHead(fp,&headsize,&blocksize,&headunit);
 	fprintf(stderr,"\n----------2\n");
-	fprintf(stderr,"\n----------3\n");
 	for(i=0;i<unitnum;i++)
 		fprintf(stderr,"%04x%02x%02x:%04x%02x%02x:%04x\n",
 				headunit[i].oad_m.OI,headunit[i].oad_m.attflg,headunit[i].oad_m.attrindex,
@@ -1943,20 +1942,16 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds,INT8U rec
 		onefrmbuf[seqnumindex] = recordnum;
 		saveOneFrame(onefrmbuf,indexn,myfp);
 	}
-//	fprintf(stderr,"\n---------------------------------3-------------------------------------------------------------\n");
 	if(tsa_group != NULL)
 		free(tsa_group);
-//	fprintf(stderr,"\n---------------------------------3.5-------------------------------------------------------------\n");
 	if(headunit!=NULL){
 		free(headunit);
 	}
-//	fprintf(stderr,"\n---------------------------------4-------------------------------------------------------------\n");
 	if(fp != NULL)
 		fclose(fp);
 	if(myfp != NULL)
 		fclose(myfp);
-//	fprintf(stderr,"\n---------------------------------5-------------------------------------------------------------\n");
-	return 0;
+	return framesum;
 }
 //INT8U getaskData(OAD oad_h,INT8U seletype,ZC_TIMEINTERVL timeinte,TSA *tsa_con,INT16U tsa_num,CSD_ARRAYTYPE csds)//,ROAD_ITEM item_road)
 //{
@@ -2183,22 +2178,49 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds,INT8U rec
 //	fprintf(stderr,"\ngetaskdata out\n");
 //	return 0;
 //}
-INT8U getSelector(OAD oad_h,RSD select, INT8U selectype, CSD_ARRAYTYPE csds, INT8U *data, int *datalen)
+int getSelector(OAD oad_h,RSD select, INT8U selectype, CSD_ARRAYTYPE csds, INT8U *data, int *datalen)
 {
+	int  framesum=0;		//分帧
 	asyslog(LOG_INFO,"getSelector: selectype=%d\n",selectype);
 	switch(selectype)
 	{
 	case 5:
+
 		break;
 	case 7:
 		break;
 	case 10:
-		GetTaskData(oad_h,select,selectype,csds,select.selec10.recordn);
+		framesum = GetTaskData(oad_h,select,selectype,csds,select.selec10.recordn);
 		break;
 	default:break;
 	}
-	return 1;
+	return framesum;
 }
+
+/*
+ *
+ */
+long int readFrameDataFile(char *filename,int offset,INT8U *buf,int *datalen)
+{
+	FILE *fp=NULL;
+	int bytelen=0;
+
+	fp = fopen(filename,"r");
+	if (fp!=NULL && buf!=NULL)
+	{
+		fseek(fp,offset,0);		 			//定位到文件指定偏移位置
+		//if (fread(&bytelen,2,1,fp) <=0)	 	//读出数据报文长度
+		fread(&bytelen,2,1,fp);
+		fprintf(stderr,"bytelen=%d\n",bytelen);
+//			return 0;
+		if (fread(buf,bytelen,1,fp) <=0 ) 	//按数据报文长度，读出全部字节
+			return 0;
+		*datalen = bytelen;
+		return (ftell(fp));		 			//返回当前偏移位置
+	}
+	return 0;
+}
+
 ///*
 // * 根据招测类型组织报文
 // * 如果MS选取的测量点过多，不能同时上报，分帧

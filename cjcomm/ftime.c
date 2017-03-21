@@ -27,7 +27,7 @@ int VerifiTime(struct aeEventLoop* ep, long long id, void* clientData) {
     TSGet(&jzqtime); //集中器时间
     static INT8U oi4000_flag=0;
     static INT8U first =0;
-    fprintf(stderr,"精确对时 参数 type=%d hearbeatnum=%d \n",class_4000.type,class_4000.hearbeatnum);
+//    fprintf(stderr,"精确对时 参数 type=%d hearbeatnum=%d \n",class_4000.type,class_4000.hearbeatnum);
     if((oi4000_flag != JProgramInfo->oi_changed.oi4000) || first==0){
     	first=1;
     	readCoverClass(0x4000,0,&class_4000,sizeof(CLASS_4000),para_vari_save);

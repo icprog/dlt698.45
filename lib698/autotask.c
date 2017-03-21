@@ -186,30 +186,6 @@ int getTsas(MY_MS ms,INT8U **tsas)
 	return tsa_num;
 }
 
-/*
- *
- */
-long int readFrameDataFile(char *filename,int offset,INT8U *buf,int *datalen)
-{
-	FILE *fp=NULL;
-	int bytelen=0;
-
-	fp = fopen(filename,"r");
-	if (fp!=NULL && buf!=NULL)
-	{
-		fseek(fp,offset,0);		 			//定位到文件指定偏移位置
-		//if (fread(&bytelen,2,1,fp) <=0)	 	//读出数据报文长度
-		fread(&bytelen,2,1,fp);
-		fprintf(stderr,"bytelen=%d\n",bytelen);
-//			return 0;
-
-		if (fread(buf,bytelen,1,fp) <=0 ) 	//按数据报文长度，读出全部字节
-			return 0;
-		*datalen = bytelen;
-		return (ftell(fp));		 			//返回当前偏移位置
-	}
-	return 0;
-}
 
 /*
  * 通讯进程循环调用 callAutoReport

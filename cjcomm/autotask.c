@@ -65,7 +65,7 @@ void RegularAutoTask(struct aeEventLoop* ep, CommBlock* nst) {
             conformOverTime = shmem->autotask[i].OverTime;
             //注册时间事件，检查确认状态
 //            conformCheckId = aeCreateTimeEvent(ep, conformOverTime * 1000, ConformCheck, nst, NULL);
-            asyslog(LOG_INFO, "检查到上报任务，初始化上报状态(autotask i=%d 次数=%d-时间=%d)、注册时间事件(%d)",i, conformTimes, conformOverTime, conformCheckId);
+            asyslog(LOG_INFO, "检查到上报任务，初始化上报状态(次数=%d-时间=%d)、注册时间事件(%d)", conformTimes, conformOverTime, conformCheckId);
             break;
         }
     }

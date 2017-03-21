@@ -27,7 +27,8 @@
 ProgramInfo* JProgramInfo = NULL;
 
 static char* usage_set = "\n--------------------参数设置及基本维护命令----------------------------\n"
-                         "		 【主站IP端口设置】cj ip XXX.XXX.XXX.XXX:port XXX.XXX.XXX.XXX:port 	\n"
+                         "		 【公网通信模块：主站IP端口设置】cj ip XXX.XXX.XXX.XXX:port XXX.XXX.XXX.XXX:port 	\n"
+						 "		 【以太网通信参数：主站IP端口设置】cj net-ip XXX.XXX.XXX.XXX:port XXX.XXX.XXX.XXX:port 	\n"
                          "		 【主站apn设置】cj apn cmnet		\n"
                          "		 【cdma电信用户名密码设置】cj usr-pwd 　user  password		\n"
                          "		 【通信地址】cj id <addr>	如：地址为123456  :cj id 12 34 56	\n"
