@@ -37,8 +37,9 @@ void MmqDestory(void);
 int StartMmq(struct aeEventLoop* ep, long long id, void* clientData);
 int StartVerifiTime(struct aeEventLoop* ep, long long id, void* clientData);
 
-INT8U GetTimeOffsetFlag(void);
-void Getk(LINK_Response link, ProgramInfo* JProgramInfo);
+extern INT8U GetTimeOffsetFlag(void);
+extern void Getk_curr(LINK_Response link, ProgramInfo* JProgramInfo);
+extern void First_VerifiTime(LINK_Response linkResponse, ProgramInfo* JProgramInfo);
 
 void ServerDestory(void);
 int StartServer(struct aeEventLoop* ep, long long id, void* clientData);

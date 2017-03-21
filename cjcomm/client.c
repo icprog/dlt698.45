@@ -87,9 +87,10 @@ void ClientRead(struct aeEventLoop* eventLoop, int fd, void* clientData, int mas
                 ConformAutoTask(eventLoop, nst, apduType);
                 switch (apduType) {
                     case LINK_RESPONSE:
-                        if (GetTimeOffsetFlag() == 1) {
-                            Getk(nst->linkResponse, nst->shmem);
-                        }
+                    	First_VerifiTime(nst->linkResponse, nst->shmem);//简单对时
+						if (GetTimeOffsetFlag() == 1) {
+							Getk_curr(nst->linkResponse, nst->shmem);
+						}
                         nst->linkstate   = build_connection;
                         nst->testcounter = 0;
                         break;
