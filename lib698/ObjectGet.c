@@ -808,9 +808,11 @@ int doGetrecord(OAD oad,INT8U *data,RESULT_RECORD *record)
 	case 10:	//指定读取最新的n条记录
 		framesum = getSelector(record->oad,record->select,record->selectType,record->rcsd.csds,NULL,NULL);
 		if(framesum==0) {		//无分帧
-			readFrameDataFile("/nand/frmdata",0,TmpDataBuf,&datalen);
-			record->data = TmpDataBuf;				//data 指向回复报文帧头
-			record->datalen += datalen;
+			readFrameDataFile("/nand/frmdata",0,TmpDataBuf,&datalen);//文件中第一个字节保存的是：SEQUENCE OF A-ResultRecord，此处从TmpDataBuf[1]上送，上送长度也要-1
+			if(datalen>=1) {
+				record->data = &TmpDataBuf[1];				//data 指向回复报文帧头
+				record->datalen += (datalen-1);
+			}
 		}
 		break;
 	}

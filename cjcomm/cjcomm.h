@@ -62,8 +62,9 @@ void SerialDestory(void);
 int StartSerial(struct aeEventLoop* ep, long long id, void* clientData);
 
 //精确校时接口
-INT8U GetTimeOffsetFlag(void);
-INT32S Getk(LINK_Response link, ProgramInfo* JProgramInfo);
+extern INT8U GetTimeOffsetFlag(void);
+extern void Getk_curr(LINK_Response link, ProgramInfo* JProgramInfo);
+extern void First_VerifiTime(LINK_Response linkResponse, ProgramInfo* JProgramInfo);
 
 //任务自动上送接口
 void ConformAutoTask(struct aeEventLoop* ep, CommBlock* nst, int res);

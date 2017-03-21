@@ -81,8 +81,9 @@ void ClientForNetRead(struct aeEventLoop* eventLoop, int fd, void* clientData, i
                 ConformAutoTask(eventLoop, nst, apduType);
                 switch (apduType) {
                     case LINK_RESPONSE:
+                    	First_VerifiTime(nst->linkResponse, nst->shmem);//简单对时
                         if (GetTimeOffsetFlag() == 1) {
-                            Getk(nst->linkResponse, nst->shmem);
+                        	Getk_curr(nst->linkResponse, nst->shmem);
                         }
                         nst->linkstate   = build_connection;
                         nst->testcounter = 0;
