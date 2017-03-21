@@ -16,26 +16,78 @@ static long long Server_Task_Id;
 static int listen_port;
 
 /*
- * 模块*内部*使用的初始化参数
+ *所有模块共享的写入函数，所有模块共享使用
  */
-static void ServerInit(void) {
-    asyslog(LOG_INFO, "初始化监听服务器模块...");
-    listen_port = -1;
-    initComPara(&ServerObject);
+int ServerWrite(int fd, INT8U* buf, INT16U len) {
+    int ret = anetWrite(fd, buf, (int)len);
+    if (ret != len) {
+        asyslog(LOG_WARNING, "[服务]报文发送失败(长度:%d,错误:%d)", len, errno);
+    }
+    bufsyslog(buf, "服务发送:", len, 0, BUFLEN);
+    return ret;
 }
 
 /*
- * 用于程序退出时调用
+ * 模块*内部*使用的初始化参数
  */
-void ServerDestory(void) {
-    //关闭资源
-    asyslog(LOG_INFO, "关闭监听服务器(%d)", ServerObject.phy_connect_fd);
-    close(ServerObject.phy_connect_fd);
-    ServerObject.phy_connect_fd = -1;
-
-    //关闭监听的端口
-    close(listen_port);
+void ServerInit(void) {
+    asyslog(LOG_INFO, "初始化监听服务器模块...");
     listen_port = -1;
+    initComPara(&ServerObject, ServerWrite);
+}
+
+void ServerRead(struct aeEventLoop* eventLoop, int fd, void* clientData, int mask) {
+    CommBlock* nst = (CommBlock*)clientData;
+
+    //判断fd中有多少需要接收的数据
+    int revcount = 0;
+    ioctl(fd, FIONREAD, &revcount);
+
+    //关闭异常端口
+    if (revcount == 0) {
+        asyslog(LOG_WARNING, "链接出现异常，关闭端口");
+        aeDeleteFileEvent(eventLoop, fd, AE_READABLE);
+        close(fd);
+        nst->phy_connect_fd = -1;
+    }
+
+    if (revcount > 0) {
+        for (int j = 0; j < revcount; j++) {
+            read(fd, &nst->RecBuf[nst->RHead], 1);
+            nst->RHead = (nst->RHead + 1) % BUFLEN;
+        }
+        bufsyslog(nst->RecBuf, "服务接收:", nst->RHead, nst->RTail, BUFLEN);
+
+        for (int k = 0; k < 5; k++) {
+            int len = 0;
+            for (int i = 0; i < 5; i++) {
+                len = StateProcess(nst, 10);
+                if (len > 0) {
+                    break;
+                }
+            }
+            if (len <= 0) {
+                break;
+            }
+
+            if (len > 0) {
+                int apduType = ProcessData(nst);
+                fprintf(stderr, "apduType=%d\n", apduType);
+                ConformAutoTask(eventLoop, nst, apduType);
+                switch (apduType) {
+                    case LINK_RESPONSE:
+                        if (GetTimeOffsetFlag() == 1) {
+                            Getk(nst->linkResponse, nst->shmem);
+                        }
+                        nst->linkstate   = build_connection;
+                        nst->testcounter = 0;
+                        break;
+                    default:
+                        break;
+                }
+            }
+        }
+    }
 }
 
 void CreateAptSer(struct aeEventLoop* eventLoop, int fd, void* clientData, int mask) {
@@ -54,7 +106,7 @@ void CreateAptSer(struct aeEventLoop* eventLoop, int fd, void* clientData, int m
     nst->phy_connect_fd = anetTcpAccept(errmsg, fd, NULL, 0, NULL);
     if (nst->phy_connect_fd > 0) {
         asyslog(LOG_INFO, "建立主站反向链接(结果:%d)", nst->phy_connect_fd);
-        if (aeCreateFileEvent(eventLoop, nst->phy_connect_fd, AE_READABLE, ClientRead, nst) == -1) {
+        if (aeCreateFileEvent(eventLoop, nst->phy_connect_fd, AE_READABLE, ServerRead, nst) == -1) {
             aeDeleteFileEvent(eventLoop, nst->phy_connect_fd, AE_READABLE);
             close(fd);
         }
@@ -92,4 +144,18 @@ int StartServer(struct aeEventLoop* ep, long long id, void* clientData) {
     Server_Task_Id = aeCreateTimeEvent(ep, 1000, RegularServer, &ServerObject, NULL);
     asyslog(LOG_INFO, "监听服务器时间事件注册完成(%lld)", Server_Task_Id);
     return 1;
+}
+
+/*
+ * 用于程序退出时调用
+ */
+void ServerDestory(void) {
+    //关闭资源
+    asyslog(LOG_INFO, "关闭监听服务器(%d)", ServerObject.phy_connect_fd);
+    close(ServerObject.phy_connect_fd);
+    ServerObject.phy_connect_fd = -1;
+
+    //关闭监听的端口
+    close(listen_port);
+    listen_port = -1;
 }
