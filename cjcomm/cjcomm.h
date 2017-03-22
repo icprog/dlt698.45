@@ -1,6 +1,8 @@
 #include <termios.h>
 #include <errno.h>
 #include <wait.h>
+#ifndef CJCOMM_H_
+#define CJCOMM_H_
 #include <netinet/tcp.h>
 #include <sys/ioctl.h>
 #include <arpa/inet.h>
@@ -8,6 +10,7 @@
 #include "ae.h"
 #include "at.h"
 #include "anet.h"
+#include "SendBuf.h"
 #include "dlt698.h"
 #include "dlt698def.h"
 #include "event.h"
@@ -15,9 +18,6 @@
 #include "AccessFun.h"
 #include "StdDataType.h"
 #include "PublicFunction.h"
-
-#ifndef CJCOMM_H_
-#define CJCOMM_H_
 
 //维护公共状态的函数
 int Comm_task(CommBlock* compara);
