@@ -67,6 +67,11 @@ typedef struct {
 	INT16U oadmr_num;//涉及到的road个数，每一个都写成二维OAD_MR，oad类型的关联属性oad_r写为0000
 	OAD_MR oad[MY_CSD_NUM*ROAD_OADS_NUM];
 }ROAD_ITEM;//将招测csd分解为多个oad
+typedef struct {
+	int recordno_num;//序列总数
+	time_t rec_start;//开始时间秒数
+	time_t rec_end;//结束时间秒数
+}CURR_RECINFO;//当前记录信息
 /*
  * 方法：Clean()清空
  * 输入参数：oi对象标识
