@@ -39,6 +39,7 @@ void MmqRead(struct aeEventLoop* eventLoop, int fd, void* clientData, int mask) 
     INT8U getBuf[MAXSIZ_PROXY_NET];
     mmq_head headBuf;
     int res = mmq_get(fd, 1, &headBuf, getBuf);
+    fprintf(stderr,"res=%d\n",res);
     if (res > 0) {
         //获取当前的上线通道
         if (GetOnlineType() == 0) {

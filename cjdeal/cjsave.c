@@ -122,7 +122,7 @@ INT16U CalcOILen(OAD oad,INT8U rate)
 		fprintf(stderr," lnf=%s\n",lnf);
 		oi_tmp = strtol(lnf,NULL,16);
 //		if(strtol(lnf,NULL,16) != oad.OI)
-		fprintf(stderr,"\n------oi_tmp=%04x--%s\n",oi_tmp,ln);
+//		fprintf(stderr,"\n------oi_tmp=%04x--%s\n",oi_tmp,ln);
 		if(oi_tmp != oad.OI)
 			continue;
 		memset(lnf,0x00,sizeof(lnf));
@@ -131,7 +131,7 @@ INT16U CalcOILen(OAD oad,INT8U rate)
 		memset(lnf,0x00,sizeof(lnf));
 		memcpy(lnf,&ln[12],2);
 		ic_type = strtol(lnf,NULL,10);
-		fprintf(stderr,"oi=%04x ,oi_len=%d,ic_type=%d",oad.OI,oi_len,ic_type);
+//		fprintf(stderr,"oi=%04x ,oi_len=%d,ic_type=%d",oad.OI,oi_len,ic_type);
 		break;
 	}
 	fclose(fp);
@@ -182,7 +182,7 @@ void CreateSaveHead(char *fname,CSD_ARRAYTYPE csds,INT16U *headlen,INT16U *unitl
 	if(csds.num == 0xee || csds.num == 0)
 		return;
 	csd_unitnum = CalcHeadRcsdUnitNum(csds);
-	fprintf(stderr,"\n---csd_unitnum = %d\n",csd_unitnum);
+//	fprintf(stderr,"\n---csd_unitnum = %d\n",csd_unitnum);
 	if(headbuf == NULL) {
 		*headlen=csd_unitnum*sizeof(HEAD_UNIT)+4;	//4:文件头长度+TSA块长度
 		headbuf = (INT8U *)malloc(*headlen);
@@ -202,14 +202,14 @@ void CreateSaveHead(char *fname,CSD_ARRAYTYPE csds,INT16U *headlen,INT16U *unitl
 			continue;
 		if(csds.csd[i].type == 0)	//OAD
 		{
-			fprintf(stderr,"\n-0--csds.csd[i].csd.oad.OI = %04x\n",csds.csd[i].csd.oad.OI);
+//			fprintf(stderr,"\n-0--csds.csd[i].csd.oad.OI = %04x\n",csds.csd[i].csd.oad.OI);
 			len_tmp = CalcOILen(csds.csd[i].csd.oad,4);//多一个数据类型
-			fprintf(stderr,"\nlen_tmp=%d\n",len_tmp);
+//			fprintf(stderr,"\nlen_tmp=%d\n",len_tmp);
 			memset(&oad_m,0,sizeof(OAD));
 			pindex += getOneUnit(&headbuf[pindex],oad_m,csds.csd[i].csd.oad,len_tmp);
 			*unitlen += len_tmp;
 			(*unitnum)++;
-			fprintf(stderr,"\n-1-unitlen=%d\n",*unitlen);
+//			fprintf(stderr,"\n-1-unitlen=%d\n",*unitlen);
 		}else if(csds.csd[i].type == 1)	//ROAD
 		{
 			if(csds.csd[i].csd.road.num == 0xee)
@@ -218,28 +218,28 @@ void CreateSaveHead(char *fname,CSD_ARRAYTYPE csds,INT16U *headlen,INT16U *unitl
 				csds.csd[i].csd.road.num = ROAD_OADS_NUM;
 			for(j=0;j<csds.csd[i].csd.road.num;j++)
 			{
-				fprintf(stderr,"\n-2--csds.csd[i].csd.oad.OI = %04x\n",csds.csd[i].csd.road.oads[j].OI);
+//				fprintf(stderr,"\n-2--csds.csd[i].csd.oad.OI = %04x\n",csds.csd[i].csd.road.oads[j].OI);
 				if(csds.csd[i].csd.road.oads[j].OI == 0xeeee)
 					break;
 				len_tmp = CalcOILen(csds.csd[i].csd.road.oads[j],4);//多一个数据类型
-				fprintf(stderr,"\n--2-len_tmp=%d\n",len_tmp);
+//				fprintf(stderr,"\n--2-len_tmp=%d\n",len_tmp);
 				pindex += getOneUnit(&headbuf[pindex],csds.csd[i].csd.road.oad,csds.csd[i].csd.road.oads[j],len_tmp);
 				*unitlen += len_tmp;
 				(*unitnum)++;
 			}
 		}
 	}
-	fprintf(stderr,"\n-2-unitlen=%d\n",*unitlen);
+//	fprintf(stderr,"\n-2-unitlen=%d\n",*unitlen);
 	*unitlen=freq*(fixlen+*unitlen);//一个单元存储TSA共用,在结构最前面，每个单元都有3个时标和数据，预留出合适大小，以能存下一个TSA所有数据
-	fprintf(stderr,"\n-3-unitlen=%d\n",*unitlen);
+//	fprintf(stderr,"\n-3-unitlen=%d\n",*unitlen);
 	headbuf[2] = (*unitlen & 0xff00) >> 8;//数据单元长度
 	headbuf[3] = *unitlen & 0x00ff;
-	fprintf(stderr,"\nhead(%d)::",pindex);
-	for(i=0;i<pindex;i++)
-	{
-		fprintf(stderr," %02x",headbuf[i]);
-	}
-	fprintf(stderr,"\n");
+//	fprintf(stderr,"\nhead(%d)::",pindex);
+//	for(i=0;i<pindex;i++)
+//	{
+//		fprintf(stderr," %02x",headbuf[i]);
+//	}
+//	fprintf(stderr,"\n");
 	if(wrflg==1)
 	{
 		datafile_write(fname, headbuf, *headlen, 0);
@@ -277,13 +277,13 @@ void ReadFileHead(char *fname,INT16U headlen,INT16U unitlen,INT16U unitnum,INT8U
 		fread(headbuf,headlen,1,fp);
 		headunit = malloc(headlen-4);
 		memcpy(headunit,&headbuf[4],headlen-4);
-		for(i=0;i<unitnum;i++)
-		{
-			fprintf(stderr,"oad_m:%04x%02x%02x:oad_r:%04x%02x%02x:len=%d\n",
-					headunit[i].oad_m.OI,headunit[i].oad_m.attflg,headunit[i].oad_m.attrindex,
-					headunit[i].oad_r.OI,headunit[i].oad_r.attflg,headunit[i].oad_r.attrindex,headunit[i].len);
-		}
-		fprintf(stderr,"\n");
+//		for(i=0;i<unitnum;i++)
+//		{
+//			fprintf(stderr,"oad_m:%04x%02x%02x:oad_r:%04x%02x%02x:len=%d\n",
+//					headunit[i].oad_m.OI,headunit[i].oad_m.attflg,headunit[i].oad_m.attrindex,
+//					headunit[i].oad_r.OI,headunit[i].oad_r.attflg,headunit[i].oad_r.attrindex,headunit[i].len);
+//		}
+//		fprintf(stderr,"\n");
 		free(headunit);
 		fclose(fp);
 	}
@@ -328,63 +328,63 @@ void SaveNorData(INT8U taskid,INT8U *databuf,int datalen)
 			if(fread(databuf_tmp,unitlen,1,fp)==0)
 			{
 //				fseek(fp,headlen,SEEK_SET);//回到文件头末尾
-				fprintf(stderr,"\n-----savepos=%d,ftell(fp)=%d\n",savepos,(int)ftell(fp));
+//				fprintf(stderr,"\n-----savepos=%d,ftell(fp)=%d\n",savepos,(int)ftell(fp));
 				break;
 			}
-			fprintf(stderr,"\n文件中地址：");
-			for(i=0;i<17;i++)
-			{
-				fprintf(stderr," %02x",databuf_tmp[i]);
-			}
-			fprintf(stderr,"\n数据中地址");
-			for(i=0;i<17;i++)
-			{
-				fprintf(stderr," %02x",databuf[i]);
-			}
-			fprintf(stderr,"\n");
+//			fprintf(stderr,"\n文件中地址：");
+//			for(i=0;i<17;i++)
+//			{
+//				fprintf(stderr," %02x",databuf_tmp[i]);
+//			}
+//			fprintf(stderr,"\n数据中地址");
+//			for(i=0;i<17;i++)
+//			{
+//				fprintf(stderr," %02x",databuf[i]);
+//			}
+//			fprintf(stderr,"\n");
 			if(memcmp(databuf_tmp,databuf,17)==0)//找到了存储结构的位置，一个存储结构可能含有unitnum个单元
 			{
 				savepos=ftell(fp)-unitlen;
 				break;
 			}
-			else
-				fprintf(stderr,"\n-----savepos=%d,ftell(fp)=%d\n",savepos,(int)ftell(fp));
+//			else
+//				fprintf(stderr,"\n-----savepos=%d,ftell(fp)=%d\n",savepos,(int)ftell(fp));
 		}
 	}
 	if(fp != NULL)
 		currpos = ftell(fp);
-	fprintf(stderr,"\n-------%%%%@@@------currpos=%d:%d\n",currpos,headlen+unitlen);
+//	fprintf(stderr,"\n-------%%%%@@@------currpos=%d:%d\n",currpos,headlen+unitlen);
 	if(savepos==0)//存储位置为0.说明文件中没找到，则应添加而不是覆盖
 	{
 		if(currpos == 0)//第一个存储的
 			savepos=headlen;
 		else
 			savepos=currpos;
-		fprintf(stderr,"\n-------1------savepos=%d\n",savepos);
+//		fprintf(stderr,"\n-------1------savepos=%d\n",savepos);
 		memset(databuf_tmp,0x00,unitlen);
 		for(i=0;i<tasknor_info.runtime;i++)
 			memcpy(&databuf_tmp[unitlen*i/tasknor_info.runtime],databuf,17);//每个小单元地址附上
 	}
 	unitseq = (ts_now.Hour*60*60+ts_now.Minute*60+ts_now.Sec)/((24*60*60)/tasknor_info.runtime)+1;
-	fprintf(stderr,"\n-----unitseq=%d\n",unitseq);
+//	fprintf(stderr,"\n-----unitseq=%d\n",unitseq);
 	if(unitseq > tasknor_info.runtime)
 	{
 		if(databuf_tmp != NULL)
 			free(databuf_tmp);
 		return ;//出错了，序列号超过了总长度
 	}
-	fprintf(stderr,"\n-----unitlen*(unitseq-1)/tasknor_info.runtime=%d\n",unitlen*(unitseq-1)/tasknor_info.runtime);
+//	fprintf(stderr,"\n-----unitlen*(unitseq-1)/tasknor_info.runtime=%d\n",unitlen*(unitseq-1)/tasknor_info.runtime);
 	memcpy(&databuf_tmp[unitlen*(unitseq-1)/tasknor_info.runtime],databuf,datalen);
 	if(datalen != unitlen/tasknor_info.runtime)
 	{
-		fprintf(stderr,"\n----长度不对，不保存datalen=%d unitlen=%d,tasknor_info.runtime=%d\n",datalen,unitlen,tasknor_info.runtime);
+//		fprintf(stderr,"\n----长度不对，不保存datalen=%d unitlen=%d,tasknor_info.runtime=%d\n",datalen,unitlen,tasknor_info.runtime);
 		if(databuf_tmp != NULL)
 			free(databuf_tmp);
 		return ;//长度不对
 	}
 	else
 	{
-		fprintf(stderr,"\n----存储savepos=%d,unitlen=%d\n",savepos,unitlen);
+//		fprintf(stderr,"\n----存储savepos=%d,unitlen=%d\n",savepos,unitlen);
 		asyslog(LOG_NOTICE,"任务数据存储: %s,savepos=%d,unitlen=%d",fname,savepos,unitlen);
 		datafile_write(fname, databuf_tmp, unitlen, savepos);
 	}

@@ -244,16 +244,16 @@ INT16S getNextTastIndexIndex() {
 		if (list6013[tIndex].basicInfo.taskID == 0) {
 			continue;
 		}
-		fprintf(stderr, "\n ---------list6013[%d].basicInfo.taskID = %d ",
-				tIndex, list6013[tIndex].basicInfo.taskID);
+//		fprintf(stderr, "\n ---------list6013[%d].basicInfo.taskID = %d ",
+//				tIndex, list6013[tIndex].basicInfo.taskID);
 		//run_flg > 0说明应该抄读还没有抄
 		if (list6013[tIndex].run_flg > 0) {
-			fprintf(stderr, "\n  getNextTastIndexIndex-2222");
+//			fprintf(stderr, "\n  getNextTastIndexIndex-2222");
 			list6013[tIndex].run_flg++;
 		} else {
 			//过滤任务无效或者不再抄表时段内的
 			if (filterInvalidTask(tIndex) == 0) {
-				fprintf(stderr, "\n  getNextTastIndexIndex-3333");
+//				fprintf(stderr, "\n  getNextTastIndexIndex-3333");
 				continue;
 			}
 
@@ -261,7 +261,7 @@ INT16S getNextTastIndexIndex() {
 			if(timenow >= list6013[tIndex].ts_next)
 			{
 				list6013[tIndex].run_flg = 1;
-				fprintf(stderr, "\n  getNextTastIndexIndex-4444");
+//				fprintf(stderr, "\n  getNextTastIndexIndex-4444");
 			}
 			else
 			{
@@ -273,14 +273,14 @@ INT16S getNextTastIndexIndex() {
 		{
 			if(list6013[tIndex].run_flg > 0)
 			{
-				fprintf(stderr, "\n  getNextTastIndexIndex-5555");
+//				fprintf(stderr, "\n  getNextTastIndexIndex-5555");
 				taskIndex = tIndex;
 			}
 			continue;
 		}
 
 		if (cmpTaskPrio(taskIndex, tIndex) == 2) {
-			fprintf(stderr, "\n  getNextTastIndexIndex-6666");
+//			fprintf(stderr, "\n  getNextTastIndexIndex-6666");
 			taskIndex = tIndex;
 			continue;
 		}
@@ -294,8 +294,8 @@ INT8U checkParaChange()
 INT8U is485OAD(OAD portOAD,INT8U port485)
 {
 	port485 += 1;//浙江测试 485 1口下的是 F201_02_02 485 2口下的是 F201_02_03
-	fprintf(stderr,"\n portOAD.OI = %04x portOAD.attflg = %d  portOAD.attrindex = %d port485 = %d \ n"
-			,portOAD.OI,portOAD.attflg,portOAD.attrindex,port485);
+//	fprintf(stderr,"\n portOAD.OI = %04x portOAD.attflg = %d  portOAD.attrindex = %d port485 = %d \ n"
+//			,portOAD.OI,portOAD.attflg,portOAD.attrindex,port485);
 	if ((portOAD.OI != 0xF201) || (portOAD.attflg != 0x02)
 			|| (portOAD.attrindex != port485)) {
 		return 0;
@@ -321,7 +321,7 @@ INT8S init6000InfoFrom6000FIle()
 		fprintf(stderr, "采集档案表不是整数，检查文件完整性！！！\n");
 		return result;
 	}
-	fprintf(stderr, "\n init6000InfoFrom6000FIle recordnum = %d ", recordnum);
+//	fprintf(stderr, "\n init6000InfoFrom6000FIle recordnum = %d ", recordnum);
 	/*
 	 * 根据st6015.csd 和 list6001抄表
 	 * */
@@ -358,7 +358,7 @@ INT8S init6000InfoFrom6000FIle()
 			}
 		}
 	}
-	fprintf(stderr,"485 1口测量点数量 = %d   485 2口测量点数量 = %d",info6000[0].meterSum,info6000[1].meterSum);
+//	fprintf(stderr,"485 1口测量点数量 = %d   485 2口测量点数量 = %d",info6000[0].meterSum,info6000[1].meterSum);
 	return result;
 }
 /*
@@ -372,7 +372,7 @@ INT8U init6013ListFrom6012File() {
 	TS ts_now;
 	TSGet(&ts_now);
 
-	fprintf(stderr, "\n -------------init6013ListFrom6012File---------------");
+//	fprintf(stderr, "\n -------------init6013ListFrom6012File---------------");
 	INT8U result = 0;
 	memset(list6013, 0, TASK6012_MAX * sizeof(TASK_CFG));
 	INT16U tIndex = 0;
@@ -429,7 +429,7 @@ INT8U getParaChangeType()
 void dispatch_thread()
 {
 	//运行调度任务进程
-	fprintf(stderr,"\ndispatch_thread start \n");
+//	fprintf(stderr,"\ndispatch_thread start \n");
 
 
 	while(1)
