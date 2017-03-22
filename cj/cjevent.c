@@ -576,6 +576,29 @@ void event_process(int argc, char *argv[])
 					JProgramInfo->oi_changed.oi4300++;
 				}
 			}
+            else if(oi == 0x311B){
+				if(flag == 1){
+					JProgramInfo->event_obj.Event311B_obj.enableflag=TRUE;
+					JProgramInfo->event_obj.Event311B_obj.reportflag=TRUE;
+					saveCoverClass(oi,0,(void *)&JProgramInfo->event_obj.Event311B_obj,sizeof(Class7_Object),event_para_save);
+					JProgramInfo->oi_changed.oi311B++;
+					readCoverClass(0x4300,0,&class19,sizeof(class19),para_vari_save);
+					class19.active_report =1;
+					class19.talk_master =1;
+					saveCoverClass(0x4300,0,(void *)&class19,sizeof(class19),para_vari_save);
+					JProgramInfo->oi_changed.oi4300++;
+				}else{
+					JProgramInfo->event_obj.Event311B_obj.enableflag=FALSE;
+					JProgramInfo->event_obj.Event311B_obj.reportflag=FALSE;
+					saveCoverClass(oi,0,(void *)&JProgramInfo->event_obj.Event311B_obj,sizeof(Class7_Object),event_para_save);
+					JProgramInfo->oi_changed.oi311B++;
+					readCoverClass(0x4300,0,&class19,sizeof(class19),para_vari_save);
+					class19.active_report =0;
+					class19.talk_master =0;
+					saveCoverClass(0x4300,0,(void *)&class19,sizeof(class19),para_vari_save);
+					JProgramInfo->oi_changed.oi4300++;
+				}
+			}
             fprintf(stderr,"设置%04x成功!\n",oi);
 		}
 	}
