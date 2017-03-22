@@ -773,22 +773,19 @@ void bufsyslog(const INT8U* buf, const char* title, int head, int tail, int len)
     int local_tail = tail;
     int count      = 0;
     char msg[1024];
-    memset(msg, ' ', sizeof(msg));
-    syslog(LOG_INFO, "head&tail (%d,%d)%s", local_head, local_tail, title);
-    fprintf(stderr, "head&tail (%d,%d)%s\n", local_head, local_tail, title);
+    memset(msg, 0x00, sizeof(msg));
+    asyslog(LOG_INFO, "%s(%d,%d)", title, local_head, local_tail);
     while (head != tail) {
         sprintf(msg + count * 3, "%02x ", buf[tail]);
         count++;
         tail = (tail + 1) % len;
         if (count > 50) {
-            syslog(LOG_INFO, "%s", msg);
-            fprintf(stderr, "%s\n", msg);
+            asyslog(LOG_INFO, "%s", msg);
             count = 0;
             memset(msg, ' ', sizeof(msg));
         }
     }
-    syslog(LOG_INFO, "%s", msg);
-    fprintf(stderr, "%s\n", msg);
+    asyslog(LOG_INFO, "%s", msg);
 }
 
 INT8U getBase_DataTypeLen(Base_DataType dataType) {
@@ -822,66 +819,59 @@ INT8U getBase_DataTypeLen(Base_DataType dataType) {
 }
 
 //反转buff
-INT8S reversebuff(INT8U* buff,INT32U len,INT8U* invbuff)
-{
-	if(buff==NULL)
-		return -1;
-	if(len == 0)
-		return -2;
-	if(invbuff == NULL)
-		return -3;
-	INT8U* buftmp =(INT8U*)malloc(len);
-	memcpy(buftmp,buff,len);
-	INT32U i=0;
-	for(i=0; i < len; i++)
-	{
-		invbuff[i] = buftmp[len-i-1];
-	}
-	free(buftmp);
-	buftmp = NULL;
-	return 0;
+INT8S reversebuff(INT8U* buff, INT32U len, INT8U* invbuff) {
+    if (buff == NULL)
+        return -1;
+    if (len == 0)
+        return -2;
+    if (invbuff == NULL)
+        return -3;
+    INT8U* buftmp = (INT8U*)malloc(len);
+    memcpy(buftmp, buff, len);
+    INT32U i = 0;
+    for (i = 0; i < len; i++) {
+        invbuff[i] = buftmp[len - i - 1];
+    }
+    free(buftmp);
+    buftmp = NULL;
+    return 0;
 }
 
-
-INT32S asc2bcd(INT8U* asc, INT32U len, INT8U* bcd,ORDER order) {
-	INT32U i,  k;
-	if(asc == NULL)
-		return -1;
-	if(len == 0)
-		return -2;
-	if(len %2 != 0 )
-		return -3;
-	if(order != positive && order != inverted)
-			return -4;
-	INT8U* ascb = (INT8U*)malloc(len);
-	if(ascb == NULL)
-		return -5;
-	memcpy(ascb,asc,len);
-	for (i = 0; i < len; i++) {
-		if (ascb[i] <= '9' && ascb[i] >= '0')
-			ascb[i] = ascb[i] - '0';
-		else if(ascb[i] <= 'f' && ascb[i] >= 'a')
-		{
-			ascb[i] = ascb[i] - 'W';
-		}
-		else if(ascb[i] <= 'F' && ascb[i] >= 'A')
-		{
-			ascb[i] = ascb[i] - '7';
-		}
-	}
-	for (i = 0, k = 0; i < len / 2; i++) {
-		bcd[i] = (ascb[k] << 4) | ascb[k + 1];
-		k++;
-		k++;
-	}
-	if(order == inverted)
-		reversebuff(bcd,len/2,bcd);
-	if(ascb != NULL)
-	{
-		free(ascb);
-		ascb = NULL;
-	}
-	return len/2;
+INT32S asc2bcd(INT8U* asc, INT32U len, INT8U* bcd, ORDER order) {
+    INT32U i, k;
+    if (asc == NULL)
+        return -1;
+    if (len == 0)
+        return -2;
+    if (len % 2 != 0)
+        return -3;
+    if (order != positive && order != inverted)
+        return -4;
+    INT8U* ascb = (INT8U*)malloc(len);
+    if (ascb == NULL)
+        return -5;
+    memcpy(ascb, asc, len);
+    for (i = 0; i < len; i++) {
+        if (ascb[i] <= '9' && ascb[i] >= '0')
+            ascb[i] = ascb[i] - '0';
+        else if (ascb[i] <= 'f' && ascb[i] >= 'a') {
+            ascb[i] = ascb[i] - 'W';
+        } else if (ascb[i] <= 'F' && ascb[i] >= 'A') {
+            ascb[i] = ascb[i] - '7';
+        }
+    }
+    for (i = 0, k = 0; i < len / 2; i++) {
+        bcd[i] = (ascb[k] << 4) | ascb[k + 1];
+        k++;
+        k++;
+    }
+    if (order == inverted)
+        reversebuff(bcd, len / 2, bcd);
+    if (ascb != NULL) {
+        free(ascb);
+        ascb = NULL;
+    }
+    return len / 2;
 }
 
 #endif /*JPublicFunctionH*/

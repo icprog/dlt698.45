@@ -18,11 +18,22 @@ extern ProgramInfo *memp;
 //////////////////////////////////////////////////////////////////////
 void printMS(MY_MS ms)
 {
-	int i=0;
+	int i=0,j=0;
+	int ms_num=0;
 	fprintf(stderr,"电能表集合：MS choice=%d\n",ms.mstype);
 	switch(ms.mstype) {
 	case 0:	fprintf(stderr,"无电能表");		break;
 	case 1:	fprintf(stderr,"全部用户地址");	break;
+	case 3:	//一组用户地址
+		ms_num = (ms.ms.userAddr[0].addr[0]<<8)|ms.ms.userAddr[0].addr[1];
+		fprintf(stderr,"一组用户地址：个数=%d\n ",ms_num);
+		if(ms.ms.configSerial[0] > COLLCLASS_MAXNUM) fprintf(stderr,"配置序号 超过限值 %d ,error !!!!!!",COLLCLASS_MAXNUM);
+		for(j=1;j<ms_num;j++) {
+			for(i=0;i<(ms.ms.userAddr[j].addr[0]+1);i++) {
+				fprintf(stderr,"%02x ",ms.ms.userAddr[j].addr[i]);
+			}
+		}
+		break;
 	case 4://一组配置序号
 		fprintf(stderr,"一组配置序号：个数=%d\n ",ms.ms.configSerial[0]);
 		if(ms.ms.configSerial[0] > COLLCLASS_MAXNUM) fprintf(stderr,"配置序号 超过限值 %d ,error !!!!!!",COLLCLASS_MAXNUM);
@@ -47,6 +58,8 @@ void print_rsd(INT8U choice,RSD rsd)
 void print_road(ROAD road)
 {
 	int w=0;
+
+	asyslog(LOG_INFO,"ROAD:%04x-%02x%02x ",road.oad.OI,road.oad.attflg,road.oad.attrindex);
 	fprintf(stderr,"ROAD:%04x-%02x%02x ",road.oad.OI,road.oad.attflg,road.oad.attrindex);
 	if(road.num >= 16) {
 		fprintf(stderr,"csd overvalue 16 error\n");
@@ -54,6 +67,7 @@ void print_road(ROAD road)
 	}
 	for(w=0;w<road.num;w++)
 	{
+		asyslog(LOG_INFO,"<关联OAD..%d>%04x-%02x%02x ",w,road.oads[w].OI,road.oads[w].attflg,road.oads[w].attrindex);
 		fprintf(stderr,"<关联OAD..%d>%04x-%02x%02x ",w,road.oads[w].OI,road.oads[w].attflg,road.oads[w].attrindex);
 	}
 	fprintf(stderr,"\n");
@@ -66,9 +80,11 @@ void print_rcsd(CSD_ARRAYTYPE csds)
 	{
 		if (csds.csd[i].type==0)
 		{
+			asyslog(LOG_INFO,"<%d>OAD%04x-%02x%02x ",i,csds.csd[i].csd.oad.OI,csds.csd[i].csd.oad.attflg,csds.csd[i].csd.oad.attrindex);
 			fprintf(stderr,"<%d>OAD%04x-%02x%02x ",i,csds.csd[i].csd.oad.OI,csds.csd[i].csd.oad.attflg,csds.csd[i].csd.oad.attrindex);
 		}else if (csds.csd[i].type==1)
 		{
+			asyslog(LOG_INFO,"<%d> ",i);
 			fprintf(stderr,"<%d>",i);
 			print_road(csds.csd[i].csd.road);
 		}
@@ -155,7 +171,15 @@ int fill_double_long_unsigned(INT8U *data,INT32U value)
 
 int fill_octet_string(INT8U *data,char *value,INT8U len)
 {
+//	if(len==0) {
+//		data[0] = 0;
+//		return 1;
+//	}
 	data[0] = dtoctetstring;
+	if(len > OCTET_STRING_LEN)  {
+		fprintf(stderr,"fill_octet_string len=%d 超过限值[%d]",len,OCTET_STRING_LEN);
+		len = OCTET_STRING_LEN;
+	}
 	data[1] = len;
 	memcpy(&data[2],value,len);
 	return (len+2);
@@ -607,6 +631,7 @@ int get_BasicRSD(INT8U type,INT8U *source,INT8U *dest,INT8U *seletype)		//0x5A
 			index += source_sumindex;// + 4;
 			break;
 		case 3:
+
 			break;
 		case 4:
 		case 5:
@@ -687,7 +712,32 @@ int getMS(INT8U type,INT8U *source,MY_MS *ms)		//0x5C
 		case 2:
 			break;
 		case 3:
-			break;
+			type++;
+			seqlen = source[type];	//sequence 的长度
+			if(seqlen & 0x80) {		//长度两个字节
+				seqnum = (source[type] << 8) | source[type+1];
+				type += 2;
+			}else {
+				seqnum = seqlen;
+				type += 1;
+			}
+			if(seqnum>COLLCLASS_MAXNUM) {
+				fprintf(stderr,"sequence of num 大于容量 %d,无法处理！！！",COLLCLASS_MAXNUM);
+				return 1+type;
+			}
+			ms->mstype = choicetype;
+			ms->ms.userAddr[0].addr[0] = (seqnum>>8)&0xff;
+			ms->ms.userAddr[0].addr[1] = seqnum & 0xff;
+			fprintf(stderr,"seqnum=%d\n",seqnum);		//只测试了一个电表
+			for(i=0;i<seqnum;i++) {
+				memcpy(&ms->ms.userAddr[i+1].addr,&source[type],(source[type]+1));
+				type = type+source[type]+1;
+			}
+			fprintf(stderr,"TSA len=%d\n",ms->ms.userAddr[1].addr[0]);
+			for(i=0;i<(ms->ms.userAddr[1].addr[0]+1);i++) {
+				fprintf(stderr,"%02x ",ms->ms.userAddr[1].addr[i]);
+			}
+			return type;
 		case 4:	//一组配置序号  	[4] 	SEQUENCE OF long-unsigned
 			type++;
 			seqlen = source[type];	//sequence 的长度

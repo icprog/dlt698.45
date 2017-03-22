@@ -437,6 +437,48 @@ INT16U set4500(OAD oad,INT8U *data,INT8U *DAR)
 	}
 	return index;
 }
+
+
+INT16U set4510(OAD oad,INT8U *data,INT8U *DAR)
+{
+	int index=0,i=0;
+	CLASS26 class4510={};
+	memset(&class4510,0,sizeof(CLASS26));
+
+	readCoverClass(oad.OI,0,&class4510,sizeof(CLASS26),para_vari_save);
+	if (oad.attflg == 2 )
+	{
+		index += getStructure(&data[index],NULL);
+		index += getEnum(1,&data[index],(INT8U *)&class4510.commconfig.workModel);
+		index += getEnum(1,&data[index],(INT8U *)&class4510.commconfig.connectType);
+		index += getEnum(1,&data[index],(INT8U *)&class4510.commconfig.appConnectType);
+		index += getArray(&data[index],(INT8U *)&class4510.commconfig.listenPortnum);
+		if(class4510.commconfig.listenPortnum>5) {
+			fprintf(stderr,"!!!!!!!!!越限 listenPortnum=%d\n",class4510.commconfig.listenPortnum);
+			class4510.commconfig.listenPortnum = 5;
+		}
+		for(i=0;i<class4510.commconfig.listenPortnum;i++) {
+			index += getLongUnsigned(&data[index],(INT8U *)&class4510.commconfig.listenPort[i]);
+		}
+		index += getOctetstring(1,&data[index],class4510.commconfig.proxyIp);
+		index += getLongUnsigned(&data[index],(INT8U *)&class4510.commconfig.proxyPort);
+		index += getBitString(1,&data[index],(INT8U *)&class4510.commconfig.timeoutRtry);
+		index += getLongUnsigned(&data[index],(INT8U *)&class4510.commconfig.heartBeat);
+		fprintf(stderr,"\n【工作模式】%d",class4510.commconfig.workModel);
+		fprintf(stderr,"\n【连接方式】%d",class4510.commconfig.connectType);
+		fprintf(stderr,"\n【连接应用方式】%d",class4510.commconfig.appConnectType);
+		fprintf(stderr,"\n【侦听端口总数】%d",class4510.commconfig.listenPortnum);
+		fprintf(stderr,"\n【侦听端口1】%04x %d",class4510.commconfig.listenPort[0],class4510.commconfig.listenPort[0]);
+		fprintf(stderr,"\n【代理服务器地址】 %d.%d.%d.%d ",class4510.commconfig.proxyIp[1],class4510.commconfig.proxyIp[2],class4510.commconfig.proxyIp[3],class4510.commconfig.proxyIp[4]);
+		fprintf(stderr,"\n【代理服务器端口】 %d",class4510.commconfig.proxyPort);
+		fprintf(stderr,"\n【超时时间和重发次数】 %02x",class4510.commconfig.timeoutRtry);
+		fprintf(stderr,"\n【心跳周期】 %d\n",class4510.commconfig.heartBeat);
+	}
+	*DAR = saveCoverClass(oad.OI,0,&class4510,sizeof(CLASS26),para_vari_save);
+
+	return index;
+}
+
 INT16U setf203(OAD oad,INT8U *data,INT8U *DAR)
 {
 	INT16U index=0;
@@ -462,15 +504,19 @@ INT16U setf101(OAD oad,INT8U *data,INT8U *DAR)
 	if ( oad.attflg == 2 )//配置参数
 	{
 		index += getEnum(1,&data[index],(INT8U*)&f101.active);
+	}
+	if (oad.attflg == 3) //显式安全模式参数
+	{
 		index += getArray(&data[index],(INT8U*)&f101.modelnum);
 		index += getStructure(&data[index],NULL);
 		for(i=0;i<f101.modelnum;i++) {
 			index += getOI(1,&data[index],f101.modelpara[i].oi);
 			index += getLongUnsigned(&data[index],(INT8U *)&f101.modelpara[i].model);
 		}
-		*DAR = saveCoverClass(0xf101,0,&f101,sizeof(CLASS_F101),para_vari_save);
-		fprintf(stderr,"\n安全模式选择 : %02x \n",f101.active);
 	}
+	*DAR = saveCoverClass(0xf101,0,&f101,sizeof(CLASS_F101),para_vari_save);
+	fprintf(stderr,"\n安全模式选择 : %02x \n",f101.active);
+
 	return index;
 }
 
@@ -644,6 +690,9 @@ INT16U EnvironmentValue(OAD oad,INT8U *data,INT8U *DAR)
 			break;
 		case 0x4500:
 			data_index = set4500(oad,data,DAR);
+			break;
+		case 0x4510:
+			data_index = set4510(oad,data,DAR);
 			break;
 	}
 	return data_index;

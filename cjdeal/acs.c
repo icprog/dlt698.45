@@ -1333,7 +1333,7 @@ void DealRN8209(void)
     sem_post(sem_check_fd);
     realdata.Ua = (realdata.Ua + (trans_regist_rn8209(val))) / 2; //转换，获取电压当前值
     realdata.Available=TRUE;
-    fprintf(stderr, "当前电压值为： %d %d\n", realdata.Ua,trans_regist_rn8209(val));
+//    fprintf(stderr, "当前电压值为： %d %d\n", realdata.Ua,trans_regist_rn8209(val));
 }
 /////////////////////////////////////////////////////////////
 

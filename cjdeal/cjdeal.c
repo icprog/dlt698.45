@@ -383,7 +383,6 @@ INT8U init6013ListFrom6012File() {
 	for (tIndex = 0; tIndex < TASK6012_MAX; tIndex++) {
 		if (readCoverClass(oi, tIndex, &class6013, sizeof(CLASS_6013),
 				coll_para_save) == 1) {
-
 			//print6013(list6013[tIndex]);
 			if(class6013.cjtype == rept)
 			{
@@ -394,11 +393,8 @@ INT8U init6013ListFrom6012File() {
 				memcpy(&list6013[total_tasknum].basicInfo, &class6013, sizeof(CLASS_6013));
 				time_t timenow = time(NULL);
 				list6013[total_tasknum].ts_next  = timenow;
-
 				total_tasknum++;
 			}
-
-
 		}
 	}
 
