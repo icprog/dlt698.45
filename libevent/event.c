@@ -415,6 +415,7 @@ INT8U Need_Report(OI_698 oi,INT8U eventno,ProgramInfo* prginfo_event){
 	static INT8U lastchgoi4300=0;
 	static INT8U first=1;
 	static CLASS19 class19;
+	fprintf(stderr,"cesi \\n");
 	if(first){
 		first=0;
 		lastchgoi4300 = prginfo_event->oi_changed.oi4300;
@@ -514,20 +515,16 @@ INT8U Get_StandardUnit(OI_698 oi,INT8U *Rbuf,INT8U *Index,
 	Rbuf[(*Index)++] = STANDARD_NUM;//1
 	//事件记录序号
 	Rbuf[(*Index)++] = dtdoublelongunsigned;//2
-	//memcpy(&Rbuf[*Index], &Eventno, sizeof(INT32U));
 	INT32U En=(INT32U)Eventno;
 	Rbuf[(*Index)++] = ((En>>24)&0x000000ff);//3
 	Rbuf[(*Index)++] = ((En>>16)&0x000000ff);//4
 	Rbuf[(*Index)++] = ((En>>8)&0x000000ff);//5
 	Rbuf[(*Index)++] = En&0x000000ff;//6
-	//(*Index)+=sizeof(INT32U);
 	DateTimeBCD ntime;
 	DataTimeGet(&ntime);
 
 	//事件发生时间
 	Rbuf[(*Index)++] = dtdatetimes;//7
-	//memcpy(&Rbuf[*Index], &ntime, sizeof(ntime));
-	//(*Index)+=sizeof(ntime);
 	Rbuf[(*Index)++] = ((ntime.year.data>>8)&0x00ff);//8
 	Rbuf[(*Index)++] = ((ntime.year.data)&0x00ff);//9
 	Rbuf[(*Index)++] = ntime.month.data;//10
@@ -536,13 +533,27 @@ INT8U Get_StandardUnit(OI_698 oi,INT8U *Rbuf,INT8U *Index,
 	Rbuf[(*Index)++] = ntime.min.data;//13
 	Rbuf[(*Index)++] = ntime.sec.data;//14
 	//事件结束时间
-
 	if(oi==0x311C){
 		Rbuf[(*Index)++] = dtdatetimes;//15
 		memset(&Rbuf[*Index],DATA_FF,sizeof(ntime));//TODO
 		(*Index)+=sizeof(ntime);//0
-	}else if(oi==0x3105 || oi==0x310A || oi==0x310B || oi==0x310C || oi==0x310D || oi==0x310E){
+	}else if(oi==0x3105 || oi==0x310A ||
+			oi==0x310B || oi==0x310C ||
+			oi==0x310D || oi==0x310E){
 		Rbuf[(*Index)++] = 0;//15无结束时间
+	}else if(oi==0x3106){
+		if(*Source==0)
+			Rbuf[(*Index)++] = 0;//15无结束时间
+		else{
+			Rbuf[(*Index)++] = dtdatetimes;//15
+			Rbuf[(*Index)++] = ((ntime.year.data>>8)&0x00ff);//16
+			Rbuf[(*Index)++] = ((ntime.year.data)&0x00ff);//17
+			Rbuf[(*Index)++] = ntime.month.data;//18
+			Rbuf[(*Index)++] = ntime.day.data;//19
+			Rbuf[(*Index)++] = ntime.hour.data;//20
+			Rbuf[(*Index)++] = ntime.min.data;//21
+			Rbuf[(*Index)++] = ntime.sec.data;//22
+		}
 	}
 	else{
 		Rbuf[(*Index)++] = dtdatetimes;//15
@@ -558,8 +569,6 @@ INT8U Get_StandardUnit(OI_698 oi,INT8U *Rbuf,INT8U *Index,
 	INT8U datatype=0,sourcelen=0;
 	Get_Source(Source,S_type,&datatype,&sourcelen);
 	Rbuf[(*Index)++] = datatype;//23
-//	if(datatype==s_tsa)
-//		Rbuf[(*Index)++] = sourcelen;//0
 	if(sourcelen>0)
 		memcpy(&Rbuf[(*Index)],Source,sourcelen);
 	(*Index)+=sourcelen;
@@ -2015,7 +2024,7 @@ INT8U Event_311B(TSA tsa, INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 		Save_buf[index++]=dtdatetimes;
 		memcpy(&Save_buf[index],data,7);
 		index+=7;
-		//时钟误差      integer（单位：秒，无换算）
+		//时钟误差      integer（单位：秒，无换算)
 		Save_buf[index++]=dtinteger;
 		Save_buf[index++]=data[7];
 		Save_buf[STANDARD_NUM_INDEX]+=2;
