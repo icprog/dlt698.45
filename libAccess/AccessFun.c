@@ -1030,14 +1030,7 @@ INT16U CalcOIDataLen(OI_698 oi,INT8U attr_flg)
 		break;
 	}
 	fclose(fp);
-	if(oi == 0x2004)
-	{
-	     asyslog(LOG_WARNING,"  0x2004 CalcOIDataLen oi = %04x oi_len = %d ic_type = %d\n",oi,oi_len,ic_type);
-	}
-	if(oi == 0x2005)
-	{
-	     asyslog(LOG_WARNING," 0x2005 CalcOIDataLen oi = %04x oi_len = %d ic_type = %d\n",oi,oi_len,ic_type);
-	}
+
 	if(oi_len != 0 && ic_type != 0)
 	{
 		switch(ic_type)
@@ -1059,6 +1052,7 @@ INT16U CalcOIDataLen(OI_698 oi,INT8U attr_flg)
 			break;
 		}
 	}
+
 	return oi_len;
 }
 ///*
