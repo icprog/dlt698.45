@@ -50,6 +50,7 @@ typedef struct {
     INT8U 	oi4000;       //对时参数
 	INT8U	oi4016;			//当前套日时段表
 	INT8U 	oi4030;      	 //电压合格率统计
+	INT8U 	oi4204;       //终端广播校时参数
 	INT8U 	oi4500;			//通讯参数
 	INT8U 	reset;			/*4300方法1，设备复位*/   //没用
 	INT8U 	oi4300;       //设备管理接口类

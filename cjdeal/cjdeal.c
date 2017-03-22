@@ -406,6 +406,10 @@ INT8U getParaChangeType()
 	static INT8U lastchgoi6000=0;
 	static INT8U lastchgoi6012=0;
 	static INT8U lastchgoi6014=0;
+
+	static INT8U lastchgoi4000=0;
+	static INT8U lastchgoi4204=0;
+
 	static INT8U first=1;
 	if(first)
 	{
@@ -413,23 +417,53 @@ INT8U getParaChangeType()
 		lastchgoi6000 = JProgramInfo->oi_changed.oi6000;
 		lastchgoi6012= JProgramInfo->oi_changed.oi6012;
 		lastchgoi6014= JProgramInfo->oi_changed.oi6014;
+		lastchgoi4204= JProgramInfo->oi_changed.oi4204;
 		return ret;
 	}
 	if(lastchgoi6000 != JProgramInfo->oi_changed.oi6000)
 	{
 		ret = ret|para_6000_chg;
 		fprintf(stderr,"\n 测量点参数6000变更");
+		lastchgoi6000 = JProgramInfo->oi_changed.oi6000;
 	}
 	if(lastchgoi6012 != JProgramInfo->oi_changed.oi6012)
 	{
 		ret = ret|para_6012_chg;
 		fprintf(stderr,"\n 任务参数6012变更");
+		lastchgoi6012= JProgramInfo->oi_changed.oi6012;
 	}
 	if(lastchgoi6014 != JProgramInfo->oi_changed.oi6014)
 	{
 		ret = ret|para_6014_chg;
-		fprintf(stderr,"\n 采集方案参数6012变更");
+		fprintf(stderr,"\n 采集方案参数6014变更");
+		lastchgoi6014= JProgramInfo->oi_changed.oi6014;
 	}
+
+	if(lastchgoi4000 != JProgramInfo->oi_changed.oi4000)
+	{
+		ret = ret|para_4000_chg;
+		fprintf(stderr,"\n 时间参数4000变更");
+		lastchgoi4204= JProgramInfo->oi_changed.oi4000;
+	}
+
+	if(lastchgoi4204 != JProgramInfo->oi_changed.oi6014)
+	{
+		ret = ret|para_4204_chg;
+		fprintf(stderr,"\n 终端广播校时参数4204变更");
+		lastchgoi4204= JProgramInfo->oi_changed.oi4204;
+	}
+
+	return ret;
+}
+INT8S init4204Info()
+{
+	INT8S ret = -1;
+	memset(&broadcase4204,0,sizeof(CLASS_4204));
+	if(readCoverClass(0x4204,0,&broadcase4204,sizeof(CLASS_4204),para_vari_save)==1)
+	{
+		fprintf(stderr,"广播校时4204读取成功");
+	}
+
 	return ret;
 }
 void dispatch_thread()
@@ -440,18 +474,22 @@ void dispatch_thread()
 	while(1)
 	{
 		para_ChangeType = getParaChangeType();
-		if(para_ChangeType!=para_no_chg)
+
+		if(para_ChangeType&para_6000_chg)
 		{
 			para_change485[0] = 1;
 			para_change485[1] = 1;
-			if(para_ChangeType&para_6000_chg)
-			{
-				init6000InfoFrom6000FIle();
-			}
-			if(para_ChangeType&para_6012_chg)
-			{
-				init6013ListFrom6012File();
-			}
+			init6000InfoFrom6000FIle();
+		}
+		if((para_ChangeType&para_6012_chg)||(para_ChangeType&para_4000_chg))
+		{
+			para_change485[0] = 1;
+			para_change485[1] = 1;
+			init6013ListFrom6012File();
+		}
+		if(para_ChangeType&para_4204_chg)
+		{
+			init4204Info();
 		}
 		if(para_change485[0]||para_change485[1])
 		{
