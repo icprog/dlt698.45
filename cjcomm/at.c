@@ -416,7 +416,7 @@ int gsmDecodePdu(const char* pSrc, SM_PARAM* pDst) {
             asyslog(LOG_DEBUG, "8-Bit:错误短信长度>161,返回");
             return 0;
         }
-        nDstLength = memcpy(buf, pDst->TP_UD, nDstLength); // 转换到TP-DU
+        memcpy(buf, pDst->TP_UD, nDstLength); // 转换到TP-DU
         asyslog(LOG_DEBUG, "8-Bit解码数据长度=%d", nDstLength);
     }
 
@@ -458,29 +458,28 @@ void checkSms(int port) {
     }
 }
 
-int absoluteKill(char * name, int timeout){
-	pid_t pids[128];
-	for (int i = 0; i < timeout; i++){
-		memset(pids, 0x00, sizeof(pids));
-		if (prog_find_pid_by_name(name, pids) >= 1) {
-			char command[64];
-			memset(command, 0x00, sizeof(command));
-			sprintf(command, "kill %d", pids[0]);
-			system(command);
-			asyslog(LOG_INFO, "正在停止进程[%s],进程号[%d],使用的终止命令[%s]", name, pids[0], command);
-		} else
-		{
-			return 0;
-		}
-		sleep(1);
-	}
-	return -1;
+int absoluteKill(char* name, int timeout) {
+    pid_t pids[128];
+    for (int i = 0; i < timeout; i++) {
+        memset(pids, 0x00, sizeof(pids));
+        if (prog_find_pid_by_name((signed char*)name, pids) >= 1) {
+            char command[64];
+            memset(command, 0x00, sizeof(command));
+            sprintf(command, "kill %d", pids[0]);
+            system(command);
+            asyslog(LOG_INFO, "正在停止进程[%s],进程号[%d],使用的终止命令[%s]", name, pids[0], command);
+        } else {
+            return 0;
+        }
+        sleep(1);
+    }
+    return -1;
 }
 
 void* ATWorker(void* args) {
     CLASS25* class25 = (CLASS25*)args;
-    int sMux0 = -1;
-    int sMux1 = -1;
+    int sMux0        = -1;
+    int sMux1        = -1;
 
     while (1) {
         if (GetOnlineType() != 0) {
@@ -494,6 +493,9 @@ void* ATWorker(void* args) {
         system("ppp-off");
         absoluteKill("ftpget", 15);
         absoluteKill("gsmMuxd", 15);
+
+        gpofun("/dev/gpoCSQ_GREEN", 0);
+        gpofun("/dev/gpoCSQ_RED", 0);
 
         if (GetOnlineType() != 0) {
             goto wait;
@@ -529,8 +531,8 @@ void* ATWorker(void* args) {
         system("mux.sh &");
         sleep(10);
 
-        sMux0     = OpenMuxCom(0, 115200, (unsigned char*)"none", 1, 8); // 0
-        sMux1     = OpenMuxCom(1, 115200, (unsigned char*)"none", 1, 8);
+        sMux0 = OpenMuxCom(0, 115200, (unsigned char*)"none", 1, 8); // 0
+        sMux1 = OpenMuxCom(1, 115200, (unsigned char*)"none", 1, 8);
         if (sMux0 < 0 || sMux1 < 0) {
             close(sMux0);
             close(sMux1);
@@ -563,8 +565,7 @@ void* ATWorker(void* args) {
             RecieveFromComm(Mrecvbuf, 128, sMux0);
 
             char INFO[6][32];
-            if (sscanf(Mrecvbuf, "%*[^\n]\n%[^\n]\n%[^\n]\n%[^\n]\n%[^\n]\n%[^\n]\n%[^\n]", INFO[0], INFO[1], INFO[2], INFO[3],
-                       INFO[4], INFO[5]) == 6) {
+            if (sscanf(Mrecvbuf, "%*[^\n]\n%[^\n]\n%[^\n]\n%[^\n]\n%[^\n]\n%[^\n]\n%[^\n]", INFO[0], INFO[1], INFO[2], INFO[3], INFO[4], INFO[5]) == 6) {
                 break;
             }
         }
@@ -619,6 +620,14 @@ void* ATWorker(void* args) {
                 asyslog(LOG_INFO, "GprsCSQ = %d,%d\n", k, l);
                 if (k != 99) {
                     class25->signalStrength = k;
+                    if (k > 20) {
+                        gpofun("/dev/gpoCSQ_GREEN", 1);
+                    } else if (k > 10) {
+                        gpofun("/dev/gpoCSQ_GREEN", 1);
+                        gpofun("/dev/gpoCSQ_RED", 1);
+                    } else {
+                        gpofun("/dev/gpoCSQ_RED", 1);
+                    }
                     break;
                 }
             }
@@ -699,7 +708,7 @@ void* ATWorker(void* args) {
                 break;
             }
         }
-        sleep(10);
+        sleep(20);
 
     wait:
         //等待在线状态为“否”，重新拨号

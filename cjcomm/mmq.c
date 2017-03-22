@@ -39,9 +39,16 @@ void MmqRead(struct aeEventLoop* eventLoop, int fd, void* clientData, int mask) 
     INT8U getBuf[MAXSIZ_PROXY_NET];
     mmq_head headBuf;
     int res = mmq_get(fd, 1, &headBuf, getBuf);
+    fprintf(stderr,"res=%d\n",res);
     if (res > 0) {
+        //获取当前的上线通道
+        if (GetOnlineType() == 0) {
+            asyslog(LOG_WARNING, "当前无通道在线，却收到代理消息[%d]", getBuf[0]);
+            return;
+        }
+        CommBlock* nst = (GetOnlineType() == 1) ? GetComBlockForGprs() : GetComBlockForNet();
         asyslog(LOG_INFO, "获取到抄表模块的消息 cmd = %d size = %d res = %d", headBuf.cmd, headBuf.bufsiz, res);
-        ProxyListResponse((PROXY_GETLIST*)getBuf, (CommBlock*)clientData);
+        ProxyListResponse((PROXY_GETLIST*)getBuf, nst);
     } else {
         close(fd);
         mmqd = -1;

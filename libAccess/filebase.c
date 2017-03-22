@@ -116,11 +116,12 @@ int WriteClass11(OI_698 oi,INT16U seqnum,INT8U method)
 	if(seqnum>0 && seqnum<=MAX_POINT_NUM) {
 		switch(method) {
 		case AddUpdate:
+
 			ret = block_file_sync(tmpinfo.file_name,unitdata,tmpinfo.unit_len,tmpinfo.interface_len,seqnum);
 			if(ret==1) {
 				sernum = (INT16U *)((INT8U*)unitdata+tmpinfo.index_site);
 	//			fprintf(stderr,"================WriteClass11:index=%d  sernum=%d,site=%d\n",index,*sernum,tmpinfo.index_site);
-				if(*sernum == 0 || *sernum == 0xffff) {		//当前位置不存在相关序号记录，进行添加动作
+				if(*sernum != 0 && *sernum != 0xffff) {		//当前位置不存在相关序号记录，进行添加动作
 					class11.curr_num++;
 					fprintf(stderr,"添加操作 当前元素个数=%d\n",class11.curr_num);
 				}
@@ -148,7 +149,7 @@ int WriteClass11(OI_698 oi,INT16U seqnum,INT8U method)
 void WriteInterfaceClass(OI_698 oi,INT16U seqnum,INT8U method)
 {
 	switch(oi) {
-	case 0x6001:
+	case 0x6000:
 		WriteClass11(oi,seqnum,method);
 		break;
 	}
@@ -600,8 +601,8 @@ INT8U block_file_sync(char *fname,void *blockdata,int size,int headsize,int inde
 	INT16U  *readcrc2=NULL;
 	INT16U  ret=0;
 
-//	fprintf(stderr,"\n read file :%s\n",fname);
-	if(fname==NULL || strlen(fname)<=4 || size<=2) 	return 0;
+//	fprintf(stderr,"\n read file :%s　size=%d\n",fname,size);
+	if(fname==NULL || strlen(fname)<=4 || size<2) 	return 0;
 
 	//文件默认最后两个字节为CRC16校验，原结构体尺寸如果不是4个字节对齐，进行补齐，加CRC16
 	if(size%4==0)	sizenew = size+2;
@@ -684,7 +685,7 @@ INT8U block_file_sync(char *fname,void *blockdata,int size,int headsize,int inde
 //		syslog(LOG_NOTICE," %s 返回数据 ",fname);
 	}else {
 //		fprintf(stderr,"\n 读取失败！！\n");
-		syslog(LOG_NOTICE," %s 读取失败! ",fname);
+//		syslog(LOG_NOTICE," %s 读取失败! ",fname);
 	}
 	free(blockdata1);
 	free(blockdata2);
@@ -701,7 +702,7 @@ INT8U save_block_file(char *fname,void *blockdata,int size,int headsize,int inde
 	int		sizenew=0,offset=0;
 	INT16U	readcrc=0;
 
-	if(fname==NULL) 	  return 0;
+	if(fname==NULL) 	  return refuse_rw;
 
 	//文件默认最后两个字节为CRC16校验，原结构体尺寸如果不是4个字节对齐，进行补齐，加CRC16
 	if(size%4==0)	sizenew = size+2;
@@ -725,7 +726,8 @@ INT8U save_block_file(char *fname,void *blockdata,int size,int headsize,int inde
 	}else {
 		syslog(LOG_NOTICE,"file_write %s error",fname);
 	}
-	return ret;
+	if(ret==1) return success;
+	else return refuse_rw;
 }
 
 

@@ -66,7 +66,7 @@ int getProxylist(INT8U *data,PROXY_GETLIST *getlist)
 		num = data[iindex];
 		if (num>sizeof(getlist->objs[i].tsa))
 			num = sizeof(getlist->objs[i].tsa);
-		memcpy(&getlist->objs[i].tsa,&data[iindex],num);
+		memcpy(&getlist->objs[i].tsa,&data[iindex],num+1);
 		iindex = iindex + num +1;
 		timeout = data[iindex];
 		getlist->objs[i].onetimeout = timeout<<8 |data[iindex+1];
@@ -87,6 +87,8 @@ int Proxy_GetRequestlist(INT8U *data,CSINFO *csinfo,INT8U *sendbuf,INT8U piid)
 	INT16U timeout=0 ;
 	int i=0,j=0;
 	PROXY_GETLIST getlist;
+	INT8S	ret=0;
+
 	timeout = data[0] ;
 	timeout = timeout <<8 | data[1];
 	getlist.timeout = timeout;
@@ -106,7 +108,7 @@ int Proxy_GetRequestlist(INT8U *data,CSINFO *csinfo,INT8U *sendbuf,INT8U piid)
 	getlist.timeold = time(NULL);
 	memcpy(&getlist.csinfo,csinfo,sizeof(CSINFO));
 
-	mqs_send((INT8S *)PROXY_485_MQ_NAME,1,ProxyGetResponseList,(INT8U *)&getlist,sizeof(PROXY_GETLIST));
-	fprintf(stderr,"\n代理消息已经发出\n\n");
+	ret= mqs_send((INT8S *)PROXY_485_MQ_NAME,1,ProxyGetResponseList,(INT8U *)&getlist,sizeof(PROXY_GETLIST));
+	fprintf(stderr,"\n代理消息已经发出,ret=%d\n\n",ret);
 	return 1;
 }

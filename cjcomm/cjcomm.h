@@ -1,6 +1,3 @@
-﻿#ifndef CJCOMM_H_
-#define CJCOMM_H_
-
 #include <termios.h>
 #include <errno.h>
 #include <wait.h>
@@ -8,10 +5,9 @@
 #include <sys/ioctl.h>
 #include <arpa/inet.h>
 
-
 #include "ae.h"
 #include "at.h"
-#include "ae.h"
+#include "anet.h"
 #include "dlt698.h"
 #include "dlt698def.h"
 #include "event.h"
@@ -20,34 +16,58 @@
 #include "StdDataType.h"
 #include "PublicFunction.h"
 
-void initComPara(CommBlock* compara);
+#ifndef CJCOMM_H_
+#define CJCOMM_H_
 
-void GenericRead(struct aeEventLoop* eventLoop, int fd, void* clientData, int mask);
-INT8S GenericWrite(int fd, INT8U* buf, INT16U len);
-
-ProgramInfo* getShareMem(void);
-void Comm_task(CommBlock* compara);
-void clearcount(int index);
+//维护公共状态的函数
+int Comm_task(CommBlock* compara);
+void clearcount();
 int GetOnlineType(void);
-void ClientDestory(void);
-int StartClient(struct aeEventLoop* ep, long long id, void* clientData);
-void ClientRead(struct aeEventLoop* eventLoop, int fd, void* clientData, int mask);
+void SetOnlineType(int type);
+void refreshComPara(CommBlock* compara);
 
-void MmqDestory(void);
-int StartMmq(struct aeEventLoop* ep, long long id, void* clientData);
 int StartVerifiTime(struct aeEventLoop* ep, long long id, void* clientData);
 
-INT8U GetTimeOffsetFlag(void);
-void Getk(LINK_Response link, ProgramInfo* JProgramInfo);
+int GetInterFaceIp(char* interface, char* ips);
 
+void initComPara(CommBlock* compara, INT8S (*p_send)(int fd, INT8U* buf, INT16U len));
+void CalculateTransFlow(ProgramInfo* prginfo_event);
+void EventAutoReport(CommBlock* nst);
+void dumpPeerStat(int fd, char* info);
+
+//以太网通信接口
+CommBlock* GetComBlockForNet();
+int StartClientForNet(struct aeEventLoop* ep, long long id, void* clientData);
+void ClientForNetDestory(void);
+
+// GPRS网络通信接口
+CommBlock* GetComBlockForGprs();
+int StartClientForGprs(struct aeEventLoop* ep, long long id, void* clientData);
+void ClientForGprsDestory(void);
+
+//消息队列通信接口
+void MmqDestory(void);
+int StartMmq(struct aeEventLoop* ep, long long id, void* clientData);
+
+//服务端通信接口
 void ServerDestory(void);
 int StartServer(struct aeEventLoop* ep, long long id, void* clientData);
 
-
+//红外通信接口
 void IfrDestory(void);
 int StartIfr(struct aeEventLoop* ep, long long id, void* clientData);
 
+//维护串口通信接口
 void SerialDestory(void);
 int StartSerial(struct aeEventLoop* ep, long long id, void* clientData);
+
+//精确校时接口
+extern INT8U GetTimeOffsetFlag(void);
+extern void Getk_curr(LINK_Response link, ProgramInfo* JProgramInfo);
+extern void First_VerifiTime(LINK_Response linkResponse, ProgramInfo* JProgramInfo);
+
+//任务自动上送接口
+void ConformAutoTask(struct aeEventLoop* ep, CommBlock* nst, int res);
+void RegularAutoTask(struct aeEventLoop* ep, CommBlock* nst);
 
 #endif
