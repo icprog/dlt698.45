@@ -50,6 +50,7 @@ INT8U flag07_diaodian[4] =  {0x01,0x00,0x11,0x03};//电能表掉电事件
 INT8U flag07_qingling[4] =   {0x01,0x01,0x30,0x03};//电能清零电事件
 INT8U flag07_jiaoshi[4] =   {0x01,0x04,0x30,0x03};//电能校时电事件
 INT8U flag07_kaibiaogai[4] =   {0x01,0x0d,0x30,0x03};//电能表开盖事件
+INT8U flag07_kaibiaogaicishu[4] =   {0x00,0x0d,0x30,0x03};//电能表开盖事件次数
 #endif
 
 
@@ -760,12 +761,14 @@ INT8U checkEvent(CLASS_6001 meter,FORMAT07 resultData07,INT16U taskID)
 	{
 		if(memcmp(flag07_diaodian,resultData07.DI,4)==0)//电能表掉电事件
 		{
-#if 0
-			83 53 47 48 36 4a
-			8a 53 47 48 36 4a
-
-			50 20 14 15 03 17
-#endif
+			INT32U value32 = 0;
+			INT8U dataIndex;
+			for(dataIndex = 0;dataIndex < 12;dataIndex++)
+			{
+				bcd2int32u(&resultData07.Data[dataIndex],1,inverted,&value32);
+				INT8U value8 = (INT8U)value32;
+				DbgPrintToFile1(1,"data[%d] %d-%d",dataIndex,value32,value8);
+			}
 		}
 		if(memcmp(flag07_qingling,resultData07.DI,4)==0)//电能清零电事件
 		{
@@ -779,6 +782,13 @@ INT8U checkEvent(CLASS_6001 meter,FORMAT07 resultData07,INT16U taskID)
 		{
 
 		}
+		if(memcmp(flag07_kaibiaogaicishu,resultData07.DI,4)==0)//电能表开盖事件
+		{
+			INT32U value32 = 0;
+			bcd2int32u(&resultData07.Data[0],3,inverted,&value32);
+			DbgPrintToFile1(1,"开表盖次数=%d",value32);
+		}
+
 	}
 	return ret;
 }
@@ -1802,12 +1812,6 @@ INT8S dealRealTimeRequst(INT8U port485)
 					readState = 0;
 				}
 				break;
-				case 2://参数变更
-				{
-					return -1;
-				}
-				break;
-
 				default:
 				{
 					DbgPrintToFile1(port485,"485收到未知消息  cmd=%d!!!---------------", mq_h.cmd);
@@ -1824,15 +1828,20 @@ INT8S dealRealTimeRequst(INT8U port485)
 		usleep(1000*1000);
 	}
 
+	if(para_change485[port485-1] == 1)
+	{
+		result = PARA_CHANGE_RETVALUE;
+	}
+
 	return result;
 }
 
 INT16S deal6015_698(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8U* dataContent,INT8U port485)
 {
 	INT8S ret = dealRealTimeRequst(port485);
-	if(ret == -1)
+	if(ret == PARA_CHANGE_RETVALUE)
 	{
-		return -1;
+		return PARA_CHANGE_RETVALUE;
 	}
 	fprintf(stderr, "\n deal6015_698-------------------  meter = %d\n", to6001.sernum);
 	DbgPrintToFile1(port485,"普通采集方案 698测量点   meter = %d 任务号 = %d 采集数据项个数 = %d---------",
@@ -1861,25 +1870,7 @@ INT16S deal6015_698(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8
 		SendDataTo485(port485, sendbuff, sendLen);
 		st6035->sendMsgNum++;
 		recvLen = ReceDataFrom485(DLT_698,port485, 500, recvbuff);
-#ifdef TESTDEF1
-		if((to6001.sernum==1)&&(st6015.sernum==2))
-		{
-			INT8U buf[157] = {
-			0xfe,0xfe,0xfe,0xfe,0x68,0x97,0x00,0xc3,0x05,0x09,0x01,0x00,0x00,0x00,0x66,0x02,0x3b,0x78,0x85,0x02,
-			0x02,0x09,0x20,0x21,0x02,0x00,0x01,0x1c,0x07,0xe1,0x03,0x11,0x09,0x24,0x21,0x20,0x04,0x02,0x00,0x01,
-			0x01,0x02,0x05,0x00,0x00,0x00,0x00,0x05,0x00,0x00,0x00,0x00,0x20,0x05,0x02,0x00,0x00,0x06,0x20,0x00,
-			0x02,0x01,0x01,0x12,0x08,0xa5,0x20,0x01,0x02,0x01,0x01,0x05,0x00,0x00,0x00,0x00,0x00,0x50,0x02,0x00,
-			0x00,0x06,0x00,0x80,0x02,0x00,0x00,0x06,0x00,0x10,0x02,0x00,0x01,0x01,0x05,0x06,0x00,0x00,0x00,0x00,
-			0x06,0x00,0x00,0x00,0x00,0x06,0x00,0x00,0x00,0x00,0x06,0x00,0x00,0x00,0x00,0x06,0x00,0x00,0x00,0x00,
-			0x00,0x20,0x02,0x00,0x01,0x01,0x05,0x06,0x00,0x00,0x00,0x00,0x06,0x00,0x00,0x00,0x00,0x06,0x00,0x00,
-			0x00,0x00,0x06,0x00,0x00,0x00,0x00,0x06,0x00,0x00,0x00,0x00,0x00,0x00,0xf2,0x00,0x16
-			};
-			memset(recvbuff,0,BUFFSIZE);
 
-			memcpy(recvbuff,buf,157);
-			recvLen = 157;
-		}
-#endif
 		fprintf(stderr,"\n\n recvLen = %d \n",recvLen);
 		if(recvLen > 0)
 		{
@@ -1916,9 +1907,9 @@ INT16S request698_07DataList(C601F_07Flag obj601F_07Flag, CLASS_6001 meter,INT8U
 	for (index = 0; index < obj601F_07Flag.dinum; index++)
 	{
 		INT8S ret = dealRealTimeRequst(port485);
-		if(ret == -1)
+		if(ret == PARA_CHANGE_RETVALUE)
 		{
-			return -1;
+			return PARA_CHANGE_RETVALUE;
 		}
 		singleBuffLen = request698_07Data(obj601F_07Flag.DI_1[index],&dataContent[DataLen],meter,st6035,port485);
 
@@ -1951,9 +1942,9 @@ INT16S request07_singleOAD(OI_698 roadOI,OAD soureOAD,CLASS_6001 to6001,CLASS_60
 		memset(dataContent,0,formatLen);
 
 		datalen = request698_07DataList(obj601F_07Flag, to6001,dataContent,st6035,port485);
-		if(datalen == -1)
+		if(datalen == PARA_CHANGE_RETVALUE)
 		{
-			return -1;
+			return PARA_CHANGE_RETVALUE;
 		}
 		fprintf(stderr,"\n deal6015_07 datalen=%d",datalen);
 
@@ -2008,9 +1999,9 @@ INT16S deal6015_07(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8U
 			{
 				datalen = request07_singleOAD(st6015.csds.csd[dataIndex].csd.road.oad.OI,
 						st6015.csds.csd[dataIndex].csd.road.oads[csdIndex],to6001,st6035,&dataContent[totaldataLen],port485);
-				if(datalen == -1)
+				if(datalen == PARA_CHANGE_RETVALUE)
 				{
-					return -1;
+					return PARA_CHANGE_RETVALUE;
 				}
 				totaldataLen += datalen;
 			}
@@ -2018,9 +2009,9 @@ INT16S deal6015_07(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8U
 		else
 		{
 			datalen = request07_singleOAD(0x0000,st6015.csds.csd[dataIndex].csd.oad,to6001,st6035,&dataContent[totaldataLen],port485);
-			if(datalen == -1)
+			if(datalen == PARA_CHANGE_RETVALUE)
 			{
-				return -1;
+				return PARA_CHANGE_RETVALUE;
 			}
 			totaldataLen += datalen;
 		}
@@ -2043,9 +2034,9 @@ INT16S deal6017_698(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8
 {
 	INT16U totaldataLen =0;
 	INT8S ret = dealRealTimeRequst(port485);
-	if(ret == -1)
+	if(ret == PARA_CHANGE_RETVALUE)
 	{
-		return -1;
+		return PARA_CHANGE_RETVALUE;
 	}
 	fprintf(stderr,"事件采集方案 698测量点   meter = %d 任务号 = %d 采集数据项个数 = %d---------",
 			to6001.sernum, st6015.sernum, st6015.csds.num);
@@ -2074,6 +2065,17 @@ INT16S deal6017_698(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8
 		test6015.csds.csd[0].type = 1;
 		memcpy(&test6015.csds.csd[0].csd.road,&st6015.csds.csd[csdIndex].csd.road,sizeof(ROAD));
 
+		test6015.csds.csd[0].csd.road.oads[0].OI = 0x2022;
+		test6015.csds.csd[0].csd.road.oads[0].attflg = 0x02;
+		test6015.csds.csd[0].csd.road.oads[0].attrindex = 0x00;
+
+		test6015.csds.csd[0].csd.road.oads[1].OI = 0x201e;
+		test6015.csds.csd[0].csd.road.oads[1].attflg = 0x02;
+		test6015.csds.csd[0].csd.road.oads[1].attrindex = 0x00;
+
+		test6015.csds.csd[0].csd.road.oads[2].OI = 0x2020;
+		test6015.csds.csd[0].csd.road.oads[2].attflg = 0x02;
+		test6015.csds.csd[0].csd.road.oads[2].attrindex = 0x00;
 		sendLen = composeProtocol698_GetRequest(sendbuff, test6015, to6001.basicinfo.addr);
 		if(sendLen < 0)
 		{
@@ -2164,29 +2166,12 @@ INT16S deal6017_07(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8U
 			eventRoad.attrindex = st6015.csds.csd[dataIndex].csd.road.oad.attrindex;
 			datalen = request07_singleOAD(eventOI,eventRoad,to6001,st6035,&dataContent[totaldataLen],port485);
 			totaldataLen += datalen;
-#ifndef TESTDEF
-			INT8U csdIndex;
-			for(csdIndex=0;csdIndex<st6015.csds.csd[dataIndex].csd.road.num;csdIndex++)
+			if(datalen == PARA_CHANGE_RETVALUE)
 			{
-				datalen = request07_singleOAD(eventOI,
-						st6015.csds.csd[dataIndex].csd.road.oads[csdIndex],to6001,st6035,&dataContent[totaldataLen],port485);
-				if(datalen == -1)
-				{
-					return -1;
-				}
-				totaldataLen += datalen;
+				return PARA_CHANGE_RETVALUE;
 			}
-#endif
 		}
-		else
-		{
-			datalen = request07_singleOAD(0x0000,st6015.csds.csd[dataIndex].csd.oad,to6001,st6035,&dataContent[totaldataLen],port485);
-			if(datalen == -1)
-			{
-				return -1;
-			}
-			totaldataLen += datalen;
-		}
+
 	}
 	if(totaldataLen >= DATA_CONTENT_LEN)
 	{
@@ -2362,10 +2347,10 @@ INT8S deal6015or6017(INT8U cjType,CLASS_6015 st6015, INT8U port485,CLASS_6035* s
 						int bufflen = compose6012Buff(startTime,meter.basicinfo.addr,dataLen,dataContent,port485);
 						SaveNorData(st6035->taskID,dataContent,bufflen);
 					}
-					else if(dataLen == -1)
+					else if(dataLen == PARA_CHANGE_RETVALUE)
 					{
 						DbgPrintToFile1(port485,"参数变更 重新抄表");
-						return -1;
+						return PARA_CHANGE_RETVALUE;
 					}
 					else
 					{
@@ -2446,6 +2431,18 @@ INT16S getTaskIndex(INT8U port)
 		}
 	return taskIndex;
 }
+INT8S cleanTaskIDmmq(INT8U port485)
+{
+	INT8S ret = -1;
+	INT16S taskIndex = 0;
+	do
+	{
+		taskIndex = getTaskIndex(port485);
+		fprintf(stderr,"清理485 %d消息队列中任务index = %d",port485,taskIndex);
+	}while(taskIndex > -1);
+	para_change485[port485-1] = 0;
+	return ret;
+}
 void read485_thread(void* i485port) {
 	INT8U port = *(INT8U*) i485port;
 	fprintf(stderr, "\n port = %d", port);
@@ -2486,7 +2483,11 @@ void read485_thread(void* i485port) {
 
 	while (1) {
 
-		dealRealTimeRequst(port);
+		INT8S ret = dealRealTimeRequst(port);
+		if(ret == PARA_CHANGE_RETVALUE)
+		{
+			cleanTaskIDmmq(port);
+		}
 		INT16S taskIndex = getTaskIndex(port);
 
 		if(taskIndex > -1)
@@ -2705,12 +2706,12 @@ void read485_proccess() {
 	pthread_attr_init(&read485_attr_t);
 	pthread_attr_setstacksize(&read485_attr_t, 2048 * 1024);
 	pthread_attr_setdetachstate(&read485_attr_t, PTHREAD_CREATE_DETACHED);
-#if 1
+
 	while ((thread_read4851_id = pthread_create(&thread_read4851,&read485_attr_t, (void*) read485_thread, &i485port1)) != 0)
 	{
 		sleep(1);
 	}
-#endif
+
 	while ((thread_read4852_id=pthread_create(&thread_read4852, &read485_attr_t, (void*)read485_thread, &i485port2)) != 0)
 	{
 		sleep(1);

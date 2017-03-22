@@ -287,21 +287,23 @@ INT16S getNextTastIndexIndex() {
 	}
 	return taskIndex;
 }
-INT8U checkParaChange()
-{
-
-}
+/*
+ * 判断portOAD是否属于485 port485 口
+ * */
 INT8U is485OAD(OAD portOAD,INT8U port485)
 {
-	port485 += 1;//浙江测试 485 1口下的是 F201_02_02 485 2口下的是 F201_02_03
-//	fprintf(stderr,"\n portOAD.OI = %04x portOAD.attflg = %d  portOAD.attrindex = %d port485 = %d \ n"
-//			,portOAD.OI,portOAD.attflg,portOAD.attrindex,port485);
+	fprintf(stderr,"\n portOAD.OI = %04x portOAD.attflg = %d  portOAD.attrindex = %d port485 = %d \ n"
+			,portOAD.OI,portOAD.attflg,portOAD.attrindex,port485);
 	if ((portOAD.OI != 0xF201) || (portOAD.attflg != 0x02)
 			|| (portOAD.attrindex != port485)) {
 		return 0;
 	}
 	return 1;
 }
+/*
+ * 读取table6000 填充info6000  此结构体保存了每一个485口上有那些测量点
+ * 抄表是根据此结构体读取测量点信息
+ * */
 INT8S init6000InfoFrom6000FIle()
 {
 	memset(&info6000,0,2*sizeof(INFO_6001_LIST));
@@ -411,18 +413,22 @@ INT8U getParaChangeType()
 		lastchgoi6000 = JProgramInfo->oi_changed.oi6000;
 		lastchgoi6012= JProgramInfo->oi_changed.oi6012;
 		lastchgoi6014= JProgramInfo->oi_changed.oi6014;
+		return ret;
 	}
 	if(lastchgoi6000 != JProgramInfo->oi_changed.oi6000)
 	{
 		ret = ret|para_6000_chg;
+		fprintf(stderr,"\n 测量点参数6000变更");
 	}
 	if(lastchgoi6012 != JProgramInfo->oi_changed.oi6012)
 	{
 		ret = ret|para_6012_chg;
+		fprintf(stderr,"\n 任务参数6012变更");
 	}
 	if(lastchgoi6014 != JProgramInfo->oi_changed.oi6014)
 	{
 		ret = ret|para_6014_chg;
+		fprintf(stderr,"\n 采集方案参数6012变更");
 	}
 	return ret;
 }
@@ -431,15 +437,28 @@ void dispatch_thread()
 	//运行调度任务进程
 //	fprintf(stderr,"\ndispatch_thread start \n");
 
-
 	while(1)
 	{
 		para_ChangeType = getParaChangeType();
 		if(para_ChangeType!=para_no_chg)
 		{
-
+			para_change485[0] = 1;
+			para_change485[1] = 1;
+			if(para_ChangeType&para_6000_chg)
+			{
+				init6000InfoFrom6000FIle();
+			}
+			if(para_ChangeType&para_6012_chg)
+			{
+				init6013ListFrom6012File();
+			}
 		}
-
+		if(para_change485[0]||para_change485[1])
+		{
+			fprintf(stderr,"参数变更等待 485线程处理无效线程");
+			sleep(1);
+			continue;
+		}
 		INT16S tastIndex = -1;//读取所有任务文件
 		tastIndex = getNextTastIndexIndex();
 
@@ -452,9 +471,9 @@ void dispatch_thread()
 			//计算下一次抄读此任务的时间;
 			list6013[tastIndex].ts_next = calcnexttime(list6013[tastIndex].basicInfo.interval,list6013[tastIndex].basicInfo.startime);
 
-			INT8S ret = mqs_send((INT8S *)TASKID_485_2_MQ_NAME,1,1,(INT8U *)&tastIndex,sizeof(INT16S));
+			INT8S ret = mqs_send((INT8S *)TASKID_485_2_MQ_NAME,cjdeal,1,(INT8U *)&tastIndex,sizeof(INT16S));
 			//fprintf(stderr,"\n 向485 2线程发送任务ID = %d \n",ret);
-			ret = mqs_send((INT8S *)TASKID_485_1_MQ_NAME,1,1,(INT8U *)&tastIndex,sizeof(INT16S));
+			ret = mqs_send((INT8S *)TASKID_485_1_MQ_NAME,cjdeal,1,(INT8U *)&tastIndex,sizeof(INT16S));
 			//fprintf(stderr,"\n 向485 1线程发送任务ID = %d \n",ret);
 			//TODO
 			list6013[tastIndex].run_flg = 0;
@@ -467,19 +486,22 @@ void dispatch_thread()
 
 		sleep(5);
 	}
-
-
+	  pthread_detach(pthread_self());
+	  pthread_exit(&thread_dispatchTask);
 }
 void dispatchTask_proccess()
 {
 	//读取所有任务文件		TODO：参数下发后需要更新内存值
 	init6013ListFrom6012File();
 	init6000InfoFrom6000FIle();
+	para_change485[0] = 0;
+	para_change485[1] = 0;
+
 	pthread_attr_init(&dispatchTask_attr_t);
 	pthread_attr_setstacksize(&dispatchTask_attr_t, 2048 * 1024);
 	pthread_attr_setdetachstate(&dispatchTask_attr_t, PTHREAD_CREATE_DETACHED);
 
-	while ((thread_read4851_id = pthread_create(&thread_dispatchTask,&dispatchTask_attr_t, (void*) dispatch_thread,NULL)) != 0)
+	while ((thread_dispatchTask_id = pthread_create(&thread_dispatchTask,&dispatchTask_attr_t, (void*) dispatch_thread,NULL)) != 0)
 	{
 		sleep(1);
 	}
