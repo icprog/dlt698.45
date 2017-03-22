@@ -16,9 +16,7 @@
 
 //共享内存地址
 static ProgramInfo* JProgramInfo = NULL;
-static CLASS25 Class25;
-static CLASS26 Class26;
-static int ProgIndex = 0;
+static int ProgIndex             = 0;
 static int OnlineType; // 0:没在线 1:GPRS 2:以太网
 CLASS_4000 class_4000;
 
@@ -98,8 +96,8 @@ void EventAutoReport(CommBlock* nst) {
     }
 }
 
-void clearcount(int index) {
-    JProgramInfo->Projects[index].WaitTimes = 0;
+void clearcount() {
+    JProgramInfo->Projects[ProgIndex].WaitTimes = 0;
 }
 
 void QuitProcess(int sig) {
@@ -108,13 +106,42 @@ void QuitProcess(int sig) {
     SerialDestory();
     ServerDestory();
     MmqDestory();
-    ClientDestory();
+    ClientForGprsDestory();
+    ClientForNetDestory();
 
     //关闭AT模块
     asyslog(LOG_INFO, "关闭AT模块电源");
     AT_POWOFF();
     asyslog(LOG_INFO, "通信模块退出完成...");
     exit(0);
+}
+
+int GetInterFaceIp(char* interface, char* ips) {
+    int sock;
+    struct sockaddr_in sin;
+    struct ifreq ifr;
+
+    sock = socket(AF_INET, SOCK_DGRAM, 0);
+    if (sock == -1) {
+        return -1;
+    }
+    strncpy(ifr.ifr_name, interface, IFNAMSIZ);
+    ifr.ifr_name[IFNAMSIZ - 1] = 0;
+    if (ioctl(sock, SIOCGIFADDR, &ifr) < 0) {
+        close(sock);
+        return -1;
+    }
+    memcpy(&sin, &ifr.ifr_addr, sizeof(sin));
+    if (sin.sin_addr.s_addr > 0) {
+        int ip[4];
+        memset(ip, 0x00, sizeof(ip));
+        sscanf(inet_ntoa(sin.sin_addr), "%d.%d.%d.%d", &ip[0], &ip[1], &ip[2], &ip[3]);
+        snprintf(ips, 16, "%d.%d.%d.%d\n", ip[0], ip[1], ip[2], ip[3]);
+        close(sock);
+        return 1;
+    }
+    close(sock);
+    return 0;
 }
 
 void WriteLinkRequest(INT8U link_type, INT16U heartbeat, LINK_Request* link_req) {
@@ -133,45 +160,33 @@ void WriteLinkRequest(INT8U link_type, INT16U heartbeat, LINK_Request* link_req)
     link_req->heartbeat         = ((heartbeat << 8) & 0xff00) | ((heartbeat >> 8) & 0xff);
 }
 
-void Comm_task(CommBlock* compara) {
-    int sendlen           = 0;
-    static time_t oldtime = 0;
-    TS ts                 = {};
-    INT16U heartbeat      = 60;
+int Comm_task(CommBlock* compara) {
+    INT16U heartbeat = 60;
 
-    time_t newtime = time(NULL);
-    if (abs(newtime - oldtime) > heartbeat) {
-        TSGet(&ts);
-        oldtime = newtime;
-        if (compara->testcounter >= 2) {
-            close(compara->phy_connect_fd);
-            compara->phy_connect_fd = -1;
-            AT_POWOFF();
-            compara->testcounter = 0;
-            return;
-        } else if (compara->linkstate == close_connection) //物理通道建立完成后，如果请求状态为close，则需要建立连接
-        {
-            WriteLinkRequest(build_connection, heartbeat, &compara->link_request);
-            asyslog(LOG_INFO, "建立链接 %02d-%02d-%02d %d:%d:%d\n", compara->link_request.time.year, compara->link_request.time.month,
-                    compara->link_request.time.day_of_month, compara->link_request.time.hour, compara->link_request.time.minute, compara->link_request.time.second);
-            sendlen = Link_Request(compara->link_request, compara->serveraddr, compara->SendBuf);
-        } else {
-            WriteLinkRequest(heart_beat, heartbeat, &compara->link_request);
-            sendlen = Link_Request(compara->link_request, compara->serveraddr, compara->SendBuf);
-        }
-        compara->p_send(compara->phy_connect_fd, compara->SendBuf, sendlen);
-        compara->testcounter++;
+    if (abs(time(NULL) - compara->lasttime) < heartbeat) {
+        return 0;
     }
+    compara->lasttime = time(NULL);
+
+    if (compara->testcounter >= 2) {
+        return -1;
+    }
+
+    if (compara->linkstate == close_connection) //物理通道建立完成后，如果请求状态为close，则需要建立连接
+    {
+        WriteLinkRequest(build_connection, heartbeat, &compara->link_request);
+        int sendlen = Link_Request(compara->link_request, compara->serveraddr, compara->SendBuf);
+        compara->p_send(compara->phy_connect_fd, compara->SendBuf, sendlen);
+    } else {
+        WriteLinkRequest(heart_beat, heartbeat, &compara->link_request);
+        int sendlen = Link_Request(compara->link_request, compara->serveraddr, compara->SendBuf);
+        compara->p_send(compara->phy_connect_fd, compara->SendBuf, sendlen);
+    }
+    compara->testcounter++;
+    return 0;
 }
 
-void initComPara(CommBlock* compara) {
-    int ret = 0, i = 0;
-    CLASS19 oi4300    = {};
-    CLASS_F101 oif101 = {};
-    CLASS_4001_4002_4003 c4001;
-    memset(&c4001, 0x00, sizeof(c4001));
-    readCoverClass(0x4001, 0, &c4001, sizeof(c4001), para_vari_save);
-    memcpy(compara->serveraddr, c4001.curstom_num, 16);
+void refreshComPara(CommBlock* compara) {
     compara->phy_connect_fd = -1;
     compara->testcounter    = 0;
     compara->linkstate      = close_connection;
@@ -183,16 +198,38 @@ void initComPara(CommBlock* compara) {
     compara->deal_step = 0;
     compara->rev_delay = 20;
     compara->shmem     = JProgramInfo;
-    compara->p_send    = GenericWrite;
+    compara->lasttime  = 0;
+}
 
-    memset(&oi4300, 0, sizeof(CLASS19));
-    ret = readCoverClass(0x4300, 0, &oi4300, sizeof(CLASS19), para_vari_save);
-    if (ret)
-        memcpy(&compara->myAppVar.server_factory_version, &oi4300.info, sizeof(FactoryVersion));
-    for (i = 0; i < 2; i++) {
+void initComPara(CommBlock* compara, INT8S (*p_send)(int fd, INT8U* buf, INT16U len)) {
+    CLASS_4001_4002_4003 c4001;
+    memset(&c4001, 0x00, sizeof(c4001));
+    readCoverClass(0x4001, 0, &c4001, sizeof(c4001), para_vari_save);
+    memcpy(compara->serveraddr, c4001.curstom_num, 16);
+
+    compara->phy_connect_fd = -1;
+    compara->testcounter    = 0;
+    compara->linkstate      = close_connection;
+    memset(compara->RecBuf, 0, sizeof(compara->RecBuf));
+    memset(compara->SendBuf, 0, sizeof(compara->SendBuf));
+    memset(compara->DealBuf, 0, sizeof(compara->DealBuf));
+    compara->RHead     = 0;
+    compara->RTail     = 0;
+    compara->deal_step = 0;
+    compara->rev_delay = 20;
+    compara->shmem     = JProgramInfo;
+    compara->p_send    = p_send;
+    compara->lasttime  = 0;
+
+    CLASS19 Class19 = {};
+    memset(&Class19, 0, sizeof(CLASS19));
+    if (readCoverClass(0x4300, 0, &Class19, sizeof(CLASS19), para_vari_save)) {
+        memcpy(&compara->myAppVar.server_factory_version, &Class19.info, sizeof(FactoryVersion));
+    }
+    for (int i = 0; i < 2; i++) {
         compara->myAppVar.FunctionConformance[i] = 0xff;
     }
-    for (i = 0; i < 5; i++) {
+    for (int i = 0; i < 5; i++) {
         compara->myAppVar.ProtocolConformance[i] = 0xff;
     }
     compara->myAppVar.server_deal_maxApdu    = 1024;
@@ -200,10 +237,8 @@ void initComPara(CommBlock* compara) {
     compara->myAppVar.server_send_size       = 1024;
     compara->myAppVar.server_recv_maxWindow  = 1;
     compara->myAppVar.expect_connect_timeout = 56400;
-    //--------------------
-    memset(&oif101, 0, sizeof(CLASS_F101));
-    ret = readCoverClass(0xf101, 0, &oif101, sizeof(CLASS_F101), para_vari_save);
-    memcpy(&compara->f101, &oif101, sizeof(CLASS_F101));
+
+    readCoverClass(0xf101, 0, &compara->f101, sizeof(CLASS_F101), para_vari_save);
 }
 
 void dumpPeerStat(int fd, char* info) {
@@ -230,28 +265,6 @@ void enviromentCheck(int argc, char* argv[]) {
     struct sigaction sa = {};
     Setsig(&sa, QuitProcess);
 
-    //读取设备参数
-    readCoverClass(0x4500, 0, (void*)&Class25, sizeof(CLASS25), para_vari_save);
-    asyslog(LOG_INFO, "工作模式 enum{混合模式(0),客户机模式(1),服务器模式(2)}：%d", Class25.commconfig.workModel);
-    asyslog(LOG_INFO, "在线方式 enum{永久在线(0),被动激活(1)}：%d", Class25.commconfig.onlineType);
-    asyslog(LOG_INFO, "连接方式 enum{TCP(0),UDP(1)}：%d", Class25.commconfig.connectType);
-    asyslog(LOG_INFO, "连接应用方式 enum{主备模式(0),多连接模式(1)}：%d", Class25.commconfig.appConnectType);
-    asyslog(LOG_INFO, "侦听端口列表：%d", Class25.commconfig.listenPort[0]);
-    asyslog(LOG_INFO, "超时时间，重发次数：%02x", Class25.commconfig.timeoutRtry);
-    asyslog(LOG_INFO, "心跳周期秒：%d", Class25.commconfig.heartBeat);
-
-    //读取设备参数
-    memset(&Class26, 0, sizeof(CLASS26));
-    readCoverClass(0x4510, 0, (void*)&Class26, sizeof(CLASS26), para_vari_save);
-    asyslog(LOG_INFO, "工作模式 enum{混合模式(0),客户机模式(1),服务器模式(2)}：%d", Class26.commconfig.workModel);
-    asyslog(LOG_INFO, "连接方式 enum{TCP(0),UDP(1)}：%d", Class26.commconfig.connectType);
-    asyslog(LOG_INFO, "连接应用方式 enum{主备模式(0),多连接模式(1)}：%d", Class26.commconfig.appConnectType);
-    asyslog(LOG_INFO, "侦听端口列表：%d", Class26.commconfig.listenPort[0]);
-    asyslog(LOG_INFO, "超时时间，重发次数：%02x", Class26.commconfig.timeoutRtry);
-    asyslog(LOG_INFO, "心跳周期秒：%d", Class26.commconfig.heartBeat);
-    asyslog(LOG_INFO, "主站通信地址(1)为：%d.%d.%d.%d:%d", Class26.master.master[0].ip[1], Class26.master.master[0].ip[2], Class26.master.master[0].ip[3],
-            Class26.master.master[0].ip[4], Class26.master.master[0].port);
-
     //向cjmain报告启动
     ProgIndex    = atoi(argv[1]);
     JProgramInfo = OpenShMem("ProgramInfo", sizeof(ProgramInfo), NULL);
@@ -260,11 +273,10 @@ void enviromentCheck(int argc, char* argv[]) {
 }
 
 int main(int argc, char* argv[]) {
-    printf("version 1015\n");
+    printf("version 1019\n");
     memset(&class_4000, 0, sizeof(CLASS_4000));
     enviromentCheck(argc, argv);
-
-    CreateATWorker(&Class25);
+    SetOnlineType(0);
 
     //开启网络IO事件处理框架
     aeEventLoop* ep;
@@ -275,11 +287,12 @@ int main(int argc, char* argv[]) {
     }
 
     // StartIfr(ep, 0, NULL);
-    StartSerial(ep, 0, NULL);
+    // StartSerial(ep, 0, NULL);
     StartServer(ep, 0, NULL);
     StartVerifiTime(ep, 0, JProgramInfo);
-    StartClient(ep, 0, &Class25);
-    StartClientForNet(ep, 0, &Class26);
+    StartClientForGprs(ep, 0, NULL);
+    StartClientForNet(ep, 0, NULL);
+    StartMmq(ep, 0, NULL);
 
     aeMain(ep);
 

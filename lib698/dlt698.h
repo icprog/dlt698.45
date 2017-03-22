@@ -8,18 +8,19 @@ extern int getTsas(MY_MS ms, INT8U** tsas);
 extern int doObjectAction(OAD oad, INT8U* data, Action_result* result);
 extern int StateProcess(CommBlock* nst, int delay_num);
 
-extern int ProcessData(CommBlock *com);
-extern int Link_Request(LINK_Request request,INT8U *addr,INT8U *buf);
-extern void testframe(INT8U *apdu,int len);
-extern INT8U Report_Event(CommBlock *com,Reportevent report_event,INT8U report_type);
-extern INT16U composeAutoReport(INT8U* SendApdu,INT16U length);
-extern INT16U  composeAutoTask(AutoTaskStrap* list);
+extern int ProcessData(CommBlock* com);
+extern int Link_Request(LINK_Request request, INT8U* addr, INT8U* buf);
+extern void testframe(INT8U* apdu, int len);
+extern INT8U Report_Event(CommBlock* com, Reportevent report_event, INT8U report_type);
+extern INT16U composeAutoReport(INT8U* SendApdu, INT16U length);
+extern INT16U composeAutoTask(AutoTaskStrap* list);
+int callAutoReport(CommBlock* com, INT8U ifecho);
 extern int GetReportData(CLASS_601D report);
-extern int getTsas(MY_MS ms,INT8U **tsas);	//注意：！！！！！函数调用需要外部释放内存
+extern int getTsas(MY_MS ms, INT8U** tsas); //注意：！！！！！函数调用需要外部释放内存
 
 /*----------------------抄表相关*************************/
 extern INT16S composeProtocol698_GetRequest(INT8U*, CLASS_6015, TSA);
-extern time_t calcnexttime(TI ti,DateTimeBCD datetime);
+extern time_t calcnexttime(TI ti, DateTimeBCD datetime);
 // OAD转换为报文
 extern INT8U OADtoBuff(OAD fromOAD, INT8U* buff);
 extern INT8U analyzeProtocol698(INT8U* Rcvbuf, INT8U* resultCount, INT16S recvLen, INT8U* apduDataStartIndex, INT16S* dataLen);

@@ -80,7 +80,7 @@ void init_autotask(CLASS_6013 class6013,AutoTaskStrap* list)
 		fprintf(stderr,"\ninit_autotask [ %d 任务 %d 方案 %d  下次时间 %ld ]",index,list[index].ID ,list[index].SerNo,list[index].nexttime );
 		localtime_r(&list[index].nexttime,&tmp_tm);
 		fprintf(stderr,"下次时间 %04d-%02d-%02d %02d:%02d:%02d\n",tmp_tm.tm_year+1900,tmp_tm.tm_mon+1,tmp_tm.tm_mday,tmp_tm.tm_hour,tmp_tm.tm_min,tmp_tm.tm_sec);
-		asyslog(LOG_NOTICE,"任务【%d】,方案【%d】,下次时间【%04d-%02d-%02d %02d:%02d:%02d】",index,list[index].ID,tmp_tm.tm_year+1900,tmp_tm.tm_mon+1,tmp_tm.tm_mday,tmp_tm.tm_hour,tmp_tm.tm_min,tmp_tm.tm_sec);
+		asyslog(LOG_NOTICE,"任务索引【%d】,方案【%d】,下次时间【%04d-%02d-%02d %02d:%02d:%02d】",index,list[index].ID,tmp_tm.tm_year+1900,tmp_tm.tm_mon+1,tmp_tm.tm_mday,tmp_tm.tm_hour,tmp_tm.tm_min,tmp_tm.tm_sec);
 		index++;
 	}
 }
@@ -151,7 +151,7 @@ int getTsas(MY_MS ms,INT8U **tsas)
 				case 3:	//一组用户地址
 					tsa_len = (ms.ms.userAddr[0].addr[0]<<8) | ms.ms.userAddr[0].addr[1];
 					for(j=0;j<tsa_len;j++) {
-						if(memcmp(&ms.ms.userAddr[j+1],&meter.basicinfo.addr,sizeof(TSA))==0) {  //TODO:TSA下发的地址是否按照00：长度，01：TSA长度格式
+						if(memcmp(&ms.ms.userAddr[j+1].addr[0],&meter.basicinfo.addr,sizeof(TSA))==0) {  //TODO:TSA下发的地址是否按照00：长度，01：TSA长度格式
 							memcpy(*tsas+(tsa_num*sizeof(TSA)),&meter.basicinfo.addr,sizeof(TSA));
 							tsa_num++;
 							break;
@@ -186,30 +186,6 @@ int getTsas(MY_MS ms,INT8U **tsas)
 	return tsa_num;
 }
 
-/*
- *
- */
-long int readFrameDataFile(char *filename,int offset,INT8U *buf,int *datalen)
-{
-	FILE *fp=NULL;
-	int bytelen=0;
-
-	fp = fopen(filename,"r");
-	if (fp!=NULL && buf!=NULL)
-	{
-		fseek(fp,offset,0);		 			//定位到文件指定偏移位置
-		//if (fread(&bytelen,2,1,fp) <=0)	 	//读出数据报文长度
-		fread(&bytelen,2,1,fp);
-		fprintf(stderr,"bytelen=%d\n",bytelen);
-//			return 0;
-
-		if (fread(buf,bytelen,1,fp) <=0 ) 	//按数据报文长度，读出全部字节
-			return 0;
-		*datalen = bytelen;
-		return (ftell(fp));		 			//返回当前偏移位置
-	}
-	return 0;
-}
 
 /*
  * 通讯进程循环调用 callAutoReport
@@ -305,9 +281,11 @@ INT16U  composeAutoTask(AutoTaskStrap *list)
 			fprintf(stderr,"\ni=%d 任务【 %d 】 	 开始执行   上报方案编号【 %d 】",i,list->ID,list->SerNo);
 			if (readCoverClass(0x601D, list->SerNo, &class601d, sizeof(CLASS_601D),coll_para_save) == 1)
 			{
-				list->ReportNum = class601d.reportnum;
+				asyslog(LOG_INFO,"reportnum=%d",class601d.reportnum);
+				print_rcsd(class601d.reportdata.data.recorddata.csds);
+				list->ReportNum = class601d.maxreportnum;
 				list->OverTime = getTItoSec(class601d.timeout);
-				asyslog(LOG_INFO,"i=%d 任务【 %d 】 	 开始执行   上报方案编号【 %d 】",i,list->ID,list->SerNo);
+				asyslog(LOG_INFO,"i=%d 任务【 %d 】 	 开始执行   上报方案编号【 %d 】 重发次数=%d, 超时时间=%d",i,list->ID,list->SerNo,list->ReportNum,list->OverTime);
 				fprintf(stderr,"list->SerNo = %d\n",list->SerNo);
 				if (GetReportData(class601d) == 1)//数据组织好了
 					ret = 2;

@@ -20,7 +20,8 @@ typedef struct{
 typedef enum
 {
 	 cjcomm,
-	 cjdeal
+	 cjdeal,
+	 cjgui
 }PROGS_ID;
 
 typedef struct

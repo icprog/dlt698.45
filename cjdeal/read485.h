@@ -21,6 +21,8 @@
 #define MAXLEN_1LINE  100
 #define CLASS_601F_CFG_FILE "/nor/config/07DI_698OAD.cfg"
 
+#define PARA_CHANGE_RETVALUE  -1
+
 pthread_attr_t read485_attr_t;
 int thread_read4851_id,thread_read4852_id;           //485、四表合一（I型、II型、专变）
 pthread_t thread_read4851,thread_read4852;

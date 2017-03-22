@@ -416,7 +416,7 @@ int gsmDecodePdu(const char* pSrc, SM_PARAM* pDst) {
             asyslog(LOG_DEBUG, "8-Bit:错误短信长度>161,返回");
             return 0;
         }
-        nDstLength = memcpy(buf, pDst->TP_UD, nDstLength); // 转换到TP-DU
+        memcpy(buf, pDst->TP_UD, nDstLength); // 转换到TP-DU
         asyslog(LOG_DEBUG, "8-Bit解码数据长度=%d", nDstLength);
     }
 
@@ -462,7 +462,7 @@ int absoluteKill(char* name, int timeout) {
     pid_t pids[128];
     for (int i = 0; i < timeout; i++) {
         memset(pids, 0x00, sizeof(pids));
-        if (prog_find_pid_by_name(name, pids) >= 1) {
+        if (prog_find_pid_by_name((signed char*)name, pids) >= 1) {
             char command[64];
             memset(command, 0x00, sizeof(command));
             sprintf(command, "kill %d", pids[0]);
@@ -708,7 +708,7 @@ void* ATWorker(void* args) {
                 break;
             }
         }
-        sleep(10);
+        sleep(20);
 
     wait:
         //等待在线状态为“否”，重新拨号

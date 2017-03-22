@@ -149,6 +149,7 @@ INT32S mmq_close(mqd_t fd)
 {
 	return mq_close(fd);
 }
+
 INT8S mqs_send(INT8S* mqname,INT16U pid,INT32U cmd,INT8U* buf,INT32U bufsiz)
 {
 	mmq_head head;
