@@ -541,7 +541,10 @@ INT8U Get_StandardUnit(OI_698 oi,INT8U *Rbuf,INT8U *Index,
 		Rbuf[(*Index)++] = dtdatetimes;//15
 		memset(&Rbuf[*Index],DATA_FF,sizeof(ntime));//TODO
 		(*Index)+=sizeof(ntime);//0
-	}else if(oi==0x3105 || oi==0x310A || oi==0x310B || oi==0x310C || oi==0x310D || oi==0x310E){
+	}else if(oi==0x3105 || oi==0x310A ||
+			oi==0x310B || oi==0x310C ||
+			oi==0x310D || oi==0x310E ||
+			(oi=0x3106 && *Source==0)){
 		Rbuf[(*Index)++] = 0;//15无结束时间
 	}
 	else{
@@ -2015,7 +2018,7 @@ INT8U Event_311B(TSA tsa, INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 		Save_buf[index++]=dtdatetimes;
 		memcpy(&Save_buf[index],data,7);
 		index+=7;
-		//时钟误差      integer（单位：秒，无换算）
+		//时钟误差      integer（单位：秒，无换算)
 		Save_buf[index++]=dtinteger;
 		Save_buf[index++]=data[7];
 		Save_buf[STANDARD_NUM_INDEX]+=2;
