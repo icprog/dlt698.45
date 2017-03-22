@@ -79,9 +79,9 @@ INT8U write_calc_stru(POINT_CALC_TYPE *pcalc)
 	INT16U oi=0x6000;
 	int	i=0,blknum=0,num=0;
 	if(readInterClass(oi,&coll)==-1) return 0;
-	fprintf(stderr,"wenjan .... \n");
+//	fprintf(stderr,"wenjan .... \n");
 	blknum = getFileRecordNum(oi);
-	fprintf(stderr,"blknum=%d .... \n",blknum);
+//	fprintf(stderr,"blknum=%d .... \n",blknum);
 	if(blknum == -1) {
 		fprintf(stderr,"未找到OI=%04x的相关信息配置内容！！！\n",oi);
 		return 0;
@@ -90,9 +90,9 @@ INT8U write_calc_stru(POINT_CALC_TYPE *pcalc)
 		return 0;
 	}
 	for(i=0;i<blknum;i++){
-		fprintf(stderr,"i=%d\n",i);
+//		fprintf(stderr,"i=%d\n",i);
 		if(readParaClass(oi,&meter,i)==1) {
-			fprintf(stderr,"port.OI=%x\n",meter.basicinfo.port.OI);
+//			fprintf(stderr,"port.OI=%x\n",meter.basicinfo.port.OI);
 			//读交采和485表进行统计
          //  if(meter.basicinfo.port.OI == 0xF201 || meter.basicinfo.port.OI == 0xF208){
 			if(meter.basicinfo.port.OI == 0xF208){
@@ -177,8 +177,8 @@ void voltageRate_deal(voltageRateProp* voltageRate,struct tm NowTime,INT16U *cou
 	}
 	else
 	{
-		fprintf(stderr,"voltageRate_deal-mktime(&NowTime):%ld,mktime(&voltageRate->StartTime):%ld\r\n",
-				mktime(&NowTime),mktime(&voltageRate->StartTime));
+//		fprintf(stderr,"voltageRate_deal-mktime(&NowTime):%ld,mktime(&voltageRate->StartTime):%ld\r\n",
+//				mktime(&NowTime),mktime(&voltageRate->StartTime));
 
 		//防止向前校表
 		if(mktime(&NowTime) > mktime(&voltageRate->StartTime))
@@ -186,7 +186,7 @@ void voltageRate_deal(voltageRateProp* voltageRate,struct tm NowTime,INT16U *cou
 			//count_min = (INT32U)(difftime(mktime(&NowTime),mktime(&voltageRate->StartTime))/60);
 
 			count_min = (INT32U)(mktime(&NowTime)/60 - mktime(&voltageRate->StartTime)/60);
-			fprintf(stderr,"count_min:%d,(*count):%d,voltageRate->Last_count:%d,voltage:%d\r\n\r\n",count_min,(*count),voltageRate->Last_count,voltage);
+//			fprintf(stderr,"count_min:%d,(*count):%d,voltageRate->Last_count:%d,voltage:%d\r\n\r\n",count_min,(*count),voltageRate->Last_count,voltage);
 	//		printf("count_min:%d,voltageRate.Last_count:%d,*count:%d\r\n",count_min,voltageRate.Last_count,*count);
 			//统计当前状态的累计时间
 			(*count) += (count_min- voltageRate->Last_count);
@@ -454,7 +454,7 @@ void voltage_calc(){
 
 				if(point[i].Result_m.tjUb.U_Count == 0)
 				{
-					fprintf(stderr,"point[i].Result_m.tjUb.U_Count == 0,pointNo = %d\r\n",point[i].PointNo);
+//					fprintf(stderr,"point[i].Result_m.tjUb.U_Count == 0,pointNo = %d\r\n",point[i].PointNo);
 
 				}
 				//计算电压月越上限率，下限率，合格率
@@ -560,7 +560,7 @@ void CpPubdata_UU(Statistics_U source, DIANYA_TJ* Dest)
 	localtime_r(&tmp,&Dest->StartTime);//记录起始时间为上一分种
 
 
-#if 1
+#if 0
 	fprintf(stderr,"ok_Rate:%f,ok_count:%d,U_Count:%d\r\n",Dest->ok_Rate,Dest->ok_count,source.U_Count);
 	fprintf(stderr,"s_Rate:%f,s_count:%d,U_Count:%d\r\n",Dest->s_Rate,Dest->s_count,source.U_Count);
 	fprintf(stderr,"x_Rate:%f,x_count:%d,U_Count:%d\r\n",Dest->x_Rate,Dest->x_count,source.U_Count);
@@ -983,7 +983,7 @@ void calc_thread()
 			gongdian_tj.gongdian.month_tj++;
 			memcpy(&gongdian_tj.ts,&newts,sizeof(TS));
 			//存储供电时间
-			fprintf(stderr,"day_gongdian=%d,month_gongdian=%d\n",gongdian_tj.gongdian.day_tj,gongdian_tj.gongdian.month_tj);
+//			fprintf(stderr,"day_gongdian=%d,month_gongdian=%d\n",gongdian_tj.gongdian.day_tj,gongdian_tj.gongdian.month_tj);
 			saveVariData(0x2203,0,&gongdian_tj,sizeof(Gongdian_tj));
 			//存储最大功率及发生时间	TODO:只存储交采
 			INT8U i=0;
@@ -992,7 +992,7 @@ void calc_thread()
 			   saveVariData(0x2140,0,&max_ptongji[i],sizeof(Max_ptongji));
 			}
 		}
-		fprintf(stderr,"poweroffon_state=%d \n",poweroffon_state);
+//		fprintf(stderr,"poweroffon_state=%d \n",poweroffon_state);
 		//判断停上电
 		if(valid>5)//等待5秒
 			Event_3106(JProgramInfo,MeterPowerInfo,&poweroffon_state);
@@ -1009,7 +1009,7 @@ INT8U Init_Para(){
 	ReadPubData();
 	memset(&gongdian_tj,0,sizeof(Gongdian_tj));
 	readVariData(0x2203,0,&gongdian_tj,sizeof(Gongdian_tj));
-	fprintf(stderr,"init :day_gongdian=%d,month_gongdian=%d\n",gongdian_tj.gongdian.day_tj,gongdian_tj.gongdian.month_tj);
+//	fprintf(stderr,"init :day_gongdian=%d,month_gongdian=%d\n",gongdian_tj.gongdian.day_tj,gongdian_tj.gongdian.month_tj);
 	//2140 max_ptongji,sizeof(max_ptongji)*MAXNUM_IMPORTANTUSR_CALC
 	TS newts;
 	TSGet(&newts);

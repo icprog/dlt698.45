@@ -457,7 +457,7 @@ INT8S getComfdBy6001(INT8U baud,INT8U port)
 
 	INT8S result = -1;
 	INT32U baudrate = getMeterBaud(baud);
-	fprintf(stderr,"\n\n baud = %d port = %d baudrate = %d comfd4851 = %d comfd4852 = %d\n\n",baud,port,baudrate,comfd4851,comfd4852);
+//	fprintf(stderr,"\n\n baud = %d port = %d baudrate = %d comfd4851 = %d comfd4852 = %d\n\n",baud,port,baudrate,comfd4851,comfd4852);
 	if (port == S4851)
 	{
 		comfd4851 = open_com_para_chg(S4851, baudrate, comfd4851);
@@ -1032,7 +1032,7 @@ INT16U data07Tobuff698(FORMAT07 Data07,INT8U* dataContent)
 	{
 		dataContent[len++] = dtarray;
 		dataContent[len++] = unitNum;
-		fprintf(stderr,"\n 1---- dataContent[%d] = %d",len,unitNum);
+//		fprintf(stderr,"\n 1---- dataContent[%d] = %d",len,unitNum);
 	}
 
 	for(index = 0;index < unitNum;index++)
@@ -1807,7 +1807,7 @@ INT8S dealRealTimeRequst(INT8U port485)
 	{
 		mmq_head mq_h;
 		ret = mmq_get(mqd_485_main, 1, &mq_h, rev_485_buf);
-
+		fprintf(stderr,"mqd_485_main=%d, ret=%d\n",mqd_485_main,ret);
 		if (ret>0)
 		{
 			fprintf(stderr, "\n\n-----------------vs485_main recvMsg!!!    cmd=%d!!!---------------\n", mq_h.cmd);
@@ -2705,6 +2705,8 @@ void read485_proccess() {
 
 	struct mq_attr attr_485_main;
 	mqd_485_main = mmq_open((INT8S *)PROXY_485_MQ_NAME,&attr_485_main,O_RDONLY);
+
+	fprintf(stderr,"=============mqd_485_main = %d\n",mqd_485_main);
 
 	struct mq_attr attr_485_1_task;
 	mqd_485_1_task = mmq_open((INT8S *)TASKID_485_1_MQ_NAME,&attr_485_1_task,O_RDONLY);
