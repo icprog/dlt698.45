@@ -1145,8 +1145,7 @@ INT16S request698_07Data(INT8U* DI07,INT8U* dataContent,CLASS_6001 meter,CLASS_6
 	subindex = 0;
 	while(subindex < 3)
 	{
-		retLen =
-				request698_07DataSingle(&Data07,SendBuff,SendLen,st6035,dataContent,meter,port485);
+		retLen = request698_07DataSingle(&Data07,SendBuff,SendLen,st6035,dataContent,meter,port485);
 
 		if(retLen >= 0)
 		{
@@ -1508,7 +1507,7 @@ INT16U dealProxy_698(CLASS_6001 obj6001,GETOBJS obj07,INT8U* dataContent,INT8U p
 
 	return retdataLen;
 }
-INT16U dealProxy_645_07(GETOBJS obj07,INT8U* dataContent,INT8U port485)
+INT16U dealProxy_645_07(GETOBJS obj07,INT8U* dataContent,INT8U port485,INT16U timeout)
 {
 	INT16U singledataLen = -1;
 	INT16U dataLen = 0;
@@ -1518,6 +1517,8 @@ INT16U dealProxy_645_07(GETOBJS obj07,INT8U* dataContent,INT8U port485)
 
 	INT8U oadIndex;
 	INT8U diIndex;
+	time_t starttime = time(NULL);
+
 	for(oadIndex = 0;oadIndex < obj07.num;oadIndex++)
 	{
 		DbgPrintToFile1(port485," OAD[%d] = %04x%02x%02x",oadIndex,obj07.oads[oadIndex].OI,obj07.oads[oadIndex].attflg,obj07.oads[oadIndex].attrindex);
@@ -1529,7 +1530,7 @@ INT16U dealProxy_645_07(GETOBJS obj07,INT8U* dataContent,INT8U port485)
 
 		if(OADMap07DI(0x0000,obj07.oads[oadIndex],&obj601F_07Flag)!=1)
 		{
-			DbgPrintToFile1(1,"找不到%04x%02x%02x对应07数据项",obj07.oads[oadIndex].OI,obj07.oads[oadIndex].attflg,obj07.oads[oadIndex].attrindex);
+			asyslog(LOG_WARNING,"dealProxy_645_07 找不到%04x%02x%02x对应07数据项",obj07.oads[oadIndex].OI,obj07.oads[oadIndex].attflg,obj07.oads[oadIndex].attrindex);
 			fprintf(stderr,"\n 找不到%04x%02x%02x对应07数据项",obj07.oads[oadIndex].OI,obj07.oads[oadIndex].attflg,obj07.oads[oadIndex].attrindex);
 			continue;
 		}
@@ -1543,6 +1544,12 @@ INT16U dealProxy_645_07(GETOBJS obj07,INT8U* dataContent,INT8U port485)
 			if(singledataLen >= 0)
 			{
 				dataLen += singledataLen;
+			}
+			time_t nowtime = time(NULL);
+			if(nowtime > (starttime + timeout))
+			{
+		        asyslog(LOG_WARNING, "dealProxy_645_07 time out");
+				return 0;
 			}
 		}
 		if(dataLen == (dataFlagPos+1))
@@ -1574,7 +1581,7 @@ INT8S dealProxy(PROXY_GETLIST* getlist,INT8U port485)
 	getlist->objs[0].tsa.addr[7] = 0x11;
 #endif
 	INT8S result = -1;
-#ifdef TESTDEF
+
 	//判断代理是否已经超时
 	time_t nowtime = time(NULL);
 	fprintf(stderr,"\n\n getlist->timeout = %d",getlist->timeout);
@@ -1582,9 +1589,14 @@ INT8S dealProxy(PROXY_GETLIST* getlist,INT8U port485)
 	{
 		fprintf(stderr,"\n 代理请求超时");
 		getlist->status = 3;
+
+
+		getlist->datalen = 1;
+		memset(getlist->data,0,512);
+		mqs_send((INT8S *)PROXY_NET_MQ_NAME,1,ProxySetResponseList,(INT8U *)getlist,sizeof(PROXY_GETLIST));
 		return result;
 	}
-#endif
+
 	fprintf(stderr,"\n dealProxy--------1 objs num = %d :",getlist->num);
 	DbgPrintToFile1(port485,"dealProxy--------1 objs num = %d :", getlist->num);
 
@@ -1624,11 +1636,11 @@ INT8S dealProxy(PROXY_GETLIST* getlist,INT8U port485)
 
 		switch(obj6001.basicinfo.protocol)
 		{
-		case DLT_645_07:
-			singleLen = dealProxy_645_07(getlist->objs[index],&getlist->data[totalLen],portUse);
-			break;
-		default:
-			singleLen = dealProxy_698(obj6001,getlist->objs[index],&getlist->data[totalLen],portUse);
+			case DLT_645_07:
+				singleLen = dealProxy_645_07(getlist->objs[index],&getlist->data[totalLen],portUse,getlist->objs[index].onetimeout);
+				break;
+			default:
+				singleLen = dealProxy_698(obj6001,getlist->objs[index],&getlist->data[totalLen],portUse);
 		}
 		DbgPrintToFile1(portUse," singleLen = %d",singleLen);
 		if(singleLen > 0)
