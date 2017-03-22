@@ -577,12 +577,12 @@ int doGetAttribute(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
 	piid_g.data = apdu[2];
 	fprintf(stderr,"\n- get type = %d PIID=%02x",getType,piid_g.data);
 
-	getOAD(0,&apdu[3],&oad);
-	data = &apdu[7];					//Data
 
 	switch(getType)
 	{
 		case GET_REQUEST_NORMAL:
+			getOAD(0,&apdu[3],&oad);
+			data = &apdu[7];					//*重新定位数据指针地址*/
 			getRequestNormal(oad,data,csinfo,sendbuf);
 			break;
 		case GET_REQUEST_NORMAL_LIST:
@@ -590,15 +590,17 @@ int doGetAttribute(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
 			getRequestNormalList(data,csinfo,sendbuf);
 			break;
 		case GET_REQUEST_RECORD:
+			getOAD(0,&apdu[3],&oad);
+			data = &apdu[7];
 			getRequestRecord(oad,data,csinfo,sendbuf);
 			break;
 		case GET_REQUEST_RECORD_LIST:
-			/*重新定位数据指针地址*/
 			data = &apdu[3];
 			getRequestRecordList(data,csinfo,sendbuf);
 			break;
 		case GET_REQUEST_RECORD_NEXT:
-
+			data = &apdu[3];
+			getRequestNext(data,csinfo,sendbuf);
 			break;
 
 	}
