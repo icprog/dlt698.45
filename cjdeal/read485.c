@@ -406,8 +406,8 @@ void print6015(CLASS_6015 class6015) {
 				((class6015.data.data[4] << 8) | class6015.data.data[3]));
 		break;
 	}
-	if (class6015.csds.num >= 10) {
-		fprintf(stderr, "csd overvalue 10 error\n");
+	if (class6015.csds.num >= MY_CSD_NUM) {
+		fprintf(stderr, "csd overvalue MY_CSD_NUM error\n");
 		return;
 	}
 	fprintf(stderr, "[5]");
@@ -803,7 +803,6 @@ INT8U getASNInfo(FORMAT07* DI07,Base_DataType* dataType)
 	//电表日期
 	if(memcmp(flag07_date,DI07->DI,4) == 0)
 	{
-		memset(DI07->Data,0,4);
 		*dataType = dtdatetimes;
 		unitNum = 1;
 		INT16U year  = (DI07->Data[3] >> 4)*10 + (DI07->Data[3]&0x0f) + 2000;
@@ -820,17 +819,16 @@ INT8U getASNInfo(FORMAT07* DI07,Base_DataType* dataType)
 	//电表时间
 	if(memcmp(flag07_time,DI07->DI,4) == 0)
 	{
-		memset(DI07->Data,0,4);
 		*dataType = dtnull;
 		unitNum = 1;
-		INT8U hour  = (DI07->Data[2] >> 4)*10 + (DI07->Data[2]&0x0f) + 2000;
+		INT8U hour  = (DI07->Data[2] >> 4)*10 + (DI07->Data[2]&0x0f);
 		INT8U minute = (DI07->Data[1] >> 4)*10 + (DI07->Data[1]&0x0f);
 		INT8U second = (DI07->Data[0] >> 4)*10 + (DI07->Data[0]&0x0f);
-		asyslog(LOG_WARNING, "电表时间 %d 时 %d 分  %d秒",second,minute,second);
+		asyslog(LOG_WARNING, "电表时间 %d 时 %d 分  %d秒",hour,minute,second);
 		DI07->Data[0] = hour;
 		DI07->Data[1] = minute;
 		DI07->Data[2] = second;
-
+		return unitNum;
 	}
 
 	for (index = 0; index < map07DI_698OAD_NUM; index++)

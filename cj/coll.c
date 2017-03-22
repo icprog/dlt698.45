@@ -501,8 +501,8 @@ void print6015(CLASS_6015 class6015)
 									((class6015.data.data[4]<<8)|class6015.data.data[3]));
 		break;
 	}
-	if(class6015.csds.num >= 10) {
-		fprintf(stderr,"csd overvalue 10 error\n");
+	if(class6015.csds.num >= MY_CSD_NUM) {
+		fprintf(stderr,"csd overvalue MY_CSD_NUM error\n");
 		return;
 	}
 	fprintf(stderr,"[5]");
