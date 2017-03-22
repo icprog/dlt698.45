@@ -131,3 +131,42 @@ int appendFile(int shift, int length, unsigned char* buf) {
     return CheckFileSum();
     // return 107;
 }
+
+int GetFileState(RESULT_NORMAL* response) {
+    FILE* fp = fopen((const char*)file_path, "r+");
+    if (fp == NULL) {
+        fprintf(stderr, "尝试获取文件状态，但文件不存在...\n");
+        return 107;
+    }
+
+    //获取文件长度
+    struct stat mstats;
+    stat(file_path, &mstats);
+    fprintf(stderr, "获取文件状态，长度(%d)", mstats.st_size);
+
+    int blocks = mstats.st_size / blocksize;
+    if (mstats.st_size % blocksize > 0) {
+        blocks += 1;
+    }
+    int counts = blocks / 8;
+    int last   = blocks % 8;
+
+    response->data[0] = 0x04;
+    response->data[1] = 0x82;
+    response->data[2] = ((blocks)&0xff00) >> 8;
+    response->data[3] = ((blocks)&0x00ff);
+
+    for (int i = 0; i < counts; i++) {
+        response->data[i + 4] = 0xff;
+    }
+
+    response->data[counts + 4] = 0x00;
+
+    for (int i = 0; i < last; i++) {
+        response->data[counts + 4 + i] |= (0x01 << (7 - i));
+        printf("%02x\n", (0x01 << (7 - i)));
+    }
+    response->datalen += counts + 1 + 4;
+
+    return 0;
+}

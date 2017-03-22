@@ -25,7 +25,10 @@ typedef enum
 	para_no_chg =0,
 	para_6000_chg =0x01,
 	para_6012_chg =0x02,
-	para_6014_chg =0x04
+	para_6014_chg =0x04,
+	para_4000_chg =0x08,
+	para_4204_chg =0x10,
+
 }PARA_CHG_TYPE;
 INT8U para_ChangeType;
 
@@ -43,6 +46,8 @@ INFO_6001_LIST info6000[2];//两路485
 
 INT8U para_change485[2];//参数变更后置1  485 1 2线程清空队列中剩余未执行的任务ID后置0
 
+CLASS_4204	broadcase4204;
+INT8U flagDay_4204[2];//标识当天是否已经广播校时
 //任务调度
 pthread_attr_t dispatchTask_attr_t;
 int thread_dispatchTask_id;

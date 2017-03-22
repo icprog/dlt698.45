@@ -1189,6 +1189,8 @@ int GetDeviceIo(RESULT_NORMAL *response)
 		case 0xF203:
 			GetYxPara(response);
 			break;
+		case 0xF001:
+			GetFileState(response);
 	}
 	return 1;
 }
