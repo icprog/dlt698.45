@@ -24,12 +24,13 @@ void InitClass4300() {
     CLASS19 oi4300 = {};
     int ret        = 0;
     memset(&oi4300, 0, sizeof(CLASS19));
-    ret = readCoverClass(0x4300, 0, &oi4300, sizeof(CLASS19), para_vari_save);
-    if (ret != 1) {
+//    ret = readCoverClass(0x4300, 0, &oi4300, sizeof(CLASS19), para_vari_save);
+//    if (ret != 1)
+    {
         strncpy(oi4300.name, "4300", sizeof(oi4300.name));
         strncpy(oi4300.info.factoryCode, "QDGK", sizeof(oi4300.info.factoryCode));
         strncpy(oi4300.info.softVer, "ZJSJ", sizeof(oi4300.info.softVer));
-        strncpy(oi4300.info.softDate, "170223", sizeof(oi4300.info.softDate));
+        strncpy(oi4300.info.softDate, "170323", sizeof(oi4300.info.softDate));
         strncpy(oi4300.info.hardVer, "1.00", sizeof(oi4300.info.hardVer));
         strncpy(oi4300.info.hardDate, "150628", sizeof(oi4300.info.hardDate));
         strncpy(oi4300.protcol, "DL/T 698.45", sizeof(oi4300.protcol));

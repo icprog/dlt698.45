@@ -412,9 +412,6 @@ int main(int argc, char* argv[]) {
         return EXIT_SUCCESS;
     }
 
-    // struct sigaction sa1;
-    // Setsig(&sa1, ProjectMainExit);
-
     Createmq();
     CreateSem();
     InitSharedMem(argc, argv);
