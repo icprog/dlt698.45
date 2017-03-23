@@ -1934,7 +1934,24 @@ INT8S dealBroadCastSingleMeter(INT8U port485,CLASS_6001 meter)
 		eventbuf[7] = (INT8U)time_offset;
 		fprintf(stderr,"对时事件 Event_311B");
 		Event_311B(meter.basicinfo.addr,eventbuf,8,JProgramInfo);
+#if 0
+		//下发对时
+		switch(meter.basicinfo.protocol)
+			{
+				case DLT_645_07:
+				{
 
+					dataLen = request07_singleOAD(0x0000,timeOAD,meter,&nullst6035,dataContent,port485);
+				}
+
+				break;
+				default:
+				{
+
+					dataLen = deal6015_698(st6015,meter,&nullst6035,dataContent,port485);
+				}
+			}
+#endif
 	}
 	return ret;
 }
