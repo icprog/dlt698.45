@@ -524,14 +524,46 @@ INT8U Get_StandardUnit(OI_698 oi,INT8U *Rbuf,INT8U *Index,
 	DataTimeGet(&ntime);
 
 	//事件发生时间
-	Rbuf[(*Index)++] = dtdatetimes;//7
-	Rbuf[(*Index)++] = ((ntime.year.data>>8)&0x00ff);//8
-	Rbuf[(*Index)++] = ((ntime.year.data)&0x00ff);//9
-	Rbuf[(*Index)++] = ntime.month.data;//10
-	Rbuf[(*Index)++] = ntime.day.data;//11
-	Rbuf[(*Index)++] = ntime.hour.data;//12
-	Rbuf[(*Index)++] = ntime.min.data;//13
-	Rbuf[(*Index)++] = ntime.sec.data;//14
+	if(oi == 0x3106)
+	{
+		if(*Source==0){//停电
+			Rbuf[(*Index)++] = dtdatetimes;//7
+			Rbuf[(*Index)++] = ((ntime.year.data>>8)&0x00ff);//8
+			Rbuf[(*Index)++] = ((ntime.year.data)&0x00ff);//9
+			Rbuf[(*Index)++] = ntime.month.data;//10
+			Rbuf[(*Index)++] = ntime.day.data;//11
+			Rbuf[(*Index)++] = ntime.hour.data;//12
+			Rbuf[(*Index)++] = ntime.min.data;//13
+			Rbuf[(*Index)++] = ntime.sec.data;//14
+		}else{
+			DateTimeBCD tdntime; //上电 开始时间是停电时间
+			tdntime.year.data=TermialPowerInfo.PoweroffTime.tm_year+1900;
+			tdntime.month.data=TermialPowerInfo.PoweroffTime.tm_mon+1;
+			tdntime.day.data=TermialPowerInfo.PoweroffTime.tm_mday;
+			tdntime.hour.data=TermialPowerInfo.PoweroffTime.tm_hour;
+			tdntime.min.data=TermialPowerInfo.PoweroffTime.tm_min;
+			tdntime.sec.data=TermialPowerInfo.PoweroffTime.tm_sec;
+			Rbuf[(*Index)++] = dtdatetimes;//7
+			Rbuf[(*Index)++] = ((tdntime.year.data>>8)&0x00ff);//8
+			Rbuf[(*Index)++] = ((tdntime.year.data)&0x00ff);//9
+			Rbuf[(*Index)++] = tdntime.month.data;//10
+			Rbuf[(*Index)++] = tdntime.day.data;//11
+			Rbuf[(*Index)++] = tdntime.hour.data;//12
+			Rbuf[(*Index)++] = tdntime.min.data;//13
+			Rbuf[(*Index)++] = tdntime.sec.data;//14
+		}
+	}
+	else
+	{
+		Rbuf[(*Index)++] = dtdatetimes;//7
+		Rbuf[(*Index)++] = ((ntime.year.data>>8)&0x00ff);//8
+		Rbuf[(*Index)++] = ((ntime.year.data)&0x00ff);//9
+		Rbuf[(*Index)++] = ntime.month.data;//10
+		Rbuf[(*Index)++] = ntime.day.data;//11
+		Rbuf[(*Index)++] = ntime.hour.data;//12
+		Rbuf[(*Index)++] = ntime.min.data;//13
+		Rbuf[(*Index)++] = ntime.sec.data;//14
+	}
 	//事件结束时间
 	if(oi==0x311C){
 		Rbuf[(*Index)++] = dtdatetimes;//15
@@ -542,8 +574,9 @@ INT8U Get_StandardUnit(OI_698 oi,INT8U *Rbuf,INT8U *Index,
 			oi==0x310D || oi==0x310E){
 		Rbuf[(*Index)++] = 0;//15无结束时间
 	}else if(oi==0x3106){
-		if(*Source==0)
+		if(*Source==0){
 			Rbuf[(*Index)++] = 0;//15无结束时间
+		}
 		else{
 			Rbuf[(*Index)++] = dtdatetimes;//15
 			Rbuf[(*Index)++] = ((ntime.year.data>>8)&0x00ff);//16
@@ -1009,7 +1042,7 @@ INT8U fileread(char *FileName, void *source, INT32U size)
 	else
 	{
 		ret = 0;
-		fprintf(stderr, "%s read error\n\r", FileName);
+		//fprintf(stderr, "%s read error\n\r", FileName);
 	}
 	return ret;
 }
