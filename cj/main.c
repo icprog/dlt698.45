@@ -42,6 +42,7 @@ static char* usage_para = "\n--------------------参变量类对象-------------
                           "		 【参数读取】cj para pro 4300 		\n"
                           "		 【数据初始化】cj para method 4300 3		\n"
 						  "		 【时钟参数】cj para pro 4000		\n"
+						  "		 【终端广播校时】cj para pro 4204		\n"
                           "-------------------------------------------------------\n\n";
 
 static char* usage_inoutdev = "\n-------------------A.12　输入输出设备类对象----------------------------\n"
@@ -245,7 +246,6 @@ int main(int argc, char* argv[])
         return EXIT_SUCCESS;
     }
     if (strcmp("taskdata", argv[1]) == 0) {
-    	fprintf(stderr, "\n分析任务数据文件内容\n");
     	analyTaskData(argc,argv);
     	return EXIT_SUCCESS;
     }

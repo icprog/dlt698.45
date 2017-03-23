@@ -1110,9 +1110,10 @@ FILE* opendatafile(INT8U taskid,CURR_RECINFO recinfo)
 	char	fname[FILENAMELEN]={};
 	TS ts_rec;
 	struct tm *tm_p;
+	fprintf(stderr,"\nrecinfo.rec_start = %ld--curr-%ld\n",recinfo.rec_start,time(NULL));
 	tm_p = gmtime(&recinfo.rec_start);
-	ts_rec.Year = tm_p->tm_year;
-	ts_rec.Month = tm_p->tm_mon;
+	ts_rec.Year = tm_p->tm_year+1900;
+	ts_rec.Month = tm_p->tm_mon+1;
 	ts_rec.Day = tm_p->tm_mday;
 	ts_rec.Hour = 0;
 	ts_rec.Minute = 0;
@@ -1370,10 +1371,12 @@ INT16S GetTaskHead(FILE *fp,INT16U *head_len,INT16U *tsa_len,HEAD_UNIT **head_un
 INT8U updatedatafp(FILE *fp,INT8U recno,INT8U selectype,INT16U interval,CURR_RECINFO recinfo,INT8U taskid)//更新数据文件数据流指针
 {
 	time_t time_rec=0;
-	struct tm *tm_p = NULL,*tm_pold = NULL;
+	struct tm *tm_p = NULL;
+	INT8U oldday=0,nowday=0;
 	char dirname[FILENAMELEN]={};
 	char	fname[FILENAMELEN]={};
-	if(recno <= 1)//recno从1开始
+	fprintf(stderr,"\nrecno=%d\n",recno);
+	if(recno < 1)//recno从1开始
 		return 0;
 	switch(selectype)
 	{
@@ -1381,20 +1384,25 @@ INT8U updatedatafp(FILE *fp,INT8U recno,INT8U selectype,INT16U interval,CURR_REC
 		break;
 	case 7://
 		time_rec = recinfo.rec_start+interval*(recno-1);//recno从1开始
-		tm_pold = gmtime(&time_rec);
+		tm_p = gmtime(&time_rec);
 		time_rec = recinfo.rec_start+interval*recno;
 		tm_p = gmtime(&time_rec);
 		break;
 	case 10:
 		time_rec = recinfo.rec_start-interval*(recno-1);//recno从1开始
-		tm_pold = gmtime(&time_rec);
+		tm_p = gmtime(&time_rec);
+		oldday=tm_p->tm_mday;
+		fprintf(stderr,"\n1111olay=%d\n",oldday);
 		time_rec = recinfo.rec_start-interval*recno;
 		tm_p = gmtime(&time_rec);
+		localtime_r(&time_rec,tm_p);
+		nowday=tm_p->tm_mday;
+		fprintf(stderr,"\n222nowday=%d\n",nowday);
 		break;
 	default://不合理
 		break;
 	}
-	if(tm_pold->tm_mday != tm_p->tm_mday)
+	if(oldday != nowday)
 	{
 		if (fname==NULL)
 			return 0;
@@ -1403,7 +1411,8 @@ INT8U updatedatafp(FILE *fp,INT8U recno,INT8U selectype,INT16U interval,CURR_REC
 		makeSubDir(dirname);
 		sprintf(dirname,"%s/%03d",TASKDATA,taskid);
 		makeSubDir(dirname);
-		sprintf(fname,"%s/%03d/%04d%02d%02d.dat",TASKDATA,taskid,tm_p->tm_year,tm_p->tm_mon,tm_p->tm_mday);
+		sprintf(fname,"%s/%03d/%04d%02d%02d.dat",TASKDATA,taskid,tm_p->tm_year+1900,tm_p->tm_mon+1,tm_p->tm_mday);
+		fprintf(stderr,"\n更新文件流：%s\n",fname);
 		fp =fopen(fname,"r");
 		if(fp != NULL)
 			return 2;
@@ -1469,12 +1478,46 @@ INT8U initrecinfo(CURR_RECINFO *recinfo,TASKSET_INFO tasknor_info,INT8U selectyp
 		break;
 	case 10://主动上报类
 		recinfo->recordno_num = select.selec10.recordn;
+		fprintf(stderr,"\nselect.selec10.recordn=%d\n",select.selec10.recordn);
 		recinfo->rec_start = time(NULL);
-		recinfo->rec_end = recinfo->rec_start+recinfo->recordno_num*tasknor_info.freq;
+		recinfo->rec_end = recinfo->rec_start-recinfo->recordno_num*tasknor_info.freq;
 		break;
 	default:
 		memset(recinfo,0x00,sizeof(CURR_RECINFO));
 		break;
+	}
+	return 0;
+}
+/*
+ * 计算当前索引序号
+ */
+INT8U getcurecord(INT8U selectype,int *curec,int curecn,int runtime)
+{
+	int currecord = *curec;
+	if(selectype == 7 || selectype == 5)
+		currecord = (currecord+curecn)%runtime;
+	else if(selectype == 10)
+	{
+		int cnt=0;
+		int daymax = 10;//最多可查找十天的，不用while(1),防止死循环
+		while(daymax--)
+		{
+			if(currecord<curecn)
+			{
+				if(currecord+cnt*runtime >= curecn)
+				{
+					*curec = currecord+cnt*runtime - curecn;
+					return 1;
+				}
+				cnt++;
+			}
+			else
+			{
+				*curec = currecord-curecn;
+				fprintf(stderr,"\n\n");
+				return 1;
+			}
+		}
 	}
 	return 0;
 }
@@ -1562,11 +1605,14 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds)
 		//4\计算当前点
 		currecord = getrecordno(tasknor_info.starthour,tasknor_info.startmin,tasknor_info.freq,recinfo);//freq为执行间隔,单位分钟
 //		for(j=0; j<recordn ; j++)
+		fprintf(stderr,"\n招测的序列总数%d\n",recinfo.recordno_num);
 		for(j=1; j<=recinfo.recordno_num;j++)		//test
 		{
-			if(updatedatafp(fp,i,selectype,tasknor_info.freq,recinfo,taskid)==2)//更新数据流
+			if(updatedatafp(fp,j,selectype,tasknor_info.freq,recinfo,taskid)==2)//更新数据流
 			{
+				fprintf(stderr,"\n文件流更新前soffsetTsa=%d\n",offsetTsa);
 				offsetTsa = findTsa(tsa_group[i],fp,headsize,blocksize);
+				fprintf(stderr,"\n文件流更新后offsetTsa=%d\n",offsetTsa);
 			}
 			if(offsetTsa == 0) {
 				fprintf(stderr,"task未找到数据,i=%d\n",i);
@@ -1575,14 +1621,10 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds)
 				continue;
 			}
 			//5\定位指定的点（行）, 返回offset
-			if(selectype == 7 || selectype == 5)
-			{
-				recordoffset = findrecord(offsetTsa,recordlen,currecord+j);
-			}
-			else if(selectype == 10)
-			{
-				recordoffset = findrecord(offsetTsa,recordlen,currecord-j);//selector10 例如当前在10，上1为10-0=10 上2为10-1=9
-			}
+			if(getcurecord(selectype,&currecord,j,tasknor_info.runtime) == 0)//天数超出10天
+				break;
+			fprintf(stderr,"\n计算出来的currecord=%d\n",currecord);
+			recordoffset = findrecord(offsetTsa,recordlen,currecord);
 			memset(recordbuf,0x00,sizeof(recordbuf));
 			//6\读出一行数据到临时缓存
 			fseek(fp,recordoffset,SEEK_SET);
@@ -1638,7 +1680,7 @@ int getSelector(OAD oad_h,RSD select, INT8U selectype, CSD_ARRAYTYPE csds, INT8U
 	case 5:
 		break;
 	case 7:
-		GetTaskData(oad_h,select,selectype,csds);//程序里面计算
+		framesum = GetTaskData(oad_h,select,selectype,csds);//程序里面计算
 		break;
 	case 10:
 		framesum = GetTaskData(oad_h,select,selectype,csds);
@@ -1649,13 +1691,13 @@ int getSelector(OAD oad_h,RSD select, INT8U selectype, CSD_ARRAYTYPE csds, INT8U
 }
 
 /*
- *
+ * 返回： 当前文件读取偏移位置
  */
 long int readFrameDataFile(char *filename,int offset,INT8U *buf,int *datalen)
 {
 	FILE *fp=NULL;
 	int bytelen=0;
-
+	long int	retoffset=0;
 	fp = fopen(filename,"r");
 	if (fp!=NULL && buf!=NULL)
 	{
@@ -1667,7 +1709,9 @@ long int readFrameDataFile(char *filename,int offset,INT8U *buf,int *datalen)
 		if (fread(buf,bytelen,1,fp) <=0 ) 	//按数据报文长度，读出全部字节
 			return 0;
 		*datalen = bytelen;
-		return (ftell(fp));		 			//返回当前偏移位置
+		retoffset = ftell(fp);
+		fclose(fp);
+		return retoffset;		 			//返回当前偏移位置
 	}
 	return 0;
 }
