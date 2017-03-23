@@ -714,6 +714,9 @@ void TerminalInfo(INT16U attr_act,INT8U *data)
 			//Event_3100(NULL,0,memp);//初始化，产生事件
 			fprintf(stderr,"\n终端数据初始化!");
 			break;
+		case 151:
+
+			break;
 	}
 }
 void FileTransMothod(INT16U attr_act,INT8U *data)

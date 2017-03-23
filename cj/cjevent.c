@@ -337,14 +337,18 @@ void event_process(int argc, char *argv[])
                     l1=Getbuf[index++];
                     fprintf(stderr,"发生时间：%d-%d-%d %d:%d:%d\n",((l2<<8)+l1),
                     		Getbuf[index++],Getbuf[index++],Getbuf[index++],Getbuf[index++],Getbuf[index++]);
-                    index++;//0x1c date-s 结束时间
-                    if(oi==0x311C){
-                    	fprintf(stderr,"该事件无结束时间!\n");
+                    INT8U DT=Getbuf[index++];
+                    if(DT==0x1C){
+                       if(oi==0x311C){
+							fprintf(stderr,"该事件无结束时间!\n");
+						}else{
+							l2=Getbuf[index++];
+							l1=Getbuf[index++];
+							fprintf(stderr,"结束时间：%d-%d-%d %d:%d:%d\n",((l2<<8)+l1),
+														Getbuf[index++],Getbuf[index++],Getbuf[index++],Getbuf[index++],Getbuf[index++]);
+						}
                     }else{
-                    	l2=Getbuf[index++];
-                    	l1=Getbuf[index++];
-                    	fprintf(stderr,"结束时间：%d-%d-%d %d:%d:%d\n",((l2<<8)+l1),
-                    	                            Getbuf[index++],Getbuf[index++],Getbuf[index++],Getbuf[index++],Getbuf[index++]);
+                    	fprintf(stderr,"该事件无结束时间!\n");
                     }
                     INT8U Len=0;
                     fprintf(stderr,"事件源类型：");

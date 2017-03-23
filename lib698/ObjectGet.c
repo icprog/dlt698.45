@@ -28,25 +28,73 @@ extern INT8U securetype;
 extern ProgramInfo *memp;
 extern PIID piid_g;
 
+typedef struct {
+	INT8U	repsonseType;		//分帧响应类型 CHOICE 	错误信息[0]   DAR，  对象属性[1]   SEQUENCE OF A-ResultNormal，记录型对象属性	[2] SEQUENCE OF A-ResultRecord
+	INT16U	subframeSum;		//Get 分帧总数
+	INT16U	frameNo;			//帧序号
+	INT16U	currSite;			//当前帧序号在文件中位置
+	INT16U	nextSite;			//下一帧数据偏移位置
+} NEXT_INFO;	//getResponseNext 需要保存的信息内容
+
+static NEXT_INFO	next_info={};
+
+int BuildFrame_GetResponseNext(INT8U response_type,CSINFO *csinfo,INT8U DAR,INT16U datalen,INT8U *databuf,INT8U *sendbuf)
+{
+	int index=0, hcsi=0;
+	csinfo->dir = 1;
+	csinfo->prm = 0;
+
+	index = FrameHead(csinfo,sendbuf);
+	hcsi = index;
+	index = index + 2;
+	sendbuf[index++] = GET_RESPONSE;
+	sendbuf[index++] = response_type;
+	sendbuf[index++] = piid_g.data;		//	piid
+
+	if(next_info.frameNo==next_info.subframeSum) {
+		sendbuf[index++] = TRUE;		//末帧标志
+	}else sendbuf[index++] = FALSE;
+	sendbuf[index++] = next_info.frameNo;		//分帧序号
+	if (datalen > 0)
+	{
+		if(next_info.repsonseType==GET_REQUEST_NORMAL || next_info.repsonseType==GET_REQUEST_NORMAL_LIST) {
+			sendbuf[index++] = 1;		//对象属性[1]   SEQUENCE OF A-ResultNormal
+		}else if(next_info.repsonseType==GET_REQUEST_RECORD || next_info.repsonseType==GET_REQUEST_RECORD_LIST) {
+			sendbuf[index++] = 2;		//记录型对象属性[2]SEQUENCE OF A-ResultRecord
+		}
+		memcpy(&sendbuf[index],databuf,datalen);
+		index = index + datalen;
+	}else
+	{
+		sendbuf[index++] = 0;//choice 0  ,DAR 有效 (数据访问可能的结果)
+		sendbuf[index++] = DAR;
+	}
+	sendbuf[index++] = 0;
+	sendbuf[index++] = 0;
+	FrameTail(sendbuf,index,hcsi);
+	if(pSendfun!=NULL)
+		pSendfun(comfd,sendbuf,index+3);
+	return (index+3);
+}
 
 int BuildFrame_GetResponseRecord(INT8U response_type,CSINFO *csinfo,RESULT_RECORD record,INT8U *sendbuf)
 {
 	int index=0, hcsi=0;
 	csinfo->dir = 1;
 	csinfo->prm = 0;
+
 	index = FrameHead(csinfo,sendbuf);
 	hcsi = index;
 	index = index + 2;
 	sendbuf[index++] = GET_RESPONSE;
 	sendbuf[index++] = response_type;
-	sendbuf[index++] = piid_g.data;	//	piid
+	sendbuf[index++] = piid_g.data;		//	piid
 
 	if (record.datalen > 0)
 	{
 		memcpy(&sendbuf[index],record.data,record.datalen);
 		index = index + record.datalen;
-	}else
-	{
+	}else	{
 		sendbuf[index++] = 0;//choice 0  ,DAR 有效 (数据访问可能的结果)
 		sendbuf[index++] = record.dar;
 	}
@@ -57,7 +105,6 @@ int BuildFrame_GetResponseRecord(INT8U response_type,CSINFO *csinfo,RESULT_RECOR
 		pSendfun(comfd,sendbuf,index+3);
 	return (index+3);
 }
-
 
 int BuildFrame_GetResponse(INT8U response_type,CSINFO *csinfo,INT8U oadnum,RESULT_NORMAL response,INT8U *sendbuf)
 {
@@ -90,14 +137,14 @@ int BuildFrame_GetResponse(INT8U response_type,CSINFO *csinfo,INT8U oadnum,RESUL
 	return (index+3);
 }
 
-
 int GetMeterInfo(RESULT_NORMAL *response)
 {
 	int 	index=0;
 	INT8U 	*data = NULL;
 	OAD oad={};
 	CLASS_6001	 meter={};
-	int		i=0,blknum=0;
+	int		i=0,blknum=0,meternum=0;
+	int		retlen=0;
 
 	oad = response->oad;
 	data = response->data;
@@ -106,14 +153,21 @@ int GetMeterInfo(RESULT_NORMAL *response)
 	blknum = getFileRecordNum(oad.OI);
 	fprintf(stderr,"GetMeterInfo oad.oi=%04x blknum=%d\n",oad.OI,blknum);
 	if(blknum<=1)	return 0;
-	index += create_array(&data[index],blknum-1);		//个数-1：文件第一个块为空 电表总数
+	index = 2;			//空出 array
 	for(i=0;i<blknum;i++)
 	{
-		index += Get_6001(i,&data[index]);
+		retlen = Get_6001(i,&data[index]);
+		if(retlen!=0) {
+
+			meternum++;
+		}
+		index += retlen;
 	}
+	create_array(&data[0],meternum);		//个数-1：文件第一个块为空 电表总数
 	response->datalen = index;
 	return 0;
 }
+
 int GetTaskInfo(RESULT_NORMAL *response)
 {
 	return 0;
@@ -755,13 +809,15 @@ int getSelector1(RESULT_RECORD *record)
 	return ret;
 }
 
-
-int doGetrecord(OAD oad,INT8U *data,RESULT_RECORD *record)
+/*
+ * type = 3:GetResponseRecord
+ * type = 4:GetResponseRecordList
+ * */
+int doGetrecord(INT8U type,OAD oad,INT8U *data,RESULT_RECORD *record,INT16U *subframe)
 {
 	int 	source_index=0;		//getrecord 指针
 	int		dest_index=0;		//getreponse 指针
 	INT8U 	SelectorN =0;
-	int  	framesum=0;		//分帧
 	int		datalen=0;
 
 	fprintf(stderr,"\nGetRequestRecord   oi=%x  %02x  %02x",record->oad.OI,record->oad.attflg,record->oad.attrindex);
@@ -775,6 +831,7 @@ int doGetrecord(OAD oad,INT8U *data,RESULT_RECORD *record)
 	dest_index += create_OAD(&record->data[dest_index],record->oad);
 	switch(SelectorN) {
 	case 1:		//指定对象指定值
+		*subframe = 0;		//TODO:未处理分帧
 		record->data[dest_index++] = 1;	//一行记录M列属性描述符 	RCSD
 		record->data[dest_index++] = 0;	//OAD
 		record->select.selec1.oad.attrindex = 0;		//上送属性下所有索引值
@@ -790,15 +847,22 @@ int doGetrecord(OAD oad,INT8U *data,RESULT_RECORD *record)
 	case 7:
 		dest_index +=fill_RCSD(0,&record->data[dest_index],record->rcsd.csds);
 		record->data = &TmpDataBuf[dest_index];
-		getSelector(oad,record->select, record->selectType,record->rcsd.csds,(INT8U *)record->data,(int *)&record->datalen);
-		record->data = TmpDataBuf;				//data 指向回复报文帧头
-		record->datalen += dest_index;			//数据长度+ResultRecord
-//		fprintf(stderr,"\nreturn len =%d\n",index);
-//		fprintf(stderr,"\n报文(%d)：",index);
-//		for(i=0;i<index;i++)
-//			fprintf(stderr," %02x",record->data[i]);
+		*subframe = getSelector(oad,record->select, record->selectType,record->rcsd.csds,(INT8U *)record->data,(int *)&record->datalen);
+		if(*subframe==0) {		//无分帧
+			next_info.nextSite = readFrameDataFile("/nand/frmdata",0,TmpDataBuf,&datalen);
+			if(type==GET_REQUEST_RECORD) {//文件中第一个字节保存的是：SEQUENCE OF A-ResultRecord，此处从TmpDataBuf[1]上送，上送长度也要-1
+				if(datalen>=1) {
+					record->data = &TmpDataBuf[1];				//data 指向回复报文帧头
+					record->datalen += (datalen-1);				//数据长度+ResultRecord
+				}
+			}else if(type==GET_REQUEST_RECORD_LIST) {
+				record->data = TmpDataBuf;				//data 指向回复报文帧头
+				record->datalen += dest_index;			//数据长度+ResultRecord
+			}
+		}
 		break;
 	case 9:		//指定读取上第n次记录
+		*subframe = 0;		//TODO:未处理分帧
 		dest_index +=fill_RCSD(0,&record->data[dest_index],record->rcsd.csds);
 		record->data = &TmpDataBuf[dest_index];
 		Getevent_Record_Selector(record,memp);
@@ -806,63 +870,23 @@ int doGetrecord(OAD oad,INT8U *data,RESULT_RECORD *record)
 		record->datalen += dest_index;			//数据长度+ResultRecord
 		break;
 	case 10:	//指定读取最新的n条记录
-		framesum = getSelector(record->oad,record->select,record->selectType,record->rcsd.csds,NULL,NULL);
-		if(framesum==0) {		//无分帧
-			readFrameDataFile("/nand/frmdata",0,TmpDataBuf,&datalen);//文件中第一个字节保存的是：SEQUENCE OF A-ResultRecord，此处从TmpDataBuf[1]上送，上送长度也要-1
-			if(datalen>=1) {
-				record->data = &TmpDataBuf[1];				//data 指向回复报文帧头
-				record->datalen += (datalen-1);
+		*subframe = getSelector(record->oad,record->select,record->selectType,record->rcsd.csds,NULL,NULL);
+		if(*subframe==0) {		//无分帧
+			next_info.nextSite = readFrameDataFile("/nand/frmdata",0,TmpDataBuf,&datalen);//文件中第一个字节保存的是：SEQUENCE OF A-ResultRecord，此处从TmpDataBuf[1]上送，上送长度也要-1
+			if(type==GET_REQUEST_RECORD) {//文件中第一个字节保存的是：SEQUENCE OF A-ResultRecord，此处从TmpDataBuf[1]上送，上送长度也要-1
+				if(datalen>=1) {								//TODO:浙江曲线招测测试过
+					record->data = &TmpDataBuf[1];				//data 指向回复报文帧头
+					record->datalen += (datalen-1);				//数据长度+ResultRecord
+				}
+			}else if(type==GET_REQUEST_RECORD_LIST) {
+				record->data = TmpDataBuf;				//data 指向回复报文帧头
+				record->datalen += dest_index;			//数据长度+ResultRecord
 			}
 		}
 		break;
 	}
 	fprintf(stderr,"\n---doGetrecord end\n");
 	return source_index;
-}
-
-int getRequestRecord(OAD oad,INT8U *data,CSINFO *csinfo,INT8U *sendbuf)
-{
-	RESULT_RECORD record;
-
-	memset(TmpDataBuf,0,sizeof(TmpDataBuf));
-	record.oad = oad;
-	record.data = TmpDataBuf;
-	record.datalen = 0;
-	doGetrecord(oad,data,&record);
-	BuildFrame_GetResponseRecord(GET_REQUEST_RECORD,csinfo,record,sendbuf);
-//	securetype = 0;		//清除安全等级标识
-	return 1;
-}
-
-
-int getRequestRecordList(INT8U *data,CSINFO *csinfo,INT8U *sendbuf)
-{
-	RESULT_RECORD record={};
-	OAD	oad={};
-	int i=0;
-	int recordnum = 0;
-	int destindex=0;
-	int sourceindex=0;
-
-	memset(TmpDataBufList,0,sizeof(TmpDataBufList));
-	recordnum = data[sourceindex++];
-	fprintf(stderr,"getRequestRecordList  Result-record=%d \n ",recordnum);
-	TmpDataBufList[destindex++] = recordnum;
-	for(i=0;i<recordnum;i++) {
-		memset(TmpDataBuf,0,sizeof(TmpDataBuf));
-		record.data = TmpDataBuf;
-		record.datalen = 0;
-		sourceindex += getOAD(0,&data[sourceindex],&oad);
-		record.oad = oad;
-		sourceindex += doGetrecord(oad,&data[sourceindex],&record);
-		memcpy(&TmpDataBufList[destindex],record.data,record.datalen);
-		destindex += record.datalen;
-	}
-	record.data = TmpDataBufList;
-	record.datalen = destindex;
-	BuildFrame_GetResponseRecord(GET_REQUEST_RECORD,csinfo,record,sendbuf);
-///	securetype = 0;		//清除安全等级标识
-	return 1;
 }
 
 int GetVariable(RESULT_NORMAL *response)
@@ -1050,7 +1074,7 @@ int GetEnvironmentValue(RESULT_NORMAL *response)
 	}
 	return 1;
 }
-int GetCollPara(RESULT_NORMAL *response)
+int GetCollPara(INT8U getChoice,RESULT_NORMAL *response)
 {
 	switch(response->oad.OI)
 	{
@@ -1089,7 +1113,7 @@ int GetDeviceIo(RESULT_NORMAL *response)
 	}
 	return 1;
 }
-int doGetnormal(RESULT_NORMAL *response)
+int doGetnormal(INT8U getChoice,RESULT_NORMAL *response)
 {
 	INT16U oi = response->oad.OI;
 	INT8U oihead = (oi & 0xF000) >>12;
@@ -1106,7 +1130,7 @@ int doGetnormal(RESULT_NORMAL *response)
 			GetEnvironmentValue(response);
 			break;
 		case 6:			//采集监控类对象
-			GetCollPara(response);
+			GetCollPara(getChoice,response);
 			break;
 		case 0xF:		//文件类/esam类/设备类
 			GetDeviceIo(response);
@@ -1114,9 +1138,10 @@ int doGetnormal(RESULT_NORMAL *response)
 	}
 	return 0;
 }
+
 int getRequestNormal(OAD oad,INT8U *data,CSINFO *csinfo,INT8U *sendbuf)
 {
-	RESULT_NORMAL response;
+	RESULT_NORMAL response={};
 	INT8U oadtmp[4]={};
 
 	oadtmp[0] = (oad.OI>>8) & 0xff;
@@ -1129,7 +1154,7 @@ int getRequestNormal(OAD oad,INT8U *data,CSINFO *csinfo,INT8U *sendbuf)
 	response.oad = oad;
 	response.data = TmpDataBuf+5; //4 + 1             oad（4字节） + choice(1字节)
 	response.datalen = 0;
-	doGetnormal(&response);
+	doGetnormal(GET_REQUEST_NORMAL,&response);
 	if (response.datalen>0)
 	{
 		TmpDataBuf[4] = 1;//数据
@@ -1148,7 +1173,7 @@ int getRequestNormal(OAD oad,INT8U *data,CSINFO *csinfo,INT8U *sendbuf)
 
 int getRequestNormalList(INT8U *data,CSINFO *csinfo,INT8U *sendbuf)
 {
-	RESULT_NORMAL response;
+	RESULT_NORMAL response={};
 	INT8U oadtmp[4]={};
 	INT8U oadnum = data[0];
 	int i=0,listindex=0;
@@ -1163,7 +1188,7 @@ int getRequestNormalList(INT8U *data,CSINFO *csinfo,INT8U *sendbuf)
 		response.datalen = 0;
 		response.data = TmpDataBuf + 5;
 		fprintf(stderr,"\n【%d】OI = %x  %02x  %02x",i,response.oad.OI,response.oad.attflg,response.oad.attrindex);
-		doGetnormal(&response);
+		doGetnormal(GET_REQUEST_NORMAL_LIST,&response);
 
 		memcpy(&TmpDataBufList[listindex + 0],oadtmp,4);
 		if (response.datalen>0)
@@ -1182,5 +1207,96 @@ int getRequestNormalList(INT8U *data,CSINFO *csinfo,INT8U *sendbuf)
 	response.data = TmpDataBufList;
 	response.datalen = listindex;
 	BuildFrame_GetResponse(GET_REQUEST_NORMAL_LIST,csinfo,oadnum,response,sendbuf);
+	return 1;
+}
+
+int getRequestRecord(OAD oad,INT8U *data,CSINFO *csinfo,INT8U *sendbuf)
+{
+	RESULT_RECORD 	record={};
+	INT16U 		subframe=0;
+
+	memset(TmpDataBuf,0,sizeof(TmpDataBuf));
+	record.oad = oad;
+	record.data = TmpDataBuf;
+	record.datalen = 0;
+	doGetrecord(GET_REQUEST_RECORD,oad,data,&record,&subframe);
+	if(subframe==0) {
+		BuildFrame_GetResponseRecord(GET_REQUEST_RECORD,csinfo,record,sendbuf);
+	}else  {
+		next_info.subframeSum = subframe;
+		next_info.frameNo = 1;
+		next_info.repsonseType = GET_REQUEST_RECORD;	//此处不直接赋值上送值是因为需要读取分帧文件的第一个字节是sequence of的值
+		BuildFrame_GetResponseNext(GET_REQUEST_RECORD_NEXT,csinfo,record.dar,record.datalen,record.data,sendbuf);
+	}
+//	securetype = 0;		//清除安全等级标识
+	return 1;
+}
+
+
+int getRequestRecordList(INT8U *data,CSINFO *csinfo,INT8U *sendbuf)
+{
+	RESULT_RECORD record={};
+	OAD	oad={};
+	INT16U 		subframe=0;
+	int i=0;
+	int recordnum = 0;
+	int destindex=0;
+	int sourceindex=0;
+
+	memset(TmpDataBufList,0,sizeof(TmpDataBufList));
+	recordnum = data[sourceindex++];
+	fprintf(stderr,"getRequestRecordList  Result-record=%d \n ",recordnum);
+	TmpDataBufList[destindex++] = recordnum;
+	for(i=0;i<recordnum;i++) {
+		memset(TmpDataBuf,0,sizeof(TmpDataBuf));
+		record.data = TmpDataBuf;
+		record.datalen = 0;
+		sourceindex += getOAD(0,&data[sourceindex],&oad);
+		record.oad = oad;
+		sourceindex += doGetrecord(GET_REQUEST_RECORD_LIST,oad,&data[sourceindex],&record,&subframe);
+		memcpy(&TmpDataBufList[destindex],record.data,record.datalen);
+		destindex += record.datalen;
+	}
+	record.data = TmpDataBufList;
+	record.datalen = destindex;
+	if(subframe==0) {
+		BuildFrame_GetResponseRecord(GET_REQUEST_RECORD_LIST,csinfo,record,sendbuf);//原来是GET_REQUEST_RECORD，是否有错？？
+	}else  {
+		next_info.subframeSum = subframe;
+		next_info.frameNo = 1;
+		next_info.repsonseType = GET_REQUEST_RECORD_LIST;
+		BuildFrame_GetResponseNext(GET_REQUEST_RECORD_NEXT,csinfo,record.dar,record.datalen,record.data,sendbuf);
+	}
+///	securetype = 0;		//清除安全等级标识
+	return 1;
+}
+
+int getRequestNext(INT8U *data,CSINFO *csinfo,INT8U *sendbuf)
+{
+	INT16U  okFrame = 0;
+	int		datalen = 0;
+	INT8U	DAR=success;
+
+	okFrame = (data[0]<<8) | (data[1]);
+	fprintf(stderr,"getRequestNext 接收最近一块数据块序号=%d\n",okFrame);
+	switch(next_info.repsonseType) {
+	case 1:		//对象属性         	[1]   SEQUENCE OF A-ResultNormal
+		next_info.frameNo = okFrame+1;
+
+
+
+		break;
+	case 2:		//记录型对象属性    	[2]   SEQUENCE OF A-ResultRecord
+		next_info.frameNo = okFrame+1;
+		next_info.currSite = next_info.nextSite;
+		next_info.nextSite = readFrameDataFile("/nand/frmdata",next_info.currSite,TmpDataBuf,&datalen);//文件中第一个字节保存的是：SEQUENCE OF A-ResultRecord，此处从TmpDataBuf[1]上送，上送长度也要-1
+		if(next_info.repsonseType==GET_REQUEST_RECORD) {
+			if(datalen>=1)  datalen=datalen-1;
+			BuildFrame_GetResponseNext(GET_REQUEST_RECORD_NEXT,csinfo,DAR,datalen,&TmpDataBuf[1],sendbuf);
+		}else {
+			BuildFrame_GetResponseNext(GET_REQUEST_RECORD_NEXT,csinfo,DAR,datalen,TmpDataBuf,sendbuf);
+		}
+		break;
+	}
 	return 1;
 }
