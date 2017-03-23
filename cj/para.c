@@ -47,10 +47,10 @@ void print4204()
 	memset(&oi4204,0,sizeof(CLASS_4204));
 	fprintf(stderr,"广播校时参数[4204]\n");
 	readCoverClass(0x4204,0,&oi4204,sizeof(CLASS_4204),para_vari_save);
-	fprintf(stderr,"终端广播校时开始时间：%d %d %d\n",oi4204.startime[0],oi4204.startime[1],oi4204.startime[2]);
+	fprintf(stderr,"终端广播校时开始时间：%d:%d:%d\n",oi4204.startime[0],oi4204.startime[1],oi4204.startime[2]);
 	fprintf(stderr,"是否启用：%d\n",oi4204.enable);
 
-	fprintf(stderr,"单地址终端广播校时开始时间：%d %d %d\n",oi4204.startime1[0],oi4204.startime1[1],oi4204.startime1[2]);
+	fprintf(stderr,"单地址终端广播校时开始时间：%d:%d:%d\n",oi4204.startime1[0],oi4204.startime1[1],oi4204.startime1[2]);
 	fprintf(stderr,"时钟误差阀值：%d\n",oi4204.upleve);
 	fprintf(stderr,"是否启用：%d\n",oi4204.enable1);
 }
@@ -114,6 +114,7 @@ void para_process(int argc, char *argv[])
 				break;
 			case 0x4000:
 				print4000();
+				break;
 			case 0x4204:
 				print4204();
 				break;

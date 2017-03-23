@@ -824,6 +824,7 @@ int Get_6001(INT8U seqnum,INT8U *data)
 	CLASS_6001 meter={};
 
 	if(readParaClass(0x6000,&meter,seqnum)==1) {
+		if(meter.sernum==0 || meter.sernum==0xffff)  return index;
 		fprintf(stderr,"\n 6000 read meter ok");
 		index += create_struct(&data[index],4);		//属性2：struct 四个元素
 		index += fill_long_unsigned(&data[index],meter.sernum);		//配置序号

@@ -1868,6 +1868,73 @@ INT8S dealProxyQueue(INT8U port485)
 	}
 	return result;
 }
+INT8S dealBroadCastSingleMeter(INT8U port485,CLASS_6001 meter)
+{
+	fprintf(stderr,"终端单地址广播校时 测量点序号 = %d",meter.sernum);
+
+	INT8S ret = -1;
+	INT8U prtIndex = 0;
+
+	if(getComfdBy6001(meter.basicinfo.baud,meter.basicinfo.port.attrindex) != 1)
+	{
+		fprintf(stderr," dealBroadCastSingleMeter--------2");
+		return ret;
+	}
+
+	INT8U dataContent[DATA_CONTENT_LEN];
+	memset(dataContent,0,DATA_CONTENT_LEN);
+
+	CLASS_6035 nullst6035;
+	memset(&nullst6035,0,sizeof(CLASS_6035));
+	INT16S dataLen = 0;
+	switch(meter.basicinfo.protocol)
+	{
+		case DLT_645_07:
+		{
+			OAD timeOAD;
+			timeOAD.OI = 0x4000;
+			timeOAD.attflg = 0x02;
+			timeOAD.attrindex = 0x00;
+			dataLen = request07_singleOAD(0x0000,timeOAD,meter,&nullst6035,dataContent,port485);
+		}
+
+		break;
+		default:
+		{
+			CLASS_6015 st6015;
+			memset(&st6015,0,sizeof(CLASS_6015));
+
+			st6015.cjtype = TYPE_NULL;
+			st6015.csds.num = 1;
+			st6015.csds.csd[0].type = 0;
+			st6015.csds.csd[0].csd.oad.OI = 0x4000;
+			st6015.csds.csd[0].csd.oad.attflg = 0x02;
+			st6015.csds.csd[0].csd.oad.attrindex = 0x00;
+			dataLen = deal6015_698(st6015,meter,&nullst6035,dataContent,port485);
+		}
+	}
+	time_t timeNow = time(NULL);
+	TS meterTime;
+	meterTime.Year = dataContent[1];
+	meterTime.Year = (meterTime.Year << 8) + dataContent[2];
+	meterTime.Month = dataContent[3];
+	meterTime.Day = dataContent[4];
+	meterTime.Hour = dataContent[5];
+	meterTime.Minute = dataContent[6];
+	meterTime.Sec = dataContent[7];
+
+	int time_offset=difftime(timeNow,tmtotime_t(meterTime));
+	if(time_offset > broadcase4204.upleve)
+	{
+		INT8U eventbuf[8] = {0};
+		memcpy(eventbuf,&dataContent[1],7);
+		eventbuf[7] = (INT8U)time_offset;
+		fprintf(stderr,"对时事件 Event_311B");
+		Event_311B(meter.basicinfo.addr,eventbuf,8,JProgramInfo);
+
+	}
+	return ret;
+}
 /*
  * 处理广播校时
  * */
@@ -1893,21 +1960,14 @@ INT8S checkBroadCast(INT8U port485)
 		INT8U timeCmp = TScompare(nowTime,broadcastTime);
 		if(timeCmp < 2)
 		{
-			OAD timeOAD;
-			timeOAD.OI = 0x4000;
-			timeOAD.attflg = 0x02;
-			timeOAD.attrindex = 0x00;
 			asyslog(LOG_WARNING,"终端单地址广播校时时间到");
 			INT8U port = port485-1;
 			INT16U meterIndex = 0;
 			CLASS_6001 meter = { };
-			INT8U dataContent[20];
-			CLASS_6035 st6035;
-			memset(&st6035,0,sizeof(CLASS_6035));
-			CLASS_6015 st6015;
-			memset(&st6015,0,sizeof(CLASS_6015));
+
 			for (meterIndex = 0; meterIndex < info6000[port].meterSum; meterIndex++)
 			{
+				dealProxyQueue(port485);
 				memset(&meter,0,sizeof(CLASS_6001));
 				if (readParaClass(0x6000, &meter, info6000[port].list6001[meterIndex]) == 1)
 				{
@@ -1915,18 +1975,7 @@ INT8S checkBroadCast(INT8U port485)
 					{
 						if(is485OAD(meter.basicinfo.port,port485)==1)
 						{
-							memset(dataContent,0,20);
-							dealProxyQueue(port485);
-							INT16S dataLen = 0;
-							switch(meter.basicinfo.protocol)
-							{
-								case DLT_645_07:
-									dataLen = request07_singleOAD(0x0000,timeOAD,meter,&st6035,dataContent,port485);
-									break;
-								default:
-									dataLen = deal6015_698(st6015,meter,&st6035,dataContent,port485);
-
-							}
+							dealBroadCastSingleMeter(port485,meter);
 						}
 					}
 				}
@@ -1935,7 +1984,7 @@ INT8S checkBroadCast(INT8U port485)
 
 
 	}
-
+	flagDay_4204[port485-1] = 0;
 	return ret;
 }
 
@@ -2065,6 +2114,7 @@ INT16S request07_singleOAD(OI_698 roadOI,OAD soureOAD,CLASS_6001 to6001,CLASS_60
 	memset(&obj601F_07Flag,0,sizeof(C601F_07Flag));
 	//存储要求的固定长度 长度不够后面补0
 	INT16U formatLen = CalcOIDataLen(soureOAD.OI,soureOAD.attrindex);
+	fprintf(stderr,"\n formatLen = %d",formatLen);
 	memset(dataContent,0,formatLen);
 	if (OADMap07DI(roadOI,soureOAD, &obj601F_07Flag) == 1)
 	{
@@ -2080,6 +2130,7 @@ INT16S request07_singleOAD(OI_698 roadOI,OAD soureOAD,CLASS_6001 to6001,CLASS_60
 		fprintf(stderr, "request698_07Data:1");
 		DbgPrintToFile1(port485,"roadOI = %04x soureOAD=%04x%02x%02x 没有对应的07数据项",roadOI,soureOAD.OI,soureOAD.attflg,soureOAD.attrindex);
 	}
+
 	return formatLen;
 
 }
@@ -2580,7 +2631,6 @@ void read485_thread(void* i485port) {
 	INT8U port = *(INT8U*) i485port;
 	fprintf(stderr, "\n port = %d", port);
 
-	INT8S ret = 0;
 
 #ifdef TESTDEF1
 	INT8S result = getComfdBy6001(3,2);
