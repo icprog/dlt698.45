@@ -1873,7 +1873,6 @@ INT8S dealBroadCastSingleMeter(INT8U port485,CLASS_6001 meter)
 	fprintf(stderr,"终端单地址广播校时 测量点序号 = %d",meter.sernum);
 
 	INT8S ret = -1;
-	INT8U prtIndex = 0;
 
 	if(getComfdBy6001(meter.basicinfo.baud,meter.basicinfo.port.attrindex) != 1)
 	{
@@ -1912,6 +1911,10 @@ INT8S dealBroadCastSingleMeter(INT8U port485,CLASS_6001 meter)
 			st6015.csds.csd[0].csd.oad.attrindex = 0x00;
 			dataLen = deal6015_698(st6015,meter,&nullst6035,dataContent,port485);
 		}
+	}
+	if(dataContent[0]!=0x1c)
+	{
+		return ret;
 	}
 	time_t timeNow = time(NULL);
 	TS meterTime;
