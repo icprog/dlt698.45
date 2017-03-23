@@ -319,7 +319,7 @@ INT16U set4204(OAD oad,INT8U *data,INT8U *DAR)
 		index += getTime(1,&data[index],(INT8U *)&class4204.startime);
 		index += getBool(&data[index],(INT8U *)&class4204.enable);
 		fprintf(stderr,"\n【终端广播校时,属性2】:");
-		fprintf(stderr,"\ntime : %02x %02x %02x",class4204.startime[0],class4204.startime[1],class4204.startime[2]);
+		fprintf(stderr,"\ntime : %d %d %d",class4204.startime[0],class4204.startime[1],class4204.startime[2]);
 		fprintf(stderr,"\nenable: %d",class4204.enable);
 		fprintf(stderr,"\n");
 		*DAR = saveCoverClass(oad.OI,0,&class4204,sizeof(CLASS_4204),para_vari_save);
@@ -327,10 +327,10 @@ INT16U set4204(OAD oad,INT8U *data,INT8U *DAR)
 	{
 		index += getStructure(&data[index],NULL);
 		index += getUnsigned(&data[index],(INT8U *)&class4204.upleve);
-		index += getOctetstring(1,&data[index],(INT8U *)&class4204.startime1);
+		index += getTime(1,&data[index],(INT8U *)&class4204.startime1);
 		index += getBool(&data[index],(INT8U *)&class4204.enable1);
 		fprintf(stderr,"\n【终端广播校时，属性3】:");
-		fprintf(stderr,"\ntime : %02x %02x %02x ",class4204.startime1[0],class4204.startime1[1],class4204.startime1[2]);
+		fprintf(stderr,"\ntime : %d %d %d ",class4204.startime1[0],class4204.startime1[1],class4204.startime1[2]);
 		fprintf(stderr,"\nenable: %d",class4204.enable1);
 		fprintf(stderr,"\n误差 = %d",class4204.upleve);
 		fprintf(stderr,"\n");
