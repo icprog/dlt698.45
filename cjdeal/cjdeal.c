@@ -463,7 +463,8 @@ INT8S init4204Info()
 	{
 		fprintf(stderr,"广播校时4204读取成功");
 	}
-
+	flagDay_4204[0] = 1;
+	flagDay_4204[1] = 1;
 	return ret;
 }
 void dispatch_thread()
@@ -534,6 +535,9 @@ void dispatchTask_proccess()
 	init6000InfoFrom6000FIle();
 	para_change485[0] = 0;
 	para_change485[1] = 0;
+	flagDay_4204[0] = 0;
+	flagDay_4204[0] = 0;
+
 
 	pthread_attr_init(&dispatchTask_attr_t);
 	pthread_attr_setstacksize(&dispatchTask_attr_t, 2048 * 1024);

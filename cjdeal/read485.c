@@ -53,6 +53,8 @@ INT8U flag07_kaibiaogai[4] =   {0x01,0x0d,0x30,0x03};//电能表开盖事件
 INT8U flag07_kaibiaogaicishu[4] =   {0x00,0x0d,0x30,0x03};//电能表开盖事件次数
 #endif
 
+INT16S request07_singleOAD(OI_698 roadOI,OAD soureOAD,CLASS_6001 to6001,CLASS_6035* st6035,INT8U* dataContent,INT8U port485);
+INT16S deal6015_698(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8U* dataContent,INT8U port485);
 
 void DbgPrintToFile1(INT8U comport,const char *format,...)
 {
@@ -406,8 +408,8 @@ void print6015(CLASS_6015 class6015) {
 				((class6015.data.data[4] << 8) | class6015.data.data[3]));
 		break;
 	}
-	if (class6015.csds.num >= 10) {
-		fprintf(stderr, "csd overvalue 10 error\n");
+	if (class6015.csds.num >= MY_CSD_NUM) {
+		fprintf(stderr, "csd overvalue MY_CSD_NUM error\n");
 		return;
 	}
 	fprintf(stderr, "[5]");
@@ -803,7 +805,6 @@ INT8U getASNInfo(FORMAT07* DI07,Base_DataType* dataType)
 	//电表日期
 	if(memcmp(flag07_date,DI07->DI,4) == 0)
 	{
-		memset(DI07->Data,0,4);
 		*dataType = dtdatetimes;
 		unitNum = 1;
 		INT16U year  = (DI07->Data[3] >> 4)*10 + (DI07->Data[3]&0x0f) + 2000;
@@ -820,17 +821,16 @@ INT8U getASNInfo(FORMAT07* DI07,Base_DataType* dataType)
 	//电表时间
 	if(memcmp(flag07_time,DI07->DI,4) == 0)
 	{
-		memset(DI07->Data,0,4);
 		*dataType = dtnull;
 		unitNum = 1;
-		INT8U hour  = (DI07->Data[2] >> 4)*10 + (DI07->Data[2]&0x0f) + 2000;
+		INT8U hour  = (DI07->Data[2] >> 4)*10 + (DI07->Data[2]&0x0f);
 		INT8U minute = (DI07->Data[1] >> 4)*10 + (DI07->Data[1]&0x0f);
 		INT8U second = (DI07->Data[0] >> 4)*10 + (DI07->Data[0]&0x0f);
-		asyslog(LOG_WARNING, "电表时间 %d 时 %d 分  %d秒",second,minute,second);
+		asyslog(LOG_WARNING, "电表时间 %d 时 %d 分  %d秒",hour,minute,second);
 		DI07->Data[0] = hour;
 		DI07->Data[1] = minute;
 		DI07->Data[2] = second;
-
+		return unitNum;
 	}
 
 	for (index = 0; index < map07DI_698OAD_NUM; index++)
@@ -1813,23 +1813,12 @@ INT8S readMeterPowerInfo()
 	}
 	return result;
 }
-//处理代理等实时请求
-INT8S dealRealTimeRequst(INT8U port485)
+INT8S dealProxyQueue(INT8U port485)
 {
 	while(readState)
 	{
 		DbgPrintToFile1(port485,"\n 另一个线程正在处理消息 dealRealTimeRequst \n");
 		sleep(1);
-	}
-	fprintf(stderr,"\n poweroffon_state = %d",poweroffon_state);
-	//先抄读停上电事件
-	if(poweroffon_state == 1)
-	{
-		readState = 1;
-		DbgPrintToFile1(port485,"poweroffon_state=%d!!!---------------",poweroffon_state);
-		readMeterPowerInfo();
-		poweroffon_state =2;
-		readState = 0;
 	}
 
 	INT8S result = 0;
@@ -1877,7 +1866,106 @@ INT8S dealRealTimeRequst(INT8U port485)
 		}
 		usleep(1000*1000);
 	}
+	return result;
+}
+/*
+ * 处理广播校时
+ * */
+INT8S checkBroadCast(INT8U port485)
+{
+	INT8S ret = -1;
+	if(broadcase4204.enable)
+	{
 
+	}
+	if(broadcase4204.enable1)
+	{
+		TS nowTime;
+		TSGet(&nowTime);
+		TS broadcastTime;
+		broadcastTime.Year = nowTime.Year;
+		broadcastTime.Month = nowTime.Month;
+		broadcastTime.Day = nowTime.Day;
+		broadcastTime.Hour = broadcase4204.startime1[0];
+		broadcastTime.Minute = broadcase4204.startime1[1];
+		broadcastTime.Sec = broadcase4204.startime1[2];
+
+		INT8U timeCmp = TScompare(nowTime,broadcastTime);
+		if(timeCmp < 2)
+		{
+			OAD timeOAD;
+			timeOAD.OI = 0x4000;
+			timeOAD.attflg = 0x02;
+			timeOAD.attrindex = 0x00;
+			asyslog(LOG_WARNING,"终端单地址广播校时时间到");
+			INT8U port = port485-1;
+			INT16U meterIndex = 0;
+			CLASS_6001 meter = { };
+			INT8U dataContent[20];
+			CLASS_6035 st6035;
+			memset(&st6035,0,sizeof(CLASS_6035));
+			CLASS_6015 st6015;
+			memset(&st6015,0,sizeof(CLASS_6015));
+			for (meterIndex = 0; meterIndex < info6000[port].meterSum; meterIndex++)
+			{
+				memset(&meter,0,sizeof(CLASS_6001));
+				if (readParaClass(0x6000, &meter, info6000[port].list6001[meterIndex]) == 1)
+				{
+					if (meter.sernum != 0 && meter.sernum != 0xffff)
+					{
+						if(is485OAD(meter.basicinfo.port,port485)==1)
+						{
+							memset(dataContent,0,20);
+							dealProxyQueue(port485);
+							INT16S dataLen = 0;
+							switch(meter.basicinfo.protocol)
+							{
+								case DLT_645_07:
+									dataLen = request07_singleOAD(0x0000,timeOAD,meter,&st6035,dataContent,port485);
+									break;
+								default:
+									dataLen = deal6015_698(st6015,meter,&st6035,dataContent,port485);
+
+							}
+						}
+					}
+				}
+			}
+		}
+
+
+	}
+
+	return ret;
+}
+
+//处理代理等实时请求-
+INT8S dealRealTimeRequst(INT8U port485)
+{
+	INT8S result = 0;
+
+	while(readState)
+	{
+		DbgPrintToFile1(port485,"\n 另一个线程正在处理消息 dealRealTimeRequst \n");
+		sleep(1);
+	}
+	result = dealProxyQueue(port485);
+
+	fprintf(stderr,"\n poweroffon_state = %d",poweroffon_state);
+	//先抄读停上电事件
+	if(poweroffon_state == 1)
+	{
+		readState = 1;
+		DbgPrintToFile1(port485,"poweroffon_state=%d!!!---------------",poweroffon_state);
+		readMeterPowerInfo();
+		poweroffon_state =2;
+		readState = 0;
+	}
+
+	if(flagDay_4204[port485-1] == 1)
+	{
+		checkBroadCast(port485);
+	}
 	if(para_change485[port485-1] == 1)
 	{
 		result = PARA_CHANGE_RETVALUE;
@@ -1888,11 +1976,7 @@ INT8S dealRealTimeRequst(INT8U port485)
 
 INT16S deal6015_698(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8U* dataContent,INT8U port485)
 {
-	INT8S ret = dealRealTimeRequst(port485);
-	if(ret == PARA_CHANGE_RETVALUE)
-	{
-		return PARA_CHANGE_RETVALUE;
-	}
+
 	fprintf(stderr, "\n deal6015_698-------------------  meter = %d\n", to6001.sernum);
 	DbgPrintToFile1(port485,"普通采集方案 698测量点   meter = %d 任务号 = %d 采集数据项个数 = %d---------",
 			to6001.sernum, st6015.sernum, st6015.csds.num);
@@ -1956,11 +2040,6 @@ INT16S request698_07DataList(C601F_07Flag obj601F_07Flag, CLASS_6001 meter,INT8U
 	fprintf(stderr,"\n\n-------request698_07DataList obj601F_07Flag.dinum = %d",obj601F_07Flag.dinum);
 	for (index = 0; index < obj601F_07Flag.dinum; index++)
 	{
-		INT8S ret = dealRealTimeRequst(port485);
-		if(ret == PARA_CHANGE_RETVALUE)
-		{
-			return PARA_CHANGE_RETVALUE;
-		}
 		singleBuffLen = request698_07Data(obj601F_07Flag.DI_1[index],&dataContent[DataLen],meter,st6035,port485);
 
 		if(singleBuffLen > 0)
@@ -1992,10 +2071,7 @@ INT16S request07_singleOAD(OI_698 roadOI,OAD soureOAD,CLASS_6001 to6001,CLASS_60
 		memset(dataContent,0,formatLen);
 
 		datalen = request698_07DataList(obj601F_07Flag, to6001,dataContent,st6035,port485);
-		if(datalen == PARA_CHANGE_RETVALUE)
-		{
-			return PARA_CHANGE_RETVALUE;
-		}
+
 		fprintf(stderr,"\n deal6015_07 datalen=%d",datalen);
 
 	}
@@ -2047,22 +2123,26 @@ INT16S deal6015_07(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8U
 			INT8U csdIndex;
 			for(csdIndex=0;csdIndex<st6015.csds.csd[dataIndex].csd.road.num;csdIndex++)
 			{
-				datalen = request07_singleOAD(st6015.csds.csd[dataIndex].csd.road.oad.OI,
-						st6015.csds.csd[dataIndex].csd.road.oads[csdIndex],to6001,st6035,&dataContent[totaldataLen],port485);
-				if(datalen == PARA_CHANGE_RETVALUE)
+				INT8S ret = dealRealTimeRequst(port485);
+				if(ret == PARA_CHANGE_RETVALUE)
 				{
 					return PARA_CHANGE_RETVALUE;
 				}
+
+				datalen = request07_singleOAD(st6015.csds.csd[dataIndex].csd.road.oad.OI,
+						st6015.csds.csd[dataIndex].csd.road.oads[csdIndex],to6001,st6035,&dataContent[totaldataLen],port485);
 				totaldataLen += datalen;
 			}
 		}
 		else
 		{
-			datalen = request07_singleOAD(0x0000,st6015.csds.csd[dataIndex].csd.oad,to6001,st6035,&dataContent[totaldataLen],port485);
-			if(datalen == PARA_CHANGE_RETVALUE)
+			INT8S ret = dealRealTimeRequst(port485);
+			if(ret == PARA_CHANGE_RETVALUE)
 			{
 				return PARA_CHANGE_RETVALUE;
 			}
+
+			datalen = request07_singleOAD(0x0000,st6015.csds.csd[dataIndex].csd.oad,to6001,st6035,&dataContent[totaldataLen],port485);
 			totaldataLen += datalen;
 		}
 	}
@@ -2217,7 +2297,8 @@ INT16S deal6017_07(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8U
 			datalen = request07_singleOAD(eventOI,eventRoad,to6001,st6035,&dataContent[totaldataLen],port485);
 			totaldataLen += datalen;
 			//TODO 按格式存事件
-			if(datalen == PARA_CHANGE_RETVALUE)
+			INT8S ret = dealRealTimeRequst(port485);
+			if(ret == PARA_CHANGE_RETVALUE)
 			{
 				return PARA_CHANGE_RETVALUE;
 			}
@@ -2243,6 +2324,13 @@ INT16S deal6017_07(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8U
 INT16S deal6015or6017_singlemeter(INT8U cjType,CLASS_6015 st6015,CLASS_6001 obj6001,CLASS_6035* st6035,INT8U* dataContent,INT8U port485)
 {
 	INT16S ret = 0;
+
+	ret = dealRealTimeRequst(port485);
+	if(ret == PARA_CHANGE_RETVALUE)
+	{
+		return PARA_CHANGE_RETVALUE;
+	}
+
 	if(getComfdBy6001(obj6001.basicinfo.baud,port485)!=1)
 	{
 		return ret;
