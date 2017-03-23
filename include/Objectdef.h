@@ -422,6 +422,7 @@ typedef struct {
     INT8U selectType; //选择类型
     RSD select;       //选择方法实例
 } RESULT_RECORD;
+
 typedef struct {
     TSA tsa;           //目标地址
     INT16U onetimeout; //一个服务器的超时时间

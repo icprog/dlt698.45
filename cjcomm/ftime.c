@@ -91,6 +91,7 @@ void Event_VerifiTime(ProgramInfo* JProgramInfo,INT32S avg){
 	DT.min.data   = jzqtime.Minute;
 	DT.sec.data   = jzqtime.Sec;
 	setsystime(DT);
+	JProgramInfo->oi_changed.oi4000++;		//时钟改变通知相关进程任务初始化
 	//产生对时事件
 	Event_3114(DT_B, JProgramInfo);
 }

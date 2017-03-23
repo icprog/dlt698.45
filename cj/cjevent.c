@@ -337,14 +337,18 @@ void event_process(int argc, char *argv[])
                     l1=Getbuf[index++];
                     fprintf(stderr,"发生时间：%d-%d-%d %d:%d:%d\n",((l2<<8)+l1),
                     		Getbuf[index++],Getbuf[index++],Getbuf[index++],Getbuf[index++],Getbuf[index++]);
-                    index++;//0x1c date-s 结束时间
-                    if(oi==0x311C){
-                    	fprintf(stderr,"该事件无结束时间!\n");
+                    INT8U DT=Getbuf[index++];
+                    if(DT==0x1C){
+                       if(oi==0x311C){
+							fprintf(stderr,"该事件无结束时间!\n");
+						}else{
+							l2=Getbuf[index++];
+							l1=Getbuf[index++];
+							fprintf(stderr,"结束时间：%d-%d-%d %d:%d:%d\n",((l2<<8)+l1),
+														Getbuf[index++],Getbuf[index++],Getbuf[index++],Getbuf[index++],Getbuf[index++]);
+						}
                     }else{
-                    	l2=Getbuf[index++];
-                    	l1=Getbuf[index++];
-                    	fprintf(stderr,"结束时间：%d-%d-%d %d:%d:%d\n",((l2<<8)+l1),
-                    	                            Getbuf[index++],Getbuf[index++],Getbuf[index++],Getbuf[index++],Getbuf[index++]);
+                    	fprintf(stderr,"该事件无结束时间!\n");
                     }
                     INT8U Len=0;
                     fprintf(stderr,"事件源类型：");
@@ -569,6 +573,29 @@ void event_process(int argc, char *argv[])
 					JProgramInfo->event_obj.Event3104_obj.reportflag=FALSE;
 					saveCoverClass(oi,0,(void *)&JProgramInfo->event_obj.Event3104_obj,sizeof(Class7_Object),event_para_save);
 					JProgramInfo->oi_changed.oi3104++;
+					readCoverClass(0x4300,0,&class19,sizeof(class19),para_vari_save);
+					class19.active_report =0;
+					class19.talk_master =0;
+					saveCoverClass(0x4300,0,(void *)&class19,sizeof(class19),para_vari_save);
+					JProgramInfo->oi_changed.oi4300++;
+				}
+			}
+            else if(oi == 0x311B){
+				if(flag == 1){
+					JProgramInfo->event_obj.Event311B_obj.enableflag=TRUE;
+					JProgramInfo->event_obj.Event311B_obj.reportflag=TRUE;
+					saveCoverClass(oi,0,(void *)&JProgramInfo->event_obj.Event311B_obj,sizeof(Class7_Object),event_para_save);
+					JProgramInfo->oi_changed.oi311B++;
+					readCoverClass(0x4300,0,&class19,sizeof(class19),para_vari_save);
+					class19.active_report =1;
+					class19.talk_master =1;
+					saveCoverClass(0x4300,0,(void *)&class19,sizeof(class19),para_vari_save);
+					JProgramInfo->oi_changed.oi4300++;
+				}else{
+					JProgramInfo->event_obj.Event311B_obj.enableflag=FALSE;
+					JProgramInfo->event_obj.Event311B_obj.reportflag=FALSE;
+					saveCoverClass(oi,0,(void *)&JProgramInfo->event_obj.Event311B_obj,sizeof(Class7_Object),event_para_save);
+					JProgramInfo->oi_changed.oi311B++;
 					readCoverClass(0x4300,0,&class19,sizeof(class19),para_vari_save);
 					class19.active_report =0;
 					class19.talk_master =0;
