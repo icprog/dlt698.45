@@ -443,10 +443,10 @@ INT8U getParaChangeType()
 	{
 		ret = ret|para_4000_chg;
 		fprintf(stderr,"\n 时间参数4000变更");
-		lastchgoi4204= JProgramInfo->oi_changed.oi4000;
+		lastchgoi4000= JProgramInfo->oi_changed.oi4000;
 	}
 
-	if(lastchgoi4204 != JProgramInfo->oi_changed.oi6014)
+	if(lastchgoi4204 != JProgramInfo->oi_changed.oi4204)
 	{
 		ret = ret|para_4204_chg;
 		fprintf(stderr,"\n 终端广播校时参数4204变更");
