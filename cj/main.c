@@ -215,6 +215,12 @@ int main(int argc, char* argv[])
         return EXIT_SUCCESS;
     }
 
+    if (strcmp("online-mode", argv[1]) == 0) {
+        setOnlineMode(argc, argv);
+        return EXIT_SUCCESS;
+    }
+
+
     if (strcmp("usr-pwd", argv[1]) == 0) {
         SetUsrPwd(argc, argv);
         return EXIT_SUCCESS;
