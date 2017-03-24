@@ -850,7 +850,7 @@ INT16U CalcOIDataLen(OI_698 oi,INT8U attr_flg)
 
 		memset(lnf,0x00,5);
 		memcpy(lnf,&ln[8],3);
-		oi_len = strtoul(lnf,NULL,16);
+		oi_len = strtoul(lnf,NULL,16)+1;
 
 		memset(lnf,0x00,5);
 		memcpy(lnf,&ln[12],2);
@@ -1800,7 +1800,7 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds)
 		fclose(fp);
 	if(myfp != NULL)
 		fclose(myfp);
-	return framesum;
+	return (framesum+1);
 }
 int getSelector(OAD oad_h,RSD select, INT8U selectype, CSD_ARRAYTYPE csds, INT8U *data, int *datalen)
 {
@@ -1816,6 +1816,7 @@ int getSelector(OAD oad_h,RSD select, INT8U selectype, CSD_ARRAYTYPE csds, INT8U
 		break;
 	case 10:
 		framesum = GetTaskData(oad_h,select,selectype,csds);
+		fprintf(stderr,"framesum=%d\n",framesum);
 		break;
 	default:break;
 	}
