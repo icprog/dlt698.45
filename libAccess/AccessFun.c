@@ -984,6 +984,10 @@ INT8U GetTaskidFromCSDs(CSD_ARRAYTYPE csds,ROAD_ITEM *item_road)
 						switch(class6015.csds.csd[j].type)
 						{
 						case 0:
+							asyslog(LOG_INFO,"mm=%d,oad_r  =%04x_%02x%02x \n",mm,item_road->oad[mm].oad_r.OI,
+									item_road->oad[mm].oad_r.attflg,item_road->oad[mm].oad_r.attrindex);
+							asyslog(LOG_INFO,"jj=%d,csd.oad=%04x_%02x%02x \n",j,class6015.csds.csd[j].csd.oad.OI,
+									class6015.csds.csd[j].csd.oad.attflg,class6015.csds.csd[j].csd.oad.attrindex);
 							if(item_road->oad[mm].oad_m.OI == 0x0000)//都为oad类型
 							{
 								if(memcmp(&item_road->oad[mm].oad_r,&class6015.csds.csd[j].csd.oad,sizeof(OAD))==0){
@@ -993,6 +997,10 @@ INT8U GetTaskidFromCSDs(CSD_ARRAYTYPE csds,ROAD_ITEM *item_road)
 							}
 							break;
 						case 1:
+							asyslog(LOG_INFO,"1111mm=%d,oad_r  =%04x_%02x%02x \n",mm,item_road->oad[mm].oad_r.OI,
+									item_road->oad[mm].oad_r.attflg,item_road->oad[mm].oad_r.attrindex);
+							asyslog(LOG_INFO,"1111jj=%d,csd.oad=%04x_%02x%02x \n",j,class6015.csds.csd[j].csd.oad.OI,
+									class6015.csds.csd[j].csd.oad.attflg,class6015.csds.csd[j].csd.oad.attrindex);
 							if(memcmp(&item_road->oad[mm].oad_m,&class6015.csds.csd[j].csd.road.oad,sizeof(OAD))==0)//
 							{
 								for(nn=0;nn<class6015.csds.csd[j].csd.road.num;nn++)
@@ -1126,16 +1134,16 @@ FILE* opendatafile(INT8U taskid,CURR_RECINFO recinfo)
 	return fp;
 }
 
-FILE* openFramefile()
+FILE* openFramefile(char *filename)
 {
 	FILE *fp = NULL;
 
-	if (access("/nand/frmdata",0)==0)
+	if (access(filename,0)==0)
 	{
-		fp = fopen("/nand/frmdata","w");
+		fp = fopen(filename,"w");
 		fclose(fp);
 	}
-	fp = fopen("/nand/frmdata","a+");
+	fp = fopen(filename,"a+");
 	return fp;
 }
 void saveOneFrame(INT8U *buf,int len,FILE *fp)
@@ -1236,7 +1244,7 @@ int initFrameHead(INT8U *buf,OAD oad,RSD select,INT8U selectype,CSD_ARRAYTYPE cs
 	int indexn=0 ,i=0 ;
 
 	buf[indexn++] = 1;							//SEQUENCE OF A-ResultRecord
-	indexn +=create_OAD(&buf[indexn] ,oad);		//主OAD
+	indexn +=create_OAD(0,&buf[indexn] ,oad);		//主OAD
 	buf[indexn++] = csds.num;					//RCSD::SEQUENCE OF CSD
 //	fprintf(stderr,"csds.num=%d\n",csds.num);
 	for(i=0; i<csds.num; i++)
@@ -1557,7 +1565,7 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds)
 	initrecinfo(&recinfo,tasknor_info,selectype,select);//获得recinfo信息
 
 	//1\打开数据文件
-	FILE *myfp = openFramefile();
+	FILE *myfp = openFramefile(TASK_FRAME_DATA);
 	fprintf(stderr,"\n----------1\n");
 	FILE *fp = opendatafile(taskid,recinfo);
 	if (fp==NULL || myfp==NULL)
@@ -1698,6 +1706,8 @@ long int readFrameDataFile(char *filename,int offset,INT8U *buf,int *datalen)
 	FILE *fp=NULL;
 	int bytelen=0;
 	long int	retoffset=0;
+	*datalen = 0;
+
 	fp = fopen(filename,"r");
 	if (fp!=NULL && buf!=NULL)
 	{

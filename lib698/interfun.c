@@ -81,11 +81,11 @@ void print_rcsd(CSD_ARRAYTYPE csds)
 		if (csds.csd[i].type==0)
 		{
 			asyslog(LOG_INFO,"<%d>OAD%04x-%02x%02x ",i,csds.csd[i].csd.oad.OI,csds.csd[i].csd.oad.attflg,csds.csd[i].csd.oad.attrindex);
-			fprintf(stderr,"<%d>OAD%04x-%02x%02x ",i,csds.csd[i].csd.oad.OI,csds.csd[i].csd.oad.attflg,csds.csd[i].csd.oad.attrindex);
+//			fprintf(stderr,"<%d>OAD%04x-%02x%02x ",i,csds.csd[i].csd.oad.OI,csds.csd[i].csd.oad.attflg,csds.csd[i].csd.oad.attrindex);
 		}else if (csds.csd[i].type==1)
 		{
 			asyslog(LOG_INFO,"<%d> ",i);
-			fprintf(stderr,"<%d>",i);
+//			fprintf(stderr,"<%d>",i);
 			print_road(csds.csd[i].csd.road);
 		}
 	}
@@ -120,37 +120,29 @@ int getTItoSec(TI ti)
 	return sec;
 }
 //////////////////////////////////////////////////////////////////////
-int  create_OAD(INT8U *data,OAD oad)
-{
-	data[0] = ( oad.OI >> 8 ) & 0xff;
-	data[1] = oad.OI & 0xff;
-	data[2] = oad.attflg;
-	data[3] = oad.attrindex;
-	return 4;
-}
 
-int create_array(INT8U *data,INT8U numm)
+int create_array(INT8U *data,INT8U numm)	//0x01
 {
 	data[0] = dtarray;
 	data[1] = numm;
 	return 2;
 }
 
-int create_struct(INT8U *data,INT8U numm)
+int create_struct(INT8U *data,INT8U numm)	//0x02
 {
 	data[0] = dtstructure;
 	data[1] = numm;
 	return 2;
 }
 
-int fill_bool(INT8U *data,INT8U value)
+int fill_bool(INT8U *data,INT8U value)		//0x03
 {
 	data[0] = dtbool;
 	data[1] = value;
 	return 2;
 }
 
-int fill_bit_string8(INT8U *data,INT8U bits)
+int fill_bit_string8(INT8U *data,INT8U bits)		//0x04
 {
 	//TODO : 默认8bit ，不符合A-XDR规范
 	data[0] = dtbitstring;
@@ -159,7 +151,7 @@ int fill_bit_string8(INT8U *data,INT8U bits)
 	return 3;
 }
 
-int fill_double_long_unsigned(INT8U *data,INT32U value)
+int fill_double_long_unsigned(INT8U *data,INT32U value)		//0x06
 {
 	data[0] = dtdoublelongunsigned;
 	data[1] = (value & 0xFF000000) >> 24 ;
@@ -169,7 +161,7 @@ int fill_double_long_unsigned(INT8U *data,INT32U value)
 	return 5;
 }
 
-int fill_octet_string(INT8U *data,char *value,INT8U len)
+int fill_octet_string(INT8U *data,char *value,INT8U len)	//0x09
 {
 //	if(len==0) {
 //		data[0] = 0;
@@ -185,7 +177,7 @@ int fill_octet_string(INT8U *data,char *value,INT8U len)
 	return (len+2);
 }
 
-int fill_visible_string(INT8U *data,char *value,INT8U len)
+int fill_visible_string(INT8U *data,char *value,INT8U len)	//0x0a
 {
 	data[0] = dtvisiblestring;
 	data[1] = len;
@@ -193,40 +185,40 @@ int fill_visible_string(INT8U *data,char *value,INT8U len)
 	return (len+2);
 }
 
-int fill_integer(INT8U *data,INT8U value)
+int fill_integer(INT8U *data,INT8U value)		//0x0f
 {
 	data[0] = dtinteger;
 	data[1] = value;
 	return 2;
 }
-int fill_unsigned(INT8U *data,INT8U value)
+int fill_unsigned(INT8U *data,INT8U value)		//0x11
 {
 	data[0] = dtunsigned;
 	data[1] = value;
 	return 2;
 }
 
-int fill_long_unsigned(INT8U *data,INT16U value)
+int fill_long_unsigned(INT8U *data,INT16U value)		//0x12
 {
 	data[0] = dtlongunsigned;
 	data[1] = (value & 0xFF00)>>8;
 	data[2] = value & 0x00FF;
 	return 3;
 }
-int fill_enum(INT8U *data,INT8U value)
+int fill_enum(INT8U *data,INT8U value)		//0x16
 {
 	data[0] = dtenum;
 	data[1] = value;
 	return 2;
 }
-int fill_time(INT8U *data,INT8U *value)
+int fill_time(INT8U *data,INT8U *value)			//0x1b
 {
 	data[0] = dttime;
 	memcpy(&data[1],&value[0],3);
 	return 4;
 }
 
-int fill_date_time_s(INT8U *data,DateTimeBCD *time)
+int fill_date_time_s(INT8U *data,DateTimeBCD *time)		//0x1c
 {
 	DateTimeBCD  init_datatimes={};
 
@@ -242,7 +234,19 @@ int fill_date_time_s(INT8U *data,DateTimeBCD *time)
 	}
 }
 
-int fill_TI(INT8U *data,TI ti)
+int  create_OAD(INT8U type,INT8U *data,OAD oad)		//0x51
+{
+	int index=0;
+	if(type)
+		data[index++] = dtoad;
+	data[index++] = ( oad.OI >> 8 ) & 0xff;
+	data[index++] = oad.OI & 0xff;
+	data[index++] = oad.attflg;
+	data[index++] = oad.attrindex;
+	return index;
+}
+
+int fill_TI(INT8U *data,TI ti)			//0x54
 {
 	data[0] = dtti;
 	data[1] = ti.units;
@@ -251,12 +255,28 @@ int fill_TI(INT8U *data,TI ti)
 	return 4;
 }
 
-int fill_TSA(INT8U *data,INT8U *value,INT8U len)
+int fill_TSA(INT8U *data,INT8U *value,INT8U len) 	//0x55
 {
 	data[0] = dttsa;
 	data[1] = len;
 	memcpy(&data[2],value,len);
 	return (len+2);
+}
+
+int fill_RSD(INT8U choice,INT8U *data,RSD rsd)			//0x5A
+{
+	int 	index=0;
+	data[index++] = dtrsd;
+	data[index++] = choice;
+	switch(choice) {
+	case 10:
+		fprintf(stderr,"  -----------rsd.selec10.recordn=%d\n",rsd.selec10.recordn);
+		//index += fill_unsigned(&data[index],rsd.selec10.recordn);
+		data[index++] = rsd.selec10.recordn;
+		index += fill_MS(0,&data[index],rsd.selec10.meters);
+		break;
+	}
+	return index;
 }
 
 int fill_CSD(INT8U type,INT8U *data,MY_CSD csd)		//0x5b
@@ -269,41 +289,51 @@ int fill_CSD(INT8U type,INT8U *data,MY_CSD csd)		//0x5b
 	}
 	data[index++] = csd.type;
 	if(csd.type == 0) {	//oad
-		index += create_OAD(&data[index],csd.csd.oad);
+		index += create_OAD(0,&data[index],csd.csd.oad);
 	}else if(csd.type == 1) {	//road
-		index += create_OAD(&data[index],csd.csd.road.oad);
+		index += create_OAD(0,&data[index],csd.csd.road.oad);
 		num = csd.csd.road.num;
 		data[index++] = num;
 		for(i=0;i<num;i++)
 		{
-			index += create_OAD(&data[index],csd.csd.road.oads[i]);
+			index += create_OAD(0,&data[index],csd.csd.road.oads[i]);
 		}
 	}
 	return index;
 }
 
-int fill_MS(INT8U *data,MY_MS myms)		//0x5C
+int fill_MS(INT8U type,INT8U *data,MY_MS myms)		//0x5C
 {
 	INT8U choicetype=0;
+	int 	index=0;
+	int		i=0;
 
-	data[0] = dtms;
+	if(type)
+		data[index++] = dtms;
 	choicetype = myms.mstype;
 	switch (choicetype)
 	{
 		case 0:
-			data[1] = 0;//myms.ms.nometer_null;  //0表示 没有电表  1表示 全部电表
-			return 2;
+			data[index++] = 0;//myms.ms.nometer_null;  //0表示 没有电表  1表示 全部电表
+			break;
 		case 1:
-			data[1] = 1;//myms.ms.allmeter_null;  //0表示 没有电表  1表示 全部电表
-			return 2;
+			data[index++] = 1;//myms.ms.allmeter_null;  //0表示 没有电表  1表示 全部电表
+			break;
 		case 2:
 			break;
 		case 3:
 			break;
-		case 4:
+		case 4:	//一组配置序号
+			data[index++] = choicetype;
+			data[index++] = myms.ms.configSerial[0];
+			for(i=0;i<myms.ms.configSerial[0];i++) {
+				data[index++] = ( myms.ms.configSerial[i+1]>>8 ) & 0xff;
+				data[index++] = myms.ms.configSerial[i+1] & 0xff;
+				//index += fill_long_unsigned(&data[index],myms.ms.configSerial[i+1]);
+			}
 			break;
 	}
-	return 0;
+	return index;
 }
 
 int fill_RCSD(INT8U type,INT8U *data,CSD_ARRAYTYPE csds)		//0x60
@@ -315,26 +345,14 @@ int fill_RCSD(INT8U type,INT8U *data,CSD_ARRAYTYPE csds)		//0x60
 		data[index++] = dtrcsd;
 	}
 	num = csds.num;
+	fprintf(stderr,"csds.num=%d\n",csds.num);
 	if(num==0) {		//OAD
-		index += create_OAD(&data[index],csds.csd[0].csd.oad);
+		index += create_OAD(0,&data[index],csds.csd[0].csd.oad);
 	}else {				//RCSD		SEQUENCE OF CSD
 		data[index++] = num;
 		for(i=0;i<num;i++)
 		{
-			index +=  fill_CSD(0,&data[index],csds.csd[i]);
-//			data[index++] = csds.csd[i].type;	//第 i 个csd类型
-//			fprintf(stderr,"num=%d type=%d\n",num,csds.csd[i].type);
-//			fprintf(stderr,"oi=%04x_%02x_%02x\n",csds.csd[i].csd.oad.OI,csds.csd[i].csd.oad.attflg,csds.csd[i].csd.oad.attrindex);
-//			if (csds.csd[i].type ==0)		//对象属性描述符 OAD
-//			{
-//				index += create_OAD(&data[index],csds.csd[i].csd.oad);
-//			}else	{						//记录型对象属性描述符 [1] ROAD
-//				index += create_OAD(&data[index],csds.csd[i].csd.road.oad);
-//				for(k=0; k<csds.csd[i].csd.road.num; k++)
-//				{
-//					index += create_OAD(&data[index],csds.csd[i].csd.road.oads[k]);	//关联对象属性描述符  SEQUENCE OF OAD
-//				}
-//			}
+			index += fill_CSD(0,&data[index],csds.csd[i]);
 		}
 	}
 	return index;
@@ -817,14 +835,18 @@ int get_BasicRCSD(INT8U type,INT8U *source,CSD_ARRAYTYPE *csds)	//0x60
 ////////////////////////////////////////////////////////////
 /*
  * 采集档案配置单元
+ * type = 1: 获取一个配置单元长度，不判断数据有效性，为了分帧计算
+ *      = 0: 获取配置单元数据
  * */
-int Get_6001(INT8U seqnum,INT8U *data)
+int Get_6001(INT8U type,INT16U seqnum,INT8U *data)
 {
 	int 	index=0;
 	CLASS_6001 meter={};
 
 	if(readParaClass(0x6000,&meter,seqnum)==1) {
-		if(meter.sernum==0 || meter.sernum==0xffff)  return index;
+		if(type!=1) {
+			if(meter.sernum==0 || meter.sernum==0xffff)  return index;
+		}
 		fprintf(stderr,"\n 6000 read meter ok");
 		index += create_struct(&data[index],4);		//属性2：struct 四个元素
 		index += fill_long_unsigned(&data[index],meter.sernum);		//配置序号
@@ -832,8 +854,8 @@ int Get_6001(INT8U seqnum,INT8U *data)
 		index += fill_TSA(&data[index],(INT8U *)&meter.basicinfo.addr.addr[1],meter.basicinfo.addr.addr[0]);		//TSA
 		index += fill_enum(&data[index],meter.basicinfo.baud);			//波特率
 		index += fill_enum(&data[index],meter.basicinfo.protocol);		//规约类型
-		data[index++] = dtoad;
-		index += create_OAD(&data[index],meter.basicinfo.port);		//端口
+
+		index += create_OAD(1,&data[index],meter.basicinfo.port);		//端口
 		index += fill_octet_string(&data[index],(char *)&meter.basicinfo.pwd[1],meter.basicinfo.pwd[0]);		//通信密码
 		index += fill_unsigned(&data[index],meter.basicinfo.ratenum);		//费率个数
 		index += fill_unsigned(&data[index],meter.basicinfo.usrtype);		//用户类型
@@ -914,12 +936,43 @@ int Get_6015(INT8U seqnum,INT8U *data)
 		for(i=0;i<coll.csds.num;i++) {
 			index += fill_CSD(1,&data[index],coll.csds.csd[i]);
 		}
-		index += fill_MS(&data[index],coll.mst);		//电能表集合MS
+		index += fill_MS(1,&data[index],coll.mst);		//电能表集合MS
 		index += fill_enum(&data[index],coll.savetimeflag);		//存储时标选择
 	}
 	return index;
 }
 
+/*
+ * 上报方案
+ * */
+int Get_601D(INT8U seqnum,INT8U *data)
+{
+	int 	index=0,i=0;
+	CLASS_601D plan={};
+
+	if (readCoverClass(0x601D,seqnum,&plan,sizeof(CLASS_601D),coll_para_save)) {
+		fprintf(stderr,"\n 601d read report plan ok");
+		index += create_struct(&data[index],5);		//属性2：struct 5个元素
+		index += fill_unsigned(&data[index],plan.reportnum);		//方案序号
+		index += create_array(&data[index],plan.chann_oad.num);
+		for(i=0;i<plan.chann_oad.num;i++) {
+			index += create_OAD(1,&data[index],plan.chann_oad.oadarr[i]);		//上报通道
+		}
+		index += fill_TI(&data[index],plan.timeout);				//上报响应超时时间
+		index += fill_unsigned(&data[index],plan.maxreportnum);		//最大上报次数
+		index += create_struct(&data[index],2);						//上报内容：struct 2个元素
+		index += fill_unsigned(&data[index],plan.reportdata.type);	//类型
+		if(plan.reportdata.type==0) {			//oad
+			index += create_OAD(1,&data[index],plan.reportdata.data.oad);
+		}else if(plan.reportdata.type==1){		//RecordData
+			index += create_struct(&data[index],3);						//上报内容：struct 3个元素
+			index += create_OAD(1,&data[index],plan.reportdata.data.recorddata.oad);
+			index += fill_RCSD(1,&data[index],plan.reportdata.data.recorddata.csds);
+			index += fill_RSD(plan.reportdata.data.recorddata.selectType,&data[index],plan.reportdata.data.recorddata.rsd);
+		}
+	}
+	return index;
+}
 /*
  * 采集任务监控单元
  * */
