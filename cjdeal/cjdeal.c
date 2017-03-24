@@ -463,7 +463,6 @@ INT8S init4204Info()
 	{
 		flagDay_4204[0] = 1;
 		flagDay_4204[1] = 1;
-		fprintf(stderr,"广播校时4204读取成功");
 	}
 	return ret;
 }
@@ -491,6 +490,7 @@ void timeProcess()
 		//跨天处理
 		if(lastTime.Day != nowTime.Day)
 		{
+			asyslog(LOG_WARNING,"集中器跨天");
 			flagDay_4204[0] = 1;
 			flagDay_4204[1] = 1;
 
