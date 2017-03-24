@@ -953,7 +953,60 @@ INT8S getRequestType(INT8U cjtype,INT8U csdcount)
 
 	return requestType;
 }
+INT16S composeProtocol698_SetRequest(INT8U* sendBuf,RESULT_NORMAL setData,TSA meterAddr)
+{
 
+	INT8U PIID = 0x02;
+	int sendLen = 0, hcsi = 0,apdulen = 0;
+
+	CSINFO csinfo={};
+
+	csinfo.dir = 0;		//服务器发出
+	csinfo.prm = 1; 	//服务器发出
+	csinfo.funcode = 3; //链路管理
+	csinfo.sa_type = 0 ;//单地址
+
+
+	INT8U reverseAddr[OCTET_STRING_LEN]= {0};
+	fprintf(stderr," \n\n composeProtocol698_GetRequest  meterAddr : %02x  %02x  %02x%02x%02x%02x%02x%02x%02x\n\n",
+			meterAddr.addr[0],meterAddr.addr[1],meterAddr.addr[2],meterAddr.addr[3],meterAddr.addr[4],
+			meterAddr.addr[5],meterAddr.addr[6],meterAddr.addr[7],meterAddr.addr[8]);
+	csinfo.sa_length = (meterAddr.addr[1]&0x0f) + 1;//sizeof(addr)-1;//服务器地址长度
+
+	reversebuff(&meterAddr.addr[2],csinfo.sa_length,reverseAddr);
+
+	fprintf(stderr," \n reverseAddr[%d] = ",csinfo.sa_length);
+	INT8U prtIndex;
+	for(prtIndex = 0;prtIndex < csinfo.sa_length;prtIndex++)
+	{
+		fprintf(stderr," %02x",reverseAddr[prtIndex]);
+	}
+
+	memcpy(csinfo.sa,reverseAddr,csinfo.sa_length);//服务器地址
+	csinfo.ca = 0x02;
+
+	fprintf(stderr,"sa_length = %d \n",csinfo.sa_length);
+	sendLen = FrameHead(&csinfo,sendBuf) ; //	2：hcs  hcs
+	hcsi = sendLen;
+	sendLen = sendLen + 2;
+
+	sendBuf[sendLen++] = SET_REQUEST;
+	sendBuf[sendLen++] = SET_REQUEST_NORMAL;
+	sendBuf[sendLen++] = PIID;
+	OADtoBuff(setData.oad,&sendBuf[sendLen]);
+	sendLen += 4;
+	INT16U dataIndex = 0;
+	for(dataIndex = 0;dataIndex < setData.datalen;dataIndex++)
+	{
+		sendBuf[sendLen++] = setData.data[dataIndex];
+	}
+	sendBuf[sendLen++] = 0x00;//没有时间标签
+
+	FrameTail(sendBuf,sendLen,hcsi);
+	return (sendLen + 3);			//3: cs cs 16
+
+
+}
 INT16S composeProtocol698_GetRequest(INT8U* sendBuf,CLASS_6015 obj6015,TSA meterAddr)
 {
 	INT8U PIID = 0x02;
