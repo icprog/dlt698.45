@@ -213,7 +213,7 @@ int callAutoReport(CommBlock* com, INT8U ifecho)
 	sendcounter++;
 	datalen = 0;
 	fprintf(stderr,"\n当前偏移位置 nowoffset = %d  ",nowoffset);
-	nextoffset = readFrameDataFile("/nand/frmdata",nowoffset,TmpDataBuf,&datalen);
+	nextoffset = readFrameDataFile(TASK_FRAME_DATA,nowoffset,TmpDataBuf,&datalen);
 	fprintf(stderr,"\n读出 (%d)：",datalen);
 	for(j=0; j<datalen; j++)
 	{

@@ -1171,23 +1171,22 @@ FILE* openevefile(OI_698 eve_oi)
 {
 	FILE *fp = NULL;
 	char	fname[FILENAMELEN]={};
-
 	getEveFileName(eve_oi,fname);//得到要抄读的文件名称
 	fprintf(stderr,"fname=%s\n",fname);
 	asyslog(LOG_INFO,"任务时间到: 组帧frmdata，打开任务文件=%s,\n",fname);
 	fp =fopen(fname,"r");
 	return fp;
 }
-FILE* openFramefile()
+FILE* openFramefile(char *filename)
 {
 	FILE *fp = NULL;
 
-	if (access("/nand/frmdata",0)==0)
+	if (access(filename,0)==0)
 	{
-		fp = fopen("/nand/frmdata","w");
+		fp = fopen(filename,"w");
 		fclose(fp);
 	}
-	fp = fopen("/nand/frmdata","a+");
+	fp = fopen(filename,"a+");
 	return fp;
 }
 void saveOneFrame(INT8U *buf,int len,FILE *fp)
@@ -1288,7 +1287,7 @@ int initFrameHead(INT8U *buf,OAD oad,RSD select,INT8U selectype,CSD_ARRAYTYPE cs
 	int indexn=0 ,i=0 ;
 
 	buf[indexn++] = 1;							//SEQUENCE OF A-ResultRecord
-	indexn +=create_OAD(&buf[indexn] ,oad);		//主OAD
+	indexn +=create_OAD(0,&buf[indexn] ,oad);		//主OAD
 	buf[indexn++] = csds.num;					//RCSD::SEQUENCE OF CSD
 //	fprintf(stderr,"csds.num=%d\n",csds.num);
 	for(i=0; i<csds.num; i++)
@@ -1691,7 +1690,7 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds)
 		fprintf(stderr,"\n----------1\n");
 		fp = opendatafile(taskid,recinfo);
 	}
-	myfp = openFramefile();
+	myfp = openFramefile(TASK_FRAME_DATA);
 	if (fp==NULL || myfp==NULL)
 		return 0;
 	fprintf(stderr,"\n打开文件成功\n");
@@ -1831,6 +1830,8 @@ long int readFrameDataFile(char *filename,int offset,INT8U *buf,int *datalen)
 	FILE *fp=NULL;
 	int bytelen=0;
 	long int	retoffset=0;
+	*datalen = 0;
+
 	fp = fopen(filename,"r");
 	if (fp!=NULL && buf!=NULL)
 	{

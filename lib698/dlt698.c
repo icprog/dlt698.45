@@ -20,6 +20,7 @@ extern int getRequestRecord(OAD oad,INT8U *data,CSINFO *csinfo,INT8U *sendbuf);
 extern int getRequestRecordList(INT8U *data,CSINFO *csinfo,INT8U *sendbuf);
 extern int getRequestNormal(OAD oad,INT8U *data,CSINFO *csinfo,INT8U *sendbuf);
 extern int getRequestNormalList(INT8U *data,CSINFO *csinfo,INT8U *sendbuf);
+extern int getRequestNext(INT8U *data,CSINFO *csinfo,INT8U *sendbuf);
 extern int doReponse(int server,int reponse,CSINFO *csinfo,int datalen,INT8U *data,INT8U *buf);
 extern INT16U setRequestNormal(INT8U *data,OAD oad,INT8U *DAR,CSINFO *csinfo,INT8U *buf);
 extern int setRequestNormalList(INT8U *Object,CSINFO *csinfo,INT8U *buf);
@@ -552,7 +553,7 @@ int doSetAttribute(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 			data = &apdu[7];					//Data
 			setRequestNormal(data,oad,&DAR,NULL,buf);
 			fprintf(stderr,"setRequestNormal dar = %d\n",DAR);
-			index += create_OAD(&TmpDataBuf[index],oad);
+			index += create_OAD(0,&TmpDataBuf[index],oad);
 			TmpDataBuf[index++] = (INT8U)DAR;
 			doReponse(SET_RESPONSE,SET_REQUEST_NORMAL,csinfo,index,TmpDataBuf,buf);
 			Get698_event(oad,memp);
@@ -659,7 +660,7 @@ int doActionRequest(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 			oad.attrindex = apdu[apdu_index+6];
 			data = &apdu[apdu_index+7];					//Data
 			DAR = doObjectAction(oad,data,&act_ret);
-			index += create_OAD(&TmpDataBuf[index],oad);
+			index += create_OAD(0,&TmpDataBuf[index],oad);
 			TmpDataBuf[index++] = DAR;
 			doReponse(ACTION_RESPONSE,ActionResponseNormal,csinfo,index,TmpDataBuf,buf);
 			Get698_event(oad,memp);
@@ -676,7 +677,7 @@ int doActionRequest(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 				apdu_index+=2;
 				oad.attflg = apdu[apdu_index++];
 				oad.attrindex = apdu[apdu_index++];
-				index += create_OAD(&TmpDataBuf[index],oad);
+				index += create_OAD(0,&TmpDataBuf[index],oad);
 				doObjectAction(oad,&apdu[apdu_index],&act_ret);
 				TmpDataBuf[index++] = act_ret.DAR;
 				apdu_index += act_ret.datalen;
