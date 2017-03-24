@@ -971,7 +971,6 @@ BOOLEAN MeterDiff(ProgramInfo* prginfo_event,MeterPower *MeterPowerInfo)
 	{
 		if(MeterPowerInfo[i].Valid)
 		{
-			//RecPointNum++;
 			fprintf(stderr,"MeterPowerInfo[%d],PoweroffTime,year=%d,month=%d,day=%d,hour=%d,min=%d,sec=%d\n",
 					i,MeterPowerInfo[i].PoweroffTime.tm_year+1900,MeterPowerInfo[i].PoweroffTime.tm_mon,MeterPowerInfo[i].PoweroffTime.tm_mday,
 					MeterPowerInfo[i].PoweroffTime.tm_hour,MeterPowerInfo[i].PoweroffTime.tm_min,MeterPowerInfo[i].PoweroffTime.tm_sec);
@@ -994,8 +993,8 @@ BOOLEAN MeterDiff(ProgramInfo* prginfo_event,MeterPower *MeterPowerInfo)
 #ifdef SHANDONG
 			poweroffset = 100;
 #endif
-			if((abs(difftime(mktime(&MeterPowerInfo[i].PoweroffTime),mktime(&TermialPowerInfo.PoweroffTime)))>(poweroffset*60))
-			||(abs(difftime(mktime(&MeterPowerInfo[i].PoweronTime),mktime(&TermialPowerInfo.PoweronTime)))>(poweroffset*60)))
+			if((abs(Diff1_tmp1)>(poweroffset*60))
+			||(abs(Diff1_tmp2)>(poweroffset*60)))
 			{
 				TermialPowerInfo.Valid = POWER_OFF_INVALIDE;
 				fprintf(stderr,"MeterDiff err1\r\n");
@@ -1016,13 +1015,10 @@ BOOLEAN MeterDiff(ProgramInfo* prginfo_event,MeterPower *MeterPowerInfo)
 			}
 		}
 	}
-	//if(MsgNum <= (RecPointNum*2))
-	{
-		fprintf(stderr,"POWER_OFF_VALIDE\r\n");
-		TermialPowerInfo.Valid = POWER_OFF_VALIDE;
-	    filewrite(ERC3106PATH,&TermialPowerInfo,sizeof(TermialPowerInfo));
-	}
-	//fprintf(stderr,"MsgNum=%d, RecPointNum=%d\n",MsgNum,RecPointNum);
+	fprintf(stderr,"POWER_OFF_VALIDE\r\n");
+	TermialPowerInfo.Valid = POWER_OFF_VALIDE;
+	filewrite(ERC3106PATH,&TermialPowerInfo,sizeof(TermialPowerInfo));
+
 	return TRUE;
 }
 
