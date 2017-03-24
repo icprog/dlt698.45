@@ -70,10 +70,6 @@ INT16S composeProtocol07(FORMAT07* format07, INT8U* sendBuf)
 			format07->Addr[0],format07->Addr[1],format07->Addr[2],format07->Addr[3],format07->Addr[4],format07->Addr[5]);
 	reversebuff(format07->Addr,6,addrBuff);
 
-#ifdef TESTDEF1
-	INT8U meterAddr[6] = {0x71,0x05,0x17,0x28,0x15,0x00};
-	memcpy(addrBuff,meterAddr,6);
-#endif
 	fprintf(stderr,"\n\n composeProtocol07 ctrl = %d",format07->Ctrl);
 	if (format07->Ctrl == 0x11)//读数据
 	{
@@ -114,7 +110,30 @@ INT16S composeProtocol07(FORMAT07* format07, INT8U* sendBuf)
 
 		return 17;
 	}
+	else if (format07->Ctrl == 0x08)//广播校时
+	{
+		sendBuf[0] = 0x68;
+		memcpy(&sendBuf[1], addrBuff, 6);//地址
+		sendBuf[7] = 0x68;
+		sendBuf[8] = format07->Ctrl;
+		sendBuf[9] = 0x06;//长度
+		int32u2bcd(format07->Time[0], &sendBuf[10], inverted);//校时时间
+		int32u2bcd(format07->Time[1], &sendBuf[11], inverted);
+		int32u2bcd(format07->Time[2], &sendBuf[12], inverted);
+		int32u2bcd(format07->Time[3], &sendBuf[13], inverted);
+		int32u2bcd(format07->Time[4], &sendBuf[14], inverted);
+		int32u2bcd(format07->Time[5], &sendBuf[15], inverted);
 
+		for (i=10; i<16; i++)
+		{
+			sendBuf[i] += 0x33;
+		}
+
+		sendBuf[16] = getCS645(&sendBuf[0], 16);
+		sendBuf[17] = 0x16;
+
+		return 18;
+	}
 	return -1;
 }
 
@@ -173,6 +192,26 @@ INT8S analyzeProtocol07(FORMAT07* format07, INT8U* recvBuf, const INT16U recvLen
 			{
 				ret = 5;
 			}
+		}
+		else if (format07->Ctrl == 0x08)//广播校时
+		{
+			INT32U Time[6];
+			for(i=0; i<6; i++)
+			{
+				Time[i] = format07->Time[i];
+			}
+			bcd2int32u(&recvBuf[count+10], 1, inverted, &Time[0]);
+			bcd2int32u(&recvBuf[count+11], 1, inverted, &Time[1]);
+			bcd2int32u(&recvBuf[count+12], 1, inverted, &Time[2]);
+			bcd2int32u(&recvBuf[count+13], 1, inverted, &Time[3]);
+			bcd2int32u(&recvBuf[count+14], 1, inverted, &Time[4]);
+			bcd2int32u(&recvBuf[count+15], 1, inverted, &Time[5]);
+
+			for(i=0; i<6; i++)
+			{
+				format07->Time[i] = Time[i];
+			}
+			ret = 1;
 		}
 		else if ((format07->Ctrl==0xD1) || (format07->Ctrl==0xD2))//异常应答
 		{

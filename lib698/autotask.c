@@ -213,7 +213,7 @@ int callAutoReport(CommBlock* com, INT8U ifecho)
 	sendcounter++;
 	datalen = 0;
 	fprintf(stderr,"\n当前偏移位置 nowoffset = %d  ",nowoffset);
-	nextoffset = readFrameDataFile("/nand/frmdata",nowoffset,TmpDataBuf,&datalen);
+	nextoffset = readFrameDataFile(TASK_FRAME_DATA,nowoffset,TmpDataBuf,&datalen);
 	fprintf(stderr,"\n读出 (%d)：",datalen);
 	for(j=0; j<datalen; j++)
 	{
@@ -264,6 +264,7 @@ int GetReportData(CLASS_601D report)
 							report.reportdata.data.recorddata.rsd,
 							report.reportdata.data.recorddata.selectType,
 							report.reportdata.data.recorddata.csds,NULL, NULL);
+		fprintf(stderr,"GetReportData   ret=%d\n",ret);
 	}
 	return ret;
 }
@@ -288,7 +289,11 @@ INT16U  composeAutoTask(AutoTaskStrap *list)
 				asyslog(LOG_INFO,"i=%d 任务【 %d 】 	 开始执行   上报方案编号【 %d 】 重发次数=%d, 超时时间=%d",i,list->ID,list->SerNo,list->ReportNum,list->OverTime);
 				fprintf(stderr,"list->SerNo = %d\n",list->SerNo);
 				if (GetReportData(class601d) == 1)//数据组织好了
+				{
 					ret = 2;
+					fprintf(stderr,"GetReportData=%d\n",ret);
+
+				}
 			}
 			list->nexttime = calcnexttime(class6013.interval,class6013.startime);
 		}else

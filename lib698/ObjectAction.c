@@ -388,7 +388,7 @@ void AddCjiFangAnInfo(INT8U *data,Action_result *act_ret)
 
 	INT8U *buf;
 	CLASS_6015 fangAn={};
-	int k=0,saveflg=0;
+	int k=0;
 	INT8U addnum = data[1];
 	INT8U *dealdata=NULL;
 	int index=0;
@@ -473,7 +473,7 @@ void AddCjiFangAnInfo(INT8U *data,Action_result *act_ret)
 void AddEventCjiFangAnInfo(INT8U *data,Action_result *act_ret)
 {
 	CLASS_6017 eventFangAn={};
-	int i=0,k=0,saveflg=0;
+	int i=0,k=0;
 	INT8U addnum = 0;
 	int index=0;
 
@@ -499,7 +499,7 @@ void AddTaskInfo(INT8U *data,Action_result *act_ret)
 {
 	act_ret->DAR = success;
 	CLASS_6013 task={};
-	int k=0,saveflg=0,index=0;
+	int k=0,index=0;
 	INT8U *dealdata=NULL;
 	INT8U addnum = data[1];
 	fprintf(stderr,"\nsizeof task=%d",sizeof(task));
@@ -624,7 +624,7 @@ void print_601d(CLASS_601D	 reportplan)
 void AddReportInfo(INT8U *data,Action_result *act_ret)
 {
 	CLASS_601D	 reportplan={};
-	int k=0,j=0,saveflg=0;
+	int k=0,j=0;
 	INT8U addnum = 0,strunum = 0;
 //	INT8U roadnum=0;
 	int index=0;

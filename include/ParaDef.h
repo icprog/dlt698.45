@@ -11,8 +11,10 @@
 
 #define delay(A) usleep((A)*1000)
 //////////////////////////////////////////////////////////////
-#define _CFGDIR_ 			"/nor/config"
-#define _ACSDIR_			"/nor/acs"
+#define _CFGDIR_ 				"/nor/config"
+#define _ACSDIR_				"/nor/acs"
+#define TASK_FRAME_DATA			"/nand/frmdata"		//任务分帧的数据文件
+#define PARA_FRAME_DATA			"/nand/frmpara"		//参数类分帧的数据文件
 ///////////////////////////////////////////////////////////////
 /*
  * 	进程间通讯相关限值

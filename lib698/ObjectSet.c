@@ -422,7 +422,7 @@ INT16U set4500(OAD oad,INT8U *data,INT8U *DAR)
 		index += getArray(&data[index],(INT8U *)&master.masternum);
 		if(master.masternum>4) {
 			fprintf(stderr,"!!!!!!!!!越限 masternum=%d\n",master.masternum);
-			master.masternum = 5;
+			master.masternum = 4;
 		}
 		for(i=0;i<master.masternum;i++) {
 			index += getVisibleString(&data[index],master.master[i].ip);
@@ -785,7 +785,7 @@ int setRequestNormalList(INT8U *data,CSINFO *csinfo,INT8U *buf)
 			event_oadnum++;
 		}
 		sourceindex += setRequestNormal(&data[sourceindex],oad,&DAR,NULL,buf);
-		listindex += create_OAD(&TmpDataBufList[listindex],oad);
+		listindex += create_OAD(0,&TmpDataBufList[listindex],oad);
 		TmpDataBufList[listindex++] = (INT8U)DAR;
 	}
 	doReponse(SET_RESPONSE,SET_REQUEST_NORMAL_LIST,csinfo,listindex,TmpDataBufList,buf);
