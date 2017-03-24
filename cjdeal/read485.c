@@ -1882,6 +1882,7 @@ INT8S sendSetTimeCMD(CLASS_6001 meter,INT8U port485)
 	//下发对时
 	switch(meter.basicinfo.protocol)
 	{
+		fprintf(stderr,"\n 下发对时报文 protocal = %d",meter.basicinfo.protocol);
 		case DLT_645_07:
 		{
 			TS nowTime;
@@ -1889,7 +1890,7 @@ INT8S sendSetTimeCMD(CLASS_6001 meter,INT8U port485)
 
 			FORMAT07 format07_setTime;
 			format07_setTime.Ctrl = 0x08;
-			memset(&format07_setTime.Addr, 0x99, 6);//地址
+
 
 			format07_setTime.Time[0] = nowTime.Sec;
 			format07_setTime.Time[1] = nowTime.Minute;
@@ -1897,7 +1898,7 @@ INT8S sendSetTimeCMD(CLASS_6001 meter,INT8U port485)
 			format07_setTime.Time[3] = nowTime.Day;
 			format07_setTime.Time[4] = nowTime.Month;
 			format07_setTime.Time[5] = nowTime.Year-2000;
-
+#if 0
 			fprintf(stderr, "\n meterAddr len = %d addr = %02x%02x%02x%02x%02x%02x%02x%02x",
 						meter.basicinfo.addr.addr[0], meter.basicinfo.addr.addr[1], meter.basicinfo.addr.addr[2],
 						meter.basicinfo.addr.addr[3], meter.basicinfo.addr.addr[4], meter.basicinfo.addr.addr[5],
@@ -1911,6 +1912,9 @@ INT8S sendSetTimeCMD(CLASS_6001 meter,INT8U port485)
 
 			INT8U startIndex = 5 - meter.basicinfo.addr.addr[1];
 			memcpy(&format07_setTime.Addr[startIndex], &meter.basicinfo.addr.addr[2], (meter.basicinfo.addr.addr[1]+1));
+#else
+			memset(&format07_setTime.Addr, 0x99, 6);//地址
+#endif
 
 			INT16S SendLen = composeProtocol07(&format07_setTime, sendBuf);
 			if (SendLen < 0)
@@ -1952,30 +1956,32 @@ INT8S sendSetTimeCMD(CLASS_6001 meter,INT8U port485)
 		break;
 		default:
 		{
-			RESULT_NORMAL setData;
+			RESULT_NORMAL setData={};
 			setData.oad.OI = 0x4000;
 			setData.oad.attflg = 0x02;
 			setData.oad.attrindex = 0x00;
 			DateTimeBCD nowtime;
 			DataTimeGet(&nowtime);
-			setData.datalen = fill_date_time_s(setData.data,&nowtime);
 
+			INT8U timeData[8];
+			setData.datalen = fill_date_time_s(timeData,&nowtime);
+			setData.data = timeData;
 			sendLen = composeProtocol698_SetRequest(sendBuf,setData,meter.basicinfo.addr);
 			subindex = 0;
-				while(subindex < 3)
+			while(subindex < 3)
+			{
+				memset(recvBuf, 0, BUFFSIZE);
+				SendDataTo485(port485, sendBuf, sendLen);
+
+				RecvLen = ReceDataFrom485(DLT_698,port485, 500, recvBuf);
+
+				fprintf(stderr,"\n\n recvLen = %d \n",RecvLen);
+				if(RecvLen > 0)
 				{
-					memset(recvBuf, 0, BUFFSIZE);
-					SendDataTo485(port485, sendBuf, sendLen);
-
-					RecvLen = ReceDataFrom485(DLT_698,port485, 500, recvBuf);
-
-					fprintf(stderr,"\n\n recvLen = %d \n",RecvLen);
-					if(RecvLen > 0)
-					{
-						return ret;
-					}
-					subindex++;
+					return ret;
 				}
+				subindex++;
+			}
 
 		}
 	}
@@ -2076,6 +2082,7 @@ INT8S checkBroadCast(INT8U port485)
 		broadcastTime.Sec = broadcase4204.startime1[2];
 
 		INT8U timeCmp = TScompare(nowTime,broadcastTime);
+		fprintf(stderr,"\n checkBroadCast timeCmp = %d",timeCmp);
 		if(timeCmp < 2)
 		{
 			asyslog(LOG_WARNING,"终端单地址广播校时时间到");
@@ -2098,11 +2105,13 @@ INT8S checkBroadCast(INT8U port485)
 					}
 				}
 			}
+
+			flagDay_4204[port485-1] = 0;
 		}
 
 
 	}
-	flagDay_4204[port485-1] = 0;
+
 	return ret;
 }
 
