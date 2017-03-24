@@ -31,6 +31,7 @@
 #define	 CALCDIR				"/nand/calc"				//统计类数据存储
 #define	 INITDIR				"/nor/init"					//初始化参数文件
 #define	 TASKDATA				"/nand/task"				//任务采集存储文件
+#define	 EVEDATA				"/nand/event"				//任务采集存储文件
 
 //文件存储类型
 typedef enum
@@ -206,6 +207,7 @@ extern long int readFrameDataFile(char *filename,int offset,INT8U *buf,int *data
 //extern void ReadFileHeadLen(FILE *fp,int *headlen,int *blocklen);
 extern INT8U ReadTaskInfo(INT8U taskid,TASKSET_INFO *tasknor_info);
 extern void getTaskFileName(INT8U taskid,TS ts,char *fname);
+extern void getEveFileName(OI_698 eve_oi,char *fname);
 extern INT8U datafile_write(char *FileName, void *source, int size, int offset);
 extern INT8U datafile_read(char *FileName, void *source, int size, int offset);
 extern INT16U CalcOIDataLen(OI_698 oi,INT8U attr_flg);

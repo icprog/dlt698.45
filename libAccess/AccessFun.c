@@ -607,6 +607,16 @@ void getTaskFileName(INT8U taskid,TS ts,char *fname)
 	sprintf(fname,"%s/%03d/%04d%02d%02d.dat",TASKDATA,taskid,ts.Year,ts.Month,ts.Day);
 //	fprintf(stderr,"getFileName fname=%s\n",fname);
 }
+void getEveFileName(OI_698 eve_oi,char *fname)
+{
+	char dirname[FILENAMELEN]={};
+	if (fname==NULL)
+		return ;
+	memset(fname,0,FILENAMELEN);
+	sprintf(dirname,"%s",EVEDATA);
+	makeSubDir(dirname);
+	sprintf(fname,"%s/%04x.dat",TASKDATA,eve_oi);
+}
 
 INT16U GetFileOadLen(INT8U units,INT8U tens)//个位十位转化为一个INT16U
 {
@@ -972,7 +982,7 @@ INT8U GetTaskidFromCSDs(CSD_ARRAYTYPE csds,ROAD_ITEM *item_road)
 	{
 		if(readCoverClass(0x6013,i+1,&class6013,sizeof(class6013),coll_para_save) == 1)
 		{
-			if(class6013.cjtype != 1 || class6013.state != 1)//
+			if(class6013.cjtype != 1 || class6013.state != 1)//过滤掉不是普通采集方案的
 				continue;
 			if(readCoverClass(0x6015,class6013.sernum,&class6015,sizeof(CLASS_6015),coll_para_save) == 1)
 			{
@@ -984,10 +994,10 @@ INT8U GetTaskidFromCSDs(CSD_ARRAYTYPE csds,ROAD_ITEM *item_road)
 						switch(class6015.csds.csd[j].type)
 						{
 						case 0:
-							asyslog(LOG_INFO,"mm=%d,oad_r  =%04x_%02x%02x \n",mm,item_road->oad[mm].oad_r.OI,
-									item_road->oad[mm].oad_r.attflg,item_road->oad[mm].oad_r.attrindex);
-							asyslog(LOG_INFO,"jj=%d,csd.oad=%04x_%02x%02x \n",j,class6015.csds.csd[j].csd.oad.OI,
-									class6015.csds.csd[j].csd.oad.attflg,class6015.csds.csd[j].csd.oad.attrindex);
+							  asyslog(LOG_INFO,"mm=%d,oad_r  =%04x_%02x%02x \n",mm,item_road->oad[mm].oad_r.OI,
+											item_road->oad[mm].oad_r.attflg,item_road->oad[mm].oad_r.attrindex);
+							  asyslog(LOG_INFO,"jj=%d,csd.oad=%04x_%02x%02x \n",j,class6015.csds.csd[j].csd.oad.OI,
+											class6015.csds.csd[j].csd.oad.attflg,class6015.csds.csd[j].csd.oad.attrindex);
 							if(item_road->oad[mm].oad_m.OI == 0x0000)//都为oad类型
 							{
 								if(memcmp(&item_road->oad[mm].oad_r,&class6015.csds.csd[j].csd.oad,sizeof(OAD))==0){
@@ -997,10 +1007,10 @@ INT8U GetTaskidFromCSDs(CSD_ARRAYTYPE csds,ROAD_ITEM *item_road)
 							}
 							break;
 						case 1:
-							asyslog(LOG_INFO,"1111mm=%d,oad_r  =%04x_%02x%02x \n",mm,item_road->oad[mm].oad_r.OI,
-									item_road->oad[mm].oad_r.attflg,item_road->oad[mm].oad_r.attrindex);
-							asyslog(LOG_INFO,"1111jj=%d,csd.oad=%04x_%02x%02x \n",j,class6015.csds.csd[j].csd.oad.OI,
-									class6015.csds.csd[j].csd.oad.attflg,class6015.csds.csd[j].csd.oad.attrindex);
+							  asyslog(LOG_INFO,"11111 mm=%d,oad_r  =%04x_%02x%02x \n",mm,item_road->oad[mm].oad_r.OI,
+											item_road->oad[mm].oad_r.attflg,item_road->oad[mm].oad_r.attrindex);
+							  asyslog(LOG_INFO,"11111 jj=%d,csd.oad=%04x_%02x%02x \n",j,class6015.csds.csd[j].csd.oad.OI,
+											class6015.csds.csd[j].csd.oad.attflg,class6015.csds.csd[j].csd.oad.attrindex);
 							if(memcmp(&item_road->oad[mm].oad_m,&class6015.csds.csd[j].csd.road.oad,sizeof(OAD))==0)//
 							{
 								for(nn=0;nn<class6015.csds.csd[j].csd.road.num;nn++)
@@ -1530,10 +1540,11 @@ INT8U getcurecord(INT8U selectype,int *curec,int curecn,int runtime)
 	return 0;
 }
 /*
- *
+ *获得任务数据和事件记录
  */
 int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds)
 {
+	FILE *fp = NULL,*myfp = NULL;
 	INT8U 	taskid=0,recordbuf[1000],onefrmbuf[2000];
 	ROAD_ITEM item_road;
 	CURR_RECINFO recinfo;
@@ -1544,30 +1555,54 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds)
 	int offsetTsa = 0,recordoffset = 0,unitnum=0,i=0,j=0,indexn=0,recordlen = 0,currecord = 0,tsa_num=0,framesum=0;
 	INT8U recordnum=0,seqnumindex=0;
 	TSA *tsa_group = NULL;
+	ROAD road_eve;
+	INT8U eveflg=0;
 	memset(&item_road,0x00,sizeof(ROAD_ITEM));
 
 	if(selectype != 5 && selectype != 7 && selectype != 10)
 		return 0;
-	memset(&item_road,0,sizeof(item_road));
-	if((taskid = GetTaskidFromCSDs(csds,&item_road)) == 0) {//暂时不支持招测的不在一个采集方案
-		asyslog(LOG_INFO,"GetTaskData: taskid=%d\n",taskid);
-		return 0;
-	}
-	if(ReadTaskInfo(taskid,&tasknor_info)!=1)//得到任务信息
+	////////////////////////////////////////招测单个事件
+	if(csds.num > MY_CSD_NUM)
+		csds.num = MY_CSD_NUM;
+	for(i=0;i<csds.num;i++)
 	{
-		asyslog(LOG_INFO,"n得到任务信息失败\n");
-		fprintf(stderr,"\n得到任务信息失败\n");
-		return 0;
+		if(csds.csd[i].type != 1)
+			continue;
+		if(csds.csd[i].csd.road.oad.OI >= 0x3000 && csds.csd[i].csd.road.oad.OI < 0x4000)//事件关联对象
+		{
+			eveflg = 1;
+			memcpy(&road_eve,&csds.csd[i].csd.road,sizeof(ROAD));
+			break;
+		}
 	}
-	fprintf(stderr,"\n得到任务信息成功\n");
+	if(eveflg == 1)
+		;
+	else
+	{
+		///////////////////////////////////////////////////////////
+		memset(&item_road,0,sizeof(item_road));
+		if((taskid = GetTaskidFromCSDs(csds,&item_road)) == 0) {//暂时不支持招测的不在一个采集方案
+			asyslog(LOG_INFO,"GetTaskData: taskid=%d\n",taskid);
+			return 0;
+		}
+		if(ReadTaskInfo(taskid,&tasknor_info)!=1)//得到任务信息
+		{
+			asyslog(LOG_INFO,"n得到任务信息失败\n");
+			fprintf(stderr,"\n得到任务信息失败\n");
+			return 0;
+		}
+		fprintf(stderr,"\n得到任务信息成功\n");
 
-	memset(&recinfo,0x00,sizeof(CURR_RECINFO));
-	initrecinfo(&recinfo,tasknor_info,selectype,select);//获得recinfo信息
+		memset(&recinfo,0x00,sizeof(CURR_RECINFO));
+		initrecinfo(&recinfo,tasknor_info,selectype,select);//获得recinfo信息
 
-	//1\打开数据文件
-	FILE *myfp = openFramefile(TASK_FRAME_DATA);
+
+		//1\打开数据文件
+
 	fprintf(stderr,"\n----------1\n");
-	FILE *fp = opendatafile(taskid,recinfo);
+	fp = opendatafile(taskid,recinfo);
+	}
+	myfp = openFramefile(TASK_FRAME_DATA);
 	if (fp==NULL || myfp==NULL)
 		return 0;
 	fprintf(stderr,"\n打开文件成功\n");
@@ -1629,7 +1664,7 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds)
 				continue;
 			}
 			//5\定位指定的点（行）, 返回offset
-			if(getcurecord(selectype,&currecord,j,tasknor_info.runtime) == 0)//天数超出10天
+			if(getcurecord(selectype,&currecord,j,tasknor_info.runtime) == 0)//招测天数跨度超出10天
 				break;
 			fprintf(stderr,"\n计算出来的currecord=%d\n",currecord);
 			recordoffset = findrecord(offsetTsa,recordlen,currecord);
@@ -1686,6 +1721,7 @@ int getSelector(OAD oad_h,RSD select, INT8U selectype, CSD_ARRAYTYPE csds, INT8U
 	switch(selectype)
 	{
 	case 5:
+		framesum = GetTaskData(oad_h,select,selectype,csds);
 		break;
 	case 7:
 		framesum = GetTaskData(oad_h,select,selectype,csds);//程序里面计算

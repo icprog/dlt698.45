@@ -443,10 +443,10 @@ INT8U getParaChangeType()
 	{
 		ret = ret|para_4000_chg;
 		fprintf(stderr,"\n 时间参数4000变更");
-		lastchgoi4204= JProgramInfo->oi_changed.oi4000;
+		lastchgoi4000= JProgramInfo->oi_changed.oi4000;
 	}
 
-	if(lastchgoi4204 != JProgramInfo->oi_changed.oi6014)
+	if(lastchgoi4204 != JProgramInfo->oi_changed.oi4204)
 	{
 		ret = ret|para_4204_chg;
 		fprintf(stderr,"\n 终端广播校时参数4204变更");
@@ -461,12 +461,44 @@ INT8S init4204Info()
 	memset(&broadcase4204,0,sizeof(CLASS_4204));
 	if(readCoverClass(0x4204,0,&broadcase4204,sizeof(CLASS_4204),para_vari_save)==1)
 	{
+		flagDay_4204[0] = 1;
+		flagDay_4204[1] = 1;
 		fprintf(stderr,"广播校时4204读取成功");
 	}
-	flagDay_4204[0] = 1;
-	flagDay_4204[1] = 1;
 	return ret;
 }
+
+void timeProcess()
+{
+	static TS lastTime;
+	static INT8U firstFlag = 1;
+
+	TS nowTime;
+	TSGet(&nowTime);
+
+	if(firstFlag)
+	{
+		lastTime.Year = nowTime.Year;
+		lastTime.Month = nowTime.Month;
+		lastTime.Day = nowTime.Day;
+		lastTime.Hour = nowTime.Hour;
+		lastTime.Minute = nowTime.Minute;
+		lastTime.Sec = nowTime.Sec;
+		firstFlag = 0;
+	}
+	else
+	{
+		//跨天处理
+		if(lastTime.Day != nowTime.Day)
+		{
+			flagDay_4204[0] = 1;
+			flagDay_4204[1] = 1;
+
+			lastTime.Day = nowTime.Day;
+		}
+	}
+}
+
 void dispatch_thread()
 {
 	//运行调度任务进程
@@ -474,6 +506,8 @@ void dispatch_thread()
 
 	while(1)
 	{
+		timeProcess();
+
 		para_ChangeType = getParaChangeType();
 
 		if(para_ChangeType&para_6000_chg)
@@ -533,11 +567,10 @@ void dispatchTask_proccess()
 	//读取所有任务文件		TODO：参数下发后需要更新内存值
 	init6013ListFrom6012File();
 	init6000InfoFrom6000FIle();
+	init4204Info();
+
 	para_change485[0] = 0;
 	para_change485[1] = 0;
-	flagDay_4204[0] = 0;
-	flagDay_4204[0] = 0;
-
 
 	pthread_attr_init(&dispatchTask_attr_t);
 	pthread_attr_setstacksize(&dispatchTask_attr_t, 2048 * 1024);

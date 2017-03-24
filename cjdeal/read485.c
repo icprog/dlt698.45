@@ -1868,6 +1868,191 @@ INT8S dealProxyQueue(INT8U port485)
 	}
 	return result;
 }
+INT8S sendSetTimeCMD(CLASS_6001 meter,INT8U port485)
+{
+	INT8S ret = -1;
+	INT16S sendLen;
+	INT8U sendBuf[256];
+	INT8U recvBuf[256];
+	memset(sendBuf, 0, 256);
+	memset(recvBuf, 0, 256);
+	INT8U subindex = 0;
+	INT16S RecvLen = 0;
+	fprintf(stderr,"\n 下发对时报文");
+	//下发对时
+	switch(meter.basicinfo.protocol)
+	{
+		case DLT_645_07:
+		{
+			TS nowTime;
+			TSGet(&nowTime);
+
+			FORMAT07 format07_setTime;
+			format07_setTime.Ctrl = 0x08;
+			memset(&format07_setTime.Addr, 0x99, 6);//地址
+
+			format07_setTime.Time[0] = nowTime.Sec;
+			format07_setTime.Time[1] = nowTime.Minute;
+			format07_setTime.Time[2] = nowTime.Hour;
+			format07_setTime.Time[3] = nowTime.Day;
+			format07_setTime.Time[4] = nowTime.Month;
+			format07_setTime.Time[5] = nowTime.Year-2000;
+
+			fprintf(stderr, "\n meterAddr len = %d addr = %02x%02x%02x%02x%02x%02x%02x%02x",
+						meter.basicinfo.addr.addr[0], meter.basicinfo.addr.addr[1], meter.basicinfo.addr.addr[2],
+						meter.basicinfo.addr.addr[3], meter.basicinfo.addr.addr[4], meter.basicinfo.addr.addr[5],
+						meter.basicinfo.addr.addr[6],meter.basicinfo.addr.addr[7],meter.basicinfo.addr.addr[8]);
+
+			if(meter.basicinfo.addr.addr[1] > 5)
+			{
+				meter.basicinfo.addr.addr[1] = 5;
+				fprintf(stderr,"request698_07Data 电表地址长度大于6");
+			}
+
+			INT8U startIndex = 5 - meter.basicinfo.addr.addr[1];
+			memcpy(&format07_setTime.Addr[startIndex], &meter.basicinfo.addr.addr[2], (meter.basicinfo.addr.addr[1]+1));
+
+			INT16S SendLen = composeProtocol07(&format07_setTime, sendBuf);
+			if (SendLen < 0)
+			{
+				fprintf(stderr, "sendSetTimeCMD");
+				return ret;
+			}
+
+			while(subindex < 3)
+			{
+				SendDataTo485(port485, sendBuf, SendLen);
+				BOOLEAN nextFlag;
+				RecvLen = ReceDataFrom485(DLT_645_07,port485, 500, recvBuf);
+				if (RecvLen > 0)
+				{
+					INT8S recsta = analyzeProtocol07(&format07_setTime, recvBuf, RecvLen, &nextFlag);
+					if (recsta == 0)
+					{
+						return ret;
+					} else
+					{
+						if (recsta == -1) {
+							fprintf(stderr, "电表异常应答，无数据项  %02x%02x%02x%02x！！！\n",
+									format07_setTime.DI[3], format07_setTime.DI[2], format07_setTime.DI[1],
+									format07_setTime.DI[0]);
+						} else if (recsta == -2) {
+							fprintf(stderr, "电表异常应答，未知错误！ Err=%02x\n", format07_setTime.Err);
+						} else if (recsta == -3) {
+							fprintf(stderr, "其他功能！\n");
+						} else if (recsta == -4) {
+							fprintf(stderr, "校验错误！\n");
+						}
+					}
+				}
+				subindex++;
+			}
+
+		}
+		break;
+		default:
+		{
+			RESULT_NORMAL setData;
+			setData.oad.OI = 0x4000;
+			setData.oad.attflg = 0x02;
+			setData.oad.attrindex = 0x00;
+			DateTimeBCD nowtime;
+			DataTimeGet(&nowtime);
+			setData.datalen = fill_date_time_s(setData.data,&nowtime);
+
+			sendLen = composeProtocol698_SetRequest(sendBuf,setData,meter.basicinfo.addr);
+			subindex = 0;
+				while(subindex < 3)
+				{
+					memset(recvBuf, 0, BUFFSIZE);
+					SendDataTo485(port485, sendBuf, sendLen);
+
+					RecvLen = ReceDataFrom485(DLT_698,port485, 500, recvBuf);
+
+					fprintf(stderr,"\n\n recvLen = %d \n",RecvLen);
+					if(RecvLen > 0)
+					{
+						return ret;
+					}
+					subindex++;
+				}
+
+		}
+	}
+	return ret;
+}
+INT8S dealBroadCastSingleMeter(INT8U port485,CLASS_6001 meter)
+{
+	fprintf(stderr,"终端单地址广播校时 测量点序号 = %d",meter.sernum);
+
+	INT8S ret = -1;
+
+	if(getComfdBy6001(meter.basicinfo.baud,meter.basicinfo.port.attrindex) != 1)
+	{
+		fprintf(stderr," dealBroadCastSingleMeter--------2");
+		return ret;
+	}
+
+	INT8U dataContent[DATA_CONTENT_LEN];
+	memset(dataContent,0,DATA_CONTENT_LEN);
+
+	CLASS_6035 nullst6035;
+	memset(&nullst6035,0,sizeof(CLASS_6035));
+	INT16S dataLen = 0;
+	switch(meter.basicinfo.protocol)
+	{
+		case DLT_645_07:
+		{
+			OAD timeOAD;
+			timeOAD.OI = 0x4000;
+			timeOAD.attflg = 0x02;
+			timeOAD.attrindex = 0x00;
+			dataLen = request07_singleOAD(0x0000,timeOAD,meter,&nullst6035,dataContent,port485);
+		}
+
+		break;
+		default:
+		{
+			CLASS_6015 st6015;
+			memset(&st6015,0,sizeof(CLASS_6015));
+
+			st6015.cjtype = TYPE_NULL;
+			st6015.csds.num = 1;
+			st6015.csds.csd[0].type = 0;
+			st6015.csds.csd[0].csd.oad.OI = 0x4000;
+			st6015.csds.csd[0].csd.oad.attflg = 0x02;
+			st6015.csds.csd[0].csd.oad.attrindex = 0x00;
+			dataLen = deal6015_698(st6015,meter,&nullst6035,dataContent,port485);
+		}
+	}
+	if(dataContent[0]!=0x1c)
+	{
+		return ret;
+	}
+	time_t timeNow = time(NULL);
+	TS meterTime;
+	meterTime.Year = dataContent[1];
+	meterTime.Year = (meterTime.Year << 8) + dataContent[2];
+	meterTime.Month = dataContent[3];
+	meterTime.Day = dataContent[4];
+	meterTime.Hour = dataContent[5];
+	meterTime.Minute = dataContent[6];
+	meterTime.Sec = dataContent[7];
+
+	int time_offset=difftime(timeNow,tmtotime_t(meterTime));
+	fprintf(stderr,"电表[%d]时间差:%d",meter.sernum,time_offset);
+	if(time_offset > broadcase4204.upleve)
+	{
+		INT8U eventbuf[8] = {0};
+		memcpy(eventbuf,&dataContent[1],7);
+		eventbuf[7] = (INT8U)time_offset;
+		fprintf(stderr,"对时事件 Event_311B");
+		Event_311B(meter.basicinfo.addr,eventbuf,8,JProgramInfo);
+
+		sendSetTimeCMD(meter,port485);
+	}
+	return ret;
+}
 /*
  * 处理广播校时
  * */
@@ -1893,21 +2078,14 @@ INT8S checkBroadCast(INT8U port485)
 		INT8U timeCmp = TScompare(nowTime,broadcastTime);
 		if(timeCmp < 2)
 		{
-			OAD timeOAD;
-			timeOAD.OI = 0x4000;
-			timeOAD.attflg = 0x02;
-			timeOAD.attrindex = 0x00;
 			asyslog(LOG_WARNING,"终端单地址广播校时时间到");
 			INT8U port = port485-1;
 			INT16U meterIndex = 0;
 			CLASS_6001 meter = { };
-			INT8U dataContent[20];
-			CLASS_6035 st6035;
-			memset(&st6035,0,sizeof(CLASS_6035));
-			CLASS_6015 st6015;
-			memset(&st6015,0,sizeof(CLASS_6015));
+
 			for (meterIndex = 0; meterIndex < info6000[port].meterSum; meterIndex++)
 			{
+				dealProxyQueue(port485);
 				memset(&meter,0,sizeof(CLASS_6001));
 				if (readParaClass(0x6000, &meter, info6000[port].list6001[meterIndex]) == 1)
 				{
@@ -1915,18 +2093,7 @@ INT8S checkBroadCast(INT8U port485)
 					{
 						if(is485OAD(meter.basicinfo.port,port485)==1)
 						{
-							memset(dataContent,0,20);
-							dealProxyQueue(port485);
-							INT16S dataLen = 0;
-							switch(meter.basicinfo.protocol)
-							{
-								case DLT_645_07:
-									dataLen = request07_singleOAD(0x0000,timeOAD,meter,&st6035,dataContent,port485);
-									break;
-								default:
-									dataLen = deal6015_698(st6015,meter,&st6035,dataContent,port485);
-
-							}
+							dealBroadCastSingleMeter(port485,meter);
 						}
 					}
 				}
@@ -1935,7 +2102,7 @@ INT8S checkBroadCast(INT8U port485)
 
 
 	}
-
+	flagDay_4204[port485-1] = 0;
 	return ret;
 }
 
@@ -2065,6 +2232,7 @@ INT16S request07_singleOAD(OI_698 roadOI,OAD soureOAD,CLASS_6001 to6001,CLASS_60
 	memset(&obj601F_07Flag,0,sizeof(C601F_07Flag));
 	//存储要求的固定长度 长度不够后面补0
 	INT16U formatLen = CalcOIDataLen(soureOAD.OI,soureOAD.attrindex);
+	fprintf(stderr,"\n formatLen = %d",formatLen);
 	memset(dataContent,0,formatLen);
 	if (OADMap07DI(roadOI,soureOAD, &obj601F_07Flag) == 1)
 	{
@@ -2080,6 +2248,7 @@ INT16S request07_singleOAD(OI_698 roadOI,OAD soureOAD,CLASS_6001 to6001,CLASS_60
 		fprintf(stderr, "request698_07Data:1");
 		DbgPrintToFile1(port485,"roadOI = %04x soureOAD=%04x%02x%02x 没有对应的07数据项",roadOI,soureOAD.OI,soureOAD.attflg,soureOAD.attrindex);
 	}
+
 	return formatLen;
 
 }
@@ -2489,7 +2658,7 @@ INT8S deal6015or6017(INT8U cjType,CLASS_6015 st6015, INT8U port485,CLASS_6035* s
 					if((dataLen > 0)&& (cjType == norm))
 					{
 						int bufflen = compose6012Buff(startTime,meter.basicinfo.addr,dataLen,dataContent,port485);
-						SaveNorData(st6035->taskID,dataContent,bufflen);
+						SaveNorData(st6035->taskID,NULL,dataContent,bufflen);
 					}
 				}
 				else
@@ -2580,7 +2749,6 @@ void read485_thread(void* i485port) {
 	INT8U port = *(INT8U*) i485port;
 	fprintf(stderr, "\n port = %d", port);
 
-	INT8S ret = 0;
 
 #ifdef TESTDEF1
 	INT8S result = getComfdBy6001(3,2);
@@ -2593,15 +2761,20 @@ void read485_thread(void* i485port) {
 						0x44,0x44,0x44,0xAA,0x16};
 	INT8U chgAddr[18]= {0x68,0xAA,0xAA,0xAA,0xAA,0xAA,0xAA,0x68,0x15,0x06,
 						0x44,0x55,0x66,0x77,0x88,0x99,0x7F,0x16};
+
+	INT8U requestAddr07[12] ={0x68,0xAA,0xAA,0xAA,0xAA,0xAA,0xAA,0x68,0x13,0x00,0xDF,0x16};
+
 	INT16S RecvLen = -1;
 	INT8U RecvBuff[256] = {0};
 
-	SendDataTo485(2, jinchang, 25);
-	RecvLen = ReceDataFrom485(DLT_698,2, 500, RecvBuff);
+	SendDataTo485(2, requestAddr07, 12);
+	RecvLen = ReceDataFrom485(DLT_645_07,2, 500, RecvBuff);
+	//RecvLen = ReceDataFrom485(DLT_698,2, 500, RecvBuff);
 	if (RecvLen > 0)
 	{
 		fprintf(stderr,"\n 进场报文收到回复");
 	}
+#if 0
 	sleep(5);
 
 	memset(RecvBuff,0,256);
@@ -2611,6 +2784,7 @@ void read485_thread(void* i485port) {
 	{
 		fprintf(stderr,"\n 修改地址报文收到回复");
 	}
+#endif
 	return;
 #endif
 
