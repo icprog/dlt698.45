@@ -1090,7 +1090,8 @@ INT8U Get_meter_powoffon(ProgramInfo* prginfo_event,MeterPower *MeterPowerInfo,I
     	}
     	*state=1;
     	fprintf(stderr,"state=%d \n",*state);
-    }
+    }else
+    	return 0;
 	return 1;
 }
 /*
@@ -1169,6 +1170,7 @@ INT8U Event_3106(ProgramInfo* prginfo_event,MeterPower *MeterPowerInfo,INT8U *st
 			if(Get_meter_powoffon(prginfo_event,MeterPowerInfo,state) == 1){
 				TermialPowerInfo.Valid = POWER_START;
 				filewrite(ERC3106PATH,&TermialPowerInfo,sizeof(TermialPowerInfo));
+				return 0;
 			}
 			TermialPowerInfo.ERC3106State = POWER_START;
 			filewrite(ERC3106PATH,&TermialPowerInfo,sizeof(TermialPowerInfo));
