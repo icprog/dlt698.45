@@ -1135,6 +1135,7 @@ INT8U Event_3106(ProgramInfo* prginfo_event,MeterPower *MeterPowerInfo,INT8U *st
 			off_time = 0;
 			//电压低于限值，且底板有电，产生下电事件
 			TermialPowerInfo.ERC3106State = POWER_OFF;
+			flag = 0x01;
 			localtime_r((const time_t*)&time_of_now, &TermialPowerInfo.PoweroffTime);
 			ERC3106log(0,prginfo_event->ACSRealData.Ua,TermialPowerInfo.PoweroffTime);//调试加入log
 
@@ -1157,6 +1158,11 @@ INT8U Event_3106(ProgramInfo* prginfo_event,MeterPower *MeterPowerInfo,INT8U *st
 			ERC3106log(1,prginfo_event->ACSRealData.Ua,TermialPowerInfo.PoweronTime);//调试加入log
 
 			//如果上电时间大于停电时间或者停上电时间间隔小于最小间隔或者大于最大间隔不产生下电事件
+			if(mintime_space==0)
+				mintime_space=1;
+			if(maxtime_space==0)
+				maxtime_space=4300;
+			fprintf(stderr,"interval=%d mintime_space=%d maxtime_space=%d \n",interval,mintime_space*60,maxtime_space*60);
 			if((interval > mintime_space*60)&&(interval < maxtime_space*60)) {
 				fprintf(stderr,"上电时间满足参数：interval=%d\n",interval);
 				flag = 0x01;
