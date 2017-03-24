@@ -30,6 +30,7 @@ extern PIID piid_g;
 
 typedef struct {
 	INT8U	repsonseType;		//分帧响应类型 CHOICE 	错误信息[0]   DAR，  对象属性[1]   SEQUENCE OF A-ResultNormal，记录型对象属性	[2] SEQUENCE OF A-ResultRecord
+	INT8U	seqOfNum;			//用于保存sequence of a-ResultNormal的个数，ResultNormal的情况分帧时写入文件
 	INT16U	subframeSum;		//Get 分帧总数
 	INT16U	frameNo;			//帧序号
 	INT16U	currSite;			//当前帧序号在文件中位置
@@ -137,33 +138,97 @@ int BuildFrame_GetResponse(INT8U response_type,CSINFO *csinfo,INT8U oadnum,RESUL
 	return (index+3);
 }
 
-int GetMeterInfo(RESULT_NORMAL *response)
+/*
+ * 分帧处理判断
+ * 文件前两个字节：一帧数据总长度
+ * 第三个字节：	sequence of ResultNormal = m（m=0,GET_REQUEST_NORMAL，表示A-ResultNormal）
+ * 第4个字节开始：m个 ResultNormal
+ * */
+int Build_subFrame(INT16U framelen,INT8U seqOfNum,RESULT_NORMAL *response)
+{
+	int 	index=0;
+	FILE	*fp=NULL;
+	INT8U	oneFrameBuf[MAX_APDU_SIZE]={};
+
+	if(framelen < MAX_APDU_SIZE) 	return 0;//不需要分帧
+
+	fp = openFramefile(PARA_FRAME_DATA);
+	if(fp==NULL) 	return -1;
+
+	if(seqOfNum==0)  next_info.repsonseType = GET_REQUEST_NORMAL;
+	else next_info.repsonseType = GET_REQUEST_NORMAL_LIST;
+	next_info.subframeSum++;		//每次下发getrequest清除
+
+	fprintf(stderr,"next_info:repsonseType=%d,subframeSum=%d,seqOfNum=%d\n",next_info.repsonseType,next_info.subframeSum,next_info.seqOfNum);
+	memset(&oneFrameBuf,0,sizeof(oneFrameBuf));
+	index = 2;
+	oneFrameBuf[index++] = seqOfNum-next_info.seqOfNum;
+	memcpy(&oneFrameBuf[index],&response->oad,sizeof(OAD));
+	index += sizeof(OAD);
+	oneFrameBuf[index++] = response->dar;
+	memcpy(&oneFrameBuf[index],response->data,response->datalen);
+	index += response->datalen;
+	oneFrameBuf[0] = (index >>8) & 0xff;
+	oneFrameBuf[1] = index & 0xff;
+	saveOneFrame(oneFrameBuf,index,fp);
+	if(fp != NULL)
+		fclose(fp);
+	return index;
+}
+
+/*
+ * 组织分帧数据
+ * */
+int Get_subFrameData(INT8U frameoffset,CSINFO *csinfo,INT8U *sendbuf)
+{
+	int		datalen=0;
+	INT8U	DAR=success;
+
+	next_info.nextSite = readFrameDataFile(PARA_FRAME_DATA,frameoffset,TmpDataBuf,&datalen);
+	if(datalen==0)  DAR = framesegment_cancel;
+	if(next_info.repsonseType==GET_REQUEST_NORMAL) {
+		if(datalen>=1) {
+			datalen = datalen-1;
+		}
+		BuildFrame_GetResponseNext(GET_REQUEST_RECORD_NEXT,csinfo,DAR,datalen,&TmpDataBuf[1],sendbuf);
+	}else if(next_info.repsonseType==GET_REQUEST_NORMAL_LIST) {
+		BuildFrame_GetResponseNext(GET_REQUEST_RECORD_NEXT,csinfo,DAR,datalen,TmpDataBuf,sendbuf);
+	}
+	return 1;
+}
+
+int GetMeterInfo(INT8U seqOfNum,RESULT_NORMAL *response)
 {
 	int 	index=0;
 	INT8U 	*data = NULL;
 	OAD oad={};
 	CLASS_6001	 meter={};
-	int		i=0,blknum=0,meternum=0;
+	INT16U		i=0,blknum=0,meternum=0;
 	int		retlen=0;
+	int		oneUnitLen=0;	//计算一个配置单元的长度，统计是否需要分帧操作
 
 	oad = response->oad;
 	data = response->data;
 
+	oneUnitLen = Get_6001(1,0,&data[index]);
+	fprintf(stderr,"6001——oneUnitLen=%d\n",oneUnitLen);
 	memset(&meter,0,sizeof(CLASS_6001));
 	blknum = getFileRecordNum(oad.OI);
 	fprintf(stderr,"GetMeterInfo oad.oi=%04x blknum=%d\n",oad.OI,blknum);
 	if(blknum<=1)	return 0;
-	index = 2;			//空出 array
+	index = 2;			//空出 array,结束后填入
 	for(i=0;i<blknum;i++)
 	{
-		retlen = Get_6001(i,&data[index]);
-		if(retlen!=0) {
-
-			meternum++;
+		create_array(&data[0],meternum);		//每次循环填充配置单元array个数，为了组帧分帧
+		if(Build_subFrame((index+oneUnitLen),seqOfNum,response)==0) {
+			retlen = Get_6001(0,i,&data[index]);
+			if(retlen!=0) {
+				meternum++;
+			}
+			index += retlen;
 		}
-		index += retlen;
 	}
-	create_array(&data[0],meternum);		//个数-1：文件第一个块为空 电表总数
+	create_array(&data[0],meternum);		//配置单元个数
 	response->datalen = index;
 	return 0;
 }
@@ -756,7 +821,7 @@ int getSel1_coll(RESULT_RECORD *record)
 				taskid = (record->select.selec1.data.data[0]<<8 | record->select.selec1.data.data[1]);
 			}
 			fprintf(stderr,"\n  record for 6001  - taskid=%d\n",taskid);
-			index += Get_6001(taskid,&record->data[index]);
+			index += Get_6001(0,taskid,&record->data[index]);
 			break;
 		}
 		case 0x6013:
@@ -782,6 +847,13 @@ int getSel1_coll(RESULT_RECORD *record)
 			index += Get_6035(taskid,&record->data[index]);
 			break;
 		}
+		case 0x601d:
+			if(record->select.selec1.data.type == dtunsigned) {
+				taskid = record->select.selec1.data.data[0];
+			}
+			fprintf(stderr,"taskid=%d\n",taskid);
+			index += Get_601D(taskid,&record->data[index]);
+			break;
 		default:
 			fprintf(stderr,"\nrecord switch default!");
 	}
@@ -828,14 +900,14 @@ int doGetrecord(INT8U type,OAD oad,INT8U *data,RESULT_RECORD *record,INT16U *sub
 	SelectorN = record->selectType;
 	fprintf(stderr,"\n- getRequestRecord SelectorN=%d OI = %04x  attrib=%d  index=%d",SelectorN,record->oad.OI,record->oad.attflg,record->oad.attrindex);
 	printrecord(*record);
-	dest_index += create_OAD(&record->data[dest_index],record->oad);
+	dest_index += create_OAD(0,&record->data[dest_index],record->oad);
 	switch(SelectorN) {
 	case 1:		//指定对象指定值
 		*subframe = 0;		//TODO:未处理分帧
 		record->data[dest_index++] = 1;	//一行记录M列属性描述符 	RCSD
 		record->data[dest_index++] = 0;	//OAD
 		record->select.selec1.oad.attrindex = 0;		//上送属性下所有索引值
-		dest_index += create_OAD(&record->data[dest_index],record->select.selec1.oad);
+		dest_index += create_OAD(0,&record->data[dest_index],record->select.selec1.oad);
 		record->data[dest_index++] = 1; //CHOICE  [1]  data
 		record->data[dest_index++] = 1; //M = 1  Sequence  of A-RecordRow
 		record->data = &TmpDataBuf[dest_index];		//修改record的数据帧的位置
@@ -849,7 +921,7 @@ int doGetrecord(INT8U type,OAD oad,INT8U *data,RESULT_RECORD *record,INT16U *sub
 		record->data = &TmpDataBuf[dest_index];
 		*subframe = getSelector(oad,record->select, record->selectType,record->rcsd.csds,(INT8U *)record->data,(int *)&record->datalen);
 		if(*subframe==0) {		//无分帧
-			next_info.nextSite = readFrameDataFile("/nand/frmdata",0,TmpDataBuf,&datalen);
+			next_info.nextSite = readFrameDataFile(TASK_FRAME_DATA,0,TmpDataBuf,&datalen);
 			if(type==GET_REQUEST_RECORD) {//文件中第一个字节保存的是：SEQUENCE OF A-ResultRecord，此处从TmpDataBuf[1]上送，上送长度也要-1
 				if(datalen>=1) {
 					record->data = &TmpDataBuf[1];				//data 指向回复报文帧头
@@ -872,7 +944,7 @@ int doGetrecord(INT8U type,OAD oad,INT8U *data,RESULT_RECORD *record,INT16U *sub
 	case 10:	//指定读取最新的n条记录
 		*subframe = getSelector(record->oad,record->select,record->selectType,record->rcsd.csds,NULL,NULL);
 		if(*subframe==0) {		//无分帧
-			next_info.nextSite = readFrameDataFile("/nand/frmdata",0,TmpDataBuf,&datalen);//文件中第一个字节保存的是：SEQUENCE OF A-ResultRecord，此处从TmpDataBuf[1]上送，上送长度也要-1
+			next_info.nextSite = readFrameDataFile(TASK_FRAME_DATA,0,TmpDataBuf,&datalen);//文件中第一个字节保存的是：SEQUENCE OF A-ResultRecord，此处从TmpDataBuf[1]上送，上送长度也要-1
 			if(type==GET_REQUEST_RECORD) {//文件中第一个字节保存的是：SEQUENCE OF A-ResultRecord，此处从TmpDataBuf[1]上送，上送长度也要-1
 				if(datalen>=1) {								//TODO:浙江曲线招测测试过
 					record->data = &TmpDataBuf[1];				//data 指向回复报文帧头
@@ -968,7 +1040,7 @@ int GetClass7attr(RESULT_NORMAL *response)
 	case 3:	//关联属性表
 		index += create_array(&data[0],class7.class7_oad.num);
 		for(i=0;i<class7.class7_oad.num;i++) {
-			index += create_OAD(&data[index],class7.class7_oad.oadarr[i]);
+			index += create_OAD(0,&data[index],class7.class7_oad.oadarr[i]);
 		}
 		break;
 	case 4:	//当前记录数
@@ -1074,12 +1146,12 @@ int GetEnvironmentValue(RESULT_NORMAL *response)
 	}
 	return 1;
 }
-int GetCollPara(INT8U getChoice,RESULT_NORMAL *response)
+int GetCollPara(INT8U seqOfNum,RESULT_NORMAL *response)
 {
 	switch(response->oad.OI)
 	{
 		case 0x6000:	//采集档案配置表
-			GetMeterInfo(response);
+			GetMeterInfo(seqOfNum,response);
 			break;
 		case 0x6002:	//搜表
 			break;
@@ -1113,7 +1185,7 @@ int GetDeviceIo(RESULT_NORMAL *response)
 	}
 	return 1;
 }
-int doGetnormal(INT8U getChoice,RESULT_NORMAL *response)
+int doGetnormal(INT8U seqOfNum,RESULT_NORMAL *response)
 {
 	INT16U oi = response->oad.OI;
 	INT8U oihead = (oi & 0xF000) >>12;
@@ -1130,7 +1202,7 @@ int doGetnormal(INT8U getChoice,RESULT_NORMAL *response)
 			GetEnvironmentValue(response);
 			break;
 		case 6:			//采集监控类对象
-			GetCollPara(getChoice,response);
+			GetCollPara(seqOfNum,response);
 			break;
 		case 0xF:		//文件类/esam类/设备类
 			GetDeviceIo(response);
@@ -1142,8 +1214,9 @@ int doGetnormal(INT8U getChoice,RESULT_NORMAL *response)
 int getRequestNormal(OAD oad,INT8U *data,CSINFO *csinfo,INT8U *sendbuf)
 {
 	RESULT_NORMAL response={};
-	INT8U oadtmp[4]={};
+	INT8U 	oadtmp[4]={};
 
+	memset(&next_info,0,sizeof(next_info));
 	oadtmp[0] = (oad.OI>>8) & 0xff;
 	oadtmp[1] = oad.OI & 0xff;
 	oadtmp[2] = oad.attflg;
@@ -1154,20 +1227,23 @@ int getRequestNormal(OAD oad,INT8U *data,CSINFO *csinfo,INT8U *sendbuf)
 	response.oad = oad;
 	response.data = TmpDataBuf+5; //4 + 1             oad（4字节） + choice(1字节)
 	response.datalen = 0;
-	doGetnormal(GET_REQUEST_NORMAL,&response);
-	if (response.datalen>0)
-	{
-		TmpDataBuf[4] = 1;//数据
-		response.datalen += 5;  // datalen + oad(4) + choice(1)
-	}else
-	{
-		TmpDataBuf[4] = 0;//错误
-		TmpDataBuf[5] = response.dar;
-		response.datalen += 6;  // datalen + oad(4) + choice(1) + dar
+	doGetnormal(0,&response);
+	if(next_info.subframeSum==0)	{	//无分帧
+		if (response.datalen>0)
+		{
+			TmpDataBuf[4] = 1;//数据
+			response.datalen += 5;  // datalen + oad(4) + choice(1)
+		}else
+		{
+			TmpDataBuf[4] = 0;//错误
+			TmpDataBuf[5] = response.dar;
+			response.datalen += 6;  // datalen + oad(4) + choice(1) + dar
+		}
+		response.data = TmpDataBuf;
+		BuildFrame_GetResponse(GET_REQUEST_NORMAL,csinfo,0,response,sendbuf);
+	}else {		//分帧
+		Get_subFrameData(0,csinfo,sendbuf);
 	}
-	response.data = TmpDataBuf;
-
-	BuildFrame_GetResponse(GET_REQUEST_NORMAL,csinfo,0,response,sendbuf);
 	return 1;
 }
 
@@ -1178,6 +1254,7 @@ int getRequestNormalList(INT8U *data,CSINFO *csinfo,INT8U *sendbuf)
 	INT8U oadnum = data[0];
 	int i=0,listindex=0;
 	fprintf(stderr,"\nGetNormalList!! OAD_NUM=%d",oadnum);
+	memset(&next_info,0,sizeof(next_info));
 	memset(TmpDataBufList,0,sizeof(TmpDataBufList));
 	for(i=0;i<oadnum;i++)
 	{
@@ -1188,7 +1265,7 @@ int getRequestNormalList(INT8U *data,CSINFO *csinfo,INT8U *sendbuf)
 		response.datalen = 0;
 		response.data = TmpDataBuf + 5;
 		fprintf(stderr,"\n【%d】OI = %x  %02x  %02x",i,response.oad.OI,response.oad.attflg,response.oad.attrindex);
-		doGetnormal(GET_REQUEST_NORMAL_LIST,&response);
+		doGetnormal((i+1),&response);
 
 		memcpy(&TmpDataBufList[listindex + 0],oadtmp,4);
 		if (response.datalen>0)
@@ -1280,16 +1357,17 @@ int getRequestNext(INT8U *data,CSINFO *csinfo,INT8U *sendbuf)
 	okFrame = (data[0]<<8) | (data[1]);
 	fprintf(stderr,"getRequestNext 接收最近一块数据块序号=%d\n",okFrame);
 	switch(next_info.repsonseType) {
-	case 1:		//对象属性         	[1]   SEQUENCE OF A-ResultNormal
-		next_info.frameNo = okFrame+1;
-
-
-
-		break;
-	case 2:		//记录型对象属性    	[2]   SEQUENCE OF A-ResultRecord
+	case GET_REQUEST_NORMAL:		//对象属性         	[1]   SEQUENCE OF A-ResultNormal
+	case GET_REQUEST_NORMAL_LIST:
 		next_info.frameNo = okFrame+1;
 		next_info.currSite = next_info.nextSite;
-		next_info.nextSite = readFrameDataFile("/nand/frmdata",next_info.currSite,TmpDataBuf,&datalen);//文件中第一个字节保存的是：SEQUENCE OF A-ResultRecord，此处从TmpDataBuf[1]上送，上送长度也要-1
+		Get_subFrameData(next_info.currSite,csinfo,sendbuf);
+		break;
+	case GET_REQUEST_RECORD:		//记录型对象属性    	[2]   SEQUENCE OF A-ResultRecord
+	case GET_REQUEST_RECORD_LIST:
+		next_info.frameNo = okFrame+1;
+		next_info.currSite = next_info.nextSite;
+		next_info.nextSite = readFrameDataFile(TASK_FRAME_DATA,next_info.currSite,TmpDataBuf,&datalen);//文件中第一个字节保存的是：SEQUENCE OF A-ResultRecord，此处从TmpDataBuf[1]上送，上送长度也要-1
 		if(next_info.repsonseType==GET_REQUEST_RECORD) {
 			if(datalen>=1)  datalen=datalen-1;
 			BuildFrame_GetResponseNext(GET_REQUEST_RECORD_NEXT,csinfo,DAR,datalen,&TmpDataBuf[1],sendbuf);

@@ -365,6 +365,7 @@ void SaveNorData(INT8U taskid,ROAD *road_eve,INT8U *databuf,int datalen)//存储
 	{
 		if(databuf_tmp != NULL)
 			free(databuf_tmp);
+		asyslog(LOG_NOTICE,"长度不对，不存: datalen=%d,need=%d",datalen,unitlen/runtime);
 		return ;//长度不对
 	}
 	else
