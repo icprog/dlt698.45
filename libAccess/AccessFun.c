@@ -815,7 +815,7 @@ INT16U CalcOIDataLen(OI_698 oi,INT8U attr_flg)
 {
 	FILE *fp;
 	char ln[60];
-	char lnf[4];
+	char lnf[5];
 	INT16U oi_len=0;
 	INT8U ic_type = 1;
 
@@ -842,19 +842,19 @@ INT16U CalcOIDataLen(OI_698 oi,INT8U attr_flg)
 		if(strncmp(ln,"end",3) == 0) break;
 		if(strncmp(ln,"//",2) == 0) continue;
 
-		memset(lnf,0x00,4);
+		memset(lnf,0x00,5);
 		memcpy(lnf,&ln[0],4);
 
 		if(strtoul(lnf,NULL,16) != oi)
 			continue;
 
-		memset(lnf,0x00,4);
+		memset(lnf,0x00,5);
 		memcpy(lnf,&ln[8],3);
 		oi_len = strtoul(lnf,NULL,16);
 
-		memset(lnf,0x00,4);
+		memset(lnf,0x00,5);
 		memcpy(lnf,&ln[12],2);
-		ic_type = strtoul(lnf,NULL,10);
+		ic_type = strtol(lnf,NULL,10);
 		break;
 	}
 	fclose(fp);
