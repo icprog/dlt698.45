@@ -431,11 +431,7 @@ INT8U Need_Report(OI_698 oi,INT8U eventno,ProgramInfo* prginfo_event){
 	}
 	fprintf(stderr,"libevent:active_report=%d talk_master=%d \n",class19.active_report,class19.talk_master);
 	if(class19.active_report == 1 && class19.talk_master == 1){
-		prginfo_event->needreport_event.event_num++;
-		prginfo_event->needreport_event.event_num=prginfo_event->needreport_event.event_num%15;
-		prginfo_event->needreport_event.report_event[prginfo_event->needreport_event.event_num].oi=oi;
-		prginfo_event->needreport_event.report_event[prginfo_event->needreport_event.event_num].eventno=eventno;
-		prginfo_event->needreport_event.report_event[prginfo_event->needreport_event.event_num].report_flag=1;
+		mqs_send((INT8S *)PROXY_NET_MQ_NAME,1,TERMINALEVENT_REPORT,(INT8U *)&oi,sizeof(OI_698));
 	}
 	return 1;
 }
@@ -1672,7 +1668,6 @@ INT8U Event_310E(TSA tsa, INT8U taskno,INT8U* data,INT8U len,ProgramInfo* prginf
 	TS ts;
 	if(Get_Mdata(tsa,&olddata,&ts) == 0){
 		Refresh_Data(tsa,newdata,1);//更新数据
-		fprintf(stderr,"tsa=%02x%02x%02x%02x%02x%02x \n",tsa.addr[0],tsa.addr[1],tsa.addr[2],tsa.addr[3],tsa.addr[4],tsa.addr[5],tsa.addr[6]);
 		return 0;
 	}
 	if(olddata == newdata){
@@ -1702,17 +1697,11 @@ INT8U Event_310E(TSA tsa, INT8U taskno,INT8U* data,INT8U len,ProgramInfo* prginf
 				break;
 			}
 		if(tcha>offset && offset>0){
-			fprintf(stderr,"[event]tcha=%d offset=%d \n",tcha,offset);
 			INT8U Save_buf[256];
 			bzero(Save_buf, sizeof(Save_buf));
-			fprintf(stderr,"[event]before currentnum=%d \n",prginfo_event->event_obj.Event310E_obj.event_obj.crrentnum);
 			prginfo_event->event_obj.Event310E_obj.event_obj.crrentnum++;
-			fprintf(stderr,"[event]after currentnum=%d \n",prginfo_event->event_obj.Event310E_obj.event_obj.crrentnum);
 			prginfo_event->event_obj.Event310E_obj.event_obj.crrentnum=Getcurrno(prginfo_event->event_obj.Event310E_obj.event_obj.crrentnum,prginfo_event->event_obj.Event310E_obj.event_obj.maxnum);
-			//INT16U *aa=&prginfo_event->event_obj.Event310E_obj.event_obj.crrentnum;
-			fprintf(stderr,"[event]sssafter currentnum=%d \n",prginfo_event->event_obj.Event310E_obj.event_obj.crrentnum);
-			//fprintf(stderr,"[event]sssafter aa=%d \n",*aa);
-			INT32U crrentnum = prginfo_event->event_obj.Event310E_obj.event_obj.crrentnum;
+		    INT32U crrentnum = prginfo_event->event_obj.Event310E_obj.event_obj.crrentnum;
 			INT8U index=0;
 			//标准数据单元
 			Get_StandardUnit(0x310E,Save_buf,&index,crrentnum,(INT8U*)&tsa,s_tsa);

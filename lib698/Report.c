@@ -59,7 +59,7 @@ const static event_guanlian guanlian_oad[]={
 		{0x3203,5,{{0x2022,0x02,0x00},{0x201e,0x02,0x00},{0x2020,0x02,0x00},{0x2024,0x02,0x00},{0x3300,0x02,0x00}}}
 };
 
-INT8U Report_Event(CommBlock *com,Reportevent report_event,INT8U report_type){
+INT8U Report_Event(CommBlock *com,OI_698 oi,INT8U report_type){
 
 	int apduplace =0;
 	int index=0, hcsi=0,temindex=0,i=0;
@@ -82,7 +82,7 @@ INT8U Report_Event(CommBlock *com,Reportevent report_event,INT8U report_type){
 	index = index + 2;
 	apduplace = index;		//记录APDU 起始位置
 	OAD oad;
-	oad.OI=report_event.oi;
+	oad.OI=oi;
 	oad.attflg=2;
 	oad.attrindex=0;
 	if(report_type == 1){

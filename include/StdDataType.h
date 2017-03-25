@@ -755,5 +755,9 @@ typedef struct{
 	Reportevent report_event[15];
 }NeedReport_Event;
 
+//消息命令
+typedef enum {
+	TERMINALEVENT_REPORT   //0
+}gdm_type;
 
 #endif
