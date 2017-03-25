@@ -100,6 +100,8 @@ int CheckFileSum(void) {
     fclose(fp);
 
     fprintf(stderr, "文件校验结果，应为(%02x)，实为(%02x)", checksum, local_cs);
+
+    return 100;
 }
 
 int appendFile(int shift, int length, unsigned char* buf) {
@@ -144,6 +146,8 @@ int GetFileState(RESULT_NORMAL* response) {
     stat(file_path, &mstats);
     fprintf(stderr, "获取文件状态，长度(%d)", mstats.st_size);
 
+    fclose(fp);
+
     int blocks = mstats.st_size / blocksize;
     if (mstats.st_size % blocksize > 0) {
         blocks += 1;
@@ -167,6 +171,15 @@ int GetFileState(RESULT_NORMAL* response) {
         printf("%02x\n", (0x01 << (7 - i)));
     }
     response->datalen += counts + 1 + 4;
+
+    char order[256];
+    memset(order, 0x00, sizeof(order));
+
+    sprintf(order, "mv %s /nand/UpFiles/update.sh", file_path);
+    system(order);
+
+
+    system("echo \"reboot\" >> /nand/UpFiles/reboot");
 
     return 0;
 }

@@ -402,6 +402,29 @@ void checkDevReset() {
     return (time(NULL));
 }
 
+void checkRebootFile(){
+    static int count = 0;
+
+    if(count == 0){
+        FILE* fp = fopen("/nand/UpFiles/reboot", "r+");
+        if (fp != NULL) {
+            fclose(fp);
+            system("rm /nand/UpFiles/reboot");
+        }
+        count++;
+    }
+
+    FILE* fp = fopen("/nand/UpFiles/reboot", "r+");
+    if (fp != NULL) {
+        fclose(fp);
+        count++;
+        if(count > 10)
+        {
+            system("reboot");
+        }
+    }
+}
+
 int main(int argc, char* argv[]) {
     int ProgsNum = 0;
 
@@ -440,6 +463,9 @@ int main(int argc, char* argv[]) {
 
         //检查设备是否需要重启
         checkDevReset();
+
+        //检查系统升级文件
+        checkRebootFile();
     }
 
     exit(1);
