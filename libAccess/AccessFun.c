@@ -1831,8 +1831,8 @@ long int readFrameDataFile(char *filename,int offset,INT8U *buf,int *datalen)
 	FILE *fp=NULL;
 	int bytelen=0;
 	long int	retoffset=0;
-	*datalen = 0;
 
+	*datalen = 0;
 	fp = fopen(filename,"r");
 	if (fp!=NULL && buf!=NULL)
 	{
@@ -1841,6 +1841,9 @@ long int readFrameDataFile(char *filename,int offset,INT8U *buf,int *datalen)
 		fread(&bytelen,2,1,fp);
 		fprintf(stderr,"bytelen=%d\n",bytelen);
 //			return 0;
+		if(bytelen>=MAX_APDU_SIZE) {
+			return 0;
+		}
 		if (fread(buf,bytelen,1,fp) <=0 ) 	//按数据报文长度，读出全部字节
 			return 0;
 		*datalen = bytelen;

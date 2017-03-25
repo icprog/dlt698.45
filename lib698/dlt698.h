@@ -14,7 +14,8 @@ extern void testframe(INT8U* apdu, int len);
 extern INT8U Report_Event(CommBlock* com, Reportevent report_event, INT8U report_type);
 extern INT16U composeAutoReport(INT8U* SendApdu, INT16U length);
 extern INT16U composeAutoTask(AutoTaskStrap* list);
-int callAutoReport(CommBlock* com, INT8U ifecho);
+extern int callAutoReport(CommBlock* com, INT8U ifecho);
+extern int callEventAutoReport(CommBlock* com,INT8U *eventbuf,int datalen);
 extern int GetReportData(CLASS_601D report);
 extern int getTsas(MY_MS ms, INT8U** tsas); //注意：！！！！！函数调用需要外部释放内存
 

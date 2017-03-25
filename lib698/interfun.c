@@ -840,11 +840,12 @@ int get_BasicRCSD(INT8U type,INT8U *source,CSD_ARRAYTYPE *csds)	//0x60
  * */
 int Get_6001(INT8U type,INT16U seqnum,INT8U *data)
 {
-	int 	index=0;
+	int 	index=0,ret=0;
 	CLASS_6001 meter={};
 
-	if(readParaClass(0x6000,&meter,seqnum)==1) {
-		if(type!=1) {
+	ret = readParaClass(0x6000,&meter,seqnum);
+	if((ret==1)||(type==1)) {
+		if(type==0) {
 			if(meter.sernum==0 || meter.sernum==0xffff)  return index;
 		}
 		fprintf(stderr,"\n 6000 read meter ok");
