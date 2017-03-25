@@ -615,7 +615,7 @@ void getEveFileName(OI_698 eve_oi,char *fname)
 	memset(fname,0,FILENAMELEN);
 	sprintf(dirname,"%s",EVEDATA);
 	makeSubDir(dirname);
-	sprintf(fname,"%s/%04x.dat",TASKDATA,eve_oi);
+	sprintf(fname,"%s/%04x.dat",EVEDATA,eve_oi);
 }
 
 INT16U GetFileOadLen(INT8U units,INT8U tens)//个位十位转化为一个INT16U

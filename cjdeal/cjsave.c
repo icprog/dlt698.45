@@ -303,6 +303,7 @@ void SaveNorData(INT8U taskid,ROAD *road_eve,INT8U *databuf,int datalen)//存储
 	if(fp == NULL)//文件没内容 组文件头，如果文件已存在，提取文件头信息
 	{
 		CreateSaveHead(fname,csds,&headlen,&unitlen,&unitnum,runtime,1);//写文件头信息并返回
+		asyslog(LOG_WARNING, "cjsave 存储文件头%s headlen=%d unitlen=%d unitnum=%d runtime=%d",fname,headlen,unitlen,unitnum,runtime);
 		databuf_tmp = malloc(unitlen);
 		savepos=0;
 	}
@@ -365,12 +366,18 @@ void SaveNorData(INT8U taskid,ROAD *road_eve,INT8U *databuf,int datalen)//存储
 	{
 		if(databuf_tmp != NULL)
 			free(databuf_tmp);
-		asyslog(LOG_NOTICE,"长度不对，不存: datalen=%d,need=%d",datalen,unitlen/runtime);
+		if(road_eve == NULL)
+			asyslog(LOG_NOTICE,"数据长度不对，不存: datalen=%d,need=%d",datalen,unitlen/runtime);
+		else
+			asyslog(LOG_NOTICE,"事件长度不对，不存: datalen=%d,need=%d",datalen,unitlen/runtime);
 		return ;//长度不对
 	}
 	else
 	{
-		asyslog(LOG_NOTICE,"任务数据存储: %s,savepos=%d,unitlen=%d",fname,savepos,unitlen);
+		if(road_eve == NULL)
+			asyslog(LOG_NOTICE,"任务数据存储: %s,savepos=%d,unitlen=%d",fname,savepos,unitlen);
+		else
+			asyslog(LOG_NOTICE,"事件数据存储: %s,savepos=%d,unitlen=%d",fname,savepos,unitlen);
 		datafile_write(fname, databuf_tmp, unitlen, savepos);
 	}
 	if(fp!=NULL)
