@@ -25,20 +25,36 @@
  *       4.  6042-0200：采集存储时标
  *       5...n  任务CSD描述
  */
-INT16U FixHeadUnit(INT8U *headbuf,INT8U *fixlen)
+INT16U FixHeadUnit(INT8U *headbuf,INT8U *fixlen,ROAD *road_eve)
 {
 	static INT8U head_oad[4][4]={{0x20,0x2a,0x02,0x00},{0x60,0x40,0x02,0x00},{0x60,0x41,0x02,0x00},{0x60,0x42,0x02,0x00}};
 	static INT8U head_oad_len[4]={0x0012,0x0008,0x0008,0x0008};
-	int	  i=0,index=0;
+	static INT8U headeve_oad[3][4]={{0x20,0x2a,0x02,0x00},{0x20,0x1e,0x02,0x00},{0x20,0x20,0x02,0x00}};
+	static INT8U headeve_oad_len[3]={0x0012,0x0008,0x0008};
+	int	  i=0,circnt=0,index=0;
 	HEAD_UNIT	unit[4]={};
 	*fixlen = 0;
-	for(i=0;i<4;i++) {
-		memset(&unit[i].oad_m,0,sizeof(OAD));
-		unit[i].oad_r.OI = head_oad[i][0];
-		unit[i].oad_r.OI = (unit[i].oad_r.OI<<8) | head_oad[i][1];
-		unit[i].oad_r.attflg = head_oad[i][2];
-		unit[i].len = head_oad_len[i];
-		*fixlen += head_oad_len[i];
+	if(road_eve == NULL)
+	{
+		for(i=0;i<circnt;i++) {
+			memset(&unit[i].oad_m,0,sizeof(OAD));
+			unit[i].oad_r.OI = head_oad[i][0];
+			unit[i].oad_r.OI = (unit[i].oad_r.OI<<8) | head_oad[i][1];
+			unit[i].oad_r.attflg = head_oad[i][2];
+			unit[i].len = head_oad_len[i];
+			*fixlen += head_oad_len[i];
+		}
+	}
+	else
+	{
+		for(i=0;i<circnt;i++) {
+			memset(&unit[i].oad_m,0,sizeof(OAD));
+			unit[i].oad_r.OI = headeve_oad[i][0];
+			unit[i].oad_r.OI = (unit[i].oad_r.OI<<8) | headeve_oad[i][1];
+			unit[i].oad_r.attflg = headeve_oad[i][2];
+			unit[i].len = headeve_oad_len[i];
+			*fixlen += headeve_oad_len[i];
+		}
 	}
 	if(headbuf!=NULL) {
 		memcpy(headbuf,unit,sizeof(unit));
@@ -167,7 +183,7 @@ INT8U getOneUnit(INT8U *headbuf,OAD oad_m,OAD oad_r,INT16U len)
  * 结构为四个字节长度+TSA(0x00+40010200+2个字节长度)+3*时标+CSD
  * unitlen_z长度为此任务当日需要抄的全部数据长度，以此将一个测量点一天的数据放在一个地方
  */
-void CreateSaveHead(char *fname,CSD_ARRAYTYPE csds,INT16U *headlen,INT16U *unitlen,INT16U *unitnum,INT16U freq,INT8U wrflg)
+void CreateSaveHead(char *fname,ROAD *road_eve,CSD_ARRAYTYPE csds,INT16U *headlen,INT16U *unitlen,INT16U *unitnum,INT16U freq,INT8U wrflg)
 {
 	INT16U pindex=0,len_tmp=0,csd_unitnum=0;
 	int i=0,j=0;
@@ -187,7 +203,7 @@ void CreateSaveHead(char *fname,CSD_ARRAYTYPE csds,INT16U *headlen,INT16U *unitl
 	headbuf[pindex++] = (*headlen & 0x00ff);
 	headbuf[pindex++] = 0x00;
 	headbuf[pindex++] = 0x00;//长度
-	pindex += FixHeadUnit(&headbuf[pindex],&fixlen);
+	pindex += FixHeadUnit(&headbuf[pindex],&fixlen,road_eve);
 	if(csds.num > MY_CSD_NUM)//超了
 		csds.num = MY_CSD_NUM;
 	for(i=0;i<csds.num;i++)
@@ -302,7 +318,7 @@ void SaveNorData(INT8U taskid,ROAD *road_eve,INT8U *databuf,int datalen)//存储
 	fp = fopen(fname,"r");
 	if(fp == NULL)//文件没内容 组文件头，如果文件已存在，提取文件头信息
 	{
-		CreateSaveHead(fname,csds,&headlen,&unitlen,&unitnum,runtime,1);//写文件头信息并返回
+		CreateSaveHead(fname,road_eve,csds,&headlen,&unitlen,&unitnum,runtime,1);//写文件头信息并返回
 		asyslog(LOG_WARNING, "cjsave 存储文件头%s headlen=%d unitlen=%d unitnum=%d runtime=%d",fname,headlen,unitlen,unitnum,runtime);
 		databuf_tmp = malloc(unitlen);
 		savepos=0;
