@@ -40,6 +40,13 @@ int ClientForNetWrite(int fd, INT8U* buf, INT16U len) {
     return ret;
 }
 
+/*
+ *所有模块共享的写入函数，所有模块共享使用
+ */
+int MixForNetWrite(int fd, INT8U* buf, INT16U len) {
+    return SendBufWrite(buf, len);
+}
+
 void ClientForNetRead(struct aeEventLoop* eventLoop, int fd, void* clientData, int mask) {
     CommBlock* nst = (CommBlock*)clientData;
 
@@ -81,9 +88,9 @@ void ClientForNetRead(struct aeEventLoop* eventLoop, int fd, void* clientData, i
                 ConformAutoTask(eventLoop, nst, apduType);
                 switch (apduType) {
                     case LINK_RESPONSE:
-                    	First_VerifiTime(nst->linkResponse, nst->shmem);//简单对时
+                        First_VerifiTime(nst->linkResponse, nst->shmem); //简单对时
                         if (GetTimeOffsetFlag() == 1) {
-                        	Getk_curr(nst->linkResponse, nst->shmem);
+                            Getk_curr(nst->linkResponse, nst->shmem);
                         }
                         nst->linkstate   = build_connection;
                         nst->testcounter = 0;
@@ -170,10 +177,54 @@ int RegularClientForNet(struct aeEventLoop* ep, long long id, void* clientData) 
             nst->phy_connect_fd = -1;
             SetOnlineType(0);
         }
-        EventAutoReport(nst);
         CalculateTransFlow(nst->shmem);
         //暂时忽略函数返回
         RegularAutoTask(ep, nst);
+    }
+
+    return 2000;
+}
+
+static int RegularMixForNet(struct aeEventLoop* ep, long long id, void* clientData) {
+    CommBlock* nst = (CommBlock*)clientData;
+    clearcount();
+    if (GetOnlineType() == 0x01) {
+        // GPRS上线
+        return 2000;
+    }
+
+    if (GetOnlineType() == 0x00) {
+        SendBufClean();
+        refreshComPara(nst);
+        //在这里拨号上线，并发送登录报文
+        nst->phy_connect_fd = CertainConnectForNet("eth0");
+        if (nst->phy_connect_fd > 0) {
+            dumpPeerStat(nst->phy_connect_fd, "混合模式[以太网]与主站链路建立成功");
+            gpofun("/dev/gpoONLINE_LED", 1);
+            SetOnlineType(2);
+            Comm_task(nst);
+        }
+    } else {
+        //如果已经登录，则循环任务，等待发送
+        if (Comm_task(nst) == -1) {
+            asyslog(LOG_WARNING, "混合模式[以太网]链接心跳超时，关闭端口");
+            close(nst->phy_connect_fd);
+            nst->phy_connect_fd = -1;
+            SetOnlineType(0);
+        }
+
+        CalculateTransFlow(nst->shmem);
+        //暂时忽略函数返回
+        RegularAutoTask(ep, nst);
+
+        //检查是否有报文需要发送
+        if (SendBufCheck()) {
+            if (nst->phy_connect_fd < 0) {
+                nst->phy_connect_fd = CertainConnectForNet("eth0");
+            } else {
+                SendBufSendNext(nst->phy_connect_fd, ClientForNetWrite);
+            }
+        }
     }
 
     return 2000;
@@ -199,7 +250,12 @@ void ClientForNetInit(void) {
     asyslog(LOG_INFO, "主站通信地址(1)为：%d.%d.%d.%d:%d", IpPool[0].ip[1], IpPool[0].ip[2], IpPool[0].ip[3], IpPool[0].ip[4], IpPool[0].port);
     asyslog(LOG_INFO, "主站通信地址(2)为：%d.%d.%d.%d:%d", IpPool[1].ip[1], IpPool[1].ip[2], IpPool[1].ip[3], IpPool[1].ip[4], IpPool[1].port);
 
-    initComPara(&ClientForNetObject, ClientForNetWrite);
+    if (Class26.commconfig.workModel == 0x01) {
+        initComPara(&ClientForNetObject, ClientForNetWrite);
+    } else {
+        initComPara(&ClientForNetObject, MixForNetWrite);
+    }
+
     asyslog(LOG_INFO, ">>>======初始化（客户端[以太网]模式）结束======<<<");
 }
 
@@ -208,7 +264,11 @@ void ClientForNetInit(void) {
  */
 int StartClientForNet(struct aeEventLoop* ep, long long id, void* clientData) {
     ClientForNetInit();
-    ClientForNet_Task_Id = aeCreateTimeEvent(ep, 1000, RegularClientForNet, &ClientForNetObject, NULL);
+    if (Class26.commconfig.workModel == 0x01) {
+        ClientForNet_Task_Id = aeCreateTimeEvent(ep, 1000, RegularClientForNet, &ClientForNetObject, NULL);
+    } else {
+        ClientForNet_Task_Id = aeCreateTimeEvent(ep, 1000, RegularMixForNet, &ClientForNetObject, NULL);
+    }
     asyslog(LOG_INFO, "客户端[以太网]时间事件注册完成(%lld)", ClientForNet_Task_Id);
 
     return 1;

@@ -829,7 +829,7 @@ void FileTransMothod(INT16U attr_act,INT8U *data)
 				goto err;
 			}
 
-			snprintf(path,sizeof(path), "/nand/UpFiles/u%s.%s.%s", name, sub_name, version);
+			snprintf(path,sizeof(path), "/nand/UpFiles/%s.%s.temp", name, sub_name);
 
 			fprintf(stderr,"启动传输 文件名:%s,文件长度:%d,文件校验%02x,块长度%d\n", path, file_length, crc, block_length);
 			createFile(path, file_length, crc, block_length);

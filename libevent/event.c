@@ -13,6 +13,7 @@
 #include "Shmem.h"
 #include "Objectdef.h"
 #include "ParaDef.h"
+#include "../libMq/libmmq.h"
 
 //测量点、事件参数
 static TSA TSA_LIST[MAX_POINT_NUM];
@@ -429,13 +430,9 @@ INT8U Need_Report(OI_698 oi,INT8U eventno,ProgramInfo* prginfo_event){
 			lastchgoi4300=prginfo_event->oi_changed.oi4300;
 		}
 	}
-	fprintf(stderr,"libevent:active_report=%d talk_master=%d \n",class19.active_report,class19.talk_master);
+	//fprintf(stderr,"libevent:active_report=%d talk_master=%d \n",class19.active_report,class19.talk_master);
 	if(class19.active_report == 1 && class19.talk_master == 1){
-		prginfo_event->needreport_event.event_num++;
-		prginfo_event->needreport_event.event_num=prginfo_event->needreport_event.event_num%15;
-		prginfo_event->needreport_event.report_event[prginfo_event->needreport_event.event_num].oi=oi;
-		prginfo_event->needreport_event.report_event[prginfo_event->needreport_event.event_num].eventno=eventno;
-		prginfo_event->needreport_event.report_event[prginfo_event->needreport_event.event_num].report_flag=1;
+		mqs_send((INT8S *)PROXY_NET_MQ_NAME,1,TERMINALEVENT_REPORT,(INT8U *)&oi,sizeof(OI_698));
 	}
 	return 1;
 }
@@ -971,7 +968,6 @@ BOOLEAN MeterDiff(ProgramInfo* prginfo_event,MeterPower *MeterPowerInfo)
 	{
 		if(MeterPowerInfo[i].Valid)
 		{
-			//RecPointNum++;
 			fprintf(stderr,"MeterPowerInfo[%d],PoweroffTime,year=%d,month=%d,day=%d,hour=%d,min=%d,sec=%d\n",
 					i,MeterPowerInfo[i].PoweroffTime.tm_year+1900,MeterPowerInfo[i].PoweroffTime.tm_mon,MeterPowerInfo[i].PoweroffTime.tm_mday,
 					MeterPowerInfo[i].PoweroffTime.tm_hour,MeterPowerInfo[i].PoweroffTime.tm_min,MeterPowerInfo[i].PoweroffTime.tm_sec);
@@ -994,8 +990,8 @@ BOOLEAN MeterDiff(ProgramInfo* prginfo_event,MeterPower *MeterPowerInfo)
 #ifdef SHANDONG
 			poweroffset = 100;
 #endif
-			if((abs(difftime(mktime(&MeterPowerInfo[i].PoweroffTime),mktime(&TermialPowerInfo.PoweroffTime)))>(poweroffset*60))
-			||(abs(difftime(mktime(&MeterPowerInfo[i].PoweronTime),mktime(&TermialPowerInfo.PoweronTime)))>(poweroffset*60)))
+			if((abs(Diff1_tmp1)>(poweroffset*60))
+			||(abs(Diff1_tmp2)>(poweroffset*60)))
 			{
 				TermialPowerInfo.Valid = POWER_OFF_INVALIDE;
 				fprintf(stderr,"MeterDiff err1\r\n");
@@ -1016,13 +1012,10 @@ BOOLEAN MeterDiff(ProgramInfo* prginfo_event,MeterPower *MeterPowerInfo)
 			}
 		}
 	}
-	//if(MsgNum <= (RecPointNum*2))
-	{
-		fprintf(stderr,"POWER_OFF_VALIDE\r\n");
-		TermialPowerInfo.Valid = POWER_OFF_VALIDE;
-	    filewrite(ERC3106PATH,&TermialPowerInfo,sizeof(TermialPowerInfo));
-	}
-	//fprintf(stderr,"MsgNum=%d, RecPointNum=%d\n",MsgNum,RecPointNum);
+	fprintf(stderr,"POWER_OFF_VALIDE\r\n");
+	TermialPowerInfo.Valid = POWER_OFF_VALIDE;
+	filewrite(ERC3106PATH,&TermialPowerInfo,sizeof(TermialPowerInfo));
+
 	return TRUE;
 }
 
@@ -1139,6 +1132,7 @@ INT8U Event_3106(ProgramInfo* prginfo_event,MeterPower *MeterPowerInfo,INT8U *st
 			off_time = 0;
 			//电压低于限值，且底板有电，产生下电事件
 			TermialPowerInfo.ERC3106State = POWER_OFF;
+			flag = 0x01;
 			localtime_r((const time_t*)&time_of_now, &TermialPowerInfo.PoweroffTime);
 			ERC3106log(0,prginfo_event->ACSRealData.Ua,TermialPowerInfo.PoweroffTime);//调试加入log
 
@@ -1161,6 +1155,11 @@ INT8U Event_3106(ProgramInfo* prginfo_event,MeterPower *MeterPowerInfo,INT8U *st
 			ERC3106log(1,prginfo_event->ACSRealData.Ua,TermialPowerInfo.PoweronTime);//调试加入log
 
 			//如果上电时间大于停电时间或者停上电时间间隔小于最小间隔或者大于最大间隔不产生下电事件
+			if(mintime_space==0)
+				mintime_space=1;
+			if(maxtime_space==0)
+				maxtime_space=4300;
+			fprintf(stderr,"interval=%d mintime_space=%d maxtime_space=%d \n",interval,mintime_space*60,maxtime_space*60);
 			if((interval > mintime_space*60)&&(interval < maxtime_space*60)) {
 				fprintf(stderr,"上电时间满足参数：interval=%d\n",interval);
 				flag = 0x01;
@@ -1670,7 +1669,6 @@ INT8U Event_310E(TSA tsa, INT8U taskno,INT8U* data,INT8U len,ProgramInfo* prginf
 	TS ts;
 	if(Get_Mdata(tsa,&olddata,&ts) == 0){
 		Refresh_Data(tsa,newdata,1);//更新数据
-		fprintf(stderr,"tsa=%02x%02x%02x%02x%02x%02x \n",tsa.addr[0],tsa.addr[1],tsa.addr[2],tsa.addr[3],tsa.addr[4],tsa.addr[5],tsa.addr[6]);
 		return 0;
 	}
 	if(olddata == newdata){
@@ -1700,17 +1698,11 @@ INT8U Event_310E(TSA tsa, INT8U taskno,INT8U* data,INT8U len,ProgramInfo* prginf
 				break;
 			}
 		if(tcha>offset && offset>0){
-			fprintf(stderr,"[event]tcha=%d offset=%d \n",tcha,offset);
 			INT8U Save_buf[256];
 			bzero(Save_buf, sizeof(Save_buf));
-			fprintf(stderr,"[event]before currentnum=%d \n",prginfo_event->event_obj.Event310E_obj.event_obj.crrentnum);
 			prginfo_event->event_obj.Event310E_obj.event_obj.crrentnum++;
-			fprintf(stderr,"[event]after currentnum=%d \n",prginfo_event->event_obj.Event310E_obj.event_obj.crrentnum);
 			prginfo_event->event_obj.Event310E_obj.event_obj.crrentnum=Getcurrno(prginfo_event->event_obj.Event310E_obj.event_obj.crrentnum,prginfo_event->event_obj.Event310E_obj.event_obj.maxnum);
-			//INT16U *aa=&prginfo_event->event_obj.Event310E_obj.event_obj.crrentnum;
-			fprintf(stderr,"[event]sssafter currentnum=%d \n",prginfo_event->event_obj.Event310E_obj.event_obj.crrentnum);
-			//fprintf(stderr,"[event]sssafter aa=%d \n",*aa);
-			INT32U crrentnum = prginfo_event->event_obj.Event310E_obj.event_obj.crrentnum;
+		    INT32U crrentnum = prginfo_event->event_obj.Event310E_obj.event_obj.crrentnum;
 			INT8U index=0;
 			//标准数据单元
 			Get_StandardUnit(0x310E,Save_buf,&index,crrentnum,(INT8U*)&tsa,s_tsa);

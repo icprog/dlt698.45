@@ -615,7 +615,7 @@ void getEveFileName(OI_698 eve_oi,char *fname)
 	memset(fname,0,FILENAMELEN);
 	sprintf(dirname,"%s",EVEDATA);
 	makeSubDir(dirname);
-	sprintf(fname,"%s/%04x.dat",TASKDATA,eve_oi);
+	sprintf(fname,"%s/%04x.dat",EVEDATA,eve_oi);
 }
 
 INT16U GetFileOadLen(INT8U units,INT8U tens)//个位十位转化为一个INT16U
@@ -642,16 +642,16 @@ void GetOADPosofUnit(ROAD_ITEM item_road,HEAD_UNIT *head_unit,INT8U unitnum,OAD_
 			if(memcmp(&item_road.oad[i].oad_m,&head_unit[j].oad_m,sizeof(OAD))==0 &&
 					memcmp(&item_road.oad[i].oad_r,&head_unit[j].oad_r,sizeof(OAD))==0)
 			{
-				fprintf(stderr,"\nfind oad %04x%02x%02x-%04x%02x%02x:offset:%d\n",
-						item_road.oad[i].oad_m.OI,item_road.oad[i].oad_m.attflg,item_road.oad[i].oad_m.attrindex,
-						item_road.oad[i].oad_r.OI,item_road.oad[i].oad_r.attflg,item_road.oad[i].oad_r.attrindex,
-						datapos);
+//				fprintf(stderr,"\nfind oad %04x%02x%02x-%04x%02x%02x:offset:%d\n",
+//						item_road.oad[i].oad_m.OI,item_road.oad[i].oad_m.attflg,item_road.oad[i].oad_m.attrindex,
+//						item_road.oad[i].oad_r.OI,item_road.oad[i].oad_r.attflg,item_road.oad[i].oad_r.attrindex,
+//						datapos);
 				oad_offset[i].offset = datapos;
 				oad_offset[i].len = head_unit[j].len;
 			}
 			else {
 				datapos += head_unit[j].len;
-				fprintf(stderr,"datapos = %d\n",datapos);
+//				fprintf(stderr,"datapos = %d\n",datapos);
 			}
 		}
 	}
@@ -943,7 +943,7 @@ INT8U GetTaskidFromCSDs(CSD_ARRAYTYPE csds,ROAD_ITEM *item_road)
 	asyslog(LOG_INFO,"csds.num=%d\n",csds.num);
 	for(i=0;i<csds.num;i++)
 	{
-		asyslog(LOG_INFO,"csds.csd[%d].type=%d\n",i,csds.csd[i].type);
+//		asyslog(LOG_INFO,"csds.csd[%d].type=%d\n",i,csds.csd[i].type);
 		switch(csds.csd[i].type)
 		{
 		case 0://OAD类型，第一个oad为0x00000000，第二个oad为OAD
@@ -956,7 +956,7 @@ INT8U GetTaskidFromCSDs(CSD_ARRAYTYPE csds,ROAD_ITEM *item_road)
 			memcpy(&item_road->oad[item_road->oadmr_num].oad_r,&csds.csd[i].csd.oad,sizeof(OAD));
 			item_road->oad[item_road->oadmr_num].oad_num = 0;//oad类型写为0
 			item_road->oadmr_num++;
-			asyslog(LOG_INFO,"0000:item_road->oadmr_num=%d\n",item_road->oadmr_num);
+//			asyslog(LOG_INFO,"0000:item_road->oadmr_num=%d\n",item_road->oadmr_num);
 
 			break;
 		case 1:
@@ -969,16 +969,16 @@ INT8U GetTaskidFromCSDs(CSD_ARRAYTYPE csds,ROAD_ITEM *item_road)
 				memcpy(&item_road->oad[item_road->oadmr_num].oad_r,&csds.csd[i].csd.road.oads[j],sizeof(OAD));
 				item_road->oadmr_num++;
 			}
-			asyslog(LOG_INFO,"11111:item_road->oadmr_num=%d\n",item_road->oadmr_num);
+//			asyslog(LOG_INFO,"11111:item_road->oadmr_num=%d\n",item_road->oadmr_num);
 
 			break;
 		default:break;
 		}
 	}
-	asyslog(LOG_INFO,"任务下发的主-从OI配置：oadmr_num=%d\n",item_road->oadmr_num);
-	for(i=0;i<item_road->oadmr_num;i++){
-		asyslog(LOG_INFO,"[%d] %04x_%04x\n",i,item_road->oad[i].oad_m.OI,item_road->oad[i].oad_r.OI);
-	}
+//	asyslog(LOG_INFO,"任务下发的主-从OI配置：oadmr_num=%d\n",item_road->oadmr_num);
+//	for(i=0;i<item_road->oadmr_num;i++){
+//		asyslog(LOG_INFO,"[%d] %04x_%04x\n",i,item_road->oad[i].oad_m.OI,item_road->oad[i].oad_r.OI);
+//	}
 	memset(&class6013,0,sizeof(CLASS_6013));
 	memset(&class6015,0,sizeof(CLASS_6015));
 	for(i=0;i<256;i++)//先比较有没有跟现成采集方案匹配的，有直接返回taskid，没有返回0
@@ -997,30 +997,30 @@ INT8U GetTaskidFromCSDs(CSD_ARRAYTYPE csds,ROAD_ITEM *item_road)
 						switch(class6015.csds.csd[j].type)
 						{
 						case 0:
-							  asyslog(LOG_INFO,"mm=%d,oad_r  =%04x_%02x%02x \n",mm,item_road->oad[mm].oad_r.OI,
-											item_road->oad[mm].oad_r.attflg,item_road->oad[mm].oad_r.attrindex);
-							  asyslog(LOG_INFO,"jj=%d,csd.oad=%04x_%02x%02x \n",j,class6015.csds.csd[j].csd.oad.OI,
-											class6015.csds.csd[j].csd.oad.attflg,class6015.csds.csd[j].csd.oad.attrindex);
+//							  asyslog(LOG_INFO,"mm=%d,oad_r  =%04x_%02x%02x \n",mm,item_road->oad[mm].oad_r.OI,
+//											item_road->oad[mm].oad_r.attflg,item_road->oad[mm].oad_r.attrindex);
+//							  asyslog(LOG_INFO,"jj=%d,csd.oad=%04x_%02x%02x \n",j,class6015.csds.csd[j].csd.oad.OI,
+//											class6015.csds.csd[j].csd.oad.attflg,class6015.csds.csd[j].csd.oad.attrindex);
 							if(item_road->oad[mm].oad_m.OI == 0x0000)//都为oad类型
 							{
 								if(memcmp(&item_road->oad[mm].oad_r,&class6015.csds.csd[j].csd.oad,sizeof(OAD))==0){
 									item_road->oad[mm].taskid = i+1;
-									asyslog(LOG_INFO,"0000:item_road->oad[%d].taskid=%d\n",mm,item_road->oad[mm].taskid);
+//									asyslog(LOG_INFO,"0000:item_road->oad[%d].taskid=%d\n",mm,item_road->oad[mm].taskid);
 								}
 							}
 							break;
 						case 1:
-							  asyslog(LOG_INFO,"11111 mm=%d,oad_r  =%04x_%02x%02x \n",mm,item_road->oad[mm].oad_r.OI,
-											item_road->oad[mm].oad_r.attflg,item_road->oad[mm].oad_r.attrindex);
-							  asyslog(LOG_INFO,"11111 jj=%d,csd.oad=%04x_%02x%02x \n",j,class6015.csds.csd[j].csd.oad.OI,
-											class6015.csds.csd[j].csd.oad.attflg,class6015.csds.csd[j].csd.oad.attrindex);
+//							  asyslog(LOG_INFO,"11111 mm=%d,oad_r  =%04x_%02x%02x \n",mm,item_road->oad[mm].oad_r.OI,
+//											item_road->oad[mm].oad_r.attflg,item_road->oad[mm].oad_r.attrindex);
+//							  asyslog(LOG_INFO,"11111 jj=%d,csd.oad=%04x_%02x%02x \n",j,class6015.csds.csd[j].csd.oad.OI,
+//											class6015.csds.csd[j].csd.oad.attflg,class6015.csds.csd[j].csd.oad.attrindex);
 							if(memcmp(&item_road->oad[mm].oad_m,&class6015.csds.csd[j].csd.road.oad,sizeof(OAD))==0)//
 							{
 								for(nn=0;nn<class6015.csds.csd[j].csd.road.num;nn++)
 								{
 									if(memcmp(&item_road->oad[mm].oad_r,&class6015.csds.csd[j].csd.road.oads[nn],sizeof(OAD))==0){
 										item_road->oad[mm].taskid = i+1;
-										asyslog(LOG_INFO,"1111:item_road->oad[%d].taskid=%d\n",mm,item_road->oad[mm].taskid);
+//										asyslog(LOG_INFO,"1111:item_road->oad[%d].taskid=%d\n",mm,item_road->oad[mm].taskid);
 									}
 								}
 							}
@@ -1028,27 +1028,28 @@ INT8U GetTaskidFromCSDs(CSD_ARRAYTYPE csds,ROAD_ITEM *item_road)
 						default:break;
 						}
 					}
-					asyslog(LOG_INFO,"item_road->oadmr_num=%d\n",item_road->oadmr_num);
-					for(mm=0;mm<item_road->oadmr_num;mm++) {
-						asyslog(LOG_INFO,"taskid[%d]=%d\n",mm,item_road->oad[mm].taskid);
-					}
-					for(mm=0;mm<(item_road->oadmr_num);mm++)
+				}
+//				asyslog(LOG_INFO,"item_road->oadmr_num=%d\n",item_road->oadmr_num);
+//				for(mm=0;mm<item_road->oadmr_num;mm++) {
+//					asyslog(LOG_INFO,"taskid[%d]=%d\n",mm,item_road->oad[mm].taskid);
+//				}
+				for(mm=0;mm<(item_road->oadmr_num);mm++)
+				{
+//					asyslog(LOG_INFO,"taskno=%d ,item_road->oad[%d].taskid=%d\n",taskno,mm,item_road->oad[mm].taskid);
+					if(taskno != 0 && taskno != item_road->oad[mm].taskid)
 					{
-						asyslog(LOG_INFO,"taskno=%d ,item_road->oad[%d].taskid=%d\n",taskno,mm,item_road->oad[mm].taskid);
-						if(taskno != 0 && taskno != item_road->oad[mm].taskid)
-						{
-							taskno = 0;
-							asyslog(LOG_INFO,"break taskno=%d\n",taskno);
-							break;
-						}
+						taskno = 0;
+						asyslog(LOG_INFO,"break taskno=%d\n",taskno);
+						break;
+					}
+					if(item_road->oad[mm].taskid != 0)
 						taskno = item_road->oad[mm].taskid;
-						asyslog(LOG_INFO,"i=%d ,taskno=%d\n",mm,taskno);
-					}
-					if(taskno != 0)
-					{
-						asyslog(LOG_INFO,"return  ,taskno=%d\n",taskno);
-						return taskno;
-					}
+//					asyslog(LOG_INFO,"i=%d ,taskno=%d\n",mm,taskno);
+				}
+				if(taskno != 0)
+				{
+					asyslog(LOG_INFO,"return  ,taskno=%d\n",taskno);
+					return taskno;
 				}
 			}
 		}
@@ -1617,6 +1618,160 @@ void extendcsds(CSD_ARRAYTYPE csds,ROAD_ITEM *item_road)
 		}
 	}
 }
+///*
+// *获得任务数据记录
+// */
+//int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds)
+//{
+//	FILE *fp = NULL,*myfp = NULL;
+//	INT8U 	taskid=0,recordbuf[1000],onefrmbuf[2000];
+//	ROAD_ITEM item_road;
+//	CURR_RECINFO recinfo;
+//	HEAD_UNIT *headunit = NULL;//文件头
+//	OAD_INDEX oad_offset[100];//oad索引
+//	TASKSET_INFO tasknor_info;
+//	INT16U  blocksize=0,headsize=0;
+//	int offsetTsa = 0,recordoffset = 0,unitnum=0,i=0,j=0,indexn=0,recordlen = 0,currecord = 0,firecord = 0,tsa_num=0,framesum=0;
+//	INT8U recordnum=0,seqnumindex=0;
+//	TSA *tsa_group = NULL;
+//	memset(&item_road,0x00,sizeof(ROAD_ITEM));
+//
+//	if(selectype != 5 && selectype != 7 && selectype != 10)
+//		return 0;
+//
+//	if(csds.num > MY_CSD_NUM)
+//		csds.num = MY_CSD_NUM;
+//	asyslog(LOG_INFO,"普通任务采集方案！！\n");
+//	memset(&item_road,0,sizeof(item_road));
+//	if((taskid = GetTaskidFromCSDs(csds,&item_road)) == 0) {//暂时不支持招测的不在一个采集方案
+//		asyslog(LOG_INFO,"GetTaskData: taskid=%d\n",taskid);
+//		return 0;
+//	}
+//	if(ReadTaskInfo(taskid,&tasknor_info)!=1)//得到任务信息
+//	{
+//		asyslog(LOG_INFO,"n得到任务信息失败\n");
+//		fprintf(stderr,"\n得到任务信息失败\n");
+//		return 0;
+//	}
+//	fprintf(stderr,"\n得到任务信息成功\n");
+//
+//	memset(&recinfo,0x00,sizeof(CURR_RECINFO));
+//	initrecinfo(&recinfo,tasknor_info,selectype,select);//获得recinfo信息
+//	//获得第一个序号
+//	currecord = getrecordno(tasknor_info.starthour,tasknor_info.startmin,tasknor_info.freq,recinfo);//freq为执行间隔,单位分钟
+//	firecord = currecord;//每次切换表地址，当前记录序号赋值第一次的数值
+//	//1\打开数据文件
+//	fprintf(stderr,"\n----------1\n");
+//	fp = opendatafile(taskid,recinfo);
+//	myfp = openFramefile(TASK_FRAME_DATA);
+//	if (fp==NULL || myfp==NULL)
+//		return 0;
+//	asyslog(LOG_INFO,"\n打开文件成功\n");
+////	ReadFileHeadLen(fp,&headsize,&blocksize);
+////	memset(headunit,0x00,sizeof(headunit));
+////	fread(headunit,headsize-4,1,fp);
+//	unitnum = GetTaskHead(fp,&headsize,&blocksize,&headunit);
+//	fprintf(stderr,"\n----------2\n");
+//	for(i=0;i<unitnum;i++)
+//		fprintf(stderr,"%04x%02x%02x:%04x%02x%02x:%04x\n",
+//				headunit[i].oad_m.OI,headunit[i].oad_m.attflg,headunit[i].oad_m.attrindex,
+//				headunit[i].oad_r.OI,headunit[i].oad_r.attflg,headunit[i].oad_r.attrindex,headunit[i].len);
+//
+//	memset(oad_offset,0x00,sizeof(oad_offset));
+//	GetOADPosofUnit(item_road,headunit,unitnum,oad_offset);//得到每一个oad在块数据中的偏移
+//	fprintf(stderr,"\n----------4\n");
+//	recordlen = blocksize/tasknor_info.runtime;//计算每条记录的字节数
+//	fprintf(stderr,"\nrecordlen = %d,freq=%d\n",recordlen,tasknor_info.freq);
+////	recordno = getrecordno(tasknor_info.starthour,tasknor_info.startmin,tasknor_info.freq,ts_sele);//计算招测的第一个的序列号
+//	fprintf(stderr,"\n-----------------------------------1-----------------------------------------------------------\n");
+//	//2\获得全部TSA列表
+////	fprintf(stderr,"\nmstype=%d recordno=%d\n",select.selec10.meters.mstype,recordno);
+//
+//	tsa_num = getTsas(select.selec10.meters,(INT8U **)&tsa_group);
+//	fprintf(stderr,"get 需要上报的：tsa_num=%d,tsa_group=%p\n",tsa_num,tsa_group);
+//	for(i=0;i<tsa_num;i++) {
+//		fprintf(stderr,"\nTSA%d: %d-",i,tsa_group[i].addr[0]);
+//		for(j=0;j<tsa_group[i].addr[0];j++) {
+//			fprintf(stderr,"-%02x",tsa_group[i].addr[j+1]);
+//		}
+//	}
+//	fprintf(stderr,"\n----------------------------------2------------------------------------------------------------\n");
+//	memset(onefrmbuf,0,sizeof(onefrmbuf));
+//	//初始化分帧头
+//	indexn = 2;
+//	indexn += initFrameHead(&onefrmbuf[indexn],oad,select,selectype,csds,&seqnumindex);
+//
+//	//3\定位TSA , 返回offset
+//	for(i =0; i< tsa_num; i++)
+//	{
+//		currecord = firecord;//每次切换表地址，当前记录序号赋值第一次的数值
+//		offsetTsa = findTsa(tsa_group[i],fp,headsize,blocksize);
+//		fprintf(stderr,"\n-----offsetTsa = %d\n",offsetTsa);
+//		//4\计算当前点
+////		currecord = getrecordno(tasknor_info.starthour,tasknor_info.startmin,tasknor_info.freq,recinfo);//freq为执行间隔,单位分钟
+////		for(j=0; j<recordn ; j++)
+//		asyslog(LOG_INFO,"招测的序列总数%d\n",recinfo.recordno_num);
+//		for(j=1; j<=recinfo.recordno_num;j++)		//test
+//		{
+//			if(updatedatafp(fp,j,selectype,tasknor_info.freq,recinfo,taskid)==2)//更新数据流 事件不需要更新
+//				offsetTsa = findTsa(tsa_group[i],fp,headsize,blocksize);
+//			if(offsetTsa == 0) {
+//				asyslog(LOG_INFO,"task未找到数据,i=%d\n",i);
+//				indexn += fillTsaNullData(&onefrmbuf[indexn],tsa_group[i],item_road);
+//				recordnum++;
+//				continue;
+//			}
+//			//5\定位指定的点（行）, 返回offset
+//			if(getcurecord(selectype,&currecord,j,tasknor_info.runtime) == 0)//招测天数跨度超出10天
+//				break;
+//			asyslog(LOG_INFO,"\n计算出来的currecord=%d\n",currecord);
+//			recordoffset = findrecord(offsetTsa,recordlen,currecord);
+//			memset(recordbuf,0x00,sizeof(recordbuf));
+//			//6\读出一行数据到临时缓存
+//			fseek(fp,recordoffset,SEEK_SET);
+//			fread(recordbuf,recordlen,1,fp);
+//			printRecordBytes(recordbuf,recordlen);
+//			//7\根据csds挑选数据，组织存储缓存
+//			indexn += collectData(&onefrmbuf[indexn],recordbuf,oad_offset,item_road);
+//			recordnum++;
+//			asyslog(LOG_INFO,"recordnum=%d  seqnumindex=%d\n",recordnum,seqnumindex);
+//			if (indexn>=1000)
+//			{
+//				framesum++;
+//				//8 存储1帧
+//				intToBuf((indexn-2),onefrmbuf);		//帧长度保存帧的数据长度
+//				saveOneFrame(onefrmbuf,indexn,myfp);
+//				indexn = 2;
+//				indexn += initFrameHead(&onefrmbuf[indexn],oad,select,selectype,csds,&seqnumindex);
+//				onefrmbuf[seqnumindex] = recordnum;
+//				recordnum = 0;
+//				break;
+//			}
+//		}
+//	}
+//	asyslog(LOG_INFO,"组帧：indexn=%d\n",indexn);
+//	for(i=0;i<indexn;i++) {
+//		fprintf(stderr,"%02x ",onefrmbuf[i]);
+//	}
+//
+//	if(framesum==0) {
+//		fprintf(stderr,"\n indexn = %d saveOneFrame  seqnumindex=%d,  recordnum=%d!!!!!!!!!!!!!!!!\n",indexn,seqnumindex,recordnum);
+//		asyslog(LOG_INFO,"任务数据文件组帧:indexn = %d , seqnumindex=%d,  recordnum=%d\n",indexn,seqnumindex,recordnum);
+//		intToBuf((indexn-2),onefrmbuf);
+//		onefrmbuf[seqnumindex] = recordnum;
+//		saveOneFrame(onefrmbuf,indexn,myfp);
+//	}
+//	if(tsa_group != NULL)
+//		free(tsa_group);
+//	if(headunit!=NULL){
+//		free(headunit);
+//	}
+//	if(fp != NULL)
+//		fclose(fp);
+//	if(myfp != NULL)
+//		fclose(myfp);
+//	return (framesum+1);
+//}
 /*
  *获得任务数据和事件记录
  */
@@ -1630,7 +1785,7 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds)
 	OAD_INDEX oad_offset[100];//oad索引
 	TASKSET_INFO tasknor_info;
 	INT16U  blocksize=0,headsize=0;
-	int offsetTsa = 0,recordoffset = 0,unitnum=0,i=0,j=0,indexn=0,recordlen = 0,currecord = 0,tsa_num=0,framesum=0;
+	int offsetTsa = 0,recordoffset = 0,unitnum=0,i=0,j=0,indexn=0,recordlen = 0,currecord = 0,firecord = 0,tsa_num=0,framesum=0;
 	INT8U recordnum=0,seqnumindex=0;
 	TSA *tsa_group = NULL;
 	ROAD road_eve;
@@ -1659,10 +1814,10 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds)
 		memset(&item_road,0,sizeof(item_road));
 		extendcsds(csds,&item_road);
 		currecord = 0;//事件只有一个记录
+		firecord = 0;
 		memset(&recinfo,0x00,sizeof(CURR_RECINFO));
 		recinfo.recordno_num = 1;//获得recinfo信息
 		tasknor_info.runtime = 1;//写死为一天执行一次,来保证一天存一个记录,实际按间隔执行
-
 
 		fp = openevefile(road_eve.oad.OI);
 	}
@@ -1686,6 +1841,7 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds)
 		initrecinfo(&recinfo,tasknor_info,selectype,select);//获得recinfo信息
 		//获得第一个序号
 		currecord = getrecordno(tasknor_info.starthour,tasknor_info.startmin,tasknor_info.freq,recinfo);//freq为执行间隔,单位分钟
+		firecord = currecord;//每次切换表地址，当前记录序号赋值第一次的数值
 		//1\打开数据文件
 		fprintf(stderr,"\n----------1\n");
 		fp = opendatafile(taskid,recinfo);
@@ -1693,7 +1849,7 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds)
 	myfp = openFramefile(TASK_FRAME_DATA);
 	if (fp==NULL || myfp==NULL)
 		return 0;
-	fprintf(stderr,"\n打开文件成功\n");
+	asyslog(LOG_INFO,"\n打开文件成功\n");
 //	ReadFileHeadLen(fp,&headsize,&blocksize);
 //	memset(headunit,0x00,sizeof(headunit));
 //	fread(headunit,headsize-4,1,fp);
@@ -1731,22 +1887,19 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds)
 	//3\定位TSA , 返回offset
 	for(i =0; i< tsa_num; i++)
 	{
+		currecord = firecord;//每次切换表地址，当前记录序号赋值第一次的数值
 		offsetTsa = findTsa(tsa_group[i],fp,headsize,blocksize);
 		fprintf(stderr,"\n-----offsetTsa = %d\n",offsetTsa);
 		//4\计算当前点
 //		currecord = getrecordno(tasknor_info.starthour,tasknor_info.startmin,tasknor_info.freq,recinfo);//freq为执行间隔,单位分钟
 //		for(j=0; j<recordn ; j++)
-		fprintf(stderr,"\n招测的序列总数%d\n",recinfo.recordno_num);
+		asyslog(LOG_INFO,"招测的序列总数%d\n",recinfo.recordno_num);
 		for(j=1; j<=recinfo.recordno_num;j++)		//test
 		{
-			if(updatedatafp(fp,j,selectype,tasknor_info.freq,recinfo,taskid)==2)//更新数据流
-			{
-				fprintf(stderr,"\n文件流更新前soffsetTsa=%d\n",offsetTsa);
+			if(updatedatafp(fp,j,selectype,tasknor_info.freq,recinfo,taskid)==2 && eveflg != 1)//更新数据流 事件不需要更新
 				offsetTsa = findTsa(tsa_group[i],fp,headsize,blocksize);
-				fprintf(stderr,"\n文件流更新后offsetTsa=%d\n",offsetTsa);
-			}
 			if(offsetTsa == 0) {
-				fprintf(stderr,"task未找到数据,i=%d\n",i);
+				asyslog(LOG_INFO,"task未找到数据,i=%d\n",i);
 				indexn += fillTsaNullData(&onefrmbuf[indexn],tsa_group[i],item_road);
 				recordnum++;
 				continue;
@@ -1754,7 +1907,7 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds)
 			//5\定位指定的点（行）, 返回offset
 			if(getcurecord(selectype,&currecord,j,tasknor_info.runtime) == 0)//招测天数跨度超出10天
 				break;
-			fprintf(stderr,"\n计算出来的currecord=%d\n",currecord);
+			asyslog(LOG_INFO,"\n计算出来的currecord=%d\n",currecord);
 			recordoffset = findrecord(offsetTsa,recordlen,currecord);
 			memset(recordbuf,0x00,sizeof(recordbuf));
 			//6\读出一行数据到临时缓存
@@ -1764,7 +1917,7 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds)
 			//7\根据csds挑选数据，组织存储缓存
 			indexn += collectData(&onefrmbuf[indexn],recordbuf,oad_offset,item_road);
 			recordnum++;
-			fprintf(stderr,"recordnum=%d  seqnumindex=%d\n",recordnum,seqnumindex);
+			asyslog(LOG_INFO,"recordnum=%d  seqnumindex=%d\n",recordnum,seqnumindex);
 			if (indexn>=1000)
 			{
 				framesum++;
@@ -1779,7 +1932,7 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds)
 			}
 		}
 	}
-	fprintf(stderr,"组帧：indexn=%d\n",indexn);
+	asyslog(LOG_INFO,"组帧：indexn=%d\n",indexn);
 	for(i=0;i<indexn;i++) {
 		fprintf(stderr,"%02x ",onefrmbuf[i]);
 	}

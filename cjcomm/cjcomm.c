@@ -59,8 +59,12 @@ void CalculateTransFlow(ProgramInfo* prginfo_event) {
     FILE* tfd = fopen("/sys/class/net/eth0/statistics/tx_bytes", "r");
     if (rfd == NULL || tfd == NULL) {
         asyslog(LOG_INFO, "未检测到端口(PPP0)打开");
-        fclose(rfd);
-        fclose(tfd);
+        if(rfd != NULL) {
+            fclose(rfd);
+        }
+        if(tfd != NULL) {
+            fclose(tfd);
+        }
         return;
     }
 
@@ -84,16 +88,6 @@ void CalculateTransFlow(ProgramInfo* prginfo_event) {
     }
 
     return;
-}
-
-void EventAutoReport(CommBlock* nst) {
-    for (int i = 0; i < 15; i++) {
-        if (JProgramInfo->needreport_event.report_event[i].report_flag == 1) {
-            Report_Event(nst, JProgramInfo->needreport_event.report_event[i], 2);
-            JProgramInfo->needreport_event.report_event[i].report_flag = 0;
-            break;
-        }
-    }
 }
 
 void clearcount() {
