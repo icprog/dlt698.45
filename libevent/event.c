@@ -13,6 +13,7 @@
 #include "Shmem.h"
 #include "Objectdef.h"
 #include "ParaDef.h"
+#include "libmmq.h"
 
 //测量点、事件参数
 static TSA TSA_LIST[MAX_POINT_NUM];
@@ -429,7 +430,7 @@ INT8U Need_Report(OI_698 oi,INT8U eventno,ProgramInfo* prginfo_event){
 			lastchgoi4300=prginfo_event->oi_changed.oi4300;
 		}
 	}
-	fprintf(stderr,"libevent:active_report=%d talk_master=%d \n",class19.active_report,class19.talk_master);
+	//fprintf(stderr,"libevent:active_report=%d talk_master=%d \n",class19.active_report,class19.talk_master);
 	if(class19.active_report == 1 && class19.talk_master == 1){
 		mqs_send((INT8S *)PROXY_NET_MQ_NAME,1,TERMINALEVENT_REPORT,(INT8U *)&oi,sizeof(OI_698));
 	}
