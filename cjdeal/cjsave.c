@@ -31,12 +31,12 @@ INT16U FixHeadUnit(INT8U *headbuf,INT8U *fixlen,ROAD *road_eve)
 	static INT8U head_oad_len[4]={0x0012,0x0008,0x0008,0x0008};
 	static INT8U headeve_oad[3][4]={{0x20,0x2a,0x02,0x00},{0x20,0x1e,0x02,0x00},{0x20,0x20,0x02,0x00}};
 	static INT8U headeve_oad_len[3]={0x0012,0x0008,0x0008};
-	int	  i=0,circnt=0,index=0;
+	int	  i=0,index=0;
 	HEAD_UNIT	unit[4]={};
 	*fixlen = 0;
 	if(road_eve == NULL)
 	{
-		for(i=0;i<circnt;i++) {
+		for(i=0;i<4;i++) {
 			memset(&unit[i].oad_m,0,sizeof(OAD));
 			unit[i].oad_r.OI = head_oad[i][0];
 			unit[i].oad_r.OI = (unit[i].oad_r.OI<<8) | head_oad[i][1];
@@ -47,7 +47,7 @@ INT16U FixHeadUnit(INT8U *headbuf,INT8U *fixlen,ROAD *road_eve)
 	}
 	else
 	{
-		for(i=0;i<circnt;i++) {
+		for(i=0;i<3;i++) {
 			memset(&unit[i].oad_m,0,sizeof(OAD));
 			unit[i].oad_r.OI = headeve_oad[i][0];
 			unit[i].oad_r.OI = (unit[i].oad_r.OI<<8) | headeve_oad[i][1];
@@ -230,6 +230,12 @@ void CreateSaveHead(char *fname,ROAD *road_eve,CSD_ARRAYTYPE csds,INT16U *headle
 				csds.csd[i].csd.road.num = ROAD_OADS_NUM;
 			for(j=0;j<csds.csd[i].csd.road.num;j++)
 			{
+				if(road_eve != NULL)//事件只有一个ROAD
+				{
+					if(csds.csd[i].csd.road.oads[j].OI == 0x201e || csds.csd[i].csd.road.oads[j].OI == 0x2020 ||
+							csds.csd[i].csd.road.oads[j].OI == 0x201a)//固定格式内存储，此处不再统计
+						continue;
+				}
 				if(csds.csd[i].csd.road.oads[j].OI == 0xeeee)
 					break;
 				len_tmp = CalcOILen(csds.csd[i].csd.road.oads[j],4);//多一个数据类型
@@ -240,7 +246,7 @@ void CreateSaveHead(char *fname,ROAD *road_eve,CSD_ARRAYTYPE csds,INT16U *headle
 		}
 	}
 	*unitlen=freq*(fixlen+*unitlen);//一个单元存储TSA共用,在结构最前面，每个单元都有3个时标和数据，预留出合适大小，以能存下一个TSA所有数据
-	asyslog(LOG_WARNING, "cjsave 存储文件头%s fixlen=%d,*unitlen=%d,freq=%d",fixlen,*unitlen,freq);
+	asyslog(LOG_WARNING, "cjsave 存储文件头 fixlen=%d,*unitlen=%d,freq=%d",fixlen,*unitlen,freq);
 	headbuf[2] = (*unitlen & 0xff00) >> 8;//数据单元长度
 	headbuf[3] = *unitlen & 0x00ff;
 	if(wrflg==1)
@@ -288,26 +294,26 @@ void ReadFileHead(char *fname,INT16U headlen,INT16U unitlen,INT16U unitnum,INT8U
  * 存储普通采集方案数据，
  * 数据格式：文件头结构：标注文件TSA和时标及csd格式，开始4个字节为文件头长度和每个数据单元长度 数据结构：存储各数据项值
  * 分测量点存储，一个TSA的全部数据放到一起，例如24个点的曲线数据，则按采集个数编号放入到一个位置,减少索引时间
+ * 返回1，表示发生事件
  */
-void SaveNorData(INT8U taskid,ROAD *road_eve,INT8U *databuf,int datalen)//存储事件时指针road_eve定义为NULL
+int SaveNorData(INT8U taskid,ROAD *road_eve,INT8U *databuf,int datalen)//存储事件时指针road_eve定义为NULL
 {
 	TS ts_now;
 	FILE *fp;
 	CSD_ARRAYTYPE csds;
 	char	fname[FILENAMELEN]={};
-	INT8U *databuf_tmp=NULL;
+	INT8U *databuf_tmp=NULL,eveflg=0;
 	int savepos=0,currpos=0,i=0;
 	INT16U headlen=0,unitlen=0,unitnum=0,unitseq=0,runtime=0;//runtime执行次数
 	TASKSET_INFO tasknor_info;
-	memset(fname,0,sizeof(fname));
 	memset(&csds,0x00,sizeof(ROAD));
 	csds.num = 1;
 	csds.csd[0].type = 1;//road
+	TSGet(&ts_now);//用的当前时间，测试用，需要根据具体存储时标选择来定义
 	if(road_eve == NULL)//不是事件
 	{
-		TSGet(&ts_now);//用的当前时间，测试用，需要根据具体存储时标选择来定义
 		if(ReadTaskInfo(taskid,&tasknor_info)!=1)
-			return;
+			return 0;
 		runtime = tasknor_info.runtime;
 		memcpy(&csds,&tasknor_info.csds,sizeof(CSD_ARRAYTYPE));//
 		getTaskFileName(taskid,ts_now,fname);
@@ -343,17 +349,19 @@ void SaveNorData(INT8U taskid,ROAD *road_eve,INT8U *databuf,int datalen)//存储
 				savepos=ftell(fp)-unitlen;
 				if(road_eve != NULL)//存储事件
 				{
-					if(memcmp(&databuf_tmp[18],&databuf[18],16)==0)//比对事件发生时间和结束时间是否相同，相同时间未发生，不保存
+					if(memcmp(&databuf_tmp[18],&databuf[18],8)==0)//比对事件发生时间是否相同，相同事件未发生，不保存
 					{
 						if(fp != NULL)
 							fclose(fp);
 						if(databuf_tmp != NULL)
 							free(databuf_tmp);
-						return;//事件未发生，不存
+						fprintf(stderr,"\n--事件OI%02x未发生，不存!!\n",road_eve->oad.OI);
+						return 0;//事件未发生，不存
 					}
 					else
 					{
-						//发送消息通知主动上报 todo
+						//发送消息通知主动上报
+						eveflg = 1;
 						fprintf(stderr,"\n--事件OI%02x发生!!\n",road_eve->oad.OI);
 					}
 				}
@@ -375,12 +383,13 @@ void SaveNorData(INT8U taskid,ROAD *road_eve,INT8U *databuf,int datalen)//存储
 			memcpy(&databuf_tmp[unitlen*i/runtime],databuf,17);//每个小单元地址附上
 	}
 	unitseq = (ts_now.Hour*60*60+ts_now.Minute*60+ts_now.Sec)/((24*60*60)/runtime)+1;
-	asyslog(LOG_NOTICE,"存储序号: unitseq=%d runtime=%d",unitseq,runtime);
+	asyslog(LOG_NOTICE,"ts: %d:%d:%d",ts_now.Hour,ts_now.Minute,ts_now.Sec);
+	asyslog(LOG_NOTICE,"存储序号: unitseq=%d runtime=%d  %d--%d",unitseq,runtime,(ts_now.Hour*60*60+ts_now.Minute*60+ts_now.Sec),((24*60*60)/runtime));
 	if(unitseq > runtime)
 	{
 		if(databuf_tmp != NULL)
 			free(databuf_tmp);
-		return ;//出错了，序列号超过了总长度
+		return 0;//出错了，序列号超过了总长度
 	}
 	memcpy(&databuf_tmp[unitlen*(unitseq-1)/runtime],databuf,datalen);
 	if(datalen != unitlen/runtime)
@@ -391,7 +400,7 @@ void SaveNorData(INT8U taskid,ROAD *road_eve,INT8U *databuf,int datalen)//存储
 			asyslog(LOG_NOTICE,"数据长度不对，不存: datalen=%d,need=%d",datalen,unitlen/runtime);
 		else
 			asyslog(LOG_NOTICE,"事件长度不对，不存: datalen=%d,need=%d",datalen,unitlen/runtime);
-		return ;//长度不对
+		return 0;//长度不对
 	}
 	else
 	{
@@ -405,4 +414,5 @@ void SaveNorData(INT8U taskid,ROAD *road_eve,INT8U *databuf,int datalen)//存储
 		fclose(fp);
 	if(databuf_tmp != NULL)
 		free(databuf_tmp);
+	return eveflg;
 }
