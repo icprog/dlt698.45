@@ -13,7 +13,7 @@
 #include "Shmem.h"
 #include "Objectdef.h"
 #include "ParaDef.h"
-#include "libmmq.h"
+#include "../libMq/libmmq.h"
 
 //测量点、事件参数
 static TSA TSA_LIST[MAX_POINT_NUM];
