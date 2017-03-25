@@ -193,7 +193,10 @@ void CreateSaveHead(char *fname,ROAD *road_eve,CSD_ARRAYTYPE csds,INT16U *headle
 
 
 	if(csds.num == 0xee || csds.num == 0)
+	{
+		asyslog(LOG_WARNING, "cjsave :csds.num=%d,return!!!error!!!",csds.num);
 		return;
+	}
 	csd_unitnum = CalcHeadRcsdUnitNum(csds);
 	if(headbuf == NULL) {
 		*headlen=csd_unitnum*sizeof(HEAD_UNIT)+4;	//4:文件头长度+TSA块长度
@@ -237,6 +240,7 @@ void CreateSaveHead(char *fname,ROAD *road_eve,CSD_ARRAYTYPE csds,INT16U *headle
 		}
 	}
 	*unitlen=freq*(fixlen+*unitlen);//一个单元存储TSA共用,在结构最前面，每个单元都有3个时标和数据，预留出合适大小，以能存下一个TSA所有数据
+	asyslog(LOG_WARNING, "cjsave 存储文件头%s fixlen=%d,*unitlen=%d,freq=%d",fixlen,*unitlen,freq);
 	headbuf[2] = (*unitlen & 0xff00) >> 8;//数据单元长度
 	headbuf[3] = *unitlen & 0x00ff;
 	if(wrflg==1)
@@ -371,6 +375,7 @@ void SaveNorData(INT8U taskid,ROAD *road_eve,INT8U *databuf,int datalen)//存储
 			memcpy(&databuf_tmp[unitlen*i/runtime],databuf,17);//每个小单元地址附上
 	}
 	unitseq = (ts_now.Hour*60*60+ts_now.Minute*60+ts_now.Sec)/((24*60*60)/runtime)+1;
+	asyslog(LOG_NOTICE,"存储序号: unitseq=%d runtime=%d",unitseq,runtime);
 	if(unitseq > runtime)
 	{
 		if(databuf_tmp != NULL)
