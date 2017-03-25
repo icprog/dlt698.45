@@ -32,7 +32,6 @@ int GetInterFaceIp(char* interface, char* ips);
 
 void initComPara(CommBlock* compara, INT8S (*p_send)(int fd, INT8U* buf, INT16U len));
 void CalculateTransFlow(ProgramInfo* prginfo_event);
-void EventAutoReport(CommBlock* nst);
 void dumpPeerStat(int fd, char* info);
 
 //以太网通信接口
