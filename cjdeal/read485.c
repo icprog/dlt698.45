@@ -739,11 +739,31 @@ INT8U get6001ObjByTSA(TSA addr,CLASS_6001* targetMeter)
 
 	return ret;
 }
+//07数据YYMMDDHHMMSS 转换为698时间
+INT8U time07totime698(INT8U* time07,INT8U* time698)
+{
+	time698[0] = dtdatetimes;
 
+	INT16U year  = (time07[5] >> 4)*10 + (time07[5]&0x0f) + 2000;
+	INT8U month = (time07[4] >> 4)*10 + (time07[4]&0x0f);
+	INT8U day = (time07[3] >> 4)*10 + (time07[3]&0x0f);
+	INT8U hour  = (time07[2] >> 4)*10 + (time07[2]&0x0f);
+	INT8U minute = (time07[1] >> 4)*10 + (time07[1]&0x0f);
+	INT8U second = (time07[0] >> 4)*10 + (time07[0]&0x0f);
+
+	time698[1] = (year>>8)&0x00ff;
+	time698[2] = year&0x00ff;
+	time698[3] = month;
+	time698[4] = day;
+	time698[5] = hour;
+	time698[6] = minute;
+	time698[7] = second;
+
+	return 8;
+}
 INT8U checkEvent(CLASS_6001 meter,FORMAT07 resultData07,INT16U taskID)
 {
 	INT8U ret = 0;
-
 	if(memcmp(flag07_0CF33,resultData07.DI,4)==0)
 	{
 		fprintf(stderr,"\n\n&&&&&&&&&&&checkEvent taskID = %d  mter.sernum = %d\n\n",taskID,meter.sernum);
@@ -759,40 +779,42 @@ INT8U checkEvent(CLASS_6001 meter,FORMAT07 resultData07,INT16U taskID)
 	{
 		ret = Event_3105(meter.basicinfo.addr,taskID,resultData07.Data,resultData07.Length,JProgramInfo);
 	}
+	return ret;
+}
+INT16S dealEventRecord(CLASS_6001 meter,FORMAT07 resultData07,INT16U taskID,INT8U* dataContent)
+{
+
+	INT16U dataLen = 0;
+
 	if(resultData07.DI[3] == 0x03)
 	{
 		if(memcmp(flag07_diaodian,resultData07.DI,4)==0)//电能表掉电事件
 		{
-			INT32U value32 = 0;
-			INT8U dataIndex;
-			for(dataIndex = 0;dataIndex < 12;dataIndex++)
-			{
-				bcd2int32u(&resultData07.Data[dataIndex],1,inverted,&value32);
-				INT8U value8 = (INT8U)value32;
-				DbgPrintToFile1(1,"data[%d] %d-%d",dataIndex,value32,value8);
-			}
+			dataLen += time07totime698(&resultData07.Data[0],&dataContent[dataLen]);
+			dataLen += time07totime698(&resultData07.Data[6],&dataContent[dataLen]);
 		}
 		if(memcmp(flag07_qingling,resultData07.DI,4)==0)//电能清零电事件
 		{
-
+			fprintf(stderr,"\n checkEvent 电能清零电事件");
+			dataLen += time07totime698(&resultData07.Data[0],&dataContent[dataLen]);
+			dataLen += time07totime698(&resultData07.Data[0],&dataContent[dataLen]);
 		}
 		if(memcmp(flag07_jiaoshi,resultData07.DI,4)==0)//电能校时电事件
 		{
-
+			fprintf(stderr,"\n checkEvent 电能校时电事件");
+			dataLen += time07totime698(&resultData07.Data[4],&dataContent[dataLen]);
+			dataLen += time07totime698(&resultData07.Data[10],&dataContent[dataLen]);
 		}
 		if(memcmp(flag07_kaibiaogai,resultData07.DI,4)==0)//电能表开盖事件
 		{
+			fprintf(stderr,"\n checkEvent 电能表开盖事件");
+			dataLen += time07totime698(&resultData07.Data[0],&dataContent[dataLen]);
+			dataLen += time07totime698(&resultData07.Data[6],&dataContent[dataLen]);
+		}
 
-		}
-		if(memcmp(flag07_kaibiaogaicishu,resultData07.DI,4)==0)//电能表开盖事件
-		{
-			INT32U value32 = 0;
-			bcd2int32u(&resultData07.Data[0],3,inverted,&value32);
-			DbgPrintToFile1(1,"开表盖次数=%d",value32);
-		}
 
 	}
-	return ret;
+	return dataLen;
 }
 
 //根据07 DI 返回数据类型dataType 数组大小size 信息
@@ -801,6 +823,7 @@ INT8U getASNInfo(FORMAT07* DI07,Base_DataType* dataType)
 	fprintf(stderr, "\n getASNInfo DI07 = %02x%02x%02x%02x",DI07->DI[3],DI07->DI[2],DI07->DI[1],DI07->DI[0]);
 	INT8U unitNum = 1;
 	INT8U index;
+
 #if 1
 	//电表日期
 	if(memcmp(flag07_date,DI07->DI,4) == 0)
@@ -810,7 +833,6 @@ INT8U getASNInfo(FORMAT07* DI07,Base_DataType* dataType)
 		INT16U year  = (DI07->Data[3] >> 4)*10 + (DI07->Data[3]&0x0f) + 2000;
 		INT8U month = (DI07->Data[2] >> 4)*10 + (DI07->Data[2]&0x0f);
 		INT8U day = (DI07->Data[1] >> 4)*10 + (DI07->Data[1]&0x0f);
-		asyslog(LOG_WARNING, "电表日期 %d 年 %d 月  %d日",year,month,day);
 		DI07->Data[0] = (year>>8)&0x00ff;
 		DI07->Data[1] = year&0x00ff;
 		DI07->Data[2] = month;
@@ -826,7 +848,6 @@ INT8U getASNInfo(FORMAT07* DI07,Base_DataType* dataType)
 		INT8U hour  = (DI07->Data[2] >> 4)*10 + (DI07->Data[2]&0x0f);
 		INT8U minute = (DI07->Data[1] >> 4)*10 + (DI07->Data[1]&0x0f);
 		INT8U second = (DI07->Data[0] >> 4)*10 + (DI07->Data[0]&0x0f);
-		asyslog(LOG_WARNING, "电表时间 %d 时 %d 分  %d秒",hour,minute,second);
 		DI07->Data[0] = hour;
 		DI07->Data[1] = minute;
 		DI07->Data[2] = second;
@@ -838,11 +859,7 @@ INT8U getASNInfo(FORMAT07* DI07,Base_DataType* dataType)
 		if((map07DI_698OAD[index].flag07.DI_1[0][3]==DI07->DI[3])
 				&&(map07DI_698OAD[index].flag07.DI_1[0][2]==DI07->DI[2]))
 			{
-				//事件类数据不在这里处理
-				if(DI07->DI[3]==0x03)
-				{
-					return 0;
-				}
+
 				//实时数据考虑的有分费率分相匹配前两个就可以
 				if(DI07->DI[3]!=0x05)
 				{
@@ -1109,10 +1126,18 @@ INT16S request698_07DataSingle(FORMAT07* format07, INT8U* SendBuf,INT16S SendLen
 		recsta = analyzeProtocol07(format07, RecvBuff, RecvLen, &nextFlag);
 		if (recsta == 0)
 		{
-			//把07数据格式化放到dataContent
-			buffLen = data07Tobuff698(*format07,dataContent);
 			//检查是否是事件关联数据标识
-			checkEvent(meter,*format07,st6035->taskID);
+			if(format07->DI[3]==0x03)
+			{
+				buffLen = dealEventRecord(meter,*format07,st6035->taskID,dataContent);
+			}
+			else
+			{
+				//把07数据格式化放到dataContent
+				buffLen = data07Tobuff698(*format07,dataContent);
+				checkEvent(meter,*format07,st6035->taskID);
+			}
+
 		} else
 		{
 
@@ -1882,7 +1907,7 @@ INT8S sendSetTimeCMD(CLASS_6001 meter,INT8U port485)
 	//下发对时
 	switch(meter.basicinfo.protocol)
 	{
-		fprintf(stderr,"\n 下发对时报文 protocal = %d",meter.basicinfo.protocol);
+		DbgPrintToFile1(port485,"\n 下发对时报文 meter = %d protocal = %d",meter.sernum,meter.basicinfo.protocol);
 		case DLT_645_07:
 		{
 			TS nowTime;
@@ -2457,44 +2482,77 @@ INT16S deal6017_698(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8
 }
 INT16S deal6017_07(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8U* dataContent,INT8U port485)
 {
-	INT16S totaldataLen =0;
+
+	fprintf(stderr,"\n\n 抄电表事件  meter = %d st6015.sernum = %d---------",to6001.sernum, st6015.sernum);
+	DbgPrintToFile1(port485,"抄电表事件 deal6017_07  meter = %d st6015.sernum = %d---------",to6001.sernum, st6015.sernum);
 
 	OI_698 eventOI = 0x0001;
 	INT16S datalen = 0;
 	INT8U dataIndex = 0;
-
+	memset(dataContent,0,DATA_CONTENT_LEN);
 	for (dataIndex = 0; dataIndex < st6015.csds.num; dataIndex++)
 	{
+		INT8S ret = dealRealTimeRequst(port485);
+		if(ret == PARA_CHANGE_RETVALUE)
+		{
+			return PARA_CHANGE_RETVALUE;
+		}
 		//ROAD
 		if(st6015.csds.csd[dataIndex].type == 1)
 		{
+			INT16S totaldataLen =0;
+			INT16U buffIndex = 0;
+			dataContent[totaldataLen++] = dttsa;
+			memcpy(&dataContent[totaldataLen],to6001.basicinfo.addr.addr,sizeof(TSA));//采集通信地址
+			totaldataLen += sizeof(TSA);
+			fprintf(stderr,"\n 采集通信地址：");
+			for(buffIndex = 0;buffIndex < totaldataLen;buffIndex++)
+			{
+				fprintf(stderr," %02x",dataContent[buffIndex]);
+			}
+
+			//请求07表的事件记录
 			OAD eventRoad;
 			eventRoad.OI = st6015.csds.csd[dataIndex].csd.road.oad.OI;
 			eventRoad.attflg = st6015.csds.csd[dataIndex].csd.road.oad.attflg;
 			eventRoad.attrindex = st6015.csds.csd[dataIndex].csd.road.oad.attrindex;
-			datalen = request07_singleOAD(eventOI,eventRoad,to6001,st6035,&dataContent[totaldataLen],port485);
-			totaldataLen += datalen;
-			//TODO 按格式存事件
-			INT8S ret = dealRealTimeRequst(port485);
-			if(ret == PARA_CHANGE_RETVALUE)
+
+			C601F_07Flag obj601F_07Flag;
+			memset(&obj601F_07Flag,0,sizeof(C601F_07Flag));
+			if(OADMap07DI(eventOI,eventRoad, &obj601F_07Flag) == 1)
 			{
-				return PARA_CHANGE_RETVALUE;
+				datalen = request698_07Data(obj601F_07Flag.DI_1[0],&dataContent[totaldataLen],to6001,st6035,port485);
+				DbgPrintToFile1(port485,"datalen = %d---------",datalen);
 			}
+			totaldataLen += datalen;
+			DbgPrintToFile1(port485,"totaldataLen = %d---------",totaldataLen);
+			fprintf(stderr,"\n 发生时刻 结束时刻：");
+			for(;buffIndex < totaldataLen;buffIndex++)
+			{
+				fprintf(stderr," %02x",dataContent[buffIndex]);
+			}
+
+			//根据任务的ROAD格式补0
+			INT8U oadIndex = 0;
+			for(oadIndex = 0;oadIndex < st6015.csds.csd[dataIndex].csd.road.num;oadIndex++)
+			{
+				INT16U oiDataLen = CalcOIDataLen(st6015.csds.csd[dataIndex].csd.road.oads[oadIndex].OI,st6015.csds.csd[dataIndex].csd.road.oads[oadIndex].attrindex);
+				DbgPrintToFile1(port485,"oad[%d] = %04x  len = %d---------",oadIndex,st6015.csds.csd[dataIndex].csd.road.oads[oadIndex].OI,oiDataLen);
+				totaldataLen += oiDataLen;
+				if(totaldataLen >= DATA_CONTENT_LEN)
+				{
+					fprintf(stderr,"dataContent 长度不够");
+					fprintf(stderr,"deal6015_07 datalen = %d totaldataLen = %d",datalen,totaldataLen);
+					return totaldataLen;
+				}
+			}
+			DbPrt1(port485,"存储事件 buff:", (char *) dataContent, totaldataLen, NULL);
+			SaveNorData(st6035->taskID,&st6015.csds.csd[dataIndex].csd.road,dataContent,totaldataLen);
 		}
 
 	}
-	if(totaldataLen >= DATA_CONTENT_LEN)
-	{
-		fprintf(stderr,"dataContent 长度不够");
-		fprintf(stderr,"deal6015_07 datalen = %d totaldataLen = %d",datalen,totaldataLen);
-		return totaldataLen;
-	}
-	fprintf(stderr,
-			"\n\n**********end************ deal6015_07  meter = %d st6015.sernum = %d st6015.csds.num = %d---------",
-			to6001.sernum, st6015.sernum, st6015.csds.num);
-	DbgPrintToFile1(port485,"st6015.csds.csd[%d]",
-			to6001.sernum, st6015.sernum, st6015.csds.num);
-	return totaldataLen;
+
+	return 0;
 }
 /*
  * 抄读1个测量点
@@ -2571,7 +2629,7 @@ INT16U compose6012Buff(DateTimeBCD startTime,TSA meterAddr,INT16U dataLen,INT8U*
 	memset(buff6012,0,DATA_CONTENT_LEN);
 
 	index = bufflen;
-	buff6012[bufflen++] = 0x55;
+	buff6012[bufflen++] = dttsa;
 	memcpy(&buff6012[bufflen],meterAddr.addr,sizeof(TSA));//采集通信地址
 	bufflen += sizeof(TSA);
 	fprintf(stderr,"\n 采集通信地址：");
