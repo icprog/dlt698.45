@@ -1762,7 +1762,7 @@ INT8S dealProxy(PROXY_GETLIST* getlist,INT8U port485)
 			}
 		}
 #endif
-		mqs_send((INT8S *)PROXY_NET_MQ_NAME,1,ProxySetResponseList,(INT8U *)getlist,sizeof(PROXY_GETLIST));
+		mqs_send((INT8S *)PROXY_NET_MQ_NAME,1,TERMINALPROXY_RESPONSE,(INT8U *)getlist,sizeof(PROXY_GETLIST));
 		fprintf(stderr,"\n代理消息已经发出\n\n");
 
 	}
@@ -2104,16 +2104,16 @@ INT8S dealBroadCastSingleMeter(INT8U port485,CLASS_6001 meter)
 
 	int time_offset=difftime(timeNow,tmtotime_t(meterTime));
 	fprintf(stderr,"电表[%d]时间差:%d",meter.sernum,time_offset);
+	INT8U eventbuf[8] = {0};
 	if(time_offset > broadcase4204.upleve)
 	{
-		INT8U eventbuf[8] = {0};
+
 		memcpy(eventbuf,&dataContent[1],7);
 		eventbuf[7] = (INT8U)time_offset;
 		fprintf(stderr,"对时事件 Event_311B");
-		Event_311B(meter.basicinfo.addr,eventbuf,8,JProgramInfo);
-
 		sendSetTimeCMD(meter,port485);
 	}
+	Event_311B(meter.basicinfo.addr,eventbuf,8,JProgramInfo);
 	return ret;
 }
 /*
@@ -2589,7 +2589,7 @@ INT16S deal6017_07(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8U
 				eventBufLen += 34;
 				DbPrt1(port485,"上报事件 buff:", (char *) reportEventBuf, eventBufLen, NULL);
 				//TODO 发送消息
-
+				mqs_send((INT8S *)PROXY_NET_MQ_NAME,1,METEREVENT_REPORT,reportEventBuf,eventBufLen);
 			}
 
 		}
