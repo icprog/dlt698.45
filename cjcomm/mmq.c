@@ -55,11 +55,14 @@ void MmqRead(struct aeEventLoop *eventLoop, int fd, void *clientData, int mask) 
     }
     CommBlock *nst = (GetOnlineType() == 1) ? GetComBlockForGprs() : GetComBlockForNet();
     switch (headBuf.cmd){
-        case 3:
+        case TERMINALPROXY_RESPONSE:
             ProxyListResponse((PROXY_GETLIST *) getBuf, nst);
             break;
         case TERMINALEVENT_REPORT :
             Report_Event(nst, getBuf, 2);
+            break;
+        case METEREVENT_REPORT:
+            callEventAutoReport(nst, getBuf, headBuf.bufsiz);
             break;
     }
     return;
