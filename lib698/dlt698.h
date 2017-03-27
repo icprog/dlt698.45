@@ -11,7 +11,7 @@ extern int StateProcess(CommBlock* nst, int delay_num);
 extern int ProcessData(CommBlock* com);
 extern int Link_Request(LINK_Request request, INT8U* addr, INT8U* buf);
 extern void testframe(INT8U* apdu, int len);
-extern INT8U Report_Event(CommBlock* com, OI_698 oi, INT8U report_type);
+extern INT8U Report_Event(CommBlock* com, INT8U *oiarr, INT8U report_type);
 extern INT16U composeAutoReport(INT8U* SendApdu, INT16U length);
 extern INT16U composeAutoTask(AutoTaskStrap* list);
 extern int callAutoReport(CommBlock* com, INT8U ifecho);
