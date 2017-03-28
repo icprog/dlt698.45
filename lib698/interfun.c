@@ -848,7 +848,7 @@ int Get_6001(INT8U type,INT16U seqnum,INT8U *data)
 		if(type==0) {
 			if(meter.sernum==0 || meter.sernum==0xffff)  return index;
 		}
-		fprintf(stderr,"\n 6000 read meter ok");
+		fprintf(stderr,"\n 6000 read meter %d ok",seqnum);
 		index += create_struct(&data[index],4);		//属性2：struct 四个元素
 		index += fill_long_unsigned(&data[index],meter.sernum);		//配置序号
 		index += create_struct(&data[index],10);					//基本信息:10个元素
@@ -876,12 +876,13 @@ int Get_6001(INT8U type,INT16U seqnum,INT8U *data)
 /*
  * 任务配置单元
  * */
-int Get_6013(INT8U taskid,INT8U *data)
+int Get_6013(INT8U type,INT8U taskid,INT8U *data)
 {
-	int 	index=0,i=0;
+	int 	index=0,i=0,ret=0;
 	CLASS_6013 task={};
 
-	if (readCoverClass(0x6013,taskid,&task,sizeof(CLASS_6013),coll_para_save)) {
+	ret = readCoverClass(0x6013,taskid,&task,sizeof(CLASS_6013),coll_para_save);
+	if ((ret == 1) || (type==1)) {
 		fprintf(stderr,"\n 6013 read meter ok");
 		index += create_struct(&data[index],12);		//属性2：struct 12个元素
 		index += fill_unsigned(&data[index],task.taskID);		//配置序号
@@ -912,12 +913,13 @@ int Get_6013(INT8U taskid,INT8U *data)
 /*
  * 普通采集方案
  * */
-int Get_6015(INT8U seqnum,INT8U *data)
+int Get_6015(INT8U type,INT8U seqnum,INT8U *data)
 {
-	int 	index=0,i=0;
+	int 	index=0,i=0,ret=0;
 	CLASS_6015 coll={};
 
-	if (readCoverClass(0x6015,seqnum,&coll,sizeof(CLASS_6015),coll_para_save)) {
+	ret = readCoverClass(0x6015,seqnum,&coll,sizeof(CLASS_6015),coll_para_save);
+	if ((ret == 1) || (type==1)) {
 		fprintf(stderr,"\n 6015 read coll ok");
 		index += create_struct(&data[index],6);		//属性2：struct 6个元素
 		index += fill_unsigned(&data[index],coll.sernum);		//方案序号
@@ -946,12 +948,13 @@ int Get_6015(INT8U seqnum,INT8U *data)
 /*
  * 上报方案
  * */
-int Get_601D(INT8U seqnum,INT8U *data)
+int Get_601D(INT8U type,INT8U seqnum,INT8U *data)
 {
-	int 	index=0,i=0;
+	int 	index=0,i=0,ret=0;
 	CLASS_601D plan={};
 
-	if (readCoverClass(0x601D,seqnum,&plan,sizeof(CLASS_601D),coll_para_save)) {
+	ret = readCoverClass(0x601D,seqnum,&plan,sizeof(CLASS_601D),coll_para_save);
+	if ((ret == 1) || (type==1)) {
 		fprintf(stderr,"\n 601d read report plan ok");
 		index += create_struct(&data[index],5);		//属性2：struct 5个元素
 		index += fill_unsigned(&data[index],plan.reportnum);		//方案序号
@@ -977,13 +980,13 @@ int Get_601D(INT8U seqnum,INT8U *data)
 /*
  * 采集任务监控单元
  * */
-int Get_6035(INT8U taskid,INT8U *data)
+int Get_6035(INT8U type,INT8U taskid,INT8U *data)
 {
-	int 	index=0;
+	int 	index=0,ret=0;
 	CLASS_6035	classoi={};
 
-	if (readCoverClass(0x6035,taskid,&classoi,sizeof(CLASS_6035),coll_para_save))
-	{
+	ret = readCoverClass(0x6035,taskid,&classoi,sizeof(CLASS_6035),coll_para_save);
+	if ((ret == 1) || (type==1)) {
 		index += create_struct(&data[index],8);
 		index += fill_unsigned(&data[index],classoi.taskID);
 		index += fill_enum(&data[index],classoi.taskState);

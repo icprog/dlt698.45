@@ -757,7 +757,8 @@ typedef struct{
 
 //消息命令
 typedef enum {
-	TERMINALEVENT_REPORT   //0
+	TERMINALEVENT_REPORT,   //0
+	PORXY_LIST,				//1
 }gdm_type;
 
 #endif

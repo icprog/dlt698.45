@@ -83,9 +83,9 @@ INT32S Esam_Init(INT32S fd, INT8U* spipath) {
 }
 
 void Esam_Clear(INT32S fd) {
-	close_named_sem(SEMNAME_SPI0_0);
+//	close_named_sem(SEMNAME_SPI0_0);
    // sem_close(sem_spi0_0);
-    sem_spi0_0 = NULL;
+//    sem_spi0_0 = NULL;
     SPI_Close(fd);
 }
 /*******************************************************

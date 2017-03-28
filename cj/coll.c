@@ -280,7 +280,10 @@ void Collect6000(int argc, char *argv[])
 			pi++;
 			po=po+2;
 			fprintf(stderr,"\nOAD=%04x %02x%02x ",meter.basicinfo.port.OI,meter.basicinfo.port.attflg,meter.basicinfo.port.attrindex);
+
 			memset(&meter.basicinfo.pwd,0,sizeof(meter.basicinfo.pwd));
+			meter.basicinfo.pwd[0] = 1;
+
 			sscanf(argv[pi],"%d",&tmp[po]);
 			meter.basicinfo.ratenum = tmp[po];
 			pi++;
@@ -316,6 +319,9 @@ void Collect6000(int argc, char *argv[])
 			if(meter.extinfo.cjq_addr.addr[1]!=0) {
 				meter.extinfo.cjq_addr.addr[1]=meter.extinfo.cjq_addr.addr[1]-1;
 			}
+			memset(&meter.extinfo.asset_code,0,sizeof(meter.extinfo.asset_code));
+			meter.extinfo.asset_code[0] = 1;
+
 			///////
 			sscanf(argv[pi],"%d",&tmp[po]);
 			meter.extinfo.pt = tmp[po];

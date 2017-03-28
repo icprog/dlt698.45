@@ -1990,11 +1990,9 @@ long int readFrameDataFile(char *filename,int offset,INT8U *buf,int *datalen)
 	if (fp!=NULL && buf!=NULL)
 	{
 		fseek(fp,offset,0);		 			//定位到文件指定偏移位置
-		//if (fread(&bytelen,2,1,fp) <=0)	 	//读出数据报文长度
-		fread(&bytelen,2,1,fp);
-		fprintf(stderr,"bytelen=%d\n",bytelen);
-//			return 0;
-		if(bytelen>=MAX_APDU_SIZE) {
+		fread(&bytelen,2,1,fp);				//读出数据报文长度
+		fprintf(stderr," readFrameDataFile bytelen=%d\n",bytelen);
+		if(bytelen>=MAX_APDU_SIZE) {		//防止读取数据溢出
 			return 0;
 		}
 		if (fread(buf,bytelen,1,fp) <=0 ) 	//按数据报文长度，读出全部字节
