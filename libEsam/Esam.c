@@ -110,7 +110,7 @@ INT32S Esam_WriteThenRead(INT32S fd, INT8U* Tbuf, INT8U Tlen, INT8U* Rbuf){
 	INT16S Result = ERR_ESAM_UNKNOWN;
     INT8U rx[BUFFLENMAX_SPI];
 	//sem_wait(sem_spi0_0);
-	for(index=0;index<6;index++)//只做3次异常处理，每次若出异常，时间会很长，秒级
+	for(index=0;index<6;index++)//只做6次异常处理，每次若出异常，时间会很长，秒级
 	{
 		memset(rx,0x00,BUFFLENMAX_SPI);
 		Esam_WriteToChip(fd,Tbuf,Tlen);//向片中发送数据
@@ -347,7 +347,7 @@ INT32S Esam_GetTermiSingleInfo(INT32S fd, INT8U type, INT8U* Rbuf) {   //&&已�
 //    	fprintf(stderr,"%02x ",GetInfo_ESAM[i]);
 //    fprintf(stderr,"\n");
     Result = Esam_WriteThenRead(fd, (INT8U*)GetInfo_ESAM, 8, tmp);
-    //fprintf(stderr,"Esam_GetTermiSingleInfo result = %d\n",Result);
+    fprintf(stderr,"Esam_GetTermiSingleInfo result = %d\n",Result);
     if(Result>0 && Result<BUFFLENMAX_SPI) //大于BUFFLENMAX_SPI错误，此处做比较
     {
     	memcpy(Rbuf,&tmp[4],Result-5);
@@ -364,7 +364,6 @@ INT32S Esam_GetTermiSingleInfo(INT32S fd, INT8U type, INT8U* Rbuf) {   //&&已�
  *函数说明:ucOutSessionInit和ucOutSign第一字节是数量
  *函数说明:返回的ucSessionData固定48字节，ucSign长度为length-48
  *************************************************************/
-
 //已测/但测试报文无法通过校验，应该是esam芯片内证书和报文证书不匹配
 INT32S Esam_CreateConnect(INT32S fd, SignatureSecurity* securityInfo ,SecurityData* RetInfo) {
 	if(sizeof(securityInfo->signature)<=securityInfo->signature[0] || sizeof(securityInfo->encrypted_code2)<=securityInfo->encrypted_code2[0])
@@ -396,8 +395,11 @@ INT32S Esam_CreateConnect(INT32S fd, SignatureSecurity* securityInfo ,SecurityDa
 	{
 			 RetInfo->server_rn[0]=0x30;//第一个字节为长度
 			 memcpy(&RetInfo->server_rn[1],&tmp[4],48);//48byte服务器随机数
-			 RetInfo->server_signInfo[1]=Result-53;//第一个字节为长度
-			 memcpy(&RetInfo->server_signInfo[1],&tmp[52],Result-53);  //53=4+1+48
+			 if((tmp[3] - 48)>0)//防止异常情况memcpy复制负数
+			 {
+				 RetInfo->server_signInfo[0]=(tmp[3] - 48);//第一个字节为长度
+				 memcpy(&RetInfo->server_signInfo[1],&tmp[52],(tmp[3] - 48));  //53=4+1+48
+			 }
 			return Result-5;
 	}
 	 else

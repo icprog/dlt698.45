@@ -369,7 +369,7 @@ void GetconnetRequest(CONNECT_Request *request,INT8U *apdu)
 				index = index + bytenum +1;
 				bytenum = apdu[index];
 				if (bytenum<70)
-					memcpy((INT8U*)&request->info.sigsecur.signature,&apdu[index],bytenum);
+					memcpy((INT8U*)&request->info.sigsecur.signature,&apdu[index],bytenum+1);
 			}
 			break;
 	}
@@ -409,26 +409,26 @@ void varconsult(CONNECT_Response *response ,CONNECT_Request *request,CONNECT_Res
 	for(i=0;i<8;i++)
 		response->ProtocolConformance[i] = myvar->ProtocolConformance[i] & request->ProtocolConformance[i];
 	memcpy(&response->app_version,&request->expect_app_ver,sizeof(request->expect_app_ver));
-	if (myvar->server_deal_maxApdu < request->client_deal_maxApdu)
+	//if (myvar->server_deal_maxApdu < request->client_deal_maxApdu)
 		response->server_deal_maxApdu = myvar->server_deal_maxApdu;
-	else
-		response->server_deal_maxApdu = request->client_deal_maxApdu;
-	if (myvar->server_recv_size < request->client_recv_size)
+	//else
+	//	response->server_deal_maxApdu = request->client_deal_maxApdu;
+	//if (myvar->server_recv_size < request->client_recv_size)
 		response->server_recv_size = myvar->server_recv_size;
-	else
-		response->server_recv_size = request->client_deal_maxApdu;
-	if (myvar->server_recv_maxWindow < request->client_recv_maxWindow)
+	//else
+	//	response->server_recv_size = request->client_deal_maxApdu;
+	//if (myvar->server_recv_maxWindow < request->client_recv_maxWindow)
 		response->server_recv_maxWindow = myvar->server_recv_maxWindow;
-	else
-		response->server_recv_maxWindow = request->client_recv_maxWindow;
-	if (myvar->server_send_size < request->client_send_size)
+	//else
+	//	response->server_recv_maxWindow = request->client_recv_maxWindow;
+	//if (myvar->server_send_size < request->client_send_size)
 		response->server_send_size = myvar->server_send_size;
-	else
-		response->server_send_size = request->client_send_size;
+	//else
+	//	response->server_send_size = request->client_send_size;
 	if(myvar->expect_connect_timeout < request->expect_connect_timeout)
-		response->expect_connect_timeout = myvar->expect_connect_timeout;
-	else
 		response->expect_connect_timeout = request->expect_connect_timeout;
+	else
+		response->expect_connect_timeout = myvar->expect_connect_timeout;
 	memcpy(&response->server_factory_version, &myvar->server_factory_version,sizeof(FactoryVersion));
 	response->info.result = allow;
 //	response->info.addinfo  //在发送前从 ESAM取值
@@ -513,11 +513,15 @@ int appConnectResponse(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 		if( ret > 0 )
 		{
 			buf[index++] = response.info.result;
-			bytenum = response.info.addinfo.server_rn[0];
+			buf[index++] =0x01;
+			bytenum = response.info.addinfo.server_rn[0] +1;
 			memcpy(&buf[index],response.info.addinfo.server_rn,bytenum);
 			index = index + bytenum;
-			bytenum = response.info.addinfo.server_signInfo[0];
+			bytenum = response.info.addinfo.server_signInfo[0]+1;
 			memcpy(&buf[index],response.info.addinfo.server_signInfo,bytenum);
+			index = index + bytenum;
+			buf[index++] =0;
+			buf[index++] =0;
 		}else
 		{
 			buf[index++] = 4;
