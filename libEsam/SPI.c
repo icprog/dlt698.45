@@ -21,7 +21,7 @@ int SPI_Close(int fd) {
 static int dumpstat(const char* name, int fd) {
     static uint8_t mode;
     static uint8_t bits   = 8;
-    static uint32_t speed = 16000000;
+    static uint32_t speed = 8000000;
 
     mode |= SPI_MODE_3;
 
