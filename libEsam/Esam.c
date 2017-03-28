@@ -110,7 +110,7 @@ INT32S Esam_WriteThenRead(INT32S fd, INT8U* Tbuf, INT8U Tlen, INT8U* Rbuf){
 	INT16S Result = ERR_ESAM_UNKNOWN;
     INT8U rx[BUFFLENMAX_SPI];
 	//sem_wait(sem_spi0_0);
-	for(index=0;index<6;index++)//只做3次异常处理，每次若出异常，时间会很长，秒级
+	for(index=0;index<10;index++)//只做3次异常处理，每次若出异常，时间会很长，秒级
 	{
 		memset(rx,0x00,BUFFLENMAX_SPI);
 		Esam_WriteToChip(fd,Tbuf,Tlen);//向片中发送数据
@@ -347,7 +347,7 @@ INT32S Esam_GetTermiSingleInfo(INT32S fd, INT8U type, INT8U* Rbuf) {   //&&已�
 //    	fprintf(stderr,"%02x ",GetInfo_ESAM[i]);
 //    fprintf(stderr,"\n");
     Result = Esam_WriteThenRead(fd, (INT8U*)GetInfo_ESAM, 8, tmp);
-    //fprintf(stderr,"Esam_GetTermiSingleInfo result = %d\n",Result);
+    fprintf(stderr,"Esam_GetTermiSingleInfo result = %d\n",Result);
     if(Result>0 && Result<BUFFLENMAX_SPI) //大于BUFFLENMAX_SPI错误，此处做比较
     {
     	memcpy(Rbuf,&tmp[4],Result-5);

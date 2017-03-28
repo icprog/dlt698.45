@@ -369,7 +369,7 @@ void GetconnetRequest(CONNECT_Request *request,INT8U *apdu)
 				index = index + bytenum +1;
 				bytenum = apdu[index];
 				if (bytenum<70)
-					memcpy((INT8U*)&request->info.sigsecur.signature,&apdu[index],bytenum);
+					memcpy((INT8U*)&request->info.sigsecur.signature,&apdu[index],bytenum+1);
 			}
 			break;
 	}
