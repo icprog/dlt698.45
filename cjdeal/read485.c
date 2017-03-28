@@ -525,6 +525,7 @@ INT8S use6013find6015or6017(INT8U cjType,INT16U fanganID, CLASS_6015* st6015)
 				st6015->csds.csd[csdIndex].csd.road.oad.OI = st6017.roads.road[csdIndex].oad.OI;
 				st6015->csds.csd[csdIndex].csd.road.oad.attflg = st6017.roads.road[csdIndex].oad.attflg;
 				st6015->csds.csd[csdIndex].csd.road.oad.attrindex= st6017.roads.road[csdIndex].oad.attrindex;
+
 				//TSA
 				st6015->csds.csd[csdIndex].csd.road.oads[0].OI = 0x202a;
 				st6015->csds.csd[csdIndex].csd.road.oads[0].attflg = 0x02;
@@ -553,8 +554,11 @@ INT8S use6013find6015or6017(INT8U cjType,INT16U fanganID, CLASS_6015* st6015)
 						st6015->csds.csd[csdIndex].csd.road.oads[oadIndex+3].OI = st6017.roads.road[csdIndex].oads[oadIndex].OI;
 						st6015->csds.csd[csdIndex].csd.road.oads[oadIndex+3].attflg = st6017.roads.road[csdIndex].oads[oadIndex].attflg;
 						st6015->csds.csd[csdIndex].csd.road.oads[oadIndex+3].attrindex = st6017.roads.road[csdIndex].oads[oadIndex].attrindex;
+
 					}
 				}
+				//加上一个事件记录
+
 				st6015->csds.csd[csdIndex].csd.road.num = st6017.roads.road[csdIndex].num + 3 - samenum;
 			}
 			fprintf(stderr,"\n\n\n---------------------事件采集方案---------------------------\n");
@@ -1236,7 +1240,7 @@ INT16S request698_07Data(INT8U* DI07,INT8U* dataContent,CLASS_6001 meter,CLASS_6
 		return retLen;
 	}
 	subindex = 0;
-	while(subindex < 3)
+	while(subindex < MAX_RETRY_NUM)
 	{
 		retLen = request698_07DataSingle(&Data07,SendBuff,SendLen,st6035,dataContent,meter,port485);
 
@@ -1386,7 +1390,7 @@ INT16U parseSingleOADData(INT8U isProxyResponse,INT8U* oadData,INT8U* dataConten
  * 数据为空按road格式补0
  * */
 
-INT16U parseSingleROADData(ROAD road,INT8U* oadData,INT8U* dataContent,INT8U* dataIndex)
+INT16U parseSingleROADData(ROAD road,INT8U* oadData,INT8U* dataContent,INT8U* dataIndex,OAD_DATA* oadListContent)
 {
 	fprintf(stderr,"\n --------------------------parseSingle---ROAD----Data-------------------------\n");
 	INT16U length = 0;
@@ -1394,7 +1398,7 @@ INT16U parseSingleROADData(ROAD road,INT8U* oadData,INT8U* dataContent,INT8U* da
 	INT16U startIndex = 0;
 	INT8U prtIndex = 0;
 	INT8U oadbuff[4];
-	OAD_DATA oadListContent[ROAD_OADS_NUM];
+	memset(oadListContent,0,ROAD_OADS_NUM*sizeof(OAD_DATA));
 
 	fprintf(stderr,"\n receive ROAD %02x %02x %02x %02x\n",oadData[length],oadData[length+1],oadData[length+2],oadData[length+3]);
 	OADtoBuff(road.oad,oadbuff);
@@ -1456,6 +1460,7 @@ INT16U parseSingleROADData(ROAD road,INT8U* oadData,INT8U* dataContent,INT8U* da
 	for(csdIndex = 0;csdIndex < road.num;csdIndex++)
 	{
 		INT16U oiDataLen = CalcOIDataLen(road.oads[csdIndex].OI,road.oads[csdIndex].attrindex);
+		fprintf(stderr,"\n OI = %04x len = %d \n",road.oads[csdIndex].OI,oiDataLen);
 		memset(&dataContent[dataLen],0,oiDataLen);
 		memset(oadbuff,0,4);
 		OADtoBuff(road.oads[csdIndex],oadbuff);
@@ -1472,7 +1477,7 @@ INT16U parseSingleROADData(ROAD road,INT8U* oadData,INT8U* dataContent,INT8U* da
 	}
 
 	*dataIndex = dataLen;
-	return dataLen;
+	return length;
 }
 /*
  *解析698抄表返回的报文
@@ -1527,7 +1532,8 @@ INT16S deal698RequestResponse(INT8U isProxyResponse,INT8U getResponseType,INT16U
 		break;
 		case GET_REQUEST_RECORD:
 		{
-			oaddataLen = parseSingleROADData(csds.csd[0].csd.road,&apdudata[apdudataIndex],&dataContent[dataContentIndex],&dataContentLen);
+			OAD_DATA oadListContent[ROAD_OADS_NUM];
+			oaddataLen = parseSingleROADData(csds.csd[0].csd.road,&apdudata[apdudataIndex],&dataContent[dataContentIndex],&dataContentLen,oadListContent);
 			dataContentIndex = dataContentLen;
 			fprintf(stderr,"\n dataContentIndex = %d dataContentLen = %d \n",dataContentIndex,dataContentLen);
 		}
@@ -1571,7 +1577,7 @@ INT16U dealProxy_698(CLASS_6001 obj6001,GETOBJS obj07,INT8U* dataContent,INT8U p
 	}
 
 	INT8U subindex = 0;
-	while(subindex < 3)
+	while(subindex < MAX_RETRY_NUM)
 	{
 		memset(recvbuff, 0, BUFFSIZE);
 		SendDataTo485(port485, sendbuff, sendLen);
@@ -1840,7 +1846,7 @@ INT8S readMeterPowerInfo()
 					}
 
 					INT8U subindex = 0;
-					while(subindex < 3)
+					while(subindex < MAX_RETRY_NUM)
 					{
 						memset(recvbuff, 0, BUFFSIZE);
 						SendDataTo485(port485, sendbuff, sendLen);
@@ -1980,7 +1986,7 @@ INT8S sendSetTimeCMD(CLASS_6001 meter,INT8U port485)
 				return ret;
 			}
 
-			while(subindex < 3)
+			while(subindex < MAX_RETRY_NUM)
 			{
 				SendDataTo485(port485, sendBuf, SendLen);
 				BOOLEAN nextFlag;
@@ -2025,7 +2031,7 @@ INT8S sendSetTimeCMD(CLASS_6001 meter,INT8U port485)
 			setData.data = timeData;
 			sendLen = composeProtocol698_SetRequest(sendBuf,setData,meter.basicinfo.addr);
 			subindex = 0;
-			while(subindex < 3)
+			while(subindex < MAX_RETRY_NUM)
 			{
 				memset(recvBuf, 0, BUFFSIZE);
 				SendDataTo485(port485, sendBuf, sendLen);
@@ -2231,7 +2237,7 @@ INT16S deal6015_698(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8
 	}
 
 	subindex = 0;
-	while(subindex < 3)
+	while(subindex < MAX_RETRY_NUM)
 	{
 		memset(recvbuff, 0, BUFFSIZE);
 		SendDataTo485(port485, sendbuff, sendLen);
@@ -2438,7 +2444,7 @@ INT16S deal6017_698(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8
 		}
 
 		subindex = 0;
-		while(subindex < 3)
+		while(subindex < MAX_RETRY_NUM)
 		{
 			memset(recvbuff, 0, BUFFSIZE);
 			SendDataTo485(port485, sendbuff, sendLen);
@@ -2455,14 +2461,70 @@ INT16S deal6017_698(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8
 				fprintf(stderr,"\n getResponseType = %d  csdNum = %d dataLen = %d \n",getResponseType,csdNum,dataLen);
 				if(getResponseType > 0)
 				{
-					retLen = deal698RequestResponse(0,getResponseType,dataLen,csdNum,&recvbuff[apduDataStartIndex],dataContent,test6015.csds);
+					OAD_DATA oadListContent[ROAD_OADS_NUM];
+					INT8U dataContentLen = 0;
+					parseSingleROADData(test6015.csds.csd[0].csd.road,&recvbuff[apduDataStartIndex],dataContent,&dataContentLen,oadListContent);
+					if(dataContentLen > 0)
+					{
+						dataContent[0] = dttsa;
+						memcpy(&dataContent[1],to6001.basicinfo.addr.addr,sizeof(TSA));//采集通信地址
+						DbPrt1(port485,"deal6017_698 存储事件 buff:", (char *) dataContent, dataContentLen, NULL);
+						int isEventOccur = SaveNorData(st6035->taskID,&test6015.csds.csd[0].csd.road,dataContent,dataContentLen);
+						if(isEventOccur == 1)
+						{
+							INT8U reportEventBuf[100];
+							memset(reportEventBuf,0,100);
+							INT8U eventBufLen = 0;
+							eventBufLen += OADtoBuff(test6015.csds.csd[0].csd.road.oad,&reportEventBuf[eventBufLen]);
+
+							reportEventBuf[eventBufLen++] = 3;
+
+							reportEventBuf[eventBufLen++] = 0;
+							eventBufLen += OADtoBuff(st6015.csds.csd[0].csd.road.oads[0],&reportEventBuf[eventBufLen]);
+							reportEventBuf[eventBufLen++] = 0;
+							eventBufLen += OADtoBuff(st6015.csds.csd[0].csd.road.oads[1],&reportEventBuf[eventBufLen]);
+							reportEventBuf[eventBufLen++] = 0;
+							eventBufLen += OADtoBuff(st6015.csds.csd[0].csd.road.oads[2],&reportEventBuf[eventBufLen]);
+
+							reportEventBuf[eventBufLen++] = 1;
+							reportEventBuf[eventBufLen++] = 1;
+
+							INT8U addrLen = to6001.basicinfo.addr.addr[1]+2;
+							reportEventBuf[eventBufLen++] = dttsa;
+							memcpy(&dataContent[eventBufLen],to6001.basicinfo.addr.addr,addrLen);//采集通信地址
+							INT8U oadIndex;
+							for(oadIndex = 0; oadIndex < ROAD_OADS_NUM;oadIndex ++)
+							{
+								INT8U oadbuf[4];
+								memset(oadbuf,0,4);
+								OADtoBuff(st6015.csds.csd[0].csd.road.oads[1],oadbuf);
+
+								if(memcmp(oadbuf,oadListContent[oadIndex].oad,4) == 0)
+								{
+									memcpy(&dataContent[eventBufLen],oadListContent[oadIndex].data,oadListContent[oadIndex].datalen);
+									eventBufLen += oadListContent[oadIndex].datalen;
+								}
+								memset(oadbuf,0,4);
+								OADtoBuff(st6015.csds.csd[1].csd.road.oads[2],oadbuf);
+
+								if(memcmp(oadbuf,oadListContent[oadIndex].oad,4) == 0)
+								{
+									memcpy(&dataContent[eventBufLen],oadListContent[oadIndex].data,oadListContent[oadIndex].datalen);
+									eventBufLen += oadListContent[oadIndex].datalen;
+								}
+							}
+							DbPrt1(port485,"698 上报事件 buff:", (char *) reportEventBuf, eventBufLen, NULL);
+							//TODO 发送消息
+							mqs_send((INT8S *)PROXY_NET_MQ_NAME,1,METEREVENT_REPORT,reportEventBuf,eventBufLen);
+						}
+					}
+
 					break;
 				}
 
 			}
 			subindex++;
 		}
-
 	}
 #else//下面的是按照getrecordList 做的有待测试
 	sendLen = composeProtocol698_GetRequest(sendbuff, st6015, to6001.basicinfo.addr);
@@ -2555,7 +2617,7 @@ INT16S deal6017_07(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8U
 
 			//根据任务的ROAD格式补0
 			INT8U oadIndex = 0;
-			for(oadIndex = 0;oadIndex < st6015.csds.csd[dataIndex].csd.road.num;oadIndex++)
+			for(oadIndex = 3;oadIndex < st6015.csds.csd[dataIndex].csd.road.num;oadIndex++)
 			{
 				INT16U oiDataLen = CalcOIDataLen(st6015.csds.csd[dataIndex].csd.road.oads[oadIndex].OI,st6015.csds.csd[dataIndex].csd.road.oads[oadIndex].attrindex);
 				DbgPrintToFile1(port485,"oad[%d] = %04x  len = %d---------",oadIndex,st6015.csds.csd[dataIndex].csd.road.oads[oadIndex].OI,oiDataLen);
@@ -2568,7 +2630,7 @@ INT16S deal6017_07(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8U
 				}
 			}
 
-			DbPrt1(port485,"存储事件 buff:", (char *) dataContent, totaldataLen, NULL);
+			DbPrt1(port485,"07 存储事件 buff:", (char *) dataContent, totaldataLen, NULL);
 			int isEventOccur = SaveNorData(st6035->taskID,&st6015.csds.csd[dataIndex].csd.road,dataContent,totaldataLen);
 			if(isEventOccur == 1)
 			{
@@ -2585,8 +2647,14 @@ INT16S deal6017_07(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8U
 				reportEventBuf[eventBufLen++] = 0;
 				eventBufLen += OADtoBuff(st6015.csds.csd[dataIndex].csd.road.oads[2],&reportEventBuf[eventBufLen]);
 
-				memcpy(&reportEventBuf[eventBufLen],dataContent,34);
-				eventBufLen += 34;
+				reportEventBuf[eventBufLen++] = 1;
+				reportEventBuf[eventBufLen++] = 1;
+
+				INT8U addrLen = dataContent[1]+2;
+				memcpy(&reportEventBuf[eventBufLen],dataContent,addrLen);
+				eventBufLen += addrLen;
+				memcpy(&reportEventBuf[eventBufLen],&dataContent[18],34-addrLen);
+				eventBufLen += (34-addrLen);
 				DbPrt1(port485,"上报事件 buff:", (char *) reportEventBuf, eventBufLen, NULL);
 				//TODO 发送消息
 				mqs_send((INT8S *)PROXY_NET_MQ_NAME,1,METEREVENT_REPORT,reportEventBuf,eventBufLen);
