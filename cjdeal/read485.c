@@ -2491,7 +2491,8 @@ INT16S deal6017_698(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8
 
 							INT8U addrLen = to6001.basicinfo.addr.addr[1]+2;
 							reportEventBuf[eventBufLen++] = dttsa;
-							memcpy(&dataContent[eventBufLen],to6001.basicinfo.addr.addr,addrLen);//采集通信地址
+							memcpy(&reportEventBuf[eventBufLen],to6001.basicinfo.addr.addr,addrLen);//采集通信地址
+							eventBufLen  += addrLen;
 							INT8U oadIndex;
 							for(oadIndex = 0; oadIndex < ROAD_OADS_NUM;oadIndex ++)
 							{
@@ -2501,7 +2502,7 @@ INT16S deal6017_698(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8
 
 								if(memcmp(oadbuf,oadListContent[oadIndex].oad,4) == 0)
 								{
-									memcpy(&dataContent[eventBufLen],oadListContent[oadIndex].data,oadListContent[oadIndex].datalen);
+									memcpy(&reportEventBuf[eventBufLen],oadListContent[oadIndex].data,oadListContent[oadIndex].datalen);
 									eventBufLen += oadListContent[oadIndex].datalen;
 								}
 								memset(oadbuf,0,4);
@@ -2509,7 +2510,7 @@ INT16S deal6017_698(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8
 
 								if(memcmp(oadbuf,oadListContent[oadIndex].oad,4) == 0)
 								{
-									memcpy(&dataContent[eventBufLen],oadListContent[oadIndex].data,oadListContent[oadIndex].datalen);
+									memcpy(&reportEventBuf[eventBufLen],oadListContent[oadIndex].data,oadListContent[oadIndex].datalen);
 									eventBufLen += oadListContent[oadIndex].datalen;
 								}
 							}

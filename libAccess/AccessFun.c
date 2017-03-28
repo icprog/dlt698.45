@@ -826,6 +826,10 @@ INT16U CalcOIDataLen(OI_698 oi,INT8U attr_flg)
 		else
 			return 5;
 	}
+	if(oi ==0x202a)
+	{
+		return 18;
+	}
 //	if(oi == 2140 || oi == 2141)//struct 类型要在原长度基础上+3
 //		return (11+3)*(MET_RATE+1)+1+1;
 	fp = fopen("/nor/config/OI_TYPE.cfg","r");
