@@ -345,7 +345,6 @@ typedef struct {
 	TerminalEvent_Object event_obj;         //事件参数结构体
 	FactoryVersion  version;				//终端版本信息
 	INT8U ProxyHappen;
-    NeedReport_Event needreport_event;      //需要上报得事件参数
     AutoTaskStrap	autotask[MAXNUM_AUTOTASK];
     Terminal_Dev_Info dev_info;
 //    INT8U   jzq_login;	//集中器登陆       0 没有登陆    1 GPRS登陆    2 以太网登陆   3 串口登陆；GPRS_COM 1  NET_COM	2  SER_COM	3

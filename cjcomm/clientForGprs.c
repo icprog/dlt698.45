@@ -178,7 +178,6 @@ static int RegularClientForGprs(struct aeEventLoop* ep, long long id, void* clie
             nst->phy_connect_fd = -1;
             SetOnlineType(0);
         }
-        EventAutoReport(nst);
         CalculateTransFlow(nst->shmem);
         //暂时忽略函数返回
         RegularAutoTask(ep, nst);
@@ -217,7 +216,6 @@ static int RegularMixForGprs(struct aeEventLoop* ep, long long id, void* clientD
             SetOnlineType(0);
         }
 
-        EventAutoReport(nst);
         CalculateTransFlow(nst->shmem);
         //暂时忽略函数返回
         RegularAutoTask(ep, nst);

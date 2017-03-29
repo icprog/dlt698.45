@@ -39,6 +39,7 @@ int createFile(const char* path, int length, unsigned char crc, unsigned short b
     FILE* fp = NULL;
     //文件不能太长
     if (length > 5 * 1024 * 1024) {
+        fprintf(stderr, "文件长度[%d]过长.\n", length);
         return 112;
     }
 
@@ -65,6 +66,8 @@ int createFile(const char* path, int length, unsigned char crc, unsigned short b
         fclose(fp);
 
     } else {
+        fprintf(stderr, "创建文件[%s]失败.\n", file_path);
+
         return 105;
     }
 

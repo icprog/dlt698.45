@@ -59,11 +59,14 @@ const static event_guanlian guanlian_oad[]={
 		{0x3203,5,{{0x2022,0x02,0x00},{0x201e,0x02,0x00},{0x2020,0x02,0x00},{0x2024,0x02,0x00},{0x3300,0x02,0x00}}}
 };
 
-INT8U Report_Event(CommBlock *com,Reportevent report_event,INT8U report_type){
+INT8U Report_Event(CommBlock *com,INT8U *oiarr,INT8U report_type){
 
+	if(oiarr == NULL)
+		return 0;
 	int apduplace =0;
 	int index=0, hcsi=0,temindex=0,i=0;
 	pSendfun_report = com->p_send;
+	OI_698 oi=((oiarr[1]<<8)+oiarr[0]);
 	CSINFO csinfo;
 	csinfo.dir = 1;
 	csinfo.prm = 0;
@@ -82,7 +85,7 @@ INT8U Report_Event(CommBlock *com,Reportevent report_event,INT8U report_type){
 	index = index + 2;
 	apduplace = index;		//记录APDU 起始位置
 	OAD oad;
-	oad.OI=report_event.oi;
+	oad.OI=oi;
 	oad.attflg=2;
 	oad.attrindex=0;
 	if(report_type == 1){
@@ -128,7 +131,6 @@ INT8U Report_Event(CommBlock *com,Reportevent report_event,INT8U report_type){
 	int datalen=0;
 	if(Get_Event(oad,1,&data,&datalen,(ProgramInfo*)com->shmem) == 1){
 		if(data!=NULL && datalen>0 && datalen<256){
-			fprintf(stderr,"datalen=%d \n",datalen);
 			tem_buf[temindex++] = 1; //data
 			if(report_type == 1){
 				memcpy(&tem_buf[temindex],data,datalen);

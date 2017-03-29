@@ -6,7 +6,7 @@ SHNAME=update.sh
 SHNAMEPATH=$ROOTDIRSRC/$SHNAME
 DIROBJ=/nand/bin
 LIBOBJ=/nor/lib
-TMPDIR=/nand/update
+TMPDIR=/nand/UpFiles
 ls
 rm -f $APPDIRSRC/app.tar.gz
 tar -cvf app.tar *
@@ -19,7 +19,7 @@ echo "(read l;read l;read l;read l;read l;read l;read l;read l;read l;read l;rea
 echo "cp "$TMPDIR"/app/cj* /nand/bin/" >>$SHNAMEPATH
 echo "cp "$TMPDIR"/app/lib* /nor/lib/" >> $SHNAMEPATH
 echo "cp "$TMPDIR"/app/*.cfg /nor/config/" >> $SHNAMEPATH
-echo "rm -rf "$TMPDIR"/*" >> $SHNAMEPATH
+echo "===" >> $SHNAMEPATH
 echo "chmod +x "$DIROBJ"/*"  >> $SHNAMEPATH
 echo "echo update finished!!!" >> $SHNAMEPATH
 echo "================" >> $SHNAMEPATH

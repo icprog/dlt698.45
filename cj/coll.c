@@ -228,7 +228,10 @@ void Collect6000(int argc, char *argv[])
 			fprintf(stderr,"【3】规约:未知(0),DL/T645-1997(1),DL/T645-2007(2),DL/T698.45(3),CJ/T188-2004(4)\n");
 			fprintf(stderr,"【4】OAD:格式输入 04x-04x，如OAD=f2010201, 输入：f201-0201\n");
 			fprintf(stderr,"【7】接线方式:未知(0),单相(1),三相三线(2),三相四线(3)\n");
-			fprintf(stderr,"例如<配置序号1的内容>：cj coll add 6000 1 06 18 00 03 35 15 52 2 2 f201-0201 4 1 2 220 15 0 2200 1500\n");
+			fprintf(stderr,"\n例如<配置序号1的内容>：\n");
+			fprintf(stderr,"cj coll add 6000 序号 表地址 		波特率 规约 端口OAD 费率格式 用户类型 接线方式 额定电压 额定电流 采集器地址 PT CT\n");
+			fprintf(stderr,"cj coll add 6000 1    06 18 00 03 35 15 52  3     2  f201-0201   4       1        2         220     15      0       2200 1500\n");
+			fprintf(stderr,"cj coll add 6000 1  06 18 00 03 35 15 52  3 2 f201-0201 4 1 2 220 15 0 2200 1500\n");
 		}else {
 			memset(&meter,0,sizeof(CLASS_6001));
 			pi = 4;
@@ -1114,6 +1117,17 @@ void record_prt(int recordnum,int indexn,HEAD_UNIT0 *length,FILE *fp)
 				fprintf(stderr,"\n%04x . %04x  %02d字节     |",length[i].oad_m.OI,length[i].oad_r.OI,length[i].len);
 				for(j=0;j<length[i].len;j++)
 					fprintf(stderr,"%02x ",buf[j]);
+				switch(length[i].oad_r.OI) {
+				case 0x6040:
+					fprintf(stderr," 采集启动时标: %04d-%02d-%02d %02d:%02d:%02d",(buf[1]<<8 | buf[2]),buf[3],buf[4],buf[5],buf[6],buf[7]);
+					break;
+				case 0x6041:
+					fprintf(stderr," 采集成功时标: %04d-%02d-%02d %02d:%02d:%02d",(buf[1]<<8 | buf[2]),buf[3],buf[4],buf[5],buf[6],buf[7]);
+					break;
+				case 0x6042:
+					fprintf(stderr," 采集存储时标: %04d-%02d-%02d %02d:%02d:%02d",(buf[1]<<8 | buf[2]),buf[3],buf[4],buf[5],buf[6],buf[7]);
+					break;
+				}
 			}
 		}
 		if(nonullflag) {

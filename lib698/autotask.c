@@ -187,6 +187,60 @@ int getTsas(MY_MS ms,INT8U **tsas)
 }
 
 
+
+int GetReportData(CLASS_601D report)
+{
+	int  ret = 0;
+	if (report.reportdata.type==0)//OAD
+	{
+
+	}else if(report.reportdata.type==1)//RecordData
+	{
+		ret = getSelector(report.reportdata.data.oad,
+							report.reportdata.data.recorddata.rsd,
+							report.reportdata.data.recorddata.selectType,
+							report.reportdata.data.recorddata.csds,NULL, NULL);
+		fprintf(stderr,"GetReportData   ret=%d\n",ret);
+	}
+	return ret;
+}
+
+INT16U  composeAutoTask(AutoTaskStrap *list)
+{
+	int i=0, ret=0;
+	time_t timenow = time(NULL);
+	CLASS_6013 class6013={};
+	CLASS_601D class601d={};
+
+	if(timenow >= list->nexttime)
+	{
+		if (readCoverClass(0x6013, list->ID, &class6013, sizeof(CLASS_6013),coll_para_save) == 1)
+		{
+			fprintf(stderr,"\ni=%d 任务【 %d 】 	 开始执行   上报方案编号【 %d 】",i,list->ID,list->SerNo);
+			if (readCoverClass(0x601D, list->SerNo, &class601d, sizeof(CLASS_601D),coll_para_save) == 1)
+			{
+				asyslog(LOG_INFO,"reportnum=%d",class601d.reportnum);
+				print_rcsd(class601d.reportdata.data.recorddata.csds);
+				list->ReportNum = class601d.maxreportnum;
+				list->OverTime = getTItoSec(class601d.timeout);
+				asyslog(LOG_INFO,"i=%d 任务【 %d 】 	 开始执行   上报方案编号【 %d 】 重发次数=%d, 超时时间=%d",i,list->ID,list->SerNo,list->ReportNum,list->OverTime);
+				fprintf(stderr,"list->SerNo = %d\n",list->SerNo);
+				if (GetReportData(class601d) == 1)//数据组织好了
+				{
+					ret = 2;
+					fprintf(stderr,"GetReportData=%d\n",ret);
+
+				}
+			}
+			list->nexttime = calcnexttime(class6013.interval,class6013.startime);
+		}else
+		{
+//				fprintf(stderr,"\n任务参数丢失！");
+		}
+	}
+	return ret;
+}
+
 /*
  * 通讯进程循环调用 callAutoReport
  *
@@ -252,54 +306,36 @@ int callAutoReport(CommBlock* com, INT8U ifecho)
 	return 1;
 }
 
-int GetReportData(CLASS_601D report)
+/*
+ * 电表事件调用接口
+ *  返回 : piid   =-1，错误
+ */
+int callEventAutoReport(CommBlock* com,INT8U *eventbuf,int datalen)
 {
-	int  ret = 0;
-	if (report.reportdata.type==0)//OAD
-	{
+	if ((com==NULL) || (datalen==0))
+		return -1;
+	INT8U *sendbuf = com->SendBuf;
+	int		piid=0;
+	int 	index=0,hcsi=0,apduplace=0;
+	CSINFO csinfo={};
 
-	}else if(report.reportdata.type==1)//RecordData
-	{
-		ret = getSelector(report.reportdata.data.oad,
-							report.reportdata.data.recorddata.rsd,
-							report.reportdata.data.recorddata.selectType,
-							report.reportdata.data.recorddata.csds,NULL, NULL);
-		fprintf(stderr,"GetReportData   ret=%d\n",ret);
-	}
-	return ret;
-}
-INT16U  composeAutoTask(AutoTaskStrap *list)
-{
-	int i=0, ret=0;
-	time_t timenow = time(NULL);
-	CLASS_6013 class6013={};
-	CLASS_601D class601d={};
-
-	if(timenow >= list->nexttime)
-	{
-		if (readCoverClass(0x6013, list->ID, &class6013, sizeof(CLASS_6013),coll_para_save) == 1)
-		{
-			fprintf(stderr,"\ni=%d 任务【 %d 】 	 开始执行   上报方案编号【 %d 】",i,list->ID,list->SerNo);
-			if (readCoverClass(0x601D, list->SerNo, &class601d, sizeof(CLASS_601D),coll_para_save) == 1)
-			{
-				asyslog(LOG_INFO,"reportnum=%d",class601d.reportnum);
-				print_rcsd(class601d.reportdata.data.recorddata.csds);
-				list->ReportNum = class601d.maxreportnum;
-				list->OverTime = getTItoSec(class601d.timeout);
-				asyslog(LOG_INFO,"i=%d 任务【 %d 】 	 开始执行   上报方案编号【 %d 】 重发次数=%d, 超时时间=%d",i,list->ID,list->SerNo,list->ReportNum,list->OverTime);
-				fprintf(stderr,"list->SerNo = %d\n",list->SerNo);
-				if (GetReportData(class601d) == 1)//数据组织好了
-				{
-					ret = 2;
-					fprintf(stderr,"GetReportData=%d\n",ret);
-
-				}
-			}
-			list->nexttime = calcnexttime(class6013.interval,class6013.startime);
-		}else
-		{
-//				fprintf(stderr,"\n任务参数丢失！");
-		}
-	}
-	return ret;
+	index = 0;
+	if (fillcsinfo(&csinfo,com->serveraddr,com->taskaddr)==0)
+		return 0;
+	index = FrameHead(&csinfo,sendbuf);
+	hcsi = index;
+	index = index + 2;
+	apduplace = index;		//记录APDU 起始位置
+	sendbuf[index++] = REPORT_NOTIFICATION;
+	sendbuf[index++] = REPROTNOTIFICATIONRECORDLIST;
+	sendbuf[index++] = piid;	//PIID
+	sendbuf[index++] = 1;	//sequence of A-RecordRow ,事件上送默认每次只上送一个事件记录
+	memcpy(&sendbuf[index],eventbuf,datalen);//将读出的数据拷贝
+	index +=datalen;
+	sendbuf[index++] = 0;
+	sendbuf[index++] = 0;
+	FrameTail(sendbuf,index,hcsi);
+	if(com->p_send!=NULL)
+		com->p_send(com->phy_connect_fd,sendbuf,index+3);  //+3:crc1,crc2,0x16
+	return piid;
 }

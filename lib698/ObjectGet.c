@@ -42,12 +42,16 @@ static NEXT_INFO	next_info={};
 int BuildFrame_GetResponseNext(INT8U response_type,CSINFO *csinfo,INT8U DAR,INT16U datalen,INT8U *databuf,INT8U *sendbuf)
 {
 	int index=0, hcsi=0;
+	int apduplace =0;
+//	int i=0;
+
 	csinfo->dir = 1;
 	csinfo->prm = 0;
 
 	index = FrameHead(csinfo,sendbuf);
 	hcsi = index;
 	index = index + 2;
+	apduplace = index;		//记录APDU 起始位置
 	sendbuf[index++] = GET_RESPONSE;
 	sendbuf[index++] = response_type;
 	sendbuf[index++] = piid_g.data;		//	piid
@@ -55,7 +59,8 @@ int BuildFrame_GetResponseNext(INT8U response_type,CSINFO *csinfo,INT8U DAR,INT1
 	if(next_info.frameNo==next_info.subframeSum) {
 		sendbuf[index++] = TRUE;		//末帧标志
 	}else sendbuf[index++] = FALSE;
-	sendbuf[index++] = next_info.frameNo;		//分帧序号
+	sendbuf[index++] = next_info.frameNo & 0xff;		//分帧序号
+	sendbuf[index++] = (next_info.frameNo >> 8) & 0xff;
 	if (datalen > 0)
 	{
 		if(next_info.repsonseType==GET_REQUEST_NORMAL || next_info.repsonseType==GET_REQUEST_NORMAL_LIST) {
@@ -70,8 +75,14 @@ int BuildFrame_GetResponseNext(INT8U response_type,CSINFO *csinfo,INT8U DAR,INT1
 		sendbuf[index++] = 0;//choice 0  ,DAR 有效 (数据访问可能的结果)
 		sendbuf[index++] = DAR;
 	}
-	sendbuf[index++] = 0;
-	sendbuf[index++] = 0;
+	sendbuf[index++] = 0;	//跟随上报信息域 	FollowReport
+	sendbuf[index++] = 0;	//时间标签		TimeTag
+	if(securetype!=0)//安全等级类型不为0，代表是通过安全传输下发报文，上行报文需要以不低于请求的安全级别回复
+	{
+		apduplace += composeSecurityResponse(&sendbuf[apduplace],index-apduplace);
+		index=apduplace;
+	}
+
 	FrameTail(sendbuf,index,hcsi);
 	if(pSendfun!=NULL)
 		pSendfun(comfd,sendbuf,index+3);
@@ -140,7 +151,7 @@ int BuildFrame_GetResponse(INT8U response_type,CSINFO *csinfo,INT8U oadnum,RESUL
 
 /*
  * 分帧处理判断
- * 文件前两个字节：一帧数据总长度
+ * 文件前两个字节：一帧数据总长度,先低后高
  * 第三个字节：	sequence of ResultNormal = m（m=0,GET_REQUEST_NORMAL，表示A-ResultNormal）
  * 第4个字节开始：m个 ResultNormal
  * */
@@ -150,27 +161,32 @@ int Build_subFrame(INT16U framelen,INT8U seqOfNum,RESULT_NORMAL *response)
 	FILE	*fp=NULL;
 	INT8U	oneFrameBuf[MAX_APDU_SIZE]={};
 
-	if(framelen < MAX_APDU_SIZE) 	return 0;//不需要分帧
+	if(framelen < FRAME_SIZE) 	return 0;//不需要分帧
 
-	fp = openFramefile(PARA_FRAME_DATA);
+	fp = fopen(PARA_FRAME_DATA,"a+");
 	if(fp==NULL) 	return -1;
 
-	if(seqOfNum==0)  next_info.repsonseType = GET_REQUEST_NORMAL;
-	else next_info.repsonseType = GET_REQUEST_NORMAL_LIST;
-	next_info.subframeSum++;		//每次下发getrequest清除
-
-	fprintf(stderr,"next_info:repsonseType=%d,subframeSum=%d,seqOfNum=%d\n",next_info.repsonseType,next_info.subframeSum,next_info.seqOfNum);
+	fprintf(stderr,"\nnext_info:repsonseType=%d,subframeSum=%d,seqOfNum=%d\n",next_info.repsonseType,next_info.subframeSum,next_info.seqOfNum);
 	memset(&oneFrameBuf,0,sizeof(oneFrameBuf));
 	index = 2;
-	oneFrameBuf[index++] = seqOfNum-next_info.seqOfNum;
-	memcpy(&oneFrameBuf[index],&response->oad,sizeof(OAD));
-	index += sizeof(OAD);
-	oneFrameBuf[index++] = response->dar;
+	next_info.subframeSum++;		//每次下发getrequest清除
+	if(seqOfNum==0) {
+		next_info.repsonseType = GET_REQUEST_NORMAL;
+		oneFrameBuf[index++] = 1;
+	}
+	else {
+		next_info.repsonseType = GET_REQUEST_NORMAL_LIST;
+		oneFrameBuf[index++] = seqOfNum-next_info.seqOfNum;
+	}
+	index += create_OAD(0,&oneFrameBuf[index],response->oad);
+    oneFrameBuf[index++] = 01;		//response->dar; Data
 	memcpy(&oneFrameBuf[index],response->data,response->datalen);
 	index += response->datalen;
-	oneFrameBuf[0] = (index >>8) & 0xff;
-	oneFrameBuf[1] = index & 0xff;
+	oneFrameBuf[0] = index & 0xff;
+	oneFrameBuf[1] = (index >>8) & 0xff;
+	fprintf(stderr,"write one Frame(len=%d),response->datalen=%d\n",index,response->datalen);
 	saveOneFrame(oneFrameBuf,index,fp);
+	next_info.seqOfNum = seqOfNum;
 	if(fp != NULL)
 		fclose(fp);
 	return index;
@@ -185,15 +201,11 @@ int Get_subFrameData(INT8U frameoffset,CSINFO *csinfo,INT8U *sendbuf)
 	INT8U	DAR=success;
 
 	next_info.nextSite = readFrameDataFile(PARA_FRAME_DATA,frameoffset,TmpDataBuf,&datalen);
+	fprintf(stderr,"Get_subFrameData  frameoffset=%d  datalen=%d\n",frameoffset,datalen);
+	fprintf(stderr,"\nnext_info:repsonseType=%d,subframeSum=%d,seqOfNum=%d,currSite=%d,nextSite=%d,frameNo=%d\n",
+			next_info.repsonseType,next_info.subframeSum,next_info.seqOfNum,next_info.currSite,next_info.nextSite,next_info.frameNo);
 	if(datalen==0)  DAR = framesegment_cancel;
-	if(next_info.repsonseType==GET_REQUEST_NORMAL) {
-		if(datalen>=1) {
-			datalen = datalen-1;
-		}
-		BuildFrame_GetResponseNext(GET_REQUEST_RECORD_NEXT,csinfo,DAR,datalen,&TmpDataBuf[1],sendbuf);
-	}else if(next_info.repsonseType==GET_REQUEST_NORMAL_LIST) {
-		BuildFrame_GetResponseNext(GET_REQUEST_RECORD_NEXT,csinfo,DAR,datalen,TmpDataBuf,sendbuf);
-	}
+	BuildFrame_GetResponseNext(GET_REQUEST_RECORD_NEXT,csinfo,DAR,datalen,TmpDataBuf,sendbuf);
 	return 1;
 }
 
@@ -210,7 +222,7 @@ int GetMeterInfo(INT8U seqOfNum,RESULT_NORMAL *response)
 	oad = response->oad;
 	data = response->data;
 
-	oneUnitLen = Get_6001(1,0,&data[index]);
+	oneUnitLen = Get_6001(1,0,&data[0]);
 	fprintf(stderr,"6001——oneUnitLen=%d\n",oneUnitLen);
 	memset(&meter,0,sizeof(CLASS_6001));
 	blknum = getFileRecordNum(oad.OI);
@@ -220,6 +232,7 @@ int GetMeterInfo(INT8U seqOfNum,RESULT_NORMAL *response)
 	for(i=0;i<blknum;i++)
 	{
 		create_array(&data[0],meternum);		//每次循环填充配置单元array个数，为了组帧分帧
+		response->datalen = index;
 		if(Build_subFrame((index+oneUnitLen),seqOfNum,response)==0) {
 			retlen = Get_6001(0,i,&data[index]);
 			if(retlen!=0) {
@@ -1215,8 +1228,13 @@ int getRequestNormal(OAD oad,INT8U *data,CSINFO *csinfo,INT8U *sendbuf)
 {
 	RESULT_NORMAL response={};
 	INT8U 	oadtmp[4]={};
+	FILE	*fp=NULL;
 
+	//初始化分帧文件及结构
 	memset(&next_info,0,sizeof(next_info));
+	fp = fopen(PARA_FRAME_DATA,"w");
+	if(fp!=NULL)  fclose(fp);
+
 	oadtmp[0] = (oad.OI>>8) & 0xff;
 	oadtmp[1] = oad.OI & 0xff;
 	oadtmp[2] = oad.attflg;
@@ -1242,6 +1260,7 @@ int getRequestNormal(OAD oad,INT8U *data,CSINFO *csinfo,INT8U *sendbuf)
 		response.data = TmpDataBuf;
 		BuildFrame_GetResponse(GET_REQUEST_NORMAL,csinfo,0,response,sendbuf);
 	}else {		//分帧
+		next_info.frameNo = 1;
 		Get_subFrameData(0,csinfo,sendbuf);
 	}
 	return 1;
@@ -1253,8 +1272,14 @@ int getRequestNormalList(INT8U *data,CSINFO *csinfo,INT8U *sendbuf)
 	INT8U oadtmp[4]={};
 	INT8U oadnum = data[0];
 	int i=0,listindex=0;
+	FILE	*fp=NULL;
+
 	fprintf(stderr,"\nGetNormalList!! OAD_NUM=%d",oadnum);
+
 	memset(&next_info,0,sizeof(next_info));
+	fp = fopen(PARA_FRAME_DATA,"w");
+	if(fp!=NULL)  fclose(fp);
+
 	memset(TmpDataBufList,0,sizeof(TmpDataBufList));
 	for(i=0;i<oadnum;i++)
 	{

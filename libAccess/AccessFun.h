@@ -31,7 +31,7 @@
 #define	 CALCDIR				"/nand/calc"				//统计类数据存储
 #define	 INITDIR				"/nor/init"					//初始化参数文件
 #define	 TASKDATA				"/nand/task"				//任务采集存储文件
-#define	 EVEDATA				"/nand/event"				//任务采集存储文件
+#define	 EVEDATA				"/nand/allevent"				//任务采集存储文件
 #define  PROTOCOL_TRANS_PATH    "/nor/ProTransCfg/protocol.cfg" //湖南规约切换通信参数文件
 
 typedef struct
