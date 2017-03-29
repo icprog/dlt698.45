@@ -322,6 +322,17 @@ typedef struct{
 	INT32S f_Qsz_energy[MAXVAL_RATENUM];//实时反向无功总电能  44  48
 }ENERGY_PROPERTY_SET;
 
+typedef struct{
+	INT8U   Cur_Ercno;				//当前事件序号
+	INT8U   jzq_login;				//集中器登陆       0 没有登陆    1 GPRS登陆    2 以太网登陆   3 串口登陆；
+	INT8U   gprs_status;			//1AT检测成功，2获取GPRS模块信息，3检测SIM卡，4注册网络成功
+	INT8U	Gprs_csq;				//信号强度
+	INT8U   wirelessType; 			//1:GPRS  2:CDMA2000  2:TD_LTE  3:FDD_LTE
+	INT8U   pppd_status;			//拨号成功
+	INT8U   connect_ok;				//连接主站是否成功
+	INT8U  	PLC_status;				//0、空闲 1、载波初始化 2、载波正在抄表中 	3、正在同步档案 4、正在搜表中
+}Terminal_Dev_Info;
+
 typedef struct {
 	ACCoe_SAVE Accoepara;
 	INT32U 			ac_chip_type; 		//==0x820900:	RN8029芯片，III型集中器	//==1： ATT7022D-E芯片 	//==0x7022E0:	ATT7022E-D芯片
@@ -336,6 +347,7 @@ typedef struct {
 	INT8U ProxyHappen;
     NeedReport_Event needreport_event;      //需要上报得事件参数
     AutoTaskStrap	autotask[MAXNUM_AUTOTASK];
+    Terminal_Dev_Info dev_info;
 //    INT8U   jzq_login;	//集中器登陆       0 没有登陆    1 GPRS登陆    2 以太网登陆   3 串口登陆；GPRS_COM 1  NET_COM	2  SER_COM	3
 }ProgramInfo; //程序信息结构
 

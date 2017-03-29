@@ -442,7 +442,7 @@ int main(int argc, char* argv[]) {
     if (argc >= 2 && strncmp("all", argv[1], 3) == 0) {
         ProgsNum = ReadSystemInfo();
     }
-
+    get_protocol_3761_tx_para();//湖南获取3761切换通信参数，在初始化其他操作之后进行
     while (1) {
         sleep(1);
 

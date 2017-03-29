@@ -33,6 +33,7 @@ void SetOnlineType(int type) {
 
 void CalculateTransFlow(ProgramInfo* prginfo_event) {
     static Flow_tj c2200;
+    return;
     //统计临时变量
     static long long rtx_bytes = 0;
     static long long rx_bytes  = 0;
@@ -59,6 +60,7 @@ void CalculateTransFlow(ProgramInfo* prginfo_event) {
     FILE* tfd = fopen("/sys/class/net/eth0/statistics/tx_bytes", "r");
     if (rfd == NULL || tfd == NULL) {
         asyslog(LOG_INFO, "未检测到端口(PPP0)打开");
+        return;
         fclose(rfd);
         fclose(tfd);
         return;
