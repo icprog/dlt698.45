@@ -73,9 +73,11 @@ extern INT8U secureRN[20];
 INT32S secureConnectRequest(SignatureSecurity* securityInfo ,SecurityData* RetInfo)
 {
 	 INT32S fd=-1;
-	 fd = Esam_Init(fd,(INT8U*)ACS_SPI_DEV);
+	 if(securityInfo->encrypted_code2[0] == 0x00 || securityInfo->signature[0]==0x00)
+		  return -1;
+	 fd = Esam_Init(fd);
      if(fd<0) return -1;
-     fprintf(stderr,"secureConnectRequest  securityInfo= %d   =%d  \n",securityInfo->encrypted_code2[0],securityInfo->signature[0]);
+    // fprintf(stderr,"secureConnectRequest  securityInfo= %d   =%d  \n",securityInfo->encrypted_code2[0],securityInfo->signature[0]);
      INT32S ret= Esam_CreateConnect( fd,  securityInfo , RetInfo);
      Esam_Clear(fd);
      return ret;
@@ -88,7 +90,7 @@ INT32S secureResponseData(INT8U* RN,INT8U* apdu)
 	 INT32S fd=-1;
 	 INT32S ret=0;
 	 INT16S MACindex=0;//MAC所在位置可能因为应用数据单元长度不定而变化
-	 fd = Esam_Init(fd,(INT8U*)ACS_SPI_DEV);
+	 fd = Esam_Init(fd);
     if(fd<0) return -3;
     INT16S len = GetDataLength(&apdu[2]);
 
@@ -230,11 +232,11 @@ INT32S UnitParse(INT8U* source,INT8U* dest,INT8U type)
  }
  //获取ESAM主站/终端证书   证书都是大于1000字节，此处按照大于1000,2个字节组织上送报文
  	//ccieFlag证书标识  0x0C主站证书   0x0A终端证书
- 	INT16U getEsamCcie(INT8U ccieFlag,INT8U *retBuff)//&&已测
+ 	INT32S getEsamCcie(INT8U ccieFlag,INT8U *retBuff)//&&已测
  	{
  		INT32S retLen=0;
  		INT32S fd=-1;
- 		fd = Esam_Init(fd,(INT8U*)ACS_SPI_DEV);
+ 		fd = Esam_Init(fd);
  		//fprintf(stderr,"function getesamccie fd = %d\n",fd);
  		if(fd<0) return 0;
  		INT8U buff[2048];
@@ -253,6 +255,7 @@ INT32S UnitParse(INT8U* source,INT8U* dest,INT8U type)
  			memcpy(&retBuff[4],buff,retLen);
  			retLen+=4;
  		}
+ 		Esam_Clear(fd);
  		return retLen;
  	}
 
@@ -340,6 +343,7 @@ INT16U getEsamAttribute(OAD oad,INT8U *retBuff)
 	if(attnum == 0x0C || attnum==0x0A)//主站/终端证书属性
 	{
 		retLen = getEsamCcie(attnum,retBuff);
+		//fprintf(stderr,"getEsamAttribute relen = %d\n",retLen);
 		return retLen<=0 ? 0:retLen;
 	}
 	struct timeval tv_new;//静态存储时间
@@ -349,7 +353,7 @@ INT16U getEsamAttribute(OAD oad,INT8U *retBuff)
 	{
 		fprintf(stderr,"get esam attribute 11111\n");
 		INT32S fd=-1;
-		fd = Esam_Init(fd,(INT8U*)ACS_SPI_DEV);
+		fd = Esam_Init(fd);
 		 if(fd<0) return 0;
 		if(fd>0)
 		{
@@ -435,7 +439,7 @@ INT32S esamMethodKeyUpdate(INT8U *Data2)
 		secureLen = GetDataLength(&Data2[3]);//包含头部的长度字节数量
 		if(secureLen <= 0)			return -1;
 		INT32S fd=-1;
-		fd = Esam_Init(fd,(INT8U*)ACS_SPI_DEV);
+		fd = Esam_Init(fd);
 		if(fd>0)
 		{
 			tmplen = UnitParse(&Data2[2+secureLen+1],(INT8U *)&sidmac,0x01);//填充sidmac中sid部分
@@ -472,7 +476,7 @@ INT32S esamMethodCcieSession(INT8U *Data2)
 		 secureLen = GetDataLength(&Data2[3]);//包含头部的长度字节数量
 		if(secureLen <= 0)			return -1;
 		INT32S fd=-1;
-		fd = Esam_Init(fd,(INT8U*)ACS_SPI_DEV);
+		fd = Esam_Init(fd);
 		if(fd>0)
 		{
 			tmplen = UnitParse(&Data2[2+secureLen+1],(INT8U *)&sid,0x01);//填充sidmac中sid部分

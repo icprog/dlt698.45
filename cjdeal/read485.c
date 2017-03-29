@@ -519,13 +519,45 @@ INT8S use6013find6015or6017(INT8U cjType,INT16U fanganID, CLASS_6015* st6015)
 			memcpy(&st6015->mst,&st6017.ms,sizeof(MY_MS));
 			INT8U csdIndex = 0;
 
-			for(csdIndex = 0;csdIndex < st6015->csds.num;csdIndex++)
+			for(csdIndex = 0;csdIndex < st6017.roads.num;csdIndex++)
 			{
 				st6015->csds.csd[csdIndex].type = 1;
-				memcpy(&st6015->csds.csd[csdIndex].csd.road,&st6017.roads.road[csdIndex],sizeof(ROAD));
-				fprintf(stderr,"\n copy 6017 %d",csdIndex);
+				st6015->csds.csd[csdIndex].csd.road.oad.OI = st6017.roads.road[csdIndex].oad.OI;
+				st6015->csds.csd[csdIndex].csd.road.oad.attflg = st6017.roads.road[csdIndex].oad.attflg;
+				st6015->csds.csd[csdIndex].csd.road.oad.attrindex= st6017.roads.road[csdIndex].oad.attrindex;
+				//TSA
+				st6015->csds.csd[csdIndex].csd.road.oads[0].OI = 0x202a;
+				st6015->csds.csd[csdIndex].csd.road.oads[0].attflg = 0x02;
+				st6015->csds.csd[csdIndex].csd.road.oads[0].attrindex = 0x00;
+				//事件发生时间
+				st6015->csds.csd[csdIndex].csd.road.oads[1].OI = 0x201e;
+				st6015->csds.csd[csdIndex].csd.road.oads[1].attflg = 0x02;
+				st6015->csds.csd[csdIndex].csd.road.oads[1].attrindex = 0x00;
+				//事件结束时间
+				st6015->csds.csd[csdIndex].csd.road.oads[2].OI = 0x2020;
+				st6015->csds.csd[csdIndex].csd.road.oads[2].attflg = 0x02;
+				st6015->csds.csd[csdIndex].csd.road.oads[2].attrindex = 0x00;
+				INT8U oadIndex = 0;
+				INT8U samenum = 0;
+				for(oadIndex = 0;oadIndex < st6017.roads.road[csdIndex].num;oadIndex++)
+				{
+					if((st6017.roads.road[csdIndex].oads[oadIndex].OI == 0x201e)
+						||(st6017.roads.road[csdIndex].oads[oadIndex].OI == 0x2020)
+						||(st6017.roads.road[csdIndex].oads[oadIndex].OI == 0x202A))
+					{
+						samenum++;
+						continue;
+					}
+					else
+					{
+						st6015->csds.csd[csdIndex].csd.road.oads[oadIndex+3].OI = st6017.roads.road[csdIndex].oads[oadIndex].OI;
+						st6015->csds.csd[csdIndex].csd.road.oads[oadIndex+3].attflg = st6017.roads.road[csdIndex].oads[oadIndex].attflg;
+						st6015->csds.csd[csdIndex].csd.road.oads[oadIndex+3].attrindex = st6017.roads.road[csdIndex].oads[oadIndex].attrindex;
+					}
+				}
+				st6015->csds.csd[csdIndex].csd.road.num = st6017.roads.road[csdIndex].num + 3 - samenum;
 			}
-
+			fprintf(stderr,"\n\n\n---------------------事件采集方案---------------------------\n");
 			print6015(*st6015);
 
 			return 1;
@@ -1730,7 +1762,7 @@ INT8S dealProxy(PROXY_GETLIST* getlist,INT8U port485)
 			}
 		}
 #endif
-		mqs_send((INT8S *)PROXY_NET_MQ_NAME,1,ProxySetResponseList,(INT8U *)getlist,sizeof(PROXY_GETLIST));
+		mqs_send((INT8S *)PROXY_NET_MQ_NAME,1,TERMINALPROXY_RESPONSE,(INT8U *)getlist,sizeof(PROXY_GETLIST));
 		fprintf(stderr,"\n代理消息已经发出\n\n");
 
 	}
@@ -2072,16 +2104,16 @@ INT8S dealBroadCastSingleMeter(INT8U port485,CLASS_6001 meter)
 
 	int time_offset=difftime(timeNow,tmtotime_t(meterTime));
 	fprintf(stderr,"电表[%d]时间差:%d",meter.sernum,time_offset);
+	INT8U eventbuf[8] = {0};
 	if(time_offset > broadcase4204.upleve)
 	{
-		INT8U eventbuf[8] = {0};
+
 		memcpy(eventbuf,&dataContent[1],7);
 		eventbuf[7] = (INT8U)time_offset;
 		fprintf(stderr,"对时事件 Event_311B");
-		Event_311B(meter.basicinfo.addr,eventbuf,8,JProgramInfo);
-
 		sendSetTimeCMD(meter,port485);
 	}
+	Event_311B(meter.basicinfo.addr,eventbuf,8,JProgramInfo);
 	return ret;
 }
 /*
@@ -2398,17 +2430,6 @@ INT16S deal6017_698(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8
 		test6015.csds.csd[0].type = 1;
 		memcpy(&test6015.csds.csd[0].csd.road,&st6015.csds.csd[csdIndex].csd.road,sizeof(ROAD));
 
-		test6015.csds.csd[0].csd.road.oads[0].OI = 0x2022;
-		test6015.csds.csd[0].csd.road.oads[0].attflg = 0x02;
-		test6015.csds.csd[0].csd.road.oads[0].attrindex = 0x00;
-
-		test6015.csds.csd[0].csd.road.oads[1].OI = 0x201e;
-		test6015.csds.csd[0].csd.road.oads[1].attflg = 0x02;
-		test6015.csds.csd[0].csd.road.oads[1].attrindex = 0x00;
-
-		test6015.csds.csd[0].csd.road.oads[2].OI = 0x2020;
-		test6015.csds.csd[0].csd.road.oads[2].attflg = 0x02;
-		test6015.csds.csd[0].csd.road.oads[2].attrindex = 0x00;
 		sendLen = composeProtocol698_GetRequest(sendbuff, test6015, to6001.basicinfo.addr);
 		if(sendLen < 0)
 		{
@@ -2516,7 +2537,7 @@ INT16S deal6017_07(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8U
 			eventRoad.OI = st6015.csds.csd[dataIndex].csd.road.oad.OI;
 			eventRoad.attflg = st6015.csds.csd[dataIndex].csd.road.oad.attflg;
 			eventRoad.attrindex = st6015.csds.csd[dataIndex].csd.road.oad.attrindex;
-
+			DbgPrintToFile1(port485,"请求07表的事件 = %04x%02x%02x",eventRoad.OI,eventRoad.attflg,eventRoad.attrindex);
 			C601F_07Flag obj601F_07Flag;
 			memset(&obj601F_07Flag,0,sizeof(C601F_07Flag));
 			if(OADMap07DI(eventOI,eventRoad, &obj601F_07Flag) == 1)
@@ -2546,8 +2567,31 @@ INT16S deal6017_07(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8U
 					return totaldataLen;
 				}
 			}
+
 			DbPrt1(port485,"存储事件 buff:", (char *) dataContent, totaldataLen, NULL);
-			SaveNorData(st6035->taskID,&st6015.csds.csd[dataIndex].csd.road,dataContent,totaldataLen);
+			int isEventOccur = SaveNorData(st6035->taskID,&st6015.csds.csd[dataIndex].csd.road,dataContent,totaldataLen);
+			if(isEventOccur == 1)
+			{
+				INT8U reportEventBuf[100];
+				INT8U eventBufLen = 0;
+				//组织事件上报内容,07表暂时只上报TAS 事件发生时间,时间结束时间
+				eventBufLen += OADtoBuff(eventRoad,&reportEventBuf[eventBufLen]);
+				reportEventBuf[eventBufLen++] = 3;
+
+				reportEventBuf[eventBufLen++] = 0;
+				eventBufLen += OADtoBuff(st6015.csds.csd[dataIndex].csd.road.oads[0],&reportEventBuf[eventBufLen]);
+				reportEventBuf[eventBufLen++] = 0;
+				eventBufLen += OADtoBuff(st6015.csds.csd[dataIndex].csd.road.oads[1],&reportEventBuf[eventBufLen]);
+				reportEventBuf[eventBufLen++] = 0;
+				eventBufLen += OADtoBuff(st6015.csds.csd[dataIndex].csd.road.oads[2],&reportEventBuf[eventBufLen]);
+
+				memcpy(&reportEventBuf[eventBufLen],dataContent,34);
+				eventBufLen += 34;
+				DbPrt1(port485,"上报事件 buff:", (char *) reportEventBuf, eventBufLen, NULL);
+				//TODO 发送消息
+				mqs_send((INT8S *)PROXY_NET_MQ_NAME,1,METEREVENT_REPORT,reportEventBuf,eventBufLen);
+			}
+
 		}
 
 	}

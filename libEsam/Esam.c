@@ -15,6 +15,7 @@
 #include "Esam.h"
 #include "SPI.h"
 
+ProgramInfo *memp;
 sem_t* sem_spi0_0;
 /*
  * 传入长度的判断，根据A-XDR编码规则
@@ -72,22 +73,32 @@ INT16S AxorB(INT8U* abuf, INT8U* bbuf, INT8U* Rbuf, INT8U len) {
     return 1;
 }
 
-INT32S Esam_Init(INT32S fd, INT8U* spipath) {
+INT32S Esam_Init(INT32S fd) {
+    gpio_writebyte(DEV_ESAM_PWR, 1);
+    usleep(200000);
+
     gpio_writebyte(DEV_ESAM_PWR, 0);
     usleep(50000);
-    gpio_writebyte(DEV_ATT_RST, 1);
-    usleep(2);
-    gpio_writebyte(DEV_ESAM_CS, 1);
-    //sem_spi0_0 = open_named_sem(SEMNAME_SPI0_0);
-    return SPI_Init(fd, spipath);
+//    gpio_writebyte(DEV_ATT_RST, 1);
+//    usleep(2);
+//    gpio_writebyte(DEV_ESAM_CS, 1);
+//    fprintf(stderr,"memp->ac_chip_type=%04x\n",memp->ac_chip_type);
+//    if(memp->ac_chip_type == 0x820900) {
+    	syslog(LOG_NOTICE,"ESAM_init dev=%s\n",ESAM_SPI_DEV_II);
+        return SPI_Init(fd,(INT8U *)ESAM_SPI_DEV_II);
+//    }else {
+//        sem_spi0_0 = open_named_sem(SEMNAME_SPI0_0);
+//        return SPI_Init(fd,(INT8U *)ESAM_SPI_DEV);
+//    }
 }
 
 void Esam_Clear(INT32S fd) {
-//	close_named_sem(SEMNAME_SPI0_0);
-   // sem_close(sem_spi0_0);
-//    sem_spi0_0 = NULL;
+//    if(memp->ac_chip_type != 0x820900) {
+//    	close_named_sem(SEMNAME_SPI0_0);
+//    }
     SPI_Close(fd);
 }
+
 /*******************************************************
  * ESAM数据读写函数
  * 输入：Wbuf:ESAM指令流指针，为完整帧:0x55 CLA INS P1 P2 Len1 Len2 DATA LRC1
@@ -110,7 +121,8 @@ INT32S Esam_WriteThenRead(INT32S fd, INT8U* Tbuf, INT8U Tlen, INT8U* Rbuf){
 	INT16S Result = ERR_ESAM_UNKNOWN;
     INT8U rx[BUFFLENMAX_SPI];
 	//sem_wait(sem_spi0_0);
-	for(index=0;index<6;index++)//只做3次异常处理，每次若出异常，时间会很长，秒级
+//	for(index=0;index<10;index++)//只做3次异常处理，每次若出异常，时间会很长，秒级
+	for(index=0;index<1;index++)//只做3次异常处理，每次若出异常，时间会很长，秒级
 	{
 		memset(rx,0x00,BUFFLENMAX_SPI);
 		Esam_WriteToChip(fd,Tbuf,Tlen);//向片中发送数据
@@ -120,6 +132,7 @@ INT32S Esam_WriteThenRead(INT32S fd, INT8U* Tbuf, INT8U Tlen, INT8U* Rbuf){
 			Esam_ReadFromChip(fd,rx,1);//读取1个字符
 			i++;
 			if(i>=20) break;
+//			if(i>=1) break;
 		}while(rx[0]!=MARK_ESAM);
 
 		if(rx[0]==MARK_ESAM)
@@ -184,27 +197,51 @@ INT32S Esam_WriteThenRead(INT32S fd, INT8U* Tbuf, INT8U Tlen, INT8U* Rbuf){
  ***********************************/
 void Esam_WriteToChip(INT32S fd, INT8U* Tbuf, INT8U Tlen)
 {
+	INT8U Rbuf[60];
+	int i=0;
+
 		struct spi_ioc_transfer	xfer[2];
 		memset(xfer, 0,  sizeof xfer);
-		usleep(5);
+//		usleep(5);
 		gpio_writebyte(DEV_ESAM_CS,1);
-		usleep(10);
+//		usleep(10);
 		gpio_writebyte(DEV_ESAM_CS,0);
-		usleep(20);
+//		usleep(20);
 		xfer[0].tx_buf = (int)Tbuf;//发数据
 		xfer[0].len =Tlen;
-		ioctl(fd, SPI_IOC_MESSAGE(2), xfer);
-		usleep(5);
-		gpio_writebyte(DEV_ESAM_CS,1);
-		usleep(10);
-		gpio_writebyte(DEV_ESAM_CS,0);
-		usleep(20);
+		xfer[0].delay_usecs = 20;
+		xfer[0].cs_change = 1;
+//		ioctl(fd, SPI_IOC_MESSAGE(1), xfer);
+
+//		for(i=1;i<10;i++) {
+//			xfer[i].rx_buf = (int) &Rbuf[i];
+//			xfer[i].len = 1;
+//			xfer[i].delay_usecs = 100;
+////			xfer[i].cs_change = 0;
+//		}
+
+//		xfer[1].rx_buf = (int)Rbuf;//发数据
+//		xfer[1].len = 10;
+////		xfer[1].cs_change = 1;
+//		ioctl(fd, SPI_IOC_MESSAGE(2), xfer);
+//			usleep(50);//每次查询指令间隔时间在15us----100us之间，最大查询事件为20*50us==1s,外层循环最多3次，3s
 
 		printf("\n Esam_WriteToChip:");
-		int i;
 		for( i=0;i<Tlen;i++)
 			printf("%02X ",Tbuf[i]);
 		printf("\n");
+
+//		printf("\n Esam_ReadFromChip:");
+//		for( i=0;i<20;i++)
+//			printf("%02X ",Rbuf[i]);
+//		printf("\n");
+
+//		usleep(5);
+		gpio_writebyte(DEV_ESAM_CS,1);
+//		usleep(20);
+		gpio_writebyte(DEV_ESAM_CS,0);
+//		usleep(20);
+
 }
 /**********************************
  *从esam芯片读取数据
@@ -219,7 +256,7 @@ void Esam_ReadFromChip(INT32S fd, INT8U* Rbuf, INT8U Rlen)
 			xfer[1].rx_buf = (int) Rbuf;
 			xfer[1].len = Rlen;
 			ioctl(fd, SPI_IOC_MESSAGE(2), xfer);
-			usleep(50);//每次查询指令间隔时间在15us----100us之间，最大查询事件为20*50us==1s,外层循环最多3次，3s
+//			usleep(50);//每次查询指令间隔时间在15us----100us之间，最大查询事件为20*50us==1s,外层循环最多3次，3s
 
 			printf("\n Esam_ReadFromChip:");
 			int i;
@@ -347,7 +384,7 @@ INT32S Esam_GetTermiSingleInfo(INT32S fd, INT8U type, INT8U* Rbuf) {   //&&已�
 //    	fprintf(stderr,"%02x ",GetInfo_ESAM[i]);
 //    fprintf(stderr,"\n");
     Result = Esam_WriteThenRead(fd, (INT8U*)GetInfo_ESAM, 8, tmp);
-    //fprintf(stderr,"Esam_GetTermiSingleInfo result = %d\n",Result);
+    fprintf(stderr,"Esam_GetTermiSingleInfo result = %d\n",Result);
     if(Result>0 && Result<BUFFLENMAX_SPI) //大于BUFFLENMAX_SPI错误，此处做比较
     {
     	memcpy(Rbuf,&tmp[4],Result-5);

@@ -21,22 +21,37 @@ int SPI_Close(int fd) {
 static int dumpstat(const char* name, int fd) {
     static uint8_t mode;
     static uint8_t bits   = 8;
-    static uint32_t speed = 8000000;
+    static uint32_t speed = 16000000;
 
     mode |= SPI_MODE_3;
 
     if (ioctl(fd, SPI_IOC_WR_MODE, &mode) == -1){
-    	printf("[SPI ERROR] can't set spi mode");
+    	fprintf(stderr,"[SPI ERROR] can't set spi mode");
     	return -1;
     }
 
+	if(ioctl(fd, SPI_IOC_RD_MODE, &mode) == -1) {
+		fprintf(stderr,"[SPI ERROR] can't get spi mode");
+		return -1;
+	}
+
     if (ioctl(fd, SPI_IOC_WR_BITS_PER_WORD, &bits) == -1){
-    	printf("[SPI ERROR] can't set bits per word");
+    	fprintf(stderr,"[SPI ERROR] can't set bits per word");
+    	return -1;
+    }
+
+    if (ioctl(fd, SPI_IOC_RD_BITS_PER_WORD, &bits) == -1){
+    	fprintf(stderr,"[SPI ERROR] can't get bits per word");
     	return -1;
     }
 
     if (ioctl(fd, SPI_IOC_WR_MAX_SPEED_HZ, &speed) == -1){
-    	printf("[SPI ERROR] can't set max speed");
+    	fprintf(stderr,"[SPI ERROR] can't set max speed");
+    	return -1;
+    }
+
+    if (ioctl(fd, SPI_IOC_RD_MAX_SPEED_HZ, &speed) == -1){
+    	fprintf(stderr,"[SPI ERROR] can't get max speed");
     	return -1;
     }
 

@@ -1179,8 +1179,8 @@ int GetCollOneUnit(OI_698 oi,INT8U readType,INT8U seqnum,INT8U *data,INT16U *one
 		one_blknum = 256;
 		break;
 	case 0x6016:	//事件采集方案
-		one_unitlen = Get_6016(readType,seqnum,data);
-		one_blknum = 256;
+//		one_unitlen = Get_6016(readType,seqnum,data);
+//		one_blknum = 256;
 		break;
 	}
 	*oneUnitLen = one_unitlen;

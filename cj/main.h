@@ -17,6 +17,8 @@ extern void SetID(int argc, char *argv[]);
 
 extern void SetHEART(int argc, char* argv[]);
 
+extern void EsamTest(int argc, char* argv[]);
+
 extern void acs_process(int argc, char *argv[]);
 
 extern void event_process(int argc, char *argv[]);

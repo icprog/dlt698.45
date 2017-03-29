@@ -369,7 +369,7 @@ void GetconnetRequest(CONNECT_Request *request,INT8U *apdu)
 				index = index + bytenum +1;
 				bytenum = apdu[index];
 				if (bytenum<70)
-					memcpy((INT8U*)&request->info.sigsecur.signature,&apdu[index],bytenum);
+					memcpy((INT8U*)&request->info.sigsecur.signature,&apdu[index],bytenum+1);
 			}
 			break;
 	}
@@ -702,7 +702,7 @@ INT16S doSecurityRequest(INT8U* apdu)//
 	if(apdu[1] !=0x00 && apdu[1] != 0x01) return -2 ;   //明文应用数据单元
 	 INT16S retLen=0;
 	 INT32S fd=-1;
-	 fd = Esam_Init(fd,(INT8U*)ACS_SPI_DEV);
+	 fd = Esam_Init(fd);
 	 if(fd<0) return -3;
 	 //fprintf(stderr,"in doSecurityRequest\n");
 	 if(apdu[1]==0x00)//明文应用数据处理
@@ -725,7 +725,7 @@ INT16S composeSecurityResponse(INT8U* SendApdu,INT16U Length)
 {
 	 INT32S fd=-1;
 	 INT32S ret=0;
-	 fd = Esam_Init(fd,(INT8U*)ACS_SPI_DEV);
+	 fd = Esam_Init(fd);
 	 do
 	 {
 		 if(fd>0 && Length>0)
@@ -766,7 +766,7 @@ INT16U composeAutoReport(INT8U* SendApdu,INT16U length)
 	 INT32S fd=-1;
 	 INT8U RN[12];
 	 INT8U MAC[4];
-	 fd = Esam_Init(fd,(INT8U*)ACS_SPI_DEV);
+	 fd = Esam_Init(fd);
 	 if(fd<0) return 0;
 	 retLen = Esam_ReportEncrypt(fd,&SendApdu[1],length-1,RN,MAC);
 	 if(retLen<=0)
