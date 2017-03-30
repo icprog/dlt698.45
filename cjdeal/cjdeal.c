@@ -32,11 +32,13 @@ MeterPower MeterPowerInfo[POWEROFFON_NUM]; //当poweroffon_state为1时，抄读
  *程序入口函数-----------------------------------------------------------------------------------------------------------
  *程序退出前处理，杀死其他所有进程 清楚共享内存
  **********************************************************/
-void QuitProcess(ProjectInfo *proinfo)
+void QuitProcess()
 {
 	close_named_sem(SEMNAME_SPI0_0);
-	proinfo->ProjectID=0;
-    fprintf(stderr,"\n退出：%s %d",proinfo->ProjectName,proinfo->ProjectID);
+	read485QuitProcess();
+	//proinfo->ProjectID=0;
+    //fprintf(stderr,"\n退出：%s %d",proinfo->ProjectName,proinfo->ProjectID);
+	fprintf(stderr,"\n cjdeal 退出");
 	exit(0);
 }
 /*******************************************************
