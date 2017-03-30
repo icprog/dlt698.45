@@ -612,7 +612,7 @@ int main(int argc, char *argv[])
 	//载波
 	//readplc_proccess();
 	//液晶、控制
-	//guictrl_proccess();
+	guictrl_proccess();
 	//交采
 	acs_process();
 

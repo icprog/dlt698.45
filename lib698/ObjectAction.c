@@ -7,6 +7,8 @@
 
 #include <string.h>
 #include <stdio.h>
+#include <unistd.h>
+#include <stdlib.h>
 #include "ParaDef.h"
 #include "AccessFun.h"
 #include "StdDataType.h"
@@ -722,8 +724,30 @@ void TerminalInfo(INT16U attr_act,INT8U *data)
 			//Event_3100(NULL,0,memp);//初始化，产生事件
 			fprintf(stderr,"\n终端数据初始化!");
 			break;
-		case 151:
-
+		case 151://湖南切换到3761规约程序转换主站通信参数
+			fprintf(stderr,"\nhunan change 3761 protocol f151\n");
+			if(save_protocol_3761_tx_para(data))//写文件成功
+			{
+				system((const char*)"mv /nor/rc.d/rc.local /nor/rc.d/698_rc.local");
+				sleep(1);
+				system((const char*)"mv /nor/rc.d/3761_rc.local /nor/rc.d/rc.local");
+				sleep(1);
+				system((const char*)"chmod 777 /nor/rc.d/rc.local");
+				sleep(1);
+				if(access("/nor/rc.d/rc.local",F_OK) != 0 || access("/nor/rc.d/rc.local",X_OK) != 0)
+				{
+					if(write_3761_rc_local()){
+						sleep(1);
+						system((const char*)"chmod 777 /nor/rc.d/rc.local");
+						sleep(1);
+					}
+					system((const char*)"reboot");					//TODO:写文件成功切换rc.local
+				}
+				else
+				{
+					system((const char*)"reboot");					//TODO:写文件成功切换rc.local
+				}
+			}
 			break;
 	}
 }

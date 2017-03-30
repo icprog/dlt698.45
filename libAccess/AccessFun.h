@@ -32,7 +32,24 @@
 #define	 INITDIR				"/nor/init"					//初始化参数文件
 #define	 TASKDATA				"/nand/task"				//任务采集存储文件
 #define	 EVEDATA				"/nand/allevent"				//任务采集存储文件
+#define  PROTOCOL_TRANS_PATH    "/nor/ProTransCfg/protocol.cfg" //湖南规约切换通信参数文件
 
+typedef struct
+{
+	INT8U trans_flg;    //转换标志
+	INT8U AreaNo[2];	//行政区码
+	INT8U TmnlAddr[2];	//终端地址
+	INT8U OOPAddr[6];   //面向对象终端地址
+	INT8U main_ip[4];
+	INT16U main_port;
+	INT8U bak_ip[4];
+	INT16U bak_port;
+	INT8U APN[20];
+	INT8U Len_UsrName;	//用户名长度，数值范围0-20，为0时、表示无用户名，为非0时、表示连接方式需用户名验证
+	INT8U UsrName[20];	//用户名
+	INT8U Len_Pwd;		//密码长度：0-20，当为0时，表示无密码，当为非0时，表示连接方式需要密码验证
+	INT8U Pwd[20];		//密码
+}Protocol_Trans;//湖南切换规约，通信参数文件结构体
 //文件存储类型
 typedef enum
 {
@@ -73,6 +90,11 @@ typedef struct {
 	time_t rec_start;//开始时间秒数
 	time_t rec_end;//结束时间秒数
 }CURR_RECINFO;//当前记录信息
+/*
+ * 更改拨号脚本
+ * */
+extern void write_apn(char* apn);
+extern void write_userpwd(unsigned char* user, unsigned char* pwd, unsigned char* apn);
 /*
  * 方法：Clean()清空
  * 输入参数：oi对象标识
@@ -213,4 +235,16 @@ extern INT8U datafile_read(char *FileName, void *source, int size, int offset);
 extern INT16U CalcOIDataLen(OI_698 oi,INT8U attr_flg);
 extern FILE* openFramefile(char *filename);
 extern void saveOneFrame(INT8U *buf,int len,FILE *fp);
+/*
+ * 获取湖南规约切换通信参数
+ * */
+extern INT8U get_protocol_3761_tx_para();
+/*
+ * 湖南规约切换通信参数保存
+ * */
+extern int save_protocol_3761_tx_para(INT8U* dealdata);
+/*
+ * 重写3761 规约程序rc.local
+ * */
+extern INT8U write_3761_rc_local();
 #endif /* ACCESS_H_ */

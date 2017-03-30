@@ -29,7 +29,88 @@
 #define 	LIB_ACCESS_VER 			0x0001
 
 CLASS_INFO	info={};
+void write_apn(char* apn) {
+    FILE* fp;
+    fp = fopen("/etc/ppp/gprs-connect-chat", "w");
+    if (fp == NULL) {
+        return;
+    }
+    fprintf(fp, "TIMEOUT        5\n");
+    fprintf(fp, "ABORT        \'\\nBUSY\\r\'\n");
+    fprintf(fp, "ABORT        \'\\nNO ANSWER\\r\'\n");
+    fprintf(fp, "ABORT        \'\\nRINGING\\r\\n\\r\\nRINGING\\r\'\n");
+    fprintf(fp, "ABORT        \'\\nNO CARRIER\\r\'\n");
+    fprintf(fp, "\'\' \\rAT\n");
+    fprintf(fp, "TIMEOUT        5\n");
+    fprintf(fp, "\'OK-+++\\c-OK\'    ATH\n");
+    fprintf(fp, "TIMEOUT        20\n");
+    fprintf(fp, "OK        AT+CREG?\n");
+    fprintf(fp, "TIMEOUT        10\n");
+    fprintf(fp, "OK        AT+CGATT=1\n");
+    fprintf(fp, "TIMEOUT        300\n");
+    fprintf(fp, "OK        AT+CGATT?\n");
+    fprintf(fp, "OK        AT+CFUN=1\n");
+    fprintf(fp, "TIMEOUT        5\n");
+    fprintf(fp, "OK        AT+CPIN?\n");
+    fprintf(fp, "TIMEOUT        5\n");
+    fprintf(fp, "OK        AT+CSQ\n");
+    fprintf(fp, "TIMEOUT        5\n");
+    fprintf(fp, "OK        AT+CGDCONT=1,\"IP\",\"%s\"\n", apn);
+    fprintf(fp, "OK        ATDT*99***1#\n");
+    fprintf(fp, "CONNECT \'\'\n");
+    fclose(fp);
+    fp = NULL;
+}
 
+void write_userpwd(unsigned char* user, unsigned char* pwd, unsigned char* apn) {
+    FILE* fp = NULL;
+    fp       = fopen("/etc/ppp/chap-secrets", "w");
+    fprintf(fp, "\"%s\" * \"%s\" *", user, pwd);
+    fclose(fp);
+
+    fp = fopen("/etc/ppp/pap-secrets", "w");
+    fprintf(fp, "\"%s\" * \"%s\" *", user, pwd);
+    fclose(fp);
+
+    fp = fopen("/etc/ppp/peers/cdma2000", "w");
+    fprintf(fp, "/dev/mux0\n");
+    fprintf(fp, "115200\n");
+    fprintf(fp, "modem\n");
+    fprintf(fp, "debug\n");
+    fprintf(fp, "nodetach\n");
+    fprintf(fp, "usepeerdns\n");
+    fprintf(fp, "noipdefault\n");
+    fprintf(fp, "defaultroute\n");
+    fprintf(fp, "user \"%s\"\n", user);
+    fprintf(fp, "0.0.0.0:0.0.0.0\n");
+    fprintf(fp, "ipcp-accept-local\n");
+    fprintf(fp, "connect 'chat -s -v -f /etc/ppp/cdma2000-connect-chat'\n");
+    fprintf(fp, "disconnect \"chat -s -v -f /etc/ppp/gprs-disconnect-chat\"\n");
+    fclose(fp);
+
+    fp = fopen("/etc/ppp/cdma2000-connect-chat", "w");
+    fprintf(fp, "TIMEOUT        5\n");
+    fprintf(fp, "ABORT        \"DELAYED\"\n");
+    fprintf(fp, "ABORT        \"BUSY\"\n");
+    fprintf(fp, "ABORT        \"ERROR\"\n");
+    fprintf(fp, "ABORT        \"NO DIALTONE\"\n");
+    fprintf(fp, "ABORT        \"NO CARRIER\"\n");
+    fprintf(fp, "'' AT\n");
+    fprintf(fp, "TIMEOUT        5\n");
+    fprintf(fp, "'OK-+++\c-OK' ATZ\n");
+    fprintf(fp, "TIMEOUT        20\n");
+    fprintf(fp, "OK        AT+CREG?\n");
+    fprintf(fp, "TIMEOUT        10\n");
+    fprintf(fp, "OK        AT$MYNETCON=0,\"USERPWD\",\"%s,%s\"\n", user, pwd);
+    fprintf(fp, "TIMEOUT        10\n");
+    fprintf(fp, "OK        AT$MYNETCON=0,\"APN\",\"%s\"\n", apn);
+    fprintf(fp, "TIMEOUT        10\n");
+    fprintf(fp, "OK        AT$MYNETCON=0,\"AUTH\",1\n");
+    fprintf(fp, "TIMEOUT        10\n");
+    fprintf(fp, "OK ATDT#777\n");
+    fprintf(fp, "CONNECT ''\n");
+    fclose(fp);
+}
 void clearData()
 {
 	//冻结类数据清除
@@ -825,6 +906,10 @@ INT16U CalcOIDataLen(OI_698 oi,INT8U attr_flg)
 			return 27;//长度4+1个字节数据类型
 		else
 			return 5;
+	}
+	if(oi ==0x202a)
+	{
+		return 18;
 	}
 //	if(oi == 2140 || oi == 2141)//struct 类型要在原长度基础上+3
 //		return (11+3)*(MET_RATE+1)+1+1;
@@ -2005,4 +2090,228 @@ long int readFrameDataFile(char *filename,int offset,INT8U *buf,int *datalen)
 		return retoffset;		 			//返回当前偏移位置
 	}
 	return 0;
+}
+INT8U get_protocol_3761_tx_para()
+{
+	int fd;
+	FILE* fp = NULL;
+	INT8U ret = 0;
+	CLASS25 class4500;
+	CLASS26 class4510;
+	CLASS_4001_4002_4003 class4001;
+	Protocol_Trans trans_data;
+	memset(&class4500,0,sizeof(CLASS25));
+	memset(&class4510,0,sizeof(CLASS26));
+	memset(&class4001,0,sizeof(CLASS_4001_4002_4003));
+	memset(&trans_data,0,sizeof(Protocol_Trans));
+	if(access(PROTOCOL_TRANS_PATH,F_OK) != 0)
+	{
+		return 0;
+	}
+	fp = fopen(PROTOCOL_TRANS_PATH,"r");
+	if(fp == NULL)
+	{
+		return 0;
+	}
+	fseek(fp,0,SEEK_SET);
+	ret = fread(&trans_data,sizeof(Protocol_Trans),1,fp);
+
+	if(ret == 1)
+	{
+		if(trans_data.trans_flg == 1){
+			//读出参数终端id
+			readCoverClass(0x4001,0,&class4001,sizeof(CLASS_4001_4002_4003),para_vari_save);
+			memset(class4001.curstom_num,0,sizeof(class4001.curstom_num));
+			memcpy(&class4001.curstom_num[1],trans_data.OOPAddr,sizeof(trans_data.OOPAddr));
+			class4001.curstom_num[0] = 6;
+			saveCoverClass(0x4001, 0, &class4001, sizeof(CLASS_4001_4002_4003), para_vari_save);
+			usleep(100*1000);
+
+			//读出gprs通信参数
+			readCoverClass(0x4500,0,&class4500,sizeof(CLASS25),para_vari_save);
+			memset(&class4500.master,0,sizeof(class4500.master));
+
+			memcpy(&class4500.master.master[0].ip[1],trans_data.main_ip,4);
+			class4500.master.master[0].ip[0] = 4;
+			class4500.master.master[0].port = trans_data.main_port;
+
+			memcpy(&class4500.master.master[1].ip[1],trans_data.bak_ip,4);
+			class4500.master.master[1].ip[0] = 4;
+			class4500.master.master[1].port = trans_data.bak_port;
+
+			class4500.master.masternum = 2;
+
+			memset(class4500.commconfig.apn,0,sizeof(class4500.commconfig.apn));
+			memcpy(&class4500.commconfig.apn[1],trans_data.APN,sizeof(trans_data.APN));
+			class4500.commconfig.apn[0] = strlen((char*)&class4500.commconfig.apn[1]);
+
+			memset(class4500.commconfig.userName,0,sizeof(class4500.commconfig.userName));
+			memcpy(&class4500.commconfig.userName[1],trans_data.UsrName,sizeof(trans_data.UsrName));
+			class4500.commconfig.userName[0] = strlen((char*)&class4500.commconfig.userName[1]);
+
+			memset(class4500.commconfig.passWord,0,sizeof(class4500.commconfig.passWord));
+			memcpy(&class4500.commconfig.passWord[1],trans_data.Pwd,sizeof(trans_data.Pwd));
+			class4500.commconfig.passWord[0] = strlen((char*)&class4500.commconfig.passWord[1]);
+			saveCoverClass(0x4500, 0, &class4500, sizeof(CLASS25), para_vari_save);
+			usleep(100*1000);
+
+			//写gprs拨号脚本
+			write_apn((char*)trans_data.APN);
+			usleep(100*1000);
+			write_userpwd(trans_data.UsrName,trans_data.Pwd,trans_data.APN);
+			usleep(100*1000);
+
+			//读以太网通信参数
+			readCoverClass(0x4510,0,&class4510,sizeof(CLASS26),para_vari_save);
+			memset(&class4510.master,0,sizeof(class4510.master));
+			memcpy(&class4510.master,&class4500.master,sizeof(class4510.master));
+			saveCoverClass(0x4510, 0, &class4510, sizeof(CLASS26), para_vari_save);
+			//			fseek(fp,0,SEEK_SET);
+			trans_data.trans_flg = 0;//清除转换标志
+			if(fp!=NULL)
+			{
+				fclose(fp);
+				fp = NULL;
+			}
+			fp = fopen(PROTOCOL_TRANS_PATH,"w+");
+			if(fp != NULL){
+				fseek(fp,0,SEEK_SET);
+				ret = fwrite(&trans_data,sizeof(Protocol_Trans),1,fp);
+//				fprintf(stderr,"\n-------ret = %d--------\n",ret);
+				if(ret != 1){
+					ret = 0;//写文件失败
+				}
+				else{
+					fflush(fp);
+					fd = fileno(fp);
+					fsync(fd);
+				}
+			}
+			else ret = 0;
+		}
+	}
+
+	if(fp != NULL){
+		fclose(fp);
+		fp = NULL;
+	}
+	return ret;
+}
+/*
+ * 698规约协议切换至3761，保存通信参数至/nor/ProTransCfg/protocol.cfg
+ * */
+int save_protocol_3761_tx_para(INT8U* dealdata)
+{
+	FILE* fp = NULL;
+	int fd = 0;
+	int ret = 0;
+	int index = 0;
+	int i = 0;
+	INT16U array_num = 0;
+	CLASS25 class4500;
+	CLASS_4001_4002_4003 class4001;
+	Protocol_Trans trans_data;
+	MASTER_STATION_INFO_LIST  master;
+	union
+	{
+		INT16U TmnlAddr_int;
+		INT8U TmnlAddr_bin[2];
+	}TmnlAddr;
+	memset(&TmnlAddr,0,sizeof(TmnlAddr));
+	memset(&class4500,0,sizeof(CLASS25));
+	memset(&class4001,0,sizeof(CLASS_4001_4002_4003));
+	memset(&trans_data,0,sizeof(Protocol_Trans));
+	memset(&master,0,sizeof(master));
+
+	if(access("/nor/ProTransCfg",F_OK) != 0)
+	{
+		system("mkdir 755 /nor/ProTransCfg");
+	}
+
+	index += getArray(&dealdata[index],(INT8U*)&array_num);
+
+	if(master.masternum>4) {
+		fprintf(stderr,"!!!!!!!!!越限 masternum=%d\n",master.masternum);
+		master.masternum = 4;
+	}
+
+	for(i=0;i<array_num;i++) {
+		index += getStructure(&dealdata[index],(INT8U *)&master.masternum);
+		index += getOctetstring(1,&dealdata[index],master.master[i].ip);
+		index += getLongUnsigned(&dealdata[index],(INT8U *)&master.master[i].port);
+	}
+
+	trans_data.trans_flg = 1;
+
+	readCoverClass(0x4001,0,&class4001,sizeof(CLASS_4001_4002_4003),para_vari_save);
+	memcpy(trans_data.AreaNo,&class4001.curstom_num[1],2);
+	bcd2int32u(&class4001.curstom_num[4], 3, positive, (INT32U*)&TmnlAddr.TmnlAddr_int);
+
+	trans_data.TmnlAddr[0] = TmnlAddr.TmnlAddr_bin[1];
+	trans_data.TmnlAddr[1] = TmnlAddr.TmnlAddr_bin[0];
+
+	readCoverClass(0x4500,0,&class4500,sizeof(CLASS25),para_vari_save);
+
+	memcpy(trans_data.main_ip,&master.master[0].ip[1],sizeof(trans_data.main_ip));
+	trans_data.main_port = master.master[0].port;
+
+	memcpy(trans_data.bak_ip,&master.master[1].ip[1],sizeof(trans_data.bak_ip));
+	trans_data.bak_port = master.master[1].port;
+
+	memcpy(trans_data.APN,&class4500.commconfig.apn[1],sizeof(trans_data.APN));
+	memcpy(trans_data.UsrName,&class4500.commconfig.userName[1],sizeof(trans_data.UsrName));
+	trans_data.Len_UsrName = class4500.commconfig.userName[0];
+	memcpy(trans_data.Pwd,&class4500.commconfig.passWord[1],sizeof(trans_data.Pwd));
+	trans_data.Len_Pwd = class4500.commconfig.passWord[0];
+
+	fp = fopen((const char*)PROTOCOL_TRANS_PATH,"w+");
+	if(fp != NULL)
+	{
+		fseek(fp,0,SEEK_SET);
+		ret = fwrite(&trans_data,sizeof(Protocol_Trans),1,fp);
+		if(ret == 1)
+		{
+			fd = fileno(fp);
+			fsync(fd);
+		}
+		else ret = 0;
+	}
+	if(fp != NULL)
+	{
+		fclose(fp);
+		fp = NULL;
+	}
+	return ret;
+}
+
+INT8U write_3761_rc_local()
+{
+	INT8U ret = 0;
+	int fd;
+	FILE* fp;
+	fp = fopen("/nor/rc.d/rc.local","w+");
+	if(fp == NULL)
+	{
+		return ret;
+	}
+	fseek(fp,0,SEEK_SET);
+	fprintf(fp,"echo 2048 > /proc/sys/vm/min_free_kbytes\n");
+	fprintf(fp,"./etc/rc.d/mac.sh\n");
+	fprintf(fp,"./etc/rc.d/ip.sh\n");
+	fprintf(fp,"syslogd -l 6 -O /nand/log\n");
+	fprintf(fp,"mkfifo /dev/shm/null\n");
+	fprintf(fp,"tail -f /dev/shm/null>> /dev/null &\n");
+	fprintf(fp,"vinit &\n");
+	fprintf(fp,"vupdate &\n");
+	fprintf(fp,"sleep 1\n");
+	fprintf(fp,"vmain > /dev/shm/null &\n");
+	fflush(fp);
+	fd = fileno(fp);
+	fsync(fd);
+	if(fp != NULL)
+	{
+		fclose(fp);
+		fp = NULL;
+	}
+	return ret;
 }
