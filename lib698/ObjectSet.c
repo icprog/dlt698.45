@@ -425,7 +425,8 @@ INT16U set4500(OAD oad,INT8U *data,INT8U *DAR)
 			master.masternum = 4;
 		}
 		for(i=0;i<master.masternum;i++) {
-			index += getVisibleString(&data[index],master.master[i].ip);
+			index += getStructure(&data[index],NULL);
+			index += getOctetstring(1,&data[index],master.master[i].ip);
 			index += getLongUnsigned(&data[index],(INT8U *)&master.master[i].port);
 		}
 		fprintf(stderr,"\n【主站IP】%d.%d.%d.%d",master.master[0].ip[1],master.master[0].ip[2],master.master[0].ip[3],master.master[0].ip[4]);

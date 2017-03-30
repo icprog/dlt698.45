@@ -706,7 +706,7 @@ INT16S doSecurityRequest(INT8U* apdu)//
 	if(apdu[1] !=0x00 && apdu[1] != 0x01) return -2 ;   //明文应用数据单元
 	 INT16S retLen=0;
 	 INT32S fd=-1;
-	 fd = Esam_Init(fd,(INT8U*)ACS_SPI_DEV);
+	 fd = Esam_Init(fd,ESAM_SPI_DEV_II);
 	 if(fd<0) return -3;
 	 //fprintf(stderr,"in doSecurityRequest\n");
 	 if(apdu[1]==0x00)//明文应用数据处理
@@ -718,6 +718,7 @@ INT16S doSecurityRequest(INT8U* apdu)//
 	 {
 		 retLen = secureEncryptDataDeal(fd,apdu,apdu);
 	 }
+	 fprintf(stderr,"doSecurityRequest retlen = %d\n",retLen);
 	 Esam_Clear(fd);
 	 return retLen;
 }
@@ -729,7 +730,7 @@ INT16S composeSecurityResponse(INT8U* SendApdu,INT16U Length)
 {
 	 INT32S fd=-1;
 	 INT32S ret=0;
-	 fd = Esam_Init(fd,(INT8U*)ACS_SPI_DEV);
+	 fd = Esam_Init(fd,(INT8U*)ESAM_SPI_DEV_II);
 	 do
 	 {
 		 if(fd>0 && Length>0)
@@ -770,7 +771,7 @@ INT16U composeAutoReport(INT8U* SendApdu,INT16U length)
 	 INT32S fd=-1;
 	 INT8U RN[12];
 	 INT8U MAC[4];
-	 fd = Esam_Init(fd,(INT8U*)ACS_SPI_DEV);
+	 fd = Esam_Init(fd,ESAM_SPI_DEV_II);
 	 if(fd<0) return 0;
 	 retLen = Esam_ReportEncrypt(fd,&SendApdu[1],length-1,RN,MAC);
 	 if(retLen<=0)
@@ -1279,6 +1280,7 @@ int ProcessData(CommBlock *com)
 	hcsok = CheckHead( Rcvbuf ,&csinfo);
 	com->taskaddr = csinfo.ca;
 	fcsok = CheckTail( Rcvbuf ,csinfo.frame_length);
+	securetype = 0x00;
 	if ((hcsok==1) && (fcsok==1))
 	{
 		fprintf(stderr,"\nsa_length=%d\n",csinfo.sa_length);

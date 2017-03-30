@@ -35,6 +35,7 @@ static char* usage_set = "\n--------------------参数设置及基本维护命�
 						 "		 【停程序】cj dog 或者 cj stop		\n"
 		                 "[读取心跳] cj heart \n"
 		                 "[设置心跳] cj heart 60 s"
+						 "[ESAM 测试] cj esam"
                          "-------------------------------------------------------\n\n";
 
 static char* usage_para = "\n--------------------参变量类对象----------------------------\n"
@@ -183,6 +184,11 @@ int main(int argc, char* argv[])
 
     if (strcmp("heart", argv[1]) == 0) {
 		SetHEART(argc, argv);
+		return EXIT_SUCCESS;
+	}
+
+    if (strcmp("esam", argv[1]) == 0) {
+		EsamTest(argc, argv);
 		return EXIT_SUCCESS;
 	}
 

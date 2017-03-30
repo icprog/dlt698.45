@@ -89,8 +89,9 @@ extern INT8U Get_2203(OI_698 oi, INT8U* sourcebuf, INT8U* buf, int* len);
 extern INT8U Get_2204(OI_698 oi, INT8U* sourcebuf, INT8U* buf, int* len);
 /*----------------------参变量类----------------------*/
 extern int Get_6001(INT8U type,INT16U seqnum, INT8U* data);
-extern int Get_6013(INT8U taskid, INT8U* data);
-extern int Get_6015(INT8U seqnum, INT8U* data);
-extern int Get_6035(INT8U seqnum, INT8U* data);
-extern int Get_601D(INT8U seqnum,INT8U *data);
+extern int Get_6013(INT8U type,INT8U taskid,INT8U *data);
+extern int Get_6015(INT8U type,INT8U seqnum, INT8U* data);
+extern int Get_6035(INT8U type,INT8U seqnum, INT8U* data);
+extern int Get_601D(INT8U type,INT8U seqnum,INT8U *data);
+extern int GetFileState(RESULT_NORMAL* response);
 #endif
