@@ -163,11 +163,6 @@ int get_itemdata1(LcdDataItem *item, int size, int did, FP64 *dval, int decimal)
 			flg = 1;
 		}
 	}
-//	fprintf(stderr,"\n did=%d   item_index=%d",did, item_index);
-//	int i;
-//	for(i=0; i<7; i++)
-//		fprintf(stderr," %02x",item[item_index].val[i]);
-//	fprintf(stderr," ====>%f",*dval);
 	return flg;
 }
 

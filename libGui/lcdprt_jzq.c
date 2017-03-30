@@ -774,6 +774,7 @@ void show_realdatabycld(int pindex){
 		mqcount = requestdata_485_ZB_Block(cur_pindex,(INT8U*)PROXY_485_MQ_NAME,5, item);
 	}
 	show_realdata(cur_pindex->sernum, item, mqcount);
+	memset(p_Proxy_Msg_Data,0,sizeof(Proxy_Msg));
 }
 
 int gui_mp_compose(CLASS_6001 **ppgui_mp){
@@ -1010,10 +1011,6 @@ void showallmeter(void (*pfun)(int cldno))
 				begin_cldno++;
 			break;
 		case OK:
-			//TODO:交采请求
-//			if(ParaAll->f10.para_mp[(gui_mp+cur_cldno-1)->iidnex-1].Port == PORT_JC)
-//				presskey_ok_acs = OK;
-//			getDayFilePath((gui_mp+cur_cldno-1)->mpno,Tcurr_tm_his.Year,Tcurr_tm_his.Month,Tcurr_tm_his.Day,(INT8U*)DongJie_FileName,100);
 			pfun((int)(gui_mp+cur_cldno-1));
 			gui_mp_free(gui_mp);
 			cld_max = gui_mp_compose(&gui_mp);
@@ -1021,7 +1018,6 @@ void showallmeter(void (*pfun)(int cldno))
 				msgbox_label((char *)"未配置测量点", CTRL_BUTTON_OK);
 				return;
 			}
-//			fprintf(stderr,"\n 测量点总数为：%d",cld_max);
 			break;
 		case ESC:
 			gui_mp_free(gui_mp);
@@ -1042,14 +1038,12 @@ void showallmeter(void (*pfun)(int cldno))
 					continue;
 				memset(str_cld, 0, 50);
 				memset(addr, 0, sizeof(addr));
-//				memcpy(addr, &(gui_mp+i-1)->basicinfo.addr.addr[2], (gui_mp+i-1)->basicinfo.addr.addr[1]+1);
 				if((gui_mp+i)->sernum == 0) continue;
 
 				addr_len = (gui_mp+i)->basicinfo.addr.addr[1]+1;
 
 				bcd2str(&(gui_mp+i)->basicinfo.addr.addr[2],(INT8U*)addr,addr_len,sizeof(addr),positive);
 				sprintf(str_cld, "  %04d       %s",(gui_mp+i)->sernum, addr);
-//				fprintf(stderr,"\n-------index = %d--addr = %s-----\n",(gui_mp+i)->sernum, addr);
 				pos.x = rect_Client.left;
 				pos.y = rect_Client.top + (i+1)*FONTSIZE*2 + 2;
 				gui_textshow(str_cld, pos, LCD_NOREV);
