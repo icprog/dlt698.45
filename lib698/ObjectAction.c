@@ -25,6 +25,7 @@ extern void  Get698_event(OAD oad,ProgramInfo* prginfo_event);
 extern int comfd;
 extern ProgramInfo *memp;
 extern PIID piid_g;
+extern INT8U securetype;
 
 INT16U getMytypeSize(INT8U first )
 {
@@ -56,13 +57,15 @@ INT16U getMytypeSize(INT8U first )
 int doReponse(int server,int reponse,CSINFO *csinfo,int datalen,INT8U *data,INT8U *buf)
 {
 	int index=0, hcsi=0;
-
+	int apduplace=0;
 	csinfo->dir = 1;
 	csinfo->prm = 0;
 
 	index = FrameHead(csinfo,buf);
 	hcsi = index;
 	index = index + 2;
+	apduplace=index;
+
 	buf[index] = server;
 	index++;
 	buf[index] = reponse;
@@ -72,11 +75,16 @@ int doReponse(int server,int reponse,CSINFO *csinfo,int datalen,INT8U *data,INT8
 
 	memcpy(&buf[index],data,datalen);
 	index = index + datalen;
-
+	buf[index++] = 0;	//操作返回数据
 	buf[index++] = 0;	//跟随上报信息域 	FollowReport
 	buf[index++] = 0;	//时间标签		TimeTag
-	FrameTail(buf,index,hcsi);
 
+	if(securetype!=0)//安全等级类型不为0，代表是通过安全传输下发报文，上行报文需要以不低于请求的安全级别回复
+	{
+		apduplace += composeSecurityResponse(&buf[apduplace],index-apduplace);
+		index = apduplace;
+	}
+	FrameTail(buf,index,hcsi);
 
 	if(pSendfun!=NULL)
 		pSendfun(comfd,buf,index+3);
