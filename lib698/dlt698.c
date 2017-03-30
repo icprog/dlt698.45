@@ -718,6 +718,7 @@ INT16S doSecurityRequest(INT8U* apdu)//
 	 {
 		 retLen = secureEncryptDataDeal(fd,apdu,apdu);
 	 }
+	 fprintf(stderr,"doSecurityRequest retlen = %d\n",retLen);
 	 Esam_Clear(fd);
 	 return retLen;
 }
@@ -729,7 +730,7 @@ INT16S composeSecurityResponse(INT8U* SendApdu,INT16U Length)
 {
 	 INT32S fd=-1;
 	 INT32S ret=0;
-	 fd = Esam_Init(fd,ESAM_SPI_DEV_II);
+	 fd = Esam_Init(fd,(INT8U*)ESAM_SPI_DEV_II);
 	 do
 	 {
 		 if(fd>0 && Length>0)
@@ -1279,6 +1280,7 @@ int ProcessData(CommBlock *com)
 	hcsok = CheckHead( Rcvbuf ,&csinfo);
 	com->taskaddr = csinfo.ca;
 	fcsok = CheckTail( Rcvbuf ,csinfo.frame_length);
+	securetype = 0x00;
 	if ((hcsok==1) && (fcsok==1))
 	{
 		fprintf(stderr,"\nsa_length=%d\n",csinfo.sa_length);
