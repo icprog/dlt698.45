@@ -67,7 +67,7 @@ void print_road(ROAD road)
 	}
 	for(w=0;w<road.num;w++)
 	{
-		asyslog(LOG_INFO,"<关联OAD..%d>%04x-%02x%02x ",w,road.oads[w].OI,road.oads[w].attflg,road.oads[w].attrindex);
+		//asyslog(LOG_INFO,"<关联OAD..%d>%04x-%02x%02x ",w,road.oads[w].OI,road.oads[w].attflg,road.oads[w].attrindex);
 		fprintf(stderr,"<关联OAD..%d>%04x-%02x%02x ",w,road.oads[w].OI,road.oads[w].attflg,road.oads[w].attrindex);
 	}
 	fprintf(stderr,"\n");

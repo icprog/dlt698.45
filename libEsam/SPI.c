@@ -26,32 +26,17 @@ static int dumpstat(const char* name, int fd) {
     mode |= SPI_MODE_3;
 
     if (ioctl(fd, SPI_IOC_WR_MODE, &mode) == -1){
-    	fprintf(stderr,"[SPI ERROR] can't set spi mode");
+    	printf("[SPI ERROR] can't set spi mode");
     	return -1;
     }
-
-	if(ioctl(fd, SPI_IOC_RD_MODE, &mode) == -1) {
-		fprintf(stderr,"[SPI ERROR] can't get spi mode");
-		return -1;
-	}
 
     if (ioctl(fd, SPI_IOC_WR_BITS_PER_WORD, &bits) == -1){
-    	fprintf(stderr,"[SPI ERROR] can't set bits per word");
-    	return -1;
-    }
-
-    if (ioctl(fd, SPI_IOC_RD_BITS_PER_WORD, &bits) == -1){
-    	fprintf(stderr,"[SPI ERROR] can't get bits per word");
+    	printf("[SPI ERROR] can't set bits per word");
     	return -1;
     }
 
     if (ioctl(fd, SPI_IOC_WR_MAX_SPEED_HZ, &speed) == -1){
-    	fprintf(stderr,"[SPI ERROR] can't set max speed");
-    	return -1;
-    }
-
-    if (ioctl(fd, SPI_IOC_RD_MAX_SPEED_HZ, &speed) == -1){
-    	fprintf(stderr,"[SPI ERROR] can't get max speed");
+    	printf("[SPI ERROR] can't set max speed");
     	return -1;
     }
 

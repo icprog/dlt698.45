@@ -33,6 +33,7 @@ void SetOnlineType(int type) {
 
 void CalculateTransFlow(ProgramInfo* prginfo_event) {
     static Flow_tj c2200;
+    return;
     //统计临时变量
     static long long rtx_bytes = 0;
     static long long rx_bytes  = 0;
@@ -65,7 +66,6 @@ void CalculateTransFlow(ProgramInfo* prginfo_event) {
         if(tfd != NULL) {
             fclose(tfd);
         }
-        return;
     }
 
     fscanf(rfd, "%lld", &rx_bytes);

@@ -75,7 +75,7 @@ INT32S secureConnectRequest(SignatureSecurity* securityInfo ,SecurityData* RetIn
 	 INT32S fd=-1;
 	 if(securityInfo->encrypted_code2[0] == 0x00 || securityInfo->signature[0]==0x00)
 		  return -1;
-	 fd = Esam_Init(fd);
+	 fd = Esam_Init(fd,ESAM_SPI_DEV_II);
      if(fd<0) return -1;
     // fprintf(stderr,"secureConnectRequest  securityInfo= %d   =%d  \n",securityInfo->encrypted_code2[0],securityInfo->signature[0]);
      INT32S ret= Esam_CreateConnect( fd,  securityInfo , RetInfo);
@@ -90,7 +90,7 @@ INT32S secureResponseData(INT8U* RN,INT8U* apdu)
 	 INT32S fd=-1;
 	 INT32S ret=0;
 	 INT16S MACindex=0;//MAC所在位置可能因为应用数据单元长度不定而变化
-	 fd = Esam_Init(fd);
+	 fd = Esam_Init(fd,ESAM_SPI_DEV_II);
     if(fd<0) return -3;
     INT16S len = GetDataLength(&apdu[2]);
 
@@ -236,7 +236,7 @@ INT32S UnitParse(INT8U* source,INT8U* dest,INT8U type)
  	{
  		INT32S retLen=0;
  		INT32S fd=-1;
- 		fd = Esam_Init(fd);
+ 		fd = Esam_Init(fd,ESAM_SPI_DEV_II);
  		//fprintf(stderr,"function getesamccie fd = %d\n",fd);
  		if(fd<0) return 0;
  		INT8U buff[2048];
@@ -353,7 +353,7 @@ INT16U getEsamAttribute(OAD oad,INT8U *retBuff)
 	{
 		fprintf(stderr,"get esam attribute 11111\n");
 		INT32S fd=-1;
-		fd = Esam_Init(fd);
+		fd = Esam_Init(fd,ESAM_SPI_DEV_II);
 		 if(fd<0) return 0;
 		if(fd>0)
 		{
@@ -439,7 +439,7 @@ INT32S esamMethodKeyUpdate(INT8U *Data2)
 		secureLen = GetDataLength(&Data2[3]);//包含头部的长度字节数量
 		if(secureLen <= 0)			return -1;
 		INT32S fd=-1;
-		fd = Esam_Init(fd);
+		fd = Esam_Init(fd,ESAM_SPI_DEV_II);
 		if(fd>0)
 		{
 			tmplen = UnitParse(&Data2[2+secureLen+1],(INT8U *)&sidmac,0x01);//填充sidmac中sid部分
@@ -476,7 +476,7 @@ INT32S esamMethodCcieSession(INT8U *Data2)
 		 secureLen = GetDataLength(&Data2[3]);//包含头部的长度字节数量
 		if(secureLen <= 0)			return -1;
 		INT32S fd=-1;
-		fd = Esam_Init(fd);
+		fd = Esam_Init(fd,ESAM_SPI_DEV_II);
 		if(fd>0)
 		{
 			tmplen = UnitParse(&Data2[2+secureLen+1],(INT8U *)&sid,0x01);//填充sidmac中sid部分

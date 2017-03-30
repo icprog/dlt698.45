@@ -20,88 +20,6 @@
 #include "main.h"
 
 extern ProgramInfo* JProgramInfo;
-void write_apn(char* apn) {
-    FILE* fp;
-    fp = fopen("/etc/ppp/gprs-connect-chat", "w");
-    if (fp == NULL) {
-        return;
-    }
-    fprintf(fp, "TIMEOUT        5\n");
-    fprintf(fp, "ABORT        \'\\nBUSY\\r\'\n");
-    fprintf(fp, "ABORT        \'\\nNO ANSWER\\r\'\n");
-    fprintf(fp, "ABORT        \'\\nRINGING\\r\\n\\r\\nRINGING\\r\'\n");
-    fprintf(fp, "ABORT        \'\\nNO CARRIER\\r\'\n");
-    fprintf(fp, "\'\' \\rAT\n");
-    fprintf(fp, "TIMEOUT        5\n");
-    fprintf(fp, "\'OK-+++\\c-OK\'    ATH\n");
-    fprintf(fp, "TIMEOUT        20\n");
-    fprintf(fp, "OK        AT+CREG?\n");
-    fprintf(fp, "TIMEOUT        10\n");
-    fprintf(fp, "OK        AT+CGATT=1\n");
-    fprintf(fp, "TIMEOUT        300\n");
-    fprintf(fp, "OK        AT+CGATT?\n");
-    fprintf(fp, "OK        AT+CFUN=1\n");
-    fprintf(fp, "TIMEOUT        5\n");
-    fprintf(fp, "OK        AT+CPIN?\n");
-    fprintf(fp, "TIMEOUT        5\n");
-    fprintf(fp, "OK        AT+CSQ\n");
-    fprintf(fp, "TIMEOUT        5\n");
-    fprintf(fp, "OK        AT+CGDCONT=1,\"IP\",\"%s\"\n", apn);
-    fprintf(fp, "OK        ATDT*99***1#\n");
-    fprintf(fp, "CONNECT \'\'\n");
-    fclose(fp);
-    fp = NULL;
-}
-
-void write_userpwd(unsigned char* user, unsigned char* pwd, unsigned char* apn) {
-    FILE* fp = NULL;
-    fp       = fopen("/etc/ppp/chap-secrets", "w");
-    fprintf(fp, "\"%s\" * \"%s\" *", user, pwd);
-    fclose(fp);
-
-    fp = fopen("/etc/ppp/pap-secrets", "w");
-    fprintf(fp, "\"%s\" * \"%s\" *", user, pwd);
-    fclose(fp);
-
-    fp = fopen("/etc/ppp/peers/cdma2000", "w");
-    fprintf(fp, "/dev/mux0\n");
-    fprintf(fp, "115200\n");
-    fprintf(fp, "modem\n");
-    fprintf(fp, "debug\n");
-    fprintf(fp, "nodetach\n");
-    fprintf(fp, "usepeerdns\n");
-    fprintf(fp, "noipdefault\n");
-    fprintf(fp, "defaultroute\n");
-    fprintf(fp, "user \"%s\"\n", user);
-    fprintf(fp, "0.0.0.0:0.0.0.0\n");
-    fprintf(fp, "ipcp-accept-local\n");
-    fprintf(fp, "connect 'chat -s -v -f /etc/ppp/cdma2000-connect-chat'\n");
-    fprintf(fp, "disconnect \"chat -s -v -f /etc/ppp/gprs-disconnect-chat\"\n");
-    fclose(fp);
-
-    fp = fopen("/etc/ppp/cdma2000-connect-chat", "w");
-    fprintf(fp, "TIMEOUT        5\n");
-    fprintf(fp, "ABORT        \"DELAYED\"\n");
-    fprintf(fp, "ABORT        \"BUSY\"\n");
-    fprintf(fp, "ABORT        \"ERROR\"\n");
-    fprintf(fp, "ABORT        \"NO DIALTONE\"\n");
-    fprintf(fp, "ABORT        \"NO CARRIER\"\n");
-    fprintf(fp, "'' AT\n");
-    fprintf(fp, "TIMEOUT        5\n");
-    fprintf(fp, "'OK-+++\c-OK' ATZ\n");
-    fprintf(fp, "TIMEOUT        20\n");
-    fprintf(fp, "OK        AT+CREG?\n");
-    fprintf(fp, "TIMEOUT        10\n");
-    fprintf(fp, "OK        AT$MYNETCON=0,\"USERPWD\",\"%s,%s\"\n", user, pwd);
-    fprintf(fp, "TIMEOUT        10\n");
-    fprintf(fp, "OK        AT$MYNETCON=0,\"APN\",\"%s\"\n", apn);
-    fprintf(fp, "TIMEOUT        10\n");
-    fprintf(fp, "OK        AT$MYNETCON=0,\"AUTH\",1\n");
-    fprintf(fp, "TIMEOUT        10\n");
-    fprintf(fp, "OK ATDT#777\n");
-    fprintf(fp, "CONNECT ''\n");
-    fclose(fp);
-}
 
 void printF203() {
     CLASS_f203 oif203 = {};
@@ -313,14 +231,17 @@ void EsamTest(int argc, char* argv[]) {
 	memset(ebuff,0,37);
 	INT32S fp_spi = -1;
 	INT8U i;
+	INT8U GetSerialNum_ESAM[] = { 0x55, 0x80, 0x36, 0x00, 0xFF, 0x00, 0x00, 0xB6};
 
     JProgramInfo = OpenShMem("ProgramInfo", sizeof(ProgramInfo), NULL);
 	fprintf(stderr,"fp_spi=%d ac_chip_type=%04x\n",fp_spi,JProgramInfo->ac_chip_type);
-    fp_spi = Esam_Init(fp_spi);
+    fp_spi = Esam_Init(fp_spi,ESAM_SPI_DEV_II);
 	fprintf(stderr,"Esam_Init fp_spi=%d\n",fp_spi);
 	if(fp_spi < 0)
 		fprintf(stderr,"\nesam device cannot open\n");
-	elen = Esam_GetTermiInfo(fp_spi, ebuff);
+
+	elen = Esam_WriteThenRead(fp_spi, (INT8U*)GetSerialNum_ESAM, 8, ebuff);
+
 	if(elen > 0)
 	{
 		fprintf(stderr,"\n esam 信息如下:\n");

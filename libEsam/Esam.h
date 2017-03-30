@@ -154,10 +154,10 @@ typedef struct
 	INT8U MAC[10];
 }Esam_MAC_RN_NO;//抄读电表时，上报报文解析，用于参数传递
 
-INT32S Esam_Init(INT32S fd);
+INT32S Esam_Init(INT32S fd, INT8U* spipath);
 void Esam_Clear(INT32S fd) ;
-INT32S Esam_WriteThenRead(INT32S fd, INT8U* Tbuf, INT8U Tlen, INT8U* Rbuf);
-void Esam_WriteToChip(INT32S fd, INT8U* Tbuf, INT8U Tlen);
+INT32S Esam_WriteThenRead(INT32S fd, INT8U* Tbuf, INT16U Tlen, INT8U* Rbuf);
+void Esam_WriteToChip(INT32S fd, INT8U* Tbuf, INT16U Tlen);
 void Esam_ReadFromChip(INT32S fd, INT8U* Rbuf, INT8U Rlen);
 INT16S Esam_ErrMessageCheck(INT8U *RBuf);
 INT32U CharToINT32U(INT8U *Buf);
