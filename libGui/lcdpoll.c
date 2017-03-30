@@ -145,10 +145,21 @@ FP64 get_itemdata(LcdDataItem *item, int size, int did, int decimal){
 
 int get_itemdata1(LcdDataItem *item, int size, int did, FP64 *dval, int decimal){
 	int item_index, flg=0;
+	INT8U i = 0,len = 0;
+	union{
+		INT32U vval;
+		INT8U vval_bin[4];
+	}vval_int32;
+	vval_int32.vval = 0;
+	len = sizeof(vval_int32.vval_bin);
 	item_index = finddataitem(item, size, did);
 	if(item_index>=0){
 		if(item[item_index].val[0]!=0xee && item[item_index].val[0]!=0xef){
-			*dval = bcd2double((INT8U*)item[item_index].val,  sizeof(item[item_index].val), decimal, positive);
+			for(i=0;i < len;i++){
+				vval_int32.vval_bin[len-i-1] = item[item_index].val[i];
+			}
+			*dval = vval_int32.vval%100*0.01+vval_int32.vval/100;
+//			*dval = bcd2double((INT8U*)item[item_index].val,  sizeof(item[item_index].val), decimal, positive);
 			flg = 1;
 		}
 	}

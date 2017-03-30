@@ -621,6 +621,7 @@ int requestDataBlock(CLASS_6001* cldno, INT8S *req_mq_name, INT32U cmd, int msg_
 		if(1 == p_Proxy_Msg_Data->done_flag)
 		{
 			//数据写入全局变量成功，跳出
+			fprintf(stderr,"\ngui: -------------cur p_Proxy_Msg_Data->done_flag = %d\n",p_Proxy_Msg_Data->done_flag);
 			result = 1;
 			break;
 		}
@@ -698,6 +699,7 @@ int requestdata_485_ZB_Block(CLASS_6001* cldno, INT8U *mq_name, int msg_num, Lcd
 	bzero(msgbuf,sizeof(msgbuf));
 //	bzero(&msg_real,sizeof(Proxy_Msg));
 	result = requestDataBlock(cldno,(INT8S*)mq_name,PROXY,msg_num,40,msgbuf);
+//	fprintf(stderr,"\ngui: -------------cur rev msg from 485 result = %d\n",result);
 	if(result > 0)
 	{
 		item[0].index = 1;
