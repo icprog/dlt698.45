@@ -11,6 +11,7 @@
 #include "../include/ParaDef.h"
 #include "../include/Objectdef.h"
 #include "../libBase/PublicFunction.h"
+#include "../libMq/libmmq.h"
 #include "../include/Shmem.h"
 #define PROXY 1
 #define PosPt_All_Id 117
@@ -18,6 +19,9 @@
 #define PosPt_Rate2_Id 119
 #define PosPt_Rate3_Id 120
 #define PosPt_Rate4_Id 121
+#define DATA_INIT 1
+#define EVENT_INIT 2
+#define DEMAND_INIT 3
 typedef enum
 {
 	unknown,Dl97,Dl07,Dl698,Cj188
