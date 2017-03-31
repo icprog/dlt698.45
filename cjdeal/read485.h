@@ -11,7 +11,7 @@
 #include "cjsave.h"
 #include "libmmq.h"
 
-
+#include "show_ctrl.h"
 #define BUFFSIZE 256
 #define DATA_CONTENT_LEN 500
 #define NUM_07DI_698OAD 100
@@ -58,9 +58,11 @@ typedef struct
 
 extern void read485_proccess();
 
-mqd_t mqd_485_main;
 mqd_t mqd_485_1_task;
 mqd_t mqd_485_2_task;
+struct mq_attr attr_485_main;
+struct mq_attr attr_485_1_task;
+struct mq_attr attr_485_2_task;
 
 INT32S comfd4851;
 INT32S comfd4852;

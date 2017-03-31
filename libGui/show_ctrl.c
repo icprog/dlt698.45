@@ -153,6 +153,7 @@ void ProgramInfo_register(ProgramInfo* JProgramInfo)
 {
 	p_JProgramInfo = JProgramInfo;
 }
+
 void Proxy_Msg_Data_register(Proxy_Msg* Proxy_Msg_Data)
 {
 	p_Proxy_Msg_Data = Proxy_Msg_Data;

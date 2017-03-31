@@ -182,10 +182,10 @@ INT32S UnitParse(INT8U* source,INT8U* dest,INT8U type)
   *mac值传入上层函数，暂时用不到
   *输出：retData长度
   **********************************************************************/
- INT32S secureDecryptDataDeal(INT8U* apdu)
+ INT32S secureDecryptDataDeal( INT32S fd,INT8U* apdu)
  {
 	 INT32S ret=0;
-	 INT16U appLen = GetDataLength(&apdu[2]);//计算应用数据单元长度
+	 INT16U appLen = GetDataLength(&apdu[2]);//计算应用数据单元长度(包括长度字符)
 	 INT8U tmpbuff[2048];
 	 if(appLen<=0) return -100;
 	 //fprintf(stderr,"secureDecryptDataDeal appLen = %d\n",appLen);
@@ -197,10 +197,11 @@ INT32S UnitParse(INT8U* source,INT8U* dest,INT8U type)
 			 memcpy(secureRN,&apdu[2+appLen+1],apdu[2+appLen+1]+1);//包括第一字节长度
 			 ret=appLen;
 		 }
-			 //ret =  Esam_GetTerminalInfo(fd,&apdu[2+appLen+1],&apdu[2],MAC);//最后+1是数据验证信息标识
 	 }
-	 else if(apdu[2+appLen]==0x00 || apdu[2+appLen]==0x03)//TODO:处理明文状态下，收到SID/SID_MAC异常情况
+	 else if(apdu[2+appLen]==0x00 || apdu[2+appLen]==0x03)//处理明文状态下，收到SID/SID_MAC异常情况
 	 {
+		 if(secureCheckDataSidMac(fd,apdu,appLen)<=0)//校验mac失败，此报文不作解析
+			 return -102;
 		 ret=appLen;
 	 }
 	 else
@@ -231,6 +232,25 @@ INT32S UnitParse(INT8U* source,INT8U* dest,INT8U type)
 //		 fprintf(stderr,"%02x ",secureRN[i]);
 //	 fprintf(stderr,"\n");
 	 return ret;
+ }
+ //主站下发明文+sid/sid_mac时，需要将明文和sid放入esam芯片检验正确行
+ //输入:apdu明文开始地址，appLen明文长度(包括长度字符，外面计算好，此处不再计算)
+ //返回，正数即明文长度，因为esam返回是明文，主站下发的也是明文，直接使用主站下发明文，不再需要esam返回的数据，只作正确与否的判断
+ INT32S secureCheckDataSidMac( INT32S fd,INT8U* apdu, INT16U appLen)
+ {
+	 //apdu[2+appLen]位置，一定是00或03，外面已作判断
+	 SID_MAC sidmac;
+	 INT32S tmplen=0;
+	 INT8U retData[2048];
+	 tmplen = UnitParse(&apdu[2+appLen+1],(INT8U*)&sidmac,0x01);//解析SID部分
+	 if(tmplen<=0) return -101;
+	 if(apdu[2+appLen]==0x00)
+		{
+			tmplen = UnitParse(&apdu[2+appLen+1+tmplen],sidmac.mac,0x02);//解析MAC部分
+			if(tmplen<=0) return -102;//
+		}
+	 tmplen = Esam_SIDTerminalCheck(fd,sidmac,&apdu[2],retData);
+	 return tmplen;
  }
  //获取ESAM主站/终端证书   证书都是大于1000字节，此处按照大于1000,2个字节组织上送报文
  	//ccieFlag证书标识  0x0C主站证书   0x0A终端证书
@@ -506,12 +526,14 @@ INT16S compose_DataAndMac( INT32S fd,INT8U* SendApdu,INT16U Length)
 	 INT8U bytelen[3];
 	 INT8U BuffTmp[2048];
 	 INT16S retLen=0;
+	 INT16S esamRet=0;
 	 BuffTmp[0]=0x90;//安全传输应答标识
+	 //fprintf(stderr,"compose_DataAndMac Length = %d\n",Length);
 	 if(SendApdu[0] == 133)//读取的上报
-		 retLen = Esam_GetTerminalInfo(fd,secureRN,SendApdu,Length,esamBuff);
+		 esamRet = Esam_GetTerminalInfo(fd,secureRN,SendApdu,Length,esamBuff);
 	 else
-		 retLen = Esam_SIDResponseCheck(fd,0x11,SendApdu,Length,esamBuff);
-	 if(retLen>0)//正常返回4字节MAC
+		 esamRet = Esam_SIDResponseCheck(fd,0x11,SendApdu,Length,esamBuff);
+	 if(esamRet>0)//正常返回4字节MAC
 	 {
 		 BuffTmp[1]=0x00;//明文传输标识
 		 retLen = GetLengthByte(Length,bytelen);
@@ -523,7 +545,7 @@ INT16S compose_DataAndMac( INT32S fd,INT8U* SendApdu,INT16U Length)
 		 if(SendApdu[0] == 133)//读取的上报
 			 memcpy(&BuffTmp[2+retLen+Length+3],esamBuff,4);//复制mac(终端读取)
 		 else
-			 memcpy(&BuffTmp[2+retLen+Length+3],&esamBuff[retLen-4],4);//非终端读取（esam返回的是明文加mac，此处需验证）
+			 memcpy(&BuffTmp[2+retLen+Length+3],&esamBuff[esamRet-4],4);//非终端读取（esam返回的是明文加mac，此处需验证）
 		 memcpy(SendApdu,BuffTmp,2+retLen+Length+7);//复制回SendApdu
 		 return 2+retLen+Length+7;
 	 }

@@ -875,4 +875,113 @@ INT32S asc2bcd(INT8U* asc, INT32U len, INT8U* bcd, ORDER order) {
     return len / 2;
 }
 
+void get_local_time(char* buf, INT32U bufSize)
+{
+	TS timeinfo = {};
+
+	if ((bufSize < 20) || (NULL == buf))
+		return;
+
+	TSGet(&timeinfo);
+	sprintf(buf, "%04d-%02d-%02d %02d:%02d:%02d",
+			timeinfo.Year ,	timeinfo.Month, timeinfo.Day,
+			timeinfo.Hour,	timeinfo.Minute, timeinfo.Sec);
+}
+
+void debug(const char* file, const char* func, INT32U line, const char *fmt, ...)
+{
+	va_list ap;
+	char bufTime[20] = { 0 };
+	get_local_time(bufTime, sizeof(bufTime));
+	fprintf(stderr, "[%s][%s][%s()][%d]: ", bufTime, file, func, line);
+	va_start(ap, fmt);
+	vfprintf(stderr, fmt, ap);
+	va_end(ap);
+	fprintf(stderr, "\n");
+}
+
+/*
+ * 功能: 将帧字符串转化为16进制字节串 *
+ * @str: 帧字符串
+ * @buf: 目标字节串
+ * @bufSize: 目标字节串原本的长度
+ */
+void readFrm(char* str,  INT8U* buf, INT32U* bufSize)
+{
+	int state=0;//0, 初始状态; 1, 空格状态; 2, 字节高状态; 3, 字节低状态; 4, 错误状态.
+	INT8U high = 0;
+	INT8U low = 0;
+	INT32U destLen = 0;//已扫描过的字节个数
+	char* p = str;
+	INT8U* pBuf = buf;
+
+	if(bufSize == NULL || buf == NULL || str == NULL)
+		return;
+
+	while(*p != '\0') {
+		 if( !( isHex(*p) || isDelim(*p)) ) {
+			 state  = 4;
+		 	 goto final;
+		 }
+
+		switch(state) {
+		case 0://init state
+			if (isDelim(*p)) {
+				state  = 1;
+			} else if (isHex(*p)) {
+				high =  *p;
+				state  = 2;
+			}
+			break;
+		case 1://space state
+			if (isHex(*p)) {
+				high =  *p;
+				state  = 2;
+			}
+			break;
+		case 2://high state
+			if (isDelim(*p)) {
+				state  = 4;
+				goto final;
+			}
+
+			if (destLen < (*bufSize)) {
+				low = *p;
+				high = ASCII_TO_HEX(high);
+				low = ASCII_TO_HEX(low);
+
+				*pBuf = (high<<4 | low);
+				pBuf++;
+				destLen++;
+				high = low = 0;
+				state = 3;
+			} else {
+				goto final;
+			}
+			break;
+		case 3://low state
+			if (isHex(*p)) {
+				state  = 4;
+				goto final;
+			} else {
+				state = 1;
+			}
+			break;
+		default:
+			goto final;
+		}
+
+		p++;
+	}
+final:
+	if(state == 4 || state == 2) {//高位状态和非法状态均为不可接受状态
+		DEBUG_TIME_LINE("存在非法字符, 或字符串格式非法\n");
+		 if(destLen > 0) {
+			 memset(buf, 0, destLen);
+			 destLen = 0;
+		 }
+	}
+	*bufSize = destLen;
+}
+
 #endif /*JPublicFunctionH*/

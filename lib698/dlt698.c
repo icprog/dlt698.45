@@ -41,7 +41,7 @@ INT8U securetype;  //安全等级类型  01明文，02明文+MAC 03密文  04密
 INT8U secureRN[20];//安全认证随机数，主站下发，终端回复时需用到，esam计算使用
 static INT8U	client_addr=0;
 PIID piid_g={};
-
+INT8U broadcast=0;
 /**************************************
  * 函数功能：DL/T698.45 状态机
  * 参数含义：
@@ -711,7 +711,7 @@ INT16S doSecurityRequest(INT8U* apdu)//
 	 //fprintf(stderr,"in doSecurityRequest\n");
 	 if(apdu[1]==0x00)//明文应用数据处理
 	 {
-		 retLen = secureDecryptDataDeal(apdu);//传入安全等级
+		 retLen = secureDecryptDataDeal(fd,apdu);//传入安全等级
 		 apdu=&apdu[2];
 	 }
 	 else if(apdu[1]==0x01)//密文应用数据处理
@@ -1280,6 +1280,7 @@ int ProcessData(CommBlock *com)
 	comfd = com->phy_connect_fd;
 	hcsok = CheckHead( Rcvbuf ,&csinfo);
 	com->taskaddr = csinfo.ca;
+	broadcast = csinfo.sa_type;
 	fcsok = CheckTail( Rcvbuf ,csinfo.frame_length);
 	securetype = 0x00;
 	if ((hcsok==1) && (fcsok==1))

@@ -264,6 +264,17 @@ int main(int argc, char* argv[])
     	analyTaskData(argc,argv);
     	return EXIT_SUCCESS;
     }
+
+    if (strcmp("cs", argv[1]) == 0) {
+    	getFrmCS(argc,argv);
+    	return EXIT_SUCCESS;
+    }
+
+    if (strcmp("fcs", argv[1]) == 0) {
+    	getFrmFCS(argc,argv);
+    	return EXIT_SUCCESS;
+    }
+
     prthelp();
     return EXIT_SUCCESS;
 }

@@ -6,6 +6,7 @@
 #include <linux/if.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <stdlib.h>
 #include "comm.h"
 #include "lcd_menu.h"
 #include "lcd_ctrl.h"
@@ -15,6 +16,7 @@
 #include "mutils.h"
 #include "gui.h"
 #include "show_ctrl.h"
+//extern ProgramInfo* p_JProgramInfo;
 //extern void set_time_show_flag(INT8U value);
 //#include "libhd.h"
 #pragma message("\n\n************************************\n CCTT_I__Compiling............\n************************************\n")
@@ -54,31 +56,32 @@ Menu menu[]={//必须是一级菜单，然后二级菜单。。。。
 	{{level1,"终端管理与维护", 	NULL, 				MENU_NOPASSWD},		NULL},
 		//二级菜单 终端管理与维护子菜单
 		{{level2,"1.终端版本", 	menu_jzqstatus, 	MENU_NOPASSWD},		NULL},//11
-		{{level2,"2.终端数据", 	NULL, 				MENU_NOPASSWD},		NULL},
-			////三级菜单 集中器数据子菜单
-			{{level3,"1.遥信状态", 	menu_yxstatus, 		MENU_NOPASSWD},		NULL},
-			{{level3,"2.事件信息", 	NULL,		 		MENU_NOPASSWD},		NULL},
-				///////四级菜单 事件信息子菜单
-				{{level4,"1.重要事件", 	menu_impsoe, 		MENU_NOPASSWD},		NULL},
-				{{level4,"2.一般事件",	menu_norsoe,		MENU_NOPASSWD},		NULL},
-		{{level2,"3.终端管理", 	NULL, 				MENU_NOPASSWD},		NULL},
+//		{{level2,"2.终端数据", 	NULL, 				MENU_NOPASSWD},		NULL},
+//			////三级菜单 集中器数据子菜单
+//			{{level3,"1.遥信状态", 	menu_yxstatus, 		MENU_NOPASSWD},		NULL},
+//			{{level3,"2.事件信息", 	NULL,		 		MENU_NOPASSWD},		NULL},
+//				///////四级菜单 事件信息子菜单
+//				{{level4,"1.重要事件", 	menu_impsoe, 		MENU_NOPASSWD},		NULL},
+//				{{level4,"2.一般事件",	menu_norsoe,		MENU_NOPASSWD},		NULL},
+		{{level2,"2.终端管理", 	NULL, 				MENU_NOPASSWD},		NULL},
 			////三级菜单 终端管理子菜单
 			{{level3,"1.终端重启", 	menu_jzqreboot, 	MENU_ISPASSWD},		NULL},//111
 			{{level3,"2.数据初始化", 	menu_initjzqdata, 	MENU_ISPASSWD},		NULL},
-			{{level3,"3.参数初始化", 	menu_initjzqpara, 	MENU_ISPASSWD},		NULL},
-		{{level2,"4.现场调试", 	NULL, 				MENU_NOPASSWD},		NULL},
+			{{level3,"3.事件初始化", 	menu_initjzqevent, 	MENU_ISPASSWD},		NULL},
+			{{level3,"4.需量初始化", 	menu_initjzqdemand, 	MENU_ISPASSWD},		NULL},
+		{{level2,"3.现场调试", 	NULL, 				MENU_NOPASSWD},		NULL},
 		////三级菜单 现场调试子菜单
 			{{level3,"1.本地IP设置",	menu_termip, 		MENU_NOPASSWD},		NULL},//111
 			{{level3,"2.GPRSIP查看",	menu_gprsip, 		MENU_NOPASSWD},		NULL},//111
 #if 1//(defined(NINGXIA)||defined(SHANDONG))
-			{{level3,"3.抄表结果查看",menu_readmeter_info,		MENU_NOPASSWD},		NULL},
-			{{level3,"4.液晶对比度", 	menu_lcdcontrast, 	MENU_NOPASSWD},		NULL},
-			{{level3,"5.485-2设置",menu_485func_change,		MENU_NOPASSWD},		NULL},
-			{{level3,"6.时钟电池", 	menu_rtcpower, 		MENU_NOPASSWD},		NULL},//0
-			{{level3,"7.载波模块信息",	menu_zb_info,		MENU_NOPASSWD},		NULL},//0
-			{{level3,"8.GPRS模块信息",menu_gprs_info,		MENU_NOPASSWD},		NULL},//0
-			{{level3,"9.交采芯片信息",menu_ac_info,		MENU_NOPASSWD},		NULL},//0
-			{{level3,"10.配置设置",menu_TorF_info,		MENU_NOPASSWD},		NULL},
+//			{{level3,"3.抄表结果查看",menu_readmeter_info,		MENU_NOPASSWD},		NULL},
+			{{level3,"3.液晶对比度", 	menu_lcdcontrast, 	MENU_NOPASSWD},		NULL},
+//			{{level3,"5.485-2设置",menu_485func_change,		MENU_NOPASSWD},		NULL},
+//			{{level3,"6.时钟电池", 	menu_rtcpower, 		MENU_NOPASSWD},		NULL},//0
+//			{{level3,"7.载波模块信息",	menu_zb_info,		MENU_NOPASSWD},		NULL},//0
+//			{{level3,"8.GPRS模块信息",menu_gprs_info,		MENU_NOPASSWD},		NULL},//0
+			{{level3,"4.交采芯片信息",menu_ac_info,		MENU_NOPASSWD},		NULL},
+			{{level3,"5.配置设置",menu_TorF_info,		MENU_NOPASSWD},		NULL},
 #else
 			{{level3,"3.抄表结果查看",menu_readmeter_info,		MENU_NOPASSWD},		NULL},
 			{{level3,"4.液晶对比度", 	menu_lcdcontrast, 	MENU_NOPASSWD},		NULL},
@@ -88,19 +91,19 @@ Menu menu[]={//必须是一级菜单，然后二级菜单。。。。
 			{{level3,"8.交采芯片信息",menu_ac_info,		MENU_NOPASSWD},		NULL},
 			{{level3,"9.配置设置",menu_TorF_info,		MENU_NOPASSWD},		NULL},
 #endif
-		{{level2,"5.页面设置", 	menu_pagesetup, 	MENU_NOPASSWD},		NULL},
-		{{level2,"6.手动抄表", 	NULL, 				MENU_NOPASSWD},		NULL},
-			//////三级菜单 手动抄表子菜单
-			{{level3,"1.根据表号抄表", menu_readmeterbycldno, 	MENU_NOPASSWD},	NULL},
-			{{level3,"2.根据表地址抄表",menu_readmeterbycldaddr,MENU_NOPASSWD},	NULL},
-		{{level2,"7.载波管理",	NULL, 				MENU_NOPASSWD},		NULL},
-		/////三级菜单 载波抄表子菜单
-			{{level3,"1.重新抄表", 	menu_zb_begin, 		MENU_NOPASSWD},		NULL},
-			{{level3,"2.暂停抄表",	menu_zb_stop,		MENU_NOPASSWD},		NULL},
-			{{level3,"3.恢复抄表",	menu_zb_resume,		MENU_NOPASSWD},		NULL},
-		{{level2,"8.波特率设置",	NULL, 				MENU_NOPASSWD},		NULL},
-			{{level3,"1.红外口波特率", 	menu_vifr_set, 		MENU_NOPASSWD},		NULL},
-			{{level3,"2.RS232波特率", 	menu_rs232_set, 		MENU_NOPASSWD},		NULL},
+//		{{level2,"5.页面设置", 	menu_pagesetup, 	MENU_NOPASSWD},		NULL},
+//		{{level2,"6.手动抄表", 	NULL, 				MENU_NOPASSWD},		NULL},
+//			//////三级菜单 手动抄表子菜单
+//			{{level3,"1.根据表号抄表", menu_readmeterbycldno, 	MENU_NOPASSWD},	NULL},
+//			{{level3,"2.根据表地址抄表",menu_readmeterbycldaddr,MENU_NOPASSWD},	NULL},
+//		{{level2,"7.载波管理",	NULL, 				MENU_NOPASSWD},		NULL},
+//		/////三级菜单 载波抄表子菜单
+//			{{level3,"1.重新抄表", 	menu_zb_begin, 		MENU_NOPASSWD},		NULL},
+//			{{level3,"2.暂停抄表",	menu_zb_stop,		MENU_NOPASSWD},		NULL},
+//			{{level3,"3.恢复抄表",	menu_zb_resume,		MENU_NOPASSWD},		NULL},
+//		{{level2,"8.波特率设置",	NULL, 				MENU_NOPASSWD},		NULL},
+//			{{level3,"1.红外口波特率", 	menu_vifr_set, 		MENU_NOPASSWD},		NULL},
+//			{{level3,"2.RS232波特率", 	menu_rs232_set, 		MENU_NOPASSWD},		NULL},
 #ifdef ZHEJIANG
 		{{level2,"9.手动搜表", 	menu_manualsearch, MENU_NOPASSWD},		NULL},
 #endif
@@ -307,7 +310,7 @@ int sendMsg(mqd_t mqd, INT32U cmd, INT8S *sendbuf, INT32U bufsiz)
 {
 	int ret;
 	mmq_head mqh;
-//	mqh.pid = vgui;
+	mqh.pid = cjgui;
 	mqh.cmd = cmd;
 	mqh.bufsiz = bufsiz;
 	ret = mmq_put(mqd, 1, mqh, sendbuf, 0);
@@ -618,6 +621,7 @@ int requestDataBlock(CLASS_6001* cldno, INT8S *req_mq_name, INT32U cmd, int msg_
 		if(1 == p_Proxy_Msg_Data->done_flag)
 		{
 			//数据写入全局变量成功，跳出
+			fprintf(stderr,"\ngui: -------------cur p_Proxy_Msg_Data->done_flag = %d\n",p_Proxy_Msg_Data->done_flag);
 			result = 1;
 			break;
 		}
@@ -695,6 +699,7 @@ int requestdata_485_ZB_Block(CLASS_6001* cldno, INT8U *mq_name, int msg_num, Lcd
 	bzero(msgbuf,sizeof(msgbuf));
 //	bzero(&msg_real,sizeof(Proxy_Msg));
 	result = requestDataBlock(cldno,(INT8S*)mq_name,PROXY,msg_num,40,msgbuf);
+//	fprintf(stderr,"\ngui: -------------cur rev msg from 485 result = %d\n",result);
 	if(result > 0)
 	{
 		item[0].index = 1;
@@ -769,6 +774,7 @@ void show_realdatabycld(int pindex){
 		mqcount = requestdata_485_ZB_Block(cur_pindex,(INT8U*)PROXY_485_MQ_NAME,5, item);
 	}
 	show_realdata(cur_pindex->sernum, item, mqcount);
+	memset(p_Proxy_Msg_Data,0,sizeof(Proxy_Msg));
 }
 
 int gui_mp_compose(CLASS_6001 **ppgui_mp){
@@ -1005,10 +1011,6 @@ void showallmeter(void (*pfun)(int cldno))
 				begin_cldno++;
 			break;
 		case OK:
-			//TODO:交采请求
-//			if(ParaAll->f10.para_mp[(gui_mp+cur_cldno-1)->iidnex-1].Port == PORT_JC)
-//				presskey_ok_acs = OK;
-//			getDayFilePath((gui_mp+cur_cldno-1)->mpno,Tcurr_tm_his.Year,Tcurr_tm_his.Month,Tcurr_tm_his.Day,(INT8U*)DongJie_FileName,100);
 			pfun((int)(gui_mp+cur_cldno-1));
 			gui_mp_free(gui_mp);
 			cld_max = gui_mp_compose(&gui_mp);
@@ -1016,7 +1018,6 @@ void showallmeter(void (*pfun)(int cldno))
 				msgbox_label((char *)"未配置测量点", CTRL_BUTTON_OK);
 				return;
 			}
-//			fprintf(stderr,"\n 测量点总数为：%d",cld_max);
 			break;
 		case ESC:
 			gui_mp_free(gui_mp);
@@ -1037,14 +1038,12 @@ void showallmeter(void (*pfun)(int cldno))
 					continue;
 				memset(str_cld, 0, 50);
 				memset(addr, 0, sizeof(addr));
-//				memcpy(addr, &(gui_mp+i-1)->basicinfo.addr.addr[2], (gui_mp+i-1)->basicinfo.addr.addr[1]+1);
 				if((gui_mp+i)->sernum == 0) continue;
 
 				addr_len = (gui_mp+i)->basicinfo.addr.addr[1]+1;
 
 				bcd2str(&(gui_mp+i)->basicinfo.addr.addr[2],(INT8U*)addr,addr_len,sizeof(addr),positive);
 				sprintf(str_cld, "  %04d       %s",(gui_mp+i)->sernum, addr);
-//				fprintf(stderr,"\n-------index = %d--addr = %s-----\n",(gui_mp+i)->sernum, addr);
 				pos.x = rect_Client.left;
 				pos.y = rect_Client.top + (i+1)*FONTSIZE*2 + 2;
 				gui_textshow(str_cld, pos, LCD_NOREV);
@@ -2453,26 +2452,71 @@ void menu_debug()
 	}
 	return;
 }
+void gui_clearEvent()
+{
+	//事件类数据清除
+	INT8U*	eventbuff=NULL;
+	int 	saveflg=0,i=0;
+	int		classlen=0;
+	Class7_Object	class7={};
+
+	for(i=0; i < sizeof(event_class_len)/sizeof(EVENT_CLASS_INFO);i++)
+	{
+		if(event_class_len[i].oi) {
+			classlen = event_class_len[i].classlen;
+			eventbuff = (INT8U *)malloc(classlen);
+			if(eventbuff!=NULL) {
+				memset(eventbuff,0,classlen);
+				fprintf(stderr,"i=%d, oi=%04x, size=%d\n",i,event_class_len[i].oi,classlen);
+				saveflg = 0;
+				saveflg = readCoverClass(event_class_len[i].oi,0,(INT8U *)eventbuff,classlen,event_para_save);
+				fprintf(stderr,"saveflg=%d oi=%04x\n",saveflg,event_class_len[i].oi);
+//				int		j=0;
+//				INT8U	val;
+//				for(j=0;j<classlen;j++) {
+//					val = (INT8U )eventbuff[j];
+//					fprintf(stderr,"%02x ",val);
+//				}
+//				fprintf(stderr,"\n");
+				if(saveflg) {
+					memcpy(&class7,eventbuff,sizeof(Class7_Object));
+					fprintf(stderr,"修改前：i=%d,oi=%x,class7.crrentnum=%d\n",i,event_class_len[i].oi,class7.crrentnum);
+					if(class7.crrentnum!=0) {
+						class7.crrentnum = 0;			//清除当前记录数
+						memcpy(eventbuff,&class7,sizeof(Class7_Object));
+						saveflg = saveCoverClass(event_class_len[i].oi,0,eventbuff,classlen,event_para_save);
+					}
+				}
+				free(eventbuff);
+				eventbuff=NULL;
+			}
+		}
+	}
+	system("rm -rf /nand/event/record");
+	system("rm -rf /nand/event/current");
+}
 
 void jzq_reset(int type_init){
-//	mqd_t mqd;
-//	INT8U sendBuf[2];
-//	memset(sendBuf, 0, 2);
-//	sendBuf[0] = type_init;
-//	mqd =  createMsg((INT8S*)COM_VMAIN_MQ, O_WRONLY);
-//	if(mqd<0)
-//		return;
-//	if(sendMsg(mqd, SAVE_REBOOT, (INT8S*)sendBuf, 1)<0){
-//		colseMsg(mqd);
-//		dbg_prt( "\n gprs_REV_MQ:mq_open_ret=%d  error!!!",mqd);
-//		return;
-//	}
-//	colseMsg(mqd);
+	switch(type_init){
+	case DATA_INIT:
+		system("rm -rf /nand/task");
+		system("rm -rf /nand/demand");
+		gui_clearEvent();
+		break;
+	case EVENT_INIT:
+		gui_clearEvent();
+		break;
+	case DEMAND_INIT:
+		system("rm -rf /nand/demand");
+		break;
+	default :
+		break;
+	}
 }
 //初始化集中器数据
 
 void menu_initjzqdata(){
-//	jzq_reset(F2_DATA_INIT);
+	jzq_reset(DATA_INIT);
 }
 #ifdef HUBEI
 void menu_initjzqparaf3()//恢复出厂设置
@@ -2482,9 +2526,14 @@ void menu_initjzqparaf3()//恢复出厂设置
 #endif
 //初始化集中器参数
 
-void menu_initjzqpara(){
-//	jzq_reset(F4_PARA_DATA_INIT);
+void menu_initjzqevent(){
+	jzq_reset(EVENT_INIT);
 }
+
+void menu_initjzqdemand(){
+	jzq_reset(DEMAND_INIT);
+}
+
 int pagesetup_showlabel(int item_no){
 	char str[100];
 	Point label_pos;
@@ -4719,7 +4768,7 @@ void menu_gprs_info(){
 //    char str[50], substr[10];
 //    Point pos;
 //    gui_clrrect(rect_Client);
-//    fprintf(stderr, "\n ------GPRS模块信息-----------");
+////    fprintf(stderr, "\n ------GPRS模块信息-----------");
 //    gui_setpos(&pos, rect_Client.left+8*FONTSIZE, rect_Client.top+3);
 //    memset(str,0, 50);
 //    gui_textshow((char*)"GPRS模块信息", pos, LCD_NOREV);
@@ -4993,53 +5042,52 @@ void menu_login_stat(){
 #endif
 
 void menu_ac_info(){
-//	INT32U acChipType;
-//	INT32U acWireType;
-//    char str[50], substr[30];
-//    Point pos;
-//    gui_clrrect(rect_Client);
-//    fprintf(stderr, "\n ------交采芯片信息-----------");
-//    gui_setpos(&pos, rect_Client.left+8*FONTSIZE, rect_Client.top+3);
-//    memset(str,0, 50);
-//    gui_textshow((char*)"交采芯片信息", pos, LCD_NOREV);
-//    pos.x = rect_Client.left + FONTSIZE*5;
-//    memset(substr, 0, 30);
-//    //==0:	RN8029芯片，III型集中器
-//    //==1： ATT7022E芯片
-//    //==0x7022E0:	ATT7022E-D芯片
-//    acChipType = shmm_getdevstat()->ac_chip_type;
-//    if(0 == acChipType)
-//    	sprintf(substr,"RN8029");
-//    else if(1 == acChipType)
-//    	sprintf(substr,"ATT7022E");
-//    else if(0x7022E0 == acChipType)
-//    	sprintf(substr,"ATT7022E-D");
-//    else
-//    	sprintf(substr,"未知芯片型号");
-//    pos.y += FONTSIZE*4+3;
-//    sprintf(str,"芯片型号:%s", substr);
-//    gui_textshow(str, pos, LCD_NOREV);
-//    pos.y += FONTSIZE*2+3;
-//    memset(str,0, 50);
-//    bzero(substr,30);
-//    //接线方式，0x1200：三相三，0x0600：三相四
-//    acWireType = shmm_getdevstat()->WireType;
-//    if(0x1200 == acWireType)
-//       	sprintf(substr,"三相三线");
-//    else if(0x0600 == acWireType)
-//    	sprintf(substr,"三相四线");
-//    else
-//    	sprintf(substr,"未知接线方式");
-//    sprintf(str,"接线方式:%s", substr);
-//    gui_textshow(str, pos, LCD_NOREV);
-//    set_time_show_flag(1);
-//	PressKey = NOKEY;
-//	while(g_LcdPoll_Flag==LCD_NOTPOLL){
-//		delay(300);
-//		if(PressKey==ESC)
-//			return;
-//		PressKey = NOKEY;
-//	}
+	INT32U acChipType;
+	INT32U acWireType;
+    char str[50], substr[30];
+    Point pos;
+    gui_clrrect(rect_Client);
+    gui_setpos(&pos, rect_Client.left+8*FONTSIZE, rect_Client.top+3);
+    memset(str,0, 50);
+    gui_textshow((char*)"交采芯片信息", pos, LCD_NOREV);
+    pos.x = rect_Client.left + FONTSIZE*5;
+    memset(substr, 0, 30);
+    //==0:	RN8029芯片，III型集中器
+    //==1： ATT7022E芯片
+    //==0x7022E0:	ATT7022E-D芯片
+    acChipType = p_JProgramInfo->ac_chip_type;
+    if(0 == acChipType)
+    	sprintf(substr,"RN8029");
+    else if(1 == acChipType)
+    	sprintf(substr,"ATT7022E");
+    else if(0x7022E0 == acChipType)
+    	sprintf(substr,"ATT7022E-D");
+    else
+    	sprintf(substr,"未知芯片型号");
+    pos.y += FONTSIZE*4+3;
+    sprintf(str,"芯片型号:%s", substr);
+    gui_textshow(str, pos, LCD_NOREV);
+    pos.y += FONTSIZE*2+3;
+    memset(str,0, 50);
+    bzero(substr,30);
+    //接线方式，0x1200：三相三，0x0600：三相四
+    acWireType = p_JProgramInfo->WireType;
+    if(0x1200 == acWireType)
+       	sprintf(substr,"三相三线");
+    else if(0x0600 == acWireType)
+    	sprintf(substr,"三相四线");
+    else
+    	sprintf(substr,"未知接线方式");
+    sprintf(str,"接线方式:%s", substr);
+    gui_textshow(str, pos, LCD_NOREV);
+    set_time_show_flag(1);
+	PressKey = NOKEY;
+	while(g_LcdPoll_Flag==LCD_NOTPOLL){
+		delay(300);
+		if(PressKey==ESC)
+			return;
+		PressKey = NOKEY;
+	}
 }
 
 void menu_TorF_info()
