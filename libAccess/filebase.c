@@ -503,15 +503,15 @@ INT8U fu_read_accoef(char *FileName, void *source, INT32U size)
 	int num, ret = 0;
 	INT16U *readcrc = (INT16U *) source;
 
-	fprintf(stderr,"FileName=%s\n",FileName);
+//	fprintf(stderr,"FileName=%s\n",FileName);
 	fp = fopen((const char*)FileName, "r");
 	if (fp != NULL )
 	{
 		num = fread(source, size, 1, fp);
-		fprintf(stderr,"read.num=%d,size=%d,reccrc=%04x\n",num,size,*readcrc);
+//		fprintf(stderr,"read.num=%d,size=%d,reccrc=%04x\n",num,size,*readcrc);
 		if (num == 1)
 		{			//读取了size字节数据
-			fprintf(stderr,"make_parity = %04x\n",make_parity_accoef(source, size));
+//			fprintf(stderr,"make_parity = %04x\n",make_parity_accoef(source, size));
 			if (make_parity_accoef(source, size) == *readcrc)
 			{
 				ret = 1;
@@ -523,7 +523,7 @@ INT8U fu_read_accoef(char *FileName, void *source, INT32U size)
 	{
 		ret = 0;
 	}
-	fprintf(stderr,"ret=%d\n",ret);
+//	fprintf(stderr,"ret=%d\n",ret);
 	return ret;
 }
 
@@ -662,7 +662,7 @@ INT8U block_file_sync(char *fname,void *blockdata,int size,int headsize,int inde
 	if(size%4==0)	sizenew = size+2;
 	else sizenew = size+(4-size%4)+2;
 
-	fprintf(stderr,"size=%d,sizenew=%d\n",size,sizenew);
+//	fprintf(stderr,"size=%d,sizenew=%d\n",size,sizenew);
 
 	blockdata1 = malloc(sizenew);
 	blockdata2 = malloc(sizenew);
@@ -689,7 +689,7 @@ INT8U block_file_sync(char *fname,void *blockdata,int size,int headsize,int inde
 	offset = headsize+sizenew*index;
 	ret1 = file_read(fname,blockdata1,sizenew,offset,readcrc1);
 	ret2 = file_read(fname2,blockdata2,sizenew,offset,readcrc2);
-	fprintf(stderr,"\ncrc1=%04x,crc2=%04x,ret1=%d,ret2=%d\n",*readcrc1,*readcrc2,ret1,ret2);
+//	fprintf(stderr,"\ncrc1=%04x,crc2=%04x,ret1=%d,ret2=%d\n",*readcrc1,*readcrc2,ret1,ret2);
 	if((*readcrc1 == *readcrc2) && (ret1==1) && (ret2==1))  {		//两个文件校验正确，并且校验码相等，返回 1
 //		fprintf(stderr,"正确\n");
 //		syslog(LOG_NOTICE," %s 校验正确 ",fname);

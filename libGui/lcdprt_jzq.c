@@ -5055,7 +5055,7 @@ void menu_ac_info(){
     //==0:	RN8029芯片，III型集中器
     //==1： ATT7022E芯片
     //==0x7022E0:	ATT7022E-D芯片
-    acChipType = p_JProgramInfo->ac_chip_type;
+    acChipType = p_JProgramInfo->dev_info.ac_chip_type;
     if(0 == acChipType)
     	sprintf(substr,"RN8029");
     else if(1 == acChipType)
@@ -5071,7 +5071,7 @@ void menu_ac_info(){
     memset(str,0, 50);
     bzero(substr,30);
     //接线方式，0x1200：三相三，0x0600：三相四
-    acWireType = p_JProgramInfo->WireType;
+    acWireType = p_JProgramInfo->dev_info.WireType;
     if(0x1200 == acWireType)
        	sprintf(substr,"三相三线");
     else if(0x0600 == acWireType)
