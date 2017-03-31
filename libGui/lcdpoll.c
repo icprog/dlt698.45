@@ -424,7 +424,7 @@ void LunXunShowPage3(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT8
 	gui_setpos(&pos, rect_Client.left+10*FONTSIZE, rect_Client.top+FONTSIZE);
 	gui_textshow((char *)"当前电压", pos, LCD_NOREV);
 	memset(str, 0, 100);
-	if(jprograminfo->WireType != 0x1200 && jprograminfo->WireType != 0x0600)//0x1200 三相三线接法 0x0600 三相四线接法
+	if(jprograminfo->dev_info.WireType != 0x1200 && jprograminfo->dev_info.WireType != 0x0600)//0x1200 三相三线接法 0x0600 三相四线接法
 	{
 		bzero(str,100);
 		sprintf((char*)str,"未知的接线方式");
@@ -434,7 +434,7 @@ void LunXunShowPage3(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT8
 		return;
 	}
 	bzero(str,100);
-	if(jprograminfo->WireType == 0x0600)
+	if(jprograminfo->dev_info.WireType == 0x0600)
 	{
 #ifdef JIANGSU
 		sprintf((char*)str,"A相电压% 9.1f V",jprograminfo->ACSRealData.Ua*1.0/U_COEF);
@@ -444,7 +444,7 @@ void LunXunShowPage3(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT8
 		gui_setpos(&pos, rect_Client.left+4*FONTSIZE, rect_Client.top+5*FONTSIZE);
 		gui_textshow((char*)str, pos, LCD_NOREV);
 	}
-	else if(jprograminfo->WireType == 0x1200)
+	else if(jprograminfo->dev_info.WireType == 0x1200)
 	{
 #ifdef JIANGSU
 		sprintf((char*)str,"    Uab% 9.1f V",jprograminfo->ACSRealData.Ua*1.0/U_COEF);
@@ -493,7 +493,7 @@ void LunXunShowPage4(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT8
 	gui_textshow((char *)"当前电压", pos, LCD_NOREV);
 	memset(str, 0, 100);
 	//fprintf(stderr,"接线方式：%02x",shmm_getdevstat()->WireType);
-	if(jprograminfo->WireType != 0x1200 && jprograminfo->WireType != 0x0600)
+	if(jprograminfo->dev_info.WireType != 0x1200 && jprograminfo->dev_info.WireType != 0x0600)
 	{
 		bzero(str,100);
 		sprintf((char*)str,"未知的接线方式");
@@ -503,7 +503,7 @@ void LunXunShowPage4(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT8
 		return;
 	}
 	memset(str, 0, 100);
-	if(jprograminfo->WireType == 0x0600)
+	if(jprograminfo->dev_info.WireType == 0x0600)
 	{
 #ifdef JIANGSU
 		sprintf((char*)str,"B相电压% 9.1f V",jprograminfo->ACSRealData.Ub*1.0/U_COEF);
@@ -513,7 +513,7 @@ void LunXunShowPage4(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT8
 		gui_setpos(&pos, rect_Client.left+4*FONTSIZE, rect_Client.top+5*FONTSIZE);
 		gui_textshow((char*)str, pos, LCD_NOREV);
 	}
-	else if(jprograminfo->WireType == 0x1200)
+	else if(jprograminfo->dev_info.WireType == 0x1200)
 	{
 #ifdef JIANGSU
 		sprintf((char*)str,"    Ubc% 9.1f V",jprograminfo->ACSRealData.Uc*1.0/U_COEF);
@@ -561,7 +561,7 @@ void LunXunShowPage5(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT8
 	gui_textshow((char *)"当前电压", pos, LCD_NOREV);
 	memset(str, 0, 100);
 	//fprintf(stderr,"接线方式：%02x",shmm_getdevstat()->WireType);
-	if(jprograminfo->WireType != 0x1200 && jprograminfo->WireType != 0x0600)
+	if(jprograminfo->dev_info.WireType != 0x1200 && jprograminfo->dev_info.WireType != 0x0600)
 	{
 		bzero(str,100);
 		sprintf((char*)str,"未知的接线方式");
@@ -571,7 +571,7 @@ void LunXunShowPage5(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT8
 		return;
 	}
 	memset(str, 0, 100);
-	if(jprograminfo->WireType == 0x0600)
+	if(jprograminfo->dev_info.WireType == 0x0600)
 	{
 #ifdef JIANGSU
 		sprintf((char*)str,"C相电压% 9.1f V",jprograminfo->ACSRealData.Uc*1.0/U_COEF);
@@ -618,7 +618,7 @@ void LunXunShowPage6(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT8
 	gui_textshow((char *)"当前电流", pos, LCD_NOREV);
 	bzero(str,100);
 	//fprintf(stderr,"接线方式：%02x",shmm_getdevstat()->WireType);
-	if(jprograminfo->WireType != 0x1200 && jprograminfo->WireType != 0x0600)
+	if(jprograminfo->dev_info.WireType != 0x1200 && jprograminfo->dev_info.WireType != 0x0600)
 	{
 		bzero(str,100);
 		sprintf((char*)str,"未知的接线方式");
@@ -669,7 +669,7 @@ void LunXunShowPage7(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT8
 	gui_textshow((char *)"当前电流", pos, LCD_NOREV);
 	bzero(str,100);
 	//fprintf(stderr,"接线方式：%02x",shmm_getdevstat()->WireType);
-	if(jprograminfo->WireType != 0x1200 && jprograminfo->WireType != 0x0600)
+	if(jprograminfo->dev_info.WireType != 0x1200 && jprograminfo->dev_info.WireType != 0x0600)
 	{
 		bzero(str,100);
 		sprintf((char*)str,"未知的接线方式");
@@ -679,7 +679,7 @@ void LunXunShowPage7(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT8
 		return;
 	}
 	bzero(str,100);
-	if(jprograminfo->WireType == 0x0600)
+	if(jprograminfo->dev_info.WireType == 0x0600)
 	{
 		sprintf((char*)str,"B相电流% 9.3f A",jprograminfo->ACSRealData.Ib*1.0/I_COEF);
 		gui_setpos(&pos, rect_Client.left+4*FONTSIZE, rect_Client.top+5*FONTSIZE);
@@ -722,7 +722,7 @@ void LunXunShowPage8(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT8
 	gui_textshow((char *)"当前电流", pos, LCD_NOREV);
 	bzero(str,100);
 	//fprintf(stderr,"接线方式：%02x",shmm_getdevstat()->WireType);
-	if(jprograminfo->WireType != 0x1200 && jprograminfo->WireType != 0x0600)
+	if(jprograminfo->dev_info.WireType != 0x1200 && jprograminfo->dev_info.WireType != 0x0600)
 	{
 		bzero(str,100);
 		sprintf((char*)str,"未知的接线方式");
@@ -776,7 +776,7 @@ void LunXunShowPage9(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT8
 	gui_setpos(&pos, rect_Client.left+3*FONTSIZE, rect_Client.top+5*FONTSIZE);
 	gui_textshow((char*)str, pos, LCD_NOREV);
 	//fprintf(stderr,"接线方式：%02x",shmm_getdevstat()->WireType);
-	if(jprograminfo->WireType != 0x1200 && jprograminfo->WireType != 0x0600)
+	if(jprograminfo->dev_info.WireType != 0x1200 && jprograminfo->dev_info.WireType != 0x0600)
 	{
 		bzero(str,100);
 		sprintf((char*)str,"未知的接线方式");
@@ -830,7 +830,7 @@ void LunXunShowPage10(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT
 	gui_setpos(&pos, rect_Client.left+3*FONTSIZE, rect_Client.top+5*FONTSIZE);
 	gui_textshow((char*)str, pos, LCD_NOREV);
 	//fprintf(stderr,"接线方式：%02x",shmm_getdevstat()->WireType);
-	if(jprograminfo->WireType != 0x1200 && jprograminfo->WireType != 0x0600)
+	if(jprograminfo->dev_info.WireType != 0x1200 && jprograminfo->dev_info.WireType != 0x0600)
 	{
 		bzero(str,100);
 		sprintf((char*)str,"未知的接线方式");
@@ -840,7 +840,7 @@ void LunXunShowPage10(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT
 		return;
 	}
 	memset(str, 0, 100);
-	if(jprograminfo->WireType == 0x0600)
+	if(jprograminfo->dev_info.WireType == 0x0600)
 	{
 		sprintf((char*)str,"B相%15.4f kW",jprograminfo->ACSRealData.Pb*1.0/(P_COEF*1000));
 		pos.y += 2*FONTSIZE+OFFSET_Y;
@@ -887,7 +887,7 @@ void LunXunShowPage11(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT
 	gui_setpos(&pos, rect_Client.left+3*FONTSIZE, rect_Client.top+5*FONTSIZE);
 	gui_textshow((char*)str, pos, LCD_NOREV);
 	//fprintf(stderr,"接线方式：%02x",shmm_getdevstat()->WireType);
-	if(jprograminfo->WireType != 0x1200 && jprograminfo->WireType != 0x0600)
+	if(jprograminfo->dev_info.WireType != 0x1200 && jprograminfo->dev_info.WireType != 0x0600)
 	{
 		bzero(str,100);
 		sprintf((char*)str,"未知的接线方式");
@@ -927,6 +927,7 @@ void LunXunShowPage11(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT
 
 void ShowJCData(ProgramInfo* p_JProgramInfo,int PageNo, LcdDataItem *item, int size, int show_flg)
 {
+	fprintf(stderr,"\n^^^^gui:JCpage==%d^^^^^\n",PageNo);
 	switch(PageNo)
 	{
 	case 0:

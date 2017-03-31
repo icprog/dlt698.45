@@ -13,9 +13,11 @@
 #include "../libBase/PublicFunction.h"
 #include "../include/ParaDef.h"
 #include "Esam.h"
+#include "Shmem.h"
 #include "SPI.h"
 
-sem_t* sem_spi0_0;
+ProgramInfo *memp;
+sem_t* sem_spi0_0=NULL;
 /*
  * 传入长度的判断，根据A-XDR编码规则
  * 返回：lenSign= 1，单纯一个字节标示 长度，最高位bit为0，长度不超过128
@@ -72,20 +74,20 @@ INT16S AxorB(INT8U* abuf, INT8U* bbuf, INT8U* Rbuf, INT8U len) {
     return 1;
 }
 
-INT32S Esam_Init(INT32S fd, INT8U* spipath) {
+INT32S Esam_Init(INT32S fd,INT8U devtype) {
     gpio_writebyte(DEV_ESAM_PWR, 0);
     usleep(50000);
-    gpio_writebyte(DEV_ATT_RST, 1);
-    usleep(2);
+//    gpio_writebyte(DEV_ATT_RST, 1);
+//    usleep(2);
     gpio_writebyte(DEV_ESAM_CS, 1);
-    //sem_spi0_0 = open_named_sem(SEMNAME_SPI0_0);
-    return SPI_Init(fd, spipath);
+    if(devtype != 2) {
+    	sem_spi0_0 = open_named_sem(SEMNAME_SPI0_0);
+    }
+   	return SPI_Init(fd,devtype);
 }
 
 void Esam_Clear(INT32S fd) {
 	close_named_sem(SEMNAME_SPI0_0);
-   // sem_close(sem_spi0_0);
-    sem_spi0_0 = NULL;
     SPI_Close(fd);
 }
 /*******************************************************
@@ -109,7 +111,9 @@ INT32S Esam_WriteThenRead(INT32S fd, INT8U* Tbuf, INT16U Tlen, INT8U* Rbuf){
 	INT8U index;
 	INT16S Result = ERR_ESAM_UNKNOWN;
     INT8U rx[BUFFLENMAX_SPI];
-	//sem_wait(sem_spi0_0);
+
+    if(sem_spi0_0!=NULL)
+    	sem_wait(sem_spi0_0);
 	for(index=0;index<6;index++)//只做6次异常处理，每次若出异常，时间会很长，秒级
 	{
 		memset(rx,0x00,BUFFLENMAX_SPI);
@@ -173,7 +177,8 @@ INT32S Esam_WriteThenRead(INT32S fd, INT8U* Tbuf, INT16U Tlen, INT8U* Rbuf){
 		}
 	}
 	gpio_writebyte(DEV_ESAM_CS,1);
-	//sem_post(sem_spi0_0);
+    if(sem_spi0_0!=NULL)
+    	sem_post(sem_spi0_0);
 	return Result;
 }
 /**********************************
@@ -186,6 +191,7 @@ void Esam_WriteToChip(INT32S fd, INT8U* Tbuf, INT16U Tlen)
 {
 		struct spi_ioc_transfer	xfer[2];
 		memset(xfer, 0,  sizeof xfer);
+		gpio_writebyte(DEV_ATT_CS,1);
 		usleep(5);
 		gpio_writebyte(DEV_ESAM_CS,1);
 		usleep(10);

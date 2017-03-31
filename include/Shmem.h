@@ -70,7 +70,7 @@ typedef struct {
 
 //交采系数
 typedef struct {
-//	INT16U	crc;					//CRC校验
+	INT16U	crc;					//CRC校验
 	INT8U PhaseA[3];				//相角系数
 	INT8U PhaseB[3];
 	INT8U PhaseC[3];
@@ -331,12 +331,13 @@ typedef struct{
 	INT8U   pppd_status;			//拨号成功
 	INT8U   connect_ok;				//连接主站是否成功
 	INT8U  	PLC_status;				//0、空闲 1、载波初始化 2、载波正在抄表中 	3、正在同步档案 4、正在搜表中
+	INT32U 	ac_chip_type; 			//==0x820900:	RN8029芯片，III型集中器	//==1： ATT7022D-E芯片 	//==0x7022E0:	ATT7022E-D芯片
+	INT32U	WireType;				//接线方式，0x1200：三相三，0x0600：三相四
 }Terminal_Dev_Info;
 
 typedef struct {
-	ACCoe_SAVE Accoepara;
-	INT32U 			ac_chip_type; 		//==0x820900:	RN8029芯片，III型集中器	//==1： ATT7022D-E芯片 	//==0x7022E0:	ATT7022E-D芯片
-	INT32U			WireType;			//接线方式，0x1200：三相三，0x0600：三相四
+	INT8U			DevicePara[128];	//设备参数：para[0]:表示设备类型
+	ACCoe_SAVE 		Accoepara;
 	_RealData		ACSRealData;		//计量芯片实时数据
 	ACEnergy_Sum	ACSEnergy;			//计量芯片电能量数据
 	ProjectInfo		Projects[PROJECTCOUNT];	//子程序信息
@@ -347,7 +348,6 @@ typedef struct {
 	INT8U ProxyHappen;
     AutoTaskStrap	autotask[MAXNUM_AUTOTASK];
     Terminal_Dev_Info dev_info;
-//    INT8U   jzq_login;	//集中器登陆       0 没有登陆    1 GPRS登陆    2 以太网登陆   3 串口登陆；GPRS_COM 1  NET_COM	2  SER_COM	3
 }ProgramInfo; //程序信息结构
 
 #endif /* GTYPE_H_ */

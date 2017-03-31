@@ -1504,6 +1504,7 @@ int port2index(int port){
 		index = 2;
 	return index;
 }
+
 static void setmp_cbtext_port(char cb_text[][TEXTLEN_Y]){
 	memset(cb_text, 0, TEXTLEN_X*TEXTLEN_Y);
 	memcpy(cb_text[0], "RS485", strlen("RS485"));
@@ -1836,7 +1837,7 @@ void setmeterpara(int pindex)
 						}
 
 						//配置序号、表地址、端口、规约、通信速率、费率个数、接线方式、采集器地址
-						meter.basicinfo.port.OI = cb_port.cur_index;
+						meter.basicinfo.port.OI = index2port(cb_port.cur_index);
 						meter.basicinfo.port.attflg = 2;
 						meter.basicinfo.port.attrindex = 1;
 
@@ -2130,7 +2131,7 @@ void addmeter()
 						meter.basicinfo.addr.addr[1] = meter.basicinfo.addr.addr[1] - 1;
 					}
 
-					meter.basicinfo.port.OI = cb_port.cur_index;
+					meter.basicinfo.port.OI = index2port(cb_port.cur_index);
 					meter.basicinfo.port.attflg = 2;
 					meter.basicinfo.port.attrindex = 1;
 
@@ -5940,6 +5941,7 @@ void show_monthdata_JS(int cldno){//江苏专用
 	}
 	gui_mp_free(gui_mpmax);//跳入轮显后释放？？？
 }
+
 void setmeterpara_js(int pindex)
 {
 	int daleihao=0,xiaoleihao=0,tmp=0, f10_flg=1,cld_isvalid=0;

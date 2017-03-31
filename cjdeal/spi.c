@@ -26,7 +26,7 @@ sem_t * 		sem_check_fd;	//校表信号量
 /*
  * spi设备工作模式设置
  * */
-static void dumpstat(const char *name, int fd,uint32_t speed)
+void dumpstat(const char *name, int fd,uint32_t speed)
 {
 	static uint8_t mode;
 	static uint8_t bits = 8;
@@ -35,7 +35,7 @@ static void dumpstat(const char *name, int fd,uint32_t speed)
 	int ret;
 
 	if(speed == 0) {
-		speed = 2000000;
+		speed = 5000000;
 	}
 
 	mode |= SPI_CPHA;			//交采SPI原工作模式
@@ -68,15 +68,15 @@ static void dumpstat(const char *name, int fd,uint32_t speed)
 
 INT32S spi_close(INT32S fd)
 {
-	close(fd);
+	if (fd != -1) {
+		close(fd);
+	}
 	return 1;
 }
 
 INT32S spi_init(INT32S fd,const char * spipath,uint32_t speed)
 {
-	if (fd != -1) {
-		spi_close(fd);
-	}
+	spi_close(fd);
 	fd = open((char*)spipath, O_RDWR);
 	if (fd < 0){
 		syslog(LOG_NOTICE,"打开SPI设备(%s)错误\n",spipath);
@@ -149,8 +149,8 @@ int spi_write(int fd, INT8U *buf, int len)
 
 INT32S att_spi_read(int spifp,INT32U addr, INT32U len)
 {
-	INT8U	cmd[BUFFLENMAX_SPI];
-	INT8U	buf[BUFFLENMAX_SPI];
+	INT8U	cmd[BUFFLENMAX_SPI_ACS];
+	INT8U	buf[BUFFLENMAX_SPI_ACS];
 	INT32U i;
 	INT32S rec;
 	int cnt = 0;
@@ -159,14 +159,14 @@ INT32S att_spi_read(int spifp,INT32U addr, INT32U len)
 //	if (clock_gettime(CLOCK_REALTIME, &tsspec)==-1)
 //		fprintf(stderr,"clock_gettime error\n\r");
 //	tsspec.tv_sec += 2;
-	sem_wait(sem_check_fd);
+//	sem_wait(sem_check_fd);		//这个读操作前进行互斥
 	cmd[cnt++] = addr & 0x7f;
 	spi_read(spifp, cmd, cnt, buf, len);
 	rec = 0;
 	for (i = 0; i < len; i++) {
 		rec = (rec << 8) | buf[i];
 	}
-	sem_post(sem_check_fd);
+//	sem_post(sem_check_fd);
 	return rec;
 }
 
@@ -175,13 +175,13 @@ INT32S att_spi_write(int spifp, INT32U addr, INT32U len, INT8U *buf)
 	INT32U i;
 	int 			cnt = 0;
 	INT32S num;
-	INT8U	cmd[BUFFLENMAX_SPI];
+	INT8U	cmd[BUFFLENMAX_SPI_ACS];
 //	struct timespec tsspec;
 
 //	if (clock_gettime(CLOCK_REALTIME, &tsspec)==-1)
 //		fprintf(stderr,"clock_gettime error\n\r");
 //	tsspec.tv_sec += 2;
-	sem_wait(sem_check_fd);
+//	sem_wait(sem_check_fd);
 	if((addr>=Reg_DataBuf) && (addr<=Reg_Reset)){
 		cmd[cnt++] = addr | 0xC0; //写特殊命令
 	} else
@@ -190,7 +190,7 @@ INT32S att_spi_write(int spifp, INT32U addr, INT32U len, INT8U *buf)
 		cmd[cnt++] = buf[i];
 	}
 	num = spi_write(spifp, cmd, cnt);
-	sem_post(sem_check_fd);
+//	sem_post(sem_check_fd);
 	return num;
 }
 
@@ -251,8 +251,8 @@ int spi_write_r(int fd, INT8U *buf, int len)
 
 INT32S rn_spi_read(int spifp,INT32U addr)
 {
-	INT8U	cmd[BUFFLENMAX_SPI];
-	INT8U	buf[BUFFLENMAX_SPI];
+	INT8U	cmd[BUFFLENMAX_SPI_ACS];
+	INT8U	buf[BUFFLENMAX_SPI_ACS];
 	INT32U i = 0, len_rn8209 = 0;
 	INT32S rec;
 	int cnt = 0;
@@ -275,7 +275,7 @@ INT32S rn_spi_write(int spifp, INT32U addr, INT8U *buf)
 	INT32U i = 0, len_rn8209 = 0;
 	int cnt = 0;
 	INT32S num;
-	INT8U	cmd[BUFFLENMAX_SPI];
+	INT8U	cmd[BUFFLENMAX_SPI_ACS];
 
 	len_rn8209 = addr & 0x0fu;
 	if(addr == CMD_REG){
