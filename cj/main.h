@@ -40,5 +40,9 @@ extern void inoutdev_process(int argc, char *argv[]);
 
 extern void SetF201(int argc, char* argv[]);
 extern void SetF202(int argc, char* argv[]);
+
+extern void getFrmCS(int argc, char* argv[]);
+extern void getFrmFCS(int argc, char* argv[]);
+
 #endif /* MAIN_H_ */
 

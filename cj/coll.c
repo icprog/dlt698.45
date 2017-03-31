@@ -13,6 +13,7 @@
 #include "Objectdef.h"
 #include "main.h"
 #include "dlt698.h"
+#include "dlt645.h"
 #include "PublicFunction.h"
 
 char name1[128]={};
@@ -1223,4 +1224,36 @@ void analyTaskData(int argc, char* argv[])
 		}
 	}
 	return ;
+}
+
+
+void printBuf(INT8U* buf, INT32U len)
+{
+	INT32U i;
+	for(i=0; i<len; i++)
+		fprintf(stderr, "%02X ", buf[i]);
+
+	fprintf(stderr, "\n");
+}
+
+void getFrmCS(int argc, char* argv[])
+{
+	INT8U buf[4096] = {0};
+	INT32U bufLen = sizeof(buf);
+
+	readFrm(argv[2], buf, &bufLen);
+	printBuf( buf, bufLen);
+	fprintf(stderr, "%02X\n", getCS645(buf, bufLen));
+}
+
+void getFrmFCS(int argc, char* argv[])
+{
+	INT8U buf[4096] = {0};
+	INT32U bufLen = sizeof(buf);
+	INT16U fcs = 0;
+
+	readFrm(argv[2], buf, &bufLen);
+	printBuf( buf, bufLen);
+	fcs = tryfcs16(buf, bufLen);
+	fprintf(stderr, "%02X %02X\n", (INT8U)fcs, (INT8U)(fcs>>8));
 }

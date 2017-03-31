@@ -9,6 +9,8 @@ cd /nand/bin
 mput cj*
 cd /nor/lib
 mput lib*
+cd /nor/config
+mput *.cfg
 close quit
 EOF
 
