@@ -28,7 +28,7 @@ extern int comfd;
 extern ProgramInfo *memp;
 extern PIID piid_g;
 extern INT8U securetype;
-
+extern INT8U broadcast;
 INT16U getMytypeSize(INT8U first )
 {
 	if (first == 0xAA)
@@ -60,6 +60,11 @@ int doReponse(int server,int reponse,CSINFO *csinfo,int datalen,INT8U *data,INT8
 {
 	int index=0, hcsi=0;
 	int apduplace=0;
+
+	fprintf(stderr,"\nbroadcast = %02x\n",broadcast);
+
+	if ( broadcast==0x03)
+		return 0;
 	csinfo->dir = 1;
 	csinfo->prm = 0;
 
@@ -77,7 +82,7 @@ int doReponse(int server,int reponse,CSINFO *csinfo,int datalen,INT8U *data,INT8
 
 	memcpy(&buf[index],data,datalen);
 	index = index + datalen;
-	buf[index++] = 0;	//操作返回数据
+	//buf[index++] = 0;	//操作返回数据
 	buf[index++] = 0;	//跟随上报信息域 	FollowReport
 	buf[index++] = 0;	//时间标签		TimeTag
 

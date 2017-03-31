@@ -13,9 +13,11 @@
 #include "read485.h"
 #include "dlt698def.h"
 #include "cjdeal.h"
-
+#include "show_ctrl.h"
 #include <stdarg.h>
 #include <sys/stat.h>
+
+extern Proxy_Msg* p_Proxy_Msg_Data;//液晶给抄表发送代理处理结构体，指向由guictrl.c配置的全局变量
 
 extern ProgramInfo* JProgramInfo;
 extern INT8U poweroffon_state;
@@ -439,12 +441,12 @@ INT32S open_com_para_chg(INT8U port, INT32U baud, INT32S oldcomfd) {
 		CloseCom(oldcomfd);
 		sleep(1);
 	}
-
+#ifdef CCTT_II
 	if (port==1)
 		port = 2;
 	else if (port==2)
 		port = 1;
-
+#endif
 	fprintf(stderr,"\n open_com_para_chg port = %d baud = %d newfd = %d",port,baud, newfd);
 
 	newfd = OpenCom(port, baud, (unsigned char *) "even", 1, 8);
@@ -1777,6 +1779,86 @@ INT8S dealProxy(PROXY_GETLIST* getlist,INT8U port485)
 	return result;
 }
 
+INT8S dealGuiRead(Proxy_Msg* pMsg,INT8U port485)
+{
+	INT8S result = -1;
+
+	DbgPrintToFile1(port485,"\n dealGuiRead 处理液晶点抄 :%d%d%d%d%d%d%d%d 波特率=%d protocol=%d 端口号=%04x%02x%02x 规约类型=%d 数据标识=%04x"
+			,pMsg->addr.addr[0],pMsg->addr.addr[1],pMsg->addr.addr[2],pMsg->addr.addr[3]
+			,pMsg->addr.addr[4],pMsg->addr.addr[5],pMsg->addr.addr[6],pMsg->addr.addr[7]
+			,pMsg->baud,pMsg->protocol,pMsg->port.OI,pMsg->port.attflg,pMsg->port.attrindex
+			,pMsg->protocol,pMsg->oi);
+
+	if(getComfdBy6001(pMsg->baud,pMsg->port.attrindex) != 1)
+	{
+		p_Proxy_Msg_Data->done_flag = 1;
+		fprintf(stderr,"\ndealGuiRead 参数错误");
+		return result;
+	}
+	CLASS_6001 meter = {};
+	CLASS_6035 st6035;
+	INT16S retLen = -1;
+	INT8U dataContent[DATA_CONTENT_LEN];
+	memset(dataContent,0,DATA_CONTENT_LEN);
+	memcpy(meter.basicinfo.addr.addr,pMsg->addr.addr,TSA_LEN);
+	meter.basicinfo.baud = pMsg->baud;
+	meter.basicinfo.port.OI = pMsg->port.OI;
+	meter.basicinfo.port.attflg = pMsg->port.attflg;
+	meter.basicinfo.port.attrindex = pMsg->port.attrindex;
+	meter.basicinfo.protocol = pMsg->protocol;
+	switch(meter.basicinfo.protocol)
+	{
+		case DLT_645_07:
+			{
+				OAD requestOAD;
+				requestOAD.OI = pMsg->oi;
+				requestOAD.attflg = 0x02;
+				requestOAD.attrindex = 0x00;
+
+				C601F_07Flag obj601F_07Flag;
+				memset(&obj601F_07Flag,0,sizeof(C601F_07Flag));
+				if(OADMap07DI(0x0000,requestOAD, &obj601F_07Flag) == 1)
+				{
+					retLen = request698_07Data(obj601F_07Flag.DI_1[0],dataContent,meter,&st6035,meter.basicinfo.port.attrindex);
+				}
+			}
+			break;
+		default:
+			{
+				CLASS_6035 st6035 = {};
+				CLASS_6015 st6015;
+				memset(&st6015,0,sizeof(CLASS_6015));
+				st6015.cjtype = TYPE_NULL;
+				st6015.csds.num = 1;
+				st6015.csds.csd[0].type = 0;
+				st6015.csds.csd[0].csd.oad.OI = pMsg->oi;
+				st6015.csds.csd[0].csd.oad.attflg = 0x02;
+				st6015.csds.csd[0].csd.oad.attrindex = 0x00;
+				retLen = deal6015_698(st6015,meter,&st6035,dataContent,meter.basicinfo.port.attrindex);
+			}
+
+	}
+	DbPrt1(meter.basicinfo.port.attrindex,"点抄回复数据:", (char *) dataContent, 27, NULL);
+	if(retLen > 0)
+	{
+		TSGet(&p_Proxy_Msg_Data->realdata.tm_collect);
+		memcpy(p_Proxy_Msg_Data->realdata.data_All,&dataContent[3],4);
+		memcpy(p_Proxy_Msg_Data->realdata.Rate1_Data,&dataContent[8],4);
+		memcpy(p_Proxy_Msg_Data->realdata.Rate2_Data,&dataContent[13],4);
+		memcpy(p_Proxy_Msg_Data->realdata.Rate3_Data,&dataContent[18],4);
+		memcpy(p_Proxy_Msg_Data->realdata.Rate4_Data,&dataContent[23],4);
+
+	}
+	else
+	{
+		memset(&p_Proxy_Msg_Data->realdata,0xee,sizeof(RealDataInfo));
+	}
+
+	p_Proxy_Msg_Data->done_flag = 1;
+	fprintf(stderr,"\n点抄返回******************\n");
+	return result;
+}
+
 INT8S readMeterPowerInfo()
 {
 	fprintf(stderr,"\n\n上电抄读停上电事件 readMeterPowerInfo");
@@ -1897,20 +1979,33 @@ INT8S dealProxyQueue(INT8U port485)
 	{
 		mmq_head mq_h;
 		ret = mmq_get(mqd_485_main, 1, &mq_h, rev_485_buf);
-		fprintf(stderr,"mqd_485_main=%d, ret=%d\n",mqd_485_main,ret);
+		//fprintf(stderr,"mqd_485_main=%d, ret=%d\n",mqd_485_main,ret);
 		if (ret>0)
 		{
 			fprintf(stderr, "\n\n-----------------vs485_main recvMsg!!!    cmd=%d!!!---------------\n", mq_h.cmd);
-			DbgPrintToFile1(port485,"485收到消息    cmd=%d!!!---------------", mq_h.cmd);
+
 
 			switch(mq_h.cmd)
 			{
 				case ProxyGetResponseList://代理
 				{
+
 					readState = 1;
-					PROXY_GETLIST * getlist;
-					getlist = (PROXY_GETLIST*)rev_485_buf;
-					dealProxy(getlist,port485);
+					if(mq_h.pid == cjdeal)
+					{
+						fprintf(stderr, "\n收到代理召测\n");
+						PROXY_GETLIST * getlist;
+						getlist = (PROXY_GETLIST*)rev_485_buf;
+						dealProxy(getlist,port485);
+					}
+					if(mq_h.pid == cjgui)
+					{
+						fprintf(stderr, "\n收到液晶点抄\n");
+						Proxy_Msg* pMsg = NULL;
+						pMsg = (Proxy_Msg*)rev_485_buf;
+						dealGuiRead(pMsg,port485);
+					}
+
 					readState = 0;
 				}
 				break;
@@ -2145,7 +2240,7 @@ INT8S checkBroadCast(INT8U port485)
 		broadcastTime.Sec = broadcase4204.startime1[2];
 
 		INT8U timeCmp = TScompare(nowTime,broadcastTime);
-		fprintf(stderr,"\n checkBroadCast timeCmp = %d",timeCmp);
+		//fprintf(stderr,"\n checkBroadCast timeCmp = %d",timeCmp);
 		if(timeCmp < 2)
 		{
 			asyslog(LOG_WARNING,"终端单地址广播校时时间到");
@@ -2190,7 +2285,7 @@ INT8S dealRealTimeRequst(INT8U port485)
 	}
 	result = dealProxyQueue(port485);
 
-	fprintf(stderr,"\n poweroffon_state = %d",poweroffon_state);
+	//fprintf(stderr,"\n poweroffon_state = %d",poweroffon_state);
 	//先抄读停上电事件
 	if(poweroffon_state == 1)
 	{
@@ -2881,7 +2976,7 @@ INT16S getTaskIndex(INT8U port)
 			ret = mmq_get(mqd_485_2_task, 1, &mq_h, rev_485_buf);
 			if(ret > 0)
 			{
-				fprintf(stderr,"mqd_485_2_task 接受消息 mq_h.cmd = %d rev_485_buf[0] = %d",mq_h.cmd,rev_485_buf[0]);
+				//fprintf(stderr,"mqd_485_2_task 接受消息 mq_h.cmd = %d rev_485_buf[0] = %d",mq_h.cmd,rev_485_buf[0]);
 				if(mq_h.cmd ==1)
 				{
 					taskIndex  = rev_485_buf[0];
@@ -2902,7 +2997,7 @@ INT16S getTaskIndex(INT8U port)
 				ret = mmq_get(mqd_485_1_task, 1, &mq_h, rev_485_buf);
 				if(ret > 0)
 				{
-					fprintf(stderr,"mqd_485_2_task 接受消息 mq_h.cmd = %d rev_485_buf[0] = %d",mq_h.cmd,rev_485_buf[0]);
+					//fprintf(stderr,"mqd_485_2_task 接受消息 mq_h.cmd = %d rev_485_buf[0] = %d",mq_h.cmd,rev_485_buf[0]);
 					if(mq_h.cmd ==1)
 					{
 						taskIndex  = rev_485_buf[0];
@@ -3192,7 +3287,7 @@ void read485_proccess() {
 	struct mq_attr attr_485_main;
 	mqd_485_main = mmq_open((INT8S *)PROXY_485_MQ_NAME,&attr_485_main,O_RDONLY);
 
-	fprintf(stderr,"=============mqd_485_main = %d\n",mqd_485_main);
+	//fprintf(stderr,"=============mqd_485_main = %d\n",mqd_485_main);
 
 	struct mq_attr attr_485_1_task;
 	mqd_485_1_task = mmq_open((INT8S *)TASKID_485_1_MQ_NAME,&attr_485_1_task,O_RDONLY);
@@ -3216,4 +3311,10 @@ void read485_proccess() {
 	}
 
 }
-
+void read485QuitProcess()
+{
+	mmq_close(mqd_485_main);
+	mmq_close(mqd_485_1_task);
+	mmq_close(mqd_485_2_task);
+	pthread_attr_destroy(&read485_attr_t);
+}
