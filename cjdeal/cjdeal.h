@@ -2,6 +2,8 @@
 #define CJMAIN_H_
 
 #include "PublicFunction.h"
+#include "libmmq.h"
+#include "show_ctrl.h"
 
 extern ProgramInfo* JProgramInfo;
 
@@ -52,5 +54,20 @@ INT8U flagDay_4204[2];//标识当天是否已经广播校时
 pthread_attr_t dispatchTask_attr_t;
 int thread_dispatchTask_id;
 pthread_t thread_dispatchTask;
+
+mqd_t mqd_485_main;//接受点抄的消息队列
+
+typedef struct
+{
+	INT8U isEmpty;
+	CLASS_6001 meter;
+	PROXY_GETLIST strProxyList;
+}CJCOMM_PROXY;
+typedef struct
+{
+	INT8U isEmpty;
+	CLASS_6001 meter;
+	PROXY_GETLIST strProxyList;
+}GUI_PROXY;
 extern INT8U is485OAD(OAD portOAD,INT8U port485);
 #endif
