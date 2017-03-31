@@ -56,28 +56,32 @@ INT16U set3106(OAD oad,INT8U *data,INT8U *DAR)
 	Event3106_Object tmpobj={};
 	int index=0;
 	memset(&tmpobj,0,sizeof(Event3106_Object));
-
 	readCoverClass(oad.OI,0,&tmpobj,sizeof(Event3106_Object),event_para_save);
-	index += getStructure(&data[index],NULL);
-	index += getStructure(&data[index],NULL);
-	index += getBitString(1,&data[index],&tmpobj.poweroff_para_obj.collect_para_obj.collect_flag);
-	index += getUnsigned(&data[index],&tmpobj.poweroff_para_obj.collect_para_obj.time_space);
-	index += getUnsigned(&data[index],&tmpobj.poweroff_para_obj.collect_para_obj.time_threshold);
-	INT8U arraysize =0;
-	index += getArray(&data[index],&arraysize);
-	tmpobj.poweroff_para_obj.collect_para_obj.tsaarr.num = arraysize;
-	for(i=0;i<arraysize;i++)
-	{
-		index += getOctetstring(1,&data[index],tmpobj.poweroff_para_obj.collect_para_obj.tsaarr.meter_tas[i].addr);
-	}
-	index += getStructure(&data[index],NULL);
-	index += getLongUnsigned(&data[index],(INT8U *)&tmpobj.poweroff_para_obj.screen_para_obj.mintime_space);
-	index += getLongUnsigned(&data[index],(INT8U *)&tmpobj.poweroff_para_obj.screen_para_obj.maxtime_space);
-	index += getLongUnsigned(&data[index],(INT8U *)&tmpobj.poweroff_para_obj.screen_para_obj.startstoptime_offset);
-	index += getLongUnsigned(&data[index],(INT8U *)&tmpobj.poweroff_para_obj.screen_para_obj.sectortime_offset);
-	index += getLongUnsigned(&data[index],(INT8U *)&tmpobj.poweroff_para_obj.screen_para_obj.happen_voltage_limit);
-	index += getLongUnsigned(&data[index],(INT8U *)&tmpobj.poweroff_para_obj.screen_para_obj.recover_voltage_limit);
+	if(oad.attrindex == 0x00)
+		index += getStructure(&data[index],NULL);
+	if(oad.attrindex != 0x02){
+		index += getStructure(&data[index],NULL);
 
+		index += getBitString(1,&data[index],&tmpobj.poweroff_para_obj.collect_para_obj.collect_flag);//00
+		index += getUnsigned(&data[index],&tmpobj.poweroff_para_obj.collect_para_obj.time_space);//04
+		index += getUnsigned(&data[index],&tmpobj.poweroff_para_obj.collect_para_obj.time_threshold);//04
+		INT8U arraysize =0;
+		index += getArray(&data[index],&arraysize);
+		tmpobj.poweroff_para_obj.collect_para_obj.tsaarr.num = arraysize;
+		for(i=0;i<arraysize;i++)
+		{
+			index += getOctetstring(1,&data[index],tmpobj.poweroff_para_obj.collect_para_obj.tsaarr.meter_tas[i].addr);
+		}
+	}
+	if(oad.attrindex != 0x01){
+		index += getStructure(&data[index],NULL);
+		index += getLongUnsigned(&data[index],(INT8U *)&tmpobj.poweroff_para_obj.screen_para_obj.mintime_space);
+		index += getLongUnsigned(&data[index],(INT8U *)&tmpobj.poweroff_para_obj.screen_para_obj.maxtime_space);
+		index += getLongUnsigned(&data[index],(INT8U *)&tmpobj.poweroff_para_obj.screen_para_obj.startstoptime_offset);
+		index += getLongUnsigned(&data[index],(INT8U *)&tmpobj.poweroff_para_obj.screen_para_obj.sectortime_offset);
+		index += getLongUnsigned(&data[index],(INT8U *)&tmpobj.poweroff_para_obj.screen_para_obj.happen_voltage_limit);
+		index += getLongUnsigned(&data[index],(INT8U *)&tmpobj.poweroff_para_obj.screen_para_obj.recover_voltage_limit);
+	}
 	*DAR = saveCoverClass(oad.OI,0,&tmpobj,sizeof(Event3106_Object),event_para_save);
 	return index;
 }
@@ -92,7 +96,8 @@ INT16U set310c(OAD oad,INT8U *data,INT8U *DAR)	 //超差  属性6
 	fprintf(stderr,"\n[310c]阈值=%x",tmp310c.poweroffset_obj.power_offset);
 	index += getStructure(&data[index],NULL);
 	index += getDouble(&data[index],(INT8U *)&tmp310c.poweroffset_obj.power_offset);
-	index += getDouble(&data[index],(INT8U *)&tmp310c.poweroffset_obj.task_no);
+	fprintf(stderr,"data[index]=%02x %02x \n",data[index],data[index+1]);
+	index += getUnsigned(&data[index],(INT8U *)&tmp310c.poweroffset_obj.task_no);
 	fprintf(stderr,"\n电能量超差事件：属性6 阈值=%x",tmp310c.poweroffset_obj.power_offset);
 	*DAR = saveCoverClass(oad.OI,0,&tmp310c,sizeof(tmp310c),event_para_save);
 	return index;
@@ -107,7 +112,7 @@ INT16U set310d(OAD oad,INT8U *data,INT8U *DAR)	//电能表飞走  属性6
 	fprintf(stderr,"\n[310d]电能表飞走事件 阈值=%d 任务号=%d\n",tmp310d.poweroffset_obj.power_offset,tmp310d.poweroffset_obj.task_no);
 	index += getStructure(&data[index],NULL);
 	index += getDouble(&data[index],(INT8U *)&tmp310d.poweroffset_obj.power_offset);
-	index += getDouble(&data[index],(INT8U *)&tmp310d.poweroffset_obj.task_no);
+	index += getUnsigned(&data[index],(INT8U *)&tmp310d.poweroffset_obj.task_no);
 	fprintf(stderr,"\n：属性6 阈值=%d 任务号=%d",tmp310d.poweroffset_obj.power_offset,tmp310d.poweroffset_obj.task_no);
 	*DAR = saveCoverClass(oad.OI,0,&tmp310d,sizeof(Event310D_Object),event_para_save);
 	return index;

@@ -45,10 +45,12 @@ int BuildFrame_GetResponseRecord(INT8U response_type,CSINFO *csinfo,RESULT_RECOR
 	int index=0, hcsi=0;
 	csinfo->dir = 1;
 	csinfo->prm = 0;
+	int apduplace =0;
 
 	index = FrameHead(csinfo,sendbuf);
 	hcsi = index;
 	index = index + 2;
+	apduplace=index;
 	sendbuf[index++] = GET_RESPONSE;
 	sendbuf[index++] = response_type;
 	sendbuf[index++] = piid_g.data;		//	piid
@@ -63,6 +65,12 @@ int BuildFrame_GetResponseRecord(INT8U response_type,CSINFO *csinfo,RESULT_RECOR
 	}
 	sendbuf[index++] = 0;
 	sendbuf[index++] = 0;
+//	INT16U
+	if(securetype!=0)//安全等级类型不为0，代表是通过安全传输下发报文，上行报文需要以不低于请求的安全级别回复
+	{
+		apduplace += composeSecurityResponse(&sendbuf[apduplace],index-apduplace);
+		index=apduplace;
+	}
 	FrameTail(sendbuf,index,hcsi);
 	if(pSendfun!=NULL)
 		pSendfun(comfd,sendbuf,index+3);
@@ -408,22 +416,28 @@ int Get3106(RESULT_NORMAL *response)
 	oad = response->oad;
 	memset(&tmpobj,0,sizeof(Event3106_Object));
 	readCoverClass(oad.OI,0,&tmpobj,sizeof(Event3106_Object),event_para_save);
-	index += create_struct(&data[index],2);	//属性６　２个元素
-	index += create_struct(&data[index],4);	//停电数据采集配置参数　４个元素
-	index += fill_bit_string8(&data[index],tmpobj.poweroff_para_obj.collect_para_obj.collect_flag);
-	index += fill_unsigned(&data[index],tmpobj.poweroff_para_obj.collect_para_obj.time_space);
-	index += fill_unsigned(&data[index],tmpobj.poweroff_para_obj.collect_para_obj.time_threshold);
-	index += create_array(&data[index],tmpobj.poweroff_para_obj.collect_para_obj.tsaarr.num);
-	for(i=0;i<tmpobj.poweroff_para_obj.collect_para_obj.tsaarr.num;i++) {
-		index += fill_TSA(&data[index],&tmpobj.poweroff_para_obj.collect_para_obj.tsaarr.meter_tas[i].addr[1],tmpobj.poweroff_para_obj.collect_para_obj.tsaarr.meter_tas[i].addr[0]);
+	if(oad.attrindex == 0x00){
+	  index += create_struct(&data[index],2);	//属性６　２个元素
 	}
-	index += create_struct(&data[index],6);	//停电事件甄别限值参数　６个元素
-	index += fill_long_unsigned(&data[index],tmpobj.poweroff_para_obj.screen_para_obj.mintime_space);
-	index += fill_long_unsigned(&data[index],tmpobj.poweroff_para_obj.screen_para_obj.maxtime_space);
-	index += fill_long_unsigned(&data[index],tmpobj.poweroff_para_obj.screen_para_obj.startstoptime_offset);
-	index += fill_long_unsigned(&data[index],tmpobj.poweroff_para_obj.screen_para_obj.sectortime_offset);
-	index += fill_long_unsigned(&data[index],tmpobj.poweroff_para_obj.screen_para_obj.happen_voltage_limit);
-	index += fill_long_unsigned(&data[index],tmpobj.poweroff_para_obj.screen_para_obj.recover_voltage_limit);
+	if(oad.attrindex != 0x02){
+		index += create_struct(&data[index],4);	//停电数据采集配置参数　４个元素
+		index += fill_bit_string8(&data[index],tmpobj.poweroff_para_obj.collect_para_obj.collect_flag);
+		index += fill_unsigned(&data[index],tmpobj.poweroff_para_obj.collect_para_obj.time_space);
+		index += fill_unsigned(&data[index],tmpobj.poweroff_para_obj.collect_para_obj.time_threshold);
+		index += create_array(&data[index],tmpobj.poweroff_para_obj.collect_para_obj.tsaarr.num);
+		for(i=0;i<tmpobj.poweroff_para_obj.collect_para_obj.tsaarr.num;i++) {
+			index += fill_TSA(&data[index],&tmpobj.poweroff_para_obj.collect_para_obj.tsaarr.meter_tas[i].addr[1],tmpobj.poweroff_para_obj.collect_para_obj.tsaarr.meter_tas[i].addr[0]);
+		}
+	}
+	if(oad.attrindex != 0x01){
+		index += create_struct(&data[index],6);	//停电事件甄别限值参数　６个元素
+		index += fill_long_unsigned(&data[index],tmpobj.poweroff_para_obj.screen_para_obj.mintime_space);
+		index += fill_long_unsigned(&data[index],tmpobj.poweroff_para_obj.screen_para_obj.maxtime_space);
+		index += fill_long_unsigned(&data[index],tmpobj.poweroff_para_obj.screen_para_obj.startstoptime_offset);
+		index += fill_long_unsigned(&data[index],tmpobj.poweroff_para_obj.screen_para_obj.sectortime_offset);
+		index += fill_long_unsigned(&data[index],tmpobj.poweroff_para_obj.screen_para_obj.happen_voltage_limit);
+		index += fill_long_unsigned(&data[index],tmpobj.poweroff_para_obj.screen_para_obj.recover_voltage_limit);
+	}
 	response->datalen = index;
 	return 0;
 }
