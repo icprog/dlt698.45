@@ -86,7 +86,7 @@
  * */
 
 //TODO:根据交采芯片决定ESAM打开那个设备，不用CCTT_II区分
-#define ESAM_SPI_DEV_II		   "/dev/spi1.0"
+#define ESAM_SPI_DEV_II		   "/dev/spidev1.0"
 #define ESAM_SPI_DEV 			"/dev/spi0.0"
 
 #define	ACS_SPI_DEV		"/dev/spi0.0"				//计量芯片使用的spi设备
