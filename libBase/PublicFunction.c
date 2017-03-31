@@ -905,32 +905,80 @@ void debug(const char* file, const char* func, INT32U line, const char *fmt, ...
  * @buf: 目标字节串
  * @bufSize: 目标字节串原本的长度
  */
-void readFrm(char* str,  INT32U strLen, INT8U* buf, INT32U* bufSize)
+void readFrm(char* str,  INT8U* buf, INT32U* bufSize)
 {
-	int state=0;//是否遇到过字节字符
+	int state=0;//0, 初始状态; 1, 空格状态; 2, 字节高状态; 3, 字节低状态; 4, 错误状态.
 	INT8U high = 0;
 	INT8U low = 0;
 	INT32U destLen = 0;//已扫描过的字节个数
 	char* p = str;
+	INT8U* pBuf = buf;
 
 	if(bufSize == NULL || buf == NULL || str == NULL)
 		return;
 
 	while(*p != '\0') {
-		if(*p == ' '|| *p == '\n' || *p == 't' || *p == '\r') {
-			state  = 0;
-		} else if (state == 0) {
-			high =  *p;
-			state = 1;
-		} else if (destLen < (*bufSize)) {
-			low = *p;
-			high = ASCII_TO_HEX(high);
-			low = ASCII_TO_HEX(low);
-			*buf = (high<<4 | low);
-			buf++;
-			destLen++;
+		 if( !( isHex(*p) || isDelim(*p)) ) {
+			 state  = 4;
+		 	 goto final;
+		 }
+
+		switch(state) {
+		case 0://init state
+			if (isDelim(*p)) {
+				state  = 1;
+			} else if (isHex(*p)) {
+				high =  *p;
+				state  = 2;
+			}
+			break;
+		case 1://space state
+			if (isHex(*p)) {
+				high =  *p;
+				state  = 2;
+			}
+			break;
+		case 2://high state
+			if (isDelim(*p)) {
+				state  = 4;
+				goto final;
+			}
+
+			if (destLen < (*bufSize)) {
+				low = *p;
+				high = ASCII_TO_HEX(high);
+				low = ASCII_TO_HEX(low);
+
+				*pBuf = (high<<4 | low);
+				pBuf++;
+				destLen++;
+				high = low = 0;
+				state = 3;
+			} else {
+				goto final;
+			}
+			break;
+		case 3://low state
+			if (isHex(*p)) {
+				state  = 4;
+				goto final;
+			} else {
+				state = 1;
+			}
+			break;
+		default:
+			goto final;
 		}
+
 		p++;
+	}
+final:
+	if(state == 4 || state == 2) {//高位状态和非法状态均为不可接受状态
+		DEBUG_TIME_LINE("存在非法字符, 或字符串格式非法\n");
+		 if(destLen > 0) {
+			 memset(buf, 0, destLen);
+			 destLen = 0;
+		 }
 	}
 	*bufSize = destLen;
 }

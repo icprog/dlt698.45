@@ -18,7 +18,9 @@
 #define HEX_TO_BCD(x) (((x)/0x0A)*0x10+((x)%0x0A))
 #define BCD_TO_HEX(x) (((x)/0x10)*0x0A+((x)%0x10))
 #define ASCII_TO_HEX(c) (((c) >='0' && (c) <='9')?((c)-'0'):(((c)>='A'&&(c)<='F')?((c)-'A'+10):(((c)>='a'&&c<='f')?((c)-'a'+10):0)))
-#define isdigit(c) ((unsigned) ((c)-'0') < 10)
+#define isDigit(c) ((unsigned) ((c)-'0') < 10)
+#define isHex(c) (((unsigned) ((c)-'0') < 10) || ((unsigned) ((c)-'A') < 6) || ((unsigned) ((c)-'a') < 6) )
+#define isDelim(c) (c == ' ' || c == '\n' || c == 't' || c == '\r')
 #define HEX_TO_ASCII(x) ((x<=0x09)?(x+0x30):(x+0x37))
 
 #define U8_TO_ASCII_H(x) HEX_TO_ASCII(((x)&0x0F))
@@ -104,5 +106,6 @@ extern INT8U getBase_DataTypeLen(Base_DataType dataType);
 extern INT8S reversebuff(INT8U* buff,INT32U len,INT8U* invbuff);
 
 extern void debug(const char* file, const char* func, INT32U line, const char *fmt, ...);
-extern void readFrm(char* str,  INT32U strLen, INT8U* buf, INT32U* bufSize);
+extern void readFrm(char* str,  INT8U* buf, INT32U* bufSize);
+
 #endif /* PUBLICFUNCTION_H_ */
