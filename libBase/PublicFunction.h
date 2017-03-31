@@ -15,6 +15,20 @@
 #include "StdDataType.h"
 #include "ParaDef.h"
 
+#define HEX_TO_BCD(x) (((x)/0x0A)*0x10+((x)%0x0A))
+#define BCD_TO_HEX(x) (((x)/0x10)*0x0A+((x)%0x10))
+#define ASCII_TO_HEX(c) (((c) >='0' && (c) <='9')?((c)-'0'):(((c)>='A'&&(c)<='F')?((c)-'A'+10):(((c)>='a'&&c<='f')?((c)-'a'+10):0)))
+#define isdigit(c) ((unsigned) ((c)-'0') < 10)
+#define HEX_TO_ASCII(x) ((x<=0x09)?(x+0x30):(x+0x37))
+
+#define U8_TO_ASCII_H(x) HEX_TO_ASCII(((x)&0x0F))
+#define U8_TO_ASCII_L(x) HEX_TO_ASCII(((x)&0x0F))
+#define BIT_N(byte, n) (((byte)>>(n))&0x01)
+#define	NELEM(array)	(sizeof(array)/sizeof(array[0]))
+
+#define	FILE_LINE		__FILE__,__FUNCTION__,__LINE__
+#define	DEBUG_TIME_LINE(format, ...)	debug(FILE_LINE, format, ##__VA_ARGS__)
+
 extern void setsystime(DateTimeBCD datetime);
 extern void TSGet(TS* ts);
 extern INT8U TScompare(TS ts1, TS ts2);
@@ -88,4 +102,7 @@ void bufsyslog(const INT8U* buf, const char* title, int head, int tail, int len)
  * */
 extern INT8U getBase_DataTypeLen(Base_DataType dataType);
 extern INT8S reversebuff(INT8U* buff,INT32U len,INT8U* invbuff);
+
+extern void debug(const char* file, const char* func, INT32U line, const char *fmt, ...);
+extern void readFrm(char* str,  INT32U strLen, INT8U* buf, INT32U* bufSize);
 #endif /* PUBLICFUNCTION_H_ */

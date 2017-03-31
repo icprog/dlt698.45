@@ -874,4 +874,65 @@ INT32S asc2bcd(INT8U* asc, INT32U len, INT8U* bcd, ORDER order) {
     return len / 2;
 }
 
+void get_local_time(char* buf, INT32U bufSize)
+{
+	TS timeinfo = {};
+
+	if ((bufSize < 20) || (NULL == buf))
+		return;
+
+	TSGet(&timeinfo);
+	sprintf(buf, "%04d-%02d-%02d %02d:%02d:%02d",
+			timeinfo.Year ,	timeinfo.Month, timeinfo.Day,
+			timeinfo.Hour,	timeinfo.Minute, timeinfo.Sec);
+}
+
+void debug(const char* file, const char* func, INT32U line, const char *fmt, ...)
+{
+	va_list ap;
+	char bufTime[20] = { 0 };
+	get_local_time(bufTime, sizeof(bufTime));
+	fprintf(stderr, "[%s][%s][%s()][%d]: ", bufTime, file, func, line);
+	va_start(ap, fmt);
+	vfprintf(stderr, fmt, ap);
+	va_end(ap);
+	fprintf(stderr, "\n");
+}
+
+/*
+ * 功能: 将帧字符串转化为16进制字节串 *
+ * @str: 帧字符串
+ * @buf: 目标字节串
+ * @bufSize: 目标字节串原本的长度
+ */
+void readFrm(char* str,  INT32U strLen, INT8U* buf, INT32U* bufSize)
+{
+	int state=0;//是否遇到过字节字符
+	INT8U high = 0;
+	INT8U low = 0;
+	INT32U destLen = 0;//已扫描过的字节个数
+	char* p = str;
+
+	if(bufSize == NULL || buf == NULL || str == NULL)
+		return;
+
+	while(*p != '\0') {
+		if(*p == ' '|| *p == '\n' || *p == 't' || *p == '\r') {
+			state  = 0;
+		} else if (state == 0) {
+			high =  *p;
+			state = 1;
+		} else if (destLen < (*bufSize)) {
+			low = *p;
+			high = ASCII_TO_HEX(high);
+			low = ASCII_TO_HEX(low);
+			*buf = (high<<4 | low);
+			buf++;
+			destLen++;
+		}
+		p++;
+	}
+	*bufSize = destLen;
+}
+
 #endif /*JPublicFunctionH*/
