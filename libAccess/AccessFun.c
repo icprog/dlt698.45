@@ -375,7 +375,7 @@ int  readParaClass(OI_698 oi,void *blockdata,int seqnum)
 /*
  * 输入参数：	oi:对象标识，seqno:记录序号，blockdata:存储数据，savelen：存储长度，
  * 			type：存储类型【	根据宏定义SaveFile_type 】
- * 返回值：=1：文件存储成功
+ * 返回值：=0：文件存储成功
  */
 int saveCoverClass(OI_698 oi,INT16U seqno,void *blockdata,int savelen,int type)
 {

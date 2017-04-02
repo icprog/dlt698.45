@@ -16,6 +16,7 @@
 #include "show_ctrl.h"
 #include <stdarg.h>
 #include <sys/stat.h>
+#include "basedef.h"
 
 extern Proxy_Msg* p_Proxy_Msg_Data;//液晶给抄表发送代理处理结构体，指向由guictrl.c配置的全局变量
 
@@ -1318,8 +1319,8 @@ INT8U getSinglegOADDataUnit(INT8U* oadData)
 }
 INT8S checkEvent698(OI_698 rcvOI,INT8U* data,INT8U dataLen,CLASS_6001 obj6001,INT16U taskID)
 {
-	 asyslog(LOG_INFO,"checkEvent698 测量点 = %02x%02x%02x%02x%02x%02x%02x%02x  rcvOI= %04x data = %02x%02x%02x%02x%02x%02x%02x%02x\n",
-			obj6001.basicinfo.addr.addr[0],obj6001.basicinfo.addr.addr[1],obj6001.basicinfo.addr.addr[2],obj6001.basicinfo.addr.addr[3],
+	 asyslog(LOG_INFO,"taskID = %d checkEvent698 测量点 = %02x%02x%02x%02x%02x%02x%02x%02x  rcvOI= %04x data = %02x%02x%02x%02x%02x%02x%02x%02x\n",
+			 taskID,obj6001.basicinfo.addr.addr[0],obj6001.basicinfo.addr.addr[1],obj6001.basicinfo.addr.addr[2],obj6001.basicinfo.addr.addr[3],
 			obj6001.basicinfo.addr.addr[4],obj6001.basicinfo.addr.addr[5],obj6001.basicinfo.addr.addr[6],obj6001.basicinfo.addr.addr[7],
 			rcvOI,data[0],data[1],data[2],data[3],data[4],data[5],data[6],data[7]);
 
@@ -1330,13 +1331,13 @@ INT8S checkEvent698(OI_698 rcvOI,INT8U* data,INT8U dataLen,CLASS_6001 obj6001,IN
 	}
 	if(rcvOI == 0x0010)
 	{
-		ret = Event_310B(obj6001.basicinfo.addr,taskID,data,dataLen,JProgramInfo);
+		ret = Event_310B(obj6001.basicinfo.addr,taskID,&data[2],dataLen,JProgramInfo);
 
 		ret = Event_310C(obj6001.basicinfo.addr,taskID,data,dataLen,JProgramInfo,obj6001);
 
-		ret = Event_310D(obj6001.basicinfo.addr,taskID,data,dataLen,JProgramInfo,obj6001);
+		ret = Event_310D(obj6001.basicinfo.addr,taskID,&data[2],dataLen,JProgramInfo,obj6001);
 
-		ret = Event_310E(obj6001.basicinfo.addr,taskID,data,dataLen,JProgramInfo);
+		ret = Event_310E(obj6001.basicinfo.addr,taskID,&data[2],dataLen,JProgramInfo);
 	}
 	return ret;
 }
@@ -1396,10 +1397,12 @@ INT16U parseSingleOADData(INT8U isProxyResponse,INT8U* oadData,INT8U* dataConten
 			memset(&dataContent[dataLen],0,oiDataLen-singledataLen);
 			dataLen = dataLen + oiDataLen - singledataLen;
 		}
+#if 1
 		if((isProxyResponse == 0)&&(taskID > 0))
 		{
 			checkEvent698(rcvOI,&oadData[startIndex+1],oiDataLen,obj6001,taskID);
 		}
+#endif
 		fprintf(stderr,"\n dataLen = %d\n",dataLen);
 	}
 	*dataIndex = dataLen;
@@ -2956,7 +2959,7 @@ INT8S deal6015or6017(INT8U cjType,CLASS_6015 st6015, INT8U port485,CLASS_6035* s
 					if((dataLen > 0)&& (cjType == norm))
 					{
 						int bufflen = compose6012Buff(startTime,meter.basicinfo.addr,dataLen,dataContent,port485);
-						SaveNorData(st6035->taskID,NULL,dataContent,bufflen);
+						//SaveNorData(st6035->taskID,NULL,dataContent,bufflen);
 					}
 				}
 				else

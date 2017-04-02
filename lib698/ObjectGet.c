@@ -724,7 +724,7 @@ int Get4300(RESULT_NORMAL *response)
 
 int Get4500(RESULT_NORMAL *response)
 {
-	int index=0;
+	int index=0,i=0;
 	INT8U *data = NULL;
 	OAD oad={};
 	CLASS25	class_tmp={};
@@ -736,15 +736,27 @@ int Get4500(RESULT_NORMAL *response)
 
 	switch(oad.attflg )
 	{
-		case 5:
-			index += create_struct(&data[index],6);
-			index += fill_visible_string(&data[index],class_tmp.info.factoryCode,4);
-			index += fill_visible_string(&data[index],class_tmp.info.softVer,4);
-			index += fill_visible_string(&data[index],class_tmp.info.softDate,6);
-			index += fill_visible_string(&data[index],class_tmp.info.hardVer,4);
-			index += fill_visible_string(&data[index],class_tmp.info.hardDate,6);
-			index += fill_visible_string(&data[index],class_tmp.info.factoryExpInfo,8);
-			break;
+	case 4:	//短信通信参数
+		index += create_struct(&data[index],3);
+		index += fill_visible_string(&data[index],&class_tmp.sms.center[1],class_tmp.sms.center[0]);
+		index += create_array(&data[index],class_tmp.sms.masternum);
+		for(i=0;i<class_tmp.sms.masternum;i++) {
+			index += fill_visible_string(&data[index],&class_tmp.sms.master[i][1],class_tmp.sms.master[i][0]);
+		}
+		index += create_array(&data[index],class_tmp.sms.destnum);
+		for(i=0;i<class_tmp.sms.destnum;i++) {
+			index += fill_visible_string(&data[index],&class_tmp.sms.dest[i][1],class_tmp.sms.dest[i][0]);
+		}
+		break;
+	case 5:
+		index += create_struct(&data[index],6);
+		index += fill_visible_string(&data[index],class_tmp.info.factoryCode,4);
+		index += fill_visible_string(&data[index],class_tmp.info.softVer,4);
+		index += fill_visible_string(&data[index],class_tmp.info.softDate,6);
+		index += fill_visible_string(&data[index],class_tmp.info.hardVer,4);
+		index += fill_visible_string(&data[index],class_tmp.info.hardDate,6);
+		index += fill_visible_string(&data[index],class_tmp.info.factoryExpInfo,8);
+		break;
 	}
 	response->datalen = index;
 	return 0;
@@ -782,7 +794,8 @@ int Get4510(RESULT_NORMAL *response)
 			}
 			index += fill_octet_string(&data[index],(char *)&class_tmp.commconfig.proxyIp[1],class_tmp.commconfig.proxyIp[0]);
 			index += fill_long_unsigned(&data[index],class_tmp.commconfig.proxyPort);
-			index += fill_bit_string8(&data[index],class_tmp.commconfig.timeoutRtry);
+			//index += fill_bit_string8(&data[index],class_tmp.commconfig.timeoutRtry);
+			index += fill_unsigned(&data[index],class_tmp.commconfig.timeoutRtry);
 			index += fill_long_unsigned(&data[index],class_tmp.commconfig.heartBeat);
 			break;
 	}
@@ -1211,7 +1224,7 @@ int GetCollPara(INT8U seqOfNum,RESULT_NORMAL *response)
 	INT8U 	*data = NULL;
 	OAD 	oad={};
 	INT16U	i=0,blknum=0,meternum=0,tmpblk=0;
-	int		retlen=0;
+	INT16U	retlen=0;
 	INT16U	oneUnitLen=0;	//计算一个配置单元的长度，统计是否需要分帧操作
 	int		lastframenum = 0; //记录分帧的数量
 

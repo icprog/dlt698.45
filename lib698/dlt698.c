@@ -24,6 +24,7 @@ extern int getRequestNext(INT8U *data,CSINFO *csinfo,INT8U *sendbuf);
 extern int doReponse(int server,int reponse,CSINFO *csinfo,int datalen,INT8U *data,INT8U *buf);
 extern INT16U setRequestNormal(INT8U *data,OAD oad,INT8U *DAR,CSINFO *csinfo,INT8U *buf);
 extern int setRequestNormalList(INT8U *Object,CSINFO *csinfo,INT8U *buf);
+extern int setThenGetRequestNormalList(INT8U *data,CSINFO *csinfo,INT8U *buf);
 extern int Proxy_GetRequestlist(INT8U *data,CSINFO *csinfo,INT8U *sendbuf,INT8U piid);
 extern unsigned short tryfcs16(unsigned char *cp, int  len);
 extern INT32S secureConnectRequest(SignatureSecurity* securityInfo ,SecurityData* RetInfo);
@@ -566,7 +567,7 @@ int doSetAttribute(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 			setRequestNormalList(&apdu[3],csinfo,buf);
 			break;
 		case SET_THENGET_REQUEST_NORMAL_LIST:
-
+			setThenGetRequestNormalList(&apdu[3],csinfo,buf);
 			break;
 	}
 
