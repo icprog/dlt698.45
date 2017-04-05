@@ -742,9 +742,9 @@ INT8U Event_3104(INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 		readCoverClass(0x3104,0,&prginfo_event->event_obj.Event3104_obj,sizeof(prginfo_event->event_obj.Event3104_obj),event_para_save);
 		oi_chg.oi3104 = prginfo_event->oi_changed.oi3104;
 	}
-    if (prginfo_event->event_obj.Event3104_obj.enableflag == 0) {
-        return 0;
-    }
+//    if (prginfo_event->event_obj.Event3104_obj.enableflag == 0) {
+//        return 0;
+//    }
     //事件判定
     if(1){
     	INT8U Save_buf[256];

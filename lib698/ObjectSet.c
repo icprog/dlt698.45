@@ -905,7 +905,7 @@ int setThenGetRequestNormalList(INT8U *data,CSINFO *csinfo,INT8U *buf)
 		doGetnormal(0,&response);
 		listindex += create_OAD(0,&TmpDataBufList[listindex],oad);
 		if(response.datalen>0) {
-//			TmpDataBufList[listindex++] = 1;		//Get-Result∷=CHOICE  Data		TODO:是否需要
+			TmpDataBufList[listindex++] = 1;		//Get-Result∷=CHOICE  Data		国网软件需要，但是报文解析软件不认
 			memcpy(&TmpDataBufList[listindex],response.data,response.datalen);
 			listindex = listindex + response.datalen;
 		}else {

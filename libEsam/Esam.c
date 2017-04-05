@@ -123,7 +123,8 @@ INT32S Esam_WriteThenRead(INT32S fd, INT8U* Tbuf, INT16U Tlen, INT8U* Rbuf){
 			memset(rx,0x00,1);
 			Esam_ReadFromChip(fd,rx,1);//读取1个字符
 			i++;
-			if(i>=20) break;
+			//if(i>=20) break;
+			if(i>=50) break;
 		}while(rx[0]!=MARK_ESAM);
 
 		if(rx[0]==MARK_ESAM)

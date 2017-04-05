@@ -115,6 +115,8 @@ void clearData()
 {
 	//冻结类数据清除
 	system("rm -rf /nand/task");
+	//统计类数据清除
+	system("rm -rf /nand/data");
 }
 
 void clearEvent()
@@ -445,7 +447,7 @@ int readCoverClass(OI_698 oi,INT16U seqno,void *blockdata,int datalen,int type)
 	case acs_energy_save:
 		ret = readFileName(oi,seqno,type,fname);
 		if(ret==0) {		//文件存在
-			fprintf(stderr,"readClass %s filelen=%d\n",fname,datalen);
+			fprintf(stderr,"readClass %s filelen=%d,type=%d\n",fname,datalen,type);
 			ret = block_file_sync(fname,blockdata,datalen,0,0);
 //			fprintf(stderr,"ret=%d\n",ret);
 		}else  {		//无配置文件，读取系统初始化参数
@@ -465,7 +467,7 @@ int readCoverClass(OI_698 oi,INT16U seqno,void *blockdata,int datalen,int type)
 		break;
 	case para_init_save:
 		ret = readFileName(oi,seqno,type,fname);
-		fprintf(stderr,"readClass %s filelen=%d\n",fname,datalen);
+		fprintf(stderr,"para_init_save readClass %s filelen=%d\n",fname,datalen);
 		if(ret==0) {
 			ret = block_file_sync(fname,blockdata,datalen,0,0);
 		}
@@ -506,7 +508,7 @@ int saveVariData(OI_698 oi,int coll_seqnum,void *blockdata,int datalen)
 		return -1;
 	}
 	type = getvarioffset(oi,coll_seqnum,&offset,&blklen);
-	fprintf(stderr,"offset=%d ,blklen=%d, type=%d\n",offset,blklen,type);
+//	fprintf(stderr,"oi=%04x offset=%d ,blklen=%d, type=%d\n",oi,offset,blklen,type);
 	if(type == -1) {
 		fprintf(stderr,"没有相关OI=%04x的存储信息，不可保存!!!\n",oi);
 		return -1;
@@ -532,7 +534,7 @@ int saveVariData(OI_698 oi,int coll_seqnum,void *blockdata,int datalen)
 		fprintf(stderr,"创建文件 %s\n",filename);
 	}else {
 		fp = fopen(filename, "r+");
-		fprintf(stderr,"替换文件 %s\n",filename);
+//		fprintf(stderr,"替换文件 %s\n",filename);
 	}
 	if (fp != NULL) {
 		if(wbuf==NULL) {
@@ -540,7 +542,7 @@ int saveVariData(OI_698 oi,int coll_seqnum,void *blockdata,int datalen)
 			memset(wbuf,0,blklen);
 			wbuf[0] = datalen;
 			memcpy(wbuf+1,blockdata,datalen);
-			fprintf(stderr,"set to %d, datalen=%d ",offset,datalen);
+//			fprintf(stderr,"set to %d, datalen=%d ",offset,datalen);
 			fseek(fp, offset, SEEK_SET);
 			//fwrite(&datalen,sizeof(int),1,fp);			//数据有效长度
 			ret = fwrite(wbuf,blklen,1,fp);			//数据内容
@@ -643,10 +645,10 @@ INT8U datafile_write(char *FileName, void *source, int size, int offset)
 	if(access(FileName,F_OK)!=0)
 	{
 		fp = fopen((char*) FileName, "w+");
-		fprintf(stderr,"创建文件--%s\n",FileName);
+//		fprintf(stderr,"创建文件--%s\n",FileName);
 	}else {
 		fp = fopen((char*) FileName, "r+");
-		fprintf(stderr,"替换文件\n");
+//		fprintf(stderr,"替换文件\n");
 	}
 	if (fp != NULL) {
 		fseek(fp, offset, SEEK_SET);

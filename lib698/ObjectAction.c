@@ -1030,6 +1030,12 @@ int doObjectAction(OAD oad,INT8U *data,Action_result *act_ret)
 			EsamMothod(attr_act,data);
 			break;
 	}
+	if(oi==0x4300 && attr_act==1) {		//设备复位
+		memp->oi_changed.reset++;
+	}
+	if(oi==0x4300 && attr_act==3) {		//数据区初始化
+		memp->oi_changed.init++;
+	}
 	setOIChange(oi);
 	return success;	//DAR=0，成功	TODO：增加DAR各种错误判断
 }
