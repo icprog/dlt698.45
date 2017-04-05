@@ -63,6 +63,39 @@ INT32U 		K_vrms=1;	        		//RN8209读取电压的系数
 INT32S		VersionID=-1;		//att7022e 改版记录
 INT32U		WireType;		//ATT7022e 接线方式，0x0600:三相四，0x1200：三相三
 
+//交采系数
+typedef struct {
+	INT16U	crc;					//CRC校验
+	INT8U PhaseA[3];				//相角系数
+	INT8U PhaseB[3];
+	INT8U PhaseC[3];
+	INT8U PhaseA1[3];				//小电流相角系数
+	INT8U PhaseB1[3];
+	INT8U PhaseC1[3];
+	INT8U PhaseA0[3];				//分段电流相角系数
+	INT8U PhaseB0[3];
+	INT8U PhaseC0[3];
+	INT8U UA[3];					//电压系数
+	INT8U UB[3];
+	INT8U UC[3];
+	INT8U IA[3];					//电流系数
+	INT8U IB[3];
+	INT8U IC[3];
+	INT8U I0[3];
+	INT8U PA[3];					//有功系数
+	INT8U PB[3];
+	INT8U PC[3];
+	INT8U UoffsetA[3];					//电压有效值offset校正
+	INT8U UoffsetB[3];
+	INT8U UoffsetC[3];
+	INT8U IoffsetA[3];					//电流有效值offset校正
+	INT8U IoffsetB[3];
+	INT8U IoffsetC[3];
+	INT8U Tpsoffset[3];				//温度
+	INT32U HarmUCoef[3];			//谐波电压系数，校表过程中，将读取的基波值/220.0得到系数
+	INT32U HarmICoef[3];			//谐波电流系数，校表过程中，将读取的基波值/1.5得到系数
+	INT32U	WireType;			//接线方式，0x1200：三相三，0x0600：三相四
+}ACCoe_SAVE_3761;
 
 void realdataprint(_RealData realdata)
 {
@@ -139,6 +172,7 @@ void acs_energysum_print(ACEnergy_Sum energysum)
 			energysum.Q4_Qt_Rate[2],energysum.Q4_Qt_Rate[3]);
 	fprintf(stderr,"\n\r");
 }
+
 
 /*ATT7022E校表寄存器值打印*/
 void acs_regdata_print()
@@ -1232,8 +1266,8 @@ void acs_process(int argc, char *argv[])
 
     JProgramInfo = OpenShMem("ProgramInfo", sizeof(ProgramInfo), NULL);
 
-	VersionID = JProgramInfo->ac_chip_type;
-	WireType = JProgramInfo->WireType;
+	VersionID = JProgramInfo->dev_info.ac_chip_type;
+	WireType = JProgramInfo->dev_info.WireType;
 	fprintf(stderr,"\n计量芯片版本：%06X, 接线方式=%X(0600:三相四，1200：三相三)\n",VersionID,WireType);
     if(argc>=3) {	//
 		if(strcmp(argv[1],"acs")==0) {

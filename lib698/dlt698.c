@@ -24,6 +24,7 @@ extern int getRequestNext(INT8U *data,CSINFO *csinfo,INT8U *sendbuf);
 extern int doReponse(int server,int reponse,CSINFO *csinfo,int datalen,INT8U *data,INT8U *buf);
 extern INT16U setRequestNormal(INT8U *data,OAD oad,INT8U *DAR,CSINFO *csinfo,INT8U *buf);
 extern int setRequestNormalList(INT8U *Object,CSINFO *csinfo,INT8U *buf);
+extern int setThenGetRequestNormalList(INT8U *data,CSINFO *csinfo,INT8U *buf);
 extern int Proxy_GetRequestlist(INT8U *data,CSINFO *csinfo,INT8U *sendbuf,INT8U piid);
 extern unsigned short tryfcs16(unsigned char *cp, int  len);
 extern INT32S secureConnectRequest(SignatureSecurity* securityInfo ,SecurityData* RetInfo);
@@ -566,7 +567,7 @@ int doSetAttribute(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 			setRequestNormalList(&apdu[3],csinfo,buf);
 			break;
 		case SET_THENGET_REQUEST_NORMAL_LIST:
-
+			setThenGetRequestNormalList(&apdu[3],csinfo,buf);
 			break;
 	}
 
@@ -706,7 +707,7 @@ INT16S doSecurityRequest(INT8U* apdu)//
 	if(apdu[1] !=0x00 && apdu[1] != 0x01) return -2 ;   //明文应用数据单元
 	 INT16S retLen=0;
 	 INT32S fd=-1;
-	 fd = Esam_Init(fd,ESAM_SPI_DEV_II);
+	 fd = Esam_Init(fd,memp->DevicePara[0]);
 	 if(fd<0) return -3;
 	 //fprintf(stderr,"in doSecurityRequest\n");
 	 if(apdu[1]==0x00)//明文应用数据处理
@@ -730,7 +731,8 @@ INT16S composeSecurityResponse(INT8U* SendApdu,INT16U Length)
 {
 	 INT32S fd=-1;
 	 INT32S ret=0;
-	 fd = Esam_Init(fd,(INT8U*)ESAM_SPI_DEV_II);
+	 fprintf(stderr,"composeSecurityResponse securetype = %d\n",securetype);
+	 fd = Esam_Init(fd,memp->DevicePara[0]);
 	 do
 	 {
 		 if(fd>0 && Length>0)
@@ -771,7 +773,7 @@ INT16U composeAutoReport(INT8U* SendApdu,INT16U length)
 	 INT32S fd=-1;
 	 INT8U RN[12];
 	 INT8U MAC[4];
-	 fd = Esam_Init(fd,ESAM_SPI_DEV_II);
+	 fd = Esam_Init(fd,memp->DevicePara[0]);
 	 if(fd<0) return 0;
 	 retLen = Esam_ReportEncrypt(fd,&SendApdu[1],length-1,RN,MAC);
 	 if(retLen<=0)

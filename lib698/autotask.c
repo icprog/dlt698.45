@@ -320,8 +320,8 @@ int callEventAutoReport(CommBlock* com,INT8U *eventbuf,int datalen)
 	if ((com==NULL) || (datalen==0))
 		return -1;
 	if (fillcsinfo(&csinfo,com->serveraddr,com->taskaddr)==0)
-		return -1;
-	index = 0;
+		return 0;
+	index = 0;		
 	index = FrameHead(&csinfo,sendbuf);
 	hcsi = index;
 	index = index + 2;

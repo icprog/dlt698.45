@@ -67,6 +67,40 @@ void Watchdog(int count) //硬件看门狗
     return;
 }
 
+//读取设备配置信息
+int ReadDeviceConfig()
+{
+	FILE* fp = NULL;
+	char aline[128]={};
+	int  devicetype=1;
+
+	fp = fopen((const char*)DEVICE_CFG,(const char*)"r");
+	if(fp == NULL)
+	{
+		fprintf(stderr,"\n无配置信息!");
+		JProgramInfo->DevicePara[0] = 1;
+	}else {
+		memset(aline,0,sizeof(aline));
+		while(fgets((char*)aline,sizeof(aline),fp) != NULL)
+		{
+//			fprintf(stderr,"aline  %s\n",aline);
+			if(strncmp(aline,"begin",5) == 0) continue;
+			if(strncmp(aline,"end",3) == 0) break;
+			if(strncmp(aline,"//",2) == 0) continue;
+			if(strncmp(aline,"device",6)==0)  	//设备类型
+			{
+				sscanf(aline,"device=%d",&devicetype);
+				JProgramInfo->DevicePara[0] = devicetype;
+ 			}
+		}
+	}
+	if(JProgramInfo->DevicePara[0] < 1 || JProgramInfo->DevicePara[0] > 3) {		//无效值
+		JProgramInfo->DevicePara[0] = 1;	//默认I型
+	}
+	fprintf(stderr,"\n当前运行类型为：%d 型终端\n",JProgramInfo->DevicePara[0]);
+	return 1;
+}
+
 //读取系统配置文件
 int ReadSystemInfo() {
     int ProgsNum = 1;
@@ -438,6 +472,7 @@ int main(int argc, char* argv[]) {
     Createmq();
     CreateSem();
     InitSharedMem(argc, argv);
+    ReadDeviceConfig();
 
     if (argc >= 2 && strncmp("all", argv[1], 3) == 0) {
         ProgsNum = ReadSystemInfo();

@@ -17,7 +17,7 @@
 #define  ERR_WRTBUF_OVERLEN   -1 		//写入缓冲长度过长
 #define  ERR_WAIT_TIMEOUT     -2 		//数据等待超时
 //
-#define  BUFFLENMAX_SPI       128
+#define  BUFFLENMAX_SPI_ACS       128
 
 /* 打开初始化SPI设备
  * spipath：spi设备全路径

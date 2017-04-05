@@ -626,7 +626,8 @@ void close_named_sem(const char* name) {
     sem_t* fd;
     if (name != NULL) {
         fd = sem_open(name, O_RDWR);
-        if (fd != SEM_FAILED) {
+         if (fd != SEM_FAILED) {
+            fprintf(stderr,"close sem\n");
             sem_close(fd);
         }
     }

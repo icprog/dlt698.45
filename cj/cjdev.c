@@ -18,6 +18,7 @@
 #include "ParaDef.h"
 #include "Shmem.h"
 #include "main.h"
+#include "Esam.h"
 
 extern ProgramInfo* JProgramInfo;
 
@@ -223,52 +224,6 @@ void SetHEART(int argc, char* argv[]) {
     } else {
         fprintf(stderr, "\n心跳周期:%d s \n",class4500.commconfig.heartBeat);
     }
-}
-
-void EsamTest(int argc, char* argv[]) {
-	INT16S elen=0;
-	INT8U  ebuff[37];
-	memset(ebuff,0,37);
-	INT32S fp_spi = -1;
-	INT8U i;
-	INT8U GetSerialNum_ESAM[] = { 0x55, 0x80, 0x36, 0x00, 0xFF, 0x00, 0x00, 0xB6};
-
-    JProgramInfo = OpenShMem("ProgramInfo", sizeof(ProgramInfo), NULL);
-	fprintf(stderr,"fp_spi=%d ac_chip_type=%04x\n",fp_spi,JProgramInfo->ac_chip_type);
-    fp_spi = Esam_Init(fp_spi,ESAM_SPI_DEV_II);
-	fprintf(stderr,"Esam_Init fp_spi=%d\n",fp_spi);
-	if(fp_spi < 0)
-		fprintf(stderr,"\nesam device cannot open\n");
-
-	elen = Esam_WriteThenRead(fp_spi, (INT8U*)GetSerialNum_ESAM, 8, ebuff);
-
-	if(elen > 0)
-	{
-		fprintf(stderr,"\n esam 信息如下:\n");
-		fprintf(stderr," 芯片序列号   证书序列号   离线计数器   芯片状态   密钥版本\n");
-		for(i = 0;i<8;i++) //1.芯片序列号8字节
-		{
-			fprintf(stderr,"%02x",ebuff[i]);
-		}
-		fprintf(stderr,"  ");
-		for(i = 0;i<16;i++)//2.证书序列号16字节
-		{
-			fprintf(stderr,"%02x",ebuff[8+i]);
-		}
-		fprintf(stderr,"  %02x%02x%02x%02x",ebuff[24],ebuff[25],ebuff[26],ebuff[27]);//3.离线计数器4字节
-		fprintf(stderr,"  %02x  ",ebuff[28]);//4.芯片状态信息
-		for(i = 0;i<8;i++)  //5.密钥版本
-		{
-			fprintf(stderr,"%02x",ebuff[29+i]);
-		}
-
-	}
-	else
-	{
-		fprintf(stderr,"\n 未获取到esam信息");
-	}
-	Esam_Clear(fp_spi);
-	shmm_unregister("ProgramInfo", sizeof(ProgramInfo));
 }
 
 

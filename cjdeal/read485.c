@@ -1397,10 +1397,12 @@ INT16U parseSingleOADData(INT8U isProxyResponse,INT8U* oadData,INT8U* dataConten
 			memset(&dataContent[dataLen],0,oiDataLen-singledataLen);
 			dataLen = dataLen + oiDataLen - singledataLen;
 		}
+#if 1
 		if((isProxyResponse == 0)&&(taskID > 0))
 		{
 			checkEvent698(rcvOI,&oadData[startIndex+1],oiDataLen,obj6001,taskID);
 		}
+#endif
 		fprintf(stderr,"\n dataLen = %d\n",dataLen);
 	}
 	*dataIndex = dataLen;
@@ -2895,7 +2897,7 @@ INT8S deal6015or6017(INT8U cjType,CLASS_6015 st6015, INT8U port485,CLASS_6035* s
 					if((dataLen > 0)&& (cjType == norm))
 					{
 						int bufflen = compose6012Buff(startTime,meter.basicinfo.addr,dataLen,dataContent,port485);
-						SaveNorData(st6035->taskID,NULL,dataContent,bufflen);
+						//SaveNorData(st6035->taskID,NULL,dataContent,bufflen);
 					}
 				}
 				else
