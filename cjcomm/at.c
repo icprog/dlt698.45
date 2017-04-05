@@ -727,6 +727,8 @@ void* ATWorker(void* args) {
 
     err:
         sleep(1);
+        close(sMux0);
+        close(sMux1);
         continue;
     }
 
