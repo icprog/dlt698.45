@@ -48,7 +48,7 @@ const static CLASS_INFO  class_info[] ={
 typedef struct
 {
 	OI_698		oi;				//对象标识OI
-	int			offset;			//文件中编译位置
+	int			offset;			//文件中编译位置 ，数据长度固定为VARI_LEN
 }Variable_Class;
 
 const static  Variable_Class vari_data[] ={
@@ -56,7 +56,7 @@ const static  Variable_Class vari_data[] ={
 		{0x200A,10},{0x200B,11},{0x200C,12},{0x200D,13},{0x200E,14},{0x200F,15},{0x2010,16},{0x2011,17},{0x2012,18},{0x2013,19},
 		{0x2014,20},{0x2017,21},{0x2018,22},{0x2019,23},{0x201A,24},{0x201B,25},{0x201C,26},{0x2026,27},{0x2027,28},{0x2028,29},
 		{0x2029,30},{0x202A,31},{0x202C,32},{0x202D,33},{0x202E,34},{0x2031,35},{0x2032,36},{0x2040,37},{0x2041,38},{0x2031,39},
-		{0x2032,40},{0x2033,41},{0x2140,42},{0x2141,43},{0x2200,44},{0x2203,45},{0x2204,46},
+		{0x2032,40},{0x2033,41},{0x2200,42},{0x2203,43},{0x2204,44},
 };
 
 typedef struct
@@ -72,8 +72,8 @@ const static  Variable_TJ_Class vari_tj_data[] ={
 		{0x2131,0,64},//当月A相电压合格率			64个字节
 		{0x2132,1,64},//当月B相电压合格率
 		{0x2133,2,64},//当月C相电压合格率
-		{0x2140,3,64},//日最大有功功率及发生时间		64个
-		{0x2141,4,64},//月最大有功功率及发生时间
+		{0x2140,3,128},//日最大有功功率及发生时间		64个
+		{0x2141,4,128},//月最大有功功率及发生时间
 //		{0x2100,176},//分钟区间统计	1440点*12个字节＝17280		文件太大，考虑单独放置
 		{0x2101,5,288},//小时区间统计	24*12=288
 };
@@ -93,6 +93,7 @@ typedef struct{
 /*
  * 该文件定义的函数为libAccess接口库内部使用函数。不是对外接口
  * */
+extern INT8U fu_read_accoef(char *FileName, void *source,INT32U size);	//为了兼容3761的计量芯片系数内容
 extern INT8U writeInterClass(char *file_name,void *dest,int size);
 extern void WriteInterfaceClass(OI_698 oi,INT16U seqnum,INT8U method);
 extern int WriteClass11(OI_698 oi,INT16U seqnum,INT8U method);

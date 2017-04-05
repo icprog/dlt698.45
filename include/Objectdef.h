@@ -88,9 +88,11 @@ typedef struct {
 } MASTER_STATION_INFO_LIST;
 
 typedef struct {
-    INT8U center[VISIBLE_STRING_LEN];    //短信中心号码
-    INT8U master[4][VISIBLE_STRING_LEN]; //主站号码
-    INT8U dest[4][VISIBLE_STRING_LEN];   //短信通知目的号码
+    char 	center[VISIBLE_STRING_LEN];    //短信中心号码
+    INT8U 	masternum;						//支持主站号码总数
+    char 	master[4][VISIBLE_STRING_LEN]; //主站号码
+    INT8U 	destnum;						//支持短信通知目的号码总数
+    char 	dest[4][VISIBLE_STRING_LEN];   //短信通知目的号码
 } SMS_INFO;
 
 typedef struct {
@@ -99,6 +101,7 @@ typedef struct {
     MASTER_STATION_INFO_LIST master;       //主站通信参数表
     SMS_INFO sms;                          //短信通信参数表
     VERINFO info;                          //版本信息
+    INT8U protocolnum;						//支持规约总数
     INT8U protcol[10][VISIBLE_STRING_LEN]; //支持的规约列表
     INT8U ccid[VISIBLE_STRING_LEN];        // SIM卡CCID
     INT8U imsi[VISIBLE_STRING_LEN];        // SIM卡IMSI

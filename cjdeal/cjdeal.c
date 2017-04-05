@@ -22,6 +22,7 @@
 #include "calc.h"
 #include "ParaDef.h"
 #include "EventObject.h"
+#include "dlt698def.h"
 
 ProgramInfo* JProgramInfo=NULL;
 int ProIndex=0;
@@ -32,11 +33,13 @@ MeterPower MeterPowerInfo[POWEROFFON_NUM]; //当poweroffon_state为1时，抄读
  *程序入口函数-----------------------------------------------------------------------------------------------------------
  *程序退出前处理，杀死其他所有进程 清楚共享内存
  **********************************************************/
-void QuitProcess(ProjectInfo *proinfo)
+void QuitProcess()
 {
 	close_named_sem(SEMNAME_SPI0_0);
-	proinfo->ProjectID=0;
-    fprintf(stderr,"\n退出：%s %d",proinfo->ProjectName,proinfo->ProjectID);
+	read485QuitProcess();
+	//proinfo->ProjectID=0;
+    //fprintf(stderr,"\n退出：%s %d",proinfo->ProjectName,proinfo->ProjectID);
+	fprintf(stderr,"\n cjdeal 退出");
 	exit(0);
 }
 /*******************************************************
@@ -56,6 +59,7 @@ int InitPro(ProgramInfo** prginfo, int argc, char *argv[])
 		ProIndex = atoi(argv[1]);
 		fprintf(stderr,"\n%s start",(*prginfo)->Projects[ProIndex].ProjectName);
 		(*prginfo)->Projects[ProIndex].ProjectID=getpid();//保存当前进程的进程号
+		fprintf(stderr,"ProjectID[%d]=%d\n",ProIndex,(*prginfo)->Projects[ProIndex].ProjectID);
 		return 1;
 	}
 	return 0;
@@ -499,6 +503,65 @@ void timeProcess()
 	}
 }
 
+INT8S dealMsgProcess()
+{
+	INT8S result = 0;
+
+	INT8U  rev_485_buf[2048];
+	INT32S ret;
+
+	mmq_head mq_h;
+	ret = mmq_get(mqd_485_main, 1, &mq_h, rev_485_buf);
+
+	if (ret>0)
+	{
+		switch(mq_h.cmd)
+		{
+			case ProxyGetResponseList://代理
+			{
+
+				if(mq_h.pid == cjdeal)
+				{
+					fprintf(stderr, "\n收到代理召测\n");
+					if(cjcommProxy.isInUse == 0)
+					{
+						memcpy(&cjcommProxy.strProxyList,rev_485_buf,sizeof(PROXY_GETLIST));
+						cjcommProxy.isInUse = 3;
+					}
+					else
+					{
+						fprintf(stderr,"上一个代理召测没处理完");
+					}
+
+				}
+				if(mq_h.pid == cjgui)
+				{
+					fprintf(stderr, "\n收到液晶点抄\n");
+					if(cjguiProxy.isInUse == 0)
+					{
+						memcpy(&cjguiProxy.strProxyMsg,rev_485_buf,sizeof(Proxy_Msg));
+						cjguiProxy.isInUse = 1;
+					}
+					else
+					{
+						fprintf(stderr,"上一个液晶点抄没处理完");
+					}
+
+				}
+
+				readState = 0;
+			}
+			break;
+			default:
+			{
+				asyslog(LOG_WARNING,"485收到未知消息  cmd=%d!!!---------------", mq_h.cmd);
+			}
+
+		}
+
+	}
+	return result;
+}
 void dispatch_thread()
 {
 	//运行调度任务进程
@@ -507,7 +570,10 @@ void dispatch_thread()
 	while(1)
 	{
 		timeProcess();
-
+		if(mqd_485_main >= 0)
+		{
+			dealMsgProcess();
+		}
 		para_ChangeType = getParaChangeType();
 
 		if(para_ChangeType&para_6000_chg)
@@ -571,6 +637,12 @@ void dispatchTask_proccess()
 
 	para_change485[0] = 0;
 	para_change485[1] = 0;
+
+	struct mq_attr attr_485_main;
+	mqd_485_main = mmq_open((INT8S *)PROXY_485_MQ_NAME,&attr_485_main,O_RDONLY);
+
+	memset(&cjcommProxy,0,sizeof(CJCOMM_PROXY));
+	memset(&cjguiProxy,0,sizeof(GUI_PROXY));
 
 	pthread_attr_init(&dispatchTask_attr_t);
 	pthread_attr_setstacksize(&dispatchTask_attr_t, 2048 * 1024);

@@ -742,9 +742,9 @@ INT8U Event_3104(INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 		readCoverClass(0x3104,0,&prginfo_event->event_obj.Event3104_obj,sizeof(prginfo_event->event_obj.Event3104_obj),event_para_save);
 		oi_chg.oi3104 = prginfo_event->oi_changed.oi3104;
 	}
-    if (prginfo_event->event_obj.Event3104_obj.enableflag == 0) {
-        return 0;
-    }
+//    if (prginfo_event->event_obj.Event3104_obj.enableflag == 0) {
+//        return 0;
+//    }
     //事件判定
     if(1){
     	INT8U Save_buf[256];
@@ -824,8 +824,8 @@ INT8U Event_3105(TSA tsa,INT8U taskno,INT8U* data,INT8U len,ProgramInfo* prginfo
     if (prginfo_event->event_obj.Event3105_obj.event_obj.enableflag == 0) {
         return 0;
     }
-    if(prginfo_event->event_obj.Event3105_obj.mto_obj.task_no!=taskno)
-    	return 0;
+//    if(prginfo_event->event_obj.Event3105_obj.mto_obj.task_no!=taskno)
+//    	return 0;
 
     if(data==NULL)
     	return 0;
@@ -1418,8 +1418,8 @@ INT8U Event_310B(TSA tsa, INT8U taskno,INT8U* data,INT8U len,ProgramInfo* prginf
     if (prginfo_event->event_obj.Event310B_obj.event_obj.enableflag == 0) {
         return 0;
     }
-    if(prginfo_event->event_obj.Event310B_obj.meter_down_obj.task_no!=taskno)
-    	return 0;
+//    if(prginfo_event->event_obj.Event310B_obj.meter_down_obj.task_no!=taskno)
+//    	return 0;
 
     if(data==NULL)
     	return 0;
@@ -1482,8 +1482,8 @@ INT8U Event_310C(TSA tsa, INT8U taskno,INT8U* data,INT8U len,ProgramInfo* prginf
     if (prginfo_event->event_obj.Event310C_obj.event_obj.enableflag == 0) {
         return 0;
     }
-    if(prginfo_event->event_obj.Event310C_obj.poweroffset_obj.task_no!=taskno)
-       	return 0;
+//    if(prginfo_event->event_obj.Event310C_obj.poweroffset_obj.task_no!=taskno)
+//       	return 0;
     if(data==NULL)
     	return 0;
     INT32U newdata=(data[0]<<24)+(data[1]<<16)+(data[2]<<8)+data[3];
@@ -1571,8 +1571,8 @@ INT8U Event_310D(TSA tsa, INT8U taskno,INT8U* data,INT8U len,ProgramInfo* prginf
 	if (prginfo_event->event_obj.Event310D_obj.event_obj.enableflag == 0) {
 	        return 0;
 	}
-	 if(prginfo_event->event_obj.Event310D_obj.poweroffset_obj.task_no!=taskno)
-		 return 0;
+//	 if(prginfo_event->event_obj.Event310D_obj.poweroffset_obj.task_no!=taskno)
+//		 return 0;
 
 	if(data==NULL)
 		return 0;
@@ -1662,8 +1662,8 @@ INT8U Event_310E(TSA tsa, INT8U taskno,INT8U* data,INT8U len,ProgramInfo* prginf
         return 0;
     }
     fprintf(stderr,"[event]%d %d \n",prginfo_event->event_obj.Event310E_obj.powerstoppara_obj.task_no,taskno);
-    if(prginfo_event->event_obj.Event310E_obj.powerstoppara_obj.task_no!=taskno)
-       	return 0;
+//    if(prginfo_event->event_obj.Event310E_obj.powerstoppara_obj.task_no!=taskno)
+//       	return 0;
     INT32U newdata=(data[0]<<24)+(data[1]<<16)+(data[2]<<8)+data[3];
 	INT32U olddata=0;
 	TS ts;

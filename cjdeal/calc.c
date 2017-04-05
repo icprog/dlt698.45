@@ -589,23 +589,21 @@ void ReadPubData()
 	{
 		if(point[i].valid != 1)
 			continue;
-		readVariData(0x2130,i,&StatisticsPoint[i],sizeof(StatisticsPointProp));
+//		readVariData(0x2130,i,&StatisticsPoint[i],sizeof(StatisticsPointProp));
 		readVariData(0x2140,i,&max_ptongji[i],sizeof(Max_ptongji));
 	//	if (point[i].Type!= JIAOCAI_TYPE)
 	//		continue;
-#ifdef CCTT_II
-		CpPubdata_UU(StatisticsPoint[i].DayResu.tjUa,&point[i].Result.tjUa);
-		CpPubdata_UU(StatisticsPoint[i].MonthResu.tjUa,&point[i].Result_m.tjUa);
-
-#else
-		CpPubdata_UU(StatisticsPoint[i].DayResu.tjUa,&point[i].Result.tjUa);
-		CpPubdata_UU(StatisticsPoint[i].MonthResu.tjUa,&point[i].Result_m.tjUa);
-		CpPubdata_UU(StatisticsPoint[i].DayResu.tjUb,&point[i].Result.tjUb);
-		CpPubdata_UU(StatisticsPoint[i].MonthResu.tjUb,&point[i].Result_m.tjUb);
-		CpPubdata_UU(StatisticsPoint[i].DayResu.tjUc,&point[i].Result.tjUc);
-		CpPubdata_UU(StatisticsPoint[i].MonthResu.tjUc,&point[i].Result_m.tjUc);
-
-#endif
+		if(JProgramInfo->DevicePara[0]==2) {
+			CpPubdata_UU(StatisticsPoint[i].DayResu.tjUa,&point[i].Result.tjUa);
+			CpPubdata_UU(StatisticsPoint[i].MonthResu.tjUa,&point[i].Result_m.tjUa);
+		}else {
+			CpPubdata_UU(StatisticsPoint[i].DayResu.tjUa,&point[i].Result.tjUa);
+			CpPubdata_UU(StatisticsPoint[i].MonthResu.tjUa,&point[i].Result_m.tjUa);
+			CpPubdata_UU(StatisticsPoint[i].DayResu.tjUb,&point[i].Result.tjUb);
+			CpPubdata_UU(StatisticsPoint[i].MonthResu.tjUb,&point[i].Result_m.tjUb);
+			CpPubdata_UU(StatisticsPoint[i].DayResu.tjUc,&point[i].Result.tjUc);
+			CpPubdata_UU(StatisticsPoint[i].MonthResu.tjUc,&point[i].Result_m.tjUc);
+		}
 	}
 }
 /*获取交采测量点序号
@@ -849,16 +847,16 @@ void CpyAcsDataFromPubData(POINT_CALC_TYPE* point_hander)
 
 	point_hander[PointIndex].Realdata.Va.value = JProgramInfo->ACSRealData.Ua;
 	point_hander[PointIndex].Realdata.Va.Available = TRUE;
-#ifndef CCTT_II
-	if(JProgramInfo->WireType!=0x1200)
-	{
-		point_hander[PointIndex].Realdata.Vb.value = JProgramInfo->ACSRealData.Ub;
-		point_hander[PointIndex].Realdata.Vb.Available = TRUE;
-	}
-	point_hander[PointIndex].Realdata.Vc.value = JProgramInfo->ACSRealData.Uc;
-	point_hander[PointIndex].Realdata.Vc.Available = TRUE;
-#endif
 
+	if(JProgramInfo->DevicePara[0]!=2) {
+		if(JProgramInfo->dev_info.WireType!=0x1200)
+		{
+			point_hander[PointIndex].Realdata.Vb.value = JProgramInfo->ACSRealData.Ub;
+			point_hander[PointIndex].Realdata.Vb.Available = TRUE;
+		}
+		point_hander[PointIndex].Realdata.Vc.value = JProgramInfo->ACSRealData.Uc;
+		point_hander[PointIndex].Realdata.Vc.Available = TRUE;
+	}
 //ACSRealData
 	//交采在共享内存中的电能量是示值，需要除以6400才能换算成正确的示值，单位是千瓦
 	point_hander[PointIndex].Realdata.z_P_energy_all.value = JProgramInfo->ACSEnergy.PosPt_All*kw2w/64;
@@ -937,10 +935,16 @@ void calc_thread()
 {
 	INT8U valid = 0;
 	TS oldts,newts;
+	static INT8U	reset_chg=0;
 	TSGet(&oldts);
 	TSGet(&newts);
 
     while(1){
+    	if(JProgramInfo->oi_changed.reset != reset_chg) {
+    		reset_chg = 0;
+    		gongdian_tj.gongdian.day_tj = 0;
+    		gongdian_tj.gongdian.month_tj = 0;
+    	}
     	valid++;
     	TSGet(&newts);
 		/*根据系统参数确定测量点信息，内容保存到point相关处*/
@@ -977,13 +981,13 @@ void calc_thread()
 		if(oldts.Minute != newts.Minute){
 			oldts.Minute = newts.Minute;
 			//存储电压合格率	TODO:只存储交采
-			saveVariData(0x2130,0,&StatisticsPoint[0],sizeof(StatisticsPointProp));
+//			saveVariData(0x2130,0,&StatisticsPoint[0],sizeof(StatisticsPointProp));
 			//日月供电加1分钟
 			gongdian_tj.gongdian.day_tj++;
 			gongdian_tj.gongdian.month_tj++;
 			memcpy(&gongdian_tj.ts,&newts,sizeof(TS));
 			//存储供电时间
-//			fprintf(stderr,"day_gongdian=%d,month_gongdian=%d\n",gongdian_tj.gongdian.day_tj,gongdian_tj.gongdian.month_tj);
+			fprintf(stderr,"day_gongdian=%d,month_gongdian=%d\n",gongdian_tj.gongdian.day_tj,gongdian_tj.gongdian.month_tj);
 			saveVariData(0x2203,0,&gongdian_tj,sizeof(Gongdian_tj));
 			//存储最大功率及发生时间	TODO:只存储交采
 			INT8U i=0;

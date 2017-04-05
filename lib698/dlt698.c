@@ -24,6 +24,7 @@ extern int getRequestNext(INT8U *data,CSINFO *csinfo,INT8U *sendbuf);
 extern int doReponse(int server,int reponse,CSINFO *csinfo,int datalen,INT8U *data,INT8U *buf);
 extern INT16U setRequestNormal(INT8U *data,OAD oad,INT8U *DAR,CSINFO *csinfo,INT8U *buf);
 extern int setRequestNormalList(INT8U *Object,CSINFO *csinfo,INT8U *buf);
+extern int setThenGetRequestNormalList(INT8U *data,CSINFO *csinfo,INT8U *buf);
 extern int Proxy_GetRequestlist(INT8U *data,CSINFO *csinfo,INT8U *sendbuf,INT8U piid);
 extern unsigned short tryfcs16(unsigned char *cp, int  len);
 extern INT32S secureConnectRequest(SignatureSecurity* securityInfo ,SecurityData* RetInfo);
@@ -41,7 +42,7 @@ INT8U securetype;  //安全等级类型  01明文，02明文+MAC 03密文  04密
 INT8U secureRN[20];//安全认证随机数，主站下发，终端回复时需用到，esam计算使用
 static INT8U	client_addr=0;
 PIID piid_g={};
-
+INT8U broadcast=0;
 /**************************************
  * 函数功能：DL/T698.45 状态机
  * 参数含义：
@@ -566,7 +567,7 @@ int doSetAttribute(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 			setRequestNormalList(&apdu[3],csinfo,buf);
 			break;
 		case SET_THENGET_REQUEST_NORMAL_LIST:
-
+			setThenGetRequestNormalList(&apdu[3],csinfo,buf);
 			break;
 	}
 
@@ -706,18 +707,19 @@ INT16S doSecurityRequest(INT8U* apdu)//
 	if(apdu[1] !=0x00 && apdu[1] != 0x01) return -2 ;   //明文应用数据单元
 	 INT16S retLen=0;
 	 INT32S fd=-1;
-	 fd = Esam_Init(fd,(INT8U*)ACS_SPI_DEV);
+	 fd = Esam_Init(fd,memp->DevicePara[0]);
 	 if(fd<0) return -3;
 	 //fprintf(stderr,"in doSecurityRequest\n");
 	 if(apdu[1]==0x00)//明文应用数据处理
 	 {
-		 retLen = secureDecryptDataDeal(apdu);//传入安全等级
+		 retLen = secureDecryptDataDeal(fd,apdu);//传入安全等级
 		 apdu=&apdu[2];
 	 }
 	 else if(apdu[1]==0x01)//密文应用数据处理
 	 {
 		 retLen = secureEncryptDataDeal(fd,apdu,apdu);
 	 }
+	 fprintf(stderr,"doSecurityRequest retlen = %d\n",retLen);
 	 Esam_Clear(fd);
 	 return retLen;
 }
@@ -729,7 +731,8 @@ INT16S composeSecurityResponse(INT8U* SendApdu,INT16U Length)
 {
 	 INT32S fd=-1;
 	 INT32S ret=0;
-	 fd = Esam_Init(fd,(INT8U*)ACS_SPI_DEV);
+	 fprintf(stderr,"composeSecurityResponse securetype = %d\n",securetype);
+	 fd = Esam_Init(fd,memp->DevicePara[0]);
 	 do
 	 {
 		 if(fd>0 && Length>0)
@@ -770,7 +773,7 @@ INT16U composeAutoReport(INT8U* SendApdu,INT16U length)
 	 INT32S fd=-1;
 	 INT8U RN[12];
 	 INT8U MAC[4];
-	 fd = Esam_Init(fd,(INT8U*)ACS_SPI_DEV);
+	 fd = Esam_Init(fd,memp->DevicePara[0]);
 	 if(fd<0) return 0;
 	 retLen = Esam_ReportEncrypt(fd,&SendApdu[1],length-1,RN,MAC);
 	 if(retLen<=0)
@@ -1278,7 +1281,9 @@ int ProcessData(CommBlock *com)
 	comfd = com->phy_connect_fd;
 	hcsok = CheckHead( Rcvbuf ,&csinfo);
 	com->taskaddr = csinfo.ca;
+	broadcast = csinfo.sa_type;
 	fcsok = CheckTail( Rcvbuf ,csinfo.frame_length);
+	securetype = 0x00;
 	if ((hcsok==1) && (fcsok==1))
 	{
 		fprintf(stderr,"\nsa_length=%d\n",csinfo.sa_length);

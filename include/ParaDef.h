@@ -11,6 +11,7 @@
 
 #define delay(A) usleep((A)*1000)
 //////////////////////////////////////////////////////////////
+#define DEVICE_CFG				"/nor/config/device.cfg"	//设备配置信息文件
 #define _CFGDIR_ 				"/nor/config"
 #define _ACSDIR_				"/nor/acs"
 #define TASK_FRAME_DATA			"/nand/frmdata"		//任务分帧的数据文件
@@ -85,14 +86,11 @@
  * 	GPIO硬件接口
  * */
 
-//TODO:根据交采芯片决定ESAM打开那个设备，不用CCTT_II区分
-#ifdef CCTT_II
- #define DEV_SPI_PATH   "/dev/spidev1.0"
-#else
-  #define DEV_SPI_PATH   "/dev/spi0.0"
-#endif
+//根据配置文件nor/device.cfg区分I型、II型、III型
+#define ESAM_SPI_DEV_II		   "/dev/spidev1.0"
+#define ESAM_SPI_DEV 			"/dev/spi0.0"
 
-#define	ACS_SPI_DEV		"/dev/spidev1.0"//"/dev/spidev1.0"		//计量芯片使用的spi设备
+#define	ACS_SPI_DEV		"/dev/spi0.0"				//计量芯片使用的spi设备
 
 //Esam与ATT7022E共用数据线,复位信号，各自独立片选，CS=0，可读写，
 //因此不能同时读写ESAM与ATT7022E，必须互斥操作。
@@ -131,7 +129,7 @@
 
 #define DEV_ADC        "/dev/adc0"
 
-#define DEV_WATCHDOG   "/dev/watchdog"
+#define DEV_WATCHDOG   			"/dev/watchdog"
 #define DEV_LED_ALARM   		"/dev/gpoALARM"
 #define DEV_LED_RUN     		"/dev/gpoRUN_LED"
 #define DEV_LED_ONLINE  		"/dev/gpoONLINE_LED"

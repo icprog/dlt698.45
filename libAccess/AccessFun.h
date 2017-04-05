@@ -164,7 +164,7 @@ extern int delClassBySeq(OI_698 oi,void *blockdata,int seqnum);
 /*
  * 输入参数：	oi:对象标识，seqno:记录序号，blockdata:存储数据，len：存储长度，
  * 			type：存储类型【	根据宏定义SaveFile_type】
- * 返回值：=1：文件存储成功
+ * 返回值：=0：文件存储成功
  */
 extern int saveCoverClass(OI_698 oi,INT16U seqno,void *blockdata,int savelen,int type);
 

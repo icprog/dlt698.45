@@ -192,7 +192,7 @@ INT32S att_spi_write(int spifp, INT32U addr, INT32U len, INT8U *buf)
 {
 	INT32U 	i=0;
 	int 	cnt = 0;
-	INT8U	cmd[BUFFLENMAX_SPI];
+	INT8U	cmd[BUFFLENMAX_SPI_ACS];
 	int		wlen = 0;
 
 //	sem_wait(sem_check_fd);
@@ -218,8 +218,8 @@ INT32S att_spi_write(int spifp, INT32U addr, INT32U len, INT8U *buf)
 
 INT32S att_spi_read(int spifp,INT32U addr, INT32U len)
 {
-	INT8U	cmd[BUFFLENMAX_SPI];
-	INT8U	buf[BUFFLENMAX_SPI];
+	INT8U	cmd[BUFFLENMAX_SPI_ACS];
+	INT8U	buf[BUFFLENMAX_SPI_ACS];
 	INT32U i;
 	INT32S rec;
 	int cnt = 0;
@@ -315,8 +315,8 @@ int spi_write(int fd, INT8U *buf, int len)
 
 INT32S att_spi_read(int spifp,INT32U addr, INT32U len)
 {
-	INT8U	cmd[BUFFLENMAX_SPI];
-	INT8U	buf[BUFFLENMAX_SPI];
+	INT8U	cmd[BUFFLENMAX_SPI_ACS];
+	INT8U	buf[BUFFLENMAX_SPI_ACS];
 	INT32U i;
 	INT32S rec;
 	int cnt = 0;
@@ -343,7 +343,7 @@ INT32S att_spi_write(int spifp, INT32U addr, INT32U len, INT8U *buf)
 	INT32U i;
 	int 			cnt = 0;
 	INT32S num;
-	INT8U	cmd[BUFFLENMAX_SPI];
+	INT8U	cmd[BUFFLENMAX_SPI_ACS];
 //	struct timespec tsspec;
 
 //	if (clock_gettime(CLOCK_REALTIME, &tsspec)==-1)
@@ -422,8 +422,8 @@ int spi_write_r(int fd, INT8U *buf, int len)
 
 INT32S rn_spi_read(int spifp,INT32U addr)
 {
-	INT8U	cmd[BUFFLENMAX_SPI];
-	INT8U	buf[BUFFLENMAX_SPI];
+	INT8U	cmd[BUFFLENMAX_SPI_ACS];
+	INT8U	buf[BUFFLENMAX_SPI_ACS];
 	INT32U i = 0, len_rn8209 = 0;
 	INT32S rec;
 	int cnt = 0;
@@ -446,7 +446,7 @@ INT32S rn_spi_write(int spifp, INT32U addr, INT8U *buf)
 	INT32U i = 0, len_rn8209 = 0;
 	int cnt = 0;
 	INT32S num;
-	INT8U	cmd[BUFFLENMAX_SPI];
+	INT8U	cmd[BUFFLENMAX_SPI_ACS];
 
 	len_rn8209 = addr & 0x0fu;
 	if(addr == CMD_REG){

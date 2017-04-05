@@ -13,15 +13,23 @@
 #include <unistd.h>
 #include "SPI.h"
 
+#include "ParaDef.h"
+
 int SPI_Close(int fd) {
     close(fd);
     return 1;
 }
 
-static int dumpstat(const char* name, int fd) {
+static int dumpstat(const char* name, int fd,int deviceType) {
     static uint8_t mode;
     static uint8_t bits   = 8;
-    static uint32_t speed = 8000000;
+    static uint32_t speed = 20000000;
+
+//    if(deviceType==2) {
+//    	speed = 20000000;
+//    }else {
+//    	speed = 5000000;
+//    }
 
     mode |= SPI_MODE_3;
 
@@ -43,14 +51,21 @@ static int dumpstat(const char* name, int fd) {
     return fd;
 }
 
-int32_t SPI_Init(int32_t fd, u_char* spipath) {
+int32_t SPI_Init(int32_t fd,int deviceType) {
+	char spipath[128];
+
 	if (fd != -1) {
 		SPI_Close(fd);
 	}
 
-	fd = open((char*) spipath, O_RDWR);
+	if(deviceType==2) {
+		strcpy(spipath,ESAM_SPI_DEV_II);
+	}else {
+		strcpy(spipath,ESAM_SPI_DEV);
+	}
+	fd = open((char*)spipath, O_RDWR);
 	if (fd < 0)
 		printf("[SPI ERROR] can't open  device %s\n", spipath);
 
-	return dumpstat((char*) spipath, fd);
+	return dumpstat((char*) spipath, fd ,deviceType);
 }

@@ -312,16 +312,16 @@ int callAutoReport(CommBlock* com, INT8U ifecho)
  */
 int callEventAutoReport(CommBlock* com,INT8U *eventbuf,int datalen)
 {
-	if ((com==NULL) || (datalen==0))
-		return -1;
 	INT8U *sendbuf = com->SendBuf;
 	int		piid=0;
 	int 	index=0,hcsi=0,apduplace=0;
 	CSINFO csinfo={};
 
-	index = 0;
+	if ((com==NULL) || (datalen==0))
+		return -1;
 	if (fillcsinfo(&csinfo,com->serveraddr,com->taskaddr)==0)
 		return 0;
+	index = 0;		
 	index = FrameHead(&csinfo,sendbuf);
 	hcsi = index;
 	index = index + 2;

@@ -362,7 +362,7 @@ typedef struct
 typedef struct
 {
 	INT8U sig[4];
-	INT8U addition[10];/*(长度(1byte)+信息(n byte))*/
+	INT8U addition[20];/*(长度(1byte)+信息(n byte))*/
 }SID;	/*安全标识*/
 
 typedef struct

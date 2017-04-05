@@ -393,7 +393,7 @@ void getFileName(OI_698 oi,INT16U seqno,INT16U type,char *fname)
 		sprintf(fname,"%s/%04x.par",CALCDIR,oi);
 		break;
 	}
-//	fprintf(stderr,"getFileName fname=%s\n",fname);
+	fprintf(stderr,"getFileName fname=%s\n",fname);
 }
 
 /*
@@ -424,6 +424,9 @@ int readFileName(OI_698 oi,INT16U seqno,INT16U type,char *fname)
 		break;
 	case acs_coef_save:
 		sprintf(fname,"%s/accoe.par",_ACSDIR_);
+		if(access(fname,F_OK)==0) {		//文件不存在，查找原3761规约下的参数文件
+			sprintf(fname,"%s/accoe.par",_CFGDIR_);
+		}
 		break;
 	case acs_energy_save:
 		sprintf(fname,"%s/energy.par",_ACSDIR_);
@@ -473,6 +476,57 @@ INT16U  make_parity(void *source,int size)
 //    fprintf(stderr,"\n计算校验=%04x\n",Parity);
 	return Parity;
 }
+
+/**************************************
+ * 函数功能：写数据结构体crc16校验到结构体第一个成员crc16
+ * 输入参数：source:文件内容，size:文件尺寸
+ * 返回值：  crc：校验值
+ **************************************/
+INT16U make_parity_accoef(void *source, int size)
+{
+	int m;
+	INT16U Parity = 0xffff;
+	unsigned char *buf = (unsigned char *) source;
+
+	for (m = 2; m < size; m++)
+	{
+		Parity = Parity ^ buf[m];
+		Parity = crc(Parity);
+	}
+	//  fprintf(stderr,"计算校验=%04x\n",Parity);
+	return Parity;
+}
+
+INT8U fu_read_accoef(char *FileName, void *source, INT32U size)
+{
+	FILE *fp = NULL;
+	int num, ret = 0;
+	INT16U *readcrc = (INT16U *) source;
+
+//	fprintf(stderr,"FileName=%s\n",FileName);
+	fp = fopen((const char*)FileName, "r");
+	if (fp != NULL )
+	{
+		num = fread(source, size, 1, fp);
+//		fprintf(stderr,"read.num=%d,size=%d,reccrc=%04x\n",num,size,*readcrc);
+		if (num == 1)
+		{			//读取了size字节数据
+//			fprintf(stderr,"make_parity = %04x\n",make_parity_accoef(source, size));
+			if (make_parity_accoef(source, size) == *readcrc)
+			{
+				ret = 1;
+			} else
+				ret = 0;
+		}
+		fclose(fp);
+	} else
+	{
+		ret = 0;
+	}
+//	fprintf(stderr,"ret=%d\n",ret);
+	return ret;
+}
+
 
 // 读取数据到指定缓冲区,并进行CRC16校验
 // 结构体数据定义要求
@@ -555,10 +609,10 @@ INT8U file_write(char *FileName, void *source, int size, int offset)
 	if(access(FileName,F_OK)!=0)
 	{
 		fp = fopen((char*) FileName, "w+");
-		fprintf(stderr,"创建文件\n");
+//		fprintf(stderr,"创建文件\n");
 	}else {
 		fp = fopen((char*) FileName, "r+");
-		fprintf(stderr,"替换文件\n");
+//		fprintf(stderr,"替换文件\n");
 	}
 	if (fp != NULL) {
 		fseek(fp, offset, SEEK_SET);
@@ -679,6 +733,7 @@ INT8U block_file_sync(char *fname,void *blockdata,int size,int headsize,int inde
 //		file_write(fname,blockdata1,sizenew,offset);
 //		ret = 1;
 //	}
+
 	if (ret ==1)
 	{
 		memcpy(blockdata,blockdata1,size);
@@ -695,7 +750,7 @@ INT8U block_file_sync(char *fname,void *blockdata,int size,int headsize,int inde
 
 // 数据块数据保存文件
 // 输入参数：fname:主文件名，blockdata：主文件块缓冲区，size:主文件尺寸，index:文件的存储索引位置
-// 返回值：=1：文件保存成功，=0，文件保存失败，此时建议产生ERC2参数丢失事件通知主站异常
+// 返回值：=0：文件保存成功，=1，文件保存失败，此时建议产生ERC2参数丢失事件通知主站异常
 INT8U save_block_file(char *fname,void *blockdata,int size,int headsize,int index)
 {
 	int		i=0,ret=0;

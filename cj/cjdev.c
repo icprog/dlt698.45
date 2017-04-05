@@ -18,6 +18,9 @@
 #include "ParaDef.h"
 #include "Shmem.h"
 #include "main.h"
+#include "Esam.h"
+
+extern ProgramInfo* JProgramInfo;
 
 void printF203() {
     CLASS_f203 oif203 = {};
