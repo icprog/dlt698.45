@@ -57,17 +57,19 @@ pthread_t thread_dispatchTask;
 
 mqd_t mqd_485_main;//接受点抄的消息队列
 
+//保存代理召测信息的结构体
 typedef struct
 {
-	INT8U isEmpty;
-	CLASS_6001 meter;
+	INT8U isInUse;//是否被占用 如果被占用 出现新的消息舍弃 第一位: 485 1 第二位:485 2 第三位:plc
 	PROXY_GETLIST strProxyList;
 }CJCOMM_PROXY;
+CJCOMM_PROXY cjcommProxy;
+//保存液晶点抄信息的结构体
 typedef struct
 {
-	INT8U isEmpty;
-	CLASS_6001 meter;
-	PROXY_GETLIST strProxyList;
+	INT8U isInUse;//是否被占用 如果被占用 出现新的消息舍弃
+	Proxy_Msg strProxyMsg;
 }GUI_PROXY;
+GUI_PROXY cjguiProxy;
 extern INT8U is485OAD(OAD portOAD,INT8U port485);
 #endif
