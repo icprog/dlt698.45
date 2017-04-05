@@ -93,6 +93,7 @@ typedef struct{
 /*
  * 该文件定义的函数为libAccess接口库内部使用函数。不是对外接口
  * */
+extern INT8U fu_read_accoef(char *FileName, void *source,INT32U size);	//为了兼容3761的计量芯片系数内容
 extern INT8U writeInterClass(char *file_name,void *dest,int size);
 extern void WriteInterfaceClass(OI_698 oi,INT16U seqnum,INT8U method);
 extern int WriteClass11(OI_698 oi,INT16U seqnum,INT8U method);

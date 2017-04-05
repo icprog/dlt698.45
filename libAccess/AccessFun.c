@@ -337,6 +337,7 @@ int saveParaClass(OI_698 oi,void *blockdata,int seqnum)
 		return -1;
 	}
 	sem_save = InitSem();
+	makeSubDir(PARADIR);
 	ret = save_block_file((char *)class_info[infoi].file_name,blockdata,class_info[infoi].unit_len,class_info[infoi].interface_len,seqnum);
 	if(class_info[infoi].interface_len!=0) {		//该存储单元内部包含的类的公共属性
 		WriteInterfaceClass(oi,seqnum,AddUpdate);
@@ -374,7 +375,7 @@ int  readParaClass(OI_698 oi,void *blockdata,int seqnum)
 /*
  * 输入参数：	oi:对象标识，seqno:记录序号，blockdata:存储数据，savelen：存储长度，
  * 			type：存储类型【	根据宏定义SaveFile_type 】
- * 返回值：=1：文件存储成功
+ * 返回值：=0：文件存储成功
  */
 int saveCoverClass(OI_698 oi,INT16U seqno,void *blockdata,int savelen,int type)
 {
@@ -441,11 +442,10 @@ int readCoverClass(OI_698 oi,INT16U seqno,void *blockdata,int datalen,int type)
 	case event_para_save:
 	case para_vari_save:
 	case coll_para_save:
-	case acs_coef_save:
 	case acs_energy_save:
 		ret = readFileName(oi,seqno,type,fname);
 		if(ret==0) {		//文件存在
-//			fprintf(stderr,"readClass %s filelen=%d\n",fname,datalen);
+			fprintf(stderr,"readClass %s filelen=%d\n",fname,datalen);
 			ret = block_file_sync(fname,blockdata,datalen,0,0);
 //			fprintf(stderr,"ret=%d\n",ret);
 		}else  {		//无配置文件，读取系统初始化参数
@@ -455,6 +455,12 @@ int readCoverClass(OI_698 oi,INT16U seqno,void *blockdata,int datalen,int type)
 			if(ret==0) {	//文件存在
 				ret = block_file_sync(fname,blockdata,datalen,0,0);
 			}
+		}
+		break;
+	case acs_coef_save:
+		ret = readFileName(oi,seqno,type,fname);
+		if(ret==0) {		//文件存在
+			ret = fu_read_accoef(fname,blockdata,datalen);
 		}
 		break;
 	case para_init_save:
@@ -2075,11 +2081,9 @@ long int readFrameDataFile(char *filename,int offset,INT8U *buf,int *datalen)
 	if (fp!=NULL && buf!=NULL)
 	{
 		fseek(fp,offset,0);		 			//定位到文件指定偏移位置
-		//if (fread(&bytelen,2,1,fp) <=0)	 	//读出数据报文长度
-		fread(&bytelen,2,1,fp);
-		fprintf(stderr,"bytelen=%d\n",bytelen);
-//			return 0;
-		if(bytelen>=MAX_APDU_SIZE) {
+		fread(&bytelen,2,1,fp);				//读出数据报文长度
+		fprintf(stderr," readFrameDataFile bytelen=%d\n",bytelen);
+		if(bytelen>=MAX_APDU_SIZE) {		//防止读取数据溢出
 			return 0;
 		}
 		if (fread(buf,bytelen,1,fp) <=0 ) 	//按数据报文长度，读出全部字节

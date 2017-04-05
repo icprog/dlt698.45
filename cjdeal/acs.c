@@ -33,23 +33,8 @@
 #include "acs.h"
 #include "ware.h"
 
-pthread_attr_t acs_attr_t={};
-int 		thread_acs_id=0;
-pthread_t thread_acs=0;
-
-ACCoe_SAVE  attCoef={};
-ACEnergy_Sum	energysum={};		//电能寄存器值累计后的示值（四舍五入后数据）
-INT32S 			spifp_rn8209=0; // RN8209打开spi句柄
-INT32S 			spifp=0; 		// ATT7022打开spi句柄
-
-static 	INT32U 	K_vrms = 8193;       // RN8209校表系数 748600
-static 	INT32S 	device_id=-1;
-static  CLASS_4016	class4016={};		//当前套日时段表
-
 extern sem_t * 		sem_check_fd;	//校表信号量
 extern ProgramInfo* JProgramInfo;
-
-
 
 //温度及补偿值对应公式
 static INT16S AllGainVal[25][2]={
@@ -73,19 +58,30 @@ static FP32		LowTempCoef[6][2]={
 static INT8U	QFeatureWord1=0x05;		//无功组合特征字61
 static INT8U	QFeatureWord2=0x50;		//无功组合特征字2
 
+static 	INT32U 	K_vrms = 8193;       // RN8209校表系数 748600
+static 	INT32S 	device_id=-1;
+static  CLASS_4016	class4016={};		//当前套日时段表
+
+pthread_attr_t 	acs_attr_t={};
+pthread_t 		thread_acs=0;
+int 			thread_acs_id=0;
+
+INT32S 			spifp_rn8209=0; // RN8209打开spi句柄
+INT32S 			spifp=0; 		// ATT7022打开spi句柄
+
 INT8U			thread_run_flag;//线程运行标记
 INT32S			prog_pid;		//进程ID号
-INT32S			spifp;			//ATT7022E打开spi句柄
+ACCoe_SAVE  	attCoef={};		//校表系数
+ACEnergy_Sum	energysum={};	//电能寄存器值累计后的示值（四舍五入后数据）
 _AverageStru    HZall;			//频率平均值计算缓冲区
 _AverageStru    TempRegBuff;	//温度平均值计算缓冲区
 _RealData		realdata;		//交采实时数据
 _EnergyCurr		energycurr;		//电能量实时值
-ACEnergy_Sum	energysum;		//电能寄存器值累计后的示值
 _HarmonicD		HarmData;		//谐波数据
 _WarePoint  	WarePoint;		//
-ACCoe_SAVE	 	attCoef;		//校表系数
+
 //Pname_DMCol_Strt 	*pDM;
-sem_t * 		sem_check_fd;	//校表信号量
+sem_t * 	sem_check_fd;	//校表信号量
 INT32U		chksum,oldchksum;
 INT32U		chksum1,oldchksum1;
 INT32S 		device_flag;
@@ -1080,8 +1076,7 @@ void InitACSCoef()
 	// 读ATT7022E芯片的校表系数
 	readret = readCoverClass(0,0,&attCoef,sizeof(ACCoe_SAVE),acs_coef_save);
 	if(readret!=1){
-		syslog(LOG_NOTICE,"校表系数文件 coef.par 丢失，请校表！！！\n");
-		fprintf(stderr,"校表系数文件 coef.par 丢失，请校表！！！\n");
+		asyslog(LOG_NOTICE,"校表系数文件 coef.par 丢失，请校表！！！\n");
 	}
 	for(i=0;i<3;i++) {
 		if(attCoef.HarmUCoef[i]==0) attCoef.HarmUCoef[i]=1;
@@ -1130,7 +1125,7 @@ INT32S  InitACSChip()
    		usleep(500);
    	}
    	//ATT7022E
-   	spifp = spi_init(spifp,ACS_SPI_DEV,2000000);		//ATT7022E(spi max 10M) spi speed = 2M
+   	spifp = spi_init(spifp,ACS_SPI_DEV,5000000);		//ATT7022E(spi max 10M) spi speed = 5M
    	for(i=0;i<3;i++) {
    		device_id = att_spi_read(spifp, r_ChipID, 3);
    		if(device_id != 0xffffff)	break;
@@ -1159,9 +1154,23 @@ INT32S  InitACSChip()
 	}
 	chksum = write_coef_reg(spifp);
 	oldchksum = chksum;
+	spi_close(spifp);
 	return (device_id);
 }
 
+/*7022E 每次读取之前先初始化SPI
+ * */
+INT32S OpenACS_I()
+{
+   	//ATT7022E
+	spi_close(spifp);
+	spifp = open((char*)ACS_SPI_DEV, O_RDWR);
+	if (spifp < 0){
+		asyslog(LOG_NOTICE,"打开SPI设备(%s)错误\n",ACS_SPI_DEV);
+	}
+	dumpstat((char*)ACS_SPI_DEV,spifp,5000000);
+	return spifp;
+}
 
 /*
  * 交采实时数据显示
@@ -1345,10 +1354,17 @@ void DealATT7022(void)
 
 	TSGet(&nowts);
 	TSGet(&oldts);
-	tpsd_reg = read_regist(spifp,device_flag);
+
+	spifp = OpenACS_I();
+
+	sem_wait(sem_check_fd);
+  	tpsd_reg = read_regist(spifp,device_flag);
 	read_engergy_regist(nowts,spifp);		//1分钟采集一次电能量
 //	read_ware_regist(nowts,spifp,vdAskHarmFlag);//1分钟或vd进程请求采集一次谐波采样值
 //	tempval = write_allgain_reg(spifp,tpsd_reg);//根据温度寄存器值进行AllGain寄存器增益补偿
+	sem_post(sem_check_fd);
+	spi_close(spifp);
+
 	if((chksum != oldchksum) || (chksum1 != oldchksum1))  {//校验和有变化，重新写计量参数寄存器
 		sleep(2);
 		// 读ATT7022E芯片的校表系数
@@ -1417,10 +1433,10 @@ void InitACSPara()
 	InitACSEnergy();				//电能量初值
 	device_id = InitACSChip();		//初始化芯片类型
 	InitClass4016();				//初始化当前套日时段表
-	JProgramInfo->ac_chip_type = device_id;
-	JProgramInfo->WireType = attCoef.WireType;
-	fprintf(stderr,"计量芯片版本：%06X, 接线方式=%X(0600:三相四，1200：三相三)\n",JProgramInfo->ac_chip_type,JProgramInfo->WireType);
-	syslog(LOG_NOTICE,"计量芯片版本：%06X, 接线方式=%X(0600:三相四，1200：三相三)\n",JProgramInfo->ac_chip_type,JProgramInfo->WireType);
+	JProgramInfo->dev_info.ac_chip_type = device_id;
+	JProgramInfo->dev_info.WireType = attCoef.WireType;
+	fprintf(stderr,"计量芯片版本：%06X, 接线方式=%X(0600:三相四，1200：三相三)\n",JProgramInfo->dev_info.ac_chip_type,JProgramInfo->dev_info.WireType);
+	asyslog(LOG_NOTICE,"计量芯片版本：%06X, 接线方式=%X(0600:三相四，1200：三相三)\n",JProgramInfo->dev_info.ac_chip_type,JProgramInfo->dev_info.WireType);
 }
 
 /*

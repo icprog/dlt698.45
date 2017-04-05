@@ -19,6 +19,7 @@
 #include "dlt698def.h"
 
 extern int doReponse(int server,int reponse,CSINFO *csinfo,int datalen,INT8U *data,INT8U *buf);
+extern int doGetnormal(INT8U seqOfNum,RESULT_NORMAL *response);
 extern ProgramInfo *memp;
 extern INT8U TmpDataBuf[MAXSIZ_FAM];
 extern INT8U TmpDataBufList[MAXSIZ_FAM*2];
@@ -56,28 +57,32 @@ INT16U set3106(OAD oad,INT8U *data,INT8U *DAR)
 	Event3106_Object tmpobj={};
 	int index=0;
 	memset(&tmpobj,0,sizeof(Event3106_Object));
-
 	readCoverClass(oad.OI,0,&tmpobj,sizeof(Event3106_Object),event_para_save);
-	index += getStructure(&data[index],NULL);
-	index += getStructure(&data[index],NULL);
-	index += getBitString(1,&data[index],&tmpobj.poweroff_para_obj.collect_para_obj.collect_flag);
-	index += getUnsigned(&data[index],&tmpobj.poweroff_para_obj.collect_para_obj.time_space);
-	index += getUnsigned(&data[index],&tmpobj.poweroff_para_obj.collect_para_obj.time_threshold);
-	INT8U arraysize =0;
-	index += getArray(&data[index],&arraysize);
-	tmpobj.poweroff_para_obj.collect_para_obj.tsaarr.num = arraysize;
-	for(i=0;i<arraysize;i++)
-	{
-		index += getOctetstring(1,&data[index],tmpobj.poweroff_para_obj.collect_para_obj.tsaarr.meter_tas[i].addr);
-	}
-	index += getStructure(&data[index],NULL);
-	index += getLongUnsigned(&data[index],(INT8U *)&tmpobj.poweroff_para_obj.screen_para_obj.mintime_space);
-	index += getLongUnsigned(&data[index],(INT8U *)&tmpobj.poweroff_para_obj.screen_para_obj.maxtime_space);
-	index += getLongUnsigned(&data[index],(INT8U *)&tmpobj.poweroff_para_obj.screen_para_obj.startstoptime_offset);
-	index += getLongUnsigned(&data[index],(INT8U *)&tmpobj.poweroff_para_obj.screen_para_obj.sectortime_offset);
-	index += getLongUnsigned(&data[index],(INT8U *)&tmpobj.poweroff_para_obj.screen_para_obj.happen_voltage_limit);
-	index += getLongUnsigned(&data[index],(INT8U *)&tmpobj.poweroff_para_obj.screen_para_obj.recover_voltage_limit);
+	if(oad.attrindex == 0x00)
+		index += getStructure(&data[index],NULL);
+	if(oad.attrindex != 0x02){
+		index += getStructure(&data[index],NULL);
 
+		index += getBitString(1,&data[index],&tmpobj.poweroff_para_obj.collect_para_obj.collect_flag);//00
+		index += getUnsigned(&data[index],&tmpobj.poweroff_para_obj.collect_para_obj.time_space);//04
+		index += getUnsigned(&data[index],&tmpobj.poweroff_para_obj.collect_para_obj.time_threshold);//04
+		INT8U arraysize =0;
+		index += getArray(&data[index],&arraysize);
+		tmpobj.poweroff_para_obj.collect_para_obj.tsaarr.num = arraysize;
+		for(i=0;i<arraysize;i++)
+		{
+			index += getOctetstring(1,&data[index],tmpobj.poweroff_para_obj.collect_para_obj.tsaarr.meter_tas[i].addr);
+		}
+	}
+	if(oad.attrindex != 0x01){
+		index += getStructure(&data[index],NULL);
+		index += getLongUnsigned(&data[index],(INT8U *)&tmpobj.poweroff_para_obj.screen_para_obj.mintime_space);
+		index += getLongUnsigned(&data[index],(INT8U *)&tmpobj.poweroff_para_obj.screen_para_obj.maxtime_space);
+		index += getLongUnsigned(&data[index],(INT8U *)&tmpobj.poweroff_para_obj.screen_para_obj.startstoptime_offset);
+		index += getLongUnsigned(&data[index],(INT8U *)&tmpobj.poweroff_para_obj.screen_para_obj.sectortime_offset);
+		index += getLongUnsigned(&data[index],(INT8U *)&tmpobj.poweroff_para_obj.screen_para_obj.happen_voltage_limit);
+		index += getLongUnsigned(&data[index],(INT8U *)&tmpobj.poweroff_para_obj.screen_para_obj.recover_voltage_limit);
+	}
 	*DAR = saveCoverClass(oad.OI,0,&tmpobj,sizeof(Event3106_Object),event_para_save);
 	return index;
 }
@@ -92,7 +97,8 @@ INT16U set310c(OAD oad,INT8U *data,INT8U *DAR)	 //超差  属性6
 	fprintf(stderr,"\n[310c]阈值=%x",tmp310c.poweroffset_obj.power_offset);
 	index += getStructure(&data[index],NULL);
 	index += getDouble(&data[index],(INT8U *)&tmp310c.poweroffset_obj.power_offset);
-	index += getDouble(&data[index],(INT8U *)&tmp310c.poweroffset_obj.task_no);
+	fprintf(stderr,"data[index]=%02x %02x \n",data[index],data[index+1]);
+	index += getUnsigned(&data[index],(INT8U *)&tmp310c.poweroffset_obj.task_no);
 	fprintf(stderr,"\n电能量超差事件：属性6 阈值=%x",tmp310c.poweroffset_obj.power_offset);
 	*DAR = saveCoverClass(oad.OI,0,&tmp310c,sizeof(tmp310c),event_para_save);
 	return index;
@@ -107,7 +113,7 @@ INT16U set310d(OAD oad,INT8U *data,INT8U *DAR)	//电能表飞走  属性6
 	fprintf(stderr,"\n[310d]电能表飞走事件 阈值=%d 任务号=%d\n",tmp310d.poweroffset_obj.power_offset,tmp310d.poweroffset_obj.task_no);
 	index += getStructure(&data[index],NULL);
 	index += getDouble(&data[index],(INT8U *)&tmp310d.poweroffset_obj.power_offset);
-	index += getDouble(&data[index],(INT8U *)&tmp310d.poweroffset_obj.task_no);
+	index += getUnsigned(&data[index],(INT8U *)&tmp310d.poweroffset_obj.task_no);
 	fprintf(stderr,"\n：属性6 阈值=%d 任务号=%d",tmp310d.poweroffset_obj.power_offset,tmp310d.poweroffset_obj.task_no);
 	*DAR = saveCoverClass(oad.OI,0,&tmp310d,sizeof(Event310D_Object),event_para_save);
 	return index;
@@ -365,6 +371,49 @@ INT16U set4300(OAD oad,INT8U *data,INT8U *DAR)
 	return index;
 }
 
+void print4500(CLASS25 class4500)
+{
+	int  i=0,j=0;
+//	fprintf(stderr,"\n-------2:通信配置----------");
+//	fprintf(stderr,"\n【工作模式】%d",class4500.commconfig.workModel);
+//	fprintf(stderr,"\n【在线方式】%d",class4500.commconfig.onlineType);
+//	fprintf(stderr,"\n【连接方式】%d",class4500.commconfig.connectType);
+//	fprintf(stderr,"\n【连接应用方式】%d",class4500.commconfig.appConnectType);
+//	fprintf(stderr,"\n【侦听端口1】%04x %d",class4500.commconfig.listenPort[0],class4500.commconfig.listenPort[0]);
+//	fprintf(stderr,"\n【侦听端口2】%04x %d",class4500.commconfig.listenPort[1],class4500.commconfig.listenPort[1]);
+//	fprintf(stderr,"\n【APN】 %s",&class4500.commconfig.apn[1]);
+//	fprintf(stderr,"\n【用户名】 %s",&class4500.commconfig.userName[1]);
+//	fprintf(stderr,"\n【密码】 %s",&class4500.commconfig.passWord[1]);
+//	fprintf(stderr,"\n【代理服务器地址】 %d.%d.%d.%d ",class4500.commconfig.proxyIp[1],class4500.commconfig.proxyIp[2],class4500.commconfig.proxyIp[3],class4500.commconfig.proxyIp[4]);
+//	fprintf(stderr,"\n【代理服务器端口】 %d",class4500.commconfig.proxyPort);
+//	fprintf(stderr,"\n【超时时间和重发次数】 %02x",class4500.commconfig.timeoutRtry);
+//	fprintf(stderr,"\n【心跳周期】 %d\n",class4500.commconfig.heartBeat);
+//	fprintf(stderr,"\n-------3:主站通信参数表----------");
+//	fprintf(stderr,"\n【主站IP】%d.%d.%d.%d",class4500.master.master[0].ip[1],class4500.master.master[0].ip[2],class4500.master.master[0].ip[3],class4500.master.master[0].ip[4]);
+//	fprintf(stderr,"\n【端口号】 %d  \n",class4500.master.master[0].port);
+//	fprintf(stderr,"\n存储前 主站IP %d.%d.%d.%d :%d\n",class4500.master.master[0].ip[1],class4500.master.master[0].ip[2],
+//			class4500.master.master[0].ip[3],class4500.master.master[0].ip[4],class4500.master.master[0].port);
+	fprintf(stderr,"\n-------4:通信参数表----------");
+	fprintf(stderr,"\n【短信中心号码】 %s ",&class4500.sms.center[1]);
+	for(i=0;i<(class4500.sms.center[0]+1);i++) {
+		fprintf(stderr,"%02x ",class4500.sms.center[i]);
+	}
+	fprintf(stderr,"\n【主站号码】 %d ",class4500.sms.masternum);
+	for(i=0;i<class4500.sms.masternum;i++) {
+		fprintf(stderr," \n%s ",class4500.sms.master[i]);
+		for(j=0;j<(class4500.sms.masternum+1);j++) {
+			fprintf(stderr,"%02x ",class4500.sms.master[i][j]);
+		}
+	}
+	fprintf(stderr,"\n【短信通知号码】 %d ",class4500.sms.destnum);
+	for(i=0;i<class4500.sms.destnum;i++) {
+		fprintf(stderr," \n%s ",class4500.sms.dest[i]);
+		for(j=0;j<(class4500.sms.destnum+1);j++) {
+			fprintf(stderr,"%02x ",class4500.sms.dest[i][j]);
+		}
+	}
+}
+
 INT16U set4500(OAD oad,INT8U *data,INT8U *DAR)
 {
 	int index=0,i=0;
@@ -375,66 +424,79 @@ INT16U set4500(OAD oad,INT8U *data,INT8U *DAR)
 	fprintf(stderr,"\n先读出 主站IP %d.%d.%d.%d :%d\n",class4500.master.master[0].ip[1],class4500.master.master[0].ip[2],
 			class4500.master.master[0].ip[3],class4500.master.master[0].ip[4],class4500.master.master[0].port);
 
-	if (oad.attflg == 2 )
-	{
-		COMM_CONFIG_1 config={};
-		memset(&config,0,sizeof(config));
+	switch(oad.attflg) {
+	case 2:	//通信配置
 		index += getStructure(&data[index],NULL);
-		index += getEnum(1,&data[index],(INT8U *)&config.workModel);
-		index += getEnum(1,&data[index],(INT8U *)&config.onlineType);
-		index += getEnum(1,&data[index],(INT8U *)&config.connectType);
-		index += getEnum(1,&data[index],(INT8U *)&config.appConnectType);
-		index += getArray(&data[index],(INT8U *)&config.listenPortnum);
-		if(config.listenPortnum>5) {
-			fprintf(stderr,"!!!!!!!!!越限 listenPortnum=%d\n",config.listenPortnum);
-			config.listenPortnum = 5;
+		index += getEnum(1,&data[index],(INT8U *)&class4500.commconfig.workModel);
+		index += getEnum(1,&data[index],(INT8U *)&class4500.commconfig.onlineType);
+		index += getEnum(1,&data[index],(INT8U *)&class4500.commconfig.connectType);
+		index += getEnum(1,&data[index],(INT8U *)&class4500.commconfig.appConnectType);
+		index += getArray(&data[index],(INT8U *)&class4500.commconfig.listenPortnum);
+		if(class4500.commconfig.listenPortnum>5) {
+			fprintf(stderr,"!!!!!!!!!越限 listenPortnum=%d\n",class4500.commconfig.listenPortnum);
+			class4500.commconfig.listenPortnum = 5;
 		}
-		for(i=0;i<config.listenPortnum;i++) {
-			index += getLongUnsigned(&data[index],(INT8U *)&config.listenPort[i]);
+		for(i=0;i<class4500.commconfig.listenPortnum;i++) {
+			index += getLongUnsigned(&data[index],(INT8U *)&class4500.commconfig.listenPort[i]);
 		}
-		index += getVisibleString(&data[index],config.apn);
-		index += getVisibleString(&data[index],config.userName);
-		index += getVisibleString(&data[index],config.passWord);
-		index += getOctetstring(1,&data[index],config.proxyIp);
-		index += getLongUnsigned(&data[index],(INT8U *)&config.proxyPort);
-		index += getOctetstring(1,&data[index],(INT8U *)&config.timeoutRtry);
-		index += getLongUnsigned(&data[index],(INT8U *)&config.heartBeat);
-		fprintf(stderr,"\n【工作模式】%d",config.workModel);
-		fprintf(stderr,"\n【在线方式】%d",config.onlineType);
-		fprintf(stderr,"\n【连接方式】%d",config.connectType);
-		fprintf(stderr,"\n【连接应用方式】%d",config.appConnectType);
-		fprintf(stderr,"\n【侦听端口1】%04x %d",config.listenPort[0],config.listenPort[0]);
-		fprintf(stderr,"\n【侦听端口2】%04x %d",config.listenPort[1],config.listenPort[1]);
-		fprintf(stderr,"\n【APN】 %s",&config.apn[1]);
-		fprintf(stderr,"\n【用户名】 %s",&config.userName[1]);
-		fprintf(stderr,"\n【密码】 %s",&config.passWord[1]);
-		fprintf(stderr,"\n【代理服务器地址】 %d.%d.%d.%d ",config.proxyIp[1],config.proxyIp[2],config.proxyIp[3],config.proxyIp[4]);
-		fprintf(stderr,"\n【代理服务器端口】 %d",config.proxyPort);
-		fprintf(stderr,"\n【超时时间和重发次数】 %02x",config.timeoutRtry);
-		fprintf(stderr,"\n【心跳周期】 %d\n",config.heartBeat);
-		memcpy(&class4500.commconfig,&config,sizeof(COMM_CONFIG_1));
-		*DAR = saveCoverClass(oad.OI,0,&class4500,sizeof(CLASS25),para_vari_save);
+		index += getVisibleString(&data[index],class4500.commconfig.apn);
+		index += getVisibleString(&data[index],class4500.commconfig.userName);
+		index += getVisibleString(&data[index],class4500.commconfig.passWord);
+		index += getOctetstring(1,&data[index],class4500.commconfig.proxyIp);
+		index += getLongUnsigned(&data[index],(INT8U *)&class4500.commconfig.proxyPort);
+		index += getOctetstring(1,&data[index],(INT8U *)&class4500.commconfig.timeoutRtry);
+		index += getLongUnsigned(&data[index],(INT8U *)&class4500.commconfig.heartBeat);
+		break;
+	case 3:		//主站通信参数表
+		index += getArray(&data[index],(INT8U *)&class4500.master.masternum);
+		if(class4500.master.masternum>4) {
+			fprintf(stderr,"!!!!!!!!!越限 master.masternum=%d\n",class4500.master.masternum);
+			class4500.master.masternum = 4;
+		}
+		for(i=0;i<class4500.master.masternum;i++) {
+			index += getStructure(&data[index],NULL);
+			index += getOctetstring(1,&data[index],class4500.master.master[i].ip);
+			index += getLongUnsigned(&data[index],(INT8U *)&class4500.master.master[i].port);
+		}
+		break;
+	case 4:		//短信通信参数表
+		index += getStructure(&data[index],NULL);
+		fprintf(stderr,"struct index=%d\n",index);
+		index += getVisibleString(&data[index],(INT8U *)&class4500.sms.center);
+		fprintf(stderr,"center index=%d %02x %02x\n",index,data[index],data[index+1]);
+		index += getArray(&data[index],(INT8U *)&class4500.sms.masternum);
+		if(class4500.sms.masternum>4) {
+			fprintf(stderr,"!!!!!!!!!越限 sms.masternum=%d\n",class4500.sms.masternum);
+			class4500.sms.masternum = 4;
+		}
+		for(i=0;i<class4500.sms.masternum;i++)
+			index += getVisibleString(&data[index],(INT8U *)&class4500.sms.master[i]);
+		index += getArray(&data[index],(INT8U *)&class4500.sms.destnum);
+		if(class4500.sms.destnum>4) {
+			fprintf(stderr,"!!!!!!!!!越限 sms.destnum=%d\n",class4500.sms.destnum);
+			class4500.sms.destnum = 4;
+		}
+		for(i=0;i<class4500.sms.destnum;i++)
+			index += getVisibleString(&data[index],(INT8U *)&class4500.sms.dest[i]);
+		break;
+	case 5:		//版本信息
+		break;
+	case 6:		//支持规约列表
+		break;
+	case 7:		//SIM卡CCID
+		break;
+	case 8:		//IMSI
+		break;
+	case 9:		//信号强度
+		break;
+	case 10:	//SIM卡号码
+		break;
+	case 11:	//拨号IP
+		break;
+
 	}
-	if (oad.attflg == 3)
-	{
-		MASTER_STATION_INFO_LIST  master={};
-		memset(&master,0,sizeof(master));
-		index += getArray(&data[index],(INT8U *)&master.masternum);
-		if(master.masternum>4) {
-			fprintf(stderr,"!!!!!!!!!越限 masternum=%d\n",master.masternum);
-			master.masternum = 4;
-		}
-		for(i=0;i<master.masternum;i++) {
-			index += getVisibleString(&data[index],master.master[i].ip);
-			index += getLongUnsigned(&data[index],(INT8U *)&master.master[i].port);
-		}
-		fprintf(stderr,"\n【主站IP】%d.%d.%d.%d",master.master[0].ip[1],master.master[0].ip[2],master.master[0].ip[3],master.master[0].ip[4]);
-		fprintf(stderr,"\n【端口号】 %d  \n",master.master[0].port);
-		memcpy(&class4500.master,&master,sizeof(MASTER_STATION_INFO_LIST));
-		fprintf(stderr,"\n存储前 主站IP %d.%d.%d.%d :%d\n",class4500.master.master[0].ip[1],class4500.master.master[0].ip[2],
-				class4500.master.master[0].ip[3],class4500.master.master[0].ip[4],class4500.master.master[0].port);
-		*DAR = saveCoverClass(oad.OI,0,&class4500,sizeof(CLASS25),para_vari_save);
-	}
+	print4500(class4500);
+	*DAR = saveCoverClass(oad.OI,0,&class4500,sizeof(CLASS25),para_vari_save);
 	return index;
 }
 
@@ -487,7 +549,9 @@ INT16U setf203(OAD oad,INT8U *data,INT8U *DAR)
 	readCoverClass(0xf203,0,&f203,sizeof(CLASS_f203),para_vari_save);
 	if ( oad.attflg == 4 )//配置参数
 	{
-		index += getOctetstring(1,data,(INT8U*)&f203.state4);
+		index += getStructure(&data[index],NULL);
+		index += getBitString(1,&data[index],(INT8U *)&f203.state4.StateAcessFlag);
+		index += getBitString(1,&data[index],(INT8U *)&f203.state4.StatePropFlag);
 		*DAR = saveCoverClass(0xf203,0,&f203,sizeof(CLASS_f203),para_vari_save);
 		fprintf(stderr,"\n状态量配置参数 : 接入标志 %02x  属性标志 %02x \n",f203.state4.StateAcessFlag,f203.state4.StatePropFlag);
 	}
@@ -691,7 +755,7 @@ INT16U EnvironmentValue(OAD oad,INT8U *data,INT8U *DAR)
 		case 0x4500:
 			data_index = set4500(oad,data,DAR);
 			break;
-		case 0x4510:
+		case 0x4510://以太网通信接口类
 			data_index = set4510(oad,data,DAR);
 			break;
 	}
@@ -757,7 +821,7 @@ INT16U setRequestNormal(INT8U *data,OAD oad,INT8U *DAR,CSINFO *csinfo,INT8U *buf
 		case 0xf:		//输入输出设备类对象 + ESAM接口类对象
 			data_index = DeviceIoSetAttrib(oad,data,DAR);
 	}
-	if(DAR==success) {		//参数文件更改，通知进程
+	if(*DAR==success) {		//参数文件更改，通知进程
 		setOIChange(oad.OI);
 	}
 	return data_index;
@@ -795,4 +859,66 @@ int setRequestNormalList(INT8U *data,CSINFO *csinfo,INT8U *buf)
 	}
 	return 0;
 }
+
+
+int setThenGetRequestNormalList(INT8U *data,CSINFO *csinfo,INT8U *buf)
+{
+	INT8U DAR=success;
+	OAD  oad={};
+	OAD  event_oad[5]={};
+	INT8U seqofNum = 0,event_oadnum=0;
+	INT8U get_delay = 0;		//延时读取时间
+	int i=0,listindex=0;
+	int sourceindex=0;		//源数据的索引
+	RESULT_NORMAL response={};
+
+	seqofNum = data[sourceindex++];
+	fprintf(stderr,"\nsetRequestNormalList!! OAD_NUM=%d\n",seqofNum);
+	memset(TmpDataBufList,0,sizeof(TmpDataBufList));
+	TmpDataBufList[listindex++] = seqofNum;
+	memset(&event_oad,0,sizeof(event_oad));
+	for(i=0;i<seqofNum;i++)
+	{
+		sourceindex += getOAD(0,&data[sourceindex],&oad);		//一个设置的对象属性   OAD
+		if(oad.OI==0x4300 || oad.OI==0x4000) {
+			memcpy(&event_oad[event_oadnum],&oad,sizeof(OAD));
+			event_oadnum++;
+		}
+
+		fprintf(stderr,"set 1 sourceindex=%d\n",sourceindex);
+		sourceindex += setRequestNormal(&data[sourceindex],oad,&DAR,NULL,buf);	//设置对象数据     Data
+
+		fprintf(stderr,"set end sourceindex=%d\n",sourceindex);
+
+		listindex += create_OAD(0,&TmpDataBufList[listindex],oad);
+		TmpDataBufList[listindex++] = (INT8U)DAR;
+
+		sourceindex += getOAD(0,&data[sourceindex],&oad);		//一个读取的对象属性   OAD
+		get_delay = data[sourceindex];						//延时读取时间
+		sourceindex++;
+		//get_delay = 0, 	//按照ProtocolConformance协商结果
+		if(get_delay>=0 && get_delay<=5) 	sleep(get_delay);
+		memset(TmpDataBuf,0,sizeof(TmpDataBuf));
+		memcpy(&response.oad,&oad,sizeof(response.oad));
+		response.datalen = 0;
+		response.data = TmpDataBuf + 5;		//4 + 1             oad（4字节） + choice(1字节)
+		doGetnormal(0,&response);
+		listindex += create_OAD(0,&TmpDataBufList[listindex],oad);
+		if(response.datalen>0) {
+//			TmpDataBufList[listindex++] = 1;		//Get-Result∷=CHOICE  Data		TODO:是否需要
+			memcpy(&TmpDataBufList[listindex],response.data,response.datalen);
+			listindex = listindex + response.datalen;
+		}else {
+			TmpDataBufList[listindex++] = 0;//错误
+			TmpDataBufList[listindex++] = response.dar;
+		}
+	}
+	doReponse(SET_RESPONSE,SET_THENGET_REQUEST_NORMAL_LIST,csinfo,listindex,TmpDataBufList,buf);
+	//此处处理防止在设置后未上送应答帧而直接上送事件报文
+	for(i=0;i<event_oadnum;i++) {
+		Get698_event(event_oad[i],memp);
+	}
+	return 0;
+}
+
 
