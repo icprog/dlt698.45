@@ -1022,7 +1022,9 @@ INT16U GetTSACon(MY_MS meters,TSA *tsa_con,INT16U tsa_num)
 	}
 	return TSA_num;
 }
-
+/*
+ * 根据csds得到任务号
+ */
 INT8U GetTaskidFromCSDs(CSD_ARRAYTYPE csds,ROAD_ITEM *item_road)
 {
 	CLASS_6015	class6015={};
@@ -1074,7 +1076,7 @@ INT8U GetTaskidFromCSDs(CSD_ARRAYTYPE csds,ROAD_ITEM *item_road)
 //	}
 	memset(&class6013,0,sizeof(CLASS_6013));
 	memset(&class6015,0,sizeof(CLASS_6015));
-	for(i=0;i<256;i++)//先比较有没有跟现成采集方案匹配的，有直接返回taskid，没有返回0
+	for(i=0;i<256;i++)
 	{
 		if(readCoverClass(0x6013,i+1,&class6013,sizeof(class6013),coll_para_save) == 1)
 		{
@@ -1865,6 +1867,94 @@ void extendcsds(CSD_ARRAYTYPE csds,ROAD_ITEM *item_road)
 //		fclose(myfp);
 //	return (framesum+1);
 //}
+/*
+ * 支持招测日冻结
+ */
+INT16U GetOADFileData(OAD oad_m,OAD oad_r,INT8U taskid,TSA tsa,TS ts_zc,INT8U *databuf)
+{
+	int unitnum=0, offsetTsa=0, recordoffset=0, recordlen=0, currecord=0;
+	INT16U  blocksize=0,headsize=0;
+	INT8U recordbuf[1000];
+	HEAD_UNIT *headunit = NULL;//文件头
+	ROAD_ITEM item_road;
+	OAD_INDEX oad_offset;//oad索引
+	FILE *fp = NULL;
+	char fname[FILENAMELEN]={};
+	memset(&item_road,0x00,sizeof(ROAD_ITEM));
+	item_road.oadmr_num = 1;
+	item_road.oad[0].oad_num = 1;
+	memcpy(&item_road.oad[0].oad_m,&oad_m,sizeof(OAD));
+	memcpy(&item_road.oad[0].oad_r,&oad_r,sizeof(OAD));
+
+	getTaskFileName(taskid,ts_zc,fname);//得到要抄读的文件名称
+	fp =fopen(fname,"r");
+	if(fp == NULL)
+		return 0;
+
+	unitnum = GetTaskHead(fp,&headsize,&blocksize,&headunit);
+
+	memset(&oad_offset,0x00,sizeof(OAD_INDEX));
+	GetOADPosofUnit(item_road,headunit,unitnum,&oad_offset);//得到每一个oad在块数据中的偏移
+
+	offsetTsa = findTsa(tsa,fp,headsize,blocksize);
+
+	recordoffset = findrecord(offsetTsa,recordlen,currecord);
+
+	fseek(fp,recordoffset,SEEK_SET);
+	fread(recordbuf,recordlen,1,fp);
+	return collectData(databuf,recordbuf,&oad_offset,item_road);
+}
+/*
+ * 要得到的主从oad,为其他进程提供接口
+ */
+INT16U GetOADData(OAD oad_m,OAD oad_r,TS ts_zc,TSA tsa,INT8U *databuf)
+{
+	CLASS_6015	class6015={};
+	CLASS_6013	class6013={};
+	int i=0,j=0,nn=0;
+	memset(&class6013,0,sizeof(CLASS_6013));
+	memset(&class6015,0,sizeof(CLASS_6015));
+	for(i=0;i<256;i++)
+	{
+		if(readCoverClass(0x6013,i+1,&class6013,sizeof(class6013),coll_para_save) == 1)
+		{
+			if(class6013.cjtype != 1 || class6013.state != 1)//过滤掉不是普通采集方案的
+				continue;
+			if(readCoverClass(0x6015,class6013.sernum,&class6015,sizeof(CLASS_6015),coll_para_save) == 1)
+			{
+				asyslog(LOG_INFO,"查找任务号 %d，方案序号：%d class6015.csds.num=%d",i+1,class6013.sernum,class6015.csds.num);
+				for(j=0;j<class6015.csds.num;j++)
+				{
+					switch(class6015.csds.csd[j].type)
+					{
+					case 0:
+						if(oad_m.OI == 0x0000)//oad类型
+						{
+							if(memcmp(&oad_r,&class6015.csds.csd[j].csd.oad,sizeof(OAD))==0){
+								return GetOADFileData(oad_m,oad_r,i+1,tsa,ts_zc,databuf);
+
+							}
+						}
+						break;
+					case 1:
+						if(memcmp(&oad_m,&class6015.csds.csd[j].csd.road.oad,sizeof(OAD))==0)
+						{
+							for(nn=0;nn<class6015.csds.csd[j].csd.road.num;nn++)
+							{
+								if(memcmp(&oad_r,&class6015.csds.csd[j].csd.road.oads[nn],sizeof(OAD))==0){
+									return GetOADFileData(oad_m,oad_r,i+1,tsa,ts_zc,databuf);
+								}
+							}
+						}
+						break;
+					default:break;
+					}
+				}
+			}
+		}
+	}
+	return 0;
+}
 /*
  *获得任务数据和事件记录
  */
