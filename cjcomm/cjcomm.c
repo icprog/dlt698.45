@@ -44,7 +44,7 @@ void CalculateTransFlow(ProgramInfo* prginfo_event) {
     if (first_flag == 1) {
         first_flag = 0;
         memset(&c2200, 0x00, sizeof(c2200));
-        // readVariData(0x2200, 0, &c2200, sizeof(c2200), para_vari_save);
+        readVariData(0x2200, 0, &c2200, sizeof(c2200));
         asyslog(LOG_INFO, "初始化月流量统计(%lld)", c2200.flow.month_tj);
     }
 
@@ -82,7 +82,7 @@ void CalculateTransFlow(ProgramInfo* prginfo_event) {
     if (ts.Minute % 2 == 0) {
         asyslog(LOG_INFO, "20分钟月流量统计，未统计流量%lld", (rx_bytes + tx_bytes) - rtx_bytes);
         c2200.flow.month_tj += (rx_bytes + tx_bytes) - rtx_bytes;
-        // saveCoverClass(0x2200, 0, &c2200, sizeof(c2200), para_init_save);
+        saveVariData(0x2200, 0, &c2200, sizeof(c2200));
         rtx_bytes = rx_bytes + tx_bytes;
         Event_3110(c2200.flow.month_tj, sizeof(c2200.flow), prginfo_event);
     }

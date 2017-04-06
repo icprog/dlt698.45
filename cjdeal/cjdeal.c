@@ -502,9 +502,9 @@ void timeProcess()
 		}
 	}
 }
-void dealMsgProcess()
+
+INT8S dealMsgProcess()
 {
-#if 0
 	INT8S result = 0;
 
 	INT8U  rev_485_buf[2048];
@@ -512,7 +512,7 @@ void dealMsgProcess()
 
 	mmq_head mq_h;
 	ret = mmq_get(mqd_485_main, 1, &mq_h, rev_485_buf);
-	//fprintf(stderr,"mqd_485_main=%d, ret=%d\n",mqd_485_main,ret);
+
 	if (ret>0)
 	{
 		switch(mq_h.cmd)
@@ -523,16 +523,30 @@ void dealMsgProcess()
 				if(mq_h.pid == cjdeal)
 				{
 					fprintf(stderr, "\n收到代理召测\n");
-					PROXY_GETLIST * getlist;
-					getlist = (PROXY_GETLIST*)rev_485_buf;
-					dealProxy(getlist,port485);
+					if(cjcommProxy.isInUse == 0)
+					{
+						memcpy(&cjcommProxy.strProxyList,rev_485_buf,sizeof(PROXY_GETLIST));
+						cjcommProxy.isInUse = 3;
+					}
+					else
+					{
+						fprintf(stderr,"上一个代理召测没处理完");
+					}
+
 				}
 				if(mq_h.pid == cjgui)
 				{
 					fprintf(stderr, "\n收到液晶点抄\n");
-					Proxy_Msg* pMsg = NULL;
-					pMsg = (Proxy_Msg*)rev_485_buf;
-					dealGuiRead(pMsg,port485);
+					if(cjguiProxy.isInUse == 0)
+					{
+						memcpy(&cjguiProxy.strProxyMsg,rev_485_buf,sizeof(Proxy_Msg));
+						cjguiProxy.isInUse = 1;
+					}
+					else
+					{
+						fprintf(stderr,"上一个液晶点抄没处理完");
+					}
+
 				}
 
 				readState = 0;
@@ -540,21 +554,13 @@ void dealMsgProcess()
 			break;
 			default:
 			{
-				DbgPrintToFile1(port485,"485收到未知消息  cmd=%d!!!---------------", mq_h.cmd);
+				asyslog(LOG_WARNING,"485收到未知消息  cmd=%d!!!---------------", mq_h.cmd);
 			}
 
 		}
-		DbgPrintToFile1(port485,"485处理消息结束   cmd=%d!!!---------------", mq_h.cmd);
-		continue;
+
 	}
-	else
-	{
-		break;
-	}
-	usleep(1000*1000);
-}
-return result;
-#endif
+	return result;
 }
 void dispatch_thread()
 {
@@ -581,6 +587,8 @@ void dispatch_thread()
 			para_change485[0] = 1;
 			para_change485[1] = 1;
 			init6013ListFrom6012File();
+
+			system("rm -rf /nand/para/6035");
 		}
 		if(para_ChangeType&para_4204_chg)
 		{
@@ -634,6 +642,9 @@ void dispatchTask_proccess()
 
 	struct mq_attr attr_485_main;
 	mqd_485_main = mmq_open((INT8S *)PROXY_485_MQ_NAME,&attr_485_main,O_RDONLY);
+
+	memset(&cjcommProxy,0,sizeof(CJCOMM_PROXY));
+	memset(&cjguiProxy,0,sizeof(GUI_PROXY));
 
 	pthread_attr_init(&dispatchTask_attr_t);
 	pthread_attr_setstacksize(&dispatchTask_attr_t, 2048 * 1024);

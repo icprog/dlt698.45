@@ -88,9 +88,11 @@ typedef struct {
 } MASTER_STATION_INFO_LIST;
 
 typedef struct {
-    INT8U center[VISIBLE_STRING_LEN];    //短信中心号码
-    INT8U master[4][VISIBLE_STRING_LEN]; //主站号码
-    INT8U dest[4][VISIBLE_STRING_LEN];   //短信通知目的号码
+    char 	center[VISIBLE_STRING_LEN];    //短信中心号码
+    INT8U 	masternum;						//支持主站号码总数
+    char 	master[4][VISIBLE_STRING_LEN]; //主站号码
+    INT8U 	destnum;						//支持短信通知目的号码总数
+    char 	dest[4][VISIBLE_STRING_LEN];   //短信通知目的号码
 } SMS_INFO;
 
 typedef struct {
@@ -99,6 +101,7 @@ typedef struct {
     MASTER_STATION_INFO_LIST master;       //主站通信参数表
     SMS_INFO sms;                          //短信通信参数表
     VERINFO info;                          //版本信息
+    INT8U protocolnum;						//支持规约总数
     INT8U protcol[10][VISIBLE_STRING_LEN]; //支持的规约列表
     INT8U ccid[VISIBLE_STRING_LEN];        // SIM卡CCID
     INT8U imsi[VISIBLE_STRING_LEN];        // SIM卡IMSI
@@ -429,15 +432,27 @@ typedef struct {
     INT16U num;        // oad的个数
     OAD oads[10];      // num个对象描述
 } GETOBJS;
+
+typedef struct {
+    OAD 	oad;           //数据转发OAD
+    COMDCB  comdcb; 	   //端口通信控制块
+    INT16U  revtimeout;    // 接收等待报文超时时间（秒）
+    INT16U  bytetimeout;    // 接收等待字节超时时间（毫秒）
+    INT8U	cmdlen;			//透明转发命令 长度
+    INT8U	cmdbuf[255];	//透明转发内容
+} TRANSCMD;
+
 typedef struct {
     INT8U status;      //代理传输状态		0 表示就绪     1 已经表示返回数据  2 已经响应主站   3 超时
     long int position; //记录文件中的位置
     time_t timeold;    //代理请求产生的时间
     CSINFO csinfo;     //保存客户机信息
+    INT8U proxytype;	//代理类型
     INT8U piid;        //本次代理请求PIID
     INT16U timeout;    //代理超时时间
     INT16U num;        //个数
     GETOBJS objs[10];  //代理请求列表
+    TRANSCMD	transcmd;	//代理操作透明转发
     INT8U data[512];   //请求结果
     INT16U datalen;    //数据长度
 } PROXY_GETLIST;

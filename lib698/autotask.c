@@ -43,21 +43,38 @@ time_t calcnexttime(TI ti,DateTimeBCD datetime)
 	fprintf(stderr,"TI:%d-%d, jiange = %d 秒\n",ti.units,ti.interval,jiange);
 	if (timenow > timestart)
 	{
-		timetmp = timenow - timestart;
-		int intpart = timetmp / jiange;
-		int rempart = timetmp % jiange;
-		fprintf(stderr,"\n任务开始时间(%ld)  早于当前时间(%ld)  %d个间隔 余%d 秒",timestart,timenow,intpart,rempart);
-		if (rempart>0)
+		if(jiange > 0 )
 		{
-			timeret = (intpart + 1) * jiange  + timestart ;
-			fprintf(stderr,"\n计算下次开始时间 %ld ",timeret);
-			return timeret ;
+			timetmp = timenow - timestart;
+			int intpart = timetmp / jiange;
+			int rempart = timetmp % jiange;
+			fprintf(stderr,"\n任务开始时间(%ld)  早于当前时间(%ld)  %d个间隔 余%d 秒",timestart,timenow,intpart,rempart);
+			if (rempart>0)
+			{
+				timeret = (intpart + 1) * jiange  + timestart ;
+				fprintf(stderr,"\n计算下次开始时间 %ld ",timeret);
+				return timeret ;
+			}
+			else
+			{
+				fprintf(stderr,"\n任务在当前时间 %ld 执行",timenow);
+				return timenow;
+			}
 		}
-		else
+		else//间隔 月 或者 年
 		{
-			fprintf(stderr,"\n任务在当前时间 %ld 执行",timenow);
-			return timenow;
+			TS tmNext;
+			TSGet(&tmNext);
+			tminc(&tmNext, ti.units,1);
+			tmNext.Day = datetime.day.data;
+			tmNext.Hour = datetime.hour.data;
+			tmNext.Minute = datetime.min.data;
+			tmNext.Sec = datetime.sec.data;
+			timeret = tmtotime_t(tmNext);//开始时间
+			fprintf(stderr,"\n下次开始时间 %d-%d-%d %d:%d:%d",tmNext.Year,tmNext.Month,tmNext.Day,tmNext.Hour,tmNext.Minute,tmNext.Sec);
+			return timeret;
 		}
+
 	}else
 	{
 		fprintf(stderr,"\n任务开始时间(%ld)  晚于当前时间(%ld)  将于开始时间执行",timestart,timenow);

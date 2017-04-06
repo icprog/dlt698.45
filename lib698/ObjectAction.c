@@ -714,6 +714,7 @@ void TaskInfo(INT16U attr_act,INT8U *data,Action_result *act_ret)
 			break;
 	}
 }
+
 void TerminalInfo(INT16U attr_act,INT8U *data)
 {
 	switch(attr_act)
@@ -727,6 +728,7 @@ void TerminalInfo(INT16U attr_act,INT8U *data)
 		case 6://需量初始化
 			dataInit(attr_act);
 			//Event_3100(NULL,0,memp);//初始化，产生事件
+			Reset_add();			//国网台体测试,数据初始化认为是复位操作
 			fprintf(stderr,"\n终端数据初始化!");
 			break;
 		case 151://湖南切换到3761规约程序转换主站通信参数
@@ -929,6 +931,19 @@ void FileTransMothod(INT16U attr_act,INT8U *data)
 err:
 	return;
 }
+
+void DayFreeze(INT16U attr_act,INT8U *data,Action_result *act_ret)
+{
+	switch(attr_act) {
+	case 5:		//删除一个冻结对象属性
+
+		break;
+	case 7:		//批量添加冻结对象属性
+
+		break;
+	}
+}
+
 void MeterInfo(INT16U attr_act,INT8U *data,Action_result *act_ret)
 {
 	switch(attr_act)
@@ -1002,6 +1017,9 @@ int doObjectAction(OAD oad,INT8U *data,Action_result *act_ret)
 		case 0x4300:	//终端对象
 			TerminalInfo(attr_act,data);
 			break;
+		case 0x5004:	//日冻结
+			DayFreeze(attr_act,data,act_ret);
+			break;
 		case 0x6000:	//采集档案配置表
 			MeterInfo(attr_act,data,act_ret);
 			break;
@@ -1029,6 +1047,12 @@ int doObjectAction(OAD oad,INT8U *data,Action_result *act_ret)
 		case 0xF100:
 			EsamMothod(attr_act,data);
 			break;
+	}
+	if(oi==0x4300 && attr_act==1) {		//设备复位
+		memp->oi_changed.reset++;
+	}
+	if(oi==0x4300 && attr_act==3) {		//数据区初始化
+		memp->oi_changed.init++;
 	}
 	setOIChange(oi);
 	return success;	//DAR=0，成功	TODO：增加DAR各种错误判断

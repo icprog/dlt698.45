@@ -45,10 +45,12 @@ int BuildFrame_GetResponseRecord(INT8U response_type,CSINFO *csinfo,RESULT_RECOR
 	int index=0, hcsi=0;
 	csinfo->dir = 1;
 	csinfo->prm = 0;
+	int apduplace =0;
 
 	index = FrameHead(csinfo,sendbuf);
 	hcsi = index;
 	index = index + 2;
+	apduplace=index;
 	sendbuf[index++] = GET_RESPONSE;
 	sendbuf[index++] = response_type;
 	sendbuf[index++] = piid_g.data;		//	piid
@@ -63,6 +65,12 @@ int BuildFrame_GetResponseRecord(INT8U response_type,CSINFO *csinfo,RESULT_RECOR
 	}
 	sendbuf[index++] = 0;
 	sendbuf[index++] = 0;
+//	INT16U
+	if(securetype!=0)//安全等级类型不为0，代表是通过安全传输下发报文，上行报文需要以不低于请求的安全级别回复
+	{
+		apduplace += composeSecurityResponse(&sendbuf[apduplace],index-apduplace);
+		index=apduplace;
+	}
 	FrameTail(sendbuf,index,hcsi);
 	if(pSendfun!=NULL)
 		pSendfun(comfd,sendbuf,index+3);
@@ -408,22 +416,28 @@ int Get3106(RESULT_NORMAL *response)
 	oad = response->oad;
 	memset(&tmpobj,0,sizeof(Event3106_Object));
 	readCoverClass(oad.OI,0,&tmpobj,sizeof(Event3106_Object),event_para_save);
-	index += create_struct(&data[index],2);	//属性６　２个元素
-	index += create_struct(&data[index],4);	//停电数据采集配置参数　４个元素
-	index += fill_bit_string8(&data[index],tmpobj.poweroff_para_obj.collect_para_obj.collect_flag);
-	index += fill_unsigned(&data[index],tmpobj.poweroff_para_obj.collect_para_obj.time_space);
-	index += fill_unsigned(&data[index],tmpobj.poweroff_para_obj.collect_para_obj.time_threshold);
-	index += create_array(&data[index],tmpobj.poweroff_para_obj.collect_para_obj.tsaarr.num);
-	for(i=0;i<tmpobj.poweroff_para_obj.collect_para_obj.tsaarr.num;i++) {
-		index += fill_TSA(&data[index],&tmpobj.poweroff_para_obj.collect_para_obj.tsaarr.meter_tas[i].addr[1],tmpobj.poweroff_para_obj.collect_para_obj.tsaarr.meter_tas[i].addr[0]);
+	if(oad.attrindex == 0x00){
+	  index += create_struct(&data[index],2);	//属性６　２个元素
 	}
-	index += create_struct(&data[index],6);	//停电事件甄别限值参数　６个元素
-	index += fill_long_unsigned(&data[index],tmpobj.poweroff_para_obj.screen_para_obj.mintime_space);
-	index += fill_long_unsigned(&data[index],tmpobj.poweroff_para_obj.screen_para_obj.maxtime_space);
-	index += fill_long_unsigned(&data[index],tmpobj.poweroff_para_obj.screen_para_obj.startstoptime_offset);
-	index += fill_long_unsigned(&data[index],tmpobj.poweroff_para_obj.screen_para_obj.sectortime_offset);
-	index += fill_long_unsigned(&data[index],tmpobj.poweroff_para_obj.screen_para_obj.happen_voltage_limit);
-	index += fill_long_unsigned(&data[index],tmpobj.poweroff_para_obj.screen_para_obj.recover_voltage_limit);
+	if(oad.attrindex != 0x02){
+		index += create_struct(&data[index],4);	//停电数据采集配置参数　４个元素
+		index += fill_bit_string8(&data[index],tmpobj.poweroff_para_obj.collect_para_obj.collect_flag);
+		index += fill_unsigned(&data[index],tmpobj.poweroff_para_obj.collect_para_obj.time_space);
+		index += fill_unsigned(&data[index],tmpobj.poweroff_para_obj.collect_para_obj.time_threshold);
+		index += create_array(&data[index],tmpobj.poweroff_para_obj.collect_para_obj.tsaarr.num);
+		for(i=0;i<tmpobj.poweroff_para_obj.collect_para_obj.tsaarr.num;i++) {
+			index += fill_TSA(&data[index],&tmpobj.poweroff_para_obj.collect_para_obj.tsaarr.meter_tas[i].addr[1],tmpobj.poweroff_para_obj.collect_para_obj.tsaarr.meter_tas[i].addr[0]);
+		}
+	}
+	if(oad.attrindex != 0x01){
+		index += create_struct(&data[index],6);	//停电事件甄别限值参数　６个元素
+		index += fill_long_unsigned(&data[index],tmpobj.poweroff_para_obj.screen_para_obj.mintime_space);
+		index += fill_long_unsigned(&data[index],tmpobj.poweroff_para_obj.screen_para_obj.maxtime_space);
+		index += fill_long_unsigned(&data[index],tmpobj.poweroff_para_obj.screen_para_obj.startstoptime_offset);
+		index += fill_long_unsigned(&data[index],tmpobj.poweroff_para_obj.screen_para_obj.sectortime_offset);
+		index += fill_long_unsigned(&data[index],tmpobj.poweroff_para_obj.screen_para_obj.happen_voltage_limit);
+		index += fill_long_unsigned(&data[index],tmpobj.poweroff_para_obj.screen_para_obj.recover_voltage_limit);
+	}
 	response->datalen = index;
 	return 0;
 }
@@ -710,7 +724,7 @@ int Get4300(RESULT_NORMAL *response)
 
 int Get4500(RESULT_NORMAL *response)
 {
-	int index=0;
+	int index=0,i=0;
 	INT8U *data = NULL;
 	OAD oad={};
 	CLASS25	class_tmp={};
@@ -722,15 +736,27 @@ int Get4500(RESULT_NORMAL *response)
 
 	switch(oad.attflg )
 	{
-		case 5:
-			index += create_struct(&data[index],6);
-			index += fill_visible_string(&data[index],class_tmp.info.factoryCode,4);
-			index += fill_visible_string(&data[index],class_tmp.info.softVer,4);
-			index += fill_visible_string(&data[index],class_tmp.info.softDate,6);
-			index += fill_visible_string(&data[index],class_tmp.info.hardVer,4);
-			index += fill_visible_string(&data[index],class_tmp.info.hardDate,6);
-			index += fill_visible_string(&data[index],class_tmp.info.factoryExpInfo,8);
-			break;
+	case 4:	//短信通信参数
+		index += create_struct(&data[index],3);
+		index += fill_visible_string(&data[index],&class_tmp.sms.center[1],class_tmp.sms.center[0]);
+		index += create_array(&data[index],class_tmp.sms.masternum);
+		for(i=0;i<class_tmp.sms.masternum;i++) {
+			index += fill_visible_string(&data[index],&class_tmp.sms.master[i][1],class_tmp.sms.master[i][0]);
+		}
+		index += create_array(&data[index],class_tmp.sms.destnum);
+		for(i=0;i<class_tmp.sms.destnum;i++) {
+			index += fill_visible_string(&data[index],&class_tmp.sms.dest[i][1],class_tmp.sms.dest[i][0]);
+		}
+		break;
+	case 5:
+		index += create_struct(&data[index],6);
+		index += fill_visible_string(&data[index],class_tmp.info.factoryCode,4);
+		index += fill_visible_string(&data[index],class_tmp.info.softVer,4);
+		index += fill_visible_string(&data[index],class_tmp.info.softDate,6);
+		index += fill_visible_string(&data[index],class_tmp.info.hardVer,4);
+		index += fill_visible_string(&data[index],class_tmp.info.hardDate,6);
+		index += fill_visible_string(&data[index],class_tmp.info.factoryExpInfo,8);
+		break;
 	}
 	response->datalen = index;
 	return 0;
@@ -768,7 +794,8 @@ int Get4510(RESULT_NORMAL *response)
 			}
 			index += fill_octet_string(&data[index],(char *)&class_tmp.commconfig.proxyIp[1],class_tmp.commconfig.proxyIp[0]);
 			index += fill_long_unsigned(&data[index],class_tmp.commconfig.proxyPort);
-			index += fill_bit_string8(&data[index],class_tmp.commconfig.timeoutRtry);
+			//index += fill_bit_string8(&data[index],class_tmp.commconfig.timeoutRtry);
+			index += fill_unsigned(&data[index],class_tmp.commconfig.timeoutRtry);
 			index += fill_long_unsigned(&data[index],class_tmp.commconfig.heartBeat);
 			break;
 	}
@@ -977,7 +1004,7 @@ int GetVariable(RESULT_NORMAL *response)
 	data = response->data;
 	memset(&databuf,0,sizeof(databuf));
 	len = readVariData(response->oad.OI,0,&databuf,VARI_LEN);
-	if(len>0) {
+//	if(len>0) {
 		switch(response->oad.OI)
 		{
 			case 0x2200:	//通信流量
@@ -992,12 +1019,14 @@ int GetVariable(RESULT_NORMAL *response)
 		}
 		response->datalen = index;
 		fprintf(stderr,"datalen=%d \n",response->datalen);
-	}else if(len==0){
-		response->datalen = 0;	//无数据
-	}else {
-		response->datalen = 0;	//无数据
-		fprintf(stderr,"\n读取的OI=%04x ,不在变量类对象文件%s中，请从其他文件获取!!!\n",response->oad.OI,VARI_DATA);
-	}
+//	}else if(len==0){
+//		response->datalen = 0;	//无数据
+//		response->dar = obj_undefine;
+//	}else {
+//		response->datalen = 0;	//无数据
+//		response->dar = obj_undefine;
+//		fprintf(stderr,"\n读取的OI=%04x ,不在变量类对象文件%s中，请从其他文件获取!!!\n",response->oad.OI,VARI_DATA);
+//	}
 	return 1;
 }
 
@@ -1197,7 +1226,7 @@ int GetCollPara(INT8U seqOfNum,RESULT_NORMAL *response)
 	INT8U 	*data = NULL;
 	OAD 	oad={};
 	INT16U	i=0,blknum=0,meternum=0,tmpblk=0;
-	int		retlen=0;
+	INT16U	retlen=0;
 	INT16U	oneUnitLen=0;	//计算一个配置单元的长度，统计是否需要分帧操作
 	int		lastframenum = 0; //记录分帧的数量
 
@@ -1356,9 +1385,9 @@ int getRequestNormalList(INT8U *data,CSINFO *csinfo,INT8U *sendbuf)
 		}
 		else
 		{
-//			TmpDataBufList[listindex + 4] = 0;//错误
-			TmpDataBufList[listindex + 4] = response.dar;  //  0-3(oad)   4(choice)  5(dar)
-			listindex = listindex + 5;
+			TmpDataBufList[listindex + 4] = 0;//错误		//TODO:原注释，台体测试读取终端当前数据时2200无数据，帧错误，打开
+			TmpDataBufList[listindex + 5] = response.dar;  //  0-3(oad)   4(choice)  5(dar)
+			listindex = listindex + 6;
 		}
 	}
 	response.data = TmpDataBufList;

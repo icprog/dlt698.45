@@ -14,12 +14,12 @@
 #include "Objectdef.h"
 #include "ParaDef.h"
 #include "../libMq/libmmq.h"
+#include "basedef.h"
 
-//测量点、事件参数
 static TSA TSA_LIST[MAX_POINT_NUM];
 static int TSA_NUMS;
 //当前最新抄表数据
-static Curr_Data curr_data[MAX_POINT_NUM];
+static Curr_Data curr_data[MAX_POINT_NUM*4];
 //当前内存保存得数据个数
 static INT16U currnum=0;
 //当前事件参数变更状态
@@ -39,6 +39,12 @@ MeterPower TermialPowerInfo;//终端停上电时间信息
  * Event_310A设备故障事件可能在很多地方需要用到，直接调用，输入不同参数
  * GPRS通信调用Event_3110
  */
+/*
+ * 数据初始化 清空该部分内存
+ */
+void Reset_Eventpara(){
+	memset(curr_data,0,sizeof(Curr_Data)*MAX_POINT_NUM*4);
+}
 
 /*
  * 更新当前最新得正向有功(只针对正向有功)
@@ -46,15 +52,13 @@ MeterPower TermialPowerInfo;//终端停上电时间信息
 INT8U Refresh_Data(TSA tsa,INT32U newdata,INT8U flag){
 	int i=0;
 	INT8U haveflag=0;
+	TS currtime;
+	TSGet(&currtime);
 	for(i=0;i<currnum;i++){
-       if(memcmp(&tsa,&curr_data[i].tsa,sizeof(TSA)) == 0){
+       if(memcmp(&tsa,&curr_data[i].tsa,sizeof(TSA)) == 0 && curr_data[i].flag == flag){
            curr_data[i].data=newdata;
-           //判断停走，需要更新时间
-           if(flag == 1){
-        	   TS currtime;
-        	   TSGet(&currtime);
-        	   memcpy(&curr_data[i].ts,&currtime,sizeof(TS));
-           }
+           memcpy(&curr_data[i].ts,&currtime,sizeof(TS));
+           curr_data[i].flag = flag;
            haveflag=1;
     	   break;
        }
@@ -62,6 +66,8 @@ INT8U Refresh_Data(TSA tsa,INT32U newdata,INT8U flag){
 	if(haveflag == 0){
 		memcpy(&curr_data[currnum].tsa,&tsa,sizeof(TSA));
 		curr_data[currnum].data=newdata;
+		memcpy(&curr_data[currnum].ts,&currtime,sizeof(TS));
+		curr_data[currnum].flag=flag;
 		currnum++;
 	}
 	return 1;
@@ -70,13 +76,15 @@ INT8U Refresh_Data(TSA tsa,INT32U newdata,INT8U flag){
 /*
  * 获取上次保存得正向有功
  */
-INT8U Get_Mdata(TSA tsa,INT32U *olddata,TS *ts){
+INT8U Get_Mdata(TSA tsa,INT32U *olddata,TS *ts,INT8U flag){
 	int i=0;
 	INT8U haveflag=0;
 	for(i=0;i<currnum;i++){
-		if(memcmp(&tsa,&curr_data[i].tsa,sizeof(TSA)) == 0){
+		if(memcmp(&tsa,&curr_data[i].tsa,sizeof(TSA)) == 0
+				&& curr_data[i].flag == flag){
 			*olddata=curr_data[i].data;
 			memcpy(ts,&curr_data[i].ts,sizeof(TS));
+			curr_data[i].flag = flag;
 			haveflag=1;
 			break;
 		}
@@ -287,6 +295,7 @@ INT8U Getevent_Record(INT8U event_no,OI_698 *oi_array,INT8U oi_index,INT8U *real
 		 }
 		 record_para->data[1] +=1;		//SEQUENCE OF A-RecordRow
 		 INT8U m=0;
+		 INT8U T_index=0;
 		 for(m=0;m<oi_index;m++){
 			switch(oi_array[m]){
 				case 0x2022://事件序号
@@ -302,21 +311,23 @@ INT8U Getevent_Record(INT8U event_no,OI_698 *oi_array,INT8U oi_index,INT8U *real
 						if(Getbuf[STANDARD_ENDTIME_INDEX]==dtdatetimes){
 							memcpy(&record_para->data[*real_index],&Getbuf[STANDARD_ENDTIME_INDEX],8);
 							(*real_index) +=8;
+							T_index = STANDARD_SOURCE_INDEX;
 						}else if(Getbuf[STANDARD_ENDTIME_INDEX]==0){
 							record_para->data[(*real_index)++]=0;
+							T_index = 16;
 						}
 					}
 					break;
 				case 0x2024://事件发生源
 				{
 					INT8U len=0;
-					switch(Getbuf[STANDARD_SOURCE_INDEX]){
+					switch(Getbuf[T_index]){
 						case s_null:
 							record_para->data[(*real_index)++]=0;
 							len=0;
 							break;
 						case s_tsa:
-							len=Getbuf[STANDARD_SOURCE_INDEX+1]+1;
+							len=Getbuf[T_index+1]+1;
 							break;
 						case s_oad:
 							len=5;
@@ -332,7 +343,7 @@ INT8U Getevent_Record(INT8U event_no,OI_698 *oi_array,INT8U oi_index,INT8U *real
 							break;
 					}
 					if(len>0)
-						memcpy(&record_para->data[*real_index],&Getbuf[STANDARD_SOURCE_INDEX],len);
+						memcpy(&record_para->data[*real_index],&Getbuf[T_index],len);
 					 *real_index +=len;
 				}
 				break;
@@ -642,6 +653,7 @@ INT16U Getcurrno(INT16U currno,INT16U maxno){
  * 终端初始化事件1 可以698规约解析actionrequest 调用该接口，data为OAD
  */
 INT8U Event_3100(INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
+	Reset_Eventpara();
 	if(oi_chg.oi3100 != prginfo_event->oi_changed.oi3100){
 		readCoverClass(0x3100,0,&prginfo_event->event_obj.Event3100_obj,sizeof(prginfo_event->event_obj.Event3100_obj),event_para_save);
 		oi_chg.oi3100 = prginfo_event->oi_changed.oi3100;
@@ -742,6 +754,7 @@ INT8U Event_3104(INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 		readCoverClass(0x3104,0,&prginfo_event->event_obj.Event3104_obj,sizeof(prginfo_event->event_obj.Event3104_obj),event_para_save);
 		oi_chg.oi3104 = prginfo_event->oi_changed.oi3104;
 	}
+	fprintf(stderr,"prginfo_event->event_obj.Event3104_obj.enableflag = %d \n",prginfo_event->event_obj.Event3104_obj.enableflag);
     if (prginfo_event->event_obj.Event3104_obj.enableflag == 0) {
         return 0;
     }
@@ -824,8 +837,8 @@ INT8U Event_3105(TSA tsa,INT8U taskno,INT8U* data,INT8U len,ProgramInfo* prginfo
     if (prginfo_event->event_obj.Event3105_obj.event_obj.enableflag == 0) {
         return 0;
     }
-    if(prginfo_event->event_obj.Event3105_obj.mto_obj.task_no!=taskno)
-    	return 0;
+//    if(prginfo_event->event_obj.Event3105_obj.mto_obj.task_no!=taskno)
+//    	return 0;
 
     if(data==NULL)
     	return 0;
@@ -838,7 +851,10 @@ INT8U Event_3105(TSA tsa,INT8U taskno,INT8U* data,INT8U len,ProgramInfo* prginfo
     metertime.Hour=data[4];
     metertime.Minute=data[5];
     metertime.Sec=data[6];
+    fprintf(stderr,"jzqtime=%d-%d-%d %d:%d:%d \n",jzqtime.Year,jzqtime.Month,jzqtime.Day,jzqtime.Hour,jzqtime.Minute,jzqtime.Sec);
+    fprintf(stderr,"metertime=%d-%d-%d %d:%d:%d \n",metertime.Year,metertime.Month,metertime.Day,metertime.Hour,metertime.Minute,metertime.Sec);
     int tcha=abs(difftime(tmtotime_t(metertime),tmtotime_t(jzqtime)));
+    fprintf(stderr,"tcha=%d over_threshold=%d \n",tcha,prginfo_event->event_obj.Event3105_obj.mto_obj.over_threshold);
     //事件判定
     if (tcha>prginfo_event->event_obj.Event3105_obj.mto_obj.over_threshold
     		&& prginfo_event->event_obj.Event3105_obj.mto_obj.over_threshold>0) {
@@ -1118,16 +1134,18 @@ INT8U Event_3106(ProgramInfo* prginfo_event,MeterPower *MeterPowerInfo,INT8U *st
 			MeterDiff(prginfo_event,MeterPowerInfo);
 		//二型集中器没有电池只有电容，所以不能够读出底板是否有电，且二型集中器只有一相电压，停上电事件在硬件复位时不能产生，
 		//所以判断时，需要判断当前电压大于一个定值且小时参数时，产生事件(大于的定时暂定为10v交采已经将实时电压值乘以１０).
+#ifdef CCTT_II
 		if((prginfo_event->ACSRealData.Available==TRUE)
 				&&((prginfo_event->ACSRealData.Ua>100 && prginfo_event->ACSRealData.Ua<poweroff_happen_vlim)
 				||(prginfo_event->ACSRealData.Ua == 0 && off_time>5)))
+#else
 	    //一型集中器
-//		if((((Realdata.U[0].value<poweroff_happen_vlim)&&(Realdata.U[1].value<poweroff_happen_vlim)
-//						&&(Realdata.U[2].value<poweroff_happen_vlim))&&((Realdata.U[0].value|Realdata.U[1].value|Realdata.U[2].value)>0)&&gpio_5V)
-//						||((Realdata.U[0].Available == TRUE&&Realdata.U[0].value==0&&Realdata.U[0].value<poweroff_happen_vlim)
-//								&&(Realdata.U[1].Available == TRUE&&Realdata.U[1].value==0&&Realdata.U[1].value<poweroff_happen_vlim)
-//								&&(Realdata.U[2].Available == TRUE&&Realdata.U[2].value==0&&Realdata.U[2].value<poweroff_happen_vlim)&&(!gpio_5V)))
-
+		if((((prginfo_event->ACSRealData.Ua<poweroff_happen_vlim)&&(prginfo_event->ACSRealData.Ub<poweroff_happen_vlim)
+						&&(prginfo_event->ACSRealData.Uc<poweroff_happen_vlim))&&((prginfo_event->ACSRealData.Ua|prginfo_event->ACSRealData.Ub|prginfo_event->ACSRealData.Uc)>0)&&gpio_5V)
+						||((prginfo_event->ACSRealData.Available == TRUE&&prginfo_event->ACSRealData.Ua==0&&prginfo_event->ACSRealData.Ua<poweroff_happen_vlim)
+								&&(prginfo_event->ACSRealData.Available == TRUE&&prginfo_event->ACSRealData.Ua==0&&prginfo_event->ACSRealData.Ub<poweroff_happen_vlim)
+								&&(prginfo_event->ACSRealData.Available == TRUE&&prginfo_event->ACSRealData.Uc==0&&prginfo_event->ACSRealData.Uc<poweroff_happen_vlim)&&(!gpio_5V)))
+#endif
 		{
 			off_time = 0;
 			//电压低于限值，且底板有电，产生下电事件
@@ -1415,21 +1433,24 @@ INT8U Event_310B(TSA tsa, INT8U taskno,INT8U* data,INT8U len,ProgramInfo* prginf
 		readCoverClass(0x310B,0,&prginfo_event->event_obj.Event310B_obj,sizeof(prginfo_event->event_obj.Event310B_obj),event_para_save);
 		oi_chg.oi310B = prginfo_event->oi_changed.oi310B;
 	}
+	fprintf(stderr,"[310B]taskno=%d len=%d meter_down_obj.task_no=%d \n",taskno,len,prginfo_event->event_obj.Event310B_obj.meter_down_obj.task_no);
+	fprintf(stderr,"[310B]prginfo_event->event_obj.Event310B_obj.event_obj.enableflag=%d \n",prginfo_event->event_obj.Event310B_obj.event_obj.enableflag);
     if (prginfo_event->event_obj.Event310B_obj.event_obj.enableflag == 0) {
         return 0;
     }
-    if(prginfo_event->event_obj.Event310B_obj.meter_down_obj.task_no!=taskno)
-    	return 0;
+//    if(prginfo_event->event_obj.Event310B_obj.meter_down_obj.task_no!=taskno)
+//    	return 0;
 
     if(data==NULL)
     	return 0;
     INT32U newdata=(data[0]<<24)+(data[1]<<16)+(data[2]<<8)+data[3];
     INT32U olddata=0;
     TS ts;
-    if(Get_Mdata(tsa,&olddata,&ts) == 0){
-    	Refresh_Data(tsa,newdata,0);//更新数据
+    if(Get_Mdata(tsa,&olddata,&ts,3) == 0){
+    	Refresh_Data(tsa,newdata,3);//更新数据
     	return 0;
     }
+    fprintf(stderr,"[310B]olddata=%d newdata=%d \n",olddata,newdata);
 	if(olddata>newdata){
 		INT8U Save_buf[256];
 		bzero(Save_buf, sizeof(Save_buf));
@@ -1466,7 +1487,8 @@ INT8U Event_310B(TSA tsa, INT8U taskno,INT8U* data,INT8U len,ProgramInfo* prginf
 			Need_Report(0x310B,crrentnum,prginfo_event);
 	}
     //更新数据
-    Refresh_Data(tsa,newdata,0);
+	if(olddata!=newdata)
+		Refresh_Data(tsa,newdata,3);
     return 1;
 }
 
@@ -1482,15 +1504,15 @@ INT8U Event_310C(TSA tsa, INT8U taskno,INT8U* data,INT8U len,ProgramInfo* prginf
     if (prginfo_event->event_obj.Event310C_obj.event_obj.enableflag == 0) {
         return 0;
     }
-    if(prginfo_event->event_obj.Event310C_obj.poweroffset_obj.task_no!=taskno)
-       	return 0;
+//    if(prginfo_event->event_obj.Event310C_obj.poweroffset_obj.task_no!=taskno)
+//       	return 0;
     if(data==NULL)
     	return 0;
     INT32U newdata=(data[0]<<24)+(data[1]<<16)+(data[2]<<8)+data[3];
 	INT32U olddata=0;
 	TS ts;
-	if(Get_Mdata(tsa,&olddata,&ts) == 0){
-		Refresh_Data(tsa,newdata,0);//更新数据
+	if(Get_Mdata(tsa,&olddata,&ts,1) == 0){
+		Refresh_Data(tsa,newdata,1);//更新数据
 		return 0;
 	}
 	/*===============TODO根据共享内存或者直接读取文件 获取该表参数*/
@@ -1500,11 +1522,11 @@ INT8U Event_310C(TSA tsa, INT8U taskno,INT8U* data,INT8U len,ProgramInfo* prginf
     INT16U ratedI=meter.basicinfo.ratedI; //额定电流
     INT8U connectype=meter.basicinfo.connectype;//接线方式
     /*===============TODO可能需要根据下发得任务获取抄表间隔*/
-    INT16U Intertime=15; //抄表间隔
+    INT16U Intertime=5; //抄表间隔
     if(meter.basicinfo.port.OI == 0xF209)
     	Intertime *=60;//载波表
     else
-    	Intertime =15;//485
+    	Intertime =5;//485
     FP32 Em=0;
     switch(connectype){
 		case 1://单相
@@ -1517,8 +1539,10 @@ INT8U Event_310C(TSA tsa, INT8U taskno,INT8U* data,INT8U len,ProgramInfo* prginf
 			Em=((ratedU*0.1)*(ratedI*0.1)*3/(60*60))*(Intertime*60);
 			break;
     }
+    fprintf(stderr,"[310C]newdata=%d olddata=%d \n",newdata,olddata);
     if ((newdata>olddata) && (olddata>0))
 	 {
+    	fprintf(stderr,"[310C](newdata-olddata)*1000=%d power_offset*Em=%d power_offset=%d Em=%d\n",(newdata-olddata)*1000,power_offset*Em,power_offset,Em);
 		 //kwh转换得扩大1000倍
 		 if (((newdata-olddata)*1000>power_offset*Em) && (power_offset>0)){
 			INT8U Save_buf[256];
@@ -1556,7 +1580,9 @@ INT8U Event_310C(TSA tsa, INT8U taskno,INT8U* data,INT8U len,ProgramInfo* prginf
 		 }
 	 }
     //更新数据
-    Refresh_Data(tsa,newdata,0);
+    if(olddata!=newdata)
+    	Refresh_Data(tsa,newdata,1);
+
     return 1;
 }
 
@@ -1571,16 +1597,16 @@ INT8U Event_310D(TSA tsa, INT8U taskno,INT8U* data,INT8U len,ProgramInfo* prginf
 	if (prginfo_event->event_obj.Event310D_obj.event_obj.enableflag == 0) {
 	        return 0;
 	}
-	 if(prginfo_event->event_obj.Event310D_obj.poweroffset_obj.task_no!=taskno)
-		 return 0;
+//	 if(prginfo_event->event_obj.Event310D_obj.poweroffset_obj.task_no!=taskno)
+//		 return 0;
 
 	if(data==NULL)
 		return 0;
 	INT32U newdata=(data[0]<<24)+(data[1]<<16)+(data[2]<<8)+data[3];
 	INT32U olddata=0;
 	TS ts;
-	if(Get_Mdata(tsa,&olddata,&ts) == 0){
-		Refresh_Data(tsa,newdata,0);//更新数据
+	if(Get_Mdata(tsa,&olddata,&ts,2) == 0){
+		Refresh_Data(tsa,newdata,2);//更新数据
 		return 0;
 	}
 	/*===============TODO根据共享内存或者直接读取文件 获取该表参数*/
@@ -1590,11 +1616,11 @@ INT8U Event_310D(TSA tsa, INT8U taskno,INT8U* data,INT8U len,ProgramInfo* prginf
 	INT16U ratedI=meter.basicinfo.ratedI; //额定电流
 	INT8U connectype=meter.basicinfo.connectype;//接线方式
 	/*===============TODO可能需要根据下发得任务获取抄表间隔*/
-	INT16U Intertime=15; //抄表间隔
+	INT16U Intertime=5; //抄表间隔
 	if(meter.basicinfo.port.OI == 0xF209)
 		Intertime *=60;//载波表
 	else
-		Intertime =15;//485
+		Intertime =5;//485
 	FP32 Em=0;
 	switch(connectype){
 		case 1://单相
@@ -1607,8 +1633,10 @@ INT8U Event_310D(TSA tsa, INT8U taskno,INT8U* data,INT8U len,ProgramInfo* prginf
 			Em=((ratedU*0.1)*(ratedI*0.1)*3/(60*60))*(Intertime*60);
 			break;
 	}
+	fprintf(stderr,"[310D]newdata=%d olddata=%d \n",newdata,olddata);
 	if ((newdata>olddata) && (olddata>0))
 	 {
+		fprintf(stderr,"[310D](newdata-olddata)*1000=%d power_offset*Em=%d power_offset=%d Em=%d\n",(newdata-olddata)*1000,power_offset*Em,power_offset,Em);
 		 //kwh转换得扩大1000倍
 		 if (((newdata-olddata)*1000>power_offset*Em) && (power_offset>0)){
 			INT8U Save_buf[256];
@@ -1646,7 +1674,9 @@ INT8U Event_310D(TSA tsa, INT8U taskno,INT8U* data,INT8U len,ProgramInfo* prginf
 		 }
 	 }
 	//更新数据
-	Refresh_Data(tsa,newdata,0);
+	if(olddata!=newdata)
+		Refresh_Data(tsa,newdata,2);
+
 	return 1;
 }
 
@@ -1661,14 +1691,13 @@ INT8U Event_310E(TSA tsa, INT8U taskno,INT8U* data,INT8U len,ProgramInfo* prginf
     if (prginfo_event->event_obj.Event310E_obj.event_obj.enableflag == 0) {
         return 0;
     }
-    fprintf(stderr,"[event]%d %d \n",prginfo_event->event_obj.Event310E_obj.powerstoppara_obj.task_no,taskno);
-    if(prginfo_event->event_obj.Event310E_obj.powerstoppara_obj.task_no!=taskno)
-       	return 0;
+//    if(prginfo_event->event_obj.Event310E_obj.powerstoppara_obj.task_no!=taskno)
+//       	return 0;
     INT32U newdata=(data[0]<<24)+(data[1]<<16)+(data[2]<<8)+data[3];
 	INT32U olddata=0;
 	TS ts;
-	if(Get_Mdata(tsa,&olddata,&ts) == 0){
-		Refresh_Data(tsa,newdata,1);//更新数据
+	if(Get_Mdata(tsa,&olddata,&ts,0) == 0){
+		Refresh_Data(tsa,newdata,0);//更新数据
 		return 0;
 	}
 	if(olddata == newdata){
@@ -1676,6 +1705,8 @@ INT8U Event_310E(TSA tsa, INT8U taskno,INT8U* data,INT8U len,ProgramInfo* prginf
 		TS currtime;
 		TSGet(&currtime);
 		int tcha=abs(difftime(tmtotime_t(ts),tmtotime_t(currtime)));
+		fprintf(stderr,"ts:%d-%d-%d %d:%d:%d \n",ts.Year,ts.Month,ts.Day,ts.Hour,ts.Minute,ts.Sec);
+		fprintf(stderr,"currtime:%d-%d-%d %d:%d:%d \n",currtime.Year,currtime.Month,currtime.Day,currtime.Hour,currtime.Minute,currtime.Sec);
 		INT32U offset=0;
 		switch(prginfo_event->event_obj.Event310E_obj.powerstoppara_obj.power_offset.units){
 			case 0:
@@ -1697,6 +1728,7 @@ INT8U Event_310E(TSA tsa, INT8U taskno,INT8U* data,INT8U len,ProgramInfo* prginf
 				offset=prginfo_event->event_obj.Event310E_obj.powerstoppara_obj.power_offset.interval*365*24*60*60;
 				break;
 			}
+		fprintf(stderr,"[310E]tcha=%d offset=%d units=%d \n",tcha,offset,prginfo_event->event_obj.Event310E_obj.powerstoppara_obj.power_offset.units);
 		if(tcha>offset && offset>0){
 			INT8U Save_buf[256];
 			bzero(Save_buf, sizeof(Save_buf));
@@ -1726,8 +1758,9 @@ INT8U Event_310E(TSA tsa, INT8U taskno,INT8U* data,INT8U len,ProgramInfo* prginf
 			if(prginfo_event->event_obj.Event310E_obj.event_obj.reportflag)
 				Need_Report(0x310E,crrentnum,prginfo_event);
 		}
-	}
-	Refresh_Data(tsa,newdata,1);//更新数据
+	}else
+		Refresh_Data(tsa,newdata,0);//更新数据
+
     return 1;
 }
 
@@ -2558,6 +2591,114 @@ INT8U Event_3203(INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 		if(prginfo_event->event_obj.Event3203_obj.reportflag)
 			Need_Report(0x3203,crrentnum,prginfo_event);
 	}
+    return 1;
+}
+
+/*
+ * 电压相序异常 可以698规约解析actionrequest 调用该接口，data为OAD
+ */
+INT8U Event_300F(ProgramInfo* prginfo_event) {
+	if(oi_chg.oi300F != prginfo_event->oi_changed.oi300F){
+		readCoverClass(0x300F,0,&prginfo_event->event_obj.Event300F_obj,sizeof(prginfo_event->event_obj.Event300F_obj),event_para_save);
+		oi_chg.oi300F = prginfo_event->oi_changed.oi300F;
+	}
+
+    if (prginfo_event->event_obj.Event300F_obj.event_obj.enableflag == 0) {
+        return 0;
+    }
+    //事件判定
+   // INT8U offset=prginfo_event->event_obj.Event300F_obj.offset;
+    INT8U offset=30;
+    static TS starttime,nowtime;
+    static first = 0;
+    if(((prginfo_event->ACSRealData.SFlag>>3)&0x01)>0){
+    	if(first == 0){
+    		TSGet(&starttime);
+    		first = 1;
+    	}
+    	TSGet(&nowtime);
+		int tcha=abs(difftime(tmtotime_t(nowtime),tmtotime_t(starttime)));
+
+		if(tcha>offset && offset>0){
+			INT8U Save_buf[256];
+			bzero(Save_buf, sizeof(Save_buf));
+			prginfo_event->event_obj.Event300F_obj.event_obj.crrentnum++;
+			prginfo_event->event_obj.Event300F_obj.event_obj.crrentnum=Getcurrno(prginfo_event->event_obj.Event300F_obj.event_obj.crrentnum,prginfo_event->event_obj.Event300F_obj.event_obj.maxnum);
+			INT32U crrentnum = prginfo_event->event_obj.Event300F_obj.event_obj.crrentnum;
+			INT8U index=0;
+			//标准数据单元
+			Get_StandardUnit(0x300F,Save_buf,&index,crrentnum,NULL,s_null);
+			//无关联数据
+			Save_buf[STANDARD_NUM_INDEX]+=0;
+			//存储更改后得参数
+			saveCoverClass(0x300F,(INT16U)crrentnum,(void *)&prginfo_event->event_obj.Event300F_obj,sizeof(Class7_Object),event_para_save);
+			//存储记录集
+			saveCoverClass(0x300F,(INT16U)crrentnum,(void *)Save_buf,(int)index,event_record_save);
+			//存储当前记录值
+			INT8U Currbuf[50]={};memset(Currbuf,0,50);
+			INT8U Currindex=0;
+			Get_CurrResult(Currbuf,&Currindex,NULL,s_null,crrentnum,0);
+			saveCoverClass(0x300F,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,event_current_save);
+			//判断是否要上报
+			if(prginfo_event->event_obj.Event300F_obj.event_obj.reportflag)
+				Need_Report(0x300F,crrentnum,prginfo_event);
+		}
+    }else
+    	first = 0;
+    return 1;
+}
+
+/*
+ * 电流相序异常 可以698规约解析actionrequest 调用该接口，data为OAD
+ */
+INT8U Event_3010(ProgramInfo* prginfo_event) {
+	if(oi_chg.oi3010 != prginfo_event->oi_changed.oi3010){
+		readCoverClass(0x3010,0,&prginfo_event->event_obj.Event3010_obj,sizeof(prginfo_event->event_obj.Event3010_obj),event_para_save);
+		oi_chg.oi3010 = prginfo_event->oi_changed.oi3010;
+	}
+
+    if (prginfo_event->event_obj.Event3010_obj.event_obj.enableflag == 0) {
+        return 0;
+    }
+    //事件判定
+   // INT8U offset=prginfo_event->event_obj.Event3010_obj.offset;
+    INT8U offset=30;
+    static TS starttime,nowtime;
+    static first = 0;
+    if(((prginfo_event->ACSRealData.SFlag>>4)&0x01)>0){
+    	if(first == 0){
+    		TSGet(&starttime);
+    		first = 1;
+    	}
+    	TSGet(&nowtime);
+		int tcha=abs(difftime(tmtotime_t(nowtime),tmtotime_t(starttime)));
+
+		if(tcha>offset && offset>0){
+			INT8U Save_buf[256];
+			bzero(Save_buf, sizeof(Save_buf));
+			prginfo_event->event_obj.Event3010_obj.event_obj.crrentnum++;
+			prginfo_event->event_obj.Event3010_obj.event_obj.crrentnum=Getcurrno(prginfo_event->event_obj.Event3010_obj.event_obj.crrentnum,prginfo_event->event_obj.Event3010_obj.event_obj.maxnum);
+			INT32U crrentnum = prginfo_event->event_obj.Event3010_obj.event_obj.crrentnum;
+			INT8U index=0;
+			//标准数据单元
+			Get_StandardUnit(0x3010,Save_buf,&index,crrentnum,NULL,s_null);
+			//无关联数据
+			Save_buf[STANDARD_NUM_INDEX]+=0;
+			//存储更改后得参数
+			saveCoverClass(0x3010,(INT16U)crrentnum,(void *)&prginfo_event->event_obj.Event3010_obj,sizeof(Class7_Object),event_para_save);
+			//存储记录集
+			saveCoverClass(0x3010,(INT16U)crrentnum,(void *)Save_buf,(int)index,event_record_save);
+			//存储当前记录值
+			INT8U Currbuf[50]={};memset(Currbuf,0,50);
+			INT8U Currindex=0;
+			Get_CurrResult(Currbuf,&Currindex,NULL,s_null,crrentnum,0);
+			saveCoverClass(0x3010,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,event_current_save);
+			//判断是否要上报
+			if(prginfo_event->event_obj.Event3010_obj.event_obj.reportflag)
+				Need_Report(0x3010,crrentnum,prginfo_event);
+		}
+    }else
+    	first = 0;
     return 1;
 }
 

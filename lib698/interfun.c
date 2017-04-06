@@ -434,14 +434,14 @@ int getOctetstring(INT8U type,INT8U *source,INT8U *tsa)   //9
 	return 0;
 }
 
-int getVisibleString(INT8U *source,INT8U *dest)	//0x10
+int getVisibleString(INT8U *source,INT8U *dest)	//0x0A
 {
 	int	len=VISIBLE_STRING_LEN;
-	if(source[0]<VISIBLE_STRING_LEN) {
-		len = source[0]+1;			// source[0]表示类型，source[1]表示长度，字符串长度加 长度字节本身
+	if(source[1]<VISIBLE_STRING_LEN) {
+		len = source[1]+1;			// source[0]表示类型，source[1]表示长度，字符串长度加 长度字节本身
 	}else fprintf(stderr,"VisibleString over %d\n",VISIBLE_STRING_LEN);
 	memcpy(&dest[0],&source[1],len);
-	return len+1;
+	return (len+1);			//+1:类型
 }
 
 int getUnsigned(INT8U *source,INT8U *dest)	//0x11
@@ -783,6 +783,20 @@ int getMS(INT8U type,INT8U *source,MY_MS *ms)		//0x5C
 	return 0;
 }
 
+int getCOMDCB(INT8U type, INT8U* source, COMDCB* comdcb)		//0x5F
+{
+	if((type == 1) || (type == 0)) {
+		comdcb->baud = source[type];
+		comdcb->verify = source[type+1];
+		comdcb->databits = source[type+2];
+		comdcb->stopbits = source[type+3];
+		comdcb->flow = source[type+4];
+		return (5+type);
+	}
+	return 0;
+}
+
+
 /*
  * 解析记录列选择 RCSD
  */
@@ -1037,7 +1051,15 @@ void setOIChange(OI_698 oi)
 	case 0x3203:	memp->oi_changed.oi3203++;	break;
 	case 0x4016:	memp->oi_changed.oi4016++;	break;
 	case 0x4300:	memp->oi_changed.oi4300++;  break;
+	case 0x6000:	memp->oi_changed.oi6000++;  break;
+	case 0x6002:	memp->oi_changed.oi6002++;  break;
+	case 0x6012:	memp->oi_changed.oi6012++;  break;
+	case 0x6014:	memp->oi_changed.oi6014++;  break;
+	case 0x6016:	memp->oi_changed.oi6016++;  break;
+	case 0x6018:	memp->oi_changed.oi6018++;  break;
+	case 0x601C:	memp->oi_changed.oi601C++;  break;
+	case 0x601E:	memp->oi_changed.oi601E++;  break;
+	case 0x6051:	memp->oi_changed.oi6051++;  break;
 	case 0xf203:	memp->oi_changed.oiF203++;  break;
 	}
 }
-

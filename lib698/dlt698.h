@@ -81,6 +81,7 @@ extern int getTI(INT8U type, INT8U* source, TI* ti);                            
 extern int get_BasicRSD(INT8U type, INT8U* source, INT8U* dest, INT8U* seletype); // 0x5A
 extern int getCSD(INT8U type, INT8U* source, MY_CSD* csd);                        // 0X5B
 extern int getMS(INT8U type, INT8U* source, MY_MS* ms);                           // 0x5C
+extern int getCOMDCB(INT8U type, INT8U* source, COMDCB* comdcb);                  // 0x5F
 extern int get_BasicRCSD(INT8U type, INT8U* source, CSD_ARRAYTYPE* csds);         // 0x60
 extern int get_Data(INT8U* source, INT8U* dest);
 /*----------------------具体OI类组帧函数----------------------*/

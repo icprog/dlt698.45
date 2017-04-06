@@ -609,10 +609,10 @@ INT8U file_write(char *FileName, void *source, int size, int offset)
 	if(access(FileName,F_OK)!=0)
 	{
 		fp = fopen((char*) FileName, "w+");
-		fprintf(stderr,"创建文件\n");
+//		fprintf(stderr,"创建文件\n");
 	}else {
 		fp = fopen((char*) FileName, "r+");
-		fprintf(stderr,"替换文件\n");
+//		fprintf(stderr,"替换文件\n");
 	}
 	if (fp != NULL) {
 		fseek(fp, offset, SEEK_SET);
@@ -750,7 +750,7 @@ INT8U block_file_sync(char *fname,void *blockdata,int size,int headsize,int inde
 
 // 数据块数据保存文件
 // 输入参数：fname:主文件名，blockdata：主文件块缓冲区，size:主文件尺寸，index:文件的存储索引位置
-// 返回值：=1：文件保存成功，=0，文件保存失败，此时建议产生ERC2参数丢失事件通知主站异常
+// 返回值：=0：文件保存成功，=1，文件保存失败，此时建议产生ERC2参数丢失事件通知主站异常
 INT8U save_block_file(char *fname,void *blockdata,int size,int headsize,int index)
 {
 	int		i=0,ret=0;

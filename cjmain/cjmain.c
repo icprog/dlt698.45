@@ -45,7 +45,7 @@ void SyncRtc(void) {
 
         if (ts.Minute % 20 == 0) {
             asyslog(LOG_INFO, "开始更新TRTC时钟...[%d:%d]", ts.Hour, ts.Minute);
-            system("hwclock -s");
+            system("hwclock -s &");
         }
     }
 }
@@ -292,6 +292,8 @@ void InitSharedMem(int argc, char* argv[]) {
     readCoverClass(0x3201, 0, &JProgramInfo->event_obj.Event3201_obj, sizeof(JProgramInfo->event_obj.Event3201_obj), event_para_save);
     readCoverClass(0x3202, 0, &JProgramInfo->event_obj.Event3202_obj, sizeof(JProgramInfo->event_obj.Event3202_obj), event_para_save);
     readCoverClass(0x3203, 0, &JProgramInfo->event_obj.Event3203_obj, sizeof(JProgramInfo->event_obj.Event3203_obj), event_para_save);
+    readCoverClass(0x300F, 0, &JProgramInfo->event_obj.Event300F_obj, sizeof(JProgramInfo->event_obj.Event300F_obj), event_para_save);
+    readCoverClass(0x3010, 0, &JProgramInfo->event_obj.Event3010_obj, sizeof(JProgramInfo->event_obj.Event3010_obj), event_para_save);
 }
 
 int LAPI_Fork2(void) {
@@ -497,7 +499,7 @@ int main(int argc, char* argv[]) {
         Checkupdate();
 
         //检查设备是否需要重启
-        checkDevReset();
+//        checkDevReset();
 
         //检查系统升级文件
         checkRebootFile();

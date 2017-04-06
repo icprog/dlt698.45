@@ -115,6 +115,8 @@ void clearData()
 {
 	//冻结类数据清除
 	system("rm -rf /nand/task");
+	//统计类数据清除
+	system("rm -rf /nand/data");
 }
 
 void clearEvent()
@@ -375,7 +377,7 @@ int  readParaClass(OI_698 oi,void *blockdata,int seqnum)
 /*
  * 输入参数：	oi:对象标识，seqno:记录序号，blockdata:存储数据，savelen：存储长度，
  * 			type：存储类型【	根据宏定义SaveFile_type 】
- * 返回值：=1：文件存储成功
+ * 返回值：=0：文件存储成功
  */
 int saveCoverClass(OI_698 oi,INT16U seqno,void *blockdata,int savelen,int type)
 {
@@ -445,7 +447,7 @@ int readCoverClass(OI_698 oi,INT16U seqno,void *blockdata,int datalen,int type)
 	case acs_energy_save:
 		ret = readFileName(oi,seqno,type,fname);
 		if(ret==0) {		//文件存在
-			fprintf(stderr,"readClass %s filelen=%d\n",fname,datalen);
+			fprintf(stderr,"readClass %s filelen=%d,type=%d\n",fname,datalen,type);
 			ret = block_file_sync(fname,blockdata,datalen,0,0);
 //			fprintf(stderr,"ret=%d\n",ret);
 		}else  {		//无配置文件，读取系统初始化参数
@@ -465,7 +467,7 @@ int readCoverClass(OI_698 oi,INT16U seqno,void *blockdata,int datalen,int type)
 		break;
 	case para_init_save:
 		ret = readFileName(oi,seqno,type,fname);
-		fprintf(stderr,"readClass %s filelen=%d\n",fname,datalen);
+		fprintf(stderr,"para_init_save readClass %s filelen=%d\n",fname,datalen);
 		if(ret==0) {
 			ret = block_file_sync(fname,blockdata,datalen,0,0);
 		}
@@ -506,7 +508,7 @@ int saveVariData(OI_698 oi,int coll_seqnum,void *blockdata,int datalen)
 		return -1;
 	}
 	type = getvarioffset(oi,coll_seqnum,&offset,&blklen);
-	fprintf(stderr,"offset=%d ,blklen=%d, type=%d\n",offset,blklen,type);
+//	fprintf(stderr,"oi=%04x offset=%d ,blklen=%d, type=%d\n",oi,offset,blklen,type);
 	if(type == -1) {
 		fprintf(stderr,"没有相关OI=%04x的存储信息，不可保存!!!\n",oi);
 		return -1;
@@ -532,7 +534,7 @@ int saveVariData(OI_698 oi,int coll_seqnum,void *blockdata,int datalen)
 		fprintf(stderr,"创建文件 %s\n",filename);
 	}else {
 		fp = fopen(filename, "r+");
-		fprintf(stderr,"替换文件 %s\n",filename);
+//		fprintf(stderr,"替换文件 %s\n",filename);
 	}
 	if (fp != NULL) {
 		if(wbuf==NULL) {
@@ -540,7 +542,7 @@ int saveVariData(OI_698 oi,int coll_seqnum,void *blockdata,int datalen)
 			memset(wbuf,0,blklen);
 			wbuf[0] = datalen;
 			memcpy(wbuf+1,blockdata,datalen);
-			fprintf(stderr,"set to %d, datalen=%d ",offset,datalen);
+//			fprintf(stderr,"set to %d, datalen=%d ",offset,datalen);
 			fseek(fp, offset, SEEK_SET);
 			//fwrite(&datalen,sizeof(int),1,fp);			//数据有效长度
 			ret = fwrite(wbuf,blklen,1,fp);			//数据内容
@@ -643,10 +645,10 @@ INT8U datafile_write(char *FileName, void *source, int size, int offset)
 	if(access(FileName,F_OK)!=0)
 	{
 		fp = fopen((char*) FileName, "w+");
-		fprintf(stderr,"创建文件--%s\n",FileName);
+//		fprintf(stderr,"创建文件--%s\n",FileName);
 	}else {
 		fp = fopen((char*) FileName, "r+");
-		fprintf(stderr,"替换文件\n");
+//		fprintf(stderr,"替换文件\n");
 	}
 	if (fp != NULL) {
 		fseek(fp, offset, SEEK_SET);
@@ -1020,7 +1022,9 @@ INT16U GetTSACon(MY_MS meters,TSA *tsa_con,INT16U tsa_num)
 	}
 	return TSA_num;
 }
-
+/*
+ * 根据csds得到任务号
+ */
 INT8U GetTaskidFromCSDs(CSD_ARRAYTYPE csds,ROAD_ITEM *item_road)
 {
 	CLASS_6015	class6015={};
@@ -1072,7 +1076,7 @@ INT8U GetTaskidFromCSDs(CSD_ARRAYTYPE csds,ROAD_ITEM *item_road)
 //	}
 	memset(&class6013,0,sizeof(CLASS_6013));
 	memset(&class6015,0,sizeof(CLASS_6015));
-	for(i=0;i<256;i++)//先比较有没有跟现成采集方案匹配的，有直接返回taskid，没有返回0
+	for(i=0;i<256;i++)
 	{
 		if(readCoverClass(0x6013,i+1,&class6013,sizeof(class6013),coll_para_save) == 1)
 		{
@@ -1863,6 +1867,94 @@ void extendcsds(CSD_ARRAYTYPE csds,ROAD_ITEM *item_road)
 //		fclose(myfp);
 //	return (framesum+1);
 //}
+/*
+ * 支持招测日冻结
+ */
+INT16U GetOADFileData(OAD oad_m,OAD oad_r,INT8U taskid,TSA tsa,TS ts_zc,INT8U *databuf)
+{
+	int unitnum=0, offsetTsa=0, recordoffset=0, recordlen=0, currecord=0;
+	INT16U  blocksize=0,headsize=0;
+	INT8U recordbuf[1000];
+	HEAD_UNIT *headunit = NULL;//文件头
+	ROAD_ITEM item_road;
+	OAD_INDEX oad_offset;//oad索引
+	FILE *fp = NULL;
+	char fname[FILENAMELEN]={};
+	memset(&item_road,0x00,sizeof(ROAD_ITEM));
+	item_road.oadmr_num = 1;
+	item_road.oad[0].oad_num = 1;
+	memcpy(&item_road.oad[0].oad_m,&oad_m,sizeof(OAD));
+	memcpy(&item_road.oad[0].oad_r,&oad_r,sizeof(OAD));
+
+	getTaskFileName(taskid,ts_zc,fname);//得到要抄读的文件名称
+	fp =fopen(fname,"r");
+	if(fp == NULL)
+		return 0;
+
+	unitnum = GetTaskHead(fp,&headsize,&blocksize,&headunit);
+
+	memset(&oad_offset,0x00,sizeof(OAD_INDEX));
+	GetOADPosofUnit(item_road,headunit,unitnum,&oad_offset);//得到每一个oad在块数据中的偏移
+
+	offsetTsa = findTsa(tsa,fp,headsize,blocksize);
+
+	recordoffset = findrecord(offsetTsa,recordlen,currecord);
+
+	fseek(fp,recordoffset,SEEK_SET);
+	fread(recordbuf,recordlen,1,fp);
+	return collectData(databuf,recordbuf,&oad_offset,item_road);
+}
+/*
+ * 要得到的主从oad,为其他进程提供接口
+ */
+INT16U GetOADData(OAD oad_m,OAD oad_r,TS ts_zc,TSA tsa,INT8U *databuf)
+{
+	CLASS_6015	class6015={};
+	CLASS_6013	class6013={};
+	int i=0,j=0,nn=0;
+	memset(&class6013,0,sizeof(CLASS_6013));
+	memset(&class6015,0,sizeof(CLASS_6015));
+	for(i=0;i<256;i++)
+	{
+		if(readCoverClass(0x6013,i+1,&class6013,sizeof(class6013),coll_para_save) == 1)
+		{
+			if(class6013.cjtype != 1 || class6013.state != 1)//过滤掉不是普通采集方案的
+				continue;
+			if(readCoverClass(0x6015,class6013.sernum,&class6015,sizeof(CLASS_6015),coll_para_save) == 1)
+			{
+				asyslog(LOG_INFO,"查找任务号 %d，方案序号：%d class6015.csds.num=%d",i+1,class6013.sernum,class6015.csds.num);
+				for(j=0;j<class6015.csds.num;j++)
+				{
+					switch(class6015.csds.csd[j].type)
+					{
+					case 0:
+						if(oad_m.OI == 0x0000)//oad类型
+						{
+							if(memcmp(&oad_r,&class6015.csds.csd[j].csd.oad,sizeof(OAD))==0){
+								return GetOADFileData(oad_m,oad_r,i+1,tsa,ts_zc,databuf);
+
+							}
+						}
+						break;
+					case 1:
+						if(memcmp(&oad_m,&class6015.csds.csd[j].csd.road.oad,sizeof(OAD))==0)
+						{
+							for(nn=0;nn<class6015.csds.csd[j].csd.road.num;nn++)
+							{
+								if(memcmp(&oad_r,&class6015.csds.csd[j].csd.road.oads[nn],sizeof(OAD))==0){
+									return GetOADFileData(oad_m,oad_r,i+1,tsa,ts_zc,databuf);
+								}
+							}
+						}
+						break;
+					default:break;
+					}
+				}
+			}
+		}
+	}
+	return 0;
+}
 /*
  *获得任务数据和事件记录
  */
