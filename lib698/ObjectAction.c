@@ -931,6 +931,19 @@ void FileTransMothod(INT16U attr_act,INT8U *data)
 err:
 	return;
 }
+
+void DayFreeze(INT16U attr_act,INT8U *data,Action_result *act_ret)
+{
+	switch(attr_act) {
+	case 5:		//删除一个冻结对象属性
+
+		break;
+	case 7:		//批量添加冻结对象属性
+
+		break;
+	}
+}
+
 void MeterInfo(INT16U attr_act,INT8U *data,Action_result *act_ret)
 {
 	switch(attr_act)
@@ -1003,6 +1016,9 @@ int doObjectAction(OAD oad,INT8U *data,Action_result *act_ret)
 	{
 		case 0x4300:	//终端对象
 			TerminalInfo(attr_act,data);
+			break;
+		case 0x5004:	//日冻结
+			DayFreeze(attr_act,data,act_ret);
 			break;
 		case 0x6000:	//采集档案配置表
 			MeterInfo(attr_act,data,act_ret);
