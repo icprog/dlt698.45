@@ -45,7 +45,7 @@ void SyncRtc(void) {
 
         if (ts.Minute % 20 == 0) {
             asyslog(LOG_INFO, "开始更新TRTC时钟...[%d:%d]", ts.Hour, ts.Minute);
-            system("hwclock -s");
+            system("hwclock -s &");
         }
     }
 }

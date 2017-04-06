@@ -119,6 +119,7 @@ int Proxy_GetRequestlist(INT8U *data,CSINFO *csinfo,INT8U *sendbuf,INT8U piid)
 void printcmd(PROXY_GETLIST getlist)
 {
 	int i=0;
+	fprintf(stderr,"proxytype = %d\n",getlist.proxytype);
 	fprintf(stderr,"OAD=%04x-%02x-%02x\n",getlist.transcmd.oad.OI,getlist.transcmd.oad.attflg,getlist.transcmd.oad.attrindex);
 	fprintf(stderr,"COMDCB:baud=%d,par=%d,datab=%d,stopb=%d,flow=%d\n",getlist.transcmd.comdcb.baud,getlist.transcmd.comdcb.verify,
 			getlist.transcmd.comdcb.databits,getlist.transcmd.comdcb.stopbits,getlist.transcmd.comdcb.flow);
