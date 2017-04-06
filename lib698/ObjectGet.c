@@ -1004,7 +1004,7 @@ int GetVariable(RESULT_NORMAL *response)
 	data = response->data;
 	memset(&databuf,0,sizeof(databuf));
 	len = readVariData(response->oad.OI,0,&databuf,VARI_LEN);
-	if(len>0) {
+//	if(len>0) {
 		switch(response->oad.OI)
 		{
 			case 0x2200:	//通信流量
@@ -1019,12 +1019,14 @@ int GetVariable(RESULT_NORMAL *response)
 		}
 		response->datalen = index;
 		fprintf(stderr,"datalen=%d \n",response->datalen);
-	}else if(len==0){
-		response->datalen = 0;	//无数据
-	}else {
-		response->datalen = 0;	//无数据
-		fprintf(stderr,"\n读取的OI=%04x ,不在变量类对象文件%s中，请从其他文件获取!!!\n",response->oad.OI,VARI_DATA);
-	}
+//	}else if(len==0){
+//		response->datalen = 0;	//无数据
+//		response->dar = obj_undefine;
+//	}else {
+//		response->datalen = 0;	//无数据
+//		response->dar = obj_undefine;
+//		fprintf(stderr,"\n读取的OI=%04x ,不在变量类对象文件%s中，请从其他文件获取!!!\n",response->oad.OI,VARI_DATA);
+//	}
 	return 1;
 }
 
@@ -1383,9 +1385,9 @@ int getRequestNormalList(INT8U *data,CSINFO *csinfo,INT8U *sendbuf)
 		}
 		else
 		{
-//			TmpDataBufList[listindex + 4] = 0;//错误
-			TmpDataBufList[listindex + 4] = response.dar;  //  0-3(oad)   4(choice)  5(dar)
-			listindex = listindex + 5;
+			TmpDataBufList[listindex + 4] = 0;//错误		//TODO:原注释，台体测试读取终端当前数据时2200无数据，帧错误，打开
+			TmpDataBufList[listindex + 5] = response.dar;  //  0-3(oad)   4(choice)  5(dar)
+			listindex = listindex + 6;
 		}
 	}
 	response.data = TmpDataBufList;

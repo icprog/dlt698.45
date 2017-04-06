@@ -589,7 +589,7 @@ void ReadPubData()
 	{
 		if(point[i].valid != 1)
 			continue;
-		readVariData(0x2130,i,&StatisticsPoint[i],sizeof(StatisticsPointProp));
+//		readVariData(0x2130,i,&StatisticsPoint[i],sizeof(StatisticsPointProp));
 		readVariData(0x2140,i,&max_ptongji[i],sizeof(Max_ptongji));
 	//	if (point[i].Type!= JIAOCAI_TYPE)
 	//		continue;
@@ -935,10 +935,16 @@ void calc_thread()
 {
 	INT8U valid = 0;
 	TS oldts,newts;
+	static INT8U	reset_chg=0;
 	TSGet(&oldts);
 	TSGet(&newts);
 
     while(1){
+    	if(JProgramInfo->oi_changed.reset != reset_chg) {
+    		reset_chg = 0;
+    		gongdian_tj.gongdian.day_tj = 0;
+    		gongdian_tj.gongdian.month_tj = 0;
+    	}
     	valid++;
     	TSGet(&newts);
 		/*根据系统参数确定测量点信息，内容保存到point相关处*/
@@ -975,13 +981,13 @@ void calc_thread()
 		if(oldts.Minute != newts.Minute){
 			oldts.Minute = newts.Minute;
 			//存储电压合格率	TODO:只存储交采
-			saveVariData(0x2130,0,&StatisticsPoint[0],sizeof(StatisticsPointProp));
+//			saveVariData(0x2130,0,&StatisticsPoint[0],sizeof(StatisticsPointProp));
 			//日月供电加1分钟
 			gongdian_tj.gongdian.day_tj++;
 			gongdian_tj.gongdian.month_tj++;
 			memcpy(&gongdian_tj.ts,&newts,sizeof(TS));
 			//存储供电时间
-//			fprintf(stderr,"day_gongdian=%d,month_gongdian=%d\n",gongdian_tj.gongdian.day_tj,gongdian_tj.gongdian.month_tj);
+			fprintf(stderr,"day_gongdian=%d,month_gongdian=%d\n",gongdian_tj.gongdian.day_tj,gongdian_tj.gongdian.month_tj);
 			saveVariData(0x2203,0,&gongdian_tj,sizeof(Gongdian_tj));
 			//存储最大功率及发生时间	TODO:只存储交采
 			INT8U i=0;
