@@ -36,14 +36,14 @@ extern INT8U TmpDataBufList[MAXSIZ_FAM*2];
 //}
 INT16U set300F(OAD oad,INT8U *data,INT8U *DAR)
 {
-//	Event300F_Object tmp300f={};
+	Event300F_Object tmp300f={};
 	int		index = 0;
-//
-//	readCoverClass(oad.OI,0,&tmp300f,sizeof(Event300F_Object),event_para_save);
-//	index += getStructure(&data[index],NULL);
-//	index += getUnsigned(&data[index],(INT8U *)&tmp300f);
-//	fprintf(stderr,"\n：300F: 判定延时 =%d\n",);
-//	*DAR = saveCoverClass(oad.OI,0,&tmp300f,sizeof(Event300F_Object),event_para_save);
+
+	readCoverClass(oad.OI,0,&tmp300f,sizeof(Event300F_Object),event_para_save);
+	index += getStructure(&data[index],NULL);
+	index += getUnsigned(&data[index],(INT8U *)&tmp300f.offset);
+	fprintf(stderr,"\n：300F: 判定延时 =%d\n",tmp300f.offset);
+	*DAR = saveCoverClass(oad.OI,0,&tmp300f,sizeof(Event300F_Object),event_para_save);
 	return index;
 }
 
