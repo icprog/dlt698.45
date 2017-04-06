@@ -597,7 +597,7 @@ void printbuff(const char* prefix, INT8U* buff, INT32U len, const char* format,
  * 返回：>0：完整报文；=0:接收长度为0；-1：乱码，无完整报文
  */
 INT16S ReceDataFrom485(METER_PROTOCOL meterPro,INT8U port485, INT16U delayms, INT8U *str) {
-	INT8U TmprevBuf[256];	//接收报文临时缓冲区
+	INT8U TmprevBuf[BUFFSIZE];	//接收报文临时缓冲区
 	INT8U prtstr[50];
 	INT16U len_Total = 0, len, rec_step, rec_head, rec_tail, DataLen, i, j;
 	INT32S fd = comfd4851;
@@ -608,18 +608,18 @@ INT16S ReceDataFrom485(METER_PROTOCOL meterPro,INT8U port485, INT16U delayms, IN
 	if (fd <= 2)
 		return -1;
 
-	memset(TmprevBuf, 0, 256);
+	memset(TmprevBuf, 0, BUFFSIZE);
 	rec_head = rec_tail = rec_step = DataLen = 0;
 	//fprintf(stderr, "\n ReceDataFrom485 delayms=%d\n", delayms);
 	usleep(delayms * 1000);
 
 	for (j = 0; j < 15; j++) {
 		usleep(20000);	//20ms
-		len = read(fd, TmprevBuf, 256);
+		len = read(fd, TmprevBuf, BUFFSIZE);
 
 		if (len > 0) {
 			len_Total += len;
-			if (len_Total > 256) {
+			if (len_Total > BUFFSIZE) {
 				fprintf(stderr, "len_Total=%d, xxxxxxxxxxx\n", len_Total);
 				return -1;
 			}
@@ -1625,7 +1625,9 @@ INT16U dealProxy_698(CLASS_6001 obj6001,GETOBJS obj07,INT8U* dataContent,INT8U p
 			fprintf(stderr,"\n dealProxy_698 getResponseType = %d  csdNum = %d dataLen = %d \n",getResponseType,csdNum,dataLen);
 			if((getResponseType == GET_REQUEST_NORMAL_LIST)||(getResponseType == GET_REQUEST_NORMAL))
 			{
-				retdataLen = deal698RequestResponse(1,getResponseType,dataLen,csdNum,&recvbuff[apduDataStartIndex],dataContent,st6015.csds,obj6001,0);
+				//retdataLen = deal698RequestResponse(1,getResponseType,dataLen,csdNum,&recvbuff[apduDataStartIndex],dataContent,st6015.csds,obj6001,0);
+				retdataLen = dataLen-2;
+				memcpy(dataContent,&recvbuff[apduDataStartIndex],retdataLen);
 				break;
 			}
 			else
@@ -1732,11 +1734,20 @@ INT8S dealProxy(PROXY_GETLIST getlist,INT8U port485)
 			getlist.data[totalLen++] = 0;//没有数据
 			continue;
 		}
+
+
 		if(obj6001.basicinfo.port.attrindex != port485)
 		{
 			fprintf(stderr,"非本端口测量点不处理");
 			continue;
 		}
+
+		if(getComfdBy6001(obj6001.basicinfo.baud,obj6001.basicinfo.port.attrindex) != 1)
+		{
+			fprintf(stderr,"\n打开串口错误");
+			continue;
+		}
+
 		INT8U portUse = obj6001.basicinfo.port.attrindex;
 		DbgPrintToFile1(port485,"dealProxy--------1 addr:%02x%02x%02x%02x%02x%02x%02x%02x",
 						getlist.objs[index].tsa.addr[0],getlist.objs[index].tsa.addr[1],getlist.objs[index].tsa.addr[2]
@@ -2315,6 +2326,10 @@ INT16S deal6015_698(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8
 			if(getResponseType > 0)
 			{
 				retLen = deal698RequestResponse(0,getResponseType,dataLen,csdNum,&recvbuff[apduDataStartIndex],dataContent,st6015.csds,to6001,st6035->taskID);
+				if(retLen > 0)
+				{
+					st6035->successMSNum++;
+				}
 				break;
 			}
 
@@ -2897,7 +2912,7 @@ INT8S deal6015or6017(INT8U cjType,CLASS_6015 st6015, INT8U port485,CLASS_6035* s
 					if((dataLen > 0)&& (cjType == norm))
 					{
 						int bufflen = compose6012Buff(startTime,meter.basicinfo.addr,dataLen,dataContent,port485);
-						//SaveNorData(st6035->taskID,NULL,dataContent,bufflen);
+						SaveNorData(st6035->taskID,NULL,dataContent,bufflen);
 					}
 				}
 				else
@@ -2984,6 +2999,22 @@ INT8S cleanTaskIDmmq(INT8U port485)
 	para_change485[port485-1] = 0;
 	return ret;
 }
+INT8S get6035ByTaskID(INT16U taskID,CLASS_6035* class6035)
+{
+	INT16U i;
+	for(i=0;i<=255;i++)
+	{
+		memset(class6035,0,sizeof(CLASS_6035));
+		if(readCoverClass(0x6035,i,class6035,sizeof(CLASS_6035),coll_para_save)== 1)
+		{
+			if(class6035->taskID == taskID)
+			{
+				return 1;
+			}
+		}
+	}
+	return -1;
+}
 void read485_thread(void* i485port) {
 	INT8U port = *(INT8U*) i485port;
 	fprintf(stderr, "\n port = %d", port);
@@ -3041,7 +3072,7 @@ void read485_thread(void* i485port) {
 			fprintf(stderr,"\n read485_thread ---------port = %d ------ taskIndex = %d \n",port,taskIndex);
 			DbgPrintToFile1(port,"******************************************taskIndex = %d 任务开始*******************************",taskIndex);
 			CLASS_6035 result6035;	//采集任务监控单元
-			memset(&result6035, 0x00, sizeof(CLASS_6035));
+			get6035ByTaskID(list6013[taskIndex].basicInfo.taskID,&result6035);
 			result6035.taskID = list6013[taskIndex].basicInfo.taskID;
 			result6035.taskState = IN_OPR;
 			DataTimeGet(&result6035.starttime);
