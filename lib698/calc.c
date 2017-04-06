@@ -31,21 +31,27 @@ INT8U Reset_add()
 	TSGet(&newts);
 	fprintf(stderr," Reset_add: %d-%d-%d\n",newts.Year,newts.Month,newts.Day);
 	len = readVariData(0x2204,0,&reset_tj,sizeof(Reset_tj));
-//	if(len > 0) { 	//读取到数据
+	if(len > 0) { 	//读取到数据
 		fprintf(stderr,"read day_reset=%d,mon_reset=%d\n",reset_tj.reset.day_tj,reset_tj.reset.month_tj);
-		fprintf(stderr,"Day=%d,newts=%d  Mon=%d,newts=%d\n",reset_tj.ts.Day,newts.Day,reset_tj.ts.Month,newts.Month);
+		fprintf(stderr,"当前时间:%d-%d  记录时间 %d-%d\n",newts.Month,newts.Day,reset_tj.ts.Month,reset_tj.ts.Day);
 		//如果跨天 日供电清零
-		if(reset_tj.ts.Day != newts.Day)
+		if(reset_tj.ts.Day != newts.Day) {
+			TSGet(&reset_tj.ts);
 			reset_tj.reset.day_tj = 0;
+		}
 		//如果跨月 月供电清零
-		if(reset_tj.ts.Month != newts.Month)
+		if(reset_tj.ts.Month != newts.Month) {
+			TSGet(&reset_tj.ts);
 			reset_tj.reset.month_tj = 0;
-//	}
+		}
+	}else {
+		TSGet(&reset_tj.ts);
+	}
 	reset_tj.reset.day_tj++;
 	reset_tj.reset.month_tj++;
-	fprintf(stderr,"day_reset=%d,mon_reset=%d\n",reset_tj.reset.day_tj,reset_tj.reset.month_tj);
-    memcpy(&reset_tj.ts,&newts,sizeof(TS));
-    saveVariData(0x2204,0,&reset_tj,sizeof(Reset_tj));
+	fprintf(stderr,"day_reset=%d,mon_reset=%d,TS=%d-%d\n",reset_tj.reset.day_tj,reset_tj.reset.month_tj,reset_tj.ts.Month,reset_tj.ts.Day);
+    len = saveVariData(0x2204,0,&reset_tj,sizeof(Reset_tj));
+    fprintf(stderr,"len=%d\n",len);
 	return 1;
 }
 
@@ -71,16 +77,6 @@ INT8U Get_2203(OI_698 oi,INT8U *sourcebuf,INT8U *buf,int *len)
 	Gongdian_tj gongdian_tj={};
 	memcpy(&gongdian_tj,sourcebuf,sizeof(Gongdian_tj));
 
-	static INT8U first=0;
-	if(first==0) {
-		first=1;
-		gongdian_tj.gongdian.day_tj=2;
-		gongdian_tj.gongdian.month_tj =2;
-	}else {
-		gongdian_tj.gongdian.day_tj=3;
-		gongdian_tj.gongdian.month_tj =5;
-	}
-
 	fprintf(stderr,"Get_2203 :day_gongdian=%d,month_gongdian=%d\n",gongdian_tj.gongdian.day_tj,gongdian_tj.gongdian.month_tj);
 	*len=0;
 	*len += create_struct(&buf[*len],2);
@@ -97,15 +93,15 @@ INT8U Get_2204(OI_698 oi,INT8U *sourcebuf,INT8U *buf,int *len)
 	Reset_tj reset_tj={};
 	memcpy(&reset_tj,sourcebuf,sizeof(Reset_tj));
 
-	static INT8U first=0;
-	if(first==0) {
-		first=1;
-		reset_tj.reset.day_tj=1;
-		reset_tj.reset.month_tj =1;
-	}else {
-		reset_tj.reset.day_tj=1;
-		reset_tj.reset.month_tj =2;
-	}
+//	static INT8U first=0;
+//	if(first==0) {
+//		first=1;
+//		reset_tj.reset.day_tj=1;
+//		reset_tj.reset.month_tj =1;
+//	}else {
+//		reset_tj.reset.day_tj=1;
+//		reset_tj.reset.month_tj =2;
+//	}
 	fprintf(stderr,"Get_2204 :reset day_tj=%d,month_tj=%d\n",reset_tj.reset.day_tj,reset_tj.reset.month_tj);
 	*len=0;
 	*len += create_struct(&buf[*len],2);

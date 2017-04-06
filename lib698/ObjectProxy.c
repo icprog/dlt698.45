@@ -13,6 +13,7 @@
 #include "StdDataType.h"
 #include "Objectdef.h"
 #include "PublicFunction.h"
+#include "dlt698.h"
 #include "dlt698def.h"
 #include "../libMq/libmmq.h"
 
@@ -91,8 +92,10 @@ int Proxy_GetRequestlist(INT8U *data,CSINFO *csinfo,INT8U *sendbuf,INT8U piid)
 
 	timeout = data[0] ;
 	timeout = timeout <<8 | data[1];
+
 	getlist.timeout = timeout;
 	getlist.piid = piid;
+	getlist.proxytype = ProxyGetRequestList;
 	getProxylist(&data[2],&getlist);
 	fprintf(stderr,"\nProxy_GetRequestlist, timeout =%d  代理的对象属性读取数量 %d",timeout,getlist.num);
 	for(i=0;i<getlist.num;i++)
@@ -108,6 +111,45 @@ int Proxy_GetRequestlist(INT8U *data,CSINFO *csinfo,INT8U *sendbuf,INT8U piid)
 	getlist.timeold = time(NULL);
 	memcpy(&getlist.csinfo,csinfo,sizeof(CSINFO));
 
+	ret= mqs_send((INT8S *)PROXY_485_MQ_NAME,1,ProxyGetResponseList,(INT8U *)&getlist,sizeof(PROXY_GETLIST));
+	fprintf(stderr,"\n代理消息已经发出,ret=%d\n\n",ret);
+	return 1;
+}
+
+void printcmd(PROXY_GETLIST getlist)
+{
+	int i=0;
+	fprintf(stderr,"OAD=%04x-%02x-%02x\n",getlist.transcmd.oad.OI,getlist.transcmd.oad.attflg,getlist.transcmd.oad.attrindex);
+	fprintf(stderr,"COMDCB:baud=%d,par=%d,datab=%d,stopb=%d,flow=%d\n",getlist.transcmd.comdcb.baud,getlist.transcmd.comdcb.verify,
+			getlist.transcmd.comdcb.databits,getlist.transcmd.comdcb.stopbits,getlist.transcmd.comdcb.flow);
+	fprintf(stderr,"RevTimeOut=%d,ByteTimeOut=%d\n",getlist.transcmd.revtimeout,getlist.transcmd.bytetimeout);
+	fprintf(stderr,"autoCmdLen=%d\n",getlist.transcmd.cmdlen);
+	for(i=0;i<getlist.transcmd.cmdlen;i++) {
+		fprintf(stderr,"%02x ",getlist.transcmd.cmdbuf[i]);
+	}
+}
+
+int Proxy_TransCommandRequest(INT8U *data,CSINFO *csinfo,INT8U *sendbuf,INT8U piid)
+{
+	PROXY_GETLIST getlist;
+	INT8S	ret=0;
+	INT16U	index=0;
+
+	getlist.piid = piid;
+	getlist.proxytype = ProxyTransCommandRequest;
+	index += getOAD(0,&data[index],&getlist.transcmd.oad);
+	index += getCOMDCB(0,&data[index],&getlist.transcmd.comdcb);
+	getlist.transcmd.revtimeout = (data[index]<<8) | data[index+1];
+	index += 2;
+	getlist.transcmd.bytetimeout = (data[index]<<8) | data[index+1];
+	index += 2;
+	getlist.transcmd.cmdlen = data[index++];		//默认长度不超过255
+	memcpy(getlist.transcmd.cmdbuf,&data[index],getlist.transcmd.cmdlen);
+	//写入文件，等待转发			规约中只负责解析代理的内容，并追加写入到代理文件 /nand/proxy_list
+	getlist.timeold = time(NULL);
+	memcpy(&getlist.csinfo,csinfo,sizeof(CSINFO));
+
+	printcmd(getlist);
 	ret= mqs_send((INT8S *)PROXY_485_MQ_NAME,1,ProxyGetResponseList,(INT8U *)&getlist,sizeof(PROXY_GETLIST));
 	fprintf(stderr,"\n代理消息已经发出,ret=%d\n\n",ret);
 	return 1;
