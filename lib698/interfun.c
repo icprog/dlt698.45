@@ -783,6 +783,20 @@ int getMS(INT8U type,INT8U *source,MY_MS *ms)		//0x5C
 	return 0;
 }
 
+int getCOMDCB(INT8U type, INT8U* source, COMDCB* comdcb)		//0x5F
+{
+	if((type == 1) || (type == 0)) {
+		comdcb->baud = source[type];
+		comdcb->verify = source[type+1];
+		comdcb->databits = source[type+2];
+		comdcb->stopbits = source[type+3];
+		comdcb->flow = source[type+4];
+		return (5+type);
+	}
+	return 0;
+}
+
+
 /*
  * 解析记录列选择 RCSD
  */

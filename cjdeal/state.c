@@ -96,8 +96,8 @@ void read_oif203_para()
 		strncpy((char *)&oif203.class22.logic_name,"F203",sizeof(oif203.class22.logic_name));
 		oif203.class22.device_num = 1;
 		oif203.statearri.num = 4;
-		oif203.state4.StateAcessFlag = 0x0F;	//第1路状态接入
-		oif203.state4.StatePropFlag = 0x0F;		//第1路状态常开触点
+		oif203.state4.StateAcessFlag = 0xF0;	//第1路状态接入
+		oif203.state4.StatePropFlag = 0xF0;		//第1路状态常开触点
 	}
 	fprintf(stderr,"逻辑名 %s\n",oif203.class22.logic_name);
 	fprintf(stderr,"属性4：接入标志=%02x\n",oif203.state4.StateAcessFlag);
@@ -114,14 +114,18 @@ BOOLEAN oi_f203_changed(INT8U save_changed)
 		read_oif203_para();
 		for(i=0; i < STATE_MAXNUM;i++)
 		{
-			if(((oif203.state4.StateAcessFlag>>i)&0x01) ==1)
+			if(((oif203.state4.StateAcessFlag>>(STATE_MAXNUM-1-i))&0x01) ==1)
 			{
-				if(((oif203.state4.StatePropFlag>>i)&0x01) ==0 )	//常闭节点
+				if(((oif203.state4.StatePropFlag>>(STATE_MAXNUM-1-i))&0x01) ==0 )	//常闭节点
 					oif203.statearri.stateunit[i].ST = 1;
 				else
 					oif203.statearri.stateunit[i].ST = 0;
 			}
+			oif203.statearri.stateunit[i].CD = 0;		//参数变化后，清除状态变位标志
 		}
+//		fprintf(stderr,"CD=%d-%d-%d-%d-%d-%d-%d-%d\n",
+//				oif203.statearri.stateunit[0].CD,oif203.statearri.stateunit[1].CD,oif203.statearri.stateunit[2].CD,oif203.statearri.stateunit[3].CD,
+//				oif203.statearri.stateunit[4].CD,oif203.statearri.stateunit[5].CD,oif203.statearri.stateunit[6].CD,oif203.statearri.stateunit[7].CD);
 		changed = save_changed;
 		return TRUE;
 	}
@@ -144,11 +148,13 @@ INT8U state_check(BOOLEAN changed)
 	memset(bit_state,0,sizeof(bit_state));
 	for(i=0; i < STATE_MAXNUM; i++)
 	{
-		if(((oif203.state4.StateAcessFlag >>i)&0x01) ==1) {
+		if(((oif203.state4.StateAcessFlag >>(STATE_MAXNUM-1-i))&0x01) ==1) {
 			if(i>=0 && i<=3) {		//YX1-YX4
 				readstate[i] = state_get(i+1);
 				if(readstate[i]!=-1) {
 					bit_state[i] = (~(readstate[i])) & 0x01;
+				}else {
+					bit_state[i] = bit_state[0];			//II型无设备，台体测试测试1-4路状态
 				}
 			}else if(i==4) {		//门节点
 				readstate[i] = getSpiAnalogState();
@@ -156,15 +162,14 @@ INT8U state_check(BOOLEAN changed)
 					bit_state[i] = ((~(readstate[i]>>5))&0x01);
 				}
 			}
-			if(((oif203.state4.StatePropFlag>>i)&0x01)==0){	//常闭
+			if(((oif203.state4.StatePropFlag>>(STATE_MAXNUM-1-i))&0x01)==0){	//常闭
 				bit_state[i] = (~bit_state[i])&0x01;
 			}
 		}
 	}
-
 	for(i=0; i < STATE_MAXNUM; i++)
 	{
-		if(changed == FALSE && (bit_state[i] != oif203.statearri.stateunit[i].ST)) {
+		if((changed == FALSE) && (bit_state[i] != oif203.statearri.stateunit[i].ST)) {
 			oif203.statearri.stateunit[i].ST = bit_state[i];
 			oif203.statearri.stateunit[i].CD = 1;
 			staret = 1;

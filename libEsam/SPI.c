@@ -23,13 +23,13 @@ int SPI_Close(int fd) {
 static int dumpstat(const char* name, int fd,int deviceType) {
     static uint8_t mode;
     static uint8_t bits   = 8;
-    static uint32_t speed = 5000000;
+    static uint32_t speed = 20000000;
 
-    if(deviceType==2) {
-    	speed = 20000000;
-    }else {
-    	speed = 5000000;
-    }
+//    if(deviceType==2) {
+//    	speed = 20000000;
+//    }else {
+//    	speed = 5000000;
+//    }
 
     mode |= SPI_MODE_3;
 

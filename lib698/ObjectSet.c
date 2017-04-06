@@ -374,25 +374,25 @@ INT16U set4300(OAD oad,INT8U *data,INT8U *DAR)
 void print4500(CLASS25 class4500)
 {
 	int  i=0,j=0;
-//	fprintf(stderr,"\n-------2:通信配置----------");
-//	fprintf(stderr,"\n【工作模式】%d",class4500.commconfig.workModel);
-//	fprintf(stderr,"\n【在线方式】%d",class4500.commconfig.onlineType);
-//	fprintf(stderr,"\n【连接方式】%d",class4500.commconfig.connectType);
-//	fprintf(stderr,"\n【连接应用方式】%d",class4500.commconfig.appConnectType);
-//	fprintf(stderr,"\n【侦听端口1】%04x %d",class4500.commconfig.listenPort[0],class4500.commconfig.listenPort[0]);
-//	fprintf(stderr,"\n【侦听端口2】%04x %d",class4500.commconfig.listenPort[1],class4500.commconfig.listenPort[1]);
-//	fprintf(stderr,"\n【APN】 %s",&class4500.commconfig.apn[1]);
-//	fprintf(stderr,"\n【用户名】 %s",&class4500.commconfig.userName[1]);
-//	fprintf(stderr,"\n【密码】 %s",&class4500.commconfig.passWord[1]);
-//	fprintf(stderr,"\n【代理服务器地址】 %d.%d.%d.%d ",class4500.commconfig.proxyIp[1],class4500.commconfig.proxyIp[2],class4500.commconfig.proxyIp[3],class4500.commconfig.proxyIp[4]);
-//	fprintf(stderr,"\n【代理服务器端口】 %d",class4500.commconfig.proxyPort);
-//	fprintf(stderr,"\n【超时时间和重发次数】 %02x",class4500.commconfig.timeoutRtry);
-//	fprintf(stderr,"\n【心跳周期】 %d\n",class4500.commconfig.heartBeat);
-//	fprintf(stderr,"\n-------3:主站通信参数表----------");
-//	fprintf(stderr,"\n【主站IP】%d.%d.%d.%d",class4500.master.master[0].ip[1],class4500.master.master[0].ip[2],class4500.master.master[0].ip[3],class4500.master.master[0].ip[4]);
-//	fprintf(stderr,"\n【端口号】 %d  \n",class4500.master.master[0].port);
-//	fprintf(stderr,"\n存储前 主站IP %d.%d.%d.%d :%d\n",class4500.master.master[0].ip[1],class4500.master.master[0].ip[2],
-//			class4500.master.master[0].ip[3],class4500.master.master[0].ip[4],class4500.master.master[0].port);
+	fprintf(stderr,"\n-------2:通信配置----------");
+	fprintf(stderr,"\n【工作模式】%d",class4500.commconfig.workModel);
+	fprintf(stderr,"\n【在线方式】%d",class4500.commconfig.onlineType);
+	fprintf(stderr,"\n【连接方式】%d",class4500.commconfig.connectType);
+	fprintf(stderr,"\n【连接应用方式】%d",class4500.commconfig.appConnectType);
+	fprintf(stderr,"\n【侦听端口1】%04x %d",class4500.commconfig.listenPort[0],class4500.commconfig.listenPort[0]);
+	fprintf(stderr,"\n【侦听端口2】%04x %d",class4500.commconfig.listenPort[1],class4500.commconfig.listenPort[1]);
+	fprintf(stderr,"\n【APN】 %s",&class4500.commconfig.apn[1]);
+	fprintf(stderr,"\n【用户名】 %s",&class4500.commconfig.userName[1]);
+	fprintf(stderr,"\n【密码】 %s",&class4500.commconfig.passWord[1]);
+	fprintf(stderr,"\n【代理服务器地址】 %d.%d.%d.%d ",class4500.commconfig.proxyIp[1],class4500.commconfig.proxyIp[2],class4500.commconfig.proxyIp[3],class4500.commconfig.proxyIp[4]);
+	fprintf(stderr,"\n【代理服务器端口】 %d",class4500.commconfig.proxyPort);
+	fprintf(stderr,"\n【超时时间和重发次数】 %02x",class4500.commconfig.timeoutRtry);
+	fprintf(stderr,"\n【心跳周期】 %d\n",class4500.commconfig.heartBeat);
+	fprintf(stderr,"\n-------3:主站通信参数表----------");
+	fprintf(stderr,"\n【主站IP】%d.%d.%d.%d",class4500.master.master[0].ip[1],class4500.master.master[0].ip[2],class4500.master.master[0].ip[3],class4500.master.master[0].ip[4]);
+	fprintf(stderr,"\n【端口号】 %d  \n",class4500.master.master[0].port);
+	fprintf(stderr,"\n存储前 主站IP %d.%d.%d.%d :%d\n",class4500.master.master[0].ip[1],class4500.master.master[0].ip[2],
+			class4500.master.master[0].ip[3],class4500.master.master[0].ip[4],class4500.master.master[0].port);
 	fprintf(stderr,"\n-------4:通信参数表----------");
 	fprintf(stderr,"\n【短信中心号码】 %s ",&class4500.sms.center[1]);
 	for(i=0;i<(class4500.sms.center[0]+1);i++) {
@@ -905,7 +905,7 @@ int setThenGetRequestNormalList(INT8U *data,CSINFO *csinfo,INT8U *buf)
 		doGetnormal(0,&response);
 		listindex += create_OAD(0,&TmpDataBufList[listindex],oad);
 		if(response.datalen>0) {
-//			TmpDataBufList[listindex++] = 1;		//Get-Result∷=CHOICE  Data		TODO:是否需要
+			TmpDataBufList[listindex++] = 1;		//Get-Result∷=CHOICE  Data		国网软件需要，但是报文解析软件不认
 			memcpy(&TmpDataBufList[listindex],response.data,response.datalen);
 			listindex = listindex + response.datalen;
 		}else {

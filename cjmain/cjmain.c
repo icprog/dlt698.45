@@ -45,7 +45,7 @@ void SyncRtc(void) {
 
         if (ts.Minute % 20 == 0) {
             asyslog(LOG_INFO, "开始更新TRTC时钟...[%d:%d]", ts.Hour, ts.Minute);
-            system("hwclock -s");
+            system("hwclock -s &");
         }
     }
 }
@@ -497,7 +497,7 @@ int main(int argc, char* argv[]) {
         Checkupdate();
 
         //检查设备是否需要重启
-        checkDevReset();
+//        checkDevReset();
 
         //检查系统升级文件
         checkRebootFile();

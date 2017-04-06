@@ -1399,17 +1399,16 @@ void ACSEnergySave(ACEnergy_Sum energysum_tmp)
 		}
 	}
 	if(pwr_has() == FALSE) {
-		sleep(2);
-
-		if(bettery_getV(&bett[0],&bett[1]) == TRUE) {
-			fprintf(stderr,"bett=%f,%f\n",bett[0],bett[1]);
-			if(bett[1] >= MIN_BATTWORK_VOL) {
-				saveflag = 2;
-				syslog(LOG_NOTICE,"底板电源已关闭，电池电压=%f V,保存电能示值",bett[1]);
-			}else {
-				syslog(LOG_NOTICE,"底板电源已关闭，电池电压过低=%f V,不保存电量！！！",bett[1]);
-			}
-		}
+//		sleep(2);
+//		if(bettery_getV(&bett[0],&bett[1]) == TRUE) {
+//			fprintf(stderr,"bett=%f,%f\n",bett[0],bett[1]);
+//			if(bett[1] >= MIN_BATTWORK_VOL) {
+//				saveflag = 2;
+//				syslog(LOG_NOTICE,"底板电源已关闭，电池电压=%f V,保存电能示值",bett[1]);
+//			}else {
+//				syslog(LOG_NOTICE,"底板电源已关闭，电池电压过低=%f V,不保存电量！！！",bett[1]);
+//			}
+//		}
 	}
 	if(saveflag) {
 		saveCoverClass(0,0,&energysum_tmp,sizeof(ACEnergy_Sum),acs_energy_save);

@@ -609,10 +609,10 @@ INT8U file_write(char *FileName, void *source, int size, int offset)
 	if(access(FileName,F_OK)!=0)
 	{
 		fp = fopen((char*) FileName, "w+");
-		fprintf(stderr,"创建文件\n");
+//		fprintf(stderr,"创建文件\n");
 	}else {
 		fp = fopen((char*) FileName, "r+");
-		fprintf(stderr,"替换文件\n");
+//		fprintf(stderr,"替换文件\n");
 	}
 	if (fp != NULL) {
 		fseek(fp, offset, SEEK_SET);

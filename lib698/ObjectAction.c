@@ -714,6 +714,7 @@ void TaskInfo(INT16U attr_act,INT8U *data,Action_result *act_ret)
 			break;
 	}
 }
+
 void TerminalInfo(INT16U attr_act,INT8U *data)
 {
 	switch(attr_act)
@@ -727,6 +728,7 @@ void TerminalInfo(INT16U attr_act,INT8U *data)
 		case 6://需量初始化
 			dataInit(attr_act);
 			//Event_3100(NULL,0,memp);//初始化，产生事件
+			Reset_add();			//国网台体测试,数据初始化认为是复位操作
 			fprintf(stderr,"\n终端数据初始化!");
 			break;
 		case 151://湖南切换到3761规约程序转换主站通信参数
@@ -1029,6 +1031,12 @@ int doObjectAction(OAD oad,INT8U *data,Action_result *act_ret)
 		case 0xF100:
 			EsamMothod(attr_act,data);
 			break;
+	}
+	if(oi==0x4300 && attr_act==1) {		//设备复位
+		memp->oi_changed.reset++;
+	}
+	if(oi==0x4300 && attr_act==3) {		//数据区初始化
+		memp->oi_changed.init++;
 	}
 	setOIChange(oi);
 	return success;	//DAR=0，成功	TODO：增加DAR各种错误判断

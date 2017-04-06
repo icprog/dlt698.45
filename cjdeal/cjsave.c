@@ -288,7 +288,29 @@ void ReadFileHead(char *fname,INT16U headlen,INT16U unitlen,INT16U unitnum,INT8U
 		fclose(fp);
 	}
 }
-
+int GetOADPos(FILE *fp,INT16U headlen,OAD oadm,OAD oadr)
+{
+	HEAD_UNIT headunit[100];
+	int i=0,pos=0;
+	INT8U headbuf[1024];
+	INT16U unitnum;
+	memset(headbuf,0x00,512);
+	memset(headunit,0x00,100*sizeof(HEAD_UNIT));
+	rewind(fp);
+	fread(headbuf,headlen,1,fp);
+	memcpy(headunit,&headbuf[4],headlen-4);
+	unitnum = (headlen-4)/(sizeof(HEAD_UNIT));
+	if(unitnum == 0)
+		return -1;
+	for(i=0;i<unitnum;i++)
+	{
+		if(memcmp(&headunit[i].oad_m,&oadm,sizeof(OAD)) == 0 &&
+				memcmp(&headunit[i].oad_r,&oadr,sizeof(OAD)) == 0)
+			return pos;
+		pos += headunit[i].len;
+	}
+	return -1;
+}
 
 /*
  * 存储普通采集方案数据，
@@ -307,8 +329,8 @@ int SaveNorData(INT8U taskid,ROAD *road_eve,INT8U *databuf,int datalen)//存储�
 	INT16U headlen=0,unitlen=0,unitnum=0,unitseq=0,runtime=0;//runtime执行次数
 	TASKSET_INFO tasknor_info;
 	memset(&csds,0x00,sizeof(ROAD));
-	csds.num = 1;
-	csds.csd[0].type = 1;//road
+//	csds.num = 1;
+//	csds.csd[0].type = 1;//road
 	TSGet(&ts_now);//用的当前时间，测试用，需要根据具体存储时标选择来定义
 	if(road_eve == NULL)//不是事件
 	{
@@ -380,7 +402,7 @@ int SaveNorData(INT8U taskid,ROAD *road_eve,INT8U *databuf,int datalen)//存储�
 			savepos=currpos;
 		memset(databuf_tmp,0x00,unitlen);
 		for(i=0;i<runtime;i++)
-			memcpy(&databuf_tmp[unitlen*i/runtime],databuf,17);//每个小单元地址附上
+			memcpy(&databuf_tmp[unitlen*i/runtime],databuf,18);//每个小单元地址附上
 	}
 	unitseq = (ts_now.Hour*60*60+ts_now.Minute*60+ts_now.Sec)/((24*60*60)/runtime)+1;
 	asyslog(LOG_NOTICE,"ts: %d:%d:%d",ts_now.Hour,ts_now.Minute,ts_now.Sec);
@@ -416,3 +438,93 @@ int SaveNorData(INT8U taskid,ROAD *road_eve,INT8U *databuf,int datalen)//存储�
 		free(databuf_tmp);
 	return eveflg;
 }
+/*
+ * 存储oad数据,给定数据，接口函数自己计算数据长度，不够字节自己补0
+ * databuf前18个字节为55+地址，后面为数据
+ */
+int SaveOADData(INT8U taskid,OAD oad_m,OAD oad_r,INT8U *databuf,int datalen,TS ts_res)
+{
+	FILE *fp;
+	CSD_ARRAYTYPE csds;
+	char	fname[FILENAMELEN]={};
+	INT8U *databuf_tmp=NULL,eveflg=0;
+	int savepos=0, currpos=0, i=0, oadoffset=0, oadlen=0;
+	INT16U headlen=0,unitlen=0,unitnum=0,unitseq=0,runtime=0;//runtime执行次数
+	TASKSET_INFO tasknor_info;
+	memset(&csds,0x00,sizeof(ROAD));
+//	csds.num = 1;
+//	csds.csd[0].type = 1;//road
+	if(ReadTaskInfo(taskid,&tasknor_info)!=1)
+		return 0;
+	runtime = tasknor_info.runtime;
+	memcpy(&csds,&tasknor_info.csds,sizeof(CSD_ARRAYTYPE));//
+	getTaskFileName(taskid,ts_res,fname);
+	fp = fopen(fname,"r");
+	if(fp == NULL)//文件没内容 组文件头，如果文件已存在，提取文件头信息
+	{
+		CreateSaveHead(fname,NULL,csds,&headlen,&unitlen,&unitnum,runtime,1);//写文件头信息并返回
+		asyslog(LOG_WARNING, "cjsave 存储文件头%s headlen=%d unitlen=%d unitnum=%d runtime=%d",fname,headlen,unitlen,unitnum,runtime);
+		databuf_tmp = malloc(unitlen);
+		savepos=0;
+	}
+	else
+	{
+		ReadFileHeadLen(fp,&headlen,&unitlen);
+		databuf_tmp = malloc(unitlen);
+		fseek(fp,headlen,SEEK_SET);//跳过文件头
+		while(!feof(fp))
+		{
+			if(fread(databuf_tmp,unitlen,1,fp)==0)
+			{
+				break;
+			}
+			if(memcmp(databuf_tmp,databuf,18)==0)//找到了存储结构的位置，一个存储结构可能含有unitnum个单元
+			{
+				savepos=ftell(fp)-unitlen;
+				break;
+			}
+		}
+	}
+	if(fp != NULL)
+		currpos = ftell(fp);
+	if(savepos==0)//存储位置为0.说明文件中没找到，则应添加而不是覆盖
+	{
+		if(currpos == 0)//第一个存储的
+			savepos=headlen;
+		else
+			savepos=currpos;
+		memset(databuf_tmp,0x00,unitlen);
+		for(i=0;i<runtime;i++)
+			memcpy(&databuf_tmp[unitlen*i/runtime],databuf,18);//每个小单元地址附上
+	}
+	unitseq = (ts_res.Hour*60*60+ts_res.Minute*60+ts_res.Sec)/((24*60*60)/runtime)+1;
+	asyslog(LOG_NOTICE,"ts: %d:%d:%d",ts_res.Hour,ts_res.Minute,ts_res.Sec);
+	asyslog(LOG_NOTICE,"存储序号: unitseq=%d runtime=%d  %d--%d",unitseq,runtime,(ts_res.Hour*60*60+ts_res.Minute*60+ts_res.Sec),((24*60*60)/runtime));
+	if(unitseq > runtime)
+	{
+		if(databuf_tmp != NULL)
+			free(databuf_tmp);
+		return 0;//出错了，序列号超过了总长度
+	}
+	oadoffset = GetOADPos(fp,headlen,oad_m,oad_r);
+	if(oadoffset>=unitlen/runtime)
+		return 0;//计算的有问题
+	memcpy(&databuf_tmp[unitlen*(unitseq-1)/runtime+oadoffset],&databuf[18],datalen);//赋值到应该赋值的oad位置
+	oadlen = CalcOIDataLen(oad_r.OI,oad_r.attflg);
+	if(datalen != oadlen+TSA_LEN+1)
+	{
+		if(databuf_tmp != NULL)
+			free(databuf_tmp);
+		return 0;//长度不对
+	}
+	else
+		datafile_write(fname, databuf_tmp, unitlen, savepos);
+	if(fp!=NULL)
+		fclose(fp);
+	if(databuf_tmp != NULL)
+		free(databuf_tmp);
+	return eveflg;
+}
+
+
+

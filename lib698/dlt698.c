@@ -26,6 +26,7 @@ extern INT16U setRequestNormal(INT8U *data,OAD oad,INT8U *DAR,CSINFO *csinfo,INT
 extern int setRequestNormalList(INT8U *Object,CSINFO *csinfo,INT8U *buf);
 extern int setThenGetRequestNormalList(INT8U *data,CSINFO *csinfo,INT8U *buf);
 extern int Proxy_GetRequestlist(INT8U *data,CSINFO *csinfo,INT8U *sendbuf,INT8U piid);
+extern int Proxy_TransCommandRequest(INT8U *data,CSINFO *csinfo,INT8U *sendbuf,INT8U piid);
 extern unsigned short tryfcs16(unsigned char *cp, int  len);
 extern INT32S secureConnectRequest(SignatureSecurity* securityInfo ,SecurityData* RetInfo);
 INT8S (*pSendfun)(int fd,INT8U* sndbuf,INT16U sndlen);
@@ -612,6 +613,7 @@ int doGetAttribute(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
 	}
 	return 1;
 }
+
 int doProxyRequest(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
 {
 	PIID piid={};
@@ -621,6 +623,7 @@ int doProxyRequest(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
 	piid_g.data = apdu[2];
 	data = &apdu[3];
 	fprintf(stderr,"\n代理 PIID %02x   ",piid.data);
+
 	switch(getType)
 	{
 		case ProxyGetRequestList:
@@ -628,16 +631,22 @@ int doProxyRequest(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
 			Proxy_GetRequestlist(data,csinfo,sendbuf,piid_g.data);
 			break;
 		case ProxyGetRequestRecord:
+
 			break;
 		case ProxySetRequestList:
+
 			break;
 		case ProxySetThenGetRequestList:
+
 			break;
 		case ProxyActionRequestList:
+
 			break;
 		case ProxyActionThenGetRequestList:
+
 			break;
 		case ProxyTransCommandRequest:
+			Proxy_TransCommandRequest(data,csinfo,sendbuf,piid_g.data);
 			break;
 	}
 	return 1;

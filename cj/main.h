@@ -22,6 +22,8 @@ extern void EsamTest(int argc, char* argv[]);
 extern void acs_process(int argc, char *argv[]);
 
 extern void event_process(int argc, char *argv[]);
+
+extern void vari_process(int argc, char *argv[]);
 /*
  * 采集监控类文件的读取*/
 extern void coll_process(int argc, char *argv[]);
