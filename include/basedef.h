@@ -6,4 +6,9 @@
 
 
 
+/*-------------------集中器类型宏：以下互斥打开——-------*/
+#define CCTT_I        //I型集中器代码开关
+//#define CCTT_II     //II型集中器代码开关
+//#define SPTF_III   //III型专变代码开关
+
 #endif//BASEDEF_H_

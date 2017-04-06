@@ -22,6 +22,7 @@
 #include "calc.h"
 #include "ParaDef.h"
 #include "EventObject.h"
+#include "dlt698def.h"
 
 ProgramInfo* JProgramInfo=NULL;
 int ProIndex=0;
@@ -32,11 +33,13 @@ MeterPower MeterPowerInfo[POWEROFFON_NUM]; //当poweroffon_state为1时，抄读
  *程序入口函数-----------------------------------------------------------------------------------------------------------
  *程序退出前处理，杀死其他所有进程 清楚共享内存
  **********************************************************/
-void QuitProcess(ProjectInfo *proinfo)
+void QuitProcess()
 {
 	close_named_sem(SEMNAME_SPI0_0);
-	proinfo->ProjectID=0;
-    fprintf(stderr,"\n退出：%s %d",proinfo->ProjectName,proinfo->ProjectID);
+	read485QuitProcess();
+	//proinfo->ProjectID=0;
+    //fprintf(stderr,"\n退出：%s %d",proinfo->ProjectName,proinfo->ProjectID);
+	fprintf(stderr,"\n cjdeal 退出");
 	exit(0);
 }
 /*******************************************************
@@ -56,6 +59,7 @@ int InitPro(ProgramInfo** prginfo, int argc, char *argv[])
 		ProIndex = atoi(argv[1]);
 		fprintf(stderr,"\n%s start",(*prginfo)->Projects[ProIndex].ProjectName);
 		(*prginfo)->Projects[ProIndex].ProjectID=getpid();//保存当前进程的进程号
+		fprintf(stderr,"ProjectID[%d]=%d\n",ProIndex,(*prginfo)->Projects[ProIndex].ProjectID);
 		return 1;
 	}
 	return 0;
@@ -498,7 +502,60 @@ void timeProcess()
 		}
 	}
 }
+void dealMsgProcess()
+{
+#if 0
+	INT8S result = 0;
 
+	INT8U  rev_485_buf[2048];
+	INT32S ret;
+
+	mmq_head mq_h;
+	ret = mmq_get(mqd_485_main, 1, &mq_h, rev_485_buf);
+	//fprintf(stderr,"mqd_485_main=%d, ret=%d\n",mqd_485_main,ret);
+	if (ret>0)
+	{
+		switch(mq_h.cmd)
+		{
+			case ProxyGetResponseList://代理
+			{
+
+				if(mq_h.pid == cjdeal)
+				{
+					fprintf(stderr, "\n收到代理召测\n");
+					PROXY_GETLIST * getlist;
+					getlist = (PROXY_GETLIST*)rev_485_buf;
+					dealProxy(getlist,port485);
+				}
+				if(mq_h.pid == cjgui)
+				{
+					fprintf(stderr, "\n收到液晶点抄\n");
+					Proxy_Msg* pMsg = NULL;
+					pMsg = (Proxy_Msg*)rev_485_buf;
+					dealGuiRead(pMsg,port485);
+				}
+
+				readState = 0;
+			}
+			break;
+			default:
+			{
+				DbgPrintToFile1(port485,"485收到未知消息  cmd=%d!!!---------------", mq_h.cmd);
+			}
+
+		}
+		DbgPrintToFile1(port485,"485处理消息结束   cmd=%d!!!---------------", mq_h.cmd);
+		continue;
+	}
+	else
+	{
+		break;
+	}
+	usleep(1000*1000);
+}
+return result;
+#endif
+}
 void dispatch_thread()
 {
 	//运行调度任务进程
@@ -507,7 +564,10 @@ void dispatch_thread()
 	while(1)
 	{
 		timeProcess();
-
+		if(mqd_485_main >= 0)
+		{
+			dealMsgProcess();
+		}
 		para_ChangeType = getParaChangeType();
 
 		if(para_ChangeType&para_6000_chg)
@@ -571,6 +631,9 @@ void dispatchTask_proccess()
 
 	para_change485[0] = 0;
 	para_change485[1] = 0;
+
+	struct mq_attr attr_485_main;
+	mqd_485_main = mmq_open((INT8S *)PROXY_485_MQ_NAME,&attr_485_main,O_RDONLY);
 
 	pthread_attr_init(&dispatchTask_attr_t);
 	pthread_attr_setstacksize(&dispatchTask_attr_t, 2048 * 1024);

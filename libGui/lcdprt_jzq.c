@@ -1503,6 +1503,7 @@ int port2index(int port){
 		index = 2;
 	return index;
 }
+
 static void setmp_cbtext_port(char cb_text[][TEXTLEN_Y]){
 	memset(cb_text, 0, TEXTLEN_X*TEXTLEN_Y);
 	memcpy(cb_text[0], "RS485", strlen("RS485"));
@@ -1835,7 +1836,7 @@ void setmeterpara(int pindex)
 						}
 
 						//配置序号、表地址、端口、规约、通信速率、费率个数、接线方式、采集器地址
-						meter.basicinfo.port.OI = cb_port.cur_index;
+						meter.basicinfo.port.OI = index2port(cb_port.cur_index);
 						meter.basicinfo.port.attflg = 2;
 						meter.basicinfo.port.attrindex = 1;
 
@@ -2129,7 +2130,7 @@ void addmeter()
 						meter.basicinfo.addr.addr[1] = meter.basicinfo.addr.addr[1] - 1;
 					}
 
-					meter.basicinfo.port.OI = cb_port.cur_index;
+					meter.basicinfo.port.OI = index2port(cb_port.cur_index);
 					meter.basicinfo.port.attflg = 2;
 					meter.basicinfo.port.attrindex = 1;
 
@@ -5054,7 +5055,7 @@ void menu_ac_info(){
     //==0:	RN8029芯片，III型集中器
     //==1： ATT7022E芯片
     //==0x7022E0:	ATT7022E-D芯片
-    acChipType = p_JProgramInfo->ac_chip_type;
+    acChipType = p_JProgramInfo->dev_info.ac_chip_type;
     if(0 == acChipType)
     	sprintf(substr,"RN8029");
     else if(1 == acChipType)
@@ -5070,7 +5071,7 @@ void menu_ac_info(){
     memset(str,0, 50);
     bzero(substr,30);
     //接线方式，0x1200：三相三，0x0600：三相四
-    acWireType = p_JProgramInfo->WireType;
+    acWireType = p_JProgramInfo->dev_info.WireType;
     if(0x1200 == acWireType)
        	sprintf(substr,"三相三线");
     else if(0x0600 == acWireType)
@@ -5988,6 +5989,7 @@ void show_monthdata_JS(int cldno){//江苏专用
 	}
 	gui_mp_free(gui_mpmax);//跳入轮显后释放？？？
 }
+
 void setmeterpara_js(int pindex)
 {
 	int daleihao=0,xiaoleihao=0,tmp=0, f10_flg=1,cld_isvalid=0;

@@ -413,7 +413,7 @@ int getDouble(INT8U *source,INT8U *dest)	//5  and 6
 	dest[1] = source[3];
 	dest[2] = source[2];
 	dest[3] = source[1];
-	return 4;
+	return 5;
 }
 
 /*

@@ -706,7 +706,7 @@ INT16S doSecurityRequest(INT8U* apdu)//
 	if(apdu[1] !=0x00 && apdu[1] != 0x01) return -2 ;   //明文应用数据单元
 	 INT16S retLen=0;
 	 INT32S fd=-1;
-	 fd = Esam_Init(fd,ESAM_SPI_DEV_II);
+	 fd = Esam_Init(fd,memp->DevicePara[0]);
 	 if(fd<0) return -3;
 	 //fprintf(stderr,"in doSecurityRequest\n");
 	 if(apdu[1]==0x00)//明文应用数据处理
@@ -730,7 +730,8 @@ INT16S composeSecurityResponse(INT8U* SendApdu,INT16U Length)
 {
 	 INT32S fd=-1;
 	 INT32S ret=0;
-	 fd = Esam_Init(fd,(INT8U*)ESAM_SPI_DEV_II);
+	 fprintf(stderr,"composeSecurityResponse securetype = %d\n",securetype);
+	 fd = Esam_Init(fd,memp->DevicePara[0]);
 	 do
 	 {
 		 if(fd>0 && Length>0)
@@ -771,7 +772,7 @@ INT16U composeAutoReport(INT8U* SendApdu,INT16U length)
 	 INT32S fd=-1;
 	 INT8U RN[12];
 	 INT8U MAC[4];
-	 fd = Esam_Init(fd,ESAM_SPI_DEV_II);
+	 fd = Esam_Init(fd,memp->DevicePara[0]);
 	 if(fd<0) return 0;
 	 retLen = Esam_ReportEncrypt(fd,&SendApdu[1],length-1,RN,MAC);
 	 if(retLen<=0)
@@ -795,18 +796,22 @@ INT16U composeAutoReport(INT8U* SendApdu,INT16U length)
  **********************************************************************/
 INT16S parseSecurityResponse(INT8U* RN,INT8U* apdu)//apdu负责传入和传出数据，一人全包
 {
-	if(apdu[1]==0x00 || apdu[1]==0x01)//暂时将密文一起加入处理
+	if(apdu[1]==0x00 )//明文处理
 	{
 	     INT32S retLen = secureResponseData(RN,apdu);
 	     return retLen;
 	}
-	else if(apdu[1]==0x02)
+	else if(apdu[1]==0x01)//密文
+	{
+		return -1;
+	}
+	else if( apdu[1]==0x02)//异常
 	{
 		printf("parseSecurityResponse receive err flag DAR ,NO=%d",apdu[2]);
 		return apdu[2];
 	}
 	else
-		return -1;//无效应用数据单元标示
+		return -2;//无效应用数据单元标示
 }
 
 

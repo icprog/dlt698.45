@@ -9,6 +9,7 @@
 #define ACS_H_
 
 #include "StdDataType.h"
+#include <stdint.h>
 
 #define dbg_prt(fmt,...) do	\
 {	\
@@ -78,4 +79,5 @@ typedef struct {
 
 extern void InitACSPara();
 extern void acs_process();
+extern void dumpstat(const char *name, int fd,uint32_t speed);
 #endif /* ACS_H_ */

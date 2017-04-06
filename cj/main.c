@@ -35,7 +35,10 @@ static char* usage_set = "\n--------------------参数设置及基本维护命�
 						 "		 【停程序】cj dog 或者 cj stop		\n"
 		                 "[读取心跳] cj heart \n"
 		                 "[设置心跳] cj heart 60 s"
-						 "[ESAM 测试] cj esam"
+						 "[ESAM 测试，测试写到/nand/esam.log] 测试模式1[16M通信1次]：cj esam"
+						 "            测试模式2[speed M通信1次，speed范围可从1到25]：cj esam speed"
+						 "            测试模式3[speed M通信n次，speed范围可从1到25]：cj esam speed n"
+						 "            测试模式4[speed1 M到 speed2 通信n次，speed范围从1到25]：cj esam speed1 speed2 n"
                          "-------------------------------------------------------\n\n";
 
 static char* usage_para = "\n--------------------参变量类对象----------------------------\n"
@@ -261,6 +264,17 @@ int main(int argc, char* argv[])
     	analyTaskData(argc,argv);
     	return EXIT_SUCCESS;
     }
+
+    if (strcmp("cs", argv[1]) == 0) {
+    	getFrmCS(argc,argv);
+    	return EXIT_SUCCESS;
+    }
+
+    if (strcmp("fcs", argv[1]) == 0) {
+    	getFrmFCS(argc,argv);
+    	return EXIT_SUCCESS;
+    }
+
     prthelp();
     return EXIT_SUCCESS;
 }
