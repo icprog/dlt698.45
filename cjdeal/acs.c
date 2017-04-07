@@ -32,6 +32,7 @@
 #include "spi.h"
 #include "acs.h"
 #include "ware.h"
+#include "event.h"
 
 extern sem_t * 		sem_check_fd;	//校表信号量
 extern ProgramInfo* JProgramInfo;
@@ -1459,6 +1460,7 @@ void *thread_deal_acs()
 		//fprintf(stderr,"==========================acs:JProgramInfo->ACSRealData.Available=%d========================== \n",JProgramInfo->ACSRealData.Available);
 		memcpy(&JProgramInfo->ACSRealData,&realdata,sizeof(_RealData));
 		memcpy(&JProgramInfo->ACSEnergy,&energysum,sizeof(ACEnergy_Sum));
+		JProgramInfo->ACSRealData.Available = 1;
 		Event_300F(JProgramInfo);
 		Event_3010(JProgramInfo);
 		usleep(300000);				//300ms
