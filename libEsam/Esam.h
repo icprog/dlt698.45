@@ -28,32 +28,31 @@
 #define ERR_ESAM_TRANSPARA_ERR -8  //传入参数错误
 //----SW1SW2错误字错误
 #define ERRNUM_SW1SW2_ESAM 21
-#define ERR_ESAM_CERTIorSWIT_Fail -8     //认证失败/切换失败
-#define ERR_ESAM_INTEREXE_ERR -9         //内部执行出错
-#define ERR_ESAM_E2_DAMAGE -10           // EEPROM损坏，导致卡锁定
-#define ERR_ESAM_LCorLE_ERR -11          // Lc或Le长度错
-#define ERR_ESAM_OFFLINECOUNT_ISZERO -12 //离线计数器为0/时间比较错误/命令不接受，无效状态
-#define ERR_ESAM_NOSAFTSTA -13           //不满足安全状态
 
-#define ERR_ESAM_KUTS_ISZERO -14        // Kut使用次数为0
-#define ERR_ESAM_REFDATA_INVA -15       //引用数据无效（未申请随机数）
-#define ERR_ESAM_USECOND_DISATIS -16    //使用条件不满足/计算时不存在临时密钥
-#define ERR_ESAM_INLINECOUNT_ISZERO -17 //在线计数器为0
-#define ERR_ESAM_MAC_ERR -18            //计算错误/MAC 错误/主站证书解
-#define ERR_ESAM_CERTI_ANALYSIS -19     //证书解析错误
-#define ERR_ESAM_DATA_ERR -20           //数据域参数不正确
-#define ERR_ESAM_P1P2_ERR -21           //参数P1、P2不正确
-#define ERR_ESAM_REFDATA_NOFIND -22     //未找到引用数据
-#define ERR_ESAM_TRANDATA_CHACKERR -23  //传输数据校验错
-#define ERR_ESAM_COMMAND_NONEXIS -24    //命令不存在
-#define ERR_ESAM_CAL_ERR -25            //命令类型错，  CLA错
-#define ERR_ESAM_DATA_INVA -26          //数据无效
-#define ERR_ESAM_CHECK_ERR -27          //验签错误
-#define ERR_ESAM_FILE_ERR -28           //文件错误
-#define ERR_ESAM_ALGOCOMP_REE -29       //算法计算错误
-#define ERR_ESAM_CERTI_ERR -30          //认证错误
-#define ERR_ESAM_SETUPSES_ERR -31       //建立会话错误
-#define ERR_ESAM_CA_ERR -32             // CA证书错误
+#define ERR_ESAM_INCNOSUPP -9     //INS 不支持
+#define ERR_ESAM_CLANOSUPP -10         //CLA 不支持
+#define ERR_ESAM_P2P2_ERR -11           //  P1P2 不正确
+#define ERR_ESAM_LC_LENGTH_ERR -12          // LC 长度错误
+#define ERR_ESAM_MEM_ERR -13 //存储器故障
+
+#define ERR_ESAM_COUNTER_ERR -14           //计数器不正确
+#define ERR_ESAM_RANDOM_ERR -15        //  随机数无效
+#define ERR_ESAM_OUT_AUTH_ERR -16       //外部认证错误
+#define ERR_ESAM_DATA_SERIAL_ERR -17    //数据包序号错
+#define ERR_ESAM_TIMER_OUT -18 // TIMER 超时
+
+#define ERR_ESAM_ORDER_STRUCT_ERR -19            // 命令与文件结构不兼容
+#define ERR_ESAM_COMMIT_UNBULID -20     //会话未建立
+#define ERR_ESAM_USECONDITION_ERR -21           //使用条件不满足
+#define ERR_ESAM_COUNTERR -22           //计算错误
+#define ERR_ESAM_MAC_ERR -23     //MAC 校验错
+
+#define ERR_ESAM_DATAAREA_ERR -24  //不正确的数据域
+#define ERR_ESAM_FUNCTION_ERR -25    //功能不支持
+#define ERR_ESAM_FILE_NOFIND -26            //文件未找到
+#define ERR_ESAM_LACK_MEM -27          //无足够的文件存储空间
+#define ERR_ESAM_NOFIND_KEY -28          //密钥未找到
+#define ERR_ESAM_LRC_CHECK_ERR -29           //LRC 校验错误
 
 #define ERR_ESAM_UNKNOWN -100 // ESAM未知错误
 
@@ -71,6 +70,7 @@
 #define ERR_ESAM_CertiType -111           //证书类型或切换状态类型不存在，只有00、01两种
 #define ERR_ESAM_AFN -112                 // MAC校验和组广播中，AFN类型错误或不存在
 #define MeterNum_Type_P2 -113             //身份认证时，电表表号类型错误
+#define ERR_ESAM_INTEREXE_ERR -114  //ESAM驱动函数内部错误
 
 /*esam发送数据帧结构：55 CLA INS P1 P2 Len1 Len2 DATA LRC1
  *55为发送命令结构的命令头；
@@ -101,16 +101,19 @@
 		6A  86  P1P2 不正确
 		67  00  LC 长度错误
 		65  81  存储器故障
+
 		69  01  计数器不正确
 		69  03  随机数无效
 		69  04  外部认证错误
 		69  05  数据包序号错
 		69  07  TIMER 超时
+
 		69  81  命令与文件结构不兼容
 		69  82  会话未建立
 		69  85  使用条件不满足
 		69  88  计算错误
 		69  89  MAC 校验错
+
 		6A  80  不正确的数据域
 		6A  81  功能不支持
 		6A  82  文件未找到
@@ -149,9 +152,9 @@ typedef struct
 typedef struct
 {
 	INT8U DataType;//明文+MAC  0X01  密文  0x02  密文+MAC 0x03
-	INT8U MeterNO[20];
-	INT8U RN[20];
-	INT8U MAC[10];
+	INT8U MeterNO[20];//第一字节表长度
+	INT8U RN[20];//第一字节表长度
+	INT8U MAC[10];//第一字节表长度
 }Esam_MAC_RN_NO;//抄读电表时，上报报文解析，用于参数传递
 
 INT32S Esam_Init(INT32S fd,INT8U devtype);
@@ -159,7 +162,7 @@ void Esam_Clear(INT32S fd) ;
 INT32S Esam_WriteThenRead(INT32S fd, INT8U* Tbuf, INT16U Tlen, INT8U* Rbuf);
 void Esam_WriteToChip(INT32S fd, INT8U* Tbuf, INT16U Tlen);
 void Esam_ReadFromChip(INT32S fd, INT8U* Rbuf, INT8U Rlen);
-INT16S Esam_ErrMessageCheck(INT8U *RBuf);
+INT32S Esam_ErrMessageCheck(INT8U *RBuf);
 INT32U CharToINT32U(INT8U *Buf);
 INT32S Esam_GetTermiInfo(INT32S fd, EsamInfo* esamInfo);
 INT32S Esam_GetTermiSingleInfo(INT32S fd, INT8U type, INT8U* Rbuf);

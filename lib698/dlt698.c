@@ -806,18 +806,22 @@ INT16U composeAutoReport(INT8U* SendApdu,INT16U length)
  **********************************************************************/
 INT16S parseSecurityResponse(INT8U* RN,INT8U* apdu)//apdu负责传入和传出数据，一人全包
 {
-	if(apdu[1]==0x00 || apdu[1]==0x01)//暂时将密文一起加入处理
+	if(apdu[1]==0x00 )//明文处理
 	{
 	     INT32S retLen = secureResponseData(RN,apdu);
 	     return retLen;
 	}
-	else if(apdu[1]==0x02)
+	else if(apdu[1]==0x01)//密文
+	{
+		return -1;
+	}
+	else if( apdu[1]==0x02)//异常
 	{
 		printf("parseSecurityResponse receive err flag DAR ,NO=%d",apdu[2]);
 		return apdu[2];
 	}
 	else
-		return -1;//无效应用数据单元标示
+		return -2;//无效应用数据单元标示
 }
 
 
