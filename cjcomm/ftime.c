@@ -107,7 +107,7 @@ void First_VerifiTime(LINK_Response linkResponse, ProgramInfo* JProgramInfo){
 		fprintf(stderr,"gprs上线，进行简单对时.....\n");
 		readCoverClass(0x4000,0,&class_4000,sizeof(CLASS_4000),para_vari_save);
 		fprintf(stderr,"判断是否要进行简单对时，avg=%d delay=%d \n",avg,class_4000.delay);
-		if(abs(avg)>=class_4000.delay){
+		if(abs(avg)>=class_4000.delay && class_4000.delay>0){
 			Event_VerifiTime(JProgramInfo,avg);
 		}
 	}

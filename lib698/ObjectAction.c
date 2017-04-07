@@ -934,14 +934,32 @@ err:
 
 void DayFreeze(INT16U attr_act,INT8U *data,Action_result *act_ret)
 {
+	int		index = 0;
+	INT8U	SeqOfNum = 0,i=0;
+	DayObject	DayObj={};
+	OAD		oad={};
 	switch(attr_act) {
 	case 5:		//删除一个冻结对象属性
-
+		index += getOAD(1,&data[index],&oad);
+		fprintf(stderr,"删除 oad=%04x-%02x-%02x\n",oad.OI,oad.attflg,oad.attrindex);
 		break;
 	case 7:		//批量添加冻结对象属性
+		index += getArray(&data[index],&SeqOfNum);
+		for(i=0;i<SeqOfNum;i++) {
+			index += getStructure(&data[index],NULL);
+			index += getLongUnsigned(&data[index],(INT8U *)&DayObj.FreezeObj[DayObj.RelateNum].freezePriod);
+			index += getOAD(1,&data[index],&DayObj.FreezeObj[DayObj.RelateNum].oad);
+			index += getLongUnsigned(&data[index],(INT8U *)&DayObj.FreezeObj[DayObj.RelateNum].saveDepth);
 
+			fprintf(stderr,"添加%d：freezeProid=%d,oad=%04x-%02x-%02x,saveDepth=%d\n",i,DayObj.FreezeObj[DayObj.RelateNum].freezePriod,
+					DayObj.FreezeObj[DayObj.RelateNum].oad.OI,DayObj.FreezeObj[DayObj.RelateNum].oad.attflg,DayObj.FreezeObj[DayObj.RelateNum].oad.attrindex,
+					DayObj.FreezeObj[DayObj.RelateNum].saveDepth);
+			DayObj.RelateNum++;
+		}
 		break;
 	}
+	act_ret->datalen = index;
+	act_ret->DAR = success;
 }
 
 void MeterInfo(INT16U attr_act,INT8U *data,Action_result *act_ret)

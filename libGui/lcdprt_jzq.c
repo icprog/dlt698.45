@@ -3244,7 +3244,7 @@ void menu_netmaster()
 
 	pos.y += FONTSIZE*5 + ROW_INTERVAL;
 	memset(str, 0, INPUTKEYNUM);
-	readCoverClass(0x4500, 0, (void*)&Class26, sizeof(CLASS26), para_vari_save);
+	readCoverClass(0x4510, 0, (void*)&Class26, sizeof(CLASS26), para_vari_save);
 	sprintf(ip_chg,"%d.%d.%d.%d",Class26.master.master[0].ip[1],Class26.master.master[0].ip[2],
 	                             Class26.master.master[0].ip[3],Class26.master.master[0].ip[4]);
 	paraip_gettext(ip_chg, str);
@@ -3333,7 +3333,7 @@ void menu_netmaster()
 						eidt_gettext(&edit_salveport, str);
 						Class26.master.master[1].port = atoi(str);
 //TODO:将以太网主站通讯参数写入文件，并且给cjcomm发送消息
-						saveCoverClass(0x4500, 0, (void*)&Class26, sizeof(CLASS26), para_vari_save);
+						saveCoverClass(0x4510, 0, (void*)&Class26, sizeof(CLASS26), para_vari_save);
 					}
 					g_curcldno = 1;
 				}
