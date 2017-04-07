@@ -1459,6 +1459,8 @@ void *thread_deal_acs()
 		//fprintf(stderr,"==========================acs:JProgramInfo->ACSRealData.Available=%d========================== \n",JProgramInfo->ACSRealData.Available);
 		memcpy(&JProgramInfo->ACSRealData,&realdata,sizeof(_RealData));
 		memcpy(&JProgramInfo->ACSEnergy,&energysum,sizeof(ACEnergy_Sum));
+		Event_300F(JProgramInfo);
+		Event_3010(JProgramInfo);
 		usleep(300000);				//300ms
 	}
 }

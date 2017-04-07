@@ -587,6 +587,8 @@ void dispatch_thread()
 			para_change485[0] = 1;
 			para_change485[1] = 1;
 			init6013ListFrom6012File();
+
+			system("rm -rf /nand/para/6035");
 		}
 		if(para_ChangeType&para_4204_chg)
 		{
