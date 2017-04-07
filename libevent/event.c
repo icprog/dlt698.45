@@ -344,9 +344,14 @@ INT8U Getevent_Record(INT8U event_no,OI_698 *oi_array,INT8U oi_index,INT8U *real
 					}
 					if(len>0)
 						memcpy(&record_para->data[*real_index],&Getbuf[T_index],len);
-					 *real_index +=len;
+					 (*real_index) +=len;
+					 T_index +=len;
 				}
 				break;
+				case 0x3309://停上电属性标志
+					memcpy(&record_para->data[*real_index],&Getbuf[T_index+20],3);
+					(*real_index) +=3;
+					break;
 				case 0x2025://事件当前值
 					memcpy(&record_para->data[*real_index],&Getbuf[0],Getlen);
 					(*real_index) +=Getlen;
@@ -357,6 +362,7 @@ INT8U Getevent_Record(INT8U event_no,OI_698 *oi_array,INT8U oi_index,INT8U *real
 			free(Getbuf);
 		 record_para->datalen =*real_index;//最终长度
 	}else{
+		record_para->data[(*real_index)++]=0;
 		record_para->dar = 0; //无数据
 		return 0;
 	}
@@ -374,23 +380,27 @@ INT8U Getevent_Record_Selector(RESULT_RECORD *record_para,ProgramInfo* prginfo_e
 	 INT8U oi_index=0; //召测得数据OI数量
 	 INT8U real_index=0;//最终长度
 	 INT8U i=0;
-	 for(i=0;i<record_para->rcsd.csds.num;i++){
-		//OAD
-		if(record_para->rcsd.csds.csd[i].type == 0){
-			if(record_para->rcsd.csds.csd[i].csd.oad.attflg == 2)
-				oi_array[oi_index++]=record_para->rcsd.csds.csd[i].csd.oad.OI;
-		}
-		//ROAD
-		else if(record_para->rcsd.csds.csd[i].type == 1){
-			if(record_para->rcsd.csds.csd[i].csd.road.oad.attflg == 2)
-				oi_array[oi_index++]=record_para->rcsd.csds.csd[i].csd.road.oad.OI;
-
-			INT8U j=0;
-			for(j=0;j<record_para->rcsd.csds.csd[i].csd.road.num;j++){
-				if(record_para->rcsd.csds.csd[i].csd.road.oads[j].attflg == 2)
-					oi_array[oi_index++]=record_para->rcsd.csds.csd[i].csd.road.oads[j].OI;
+	 if(record_para->selectType == 9 || record_para->selectType == 10){
+		 for(i=0;i<record_para->rcsd.csds.num;i++){
+			//OAD
+			if(record_para->rcsd.csds.csd[i].type == 0){
+				if(record_para->rcsd.csds.csd[i].csd.oad.attflg == 2)
+					oi_array[oi_index++]=record_para->rcsd.csds.csd[i].csd.oad.OI;
 			}
-		}
+			//ROAD
+			else if(record_para->rcsd.csds.csd[i].type == 1){
+				if(record_para->rcsd.csds.csd[i].csd.road.oad.attflg == 2)
+					oi_array[oi_index++]=record_para->rcsd.csds.csd[i].csd.road.oad.OI;
+
+				INT8U j=0;
+				for(j=0;j<record_para->rcsd.csds.csd[i].csd.road.num;j++){
+					if(record_para->rcsd.csds.csd[i].csd.road.oads[j].attflg == 2)
+						oi_array[oi_index++]=record_para->rcsd.csds.csd[i].csd.road.oads[j].OI;
+				}
+			}
+		 }
+	 }else if(record_para->selectType == 2){
+		 oi_array[oi_index++]=record_para->select.selec2.oad.OI;
 	 }
 	 int j=0;
 	 for(j=0;j<oi_index;j++)
@@ -398,6 +408,7 @@ INT8U Getevent_Record_Selector(RESULT_RECORD *record_para,ProgramInfo* prginfo_e
 	 if(oi_index > 0){
 		 INT8U first=0;
 		 switch(record_para->selectType){
+		     case 2:
 			 case 9:
 			 {
 				event_no=record_para->select.selec9.recordn;
@@ -441,8 +452,8 @@ INT8U Need_Report(OI_698 oi,INT8U eventno,ProgramInfo* prginfo_event){
 			lastchgoi4300=prginfo_event->oi_changed.oi4300;
 		}
 	}
-	//fprintf(stderr,"libevent:active_report=%d talk_master=%d \n",class19.active_report,class19.talk_master);
-	if(class19.active_report == 1 && class19.talk_master == 1){
+	fprintf(stderr,"libevent:active_report=%d talk_master=%d \n",class19.active_report,class19.talk_master);
+	if(class19.active_report == 1){
 		mqs_send((INT8S *)PROXY_NET_MQ_NAME,1,TERMINALEVENT_REPORT,(INT8U *)&oi,sizeof(OI_698));
 	}
 	return 1;
@@ -544,7 +555,7 @@ INT8U Get_StandardUnit(OI_698 oi,INT8U *Rbuf,INT8U *Index,
 			Rbuf[(*Index)++] = ntime.min.data;//13
 			Rbuf[(*Index)++] = ntime.sec.data;//14
 		}else{
-			DateTimeBCD tdntime; //上电 开始时间是停电时间
+			DateTimeBCD tdntime; //上电 开始时间是停电时case 9:间
 			tdntime.year.data=TermialPowerInfo.PoweroffTime.tm_year+1900;
 			tdntime.month.data=TermialPowerInfo.PoweroffTime.tm_mon+1;
 			tdntime.day.data=TermialPowerInfo.PoweroffTime.tm_mday;
@@ -1124,33 +1135,34 @@ INT8U Event_3106(ProgramInfo* prginfo_event,MeterPower *MeterPowerInfo,INT8U *st
 	INT16U recover_voltage_limit=prginfo_event->event_obj.Event3106_obj.poweroff_para_obj.screen_para_obj.recover_voltage_limit;
 	INT16U mintime_space=prginfo_event->event_obj.Event3106_obj.poweroff_para_obj.screen_para_obj.mintime_space;
 	INT16U maxtime_space=prginfo_event->event_obj.Event3106_obj.poweroff_para_obj.screen_para_obj.maxtime_space;
+	//fprintf(stderr,"\n[3106]TermialPowerInfo.ERC3106State=%d \n",TermialPowerInfo.ERC3106State);
 	//判断下电
 	if(TermialPowerInfo.ERC3106State == POWER_START){
-		if(prginfo_event->ACSRealData.Ua == 0)
-				off_time ++;
-			else
-				off_time = 0;
 		if(*state == 2)
 			MeterDiff(prginfo_event,MeterPowerInfo);
 		//二型集中器没有电池只有电容，所以不能够读出底板是否有电，且二型集中器只有一相电压，停上电事件在硬件复位时不能产生，
 		//所以判断时，需要判断当前电压大于一个定值且小时参数时，产生事件(大于的定时暂定为10v交采已经将实时电压值乘以１０).
+		//fprintf(stderr,"\n[3106]ua=%d ub=%d uc=%d poweroff_happen_vlim=%d available=%d gpio_5V=%d \n",prginfo_event->ACSRealData.Ua
+		//		,prginfo_event->ACSRealData.Ub,prginfo_event->ACSRealData.Uc,poweroff_happen_vlim,prginfo_event->ACSRealData.Available,gpio_5V);
 #ifdef CCTT_II
 		if((prginfo_event->ACSRealData.Available==TRUE)
-				&&((prginfo_event->ACSRealData.Ua>100 && prginfo_event->ACSRealData.Ua<poweroff_happen_vlim)
-				||(prginfo_event->ACSRealData.Ua == 0 && off_time>5)))
+				&&(prginfo_event->ACSRealData.Ua>100 && prginfo_event->ACSRealData.Ua<poweroff_happen_vlim))
 #else
 	    //一型集中器
 		if((((prginfo_event->ACSRealData.Ua<poweroff_happen_vlim)&&(prginfo_event->ACSRealData.Ub<poweroff_happen_vlim)
 						&&(prginfo_event->ACSRealData.Uc<poweroff_happen_vlim))&&((prginfo_event->ACSRealData.Ua|prginfo_event->ACSRealData.Ub|prginfo_event->ACSRealData.Uc)>0)&&gpio_5V)
 						||((prginfo_event->ACSRealData.Available == TRUE&&prginfo_event->ACSRealData.Ua==0&&prginfo_event->ACSRealData.Ua<poweroff_happen_vlim)
-								&&(prginfo_event->ACSRealData.Available == TRUE&&prginfo_event->ACSRealData.Ua==0&&prginfo_event->ACSRealData.Ub<poweroff_happen_vlim)
+								&&(prginfo_event->ACSRealData.Available == TRUE&&prginfo_event->ACSRealData.Ub==0&&prginfo_event->ACSRealData.Ub<poweroff_happen_vlim)
 								&&(prginfo_event->ACSRealData.Available == TRUE&&prginfo_event->ACSRealData.Uc==0&&prginfo_event->ACSRealData.Uc<poweroff_happen_vlim)&&(!gpio_5V)))
 #endif
 		{
-			off_time = 0;
+			off_time++;
+			if(off_time <5)
+				return 0;
+			off_time=0;
 			//电压低于限值，且底板有电，产生下电事件
 			TermialPowerInfo.ERC3106State = POWER_OFF;
-			flag = 0x01;
+			flag = 0b10000000;
 			localtime_r((const time_t*)&time_of_now, &TermialPowerInfo.PoweroffTime);
 			ERC3106log(0,prginfo_event->ACSRealData.Ua,TermialPowerInfo.PoweroffTime);//调试加入log
 
@@ -1158,12 +1170,17 @@ INT8U Event_3106(ProgramInfo* prginfo_event,MeterPower *MeterPowerInfo,INT8U *st
 			SendERC3106(flag,0,prginfo_event);
 		}
 	}else if(TermialPowerInfo.ERC3106State == POWER_OFF){
+		//fprintf(stderr,"\n[3106] ua=%d ub=%d uc=%d recover_voltage_limit=%d Available=%d \n",prginfo_event->ACSRealData.Ua
+	//			,prginfo_event->ACSRealData.Ub,prginfo_event->ACSRealData.Uc,recover_voltage_limit,prginfo_event->ACSRealData.Available);
 		//II型
+#ifdef CCTT_II
 		if((prginfo_event->ACSRealData.Available && prginfo_event->ACSRealData.Ua>recover_voltage_limit))
+#else
         //I型
-		//if((Realdata.U[0].Available&&Realdata.U[0].value>recover_voltage_limit)
-        //			||(Realdata.U[1].Available&&Realdata.U[1].value>recover_voltage_limit)
-        //				||(Realdata.U[2].Available&&Realdata.U[2].value>recover_voltage_limit))
+		if((prginfo_event->ACSRealData.Available&&prginfo_event->ACSRealData.Ua>recover_voltage_limit)
+        			||(prginfo_event->ACSRealData.Available&&prginfo_event->ACSRealData.Ua>recover_voltage_limit)
+        				||(prginfo_event->ACSRealData.Available&&prginfo_event->ACSRealData.Ua>recover_voltage_limit))
+#endif
 		{
 			TermialPowerInfo.ERC3106State = POWER_ON;
 			localtime_r((const time_t*)&time_of_now, &TermialPowerInfo.PoweronTime);
@@ -1180,7 +1197,7 @@ INT8U Event_3106(ProgramInfo* prginfo_event,MeterPower *MeterPowerInfo,INT8U *st
 			fprintf(stderr,"interval=%d mintime_space=%d maxtime_space=%d \n",interval,mintime_space*60,maxtime_space*60);
 			if((interval > mintime_space*60)&&(interval < maxtime_space*60)) {
 				fprintf(stderr,"上电时间满足参数：interval=%d\n",interval);
-				flag = 0x01;
+				flag = 0b10000000;
 			}
 
 			//如果初步判断事件有效，置标志位，通知抄表停上电事件
@@ -1201,9 +1218,9 @@ INT8U Event_3106(ProgramInfo* prginfo_event,MeterPower *MeterPowerInfo,INT8U *st
 			fprintf(stderr,"\nTermialPowerInfo.Valid=%d",TermialPowerInfo.Valid);
 			//如果上电时间大于停电时间或者停上电时间间隔小于最小间隔或者大于最大间隔不产生下电事件
 			if((interval > mintime_space*60)&&(interval < maxtime_space*60))
-				flag = 0x3;
+				flag = 0b11000000;
 			else
-				flag = 0x2;
+				flag = 0b01000000;
 			//如果判断停电事件无效
 			SendERC3106(flag,1,prginfo_event);
 			TermialPowerInfo.ERC3106State = POWER_START;
@@ -1215,7 +1232,7 @@ INT8U Event_3106(ProgramInfo* prginfo_event,MeterPower *MeterPowerInfo,INT8U *st
 			fprintf(stderr,"\nTermialPowerInfo.Valid=%d",TermialPowerInfo.Valid);
 			//如果上电时间大于停电时间或者停上电时间间隔小于最小间隔或者大于最大间隔不产生下电事件
 			if((interval > mintime_space*60)&&(interval < maxtime_space*60))
-				flag = 0x1;
+				flag = 0b10000000;
 			else
 				flag = 0;
 
@@ -2602,15 +2619,15 @@ INT8U Event_300F(ProgramInfo* prginfo_event) {
 		readCoverClass(0x300F,0,&prginfo_event->event_obj.Event300F_obj,sizeof(prginfo_event->event_obj.Event300F_obj),event_para_save);
 		oi_chg.oi300F = prginfo_event->oi_changed.oi300F;
 	}
-
+    fprintf(stderr,"[300F] enableflag=%d \n",prginfo_event->event_obj.Event300F_obj.event_obj.enableflag);
     if (prginfo_event->event_obj.Event300F_obj.event_obj.enableflag == 0) {
         return 0;
     }
     //事件判定
-   // INT8U offset=prginfo_event->event_obj.Event300F_obj.offset;
-    INT8U offset=30;
+    INT8U offset=prginfo_event->event_obj.Event300F_obj.offset;
     static TS starttime,nowtime;
-    static first = 0;
+    static INT8U first=0,happenflag=0;
+    fprintf(stderr,"[300F]Sflag=%02x \n",prginfo_event->ACSRealData.SFlag);
     if(((prginfo_event->ACSRealData.SFlag>>3)&0x01)>0){
     	if(first == 0){
     		TSGet(&starttime);
@@ -2620,6 +2637,9 @@ INT8U Event_300F(ProgramInfo* prginfo_event) {
 		int tcha=abs(difftime(tmtotime_t(nowtime),tmtotime_t(starttime)));
 
 		if(tcha>offset && offset>0){
+			if(happenflag == 1)
+				return 1;
+			happenflag=1;
 			INT8U Save_buf[256];
 			bzero(Save_buf, sizeof(Save_buf));
 			prginfo_event->event_obj.Event300F_obj.event_obj.crrentnum++;
@@ -2643,8 +2663,10 @@ INT8U Event_300F(ProgramInfo* prginfo_event) {
 			if(prginfo_event->event_obj.Event300F_obj.event_obj.reportflag)
 				Need_Report(0x300F,crrentnum,prginfo_event);
 		}
-    }else
+    }else{
     	first = 0;
+    	happenflag=0;
+    }
     return 1;
 }
 
@@ -2661,10 +2683,10 @@ INT8U Event_3010(ProgramInfo* prginfo_event) {
         return 0;
     }
     //事件判定
-   // INT8U offset=prginfo_event->event_obj.Event3010_obj.offset;
-    INT8U offset=30;
+    INT8U offset=prginfo_event->event_obj.Event3010_obj.offset;
     static TS starttime,nowtime;
-    static first = 0;
+    static INT8U first=0,happenflag=0;
+    fprintf(stderr,"[3010]Sflag=%02x \n",prginfo_event->ACSRealData.SFlag);
     if(((prginfo_event->ACSRealData.SFlag>>4)&0x01)>0){
     	if(first == 0){
     		TSGet(&starttime);
@@ -2674,6 +2696,9 @@ INT8U Event_3010(ProgramInfo* prginfo_event) {
 		int tcha=abs(difftime(tmtotime_t(nowtime),tmtotime_t(starttime)));
 
 		if(tcha>offset && offset>0){
+			if(happenflag == 1)
+				return 1;
+			happenflag=1;
 			INT8U Save_buf[256];
 			bzero(Save_buf, sizeof(Save_buf));
 			prginfo_event->event_obj.Event3010_obj.event_obj.crrentnum++;
@@ -2697,8 +2722,10 @@ INT8U Event_3010(ProgramInfo* prginfo_event) {
 			if(prginfo_event->event_obj.Event3010_obj.event_obj.reportflag)
 				Need_Report(0x3010,crrentnum,prginfo_event);
 		}
-    }else
+    }else{
     	first = 0;
+    	happenflag=0;
+    }
     return 1;
 }
 
@@ -2709,6 +2736,8 @@ void  Get698_event(OAD oad,ProgramInfo* prginfo_event)
 {
     if(oad.OI == 0x4300 && (oad.attflg == 3 || oad.attflg == 5 || oad.attflg == 6)){
     	Event_3100(NULL,0,prginfo_event);
+    	prginfo_event->event_obj.Event3106_obj.event_obj.crrentnum = 0;//停上电
+    	saveCoverClass(0x3106,0,(void *)&prginfo_event->event_obj.Event3106_obj,sizeof(Event3106_Object),event_para_save);
     }else if(oad.OI == 0x4000 && oad.attflg == 2){
     	DateTimeBCD datetime;
     	DataTimeGet(&datetime);
