@@ -622,7 +622,7 @@ INT32S Esam_ReportEncrypt(INT8U* Data1, INT16U Length,INT8U* RN,INT8U* MAC) {
 	INT8U GetInfo_ESAM[BUFFLENMAX_SPI]={0x55,0x80,0x14,0x01,0x03};
 	 GetInfo_ESAM[5]=(INT8U)((Length>>8)&0x00ff);// 长度
 	 GetInfo_ESAM[6]=(INT8U)(Length&0x00ff);
-	memcpy(&GetInfo_ESAM[1],&Data1[2],Length);
+	memcpy(&GetInfo_ESAM[7],&Data1[0],Length);
 	GetInfo_ESAM[7+Length]=LRC(&GetInfo_ESAM[1],Length+6);
 
 	Result = Esam_WriteThenRead( (INT8U*)GetInfo_ESAM, Length+8, tmp);

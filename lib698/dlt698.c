@@ -769,18 +769,30 @@ INT16S composeSecurityResponse(INT8U* SendApdu,INT16U Length)
 //SendApdu第一个字节是0x00，代表明文应用数据单元，此处从第二个字节开始计算mac和rn
 INT16U composeAutoReport(INT8U* SendApdu,INT16U length)
 {
+	if(length<=0) return 0;
 	 INT16S retLen=0;
+	 INT16S index=0;
+	 INT8U Len[3];
 	 INT8U RN[12];
 	 INT8U MAC[4];
-	 retLen = Esam_ReportEncrypt(&SendApdu[1],length-1,RN,MAC);
-	 if(retLen<=0)
-		 return 0;
-	 SendApdu[length]=0x02;//数据验证信息类型RN_MAC
-	 SendApdu[length+1]=0x0C;//随机数长度
-	 memcpy(&SendApdu[length+2],RN,12);//12个随机数，固定大小
-	 SendApdu[length+2+12]=0x04;//mac长度
-	 memcpy(&SendApdu[length+2+12+1],MAC,4);//MAC,固定大小
-	 return  length + 1+12+1+4;
+	 INT8U tmpApdu[2048];
+	 memcpy(tmpApdu,SendApdu,length);
+	 retLen = Esam_ReportEncrypt(&SendApdu[0],length,RN,MAC);
+	 if(retLen<=0) return 0;
+	 retLen = GetLengthByte(length,Len);
+	 if(retLen<=0) return  0;
+	 memcpy(SendApdu,Len,retLen);
+	 index += retLen;
+	 memcpy(&SendApdu[index],tmpApdu,length);
+	 index+=length;
+ 	 SendApdu[index++]=0x02;//数据验证信息类型RN_MAC
+	 SendApdu[index++]=0x0C;//随机数长度
+	 memcpy(&SendApdu[index],RN,12);//12个随机数，固定大小
+	 index += 12;
+	 SendApdu[index++]=0x04;//mac长度
+	 memcpy(&SendApdu[index],MAC,4);//MAC,固定大小
+	 index+=4;
+	 return  index;
 }
 /**********************************************************************
  *  终端主动上报后,解析主站回复数据SECURITY-response， apdu[0]=144;apdu[1]应用数据单元

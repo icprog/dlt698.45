@@ -23,6 +23,7 @@ INT32S UnitParse(INT8U* source,INT8U* dest,INT8U type);
  INT32S compose_DataAndMac(INT8U* SendApdu,INT16U Length);
  INT32S compose_EnDataAndMac(INT8U* SendApdu,INT16U Length);
  INT32S esamMeterGetRN(INT8U *RN);
+ INT16U GetLengthByte(INT16U Length,INT8U *retData);
  //INT32S esamMeterDataParse(Esam_MAC_RN_NO* InfoData, INT8U *apdu,INT8U* Rbuf);
 
 #endif /* SECURE_H_ */
