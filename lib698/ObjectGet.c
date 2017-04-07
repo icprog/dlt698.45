@@ -854,6 +854,38 @@ void printrecord(RESULT_RECORD record)
 		break;
 	}
 }
+
+int getSel1_freeze(RESULT_RECORD *record)
+{
+	int ret=0;
+	int		index = 0;
+	int		taskid=0;
+
+	switch(record->select.selec1.data.type) {
+	case dtlongunsigned:
+		taskid = (record->select.selec1.data.data[0]<<8 | record->select.selec1.data.data[1]);
+		break;
+	case dtunsigned:
+		taskid = record->select.selec1.data.data[0];
+		break;
+	}
+	fprintf(stderr,"getSel1: OI=%04x  taskid=%d\n",record->select.selec1.oad.OI,taskid);
+	switch(record->select.selec1.oad.OI)
+	{
+		case 0x6001:
+			index += Get_6001(0,taskid,&record->data[index]);
+			break;
+		default:
+			fprintf(stderr,"\nrecord switch default!");
+	}
+	if(index==0) {	//0条记录     [1] SEQUENCE OF A-RecordRow
+		record->data[0] = 0;
+	}
+	record->datalen = index;
+	fprintf(stderr,"\nrecord->datalen = %d",record->datalen);
+	return ret;
+}
+
 ///
 int getSel1_coll(RESULT_RECORD *record)
 {
@@ -906,9 +938,16 @@ int getSelector1(RESULT_RECORD *record)
 	INT8U oihead = (record->oad.OI & 0xF000) >>12;
 
 	switch(oihead) {
+	case 5:
+		fprintf(stderr,"\n冻结类对象\n");
+		getSel1_freeze(record);
+		break;
 	case 6:			//采集监控类对象
 		fprintf(stderr,"\n读取采集监控对象\n");
 		getSel1_coll(record);
+		break;
+	default:
+		record->datalen = 0;
 		break;
 	}
 	return ret;
