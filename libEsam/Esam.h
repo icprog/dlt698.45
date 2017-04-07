@@ -157,24 +157,25 @@ typedef struct
 	INT8U MAC[10];//第一字节表长度
 }Esam_MAC_RN_NO;//抄读电表时，上报报文解析，用于参数传递
 
-INT32S Esam_Init(INT32S fd,INT8U devtype);
+INT32S Esam_Init(INT32S fd);
 void Esam_Clear(INT32S fd) ;
-INT32S Esam_WriteThenRead(INT32S fd, INT8U* Tbuf, INT16U Tlen, INT8U* Rbuf);
+INT32S Esam_WriteThenRead( INT8U* Tbuf, INT16U Tlen, INT8U* Rbuf);
+INT32S _esam_WriteThenRead(INT32S fd, INT8U* Tbuf, INT16U Tlen, INT8U* Rbuf);
 void Esam_WriteToChip(INT32S fd, INT8U* Tbuf, INT16U Tlen);
 void Esam_ReadFromChip(INT32S fd, INT8U* Rbuf, INT8U Rlen);
 INT32S Esam_ErrMessageCheck(INT8U *RBuf);
 INT32U CharToINT32U(INT8U *Buf);
-INT32S Esam_GetTermiInfo(INT32S fd, EsamInfo* esamInfo);
-INT32S Esam_GetTermiSingleInfo(INT32S fd, INT8U type, INT8U* Rbuf);
-INT32S Esam_CreateConnect(INT32S fd, SignatureSecurity* securityInfo ,SecurityData* RetInfo) ;
-INT32S Esam_SIDTerminalCheck(INT32S fd, SID_MAC SidMac,INT8U* Data, INT8U* Rbuf) ;
-INT32S Esam_SIDResponseCheck(INT32S fd, INT8U P2type, INT8U* Data3,INT16U Length, INT8U* Rbuf);
-INT32S Esam_GetTerminalInfo(INT32S fd, INT8U *RN,INT8U* Data1,INT16U Length,INT8U* Rbuf) ;
-INT32S Esam_SymKeyUpdate(INT32S fd, SID_MAC SidMac,INT8U* Data2);
-INT32S Esam_CcieSession(INT32S fd, SID sid,INT8U* Data2);
-INT32S Esam_ReportEncrypt(INT32S fd, INT8U* Data1, INT16U Length,INT8U* RN,INT8U* MAC) ;
-INT32S Esam_DencryptReport(INT32S fd, INT8U* RN,INT8U* MAC,INT8U* Data3, INT8U* Rbuf);
-INT32S Esam_GetRN(INT32S fd,  INT8U* Rbuf);
-INT32S Esam_EmeterDataDencrypt(INT32S fd, Esam_MAC_RN_NO* InfoData, INT8U *Data2,INT8U* Rbuf);
+INT32S Esam_GetTermiInfo(EsamInfo* esamInfo);
+INT32S Esam_GetTermiSingleInfo(INT8U type, INT8U* Rbuf);
+INT32S Esam_CreateConnect(SignatureSecurity* securityInfo ,SecurityData* RetInfo) ;
+INT32S Esam_SIDTerminalCheck(SID_MAC SidMac,INT8U* Data, INT8U* Rbuf) ;
+INT32S Esam_SIDResponseCheck(INT8U P2type, INT8U* Data3,INT16U Length, INT8U* Rbuf);
+INT32S Esam_GetTerminalInfo(INT8U *RN,INT8U* Data1,INT16U Length,INT8U* Rbuf) ;
+INT32S Esam_SymKeyUpdate(SID_MAC SidMac,INT8U* Data2);
+INT32S Esam_CcieSession(SID sid,INT8U* Data2);
+INT32S Esam_ReportEncrypt(INT8U* Data1, INT16U Length,INT8U* RN,INT8U* MAC) ;
+INT32S Esam_DencryptReport( INT8U* RN,INT8U* MAC,INT8U* Data3, INT8U* Rbuf);
+INT32S Esam_GetRN(INT8U* Rbuf);
+INT32S Esam_EmeterDataDencrypt( Esam_MAC_RN_NO* InfoData, INT8U *Data2,INT8U* Rbuf);
 
 #endif /* ESAM_H_ */

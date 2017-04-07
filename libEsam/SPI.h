@@ -19,7 +19,7 @@
 
 #define BUFFLENMAX_SPI	 2048
 
-extern int32_t SPI_Init(int32_t fd, int deviceType);
+extern int32_t SPI_Init(int32_t fd);
 extern int32_t SPI_Close(int fd);
 
 #endif /* SPI_H_ */
