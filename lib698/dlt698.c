@@ -715,21 +715,16 @@ INT16S doSecurityRequest(INT8U* apdu)//
 	if(apdu[0]!=0x10) return -1;//非安全传输，不处理
 	if(apdu[1] !=0x00 && apdu[1] != 0x01) return -2 ;   //明文应用数据单元
 	 INT16S retLen=0;
-	 INT32S fd=-1;
-	 fd = Esam_Init(fd,memp->DevicePara[0]);
-	 if(fd<0) return -3;
-	 //fprintf(stderr,"in doSecurityRequest\n");
 	 if(apdu[1]==0x00)//明文应用数据处理
 	 {
-		 retLen = secureDecryptDataDeal(fd,apdu);//传入安全等级
+		 retLen = secureDecryptDataDeal(apdu);//传入安全等级
 		 apdu=&apdu[2];
 	 }
 	 else if(apdu[1]==0x01)//密文应用数据处理
 	 {
-		 retLen = secureEncryptDataDeal(fd,apdu,apdu);
+		 retLen = secureEncryptDataDeal(apdu,apdu);
 	 }
 	 fprintf(stderr,"doSecurityRequest retlen = %d\n",retLen);
-	 Esam_Clear(fd);
 	 return retLen;
 }
 //组织SecurityResponse上行报文
@@ -738,33 +733,29 @@ INT16S doSecurityRequest(INT8U* apdu)//
 //返回：SendApdu中存储新的加密数据（应用数据单元和数据验证信息,包括明文/密文的开始第一个标示字节）
 INT16S composeSecurityResponse(INT8U* SendApdu,INT16U Length)
 {
-	 INT32S fd=-1;
 	 INT32S ret=0;
 	 fprintf(stderr,"composeSecurityResponse securetype = %d\n",securetype);
-	 fd = Esam_Init(fd,memp->DevicePara[0]);
 	 do
 	 {
-		 if(fd>0 && Length>0)
+		 if(Length>0)
 		 {
 			 if(securetype == 0x02)//明文+mac
-				 ret = compose_DataAndMac(fd,SendApdu,Length);
+				 ret = compose_DataAndMac(SendApdu,Length);
 			 else if(securetype == 0x03)//密文
-				 ret = compose_EnData(fd,SendApdu,Length);
+				 ret = compose_EnData(SendApdu,Length);
 			 else if(securetype == 0x04)//密文+mac
-				 ret = compose_EnDataAndMac(fd,SendApdu,Length);
+				 ret = compose_EnDataAndMac(SendApdu,Length);
 			 else
 				 break;
 		 }
-		 if(ret>0 && fd>0)//esam校验正常，返回
+		 if(ret>0)//esam校验正常，返回
 		 {
-			 Esam_Clear(fd);
 			 return ret;
 		 }
 	 }
 	 while(0);
 	 //以上都正常返回了，走到这就就很抱歉了
 	 //走到这里说明esam验证出现错误，回复DAR异常错误
-	 if(fd>0) Esam_Clear(fd);
 	 SendApdu[0]=0x90;
 	 SendApdu[1]=0x02;//DAR
 	 SendApdu[2]=0x16;//22ESAM校验错误
@@ -779,23 +770,16 @@ INT16S composeSecurityResponse(INT8U* SendApdu,INT16U Length)
 INT16U composeAutoReport(INT8U* SendApdu,INT16U length)
 {
 	 INT16S retLen=0;
-	 INT32S fd=-1;
 	 INT8U RN[12];
 	 INT8U MAC[4];
-	 fd = Esam_Init(fd,memp->DevicePara[0]);
-	 if(fd<0) return 0;
-	 retLen = Esam_ReportEncrypt(fd,&SendApdu[1],length-1,RN,MAC);
+	 retLen = Esam_ReportEncrypt(&SendApdu[1],length-1,RN,MAC);
 	 if(retLen<=0)
-	 {
-		 Esam_Clear(fd);
 		 return 0;
-	 }
 	 SendApdu[length]=0x02;//数据验证信息类型RN_MAC
 	 SendApdu[length+1]=0x0C;//随机数长度
 	 memcpy(&SendApdu[length+2],RN,12);//12个随机数，固定大小
 	 SendApdu[length+2+12]=0x04;//mac长度
 	 memcpy(&SendApdu[length+2+12+1],MAC,4);//MAC,固定大小
-	 Esam_Clear(fd);
 	 return  length + 1+12+1+4;
 }
 /**********************************************************************
