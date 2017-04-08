@@ -395,7 +395,6 @@ int saveCoverClass(OI_698 oi,INT16U seqno,void *blockdata,int savelen,int type)
 	case acs_coef_save:
 	case acs_energy_save:
 	case para_init_save:
-	case calc_voltage_save:
 		fprintf(stderr,"saveClass file=%s ",fname);
 		ret = save_block_file(fname,blockdata,savelen,0,0);
 		break;
@@ -627,6 +626,41 @@ int  readVariData(OI_698 oi,int coll_seqnum,void *blockdata,int len)
 	CloseSem(sem_save);
 	return retlen;
 }
+
+//void get
+////////////////////////////////////////////////////////////////////////////////
+/*
+ * 冻结数据记录单元存储
+ * 电压合格率 oad=2130，代表2131,2132,2133
+ * */
+int	saveFreezeRecord(OI_698 freezeOI,OAD oad,DateTimeBCD_S datetime,int len,INT8U *data)
+{
+	int 	ret=0;
+	int	 	fd=0;
+	FILE 	*fp=NULL;
+	char 	filename[128]={};
+
+	memset(&filename,0,sizeof(filename));
+	makeSubDir(VARI_DIR);
+	sprintf(filename,"%s/%04x-%04x.dat",VARI_DIR,freezeOI,oad.OI);
+	if(access(filename,F_OK)!=0)
+	{
+		fp = fopen((char*) filename, "w+");
+
+	}else {
+		fp = fopen((char*) filename, "r+");
+	}
+	if(fp!=NULL) {
+		fd = fileno(fp);
+		fsync(fd);
+		fclose(fp);
+		fclose(fp);
+	}
+	return ret;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
 INT8U datafile_write(char *FileName, void *source, int size, int offset)
 {
 	FILE *fp=NULL;

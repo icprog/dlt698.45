@@ -554,6 +554,7 @@ int get_Data(INT8U *source,INT8U *dest)
 	int type=0,i=0;
 	type = source[0];
 	dest[0] = type;
+//	fprintf(stderr,"get_Data type=%02x\n",type);
 	switch(type){
 	case dtunsigned:
 		dest[1] = source[1];
@@ -576,18 +577,38 @@ int get_Data(INT8U *source,INT8U *dest)
 			dest[4-i] = source[i+1];	//dest[4] ,3 ,2 ,1   dest[0]:type
 		return 4 + 1;
 	case dtdatetime:
-		dest[2] = source[1];//年
-		dest[1] = source[2];
+		dest[1] = source[1];//年
+		dest[2] = source[2];
+		dest[3] = source[3];//月
+		dest[4] = source[4];//day_of_month
+		dest[5] = source[5];//day_of_week
+		dest[6] = source[6];//时
+		dest[7] = source[7];//分
+		dest[8] = source[8];//秒
+		dest[9] = source[9];//毫秒
+		dest[10] = source[10];//
+		return 10 + 1;
+	case dtdatetimes:
+		dest[1] = source[1];//年
+		dest[2] = source[2];
 		dest[3] = source[3];//月
 		dest[4] = source[4];//日
 		dest[5] = source[5];//时
 		dest[6] = source[6];//分
 		dest[7] = source[7];//秒
 		return 7 + 1;
+		break;
+	case dtti:
+		memcpy(&dest[1],&source[1],3);
+		return 3 + 1;
+		break;
 	case dttsa:
 		i = source[1];//长度
 		memcpy(&dest[1],&source[1],i+1);
 		return i+1;
+	default:
+		fprintf(stderr,"未处理的数据类型\n");
+		break;
 	}
 	return 0;
 }
@@ -624,22 +645,24 @@ int get_BasicRSD(INT8U type,INT8U *source,INT8U *dest,INT8U *seletype)		//0x5A
 			index += getOAD(0,&source[index],&select1.oad);
 			index += get_Data(&source[index],&select1.data.type);
 			memcpy(dest,&select1,sizeof(select1));
-			fprintf(stderr,"\n index = %d   select1 OI=%04x !!!!!!!!!!!\n",index,select1.oad.OI);
+			fprintf(stderr,"\n index = %d   select1 OI=%04x  select1.data.type=%d !!!!\n",index,select1.oad.OI,select1.data.type);
 			break;
 		case 2:
 			memset(&select2,0,sizeof(select2));
-			getOAD(0,&source[index],&select2.oad);
-			select2.data_from.type = 0xAA;
-//			get_BasicUnit(&source[index++]+source_sumindex,&source_index,(INT8U *)&select2.data_from,&dest_index);
-			source_sumindex += source_index;
-			select2.data_to.type = 0xAA;
-//			get_BasicUnit(&source[index++]+source_sumindex,&source_index,(INT8U *)&select2.data_to,&dest_index);
-			source_sumindex += source_index;
-			select2.data_jiange.type = 0xAA;
-//			get_BasicUnit(&source[index++]+source_sumindex,&source_index,(INT8U *)&select2.data_jiange,&dest_index);
-			source_sumindex += source_index;
+			index += getOAD(0,&source[index],&select2.oad);
+			index += get_Data(&source[index],&select2.data_from.type);
+			index += get_Data(&source[index],&select2.data_to.type);
+			index += get_Data(&source[index],&select2.data_jiange.type);
 			memcpy(dest,&select2,sizeof(select2));
-			index += source_sumindex;// + 4;
+			fprintf(stderr," select2 OAD=%04x-%02x-%02x\n",select2.oad.OI,select2.oad.attflg,select2.oad.attrindex);
+			fprintf(stderr," 起始值 type=%02x data=%02x-%02x-%02x-%02x-%02x-%02x-%02x\n",select2.data_from.type,
+					select2.data_from.data[0],select2.data_from.data[1],select2.data_from.data[2],select2.data_from.data[3],
+					select2.data_from.data[4],select2.data_from.data[5],select2.data_from.data[6]);
+			fprintf(stderr," 结束值 type=%02x data=%02x-%02x-%02x-%02x-%02x-%02x-%02x\n",select2.data_to.type,
+					select2.data_to.data[0],select2.data_to.data[1],select2.data_to.data[2],select2.data_to.data[3],
+					select2.data_to.data[4],select2.data_to.data[5],select2.data_to.data[6]);
+			fprintf(stderr," 数据间隔 type=%02x data=%02x-%02x-%02x\n",select2.data_jiange.type,
+					select2.data_jiange.data[0],select2.data_jiange.data[1],select2.data_jiange.data[2]);
 			break;
 		case 3:
 
@@ -804,6 +827,10 @@ int get_BasicRCSD(INT8U type,INT8U *source,CSD_ARRAYTYPE *csds)	//0x60
 	}
 	num = source[index++];
 	fprintf(stderr,"get RCSD num=%d\n",num);
+	if(num>=MY_CSD_NUM) {
+		fprintf(stderr,"????????????????????? rcsd 数量[%d]超过限值[%d],异常\n",num,MY_CSD_NUM);
+		num = MY_CSD_NUM;
+	}
 	csds->num = num;
 	for(i=0;i<num ;i++)
 	{
@@ -1054,5 +1081,7 @@ void setOIChange(OI_698 oi)
 	case 0x601E:	memp->oi_changed.oi601E++;  break;
 	case 0x6051:	memp->oi_changed.oi6051++;  break;
 	case 0xf203:	memp->oi_changed.oiF203++;  break;
+	case 0x300F:	memp->oi_changed.oi300F++;  break;
+	case 0x3010:	memp->oi_changed.oi3010++;  break;
 	}
 }

@@ -34,7 +34,18 @@ extern INT8U TmpDataBufList[MAXSIZ_FAM*2];
 //		return refuse_rw;
 //	}
 //}
+INT16U set300F(OAD oad,INT8U *data,INT8U *DAR)
+{
+	Event300F_Object tmp300f={};
+	int		index = 0;
 
+	readCoverClass(oad.OI,0,&tmp300f,sizeof(Event300F_Object),event_para_save);
+	index += getStructure(&data[index],NULL);
+	index += getUnsigned(&data[index],(INT8U *)&tmp300f.offset);
+	fprintf(stderr,"\n：300F: 判定延时 =%d\n",tmp300f.offset);
+	*DAR = saveCoverClass(oad.OI,0,&tmp300f,sizeof(Event300F_Object),event_para_save);
+	return index;
+}
 
 INT16U set3105(OAD oad,INT8U *data,INT8U *DAR)  //属性6
 {
@@ -291,6 +302,29 @@ INT16U set4007(OAD oad,INT8U *data,INT8U *DAR)
 	return index;
 }
 
+INT16U set4030(OAD oad,INT8U *data,INT8U *DAR)
+{
+	int index=0;
+	CLASS_4030 class4030={};
+	memset(&class4030,0,sizeof(CLASS_4030));
+
+	readCoverClass(oad.OI,0,&class4030,sizeof(CLASS_4030),para_vari_save);
+	if (oad.attflg == 2 )
+	{
+		index += getStructure(&data[index],NULL);
+		index += getLongUnsigned(&data[index],(INT8U *)&class4030.uUp_Kaohe);
+		index += getLongUnsigned(&data[index],(INT8U *)&class4030.uDown_Kaohe);
+		index += getLongUnsigned(&data[index],(INT8U *)&class4030.uUp);
+		index += getLongUnsigned(&data[index],(INT8U *)&class4030.uDown);
+
+		fprintf(stderr,"\n【电压考核上限】%d",class4030.uUp_Kaohe);
+		fprintf(stderr,"\n【电压考核下限】%d",class4030.uDown_Kaohe);
+		fprintf(stderr,"\n【电压合格上限】%d",class4030.uUp);
+		fprintf(stderr,"\n【电压合格下限】%d",class4030.uDown);
+		*DAR = saveCoverClass(oad.OI,0,&class4030,sizeof(CLASS_4030),para_vari_save);
+	}
+	return index;
+}
 
 INT16U set4103(OAD oad,INT8U *data,INT8U *DAR)
 {
@@ -312,6 +346,7 @@ INT16U set4103(OAD oad,INT8U *data,INT8U *DAR)
 	}
 	return index;
 }
+
 INT16U set4204(OAD oad,INT8U *data,INT8U *DAR)
 {
 	int	index=0;
@@ -689,27 +724,30 @@ INT16U EventSetAttrib(OAD oad,INT8U *data,INT8U *DAR)
 		break;
 	case 6:	//配置参数
 		switch(oi) {
-			case 0x3105:	//电能表时钟超差事件
-				data_index = set3105(oad,data,DAR);
-				break;
-			case 0x3106:	//终端停上电事件
-				data_index = set3106(oad,data,DAR);
-				break;
-			case 0x310c:	//电能量超差事件阈值
-				data_index = set310c(oad,data,DAR);
-				break;
-			case 0x310d:	//电能表飞走事件阈值
-				data_index = set310d(oad,data,DAR);
-				break;
-			case 0x310e:	//电能表停走事件阈值
-				data_index = set310e(oad,data,DAR);
-				break;
-			case 0x310F:	//终端抄表失败事件
-				data_index = set310f(oad,data,DAR);
-				break;
-			case 0x3110:	//月通信流量超限事件阈值
-				data_index = set3110(oad,data,DAR);
-				break;
+		case 0x300F:	//电能表电压逆相序事件
+			data_index = set300F(oad,data,DAR);
+			break;
+		case 0x3105:	//电能表时钟超差事件
+			data_index = set3105(oad,data,DAR);
+			break;
+		case 0x3106:	//终端停上电事件
+			data_index = set3106(oad,data,DAR);
+			break;
+		case 0x310c:	//电能量超差事件阈值
+			data_index = set310c(oad,data,DAR);
+			break;
+		case 0x310d:	//电能表飞走事件阈值
+			data_index = set310d(oad,data,DAR);
+			break;
+		case 0x310e:	//电能表停走事件阈值
+			data_index = set310e(oad,data,DAR);
+			break;
+		case 0x310F:	//终端抄表失败事件
+			data_index = set310f(oad,data,DAR);
+			break;
+		case 0x3110:	//月通信流量超限事件阈值
+			data_index = set3110(oad,data,DAR);
+			break;
 		}
 		break;
 	}
@@ -742,6 +780,7 @@ INT16U EnvironmentValue(OAD oad,INT8U *data,INT8U *DAR)
 			data_index = set4007(oad,data,DAR);
 			break;
 		case 0x4030://电压合格率参数
+			data_index = set4030(oad,data,DAR);
 			break;
 		case 0x4103://资产管理编码
 			data_index = set4103(oad,data,DAR);

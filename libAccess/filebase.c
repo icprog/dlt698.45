@@ -388,9 +388,9 @@ void getFileName(OI_698 oi,INT16U seqno,INT16U type,char *fname)
 		makeSubDir(INITDIR);
 		sprintf(fname,"%s/%04x.par",INITDIR,oi);
 		break;
-	case calc_voltage_save: //电压合格率
-		makeSubDir(CALCDIR);
-		sprintf(fname,"%s/%04x.par",CALCDIR,oi);
+
+		makeSubDir(PARADIR);
+		sprintf(fname,"%s/%04x.par",INITDIR,oi);
 		break;
 	}
 	fprintf(stderr,"getFileName fname=%s\n",fname);
@@ -417,6 +417,7 @@ int readFileName(OI_698 oi,INT16U seqno,INT16U type,char *fname)
 		sprintf(fname,"%s/%04x/%d.dat",EVENT_CURR,oi,seqno);
 		break;
 	case para_vari_save:
+//	case freeze_atti_save:
 		sprintf(fname,"%s/%04x.par",PARADIR,oi);
 		break;
 	case coll_para_save:

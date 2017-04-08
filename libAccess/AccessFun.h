@@ -61,9 +61,8 @@ typedef enum
 	acs_coef_save=6,			//交采计量芯片系数存储
 	acs_energy_save=7,			//交采计量电能量数据存储
 	para_init_save=8,			//初始化参数保存文件
-	calc_voltage_save=9,	    //电压合格率存储
-	coll_data_save=10
 }SaveFile_type;
+
 typedef struct {
 	INT16U  runtime;  //一天执行次数，日月年冻结和实时数据无效，置位1，由执行频率计算，主要针对负荷曲线，0表示对于这个采集方案任务无效
 	INT16U starthour;

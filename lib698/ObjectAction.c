@@ -931,6 +931,77 @@ void FileTransMothod(INT16U attr_act,INT8U *data)
 err:
 	return;
 }
+
+void FreezeAtti(OAD oad,Relate_Object one_obj)
+{
+	int	 i=0,j=0;
+	FreezeObject	FreeObj={};
+
+	memset(&FreeObj,0,sizeof(FreezeObject));
+	readCoverClass(oad.OI,0,&FreeObj,sizeof(FreezeObject),para_vari_save);
+	switch(oad.attflg) {
+	case 5:		//删除
+		for(i=0;i<FreeObj.RelateNum;i++) {
+			if(memcmp(&FreeObj.RelateObj[i].oad,&one_obj.oad,sizeof(OAD))==0) {
+				if(FreeObj.RelateNum)	FreeObj.RelateNum=FreeObj.RelateNum-1;
+				for(j=i;j<FreeObj.RelateNum;j++) {		//删除匹配的OAD
+					memcpy(&FreeObj.RelateObj[j],&FreeObj.RelateObj[j+1],sizeof(Relate_Object));
+				}
+				break;
+			}
+		}
+		break;
+	case 7:		//批量添加冻结对象属性
+		for(i=0;i<FreeObj.RelateNum;i++) {
+			if(memcmp(&FreeObj.RelateObj[i].oad,&one_obj.oad,sizeof(OAD))==0) {		//已有，替换
+				memcpy(&FreeObj.RelateObj[i],&one_obj,sizeof(Relate_Object));
+				break;
+			}
+		}
+		if(i==FreeObj.RelateNum) {		//增加
+			memcpy(&FreeObj.RelateObj[i],&one_obj,sizeof(Relate_Object));
+			FreeObj.RelateNum = FreeObj.RelateNum+1;
+		}
+		break;
+	}
+	fprintf(stderr,"冻结 %04x，关联个数=%d\n",oad.OI,FreeObj.RelateNum);
+	for(i=0;i<FreeObj.RelateNum;i++) {
+		fprintf(stderr,"OAD=%04x-%02x-%02x,priod=%d,depth=%d\n",FreeObj.RelateObj[i].oad.OI,FreeObj.RelateObj[i].oad.attflg,
+				FreeObj.RelateObj[i].oad.attrindex,FreeObj.RelateObj[i].freezePriod,FreeObj.RelateObj[i].saveDepth);
+	}
+	saveCoverClass(oad.OI,0,&FreeObj,sizeof(FreezeObject),para_vari_save);
+}
+
+void FreezeAction(OAD oad,INT8U *data,Action_result *act_ret)
+{
+	int		index = 0;
+	INT8U	SeqOfNum = 0,i=0;
+	Relate_Object one_obj={};
+
+	switch(oad.attflg) {
+	case 5:		//删除一个冻结对象属性
+		index += getOAD(1,&data[index],&one_obj.oad);
+		fprintf(stderr,"删除 oad=%04x-%02x-%02x\n",oad.OI,oad.attflg,oad.attrindex);
+		FreezeAtti(oad,one_obj);
+		break;
+	case 7:		//批量添加冻结对象属性
+		index += getArray(&data[index],&SeqOfNum);
+		for(i=0;i<SeqOfNum;i++) {
+			index += getStructure(&data[index],NULL);
+			index += getLongUnsigned(&data[index],(INT8U *)&one_obj.freezePriod);
+			index += getOAD(1,&data[index],&one_obj.oad);
+			index += getLongUnsigned(&data[index],(INT8U *)&one_obj.saveDepth);
+
+			fprintf(stderr,"添加%d：freezeProid=%d,oad=%04x-%02x-%02x,saveDepth=%d\n",i,one_obj.freezePriod,
+					one_obj.oad.OI,one_obj.oad.attflg,one_obj.oad.attrindex,one_obj.saveDepth);
+			FreezeAtti(oad,one_obj);
+		}
+		break;
+	}
+	act_ret->datalen = index;
+	act_ret->DAR = success;
+}
+
 void MeterInfo(INT16U attr_act,INT8U *data,Action_result *act_ret)
 {
 	switch(attr_act)
@@ -1003,6 +1074,10 @@ int doObjectAction(OAD oad,INT8U *data,Action_result *act_ret)
 	{
 		case 0x4300:	//终端对象
 			TerminalInfo(attr_act,data);
+			break;
+		case 0x5004:	//日冻结
+		case 0x5006:	//月冻结
+			FreezeAction(oad,data,act_ret);
 			break;
 		case 0x6000:	//采集档案配置表
 			MeterInfo(attr_act,data,act_ret);

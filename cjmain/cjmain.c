@@ -292,6 +292,8 @@ void InitSharedMem(int argc, char* argv[]) {
     readCoverClass(0x3201, 0, &JProgramInfo->event_obj.Event3201_obj, sizeof(JProgramInfo->event_obj.Event3201_obj), event_para_save);
     readCoverClass(0x3202, 0, &JProgramInfo->event_obj.Event3202_obj, sizeof(JProgramInfo->event_obj.Event3202_obj), event_para_save);
     readCoverClass(0x3203, 0, &JProgramInfo->event_obj.Event3203_obj, sizeof(JProgramInfo->event_obj.Event3203_obj), event_para_save);
+    readCoverClass(0x300F, 0, &JProgramInfo->event_obj.Event300F_obj, sizeof(JProgramInfo->event_obj.Event300F_obj), event_para_save);
+    readCoverClass(0x3010, 0, &JProgramInfo->event_obj.Event3010_obj, sizeof(JProgramInfo->event_obj.Event3010_obj), event_para_save);
 }
 
 int LAPI_Fork2(void) {

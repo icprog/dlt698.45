@@ -46,6 +46,8 @@ typedef struct {
 	INT8U	oi3202;				//购电参数设置记录
 	INT8U	oi3203;				//电控告警事件记录
 	INT8U   oi301B;       		//电能表开表盖事件
+	INT8U   oi300F;             //电压相序异常  //06 01 09 30 0F 06 00 02 01 11 1E 00
+    INT8U   oi3010;             //电流相序异常
 ////////////////////////////////////////////////////////
     INT8U 	oi4000;       	//对时参数
 	INT8U	oi4016;			//当前套日时段表
@@ -227,7 +229,7 @@ typedef struct
 
 typedef struct
 {
-	INT8U online_state;	/*gprs在线1 ，cdma在线2 ，FDD_LTE在线3 ，TD_LTE在线4 ，以太网在线5 ，正在拨号中6 */
+	INT8U online_state;	/*gprs在线1 ，cdma在线2 ，FDD_LTE开关量在线3 ，TD_LTE在线4 ，以太网在线5 ，正在拨号中6 */
 	INT8U csq;			/*信号强度*/
 	INT8U pppip[16];	/*无线IP*/
 	INT8U sa[16];		/*集中器地址*/
