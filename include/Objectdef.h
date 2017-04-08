@@ -230,12 +230,12 @@ typedef struct{
 	INT16U	freezePriod;	//冻结周期
 	OAD		oad;			//关联对象属性描述符
 	INT16U	saveDepth;		//存储深度
-}Freeze_Object;
+}Relate_Object;
 
 typedef struct {
 	INT8U	RelateNum;				//关联属性
-	Freeze_Object  FreezeObj[256];
-}DayObject;
+	Relate_Object  RelateObj[MAX_FREEZE_OBJ];
+}FreezeObject;
 
 ////////////////////////////////////////////////////////////
 /********************************************************

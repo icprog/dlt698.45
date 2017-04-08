@@ -854,6 +854,38 @@ void printrecord(RESULT_RECORD record)
 		break;
 	}
 }
+
+int getSel1_freeze(RESULT_RECORD *record)
+{
+	int ret=0;
+	int		index = 0;
+	int		taskid=0;
+
+	switch(record->select.selec1.data.type) {
+	case dtlongunsigned:
+		taskid = (record->select.selec1.data.data[0]<<8 | record->select.selec1.data.data[1]);
+		break;
+	case dtunsigned:
+		taskid = record->select.selec1.data.data[0];
+		break;
+	}
+	fprintf(stderr,"getSel1: OI=%04x  taskid=%d\n",record->select.selec1.oad.OI,taskid);
+	switch(record->select.selec1.oad.OI)
+	{
+		case 0x6001:
+			index += Get_6001(0,taskid,&record->data[index]);
+			break;
+		default:
+			fprintf(stderr,"\nrecord switch default!");
+	}
+	if(index==0) {	//0条记录     [1] SEQUENCE OF A-RecordRow
+		record->data[0] = 0;
+	}
+	record->datalen = index;
+	fprintf(stderr,"\nrecord->datalen = %d",record->datalen);
+	return ret;
+}
+
 ///
 int getSel1_coll(RESULT_RECORD *record)
 {
@@ -906,9 +938,16 @@ int getSelector1(RESULT_RECORD *record)
 	INT8U oihead = (record->oad.OI & 0xF000) >>12;
 
 	switch(oihead) {
+	case 5:
+		fprintf(stderr,"\n冻结类对象\n");
+		getSel1_freeze(record);
+		break;
 	case 6:			//采集监控类对象
 		fprintf(stderr,"\n读取采集监控对象\n");
 		getSel1_coll(record);
+		break;
+	default:
+		record->datalen = 0;
 		break;
 	}
 	return ret;
@@ -948,6 +987,9 @@ int doGetrecord(INT8U type,OAD oad,INT8U *data,RESULT_RECORD *record,INT16U *sub
 		record->data = TmpDataBuf;				//data 指向回复报文帧头
 		record->datalen += dest_index;			//数据长度+ResultRecord
 	break;
+//	case 2:
+//
+//		break;
 	case 5:
 	case 7:
 		dest_index +=fill_RCSD(0,&record->data[dest_index],record->rcsd.csds);
@@ -965,6 +1007,19 @@ int doGetrecord(INT8U type,OAD oad,INT8U *data,RESULT_RECORD *record,INT16U *sub
 				record->datalen += dest_index;			//数据长度+ResultRecord
 			}
 		}
+		break;
+	case 2:
+		*subframe = 0;		//TODO:未处理分帧
+		TmpDataBuf[dest_index++] = 1;
+		TmpDataBuf[dest_index++] = 0;
+		TmpDataBuf[dest_index++] = ( record->select.selec2.oad.OI >> 8 ) & 0xff;
+		TmpDataBuf[dest_index++] = record->select.selec2.oad.OI & 0xff;
+		TmpDataBuf[dest_index++] = record->select.selec2.oad.attflg;
+		TmpDataBuf[dest_index++] = record->select.selec2.oad.attrindex;
+		record->data = &TmpDataBuf[dest_index];
+		Getevent_Record_Selector(record,memp);
+		record->data = TmpDataBuf;				//data 指向回复报文帧头
+		record->datalen += dest_index;			//数据长度+ResultRecord
 		break;
 	case 9:		//指定读取上第n次记录
 		*subframe = 0;		//TODO:未处理分帧
@@ -1063,11 +1118,27 @@ int GetClass7attr(RESULT_NORMAL *response)
 	INT8U *data = NULL;
 	OAD oad={};
 	Class7_Object	class7={};
-	int index=0,i=0;
+	INT8U  *parabuf=NULL;
+	int 	filesize=0;
+	int 	index=0,i=0;
+	int 	ret=0;
+
 	data = response->data;
 	oad = response->oad;
 	memset(&class7,sizeof(Class7_Object),0);
-	readCoverClass(oad.OI,0,&class7,sizeof(Class7_Object),event_para_save);
+
+	filesize = getClassFileLen(oad.OI,0,event_para_save);
+	if(filesize>2) {
+		fprintf(stderr,"filesize=%d\n",filesize);
+		parabuf = malloc(filesize);
+		ret = readCoverClass(oad.OI,0,parabuf,(filesize-2),event_para_save); //读取整个数据内容，否则CRC校验不通过 TODO：filesize-2，需要验证 不同的文件大小
+		//	ret = readCoverClass(oad.OI,0,&class7,sizeof(Class7_Object),event_para_save);
+		memcpy(&class7,parabuf,sizeof(Class7_Object));
+		if(parabuf!=NULL) {
+			free(parabuf);
+		}
+	}
+	fprintf(stderr,"ret = %d class7.crrentnum=%d\n",ret, class7.crrentnum);
 	switch(oad.attflg) {
 	case 1:	//逻辑名
 		index += fill_octet_string(&data[0],(char *)&class7.logic_name,sizeof(class7.logic_name));

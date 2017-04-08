@@ -20,7 +20,7 @@ int SPI_Close(int fd) {
     return 1;
 }
 
-static int dumpstat(const char* name, int fd,int deviceType) {
+static int dumpstat(const char* name, int fd) {
     static uint8_t mode;
     static uint8_t bits   = 8;
     static uint32_t speed = 20000000;
@@ -51,21 +51,20 @@ static int dumpstat(const char* name, int fd,int deviceType) {
     return fd;
 }
 
-int32_t SPI_Init(int32_t fd,int deviceType) {
+int32_t SPI_Init(int32_t fd) {
 	char spipath[128];
 
 	if (fd != -1) {
 		SPI_Close(fd);
 	}
-
-	if(deviceType==2) {
+#ifdef CCTT_II
 		strcpy(spipath,ESAM_SPI_DEV_II);
-	}else {
+#else
 		strcpy(spipath,ESAM_SPI_DEV);
-	}
+#endif
 	fd = open((char*)spipath, O_RDWR);
 	if (fd < 0)
 		printf("[SPI ERROR] can't open  device %s\n", spipath);
 
-	return dumpstat((char*) spipath, fd ,deviceType);
+	return dumpstat((char*) spipath, fd);
 }

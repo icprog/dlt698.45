@@ -1260,6 +1260,20 @@ void acs_regist(int argc, char *argv[])
 	spi_close(spifp);
 }
 
+//void writeLog1()
+//{
+//	FILE *fp=NULL;
+//	char cmd[512]={};
+//
+//	fp = fopen("/nand/esam.log","a+");
+//	if(fp!=NULL) {
+//		memset(cmd,0,sizeof(cmd));
+//		sprintf(cmd,"Ua异常:%d\r\n",JProgramInfo->ACSRealData.Ua);
+//		fwrite(cmd,sizeof(cmd),1,fp);
+//		fclose(fp);
+//	}
+//}
+
 void acs_process(int argc, char *argv[])
 {
 	FP64 	Ureal_rn8209=0;
@@ -1297,6 +1311,9 @@ void acs_process(int argc, char *argv[])
 			if(strcmp("acdata",argv[2])==0){
 				for(;;){
 					realdataprint(JProgramInfo->ACSRealData);
+//					if(JProgramInfo->ACSRealData.Ua < 2300 || JProgramInfo->ACSRealData.Ua > 2680) {
+//						writeLog1();
+//					}
 					sleep(1);
 				}
 			}
