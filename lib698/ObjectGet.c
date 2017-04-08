@@ -1008,6 +1008,19 @@ int doGetrecord(INT8U type,OAD oad,INT8U *data,RESULT_RECORD *record,INT16U *sub
 			}
 		}
 		break;
+	case 2:
+		*subframe = 0;		//TODO:未处理分帧
+		TmpDataBuf[dest_index++] = 1;
+		TmpDataBuf[dest_index++] = 0;
+		TmpDataBuf[dest_index++] = ( record->select.selec2.oad.OI >> 8 ) & 0xff;
+		TmpDataBuf[dest_index++] = record->select.selec2.oad.OI & 0xff;
+		TmpDataBuf[dest_index++] = record->select.selec2.oad.attflg;
+		TmpDataBuf[dest_index++] = record->select.selec2.oad.attrindex;
+		record->data = &TmpDataBuf[dest_index];
+		Getevent_Record_Selector(record,memp);
+		record->data = TmpDataBuf;				//data 指向回复报文帧头
+		record->datalen += dest_index;			//数据长度+ResultRecord
+		break;
 	case 9:		//指定读取上第n次记录
 		*subframe = 0;		//TODO:未处理分帧
 		dest_index +=fill_RCSD(0,&record->data[dest_index],record->rcsd.csds);
