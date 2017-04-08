@@ -234,7 +234,7 @@ typedef struct{
 
 typedef struct {
 	INT8U	RelateNum;				//关联属性
-	Relate_Object  RelateObj[256];
+	Relate_Object  RelateObj[MAX_FREEZE_OBJ];
 }FreezeObject;
 
 ////////////////////////////////////////////////////////////

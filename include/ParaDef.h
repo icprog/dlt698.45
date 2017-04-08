@@ -69,7 +69,7 @@
 #define ROAD_OADS_NUM           16          //ROAD结构体里oads的最大个数
 #define CLASS7_OAD_NUM			10			//关联对象属性表
 #define MAX_PERIOD_RATE   		48      	//支持的最到终端费率时段数
-
+#define MAX_FREEZE_OBJ			255			//冻结最大关联冻结对象个数
 #define	STATE_MAXNUM			8			//开关量单元最大个数
 
 #define EVENT_OI_MAXNUM			30			//终端需要判断事件

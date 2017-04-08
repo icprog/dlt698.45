@@ -987,6 +987,9 @@ int doGetrecord(INT8U type,OAD oad,INT8U *data,RESULT_RECORD *record,INT16U *sub
 		record->data = TmpDataBuf;				//data 指向回复报文帧头
 		record->datalen += dest_index;			//数据长度+ResultRecord
 	break;
+	case 2:
+
+		break;
 	case 5:
 	case 7:
 		dest_index +=fill_RCSD(0,&record->data[dest_index],record->rcsd.csds);
@@ -1102,11 +1105,27 @@ int GetClass7attr(RESULT_NORMAL *response)
 	INT8U *data = NULL;
 	OAD oad={};
 	Class7_Object	class7={};
-	int index=0,i=0;
+	INT8U  *parabuf=NULL;
+	int 	filesize=0;
+	int 	index=0,i=0;
+	int 	ret=0;
+
 	data = response->data;
 	oad = response->oad;
 	memset(&class7,sizeof(Class7_Object),0);
-	readCoverClass(oad.OI,0,&class7,sizeof(Class7_Object),event_para_save);
+
+	filesize = getClassFileLen(oad.OI,0,event_para_save);
+	if(filesize>2) {
+		fprintf(stderr,"filesize=%d\n",filesize);
+		parabuf = malloc(filesize);
+		ret = readCoverClass(oad.OI,0,parabuf,(filesize-2),event_para_save); //读取整个数据内容，否则CRC校验不通过 TODO：filesize-2，需要验证 不同的文件大小
+		//	ret = readCoverClass(oad.OI,0,&class7,sizeof(Class7_Object),event_para_save);
+		memcpy(&class7,parabuf,sizeof(Class7_Object));
+		if(parabuf!=NULL) {
+			free(parabuf);
+		}
+	}
+	fprintf(stderr,"ret = %d class7.crrentnum=%d\n",ret, class7.crrentnum);
 	switch(oad.attflg) {
 	case 1:	//逻辑名
 		index += fill_octet_string(&data[0],(char *)&class7.logic_name,sizeof(class7.logic_name));
