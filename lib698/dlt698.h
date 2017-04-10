@@ -86,6 +86,7 @@ extern int get_BasicRCSD(INT8U type, INT8U* source, CSD_ARRAYTYPE* csds);       
 extern int get_Data(INT8U* source, INT8U* dest);
 /*----------------------具体OI类组帧函数----------------------*/
 /*----------------------统计相关数据----------------------*/
+extern INT8U Get_213x(OAD oad,INT8U *sourcebuf,INT8U *buf,int *len);
 extern INT8U Get_2200(OI_698 oi, INT8U* sourcebuf, INT8U* buf, int* len);
 extern INT8U Get_2203(OI_698 oi, INT8U* sourcebuf, INT8U* buf, int* len);
 extern INT8U Get_2204(OI_698 oi, INT8U* sourcebuf, INT8U* buf, int* len);

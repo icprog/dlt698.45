@@ -220,6 +220,26 @@ extern int saveVariData(OI_698 oi,int coll_seqnum,void *blockdata,int datalen);
  * */
 extern int  readVariData(OI_698 oi,int coll_seqnum,void *blockdata,int len);
 //////////////////////////////////////////////////////////////////////////////////////
+/*
+ * 冻结数据记录单元存储
+ * 电压合格率 oad=2130，代表2131,2132,2133
+ * 每条记录数据内容固定64个字节：格式  OAD + 冻结时间 + Data
+ * 返回 = 1： 写成功
+ *     = 0： 失败
+ * */
+extern int	saveFreezeRecord(OI_698 freezeOI,OAD oad,DateTimeBCD datetime,int len,INT8U *data);
+extern int readFreezeRecordNum(OI_698 freezeOI,OI_698 relateOI,int *currRecordNum,int *MaxRecordNum);
+/*
+ * 冻结数据记录单元读取
+ *     根据冻结记录序号
+ * */
+extern int readFreezeRecordByNum(OI_698 freezeOI,OAD oad,int RecordNum,DateTimeBCD *datetime,int *datalen,INT8U *data);
+/*
+ * 冻结数据记录单元读取
+ *     根据冻结时标读取记录
+ * */
+extern int	readFreezeRecordByTime(OI_698 freezeOI,OAD oad,DateTimeBCD datetime,int *datalen,INT8U *data);
+
 ///////////////数据文件存储
 
 extern int getSelector(OAD oad_h,RSD select, INT8U selectype, CSD_ARRAYTYPE csds, INT8U *data, int *datalen);

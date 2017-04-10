@@ -35,12 +35,15 @@ static char* usage_set = "\n--------------------参数设置及基本维护命�
 						 "		 【停程序】cj dog 或者 cj stop		\n"
 		                 "[读取心跳] cj heart \n"
 		                 "[设置心跳] cj heart 60 s"
-						 "[ESAM 测试，测试写到/nand/esam.log] 测试模式1[16M通信1次]：cj esam"
-						 "            测试模式2[speed M通信1次，speed范围可从1到25]：cj esam speed"
-						 "            测试模式3[speed M通信n次，speed范围可从1到25]：cj esam speed n"
-						 "            测试模式4[speed1 M到 speed2 通信n次，speed范围从1到25]：cj esam speed1 speed2 n"
+						 "[ESAM 测试，测试写到/nand/esam.log] 测试模式1[16M通信1次]：cj esam\n"
+						 "            测试模式2[speed M通信1次，speed范围可从1到25]：cj esam speed\n"
+						 "            测试模式3[speed M通信n次，speed范围可从1到25]：cj esam speed n\n"
+						 "            测试模式4[speed1 M到 speed2 通信n次，speed范围从1到25]：cj esam speed1 speed2 n\n"
                          "-------------------------------------------------------\n\n";
-
+static char* usage_data = "\n--------------------数据维护命令----------------------------\n"
+						  "		 【任务数据读取】cj taskdata <文件名>		\n"
+						  "		 【冻结数据读取】cj freezedata 冻结OI 关联OI	\n"
+                          "-------------------------------------------------------\n\n";
 static char* usage_vari = "\n--------------------变量类对象----------------------------\n"
 						  "		 【供电时间】cj vari 2203		\n"
 						  "		 【复位次数】cj vari 2204		\n"
@@ -123,6 +126,7 @@ void prthelp() {
     fprintf(stderr, "help	 [help] ");
     fprintf(stderr, "%s", usage_acs);
     fprintf(stderr, "%s", usage_set);
+    fprintf(stderr, "%s", usage_data);
     fprintf(stderr, "%s", usage_vari);
     fprintf(stderr, "%s", usage_event);
     fprintf(stderr, "%s", usage_para);
@@ -154,6 +158,41 @@ int main(int argc, char* argv[])
         prthelp();
         return EXIT_SUCCESS;
     }
+
+    if (strcmp("savetest", argv[1]) == 0) {
+    	DateTimeBCD dt;
+    	PassRate_U  passu[3];
+    	OAD		oad;
+    	int		val=1,i=0;
+    	INT8U	buf[256];
+    	int		buflen=0;
+
+    	if(argc==6) {
+			dt.year.data = atoi(argv[2]);
+			dt.month.data = atoi(argv[3]);
+			dt.day.data = atoi(argv[4]);
+			val = atoi(argv[5]);
+    	}
+		dt.hour.data = 0;
+		dt.min.data = 0;
+		dt.sec.data = 0;
+    	fprintf(stderr,"write time %04d-%02d-%02d %02d:%02d:%02d,val=%d\n",dt.year.data,dt.month.data,dt.day.data,dt.hour.data,dt.min.data,dt.sec.data,val);
+
+    	for(i=0;i<3;i++) {
+        	oad.OI = 0x2131+i;
+        	oad.attflg = 0x02;
+        	oad.attrindex = 0x01;
+        	passu[i].monitorTime = val*(i+1);
+			passu[i].passRate = val*(i+1)+1;
+			passu[i].overRate = val*(i+1)+2;
+			passu[i].upLimitTime = val*(i+1)+3;
+			passu[i].downLimitTime = val*(i+1)+4;
+		   	saveFreezeRecord(0x5004,oad,dt,sizeof(PassRate_U),(INT8U *)&passu[i]);
+    	}
+
+     	return EXIT_SUCCESS;
+    }
+
     if (strcmp("ms", argv[1]) == 0) {
     	int taskid=64;
 		int ret = 0;
@@ -269,6 +308,10 @@ int main(int argc, char* argv[])
     }
     if (strcmp("taskdata", argv[1]) == 0) {
     	analyTaskData(argc,argv);
+    	return EXIT_SUCCESS;
+    }
+    if (strcmp("freezedata", argv[1]) == 0) {
+    	analyFreezeData(argc,argv);
     	return EXIT_SUCCESS;
     }
 

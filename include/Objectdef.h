@@ -130,6 +130,14 @@ typedef struct {
 /********************************************************
  *				 A.3 变量类对象
  ********************************************************/
+typedef struct{
+	INT32U monitorTime;			//电压监测时间
+	INT16U passRate;			//电压合格率
+	INT16U overRate;			//电压超限率
+	INT32U upLimitTime;          //超上限时间
+	INT32U downLimitTime;        //超下限时间
+}PassRate_U;//电压统计结果
+
 typedef struct {
     INT32U day_tj;
     INT32U month_tj;
