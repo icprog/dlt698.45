@@ -526,7 +526,7 @@ INT8U Get_CurrResult(INT8U *Rbuf,INT8U *Index,
  * 标准数据单元接口
  * Save_buf记录单元 Index长度 Eventno事件记录序号 Source事件发生源 Source_Type事件发生源类型
  */
-INT8U Get_StandardUnit(OI_698 oi,INT8U *Rbuf,INT8U *Index,
+INT8U Get_StandardUnit(ProgramInfo* prginfo_event,OI_698 oi,INT8U *Rbuf,INT8U *Index,
 		INT8U Eventno,INT8U *Source,Source_Typ S_type){
 	//Struct
 	Rbuf[(*Index)++] = dtstructure;//0
@@ -645,6 +645,8 @@ INT8U Get_StandardUnit(OI_698 oi,INT8U *Rbuf,INT8U *Index,
 	Rbuf[(*Index)++] = 0x00;
 	Rbuf[(*Index)++] = dtunsigned;//unsigned
 	Rbuf[(*Index)++] = 0x00;
+	INT8U low_unit=oi&0x00ff;
+	prginfo_event->dev_info.Cur_Ercno=((((low_unit>>4)&0x0f)*10)+(low_unit&0x0f));
     return 1;
 }
 
@@ -685,7 +687,7 @@ INT8U Event_3100(INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 		INT32U crrentnum = prginfo_event->event_obj.Event3100_obj.crrentnum;
 		INT8U index=0;
 		//标准数据单元
-		Get_StandardUnit(0x3100,Save_buf,&index,crrentnum,NULL,s_null);
+		Get_StandardUnit(prginfo_event,0x3100,Save_buf,&index,crrentnum,NULL,s_null);
 		//无关联数据
 		Save_buf[STANDARD_NUM_INDEX]+=0;
 		//存储更改后得参数
@@ -724,7 +726,7 @@ INT8U Event_3101(INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 		INT32U crrentnum = prginfo_event->event_obj.Event3101_obj.crrentnum;
 		INT8U index=0;
 		//标准数据单元
-		Get_StandardUnit(0x3101,Save_buf,&index,crrentnum,NULL,s_null);
+		Get_StandardUnit(prginfo_event,0x3101,Save_buf,&index,crrentnum,NULL,s_null);
 		//取共享内存或文件
 		//事件发生前软件版本号
 		Save_buf[index++]=dtvisiblestring;//visible-string 4
@@ -778,7 +780,7 @@ INT8U Event_3104(INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 		INT32U crrentnum = prginfo_event->event_obj.Event3104_obj.crrentnum;
 		INT8U index=0;
 		//标准数据单元
-		Get_StandardUnit(0x3104,Save_buf,&index,crrentnum,NULL,s_null);
+		Get_StandardUnit(prginfo_event,0x3104,Save_buf,&index,crrentnum,NULL,s_null);
 		//事件发生时间
 		DateTimeBCD ntime;
 		DataTimeGet(&ntime);
@@ -877,7 +879,7 @@ INT8U Event_3105(TSA tsa,INT8U taskno,INT8U* data,INT8U len,ProgramInfo* prginfo
 		INT32U crrentnum = prginfo_event->event_obj.Event3105_obj.event_obj.crrentnum;
 		INT8U index=0;
 		//标准数据单元
-		Get_StandardUnit(0x3105,Save_buf,&index,crrentnum,(INT8U*)&tsa,s_tsa);
+		Get_StandardUnit(prginfo_event,0x3105,Save_buf,&index,crrentnum,(INT8U*)&tsa,s_tsa);
 		//无属性3关联数据
 		Save_buf[STANDARD_NUM_INDEX]+=0;
 		//存储更改后得参数
@@ -967,14 +969,15 @@ void SendERC3106(INT8U flag,INT8U Erctype,ProgramInfo* prginfo_event)
 	INT32U crrentnum = prginfo_event->event_obj.Event3106_obj.event_obj.crrentnum;
 	INT8U index=0;
 	//标准数据单元
-	Get_StandardUnit(0x3106,Save_buf,&index,crrentnum,(INT8U*)&Erctype,s_enum);
+	Get_StandardUnit(prginfo_event,0x3106,Save_buf,&index,crrentnum,(INT8U*)&Erctype,s_enum);
 	//属性标志
 	Save_buf[index++]=dtbitstring;//bit-string
 	Save_buf[index++]=0x08;//len
 	Save_buf[index++]=flag;
 	Save_buf[STANDARD_NUM_INDEX]+=1;
 	//存储更改后得参数
-	saveCoverClass(0x3106,(INT16U)crrentnum,(void *)&prginfo_event->event_obj.Event3106_obj,sizeof(Event3106_Object),event_para_save);
+	int ret=saveCoverClass(0x3106,(INT16U)crrentnum,(void *)&prginfo_event->event_obj.Event3106_obj,sizeof(Event3106_Object),event_para_save);
+	fprintf(stderr,"ret=%d \n");
 	//存储记录集
 	saveCoverClass(0x3106,(INT16U)crrentnum,(void *)Save_buf,(int)index,event_record_save);
 	//存储当前记录值
@@ -1086,12 +1089,14 @@ INT8U Get_meter_powoffon(ProgramInfo* prginfo_event,MeterPower *MeterPowerInfo,I
 		return 0;
 	}
 	//如果有效
-    if((prginfo_event->event_obj.Event3106_obj.poweroff_para_obj.collect_para_obj.collect_flag&0x01) == 1){
+    if(((prginfo_event->event_obj.Event3106_obj.poweroff_para_obj.collect_para_obj.collect_flag>>7)&0x01) == 1){
     	//随机
-    	if((prginfo_event->event_obj.Event3106_obj.poweroff_para_obj.collect_para_obj.collect_flag&0x02) == 2){
+    	if(((prginfo_event->event_obj.Event3106_obj.poweroff_para_obj.collect_para_obj.collect_flag>>6)&0x01) == 1){
+    		fprintf(stderr,"随机选择测量点 \n");
              for(i=0;i<blknum;i++){
             	 if(readParaClass(oi,&meter,i)==1){
             		 if(meter.basicinfo.port.OI == 0xF201){
+            			 fprintf(stderr,"sernum=%d \n",meter.sernum);
 						 MeterPowerInfo[i].ERC3106State = 1;
 						 MeterPowerInfo[i].Valid = 0;
 						 memcpy(&MeterPowerInfo[i].tsa,&meter.basicinfo.addr,TSA_LEN);
@@ -1135,26 +1140,30 @@ INT8U Event_3106(ProgramInfo* prginfo_event,MeterPower *MeterPowerInfo,INT8U *st
 	INT16U recover_voltage_limit=prginfo_event->event_obj.Event3106_obj.poweroff_para_obj.screen_para_obj.recover_voltage_limit;
 	INT16U mintime_space=prginfo_event->event_obj.Event3106_obj.poweroff_para_obj.screen_para_obj.mintime_space;
 	INT16U maxtime_space=prginfo_event->event_obj.Event3106_obj.poweroff_para_obj.screen_para_obj.maxtime_space;
-	//fprintf(stderr,"\n[3106]TermialPowerInfo.ERC3106State=%d \n",TermialPowerInfo.ERC3106State);
+	fprintf(stderr,"\n[3106]TermialPowerInfo.ERC3106State=%d \n",TermialPowerInfo.ERC3106State);
+	if(*state == 2)
+		MeterDiff(prginfo_event,MeterPowerInfo);
+	INT8U off_flag=0,on_flag=0;
 	//判断下电
 	if(TermialPowerInfo.ERC3106State == POWER_START){
-		if(*state == 2)
-			MeterDiff(prginfo_event,MeterPowerInfo);
+
 		//二型集中器没有电池只有电容，所以不能够读出底板是否有电，且二型集中器只有一相电压，停上电事件在硬件复位时不能产生，
 		//所以判断时，需要判断当前电压大于一个定值且小时参数时，产生事件(大于的定时暂定为10v交采已经将实时电压值乘以１０).
 		//fprintf(stderr,"\n[3106]ua=%d ub=%d uc=%d poweroff_happen_vlim=%d available=%d gpio_5V=%d \n",prginfo_event->ACSRealData.Ua
 		//		,prginfo_event->ACSRealData.Ub,prginfo_event->ACSRealData.Uc,poweroff_happen_vlim,prginfo_event->ACSRealData.Available,gpio_5V);
-#ifdef CCTT_II
-		if((prginfo_event->ACSRealData.Available==TRUE)
-				&&(prginfo_event->ACSRealData.Ua>100 && prginfo_event->ACSRealData.Ua<poweroff_happen_vlim))
-#else
-	    //一型集中器
-		if((((prginfo_event->ACSRealData.Ua<poweroff_happen_vlim)&&(prginfo_event->ACSRealData.Ub<poweroff_happen_vlim)
-						&&(prginfo_event->ACSRealData.Uc<poweroff_happen_vlim))&&((prginfo_event->ACSRealData.Ua|prginfo_event->ACSRealData.Ub|prginfo_event->ACSRealData.Uc)>0)&&gpio_5V)
-						||((prginfo_event->ACSRealData.Available == TRUE&&prginfo_event->ACSRealData.Ua==0&&prginfo_event->ACSRealData.Ua<poweroff_happen_vlim)
-								&&(prginfo_event->ACSRealData.Available == TRUE&&prginfo_event->ACSRealData.Ub==0&&prginfo_event->ACSRealData.Ub<poweroff_happen_vlim)
-								&&(prginfo_event->ACSRealData.Available == TRUE&&prginfo_event->ACSRealData.Uc==0&&prginfo_event->ACSRealData.Uc<poweroff_happen_vlim)&&(!gpio_5V)))
-#endif
+		if(prginfo_event->DevicePara[0] == 2){//II型
+			if((prginfo_event->ACSRealData.Available==TRUE)
+							&&(prginfo_event->ACSRealData.Ua>100 && prginfo_event->ACSRealData.Ua<poweroff_happen_vlim))
+				off_flag=1;
+		}else{
+			if((((prginfo_event->ACSRealData.Ua<poweroff_happen_vlim)&&(prginfo_event->ACSRealData.Ub<poweroff_happen_vlim)
+									&&(prginfo_event->ACSRealData.Uc<poweroff_happen_vlim))&&((prginfo_event->ACSRealData.Ua|prginfo_event->ACSRealData.Ub|prginfo_event->ACSRealData.Uc)>0)&&gpio_5V)
+									||((prginfo_event->ACSRealData.Available == TRUE&&prginfo_event->ACSRealData.Ua==0&&prginfo_event->ACSRealData.Ua<poweroff_happen_vlim)
+											&&(prginfo_event->ACSRealData.Available == TRUE&&prginfo_event->ACSRealData.Ub==0&&prginfo_event->ACSRealData.Ub<poweroff_happen_vlim)
+											&&(prginfo_event->ACSRealData.Available == TRUE&&prginfo_event->ACSRealData.Uc==0&&prginfo_event->ACSRealData.Uc<poweroff_happen_vlim)&&(!gpio_5V)))
+				off_flag=1;
+		}
+        if(off_flag == 1)
 		{
 			off_time++;
 			if(off_time <5)
@@ -1172,15 +1181,16 @@ INT8U Event_3106(ProgramInfo* prginfo_event,MeterPower *MeterPowerInfo,INT8U *st
 	}else if(TermialPowerInfo.ERC3106State == POWER_OFF){
 		//fprintf(stderr,"\n[3106] ua=%d ub=%d uc=%d recover_voltage_limit=%d Available=%d \n",prginfo_event->ACSRealData.Ua
 	//			,prginfo_event->ACSRealData.Ub,prginfo_event->ACSRealData.Uc,recover_voltage_limit,prginfo_event->ACSRealData.Available);
-		//II型
-#ifdef CCTT_II
-		if((prginfo_event->ACSRealData.Available && prginfo_event->ACSRealData.Ua>recover_voltage_limit))
-#else
-        //I型
-		if((prginfo_event->ACSRealData.Available&&prginfo_event->ACSRealData.Ua>recover_voltage_limit)
-        			||(prginfo_event->ACSRealData.Available&&prginfo_event->ACSRealData.Ua>recover_voltage_limit)
-        				||(prginfo_event->ACSRealData.Available&&prginfo_event->ACSRealData.Ua>recover_voltage_limit))
-#endif
+		if(prginfo_event->DevicePara[0] == 2){//II型
+			if((prginfo_event->ACSRealData.Available && prginfo_event->ACSRealData.Ua>recover_voltage_limit))
+				on_flag=1;
+		}else{
+			if((prginfo_event->ACSRealData.Available&&prginfo_event->ACSRealData.Ua>recover_voltage_limit)
+			        			||(prginfo_event->ACSRealData.Available&&prginfo_event->ACSRealData.Ua>recover_voltage_limit)
+			        				||(prginfo_event->ACSRealData.Available&&prginfo_event->ACSRealData.Ua>recover_voltage_limit))
+				on_flag=1;
+		}
+		if(on_flag == 1)
 		{
 			TermialPowerInfo.ERC3106State = POWER_ON;
 			localtime_r((const time_t*)&time_of_now, &TermialPowerInfo.PoweronTime);
@@ -1212,7 +1222,6 @@ INT8U Event_3106(ProgramInfo* prginfo_event,MeterPower *MeterPowerInfo,INT8U *st
 		}
 	}else{
 		int interval = difftime(mktime(&TermialPowerInfo.PoweronTime),mktime(&TermialPowerInfo.PoweroffTime));
-		//fprintf(stderr,"TermialPowerInfo.Valid =%d\r\n",TermialPowerInfo.Valid);
 		if(TermialPowerInfo.Valid == POWER_OFF_VALIDE)
 		{
 			fprintf(stderr,"\nTermialPowerInfo.Valid=%d",TermialPowerInfo.Valid);
@@ -1293,7 +1302,7 @@ INT8U Event_3107(INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 			INT8U index=0;
 			//标准数据单元
 			INT8U oad[4]={0xF2,0x04,0x02,0x00};
-			Get_StandardUnit(0x3107,Save_buf,&index,crrentnum,(INT8U*)oad,s_oad);
+			Get_StandardUnit(prginfo_event,0x3107,Save_buf,&index,crrentnum,(INT8U*)oad,s_oad);
 			//属性3无关联数据
 			Save_buf[STANDARD_NUM_INDEX]+=0;
 			//存储更改后得参数
@@ -1340,7 +1349,7 @@ INT8U Event_3108(INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 			INT8U index=0;
 			//标准数据单元
 			INT8U oad[4]={0xF2,0x04,0x02,0x00};
-			Get_StandardUnit(0x3108,Save_buf,&index,crrentnum,(INT8U*)oad,s_oad);
+			Get_StandardUnit(prginfo_event,0x3108,Save_buf,&index,crrentnum,(INT8U*)oad,s_oad);
 			//属性3无关联数据
 			Save_buf[STANDARD_NUM_INDEX]+=0;
 			//存储更改后得参数
@@ -1381,7 +1390,7 @@ INT8U Event_3109(INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 		INT32U crrentnum = prginfo_event->event_obj.Event3109_obj.crrentnum;
 		INT8U index=0;
 		//标准数据单元
-		Get_StandardUnit(0x3109,Save_buf,&index,crrentnum,NULL,s_null);
+		Get_StandardUnit(prginfo_event,0x3109,Save_buf,&index,crrentnum,NULL,s_null);
 		//事件发生前安全认证密码
 		Save_buf[index++]=dtvisiblestring;//visable-string
 		Save_buf[index++]=len;
@@ -1424,7 +1433,7 @@ INT8U Event_310A(MachineError_type errtype,ProgramInfo* prginfo_event) {
     INT32U crrentnum = prginfo_event->event_obj.Event310A_obj.crrentnum;
     INT8U index=0;
 	//标准数据单元
-	Get_StandardUnit(0x310A,Save_buf,&index,crrentnum,(INT8U*)&Source,s_enum);
+	Get_StandardUnit(prginfo_event,0x310A,Save_buf,&index,crrentnum,(INT8U*)&Source,s_enum);
 	//无属性3关联数据
 	Save_buf[STANDARD_NUM_INDEX]+=0;
 	//存储更改后得参数
@@ -1476,7 +1485,7 @@ INT8U Event_310B(TSA tsa, INT8U taskno,INT8U* data,INT8U len,ProgramInfo* prginf
 		INT32U crrentnum = prginfo_event->event_obj.Event310B_obj.event_obj.crrentnum;
 		INT8U index=0;
 		//标准数据单元
-		Get_StandardUnit(0x310B,Save_buf,&index,crrentnum,(INT8U*)&tsa,s_tsa);
+		Get_StandardUnit(prginfo_event,0x310B,Save_buf,&index,crrentnum,(INT8U*)&tsa,s_tsa);
 		//属性3有关联数据
 		Save_buf[index++]=dtdoublelongunsigned;//double-long-unsigned
 		Save_buf[index++]=(olddata>>24)&0x000000ff;
@@ -1569,7 +1578,7 @@ INT8U Event_310C(TSA tsa, INT8U taskno,INT8U* data,INT8U len,ProgramInfo* prginf
 			INT32U crrentnum = prginfo_event->event_obj.Event310C_obj.event_obj.crrentnum;
 			INT8U index=0;
 			//标准数据单元
-			Get_StandardUnit(0x310C,Save_buf,&index,crrentnum,(INT8U*)&tsa,s_tsa);
+			Get_StandardUnit(prginfo_event,0x310C,Save_buf,&index,crrentnum,(INT8U*)&tsa,s_tsa);
 			//属性3有关联数据
 			Save_buf[index++]=dtdoublelongunsigned;//double-long-unsigned
 			Save_buf[index++]=(olddata>>24)&0x000000ff;
@@ -1663,7 +1672,7 @@ INT8U Event_310D(TSA tsa, INT8U taskno,INT8U* data,INT8U len,ProgramInfo* prginf
 			INT32U crrentnum = prginfo_event->event_obj.Event310D_obj.event_obj.crrentnum;
 			INT8U index=0;
 			//标准数据单元
-			Get_StandardUnit(0x310D,Save_buf,&index,crrentnum,(INT8U*)&tsa,s_tsa);
+			Get_StandardUnit(prginfo_event,0x310D,Save_buf,&index,crrentnum,(INT8U*)&tsa,s_tsa);
 			//属性3有关联数据
 			Save_buf[index++]=dtdoublelongunsigned;//double-long-unsigned
 			Save_buf[index++]=(olddata>>24)&0x000000ff;
@@ -1754,7 +1763,7 @@ INT8U Event_310E(TSA tsa, INT8U taskno,INT8U* data,INT8U len,ProgramInfo* prginf
 		    INT32U crrentnum = prginfo_event->event_obj.Event310E_obj.event_obj.crrentnum;
 			INT8U index=0;
 			//标准数据单元
-			Get_StandardUnit(0x310E,Save_buf,&index,crrentnum,(INT8U*)&tsa,s_tsa);
+			Get_StandardUnit(prginfo_event,0x310E,Save_buf,&index,crrentnum,(INT8U*)&tsa,s_tsa);
 			//属性3有关联数据
 			Save_buf[index++]=dtdoublelongunsigned;//double-long-unsigned
 			Save_buf[index++]=(olddata>>24)&0x000000ff;
@@ -1799,7 +1808,7 @@ INT8U Event_310F(TSA tsa, INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 	INT32U crrentnum = prginfo_event->event_obj.Event310F_obj.event_obj.crrentnum;
 	INT8U index=0;
 	//标准数据单元
-	Get_StandardUnit(0x310F,Save_buf,&index,crrentnum,(INT8U*)&tsa,s_tsa);
+	Get_StandardUnit(prginfo_event,0x310F,Save_buf,&index,crrentnum,(INT8U*)&tsa,s_tsa);
 	//属性3有关联数据
 	//最近一次抄表成功时间
 	Save_buf[index++]=dtdatetimes;//datetime-s
@@ -1862,7 +1871,7 @@ INT8U Event_3110(INT32U data,INT8U len,ProgramInfo* prginfo_event) {
 			INT32U crrentnum = prginfo_event->event_obj.Event3110_obj.event_obj.crrentnum;
 			INT8U index=0;
 			//标准数据单元
-			Get_StandardUnit(0x3110,Save_buf,&index,crrentnum,NULL,s_null);
+			Get_StandardUnit(prginfo_event,0x3110,Save_buf,&index,crrentnum,NULL,s_null);
 			//属性3有关联数据
 			//事件发生后已发生通信流量 //22004202
 			Save_buf[index++]=dtdoublelongunsigned;//double-long-unsiged
@@ -1916,7 +1925,7 @@ INT8U Event_3111(TSA tsa, INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 	INT32U crrentnum = prginfo_event->event_obj.Event3111_obj.crrentnum;
 	INT8U index=0;
 	//标准数据单元
-	Get_StandardUnit(0x3111,Save_buf,&index,crrentnum,NULL,s_null);
+	Get_StandardUnit(prginfo_event,0x3111,Save_buf,&index,crrentnum,NULL,s_null);
 	//搜表结果集
 	Save_buf[index++]=dtarray;//array
 	Save_buf[index++]=1;//默认搜到一个就产生事件
@@ -1984,7 +1993,7 @@ INT8U Event_3112(TSA tsa, INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 	INT32U crrentnum = prginfo_event->event_obj.Event3112_obj.crrentnum;
 	INT8U index=0;
 	//标准数据单元
-	Get_StandardUnit(0x3112,Save_buf,&index,crrentnum,NULL,s_null);
+	Get_StandardUnit(prginfo_event,0x3112,Save_buf,&index,crrentnum,NULL,s_null);
 	//结果集
 	Save_buf[index++]=dtarray;//array
 	Save_buf[index++]=1;//默认搜到一个就产生事件
@@ -2044,7 +2053,7 @@ INT8U Event_311A(TSA tsa, INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 		INT32U crrentnum = prginfo_event->event_obj.Event311A_obj.event_obj.crrentnum;
 		INT8U index=0;
 		//标准数据单元
-		Get_StandardUnit(0x311A,Save_buf,&index,crrentnum,NULL,s_null);
+		Get_StandardUnit(prginfo_event,0x311A,Save_buf,&index,crrentnum,NULL,s_null);
 		//状态变迁事件
 		Save_buf[index++]=dtarray;//array
 		Save_buf[index++]=1;//默认一个状态变迁事件
@@ -2096,7 +2105,7 @@ INT8U Event_311B(TSA tsa, INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 		INT32U crrentnum = prginfo_event->event_obj.Event311B_obj.crrentnum;
 		INT8U index=0;
 		//标准数据单元
-		Get_StandardUnit(0x311B,Save_buf,&index,crrentnum,(INT8U*)&tsa,s_tsa);
+		Get_StandardUnit(prginfo_event,0x311B,Save_buf,&index,crrentnum,(INT8U*)&tsa,s_tsa);
 		//校时前时钟    date_time_s
 		Save_buf[index++]=dtdatetimes;
 		memcpy(&Save_buf[index],data,7);
@@ -2141,7 +2150,7 @@ INT8U Event_311C(TSA tsa, INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 		INT32U crrentnum = prginfo_event->event_obj.Event311C_obj.event_obj.crrentnum;
 		INT8U index=0;
 		//标准数据单元
-		Get_StandardUnit(0x311C,Save_buf,&index,crrentnum,(INT8U*)&tsa,s_tsa);
+		Get_StandardUnit(prginfo_event,0x311C,Save_buf,&index,crrentnum,(INT8U*)&tsa,s_tsa);
 		//监控数据对象  CSD 前台data，抄表直接组好，包括数据类型，因为是变长，只能这样处理，直接拷贝。
 		memcpy(&Save_buf[index],data,len);
 		index+=len;
@@ -2183,7 +2192,7 @@ INT8U Event_3114(DateTimeBCD data,ProgramInfo* prginfo_event) {
 		INT32U crrentnum = prginfo_event->event_obj.Event3114_obj.crrentnum;
 		INT8U index=0;
 		//标准数据单元
-		Get_StandardUnit(0x3114,Save_buf,&index,crrentnum,NULL,s_null);
+		Get_StandardUnit(prginfo_event,0x3114,Save_buf,&index,crrentnum,NULL,s_null);
 		//事件发生前对时时间
 		Save_buf[index++]=dtdatetimes;
 		Save_buf[index++] = ((data.year.data>>8)&0x00ff);
@@ -2269,7 +2278,7 @@ INT8U Event_3117(INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 		INT32U crrentnum = prginfo_event->event_obj.Event3117_obj.crrentnum;
 		INT8U index=0;
 		//标准数据单元
-		Get_StandardUnit(0x3117,Save_buf,&index,crrentnum,NULL,s_null);
+		Get_StandardUnit(prginfo_event,0x3117,Save_buf,&index,crrentnum,NULL,s_null);
 		//无属性3关联数据
 		Save_buf[STANDARD_NUM_INDEX]+=0;
 		//存储更改后得参数
@@ -2308,7 +2317,7 @@ INT8U Event_3118(INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 		INT32U crrentnum = prginfo_event->event_obj.Event3118_obj.crrentnum;
 		INT8U index=0;
 		//标准数据单元
-		Get_StandardUnit(0x3118,Save_buf,&index,crrentnum,NULL,s_null);
+		Get_StandardUnit(prginfo_event,0x3118,Save_buf,&index,crrentnum,NULL,s_null);
 		//array OAD
 	    Save_buf[index++]=dtarray;//array
 	    Save_buf[index++]=data[0];//数量
@@ -2355,7 +2364,7 @@ INT8U Event_301B(INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 		INT32U crrentnum = prginfo_event->event_obj.Event301B_obj.crrentnum;
 		INT8U index=0;
 		//标准数据单元
-		Get_StandardUnit(0x301B,Save_buf,&index,crrentnum,NULL,s_null);
+		Get_StandardUnit(prginfo_event,0x301B,Save_buf,&index,crrentnum,NULL,s_null);
 
 		//存储更改后得参数
 		saveCoverClass(0x301B,(INT16U)crrentnum,(void *)&prginfo_event->event_obj.Event301B_obj,sizeof(Class7_Object),event_para_save);
@@ -2392,7 +2401,7 @@ INT8U Event_3119(INT8U type, INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 		INT32U crrentnum = prginfo_event->event_obj.Event3119_obj.crrentnum;
 		INT8U index=0;
 		//标准数据单元
-		Get_StandardUnit(0x3119,Save_buf,&index,crrentnum,(INT8U*)&type,s_enum);
+		Get_StandardUnit(prginfo_event,0x3119,Save_buf,&index,crrentnum,(INT8U*)&type,s_enum);
 		//属性3无关联数据
 		Save_buf[STANDARD_NUM_INDEX]+=0;
 		//存储更改后得参数
@@ -2431,7 +2440,7 @@ INT8U Event_3200(INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 		INT32U crrentnum = prginfo_event->event_obj.Event3200_obj.crrentnum;
 		INT8U index=0;
 		//标准数据单元
-		Get_StandardUnit(0x3200,Save_buf,&index,crrentnum,(INT8U*)data,s_oi);
+		Get_StandardUnit(prginfo_event,0x3200,Save_buf,&index,crrentnum,(INT8U*)data,s_oi);
 		//事件发生后2分钟功率long64
 	    Save_buf[index++]=dtlong64;//long64
 	    //data[0].data[1]为OI
@@ -2490,7 +2499,7 @@ INT8U Event_3201(INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 		INT32U crrentnum = prginfo_event->event_obj.Event3201_obj.crrentnum;
 		INT8U index=0;
 		//标准数据单元
-		Get_StandardUnit(0x3201,Save_buf,&index,crrentnum,(INT8U*)data,s_oi);
+		Get_StandardUnit(prginfo_event,0x3201,Save_buf,&index,crrentnum,(INT8U*)data,s_oi);
         //控制对象OI
         Save_buf[index++]=dtoi;//OI
         memcpy(&Save_buf[index],&data[2],2);
@@ -2545,7 +2554,7 @@ INT8U Event_3202(INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 		INT32U crrentnum = prginfo_event->event_obj.Event3202_obj.crrentnum;
 		INT8U index=0;
 		//标准数据单元
-		Get_StandardUnit(0x3202,Save_buf,&index,crrentnum,(INT8U*)oi,s_oi);
+		Get_StandardUnit(prginfo_event,0x3202,Save_buf,&index,crrentnum,(INT8U*)oi,s_oi);
 		//属性3无关联数据
 		Save_buf[STANDARD_NUM_INDEX]+=0;
 		//存储更改后得参数
@@ -2585,7 +2594,7 @@ INT8U Event_3203(INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 		INT32U crrentnum = prginfo_event->event_obj.Event3203_obj.crrentnum;
 		INT8U index=0;
 		//标准数据单元
-		Get_StandardUnit(0x3203,Save_buf,&index,crrentnum,(INT8U*)data,s_oi);
+		Get_StandardUnit(prginfo_event,0x3203,Save_buf,&index,crrentnum,(INT8U*)data,s_oi);
 		//控制对象OI
 		Save_buf[index++]=dtoi;//OI
 		memcpy(&Save_buf[index],&data[2],2);
@@ -2619,7 +2628,7 @@ INT8U Event_300F(ProgramInfo* prginfo_event) {
 		readCoverClass(0x300F,0,&prginfo_event->event_obj.Event300F_obj,sizeof(prginfo_event->event_obj.Event300F_obj),event_para_save);
 		oi_chg.oi300F = prginfo_event->oi_changed.oi300F;
 	}
-    fprintf(stderr,"[300F] enableflag=%d \n",prginfo_event->event_obj.Event300F_obj.event_obj.enableflag);
+   // fprintf(stderr,"[300F] enableflag=%d \n",prginfo_event->event_obj.Event300F_obj.event_obj.enableflag);
     if (prginfo_event->event_obj.Event300F_obj.event_obj.enableflag == 0) {
         return 0;
     }
@@ -2627,7 +2636,7 @@ INT8U Event_300F(ProgramInfo* prginfo_event) {
     INT8U offset=prginfo_event->event_obj.Event300F_obj.offset;
     static TS starttime,nowtime;
     static INT8U first=0,happenflag=0;
-    fprintf(stderr,"[300F]Sflag=%02x \n",prginfo_event->ACSRealData.SFlag);
+    //fprintf(stderr,"[300F]Sflag=%02x \n",prginfo_event->ACSRealData.SFlag);
     if(((prginfo_event->ACSRealData.SFlag>>3)&0x01)>0){
     	if(first == 0){
     		TSGet(&starttime);
@@ -2647,7 +2656,7 @@ INT8U Event_300F(ProgramInfo* prginfo_event) {
 			INT32U crrentnum = prginfo_event->event_obj.Event300F_obj.event_obj.crrentnum;
 			INT8U index=0;
 			//标准数据单元
-			Get_StandardUnit(0x300F,Save_buf,&index,crrentnum,NULL,s_null);
+			Get_StandardUnit(prginfo_event,0x300F,Save_buf,&index,crrentnum,NULL,s_null);
 			//无关联数据
 			Save_buf[STANDARD_NUM_INDEX]+=0;
 			//存储更改后得参数
@@ -2706,7 +2715,7 @@ INT8U Event_3010(ProgramInfo* prginfo_event) {
 			INT32U crrentnum = prginfo_event->event_obj.Event3010_obj.event_obj.crrentnum;
 			INT8U index=0;
 			//标准数据单元
-			Get_StandardUnit(0x3010,Save_buf,&index,crrentnum,NULL,s_null);
+			Get_StandardUnit(prginfo_event,0x3010,Save_buf,&index,crrentnum,NULL,s_null);
 			//无关联数据
 			Save_buf[STANDARD_NUM_INDEX]+=0;
 			//存储更改后得参数

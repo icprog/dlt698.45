@@ -60,6 +60,7 @@ extern void read485_proccess();
 
 mqd_t mqd_485_1_task;
 mqd_t mqd_485_2_task;
+mqd_t mqd_zb_task;
 struct mq_attr attr_485_main;
 struct mq_attr attr_485_1_task;
 struct mq_attr attr_485_2_task;
