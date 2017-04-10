@@ -71,6 +71,8 @@ int InitPro(ProgramInfo** prginfo, int argc, char *argv[])
 int InitPara()
 {
 	InitACSPara();
+	InitClass6000();				//初始化交采采集档案
+	InitClass4016();				//初始化当前套日时段表
 	read_oif203_para();		//开关量输入值读取
 	return 0;
 }
