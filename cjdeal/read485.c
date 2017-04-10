@@ -442,12 +442,13 @@ INT32S open_com_para_chg(INT8U port, INT32U baud, INT32S oldcomfd, unsigned char
 		CloseCom(oldcomfd);
 		sleep(1);
 	}
-#ifdef CCTT_II
-	if (port==1)
-		port = 2;
-	else if (port==2)
-		port = 1;
-#endif
+	if(JProgramInfo->DevicePara[0] == 2)
+	{
+		if (port==1)
+			port = 2;
+		else if (port==2)
+			port = 1;
+	}
 	fprintf(stderr,"\n open_com_para_chg port = %d baud = %d newfd = %d",port,baud, newfd);
 
 	newfd = OpenCom(port, baud,par,stopb,bits);
@@ -1789,16 +1790,21 @@ INT8S dealProxyType7(PROXY_GETLIST getlist,INT8U port485)
 	memset(&RecvBuff[0], 0, 256);
 
 	SendDataTo485(port485, getlist.transcmd.cmdbuf, getlist.transcmd.cmdlen);
-	RecvLen = ReceDataFrom485(DLT_645_07,port485, 500, RecvBuff);
+	RecvLen = ReceDataFrom485(DLT_698,port485, 500, RecvBuff);
+	fprintf(stderr,"\n代理透传　RecvLen = %d\n",RecvLen);
 	if(RecvLen > 0)
 	{
-		memcpy(getlist.data,RecvBuff,RecvLen);
+		OADtoBuff(getlist.transcmd.oad,getlist.data);
+		getlist.data[4] = 1;
+		memcpy(&getlist.data[5],RecvBuff,RecvLen);
+		getlist.datalen = RecvLen + 5;
 		mqs_send((INT8S *)PROXY_NET_MQ_NAME,1,TERMINALPROXY_RESPONSE,(INT8U *)&getlist,sizeof(PROXY_GETLIST));
 	}
 	else
 	{
-		getlist.datalen = 1;
-		memset(getlist.data,0,512);
+		OADtoBuff(getlist.transcmd.oad,getlist.data);
+		getlist.data[4] = 0;
+		getlist.datalen = 5;
 		mqs_send((INT8S *)PROXY_NET_MQ_NAME,1,ProxySetResponseList,(INT8U *)&getlist,sizeof(PROXY_GETLIST));
 	}
 	return result;
@@ -2000,9 +2006,27 @@ INT8S readMeterPowerInfo()
 							INT8U apduDataStartIndex = 0;
 							INT8U getResponseType = analyzeProtocol698(recvbuff,&csdNum,recvLen,&apduDataStartIndex,&dataLen);
 							fprintf(stderr,"\n getResponseType = %d  csdNum = %d dataLen = %d \n",getResponseType,csdNum,dataLen);
+
 							if(getResponseType > 0)
 							{
 								deal698RequestResponse(0,getResponseType,dataLen,csdNum,&recvbuff[apduDataStartIndex],dataContent,st6015.csds,obj6001,0);
+							    bufsyslog(dataContent, "停上电:", dataLen, 0, dataLen);
+								MeterPowerInfo[meterIndex].PoweroffTime.tm_year = (dataContent[6]<<8) + dataContent[7] - 1900;
+								MeterPowerInfo[meterIndex].PoweroffTime.tm_mon = dataContent[8] -1;
+								MeterPowerInfo[meterIndex].PoweroffTime.tm_mday = dataContent[9];
+								MeterPowerInfo[meterIndex].PoweroffTime.tm_hour = dataContent[10];
+								MeterPowerInfo[meterIndex].PoweroffTime.tm_min = dataContent[11];
+								MeterPowerInfo[meterIndex].PoweroffTime.tm_sec = dataContent[12];
+
+								MeterPowerInfo[meterIndex].PoweronTime.tm_year = (dataContent[13]<<8) + dataContent[14] - 1900;
+								MeterPowerInfo[meterIndex].PoweronTime.tm_mon =  dataContent[15] -1;
+								MeterPowerInfo[meterIndex].PoweronTime.tm_mday = dataContent[16];
+								MeterPowerInfo[meterIndex].PoweronTime.tm_hour = dataContent[17];
+								MeterPowerInfo[meterIndex].PoweronTime.tm_min = dataContent[18];
+								MeterPowerInfo[meterIndex].PoweronTime.tm_sec = dataContent[19];
+
+								MeterPowerInfo[meterIndex].Valid = 1;
+
 								break;
 							}
 
