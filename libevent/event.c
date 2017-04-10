@@ -974,7 +974,8 @@ void SendERC3106(INT8U flag,INT8U Erctype,ProgramInfo* prginfo_event)
 	Save_buf[index++]=flag;
 	Save_buf[STANDARD_NUM_INDEX]+=1;
 	//存储更改后得参数
-	saveCoverClass(0x3106,(INT16U)crrentnum,(void *)&prginfo_event->event_obj.Event3106_obj,sizeof(Event3106_Object),event_para_save);
+	int ret=saveCoverClass(0x3106,(INT16U)crrentnum,(void *)&prginfo_event->event_obj.Event3106_obj,sizeof(Event3106_Object),event_para_save);
+	fprintf(stderr,"ret=%d \n");
 	//存储记录集
 	saveCoverClass(0x3106,(INT16U)crrentnum,(void *)Save_buf,(int)index,event_record_save);
 	//存储当前记录值
@@ -1086,12 +1087,14 @@ INT8U Get_meter_powoffon(ProgramInfo* prginfo_event,MeterPower *MeterPowerInfo,I
 		return 0;
 	}
 	//如果有效
-    if((prginfo_event->event_obj.Event3106_obj.poweroff_para_obj.collect_para_obj.collect_flag&0x01) == 1){
+    if(((prginfo_event->event_obj.Event3106_obj.poweroff_para_obj.collect_para_obj.collect_flag>>7)&0x01) == 1){
     	//随机
-    	if((prginfo_event->event_obj.Event3106_obj.poweroff_para_obj.collect_para_obj.collect_flag&0x02) == 2){
+    	if(((prginfo_event->event_obj.Event3106_obj.poweroff_para_obj.collect_para_obj.collect_flag>>6)&0x01) == 1){
+    		fprintf(stderr,"随机选择测量点 \n");
              for(i=0;i<blknum;i++){
             	 if(readParaClass(oi,&meter,i)==1){
             		 if(meter.basicinfo.port.OI == 0xF201){
+            			 fprintf(stderr,"sernum=%d \n",meter.sernum);
 						 MeterPowerInfo[i].ERC3106State = 1;
 						 MeterPowerInfo[i].Valid = 0;
 						 memcpy(&MeterPowerInfo[i].tsa,&meter.basicinfo.addr,TSA_LEN);
@@ -1135,11 +1138,12 @@ INT8U Event_3106(ProgramInfo* prginfo_event,MeterPower *MeterPowerInfo,INT8U *st
 	INT16U recover_voltage_limit=prginfo_event->event_obj.Event3106_obj.poweroff_para_obj.screen_para_obj.recover_voltage_limit;
 	INT16U mintime_space=prginfo_event->event_obj.Event3106_obj.poweroff_para_obj.screen_para_obj.mintime_space;
 	INT16U maxtime_space=prginfo_event->event_obj.Event3106_obj.poweroff_para_obj.screen_para_obj.maxtime_space;
-	//fprintf(stderr,"\n[3106]TermialPowerInfo.ERC3106State=%d \n",TermialPowerInfo.ERC3106State);
+	fprintf(stderr,"\n[3106]TermialPowerInfo.ERC3106State=%d \n",TermialPowerInfo.ERC3106State);
+	if(*state == 2)
+		MeterDiff(prginfo_event,MeterPowerInfo);
 	//判断下电
 	if(TermialPowerInfo.ERC3106State == POWER_START){
-		if(*state == 2)
-			MeterDiff(prginfo_event,MeterPowerInfo);
+
 		//二型集中器没有电池只有电容，所以不能够读出底板是否有电，且二型集中器只有一相电压，停上电事件在硬件复位时不能产生，
 		//所以判断时，需要判断当前电压大于一个定值且小时参数时，产生事件(大于的定时暂定为10v交采已经将实时电压值乘以１０).
 		//fprintf(stderr,"\n[3106]ua=%d ub=%d uc=%d poweroff_happen_vlim=%d available=%d gpio_5V=%d \n",prginfo_event->ACSRealData.Ua
@@ -2619,7 +2623,9 @@ INT8U Event_300F(ProgramInfo* prginfo_event) {
 		readCoverClass(0x300F,0,&prginfo_event->event_obj.Event300F_obj,sizeof(prginfo_event->event_obj.Event300F_obj),event_para_save);
 		oi_chg.oi300F = prginfo_event->oi_changed.oi300F;
 	}
+
 //    fprintf(stderr,"[300F] enableflag=%d \n",prginfo_event->event_obj.Event300F_obj.event_obj.enableflag);
+
     if (prginfo_event->event_obj.Event300F_obj.event_obj.enableflag == 0) {
         return 0;
     }
@@ -2627,7 +2633,7 @@ INT8U Event_300F(ProgramInfo* prginfo_event) {
     INT8U offset=prginfo_event->event_obj.Event300F_obj.offset;
     static TS starttime,nowtime;
     static INT8U first=0,happenflag=0;
-    fprintf(stderr,"[300F]Sflag=%02x \n",prginfo_event->ACSRealData.SFlag);
+    //fprintf(stderr,"[300F]Sflag=%02x \n",prginfo_event->ACSRealData.SFlag);
     if(((prginfo_event->ACSRealData.SFlag>>3)&0x01)>0){
     	if(first == 0){
     		TSGet(&starttime);

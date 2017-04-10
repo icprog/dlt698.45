@@ -8,7 +8,11 @@ DIROBJ=/nand/bin
 LIBOBJ=/nor/lib
 TMPDIR=/nand/UpFiles
 ls
+rm -rf cjgwn
+rm -f update.sh
 rm -f $APPDIRSRC/app.tar.gz
+cp ../bin_arm/* ./app/
+cp ../config/* ./app/
 tar -cvf app.tar *
 gzip -9 app.tar
 rm -f $SHNAMEPATH
@@ -22,9 +26,17 @@ echo "cp "$TMPDIR"/app/*.cfg /nor/config/" >> $SHNAMEPATH
 echo "===" >> $SHNAMEPATH
 echo "chmod +x "$DIROBJ"/*"  >> $SHNAMEPATH
 echo "echo update finished!!!" >> $SHNAMEPATH
-echo "================" >> $SHNAMEPATH
+echo "rm -rf app" >> $SHNAMEPATH
 echo "exit" >> $SHNAMEPATH
 cat  $APPDIRSRC/app.tar.gz >> $SHNAMEPATH
 rm -f $APPDIRSRC/app.tar.gz
 chmod +x  $SHNAMEPATH
 
+mkdir cjgwn
+mkdir cjgwn/app
+cp update.sh ./cjgwn/app/
+cp rc.local ./cjgwn/
+
+echo "cp /dos/cjgwn/app/update.sh /nand/UpFiles/update.sh" >> "./cjgwn/update.sh"
+echo "cp /dos/cjgwn/rc.local /nor/rc.d/rc.local" >> ./cjgwn/update.sh
+echo "echo reboot >> /nand/UpFiles/reboot" >> ./cjgwn/update.sh
