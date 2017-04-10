@@ -2963,8 +2963,23 @@ INT16S getTaskIndex(INT8U port)
 			}
 		}
 		break;
-	case 31:
-
+		case 31:
+		{
+			if(mqd_zb_task < 0)
+			{
+				fprintf(stderr,"mqd_zb_task:mq_open_ret=%d\n",mqd_zb_task);
+				return taskIndex;
+			}
+			ret = mmq_get(mqd_zb_task, 1, &mq_h, rev_485_buf);
+			if(ret > 0)
+			{
+				//fprintf(stderr,"mqd_zb_task 接受消息 mq_h.cmd = %d rev_485_buf[0] = %d",mq_h.cmd,rev_485_buf[0]);
+				if(mq_h.cmd ==1)
+				{
+					taskIndex  = rev_485_buf[0];
+				}
+			}
+		}
 		break;
 		default:
 		{
