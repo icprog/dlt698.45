@@ -398,7 +398,8 @@ INT8U init6013ListFrom6012File() {
 			{
 				memcpy(&list6013[total_tasknum].basicInfo, &class6013, sizeof(CLASS_6013));
 				time_t timenow = time(NULL);
-				list6013[total_tasknum].ts_next  = timenow;
+				list6013[total_tasknum].ts_next  = calcnexttime(list6013[total_tasknum].basicInfo.interval,list6013[total_tasknum].basicInfo.startime);
+				//TODO
 				total_tasknum++;
 			}
 		}

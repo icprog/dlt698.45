@@ -61,12 +61,15 @@ time_t calcnexttime(TI ti,DateTimeBCD datetime)
 				return timenow;
 			}
 		}
-		else//间隔 月 或者 年
+		else//间隔日 月 或者 年
 		{
 			TS tmNext;
 			TSGet(&tmNext);
 			tminc(&tmNext, ti.units,1);
-			tmNext.Day = datetime.day.data;
+			if(ti.interval != day_units)
+			{
+				tmNext.Day = datetime.day.data;
+			}
 			tmNext.Hour = datetime.hour.data;
 			tmNext.Minute = datetime.min.data;
 			tmNext.Sec = datetime.sec.data;

@@ -65,8 +65,7 @@ struct mq_attr attr_485_main;
 struct mq_attr attr_485_1_task;
 struct mq_attr attr_485_2_task;
 
-INT32S comfd4851;
-INT32S comfd4852;
+INT32S comfd485[2];
 INT8U i485port1;
 INT8U readState;//是否正在处理实时消息
 INT8U i485port2;
