@@ -149,8 +149,6 @@ INT8U Report_Event(CommBlock *com,INT8U *oiarr,INT8U report_type){
 		free(data);
 
 	if(com->f101.active == 1){
-		int i=0;
-
 		sendbuf_report[index++]=16; //SECURIGY-REQUEST
 		sendbuf_report[index++]=0;  //明文应用数据单元
 		tem_buf[temindex++] = 0;//跟随上报信息域 	FollowReport
