@@ -2009,24 +2009,31 @@ INT8S readMeterPowerInfo()
 
 							if(getResponseType > 0)
 							{
-								deal698RequestResponse(0,getResponseType,dataLen,csdNum,&recvbuff[apduDataStartIndex],dataContent,st6015.csds,obj6001,0);
-							    bufsyslog(dataContent, "停上电:", dataLen, 0, dataLen);
-								MeterPowerInfo[meterIndex].PoweroffTime.tm_year = (dataContent[6]<<8) + dataContent[7] - 1900;
-								MeterPowerInfo[meterIndex].PoweroffTime.tm_mon = dataContent[8] -1;
-								MeterPowerInfo[meterIndex].PoweroffTime.tm_mday = dataContent[9];
-								MeterPowerInfo[meterIndex].PoweroffTime.tm_hour = dataContent[10];
-								MeterPowerInfo[meterIndex].PoweroffTime.tm_min = dataContent[11];
-								MeterPowerInfo[meterIndex].PoweroffTime.tm_sec = dataContent[12];
+								if(recvbuff[apduDataStartIndex+4] == 1)
+								{
+									fprintf(stderr,"\n readMeterPowerInfo datacontent = ");
+									INT8U prtIndex = 0;
+									for(prtIndex = 0;prtIndex < dataLen;prtIndex++)
+									{
+										fprintf(stderr,"%02x ",recvbuff[apduDataStartIndex]);
+									}
+									MeterPowerInfo[meterIndex].PoweroffTime.tm_year = (recvbuff[9]<<8) + recvbuff[10] - 1900;
+									MeterPowerInfo[meterIndex].PoweroffTime.tm_mon = recvbuff[11] -1;
+									MeterPowerInfo[meterIndex].PoweroffTime.tm_mday = recvbuff[12];
+									MeterPowerInfo[meterIndex].PoweroffTime.tm_hour = recvbuff[13];
+									MeterPowerInfo[meterIndex].PoweroffTime.tm_min = recvbuff[14];
+									MeterPowerInfo[meterIndex].PoweroffTime.tm_sec = recvbuff[15];
 
-								MeterPowerInfo[meterIndex].PoweronTime.tm_year = (dataContent[13]<<8) + dataContent[14] - 1900;
-								MeterPowerInfo[meterIndex].PoweronTime.tm_mon =  dataContent[15] -1;
-								MeterPowerInfo[meterIndex].PoweronTime.tm_mday = dataContent[16];
-								MeterPowerInfo[meterIndex].PoweronTime.tm_hour = dataContent[17];
-								MeterPowerInfo[meterIndex].PoweronTime.tm_min = dataContent[18];
-								MeterPowerInfo[meterIndex].PoweronTime.tm_sec = dataContent[19];
+									MeterPowerInfo[meterIndex].PoweronTime.tm_year = (recvbuff[16]<<8) + recvbuff[17] - 1900;
+									MeterPowerInfo[meterIndex].PoweronTime.tm_mon =  recvbuff[18] -1;
+									MeterPowerInfo[meterIndex].PoweronTime.tm_mday = recvbuff[19];
+									MeterPowerInfo[meterIndex].PoweronTime.tm_hour = recvbuff[20];
+									MeterPowerInfo[meterIndex].PoweronTime.tm_min = recvbuff[21];
+									MeterPowerInfo[meterIndex].PoweronTime.tm_sec = recvbuff[22];
 
-								MeterPowerInfo[meterIndex].Valid = 1;
+									MeterPowerInfo[meterIndex].Valid = 1;
 
+								}
 								break;
 							}
 
