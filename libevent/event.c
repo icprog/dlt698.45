@@ -1143,6 +1143,7 @@ INT8U Event_3106(ProgramInfo* prginfo_event,MeterPower *MeterPowerInfo,INT8U *st
 	fprintf(stderr,"\n[3106]TermialPowerInfo.ERC3106State=%d \n",TermialPowerInfo.ERC3106State);
 	if(*state == 2)
 		MeterDiff(prginfo_event,MeterPowerInfo);
+	INT8U off_flag=0,on_flag=0;
 	//判断下电
 	if(TermialPowerInfo.ERC3106State == POWER_START){
 
@@ -1150,17 +1151,19 @@ INT8U Event_3106(ProgramInfo* prginfo_event,MeterPower *MeterPowerInfo,INT8U *st
 		//所以判断时，需要判断当前电压大于一个定值且小时参数时，产生事件(大于的定时暂定为10v交采已经将实时电压值乘以１０).
 		//fprintf(stderr,"\n[3106]ua=%d ub=%d uc=%d poweroff_happen_vlim=%d available=%d gpio_5V=%d \n",prginfo_event->ACSRealData.Ua
 		//		,prginfo_event->ACSRealData.Ub,prginfo_event->ACSRealData.Uc,poweroff_happen_vlim,prginfo_event->ACSRealData.Available,gpio_5V);
-#ifdef CCTT_II
-		if((prginfo_event->ACSRealData.Available==TRUE)
-				&&(prginfo_event->ACSRealData.Ua>100 && prginfo_event->ACSRealData.Ua<poweroff_happen_vlim))
-#else
-	    //一型集中器
-		if((((prginfo_event->ACSRealData.Ua<poweroff_happen_vlim)&&(prginfo_event->ACSRealData.Ub<poweroff_happen_vlim)
-						&&(prginfo_event->ACSRealData.Uc<poweroff_happen_vlim))&&((prginfo_event->ACSRealData.Ua|prginfo_event->ACSRealData.Ub|prginfo_event->ACSRealData.Uc)>0)&&gpio_5V)
-						||((prginfo_event->ACSRealData.Available == TRUE&&prginfo_event->ACSRealData.Ua==0&&prginfo_event->ACSRealData.Ua<poweroff_happen_vlim)
-								&&(prginfo_event->ACSRealData.Available == TRUE&&prginfo_event->ACSRealData.Ub==0&&prginfo_event->ACSRealData.Ub<poweroff_happen_vlim)
-								&&(prginfo_event->ACSRealData.Available == TRUE&&prginfo_event->ACSRealData.Uc==0&&prginfo_event->ACSRealData.Uc<poweroff_happen_vlim)&&(!gpio_5V)))
-#endif
+		if(prginfo_event->DevicePara[0] == 2){//II型
+			if((prginfo_event->ACSRealData.Available==TRUE)
+							&&(prginfo_event->ACSRealData.Ua>100 && prginfo_event->ACSRealData.Ua<poweroff_happen_vlim))
+				off_flag=1;
+		}else{
+			if((((prginfo_event->ACSRealData.Ua<poweroff_happen_vlim)&&(prginfo_event->ACSRealData.Ub<poweroff_happen_vlim)
+									&&(prginfo_event->ACSRealData.Uc<poweroff_happen_vlim))&&((prginfo_event->ACSRealData.Ua|prginfo_event->ACSRealData.Ub|prginfo_event->ACSRealData.Uc)>0)&&gpio_5V)
+									||((prginfo_event->ACSRealData.Available == TRUE&&prginfo_event->ACSRealData.Ua==0&&prginfo_event->ACSRealData.Ua<poweroff_happen_vlim)
+											&&(prginfo_event->ACSRealData.Available == TRUE&&prginfo_event->ACSRealData.Ub==0&&prginfo_event->ACSRealData.Ub<poweroff_happen_vlim)
+											&&(prginfo_event->ACSRealData.Available == TRUE&&prginfo_event->ACSRealData.Uc==0&&prginfo_event->ACSRealData.Uc<poweroff_happen_vlim)&&(!gpio_5V)))
+				off_flag=1;
+		}
+        if(off_flag == 1)
 		{
 			off_time++;
 			if(off_time <5)
@@ -1178,15 +1181,16 @@ INT8U Event_3106(ProgramInfo* prginfo_event,MeterPower *MeterPowerInfo,INT8U *st
 	}else if(TermialPowerInfo.ERC3106State == POWER_OFF){
 		//fprintf(stderr,"\n[3106] ua=%d ub=%d uc=%d recover_voltage_limit=%d Available=%d \n",prginfo_event->ACSRealData.Ua
 	//			,prginfo_event->ACSRealData.Ub,prginfo_event->ACSRealData.Uc,recover_voltage_limit,prginfo_event->ACSRealData.Available);
-		//II型
-#ifdef CCTT_II
-		if((prginfo_event->ACSRealData.Available && prginfo_event->ACSRealData.Ua>recover_voltage_limit))
-#else
-        //I型
-		if((prginfo_event->ACSRealData.Available&&prginfo_event->ACSRealData.Ua>recover_voltage_limit)
-        			||(prginfo_event->ACSRealData.Available&&prginfo_event->ACSRealData.Ua>recover_voltage_limit)
-        				||(prginfo_event->ACSRealData.Available&&prginfo_event->ACSRealData.Ua>recover_voltage_limit))
-#endif
+		if(prginfo_event->DevicePara[0] == 2){//II型
+			if((prginfo_event->ACSRealData.Available && prginfo_event->ACSRealData.Ua>recover_voltage_limit))
+				on_flag=1;
+		}else{
+			if((prginfo_event->ACSRealData.Available&&prginfo_event->ACSRealData.Ua>recover_voltage_limit)
+			        			||(prginfo_event->ACSRealData.Available&&prginfo_event->ACSRealData.Ua>recover_voltage_limit)
+			        				||(prginfo_event->ACSRealData.Available&&prginfo_event->ACSRealData.Ua>recover_voltage_limit))
+				on_flag=1;
+		}
+		if(on_flag == 1)
 		{
 			TermialPowerInfo.ERC3106State = POWER_ON;
 			localtime_r((const time_t*)&time_of_now, &TermialPowerInfo.PoweronTime);
@@ -1218,7 +1222,6 @@ INT8U Event_3106(ProgramInfo* prginfo_event,MeterPower *MeterPowerInfo,INT8U *st
 		}
 	}else{
 		int interval = difftime(mktime(&TermialPowerInfo.PoweronTime),mktime(&TermialPowerInfo.PoweroffTime));
-		//fprintf(stderr,"TermialPowerInfo.Valid =%d\r\n",TermialPowerInfo.Valid);
 		if(TermialPowerInfo.Valid == POWER_OFF_VALIDE)
 		{
 			fprintf(stderr,"\nTermialPowerInfo.Valid=%d",TermialPowerInfo.Valid);
