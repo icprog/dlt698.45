@@ -1051,6 +1051,44 @@ void read_engergy_regist(TS ts,INT32S fp)
 	sum_reactive_energy(ts,nRate,realdata.PFlag,QFeatureWord1,QFeatureWord2,energycurr.PosQt,energycurr.NegQt,&energysum);
 }
 
+INT8U getACSConnectype()
+{
+	if(JProgramInfo->dev_info.ac_chip_type == 0x820900) {
+		return 1;	//单相
+	}else if(JProgramInfo->dev_info.WireType == 0x1200) {
+		return 2;	//三相三线
+	}else if(JProgramInfo->dev_info.WireType == 0x0600) {
+		return 3;	//三相四线
+	}
+	return 0;
+}
+/*
+ * 初始化采集配置单元
+ * */
+void InitClass6000()
+{
+	CLASS_6001	 meter={};
+	int readret=0;
+	static INT8U ACS_TSA[8]={0x08,0x05,0x00,0x00,0x00,0x00,0x00,0x01};//[0]=08,TSA长度 [1]=05,05+1=地址长度，交采地址：000000000001
+
+	readret = readParaClass(0x6000,&meter,1);
+	if(readret!=1) {
+		memset(&meter,0,sizeof(CLASS_6001));
+		meter.sernum = 1;
+		memcpy(meter.basicinfo.addr.addr,ACS_TSA,sizeof(ACS_TSA));
+		meter.basicinfo.baud = 3;
+		meter.basicinfo.protocol = 3;
+		meter.basicinfo.port.OI = 0xF208;
+		meter.basicinfo.port.attflg = 0x02;
+		meter.basicinfo.port.attrindex = 0x01;
+		meter.basicinfo.ratenum = MAXVAL_RATENUM;
+		meter.basicinfo.connectype = getACSConnectype();
+		meter.basicinfo.ratedU = 2200;
+		meter.basicinfo.ratedI = 1500;
+		saveParaClass(0x6000,&meter,meter.sernum);
+	}
+}
+
 /*
  * 初始化当前套日时段表
  * */
@@ -1432,7 +1470,6 @@ void InitACSPara()
 	InitACSCoef();					//读交采数据
 	InitACSEnergy();				//电能量初值
 	device_id = InitACSChip();		//初始化芯片类型
-	InitClass4016();				//初始化当前套日时段表
 	JProgramInfo->dev_info.ac_chip_type = device_id;
 	JProgramInfo->dev_info.WireType = attCoef.WireType;
 	fprintf(stderr,"计量芯片版本：%06X, 接线方式=%X(0600:三相四，1200：三相三)\n",JProgramInfo->dev_info.ac_chip_type,JProgramInfo->dev_info.WireType);
