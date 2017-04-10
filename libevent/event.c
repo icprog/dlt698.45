@@ -2628,9 +2628,7 @@ INT8U Event_300F(ProgramInfo* prginfo_event) {
 		readCoverClass(0x300F,0,&prginfo_event->event_obj.Event300F_obj,sizeof(prginfo_event->event_obj.Event300F_obj),event_para_save);
 		oi_chg.oi300F = prginfo_event->oi_changed.oi300F;
 	}
-
-//    fprintf(stderr,"[300F] enableflag=%d \n",prginfo_event->event_obj.Event300F_obj.event_obj.enableflag);
-
+   // fprintf(stderr,"[300F] enableflag=%d \n",prginfo_event->event_obj.Event300F_obj.event_obj.enableflag);
     if (prginfo_event->event_obj.Event300F_obj.event_obj.enableflag == 0) {
         return 0;
     }
