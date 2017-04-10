@@ -616,6 +616,7 @@ void dispatch_thread()
 			//fprintf(stderr,"\n 向485 2线程发送任务ID = %d \n",ret);
 			ret = mqs_send((INT8S *)TASKID_485_1_MQ_NAME,cjdeal,1,(INT8U *)&tastIndex,sizeof(INT16S));
 			//fprintf(stderr,"\n 向485 1线程发送任务ID = %d \n",ret);
+			ret = mqs_send((INT8S *)TASKID_plc_MQ_NAME,cjdeal,1,(INT8U *)&tastIndex,sizeof(INT16S));
 			//TODO
 			list6013[tastIndex].run_flg = 0;
 
@@ -684,7 +685,7 @@ int main(int argc, char *argv[])
 	//统计计算 电压合格率 停电事件等
 	calc_proccess();
 	//载波
-	//readplc_proccess();
+	readplc_proccess();
 	//液晶、控制
 	guictrl_proccess();
 	//交采
