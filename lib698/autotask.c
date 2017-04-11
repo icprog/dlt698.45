@@ -66,9 +66,9 @@ time_t calcnexttime(TI ti,DateTimeBCD datetime)
 			TS tmNext;
 			TSGet(&tmNext);
 			fprintf(stderr,"\n\n ti.interval = %d",ti.interval);
-			fprintf(stderr,"\n\n&&&&&&&&&&下次开始时间--------1 %d-%d-%d %d:%d:%d",tmNext.Year,tmNext.Month,tmNext.Day,tmNext.Hour,tmNext.Minute,tmNext.Sec);
+
 			tminc(&tmNext, ti.units,1);
-			fprintf(stderr,"\n\n********下次开始时间--------1 %d-%d-%d %d:%d:%d",tmNext.Year,tmNext.Month,tmNext.Day,tmNext.Hour,tmNext.Minute,tmNext.Sec);
+
 			if(ti.units != day_units)
 			{
 				tmNext.Day = datetime.day.data;
@@ -77,7 +77,8 @@ time_t calcnexttime(TI ti,DateTimeBCD datetime)
 			tmNext.Minute = datetime.min.data;
 			tmNext.Sec = datetime.sec.data;
 			timeret = tmtotime_t(tmNext);//开始时间
-				return timeret;
+			fprintf(stderr,"\n\n********下次开始时间--------1 %d-%d-%d %d:%d:%d",tmNext.Year,tmNext.Month,tmNext.Day,tmNext.Hour,tmNext.Minute,tmNext.Sec);
+			return timeret;
 		}
 
 	}else
