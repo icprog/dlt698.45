@@ -10,6 +10,7 @@
 
 extern void SetApn(int argc, char *argv[]);
 extern void SetUsrPwd(int argc, char *argv[]);
+extern void setOnlineMode(int argc, char* argv[]);
 
 extern void SetIPort(int argc, char *argv[]);
 extern void SetNetIPort(int argc, char* argv[]);

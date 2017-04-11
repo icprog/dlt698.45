@@ -59,7 +59,7 @@ void print_road(ROAD road)
 {
 	int w=0;
 
-	asyslog(LOG_INFO,"ROAD:%04x-%02x%02x ",road.oad.OI,road.oad.attflg,road.oad.attrindex);
+//	asyslog(LOG_INFO,"ROAD:%04x-%02x%02x ",road.oad.OI,road.oad.attflg,road.oad.attrindex);
 	fprintf(stderr,"ROAD:%04x-%02x%02x ",road.oad.OI,road.oad.attflg,road.oad.attrindex);
 	if(road.num >= 16) {
 		fprintf(stderr,"csd overvalue 16 error\n");

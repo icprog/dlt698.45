@@ -229,7 +229,7 @@ int delClassBySeq(OI_698 oi,void *blockdata,int seqnum)
 		}
 	}
 	ret = save_block_file((char *)class_info[infoi].file_name,blockdata,class_info[infoi].unit_len,class_info[infoi].interface_len,seqnum);
-	free(blockdata);
+	if(blockdata!=NULL)		free(blockdata);
 	CloseSem(sem_save);
 	return ret;
 }

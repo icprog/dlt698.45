@@ -388,10 +388,6 @@ void getFileName(OI_698 oi,INT16U seqno,INT16U type,char *fname)
 		makeSubDir(INITDIR);
 		sprintf(fname,"%s/%04x.par",INITDIR,oi);
 		break;
-
-		makeSubDir(PARADIR);
-		sprintf(fname,"%s/%04x.par",INITDIR,oi);
-		break;
 	}
 	fprintf(stderr,"getFileName fname=%s\n",fname);
 }

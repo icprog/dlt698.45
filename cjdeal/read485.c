@@ -502,18 +502,18 @@ INT8S use6013find6015or6017(INT8U cjType,INT16U fanganID, CLASS_6015* st6015)
 
 			memset(st6015,0,sizeof(CLASS_6015));
 			st6015->cjtype = TYPE_LAST;
-			st6015->csds.num = st6017.roads.num;
+			st6015->csds.num = st6017.collstyle.roads.num;
 			st6015->deepsize = st6017.deepsize;
 			st6015->sernum = st6017.sernum;
 			memcpy(&st6015->mst,&st6017.ms,sizeof(MY_MS));
 			INT8U csdIndex = 0;
 
-			for(csdIndex = 0;csdIndex < st6017.roads.num;csdIndex++)
+			for(csdIndex = 0;csdIndex < st6017.collstyle.roads.num;csdIndex++)
 			{
 				st6015->csds.csd[csdIndex].type = 1;
-				st6015->csds.csd[csdIndex].csd.road.oad.OI = st6017.roads.road[csdIndex].oad.OI;
-				st6015->csds.csd[csdIndex].csd.road.oad.attflg = st6017.roads.road[csdIndex].oad.attflg;
-				st6015->csds.csd[csdIndex].csd.road.oad.attrindex= st6017.roads.road[csdIndex].oad.attrindex;
+				st6015->csds.csd[csdIndex].csd.road.oad.OI = st6017.collstyle.roads.road[csdIndex].oad.OI;
+				st6015->csds.csd[csdIndex].csd.road.oad.attflg = st6017.collstyle.roads.road[csdIndex].oad.attflg;
+				st6015->csds.csd[csdIndex].csd.road.oad.attrindex= st6017.collstyle.roads.road[csdIndex].oad.attrindex;
 
 				//TSA
 				st6015->csds.csd[csdIndex].csd.road.oads[0].OI = 0x202a;
@@ -529,26 +529,26 @@ INT8S use6013find6015or6017(INT8U cjType,INT16U fanganID, CLASS_6015* st6015)
 				st6015->csds.csd[csdIndex].csd.road.oads[2].attrindex = 0x00;
 				INT8U oadIndex = 0;
 				INT8U samenum = 0;
-				for(oadIndex = 0;oadIndex < st6017.roads.road[csdIndex].num;oadIndex++)
+				for(oadIndex = 0;oadIndex < st6017.collstyle.roads.road[csdIndex].num;oadIndex++)
 				{
-					if((st6017.roads.road[csdIndex].oads[oadIndex].OI == 0x201e)
-						||(st6017.roads.road[csdIndex].oads[oadIndex].OI == 0x2020)
-						||(st6017.roads.road[csdIndex].oads[oadIndex].OI == 0x202A))
+					if((st6017.collstyle.roads.road[csdIndex].oads[oadIndex].OI == 0x201e)
+						||(st6017.collstyle.roads.road[csdIndex].oads[oadIndex].OI == 0x2020)
+						||(st6017.collstyle.roads.road[csdIndex].oads[oadIndex].OI == 0x202A))
 					{
 						samenum++;
 						continue;
 					}
 					else
 					{
-						st6015->csds.csd[csdIndex].csd.road.oads[oadIndex+3].OI = st6017.roads.road[csdIndex].oads[oadIndex].OI;
-						st6015->csds.csd[csdIndex].csd.road.oads[oadIndex+3].attflg = st6017.roads.road[csdIndex].oads[oadIndex].attflg;
-						st6015->csds.csd[csdIndex].csd.road.oads[oadIndex+3].attrindex = st6017.roads.road[csdIndex].oads[oadIndex].attrindex;
+						st6015->csds.csd[csdIndex].csd.road.oads[oadIndex+3].OI = st6017.collstyle.roads.road[csdIndex].oads[oadIndex].OI;
+						st6015->csds.csd[csdIndex].csd.road.oads[oadIndex+3].attflg = st6017.collstyle.roads.road[csdIndex].oads[oadIndex].attflg;
+						st6015->csds.csd[csdIndex].csd.road.oads[oadIndex+3].attrindex = st6017.collstyle.roads.road[csdIndex].oads[oadIndex].attrindex;
 
 					}
 				}
 				//加上一个事件记录
 
-				st6015->csds.csd[csdIndex].csd.road.num = st6017.roads.road[csdIndex].num + 3 - samenum;
+				st6015->csds.csd[csdIndex].csd.road.num = st6017.collstyle.roads.road[csdIndex].num + 3 - samenum;
 			}
 			fprintf(stderr,"\n\n\n---------------------事件采集方案---------------------------\n");
 			print6015(*st6015);

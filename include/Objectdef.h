@@ -320,10 +320,25 @@ typedef struct {
     INT8U savetimeflag;           //存储时标选择 enum
 } CLASS_6015;                     //普通采集方案
 
+//原协议内容
+//typedef struct {
+//    //	INT8U name[OCTET_STRING_LEN];		//参数变量接口类逻辑名
+//    INT8U sernum;     //方案序号
+//    ARRAY_ROAD roads; //采集的事件数据
+//    MY_MS ms;         //采集类型
+//    INT8U ifreport;   //上报标识
+//    INT16U deepsize;  //存储深度
+//} CLASS_6017;         //事件采集方案
+
+typedef struct {
+	INT8U	colltype;		//采集类型   0 array ROAD 周期采集事件数据 	1 NULL 根据通知采集所有事件数据 	2 array ROAD 根据通知采集指定事件数据
+    ARRAY_ROAD roads; 		//采集的事件数据
+}COLL_STYLE;	//采集方式
+//勘误修订后
 typedef struct {
     //	INT8U name[OCTET_STRING_LEN];		//参数变量接口类逻辑名
-    INT8U sernum;     //方案序号
-    ARRAY_ROAD roads; //采集的事件数据
+    INT8U sernum;     		//方案序号
+    COLL_STYLE	collstyle; //采集方式
     MY_MS ms;         //采集类型
     INT8U ifreport;   //上报标识
     INT16U deepsize;  //存储深度
