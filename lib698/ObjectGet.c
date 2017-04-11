@@ -991,6 +991,7 @@ int doGetrecord(INT8U type,OAD oad,INT8U *data,RESULT_RECORD *record,INT16U *sub
 	printrecord(*record);
 	dest_index += create_OAD(0,&record->data[dest_index],record->oad);
 	const static OI_698 oi[]={0x2022,0x201e,0x2020,0x2024};
+	INT8U oihead=((record->oad.OI & 0xF000) >>12);
 	switch(SelectorN) {
 	case 1:		//指定对象指定值
 		*subframe = 0;		//TODO:未处理分帧
@@ -1012,7 +1013,7 @@ int doGetrecord(INT8U type,OAD oad,INT8U *data,RESULT_RECORD *record,INT16U *sub
 		record->datalen += dest_index;			//数据长度+ResultRecord
 	break;
 	case 2:
-		INT8U oihead=((record->oad.OI & 0xF000) >>12);
+
 		if(oihead == 3){
 			*subframe = 0;		//TODO:未处理分帧
 			TmpDataBuf[dest_index++] = 4;
