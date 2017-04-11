@@ -844,19 +844,19 @@ void Array_OAD_Items(CJ_FANGAN *fangAn)
 	}
 	if(fangAn->type == events)
 	{
-		DbgPrintToFile1(31,"事件方案6017 road num=%d",fangAn->to6017.roads.num);
-		for(i=0; i< fangAn->to6017.roads.num; i++)
+		DbgPrintToFile1(31,"事件方案6017 road num=%d",fangAn->to6017.collstyle.roads.num);
+		for(i=0; i< fangAn->to6017.collstyle.roads.num; i++)
 		{
-			DbgPrintToFile1(31,"事件方案6017 roads %d 的 num=%d",i,fangAn->to6017.roads.road[i].num);
-			for(j=0;j<fangAn->to6017.roads.road[i].num;j++)
+			DbgPrintToFile1(31,"事件方案6017 roads %d 的 num=%d",i,fangAn->to6017.collstyle.roads.road[i].num);
+			for(j=0;j<fangAn->to6017.collstyle.roads.road[i].num;j++)
 			{
-				fangAn->items[num].oad1 = fangAn->to6017.roads.road[i].oad;
-				fangAn->items[num].oad2 = fangAn->to6017.roads.road[i].oads[j];
+				fangAn->items[num].oad1 = fangAn->to6017.collstyle.roads.road[i].oad;
+				fangAn->items[num].oad2 = fangAn->to6017.collstyle.roads.road[i].oads[j];
 				num++;
 				if (num >= FANGAN_ITEM_MAX ) return;
 			}
 		}
-		fprintf(stderr,"\n事件采集方案 %d [ROAD]",fangAn->to6017.roads.num);
+		fprintf(stderr,"\n事件采集方案 %d [ROAD]",fangAn->to6017.collstyle.roads.num);
 	}
 	fangAn->item_n = num;
 

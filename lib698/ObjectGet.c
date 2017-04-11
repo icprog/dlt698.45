@@ -892,12 +892,13 @@ int getSel1_freeze(RESULT_RECORD *record)
 			}
 		}else {
 			record->data[index] = 0;
+			index++;
 		}
 	}
 
-	if(index==0) {	//0条记录     [1] SEQUENCE OF A-RecordRow
-		record->data[0] = 0;
-	}
+//	if(index==0) {	//0条记录     [1] SEQUENCE OF A-RecordRow
+//		record->data[0] = 0;
+//	}
 	record->datalen = index;
 	fprintf(stderr,"\nrecord->datalen = %d",record->datalen);
 	return ret;
