@@ -892,13 +892,12 @@ int getSel1_freeze(RESULT_RECORD *record)
 			}
 		}else {
 			record->data[index] = 0;
-			index++;
 		}
 	}
 
-//	if(index==0) {	//0条记录     [1] SEQUENCE OF A-RecordRow
-//		record->data[0] = 0;
-//	}
+	if(index==0) {	//0条记录     [1] SEQUENCE OF A-RecordRow
+		record->data[0] = 0;
+	}
 	record->datalen = index;
 	fprintf(stderr,"\nrecord->datalen = %d",record->datalen);
 	return ret;
@@ -991,6 +990,7 @@ int doGetrecord(INT8U type,OAD oad,INT8U *data,RESULT_RECORD *record,INT16U *sub
 	fprintf(stderr,"\n- getRequestRecord SelectorN=%d OI = %04x  attrib=%d  index=%d",SelectorN,record->oad.OI,record->oad.attflg,record->oad.attrindex);
 	printrecord(*record);
 	dest_index += create_OAD(0,&record->data[dest_index],record->oad);
+	const static OI_698 oi[]={0x2022,0x201e,0x2020,0x2024};
 	switch(SelectorN) {
 	case 1:		//指定对象指定值
 		*subframe = 0;		//TODO:未处理分帧
@@ -1011,6 +1011,25 @@ int doGetrecord(INT8U type,OAD oad,INT8U *data,RESULT_RECORD *record,INT16U *sub
 		record->data = TmpDataBuf;				//data 指向回复报文帧头
 		record->datalen += dest_index;			//数据长度+ResultRecord
 	break;
+	case 2:
+		INT8U oihead=((record->oad.OI & 0xF000) >>12);
+		if(oihead == 3){
+			*subframe = 0;		//TODO:未处理分帧
+			TmpDataBuf[dest_index++] = 4;
+			INT8U ai=0;
+			for(ai=0;ai<4;ai++){
+				TmpDataBuf[dest_index++] = 0;
+				TmpDataBuf[dest_index++] = (oi[ai]>>8)&0x00ff;
+				TmpDataBuf[dest_index++] = oi[ai]&0x00ff;
+				TmpDataBuf[dest_index++] = 2;
+				TmpDataBuf[dest_index++] = 0;
+			}
+			record->data = &TmpDataBuf[dest_index];
+			Getevent_Record_Selector(record,memp);
+			record->data = TmpDataBuf;				//data 指向回复报文帧头
+			record->datalen += dest_index;			//数据长度+ResultRecord
+		}
+		break;
 	case 5:
 	case 7:
 		dest_index +=fill_RCSD(0,&record->data[dest_index],record->rcsd.csds);
@@ -1029,19 +1048,7 @@ int doGetrecord(INT8U type,OAD oad,INT8U *data,RESULT_RECORD *record,INT16U *sub
 			}
 		}
 		break;
-	case 2:
-		*subframe = 0;		//TODO:未处理分帧
-		TmpDataBuf[dest_index++] = 1;
-		TmpDataBuf[dest_index++] = 0;
-		TmpDataBuf[dest_index++] = ( record->select.selec2.oad.OI >> 8 ) & 0xff;
-		TmpDataBuf[dest_index++] = record->select.selec2.oad.OI & 0xff;
-		TmpDataBuf[dest_index++] = record->select.selec2.oad.attflg;
-		TmpDataBuf[dest_index++] = record->select.selec2.oad.attrindex;
-		record->data = &TmpDataBuf[dest_index];
-		Getevent_Record_Selector(record,memp);
-		record->data = TmpDataBuf;				//data 指向回复报文帧头
-		record->datalen += dest_index;			//数据长度+ResultRecord
-		break;
+
 	case 9:		//指定读取上第n次记录
 		*subframe = 0;		//TODO:未处理分帧
 		dest_index +=fill_RCSD(0,&record->data[dest_index],record->rcsd.csds);

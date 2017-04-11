@@ -360,12 +360,13 @@ INT8U Getevent_Record(INT8U event_no,OI_698 *oi_array,INT8U oi_index,INT8U *real
 		 }
 		 if (Getbuf!=NULL)
 			free(Getbuf);
-		 record_para->datalen =*real_index;//最终长度
 	}else{
+		record_para->data[(*real_index)++]=1;
 		record_para->data[(*real_index)++]=0;
 		record_para->dar = 0; //无数据
-		return 0;
 	}
+	fprintf(stderr,"*rel_index=%d \n",*real_index);
+	record_para->datalen =*real_index;//最终长度
 	return 1;
 }
 /*
@@ -400,7 +401,10 @@ INT8U Getevent_Record_Selector(RESULT_RECORD *record_para,ProgramInfo* prginfo_e
 			}
 		 }
 	 }else if(record_para->selectType == 2){
-		 oi_array[oi_index++]=record_para->select.selec2.oad.OI;
+		 oi_array[oi_index++]=0x2022;
+		 oi_array[oi_index++]=0x201e;
+		 oi_array[oi_index++]=0x2020;
+		 oi_array[oi_index++]=0x2024;
 	 }
 	 int j=0;
 	 for(j=0;j<oi_index;j++)
@@ -1045,7 +1049,6 @@ BOOLEAN MeterDiff(ProgramInfo* prginfo_event,MeterPower *MeterPowerInfo)
 	fprintf(stderr,"POWER_OFF_VALIDE\r\n");
 	TermialPowerInfo.Valid = POWER_OFF_VALIDE;
 	filewrite(ERC3106PATH,&TermialPowerInfo,sizeof(TermialPowerInfo));
-
 	return TRUE;
 }
 
@@ -1140,7 +1143,7 @@ INT8U Event_3106(ProgramInfo* prginfo_event,MeterPower *MeterPowerInfo,INT8U *st
 	INT16U recover_voltage_limit=prginfo_event->event_obj.Event3106_obj.poweroff_para_obj.screen_para_obj.recover_voltage_limit;
 	INT16U mintime_space=prginfo_event->event_obj.Event3106_obj.poweroff_para_obj.screen_para_obj.mintime_space;
 	INT16U maxtime_space=prginfo_event->event_obj.Event3106_obj.poweroff_para_obj.screen_para_obj.maxtime_space;
-	fprintf(stderr,"\n[3106]TermialPowerInfo.ERC3106State=%d \n",TermialPowerInfo.ERC3106State);
+//	fprintf(stderr,"\n[3106]TermialPowerInfo.ERC3106State=%d \n",TermialPowerInfo.ERC3106State);
 	if(*state == 2)
 		MeterDiff(prginfo_event,MeterPowerInfo);
 	INT8U off_flag=0,on_flag=0;
@@ -1179,8 +1182,8 @@ INT8U Event_3106(ProgramInfo* prginfo_event,MeterPower *MeterPowerInfo,INT8U *st
 			SendERC3106(flag,0,prginfo_event);
 		}
 	}else if(TermialPowerInfo.ERC3106State == POWER_OFF){
-		//fprintf(stderr,"\n[3106] ua=%d ub=%d uc=%d recover_voltage_limit=%d Available=%d \n",prginfo_event->ACSRealData.Ua
-	//			,prginfo_event->ACSRealData.Ub,prginfo_event->ACSRealData.Uc,recover_voltage_limit,prginfo_event->ACSRealData.Available);
+//		fprintf(stderr,"\n[3106] ua=%d ub=%d uc=%d recover_voltage_limit=%d Available=%d \n",prginfo_event->ACSRealData.Ua
+//				,prginfo_event->ACSRealData.Ub,prginfo_event->ACSRealData.Uc,recover_voltage_limit,prginfo_event->ACSRealData.Available);
 		if(prginfo_event->DevicePara[0] == 2){//II型
 			if((prginfo_event->ACSRealData.Available && prginfo_event->ACSRealData.Ua>recover_voltage_limit))
 				on_flag=1;
@@ -1259,7 +1262,7 @@ INT8U Event_3106(ProgramInfo* prginfo_event,MeterPower *MeterPowerInfo,INT8U *st
 			//如果抄表超时还未抄回,直接上报无效上电事件
 			if(difftime(time_of_now,mktime(&TermialPowerInfo.PoweronTime))>(interval_limit*60))
 			{
-				//fprintf(stderr,"抄电表停上电时间超时未回,上报无效停电事件,interval=%d,shmm_getpara()->f97.poweroff_limit=%d!!!\r\n",interval,shmm_getpara()->f97.poweroff_limit);
+				fprintf(stderr,"抄电表停上电时间超时未回,上报无效停电事件 \n");
 				TermialPowerInfo.Valid = POWER_OFF_INVALIDE;
 				filewrite(ERC3106PATH,&TermialPowerInfo,sizeof(TermialPowerInfo));
 			}
