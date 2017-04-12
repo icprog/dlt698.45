@@ -68,7 +68,7 @@ INT8U fillVacsData(INT8U structnum,INT8U attindex,INT8U datatype,INT32U data1,IN
 		fprintf(stderr,"属性索引值【%d】大于有效限定值【4】!!!",attindex);
 		attindex = 4;
 	}
-	index += create_struct(&responseData[index],structnum);
+	index += create_array(&responseData[index],structnum);
 	memset(data,0,sizeof(data));
 	switch(attindex) {
 	case 0:		//全部属性
@@ -112,10 +112,10 @@ INT8U Get_Vacs(RESULT_NORMAL *response,ProgramInfo* prginfo_acs)
 				prginfo_acs->ACSRealData.Ua,prginfo_acs->ACSRealData.Ub,prginfo_acs->ACSRealData.Uc,0,response->data);
 		break;
 	case 0x2001:	//电流
-		if(response->oad.attrindex==0)		structnum = 3;
+		if(response->oad.attrindex==0)		structnum = 4;
 		else structnum = 1;
 		index += fillVacsData(structnum,response->oad.attrindex,dtdoublelong,
-				prginfo_acs->ACSRealData.Ia,prginfo_acs->ACSRealData.Ib,prginfo_acs->ACSRealData.Ic,0,response->data);
+				prginfo_acs->ACSRealData.Ia,prginfo_acs->ACSRealData.Ib,prginfo_acs->ACSRealData.Ic,prginfo_acs->ACSRealData.I0,response->data);
 		break;
 	case 0x2004:	//有功功率
 		if(response->oad.attrindex==0)		structnum = 4;
