@@ -519,19 +519,24 @@ INT8S use6013find6015or6017(INT8U cjType,INT16U fanganID, CLASS_6015* st6015)
 				st6015->csds.csd[csdIndex].csd.road.oads[0].OI = 0x202a;
 				st6015->csds.csd[csdIndex].csd.road.oads[0].attflg = 0x02;
 				st6015->csds.csd[csdIndex].csd.road.oads[0].attrindex = 0x00;
-				//事件发生时间
-				st6015->csds.csd[csdIndex].csd.road.oads[1].OI = 0x201e;
+				//事件序号
+				st6015->csds.csd[csdIndex].csd.road.oads[1].OI = 0x2022;
 				st6015->csds.csd[csdIndex].csd.road.oads[1].attflg = 0x02;
 				st6015->csds.csd[csdIndex].csd.road.oads[1].attrindex = 0x00;
-				//事件结束时间
-				st6015->csds.csd[csdIndex].csd.road.oads[2].OI = 0x2020;
+				//事件发生时间
+				st6015->csds.csd[csdIndex].csd.road.oads[2].OI = 0x201e;
 				st6015->csds.csd[csdIndex].csd.road.oads[2].attflg = 0x02;
 				st6015->csds.csd[csdIndex].csd.road.oads[2].attrindex = 0x00;
+				//事件结束时间
+				st6015->csds.csd[csdIndex].csd.road.oads[3].OI = 0x2020;
+				st6015->csds.csd[csdIndex].csd.road.oads[3].attflg = 0x02;
+				st6015->csds.csd[csdIndex].csd.road.oads[3].attrindex = 0x00;
 				INT8U oadIndex = 0;
 				INT8U samenum = 0;
 				for(oadIndex = 0;oadIndex < st6017.collstyle.roads.road[csdIndex].num;oadIndex++)
 				{
 					if((st6017.collstyle.roads.road[csdIndex].oads[oadIndex].OI == 0x201e)
+						||(st6017.collstyle.roads.road[csdIndex].oads[oadIndex].OI == 0x2022)
 						||(st6017.collstyle.roads.road[csdIndex].oads[oadIndex].OI == 0x2020)
 						||(st6017.collstyle.roads.road[csdIndex].oads[oadIndex].OI == 0x202A))
 					{
@@ -540,15 +545,15 @@ INT8S use6013find6015or6017(INT8U cjType,INT16U fanganID, CLASS_6015* st6015)
 					}
 					else
 					{
-						st6015->csds.csd[csdIndex].csd.road.oads[oadIndex+3].OI = st6017.collstyle.roads.road[csdIndex].oads[oadIndex].OI;
-						st6015->csds.csd[csdIndex].csd.road.oads[oadIndex+3].attflg = st6017.collstyle.roads.road[csdIndex].oads[oadIndex].attflg;
-						st6015->csds.csd[csdIndex].csd.road.oads[oadIndex+3].attrindex = st6017.collstyle.roads.road[csdIndex].oads[oadIndex].attrindex;
+						st6015->csds.csd[csdIndex].csd.road.oads[oadIndex+4].OI = st6017.collstyle.roads.road[csdIndex].oads[oadIndex].OI;
+						st6015->csds.csd[csdIndex].csd.road.oads[oadIndex+4].attflg = st6017.collstyle.roads.road[csdIndex].oads[oadIndex].attflg;
+						st6015->csds.csd[csdIndex].csd.road.oads[oadIndex+4].attrindex = st6017.collstyle.roads.road[csdIndex].oads[oadIndex].attrindex;
 
 					}
 				}
 				//加上一个事件记录
 
-				st6015->csds.csd[csdIndex].csd.road.num = st6017.collstyle.roads.road[csdIndex].num + 3 - samenum;
+				st6015->csds.csd[csdIndex].csd.road.num = st6017.collstyle.roads.road[csdIndex].num + 4 - samenum;
 			}
 			fprintf(stderr,"\n\n\n---------------------事件采集方案---------------------------\n");
 			print6015(*st6015);
@@ -1688,16 +1693,11 @@ INT8S dealProxyType1(PROXY_GETLIST getlist,INT8U port485)
 	for(index = 0;index < getlist.num;index++)
 	{
 		CLASS_6001 obj6001 = {};
-		INT8U addlen = getlist.objs[index].tsa.addr[0]+1;
-		memcpy(&getlist.data[totalLen],&getlist.objs[index].tsa.addr[0],addlen);
-		totalLen += addlen;
-
 		//通过表地址找 6001
 		if(get6001ObjByTSA(getlist.objs[index].tsa,&obj6001) != 1 )
 		{
 			fprintf(stderr," dealProxy--------2 未找到相应6001");
 			DbgPrintToFile1(port485,"dealProxy--------2 未找到相应6001");
-			getlist.data[totalLen++] = 0;//没有数据
 			continue;
 		}
 
@@ -1713,6 +1713,12 @@ INT8S dealProxyType1(PROXY_GETLIST getlist,INT8U port485)
 			fprintf(stderr,"\n打开串口错误");
 			continue;
 		}
+
+
+		INT8U addlen = getlist.objs[index].tsa.addr[0]+1;
+		memcpy(&getlist.data[totalLen],&getlist.objs[index].tsa.addr[0],addlen);
+		totalLen += addlen;
+
 
 		INT8U portUse = obj6001.basicinfo.port.attrindex;
 		DbgPrintToFile1(port485,"dealProxy--------1 addr:%02x%02x%02x%02x%02x%02x%02x%02x",
@@ -1974,7 +1980,7 @@ INT8S readMeterPowerInfo()
 					st6015.cjtype = TYPE_NULL;
 					st6015.csds.num = 1;
 					st6015.csds.csd[0].type = 0;
-					st6015.csds.csd[0].csd.oad.OI = 0x3106;
+					st6015.csds.csd[0].csd.oad.OI = 0x3011;
 					st6015.csds.csd[0].csd.oad.attflg = 02;
 					st6015.csds.csd[0].csd.oad.attrindex = 01;
 					INT16S sendLen = 0;
@@ -2014,23 +2020,23 @@ INT8S readMeterPowerInfo()
 								{
 									fprintf(stderr,"\n readMeterPowerInfo datacontent = ");
 									INT8U prtIndex = 0;
-									for(prtIndex = 0;prtIndex < dataLen;prtIndex++)
+									for(prtIndex = apduDataStartIndex;prtIndex < dataLen;prtIndex++)
 									{
-										fprintf(stderr,"%02x ",recvbuff[apduDataStartIndex]);
+										fprintf(stderr,"%02x ",recvbuff[prtIndex]);
 									}
-									MeterPowerInfo[meterIndex].PoweroffTime.tm_year = (recvbuff[9]<<8) + recvbuff[10] - 1900;
-									MeterPowerInfo[meterIndex].PoweroffTime.tm_mon = recvbuff[11] -1;
-									MeterPowerInfo[meterIndex].PoweroffTime.tm_mday = recvbuff[12];
-									MeterPowerInfo[meterIndex].PoweroffTime.tm_hour = recvbuff[13];
-									MeterPowerInfo[meterIndex].PoweroffTime.tm_min = recvbuff[14];
-									MeterPowerInfo[meterIndex].PoweroffTime.tm_sec = recvbuff[15];
+									MeterPowerInfo[meterIndex].PoweroffTime.tm_year = (recvbuff[13]<<8) + recvbuff[14] - 1900;
+									MeterPowerInfo[meterIndex].PoweroffTime.tm_mon = recvbuff[15] -1;
+									MeterPowerInfo[meterIndex].PoweroffTime.tm_mday = recvbuff[16];
+									MeterPowerInfo[meterIndex].PoweroffTime.tm_hour = recvbuff[17];
+									MeterPowerInfo[meterIndex].PoweroffTime.tm_min = recvbuff[18];
+									MeterPowerInfo[meterIndex].PoweroffTime.tm_sec = recvbuff[19];
 
-									MeterPowerInfo[meterIndex].PoweronTime.tm_year = (recvbuff[16]<<8) + recvbuff[17] - 1900;
-									MeterPowerInfo[meterIndex].PoweronTime.tm_mon =  recvbuff[18] -1;
-									MeterPowerInfo[meterIndex].PoweronTime.tm_mday = recvbuff[19];
-									MeterPowerInfo[meterIndex].PoweronTime.tm_hour = recvbuff[20];
-									MeterPowerInfo[meterIndex].PoweronTime.tm_min = recvbuff[21];
-									MeterPowerInfo[meterIndex].PoweronTime.tm_sec = recvbuff[22];
+									MeterPowerInfo[meterIndex].PoweronTime.tm_year = (recvbuff[21]<<8) + recvbuff[22] - 1900;
+									MeterPowerInfo[meterIndex].PoweronTime.tm_mon =  recvbuff[23] -1;
+									MeterPowerInfo[meterIndex].PoweronTime.tm_mday = recvbuff[24];
+									MeterPowerInfo[meterIndex].PoweronTime.tm_hour = recvbuff[25];
+									MeterPowerInfo[meterIndex].PoweronTime.tm_min = recvbuff[26];
+									MeterPowerInfo[meterIndex].PoweronTime.tm_sec = recvbuff[27];
 
 									MeterPowerInfo[meterIndex].Valid = 1;
 

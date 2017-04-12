@@ -859,8 +859,7 @@ INT16S fillGetRequestAPDU(INT8U* sendBuf,CLASS_6015 obj6015,INT8U requestType)
 
 		}
 	}
-
-	if((obj6015.cjtype == TYPE_LAST)||(obj6015.cjtype == TYPE_FREEZE))
+	else
 	{
 		for(csdIndex = 0;csdIndex < obj6015.csds.num;csdIndex++)
 		{
@@ -874,6 +873,44 @@ INT16S fillGetRequestAPDU(INT8U* sendBuf,CLASS_6015 obj6015,INT8U requestType)
 					// selector 9
 					sendBuf[length++] = 0x09;//Selector = 9 选取上n条记录
 					sendBuf[length++] = 0x01;//选取上1条记录
+				}
+				if(obj6015.cjtype == TYPE_INTERVAL)
+				{
+					// selector ２
+					sendBuf[length++] = 0x02;//Selector = 1
+					//冻结时标OAD
+					sendBuf[length++] = 0x20;
+					sendBuf[length++] = 0x21;
+					sendBuf[length++] = 0x02;
+					sendBuf[length++] = 0x00;
+
+					DateTimeBCD timeStamp;
+					DataTimeGet(&timeStamp);
+					//开始时间
+					sendBuf[length++] = 0x1c;
+					INT16U tmpTime = timeStamp.year.data;
+					sendBuf[length++] = (tmpTime>>8)&0x00ff;
+					sendBuf[length++] = tmpTime&0x00ff;
+					sendBuf[length++] = timeStamp.month.data;
+					sendBuf[length++] = timeStamp.day.data-1;
+					sendBuf[length++] = 0x00;
+					sendBuf[length++] = 0x00;
+					sendBuf[length++] = 0x00;
+					//结束时间
+					sendBuf[length++] = 0x1c;
+					sendBuf[length++] = (tmpTime>>8)&0x00ff;
+					sendBuf[length++] = tmpTime&0x00ff;
+					sendBuf[length++] = timeStamp.month.data;
+					sendBuf[length++] = timeStamp.day.data;
+					sendBuf[length++] = 0x00;
+					sendBuf[length++] = 0x00;
+					sendBuf[length++] = 0x00;
+					//时间间隔
+					sendBuf[length++] = 0x54;
+					sendBuf[length++] = 0x01;
+					sendBuf[length++] = 0x00;
+					sendBuf[length++] = 0x0f;
+
 				}
 				if(obj6015.cjtype == TYPE_FREEZE)
 				{
@@ -964,6 +1001,7 @@ INT8S getRequestType(INT8U cjtype,INT8U csdcount)
 			requestType = GET_REQUEST_RECORD;
 			break;
 		case TYPE_INTERVAL:
+			requestType = GET_REQUEST_RECORD;
 			break;
 	}
 
