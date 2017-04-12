@@ -347,7 +347,7 @@ INT16U getEsamAttribute(OAD oad,INT8U *retBuff)
 		retLen = Esam_GetTermiInfo(&esamInfo);
 		if(retLen>0)
 			memcpy(&tv_store,&tv_new,sizeof(tv_store));//更新存储时间
-		else return -201;
+		else return 0;
 	}
 	//经过以上的过滤，处理3种情况(第一次进入，时间超时，证书，一下直接从esamInfo中拷贝属性信息)
 	switch(attnum)

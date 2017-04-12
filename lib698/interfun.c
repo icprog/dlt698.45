@@ -59,7 +59,7 @@ void print_road(ROAD road)
 {
 	int w=0;
 
-	asyslog(LOG_INFO,"ROAD:%04x-%02x%02x ",road.oad.OI,road.oad.attflg,road.oad.attrindex);
+//	asyslog(LOG_INFO,"ROAD:%04x-%02x%02x ",road.oad.OI,road.oad.attflg,road.oad.attrindex);
 	fprintf(stderr,"ROAD:%04x-%02x%02x ",road.oad.OI,road.oad.attflg,road.oad.attrindex);
 	if(road.num >= 16) {
 		fprintf(stderr,"csd overvalue 16 error\n");
@@ -97,21 +97,14 @@ int getTItoSec(TI ti)
 	int  sec = 0;
 	switch(ti.units)
 	{
-		case 0://秒
+		case sec_units://秒
 			sec = ti.interval;
 			break;
-		case 1://分
+		case minute_units://分
 			sec = ti.interval * 60;
 			break;
-		case 2://时
+		case hour_units://时
 			sec =  ti.interval * 3600;
-			break;
-		case 3://日
-			sec = ti.interval * 3600 *24;
-			break;
-		case 4://月
-			break;
-		case 5://年
 			break;
 		default:
 			break;

@@ -71,6 +71,8 @@ int InitPro(ProgramInfo** prginfo, int argc, char *argv[])
 int InitPara()
 {
 	InitACSPara();
+	InitClass6000();				//初始化交采采集档案
+	InitClass4016();				//初始化当前套日时段表
 	read_oif203_para();		//开关量输入值读取
 	return 0;
 }
@@ -89,13 +91,20 @@ INT8U time_in_shiduan(TASK_RUN_TIME str_runtime) {
 		min_end = str_runtime.runtime[timePartIndex].endHour * 60
 				+ str_runtime.runtime[timePartIndex].endMin;
 		if (min_start <= min_end) {
-			if ((now_min > min_start) && (now_min < min_end)) {
+			if ((now_min > min_start) && (now_min < min_end))
+			{
 				return 1;
-			} else if (((str_runtime.type & 0x01) == 0x01)
-					&& (now_min == min_end)) {
+			}
+			else if ((str_runtime.type  == 0)&& (now_min == min_start))
+			{
 				return 1;
-			} else if (((str_runtime.type & 0x03) == 0x01)
-					&& (now_min == min_start)) {
+			}
+			else if ((str_runtime.type  == 1)&& (now_min == min_end))
+			{
+				return 1;
+			}
+			else if ((str_runtime.type  == 2)&& ((now_min == min_end)||(now_min == min_start)))
+			{
 				return 1;
 			}
 		}
@@ -206,11 +215,11 @@ INT8U cmpTaskPrio(INT16U taskIndex1, INT16U taskIndex2) {
 
 	if (list6013[taskIndex1].basicInfo.runprio > list6013[taskIndex2].basicInfo.runprio)
 	{
-		return 1;
+		return 2;
 	}
 	else if (list6013[taskIndex1].basicInfo.runprio < list6013[taskIndex2].basicInfo.runprio)
 	{
-		return 2;
+		return 1;
 	}
 	else if (list6013[taskIndex1].basicInfo.interval.units> list6013[taskIndex2].basicInfo.interval.units)
 	{
@@ -248,24 +257,25 @@ INT16S getNextTastIndexIndex() {
 		if (list6013[tIndex].basicInfo.taskID == 0) {
 			continue;
 		}
-//		fprintf(stderr, "\n ---------list6013[%d].basicInfo.taskID = %d ",
-//				tIndex, list6013[tIndex].basicInfo.taskID);
+	//	fprintf(stderr, "\n ---------list6013[%d].basicInfo.taskID = %d ",
+	//			tIndex, list6013[tIndex].basicInfo.taskID);
 		//run_flg > 0说明应该抄读还没有抄
 		if (list6013[tIndex].run_flg > 0) {
-//			fprintf(stderr, "\n  getNextTastIndexIndex-2222");
+	//		fprintf(stderr, "\n  getNextTastIndexIndex-2222");
 			list6013[tIndex].run_flg++;
 		} else {
 			//过滤任务无效或者不再抄表时段内的
 			if (filterInvalidTask(tIndex) == 0) {
-//				fprintf(stderr, "\n  getNextTastIndexIndex-3333");
+	//			fprintf(stderr, "\n  getNextTastIndexIndex-3333");
 				continue;
 			}
 
 			time_t timenow = time(NULL);
+	//		fprintf(stderr, "\n timenow = %d ts_next = %d",timenow, list6013[tIndex].ts_next);
 			if(timenow >= list6013[tIndex].ts_next)
 			{
 				list6013[tIndex].run_flg = 1;
-//				fprintf(stderr, "\n  getNextTastIndexIndex-4444");
+	//		fprintf(stderr, "\n  getNextTastIndexIndex-4444");
 			}
 			else
 			{
@@ -277,14 +287,14 @@ INT16S getNextTastIndexIndex() {
 		{
 			if(list6013[tIndex].run_flg > 0)
 			{
-//				fprintf(stderr, "\n  getNextTastIndexIndex-5555");
+			//	fprintf(stderr, "\n  getNextTastIndexIndex-5555");
 				taskIndex = tIndex;
 			}
 			continue;
 		}
 
 		if (cmpTaskPrio(taskIndex, tIndex) == 2) {
-//			fprintf(stderr, "\n  getNextTastIndexIndex-6666");
+		//	fprintf(stderr, "\n  getNextTastIndexIndex-6666");
 			taskIndex = tIndex;
 			continue;
 		}
@@ -395,8 +405,8 @@ INT8U init6013ListFrom6012File() {
 			else
 			{
 				memcpy(&list6013[total_tasknum].basicInfo, &class6013, sizeof(CLASS_6013));
-				time_t timenow = time(NULL);
-				list6013[total_tasknum].ts_next  = timenow;
+				list6013[total_tasknum].ts_next  = calcnexttime(list6013[total_tasknum].basicInfo.interval,list6013[total_tasknum].basicInfo.startime);
+				//TODO
 				total_tasknum++;
 			}
 		}
@@ -613,9 +623,10 @@ void dispatch_thread()
 			list6013[tastIndex].ts_next = calcnexttime(list6013[tastIndex].basicInfo.interval,list6013[tastIndex].basicInfo.startime);
 
 			INT8S ret = mqs_send((INT8S *)TASKID_485_2_MQ_NAME,cjdeal,1,(INT8U *)&tastIndex,sizeof(INT16S));
-			//fprintf(stderr,"\n 向485 2线程发送任务ID = %d \n",ret);
+			fprintf(stderr,"\n 向485 2线程发送任务ID = %d \n",ret);
 			ret = mqs_send((INT8S *)TASKID_485_1_MQ_NAME,cjdeal,1,(INT8U *)&tastIndex,sizeof(INT16S));
-			//fprintf(stderr,"\n 向485 1线程发送任务ID = %d \n",ret);
+			fprintf(stderr,"\n 向485 1线程发送任务ID = %d \n",ret);
+			ret = mqs_send((INT8S *)TASKID_plc_MQ_NAME,cjdeal,1,(INT8U *)&tastIndex,sizeof(INT16S));
 			//TODO
 			list6013[tastIndex].run_flg = 0;
 
@@ -684,7 +695,7 @@ int main(int argc, char *argv[])
 	//统计计算 电压合格率 停电事件等
 	calc_proccess();
 	//载波
-	//readplc_proccess();
+	readplc_proccess();
 	//液晶、控制
 	guictrl_proccess();
 	//交采

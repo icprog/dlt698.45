@@ -34,6 +34,7 @@ extern INT16S getTaskIndex(INT8U port);
 #define DLT645_07  2
 #define DLT698  3
 #define CJT188  4
+#define NUM_07DI_698OAD 100
 
 CLASS_6013 taskunite[TASK6012_MAX];
 typedef struct
@@ -41,7 +42,7 @@ typedef struct
 	OAD oad1;	//非关联 oad1.OI=0
 	OAD oad2;	//数据项
 }DATA_ITEM;
-typedef union
+typedef struct
 {
 	INT8U type;						//方案类型
 	CLASS_6015 to6015;				//普通采集方案

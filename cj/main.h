@@ -10,6 +10,7 @@
 
 extern void SetApn(int argc, char *argv[]);
 extern void SetUsrPwd(int argc, char *argv[]);
+extern void setOnlineMode(int argc, char* argv[]);
 
 extern void SetIPort(int argc, char *argv[]);
 extern void SetNetIPort(int argc, char* argv[]);
@@ -31,7 +32,7 @@ extern void coll_process(int argc, char *argv[]);
 extern void cjframe(int argc, char *argv[]);
 extern void cjread(int argc, char *argv[]);
 extern void analyTaskData(int argc, char* argv[]);
-
+extern void analyFreezeData(int argc, char* argv[]);
 /*
  * 参变量类*/
 extern void para_process(int argc, char *argv[]);

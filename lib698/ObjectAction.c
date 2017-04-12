@@ -414,7 +414,7 @@ void AddCjiFangAnInfo(INT8U *data,Action_result *act_ret)
 	for(k=0; k<addnum; k++)
 	{
 		memset(&fangAn,0,sizeof(fangAn));
-		index = index + 2;//struct
+		index += getStructure(&dealdata[index],NULL);
 		index += getUnsigned(&dealdata[index],(INT8U *)&fangAn.sernum);
 		fprintf(stderr,"fangan sernum =%d ,index=%d\n",fangAn.sernum,index);
 		index += getLongUnsigned(&dealdata[index],(INT8U *)&fangAn.deepsize);
@@ -434,7 +434,8 @@ void AddCjiFangAnInfo(INT8U *data,Action_result *act_ret)
 				break;
 			case 3:
 				fangAn.data.type = 0x54;	// TI
-				getTI(1,&dealdata[index],(TI *)&fangAn.data);
+				index += getTI(1,&dealdata[index],(TI *)&fangAn.data.data);
+				fprintf(stderr,"\n方案类型：%02x  data=%02x-%02x-%02x\n",fangAn.data.type,fangAn.data.data[0],fangAn.data.data[1],fangAn.data.data[2]);
 				break;
 			default:
 				return;
@@ -442,6 +443,7 @@ void AddCjiFangAnInfo(INT8U *data,Action_result *act_ret)
 		INT8U arraysize=0;
 		index += getArray(&dealdata[index],&arraysize);
 		fangAn.csds.num = arraysize;
+		fprintf(stderr,"fangAn.csds.num=%d\n",fangAn.csds.num);
 		int w=0;
 		for(w=0;w<arraysize;w++)
 		{
@@ -499,15 +501,36 @@ void AddEventCjiFangAnInfo(INT8U *data,Action_result *act_ret)
 	{
 		memset(&eventFangAn,0,sizeof(eventFangAn));
 		index += getUnsigned(&data[index],(INT8U *)&eventFangAn.sernum);
-		index += getArray(&data[index],(INT8U *)&eventFangAn.roads.num);
-		for(i=0;i<eventFangAn.roads.num;i++)
-			index += getROAD(&data[index],&eventFangAn.roads.road[i]);
+		if(data[index]==dtstructure) {		//勘误增加了采集方式类型，浙江测试还未修改，故判断
+			index += getStructure(&data[index],NULL);
+			index += getUnsigned(&data[index],(INT8U *)&eventFangAn.collstyle.colltype);
+		}
+		index += getArray(&data[index],(INT8U *)&eventFangAn.collstyle.roads.num);
+		for(i=0;i<eventFangAn.collstyle.roads.num;i++)
+			index += getROAD(&data[index],&eventFangAn.collstyle.roads.road[i]);
 		index += getMS(1,&data[index],&eventFangAn.ms);
 		index += getBool(&data[index],&eventFangAn.ifreport);
 		index += getLongUnsigned(&data[index],(INT8U *)&eventFangAn.deepsize);
 		act_ret->DAR = saveCoverClass(0x6017,eventFangAn.sernum,&eventFangAn,sizeof(eventFangAn),coll_para_save);
 	}
 	act_ret->datalen = index;
+
+//	index += getArray(&data[index],&addnum);
+//	index += getStructure(&data[index],NULL);
+//	fprintf(stderr,"\n添加个数 %d",addnum);
+//	for(k=0; k<addnum; k++)
+//	{
+//		memset(&eventFangAn,0,sizeof(eventFangAn));
+//		index += getUnsigned(&data[index],(INT8U *)&eventFangAn.sernum);
+//		index += getArray(&data[index],(INT8U *)&eventFangAn.roads.num);
+//		for(i=0;i<eventFangAn.roads.num;i++)
+//			index += getROAD(&data[index],&eventFangAn.roads.road[i]);
+//		index += getMS(1,&data[index],&eventFangAn.ms);
+//		index += getBool(&data[index],&eventFangAn.ifreport);
+//		index += getLongUnsigned(&data[index],(INT8U *)&eventFangAn.deepsize);
+//		act_ret->DAR = saveCoverClass(0x6017,eventFangAn.sernum,&eventFangAn,sizeof(eventFangAn),coll_para_save);
+//	}
+//	act_ret->datalen = index;
 }
 
 void AddTaskInfo(INT8U *data,Action_result *act_ret)
@@ -1004,6 +1027,7 @@ void FreezeAction(OAD oad,INT8U *data,Action_result *act_ret)
 
 void MeterInfo(INT16U attr_act,INT8U *data,Action_result *act_ret)
 {
+	int		seqnum=0;
 	switch(attr_act)
 	{
 		case 127://方法 127:Add (采集档案配置单元)
@@ -1017,7 +1041,9 @@ void MeterInfo(INT16U attr_act,INT8U *data,Action_result *act_ret)
 		case 130://方法 130:Update(配置序号,扩展信息,附属信息)
 			break;
 		case 131://方法 131:Delete(配置序号)
-			//delClassBySeq(NULL,2);
+			getLongUnsigned(&data[0],(INT8U *)&seqnum);
+			fprintf(stderr,"delete method seqnum=%d (%x)\n",seqnum,seqnum);
+			delClassBySeq(0x6000,NULL,seqnum);
 			break;
 		case 132://方法 132:Delete(基本信息)
 			break;

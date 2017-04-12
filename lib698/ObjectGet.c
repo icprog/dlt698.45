@@ -858,26 +858,43 @@ void printrecord(RESULT_RECORD record)
 int getSel1_freeze(RESULT_RECORD *record)
 {
 	int ret=0;
-	int		index = 0;
-	int		taskid=0;
-
+	int		index = 0, buflen=0, i=0;
+	DateTimeBCD datetime={};
+	INT8U  data[VARI_LEN];
+	int		datalen=0,j=0;
+//	OAD		readoad={};
 	switch(record->select.selec1.data.type) {
-	case dtlongunsigned:
-		taskid = (record->select.selec1.data.data[0]<<8 | record->select.selec1.data.data[1]);
-		break;
-	case dtunsigned:
-		taskid = record->select.selec1.data.data[0];
+	case dtdatetimes:
+		getDateTimeS(0,record->select.selec1.data.data,(INT8U *)&datetime);
 		break;
 	}
-	fprintf(stderr,"getSel1: OI=%04x  taskid=%d\n",record->select.selec1.oad.OI,taskid);
-	switch(record->select.selec1.oad.OI)
-	{
-		case 0x6001:
-			index += Get_6001(0,taskid,&record->data[index]);
-			break;
-		default:
-			fprintf(stderr,"\nrecord switch default!");
+	fprintf(stderr,"getSel1: OI=%04x  Time=%d:%d:%d %d-%d-%d\n",record->select.selec1.oad.OI,datetime.year.data,datetime.month.data,datetime.day.data,
+			datetime.hour.data,datetime.min.data,datetime.sec.data);
+
+	for(i=0;i<record->rcsd.csds.num;i++) {
+		fprintf(stderr,"\n%d: %04x%02x%02x\n",i,record->rcsd.csds.csd[i].csd.oad.OI,record->rcsd.csds.csd[i].csd.oad.attflg,record->rcsd.csds.csd[i].csd.oad.attrindex);
+		ret = readFreezeRecordByTime(record->oad.OI,record->rcsd.csds.csd[i].csd.oad,datetime,&datalen,(INT8U *)data);
+		if(ret==1) {
+			fprintf(stderr,"冻结时间:%04d-%02d-%02d %02d:%02d:%02d ",datetime.year.data,datetime.month.data,datetime.day.data,
+					datetime.hour.data,datetime.min.data,datetime.sec.data);
+			fprintf(stderr,"数据【%d】 ",datalen);
+			for(j=0;j<datalen;j++) {
+				fprintf(stderr,"%02x ",data[j]);
+			}
+			fprintf(stderr,"\n");
+			switch(record->rcsd.csds.csd[i].csd.oad.OI) {
+			case 0x2131:
+			case 0x2132:
+			case 0x2133:
+				Get_213x(record->rcsd.csds.csd[i].csd.oad,(INT8U *)data,&record->data[index],&buflen);
+				index += buflen;
+				break;
+			}
+		}else {
+			record->data[index] = 0;
+		}
 	}
+
 	if(index==0) {	//0条记录     [1] SEQUENCE OF A-RecordRow
 		record->data[0] = 0;
 	}
@@ -973,23 +990,47 @@ int doGetrecord(INT8U type,OAD oad,INT8U *data,RESULT_RECORD *record,INT16U *sub
 	fprintf(stderr,"\n- getRequestRecord SelectorN=%d OI = %04x  attrib=%d  index=%d",SelectorN,record->oad.OI,record->oad.attflg,record->oad.attrindex);
 	printrecord(*record);
 	dest_index += create_OAD(0,&record->data[dest_index],record->oad);
+	const static OI_698 oi[]={0x2022,0x201e,0x2020,0x2024};
+	INT8U oihead=((record->oad.OI & 0xF000) >>12);
 	switch(SelectorN) {
 	case 1:		//指定对象指定值
 		*subframe = 0;		//TODO:未处理分帧
-		record->data[dest_index++] = 1;	//一行记录M列属性描述符 	RCSD
-		record->data[dest_index++] = 0;	//OAD
-		record->select.selec1.oad.attrindex = 0;		//上送属性下所有索引值
-		dest_index += create_OAD(0,&record->data[dest_index],record->select.selec1.oad);
-		record->data[dest_index++] = 1; //CHOICE  [1]  data
-		record->data[dest_index++] = 1; //M = 1  Sequence  of A-RecordRow
+		if(record->rcsd.csds.num == 0) {
+			record->data[dest_index++] = 1;	//一行记录M列属性描述符 	RCSD
+			record->data[dest_index++] = 0;	//OAD
+			record->select.selec1.oad.attrindex = 0;		//上送属性下所有索引值
+			dest_index += create_OAD(0,&record->data[dest_index],record->select.selec1.oad);
+			record->data[dest_index++] = 1; //CHOICE  [1]  data
+			record->data[dest_index++] = 1; //M = 1  Sequence  of A-RecordRow
+		}else {
+			dest_index +=fill_RCSD(0,&record->data[dest_index],record->rcsd.csds);
+			record->data[dest_index++] = 1; //CHOICE  [1]  data
+			record->data[dest_index++] = 1; //M = 1  Sequence  of A-RecordRow
+		}
 		record->data = &TmpDataBuf[dest_index];		//修改record的数据帧的位置
 		getSelector1(record);
 		record->data = TmpDataBuf;				//data 指向回复报文帧头
 		record->datalen += dest_index;			//数据长度+ResultRecord
 	break;
-//	case 2:
-//
-//		break;
+	case 2:
+
+		if(oihead == 3){
+			*subframe = 0;		//TODO:未处理分帧
+			TmpDataBuf[dest_index++] = 4;
+			INT8U ai=0;
+			for(ai=0;ai<4;ai++){
+				TmpDataBuf[dest_index++] = 0;
+				TmpDataBuf[dest_index++] = (oi[ai]>>8)&0x00ff;
+				TmpDataBuf[dest_index++] = oi[ai]&0x00ff;
+				TmpDataBuf[dest_index++] = 2;
+				TmpDataBuf[dest_index++] = 0;
+			}
+			record->data = &TmpDataBuf[dest_index];
+			Getevent_Record_Selector(record,memp);
+			record->data = TmpDataBuf;				//data 指向回复报文帧头
+			record->datalen += dest_index;			//数据长度+ResultRecord
+		}
+		break;
 	case 5:
 	case 7:
 		dest_index +=fill_RCSD(0,&record->data[dest_index],record->rcsd.csds);
@@ -1008,19 +1049,7 @@ int doGetrecord(INT8U type,OAD oad,INT8U *data,RESULT_RECORD *record,INT16U *sub
 			}
 		}
 		break;
-	case 2:
-		*subframe = 0;		//TODO:未处理分帧
-		TmpDataBuf[dest_index++] = 1;
-		TmpDataBuf[dest_index++] = 0;
-		TmpDataBuf[dest_index++] = ( record->select.selec2.oad.OI >> 8 ) & 0xff;
-		TmpDataBuf[dest_index++] = record->select.selec2.oad.OI & 0xff;
-		TmpDataBuf[dest_index++] = record->select.selec2.oad.attflg;
-		TmpDataBuf[dest_index++] = record->select.selec2.oad.attrindex;
-		record->data = &TmpDataBuf[dest_index];
-		Getevent_Record_Selector(record,memp);
-		record->data = TmpDataBuf;				//data 指向回复报文帧头
-		record->datalen += dest_index;			//数据长度+ResultRecord
-		break;
+
 	case 9:		//指定读取上第n次记录
 		*subframe = 0;		//TODO:未处理分帧
 		dest_index +=fill_RCSD(0,&record->data[dest_index],record->rcsd.csds);
@@ -1053,35 +1082,37 @@ int GetVariable(RESULT_NORMAL *response)
 {
 	int	  	len=0;
 	INT8U	databuf[VARI_LEN]={};
-	INT8U *data = NULL;
 	int index=0;
 
-	data = response->data;
 	memset(&databuf,0,sizeof(databuf));
-	len = readVariData(response->oad.OI,0,&databuf,VARI_LEN);
-//	if(len>0) {
-		switch(response->oad.OI)
-		{
-			case 0x2200:	//通信流量
-				Get_2200(response->oad.OI,databuf,data,&index);
-				break;
-			case 0x2203:	//供电时间
-				Get_2203(response->oad.OI,databuf,data,&index);
-				break;
-			case 0x2204:	//复位次数
-				Get_2204(response->oad.OI,databuf,data,&index);
-				break;
-		}
-		response->datalen = index;
-		fprintf(stderr,"datalen=%d \n",response->datalen);
-//	}else if(len==0){
-//		response->datalen = 0;	//无数据
-//		response->dar = obj_undefine;
-//	}else {
-//		response->datalen = 0;	//无数据
-//		response->dar = obj_undefine;
-//		fprintf(stderr,"\n读取的OI=%04x ,不在变量类对象文件%s中，请从其他文件获取!!!\n",response->oad.OI,VARI_DATA);
-//	}
+	switch(response->oad.OI)
+	{
+	case 0x2000:	//电压
+		index += fill_long_unsigned(&response->data[index],memp->ACSRealData.Ua);
+		index += fill_long_unsigned(&response->data[index],memp->ACSRealData.Ub);
+		index += fill_long_unsigned(&response->data[index],memp->ACSRealData.Uc);
+		break;
+	case 0x2001:	//电流
+	case 0x2004:	//有功功率
+	case 0x2005:	//无功功率
+	case 0x200A:	//功率因数
+
+		break;
+	case 0x2200:	//通信流量
+		len = readVariData(response->oad.OI,0,&databuf,VARI_LEN);
+		Get_2200(response->oad.OI,databuf,response->data,&index);
+		break;
+	case 0x2203:	//供电时间
+		len = readVariData(response->oad.OI,0,&databuf,VARI_LEN);
+		Get_2203(response->oad.OI,databuf,response->data,&index);
+		break;
+	case 0x2204:	//复位次数
+		len = readVariData(response->oad.OI,0,&databuf,VARI_LEN);
+		Get_2204(response->oad.OI,databuf,response->data,&index);
+		break;
+	}
+	response->datalen = index;
+	fprintf(stderr,"datalen=%d \n",response->datalen);
 	return 1;
 }
 

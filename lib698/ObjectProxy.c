@@ -40,7 +40,7 @@ void ProxyListResponse(PROXY_GETLIST *list,CommBlock *com)
 
 	apduplace = index;		//记录APDU 起始位置
 	sendbuf[index++] = PROXY_RESPONSE;
-	sendbuf[index++] = ProxyGetResponseList;
+	sendbuf[index++] = list->proxytype;
 	sendbuf[index++] = list->piid;
 	datalen = list->datalen ;
 	if (datalen > 512)
