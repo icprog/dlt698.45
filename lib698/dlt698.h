@@ -3,6 +3,7 @@
 #ifndef DLT698_H_
 #define DLT698_H_
 #include "Objectdef.h"
+#include "Shmem.h"
 
 extern unsigned short tryfcs16(unsigned char *cp, int  len);
 extern int getTsas(MY_MS ms, INT8U** tsas);
@@ -46,10 +47,12 @@ extern int create_array(INT8U* data, INT8U numm);
 extern int create_struct(INT8U* data, INT8U numm);
 extern int fill_bool(INT8U* data, INT8U value);
 extern int fill_bit_string8(INT8U* data, INT8U bits);
+extern int fill_double_long(INT8U *data,INT32S value);		//0x05
 extern int fill_double_long_unsigned(INT8U* data, INT32U value);
 extern int fill_octet_string(INT8U* data, char* value, INT8U len);
 extern int fill_visible_string(INT8U* data, char* value, INT8U len);
 extern int fill_integer(INT8U* data, INT8U value);
+extern int fill_long(INT8U *data,INT16U value);		//0x10
 extern int fill_unsigned(INT8U* data, INT8U value);
 extern int fill_long_unsigned(INT8U* data, INT16U value);
 extern int fill_enum(INT8U* data, INT8U value);
@@ -86,6 +89,7 @@ extern int get_BasicRCSD(INT8U type, INT8U* source, CSD_ARRAYTYPE* csds);       
 extern int get_Data(INT8U* source, INT8U* dest);
 /*----------------------具体OI类组帧函数----------------------*/
 /*----------------------统计相关数据----------------------*/
+extern INT8U Get_Vacs(RESULT_NORMAL *response,ProgramInfo* prginfo_acs);
 extern INT8U Get_213x(OAD oad,INT8U *sourcebuf,INT8U *buf,int *len);
 extern INT8U Get_2200(OI_698 oi, INT8U* sourcebuf, INT8U* buf, int* len);
 extern INT8U Get_2203(OI_698 oi, INT8U* sourcebuf, INT8U* buf, int* len);

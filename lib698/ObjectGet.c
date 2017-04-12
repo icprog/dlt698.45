@@ -1087,31 +1087,25 @@ int GetVariable(RESULT_NORMAL *response)
 	memset(&databuf,0,sizeof(databuf));
 	switch(response->oad.OI)
 	{
-	case 0x2000:	//电压
-		index += fill_long_unsigned(&response->data[index],memp->ACSRealData.Ua);
-		index += fill_long_unsigned(&response->data[index],memp->ACSRealData.Ub);
-		index += fill_long_unsigned(&response->data[index],memp->ACSRealData.Uc);
-		break;
-	case 0x2001:	//电流
-	case 0x2004:	//有功功率
-	case 0x2005:	//无功功率
-	case 0x200A:	//功率因数
-
-		break;
 	case 0x2200:	//通信流量
 		len = readVariData(response->oad.OI,0,&databuf,VARI_LEN);
 		Get_2200(response->oad.OI,databuf,response->data,&index);
+		response->datalen = index;
 		break;
 	case 0x2203:	//供电时间
 		len = readVariData(response->oad.OI,0,&databuf,VARI_LEN);
 		Get_2203(response->oad.OI,databuf,response->data,&index);
+		response->datalen = index;
 		break;
 	case 0x2204:	//复位次数
 		len = readVariData(response->oad.OI,0,&databuf,VARI_LEN);
 		Get_2204(response->oad.OI,databuf,response->data,&index);
+		response->datalen = index;
+		break;
+	default:
+		Get_Vacs(response,memp);
 		break;
 	}
-	response->datalen = index;
 	fprintf(stderr,"datalen=%d \n",response->datalen);
 	return 1;
 }
