@@ -414,7 +414,7 @@ void AddCjiFangAnInfo(INT8U *data,Action_result *act_ret)
 	for(k=0; k<addnum; k++)
 	{
 		memset(&fangAn,0,sizeof(fangAn));
-		index = index + 2;//struct
+		index += getStructure(&dealdata[index],NULL);
 		index += getUnsigned(&dealdata[index],(INT8U *)&fangAn.sernum);
 		fprintf(stderr,"fangan sernum =%d ,index=%d\n",fangAn.sernum,index);
 		index += getLongUnsigned(&dealdata[index],(INT8U *)&fangAn.deepsize);
@@ -434,7 +434,8 @@ void AddCjiFangAnInfo(INT8U *data,Action_result *act_ret)
 				break;
 			case 3:
 				fangAn.data.type = 0x54;	// TI
-				getTI(1,&dealdata[index],(TI *)&fangAn.data);
+				index += getTI(1,&dealdata[index],(TI *)&fangAn.data.data);
+				fprintf(stderr,"\n方案类型：%02x  data=%02x-%02x-%02x\n",fangAn.data.type,fangAn.data.data[0],fangAn.data.data[1],fangAn.data.data[2]);
 				break;
 			default:
 				return;
@@ -442,6 +443,7 @@ void AddCjiFangAnInfo(INT8U *data,Action_result *act_ret)
 		INT8U arraysize=0;
 		index += getArray(&dealdata[index],&arraysize);
 		fangAn.csds.num = arraysize;
+		fprintf(stderr,"fangAn.csds.num=%d\n",fangAn.csds.num);
 		int w=0;
 		for(w=0;w<arraysize;w++)
 		{

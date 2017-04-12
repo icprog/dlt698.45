@@ -1074,35 +1074,37 @@ int GetVariable(RESULT_NORMAL *response)
 {
 	int	  	len=0;
 	INT8U	databuf[VARI_LEN]={};
-	INT8U *data = NULL;
 	int index=0;
 
-	data = response->data;
 	memset(&databuf,0,sizeof(databuf));
-	len = readVariData(response->oad.OI,0,&databuf,VARI_LEN);
-//	if(len>0) {
-		switch(response->oad.OI)
-		{
-			case 0x2200:	//通信流量
-				Get_2200(response->oad.OI,databuf,data,&index);
-				break;
-			case 0x2203:	//供电时间
-				Get_2203(response->oad.OI,databuf,data,&index);
-				break;
-			case 0x2204:	//复位次数
-				Get_2204(response->oad.OI,databuf,data,&index);
-				break;
-		}
-		response->datalen = index;
-		fprintf(stderr,"datalen=%d \n",response->datalen);
-//	}else if(len==0){
-//		response->datalen = 0;	//无数据
-//		response->dar = obj_undefine;
-//	}else {
-//		response->datalen = 0;	//无数据
-//		response->dar = obj_undefine;
-//		fprintf(stderr,"\n读取的OI=%04x ,不在变量类对象文件%s中，请从其他文件获取!!!\n",response->oad.OI,VARI_DATA);
-//	}
+	switch(response->oad.OI)
+	{
+	case 0x2000:	//电压
+		index += fill_long_unsigned(&response->data[index],memp->ACSRealData.Ua);
+		index += fill_long_unsigned(&response->data[index],memp->ACSRealData.Ub);
+		index += fill_long_unsigned(&response->data[index],memp->ACSRealData.Uc);
+		break;
+	case 0x2001:	//电流
+	case 0x2004:	//有功功率
+	case 0x2005:	//无功功率
+	case 0x200A:	//功率因数
+
+		break;
+	case 0x2200:	//通信流量
+		len = readVariData(response->oad.OI,0,&databuf,VARI_LEN);
+		Get_2200(response->oad.OI,databuf,response->data,&index);
+		break;
+	case 0x2203:	//供电时间
+		len = readVariData(response->oad.OI,0,&databuf,VARI_LEN);
+		Get_2203(response->oad.OI,databuf,response->data,&index);
+		break;
+	case 0x2204:	//复位次数
+		len = readVariData(response->oad.OI,0,&databuf,VARI_LEN);
+		Get_2204(response->oad.OI,databuf,response->data,&index);
+		break;
+	}
+	response->datalen = index;
+	fprintf(stderr,"datalen=%d \n",response->datalen);
 	return 1;
 }
 

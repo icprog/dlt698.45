@@ -109,16 +109,6 @@ INT8U Get_2204(OI_698 oi,INT8U *sourcebuf,INT8U *buf,int *len)
 {
 	Reset_tj reset_tj={};
 	memcpy(&reset_tj,sourcebuf,sizeof(Reset_tj));
-
-//	static INT8U first=0;
-//	if(first==0) {
-//		first=1;
-//		reset_tj.reset.day_tj=1;
-//		reset_tj.reset.month_tj =1;
-//	}else {
-//		reset_tj.reset.day_tj=1;
-//		reset_tj.reset.month_tj =2;
-//	}
 	fprintf(stderr,"Get_2204 :reset day_tj=%d,month_tj=%d\n",reset_tj.reset.day_tj,reset_tj.reset.month_tj);
 	*len=0;
 	*len += create_struct(&buf[*len],2);

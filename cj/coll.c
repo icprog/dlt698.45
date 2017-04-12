@@ -504,11 +504,11 @@ void print6015(CLASS_6015 class6015)
 		fprintf(stderr,"[4]%02x ",class6015.data.data[0]);
 		break;
 	case 3://TI
-		fprintf(stderr,"[4]%s-%d ",getenum(task_ti,class6015.data.data[0]),((class6015.data.data[2]<<8)|class6015.data.data[1]));
+		fprintf(stderr,"[4]%s-%d ",getenum(task_ti,class6015.data.data[0]),((class6015.data.data[1]<<8)|class6015.data.data[2]));
 		break;
 	case 4://RetryMetering
-		fprintf(stderr,"[4]%s-%d %d\n",getenum(task_ti,class6015.data.data[0]),((class6015.data.data[2]<<8)|class6015.data.data[1]),
-									((class6015.data.data[4]<<8)|class6015.data.data[3]));
+		fprintf(stderr,"[4]%s-%d %d\n",getenum(task_ti,class6015.data.data[0]),((class6015.data.data[1]<<8)|class6015.data.data[2]),
+									((class6015.data.data[3]<<8)|class6015.data.data[4]));
 		break;
 	}
 	if(class6015.csds.num >= MY_CSD_NUM) {
