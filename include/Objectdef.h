@@ -502,6 +502,7 @@ typedef struct {
     INT8S (*p_send)(int fd, INT8U* buf, INT16U len);
     INT8U taskaddr;  //客户机地址
     time_t lasttime; //最后一次通信时间
+	int Heartbeat;
 } CommBlock;
 ////////////////////////////////////////////////////////////////////
 
