@@ -1796,8 +1796,9 @@ INT8S dealProxyType7(PROXY_GETLIST getlist,INT8U port485)
 	{
 		OADtoBuff(getlist.transcmd.oad,getlist.data);
 		getlist.data[4] = 1;
-		memcpy(&getlist.data[5],RecvBuff,RecvLen);
-		getlist.datalen = RecvLen + 5;
+		getlist.data[5] = RecvLen;
+		memcpy(&getlist.data[6],RecvBuff,RecvLen);
+		getlist.datalen = RecvLen + 6;
 		mqs_send((INT8S *)PROXY_NET_MQ_NAME,1,TERMINALPROXY_RESPONSE,(INT8U *)&getlist,sizeof(PROXY_GETLIST));
 	}
 	else
