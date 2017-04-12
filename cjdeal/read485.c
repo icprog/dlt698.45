@@ -1974,7 +1974,7 @@ INT8S readMeterPowerInfo()
 					st6015.cjtype = TYPE_NULL;
 					st6015.csds.num = 1;
 					st6015.csds.csd[0].type = 0;
-					st6015.csds.csd[0].csd.oad.OI = 0x3106;
+					st6015.csds.csd[0].csd.oad.OI = 0x3011;
 					st6015.csds.csd[0].csd.oad.attflg = 02;
 					st6015.csds.csd[0].csd.oad.attrindex = 01;
 					INT16S sendLen = 0;
@@ -2014,23 +2014,28 @@ INT8S readMeterPowerInfo()
 								{
 									fprintf(stderr,"\n readMeterPowerInfo datacontent = ");
 									INT8U prtIndex = 0;
-									for(prtIndex = 0;prtIndex < dataLen;prtIndex++)
+									for(prtIndex = (apduDataStartIndex+13);prtIndex < (apduDataStartIndex+27);prtIndex++)
 									{
-										fprintf(stderr,"%02x ",recvbuff[apduDataStartIndex]);
+										fprintf(stderr,"%02x ",recvbuff[prtIndex]);
 									}
-									MeterPowerInfo[meterIndex].PoweroffTime.tm_year = (recvbuff[9]<<8) + recvbuff[10] - 1900;
-									MeterPowerInfo[meterIndex].PoweroffTime.tm_mon = recvbuff[11] -1;
-									MeterPowerInfo[meterIndex].PoweroffTime.tm_mday = recvbuff[12];
-									MeterPowerInfo[meterIndex].PoweroffTime.tm_hour = recvbuff[13];
-									MeterPowerInfo[meterIndex].PoweroffTime.tm_min = recvbuff[14];
-									MeterPowerInfo[meterIndex].PoweroffTime.tm_sec = recvbuff[15];
+									MeterPowerInfo[meterIndex].PoweroffTime.tm_year = recvbuff[apduDataStartIndex+13];
+									MeterPowerInfo[meterIndex].PoweroffTime.tm_year = (MeterPowerInfo[meterIndex].PoweroffTime.tm_year<<8);
+									MeterPowerInfo[meterIndex].PoweroffTime.tm_year = MeterPowerInfo[meterIndex].PoweroffTime.tm_year + recvbuff[apduDataStartIndex+14] - 1900;
+									MeterPowerInfo[meterIndex].PoweroffTime.tm_mon = recvbuff[apduDataStartIndex+15] -1;
+									MeterPowerInfo[meterIndex].PoweroffTime.tm_mday = recvbuff[apduDataStartIndex+16];
+									MeterPowerInfo[meterIndex].PoweroffTime.tm_hour = recvbuff[apduDataStartIndex+17];
+									MeterPowerInfo[meterIndex].PoweroffTime.tm_min = recvbuff[apduDataStartIndex+18];
+									MeterPowerInfo[meterIndex].PoweroffTime.tm_sec = recvbuff[apduDataStartIndex+19];
 
-									MeterPowerInfo[meterIndex].PoweronTime.tm_year = (recvbuff[16]<<8) + recvbuff[17] - 1900;
-									MeterPowerInfo[meterIndex].PoweronTime.tm_mon =  recvbuff[18] -1;
-									MeterPowerInfo[meterIndex].PoweronTime.tm_mday = recvbuff[19];
-									MeterPowerInfo[meterIndex].PoweronTime.tm_hour = recvbuff[20];
-									MeterPowerInfo[meterIndex].PoweronTime.tm_min = recvbuff[21];
-									MeterPowerInfo[meterIndex].PoweronTime.tm_sec = recvbuff[22];
+									MeterPowerInfo[meterIndex].PoweronTime.tm_year = recvbuff[apduDataStartIndex+21];
+									MeterPowerInfo[meterIndex].PoweronTime.tm_year = (MeterPowerInfo[meterIndex].PoweronTime.tm_year<<8);
+									MeterPowerInfo[meterIndex].PoweronTime.tm_year = MeterPowerInfo[meterIndex].PoweronTime.tm_year + recvbuff[apduDataStartIndex+22] - 1900;
+
+									MeterPowerInfo[meterIndex].PoweronTime.tm_mon =  recvbuff[apduDataStartIndex+23] -1;
+									MeterPowerInfo[meterIndex].PoweronTime.tm_mday = recvbuff[apduDataStartIndex+24];
+									MeterPowerInfo[meterIndex].PoweronTime.tm_hour = recvbuff[apduDataStartIndex+25];
+									MeterPowerInfo[meterIndex].PoweronTime.tm_min = recvbuff[apduDataStartIndex+26];
+									MeterPowerInfo[meterIndex].PoweronTime.tm_sec = recvbuff[apduDataStartIndex+27];
 
 									MeterPowerInfo[meterIndex].Valid = 1;
 
