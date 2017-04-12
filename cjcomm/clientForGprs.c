@@ -12,6 +12,7 @@
 #include <netinet/tcp.h>
 
 #include "cjcomm.h"
+#include "../include/Shmem.h"
 
 /*
  * 本文件内存放客户端模式代码，专门处理客户端模式数据收发
@@ -257,6 +258,8 @@ static void ClientForGprsInit(void) {
     } else {
         initComPara(&ClientForGprsObject, MixForGprsWrite);
     }
+    ClientForGprsObject.Heartbeat = Class25.commconfig.heartBeat;
+
     asyslog(LOG_INFO, ">>>======初始化（客户端[GPRS]模式）结束======<<<");
 }
 
