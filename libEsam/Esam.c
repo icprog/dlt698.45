@@ -15,6 +15,7 @@
 #include "Esam.h"
 #include "Shmem.h"
 #include "SPI.h"
+#include "basedef.h"
 
 ProgramInfo *memp;
 sem_t* sem_spi0_0=NULL;
@@ -97,7 +98,7 @@ INT32S Esam_WriteThenRead(INT8U* Tbuf, INT16U Tlen, INT8U* Rbuf)
 	INT8U index=0;
 	INT32S esamRet = ERR_ESAM_SPI_OPENERR;
 	INT32S fd = -1;
-	for(index =0 ;index<2;index ++)
+	for(index =0 ;index<3;index ++)
 	{
 		fd = -1;
 		fd = Esam_Init(fd);
