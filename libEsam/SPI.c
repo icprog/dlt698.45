@@ -12,7 +12,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include "SPI.h"
-
+#include "basedef.h"
 #include "ParaDef.h"
 
 int SPI_Close(int fd) {

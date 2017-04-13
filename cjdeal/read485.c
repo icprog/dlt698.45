@@ -2020,23 +2020,29 @@ INT8S readMeterPowerInfo()
 								{
 									fprintf(stderr,"\n readMeterPowerInfo datacontent = ");
 									INT8U prtIndex = 0;
-									for(prtIndex = apduDataStartIndex;prtIndex < dataLen;prtIndex++)
+
+									for(prtIndex = (apduDataStartIndex+13);prtIndex < (apduDataStartIndex+27);prtIndex++)
 									{
 										fprintf(stderr,"%02x ",recvbuff[prtIndex]);
 									}
-									MeterPowerInfo[meterIndex].PoweroffTime.tm_year = (recvbuff[13]<<8) + recvbuff[14] - 1900;
-									MeterPowerInfo[meterIndex].PoweroffTime.tm_mon = recvbuff[15] -1;
-									MeterPowerInfo[meterIndex].PoweroffTime.tm_mday = recvbuff[16];
-									MeterPowerInfo[meterIndex].PoweroffTime.tm_hour = recvbuff[17];
-									MeterPowerInfo[meterIndex].PoweroffTime.tm_min = recvbuff[18];
-									MeterPowerInfo[meterIndex].PoweroffTime.tm_sec = recvbuff[19];
+									MeterPowerInfo[meterIndex].PoweroffTime.tm_year = recvbuff[apduDataStartIndex+13];
+									MeterPowerInfo[meterIndex].PoweroffTime.tm_year = (MeterPowerInfo[meterIndex].PoweroffTime.tm_year<<8);
+									MeterPowerInfo[meterIndex].PoweroffTime.tm_year = MeterPowerInfo[meterIndex].PoweroffTime.tm_year + recvbuff[apduDataStartIndex+14] - 1900;
+									MeterPowerInfo[meterIndex].PoweroffTime.tm_mon = recvbuff[apduDataStartIndex+15] -1;
+									MeterPowerInfo[meterIndex].PoweroffTime.tm_mday = recvbuff[apduDataStartIndex+16];
+									MeterPowerInfo[meterIndex].PoweroffTime.tm_hour = recvbuff[apduDataStartIndex+17];
+									MeterPowerInfo[meterIndex].PoweroffTime.tm_min = recvbuff[apduDataStartIndex+18];
+									MeterPowerInfo[meterIndex].PoweroffTime.tm_sec = recvbuff[apduDataStartIndex+19];
 
-									MeterPowerInfo[meterIndex].PoweronTime.tm_year = (recvbuff[21]<<8) + recvbuff[22] - 1900;
-									MeterPowerInfo[meterIndex].PoweronTime.tm_mon =  recvbuff[23] -1;
-									MeterPowerInfo[meterIndex].PoweronTime.tm_mday = recvbuff[24];
-									MeterPowerInfo[meterIndex].PoweronTime.tm_hour = recvbuff[25];
-									MeterPowerInfo[meterIndex].PoweronTime.tm_min = recvbuff[26];
-									MeterPowerInfo[meterIndex].PoweronTime.tm_sec = recvbuff[27];
+									MeterPowerInfo[meterIndex].PoweronTime.tm_year = recvbuff[apduDataStartIndex+21];
+									MeterPowerInfo[meterIndex].PoweronTime.tm_year = (MeterPowerInfo[meterIndex].PoweronTime.tm_year<<8);
+									MeterPowerInfo[meterIndex].PoweronTime.tm_year = MeterPowerInfo[meterIndex].PoweronTime.tm_year + recvbuff[apduDataStartIndex+22] - 1900;
+
+									MeterPowerInfo[meterIndex].PoweronTime.tm_mon =  recvbuff[apduDataStartIndex+23] -1;
+									MeterPowerInfo[meterIndex].PoweronTime.tm_mday = recvbuff[apduDataStartIndex+24];
+									MeterPowerInfo[meterIndex].PoweronTime.tm_hour = recvbuff[apduDataStartIndex+25];
+									MeterPowerInfo[meterIndex].PoweronTime.tm_min = recvbuff[apduDataStartIndex+26];
+									MeterPowerInfo[meterIndex].PoweronTime.tm_sec = recvbuff[apduDataStartIndex+27];
 
 									MeterPowerInfo[meterIndex].Valid = 1;
 
@@ -2400,6 +2406,10 @@ INT16S deal6015_698(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8
 				{
 					st6035->successMSNum++;
 				}
+				else
+				{
+					Event_310F(to6001.basicinfo.addr,NULL,0,JProgramInfo);
+				}
 				break;
 			}
 
@@ -2438,6 +2448,11 @@ INT16S request698_07DataList(C601F_07Flag obj601F_07Flag, CLASS_6001 meter,INT8U
 	if(isSuccess ==1)
 	{
 		st6035->successMSNum++;
+	}
+
+	else //485抄表失败
+	{
+		//Event_310F()
 	}
 	return DataLen;
 }
@@ -2827,10 +2842,11 @@ INT16S deal6017_07(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8U
 
 	return 0;
 }
+
 /*
  * 抄读1个测量点
  */
-INT16S deal6015or6017_singlemeter(INT8U cjType,CLASS_6015 st6015,CLASS_6001 obj6001,CLASS_6035* st6035,INT8U* dataContent,INT8U port485)
+INT16S deal6015or6017_singlemeter(CLASS_6013 st6013,CLASS_6015 st6015,CLASS_6001 obj6001,CLASS_6035* st6035,INT8U* dataContent,INT8U port485)
 {
 	INT16S ret = 0;
 
@@ -2845,7 +2861,7 @@ INT16S deal6015or6017_singlemeter(INT8U cjType,CLASS_6015 st6015,CLASS_6001 obj6
 		return ret;
 	}
 
-	if(cjType == norm)
+	if(st6013.cjtype == norm)
 	{
 		fprintf(stderr,"\n 处理普通采集方案");
 		switch (obj6001.basicinfo.protocol)
@@ -2857,7 +2873,7 @@ INT16S deal6015or6017_singlemeter(INT8U cjType,CLASS_6015 st6015,CLASS_6001 obj6
 				ret = deal6015_698(st6015,obj6001,st6035,dataContent,port485);
 		}
 	}
-	if(cjType == events)
+	if(st6013.cjtype == events)
 	{
 		fprintf(stderr,"\n 处理事件采集方案");
 		switch (obj6001.basicinfo.protocol)
@@ -2963,7 +2979,7 @@ INT16U compose6012Buff(DateTimeBCD startTime,TSA meterAddr,INT16U dataLen,INT8U*
 /*
  * 处理一个普通采集方案/事件采集方案
  * */
-INT8S deal6015or6017(INT8U cjType,CLASS_6015 st6015, INT8U port485,CLASS_6035* st6035) {
+INT8S deal6015or6017(CLASS_6013 st6013,CLASS_6015 st6015, INT8U port485,CLASS_6035* st6035) {
 	INT8S result = 0;
 	INT16U meterIndex = 0;
 	INT16U oi = 0x6000;
@@ -2988,14 +3004,14 @@ INT8S deal6015or6017(INT8U cjType,CLASS_6015 st6015, INT8U port485,CLASS_6035* s
 					INT16S dataLen = 0;
 					DateTimeBCD startTime;
 					DataTimeGet(&startTime);
-					dataLen = deal6015or6017_singlemeter(cjType,st6015,meter,st6035,dataContent,port485);
+					dataLen = deal6015or6017_singlemeter(st6013,st6015,meter,st6035,dataContent,port485);
 					if(dataLen == PARA_CHANGE_RETVALUE)
 					{
 						DbgPrintToFile1(port485,"参数变更 重新抄表");
 						return PARA_CHANGE_RETVALUE;
 					}
 
-					if((dataLen > 0)&& (cjType == norm))
+					if((dataLen > 0)&& (st6013.cjtype == norm))
 					{
 						int bufflen = compose6012Buff(startTime,meter.basicinfo.addr,dataLen,dataContent,port485);
 						SaveNorData(st6035->taskID,NULL,dataContent,bufflen);
@@ -3100,21 +3116,62 @@ INT8S cleanTaskIDmmq(INT8U port485)
 	para_change485[port485-1] = 0;
 	return ret;
 }
+
 INT8S get6035ByTaskID(INT16U taskID,CLASS_6035* class6035)
 {
+	memset(class6035,0,sizeof(CLASS_6035));
+	class6035->taskID = taskID;
+
+	int recordNum = getFileRecordNum(0x6035);
+	CLASS_6035 tmp6035;
+	memset(&tmp6035,0,sizeof(CLASS_6035));
 	INT16U i;
-	for(i=0;i<=255;i++)
+	for(i=0;i<=recordNum;i++)
 	{
-		memset(class6035,0,sizeof(CLASS_6035));
-		if(readCoverClass(0x6035,i,class6035,sizeof(CLASS_6035),coll_para_save)== 1)
+		if(readCoverClass(0x6035,i,&tmp6035,sizeof(CLASS_6035),coll_para_save)== 1)
 		{
-			if(class6035->taskID == taskID)
+			if(tmp6035.taskID == taskID)
 			{
+				memcpy(class6035,&tmp6035,sizeof(CLASS_6035));
 				return 1;
 			}
 		}
 	}
 	return -1;
+}
+INT8S saveClass6035(CLASS_6035* class6035)
+{
+	INT8U isFind = 0;
+	INT8S ret = -1;
+	int recordNum = getFileRecordNum(0x6035);
+	CLASS_6035 file6035;
+	memset(&file6035,0,sizeof(CLASS_6035));
+	INT16U i;
+	for(i=0;i<=recordNum;i++)
+	{
+		if(readCoverClass(0x6035,i,&file6035,sizeof(CLASS_6035),coll_para_save)== 1)
+		{
+			if(file6035.taskID == class6035->taskID)
+			{
+				isFind = 1;
+				break;
+			}
+		}
+	}
+	if(isFind)
+	{
+		memcpy(&class6035->starttime,&file6035.starttime,sizeof(DateTimeBCD));
+		class6035->totalMSNum += file6035.totalMSNum;
+		class6035->successMSNum += file6035.successMSNum;
+		class6035->sendMsgNum += file6035.sendMsgNum;
+		class6035->rcvMsgNum += file6035.rcvMsgNum;
+	}
+
+	saveCoverClass(0x6035, class6035->taskID, class6035,
+			sizeof(CLASS_6035), coll_para_save);
+
+
+	return ret;
 }
 void read485_thread(void* i485port) {
 	INT8U port = *(INT8U*) i485port;
@@ -3174,9 +3231,9 @@ void read485_thread(void* i485port) {
 			DbgPrintToFile1(port,"******************************************taskIndex = %d 任务开始*******************************",taskIndex);
 			CLASS_6035 result6035;	//采集任务监控单元
 			get6035ByTaskID(list6013[taskIndex].basicInfo.taskID,&result6035);
-			result6035.taskID = list6013[taskIndex].basicInfo.taskID;
 			result6035.taskState = IN_OPR;
 			DataTimeGet(&result6035.starttime);
+			saveClass6035(&result6035);
 			CLASS_6015 to6015;	//采集方案集
 			memset(&to6015, 0, sizeof(CLASS_6015));
 
@@ -3188,7 +3245,7 @@ void read485_thread(void* i485port) {
 					ret = use6013find6015or6017(list6013[taskIndex].basicInfo.cjtype,list6013[taskIndex].basicInfo.sernum,&to6015);
 					if(ret == 1)
 					{
-						ret = deal6015or6017(list6013[taskIndex].basicInfo.cjtype,to6015,port,&result6035);
+						ret = deal6015or6017(list6013[taskIndex].basicInfo,to6015,port,&result6035);
 					}
 					else
 					{
@@ -3211,14 +3268,13 @@ void read485_thread(void* i485port) {
 			DataTimeGet(&result6035.endtime);
 			result6035.taskState = AFTER_OPR;
 
-			saveCoverClass(0x6035, result6035.taskID, &result6035,
-					sizeof(CLASS_6035), coll_para_save);
-
 			fprintf(stderr,"\n发送报文数量：%d  接受报文数量：%d",result6035.sendMsgNum,result6035.rcvMsgNum);
 			DbgPrintToFile1(port,"****************taskIndex = %d 任务结束 发送报文数量：%d  接受报文数量：%d*******************************",
 					taskIndex,result6035.sendMsgNum,result6035.rcvMsgNum);
+			saveClass6035(&result6035);
+
 			//判断485故障事件
-			if((result6035.sendMsgNum > 0)&&(result6035.rcvMsgNum<=0))
+			if((result6035.sendMsgNum > 0)&&(result6035.rcvMsgNum==0))
 			{
 				Event_310A(c485_err,JProgramInfo);
 			}

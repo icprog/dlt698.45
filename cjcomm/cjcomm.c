@@ -13,6 +13,7 @@
 #include <netinet/tcp.h>
 
 #include "cjcomm.h"
+#include "../include/Shmem.h"
 
 //共享内存地址
 static ProgramInfo *JProgramInfo = NULL;
@@ -158,11 +159,12 @@ void WriteLinkRequest(INT8U link_type, INT16U heartbeat, LINK_Request *link_req)
 }
 
 int Comm_task(CommBlock *compara) {
-    INT16U heartbeat = 60;
+    INT16U heartbeat = (compara->Heartbeat == 0) ? 300 : compara->Heartbeat;
 
     if (abs(time(NULL) - compara->lasttime) < heartbeat) {
         return 0;
     }
+
     compara->lasttime = time(NULL);
 
     if (compara->testcounter >= 2) {

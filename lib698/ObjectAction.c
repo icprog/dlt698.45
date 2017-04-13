@@ -404,7 +404,7 @@ void AddCjiFangAnInfo(INT8U *data,Action_result *act_ret)
 	INT8U *buf;
 	CLASS_6015 fangAn={};
 	int k=0;
-	INT8U addnum = data[1];
+	INT8U addnum = data[1];		//data[0] = apdu[7]
 	INT8U *dealdata=NULL;
 	int index=0;
 	fprintf(stderr,"\nsizeof fangAn=%d",sizeof(fangAn));

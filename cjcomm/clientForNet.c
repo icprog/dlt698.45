@@ -12,6 +12,7 @@
 #include <netinet/tcp.h>
 
 #include "cjcomm.h"
+#include "../include/Shmem.h"
 
 /*
  * 本文件内存放客户端模式代码，专门处理客户端模式数据收发
@@ -255,6 +256,8 @@ void ClientForNetInit(void) {
     } else {
         initComPara(&ClientForNetObject, MixForNetWrite);
     }
+
+    ClientForNetObject.Heartbeat = Class26.commconfig.heartBeat;
 
     asyslog(LOG_INFO, ">>>======初始化（客户端[以太网]模式）结束======<<<");
 }

@@ -144,6 +144,16 @@ int fill_bit_string8(INT8U *data,INT8U bits)		//0x04
 	return 3;
 }
 
+int fill_double_long(INT8U *data,INT32S value)		//0x05
+{
+	data[0] = dtdoublelong;
+	data[1] = (value & 0xFF000000) >> 24 ;
+	data[2] = (value & 0x00FF0000) >> 16 ;
+	data[3] = (value & 0x0000FF00) >> 8 ;
+	data[4] =  value & 0x000000FF;
+	return 5;
+}
+
 int fill_double_long_unsigned(INT8U *data,INT32U value)		//0x06
 {
 	data[0] = dtdoublelongunsigned;
@@ -184,6 +194,15 @@ int fill_integer(INT8U *data,INT8U value)		//0x0f
 	data[1] = value;
 	return 2;
 }
+
+int fill_long(INT8U *data,INT16U value)		//0x10
+{
+	data[0] = dtlong;
+	data[1] = (value & 0xff00)>>8;
+	data[2] = (value & 0xff);
+	return 3;
+}
+
 int fill_unsigned(INT8U *data,INT8U value)		//0x11
 {
 	data[0] = dtunsigned;

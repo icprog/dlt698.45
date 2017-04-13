@@ -165,7 +165,6 @@ void Calc_Tj()
 			fprintf(stderr," 日供电时间=%d\n 月供电时间=%d\n",gongdian_tj.gongdian.day_tj,gongdian_tj.gongdian.month_tj);
 			saveVariData(0x2203,0,&gongdian_tj,sizeof(Gongdian_tj));	//TODO：现场运行 是否需要 1分钟保存一次
 		}
-
 	if(newts.Day != gongdian_tj.ts.Day) {
 		fprintf(stderr,"2203:newts: %d-%d-%d %d:%d:%d\n",newts.Year,newts.Month,newts.Day,newts.Hour,newts.Minute,newts.Sec);
 		fprintf(stderr,"跨日	:时间: %d-%d-%d %d:%d:%d\n",gongdian_tj.ts.Year,gongdian_tj.ts.Month,gongdian_tj.ts.Day,gongdian_tj.ts.Hour,gongdian_tj.ts.Minute,gongdian_tj.ts.Sec);
