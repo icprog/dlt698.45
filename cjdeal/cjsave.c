@@ -345,6 +345,7 @@ int SaveNorData(INT8U taskid,ROAD *road_eve,INT8U *databuf,int datalen)//存储�
 		//1 初始化csds
 		runtime = 1;//只存上一次 记录
 		memcpy(&csds.csd[0].csd.road,road_eve,sizeof(ROAD));//
+		csds.num = 1;
 		getEveFileName(road_eve->oad.OI,fname);//创建eve文件
 	}
 	fp = fopen(fname,"r");
@@ -412,6 +413,10 @@ int SaveNorData(INT8U taskid,ROAD *road_eve,INT8U *databuf,int datalen)//存储�
 		if(databuf_tmp != NULL)
 			free(databuf_tmp);
 		return 0;//出错了，序列号超过了总长度
+	}
+	if(datalen > unitlen/runtime)
+	{
+		return 0;
 	}
 	memcpy(&databuf_tmp[unitlen*(unitseq-1)/runtime],databuf,datalen);
 	if(datalen != unitlen/runtime)
