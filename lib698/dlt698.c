@@ -375,33 +375,33 @@ void GetconnetRequest(CONNECT_Request *request,INT8U *apdu)
 			}
 			break;
 	}
-	fprintf(stderr,"\nPIID=%02x",request->piid.data);
-	fprintf(stderr,"\n期望的应用缯协议版本 = %x",request->expect_app_ver.data);
-	fprintf(stderr,"\n期望的协议一致性块 =");
-	for(index=0;index<8;index++)
-		fprintf(stderr,"%02x ",request->ProtocolConformance[index]);
-	fprintf(stderr,"\n期望的功能一致性块 =");
-	for(index=0;index<16;index++)
-		fprintf(stderr,"%02x ",request->FunctionConformance[index]);
-
-	fprintf(stderr,"\n客户机发送最大字节 %d",request->client_send_size);
-	fprintf(stderr,"\n客户机接收最大字节 %d",request->client_recv_size);
-	fprintf(stderr,"\n客户机最大窗口 %d",request->client_recv_maxWindow);
-	fprintf(stderr,"\n客户机最大可处理APDU %d",request->client_deal_maxApdu);
-	fprintf(stderr,"\n期望应用连接超时时间 %d",request->expect_connect_timeout);
-	fprintf(stderr,"\n应用连接类型=%d",request->connecttype);
-	fprintf(stderr,"\n密文2");
-	for(index=0;index<request->info.sigsecur.encrypted_code2[0];index++)
-	{
-		if (index %10==0) fprintf(stderr,"\n");
-		fprintf(stderr,"%02x ",request->info.sigsecur.encrypted_code2[index+1]);
-	}
-	fprintf(stderr,"\n客户机签名2");
-	for(index=0;index<request->info.sigsecur.signature[0];index++)
-	{
-		if (index %10==0) fprintf(stderr,"\n");
-		fprintf(stderr,"%02x ",request->info.sigsecur.signature[index+1]);
-	}
+//	fprintf(stderr,"\nPIID=%02x",request->piid.data);
+//	fprintf(stderr,"\n期望的应用缯协议版本 = %x",request->expect_app_ver.data);
+//	fprintf(stderr,"\n期望的协议一致性块 =");
+//	for(index=0;index<8;index++)
+//		fprintf(stderr,"%02x ",request->ProtocolConformance[index]);
+//	fprintf(stderr,"\n期望的功能一致性块 =");
+//	for(index=0;index<16;index++)
+//		fprintf(stderr,"%02x ",request->FunctionConformance[index]);
+//
+//	fprintf(stderr,"\n客户机发送最大字节 %d",request->client_send_size);
+//	fprintf(stderr,"\n客户机接收最大字节 %d",request->client_recv_size);
+//	fprintf(stderr,"\n客户机最大窗口 %d",request->client_recv_maxWindow);
+//	fprintf(stderr,"\n客户机最大可处理APDU %d",request->client_deal_maxApdu);
+//	fprintf(stderr,"\n期望应用连接超时时间 %d",request->expect_connect_timeout);
+//	fprintf(stderr,"\n应用连接类型=%d",request->connecttype);
+//	fprintf(stderr,"\n密文2");
+//	for(index=0;index<request->info.sigsecur.encrypted_code2[0];index++)
+//	{
+//		if (index %10==0) fprintf(stderr,"\n");
+//		fprintf(stderr,"%02x ",request->info.sigsecur.encrypted_code2[index+1]);
+//	}
+//	fprintf(stderr,"\n客户机签名2");
+//	for(index=0;index<request->info.sigsecur.signature[0];index++)
+//	{
+//		if (index %10==0) fprintf(stderr,"\n");
+//		fprintf(stderr,"%02x ",request->info.sigsecur.signature[index+1]);
+//	}
 }
 void varconsult(CONNECT_Response *response ,CONNECT_Request *request,CONNECT_Response *myvar)
 {
@@ -675,7 +675,8 @@ int doActionRequest(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 			data = &apdu[apdu_index+7];					//Data
 			DAR = doObjectAction(oad,data,&act_ret);
 			index += create_OAD(0,&TmpDataBuf[index],oad);
-			TmpDataBuf[index++] = DAR;
+			TmpDataBuf[index++] = DAR;// DAR;
+			TmpDataBuf[index++] = 0;
 			doReponse(ACTION_RESPONSE,ActionResponseNormal,csinfo,index,TmpDataBuf,buf);
 			Get698_event(oad,memp);
 			break;
