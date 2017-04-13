@@ -929,7 +929,6 @@ void ERC3106log(int type,INT32U Ua,struct tm logtm)
 		fwrite(ERC3106log,1,strlen(ERC3106log),fp);
 		fclose(fp);
 	}
-
 }
 
 /*
@@ -981,7 +980,7 @@ void SendERC3106(INT8U flag,INT8U Erctype,ProgramInfo* prginfo_event)
 	Save_buf[STANDARD_NUM_INDEX]+=1;
 	//存储更改后得参数
 	int ret=saveCoverClass(0x3106,(INT16U)crrentnum,(void *)&prginfo_event->event_obj.Event3106_obj,sizeof(Event3106_Object),event_para_save);
-	fprintf(stderr,"ret=%d \n");
+	fprintf(stderr,"ret=%d \n",ret);
 	//存储记录集
 	saveCoverClass(0x3106,(INT16U)crrentnum,(void *)Save_buf,(int)index,event_record_save);
 	//存储当前记录值
@@ -995,9 +994,9 @@ void SendERC3106(INT8U flag,INT8U Erctype,ProgramInfo* prginfo_event)
 }
 
 //判断终端与电能表的时间偏差
-BOOLEAN MeterDiff(ProgramInfo* prginfo_event,MeterPower *MeterPowerInfo)
+BOOLEAN MeterDiff(ProgramInfo* prginfo_event,MeterPower *MeterPowerInfo,INT8U *state)
 {
-	int i = 0;
+	int i = 0,index=0;
 	for(i = 0;i<POWEROFFON_NUM;i++)
 	{
 		if(MeterPowerInfo[i].Valid)
@@ -1017,7 +1016,7 @@ BOOLEAN MeterDiff(ProgramInfo* prginfo_event,MeterPower *MeterPowerInfo)
 								TermialPowerInfo.PoweronTime.tm_hour,TermialPowerInfo.PoweronTime.tm_min,TermialPowerInfo.PoweronTime.tm_sec);
 			int Diff1_tmp1 = abs(difftime(mktime(&MeterPowerInfo[i].PoweroffTime),mktime(&TermialPowerInfo.PoweroffTime)));
 			int Diff1_tmp2 = abs(difftime(mktime(&MeterPowerInfo[i].PoweronTime),mktime(&TermialPowerInfo.PoweronTime)));
-			//fprintf(stderr,"Diff1_tmp1 =%d,Diff1_tmp2 = %d,poweroff_on_offset=%d\r\n",Diff1_tmp1,Diff1_tmp2,shmm_getpara()->f98.poweroff_on_offset);
+			fprintf(stderr,"Diff1_tmp1 =%d,Diff1_tmp2 = %d,poweroff_on_offset=%d\r\n",Diff1_tmp1,Diff1_tmp2,prginfo_event->event_obj.Event3106_obj.poweroff_para_obj.screen_para_obj.startstoptime_offset);
 			//判断停电事件　起止时间偏差限值的合法性
 			int poweroffset = 0;
 			poweroffset = prginfo_event->event_obj.Event3106_obj.poweroff_para_obj.screen_para_obj.startstoptime_offset;
@@ -1036,7 +1035,8 @@ BOOLEAN MeterDiff(ProgramInfo* prginfo_event,MeterPower *MeterPowerInfo)
 			//判断停电事件时间区段偏差限值
 			int tmp1 =abs(difftime(mktime(&MeterPowerInfo[i].PoweronTime),mktime(&MeterPowerInfo[i].PoweroffTime)));
 			int tmp2 =abs(difftime(mktime(&TermialPowerInfo.PoweronTime),mktime(&TermialPowerInfo.PoweroffTime)));
-
+            fprintf(stderr,"tmp1=%d tmp2=%d sectortime_offset=%d \n",tmp1,tmp2,
+            		prginfo_event->event_obj.Event3106_obj.poweroff_para_obj.screen_para_obj.sectortime_offset*60);
 			if(abs(tmp1-tmp2) > prginfo_event->event_obj.Event3106_obj.poweroff_para_obj.screen_para_obj.sectortime_offset*60)
 			{
 				fprintf(stderr,"MeterDiff err2\r\n");
@@ -1046,18 +1046,23 @@ BOOLEAN MeterDiff(ProgramInfo* prginfo_event,MeterPower *MeterPowerInfo)
 			}
 		}
 	}
-	fprintf(stderr,"POWER_OFF_VALIDE\r\n");
-	TermialPowerInfo.Valid = POWER_OFF_VALIDE;
-	filewrite(ERC3106PATH,&TermialPowerInfo,sizeof(TermialPowerInfo));
-	return TRUE;
+	if(index>0){
+		fprintf(stderr,"POWER_OFF_VALIDE\r\n");
+		TermialPowerInfo.Valid = POWER_OFF_VALIDE;
+		filewrite(ERC3106PATH,&TermialPowerInfo,sizeof(TermialPowerInfo));
+		return TRUE;
+	}else{
+		fprintf(stderr,"POWER_OFF_INVALIDE\r\n");
+		TermialPowerInfo.Valid = POWER_OFF_INVALIDE;
+		filewrite(ERC3106PATH,&TermialPowerInfo,sizeof(TermialPowerInfo));
+		return FALSE;
+	}
 }
 
 INT8U fileread(char *FileName, void *source, INT32U size)
 {
 	FILE *fp = NULL;
 	int num, ret = 0;
-
-	//fprintf(stderr,"read FileName=%s\n",FileName);
 	fp = fopen((const char*)FileName, "r");
 	if (fp != NULL )
 	{
@@ -1072,8 +1077,50 @@ INT8U fileread(char *FileName, void *source, INT32U size)
 	}
 	return ret;
 }
+INT8U Set_Poweron(ProgramInfo* prginfo_event,time_t time_of_now,INT16U maxtime_space,
+		INT16U mintime_space,INT8U *flag){
+	        localtime_r((const time_t*)&time_of_now, (struct tm *)&TermialPowerInfo.PoweronTime);
+			filewrite(ERC3106PATH,&TermialPowerInfo,sizeof(TermialPowerInfo));
+			int interval = difftime(mktime(&TermialPowerInfo.PoweronTime),mktime(&TermialPowerInfo.PoweroffTime));
+			ERC3106log(1,prginfo_event->ACSRealData.Ua,TermialPowerInfo.PoweronTime);//调试加入log
 
-INT8U Get_meter_powoffon(ProgramInfo* prginfo_event,MeterPower *MeterPowerInfo,INT8U *state){
+			//如果上电时间大于停电时间或者停上电时间间隔小于最小间隔或者大于最大间隔不产生下电事件
+			if(mintime_space==0)
+				mintime_space=1;
+			if(maxtime_space==0)
+				maxtime_space=4300;
+			fprintf(stderr,"interval=%d mintime_space=%d maxtime_space=%d \n",interval,mintime_space*60,maxtime_space*60);
+			if((interval > mintime_space*60)&&(interval < maxtime_space*60)) {
+				fprintf(stderr,"上电时间满足参数：interval=%d\n",interval);
+				*flag = 0b10000000;
+			}
+	return 1;
+}
+INT8U Get_meter_powoffon(ProgramInfo* prginfo_event,MeterPower *MeterPowerInfo,
+		INT8U *state,time_t time_of_now,INT16U maxtime_space,
+		INT16U mintime_space,INT8U *flag){
+
+    INT8U collect_flag=prginfo_event->event_obj.Event3106_obj.poweroff_para_obj.collect_para_obj.collect_flag;
+    INT8U collect_flag_1 = ((collect_flag>>7)&0x01);
+    INT8U collect_flag_2 = ((collect_flag>>6)&0x01);
+    static INT8U on_time = 0;
+    if(collect_flag_1 == 1){
+    	on_time++;
+		if(on_time == 1){
+			Set_Poweron(prginfo_event,time_of_now,maxtime_space,mintime_space,flag);
+			return 1;
+		}else{
+			if(on_time < 60){
+				fprintf(stderr,"上电等待 on_time=%d \n",on_time);
+				return 1;
+			}
+		}
+    }else{
+    	Set_Poweron(prginfo_event,time_of_now,maxtime_space,mintime_space,flag);
+    }
+    on_time = 0;
+    TermialPowerInfo.ERC3106State = POWER_ON;
+    fprintf(stderr,"\n 如果初步判断事件有效，置标志位，通知抄表停上电事件 \n");
 	CLASS_6001	 meter={};
 	CLASS11		coll={};
 	int			i=0,j=0,blknum=0;
@@ -1092,9 +1139,9 @@ INT8U Get_meter_powoffon(ProgramInfo* prginfo_event,MeterPower *MeterPowerInfo,I
 		return 0;
 	}
 	//如果有效
-    if(((prginfo_event->event_obj.Event3106_obj.poweroff_para_obj.collect_para_obj.collect_flag>>7)&0x01) == 1){
+    if(collect_flag_1 == 1){
     	//随机
-    	if(((prginfo_event->event_obj.Event3106_obj.poweroff_para_obj.collect_para_obj.collect_flag>>6)&0x01) == 1){
+    	if(collect_flag_2 == 1){
     		fprintf(stderr,"随机选择测量点 \n");
              for(i=0;i<blknum;i++){
             	 if(readParaClass(oi,&meter,i)==1){
@@ -1143,17 +1190,13 @@ INT8U Event_3106(ProgramInfo* prginfo_event,MeterPower *MeterPowerInfo,INT8U *st
 	INT16U recover_voltage_limit=prginfo_event->event_obj.Event3106_obj.poweroff_para_obj.screen_para_obj.recover_voltage_limit;
 	INT16U mintime_space=prginfo_event->event_obj.Event3106_obj.poweroff_para_obj.screen_para_obj.mintime_space;
 	INT16U maxtime_space=prginfo_event->event_obj.Event3106_obj.poweroff_para_obj.screen_para_obj.maxtime_space;
-//	fprintf(stderr,"\n[3106]TermialPowerInfo.ERC3106State=%d \n",TermialPowerInfo.ERC3106State);
-	if(*state == 2)
-		MeterDiff(prginfo_event,MeterPowerInfo);
+	if(*state == 2){
+		MeterDiff(prginfo_event,MeterPowerInfo,state);
+		*state=0;
+	}
 	INT8U off_flag=0,on_flag=0;
 	//判断下电
 	if(TermialPowerInfo.ERC3106State == POWER_START){
-
-		//二型集中器没有电池只有电容，所以不能够读出底板是否有电，且二型集中器只有一相电压，停上电事件在硬件复位时不能产生，
-		//所以判断时，需要判断当前电压大于一个定值且小时参数时，产生事件(大于的定时暂定为10v交采已经将实时电压值乘以１０).
-		//fprintf(stderr,"\n[3106]ua=%d ub=%d uc=%d poweroff_happen_vlim=%d available=%d gpio_5V=%d \n",prginfo_event->ACSRealData.Ua
-		//		,prginfo_event->ACSRealData.Ub,prginfo_event->ACSRealData.Uc,poweroff_happen_vlim,prginfo_event->ACSRealData.Available,gpio_5V);
 		if(prginfo_event->DevicePara[0] == 2){//II型
 			if((prginfo_event->ACSRealData.Available==TRUE)
 							&&(prginfo_event->ACSRealData.Ua>100 && prginfo_event->ACSRealData.Ua<poweroff_happen_vlim))
@@ -1182,8 +1225,6 @@ INT8U Event_3106(ProgramInfo* prginfo_event,MeterPower *MeterPowerInfo,INT8U *st
 			SendERC3106(flag,0,prginfo_event);
 		}
 	}else if(TermialPowerInfo.ERC3106State == POWER_OFF){
-//		fprintf(stderr,"\n[3106] ua=%d ub=%d uc=%d recover_voltage_limit=%d Available=%d \n",prginfo_event->ACSRealData.Ua
-//				,prginfo_event->ACSRealData.Ub,prginfo_event->ACSRealData.Uc,recover_voltage_limit,prginfo_event->ACSRealData.Available);
 		if(prginfo_event->DevicePara[0] == 2){//II型
 			if((prginfo_event->ACSRealData.Available && prginfo_event->ACSRealData.Ua>recover_voltage_limit))
 				on_flag=1;
@@ -1195,26 +1236,8 @@ INT8U Event_3106(ProgramInfo* prginfo_event,MeterPower *MeterPowerInfo,INT8U *st
 		}
 		if(on_flag == 1)
 		{
-			TermialPowerInfo.ERC3106State = POWER_ON;
-			localtime_r((const time_t*)&time_of_now, &TermialPowerInfo.PoweronTime);
-
-			filewrite(ERC3106PATH,&TermialPowerInfo,sizeof(TermialPowerInfo));
-			int interval = difftime(mktime(&TermialPowerInfo.PoweronTime),mktime(&TermialPowerInfo.PoweroffTime));
-			ERC3106log(1,prginfo_event->ACSRealData.Ua,TermialPowerInfo.PoweronTime);//调试加入log
-
-			//如果上电时间大于停电时间或者停上电时间间隔小于最小间隔或者大于最大间隔不产生下电事件
-			if(mintime_space==0)
-				mintime_space=1;
-			if(maxtime_space==0)
-				maxtime_space=4300;
-			fprintf(stderr,"interval=%d mintime_space=%d maxtime_space=%d \n",interval,mintime_space*60,maxtime_space*60);
-			if((interval > mintime_space*60)&&(interval < maxtime_space*60)) {
-				fprintf(stderr,"上电时间满足参数：interval=%d\n",interval);
-				flag = 0b10000000;
-			}
-
-			//如果初步判断事件有效，置标志位，通知抄表停上电事件
-			if(Get_meter_powoffon(prginfo_event,MeterPowerInfo,state) == 1){
+			if(Get_meter_powoffon(prginfo_event,MeterPowerInfo,state,time_of_now,
+					maxtime_space,mintime_space,&flag) == 1){
 				TermialPowerInfo.Valid = POWER_START;
 				filewrite(ERC3106PATH,&TermialPowerInfo,sizeof(TermialPowerInfo));
 				return 0;
@@ -1225,9 +1248,10 @@ INT8U Event_3106(ProgramInfo* prginfo_event,MeterPower *MeterPowerInfo,INT8U *st
 		}
 	}else{
 		int interval = difftime(mktime(&TermialPowerInfo.PoweronTime),mktime(&TermialPowerInfo.PoweroffTime));
+		fprintf(stderr,"\nTermialPowerInfo.Valid=%d interval=%d mintime_space=%d maxtime_space=%d ",TermialPowerInfo.Valid,
+				interval,mintime_space*60,maxtime_space*60);
 		if(TermialPowerInfo.Valid == POWER_OFF_VALIDE)
 		{
-			fprintf(stderr,"\nTermialPowerInfo.Valid=%d",TermialPowerInfo.Valid);
 			//如果上电时间大于停电时间或者停上电时间间隔小于最小间隔或者大于最大间隔不产生下电事件
 			if((interval > mintime_space*60)&&(interval < maxtime_space*60))
 				flag = 0b11000000;
@@ -1571,7 +1595,7 @@ INT8U Event_310C(TSA tsa, INT8U taskno,INT8U* data,INT8U len,ProgramInfo* prginf
     fprintf(stderr,"[310C]newdata=%d olddata=%d \n",newdata,olddata);
     if ((newdata>olddata) && (olddata>0))
 	 {
-    	fprintf(stderr,"[310C](newdata-olddata)*1000=%d power_offset*Em=%d power_offset=%d Em=%d\n",(newdata-olddata)*1000,power_offset*Em,power_offset,Em);
+    	//fprintf(stderr,"[310C](newdata-olddata)*1000=%d power_offset*Em=%d power_offset=%d Em=%d\n",(newdata-olddata)*1000,power_offset*Em,power_offset,Em);
 		 //kwh转换得扩大1000倍
 		 if (((newdata-olddata)*1000>power_offset*Em) && (power_offset>0)){
 			INT8U Save_buf[256];
@@ -1665,7 +1689,7 @@ INT8U Event_310D(TSA tsa, INT8U taskno,INT8U* data,INT8U len,ProgramInfo* prginf
 	fprintf(stderr,"[310D]newdata=%d olddata=%d \n",newdata,olddata);
 	if ((newdata>olddata) && (olddata>0))
 	 {
-		fprintf(stderr,"[310D](newdata-olddata)*1000=%d power_offset*Em=%d power_offset=%d Em=%d\n",(newdata-olddata)*1000,power_offset*Em,power_offset,Em);
+		//fprintf(stderr,"[310D](newdata-olddata)*1000=%d power_offset*Em=%d power_offset=%d Em=%d\n",(newdata-olddata)*1000,power_offset*Em,power_offset,Em);
 		 //kwh转换得扩大1000倍
 		 if (((newdata-olddata)*1000>power_offset*Em) && (power_offset>0)){
 			INT8U Save_buf[256];
@@ -2046,7 +2070,7 @@ INT8U Event_311A(TSA tsa, INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 	if(data== NULL)
 		return 0;
 	//怎么判定？
-	INT16U time_delay=prginfo_event->event_obj.Event311A_obj.outtimepara_obj.outtime_offset;
+	//INT16U time_delay=prginfo_event->event_obj.Event311A_obj.outtimepara_obj.outtime_offset;
 	//如果发生
 	if(1){
 		INT8U Save_buf[256];
@@ -2755,5 +2779,4 @@ void  Get698_event(OAD oad,ProgramInfo* prginfo_event)
     	DataTimeGet(&datetime);
     	Event_3114(datetime,prginfo_event);
     }
-
 }
