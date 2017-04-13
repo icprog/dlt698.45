@@ -2021,10 +2021,10 @@ INT8S readMeterPowerInfo()
 									fprintf(stderr,"\n readMeterPowerInfo datacontent = ");
 									INT8U prtIndex = 0;
 
-									for(prtIndex = (apduDataStartIndex+13);prtIndex < (apduDataStartIndex+27);prtIndex++)
-									{
-										fprintf(stderr,"%02x ",recvbuff[prtIndex]);
-									}
+//									for(prtIndex = (apduDataStartIndex+13);prtIndex < (apduDataStartIndex+27);prtIndex++)
+//									{
+//										fprintf(stderr,"%02x ",recvbuff[prtIndex]);
+//									}
 									MeterPowerInfo[meterIndex].PoweroffTime.tm_year = recvbuff[apduDataStartIndex+13];
 									MeterPowerInfo[meterIndex].PoweroffTime.tm_year = (MeterPowerInfo[meterIndex].PoweroffTime.tm_year<<8);
 									MeterPowerInfo[meterIndex].PoweroffTime.tm_year = MeterPowerInfo[meterIndex].PoweroffTime.tm_year + recvbuff[apduDataStartIndex+14] - 1900;
