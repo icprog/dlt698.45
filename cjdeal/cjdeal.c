@@ -698,6 +698,7 @@ int main(int argc, char *argv[])
 	read485_proccess();
 	//统计计算 电压合格率 停电事件等
 	calc_proccess();
+
 	if(JProgramInfo->DevicePara[0] == 1)
 	{
 		//载波
@@ -708,7 +709,6 @@ int main(int argc, char *argv[])
 		//液晶、控制
 		guictrl_proccess();
 	}
-
 	//交采
 	acs_process();
 

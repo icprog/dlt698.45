@@ -390,7 +390,7 @@ void clean_coef(void)
 	temp[2] = 1;
 	att_spi_write(spifp, 0xc9, 3, temp); //不允许写操作
 }
-
+/*
 void clean_phase(void)
 {
 	INT8U temp[3];
@@ -419,7 +419,7 @@ void clean_phase(void)
 	temp[2] = 1;
 	att_spi_write(spifp, 0xc9, 3, temp); //不允许写操作
 }
-
+*/
 /*写校表系数
  */
 void write_coef_val(int pha,int type,INT8U *val)

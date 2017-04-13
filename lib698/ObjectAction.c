@@ -1068,7 +1068,7 @@ int EventMothod(OAD oad,INT8U *data)
 	return 0;
 }
 //esam 698处理函数返回0，正常，可以组上行帧。返回负数，异常，组错误帧，同意用0x16
-void EsamMothod(INT16U attr_act,INT8U *data)
+INT32S EsamMothod(INT16U attr_act,INT8U *data)
 {
 	INT32S ret=-1;
 	switch(attr_act)
@@ -1084,9 +1084,11 @@ void EsamMothod(INT16U attr_act,INT8U *data)
 				ret = -1;
 				break;
 		}
+	return ret;
 }
 int doObjectAction(OAD oad,INT8U *data,Action_result *act_ret)
 {
+	INT32S errflg=0;
 	INT16U oi = oad.OI;
 	INT8U attr_act = oad.attflg;
 	INT8U oihead = (oi & 0xF000) >>12;
@@ -1130,7 +1132,13 @@ int doObjectAction(OAD oad,INT8U *data,Action_result *act_ret)
 			FileTransMothod(attr_act,data);
 			break;
 		case 0xF100:
-			EsamMothod(attr_act,data);
+			errflg = EsamMothod(attr_act,data);
+			if(errflg > 0)
+			{
+				act_ret->DAR = 0;
+//				act_ret->datalen = 1;
+			}
+
 			break;
 	}
 	if(oi==0x4300 && attr_act==1) {		//设备复位
