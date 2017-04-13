@@ -516,6 +516,10 @@ void timeProcess()
 INT8S dealMsgProcess()
 {
 	INT8S result = 0;
+	if((cjcommProxy.isInUse != 0) ||(cjguiProxy.isInUse != 0))
+	{
+		return 	result;
+	}
 
 	INT8U  rev_485_buf[2048];
 	INT32S ret;
