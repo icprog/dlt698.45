@@ -2383,11 +2383,13 @@ INT16S deal6015_698(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8
 	}
 
 	subindex = 0;
+	INT8U isSuccess = 0;
 	while(subindex < MAX_RETRY_NUM)
 	{
 		memset(recvbuff, 0, BUFFSIZE);
 		SendDataTo485(port485, sendbuff, sendLen);
 		st6035->sendMsgNum++;
+
 		recvLen = ReceDataFrom485(DLT_698,port485, 500, recvbuff);
 
 		fprintf(stderr,"\n\n recvLen = %d \n",recvLen);
@@ -2404,19 +2406,25 @@ INT16S deal6015_698(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8
 				retLen = deal698RequestResponse(0,getResponseType,dataLen,csdNum,&recvbuff[apduDataStartIndex],dataContent,st6015.csds,to6001,st6035->taskID);
 				if(retLen > 0)
 				{
-					st6035->successMSNum++;
+					fprintf(stderr,"\n retLen = %d\n",retLen);
+					isSuccess = 1;
 				}
-				else
-				{
-					Event_310F(to6001.basicinfo.addr,NULL,0,JProgramInfo);
-				}
+
 				break;
 			}
 
 		}
 		subindex++;
 	}
-
+	if(isSuccess == 1)
+	{
+		st6035->successMSNum++;
+	}
+	else
+	{
+		fprintf(stderr,"\n 抄表失败　　Event_310F \n");
+		Event_310F(to6001.basicinfo.addr,NULL,0,JProgramInfo);
+	}
 	fprintf(stderr, "\n deal6015_698-------------------  retLen = %d\n", retLen);
 	return retLen;
 }
