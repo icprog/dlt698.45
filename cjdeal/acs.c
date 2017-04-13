@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <stddef.h>
 #include <stdarg.h>
+#include <math.h>
 #include <ctype.h>
 #include <time.h>
 #include <termios.h>
@@ -33,6 +34,7 @@
 #include "acs.h"
 #include "ware.h"
 #include "event.h"
+
 
 extern sem_t * 		sem_check_fd;	//校表信号量
 extern ProgramInfo* JProgramInfo;
@@ -367,7 +369,7 @@ INT32U	read_check_wreg(INT32S fp,INT8U	addr)
 
 /*
  * 写ATT7022E校表寄存器*/
-INT32U write_coef_reg(INT32S fp)
+INT8U write_coef_reg(INT32S fp,INT32U *sum3e,INT32U *sum5e)
 {
 	INT8U temp[3];
 	INT32U	sum;
@@ -436,12 +438,11 @@ INT32U write_coef_reg(INT32S fp)
 	att_spi_write(fp, Reg_Enable, 3, temp); //不允许写操作
 	//---------读取计量芯片类型---------------------------------------------------
 	sum = att_spi_read(spifp, r_ChkSum, 3);
-	sum = sum & 0xffffff;
+	*sum3e = sum & 0xffffff;
 
-	chksum1 = att_spi_read(spifp, r_ChkSum1, 3);
-	chksum1 = chksum1 & 0xffffff;
-	oldchksum1 = chksum1;
-
+	sum = att_spi_read(spifp, r_ChkSum1, 3);
+	*sum5e = sum & 0xffffff;
+	fprintf(stderr,"sum3e=%x sum5e=%x\n",*sum3e,*sum5e);
 	dbg_prt("\n\r 大电流相角 校表系数");
 	dbg_prt("PhaseA=%02x_%02x_%02x",attCoef.PhaseA0[0],attCoef.PhaseA0[1],attCoef.PhaseA0[2]);
 	dbg_prt("PhaseB=%02x_%02x_%02x",attCoef.PhaseB0[0],attCoef.PhaseB0[1],attCoef.PhaseB0[2]);
@@ -470,7 +471,7 @@ INT32U write_coef_reg(INT32S fp)
 	dbg_prt("Ua=%d, Ub=%d, Uc=%d",attCoef.HarmUCoef[0],attCoef.HarmUCoef[1],attCoef.HarmUCoef[2]);
 	dbg_prt("\n\r 谐波电流系数");
 	dbg_prt("Ia=%d, Ib=%d, Ic=%d",attCoef.HarmICoef[0],attCoef.HarmICoef[1],attCoef.HarmICoef[2]);
-	return sum;
+	return 1;
 }
 
 // 谐波平均值计算
@@ -508,12 +509,19 @@ INT32U ave_hz(INT32U *hz,INT32U temphz,INT8U Len)
 // 换算计量寄存器值
 //输入参数：type：采样数据类型,para:计算倍数, reg：计量寄存器值  temp:温度值，用于温度补偿
 //返回值    ：实时采样值
+
+int Round(int Decbits,FP64 x)
+{
+  return (int)(pow(10,Decbits)*x+0.5)/(float)pow(10,Decbits);
+}
+
 INT32S	trans_regist(INT8U	type,INT8U para,INT32S reg,INT32S temp)
 {
 //	INT32S		val=0;
 	INT32S		tread=0;
 	float			tmpval=0;
 	#define N			80
+	#define PQCoef		756.01035      //三相四
 	switch(type){
 	case U:					//电压
 		tread = reg * U_COEF / 8192;
@@ -523,28 +531,31 @@ INT32S	trans_regist(INT8U	type,INT8U para,INT32S reg,INT32S temp)
 	case I:					//电流
 //		fprintf(stderr,"Ireg=%d\n",reg);
 		tmpval = (float)reg * I_COEF /8192/N;
-		tread = (INT32S)tmpval;
+		tread = Round(0,tmpval);
+//		fprintf(stderr,"Ival= %f %d\n",tmpval,tread);
 //		val = tread * (1.0*(1+(temp-15)*0.00005));
 		break;
 	case P:					//有功	reg:24位数据,补码形式,	如果reg>2^23,则val=reg-2^24,	否则 val=reg*K
 		if (reg > 8388608)				//2^23=8388608
 			tread = reg -16777216;	//2^24=16777216
 		else tread = reg;
-		tmpval = tread*P_COEF/756;
-		tread =  tmpval*para;
+		tmpval = (float)tread*P_COEF/PQCoef;
+		tread = Round(0,tmpval*para);
 //		val = tread *(1.0*(1+(temp-15)*0.0001));
 		break;
 	case Q:					//无功
+//		if(para==2)	fprintf(stderr,"Qreg=%d\n",reg);
 		if (reg > 8388608)
 			tread = reg -16777216;
 		else tread = reg;
-		tmpval = tread*Q_COEF/756;
-		tread =  tmpval*para;
+		tmpval = (float)tread*Q_COEF*para/PQCoef;
+		tread = Round(1,tmpval);
+//		if(para==2) fprintf(stderr,"Q:tmpval=%f  tread=%d para=%d\n",tmpval,tread,para);
 //		val =  tread*(1.0*(1+(temp-15)*1.2247*0.0001));
 		break;
 	case S:					//视在功率总是大于或者等于0,所以符号位始终为0。
 //		3-4
-		tmpval = reg*S_COEF/756;
+		tmpval = reg*S_COEF/PQCoef;
 		tread = tmpval*para;
 		break;
 	case COS:				//功率因数
@@ -1191,8 +1202,10 @@ INT32S  InitACSChip()
 		read_tempgain_cfg();
 		read_tempcoef_cfg();
 	}
-	chksum = write_coef_reg(spifp);
+	write_coef_reg(spifp,&chksum,&chksum1);
 	oldchksum = chksum;
+	oldchksum1 = chksum1;
+	fprintf(stderr,"chksum=%x,chksum1=%x",chksum,chksum1);
 	spi_close(spifp);
 	return (device_id);
 }
@@ -1207,7 +1220,7 @@ INT32S OpenACS_I()
 	if (spifp < 0){
 		asyslog(LOG_NOTICE,"打开SPI设备(%s)错误\n",ACS_SPI_DEV);
 	}
-	dumpstat((char*)ACS_SPI_DEV,spifp,5000000);
+	dumpstat((char*)ACS_SPI_DEV,spifp,2000000);
 	return spifp;
 }
 
@@ -1408,10 +1421,12 @@ void DealATT7022(void)
 		sleep(2);
 		// 读ATT7022E芯片的校表系数
 		readCoverClass(0,0,&attCoef,sizeof(ACCoe_SAVE),acs_coef_save);
-		chksum = write_coef_reg(spifp);
-		fprintf(stderr,"ChkSum(%d) old(%d) ChkSum1(%d) old1(%d) have change,rewrite_coef_reg\n",chksum,oldchksum,chksum1,oldchksum1);
-		syslog(LOG_NOTICE,"ChkSum(%d) old(%d) ChkSum1(%d) old1(%d) have change,rewrite_coef_reg\n",chksum,oldchksum,chksum1,oldchksum1);
+		spifp = OpenACS_I();
+		write_coef_reg(spifp,&chksum,&chksum1);
+		asyslog(LOG_NOTICE,"ChkSum(%x) old(%x) ChkSum1(%x) old1(%x) have change,rewrite_coef_reg\n",chksum,oldchksum,chksum1,oldchksum1);
+//		fprintf(stderr,"ChkSum(%d) old(%d) ChkSum1(%d) old1(%d) have change,rewrite_coef_reg\n",chksum,oldchksum,chksum1,oldchksum1);
 		oldchksum = chksum;
+		oldchksum1 = chksum1;
 	}
 	calc_minute_ave_u(nowts,realdata.Ua,realdata.Ub,realdata.Uc,&realdata.AvgUa,&realdata.AvgUb,&realdata.AvgUc);
 	//暂时去掉谐波处理过程。
