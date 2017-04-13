@@ -236,7 +236,7 @@ void acs_regdata_print()
 	fprintf(stderr,"w_Iregion=%06x\n",REC[w_Iregion]);
 	fprintf(stderr,"w_Iregion1=%06x\n",REC[w_Iregion1]);
 
-	fprintf(stderr,"\n\r-------------coef.par 文件保存----------------------\n");
+	fprintf(stderr,"\n\r-------------coef.par 文件保存值----------------------\n");
 	fprintf(stderr,"sizeof(ACCoe_SAVE)=%d\n",sizeof(ACCoe_SAVE));
 	readCoverClass(0,0,&attCoef,sizeof(ACCoe_SAVE),acs_coef_save);
 	fprintf(stderr,"UA系数:%02x-%02x-%02x\n",attCoef.UA[0],attCoef.UA[1],attCoef.UA[2]);
@@ -245,6 +245,9 @@ void acs_regdata_print()
 	fprintf(stderr,"IA系数:%02x-%02x-%02x\n",attCoef.IA[0],attCoef.IA[1],attCoef.IA[2]);
 	fprintf(stderr,"IB系数:%02x-%02x-%02x\n",attCoef.IB[0],attCoef.IB[1],attCoef.IB[2]);
 	fprintf(stderr,"IC系数:%02x-%02x-%02x\n",attCoef.IC[0],attCoef.IC[1],attCoef.IC[2]);
+	fprintf(stderr,"PA系数:%02x-%02x-%02x\n",attCoef.PA[0],attCoef.PA[1],attCoef.PA[2]);
+	fprintf(stderr,"PB系数:%02x-%02x-%02x\n",attCoef.PB[0],attCoef.PB[1],attCoef.PB[2]);
+	fprintf(stderr,"PC系数:%02x-%02x-%02x\n",attCoef.PC[0],attCoef.PC[1],attCoef.PC[2]);
 	sem_post(sem_fd);
 	sem_getvalue(sem_fd, &val);
 	fprintf(stderr,"process <vd> The sem is %d\n", val);
@@ -1088,6 +1091,23 @@ void acs_check_coef()
 	write_coef_reg(spifp);
 	fprintf(stderr,"----------ACCoe_SAVE=%d\n",sizeof(ACCoe_SAVE));
 	saveCoverClass(0,0,&attCoef,sizeof(ACCoe_SAVE),acs_coef_save);
+
+
+	memset(&attCoef,0,sizeof(attCoef));
+	fprintf(stderr,"\n\r-------read------coef.par 文件保存值----------------------\n");
+	fprintf(stderr,"sizeof(ACCoe_SAVE)=%d\n",sizeof(ACCoe_SAVE));
+	readCoverClass(0,0,&attCoef,sizeof(ACCoe_SAVE),acs_coef_save);
+	fprintf(stderr,"UA系数:%02x-%02x-%02x\n",attCoef.UA[0],attCoef.UA[1],attCoef.UA[2]);
+	fprintf(stderr,"UB系数:%02x-%02x-%02x\n",attCoef.UB[0],attCoef.UB[1],attCoef.UB[2]);
+	fprintf(stderr,"UC系数:%02x-%02x-%02x\n",attCoef.UC[0],attCoef.UC[1],attCoef.UC[2]);
+	fprintf(stderr,"IA系数:%02x-%02x-%02x\n",attCoef.IA[0],attCoef.IA[1],attCoef.IA[2]);
+	fprintf(stderr,"IB系数:%02x-%02x-%02x\n",attCoef.IB[0],attCoef.IB[1],attCoef.IB[2]);
+	fprintf(stderr,"IC系数:%02x-%02x-%02x\n",attCoef.IC[0],attCoef.IC[1],attCoef.IC[2]);
+	fprintf(stderr,"PA系数:%02x-%02x-%02x\n",attCoef.PA[0],attCoef.PA[1],attCoef.PA[2]);
+	fprintf(stderr,"PB系数:%02x-%02x-%02x\n",attCoef.PB[0],attCoef.PB[1],attCoef.PB[2]);
+	fprintf(stderr,"PC系数:%02x-%02x-%02x\n",attCoef.PC[0],attCoef.PC[1],attCoef.PC[2]);
+
+
 	///////////14.1.10
 //	fprintf(stderr,"等待谐波矫正\n");
 //	sleep(8);
