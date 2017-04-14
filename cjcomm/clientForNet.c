@@ -258,7 +258,6 @@ void ClientForNetInit(void) {
     }
 
     ClientForNetObject.Heartbeat = Class26.commconfig.heartBeat;
-
     asyslog(LOG_INFO, ">>>======初始化（客户端[以太网]模式）结束======<<<");
 }
 
