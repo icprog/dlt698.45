@@ -421,7 +421,7 @@ int readFileName(OI_698 oi,INT16U seqno,INT16U type,char *fname)
 		break;
 	case acs_coef_save:
 		sprintf(fname,"%s/accoe.par",_ACSDIR_);
-		if(access(fname,F_OK)==0) {		//文件不存在，查找原3761规约下的参数文件
+		if(access(fname,F_OK)!=0) {		//文件不存在，查找原3761规约下的参数文件
 			sprintf(fname,"%s/accoe.par",_CFGDIR_);
 		}
 		break;
@@ -500,7 +500,7 @@ INT8U fu_read_accoef(char *FileName, void *source, INT32U size)
 	int num, ret = 0;
 	INT16U *readcrc = (INT16U *) source;
 
-//	fprintf(stderr,"FileName=%s\n",FileName);
+	fprintf(stderr,"FileName=%s\n",FileName);
 	fp = fopen((const char*)FileName, "r");
 	if (fp != NULL )
 	{

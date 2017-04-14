@@ -698,10 +698,17 @@ int main(int argc, char *argv[])
 	read485_proccess();
 	//统计计算 电压合格率 停电事件等
 	calc_proccess();
-	//载波
-	readplc_proccess();
-	//液晶、控制
-	guictrl_proccess();
+
+	if(JProgramInfo->DevicePara[0] == 1)
+	{
+		//载波
+		readplc_proccess();
+	}
+	if(JProgramInfo->DevicePara[0] != 2)
+	{
+		//液晶、控制
+		guictrl_proccess();
+	}
 	//交采
 	acs_process();
 
