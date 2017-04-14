@@ -465,7 +465,7 @@ int absoluteKill(char* name, int timeout) {
         if (prog_find_pid_by_name((signed char*)name, pids) >= 1) {
             char command[64];
             memset(command, 0x00, sizeof(command));
-            sprintf(command, "kill %d", pids[0]);
+            sprintf(command, "kill -9 %d", pids[0]);
             system(command);
             asyslog(LOG_INFO, "正在停止进程[%s],进程号[%d],使用的终止命令[%s]", name, pids[0], command);
         } else {
