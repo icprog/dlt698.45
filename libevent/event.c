@@ -1039,17 +1039,10 @@ BOOLEAN MeterDiff(ProgramInfo* prginfo_event,MeterPower *MeterPowerInfo,INT8U *s
 			}
 		}
 	}
-	if(index>0){
 		fprintf(stderr,"POWER_OFF_VALIDE\r\n");
 		TermialPowerInfo.Valid = POWER_OFF_VALIDE;
 		filewrite(ERC3106PATH,&TermialPowerInfo,sizeof(TermialPowerInfo));
 		return TRUE;
-	}else{
-		fprintf(stderr,"POWER_OFF_INVALIDE\r\n");
-		TermialPowerInfo.Valid = POWER_OFF_INVALIDE;
-		filewrite(ERC3106PATH,&TermialPowerInfo,sizeof(TermialPowerInfo));
-		return FALSE;
-	}
 }
 
 INT8U fileread(char *FileName, void *source, INT32U size)
@@ -2767,9 +2760,11 @@ INT8U Event_3010(ProgramInfo* prginfo_event) {
 void  Get698_event(OAD oad,ProgramInfo* prginfo_event)
 {
     if(oad.OI == 0x4300 && (oad.attflg == 3 || oad.attflg == 5 || oad.attflg == 6)){
+
     	Event_3100(NULL,0,prginfo_event);
     	prginfo_event->event_obj.Event3106_obj.event_obj.crrentnum = 0;//停上电
     	saveCoverClass(0x3106,0,(void *)&prginfo_event->event_obj.Event3106_obj,sizeof(Event3106_Object),event_para_save);
+        memset(curr_data,0,MAX_POINT_NUM*4);//curr_data[MAX_POINT_NUM*4];
     }else if(oad.OI == 0x4000 && oad.attflg == 2){
     	DateTimeBCD datetime;
     	DataTimeGet(&datetime);
