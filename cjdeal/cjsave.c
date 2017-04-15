@@ -29,8 +29,8 @@ INT16U FixHeadUnit(INT8U *headbuf,INT8U *fixlen,ROAD *road_eve)
 {
 	static INT8U head_oad[4][4]={{0x20,0x2a,0x02,0x00},{0x60,0x40,0x02,0x00},{0x60,0x41,0x02,0x00},{0x60,0x42,0x02,0x00}};
 	static INT8U head_oad_len[4]={0x0012,0x0008,0x0008,0x0008};
-	static INT8U headeve_oad[3][4]={{0x20,0x2a,0x02,0x00},{0x20,0x22,0x02,0x00},{0x20,0x1e,0x02,0x00},{0x20,0x20,0x02,0x00}};
-	static INT8U headeve_oad_len[3]={0x0012,0x0005,0x0008,0x0008};
+	static INT8U headeve_oad[4][4]={{0x20,0x2a,0x02,0x00},{0x20,0x22,0x02,0x00},{0x20,0x1e,0x02,0x00},{0x20,0x20,0x02,0x00}};
+	static INT8U headeve_oad_len[4]={0x0012,0x0005,0x0008,0x0008};
 	int	  i=0,index=0;
 	HEAD_UNIT	unit[4]={};
 	*fixlen = 0;
@@ -47,7 +47,7 @@ INT16U FixHeadUnit(INT8U *headbuf,INT8U *fixlen,ROAD *road_eve)
 	}
 	else
 	{
-		for(i=0;i<3;i++) {
+		for(i=0;i<4;i++) {
 			memset(&unit[i].oad_m,0,sizeof(OAD));
 			unit[i].oad_r.OI = headeve_oad[i][0];
 			unit[i].oad_r.OI = (unit[i].oad_r.OI<<8) | headeve_oad[i][1];
@@ -393,6 +393,7 @@ int SaveNorData(INT8U taskid,ROAD *road_eve,INT8U *databuf,int datalen)//存储�
 			}
 		}
 	}
+
 	if(fp != NULL)
 		currpos = ftell(fp);
 	if(savepos==0)//存储位置为0.说明文件中没找到，则应添加而不是覆盖

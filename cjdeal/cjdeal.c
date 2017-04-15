@@ -518,6 +518,7 @@ INT8S dealMsgProcess()
 	INT8S result = 0;
 	if((cjcommProxy.isInUse != 0) ||(cjguiProxy.isInUse != 0))
 	{
+		fprintf(stderr,"\n ％％％％％％％％％％％％cjcommProxy.isInUse = %d cjguiProxy.isInUse = %d\n",cjcommProxy.isInUse,cjguiProxy.isInUse);
 		return 	result;
 	}
 
@@ -554,7 +555,7 @@ INT8S dealMsgProcess()
 					if(cjguiProxy.isInUse == 0)
 					{
 						memcpy(&cjguiProxy.strProxyMsg,rev_485_buf,sizeof(Proxy_Msg));
-						cjguiProxy.isInUse = 1;
+						cjguiProxy.isInUse = 3;
 					}
 					else
 					{
@@ -640,7 +641,7 @@ void dispatch_thread()
 			//fprintf(stderr,"\n当前无任务执行\n");
 		}
 
-		sleep(5);
+		sleep(1);
 	}
 	  pthread_detach(pthread_self());
 	  pthread_exit(&thread_dispatchTask);
