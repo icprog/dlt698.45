@@ -559,21 +559,14 @@ INT8U Get_StandardUnit(ProgramInfo* prginfo_event,OI_698 oi,INT8U *Rbuf,INT8U *I
 			Rbuf[(*Index)++] = ntime.min.data;//13
 			Rbuf[(*Index)++] = ntime.sec.data;//14
 		}else{
-			DateTimeBCD tdntime; //上电 开始时间是停电时case 9:间
-			tdntime.year.data=TermialPowerInfo.PoweroffTime.tm_year+1900;
-			tdntime.month.data=TermialPowerInfo.PoweroffTime.tm_mon+1;
-			tdntime.day.data=TermialPowerInfo.PoweroffTime.tm_mday;
-			tdntime.hour.data=TermialPowerInfo.PoweroffTime.tm_hour;
-			tdntime.min.data=TermialPowerInfo.PoweroffTime.tm_min;
-			tdntime.sec.data=TermialPowerInfo.PoweroffTime.tm_sec;
 			Rbuf[(*Index)++] = dtdatetimes;//7
-			Rbuf[(*Index)++] = ((tdntime.year.data>>8)&0x00ff);//8
-			Rbuf[(*Index)++] = ((tdntime.year.data)&0x00ff);//9
-			Rbuf[(*Index)++] = tdntime.month.data;//10
-			Rbuf[(*Index)++] = tdntime.day.data;//11
-			Rbuf[(*Index)++] = tdntime.hour.data;//12
-			Rbuf[(*Index)++] = tdntime.min.data;//13
-			Rbuf[(*Index)++] = tdntime.sec.data;//14
+			Rbuf[(*Index)++] = (((TermialPowerInfo.PoweroffTime.tm_year+1900)>>8)&0x00ff);//8
+			Rbuf[(*Index)++] = ((TermialPowerInfo.PoweroffTime.tm_year+1900)&0x00ff);//9
+			Rbuf[(*Index)++] = TermialPowerInfo.PoweroffTime.tm_mon+1;//10
+			Rbuf[(*Index)++] = TermialPowerInfo.PoweroffTime.tm_mday;//11
+			Rbuf[(*Index)++] = TermialPowerInfo.PoweroffTime.tm_hour;//12
+			Rbuf[(*Index)++] = TermialPowerInfo.PoweroffTime.tm_min;//13
+			Rbuf[(*Index)++] = TermialPowerInfo.PoweroffTime.tm_sec;//14
 		}
 	}
 	else
@@ -602,13 +595,13 @@ INT8U Get_StandardUnit(ProgramInfo* prginfo_event,OI_698 oi,INT8U *Rbuf,INT8U *I
 		}
 		else{
 			Rbuf[(*Index)++] = dtdatetimes;//15
-			Rbuf[(*Index)++] = ((ntime.year.data>>8)&0x00ff);//16
-			Rbuf[(*Index)++] = ((ntime.year.data)&0x00ff);//17
-			Rbuf[(*Index)++] = ntime.month.data;//18
-			Rbuf[(*Index)++] = ntime.day.data;//19
-			Rbuf[(*Index)++] = ntime.hour.data;//20
-			Rbuf[(*Index)++] = ntime.min.data;//21
-			Rbuf[(*Index)++] = ntime.sec.data;//22
+			Rbuf[(*Index)++] = (((TermialPowerInfo.PoweronTime.tm_year+1900)>>8)&0x00ff);//16
+			Rbuf[(*Index)++] = ((TermialPowerInfo.PoweronTime.tm_year+1900)&0x00ff);//17
+			Rbuf[(*Index)++] = TermialPowerInfo.PoweronTime.tm_mon+1;//18
+			Rbuf[(*Index)++] = TermialPowerInfo.PoweronTime.tm_mday;//19
+			Rbuf[(*Index)++] = TermialPowerInfo.PoweronTime.tm_hour;//20
+			Rbuf[(*Index)++] = TermialPowerInfo.PoweronTime.tm_min;//21
+			Rbuf[(*Index)++] = TermialPowerInfo.PoweronTime.tm_sec;//22
 		}
 	}
 	else{
@@ -1046,17 +1039,10 @@ BOOLEAN MeterDiff(ProgramInfo* prginfo_event,MeterPower *MeterPowerInfo,INT8U *s
 			}
 		}
 	}
-	if(index>0){
 		fprintf(stderr,"POWER_OFF_VALIDE\r\n");
 		TermialPowerInfo.Valid = POWER_OFF_VALIDE;
 		filewrite(ERC3106PATH,&TermialPowerInfo,sizeof(TermialPowerInfo));
 		return TRUE;
-	}else{
-		fprintf(stderr,"POWER_OFF_INVALIDE\r\n");
-		TermialPowerInfo.Valid = POWER_OFF_INVALIDE;
-		filewrite(ERC3106PATH,&TermialPowerInfo,sizeof(TermialPowerInfo));
-		return FALSE;
-	}
 }
 
 INT8U fileread(char *FileName, void *source, INT32U size)
@@ -1079,6 +1065,7 @@ INT8U fileread(char *FileName, void *source, INT32U size)
 }
 INT8U Set_Poweron(ProgramInfo* prginfo_event,time_t time_of_now,INT16U maxtime_space,
 		INT16U mintime_space,INT8U *flag){
+            fprintf(stderr,"注意：进来了... \n");
 	        localtime_r((const time_t*)&time_of_now, (struct tm *)&TermialPowerInfo.PoweronTime);
 			filewrite(ERC3106PATH,&TermialPowerInfo,sizeof(TermialPowerInfo));
 			int interval = difftime(mktime(&TermialPowerInfo.PoweronTime),mktime(&TermialPowerInfo.PoweroffTime));
@@ -1107,6 +1094,7 @@ INT8U Get_meter_powoffon(ProgramInfo* prginfo_event,MeterPower *MeterPowerInfo,
     if(collect_flag_1 == 1){
     	on_time++;
 		if(on_time == 1){
+			fprintf(stderr,"此时第一次进来 on_time=%d \n",on_time);
 			Set_Poweron(prginfo_event,time_of_now,maxtime_space,mintime_space,flag);
 			return 1;
 		}else{
@@ -1116,6 +1104,7 @@ INT8U Get_meter_powoffon(ProgramInfo* prginfo_event,MeterPower *MeterPowerInfo,
 			}
 		}
     }else{
+    	fprintf(stderr,"不需要采集得时候进来");
     	Set_Poweron(prginfo_event,time_of_now,maxtime_space,mintime_space,flag);
     }
     on_time = 0;
@@ -2771,9 +2760,11 @@ INT8U Event_3010(ProgramInfo* prginfo_event) {
 void  Get698_event(OAD oad,ProgramInfo* prginfo_event)
 {
     if(oad.OI == 0x4300 && (oad.attflg == 3 || oad.attflg == 5 || oad.attflg == 6)){
+
     	Event_3100(NULL,0,prginfo_event);
     	prginfo_event->event_obj.Event3106_obj.event_obj.crrentnum = 0;//停上电
     	saveCoverClass(0x3106,0,(void *)&prginfo_event->event_obj.Event3106_obj,sizeof(Event3106_Object),event_para_save);
+        memset(curr_data,0,MAX_POINT_NUM*4);//curr_data[MAX_POINT_NUM*4];
     }else if(oad.OI == 0x4000 && oad.attflg == 2){
     	DateTimeBCD datetime;
     	DataTimeGet(&datetime);
