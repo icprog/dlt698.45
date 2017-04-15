@@ -505,10 +505,10 @@ INT8U fu_read_accoef(char *FileName, void *source, INT32U size)
 	if (fp != NULL )
 	{
 		num = fread(source, size, 1, fp);
-//		fprintf(stderr,"read.num=%d,size=%d,reccrc=%04x\n",num,size,*readcrc);
+		fprintf(stderr,"read.num=%d,size=%d,reccrc=%04x\n",num,size,*readcrc);
 		if (num == 1)
 		{			//读取了size字节数据
-//			fprintf(stderr,"make_parity = %04x\n",make_parity_accoef(source, size));
+			fprintf(stderr,"make_parity = %04x\n",make_parity_accoef(source, size));
 			if (make_parity_accoef(source, size) == *readcrc)
 			{
 				ret = 1;
