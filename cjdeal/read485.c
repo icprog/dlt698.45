@@ -1108,6 +1108,35 @@ INT8U getASNInfo(FORMAT07* DI07,Base_DataType* dataType)
 	return unitNum;
 }
 
+INT8U isTimerSame(INT8S index, INT8U* timeData)
+{
+	INT8S ret = 1;
+	if(timeData[0]!= dtdatetimes)
+	{
+		return 0;
+	}
+
+	TS freezeTime;
+	TSGet(&freezeTime);
+	tminc(&freezeTime, day_units, index);
+	INT16U year = (timeData[1]<<8) + timeData[2];
+	asyslog(LOG_NOTICE,"电表时标：%d-%d-%d 集中器时标:%d-%d-%d",
+			year,timeData[3],timeData[4],freezeTime.Year,freezeTime.Month,freezeTime.Day);
+	if(freezeTime.Year!=year)
+	{
+		return 0;
+	}
+	if(timeData[3]!=freezeTime.Month)
+	{
+		return 0;
+	}
+	if(timeData[4]!=freezeTime.Day)
+	{
+		return 0;
+	}
+	return ret;
+}
+
 //把抄回来的07数据转换成698格式存储
 INT16U data07Tobuff698(FORMAT07 Data07,INT8U* dataContent)
 {
@@ -1531,6 +1560,23 @@ INT16U parseSingleROADData(ROAD road,INT8U* oadData,INT8U* dataContent,INT8U* da
 	*dataIndex = dataLen;
 	return length;
 }
+
+INT8U checkTimeStamp698(OAD_DATA oadListContent[ROAD_OADS_NUM])
+{
+	INT8U ret = 0;
+	INT8U oadIndex = 0;
+	INT8U oadTimeStamp[4] = {0x20,0x21,0x02,0x00};
+	for(oadIndex = 0;oadIndex < ROAD_OADS_NUM;oadIndex++)
+	{
+		if(memcmp(oadListContent[oadIndex].oad,oadTimeStamp,4)==0)
+		{
+			DbPrt1(2,"checkTimeStamp698 buff:", (char *) oadListContent[oadIndex].data, 10, NULL);
+			return isTimerSame(-1,oadListContent[oadIndex].data);
+		}
+	}
+	return ret;
+}
+
 /*
  *解析698抄表返回的报文
  *isProxyResponse = 1 说明是代理读取返回的  dataContent需要直接返回给主战
@@ -1588,6 +1634,14 @@ INT16S deal698RequestResponse(INT8U isProxyResponse,INT8U getResponseType,INT16U
 			oaddataLen = parseSingleROADData(csds.csd[0].csd.road,&apdudata[apdudataIndex],&dataContent[dataContentIndex],&dataContentLen,oadListContent);
 			dataContentIndex = dataContentLen;
 			fprintf(stderr,"\n dataContentIndex = %d dataContentLen = %d \n",dataContentIndex,dataContentLen);
+			if(csds.csd[0].csd.road.oad.OI == 0x5004)
+			{
+				INT8U isTimeSame = checkTimeStamp698(oadListContent);
+				if(isTimeSame == 0)
+				{
+					memset(dataContent,0,dataContentIndex);
+				}
+			}
 		}
 
 		break;
@@ -2526,6 +2580,22 @@ INT16S request07_singleOAD(OI_698 roadOI,OAD soureOAD,CLASS_6001 to6001,CLASS_60
 	return formatLen;
 
 }
+
+//抄日冻结数据之前，先抄时标看是否匹配
+//index=1，上一次
+INT8S checkTimeStamp07(CLASS_6001 obj6001,INT8U port485)
+{
+	INT8S ret = 0;
+	CLASS_6035 invalidst6035;
+	INT8U dataContent[100];
+	memset(dataContent,0,100);
+
+	request698_07Data(freezeflag07_1,dataContent,obj6001,&invalidst6035,port485);
+	DbPrt1(port485,"checkTimeStamp07 buff:", (char *) dataContent, 10, NULL);
+	ret = isTimerSame(-1,dataContent);
+	return ret;
+}
+
 INT16S deal6015_07(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8U* dataContent,INT8U port485) {
 	INT16U totaldataLen =0;
 	INT16S datalen = 0;
@@ -2563,6 +2633,13 @@ INT16S deal6015_07(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8U
 		//ROAD
 		if(st6015.csds.csd[dataIndex].type == 1)
 		{
+			INT8U isFreezeValid = 1;
+			//日冻结检查时标
+			if(st6015.csds.csd[dataIndex].csd.road.oad.OI == 0x5004)
+			{
+				isFreezeValid = checkTimeStamp07(to6001,port485);
+			}
+
 			INT8U csdIndex;
 			for(csdIndex=0;csdIndex<st6015.csds.csd[dataIndex].csd.road.num;csdIndex++)
 			{
@@ -2575,9 +2652,16 @@ INT16S deal6015_07(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8U
 				{
 					return 0;
 				}
+
+
 				datalen = request07_singleOAD(st6015.csds.csd[dataIndex].csd.road.oad.OI,
 						st6015.csds.csd[dataIndex].csd.road.oads[csdIndex],to6001,st6035,&dataContent[totaldataLen],port485);
+
 				totaldataLen += datalen;
+			}
+			if(isFreezeValid==0)
+			{
+				memset(dataContent,0,totaldataLen);
 			}
 		}
 		else
@@ -2608,6 +2692,7 @@ INT16S deal6015_07(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8U
 			to6001.sernum, st6015.sernum, st6015.csds.num);
 	return totaldataLen;
 }
+//按照任务6012格式上报
 INT8U createSendEventBuffHead(ROAD roadBody,INT8U* reportEventBuf,INT8U saveContentHead[SAVE_EVENT_BUFF_HEAD_LEN])
 {
 	INT8U eventBufLen = 0;
@@ -2649,13 +2734,38 @@ INT8U createSendEventBuffHead(ROAD roadBody,INT8U* reportEventBuf,INT8U saveCont
 	eventBufLen += 21;
 	return eventBufLen;
 }
+INT8U createSendEventBuffHead_BK(ROAD roadBody,INT8U* reportEventBuf,INT8U saveContentHead[SAVE_EVENT_BUFF_HEAD_LEN])
+{
+	INT8U eventBufLen = 0;
+
+	//ROAD event
+	eventBufLen += OADtoBuff(roadBody.oad,&reportEventBuf[eventBufLen]);
+	reportEventBuf[eventBufLen++] = roadBody.num;
+
+	INT8U oadIndex = 0;
+	for(oadIndex = 0;oadIndex < roadBody.num;oadIndex++)
+	{
+		reportEventBuf[eventBufLen++] = 0;
+		eventBufLen += OADtoBuff(roadBody.oads[oadIndex],&reportEventBuf[eventBufLen]);
+	}
+
+	reportEventBuf[eventBufLen++] = 1;
+	reportEventBuf[eventBufLen++] = 1;
+
+	memcpy(&reportEventBuf[eventBufLen],&saveContentHead[18],21);
+	eventBufLen += 21;
+	return eventBufLen;
+}
 INT8S sendEventReportBuff698(ROAD eventRoad,INT8U saveContentHead[SAVE_EVENT_BUFF_HEAD_LEN],INT8U port485,OAD_DATA oadListContent[ROAD_OADS_NUM])
 {
 	INT8S ret = -1;
 	INT8U eventBufLen = 0;
 	INT8U reportEventBuf[200];
 	memset(reportEventBuf,0,200);
+
 	eventBufLen = createSendEventBuffHead(eventRoad,reportEventBuf,saveContentHead);
+
+
 	INT8U oadIndex = 0;
 	for(oadIndex = 3;oadIndex < eventRoad.num;oadIndex++)
 	{
@@ -2771,7 +2881,9 @@ INT16S deal6017_698(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8
 						memcpy(&saveContentHead[31],oadListContent[2].data,oadListContent[2].datalen);
 
 						DbPrt1(port485,"deal6017_698 存储事件 buff:", (char *) saveContentHead,SAVE_EVENT_BUFF_HEAD_LEN, NULL);
+
 						int isEventOccur = SaveNorData(st6035->taskID,&test6015.csds.csd[0].csd.road,saveContentHead,SAVE_EVENT_BUFF_HEAD_LEN);
+						DbgPrintToFile1(port485,"isEventOccur = %d---------",isEventOccur);
 						if(isEventOccur == 1)
 						{
 							sendEventReportBuff698(test6015.csds.csd[csdIndex].csd.road,saveContentHead,port485,oadListContent);
@@ -2828,6 +2940,7 @@ INT8S sendEventReportBuff07(INT8U port485,ROAD roadBody,INT8U saveContentHead[SA
 	INT8U eventBufLen = 0;
 	INT8U reportEventBuf[200];
 	memset(reportEventBuf,0,200);
+
 	eventBufLen = createSendEventBuffHead(roadBody,reportEventBuf,saveContentHead);
 
 	//开表盖
@@ -3302,11 +3415,11 @@ void read485_thread(void* i485port) {
 			cleanTaskIDmmq(port);
 		}
 		INT16S taskIndex = getTaskIndex(port);
-#if 1//FAKE
+#if 0//FAKE
 		INT8U tIndex = 0;
 		for(tIndex = 0;tIndex < TASK6012_MAX;tIndex++)
 		{
-			if(list6013[tIndex].basicInfo.taskID == 34)
+			if(list6013[tIndex].basicInfo.taskID == 1)
 			{
 				taskIndex = tIndex;
 				break;
