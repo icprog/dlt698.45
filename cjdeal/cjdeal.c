@@ -71,13 +71,13 @@ int InitPro(ProgramInfo** prginfo, int argc, char *argv[])
 int InitPara()
 {
 	InitACSPara();
-	InitClass6000();				//初始化交采采集档案
+	//InitClass6000();				//初始化交采采集档案
 	InitClass4016();				//初始化当前套日时段表
 	read_oif203_para();		//开关量输入值读取
 	return 0;
 }
 
-INT8U time_in_shiduan(TASK_RUN_TIME str_runtime) {
+INT8U time_in_shiduan(TASK_RUN_TIME str_runtime,TI interval) {
 	TS ts_now;
 	TSGet(&ts_now);
 
@@ -88,6 +88,11 @@ INT8U time_in_shiduan(TASK_RUN_TIME str_runtime) {
 	{
 		min_start = str_runtime.runtime[timePartIndex].beginHour * 60
 				+ str_runtime.runtime[timePartIndex].beginMin;
+		//日冻结任务延时5分钟
+		if(interval.units == day_units)
+		{
+			min_start += 5;
+		}
 		min_end = str_runtime.runtime[timePartIndex].endHour * 60
 				+ str_runtime.runtime[timePartIndex].endMin;
 		if (min_start <= min_end) {
@@ -196,7 +201,7 @@ INT8U filterInvalidTask(INT16U taskIndex) {
 		fprintf(stderr, "\n filterInvalidTask - 3");
 		return 0;
 	}
-	if (time_in_shiduan(list6013[taskIndex].basicInfo.runtime) == 1)	//在抄表时段内
+	if (time_in_shiduan(list6013[taskIndex].basicInfo.runtime,list6013[taskIndex].basicInfo.interval) == 1)	//在抄表时段内
 	{
 		return 1;
 	}
