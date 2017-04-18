@@ -1817,13 +1817,9 @@ INT8U initrecinfo(CURR_RECINFO *recinfo,TASKSET_INFO tasknor_info,INT8U selectyp
 		recinfo->recordno_num = (recinfo->rec_end - recinfo->rec_start)/tasknor_info.freq + 1;
 		time(&time_s);
 		tm_p = localtime(&time_s);
-		tm_p->tm_year = select.selec7.collect_save_star.year.data;
-		asyslog(LOG_NOTICE,"select.selec7.collect_save_star.year.data = %d",select.selec7.collect_save_star.year.data);
-		tm_p->tm_mon = select.selec7.collect_save_star.month.data;
-		asyslog(LOG_NOTICE,"select.selec7.collect_save_star.month.data = %d",select.selec7.collect_save_star.month.data);
+		tm_p->tm_year = select.selec7.collect_save_star.year.data-1900;
+		tm_p->tm_mon = select.selec7.collect_save_star.month.data-1;
 		tm_p->tm_mday = select.selec7.collect_save_star.day.data;
-		asyslog(LOG_NOTICE,"select.selec7.collect_save_star.day.data = %d",select.selec7.collect_save_star.day.data);
-
 		tm_p->tm_hour = select.selec7.collect_save_star.hour.data;
 		tm_p->tm_min = select.selec7.collect_save_star.min.data;
 		tm_p->tm_sec = select.selec7.collect_save_star.sec.data;
@@ -1831,9 +1827,9 @@ INT8U initrecinfo(CURR_RECINFO *recinfo,TASKSET_INFO tasknor_info,INT8U selectyp
 
 		time(&time_s);
 		tm_p = localtime(&time_s);
-		tm_p->tm_year = select.selec7.collect_save_finish.year.data;
-		tm_p->tm_mon = select.selec7.collect_save_finish.month.data;
-		tm_p->tm_mday = select.selec7.collect_save_finish.year.data;
+		tm_p->tm_year = select.selec7.collect_save_finish.year.data-1900;
+		tm_p->tm_mon = select.selec7.collect_save_finish.month.data-1;
+		tm_p->tm_mday = select.selec7.collect_save_finish.day.data;
 		tm_p->tm_hour = select.selec7.collect_save_finish.hour.data;
 		tm_p->tm_min = select.selec7.collect_save_finish.min.data;
 		tm_p->tm_sec = select.selec7.collect_save_finish.sec.data;

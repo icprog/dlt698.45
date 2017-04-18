@@ -514,6 +514,11 @@ void timeProcess()
 			flagDay_4204[1] = 1;
 
 			lastTime.Day = nowTime.Day;
+
+			isReplenishOver[0] = 1;
+			isReplenishOver[1] = 1;
+			isReplenishOver[2] = 1;
+			isReplenishOver[3] = 1;
 		}
 	}
 }
@@ -582,11 +587,41 @@ INT8S dealMsgProcess()
 	}
 	return result;
 }
+void replenish_tmp()
+{
+	TS nowTime;
+	TSGet(&nowTime);
+	INT16U nowMin = nowTime.Hour*60 + nowTime.Minute;
+	INT8U tmpIndex = 0;
+	for(tmpIndex = 0;tmpIndex < 4;tmpIndex++)
+	{
+		if((isReplenishOver[tmpIndex] == 1)&&(nowMin >= replenishTime[tmpIndex]))
+		{
+			asyslog(LOG_WARNING,"第%d次补抄　时间%d分",tmpIndex,replenishTime[tmpIndex]);
+			INT8U tIndex;
+			for (tIndex = 0; tIndex < total_tasknum; tIndex++)
+			{
+				if (list6013[tIndex].basicInfo.interval.units == day_units)
+				{
+					asyslog(LOG_WARNING,"发送任务ID tIndex = %d　",tIndex);
+					INT8S ret = mqs_send((INT8S *)TASKID_485_2_MQ_NAME,cjdeal,1,(INT8U *)&tIndex,sizeof(INT16S));
+					ret = mqs_send((INT8S *)TASKID_485_1_MQ_NAME,cjdeal,1,(INT8U *)&tIndex,sizeof(INT16S));
+				}
+			}
+			isReplenishOver[tmpIndex] = 0;
+		}
+	}
+
+}
 void dispatch_thread()
 {
 	//运行调度任务进程
 //	fprintf(stderr,"\ndispatch_thread start \n");
-
+	memset(isReplenishOver,0,4);
+	replenishTime[0] = 30;
+	replenishTime[1] = 60;
+	replenishTime[2] = 90;
+	replenishTime[3] = 120;
 	while(1)
 	{
 		timeProcess();
@@ -622,7 +657,7 @@ void dispatch_thread()
 		}
 		INT16S tastIndex = -1;//读取所有任务文件
 		tastIndex = getNextTastIndexIndex();
-
+		sleep(1);
 		if (tastIndex > -1)
 		{
 #if 0
@@ -643,6 +678,8 @@ void dispatch_thread()
 		}
 		else
 		{
+			//补抄
+			replenish_tmp();
 			//fprintf(stderr,"\n当前无任务执行\n");
 		}
 

@@ -859,8 +859,12 @@ INT16S dealEventRecord(CLASS_6001 meter,FORMAT07 resultData07,INT16U taskID,INT8
 					dataContent[dataLen++] = dtdoublelongunsigned;
 					//目前07单个数据单元最大字节数为4
 					INT32U value = 0;
+					INT8U reverBuff[4] = {0};
 					bcd2int32u(&resultData07.Data[index07],4,inverted,&value);
-					memcpy(&dataContent[dataLen],&value,4);
+					memcpy(&resultData07.Data[index07],&value,4);
+					reversebuff(&resultData07.Data[index07], 4, reverBuff);
+					memcpy(&dataContent[dataLen],reverBuff,4);
+
 					dataLen += 4;
 				}
 
@@ -2265,12 +2269,12 @@ INT8S sendSetTimeCMD(CLASS_6001 meter,INT8U port485)
 			setData.datalen = fill_date_time_s(timeData,&nowtime);
 			setData.data = timeData;
 			sendLen = composeProtocol698_SetRequest(sendBuf,setData,meter.basicinfo.addr);
+			fprintf(stderr,"sendSetTimeCMD sendLen698 = %d",sendLen);
+			DbPrt1(port485,"698 下发对时报文:", (char *) sendBuf, sendLen, NULL);
 			subindex = 0;
 			while(subindex < MAX_RETRY_NUM)
 			{
-				memset(recvBuf, 0, BUFFSIZE);
 				SendDataTo485(port485, sendBuf, sendLen);
-
 				RecvLen = ReceDataFrom485(DLT_698,port485, 500, recvBuf);
 
 				fprintf(stderr,"\n\n recvLen = %d \n",RecvLen);
@@ -2281,6 +2285,39 @@ INT8S sendSetTimeCMD(CLASS_6001 meter,INT8U port485)
 				subindex++;
 			}
 
+		}
+	}
+	return ret;
+}
+INT8S requestMeterTime(INT8U port485,CLASS_6001 meter,INT8U* dataContent)
+{
+	INT8S ret = -1;
+	CLASS_6035 nullst6035;
+	memset(&nullst6035,0,sizeof(CLASS_6035));
+	INT16S dataLen = 0;
+	switch(meter.basicinfo.protocol)
+	{
+		case DLT_645_07:
+		{
+			OAD timeOAD;
+			timeOAD.OI = 0x4000;
+			timeOAD.attflg = 0x02;
+			timeOAD.attrindex = 0x00;
+			dataLen = request07_singleOAD(0x0000,timeOAD,meter,&nullst6035,dataContent,port485);
+		}
+		break;
+		default:
+		{
+			CLASS_6015 st6015;
+			memset(&st6015,0,sizeof(CLASS_6015));
+
+			st6015.cjtype = TYPE_NULL;
+			st6015.csds.num = 1;
+			st6015.csds.csd[0].type = 0;
+			st6015.csds.csd[0].csd.oad.OI = 0x4000;
+			st6015.csds.csd[0].csd.oad.attflg = 0x02;
+			st6015.csds.csd[0].csd.oad.attrindex = 0x00;
+			dataLen = deal6015_698(st6015,meter,&nullst6035,dataContent,port485);
 		}
 	}
 	return ret;
@@ -2300,35 +2337,7 @@ INT8S dealBroadCastSingleMeter(INT8U port485,CLASS_6001 meter)
 	INT8U dataContent[DATA_CONTENT_LEN];
 	memset(dataContent,0,DATA_CONTENT_LEN);
 
-	CLASS_6035 nullst6035;
-	memset(&nullst6035,0,sizeof(CLASS_6035));
-	INT16S dataLen = 0;
-	switch(meter.basicinfo.protocol)
-	{
-		case DLT_645_07:
-		{
-			OAD timeOAD;
-			timeOAD.OI = 0x4000;
-			timeOAD.attflg = 0x02;
-			timeOAD.attrindex = 0x00;
-			dataLen = request07_singleOAD(0x0000,timeOAD,meter,&nullst6035,dataContent,port485);
-		}
-
-		break;
-		default:
-		{
-			CLASS_6015 st6015;
-			memset(&st6015,0,sizeof(CLASS_6015));
-
-			st6015.cjtype = TYPE_NULL;
-			st6015.csds.num = 1;
-			st6015.csds.csd[0].type = 0;
-			st6015.csds.csd[0].csd.oad.OI = 0x4000;
-			st6015.csds.csd[0].csd.oad.attflg = 0x02;
-			st6015.csds.csd[0].csd.oad.attrindex = 0x00;
-			dataLen = deal6015_698(st6015,meter,&nullst6035,dataContent,port485);
-		}
-	}
+	requestMeterTime(port485,meter,dataContent);
 	if(dataContent[0]!=0x1c)
 	{
 		return ret;
@@ -2344,17 +2353,24 @@ INT8S dealBroadCastSingleMeter(INT8U port485,CLASS_6001 meter)
 	meterTime.Sec = dataContent[7];
 
 	int time_offset=difftime(timeNow,tmtotime_t(meterTime));
-	fprintf(stderr,"电表[%d]时间差:%d",meter.sernum,time_offset);
+	DbgPrintToFile1(port485,"电表[%d]时间差:%d",meter.sernum,time_offset);
 	INT8U eventbuf[8] = {0};
 	if(time_offset > broadcase4204.upleve)
 	{
+		sendSetTimeCMD(meter,port485);
 
 		memcpy(eventbuf,&dataContent[1],7);
+		memset(dataContent,0,DATA_CONTENT_LEN);
+		requestMeterTime(port485,meter,dataContent);
+		timeNow = time(NULL);
+		time_offset=difftime(timeNow,tmtotime_t(meterTime));
 		eventbuf[7] = (INT8U)time_offset;
-		fprintf(stderr,"对时事件 Event_311B");
-		sendSetTimeCMD(meter,port485);
+		DbgPrintToFile1(port485,"\n 对时事件buff = %02x%02x%02x%02x%02x%02x%02x%02x \n",
+				eventbuf[0],eventbuf[1],eventbuf[2],eventbuf[3],eventbuf[4],eventbuf[5],eventbuf[6],eventbuf[7]);
+
+		Event_311B(meter.basicinfo.addr,eventbuf,8,JProgramInfo);
 	}
-	Event_311B(meter.basicinfo.addr,eventbuf,8,JProgramInfo);
+
 	return ret;
 }
 /*
@@ -3006,7 +3022,7 @@ INT16S deal6017_07(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8U
 			DbgPrintToFile1(port485,"07DI_698OAD.cfg中没有对应的数据项");
 			continue;
 		}
-
+		DbgPrintToFile1(port485,"deal6017_07　事件序号　%02x%02x%02x%02x%02x",dataContent[0],dataContent[1],dataContent[2],dataContent[3],dataContent[4]);
 		if(memcmp(&dataContent[1],zeroBuff,4)==0)
 		{
 			continue;
