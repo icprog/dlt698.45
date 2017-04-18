@@ -2261,9 +2261,19 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds)
 //	recordno = getrecordno(tasknor_info.starthour,tasknor_info.startmin,tasknor_info.freq,ts_sele);//计算招测的第一个的序列号
 	fprintf(stderr,"\n-----------------------------------1-----------------------------------------------------------\n");
 	//2\获得全部TSA列表
-//	fprintf(stderr,"\nmstype=%d recordno=%d\n",select.selec10.meters.mstype,recordno);
+//	fprintf(stderr,"\nmstype=%d recordno=%d\n",select.selec10.meters.mstype,recordno);s
+	switch(selectype)
+	{
+		case 5:
+			tsa_num = getTsas(select.selec5.meters,(INT8U **)&tsa_group);
+			break;
+		case 7:
+			tsa_num = getTsas(select.selec7.meters,(INT8U **)&tsa_group);
+			break;
+		default:
+			tsa_num = getTsas(select.selec10.meters,(INT8U **)&tsa_group);
+	}
 
-	tsa_num = getTsas(select.selec10.meters,(INT8U **)&tsa_group);
 	fprintf(stderr,"get 需要上报的：tsa_num=%d,tsa_group=%p\n",tsa_num,tsa_group);
 	for(i=0;i<tsa_num;i++) {
 		fprintf(stderr,"\nTSA%d: %d-",i,tsa_group[i].addr[0]);
