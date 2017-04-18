@@ -69,8 +69,8 @@ pthread_attr_t 	acs_attr_t={};
 pthread_t 		thread_acs=0;
 int 			thread_acs_id=0;
 
-INT32S 			spifp_rn8209=0; // RN8209打开spi句柄
-INT32S 			spifp=0; 		// ATT7022打开spi句柄
+INT32S 			spifp_rn8209=-1; // RN8209打开spi句柄
+INT32S 			spifp=-1; 		// ATT7022打开spi句柄
 
 INT8U			thread_run_flag;//线程运行标记
 INT32S			prog_pid;		//进程ID号
@@ -620,7 +620,7 @@ INT32U read_regist(INT32S fp)
 	RRec[r_ChkSum1] = att_spi_read(fp, r_ChkSum1, 3);	//校表数据校验和
 	RRec[r_ChkSum1] = RRec[r_ChkSum1] & 0xffffff;
 	chksum1 = RRec[r_ChkSum1];
-//	dbg_prt("Rec[ChkSum]=%x\n",RRec[r_ChkSum]);
+//	fprintf(stderr,"Rec[ChkSum]=%x--- %x\n",RRec[r_ChkSum],RRec[r_ChkSum1]);
 	for (i = 0; i <= r_Freq; i++) {											//常规数据
 		RRec[i] = att_spi_read(fp, i, 3);
 	}
@@ -1178,8 +1178,9 @@ INT32S  InitACSChip()
    		}
    		usleep(500);
    	}
+   	spi_close(spifp_rn8209);
    	//ATT7022E
-   	spifp = spi_init(spifp,ACS_SPI_DEV,5000000);		//ATT7022E(spi max 10M) spi speed = 5M
+   	spifp = spi_init(spifp,ACS_SPI_DEV,2000000);		//ATT7022E(spi max 10M) spi speed = 5M
    	for(i=0;i<3;i++) {
    		device_id = att_spi_read(spifp, r_ChipID, 3);
    		if(device_id != 0xffffff)	break;
@@ -1209,23 +1210,23 @@ INT32S  InitACSChip()
 	oldchksum = chksum;
 	oldchksum1 = chksum1;
 	fprintf(stderr,"chksum=%x,chksum1=%x",chksum,chksum1);
-	spi_close(spifp);
+//	spi_close(spifp);
 	return (device_id);
 }
 
 /*7022E 每次读取之前先初始化SPI
  * */
-INT32S OpenACS_I()
-{
-   	//ATT7022E
-	spi_close(spifp);
-	spifp = open((char*)ACS_SPI_DEV, O_RDWR);
-	if (spifp < 0){
-		asyslog(LOG_NOTICE,"打开SPI设备(%s)错误\n",ACS_SPI_DEV);
-	}
-	dumpstat((char*)ACS_SPI_DEV,spifp,2000000);
-	return spifp;
-}
+//INT32S OpenACS_I()
+//{
+//   	//ATT7022E
+//	spi_close(spifp);
+//	spifp = open((char*)ACS_SPI_DEV, O_RDWR);
+//	if (spifp < 0){
+//		asyslog(LOG_NOTICE,"打开SPI设备(%s)错误\n",ACS_SPI_DEV);
+//	}
+//	dumpstat((char*)ACS_SPI_DEV,spifp,2000000);
+//	return spifp;
+//}
 
 /*
  * 交采实时数据显示
@@ -1410,7 +1411,7 @@ void DealATT7022(void)
 	TSGet(&nowts);
 	TSGet(&oldts);
 
-	spifp = OpenACS_I();
+//	spifp = OpenACS_I();
 
 	sem_wait(sem_check_fd);
   	tpsd_reg = read_regist(spifp);
@@ -1418,15 +1419,15 @@ void DealATT7022(void)
 //	read_ware_regist(nowts,spifp,vdAskHarmFlag);//1分钟或vd进程请求采集一次谐波采样值
 //	tempval = write_allgain_reg(spifp,tpsd_reg);//根据温度寄存器值进行AllGain寄存器增益补偿
 	sem_post(sem_check_fd);
-	spi_close(spifp);
+//	spi_close(spifp);
 
 	if((chksum != oldchksum) || (chksum1 != oldchksum1))  {//校验和有变化，重新写计量参数寄存器
 		sleep(2);
 		// 读ATT7022E芯片的校表系数
 		readCoverClass(0,0,&attCoef,sizeof(ACCoe_SAVE),acs_coef_save);
-		spifp = OpenACS_I();
+//		spifp = OpenACS_I();
 		write_coef_reg(spifp,&chksum,&chksum1);
-		asyslog(LOG_NOTICE,"ChkSum(%x) old(%x) ChkSum1(%x) old1(%x) have change,rewrite_coef_reg\n",chksum,oldchksum,chksum1,oldchksum1);
+		syslog(LOG_NOTICE,"ChkSum(%x) old(%x) ChkSum1(%x) old1(%x) have change,rewrite_coef_reg\n",chksum,oldchksum,chksum1,oldchksum1);
 //		fprintf(stderr,"ChkSum(%d) old(%d) ChkSum1(%d) old1(%d) have change,rewrite_coef_reg\n",chksum,oldchksum,chksum1,oldchksum1);
 		oldchksum = chksum;
 		oldchksum1 = chksum1;
@@ -1444,29 +1445,31 @@ void DealATT7022(void)
 void ACSEnergySave(ACEnergy_Sum energysum_tmp)
 {
 	TS	ts={};
-	static INT8U oldmin=0;
-	INT8S  saveflag = 0;
+	static INT8U oldmin=0,oldsec=0;
+	static INT8S  saveflag = 0;
 	FP32 bett[2]={};
 
 	TSGet(&ts);
 	if(ts.Minute%5==0 && ts.Minute!=oldmin) {
 		oldmin = ts.Minute;
-		if(pwr_has() == TRUE) {
+		if(pwr_has() == TRUE) {		//底板带电
 			saveflag = 1;
 		}
-	}
-	if(pwr_has() == FALSE) {
-//		sleep(2);
-//		if(bettery_getV(&bett[0],&bett[1]) == TRUE) {
-//			fprintf(stderr,"bett=%f,%f\n",bett[0],bett[1]);
-//			if(bett[1] >= MIN_BATTWORK_VOL) {
-//				saveflag = 2;
-//				syslog(LOG_NOTICE,"底板电源已关闭，电池电压=%f V,保存电能示值",bett[1]);
-//			}else {
-//				syslog(LOG_NOTICE,"底板电源已关闭，电池电压过低=%f V,不保存电量！！！",bett[1]);
+	}else saveflag = 0;
+//	if(((ts.Sec % 10)==0) && (ts.Sec != oldsec)) {
+//		if(pwr_has() == FALSE) {
+//			sleep(2);
+//		v	if(bettery_getV(&bett[0],&bett[1]) == TRUE) {
+//				fprintf(stderr,"bett=%f,%f\n",bett[0],bett[1]);
+//				if((bett[1] >= MIN_BATTWORK_VOL)&& saveflag!=2) {
+//					saveflag = 2;
+//					syslog(LOG_NOTICE,"底板电源已关闭，电池电压=%f V,保存电能示值",bett[1]);
+//				}else {
+//					syslog(LOG_NOTICE,"底板电源已关闭，电池电压过低=%f V,不保存电量！！！",bett[1]);
+//				}
 //			}
 //		}
-	}
+//	}
 	if(saveflag) {
 		saveCoverClass(0,0,&energysum_tmp,sizeof(ACEnergy_Sum),acs_energy_save);
 	}
@@ -1483,7 +1486,12 @@ void InitACSPara()
 	//信号量建立
 	sem_check_fd = open_named_sem(SEMNAME_SPI0_0);
 	sem_getvalue(sem_check_fd, &val);
-	dbg_prt("process The sem is %d\n", val);
+	if(val==0) {
+		fprintf(stderr,"SEMNAME_SPI0_0 val==0,post......\n\n\n");
+		sem_post(sem_check_fd);
+	}
+	fprintf(stderr,"process The sem is %d\n", val);
+
 
 	InitACSCoef();					//读交采数据
 	InitACSEnergy();				//电能量初值

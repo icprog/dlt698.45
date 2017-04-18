@@ -392,11 +392,13 @@ int saveCoverClass(OI_698 oi,INT16U seqno,void *blockdata,int savelen,int type)
 	case event_para_save:
 	case para_vari_save:
 	case coll_para_save:
-	case acs_coef_save:
 	case acs_energy_save:
 	case para_init_save:
 		fprintf(stderr,"saveClass file=%s ",fname);
 		ret = save_block_file(fname,blockdata,savelen,0,0);
+		break;
+	case acs_coef_save:
+		file_write_accoef(fname,blockdata,savelen);
 		break;
 	case event_record_save:
 	case event_current_save:

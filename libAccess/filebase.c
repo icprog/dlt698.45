@@ -474,6 +474,8 @@ INT16U  make_parity(void *source,int size)
 	return Parity;
 }
 
+/////////////////////////////////////////////////////////////////////////////////
+//为了兼容376.1校表文件的存储，存储目录变更为/nor/config/accoef.par
 /**************************************
  * 函数功能：写数据结构体crc16校验到结构体第一个成员crc16
  * 输入参数：source:文件内容，size:文件尺寸
@@ -524,6 +526,42 @@ INT8U fu_read_accoef(char *FileName, void *source, INT32U size)
 	return ret;
 }
 
+/**************************************
+ * 函数功能：数据保存到指定文件,并进行CRC16校验
+ * 输入参数：FileName:文件名
+ * 输出：source:文件内容，size:文件尺寸
+ * 返回值：  =1，文件保存成功，=0，文件保存失败
+ **************************************/
+INT8U file_write_accoef(char *FileName, void *source, int size)
+{
+	FILE *fp = NULL;
+	int fd;
+	INT8U res;
+	int num = 0;
+	INT16U *readcrc = (INT16U *) source;
+	*readcrc = make_parity_accoef(source, size);			//计算crc16校验
+	fp = fopen((char*) FileName, "w");
+	if (fp != NULL )
+	{
+		fseek(fp, 0, SEEK_SET);
+		num = fwrite(source, size, 1, fp);
+//		fprintf(stderr,"fwrite.num=%d,FileName=%s,size=%d\n",num,FileName,size);
+		if (num == 1)
+		{
+			res = 1;
+		} else
+			res = 0;
+		fd = fileno(fp);
+		fsync(fd);
+		fclose(fp);
+	} else
+	{
+//		fprintf(stderr, "%s saved error\n\r", FileName);
+		res = 0;
+	}
+	return res;
+}
+/////////////////////////////////////////////////////////////////////////
 
 // 读取数据到指定缓冲区,并进行CRC16校验
 // 结构体数据定义要求

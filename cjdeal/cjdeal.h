@@ -9,6 +9,8 @@ extern ProgramInfo* JProgramInfo;
 
 extern void DealState(ProgramInfo* prginfo);
 extern void read_oif203_para();
+extern INT32S spi_close(INT32S fd);
+extern INT8U is485OAD(OAD portOAD,INT8U port485);
 
 #define TASK6012_MAX 256
 
@@ -71,5 +73,4 @@ typedef struct
 	Proxy_Msg strProxyMsg;
 }GUI_PROXY;
 GUI_PROXY cjguiProxy;
-extern INT8U is485OAD(OAD portOAD,INT8U port485);
 #endif
