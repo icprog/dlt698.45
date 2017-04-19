@@ -59,6 +59,9 @@ pthread_t thread_dispatchTask;
 
 mqd_t mqd_485_main;//接受点抄的消息队列
 
+//补抄结构体
+INT16U replenishTime[4];
+INT8U isReplenishOver[4];//00:30 01:00 01:30 02:00
 //保存代理召测信息的结构体
 typedef struct
 {

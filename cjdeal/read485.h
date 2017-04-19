@@ -30,6 +30,7 @@
 #define EVENTSTART_TIME_OI 0x201e
 #define EVENTSTART_END_OI 0x2020
 
+#define SAVE_EVENT_BUFF_HEAD_LEN 39
 pthread_attr_t read485_attr_t;
 int thread_read4851_id,thread_read4852_id;           //485、四表合一（I型、II型、专变）
 pthread_t thread_read4851,thread_read4852;

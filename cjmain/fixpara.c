@@ -32,7 +32,6 @@ void InitClass4300() 	 //电气设备信息
 
     memset(&oi4300, 0, sizeof(CLASS19));
 	ret = readCoverClass(0x4300, 0, &oi4300, sizeof(CLASS19), para_vari_save);
-
 	if((ret!=1) || (memcmp(&oi4300.info,&verinfo,sizeof(VERINFO))!=0)
 			|| memcmp(&oi4300.date_Product,&product_date,sizeof(DateTimeBCD))!=0
 			|| memcmp(&oi4300.protcol,protcol,sizeof(protcol))!=0) {

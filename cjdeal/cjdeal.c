@@ -75,13 +75,13 @@ int InitPro(ProgramInfo** prginfo, int argc, char *argv[])
 int InitPara()
 {
 	InitACSPara();
-//	InitClass6000();				//初始化交采采集档案
+	//InitClass6000();				//初始化交采采集档案
 	InitClass4016();				//初始化当前套日时段表
 	read_oif203_para();		//开关量输入值读取
 	return 0;
 }
 
-INT8U time_in_shiduan(TASK_RUN_TIME str_runtime) {
+INT8U time_in_shiduan(TASK_RUN_TIME str_runtime,TI interval) {
 	TS ts_now;
 	TSGet(&ts_now);
 
@@ -92,6 +92,11 @@ INT8U time_in_shiduan(TASK_RUN_TIME str_runtime) {
 	{
 		min_start = str_runtime.runtime[timePartIndex].beginHour * 60
 				+ str_runtime.runtime[timePartIndex].beginMin;
+		//日冻结任务延时5分钟
+		if(interval.units == day_units)
+		{
+			min_start += 5;
+		}
 		min_end = str_runtime.runtime[timePartIndex].endHour * 60
 				+ str_runtime.runtime[timePartIndex].endMin;
 		if (min_start <= min_end) {
@@ -200,7 +205,7 @@ INT8U filterInvalidTask(INT16U taskIndex) {
 		fprintf(stderr, "\n filterInvalidTask - 3");
 		return 0;
 	}
-	if (time_in_shiduan(list6013[taskIndex].basicInfo.runtime) == 1)	//在抄表时段内
+	if (time_in_shiduan(list6013[taskIndex].basicInfo.runtime,list6013[taskIndex].basicInfo.interval) == 1)	//在抄表时段内
 	{
 		return 1;
 	}
@@ -513,6 +518,11 @@ void timeProcess()
 			flagDay_4204[1] = 1;
 
 			lastTime.Day = nowTime.Day;
+
+			isReplenishOver[0] = 1;
+			isReplenishOver[1] = 1;
+			isReplenishOver[2] = 1;
+			isReplenishOver[3] = 1;
 		}
 	}
 }
@@ -522,6 +532,7 @@ INT8S dealMsgProcess()
 	INT8S result = 0;
 	if((cjcommProxy.isInUse != 0) ||(cjguiProxy.isInUse != 0))
 	{
+		fprintf(stderr,"\n ％％％％％％％％％％％％cjcommProxy.isInUse = %d cjguiProxy.isInUse = %d\n",cjcommProxy.isInUse,cjguiProxy.isInUse);
 		return 	result;
 	}
 
@@ -558,7 +569,7 @@ INT8S dealMsgProcess()
 					if(cjguiProxy.isInUse == 0)
 					{
 						memcpy(&cjguiProxy.strProxyMsg,rev_485_buf,sizeof(Proxy_Msg));
-						cjguiProxy.isInUse = 1;
+						cjguiProxy.isInUse = 3;
 					}
 					else
 					{
@@ -580,11 +591,41 @@ INT8S dealMsgProcess()
 	}
 	return result;
 }
+void replenish_tmp()
+{
+	TS nowTime;
+	TSGet(&nowTime);
+	INT16U nowMin = nowTime.Hour*60 + nowTime.Minute;
+	INT8U tmpIndex = 0;
+	for(tmpIndex = 0;tmpIndex < 4;tmpIndex++)
+	{
+		if((isReplenishOver[tmpIndex] == 1)&&(nowMin >= replenishTime[tmpIndex]))
+		{
+			asyslog(LOG_WARNING,"第%d次补抄　时间%d分",tmpIndex,replenishTime[tmpIndex]);
+			INT8U tIndex;
+			for (tIndex = 0; tIndex < total_tasknum; tIndex++)
+			{
+				if (list6013[tIndex].basicInfo.interval.units == day_units)
+				{
+					asyslog(LOG_WARNING,"发送任务ID tIndex = %d　",tIndex);
+					INT8S ret = mqs_send((INT8S *)TASKID_485_2_MQ_NAME,cjdeal,1,(INT8U *)&tIndex,sizeof(INT16S));
+					ret = mqs_send((INT8S *)TASKID_485_1_MQ_NAME,cjdeal,1,(INT8U *)&tIndex,sizeof(INT16S));
+				}
+			}
+			isReplenishOver[tmpIndex] = 0;
+		}
+	}
+
+}
 void dispatch_thread()
 {
 	//运行调度任务进程
 //	fprintf(stderr,"\ndispatch_thread start \n");
-
+	memset(isReplenishOver,0,4);
+	replenishTime[0] = 30;
+	replenishTime[1] = 60;
+	replenishTime[2] = 90;
+	replenishTime[3] = 120;
 	while(1)
 	{
 		timeProcess();
@@ -620,7 +661,7 @@ void dispatch_thread()
 		}
 		INT16S tastIndex = -1;//读取所有任务文件
 		tastIndex = getNextTastIndexIndex();
-
+		sleep(1);
 		if (tastIndex > -1)
 		{
 #if 0
@@ -641,10 +682,12 @@ void dispatch_thread()
 		}
 		else
 		{
+			//补抄
+			replenish_tmp();
 			//fprintf(stderr,"\n当前无任务执行\n");
 		}
 
-		sleep(5);
+		sleep(1);
 	}
 	  pthread_detach(pthread_self());
 	  pthread_exit(&thread_dispatchTask);
