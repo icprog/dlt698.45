@@ -66,6 +66,26 @@ void Watchdog(int count) //硬件看门狗
     return;
 }
 
+/*
+ * 检测电池掉电后，pwrdelay（秒）延时关闭电池，关闭集中器
+ * */
+void PowerOffToClose(INT8U pwrdelay)
+{
+	static INT8U cnt_pwroff=0;
+
+	if(pwr_has() == FALSE)
+	{
+		fprintf(stderr,"\n底板电源已关闭，设备关闭倒计时：%d s..........",cnt_pwroff);
+		cnt_pwroff++;
+		if(cnt_pwroff == pwrdelay)
+		{
+			fprintf(stderr,"\n设备关闭.....");
+			gpio_writebyte((INT8S*)DEV_BAT_SWITCH,(INT8S)0);
+		}
+	}else
+		cnt_pwroff = 0;
+}
+
 //读取设备配置信息
 int ReadDeviceConfig() {
     FILE* fp        = NULL;
@@ -181,7 +201,7 @@ void Createmq() {
             }
             usleep(100 * 1000);
         }
-        asyslog(LOG_ERR, "创建消息队列，消息号[%d]", mmqFds[i]);
+        asyslog(LOG_INFO, "创建消息队列，消息号[%d]", mmqFds[i]);
     }
 }
 
@@ -256,14 +276,14 @@ void CreateSem() {
  * */
 void InitSharedMem(int argc, char* argv[]) {
     JProgramInfo = (ProgramInfo*)CreateShMem("ProgramInfo", sizeof(ProgramInfo), NULL);
-    asyslog(LOG_ERR, "打开共享内存，地址[%d]，大小[%d]", JProgramInfo, sizeof(ProgramInfo));
+    asyslog(LOG_NOTICE, "打开共享内存，地址[%d]，大小[%d]", JProgramInfo, sizeof(ProgramInfo));
 
-    InitClass4016(); //当前套日时段表
-    InitClass4300(); //电气设备信息
-    InitClass4500(); //公网通信模块1
-    InitClass4510(); //以太网通信模块1
-    // InitClass6000();	//初始化交采采集档案
-    InitClassf203(); //开关量输入
+    InitClass4016();	//当前套日时段表
+    InitClass4300();	//电气设备信息
+    InitClass4500();	//公网通信模块1
+    InitClass4510();	//以太网通信模块1
+    //InitClass6000();	//初始化交采采集档案
+    //InitClassf203();	//开关量输入
     //事件参数初始化
     readCoverClass(0x3100, 0, &JProgramInfo->event_obj.Event3100_obj, sizeof(JProgramInfo->event_obj.Event3100_obj), event_para_save);
     readCoverClass(0x3101, 0, &JProgramInfo->event_obj.Event3101_obj, sizeof(JProgramInfo->event_obj.Event3101_obj), event_para_save);
@@ -481,15 +501,23 @@ int main(int argc, char* argv[]) {
     if (argc >= 2 && strncmp("all", argv[1], 3) == 0) {
         ProgsNum = ReadSystemInfo();
     }
-    get_protocol_3761_tx_para(); //湖南获取3761切换通信参数，在初始化其他操作之后进行
+    get_protocol_3761_tx_para();//湖南获取3761切换通信参数，在初始化其他操作之后进行
+
+    //点亮运行灯
+    Runled(1);
     while (1) {
         sleep(1);
 
         //喂狗
         Watchdog(5);
 
-        //点亮运行灯
-        Runled(1);
+        if(JProgramInfo->DevicePara[0]==1 || JProgramInfo->DevicePara[0]==3) { //I型集中器，III型专变
+			//电池检测掉电关闭设备
+			PowerOffToClose(90);
+        }
+
+//        //点亮运行灯 循环前点亮一次
+//        Runled(1);
 
         //每20分钟校时
         SyncRtc();
