@@ -1190,7 +1190,7 @@ INT8U Event_3106(ProgramInfo* prginfo_event,MeterPower *MeterPowerInfo,INT8U *st
 			if(((prginfo_event->ACSRealData.Available==TRUE)
 							&&(prginfo_event->ACSRealData.Ua>100
 									&& prginfo_event->ACSRealData.Ua<poweroff_happen_vlim)) ||
-					(prginfo_event->ACSRealData.Ua == 0))
+					(prginfo_event->ACSRealData.Ua <=100))
 				off_flag=1;
 		}else{
 			if((((prginfo_event->ACSRealData.Ua<poweroff_happen_vlim)&&(prginfo_event->ACSRealData.Ub<poweroff_happen_vlim)
