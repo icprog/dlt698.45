@@ -16,12 +16,14 @@
 
 INT8S gpio_readbyte(char* devpath) {
     char data = 0;
-    int fd    = 0;
+    int fd    = -1;
     if ((fd = open((const char*)devpath, O_RDWR | O_NDELAY)) >=0) {
         read(fd, &data, sizeof(char));
         close(fd);
-    } else
-        return -1;
+    } else {
+    	syslog(LOG_ERR,"%s %s fd=%d\n",__func__,devpath,fd);
+    	return -1;
+    }
     return data;
 }
 
@@ -31,8 +33,10 @@ INT32S gpio_readint(char* devpath) {
     if ((fd = open((const char*)devpath, O_RDWR | O_NDELAY)) >= 0) {
         read(fd, &data, sizeof(INT32S));
         close(fd);
-    } else
-        return -1;
+    } else {
+       	syslog(LOG_ERR,"%s %s fd=%d\n",__func__,devpath,fd);
+    	return -1;
+    }
     return data;
 }
 
@@ -42,8 +46,10 @@ INT32S gpio_writebyte(char* devpath, INT8S data) {
         write(fd, &data, sizeof(char));
         close(fd);
         return 1;
-    } else
+    } else {
+       	syslog(LOG_ERR,"%s %s fd=%d\n",__func__,devpath,fd);
         return -1;
+    }
     return 0;
 }
 
@@ -51,13 +57,15 @@ INT32S gpio_writebytes(char* devpath, INT8S* vals, INT32S valnum) {
     int fd = -1;
     int i  = 0;
     fd     = open((const char*)devpath, O_RDWR | O_NDELAY);
-    if (fd < 0)
-        return -1;
+    if (fd <= 0) {
+       	syslog(LOG_ERR,"%s %s fd=%d\n",__func__,devpath,fd);
+    	return -1;
+    }
     for (i = 0; i < valnum; i++) {
         write(fd, &vals[i], sizeof(char));
         delay(10);
     }
-    delay(1000);
+//    delay(1000);
     close(fd);
     return 0;
 }
@@ -76,13 +84,15 @@ BOOLEAN pwr_has_byVolt(INT8U valid, INT32U volt, INT16U limit) {
  */
 BOOLEAN pwr_has()
 {
-    INT32U state = 0;
+    INT32U state = 1;
     int fd       = -1;
 
     fd = open(DEV_MAINPOWER, O_RDWR | O_NDELAY);
     if (fd >= 0) {
         read(fd, &state, 1);
         close(fd);
+    }else {
+    	syslog(LOG_ERR,"%s %s fd=%d\n",__func__,DEV_MAINPOWER,fd);
     }
     if ((state & 0x01) == 1) {
     	return TRUE;
@@ -102,9 +112,10 @@ BOOLEAN pwr_has()
 BOOLEAN bettery_getV(FP32* clock_bt, FP32* tmnl_bt) {
     int fd                     = -1;
     unsigned int adc_result[2] = {};
-    if ((fd = open(DEV_ADC, O_RDWR | O_SYNC)) == -1)
-        return FALSE;
-
+    if ((fd = open(DEV_ADC, O_RDWR | O_SYNC)) == -1) {
+       	syslog(LOG_ERR,"%s %s fd=%d\n",__func__,DEV_ADC,fd);
+    	return FALSE;
+    }
     gpio_writebyte(DEV_ADC_SWITCH, 0);
     sleep(1);
     read(fd, adc_result, 2 * sizeof(unsigned int));
