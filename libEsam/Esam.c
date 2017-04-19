@@ -81,9 +81,9 @@ INT32S Esam_Init(INT32S fd) {
 //    gpio_writebyte(DEV_ATT_RST, 1);
 //    usleep(2);
   //  gpio_writebyte(DEV_ESAM_CS, 1);
-#ifndef CCTT_II
-    	sem_spi0_0 = open_named_sem(SEMNAME_SPI0_0);
-#endif
+//#ifndef CCTT_II
+//    	sem_spi0_0 = open_named_sem(SEMNAME_SPI0_0);
+//#endif
    	return SPI_Init(fd);
 }
 
@@ -131,8 +131,8 @@ INT32S _esam_WriteThenRead(INT32S fd, INT8U* Tbuf, INT16U Tlen, INT8U* Rbuf){
 	INT32S Result = ERR_ESAM_UNKNOWN;
     INT8U rx[BUFFLENMAX_SPI];
 
-    if(sem_spi0_0!=NULL)
-    	sem_wait(sem_spi0_0);
+//    if(sem_spi0_0!=NULL)
+//    	sem_wait(sem_spi0_0);
 	for(index=0;index<3;index++)//只做3次循环//若失败，外面还有初始化1次esam
 	{
 		memset(rx,0x00,BUFFLENMAX_SPI);
@@ -197,8 +197,8 @@ INT32S _esam_WriteThenRead(INT32S fd, INT8U* Tbuf, INT16U Tlen, INT8U* Rbuf){
 		}
 	}
 	gpio_writebyte(DEV_ESAM_CS,1);
-    if(sem_spi0_0!=NULL)
-    	sem_post(sem_spi0_0);
+//    if(sem_spi0_0!=NULL)
+//    	sem_post(sem_spi0_0);
 	return Result;
 }
 /**********************************
@@ -211,8 +211,8 @@ void Esam_WriteToChip(INT32S fd, INT8U* Tbuf, INT16U Tlen)
 {
 		struct spi_ioc_transfer	xfer[2];
 		memset(xfer, 0,  sizeof xfer);
-		gpio_writebyte(DEV_ATT_CS,1);
-		usleep(5);
+//		gpio_writebyte(DEV_ATT_CS,1);
+//		usleep(5);
 		gpio_writebyte(DEV_ESAM_CS,1);
 		usleep(10);
 		gpio_writebyte(DEV_ESAM_CS,0);

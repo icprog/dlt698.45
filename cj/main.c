@@ -36,7 +36,7 @@ static char* usage_set = "\n--------------------参数设置及基本维护命�
 						 "		 【停程序】cj dog 或者 cj stop		\n"
 		                 "[读取心跳] cj heart \n"
 		                 "[设置心跳] cj heart 60 s"
-						 "[ESAM 测试，测试写到/nand/esam.log] 测试模式1[16M通信1次]：cj esam\n"
+						 "[ESAM 测试，测试写到/nand/esam.log] 测试模式1[20M通信1次]：cj esam\n"
 						 "            测试模式2[speed M通信1次，speed范围可从1到25]：cj esam speed\n"
 						 "            测试模式3[speed M通信n次，speed范围可从1到25]：cj esam speed n\n"
 						 "            测试模式4[speed1 M到 speed2 通信n次，speed范围从1到25]：cj esam speed1 speed2 n\n"

@@ -34,16 +34,16 @@ static CLASS_f203	oif203={};
 
 typedef enum {STATE1=1,STATE2=2,STATE3=3,STATE4=4,PLUSE1=5,PLUSE2=6} DEV_STATE_PULSE;
 
-INT8S gpio_readbyte(char* devpath) {
-    char data = 0;
-    int fd    = 0;
-    if ((fd = open((const char*)devpath, O_RDWR | O_NDELAY)) > 0) {
-        read(fd, &data, sizeof(char));
-        close(fd);
-    } else
-        return -1;
-    return data;
-}
+//INT8S gpio_readbyte(char* devpath) {
+//    char data = 0;
+//    int fd    = 0;
+//    if ((fd = open((const char*)devpath, O_RDWR | O_NDELAY)) > 0) {
+//        read(fd, &data, sizeof(char));
+//        close(fd);
+//    } else
+//        return -1;
+//    return data;
+//}
 
 INT32S state_get(DEV_STATE_PULSE road)
 {
@@ -84,7 +84,6 @@ INT32S state_get(DEV_STATE_PULSE road)
 	}
 	return staval;
 }
-
 
 void read_oif203_para()
 {

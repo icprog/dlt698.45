@@ -258,8 +258,13 @@ void InitSharedMem(int argc, char* argv[]) {
     JProgramInfo = (ProgramInfo*)CreateShMem("ProgramInfo", sizeof(ProgramInfo), NULL);
     asyslog(LOG_ERR, "打开共享内存，地址[%d]，大小[%d]", JProgramInfo, sizeof(ProgramInfo));
 
-    InitClass4300();
-
+    InitClass4016(); //当前套日时段表
+    InitClass4300(); //电气设备信息
+    InitClass4500(); //公网通信模块1
+    InitClass4510(); //以太网通信模块1
+    // InitClass6000();	//初始化交采采集档案
+    InitClassf203(); //开关量输入
+    //事件参数初始化
     readCoverClass(0x3100, 0, &JProgramInfo->event_obj.Event3100_obj, sizeof(JProgramInfo->event_obj.Event3100_obj), event_para_save);
     readCoverClass(0x3101, 0, &JProgramInfo->event_obj.Event3101_obj, sizeof(JProgramInfo->event_obj.Event3101_obj), event_para_save);
     readCoverClass(0x3104, 0, &JProgramInfo->event_obj.Event3104_obj, sizeof(JProgramInfo->event_obj.Event3104_obj), event_para_save);

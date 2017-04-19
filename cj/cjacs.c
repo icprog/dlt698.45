@@ -1018,7 +1018,6 @@ void write_coef_reg(INT32S fp)
 void acs_regclean()
 {
 	int		val;
-	char  	fname[64];
 	sem_t * sem_fd=NULL;
 
 	sem_fd = open_named_sem(SEMNAME_SPI0_0);

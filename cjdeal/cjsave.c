@@ -412,12 +412,14 @@ int SaveNorData(INT8U taskid,ROAD *road_eve,INT8U *databuf,int datalen)//存储�
 	asyslog(LOG_NOTICE,"存储序号: unitseq=%d runtime=%d  %d--%d",unitseq,runtime,(ts_now.Hour*60*60+ts_now.Minute*60+ts_now.Sec),((24*60*60)/runtime));
 	if(unitseq > runtime)
 	{
+		asyslog(LOG_NOTICE,"unitseq　= %d　runtime = %d",ts_now.Hour,ts_now.Minute,ts_now.Sec);
 		if(databuf_tmp != NULL)
 			free(databuf_tmp);
 		return 0;//出错了，序列号超过了总长度
 	}
 	if(datalen > unitlen/runtime)
 	{
+		asyslog(LOG_NOTICE,"111111 datalen　= %d　unitlen = %d runtime= %d",datalen,unitlen,runtime);
 		return 0;
 	}
 	memcpy(&databuf_tmp[unitlen*(unitseq-1)/runtime],databuf,datalen);

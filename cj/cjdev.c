@@ -168,22 +168,25 @@ void SetNetIPort(int argc, char *argv[]) {
 }
 
 void setOnlineMode(int argc, char *argv[]) {
+    CLASS25 class4500;
+    CLASS26 class4510;
 
+    memset(&class4500, 0, sizeof(CLASS25));
+    readCoverClass(0x4500, 0, &class4500, sizeof(CLASS25), para_vari_save);
+    memset(&class4510, 0, sizeof(CLASS26));
+    readCoverClass(0x4510, 0, &class4510, sizeof(CLASS26), para_vari_save);
     if (argc != 4) {
         fprintf(stderr, "设置gprs和以太网的工作模式(0:混合模式 1:客户端模式 2:服务器模式)\n");
+        fprintf(stderr," 	gprs工作模式:%d\n",class4500.commconfig.workModel);
+        fprintf(stderr," 	以太网工作模式:%d\n",class4510.commconfig.workModel);
         return;
     }
-    CLASS25 class4500;
 
     memset(&class4500, 0, sizeof(CLASS25));
     readCoverClass(0x4500, 0, &class4500, sizeof(CLASS25), para_vari_save);
     class4500.commconfig.workModel = atoi(argv[2]);
     saveCoverClass(0x4500, 0, &class4500, sizeof(CLASS25), para_vari_save);
 
-    CLASS26 class4510;
-
-    memset(&class4510, 0, sizeof(CLASS26));
-    readCoverClass(0x4510, 0, &class4510, sizeof(CLASS26), para_vari_save);
     class4510.commconfig.workModel = atoi(argv[3]);
     saveCoverClass(0x4510, 0, &class4510, sizeof(CLASS26), para_vari_save);
 

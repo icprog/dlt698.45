@@ -9,6 +9,8 @@ extern ProgramInfo* JProgramInfo;
 
 extern void DealState(ProgramInfo* prginfo);
 extern void read_oif203_para();
+extern INT32S spi_close(INT32S fd);
+extern INT8U is485OAD(OAD portOAD,INT8U port485);
 
 #define TASK6012_MAX 256
 
@@ -57,6 +59,9 @@ pthread_t thread_dispatchTask;
 
 mqd_t mqd_485_main;//接受点抄的消息队列
 
+//补抄结构体
+INT16U replenishTime[4];
+INT8U isReplenishOver[4];//00:30 01:00 01:30 02:00
 //保存代理召测信息的结构体
 typedef struct
 {
@@ -71,5 +76,4 @@ typedef struct
 	Proxy_Msg strProxyMsg;
 }GUI_PROXY;
 GUI_PROXY cjguiProxy;
-extern INT8U is485OAD(OAD portOAD,INT8U port485);
 #endif
