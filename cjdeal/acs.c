@@ -1078,51 +1078,7 @@ INT8U getACSConnectype()
 	}
 	return 0;
 }
-/*
- * 初始化采集配置单元
- * */
-void InitClass6000()
-{
-	CLASS_6001	 meter={};
-	int readret=0;
-	static INT8U ACS_TSA[8]={0x08,0x05,0x00,0x00,0x00,0x00,0x00,0x01};//[0]=08,TSA长度 [1]=05,05+1=地址长度，交采地址：000000000001
 
-	readret = readParaClass(0x6000,&meter,1);
-	if(readret!=1) {
-		memset(&meter,0,sizeof(CLASS_6001));
-		meter.sernum = 1;
-		memcpy(meter.basicinfo.addr.addr,ACS_TSA,sizeof(ACS_TSA));
-		meter.basicinfo.baud = 3;
-		meter.basicinfo.protocol = 3;
-		meter.basicinfo.port.OI = 0xF208;
-		meter.basicinfo.port.attflg = 0x02;
-		meter.basicinfo.port.attrindex = 0x01;
-		meter.basicinfo.ratenum = MAXVAL_RATENUM;
-		meter.basicinfo.connectype = getACSConnectype();
-		meter.basicinfo.ratedU = 2200;
-		meter.basicinfo.ratedI = 1500;
-		saveParaClass(0x6000,&meter,meter.sernum);
-	}
-}
-
-/*
- * 初始化当前套日时段表
- * */
-void InitClass4016()
-{
-	int readret=0;
-	INT8U	i = 0;
-	readret = readCoverClass(0x4016,0,&class4016,sizeof(CLASS_4016),para_vari_save);
-	if(readret!=1) {
-		class4016.num = MAX_PERIOD_RATE/2;
-		for(i=0;i<class4016.num;i++) {
-			class4016.Period_Rate[i].hour = i;
-			class4016.Period_Rate[i].min = 0;
-			class4016.Period_Rate[i].rateno = (i%4)+1;
-//			fprintf(stderr,"%d: hour:min=%d:%d rate=%d\n",i,class4016.Period_Rate[i].hour,class4016.Period_Rate[i].min,class4016.Period_Rate[i].rateno);
-		}
-	}
-}
 
 void InitACSCoef()
 {

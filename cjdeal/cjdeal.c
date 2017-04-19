@@ -75,9 +75,13 @@ int InitPro(ProgramInfo** prginfo, int argc, char *argv[])
 int InitPara()
 {
 	InitACSPara();
-	//InitClass6000();				//初始化交采采集档案
-	InitClass4016();				//初始化当前套日时段表
-	read_oif203_para();		//开关量输入值读取
+
+	memset(&class4016,0,sizeof(CLASS_4016));
+	readCoverClass(0x4016,0,&class4016,sizeof(CLASS_4016),para_vari_save);	//初始化当前套日时段表
+	memset(&oif203,0,sizeof(oif203));
+	readCoverClass(0xf203,0,&oif203,sizeof(CLASS_f203),para_vari_save);
+	fprintf(stderr,"属性4：接入标志=%02x\n",oif203.state4.StateAcessFlag);
+	fprintf(stderr,"属性4：属性标志=%02x\n",oif203.state4.StatePropFlag);
 	return 0;
 }
 
