@@ -994,7 +994,7 @@ int doGetrecord(INT8U type,OAD oad,INT8U *data,RESULT_RECORD *record,INT16U *sub
 	INT8U oihead=((record->oad.OI & 0xF000) >>12);
 	switch(SelectorN) {
 	case 1:		//指定对象指定值
-		*subframe = 0;		//TODO:未处理分帧
+		*subframe = 1;		//TODO:未处理分帧
 		if(record->rcsd.csds.num == 0) {
 			record->data[dest_index++] = 1;	//一行记录M列属性描述符 	RCSD
 			record->data[dest_index++] = 0;	//OAD
@@ -1015,7 +1015,7 @@ int doGetrecord(INT8U type,OAD oad,INT8U *data,RESULT_RECORD *record,INT16U *sub
 	case 2:
 
 		if(oihead == 3){
-			*subframe = 0;		//TODO:未处理分帧
+			*subframe = 1;		//TODO:未处理分帧
 			TmpDataBuf[dest_index++] = 4;
 			INT8U ai=0;
 			for(ai=0;ai<4;ai++){
@@ -1036,7 +1036,8 @@ int doGetrecord(INT8U type,OAD oad,INT8U *data,RESULT_RECORD *record,INT16U *sub
 		dest_index +=fill_RCSD(0,&record->data[dest_index],record->rcsd.csds);
 		record->data = &TmpDataBuf[dest_index];
 		*subframe = getSelector(oad,record->select, record->selectType,record->rcsd.csds,(INT8U *)record->data,(int *)&record->datalen);
-		if(*subframe==0) {		//无分帧
+
+		if(*subframe==1) {		//无分帧
 			next_info.nextSite = readFrameDataFile(TASK_FRAME_DATA,0,TmpDataBuf,&datalen);
 			if(type==GET_REQUEST_RECORD) {//文件中第一个字节保存的是：SEQUENCE OF A-ResultRecord，此处从TmpDataBuf[1]上送，上送长度也要-1
 				if(datalen>=1) {
@@ -1500,14 +1501,14 @@ int getRequestNormalList(INT8U *data,CSINFO *csinfo,INT8U *sendbuf)
 int getRequestRecord(OAD oad,INT8U *data,CSINFO *csinfo,INT8U *sendbuf)
 {
 	RESULT_RECORD 	record={};
-	INT16U 		subframe=0;
+	INT16U 		subframe=1;
 
 	memset(TmpDataBuf,0,sizeof(TmpDataBuf));
 	record.oad = oad;
 	record.data = TmpDataBuf;
 	record.datalen = 0;
 	doGetrecord(GET_REQUEST_RECORD,oad,data,&record,&subframe);
-	if(subframe==0) {
+	if(subframe==1) {
 		BuildFrame_GetResponseRecord(GET_REQUEST_RECORD,csinfo,record,sendbuf);
 	}else  {
 		next_info.subframeSum = subframe;

@@ -1575,7 +1575,7 @@ INT8U checkTimeStamp698(OAD_DATA oadListContent[ROAD_OADS_NUM])
 		if(memcmp(oadListContent[oadIndex].oad,oadTimeStamp,4)==0)
 		{
 			DbPrt1(2,"checkTimeStamp698 buff:", (char *) oadListContent[oadIndex].data, 10, NULL);
-			return isTimerSame(-1,oadListContent[oadIndex].data);
+			return isTimerSame(0,oadListContent[oadIndex].data);
 		}
 	}
 	return ret;
@@ -1638,14 +1638,17 @@ INT16S deal698RequestResponse(INT8U isProxyResponse,INT8U getResponseType,INT16U
 			oaddataLen = parseSingleROADData(csds.csd[0].csd.road,&apdudata[apdudataIndex],&dataContent[dataContentIndex],&dataContentLen,oadListContent);
 			dataContentIndex = dataContentLen;
 			fprintf(stderr,"\n dataContentIndex = %d dataContentLen = %d \n",dataContentIndex,dataContentLen);
+
 			if(csds.csd[0].csd.road.oad.OI == 0x5004)
 			{
 				INT8U isTimeSame = checkTimeStamp698(oadListContent);
 				if(isTimeSame == 0)
 				{
+					asyslog(LOG_NOTICE,"698冻结时标不正确");
 					memset(dataContent,0,dataContentIndex);
 				}
 			}
+
 		}
 
 		break;
@@ -2466,7 +2469,6 @@ INT8S dealRealTimeRequst(INT8U port485)
 
 INT16S deal6015_698(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8U* dataContent,INT8U port485)
 {
-
 	fprintf(stderr, "\n deal6015_698-------------------  meter = %d\n", to6001.sernum);
 	DbgPrintToFile1(port485,"普通采集方案 698测量点   meter = %d 任务号 = %d 采集数据项个数 = %d---------",
 			to6001.sernum, st6015.sernum, st6015.csds.num);
