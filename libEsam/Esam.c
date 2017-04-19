@@ -88,7 +88,7 @@ INT32S Esam_Init(INT32S fd) {
 }
 
 void Esam_Clear(INT32S fd) {
-	close_named_sem(SEMNAME_SPI0_0);
+//	close_named_sem(SEMNAME_SPI0_0);
     SPI_Close(fd);
 }
 //该函数用于初始化esam接口

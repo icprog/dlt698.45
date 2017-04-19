@@ -152,11 +152,17 @@ int GetFileState(RESULT_NORMAL* response) {
     fclose(fp);
 
     int blocks = mstats.st_size / blocksize;
+
     if (mstats.st_size % blocksize > 0) {
         blocks += 1;
     }
+
     int counts = blocks / 8;
     int last   = blocks % 8;
+
+    if (blocks % 8 > 0) {
+        blocks += (8 - blocks % 8);
+    }
 
     response->data[0] = 0x04;
     response->data[1] = 0x82;
@@ -170,17 +176,17 @@ int GetFileState(RESULT_NORMAL* response) {
     response->data[counts + 4] = 0x00;
 
     for (int i = 0; i < last; i++) {
-        response->data[counts + 4 + i] |= (0x01 << (7 - i));
-        printf("%02x\n", (0x01 << (7 - i)));
+        response->data[counts + 4] |= (0x01 << (7 - i));
+        fprintf(stderr, "文件状态末尾:%02x", response->data[counts + 4]);
     }
-    response->datalen += counts + 1 + 4;
+
+    response->datalen += counts + ((last == 0) ? 0 : 1) + 4;
 
     char order[256];
     memset(order, 0x00, sizeof(order));
 
     sprintf(order, "mv %s /nand/UpFiles/update.sh", file_path);
     system(order);
-
 
     system("echo \"reboot\" >> /nand/UpFiles/reboot");
 

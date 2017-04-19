@@ -507,10 +507,10 @@ INT8U fu_read_accoef(char *FileName, void *source, INT32U size)
 	if (fp != NULL )
 	{
 		num = fread(source, size, 1, fp);
-		fprintf(stderr,"read.num=%d,size=%d,reccrc=%04x\n",num,size,*readcrc);
+//		fprintf(stderr,"read.num=%d,size=%d,reccrc=%04x\n",num,size,*readcrc);
 		if (num == 1)
 		{			//读取了size字节数据
-			fprintf(stderr,"make_parity = %04x\n",make_parity_accoef(source, size));
+//			fprintf(stderr,"make_parity = %04x\n",make_parity_accoef(source, size));
 			if (make_parity_accoef(source, size) == *readcrc)
 			{
 				ret = 1;
@@ -750,7 +750,7 @@ INT8U block_file_sync(char *fname,void *blockdata,int size,int headsize,int inde
 	}
 	if((ret1==1) &&(ret2==0)) {							//fname1校验正确，fname2校验错误,更新fname2备份文件
 //		fprintf(stderr,"备份文件校验错误\n");
-		syslog(LOG_NOTICE," %s 备份文件校验错误 ",fname);
+//		syslog(LOG_NOTICE," %s 备份文件校验错误 ",fname);
 		file_write(fname2,blockdata1,sizenew,offset);
 		ret= 1;
 	}
