@@ -529,7 +529,7 @@ int main(int argc, char* argv[]) {
         Checkupdate();
 
         //检查设备是否需要重启
-        //        checkDevReset();
+        //checkDevReset();
 
         //检查系统升级文件
         checkRebootFile();
