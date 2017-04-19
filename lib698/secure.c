@@ -363,23 +363,25 @@ INT32S secureBroadcastCheck(SID_MAC *sid_mac,CSINFO *csinfo)
 INT16U getEsamAttribute(OAD oad,INT8U *retBuff)
 {
 	INT32S retLen=0;
-	static struct timeval tv_store;//存储静态时间，用于list类型属性提取，不用多次esam访问
-	static 	EsamInfo esamInfo;//
+//	static struct timeval tv_store;//存储静态时间，用于list类型属性提取，不用多次esam访问
+//	static 	EsamInfo esamInfo;//
+	EsamInfo esamInfo;
 	INT8U attnum = oad.attflg&0x1F;
 	if(attnum == 0x0C || attnum==0x0A)//主站/终端证书属性
 	{
 		retLen = getEsamCcie(attnum,retBuff);
 		return retLen<=0 ? 0:retLen;
 	}
-	struct timeval tv_new;//静态存储时间
-	gettimeofday(&tv_new, NULL);
-	if(tv_store.tv_sec == 0 || (tv_new.tv_sec - tv_store.tv_sec)>=3)//第一次进入该函数，或有效时间超过3秒，重新esam访问
-	{
+//	struct timeval tv_new;//静态存储时间
+//	gettimeofday(&tv_new, NULL);
+//	if(tv_store.tv_sec == 0 || (tv_new.tv_sec - tv_store.tv_sec)>=3)//第一次进入该函数，或有效时间超过3秒，重新esam访问
+//	{
 		retLen = Esam_GetTermiInfo(&esamInfo);
-		if(retLen>0)
-			memcpy(&tv_store,&tv_new,sizeof(tv_store));//更新存储时间
-		else return 0;
-	}
+//		if(retLen>0)
+//			memcpy(&tv_store,&tv_new,sizeof(tv_store));//更新存储时间
+		//else return 0;
+		if(retLen<=0) return 0;
+//	}
 	//经过以上的过滤，处理3种情况(第一次进入，时间超时，证书，一下直接从esamInfo中拷贝属性信息)
 	switch(attnum)
 	{
