@@ -19,6 +19,7 @@
 
 ProgramInfo *memp;
 sem_t* sem_spi0_0=NULL;
+INT32S fd = -1;//放入全局变量，不再每次都打开关闭spi口，只有多次通信失败后再重新打开一次
 /*
  * 传入长度的判断，根据A-XDR编码规则
  * 返回：lenSign= 1，单纯一个字节标示 长度，最高位bit为0，长度不超过128
@@ -88,8 +89,10 @@ INT32S Esam_Init(INT32S fd) {
 }
 
 void Esam_Clear(INT32S fd) {
-//	close_named_sem(SEMNAME_SPI0_0);
+	//close_named_sem(SEMNAME_SPI0_0);
     SPI_Close(fd);
+    gpio_writebyte(DEV_ESAM_PWR, 1);//关闭电源
+    usleep(50000);
 }
 //该函数用于初始化esam接口
 //多次未读出正确报文，重新初始化继续抄读
@@ -97,14 +100,19 @@ INT32S Esam_WriteThenRead(INT8U* Tbuf, INT16U Tlen, INT8U* Rbuf)
 {
 	INT8U index=0;
 	INT32S esamRet = ERR_ESAM_SPI_OPENERR;
-	INT32S fd = -1;
 	for(index =0 ;index<3;index ++)
 	{
-		fd = -1;
-		fd = Esam_Init(fd);
+		if(fd<0)//fd<0时为第一次进入,需要打开ESAM SPI口
+			fd = Esam_Init(fd);
+		if(fd>0 && index >0)//fd > 0 && index>0时为前一次通信失败，关闭后重新开启spi口，增加成功概率
+		{
+			Esam_Clear(fd);
+			fd = Esam_Init(fd);
+		}
+		fprintf(stderr,"open esam spi port  fd = %d\n",fd);
 		if(fd<0) continue;
 		esamRet = _esam_WriteThenRead(fd,Tbuf,Tlen,Rbuf);
-		Esam_Clear(fd);
+		//
 		if(esamRet > 0) break;
 	}
 	return esamRet;
@@ -423,7 +431,7 @@ INT32S Esam_CreateConnect( SignatureSecurity* securityInfo ,SecurityData* RetInf
  *输入：Data是未经处理的传入报文信息，开头符合octet_string类型数据(附加数据其实就是信息长度)
  *返回：Rbuf(Data)已去掉帧头帧尾
  *函数返回：1、为正数是为终端信息数据长度		  2、负数：代表相应错误，见：Esam.h中，ESAM ERR ARRAY定义
- *TODO：当为广播传输时，需要对安全标识最后一个bit进行判断。
+ *当为广播传输时，需要对安全标识最后一个bit进行判断。上层服务已经完成
  *************************************************************/
 INT32S Esam_SIDTerminalCheck( SID_MAC SidMac,INT8U* Data, INT8U* Rbuf) {
 	if(sizeof(SidMac.sid.addition)<=SidMac.sid.addition[0])	return ERR_ESAM_TRANSPARA_ERR;
@@ -630,7 +638,7 @@ INT32S Esam_ReportEncrypt(INT8U* Data1, INT16U Length,INT8U* RN,INT8U* MAC) {
 	if(Result>0 && Result<BUFFLENMAX_SPI) //大于BUFFLENMAX_SPI错误，此处做比较
 	{
 		 memcpy(RN,&tmp[4],12);
-		 memcpy(MAC,&tmp[16],4);//TODO:此处需要查看MAC长度和整个报文长度，芯片手册此处不详细
+		 memcpy(MAC,&tmp[16],4);
 		return Result;
 	}
 	return Result;
