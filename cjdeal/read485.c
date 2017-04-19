@@ -1575,7 +1575,7 @@ INT8U checkTimeStamp698(OAD_DATA oadListContent[ROAD_OADS_NUM])
 		if(memcmp(oadListContent[oadIndex].oad,oadTimeStamp,4)==0)
 		{
 			DbPrt1(2,"checkTimeStamp698 buff:", (char *) oadListContent[oadIndex].data, 10, NULL);
-			return isTimerSame(-1,oadListContent[oadIndex].data);
+			return isTimerSame(0,oadListContent[oadIndex].data);
 		}
 	}
 	return ret;
@@ -1638,14 +1638,17 @@ INT16S deal698RequestResponse(INT8U isProxyResponse,INT8U getResponseType,INT16U
 			oaddataLen = parseSingleROADData(csds.csd[0].csd.road,&apdudata[apdudataIndex],&dataContent[dataContentIndex],&dataContentLen,oadListContent);
 			dataContentIndex = dataContentLen;
 			fprintf(stderr,"\n dataContentIndex = %d dataContentLen = %d \n",dataContentIndex,dataContentLen);
+
 			if(csds.csd[0].csd.road.oad.OI == 0x5004)
 			{
 				INT8U isTimeSame = checkTimeStamp698(oadListContent);
 				if(isTimeSame == 0)
 				{
+					asyslog(LOG_NOTICE,"698冻结时标不正确");
 					memset(dataContent,0,dataContentIndex);
 				}
 			}
+
 		}
 
 		break;
