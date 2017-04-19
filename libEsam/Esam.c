@@ -422,7 +422,7 @@ INT32S Esam_CreateConnect( SignatureSecurity* securityInfo ,SecurityData* RetInf
  *输入：Data是未经处理的传入报文信息，开头符合octet_string类型数据(附加数据其实就是信息长度)
  *返回：Rbuf(Data)已去掉帧头帧尾
  *函数返回：1、为正数是为终端信息数据长度		  2、负数：代表相应错误，见：Esam.h中，ESAM ERR ARRAY定义
- *TODO：当为广播传输时，需要对安全标识最后一个bit进行判断。
+ *当为广播传输时，需要对安全标识最后一个bit进行判断。上层服务已经完成
  *************************************************************/
 INT32S Esam_SIDTerminalCheck( SID_MAC SidMac,INT8U* Data, INT8U* Rbuf) {
 	if(sizeof(SidMac.sid.addition)<=SidMac.sid.addition[0])	return ERR_ESAM_TRANSPARA_ERR;
@@ -629,7 +629,7 @@ INT32S Esam_ReportEncrypt(INT8U* Data1, INT16U Length,INT8U* RN,INT8U* MAC) {
 	if(Result>0 && Result<BUFFLENMAX_SPI) //大于BUFFLENMAX_SPI错误，此处做比较
 	{
 		 memcpy(RN,&tmp[4],12);
-		 memcpy(MAC,&tmp[16],4);//TODO:此处需要查看MAC长度和整个报文长度，芯片手册此处不详细
+		 memcpy(MAC,&tmp[16],4);
 		return Result;
 	}
 	return Result;

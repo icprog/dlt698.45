@@ -708,9 +708,10 @@ int doActionRequest(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
  * 安全传输Esam校验
  *decryptData--明文信息 encryptData--密文数据集
  *输入：retData--esam验证后返回信息(需要在该函数外层开辟空间) MAC明文加MAC时，需要保存全局MAC
+ *输入：CSINFO用来在组地址或广播地址时对安全标示验证（esam芯片手册：5.3第三部分）
  *输出：retData长度
  **********************************************************************/
-INT16S doSecurityRequest(INT8U* apdu)//
+INT16S doSecurityRequest(INT8U* apdu,CSINFO *csinfo)//
 {
 	if(apdu[0]!=0x10) return -1;//非安全传输，不处理
 	if(apdu[1] !=0x00 && apdu[1] != 0x01) return -2 ;   //明文应用数据单元

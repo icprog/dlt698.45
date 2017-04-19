@@ -126,14 +126,39 @@ INT32S UnitParse(INT8U* source,INT8U* dest,INT8U type)
 		return -201;
 	return len;
 }
+//esam芯片手册：5.3第三部分对组地址和广播进行安全验证
+//安全标示最后4个bit的校验
+INT32S secureBroadcastCheck(SID_MAC *sid_mac,CSINFO *csinfo)
+{
+	INT8U Check[3] = {0x80,0x16,0x48};
+	if(memcmp(Check,sid_mac->sid.sig,3)!=0)
+		return 0;
+	if((sid_mac->sid.sig[3]&0xF0)!=0x00)
+		return 0;
+	INT8U lastAddr = csinfo->sa[csinfo->sa_length];//此处0-15，代表1-16，所以不需要-1
+	if(lastAddr &0x0F == 0x0F)
+		lastAddr = lastAddr << 4;
+	else
+		lastAddr = lastAddr&0x0F;
+	if(lastAddr ==0x00)
+		lastAddr = 0x0A;
+	if(lastAddr>=0x00 && lastAddr<=0x0A)
+	{
+		sid_mac->sid.sig[4] = (sid_mac->sid.sig[4]&0xF0) | lastAddr;//清掉原先的底四位，再补上底四位
+		return 0;
+	}
+	else
+		return -1;
+}
  /**********************************************************************
   *应用数据单元为密文情况时处理方案（ 698解析应用数据单元和数据验证信息.访问模型参见4.1.3.1）
   *当前理解：密文+SID为  《密文》等级   密文+SID_MAC为《密文+MAC》等级，密文情况下不存在RN/RN_MAC情况
   *因为密文+RN在安全芯片手册中找不到解密方法
   *输入：需返回的secureType安全类别，01明文，02明文+MAC 03密文  04密文+MAC
+   *输入：CSINFO用来在组地址或广播地址时对安全标示验证（esam芯片手册：5.3第三部分）
   *输出：retData长度
   **********************************************************************/
- INT32S secureEncryptDataDeal(INT8U* apdu,INT8U* retData)
+ INT32S secureEncryptDataDeal(INT8U* apdu,INT8U* retData,CSINFO *csinfo)
  {
 	 INT32S tmplen=0;
 	 INT16U appLen=0;
@@ -145,15 +170,21 @@ INT32S UnitParse(INT8U* source,INT8U* dest,INT8U type)
 	{
 		tmplen = UnitParse(&apdu[2+appLen+1],(INT8U*)&sidmac,0x01);//解析SID部分
 		if(tmplen<=0) return -202;
+		//判断服务器地址类型是否为组地址或广播地址
+		if(csinfo->sa_type==0x02 ||csinfo->sa_type==0x03 )
+		{
+			if(secureBroadcastCheck(&sidmac,csinfo)<0)
+				return -203;
+		}
 		if(apdu[2+appLen]==0x00)
 		{
 			tmplen = UnitParse(&apdu[2+appLen+1+tmplen],sidmac.mac,0x02);//解析MAC部分
-			if(tmplen<=0) return -203;//
+			if(tmplen<=0) return -204;//
 		}
 		ret = Esam_SIDTerminalCheck(sidmac,&apdu[2],retData);
 	}
 	else
-		return -204;
+		return -205;
 	if(apdu[2+appLen]==0x00)
 		securetype=0x04;//密文+mac等级
 	if(apdu[2+appLen]==0x03)
@@ -328,7 +359,7 @@ INT32S UnitParse(INT8U* source,INT8U* dest,INT8U type)
  //输入：单个oad，retBuff,返回字符串指针，将需要返回字符串写入，开头为长度
  //输出：写入retBuff长度
  //当属性为0的时候，返回错误，因为无法将主站和客户端的证书组报文返回去，也没这么用的
- //已测
+ //返回值不能为负数
 INT16U getEsamAttribute(OAD oad,INT8U *retBuff)
 {
 	INT32S retLen=0;
@@ -347,7 +378,7 @@ INT16U getEsamAttribute(OAD oad,INT8U *retBuff)
 		retLen = Esam_GetTermiInfo(&esamInfo);
 		if(retLen>0)
 			memcpy(&tv_store,&tv_new,sizeof(tv_store));//更新存储时间
-		else return -201;
+		else return 0;
 	}
 	//经过以上的过滤，处理3种情况(第一次进入，时间超时，证书，一下直接从esamInfo中拷贝属性信息)
 	switch(attnum)
