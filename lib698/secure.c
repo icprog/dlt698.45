@@ -136,7 +136,7 @@ INT32S secureBroadcastCheck(SID_MAC *sid_mac,CSINFO *csinfo)
 	if((sid_mac->sid.sig[3]&0xF0)!=0x00)
 		return 0;
 	INT8U lastAddr = csinfo->sa[csinfo->sa_length];//此处0-15，代表1-16，所以不需要-1
-	if(lastAddr &0x0F == 0x0F)
+	if((lastAddr &0x0F) == 0x0F)
 		lastAddr = lastAddr << 4;
 	else
 		lastAddr = lastAddr&0x0F;
@@ -144,7 +144,7 @@ INT32S secureBroadcastCheck(SID_MAC *sid_mac,CSINFO *csinfo)
 		lastAddr = 0x0A;
 	if(lastAddr>=0x00 && lastAddr<=0x0A)
 	{
-		sid_mac->sid.sig[4] = (sid_mac->sid.sig[4]&0xF0) | lastAddr;//清掉原先的底四位，再补上底四位
+		sid_mac->sid.sig[3] = (sid_mac->sid.sig[3]&0xF0) | lastAddr;//清掉原先的底四位，再补上底四位
 		return 0;
 	}
 	else

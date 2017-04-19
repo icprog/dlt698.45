@@ -19,6 +19,7 @@
 
 ProgramInfo *memp;
 sem_t* sem_spi0_0=NULL;
+INT32S fd = -1;//放入全局变量，不再每次都打开关闭spi口，只有多次通信失败后再重新打开一次
 /*
  * 传入长度的判断，根据A-XDR编码规则
  * 返回：lenSign= 1，单纯一个字节标示 长度，最高位bit为0，长度不超过128
@@ -88,8 +89,10 @@ INT32S Esam_Init(INT32S fd) {
 }
 
 void Esam_Clear(INT32S fd) {
-	close_named_sem(SEMNAME_SPI0_0);
+	//close_named_sem(SEMNAME_SPI0_0);
     SPI_Close(fd);
+    gpio_writebyte(DEV_ESAM_PWR, 1);//关闭电源
+    usleep(50000);
 }
 //该函数用于初始化esam接口
 //多次未读出正确报文，重新初始化继续抄读
@@ -97,14 +100,19 @@ INT32S Esam_WriteThenRead(INT8U* Tbuf, INT16U Tlen, INT8U* Rbuf)
 {
 	INT8U index=0;
 	INT32S esamRet = ERR_ESAM_SPI_OPENERR;
-	INT32S fd = -1;
 	for(index =0 ;index<3;index ++)
 	{
-		fd = -1;
-		fd = Esam_Init(fd);
+		if(fd<0)//fd<0时为第一次进入,需要打开ESAM SPI口
+			fd = Esam_Init(fd);
+		if(fd>0 && index >0)//fd > 0 && index>0时为前一次通信失败，关闭后重新开启spi口，增加成功概率
+		{
+			Esam_Clear(fd);
+			fd = Esam_Init(fd);
+		}
+		fprintf(stderr,"open esam spi port  fd = %d\n",fd);
 		if(fd<0) continue;
 		esamRet = _esam_WriteThenRead(fd,Tbuf,Tlen,Rbuf);
-		Esam_Clear(fd);
+		//
 		if(esamRet > 0) break;
 	}
 	return esamRet;

@@ -724,7 +724,7 @@ INT16S doSecurityRequest(INT8U* apdu,CSINFO *csinfo)//
 	 }
 	 else if(apdu[1]==0x01)//密文应用数据处理
 	 {
-		 retLen = secureEncryptDataDeal(apdu,apdu);
+		 retLen = secureEncryptDataDeal(apdu,apdu,csinfo);
 	 }
 	 fprintf(stderr,"doSecurityRequest retlen = %d\n",retLen);
 	 return retLen;
@@ -1246,7 +1246,7 @@ INT8U dealClientRequest(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
 
 	if (apduType == SECURITY_REQUEST)//安全请求的数据类型
 	{
-		SecurityRe = doSecurityRequest(apdu);
+		SecurityRe = doSecurityRequest(apdu,csinfo);
 		if (SecurityRe <= 0)
 		{
 			fprintf(stderr,"\n安全请求计算错误!!!");
