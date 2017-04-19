@@ -85,12 +85,15 @@
 /*
  * 	GPIO硬件接口
  * */
-
-//根据配置文件nor/device.cfg区分I型、II型、III型
-#define ESAM_SPI_DEV_II		   "/dev/spidev1.0"
-#define ESAM_SPI_DEV 			"/dev/spi0.0"
-
-#define	ACS_SPI_DEV		"/dev/spi0.0"				//计量芯片使用的spi设备
+/*
+ * 698_I:  硬件：spi0：ESAM，  spi1：ATT7022E  cpu_2.0核心板
+ * 698_II: 硬件：spi0：RN8209，spi1：ESAM
+ * 为了应用程序的兼容，将I型设备spi0.0，spi1.0映射互换
+ * */
+//原板II型 #define ESAM_SPI_DEV_II		   "/dev/spidev1.0"
+//原板I型  #define ESAM_SPI_DEV 			"/dev/spi0.0"
+#define ESAM_SPI_DEV 			"/dev/spi1.0"
+#define	ACS_SPI_DEV				"/dev/spi0.0"				//计量芯片使用的spi设备
 
 //Esam与ATT7022E共用数据线,复位信号，各自独立片选，CS=0，可读写，
 //因此不能同时读写ESAM与ATT7022E，必须互斥操作。

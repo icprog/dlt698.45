@@ -24,6 +24,9 @@
 #include "EventObject.h"
 #include "dlt698def.h"
 
+extern INT32S 			spifp_rn8209;
+extern INT32S 			spifp;
+
 ProgramInfo* JProgramInfo=NULL;
 int ProIndex=0;
 INT8U poweroffon_state = 0; //停上电抄读标志 0无效，1抄读，2抄读完毕
@@ -35,6 +38,8 @@ MeterPower MeterPowerInfo[POWEROFFON_NUM]; //当poweroffon_state为1时，抄读
  **********************************************************/
 void QuitProcess()
 {
+	spi_close(spifp);
+	spi_close(spifp_rn8209);
 	close_named_sem(SEMNAME_SPI0_0);
 	read485QuitProcess();
 	//proinfo->ProjectID=0;
@@ -71,9 +76,6 @@ int InitPro(ProgramInfo** prginfo, int argc, char *argv[])
 int InitPara()
 {
 	InitACSPara();
-	//InitClass6000();				//初始化交采采集档案
-	InitClass4016();				//初始化当前套日时段表
-	read_oif203_para();		//开关量输入值读取
 	return 0;
 }
 
@@ -755,7 +757,6 @@ int main(int argc, char *argv[])
 		return EXIT_FAILURE;
 	}
 
-
 	//载入档案、参数
 	InitPara();
 	//任务调度进程
@@ -764,11 +765,10 @@ int main(int argc, char *argv[])
 	read485_proccess();
 	//统计计算 电压合格率 停电事件等
 	calc_proccess();
-
 	if(JProgramInfo->DevicePara[0] == 1)
 	{
 		//载波
-		readplc_proccess();
+//		readplc_proccess();
 	}
 	if(JProgramInfo->DevicePara[0] != 2)
 	{

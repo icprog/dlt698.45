@@ -34,7 +34,7 @@ int dumpstat_Test(char* name, int fd,uint32_t speed) {
     static uint8_t bits   = 8;
 
     if(speed==0) {
-    	speed = 16000000;
+    	speed = 20000000;
     }else speed = speed*1000000;
     fprintf(stderr,"\nInit ESAM SPI %s, speed=%d\n",name,speed);
 
@@ -75,15 +75,16 @@ int32_t SPI_Init_Test(int32_t fd, char* spipath,uint32_t speed) {
 INT32S Esam_Init_Test(INT32S fd,uint32_t speed) {
     gpio_writebyte(DEV_ESAM_PWR, 0);
     usleep(50000);
-    gpio_writebyte(DEV_ATT_RST, 1);
-    usleep(2);
+//    gpio_writebyte(DEV_ATT_RST, 1);
+//    usleep(2);
     gpio_writebyte(DEV_ESAM_CS, 1);
-    if(JProgramInfo->DevicePara[0]==2) {
-    	return SPI_Init_Test(fd, ESAM_SPI_DEV_II,speed);
-    }else {
-    	sem_spi0_0 = open_named_sem(SEMNAME_SPI0_0);
-    	return SPI_Init_Test(fd, ESAM_SPI_DEV,speed);
-    }
+    return SPI_Init_Test(fd, ESAM_SPI_DEV,speed);
+//    if(JProgramInfo->DevicePara[0]==2) {
+//    	return SPI_Init_Test(fd, ESAM_SPI_DEV_II,speed);
+//    }else {
+////    	sem_spi0_0 = open_named_sem(SEMNAME_SPI0_0);
+//    	return SPI_Init_Test(fd, ESAM_SPI_DEV,speed);
+//    }
 }
 
 void Esam_Clear_Test(INT32S fd) {
@@ -102,8 +103,8 @@ void Esam_WriteToChip_Test(INT32S fd, INT8U* Tbuf, INT16U Tlen)
 {
 		struct spi_ioc_transfer	xfer[2];
 		memset(xfer, 0,  sizeof xfer);
-		gpio_writebyte(DEV_ATT_CS,1);
-		usleep(5);
+//		gpio_writebyte(DEV_ATT_CS,1);
+//		usleep(5);
 		gpio_writebyte(DEV_ESAM_CS,1);
 		usleep(10);
 		gpio_writebyte(DEV_ESAM_CS,0);
@@ -167,8 +168,8 @@ INT32S Esam_WriteThenRead_Test(INT32S fd, INT8U* Tbuf, INT16U Tlen, INT8U* Rbuf)
 	INT16S Result = ERR_ESAM_UNKNOWN;
     INT8U rx[BUFFLENMAX_SPI];
 
-    if(JProgramInfo->DevicePara[0]!=2)
-    	sem_wait(sem_spi0_0);
+//    if(JProgramInfo->DevicePara[0]!=2)
+//    	sem_wait(sem_spi0_0);
 	for(index=0;index<1;index++)//只做6次异常处理，每次若出异常，时间会很长，秒级
 	{
 		memset(rx,0x00,BUFFLENMAX_SPI);
@@ -232,8 +233,8 @@ INT32S Esam_WriteThenRead_Test(INT32S fd, INT8U* Tbuf, INT16U Tlen, INT8U* Rbuf)
 		}
 	}
 	gpio_writebyte(DEV_ESAM_CS,1);
-    if(JProgramInfo->DevicePara[0]!=2)
-    	sem_post(sem_spi0_0);
+//    if(JProgramInfo->DevicePara[0]!=2)
+//    	sem_post(sem_spi0_0);
 	return Result;
 }
 
@@ -418,7 +419,7 @@ void EsamTest(int argc, char* argv[])
 	INT16S test1=0,test2=0;
 	INT32S fp_spi = -1;
 	INT16U i,j,testnum = 1;
-	uint32_t	speed=16,maxspeed=16;
+	uint32_t	speed=20,maxspeed=20;
 
 	if(argc==3) {
 		speed = atoi(argv[2]);
