@@ -121,7 +121,7 @@ BOOLEAN oi_f203_changed(INT8U save_changed)
  * 返回 =1：有状态变位
  *     =0 :无变位
  * */
-INT8U state_check(BOOLEAN changed)
+INT8U state_check(BOOLEAN changed,INT8U devicetype)
 {
 	INT8U	staret=0;
 	INT8U 	i =0;
@@ -140,9 +140,11 @@ INT8U state_check(BOOLEAN changed)
 					bit_state[i] = bit_state[0];			//II型无设备，台体测试测试1-4路状态
 				}
 			}else if(i==4) {		//门节点
-				readstate[i] = getSpiAnalogState();
-				if(readstate[i]!=-1) {
-					bit_state[i] = ((~(readstate[i]>>5))&0x01);
+				if(devicetype==1) {		//I型集中器
+					readstate[i] = getSpiAnalogState();
+					if(readstate[i]!=-1) {
+						bit_state[i] = ((~(readstate[i]>>5))&0x01);
+					}
 				}
 			}
 			if(((oif203.state4.StatePropFlag>>(STATE_MAXNUM-1-i))&0x01)==0){	//常闭
@@ -184,7 +186,7 @@ void DealState(ProgramInfo* prginfo)
 	BOOLEAN changed = FALSE;
 	INT8U	stachg = 0;
 	changed = oi_f203_changed(prginfo->oi_changed.oiF203);
-	stachg = state_check(changed);
+	stachg = state_check(changed,prginfo->DevicePara[0]);
 	if(stachg==1) {
 		getStateEvent(prginfo);
 		saveCoverClass(0xf203,0,&oif203,sizeof(CLASS_f203),para_vari_save);
