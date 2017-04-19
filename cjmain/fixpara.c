@@ -30,7 +30,7 @@ void InitClass4300() {
         strncpy(oi4300.name, "4300", sizeof(oi4300.name));
         strncpy(oi4300.info.factoryCode, "QDGK", sizeof(oi4300.info.factoryCode));
         strncpy(oi4300.info.softVer, "ZJSJ", sizeof(oi4300.info.softVer));
-        strncpy(oi4300.info.softDate, "170328", sizeof(oi4300.info.softDate));
+        strncpy(oi4300.info.softDate, "170223", sizeof(oi4300.info.softDate));
         strncpy(oi4300.info.hardVer, "1.00", sizeof(oi4300.info.hardVer));
         strncpy(oi4300.info.hardDate, "150628", sizeof(oi4300.info.hardDate));
         strncpy(oi4300.protcol, "DL/T 698.45", sizeof(oi4300.protcol));
@@ -39,6 +39,7 @@ void InitClass4300() {
         oi4300.date_Product.day.data   = 23;
         saveCoverClass(0x4300, 0, &oi4300, sizeof(CLASS19), para_init_save);
     }
+
     fprintf(stderr, "\n厂商代码 %c%c%c%c", oi4300.info.factoryCode[0], oi4300.info.factoryCode[1], oi4300.info.factoryCode[2], oi4300.info.factoryCode[3]);
     fprintf(stderr, "\n软件版本 %c%c%c%c", oi4300.info.softVer[0], oi4300.info.softVer[1], oi4300.info.softVer[2], oi4300.info.softVer[3]);
     fprintf(stderr, "\n软件版本日期 %c%c%c%c%c%c", oi4300.info.softDate[0], oi4300.info.softDate[1], oi4300.info.softDate[2], oi4300.info.softDate[3],

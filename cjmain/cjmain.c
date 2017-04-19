@@ -23,13 +23,11 @@
 static ProgramInfo* JProgramInfo = NULL;
 static int mmqFds[MAX_MMQ_SIZE];
 
-const static mmq_attribute mmq_register[] = {
-    { cjcomm, PROXY_485_MQ_NAME, MAXSIZ_PROXY_NET, MAXNUM_PROXY_NET },
-    { cjdeal, PROXY_NET_MQ_NAME, MAXSIZ_PROXY_485, MAXNUM_PROXY_485 },
-    { cjdeal, TASKID_485_1_MQ_NAME, MAXSIZ_TASKID_QUEUE, MAXNUM_TASKID_QUEUE },
-    { cjdeal, TASKID_485_2_MQ_NAME, MAXSIZ_TASKID_QUEUE, MAXNUM_TASKID_QUEUE },
-    { cjdeal, TASKID_plc_MQ_NAME, MAXSIZ_TASKID_QUEUE, MAXNUM_TASKID_QUEUE }
-};
+const static mmq_attribute mmq_register[] = { { cjcomm, PROXY_485_MQ_NAME, MAXSIZ_PROXY_NET, MAXNUM_PROXY_NET },
+                                              { cjdeal, PROXY_NET_MQ_NAME, MAXSIZ_PROXY_485, MAXNUM_PROXY_485 },
+                                              { cjdeal, TASKID_485_1_MQ_NAME, MAXSIZ_TASKID_QUEUE, MAXNUM_TASKID_QUEUE },
+                                              { cjdeal, TASKID_485_2_MQ_NAME, MAXSIZ_TASKID_QUEUE, MAXNUM_TASKID_QUEUE },
+                                              { cjdeal, TASKID_plc_MQ_NAME, MAXSIZ_TASKID_QUEUE, MAXNUM_TASKID_QUEUE } };
 
 void Runled(int state) {
     gpio_writebyte((char*)DEV_LED_RUN, state);
@@ -69,37 +67,37 @@ void Watchdog(int count) //硬件看门狗
 }
 
 //读取设备配置信息
-int ReadDeviceConfig()
-{
-	FILE* fp = NULL;
-	char aline[128]={};
-	int  devicetype=1;
+int ReadDeviceConfig() {
+    FILE* fp        = NULL;
+    char aline[128] = {};
+    int devicetype  = 1;
 
-	fp = fopen((const char*)DEVICE_CFG,(const char*)"r");
-	if(fp == NULL)
-	{
-		fprintf(stderr,"\n无配置信息!");
-		JProgramInfo->DevicePara[0] = 1;
-	}else {
-		memset(aline,0,sizeof(aline));
-		while(fgets((char*)aline,sizeof(aline),fp) != NULL)
-		{
-//			fprintf(stderr,"aline  %s\n",aline);
-			if(strncmp(aline,"begin",5) == 0) continue;
-			if(strncmp(aline,"end",3) == 0) break;
-			if(strncmp(aline,"//",2) == 0) continue;
-			if(strncmp(aline,"device",6)==0)  	//设备类型
-			{
-				sscanf(aline,"device=%d",&devicetype);
-				JProgramInfo->DevicePara[0] = devicetype;
- 			}
-		}
-	}
-	if(JProgramInfo->DevicePara[0] < 1 || JProgramInfo->DevicePara[0] > 3) {		//无效值
-		JProgramInfo->DevicePara[0] = 1;	//默认I型
-	}
-	fprintf(stderr,"\n当前运行类型为：%d 型终端\n",JProgramInfo->DevicePara[0]);
-	return 1;
+    fp = fopen((const char*)DEVICE_CFG, (const char*)"r");
+    if (fp == NULL) {
+        fprintf(stderr, "\n无配置信息!");
+        JProgramInfo->DevicePara[0] = 1;
+    } else {
+        memset(aline, 0, sizeof(aline));
+        while (fgets((char*)aline, sizeof(aline), fp) != NULL) {
+            //			fprintf(stderr,"aline  %s\n",aline);
+            if (strncmp(aline, "begin", 5) == 0)
+                continue;
+            if (strncmp(aline, "end", 3) == 0)
+                break;
+            if (strncmp(aline, "//", 2) == 0)
+                continue;
+            if (strncmp(aline, "device", 6) == 0) //设备类型
+            {
+                sscanf(aline, "device=%d", &devicetype);
+                JProgramInfo->DevicePara[0] = devicetype;
+            }
+        }
+    }
+    if (JProgramInfo->DevicePara[0] < 1 || JProgramInfo->DevicePara[0] > 3) { //无效值
+        JProgramInfo->DevicePara[0] = 1;                                      //默认I型
+    }
+    fprintf(stderr, "\n当前运行类型为：%d 型终端\n", JProgramInfo->DevicePara[0]);
+    return 1;
 }
 
 //读取系统配置文件
@@ -252,7 +250,6 @@ void CreateSem() {
     sem = create_named_sem(SEMNAME_PARA_SAVE, 1);
     sem_getvalue(sem, &val);
     asyslog(LOG_INFO, "PARA_SAVE信号量建立，初始值[%d]", val);
-
 }
 /*
  * 初始化操作
@@ -261,7 +258,7 @@ void InitSharedMem(int argc, char* argv[]) {
     JProgramInfo = (ProgramInfo*)CreateShMem("ProgramInfo", sizeof(ProgramInfo), NULL);
     asyslog(LOG_ERR, "打开共享内存，地址[%d]，大小[%d]", JProgramInfo, sizeof(ProgramInfo));
 
-//    InitClass4300();
+    InitClass4300();
 
     readCoverClass(0x3100, 0, &JProgramInfo->event_obj.Event3100_obj, sizeof(JProgramInfo->event_obj.Event3100_obj), event_para_save);
     readCoverClass(0x3101, 0, &JProgramInfo->event_obj.Event3101_obj, sizeof(JProgramInfo->event_obj.Event3101_obj), event_para_save);
@@ -439,10 +436,10 @@ void checkDevReset() {
     return (time(NULL));
 }
 
-void checkRebootFile(){
+void checkRebootFile() {
     static int count = 0;
 
-    if(count == 0){
+    if (count == 0) {
         FILE* fp = fopen("/nand/UpFiles/reboot", "r+");
         if (fp != NULL) {
             fclose(fp);
@@ -455,8 +452,7 @@ void checkRebootFile(){
     if (fp != NULL) {
         fclose(fp);
         count++;
-        if(count > 10)
-        {
+        if (count > 10) {
             system("reboot");
         }
     }
@@ -480,7 +476,7 @@ int main(int argc, char* argv[]) {
     if (argc >= 2 && strncmp("all", argv[1], 3) == 0) {
         ProgsNum = ReadSystemInfo();
     }
-    get_protocol_3761_tx_para();//湖南获取3761切换通信参数，在初始化其他操作之后进行
+    get_protocol_3761_tx_para(); //湖南获取3761切换通信参数，在初始化其他操作之后进行
     while (1) {
         sleep(1);
 
@@ -500,7 +496,7 @@ int main(int argc, char* argv[]) {
         Checkupdate();
 
         //检查设备是否需要重启
-//        checkDevReset();
+        //        checkDevReset();
 
         //检查系统升级文件
         checkRebootFile();
