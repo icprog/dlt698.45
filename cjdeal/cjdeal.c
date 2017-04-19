@@ -24,6 +24,9 @@
 #include "EventObject.h"
 #include "dlt698def.h"
 
+extern INT32S 			spifp_rn8209;
+extern INT32S 			spifp;
+
 ProgramInfo* JProgramInfo=NULL;
 int ProIndex=0;
 INT8U poweroffon_state = 0; //停上电抄读标志 0无效，1抄读，2抄读完毕
@@ -35,6 +38,8 @@ MeterPower MeterPowerInfo[POWEROFFON_NUM]; //当poweroffon_state为1时，抄读
  **********************************************************/
 void QuitProcess()
 {
+	spi_close(spifp);
+	spi_close(spifp_rn8209);
 	close_named_sem(SEMNAME_SPI0_0);
 	read485QuitProcess();
 	//proinfo->ProjectID=0;
@@ -71,11 +76,10 @@ int InitPro(ProgramInfo** prginfo, int argc, char *argv[])
 int InitPara()
 {
 	InitACSPara();
-	read_oif203_para();		//开关量输入值读取
 	return 0;
 }
 
-INT8U time_in_shiduan(TASK_RUN_TIME str_runtime) {
+INT8U time_in_shiduan(TASK_RUN_TIME str_runtime,TI interval) {
 	TS ts_now;
 	TSGet(&ts_now);
 
@@ -86,16 +90,28 @@ INT8U time_in_shiduan(TASK_RUN_TIME str_runtime) {
 	{
 		min_start = str_runtime.runtime[timePartIndex].beginHour * 60
 				+ str_runtime.runtime[timePartIndex].beginMin;
+		//日冻结任务延时5分钟
+		if(interval.units == day_units)
+		{
+			min_start += 5;
+		}
 		min_end = str_runtime.runtime[timePartIndex].endHour * 60
 				+ str_runtime.runtime[timePartIndex].endMin;
 		if (min_start <= min_end) {
-			if ((now_min > min_start) && (now_min < min_end)) {
+			if ((now_min > min_start) && (now_min < min_end))
+			{
 				return 1;
-			} else if (((str_runtime.type & 0x01) == 0x01)
-					&& (now_min == min_end)) {
+			}
+			else if ((str_runtime.type  == 0)&& (now_min == min_start))
+			{
 				return 1;
-			} else if (((str_runtime.type & 0x03) == 0x01)
-					&& (now_min == min_start)) {
+			}
+			else if ((str_runtime.type  == 1)&& (now_min == min_end))
+			{
+				return 1;
+			}
+			else if ((str_runtime.type  == 2)&& ((now_min == min_end)||(now_min == min_start)))
+			{
 				return 1;
 			}
 		}
@@ -187,7 +203,7 @@ INT8U filterInvalidTask(INT16U taskIndex) {
 		fprintf(stderr, "\n filterInvalidTask - 3");
 		return 0;
 	}
-	if (time_in_shiduan(list6013[taskIndex].basicInfo.runtime) == 1)	//在抄表时段内
+	if (time_in_shiduan(list6013[taskIndex].basicInfo.runtime,list6013[taskIndex].basicInfo.interval) == 1)	//在抄表时段内
 	{
 		return 1;
 	}
@@ -206,11 +222,11 @@ INT8U cmpTaskPrio(INT16U taskIndex1, INT16U taskIndex2) {
 
 	if (list6013[taskIndex1].basicInfo.runprio > list6013[taskIndex2].basicInfo.runprio)
 	{
-		return 1;
+		return 2;
 	}
 	else if (list6013[taskIndex1].basicInfo.runprio < list6013[taskIndex2].basicInfo.runprio)
 	{
-		return 2;
+		return 1;
 	}
 	else if (list6013[taskIndex1].basicInfo.interval.units> list6013[taskIndex2].basicInfo.interval.units)
 	{
@@ -248,24 +264,25 @@ INT16S getNextTastIndexIndex() {
 		if (list6013[tIndex].basicInfo.taskID == 0) {
 			continue;
 		}
-//		fprintf(stderr, "\n ---------list6013[%d].basicInfo.taskID = %d ",
-//				tIndex, list6013[tIndex].basicInfo.taskID);
+	//	fprintf(stderr, "\n ---------list6013[%d].basicInfo.taskID = %d ",
+	//			tIndex, list6013[tIndex].basicInfo.taskID);
 		//run_flg > 0说明应该抄读还没有抄
 		if (list6013[tIndex].run_flg > 0) {
-//			fprintf(stderr, "\n  getNextTastIndexIndex-2222");
+	//		fprintf(stderr, "\n  getNextTastIndexIndex-2222");
 			list6013[tIndex].run_flg++;
 		} else {
 			//过滤任务无效或者不再抄表时段内的
 			if (filterInvalidTask(tIndex) == 0) {
-//				fprintf(stderr, "\n  getNextTastIndexIndex-3333");
+	//			fprintf(stderr, "\n  getNextTastIndexIndex-3333");
 				continue;
 			}
 
 			time_t timenow = time(NULL);
+	//		fprintf(stderr, "\n timenow = %d ts_next = %d",timenow, list6013[tIndex].ts_next);
 			if(timenow >= list6013[tIndex].ts_next)
 			{
 				list6013[tIndex].run_flg = 1;
-//				fprintf(stderr, "\n  getNextTastIndexIndex-4444");
+	//		fprintf(stderr, "\n  getNextTastIndexIndex-4444");
 			}
 			else
 			{
@@ -277,14 +294,14 @@ INT16S getNextTastIndexIndex() {
 		{
 			if(list6013[tIndex].run_flg > 0)
 			{
-//				fprintf(stderr, "\n  getNextTastIndexIndex-5555");
+			//	fprintf(stderr, "\n  getNextTastIndexIndex-5555");
 				taskIndex = tIndex;
 			}
 			continue;
 		}
 
 		if (cmpTaskPrio(taskIndex, tIndex) == 2) {
-//			fprintf(stderr, "\n  getNextTastIndexIndex-6666");
+		//	fprintf(stderr, "\n  getNextTastIndexIndex-6666");
 			taskIndex = tIndex;
 			continue;
 		}
@@ -395,8 +412,8 @@ INT8U init6013ListFrom6012File() {
 			else
 			{
 				memcpy(&list6013[total_tasknum].basicInfo, &class6013, sizeof(CLASS_6013));
-				time_t timenow = time(NULL);
-				list6013[total_tasknum].ts_next  = timenow;
+				list6013[total_tasknum].ts_next  = calcnexttime(list6013[total_tasknum].basicInfo.interval,list6013[total_tasknum].basicInfo.startime);
+				//TODO
 				total_tasknum++;
 			}
 		}
@@ -499,6 +516,11 @@ void timeProcess()
 			flagDay_4204[1] = 1;
 
 			lastTime.Day = nowTime.Day;
+
+			isReplenishOver[0] = 1;
+			isReplenishOver[1] = 1;
+			isReplenishOver[2] = 1;
+			isReplenishOver[3] = 1;
 		}
 	}
 }
@@ -506,6 +528,11 @@ void timeProcess()
 INT8S dealMsgProcess()
 {
 	INT8S result = 0;
+	if((cjcommProxy.isInUse != 0) ||(cjguiProxy.isInUse != 0))
+	{
+		fprintf(stderr,"\n ％％％％％％％％％％％％cjcommProxy.isInUse = %d cjguiProxy.isInUse = %d\n",cjcommProxy.isInUse,cjguiProxy.isInUse);
+		return 	result;
+	}
 
 	INT8U  rev_485_buf[2048];
 	INT32S ret;
@@ -540,7 +567,7 @@ INT8S dealMsgProcess()
 					if(cjguiProxy.isInUse == 0)
 					{
 						memcpy(&cjguiProxy.strProxyMsg,rev_485_buf,sizeof(Proxy_Msg));
-						cjguiProxy.isInUse = 1;
+						cjguiProxy.isInUse = 3;
 					}
 					else
 					{
@@ -562,11 +589,41 @@ INT8S dealMsgProcess()
 	}
 	return result;
 }
+void replenish_tmp()
+{
+	TS nowTime;
+	TSGet(&nowTime);
+	INT16U nowMin = nowTime.Hour*60 + nowTime.Minute;
+	INT8U tmpIndex = 0;
+	for(tmpIndex = 0;tmpIndex < 4;tmpIndex++)
+	{
+		if((isReplenishOver[tmpIndex] == 1)&&(nowMin >= replenishTime[tmpIndex]))
+		{
+			asyslog(LOG_WARNING,"第%d次补抄　时间%d分",tmpIndex,replenishTime[tmpIndex]);
+			INT8U tIndex;
+			for (tIndex = 0; tIndex < total_tasknum; tIndex++)
+			{
+				if (list6013[tIndex].basicInfo.interval.units == day_units)
+				{
+					asyslog(LOG_WARNING,"发送任务ID tIndex = %d　",tIndex);
+					INT8S ret = mqs_send((INT8S *)TASKID_485_2_MQ_NAME,cjdeal,1,(INT8U *)&tIndex,sizeof(INT16S));
+					ret = mqs_send((INT8S *)TASKID_485_1_MQ_NAME,cjdeal,1,(INT8U *)&tIndex,sizeof(INT16S));
+				}
+			}
+			isReplenishOver[tmpIndex] = 0;
+		}
+	}
+
+}
 void dispatch_thread()
 {
 	//运行调度任务进程
 //	fprintf(stderr,"\ndispatch_thread start \n");
-
+	memset(isReplenishOver,0,4);
+	replenishTime[0] = 30;
+	replenishTime[1] = 60;
+	replenishTime[2] = 90;
+	replenishTime[3] = 120;
 	while(1)
 	{
 		timeProcess();
@@ -602,7 +659,7 @@ void dispatch_thread()
 		}
 		INT16S tastIndex = -1;//读取所有任务文件
 		tastIndex = getNextTastIndexIndex();
-
+		sleep(1);
 		if (tastIndex > -1)
 		{
 #if 0
@@ -613,19 +670,22 @@ void dispatch_thread()
 			list6013[tastIndex].ts_next = calcnexttime(list6013[tastIndex].basicInfo.interval,list6013[tastIndex].basicInfo.startime);
 
 			INT8S ret = mqs_send((INT8S *)TASKID_485_2_MQ_NAME,cjdeal,1,(INT8U *)&tastIndex,sizeof(INT16S));
-			//fprintf(stderr,"\n 向485 2线程发送任务ID = %d \n",ret);
+			fprintf(stderr,"\n 向485 2线程发送任务ID = %d \n",ret);
 			ret = mqs_send((INT8S *)TASKID_485_1_MQ_NAME,cjdeal,1,(INT8U *)&tastIndex,sizeof(INT16S));
-			//fprintf(stderr,"\n 向485 1线程发送任务ID = %d \n",ret);
+			fprintf(stderr,"\n 向485 1线程发送任务ID = %d \n",ret);
+			ret = mqs_send((INT8S *)TASKID_plc_MQ_NAME,cjdeal,1,(INT8U *)&tastIndex,sizeof(INT16S));
 			//TODO
 			list6013[tastIndex].run_flg = 0;
 
 		}
 		else
 		{
+			//补抄
+			replenish_tmp();
 			//fprintf(stderr,"\n当前无任务执行\n");
 		}
 
-		sleep(5);
+		sleep(1);
 	}
 	  pthread_detach(pthread_self());
 	  pthread_exit(&thread_dispatchTask);
@@ -674,7 +734,6 @@ int main(int argc, char *argv[])
 		return EXIT_FAILURE;
 	}
 
-
 	//载入档案、参数
 	InitPara();
 	//任务调度进程
@@ -683,10 +742,16 @@ int main(int argc, char *argv[])
 	read485_proccess();
 	//统计计算 电压合格率 停电事件等
 	calc_proccess();
-	//载波
-	//readplc_proccess();
-	//液晶、控制
-	guictrl_proccess();
+	if(JProgramInfo->DevicePara[0] == 1)
+	{
+		//载波
+//		readplc_proccess();
+	}
+	if(JProgramInfo->DevicePara[0] != 2)
+	{
+		//液晶、控制
+		guictrl_proccess();
+	}
 	//交采
 	acs_process();
 

@@ -29,18 +29,22 @@ ProgramInfo* JProgramInfo = NULL;
 static char* usage_set = "\n--------------------参数设置及基本维护命令----------------------------\n"
                          "		 【公网通信模块：主站IP端口设置】cj ip XXX.XXX.XXX.XXX:port XXX.XXX.XXX.XXX:port 	\n"
 						 "		 【以太网通信参数：主站IP端口设置】cj net-ip XXX.XXX.XXX.XXX:port XXX.XXX.XXX.XXX:port 	\n"
+						 "		 【设置gprs和以太网的工作模式(0:混合模式 1:客户端模式 2:服务器模式)】 cj online-mode 1 1 \n"
                          "		 【主站apn设置】cj apn cmnet		\n"
                          "		 【cdma电信用户名密码设置】cj usr-pwd 　user  password		\n"
                          "		 【通信地址】cj id <addr>	如：地址为123456  :cj id 12 34 56	\n"
 						 "		 【停程序】cj dog 或者 cj stop		\n"
 		                 "[读取心跳] cj heart \n"
 		                 "[设置心跳] cj heart 60 s"
-						 "[ESAM 测试，测试写到/nand/esam.log] 测试模式1[16M通信1次]：cj esam"
-						 "            测试模式2[speed M通信1次，speed范围可从1到25]：cj esam speed"
-						 "            测试模式3[speed M通信n次，speed范围可从1到25]：cj esam speed n"
-						 "            测试模式4[speed1 M到 speed2 通信n次，speed范围从1到25]：cj esam speed1 speed2 n"
+						 "[ESAM 测试，测试写到/nand/esam.log] 测试模式1[20M通信1次]：cj esam\n"
+						 "            测试模式2[speed M通信1次，speed范围可从1到25]：cj esam speed\n"
+						 "            测试模式3[speed M通信n次，speed范围可从1到25]：cj esam speed n\n"
+						 "            测试模式4[speed1 M到 speed2 通信n次，speed范围从1到25]：cj esam speed1 speed2 n\n"
                          "-------------------------------------------------------\n\n";
-
+static char* usage_data = "\n--------------------数据维护命令----------------------------\n"
+						  "		 【任务数据读取】cj taskdata <文件名>		\n"
+						  "		 【冻结数据读取】cj freezedata 冻结OI 关联OI	\n"
+                          "-------------------------------------------------------\n\n";
 static char* usage_vari = "\n--------------------变量类对象----------------------------\n"
 						  "		 【供电时间】cj vari 2203		\n"
 						  "		 【复位次数】cj vari 2204		\n"
@@ -69,7 +73,7 @@ static char* usage_coll =
 							"[清除配置]cj coll clear <oi>	\n"
 							"[删除一个配置单元]cj coll delete <oi> <id>  	id=【1..255】	\n"
 							"[采集档案配置表读取]cj coll pro 6000	\n"
-							"[增加一个采集档案配置表]查看帮助：cj coll add 6000	\n"
+							"[增加一个采集档案配置表 ]查看帮助：cj coll add 6000	\n"
 							"[任务配置单元] cj coll pro 6013 <任务号> [读取任务配置单元]\n"
 							"			  cj coll pro 6013 任务ID 执行频率 方案类型 方案编号 开始时间 结束时间 延时 执行优先级 状态 运行时段 起始小时:起始分钟 结束小时:结束分钟\n"
 							"             cj coll pro 6013 1 1-5 1 1 2016-11-11 0:0:0 2099-9-9 9:9:9 1-2 2 1 0 0:0-23:59\n"
@@ -88,7 +92,7 @@ static char* usage_inoutdev = "\n-------------------A.12　输入输出设备类
 static char* usage_acs = "--------------------终端交采计量校表及维护命令----------------------------\n"
                          "acs acreg   <Pa Pb Pc Qa Qb Qc Ua Ub Uc Ia Ib Ic >   [同时校正三相系数，输入值为单相标准值]\n\n"
                          "		 [三相四交采校表:准备工作：标准源输入220V,3A,角度=60“C(0.5L 感性)]\n"
-                         "         例如输入：cj acs acreg 330.00 330.00 330.00 572.00 572.00 572.00 220.0 220.0 220.0 3 3 3\n"
+                         "         例如输入：cj acs acreg 330.00 330.00 330.00 571.577 571.577 571.577 220.0 220.0 220.0 3 3 3\n"
                          "         [参数输入标准源显示值，可输入浮点数。]\n"
                          "		<Pa 0 Pc Qa 0 Qc Uab 0 Uca Ia 0 Ic >\n"
                          "		 [三相三交采校表:准备工作：标准源输入100V,3A,角度=1“C(1L 感性)]\n"
@@ -104,7 +108,7 @@ static char* usage_acs = "--------------------终端交采计量校表及维护�
                          "         例如输入：cj acs acphase 129.9 0 129.9 75 0 -75 100 0 100 1.5 0 1.5\n"
                          "acs acphase0  <Pa Pb Pc Qa Qb Qc Ua Ub Uc Ia Ib Ic >  [(7022E-d型芯片支持)电流相位校正：同时校正三相系数，输入值为单相标准值]\n\n"
                          "		 [交采校表:准备工作：标准源输入220V,0.15A,角度=60“C(0.5L 感性)]\n"
-                         "         例如输入：cj acs acphase0 16.5 16.5 16.5 28.6 28.6 28.6 220 220 220 0.15 0.15 0.15\n"
+                         "         例如输入：cj acs acphase0 16.5 16.5 16.5 28.58 28.58 28.58 220 220 220 0.15 0.15 0.15\n"
                          "         [参数输入标准源显示值，可输入浮点数。]\n"
                          "		[三相三交采校表:准备工作：标准源输入100V,0.3A,角度=1“C(1L 感性)]\n"
                          "         例如输入：cj acs acphase0 25.9 0 25.9 15 0 -15 100 0 100 0.3 0 0.3\n"
@@ -123,6 +127,7 @@ void prthelp() {
     fprintf(stderr, "help	 [help] ");
     fprintf(stderr, "%s", usage_acs);
     fprintf(stderr, "%s", usage_set);
+    fprintf(stderr, "%s", usage_data);
     fprintf(stderr, "%s", usage_vari);
     fprintf(stderr, "%s", usage_event);
     fprintf(stderr, "%s", usage_para);
@@ -154,6 +159,41 @@ int main(int argc, char* argv[])
         prthelp();
         return EXIT_SUCCESS;
     }
+
+    if (strcmp("savetest", argv[1]) == 0) {
+    	DateTimeBCD dt;
+    	PassRate_U  passu[3];
+    	OAD		oad;
+    	int		val=1,i=0;
+    	INT8U	buf[256];
+    	int		buflen=0;
+
+    	if(argc==6) {
+			dt.year.data = atoi(argv[2]);
+			dt.month.data = atoi(argv[3]);
+			dt.day.data = atoi(argv[4]);
+			val = atoi(argv[5]);
+    	}
+		dt.hour.data = 0;
+		dt.min.data = 0;
+		dt.sec.data = 0;
+    	fprintf(stderr,"write time %04d-%02d-%02d %02d:%02d:%02d,val=%d\n",dt.year.data,dt.month.data,dt.day.data,dt.hour.data,dt.min.data,dt.sec.data,val);
+
+    	for(i=0;i<3;i++) {
+        	oad.OI = 0x2131+i;
+        	oad.attflg = 0x02;
+        	oad.attrindex = 0x01;
+        	passu[i].monitorTime = val*(i+1);
+			passu[i].passRate = val*(i+1)+1;
+			passu[i].overRate = val*(i+1)+2;
+			passu[i].upLimitTime = val*(i+1)+3;
+			passu[i].downLimitTime = val*(i+1)+4;
+		   	saveFreezeRecord(0x5004,oad,dt,sizeof(PassRate_U),(INT8U *)&passu[i]);
+    	}
+
+     	return EXIT_SUCCESS;
+    }
+
     if (strcmp("ms", argv[1]) == 0) {
     	int taskid=64;
 		int ret = 0;
@@ -269,6 +309,10 @@ int main(int argc, char* argv[])
     }
     if (strcmp("taskdata", argv[1]) == 0) {
     	analyTaskData(argc,argv);
+    	return EXIT_SUCCESS;
+    }
+    if (strcmp("freezedata", argv[1]) == 0) {
+    	analyFreezeData(argc,argv);
     	return EXIT_SUCCESS;
     }
 

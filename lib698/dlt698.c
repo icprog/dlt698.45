@@ -375,33 +375,33 @@ void GetconnetRequest(CONNECT_Request *request,INT8U *apdu)
 			}
 			break;
 	}
-	fprintf(stderr,"\nPIID=%02x",request->piid.data);
-	fprintf(stderr,"\n期望的应用缯协议版本 = %x",request->expect_app_ver.data);
-	fprintf(stderr,"\n期望的协议一致性块 =");
-	for(index=0;index<8;index++)
-		fprintf(stderr,"%02x ",request->ProtocolConformance[index]);
-	fprintf(stderr,"\n期望的功能一致性块 =");
-	for(index=0;index<16;index++)
-		fprintf(stderr,"%02x ",request->FunctionConformance[index]);
-
-	fprintf(stderr,"\n客户机发送最大字节 %d",request->client_send_size);
-	fprintf(stderr,"\n客户机接收最大字节 %d",request->client_recv_size);
-	fprintf(stderr,"\n客户机最大窗口 %d",request->client_recv_maxWindow);
-	fprintf(stderr,"\n客户机最大可处理APDU %d",request->client_deal_maxApdu);
-	fprintf(stderr,"\n期望应用连接超时时间 %d",request->expect_connect_timeout);
-	fprintf(stderr,"\n应用连接类型=%d",request->connecttype);
-	fprintf(stderr,"\n密文2");
-	for(index=0;index<request->info.sigsecur.encrypted_code2[0];index++)
-	{
-		if (index %10==0) fprintf(stderr,"\n");
-		fprintf(stderr,"%02x ",request->info.sigsecur.encrypted_code2[index+1]);
-	}
-	fprintf(stderr,"\n客户机签名2");
-	for(index=0;index<request->info.sigsecur.signature[0];index++)
-	{
-		if (index %10==0) fprintf(stderr,"\n");
-		fprintf(stderr,"%02x ",request->info.sigsecur.signature[index+1]);
-	}
+//	fprintf(stderr,"\nPIID=%02x",request->piid.data);
+//	fprintf(stderr,"\n期望的应用缯协议版本 = %x",request->expect_app_ver.data);
+//	fprintf(stderr,"\n期望的协议一致性块 =");
+//	for(index=0;index<8;index++)
+//		fprintf(stderr,"%02x ",request->ProtocolConformance[index]);
+//	fprintf(stderr,"\n期望的功能一致性块 =");
+//	for(index=0;index<16;index++)
+//		fprintf(stderr,"%02x ",request->FunctionConformance[index]);
+//
+//	fprintf(stderr,"\n客户机发送最大字节 %d",request->client_send_size);
+//	fprintf(stderr,"\n客户机接收最大字节 %d",request->client_recv_size);
+//	fprintf(stderr,"\n客户机最大窗口 %d",request->client_recv_maxWindow);
+//	fprintf(stderr,"\n客户机最大可处理APDU %d",request->client_deal_maxApdu);
+//	fprintf(stderr,"\n期望应用连接超时时间 %d",request->expect_connect_timeout);
+//	fprintf(stderr,"\n应用连接类型=%d",request->connecttype);
+//	fprintf(stderr,"\n密文2");
+//	for(index=0;index<request->info.sigsecur.encrypted_code2[0];index++)
+//	{
+//		if (index %10==0) fprintf(stderr,"\n");
+//		fprintf(stderr,"%02x ",request->info.sigsecur.encrypted_code2[index+1]);
+//	}
+//	fprintf(stderr,"\n客户机签名2");
+//	for(index=0;index<request->info.sigsecur.signature[0];index++)
+//	{
+//		if (index %10==0) fprintf(stderr,"\n");
+//		fprintf(stderr,"%02x ",request->info.sigsecur.signature[index+1]);
+//	}
 }
 void varconsult(CONNECT_Response *response ,CONNECT_Request *request,CONNECT_Response *myvar)
 {
@@ -675,7 +675,8 @@ int doActionRequest(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 			data = &apdu[apdu_index+7];					//Data
 			DAR = doObjectAction(oad,data,&act_ret);
 			index += create_OAD(0,&TmpDataBuf[index],oad);
-			TmpDataBuf[index++] = DAR;
+			TmpDataBuf[index++] = DAR;// DAR;
+			TmpDataBuf[index++] = 0;
 			doReponse(ACTION_RESPONSE,ActionResponseNormal,csinfo,index,TmpDataBuf,buf);
 			Get698_event(oad,memp);
 			break;
@@ -860,8 +861,7 @@ INT16S fillGetRequestAPDU(INT8U* sendBuf,CLASS_6015 obj6015,INT8U requestType)
 
 		}
 	}
-
-	if((obj6015.cjtype == TYPE_LAST)||(obj6015.cjtype == TYPE_FREEZE))
+	else
 	{
 		for(csdIndex = 0;csdIndex < obj6015.csds.num;csdIndex++)
 		{
@@ -875,6 +875,44 @@ INT16S fillGetRequestAPDU(INT8U* sendBuf,CLASS_6015 obj6015,INT8U requestType)
 					// selector 9
 					sendBuf[length++] = 0x09;//Selector = 9 选取上n条记录
 					sendBuf[length++] = 0x01;//选取上1条记录
+				}
+				if(obj6015.cjtype == TYPE_INTERVAL)
+				{
+					// selector ２
+					sendBuf[length++] = 0x02;//Selector = 1
+					//冻结时标OAD
+					sendBuf[length++] = 0x20;
+					sendBuf[length++] = 0x21;
+					sendBuf[length++] = 0x02;
+					sendBuf[length++] = 0x00;
+
+					DateTimeBCD timeStamp;
+					DataTimeGet(&timeStamp);
+					//开始时间
+					sendBuf[length++] = 0x1c;
+					INT16U tmpTime = timeStamp.year.data;
+					sendBuf[length++] = (tmpTime>>8)&0x00ff;
+					sendBuf[length++] = tmpTime&0x00ff;
+					sendBuf[length++] = timeStamp.month.data;
+					sendBuf[length++] = timeStamp.day.data-1;
+					sendBuf[length++] = 0x00;
+					sendBuf[length++] = 0x00;
+					sendBuf[length++] = 0x00;
+					//结束时间
+					sendBuf[length++] = 0x1c;
+					sendBuf[length++] = (tmpTime>>8)&0x00ff;
+					sendBuf[length++] = tmpTime&0x00ff;
+					sendBuf[length++] = timeStamp.month.data;
+					sendBuf[length++] = timeStamp.day.data;
+					sendBuf[length++] = 0x00;
+					sendBuf[length++] = 0x00;
+					sendBuf[length++] = 0x00;
+					//时间间隔
+					sendBuf[length++] = 0x54;
+					sendBuf[length++] = 0x01;
+					sendBuf[length++] = 0x00;
+					sendBuf[length++] = 0x0f;
+
 				}
 				if(obj6015.cjtype == TYPE_FREEZE)
 				{
@@ -965,6 +1003,7 @@ INT8S getRequestType(INT8U cjtype,INT8U csdcount)
 			requestType = GET_REQUEST_RECORD;
 			break;
 		case TYPE_INTERVAL:
+			requestType = GET_REQUEST_RECORD;
 			break;
 	}
 

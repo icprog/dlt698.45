@@ -77,7 +77,7 @@ typedef enum {
 }FlowControl;	/*流控*/
 
 typedef enum {
-	sec_units,minute_units,hour_units,day_units,month_units,year_units
+	sec_units = 0,minute_units = 1,hour_units = 2,day_units = 3,month_units = 4,year_units = 5
 }Time_Units;	/*时间单位*/
 
 typedef enum {

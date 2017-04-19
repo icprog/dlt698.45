@@ -130,6 +130,14 @@ typedef struct {
 /********************************************************
  *				 A.3 变量类对象
  ********************************************************/
+typedef struct{
+	INT32U monitorTime;			//电压监测时间
+	INT16U passRate;			//电压合格率
+	INT16U overRate;			//电压超限率
+	INT32U upLimitTime;          //超上限时间
+	INT32U downLimitTime;        //超下限时间
+}PassRate_U;//电压统计结果
+
 typedef struct {
     INT32U day_tj;
     INT32U month_tj;
@@ -230,12 +238,12 @@ typedef struct{
 	INT16U	freezePriod;	//冻结周期
 	OAD		oad;			//关联对象属性描述符
 	INT16U	saveDepth;		//存储深度
-}Freeze_Object;
+}Relate_Object;
 
 typedef struct {
 	INT8U	RelateNum;				//关联属性
-	Freeze_Object  FreezeObj[256];
-}DayObject;
+	Relate_Object  RelateObj[MAX_FREEZE_OBJ];
+}FreezeObject;
 
 ////////////////////////////////////////////////////////////
 /********************************************************
@@ -312,10 +320,25 @@ typedef struct {
     INT8U savetimeflag;           //存储时标选择 enum
 } CLASS_6015;                     //普通采集方案
 
+//原协议内容
+//typedef struct {
+//    //	INT8U name[OCTET_STRING_LEN];		//参数变量接口类逻辑名
+//    INT8U sernum;     //方案序号
+//    ARRAY_ROAD roads; //采集的事件数据
+//    MY_MS ms;         //采集类型
+//    INT8U ifreport;   //上报标识
+//    INT16U deepsize;  //存储深度
+//} CLASS_6017;         //事件采集方案
+
+typedef struct {
+	INT8U	colltype;		//采集类型   0 array ROAD 周期采集事件数据 	1 NULL 根据通知采集所有事件数据 	2 array ROAD 根据通知采集指定事件数据
+    ARRAY_ROAD roads; 		//采集的事件数据
+}COLL_STYLE;	//采集方式
+//勘误修订后
 typedef struct {
     //	INT8U name[OCTET_STRING_LEN];		//参数变量接口类逻辑名
-    INT8U sernum;     //方案序号
-    ARRAY_ROAD roads; //采集的事件数据
+    INT8U sernum;     		//方案序号
+    COLL_STYLE	collstyle; //采集方式
     MY_MS ms;         //采集类型
     INT8U ifreport;   //上报标识
     INT16U deepsize;  //存储深度
@@ -502,6 +525,7 @@ typedef struct {
     INT8S (*p_send)(int fd, INT8U* buf, INT16U len);
     INT8U taskaddr;  //客户机地址
     time_t lasttime; //最后一次通信时间
+	int Heartbeat;
 } CommBlock;
 ////////////////////////////////////////////////////////////////////
 

@@ -17,7 +17,7 @@
 INT8S gpio_readbyte(char* devpath) {
     char data = 0;
     int fd    = 0;
-    if ((fd = open((const char*)devpath, O_RDWR | O_NDELAY)) > 0) {
+    if ((fd = open((const char*)devpath, O_RDWR | O_NDELAY)) >=0) {
         read(fd, &data, sizeof(char));
         close(fd);
     } else
@@ -27,8 +27,8 @@ INT8S gpio_readbyte(char* devpath) {
 
 INT32S gpio_readint(char* devpath) {
     char data = 0;
-    int fd    = 0;
-    if ((fd = open((const char*)devpath, O_RDWR | O_NDELAY)) > 0) {
+    int fd    = -1;
+    if ((fd = open((const char*)devpath, O_RDWR | O_NDELAY)) >= 0) {
         read(fd, &data, sizeof(INT32S));
         close(fd);
     } else
@@ -37,8 +37,8 @@ INT32S gpio_readint(char* devpath) {
 }
 
 INT32S gpio_writebyte(char* devpath, INT8S data) {
-    int fd = 0;
-    if ((fd = open((const char*)devpath, O_RDWR | O_NDELAY)) > 0) {
+    int fd = -1;
+    if ((fd = open((const char*)devpath, O_RDWR | O_NDELAY)) >= 0) {
         write(fd, &data, sizeof(char));
         close(fd);
         return 1;
@@ -74,15 +74,18 @@ BOOLEAN pwr_has_byVolt(INT8U valid, INT32U volt, INT16U limit) {
 /*
  * 底板电源是否有电
  */
-BOOLEAN pwr_has() {
+BOOLEAN pwr_has()
+{
     INT32U state = 0;
     int fd       = -1;
-    if ((fd = open(DEV_MAINPOWER, O_RDWR | O_NDELAY)) > 0) {
+
+    fd = open(DEV_MAINPOWER, O_RDWR | O_NDELAY);
+    if (fd >= 0) {
         read(fd, &state, 1);
         close(fd);
     }
     if ((state & 0x01) == 1) {
-        return TRUE;
+    	return TRUE;
     } else {
         return FALSE;
     }

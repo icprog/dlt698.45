@@ -13,6 +13,7 @@
 #include <netinet/tcp.h>
 
 #include "cjcomm.h"
+#include "../include/Shmem.h"
 
 //共享内存地址
 static ProgramInfo* JProgramInfo = NULL;
@@ -33,19 +34,19 @@ void SetOnlineType(int type) {
 
 void CalculateTransFlow(ProgramInfo* prginfo_event) {
     static Flow_tj c2200;
-    return;
+
     //统计临时变量
-    static long long rtx_bytes = 0;
-    static long long rx_bytes  = 0;
-    static long long tx_bytes  = 0;
-    static int localMin        = 0;
+    static int rtx_bytes = 0;
+    static int rx_bytes  = 0;
+    static int tx_bytes  = 0;
+    static int localMin  = 0;
 
     static int first_flag = 1;
     if (first_flag == 1) {
         first_flag = 0;
         memset(&c2200, 0x00, sizeof(c2200));
         readVariData(0x2200, 0, &c2200, sizeof(c2200));
-        asyslog(LOG_INFO, "初始化月流量统计(%lld)", c2200.flow.month_tj);
+        asyslog(LOG_INFO, "初始化月流量统计(%d)", c2200.flow.month_tj);
     }
 
     TS ts = {};
@@ -56,31 +57,34 @@ void CalculateTransFlow(ProgramInfo* prginfo_event) {
         return;
     }
 
-    FILE* rfd = fopen("/sys/class/net/eth0/statistics/rx_bytes", "r");
-    FILE* tfd = fopen("/sys/class/net/eth0/statistics/tx_bytes", "r");
-    if (rfd == NULL || tfd == NULL) {
-        asyslog(LOG_INFO, "未检测到端口(PPP0)打开");
-        if(rfd != NULL) {
-            fclose(rfd);
-        }
-        if(tfd != NULL) {
-            fclose(tfd);
+    FILE* rfd = fopen("/proc/net/dev", "r");
+    if (rfd == NULL) {
+        asyslog(LOG_INFO, "流量统计文件不存在.");
+        return;
+    }
+    char buf[128];
+    int index = 0;
+
+    for (index = 0; index < 8; ++index) {
+        memset(buf, 0x00, sizeof(buf));
+        fgets(buf, sizeof(buf), rfd);
+        if (strstr(buf, "ppp0") > 0) {
+            sscanf(buf, "%*[^:]:%d%*d%*d%*d%*d%*d%*d%*d%d", &rx_bytes, &tx_bytes);
+            break;
         }
     }
-
-    fscanf(rfd, "%lld", &rx_bytes);
-    fscanf(tfd, "%lld", &tx_bytes);
-
     fclose(rfd);
-    fclose(tfd);
 
-    //说明ppp0重新拨号了
+    if (index >= 8) {
+        return;
+    }
+
     if (rtx_bytes > rx_bytes + tx_bytes) {
         rtx_bytes = 0;
     }
 
     if (ts.Minute % 2 == 0) {
-        asyslog(LOG_INFO, "20分钟月流量统计，未统计流量%lld", (rx_bytes + tx_bytes) - rtx_bytes);
+        asyslog(LOG_INFO, "20分钟月流量统计，未统计流量%d", (rx_bytes + tx_bytes) - rtx_bytes);
         c2200.flow.month_tj += (rx_bytes + tx_bytes) - rtx_bytes;
         saveVariData(0x2200, 0, &c2200, sizeof(c2200));
         rtx_bytes = rx_bytes + tx_bytes;
@@ -155,11 +159,12 @@ void WriteLinkRequest(INT8U link_type, INT16U heartbeat, LINK_Request* link_req)
 }
 
 int Comm_task(CommBlock* compara) {
-    INT16U heartbeat = 60;
+    INT16U heartbeat = (compara->Heartbeat == 0) ? 300 : compara->Heartbeat;
 
     if (abs(time(NULL) - compara->lasttime) < heartbeat) {
         return 0;
     }
+
     compara->lasttime = time(NULL);
 
     if (compara->testcounter >= 2) {
@@ -268,6 +273,7 @@ void enviromentCheck(int argc, char* argv[]) {
 
 int main(int argc, char* argv[]) {
     printf("version 1019\n");
+
     memset(&class_4000, 0, sizeof(CLASS_4000));
     enviromentCheck(argc, argv);
     SetOnlineType(0);

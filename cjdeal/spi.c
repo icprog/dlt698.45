@@ -35,7 +35,7 @@ void dumpstat(const char *name, int fd,uint32_t speed)
 	int ret;
 
 	if(speed == 0) {
-		speed = 5000000;
+		speed = 2000000;
 	}
 
 	mode |= SPI_CPHA;			//交采SPI原工作模式
@@ -82,6 +82,7 @@ INT32S spi_init(INT32S fd,const char * spipath,uint32_t speed)
 		syslog(LOG_NOTICE,"打开SPI设备(%s)错误\n",spipath);
 		fprintf(stderr,"can't open  device %s\n",spipath);		//pabort
 	}
+	fprintf(stderr,"spi_init fd=%d speed=%d\n",fd,speed);
 	dumpstat((char*)spipath,fd,speed);
 	gpio_writebyte(DEV_ATT_RST,0);
 	usleep(50000);
@@ -108,7 +109,7 @@ int spi_read(int fd, INT8U *cbuf, int16_t clen, INT8U *rbuf, int rlen)
 	xfer[1].rx_buf = (int) rx;
 	xfer[1].len = rlen;
 
-	gpio_writebyte(DEV_ESAM_CS,1);
+//	gpio_writebyte(DEV_ESAM_CS,1);
 	gpio_writebyte(DEV_ATT_CS, 1);
 	gpio_writebyte(DEV_ATT_CS, 0);
 	ioctl(fd, SPI_IOC_MESSAGE(2), xfer);
@@ -139,7 +140,7 @@ int spi_write(int fd, INT8U *buf, int len)
 	xfer[1].len = 0;
 	//xfer[1].delay_usecs=10;
 
-	gpio_writebyte(DEV_ESAM_CS,1);
+//	gpio_writebyte(DEV_ESAM_CS,1);
 	gpio_writebyte(DEV_ATT_CS, 1);
 	gpio_writebyte(DEV_ATT_CS, 0);
 	ioctl(fd, SPI_IOC_MESSAGE(2), xfer);

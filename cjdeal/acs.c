@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <stddef.h>
 #include <stdarg.h>
+#include <math.h>
 #include <ctype.h>
 #include <time.h>
 #include <termios.h>
@@ -33,6 +34,7 @@
 #include "acs.h"
 #include "ware.h"
 #include "event.h"
+
 
 extern sem_t * 		sem_check_fd;	//校表信号量
 extern ProgramInfo* JProgramInfo;
@@ -60,15 +62,15 @@ static INT8U	QFeatureWord1=0x05;		//无功组合特征字61
 static INT8U	QFeatureWord2=0x50;		//无功组合特征字2
 
 static 	INT32U 	K_vrms = 8193;       // RN8209校表系数 748600
-static 	INT32S 	device_id=-1;
+static 	INT32S 	device_id = ATT_VER_ID;
 static  CLASS_4016	class4016={};		//当前套日时段表
 
 pthread_attr_t 	acs_attr_t={};
 pthread_t 		thread_acs=0;
 int 			thread_acs_id=0;
 
-INT32S 			spifp_rn8209=0; // RN8209打开spi句柄
-INT32S 			spifp=0; 		// ATT7022打开spi句柄
+INT32S 			spifp_rn8209=-1; // RN8209打开spi句柄
+INT32S 			spifp=-1; 		// ATT7022打开spi句柄
 
 INT8U			thread_run_flag;//线程运行标记
 INT32S			prog_pid;		//进程ID号
@@ -85,7 +87,6 @@ _WarePoint  	WarePoint;		//
 sem_t * 	sem_check_fd;	//校表信号量
 INT32U		chksum,oldchksum;
 INT32U		chksum1,oldchksum1;
-INT32S 		device_flag;
 
 void check_reg_print(INT32S device_id);
 void energysum_print();
@@ -313,7 +314,8 @@ void WriteRegInit(INT32S fp)
 	//HFConst=INT[25920000000*G*G*Vu*Vi/(EC*Un*Ib)]  G=1.163   EC=6400
 	//Vu=0.22  Vi=0.1  Un=220   Ib=1.5
 
-	if(device_flag == ATT_VER_ID) {
+//	fprintf(stderr,"WriteRegInit new device_id=%x\n",device_id);
+	if(device_id == ATT_VER_ID) {
 		temp[0] = 0x00;
 		temp[1] = 0x13;
 		temp[2] = 0x80;
@@ -367,7 +369,7 @@ INT32U	read_check_wreg(INT32S fp,INT8U	addr)
 
 /*
  * 写ATT7022E校表寄存器*/
-INT32U write_coef_reg(INT32S fp)
+INT8U write_coef_reg(INT32S fp,INT32U *sum3e,INT32U *sum5e)
 {
 	INT8U temp[3];
 	INT32U	sum;
@@ -409,7 +411,8 @@ INT32U write_coef_reg(INT32S fp)
 //	att_spi_write(fp, w_UaRmsoffse, 3, temp);
 //	att_spi_write(fp, w_UbRmsoffse, 3, temp);
 //	att_spi_write(fp, w_UcRmsoffse, 3, temp);
-	if(device_flag==ATT_VER_ID) {
+	if(device_id==ATT_VER_ID) {
+		fprintf(stderr,"write new device_id=%x\n",device_id);
 		att_spi_write(fp, w_PhSregApq0, 3, attCoef.PhaseA0);
 		att_spi_write(fp, w_PhSregBpq0, 3, attCoef.PhaseB0);
 		att_spi_write(fp, w_PhSregCpq0, 3, attCoef.PhaseC0);
@@ -422,6 +425,7 @@ INT32U write_coef_reg(INT32S fp)
 		att_spi_write(fp, w_PhSregBpq2, 3, attCoef.PhaseB1);
 		att_spi_write(fp, w_PhSregCpq2, 3, attCoef.PhaseC1);
 	}else {
+		fprintf(stderr,"write device_id=%x\n",device_id);
 		att_spi_write(fp, w_PhSregApq0, 3, attCoef.PhaseA);
 		att_spi_write(fp, w_PhSregBpq0, 3, attCoef.PhaseB);
 		att_spi_write(fp, w_PhSregCpq0, 3, attCoef.PhaseC);
@@ -436,41 +440,40 @@ INT32U write_coef_reg(INT32S fp)
 	att_spi_write(fp, Reg_Enable, 3, temp); //不允许写操作
 	//---------读取计量芯片类型---------------------------------------------------
 	sum = att_spi_read(spifp, r_ChkSum, 3);
-	sum = sum & 0xffffff;
+	*sum3e = sum & 0xffffff;
 
-	chksum1 = att_spi_read(spifp, r_ChkSum1, 3);
-	chksum1 = chksum1 & 0xffffff;
-	oldchksum1 = chksum1;
-
-	dbg_prt("\n\r 大电流相角 校表系数");
-	dbg_prt("PhaseA=%02x_%02x_%02x",attCoef.PhaseA0[0],attCoef.PhaseA0[1],attCoef.PhaseA0[2]);
-	dbg_prt("PhaseB=%02x_%02x_%02x",attCoef.PhaseB0[0],attCoef.PhaseB0[1],attCoef.PhaseB0[2]);
-	dbg_prt("PhaseC=%02x_%02x_%02x",attCoef.PhaseC0[0],attCoef.PhaseC0[1],attCoef.PhaseC0[2]);
-	dbg_prt("\n\r 相角 校表系数");
-	dbg_prt("PhaseA=%02x_%02x_%02x",attCoef.PhaseA[0],attCoef.PhaseA[1],attCoef.PhaseA[2]);
-	dbg_prt("PhaseB=%02x_%02x_%02x",attCoef.PhaseB[0],attCoef.PhaseB[1],attCoef.PhaseB[2]);
-	dbg_prt("PhaseC=%02x_%02x_%02x",attCoef.PhaseC[0],attCoef.PhaseC[1],attCoef.PhaseC[2]);
-	dbg_prt("\n\r 小电流相角 校表系数");
-	dbg_prt("PhaseA=%02x_%02x_%02x",attCoef.PhaseA1[0],attCoef.PhaseA1[1],attCoef.PhaseA1[2]);
-	dbg_prt("PhaseB=%02x_%02x_%02x",attCoef.PhaseB1[0],attCoef.PhaseB1[1],attCoef.PhaseB1[2]);
-	dbg_prt("PhaseC=%02x_%02x_%02x",attCoef.PhaseC1[0],attCoef.PhaseC1[1],attCoef.PhaseC1[2]);
-	dbg_prt("\n\r 电压 校表系数");
-	dbg_prt("UA=%02x_%02x_%02x",attCoef.UA[0],attCoef.UA[1],attCoef.UA[2]);
-	dbg_prt("UB=%02x_%02x_%02x",attCoef.UB[0],attCoef.UB[1],attCoef.UB[2]);
-	dbg_prt("UC=%02x_%02x_%02x",attCoef.UC[0],attCoef.UC[1],attCoef.UC[2]);
-	dbg_prt("\n\r 电流 校表系数");
-	dbg_prt("IA=%02x_%02x_%02x",attCoef.IA[0],attCoef.IA[1],attCoef.IA[2]);
-	dbg_prt("IB=%02x_%02x_%02x",attCoef.IB[0],attCoef.IB[1],attCoef.IB[2]);
-	dbg_prt("IC=%02x_%02x_%02x",attCoef.IC[0],attCoef.IC[1],attCoef.IC[2]);
-	dbg_prt("\n\r 功率 校表系数");
-	dbg_prt("PA=%02x_%02x_%02x",attCoef.PA[0],attCoef.PA[1],attCoef.PA[2]);
-	dbg_prt("PB=%02x_%02x_%02x",attCoef.PB[0],attCoef.PB[1],attCoef.PB[2]);
-	dbg_prt("PC=%02x_%02x_%02x",attCoef.PC[0],attCoef.PC[1],attCoef.PC[2]);
-	dbg_prt("\n\r 谐波电压系数");
-	dbg_prt("Ua=%d, Ub=%d, Uc=%d",attCoef.HarmUCoef[0],attCoef.HarmUCoef[1],attCoef.HarmUCoef[2]);
-	dbg_prt("\n\r 谐波电流系数");
-	dbg_prt("Ia=%d, Ib=%d, Ic=%d",attCoef.HarmICoef[0],attCoef.HarmICoef[1],attCoef.HarmICoef[2]);
-	return sum;
+	sum = att_spi_read(spifp, r_ChkSum1, 3);
+	*sum5e = sum & 0xffffff;
+//	fprintf(stderr,"sum3e=%x sum5e=%x\n",*sum3e,*sum5e);
+//	fprintf(stderr,"\n\r 大电流相角 校表系数");
+//	fprintf(stderr,"PhaseA=%02x_%02x_%02x  ",attCoef.PhaseA0[0],attCoef.PhaseA0[1],attCoef.PhaseA0[2]);
+//	fprintf(stderr,"PhaseB=%02x_%02x_%02x  ",attCoef.PhaseB0[0],attCoef.PhaseB0[1],attCoef.PhaseB0[2]);
+//	fprintf(stderr,"PhaseC=%02x_%02x_%02x  ",attCoef.PhaseC0[0],attCoef.PhaseC0[1],attCoef.PhaseC0[2]);
+//	fprintf(stderr,"\n\r 相角 校表系数");
+//	fprintf(stderr,"PhaseA=%02x_%02x_%02x  ",attCoef.PhaseA[0],attCoef.PhaseA[1],attCoef.PhaseA[2]);
+//	fprintf(stderr,"PhaseB=%02x_%02x_%02x  ",attCoef.PhaseB[0],attCoef.PhaseB[1],attCoef.PhaseB[2]);
+//	fprintf(stderr,"PhaseC=%02x_%02x_%02x  ",attCoef.PhaseC[0],attCoef.PhaseC[1],attCoef.PhaseC[2]);
+//	fprintf(stderr,"\n\r 小电流相角 校表系数");
+//	fprintf(stderr,"PhaseA=%02x_%02x_%02x  ",attCoef.PhaseA1[0],attCoef.PhaseA1[1],attCoef.PhaseA1[2]);
+//	fprintf(stderr,"PhaseB=%02x_%02x_%02x  ",attCoef.PhaseB1[0],attCoef.PhaseB1[1],attCoef.PhaseB1[2]);
+//	fprintf(stderr,"PhaseC=%02x_%02x_%02x  ",attCoef.PhaseC1[0],attCoef.PhaseC1[1],attCoef.PhaseC1[2]);
+//	fprintf(stderr,"\n\r 电压 校表系数");
+//	fprintf(stderr,"UA=%02x_%02x_%02x  ",attCoef.UA[0],attCoef.UA[1],attCoef.UA[2]);
+//	fprintf(stderr,"UB=%02x_%02x_%02x  ",attCoef.UB[0],attCoef.UB[1],attCoef.UB[2]);
+//	fprintf(stderr,"UC=%02x_%02x_%02x  ",attCoef.UC[0],attCoef.UC[1],attCoef.UC[2]);
+//	fprintf(stderr,"\n\r 电流 校表系数");
+//	fprintf(stderr,"IA=%02x_%02x_%02x  ",attCoef.IA[0],attCoef.IA[1],attCoef.IA[2]);
+//	fprintf(stderr,"IB=%02x_%02x_%02x  ",attCoef.IB[0],attCoef.IB[1],attCoef.IB[2]);
+//	fprintf(stderr,"IC=%02x_%02x_%02x  ",attCoef.IC[0],attCoef.IC[1],attCoef.IC[2]);
+//	fprintf(stderr,"\n\r 功率 校表系数");
+//	fprintf(stderr,"PA=%02x_%02x_%02x  ",attCoef.PA[0],attCoef.PA[1],attCoef.PA[2]);
+//	fprintf(stderr,"PB=%02x_%02x_%02x  ",attCoef.PB[0],attCoef.PB[1],attCoef.PB[2]);
+//	fprintf(stderr,"PC=%02x_%02x_%02x  ",attCoef.PC[0],attCoef.PC[1],attCoef.PC[2]);
+//	fprintf(stderr,"\n\r 谐波电压系数");
+//	fprintf(stderr,"Ua=%d, Ub=%d, Uc=%d  ",attCoef.HarmUCoef[0],attCoef.HarmUCoef[1],attCoef.HarmUCoef[2]);
+//	fprintf(stderr,"\n\r 谐波电流系数");
+//	fprintf(stderr,"Ia=%d, Ib=%d, Ic=%d  ",attCoef.HarmICoef[0],attCoef.HarmICoef[1],attCoef.HarmICoef[2]);
+	return 1;
 }
 
 // 谐波平均值计算
@@ -508,12 +511,19 @@ INT32U ave_hz(INT32U *hz,INT32U temphz,INT8U Len)
 // 换算计量寄存器值
 //输入参数：type：采样数据类型,para:计算倍数, reg：计量寄存器值  temp:温度值，用于温度补偿
 //返回值    ：实时采样值
+
+int Round(int Decbits,FP64 x)
+{
+  return (int)(pow(10,Decbits)*x+0.5)/(float)pow(10,Decbits);
+}
+
 INT32S	trans_regist(INT8U	type,INT8U para,INT32S reg,INT32S temp)
 {
 //	INT32S		val=0;
 	INT32S		tread=0;
 	float			tmpval=0;
 	#define N			80
+	#define PQCoef		756.01035      //三相四
 	switch(type){
 	case U:					//电压
 		tread = reg * U_COEF / 8192;
@@ -523,28 +533,31 @@ INT32S	trans_regist(INT8U	type,INT8U para,INT32S reg,INT32S temp)
 	case I:					//电流
 //		fprintf(stderr,"Ireg=%d\n",reg);
 		tmpval = (float)reg * I_COEF /8192/N;
-		tread = (INT32S)tmpval;
+		tread = Round(0,tmpval);
+//		fprintf(stderr,"Ival= %f %d\n",tmpval,tread);
 //		val = tread * (1.0*(1+(temp-15)*0.00005));
 		break;
 	case P:					//有功	reg:24位数据,补码形式,	如果reg>2^23,则val=reg-2^24,	否则 val=reg*K
 		if (reg > 8388608)				//2^23=8388608
 			tread = reg -16777216;	//2^24=16777216
 		else tread = reg;
-		tmpval = tread*P_COEF/756;
-		tread =  tmpval*para;
+		tmpval = (float)tread*P_COEF/PQCoef;
+		tread = Round(0,tmpval*para);
 //		val = tread *(1.0*(1+(temp-15)*0.0001));
 		break;
 	case Q:					//无功
+//		if(para==2)	fprintf(stderr,"Qreg=%d\n",reg);
 		if (reg > 8388608)
 			tread = reg -16777216;
 		else tread = reg;
-		tmpval = tread*Q_COEF/756;
-		tread =  tmpval*para;
+		tmpval = (float)tread*Q_COEF*para/PQCoef;
+		tread = Round(1,tmpval);
+//		if(para==2) fprintf(stderr,"Q:tmpval=%f  tread=%d para=%d\n",tmpval,tread,para);
 //		val =  tread*(1.0*(1+(temp-15)*1.2247*0.0001));
 		break;
 	case S:					//视在功率总是大于或者等于0,所以符号位始终为0。
 //		3-4
-		tmpval = reg*S_COEF/756;
+		tmpval = reg*S_COEF/PQCoef;
 		tread = tmpval*para;
 		break;
 	case COS:				//功率因数
@@ -593,7 +606,7 @@ INT32S	trans_regist(INT8U	type,INT8U para,INT32S reg,INT32S temp)
  * 换算采样数据
  * 返回：温度寄存器值，
  */
-INT32U read_regist(INT32S fp,INT32S device_type)
+INT32U read_regist(INT32S fp)
 {
 	INT32S 	RRec[128];				//7022E计量参数寄存器数据（Read Only）
 	int i;
@@ -604,7 +617,10 @@ INT32U read_regist(INT32S fp,INT32S device_type)
 	RRec[r_ChkSum] = att_spi_read(fp, r_ChkSum, 3);	//校表数据校验和
 	RRec[r_ChkSum] = RRec[r_ChkSum] & 0xffffff;
 	chksum = RRec[r_ChkSum];
-//	dbg_prt("Rec[ChkSum]=%x\n",RRec[r_ChkSum]);
+	RRec[r_ChkSum1] = att_spi_read(fp, r_ChkSum1, 3);	//校表数据校验和
+	RRec[r_ChkSum1] = RRec[r_ChkSum1] & 0xffffff;
+	chksum1 = RRec[r_ChkSum1];
+//	fprintf(stderr,"Rec[ChkSum]=%x--- %x\n",RRec[r_ChkSum],RRec[r_ChkSum1]);
 	for (i = 0; i <= r_Freq; i++) {											//常规数据
 		RRec[i] = att_spi_read(fp, i, 3);
 	}
@@ -1051,24 +1067,18 @@ void read_engergy_regist(TS ts,INT32S fp)
 	sum_reactive_energy(ts,nRate,realdata.PFlag,QFeatureWord1,QFeatureWord2,energycurr.PosQt,energycurr.NegQt,&energysum);
 }
 
-/*
- * 初始化当前套日时段表
- * */
-void InitClass4016()
+INT8U getACSConnectype()
 {
-	int readret=0;
-	INT8U	i = 0;
-	readret = readCoverClass(0x4016,0,&class4016,sizeof(CLASS_4016),para_vari_save);
-	if(readret!=1) {
-		class4016.num = MAX_PERIOD_RATE/2;
-		for(i=0;i<class4016.num;i++) {
-			class4016.Period_Rate[i].hour = i;
-			class4016.Period_Rate[i].min = 0;
-			class4016.Period_Rate[i].rateno = (i%4)+1;
-//			fprintf(stderr,"%d: hour:min=%d:%d rate=%d\n",i,class4016.Period_Rate[i].hour,class4016.Period_Rate[i].min,class4016.Period_Rate[i].rateno);
-		}
+	if(JProgramInfo->dev_info.ac_chip_type == 0x820900) {
+		return 1;	//单相
+	}else if(JProgramInfo->dev_info.WireType == 0x1200) {
+		return 2;	//三相三线
+	}else if(JProgramInfo->dev_info.WireType == 0x0600) {
+		return 3;	//三相四线
 	}
+	return 0;
 }
+
 
 void InitACSCoef()
 {
@@ -1108,7 +1118,6 @@ void InitACSEnergy()
  * */
 INT32S  InitACSChip()
 {
-	INT32S 	device_id = ATT_VER_ID;
 	int		i=0;
 	//获取芯片ID，确定芯片类型
     spifp_rn8209 = spi_init(spifp_rn8209, ACS_SPI_DEV, 400000);
@@ -1125,14 +1134,14 @@ INT32S  InitACSChip()
    		}
    		usleep(500);
    	}
+   	spi_close(spifp_rn8209);
    	//ATT7022E
-   	spifp = spi_init(spifp,ACS_SPI_DEV,5000000);		//ATT7022E(spi max 10M) spi speed = 5M
+   	spifp = spi_init(spifp,ACS_SPI_DEV,2000000);		//ATT7022E(spi max 10M) spi speed = 5M
    	for(i=0;i<3;i++) {
    		device_id = att_spi_read(spifp, r_ChipID, 3);
    		if(device_id != 0xffffff)	break;
    		sleep(1);
    	}
-   	fprintf(stderr,"device_id=%x\n",device_id);
 	if (device_id==0) {
 		device_id = 1;				//ATT7022E 旧版ID=0,共享内存=1：ATT7022E
 	}else 	if(device_id==0xffffff)  {
@@ -1153,25 +1162,27 @@ INT32S  InitACSChip()
 		read_tempgain_cfg();
 		read_tempcoef_cfg();
 	}
-	chksum = write_coef_reg(spifp);
+	write_coef_reg(spifp,&chksum,&chksum1);
 	oldchksum = chksum;
-	spi_close(spifp);
+	oldchksum1 = chksum1;
+	fprintf(stderr,"chksum=%x,chksum1=%x",chksum,chksum1);
+//	spi_close(spifp);
 	return (device_id);
 }
 
 /*7022E 每次读取之前先初始化SPI
  * */
-INT32S OpenACS_I()
-{
-   	//ATT7022E
-	spi_close(spifp);
-	spifp = open((char*)ACS_SPI_DEV, O_RDWR);
-	if (spifp < 0){
-		asyslog(LOG_NOTICE,"打开SPI设备(%s)错误\n",ACS_SPI_DEV);
-	}
-	dumpstat((char*)ACS_SPI_DEV,spifp,5000000);
-	return spifp;
-}
+//INT32S OpenACS_I()
+//{
+//   	//ATT7022E
+//	spi_close(spifp);
+//	spifp = open((char*)ACS_SPI_DEV, O_RDWR);
+//	if (spifp < 0){
+//		asyslog(LOG_NOTICE,"打开SPI设备(%s)错误\n",ACS_SPI_DEV);
+//	}
+//	dumpstat((char*)ACS_SPI_DEV,spifp,2000000);
+//	return spifp;
+//}
 
 /*
  * 交采实时数据显示
@@ -1356,24 +1367,26 @@ void DealATT7022(void)
 	TSGet(&nowts);
 	TSGet(&oldts);
 
-	spifp = OpenACS_I();
+//	spifp = OpenACS_I();
 
 	sem_wait(sem_check_fd);
-  	tpsd_reg = read_regist(spifp,device_flag);
+  	tpsd_reg = read_regist(spifp);
 	read_engergy_regist(nowts,spifp);		//1分钟采集一次电能量
 //	read_ware_regist(nowts,spifp,vdAskHarmFlag);//1分钟或vd进程请求采集一次谐波采样值
 //	tempval = write_allgain_reg(spifp,tpsd_reg);//根据温度寄存器值进行AllGain寄存器增益补偿
 	sem_post(sem_check_fd);
-	spi_close(spifp);
+//	spi_close(spifp);
 
 	if((chksum != oldchksum) || (chksum1 != oldchksum1))  {//校验和有变化，重新写计量参数寄存器
 		sleep(2);
 		// 读ATT7022E芯片的校表系数
 		readCoverClass(0,0,&attCoef,sizeof(ACCoe_SAVE),acs_coef_save);
-		chksum = write_coef_reg(spifp);
-		fprintf(stderr,"ChkSum(%d) old(%d) ChkSum1(%d) old1(%d) have change,rewrite_coef_reg\n",chksum,oldchksum,chksum1,oldchksum1);
-		syslog(LOG_NOTICE,"ChkSum(%d) old(%d) ChkSum1(%d) old1(%d) have change,rewrite_coef_reg\n",chksum,oldchksum,chksum1,oldchksum1);
+//		spifp = OpenACS_I();
+		write_coef_reg(spifp,&chksum,&chksum1);
+		syslog(LOG_NOTICE,"ChkSum(%x) old(%x) ChkSum1(%x) old1(%x) have change,rewrite_coef_reg\n",chksum,oldchksum,chksum1,oldchksum1);
+//		fprintf(stderr,"ChkSum(%d) old(%d) ChkSum1(%d) old1(%d) have change,rewrite_coef_reg\n",chksum,oldchksum,chksum1,oldchksum1);
 		oldchksum = chksum;
+		oldchksum1 = chksum1;
 	}
 	calc_minute_ave_u(nowts,realdata.Ua,realdata.Ub,realdata.Uc,&realdata.AvgUa,&realdata.AvgUb,&realdata.AvgUc);
 	//暂时去掉谐波处理过程。
@@ -1388,29 +1401,31 @@ void DealATT7022(void)
 void ACSEnergySave(ACEnergy_Sum energysum_tmp)
 {
 	TS	ts={};
-	static INT8U oldmin=0;
-	INT8S  saveflag = 0;
+	static INT8U oldmin=0,oldsec=0;
+	static INT8S  saveflag = 0;
 	FP32 bett[2]={};
 
 	TSGet(&ts);
 	if(ts.Minute%5==0 && ts.Minute!=oldmin) {
 		oldmin = ts.Minute;
-		if(pwr_has() == TRUE) {
+		if(pwr_has() == TRUE) {		//底板带电
 			saveflag = 1;
 		}
-	}
-	if(pwr_has() == FALSE) {
-//		sleep(2);
-//		if(bettery_getV(&bett[0],&bett[1]) == TRUE) {
-//			fprintf(stderr,"bett=%f,%f\n",bett[0],bett[1]);
-//			if(bett[1] >= MIN_BATTWORK_VOL) {
-//				saveflag = 2;
-//				syslog(LOG_NOTICE,"底板电源已关闭，电池电压=%f V,保存电能示值",bett[1]);
-//			}else {
-//				syslog(LOG_NOTICE,"底板电源已关闭，电池电压过低=%f V,不保存电量！！！",bett[1]);
+	}else saveflag = 0;
+//	if(((ts.Sec % 10)==0) && (ts.Sec != oldsec)) {
+//		if(pwr_has() == FALSE) {
+//			sleep(2);
+//		v	if(bettery_getV(&bett[0],&bett[1]) == TRUE) {
+//				fprintf(stderr,"bett=%f,%f\n",bett[0],bett[1]);
+//				if((bett[1] >= MIN_BATTWORK_VOL)&& saveflag!=2) {
+//					saveflag = 2;
+//					syslog(LOG_NOTICE,"底板电源已关闭，电池电压=%f V,保存电能示值",bett[1]);
+//				}else {
+//					syslog(LOG_NOTICE,"底板电源已关闭，电池电压过低=%f V,不保存电量！！！",bett[1]);
+//				}
 //			}
 //		}
-	}
+//	}
 	if(saveflag) {
 		saveCoverClass(0,0,&energysum_tmp,sizeof(ACEnergy_Sum),acs_energy_save);
 	}
@@ -1427,12 +1442,18 @@ void InitACSPara()
 	//信号量建立
 	sem_check_fd = open_named_sem(SEMNAME_SPI0_0);
 	sem_getvalue(sem_check_fd, &val);
-	dbg_prt("process The sem is %d\n", val);
-
+	if(val==0) {
+		fprintf(stderr,"SEMNAME_SPI0_0 val==0,post......\n\n\n");
+		sem_post(sem_check_fd);
+	}
+	fprintf(stderr,"process The sem is %d\n", val);
 	InitACSCoef();					//读交采数据
 	InitACSEnergy();				//电能量初值
 	device_id = InitACSChip();		//初始化芯片类型
-	InitClass4016();				//初始化当前套日时段表
+
+	memset(&class4016,0,sizeof(CLASS_4016));
+	readCoverClass(0x4016,0,&class4016,sizeof(CLASS_4016),para_vari_save);	//初始化当前套日时段表
+
 	JProgramInfo->dev_info.ac_chip_type = device_id;
 	JProgramInfo->dev_info.WireType = attCoef.WireType;
 	fprintf(stderr,"计量芯片版本：%06X, 接线方式=%X(0600:三相四，1200：三相三)\n",JProgramInfo->dev_info.ac_chip_type,JProgramInfo->dev_info.WireType);

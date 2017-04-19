@@ -12,7 +12,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include "SPI.h"
-
+#include "basedef.h"
 #include "ParaDef.h"
 
 int SPI_Close(int fd) {
@@ -57,11 +57,12 @@ int32_t SPI_Init(int32_t fd) {
 	if (fd != -1) {
 		SPI_Close(fd);
 	}
-#ifdef CCTT_II
-		strcpy(spipath,ESAM_SPI_DEV_II);
-#else
-		strcpy(spipath,ESAM_SPI_DEV);
-#endif
+//#ifdef CCTT_II
+//		strcpy(spipath,ESAM_SPI_DEV_II);
+//#else
+//		strcpy(spipath,ESAM_SPI_DEV);
+//#endif
+	strcpy(spipath,ESAM_SPI_DEV);
 	fd = open((char*)spipath, O_RDWR);
 	if (fd < 0)
 		printf("[SPI ERROR] can't open  device %s\n", spipath);

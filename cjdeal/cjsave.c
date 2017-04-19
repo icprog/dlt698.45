@@ -29,8 +29,8 @@ INT16U FixHeadUnit(INT8U *headbuf,INT8U *fixlen,ROAD *road_eve)
 {
 	static INT8U head_oad[4][4]={{0x20,0x2a,0x02,0x00},{0x60,0x40,0x02,0x00},{0x60,0x41,0x02,0x00},{0x60,0x42,0x02,0x00}};
 	static INT8U head_oad_len[4]={0x0012,0x0008,0x0008,0x0008};
-	static INT8U headeve_oad[3][4]={{0x20,0x2a,0x02,0x00},{0x20,0x1e,0x02,0x00},{0x20,0x20,0x02,0x00}};
-	static INT8U headeve_oad_len[3]={0x0012,0x0008,0x0008};
+	static INT8U headeve_oad[4][4]={{0x20,0x2a,0x02,0x00},{0x20,0x22,0x02,0x00},{0x20,0x1e,0x02,0x00},{0x20,0x20,0x02,0x00}};
+	static INT8U headeve_oad_len[4]={0x0012,0x0005,0x0008,0x0008};
 	int	  i=0,index=0;
 	HEAD_UNIT	unit[4]={};
 	*fixlen = 0;
@@ -47,7 +47,7 @@ INT16U FixHeadUnit(INT8U *headbuf,INT8U *fixlen,ROAD *road_eve)
 	}
 	else
 	{
-		for(i=0;i<3;i++) {
+		for(i=0;i<4;i++) {
 			memset(&unit[i].oad_m,0,sizeof(OAD));
 			unit[i].oad_r.OI = headeve_oad[i][0];
 			unit[i].oad_r.OI = (unit[i].oad_r.OI<<8) | headeve_oad[i][1];
@@ -232,8 +232,8 @@ void CreateSaveHead(char *fname,ROAD *road_eve,CSD_ARRAYTYPE csds,INT16U *headle
 			{
 				if(road_eve != NULL)//事件只有一个ROAD
 				{
-					if(csds.csd[i].csd.road.oads[j].OI == 0x201e || csds.csd[i].csd.road.oads[j].OI == 0x2020 ||
-							csds.csd[i].csd.road.oads[j].OI == 0x201a)//固定格式内存储，此处不再统计
+					if(csds.csd[i].csd.road.oads[j].OI == 0x201e || csds.csd[i].csd.road.oads[j].OI == 0x2020 ||//固定格式内存储，此处不再统计
+							csds.csd[i].csd.road.oads[j].OI == 0x201a || csds.csd[i].csd.road.oads[j].OI == 0x2022)
 						continue;
 				}
 				if(csds.csd[i].csd.road.oads[j].OI == 0xeeee)
@@ -345,6 +345,7 @@ int SaveNorData(INT8U taskid,ROAD *road_eve,INT8U *databuf,int datalen)//存储�
 		//1 初始化csds
 		runtime = 1;//只存上一次 记录
 		memcpy(&csds.csd[0].csd.road,road_eve,sizeof(ROAD));//
+		csds.num = 1;
 		getEveFileName(road_eve->oad.OI,fname);//创建eve文件
 	}
 	fp = fopen(fname,"r");
@@ -371,7 +372,7 @@ int SaveNorData(INT8U taskid,ROAD *road_eve,INT8U *databuf,int datalen)//存储�
 				savepos=ftell(fp)-unitlen;
 				if(road_eve != NULL)//存储事件
 				{
-					if(memcmp(&databuf_tmp[18],&databuf[18],8)==0)//比对事件发生时间是否相同，相同事件未发生，不保存
+					if(memcmp(&databuf_tmp[18],&databuf[18],4)==0)//比对事件记录序号是否相同，相同事件未发生，不保存
 					{
 						if(fp != NULL)
 							fclose(fp);
@@ -392,10 +393,12 @@ int SaveNorData(INT8U taskid,ROAD *road_eve,INT8U *databuf,int datalen)//存储�
 			}
 		}
 	}
+
 	if(fp != NULL)
 		currpos = ftell(fp);
 	if(savepos==0)//存储位置为0.说明文件中没找到，则应添加而不是覆盖
 	{
+		eveflg = 1;//第一次存储这个事件，需要主动上报
 		if(currpos == 0)//第一个存储的
 			savepos=headlen;
 		else
@@ -409,9 +412,15 @@ int SaveNorData(INT8U taskid,ROAD *road_eve,INT8U *databuf,int datalen)//存储�
 	asyslog(LOG_NOTICE,"存储序号: unitseq=%d runtime=%d  %d--%d",unitseq,runtime,(ts_now.Hour*60*60+ts_now.Minute*60+ts_now.Sec),((24*60*60)/runtime));
 	if(unitseq > runtime)
 	{
+		asyslog(LOG_NOTICE,"unitseq　= %d　runtime = %d",ts_now.Hour,ts_now.Minute,ts_now.Sec);
 		if(databuf_tmp != NULL)
 			free(databuf_tmp);
 		return 0;//出错了，序列号超过了总长度
+	}
+	if(datalen > unitlen/runtime)
+	{
+		asyslog(LOG_NOTICE,"111111 datalen　= %d　unitlen = %d runtime= %d",datalen,unitlen,runtime);
+		return 0;
 	}
 	memcpy(&databuf_tmp[unitlen*(unitseq-1)/runtime],databuf,datalen);
 	if(datalen != unitlen/runtime)

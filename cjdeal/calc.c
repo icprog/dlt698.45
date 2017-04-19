@@ -26,915 +26,107 @@
 #include "EventObject.h"
 #include "CalcObject.h"
 
-//#ifdef SPTF_III
-//SumGroup_TYPE sumgroup[MAXNUM_SUMGROUP];
-//#endif
-POINT_CALC_TYPE point[MAXNUM_IMPORTANTUSR_CALC];
-INT8U 	CalcPointNum;		//需要统计的最大个数
 CLASS_4030 obj_offset={};
-CLASS_4016 feilv_para={};
-StatisticsPointProp StatisticsPoint[MAXNUM_IMPORTANTUSR];
+PassRate_U  passu_d[3],passu_m[3];
 Gongdian_tj gongdian_tj;
 Max_ptongji max_ptongji[MAXNUM_IMPORTANTUSR_CALC];
 extern ProgramInfo* JProgramInfo;
 extern INT8U poweroffon_state;
 extern MeterPower MeterPowerInfo[POWEROFFON_NUM];
-/*
- * 	山东要求：电压合格率统计，在停上电1分钟及停电期间，不进行电压合格统计
- * =1:满足上电1分钟要求，可以进行电压合格率统计
- * =0：掉电中，或上电不足一分钟，不进行电压合格率统计
- * */
-int	getcalcvalid()
+
+void Vol_Rate_Tj(PassRate_U *passu_d_tmp,PassRate_U *passu_m_tmp,INT32U voltage,int per_min)
 {
-	static time_t	tingtime=0,starttime=0;
-	static INT8U	firstflg=0;
-	if(pwr_has_byVolt(JProgramInfo->ACSRealData.Available,
-			          JProgramInfo->ACSRealData.Ua,
-			          JProgramInfo->event_obj.Event3106_obj.poweroff_para_obj.screen_para_obj.happen_voltage_limit)==FALSE){
-		if(firstflg==0)	{
-			firstflg=1;
-			tingtime = time(NULL);
+	if(JProgramInfo->ACSRealData.Available){
+		//日
+		passu_d_tmp->monitorTime +=per_min;
+		if(voltage>=obj_offset.uUp && obj_offset.uUp>0){
+			passu_d_tmp->upLimitTime +=per_min;
+			passu_m_tmp->upLimitTime +=per_min;
 		}
-		return 0;
-	}else {
-		firstflg = 0;
-		if(tingtime==0)	tingtime = time(NULL);
-		starttime =  time(NULL);
-		if(abs(starttime-tingtime) < 60) {
-			return 0;
-		}else {
-			return 1;
+		if(voltage<=obj_offset.uDown && obj_offset.uDown>0){
+			passu_d_tmp->downLimitTime +=per_min;
+			passu_m_tmp->downLimitTime +=per_min;
 		}
+		INT32U d_over=passu_d_tmp->upLimitTime+passu_d_tmp->downLimitTime;
+		FP32 d_over_per=(FP32)d_over/(FP32)passu_d_tmp->monitorTime;
+		FP32 d_hege_per=1-d_over_per;
+		passu_d_tmp->overRate=d_over_per*100*100;
+		passu_d_tmp->passRate=d_hege_per*100*100;
+		fprintf(stderr,"passu_d_tmp:monitorTime:%d downLimitTime:%d overRate:%d passRate:%d upLimitTime:%d\n",
+				passu_d_tmp->monitorTime,
+				passu_d_tmp->downLimitTime,passu_d_tmp->overRate,
+				passu_d_tmp->passRate,passu_d_tmp->upLimitTime);
+
+        //月
+		passu_m_tmp->monitorTime +=per_min;
+		INT32U m_over=passu_m_tmp->upLimitTime+passu_m_tmp->downLimitTime;
+		FP32 m_over_per=(FP32)m_over/(FP32)passu_d_tmp->monitorTime;
+		FP32 m_hege_per=1-m_over_per;
+		passu_m_tmp->overRate=m_over_per*100*100;
+		passu_m_tmp->passRate=m_hege_per*100*100;
+		fprintf(stderr,"passu_m_tmp:monitorTime:%d downLimitTime:%d overRate:%d passRate:%d upLimitTime:%d\n",passu_m_tmp->monitorTime,
+						passu_m_tmp->downLimitTime,passu_m_tmp->overRate,
+						passu_m_tmp->passRate,passu_m_tmp->upLimitTime);
 	}
 }
 
-/* 记录各测量点类型和数量,一号测量点可以是交采测试点,也可以下挂电表测量点
- * 测量点类型包括:暂时统计485测量点,交采测试点
- * */
-INT8U write_calc_stru(POINT_CALC_TYPE *pcalc)
+void Save_Vol_Rate(INT8U flag,DateTimeBCD datetime)
 {
-	pcalc[0].valid = FALSE;
-	CLASS_6001 meter={};
-	CLASS11		coll={};
-	INT16U oi=0x6000;
-	int	i=0,blknum=0,num=0;
-	if(readInterClass(oi,&coll)==-1) return 0;
-//	fprintf(stderr,"wenjan .... \n");
-	blknum = getFileRecordNum(oi);
-//	fprintf(stderr,"blknum=%d .... \n",blknum);
-	if(blknum == -1) {
-		fprintf(stderr,"未找到OI=%04x的相关信息配置内容！！！\n",oi);
-		return 0;
-	}else if(blknum == -2){
-		fprintf(stderr,"采集档案表不是整数，检查文件完整性！！！\n");
-		return 0;
-	}
-	for(i=0;i<blknum;i++){
-//		fprintf(stderr,"i=%d\n",i);
-		if(readParaClass(oi,&meter,i)==1) {
-//			fprintf(stderr,"port.OI=%x\n",meter.basicinfo.port.OI);
-			//读交采和485表进行统计
-         //  if(meter.basicinfo.port.OI == 0xF201 || meter.basicinfo.port.OI == 0xF208){
-			if(meter.basicinfo.port.OI == 0xF208){
-        	   pcalc[num].PointNo=meter.sernum;
-        	   memcpy(&pcalc[num].tsa,&meter.basicinfo.addr,sizeof(TSA));
-        	   if(meter.basicinfo.port.OI == 0xF208)
-        		   pcalc[num].Type=JIAOCAI_TYPE;
-        	   else if(meter.basicinfo.port.OI == 0xF201)
-        		   pcalc[num].Type=METER_485_TYPE;
-        	   else
-        		   pcalc[num].Type=METER_485_TYPE;
-        	   pcalc[num].valid = TRUE;
-        	   num++;
-        	   if(num>=MAXNUM_IMPORTANTUSR_CALC)	{
-					fprintf(stderr,"设置超过容量，考虑扩容,num=%d\n",num);
-					return num;
-				}
-           }
-		}
-	}
-	return num;
-}
-
-/*
- *根据系统参数确定测量点信息，
- *填充POINT_CALC_TYPE结构体数据，用于进行统计计算
- *pcalc[0]的位置始终放置交采数据及限值
- */
-INT8U get_point_para(POINT_CALC_TYPE *pcalc)
-{
-	static INT8U lastchgoi6000;	//保存参数改变次数，0
-	static INT8U first=1;
-	INT8U	calcnum=0;
-
-	if(first){
-		first=0;
-		lastchgoi6000 = JProgramInfo->oi_changed.oi6000;
-		calcnum = write_calc_stru(pcalc);
-	}
-	if(lastchgoi6000!=JProgramInfo->oi_changed.oi6000){
-		calcnum = write_calc_stru(pcalc);
-		if(lastchgoi6000!=JProgramInfo->oi_changed.oi6000) {
-			lastchgoi6000++;
-			if(lastchgoi6000==0) lastchgoi6000=1;
-		}
-	}
-	return calcnum;
-}
-
-/*
- * 限值比较
- * 输入参数：value：采样值，ss_limit:上上限，s_limit：上限，x_limit：下限，xx_limit：下下限
- * 返回：越限类型
- * */
-int cmp_limit(int value, int ss_limit,int s_limit,int x_limit,int xx_limit)
-{
-	if (value > ss_limit&&ss_limit!=0) 		    return SSHANG_XIAN;
-	if ((value > s_limit&&s_limit!=0) && (value <= ss_limit&&ss_limit!=0)) return SHANG_XIAN;
-	if ((value > x_limit&&x_limit!=0) && (value<= s_limit&&s_limit!=0))  return HEGE;
-	if ((value > xx_limit&&xx_limit!=0)  && (value <= x_limit&&x_limit!=0))  return XIA_XIAN;
-	if (value <  xx_limit) 						  return XXIA_XIAN;
-	return 0;
-}
-
-/*计算单相当前状态的累计时间和总电压
- *参数：参数1，单相电压的属性结构体，参数2，当前时间，参数3，出参，当前状态的累计时间，参数4，出参，电压的累加值，参数5，当前电压值。
- *函数的计算结果，直接存储在参数2中
- * */
-void voltageRate_deal(voltageRateProp* voltageRate,struct tm NowTime,INT16U *count,INT32U *U_Sum,INT32U voltage)
-{
-	INT32U count_min = 0;
-	time_t tmp;
-	if(voltageRate->Last_count == 0)
-	{
-		tmp = mktime(&NowTime)-60;
-		//tmp = mktime(&NowTime);
-		localtime_r(&tmp,&voltageRate->StartTime);//记录起始时间为上一分种
-
-		voltageRate->Last_count = 1;
-		(*count)++;
-		(*U_Sum)+=voltage;
-	}
-	else
-	{
-//		fprintf(stderr,"voltageRate_deal-mktime(&NowTime):%ld,mktime(&voltageRate->StartTime):%ld\r\n",
-//				mktime(&NowTime),mktime(&voltageRate->StartTime));
-
-		//防止向前校表
-		if(mktime(&NowTime) > mktime(&voltageRate->StartTime))
-		{
-			//count_min = (INT32U)(difftime(mktime(&NowTime),mktime(&voltageRate->StartTime))/60);
-
-			count_min = (INT32U)(mktime(&NowTime)/60 - mktime(&voltageRate->StartTime)/60);
-//			fprintf(stderr,"count_min:%d,(*count):%d,voltageRate->Last_count:%d,voltage:%d\r\n\r\n",count_min,(*count),voltageRate->Last_count,voltage);
-	//		printf("count_min:%d,voltageRate.Last_count:%d,*count:%d\r\n",count_min,voltageRate.Last_count,*count);
-			//统计当前状态的累计时间
-			(*count) += (count_min- voltageRate->Last_count);
-			//累加单相的总电压
-			(*U_Sum) += ((count_min- voltageRate->Last_count)*voltage);
-			voltageRate->Last_count = count_min;
-		}
-		else
-		{
-			tmp = mktime(&NowTime)-120;
-
-			localtime_r(&tmp,&voltageRate->StartTime);//记录起始时间为上一分种
-		}
-	}
-}
-
-/*电压合格率处理函数
- *参数：参数1，当前电压的状态，参数2，电压的统计属性，参数3，当前电压值
- * */
-void voltage_result_deal(int result ,DIANYA_TJ* CurrVoltage,INT32U voltage)
-{
-	struct tm NowTime;
-	time_t time_of_day;
-	time_t tmp;
-	time_of_day = time(NULL);
-	localtime_r(&time_of_day, &NowTime);
-
-	if(CurrVoltage->U_Count == 0)
-	{
-		tmp = mktime(&NowTime)-60;
-		//tmp = mktime(&NowTime);
-		localtime_r(&tmp,&CurrVoltage->StartTime);//记录起始时间为上一分种
-		CurrVoltage->U_Count++;
-	}
-	else
-	{
-		//防止向前校表
-		if(mktime(&NowTime) > mktime(&CurrVoltage->StartTime))
-		{
-			CurrVoltage->U_Count +=(INT32U)(mktime(&NowTime)/60 - mktime(&CurrVoltage->StartTime)/60);
-		}
-		else
-		{
-			tmp = mktime(&NowTime)-120;
-			localtime_r(&tmp,&CurrVoltage->StartTime);//记录起始时间为上一分种
-		}
-	}
-
-	switch (result)
-	{
-		case HEGE:
-			voltageRate_deal(&CurrVoltage->voltageRate_ok,NowTime,&CurrVoltage->ok_count,&CurrVoltage->U_Sum,voltage);
-			CurrVoltage->voltageRate_S.Last_count = 0;
-			CurrVoltage->voltageRate_SS.Last_count = 0;
-			CurrVoltage->voltageRate_x.Last_count = 0;
-			CurrVoltage->voltageRate_xx.Last_count = 0;
-			break;
-		case SHANG_XIAN:
-			voltageRate_deal(&CurrVoltage->voltageRate_S,NowTime,&CurrVoltage->s_count,&CurrVoltage->U_Sum,voltage);
-			CurrVoltage->voltageRate_ok.Last_count = 0;
-			CurrVoltage->voltageRate_SS.Last_count = 0;
-			CurrVoltage->voltageRate_x.Last_count = 0;
-			CurrVoltage->voltageRate_xx.Last_count = 0;
-			break;
-		case SSHANG_XIAN:
-			voltageRate_deal(&CurrVoltage->voltageRate_SS,NowTime,&CurrVoltage->ss_count,&CurrVoltage->U_Sum,voltage);
-			CurrVoltage->voltageRate_S.Last_count = 0;
-			CurrVoltage->voltageRate_ok.Last_count = 0;
-			CurrVoltage->voltageRate_x.Last_count = 0;
-			CurrVoltage->voltageRate_xx.Last_count = 0;
-			break;
-		case XIA_XIAN:
-			voltageRate_deal(&CurrVoltage->voltageRate_x,NowTime,&CurrVoltage->x_count,&CurrVoltage->U_Sum,voltage);
-			CurrVoltage->voltageRate_S.Last_count = 0;
-			CurrVoltage->voltageRate_SS.Last_count = 0;
-			CurrVoltage->voltageRate_ok.Last_count = 0;
-			CurrVoltage->voltageRate_xx.Last_count = 0;
-			break;
-		case XXIA_XIAN:
-			voltageRate_deal(&CurrVoltage->voltageRate_xx,NowTime,&CurrVoltage->xx_count,&CurrVoltage->U_Sum,voltage);
-			CurrVoltage->voltageRate_S.Last_count = 0;
-			CurrVoltage->voltageRate_SS.Last_count = 0;
-			CurrVoltage->voltageRate_x.Last_count = 0;
-			CurrVoltage->voltageRate_ok.Last_count = 0;
-			break;
-		default:
-			CurrVoltage->U_Sum += voltage;
-	}
-
-	tmp = mktime(&NowTime);
-	localtime_r(&tmp,&CurrVoltage->StartTime);
-
-	return;
-}
-void cmp_max(int value,int *max_old,unsigned char *ttime)
-{
-	TS ts;
-	if((0 == value)||( NULL == max_old ))
-		return;
-
-	if(value >= (*max_old))
-	{
-		TSGet(&ts);
-		*max_old = value;
-		if(ttime != NULL)
-			ttime[2]=ts.Day; ttime[1]=ts.Hour; ttime[0]=ts.Minute;
-	}
-}
-void cmp_min(int value,int *min_old,unsigned char *ttime)
-{
-	TS ts;
-
-	if((0 == value)||( NULL == min_old ))
-		return;
-
-	if(value <= (*min_old)||(*min_old == 0))
-	{
-		TSGet(&ts);
-		*min_old = value;
-
-		if(ttime != NULL)
-			ttime[2]=ts.Day; ttime[1]=ts.Hour; ttime[0]=ts.Minute;
-	}
-}
-/*
- * 四舍五入函数，并将double
- * 参数１，为保留的小数位数,参数２，需要转换的double数字
-*/
-FP64 Round(int Decbits,FP64 x)
-{
-  return (int)(pow(10,Decbits)*x+0.5)/(FP64)pow(10,Decbits);
-}
-/*复位电压统计数据到共享内存*/
-void CpPubdata_U(DIANYA_TJ source,Statistics_U * Dest)
-{
-
-	Dest->max = source.max;
-	memcpy(Dest->max_time,source.max_time,3);
-	Dest->min = source.min;
-	memcpy(Dest->min_time,source.min_time,3);
-	Dest->U_Avg = source.U_Avg;
-	Dest->ok_Rate = Round(3,source.ok_Rate)*A25_COEF;
-	Dest->ok_count = source.ok_count;
-	Dest->s_Rate = Round(3,source.s_Rate)*A25_COEF;
-	Dest->s_count = source.s_count;
-	Dest->ss_count = source.ss_count;
-	Dest->x_Rate = Round(3,source.x_Rate)*A25_COEF;
-	Dest->x_count = source.x_count;
-	Dest->xx_count = source.xx_count;
-	Dest->U_Sum = source.U_Sum;
-	Dest->U_Count = source.U_Count;
-}
-
-/*
- * 电压合格率统计
- */
-void voltage_calc(){
-	static INT8U lastchgoi4030=0;
-	static INT8U first=1;
-	if(first){
-		first=0;
-		lastchgoi4030 = JProgramInfo->oi_changed.oi4030;
-		readCoverClass(0x4030,0,&obj_offset,sizeof(obj_offset),para_vari_save);
-	}
-	if(lastchgoi4030!=JProgramInfo->oi_changed.oi4030){
-		readCoverClass(0x4030,0,&obj_offset,sizeof(obj_offset),para_vari_save);
-		if(lastchgoi4030!=JProgramInfo->oi_changed.oi4030) {
-			lastchgoi4030++;
-			if(lastchgoi4030==0) lastchgoi4030=1;
-		}
-	}
-	int i=0,result;
-	FP32 Rate = 0;
-	TS tm;
-	TSGet(&tm);
-	for(i = 0;i< MAXNUM_IMPORTANTUSR_CALC ;i++)
-	{
-			INT32U pointno = point[i].PointNo-1;
-			if(point[i].valid!=TRUE)
-				continue;
-			if(point[i].Realdata.Va.Available)
-			{
-			//计算电压是否合格
-			result = cmp_limit(point[i].Realdata.Va.value,obj_offset.uUp_Kaohe,
-					obj_offset.uUp,obj_offset.uDown,
-					obj_offset.uDown_Kaohe);
-
-//			voltage_result_deal(result,&point[i].Result.tjUa,point[i].Realdata.Va.value/U_COEF);
-//			voltage_result_deal(result,&point[i].Result_m.tjUa,point[i].Realdata.Va.value/U_COEF);
-			voltage_result_deal(result,&point[i].Result.tjUa,point[i].Realdata.Va.value);
-
-			voltage_result_deal(result,&point[i].Result_m.tjUa,point[i].Realdata.Va.value);
-			//计算电压最值及最值发生时间
-			cmp_max(point[i].Realdata.Va.value,&point[i].Result.tjUa.max,point[i].Result.tjUa.max_time);
-			cmp_max(point[i].Realdata.Va.value,&point[i].Result_m.tjUa.max,point[i].Result_m.tjUa.max_time);
-			cmp_min(point[i].Realdata.Va.value,&point[i].Result.tjUa.min,point[i].Result.tjUa.min_time);
-			cmp_min(point[i].Realdata.Va.value,&point[i].Result_m.tjUa.min,point[i].Result_m.tjUa.min_time);
-
-			point[i].Result.tjUa.ok_count=point[i].Result.tjUa.U_Count-(point[i].Result.tjUa.x_count+point[i].Result.tjUa.xx_count
-					+point[i].Result.tjUa.ss_count+point[i].Result.tjUa.s_count);
-			point[i].Result.tjUa.U_Avg = (point[i].Result.tjUa.U_Sum/point[i].Result.tjUa.U_Count);//*U_COEF;
-			//计算电压日越上限率，下限率，合格率
-			Rate = (((FP32)point[i].Result.tjUa.ss_count+(FP32)point[i].Result.tjUa.s_count)/(FP32)point[i].Result.tjUa.U_Count)*RAT_COEF;
-			point[i].Result.tjUa.s_Rate = Rate>100?100:Rate;
-			Rate = (((FP32)point[i].Result.tjUa.xx_count+(FP32)point[i].Result.tjUa.x_count)/(FP32)point[i].Result.tjUa.U_Count)*RAT_COEF;
-			point[i].Result.tjUa.x_Rate = Rate>100?100:Rate;
-			point[i].Result.tjUa.ok_Rate = 100.00-point[i].Result.tjUa.x_Rate-point[i].Result.tjUa.s_Rate;
-			point[i].Result_m.tjUa.ok_count=point[i].Result_m.tjUa.U_Count-(point[i].Result_m.tjUa.x_count+point[i].Result_m.tjUa.xx_count+
-			point[i].Result_m.tjUa.ss_count+point[i].Result_m.tjUa.s_count);
-			point[i].Result_m.tjUa.U_Avg = (point[i].Result_m.tjUa.U_Sum/point[i].Result_m.tjUa.U_Count);// *U_COEF;
-
-			//计算电压月越上限率，下限率，合格率
-			Rate = (((FP32)point[i].Result.tjUa.ss_count+(FP32)point[i].Result_m.tjUa.s_count)/(FP32)point[i].Result_m.tjUa.U_Count)*RAT_COEF;
-			point[i].Result_m.tjUa.s_Rate = Rate>100?100:Rate;
-			Rate = (((FP32)point[i].Result_m.tjUa.xx_count+(FP32)point[i].Result_m.tjUa.x_count)/(FP32)point[i].Result_m.tjUa.U_Count)*RAT_COEF;
-			point[i].Result_m.tjUa.x_Rate = Rate>100?100:Rate;
-			point[i].Result_m.tjUa.ok_Rate = 100.00-point[i].Result_m.tjUa.x_Rate-point[i].Result_m.tjUa.s_Rate;
-			//统计数据给内存赋值
-			CpPubdata_U(point[i].Result.tjUa,&StatisticsPoint[i].DayResu.tjUa);
-			CpPubdata_U(point[i].Result_m.tjUa,&StatisticsPoint[i].MonthResu.tjUa);
-			StatisticsPoint[i].PointNo = point[i].PointNo;
-
-		}
-		else
-		{
-			memset((INT8U*)&StatisticsPoint[i].DayResu.tjUa,0xee,sizeof(StatisticsPoint[i].DayResu.tjUa));
-			memset((INT8U*)&StatisticsPoint[i].MonthResu.tjUa,0xee,sizeof(StatisticsPoint[i].MonthResu.tjUa));
-		}
-
-		//code 3
-//#ifdef SPTF_III
-//		if(shmm_getdevstat()->WireType == 0x0600)
-//#endif
-		{
-			//chengxiaolong add 0629 三相四线才统计Ub
-			if(point[i].Realdata.Vb.Available)
-			{
-
-				result = cmp_limit(point[i].Realdata.Vb.value,obj_offset.uUp_Kaohe,
-						obj_offset.uUp,obj_offset.uDown,
-						obj_offset.uDown_Kaohe);
-
-	//			voltage_result_deal(result,&point[i].Result.tjUb,point[i].Realdata.Vb.value/U_COEF);
-	//			voltage_result_deal(result,&point[i].Result_m.tjUb,point[i].Realdata.Vb.value/U_COEF);
-				voltage_result_deal(result,&point[i].Result.tjUb,point[i].Realdata.Vb.value);
-				voltage_result_deal(result,&point[i].Result_m.tjUb,point[i].Realdata.Vb.value);
-				cmp_max(point[i].Realdata.Vb.value,&point[i].Result.tjUb.max,point[i].Result.tjUb.max_time);
-				cmp_max(point[i].Realdata.Vb.value,&point[i].Result_m.tjUb.max,point[i].Result_m.tjUb.max_time);
-				cmp_min(point[i].Realdata.Vb.value,&point[i].Result.tjUb.min,point[i].Result.tjUb.min_time);
-				cmp_min(point[i].Realdata.Vb.value,&point[i].Result_m.tjUb.min,point[i].Result_m.tjUb.min_time);
-
-				point[i].Result.tjUb.ok_count=point[i].Result.tjUb.U_Count-(point[i].Result.tjUb.x_count+point[i].Result.tjUb.xx_count+
-											point[i].Result.tjUb.ss_count+point[i].Result.tjUb.s_count);
-				point[i].Result.tjUb.U_Avg = (point[i].Result.tjUb.U_Sum/point[i].Result.tjUb.U_Count);//*U_COEF;
-
-				//计算电压日越上限率，下限率，合格率
-				Rate = (((FP32)point[i].Result.tjUb.ss_count+(FP32)point[i].Result.tjUb.s_count)/(FP32)point[i].Result.tjUb.U_Count)*RAT_COEF;
-				point[i].Result.tjUb.s_Rate = Rate>100?100:Rate;
-				Rate = (((FP32)point[i].Result.tjUb.xx_count+(FP32)point[i].Result.tjUb.x_count)/(FP32)point[i].Result.tjUb.U_Count)*RAT_COEF;
-				point[i].Result.tjUb.x_Rate = Rate>100?100:Rate;
-				point[i].Result.tjUb.ok_Rate = 100.00-point[i].Result.tjUb.x_Rate-point[i].Result.tjUb.s_Rate;
-				point[i].Result_m.tjUb.ok_count=point[i].Result_m.tjUb.U_Count-(point[i].Result_m.tjUb.x_count+point[i].Result_m.tjUb.xx_count+
-					point[i].Result_m.tjUb.ss_count+point[i].Result_m.tjUb.s_count);
-				point[i].Result_m.tjUb.U_Avg =(point[i].Result_m.tjUb.U_Sum/point[i].Result_m.tjUb.U_Count);//*U_COEF;
-
-				if(point[i].Result_m.tjUb.U_Count == 0)
-				{
-//					fprintf(stderr,"point[i].Result_m.tjUb.U_Count == 0,pointNo = %d\r\n",point[i].PointNo);
-
-				}
-				//计算电压月越上限率，下限率，合格率
-				Rate = (((FP32)point[i].Result_m.tjUb.ss_count+(FP32)point[i].Result_m.tjUb.s_count)/(FP32)point[i].Result_m.tjUb.U_Count)*RAT_COEF;
-				point[i].Result_m.tjUb.s_Rate = Rate>100?100:Rate;
-				Rate = (((FP32)point[i].Result_m.tjUb.xx_count+(FP32)point[i].Result_m.tjUb.x_count)/(FP32)point[i].Result_m.tjUb.U_Count)*RAT_COEF;
-				point[i].Result_m.tjUb.x_Rate = Rate>100?100:Rate;
-				point[i].Result_m.tjUb.ok_Rate = 100.00-point[i].Result_m.tjUb.x_Rate-point[i].Result_m.tjUb.s_Rate;
-
-				StatisticsPoint[i].PointNo = point[i].PointNo;
-				CpPubdata_U(point[i].Result.tjUb,&StatisticsPoint[i].DayResu.tjUb);
-				CpPubdata_U(point[i].Result_m.tjUb,&StatisticsPoint[i].MonthResu.tjUb);
-
+   if(flag == 0){
+      FreezeObject obj_5004;
+      memset(&obj_5004,0,sizeof(FreezeObject));
+      readCoverClass(0x5004,0,&obj_5004,sizeof(FreezeObject),para_vari_save);
+      INT8U i=0,j=0;
+      OAD oad;
+      for(j=0;j<3;j++){
+    	 oad.OI = 0x2131+j;
+		 oad.attflg = 0x02;
+		 oad.attrindex = 0x01;
+    	  for(i=0;i<obj_5004.RelateNum;i++){
+			  if(memcmp(&oad,&obj_5004.RelateObj[i].oad,sizeof(OAD))==0){
+				  int ret=saveFreezeRecord(0x5004,oad,datetime,sizeof(PassRate_U),(INT8U *)&passu_d[j]);
+				  fprintf(stderr,"ret=%d oad=%04x %02x %02x  \n",ret,oad.OI,oad.attflg,oad.attrindex);
+				  fprintf(stderr,"passu_d[%d]:%d %d %d %d %d \n",j,passu_d[j].monitorTime,passu_d[j].downLimitTime,passu_d[j].overRate,passu_d[j].passRate,passu_d[j].upLimitTime);
+				  memset(&passu_d[j],0,sizeof(PassRate_U));
+			  }
 			}
-			else
-			{
-				memset((INT8U*)&StatisticsPoint[i].DayResu.tjUb,0xee,sizeof(StatisticsPoint[i].DayResu.tjUb));
-				memset((INT8U*)&StatisticsPoint[i].MonthResu.tjUb,0xee,sizeof(StatisticsPoint[i].MonthResu.tjUb));
+      }
+   }else{
+	   FreezeObject obj_5006;
+		 memset(&obj_5006,0,sizeof(FreezeObject));
+		 readCoverClass(0x5006,0,&obj_5006,sizeof(FreezeObject),para_vari_save);
+		 INT8U i=0,j=0;
+		 OAD oad;
+		 for(j=0;j<3;j++){
+		 oad.OI = 0x2131+j;
+		 oad.attflg = 0x02;
+		 oad.attrindex = 0x02;
+		  for(i=0;i<obj_5006.RelateNum;i++){
+			  if(memcmp(&oad,&obj_5006.RelateObj[i].oad,sizeof(OAD))==0){
+				 int ret=saveFreezeRecord(0x5006,oad,datetime,sizeof(PassRate_U),(INT8U *)&passu_m[j]);
+				  fprintf(stderr,"ret=%d oad=%04x %02x %02x \n",ret,oad.OI,oad.attflg,oad.attrindex);
+				  fprintf(stderr,"passu_m[%d]:%d %d %d %d %d \n",j,passu_m[j].monitorTime,passu_m[j].downLimitTime,passu_m[j].overRate,passu_m[j].passRate,passu_m[j].upLimitTime);
+
+				  memset(&passu_m[j],0,sizeof(PassRate_U));
+			  }
 			}
-		}
-		//code 2
-
-		if(point[i].Realdata.Vc.Available)
-		{
-			result = cmp_limit(point[i].Realdata.Vc.value,obj_offset.uUp_Kaohe,
-					obj_offset.uUp,obj_offset.uDown,
-					obj_offset.uDown_Kaohe);
-
-//			voltage_result_deal(result,&point[i].Result.tjUc,point[i].Realdata.Vc.value/U_COEF);
-//			voltage_result_deal(result,&point[i].Result_m.tjUc,point[i].Realdata.Vc.value/U_COEF);
-			voltage_result_deal(result,&point[i].Result.tjUc,point[i].Realdata.Vc.value);
-			voltage_result_deal(result,&point[i].Result_m.tjUc,point[i].Realdata.Vc.value);
-			cmp_max(point[i].Realdata.Vc.value,&point[i].Result.tjUc.max,point[i].Result.tjUc.max_time);
-			cmp_min(point[i].Realdata.Vc.value,&point[i].Result.tjUc.min,point[i].Result.tjUc.min_time);
-
-			cmp_max(point[i].Realdata.Vc.value,&point[i].Result_m.tjUc.max,point[i].Result_m.tjUc.max_time);
-			cmp_min(point[i].Realdata.Vc.value,&point[i].Result_m.tjUc.min,point[i].Result_m.tjUc.min_time);
-
-			point[i].Result.tjUc.ok_count=point[i].Result.tjUc.U_Count-(point[i].Result.tjUc.x_count+point[i].Result.tjUc.xx_count+
-				point[i].Result.tjUc.ss_count+point[i].Result.tjUc.s_count);
-			point[i].Result.tjUc.U_Avg = (point[i].Result.tjUc.U_Sum/point[i].Result.tjUc.U_Count);//*U_COEF;
-
-
-			//计算电压日越上限率，下限率，合格率
-			Rate = (((FP32)point[i].Result.tjUc.ss_count+(FP32)point[i].Result.tjUc.s_count)/(FP32)point[i].Result.tjUc.U_Count)*RAT_COEF;
-			point[i].Result.tjUc.s_Rate = Rate>100?100:Rate;
-			Rate = (((FP32)point[i].Result.tjUc.xx_count+(FP32)point[i].Result.tjUc.x_count)/(FP32)point[i].Result.tjUc.U_Count)*RAT_COEF;
-			point[i].Result.tjUc.x_Rate = Rate>100?100:Rate;
-			point[i].Result.tjUc.ok_Rate = 100.00-point[i].Result.tjUc.x_Rate-point[i].Result.tjUc.s_Rate;
-
-
-			point[i].Result_m.tjUc.ok_count=point[i].Result_m.tjUc.U_Count-(point[i].Result_m.tjUc.x_count+point[i].Result_m.tjUc.xx_count+
-				 point[i].Result_m.tjUc.ss_count+point[i].Result_m.tjUc.s_count);
-			point[i].Result_m.tjUc.U_Avg = (point[i].Result_m.tjUc.U_Sum/point[i].Result_m.tjUc.U_Count);//*U_COEF;
-
-			Rate = (((FP32)point[i].Result_m.tjUc.ss_count+(FP32)point[i].Result_m.tjUc.s_count)/(FP32)point[i].Result_m.tjUc.U_Count)*RAT_COEF;
-			point[i].Result_m.tjUc.s_Rate = Rate>100?100:Rate;
-			Rate = (((FP32)point[i].Result_m.tjUc.xx_count+(FP32)point[i].Result_m.tjUc.x_count)/(FP32)point[i].Result_m.tjUc.U_Count)*RAT_COEF;
-			point[i].Result_m.tjUc.x_Rate = Rate>100?100:Rate;
-			point[i].Result_m.tjUc.ok_Rate = 100.00-point[i].Result_m.tjUc.x_Rate-point[i].Result_m.tjUc.s_Rate;
-
-			StatisticsPoint[i].PointNo = point[i].PointNo;
-			CpPubdata_U(point[i].Result.tjUc,&StatisticsPoint[i].DayResu.tjUc);
-			CpPubdata_U(point[i].Result_m.tjUc,&StatisticsPoint[i].MonthResu.tjUc);
-		}
-		else
-		{
-			memset((INT8U*)&StatisticsPoint[i].DayResu.tjUc,0xee,sizeof(StatisticsPoint[i].DayResu.tjUc));
-			memset((INT8U*)&StatisticsPoint[i].MonthResu.tjUc,0xee,sizeof(StatisticsPoint[i].MonthResu.tjUc));
-		}
-		memcpy(&StatisticsPoint[i].tsa,&point[i].tsa,sizeof(TSA));
-	}
+		 }
+   }
 }
-/*
- * 从共享内存读数据
- */
-void CpPubdata_UU(Statistics_U source, DIANYA_TJ* Dest)
-{
-
-	Dest->max = source.max;
-	memcpy(Dest->max_time,source.max_time,3);
-	Dest->min = source.min;
-	memcpy(Dest->min_time,source.min_time,3);
-	Dest->U_Avg = source.U_Avg;
-	Dest->ok_Rate = Round(3,source.ok_Rate)*A25_COEF;
-	Dest->ok_count = source.ok_count;
-	Dest->s_Rate = Round(3,source.s_Rate)*A25_COEF;
-	Dest->s_count = source.s_count;
-	Dest->ss_count = source.ss_count;
-	Dest->x_Rate = Round(3,source.x_Rate)*A25_COEF;
-	Dest->x_count = source.x_count;
-	Dest->xx_count = source.xx_count;
-	Dest->U_Sum = source.U_Sum;
-	Dest->U_Count = source.U_Count;
-
-	struct tm NowTime;
-	time_t time_of_day;
-	time_t tmp;
-	time_of_day = time(NULL);
-	localtime_r(&time_of_day, &NowTime);
-
-	tmp = mktime(&NowTime)-60;
-	localtime_r(&tmp,&Dest->StartTime);//记录起始时间为上一分种
-
-
-#if 0
-	fprintf(stderr,"ok_Rate:%f,ok_count:%d,U_Count:%d\r\n",Dest->ok_Rate,Dest->ok_count,source.U_Count);
-	fprintf(stderr,"s_Rate:%f,s_count:%d,U_Count:%d\r\n",Dest->s_Rate,Dest->s_count,source.U_Count);
-	fprintf(stderr,"x_Rate:%f,x_count:%d,U_Count:%d\r\n",Dest->x_Rate,Dest->x_count,source.U_Count);
-	fprintf(stderr,"\r\n");
-#endif
-}
-/*
- * 初始化数据
- */
-void ReadPubData()
-{
-	int i = 0;
-	for(i=0; i< MAXNUM_IMPORTANTUSR_CALC ;i++)
-	{
-		memset(&point[i].Result.tjUa,0,sizeof(point[i].Result.tjUa));
-		memset(&point[i].Result.tjUb,0,sizeof(point[i].Result.tjUb));
-		memset(&point[i].Result.tjUc,0,sizeof(point[i].Result.tjUc));
-
-
-		memset(&point[i].Result_m.tjUa,0,sizeof(point[i].Result_m.tjUa));
-		memset(&point[i].Result_m.tjUb,0,sizeof(point[i].Result_m.tjUb));
-		memset(&point[i].Result_m.tjUc,0,sizeof(point[i].Result_m.tjUc));
-
-	}
-	for(i=0; i< MAXNUM_IMPORTANTUSR_CALC ;i++)
-	{
-		if(point[i].valid != 1)
-			continue;
-//		readVariData(0x2130,i,&StatisticsPoint[i],sizeof(StatisticsPointProp));
-		readVariData(0x2140,i,&max_ptongji[i],sizeof(Max_ptongji));
-	//	if (point[i].Type!= JIAOCAI_TYPE)
-	//		continue;
-		if(JProgramInfo->DevicePara[0]==2) {
-			CpPubdata_UU(StatisticsPoint[i].DayResu.tjUa,&point[i].Result.tjUa);
-			CpPubdata_UU(StatisticsPoint[i].MonthResu.tjUa,&point[i].Result_m.tjUa);
-		}else {
-			CpPubdata_UU(StatisticsPoint[i].DayResu.tjUa,&point[i].Result.tjUa);
-			CpPubdata_UU(StatisticsPoint[i].MonthResu.tjUa,&point[i].Result_m.tjUa);
-			CpPubdata_UU(StatisticsPoint[i].DayResu.tjUb,&point[i].Result.tjUb);
-			CpPubdata_UU(StatisticsPoint[i].MonthResu.tjUb,&point[i].Result_m.tjUb);
-			CpPubdata_UU(StatisticsPoint[i].DayResu.tjUc,&point[i].Result.tjUc);
-			CpPubdata_UU(StatisticsPoint[i].MonthResu.tjUc,&point[i].Result_m.tjUc);
-		}
-	}
-}
-/*获取交采测量点序号
- * 返回值:０,没有找到,>0正确
- */
-INT32U GetAcsPointNo()
-{
-	int i = 0;
-	for(i = 0;i< MAXNUM_IMPORTANTUSR_CALC;i++)
-	{
-		if(JIAOCAI_TYPE == point[i].Type)
-			return i;
-	}
-	return 0;
-}
-/*
- * 获取当前费率号
- * */
-int GetRatesNo(const TS ts_t)
- {
-	static INT8U lastchgoi4016=0;
-	static INT8U first=1;
-	INT8U FeilvNo=0;
-	if(first){
-		first=0;
-		lastchgoi4016 = JProgramInfo->oi_changed.oi4016;
-		readCoverClass(0x4016,0,&feilv_para,sizeof(feilv_para),para_vari_save);
-	}
-	if(lastchgoi4016!=JProgramInfo->oi_changed.oi4016){
-		readCoverClass(0x4016,0,&feilv_para,sizeof(feilv_para),para_vari_save);
-		if(lastchgoi4016!=JProgramInfo->oi_changed.oi4016) {
-			lastchgoi4016++;
-			if(lastchgoi4016==0) lastchgoi4016=1;
-		}
-	}
-	INT8U i=0;
-	for(i=0;i<MAX_PERIOD_RATE;i++){
-		INT8U Curr_H=0,Curr_M=0,Next_H=0,Next_M=0;
-		Curr_H=feilv_para.Period_Rate[i].hour;
-		Curr_M=feilv_para.Period_Rate[i].min;
-		TS pre_time;
-		TS next_time;
-		TS tem_time;
-		memset(&pre_time,0,sizeof(TS));
-		memset(&next_time,0,sizeof(TS));
-		memset(&tem_time,0,sizeof(TS));
-		memcpy(&tem_time,&ts_t,sizeof(TS));
-		if((i+1)==MAX_PERIOD_RATE){
-			Next_H=feilv_para.Period_Rate[0].hour;
-			Next_M=feilv_para.Period_Rate[0].min;
-		}else{
-			Next_H=feilv_para.Period_Rate[i+1].hour;
-			Next_M=feilv_para.Period_Rate[i+1].min;
-		}
-		//跨天
-		if(Curr_H>Next_H){
-			//当前时间处在0点之前
-            if(ts_t.Hour>=Curr_H && ts_t.Hour<=23){
-            	pre_time.Year=ts_t.Year;
-				pre_time.Month=ts_t.Month;
-				pre_time.Day=ts_t.Day;
-				pre_time.Hour=Curr_H;
-				pre_time.Minute=Curr_M;
-				pre_time.Sec=0;
-				tminc(&tem_time,day_units,1);
-				next_time.Year=tem_time.Year;
-				next_time.Month=tem_time.Month;
-				next_time.Day=tem_time.Day;
-				next_time.Hour=Next_H;
-				next_time.Minute=Next_M;
-				next_time.Sec=0;
-            }else if(ts_t.Hour>=0 && ts_t.Hour<=Next_H){
-            	tminc(&tem_time,day_units,-1);
-            	pre_time.Year=tem_time.Year;
-				pre_time.Month=tem_time.Month;
-				pre_time.Day=tem_time.Day;
-				pre_time.Hour=Curr_H;
-				pre_time.Minute=Curr_M;
-				pre_time.Sec=0;
-
-				next_time.Year=ts_t.Year;
-				next_time.Month=ts_t.Month;
-				next_time.Day=ts_t.Day;
-				next_time.Hour=Next_H;
-				next_time.Minute=Next_M;
-				next_time.Sec=0;
-            }
-		}else{
-			pre_time.Year=ts_t.Year;
-			pre_time.Month=ts_t.Month;
-			pre_time.Day=ts_t.Day;
-			pre_time.Hour=Curr_H;
-			pre_time.Minute=Curr_M;
-			pre_time.Sec=0;
-
-			next_time.Year=ts_t.Year;
-			next_time.Month=ts_t.Month;
-			next_time.Day=ts_t.Day;
-			next_time.Hour=Next_H;
-			next_time.Minute=Next_M;
-			next_time.Sec=0;
-		}
-       int offset_1=difftime(tmtotime_t(ts_t),tmtotime_t(pre_time));
-       int offset_2=difftime(tmtotime_t(next_time),tmtotime_t(ts_t));
-       if(offset_1>=0 && offset_2>0)
-    	   FeilvNo=feilv_para.Period_Rate[i].rateno;
-       if(FeilvNo>MAX_PERIOD_RATE)
-    	   FeilvNo=0;
-	}
-    return FeilvNo;
-}
-/*
- * 从共享内存读取交采实时数据
- */
-void CpyAcsDataFromPubData(POINT_CALC_TYPE* point_hander)
-{
-	TS tm;
-	int PointIndex = GetAcsPointNo();//获得测量点号
-	TSGet(&tm);
-
-	if(JIAOCAI_TYPE != point[PointIndex].Type||point[PointIndex].valid!=TRUE)
-		return;
-
-	int Rateindex = GetRatesNo(tm);//获得费率数
-	int i = 0;
-	if(JProgramInfo->ACSRealData.Available==0)
-		return;
-//JProgramInfo ACSRealData ACSRealData
-	point_hander[PointIndex].Realdata.Cos.value = JProgramInfo->ACSRealData.Cos;//总功率因数
-	point_hander[PointIndex].Realdata.Cos.Available = TRUE;
-
-	point_hander[PointIndex].Realdata.Cosa.value =JProgramInfo->ACSRealData.CosA;
-	point_hander[PointIndex].Realdata.Cosa.Available = TRUE;
-
-	point_hander[PointIndex].Realdata.Cosb.value =JProgramInfo->ACSRealData.CosB;
-	point_hander[PointIndex].Realdata.Cosb.Available = TRUE;
-
-	point_hander[PointIndex].Realdata.Cosc.value =JProgramInfo->ACSRealData.CosC;
-	point_hander[PointIndex].Realdata.Cosc.Available = TRUE;
-
-	point_hander[PointIndex].Realdata.I0.value = JProgramInfo->ACSRealData.I0;//电流
-	point_hander[PointIndex].Realdata.I0.Available = TRUE;
-
-
-	point_hander[PointIndex].Realdata.Ia.value = JProgramInfo->ACSRealData.Ia;
-	point_hander[PointIndex].Realdata.Ia.Available = TRUE;
-
-	point_hander[PointIndex].Realdata.Ib.value = JProgramInfo->ACSRealData.Ib;
-	point_hander[PointIndex].Realdata.Ib.Available = TRUE;
-
-	point_hander[PointIndex].Realdata.Ic.value = JProgramInfo->ACSRealData.Ic;
-	point_hander[PointIndex].Realdata.Ic.Available = TRUE;
-
-//	point_hander[PointIndex].Realdata.Psz.value = JProgramInfo->ACSRealData.St;//视在功率
-//	point_hander[PointIndex].Realdata.Psz.Available = TRUE;
-
-	/*
-	  Bit0:A相有功功率。Bit1：B相有功功率，Bit2：C相有功功率。Bit3：合相有功功率
-	  Bit4:A相无功功率。Bit5：B相无功功率，Bit6：C相无功功率。Bit7：合相无功功率
-	  0：正向，1：反向
-	*/
-	point_hander[PointIndex].Realdata.PFlag.value = JProgramInfo->ACSRealData.PFlag;
-	point_hander[PointIndex].Realdata.PFlag.Available = TRUE;
-    /*反向有功*/
-	if((point_hander[PointIndex].Realdata.PFlag.value&0x08)&&(point_hander[PointIndex].Realdata.PFlag.Available))//1:反向
-	{
-		point_hander[PointIndex].Realdata.F_P.value = JProgramInfo->ACSRealData.Pt/kw2w_acs;
-		point_hander[PointIndex].Realdata.F_P.Available = TRUE;
-
-		point_hander[PointIndex].Realdata.F_P_R[Rateindex].value = JProgramInfo->ACSRealData.Pt/kw2w_acs;
-		point_hander[PointIndex].Realdata.F_P_R[Rateindex].Available = TRUE;
-
-		point_hander[PointIndex].Realdata.CP.Available = FALSE;
-		point_hander[PointIndex].Realdata.CP.value = 0;
-		point_hander[PointIndex].Realdata.P_R[Rateindex].value = 0;
-		point_hander[PointIndex].Realdata.P_R[Rateindex].Available = FALSE;
-	}
-	/*正向有功*/
-	else
-	{
-		point_hander[PointIndex].Realdata.CP.value = JProgramInfo->ACSRealData.Pt/kw2w_acs;
-		point_hander[PointIndex].Realdata.CP.Available = TRUE;
-
-		point_hander[PointIndex].Realdata.P_R[Rateindex].value = JProgramInfo->ACSRealData.Pt/kw2w_acs;
-		point_hander[PointIndex].Realdata.P_R[Rateindex].Available = TRUE;
-
-		point_hander[PointIndex].Realdata.F_P.Available = FALSE;
-		point_hander[PointIndex].Realdata.F_P.value = 0;
-		point_hander[PointIndex].Realdata.F_P_R[Rateindex].value = 0;
-		point_hander[PointIndex].Realdata.F_P_R[Rateindex].Available = FALSE;
-	}
-
-
-	/*反向无功*/
-	if(point_hander[PointIndex].Realdata.PFlag.value&0x80)
-	{
-			point_hander[PointIndex].Realdata.F_Q.value = JProgramInfo->ACSRealData.Qt/kw2w_acs;
-			point_hander[PointIndex].Realdata.F_Q.Available = TRUE;
-
-			point_hander[PointIndex].Realdata.F_Q_R[Rateindex].value = JProgramInfo->ACSRealData.Qt/kw2w_acs;
-			point_hander[PointIndex].Realdata.F_Q_R[Rateindex].Available = TRUE;
-			point_hander[PointIndex].Realdata.CQ.value = 0;
-			point_hander[PointIndex].Realdata.CQ.Available = FALSE;
-			point_hander[PointIndex].Realdata.Q_R[Rateindex].value = 0;
-			point_hander[PointIndex].Realdata.Q_R[Rateindex].Available = FALSE;
-	}
-	/*反向有功*/
-	else
-	{
-
-		point_hander[PointIndex].Realdata.CQ.value = JProgramInfo->ACSRealData.Qt/kw2w_acs;
-		point_hander[PointIndex].Realdata.CQ.Available = TRUE;
-
-		point_hander[PointIndex].Realdata.Q_R[Rateindex].value = JProgramInfo->ACSRealData.Qt/kw2w_acs;
-		point_hander[PointIndex].Realdata.Q_R[Rateindex].Available = TRUE;
-
-		point_hander[PointIndex].Realdata.F_Q.value = 0;
-		point_hander[PointIndex].Realdata.F_Q.Available = FALSE;
-		point_hander[PointIndex].Realdata.F_Q_R[Rateindex].value = 0;
-		point_hander[PointIndex].Realdata.F_Q_R[Rateindex].Available = FALSE;
-	}
-	/*A相有功功率*/
-	point_hander[PointIndex].Realdata.CPa.value = JProgramInfo->ACSRealData.Pa/kw2w_acs;
-	point_hander[PointIndex].Realdata.CPa.Available = TRUE;
-
-	point_hander[PointIndex].Realdata.Pb.value = JProgramInfo->ACSRealData.Pb/kw2w_acs;
-	point_hander[PointIndex].Realdata.Pb.Available = TRUE;
-
-	point_hander[PointIndex].Realdata.Pc.value = JProgramInfo->ACSRealData.Pc/kw2w_acs;
-	point_hander[PointIndex].Realdata.Pc.Available = TRUE;
-
-	/*A相无功功率*/
-	point_hander[PointIndex].Realdata.Qa.value = JProgramInfo->ACSRealData.Qa/kw2w_acs;
-	point_hander[PointIndex].Realdata.Qa.Available = TRUE;
-
-	point_hander[PointIndex].Realdata.Qb.value = JProgramInfo->ACSRealData.Qb/kw2w_acs;
-	point_hander[PointIndex].Realdata.Qb.Available = TRUE;
-
-	point_hander[PointIndex].Realdata.Qc.value = JProgramInfo->ACSRealData.Qc/kw2w_acs;
-	point_hander[PointIndex].Realdata.Qc.Available = TRUE;
-
-	point_hander[PointIndex].Realdata.Va.value = JProgramInfo->ACSRealData.Ua;
-	point_hander[PointIndex].Realdata.Va.Available = TRUE;
-
-	if(JProgramInfo->DevicePara[0]!=2) {
-		if(JProgramInfo->dev_info.WireType!=0x1200)
-		{
-			point_hander[PointIndex].Realdata.Vb.value = JProgramInfo->ACSRealData.Ub;
-			point_hander[PointIndex].Realdata.Vb.Available = TRUE;
-		}
-		point_hander[PointIndex].Realdata.Vc.value = JProgramInfo->ACSRealData.Uc;
-		point_hander[PointIndex].Realdata.Vc.Available = TRUE;
-	}
-//ACSRealData
-	//交采在共享内存中的电能量是示值，需要除以6400才能换算成正确的示值，单位是千瓦
-	point_hander[PointIndex].Realdata.z_P_energy_all.value = JProgramInfo->ACSEnergy.PosPt_All*kw2w/64;
-	point_hander[PointIndex].Realdata.z_P_energy_all.Available = TRUE;
-
-	point_hander[PointIndex].Realdata.f_P_energy_all.value = JProgramInfo->ACSEnergy.NegPt_All*kw2w/64;
-	point_hander[PointIndex].Realdata.f_P_energy_all.Available = TRUE;
-
-	point_hander[PointIndex].Realdata.z_Q_energy_all.value = JProgramInfo->ACSEnergy.PosQt_All*kw2w/64;
-	point_hander[PointIndex].Realdata.z_Q_energy_all.Available = TRUE;
-
-	point_hander[PointIndex].Realdata.f_Q_energy_all.value = JProgramInfo->ACSEnergy.NegQt_All*kw2w/64;
-	point_hander[PointIndex].Realdata.f_Q_energy_all.Available = TRUE;
-
-	for(i = 0;i<MAXVAL_RATENUM;i++)
-	{
-		point_hander[PointIndex].Realdata.z_P_energy[i].value = JProgramInfo->ACSEnergy.PosPt_Rate[i]*kw2w/64;
-		point_hander[PointIndex].Realdata.z_P_energy[i].Available = TRUE;
-
-		point_hander[PointIndex].Realdata.f_P_energy[i].value = JProgramInfo->ACSEnergy.NegPt_Rate[i]*kw2w/64;
-		point_hander[PointIndex].Realdata.f_P_energy[i].Available = TRUE;
-
-		point_hander[PointIndex].Realdata.z_Q_energy[i].value = JProgramInfo->ACSEnergy.PosQt_Rate[i]*kw2w/64;
-		point_hander[PointIndex].Realdata.z_Q_energy[i].Available = TRUE;
-
-		point_hander[PointIndex].Realdata.f_Q_energy[i].value = JProgramInfo->ACSEnergy.NegQt_Rate[i]*kw2w/64;
-		point_hander[PointIndex].Realdata.f_Q_energy[i].Available = TRUE;
-	}
-}
-
-INT8U Getp_max(){
-	int i;
-	for(i=0; i< MAXNUM_IMPORTANTUSR_CALC ;i++)
-	{
-		if(point[i].valid!=TRUE)continue;
-		memcpy(&max_ptongji[i].tsa,&point[i].tsa,sizeof(TSA));
-		if(max_ptongji[i].mp.d_max<point[i].Realdata.CP.value){
-			max_ptongji[i].mp.d_max=point[i].Realdata.CP.value;
-			DataTimeGet(&max_ptongji[i].mp.d_ts);
-		}
-		if(max_ptongji[i].mp.m_max<point[i].Realdata.CP.value){
-			max_ptongji[i].mp.m_max=point[i].Realdata.CP.value;
-			DataTimeGet(&max_ptongji[i].mp.m_ts);
-		}
-		if(max_ptongji[i].mpa.d_max<point[i].Realdata.CPa.value){
-			max_ptongji[i].mpa.d_max=point[i].Realdata.CPa.value;
-			DataTimeGet(&max_ptongji[i].mpa.d_ts);
-		}
-		if(max_ptongji[i].mpa.m_max<point[i].Realdata.CPa.value){
-			max_ptongji[i].mpa.m_max=point[i].Realdata.CPa.value;
-			DataTimeGet(&max_ptongji[i].mpa.m_ts);
-		}
-		if(max_ptongji[i].mpb.d_max<point[i].Realdata.Pb.value){
-			max_ptongji[i].mpb.d_max=point[i].Realdata.Pb.value;
-			DataTimeGet(&max_ptongji[i].mpb.d_ts);
-		}
-		if(max_ptongji[i].mpb.m_max<point[i].Realdata.Pb.value){
-			max_ptongji[i].mpb.m_max=point[i].Realdata.Pb.value;
-			DataTimeGet(&max_ptongji[i].mpb.m_ts);
-		}
-		if(max_ptongji[i].mpc.d_max<point[i].Realdata.Pc.value){
-			max_ptongji[i].mpc.d_max=point[i].Realdata.Pc.value;
-			DataTimeGet(&max_ptongji[i].mpc.d_ts);
-		}
-		if(max_ptongji[i].mpc.m_max<point[i].Realdata.Pc.value){
-			max_ptongji[i].mpc.m_max=point[i].Realdata.Pc.value;
-			DataTimeGet(&max_ptongji[i].mpc.m_ts);
-		}
-	}
-		return 1;
-}
-
-void GongDian_Tj()
+void Calc_Tj()
 {
 	static time_t	currtime=0,nexttime=0;
 	static INT8U 	first=1;
-	TS 		newts;
-
+	TS newts;
+	static INT8U lastchgoi4030=0;
+	TSGet(&newts);
+	DateTimeBCD datetime={};
+	datetime.year.data=newts.Year;
+	datetime.month.data=newts.Month;
+	datetime.day.data=newts.Day;
+	datetime.hour.data=0;
+	datetime.min.data=0;
+	datetime.sec.data=0;
 	if(first==1) {
 		first = 0;
 		currtime = time(NULL);
@@ -943,29 +135,52 @@ void GongDian_Tj()
 		readVariData(0x2203,0,&gongdian_tj,sizeof(Gongdian_tj));
 		fprintf(stderr,"初始化: 2203:时间: %d-%d-%d %d:%d:%d\n",gongdian_tj.ts.Year,gongdian_tj.ts.Month,gongdian_tj.ts.Day,gongdian_tj.ts.Hour,gongdian_tj.ts.Minute,gongdian_tj.ts.Sec);
 		fprintf(stderr,"初始化: 日供电时间=%d   月供电时间=%d\n",gongdian_tj.gongdian.day_tj,gongdian_tj.gongdian.month_tj);
+		lastchgoi4030 = JProgramInfo->oi_changed.oi4030;
+	    readCoverClass(0x4030,0,&obj_offset,sizeof(obj_offset),para_vari_save);
+	    fprintf(stderr,"4030参数初始化:udown=%d udownkaohe=%d up=%d upkaohe=%d \n",obj_offset.uDown,obj_offset.uDown_Kaohe,obj_offset.uUp,obj_offset.uUp_Kaohe);
+        memset(passu_d,0,sizeof(passu_d));
+        memset(passu_m,0,sizeof(passu_m));
 	}
+	if(lastchgoi4030!=JProgramInfo->oi_changed.oi4030){
+		readCoverClass(0x4030,0,&obj_offset,sizeof(obj_offset),para_vari_save);
+		if(lastchgoi4030!=JProgramInfo->oi_changed.oi4030) {
+			lastchgoi4030++;
+			if(lastchgoi4030==0) lastchgoi4030=1;
+			fprintf(stderr,"4030参数变更:udown=%d udownkaohe=%d up=%d upkaohe=%d \n",obj_offset.uDown,obj_offset.uDown_Kaohe,obj_offset.uUp,obj_offset.uUp_Kaohe);
+		}
+	}
+	currtime = time(NULL);
+				int tcha=abs(currtime - nexttime);
+				if(tcha >= 60) {
+					int per_min=tcha/60;
+					nexttime = currtime;
+					gongdian_tj.gongdian.day_tj +=1;
+					gongdian_tj.gongdian.month_tj +=1;
+					Vol_Rate_Tj(&passu_d[0],&passu_m[0],JProgramInfo->ACSRealData.Ua,per_min);
+					Vol_Rate_Tj(&passu_d[1],&passu_m[1],JProgramInfo->ACSRealData.Ub,per_min);
+					Vol_Rate_Tj(&passu_d[2],&passu_m[2],JProgramInfo->ACSRealData.Uc,per_min);
+					//存储供电时间
+					fprintf(stderr,"2203:时间: %d-%d-%d %d:%d:%d\n",gongdian_tj.ts.Year,gongdian_tj.ts.Month,gongdian_tj.ts.Day,gongdian_tj.ts.Hour,gongdian_tj.ts.Minute,gongdian_tj.ts.Sec);
+					fprintf(stderr," 日供电时间=%d\n 月供电时间=%d\n",gongdian_tj.gongdian.day_tj,gongdian_tj.gongdian.month_tj);
+					saveVariData(0x2203,0,&gongdian_tj,sizeof(Gongdian_tj));	//TODO：现场运行 是否需要 1分钟保存一次
+				}
 
-	TSGet(&newts);
 	if(newts.Day != gongdian_tj.ts.Day) {
 		fprintf(stderr,"2203:newts: %d-%d-%d %d:%d:%d\n",newts.Year,newts.Month,newts.Day,newts.Hour,newts.Minute,newts.Sec);
 		fprintf(stderr,"跨日	:时间: %d-%d-%d %d:%d:%d\n",gongdian_tj.ts.Year,gongdian_tj.ts.Month,gongdian_tj.ts.Day,gongdian_tj.ts.Hour,gongdian_tj.ts.Minute,gongdian_tj.ts.Sec);
 		gongdian_tj.gongdian.day_tj = 0;
+		//TSGet(&gongdian_tj.ts);
+		Save_Vol_Rate(0,datetime);
+		if(newts.Month != gongdian_tj.ts.Month) {
+			gongdian_tj.gongdian.month_tj = 0;
+			datetime.day.data= 1;
+			fprintf(stderr,"跨月");
+			Save_Vol_Rate(1,datetime);
+		}
 		TSGet(&gongdian_tj.ts);
 	}
-	if(newts.Month != gongdian_tj.ts.Month) {
-		gongdian_tj.gongdian.month_tj = 0;
-		TSGet(&gongdian_tj.ts);
-	}
-	currtime = time(NULL);
-	if((abs(currtime - nexttime)) >= 60) {
-		nexttime = currtime;
-		gongdian_tj.gongdian.day_tj++;
-		gongdian_tj.gongdian.month_tj++;
-		//存储供电时间
-		fprintf(stderr,"2203:时间: %d-%d-%d %d:%d:%d\n",gongdian_tj.ts.Year,gongdian_tj.ts.Month,gongdian_tj.ts.Day,gongdian_tj.ts.Hour,gongdian_tj.ts.Minute,gongdian_tj.ts.Sec);
-		fprintf(stderr," 日供电时间=%d\n 月供电时间=%d\n",gongdian_tj.gongdian.day_tj,gongdian_tj.gongdian.month_tj);
-		saveVariData(0x2203,0,&gongdian_tj,sizeof(Gongdian_tj));	//TODO：现场运行 是否需要 1分钟保存一次
-	}
+
+
 }
 /*
  * 统计主线程
@@ -978,7 +193,6 @@ void calc_thread()
 	static INT8U	init_chg=0;
 	TSGet(&oldts);
 	TSGet(&newts);
-	Reset_tj reset_tj={};
 	currtime = time(NULL);
 	nexttime = time(NULL);
 
@@ -986,60 +200,14 @@ void calc_thread()
 	while(1){
     	if(JProgramInfo->oi_changed.init != init_chg) {
     		init_chg = JProgramInfo->oi_changed.init;
-
     		TSGet(&gongdian_tj.ts);
     		gongdian_tj.gongdian.day_tj = 0;
     		gongdian_tj.gongdian.month_tj = 0;
     	}
-    	GongDian_Tj();
-
-
-
+    	//供电时间、电压合格率统计
+    	Calc_Tj();
     	valid++;
     	TSGet(&newts);
-		/*根据系统参数确定测量点信息，内容保存到point相关处*/
-		get_point_para(&point[0]);       //初始化测量点参数
-		CpyAcsDataFromPubData(&point[0]);//初始化交采数据从共享内存
-		//电压合格率
-		voltage_calc();
-		//供电时间
-		//如果跨天，日供电清零
-		INT8U mpi=0;
-        if(oldts.Day != newts.Day){
-//    		gongdian_tj.gongdian.day_tj = 0;
-     		for(mpi=0;mpi<MAXNUM_IMPORTANTUSR_CALC;mpi++){
-				max_ptongji[mpi].mp.d_max = 0;
-				max_ptongji[mpi].mpa.d_max = 0;
-				max_ptongji[mpi].mpb.d_max = 0;
-				max_ptongji[mpi].mpc.d_max = 0;
-    		}
-    	}
-
-        //如果跨月，月供电清零
-        if(oldts.Month != newts.Month){
-//        	gongdian_tj.gongdian.month_tj = 0;
-     		for(mpi=0;mpi<MAXNUM_IMPORTANTUSR_CALC;mpi++){
-				max_ptongji[mpi].mp.m_max = 0;
-				max_ptongji[mpi].mpa.m_max = 0;
-				max_ptongji[mpi].mpb.m_max = 0;
-				max_ptongji[mpi].mpc.m_max = 0;
-    		}
-    	}
-        //统计最大功率及发生时间
-        Getp_max();
-		//所有数据每分钟一存
-		if(oldts.Minute != newts.Minute){
-			oldts.Minute = newts.Minute;
-			//存储电压合格率	TODO:只存储交采
-//			saveVariData(0x2130,0,&StatisticsPoint[0],sizeof(StatisticsPointProp));
-			//存储最大功率及发生时间	TODO:只存储交采
-			INT8U i=0;
-			for(i=0; i< MAXNUM_IMPORTANTUSR_CALC ;i++)
-			{
-			   saveVariData(0x2140,0,&max_ptongji[i],sizeof(Max_ptongji));
-			}
-		}
-//		fprintf(stderr,"poweroffon_state=%d \n",poweroffon_state);
 		//判断停上电
 		if(valid>5)//等待5秒
 			Event_3106(JProgramInfo,MeterPowerInfo,&poweroffon_state);
@@ -1050,35 +218,7 @@ void calc_thread()
 }
 
 INT8U Init_Para(){
-	memset(StatisticsPoint,0,sizeof(StatisticsPointProp)*MAXNUM_IMPORTANTUSR);
-	memset(point,0,sizeof(POINT_CALC_TYPE)*MAXNUM_IMPORTANTUSR_CALC);
-	memset(max_ptongji,0,sizeof(max_ptongji));
-	ReadPubData();
 
-	//2140 max_ptongji,sizeof(max_ptongji)*MAXNUM_IMPORTANTUSR_CALC
-	TS newts;
-	TSGet(&newts);
-	//如果跨天 日供电清零
-	INT8U mpi=0;
-	if(gongdian_tj.ts.Day != newts.Day){
-//		gongdian_tj.gongdian.day_tj = 0;
-		for(mpi=0;mpi<MAXNUM_IMPORTANTUSR_CALC;mpi++){
-			max_ptongji[mpi].mp.d_max = 0;
-			max_ptongji[mpi].mpa.d_max = 0;
-			max_ptongji[mpi].mpb.d_max = 0;
-			max_ptongji[mpi].mpc.d_max = 0;
-		}
-	}
-	//如果跨月 月供电清零
-	if(gongdian_tj.ts.Month != newts.Month){
-//		gongdian_tj.gongdian.month_tj = 0;
-		for(mpi=0;mpi<MAXNUM_IMPORTANTUSR_CALC;mpi++){
-			max_ptongji[mpi].mp.m_max = 0;
-			max_ptongji[mpi].mpa.m_max = 0;
-			max_ptongji[mpi].mpb.m_max = 0;
-			max_ptongji[mpi].mpc.m_max = 0;
-		}
-	}
 	return 1;
 }
 /*

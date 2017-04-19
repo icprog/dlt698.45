@@ -404,7 +404,7 @@ void AddCjiFangAnInfo(INT8U *data,Action_result *act_ret)
 	INT8U *buf;
 	CLASS_6015 fangAn={};
 	int k=0;
-	INT8U addnum = data[1];
+	INT8U addnum = data[1];		//data[0] = apdu[7]
 	INT8U *dealdata=NULL;
 	int index=0;
 	fprintf(stderr,"\nsizeof fangAn=%d",sizeof(fangAn));
@@ -414,7 +414,7 @@ void AddCjiFangAnInfo(INT8U *data,Action_result *act_ret)
 	for(k=0; k<addnum; k++)
 	{
 		memset(&fangAn,0,sizeof(fangAn));
-		index = index + 2;//struct
+		index += getStructure(&dealdata[index],NULL);
 		index += getUnsigned(&dealdata[index],(INT8U *)&fangAn.sernum);
 		fprintf(stderr,"fangan sernum =%d ,index=%d\n",fangAn.sernum,index);
 		index += getLongUnsigned(&dealdata[index],(INT8U *)&fangAn.deepsize);
@@ -434,7 +434,8 @@ void AddCjiFangAnInfo(INT8U *data,Action_result *act_ret)
 				break;
 			case 3:
 				fangAn.data.type = 0x54;	// TI
-				getTI(1,&dealdata[index],(TI *)&fangAn.data);
+				index += getTI(1,&dealdata[index],(TI *)&fangAn.data.data);
+				fprintf(stderr,"\n方案类型：%02x  data=%02x-%02x-%02x\n",fangAn.data.type,fangAn.data.data[0],fangAn.data.data[1],fangAn.data.data[2]);
 				break;
 			default:
 				return;
@@ -442,6 +443,7 @@ void AddCjiFangAnInfo(INT8U *data,Action_result *act_ret)
 		INT8U arraysize=0;
 		index += getArray(&dealdata[index],&arraysize);
 		fangAn.csds.num = arraysize;
+		fprintf(stderr,"fangAn.csds.num=%d\n",fangAn.csds.num);
 		int w=0;
 		for(w=0;w<arraysize;w++)
 		{
@@ -499,15 +501,36 @@ void AddEventCjiFangAnInfo(INT8U *data,Action_result *act_ret)
 	{
 		memset(&eventFangAn,0,sizeof(eventFangAn));
 		index += getUnsigned(&data[index],(INT8U *)&eventFangAn.sernum);
-		index += getArray(&data[index],(INT8U *)&eventFangAn.roads.num);
-		for(i=0;i<eventFangAn.roads.num;i++)
-			index += getROAD(&data[index],&eventFangAn.roads.road[i]);
+		if(data[index]==dtstructure) {		//勘误增加了采集方式类型，浙江测试还未修改，故判断
+			index += getStructure(&data[index],NULL);
+			index += getUnsigned(&data[index],(INT8U *)&eventFangAn.collstyle.colltype);
+		}
+		index += getArray(&data[index],(INT8U *)&eventFangAn.collstyle.roads.num);
+		for(i=0;i<eventFangAn.collstyle.roads.num;i++)
+			index += getROAD(&data[index],&eventFangAn.collstyle.roads.road[i]);
 		index += getMS(1,&data[index],&eventFangAn.ms);
 		index += getBool(&data[index],&eventFangAn.ifreport);
 		index += getLongUnsigned(&data[index],(INT8U *)&eventFangAn.deepsize);
 		act_ret->DAR = saveCoverClass(0x6017,eventFangAn.sernum,&eventFangAn,sizeof(eventFangAn),coll_para_save);
 	}
 	act_ret->datalen = index;
+
+//	index += getArray(&data[index],&addnum);
+//	index += getStructure(&data[index],NULL);
+//	fprintf(stderr,"\n添加个数 %d",addnum);
+//	for(k=0; k<addnum; k++)
+//	{
+//		memset(&eventFangAn,0,sizeof(eventFangAn));
+//		index += getUnsigned(&data[index],(INT8U *)&eventFangAn.sernum);
+//		index += getArray(&data[index],(INT8U *)&eventFangAn.roads.num);
+//		for(i=0;i<eventFangAn.roads.num;i++)
+//			index += getROAD(&data[index],&eventFangAn.roads.road[i]);
+//		index += getMS(1,&data[index],&eventFangAn.ms);
+//		index += getBool(&data[index],&eventFangAn.ifreport);
+//		index += getLongUnsigned(&data[index],(INT8U *)&eventFangAn.deepsize);
+//		act_ret->DAR = saveCoverClass(0x6017,eventFangAn.sernum,&eventFangAn,sizeof(eventFangAn),coll_para_save);
+//	}
+//	act_ret->datalen = index;
 }
 
 void AddTaskInfo(INT8U *data,Action_result *act_ret)
@@ -863,8 +886,56 @@ void FileTransMothod(INT16U attr_act,INT8U *data)
 				data_index++;
 				crc = data[data_index];
 			}
-			else
-			{
+			else if(data[2] == 0x02 && data[3] == 0x06){
+				int data_index = 4;
+				if(data[data_index] != 0x0a)
+				{
+					fprintf(stderr,"无法找到源文件\n");
+					goto err;
+				}
+				data_index++;
+				data_index += data[data_index]+1;
+				if(data[data_index] != 0x0a)
+				{
+					fprintf(stderr,"无法找到目标文件\n");
+					goto err;
+				}
+				data_index ++;
+				memcpy(name, &data[data_index + 1], data[data_index]);
+				data_index += data[data_index]+1;
+				if(data[data_index] != 0x06)
+				{
+					fprintf(stderr,"未能找到文件长度\n");
+					goto err;
+				}
+				data_index++;
+				file_length += data[data_index++];
+				file_length <<= 8;
+				file_length += data[data_index++];
+				file_length <<= 8;
+				file_length += data[data_index++];
+				file_length <<= 8;
+				file_length += data[data_index++];
+				data_index+=3;
+				if(data[data_index] != 0x0a)
+				{
+					fprintf(stderr,"未能找到版本信息\n");
+					goto err;
+				}
+				data_index ++;
+				data_index += data[data_index]+1 + 2;
+
+				if(data[data_index] != 0x12)
+				{
+					fprintf(stderr,"未能找到分段长度信息\n");
+					goto err;
+				}
+				data_index ++;
+				block_length += data[data_index++];
+				block_length <<= 8;
+				block_length += data[data_index++];
+			}
+			else {
 				goto err;
 			}
 
@@ -932,29 +1003,69 @@ err:
 	return;
 }
 
-void DayFreeze(INT16U attr_act,INT8U *data,Action_result *act_ret)
+void FreezeAtti(OAD oad,Relate_Object one_obj)
+{
+	int	 i=0,j=0;
+	FreezeObject	FreeObj={};
+
+	memset(&FreeObj,0,sizeof(FreezeObject));
+	readCoverClass(oad.OI,0,&FreeObj,sizeof(FreezeObject),para_vari_save);
+	switch(oad.attflg) {
+	case 5:		//删除
+		for(i=0;i<FreeObj.RelateNum;i++) {
+			if(memcmp(&FreeObj.RelateObj[i].oad,&one_obj.oad,sizeof(OAD))==0) {
+				if(FreeObj.RelateNum)	FreeObj.RelateNum=FreeObj.RelateNum-1;
+				for(j=i;j<FreeObj.RelateNum;j++) {		//删除匹配的OAD
+					memcpy(&FreeObj.RelateObj[j],&FreeObj.RelateObj[j+1],sizeof(Relate_Object));
+				}
+				break;
+			}
+		}
+		break;
+	case 7:		//批量添加冻结对象属性
+		for(i=0;i<FreeObj.RelateNum;i++) {
+			if(memcmp(&FreeObj.RelateObj[i].oad,&one_obj.oad,sizeof(OAD))==0) {		//已有，替换
+				memcpy(&FreeObj.RelateObj[i],&one_obj,sizeof(Relate_Object));
+				break;
+			}
+		}
+		if(i==FreeObj.RelateNum) {		//增加
+			memcpy(&FreeObj.RelateObj[i],&one_obj,sizeof(Relate_Object));
+			FreeObj.RelateNum = FreeObj.RelateNum+1;
+		}
+		break;
+	}
+	fprintf(stderr,"冻结 %04x，关联个数=%d\n",oad.OI,FreeObj.RelateNum);
+	for(i=0;i<FreeObj.RelateNum;i++) {
+		fprintf(stderr,"OAD=%04x-%02x-%02x,priod=%d,depth=%d\n",FreeObj.RelateObj[i].oad.OI,FreeObj.RelateObj[i].oad.attflg,
+				FreeObj.RelateObj[i].oad.attrindex,FreeObj.RelateObj[i].freezePriod,FreeObj.RelateObj[i].saveDepth);
+	}
+	saveCoverClass(oad.OI,0,&FreeObj,sizeof(FreezeObject),para_vari_save);
+}
+
+void FreezeAction(OAD oad,INT8U *data,Action_result *act_ret)
 {
 	int		index = 0;
 	INT8U	SeqOfNum = 0,i=0;
-	DayObject	DayObj={};
-	OAD		oad={};
-	switch(attr_act) {
+	Relate_Object one_obj={};
+
+	switch(oad.attflg) {
 	case 5:		//删除一个冻结对象属性
-		index += getOAD(1,&data[index],&oad);
+		index += getOAD(1,&data[index],&one_obj.oad);
 		fprintf(stderr,"删除 oad=%04x-%02x-%02x\n",oad.OI,oad.attflg,oad.attrindex);
+		FreezeAtti(oad,one_obj);
 		break;
 	case 7:		//批量添加冻结对象属性
 		index += getArray(&data[index],&SeqOfNum);
 		for(i=0;i<SeqOfNum;i++) {
 			index += getStructure(&data[index],NULL);
-			index += getLongUnsigned(&data[index],(INT8U *)&DayObj.FreezeObj[DayObj.RelateNum].freezePriod);
-			index += getOAD(1,&data[index],&DayObj.FreezeObj[DayObj.RelateNum].oad);
-			index += getLongUnsigned(&data[index],(INT8U *)&DayObj.FreezeObj[DayObj.RelateNum].saveDepth);
+			index += getLongUnsigned(&data[index],(INT8U *)&one_obj.freezePriod);
+			index += getOAD(1,&data[index],&one_obj.oad);
+			index += getLongUnsigned(&data[index],(INT8U *)&one_obj.saveDepth);
 
-			fprintf(stderr,"添加%d：freezeProid=%d,oad=%04x-%02x-%02x,saveDepth=%d\n",i,DayObj.FreezeObj[DayObj.RelateNum].freezePriod,
-					DayObj.FreezeObj[DayObj.RelateNum].oad.OI,DayObj.FreezeObj[DayObj.RelateNum].oad.attflg,DayObj.FreezeObj[DayObj.RelateNum].oad.attrindex,
-					DayObj.FreezeObj[DayObj.RelateNum].saveDepth);
-			DayObj.RelateNum++;
+			fprintf(stderr,"添加%d：freezeProid=%d,oad=%04x-%02x-%02x,saveDepth=%d\n",i,one_obj.freezePriod,
+					one_obj.oad.OI,one_obj.oad.attflg,one_obj.oad.attrindex,one_obj.saveDepth);
+			FreezeAtti(oad,one_obj);
 		}
 		break;
 	}
@@ -964,6 +1075,7 @@ void DayFreeze(INT16U attr_act,INT8U *data,Action_result *act_ret)
 
 void MeterInfo(INT16U attr_act,INT8U *data,Action_result *act_ret)
 {
+	int		seqnum=0;
 	switch(attr_act)
 	{
 		case 127://方法 127:Add (采集档案配置单元)
@@ -977,7 +1089,9 @@ void MeterInfo(INT16U attr_act,INT8U *data,Action_result *act_ret)
 		case 130://方法 130:Update(配置序号,扩展信息,附属信息)
 			break;
 		case 131://方法 131:Delete(配置序号)
-			//delClassBySeq(NULL,2);
+			getLongUnsigned(&data[0],(INT8U *)&seqnum);
+			fprintf(stderr,"delete method seqnum=%d (%x)\n",seqnum,seqnum);
+			delClassBySeq(0x6000,NULL,seqnum);
 			break;
 		case 132://方法 132:Delete(基本信息)
 			break;
@@ -1002,7 +1116,7 @@ int EventMothod(OAD oad,INT8U *data)
 	return 0;
 }
 //esam 698处理函数返回0，正常，可以组上行帧。返回负数，异常，组错误帧，同意用0x16
-void EsamMothod(INT16U attr_act,INT8U *data)
+INT32S EsamMothod(INT16U attr_act,INT8U *data)
 {
 	INT32S ret=-1;
 	switch(attr_act)
@@ -1018,9 +1132,11 @@ void EsamMothod(INT16U attr_act,INT8U *data)
 				ret = -1;
 				break;
 		}
+	return ret;
 }
 int doObjectAction(OAD oad,INT8U *data,Action_result *act_ret)
 {
+	INT32S errflg=0;
 	INT16U oi = oad.OI;
 	INT8U attr_act = oad.attflg;
 	INT8U oihead = (oi & 0xF000) >>12;
@@ -1036,7 +1152,8 @@ int doObjectAction(OAD oad,INT8U *data,Action_result *act_ret)
 			TerminalInfo(attr_act,data);
 			break;
 		case 0x5004:	//日冻结
-			DayFreeze(attr_act,data,act_ret);
+		case 0x5006:	//月冻结
+			FreezeAction(oad,data,act_ret);
 			break;
 		case 0x6000:	//采集档案配置表
 			MeterInfo(attr_act,data,act_ret);
@@ -1063,7 +1180,13 @@ int doObjectAction(OAD oad,INT8U *data,Action_result *act_ret)
 			FileTransMothod(attr_act,data);
 			break;
 		case 0xF100:
-			EsamMothod(attr_act,data);
+			errflg = EsamMothod(attr_act,data);
+			if(errflg > 0)
+			{
+				act_ret->DAR = 0;
+//				act_ret->datalen = 1;
+			}
+
 			break;
 	}
 	if(oi==0x4300 && attr_act==1) {		//设备复位

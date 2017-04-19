@@ -25,6 +25,12 @@
 
 #define MAX_RETRY_NUM 1 //抄表失败重试次数
 
+#define TSA_OI 0x202a
+#define EVENT_INDEX_OI 0x2022
+#define EVENTSTART_TIME_OI 0x201e
+#define EVENTSTART_END_OI 0x2020
+
+#define SAVE_EVENT_BUFF_HEAD_LEN 39
 pthread_attr_t read485_attr_t;
 int thread_read4851_id,thread_read4852_id;           //485、四表合一（I型、II型、专变）
 pthread_t thread_read4851,thread_read4852;
@@ -60,12 +66,12 @@ extern void read485_proccess();
 
 mqd_t mqd_485_1_task;
 mqd_t mqd_485_2_task;
+mqd_t mqd_zb_task;
 struct mq_attr attr_485_main;
 struct mq_attr attr_485_1_task;
 struct mq_attr attr_485_2_task;
 
-INT32S comfd4851;
-INT32S comfd4852;
+INT32S comfd485[2];
 INT8U i485port1;
 INT8U readState;//是否正在处理实时消息
 INT8U i485port2;

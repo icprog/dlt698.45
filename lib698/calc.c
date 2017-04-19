@@ -55,6 +55,107 @@ INT8U Reset_add()
 	return 1;
 }
 
+INT8U fillVacsData(INT8U structnum,INT8U attindex,INT8U datatype,INT32U data1,INT32U data2,INT32U data3,INT32U data4,INT8U *responseData)
+{
+	INT32U 	data[4]={};
+	INT8U	index=0,i=0;
+
+	if(structnum>4) {
+		fprintf(stderr,"填充数据结构【%d】大于有效限定值【4】!!!",structnum);
+		structnum = 4;
+	}
+	if (attindex>4) {
+		fprintf(stderr,"属性索引值【%d】大于有效限定值【4】!!!",attindex);
+		attindex = 4;
+	}
+	index += create_array(&responseData[index],structnum);
+	memset(data,0,sizeof(data));
+	switch(attindex) {
+	case 0:		//全部属性
+		data[0] = data1;
+		data[1] = data2;
+		data[2] = data3;
+		data[3] = data4;
+	break;
+	case 1:	data[0] = data1;	break;
+	case 2:	data[0] = data2;	break;
+	case 3:	data[0] = data3;	break;
+	case 4:	data[0] = data4;	break;
+	}
+	for(i=0;i<structnum;i++) {
+		switch(datatype){
+		case dtlongunsigned:
+			index += fill_long_unsigned(&responseData[index],data[i]);
+			break;
+		case dtdoublelong:
+			index += fill_double_long(&responseData[index],data[i]);
+			break;
+		case dtlong:
+			index += fill_long(&responseData[index],data[i]);
+			break;
+		}
+	}
+	return index;
+}
+
+INT8U Get_Vacs(RESULT_NORMAL *response,ProgramInfo* prginfo_acs)
+{
+	INT8U	index=0;
+	INT8U	structnum = 0;
+
+	if(response->oad.attflg!=2) 	return index;
+	switch(response->oad.OI) {
+	case 0x2000:	//电压
+		if(response->oad.attrindex==0)		structnum = 3;
+		else structnum = 1;
+		index += fillVacsData(structnum,response->oad.attrindex,dtlongunsigned,
+				prginfo_acs->ACSRealData.Ua,prginfo_acs->ACSRealData.Ub,prginfo_acs->ACSRealData.Uc,0,response->data);
+		break;
+	case 0x2001:	//电流
+		if(response->oad.attrindex==0)		structnum = 4;
+		else structnum = 1;
+		index += fillVacsData(structnum,response->oad.attrindex,dtdoublelong,
+				prginfo_acs->ACSRealData.Ia,prginfo_acs->ACSRealData.Ib,prginfo_acs->ACSRealData.Ic,prginfo_acs->ACSRealData.I0,response->data);
+		break;
+	case 0x2004:	//有功功率
+		if(response->oad.attrindex==0)		structnum = 4;
+		else structnum = 1;
+		index += fillVacsData(structnum,response->oad.attrindex,dtdoublelong,
+				prginfo_acs->ACSRealData.Pt,prginfo_acs->ACSRealData.Pa,prginfo_acs->ACSRealData.Pb,prginfo_acs->ACSRealData.Pc,response->data);
+		break;
+	case 0x2005:	//无功功率
+		if(response->oad.attrindex==0)		structnum = 4;
+		else structnum = 1;
+		index += fillVacsData(structnum,response->oad.attrindex,dtdoublelong,
+				prginfo_acs->ACSRealData.Qt,prginfo_acs->ACSRealData.Qa,prginfo_acs->ACSRealData.Qb,prginfo_acs->ACSRealData.Qc,response->data);
+		break;
+	case 0x200A:	//功率因数
+		if(response->oad.attrindex==0)		structnum = 4;
+		else structnum = 1;
+		index += fillVacsData(structnum,response->oad.attrindex,dtlong,
+				prginfo_acs->ACSRealData.Cos,prginfo_acs->ACSRealData.CosA,prginfo_acs->ACSRealData.CosB,prginfo_acs->ACSRealData.CosC,response->data);
+		break;
+	}
+	response->datalen = index;
+	return 1;
+}
+/*
+ * 电压合格率
+ */
+INT8U Get_213x(OAD oad,INT8U *sourcebuf,INT8U *buf,int *len)
+{
+	PassRate_U passu={};
+
+	memcpy(&passu,sourcebuf,sizeof(PassRate_U));
+	*len=0;
+	*len += create_struct(&buf[*len],5);
+	*len += fill_double_long_unsigned(&buf[*len],passu.monitorTime);
+	*len += fill_long_unsigned(&buf[*len],passu.passRate);
+	*len += fill_long_unsigned(&buf[*len],passu.overRate);
+	*len += fill_double_long_unsigned(&buf[*len],passu.upLimitTime);
+	*len += fill_double_long_unsigned(&buf[*len],passu.downLimitTime);
+	return 1;
+}
 /*
  * 通信流量
  */
@@ -92,16 +193,6 @@ INT8U Get_2204(OI_698 oi,INT8U *sourcebuf,INT8U *buf,int *len)
 {
 	Reset_tj reset_tj={};
 	memcpy(&reset_tj,sourcebuf,sizeof(Reset_tj));
-
-//	static INT8U first=0;
-//	if(first==0) {
-//		first=1;
-//		reset_tj.reset.day_tj=1;
-//		reset_tj.reset.month_tj =1;
-//	}else {
-//		reset_tj.reset.day_tj=1;
-//		reset_tj.reset.month_tj =2;
-//	}
 	fprintf(stderr,"Get_2204 :reset day_tj=%d,month_tj=%d\n",reset_tj.reset.day_tj,reset_tj.reset.month_tj);
 	*len=0;
 	*len += create_struct(&buf[*len],2);
