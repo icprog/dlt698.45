@@ -85,8 +85,10 @@ void CalculateTransFlow(ProgramInfo *prginfo_event) {
 
     if (ts.Minute % 2 == 0) {
         asyslog(LOG_INFO, "20分钟月流量统计，未统计流量%d", (rx_bytes + tx_bytes) - rtx_bytes);
-        c2200.flow.month_tj += (rx_bytes + tx_bytes) - rtx_bytes;
-        saveVariData(0x2200, 0, &c2200, sizeof(c2200));
+        if(OnlineType == 1){ //如果是GPRS
+        	c2200.flow.month_tj += (rx_bytes + tx_bytes) - rtx_bytes;
+            saveVariData(0x2200, 0, &c2200, sizeof(c2200));
+        }
         rtx_bytes = rx_bytes + tx_bytes;
         Event_3110(c2200.flow.month_tj, sizeof(c2200.flow), prginfo_event);
     }
