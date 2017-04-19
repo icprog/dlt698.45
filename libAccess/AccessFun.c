@@ -1529,7 +1529,7 @@ int findTsa(TSA tsa,FILE *fp,int headsize,int blocksize)
 	INT8U  tsa_tmp[TSA_LEN + 1];
 	int offset = headsize;
 
-	fprintf(stderr,"\noffset=%d,需要查找 TSA: %d-",offset,tsa.addr[0]);
+	fprintf(stderr,"\nblocksize = %d offset=%d,需要查找 TSA: %d-",blocksize,offset,tsa.addr[0]);
 	for(i=0;i<(tsa.addr[0]+1);i++) {
 		fprintf(stderr,"-%02x",tsa.addr[i]);
 	}
@@ -1539,11 +1539,15 @@ int findTsa(TSA tsa,FILE *fp,int headsize,int blocksize)
 		{
 			return 0;
 		}
-//		fprintf(stderr,"\n任务保存 TSA: ");
-//		for(i=0;i<(tsa.addr[0]+2);i++) {
-//			fprintf(stderr,"-%02x",tsa_tmp[i]);
-//		}
-		if(memcmp(&tsa_tmp[1],&tsa.addr[0],tsa.addr[0])==0)
+		fprintf(stderr,"\n任务保存 TSA: ");
+		for(i=0;i<(tsa.addr[0]+2);i++) {
+			fprintf(stderr,"-%02x",tsa_tmp[i]);
+		}
+		fprintf(stderr,"\noffset=%d,需要查找 TSA: %d-",offset,tsa.addr[0]);
+		for(i=0;i<(tsa.addr[0]+1);i++) {
+			fprintf(stderr,"-%02x",tsa.addr[i]);
+		}
+		if(memcmp(&tsa_tmp[1],&tsa.addr[0],tsa.addr[0]+1)==0)
 		{
 			fprintf(stderr,"\n找到匹配 addr: %d-",tsa.addr[0]);
 			for(i=0;i<(tsa.addr[0]+1);i++) {
@@ -1796,9 +1800,9 @@ INT8U initrecinfo(CURR_RECINFO *recinfo,TASKSET_INFO tasknor_info,INT8U selectyp
 		time(&time_s);
 		time_s += 86400;//24*60*60; 加上一天的秒数
 		tm_p = localtime(&time_s);
-		tm_p->tm_year = select.selec5.collect_save.year.data;
-		tm_p->tm_mon = select.selec5.collect_save.month.data;
-		tm_p->tm_mday = select.selec5.collect_save.year.data;
+		tm_p->tm_year = select.selec5.collect_save.year.data - 1900;
+		tm_p->tm_mon = select.selec5.collect_save.month.data - 1;
+		tm_p->tm_mday = select.selec5.collect_save.day.data;
 		tm_p->tm_hour = tasknor_info.starthour;
 		tm_p->tm_min = tasknor_info.startmin;
 		tm_p->tm_sec = 0;
@@ -1807,15 +1811,16 @@ INT8U initrecinfo(CURR_RECINFO *recinfo,TASKSET_INFO tasknor_info,INT8U selectyp
 		time(&time_s);
 		time_s += 86400;//24*60*60; 加上一天的秒数
 		tm_p = localtime(&time_s);
-		tm_p->tm_year = select.selec5.collect_save.year.data;
-		tm_p->tm_mon = select.selec5.collect_save.month.data;
-		tm_p->tm_mday = select.selec5.collect_save.year.data;
+		tm_p->tm_year = select.selec5.collect_save.year.data - 1900;
+		tm_p->tm_mon = select.selec5.collect_save.month.data - 1;
+		tm_p->tm_mday = select.selec5.collect_save.day.data;
 		tm_p->tm_hour = tasknor_info.endhour;
 		tm_p->tm_min = tasknor_info.endmin;
 		tm_p->tm_sec = 0;
 		recinfo->rec_end = mktime(tm_p);
 		break;
 	case 7://实时数据类
+		//todo
 		recinfo->recordno_num = (recinfo->rec_end - recinfo->rec_start)/tasknor_info.freq + 1;
 		time(&time_s);
 		tm_p = localtime(&time_s);
@@ -1856,7 +1861,11 @@ INT8U getcurecord(INT8U selectype,int *curec,int curecn,int runtime)
 {
 	int currecord = *curec;
 	if(selectype == 7 || selectype == 5)
+	{
 		currecord = (currecord+curecn)%runtime;
+		*curec = 0;
+		return 1;
+	}
 	else if(selectype == 10)
 	{
 		int cnt=0;
@@ -2358,6 +2367,7 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds)
 		fclose(fp);
 	if(myfp != NULL)
 		fclose(myfp);
+	asyslog(LOG_INFO,"--framesum=%d\n",framesum);
 	return (framesum+1);
 }
 int getSelector(OAD oad_h,RSD select, INT8U selectype, CSD_ARRAYTYPE csds, INT8U *data, int *datalen)
