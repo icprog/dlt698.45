@@ -26,6 +26,7 @@
 
 extern INT32S 			spifp_rn8209;
 extern INT32S 			spifp;
+
 ProgramInfo* JProgramInfo=NULL;
 int ProIndex=0;
 INT8U poweroffon_state = 0; //停上电抄读标志 0无效，1抄读，2抄读完毕
@@ -75,9 +76,6 @@ int InitPro(ProgramInfo** prginfo, int argc, char *argv[])
 int InitPara()
 {
 	InitACSPara();
-	//InitClass6000();				//初始化交采采集档案
-	InitClass4016();				//初始化当前套日时段表
-	read_oif203_para();		//开关量输入值读取
 	return 0;
 }
 

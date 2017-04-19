@@ -1078,51 +1078,7 @@ INT8U getACSConnectype()
 	}
 	return 0;
 }
-/*
- * 初始化采集配置单元
- * */
-void InitClass6000()
-{
-	CLASS_6001	 meter={};
-	int readret=0;
-	static INT8U ACS_TSA[8]={0x08,0x05,0x00,0x00,0x00,0x00,0x00,0x01};//[0]=08,TSA长度 [1]=05,05+1=地址长度，交采地址：000000000001
 
-	readret = readParaClass(0x6000,&meter,1);
-	if(readret!=1) {
-		memset(&meter,0,sizeof(CLASS_6001));
-		meter.sernum = 1;
-		memcpy(meter.basicinfo.addr.addr,ACS_TSA,sizeof(ACS_TSA));
-		meter.basicinfo.baud = 3;
-		meter.basicinfo.protocol = 3;
-		meter.basicinfo.port.OI = 0xF208;
-		meter.basicinfo.port.attflg = 0x02;
-		meter.basicinfo.port.attrindex = 0x01;
-		meter.basicinfo.ratenum = MAXVAL_RATENUM;
-		meter.basicinfo.connectype = getACSConnectype();
-		meter.basicinfo.ratedU = 2200;
-		meter.basicinfo.ratedI = 1500;
-		saveParaClass(0x6000,&meter,meter.sernum);
-	}
-}
-
-/*
- * 初始化当前套日时段表
- * */
-void InitClass4016()
-{
-	int readret=0;
-	INT8U	i = 0;
-	readret = readCoverClass(0x4016,0,&class4016,sizeof(CLASS_4016),para_vari_save);
-	if(readret!=1) {
-		class4016.num = MAX_PERIOD_RATE/2;
-		for(i=0;i<class4016.num;i++) {
-			class4016.Period_Rate[i].hour = i;
-			class4016.Period_Rate[i].min = 0;
-			class4016.Period_Rate[i].rateno = (i%4)+1;
-//			fprintf(stderr,"%d: hour:min=%d:%d rate=%d\n",i,class4016.Period_Rate[i].hour,class4016.Period_Rate[i].min,class4016.Period_Rate[i].rateno);
-		}
-	}
-}
 
 void InitACSCoef()
 {
@@ -1453,25 +1409,27 @@ void ACSEnergySave(ACEnergy_Sum energysum_tmp)
 	if(ts.Minute%5==0 && ts.Minute!=oldmin) {
 		oldmin = ts.Minute;
 		if(pwr_has() == TRUE) {		//底板带电
-			saveflag = 1;
+			fprintf(stderr,"save energy\n");
+			saveCoverClass(0,0,&energysum_tmp,sizeof(ACEnergy_Sum),acs_energy_save);
 		}
-	}else saveflag = 0;
-//	if(((ts.Sec % 10)==0) && (ts.Sec != oldsec)) {
-//		if(pwr_has() == FALSE) {
-//			sleep(2);
-//		v	if(bettery_getV(&bett[0],&bett[1]) == TRUE) {
-//				fprintf(stderr,"bett=%f,%f\n",bett[0],bett[1]);
-//				if((bett[1] >= MIN_BATTWORK_VOL)&& saveflag!=2) {
-//					saveflag = 2;
-//					syslog(LOG_NOTICE,"底板电源已关闭，电池电压=%f V,保存电能示值",bett[1]);
-//				}else {
-//					syslog(LOG_NOTICE,"底板电源已关闭，电池电压过低=%f V,不保存电量！！！",bett[1]);
-//				}
-//			}
-//		}
-//	}
-	if(saveflag) {
-		saveCoverClass(0,0,&energysum_tmp,sizeof(ACEnergy_Sum),acs_energy_save);
+	}
+	if(((ts.Sec % 5)==0) && (ts.Sec != oldsec)) {
+		oldsec = ts.Sec;
+		if(pwr_has() == FALSE) {
+			sleep(2);
+			if(bettery_getV(&bett[0],&bett[1]) == TRUE) {
+				fprintf(stderr,"bett=%f,%f  saveflag=%d\n",bett[0],bett[1],saveflag);
+				if((bett[1] >= MIN_BATTWORK_VOL)&& saveflag!=1) {	//掉电后且电池电量满足，只保存一次
+					saveflag = 1;
+					fprintf(stderr,"save energy\n");
+					saveCoverClass(0,0,&energysum_tmp,sizeof(ACEnergy_Sum),acs_energy_save);
+					syslog(LOG_NOTICE,"底板电源已关闭，电池电压=%f V,保存电能示值",bett[1]);
+				}else {
+					if(bett[1] < MIN_BATTWORK_VOL)
+						syslog(LOG_NOTICE,"底板电源已关闭，电池电压=%f V, saveflag=%d 不保存电量！！！",bett[1],saveflag);
+				}
+			}
+		}
 	}
 }
 ///////////////////////////////////////////////////////////////////////////////////
@@ -1491,14 +1449,16 @@ void InitACSPara()
 		sem_post(sem_check_fd);
 	}
 	fprintf(stderr,"process The sem is %d\n", val);
-
-
 	InitACSCoef();					//读交采数据
 	InitACSEnergy();				//电能量初值
 	device_id = InitACSChip();		//初始化芯片类型
+
+	memset(&class4016,0,sizeof(CLASS_4016));
+	readCoverClass(0x4016,0,&class4016,sizeof(CLASS_4016),para_vari_save);	//初始化当前套日时段表
+
 	JProgramInfo->dev_info.ac_chip_type = device_id;
 	JProgramInfo->dev_info.WireType = attCoef.WireType;
-	fprintf(stderr,"计量芯片版本：%06X, 接线方式=%X(0600:三相四，1200：三相三)\n",JProgramInfo->dev_info.ac_chip_type,JProgramInfo->dev_info.WireType);
+//	fprintf(stderr,"计量芯片版本：%06X, 接线方式=%X(0600:三相四，1200：三相三)\n",JProgramInfo->dev_info.ac_chip_type,JProgramInfo->dev_info.WireType);
 	asyslog(LOG_NOTICE,"计量芯片版本：%06X, 接线方式=%X(0600:三相四，1200：三相三)\n",JProgramInfo->dev_info.ac_chip_type,JProgramInfo->dev_info.WireType);
 }
 
@@ -1518,9 +1478,7 @@ void *thread_deal_acs()
 			ACSEnergySave(energysum);	//电量的存储	//TODO :底板掉电情况下，保证不控制gprs的poweron/off管脚
 			break;
 		}
-		//拷贝实时数据和电能量数据到pubdata共享内存结构体中。为了液晶的轮显数据
-
-		//fprintf(stderr,"==========================acs:JProgramInfo->ACSRealData.Available=%d========================== \n",JProgramInfo->ACSRealData.Available);
+		//拷贝实时数据和电能量数据到共享内存结构体中。为了液晶的轮显数据
 		memcpy(&JProgramInfo->ACSRealData,&realdata,sizeof(_RealData));
 		memcpy(&JProgramInfo->ACSEnergy,&energysum,sizeof(ACEnergy_Sum));
 		JProgramInfo->ACSRealData.Available = 1;
