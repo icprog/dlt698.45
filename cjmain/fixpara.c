@@ -141,7 +141,7 @@ void InitClass6000()
 		meter.basicinfo.port.attflg = 0x02;
 		meter.basicinfo.port.attrindex = 0x01;
 		meter.basicinfo.ratenum = MAXVAL_RATENUM;
-		meter.basicinfo.connectype = getACSConnectype();
+//		meter.basicinfo.connectype = getACSConnectype();
 		meter.basicinfo.ratedU = 2200;
 		meter.basicinfo.ratedI = 1500;
 		saveParaClass(0x6000,&meter,meter.sernum);

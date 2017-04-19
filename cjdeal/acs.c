@@ -1447,11 +1447,13 @@ void InitACSPara()
 		sem_post(sem_check_fd);
 	}
 	fprintf(stderr,"process The sem is %d\n", val);
-
-
 	InitACSCoef();					//读交采数据
 	InitACSEnergy();				//电能量初值
 	device_id = InitACSChip();		//初始化芯片类型
+
+	memset(&class4016,0,sizeof(CLASS_4016));
+	readCoverClass(0x4016,0,&class4016,sizeof(CLASS_4016),para_vari_save);	//初始化当前套日时段表
+
 	JProgramInfo->dev_info.ac_chip_type = device_id;
 	JProgramInfo->dev_info.WireType = attCoef.WireType;
 	fprintf(stderr,"计量芯片版本：%06X, 接线方式=%X(0600:三相四，1200：三相三)\n",JProgramInfo->dev_info.ac_chip_type,JProgramInfo->dev_info.WireType);

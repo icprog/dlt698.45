@@ -85,7 +85,6 @@ INT32S state_get(DEV_STATE_PULSE road)
 	return staval;
 }
 
-
 void read_oif203_para()
 {
 	int	readret = 0;

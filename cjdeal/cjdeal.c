@@ -26,6 +26,7 @@
 
 extern INT32S 			spifp_rn8209;
 extern INT32S 			spifp;
+
 ProgramInfo* JProgramInfo=NULL;
 int ProIndex=0;
 INT8U poweroffon_state = 0; //停上电抄读标志 0无效，1抄读，2抄读完毕
@@ -75,13 +76,6 @@ int InitPro(ProgramInfo** prginfo, int argc, char *argv[])
 int InitPara()
 {
 	InitACSPara();
-
-	memset(&class4016,0,sizeof(CLASS_4016));
-	readCoverClass(0x4016,0,&class4016,sizeof(CLASS_4016),para_vari_save);	//初始化当前套日时段表
-	memset(&oif203,0,sizeof(oif203));
-	readCoverClass(0xf203,0,&oif203,sizeof(CLASS_f203),para_vari_save);
-	fprintf(stderr,"属性4：接入标志=%02x\n",oif203.state4.StateAcessFlag);
-	fprintf(stderr,"属性4：属性标志=%02x\n",oif203.state4.StatePropFlag);
 	return 0;
 }
 
