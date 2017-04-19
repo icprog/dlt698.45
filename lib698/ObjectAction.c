@@ -886,8 +886,56 @@ void FileTransMothod(INT16U attr_act,INT8U *data)
 				data_index++;
 				crc = data[data_index];
 			}
-			else
-			{
+			else if(data[2] == 0x02 && data[3] == 0x06){
+				int data_index = 4;
+				if(data[data_index] != 0x0a)
+				{
+					fprintf(stderr,"无法找到源文件\n");
+					goto err;
+				}
+				data_index++;
+				data_index += data[data_index]+1;
+				if(data[data_index] != 0x0a)
+				{
+					fprintf(stderr,"无法找到目标文件\n");
+					goto err;
+				}
+				data_index ++;
+				memcpy(name, &data[data_index + 1], data[data_index]);
+				data_index += data[data_index]+1;
+				if(data[data_index] != 0x06)
+				{
+					fprintf(stderr,"未能找到文件长度\n");
+					goto err;
+				}
+				data_index++;
+				file_length += data[data_index++];
+				file_length <<= 8;
+				file_length += data[data_index++];
+				file_length <<= 8;
+				file_length += data[data_index++];
+				file_length <<= 8;
+				file_length += data[data_index++];
+				data_index+=3;
+				if(data[data_index] != 0x0a)
+				{
+					fprintf(stderr,"未能找到版本信息\n");
+					goto err;
+				}
+				data_index ++;
+				data_index += data[data_index]+1 + 2;
+
+				if(data[data_index] != 0x12)
+				{
+					fprintf(stderr,"未能找到分段长度信息\n");
+					goto err;
+				}
+				data_index ++;
+				block_length += data[data_index++];
+				block_length <<= 8;
+				block_length += data[data_index++];
+			}
+			else {
 				goto err;
 			}
 
