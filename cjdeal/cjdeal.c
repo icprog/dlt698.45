@@ -90,11 +90,13 @@ INT8U time_in_shiduan(TASK_RUN_TIME str_runtime,TI interval) {
 	{
 		min_start = str_runtime.runtime[timePartIndex].beginHour * 60
 				+ str_runtime.runtime[timePartIndex].beginMin;
+#ifndef GW_TAI_TI
 		//日冻结任务延时5分钟
 		if(interval.units == day_units)
 		{
 			min_start += 5;
 		}
+#endif
 		min_end = str_runtime.runtime[timePartIndex].endHour * 60
 				+ str_runtime.runtime[timePartIndex].endMin;
 		if (min_start <= min_end) {
@@ -412,9 +414,28 @@ INT8U init6013ListFrom6012File() {
 			else
 			{
 				memcpy(&list6013[total_tasknum].basicInfo, &class6013, sizeof(CLASS_6013));
-				list6013[total_tasknum].ts_next  = calcnexttime(list6013[total_tasknum].basicInfo.interval,list6013[total_tasknum].basicInfo.startime);
+				//日冻结任务刚下发就抄
+				if(list6013[total_tasknum].basicInfo.interval.units >= day_units)
+				{
+					time_t time_now;
+					time_now = time(NULL);//当前时间
+					list6013[total_tasknum].ts_next  = time_now;
+				}
+				else
+				{
+					list6013[total_tasknum].ts_next  = calcnexttime(list6013[total_tasknum].basicInfo.interval,list6013[total_tasknum].basicInfo.startime);
+				}
+
 				//TODO
 				total_tasknum++;
+
+				//任务初始化新建6035
+				CLASS_6035 result6035;	//采集任务监控单元
+				memset(&result6035,0,sizeof(CLASS_6035));
+				result6035.taskState = BEFORE_OPR;
+				result6035.taskID = class6013.taskID;
+				saveClass6035(&result6035);
+
 			}
 		}
 	}
@@ -567,7 +588,7 @@ INT8S dealMsgProcess()
 					if(cjguiProxy.isInUse == 0)
 					{
 						memcpy(&cjguiProxy.strProxyMsg,rev_485_buf,sizeof(Proxy_Msg));
-						cjguiProxy.isInUse = 3;
+						cjguiProxy.isInUse = 7;
 					}
 					else
 					{
@@ -680,8 +701,10 @@ void dispatch_thread()
 		}
 		else
 		{
+#ifndef GW_TAI_TI
 			//补抄
 			replenish_tmp();
+#endif
 			//fprintf(stderr,"\n当前无任务执行\n");
 		}
 

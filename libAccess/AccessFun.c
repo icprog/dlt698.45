@@ -700,7 +700,7 @@ int	saveFreezeRecord(OI_698 freezeOI,OAD oad,DateTimeBCD datetime,int len,INT8U 
 	if(len>VARI_LEN) {
 		fprintf(stderr,"save %s/%04x-%04x.dat 数据长度[%d]大于限定值[%d],不予保存",VARI_DIR,freezeOI,oad.OI,len,VARI_LEN);
 	}
-	sem_save = InitSem();
+//	sem_save = InitSem();
 	memset(&filename,0,sizeof(filename));
 	makeSubDir(VARI_DIR);
 	sprintf(filename,"%s/%04x-%04x.dat",VARI_DIR,freezeOI,oad.OI);
@@ -737,7 +737,7 @@ int	saveFreezeRecord(OI_698 freezeOI,OAD oad,DateTimeBCD datetime,int len,INT8U 
 		fsync(fd);
 		fclose(fp);
 	}
-	CloseSem(sem_save);
+//	CloseSem(sem_save);
 	return ret;
 }
 
@@ -757,7 +757,7 @@ int readFreezeRecordNum(OI_698 freezeOI,OI_698 relateOI,int *currRecordNum,int *
 	sem_t   *sem_save=NULL;
 
 	syslog(LOG_NOTICE,"__%s__,freezeOI=%04x,relateOI=%04x",__func__,freezeOI,relateOI);
-	sem_save = InitSem();
+//	sem_save = InitSem();
 	*currRecordNum = 0;
 	*MaxRecordNum = 0;
 	memset(&filename,0,sizeof(filename));
@@ -771,7 +771,7 @@ int readFreezeRecordNum(OI_698 freezeOI,OI_698 relateOI,int *currRecordNum,int *
 //		fprintf(stderr,"currRecord=%d,maxRecord=%d\n",*currRecordNum,*MaxRecordNum);
 		fclose(fp);
 	}
-	CloseSem(sem_save);
+//	CloseSem(sem_save);
 	return ret;
 }
 /*
@@ -790,7 +790,7 @@ int readFreezeRecordByNum(OI_698 freezeOI,OAD oad,int RecordNum,DateTimeBCD *dat
 	sem_t   *sem_save=NULL;
 
 	syslog(LOG_NOTICE,"__%s__,freezeOI=%04x,oad=%04x,RecordNum=%d",__func__,freezeOI,oad.OI,RecordNum);
-	sem_save = InitSem();
+//	sem_save = InitSem();
 
 	memset(&filename,0,sizeof(filename));
 	sprintf(filename,"%s/%04x-%04x.dat",VARI_DIR,freezeOI,oad.OI);
@@ -814,7 +814,7 @@ int readFreezeRecordByNum(OI_698 freezeOI,OAD oad,int RecordNum,DateTimeBCD *dat
 		}
 		fclose(fp);
 	}
-	CloseSem(sem_save);
+//	CloseSem(sem_save);
 	return ret;
 }
 /*
@@ -834,7 +834,7 @@ int	readFreezeRecordByTime(OI_698 freezeOI,OAD oad,DateTimeBCD datetime,int *dat
 	sem_t   *sem_save=NULL;
 
 	syslog(LOG_NOTICE,"__%s__,freezeOI=%04x,oad=%04x,[%04d-%02d-%02d %02d:%02d:%02d]",__func__,freezeOI,oad.OI,datetime.year.data,datetime.month.data,datetime.day.data,datetime.hour.data,datetime.min.data,datetime.sec.data);
-	sem_save = InitSem();
+//	sem_save = InitSem();
 
 	memset(&filename,0,sizeof(filename));
 	sprintf(filename,"%s/%04x-%04x.dat",VARI_DIR,freezeOI,oad.OI);
@@ -875,7 +875,7 @@ int	readFreezeRecordByTime(OI_698 freezeOI,OAD oad,DateTimeBCD datetime,int *dat
 		}
 		fclose(fp);
 	}
-	CloseSem(sem_save);
+//	CloseSem(sem_save);
 	return ret;
 }
 
