@@ -1280,7 +1280,7 @@ INT16S request698_07Data(INT8U* DI07,INT8U* dataContent,CLASS_6001 meter,CLASS_6
 			meter.basicinfo.addr.addr[6],meter.basicinfo.addr.addr[7],meter.basicinfo.addr.addr[8]);
 	fprintf(stderr, "\nDI = %02x%02x%02x%02x\n",DI07[0],DI07[1],DI07[2],DI07[3]);
 
-
+	//DbgPrintToFile1(port485,"11111zeroBuff　%02x%02x%02x%02x",zeroBuff[0],zeroBuff[1],zeroBuff[2],zeroBuff[3]);
 
 	Data07.Ctrl = CTRL_Read_07;
 	if(meter.basicinfo.addr.addr[1] > 5)
@@ -1292,7 +1292,7 @@ INT16S request698_07Data(INT8U* DI07,INT8U* dataContent,CLASS_6001 meter,CLASS_6
 	INT8U startIndex = 5 - meter.basicinfo.addr.addr[1];
 	memcpy(&Data07.Addr[startIndex], &meter.basicinfo.addr.addr[2], (meter.basicinfo.addr.addr[1]+1));
 	memcpy(&Data07.DI, DI07, 4);
-
+	//DbgPrintToFile1(port485,"22222zeroBuff　%02x%02x%02x%02x",zeroBuff[0],zeroBuff[1],zeroBuff[2],zeroBuff[3]);
 	DbgPrintToFile1(port485,"07测量点 = %02x%02x%02x%02x%02x%02x  DI = %02x%02x%02x%02x\n",
 			Data07.Addr[0],Data07.Addr[1],Data07.Addr[2],Data07.Addr[3],Data07.Addr[4],Data07.Addr[5],
 			DI07[0],DI07[1],DI07[2],DI07[3]);
@@ -1303,6 +1303,7 @@ INT16S request698_07Data(INT8U* DI07,INT8U* dataContent,CLASS_6001 meter,CLASS_6
 		fprintf(stderr, "request698_07DataList1");
 		return retLen;
 	}
+//	DbgPrintToFile1(port485,"33333zeroBuff　%02x%02x%02x%02x",zeroBuff[0],zeroBuff[1],zeroBuff[2],zeroBuff[3]);
 	subindex = 0;
 	while(subindex < MAX_RETRY_NUM)
 	{
@@ -1314,6 +1315,7 @@ INT16S request698_07Data(INT8U* DI07,INT8U* dataContent,CLASS_6001 meter,CLASS_6
 		}
 		subindex++;
 	}
+	//DbgPrintToFile1(port485,"444444zeroBuff　%02x%02x%02x%02x",zeroBuff[0],zeroBuff[1],zeroBuff[2],zeroBuff[3]);
 	fprintf(stderr,"\n request698_07Data retLen = %d",retLen);
 	return retLen;
 }
@@ -3068,10 +3070,17 @@ INT16S deal6017_07(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8U
 			continue;
 		}
 		DbgPrintToFile1(port485,"deal6017_07　事件序号　%02x%02x%02x%02x%02x",dataContent[0],dataContent[1],dataContent[2],dataContent[3],dataContent[4]);
+		DbgPrintToFile1(port485,"zeroBuff　%02x%02x%02x%02x",zeroBuff[0],zeroBuff[1],zeroBuff[2],zeroBuff[3]);
+#if 0
 		if(memcmp(&dataContent[1],zeroBuff,4)==0)
 		{
 			continue;
 		}
+#else
+		if(dataContent[1]==0 && dataContent[2]==0  && dataContent[3]==0 && dataContent[4]==0) {
+			continue;
+		}
+#endif
 		//事件序号
 		memcpy(&saveContentHead[headDataLen],dataContent,5);
 		headDataLen += 5;
