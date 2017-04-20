@@ -320,11 +320,11 @@ int GetOADPos(FILE *fp,INT16U headlen,OAD oadm,OAD oadr)
  */
 int SaveNorData(INT8U taskid,ROAD *road_eve,INT8U *databuf,int datalen)//存储事件时指针road_eve定义为NULL
 {
-	TS ts_now;
+	TS ts_now,ts_month;
 	FILE *fp;
 	CSD_ARRAYTYPE csds;
 	char	fname[FILENAMELEN]={};
-	INT8U *databuf_tmp=NULL,eveflg=0;
+	INT8U *databuf_tmp=NULL,eveflg=0,taskinfoflg=0;
 	int savepos=0,currpos=0,i=0;
 	INT16U headlen=0,unitlen=0,unitnum=0,unitseq=0,runtime=0;//runtime执行次数
 	TASKSET_INFO tasknor_info;
@@ -334,10 +334,20 @@ int SaveNorData(INT8U taskid,ROAD *road_eve,INT8U *databuf,int datalen)//存储�
 	TSGet(&ts_now);//用的当前时间，测试用，需要根据具体存储时标选择来定义
 	if(road_eve == NULL)//不是事件
 	{
-		if(ReadTaskInfo(taskid,&tasknor_info)!=1)
+		if((taskinfoflg = ReadTaskInfo(taskid,&tasknor_info))==0)
 			return 0;
 		runtime = tasknor_info.runtime;
 		memcpy(&csds,&tasknor_info.csds,sizeof(CSD_ARRAYTYPE));//
+		if(taskinfoflg == 2)//月冻结
+		{
+			ts_month.Year = ts_now.Year;
+			ts_month.Month = ts_now.Month;
+			ts_now.Day = 0;
+			ts_now.Hour = 0;
+			ts_now.Minute = 0;
+			ts_now.Sec = 0;
+			asyslog(LOG_WARNING, "月冻结存储:%d",ts_now.Month);
+		}
 		getTaskFileName(taskid,ts_now,fname);
 	}
 	else

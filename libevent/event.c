@@ -1132,14 +1132,16 @@ INT8U Get_meter_powoffon(ProgramInfo* prginfo_event,MeterPower *MeterPowerInfo,
     	//随机
     	if(collect_flag_2 == 1){
     		fprintf(stderr,"随机选择测量点 \n");
+    		 INT8U curr_n=0;
              for(i=0;i<blknum;i++){
             	 if(readParaClass(oi,&meter,i)==1){
             		 if(meter.basicinfo.port.OI == 0xF201){
             			 fprintf(stderr,"sernum=%d \n",meter.sernum);
-						 MeterPowerInfo[i].ERC3106State = 1;
-						 MeterPowerInfo[i].Valid = 0;
-						 memcpy(&MeterPowerInfo[i].tsa,&meter.basicinfo.addr,TSA_LEN);
-						 if(i>2)
+						 MeterPowerInfo[curr_n].ERC3106State = 1;
+						 MeterPowerInfo[curr_n].Valid = 0;
+						 memcpy(&MeterPowerInfo[curr_n].tsa,&meter.basicinfo.addr,TSA_LEN);
+						 curr_n++;
+						 if(curr_n>2)
 							 break;
             		 }
                }
@@ -1244,11 +1246,15 @@ INT8U Event_3106(ProgramInfo* prginfo_event,MeterPower *MeterPowerInfo,INT8U *st
 		if(TermialPowerInfo.Valid == POWER_OFF_VALIDE)
 		{
 			//如果上电时间大于停电时间或者停上电时间间隔小于最小间隔或者大于最大间隔不产生下电事件
-			if((interval > mintime_space*60)&&(interval < maxtime_space*60))
+			if((interval > mintime_space*60)&&(interval < maxtime_space*60)){
+				flag = 0b10000000;
+				SendERC3106(flag,1,prginfo_event);
 				flag = 0b11000000;
+			}
 			else
 				flag = 0b01000000;
 			//如果判断停电事件无效
+			sleep(3);
 			SendERC3106(flag,1,prginfo_event);
 			TermialPowerInfo.ERC3106State = POWER_START;
 			TermialPowerInfo.Valid = POWER_START;

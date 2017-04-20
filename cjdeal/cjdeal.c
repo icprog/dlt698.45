@@ -23,6 +23,7 @@
 #include "ParaDef.h"
 #include "EventObject.h"
 #include "dlt698def.h"
+#include "basedef.h"
 
 extern INT32S 			spifp_rn8209;
 extern INT32S 			spifp;
@@ -386,6 +387,40 @@ INT8S init6000InfoFrom6000FIle()
 //	fprintf(stderr,"485 1口测量点数量 = %d   485 2口测量点数量 = %d",info6000[0].meterSum,info6000[1].meterSum);
 	return result;
 }
+INT8S saveClass6035(CLASS_6035* class6035)
+{
+	INT8U isFind = 0;
+	INT8S ret = -1;
+	int recordNum = getFileRecordNum(0x6035);
+	CLASS_6035 file6035;
+	memset(&file6035,0,sizeof(CLASS_6035));
+	INT16U i;
+	for(i=0;i<=recordNum;i++)
+	{
+		if(readCoverClass(0x6035,i,&file6035,sizeof(CLASS_6035),coll_para_save)== 1)
+		{
+			if(file6035.taskID == class6035->taskID)
+			{
+				isFind = 1;
+				break;
+			}
+		}
+	}
+	if(isFind)
+	{
+		memcpy(&class6035->starttime,&file6035.starttime,sizeof(DateTimeBCD));
+		class6035->totalMSNum += file6035.totalMSNum;
+		class6035->successMSNum += file6035.successMSNum;
+		class6035->sendMsgNum += file6035.sendMsgNum;
+		class6035->rcvMsgNum += file6035.rcvMsgNum;
+	}
+
+	saveCoverClass(0x6035, class6035->taskID, class6035,
+			sizeof(CLASS_6035), coll_para_save);
+
+
+	return ret;
+}
 /*
  * 从文件里把所有的任务单元读上来
  * */
@@ -416,18 +451,14 @@ INT8U init6013ListFrom6012File() {
 			else
 			{
 				memcpy(&list6013[total_tasknum].basicInfo, &class6013, sizeof(CLASS_6013));
-				//日冻结任务刚下发就抄
-				if(list6013[total_tasknum].basicInfo.interval.units == day_units)
-				{
+				//任务刚下发就抄 一重启也抄
+#if 1
 					time_t time_now;
 					time_now = time(NULL);//当前时间
 					list6013[total_tasknum].ts_next  = time_now;
-				}
-				else
-				{
+#else
 					list6013[total_tasknum].ts_next  = calcnexttime(list6013[total_tasknum].basicInfo.interval,list6013[total_tasknum].basicInfo.startime);
-				}
-
+#endif
 				//TODO
 				total_tasknum++;
 

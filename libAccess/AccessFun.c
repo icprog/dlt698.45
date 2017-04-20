@@ -1095,7 +1095,8 @@ INT8U ReadTaskInfo(INT8U taskid,TASKSET_INFO *tasknor_info)//读取普通采集�
 			fprintf(stderr,"\n---@@@---返回1\n");
 			asyslog(LOG_INFO,"任务开始结束时间：%d:%d--%d:%d\n",tasknor_info->starthour,tasknor_info->startmin,tasknor_info->endhour,tasknor_info->endmin);
 			asyslog(LOG_INFO,"\n---@@@---任务%d执行次数%d\n",taskid,tasknor_info->runtime);
-
+			if(class6015.cjtype == 2 && class6013.interval.units == 4)
+				return 2;
 			return 1;
 		}
 	}
@@ -1495,7 +1496,7 @@ INT16U getTSASE4(MS ms,TSA *tsa)
 	}
 	return TSA_num;
 }
-FILE* opendatafile(INT8U taskid,CURR_RECINFO recinfo)
+FILE* opendatafile(INT8U taskid,CURR_RECINFO recinfo,INT8U taskinfoflg)
 {
 	FILE *fp = NULL;
 	char	fname[FILENAMELEN]={};
@@ -1510,6 +1511,11 @@ FILE* opendatafile(INT8U taskid,CURR_RECINFO recinfo)
 	ts_rec.Minute = 0;
 	ts_rec.Sec = 0;
 
+	if(taskinfoflg == 2)
+	{
+		asyslog(LOG_INFO,"n月冻结招测\n");
+		ts_rec.Day = 0;
+	}
 	getTaskFileName(taskid,ts_rec,fname);//得到要抄读的文件名称
 	fprintf(stderr,"fname=%s\n",fname);
 	asyslog(LOG_INFO,"任务时间到: 组帧frmdata，打开任务文件=%s, taskid=%d\n",fname,taskid);
@@ -1819,11 +1825,19 @@ INT8U updatedatafp(FILE *fp,INT8U recno,INT8U selectype,INT16U interval,CURR_REC
 		makeSubDir(dirname);
 		sprintf(fname,"%s/%03d/%04d%02d%02d.dat",TASKDATA,taskid,tm_p->tm_year+1900,tm_p->tm_mon+1,tm_p->tm_mday);
 		fprintf(stderr,"\n更新文件流：%s\n",fname);
+		if(fp != NULL)
+			fclose(fp);
 		fp =fopen(fname,"r");
 		if(fp != NULL)
+		{
+			fprintf(stderr,"\n更新文件流：%s succ!!!!\n",fname);
 			return 2;
+		}
 		else
+		{
+			fprintf(stderr,"\n更新文件流：%s fail!!!!\n",fname);
 			return 0;
+		}
 	}
 	return 1;
 }
@@ -2231,7 +2245,7 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds)
 	TASKSET_INFO tasknor_info;
 	INT16U  blocksize=0,headsize=0;
 	int offsetTsa = 0,recordoffset = 0,unitnum=0,i=0,j=0,indexn=0,recordlen = 0,currecord = 0,firecord = 0,tsa_num=0,framesum=0;
-	INT8U recordnum=0,seqnumindex=0;
+	INT8U recordnum=0,seqnumindex=0,taskinfoflg=0;
 	TSA *tsa_group = NULL;
 	ROAD road_eve;
 	INT8U eveflg=0;
@@ -2274,7 +2288,7 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds)
 			asyslog(LOG_INFO,"GetTaskData: taskid=%d\n",taskid);
 			return 0;
 		}
-		if(ReadTaskInfo(taskid,&tasknor_info)!=1)//得到任务信息
+		if((taskinfoflg = ReadTaskInfo(taskid,&tasknor_info))==0)//得到任务信息
 		{
 			asyslog(LOG_INFO,"n得到任务信息失败\n");
 			fprintf(stderr,"\n得到任务信息失败\n");
@@ -2289,7 +2303,7 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds)
 		firecord = currecord;//每次切换表地址，当前记录序号赋值第一次的数值
 		//1\打开数据文件
 		fprintf(stderr,"\n----------1\n");
-		fp = opendatafile(taskid,recinfo);
+		fp = opendatafile(taskid,recinfo,taskinfoflg);
 	}
 	myfp = openFramefile(TASK_FRAME_DATA);
 	if (fp==NULL || myfp==NULL)
