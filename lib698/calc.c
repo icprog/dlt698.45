@@ -117,6 +117,18 @@ INT8U Get_Vacs(RESULT_NORMAL *response,ProgramInfo* prginfo_acs)
 		index += fillVacsData(structnum,response->oad.attrindex,dtdoublelong,
 				prginfo_acs->ACSRealData.Ia,prginfo_acs->ACSRealData.Ib,prginfo_acs->ACSRealData.Ic,prginfo_acs->ACSRealData.I0,response->data);
 		break;
+	case 0x2002:	//电压相角
+		if(response->oad.attrindex==0)		structnum = 3;
+		else structnum = 1;
+		index += fillVacsData(structnum,response->oad.attrindex,dtlongunsigned,
+				prginfo_acs->ACSRealData.YUaUb,prginfo_acs->ACSRealData.YUaUc,prginfo_acs->ACSRealData.YUbUc,0,response->data);
+		break;
+	case 0x2003:	//电压电流相角
+		if(response->oad.attrindex==0)		structnum = 3;
+		else structnum = 1;
+		index += fillVacsData(structnum,response->oad.attrindex,dtlongunsigned,
+				prginfo_acs->ACSRealData.Pga,prginfo_acs->ACSRealData.Pgb,prginfo_acs->ACSRealData.Pgc,0,response->data);
+		break;
 	case 0x2004:	//有功功率
 		if(response->oad.attrindex==0)		structnum = 4;
 		else structnum = 1;
@@ -128,6 +140,12 @@ INT8U Get_Vacs(RESULT_NORMAL *response,ProgramInfo* prginfo_acs)
 		else structnum = 1;
 		index += fillVacsData(structnum,response->oad.attrindex,dtdoublelong,
 				prginfo_acs->ACSRealData.Qt,prginfo_acs->ACSRealData.Qa,prginfo_acs->ACSRealData.Qb,prginfo_acs->ACSRealData.Qc,response->data);
+		break;
+	case 0x2006:	//视在功率
+		if(response->oad.attrindex==0)		structnum = 4;
+		else structnum = 1;
+		index += fillVacsData(structnum,response->oad.attrindex,dtdoublelong,
+				prginfo_acs->ACSRealData.St,prginfo_acs->ACSRealData.Sa,prginfo_acs->ACSRealData.Sb,prginfo_acs->ACSRealData.Sc,response->data);
 		break;
 	case 0x200A:	//功率因数
 		if(response->oad.attrindex==0)		structnum = 4;
