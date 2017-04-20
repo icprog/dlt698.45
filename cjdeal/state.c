@@ -34,17 +34,6 @@ static CLASS_f203	oif203={};
 
 typedef enum {STATE1=1,STATE2=2,STATE3=3,STATE4=4,PLUSE1=5,PLUSE2=6} DEV_STATE_PULSE;
 
-//INT8S gpio_readbyte(char* devpath) {
-//    char data = 0;
-//    int fd    = 0;
-//    if ((fd = open((const char*)devpath, O_RDWR | O_NDELAY)) > 0) {
-//        read(fd, &data, sizeof(char));
-//        close(fd);
-//    } else
-//        return -1;
-//    return data;
-//}
-
 INT32S state_get(DEV_STATE_PULSE road)
 {
 	INT32S	staval=-1;
@@ -66,20 +55,24 @@ INT32S state_get(DEV_STATE_PULSE road)
 		staval = gpio_readbyte(DEV_STATE4);
 		break;
 	case PLUSE1:
-	    if ((fd = open(DEV_PULSE, O_RDWR | O_NDELAY)) > 0) {
+	    if ((fd = open(DEV_PULSE, O_RDWR | O_NDELAY)) >= 0) {
 	        read(fd, &pluse_tmp, 2*sizeof(unsigned int));
 	        close(fd);
 	        return pluse_tmp[0];
-	    } else
+	    } else {
+	    	syslog(LOG_ERR,"%s %s fd=%d(PLUSE1)\n",__func__,DEV_PULSE,fd);
 	        return -1;
+	    }
 		break;
 	case PLUSE2:
-	    if ((fd = open(DEV_PULSE, O_RDWR | O_NDELAY)) > 0) {
+	    if ((fd = open(DEV_PULSE, O_RDWR | O_NDELAY)) >= 0) {
 	        read(fd, &pluse_tmp, 2*sizeof(unsigned int));
 	        close(fd);
 	        return pluse_tmp[1];
-	    } else
+	    } else {
+	    	syslog(LOG_ERR,"%s %s fd=%d(PLUSE2)\n",__func__,DEV_PULSE,fd);
 	        return -1;
+	    }
 		break;
 	}
 	return staval;
@@ -90,17 +83,8 @@ void read_oif203_para()
 	int	readret = 0;
 	memset(&oif203,0,sizeof(oif203));
 	readret = readCoverClass(0xf203,0,&oif203,sizeof(CLASS_f203),para_vari_save);
-	if(readret!=1){
-		fprintf(stderr,"无oi【F203】参数文件\n");
-		strncpy((char *)&oif203.class22.logic_name,"F203",sizeof(oif203.class22.logic_name));
-		oif203.class22.device_num = 1;
-		oif203.statearri.num = 4;
-		oif203.state4.StateAcessFlag = 0xF0;	//第1路状态接入
-		oif203.state4.StatePropFlag = 0xF0;		//第1路状态常开触点
-	}
-	fprintf(stderr,"逻辑名 %s\n",oif203.class22.logic_name);
-	fprintf(stderr,"属性4：接入标志=%02x\n",oif203.state4.StateAcessFlag);
-	fprintf(stderr,"属性4：属性标志=%02x\n",oif203.state4.StatePropFlag);
+	fprintf(stderr,"f203属性4：接入标志=%02x\n",oif203.state4.StateAcessFlag);
+	fprintf(stderr,"f203属性4：属性标志=%02x\n",oif203.state4.StatePropFlag);
 }
 
 //检测F203参数是否变化
@@ -137,7 +121,7 @@ BOOLEAN oi_f203_changed(INT8U save_changed)
  * 返回 =1：有状态变位
  *     =0 :无变位
  * */
-INT8U state_check(BOOLEAN changed)
+INT8U state_check(BOOLEAN changed,INT8U devicetype)
 {
 	INT8U	staret=0;
 	INT8U 	i =0;
@@ -156,9 +140,11 @@ INT8U state_check(BOOLEAN changed)
 					bit_state[i] = bit_state[0];			//II型无设备，台体测试测试1-4路状态
 				}
 			}else if(i==4) {		//门节点
-				readstate[i] = getSpiAnalogState();
-				if(readstate[i]!=-1) {
-					bit_state[i] = ((~(readstate[i]>>5))&0x01);
+				if(devicetype==1) {		//I型集中器
+					readstate[i] = getSpiAnalogState();
+					if(readstate[i]!=-1) {
+						bit_state[i] = ((~(readstate[i]>>5))&0x01);
+					}
 				}
 			}
 			if(((oif203.state4.StatePropFlag>>(STATE_MAXNUM-1-i))&0x01)==0){	//常闭
@@ -200,7 +186,7 @@ void DealState(ProgramInfo* prginfo)
 	BOOLEAN changed = FALSE;
 	INT8U	stachg = 0;
 	changed = oi_f203_changed(prginfo->oi_changed.oiF203);
-	stachg = state_check(changed);
+	stachg = state_check(changed,prginfo->DevicePara[0]);
 	if(stachg==1) {
 		getStateEvent(prginfo);
 		saveCoverClass(0xf203,0,&oif203,sizeof(CLASS_f203),para_vari_save);

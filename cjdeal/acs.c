@@ -1409,25 +1409,27 @@ void ACSEnergySave(ACEnergy_Sum energysum_tmp)
 	if(ts.Minute%5==0 && ts.Minute!=oldmin) {
 		oldmin = ts.Minute;
 		if(pwr_has() == TRUE) {		//底板带电
-			saveflag = 1;
+			fprintf(stderr,"save energy\n");
+			saveCoverClass(0,0,&energysum_tmp,sizeof(ACEnergy_Sum),acs_energy_save);
 		}
-	}else saveflag = 0;
-//	if(((ts.Sec % 10)==0) && (ts.Sec != oldsec)) {
-//		if(pwr_has() == FALSE) {
-//			sleep(2);
-//		v	if(bettery_getV(&bett[0],&bett[1]) == TRUE) {
-//				fprintf(stderr,"bett=%f,%f\n",bett[0],bett[1]);
-//				if((bett[1] >= MIN_BATTWORK_VOL)&& saveflag!=2) {
-//					saveflag = 2;
-//					syslog(LOG_NOTICE,"底板电源已关闭，电池电压=%f V,保存电能示值",bett[1]);
-//				}else {
-//					syslog(LOG_NOTICE,"底板电源已关闭，电池电压过低=%f V,不保存电量！！！",bett[1]);
-//				}
-//			}
-//		}
-//	}
-	if(saveflag) {
-		saveCoverClass(0,0,&energysum_tmp,sizeof(ACEnergy_Sum),acs_energy_save);
+	}
+	if(((ts.Sec % 5)==0) && (ts.Sec != oldsec)) {
+		oldsec = ts.Sec;
+		if(pwr_has() == FALSE) {
+			sleep(2);
+			if(bettery_getV(&bett[0],&bett[1]) == TRUE) {
+				fprintf(stderr,"bett=%f,%f  saveflag=%d\n",bett[0],bett[1],saveflag);
+				if((bett[1] >= MIN_BATTWORK_VOL)&& saveflag!=1) {	//掉电后且电池电量满足，只保存一次
+					saveflag = 1;
+					fprintf(stderr,"save energy\n");
+					saveCoverClass(0,0,&energysum_tmp,sizeof(ACEnergy_Sum),acs_energy_save);
+					syslog(LOG_NOTICE,"底板电源已关闭，电池电压=%f V,保存电能示值",bett[1]);
+				}else {
+					if(bett[1] < MIN_BATTWORK_VOL)
+						syslog(LOG_NOTICE,"底板电源已关闭，电池电压=%f V, saveflag=%d 不保存电量！！！",bett[1],saveflag);
+				}
+			}
+		}
 	}
 }
 ///////////////////////////////////////////////////////////////////////////////////
@@ -1456,7 +1458,7 @@ void InitACSPara()
 
 	JProgramInfo->dev_info.ac_chip_type = device_id;
 	JProgramInfo->dev_info.WireType = attCoef.WireType;
-	fprintf(stderr,"计量芯片版本：%06X, 接线方式=%X(0600:三相四，1200：三相三)\n",JProgramInfo->dev_info.ac_chip_type,JProgramInfo->dev_info.WireType);
+//	fprintf(stderr,"计量芯片版本：%06X, 接线方式=%X(0600:三相四，1200：三相三)\n",JProgramInfo->dev_info.ac_chip_type,JProgramInfo->dev_info.WireType);
 	asyslog(LOG_NOTICE,"计量芯片版本：%06X, 接线方式=%X(0600:三相四，1200：三相三)\n",JProgramInfo->dev_info.ac_chip_type,JProgramInfo->dev_info.WireType);
 }
 
@@ -1476,9 +1478,7 @@ void *thread_deal_acs()
 			ACSEnergySave(energysum);	//电量的存储	//TODO :底板掉电情况下，保证不控制gprs的poweron/off管脚
 			break;
 		}
-		//拷贝实时数据和电能量数据到pubdata共享内存结构体中。为了液晶的轮显数据
-
-		//fprintf(stderr,"==========================acs:JProgramInfo->ACSRealData.Available=%d========================== \n",JProgramInfo->ACSRealData.Available);
+		//拷贝实时数据和电能量数据到共享内存结构体中。为了液晶的轮显数据
 		memcpy(&JProgramInfo->ACSRealData,&realdata,sizeof(_RealData));
 		memcpy(&JProgramInfo->ACSEnergy,&energysum,sizeof(ACEnergy_Sum));
 		JProgramInfo->ACSRealData.Available = 1;
