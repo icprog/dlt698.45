@@ -415,7 +415,7 @@ INT8U init6013ListFrom6012File() {
 			{
 				memcpy(&list6013[total_tasknum].basicInfo, &class6013, sizeof(CLASS_6013));
 				//日冻结任务刚下发就抄
-				if(list6013[total_tasknum].basicInfo.interval.units == day_units)
+				if(list6013[total_tasknum].basicInfo.interval.units >= day_units)
 				{
 					time_t time_now;
 					time_now = time(NULL);//当前时间

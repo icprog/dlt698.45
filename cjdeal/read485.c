@@ -871,6 +871,12 @@ INT16S dealEventRecord(CLASS_6001 meter,FORMAT07 resultData07,INT16U taskID,INT8
 			}
 
 		}
+		if(memcmp(flag07_tingshangdian,resultData07.DI,4)==0)//停上电
+		{
+			fprintf(stderr,"\n checkEvent 停上电事件");
+			dataLen += time07totime698(&resultData07.Data[0],&dataContent[dataLen]);
+			dataLen += time07totime698(&resultData07.Data[0],&dataContent[dataLen]);
+		}
 	}
 	return dataLen;
 }
@@ -2066,7 +2072,28 @@ INT8S readMeterPowerInfo()
 			{
 			case DLT_645_07:
 				{
-					 request698_07Data(flag07_tingshangdian,dataContent,obj6001,&invalidst6035,port485);
+					 	request698_07Data(flag07_tingshangdian,dataContent,obj6001,&invalidst6035,port485);
+
+						MeterPowerInfo[meterIndex].PoweroffTime.tm_year = dataContent[1];
+						MeterPowerInfo[meterIndex].PoweroffTime.tm_year = (MeterPowerInfo[meterIndex].PoweroffTime.tm_year<<8);
+						MeterPowerInfo[meterIndex].PoweroffTime.tm_year = MeterPowerInfo[meterIndex].PoweroffTime.tm_year + dataContent[2] - 1900;
+						MeterPowerInfo[meterIndex].PoweroffTime.tm_mon = dataContent[3] -1;
+						MeterPowerInfo[meterIndex].PoweroffTime.tm_mday = dataContent[4];
+						MeterPowerInfo[meterIndex].PoweroffTime.tm_hour = dataContent[5];
+						MeterPowerInfo[meterIndex].PoweroffTime.tm_min = dataContent[6];
+						MeterPowerInfo[meterIndex].PoweroffTime.tm_sec = dataContent[7];
+
+						MeterPowerInfo[meterIndex].PoweronTime.tm_year = dataContent[9];
+						MeterPowerInfo[meterIndex].PoweronTime.tm_year = (MeterPowerInfo[meterIndex].PoweronTime.tm_year<<8);
+						MeterPowerInfo[meterIndex].PoweronTime.tm_year = MeterPowerInfo[meterIndex].PoweronTime.tm_year +  dataContent[10] - 1900;
+
+						MeterPowerInfo[meterIndex].PoweronTime.tm_mon =  dataContent[11] -1;
+						MeterPowerInfo[meterIndex].PoweronTime.tm_mday =  dataContent[12];
+						MeterPowerInfo[meterIndex].PoweronTime.tm_hour =  dataContent[13];
+						MeterPowerInfo[meterIndex].PoweronTime.tm_min =  dataContent[14];
+						MeterPowerInfo[meterIndex].PoweronTime.tm_sec =  dataContent[15];
+
+						MeterPowerInfo[meterIndex].Valid = 1;
 				}
 				break;
 			default:
@@ -2115,7 +2142,7 @@ INT8S readMeterPowerInfo()
 								if(recvbuff[apduDataStartIndex+4] == 1)
 								{
 									fprintf(stderr,"\n readMeterPowerInfo datacontent = ");
-									INT8U prtIndex = 0;
+//									INT8U prtIndex = 0;
 
 //									for(prtIndex = (apduDataStartIndex+13);prtIndex < (apduDataStartIndex+27);prtIndex++)
 //									{

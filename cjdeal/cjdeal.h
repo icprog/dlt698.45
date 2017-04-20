@@ -5,7 +5,7 @@
 #include "libmmq.h"
 #include "show_ctrl.h"
 
-#define GW_TAI_TI
+//#define GW_TAI_TI
 
 extern ProgramInfo* JProgramInfo;
 
