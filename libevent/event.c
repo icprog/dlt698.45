@@ -1132,14 +1132,16 @@ INT8U Get_meter_powoffon(ProgramInfo* prginfo_event,MeterPower *MeterPowerInfo,
     	//随机
     	if(collect_flag_2 == 1){
     		fprintf(stderr,"随机选择测量点 \n");
+    		 INT8U curr_n=0;
              for(i=0;i<blknum;i++){
             	 if(readParaClass(oi,&meter,i)==1){
             		 if(meter.basicinfo.port.OI == 0xF201){
             			 fprintf(stderr,"sernum=%d \n",meter.sernum);
-						 MeterPowerInfo[i].ERC3106State = 1;
-						 MeterPowerInfo[i].Valid = 0;
-						 memcpy(&MeterPowerInfo[i].tsa,&meter.basicinfo.addr,TSA_LEN);
-						 if(i>2)
+						 MeterPowerInfo[curr_n].ERC3106State = 1;
+						 MeterPowerInfo[curr_n].Valid = 0;
+						 memcpy(&MeterPowerInfo[curr_n].tsa,&meter.basicinfo.addr,TSA_LEN);
+						 curr_n++;
+						 if(curr_n>2)
 							 break;
             		 }
                }
