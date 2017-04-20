@@ -100,7 +100,7 @@ INT32S Esam_WriteThenRead(INT8U* Tbuf, INT16U Tlen, INT8U* Rbuf)
 {
 	INT8U index=0;
 	INT32S esamRet = ERR_ESAM_SPI_OPENERR;
-	for(index =0 ;index<3;index ++)
+	for(index =0 ;index<2;index ++)
 	{
 		if(fd<0)//fd<0时为第一次进入,需要打开ESAM SPI口
 			fd = Esam_Init(fd);
@@ -141,7 +141,7 @@ INT32S _esam_WriteThenRead(INT32S fd, INT8U* Tbuf, INT16U Tlen, INT8U* Rbuf){
 
 //    if(sem_spi0_0!=NULL)
 //    	sem_wait(sem_spi0_0);
-	for(index=0;index<3;index++)//只做3次循环//若失败，外面还有初始化1次esam
+	for(index=0;index<2;index++)//只做2次循环//若失败，外面还有初始化1次esam
 	{
 		memset(rx,0x00,BUFFLENMAX_SPI);
 		Esam_WriteToChip(fd,Tbuf,Tlen);//向片中发送数据
@@ -150,8 +150,7 @@ INT32S _esam_WriteThenRead(INT32S fd, INT8U* Tbuf, INT16U Tlen, INT8U* Rbuf){
 			memset(rx,0x00,1);
 			Esam_ReadFromChip(fd,rx,1);//读取1个字符
 			i++;
-			//if(i>=20) break;
-			if(i>=50) break;
+			if(i>=100) break;
 		}while(rx[0]!=MARK_ESAM);
 
 		if(rx[0]==MARK_ESAM)
@@ -253,13 +252,14 @@ void Esam_ReadFromChip(INT32S fd, INT8U* Rbuf, INT8U Rlen)
 			xfer[1].rx_buf = (int) Rbuf;
 			xfer[1].len = Rlen;
 			ioctl(fd, SPI_IOC_MESSAGE(2), xfer);
-			usleep(50);//每次查询指令间隔时间在15us----100us之间，最大查询事件为20*50us==1ms
-
-			printf("\n Esam_ReadFromChip:");
+			usleep(50);//每次查询指令间隔时间在15us----100us之间，最大查询事件为50*100us==10ms(实际读取时间远大于此值，需根据示波器测量时间确定)
+			if(Rlen!=1)
+				printf("Esam_ReadFromChip:");
 			int i;
 			for( i=0;i<Rlen;i++)
 				printf("%02X ",Rbuf[i]);
-			printf("\n");
+			if(Rlen!=1)
+				printf("\n");
 }
 /**********************************
  *当接收到的SW1 SW2 是异常数据的时候，解析出何种异常
