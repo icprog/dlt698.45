@@ -262,6 +262,7 @@ void record_prt(int recordnum,int indexn,HEAD_UNIT0 *length,FILE *fp)
 	for(k=0;k<recordnum;k++)
 	{
 		nonullflag=0;
+		fprintf(stderr,"\nunit_pos:%d\n",ftell(fp));
 		for(i=0;i<indexn;i++)
 		{
 			memset(buf,0,50);
@@ -368,7 +369,7 @@ void analyTaskData(int argc, char* argv[])
 
 			if (findtsa(fp,TSA_D,A_TSAblock)==1)
 			{
-				fprintf(stderr,"\n\n\n>>>>查找到相关的TSA数据\n");
+				fprintf(stderr,"\n\n\n>>>>查找到相关的TSA数据(%d)\n",ftell(fp));
 				//打印TSA的全部记录
 				record_prt(recordnum,indexn,length,fp);
 			}
