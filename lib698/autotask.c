@@ -7,6 +7,8 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
+#include <sys/time.h>
 #include "../include/Objectdef.h"
 #include "../libBase/PublicFunction.h"
 #include "../libAccess/AccessFun.h"
@@ -94,7 +96,7 @@ time_t calcnexttime(TI ti,DateTimeBCD datetime)
 void init_autotask(CLASS_6013 class6013,AutoTaskStrap* list)
 {
 	static int index=0;
-	struct tm tmp_tm;
+	struct tm  tmp_tm;
 	if(class6013.cjtype == rept)
 	{
 		list[index].ID = class6013.taskID;
@@ -235,6 +237,7 @@ INT16U  composeAutoTask(AutoTaskStrap *list)
 	CLASS_6013 class6013={};
 	CLASS_601D class601d={};
 
+	if(list->nexttime==0)	return ret;		//防止无效重复读取文件
 	if(timenow >= list->nexttime)
 	{
 		if (readCoverClass(0x6013, list->ID, &class6013, sizeof(CLASS_6013),coll_para_save) == 1)

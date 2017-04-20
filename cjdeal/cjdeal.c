@@ -400,9 +400,11 @@ INT8U init6013ListFrom6012File() {
 //	fprintf(stderr, "\n -------------init6013ListFrom6012File---------------");
 	INT8U result = 0;
 	memset(list6013, 0, TASK6012_MAX * sizeof(TASK_CFG));
+	memset(&JProgramInfo->autotask,0,sizeof(JProgramInfo->autotask));		//增加初始化
 	INT16U tIndex = 0;
 	OI_698 oi = 0x6013;
 	CLASS_6013 class6013 = { };
+
 	for (tIndex = 0; tIndex < TASK6012_MAX; tIndex++) {
 		if (readCoverClass(oi, tIndex, &class6013, sizeof(CLASS_6013),
 				coll_para_save) == 1) {

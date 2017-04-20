@@ -116,7 +116,7 @@ int ReadDeviceConfig() {
     if (JProgramInfo->DevicePara[0] < 1 || JProgramInfo->DevicePara[0] > 3) { //无效值
         JProgramInfo->DevicePara[0] = 1;                                      //默认I型
     }
-    fprintf(stderr, "\n当前运行类型为：%d 型终端\n", JProgramInfo->DevicePara[0]);
+    asyslog(LOG_NOTICE,"\n当前运行类型为：%d 型终端\n", JProgramInfo->DevicePara[0]);
     return 1;
 }
 
