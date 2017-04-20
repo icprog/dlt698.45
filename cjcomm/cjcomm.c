@@ -4,20 +4,17 @@
 #include <signal.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
-#include <assert.h>
 #include <net/if.h>
 #include <netinet/in.h>
-#include <netinet/tcp.h>
 
 #include "cjcomm.h"
 #include "../include/Shmem.h"
 
 //共享内存地址
-static ProgramInfo* JProgramInfo = NULL;
-static int ProgIndex             = 0;
+static ProgramInfo *JProgramInfo = NULL;
+static int ProgIndex = 0;
 static int OnlineType; // 0:没在线 1:GPRS 2:以太网
 CLASS_4000 class_4000;
 
@@ -32,32 +29,41 @@ void SetOnlineType(int type) {
     OnlineType = type;
 }
 
-void CalculateTransFlow(ProgramInfo* prginfo_event) {
+void CalculateTransFlow(ProgramInfo *prginfo_event) {
     static Flow_tj c2200;
 
     //统计临时变量
     static int rtx_bytes = 0;
-    static int rx_bytes  = 0;
-    static int tx_bytes  = 0;
-    static int localMin  = 0;
+    static int rx_bytes = 0;
+    static int tx_bytes = 0;
+    static int localMin = 0;
+    static int localDay = 0;
+    static int localMonth = 0;
 
     static int first_flag = 1;
+
+    TS ts = {};
+    TSGet(&ts);
+
     if (first_flag == 1) {
         first_flag = 0;
         memset(&c2200, 0x00, sizeof(c2200));
         readVariData(0x2200, 0, &c2200, sizeof(c2200));
         asyslog(LOG_INFO, "初始化月流量统计(%d)", c2200.flow.month_tj);
+
+        localMin = ts.Minute;
+        localDay = ts.Day;
+        localMonth = ts.Month;
     }
 
-    TS ts = {};
-    TSGet(&ts);
+
     if (localMin != ts.Minute) {
         localMin = ts.Minute;
     } else {
         return;
     }
 
-    FILE* rfd = fopen("/proc/net/dev", "r");
+    FILE *rfd = fopen("/proc/net/dev", "r");
     if (rfd == NULL) {
         asyslog(LOG_INFO, "流量统计文件不存在.");
         return;
@@ -85,7 +91,21 @@ void CalculateTransFlow(ProgramInfo* prginfo_event) {
 
     if (ts.Minute % 2 == 0) {
         asyslog(LOG_INFO, "20分钟月流量统计，未统计流量%d", (rx_bytes + tx_bytes) - rtx_bytes);
+        //跨日月流量分别清零
+        if (localDay != ts.Day) {
+            asyslog(LOG_INFO, "检测到夸日，流量统计清零，清零前数据(%d)", c2200.flow.day_tj);
+            c2200.flow.day_tj = 0;
+            localDay = ts.Day;
+        }
+
+        if (localMonth != ts.Month) {
+            asyslog(LOG_INFO, "检测到夸月，流量统计清零，清零前数据(%d)", c2200.flow.month_tj);
+            c2200.flow.month_tj = 0;
+            localMonth = ts.Month;
+        }
+        c2200.flow.day_tj += (rx_bytes + tx_bytes) - rtx_bytes;
         c2200.flow.month_tj += (rx_bytes + tx_bytes) - rtx_bytes;
+
         saveVariData(0x2200, 0, &c2200, sizeof(c2200));
         rtx_bytes = rx_bytes + tx_bytes;
         Event_3110(c2200.flow.month_tj, sizeof(c2200.flow), prginfo_event);
@@ -114,7 +134,7 @@ void QuitProcess(int sig) {
     exit(0);
 }
 
-int GetInterFaceIp(char* interface, char* ips) {
+int GetInterFaceIp(char *interface, char *ips) {
     int sock;
     struct sockaddr_in sin;
     struct ifreq ifr;
@@ -142,23 +162,23 @@ int GetInterFaceIp(char* interface, char* ips) {
     return 0;
 }
 
-void WriteLinkRequest(INT8U link_type, INT16U heartbeat, LINK_Request* link_req) {
+void WriteLinkRequest(INT8U link_type, INT16U heartbeat, LINK_Request *link_req) {
     TS ts = {};
     TSGet(&ts);
-    link_req->type              = link_type;
-    link_req->piid_acd.data     = 0;
-    link_req->time.year         = ((ts.Year << 8) & 0xff00) | ((ts.Year >> 8) & 0xff); // apdu 先高后低
-    link_req->time.month        = ts.Month;
+    link_req->type = link_type;
+    link_req->piid_acd.data = 0;
+    link_req->time.year = ((ts.Year << 8) & 0xff00) | ((ts.Year >> 8) & 0xff); // apdu 先高后低
+    link_req->time.month = ts.Month;
     link_req->time.day_of_month = ts.Day;
-    link_req->time.day_of_week  = ts.Week;
-    link_req->time.hour         = ts.Hour;
-    link_req->time.minute       = ts.Minute;
-    link_req->time.second       = ts.Sec;
+    link_req->time.day_of_week = ts.Week;
+    link_req->time.hour = ts.Hour;
+    link_req->time.minute = ts.Minute;
+    link_req->time.second = ts.Sec;
     link_req->time.milliseconds = 0;
-    link_req->heartbeat         = ((heartbeat << 8) & 0xff00) | ((heartbeat >> 8) & 0xff);
+    link_req->heartbeat = ((heartbeat << 8) & 0xff00) | ((heartbeat >> 8) & 0xff);
 }
 
-int Comm_task(CommBlock* compara) {
+int Comm_task(CommBlock *compara) {
     INT16U heartbeat = (compara->Heartbeat == 0) ? 300 : compara->Heartbeat;
 
     if (abs(time(NULL) - compara->lasttime) < heartbeat) {
@@ -167,10 +187,10 @@ int Comm_task(CommBlock* compara) {
 
     compara->lasttime = time(NULL);
 
-    if (compara->testcounter >= 2) {
+    if (compara->testcounter > 3) {
         return -1;
     }
-
+    
     if (compara->linkstate == close_connection) //物理通道建立完成后，如果请求状态为close，则需要建立连接
     {
         WriteLinkRequest(build_connection, heartbeat, &compara->link_request);
@@ -185,40 +205,40 @@ int Comm_task(CommBlock* compara) {
     return 0;
 }
 
-void refreshComPara(CommBlock* compara) {
+void refreshComPara(CommBlock *compara) {
     compara->phy_connect_fd = -1;
-    compara->testcounter    = 0;
-    compara->linkstate      = close_connection;
+    compara->testcounter = 0;
+    compara->linkstate = close_connection;
     memset(compara->RecBuf, 0, sizeof(compara->RecBuf));
     memset(compara->SendBuf, 0, sizeof(compara->SendBuf));
     memset(compara->DealBuf, 0, sizeof(compara->DealBuf));
-    compara->RHead     = 0;
-    compara->RTail     = 0;
+    compara->RHead = 0;
+    compara->RTail = 0;
     compara->deal_step = 0;
     compara->rev_delay = 20;
-    compara->shmem     = JProgramInfo;
-    compara->lasttime  = 0;
+    compara->shmem = JProgramInfo;
+    compara->lasttime = 0;
 }
 
-void initComPara(CommBlock* compara, INT8S (*p_send)(int fd, INT8U* buf, INT16U len)) {
+void initComPara(CommBlock *compara, INT8S (*p_send)(int fd, INT8U *buf, INT16U len)) {
     CLASS_4001_4002_4003 c4001;
     memset(&c4001, 0x00, sizeof(c4001));
     readCoverClass(0x4001, 0, &c4001, sizeof(c4001), para_vari_save);
     memcpy(compara->serveraddr, c4001.curstom_num, 16);
 
     compara->phy_connect_fd = -1;
-    compara->testcounter    = 0;
-    compara->linkstate      = close_connection;
+    compara->testcounter = 0;
+    compara->linkstate = close_connection;
     memset(compara->RecBuf, 0, sizeof(compara->RecBuf));
     memset(compara->SendBuf, 0, sizeof(compara->SendBuf));
     memset(compara->DealBuf, 0, sizeof(compara->DealBuf));
-    compara->RHead     = 0;
-    compara->RTail     = 0;
+    compara->RHead = 0;
+    compara->RTail = 0;
     compara->deal_step = 0;
     compara->rev_delay = 20;
-    compara->shmem     = JProgramInfo;
-    compara->p_send    = p_send;
-    compara->lasttime  = 0;
+    compara->shmem = JProgramInfo;
+    compara->p_send = p_send;
+    compara->lasttime = 0;
 
     CLASS19 Class19 = {};
     memset(&Class19, 0, sizeof(CLASS19));
@@ -231,16 +251,16 @@ void initComPara(CommBlock* compara, INT8S (*p_send)(int fd, INT8U* buf, INT16U 
     for (int i = 0; i < 5; i++) {
         compara->myAppVar.ProtocolConformance[i] = 0xff;
     }
-    compara->myAppVar.server_deal_maxApdu    = 1024;
-    compara->myAppVar.server_recv_size       = 1024;
-    compara->myAppVar.server_send_size       = 1024;
-    compara->myAppVar.server_recv_maxWindow  = 1;
+    compara->myAppVar.server_deal_maxApdu = 1024;
+    compara->myAppVar.server_recv_size = 1024;
+    compara->myAppVar.server_send_size = 1024;
+    compara->myAppVar.server_recv_maxWindow = 1;
     compara->myAppVar.expect_connect_timeout = 56400;
 
     readCoverClass(0xf101, 0, &compara->f101, sizeof(CLASS_F101), para_vari_save);
 }
 
-void dumpPeerStat(int fd, char* info) {
+void dumpPeerStat(int fd, char *info) {
     int peerBuf[128];
     int port = 0;
 
@@ -253,9 +273,9 @@ void dumpPeerStat(int fd, char* info) {
 /*********************************************************
  * 进程初始化
  *********************************************************/
-void enviromentCheck(int argc, char* argv[]) {
+void enviromentCheck(int argc, char *argv[]) {
     pid_t pids[128];
-    if (prog_find_pid_by_name((INT8S*)argv[0], pids) > 1) {
+    if (prog_find_pid_by_name((INT8S *) argv[0], pids) > 1) {
         asyslog(LOG_ERR, "CJCOMM进程仍在运行,进程号[%d]，程序退出...", pids[0]);
         exit(0);
     }
@@ -265,13 +285,13 @@ void enviromentCheck(int argc, char* argv[]) {
     Setsig(&sa, QuitProcess);
 
     //向cjmain报告启动
-    ProgIndex    = atoi(argv[1]);
+    ProgIndex = atoi(argv[1]);
     JProgramInfo = OpenShMem("ProgramInfo", sizeof(ProgramInfo), NULL);
     memcpy(JProgramInfo->Projects[ProgIndex].ProjectName, "cjcomm", sizeof("cjcomm"));
     JProgramInfo->Projects[ProgIndex].ProjectID = getpid();
 }
 
-int main(int argc, char* argv[]) {
+int main(int argc, char *argv[]) {
     printf("version 1019\n");
 
     memset(&class_4000, 0, sizeof(CLASS_4000));
@@ -279,7 +299,7 @@ int main(int argc, char* argv[]) {
     SetOnlineType(0);
 
     //开启网络IO事件处理框架
-    aeEventLoop* ep;
+    aeEventLoop *ep;
     ep = aeCreateEventLoop(128);
     if (ep == NULL) {
         asyslog(LOG_ERR, "事件处理框架创建失败，程序终止。\n");
