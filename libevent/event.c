@@ -1254,6 +1254,7 @@ INT8U Event_3106(ProgramInfo* prginfo_event,MeterPower *MeterPowerInfo,INT8U *st
 			else
 				flag = 0b01000000;
 			//如果判断停电事件无效
+			sleep(3);
 			SendERC3106(flag,1,prginfo_event);
 			TermialPowerInfo.ERC3106State = POWER_START;
 			TermialPowerInfo.Valid = POWER_START;
