@@ -5,8 +5,6 @@
 #include "libmmq.h"
 #include "show_ctrl.h"
 
-//#define GW_TAI_TI
-
 extern ProgramInfo* JProgramInfo;
 
 extern void DealState(ProgramInfo* prginfo);

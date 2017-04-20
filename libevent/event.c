@@ -1246,8 +1246,11 @@ INT8U Event_3106(ProgramInfo* prginfo_event,MeterPower *MeterPowerInfo,INT8U *st
 		if(TermialPowerInfo.Valid == POWER_OFF_VALIDE)
 		{
 			//如果上电时间大于停电时间或者停上电时间间隔小于最小间隔或者大于最大间隔不产生下电事件
-			if((interval > mintime_space*60)&&(interval < maxtime_space*60))
+			if((interval > mintime_space*60)&&(interval < maxtime_space*60)){
+				flag = 0b10000000;
+				SendERC3106(flag,1,prginfo_event);
 				flag = 0b11000000;
+			}
 			else
 				flag = 0b01000000;
 			//如果判断停电事件无效

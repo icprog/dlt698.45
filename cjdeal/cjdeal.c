@@ -23,6 +23,7 @@
 #include "ParaDef.h"
 #include "EventObject.h"
 #include "dlt698def.h"
+#include "basedef.h"
 
 extern INT32S 			spifp_rn8209;
 extern INT32S 			spifp;
