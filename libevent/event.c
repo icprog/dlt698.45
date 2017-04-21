@@ -1219,7 +1219,8 @@ INT8U Event_3106(ProgramInfo* prginfo_event,MeterPower *MeterPowerInfo,INT8U *st
 		}
 	}else if(TermialPowerInfo.ERC3106State == POWER_OFF){
 		if(prginfo_event->DevicePara[0] == 2){//II型
-			if((prginfo_event->ACSRealData.Available && prginfo_event->ACSRealData.Ua>recover_voltage_limit))
+			if((prginfo_event->ACSRealData.Available && prginfo_event->ACSRealData.Ua>recover_voltage_limit && recover_voltage_limit>0)
+					||(prginfo_event->ACSRealData.Available && prginfo_event->ACSRealData.Ua>180))
 				on_flag=1;
 		}else{
 			if((prginfo_event->ACSRealData.Available&&prginfo_event->ACSRealData.Ua>recover_voltage_limit)
@@ -1243,18 +1244,22 @@ INT8U Event_3106(ProgramInfo* prginfo_event,MeterPower *MeterPowerInfo,INT8U *st
 		int interval = difftime(mktime(&TermialPowerInfo.PoweronTime),mktime(&TermialPowerInfo.PoweroffTime));
 		fprintf(stderr,"\nTermialPowerInfo.Valid=%d interval=%d mintime_space=%d maxtime_space=%d ",TermialPowerInfo.Valid,
 				interval,mintime_space*60,maxtime_space*60);
+
 		if(TermialPowerInfo.Valid == POWER_OFF_VALIDE)
 		{
 			//如果上电时间大于停电时间或者停上电时间间隔小于最小间隔或者大于最大间隔不产生下电事件
 			if((interval > mintime_space*60)&&(interval < maxtime_space*60)){
+#define ZHEJIANG
+#ifdef ZHEJIANG
 				flag = 0b10000000;
 				SendERC3106(flag,1,prginfo_event);
+				sleep(3);
+#endif
 				flag = 0b11000000;
 			}
 			else
 				flag = 0b01000000;
 			//如果判断停电事件无效
-			sleep(3);
 			SendERC3106(flag,1,prginfo_event);
 			TermialPowerInfo.ERC3106State = POWER_START;
 			TermialPowerInfo.Valid = POWER_START;
