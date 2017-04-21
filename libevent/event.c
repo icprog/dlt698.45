@@ -19,13 +19,16 @@
 static TSA TSA_LIST[MAX_POINT_NUM];
 static int TSA_NUMS;
 //当前最新抄表数据
-static Curr_Data curr_data[MAX_POINT_NUM*4];
+static Curr_Data curr_data[MAX_POINT_NUM];
 //当前内存保存得数据个数
 static INT16U currnum=0;
 //当前事件参数变更状态
 static OI_CHANGE oi_chg;
 //MeterPower MeterPowerInfo[3+1];//台区公共表加０－３个电能表
 MeterPower TermialPowerInfo;//终端停上电时间信息
+
+static Other_Data other_data[50];
+static INT8U other_curr_index=0;
 /*
  * 说明：
  * 进程如调用该部分事件接口
@@ -69,6 +72,8 @@ INT8U Refresh_Data(TSA tsa,INT32U newdata,INT8U flag){
 		memcpy(&curr_data[currnum].ts,&currtime,sizeof(TS));
 		curr_data[currnum].flag=flag;
 		currnum++;
+		if(currnum>=MAX_POINT_NUM)
+			currnum=0;
 	}
 	return 1;
 }
@@ -1249,7 +1254,7 @@ INT8U Event_3106(ProgramInfo* prginfo_event,MeterPower *MeterPowerInfo,INT8U *st
 		{
 			//如果上电时间大于停电时间或者停上电时间间隔小于最小间隔或者大于最大间隔不产生下电事件
 			if((interval > mintime_space*60)&&(interval < maxtime_space*60)){
-#define ZHEJIANG
+//#define ZHEJIANG
 #ifdef ZHEJIANG
 				flag = 0b10000000;
 				SendERC3106(flag,1,prginfo_event);
@@ -1282,7 +1287,7 @@ INT8U Event_3106(ProgramInfo* prginfo_event,MeterPower *MeterPowerInfo,INT8U *st
 		}
 		else
 		{
-			int interval_limit = prginfo_event->event_obj.Event3106_obj.poweroff_para_obj.collect_para_obj.time_threshold;
+			int interval_limit = prginfo_event-incompatible>event_obj.Event3106_obj.poweroff_para_obj.collect_para_obj.time_threshold;
 			if(interval_limit==0)
 				interval_limit = 5;
 			//如果抄表超时还未抄回,直接上报无效上电事件
@@ -1389,7 +1394,7 @@ INT8U Event_3108(INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 			INT8U Currbuf[50]={};memset(Currbuf,0,50);
 			INT8U Currindex=0;
 			Get_CurrResult(Currbuf,&Currindex,(INT8U*)oad,s_oad,crrentnum,0);
-			saveCoverClass(0x3108,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,event_current_save);
+			saveCoverClass(0x3108,(INT16U)crreincompatiblentnum,(void *)Currbuf,(int)Currindex,event_current_save);
 			//判断是否要上报
 			if(prginfo_event->event_obj.Event3108_obj.event_obj.reportflag)
 				Need_Report(0x3108,crrentnum,prginfo_event);
@@ -2162,16 +2167,42 @@ INT8U Event_311B(TSA tsa, INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 /*
  * 电能表数据变更监控记录 抄表可自行判断，直接调用该函数。
  */
-INT8U Event_311C(TSA tsa, INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
+INT8U Event_311C(TSA tsa, INT8U taskno,OAD oad,INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 	if(oi_chg.oi311C != prginfo_event->oi_changed.oi311C){
 		readCoverClass(0x311C,0,&prginfo_event->event_obj.Event311C_obj,sizeof(prginfo_event->event_obj.Event311C_obj),event_para_save);
 		oi_chg.oi311C = prginfo_event->oi_changed.oi311C;
 	}
 	if (prginfo_event->event_obj.Event311C_obj.event_obj.enableflag == 0)
 		return 0;
+	if(prginfo_event->event_obj.Event311C_obj.task_para.task_no!=taskno)
+		return 0;
+
 	if(data== NULL)
 		return 0;
-	if(1){
+
+	INT8U i=0,happen_flag=0,have_flag=0;
+	INT8U *oldata;
+	for(i=0;i<50;i++){
+		if(memcmp(&other_data[i].tsa,&tsa,sizeof(TSA))==0
+				&& memcmp(&other_data[i].oad,&oad,sizeof(OAD))==0){
+			have_flag=1;
+            if(memcmp(data,other_data[i].data,len)!=0){
+            	happen_flag=1;
+            	oldata = other_data[i].data;
+            	memcpy(other_data[i].data,data,len);
+            }
+            break;
+		}
+	}
+	if(have_flag == 0){
+		memcpy(&other_data[other_curr_index].tsa,&tsa,sizeof(TSA));
+		memcpy(&other_data[other_curr_index].oad,&oad,4);
+		memcpy(other_data[other_curr_index].data,data,len);
+		other_curr_index++;
+		if(other_curr_index>=50)
+			other_curr_index = 0;
+	}
+	if(happen_flag == 1){
 		INT8U Save_buf[256];
 		bzero(Save_buf, sizeof(Save_buf));
 		prginfo_event->event_obj.Event311C_obj.event_obj.crrentnum++;
@@ -2180,9 +2211,15 @@ INT8U Event_311C(TSA tsa, INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 		INT8U index=0;
 		//标准数据单元
 		Get_StandardUnit(prginfo_event,0x311C,Save_buf,&index,crrentnum,(INT8U*)&tsa,s_tsa);
-		//监控数据对象  CSD 前台data，抄表直接组好，包括数据类型，因为是变长，只能这样处理，直接拷贝。
-		memcpy(&Save_buf[index],data,len);
-		index+=len;
+		//CSD
+		Save_buf[index++] = dtcsd;//CSD
+		Save_buf[index++] = 0; //OAD
+		memcpy(&Save_buf[index],&oad,4);
+		index +=4;
+		memcpy(&Save_buf[index],oldata,len);//旧数据
+		index +=len;
+		memcpy(&Save_buf[index],data,len);//新数据
+		index +=len;
 		Save_buf[STANDARD_NUM_INDEX]+=3;
 		//存储更改后得参数
 		saveCoverClass(0x311C,(INT16U)crrentnum,(void *)&prginfo_event->event_obj.Event311C_obj,sizeof(Class7_Object),event_para_save);
