@@ -172,6 +172,19 @@ INT16U set3110(OAD oad,INT8U *data,INT8U *DAR)		//月通信流量超限  属性6
 	return index;
 }
 
+INT16U set311c(OAD oad,INT8U *data,INT8U *DAR)		//电能表数据变更监控记录
+{
+	int		index=0;
+	Event311C_Object tmpobj={};
+
+	readCoverClass(oad.OI,0,&tmpobj,sizeof(tmpobj),event_para_save);
+	index += getStructure(&data[index],NULL);
+	index += getUnsigned(&data[index],(INT8U *)&tmpobj.task_para.task_no);
+	fprintf(stderr,"\n电能表数据变更监控记录 关联采集任务号=%d ",tmpobj.task_para.task_no);
+	*DAR = saveCoverClass(oad.OI,0,&tmpobj,sizeof(tmpobj),event_para_save);
+	return index;
+}
+
 INT16U set4000(OAD oad,INT8U *data,INT8U *DAR)
 {
 	DateTimeBCD datetime={};
@@ -747,6 +760,9 @@ INT16U EventSetAttrib(OAD oad,INT8U *data,INT8U *DAR)
 			break;
 		case 0x3110:	//月通信流量超限事件阈值
 			data_index = set3110(oad,data,DAR);
+			break;
+		case 0x311c:	//电能表数据变更监控记录
+			data_index = set311c(oad,data,DAR);
 			break;
 		}
 		break;

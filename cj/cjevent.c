@@ -7,6 +7,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <fcntl.h>
+#include <unistd.h>
 
 #include "StdDataType.h"
 #include "Shmem.h"
@@ -19,11 +21,32 @@
 #include "main.h"
 //property
 
+void printEventName(OI_698 oi)
+{
+	switch(oi) {
+	case 0x3000: fprintf(stderr,"        oi=%04x 电能表失压事件\n",oi);break;
+	case 0x3105: fprintf(stderr,"        oi=%04x 电能表时钟超差事件\n",oi);break;
+	case 0x3106: fprintf(stderr,"        oi=%04x 终端停/上电事件\n",oi);break;
+	case 0x310b: fprintf(stderr,"        oi=%04x 电能表示度下降事件\n",oi);break;
+	case 0x310c: fprintf(stderr,"        oi=%04x 电能量超差事件\n",oi);break;
+	case 0x310d: fprintf(stderr,"        oi=%04x 电能表飞走事件\n",oi);break;
+	case 0x310e: fprintf(stderr,"        oi=%04x 电能表停走事件\n",oi);break;
+	case 0x310f: fprintf(stderr,"        oi=%04x 终端抄表失败事件\n",oi);break;
+	case 0x3110: fprintf(stderr,"        oi=%04x 月通信流量超限事件\n",oi);break;
+	case 0x3115: fprintf(stderr,"        oi=%04x 遥控跳闸记录\n",oi);break;
+	case 0x3118: fprintf(stderr,"        oi=%04x 终端编程记录\n",oi);break;
+	case 0x311b: fprintf(stderr,"        oi=%04x 终端对电表校时记录\n",oi);break;
+	case 0x311c: fprintf(stderr,"        oi=%04x 电能表数据变更监控记录\n",oi);break;
+	default:
+		fprintf(stderr,"        oi=%04x \n",oi);
+		break;
+	}
+}
 
 void printClass7(Class7_Object class7)
 {
 	int i=0;
-	fprintf(stderr,"【Class7】逻辑名: %s\n",class7.logic_name);
+//	fprintf(stderr,"【Class7】逻辑名: %s\n",class7.logic_name);
 	fprintf(stderr,"当前记录数  最大记录数  上报标识  有效标识  关联对象属性【OAD】\n");
 	fprintf(stderr,"%d           %d           %d           %d   ",class7.crrentnum,class7.maxnum,class7.reportflag,class7.enableflag);
 	for(i=0;i<class7.class7_oad.num;i++) {
@@ -231,6 +254,29 @@ void Init_311C(){
 	saveCoverClass(0x311C,0,(void *)&obj,sizeof(Event311C_Object),para_init_save);
 }
 
+void printEventEnable()
+{
+	int	oi=0;
+	char	filename[64];
+	Class7_Object	class7={};
+
+	for(oi=0x3000;oi<0x3320;oi++) {
+		memset(filename,0,sizeof(filename));
+		sprintf(filename,"/nand/event/property/%04x/%04x.par",oi,oi);
+//		fprintf(stderr,"filename=%s\n",filename);
+		if(access(filename,F_OK)==0) {
+//			fprintf(stderr,"open ok");
+			memset(&class7,0,sizeof(Class7_Object));
+			fprintf(stderr,"/*********************************/\n");
+			readCoverClass(oi,0,&class7,sizeof(Class7_Object),event_para_save);
+			printEventName(oi);
+			printClass7(class7);
+			fprintf(stderr,"/*********************************/\n");
+		}
+	}
+
+}
+
 void event_process(int argc, char *argv[])
 {
 	OI_698	oi=0;
@@ -239,6 +285,10 @@ void event_process(int argc, char *argv[])
 	int		i = 0,ret = 0;
 	ProgramInfo* JProgramInfo=NULL;
 	JProgramInfo = OpenShMem("ProgramInfo",sizeof(ProgramInfo),NULL);
+
+	if((strcmp("enable",argv[2])==0) && (argc==3)){
+		printEventEnable();
+	}
 	if(argc>=4) {	//event att 3100
 //		fprintf(stderr,"argv=%s",argv[3]);
 		sscanf(argv[3],"%04x",&tmp[0]);
@@ -484,127 +534,127 @@ void event_process(int argc, char *argv[])
 			}
 		}
 		if(strcmp("enable",argv[2])==0){
-			int flag=0;
-			sscanf(argv[4],"%d",&flag);
-			CLASS19 class19;
-			memset(&class19,0,sizeof(CLASS19));
-            if(oi == 0x301B){
-            	if(flag == 1){
-					JProgramInfo->event_obj.Event301B_obj.enableflag=TRUE;
-					JProgramInfo->event_obj.Event301B_obj.reportflag=TRUE;
-					saveCoverClass(oi,0,(void *)&JProgramInfo->event_obj.Event301B_obj,sizeof(Class7_Object),para_init_save);
-					JProgramInfo->oi_changed.oi301B++;
-					readCoverClass(0x4300,0,&class19,sizeof(class19),para_vari_save);
-					class19.active_report =1;
-					class19.talk_master =1;
-					saveCoverClass(0x4300,0,(void *)&class19,sizeof(class19),para_vari_save);
-					JProgramInfo->oi_changed.oi4300++;
-            	}else{
-            		JProgramInfo->event_obj.Event301B_obj.enableflag=FALSE;
-					JProgramInfo->event_obj.Event301B_obj.reportflag=FALSE;
-					saveCoverClass(oi,0,(void *)&JProgramInfo->event_obj.Event301B_obj,sizeof(Class7_Object),para_init_save);
-					JProgramInfo->oi_changed.oi301B++;
-					readCoverClass(0x4300,0,&class19,sizeof(class19),para_vari_save);
-					class19.active_report =0;
-					class19.talk_master =0;
-					saveCoverClass(0x4300,0,(void *)&class19,sizeof(class19),para_vari_save);
-					JProgramInfo->oi_changed.oi4300++;
-            	}
-            }
-            else if(oi == 0x3106){
-				if(flag == 1){
-					fprintf(stderr,"oi=%04x flag=%d\n",oi,flag);
-					JProgramInfo->event_obj.Event3106_obj.event_obj.enableflag=TRUE;
-					JProgramInfo->event_obj.Event3106_obj.event_obj.reportflag=TRUE;
-					saveCoverClass(oi,0,(void *)&JProgramInfo->event_obj.Event3106_obj,sizeof(Event3106_Object),event_para_save);
-					JProgramInfo->oi_changed.oi3106++;
-					readCoverClass(0x4300,0,&class19,sizeof(class19),para_vari_save);
-					class19.active_report =1;
-					class19.talk_master =1;
-					saveCoverClass(0x4300,0,(void *)&class19,sizeof(class19),para_vari_save);
-					JProgramInfo->oi_changed.oi4300++;
-				}else{
-					JProgramInfo->event_obj.Event3106_obj.event_obj.enableflag=FALSE;
-					JProgramInfo->event_obj.Event3106_obj.event_obj.reportflag=FALSE;
-					saveCoverClass(oi,0,(void *)&JProgramInfo->event_obj.Event3106_obj,sizeof(Event3106_Object),event_para_save);
-					JProgramInfo->oi_changed.oi3106++;
-					readCoverClass(0x4300,0,&class19,sizeof(class19),para_vari_save);
-					class19.active_report =0;
-					class19.talk_master =0;
-					saveCoverClass(0x4300,0,(void *)&class19,sizeof(class19),para_vari_save);
-					JProgramInfo->oi_changed.oi4300++;
+				int flag=0;
+				sscanf(argv[4],"%d",&flag);
+				CLASS19 class19;
+				memset(&class19,0,sizeof(CLASS19));
+				if(oi == 0x301B){
+					if(flag == 1){
+						JProgramInfo->event_obj.Event301B_obj.enableflag=TRUE;
+						JProgramInfo->event_obj.Event301B_obj.reportflag=TRUE;
+						saveCoverClass(oi,0,(void *)&JProgramInfo->event_obj.Event301B_obj,sizeof(Class7_Object),para_init_save);
+						JProgramInfo->oi_changed.oi301B++;
+						readCoverClass(0x4300,0,&class19,sizeof(class19),para_vari_save);
+						class19.active_report =1;
+						class19.talk_master =1;
+						saveCoverClass(0x4300,0,(void *)&class19,sizeof(class19),para_vari_save);
+						JProgramInfo->oi_changed.oi4300++;
+					}else{
+						JProgramInfo->event_obj.Event301B_obj.enableflag=FALSE;
+						JProgramInfo->event_obj.Event301B_obj.reportflag=FALSE;
+						saveCoverClass(oi,0,(void *)&JProgramInfo->event_obj.Event301B_obj,sizeof(Class7_Object),para_init_save);
+						JProgramInfo->oi_changed.oi301B++;
+						readCoverClass(0x4300,0,&class19,sizeof(class19),para_vari_save);
+						class19.active_report =0;
+						class19.talk_master =0;
+						saveCoverClass(0x4300,0,(void *)&class19,sizeof(class19),para_vari_save);
+						JProgramInfo->oi_changed.oi4300++;
+					}
 				}
-			}
-            else if(oi == 0x3114){
-				if(flag == 1){
-					JProgramInfo->event_obj.Event3114_obj.enableflag=TRUE;
-					JProgramInfo->event_obj.Event3114_obj.reportflag=TRUE;
-					saveCoverClass(oi,0,(void *)&JProgramInfo->event_obj.Event3114_obj,sizeof(Class7_Object),event_para_save);
-					JProgramInfo->oi_changed.oi3114++;
-					readCoverClass(0x4300,0,&class19,sizeof(class19),para_vari_save);
-					class19.active_report =1;
-					class19.talk_master =1;
-					saveCoverClass(0x4300,0,(void *)&class19,sizeof(class19),para_vari_save);
-					JProgramInfo->oi_changed.oi4300++;
-				}else{
-					JProgramInfo->event_obj.Event3114_obj.enableflag=FALSE;
-					JProgramInfo->event_obj.Event3114_obj.reportflag=FALSE;
-					saveCoverClass(oi,0,(void *)&JProgramInfo->event_obj.Event3114_obj,sizeof(Class7_Object),event_para_save);
-					JProgramInfo->oi_changed.oi3114++;
-					readCoverClass(0x4300,0,&class19,sizeof(class19),para_vari_save);
-					class19.active_report =0;
-					class19.talk_master =0;
-					saveCoverClass(0x4300,0,(void *)&class19,sizeof(class19),para_vari_save);
-					JProgramInfo->oi_changed.oi4300++;
+				else if(oi == 0x3106){
+					if(flag == 1){
+						fprintf(stderr,"oi=%04x flag=%d\n",oi,flag);
+						JProgramInfo->event_obj.Event3106_obj.event_obj.enableflag=TRUE;
+						JProgramInfo->event_obj.Event3106_obj.event_obj.reportflag=TRUE;
+						saveCoverClass(oi,0,(void *)&JProgramInfo->event_obj.Event3106_obj,sizeof(Event3106_Object),event_para_save);
+						JProgramInfo->oi_changed.oi3106++;
+						readCoverClass(0x4300,0,&class19,sizeof(class19),para_vari_save);
+						class19.active_report =1;
+						class19.talk_master =1;
+						saveCoverClass(0x4300,0,(void *)&class19,sizeof(class19),para_vari_save);
+						JProgramInfo->oi_changed.oi4300++;
+					}else{
+						JProgramInfo->event_obj.Event3106_obj.event_obj.enableflag=FALSE;
+						JProgramInfo->event_obj.Event3106_obj.event_obj.reportflag=FALSE;
+						saveCoverClass(oi,0,(void *)&JProgramInfo->event_obj.Event3106_obj,sizeof(Event3106_Object),event_para_save);
+						JProgramInfo->oi_changed.oi3106++;
+						readCoverClass(0x4300,0,&class19,sizeof(class19),para_vari_save);
+						class19.active_report =0;
+						class19.talk_master =0;
+						saveCoverClass(0x4300,0,(void *)&class19,sizeof(class19),para_vari_save);
+						JProgramInfo->oi_changed.oi4300++;
+					}
 				}
-			}
-            else if(oi == 0x3104){
-				if(flag == 1){
-					JProgramInfo->event_obj.Event3104_obj.enableflag=TRUE;
-					JProgramInfo->event_obj.Event3104_obj.reportflag=TRUE;
-					saveCoverClass(oi,0,(void *)&JProgramInfo->event_obj.Event3104_obj,sizeof(Class7_Object),event_para_save);
-					JProgramInfo->oi_changed.oi3104++;
-					readCoverClass(0x4300,0,&class19,sizeof(class19),para_vari_save);
-					class19.active_report =1;
-					class19.talk_master =1;
-					saveCoverClass(0x4300,0,(void *)&class19,sizeof(class19),para_vari_save);
-					JProgramInfo->oi_changed.oi4300++;
-				}else{
-					JProgramInfo->event_obj.Event3104_obj.enableflag=FALSE;
-					JProgramInfo->event_obj.Event3104_obj.reportflag=FALSE;
-					saveCoverClass(oi,0,(void *)&JProgramInfo->event_obj.Event3104_obj,sizeof(Class7_Object),event_para_save);
-					JProgramInfo->oi_changed.oi3104++;
-					readCoverClass(0x4300,0,&class19,sizeof(class19),para_vari_save);
-					class19.active_report =0;
-					class19.talk_master =0;
-					saveCoverClass(0x4300,0,(void *)&class19,sizeof(class19),para_vari_save);
-					JProgramInfo->oi_changed.oi4300++;
+				else if(oi == 0x3114){
+					if(flag == 1){
+						JProgramInfo->event_obj.Event3114_obj.enableflag=TRUE;
+						JProgramInfo->event_obj.Event3114_obj.reportflag=TRUE;
+						saveCoverClass(oi,0,(void *)&JProgramInfo->event_obj.Event3114_obj,sizeof(Class7_Object),event_para_save);
+						JProgramInfo->oi_changed.oi3114++;
+						readCoverClass(0x4300,0,&class19,sizeof(class19),para_vari_save);
+						class19.active_report =1;
+						class19.talk_master =1;
+						saveCoverClass(0x4300,0,(void *)&class19,sizeof(class19),para_vari_save);
+						JProgramInfo->oi_changed.oi4300++;
+					}else{
+						JProgramInfo->event_obj.Event3114_obj.enableflag=FALSE;
+						JProgramInfo->event_obj.Event3114_obj.reportflag=FALSE;
+						saveCoverClass(oi,0,(void *)&JProgramInfo->event_obj.Event3114_obj,sizeof(Class7_Object),event_para_save);
+						JProgramInfo->oi_changed.oi3114++;
+						readCoverClass(0x4300,0,&class19,sizeof(class19),para_vari_save);
+						class19.active_report =0;
+						class19.talk_master =0;
+						saveCoverClass(0x4300,0,(void *)&class19,sizeof(class19),para_vari_save);
+						JProgramInfo->oi_changed.oi4300++;
+					}
 				}
-			}
-            else if(oi == 0x311B){
-				if(flag == 1){
-					JProgramInfo->event_obj.Event311B_obj.enableflag=TRUE;
-					JProgramInfo->event_obj.Event311B_obj.reportflag=TRUE;
-					saveCoverClass(oi,0,(void *)&JProgramInfo->event_obj.Event311B_obj,sizeof(Class7_Object),event_para_save);
-					JProgramInfo->oi_changed.oi311B++;
-					readCoverClass(0x4300,0,&class19,sizeof(class19),para_vari_save);
-					class19.active_report =1;
-					class19.talk_master =1;
-					saveCoverClass(0x4300,0,(void *)&class19,sizeof(class19),para_vari_save);
-					JProgramInfo->oi_changed.oi4300++;
-				}else{
-					JProgramInfo->event_obj.Event311B_obj.enableflag=FALSE;
-					JProgramInfo->event_obj.Event311B_obj.reportflag=FALSE;
-					saveCoverClass(oi,0,(void *)&JProgramInfo->event_obj.Event311B_obj,sizeof(Class7_Object),event_para_save);
-					JProgramInfo->oi_changed.oi311B++;
-					readCoverClass(0x4300,0,&class19,sizeof(class19),para_vari_save);
-					class19.active_report =0;
-					class19.talk_master =0;
-					saveCoverClass(0x4300,0,(void *)&class19,sizeof(class19),para_vari_save);
-					JProgramInfo->oi_changed.oi4300++;
+				else if(oi == 0x3104){
+					if(flag == 1){
+						JProgramInfo->event_obj.Event3104_obj.enableflag=TRUE;
+						JProgramInfo->event_obj.Event3104_obj.reportflag=TRUE;
+						saveCoverClass(oi,0,(void *)&JProgramInfo->event_obj.Event3104_obj,sizeof(Class7_Object),event_para_save);
+						JProgramInfo->oi_changed.oi3104++;
+						readCoverClass(0x4300,0,&class19,sizeof(class19),para_vari_save);
+						class19.active_report =1;
+						class19.talk_master =1;
+						saveCoverClass(0x4300,0,(void *)&class19,sizeof(class19),para_vari_save);
+						JProgramInfo->oi_changed.oi4300++;
+					}else{
+						JProgramInfo->event_obj.Event3104_obj.enableflag=FALSE;
+						JProgramInfo->event_obj.Event3104_obj.reportflag=FALSE;
+						saveCoverClass(oi,0,(void *)&JProgramInfo->event_obj.Event3104_obj,sizeof(Class7_Object),event_para_save);
+						JProgramInfo->oi_changed.oi3104++;
+						readCoverClass(0x4300,0,&class19,sizeof(class19),para_vari_save);
+						class19.active_report =0;
+						class19.talk_master =0;
+						saveCoverClass(0x4300,0,(void *)&class19,sizeof(class19),para_vari_save);
+						JProgramInfo->oi_changed.oi4300++;
+					}
 				}
-			}
-            fprintf(stderr,"设置%04x成功!\n",oi);
+				else if(oi == 0x311B){
+					if(flag == 1){
+						JProgramInfo->event_obj.Event311B_obj.enableflag=TRUE;
+						JProgramInfo->event_obj.Event311B_obj.reportflag=TRUE;
+						saveCoverClass(oi,0,(void *)&JProgramInfo->event_obj.Event311B_obj,sizeof(Class7_Object),event_para_save);
+						JProgramInfo->oi_changed.oi311B++;
+						readCoverClass(0x4300,0,&class19,sizeof(class19),para_vari_save);
+						class19.active_report =1;
+						class19.talk_master =1;
+						saveCoverClass(0x4300,0,(void *)&class19,sizeof(class19),para_vari_save);
+						JProgramInfo->oi_changed.oi4300++;
+					}else{
+						JProgramInfo->event_obj.Event311B_obj.enableflag=FALSE;
+						JProgramInfo->event_obj.Event311B_obj.reportflag=FALSE;
+						saveCoverClass(oi,0,(void *)&JProgramInfo->event_obj.Event311B_obj,sizeof(Class7_Object),event_para_save);
+						JProgramInfo->oi_changed.oi311B++;
+						readCoverClass(0x4300,0,&class19,sizeof(class19),para_vari_save);
+						class19.active_report =0;
+						class19.talk_master =0;
+						saveCoverClass(0x4300,0,(void *)&class19,sizeof(class19),para_vari_save);
+						JProgramInfo->oi_changed.oi4300++;
+					}
+				}
+				fprintf(stderr,"设置%04x成功!\n",oi);
 		}
 	}
 }

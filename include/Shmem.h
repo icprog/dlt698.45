@@ -357,7 +357,7 @@ typedef struct {
 	RealdataReq		RealDatareq;			//实时数据请求缓存
 	OI_CHANGE		oi_changed;				//相应的OI参数修改变化值，结构体相应的OI值从1-255设置参数后循环累加
 	TerminalEvent_Object event_obj;         //事件参数结构体
-	FactoryVersion  version;				//终端版本信息
+//	FactoryVersion  version;				//终端版本信息，定义用途？？
 	INT8U ProxyHappen;
     AutoTaskStrap	autotask[MAXNUM_AUTOTASK];
     Terminal_Dev_Info dev_info;
