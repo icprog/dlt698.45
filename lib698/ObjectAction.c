@@ -1186,6 +1186,15 @@ int doObjectAction(OAD oad,INT8U *data,Action_result *act_ret)
 				act_ret->DAR = 0;
 //				act_ret->datalen = 1;
 			}
+			break;
+		case 0x2301:
+		case 0x2302:
+		case 0x2303:
+		case 0x2304:
+		case 0x2305:
+		case 0x2306:
+		case 0x2307:
+		case 0x2308:
 
 			break;
 	}

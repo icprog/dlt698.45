@@ -190,7 +190,7 @@ int Comm_task(CommBlock *compara) {
     if (compara->testcounter > 3) {
         return -1;
     }
-    
+
     if (compara->linkstate == close_connection) //物理通道建立完成后，如果请求状态为close，则需要建立连接
     {
         WriteLinkRequest(build_connection, heartbeat, &compara->link_request);
