@@ -1033,7 +1033,7 @@ INT16U CalcFreq(TI runti,CLASS_6015 class6015,INT16U startmin,INT16U endmin,INT1
 	INT8U  inval_flg = 0;
 	if(class6015.cjtype == 3 || class6015.cjtype == 0)//按时标间隔采集
 	{
-		if(endmin <= startmin || runti.units > 2)
+		if(endmin <= startmin || runti.units > 3)
 			return 0;//无效设置
 		switch(runti.units)
 		{
@@ -1052,6 +1052,10 @@ INT16U CalcFreq(TI runti,CLASS_6015 class6015,INT16U startmin,INT16U endmin,INT1
 			if(runti.interval >= 60)//如果就要设置1个半小时呢
 				inval_flg = 1;
 			break;
+		case 3://天
+			*sec_freq = 86400;
+			return 1;
+			break;
 		default:
 			break;//没有这种情况
 		}
@@ -1059,6 +1063,7 @@ INT16U CalcFreq(TI runti,CLASS_6015 class6015,INT16U startmin,INT16U endmin,INT1
 			return 0;
 		sec_unit = (runti.interval * rate);
 		fprintf(stderr,"\nsec_unit = %d,interval=%d(%d)\n",sec_unit,runti.interval,runti.units);
+		if(sec_unit==0)	  sec_unit = 1;		//TODO:该如何赋值
 		*sec_freq = sec_unit;
 		fprintf(stderr,"\n---@@@-开始分钟数：%d 结束分钟数：%d 间隔秒数%d 次数:%d---%d\n",startmin,endmin,sec_unit,((endmin-startmin)*60)/sec_unit,((endmin-startmin)*60)/sec_unit+1);
 		return ((endmin-startmin)*60)/sec_unit+1;
@@ -1917,7 +1922,8 @@ INT8U getcurecord(INT8U selectype,int *curec,int curecn,int runtime)
 	int currecord = *curec;
 	if(selectype == 7 || selectype == 5)
 	{
-		currecord = (currecord+curecn)%runtime;
+		if(runtime!=0)
+			currecord = (currecord+curecn)%runtime;
 		*curec = 0;
 		return 1;
 	}
@@ -2322,7 +2328,8 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds)
 	memset(oad_offset,0x00,sizeof(oad_offset));
 	GetOADPosofUnit(item_road,headunit,unitnum,oad_offset);//得到每一个oad在块数据中的偏移
 	fprintf(stderr,"\n----------4\n");
-	recordlen = blocksize/tasknor_info.runtime;//计算每条记录的字节数
+	if(tasknor_info.runtime!=0) 	//异常处理
+		recordlen = blocksize/tasknor_info.runtime;//计算每条记录的字节数
 	fprintf(stderr,"\nrecordlen = %d,freq=%d\n",recordlen,tasknor_info.freq);
 //	recordno = getrecordno(tasknor_info.starthour,tasknor_info.startmin,tasknor_info.freq,ts_sele);//计算招测的第一个的序列号
 	fprintf(stderr,"\n-----------------------------------1-----------------------------------------------------------\n");

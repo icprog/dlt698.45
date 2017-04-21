@@ -831,7 +831,9 @@ sem_t * InitSem()
 	sem_parasave = open_named_sem(SEMNAME_PARA_SAVE);
 	if(sem_parasave!=NULL) {
 		sem_getvalue(sem_parasave, &val);
-		fprintf(stderr,"\nprocess The sem = %s value = %d sem_parasave=%p\n",SEMNAME_PARA_SAVE, val,sem_parasave);
+		if(val!=1) {
+			asyslog(LOG_ERR,"\nprocess The sem = %s value = %d sem_parasave=%p\n",SEMNAME_PARA_SAVE, val,sem_parasave);
+		}
 		sem_wait(sem_parasave);
 	}
 	return sem_parasave;

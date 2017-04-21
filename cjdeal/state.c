@@ -186,7 +186,7 @@ void DealState(ProgramInfo* prginfo)
 	BOOLEAN changed = FALSE;
 	INT8U	stachg = 0;
 	changed = oi_f203_changed(prginfo->oi_changed.oiF203);
-	stachg = state_check(changed,prginfo->DevicePara[0]);
+	stachg = state_check(changed,prginfo->cfg_para.device);
 	if(stachg==1) {
 		getStateEvent(prginfo);
 		saveCoverClass(0xf203,0,&oif203,sizeof(CLASS_f203),para_vari_save);
