@@ -14,7 +14,13 @@
 
 //#pragma pack(1)				//结构体一个字节对齐
 
+/*
+ * 注意：增加相应的oi配置，需要在lib698/interfunc.c的setOIChange（）中相应的增加共享内存计数值变化
+ * */
 typedef struct {
+	INT8U   oi300F;              //电压相序异常  //06 01 09 30 0F 06 00 02 01 11 1E 00
+	INT8U   oi3010;              //电流相序异常
+	INT8U   oi301B;       		 //电能表开表盖事件
 	INT8U	oi3100;				//终端初始化事件
 	INT8U	oi3101;				//终端版本变更事件
 	INT8U	oi3104;				//终端状态量变位事件
@@ -45,18 +51,15 @@ typedef struct {
 	INT8U	oi3201;				//电控跳闸记录
 	INT8U	oi3202;				//购电参数设置记录
 	INT8U	oi3203;				//电控告警事件记录
-	INT8U   oi301B;       		//电能表开表盖事件
-	INT8U   oi300F;             //电压相序异常  //06 01 09 30 0F 06 00 02 01 11 1E 00
-    INT8U   oi3010;             //电流相序异常
 ////////////////////////////////////////////////////////
     INT8U 	oi4000;       	//对时参数
 	INT8U	oi4016;			//当前套日时段表
 	INT8U 	oi4030;      	//电压合格率统计
 	INT8U 	oi4204;       	//终端广播校时参数
-	INT8U 	oi4500;			//通讯参数
-	INT8U 	reset;			/*4300方法1，设备复位*/   //
-	INT8U 	init;			/*4300方法3,5,6，数据初始化*/   //
 	INT8U 	oi4300;       	//设备管理接口类
+	INT8U 	oi4500;		//通讯参数
+	INT8U 	reset;		/*4300方法1，设备复位*/   //
+	INT8U 	init;		/*4300方法3,5,6，数据初始化*/   //
 ////////////////////////////////////////////////////////
 	INT8U oi6000;		/*采集档案配置表属性变更*/
 	INT8U oi6002;		/*搜表类属性变更*/
@@ -67,6 +70,7 @@ typedef struct {
 	INT8U oi601C;		/*上报方案集属性变更*/
 	INT8U oi601E;		/*采集规则库属性变更*/
 	INT8U oi6051;		/*实时监控采集方案集属性变更*/
+////////////////////////////////////////////////////////	
 	INT8U oiF203;       //开关量
 
 }OI_CHANGE;
@@ -339,7 +343,13 @@ typedef struct{
 }Terminal_Dev_Info;
 
 typedef struct {
-	INT8U			DevicePara[128];	//设备参数：para[0]:表示设备类型
+	INT8U	device;			//设备类型，1：I型集中器，2:II型集中器，3：III型专变
+	char	zone[32];		//地区
+	INT8U	extpara[128];	//预留参数
+}ConfigPara;
+
+typedef struct {
+	ConfigPara		cfg_para;				//配置参数
 	ACCoe_SAVE 		Accoepara;
 	_RealData		ACSRealData;		//计量芯片实时数据
 	ACEnergy_Sum	ACSEnergy;			//计量芯片电能量数据
@@ -347,7 +357,7 @@ typedef struct {
 	RealdataReq		RealDatareq;			//实时数据请求缓存
 	OI_CHANGE		oi_changed;				//相应的OI参数修改变化值，结构体相应的OI值从1-255设置参数后循环累加
 	TerminalEvent_Object event_obj;         //事件参数结构体
-	FactoryVersion  version;				//终端版本信息
+//	FactoryVersion  version;				//终端版本信息，定义用途？？
 	INT8U ProxyHappen;
     AutoTaskStrap	autotask[MAXNUM_AUTOTASK];
     Terminal_Dev_Info dev_info;

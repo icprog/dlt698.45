@@ -334,6 +334,7 @@ int SaveNorData(INT8U taskid,ROAD *road_eve,INT8U *databuf,int datalen)//存储�
 	TSGet(&ts_now);//用的当前时间，测试用，需要根据具体存储时标选择来定义
 	if(road_eve == NULL)//不是事件
 	{
+		fprintf(stderr,"SaveNorData==========\n");
 		if((taskinfoflg = ReadTaskInfo(taskid,&tasknor_info))==0)
 			return 0;
 		runtime = tasknor_info.runtime;
@@ -473,6 +474,8 @@ int SaveOADData(INT8U taskid,OAD oad_m,OAD oad_r,INT8U *databuf,int datalen,TS t
 	memset(&csds,0x00,sizeof(ROAD));
 //	csds.num = 1;
 //	csds.csd[0].type = 1;//road
+
+	fprintf(stderr,"SaveOADData==========\n");
 	if(ReadTaskInfo(taskid,&tasknor_info)!=1)
 		return 0;
 	runtime = tasknor_info.runtime;

@@ -106,7 +106,6 @@ void Save_Vol_Rate(INT8U flag,DateTimeBCD datetime)
 				 int ret=saveFreezeRecord(0x5006,oad,datetime,sizeof(PassRate_U),(INT8U *)&passu_m[j]);
 				  fprintf(stderr,"ret=%d oad=%04x %02x %02x \n",ret,oad.OI,oad.attflg,oad.attrindex);
 				  fprintf(stderr,"passu_m[%d]:%d %d %d %d %d \n",j,passu_m[j].monitorTime,passu_m[j].downLimitTime,passu_m[j].overRate,passu_m[j].passRate,passu_m[j].upLimitTime);
-
 				  memset(&passu_m[j],0,sizeof(PassRate_U));
 			  }
 			}
