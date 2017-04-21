@@ -16,6 +16,7 @@
 #include "../libMq/libmmq.h"
 #include "basedef.h"
 
+
 static TSA TSA_LIST[MAX_POINT_NUM];
 static int TSA_NUMS;
 //当前最新抄表数据
