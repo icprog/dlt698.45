@@ -704,7 +704,7 @@ void* ATWorker(void* args) {
             sleep(1);
             if (tryifconfig(class25) == 1) {
                 //拨号成功，存储参数，以备召唤
-                saveCoverClass(0x4500, 0, class25, sizeof(CLASS25), para_init_save);
+                saveCoverClass(0x4500, 0, class25, sizeof(CLASS25), para_vari_save);
                 break;
             }
         }
