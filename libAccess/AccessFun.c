@@ -30,6 +30,7 @@
 
 CLASS_INFO	info={};
 void write_apn(char* apn) {
+	syslog(LOG_NOTICE,"__%s__",__func__);
     FILE* fp;
     fp = fopen("/etc/ppp/gprs-connect-chat", "w");
     if (fp == NULL) {
@@ -63,7 +64,8 @@ void write_apn(char* apn) {
 }
 
 void write_userpwd(unsigned char* user, unsigned char* pwd, unsigned char* apn) {
-    FILE* fp = NULL;
+	syslog(LOG_NOTICE,"__%s__",__func__);
+	FILE* fp = NULL;
     fp       = fopen("/etc/ppp/chap-secrets", "w");
     fprintf(fp, "\"%s\" * \"%s\" *", user, pwd);
     fclose(fp);
@@ -113,6 +115,7 @@ void write_userpwd(unsigned char* user, unsigned char* pwd, unsigned char* apn) 
 }
 void clearData()
 {
+	syslog(LOG_NOTICE,"__%s__",__func__);
 	//冻结类数据清除
 	system("rm -rf /nand/task");
 	//统计类数据清除
@@ -127,6 +130,7 @@ void clearEvent()
 	int		classlen=0;
 	Class7_Object	class7={};
 
+	syslog(LOG_NOTICE,"__%s__",__func__);
 	for(i=0; i < sizeof(event_class_len)/sizeof(EVENT_CLASS_INFO);i++)
 	{
 		if(event_class_len[i].oi) {
@@ -165,6 +169,7 @@ void clearEvent()
 
 void clearDemand()
 {
+	syslog(LOG_NOTICE,"__%s__",__func__);
 	//需量类数据清除
 	system("rm -rf /nand/demand");
 }
@@ -213,6 +218,7 @@ int delClassBySeq(OI_698 oi,void *blockdata,int seqnum)
 	INT16S	infoi=-1;
 	sem_t   *sem_save=NULL;
 
+	syslog(LOG_NOTICE,"__%s__,oi=%04x,seqnum=%d",__func__,oi,seqnum);
 	infoi = getclassinfo(oi,&info);
 	if(infoi == -1) {
 		return -1;
@@ -249,6 +255,7 @@ int clearClass(OI_698 oi)
 	INT8U	oiA1=0;
 	sem_t   *sem_save=NULL;
 
+	syslog(LOG_NOTICE,"__%s__",__func__);
 	sem_save = InitSem();
 
 	infoi = getclassinfo(oi,&info);
@@ -287,6 +294,8 @@ int clearClass(OI_698 oi)
 int deleteClass(OI_698 oi,INT8U id)
 {
 	char	cmd[FILENAMELEN]={};
+
+	syslog(LOG_NOTICE,"__%s__",__func__);
 
 	memset(cmd,0,sizeof(cmd));
 	sprintf(cmd,"rm -rf %s/%04x/%d.par",PARADIR,oi,id);
@@ -334,6 +343,7 @@ int saveParaClass(OI_698 oi,void *blockdata,int seqnum)
 	INT16S	infoi=-1;
 	sem_t   *sem_save=NULL;
 
+	syslog(LOG_NOTICE,"__%s__,oi=%04x,seqnum=%d",__func__,oi,seqnum);
 	infoi = getclassinfo(oi,&info);
 	if(infoi == -1) {
 		return -1;
@@ -362,6 +372,7 @@ int  readParaClass(OI_698 oi,void *blockdata,int seqnum)
 	INT16S	infoi=-1;
 	sem_t   *sem_save=NULL;
 
+	syslog(LOG_NOTICE,"__%s__,oi=%04x,seqnum=%d",__func__,oi,seqnum);
 	infoi = getclassinfo(oi,&info);
 	if(infoi==-1) {
 		fprintf(stderr,"infoi=%d\n",infoi);
@@ -385,6 +396,7 @@ int saveCoverClass(OI_698 oi,INT16U seqno,void *blockdata,int savelen,int type)
 	char	fname[FILENAMELEN]={};
 	sem_t   *sem_save=NULL;
 
+	syslog(LOG_NOTICE,"__%s__,type=%d,oi=%04x,seqno=%d",__func__,type,oi,seqno);
 	sem_save = InitSem();
 	memset(fname,0,sizeof(fname));
 	getFileName(oi,seqno,type,fname);
@@ -392,11 +404,13 @@ int saveCoverClass(OI_698 oi,INT16U seqno,void *blockdata,int savelen,int type)
 	case event_para_save:
 	case para_vari_save:
 	case coll_para_save:
-	case acs_coef_save:
 	case acs_energy_save:
 	case para_init_save:
 		fprintf(stderr,"saveClass file=%s ",fname);
 		ret = save_block_file(fname,blockdata,savelen,0,0);
+		break;
+	case acs_coef_save:
+		file_write_accoef(fname,blockdata,savelen);
 		break;
 	case event_record_save:
 	case event_current_save:
@@ -437,6 +451,7 @@ int readCoverClass(OI_698 oi,INT16U seqno,void *blockdata,int datalen,int type)
 	sem_t   *sem_save=NULL;
 //	void 	*blockdata1=NULL;
 
+	syslog(LOG_NOTICE,"__%s__,type=%d,oi=%04x,seqno=%d",__func__,type,oi,seqno);
 	sem_save = InitSem();
 	memset(fname,0,sizeof(fname));
 	switch(type) {
@@ -502,6 +517,7 @@ int saveVariData(OI_698 oi,int coll_seqnum,void *blockdata,int datalen)
 	char	filename[FILENAMELEN];
 	sem_t   *sem_save=NULL;
 
+	syslog(LOG_NOTICE,"__%s__,oi=%04x,coll_seqnum=%d",__func__,oi,coll_seqnum);
 	if(blockdata==NULL) {
 		fprintf(stderr,"存储数据为空，不可保存\n");
 		return -1;
@@ -575,6 +591,7 @@ int  readVariData(OI_698 oi,int coll_seqnum,void *blockdata,int len)
 	int		blklen=0;
 	char	*rbuf=NULL;
 
+	syslog(LOG_NOTICE,"__%s__,oi=%04x,coll_seqnum=%d",__func__,oi,coll_seqnum);
 	if(len > VARI_LEN) {
 		fprintf(stderr,"读取数据长度[%d]大于申请返回数据空间[%d]，返回失败!!!\n",len,VARI_LEN);
 		return -1;
@@ -662,7 +679,6 @@ int getFreezeMaxRecord(OI_698 freezeoi,OI_698 recordoi)
 ////////////////////////////////////////////////////////////////////////////////
 /*
  * 冻结数据记录单元存储
- * 电压合格率 oad=2130，代表2131,2132,2133
  * 每条记录数据内容固定64个字节：格式  OAD + 冻结时间 + Data
  * 返回 = 1： 写成功
  *     = 0： 失败
@@ -678,6 +694,7 @@ int	saveFreezeRecord(OI_698 freezeOI,OAD oad,DateTimeBCD datetime,int len,INT8U 
 	int		blklen = 0;
 	sem_t   *sem_save=NULL;
 
+	syslog(LOG_NOTICE,"__%s__,freezeOI=%04x,oad.oi=%04x",__func__,freezeOI,oad.OI);
 	if(len>VARI_LEN) {
 		fprintf(stderr,"save %s/%04x-%04x.dat 数据长度[%d]大于限定值[%d],不予保存",VARI_DIR,freezeOI,oad.OI,len,VARI_LEN);
 	}
@@ -722,6 +739,13 @@ int	saveFreezeRecord(OI_698 freezeOI,OAD oad,DateTimeBCD datetime,int len,INT8U 
 	return ret;
 }
 
+/*
+ * 读取：冻结数据记录单元的最大数及当前记录数
+ * 返回 currRecordNum：当前记录数
+ * 		MaxRecordNum：冻结深度
+ * 	   = 1： 成功
+ *     = 0： 失败
+ * */
 int readFreezeRecordNum(OI_698 freezeOI,OI_698 relateOI,int *currRecordNum,int *MaxRecordNum)
 {
 	int		ret = 0;
@@ -1478,7 +1502,7 @@ INT16U getTSASE4(MS ms,TSA *tsa)
 	}
 	return TSA_num;
 }
-FILE* opendatafile(INT8U taskid,CURR_RECINFO recinfo)
+FILE* opendatafile(INT8U taskid,CURR_RECINFO recinfo,INT8U taskinfoflg)
 {
 	FILE *fp = NULL;
 	char	fname[FILENAMELEN]={};
@@ -1493,6 +1517,11 @@ FILE* opendatafile(INT8U taskid,CURR_RECINFO recinfo)
 	ts_rec.Minute = 0;
 	ts_rec.Sec = 0;
 
+	if(taskinfoflg == 2)
+	{
+		asyslog(LOG_INFO,"n月冻结招测\n");
+		ts_rec.Day = 0;
+	}
 	getTaskFileName(taskid,ts_rec,fname);//得到要抄读的文件名称
 	fprintf(stderr,"fname=%s\n",fname);
 	asyslog(LOG_INFO,"组帧frmdata，打开任务文件=%s, taskid=%d\n",fname,taskid);
@@ -1553,7 +1582,7 @@ int findTsa(TSA tsa,FILE *fp,int headsize,int blocksize)
 	INT8U  tsa_tmp[TSA_LEN + 1];
 	int offset = headsize;
 
-	fprintf(stderr,"\noffset=%d,需要查找 TSA: %d-",offset,tsa.addr[0]);
+	fprintf(stderr,"\nblocksize = %d offset=%d,需要查找 TSA: %d-",blocksize,offset,tsa.addr[0]);
 	for(i=0;i<(tsa.addr[0]+1);i++) {
 		fprintf(stderr,"-%02x",tsa.addr[i]);
 	}
@@ -1820,9 +1849,9 @@ INT8U initrecinfo(CURR_RECINFO *recinfo,TASKSET_INFO tasknor_info,INT8U selectyp
 		time(&time_s);
 		time_s += 86400;//24*60*60; 加上一天的秒数
 		tm_p = localtime(&time_s);
-		tm_p->tm_year = select.selec5.collect_save.year.data;
-		tm_p->tm_mon = select.selec5.collect_save.month.data;
-		tm_p->tm_mday = select.selec5.collect_save.year.data;
+		tm_p->tm_year = select.selec5.collect_save.year.data - 1900;
+		tm_p->tm_mon = select.selec5.collect_save.month.data - 1;
+		tm_p->tm_mday = select.selec5.collect_save.day.data;
 		tm_p->tm_hour = tasknor_info.starthour;
 		tm_p->tm_min = tasknor_info.startmin;
 		tm_p->tm_sec = 0;
@@ -1831,9 +1860,9 @@ INT8U initrecinfo(CURR_RECINFO *recinfo,TASKSET_INFO tasknor_info,INT8U selectyp
 		time(&time_s);
 		time_s += 86400;//24*60*60; 加上一天的秒数
 		tm_p = localtime(&time_s);
-		tm_p->tm_year = select.selec5.collect_save.year.data;
-		tm_p->tm_mon = select.selec5.collect_save.month.data;
-		tm_p->tm_mday = select.selec5.collect_save.year.data;
+		tm_p->tm_year = select.selec5.collect_save.year.data - 1900;
+		tm_p->tm_mon = select.selec5.collect_save.month.data - 1;
+		tm_p->tm_mday = select.selec5.collect_save.day.data;
 		tm_p->tm_hour = tasknor_info.endhour;
 		tm_p->tm_min = tasknor_info.endmin;
 		tm_p->tm_sec = 0;
@@ -1843,9 +1872,9 @@ INT8U initrecinfo(CURR_RECINFO *recinfo,TASKSET_INFO tasknor_info,INT8U selectyp
 		recinfo->recordno_num = (recinfo->rec_end - recinfo->rec_start)/tasknor_info.freq + 1;
 		time(&time_s);
 		tm_p = localtime(&time_s);
-		tm_p->tm_year = select.selec7.collect_save_star.year.data;
-		tm_p->tm_mon = select.selec7.collect_save_star.month.data;
-		tm_p->tm_mday = select.selec7.collect_save_star.year.data;
+		tm_p->tm_year = select.selec7.collect_save_star.year.data-1900;
+		tm_p->tm_mon = select.selec7.collect_save_star.month.data-1;
+		tm_p->tm_mday = select.selec7.collect_save_star.day.data;
 		tm_p->tm_hour = select.selec7.collect_save_star.hour.data;
 		tm_p->tm_min = select.selec7.collect_save_star.min.data;
 		tm_p->tm_sec = select.selec7.collect_save_star.sec.data;
@@ -1853,9 +1882,9 @@ INT8U initrecinfo(CURR_RECINFO *recinfo,TASKSET_INFO tasknor_info,INT8U selectyp
 
 		time(&time_s);
 		tm_p = localtime(&time_s);
-		tm_p->tm_year = select.selec7.collect_save_finish.year.data;
-		tm_p->tm_mon = select.selec7.collect_save_finish.month.data;
-		tm_p->tm_mday = select.selec7.collect_save_finish.year.data;
+		tm_p->tm_year = select.selec7.collect_save_finish.year.data-1900;
+		tm_p->tm_mon = select.selec7.collect_save_finish.month.data-1;
+		tm_p->tm_mday = select.selec7.collect_save_finish.day.data;
 		tm_p->tm_hour = select.selec7.collect_save_finish.hour.data;
 		tm_p->tm_min = select.selec7.collect_save_finish.min.data;
 		tm_p->tm_sec = select.selec7.collect_save_finish.sec.data;
@@ -1880,7 +1909,11 @@ INT8U getcurecord(INT8U selectype,int *curec,int curecn,int runtime)
 {
 	int currecord = *curec;
 	if(selectype == 7 || selectype == 5)
+	{
 		currecord = (currecord+curecn)%runtime;
+		*curec = 0;
+		return 1;
+	}
 	else if(selectype == 10)
 	{
 		int cnt=0;
@@ -2205,7 +2238,7 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds)
 	TASKSET_INFO tasknor_info;
 	INT16U  blocksize=0,headsize=0;
 	int offsetTsa = 0,recordoffset = 0,unitnum=0,i=0,j=0,indexn=0,recordlen = 0,currecord = 0,firecord = 0,tsa_num=0,framesum=0;
-	INT8U recordnum=0,seqnumindex=0;
+	INT8U recordnum=0,seqnumindex=0,taskinfoflg=0;
 	TSA *tsa_group = NULL;
 	ROAD road_eve;
 	INT8U eveflg=0;
@@ -2248,8 +2281,7 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds)
 			asyslog(LOG_INFO,"GetTaskData: taskid=%d\n",taskid);
 			return 0;
 		}
-		fprintf(stderr,"GetTaskData==========\n");
-		if(ReadTaskInfo(taskid,&tasknor_info)!=1)//得到任务信息
+		if((taskinfoflg = ReadTaskInfo(taskid,&tasknor_info))==0)//得到任务信息
 		{
 			asyslog(LOG_INFO,"n得到任务信息失败\n");
 			fprintf(stderr,"\n得到任务信息失败\n");
@@ -2264,7 +2296,7 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds)
 		firecord = currecord;//每次切换表地址，当前记录序号赋值第一次的数值
 		//1\打开数据文件
 		fprintf(stderr,"\n----------1\n");
-		fp = opendatafile(taskid,recinfo);
+		fp = opendatafile(taskid,recinfo,taskinfoflg);
 	}
 	myfp = openFramefile(TASK_FRAME_DATA);
 	if (fp==NULL || myfp==NULL)
@@ -2289,7 +2321,18 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds)
 //	recordno = getrecordno(tasknor_info.starthour,tasknor_info.startmin,tasknor_info.freq,ts_sele);//计算招测的第一个的序列号
 	fprintf(stderr,"\n-----------------------------------1-----------------------------------------------------------\n");
 	//2\获得全部TSA列表
-//	fprintf(stderr,"\nmstype=%d recordno=%d\n",select.selec10.meters.mstype,recordno);
+//	fprintf(stderr,"\nmstype=%d recordno=%d\n",select.selec10.meters.mstype,recordno);s
+	switch(selectype)
+	{
+		case 5:
+			tsa_num = getTsas(select.selec5.meters,(INT8U **)&tsa_group);
+			break;
+		case 7:
+			tsa_num = getTsas(select.selec7.meters,(INT8U **)&tsa_group);
+			break;
+		default:
+			tsa_num = getTsas(select.selec10.meters,(INT8U **)&tsa_group);
+	}
 
 	tsa_num = getTsas(select.selec10.meters,(INT8U **)&tsa_group);
 	fprintf(stderr,"get 需要上报的：tsa_num=%d,tsa_group=%p\n",tsa_num,tsa_group);
@@ -2374,6 +2417,7 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds)
 		fclose(fp);
 	if(myfp != NULL)
 		fclose(myfp);
+	asyslog(LOG_INFO,"--framesum=%d\n",framesum);
 	return (framesum+1);
 }
 int getSelector(OAD oad_h,RSD select, INT8U selectype, CSD_ARRAYTYPE csds, INT8U *data, int *datalen)

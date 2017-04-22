@@ -899,7 +899,7 @@ int setRequestNormalList(INT8U *data,CSINFO *csinfo,INT8U *buf)
 	for(i=0;i<oadnum;i++)
 	{
 		sourceindex += getOAD(0,&data[sourceindex],&oad);
-		if(oad.OI==0x4300 || oad.OI==0x4000) {
+		if(oad.OI!=0x4300 && oad.OI!=0x4000 && ((oad.OI>>12)==0x04)) {
 			memcpy(&event_oad[event_oadnum],&oad,sizeof(OAD));
 			event_oadnum++;
 		}
@@ -909,9 +909,10 @@ int setRequestNormalList(INT8U *data,CSINFO *csinfo,INT8U *buf)
 	}
 	doReponse(SET_RESPONSE,SET_REQUEST_NORMAL_LIST,csinfo,listindex,TmpDataBufList,buf);
 	//此处处理防止在设置后未上送应答帧而直接上送事件报文
-	for(i=0;i<event_oadnum;i++) {
-		Get698_event(event_oad[i],memp);
-	}
+//	for(i=0;i<event_oadnum;i++) {
+//		Get698_event(event_oad[i],memp);
+//	}
+	Get698_3118_moreoad(event_oad,event_oadnum,memp);
 	return 0;
 }
 
@@ -935,7 +936,7 @@ int setThenGetRequestNormalList(INT8U *data,CSINFO *csinfo,INT8U *buf)
 	for(i=0;i<seqofNum;i++)
 	{
 		sourceindex += getOAD(0,&data[sourceindex],&oad);		//一个设置的对象属性   OAD
-		if(oad.OI==0x4300 || oad.OI==0x4000) {
+		if(oad.OI==0x4300 && oad.OI==0x4000 && ((oad.OI>>12)==0x04)) {
 			memcpy(&event_oad[event_oadnum],&oad,sizeof(OAD));
 			event_oadnum++;
 		}
@@ -970,9 +971,10 @@ int setThenGetRequestNormalList(INT8U *data,CSINFO *csinfo,INT8U *buf)
 	}
 	doReponse(SET_RESPONSE,SET_THENGET_REQUEST_NORMAL_LIST,csinfo,listindex,TmpDataBufList,buf);
 	//此处处理防止在设置后未上送应答帧而直接上送事件报文
-	for(i=0;i<event_oadnum;i++) {
-		Get698_event(event_oad[i],memp);
-	}
+//	for(i=0;i<event_oadnum;i++) {
+//		Get698_event(event_oad[i],memp);
+//	}
+	Get698_3118_moreoad(event_oad,event_oadnum,memp);
 	return 0;
 }
 

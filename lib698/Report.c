@@ -13,12 +13,14 @@
 #include "dlt698def.h"
 #include "dlt698.h"
 #include "PublicFunction.h"
+#include "EventObject.h"
 #include "secure.h"
 #include "event.h"
 extern int FrameHead(CSINFO *csinfo,INT8U *buf);
 extern void FrameTail(INT8U *buf,int index,int hcsi);
 extern INT8U Get_Event(OAD oad,INT8U eventno,INT8U** Getbuf,int *Getlen,ProgramInfo* prginfo_event);
 INT8S (*pSendfun_report)(int fd,INT8U* sndbuf,INT16U sndlen);
+
 
 INT8U Report_Event(CommBlock *com,INT8U *oiarr,INT8U report_type){
 
@@ -85,6 +87,7 @@ INT8U Report_Event(CommBlock *com,INT8U *oiarr,INT8U report_type){
 					tem_buf[temindex++] = guanlian_oad[in].oad[_in].attflg;
 					tem_buf[temindex++] = guanlian_oad[in].oad[_in].attrindex;
             	}
+            	break;
             }
 		}
 	}
