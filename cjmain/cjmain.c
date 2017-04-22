@@ -399,9 +399,11 @@ void ProjectCheck(ProjectInfo* proinfo) {
 }
 
 void checkProgsState(int ProgsNum) {
+
     ProjectInfo* pis = JProgramInfo->Projects;
 
     for (int i = 1; i < ProgsNum; i++) {
+
         ProjectCheck(&JProgramInfo->Projects[i]);
         switch (JProgramInfo->Projects[i].ProjectState) {
             case NeedKill:

@@ -78,7 +78,6 @@ void InitClass4500() //公网通信模块1
     int ret        = 0;
     memset(&oi4500, 0, sizeof(CLASS25));
     ret = readCoverClass(0x4500, 0, (void*)&oi4500, sizeof(CLASS25), para_vari_save);
-    fprintf(stderr,"ret=%d\n",ret);
     if (ret != 1) {
         fprintf(stderr, "\n初始化公网通信模块1：4500\n");
         oi4500.commconfig.workModel     = 1; //客户机模式

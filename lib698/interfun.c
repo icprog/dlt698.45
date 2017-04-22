@@ -358,8 +358,8 @@ int fill_RCSD(INT8U type,INT8U *data,CSD_ARRAYTYPE csds)		//0x60
 	}
 	num = csds.num;
 	fprintf(stderr,"csds.num=%d\n",csds.num);
-	if(num==0) {		//OAD
-		index += create_OAD(0,&data[index],csds.csd[0].csd.oad);
+	if(num==0) {		//OAD  RCSD=0,即sequence of数据个数=0，表示不选择，国网台体测试终端编程事件时，读取上1次编程事件记录，RCSD=0，应答帧oad不应在此处填写
+//		index += create_OAD(0,&data[index],csds.csd[0].csd.oad);
 	}else {				//RCSD		SEQUENCE OF CSD
 		data[index++] = num;
 		for(i=0;i<num;i++)
