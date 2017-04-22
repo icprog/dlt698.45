@@ -33,7 +33,7 @@ typedef struct
 {
    TSA tsa;
    OAD oad;
-   INT8U data[10];
+   INT8U data[30];
 }Other_Data;
 
 //事件发生源枚举
@@ -207,4 +207,8 @@ extern INT8U Event_3010(ProgramInfo* prginfo_event);
  * 698guiyue规约库判断初始化事件、终端对时事件
  */
 extern void  Get698_event(OAD oad,ProgramInfo* prginfo_event);
+/*
+ *若设置多个参变量 会产生电能表数据监控变更事件
+ */
+extern void Get698_3118_moreoad(OAD *oad,INT8U len,ProgramInfo* prginfo_event);
 #endif

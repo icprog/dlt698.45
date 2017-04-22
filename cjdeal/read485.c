@@ -1402,6 +1402,18 @@ INT8S checkEvent698(OI_698 rcvOI,INT8U* data,INT8U dataLen,CLASS_6001 obj6001,IN
 
 		ret = Event_310E(obj6001.basicinfo.addr,taskID,&data[2],dataLen,JProgramInfo);
 	}
+	fprintf(stderr,"aaadatalen=%d \n",dataLen);
+    OAD oad;
+	oad.OI=rcvOI;
+	oad.attflg=2;
+	oad.attrindex=0;
+	INT8U a=0;
+	fprintf(stderr,"bbbbbbbbbbbbbbbbbbbb\n");
+	for(a=0;a<dataLen;a++){
+		fprintf(stderr,"%02x ",data[a]);
+	}
+	fprintf(stderr,"\n");
+	Event_311C(obj6001.basicinfo.addr,taskID,oad,data,dataLen,JProgramInfo);
 	return ret;
 }
 /*

@@ -47,7 +47,10 @@ static INT8U other_curr_index=0;
  * 数据初始化 清空该部分内存
  */
 void Reset_Eventpara(){
-	memset(curr_data,0,sizeof(Curr_Data)*MAX_POINT_NUM*4);
+	memset(curr_data,0,sizeof(Curr_Data)*MAX_POINT_NUM);
+	currnum=0;
+	memset(other_data,0,sizeof(other_data));
+	other_curr_index=0;
 }
 
 /*
@@ -438,6 +441,37 @@ INT8U Getevent_Record_Selector(RESULT_RECORD *record_para,ProgramInfo* prginfo_e
 			 }
 				 break;
 		   }
+	 }else{
+		 INT8U in=0,_in=0;
+		 INT8U oadnumindex=real_index;
+		 real_index++;
+		 for(in=0;in<sizeof(guanlian_oad)/sizeof(event_guanlian);in++){
+			 if(guanlian_oad[in].oi == record_para->oad.OI){
+				fprintf(stderr,"\\\\num=%d \n",guanlian_oad[in].num);
+				record_para->data[oadnumindex]+=guanlian_oad[in].num;
+				for(_in=0;_in<guanlian_oad[in].num;_in++){
+					record_para->data[real_index++] = 0x00;
+					record_para->data[real_index++] = (guanlian_oad[in].oad[_in].OI>>8)&0x00ff;
+					record_para->data[real_index++] = guanlian_oad[in].oad[_in].OI&0x00ff;
+					record_para->data[real_index++] = guanlian_oad[in].oad[_in].attflg;
+					record_para->data[real_index++] = guanlian_oad[in].oad[_in].attrindex;
+				}
+				break;
+			 }
+		 }
+			INT8U *data=NULL;
+			int datalen=0;
+			if(Get_Event(record_para->oad,1,&data,&datalen,prginfo_event) == 1){
+				if(data!=NULL && datalen>0 && datalen<256){
+					record_para->data[real_index++] = 1; //data
+					record_para->data[real_index++] = 1; //1个
+					memcpy(&record_para->data[real_index],&data[STANDARD_NO_INDEX],datalen-2);//事件序号以后得数据
+					real_index +=datalen-2;
+				}else
+					record_para->data[real_index++] = 0;
+			}else
+				record_para->data[real_index++] = 0;
+			record_para->datalen =real_index;//最终长度
 	 }
 	return 1;
 }
@@ -669,6 +703,7 @@ INT16U Getcurrno(INT16U currno,INT16U maxno){
  * 终端初始化事件1 可以698规约解析actionrequest 调用该接口，data为OAD
  */
 INT8U Event_3100(INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
+
 	Reset_Eventpara();
 	if(oi_chg.oi3100 != prginfo_event->oi_changed.oi3100){
 		readCoverClass(0x3100,0,&prginfo_event->event_obj.Event3100_obj,sizeof(prginfo_event->event_obj.Event3100_obj),event_para_save);
@@ -1288,7 +1323,7 @@ INT8U Event_3106(ProgramInfo* prginfo_event,MeterPower *MeterPowerInfo,INT8U *st
 		}
 		else
 		{
-			int interval_limit = prginfo_event-incompatible>event_obj.Event3106_obj.poweroff_para_obj.collect_para_obj.time_threshold;
+			int interval_limit = prginfo_event->event_obj.Event3106_obj.poweroff_para_obj.collect_para_obj.time_threshold;
 			if(interval_limit==0)
 				interval_limit = 5;
 			//如果抄表超时还未抄回,直接上报无效上电事件
@@ -1395,7 +1430,7 @@ INT8U Event_3108(INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 			INT8U Currbuf[50]={};memset(Currbuf,0,50);
 			INT8U Currindex=0;
 			Get_CurrResult(Currbuf,&Currindex,(INT8U*)oad,s_oad,crrentnum,0);
-			saveCoverClass(0x3108,(INT16U)crreincompatiblentnum,(void *)Currbuf,(int)Currindex,event_current_save);
+			saveCoverClass(0x3108,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,event_current_save);
 			//判断是否要上报
 			if(prginfo_event->event_obj.Event3108_obj.event_obj.reportflag)
 				Need_Report(0x3108,crrentnum,prginfo_event);
@@ -2173,8 +2208,11 @@ INT8U Event_311C(TSA tsa, INT8U taskno,OAD oad,INT8U* data,INT8U len,ProgramInfo
 		readCoverClass(0x311C,0,&prginfo_event->event_obj.Event311C_obj,sizeof(prginfo_event->event_obj.Event311C_obj),event_para_save);
 		oi_chg.oi311C = prginfo_event->oi_changed.oi311C;
 	}
+	fprintf(stderr,"task_para.task_no=%d taskno=%d enableflag=%d \n",prginfo_event->event_obj.Event311C_obj.task_para.task_no,taskno,prginfo_event->event_obj.Event311C_obj.event_obj.enableflag);
+
 	if (prginfo_event->event_obj.Event311C_obj.event_obj.enableflag == 0)
 		return 0;
+	fprintf(stderr,"task_para.task_no=%d taskno=%d enableflag=%d \n",prginfo_event->event_obj.Event311C_obj.task_para.task_no,taskno,prginfo_event->event_obj.Event311C_obj.event_obj.enableflag);
 	if(prginfo_event->event_obj.Event311C_obj.task_para.task_no!=taskno)
 		return 0;
 
@@ -2388,12 +2426,8 @@ INT8U Event_3118(INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 		//array OAD
 	    Save_buf[index++]=dtarray;//array
 	    Save_buf[index++]=data[0];//数量
-	    int i=0;
-	    for(i=0;i<data[0];i++){
-	    	Save_buf[index++]=dtoad;//OAD
-	    	memcpy(&Save_buf[index],&data[1+i*4],4);
-	    	index+=4;
-	    }
+	    memcpy(&Save_buf[index],&data[1],len-1);
+	    index+=len-1;
 		Save_buf[STANDARD_NUM_INDEX]+=1;
 		//存储更改后得参数
 		saveCoverClass(0x3118,(INT16U)crrentnum,(void *)&prginfo_event->event_obj.Event3118_obj,sizeof(Class7_Object),event_para_save);
@@ -2811,14 +2845,38 @@ INT8U Event_3010(ProgramInfo* prginfo_event) {
 void  Get698_event(OAD oad,ProgramInfo* prginfo_event)
 {
     if(oad.OI == 0x4300 && (oad.attflg == 3 || oad.attflg == 5 || oad.attflg == 6)){
-
     	Event_3100(NULL,0,prginfo_event);
     	prginfo_event->event_obj.Event3106_obj.event_obj.crrentnum = 0;//停上电
     	saveCoverClass(0x3106,0,(void *)&prginfo_event->event_obj.Event3106_obj,sizeof(Event3106_Object),event_para_save);
-        memset(curr_data,0,MAX_POINT_NUM*4);//curr_data[MAX_POINT_NUM*4];
     }else if(oad.OI == 0x4000 && oad.attflg == 2){
     	DateTimeBCD datetime;
     	DataTimeGet(&datetime);
     	Event_3114(datetime,prginfo_event);
+    }else if(((oad.OI>>12)&0x0f)==0x04){
+    	INT8U data[6];
+    	data[0]=1;
+    	data[1]=dtoad;
+    	data[2]=((oad.OI>>8)&0x00ff);
+    	data[3]=oad.OI&0x00ff;
+    	data[4]=oad.attflg;
+    	data[5]=oad.attrindex;
+    	Event_3118(data,6,prginfo_event);
     }
 }
+
+//若设置多个参变量 会产生电能表数据监控变更事件
+void Get698_3118_moreoad(OAD *oad,INT8U len,ProgramInfo* prginfo_event){
+	INT8U index=0,i=0;
+	INT8U data[200];
+	data[index++]=len;
+	for(i=0;i<len;i++){
+		data[index++]=dtoad;
+		data[index++]=((oad[i].OI>>8)&0x00ff);
+		data[index++]=oad[i].OI&0x00ff;
+		data[index++]=oad[i].attflg;
+		data[index++]=oad[i].attrindex;
+	}
+	Event_3118(data,index,prginfo_event);
+}
+
+
