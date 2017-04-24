@@ -446,8 +446,8 @@ INT32S open_com_para_chg(INT8U port, INT32U baud, INT32S oldcomfd, unsigned char
 		CloseCom(oldcomfd);
 		sleep(1);
 	}
-	fprintf(stderr,"\n JProgramInfo->DevicePara[0] = %d",JProgramInfo->DevicePara[0]);
-	if(JProgramInfo->DevicePara[0] == 2)
+	fprintf(stderr,"\n JProgramInfo->cfg_para.device = %d",JProgramInfo->cfg_para.device);
+	if(JProgramInfo->cfg_para.device == 2)
 	{
 		if (port==1)
 			port = 2;
@@ -950,7 +950,7 @@ INT8U getASNInfo(FORMAT07* DI07,Base_DataType* dataType)
 	//电压　电流 功率 特殊处理  07回来的是3个字节  6984个字节
 	if(memcmp(flag07_0CF25_1,DI07->DI,4) == 0)
 	{
-		if(JProgramInfo->DevicePara[0] == 2)
+		if(JProgramInfo->cfg_para.device == 2)
 		{
 			memset(&DI07->Data[2],0,4);
 		}
@@ -961,7 +961,7 @@ INT8U getASNInfo(FORMAT07* DI07,Base_DataType* dataType)
 		unitNum = 3;
 		INT8U f25_2_buff[12] = {0};
 		memcpy(&f25_2_buff[0],&DI07->Data[0],3);
-		if(JProgramInfo->DevicePara[0] != 2)
+		if(JProgramInfo->cfg_para.device != 2)
 		{
 			memcpy(&f25_2_buff[4],&DI07->Data[3],3);
 			memcpy(&f25_2_buff[8],&DI07->Data[6],3);
@@ -988,7 +988,7 @@ INT8U getASNInfo(FORMAT07* DI07,Base_DataType* dataType)
 		INT8U f25_3_buff[16] = {0};
 		memcpy(&f25_3_buff[1],&DI07->Data[0],3);
 		memcpy(&f25_3_buff[5],&DI07->Data[3],3);
-		if(JProgramInfo->DevicePara[0] != 2)
+		if(JProgramInfo->cfg_para.device != 2)
 		{
 			memcpy(&f25_3_buff[9],&DI07->Data[6],3);
 			memcpy(&f25_3_buff[13],&DI07->Data[9],3);
@@ -1125,10 +1125,12 @@ INT8U isTimerSame(INT8S index, INT8U* timeData)
 	{
 		return 0;
 	}
-
 	TS freezeTime;
 	TSGet(&freezeTime);
-	tminc(&freezeTime, day_units, index);
+	if(index!=0)
+	{
+		tminc(&freezeTime, day_units, index);
+	}
 	INT16U year = (timeData[1]<<8) + timeData[2];
 	asyslog(LOG_NOTICE,"电表时标：%d-%d-%d 集中器时标:%d-%d-%d",
 			year,timeData[3],timeData[4],freezeTime.Year,freezeTime.Month,freezeTime.Day);
@@ -1262,7 +1264,7 @@ INT16S request698_07Data(INT8U* DI07,INT8U* dataContent,CLASS_6001 meter,CLASS_6
 	INT16S SendLen = 0;
 	INT8U SendBuff[256];
 	INT8U subindex = 0;
-	INT8U invalidDI[4] = { 0 };
+	INT8U invalidDI[4] = {0};
 	FORMAT07 Data07;
 	memset(&SendBuff[0], 0, 256);
 	memset(&Data07, 0, sizeof(FORMAT07));
@@ -1278,7 +1280,7 @@ INT16S request698_07Data(INT8U* DI07,INT8U* dataContent,CLASS_6001 meter,CLASS_6
 			meter.basicinfo.addr.addr[6],meter.basicinfo.addr.addr[7],meter.basicinfo.addr.addr[8]);
 	fprintf(stderr, "\nDI = %02x%02x%02x%02x\n",DI07[0],DI07[1],DI07[2],DI07[3]);
 
-
+	//DbgPrintToFile1(port485,"11111zeroBuff　%02x%02x%02x%02x",zeroBuff[0],zeroBuff[1],zeroBuff[2],zeroBuff[3]);
 
 	Data07.Ctrl = CTRL_Read_07;
 	if(meter.basicinfo.addr.addr[1] > 5)
@@ -1290,7 +1292,7 @@ INT16S request698_07Data(INT8U* DI07,INT8U* dataContent,CLASS_6001 meter,CLASS_6
 	INT8U startIndex = 5 - meter.basicinfo.addr.addr[1];
 	memcpy(&Data07.Addr[startIndex], &meter.basicinfo.addr.addr[2], (meter.basicinfo.addr.addr[1]+1));
 	memcpy(&Data07.DI, DI07, 4);
-
+	//DbgPrintToFile1(port485,"22222zeroBuff　%02x%02x%02x%02x",zeroBuff[0],zeroBuff[1],zeroBuff[2],zeroBuff[3]);
 	DbgPrintToFile1(port485,"07测量点 = %02x%02x%02x%02x%02x%02x  DI = %02x%02x%02x%02x\n",
 			Data07.Addr[0],Data07.Addr[1],Data07.Addr[2],Data07.Addr[3],Data07.Addr[4],Data07.Addr[5],
 			DI07[0],DI07[1],DI07[2],DI07[3]);
@@ -1301,6 +1303,7 @@ INT16S request698_07Data(INT8U* DI07,INT8U* dataContent,CLASS_6001 meter,CLASS_6
 		fprintf(stderr, "request698_07DataList1");
 		return retLen;
 	}
+//	DbgPrintToFile1(port485,"33333zeroBuff　%02x%02x%02x%02x",zeroBuff[0],zeroBuff[1],zeroBuff[2],zeroBuff[3]);
 	subindex = 0;
 	while(subindex < MAX_RETRY_NUM)
 	{
@@ -1312,6 +1315,7 @@ INT16S request698_07Data(INT8U* DI07,INT8U* dataContent,CLASS_6001 meter,CLASS_6
 		}
 		subindex++;
 	}
+	//DbgPrintToFile1(port485,"444444zeroBuff　%02x%02x%02x%02x",zeroBuff[0],zeroBuff[1],zeroBuff[2],zeroBuff[3]);
 	fprintf(stderr,"\n request698_07Data retLen = %d",retLen);
 	return retLen;
 }
@@ -1398,6 +1402,18 @@ INT8S checkEvent698(OI_698 rcvOI,INT8U* data,INT8U dataLen,CLASS_6001 obj6001,IN
 
 		ret = Event_310E(obj6001.basicinfo.addr,taskID,&data[2],dataLen,JProgramInfo);
 	}
+	fprintf(stderr,"aaadatalen=%d \n",dataLen);
+    OAD oad;
+	oad.OI=rcvOI;
+	oad.attflg=2;
+	oad.attrindex=0;
+	INT8U a=0;
+	fprintf(stderr,"bbbbbbbbbbbbbbbbbbbb\n");
+	for(a=0;a<dataLen;a++){
+		fprintf(stderr,"%02x ",data[a]);
+	}
+	fprintf(stderr,"\n");
+	Event_311C(obj6001.basicinfo.addr,taskID,oad,data,dataLen,JProgramInfo);
 	return ret;
 }
 /*
@@ -1650,7 +1666,14 @@ INT16S deal698RequestResponse(INT8U isProxyResponse,INT8U getResponseType,INT16U
 				INT8U isTimeSame = checkTimeStamp698(oadListContent);
 				if(isTimeSame == 0)
 				{
-					asyslog(LOG_NOTICE,"698冻结时标不正确");
+					dataContentIndex = 0;
+					INT8U tmpIndex = 0;
+					for(tmpIndex = 0;tmpIndex < csds.csd[0].csd.road.num;tmpIndex++)
+					{
+						dataContentIndex += CalcOIDataLen(csds.csd[0].csd.road.oads[tmpIndex].OI,csds.csd[0].csd.road.oads[tmpIndex].attrindex);
+						asyslog(LOG_NOTICE,"tmpIndex = %d OI = %04x  len = %d",tmpIndex,csds.csd[0].csd.road.oads[tmpIndex].OI,dataContentIndex);
+					}
+					asyslog(LOG_NOTICE,"698冻结时标不正确 dataContentIndex = %d csds.csd[0].csd.road.num = %d",dataContentIndex,csds.csd[0].csd.road.num);
 					memset(dataContent,0,dataContentIndex);
 				}
 			}
@@ -2035,6 +2058,7 @@ INT8S dealGuiRead(Proxy_Msg pMsg,INT8U port485)
 INT8S readMeterPowerInfo()
 {
 	fprintf(stderr,"\n\n上电抄读停上电事件 readMeterPowerInfo");
+	DbgPrintToFile1(1,"\n **************************上电抄读停上电事件 readMeterPowerInfo");
 	INT8S result = -1;
 
 	INT8U meterIndex;
@@ -2046,13 +2070,22 @@ INT8S readMeterPowerInfo()
 				MeterPowerInfo[meterIndex].tsa.addr[3],MeterPowerInfo[meterIndex].tsa.addr[4],MeterPowerInfo[meterIndex].tsa.addr[5],
 				MeterPowerInfo[meterIndex].tsa.addr[6],MeterPowerInfo[meterIndex].tsa.addr[7],
 				MeterPowerInfo[meterIndex].ERC3106State);
+
+
 		if(MeterPowerInfo[meterIndex].ERC3106State==1)
 		{
+			DbgPrintToFile1(1,"\nMeterPowerInfo[%d] ARRD = %02x%02x%02x%02x%02x%02x%02x%02x  ERC3106State = %d \n",meterIndex,
+					MeterPowerInfo[meterIndex].tsa.addr[0],MeterPowerInfo[meterIndex].tsa.addr[1],MeterPowerInfo[meterIndex].tsa.addr[2],
+					MeterPowerInfo[meterIndex].tsa.addr[3],MeterPowerInfo[meterIndex].tsa.addr[4],MeterPowerInfo[meterIndex].tsa.addr[5],
+					MeterPowerInfo[meterIndex].tsa.addr[6],MeterPowerInfo[meterIndex].tsa.addr[7],
+					MeterPowerInfo[meterIndex].ERC3106State);
+
 			CLASS_6001 obj6001;
 			//通过表地址找 6001
 			if(get6001ObjByTSA(MeterPowerInfo[meterIndex].tsa,&obj6001) != 1 )
 			{
 				fprintf(stderr," readMeterPowerInfo-------1 未找到相应6001");
+				DbgPrintToFile1(1," readMeterPowerInfo-------1 未找到相应6001");
 				continue;
 			}
 
@@ -2060,6 +2093,7 @@ INT8S readMeterPowerInfo()
 			if(getComfdBy6001(obj6001.basicinfo.baud,obj6001.basicinfo.port.attrindex) != 1)
 			{
 				fprintf(stderr," readMeterPowerInfo--------2");
+				DbgPrintToFile1(1," readMeterPowerInfo--------2");
 				continue;
 			}
 			INT8U port485 = obj6001.basicinfo.port.attrindex;
@@ -2094,6 +2128,7 @@ INT8S readMeterPowerInfo()
 						MeterPowerInfo[meterIndex].PoweronTime.tm_sec =  dataContent[15];
 
 						MeterPowerInfo[meterIndex].Valid = 1;
+						DbPrt1(port485,"07表停上电:", (char *) dataContent, 16, NULL);
 				}
 				break;
 			default:
@@ -2168,6 +2203,7 @@ INT8S readMeterPowerInfo()
 									MeterPowerInfo[meterIndex].PoweronTime.tm_sec = recvbuff[apduDataStartIndex+27];
 
 									MeterPowerInfo[meterIndex].Valid = 1;
+									DbPrt1(port485,"698表停上电:", (char *) &recvbuff[apduDataStartIndex+12], 16, NULL);
 
 								}
 								break;
@@ -2181,6 +2217,7 @@ INT8S readMeterPowerInfo()
 			}
 		}
 	}
+	DbgPrintToFile1(1,"\n 上电抄读停上电事件 readMeterPowerInfo**************************");
 	return result;
 }
 INT8S dealProxyQueue(INT8U port485)
@@ -2383,22 +2420,39 @@ INT8S dealBroadCastSingleMeter(INT8U port485,CLASS_6001 meter)
 	meterTime.Sec = dataContent[7];
 
 	int time_offset=difftime(timeNow,tmtotime_t(meterTime));
-	DbgPrintToFile1(port485,"电表[%d]时间差:%d",meter.sernum,time_offset);
+	DbgPrintToFile1(port485,"before settiem 电表[%d]时间差:%d",meter.sernum,time_offset);
 	INT8U eventbuf[8] = {0};
-	if(time_offset > broadcase4204.upleve)
+	if(abs(time_offset) > broadcase4204.upleve)
 	{
 		sendSetTimeCMD(meter,port485);
-
+		sleep(5);
 		memcpy(eventbuf,&dataContent[1],7);
 		memset(dataContent,0,DATA_CONTENT_LEN);
 		requestMeterTime(port485,meter,dataContent);
-		timeNow = time(NULL);
-		time_offset=difftime(timeNow,tmtotime_t(meterTime));
+		if(dataContent[0]!=0x1c)
+		{
+			time_offset = 1;
+		}
+		else
+		{
+			meterTime.Year = dataContent[1];
+			meterTime.Year = (meterTime.Year << 8) + dataContent[2];
+			meterTime.Month = dataContent[3];
+			meterTime.Day = dataContent[4];
+			meterTime.Hour = dataContent[5];
+			meterTime.Minute = dataContent[6];
+			meterTime.Sec = dataContent[7];
+			timeNow = time(NULL);
+			time_offset=difftime(timeNow,tmtotime_t(meterTime));
+		}
 		eventbuf[7] = (INT8U)time_offset;
-		DbgPrintToFile1(port485,"\n 对时事件buff = %02x%02x%02x%02x%02x%02x%02x%02x \n",
-				eventbuf[0],eventbuf[1],eventbuf[2],eventbuf[3],eventbuf[4],eventbuf[5],eventbuf[6],eventbuf[7]);
+		if(abs(time_offset)  < broadcase4204.upleve)
+		{
+			DbgPrintToFile1(port485,"\n 对时事件buff = %02x%02x%02x%02x%02x%02x%02x 时间差=%d \n",
+					eventbuf[0],eventbuf[1],eventbuf[2],eventbuf[3],eventbuf[4],eventbuf[5],eventbuf[6],eventbuf[7]);
 
-		Event_311B(meter.basicinfo.addr,eventbuf,8,JProgramInfo);
+			Event_311B(meter.basicinfo.addr,eventbuf,8,JProgramInfo);
+		}
 	}
 
 	return ret;
@@ -2637,7 +2691,7 @@ INT8S checkTimeStamp07(CLASS_6001 obj6001,INT8U port485)
 
 	request698_07Data(freezeflag07_1,dataContent,obj6001,&invalidst6035,port485);
 	DbPrt1(port485,"checkTimeStamp07 buff:", (char *) dataContent, 10, NULL);
-	ret = isTimerSame(-1,dataContent);
+	ret = isTimerSame(0,dataContent);
 	return ret;
 }
 
@@ -3052,10 +3106,17 @@ INT16S deal6017_07(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8U
 			continue;
 		}
 		DbgPrintToFile1(port485,"deal6017_07　事件序号　%02x%02x%02x%02x%02x",dataContent[0],dataContent[1],dataContent[2],dataContent[3],dataContent[4]);
+		DbgPrintToFile1(port485,"zeroBuff　%02x%02x%02x%02x",zeroBuff[0],zeroBuff[1],zeroBuff[2],zeroBuff[3]);
+#if 0
 		if(memcmp(&dataContent[1],zeroBuff,4)==0)
 		{
 			continue;
 		}
+#else
+		if(dataContent[1]==0 && dataContent[2]==0  && dataContent[3]==0 && dataContent[4]==0) {
+			continue;
+		}
+#endif
 		//事件序号
 		memcpy(&saveContentHead[headDataLen],dataContent,5);
 		headDataLen += 5;
@@ -3247,7 +3308,7 @@ INT8S deal6015or6017(CLASS_6013 st6013,CLASS_6015 st6015, INT8U port485,CLASS_60
 						return PARA_CHANGE_RETVALUE;
 					}
 
-					if((dataLen > 0)&& (st6013.cjtype == norm))
+					if((dataLen > 0)&&(st6013.cjtype == norm))
 					{
 						int bufflen = compose6012Buff(startTime,meter.basicinfo.addr,dataLen,dataContent,port485);
 						SaveNorData(st6035->taskID,NULL,dataContent,bufflen);
@@ -3375,40 +3436,7 @@ INT8S get6035ByTaskID(INT16U taskID,CLASS_6035* class6035)
 	}
 	return -1;
 }
-INT8S saveClass6035(CLASS_6035* class6035)
-{
-	INT8U isFind = 0;
-	INT8S ret = -1;
-	int recordNum = getFileRecordNum(0x6035);
-	CLASS_6035 file6035;
-	memset(&file6035,0,sizeof(CLASS_6035));
-	INT16U i;
-	for(i=0;i<=recordNum;i++)
-	{
-		if(readCoverClass(0x6035,i,&file6035,sizeof(CLASS_6035),coll_para_save)== 1)
-		{
-			if(file6035.taskID == class6035->taskID)
-			{
-				isFind = 1;
-				break;
-			}
-		}
-	}
-	if(isFind)
-	{
-		memcpy(&class6035->starttime,&file6035.starttime,sizeof(DateTimeBCD));
-		class6035->totalMSNum += file6035.totalMSNum;
-		class6035->successMSNum += file6035.successMSNum;
-		class6035->sendMsgNum += file6035.sendMsgNum;
-		class6035->rcvMsgNum += file6035.rcvMsgNum;
-	}
 
-	saveCoverClass(0x6035, class6035->taskID, class6035,
-			sizeof(CLASS_6035), coll_para_save);
-
-
-	return ret;
-}
 void read485_thread(void* i485port) {
 	INT8U port = *(INT8U*) i485port;
 	fprintf(stderr, "\n port = %d", port);

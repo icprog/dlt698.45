@@ -684,9 +684,9 @@ int doActionRequest(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 			index = 0;
 			apdu_index = 3;
 			data = &apdu[apdu_index];					//Data
-			seqnum = apdu[apdu_index++];		//3
+			seqnum = apdu[apdu_index++];				//3
 			fprintf(stderr,"seqnum = %d\n",seqnum);
-			index += create_array(&TmpDataBuf[index],seqnum);
+			TmpDataBuf[index++] = seqnum;
 			for(i=0;i<seqnum;i++) {
 				oad.OI= (apdu[apdu_index]<<8) | apdu[apdu_index+1];
 				apdu_index+=2;
@@ -695,8 +695,10 @@ int doActionRequest(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 				index += create_OAD(0,&TmpDataBuf[index],oad);
 				doObjectAction(oad,&apdu[apdu_index],&act_ret);
 				TmpDataBuf[index++] = act_ret.DAR;
+				if(act_ret.DAR == 0) {
+					TmpDataBuf[index++] = 0;		//数据为空
+				}
 				apdu_index += act_ret.datalen;
-				fprintf(stderr,"OAD=%04x_%02x%02x act_ret=%d\n",oad.OI,oad.attflg,oad.attrindex,act_ret.datalen);
 			}
 			doReponse(ACTION_RESPONSE,ActionResponseNormalList,csinfo,index,TmpDataBuf,buf);
 			break;
@@ -1033,7 +1035,7 @@ INT16S composeProtocol698_SetRequest(INT8U* sendBuf,RESULT_NORMAL setData,TSA me
 	reversebuff(&meterAddr.addr[2],csinfo.sa_length,reverseAddr);
 
 	fprintf(stderr," \n reverseAddr[%d] = ",csinfo.sa_length);
-	INT8U prtIndex;
+	INT8U prtIndex=0;
 	for(prtIndex = 0;prtIndex < csinfo.sa_length;prtIndex++)
 	{
 		fprintf(stderr," %02x",reverseAddr[prtIndex]);

@@ -106,7 +106,6 @@ void Save_Vol_Rate(INT8U flag,DateTimeBCD datetime)
 				 int ret=saveFreezeRecord(0x5006,oad,datetime,sizeof(PassRate_U),(INT8U *)&passu_m[j]);
 				  fprintf(stderr,"ret=%d oad=%04x %02x %02x \n",ret,oad.OI,oad.attflg,oad.attrindex);
 				  fprintf(stderr,"passu_m[%d]:%d %d %d %d %d \n",j,passu_m[j].monitorTime,passu_m[j].downLimitTime,passu_m[j].overRate,passu_m[j].passRate,passu_m[j].upLimitTime);
-
 				  memset(&passu_m[j],0,sizeof(PassRate_U));
 			  }
 			}
@@ -143,27 +142,24 @@ void Calc_Tj()
 	}
 	if(lastchgoi4030!=JProgramInfo->oi_changed.oi4030){
 		readCoverClass(0x4030,0,&obj_offset,sizeof(obj_offset),para_vari_save);
-		if(lastchgoi4030!=JProgramInfo->oi_changed.oi4030) {
-			lastchgoi4030++;
-			if(lastchgoi4030==0) lastchgoi4030=1;
+			lastchgoi4030=JProgramInfo->oi_changed.oi4030;
 			fprintf(stderr,"4030参数变更:udown=%d udownkaohe=%d up=%d upkaohe=%d \n",obj_offset.uDown,obj_offset.uDown_Kaohe,obj_offset.uUp,obj_offset.uUp_Kaohe);
-		}
 	}
 	currtime = time(NULL);
-				int tcha=abs(currtime - nexttime);
-				if(tcha >= 60) {
-					int per_min=tcha/60;
-					nexttime = currtime;
-					gongdian_tj.gongdian.day_tj +=1;
-					gongdian_tj.gongdian.month_tj +=1;
-					Vol_Rate_Tj(&passu_d[0],&passu_m[0],JProgramInfo->ACSRealData.Ua,per_min);
-					Vol_Rate_Tj(&passu_d[1],&passu_m[1],JProgramInfo->ACSRealData.Ub,per_min);
-					Vol_Rate_Tj(&passu_d[2],&passu_m[2],JProgramInfo->ACSRealData.Uc,per_min);
-					//存储供电时间
-					fprintf(stderr,"2203:时间: %d-%d-%d %d:%d:%d\n",gongdian_tj.ts.Year,gongdian_tj.ts.Month,gongdian_tj.ts.Day,gongdian_tj.ts.Hour,gongdian_tj.ts.Minute,gongdian_tj.ts.Sec);
-					fprintf(stderr," 日供电时间=%d\n 月供电时间=%d\n",gongdian_tj.gongdian.day_tj,gongdian_tj.gongdian.month_tj);
-					saveVariData(0x2203,0,&gongdian_tj,sizeof(Gongdian_tj));	//TODO：现场运行 是否需要 1分钟保存一次
-				}
+	int tcha=abs(currtime - nexttime);
+	if(tcha >= 60) {
+		int per_min=tcha/60;
+		nexttime = currtime;
+		gongdian_tj.gongdian.day_tj +=1;
+		gongdian_tj.gongdian.month_tj +=1;
+		Vol_Rate_Tj(&passu_d[0],&passu_m[0],JProgramInfo->ACSRealData.Ua,per_min);
+		Vol_Rate_Tj(&passu_d[1],&passu_m[1],JProgramInfo->ACSRealData.Ub,per_min);
+		Vol_Rate_Tj(&passu_d[2],&passu_m[2],JProgramInfo->ACSRealData.Uc,per_min);
+		//存储供电时间
+		fprintf(stderr,"2203:时间: %d-%d-%d %d:%d:%d\n",gongdian_tj.ts.Year,gongdian_tj.ts.Month,gongdian_tj.ts.Day,gongdian_tj.ts.Hour,gongdian_tj.ts.Minute,gongdian_tj.ts.Sec);
+		fprintf(stderr," 日供电时间=%d\n 月供电时间=%d\n",gongdian_tj.gongdian.day_tj,gongdian_tj.gongdian.month_tj);
+		saveVariData(0x2203,0,&gongdian_tj,sizeof(Gongdian_tj));	//TODO：现场运行 是否需要 1分钟保存一次
+	}
 
 	if(newts.Day != gongdian_tj.ts.Day) {
 		fprintf(stderr,"2203:newts: %d-%d-%d %d:%d:%d\n",newts.Year,newts.Month,newts.Day,newts.Hour,newts.Minute,newts.Sec);

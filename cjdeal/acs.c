@@ -1390,7 +1390,7 @@ void DealATT7022(void)
 	}
 	calc_minute_ave_u(nowts,realdata.Ua,realdata.Ub,realdata.Uc,&realdata.AvgUa,&realdata.AvgUb,&realdata.AvgUc);
 	//暂时去掉谐波处理过程。
-	//ware_process(nowts,&vdAskHarmFlag);				//谐波值计算及统计过程
+//	ware_process(nowts,&vdAskHarmFlag);				//谐波值计算及统计过程
 	realdataprint(nowts);
 }
 

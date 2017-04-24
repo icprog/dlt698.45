@@ -153,6 +153,9 @@ INT8U Get_Vacs(RESULT_NORMAL *response,ProgramInfo* prginfo_acs)
 		index += fillVacsData(structnum,response->oad.attrindex,dtlong,
 				prginfo_acs->ACSRealData.Cos,prginfo_acs->ACSRealData.CosA,prginfo_acs->ACSRealData.CosB,prginfo_acs->ACSRealData.CosC,response->data);
 		break;
+	case 0x200D:	//电压谐波含有量
+
+		break;
 	}
 	response->datalen = index;
 	return 1;
