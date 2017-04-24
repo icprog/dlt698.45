@@ -149,6 +149,28 @@ int class8103_act3(int index, int attr_act, INT8U *data, Action_result *act_ret)
     return 0;
 }
 
+int class8103_act6(int index, int attr_act, INT8U *data, Action_result *act_ret) {
+    int oi = 0x00;
+    if (data[0] != 0x50) {
+        return 0;
+    }
+
+    oi = data[1] * 256 + data[2];
+    asyslog(LOG_WARNING, "时段功控-控制投入[%04x]", oi);
+    return 0;
+}
+
+int class8103_act7(int index, int attr_act, INT8U *data, Action_result *act_ret) {
+    int oi = 0x00;
+    if (data[0] != 0x50) {
+        return 0;
+    }
+
+    oi = data[1] * 256 + data[2];
+    asyslog(LOG_WARNING, "时段功控-控制解除[%04x]", oi);
+    return 0;
+}
+
 int class8103_act127(int index, int attr_act, INT8U *data, Action_result *act_ret) {
     int oi = 0x00;
     INT8U sign = 0x00;
@@ -167,7 +189,7 @@ int class8103_act127(int index, int attr_act, INT8U *data, Action_result *act_re
     sign = data[9];
     numb = data[11];
 
-    printf("控制方案切换[8103-127],%04x-%02d-%02d\n", oi, sign, numb);
+    asyslog(LOG_WARNING, "控制方案切换[8103-127],%04x-%02d-%02d", oi, sign, numb);
 
     return 0;
 }
@@ -177,9 +199,262 @@ int class8103_act_route(int index, int attr_act, INT8U *data, Action_result *act
         case 3:
             class8103_act3(1, attr_act, data, act_ret);
             break;
+        case 6:
+            class8103_act6(1, attr_act, data, act_ret);
+            break;
+        case 7:
+            class8103_act7(1, attr_act, data, act_ret);
+            break;
         case 127:
             class8103_act127(1, attr_act, data, act_ret);
             break;
     }
 }
 
+
+int class8104_act3(int index, int attr_act, INT8U *data, Action_result *act_ret) {
+    asyslog(LOG_WARNING, "厂休功控-添加控制单元");
+    return 0;
+}
+
+int class8104_act6(int index, int attr_act, INT8U *data, Action_result *act_ret) {
+    int oi = 0x00;
+    if (data[0] != 0x50) {
+        return 0;
+    }
+
+    oi = data[1] * 256 + data[2];
+    asyslog(LOG_WARNING, "厂休功控-控制投入[%04x]", oi);
+    return 0;
+}
+
+int class8104_act7(int index, int attr_act, INT8U *data, Action_result *act_ret) {
+    int oi = 0x00;
+    if (data[0] != 0x50) {
+        return 0;
+    }
+
+    oi = data[1] * 256 + data[2];
+    asyslog(LOG_WARNING, "厂休功控-控制解除[%04x]", oi);
+    return 0;
+}
+
+int class8104_act_route(int index, int attr_act, INT8U *data, Action_result *act_ret) {
+    switch (attr_act) {
+        case 3:
+            class8104_act3(1, attr_act, data, act_ret);
+            break;
+        case 6:
+            class8104_act6(1, attr_act, data, act_ret);
+            break;
+        case 7:
+            class8104_act7(1, attr_act, data, act_ret);
+            break;
+    }
+}
+
+
+int class8105_act3(int index, int attr_act, INT8U *data, Action_result *act_ret) {
+    asyslog(LOG_WARNING, "营业报停-添加控制单元");
+    return 0;
+}
+
+int class8105_act6(int index, int attr_act, INT8U *data, Action_result *act_ret) {
+    int oi = 0x00;
+    if (data[0] != 0x50) {
+        return 0;
+    }
+
+    oi = data[1] * 256 + data[2];
+    asyslog(LOG_WARNING, "营业报停-控制投入[%04x]", oi);
+    return 0;
+}
+
+int class8105_act7(int index, int attr_act, INT8U *data, Action_result *act_ret) {
+    int oi = 0x00;
+    if (data[0] != 0x50) {
+        return 0;
+    }
+
+    oi = data[1] * 256 + data[2];
+    asyslog(LOG_WARNING, "营业报停-控制解除[%04x]", oi);
+    return 0;
+}
+
+int class8105_act_route(int index, int attr_act, INT8U *data, Action_result *act_ret) {
+    switch (attr_act) {
+        case 3:
+            class8105_act3(1, attr_act, data, act_ret);
+            break;
+        case 6:
+            class8105_act6(1, attr_act, data, act_ret);
+            break;
+        case 7:
+            class8105_act7(1, attr_act, data, act_ret);
+            break;
+    }
+}
+
+int class8106_act3(int index, int attr_act, INT8U *data, Action_result *act_ret) {
+    asyslog(LOG_WARNING, "功率下浮-添加控制单元");
+    return 0;
+}
+
+int class8106_act6(int index, int attr_act, INT8U *data, Action_result *act_ret) {
+    int oi = 0x00;
+    if (data[0] != 0x50) {
+        return 0;
+    }
+
+    oi = data[1] * 256 + data[2];
+    asyslog(LOG_WARNING, "功率下浮-控制投入[%04x]", oi);
+    return 0;
+}
+
+int class8106_act7(int index, int attr_act, INT8U *data, Action_result *act_ret) {
+    int oi = 0x00;
+    if (data[0] != 0x50) {
+        return 0;
+    }
+
+    oi = data[1] * 256 + data[2];
+    asyslog(LOG_WARNING, "功率下浮-控制解除[%04x]", oi);
+    return 0;
+}
+
+int class8106_act_route(int index, int attr_act, INT8U *data, Action_result *act_ret) {
+    switch (attr_act) {
+        case 3:
+            class8106_act3(1, attr_act, data, act_ret);
+            break;
+        case 6:
+            class8106_act6(1, attr_act, data, act_ret);
+            break;
+        case 7:
+            class8106_act7(1, attr_act, data, act_ret);
+            break;
+    }
+}
+
+
+int class8107_act3(int index, int attr_act, INT8U *data, Action_result *act_ret) {
+    int oi = 0x00;
+    int id = 0x00;
+    INT8U sign = 0x00;
+    INT8U type = 0x00;
+    INT64U val = 0x00;
+    INT64U war_thr = 0x00;
+    INT64U ctl_thr = 0x00;
+    INT8U mode = 0x00;
+
+    if (data[0] != 0x02 || data[1] != 0x08) {
+        return 0;
+    }
+
+    oi = data[3] * 256 + data[4];
+    id = data[6] * 256 * 256 * 256 + data[7] * 256 * 256 + data[8] * 256 + data[9];
+
+    sign = data[11];
+    type = data[13];
+
+    val = getLongValue(&data[14]);
+    war_thr = getLongValue(&data[23]);
+    ctl_thr = getLongValue(&data[32]);
+
+    mode = data[42];
+
+    asyslog(LOG_WARNING, "购电-添加控制单元[%04x-%d-%d-%d-%lld-%lld-%lld-%d]", oi, id, sign, type, val, war_thr, ctl_thr, mode);
+    return 0;
+}
+
+int class8107_act6(int index, int attr_act, INT8U *data, Action_result *act_ret) {
+    int oi = 0x00;
+    if (data[0] != 0x50) {
+        return 0;
+    }
+
+    oi = data[1] * 256 + data[2];
+    asyslog(LOG_WARNING, "购电-控制投入[%04x]", oi);
+    return 0;
+}
+
+int class8107_act7(int index, int attr_act, INT8U *data, Action_result *act_ret) {
+    int oi = 0x00;
+    if (data[0] != 0x50) {
+        return 0;
+    }
+
+    oi = data[1] * 256 + data[2];
+    asyslog(LOG_WARNING, "购电-控制解除[%04x]", oi);
+    return 0;
+}
+
+int class8107_act_route(int index, int attr_act, INT8U *data, Action_result *act_ret) {
+    switch (attr_act) {
+        case 3:
+            class8107_act3(1, attr_act, data, act_ret);
+            break;
+        case 6:
+            class8107_act6(1, attr_act, data, act_ret);
+            break;
+        case 7:
+            class8107_act7(1, attr_act, data, act_ret);
+            break;
+    }
+}
+
+
+int class8108_act3(int index, int attr_act, INT8U *data, Action_result *act_ret) {
+    int oi = 0x00;
+    INT64U v = 0x00;
+    INT8U th = 0x00;
+    INT8U fl = 0x00;
+
+    if (data[0] != 0x02 || data[1] != 0x04) {
+        return 0;
+    }
+
+    oi = data[3] * 256 + data[4];
+    v = getLongValue(&data[5]);
+    th = data[15];
+    fl = data[17];
+
+    asyslog(LOG_WARNING, "月电-添加控制单元[%04x-%lld-%d-%d]", oi, v, th, fl);
+    return 0;
+}
+
+int class8108_act6(int index, int attr_act, INT8U *data, Action_result *act_ret) {
+    int oi = 0x00;
+    if (data[0] != 0x50) {
+        return 0;
+    }
+
+    oi = data[1] * 256 + data[2];
+    asyslog(LOG_WARNING, "月电-控制投入[%04x]", oi);
+    return 0;
+}
+
+int class8108_act7(int index, int attr_act, INT8U *data, Action_result *act_ret) {
+    int oi = 0x00;
+    if (data[0] != 0x50) {
+        return 0;
+    }
+
+    oi = data[1] * 256 + data[2];
+    asyslog(LOG_WARNING, "月电-控制解除[%04x]", oi);
+    return 0;
+}
+
+int class8108_act_route(int index, int attr_act, INT8U *data, Action_result *act_ret) {
+    switch (attr_act) {
+        case 3:
+            class8108_act3(1, attr_act, data, act_ret);
+            break;
+        case 6:
+            class8108_act6(1, attr_act, data, act_ret);
+            break;
+        case 7:
+            class8108_act7(1, attr_act, data, act_ret);
+            break;
+    }
+}
