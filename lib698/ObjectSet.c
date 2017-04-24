@@ -172,6 +172,19 @@ INT16U set3110(OAD oad,INT8U *data,INT8U *DAR)		//月通信流量超限  属性6
 	return index;
 }
 
+INT16U set311c(OAD oad,INT8U *data,INT8U *DAR)		//电能表数据变更监控记录
+{
+	int		index=0;
+	Event311C_Object tmpobj={};
+
+	readCoverClass(oad.OI,0,&tmpobj,sizeof(tmpobj),event_para_save);
+	index += getStructure(&data[index],NULL);
+	index += getUnsigned(&data[index],(INT8U *)&tmpobj.task_para.task_no);
+	fprintf(stderr,"\n电能表数据变更监控记录 关联采集任务号=%d ",tmpobj.task_para.task_no);
+	*DAR = saveCoverClass(oad.OI,0,&tmpobj,sizeof(tmpobj),event_para_save);
+	return index;
+}
+
 INT16U set4000(OAD oad,INT8U *data,INT8U *DAR)
 {
 	DateTimeBCD datetime={};
@@ -748,6 +761,9 @@ INT16U EventSetAttrib(OAD oad,INT8U *data,INT8U *DAR)
 		case 0x3110:	//月通信流量超限事件阈值
 			data_index = set3110(oad,data,DAR);
 			break;
+		case 0x311c:	//电能表数据变更监控记录
+			data_index = set311c(oad,data,DAR);
+			break;
 		}
 		break;
 	}
@@ -883,7 +899,7 @@ int setRequestNormalList(INT8U *data,CSINFO *csinfo,INT8U *buf)
 	for(i=0;i<oadnum;i++)
 	{
 		sourceindex += getOAD(0,&data[sourceindex],&oad);
-		if(oad.OI==0x4300 || oad.OI==0x4000) {
+		if(oad.OI!=0x4300 && oad.OI!=0x4000 && ((oad.OI>>12)==0x04)) {
 			memcpy(&event_oad[event_oadnum],&oad,sizeof(OAD));
 			event_oadnum++;
 		}
@@ -893,9 +909,10 @@ int setRequestNormalList(INT8U *data,CSINFO *csinfo,INT8U *buf)
 	}
 	doReponse(SET_RESPONSE,SET_REQUEST_NORMAL_LIST,csinfo,listindex,TmpDataBufList,buf);
 	//此处处理防止在设置后未上送应答帧而直接上送事件报文
-	for(i=0;i<event_oadnum;i++) {
-		Get698_event(event_oad[i],memp);
-	}
+//	for(i=0;i<event_oadnum;i++) {
+//		Get698_event(event_oad[i],memp);
+//	}
+	Get698_3118_moreoad(event_oad,event_oadnum,memp);
 	return 0;
 }
 
@@ -919,7 +936,7 @@ int setThenGetRequestNormalList(INT8U *data,CSINFO *csinfo,INT8U *buf)
 	for(i=0;i<seqofNum;i++)
 	{
 		sourceindex += getOAD(0,&data[sourceindex],&oad);		//一个设置的对象属性   OAD
-		if(oad.OI==0x4300 || oad.OI==0x4000) {
+		if(oad.OI==0x4300 && oad.OI==0x4000 && ((oad.OI>>12)==0x04)) {
 			memcpy(&event_oad[event_oadnum],&oad,sizeof(OAD));
 			event_oadnum++;
 		}
@@ -954,9 +971,10 @@ int setThenGetRequestNormalList(INT8U *data,CSINFO *csinfo,INT8U *buf)
 	}
 	doReponse(SET_RESPONSE,SET_THENGET_REQUEST_NORMAL_LIST,csinfo,listindex,TmpDataBufList,buf);
 	//此处处理防止在设置后未上送应答帧而直接上送事件报文
-	for(i=0;i<event_oadnum;i++) {
-		Get698_event(event_oad[i],memp);
-	}
+//	for(i=0;i<event_oadnum;i++) {
+//		Get698_event(event_oad[i],memp);
+//	}
+	Get698_3118_moreoad(event_oad,event_oadnum,memp);
 	return 0;
 }
 

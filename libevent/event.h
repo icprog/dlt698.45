@@ -28,6 +28,14 @@ typedef struct
    INT8U flag;////停走0，超差1，飞走2，下降3
 }Curr_Data;
 
+//其他数据
+typedef struct
+{
+   TSA tsa;
+   OAD oad;
+   INT8U data[30];
+}Other_Data;
+
 //事件发生源枚举
 typedef enum {
 	s_null=0, //NULL 0
@@ -140,7 +148,7 @@ extern INT8U Event_311B(TSA tsa, INT8U* data,INT8U len,ProgramInfo* prginfo_even
 /*
  * 电能表数据变更监控记录 抄表可自行判断，直接调用该函数。 prginfo_event共享内存
  */
-extern INT8U Event_311C(TSA tsa, INT8U* data,INT8U len,ProgramInfo* prginfo_event);
+extern INT8U Event_311C(TSA tsa, INT8U taskno,OAD oad,INT8U* data,INT8U len,ProgramInfo* prginfo_event);
 /*
  * 终端对时事件 此接口在698规约库调用，data为对时前时间 date-time-s格式 7个字节 prginfo_event共享内存
  */
@@ -199,4 +207,8 @@ extern INT8U Event_3010(ProgramInfo* prginfo_event);
  * 698guiyue规约库判断初始化事件、终端对时事件
  */
 extern void  Get698_event(OAD oad,ProgramInfo* prginfo_event);
+/*
+ *若设置多个参变量 会产生电能表数据监控变更事件
+ */
+extern void Get698_3118_moreoad(OAD *oad,INT8U len,ProgramInfo* prginfo_event);
 #endif

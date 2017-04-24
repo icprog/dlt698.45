@@ -358,8 +358,8 @@ int fill_RCSD(INT8U type,INT8U *data,CSD_ARRAYTYPE csds)		//0x60
 	}
 	num = csds.num;
 	fprintf(stderr,"csds.num=%d\n",csds.num);
-	if(num==0) {		//OAD
-		index += create_OAD(0,&data[index],csds.csd[0].csd.oad);
+	if(num==0) {		//OAD  RCSD=0,即sequence of数据个数=0，表示不选择，国网台体测试终端编程事件时，读取上1次编程事件记录，RCSD=0，应答帧oad不应在此处填写
+//		index += create_OAD(0,&data[index],csds.csd[0].csd.oad);
 	}else {				//RCSD		SEQUENCE OF CSD
 		data[index++] = num;
 		for(i=0;i<num;i++)
@@ -1058,9 +1058,12 @@ int Get_6035(INT8U type,INT8U taskid,INT8U *data)
 void setOIChange(OI_698 oi)
 {
 	switch(oi) {
+	case 0x300F:	memp->oi_changed.oi300F++;	break;
+	case 0x3010:	memp->oi_changed.oi3010++;	break;
+	case 0x301B:	memp->oi_changed.oi301B++;	break;
 	case 0x3100:  	memp->oi_changed.oi3100++; 	break;
 	case 0x3101:  	memp->oi_changed.oi3101++; 	break;
-	case 0x3014:	memp->oi_changed.oi3104++; 	break;
+	case 0x3104:	memp->oi_changed.oi3104++; 	break;
 	case 0x3105:	memp->oi_changed.oi3105++; 	break;
 	case 0x3106:	memp->oi_changed.oi3106++; 	break;
 	case 0x3107:	memp->oi_changed.oi3107++; 	break;
@@ -1088,9 +1091,14 @@ void setOIChange(OI_698 oi)
 	case 0x3201:	memp->oi_changed.oi3201++;	break;
 	case 0x3202:	memp->oi_changed.oi3202++;	break;
 	case 0x3203:	memp->oi_changed.oi3203++;	break;
+
+	case 0x4000:	memp->oi_changed.oi4000++;	break;
 	case 0x4016:	memp->oi_changed.oi4016++;	break;
+	case 0x4030:	memp->oi_changed.oi4030++;	break;
 	case 0x4204:	memp->oi_changed.oi4204++;	break;
 	case 0x4300:	memp->oi_changed.oi4300++;  break;
+	case 0x4500:	memp->oi_changed.oi4500++;  break;
+
 	case 0x6000:	memp->oi_changed.oi6000++;  break;
 	case 0x6002:	memp->oi_changed.oi6002++;  break;
 	case 0x6012:	memp->oi_changed.oi6012++;  break;
@@ -1100,8 +1108,7 @@ void setOIChange(OI_698 oi)
 	case 0x601C:	memp->oi_changed.oi601C++;  break;
 	case 0x601E:	memp->oi_changed.oi601E++;  break;
 	case 0x6051:	memp->oi_changed.oi6051++;  break;
+
 	case 0xf203:	memp->oi_changed.oiF203++;  break;
-	case 0x300F:	memp->oi_changed.oi300F++;  break;
-	case 0x3010:	memp->oi_changed.oi3010++;  break;
 	}
 }

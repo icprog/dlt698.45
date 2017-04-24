@@ -16,16 +16,20 @@
 #include "../libMq/libmmq.h"
 #include "basedef.h"
 
+
 static TSA TSA_LIST[MAX_POINT_NUM];
 static int TSA_NUMS;
 //当前最新抄表数据
-static Curr_Data curr_data[MAX_POINT_NUM*4];
+static Curr_Data curr_data[MAX_POINT_NUM];
 //当前内存保存得数据个数
 static INT16U currnum=0;
 //当前事件参数变更状态
 static OI_CHANGE oi_chg;
 //MeterPower MeterPowerInfo[3+1];//台区公共表加０－３个电能表
 MeterPower TermialPowerInfo;//终端停上电时间信息
+
+static Other_Data other_data[50];
+static INT8U other_curr_index=0;
 /*
  * 说明：
  * 进程如调用该部分事件接口
@@ -43,7 +47,10 @@ MeterPower TermialPowerInfo;//终端停上电时间信息
  * 数据初始化 清空该部分内存
  */
 void Reset_Eventpara(){
-	memset(curr_data,0,sizeof(Curr_Data)*MAX_POINT_NUM*4);
+	memset(curr_data,0,sizeof(Curr_Data)*MAX_POINT_NUM);
+	currnum=0;
+	memset(other_data,0,sizeof(other_data));
+	other_curr_index=0;
 }
 
 /*
@@ -69,6 +76,8 @@ INT8U Refresh_Data(TSA tsa,INT32U newdata,INT8U flag){
 		memcpy(&curr_data[currnum].ts,&currtime,sizeof(TS));
 		curr_data[currnum].flag=flag;
 		currnum++;
+		if(currnum>=MAX_POINT_NUM)
+			currnum=0;
 	}
 	return 1;
 }
@@ -432,6 +441,37 @@ INT8U Getevent_Record_Selector(RESULT_RECORD *record_para,ProgramInfo* prginfo_e
 			 }
 				 break;
 		   }
+	 }else{
+		 INT8U in=0,_in=0;
+		 INT8U oadnumindex=real_index;
+		 real_index++;
+		 for(in=0;in<sizeof(guanlian_oad)/sizeof(event_guanlian);in++){
+			 if(guanlian_oad[in].oi == record_para->oad.OI){
+				fprintf(stderr,"\\\\num=%d \n",guanlian_oad[in].num);
+				record_para->data[oadnumindex]+=guanlian_oad[in].num;
+				for(_in=0;_in<guanlian_oad[in].num;_in++){
+					record_para->data[real_index++] = 0x00;
+					record_para->data[real_index++] = (guanlian_oad[in].oad[_in].OI>>8)&0x00ff;
+					record_para->data[real_index++] = guanlian_oad[in].oad[_in].OI&0x00ff;
+					record_para->data[real_index++] = guanlian_oad[in].oad[_in].attflg;
+					record_para->data[real_index++] = guanlian_oad[in].oad[_in].attrindex;
+				}
+				break;
+			 }
+		 }
+			INT8U *data=NULL;
+			int datalen=0;
+			if(Get_Event(record_para->oad,1,&data,&datalen,prginfo_event) == 1){
+				if(data!=NULL && datalen>0 && datalen<256){
+					record_para->data[real_index++] = 1; //data
+					record_para->data[real_index++] = 1; //1个
+					memcpy(&record_para->data[real_index],&data[STANDARD_NO_INDEX],datalen-2);//事件序号以后得数据
+					real_index +=datalen-2;
+				}else
+					record_para->data[real_index++] = 0;
+			}else
+				record_para->data[real_index++] = 0;
+			record_para->datalen =real_index;//最终长度
 	 }
 	return 1;
 }
@@ -663,6 +703,7 @@ INT16U Getcurrno(INT16U currno,INT16U maxno){
  * 终端初始化事件1 可以698规约解析actionrequest 调用该接口，data为OAD
  */
 INT8U Event_3100(INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
+
 	Reset_Eventpara();
 	if(oi_chg.oi3100 != prginfo_event->oi_changed.oi3100){
 		readCoverClass(0x3100,0,&prginfo_event->event_obj.Event3100_obj,sizeof(prginfo_event->event_obj.Event3100_obj),event_para_save);
@@ -1188,7 +1229,7 @@ INT8U Event_3106(ProgramInfo* prginfo_event,MeterPower *MeterPowerInfo,INT8U *st
 	INT8U off_flag=0,on_flag=0;
 	//判断下电
 	if(TermialPowerInfo.ERC3106State == POWER_START){
-		if(prginfo_event->DevicePara[0] == 2){//II型
+		if(prginfo_event->cfg_para.device == 2){//II型
 			if(((prginfo_event->ACSRealData.Available==TRUE)
 							&&(prginfo_event->ACSRealData.Ua>100
 									&& prginfo_event->ACSRealData.Ua<poweroff_happen_vlim)) ||
@@ -1218,8 +1259,9 @@ INT8U Event_3106(ProgramInfo* prginfo_event,MeterPower *MeterPowerInfo,INT8U *st
 			SendERC3106(flag,0,prginfo_event);
 		}
 	}else if(TermialPowerInfo.ERC3106State == POWER_OFF){
-		if(prginfo_event->DevicePara[0] == 2){//II型
-			if((prginfo_event->ACSRealData.Available && prginfo_event->ACSRealData.Ua>recover_voltage_limit))
+		if(prginfo_event->cfg_para.device == 2){//II型
+			if((prginfo_event->ACSRealData.Available && prginfo_event->ACSRealData.Ua>recover_voltage_limit && recover_voltage_limit>0)
+					||(prginfo_event->ACSRealData.Available && prginfo_event->ACSRealData.Ua>180))
 				on_flag=1;
 		}else{
 			if((prginfo_event->ACSRealData.Available&&prginfo_event->ACSRealData.Ua>recover_voltage_limit)
@@ -1243,18 +1285,22 @@ INT8U Event_3106(ProgramInfo* prginfo_event,MeterPower *MeterPowerInfo,INT8U *st
 		int interval = difftime(mktime(&TermialPowerInfo.PoweronTime),mktime(&TermialPowerInfo.PoweroffTime));
 		fprintf(stderr,"\nTermialPowerInfo.Valid=%d interval=%d mintime_space=%d maxtime_space=%d ",TermialPowerInfo.Valid,
 				interval,mintime_space*60,maxtime_space*60);
+
 		if(TermialPowerInfo.Valid == POWER_OFF_VALIDE)
 		{
 			//如果上电时间大于停电时间或者停上电时间间隔小于最小间隔或者大于最大间隔不产生下电事件
 			if((interval > mintime_space*60)&&(interval < maxtime_space*60)){
+//#define ZHEJIANG
+#ifdef ZHEJIANG
 				flag = 0b10000000;
 				SendERC3106(flag,1,prginfo_event);
+				sleep(3);
+#endif
 				flag = 0b11000000;
 			}
 			else
 				flag = 0b01000000;
 			//如果判断停电事件无效
-			sleep(3);
 			SendERC3106(flag,1,prginfo_event);
 			TermialPowerInfo.ERC3106State = POWER_START;
 			TermialPowerInfo.Valid = POWER_START;
@@ -2157,16 +2203,45 @@ INT8U Event_311B(TSA tsa, INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 /*
  * 电能表数据变更监控记录 抄表可自行判断，直接调用该函数。
  */
-INT8U Event_311C(TSA tsa, INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
+INT8U Event_311C(TSA tsa, INT8U taskno,OAD oad,INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 	if(oi_chg.oi311C != prginfo_event->oi_changed.oi311C){
 		readCoverClass(0x311C,0,&prginfo_event->event_obj.Event311C_obj,sizeof(prginfo_event->event_obj.Event311C_obj),event_para_save);
 		oi_chg.oi311C = prginfo_event->oi_changed.oi311C;
 	}
+	fprintf(stderr,"task_para.task_no=%d taskno=%d enableflag=%d \n",prginfo_event->event_obj.Event311C_obj.task_para.task_no,taskno,prginfo_event->event_obj.Event311C_obj.event_obj.enableflag);
+
 	if (prginfo_event->event_obj.Event311C_obj.event_obj.enableflag == 0)
 		return 0;
+	fprintf(stderr,"task_para.task_no=%d taskno=%d enableflag=%d \n",prginfo_event->event_obj.Event311C_obj.task_para.task_no,taskno,prginfo_event->event_obj.Event311C_obj.event_obj.enableflag);
+	if(prginfo_event->event_obj.Event311C_obj.task_para.task_no!=taskno)
+		return 0;
+
 	if(data== NULL)
 		return 0;
-	if(1){
+
+	INT8U i=0,happen_flag=0,have_flag=0;
+	INT8U *oldata;
+	for(i=0;i<50;i++){
+		if(memcmp(&other_data[i].tsa,&tsa,sizeof(TSA))==0
+				&& memcmp(&other_data[i].oad,&oad,sizeof(OAD))==0){
+			have_flag=1;
+            if(memcmp(data,other_data[i].data,len)!=0){
+            	happen_flag=1;
+            	oldata = other_data[i].data;
+            	memcpy(other_data[i].data,data,len);
+            }
+            break;
+		}
+	}
+	if(have_flag == 0){
+		memcpy(&other_data[other_curr_index].tsa,&tsa,sizeof(TSA));
+		memcpy(&other_data[other_curr_index].oad,&oad,4);
+		memcpy(other_data[other_curr_index].data,data,len);
+		other_curr_index++;
+		if(other_curr_index>=50)
+			other_curr_index = 0;
+	}
+	if(happen_flag == 1){
 		INT8U Save_buf[256];
 		bzero(Save_buf, sizeof(Save_buf));
 		prginfo_event->event_obj.Event311C_obj.event_obj.crrentnum++;
@@ -2175,9 +2250,15 @@ INT8U Event_311C(TSA tsa, INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 		INT8U index=0;
 		//标准数据单元
 		Get_StandardUnit(prginfo_event,0x311C,Save_buf,&index,crrentnum,(INT8U*)&tsa,s_tsa);
-		//监控数据对象  CSD 前台data，抄表直接组好，包括数据类型，因为是变长，只能这样处理，直接拷贝。
-		memcpy(&Save_buf[index],data,len);
-		index+=len;
+		//CSD
+		Save_buf[index++] = dtcsd;//CSD
+		Save_buf[index++] = 0; //OAD
+		memcpy(&Save_buf[index],&oad,4);
+		index +=4;
+		memcpy(&Save_buf[index],oldata,len);//旧数据
+		index +=len;
+		memcpy(&Save_buf[index],data,len);//新数据
+		index +=len;
 		Save_buf[STANDARD_NUM_INDEX]+=3;
 		//存储更改后得参数
 		saveCoverClass(0x311C,(INT16U)crrentnum,(void *)&prginfo_event->event_obj.Event311C_obj,sizeof(Class7_Object),event_para_save);
@@ -2345,12 +2426,8 @@ INT8U Event_3118(INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 		//array OAD
 	    Save_buf[index++]=dtarray;//array
 	    Save_buf[index++]=data[0];//数量
-	    int i=0;
-	    for(i=0;i<data[0];i++){
-	    	Save_buf[index++]=dtoad;//OAD
-	    	memcpy(&Save_buf[index],&data[1+i*4],4);
-	    	index+=4;
-	    }
+	    memcpy(&Save_buf[index],&data[1],len-1);
+	    index+=len-1;
 		Save_buf[STANDARD_NUM_INDEX]+=1;
 		//存储更改后得参数
 		saveCoverClass(0x3118,(INT16U)crrentnum,(void *)&prginfo_event->event_obj.Event3118_obj,sizeof(Class7_Object),event_para_save);
@@ -2768,14 +2845,38 @@ INT8U Event_3010(ProgramInfo* prginfo_event) {
 void  Get698_event(OAD oad,ProgramInfo* prginfo_event)
 {
     if(oad.OI == 0x4300 && (oad.attflg == 3 || oad.attflg == 5 || oad.attflg == 6)){
-
     	Event_3100(NULL,0,prginfo_event);
     	prginfo_event->event_obj.Event3106_obj.event_obj.crrentnum = 0;//停上电
     	saveCoverClass(0x3106,0,(void *)&prginfo_event->event_obj.Event3106_obj,sizeof(Event3106_Object),event_para_save);
-        memset(curr_data,0,MAX_POINT_NUM*4);//curr_data[MAX_POINT_NUM*4];
     }else if(oad.OI == 0x4000 && oad.attflg == 2){
     	DateTimeBCD datetime;
     	DataTimeGet(&datetime);
     	Event_3114(datetime,prginfo_event);
+    }else if(((oad.OI>>12)&0x0f)==0x04){
+    	INT8U data[6];
+    	data[0]=1;
+    	data[1]=dtoad;
+    	data[2]=((oad.OI>>8)&0x00ff);
+    	data[3]=oad.OI&0x00ff;
+    	data[4]=oad.attflg;
+    	data[5]=oad.attrindex;
+    	Event_3118(data,6,prginfo_event);
     }
 }
+
+//若设置多个参变量 会产生电能表数据监控变更事件
+void Get698_3118_moreoad(OAD *oad,INT8U len,ProgramInfo* prginfo_event){
+	INT8U index=0,i=0;
+	INT8U data[200];
+	data[index++]=len;
+	for(i=0;i<len;i++){
+		data[index++]=dtoad;
+		data[index++]=((oad[i].OI>>8)&0x00ff);
+		data[index++]=oad[i].OI&0x00ff;
+		data[index++]=oad[i].attflg;
+		data[index++]=oad[i].attrindex;
+	}
+	Event_3118(data,index,prginfo_event);
+}
+
+

@@ -92,10 +92,11 @@ int ReadDeviceConfig() {
     char aline[128] = {};
     int devicetype  = 1;
 
+    memset(&JProgramInfo->cfg_para,0,sizeof(JProgramInfo->cfg_para));
     fp = fopen((const char*)DEVICE_CFG, (const char*)"r");
     if (fp == NULL) {
         fprintf(stderr, "\n无配置信息!");
-        JProgramInfo->DevicePara[0] = 1;
+        JProgramInfo->cfg_para.device = 1;
     } else {
         memset(aline, 0, sizeof(aline));
         while (fgets((char*)aline, sizeof(aline), fp) != NULL) {
@@ -109,14 +110,19 @@ int ReadDeviceConfig() {
             if (strncmp(aline, "device", 6) == 0) //设备类型
             {
                 sscanf(aline, "device=%d", &devicetype);
-                JProgramInfo->DevicePara[0] = devicetype;
+                JProgramInfo->cfg_para.device = devicetype;
+            }
+            if (strncmp(aline, "zone", 4) == 0) //设备类型
+            {
+                sscanf(aline, "zone=%s", JProgramInfo->cfg_para.zone);
             }
         }
     }
-    if (JProgramInfo->DevicePara[0] < 1 || JProgramInfo->DevicePara[0] > 3) { //无效值
-        JProgramInfo->DevicePara[0] = 1;                                      //默认I型
+    if (JProgramInfo->cfg_para.device < 1 || JProgramInfo->cfg_para.device > 3) { //无效值
+        JProgramInfo->cfg_para.device = 1;                                      //默认I型
     }
-    asyslog(LOG_NOTICE,"\n当前运行类型为：%d 型终端\n", JProgramInfo->DevicePara[0]);
+    asyslog(LOG_NOTICE,"\n当前运行类型：%d 型终端\n", JProgramInfo->cfg_para.device);
+    asyslog(LOG_NOTICE,"\n当前运行地区：%s\n", JProgramInfo->cfg_para.zone);
     return 1;
 }
 
@@ -393,9 +399,11 @@ void ProjectCheck(ProjectInfo* proinfo) {
 }
 
 void checkProgsState(int ProgsNum) {
+
     ProjectInfo* pis = JProgramInfo->Projects;
 
     for (int i = 1; i < ProgsNum; i++) {
+
         ProjectCheck(&JProgramInfo->Projects[i]);
         switch (JProgramInfo->Projects[i].ProjectState) {
             case NeedKill:
@@ -511,7 +519,7 @@ int main(int argc, char* argv[]) {
         //喂狗
         Watchdog(5);
 
-        if(JProgramInfo->DevicePara[0]==1 || JProgramInfo->DevicePara[0]==3) { //I型集中器，III型专变
+        if(JProgramInfo->cfg_para.device==1 || JProgramInfo->cfg_para.device==3) { //I型集中器，III型专变
 			//电池检测掉电关闭设备
 			PowerOffToClose(90);
         }

@@ -284,7 +284,7 @@ void Init_4500() {
     memcpy(&obj.master.master[0].ip[1], "192.168.0.97", sizeof("192.168.0.97"));
     obj.master.master[0].port = 5022;
 
-    saveCoverClass(0x4500, 0, (void *) &obj, sizeof(CLASS25), para_init_save);
+    saveCoverClass(0x4500, 0, (void *) &obj, sizeof(CLASS25), para_vari_save);
 }
 
 void inoutdev_process(int argc, char *argv[]) {

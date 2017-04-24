@@ -12,5 +12,6 @@ vmsgr/*
 !*.cfg
 cjtest/
 bin_arm/
+bin_arm_test/
 updatetool/*
 updatetool/*/*
