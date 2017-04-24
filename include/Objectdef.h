@@ -508,8 +508,8 @@ typedef struct {
     INT8U enable_flag;
     INT8U PCState;
     INT8U ECState;
-    INT8U TrunState;
-    INT8U TrunState;
+    INT8U PTrunState;
+    INT8U ETrunState;
 } ALCONSTATE;
 
 typedef struct {

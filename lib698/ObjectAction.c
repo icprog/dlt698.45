@@ -18,6 +18,8 @@
 #include "event.h"
 #include "secure.h"
 #include "basedef.h"
+#include "class8.h"
+#include "class23.h"
 
 extern INT8U Reset_add();
 extern void FrameTail(INT8U *buf,int index,int hcsi);
@@ -1187,15 +1189,35 @@ int doObjectAction(OAD oad,INT8U *data,Action_result *act_ret)
 //				act_ret->datalen = 1;
 			}
 			break;
-		case 0x2301:
-		case 0x2302:
-		case 0x2303:
+        case 0x2301:
+            class23_selector(1, attr_act, data, act_ret);
+            break;
+        case 0x2302:
+            class23_selector(2, attr_act, data, act_ret);
+            break;
+        case 0x2303:
+            class23_selector(3, attr_act, data, act_ret);
+            break;
 		case 0x2304:
+            class23_selector(4, attr_act, data, act_ret);
+			break;
 		case 0x2305:
+            class23_selector(5, attr_act, data, act_ret);
+			break;
 		case 0x2306:
+            class23_selector(6, attr_act, data, act_ret);
+			break;
 		case 0x2307:
+            class23_selector(7, attr_act, data, act_ret);
+			break;
 		case 0x2308:
-
+            class23_selector(8, attr_act, data, act_ret);
+			break;
+		case 0x8001:
+			class8001_act_route(1, attr_act, data, act_ret);
+			break;
+		case 0x8103:
+			class8103_act_route(1, attr_act, data, act_ret);
 			break;
 	}
 	if(oi==0x4300 && attr_act==1) {		//设备复位

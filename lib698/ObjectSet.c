@@ -17,6 +17,8 @@
 #include "event.h"
 #include "dlt698.h"
 #include "dlt698def.h"
+#include "class8.h"
+#include "class23.h"
 
 extern int doReponse(int server,int reponse,CSINFO *csinfo,int datalen,INT8U *data,INT8U *buf);
 extern int doGetnormal(INT8U seqOfNum,RESULT_NORMAL *response);
@@ -840,6 +842,43 @@ INT16U DeviceIoSetAttrib(OAD oad,INT8U *data,INT8U *DAR)
 	return data_index;
 }
 
+INT16U ALSetAttrib(OAD oad, INT8U *data, INT8U *DAR) {
+	INT16U data_index = 0;
+	switch (oad.OI) {
+		case 0x2301:
+			data_index = class23_set(1, oad, data, DAR);
+			break;
+		case 0x2302:
+			data_index = class23_set(2, oad, data, DAR);
+			break;
+		case 0x2303:
+			data_index = class23_set(3, oad, data, DAR);
+			break;
+		case 0x2304:
+			data_index = class23_set(4, oad, data, DAR);
+			break;
+		case 0x2305:
+			data_index = class23_set(5, oad, data, DAR);
+			break;
+		case 0x2306:
+			data_index = class23_set(6, oad, data, DAR);
+			break;
+		case 0x2307:
+			data_index = class23_set(7, oad, data, DAR);
+			break;
+		case 0x2308:
+			data_index = class23_set(8, oad, data, DAR);
+			break;
+		case 0x8100:
+			data_index = class8100_set(8, oad, data, DAR);
+        case 0x8101:
+            data_index = class8101_set(8, oad, data, DAR);
+        case 0x8102:
+            data_index = class8102_set(8, oad, data, DAR);
+	}
+	return data_index;
+}
+
 INT16U setRequestNormal(INT8U *data,OAD oad,INT8U *DAR,CSINFO *csinfo,INT8U *buf)
 {
 	INT8U oihead = (oad.OI&0xF000) >>12;
@@ -848,6 +887,9 @@ INT16U setRequestNormal(INT8U *data,OAD oad,INT8U *DAR,CSINFO *csinfo,INT8U *buf
 
 	switch(oihead)
 	{
+		case 0x2:
+			data_index = ALSetAttrib(oad,data,DAR);
+			break;
 		case 0x3:		//事件对象
 			data_index = EventSetAttrib(oad,data,DAR);
 			break;
@@ -856,6 +898,9 @@ INT16U setRequestNormal(INT8U *data,OAD oad,INT8U *DAR,CSINFO *csinfo,INT8U *buf
 			break;
 		case 0x6:		//采集监控类对象
 			data_index = CollParaSet(oad,data,DAR);
+			break;
+		case 0x08:
+			data_index = ALSetAttrib(oad,data,DAR);
 			break;
 		case 0xf:		//输入输出设备类对象 + ESAM接口类对象
 			data_index = DeviceIoSetAttrib(oad,data,DAR);
