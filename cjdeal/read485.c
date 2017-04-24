@@ -1264,7 +1264,7 @@ INT16S request698_07Data(INT8U* DI07,INT8U* dataContent,CLASS_6001 meter,CLASS_6
 	INT16S SendLen = 0;
 	INT8U SendBuff[256];
 	INT8U subindex = 0;
-	INT8U invalidDI[4] = { 0 };
+	INT8U invalidDI[4] = {0};
 	FORMAT07 Data07;
 	memset(&SendBuff[0], 0, 256);
 	memset(&Data07, 0, sizeof(FORMAT07));
@@ -1666,7 +1666,14 @@ INT16S deal698RequestResponse(INT8U isProxyResponse,INT8U getResponseType,INT16U
 				INT8U isTimeSame = checkTimeStamp698(oadListContent);
 				if(isTimeSame == 0)
 				{
-					asyslog(LOG_NOTICE,"698冻结时标不正确");
+					dataContentIndex = 0;
+					INT8U tmpIndex = 0;
+					for(tmpIndex = 0;tmpIndex < csds.csd[0].csd.road.num;tmpIndex++)
+					{
+						dataContentIndex += CalcOIDataLen(csds.csd[0].csd.road.oads[tmpIndex].OI,csds.csd[0].csd.road.oads[tmpIndex].attrindex);
+						asyslog(LOG_NOTICE,"tmpIndex = %d OI = %04x  len = %d",tmpIndex,csds.csd[0].csd.road.oads[tmpIndex].OI,dataContentIndex);
+					}
+					asyslog(LOG_NOTICE,"698冻结时标不正确 dataContentIndex = %d csds.csd[0].csd.road.num = %d",dataContentIndex,csds.csd[0].csd.road.num);
 					memset(dataContent,0,dataContentIndex);
 				}
 			}
@@ -2413,22 +2420,39 @@ INT8S dealBroadCastSingleMeter(INT8U port485,CLASS_6001 meter)
 	meterTime.Sec = dataContent[7];
 
 	int time_offset=difftime(timeNow,tmtotime_t(meterTime));
-	DbgPrintToFile1(port485,"电表[%d]时间差:%d",meter.sernum,time_offset);
+	DbgPrintToFile1(port485,"before settiem 电表[%d]时间差:%d",meter.sernum,time_offset);
 	INT8U eventbuf[8] = {0};
-	if(time_offset > broadcase4204.upleve)
+	if(abs(time_offset) > broadcase4204.upleve)
 	{
 		sendSetTimeCMD(meter,port485);
-
+		sleep(5);
 		memcpy(eventbuf,&dataContent[1],7);
 		memset(dataContent,0,DATA_CONTENT_LEN);
 		requestMeterTime(port485,meter,dataContent);
-		timeNow = time(NULL);
-		time_offset=difftime(timeNow,tmtotime_t(meterTime));
+		if(dataContent[0]!=0x1c)
+		{
+			time_offset = 1;
+		}
+		else
+		{
+			meterTime.Year = dataContent[1];
+			meterTime.Year = (meterTime.Year << 8) + dataContent[2];
+			meterTime.Month = dataContent[3];
+			meterTime.Day = dataContent[4];
+			meterTime.Hour = dataContent[5];
+			meterTime.Minute = dataContent[6];
+			meterTime.Sec = dataContent[7];
+			timeNow = time(NULL);
+			time_offset=difftime(timeNow,tmtotime_t(meterTime));
+		}
 		eventbuf[7] = (INT8U)time_offset;
-		DbgPrintToFile1(port485,"\n 对时事件buff = %02x%02x%02x%02x%02x%02x%02x%02x \n",
-				eventbuf[0],eventbuf[1],eventbuf[2],eventbuf[3],eventbuf[4],eventbuf[5],eventbuf[6],eventbuf[7]);
+		if(abs(time_offset)  < broadcase4204.upleve)
+		{
+			DbgPrintToFile1(port485,"\n 对时事件buff = %02x%02x%02x%02x%02x%02x%02x 时间差=%d \n",
+					eventbuf[0],eventbuf[1],eventbuf[2],eventbuf[3],eventbuf[4],eventbuf[5],eventbuf[6],eventbuf[7]);
 
-		Event_311B(meter.basicinfo.addr,eventbuf,8,JProgramInfo);
+			Event_311B(meter.basicinfo.addr,eventbuf,8,JProgramInfo);
+		}
 	}
 
 	return ret;
@@ -3284,7 +3308,7 @@ INT8S deal6015or6017(CLASS_6013 st6013,CLASS_6015 st6015, INT8U port485,CLASS_60
 						return PARA_CHANGE_RETVALUE;
 					}
 
-					if((dataLen > 0)&& (st6013.cjtype == norm))
+					if((dataLen > 0)&&(st6013.cjtype == norm))
 					{
 						int bufflen = compose6012Buff(startTime,meter.basicinfo.addr,dataLen,dataContent,port485);
 						SaveNorData(st6035->taskID,NULL,dataContent,bufflen);
