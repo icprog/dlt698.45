@@ -1380,19 +1380,20 @@ INT8U getSinglegOADDataUnit(INT8U* oadData)
 	}
 	return length;
 }
-INT8S checkEvent698(OI_698 rcvOI,INT8U* data,INT8U dataLen,CLASS_6001 obj6001,INT16U taskID)
+
+INT8S checkEvent698(OAD rcvOAD,INT8U* data,INT8U dataLen,CLASS_6001 obj6001,INT16U taskID)
 {
 	 asyslog(LOG_INFO,"taskID = %d checkEvent698 测量点 = %02x%02x%02x%02x%02x%02x%02x%02x  rcvOI= %04x data = %02x%02x%02x%02x%02x%02x%02x%02x\n",
 			 taskID,obj6001.basicinfo.addr.addr[0],obj6001.basicinfo.addr.addr[1],obj6001.basicinfo.addr.addr[2],obj6001.basicinfo.addr.addr[3],
 			obj6001.basicinfo.addr.addr[4],obj6001.basicinfo.addr.addr[5],obj6001.basicinfo.addr.addr[6],obj6001.basicinfo.addr.addr[7],
-			rcvOI,data[0],data[1],data[2],data[3],data[4],data[5],data[6],data[7]);
+			rcvOAD.OI,data[0],data[1],data[2],data[3],data[4],data[5],data[6],data[7]);
 
 	INT8S ret = -1;
-	if(rcvOI == 0x4000)
+	if(rcvOAD.OI == 0x4000)
 	{
 		ret = Event_3105(obj6001.basicinfo.addr,taskID,data,dataLen,JProgramInfo);
 	}
-	if(rcvOI == 0x0010)
+	if(rcvOAD.OI == 0x0010)
 	{
 		ret = Event_310B(obj6001.basicinfo.addr,taskID,&data[2],dataLen,JProgramInfo);
 
@@ -1402,18 +1403,12 @@ INT8S checkEvent698(OI_698 rcvOI,INT8U* data,INT8U dataLen,CLASS_6001 obj6001,IN
 
 		ret = Event_310E(obj6001.basicinfo.addr,taskID,&data[2],dataLen,JProgramInfo);
 	}
-	fprintf(stderr,"aaadatalen=%d \n",dataLen);
-    OAD oad;
-	oad.OI=rcvOI;
-	oad.attflg=2;
-	oad.attrindex=0;
-	INT8U a=0;
-	fprintf(stderr,"bbbbbbbbbbbbbbbbbbbb\n");
-	for(a=0;a<dataLen;a++){
-		fprintf(stderr,"%02x ",data[a]);
+	if(taskID == JProgramInfo->event_obj.Event311C_obj.task_para.task_no)
+	{
+		fprintf(stderr,"checkEvent698_311C OI = %02x",rcvOAD.OI);
+		ret = Event_311C(obj6001.basicinfo.addr,taskID,rcvOAD,data,dataLen,JProgramInfo);
 	}
-	fprintf(stderr,"\n");
-	Event_311C(obj6001.basicinfo.addr,taskID,oad,data,dataLen,JProgramInfo);
+
 	return ret;
 }
 /*
@@ -1431,10 +1426,13 @@ INT16U parseSingleOADData(INT8U isProxyResponse,INT8U* oadData,INT8U* dataConten
 		memcpy(&dataContent[dataLen],&oadData[length],4);
 		dataLen += 4;
 	}
-	OI_698 rcvOI = (oadData[length] << 8) + oadData[length+1];
-	INT16U oiDataLen = CalcOIDataLen(rcvOI,oadData[length+3]);
+	OAD rcvOAD;
+	rcvOAD.OI = (oadData[length] << 8) + oadData[length+1];
+	rcvOAD.attflg = oadData[length+2];
+	rcvOAD.attrindex = oadData[length+3];
+	INT16U oiDataLen = CalcOIDataLen(rcvOAD.OI,rcvOAD.attrindex);
 	length += 4;
-	fprintf(stderr,"\n rcvOI = %04x  len = %d\n",rcvOI,oiDataLen);
+	fprintf(stderr,"\n rcvOI = %04x  len = %d\n",rcvOAD.OI,oiDataLen);
 	if(oiDataLen <= 0)
 	{
 		fprintf(stderr,"\n 未在OI_TYPE.cfg找到对应OI");
@@ -1475,7 +1473,7 @@ INT16U parseSingleOADData(INT8U isProxyResponse,INT8U* oadData,INT8U* dataConten
 #if 1
 		if((isProxyResponse == 0)&&(taskID > 0))
 		{
-			checkEvent698(rcvOI,&oadData[startIndex+1],oiDataLen,obj6001,taskID);
+			checkEvent698(rcvOAD,&oadData[startIndex+1],oiDataLen,obj6001,taskID);
 		}
 #endif
 		fprintf(stderr,"\n dataLen = %d\n",dataLen);
@@ -1608,24 +1606,13 @@ INT8U checkTimeStamp698(OAD_DATA oadListContent[ROAD_OADS_NUM])
  *isProxyResponse = 1 说明是代理读取返回的  dataContent需要直接返回给主战
  *isProxyResponse = 0 正常抄表返回的 dataContent用来存储数据  二者格式不一样
  * */
-INT16S deal698RequestResponse(INT8U isProxyResponse,INT8U getResponseType,INT16U apdudataLen,INT8U csdNum,INT8U* apdudata,INT8U* dataContent,CSD_ARRAYTYPE csds,CLASS_6001 obj6001,INT16U taskID)
+INT16S deal698RequestResponse(INT8U isProxyResponse,INT8U getResponseType,INT8U csdNum,INT8U* apdudata,INT8U* dataContent,CSD_ARRAYTYPE csds,CLASS_6001 obj6001,INT16U taskID,INT8U cjType)
 {
 	INT16U apdudataIndex =0;
 	INT16S dataContentIndex =0;
 	INT8U dataContentLen =0;//按存储格式填充的数据长度--无效数据填0
-	INT8U oaddataLen = 0;//报文中OAD+数据的长度
-#ifdef TESTDEF
-	fprintf(stderr,"deal698RequestResponse Buf[%d] = \n",apdudataLen);
-	INT16U prtIndex =0;
-	for(prtIndex = 0;prtIndex < apdudataLen;prtIndex++)
-	{
-		fprintf(stderr,"%02x ",apdudata[prtIndex]);
-		if((prtIndex+1)%20 ==0)
-		{
-			fprintf(stderr,"\n");
-		}
-	}
-#endif
+	INT8U oaddataLen = 0;//报文中OAD+数据的长度obj6001
+
 
 	switch(getResponseType)
 	{
@@ -1646,11 +1633,6 @@ INT16S deal698RequestResponse(INT8U isProxyResponse,INT8U getResponseType,INT16U
 				oaddataLen = parseSingleOADData(isProxyResponse,&apdudata[apdudataIndex],&dataContent[dataContentIndex],&dataContentLen,obj6001,taskID);
 				dataContentIndex += dataContentLen;
 				apdudataIndex += oaddataLen;
-				if(apdudataIndex > apdudataLen)
-				{
-					fprintf(stderr,"\n apdudataIndex > apdudataLen \n");
-					break;
-				}
 			}
 		}
 		break;
@@ -1661,7 +1643,7 @@ INT16S deal698RequestResponse(INT8U isProxyResponse,INT8U getResponseType,INT16U
 			dataContentIndex = dataContentLen;
 			fprintf(stderr,"\n dataContentIndex = %d dataContentLen = %d \n",dataContentIndex,dataContentLen);
 
-			if(csds.csd[0].csd.road.oad.OI == 0x5004)
+			if((cjType==TYPE_FREEZE)&&(csds.csd[0].csd.road.oad.OI == 0x5004))
 			{
 				INT8U isTimeSame = checkTimeStamp698(oadListContent);
 				if(isTimeSame == 0)
@@ -1735,7 +1717,7 @@ INT16U dealProxy_698(CLASS_6001 obj6001,GETOBJS obj07,INT8U* dataContent,INT8U p
 			fprintf(stderr,"\n dealProxy_698 getResponseType = %d  csdNum = %d dataLen = %d \n",getResponseType,csdNum,dataLen);
 			if((getResponseType == GET_REQUEST_NORMAL_LIST)||(getResponseType == GET_REQUEST_NORMAL))
 			{
-				//retdataLen = deal698RequestResponse(1,getResponseType,dataLen,csdNum,&recvbuff[apduDataStartIndex],dataContent,st6015.csds,obj6001,0);
+				retdataLen = deal698RequestResponse(1,getResponseType,csdNum,&recvbuff[apduDataStartIndex],dataContent,st6015.csds,obj6001,0,st6015.cjtype);
 				retdataLen = dataLen-2;
 				memcpy(dataContent,&recvbuff[apduDataStartIndex],retdataLen);
 				break;
@@ -2591,7 +2573,20 @@ INT16S deal6015_698(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8
 			fprintf(stderr,"\n getResponseType = %d  csdNum = %d dataLen = %d \n",getResponseType,csdNum,dataLen);
 			if(getResponseType > 0)
 			{
-				retLen = deal698RequestResponse(0,getResponseType,dataLen,csdNum,&recvbuff[apduDataStartIndex],dataContent,st6015.csds,to6001,st6035->taskID);
+	#ifdef TESTDEF
+				fprintf(stderr,"deal698RequestResponse Buf[%d] = \n",dataLen);
+				INT16U prtIndex =0;
+				for(prtIndex = 0;prtIndex < dataLen;prtIndex++)
+				{
+					fprintf(stderr,"%02x ",recvbuff[apduDataStartIndex+prtIndex]);
+					if((prtIndex+1)%20 ==0)
+					{
+						fprintf(stderr,"\n");
+					}
+				}
+	#endif
+
+				retLen = deal698RequestResponse(0,getResponseType,csdNum,&recvbuff[apduDataStartIndex],dataContent,st6015.csds,to6001,st6035->taskID,st6015.cjtype);
 				if(retLen > 0)
 				{
 					fprintf(stderr,"\n retLen = %d\n",retLen);
@@ -2734,7 +2729,7 @@ INT16S deal6015_07(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8U
 		{
 			INT8U isFreezeValid = 1;
 			//日冻结检查时标
-			if(st6015.csds.csd[dataIndex].csd.road.oad.OI == 0x5004)
+			if((st6015.csds.csd[dataIndex].csd.road.oad.OI == 0x5004)&&(st6015.cjtype==TYPE_FREEZE))
 			{
 				isFreezeValid = checkTimeStamp07(to6001,port485);
 			}
@@ -3022,7 +3017,7 @@ INT16S deal6017_698(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8
 			fprintf(stderr,"\n getResponseType = %d  csdNum = %d dataLen = %d \n",getResponseType,csdNum,dataLen);
 			if(getResponseType > 0)
 			{
-				retLen = deal698RequestResponse(0,getResponseType,dataLen,csdNum,&recvbuff[apduDataStartIndex],dataContent,st6015.csds);
+				retLen = deal698RequestResponse(0,getResponseType,csdNum,&recvbuff[apduDataStartIndex],dataContent,st6015.csds);
 				break;
 			}
 
@@ -3198,9 +3193,27 @@ INT8U checkMeterType(MY_MS mst, INT8U port485, TSA meterAddr, OAD portOAD) {
 		fprintf(stderr,"\n checkMeterType 非485 %d 测量点",port485);
 		return 0;
 	}
-	if (mst.mstype == 1) {
+	if (mst.mstype == 1)
+	{
 		return 1;
 	}
+	//一组用户地址
+	if(mst.mstype == 3)
+	{
+		INT8U tasNum = 0;
+		tasNum = (mst.ms.userAddr[0].addr[0]<<8) | mst.ms.userAddr[0].addr[1];
+		INT8U j;
+		for(j=0;j<tasNum;j++)
+		{
+			if(memcmp(&mst.ms.userAddr[j+1].addr[0],&meterAddr.addr,sizeof(TSA))==0)
+			{
+				fprintf(stderr,"一组用户地址　找到相应测量点");
+				return 1;
+			}
+
+		}
+	}
+
 	return 1;
 }
 

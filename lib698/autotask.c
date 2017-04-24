@@ -23,8 +23,9 @@ extern int FrameHead(CSINFO *csinfo,INT8U *buf);
 /*
  * datetime 开始时间
  * ti 间隔
+ * ti_delay 延时－目前只处理了日冻结月冻结的延时　　其它的应该不会有任务延时
  */
-time_t calcnexttime(TI ti,DateTimeBCD datetime)
+time_t calcnexttime(TI ti,DateTimeBCD datetime,TI ti_delay)
 {
 	int jiange=0;
 	time_t timestart=0,timenow=0,timetmp=0,timeret=0;
@@ -39,10 +40,18 @@ time_t calcnexttime(TI ti,DateTimeBCD datetime)
 	ptm.Hour = datetime.hour.data;
 	ptm.Minute = datetime.min.data;
 	ptm.Sec = datetime.sec.data;
+
+	//加上延时
+	if(ti_delay.interval > 0)
+	{
+		tminc(&ptm, ti_delay.units,ti_delay.interval);
+	}
+
 	timestart = tmtotime_t(ptm);//开始时间
 	timenow = time(NULL);//当前时间
 	jiange = getTItoSec(ti);
 	fprintf(stderr,"TI:%d-%d, jiange = %d 秒\n",ti.units,ti.interval,jiange);
+	fprintf(stderr,"延迟　TI:%d-%d, jiange = %d 秒\n",ti.units,ti.interval);
 	if (timenow > timestart)
 	{
 		if(jiange > 0 )
@@ -78,6 +87,13 @@ time_t calcnexttime(TI ti,DateTimeBCD datetime)
 			tmNext.Hour = datetime.hour.data;
 			tmNext.Minute = datetime.min.data;
 			tmNext.Sec = datetime.sec.data;
+
+			//加上延时
+			if(ti_delay.interval > 0)
+			{
+				tminc(&tmNext, ti_delay.units,ti_delay.interval);
+			}
+
 			timeret = tmtotime_t(tmNext);//开始时间
 			fprintf(stderr,"\n\n********下次开始时间--------1 %d-%d-%d %d:%d:%d",tmNext.Year,tmNext.Month,tmNext.Day,tmNext.Hour,tmNext.Minute,tmNext.Sec);
 			return timeret;
@@ -101,7 +117,7 @@ void init_autotask(CLASS_6013 class6013,AutoTaskStrap* list)
 	{
 		list[index].ID = class6013.taskID;
 		list[index].SerNo = class6013.sernum;
-		list[index].nexttime = calcnexttime(class6013.interval,class6013.startime);
+		list[index].nexttime = calcnexttime(class6013.interval,class6013.startime,class6013.delay);
 		fprintf(stderr,"\ninit_autotask [ %d 任务 %d 方案 %d  下次时间 %ld ]",index,list[index].ID ,list[index].SerNo,list[index].nexttime );
 		localtime_r(&list[index].nexttime,&tmp_tm);
 		fprintf(stderr,"下次时间 %04d-%02d-%02d %02d:%02d:%02d\n",tmp_tm.tm_year+1900,tmp_tm.tm_mon+1,tmp_tm.tm_mday,tmp_tm.tm_hour,tmp_tm.tm_min,tmp_tm.tm_sec);
@@ -258,7 +274,7 @@ INT16U  composeAutoTask(AutoTaskStrap *list)
 
 				}
 			}
-			list->nexttime = calcnexttime(class6013.interval,class6013.startime);
+			list->nexttime = calcnexttime(class6013.interval,class6013.startime,class6013.delay);
 		}else
 		{
 //				fprintf(stderr,"\n任务参数丢失！");

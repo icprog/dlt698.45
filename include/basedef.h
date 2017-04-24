@@ -8,6 +8,6 @@
 #define CCTT_II
 
 //国网台体测试
-//#define GW_TAI_TI
+#define GW_TAI_TI
 
 #endif//BASEDEF_H_
