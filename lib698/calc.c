@@ -308,3 +308,33 @@ INT8U Get_Maxp(INT8U *buf,INT8U *len,TSA tsa,OAD oad){
 	}
 	return 1;
 }
+
+int Get_4000(OAD oad,INT8U *data)
+{
+	DateTimeBCD time;
+	CLASS_4000	class_tmp={};
+	int index=0;
+
+	switch(oad.attflg )
+	{
+		case 2://安全模式选择
+			system((const char*)"hwclock -s");
+			DataTimeGet(&time);
+			index += fill_date_time_s(&data[index],&time);
+			break;
+		case 3://校时模式
+			readCoverClass(oad.OI,0,&class_tmp,sizeof(CLASS_4000),para_vari_save);
+			index += fill_enum(&data[index],class_tmp.type);
+			break;
+		case 4://精准校时模式
+			readCoverClass(oad.OI,0,&class_tmp,sizeof(CLASS_4000),para_vari_save);
+			index += create_struct(&data[index],5);
+			index += fill_unsigned(&data[index],class_tmp.hearbeatnum);
+			index += fill_unsigned(&data[index],class_tmp.tichu_max);
+			index += fill_unsigned(&data[index],class_tmp.tichu_min);
+			index += fill_unsigned(&data[index],class_tmp.delay);
+			index += fill_unsigned(&data[index],class_tmp.num_min);
+			break;
+	}
+	return index;
+}
