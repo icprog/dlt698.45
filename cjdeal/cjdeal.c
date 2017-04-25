@@ -24,6 +24,7 @@
 #include "EventObject.h"
 #include "dlt698def.h"
 #include "basedef.h"
+#include "ctrl.h"
 
 extern INT32S 			spifp_rn8209;
 extern INT32S 			spifp;
@@ -770,6 +771,9 @@ void dispatchTask_proccess()
  *********************************************************/
 int main(int argc, char *argv[])
 {
+	printf("a\n");
+	return ctrl_base_test();
+
 	pid_t pids[128];
     struct sigaction sa = {};
     Setsig(&sa, QuitProcess);

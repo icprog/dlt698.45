@@ -17,6 +17,8 @@
 #include "event.h"
 #include "dlt698.h"
 #include "dlt698def.h"
+#include "class8.h"
+#include "class23.h"
 
 extern int doReponse(int server,int reponse,CSINFO *csinfo,int datalen,INT8U *data,INT8U *buf);
 extern int doGetnormal(INT8U seqOfNum,RESULT_NORMAL *response);
@@ -492,8 +494,12 @@ INT16U set4500(OAD oad,INT8U *data,INT8U *DAR)
 		index += getVisibleString(&data[index],class4500.commconfig.passWord);
 		index += getOctetstring(1,&data[index],class4500.commconfig.proxyIp);
 		index += getLongUnsigned(&data[index],(INT8U *)&class4500.commconfig.proxyPort);
-		index += getOctetstring(1,&data[index],(INT8U *)&class4500.commconfig.timeoutRtry);
+		index += getUnsigned(&data[index],(INT8U *)&class4500.commconfig.timeoutRtry);	//勘误更改
 		index += getLongUnsigned(&data[index],(INT8U *)&class4500.commconfig.heartBeat);
+		if(index>=sizeof(class4500.commconfig)) {
+			*DAR = refuse_rw;
+			return index;
+		}
 		break;
 	case 3:		//主站通信参数表
 		index += getArray(&data[index],(INT8U *)&class4500.master.masternum);
@@ -505,6 +511,10 @@ INT16U set4500(OAD oad,INT8U *data,INT8U *DAR)
 			index += getStructure(&data[index],NULL);
 			index += getOctetstring(1,&data[index],class4500.master.master[i].ip);
 			index += getLongUnsigned(&data[index],(INT8U *)&class4500.master.master[i].port);
+		}
+		if(index>=sizeof(class4500.master)) {
+			*DAR = refuse_rw;
+			return index;
 		}
 		break;
 	case 4:		//短信通信参数表
@@ -526,6 +536,10 @@ INT16U set4500(OAD oad,INT8U *data,INT8U *DAR)
 		}
 		for(i=0;i<class4500.sms.destnum;i++)
 			index += getVisibleString(&data[index],(INT8U *)&class4500.sms.dest[i]);
+		if(index>=sizeof(class4500.sms)) {
+			*DAR = refuse_rw;
+			return index;
+		}
 		break;
 	case 5:		//版本信息
 		break;
@@ -541,7 +555,6 @@ INT16U set4500(OAD oad,INT8U *data,INT8U *DAR)
 		break;
 	case 11:	//拨号IP
 		break;
-
 	}
 	print4500(class4500);
 	*DAR = saveCoverClass(oad.OI,0,&class4500,sizeof(CLASS25),para_vari_save);
@@ -572,7 +585,7 @@ INT16U set4510(OAD oad,INT8U *data,INT8U *DAR)
 		}
 		index += getOctetstring(1,&data[index],class4510.commconfig.proxyIp);
 		index += getLongUnsigned(&data[index],(INT8U *)&class4510.commconfig.proxyPort);
-		index += getBitString(1,&data[index],(INT8U *)&class4510.commconfig.timeoutRtry);
+		index += getUnsigned(&data[index],(INT8U *)&class4510.commconfig.timeoutRtry);//勘误更改类型
 		index += getLongUnsigned(&data[index],(INT8U *)&class4510.commconfig.heartBeat);
 		fprintf(stderr,"\n【工作模式】%d",class4510.commconfig.workModel);
 		fprintf(stderr,"\n【连接方式】%d",class4510.commconfig.connectType);
@@ -583,6 +596,14 @@ INT16U set4510(OAD oad,INT8U *data,INT8U *DAR)
 		fprintf(stderr,"\n【代理服务器端口】 %d",class4510.commconfig.proxyPort);
 		fprintf(stderr,"\n【超时时间和重发次数】 %02x",class4510.commconfig.timeoutRtry);
 		fprintf(stderr,"\n【心跳周期】 %d\n",class4510.commconfig.heartBeat);
+
+	    fprintf(stderr, "\n主IP %d.%d.%d.%d :%d\n", class4510.master.master[0].ip[1], class4510.master.master[0].ip[2],
+	            class4510.master.master[0].ip[3],
+	            class4510.master.master[0].ip[4], class4510.master.master[0].port);
+		if(index>=sizeof(class4510.commconfig)) {
+			*DAR = refuse_rw;
+			return index;
+		}
 	}
 	*DAR = saveCoverClass(oad.OI,0,&class4510,sizeof(CLASS26),para_vari_save);
 
@@ -856,6 +877,43 @@ INT16U DeviceIoSetAttrib(OAD oad,INT8U *data,INT8U *DAR)
 	return data_index;
 }
 
+INT16U ALSetAttrib(OAD oad, INT8U *data, INT8U *DAR) {
+	INT16U data_index = 0;
+	switch (oad.OI) {
+		case 0x2301:
+			data_index = class23_set(1, oad, data, DAR);
+			break;
+		case 0x2302:
+			data_index = class23_set(2, oad, data, DAR);
+			break;
+		case 0x2303:
+			data_index = class23_set(3, oad, data, DAR);
+			break;
+		case 0x2304:
+			data_index = class23_set(4, oad, data, DAR);
+			break;
+		case 0x2305:
+			data_index = class23_set(5, oad, data, DAR);
+			break;
+		case 0x2306:
+			data_index = class23_set(6, oad, data, DAR);
+			break;
+		case 0x2307:
+			data_index = class23_set(7, oad, data, DAR);
+			break;
+		case 0x2308:
+			data_index = class23_set(8, oad, data, DAR);
+			break;
+		case 0x8100:
+			data_index = class8100_set(8, oad, data, DAR);
+        case 0x8101:
+            data_index = class8101_set(8, oad, data, DAR);
+        case 0x8102:
+            data_index = class8102_set(8, oad, data, DAR);
+	}
+	return data_index;
+}
+
 INT16U setRequestNormal(INT8U *data,OAD oad,INT8U *DAR,CSINFO *csinfo,INT8U *buf)
 {
 	INT8U oihead = (oad.OI&0xF000) >>12;
@@ -864,6 +922,9 @@ INT16U setRequestNormal(INT8U *data,OAD oad,INT8U *DAR,CSINFO *csinfo,INT8U *buf
 
 	switch(oihead)
 	{
+		case 0x2:
+			data_index = ALSetAttrib(oad,data,DAR);
+			break;
 		case 0x3:		//事件对象
 			data_index = EventSetAttrib(oad,data,DAR);
 			break;
@@ -872,6 +933,9 @@ INT16U setRequestNormal(INT8U *data,OAD oad,INT8U *DAR,CSINFO *csinfo,INT8U *buf
 			break;
 		case 0x6:		//采集监控类对象
 			data_index = CollParaSet(oad,data,DAR);
+			break;
+		case 0x08:
+			data_index = ALSetAttrib(oad,data,DAR);
 			break;
 		case 0xf:		//输入输出设备类对象 + ESAM接口类对象
 			data_index = DeviceIoSetAttrib(oad,data,DAR);
