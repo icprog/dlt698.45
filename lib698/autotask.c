@@ -373,7 +373,7 @@ int callAutoReport(INT8U reportChoice,CommBlock* com, INT8U ifecho)
 //	apduplace = index;		//记录APDU 起始位置
 	apdu_buf[apdu_index++] = REPORT_NOTIFICATION;
 	apdu_buf[apdu_index++] = reportChoice;//	REPROTNOTIFICATIONRECORDLIST;
-	apdu_buf[apdu_index++] = 0x03;	//PIID
+	apdu_buf[apdu_index++] = 0x00;	//PIID
 
 	memcpy(&apdu_buf[apdu_index],TmpDataBuf,datalen);//将读出的数据拷贝
 	apdu_index +=datalen;
