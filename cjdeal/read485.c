@@ -1383,8 +1383,8 @@ INT8U getSinglegOADDataUnit(INT8U* oadData)
 
 INT8S checkEvent698(OAD rcvOAD,INT8U* data,INT8U dataLen,CLASS_6001 obj6001,INT16U taskID)
 {
-	 asyslog(LOG_INFO,"taskID = %d checkEvent698 测量点 = %02x%02x%02x%02x%02x%02x%02x%02x  rcvOI= %04x dataLen = %d data = %02x%02x%02x%02x%02x%02x%02x%02x\n",
-			 taskID,obj6001.basicinfo.addr.addr[0],obj6001.basicinfo.addr.addr[1],obj6001.basicinfo.addr.addr[2],obj6001.basicinfo.addr.addr[3],
+	 asyslog(LOG_INFO,"taskID = %d event_obj.task_no　= %d checkEvent698 测量点 = %02x%02x%02x%02x%02x%02x%02x%02x  rcvOI= %04x dataLen = %d data = %02x%02x%02x%02x%02x%02x%02x%02x\n",
+			 taskID,JProgramInfo->event_obj.Event311C_obj.task_para.task_no,obj6001.basicinfo.addr.addr[0],obj6001.basicinfo.addr.addr[1],obj6001.basicinfo.addr.addr[2],obj6001.basicinfo.addr.addr[3],
 			obj6001.basicinfo.addr.addr[4],obj6001.basicinfo.addr.addr[5],obj6001.basicinfo.addr.addr[6],obj6001.basicinfo.addr.addr[7],
 			rcvOAD.OI,dataLen,data[0],data[1],data[2],data[3],data[4],data[5],data[6],data[7]);
 
