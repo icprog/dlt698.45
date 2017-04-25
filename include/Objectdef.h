@@ -378,7 +378,7 @@ typedef struct {
 } CLASS_601D;               //上报方案
 
 typedef struct {
-    INT8U dinum1;
+    INT8U dinum;
     INT8U DI_1[DI07_NUM_601F][4];
 //    INT8U dinum2;
     INT8U DI_2[DI07_NUM_601F][4];

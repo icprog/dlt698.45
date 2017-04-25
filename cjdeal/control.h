@@ -128,17 +128,17 @@ typedef struct{
 	INT8U kongzhi_touru_biaoshi;//时段功控投入标识    bit-string(SIZE(8))，
 	INT8U fanganhao;//时段功控定值方案号  unsigned
 }kongzhi_fangan;
-typedef struct{
-	INT8U time_interval_num;	//时段号
-	INT64U time_interval_1_value;//时段1功控定值
-	INT64U time_interval_2_value;//时段2功控定值
-	INT64U time_interval_3_value;//时段3功控定值
-	INT64U time_interval_4_value;//时段4功控定值
-	INT64U time_interval_5_value;//时段5功控定值
-	INT64U time_interval_6_value;//时段6功控定值
-	INT64U time_interval_7_value;//时段7功控定值
-	INT64U time_interval_8_value;//时段8功控定值
-}PowerCtrlParam;
+//typedef struct{
+//	INT8U time_interval_num;	//时段号
+//	INT64U time_interval_1_value;//时段1功控定值
+//	INT64U time_interval_2_value;//时段2功控定值
+//	INT64U time_interval_3_value;//时段3功控定值
+//	INT64U time_interval_4_value;//时段4功控定值
+//	INT64U time_interval_5_value;//时段5功控定值
+//	INT64U time_interval_6_value;//时段6功控定值
+//	INT64U time_interval_7_value;//时段7功控定值
+//	INT64U time_interval_8_value;//时段8功控定值
+//}PowerCtrlParam;
 typedef struct{
 	OI_698 sumgroup_object;		//总加组对象
 	INT8U  plan_ide;	//方案标识    标识identification=ide
