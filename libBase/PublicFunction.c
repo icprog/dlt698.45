@@ -789,7 +789,7 @@ void bufsyslog(const INT8U* buf, const char* title, int head, int tail, int len)
     asyslog(LOG_INFO, "%s", msg);
 }
 
-INT8U getBase_DataTypeLen(Base_DataType dataType) {
+INT8U getBase_DataTypeLen(Base_DataType dataType,INT8U data) {
     INT8U length = 0;
     switch (dataType) {
         case dtenum:
@@ -797,6 +797,9 @@ INT8U getBase_DataTypeLen(Base_DataType dataType) {
         case dtinteger:
         case dtunsigned:
             length = 1;
+            break;
+        case dtbitstring:
+            length = (data/8) + 1;
             break;
         case dtlong:
         case dtlongunsigned:
