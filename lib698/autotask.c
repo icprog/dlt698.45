@@ -14,10 +14,13 @@
 #include "../libAccess/AccessFun.h"
 #include "dlt698def.h"
 #include "dlt698.h"
+
+extern INT8U securetype;
 extern INT8U TmpDataBuf[MAXSIZ_FAM];
 extern INT8U TmpDataBufList[MAXSIZ_FAM*2];
 extern void FrameTail(INT8U *buf,int index,int hcsi);
 extern int FrameHead(CSINFO *csinfo,INT8U *buf);
+extern INT16S composeSecurityResponse(INT8U* SendApdu,INT16U Length);
 //-------
 
 /*
@@ -211,14 +214,66 @@ int getTsas(MY_MS ms,INT8U **tsas)
 	return tsa_num;
 }
 
+/*
+ * 填充frmdata 文件，组织数据上报帧
+ * 返回=1， 数据准备好, 返回 ReportNotificationList
+ * 文件内容:
+ * 2个字节：数据有效长度(先低后高)
+ * 数据： SEQUENCE OF A-ResultNormal + OAD + GetResult + 实际数据
+ * */
+int fillTaskfrm(OAD oad,INT8U *data,int frmlen)
+{
+	FILE *fp = NULL;
+	INT8U	frmdata[MAXSIZ_FAM]={};
+	int		index = 2; //前两个字节保存有效长度
 
+	fp = openFramefile(TASK_FRAME_DATA);
+	if (fp==NULL)
+		return 0;
+	memset(frmdata,0,sizeof(frmdata));
+
+	frmdata[index++] = 1;						//SEQUENCE OF A-ResultNormal
+	index +=create_OAD(0,&frmdata[index],oad);	//OAD
+	frmdata[index++] = 1;						//Data
+	memcpy(&frmdata[index],data,frmlen);		//拷贝oad数据
+	index += frmlen;
+	fprintf(stderr,"index=%d\n",index);
+	frmdata[0] = (index-2) & 0xff;
+	frmdata[1] = ((index-2)>>8) & 0xff;
+	saveOneFrame(frmdata,index,fp);
+	fclose(fp);
+	return REPORTNOTIFICATIONLIST;
+}
+
+/*
+ * 根据OAD进行相应的数据组帧
+ * */
+int getTaskOadData(OAD taskoad)
+{
+	int		ret = 0;
+	int  	datalen=0;
+	INT8U	data[MAXSIZ_FAM]={};
+
+	fprintf(stderr,"taskoad.OI=%04x\n",taskoad.OI);
+	memset(data,0,sizeof(data));
+	switch(taskoad.OI) {
+	case 0x4000:
+		datalen = Get_4000(taskoad,data);
+		break;
+	}
+
+	ret = fillTaskfrm(taskoad,data,datalen);
+	fprintf(stderr,"datalen=%d ret=%d\n",datalen,ret);
+	return ret;
+}
 
 int GetReportData(CLASS_601D report)
 {
 	int  ret = 0;
+	fprintf(stderr,"report.reportdata.type=%d\n",report.reportdata.type);
 	if (report.reportdata.type==0)//OAD
 	{
-
+		ret = getTaskOadData(report.reportdata.data.oad);
 	}else if(report.reportdata.type==1)//RecordData
 	{
 		ret = getSelector(report.reportdata.data.oad,
@@ -226,6 +281,7 @@ int GetReportData(CLASS_601D report)
 							report.reportdata.data.recorddata.selectType,
 							report.reportdata.data.recorddata.csds,NULL, NULL);
 		fprintf(stderr,"GetReportData   ret=%d\n",ret);
+		ret = REPROTNOTIFICATIONRECORDLIST;	//
 	}
 	return ret;
 }
@@ -251,12 +307,8 @@ INT16U  composeAutoTask(AutoTaskStrap *list)
 				list->OverTime = getTItoSec(class601d.timeout);
 				asyslog(LOG_INFO,"i=%d 任务【 %d 】 	 开始执行   上报方案编号【 %d 】 重发次数=%d, 超时时间=%d",i,list->ID,list->SerNo,list->ReportNum,list->OverTime);
 				fprintf(stderr,"list->SerNo = %d\n",list->SerNo);
-				if (GetReportData(class601d) == 1)//数据组织好了
-				{
-					ret = 2;
-					fprintf(stderr,"GetReportData=%d\n",ret);
-
-				}
+				ret = GetReportData(class601d);// =1,=2, 数据组织好了
+				fprintf(stderr,"GetReportData=%d\n",ret);
 			}
 			list->nexttime = calcnexttime(class6013.interval,class6013.startime);
 		}else
@@ -269,11 +321,11 @@ INT16U  composeAutoTask(AutoTaskStrap *list)
 
 /*
  * 通讯进程循环调用 callAutoReport
- *
+ *  reportChoice =1:REPORTNOTIFICATIONLIST   =2:REPROTNOTIFICATIONRECORDLIST
  *  ifecho ：  0 没收到确认，或第一次调用    1 收到确认
  *  返回    :  1  需要继续发送   0 发送完成
  */
-int callAutoReport(CommBlock* com, INT8U ifecho)
+int callAutoReport(INT8U reportChoice,CommBlock* com, INT8U ifecho)
 {
 	if (com==NULL)
 		return 0;
@@ -281,7 +333,10 @@ int callAutoReport(CommBlock* com, INT8U ifecho)
 	static int nowoffset = 0;
 	static int nextoffset = 0;
 	static int sendcounter =0;
-	int datalen = 0, j=0,index=0 ,hcsi=0,apduplace=0;
+	int datalen = 0, j=0,index=0 ,hcsi=0;//,apduplace=0;
+	INT8U apdu_buf[MAXSIZ_FAM]={};
+	int	apdu_index=0;
+
 	CSINFO csinfo={};
 
 	memset(TmpDataBuf,0,sizeof(TmpDataBuf));  //长度 1600
@@ -315,17 +370,26 @@ int callAutoReport(CommBlock* com, INT8U ifecho)
 	index = FrameHead(&csinfo,sendbuf);
 	hcsi = index;
 	index = index + 2;
-	apduplace = index;		//记录APDU 起始位置
-	sendbuf[index++] = REPORT_NOTIFICATION;
-	sendbuf[index++] = REPROTNOTIFICATIONRECORDLIST;
-	sendbuf[index++] = 0;	//PIID
+//	apduplace = index;		//记录APDU 起始位置
+	apdu_buf[apdu_index++] = REPORT_NOTIFICATION;
+	apdu_buf[apdu_index++] = reportChoice;//	REPROTNOTIFICATIONRECORDLIST;
+	apdu_buf[apdu_index++] = 0x03;	//PIID
 
-	memcpy(&sendbuf[index],TmpDataBuf,datalen);//将读出的数据拷贝
-	index +=datalen;
+	memcpy(&apdu_buf[apdu_index],TmpDataBuf,datalen);//将读出的数据拷贝
+	apdu_index +=datalen;
+	apdu_buf[apdu_index++] = 0;
+	apdu_buf[apdu_index++] = 0;
 
-	sendbuf[index++] = 0;
-	sendbuf[index++] = 0;
+
+	INT16U seclen=composeAutoReport(apdu_buf,apdu_index);
+	if(seclen>0){
+		sendbuf[index++]=16; //SECURIGY-REQUEST
+		sendbuf[index++]=0;  //明文应用数据单元
+		memcpy(&sendbuf[index],apdu_buf,seclen);
+		index +=seclen;
+	}
 	FrameTail(sendbuf,index,hcsi);
+
 	if(com->p_send!=NULL)
 		com->p_send(com->phy_connect_fd,sendbuf,index+3);
 
