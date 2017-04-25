@@ -1091,6 +1091,17 @@ INT8U ReadTaskInfo(INT8U taskid,TASKSET_INFO *tasknor_info)//读取普通采集�
 			tasknor_info->endmin = class6013.runtime.runtime[0].endMin;//按照设置一个时段来
 			fprintf(stderr,"\n任务开始结束时间：%d:%d--%d:%d\n",tasknor_info->starthour,tasknor_info->startmin,tasknor_info->endhour,tasknor_info->endmin);
 			tasknor_info->runtime = CalcFreq(class6013.interval,class6015,tasknor_info->starthour*60+tasknor_info->startmin,tasknor_info->endhour*60+tasknor_info->endmin,&tasknor_info->freq);
+			if(tasknor_info->runtime == 1)//日月年冻结
+			{
+				tasknor_info->runtime = 1;
+				tasknor_info->freq = 86400;//
+				if(class6013.interval.units == 3)//日冻结
+					return 1;
+				if(class6013.interval.units == 4)//月冻结
+					return 2;
+				if(class6013.interval.units == 5)//年冻结
+					return 3;
+			}
 			if(tasknor_info->runtime == 0)
 				return 0;
 			fprintf(stderr,"\n---@@@---任务%d执行次数%d\n",taskid,tasknor_info->runtime);
@@ -1102,8 +1113,6 @@ INT8U ReadTaskInfo(INT8U taskid,TASKSET_INFO *tasknor_info)//读取普通采集�
 			fprintf(stderr,"\n---@@@---返回1\n");
 			asyslog(LOG_INFO,"任务开始结束时间：%d:%d--%d:%d\n",tasknor_info->starthour,tasknor_info->startmin,tasknor_info->endhour,tasknor_info->endmin);
 			asyslog(LOG_INFO,"\n---@@@---任务%d执行次数%d\n",taskid,tasknor_info->runtime);
-
-			return 1;
 		}
 	}
 	return 0;
@@ -1794,6 +1803,17 @@ INT8U updatedatafp(FILE *fp,INT8U recno,INT8U selectype,INT16U interval,CURR_REC
 		return 0;
 	switch(selectype)
 	{
+	case 0://上一条
+		time_rec = recinfo.rec_start-interval*(recno-1);//recno从1开始
+		tm_p = gmtime(&time_rec);
+		oldday=tm_p->tm_mday;
+		fprintf(stderr,"\n1111olay=%d\n",oldday);
+		time_rec = recinfo.rec_start-interval*recno;
+		tm_p = gmtime(&time_rec);
+		localtime_r(&time_rec,tm_p);
+		nowday=tm_p->tm_mday;
+		fprintf(stderr,"\n222nowday=%d\n",nowday);
+		break;
 	case 5://无需更新数据流
 		break;
 	case 7://
@@ -1818,6 +1838,10 @@ INT8U updatedatafp(FILE *fp,INT8U recno,INT8U selectype,INT16U interval,CURR_REC
 	}
 	if(oldday != nowday)
 	{
+		if(fp != NULL)
+		{
+			fclose(fp);
+		}
 		if (fname==NULL)
 			return 0;
 		memset(fname,0,FILENAMELEN);
@@ -1844,10 +1868,15 @@ INT8U initrecinfo(CURR_RECINFO *recinfo,TASKSET_INFO tasknor_info,INT8U selectyp
 	struct tm *tm_p;
 	switch(selectype)
 	{
+	case 0://招测上一条记录
+		recinfo->recordno_num = 1;
+		recinfo->rec_start = mktime(NULL);//当前时间的秒数
+		recinfo->rec_end = mktime(NULL);
+		break;
 	case 5://冻结的招测时间要比文件时间提前一天,因此找文件时，要加上一天
 		recinfo->recordno_num = tasknor_info.runtime;
 		time(&time_s);
-		time_s += 86400;//24*60*60; 加上一天的秒数
+//		time_s += 86400;//24*60*60; 加上一天的秒数
 		tm_p = localtime(&time_s);
 		tm_p->tm_year = select.selec5.collect_save.year.data - 1900;
 		tm_p->tm_mon = select.selec5.collect_save.month.data - 1;
@@ -1858,7 +1887,7 @@ INT8U initrecinfo(CURR_RECINFO *recinfo,TASKSET_INFO tasknor_info,INT8U selectyp
 		recinfo->rec_start = mktime(tm_p);
 
 		time(&time_s);
-		time_s += 86400;//24*60*60; 加上一天的秒数
+//		time_s += 86400;//24*60*60; 加上一天的秒数
 		tm_p = localtime(&time_s);
 		tm_p->tm_year = select.selec5.collect_save.year.data - 1900;
 		tm_p->tm_mon = select.selec5.collect_save.month.data - 1;
@@ -2242,9 +2271,10 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds)
 	TSA *tsa_group = NULL;
 	ROAD road_eve;
 	INT8U eveflg=0;
+	MY_MS meters_null;
 	memset(&item_road,0x00,sizeof(ROAD_ITEM));
 
-	if(selectype != 5 && selectype != 7 && selectype != 10)
+	if(selectype != 0 && selectype != 5 && selectype != 7 && selectype != 10)
 		return 0;
 
 	if(csds.num > MY_CSD_NUM)
@@ -2324,17 +2354,20 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds)
 //	fprintf(stderr,"\nmstype=%d recordno=%d\n",select.selec10.meters.mstype,recordno);s
 	switch(selectype)
 	{
-		case 5:
-			tsa_num = getTsas(select.selec5.meters,(INT8U **)&tsa_group);
-			break;
-		case 7:
-			tsa_num = getTsas(select.selec7.meters,(INT8U **)&tsa_group);
-			break;
-		default:
-			tsa_num = getTsas(select.selec10.meters,(INT8U **)&tsa_group);
+	case 0:
+		meters_null.mstype = 1;//全部电表
+		tsa_num = getTsas(meters_null,(INT8U **)&tsa_group);
+		break;
+	case 5:
+		tsa_num = getTsas(select.selec5.meters,(INT8U **)&tsa_group);
+		break;
+	case 7:
+		tsa_num = getTsas(select.selec7.meters,(INT8U **)&tsa_group);
+		break;
+	default:
+		tsa_num = getTsas(select.selec10.meters,(INT8U **)&tsa_group);
 	}
 
-	tsa_num = getTsas(select.selec10.meters,(INT8U **)&tsa_group);
 	fprintf(stderr,"get 需要上报的：tsa_num=%d,tsa_group=%p\n",tsa_num,tsa_group);
 	for(i=0;i<tsa_num;i++) {
 		fprintf(stderr,"\nTSA%d: %d-",i,tsa_group[i].addr[0]);
@@ -2360,8 +2393,11 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds)
 		asyslog(LOG_INFO,"招测的序列总数%d\n",recinfo.recordno_num);
 		for(j=1; j<=recinfo.recordno_num;j++)		//test
 		{
-			if(updatedatafp(fp,j,selectype,tasknor_info.freq,recinfo,taskid)==2 && eveflg != 1)//更新数据流 事件不需要更新
-				offsetTsa = findTsa(tsa_group[i],fp,headsize,blocksize);
+			if(eveflg != 1 && taskinfoflg == 0)//事件和日月冻结不更新数据流
+			{
+				if(updatedatafp(fp,j,selectype,tasknor_info.freq,recinfo,taskid)==2)
+					offsetTsa = findTsa(tsa_group[i],fp,headsize,blocksize);
+			}
 			if(offsetTsa == 0) {
 				asyslog(LOG_INFO,"task未找到数据,i=%d\n",i);
 				indexn += fillTsaNullData(&onefrmbuf[indexn],tsa_group[i],item_road);

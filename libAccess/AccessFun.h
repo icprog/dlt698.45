@@ -69,7 +69,7 @@ typedef struct {
 	INT16U startmin; //开始执行分钟，主要针对负荷曲线
 	INT16U endhour;
 	INT16U endmin;   //结束执行分钟，主要针对负荷曲线
-	INT16U freq;     //执行频率
+	INT32U freq;     //执行频率
 	INT8U  KBtype;   //开闭方式 0000 0011前闭后闭 0000 0000前开后开,以此类推
 	INT16U memdep;   //存储深度
 	CSD_ARRAYTYPE    csds;   //采集方案号
