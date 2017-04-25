@@ -36,7 +36,7 @@ time_t calcnexttime(TI ti,DateTimeBCD datetime,TI ti_delay)
 	if (ti.interval<=0)
 		return 0;
 
-	fprintf(stderr,"任务开始时间 %04d-%02d-%02d %02d:%02d:%02d\n",datetime.year.data,datetime.month.data,datetime.day.data,datetime.hour.data,datetime.min.data,datetime.sec.data);
+	asyslog(LOG_NOTICE,"任务开始时间 %04d-%02d-%02d %02d:%02d:%02d\n",datetime.year.data,datetime.month.data,datetime.day.data,datetime.hour.data,datetime.min.data,datetime.sec.data);
 	ptm.Year = datetime.year.data;
 	ptm.Month = datetime.month.data;
 	ptm.Day = datetime.day.data;
@@ -53,9 +53,8 @@ time_t calcnexttime(TI ti,DateTimeBCD datetime,TI ti_delay)
 	timestart = tmtotime_t(ptm);//开始时间
 	timenow = time(NULL);//当前时间
 	jiange = getTItoSec(ti);
-	fprintf(stderr,"TI:%d-%d, jiange = %d 秒\n",ti.units,ti.interval,jiange);
-	fprintf(stderr,"延迟　TI:%d-%d, jiange = %d 秒\n",ti.units,ti.interval);
-	if (timenow > timestart)
+	fprintf(stderr,"延迟　TI:%d-%d, jiange = %d 秒\n",ti.units,ti.interval,jiange);
+	if (timenow >= timestart)
 	{
 		if(jiange > 0 )
 		{
@@ -98,7 +97,7 @@ time_t calcnexttime(TI ti,DateTimeBCD datetime,TI ti_delay)
 			}
 
 			timeret = tmtotime_t(tmNext);//开始时间
-			fprintf(stderr,"\n\n********下次开始时间--------1 %d-%d-%d %d:%d:%d",tmNext.Year,tmNext.Month,tmNext.Day,tmNext.Hour,tmNext.Minute,tmNext.Sec);
+			asyslog(LOG_NOTICE,"\n\n********下次开始时间--------1 %d-%d-%d %d:%d:%d",tmNext.Year,tmNext.Month,tmNext.Day,tmNext.Hour,tmNext.Minute,tmNext.Sec);
 			return timeret;
 		}
 
@@ -317,7 +316,7 @@ INT16U  composeAutoTask(AutoTaskStrap *list)
 			fprintf(stderr,"\ni=%d 任务【 %d 】 	 开始执行   上报方案编号【 %d 】",i,list->ID,list->SerNo);
 			if (readCoverClass(0x601D, list->SerNo, &class601d, sizeof(CLASS_601D),coll_para_save) == 1)
 			{
-				asyslog(LOG_INFO,"reportnum=%d",class601d.reportnum);
+				asyslog(LOG_INFO,"方案编号601d:reportnum=%d",class601d.reportnum);
 				print_rcsd(class601d.reportdata.data.recorddata.csds);
 				list->ReportNum = class601d.maxreportnum;
 				list->OverTime = getTItoSec(class601d.timeout);
