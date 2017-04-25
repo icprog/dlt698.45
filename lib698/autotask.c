@@ -393,10 +393,9 @@ int callAutoReport(INT8U reportChoice,CommBlock* com, INT8U ifecho)
 
 	memcpy(&apdu_buf[apdu_index],TmpDataBuf,datalen);//将读出的数据拷贝
 	apdu_index +=datalen;
-//	apdu_buf[apdu_index++] = 0;
-//	apdu_buf[apdu_index++] = 0;
-
-
+	apdu_buf[apdu_index++] = 0;	//FollowReport
+	apdu_buf[apdu_index++] = 0; //TimeTag
+	//加密
 	INT16U seclen=composeAutoReport(apdu_buf,apdu_index);
 	if(seclen>0){
 		sendbuf[index++]=16; //SECURIGY-REQUEST

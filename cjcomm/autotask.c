@@ -74,7 +74,7 @@ void RegularAutoTask(struct aeEventLoop* ep, CommBlock* nst) {
 }
 
 void ConformAutoTask(struct aeEventLoop* ep, CommBlock* nst, int res) {
-    if (res == 8 || stopSign == 1) {
+    if (res == REPORT_RESPONSE || stopSign == 1) {
         //暂时不使用分帧重复发送
         stopSign    = 0;
         conformSign = 1;
