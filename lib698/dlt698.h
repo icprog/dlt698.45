@@ -24,7 +24,7 @@ extern int getTsas(MY_MS ms, INT8U** tsas); //注意：！！！！！函数调�
 /*----------------------抄表相关*************************/
 extern INT16S composeProtocol698_GetRequest(INT8U*, CLASS_6015, TSA);
 extern INT16S composeProtocol698_SetRequest(INT8U* ,RESULT_NORMAL,TSA);
-extern time_t calcnexttime(TI ti, DateTimeBCD datetime);
+extern time_t calcnexttime(TI ti, DateTimeBCD datetime,TI ti_delay);
 // OAD转换为报文
 extern INT8U OADtoBuff(OAD fromOAD, INT8U* buff);
 extern INT8U analyzeProtocol698(INT8U* Rcvbuf, INT8U* resultCount, INT16S recvLen, INT8U* apduDataStartIndex, INT16S* dataLen);
