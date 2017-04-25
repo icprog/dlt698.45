@@ -7,6 +7,7 @@
 
 #ifndef OBJECTACTION_H_
 #define OBJECTACTION_H_
+
 #include <time.h>
 #include "ParaDef.h"
 #include "StdDataType.h"
@@ -88,11 +89,11 @@ typedef struct {
 } MASTER_STATION_INFO_LIST;
 
 typedef struct {
-    char 	center[VISIBLE_STRING_LEN];    //短信中心号码
-    INT8U 	masternum;						//支持主站号码总数
-    char 	master[4][VISIBLE_STRING_LEN]; //主站号码
-    INT8U 	destnum;						//支持短信通知目的号码总数
-    char 	dest[4][VISIBLE_STRING_LEN];   //短信通知目的号码
+    char center[VISIBLE_STRING_LEN];    //短信中心号码
+    INT8U masternum;                        //支持主站号码总数
+    char master[4][VISIBLE_STRING_LEN]; //主站号码
+    INT8U destnum;                        //支持短信通知目的号码总数
+    char dest[4][VISIBLE_STRING_LEN];   //短信通知目的号码
 } SMS_INFO;
 
 typedef struct {
@@ -101,7 +102,7 @@ typedef struct {
     MASTER_STATION_INFO_LIST master;       //主站通信参数表
     SMS_INFO sms;                          //短信通信参数表
     VERINFO info;                          //版本信息
-    INT8U protocolnum;						//支持规约总数
+    INT8U protocolnum;                        //支持规约总数
     INT8U protcol[10][VISIBLE_STRING_LEN]; //支持的规约列表
     INT8U ccid[VISIBLE_STRING_LEN];        // SIM卡CCID
     INT8U imsi[VISIBLE_STRING_LEN];        // SIM卡IMSI
@@ -130,20 +131,22 @@ typedef struct {
 /********************************************************
  *				 A.3 变量类对象
  ********************************************************/
-typedef struct{
-	INT32U monitorTime;			//电压监测时间
-	INT16U passRate;			//电压合格率
-	INT16U overRate;			//电压超限率
-	INT32U upLimitTime;          //超上限时间
-	INT32U downLimitTime;        //超下限时间
-}PassRate_U;//电压统计结果
+typedef struct {
+    INT32U monitorTime;            //电压监测时间
+    INT16U passRate;            //电压合格率
+    INT16U overRate;            //电压超限率
+    INT32U upLimitTime;          //超上限时间
+    INT32U downLimitTime;        //超下限时间
+} PassRate_U;//电压统计结果
 
 typedef struct {
     INT32U day_tj;
     INT32U month_tj;
 } Day_Mon_TJ; //日月统计值
 
-typedef struct { Day_Mon_TJ flow; } Flow_tj; // 2200	通信流量统计
+typedef struct {
+    Day_Mon_TJ flow;
+} Flow_tj; // 2200	通信流量统计
 
 typedef struct {
     Day_Mon_TJ gongdian;
@@ -234,16 +237,16 @@ typedef struct {
 /********************************************************
  *				A.6　冻结类对象
  ********************************************************/
-typedef struct{
-	INT16U	freezePriod;	//冻结周期
-	OAD		oad;			//关联对象属性描述符
-	INT16U	saveDepth;		//存储深度
-}Relate_Object;
+typedef struct {
+    INT16U freezePriod;    //冻结周期
+    OAD oad;            //关联对象属性描述符
+    INT16U saveDepth;        //存储深度
+} Relate_Object;
 
 typedef struct {
-	INT8U	RelateNum;				//关联属性
-	Relate_Object  RelateObj[MAX_FREEZE_OBJ];
-}FreezeObject;
+    INT8U RelateNum;                //关联属性
+    Relate_Object RelateObj[MAX_FREEZE_OBJ];
+} FreezeObject;
 
 ////////////////////////////////////////////////////////////
 /********************************************************
@@ -331,14 +334,14 @@ typedef struct {
 //} CLASS_6017;         //事件采集方案
 
 typedef struct {
-	INT8U	colltype;		//采集类型   0 array ROAD 周期采集事件数据 	1 NULL 根据通知采集所有事件数据 	2 array ROAD 根据通知采集指定事件数据
-    ARRAY_ROAD roads; 		//采集的事件数据
-}COLL_STYLE;	//采集方式
+    INT8U colltype;        //采集类型   0 array ROAD 周期采集事件数据 	1 NULL 根据通知采集所有事件数据 	2 array ROAD 根据通知采集指定事件数据
+    ARRAY_ROAD roads;        //采集的事件数据
+} COLL_STYLE;    //采集方式
 //勘误修订后
 typedef struct {
     //	INT8U name[OCTET_STRING_LEN];		//参数变量接口类逻辑名
-    INT8U sernum;     		//方案序号
-    COLL_STYLE	collstyle; //采集方式
+    INT8U sernum;            //方案序号
+    COLL_STYLE collstyle; //采集方式
     MY_MS ms;         //采集类型
     INT8U ifreport;   //上报标识
     INT16U deepsize;  //存储深度
@@ -459,14 +462,14 @@ typedef struct {
 typedef struct {
     OAD oad;
     INT8U dar;      //错误信息
-    INT8U* data;    //数据  上报时与 dar二选一
+    INT8U *data;    //数据  上报时与 dar二选一
     INT16U datalen; //数据长度
 } RESULT_NORMAL;
 typedef struct {
     OAD oad;
     RCSD rcsd;
     INT8U dar;
-    INT8U* data;      //数据  上报时与 dar二选一
+    INT8U *data;      //数据  上报时与 dar二选一
     INT16U datalen;   //数据长度
     INT8U selectType; //选择类型
     RSD select;       //选择方法实例
@@ -480,12 +483,12 @@ typedef struct {
 } GETOBJS;
 
 typedef struct {
-    OAD 	oad;           //数据转发OAD
-    COMDCB  comdcb; 	   //端口通信控制块
-    INT16U  revtimeout;    // 接收等待报文超时时间（秒）
-    INT16U  bytetimeout;    // 接收等待字节超时时间（毫秒）
-    INT8U	cmdlen;			//透明转发命令 长度
-    INT8U	cmdbuf[255];	//透明转发内容
+    OAD oad;           //数据转发OAD
+    COMDCB comdcb;       //端口通信控制块
+    INT16U revtimeout;    // 接收等待报文超时时间（秒）
+    INT16U bytetimeout;    // 接收等待字节超时时间（毫秒）
+    INT8U cmdlen;            //透明转发命令 长度
+    INT8U cmdbuf[255];    //透明转发内容
 } TRANSCMD;
 
 typedef struct {
@@ -493,15 +496,167 @@ typedef struct {
     long int position; //记录文件中的位置
     time_t timeold;    //代理请求产生的时间
     CSINFO csinfo;     //保存客户机信息
-    INT8U proxytype;	//代理类型
+    INT8U proxytype;    //代理类型
     INT8U piid;        //本次代理请求PIID
     INT16U timeout;    //代理超时时间
     INT16U num;        //个数
     GETOBJS objs[10];  //代理请求列表
-    TRANSCMD	transcmd;	//代理操作透明转发
+    TRANSCMD transcmd;    //代理操作透明转发
     INT8U data[512];   //请求结果
     INT16U datalen;    //数据长度
 } PROXY_GETLIST;
+
+typedef struct {
+    TSA tsa;
+    INT8U al_flag;
+    INT8U cal_flag;
+} AL_UNIT;
+
+typedef struct {
+    INT8U index;
+    INT8U enable_flag;
+    INT8U PCState;
+    INT8U ECState;
+    INT8U PTrunState;
+    INT8U ETrunState;
+} ALCONSTATE;
+
+typedef struct {
+    INT64U v;
+    INT8S Downc;
+    INT8U OutputState;
+    INT8U MonthOutputState;
+    INT8U BuyOutputState;
+    INT8U PCAlarmState;
+    INT8U ECAlarmState;
+} ALCTLSTATE;
+
+typedef struct {
+    OI_698 name;
+    INT8U state;
+} ALSTATE;
+
+typedef struct {
+    AL_UNIT allist[MAX_AL_UNIT];
+    INT64U p;
+    INT64U q;
+    INT64U TaveP;
+    INT64U TaveQ;
+    INT64U DayP[MAXVAL_RATENUM];
+    INT64U DayQ[MAXVAL_RATENUM];
+    INT64U MonthP[MAXVAL_RATENUM];
+    INT64U MonthQ[MAXVAL_RATENUM];
+    INT64U remains;
+    INT64U DownFreeze;
+    INT8U aveCircle;
+    INT8U pConfig;
+    INT8U eConfig;
+    ALCONSTATE alConState;
+    ALCTLSTATE alCtlState;
+    Scaler_Unit su[10];//属性3-12换算单位
+} CLASS23;
+
+typedef struct {
+    OI_698 lists;
+    ALSTATE enable[MAX_AL_UNIT];
+    ALSTATE output[MAX_AL_UNIT];
+    ALSTATE overflow[MAX_AL_UNIT];
+} CLASS13;
+
+typedef struct {
+    INT64U v; //终端保安定值
+} CLASS_8100;
+
+typedef struct {
+    INT8U time[12]; //终端功控时段
+} CLASS_8101;
+
+typedef struct {
+    INT8U time[8]; //终端告警时间
+} CLASS_8102;
+
+typedef struct {
+    INT8U n;
+    INT64U t1;
+    INT64U t2;
+    INT64U t3;
+    INT64U t4;
+    INT64U t5;
+    INT64U t6;
+    INT64U t7;
+    INT64U t8;
+} PowerCtrlParam;
+
+typedef struct {
+    OI_698 index;
+    INT8U sign;
+    PowerCtrlParam v1;
+    PowerCtrlParam v2;
+    PowerCtrlParam v3;
+    INT8S para;
+} TIME_CTRL;
+
+typedef struct {
+    TIME_CTRL list[MAX_AL_UNIT];
+} CLASS_8103;
+
+typedef struct {
+    OI_698 index;
+    INT64U v;
+    DateTimeBCD_S start;
+    INT16U sustain;
+    INT8U noDay;
+}FACT_CTRL;
+
+typedef struct {
+    FACT_CTRL list[MAX_AL_UNIT];
+} CLASS_8104;
+
+typedef struct {
+    OI_698 index;
+    DateTimeBCD_S start;
+    DateTimeBCD_S end;
+    INT64U  v;
+}STOP_CTRL;
+
+typedef struct {
+    STOP_CTRL list[MAX_AL_UNIT];
+} CLASS_8105;
+
+typedef struct {
+    OI_698 index;
+
+}DOWN_CTRL;
+
+typedef struct {
+    DOWN_CTRL list[MAX_AL_UNIT];
+} CLASS_8106;
+
+typedef  struct {
+    OI_698 index;
+    INT32U no;
+    INT8U add_refresh;
+    INT8U type;
+    INT64U v;
+    INT64U alarm;
+    INT64U ctrl;
+    INT8U mode;
+}BUY_CTRL;
+
+typedef struct {
+    BUY_CTRL list[MAX_AL_UNIT];
+} CLASS_8107;
+
+typedef  struct {
+    OI_698 index;
+    INT64U v;
+    INT8U para;
+    INT8S flex;
+}MONTH_CTRL;
+
+typedef struct {
+    MONTH_CTRL list[MAX_AL_UNIT];
+} CLASS_8108;
 
 /*
  * 任务启动识别信息
@@ -530,11 +685,13 @@ typedef struct {
     CONNECT_Response myAppVar;  //集中器支持的应用层会话参数
     CONNECT_Response AppVar;    //与主站协商后的应用层会话参数
     CLASS_F101 f101;            //安全模式信息
-    void* shmem;
-    INT8S (*p_send)(int fd, INT8U* buf, INT16U len);
+    void *shmem;
+
+    INT8S (*p_send)(int fd, INT8U *buf, INT16U len);
+
     INT8U taskaddr;  //客户机地址
     time_t lasttime; //最后一次通信时间
-	int Heartbeat;
+    int Heartbeat;
 } CommBlock;
 ////////////////////////////////////////////////////////////////////
 
