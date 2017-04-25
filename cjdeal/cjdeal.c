@@ -772,7 +772,7 @@ void dispatchTask_proccess()
 int main(int argc, char *argv[])
 {
 	printf("a\n");
-	return ctrl_base_test();
+	//return ctrl_base_test();
 
 	pid_t pids[128];
     struct sigaction sa = {};
@@ -803,7 +803,7 @@ int main(int argc, char *argv[])
 	if(JProgramInfo->cfg_para.device != 2)
 	{
 		//液晶、控制
-		guictrl_proccess();
+	//	guictrl_proccess();
 	}
 	//交采
 	acs_process();

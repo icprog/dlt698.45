@@ -102,7 +102,7 @@ void bufsyslog(const INT8U* buf, const char* title, int head, int tail, int len)
 /*
  * 数据处理
  * */
-extern INT8U getBase_DataTypeLen(Base_DataType dataType);
+extern INT8U getBase_DataTypeLen(Base_DataType dataType,INT8U data);
 extern INT8S reversebuff(INT8U* buff,INT32U len,INT8U* invbuff);
 
 extern void debug(const char* file, const char* func, INT32U line, const char *fmt, ...);

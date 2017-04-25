@@ -27,7 +27,6 @@ static INT16U currnum=0;
 static OI_CHANGE oi_chg;
 //MeterPower MeterPowerInfo[3+1];//台区公共表加０－３个电能表
 MeterPower TermialPowerInfo;//终端停上电时间信息
-
 static Other_Data other_data[50];
 static INT8U other_curr_index=0;
 /*
@@ -623,8 +622,8 @@ INT8U Get_StandardUnit(ProgramInfo* prginfo_event,OI_698 oi,INT8U *Rbuf,INT8U *I
 	//事件结束时间
 	if(oi==0x311C){
 		Rbuf[(*Index)++] = dtdatetimes;//15
-		memset(&Rbuf[*Index],DATA_FF,sizeof(ntime));//TODO
-		(*Index)+=sizeof(ntime);//0
+		memset(&Rbuf[*Index],DATA_FF,7);//TODO
+		(*Index)+=7;//0
 	}else if(oi==0x3105 || oi==0x310A ||
 			oi==0x310B || oi==0x310C ||
 			oi==0x310D || oi==0x310E){
@@ -2220,14 +2219,14 @@ INT8U Event_311C(TSA tsa, INT8U taskno,OAD oad,INT8U* data,INT8U len,ProgramInfo
 		return 0;
 
 	INT8U i=0,happen_flag=0,have_flag=0;
-	INT8U *oldata;
+	INT8U olddata[30];
 	for(i=0;i<50;i++){
 		if(memcmp(&other_data[i].tsa,&tsa,sizeof(TSA))==0
 				&& memcmp(&other_data[i].oad,&oad,sizeof(OAD))==0){
 			have_flag=1;
             if(memcmp(data,other_data[i].data,len)!=0){
             	happen_flag=1;
-            	oldata = other_data[i].data;
+            	memcpy(olddata,other_data[i].data,len);
             	memcpy(other_data[i].data,data,len);
             }
             break;
@@ -2240,6 +2239,7 @@ INT8U Event_311C(TSA tsa, INT8U taskno,OAD oad,INT8U* data,INT8U len,ProgramInfo
 		other_curr_index++;
 		if(other_curr_index>=50)
 			other_curr_index = 0;
+		return 0;
 	}
 	if(happen_flag == 1){
 		INT8U Save_buf[256];
@@ -2253,9 +2253,12 @@ INT8U Event_311C(TSA tsa, INT8U taskno,OAD oad,INT8U* data,INT8U len,ProgramInfo
 		//CSD
 		Save_buf[index++] = dtcsd;//CSD
 		Save_buf[index++] = 0; //OAD
-		memcpy(&Save_buf[index],&oad,4);
-		index +=4;
-		memcpy(&Save_buf[index],oldata,len);//旧数据
+		Save_buf[index++] = ((oad.OI>>8)&0x00ff);
+		Save_buf[index++] = oad.OI&0x00ff;
+
+		Save_buf[index++] = oad.attflg;
+		Save_buf[index++] = oad.attrindex;
+		memcpy(&Save_buf[index],olddata,len);//旧数据
 		index +=len;
 		memcpy(&Save_buf[index],data,len);//新数据
 		index +=len;

@@ -1367,14 +1367,16 @@ INT8U getSinglegOADDataUnit(INT8U* oadData)
 			INT8U arrayNumIndex = 0;
 			for(arrayNumIndex = 0;arrayNumIndex < arrayNum;arrayNumIndex++)
 			{
-				dataUnitLen = getBase_DataTypeLen(oadData[length++]);
+				dataUnitLen = getBase_DataTypeLen(oadData[length],oadData[length+1]);
+				length++;
 				length += dataUnitLen;
 			}
 		}
 		break;
 		default:
 		{
-			dataUnitLen = getBase_DataTypeLen(oadData[length++]);
+			dataUnitLen = getBase_DataTypeLen(oadData[length],oadData[length+1]);
+			length++;
 			length += dataUnitLen;
 		}
 	}
@@ -1391,17 +1393,17 @@ INT8S checkEvent698(OAD rcvOAD,INT8U* data,INT8U dataLen,CLASS_6001 obj6001,INT1
 	INT8S ret = -1;
 	if(rcvOAD.OI == 0x4000)
 	{
-		ret = Event_3105(obj6001.basicinfo.addr,taskID,data,dataLen,JProgramInfo);
+		ret = Event_3105(obj6001.basicinfo.addr,taskID,&data[1],dataLen,JProgramInfo);
 	}
 	if(rcvOAD.OI == 0x0010)
 	{
-		ret = Event_310B(obj6001.basicinfo.addr,taskID,&data[2],dataLen,JProgramInfo);
+		ret = Event_310B(obj6001.basicinfo.addr,taskID,&data[3],dataLen,JProgramInfo);
 
-		ret = Event_310C(obj6001.basicinfo.addr,taskID,&data[2],dataLen,JProgramInfo,obj6001);
+		ret = Event_310C(obj6001.basicinfo.addr,taskID,&data[3],dataLen,JProgramInfo,obj6001);
 
-		ret = Event_310D(obj6001.basicinfo.addr,taskID,&data[2],dataLen,JProgramInfo,obj6001);
+		ret = Event_310D(obj6001.basicinfo.addr,taskID,&data[3],dataLen,JProgramInfo,obj6001);
 
-		ret = Event_310E(obj6001.basicinfo.addr,taskID,&data[2],dataLen,JProgramInfo);
+		ret = Event_310E(obj6001.basicinfo.addr,taskID,&data[3],dataLen,JProgramInfo);
 	}
 	if(taskID == JProgramInfo->event_obj.Event311C_obj.task_para.task_no)
 	{
@@ -1473,7 +1475,7 @@ INT16U parseSingleOADData(INT8U isProxyResponse,INT8U* oadData,INT8U* dataConten
 #if 1
 		if((isProxyResponse == 0)&&(taskID > 0))
 		{
-			checkEvent698(rcvOAD,&oadData[startIndex+1],singledataLen,obj6001,taskID);
+			checkEvent698(rcvOAD,&oadData[startIndex],singledataLen,obj6001,taskID);
 		}
 #endif
 		fprintf(stderr,"\n dataLen = %d\n",dataLen);
