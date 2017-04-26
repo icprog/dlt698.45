@@ -116,7 +116,6 @@ int WriteClass11(OI_698 oi,INT16U seqnum,INT8U method)
 	if(seqnum>0 && seqnum<=MAX_POINT_NUM) {
 		switch(method) {
 		case AddUpdate:
-
 			ret = block_file_sync(tmpinfo.file_name,unitdata,tmpinfo.unit_len,tmpinfo.interface_len,seqnum);
 			if(ret==1) {
 				sernum = (INT16U *)((INT8U*)unitdata+tmpinfo.index_site);
@@ -651,6 +650,7 @@ INT8U file_write(char *FileName, void *source, int size, int offset)
 	}
 	if (fp != NULL) {
 		fseek(fp, offset, SEEK_SET);
+
 		num = fwrite(blockdata, size,1,fp);
 //		fprintf(stderr,"write index=%d,size=%d num=%d\n",offset,size,num);
 		fd = fileno(fp);
@@ -681,7 +681,8 @@ INT8U file_write(char *FileName, void *source, int size, int offset)
 INT8U block_file_sync(char *fname,void *blockdata,int size,int headsize,int index)
 {
 	INT8U	ret1=0,ret2=0;
-	INT16U  sizenew=0,offset=0;
+	INT16U  sizenew=0;
+	long	offset=0;
 	void 	*blockdata1=NULL;
 	void  	*blockdata2=NULL;
 	struct 	stat info1={},info2={};		//文件信息stat包含头文件/sys/stat.h

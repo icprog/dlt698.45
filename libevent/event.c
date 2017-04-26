@@ -1289,12 +1289,11 @@ INT8U Event_3106(ProgramInfo* prginfo_event,MeterPower *MeterPowerInfo,INT8U *st
 		{
 			//如果上电时间大于停电时间或者停上电时间间隔小于最小间隔或者大于最大间隔不产生下电事件
 			if((interval > mintime_space*60)&&(interval < maxtime_space*60)){
-//#define ZHEJIANG
-#ifdef ZHEJIANG
-				flag = 0b10000000;
-				SendERC3106(flag,1,prginfo_event);
-				sleep(3);
-#endif
+				if(getZone("ZheJiang")==0) {
+					flag = 0b10000000;
+					SendERC3106(flag,1,prginfo_event);
+					sleep(3);
+				}
 				flag = 0b11000000;
 			}
 			else
