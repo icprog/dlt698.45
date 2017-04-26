@@ -317,7 +317,7 @@ int GetOADPos(FILE *fp,INT16U headlen,OAD oadm,OAD oadr)
  * 数据格式：文件头结构：标注文件TSA和时标及csd格式，开始4个字节为文件头长度和每个数据单元长度 数据结构：存储各数据项值
  * 分测量点存储，一个TSA的全部数据放到一起，例如24个点的曲线数据，则按采集个数编号放入到一个位置,减少索引时间
  * 返回1，表示发生事件
- * ts_cc 写为要存储到哪一天，日冻结存到前一天,实时数据或曲线存到当天
+ * ts_cc 要存储到哪一天
  */
 int SaveNorData(INT8U taskid,ROAD *road_eve,INT8U *databuf,int datalen)//,TS ts_cc)//存储事件时指针road_eve定义为NULL
 {
@@ -362,6 +362,11 @@ int SaveNorData(INT8U taskid,ROAD *road_eve,INT8U *databuf,int datalen)//,TS ts_
 	if(fp == NULL)//文件没内容 组文件头，如果文件已存在，提取文件头信息
 	{
 		CreateSaveHead(fname,road_eve,csds,&headlen,&unitlen,&unitnum,runtime,1);//写文件头信息并返回
+		if(unitlen == 0)
+		{
+			asyslog(LOG_WARNING, "cjsave 存储文件头%s headlen=%d unitlen=%d unitnum=%d runtime=%d",fname,headlen,unitlen,unitnum,runtime);
+			return 0;
+		}
 		asyslog(LOG_WARNING, "cjsave 存储文件头%s headlen=%d unitlen=%d unitnum=%d runtime=%d",fname,headlen,unitlen,unitnum,runtime);
 		databuf_tmp = malloc(unitlen);
 		savepos=0;

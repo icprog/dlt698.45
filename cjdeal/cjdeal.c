@@ -803,7 +803,7 @@ int main(int argc, char *argv[])
 	if(JProgramInfo->cfg_para.device != 2)
 	{
 		//液晶、控制
-	//	guictrl_proccess();
+		guictrl_proccess();
 	}
 	//交采
 	acs_process();
