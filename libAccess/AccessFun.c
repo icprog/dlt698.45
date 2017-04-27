@@ -451,19 +451,18 @@ int readCoverClass(OI_698 oi,INT16U seqno,void *blockdata,int datalen,int type)
 	sem_t   *sem_save=NULL;
 //	void 	*blockdata1=NULL;
 
+	ret = readFileName(oi,seqno,type,fname);
+	if(ret!=0) {	//文件不存在
+		return -1;
+	}
 	syslog(LOG_NOTICE,"__%s__,type=%d,oi=%04x,seqno=%d",__func__,type,oi,seqno);
 	sem_save = InitSem();
 	memset(fname,0,sizeof(fname));
 	switch(type) {
 	case event_para_save:
-	case para_vari_save:
-	case coll_para_save:
-	case acs_energy_save:
-		ret = readFileName(oi,seqno,type,fname);
+//		ret = readFileName(oi,seqno,type,fname);
 		if(ret==0) {		//文件存在
-//			fprintf(stderr,"readClass %s filelen=%d,type=%d\n",fname,datalen,type);
 			ret = block_file_sync(fname,blockdata,datalen,0,0);
-//			fprintf(stderr,"ret=%d\n",ret);
 		}else  {		//无配置文件，读取系统初始化参数
 			memset(fname,0,sizeof(fname));
 			ret = readFileName(oi,seqno,para_init_save,fname);
@@ -473,14 +472,23 @@ int readCoverClass(OI_698 oi,INT16U seqno,void *blockdata,int datalen,int type)
 			}
 		}
 		break;
+	case para_vari_save:
+	case coll_para_save:
+	case acs_energy_save:
+//		ret = readFileName(oi,seqno,type,fname);
+		if(ret==0) {		//文件存在
+//			fprintf(stderr,"readClass %s filelen=%d,type=%d\n",fname,datalen,type);
+			ret = block_file_sync(fname,blockdata,datalen,0,0);
+		}
+		break;
 	case acs_coef_save:
-		ret = readFileName(oi,seqno,type,fname);
+//		ret = readFileName(oi,seqno,type,fname);
 		if(ret==0) {		//文件存在
 			ret = fu_read_accoef(fname,blockdata,datalen);
 		}
 		break;
 	case para_init_save:
-		ret = readFileName(oi,seqno,type,fname);
+//		ret = readFileName(oi,seqno,type,fname);
 		fprintf(stderr,"para_init_save readClass %s filelen=%d\n",fname,datalen);
 		if(ret==0) {
 			ret = block_file_sync(fname,blockdata,datalen,0,0);
@@ -488,7 +496,7 @@ int readCoverClass(OI_698 oi,INT16U seqno,void *blockdata,int datalen,int type)
 	break;
 	case event_record_save:
 	case event_current_save:
-		ret = readFileName(oi,seqno,type,fname);
+//		ret = readFileName(oi,seqno,type,fname);
 		if(ret==0) {
 			ret = readCoverFile(fname,blockdata,datalen);
 		}
@@ -1863,7 +1871,7 @@ INT8U updatedatafp(FILE *fp,INT8U recno,INT8U selectype,INT16U interval,CURR_REC
 /*
  * recinfo记录索引信息，用于动态更新读取文件流信息 将找测的selector信息转化为统一的格式
  */
-INT8U initrecinfo(CURR_RECINFO *recinfo,TASKSET_INFO tasknor_info,INT8U selectype,RSD select)
+INT8U initrecinfo(CURR_RECINFO *recinfo,TASKSET_INFO tasknor_info,INT8U selectype,RSD select,INT8U freezetype)
 {
 	time_t time_s;
 	struct tm *tm_p;
@@ -1878,7 +1886,8 @@ INT8U initrecinfo(CURR_RECINFO *recinfo,TASKSET_INFO tasknor_info,INT8U selectyp
 	case 5://冻结的招测时间要比文件时间提前一天,因此找文件时，要加上一天
 		recinfo->recordno_num = tasknor_info.runtime;
 		time(&time_s);
-		time_s += 86400;//24*60*60; 加上一天的秒数
+		if(freezetype == 3)//日冻结
+			time_s += 86400;//24*60*60; 加上一天的秒数
 		tm_p = localtime(&time_s);
 		tm_p->tm_year = select.selec5.collect_save.year.data - 1900;
 		tm_p->tm_mon = select.selec5.collect_save.month.data - 1;
@@ -1889,7 +1898,8 @@ INT8U initrecinfo(CURR_RECINFO *recinfo,TASKSET_INFO tasknor_info,INT8U selectyp
 		recinfo->rec_start = mktime(tm_p);
 
 		time(&time_s);
-		time_s += 86400;//24*60*60; 加上一天的秒数
+		if(freezetype == 3)//日冻结
+			time_s += 86400;//24*60*60; 加上一天的秒数
 		tm_p = localtime(&time_s);
 		tm_p->tm_year = select.selec5.collect_save.year.data - 1900;
 		tm_p->tm_mon = select.selec5.collect_save.month.data - 1;
@@ -2327,7 +2337,7 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds)
 
 		memset(&recinfo,0x00,sizeof(CURR_RECINFO));
 		fprintf(stderr,"\n----------获得recinfo信息\n");
-		initrecinfo(&recinfo,tasknor_info,selectype,select);//获得recinfo信息
+		initrecinfo(&recinfo,tasknor_info,selectype,select,taskinfoflg);//获得recinfo信息
 		fprintf(stderr,"\n----------获得recinfo信息成功\n");
 		//获得第一个序号
 		currecord = getrecordno(tasknor_info.starthour,tasknor_info.startmin,tasknor_info.freq,recinfo);//freq为执行间隔,单位分钟

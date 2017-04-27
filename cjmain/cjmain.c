@@ -488,8 +488,8 @@ int main(int argc, char* argv[]) {
 			PowerOffToClose(90);
         }
 
-//        //点亮运行灯 循环前点亮一次
-//        Runled(1);
+        //点亮运行灯 循环前点亮一次
+        Runled(1);
 
         //每20分钟校时
         SyncRtc();
