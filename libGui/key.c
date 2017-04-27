@@ -21,8 +21,8 @@ void setbit(int *val, char bit, char bit_offset)
 		*val |=(1<<bit_offset);
 	}else if(bit==0){//置0
 		*val &=(~(1<<bit_offset));
-	}else
-		fprintf(stderr,"\n setbit bit != 1 && bit != 0");
+   }//else
+//		fprintf(stderr,"\n setbit bit != 1 && bit != 0");
 	return;
 }
 #ifndef FB_SIM
