@@ -68,26 +68,14 @@ int initAll() {
 
 
 int check_c8103(PowerCtrlParam pcp, TS ts) {
-    //根据ts返回当前时段的定值
-    return pcp.t1;
+
+    return;
 }
 
 int deal8103(TS ts) {
-    PowerCtrlParam pcp;
-    //获取定值
-    switch (c8103.no) {
-        case 0:
-            pcp = c8103.list[0].v1;
-            break;
-        case 1:
-            pcp = c8103.list[0].v2;
-            break;
-        case 2:
-            pcp = c8103.list[0].v3;
-            break;
-        default:
-            pcp = c8103.list[0].v1;
-            break;
+    //判断投入状态
+    if (c8103.index < 0x02301 || c8103.index > 0x2308){
+        return 0;
     }
 
     //获取总加组
@@ -98,10 +86,31 @@ int deal8103(TS ts) {
             break;
         }
     }
+
     if (index == -1) {
         return 0;
     }
 
+
+    //获取定值
+    PowerCtrlParam pcp;
+    switch (c8103.no) {
+        case 0:
+            pcp = c8103.list[index].v1;
+            break;
+        case 1:
+            pcp = c8103.list[index].v2;
+            break;
+        case 2:
+            pcp = c8103.list[index].v3;
+            break;
+        default:
+            pcp = c8103.list[0].v1;
+            break;
+    }
+
+
+    //获取当前时段的有效定值
     int val = check_c8103(pcp, ts);
     if (val == -1) {
         return;
@@ -123,7 +132,7 @@ int deal8104(TS ts) {
     //获取总加组
     int index = -1;
     for (int i = 0; i < MAX_AL_UNIT; ++i) {
-        if (c8103.list[i].index == c8103.index) {
+        if (c8104.list[i].index == c8104.index) {
             index = i;
             break;
         }
@@ -155,7 +164,7 @@ int deal8105(TS ts) {
     //获取总加组
     int index = -1;
     for (int i = 0; i < MAX_AL_UNIT; ++i) {
-        if (c8103.list[i].index == c8103.index) {
+        if (c8105.list[i].index == c8105.index) {
             index = i;
             break;
         }
@@ -181,12 +190,12 @@ int deal8106(TS ts) {
     //获取总加组
     int index = -1;
     for (int i = 0; i < MAX_AL_UNIT; ++i) {
-        if (c8103.list[i].index == c8103.index){
+        if (c8106.list[i].index == c8106.index) {
             index = i;
             break;
         }
     }
-    if (index == -1){
+    if (index == -1) {
         return 0;
     }
 }
@@ -232,14 +241,15 @@ void deal8108(TS ts) {
         return 0;
     }
 
-    if(c8108.list[index].v < class23->MonthP[0]){
+    if (c8108.list[index].v < class23->MonthP[0]) {
         //产生月电控报警
     }
 
 }
 
-void dealControl(TS ts) {
-
+void dealControl() {
+    TS ts = {};
+    TSGet(&ts);
 
     //直接跳闸，必须检测
     deal8107(ts);//购电控
@@ -249,19 +259,19 @@ void dealControl(TS ts) {
      * 检测控制有优先级，当高优先级条件产生时，忽略低优先级的配置
      */
     //功率下浮控
-    if(deal8106(ts) != 0){
+    if (deal8106(ts) != 0) {
         return;
     }
     //营业报停控
-    if(deal8105(ts)!=0){
+    if (deal8105(ts) != 0) {
         return;
     }
     //厂休控
-    if(deal8104(ts)!=0){
+    if (deal8104(ts) != 0) {
         return;
     }
     //时段功控
-    if(deal8103(ts)!=0) {
+    if (deal8103(ts) != 0) {
         return;
     }
 
@@ -273,14 +283,10 @@ int ctrlMain() {
     initAll();
 
     while (1) {
-        //获取当前时间
-        TS ts = {};
-        TSGet(&ts);
-
         //更新总加组数据
         refreshSumUp();
 
         //处理控制逻辑
-        dealControl(ts);
+        dealControl();
     }
 }
