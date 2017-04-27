@@ -22,13 +22,14 @@
 #define	 EVENT_REC			"/nand/event/record"		//事件记录目录
 #define	 EVENT_CURR			"/nand/event/current"		//当前值记录表
 
+#define  USERDIR			"/nand/bin"
 #define	 VARI_DIR			"/nand/data"				//变量类数据文件目录
 #define	 VARI_DATA				"/nand/data/vari.dat"		//变量类-计量、采集子类数据存储
 #define	 VARI_DATA_TJ			"/nand/data/vari_tj.dat"		//变量类－统计子类数据存储
 #define	 PARADIR				"/nand/para"				//参变量文件（4000） 采集监控类文件（6000）
-#define	 DEMANDDIR				"/nand/demand"				//需量类数据
-#define	 FREEZEDIR				"/nand/freeze"				//冻结类数据存储
-#define	 CALCDIR				"/nand/calc"				//统计类数据存储
+//#define	 DEMANDDIR				"/nand/demand"				//需量类数据
+//#define	 FREEZEDIR				"/nand/freeze"				//冻结类数据存储
+//#define	 CALCDIR				"/nand/calc"				//统计类数据存储
 #define	 INITDIR				"/nor/init"					//初始化参数文件
 #define	 TASKDATA				"/nand/task"				//任务采集存储文件
 #define	 EVEDATA				"/nand/allevent"				//任务采集存储文件
@@ -69,7 +70,7 @@ typedef struct {
 	INT16U startmin; //开始执行分钟，主要针对负荷曲线
 	INT16U endhour;
 	INT16U endmin;   //结束执行分钟，主要针对负荷曲线
-	INT16U freq;     //执行频率
+	INT32U freq;     //执行频率
 	INT8U  KBtype;   //开闭方式 0000 0011前闭后闭 0000 0000前开后开,以此类推
 	INT16U memdep;   //存储深度
 	CSD_ARRAYTYPE    csds;   //采集方案号

@@ -108,4 +108,13 @@ extern INT8S reversebuff(INT8U* buff,INT32U len,INT8U* invbuff);
 extern void debug(const char* file, const char* func, INT32U line, const char *fmt, ...);
 extern void readFrm(char* str,  INT8U* buf, INT32U* bufSize);
 
+//读取设备配置信息
+extern int ReadDeviceConfig(ConfigPara	*cfg_para);
+
+/* 地区获取
+ * 输入值　zone 区分大小写，与device.cfg的zone地区配置一致
+ * 返回值　=０:满足该地区要求　 =1: 非该地区
+ * */
+extern int getZone(char *zone);
+
 #endif /* PUBLICFUNCTION_H_ */

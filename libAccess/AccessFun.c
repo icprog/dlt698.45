@@ -333,7 +333,7 @@ int	readInterClass(OI_698 oi,void *dest)
 /*
  * 参数类存储
  * 输入参数：oi对象标识，blockdata：主文件块缓冲区，seqnum:对象配置单元序列号，作为文件位置索引
- * 返回值：=1：文件保存成功，=0，文件保存失败，此时建议产生ERC2参数丢失事件通知主站异常
+ * 返回值：=0：文件保存成功，=1，文件保存失败，此时建议产生ERC2参数丢失事件通知主站异常
  * =-1:  未查找到OI类数据
  */
 
@@ -451,19 +451,18 @@ int readCoverClass(OI_698 oi,INT16U seqno,void *blockdata,int datalen,int type)
 	sem_t   *sem_save=NULL;
 //	void 	*blockdata1=NULL;
 
+	ret = readFileName(oi,seqno,type,fname);
+	if(ret!=0) {	//文件不存在
+		return -1;
+	}
 	syslog(LOG_NOTICE,"__%s__,type=%d,oi=%04x,seqno=%d",__func__,type,oi,seqno);
 	sem_save = InitSem();
 	memset(fname,0,sizeof(fname));
 	switch(type) {
 	case event_para_save:
-	case para_vari_save:
-	case coll_para_save:
-	case acs_energy_save:
-		ret = readFileName(oi,seqno,type,fname);
+//		ret = readFileName(oi,seqno,type,fname);
 		if(ret==0) {		//文件存在
-//			fprintf(stderr,"readClass %s filelen=%d,type=%d\n",fname,datalen,type);
 			ret = block_file_sync(fname,blockdata,datalen,0,0);
-//			fprintf(stderr,"ret=%d\n",ret);
 		}else  {		//无配置文件，读取系统初始化参数
 			memset(fname,0,sizeof(fname));
 			ret = readFileName(oi,seqno,para_init_save,fname);
@@ -473,14 +472,23 @@ int readCoverClass(OI_698 oi,INT16U seqno,void *blockdata,int datalen,int type)
 			}
 		}
 		break;
+	case para_vari_save:
+	case coll_para_save:
+	case acs_energy_save:
+//		ret = readFileName(oi,seqno,type,fname);
+		if(ret==0) {		//文件存在
+//			fprintf(stderr,"readClass %s filelen=%d,type=%d\n",fname,datalen,type);
+			ret = block_file_sync(fname,blockdata,datalen,0,0);
+		}
+		break;
 	case acs_coef_save:
-		ret = readFileName(oi,seqno,type,fname);
+//		ret = readFileName(oi,seqno,type,fname);
 		if(ret==0) {		//文件存在
 			ret = fu_read_accoef(fname,blockdata,datalen);
 		}
 		break;
 	case para_init_save:
-		ret = readFileName(oi,seqno,type,fname);
+//		ret = readFileName(oi,seqno,type,fname);
 		fprintf(stderr,"para_init_save readClass %s filelen=%d\n",fname,datalen);
 		if(ret==0) {
 			ret = block_file_sync(fname,blockdata,datalen,0,0);
@@ -488,7 +496,7 @@ int readCoverClass(OI_698 oi,INT16U seqno,void *blockdata,int datalen,int type)
 	break;
 	case event_record_save:
 	case event_current_save:
-		ret = readFileName(oi,seqno,type,fname);
+//		ret = readFileName(oi,seqno,type,fname);
 		if(ret==0) {
 			ret = readCoverFile(fname,blockdata,datalen);
 		}
@@ -1025,7 +1033,7 @@ INT8U CalcKBType(INT8U type)
 	}
 	return ret;//不合法
 }
-INT16U CalcFreq(TI runti,CLASS_6015 class6015,INT16U startmin,INT16U endmin,INT16U *sec_freq)//不管开闭
+INT16U CalcFreq(TI runti,CLASS_6015 class6015,INT16U startmin,INT16U endmin,INT32U *sec_freq)//不管开闭
 {
 	int rate = 0;//倍率
 	INT16U sec_unit = 0;
@@ -1099,11 +1107,21 @@ INT8U ReadTaskInfo(INT8U taskid,TASKSET_INFO *tasknor_info)//读取普通采集�
 			tasknor_info->memdep = class6015.deepsize;
 			fprintf(stderr,"\n---@@@---存储深度%d\n",class6015.deepsize);
 			memcpy(&tasknor_info->csds,&class6015.csds,sizeof(CSD_ARRAYTYPE));
+			if(tasknor_info->runtime == 1)//日月年冻结
+			{
+				tasknor_info->runtime = 1;
+				tasknor_info->freq = 86400;//
+				if(class6013.interval.units == 3)//日冻结
+					return 1;
+				if(class6013.interval.units == 4)//月冻结
+					return 2;
+				if(class6013.interval.units == 5)//年冻结
+					return 3;
+			}
 			fprintf(stderr,"\n---@@@---返回1\n");
 			asyslog(LOG_INFO,"任务开始结束时间：%d:%d--%d:%d\n",tasknor_info->starthour,tasknor_info->startmin,tasknor_info->endhour,tasknor_info->endmin);
 			asyslog(LOG_INFO,"\n---@@@---任务%d执行次数%d\n",taskid,tasknor_info->runtime);
-
-			return 1;
+			return 4;
 		}
 	}
 	return 0;
@@ -1794,6 +1812,17 @@ INT8U updatedatafp(FILE *fp,INT8U recno,INT8U selectype,INT16U interval,CURR_REC
 		return 0;
 	switch(selectype)
 	{
+	case 0://上一条
+		time_rec = recinfo.rec_start-interval*(recno-1);//recno从1开始
+		tm_p = gmtime(&time_rec);
+		oldday=tm_p->tm_mday;
+		fprintf(stderr,"\n1111olay=%d\n",oldday);
+		time_rec = recinfo.rec_start-interval*recno;
+		tm_p = gmtime(&time_rec);
+		localtime_r(&time_rec,tm_p);
+		nowday=tm_p->tm_mday;
+		fprintf(stderr,"\n222nowday=%d\n",nowday);
+		break;
 	case 5://无需更新数据流
 		break;
 	case 7://
@@ -1818,6 +1847,10 @@ INT8U updatedatafp(FILE *fp,INT8U recno,INT8U selectype,INT16U interval,CURR_REC
 	}
 	if(oldday != nowday)
 	{
+		if(fp != NULL)
+		{
+			fclose(fp);
+		}
 		if (fname==NULL)
 			return 0;
 		memset(fname,0,FILENAMELEN);
@@ -1838,16 +1871,23 @@ INT8U updatedatafp(FILE *fp,INT8U recno,INT8U selectype,INT16U interval,CURR_REC
 /*
  * recinfo记录索引信息，用于动态更新读取文件流信息 将找测的selector信息转化为统一的格式
  */
-INT8U initrecinfo(CURR_RECINFO *recinfo,TASKSET_INFO tasknor_info,INT8U selectype,RSD select)
+INT8U initrecinfo(CURR_RECINFO *recinfo,TASKSET_INFO tasknor_info,INT8U selectype,RSD select,INT8U freezetype)
 {
 	time_t time_s;
 	struct tm *tm_p;
 	switch(selectype)
 	{
+	case 0://招测上一条记录
+		fprintf(stderr,"\n----------sele 0\n");
+		recinfo->recordno_num = 1;
+		recinfo->rec_start = time(NULL);//当前时间的秒数
+		recinfo->rec_end = time(NULL);
+		break;
 	case 5://冻结的招测时间要比文件时间提前一天,因此找文件时，要加上一天
 		recinfo->recordno_num = tasknor_info.runtime;
 		time(&time_s);
-		time_s += 86400;//24*60*60; 加上一天的秒数
+		if(freezetype == 3)//日冻结
+			time_s += 86400;//24*60*60; 加上一天的秒数
 		tm_p = localtime(&time_s);
 		tm_p->tm_year = select.selec5.collect_save.year.data - 1900;
 		tm_p->tm_mon = select.selec5.collect_save.month.data - 1;
@@ -1858,7 +1898,8 @@ INT8U initrecinfo(CURR_RECINFO *recinfo,TASKSET_INFO tasknor_info,INT8U selectyp
 		recinfo->rec_start = mktime(tm_p);
 
 		time(&time_s);
-		time_s += 86400;//24*60*60; 加上一天的秒数
+		if(freezetype == 3)//日冻结
+			time_s += 86400;//24*60*60; 加上一天的秒数
 		tm_p = localtime(&time_s);
 		tm_p->tm_year = select.selec5.collect_save.year.data - 1900;
 		tm_p->tm_mon = select.selec5.collect_save.month.data - 1;
@@ -1908,6 +1949,8 @@ INT8U initrecinfo(CURR_RECINFO *recinfo,TASKSET_INFO tasknor_info,INT8U selectyp
 INT8U getcurecord(INT8U selectype,int *curec,int curecn,int runtime)
 {
 	int currecord = *curec;
+	if(selectype == 0)
+		return 1;
 	if(selectype == 7 || selectype == 5)
 	{
 		currecord = (currecord+curecn)%runtime;
@@ -2242,9 +2285,12 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds)
 	TSA *tsa_group = NULL;
 	ROAD road_eve;
 	INT8U eveflg=0;
+	MY_MS meters_null;
 	memset(&item_road,0x00,sizeof(ROAD_ITEM));
+	if(selectype == 8 || selectype == 6)//将selector8和6写成selector7的处理办法
+		selectype = 7;
 
-	if(selectype != 5 && selectype != 7 && selectype != 10)
+	if(selectype != 0 && selectype != 5 && selectype != 7 && selectype != 10)
 		return 0;
 
 	if(csds.num > MY_CSD_NUM)
@@ -2290,7 +2336,9 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds)
 		fprintf(stderr,"\n得到任务信息成功\n");
 
 		memset(&recinfo,0x00,sizeof(CURR_RECINFO));
-		initrecinfo(&recinfo,tasknor_info,selectype,select);//获得recinfo信息
+		fprintf(stderr,"\n----------获得recinfo信息\n");
+		initrecinfo(&recinfo,tasknor_info,selectype,select,taskinfoflg);//获得recinfo信息
+		fprintf(stderr,"\n----------获得recinfo信息成功\n");
 		//获得第一个序号
 		currecord = getrecordno(tasknor_info.starthour,tasknor_info.startmin,tasknor_info.freq,recinfo);//freq为执行间隔,单位分钟
 		firecord = currecord;//每次切换表地址，当前记录序号赋值第一次的数值
@@ -2300,7 +2348,10 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds)
 	}
 	myfp = openFramefile(TASK_FRAME_DATA);
 	if (fp==NULL || myfp==NULL)
+	{
+		asyslog(LOG_INFO,"\n打开文件%s失败\n",TASK_FRAME_DATA);
 		return 0;
+	}
 	asyslog(LOG_INFO,"\n打开文件成功\n");
 //	ReadFileHeadLen(fp,&headsize,&blocksize);
 //	memset(headunit,0x00,sizeof(headunit));
@@ -2324,14 +2375,18 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds)
 //	fprintf(stderr,"\nmstype=%d recordno=%d\n",select.selec10.meters.mstype,recordno);s
 	switch(selectype)
 	{
-		case 5:
-			tsa_num = getTsas(select.selec5.meters,(INT8U **)&tsa_group);
-			break;
-		case 7:
-			tsa_num = getTsas(select.selec7.meters,(INT8U **)&tsa_group);
-			break;
-		default:
-			tsa_num = getTsas(select.selec10.meters,(INT8U **)&tsa_group);
+	case 0:
+		meters_null.mstype = 1;//全部电表
+		tsa_num = getTsas(meters_null,(INT8U **)&tsa_group);
+		break;
+	case 5:
+		tsa_num = getTsas(select.selec5.meters,(INT8U **)&tsa_group);
+		break;
+	case 7:
+		tsa_num = getTsas(select.selec7.meters,(INT8U **)&tsa_group);
+		break;
+	default:
+		tsa_num = getTsas(select.selec10.meters,(INT8U **)&tsa_group);
 	}
 
 	fprintf(stderr,"get 需要上报的：tsa_num=%d,tsa_group=%p\n",tsa_num,tsa_group);
@@ -2359,8 +2414,11 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds)
 		asyslog(LOG_INFO,"招测的序列总数%d\n",recinfo.recordno_num);
 		for(j=1; j<=recinfo.recordno_num;j++)		//test
 		{
-			if(updatedatafp(fp,j,selectype,tasknor_info.freq,recinfo,taskid)==2 && eveflg != 1)//更新数据流 事件不需要更新
-				offsetTsa = findTsa(tsa_group[i],fp,headsize,blocksize);
+			if(eveflg != 1 && taskinfoflg == 0)//事件和日月冻结不更新数据流
+			{
+				if(updatedatafp(fp,j,selectype,tasknor_info.freq,recinfo,taskid)==2)
+					offsetTsa = findTsa(tsa_group[i],fp,headsize,blocksize);
+			}
 			if(offsetTsa == 0) {
 				asyslog(LOG_INFO,"task未找到数据,i=%d\n",i);
 				indexn += fillTsaNullData(&onefrmbuf[indexn],tsa_group[i],item_road);
@@ -2369,7 +2427,10 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds)
 			}
 			//5\定位指定的点（行）, 返回offset
 			if(getcurecord(selectype,&currecord,j,tasknor_info.runtime) == 0)//招测天数跨度超出10天
+			{
+				asyslog(LOG_INFO,"\n招测天数跨度超出10天\n",currecord);
 				break;
+			}
 			asyslog(LOG_INFO,"\n计算出来的currecord=%d\n",currecord);
 			recordoffset = findrecord(offsetTsa,recordlen,currecord);
 			memset(recordbuf,0x00,sizeof(recordbuf));
@@ -2423,20 +2484,22 @@ int getSelector(OAD oad_h,RSD select, INT8U selectype, CSD_ARRAYTYPE csds, INT8U
 {
 	int  framesum=0;		//分帧
 	asyslog(LOG_INFO,"getSelector: selectype=%d\n",selectype);
-	switch(selectype)
-	{
-	case 5:
-		framesum = GetTaskData(oad_h,select,selectype,csds);
-		break;
-	case 7:
-		framesum = GetTaskData(oad_h,select,selectype,csds);//程序里面计算
-		break;
-	case 10:
+//	switch(selectype)
+//	{
+//	case 0:
+//		break;
+//	case 5:
+//		framesum = GetTaskData(oad_h,select,selectype,csds);
+//		break;
+//	case 7:
+//		framesum = GetTaskData(oad_h,select,selectype,csds);//程序里面计算
+//		break;
+//	case 10:
 		framesum = GetTaskData(oad_h,select,selectype,csds);
 		fprintf(stderr,"framesum=%d\n",framesum);
-		break;
-	default:break;
-	}
+//		break;
+//	default:break;
+//	}
 	return framesum;
 }
 

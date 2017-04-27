@@ -359,17 +359,16 @@ void AddBatchMeterInfo(INT8U *data, INT8U type, Action_result *act_ret) {
             getOAD(1, &dealdata[index], &meter.aninfo.oad);
         }
         saveflg = saveParaClass(0x6000, (unsigned char *) &meter, meter.sernum);
-        if (saveflg == 1)
-            fprintf(stderr, "\n采集档案配置 %d 保存成功", meter.sernum);
-        else {
+        if (saveflg != 0) {
             fprintf(stderr, "\n采集档案配置 %d 保存失败", meter.sernum);
             act_ret->DAR = refuse_rw;
+        }else {
+        	fprintf(stderr, "\n采集档案配置 %d 保存成功", meter.sernum);
         }
-        fprintf(stderr, "\n........meter.sernum=%d,addr=%02x%02x%02x%02x%02x%02x,baud=%d,protocol=%d", meter.sernum,
-                meter.basicinfo.addr.addr[0], meter.basicinfo.addr.addr[1], meter.basicinfo.addr.addr[2],
-                meter.basicinfo.addr.addr[3],
-                meter.basicinfo.addr.addr[4], meter.basicinfo.addr.addr[5], meter.basicinfo.baud,
-                meter.basicinfo.protocol);
+        fprintf(stderr, "\n........meter.sernum=%d,addr=%02x-%02x-%02x%02x%02x%02x%02x%02x,baud=%d,protocol=%d", meter.sernum,
+                meter.basicinfo.addr.addr[0], meter.basicinfo.addr.addr[1], meter.basicinfo.addr.addr[2],meter.basicinfo.addr.addr[3],
+                meter.basicinfo.addr.addr[4], meter.basicinfo.addr.addr[5], meter.basicinfo.addr.addr[6],meter.basicinfo.addr.addr[7],
+                meter.basicinfo.baud,meter.basicinfo.protocol);
         fprintf(stderr,
                 "\n........[OAD]OI=%04x,attflg=%d,attrindex=%d\n pwd=%02x%02x%02x%02x%02x%02x,ratenum=%d,usrtype=%d,connectype=%d,ratedU=%d,rateI=%d",
                 meter.basicinfo.port.OI, meter.basicinfo.port.attflg, meter.basicinfo.port.attrindex,

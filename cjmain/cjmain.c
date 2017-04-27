@@ -86,45 +86,6 @@ void PowerOffToClose(INT8U pwrdelay)
 		cnt_pwroff = 0;
 }
 
-//读取设备配置信息
-int ReadDeviceConfig() {
-    FILE* fp        = NULL;
-    char aline[128] = {};
-    int devicetype  = 1;
-
-    memset(&JProgramInfo->cfg_para,0,sizeof(JProgramInfo->cfg_para));
-    fp = fopen((const char*)DEVICE_CFG, (const char*)"r");
-    if (fp == NULL) {
-        fprintf(stderr, "\n无配置信息!");
-        JProgramInfo->cfg_para.device = 1;
-    } else {
-        memset(aline, 0, sizeof(aline));
-        while (fgets((char*)aline, sizeof(aline), fp) != NULL) {
-            //			fprintf(stderr,"aline  %s\n",aline);
-            if (strncmp(aline, "begin", 5) == 0)
-                continue;
-            if (strncmp(aline, "end", 3) == 0)
-                break;
-            if (strncmp(aline, "//", 2) == 0)
-                continue;
-            if (strncmp(aline, "device", 6) == 0) //设备类型
-            {
-                sscanf(aline, "device=%d", &devicetype);
-                JProgramInfo->cfg_para.device = devicetype;
-            }
-            if (strncmp(aline, "zone", 4) == 0) //设备类型
-            {
-                sscanf(aline, "zone=%s", JProgramInfo->cfg_para.zone);
-            }
-        }
-    }
-    if (JProgramInfo->cfg_para.device < 1 || JProgramInfo->cfg_para.device > 3) { //无效值
-        JProgramInfo->cfg_para.device = 1;                                      //默认I型
-    }
-    asyslog(LOG_NOTICE,"\n当前运行类型：%d 型终端\n", JProgramInfo->cfg_para.device);
-    asyslog(LOG_NOTICE,"\n当前运行地区：%s\n", JProgramInfo->cfg_para.zone);
-    return 1;
-}
 
 //读取系统配置文件
 int ReadSystemInfo() {
@@ -504,7 +465,10 @@ int main(int argc, char* argv[]) {
     Createmq();
     CreateSem();
     InitSharedMem(argc, argv);
-    ReadDeviceConfig();
+    ReadDeviceConfig(&JProgramInfo->cfg_para);
+    asyslog(LOG_NOTICE,"\n当前运行类型：%d 型终端\n", JProgramInfo->cfg_para.device);
+    asyslog(LOG_NOTICE,"\n当前运行地区：%s\n", JProgramInfo->cfg_para.zone);
+
 
     if (argc >= 2 && strncmp("all", argv[1], 3) == 0) {
         ProgsNum = ReadSystemInfo();
@@ -524,8 +488,8 @@ int main(int argc, char* argv[]) {
 			PowerOffToClose(90);
         }
 
-//        //点亮运行灯 循环前点亮一次
-//        Runled(1);
+        //点亮运行灯 循环前点亮一次
+        Runled(1);
 
         //每20分钟校时
         SyncRtc();

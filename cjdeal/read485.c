@@ -1405,6 +1405,7 @@ INT8S checkEvent698(OAD rcvOAD,INT8U* data,INT8U dataLen,CLASS_6001 obj6001,INT1
 
 		ret = Event_310E(obj6001.basicinfo.addr,taskID,&data[3],dataLen,JProgramInfo);
 	}
+	fprintf(stderr,"taskID = %d, task_no=%d\n",taskID,JProgramInfo->event_obj.Event311C_obj.task_para.task_no);
 	if(taskID == JProgramInfo->event_obj.Event311C_obj.task_para.task_no)
 	{
 		fprintf(stderr,"checkEvent698_311C OI = %02x",rcvOAD.OI);
@@ -3459,11 +3460,12 @@ INT8S get6035ByTaskID(INT16U taskID,CLASS_6035* class6035)
 	memset(class6035,0,sizeof(CLASS_6035));
 	class6035->taskID = taskID;
 
-	int recordNum = getFileRecordNum(0x6035);
+//	int recordNum = getFileRecordNum(0x6035);
 	CLASS_6035 tmp6035;
 	memset(&tmp6035,0,sizeof(CLASS_6035));
 	INT16U i;
-	for(i=0;i<=recordNum;i++)
+//	for(i=0;i<=recordNum;i++)
+	for(i=0;i<=255;i++)
 	{
 		if(readCoverClass(0x6035,i,&tmp6035,sizeof(CLASS_6035),coll_para_save)== 1)
 		{
