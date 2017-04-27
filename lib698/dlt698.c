@@ -867,21 +867,23 @@ INT16S fillGetRequestAPDU(INT8U* sendBuf,CLASS_6015 obj6015,INT8U requestType)
 	{
 		for(csdIndex = 0;csdIndex < obj6015.csds.num;csdIndex++)
 		{
-			/*采集上N次数据*/
+
 			if(obj6015.csds.csd[csdIndex].type == 1)//ROAD
 			{
 				len = OADtoBuff(obj6015.csds.csd[csdIndex].csd.road.oad,&sendBuf[length]);
 				length +=len;
+				/*采集上N次数据*/
 				if(obj6015.cjtype == TYPE_LAST)
 				{
 					// selector 9
 					sendBuf[length++] = 0x09;//Selector = 9 选取上n条记录
 					sendBuf[length++] = 0x01;//选取上1条记录
 				}
+				/*按照时标间隔采集*/
 				if(obj6015.cjtype == TYPE_INTERVAL)
 				{
 					// selector ２
-					sendBuf[length++] = 0x02;//Selector = 1
+					sendBuf[length++] = 0x02;//Selector = 2
 					//冻结时标OAD
 					sendBuf[length++] = 0x20;
 					sendBuf[length++] = 0x21;
@@ -890,32 +892,50 @@ INT16S fillGetRequestAPDU(INT8U* sendBuf,CLASS_6015 obj6015,INT8U requestType)
 
 					DateTimeBCD timeStamp;
 					DataTimeGet(&timeStamp);
+
+					TS jzqtime;
+					TSGet(&jzqtime); //集中器时间
+					DateTimeBCD DT,DT_B;
+
+					DT.year.data  = jzqtime.Year;
+					DT.month.data = jzqtime.Month;
+					DT.day.data   = jzqtime.Day;
+
+					tminc(&jzqtime, day_units, -1);
+					//前一天
+					DT_B.year.data  = jzqtime.Year;
+					DT_B.month.data = jzqtime.Month;
+					DT_B.day.data   = jzqtime.Day;
+
 					//开始时间
 					sendBuf[length++] = 0x1c;
-					INT16U tmpTime = timeStamp.year.data;
+					INT16U tmpTime = DT_B.year.data;
 					sendBuf[length++] = (tmpTime>>8)&0x00ff;
 					sendBuf[length++] = tmpTime&0x00ff;
-					sendBuf[length++] = timeStamp.month.data;
-					sendBuf[length++] = timeStamp.day.data-1;
+					sendBuf[length++] = DT_B.month.data;
+					sendBuf[length++] = DT_B.day.data;
 					sendBuf[length++] = 0x00;
 					sendBuf[length++] = 0x00;
 					sendBuf[length++] = 0x00;
 					//结束时间
+					tmpTime = DT.year.data;
 					sendBuf[length++] = 0x1c;
 					sendBuf[length++] = (tmpTime>>8)&0x00ff;
 					sendBuf[length++] = tmpTime&0x00ff;
-					sendBuf[length++] = timeStamp.month.data;
-					sendBuf[length++] = timeStamp.day.data;
+					sendBuf[length++] = DT.month.data;
+					sendBuf[length++] = DT.day.data;
 					sendBuf[length++] = 0x00;
 					sendBuf[length++] = 0x00;
 					sendBuf[length++] = 0x00;
 					//时间间隔
-					sendBuf[length++] = 0x54;
-					sendBuf[length++] = 0x01;
-					sendBuf[length++] = 0x00;
-					sendBuf[length++] = 0x0f;
+
+					sendBuf[length++] = dtti;
+					sendBuf[length++] = obj6015.data.data[0];
+					sendBuf[length++] = obj6015.data.data[1];
+					sendBuf[length++] = obj6015.data.data[2];
 
 				}
+				/*按冻结时标采集*/
 				if(obj6015.cjtype == TYPE_FREEZE)
 				{
 					// selector 9

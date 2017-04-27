@@ -584,7 +584,7 @@ void printbuff(const char* prefix, INT8U* buff, INT32U len, const char* format,
  * 返回：>0：完整报文；=0:接收长度为0；-1：乱码，无完整报文
  */
 INT16S ReceDataFrom485(METER_PROTOCOL meterPro,INT8U port485, INT16U delayms, INT8U *str) {
-	INT8U TmprevBuf[BUFFSIZE];	//接收报文临时缓冲区
+	INT8U TmprevBuf[BUFFSIZE2048];	//接收报文临时缓冲区
 	INT8U prtstr[50];
 	INT16U len_Total = 0, len, rec_step, rec_head, rec_tail, DataLen, i, j;
 	INT32S fd = comfd485[port485-1];
@@ -592,18 +592,18 @@ INT16S ReceDataFrom485(METER_PROTOCOL meterPro,INT8U port485, INT16U delayms, IN
 	if (fd <= 2)
 		return -1;
 
-	memset(TmprevBuf, 0, BUFFSIZE);
+	memset(TmprevBuf, 0, BUFFSIZE2048);
 	rec_head = rec_tail = rec_step = DataLen = 0;
 	//fprintf(stderr, "\n ReceDataFrom485 delayms=%d\n", delayms);
 	usleep(delayms * 1000);
 
 	for (j = 0; j < 15; j++) {
 		usleep(20000);	//20ms
-		len = read(fd, TmprevBuf, BUFFSIZE);
+		len = read(fd, TmprevBuf, BUFFSIZE2048);
 
 		if (len > 0) {
 			len_Total += len;
-			if (len_Total > BUFFSIZE) {
+			if (len_Total > BUFFSIZE2048) {
 				fprintf(stderr, "len_Total=%d, xxxxxxxxxxx\n", len_Total);
 				return -1;
 			}
@@ -1212,9 +1212,9 @@ INT16S request698_07DataSingle(FORMAT07* format07, INT8U* SendBuf,INT16S SendLen
 	BOOLEAN nextFlag = 0;
 	INT8S recsta = 0;
 	INT16S RecvLen = 0;
-	INT8U RecvBuff[256];
+	INT8U RecvBuff[BUFFSIZE256];
 	INT16S buffLen = -1;
-	memset(&RecvBuff[0], 0, 256);
+	memset(&RecvBuff[0], 0, BUFFSIZE256);
 
 	SendDataTo485(por485, SendBuf, SendLen);
 	st6035->sendMsgNum++;
@@ -1266,7 +1266,7 @@ INT16S request698_07Data(INT8U* DI07,INT8U* dataContent,CLASS_6001 meter,CLASS_6
 	INT8U subindex = 0;
 	INT8U invalidDI[4] = {0};
 	FORMAT07 Data07;
-	memset(&SendBuff[0], 0, 256);
+	memset(&SendBuff[0], 0, BUFFSIZE256);
 	memset(&Data07, 0, sizeof(FORMAT07));
 
 	if (memcmp(invalidDI, DI07, 4) == 0)
@@ -1690,10 +1690,10 @@ INT16U dealProxy_698(CLASS_6001 obj6001,GETOBJS obj07,INT8U* dataContent,INT8U p
 	INT16S sendLen = 0;
 	INT16S recvLen = 0;
 	INT16U retdataLen = 0;
-	INT8U sendbuff[BUFFSIZE];
-	INT8U recvbuff[BUFFSIZE];
+	INT8U sendbuff[BUFFSIZE128];
+	INT8U recvbuff[BUFFSIZE256];
 
-	memset(sendbuff, 0, BUFFSIZE);
+	memset(sendbuff, 0, BUFFSIZE128);
 
 	sendLen = composeProtocol698_GetRequest(sendbuff, st6015,obj6001.basicinfo.addr);
 	if(sendLen < 0)
@@ -1705,7 +1705,7 @@ INT16U dealProxy_698(CLASS_6001 obj6001,GETOBJS obj07,INT8U* dataContent,INT8U p
 	INT8U subindex = 0;
 	while(subindex < MAX_RETRY_NUM)
 	{
-		memset(recvbuff, 0, BUFFSIZE);
+		memset(recvbuff, 0, BUFFSIZE256);
 		SendDataTo485(port485, sendbuff, sendLen);
 
 		recvLen = ReceDataFrom485(DLT_698,port485, 500, recvbuff);
@@ -1858,7 +1858,7 @@ INT8S dealProxyType1(PROXY_GETLIST getlist,INT8U port485)
 		if(totalLen == 0)
 		{
 			getlist.datalen = 1;
-			memset(getlist.data,0,512);
+			memset(getlist.data,0,BUFFSIZE512);
 		}
 		DbPrt1(portUse,"发送代理消息",(char *)getlist.data, totalLen, NULL);
 #ifdef TESTDEF
@@ -1902,7 +1902,7 @@ INT8S dealProxyType7(PROXY_GETLIST getlist,INT8U port485)
 
 	INT8U RecvBuff[256];
 	INT16S RecvLen = 0;
-	memset(&RecvBuff[0], 0, 256);
+	memset(&RecvBuff[0], 0, BUFFSIZE256);
 
 	SendDataTo485(port485, getlist.transcmd.cmdbuf, getlist.transcmd.cmdlen);
 	RecvLen = ReceDataFrom485(DLT_698,port485, 500, RecvBuff);
@@ -1937,7 +1937,7 @@ INT8S dealProxy(PROXY_GETLIST getlist,INT8U port485)
 		fprintf(stderr,"\n 代理请求超时");
 		getlist.status = 3;
 		getlist.datalen = 1;
-		memset(getlist.data,0,512);
+		memset(getlist.data,0,BUFFSIZE512);
 		mqs_send((INT8S *)PROXY_NET_MQ_NAME,1,ProxySetResponseList,(INT8U *)&getlist,sizeof(PROXY_GETLIST));
 		return result;
 	}
@@ -2083,8 +2083,8 @@ INT8S readMeterPowerInfo()
 			INT8U port485 = obj6001.basicinfo.port.attrindex;
 
 			CLASS_6035 invalidst6035;
-			INT8U dataContent[100];
-			memset(dataContent,0,100);
+			INT8U dataContent[BUFFSIZE128];
+			memset(dataContent,0,BUFFSIZE128);
 
 			switch(obj6001.basicinfo.protocol)
 			{
@@ -2128,10 +2128,10 @@ INT8S readMeterPowerInfo()
 					INT16S sendLen = 0;
 					INT16S recvLen = 0;
 
-					INT8U sendbuff[BUFFSIZE];
-					INT8U recvbuff[BUFFSIZE];
+					INT8U sendbuff[BUFFSIZE128];
+					INT8U recvbuff[BUFFSIZE128];
 
-					memset(sendbuff, 0, BUFFSIZE);
+					memset(sendbuff, 0, BUFFSIZE128);
 
 					sendLen = composeProtocol698_GetRequest(sendbuff, st6015,obj6001.basicinfo.addr);
 					if(sendLen < 0)
@@ -2143,7 +2143,7 @@ INT8S readMeterPowerInfo()
 					INT8U subindex = 0;
 					while(subindex < MAX_RETRY_NUM)
 					{
-						memset(recvbuff, 0, BUFFSIZE);
+						memset(recvbuff, 0, BUFFSIZE128);
 						SendDataTo485(port485, sendbuff, sendLen);
 						recvLen = ReceDataFrom485(DLT_698,port485, 500, recvbuff);
 						fprintf(stderr,"\n\n recvLen = %d \n",recvLen);
@@ -2224,8 +2224,8 @@ INT8S dealProxyQueue(INT8U port485)
 INT8S sendBroadCastTime07(INT8U port485)
 {
 	INT8S ret = -1;
-	INT8U sendBuf[256];
-	memset(sendBuf, 0, 256);
+	INT8U sendBuf[BUFFSIZE128];
+	memset(sendBuf, 0, BUFFSIZE128);
 
 	TS nowTime;
 	TSGet(&nowTime);
@@ -2255,10 +2255,10 @@ INT8S sendSetTimeCMD698(TSA meterAddr,INT8U port485,INT8U isbroadCast)
 {
 	INT8S ret = -1;
 	INT16S sendLen;
-	INT8U sendBuf[256];
-	INT8U recvBuf[256];
-	memset(sendBuf, 0, 256);
-	memset(recvBuf, 0, 256);
+	INT8U sendBuf[BUFFSIZE128];
+	INT8U recvBuf[BUFFSIZE128];
+	memset(sendBuf, 0, BUFFSIZE128);
+	memset(recvBuf, 0, BUFFSIZE128);
 	INT8U subindex = 0;
 	INT16S RecvLen = 0;
 	fprintf(stderr,"\n 下发对时报文");
@@ -2558,10 +2558,10 @@ INT16S deal6015_698(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8
 	INT16S sendLen = 0;
 	INT16S recvLen = 0;
 	INT8U subindex = 0;
-	INT8U sendbuff[BUFFSIZE];
-	INT8U recvbuff[BUFFSIZE];
+	INT8U sendbuff[BUFFSIZE512];
+	INT8U recvbuff[BUFFSIZE2048];
 
-	memset(sendbuff, 0, BUFFSIZE);
+	memset(sendbuff, 0, BUFFSIZE512);
 
 	sendLen = composeProtocol698_GetRequest(sendbuff, st6015,to6001.basicinfo.addr);
 	if(sendLen < 0)
@@ -2574,7 +2574,7 @@ INT16S deal6015_698(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8
 	INT8U isSuccess = 0;
 	while(subindex < MAX_RETRY_NUM)
 	{
-		memset(recvbuff, 0, BUFFSIZE);
+		memset(recvbuff, 0, BUFFSIZE2048);
 		SendDataTo485(port485, sendbuff, sendLen);
 		st6035->sendMsgNum++;
 
@@ -2699,8 +2699,8 @@ INT8S checkTimeStamp07(CLASS_6001 obj6001,INT8U port485)
 {
 	INT8S ret = 0;
 	CLASS_6035 invalidst6035;
-	INT8U dataContent[100];
-	memset(dataContent,0,100);
+	INT8U dataContent[BUFFSIZE128];
+	memset(dataContent,0,BUFFSIZE128);
 
 	request698_07Data(freezeflag07_1,dataContent,obj6001,&invalidst6035,port485);
 	DbPrt1(port485,"checkTimeStamp07 buff:", (char *) dataContent, 10, NULL);
@@ -2872,8 +2872,8 @@ INT8S sendEventReportBuff698(ROAD eventRoad,INT8U saveContentHead[SAVE_EVENT_BUF
 {
 	INT8S ret = -1;
 	INT8U eventBufLen = 0;
-	INT8U reportEventBuf[200];
-	memset(reportEventBuf,0,200);
+	INT8U reportEventBuf[BUFFSIZE256];
+	memset(reportEventBuf,0,BUFFSIZE256);
 
 	eventBufLen = createSendEventBuffHead(eventRoad,reportEventBuf,saveContentHead);
 
@@ -2923,10 +2923,10 @@ INT16S deal6017_698(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8
 	INT16S sendLen = 0;
 	INT16S recvLen = 0;
 	INT8U subindex = 0;
-	INT8U sendbuff[BUFFSIZE];
-	INT8U recvbuff[BUFFSIZE];
+	INT8U sendbuff[BUFFSIZE256];
+	INT8U recvbuff[BUFFSIZE512];
 
-	memset(sendbuff, 0, BUFFSIZE);
+	memset(sendbuff, 0, BUFFSIZE256);
 #ifdef TESTDEF
 	CLASS_6015 test6015;
 	INT8U csdIndex = 0;
@@ -2958,7 +2958,7 @@ INT16S deal6017_698(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8
 		subindex = 0;
 		while(subindex < MAX_RETRY_NUM)
 		{
-			memset(recvbuff, 0, BUFFSIZE);
+			memset(recvbuff, 0, BUFFSIZE512);
 			SendDataTo485(port485, sendbuff, sendLen);
 			st6035->sendMsgNum++;
 			recvLen = ReceDataFrom485(DLT_698,port485, 500, recvbuff);
@@ -3050,8 +3050,8 @@ INT8S sendEventReportBuff07(INT8U port485,ROAD roadBody,INT8U saveContentHead[SA
 {
 	INT8S ret = -1;
 	INT8U eventBufLen = 0;
-	INT8U reportEventBuf[200];
-	memset(reportEventBuf,0,200);
+	INT8U reportEventBuf[BUFFSIZE256];
+	memset(reportEventBuf,0,BUFFSIZE256);
 
 	eventBufLen = createSendEventBuffHead(roadBody,reportEventBuf,saveContentHead);
 
@@ -3180,7 +3180,16 @@ INT16S deal6015or6017_singlemeter(CLASS_6013 st6013,CLASS_6015 st6015,CLASS_6001
 				ret = deal6015_07(st6015, obj6001,st6035,dataContent,port485);
 			break;
 			default:
-				ret = deal6015_698(st6015,obj6001,st6035,dataContent,port485);
+				{
+					if(st6015.cjtype == TYPE_INTERVAL)
+					{
+						st6015.data.data[10] = st6013.interval.units;
+						st6015.data.data[11] = (st6013.interval.interval>>8)&0x00ff;
+						st6015.data.data[12] =  st6013.interval.interval&0x00ff;
+					}
+					ret = deal6015_698(st6015,obj6001,st6035,dataContent,port485);
+				}
+
 		}
 	}
 	if(st6013.cjtype == events)
