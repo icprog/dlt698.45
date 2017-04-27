@@ -5,122 +5,70 @@
  *      Author: Administrator
  */
 
-
 #include <string.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <signal.h>
+#include <unistd.h>
 #include <linux/rtc.h>
 #include <sys/ioctl.h>
 #include <stdlib.h>
+#include "StdDataType.h"
+#include "Shmem.h"
+#include "PublicFunction.h"
 
 extern INT32S comfd;
 extern INT8U addr[6];//表地址，低在前，高在后
 extern void dealProcess();
 
-//读表地址
-void getAddr()
-{
-	INT16U TmnlAddr = (shmm_getpara()->f89.TmnlAddr[0]<<8) + shmm_getpara()->f89.TmnlAddr[1];
-	int32u2bcd(TmnlAddr, &addr[0], inverted);
-	memset(&addr[2], 0, 4);
-}
+ProgramInfo* JProgramInfo=NULL;
 
-void initMmq()
-{
-	struct mq_attr attr_main;
-	struct mq_attr attr_645_net;
-	struct mq_attr attr_645_com;
-
-	//打开4852消息队列
-	mqd_645_net = mmq_open((INT8S *)S485_2_REV_NET_MQ,&attr_645_net,O_RDONLY);
-	if(mqd_645_net<0)	fprintf(stderr,"S485_2_REV_NET_MQ:mq_open_ret=%d\n",mqd_645_net);
-
-	mqd_645_com = mmq_open((INT8S *)S485_2_REV_COM_MQ,&attr_645_com,O_RDONLY);
-	if(mqd_645_com<0)	fprintf(stderr,"S485_2_REV_COM_MQ:mq_open_ret=%d\n",mqd_645_com);
-
-	//打开main消息队列
-	mqd_main = mmq_open((INT8S *)COM_VMAIN_MQ,&attr_main,O_WRONLY);
-	if(mqd_main<0)	fprintf(stderr,"MAIN_REV_MQ:mq_open_ret=%d\n",mqd_main);
-}
-
-
-//void setsig(struct sigaction *psa,void (*pfun)(int signo))
-//{
-//	if (psa!=NULL)
-//	{
-//		psa->sa_handler = pfun;
-//		sigemptyset(&psa->sa_mask);
-//		psa->sa_flags = 0;
-//		sigaction(SIGTERM, psa,NULL);
-//		sigaction(SIGSYS, psa,NULL);
-//		sigaction(SIGPWR, psa,NULL);
-//		sigaction(SIGKILL, psa,NULL);
-//		sigaction(SIGQUIT, psa,NULL);
-//		sigaction(SIGILL, psa,NULL);
-//		sigaction(SIGINT, psa,NULL);
-//		sigaction(SIGHUP, psa,NULL);
-//		sigaction(SIGABRT, psa,NULL);
-//		sigaction(SIGBUS, psa,NULL);
-//		signal(SIGPIPE,SIG_IGN);
-//	}
-//}
-//}
+int ProIndex=0;
 
 //处理现场
-void QuitProcess(int signo)
+void QuitProcess()
 {
-	if(comfd!=0) com_close(comfd);
-	shmm_unregister();
+	if(comfd>0) close(comfd);
+    shmm_unregister("ProgramInfo", sizeof(ProgramInfo));
 	fprintf(stderr, "\n\r cj645 quit xxx\n\r");
 	exit(0);
 }
 
+int InitPro(ProgramInfo** prginfo, int argc, char *argv[])
+{
+	if (argc >= 2)
+	{
+		*prginfo = OpenShMem("ProgramInfo",sizeof(ProgramInfo),NULL);
+		ProIndex = atoi(argv[1]);
+		fprintf(stderr,"\n%s start",(*prginfo)->Projects[ProIndex].ProjectName);
+		(*prginfo)->Projects[ProIndex].ProjectID=getpid();//保存当前进程的进程号
+		fprintf(stderr,"ProjectID[%d]=%d\n",ProIndex,(*prginfo)->Projects[ProIndex].ProjectID);
+		return 1;
+	}
+	return 0;
+}
 
 //主程序
 int main(int argc, char *argv[])
 {
-	fprintf(stderr, "\ncj645 start ....\n\r");
-	INT8U comport;
+	INT8U comport=2;
+	struct sigaction sa;
 
-#if (defined(CCTT_I)||defined(SPTF_III))
-	if(argc==2)
-	{
-		comport=atoi(argv[1]);
+	if(InitPro(&JProgramInfo,argc,argv)==0){
+		fprintf(stderr,"进程 %s 参数错误",argv[0]);
+		return EXIT_FAILURE;
 	}
-	else
-	{
-		comport=S4852;
-	}
-#elif (defined CCTT_II)
-	if(argc==2)
-	{
-		comport=atoi(argv[1]);
-	}
-	else
-	{
-		comport=4;
-	}
-#endif
+	fprintf(stderr, "\ncj645 start ....\n\r");
+	if(JProgramInfo->cfg_para.device == 2) {	//II型集中器
+		comport = 2;
+	}else  comport = 4;
 	fprintf(stderr,"open /dev/ttyS%d\n", comport);
 
-	struct sigaction _sa;
-//	setsig(&_sa,QuitProcess);
-	sig_set(&_sa,QuitProcess);
-	//打开共享内存
-	if(shmm_register()<0)
-	{
-		fprintf(stderr, "打开共享内存失败\n");
-		QuitProcess(0);
-	 	return EXIT_FAILURE;
-	}
-
-//	if ((comfd=com_open(S4852, 2400, (INT8U *)"even", 1, 8))<1)
-	if ((comfd=com_open(comport, 2400, (INT8U *)"even", 1, 8))<1)
+	Setsig(&sa, QuitProcess);
+	if ((comfd=OpenCom(comport, 2400, (INT8U *)"even", 1, 8))<1)
 	{
 		fprintf(stderr, "OpenCom645 ERR!!! ........................\n");
 	}
-	getAddr();
-	initMmq();
 	dealProcess();
 
 	sleep(1);

@@ -126,7 +126,7 @@ void QuitProcess(int sig) {
     MmqDestory();
     ClientForGprsDestory();
     ClientForNetDestory();
-
+    shmm_unregister("ProgramInfo", sizeof(ProgramInfo));
     //关闭AT模块
     asyslog(LOG_INFO, "关闭AT模块电源");
     AT_POWOFF();

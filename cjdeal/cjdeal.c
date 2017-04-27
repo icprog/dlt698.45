@@ -43,6 +43,7 @@ void QuitProcess()
 	spi_close(spifp);
 	spi_close(spifp_rn8209);
 	close_named_sem(SEMNAME_SPI0_0);
+    shmm_unregister("ProgramInfo", sizeof(ProgramInfo));
 	read485QuitProcess();
 	//proinfo->ProjectID=0;
     //fprintf(stderr,"\n退出：%s %d",proinfo->ProjectName,proinfo->ProjectID);

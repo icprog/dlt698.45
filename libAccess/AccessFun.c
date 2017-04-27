@@ -120,6 +120,8 @@ void clearData()
 	system("rm -rf /nand/task");
 	//统计类数据清除
 	system("rm -rf /nand/data");
+	//全事件数据清除
+	system("rm -rf /nand/allevent");
 }
 
 void clearEvent()
