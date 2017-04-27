@@ -3184,6 +3184,9 @@ INT16S deal6015or6017_singlemeter(CLASS_6013 st6013,CLASS_6015 st6015,CLASS_6001
 				{
 					if(st6015.cjtype == TYPE_INTERVAL)
 					{
+						DbgPrintToFile1(port485,"6013任务执行频率%d-%d　6015 冻结间隔　%d-%d-%d",
+								st6013.interval.units, st6013.interval.interval,
+								st6015.data.data[0],st6015.data.data[1],st6015.data.data[2]);
 						st6015.data.data[10] = st6013.interval.units;
 						st6015.data.data[11] = (st6013.interval.interval>>8)&0x00ff;
 						st6015.data.data[12] =  st6013.interval.interval&0x00ff;
