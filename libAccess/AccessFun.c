@@ -1863,7 +1863,7 @@ INT8U updatedatafp(FILE *fp,INT8U recno,INT8U selectype,INT16U interval,CURR_REC
 /*
  * recinfo记录索引信息，用于动态更新读取文件流信息 将找测的selector信息转化为统一的格式
  */
-INT8U initrecinfo(CURR_RECINFO *recinfo,TASKSET_INFO tasknor_info,INT8U selectype,RSD select)
+INT8U initrecinfo(CURR_RECINFO *recinfo,TASKSET_INFO tasknor_info,INT8U selectype,RSD select,INT8U freezetype)
 {
 	time_t time_s;
 	struct tm *tm_p;
@@ -1878,7 +1878,8 @@ INT8U initrecinfo(CURR_RECINFO *recinfo,TASKSET_INFO tasknor_info,INT8U selectyp
 	case 5://冻结的招测时间要比文件时间提前一天,因此找文件时，要加上一天
 		recinfo->recordno_num = tasknor_info.runtime;
 		time(&time_s);
-		time_s += 86400;//24*60*60; 加上一天的秒数
+		if(freezetype == 3)//日冻结
+			time_s += 86400;//24*60*60; 加上一天的秒数
 		tm_p = localtime(&time_s);
 		tm_p->tm_year = select.selec5.collect_save.year.data - 1900;
 		tm_p->tm_mon = select.selec5.collect_save.month.data - 1;
@@ -1889,7 +1890,8 @@ INT8U initrecinfo(CURR_RECINFO *recinfo,TASKSET_INFO tasknor_info,INT8U selectyp
 		recinfo->rec_start = mktime(tm_p);
 
 		time(&time_s);
-		time_s += 86400;//24*60*60; 加上一天的秒数
+		if(freezetype == 3)//日冻结
+			time_s += 86400;//24*60*60; 加上一天的秒数
 		tm_p = localtime(&time_s);
 		tm_p->tm_year = select.selec5.collect_save.year.data - 1900;
 		tm_p->tm_mon = select.selec5.collect_save.month.data - 1;
@@ -2327,7 +2329,7 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds)
 
 		memset(&recinfo,0x00,sizeof(CURR_RECINFO));
 		fprintf(stderr,"\n----------获得recinfo信息\n");
-		initrecinfo(&recinfo,tasknor_info,selectype,select);//获得recinfo信息
+		initrecinfo(&recinfo,tasknor_info,selectype,select,taskinfoflg);//获得recinfo信息
 		fprintf(stderr,"\n----------获得recinfo信息成功\n");
 		//获得第一个序号
 		currecord = getrecordno(tasknor_info.starthour,tasknor_info.startmin,tasknor_info.freq,recinfo);//freq为执行间隔,单位分钟
