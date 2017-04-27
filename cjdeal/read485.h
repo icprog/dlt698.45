@@ -12,7 +12,11 @@
 #include "libmmq.h"
 
 #include "show_ctrl.h"
-#define BUFFSIZE 512
+#define BUFFSIZE128 128
+#define BUFFSIZE256 256
+#define BUFFSIZE512 512
+#define BUFFSIZE1024 1024
+#define BUFFSIZE2048 2048
 #define DATA_CONTENT_LEN 500
 #define NUM_07DI_698OAD 100
 
