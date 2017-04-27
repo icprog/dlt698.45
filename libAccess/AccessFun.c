@@ -451,13 +451,13 @@ int readCoverClass(OI_698 oi,INT16U seqno,void *blockdata,int datalen,int type)
 	sem_t   *sem_save=NULL;
 //	void 	*blockdata1=NULL;
 
+	memset(fname,0,sizeof(fname));
 	ret = readFileName(oi,seqno,type,fname);
 	if(ret!=0) {	//文件不存在
 		return -1;
 	}
 	syslog(LOG_NOTICE,"__%s__,type=%d,oi=%04x,seqno=%d",__func__,type,oi,seqno);
 	sem_save = InitSem();
-	memset(fname,0,sizeof(fname));
 	switch(type) {
 	case event_para_save:
 //		ret = readFileName(oi,seqno,type,fname);

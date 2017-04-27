@@ -2870,6 +2870,7 @@ void  Get698_event(OAD oad,ProgramInfo* prginfo_event)
 void Get698_3118_moreoad(OAD *oad,INT8U len,ProgramInfo* prginfo_event){
 	INT8U index=0,i=0;
 	INT8U data[200];
+	memset(data,0,200);
 	data[index++]=len;
 	for(i=0;i<len;i++){
 		data[index++]=dtoad;
