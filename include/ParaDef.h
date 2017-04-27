@@ -133,6 +133,7 @@
 #define DEV_PULSE  		"/dev/pulse"  			//脉冲1
 
 #define DEV_ADC        "/dev/adc0"
+#define DEV_RTC        "/dev/rtc0"		//时钟
 
 #define DEV_WATCHDOG   			"/dev/watchdog"
 #define DEV_LED_ALARM   		"/dev/gpoALARM"

@@ -2976,7 +2976,7 @@ INT16S deal6017_698(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8
 				{
 					OAD_DATA oadListContent[ROAD_OADS_NUM];
 					INT8U dataContentLen = 0;
-					parseSingleROADData(test6015.csds.csd[csdIndex].csd.road,&recvbuff[apduDataStartIndex],dataContent,&dataContentLen,oadListContent);
+					parseSingleROADData(test6015.csds.csd[0].csd.road,&recvbuff[apduDataStartIndex],dataContent,&dataContentLen,oadListContent);
 					if(dataContentLen > 0)
 					{
 						if(memcpy(zeroBuff,oadListContent[0].data,4)==0)
@@ -2999,7 +2999,7 @@ INT16S deal6017_698(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8
 						DbgPrintToFile1(port485,"isEventOccur = %d---------",isEventOccur);
 						if(isEventOccur == 1)
 						{
-							sendEventReportBuff698(test6015.csds.csd[csdIndex].csd.road,saveContentHead,port485,oadListContent);
+							sendEventReportBuff698(test6015.csds.csd[0].csd.road,saveContentHead,port485,oadListContent);
 						}
 					}
 
@@ -3184,9 +3184,16 @@ INT16S deal6015or6017_singlemeter(CLASS_6013 st6013,CLASS_6015 st6015,CLASS_6001
 				{
 					if(st6015.cjtype == TYPE_INTERVAL)
 					{
+						DbgPrintToFile1(port485,"6013任务执行频率%d-%d　6015 冻结间隔　%d-%d-%d",
+								st6013.interval.units, st6013.interval.interval,
+								st6015.data.data[0],st6015.data.data[1],st6015.data.data[2]);
 						st6015.data.data[10] = st6013.interval.units;
 						st6015.data.data[11] = (st6013.interval.interval>>8)&0x00ff;
 						st6015.data.data[12] =  st6013.interval.interval&0x00ff;
+					}
+					else
+					{
+
 					}
 					ret = deal6015_698(st6015,obj6001,st6035,dataContent,port485);
 				}
@@ -3562,7 +3569,10 @@ void read485_thread(void* i485port) {
 					ret = use6013find6015or6017(list6013[taskIndex].basicInfo.cjtype,list6013[taskIndex].basicInfo.sernum,&to6015);
 					if(ret == 1)
 					{
-						ret = deal6015or6017(list6013[taskIndex].basicInfo,to6015,port,&result6035);
+						if(to6015.cjtype != TYPE_INTERVAL)
+						{
+							ret = deal6015or6017(list6013[taskIndex].basicInfo,to6015,port,&result6035);
+						}
 					}
 					else
 					{

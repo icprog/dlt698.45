@@ -400,6 +400,11 @@ int ProjectKill(ProjectInfo proinfo) {
         kill(proinfo.ProjectID, SIGTERM);
         return 1;
     }
+
+    if(proinfo.ProjectID == 0){
+        return 1;
+    }
+
     return 0;
 }
 

@@ -48,7 +48,10 @@ INT16U FixHeadUnit(INT8U *headbuf,INT8U *fixlen,ROAD *road_eve)
 	else
 	{
 		for(i=0;i<4;i++) {
-			memset(&unit[i].oad_m,0,sizeof(OAD));
+			if(i==0)
+				memset(&unit[i].oad_m,0,sizeof(OAD));
+			else
+				memcpy(&unit[i].oad_m,&road_eve->oad.OI,sizeof(OAD));
 			unit[i].oad_r.OI = headeve_oad[i][0];
 			unit[i].oad_r.OI = (unit[i].oad_r.OI<<8) | headeve_oad[i][1];
 			unit[i].oad_r.attflg = headeve_oad[i][2];

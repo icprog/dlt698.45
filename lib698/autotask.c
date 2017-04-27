@@ -111,20 +111,19 @@ time_t calcnexttime(TI ti,DateTimeBCD datetime,TI ti_delay)
 /*
  * 初始化自动上报方案
  */
-void init_autotask(CLASS_6013 class6013,AutoTaskStrap* list)
+void init_autotask(INT16U taskIndex,CLASS_6013 class6013,AutoTaskStrap* list)
 {
-	static int index=0;
 	struct tm  tmp_tm;
 	if(class6013.cjtype == rept)
 	{
-		list[index].ID = class6013.taskID;
-		list[index].SerNo = class6013.sernum;
-		list[index].nexttime = calcnexttime(class6013.interval,class6013.startime,class6013.delay);
-		fprintf(stderr,"\ninit_autotask [ %d 任务 %d 方案 %d  下次时间 %ld ]",index,list[index].ID ,list[index].SerNo,list[index].nexttime );
-		localtime_r(&list[index].nexttime,&tmp_tm);
+		list[taskIndex].ID = class6013.taskID;
+		list[taskIndex].SerNo = class6013.sernum;
+		list[taskIndex].nexttime = calcnexttime(class6013.interval,class6013.startime,class6013.delay);
+		fprintf(stderr,"\ninit_autotask [ %d 任务 %d 方案 %d  下次时间 %ld ]",taskIndex,list[taskIndex].ID ,list[taskIndex].SerNo,list[taskIndex].nexttime );
+		localtime_r(&list[taskIndex].nexttime,&tmp_tm);
 		fprintf(stderr,"下次时间 %04d-%02d-%02d %02d:%02d:%02d\n",tmp_tm.tm_year+1900,tmp_tm.tm_mon+1,tmp_tm.tm_mday,tmp_tm.tm_hour,tmp_tm.tm_min,tmp_tm.tm_sec);
-		asyslog(LOG_NOTICE,"任务索引【%d】,方案【%d】,下次时间【%04d-%02d-%02d %02d:%02d:%02d】",index,list[index].ID,tmp_tm.tm_year+1900,tmp_tm.tm_mon+1,tmp_tm.tm_mday,tmp_tm.tm_hour,tmp_tm.tm_min,tmp_tm.tm_sec);
-		index++;
+		asyslog(LOG_NOTICE,"任务索引【%d】,方案【%d】,下次时间【%04d-%02d-%02d %02d:%02d:%02d】",taskIndex,list[taskIndex].ID,tmp_tm.tm_year+1900,tmp_tm.tm_mon+1,tmp_tm.tm_mday,tmp_tm.tm_hour,tmp_tm.tm_min,tmp_tm.tm_sec);
+
 	}
 }
 int fillcsinfo(CSINFO *csinfo,INT8U *addr,INT8U clientaddr)
