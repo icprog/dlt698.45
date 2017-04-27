@@ -1614,7 +1614,7 @@ int findTsa(TSA tsa,FILE *fp,int headsize,int blocksize)
 //		for(i=0;i<(tsa.addr[0]+2);i++) {
 //			fprintf(stderr,"-%02x",tsa_tmp[i]);
 //		}
-		if(memcmp(&tsa_tmp[1],&tsa.addr[0],tsa.addr[0])==0)
+		if(memcmp(&tsa_tmp[1],&tsa.addr[0],(tsa.addr[0]+1))==0)
 		{
 			fprintf(stderr,"\n找到匹配 addr: %d-",tsa.addr[0]);
 			for(i=0;i<(tsa.addr[0]+1);i++) {
