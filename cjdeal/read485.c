@@ -3569,7 +3569,10 @@ void read485_thread(void* i485port) {
 					ret = use6013find6015or6017(list6013[taskIndex].basicInfo.cjtype,list6013[taskIndex].basicInfo.sernum,&to6015);
 					if(ret == 1)
 					{
-						ret = deal6015or6017(list6013[taskIndex].basicInfo,to6015,port,&result6035);
+						if(to6015.cjtype != TYPE_INTERVAL)
+						{
+							ret = deal6015or6017(list6013[taskIndex].basicInfo,to6015,port,&result6035);
+						}
 					}
 					else
 					{

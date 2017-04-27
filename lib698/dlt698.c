@@ -912,8 +912,9 @@ INT16S fillGetRequestAPDU(INT8U* sendBuf,CLASS_6015 obj6015,INT8U requestType)
 					INT16U tmpTime = DT_B.year.data;
 					sendBuf[length++] = (tmpTime>>8)&0x00ff;
 					sendBuf[length++] = tmpTime&0x00ff;
-					sendBuf[length++] = DT_B.month.data;
-					sendBuf[length++] = DT_B.day.data;
+					sendBuf[length++] = timeStamp.month.data;
+					sendBuf[length++] = timeStamp.day.data-1;
+
 					sendBuf[length++] = 0x00;
 					sendBuf[length++] = 0x00;
 					sendBuf[length++] = 0x00;
