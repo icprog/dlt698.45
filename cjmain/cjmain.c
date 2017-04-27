@@ -20,17 +20,17 @@
 #include "../lib698/dlt698.h"
 #include "../libMq/libmmq.h"
 
-static ProgramInfo* JProgramInfo = NULL;
+static ProgramInfo *JProgramInfo = NULL;
 static int mmqFds[MAX_MMQ_SIZE];
 
-const static mmq_attribute mmq_register[] = { { cjcomm, PROXY_485_MQ_NAME, MAXSIZ_PROXY_NET, MAXNUM_PROXY_NET },
-                                              { cjdeal, PROXY_NET_MQ_NAME, MAXSIZ_PROXY_485, MAXNUM_PROXY_485 },
-                                              { cjdeal, TASKID_485_1_MQ_NAME, MAXSIZ_TASKID_QUEUE, MAXNUM_TASKID_QUEUE },
-                                              { cjdeal, TASKID_485_2_MQ_NAME, MAXSIZ_TASKID_QUEUE, MAXNUM_TASKID_QUEUE },
-                                              { cjdeal, TASKID_plc_MQ_NAME, MAXSIZ_TASKID_QUEUE, MAXNUM_TASKID_QUEUE } };
+const static mmq_attribute mmq_register[] = {{cjcomm, PROXY_485_MQ_NAME,    MAXSIZ_PROXY_NET,    MAXNUM_PROXY_NET},
+                                             {cjdeal, PROXY_NET_MQ_NAME,    MAXSIZ_PROXY_485,    MAXNUM_PROXY_485},
+                                             {cjdeal, TASKID_485_1_MQ_NAME, MAXSIZ_TASKID_QUEUE, MAXNUM_TASKID_QUEUE},
+                                             {cjdeal, TASKID_485_2_MQ_NAME, MAXSIZ_TASKID_QUEUE, MAXNUM_TASKID_QUEUE},
+                                             {cjdeal, TASKID_plc_MQ_NAME,   MAXSIZ_TASKID_QUEUE, MAXNUM_TASKID_QUEUE}};
 
 void Runled(int state) {
-    gpio_writebyte((char*)DEV_LED_RUN, state);
+    gpio_writebyte((char *) DEV_LED_RUN, state);
 }
 
 void SyncRtc(void) {
@@ -69,21 +69,18 @@ void Watchdog(int count) //硬件看门狗
 /*
  * 检测电池掉电后，pwrdelay（秒）延时关闭电池，关闭集中器
  * */
-void PowerOffToClose(INT8U pwrdelay)
-{
-	static INT8U cnt_pwroff=0;
+void PowerOffToClose(INT8U pwrdelay) {
+    static INT8U cnt_pwroff = 0;
 
-	if(pwr_has() == FALSE)
-	{
-		fprintf(stderr,"\n底板电源已关闭，设备关闭倒计时：%d s..........",cnt_pwroff);
-		cnt_pwroff++;
-		if(cnt_pwroff == pwrdelay)
-		{
-			fprintf(stderr,"\n设备关闭.....");
-			gpio_writebyte((INT8S*)DEV_BAT_SWITCH,(INT8S)0);
-		}
-	}else
-		cnt_pwroff = 0;
+    if (pwr_has() == FALSE) {
+        fprintf(stderr, "\n底板电源已关闭，设备关闭倒计时：%d s..........", cnt_pwroff);
+        cnt_pwroff++;
+        if (cnt_pwroff == pwrdelay) {
+            fprintf(stderr, "\n设备关闭.....");
+            gpio_writebyte((INT8S *) DEV_BAT_SWITCH, (INT8S) 0);
+        }
+    } else
+        cnt_pwroff = 0;
 }
 
 
@@ -95,13 +92,13 @@ int ReadSystemInfo() {
 
     //初始化共享内存参数
     for (int i = 0; i < PROJECTCOUNT; i++) {
-        memset((void*)&JProgramInfo->Projects[i], 0, sizeof(ProjectInfo));
+        memset((void *) &JProgramInfo->Projects[i], 0, sizeof(ProjectInfo));
     }
 
     memset(Strbuf, 0x00, sizeof(Strbuf));
     sprintf(Strbuf, "%s/systema.cfg", _CFGDIR_);
 
-    FILE* fp = fopen(Strbuf, "r");
+    FILE *fp = fopen(Strbuf, "r");
     memset(Strbuf, 0x00, sizeof(Strbuf));
 
     if (fp == NULL) {
@@ -113,13 +110,15 @@ int ReadSystemInfo() {
         int index = 0, foo = 0;
 
         //获取序号
-        if (sscanf(Strbuf, "%d=%s %s %s %s", &index, JProgramInfo->Projects[0].ProjectName, JProgramInfo->Projects[0].argv[1],
+        if (sscanf(Strbuf, "%d=%s %s %s %s", &index, JProgramInfo->Projects[0].ProjectName,
+                   JProgramInfo->Projects[0].argv[1],
                    JProgramInfo->Projects[0].argv[2], JProgramInfo->Projects[0].argv[3]) < 1) {
             continue;
         }
 
         //获取参数
-        if (sscanf(Strbuf, "%d=%s %s %s %s", &foo, JProgramInfo->Projects[index].ProjectName, JProgramInfo->Projects[index].argv[1],
+        if (sscanf(Strbuf, "%d=%s %s %s %s", &foo, JProgramInfo->Projects[index].ProjectName,
+                   JProgramInfo->Projects[index].argv[1],
                    JProgramInfo->Projects[index].argv[2], JProgramInfo->Projects[index].argv[3]) < 1) {
             continue;
         }
@@ -130,11 +129,12 @@ int ReadSystemInfo() {
         }
 
         JProgramInfo->Projects[index].ProjectState = NeedStart;
-        JProgramInfo->Projects[index].WaitTimes    = 0;
+        JProgramInfo->Projects[index].WaitTimes = 0;
         sprintf(JProgramInfo->Projects[index].argv[0], "%d", index);
 
         memset(Strbuf, 0x00, sizeof(Strbuf));
-        asyslog(LOG_WARNING, "需要启动程序[%s][%s][%d]", JProgramInfo->Projects[index].ProjectName, JProgramInfo->Projects[index].argv[0], index);
+        asyslog(LOG_WARNING, "需要启动程序[%s][%s][%d]", JProgramInfo->Projects[index].ProjectName,
+                JProgramInfo->Projects[index].argv[0], index);
         ProgsNum++;
     }
 
@@ -151,13 +151,13 @@ void Createmq() {
 
     for (int i = 0; i < sizeof(mmq_register) / sizeof(mmq_attribute); i++) {
         struct mq_attr attr;
-        attr.mq_maxmsg  = mmq_register[i].maxnum;
+        attr.mq_maxmsg = mmq_register[i].maxnum;
         attr.mq_msgsize = mmq_register[i].maxsiz;
 
-        if ((mmqFds[i] = mmq_create((INT8S*)mmq_register[i].name, &attr, O_RDONLY)) < 0) {
+        if ((mmqFds[i] = mmq_create((INT8S *) mmq_register[i].name, &attr, O_RDONLY)) < 0) {
             asyslog(LOG_ERR, "消息队列创建失败，重建系统限制...");
 
-            struct rlimit limit = { RLIM_INFINITY, RLIM_INFINITY };
+            struct rlimit limit = {RLIM_INFINITY, RLIM_INFINITY};
             if (getrlimit(RLIMIT_MSGQUEUE, &limit) != 0) {
                 asyslog(LOG_ERR, "重建系统限制时，获取系统参数失败...");
             } else {
@@ -186,7 +186,7 @@ void shmm_destroy() {
     if (JProgramInfo != NULL) {
         munmap(JProgramInfo, sizeof(ProgramInfo));
         JProgramInfo = NULL;
-        shm_unlink((const char*)"ProgramInfo");
+        shm_unlink((const char *) "ProgramInfo");
     }
 }
 
@@ -213,10 +213,52 @@ void Checkupdate() {
         return;
     }
 
+    FILE *fp_org = 0;
+    FILE *fp_new = 0;
+
     if (access("/dos/cjgwn", 0) == 0) {
-        asyslog(LOG_INFO, "检测有升级目录，开始执行升级脚本...");
+        asyslog(LOG_INFO, "检测有升级目录{3}，开始执行升级脚本...");
         system("chmod 777 /dos/cjgwn/update.sh");
-        system("/dos/cjgwn/update.sh &");
+        fp_org = fopen("/nand/Version.log", "r");
+        if (fp_org != NULL) {
+            char md5_org[24];
+            char md5_new[24];
+            memset(md5_new, 0x00, sizeof(md5_new));
+            memset(md5_org, 0x00, sizeof(md5_org));
+            system("rm /nand/Version.log.new");
+            system("md5sum /dos/cjgwn/app/update.sh >> /nand/Version.log.new");
+            fp_new = fopen("/nand/Version.log.new", "r");
+
+            if (fp_new != NULL) {
+                fread(md5_new, sizeof(md5_new), 1, fp_new);
+                fread(md5_org, sizeof(md5_org), 1, fp_org);
+                int res = strncmp(md5_new, md5_org, 24);
+                if (res != 0) {
+                    system("/dos/cjgwn/update.sh");
+                    asyslog(LOG_INFO, "版本比对不同，开始升级....");
+                }else{
+                    asyslog(LOG_INFO, "版本比对相同，不予升级....");
+                }
+            }
+        } else {
+            asyslog(LOG_INFO, "找不到原始md5版本，开始升级....");
+            system("/dos/cjgwn/update.sh");
+        }
+
+        if (access("/nand/UpFiles/update.sh", 0) == 0) {
+            asyslog(LOG_INFO, "升级包存在，重新校验原始md5...");
+            system("rm /nand/Version.log");
+            system("md5sum /nand/UpFiles/update.sh >> /nand/Version.log");
+        }
+
+        if (fp_new != NULL) {
+            fclose(fp_new);
+        }
+
+        if (fp_org != NULL) {
+            fclose(fp_org);
+        }
+
         UpStates = 1;
     }
     return;
@@ -224,10 +266,10 @@ void Checkupdate() {
 
 void CreateSem() {
     int val;
-    sem_t* sem;
+    sem_t *sem;
 
     //此设置决定集中器电池工作，并保证在下电情况下，长按向下按键唤醒功能
-    gpio_writebyte(DEV_BAT_SWITCH, (INT8S)1);
+    gpio_writebyte(DEV_BAT_SWITCH, (INT8S) 1);
 
     //信号量建立
     sem = create_named_sem(SEMNAME_SPI0_0, 1);
@@ -238,52 +280,85 @@ void CreateSem() {
     sem_getvalue(sem, &val);
     asyslog(LOG_INFO, "PARA_SAVE信号量建立，初始值[%d]", val);
 }
+
 /*
  * 初始化操作
  * */
-void InitSharedMem(int argc, char* argv[]) {
-    JProgramInfo = (ProgramInfo*)CreateShMem("ProgramInfo", sizeof(ProgramInfo), NULL);
+void InitSharedMem(int argc, char *argv[]) {
+    JProgramInfo = (ProgramInfo *) CreateShMem("ProgramInfo", sizeof(ProgramInfo), NULL);
     asyslog(LOG_NOTICE, "打开共享内存，地址[%d]，大小[%d]", JProgramInfo, sizeof(ProgramInfo));
 
-    InitClass4016();	//当前套日时段表
-    InitClass4300();	//电气设备信息
-    InitClass4500();	//公网通信模块1
-    InitClass4510();	//以太网通信模块1
+    InitClass4016();    //当前套日时段表
+    InitClass4300();    //电气设备信息
+    InitClass4500();    //公网通信模块1
+    InitClass4510();    //以太网通信模块1
     //InitClass6000();	//初始化交采采集档案
     //InitClassf203();	//开关量输入
     //事件参数初始化
-    readCoverClass(0x3100, 0, &JProgramInfo->event_obj.Event3100_obj, sizeof(JProgramInfo->event_obj.Event3100_obj), event_para_save);
-    readCoverClass(0x3101, 0, &JProgramInfo->event_obj.Event3101_obj, sizeof(JProgramInfo->event_obj.Event3101_obj), event_para_save);
-    readCoverClass(0x3104, 0, &JProgramInfo->event_obj.Event3104_obj, sizeof(JProgramInfo->event_obj.Event3104_obj), event_para_save);
-    readCoverClass(0x3105, 0, &JProgramInfo->event_obj.Event3105_obj, sizeof(JProgramInfo->event_obj.Event3105_obj), event_para_save);
-    readCoverClass(0x3106, 0, &JProgramInfo->event_obj.Event3106_obj, sizeof(JProgramInfo->event_obj.Event3106_obj), event_para_save);
-    readCoverClass(0x3107, 0, &JProgramInfo->event_obj.Event3107_obj, sizeof(JProgramInfo->event_obj.Event3107_obj), event_para_save);
-    readCoverClass(0x3108, 0, &JProgramInfo->event_obj.Event3108_obj, sizeof(JProgramInfo->event_obj.Event3108_obj), event_para_save);
-    readCoverClass(0x3109, 0, &JProgramInfo->event_obj.Event3109_obj, sizeof(JProgramInfo->event_obj.Event3109_obj), event_para_save);
-    readCoverClass(0x310A, 0, &JProgramInfo->event_obj.Event310A_obj, sizeof(JProgramInfo->event_obj.Event310A_obj), event_para_save);
-    readCoverClass(0x310B, 0, &JProgramInfo->event_obj.Event310B_obj, sizeof(JProgramInfo->event_obj.Event310B_obj), event_para_save);
-    readCoverClass(0x310C, 0, &JProgramInfo->event_obj.Event310C_obj, sizeof(JProgramInfo->event_obj.Event310C_obj), event_para_save);
-    readCoverClass(0x310D, 0, &JProgramInfo->event_obj.Event310D_obj, sizeof(JProgramInfo->event_obj.Event310D_obj), event_para_save);
-    readCoverClass(0x310E, 0, &JProgramInfo->event_obj.Event310E_obj, sizeof(JProgramInfo->event_obj.Event310E_obj), event_para_save);
-    readCoverClass(0x310F, 0, &JProgramInfo->event_obj.Event310F_obj, sizeof(JProgramInfo->event_obj.Event310F_obj), event_para_save);
-    readCoverClass(0x3110, 0, &JProgramInfo->event_obj.Event3110_obj, sizeof(JProgramInfo->event_obj.Event3110_obj), event_para_save);
-    readCoverClass(0x3111, 0, &JProgramInfo->event_obj.Event3111_obj, sizeof(JProgramInfo->event_obj.Event3111_obj), event_para_save);
-    readCoverClass(0x3112, 0, &JProgramInfo->event_obj.Event3112_obj, sizeof(JProgramInfo->event_obj.Event3112_obj), event_para_save);
-    readCoverClass(0x3114, 0, &JProgramInfo->event_obj.Event3114_obj, sizeof(JProgramInfo->event_obj.Event3114_obj), event_para_save);
-    readCoverClass(0x3115, 0, &JProgramInfo->event_obj.Event3115_obj, sizeof(JProgramInfo->event_obj.Event3115_obj), event_para_save);
-    readCoverClass(0x3116, 0, &JProgramInfo->event_obj.Event3116_obj, sizeof(JProgramInfo->event_obj.Event3116_obj), event_para_save);
-    readCoverClass(0x3117, 0, &JProgramInfo->event_obj.Event3117_obj, sizeof(JProgramInfo->event_obj.Event3117_obj), event_para_save);
-    readCoverClass(0x3118, 0, &JProgramInfo->event_obj.Event3118_obj, sizeof(JProgramInfo->event_obj.Event3118_obj), event_para_save);
-    readCoverClass(0x3119, 0, &JProgramInfo->event_obj.Event3119_obj, sizeof(JProgramInfo->event_obj.Event3119_obj), event_para_save);
-    readCoverClass(0x311A, 0, &JProgramInfo->event_obj.Event311A_obj, sizeof(JProgramInfo->event_obj.Event311A_obj), event_para_save);
-    readCoverClass(0x311B, 0, &JProgramInfo->event_obj.Event311B_obj, sizeof(JProgramInfo->event_obj.Event311B_obj), event_para_save);
-    readCoverClass(0x311C, 0, &JProgramInfo->event_obj.Event311C_obj, sizeof(JProgramInfo->event_obj.Event311C_obj), event_para_save);
-    readCoverClass(0x3200, 0, &JProgramInfo->event_obj.Event3200_obj, sizeof(JProgramInfo->event_obj.Event3200_obj), event_para_save);
-    readCoverClass(0x3201, 0, &JProgramInfo->event_obj.Event3201_obj, sizeof(JProgramInfo->event_obj.Event3201_obj), event_para_save);
-    readCoverClass(0x3202, 0, &JProgramInfo->event_obj.Event3202_obj, sizeof(JProgramInfo->event_obj.Event3202_obj), event_para_save);
-    readCoverClass(0x3203, 0, &JProgramInfo->event_obj.Event3203_obj, sizeof(JProgramInfo->event_obj.Event3203_obj), event_para_save);
-    readCoverClass(0x300F, 0, &JProgramInfo->event_obj.Event300F_obj, sizeof(JProgramInfo->event_obj.Event300F_obj), event_para_save);
-    readCoverClass(0x3010, 0, &JProgramInfo->event_obj.Event3010_obj, sizeof(JProgramInfo->event_obj.Event3010_obj), event_para_save);
+    readCoverClass(0x3100, 0, &JProgramInfo->event_obj.Event3100_obj, sizeof(JProgramInfo->event_obj.Event3100_obj),
+                   event_para_save);
+    readCoverClass(0x3101, 0, &JProgramInfo->event_obj.Event3101_obj, sizeof(JProgramInfo->event_obj.Event3101_obj),
+                   event_para_save);
+    readCoverClass(0x3104, 0, &JProgramInfo->event_obj.Event3104_obj, sizeof(JProgramInfo->event_obj.Event3104_obj),
+                   event_para_save);
+    readCoverClass(0x3105, 0, &JProgramInfo->event_obj.Event3105_obj, sizeof(JProgramInfo->event_obj.Event3105_obj),
+                   event_para_save);
+    readCoverClass(0x3106, 0, &JProgramInfo->event_obj.Event3106_obj, sizeof(JProgramInfo->event_obj.Event3106_obj),
+                   event_para_save);
+    readCoverClass(0x3107, 0, &JProgramInfo->event_obj.Event3107_obj, sizeof(JProgramInfo->event_obj.Event3107_obj),
+                   event_para_save);
+    readCoverClass(0x3108, 0, &JProgramInfo->event_obj.Event3108_obj, sizeof(JProgramInfo->event_obj.Event3108_obj),
+                   event_para_save);
+    readCoverClass(0x3109, 0, &JProgramInfo->event_obj.Event3109_obj, sizeof(JProgramInfo->event_obj.Event3109_obj),
+                   event_para_save);
+    readCoverClass(0x310A, 0, &JProgramInfo->event_obj.Event310A_obj, sizeof(JProgramInfo->event_obj.Event310A_obj),
+                   event_para_save);
+    readCoverClass(0x310B, 0, &JProgramInfo->event_obj.Event310B_obj, sizeof(JProgramInfo->event_obj.Event310B_obj),
+                   event_para_save);
+    readCoverClass(0x310C, 0, &JProgramInfo->event_obj.Event310C_obj, sizeof(JProgramInfo->event_obj.Event310C_obj),
+                   event_para_save);
+    readCoverClass(0x310D, 0, &JProgramInfo->event_obj.Event310D_obj, sizeof(JProgramInfo->event_obj.Event310D_obj),
+                   event_para_save);
+    readCoverClass(0x310E, 0, &JProgramInfo->event_obj.Event310E_obj, sizeof(JProgramInfo->event_obj.Event310E_obj),
+                   event_para_save);
+    readCoverClass(0x310F, 0, &JProgramInfo->event_obj.Event310F_obj, sizeof(JProgramInfo->event_obj.Event310F_obj),
+                   event_para_save);
+    readCoverClass(0x3110, 0, &JProgramInfo->event_obj.Event3110_obj, sizeof(JProgramInfo->event_obj.Event3110_obj),
+                   event_para_save);
+    readCoverClass(0x3111, 0, &JProgramInfo->event_obj.Event3111_obj, sizeof(JProgramInfo->event_obj.Event3111_obj),
+                   event_para_save);
+    readCoverClass(0x3112, 0, &JProgramInfo->event_obj.Event3112_obj, sizeof(JProgramInfo->event_obj.Event3112_obj),
+                   event_para_save);
+    readCoverClass(0x3114, 0, &JProgramInfo->event_obj.Event3114_obj, sizeof(JProgramInfo->event_obj.Event3114_obj),
+                   event_para_save);
+    readCoverClass(0x3115, 0, &JProgramInfo->event_obj.Event3115_obj, sizeof(JProgramInfo->event_obj.Event3115_obj),
+                   event_para_save);
+    readCoverClass(0x3116, 0, &JProgramInfo->event_obj.Event3116_obj, sizeof(JProgramInfo->event_obj.Event3116_obj),
+                   event_para_save);
+    readCoverClass(0x3117, 0, &JProgramInfo->event_obj.Event3117_obj, sizeof(JProgramInfo->event_obj.Event3117_obj),
+                   event_para_save);
+    readCoverClass(0x3118, 0, &JProgramInfo->event_obj.Event3118_obj, sizeof(JProgramInfo->event_obj.Event3118_obj),
+                   event_para_save);
+    readCoverClass(0x3119, 0, &JProgramInfo->event_obj.Event3119_obj, sizeof(JProgramInfo->event_obj.Event3119_obj),
+                   event_para_save);
+    readCoverClass(0x311A, 0, &JProgramInfo->event_obj.Event311A_obj, sizeof(JProgramInfo->event_obj.Event311A_obj),
+                   event_para_save);
+    readCoverClass(0x311B, 0, &JProgramInfo->event_obj.Event311B_obj, sizeof(JProgramInfo->event_obj.Event311B_obj),
+                   event_para_save);
+    readCoverClass(0x311C, 0, &JProgramInfo->event_obj.Event311C_obj, sizeof(JProgramInfo->event_obj.Event311C_obj),
+                   event_para_save);
+    readCoverClass(0x3200, 0, &JProgramInfo->event_obj.Event3200_obj, sizeof(JProgramInfo->event_obj.Event3200_obj),
+                   event_para_save);
+    readCoverClass(0x3201, 0, &JProgramInfo->event_obj.Event3201_obj, sizeof(JProgramInfo->event_obj.Event3201_obj),
+                   event_para_save);
+    readCoverClass(0x3202, 0, &JProgramInfo->event_obj.Event3202_obj, sizeof(JProgramInfo->event_obj.Event3202_obj),
+                   event_para_save);
+    readCoverClass(0x3203, 0, &JProgramInfo->event_obj.Event3203_obj, sizeof(JProgramInfo->event_obj.Event3203_obj),
+                   event_para_save);
+    readCoverClass(0x300F, 0, &JProgramInfo->event_obj.Event300F_obj, sizeof(JProgramInfo->event_obj.Event300F_obj),
+                   event_para_save);
+    readCoverClass(0x3010, 0, &JProgramInfo->event_obj.Event3010_obj, sizeof(JProgramInfo->event_obj.Event3010_obj),
+                   event_para_save);
 }
 
 int LAPI_Fork2(void) {
@@ -325,6 +400,11 @@ int ProjectKill(ProjectInfo proinfo) {
         kill(proinfo.ProjectID, SIGTERM);
         return 1;
     }
+
+    if(proinfo.ProjectID == 0){
+        return 1;
+    }
+
     return 0;
 }
 
@@ -333,35 +413,37 @@ int ProjectExecute(ProjectInfo proinfo, int i) {
     pid_t pid = LAPI_Fork2();
 
     if (pid == -1) {
-        asyslog(LOG_WARNING, "程序启动失败[%s],原因(%d)", (char*)proinfo.ProjectName, errno);
+        asyslog(LOG_WARNING, "程序启动失败[%s],原因(%d)", (char *) proinfo.ProjectName, errno);
         return -1;
     }
 
     if (pid == 0) {
         //子进程代码运行部分
-        asyslog(LOG_WARNING, "程序启动[%s %s %s %s %s]", (char*)proinfo.ProjectName, proinfo.argv[0], proinfo.argv[1], proinfo.argv[2], proinfo.argv[3]);
-        execlp((char*)proinfo.ProjectName, (char*)proinfo.ProjectName, proinfo.argv[0], proinfo.argv[1], proinfo.argv[2], proinfo.argv[3], NULL);
+        asyslog(LOG_WARNING, "程序启动[%s %s %s %s %s]", (char *) proinfo.ProjectName, proinfo.argv[0], proinfo.argv[1],
+                proinfo.argv[2], proinfo.argv[3]);
+        execlp((char *) proinfo.ProjectName, (char *) proinfo.ProjectName, proinfo.argv[0], proinfo.argv[1],
+               proinfo.argv[2], proinfo.argv[3], NULL);
         return 0;
     }
     return 1;
 }
 
 //检查外部程序是否正常运行,是否超时
-void ProjectCheck(ProjectInfo* proinfo) {
-    if (strlen((char*)proinfo->ProjectName) < 2) {
+void ProjectCheck(ProjectInfo *proinfo) {
+    if (strlen((char *) proinfo->ProjectName) < 2) {
         return;
     }
     if (proinfo->ProjectState == NowRun) {
         if (proinfo->WaitTimes > PRO_WAIT_COUNT) {
             proinfo->ProjectState = NeedKill;
-            proinfo->WaitTimes    = 0;
+            proinfo->WaitTimes = 0;
         }
     }
 }
 
 void checkProgsState(int ProgsNum) {
 
-    ProjectInfo* pis = JProgramInfo->Projects;
+    ProjectInfo *pis = JProgramInfo->Projects;
 
     for (int i = 1; i < ProgsNum; i++) {
 
@@ -394,13 +476,13 @@ void checkProgsState(int ProgsNum) {
 }
 
 void checkDevReset() {
-    static int state      = 0;
-    static int oldtime    = 0;
+    static int state = 0;
+    static int oldtime = 0;
     static int first_flag = 1;
     static int DevResetNum;
 
     if (first_flag == 1) {
-        first_flag  = 0;
+        first_flag = 0;
         DevResetNum = JProgramInfo->oi_changed.reset;
     }
 
@@ -409,7 +491,7 @@ void checkDevReset() {
             if (DevResetNum == JProgramInfo->oi_changed.reset) {
                 return;
             } else {
-                state   = 1;
+                state = 1;
                 oldtime = time(NULL);
             }
             break;
@@ -434,7 +516,7 @@ void checkRebootFile() {
     static int count = 0;
 
     if (count == 0) {
-        FILE* fp = fopen("/nand/UpFiles/reboot", "r+");
+        FILE *fp = fopen("/nand/UpFiles/reboot", "r+");
         if (fp != NULL) {
             fclose(fp);
             system("rm /nand/UpFiles/reboot");
@@ -442,7 +524,7 @@ void checkRebootFile() {
         count++;
     }
 
-    FILE* fp = fopen("/nand/UpFiles/reboot", "r+");
+    FILE *fp = fopen("/nand/UpFiles/reboot", "r+");
     if (fp != NULL) {
         fclose(fp);
         count++;
@@ -452,12 +534,12 @@ void checkRebootFile() {
     }
 }
 
-int main(int argc, char* argv[]) {
+int main(int argc, char *argv[]) {
     int ProgsNum = 0;
 
     //检查是否已经有程序在运行
     pid_t pids[128];
-    if (prog_find_pid_by_name((INT8S*)argv[0], pids) > 1) {
+    if (prog_find_pid_by_name((INT8S *) argv[0], pids) > 1) {
         asyslog(LOG_ERR, "CJMAIN进程仍在运行,进程号[%d]，程序退出...", pids[0]);
         return EXIT_SUCCESS;
     }
@@ -466,8 +548,8 @@ int main(int argc, char* argv[]) {
     CreateSem();
     InitSharedMem(argc, argv);
     ReadDeviceConfig(&JProgramInfo->cfg_para);
-    asyslog(LOG_NOTICE,"\n当前运行类型：%d 型终端\n", JProgramInfo->cfg_para.device);
-    asyslog(LOG_NOTICE,"\n当前运行地区：%s\n", JProgramInfo->cfg_para.zone);
+    asyslog(LOG_NOTICE, "\n当前运行类型：%d 型终端\n", JProgramInfo->cfg_para.device);
+    asyslog(LOG_NOTICE, "\n当前运行地区：%s\n", JProgramInfo->cfg_para.zone);
 
 
     if (argc >= 2 && strncmp("all", argv[1], 3) == 0) {
@@ -483,13 +565,13 @@ int main(int argc, char* argv[]) {
         //喂狗
         Watchdog(5);
 
-        if(JProgramInfo->cfg_para.device==1 || JProgramInfo->cfg_para.device==3) { //I型集中器，III型专变
-			//电池检测掉电关闭设备
-			PowerOffToClose(90);
+        if (JProgramInfo->cfg_para.device == 1 || JProgramInfo->cfg_para.device == 3) { //I型集中器，III型专变
+            //电池检测掉电关闭设备
+            PowerOffToClose(90);
         }
 
-//        //点亮运行灯 循环前点亮一次
-//        Runled(1);
+        //点亮运行灯 循环前点亮一次
+        Runled(1);
 
         //每20分钟校时
         SyncRtc();

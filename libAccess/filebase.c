@@ -825,7 +825,7 @@ INT8U save_block_file(char *fname,void *blockdata,int size,int headsize,int inde
 /////////////////////////////////////////////////////////
 sem_t * InitSem()
 {
-//	return NULL;
+	return NULL;
 	int			val=0;
 	sem_t * 	sem_parasave=NULL;	//参数文件存储信号量
 	//打开信号量
@@ -842,7 +842,7 @@ sem_t * InitSem()
 
 void CloseSem(sem_t * sem_parasave)
 {
-//	return;
+	return;
 	int  val=0;
 	if(sem_parasave!=NULL) {
 		sem_post(sem_parasave);

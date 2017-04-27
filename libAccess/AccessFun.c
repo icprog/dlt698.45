@@ -451,19 +451,18 @@ int readCoverClass(OI_698 oi,INT16U seqno,void *blockdata,int datalen,int type)
 	sem_t   *sem_save=NULL;
 //	void 	*blockdata1=NULL;
 
+	memset(fname,0,sizeof(fname));
+	ret = readFileName(oi,seqno,type,fname);
+	if(ret!=0) {	//文件不存在
+		return -1;
+	}
 	syslog(LOG_NOTICE,"__%s__,type=%d,oi=%04x,seqno=%d",__func__,type,oi,seqno);
 	sem_save = InitSem();
-	memset(fname,0,sizeof(fname));
 	switch(type) {
 	case event_para_save:
-	case para_vari_save:
-	case coll_para_save:
-	case acs_energy_save:
-		ret = readFileName(oi,seqno,type,fname);
+//		ret = readFileName(oi,seqno,type,fname);
 		if(ret==0) {		//文件存在
-//			fprintf(stderr,"readClass %s filelen=%d,type=%d\n",fname,datalen,type);
 			ret = block_file_sync(fname,blockdata,datalen,0,0);
-//			fprintf(stderr,"ret=%d\n",ret);
 		}else  {		//无配置文件，读取系统初始化参数
 			memset(fname,0,sizeof(fname));
 			ret = readFileName(oi,seqno,para_init_save,fname);
@@ -473,14 +472,23 @@ int readCoverClass(OI_698 oi,INT16U seqno,void *blockdata,int datalen,int type)
 			}
 		}
 		break;
+	case para_vari_save:
+	case coll_para_save:
+	case acs_energy_save:
+//		ret = readFileName(oi,seqno,type,fname);
+		if(ret==0) {		//文件存在
+//			fprintf(stderr,"readClass %s filelen=%d,type=%d\n",fname,datalen,type);
+			ret = block_file_sync(fname,blockdata,datalen,0,0);
+		}
+		break;
 	case acs_coef_save:
-		ret = readFileName(oi,seqno,type,fname);
+//		ret = readFileName(oi,seqno,type,fname);
 		if(ret==0) {		//文件存在
 			ret = fu_read_accoef(fname,blockdata,datalen);
 		}
 		break;
 	case para_init_save:
-		ret = readFileName(oi,seqno,type,fname);
+//		ret = readFileName(oi,seqno,type,fname);
 		fprintf(stderr,"para_init_save readClass %s filelen=%d\n",fname,datalen);
 		if(ret==0) {
 			ret = block_file_sync(fname,blockdata,datalen,0,0);
@@ -488,7 +496,7 @@ int readCoverClass(OI_698 oi,INT16U seqno,void *blockdata,int datalen,int type)
 	break;
 	case event_record_save:
 	case event_current_save:
-		ret = readFileName(oi,seqno,type,fname);
+//		ret = readFileName(oi,seqno,type,fname);
 		if(ret==0) {
 			ret = readCoverFile(fname,blockdata,datalen);
 		}
