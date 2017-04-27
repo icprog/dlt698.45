@@ -528,22 +528,22 @@ typedef struct {
 } ALSTATE;
 
 typedef struct {
-    AL_UNIT allist[MAX_AL_UNIT];
-    INT64U p;
-    INT64U q;
-    INT64U TaveP;
-    INT64U TaveQ;
-    INT64U DayP[MAXVAL_RATENUM];
-    INT64U DayQ[MAXVAL_RATENUM];
-    INT64U MonthP[MAXVAL_RATENUM];
-    INT64U MonthQ[MAXVAL_RATENUM];
-    INT64U remains;
-    INT64U DownFreeze;
-    INT8U aveCircle;
-    INT8U pConfig;
-    INT8U eConfig;
-    ALCONSTATE alConState;
-    ALCTLSTATE alCtlState;
+    AL_UNIT allist[MAX_AL_UNIT]; //总加配置表
+    INT64U p;   //有功
+    INT64U q;   //无功
+    INT64U TaveP;   //滑差有功
+    INT64U TaveQ;   //滑差无功
+    INT64U DayP[MAXVAL_RATENUM];    //日有功
+    INT64U DayQ[MAXVAL_RATENUM];    //日无功
+    INT64U MonthP[MAXVAL_RATENUM];  //月有功
+    INT64U MonthQ[MAXVAL_RATENUM];  //月无功
+    INT64U remains; //剩余电量
+    INT64U DownFreeze;  //下浮控后总加有功冻结
+    INT8U aveCircle;    //滑差周期
+    INT8U pConfig;  //功控轮次
+    INT8U eConfig;  //电控轮次
+    ALCONSTATE alConState;  //设置状态
+    ALCTLSTATE alCtlState;  //控制状态
     Scaler_Unit su[10];//属性3-12换算单位
 } CLASS23;
 
@@ -589,6 +589,9 @@ typedef struct {
 
 typedef struct {
     TIME_CTRL list[MAX_AL_UNIT];
+    INT8U OnSign;
+    INT8U no;
+    OI_698 index;
 } CLASS_8103;
 
 typedef struct {
@@ -597,33 +600,41 @@ typedef struct {
     DateTimeBCD_S start;
     INT16U sustain;
     INT8U noDay;
-}FACT_CTRL;
+} FACT_CTRL;
 
 typedef struct {
     FACT_CTRL list[MAX_AL_UNIT];
+    OI_698 index;
 } CLASS_8104;
 
 typedef struct {
     OI_698 index;
     DateTimeBCD_S start;
     DateTimeBCD_S end;
-    INT64U  v;
-}STOP_CTRL;
+    INT64U v;
+} STOP_CTRL;
 
 typedef struct {
     STOP_CTRL list[MAX_AL_UNIT];
+    OI_698 index;
 } CLASS_8105;
 
 typedef struct {
-    OI_698 index;
-
-}DOWN_CTRL;
+    INT8U down_huacha;
+    INT8U down_xishu;
+    INT8U down_freeze;
+    INT8U down_ctrl_time;
+    INT8U t1;
+    INT8U t2;
+    INT8U t3;
+    INT8U t4;
+} DOWN_CTRL;
 
 typedef struct {
-    DOWN_CTRL list[MAX_AL_UNIT];
+    OI_698 index;
 } CLASS_8106;
 
-typedef  struct {
+typedef struct {
     OI_698 index;
     INT32U no;
     INT8U add_refresh;
@@ -632,21 +643,23 @@ typedef  struct {
     INT64U alarm;
     INT64U ctrl;
     INT8U mode;
-}BUY_CTRL;
+} BUY_CTRL;
 
 typedef struct {
     BUY_CTRL list[MAX_AL_UNIT];
+    OI_698 index;
 } CLASS_8107;
 
-typedef  struct {
+typedef struct {
     OI_698 index;
     INT64U v;
     INT8U para;
     INT8S flex;
-}MONTH_CTRL;
+} MONTH_CTRL;
 
 typedef struct {
     MONTH_CTRL list[MAX_AL_UNIT];
+    OI_698 index;
 } CLASS_8108;
 
 /*
