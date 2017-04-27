@@ -92,13 +92,6 @@ INT8U time_in_shiduan(TASK_RUN_TIME str_runtime,TI interval) {
 	{
 		min_start = str_runtime.runtime[timePartIndex].beginHour * 60
 				+ str_runtime.runtime[timePartIndex].beginMin;
-#ifndef GW_TAI_TI
-		//日冻结任务延时5分钟
-		if(interval.units == day_units)
-		{
-			min_start += 5;
-		}
-#endif
 		min_end = str_runtime.runtime[timePartIndex].endHour * 60
 				+ str_runtime.runtime[timePartIndex].endMin;
 		if (min_start <= min_end) {
@@ -714,7 +707,7 @@ void dispatch_thread()
 		}
 		INT16S tastIndex = -1;//读取所有任务文件
 		tastIndex = getNextTastIndexIndex();
-		sleep(1);
+		sleep(2);
 		if (tastIndex > -1)
 		{
 #if 0
@@ -722,7 +715,7 @@ void dispatch_thread()
 					tastIndex, list6013[tastIndex].basicInfo.taskID);
 #endif
 			//计算下一次抄读此任务的时间;
-			list6013[tastIndex].ts_next = calcnexttime(list6013[tastIndex].basicInfo.interval,list6013[tastIndex].basicInfo.startime);
+			list6013[tastIndex].ts_next = calcnexttime(list6013[tastIndex].basicInfo.interval,list6013[tastIndex].basicInfo.startime,list6013[tastIndex].basicInfo.delay);
 
 			INT8S ret = mqs_send((INT8S *)TASKID_485_2_MQ_NAME,cjdeal,1,(INT8U *)&tastIndex,sizeof(INT16S));
 			fprintf(stderr,"\n 向485 2线程发送任务ID = %d \n",ret);
@@ -779,7 +772,7 @@ void dispatchTask_proccess()
 int main(int argc, char *argv[])
 {
 	printf("a\n");
-	return ctrl_base_test();
+	//return ctrl_base_test();
 
 	pid_t pids[128];
     struct sigaction sa = {};
@@ -810,7 +803,7 @@ int main(int argc, char *argv[])
 	if(JProgramInfo->cfg_para.device != 2)
 	{
 		//液晶、控制
-		guictrl_proccess();
+//		guictrl_proccess();
 	}
 	//交采
 	acs_process();

@@ -1,16 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <projectDescription>
-	<name>cjmain</name>
+	<name>libEsam</name>
 	<comment></comment>
 	<projects>
-		<project>lib698</project>
-		<project>libAccess</project>
-		<project>libBase</project>
-		<project>libCjt188</project>
-		<project>libDlt645</project>
-		<project>libMq</project>
-		<project>libTransmit</project>
-		<project>libzlib</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>
@@ -39,7 +31,7 @@
 				</dictionary>
 				<dictionary>
 					<key>org.eclipse.cdt.make.core.buildLocation</key>
-					<value>${workspace_loc:/jmain}/Release</value>
+					<value>${workspace_loc:/jBase}/Release</value>
 				</dictionary>
 				<dictionary>
 					<key>org.eclipse.cdt.make.core.cleanBuildTarget</key>

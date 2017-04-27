@@ -32,6 +32,73 @@
 #define AT91_PIN_PC1 (PIN_BASE + 0x40 + 1)
 #define AT91_PIN_PA7 (PIN_BASE + 0x00 + 7)
 
+
+//读取设备配置信息
+int ReadDeviceConfig(ConfigPara	*cfg_para)
+{
+    FILE* fp        = NULL;
+    char aline[128] = {};
+    int devicetype  = 1;
+
+    memset(cfg_para,0,sizeof(ConfigPara));
+    fp = fopen((const char*)DEVICE_CFG, (const char*)"r");
+    if (fp == NULL) {
+        fprintf(stderr, "\n无配置信息!");
+        cfg_para->device = 1;
+    } else {
+        memset(aline, 0, sizeof(aline));
+        while (fgets((char*)aline, sizeof(aline), fp) != NULL) {
+            //			fprintf(stderr,"aline  %s\n",aline);
+            if (strncmp(aline, "begin", 5) == 0)
+                continue;
+            if (strncmp(aline, "end", 3) == 0)
+                break;
+            if (strncmp(aline, "//", 2) == 0)
+                continue;
+            if (strncmp(aline, "device", 6) == 0) //设备类型
+            {
+                sscanf(aline, "device=%d", &devicetype);
+                cfg_para->device = devicetype;
+            }
+            if (strncmp(aline, "zone", 4) == 0) //设备类型
+            {
+                sscanf(aline, "zone=%s", cfg_para->zone);
+            }
+        }
+    }
+    if (cfg_para->device < 1 || cfg_para->device > 3) { //无效值
+    	cfg_para->device = 1;                                      //默认I型
+    }
+    return 1;
+}
+
+/* 地区获取
+ * =０:满足该地区要求
+ * =1 :非该地区
+ * */
+int getZone(char *zone)
+{
+	int		ret = 1;
+	static INT8U zonefirst=1;
+	static ConfigPara cfg_para={};
+
+	if((zone==NULL)||(strlen(zone)==0))	{
+		fprintf(stderr,"地区为空\n");
+		return 1;
+	}
+	if(zonefirst==1) {
+		zonefirst = 0;
+		memset(&cfg_para,0,sizeof(ConfigPara));
+		ReadDeviceConfig(&cfg_para);
+		fprintf(stderr,"first read cfg_zone=%s\n",cfg_para.zone);
+	}
+	fprintf(stderr,"cfg_zone=%s\n",cfg_para.zone);
+	fprintf(stderr,"readzone=%s,len=%d\n",zone,strlen(zone));
+	ret = strncmp(cfg_para.zone,zone,strlen(zone));
+//	fprintf(stderr,"getZone return = %d\n",ret);
+	return ret;
+}
+
 INT8S bcd2int32u(INT8U* bcd, INT8U len, ORDER order, INT32U* dint) {
     int i = 0;
     if (bcd == NULL)
@@ -789,7 +856,7 @@ void bufsyslog(const INT8U* buf, const char* title, int head, int tail, int len)
     asyslog(LOG_INFO, "%s", msg);
 }
 
-INT8U getBase_DataTypeLen(Base_DataType dataType) {
+INT8U getBase_DataTypeLen(Base_DataType dataType,INT8U data) {
     INT8U length = 0;
     switch (dataType) {
         case dtenum:
@@ -797,6 +864,9 @@ INT8U getBase_DataTypeLen(Base_DataType dataType) {
         case dtinteger:
         case dtunsigned:
             length = 1;
+            break;
+        case dtbitstring:
+            length = (data/8) + 1;
             break;
         case dtlong:
         case dtlongunsigned:

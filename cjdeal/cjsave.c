@@ -317,10 +317,10 @@ int GetOADPos(FILE *fp,INT16U headlen,OAD oadm,OAD oadr)
  * 数据格式：文件头结构：标注文件TSA和时标及csd格式，开始4个字节为文件头长度和每个数据单元长度 数据结构：存储各数据项值
  * 分测量点存储，一个TSA的全部数据放到一起，例如24个点的曲线数据，则按采集个数编号放入到一个位置,减少索引时间
  * 返回1，表示发生事件
+ * ts_cc 要存储到哪一天
  */
-int SaveNorData(INT8U taskid,ROAD *road_eve,INT8U *databuf,int datalen)//存储事件时指针road_eve定义为NULL
+int SaveNorData(INT8U taskid,ROAD *road_eve,INT8U *databuf,int datalen)//,TS ts_cc)//存储事件时指针road_eve定义为NULL
 {
-	TS ts_now,ts_month;
 	FILE *fp;
 	CSD_ARRAYTYPE csds;
 	char	fname[FILENAMELEN]={};
@@ -329,9 +329,10 @@ int SaveNorData(INT8U taskid,ROAD *road_eve,INT8U *databuf,int datalen)//存储�
 	INT16U headlen=0,unitlen=0,unitnum=0,unitseq=0,runtime=0;//runtime执行次数
 	TASKSET_INFO tasknor_info;
 	memset(&csds,0x00,sizeof(ROAD));
+	TS ts_cc;
+	TSGet(&ts_cc);
 //	csds.num = 1;
 //	csds.csd[0].type = 1;//road
-	TSGet(&ts_now);//用的当前时间，测试用，需要根据具体存储时标选择来定义
 	if(road_eve == NULL)//不是事件
 	{
 		fprintf(stderr,"SaveNorData==========\n");
@@ -341,15 +342,13 @@ int SaveNorData(INT8U taskid,ROAD *road_eve,INT8U *databuf,int datalen)//存储�
 		memcpy(&csds,&tasknor_info.csds,sizeof(CSD_ARRAYTYPE));//
 		if(taskinfoflg == 2)//月冻结
 		{
-			ts_month.Year = ts_now.Year;
-			ts_month.Month = ts_now.Month;
-			ts_now.Day = 0;
-			ts_now.Hour = 0;
-			ts_now.Minute = 0;
-			ts_now.Sec = 0;
-			asyslog(LOG_WARNING, "月冻结存储:%d",ts_now.Month);
+			ts_cc.Day = 0;
+			ts_cc.Hour = 0;
+			ts_cc.Minute = 0;
+			ts_cc.Sec = 0;
+			asyslog(LOG_WARNING, "月冻结存储:%d",ts_cc.Month);
 		}
-		getTaskFileName(taskid,ts_now,fname);
+		getTaskFileName(taskid,ts_cc,fname);
 	}
 	else
 	{
@@ -363,6 +362,11 @@ int SaveNorData(INT8U taskid,ROAD *road_eve,INT8U *databuf,int datalen)//存储�
 	if(fp == NULL)//文件没内容 组文件头，如果文件已存在，提取文件头信息
 	{
 		CreateSaveHead(fname,road_eve,csds,&headlen,&unitlen,&unitnum,runtime,1);//写文件头信息并返回
+		if(unitlen == 0)
+		{
+			asyslog(LOG_WARNING, "cjsave 存储文件头%s headlen=%d unitlen=%d unitnum=%d runtime=%d",fname,headlen,unitlen,unitnum,runtime);
+			return 0;
+		}
 		asyslog(LOG_WARNING, "cjsave 存储文件头%s headlen=%d unitlen=%d unitnum=%d runtime=%d",fname,headlen,unitlen,unitnum,runtime);
 		databuf_tmp = malloc(unitlen);
 		savepos=0;
@@ -418,12 +422,12 @@ int SaveNorData(INT8U taskid,ROAD *road_eve,INT8U *databuf,int datalen)//存储�
 		for(i=0;i<runtime;i++)
 			memcpy(&databuf_tmp[unitlen*i/runtime],databuf,18);//每个小单元地址附上
 	}
-	unitseq = (ts_now.Hour*60*60+ts_now.Minute*60+ts_now.Sec)/((24*60*60)/runtime)+1;
-	asyslog(LOG_NOTICE,"ts: %d:%d:%d",ts_now.Hour,ts_now.Minute,ts_now.Sec);
-	asyslog(LOG_NOTICE,"存储序号: unitseq=%d runtime=%d  %d--%d",unitseq,runtime,(ts_now.Hour*60*60+ts_now.Minute*60+ts_now.Sec),((24*60*60)/runtime));
+	unitseq = (ts_cc.Hour*60*60+ts_cc.Minute*60+ts_cc.Sec)/((24*60*60)/runtime)+1;
+	asyslog(LOG_NOTICE,"ts: %d:%d:%d",ts_cc.Hour,ts_cc.Minute,ts_cc.Sec);
+	asyslog(LOG_NOTICE,"存储序号: unitseq=%d runtime=%d  %d--%d",unitseq,runtime,(ts_cc.Hour*60*60+ts_cc.Minute*60+ts_cc.Sec),((24*60*60)/runtime));
 	if(unitseq > runtime)
 	{
-		asyslog(LOG_NOTICE,"unitseq　= %d　runtime = %d",ts_now.Hour,ts_now.Minute,ts_now.Sec);
+		asyslog(LOG_NOTICE,"unitseq　= %d　runtime = %d",ts_cc.Hour,ts_cc.Minute,ts_cc.Sec);
 		if(databuf_tmp != NULL)
 			free(databuf_tmp);
 		return 0;//出错了，序列号超过了总长度

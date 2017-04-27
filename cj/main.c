@@ -21,6 +21,7 @@
 #include "StdDataType.h"
 #include "main.h"
 #include "AccessFun.h"
+#include "PublicFunction.h"
 
 #include "dlt698.h"
 #include "filebase.h"

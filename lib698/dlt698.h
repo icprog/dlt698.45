@@ -16,7 +16,7 @@ extern void testframe(INT8U* apdu, int len);
 extern INT8U Report_Event(CommBlock* com, INT8U *oiarr, INT8U report_type);
 extern INT16U composeAutoReport(INT8U* SendApdu, INT16U length);
 extern INT16U composeAutoTask(AutoTaskStrap* list);
-extern int callAutoReport(CommBlock* com, INT8U ifecho);
+extern int callAutoReport(INT8U reportChoice,CommBlock* com, INT8U ifecho);
 extern int callEventAutoReport(CommBlock* com,INT8U *eventbuf,int datalen);
 extern int GetReportData(CLASS_601D report);
 extern int getTsas(MY_MS ms, INT8U** tsas); //注意：！！！！！函数调用需要外部释放内存
@@ -24,7 +24,7 @@ extern int getTsas(MY_MS ms, INT8U** tsas); //注意：！！！！！函数调�
 /*----------------------抄表相关*************************/
 extern INT16S composeProtocol698_GetRequest(INT8U*, CLASS_6015, TSA);
 extern INT16S composeProtocol698_SetRequest(INT8U* ,RESULT_NORMAL,TSA);
-extern time_t calcnexttime(TI ti, DateTimeBCD datetime);
+extern time_t calcnexttime(TI ti, DateTimeBCD datetime,TI ti_delay);
 // OAD转换为报文
 extern INT8U OADtoBuff(OAD fromOAD, INT8U* buff);
 extern INT8U analyzeProtocol698(INT8U* Rcvbuf, INT8U* resultCount, INT16S recvLen, INT8U* apduDataStartIndex, INT16S* dataLen);
@@ -94,6 +94,8 @@ extern INT8U Get_213x(OAD oad,INT8U *sourcebuf,INT8U *buf,int *len);
 extern INT8U Get_2200(OI_698 oi, INT8U* sourcebuf, INT8U* buf, int* len);
 extern INT8U Get_2203(OI_698 oi, INT8U* sourcebuf, INT8U* buf, int* len);
 extern INT8U Get_2204(OI_698 oi, INT8U* sourcebuf, INT8U* buf, int* len);
+
+extern int Get_4000(OAD oad,INT8U *data);
 /*----------------------参变量类----------------------*/
 extern int Get_6001(INT8U type,INT16U seqnum, INT8U* data);
 extern int Get_6013(INT8U type,INT8U taskid,INT8U *data);
