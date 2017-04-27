@@ -187,6 +187,7 @@ int deal8105(TS ts) {
 }
 
 int deal8106(TS ts) {
+#if 0
     //获取总加组
     int index = -1;
     for (int i = 0; i < MAX_AL_UNIT; ++i) {
@@ -198,6 +199,7 @@ int deal8106(TS ts) {
     if (index == -1) {
         return 0;
     }
+#endif
 }
 
 
