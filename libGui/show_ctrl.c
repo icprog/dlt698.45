@@ -13,7 +13,31 @@
 #define MAX_INTERVAL 2//显示开关切换最大间隔时间 单位s
 #define LED_EC_COUNT 10 //告警灯闪烁时长
 volatile static time_t curts,oldts;
-ProgramInfo* p_JProgramInfo;//共享内存指针，由ProgramInfo_register(ProgramInfo* JProgramInfo)初始化，在guictrl.c中调用
+
+/*
+ * 共享内存指针
+ * 由ProgramInfo_register(ProgramInfo* JProgramInfo)初始化
+ * 在guictrl.c中调用
+*/
+ProgramInfo* p_JProgramInfo = {0};
+
+
+/**********************************
+ *			start global
+ **********************************/
+INT8U g_firstRun = GUI_FIRST_RUN;//GUI代码首次运行标志
+INT8U g_chgOI4500 = 0;//oi4500参数变更标记记录
+INT8U g_chgOI4300 = 0;//oi4300参数变更标记记录
+
+CLASS_4001_4002_4003 g_Class4001_4002_4003 = {0};
+CLASS26 g_class26_oi4510 = {0};
+CLASS25 g_class25_oi4500 = {0};
+CLASS_4001_4002_4003 g_class400140024003_oi4001 = {0};
+CLASS19 g_class19_oi4300 = {0};
+/**********************************
+ *			end global
+ **********************************/
+
 Proxy_Msg* p_Proxy_Msg_Data;//液晶给抄表发送代理处理结构体，指向由guictrl.c配置的全局变量
 extern void lcd_showTopStatus();
 extern void lcd_showBottomStatus(int zb_status, int gprs_status);

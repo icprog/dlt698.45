@@ -7,7 +7,7 @@
 //#include "../include/stdafx.h"
 #include "gui.h"
 #include "show_ctrl.h"
-extern ProgramInfo* p_JProgramInfo;//共享内存指针，由ProgramInfo_register(ProgramInfo* JProgramInfo)初始化，在guictrl.c中调用
+
 int g_curcldno;
 #define GPRSCSQ_L1 8 //信号强度
 #define GPRSCSQ_L2 16
