@@ -137,7 +137,6 @@ void lcd_ctl()
 			break;
 		if(ret_show_time_flag())
 		{
-//			fprintf(stderr,"\n开始显示\n");
 			set_time_show_flag(0);
 			lcm_write();
 		}
@@ -168,8 +167,9 @@ void lcd_ctl()
 		}
 		if(keypress!=0){
 			PressKey = keypress;
-//			fprintf(stderr,"\n.....PressKey = %x.....\n",PressKey);
-		//集中器在断电后90秒关机，如果此时有按键被按，计时归零。下面这断代码，就是当底板断电的情况下，如果有按键被按
+
+		//集中器在断电后90秒关机，如果此时有按键被按，计时归零。
+		//下面这段代码，就是当底板断电的情况下，如果有按键被按
 		//就给vmain发消息，vmain将计时归零
 			//TODO:断电按键检测
 //			if(pwr_has() == FALSE)

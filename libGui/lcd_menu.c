@@ -47,7 +47,8 @@ int isCata(Menu *menu, int menu_count, int currmenu_index){
 	int iscata=0;//1 是目录 0 不是
 	if(currmenu_index+1>=menu_count)
 		return iscata;
-	//下一个菜单项的目录级别大于当前菜单项的目录级别则判定为此菜单项有子菜单，比如说当前菜单项的level是1，如果下一个菜单项的
+	//下一个菜单项的目录级别大于当前菜单项的目录级别则判定为此菜单项有子菜单，
+	//比如说当前菜单项的level是1，如果下一个菜单项的
 	//level是2，那么则说明该菜单项包含子菜单项
 	if(menu[currmenu_index+1].data.level>menu[currmenu_index].data.level)
 		iscata = 1;
@@ -74,12 +75,14 @@ MenuList *ComposeDList(Menu *menu,  int menu_count)
 	struct list *list_parent=NULL;
 	MenuList *pitem=NULL, *pmenulist_head=NULL;
 //	fprintf(stderr,"\n-----\n");
+	DEBUG_TIME_LINE("menu_count= %d", menu_count);
 	for(level=0; level<=level6; level++){
 		for(i=0; i<menu_count; i++)
 		{
 			if(menu[i].data.level!=level)
 				continue;
 			pitem = MakeMenuListItem(&menu[i]);//生成一个节点
+
 			if(pitem==NULL)
 				return NULL;
 			list_parent = (struct list*)menu_getparent(menu, menu_count, i);//获得链表中父节点指针
@@ -92,7 +95,7 @@ MenuList *ComposeDList(Menu *menu,  int menu_count)
 					continue;
 				}
 			}
-			//如果是同一级别的菜单项则在链表尾端插入把这个节点加到链表中
+			//如果是同一级别的菜单项则在链表尾端插入这个节点
 			list_add_tail(list_parent->child, &pitem->node);
 			pitem->node.parent = list_parent;
 //			fprintf(stderr,"\n Level %d: [%d]name=%s node=0x%x prev=0x%x list_parent=0x%x pitem->node.child=0x%x",
@@ -227,10 +230,7 @@ void ShowItself(struct list *head)
 	char first_flg=0, passwd_flg=0;//密码标识
 	char passwd[6];//
 	g_curcldno = 1;
-	while(1)
-	{
-//		if(thread_run == PTHREAD_STOP)//如果收到终端信号
-//			break;
+	while(1) {
 		delay(100);
 		if(g_LcdPoll_Flag==LCD_INPOLL)//如果处于轮选状态，则一直等待轮显结束
 			return;
@@ -244,7 +244,14 @@ void ShowItself(struct list *head)
 		}else{
 			switch(PressKey)
 			{
+			case LEFT:
+				DEBUG_TIME_LINE("PressKey LEFT\n");
+				break;
+			case RIGHT:
+				DEBUG_TIME_LINE("PressKey RIGHT\n");
+				break;
 			case UP:
+				DEBUG_TIME_LINE("PressKey UP\n");
 				if(pageitem_count>0){
 					current=list_getprev(current);
 					if(current==head){//如果当前菜单项是菜单项链表的第一个菜单项
@@ -257,6 +264,7 @@ void ShowItself(struct list *head)
 				}
 				break;
 			case DOWN:
+				DEBUG_TIME_LINE("PressKey DOWN\n");
 				if(pageitem_count>0){
 					current = list_getnext(current);
 					if(current==NULL)
@@ -269,6 +277,7 @@ void ShowItself(struct list *head)
 				break;
 			case OK:
 				//oprmode_bak = get_oprmode();
+				DEBUG_TIME_LINE("PressKey OK\n");
 				menuitem = getMenuListItembyList(current);//获取当前菜单项信息，根据获取的信息判断其是否有密码和子菜单项
 				if(menuitem->data.ispasswd == MENU_ISPASSWD_EDITMODE)
 				{//如果菜单项需要输入密码
@@ -312,6 +321,7 @@ void ShowItself(struct list *head)
 				{//密码正确
 					if(current->child!=NULL)
 					{//有子菜单
+						DEBUG_TIME_LINE("has child");
 						tmenustat.begin = begin;
 						tmenustat.current = current;
 						tmenustat.head = head;
@@ -328,6 +338,7 @@ void ShowItself(struct list *head)
 				//set_oprmode(oprmode_bak);
 				break;
 			case ESC:
+				DEBUG_TIME_LINE("PressKey ESC\n");
 				memset(&tmenustat, 0, sizeof(MenuStat_t));
 				if(top(&tmenustat))
 				{//利用堆栈来存储菜单显示的页面
