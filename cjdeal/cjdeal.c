@@ -422,7 +422,6 @@ INT8U deal6013_onPara4000changed()
 	fprintf(stderr,"\ndeal6013_onPara4000changed--------------------start\n");
 	INT8U ret = 1;
 	INT16U tIndex;
-	INT16U tautoIndex;
 	time_t time_now;
 	time_now = time(NULL);//当前时间
 	//普通任务
@@ -430,6 +429,7 @@ INT8U deal6013_onPara4000changed()
 	{
 		if((list6013[tIndex].basicInfo.taskID > 0)&&(time_now < list6013[tIndex].ts_next))
 		{
+			fprintf(stderr,"\n12313123123123\n");
 			list6013[tIndex].ts_next  =
 					calcnexttime(list6013[tIndex].basicInfo.interval,list6013[tIndex].basicInfo.startime,list6013[tIndex].basicInfo.delay);
 		}
@@ -437,22 +437,6 @@ INT8U deal6013_onPara4000changed()
 	fprintf(stderr,"\ndeal6013_onPara4000changed--------------------end\n");
 
 
-	//上报任务
-	for (tautoIndex = 0; tautoIndex < total_autotasknum; tautoIndex++)
-	{
-		if((JProgramInfo->autotask[tautoIndex].ID > 0)&&(time_now < JProgramInfo->autotask[tautoIndex].nexttime))
-		{
-			for (tIndex = 0; tIndex < total_tasknum; tIndex++)
-			{
-				if(list6013[tIndex].basicInfo.taskID == JProgramInfo->autotask[tautoIndex].ID)
-				{
-					JProgramInfo->autotask[tautoIndex].nexttime  =
-							calcnexttime(list6013[tIndex].basicInfo.interval,list6013[tIndex].basicInfo.startime,list6013[tIndex].basicInfo.delay);
-				}
-			}
-
-		}
-	}
 	return ret;
 }
 
@@ -462,12 +446,11 @@ INT8U deal6013_onPara4000changed()
 INT8U init6013ListFrom6012File() {
 
 	total_tasknum = 0;
-	total_autotasknum = 0;
 	//list6013  初始化下一次抄表时间
 	TS ts_now;
 	TSGet(&ts_now);
 
-//	fprintf(stderr, "\n -------------init6013ListFrom6012File---------------");
+	fprintf(stderr, "\n \n-------------init6013ListFrom6012File---------------start\n");
 	INT8U result = 0;
 	memset(list6013, 0, TASK6012_MAX * sizeof(TASK_CFG));
 	memset(&JProgramInfo->autotask,0,sizeof(JProgramInfo->autotask));		//增加初始化
@@ -479,26 +462,30 @@ INT8U init6013ListFrom6012File() {
 		if (readCoverClass(oi, tIndex, &class6013, sizeof(CLASS_6013),
 				coll_para_save) == 1) {
 			//print6013(list6013[tIndex]);
-			if(class6013.cjtype == rept)
-			{
-				init_autotask(total_autotasknum,class6013,JProgramInfo->autotask);
-				total_autotasknum++;
-			}
-			else
+			if(class6013.cjtype != rept)
 			{
 				memcpy(&list6013[total_tasknum].basicInfo, &class6013, sizeof(CLASS_6013));
 
 				TS taskStartTime;
 				TimeBCDToTs(list6013[total_tasknum].basicInfo.startime,&taskStartTime);
 				INT8U timeCmp = TScompare(ts_now,taskStartTime);
+
+				asyslog(LOG_NOTICE,"当前时间 %04d-%02d-%02d %02d:%02d:%02d\n",
+						ts_now.Year,ts_now.Month,ts_now.Day,ts_now.Hour,
+						ts_now.Minute,ts_now.Sec);
+
+				asyslog(LOG_NOTICE,"任务开始时间 %04d-%02d-%02d %02d:%02d:%02d\n",
+						taskStartTime.Year,taskStartTime.Month,taskStartTime.Day,taskStartTime.Hour,
+						taskStartTime.Minute,taskStartTime.Sec);
+
 				if(timeCmp > 1)
 				{
-					fprintf(stderr,"\n11111111111111111111");
+					fprintf(stderr,"\n11111111111111111111\n");
 					list6013[total_tasknum].ts_next  = tmtotime_t(ts_now);
 				}
 				else
 				{
-					fprintf(stderr,"\n222222222222222222222");
+					fprintf(stderr,"\n222222222222222222222\n");
 					list6013[total_tasknum].ts_next  =
 									calcnexttime(list6013[total_tasknum].basicInfo.interval,list6013[total_tasknum].basicInfo.startime,list6013[total_tasknum].basicInfo.delay);
 				}
@@ -516,7 +503,7 @@ INT8U init6013ListFrom6012File() {
 			}
 		}
 	}
-
+	fprintf(stderr, "\n \n-------------init6013ListFrom6012File---------------start\n");
 	return result;
 }
 INT8U getParaChangeType()

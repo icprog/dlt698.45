@@ -714,9 +714,9 @@ INT8U Event_3100(INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
     }
     //43 00 03 00
     //事件判定
-    INT16U oi=(data[0]<<8)+data[1];
-    INT8U action=data[2]&0b00011111;
-    if(oi==0x4300 && action==3){
+//    INT16U oi=(data[0]<<8)+data[1];
+//    INT8U action=data[2]&0b00011111;
+    if(1){
     	INT8U Save_buf[256];
 		bzero(Save_buf, sizeof(Save_buf));
 		prginfo_event->event_obj.Event3100_obj.crrentnum++;

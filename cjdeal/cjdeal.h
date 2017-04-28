@@ -21,7 +21,6 @@ typedef struct {
 	CLASS_6013 basicInfo;
 }TASK_CFG;
 INT8U total_tasknum;
-INT8U total_autotasknum;
 TASK_CFG list6013[TASK6012_MAX];
 
 
