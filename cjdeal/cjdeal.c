@@ -419,6 +419,7 @@ INT8S saveClass6035(CLASS_6035* class6035)
 //集中器调时间　需要重新处理任务开始时间：如果是向前对时需要重新计算任务下一次开始时间，向后对时就不用了
 INT8U deal6013_onPara4000changed()
 {
+	fprintf(stderr,"\ndeal6013_onPara4000changed--------------------start\n");
 	INT8U ret = 1;
 	INT16U tIndex;
 	INT16U tautoIndex;
@@ -433,6 +434,9 @@ INT8U deal6013_onPara4000changed()
 					calcnexttime(list6013[tIndex].basicInfo.interval,list6013[tIndex].basicInfo.startime,list6013[tIndex].basicInfo.delay);
 		}
 	}
+	fprintf(stderr,"\ndeal6013_onPara4000changed--------------------end\n");
+
+
 	//上报任务
 	for (tautoIndex = 0; tautoIndex < total_autotasknum; tautoIndex++)
 	{
@@ -484,8 +488,20 @@ INT8U init6013ListFrom6012File() {
 			{
 				memcpy(&list6013[total_tasknum].basicInfo, &class6013, sizeof(CLASS_6013));
 
-				list6013[total_tasknum].ts_next  =
-						calcnexttime(list6013[total_tasknum].basicInfo.interval,list6013[total_tasknum].basicInfo.startime,list6013[total_tasknum].basicInfo.delay);
+				TS taskStartTime;
+				TimeBCDToTs(list6013[total_tasknum].basicInfo.startime,&taskStartTime);
+				INT8U timeCmp = TScompare(ts_now,taskStartTime);
+				if(timeCmp > 1)
+				{
+					fprintf(stderr,"\n11111111111111111111");
+					list6013[total_tasknum].ts_next  = tmtotime_t(ts_now);
+				}
+				else
+				{
+					fprintf(stderr,"\n222222222222222222222");
+					list6013[total_tasknum].ts_next  =
+									calcnexttime(list6013[total_tasknum].basicInfo.interval,list6013[total_tasknum].basicInfo.startime,list6013[total_tasknum].basicInfo.delay);
+				}
 
 				//TODO
 				total_tasknum++;
