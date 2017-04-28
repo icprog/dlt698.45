@@ -513,16 +513,29 @@ INT8U getParaChangeType()
 
 	static INT8U lastchgoi4000=0;
 	static INT8U lastchgoi4204=0;
-
+	static INT8U lastchgoi4300=0;
 	static INT8U first=1;
 	if(first)
 	{
 		first=0;
 		lastchgoi6000 = JProgramInfo->oi_changed.oi6000;
-		lastchgoi6012= JProgramInfo->oi_changed.oi6012;
-		lastchgoi6014= JProgramInfo->oi_changed.oi6014;
-		lastchgoi4204= JProgramInfo->oi_changed.oi4204;
+		lastchgoi6012 = JProgramInfo->oi_changed.oi6012;
+		lastchgoi6014 = JProgramInfo->oi_changed.oi6014;
+		lastchgoi4204 = JProgramInfo->oi_changed.oi4204;
+		lastchgoi4300 = JProgramInfo->oi_changed.oi4300;
+		CLASS19 class19;
+		memset(&class19,0,sizeof(CLASS19));
+		readCoverClass(0x4300,0,&class19,sizeof(class19),para_vari_save);
+		isAllowReport = class19.active_report;
 		return ret;
+	}
+	if(lastchgoi4300 != JProgramInfo->oi_changed.oi4300)
+	{
+		fprintf(stderr,"\n 测量点参数4300变更");
+		CLASS19 class19;
+		memset(&class19,0,sizeof(CLASS19));
+		readCoverClass(0x4300,0,&class19,sizeof(class19),para_vari_save);
+		isAllowReport = class19.active_report;
 	}
 	if(lastchgoi6000 != JProgramInfo->oi_changed.oi6000)
 	{

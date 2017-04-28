@@ -2997,7 +2997,7 @@ INT16S deal6017_698(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8
 
 						int isEventOccur = SaveNorData(st6035->taskID,&test6015.csds.csd[0].csd.road,saveContentHead,SAVE_EVENT_BUFF_HEAD_LEN);
 						DbgPrintToFile1(port485,"isEventOccur = %d---------",isEventOccur);
-						if(isEventOccur == 1)
+						if((isEventOccur == 1)&&(isAllowReport==1))
 						{
 							sendEventReportBuff698(test6015.csds.csd[0].csd.road,saveContentHead,port485,oadListContent);
 						}
@@ -3153,10 +3153,16 @@ INT16S deal6017_07(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8U
 
 	return 0;
 }
-TS getLastNHourTime(INT8U hourIndex)
+#if 0
+//得到
+TS getLastNHourTime(TS tm_now,INT8U hourIndex)
 {
 
+	TS tm_Last;
+	tminc();
+	return tm_Last;
 }
+#endif
 /*
  * 抄读1个测量点
  */
@@ -3185,8 +3191,7 @@ INT16S deal6015or6017_singlemeter(CLASS_6013 st6013,CLASS_6015 st6015,CLASS_6001
 			break;
 			default:
 				{
-
-					//曲线　　一小时抄一次
+					//曲线　　每次抄一小时的数据
 					if(st6015.cjtype == TYPE_INTERVAL)
 					{
 #if 0
@@ -3205,13 +3210,16 @@ INT16S deal6015or6017_singlemeter(CLASS_6013 st6013,CLASS_6015 st6015,CLASS_6001
 						{
 							hourInterVal = st6013.interval.interval;
 						}
-						DbgPrintToFile1(port485,"hourInterVal = %d",hourInterVal);
 						TS ts_now;
 						TSGet(&ts_now);
+						DbgPrintToFile1(port485,"当前时间 %04d-%02d-%02d %02d:%02d:%02d  hourInterVal = %d \n",
+												ts_now.Year,ts_now.Month,ts_now.Day,ts_now.Hour,
+												ts_now.Minute,ts_now.Sec,hourInterVal);
+
 						INT8U hourIndex = 0;
 						for(hourIndex = 0;hourIndex < hourInterVal;hourIndex++)
 						{
-							TS starttime = getLastNHourTime(hourIndex);
+							TS starttime = getLastNHourTime(ts_now,hourIndex);
 						}
 #endif
 					}
