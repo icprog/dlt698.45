@@ -167,8 +167,8 @@ INT32S secureBroadcastCheck(SID_MAC *sid_mac,CSINFO *csinfo)
 	 memset(&sidmac,0,sizeof(SID_MAC));
 	 appLen = GetDataLength(&apdu[2]);
 	 if(appLen<=0) return -201;
-	 if(apdu[2+appLen]==0x00 ||apdu[2+appLen]==0x03)//SID_MAC数据验证码
-	 {
+	if(apdu[2+appLen]==0x00 ||apdu[2+appLen]==0x03)//SID_MAC数据验证码
+	{
 		tmplen = UnitParse(&apdu[2+appLen+1],(INT8U*)&sidmac,0x01);//解析SID部分
 		if(tmplen<=0) return -202;
 		//判断服务器地址类型是否为组地址或广播地址
@@ -492,7 +492,7 @@ INT32S esamMethodCcieSession(INT8U *Data2)
 INT32S compose_DataAndMac(INT8U* SendApdu,INT16U Length)
 {
 	 INT8U esamBuff[2048];//送入esam，获取esam返回信息
-	 memset(&esamBuff,0,2048);
+	 memset(esamBuff,0,2048);
 	 INT8U bytelen[3];
 	 memset(bytelen,0,3);
 	 INT8U BuffTmp[2048];
@@ -527,9 +527,9 @@ INT32S compose_DataAndMac(INT8U* SendApdu,INT16U Length)
 INT32S compose_EnData(INT8U* SendApdu,INT16U Length)
 {
 	 INT8U esamBuff[2048];//送入esam，获取esam返回信息
-	 memset(&esamBuff,0,2048);
+	 memset(esamBuff,0,2048);
 	 INT8U bytelen[3];
-	 memset(&bytelen,0,3);
+	 memset(bytelen,0,3);
 	 INT8U BuffTmp[2048];
 	 memset(BuffTmp,0,2048);
 	 INT32S esamret=0;
@@ -553,9 +553,9 @@ INT32S compose_EnData(INT8U* SendApdu,INT16U Length)
 INT32S compose_EnDataAndMac( INT8U* SendApdu,INT16U Length)
 {
 	 INT8U esamBuff[2048];//送入esam，获取esam返回信息
-	 memset(&esamBuff,0,2048);
+	 memset(esamBuff,0,2048);
 	 INT8U bytelen[3];
-	 memset(&bytelen,0,3);
+	 memset(bytelen,0,3);
 	 INT8U BuffTmp[2048];
 	 memset(BuffTmp,0,2048);
 	 INT32S esamret=0;
