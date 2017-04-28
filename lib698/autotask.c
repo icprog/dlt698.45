@@ -114,8 +114,6 @@ time_t calcnexttime(TI ti,DateTimeBCD datetime,TI ti_delay)
 void init_autotask(INT16U taskIndex,CLASS_6013 class6013,AutoTaskStrap* list)
 {
 	struct tm  tmp_tm;
-	if(class6013.cjtype == rept)
-	{
 		list[taskIndex].ID = class6013.taskID;
 		list[taskIndex].SerNo = class6013.sernum;
 		list[taskIndex].nexttime = calcnexttime(class6013.interval,class6013.startime,class6013.delay);
@@ -124,7 +122,6 @@ void init_autotask(INT16U taskIndex,CLASS_6013 class6013,AutoTaskStrap* list)
 		fprintf(stderr,"下次时间 %04d-%02d-%02d %02d:%02d:%02d\n",tmp_tm.tm_year+1900,tmp_tm.tm_mon+1,tmp_tm.tm_mday,tmp_tm.tm_hour,tmp_tm.tm_min,tmp_tm.tm_sec);
 		asyslog(LOG_NOTICE,"任务索引【%d】,方案【%d】,下次时间【%04d-%02d-%02d %02d:%02d:%02d】",taskIndex,list[taskIndex].ID,tmp_tm.tm_year+1900,tmp_tm.tm_mon+1,tmp_tm.tm_mday,tmp_tm.tm_hour,tmp_tm.tm_min,tmp_tm.tm_sec);
 
-	}
 }
 int fillcsinfo(CSINFO *csinfo,INT8U *addr,INT8U clientaddr)
 {
@@ -308,8 +305,12 @@ INT16U  composeAutoTask(AutoTaskStrap *list)
 	CLASS_601D class601d={};
 
 	if(list->nexttime==0)	return ret;		//防止无效重复读取文件
+
+	timenow = time(NULL);
 	if(timenow >= list->nexttime)
 	{
+
+		fprintf(stderr, "任务上报时间%ld, %ld\n", list->nexttime, timenow);
 		if (readCoverClass(0x6013, list->ID, &class6013, sizeof(CLASS_6013),coll_para_save) == 1)
 		{
 			fprintf(stderr,"\ni=%d 任务【 %d 】 	 开始执行   上报方案编号【 %d 】",i,list->ID,list->SerNo);
@@ -325,6 +326,7 @@ INT16U  composeAutoTask(AutoTaskStrap *list)
 				fprintf(stderr,"GetReportData=%d\n",ret);
 			}
 			list->nexttime = calcnexttime(class6013.interval,class6013.startime,class6013.delay);
+			fprintf(stderr, "再次计算任务上报时间%ld, %ld\n", list->nexttime, timenow);
 		}else
 		{
 //				fprintf(stderr,"\n任务参数丢失！");

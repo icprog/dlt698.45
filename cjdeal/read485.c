@@ -1406,11 +1406,11 @@ INT8S checkEvent698(OAD rcvOAD,INT8U* data,INT8U dataLen,CLASS_6001 obj6001,INT1
 		ret = Event_310E(obj6001.basicinfo.addr,taskID,&data[3],dataLen,JProgramInfo);
 	}
 	fprintf(stderr,"taskID = %d, task_no=%d\n",taskID,JProgramInfo->event_obj.Event311C_obj.task_para.task_no);
-	if(taskID == JProgramInfo->event_obj.Event311C_obj.task_para.task_no)
-	{
-		fprintf(stderr,"checkEvent698_311C OI = %02x",rcvOAD.OI);
+//	if(taskID == JProgramInfo->event_obj.Event311C_obj.task_para.task_no)	//文件更改未更新共享内存的task_no，去掉判断，在产生事件内部判断
+//	{
+//		fprintf(stderr,"checkEvent698_311C OI = %02x",rcvOAD.OI);
 		ret = Event_311C(obj6001.basicinfo.addr,taskID,rcvOAD,data,dataLen,JProgramInfo);
-	}
+//	}
 
 	return ret;
 }
