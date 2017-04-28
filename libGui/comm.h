@@ -183,10 +183,9 @@ extern int g_curcldno;
 
 //液晶轮显
 #define LCDPOLL_INTERNAL 8//国网要求8秒
-#ifdef SPTF_III
-#define POLLTIME 60////超过多长时间进入轮询时间
-#else
-#define POLLTIME 45////超过多长时间进入轮询时间
-#endif
+
+#define POLLTIME_SPTF_III	60//III型专变轮显超时时间
+#define POLLTIME_I_II		45//I, II型集中器轮显超时时间
+
 
 #endif

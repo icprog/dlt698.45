@@ -73,7 +73,7 @@ extern CLASS25 g_class25_oi4500;
 extern CLASS_4001_4002_4003 g_Class4001_4002_4003;
 extern CLASS19 g_class19_oi4300;
 
-extern void ProgramInfo_register(ProgramInfo* JProgramInfo);
+
 extern void showmain();
 extern void show_ctrl();
 extern void lcd_showTopStatus();

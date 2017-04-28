@@ -10,6 +10,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <stdlib.h>
+#include <basedef.h>
 #include "comm.h"
 #include "lcd_menu.h"
 #include "lcd_ctrl.h"
@@ -201,7 +202,7 @@ int getMenuSize(){
 
 void show_realdata(int pindex, LcdDataItem *item, int itemcount){
 	int pageno=0;
-	CLASS_6001 meter;
+	CLASS_6001 meter = {0};
 	bzero(&meter,sizeof(CLASS_6001));
 	if(pindex <=0)
 		return;
@@ -1596,9 +1597,12 @@ static int addmp_showlabel(struct list *head, struct list *node){
 //#ifdef CCTT_I
 	gui_textshow((char *)"采集器:", label_pos, LCD_NOREV);
 //#endif
-#ifdef SPTF_III
-	gui_textshow((char *)"局编号:", label_pos, LCD_NOREV);
-#endif
+	if (NULL != p_JProgramInfo) {
+		if (SPTF3 == p_JProgramInfo->cfg_para.device) {
+			gui_textshow((char *)"局编号:", label_pos, LCD_NOREV);
+		}
+	}
+
 	set_time_show_flag(1);
 	return ret;
 }
@@ -1628,9 +1632,11 @@ static int setmp_showlabel(struct list *head, struct list *node){
 //#ifdef CCTT_I
 	gui_textshow((char *)"采集器:", label_pos, LCD_NOREV);
 //#endif
-#ifdef SPTF_III
-	gui_textshow((char *)"局编号:", label_pos, LCD_NOREV);
-#endif
+	if (NULL != p_JProgramInfo) {
+		if (SPTF3 == p_JProgramInfo->cfg_para.device) {
+			gui_textshow((char *)"局编号:", label_pos, LCD_NOREV);
+		}
+	}
 	set_time_show_flag(1);
 	return ret;
 }
@@ -1665,7 +1671,7 @@ void setmeterpara(int pindex)
 	cur_pindex = (CLASS_6001*)pindex;
 	int tmp=0, f10_flg=1,addr_len = 0;
 //	para_1mp para_f10;
-#ifdef SPTF_III
+#ifdef SPTF_III//TODO:
 	para_F29 para_f29;
 #endif
 	int form_cldno=0;//通过控件修改的测量点地址
@@ -1942,7 +1948,8 @@ void setmeterpara(int pindex)
 }
 
 /*
- * 目前处理的添加测量点为自动寻找最小可配置序号，对已存在的配置序号不进行修改
+ * 目前处理的添加测量点为自动寻找最小可配置序号
+ * 对已存在的配置序号不进行修改
  * */
 void addmeter()
 {
@@ -3996,12 +4003,10 @@ int setid_showlabel(){
 
 void jzq_id_edit()
 {
-	int i = 0;
-
-	INT8U str[50];
-	INT8U sever_addr[20];
+	INT8U str[50] = {0};
+	INT8U sever_addr[20] = {0};
 	INT8U addr_len = 0;
-	char s_jzqdizhi10[30],oprmode_old=0;
+	char s_jzqdizhi10[30] = {0}, oprmode_old=0;
 
 	memset(sever_addr,0,sizeof(sever_addr));
 	memset(s_jzqdizhi10, 0, sizeof(s_jzqdizhi10));
@@ -4015,7 +4020,9 @@ void jzq_id_edit()
 
 	memset(str,0,sizeof(str));
 
-	bcd2str(&g_Class4001_4002_4003.curstom_num[1],(INT8U*)str,g_Class4001_4002_4003.curstom_num[0],sizeof(str),positive);
+	bcd2str(&g_Class4001_4002_4003.curstom_num[1],\
+			(INT8U*)str,g_Class4001_4002_4003.curstom_num[0],\
+			sizeof(str),positive);
 
 	sscanf((char*)str,"%[0-9]",s_jzqdizhi10);
 
@@ -4142,11 +4149,11 @@ void show_jzqused(){
 }
 
 void show_jzq_ip(){
-	char ip[4];
-    char tmpstr[128];
-    char str[16];
+	char ip[4] = {0};
+    char tmpstr[128] = {0};
+    char str[16] = {0};
     memset(str,0,16);
-    Point pos;
+    Point pos = {0};
     gui_clrrect(rect_Client);
     gui_setpos(&pos, rect_Client.left+10*FONTSIZE, rect_Client.top+ROW_INTERVAL );
 #ifdef HUBEI
@@ -4165,9 +4172,9 @@ void show_jzq_ip(){
 	gui_textshow((char*)tmpstr, pos, LCD_NOREV);
 	//MAC地址
 	FILE *fpmac = NULL;
-	INT8U TempBuf[60];
-	char	str1[16],str2[16],str3[16],str4[16];
-	char	mac[16];
+	INT8U TempBuf[60] = {0};
+	char	str1[16] = {0}, str2[16] = {0}, str3[16] = {0}, str4[16] = {0};
+	char	mac[16] = {0};
 	memset(TempBuf, 0, 60);
 	memset(tmpstr,0,sizeof(tmpstr));
 	sprintf((char *) TempBuf, "/etc/rc.d/mac.sh");
@@ -6236,9 +6243,7 @@ void setmeterpara_js(int pindex)
 					cur1_form->pfun_process(cur1_form);
 				}
 				if(cur1_form->pfun_process_ret==OK || cur2_form->pfun_process_ret){
-					//cur_node = list_getfirst(cur_node);
 					if(msgbox_label((char *)"保存参数?", CTRL_BUTTON_OK)==ACK){
-//						dbg_prt("\n msgbox_ret = OK  save para here!!!!");
 						memcpy(&para_f10, &ParaAll->f10.para_mp[pindex-1], sizeof(para_1mp));//sizeof(para_F10));
 						memset(str, 0, INPUTKEYNUM);
 						eidt_gettext(&edit_cldno, str);
@@ -6263,18 +6268,32 @@ void setmeterpara_js(int pindex)
 							para_f10.BaudRate = 2400;
 						para_f10.TypeofBigUser = cb_dalei.cur_index;
 						para_f10.TypeOfLitUser = getxiaoleibycb(cb_xiaolei.cur_index,cb_dalei.cur_index);//cb_xiaolei.cur_index;
-		#ifdef CCTT_I
-						eidt_gettext(&edit_cjqaddr, (char*)para_f10.colladdr);
-						if(isValidMeterAddr_12((char*)para_f10.colladdr)==0)
-							f10_flg = 0;
-		#endif
-		#ifdef SPTF_III
-						if(ParaAll->f10.para_mp[pindex-1].MPNo >0)
-							memcpy(&para_f29, &ParaAll->f29s.f29[ParaAll->f10.para_mp[pindex-1].MPNo-1], sizeof(para_F29));
-						eidt_gettext(&edit_cjqaddr, (char*)para_f29.MeterDisplayNo);
-//						dbg_prt( "\n para_f29.MeterDisplayNo=%s---1", para_f29.MeterDisplayNo);
-						setpara(&para_f29, ParaAll->f10.para_mp[pindex-1].MPNo, 29, sizeof(para_F29));
-		#endif
+
+						if (NULL != p_JProgramInfo) {
+							if (CCTT1 == p_JProgramInfo->cfg_para.device) {
+								eidt_gettext(&edit_cjqaddr, (char*)para_f10.colladdr);
+								if(isValidMeterAddr_12((char*)para_f10.colladdr)==0)
+									f10_flg = 0;
+							}
+						}
+
+						if (NULL != p_JProgramInfo) {
+							if (SPTF3 == p_JProgramInfo->cfg_para.device) {
+								if(ParaAll->f10.para_mp[pindex-1].MPNo >0) {
+									memcpy(&para_f29, \
+											&ParaAll->f29s.f29[ParaAll->f10.para_mp[pindex-1].MPNo-1], \
+											sizeof(para_F29));
+								}
+
+								eidt_gettext(&edit_cjqaddr, \
+										(char*)para_f29.MeterDisplayNo);
+
+								setpara(&para_f29, \
+										ParaAll->f10.para_mp[pindex-1].MPNo, \
+										29, sizeof(para_F29));
+							}
+						}
+
 						if(f10_flg==1){
 							setpara_f10(&para_f10,10);
 							if(tem_cldvalid != cb_isvalid.cur_index)//是否投放有变化
@@ -6289,7 +6308,7 @@ void setmeterpara_js(int pindex)
 							}
 						}else
 							msgbox_label((char *)"保存失败！", CTRL_BUTTON_CANCEL);
-					}else
+					}//else
 //						dbg_prt("\n msgbox_ret = CANCEL  do not save***");
 					g_curcldno = 1;
 				}
@@ -6432,19 +6451,22 @@ void querymeterpara_js(int pindex)
 	//------------------------------------------
 	pos.y += FONTSIZE*2 + 2;
 	memset(str, 0, INPUTKEYNUM);
-#ifdef CCTT_I
-	memcpy(str, ParaAll->f10.para_mp[pindex-1].colladdr, 12);
-	edit_init(&edit_cjqaddr, str, 12, pos, 0, 0, client.node.child,KEYBOARD_DEC);//采集器地址
-#endif
-#ifdef SPTF_III
-	if(ParaAll->f10.para_mp[pindex-1].MPNo >0)
-	{
-	memcpy(str, ParaAll->f29s.f29[ParaAll->f10.para_mp[pindex-1].MPNo-1].MeterDisplayNo, 12);
-//	dbg_prt( "\n para_f29.MeterDisplayNo=%s---0",
-//			ParaAll->f29s.f29[ParaAll->f10.para_mp[pindex-1].MPNo-1].MeterDisplayNo);
+	if (NULL != p_JProgramInfo) {
+		if (CCTT1 == p_JProgramInfo->cfg_para.device) {
+			memcpy(str, ParaAll->f10.para_mp[pindex-1].colladdr, 12);
+			edit_init(&edit_cjqaddr, str, 12, pos, 0, 0, client.node.child,KEYBOARD_DEC);//采集器地址
+		}
 	}
-	edit_init(&edit_cjqaddr, str, 12, pos, 0, 0, client.node.child,KEYBOARD_ASC);//局编号
-#endif
+
+	if (NULL != p_JProgramInfo) {
+		if (SPTF3 == p_JProgramInfo->cfg_para.device) {
+			if(ParaAll->f10.para_mp[pindex-1].MPNo >0) {
+				memcpy(str, ParaAll->f29s.f29[ParaAll->f10.para_mp[pindex-1].MPNo-1].MeterDisplayNo, 12);
+			}
+			edit_init(&edit_cjqaddr, str, 12, pos, 0, 0, client.node.child,KEYBOARD_ASC);//局编号
+		}
+	}
+
 	//------------------------------------------
 	setmp_cbtext_dalei(cb_text);
 	pos.y += FONTSIZE*2 + 2;
@@ -6522,18 +6544,26 @@ void querymeterpara_js(int pindex)
 							para_f10.BaudRate = 2400;
 						para_f10.TypeofBigUser = cb_dalei.cur_index;
 						para_f10.TypeOfLitUser = getxiaoleibycb(cb_xiaolei.cur_index,cb_dalei.cur_index);//cb_xiaolei.cur_index;
-		#ifdef CCTT_I
-						eidt_gettext(&edit_cjqaddr, (char*)para_f10.colladdr);
-						if(isValidMeterAddr_12((char*)para_f10.colladdr)==0)
-							f10_flg = 0;
-		#endif
-		#ifdef SPTF_III
-						if(ParaAll->f10.para_mp[pindex-1].MPNo >0)
-							memcpy(&para_f29, &ParaAll->f29s.f29[ParaAll->f10.para_mp[pindex-1].MPNo-1], sizeof(para_F29));
-						eidt_gettext(&edit_cjqaddr, (char*)para_f29.MeterDisplayNo);
-//						dbg_prt( "\n para_f29.MeterDisplayNo=%s---1", para_f29.MeterDisplayNo);
-						setpara(&para_f29, ParaAll->f10.para_mp[pindex-1].MPNo, 29, sizeof(para_F29));
-		#endif
+
+						if (NULL != p_JProgramInfo) {
+							if (CCTT1 == p_JProgramInfo->cfg_para.device) {
+								eidt_gettext(&edit_cjqaddr, (char*)para_f10.colladdr);
+
+								if(isValidMeterAddr_12((char*)para_f10.colladdr)==0)
+									f10_flg = 0;
+							}
+						}
+
+						if (NULL != p_JProgramInfo) {
+							if (SPTF3 == p_JProgramInfo->cfg_para.device) {
+								if(ParaAll->f10.para_mp[pindex-1].MPNo >0)
+									memcpy(&para_f29, &ParaAll->f29s.f29[ParaAll->f10.para_mp[pindex-1].MPNo-1], sizeof(para_F29));
+
+								eidt_gettext(&edit_cjqaddr, (char*)para_f29.MeterDisplayNo);
+								setpara(&para_f29, ParaAll->f10.para_mp[pindex-1].MPNo, 29, sizeof(para_F29));
+							}
+						}
+
 						if(f10_flg==1){
 							setpara_f10(&para_f10,10);
 						}else
@@ -6598,12 +6628,19 @@ int querymp_showlabel_js(struct list *head, struct list *node){
 	label_pos.y += FONTSIZE*2 + 2;
 	gui_textshow((char *)"通讯协议  ", label_pos, LCD_NOREV);
 	label_pos.y += FONTSIZE*2 + 2;
-#ifdef CCTT_I
-	gui_textshow((char *)"采 集 器", label_pos, LCD_NOREV);
-#endif
-#ifdef SPTF_III
-	gui_textshow((char *)"局编号  ", label_pos, LCD_NOREV);
-#endif
+
+	if (NULL != p_JProgramInfo) {
+		if (CCTT1 == p_JProgramInfo->cfg_para.device) {
+				gui_textshow((char *)"采 集 器", label_pos, LCD_NOREV);
+		}
+	}
+
+	if (NULL != p_JProgramInfo) {
+		if (SPTF3 == p_JProgramInfo->cfg_para.device) {
+			gui_textshow((char *)"局编号  ", label_pos, LCD_NOREV);
+		}
+	}
+
 	label_pos.y += FONTSIZE*2 + 2;
 	gui_textshow((char *)"用户大类  ", label_pos, LCD_NOREV);
 	label_pos.y += FONTSIZE*2 + 2;
@@ -6611,6 +6648,7 @@ int querymp_showlabel_js(struct list *head, struct list *node){
 	set_time_show_flag(1);
 	return ret;
 }
+
 void USB_DataCopy()
 {
 	Point label_pos;

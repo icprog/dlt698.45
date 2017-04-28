@@ -2,7 +2,7 @@
  * lcdpoll.c 液晶轮寻
  * */
 //#include "../include/stdafx.h"
-//#include "comm.h"
+#include "basedef.h"
 #include "gui.h"
 #include "mutils.h"
 #include "show_ctrl.h"
@@ -13,6 +13,7 @@
 #ifdef HUBEI
 #include  "../lib3761/appendix.h"
 #endif
+
 #ifdef CCTT_I
 #include "lcdprt_jzq.h"
 #elif defined SPTF_III
@@ -20,6 +21,7 @@
 #else
 #include "lcdprt_jzq.h"
 #endif
+
 #define MUL_OFFSET 1000
 extern int read_filedata(char* FileName, int point, int did, INT8U flag, void *source);
 extern void dataitem_showvalue(INT8U *filename, int cldno, char *idname, int dataid, int len, int pos_x, int pos_y);
@@ -80,6 +82,8 @@ void lcdpoll_showidapnip(LcdDataItem *item, int size, INT8U show_flg){
 //	}
 //  set_time_show_flag(1);//TODO:new
 }
+
+
 #ifdef SPTF_III
 void lcdpoll_showtotalDER(LcdDataItem *item, int size, INT8U show_flg)
 {
@@ -88,14 +92,24 @@ void lcdpoll_showtotalDER(LcdDataItem *item, int size, INT8U show_flg)
 	Point pos = {0};
 	int base_x=0.5, base_y=0.5;
 
+	INT8U groupIndex = 0;
+	FP64 totalRer = 0.f;
+
+
+	if (NULL == p_JProgramInfo)
+		return;
+
+	if (SPTF3 != p_JProgramInfo->cfg_para.device)
+		return;
+
 	gui_clrrect(rect_Client);
 //显示IP
 	gui_setpos(&pos, rect_Client.left+base_x*FONTSIZE, rect_Client.top+base_y*FONTSIZE);
 	gui_textshow((char*)"总剩余电量:", pos, LCD_NOREV);
 	gui_setpos(&pos, rect_Client.left+(base_x+1)*FONTSIZE, rect_Client.top+(base_y+2)*FONTSIZE);
 
-	INT8U groupIndex;
-	FP64 totalRer = 0.f;
+
+	//TODO: 添加总加组剩余电量
 	for(groupIndex = 0;groupIndex < MAXNUM_SUMGROUP;groupIndex++)
 	{
 		totalRer += shmm_getpubdata()->data_calc_by1min[groupIndex-1].RER;
@@ -114,6 +128,7 @@ void lcdpoll_showtotalDER(LcdDataItem *item, int size, INT8U show_flg)
 
 }
 #endif
+
 int finddataitem(LcdDataItem *item, int size, int did){
 	int ret_did=-1, i;
 	if(size<=0)

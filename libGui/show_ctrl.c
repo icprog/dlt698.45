@@ -19,7 +19,7 @@ volatile static time_t curts,oldts;
  * 由ProgramInfo_register(ProgramInfo* JProgramInfo)初始化
  * 在guictrl.c中调用
 */
-ProgramInfo* p_JProgramInfo = {0};
+ProgramInfo* p_JProgramInfo = NULL;
 
 
 /**********************************
@@ -29,10 +29,10 @@ INT8U g_firstRun = GUI_FIRST_RUN;//GUI代码首次运行标志
 INT8U g_chgOI4500 = 0;//oi4500参数变更标记记录
 INT8U g_chgOI4300 = 0;//oi4300参数变更标记记录
 
-CLASS26 g_class26_oi4510 = {0};
-CLASS25 g_class25_oi4500 = {0};
-CLASS_4001_4002_4003 g_Class4001_4002_4003 = {0};
-CLASS19 g_class19_oi4300 = {0};
+CLASS26 g_class26_oi4510;
+CLASS25 g_class25_oi4500;
+CLASS_4001_4002_4003 g_Class4001_4002_4003;
+CLASS19 g_class19_oi4300;
 /**********************************
  *			end global
  **********************************/
@@ -175,6 +175,18 @@ void lcd_Bottom_bar()
 void ProgramInfo_register(ProgramInfo* JProgramInfo)
 {
 	p_JProgramInfo = JProgramInfo;
+
+	/*
+	 * 全局变量默认初始化为0, 但不能过于依赖编译器.
+	 * 一旦有的编译器设计的不符合规范, 将出现麻烦.
+	 */
+	g_chgOI4500 = 0;
+	g_chgOI4300 = 0;
+
+	memset(&g_class26_oi4510, 0, sizeof(g_class26_oi4510));
+	memset(&g_class25_oi4500, 0, sizeof(g_class25_oi4500));
+	memset(&g_Class4001_4002_4003, 0, sizeof(g_Class4001_4002_4003));
+	memset(&g_class19_oi4300, 0, sizeof(g_class19_oi4300));
 }
 
 void Proxy_Msg_Data_register(Proxy_Msg* Proxy_Msg_Data)

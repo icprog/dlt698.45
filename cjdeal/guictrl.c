@@ -27,13 +27,11 @@ lcd_show接口延续之前376.1液晶显示处理逻辑，更新的是将三个�
 #include <wait.h>
 #include <time.h>
 #include <errno.h>
+#include <basedef.h>
+#include "show_ctrl.h"
+#include "comm.h"
 #include "guictrl.h"
-//#ifdef CCTT_I
-//#elif defined SPTF_III
-//#include "lcdprt_fk.h"
-//#endif
 
-//#define MTRACE
 extern Menu menu[];
 MenuList *pmenulist_head;
 pthread_t thread_key, thread_menu, thread_status, thread_lcm,thread_downstatus;//thread_send;
@@ -124,6 +122,7 @@ void gui_thread_quit_deal()
  * */
 void lcd_ctl()
 {
+	INT8U overTime = POLLTIME_I_II;//屏幕操作超时轮显时间
 	INT8U Key_State=0;//0：无按键 1：刚按下键 2：延时时间内仍有按键
 	time_t Time_PressKey, curtime; //最后一次按键时刻
 	int keypress=0, presskey_first=0, presskey_qudou=0, presskey_qudou_old=0, counter=0;
@@ -202,7 +201,14 @@ void lcd_ctl()
 			curtime = time(NULL);
 		if(g_JZQ_TimeSetUp_flg==1)
 			Time_PressKey = curtime;
-		if(abs(curtime-Time_PressKey)>POLLTIME && g_LcdPoll_Flag==LCD_NOTPOLL){
+
+		if (NULL != JProgramInfo) {
+			if (SPTF3 == JProgramInfo->cfg_para.device) {
+				overTime = POLLTIME_SPTF_III;
+			}
+		}
+
+		if(abs(curtime-Time_PressKey)>overTime && g_LcdPoll_Flag==LCD_NOTPOLL){
 			g_LcdPoll_Flag = LCD_INPOLL;
 			gpio_writebyte((char*)"/dev/gpoLCD_LIGHT", 0);
 		}
