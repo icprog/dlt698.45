@@ -469,7 +469,7 @@ INT8U init6013ListFrom6012File() {
 				TS taskStartTime;
 				TimeBCDToTs(list6013[total_tasknum].basicInfo.startime,&taskStartTime);
 				INT8U timeCmp = TScompare(ts_now,taskStartTime);
-
+#if 0
 				asyslog(LOG_NOTICE,"当前时间 %04d-%02d-%02d %02d:%02d:%02d\n",
 						ts_now.Year,ts_now.Month,ts_now.Day,ts_now.Hour,
 						ts_now.Minute,ts_now.Sec);
@@ -477,15 +477,13 @@ INT8U init6013ListFrom6012File() {
 				asyslog(LOG_NOTICE,"任务开始时间 %04d-%02d-%02d %02d:%02d:%02d\n",
 						taskStartTime.Year,taskStartTime.Month,taskStartTime.Day,taskStartTime.Hour,
 						taskStartTime.Minute,taskStartTime.Sec);
-
-				if(timeCmp > 1)
+#endif
+				if(timeCmp < 2)
 				{
-					fprintf(stderr,"\n11111111111111111111\n");
 					list6013[total_tasknum].ts_next  = tmtotime_t(ts_now);
 				}
 				else
 				{
-					fprintf(stderr,"\n222222222222222222222\n");
 					list6013[total_tasknum].ts_next  =
 									calcnexttime(list6013[total_tasknum].basicInfo.interval,list6013[total_tasknum].basicInfo.startime,list6013[total_tasknum].basicInfo.delay);
 				}

@@ -3153,7 +3153,10 @@ INT16S deal6017_07(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8U
 
 	return 0;
 }
+TS getLastNHourTime(INT8U hourIndex)
+{
 
+}
 /*
  * 抄读1个测量点
  */
@@ -3202,10 +3205,13 @@ INT16S deal6015or6017_singlemeter(CLASS_6013 st6013,CLASS_6015 st6015,CLASS_6001
 						{
 							hourInterVal = st6013.interval.interval;
 						}
+						DbgPrintToFile1(port485,"hourInterVal = %d",hourInterVal);
+						TS ts_now;
+						TSGet(&ts_now);
 						INT8U hourIndex = 0;
 						for(hourIndex = 0;hourIndex < hourInterVal;hourIndex++)
 						{
-							getLastNHourTime(hourIndex);
+							TS starttime = getLastNHourTime(hourIndex);
 						}
 #endif
 					}
