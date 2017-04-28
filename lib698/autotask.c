@@ -36,7 +36,7 @@ time_t calcnexttime(TI ti,DateTimeBCD datetime,TI ti_delay)
 	if (ti.interval<=0)
 		return 0;
 
-	asyslog(LOG_NOTICE,"任务开始时间 %04d-%02d-%02d %02d:%02d:%02d\n",datetime.year.data,datetime.month.data,datetime.day.data,datetime.hour.data,datetime.min.data,datetime.sec.data);
+	//asyslog(LOG_NOTICE,"任务开始时间 %04d-%02d-%02d %02d:%02d:%02d\n",datetime.year.data,datetime.month.data,datetime.day.data,datetime.hour.data,datetime.min.data,datetime.sec.data);
 	ptm.Year = datetime.year.data;
 	ptm.Month = datetime.month.data;
 	ptm.Day = datetime.day.data;

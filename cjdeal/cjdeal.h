@@ -49,7 +49,7 @@ typedef struct
 INFO_6001_LIST info6000[2];//两路485
 
 INT8U para_change485[2];//参数变更后置1  485 1 2线程清空队列中剩余未执行的任务ID后置0
-
+INT8U isAllowReport;
 CLASS_4204	broadcase4204;
 INT8U flagDay_4204[2];//标识当天是否已经广播校时
 //任务调度

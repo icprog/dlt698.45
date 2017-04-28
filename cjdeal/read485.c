@@ -2997,7 +2997,7 @@ INT16S deal6017_698(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8
 
 						int isEventOccur = SaveNorData(st6035->taskID,&test6015.csds.csd[0].csd.road,saveContentHead,SAVE_EVENT_BUFF_HEAD_LEN);
 						DbgPrintToFile1(port485,"isEventOccur = %d---------",isEventOccur);
-						if(isEventOccur == 1)
+						if((isEventOccur == 1)&&(isAllowReport==1))
 						{
 							sendEventReportBuff698(test6015.csds.csd[0].csd.road,saveContentHead,port485,oadListContent);
 						}
@@ -3153,7 +3153,16 @@ INT16S deal6017_07(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8U
 
 	return 0;
 }
+#if 0
+//得到
+TS getLastNHourTime(TS tm_now,INT8U hourIndex)
+{
 
+	TS tm_Last;
+	tminc();
+	return tm_Last;
+}
+#endif
 /*
  * 抄读1个测量点
  */
@@ -3182,20 +3191,43 @@ INT16S deal6015or6017_singlemeter(CLASS_6013 st6013,CLASS_6015 st6015,CLASS_6001
 			break;
 			default:
 				{
+					//曲线　　每次抄一小时的数据
 					if(st6015.cjtype == TYPE_INTERVAL)
 					{
+#if 0
 						DbgPrintToFile1(port485,"6013任务执行频率%d-%d　6015 冻结间隔　%d-%d-%d",
 								st6013.interval.units, st6013.interval.interval,
 								st6015.data.data[0],st6015.data.data[1],st6015.data.data[2]);
 						st6015.data.data[10] = st6013.interval.units;
 						st6015.data.data[11] = (st6013.interval.interval>>8)&0x00ff;
 						st6015.data.data[12] =  st6013.interval.interval&0x00ff;
+						INT8U hourInterVal = 0;
+						if(st6013.interval.units == day_units)
+						{
+							hourInterVal = st6013.interval.interval*24;
+						}
+						if(st6013.interval.units == hour_units)
+						{
+							hourInterVal = st6013.interval.interval;
+						}
+						TS ts_now;
+						TSGet(&ts_now);
+						DbgPrintToFile1(port485,"当前时间 %04d-%02d-%02d %02d:%02d:%02d  hourInterVal = %d \n",
+												ts_now.Year,ts_now.Month,ts_now.Day,ts_now.Hour,
+												ts_now.Minute,ts_now.Sec,hourInterVal);
+
+						INT8U hourIndex = 0;
+						for(hourIndex = 0;hourIndex < hourInterVal;hourIndex++)
+						{
+							TS starttime = getLastNHourTime(ts_now,hourIndex);
+						}
+#endif
 					}
 					else
 					{
-
+						ret = deal6015_698(st6015,obj6001,st6035,dataContent,port485);
 					}
-					ret = deal6015_698(st6015,obj6001,st6035,dataContent,port485);
+
 				}
 
 		}
@@ -3569,10 +3601,7 @@ void read485_thread(void* i485port) {
 					ret = use6013find6015or6017(list6013[taskIndex].basicInfo.cjtype,list6013[taskIndex].basicInfo.sernum,&to6015);
 					if(ret == 1)
 					{
-						if(to6015.cjtype != TYPE_INTERVAL)
-						{
 							ret = deal6015or6017(list6013[taskIndex].basicInfo,to6015,port,&result6035);
-						}
 					}
 					else
 					{
