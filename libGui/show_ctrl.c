@@ -29,10 +29,9 @@ INT8U g_firstRun = GUI_FIRST_RUN;//GUI代码首次运行标志
 INT8U g_chgOI4500 = 0;//oi4500参数变更标记记录
 INT8U g_chgOI4300 = 0;//oi4300参数变更标记记录
 
-CLASS_4001_4002_4003 g_Class4001_4002_4003 = {0};
 CLASS26 g_class26_oi4510 = {0};
 CLASS25 g_class25_oi4500 = {0};
-CLASS_4001_4002_4003 g_class400140024003_oi4001 = {0};
+CLASS_4001_4002_4003 g_Class4001_4002_4003 = {0};
 CLASS19 g_class19_oi4300 = {0};
 /**********************************
  *			end global

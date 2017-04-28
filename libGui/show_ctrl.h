@@ -68,10 +68,9 @@ extern INT8U g_firstRun;
 extern INT8U g_chgOI4500;
 extern INT8U g_chgOI4300;
 
-extern CLASS_4001_4002_4003 g_Class4001_4002_4003;
 extern CLASS26 g_class26_oi4510;
 extern CLASS25 g_class25_oi4500;
-extern CLASS_4001_4002_4003 g_class400140024003_oi4001;
+extern CLASS_4001_4002_4003 g_Class4001_4002_4003;
 extern CLASS19 g_class19_oi4300;
 
 extern void ProgramInfo_register(ProgramInfo* JProgramInfo);

@@ -4008,14 +4008,14 @@ void jzq_id_edit()
 
 	if (GUI_FIRST_RUN == g_firstRun) {
 		g_firstRun = GUI_NOT_FIRST_RUN;
-		readCoverClass(0x4001, 0, (void*)&g_class400140024003_oi4001, \
+		readCoverClass(0x4001, 0, (void*)&g_Class4001_4002_4003, \
 				sizeof(CLASS_4001_4002_4003), para_vari_save);
 
 	}
 
 	memset(str,0,sizeof(str));
 
-	bcd2str(&g_class400140024003_oi4001.curstom_num[1],(INT8U*)str,g_class400140024003_oi4001.curstom_num[0],sizeof(str),positive);
+	bcd2str(&g_Class4001_4002_4003.curstom_num[1],(INT8U*)str,g_Class4001_4002_4003.curstom_num[0],sizeof(str),positive);
 
 	sscanf((char*)str,"%[0-9]",s_jzqdizhi10);
 
@@ -4033,17 +4033,17 @@ void jzq_id_edit()
 
 		if(addr_len==0){
 			str2bcd(str,sever_addr,sizeof(sever_addr));
-			memcpy(&g_class400140024003_oi4001.curstom_num[1],sever_addr,strlen((char*)sever_addr));
+			memcpy(&g_Class4001_4002_4003.curstom_num[1],sever_addr,strlen((char*)sever_addr));
 			if(addr_len%2)
 			{
-				g_class400140024003_oi4001.curstom_num[addr_len/2+1] |= 0x0F;
-				g_class400140024003_oi4001.curstom_num[0] = addr_len/2+1;
+				g_Class4001_4002_4003.curstom_num[addr_len/2+1] |= 0x0F;
+				g_Class4001_4002_4003.curstom_num[0] = addr_len/2+1;
 			}
 			else{
-				g_class400140024003_oi4001.curstom_num[0] = addr_len/2;
+				g_Class4001_4002_4003.curstom_num[0] = addr_len/2;
 			}
 
-			saveCoverClass(0x4001, 0, (void*)&g_class400140024003_oi4001, sizeof(CLASS_4001_4002_4003), para_vari_save);
+			saveCoverClass(0x4001, 0, (void*)&g_Class4001_4002_4003, sizeof(CLASS_4001_4002_4003), para_vari_save);
 			msgbox_label((char *)"设置成功！", CTRL_BUTTON_OK);
 		}else
 			msgbox_label((char *)"设置失败！", CTRL_BUTTON_OK);
