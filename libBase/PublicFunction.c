@@ -411,6 +411,15 @@ INT8U TScompare(TS ts1, TS ts2) {
     }
     return 0;
 }
+void TimeBCDToTs(DateTimeBCD timeBCD,TS* outTs)
+{
+	outTs->Year = timeBCD.year.data;
+	outTs->Month = timeBCD.month.data;
+	outTs->Day = timeBCD.day.data;
+	outTs->Hour = timeBCD.hour.data;
+	outTs->Minute = timeBCD.min.data;
+	outTs->Sec = timeBCD.sec.data;
+}
 
 //判断该年是否闫年
 BOOLEAN LeapYear(INT16U Year) {

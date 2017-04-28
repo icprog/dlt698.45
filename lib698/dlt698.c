@@ -777,9 +777,13 @@ INT16U composeAutoReport(INT8U* SendApdu,INT16U length)
 	 INT16S retLen=0;
 	 INT16S index=0;
 	 INT8U Len[3];
+	 memset(Len,0,3);
 	 INT8U RN[12];
+	 memset(RN,0,12);
 	 INT8U MAC[4];
+	 memset(MAC,0,4);
 	 INT8U tmpApdu[2048];
+	 memset(tmpApdu,0,2048);
 	 memcpy(tmpApdu,SendApdu,length);
 	 retLen = Esam_ReportEncrypt(&SendApdu[0],length,RN,MAC);
 	 if(retLen<=0) return 0;
@@ -912,8 +916,9 @@ INT16S fillGetRequestAPDU(INT8U* sendBuf,CLASS_6015 obj6015,INT8U requestType)
 					INT16U tmpTime = DT_B.year.data;
 					sendBuf[length++] = (tmpTime>>8)&0x00ff;
 					sendBuf[length++] = tmpTime&0x00ff;
-					sendBuf[length++] = DT_B.month.data;
-					sendBuf[length++] = DT_B.day.data;
+					sendBuf[length++] = timeStamp.month.data;
+					sendBuf[length++] = timeStamp.day.data-1;
+
 					sendBuf[length++] = 0x00;
 					sendBuf[length++] = 0x00;
 					sendBuf[length++] = 0x00;

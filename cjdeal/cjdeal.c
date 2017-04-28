@@ -43,6 +43,7 @@ void QuitProcess()
 	spi_close(spifp);
 	spi_close(spifp_rn8209);
 	close_named_sem(SEMNAME_SPI0_0);
+    shmm_unregister("ProgramInfo", sizeof(ProgramInfo));
 	read485QuitProcess();
 	//proinfo->ProjectID=0;
     //fprintf(stderr,"\n退出：%s %d",proinfo->ProjectName,proinfo->ProjectID);
@@ -415,18 +416,41 @@ INT8S saveClass6035(CLASS_6035* class6035)
 
 	return ret;
 }
+//集中器调时间　需要重新处理任务开始时间：如果是向前对时需要重新计算任务下一次开始时间，向后对时就不用了
+INT8U deal6013_onPara4000changed()
+{
+	fprintf(stderr,"\ndeal6013_onPara4000changed--------------------start\n");
+	INT8U ret = 1;
+	INT16U tIndex;
+	time_t time_now;
+	time_now = time(NULL);//当前时间
+	//普通任务
+	for (tIndex = 0; tIndex < total_tasknum; tIndex++)
+	{
+		if((list6013[tIndex].basicInfo.taskID > 0)&&(time_now < list6013[tIndex].ts_next))
+		{
+			fprintf(stderr,"\n12313123123123\n");
+			list6013[tIndex].ts_next  =
+					calcnexttime(list6013[tIndex].basicInfo.interval,list6013[tIndex].basicInfo.startime,list6013[tIndex].basicInfo.delay);
+		}
+	}
+	fprintf(stderr,"\ndeal6013_onPara4000changed--------------------end\n");
+
+
+	return ret;
+}
+
 /*
  * 从文件里把所有的任务单元读上来
  * */
 INT8U init6013ListFrom6012File() {
 
 	total_tasknum = 0;
-
 	//list6013  初始化下一次抄表时间
 	TS ts_now;
 	TSGet(&ts_now);
 
-//	fprintf(stderr, "\n -------------init6013ListFrom6012File---------------");
+	fprintf(stderr, "\n \n-------------init6013ListFrom6012File---------------start\n");
 	INT8U result = 0;
 	memset(list6013, 0, TASK6012_MAX * sizeof(TASK_CFG));
 	memset(&JProgramInfo->autotask,0,sizeof(JProgramInfo->autotask));		//增加初始化
@@ -438,21 +462,32 @@ INT8U init6013ListFrom6012File() {
 		if (readCoverClass(oi, tIndex, &class6013, sizeof(CLASS_6013),
 				coll_para_save) == 1) {
 			//print6013(list6013[tIndex]);
-			if(class6013.cjtype == rept)
-			{
-				init_autotask(class6013,JProgramInfo->autotask);
-			}
-			else
+			if(class6013.cjtype != rept)
 			{
 				memcpy(&list6013[total_tasknum].basicInfo, &class6013, sizeof(CLASS_6013));
-				//任务刚下发就抄 一重启也抄
-#if 1
-					time_t time_now;
-					time_now = time(NULL);//当前时间
-					list6013[total_tasknum].ts_next  = time_now;
-#else
-					list6013[total_tasknum].ts_next  = calcnexttime(list6013[total_tasknum].basicInfo.interval,list6013[total_tasknum].basicInfo.startime);
+
+				TS taskStartTime;
+				TimeBCDToTs(list6013[total_tasknum].basicInfo.startime,&taskStartTime);
+				INT8U timeCmp = TScompare(ts_now,taskStartTime);
+#if 0
+				asyslog(LOG_NOTICE,"当前时间 %04d-%02d-%02d %02d:%02d:%02d\n",
+						ts_now.Year,ts_now.Month,ts_now.Day,ts_now.Hour,
+						ts_now.Minute,ts_now.Sec);
+
+				asyslog(LOG_NOTICE,"任务开始时间 %04d-%02d-%02d %02d:%02d:%02d\n",
+						taskStartTime.Year,taskStartTime.Month,taskStartTime.Day,taskStartTime.Hour,
+						taskStartTime.Minute,taskStartTime.Sec);
 #endif
+				if(timeCmp < 2)
+				{
+					list6013[total_tasknum].ts_next  = tmtotime_t(ts_now);
+				}
+				else
+				{
+					list6013[total_tasknum].ts_next  =
+									calcnexttime(list6013[total_tasknum].basicInfo.interval,list6013[total_tasknum].basicInfo.startime,list6013[total_tasknum].basicInfo.delay);
+				}
+
 				//TODO
 				total_tasknum++;
 
@@ -466,7 +501,7 @@ INT8U init6013ListFrom6012File() {
 			}
 		}
 	}
-
+	fprintf(stderr, "\n \n-------------init6013ListFrom6012File---------------start\n");
 	return result;
 }
 INT8U getParaChangeType()
@@ -478,16 +513,29 @@ INT8U getParaChangeType()
 
 	static INT8U lastchgoi4000=0;
 	static INT8U lastchgoi4204=0;
-
+	static INT8U lastchgoi4300=0;
 	static INT8U first=1;
 	if(first)
 	{
 		first=0;
 		lastchgoi6000 = JProgramInfo->oi_changed.oi6000;
-		lastchgoi6012= JProgramInfo->oi_changed.oi6012;
-		lastchgoi6014= JProgramInfo->oi_changed.oi6014;
-		lastchgoi4204= JProgramInfo->oi_changed.oi4204;
+		lastchgoi6012 = JProgramInfo->oi_changed.oi6012;
+		lastchgoi6014 = JProgramInfo->oi_changed.oi6014;
+		lastchgoi4204 = JProgramInfo->oi_changed.oi4204;
+		lastchgoi4300 = JProgramInfo->oi_changed.oi4300;
+		CLASS19 class19;
+		memset(&class19,0,sizeof(CLASS19));
+		readCoverClass(0x4300,0,&class19,sizeof(class19),para_vari_save);
+		isAllowReport = class19.active_report;
 		return ret;
+	}
+	if(lastchgoi4300 != JProgramInfo->oi_changed.oi4300)
+	{
+		fprintf(stderr,"\n 测量点参数4300变更");
+		CLASS19 class19;
+		memset(&class19,0,sizeof(CLASS19));
+		readCoverClass(0x4300,0,&class19,sizeof(class19),para_vari_save);
+		isAllowReport = class19.active_report;
 	}
 	if(lastchgoi6000 != JProgramInfo->oi_changed.oi6000)
 	{
@@ -687,7 +735,12 @@ void dispatch_thread()
 			para_change485[1] = 1;
 			init6000InfoFrom6000FIle();
 		}
-		if((para_ChangeType&para_6012_chg)||(para_ChangeType&para_4000_chg))
+		if(para_ChangeType&para_4000_chg)
+		{
+			deal6013_onPara4000changed();
+		}
+
+		if(para_ChangeType&para_6012_chg)
 		{
 			para_change485[0] = 1;
 			para_change485[1] = 1;
@@ -803,7 +856,7 @@ int main(int argc, char *argv[])
 	if(JProgramInfo->cfg_para.device != 2)
 	{
 		//液晶、控制
-//		guictrl_proccess();
+		guictrl_proccess();
 	}
 	//交采
 	acs_process();

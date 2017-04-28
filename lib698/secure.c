@@ -164,10 +164,11 @@ INT32S secureBroadcastCheck(SID_MAC *sid_mac,CSINFO *csinfo)
 	 INT16U appLen=0;
 	 INT32S ret=0;
 	 SID_MAC sidmac;
+	 memset(&sidmac,0,sizeof(SID_MAC));
 	 appLen = GetDataLength(&apdu[2]);
 	 if(appLen<=0) return -201;
-	if(apdu[2+appLen]==0x00 ||apdu[2+appLen]==0x03)//SID_MAC数据验证码
-	{
+	 if(apdu[2+appLen]==0x00 ||apdu[2+appLen]==0x03)//SID_MAC数据验证码
+	 {
 		tmplen = UnitParse(&apdu[2+appLen+1],(INT8U*)&sidmac,0x01);//解析SID部分
 		if(tmplen<=0) return -202;
 		//判断服务器地址类型是否为组地址或广播地址
@@ -203,6 +204,7 @@ INT32S secureBroadcastCheck(SID_MAC *sid_mac,CSINFO *csinfo)
 	 INT32S ret=0;
 	 INT16U appLen = GetDataLength(&apdu[2]);//计算应用数据单元长度(包括长度字符)
 	 INT8U tmpbuff[2048];
+	 memset(tmpbuff,0,2048);
 	 if(appLen<=0) return -201;
 	 securetype=0x02;//明文+MAC等级
 	 if(apdu[2+appLen]==0x01 || apdu[2+appLen]==0x02)// 只处理RN情况(RN_MAC情况，是主动上报)
@@ -253,6 +255,8 @@ INT32S secureBroadcastCheck(SID_MAC *sid_mac,CSINFO *csinfo)
 	 SID_MAC sidmac;
 	 INT32S tmplen=0;
 	 INT8U retData[2048];
+	 memset(&sidmac,0,sizeof(SID_MAC));
+	 memset(retData,0,2048);
 	 tmplen = UnitParse(&apdu[2+appLen+1],(INT8U*)&sidmac,0x01);//解析SID部分
 	 if(tmplen<=0) return -201;
 	 if(apdu[2+appLen]==0x00)
@@ -269,6 +273,7 @@ INT32S secureBroadcastCheck(SID_MAC *sid_mac,CSINFO *csinfo)
  	{
  		INT32S retLen=0;
  		INT8U buff[2048];
+ 		memset(buff,0,2048);
  		if(ccieFlag==0x0C)	//主站证书
  			retLen = Esam_GetTermiSingleInfo(0x0C,buff);
  		else                        //终端证书
@@ -366,6 +371,7 @@ INT16U getEsamAttribute(OAD oad,INT8U *retBuff)
 //	static struct timeval tv_store;//存储静态时间，用于list类型属性提取，不用多次esam访问
 //	static 	EsamInfo esamInfo;//
 	EsamInfo esamInfo;
+	memset(&esamInfo,0,sizeof(EsamInfo));
 	INT8U attnum = oad.attflg&0x1F;
 	if(attnum == 0x0C || attnum==0x0A)//主站/终端证书属性
 	{
@@ -448,7 +454,7 @@ INT32S esamMethodKeyUpdate(INT8U *Data2)
 	 INT16U secureLen=0;
 	 SID_MAC sidmac;
 	 INT32S tmplen=0;
-
+	 memset(&sidmac,0,sizeof(SID_MAC));
 	if(Data2[0]==0x02 && Data2[1]==0x02 && Data2[2]==0x09)//此处必须严格遵守字节值
 	{
 		secureLen = GetDataLength(&Data2[3]);//包含头部的长度字节数量
@@ -469,6 +475,7 @@ INT32S esamMethodCcieSession(INT8U *Data2)
 {
 	 INT16U secureLen=0;
 	 SID sid;
+	 memset(&sid,0,sizeof(SID));
 	 INT32S tmplen=0;
 	 if(Data2[0]==0x02 && Data2[1]==0x02 && Data2[2]==0x09)//此处必须严格遵守字节值
 	{
@@ -485,8 +492,11 @@ INT32S esamMethodCcieSession(INT8U *Data2)
 INT32S compose_DataAndMac(INT8U* SendApdu,INT16U Length)
 {
 	 INT8U esamBuff[2048];//送入esam，获取esam返回信息
+	 memset(&esamBuff,0,2048);
 	 INT8U bytelen[3];
+	 memset(bytelen,0,3);
 	 INT8U BuffTmp[2048];
+	 memset(BuffTmp,0,2048);
 	 INT16U retLen=0;
 	 INT32S esamRet=0;
 	 BuffTmp[0]=0x90;//安全传输应答标识
@@ -517,8 +527,11 @@ INT32S compose_DataAndMac(INT8U* SendApdu,INT16U Length)
 INT32S compose_EnData(INT8U* SendApdu,INT16U Length)
 {
 	 INT8U esamBuff[2048];//送入esam，获取esam返回信息
+	 memset(&esamBuff,0,2048);
 	 INT8U bytelen[3];
+	 memset(&bytelen,0,3);
 	 INT8U BuffTmp[2048];
+	 memset(BuffTmp,0,2048);
 	 INT32S esamret=0;
 	 INT8U retLen=0;
 
@@ -540,8 +553,11 @@ INT32S compose_EnData(INT8U* SendApdu,INT16U Length)
 INT32S compose_EnDataAndMac( INT8U* SendApdu,INT16U Length)
 {
 	 INT8U esamBuff[2048];//送入esam，获取esam返回信息
+	 memset(&esamBuff,0,2048);
 	 INT8U bytelen[3];
+	 memset(&bytelen,0,3);
 	 INT8U BuffTmp[2048];
+	 memset(BuffTmp,0,2048);
 	 INT32S esamret=0;
 	 INT8U retLen=0;
 

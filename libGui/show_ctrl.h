@@ -22,6 +22,10 @@
 #define DATA_INIT 1
 #define EVENT_INIT 2
 #define DEMAND_INIT 3
+
+#define GUI_FIRST_RUN	1
+#define GUI_NOT_FIRST_RUN	0
+
 typedef enum
 {
 	unknown,Dl97,Dl07,Dl698,Cj188
@@ -56,7 +60,20 @@ extern void lcd_Bottom_allshow();
 extern void icon_work(Point icon_pos,char *str,INT8U *para_state,INT8U *para_delay);
 extern void lcd_Bottom_bar();
 #endif
-extern void ProgramInfo_register(ProgramInfo* JProgramInfo);
+
+
+
+extern ProgramInfo* p_JProgramInfo;
+extern INT8U g_firstRun;
+extern INT8U g_chgOI4500;
+extern INT8U g_chgOI4300;
+
+extern CLASS26 g_class26_oi4510;
+extern CLASS25 g_class25_oi4500;
+extern CLASS_4001_4002_4003 g_Class4001_4002_4003;
+extern CLASS19 g_class19_oi4300;
+
+
 extern void showmain();
 extern void show_ctrl();
 extern void lcd_showTopStatus();

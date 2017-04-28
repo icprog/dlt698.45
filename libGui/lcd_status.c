@@ -5,9 +5,10 @@
  *      Author: Administrator
  */
 //#include "../include/stdafx.h"
+#include "basedef.h"
 #include "gui.h"
 #include "show_ctrl.h"
-extern ProgramInfo* p_JProgramInfo;//共享内存指针，由ProgramInfo_register(ProgramInfo* JProgramInfo)初始化，在guictrl.c中调用
+
 int g_curcldno;
 #define GPRSCSQ_L1 8 //信号强度
 #define GPRSCSQ_L2 16
@@ -343,11 +344,10 @@ void lcd_showTopStatus()
 
 void lcd_showBottomStatus(int zb_status, int gprs_status)
 {
-//#ifdef CCTT_I
 	INT8U jzq_login_type = 0;
 	time_t curtime=time(NULL);
-	char str[50];
-	Point pos;
+	char str[50] = {0};
+	Point pos = {0};
 	gui_clrrect(rect_BottomStatus);
 	pos.x = rect_BottomStatus.left;
 	pos.y = rect_BottomStatus.top - 1;
@@ -434,9 +434,8 @@ void lcd_showBottomStatus(int zb_status, int gprs_status)
 		break;
 	}
 #endif
-//	sleep(1);
-	if(p_JProgramInfo != NULL)
-	{
+
+	if(p_JProgramInfo != NULL) {
 		jzq_login_type = p_JProgramInfo->dev_info.jzq_login;
 	}
 	if(curtime%2==1){
@@ -446,53 +445,55 @@ void lcd_showBottomStatus(int zb_status, int gprs_status)
 			gui_textshow((char*)"以太网:终端在线", pos, LCD_NOREV);
 	}
 	delay(1000);
-//#endif
-//#if defined(SPTF_III) || defined(CCTT_I)
-#ifdef SPTF_III
-	time_t curtime=time(NULL);
-	char str[50];
-	Point pos;
-	pos.x = rect_BottomStatus.left;
-	pos.y = rect_BottomStatus.top - 1;
-	gui_hline(pos, LCM_X);
-	pos.x = rect_BottomStatus.left + 3;
-	pos.y = rect_BottomStatus.top + 1;
-	memset(str, 0, 50);
-	switch(gprs_status)
-	{
-	case GPRS_MODEM_INIT:
-		sprintf(str, "%s", "GPRS:初始化通信模块");
-		break;
-	case GPRS_CHECKMODEM:
-		sprintf(str, "%s", "GPRS:检测AT命令成功");
-		break;
-	case GPRS_GETVER:
-		sprintf(str, "%s", "GPRS:获取模块版本信息");
-		break;
-	case GPRS_SIMOK:
-		sprintf(str, "%s", "GPRS:检测到SIM卡");
-		break;
-	case GPRS_CREGOK:
-		sprintf(str, "%s%d", "GPRS:注册网络,信号强度为",shmm_getdevstat()->Gprs_csq);
-		break;
-	case GPRS_DIALING:
-		sprintf(str, "%s", "GPRS:拨号中...");
-		break;
-	case GPRS_CONNECTING:
-		sprintf(str, "%s", "GPRS:连接到主站...");
-		break;
-	case GPRS_ONLINE:
-		sprintf(str, "%s", "GPRS:终端在线");
-		break;
+
+	if (NULL != p_JProgramInfo) {
+		if (SPTF3 == p_JProgramInfo->cfg_para.device) {
+			time_t curtime=time(NULL);
+			char str[50] = {0};
+			Point pos = {0};
+			pos.x = rect_BottomStatus.left;
+			pos.y = rect_BottomStatus.top - 1;
+			gui_hline(pos, LCM_X);
+			pos.x = rect_BottomStatus.left + 3;
+			pos.y = rect_BottomStatus.top + 1;
+			memset(str, 0, 50);
+			switch(gprs_status)
+			{
+			case GPRS_MODEM_INIT:
+				sprintf(str, "%s", "GPRS:初始化通信模块");
+				break;
+			case GPRS_CHECKMODEM:
+				sprintf(str, "%s", "GPRS:检测AT命令成功");
+				break;
+			case GPRS_GETVER:
+				sprintf(str, "%s", "GPRS:获取模块版本信息");
+				break;
+			case GPRS_SIMOK:
+				sprintf(str, "%s", "GPRS:检测到SIM卡");
+				break;
+			case GPRS_CREGOK:
+				sprintf(str, "%s%d", "GPRS:注册网络,信号强度为",\
+						p_JProgramInfo->dev_info.Gprs_csq);
+				break;
+			case GPRS_DIALING:
+				sprintf(str, "%s", "GPRS:拨号中...");
+				break;
+			case GPRS_CONNECTING:
+				sprintf(str, "%s", "GPRS:连接到主站...");
+				break;
+			case GPRS_ONLINE:
+				sprintf(str, "%s", "GPRS:终端在线");
+				break;
+			}
+			if(curtime%2==1){
+				gui_clrrect(rect_BottomStatus);
+				if(p_JProgramInfo->dev_info.jzq_login!=NET_COM)
+					gui_textshow(str, pos, LCD_NOREV);
+				else
+					gui_textshow((char*)"以太网:终端在线", pos, LCD_NOREV);
+			}
+			delay(1000);
+		}
 	}
-	if(curtime%2==1){
-		gui_clrrect(rect_BottomStatus);
-		if(shmm_getdevstat()->jzq_login!=NET_COM)
-			gui_textshow(str, pos, LCD_NOREV);
-		else
-			gui_textshow((char*)"以太网:终端在线", pos, LCD_NOREV);
-	}
-	delay(1000);
-#endif
 	set_time_show_flag(1);
 }
