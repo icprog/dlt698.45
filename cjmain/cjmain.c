@@ -106,6 +106,8 @@ int ReadSystemInfo() {
         return -1;
     }
 
+    int max = 0;
+
     while (fgets(Strbuf, sizeof(Strbuf), fp)) {
         int index = 0, foo = 0;
 
@@ -114,6 +116,10 @@ int ReadSystemInfo() {
                    JProgramInfo->Projects[0].argv[1],
                    JProgramInfo->Projects[0].argv[2], JProgramInfo->Projects[0].argv[3]) < 1) {
             continue;
+        }
+
+        if (index > max) {
+            max = index;
         }
 
         //获取参数
@@ -141,7 +147,7 @@ int ReadSystemInfo() {
     fclose(fp);
 
     asyslog(LOG_INFO, "读取配置文件，共计(%d)个程序需要启动...\n", ProgsNum);
-    return ProgsNum;
+    return max + 1;
 }
 
 void Createmq() {
@@ -236,7 +242,7 @@ void Checkupdate() {
                 if (res != 0) {
                     system("/dos/cjgwn/update.sh");
                     asyslog(LOG_INFO, "版本比对不同，开始升级....");
-                }else{
+                } else {
                     asyslog(LOG_INFO, "版本比对相同，不予升级....");
                 }
             }
@@ -401,7 +407,7 @@ int ProjectKill(ProjectInfo proinfo) {
         return 1;
     }
 
-    if(proinfo.ProjectID == 0){
+    if (proinfo.ProjectID == 0) {
         return 1;
     }
 
