@@ -531,6 +531,7 @@ INT8U getParaChangeType()
 	}
 	if(lastchgoi4300 != JProgramInfo->oi_changed.oi4300)
 	{
+		lastchgoi4300 = JProgramInfo->oi_changed.oi4300;
 		fprintf(stderr,"\n 测量点参数4300变更");
 		CLASS19 class19;
 		memset(&class19,0,sizeof(CLASS19));
