@@ -5,6 +5,8 @@
 #include "Objectdef.h"
 #include "Shmem.h"
 
+#define CURVE_INFO_STARTINDEX 10
+
 extern unsigned short tryfcs16(unsigned char *cp, int  len);
 extern int getTsas(MY_MS ms, INT8U** tsas);
 extern int doObjectAction(OAD oad, INT8U* data, Action_result* result);

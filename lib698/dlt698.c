@@ -894,44 +894,9 @@ INT16S fillGetRequestAPDU(INT8U* sendBuf,CLASS_6015 obj6015,INT8U requestType)
 					sendBuf[length++] = 0x02;
 					sendBuf[length++] = 0x00;
 
-					DateTimeBCD timeStamp;
-					DataTimeGet(&timeStamp);
-
-					TS jzqtime;
-					TSGet(&jzqtime); //集中器时间
-					DateTimeBCD DT,DT_B;
-
-					DT.year.data  = jzqtime.Year;
-					DT.month.data = jzqtime.Month;
-					DT.day.data   = jzqtime.Day;
-
-					tminc(&jzqtime, day_units, -1);
-					//前一天
-					DT_B.year.data  = jzqtime.Year;
-					DT_B.month.data = jzqtime.Month;
-					DT_B.day.data   = jzqtime.Day;
-
-					//开始时间
-					sendBuf[length++] = 0x1c;
-					INT16U tmpTime = DT_B.year.data;
-					sendBuf[length++] = (tmpTime>>8)&0x00ff;
-					sendBuf[length++] = tmpTime&0x00ff;
-					sendBuf[length++] = timeStamp.month.data;
-					sendBuf[length++] = timeStamp.day.data-1;
-
-					sendBuf[length++] = 0x00;
-					sendBuf[length++] = 0x00;
-					sendBuf[length++] = 0x00;
-					//结束时间
-					tmpTime = DT.year.data;
-					sendBuf[length++] = 0x1c;
-					sendBuf[length++] = (tmpTime>>8)&0x00ff;
-					sendBuf[length++] = tmpTime&0x00ff;
-					sendBuf[length++] = DT.month.data;
-					sendBuf[length++] = DT.day.data;
-					sendBuf[length++] = 0x00;
-					sendBuf[length++] = 0x00;
-					sendBuf[length++] = 0x00;
+					//开始时间结束时间
+					memcpy(&sendBuf[length],&obj6015.data.data[CURVE_INFO_STARTINDEX],16);
+					length+=16;
 					//时间间隔
 
 					sendBuf[length++] = dtti;

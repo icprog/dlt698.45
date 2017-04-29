@@ -322,18 +322,17 @@ int GetOADPos(FILE *fp,INT16U headlen,OAD oadm,OAD oadr)
  * 返回1，表示发生事件
  * ts_cc 要存储到哪一天
  */
-int SaveNorData(INT8U taskid,ROAD *road_eve,INT8U *databuf,int datalen)//,TS ts_cc)//存储事件时指针road_eve定义为NULL
+int SaveNorData(INT8U taskid,ROAD *road_eve,INT8U *databuf,int datalen,TS ts_cc)//存储事件时指针road_eve定义为NULL
 {
-	FILE *fp;
-	CSD_ARRAYTYPE csds;
+	FILE *fp;	CSD_ARRAYTYPE csds;
 	char	fname[FILENAMELEN]={};
 	INT8U *databuf_tmp=NULL,eveflg=0,taskinfoflg=0;
 	int savepos=0,currpos=0,i=0;
 	INT16U headlen=0,unitlen=0,unitnum=0,unitseq=0,runtime=0;//runtime执行次数
 	TASKSET_INFO tasknor_info;
 	memset(&csds,0x00,sizeof(ROAD));
-	TS ts_cc;
-	TSGet(&ts_cc);
+	//TS ts_cc;
+	//TSGet(&ts_cc);
 //	csds.num = 1;
 //	csds.csd[0].type = 1;//road
 	if(road_eve == NULL)//不是事件

@@ -62,7 +62,7 @@ INT8U flag07_diaodiancishu[4] =  {0x00,0x00,0x11,0x03};//电能表掉电次数
 INT8U zeroBuff[4] = {0x00,0x00,0x00,0x00};
 INT16S request07_singleOAD(OI_698 roadOI,OAD soureOAD,CLASS_6001 to6001,CLASS_6035* st6035,INT8U* dataContent,INT8U port485);
 INT16S deal6015_698(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8U* dataContent,INT8U port485);
-
+INT16U compose6012Buff(DateTimeBCD startTime,TSA meterAddr,INT16U dataLen,INT8U* dataContent, INT8U port485);
 void DbgPrintToFile1(INT8U comport,const char *format,...)
 {
 	char str[50];
@@ -1561,28 +1561,28 @@ INT16U parseSingleROADData(ROAD road,INT8U* oadData,INT8U* dataContent,INT8U* da
 			{
 				fprintf(stderr,"%02x ",oadListContent[csdIndex].data[prtIndex]);
 			}
-
 		}
-	}
-	//按存储格式填充ROAD数据
-	for(csdIndex = 0;csdIndex < road.num;csdIndex++)
-	{
-		INT16U oiDataLen = CalcOIDataLen(road.oads[csdIndex].OI,road.oads[csdIndex].attrindex);
-		fprintf(stderr,"\n OI = %04x len = %d \n",road.oads[csdIndex].OI,oiDataLen);
-		memset(&dataContent[dataLen],0,oiDataLen);
-		memset(oadbuff,0,4);
-		OADtoBuff(road.oads[csdIndex],oadbuff);
-		INT8U subIndex=0;
-		for(subIndex=0;subIndex<rcvCSDnum;subIndex++)
+		//按存储格式填充ROAD数据
+		for(csdIndex = 0;csdIndex < road.num;csdIndex++)
 		{
-			if(memcmp(oadbuff,oadListContent[subIndex].oad,4)==0)
+			INT16U oiDataLen = CalcOIDataLen(road.oads[csdIndex].OI,road.oads[csdIndex].attrindex);
+			fprintf(stderr,"\n OI = %04x len = %d \n",road.oads[csdIndex].OI,oiDataLen);
+			memset(&dataContent[dataLen],0,oiDataLen);
+			memset(oadbuff,0,4);
+			OADtoBuff(road.oads[csdIndex],oadbuff);
+			INT8U subIndex=0;
+			for(subIndex=0;subIndex<rcvCSDnum;subIndex++)
 			{
-				memcpy(&dataContent[dataLen],oadListContent[subIndex].data,oadListContent[subIndex].datalen);
-			}
+				if(memcmp(oadbuff,oadListContent[subIndex].oad,4)==0)
+				{
+					memcpy(&dataContent[dataLen],oadListContent[subIndex].data,oadListContent[subIndex].datalen);
+				}
 
+			}
+			dataLen += oiDataLen;
 		}
-		dataLen += oiDataLen;
 	}
+
 
 	*dataIndex = dataLen;
 	return length;
@@ -2994,8 +2994,9 @@ INT16S deal6017_698(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8
 						memcpy(&saveContentHead[31],oadListContent[2].data,oadListContent[2].datalen);
 
 						DbPrt1(port485,"deal6017_698 存储事件 buff:", (char *) saveContentHead,SAVE_EVENT_BUFF_HEAD_LEN, NULL);
-
-						int isEventOccur = SaveNorData(st6035->taskID,&test6015.csds.csd[0].csd.road,saveContentHead,SAVE_EVENT_BUFF_HEAD_LEN);
+						TS ts_cc;
+						TSGet(&ts_cc);
+						int isEventOccur = SaveNorData(st6035->taskID,&test6015.csds.csd[0].csd.road,saveContentHead,SAVE_EVENT_BUFF_HEAD_LEN,ts_cc);
 						DbgPrintToFile1(port485,"isEventOccur = %d---------",isEventOccur);
 						if((isEventOccur == 1)&&(isAllowReport==1))
 						{
@@ -3141,9 +3142,10 @@ INT16S deal6017_07(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8U
 		INT16U datalen = request698_07Data(obj601F_07Flag.DI_1[0],dataContent,to6001,st6035,port485);
 		memcpy(&saveContentHead[headDataLen],dataContent,16);
 		headDataLen += 16;
-
+		TS ts_cc;
+		TSGet(&ts_cc);
 		DbPrt1(port485,"07 存储事件 buff:", (char *) saveContentHead, headDataLen, NULL);
-		int isEventOccur = SaveNorData(st6035->taskID,&st6015.csds.csd[dataIndex].csd.road,saveContentHead,headDataLen);
+		int isEventOccur = SaveNorData(st6035->taskID,&st6015.csds.csd[dataIndex].csd.road,saveContentHead,headDataLen,ts_cc);
 		DbgPrintToFile1(port485,"isEventOccur = %d", isEventOccur);
 		if(isEventOccur == 1)
 		{
@@ -3153,16 +3155,7 @@ INT16S deal6017_07(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8U
 
 	return 0;
 }
-#if 0
-//得到
-TS getLastNHourTime(TS tm_now,INT8U hourIndex)
-{
 
-	TS tm_Last;
-	tminc();
-	return tm_Last;
-}
-#endif
 /*
  * 抄读1个测量点
  */
@@ -3192,15 +3185,17 @@ INT16S deal6015or6017_singlemeter(CLASS_6013 st6013,CLASS_6015 st6015,CLASS_6001
 			default:
 				{
 					//曲线　　每次抄一小时的数据
-					if(st6015.cjtype == TYPE_INTERVAL)
+					if(st6015.cjtype != TYPE_INTERVAL)
 					{
-#if 0
+						ret = deal6015_698(st6015,obj6001,st6035,dataContent,port485);
+					}
+					else
+					{
+#if 1
 						DbgPrintToFile1(port485,"6013任务执行频率%d-%d　6015 冻结间隔　%d-%d-%d",
 								st6013.interval.units, st6013.interval.interval,
 								st6015.data.data[0],st6015.data.data[1],st6015.data.data[2]);
-						st6015.data.data[10] = st6013.interval.units;
-						st6015.data.data[11] = (st6013.interval.interval>>8)&0x00ff;
-						st6015.data.data[12] =  st6013.interval.interval&0x00ff;
+
 						INT8U hourInterVal = 0;
 						if(st6013.interval.units == day_units)
 						{
@@ -3215,17 +3210,79 @@ INT16S deal6015or6017_singlemeter(CLASS_6013 st6013,CLASS_6015 st6015,CLASS_6001
 						DbgPrintToFile1(port485,"当前时间 %04d-%02d-%02d %02d:%02d:%02d  hourInterVal = %d \n",
 												ts_now.Year,ts_now.Month,ts_now.Day,ts_now.Hour,
 												ts_now.Minute,ts_now.Sec,hourInterVal);
-
+						INT16U roadDataLen = 0;
+						INT8U oadIndex = 0;
+						for(oadIndex = 0;oadIndex < st6015.csds.csd[0].csd.road.num;oadIndex++)
+						{
+							roadDataLen +=CalcOIDataLen(st6015.csds.csd[0].csd.road.oads[oadIndex].OI,st6015.csds.csd[0].csd.road.oads[oadIndex].attrindex);
+						}
+						DbgPrintToFile1(port485,"roadDataLen = %d \n",roadDataLen);
 						INT8U hourIndex = 0;
 						for(hourIndex = 0;hourIndex < hourInterVal;hourIndex++)
 						{
-							TS starttime = getLastNHourTime(ts_now,hourIndex);
+							INT16U tmpTime = ts_now.Year;
+							st6015.data.data[CURVE_INFO_STARTINDEX+8] = 0x1c;
+							st6015.data.data[CURVE_INFO_STARTINDEX+9] = (tmpTime>>8)&0x00ff;
+							st6015.data.data[CURVE_INFO_STARTINDEX+10] = tmpTime&0x00ff;
+							st6015.data.data[CURVE_INFO_STARTINDEX+11] = ts_now.Month;
+							st6015.data.data[CURVE_INFO_STARTINDEX+12] = ts_now.Day;
+							st6015.data.data[CURVE_INFO_STARTINDEX+13] = ts_now.Hour;
+							st6015.data.data[CURVE_INFO_STARTINDEX+14] = 0;
+							st6015.data.data[CURVE_INFO_STARTINDEX+15] = 0;
+
+							tminc(&ts_now,hour_units,-1);
+
+							DbgPrintToFile1(port485,"计算曲线抄读开始时标[%d] %04d-%02d-%02d %02d:%02d:%02d  hourInterVal = %d \n",
+							hourIndex,ts_now.Year,ts_now.Month,ts_now.Day,ts_now.Hour,ts_now.Minute,ts_now.Sec,hourInterVal);
+							tmpTime = ts_now.Year;
+							st6015.data.data[CURVE_INFO_STARTINDEX] = 0x1c;
+							st6015.data.data[CURVE_INFO_STARTINDEX+1] = (tmpTime>>8)&0x00ff;
+							st6015.data.data[CURVE_INFO_STARTINDEX+2] = tmpTime&0x00ff;
+							st6015.data.data[CURVE_INFO_STARTINDEX+3] = ts_now.Month;
+							st6015.data.data[CURVE_INFO_STARTINDEX+4] = ts_now.Day;
+							st6015.data.data[CURVE_INFO_STARTINDEX+5] = ts_now.Hour;
+							st6015.data.data[CURVE_INFO_STARTINDEX+6] = 0;
+							st6015.data.data[CURVE_INFO_STARTINDEX+7] = 0;
+
+							ret = deal6015_698(st6015,obj6001,st6035,dataContent,port485);
+
+
+							DbPrt1(port485,"曲线数据 :", (char *) dataContent, ret, NULL);
+
+							INT8U recordNum = ret/roadDataLen;
+
+							if((ret%roadDataLen) == 0)
+							{
+								INT16U dataIndex = 0;
+								INT8U singleDatabuf[DATA_CONTENT_LEN];
+								INT8U recordIndex;
+								for(recordIndex=0;recordIndex<recordNum;recordIndex++)
+								{
+									TS freezeTimeStamp;
+									freezeTimeStamp.Year = dataContent[dataIndex+1];
+									freezeTimeStamp.Year = freezeTimeStamp.Year<<8;
+									freezeTimeStamp.Year += dataContent[dataIndex+2];
+									freezeTimeStamp.Month = dataContent[dataIndex+3];
+									freezeTimeStamp.Day = dataContent[dataIndex+4];
+									freezeTimeStamp.Hour = dataContent[dataIndex+5];
+									freezeTimeStamp.Minute = dataContent[dataIndex+6];
+									freezeTimeStamp.Sec = dataContent[dataIndex+7];
+
+									DbgPrintToFile1(port485,"曲线数据时标[%d] %04d-%02d-%02d %02d:%02d:%02d",
+									recordIndex,freezeTimeStamp.Year,freezeTimeStamp.Month,freezeTimeStamp.Day,freezeTimeStamp.Hour,freezeTimeStamp.Minute,freezeTimeStamp.Sec);
+									memset(singleDatabuf,0,DATA_CONTENT_LEN);
+									memcpy(singleDatabuf,&dataContent[dataIndex],roadDataLen);
+									int bufflen = compose6012Buff(st6035->starttime,obj6001.basicinfo.addr,roadDataLen,singleDatabuf,port485);
+									SaveNorData(st6035->taskID,NULL,singleDatabuf,bufflen,freezeTimeStamp);
+									dataIndex+=roadDataLen;
+								}
+							}
+							else
+							{
+								DbgPrintToFile1(port485,"曲线数据错误");
+							}
 						}
 #endif
-					}
-					else
-					{
-						ret = deal6015_698(st6015,obj6001,st6035,dataContent,port485);
 					}
 
 				}
@@ -3388,10 +3445,12 @@ INT8S deal6015or6017(CLASS_6013 st6013,CLASS_6015 st6015, INT8U port485,CLASS_60
 						return PARA_CHANGE_RETVALUE;
 					}
 
-					if((dataLen > 0)&&(st6013.cjtype == norm))
+					if((dataLen > 0)&&(st6013.cjtype == norm)&&(st6015.cjtype != TYPE_INTERVAL))
 					{
 						int bufflen = compose6012Buff(startTime,meter.basicinfo.addr,dataLen,dataContent,port485);
-						SaveNorData(st6035->taskID,NULL,dataContent,bufflen);
+						TS ts_cc;
+						TSGet(&ts_cc);
+						SaveNorData(st6035->taskID,NULL,dataContent,bufflen,ts_cc);
 					}
 				}
 				else
