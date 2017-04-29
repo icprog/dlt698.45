@@ -80,7 +80,11 @@ int createFile(const char *path, int length, unsigned char crc, unsigned short b
 void setFileState(int shift) {
     int index = shift / 8;
     int node = shift % 8;
-    file_state[index] |= 0x01 << (7 - node);
+    if (node > 0) {
+        file_state[index] |= 0x01 << (8 - node);
+    } else {
+        file_state[index - 1] |= 0x01;
+    }
 }
 
 int CheckFileSum(void) {
