@@ -304,10 +304,10 @@ INT32S Esam_ErrMessageCheck(INT8U *RBuf)
 INT32S Esam_GetTermiInfo(EsamInfo* esamInfo) {
     INT8U GetSerialNum_ESAM[] = { 0x55, 0x80, 0x36, 0x00, 0xFF, 0x00, 0x00, 0x00};
     GetSerialNum_ESAM[7] = LRC(&GetSerialNum_ESAM[1], 6);
-
     INT32S Result=0;
     INT32S index=4;
     INT8U Rbuf[BUFFLENMAX_SPI];
+    memset(Rbuf,0,BUFFLENMAX_SPI);
 	if((Result = Esam_WriteThenRead((INT8U*)GetSerialNum_ESAM, 8, Rbuf)) > 0){
 		memcpy(esamInfo->EsamSID,&Rbuf[index],8);//ESAM序列号
 		index+=8;
@@ -441,6 +441,7 @@ INT32S Esam_SIDTerminalCheck( SID_MAC SidMac,INT8U* Data, INT8U* Rbuf) {
 	INT8U tmp[BUFFLENMAX_SPI];
 	 memset(tmp,0,BUFFLENMAX_SPI);
 	 INT8U GetInfo_ESAM[BUFFLENMAX_SPI];
+	 memset(GetInfo_ESAM,0,BUFFLENMAX_SPI);
 	 GetInfo_ESAM[0]=0x55;
 	 len+=1;
 	 memcpy(&GetInfo_ESAM[len],SidMac.sid.sig,4);//4字节安全标示
@@ -543,6 +544,7 @@ INT32S Esam_GetTerminalInfo( INT8U *RN,INT8U* Data1,INT16U Length,INT8U* Rbuf) {
 INT32S Esam_SymKeyUpdate( SID_MAC SidMac,INT8U* Data2) {
 	if(Data2[0]==0) return ERR_ESAM_TRANSPARA_ERR;
 	INT8U Rbuf[BUFFLENMAX_SPI];
+	memset(Rbuf,0,BUFFLENMAX_SPI);
 	INT32S Result=0;
 	INT16U len=0;
 	INT8U lenSign=0;//返回开头长度域字节数
@@ -587,10 +589,13 @@ INT32S Esam_SymKeyUpdate( SID_MAC SidMac,INT8U* Data2) {
 INT32S Esam_CcieSession(SID sid,INT8U* Data2) {
 	if(Data2[0]==0) return ERR_ESAM_TRANSPARA_ERR;
 	INT8U Rbuf[20];
+	memset(Rbuf,0,20);
 	INT32S Result=0;
 	INT16U len=0;
 	INT8U lenSign=0;//返回开头长度域字节数
-	INT8U GetInfo_ESAM[BUFFLENMAX_SPI]={0x55};
+	INT8U GetInfo_ESAM[BUFFLENMAX_SPI];
+	memset(GetInfo_ESAM,0,BUFFLENMAX_SPI);
+	GetInfo_ESAM[0]  = 0x55;
 	len+=1;
 	 memcpy(&GetInfo_ESAM[len],sid.sig,4);//4字节安全标示
 	 len+=4;
@@ -664,6 +669,7 @@ INT32S Esam_DencryptReport(INT8U* RN,INT8U* MAC,INT8U* Data3, INT8U* Rbuf) {
 		INT8U tmp[BUFFLENMAX_SPI];
 		memset(tmp,0,BUFFLENMAX_SPI);
 		 INT8U GetInfo_ESAM[BUFFLENMAX_SPI];
+		 memset(GetInfo_ESAM,0,BUFFLENMAX_SPI);
 		 GetInfo_ESAM[0]=0x55;
 		 len+=1;
 		 memcpy(&GetInfo_ESAM[len],&RN[1],RN[0]);//RN随机数 默认12字节
@@ -733,6 +739,7 @@ INT32S Esam_EmeterDataDencrypt( Esam_MAC_RN_NO* InfoData, INT8U *Data2,INT8U* Rb
 	INT32S Result=0;
 	INT16U len=0;
 	INT8U GetInfo_ESAM[BUFFLENMAX_SPI];
+	memset(GetInfo_ESAM,0,BUFFLENMAX_SPI);
 	if(InfoData->DataType == 0x01)	memcpy(&GetInfo_ESAM[0],&data_mac[0],5);
 	else if(InfoData->DataType == 0x02)	memcpy(&GetInfo_ESAM[0],&endata[0],5);
 	else if(InfoData->DataType == 0x03)	memcpy(&GetInfo_ESAM[0],&endata_mac[0],5);

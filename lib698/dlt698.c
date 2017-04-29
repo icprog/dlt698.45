@@ -777,9 +777,13 @@ INT16U composeAutoReport(INT8U* SendApdu,INT16U length)
 	 INT16S retLen=0;
 	 INT16S index=0;
 	 INT8U Len[3];
+	 memset(Len,0,3);
 	 INT8U RN[12];
+	 memset(RN,0,12);
 	 INT8U MAC[4];
+	 memset(MAC,0,4);
 	 INT8U tmpApdu[2048];
+	 memset(tmpApdu,0,2048);
 	 memcpy(tmpApdu,SendApdu,length);
 	 retLen = Esam_ReportEncrypt(&SendApdu[0],length,RN,MAC);
 	 if(retLen<=0) return 0;

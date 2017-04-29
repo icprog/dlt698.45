@@ -3,6 +3,8 @@
 	<name>cj645</name>
 	<comment></comment>
 	<projects>
+		<project>libBase</project>
+		<project>libDlt645</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>
