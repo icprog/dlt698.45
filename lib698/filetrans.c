@@ -34,16 +34,19 @@
 static unsigned char checksum;
 static unsigned short blocksize;
 static unsigned char file_path[256];
+static unsigned char file_state[4096];
 
-int createFile(const char* path, int length, unsigned char crc, unsigned short bs) {
-    FILE* fp = NULL;
+int createFile(const char *path, int length, unsigned char crc, unsigned short bs) {
+    FILE *fp = NULL;
     //文件不能太长
     if (length > 5 * 1024 * 1024) {
         fprintf(stderr, "文件长度[%d]过长.\n", length);
         return 112;
     }
 
-    checksum  = crc;
+    memset(file_state, 0x00, sizeof(file_state));
+
+    checksum = crc;
     blocksize = bs;
 
     //文件夹不存在,创建文件夹
@@ -53,7 +56,7 @@ int createFile(const char* path, int length, unsigned char crc, unsigned short b
     memcpy(file_path, path, sizeof(file_path));
 
     //打开文件，并写入空值对文件进行填充
-    fp = fopen((const char*)path, "w+");
+    fp = fopen((const char *) path, "w+");
     if (fp != NULL) {
         INT8U fills[1024];
         fseek(fp, 0L, SEEK_SET);
@@ -74,10 +77,16 @@ int createFile(const char* path, int length, unsigned char crc, unsigned short b
     return 0;
 }
 
-int CheckFileSum(void) {
-    FILE* fp = NULL;
+void setFileState(int shift) {
+    int index = shift / 8;
+    int node = shift % 8;
+    file_state[index] |= 0x01 << (7 - node);
+}
 
-    fp = fopen((const char*)file_path, "r+");
+int CheckFileSum(void) {
+    FILE *fp = NULL;
+
+    fp = fopen((const char *) file_path, "r+");
     if (fp == NULL) {
         return 107;
     }
@@ -88,7 +97,7 @@ int CheckFileSum(void) {
     fprintf(stderr, "文件校验，长度(%d)", mstats.st_size);
 
     char buf[1024];
-    int file_length        = mstats.st_size;
+    int file_length = mstats.st_size;
     unsigned char local_cs = 0x00;
 
     while (file_length > 0) {
@@ -107,15 +116,15 @@ int CheckFileSum(void) {
     return 100;
 }
 
-int appendFile(int shift, int length, unsigned char* buf) {
-    FILE* fp = NULL;
+int appendFile(int shift, int length, unsigned char *buf) {
+    FILE *fp = NULL;
 
     //文件不存在
     if (access(file_path, F_OK) != 0) {
         return 104;
     }
 
-    fp = fopen((const char*)file_path, "r+");
+    fp = fopen((const char *) file_path, "r+");
     if (fp == NULL) {
         return 105;
     }
@@ -127,18 +136,28 @@ int appendFile(int shift, int length, unsigned char* buf) {
     //获取文件长度
     struct stat mstats;
     stat(file_path, &mstats);
-    int res = (int)((shift * blocksize + length) * 100.0) / mstats.st_size;
+    int res = (int) ((shift * blocksize + length) * 100) / mstats.st_size;
+
+    setFileState(shift);
 
     if (shift * blocksize + length != mstats.st_size) {
         return res;
     }
 
+    char order[256];
+    memset(order, 0x00, sizeof(order));
+
+    sprintf(order, "mv %s /nand/UpFiles/update.sh", file_path);
+    system(order);
+
+    system("echo \"reboot\" >> /nand/UpFiles/reboot");
+
+
     return CheckFileSum();
-    // return 107;
 }
 
-int GetFileState(RESULT_NORMAL* response) {
-    FILE* fp = fopen((const char*)file_path, "r+");
+int GetFileState(RESULT_NORMAL *response) {
+    FILE *fp = fopen((const char *) file_path, "r+");
     if (fp == NULL) {
         fprintf(stderr, "尝试获取文件状态，但文件不存在...\n");
         return 107;
@@ -157,38 +176,16 @@ int GetFileState(RESULT_NORMAL* response) {
         blocks += 1;
     }
 
-    int counts = blocks / 8;
-    int last   = blocks % 8;
-
-    if (blocks % 8 > 0) {
-        blocks += (8 - blocks % 8);
-    }
-
     response->data[0] = 0x04;
     response->data[1] = 0x82;
-    response->data[2] = ((blocks)&0xff00) >> 8;
-    response->data[3] = ((blocks)&0x00ff);
+    response->data[2] = ((blocks) & 0xff00) >> 8;
+    response->data[3] = ((blocks) & 0x00ff);
 
-    for (int i = 0; i < counts; i++) {
-        response->data[i + 4] = 0xff;
+    for (int i = 0; i < blocks; i++) {
+        response->data[i + 4] = file_state[i];
     }
 
-    response->data[counts + 4] = 0x00;
-
-    for (int i = 0; i < last; i++) {
-        response->data[counts + 4] |= (0x01 << (7 - i));
-        fprintf(stderr, "文件状态末尾:%02x", response->data[counts + 4]);
-    }
-
-    response->datalen += counts + ((last == 0) ? 0 : 1) + 4;
-
-    char order[256];
-    memset(order, 0x00, sizeof(order));
-
-    sprintf(order, "mv %s /nand/UpFiles/update.sh", file_path);
-    system(order);
-
-    system("echo \"reboot\" >> /nand/UpFiles/reboot");
+    response->datalen += blocks + 4;
 
     return 0;
 }
