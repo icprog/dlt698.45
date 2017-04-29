@@ -20,7 +20,7 @@
 #include "AccessFun.h"
 #include "Objectdef.h"
 
-static VERINFO verinfo          = { "QDGK", "GWSJ", "170323", "1.00", "150628", "" }; // 4300 版本信息
+static VERINFO verinfo          = { "QDGK", "V1.1", "170328", "1.00", "150628", "" }; // 4300 版本信息
 static DateTimeBCD product_date = { { 2016 }, { 04 }, { 6 }, { 0 }, { 0 }, { 0 } };   // 4300 生产日期
 static char protcol[]           = "DL/T 698.45";                                      // 4300 支持规约类型
 
