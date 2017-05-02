@@ -225,8 +225,8 @@ void ShowCLDDataPage(LcdDataItem *item, int size, INT8U show_flg)
 	gui_textshow((char*)str, pos, LCD_NOREV);
 	if(show_flg==1){
 		//地址类型、逻辑地址、终端地址
-		if (GUI_FIRST_RUN == g_firstRun) {
-			g_firstRun = GUI_NOT_FIRST_RUN;
+		if (PARA_NOT_READ == g_oi4001_has_read) {
+			g_oi4001_has_read = PARA_HAS_READ;
 			readCoverClass(0x4001, 0, (void*)&g_Class4001_4002_4003, \
 								sizeof(CLASS_4001_4002_4003), para_vari_save);
 		}
@@ -357,8 +357,8 @@ void LunXunShowPage1(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT8
 	gui_textshow((char*)str, pos, LCD_NOREV);
 	if(show_flg==1){
 		//地址类型、逻辑地址、终端地址
-		if (GUI_FIRST_RUN == g_firstRun) {
-			g_firstRun = GUI_NOT_FIRST_RUN;
+		if (PARA_NOT_READ == g_oi4001_has_read) {
+			g_oi4001_has_read = PARA_HAS_READ;
 			readCoverClass(0x4001, 0, (void*)&g_Class4001_4002_4003, \
 								sizeof(CLASS_4001_4002_4003), para_vari_save);
 		}
@@ -415,8 +415,8 @@ void LunXunShowPage2(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT8
 		//地址类型、逻辑地址、终端地址
 
 
-		if (GUI_FIRST_RUN == g_firstRun) {
-			g_firstRun = GUI_NOT_FIRST_RUN;
+		if (PARA_NOT_READ == g_oi4001_has_read) {
+			g_oi4001_has_read = PARA_HAS_READ;
 			readCoverClass(0x4001, 0, (void*)&g_Class4001_4002_4003, \
 								sizeof(CLASS_4001_4002_4003), para_vari_save);
 		}
@@ -490,11 +490,12 @@ void LunXunShowPage3(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT8
 		//地址类型、逻辑地址、终端地址
 
 
-		if (GUI_FIRST_RUN == g_firstRun) {
-			g_firstRun = GUI_NOT_FIRST_RUN;
+		if (PARA_NOT_READ == g_oi4001_has_read) {
+			g_oi4001_has_read = PARA_HAS_READ;
 			readCoverClass(0x4001, 0, (void*)&g_Class4001_4002_4003, \
 								sizeof(CLASS_4001_4002_4003), para_vari_save);
 		}
+
 		bcd2str(&g_Class4001_4002_4003.curstom_num[1],(INT8U*)chg_str,g_Class4001_4002_4003.curstom_num[0],sizeof(str),positive);
 		sprintf((char*)str,"终端地址 %s",chg_str);
 		gui_setpos(&pos, rect_Client.left+3*FONTSIZE, rect_Client.top+18*FONTSIZE);
@@ -563,8 +564,8 @@ void LunXunShowPage4(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT8
 		//地址类型、逻辑地址、终端地址
 
 
-		if (GUI_FIRST_RUN == g_firstRun) {
-			g_firstRun = GUI_NOT_FIRST_RUN;
+		if (PARA_NOT_READ == g_oi4001_has_read) {
+			g_oi4001_has_read = PARA_HAS_READ;
 			readCoverClass(0x4001, 0, (void*)&g_Class4001_4002_4003, \
 								sizeof(CLASS_4001_4002_4003), para_vari_save);
 		}
@@ -625,8 +626,8 @@ void LunXunShowPage5(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT8
 		//地址类型、逻辑地址、终端地址
 
 
-		if (GUI_FIRST_RUN == g_firstRun) {
-			g_firstRun = GUI_NOT_FIRST_RUN;
+		if (PARA_NOT_READ == g_oi4001_has_read) {
+			g_oi4001_has_read = PARA_HAS_READ;
 			readCoverClass(0x4001, 0, (void*)&g_Class4001_4002_4003, \
 								sizeof(CLASS_4001_4002_4003), para_vari_save);
 		}
@@ -680,8 +681,8 @@ void LunXunShowPage6(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT8
 		//地址类型、逻辑地址、终端地址
 
 
-		if (GUI_FIRST_RUN == g_firstRun) {
-			g_firstRun = GUI_NOT_FIRST_RUN;
+		if (PARA_NOT_READ == g_oi4001_has_read) {
+			g_oi4001_has_read = PARA_HAS_READ;
 			readCoverClass(0x4001, 0, (void*)&g_Class4001_4002_4003, \
 								sizeof(CLASS_4001_4002_4003), para_vari_save);
 		}
@@ -737,8 +738,8 @@ void LunXunShowPage7(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT8
 		//地址类型、逻辑地址、终端地址
 
 
-		if (GUI_FIRST_RUN == g_firstRun) {
-			g_firstRun = GUI_NOT_FIRST_RUN;
+		if (PARA_NOT_READ == g_oi4001_has_read) {
+			g_oi4001_has_read = PARA_HAS_READ;
 			readCoverClass(0x4001, 0, (void*)&g_Class4001_4002_4003, \
 								sizeof(CLASS_4001_4002_4003), para_vari_save);
 		}
@@ -791,8 +792,8 @@ void LunXunShowPage8(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT8
 		//地址类型、逻辑地址、终端地址
 
 
-		if (GUI_FIRST_RUN == g_firstRun) {
-			g_firstRun = GUI_NOT_FIRST_RUN;
+		if (PARA_NOT_READ == g_oi4001_has_read) {
+			g_oi4001_has_read = PARA_HAS_READ;
 			readCoverClass(0x4001, 0, (void*)&g_Class4001_4002_4003, \
 								sizeof(CLASS_4001_4002_4003), para_vari_save);
 		}
@@ -849,8 +850,8 @@ void LunXunShowPage9(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT8
 		//地址类型、逻辑地址、终端地址
 
 
-		if (GUI_FIRST_RUN == g_firstRun) {
-			g_firstRun = GUI_NOT_FIRST_RUN;
+		if (PARA_NOT_READ == g_oi4001_has_read) {
+			g_oi4001_has_read = PARA_HAS_READ;
 			readCoverClass(0x4001, 0, (void*)&g_Class4001_4002_4003, \
 								sizeof(CLASS_4001_4002_4003), para_vari_save);
 		}
@@ -910,8 +911,8 @@ void LunXunShowPage10(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT
 		//地址类型、逻辑地址、终端地址
 
 
-		if (GUI_FIRST_RUN == g_firstRun) {
-			g_firstRun = GUI_NOT_FIRST_RUN;
+		if (PARA_NOT_READ == g_oi4001_has_read) {
+			g_oi4001_has_read = PARA_HAS_READ;
 			readCoverClass(0x4001, 0, (void*)&g_Class4001_4002_4003, \
 								sizeof(CLASS_4001_4002_4003), para_vari_save);
 		}
@@ -967,8 +968,8 @@ void LunXunShowPage11(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT
 	if(show_flg==1){
 		//地址类型、逻辑地址、终端地址
 
-		if (GUI_FIRST_RUN == g_firstRun) {
-			g_firstRun = GUI_NOT_FIRST_RUN;
+		if (PARA_NOT_READ == g_oi4001_has_read) {
+			g_oi4001_has_read = PARA_HAS_READ;
 			readCoverClass(0x4001, 0, (void*)&g_Class4001_4002_4003, \
 								sizeof(CLASS_4001_4002_4003), para_vari_save);
 		}

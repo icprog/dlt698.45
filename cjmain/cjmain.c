@@ -485,7 +485,7 @@ void checkDevReset() {
     static int state = 0;
     static int oldtime = 0;
     static int first_flag = 1;
-    static int DevResetNum;
+    static int DevResetNum = 0;
 
     if (first_flag == 1) {
         first_flag = 0;
@@ -515,7 +515,6 @@ void checkDevReset() {
         }
     }
     DevResetNum = JProgramInfo->oi_changed.reset;
-    return (time(NULL));
 }
 
 void checkRebootFile() {
@@ -544,7 +543,7 @@ int main(int argc, char *argv[]) {
     int ProgsNum = 0;
 
     //检查是否已经有程序在运行
-    pid_t pids[128];
+    pid_t pids[128] = {0};
     if (prog_find_pid_by_name((INT8S *) argv[0], pids) > 1) {
         asyslog(LOG_ERR, "CJMAIN进程仍在运行,进程号[%d]，程序退出...", pids[0]);
         return EXIT_SUCCESS;
