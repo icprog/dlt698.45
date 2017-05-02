@@ -81,7 +81,7 @@ void setFileState(int shift) {
     int index = shift / 8;
     int node = shift % 8;
     if (node > 0) {
-        file_state[index] |= 0x01 << (8 - node);
+        file_state[index] |= 0x80 >> (node -1);
     } else {
         file_state[index - 1] |= 0x01;
     }
@@ -142,7 +142,7 @@ int appendFile(int shift, int length, unsigned char *buf) {
     stat(file_path, &mstats);
     int res = (int) ((shift * blocksize + length) * 100) / mstats.st_size;
 
-    setFileState(shift);
+    setFileState(shift+1);
 
     if (shift * blocksize + length != mstats.st_size) {
         return res;

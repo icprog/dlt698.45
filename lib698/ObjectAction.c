@@ -30,7 +30,7 @@ extern int FrameHead(CSINFO *csinfo, INT8U *buf);
 extern INT8S (*pSendfun)(int fd, INT8U *sndbuf, INT16U sndlen);
 
 extern void Get698_event(OAD oad, ProgramInfo *prginfo_event);
-
+extern INT16S composeSecurityResponse(INT8U* SendApdu,INT16U Length);
 extern int comfd;
 extern ProgramInfo *memp;
 extern PIID piid_g;
@@ -86,10 +86,16 @@ int doReponse(int server, int reponse, CSINFO *csinfo, int datalen, INT8U *data,
     //buf[index++] = 0;	//操作返回数据
     buf[index++] = 0;    //跟随上报信息域 	FollowReport
     buf[index++] = 0;    //时间标签		TimeTag
-
+    fprintf(stderr,"securetype = %d\n",securetype);
+    int ret=0;
     if (securetype != 0)//安全等级类型不为0，代表是通过安全传输下发报文，上行报文需要以不低于请求的安全级别回复
     {
-        apduplace += composeSecurityResponse(&buf[apduplace], index - apduplace);
+    	fprintf(stderr,"\n apduplace = %d   index=%d     index-apduplace=%d",apduplace,index,index - apduplace);
+    	ret = composeSecurityResponse(&buf[apduplace], index - apduplace);
+    	fprintf(stderr,"\nret = %d",ret);
+    	fprintf(stderr,"\n%02x %02x %02x %02x %02x %02x ",buf[apduplace],buf[apduplace+1],buf[apduplace+2],buf[apduplace+3],buf[apduplace+4],buf[apduplace+5]);
+        apduplace += ret;
+        fprintf(stderr,"\napduplace=%d",apduplace);
         index = apduplace;
     }
     FrameTail(buf, index, hcsi);

@@ -537,6 +537,7 @@ INT32S compose_EnData(INT8U* SendApdu,INT16U Length)
 
 	 BuffTmp[0]=0x90;//安全传输应答标识
 	 esamret = Esam_SIDResponseCheck(0x96,SendApdu,Length,esamBuff);
+	 fprintf(stderr,"\nesamret = %d",esamret);
 	 if(esamret>0)//正常返回4字节MAC
 	{
 		 BuffTmp[1]=0x01;//密文传输标识
@@ -544,6 +545,9 @@ INT32S compose_EnData(INT8U* SendApdu,INT16U Length)
 		 memcpy(&BuffTmp[2],&bytelen[0],retLen);//复制长度字符串
 		 memcpy(&BuffTmp[2+retLen],esamBuff,esamret);//复制密文字符串
 		 BuffTmp[2+retLen + esamret] = 0x00;//无mac
+
+		 memcpy(SendApdu, BuffTmp, 2+retLen+esamret+1);
+
 		 return 2+retLen+esamret+1;
 	}
 	 else
