@@ -1899,7 +1899,7 @@ INT8U updatedatafp(FILE *fp,INT8U recno,INT8U selectype,INT16U interval,CURR_REC
  */
 INT8U initrecinfo(CURR_RECINFO *recinfo,TASKSET_INFO tasknor_info,INT8U selectype,RSD select,INT8U freezetype)
 {
-	time_t time_s;
+	time_t time_s,time_tmp;
 	struct tm *tm_p;
 	switch(selectype)
 	{
@@ -1955,6 +1955,9 @@ INT8U initrecinfo(CURR_RECINFO *recinfo,TASKSET_INFO tasknor_info,INT8U selectyp
 		tm_p->tm_min = select.selec7.collect_save_finish.min.data;
 		tm_p->tm_sec = select.selec7.collect_save_finish.sec.data;
 		recinfo->rec_end = mktime(tm_p);
+		time_tmp = time(NULL);
+		if(time_tmp <= recinfo->rec_end)//如果招测时间在后，则招测时间取当前时间
+			recinfo->rec_end = time_tmp;
 		recinfo->recordno_num = (recinfo->rec_end - recinfo->rec_start)/tasknor_info.freq + 1;
 		asyslog(LOG_INFO,"n-----recinfo->recordno_num=%d,recinfo->rec_end=%d,recinfo->rec_start=%d,tasknor_info.freq=%d\n"
 				,recinfo->recordno_num,recinfo->rec_end,recinfo->rec_start,tasknor_info.freq);
@@ -2318,6 +2321,7 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds)
 	memset(&item_road,0x00,sizeof(ROAD_ITEM));
 	if(selectype == 8 || selectype == 6)//将selector8和6写成selector7的处理办法
 		selectype = 7;
+	fprintf(stderr,"\n-----selectype = %d---%d\n",selectype,select.selec8.collect_succ_finish.day.data);
 
 	if(selectype != 0 && selectype != 5 && selectype != 7 && selectype != 10)
 		return 0;
@@ -2572,6 +2576,7 @@ long int readFrameDataFile(char *filename,int offset,INT8U *buf,int *datalen)
 		fread(&bytelen,2,1,fp);				//读出数据报文长度
 		fprintf(stderr," readFrameDataFile bytelen=%d\n",bytelen);
 		if(bytelen>=MAX_APDU_SIZE) {		//防止读取数据溢出
+			syslog(LOG_ERR,"read filename=%s bytelen = %d 大于限定值=%d\n",filename,bytelen,MAX_APDU_SIZE);
 			return 0;
 		}
 		if (fread(buf,bytelen,1,fp) <=0 ) 	//按数据报文长度，读出全部字节
