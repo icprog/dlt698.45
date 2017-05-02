@@ -342,6 +342,7 @@ int SaveNorData(INT8U taskid,ROAD *road_eve,INT8U *databuf,int datalen,TS ts_cc)
 			return 0;
 		runtime = tasknor_info.runtime;
 		memcpy(&csds,&tasknor_info.csds,sizeof(CSD_ARRAYTYPE));//
+		fprintf(stderr,"taskinfoflg=%d==========\n",taskinfoflg);
 		if(taskinfoflg == 2)//月冻结
 		{
 			ts_cc.Day = 0;
@@ -360,9 +361,11 @@ int SaveNorData(INT8U taskid,ROAD *road_eve,INT8U *databuf,int datalen,TS ts_cc)
 		csds.num = 1;
 		getEveFileName(road_eve->oad.OI,fname);//创建eve文件
 	}
+	asyslog(LOG_WARNING, "filename=%s",fname);
 	fp = fopen(fname,"r");
 	if(fp == NULL)//文件没内容 组文件头，如果文件已存在，提取文件头信息
 	{
+		asyslog(LOG_WARNING, "file：%s不存在",fname);
 		CreateSaveHead(fname,road_eve,csds,&headlen,&unitlen,&unitnum,runtime,1);//写文件头信息并返回
 		if(unitlen == 0)
 		{
@@ -375,6 +378,7 @@ int SaveNorData(INT8U taskid,ROAD *road_eve,INT8U *databuf,int datalen,TS ts_cc)
 	}
 	else
 	{
+		asyslog(LOG_WARNING, "file：%s存在",fname);
 		ReadFileHeadLen(fp,&headlen,&unitlen);
 		databuf_tmp = malloc(unitlen);
 		fseek(fp,headlen,SEEK_SET);//跳过文件头

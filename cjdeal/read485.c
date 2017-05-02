@@ -3244,6 +3244,12 @@ INT16S deal6015or6017_singlemeter(CLASS_6013 st6013,CLASS_6015 st6015,CLASS_6001
 							st6015.data.data[CURVE_INFO_STARTINDEX+6] = 0;
 							st6015.data.data[CURVE_INFO_STARTINDEX+7] = 0;
 
+							ret = dealRealTimeRequst(port485);
+							if(ret == PARA_CHANGE_RETVALUE)
+							{
+								return PARA_CHANGE_RETVALUE;
+							}
+
 							ret = deal6015_698(st6015,obj6001,st6035,dataContent,port485);
 
 
@@ -3267,7 +3273,7 @@ INT16S deal6015or6017_singlemeter(CLASS_6013 st6013,CLASS_6015 st6015,CLASS_6001
 									freezeTimeStamp.Hour = dataContent[dataIndex+5];
 									freezeTimeStamp.Minute = dataContent[dataIndex+6];
 									freezeTimeStamp.Sec = dataContent[dataIndex+7];
-
+									freezeTimeStamp.Week = 0;
 									DbgPrintToFile1(port485,"曲线数据时标[%d] %04d-%02d-%02d %02d:%02d:%02d",
 									recordIndex,freezeTimeStamp.Year,freezeTimeStamp.Month,freezeTimeStamp.Day,freezeTimeStamp.Hour,freezeTimeStamp.Minute,freezeTimeStamp.Sec);
 									memset(singleDatabuf,0,DATA_CONTENT_LEN);
