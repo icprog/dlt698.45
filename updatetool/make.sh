@@ -11,8 +11,8 @@ ls
 rm -rf cjgwn
 rm -f update.sh
 rm -f $APPDIRSRC/app.tar.gz
-#cp ../bin_arm/* ./app/
-#cp ../config/* ./app/
+cp ../bin_arm/* ./app/
+cp ../config/* ./app/
 tar -cvf app.tar *
 gzip -9 app.tar
 rm -f $SHNAMEPATH
