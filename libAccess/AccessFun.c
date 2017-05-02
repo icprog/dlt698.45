@@ -1040,6 +1040,7 @@ INT16U CalcFreq(TI runti,CLASS_6015 class6015,INT16U startmin,INT16U endmin,INT3
 	int rate = 0;//倍率
 	INT16U sec_unit = 0;
 	INT8U  inval_flg = 0;
+	asyslog(LOG_INFO,"\n---@@@---class6015.cjtype = %d\n",class6015.cjtype);
 	if(class6015.cjtype == 3 || class6015.cjtype == 0)//按时标间隔采集
 	{
 		fprintf(stderr,"\n结束分钟数：%d 开始分钟数：%d 单位 %d\n",endmin, startmin, runti.units);
@@ -1063,6 +1064,29 @@ INT16U CalcFreq(TI runti,CLASS_6015 class6015,INT16U startmin,INT16U endmin,INT3
 				inval_flg = 1;
 			break;
 		case 3://天
+			asyslog(LOG_INFO,"\n---@@@---采集类型%d  data:%02x-%02x%02x\n",class6015.cjtype,class6015.data.data[0],class6015.data.data[1],class6015.data.data[2]);
+			if(class6015.data.data[1] == 0 && class6015.data.data[2] == 0)
+				return 1;
+			if(class6015.cjtype == 3)//按抄表间隔
+			{
+				switch(class6015.data.data[0])
+				{
+				case 0:
+					*sec_freq = ((class6015.data.data[1]<<8)+class6015.data.data[2]);
+					return ((endmin-startmin)*60)/((class6015.data.data[1]<<8)+class6015.data.data[2])+1;
+				case 1:
+					asyslog(LOG_INFO,"\n---@@@---按抄表间隔采集,间隔%d\n",((endmin-startmin)*60)/((class6015.data.data[1]<<8)+class6015.data.data[2])*60+1);
+					*sec_freq = ((class6015.data.data[1]<<8)+class6015.data.data[2])*60;
+					return (endmin-startmin)/((class6015.data.data[1]<<8)+class6015.data.data[2])+1;
+				case 2:
+					*sec_freq = ((class6015.data.data[1]<<8)+class6015.data.data[2])*3600;
+					return ((endmin-startmin)*60)/(((class6015.data.data[1]<<8)+class6015.data.data[2])*60)+1;
+				default:
+					break;
+				}
+				asyslog(LOG_INFO,"\n---@@@---按抄表间隔采集%d\n",((endmin-startmin)*60)/sec_unit+1);
+				return ((endmin-startmin)*60)/sec_unit+1;
+			}
 			*sec_freq = 86400;
 			return 1;
 			break;
@@ -1120,9 +1144,9 @@ INT8U ReadTaskInfo(INT8U taskid,TASKSET_INFO *tasknor_info)//读取普通采集�
 				if(class6013.interval.units == 5)//年冻结
 					return 3;
 			}
-			fprintf(stderr,"\n---@@@---返回1\n");
+			fprintf(stderr,"\n---@@@---返回4\n");
 			asyslog(LOG_INFO,"任务开始结束时间：%d:%d--%d:%d\n",tasknor_info->starthour,tasknor_info->startmin,tasknor_info->endhour,tasknor_info->endmin);
-			asyslog(LOG_INFO,"\n---@@@---任务%d执行次数%d\n",taskid,tasknor_info->runtime);
+			asyslog(LOG_INFO,"\n---@@@@---任务%d执行次数%d\n",taskid,tasknor_info->runtime);
 			return 4;
 		}
 	}
@@ -1912,7 +1936,6 @@ INT8U initrecinfo(CURR_RECINFO *recinfo,TASKSET_INFO tasknor_info,INT8U selectyp
 		recinfo->rec_end = mktime(tm_p);
 		break;
 	case 7://实时数据类
-		recinfo->recordno_num = (recinfo->rec_end - recinfo->rec_start)/tasknor_info.freq + 1;
 		time(&time_s);
 		tm_p = localtime(&time_s);
 		tm_p->tm_year = select.selec7.collect_save_star.year.data-1900;
@@ -1932,6 +1955,9 @@ INT8U initrecinfo(CURR_RECINFO *recinfo,TASKSET_INFO tasknor_info,INT8U selectyp
 		tm_p->tm_min = select.selec7.collect_save_finish.min.data;
 		tm_p->tm_sec = select.selec7.collect_save_finish.sec.data;
 		recinfo->rec_end = mktime(tm_p);
+		recinfo->recordno_num = (recinfo->rec_end - recinfo->rec_start)/tasknor_info.freq + 1;
+		asyslog(LOG_INFO,"n-----recinfo->recordno_num=%d,recinfo->rec_end=%d,recinfo->rec_start=%d,tasknor_info.freq=%d\n"
+				,recinfo->recordno_num,recinfo->rec_end,recinfo->rec_start,tasknor_info.freq);
 		break;
 	case 10://主动上报类
 		recinfo->recordno_num = select.selec10.recordn;
@@ -1955,8 +1981,9 @@ INT8U getcurecord(INT8U selectype,int *curec,int curecn,int runtime)
 		return 1;
 	if(selectype == 7 || selectype == 5)
 	{
-		currecord = (currecord+curecn)%runtime;
-		*curec = 0;
+//		currecord = (currecord+curecn)%runtime; //此处算法错误 ？？
+//		*curec = 0;								//此处逻辑错误 ??
+		*curec = curecn - 1;
 		return 1;
 	}
 	else if(selectype == 10)
@@ -2444,18 +2471,31 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds)
 			indexn += collectData(&onefrmbuf[indexn],recordbuf,oad_offset,item_road);
 			recordnum++;
 			asyslog(LOG_INFO,"recordnum=%d  seqnumindex=%d\n",recordnum,seqnumindex);
+
 			if (indexn>=1000)
 			{
 				framesum++;
 				//8 存储1帧
 				intToBuf((indexn-2),onefrmbuf);		//帧长度保存帧的数据长度
+				onefrmbuf[seqnumindex] = recordnum;
 				saveOneFrame(onefrmbuf,indexn,myfp);
 				indexn = 2;
 				indexn += initFrameHead(&onefrmbuf[indexn],oad,select,selectype,csds,&seqnumindex);
-				onefrmbuf[seqnumindex] = recordnum;
 				recordnum = 0;
-				break;
+				continue;
 			}
+//			if (indexn>=1000)
+//			{
+//				framesum++;
+//				//8 存储1帧
+//				intToBuf((indexn-2),onefrmbuf);		//帧长度保存帧的数据长度
+//				saveOneFrame(onefrmbuf,indexn,myfp);
+//				indexn = 2;
+//				indexn += initFrameHead(&onefrmbuf[indexn],oad,select,selectype,csds,&seqnumindex);
+//				onefrmbuf[seqnumindex] = recordnum;   //此处逻辑错误？？
+//				recordnum = 0;
+//				break;
+//			}
 		}
 	}
 	asyslog(LOG_INFO,"组帧：indexn=%d\n",indexn);
@@ -2464,6 +2504,7 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds)
 	}
 
 	if(framesum==0) {
+		framesum = 1; //一帧
 		fprintf(stderr,"\n indexn = %d saveOneFrame  seqnumindex=%d,  recordnum=%d!!!!!!!!!!!!!!!!\n",indexn,seqnumindex,recordnum);
 		asyslog(LOG_INFO,"任务数据文件组帧:indexn = %d , seqnumindex=%d,  recordnum=%d\n",indexn,seqnumindex,recordnum);
 		intToBuf((indexn-2),onefrmbuf);
@@ -2480,8 +2521,17 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds)
 	if(myfp != NULL)
 		fclose(myfp);
 	asyslog(LOG_INFO,"--framesum=%d\n",framesum);
-	return (framesum+1);
+	return (framesum );//返回实际帧数
 }
+/*
+ * 文件数据流fp 文件头长度headlen 标准单元长度unitlen
+ * 单元号索引unitno_index 索引到的单元号
+ */
+//void GetDataUnit(FILE *fp,INT16U headlen,INT16U unitlen,INT16U *unitno_index)
+//{
+//	fseek(fp,headlen+unitlen*unitno_index,SEEK_SET);
+//
+//}
 int getSelector(OAD oad_h,RSD select, INT8U selectype, CSD_ARRAYTYPE csds, INT8U *data, int *datalen)
 {
 	int  framesum=0;		//分帧

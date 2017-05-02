@@ -136,11 +136,11 @@ int BuildFrame_GetResponseNext(INT8U response_type,CSINFO *csinfo,INT8U DAR,INT1
 			sendbuf[index++] = 1;		//对象属性[1]   SEQUENCE OF A-ResultNormal
 		}else if(next_info.repsonseType==GET_REQUEST_RECORD || next_info.repsonseType==GET_REQUEST_RECORD_LIST) {
 			sendbuf[index++] = 2;		//记录型对象属性[2]SEQUENCE OF A-ResultRecord
+			sendbuf[index++] = 1;//A-ResultRecord∷=CHOICE  1:记录数据
 		}
 		memcpy(&sendbuf[index],databuf,datalen);
 		index = index + datalen;
-	}else
-	{
+	}else {
 		sendbuf[index++] = 0;//choice 0  ,DAR 有效 (数据访问可能的结果)
 		sendbuf[index++] = DAR;
 	}
@@ -1037,7 +1037,7 @@ int doGetrecord(INT8U type,OAD oad,INT8U *data,RESULT_RECORD *record,INT16U *sub
 		record->data = &TmpDataBuf[dest_index];
 		*subframe = getSelector(oad,record->select, record->selectType,record->rcsd.csds,(INT8U *)record->data,(int *)&record->datalen);
 
-		if(*subframe==1) {		//无分帧
+		if(*subframe>=1) {		//无分帧
 			next_info.nextSite = readFrameDataFile(TASK_FRAME_DATA,0,TmpDataBuf,&datalen);
 			if(type==GET_REQUEST_RECORD) {//文件中第一个字节保存的是：SEQUENCE OF A-ResultRecord，此处从TmpDataBuf[1]上送，上送长度也要-1
 				if(datalen>=1) {
