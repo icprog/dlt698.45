@@ -65,10 +65,7 @@ int InitPro(ProgramInfo** prginfo, int argc, char *argv[])
 	{
 		*prginfo = OpenShMem("ProgramInfo",sizeof(ProgramInfo),NULL);
 		ProIndex = atoi(argv[1]);
-		if (cjdeal != ProIndex) {
-			DEBUG_TIME_LINE("cjdeal's process id is wrong!\n");
-			return 0;
-		}
+
 		fprintf(stderr,"\n%s start",(*prginfo)->Projects[ProIndex].ProjectName);
 		(*prginfo)->Projects[ProIndex].ProjectID=getpid();//保存当前进程的进程号
 		fprintf(stderr,"ProjectID[%d]=%d\n",ProIndex,(*prginfo)->Projects[ProIndex].ProjectID);
