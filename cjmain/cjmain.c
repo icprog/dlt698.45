@@ -240,7 +240,7 @@ void Checkupdate() {
                 fread(md5_org, sizeof(md5_org), 1, fp_org);
                 int res = strncmp(md5_new, md5_org, 24);
                 if (res != 0) {
-                    system("/dos/cjgwn/update.sh");
+                    system("/dos/cjgwn/update.sh&");
                     asyslog(LOG_INFO, "版本比对不同，开始升级....");
                 } else {
                     asyslog(LOG_INFO, "版本比对相同，不予升级....");

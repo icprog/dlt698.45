@@ -825,7 +825,7 @@ void dispatchTask_proccess()
  *********************************************************/
 int main(int argc, char *argv[])
 {
-	printf("a\n");
+//	printf("a\n");
 	//return ctrl_base_test();
 
 	pid_t pids[128];
