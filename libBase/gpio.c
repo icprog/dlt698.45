@@ -112,8 +112,13 @@ BOOLEAN pwr_has()
 BOOLEAN bettery_getV(FP32* clock_bt, FP32* tmnl_bt) {
     int fd                     = -1;
     unsigned int adc_result[2] = {};
-    if ((fd = open(DEV_ADC, O_RDWR | O_SYNC)) == -1) {
-       	syslog(LOG_ERR,"%s %s fd=%d\n",__func__,DEV_ADC,fd);
+
+    adc_result[0] = 0;
+    adc_result[1] = 0;
+    if ((fd = open(DEV_ADC0, O_RDWR | O_SYNC)) == -1) {
+       	syslog(LOG_ERR,"%s %s fd=%d\n",__func__,DEV_ADC0,fd);
+       	*clock_bt = 0;
+       	*tmnl_bt = 0;
     	return FALSE;
     }
     gpio_writebyte(DEV_ADC_SWITCH, 0);
@@ -122,6 +127,21 @@ BOOLEAN bettery_getV(FP32* clock_bt, FP32* tmnl_bt) {
     gpio_writebyte(DEV_ADC_SWITCH, 1);
     *clock_bt = adc_result[0] * 1.0 / 1023 * 6.6;
     *tmnl_bt  = adc_result[1] * 1.0 / 1023 * 6.6;
+    close(fd);
+    return TRUE;
+}
+
+BOOLEAN bettery_getV_II(FP32* clock_bt)
+{
+    int fd                     = -1;
+    unsigned int adc_result = 0;
+    if ((fd = open(DEV_ADC, O_RDWR | O_SYNC)) == -1) {
+       	syslog(LOG_ERR,"%s %s fd=%d\n",__func__,DEV_ADC,fd);
+       	*clock_bt = 0;
+    	return FALSE;
+    }
+    read(fd, &adc_result, sizeof(unsigned int));
+    *clock_bt = adc_result * 1.0 / 1023 * 6.6;
     close(fd);
     return TRUE;
 }

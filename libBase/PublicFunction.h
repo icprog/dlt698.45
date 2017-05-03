@@ -77,6 +77,7 @@ extern INT32S gpio_writebytes(char* devpath, INT8S* vals, INT32S valnum);
 extern BOOLEAN pwr_has();
 extern BOOLEAN pwr_has_byVolt(INT8U valid, INT32U volt, INT16U limit);
 extern BOOLEAN bettery_getV(FP32* clock_bt, FP32* tmnl_bt);
+extern BOOLEAN bettery_getV_II(FP32* clock_bt);
 
 extern INT8S getSpiAnalogState();
 /*
