@@ -56,7 +56,7 @@
  * 	DL/T698.45		规约结构限值
  * */
 
-#define MAX_APDU_SIZE			1024		//协商的APDU的最大尺寸
+#define MAX_APDU_SIZE			2048		//协商的APDU的最大尺寸
 #define FRAME_SIZE				900			//分帧的长度，分帧组帧未考虑到链路层的数据长度，此处小于MAX_APDU_SIZE
 #define MET_RATE                4           //电表费率应该根据电表配置来，此处调试使用
 #define TSA_LEN					17
