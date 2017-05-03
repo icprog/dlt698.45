@@ -308,7 +308,7 @@ INT16U  composeAutoTask(AutoTaskStrap *list)
 
 	timenow = time(NULL);
 
-	fprintf(stderr,"timenow=%ld  nexttime=%ld\n",timenow,list->nexttime);
+//	fprintf(stderr,"timenow=%ld  nexttime=%ld\n",timenow,list->nexttime);
 
 	if(timenow >= list->nexttime)
 	{

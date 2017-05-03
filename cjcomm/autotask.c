@@ -99,8 +99,6 @@ void RegularAutoTask(struct aeEventLoop* ep, CommBlock* nst) {
 
     for (int i = 0; i < MAXNUM_AUTOTASK; i++) {
         //调用日常通信接口
-//    	fprintf(stderr,"i=%d nexttime=%ld\n",i,shmem->autotask[i].nexttime);
-
         int res = composeAutoTask(&shmem->autotask[i]);
 
         if ((res == 1) || (res == 2)) {
