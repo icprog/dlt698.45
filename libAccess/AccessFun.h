@@ -66,6 +66,7 @@ typedef enum
 
 typedef struct {
 	INT16U  runtime;  //一天执行次数，日月年冻结和实时数据无效，置位1，由执行频率计算，主要针对负荷曲线，0表示对于这个采集方案任务无效
+	INT32U   taskfreq;//任务执行频率
 	INT16U starthour;
 	INT16U startmin; //开始执行分钟，主要针对负荷曲线
 	INT16U endhour;

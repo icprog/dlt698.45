@@ -1043,6 +1043,26 @@ INT16U CalcFreq(TI runti,CLASS_6015 class6015,INT16U startmin,INT16U endmin,INT3
 	asyslog(LOG_INFO,"\n---@@@---class6015.cjtype = %d\n",class6015.cjtype);
 	if(class6015.cjtype == 3 || class6015.cjtype == 0)//按时标间隔采集
 	{
+		if(class6015.cjtype == 3)//按抄表间隔
+		{
+			switch(class6015.data.data[0])
+			{
+			case 0:
+				*sec_freq = ((class6015.data.data[1]<<8)+class6015.data.data[2]);
+				return ((endmin-startmin)*60)/((class6015.data.data[1]<<8)+class6015.data.data[2])+1;
+			case 1:
+				asyslog(LOG_INFO,"\n---@@@---按抄表间隔采集,间隔%d\n",((endmin-startmin)*60)/((class6015.data.data[1]<<8)+class6015.data.data[2])*60+1);
+				*sec_freq = ((class6015.data.data[1]<<8)+class6015.data.data[2])*60;
+				return (endmin-startmin)/((class6015.data.data[1]<<8)+class6015.data.data[2])+1;
+			case 2:
+				*sec_freq = ((class6015.data.data[1]<<8)+class6015.data.data[2])*3600;
+				return ((endmin-startmin)*60)/(((class6015.data.data[1]<<8)+class6015.data.data[2])*60)+1;
+			default:
+				break;
+			}
+			asyslog(LOG_INFO,"\n---@@@---按抄表间隔采集%d\n",((endmin-startmin)*60)/sec_unit+1);
+			return ((endmin-startmin)*60)/sec_unit+1;
+		}
 		fprintf(stderr,"\n结束分钟数：%d 开始分钟数：%d 单位 %d\n",endmin, startmin, runti.units);
 		if(endmin <= startmin || runti.units > 3)
 			return 0;//无效设置
@@ -1067,26 +1087,26 @@ INT16U CalcFreq(TI runti,CLASS_6015 class6015,INT16U startmin,INT16U endmin,INT3
 			asyslog(LOG_INFO,"\n---@@@---采集类型%d  data:%02x-%02x%02x\n",class6015.cjtype,class6015.data.data[0],class6015.data.data[1],class6015.data.data[2]);
 			if(class6015.data.data[1] == 0 && class6015.data.data[2] == 0)
 				return 1;
-			if(class6015.cjtype == 3)//按抄表间隔
-			{
-				switch(class6015.data.data[0])
-				{
-				case 0:
-					*sec_freq = ((class6015.data.data[1]<<8)+class6015.data.data[2]);
-					return ((endmin-startmin)*60)/((class6015.data.data[1]<<8)+class6015.data.data[2])+1;
-				case 1:
-					asyslog(LOG_INFO,"\n---@@@---按抄表间隔采集,间隔%d\n",((endmin-startmin)*60)/((class6015.data.data[1]<<8)+class6015.data.data[2])*60+1);
-					*sec_freq = ((class6015.data.data[1]<<8)+class6015.data.data[2])*60;
-					return (endmin-startmin)/((class6015.data.data[1]<<8)+class6015.data.data[2])+1;
-				case 2:
-					*sec_freq = ((class6015.data.data[1]<<8)+class6015.data.data[2])*3600;
-					return ((endmin-startmin)*60)/(((class6015.data.data[1]<<8)+class6015.data.data[2])*60)+1;
-				default:
-					break;
-				}
-				asyslog(LOG_INFO,"\n---@@@---按抄表间隔采集%d\n",((endmin-startmin)*60)/sec_unit+1);
-				return ((endmin-startmin)*60)/sec_unit+1;
-			}
+//			if(class6015.cjtype == 3)//按抄表间隔
+//			{
+//				switch(class6015.data.data[0])
+//				{
+//				case 0:
+//					*sec_freq = ((class6015.data.data[1]<<8)+class6015.data.data[2]);
+//					return ((endmin-startmin)*60)/((class6015.data.data[1]<<8)+class6015.data.data[2])+1;
+//				case 1:
+//					asyslog(LOG_INFO,"\n---@@@---按抄表间隔采集,间隔%d\n",((endmin-startmin)*60)/((class6015.data.data[1]<<8)+class6015.data.data[2])*60+1);
+//					*sec_freq = ((class6015.data.data[1]<<8)+class6015.data.data[2])*60;
+//					return (endmin-startmin)/((class6015.data.data[1]<<8)+class6015.data.data[2])+1;
+//				case 2:
+//					*sec_freq = ((class6015.data.data[1]<<8)+class6015.data.data[2])*3600;
+//					return ((endmin-startmin)*60)/(((class6015.data.data[1]<<8)+class6015.data.data[2])*60)+1;
+//				default:
+//					break;
+//				}
+//				asyslog(LOG_INFO,"\n---@@@---按抄表间隔采集%d\n",((endmin-startmin)*60)/sec_unit+1);
+//				return ((endmin-startmin)*60)/sec_unit+1;
+//			}
 			*sec_freq = 86400;
 			return 1;
 			break;
@@ -1104,6 +1124,28 @@ INT16U CalcFreq(TI runti,CLASS_6015 class6015,INT16U startmin,INT16U endmin,INT3
 	}
 	return 1;
 }
+INT32U freqtosec(TI interval)//ti格式频率转化为秒数,只计算秒分时日，其他返回0
+{
+	INT16U rate = 0;
+	switch(interval.units)
+	{
+	case 0:
+		rate = 1;
+		break;
+	case 1:
+		rate = 60;
+		break;
+	case 2:
+		rate = 3600;
+		break;
+	case 3:
+		rate = 86400;
+		break;
+	default:
+		break;
+	}
+	return rate*interval.interval;
+}
 //读取taskid相应的配置结构体，return 1成功，0失败
 INT8U ReadTaskInfo(INT8U taskid,TASKSET_INFO *tasknor_info)//读取普通采集方案配置
 {
@@ -1119,12 +1161,15 @@ INT8U ReadTaskInfo(INT8U taskid,TASKSET_INFO *tasknor_info)//读取普通采集�
 			return 0;
 		if(readCoverClass(0x6015,class6013.sernum,&class6015,sizeof(CLASS_6015),coll_para_save) == 1)
 		{
+			tasknor_info->taskfreq = freqtosec(class6013.interval);
+			fprintf(stderr,"\n任务执行间隔%d\n",tasknor_info->taskfreq);
 			tasknor_info->starthour = class6013.runtime.runtime[0].beginHour;
 			tasknor_info->startmin = class6013.runtime.runtime[0].beginMin;//按照设置一个时段来
 			tasknor_info->endhour = class6013.runtime.runtime[0].endHour;
 			tasknor_info->endmin = class6013.runtime.runtime[0].endMin;//按照设置一个时段来
 			fprintf(stderr,"\n任务开始结束时间：%d:%d--%d:%d\n",tasknor_info->starthour,tasknor_info->startmin,tasknor_info->endhour,tasknor_info->endmin);
 			tasknor_info->runtime = CalcFreq(class6013.interval,class6015,tasknor_info->starthour*60+tasknor_info->startmin,tasknor_info->endhour*60+tasknor_info->endmin,&tasknor_info->freq);
+//			tasknor_info->runtime = CalcFreq(class6013.interval,class6015,tasknor_info->starthour*60+tasknor_info->startmin,tasknor_info->endhour*60+tasknor_info->endmin,&tasknor_info->freq);
 			if(tasknor_info->runtime == 0)
 				return 0;
 			fprintf(stderr,"\n---@@@---任务%d执行次数%d\n",taskid,tasknor_info->runtime);
@@ -1936,6 +1981,42 @@ INT8U initrecinfo(CURR_RECINFO *recinfo,TASKSET_INFO tasknor_info,INT8U selectyp
 		recinfo->rec_end = mktime(tm_p);
 		break;
 	case 7://实时数据类
+<<<<<<< HEAD
+		asyslog(LOG_INFO,"select.selec7.collect_save_star.year.data=%d",select.selec7.collect_save_star.year.data);
+		if(select.selec7.collect_save_star.year.data == 0xffff)//时标默认
+		{
+			asyslog(LOG_INFO,"时标fffffff，招测时间默认");
+			recinfo->rec_end = time(NULL);
+			recinfo->rec_start = recinfo->rec_end - tasknor_info.taskfreq;
+			recinfo->recordno_num = tasknor_info.taskfreq/tasknor_info.freq;
+		}
+		else
+		{
+			time(&time_s);
+			tm_p = localtime(&time_s);
+			tm_p->tm_year = select.selec7.collect_save_star.year.data-1900;
+			tm_p->tm_mon = select.selec7.collect_save_star.month.data-1;
+			tm_p->tm_mday = select.selec7.collect_save_star.day.data;
+			tm_p->tm_hour = select.selec7.collect_save_star.hour.data;
+			tm_p->tm_min = select.selec7.collect_save_star.min.data;
+			tm_p->tm_sec = select.selec7.collect_save_star.sec.data;
+			recinfo->rec_start = mktime(tm_p);
+
+			time(&time_s);
+			time_tmp = time(NULL);
+			tm_p = localtime(&time_s);
+			tm_p->tm_year = select.selec7.collect_save_finish.year.data-1900;
+			tm_p->tm_mon = select.selec7.collect_save_finish.month.data-1;
+			tm_p->tm_mday = select.selec7.collect_save_finish.day.data;
+			tm_p->tm_hour = select.selec7.collect_save_finish.hour.data;
+			tm_p->tm_min = select.selec7.collect_save_finish.min.data;
+			tm_p->tm_sec = select.selec7.collect_save_finish.sec.data;
+			recinfo->rec_end = mktime(tm_p);
+			if(time_tmp <= recinfo->rec_end)
+				recinfo->rec_end = time_tmp;
+			recinfo->recordno_num = (recinfo->rec_end - recinfo->rec_start)/tasknor_info.freq + 1;
+		}
+=======
 		time(&time_s);
 		tm_p = localtime(&time_s);
 		tm_p->tm_year = select.selec7.collect_save_star.year.data-1900;
@@ -1959,8 +2040,10 @@ INT8U initrecinfo(CURR_RECINFO *recinfo,TASKSET_INFO tasknor_info,INT8U selectyp
 		if(time_tmp <= recinfo->rec_end)//如果招测时间在后，则招测时间取当前时间
 			recinfo->rec_end = time_tmp;
 		recinfo->recordno_num = (recinfo->rec_end - recinfo->rec_start)/tasknor_info.freq + 1;
+>>>>>>> bffce4f43aec664edeae60203628e2ef259e7716
 		asyslog(LOG_INFO,"n-----recinfo->recordno_num=%d,recinfo->rec_end=%d,recinfo->rec_start=%d,tasknor_info.freq=%d\n"
 				,recinfo->recordno_num,recinfo->rec_end,recinfo->rec_start,tasknor_info.freq);
+
 		break;
 	case 10://主动上报类
 		recinfo->recordno_num = select.selec10.recordn;
@@ -1982,14 +2065,7 @@ INT8U getcurecord(INT8U selectype,int *curec,int curecn,int runtime)
 	int currecord = *curec;
 	if(selectype == 0)
 		return 1;
-	if(selectype == 7 || selectype == 5)
-	{
-//		currecord = (currecord+curecn)%runtime; //此处算法错误 ？？
-//		*curec = 0;								//此处逻辑错误 ??
-		*curec = curecn - 1;
-		return 1;
-	}
-	else if(selectype == 10)
+	if(selectype == 10)
 	{
 		int cnt=0;
 		int daymax = 10;//最多可查找十天的，不用while(1),防止死循环
@@ -2312,7 +2388,7 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds)
 	OAD_INDEX oad_offset[100];//oad索引
 	TASKSET_INFO tasknor_info;
 	INT16U  blocksize=0,headsize=0;
-	int offsetTsa = 0,recordoffset = 0,unitnum=0,i=0,j=0,indexn=0,recordlen = 0,currecord = 0,firecord = 0,tsa_num=0,framesum=0;
+	int offsetTsa = 0,recordoffset = 0,unitnum=0,i=0,j=0,indexn=0,recordlen = 0,currecord = 0,rec_tmp = 0,firecord = 0,tsa_num=0,framesum=0;
 	INT8U recordnum=0,seqnumindex=0,taskinfoflg=0;
 	TSA *tsa_group = NULL;
 	ROAD road_eve;
@@ -2459,13 +2535,16 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds)
 				continue;
 			}
 			//5\定位指定的点（行）, 返回offset
-			if(getcurecord(selectype,&currecord,j,tasknor_info.runtime) == 0)//招测天数跨度超出10天
-			{
-				asyslog(LOG_INFO,"\n招测天数跨度超出10天\n",currecord);
-				break;
-			}
-			asyslog(LOG_INFO,"\n计算出来的currecord=%d\n",currecord);
-			recordoffset = findrecord(offsetTsa,recordlen,currecord);
+			if(selectype == 7 || selectype == 5)
+				rec_tmp = j-1;
+			else
+				if(getcurecord(selectype,&currecord,j,tasknor_info.runtime) == 0)//招测天数跨度超出10天
+				{
+					asyslog(LOG_INFO,"\n招测天数跨度超出10天\n",currecord);
+					break;
+				}
+			asyslog(LOG_INFO,"\n计算出来的currecord=%d\n",currecord+rec_tmp);
+			recordoffset = findrecord(offsetTsa,recordlen,currecord+rec_tmp);
 			memset(recordbuf,0x00,sizeof(recordbuf));
 			//6\读出一行数据到临时缓存
 			fseek(fp,recordoffset,SEEK_SET);
@@ -2476,7 +2555,7 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds)
 			recordnum++;
 			asyslog(LOG_INFO,"recordnum=%d  seqnumindex=%d\n",recordnum,seqnumindex);
 
-			if (indexn>=1000)
+			if (indexn>=2000)
 			{
 				framesum++;
 				//8 存储1帧
@@ -2486,7 +2565,7 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds)
 				indexn = 2;
 				indexn += initFrameHead(&onefrmbuf[indexn],oad,select,selectype,csds,&seqnumindex);
 				recordnum = 0;
-				continue;
+//				continue;
 			}
 //			if (indexn>=1000)
 //			{
