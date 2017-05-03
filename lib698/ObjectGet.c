@@ -44,7 +44,7 @@ int BuildFrame_GetResponseRecord(INT8U response_type,CSINFO *csinfo,RESULT_RECOR
 {
 	int index=0, hcsi=0;
 	csinfo->dir = 1;
-	csinfo->prm = 0;
+	csinfo->prm = 1;
 	int apduplace =0;
 
 	index = FrameHead(csinfo,sendbuf);
@@ -115,7 +115,7 @@ int BuildFrame_GetResponseNext(INT8U response_type,CSINFO *csinfo,INT8U DAR,INT1
 //	int i=0;
 
 	csinfo->dir = 1;
-	csinfo->prm = 0;
+	csinfo->prm = 1;
 
 	index = FrameHead(csinfo,sendbuf);
 	hcsi = index;

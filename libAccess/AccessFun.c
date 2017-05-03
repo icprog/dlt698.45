@@ -1981,7 +1981,6 @@ INT8U initrecinfo(CURR_RECINFO *recinfo,TASKSET_INFO tasknor_info,INT8U selectyp
 		recinfo->rec_end = mktime(tm_p);
 		break;
 	case 7://实时数据类
-<<<<<<< HEAD
 		asyslog(LOG_INFO,"select.selec7.collect_save_star.year.data=%d",select.selec7.collect_save_star.year.data);
 		if(select.selec7.collect_save_star.year.data == 0xffff)//时标默认
 		{
@@ -2016,31 +2015,6 @@ INT8U initrecinfo(CURR_RECINFO *recinfo,TASKSET_INFO tasknor_info,INT8U selectyp
 				recinfo->rec_end = time_tmp;
 			recinfo->recordno_num = (recinfo->rec_end - recinfo->rec_start)/tasknor_info.freq + 1;
 		}
-=======
-		time(&time_s);
-		tm_p = localtime(&time_s);
-		tm_p->tm_year = select.selec7.collect_save_star.year.data-1900;
-		tm_p->tm_mon = select.selec7.collect_save_star.month.data-1;
-		tm_p->tm_mday = select.selec7.collect_save_star.day.data;
-		tm_p->tm_hour = select.selec7.collect_save_star.hour.data;
-		tm_p->tm_min = select.selec7.collect_save_star.min.data;
-		tm_p->tm_sec = select.selec7.collect_save_star.sec.data;
-		recinfo->rec_start = mktime(tm_p);
-
-		time(&time_s);
-		tm_p = localtime(&time_s);
-		tm_p->tm_year = select.selec7.collect_save_finish.year.data-1900;
-		tm_p->tm_mon = select.selec7.collect_save_finish.month.data-1;
-		tm_p->tm_mday = select.selec7.collect_save_finish.day.data;
-		tm_p->tm_hour = select.selec7.collect_save_finish.hour.data;
-		tm_p->tm_min = select.selec7.collect_save_finish.min.data;
-		tm_p->tm_sec = select.selec7.collect_save_finish.sec.data;
-		recinfo->rec_end = mktime(tm_p);
-		time_tmp = time(NULL);
-		if(time_tmp <= recinfo->rec_end)//如果招测时间在后，则招测时间取当前时间
-			recinfo->rec_end = time_tmp;
-		recinfo->recordno_num = (recinfo->rec_end - recinfo->rec_start)/tasknor_info.freq + 1;
->>>>>>> bffce4f43aec664edeae60203628e2ef259e7716
 		asyslog(LOG_INFO,"n-----recinfo->recordno_num=%d,recinfo->rec_end=%d,recinfo->rec_start=%d,tasknor_info.freq=%d\n"
 				,recinfo->recordno_num,recinfo->rec_end,recinfo->rec_start,tasknor_info.freq);
 

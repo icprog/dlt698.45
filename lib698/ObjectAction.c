@@ -67,7 +67,7 @@ int doReponse(int server, int reponse, CSINFO *csinfo, int datalen, INT8U *data,
     if (broadcast == 0x03)
         return 0;
     csinfo->dir = 1;
-    csinfo->prm = 0;
+    csinfo->prm = 1;
 
     index = FrameHead(csinfo, buf);
     hcsi = index;

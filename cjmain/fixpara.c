@@ -50,7 +50,7 @@ void InitClass4300() //电气设备信息
 {
     CLASS19 oi4300 = {};
     int ret        = 0;
-
+    int	i=0;
     memset(&oi4300, 0, sizeof(CLASS19));
     ret = readCoverClass(0x4300, 0, &oi4300, sizeof(CLASS19), para_vari_save);
     if ((ret != 1) || (memcmp(&oi4300.info, &verinfo, sizeof(VERINFO)) != 0) || memcmp(&oi4300.date_Product, &product_date, sizeof(DateTimeBCD)) != 0 ||
@@ -61,6 +61,7 @@ void InitClass4300() //电气设备信息
         memcpy(&oi4300.protcol, protcol, sizeof(oi4300.protcol));
         saveCoverClass(0x4300, 0, &oi4300, sizeof(CLASS19), para_vari_save);
     }
+    for(i=0;i<8;i++) 	oi4300.info.factoryExpInfo[i]=0x30;
     fprintf(stderr, "\n厂商代码 %c%c%c%c", oi4300.info.factoryCode[0], oi4300.info.factoryCode[1], oi4300.info.factoryCode[2], oi4300.info.factoryCode[3]);
     fprintf(stderr, "\n软件版本 %c%c%c%c", oi4300.info.softVer[0], oi4300.info.softVer[1], oi4300.info.softVer[2], oi4300.info.softVer[3]);
     fprintf(stderr, "\n软件版本日期 %c%c%c%c%c%c", oi4300.info.softDate[0], oi4300.info.softDate[1], oi4300.info.softDate[2], oi4300.info.softDate[3],
