@@ -1304,6 +1304,7 @@ void acs_process(int argc, char *argv[])
 	fprintf(stderr,"\n计量芯片版本：%06X, 接线方式=%X(0600:三相四，1200：三相三)\n",VersionID,WireType);
     if(argc>=3) {	//
 		if(strcmp(argv[1],"acs")==0) {
+
 			if(strcmp(argv[2],"acreg")==0) {
 				acs_regist(argc,argv);
 			}
