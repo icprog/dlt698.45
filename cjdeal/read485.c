@@ -1576,6 +1576,11 @@ INT16U parseSingleROADData(ROAD road,INT8U* oadData,INT8U* dataContent,INT8U* da
 				if(memcmp(oadbuff,oadListContent[subIndex].oad,4)==0)
 				{
 					memcpy(&dataContent[dataLen],oadListContent[subIndex].data,oadListContent[subIndex].datalen);
+					if((road.oads[csdIndex].OI == 0x2001)&&(road.oads[csdIndex].attrindex == 0))
+					{
+						dataContent[dataLen+1] = 4;
+						dataContent[dataLen+17] = 5;
+					}
 				}
 
 			}
@@ -3205,11 +3210,24 @@ INT16S deal6015or6017_singlemeter(CLASS_6013 st6013,CLASS_6015 st6015,CLASS_6001
 						{
 							hourInterVal = st6013.interval.interval;
 						}
-						TS ts_now;
-						TSGet(&ts_now);
+						TS ts_start;
+						TSGet(&ts_start);
 						DbgPrintToFile1(port485,"当前时间 %04d-%02d-%02d %02d:%02d:%02d  hourInterVal = %d \n",
-												ts_now.Year,ts_now.Month,ts_now.Day,ts_now.Hour,
-												ts_now.Minute,ts_now.Sec,hourInterVal);
+								ts_start.Year,ts_start.Month,ts_start.Day,ts_start.Hour,
+								ts_start.Minute,ts_start.Sec,hourInterVal);
+						INT8U hourindex;
+						for(hourindex=0;hourindex<hourInterVal;hourindex++)
+						{
+							if((ts_start.Hour%hourInterVal) == 0)
+							{
+								break;
+							}
+							else
+							{
+								tminc(&ts_start,hour_units,-1);
+							}
+
+						}
 						INT16U roadDataLen = 0;
 						INT8U oadIndex = 0;
 						for(oadIndex = 0;oadIndex < st6015.csds.csd[0].csd.road.num;oadIndex++)
@@ -3220,35 +3238,29 @@ INT16S deal6015or6017_singlemeter(CLASS_6013 st6013,CLASS_6015 st6015,CLASS_6001
 						INT8U hourIndex = 0;
 						for(hourIndex = 0;hourIndex < hourInterVal;hourIndex++)
 						{
-							INT16U tmpTime = ts_now.Year;
+							INT16U tmpTime = ts_start.Year;
 							st6015.data.data[CURVE_INFO_STARTINDEX+8] = 0x1c;
 							st6015.data.data[CURVE_INFO_STARTINDEX+9] = (tmpTime>>8)&0x00ff;
 							st6015.data.data[CURVE_INFO_STARTINDEX+10] = tmpTime&0x00ff;
-							st6015.data.data[CURVE_INFO_STARTINDEX+11] = ts_now.Month;
-							st6015.data.data[CURVE_INFO_STARTINDEX+12] = ts_now.Day;
-							st6015.data.data[CURVE_INFO_STARTINDEX+13] = ts_now.Hour;
+							st6015.data.data[CURVE_INFO_STARTINDEX+11] = ts_start.Month;
+							st6015.data.data[CURVE_INFO_STARTINDEX+12] = ts_start.Day;
+							st6015.data.data[CURVE_INFO_STARTINDEX+13] = ts_start.Hour;
 							st6015.data.data[CURVE_INFO_STARTINDEX+14] = 0;
 							st6015.data.data[CURVE_INFO_STARTINDEX+15] = 0;
 
-							tminc(&ts_now,hour_units,-1);
+							tminc(&ts_start,hour_units,-1);
 
 							DbgPrintToFile1(port485,"计算曲线抄读开始时标[%d] %04d-%02d-%02d %02d:%02d:%02d  hourInterVal = %d \n",
-							hourIndex,ts_now.Year,ts_now.Month,ts_now.Day,ts_now.Hour,ts_now.Minute,ts_now.Sec,hourInterVal);
-							tmpTime = ts_now.Year;
+							hourIndex,ts_start.Year,ts_start.Month,ts_start.Day,ts_start.Hour,ts_start.Minute,ts_start.Sec,hourInterVal);
+							tmpTime = ts_start.Year;
 							st6015.data.data[CURVE_INFO_STARTINDEX] = 0x1c;
 							st6015.data.data[CURVE_INFO_STARTINDEX+1] = (tmpTime>>8)&0x00ff;
 							st6015.data.data[CURVE_INFO_STARTINDEX+2] = tmpTime&0x00ff;
-							st6015.data.data[CURVE_INFO_STARTINDEX+3] = ts_now.Month;
-							st6015.data.data[CURVE_INFO_STARTINDEX+4] = ts_now.Day;
-							st6015.data.data[CURVE_INFO_STARTINDEX+5] = ts_now.Hour;
+							st6015.data.data[CURVE_INFO_STARTINDEX+3] = ts_start.Month;
+							st6015.data.data[CURVE_INFO_STARTINDEX+4] = ts_start.Day;
+							st6015.data.data[CURVE_INFO_STARTINDEX+5] = ts_start.Hour;
 							st6015.data.data[CURVE_INFO_STARTINDEX+6] = 0;
 							st6015.data.data[CURVE_INFO_STARTINDEX+7] = 0;
-
-							ret = dealRealTimeRequst(port485);
-							if(ret == PARA_CHANGE_RETVALUE)
-							{
-								return PARA_CHANGE_RETVALUE;
-							}
 
 							ret = deal6015_698(st6015,obj6001,st6035,dataContent,port485);
 
