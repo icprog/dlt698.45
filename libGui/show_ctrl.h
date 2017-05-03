@@ -26,6 +26,10 @@
 #define GUI_FIRST_RUN	1
 #define GUI_NOT_FIRST_RUN	0
 
+#define PARA_HAS_READ	1
+#define PARA_NOT_READ	0
+
+
 typedef enum
 {
 	unknown,Dl97,Dl07,Dl698,Cj188
@@ -65,6 +69,13 @@ extern void lcd_Bottom_bar();
 
 extern ProgramInfo* p_JProgramInfo;
 extern INT8U g_firstRun;
+
+
+extern INT8U g_oi4001_has_read;
+extern INT8U g_oi4300_has_read;
+extern INT8U g_oi4500_has_read;
+extern INT8U g_oi4510_has_read;
+
 extern INT8U g_chgOI4500;
 extern INT8U g_chgOI4300;
 
