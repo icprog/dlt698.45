@@ -26,6 +26,12 @@ ProgramInfo* p_JProgramInfo = NULL;
  *			start global
  **********************************/
 INT8U g_firstRun = GUI_FIRST_RUN;//GUI代码首次运行标志
+
+INT8U g_oi4001_has_read = PARA_NOT_READ;//OI_4001_4002_4003已被读取标志
+INT8U g_oi4300_has_read = PARA_NOT_READ;//OI_4300已被读取标志
+INT8U g_oi4500_has_read = PARA_NOT_READ;//OI_4500已被读取标志
+INT8U g_oi4510_has_read = PARA_NOT_READ;//OI_4510已被读取标志
+
 INT8U g_chgOI4500 = 0;//oi4500参数变更标记记录
 INT8U g_chgOI4300 = 0;//oi4300参数变更标记记录
 

@@ -11,9 +11,11 @@ ls
 rm -rf cjgwn
 rm -f update.sh
 rm -f $APPDIRSRC/app.tar.gz
-#cp ../bin_arm/* ./app/
-#cp ../config/* ./app/
-tar -cvf app.tar *
+rm ./app/*
+cp ../bin_arm/cj* ./app/
+cp ../bin_arm/*.so ./app/
+cp ../config/* ./app/
+tar -cvf app.tar ./app
 gzip -9 app.tar
 rm -f $SHNAMEPATH
 cd $ROOTDIRSRC
@@ -29,13 +31,14 @@ echo "echo update finished!!!" >> $SHNAMEPATH
 echo "rm -rf app" >> $SHNAMEPATH
 echo "exit" >> $SHNAMEPATH
 cat  $APPDIRSRC/app.tar.gz >> $SHNAMEPATH
-rm -f $APPDIRSRC/app.tar.gz
+#rm -f $APPDIRSRC/app.tar.gz
 chmod +x  $SHNAMEPATH
 
 mkdir cjgwn
 mkdir cjgwn/app
 cp update.sh ./cjgwn/app/
 cp rc.local ./cjgwn/
+cp app/* QCheck/app/
 
 echo "cp /dos/cjgwn/app/update.sh /nand/UpFiles/update.sh" >> "./cjgwn/update.sh"
 echo "cp /dos/cjgwn/rc.local /nor/rc.d/rc.local" >> ./cjgwn/update.sh

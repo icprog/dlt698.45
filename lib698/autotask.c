@@ -281,7 +281,7 @@ int getTaskOadData(OAD taskoad)
 int GetReportData(CLASS_601D report)
 {
 	int  ret = 0;
-	fprintf(stderr,"report.reportdata.type=%d\n",report.reportdata.type);
+//	fprintf(stderr,"report.reportdata.type=%d\n",report.reportdata.type);
 	if (report.reportdata.type==0)//OAD
 	{
 		ret = getTaskOadData(report.reportdata.data.oad);
@@ -307,9 +307,11 @@ INT16U  composeAutoTask(AutoTaskStrap *list)
 	if(list->nexttime==0)	return ret;		//防止无效重复读取文件
 
 	timenow = time(NULL);
+
+	fprintf(stderr,"timenow=%ld  nexttime=%ld\n",timenow,list->nexttime);
+
 	if(timenow >= list->nexttime)
 	{
-
 		fprintf(stderr, "任务上报时间%ld, %ld\n", list->nexttime, timenow);
 		if (readCoverClass(0x6013, list->ID, &class6013, sizeof(CLASS_6013),coll_para_save) == 1)
 		{

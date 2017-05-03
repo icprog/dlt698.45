@@ -84,6 +84,7 @@ int ConformCheck(struct aeEventLoop* ep, long long id, void* clientData) {
 void RegularAutoTask(struct aeEventLoop* ep, CommBlock* nst) {
 
     ProgramInfo* shmem = (ProgramInfo*)nst->shmem;
+
     if (stopSign == 1) {
         return;
     }
@@ -93,10 +94,13 @@ void RegularAutoTask(struct aeEventLoop* ep, CommBlock* nst) {
     	init6013ListFrom6012File(shmem);
     	taskChangeSign = shmem->oi_changed.oi6012;
     	timeChangeSign = shmem->oi_changed.oi4000;
+    	stopSign = 0;		//清除上报标记
     }
 
     for (int i = 0; i < MAXNUM_AUTOTASK; i++) {
         //调用日常通信接口
+//    	fprintf(stderr,"i=%d nexttime=%ld\n",i,shmem->autotask[i].nexttime);
+
         int res = composeAutoTask(&shmem->autotask[i]);
 
         if ((res == 1) || (res == 2)) {

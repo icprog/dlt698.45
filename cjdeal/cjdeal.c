@@ -65,6 +65,7 @@ int InitPro(ProgramInfo** prginfo, int argc, char *argv[])
 	{
 		*prginfo = OpenShMem("ProgramInfo",sizeof(ProgramInfo),NULL);
 		ProIndex = atoi(argv[1]);
+
 		fprintf(stderr,"\n%s start",(*prginfo)->Projects[ProIndex].ProjectName);
 		(*prginfo)->Projects[ProIndex].ProjectID=getpid();//保存当前进程的进程号
 		fprintf(stderr,"ProjectID[%d]=%d\n",ProIndex,(*prginfo)->Projects[ProIndex].ProjectID);
@@ -453,7 +454,7 @@ INT8U init6013ListFrom6012File() {
 	fprintf(stderr, "\n \n-------------init6013ListFrom6012File---------------start\n");
 	INT8U result = 0;
 	memset(list6013, 0, TASK6012_MAX * sizeof(TASK_CFG));
-	memset(&JProgramInfo->autotask,0,sizeof(JProgramInfo->autotask));		//增加初始化
+
 	INT16U tIndex = 0;
 	OI_698 oi = 0x6013;
 	CLASS_6013 class6013 = { };
@@ -825,7 +826,7 @@ void dispatchTask_proccess()
  *********************************************************/
 int main(int argc, char *argv[])
 {
-	printf("a\n");
+//	printf("a\n");
 	//return ctrl_base_test();
 
 	pid_t pids[128];
