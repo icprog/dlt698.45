@@ -673,9 +673,11 @@ void dealProcess() {
         }
 
         gpio_writebyte("/dev/gpoRUN_LED", 1);
-        usleep(200 * 1000);
+        gpio_writebyte("/dev/gpoALARM", 1);
+        usleep(250 * 1000);
         gpio_writebyte("/dev/gpoRUN_LED", 0);
-        usleep(200 * 1000);
+        gpio_writebyte("/dev/gpoALARM", 0);
+        usleep(50 * 1000);
 
         RecvLen = ReceDataFrom485(comfd, RecvBuf);
         if (RecvLen > 0) {

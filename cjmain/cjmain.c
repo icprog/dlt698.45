@@ -242,7 +242,7 @@ void Checkupdate() {
                 fread(md5_org, sizeof(md5_org), 1, fp_org);
                 int res = strncmp(md5_new, md5_org, 24);
                 if (res != 0) {
-                    system("/dos/cjgwn/index.sh &");
+                    system("/dos/cjgwn/index.sh");
                     asyslog(LOG_INFO, "版本比对不同，开始升级....");
                 } else {
                     asyslog(LOG_INFO, "版本比对相同，不予升级....");
@@ -250,7 +250,7 @@ void Checkupdate() {
             }
         } else {
             asyslog(LOG_INFO, "找不到原始md5版本，开始升级....");
-            system("/dos/cjgwn/index.sh &");
+            system("/dos/cjgwn/index.sh");
         }
 
         if (access("/nand/UpFiles/update.sh", 0) == 0) {
@@ -546,7 +546,7 @@ int main(int argc, char *argv[]) {
     printf(">>>>>>>>>>>>>>>version>>>>>>>>>>>>>>>\n");
     printf("VERSION : %d\n", GL_VERSION);
     printf(">>>>>>>>>>>>>>>version>>>>>>>>>>>>>>>\n\n\n\n");
-    
+
     int ProgsNum = 0;
 
     //检查是否已经有程序在运行
