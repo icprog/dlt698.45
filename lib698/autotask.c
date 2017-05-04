@@ -397,13 +397,18 @@ int callAutoReport(INT8U reportChoice,CommBlock* com, INT8U ifecho)
 	apdu_index +=datalen;
 	apdu_buf[apdu_index++] = 0;	//FollowReport
 	apdu_buf[apdu_index++] = 0; //TimeTag
-	//加密
-	INT16U seclen=composeAutoReport(apdu_buf,apdu_index);
-	if(seclen>0){
-		sendbuf[index++]=16; //SECURIGY-REQUEST
-		sendbuf[index++]=0;  //明文应用数据单元
-		memcpy(&sendbuf[index],apdu_buf,seclen);
-		index +=seclen;
+	if(com->f101.active == 1){
+		//加密
+		INT16U seclen=composeAutoReport(apdu_buf,apdu_index);
+		if(seclen>0){
+			sendbuf[index++]=16; //SECURIGY-REQUEST
+			sendbuf[index++]=0;  //明文应用数据单元
+			memcpy(&sendbuf[index],apdu_buf,seclen);
+			index +=seclen;
+		}
+	}else {		//明文未测试
+		memcpy(&sendbuf[index],apdu_buf,apdu_index);
+		index +=apdu_index;
 	}
 	FrameTail(sendbuf,index,hcsi);
 

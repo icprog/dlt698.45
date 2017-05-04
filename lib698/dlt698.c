@@ -1207,7 +1207,8 @@ int doReleaseConnect(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
 	int apduplace =0,index=0, hcsi=0;
 	ClientPiid = apdu[1];
 	csinfo->dir = 1;
-	csinfo->prm = 0;
+//	csinfo->prm = 0;
+	csinfo->prm = 1;
 	index = FrameHead(csinfo,sendbuf);
 	hcsi = index;
 	index = index + 2;

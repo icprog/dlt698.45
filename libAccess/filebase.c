@@ -738,7 +738,7 @@ INT8U block_file_sync(char *fname,void *blockdata,int size,int headsize,int inde
 //		fprintf(stderr,"info1=%ld,info2=%ld\n",info1.st_mtim.tv_sec,info2.st_mtim.tv_sec);
 //		if(info1.st_mtim.tv_sec >= info2.st_mtim.tv_sec) {			//fname1文件修改时间新,更新fname2备份数据
 		//校验码不等，使用fname1文件内容更新fname2
-//			syslog(LOG_NOTICE," %s 校验码不等,更新备份文件 ",fname);
+			syslog(LOG_NOTICE," %s 校验码不等,更新备份文件 ",fname);
 //			fprintf(stderr," %s 校验码不等,更新备份文件 ",fname);
 			file_write(fname2,blockdata1,sizenew,offset);
 			ret= 1;
@@ -751,7 +751,7 @@ INT8U block_file_sync(char *fname,void *blockdata,int size,int headsize,int inde
 	}
 	if((ret1==1) &&(ret2==0)) {							//fname1校验正确，fname2校验错误,更新fname2备份文件
 //		fprintf(stderr,"备份文件校验错误\n");
-//		syslog(LOG_NOTICE," %s 备份文件校验错误 ",fname);
+		syslog(LOG_NOTICE," %s 备份文件校验错误 ",fname);
 		file_write(fname2,blockdata1,sizenew,offset);
 		ret= 1;
 	}
