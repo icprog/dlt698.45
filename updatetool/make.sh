@@ -40,6 +40,6 @@ cp update.sh ./cjgwn/app/
 cp rc.local ./cjgwn/
 cp app/* QCheck/app/
 
-echo "cp /dos/cjgwn/app/update.sh /nand/UpFiles/update.sh" >> "./cjgwn/update.sh"
-echo "cp /dos/cjgwn/rc.local /nor/rc.d/rc.local" >> ./cjgwn/update.sh
-echo "echo reboot >> /nand/UpFiles/reboot" >> ./cjgwn/update.sh
+echo "cp /dos/cjgwn/app/update.sh /nand/UpFiles/update.sh" >> "./cjgwn/index.sh"
+echo "cp /dos/cjgwn/rc.local /nor/rc.d/rc.local" >> ./cjgwn/index.sh
+echo "echo reboot >> /nand/UpFiles/reboot" >> ./cjgwn/index.sh

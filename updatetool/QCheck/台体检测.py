@@ -167,19 +167,29 @@ def checkSoftVersion(config):
 #
 #检查电池电压
 #
-def checkBatteryV(config):
+def checkNormal(config):
 	lNet = ReadyNet(config.get('info','host'), config.get('info','user'), config.get('info','passwd'))
-	lNet.write("vd bettery" + "\r\n")
+	lNet.write("cat /nand/check.log" + "\r\n")
+	lNet.write("cat /proc/version" + "\r\n")
 	lNet.write("exit" + "\r\n")
 	msg = lNet.read_all()
 
-	m = re.findall("\d.{1,1}\d{5,6}", msg)
-	batteryV = float(m[0])
+	print "USB\t正确".decode('utf-8')
 
-	if batteryV > 3.55:
-		print "电池\t正确\t电压 %sV" %m[0]
+	if msg.find("485OK") > 0:
+		print "485\t正确".decode('utf-8')
 	else:
-		print "电池\t错误\t电压 %sV" %m[0]
+		print "485\t错误".decode('utf-8')
+
+	if msg.find("主站证书 OK") > 0:
+		print "ESAM\t正确".decode('utf-8')
+	else:
+		print "ESAM\t错误".decode('utf-8')
+
+	if msg.find(config.get('target','kernal')) > 0:
+		print "内核\t正确".decode('utf-8')
+	else:
+		print "内核\t错误".decode('utf-8')
 
 	lNet.close()
 
@@ -195,8 +205,6 @@ def showDeviceId(config):
 	lNet.write("exit" + "\r\n")
 	msg = lNet.read_all()
 
-	print msg[130:]
-
 	lNet.close()
 
 if __name__ == '__main__':
@@ -205,9 +213,9 @@ if __name__ == '__main__':
 		getInputGiveInfo()
 
 		os.system('cls;clear')
-		checkProgs(config)
+		# checkProgs(config)
+		checkNormal(config);
 		checkSoftVersion(config)
-		# checkBatteryV(config)
 		checkDateTime(config)
 		showDeviceId(config)
 

@@ -47,12 +47,15 @@ int InitPro(ProgramInfo **prginfo, int argc, char *argv[]) {
 
 //主程序
 int main(int argc, char *argv[]) {
+    printf("Checking...\n");
     INT8U comport = 2;
 
     int Test_485_result = 1;
 
     INT8U msg[256];
     INT8U res[256];
+
+    system("rm /nand/check.log");
 
     memset(msg, 0x00, sizeof(msg));
     memset(res, 0x00, sizeof(res));
@@ -66,7 +69,8 @@ int main(int argc, char *argv[]) {
 
     write(comfd1, msg, sizeof(msg));
     sleep(1);
-    read(comfd2, res, sizeof(res));
+    int lens = read(comfd2, res, sizeof(res));
+    printf("收到数据[%d]字节\n", lens);
 
     for (int j = 0; j < 256; ++j) {
         if (msg[j] != res[j]) {
@@ -96,10 +100,8 @@ int main(int argc, char *argv[]) {
 
     system("cj esam 2>> /nand/check.log");
 
-    if (InitPro(&JProgramInfo, argc, argv) == 0) {
-        fprintf(stderr, "进程 %s 参数错误", argv[0]);
-        return EXIT_FAILURE;
-    }
+    JProgramInfo = OpenShMem("ProgramInfo", sizeof(ProgramInfo), NULL);
+
     fprintf(stderr, "\ncj645 start ....\n\r");
     if (JProgramInfo->cfg_para.device == 2) {    //II型集中器
         comport = 2;

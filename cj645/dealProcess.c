@@ -666,14 +666,16 @@ void setACS(FORMAT07 format07) {
 //ret：1-广播校时；4-读数据；5-读表地址；6-最大需量清零；7-电表清零；8-校表
 void dealProcess() {
     BOOLEAN nextFlag;
-    
-    JProgramInfo = OpenShMem("ProgramInfo", sizeof(ProgramInfo), NULL);
-
     while (1) {
 
         for (int j = 0; j < 5; ++j) {
             JProgramInfo->Projects[j].WaitTimes = 0;
         }
+
+        gpio_writebyte("/dev/gpoRUN_LED", 1);
+        usleep(200 * 1000);
+        gpio_writebyte("/dev/gpoRUN_LED", 0);
+        usleep(200 * 1000);
 
         RecvLen = ReceDataFrom485(comfd, RecvBuf);
         if (RecvLen > 0) {
@@ -742,6 +744,5 @@ void dealProcess() {
                 fprintf(stderr, "未知功能!!!\n");
             }
         }
-        sleep(1);
     }
 }
