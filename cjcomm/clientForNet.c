@@ -115,7 +115,6 @@ MASTER_STATION_INFO getNextNetIpPort(CommBlock *commBlock) {
         asyslog(LOG_WARNING, "检测到通信参数变化！刷新主站参数！");
         ChangeFlag = ((ProgramInfo *) commBlock->shmem)->oi_changed.oi4500;
         commBlock->Heartbeat = Class26.commconfig.heartBeat;
-        readCoverClass(0xf101, 0, (void *) &ClientForNetObject.f101, sizeof(CLASS_F101), para_vari_save);
     }
     MASTER_STATION_INFO res;
     memset(&res, 0x00, sizeof(MASTER_STATION_INFO));
@@ -161,6 +160,15 @@ int CertainConnectForNet(char *interface, CommBlock *commBlock) {
     }
 }
 
+void check_F101_changed_Net(CommBlock *commBlock){
+    static  int ChangeFlag = 0;
+    if(ChangeFlag != ((ProgramInfo *) commBlock->shmem)->oi_changed.oiF101){
+        ChangeFlag = ((ProgramInfo *) commBlock->shmem)->oi_changed.oiF101;
+        asyslog(LOG_WARNING, "检测到安全参数变化！刷新安全参数！");
+        readCoverClass(0xf101, 0, (void *)&commBlock->f101, sizeof(CLASS_F101), para_vari_save);
+    }
+}
+
 int RegularClientForNet(struct aeEventLoop *ep, long long id, void *clientData) {
     CommBlock *nst = (CommBlock *) clientData;
     clearcount();
@@ -190,6 +198,8 @@ int RegularClientForNet(struct aeEventLoop *ep, long long id, void *clientData) 
             nst->phy_connect_fd = -1;
             SetOnlineType(0);
         }
+
+        check_F101_changed_Net(nst);
         CalculateTransFlow(nst->shmem);
         //暂时忽略函数返回
         RegularAutoTask(ep, nst);
