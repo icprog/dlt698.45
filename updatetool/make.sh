@@ -38,7 +38,13 @@ mkdir cjgwn
 mkdir cjgwn/app
 cp update.sh ./cjgwn/app/
 cp rc.local ./cjgwn/
-cp app/* QCheck/app/
+cd app ;md5sum * > ../QCheck/md5.ini; cd ..
+KI=`md5sum clean.sh | cut -d " " -f1`
+rm update.sh
+cat needed/head >> update.sh
+echo 'md5='$KI >> update.sh
+cat needed/tail >> update.sh
+cat app.tar.gz >> update.sh
 
 echo "cp /dos/cjgwn/app/update.sh /nand/UpFiles/update.sh" >> "./cjgwn/index.sh"
 echo "cp /dos/cjgwn/rc.local /nor/rc.d/rc.local" >> ./cjgwn/index.sh

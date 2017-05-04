@@ -108,13 +108,14 @@ MASTER_STATION_INFO getNextNetIpPort(CommBlock *commBlock) {
     static int index = 0;
     static int ChangeFlag = 0;
     //检查主站参数是否有变化
-    if (ChangeFlag != ((ProgramInfo*)commBlock->shmem)->oi_changed.oi4500) {
+    if (ChangeFlag != ((ProgramInfo *) commBlock->shmem)->oi_changed.oi4500) {
         memset(&Class26, 0, sizeof(CLASS26));
         readCoverClass(0x4510, 0, (void *) &Class26, sizeof(CLASS26), para_vari_save);
         memcpy(&IpPool, &Class26.master.master, sizeof(IpPool));
         asyslog(LOG_WARNING, "检测到通信参数变化！刷新主站参数！");
-        ChangeFlag = ((ProgramInfo*)commBlock->shmem)->oi_changed.oi4500;
+        ChangeFlag = ((ProgramInfo *) commBlock->shmem)->oi_changed.oi4500;
         commBlock->Heartbeat = Class26.commconfig.heartBeat;
+        readCoverClass(0xf101, 0, (void *) &ClientForNetObject.f101, sizeof(CLASS_F101), para_vari_save);
     }
     MASTER_STATION_INFO res;
     memset(&res, 0x00, sizeof(MASTER_STATION_INFO));
@@ -271,6 +272,8 @@ void ClientForNetInit(void) {
     }
 
     ClientForNetObject.Heartbeat = Class26.commconfig.heartBeat;
+    readCoverClass(0xf101, 0, (void *) &ClientForNetObject.f101, sizeof(CLASS_F101), para_vari_save);
+
     asyslog(LOG_INFO, ">>>======初始化（客户端[以太网]模式）结束======<<<");
 }
 
