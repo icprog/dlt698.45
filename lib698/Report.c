@@ -110,6 +110,7 @@ INT8U Report_Event(CommBlock *com,INT8U *oiarr,INT8U report_type){
 	if (data!=NULL)
 		free(data);
 
+	fprintf(stderr,"com.f101.active=%d\n",com->f101.active);
 	if(com->f101.active == 1){
 		sendbuf_report[index++]=16; //SECURIGY-REQUEST
 		sendbuf_report[index++]=0;  //明文应用数据单元

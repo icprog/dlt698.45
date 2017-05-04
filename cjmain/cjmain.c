@@ -21,7 +21,7 @@
 #include "../libMq/libmmq.h"
 
 static ProgramInfo *JProgramInfo = NULL;
-static int mmqFds[MAX_MMQ_SIZE];
+static int mmqFds[MAX_MMQ_SIZE]={};
 
 const static mmq_attribute mmq_register[] = {{cjcomm, PROXY_485_MQ_NAME,    MAXSIZ_PROXY_NET,    MAXNUM_PROXY_NET},
                                              {cjdeal, PROXY_NET_MQ_NAME,    MAXSIZ_PROXY_485,    MAXNUM_PROXY_485},
@@ -77,7 +77,7 @@ void PowerOffToClose(INT8U pwrdelay) {
         cnt_pwroff++;
         if (cnt_pwroff == pwrdelay) {
             fprintf(stderr, "\n设备关闭.....");
-            gpio_writebyte((INT8S *) DEV_BAT_SWITCH, (INT8S) 0);
+            gpio_writebyte((char *) DEV_BAT_SWITCH, (INT8S) 0);
         }
     } else
         cnt_pwroff = 0;
