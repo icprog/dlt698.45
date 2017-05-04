@@ -108,12 +108,13 @@ static MASTER_STATION_INFO getNextGprsIpPort(CommBlock *commBlock) {
     static int index = 0;
     static int ChangeFlag = 0;
     //检查主站参数是否有变化
-    if (ChangeFlag != ((ProgramInfo*)commBlock->shmem)->oi_changed.oi4500) {
+    if (ChangeFlag != ((ProgramInfo *) commBlock->shmem)->oi_changed.oi4500) {
         readCoverClass(0x4500, 0, (void *) &Class25, sizeof(CLASS25), para_vari_save);
         memcpy(&NetIps, &Class25.master.master, sizeof(NetIps));
         asyslog(LOG_WARNING, "检测到通信参数变化！刷新主站参数！");
-        ChangeFlag = ((ProgramInfo*)commBlock->shmem)->oi_changed.oi4500;
+        ChangeFlag = ((ProgramInfo *) commBlock->shmem)->oi_changed.oi4500;
         commBlock->Heartbeat = Class25.commconfig.heartBeat;
+        readCoverClass(0xf101, 0, (void *) &ClientForGprsObject.f101, sizeof(CLASS_F101), para_vari_save);
     }
 
     MASTER_STATION_INFO res;
@@ -160,6 +161,15 @@ int CertainConnectForGprs(char *interface, CommBlock *commBlock) {
     }
 }
 
+void check_F101_changed_Gprs(CommBlock *commBlock){
+    static  int ChangeFlag = 0;
+    if(ChangeFlag != ((ProgramInfo *) commBlock->shmem)->oi_changed.oiF101){
+        ChangeFlag = ((ProgramInfo *) commBlock->shmem)->oi_changed.oiF101;
+        asyslog(LOG_WARNING, "检测到安全参数变化！刷新安全参数！");
+        readCoverClass(0xf101, 0, (void *)&commBlock->f101, sizeof(CLASS_F101), para_vari_save);
+    }
+}
+
 static int RegularClientForGprs(struct aeEventLoop *ep, long long id, void *clientData) {
     CommBlock *nst = (CommBlock *) clientData;
     clearcount();
@@ -190,6 +200,8 @@ static int RegularClientForGprs(struct aeEventLoop *ep, long long id, void *clie
             nst->phy_connect_fd = -1;
             SetOnlineType(0);
         }
+
+        check_F101_changed_Gprs(nst);
         CalculateTransFlow(nst->shmem);
         //暂时忽略函数返回
         RegularAutoTask(ep, nst);
@@ -272,6 +284,7 @@ static void ClientForGprsInit(void) {
         initComPara(&ClientForGprsObject, MixForGprsWrite);
     }
     ClientForGprsObject.Heartbeat = Class25.commconfig.heartBeat;
+    readCoverClass(0xf101, 0, (void *) &ClientForGprsObject.f101, sizeof(CLASS_F101), para_vari_save);
 
     asyslog(LOG_INFO, ">>>======初始化（客户端[GPRS]模式）结束======<<<");
 }
