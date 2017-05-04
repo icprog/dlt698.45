@@ -46,6 +46,15 @@ CopyNew()
     cp ../config/* ./app/
 }
 
+UpdateLocation()
+{
+    rm app/device.cfg
+    echo "[device]" >> app/device.cfg
+    echo "device="$1 >> app/device.cfg
+    echo "zone="$2 >> app/device.cfg
+    echo "[end]" >> app/device.cfg
+}
+
 Package()
 {
     echo "打包自解压文件..."
@@ -57,7 +66,6 @@ Package()
     echo 'md5='$KI >> update.sh
     cat needed/tail >> update.sh
     cat app.tar.gz >> update.sh
-    cp update.sh ./cjgwn/app/
 }
 
 CreateUSB()
@@ -67,6 +75,7 @@ CreateUSB()
     mkdir cjgwn/app
     cp needed/rc.local ./cjgwn/
     cp needed/index.sh ./cjgwn/
+    cp update.sh cjgwn/app
 }
 
 Tools()
@@ -87,6 +96,7 @@ main()
     ParaCheck $1 $2
     Clean
     CopyNew
+    UpdateLocation $1 $2
     Package
     CreateUSB
     Tools
