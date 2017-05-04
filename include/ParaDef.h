@@ -132,7 +132,8 @@
 #define DEV_STATE4  	"/dev/gpiYX4"
 #define DEV_PULSE  		"/dev/pulse"  			//脉冲1
 
-#define DEV_ADC        "/dev/adc0"
+#define DEV_ADC0        "/dev/adc0"
+#define DEV_ADC        "/dev/adc"
 #define DEV_RTC        "/dev/rtc0"		//时钟
 
 #define DEV_WATCHDOG   			"/dev/watchdog"

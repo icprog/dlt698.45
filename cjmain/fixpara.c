@@ -50,7 +50,7 @@ void InitClass4300() //电气设备信息
 {
     CLASS19 oi4300 = {};
     int ret        = 0;
-
+    int	i=0;
     memset(&oi4300, 0, sizeof(CLASS19));
     ret = readCoverClass(0x4300, 0, &oi4300, sizeof(CLASS19), para_vari_save);
     if ((ret != 1) || (memcmp(&oi4300.info, &verinfo, sizeof(VERINFO)) != 0) || memcmp(&oi4300.date_Product, &product_date, sizeof(DateTimeBCD)) != 0 ||

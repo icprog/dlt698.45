@@ -330,9 +330,16 @@ int main(int argc, char *argv[]) {
     }
 
     if (strcmp("bettery", argv[1]) == 0) {
-        float v1, v2;
-        bettery_getV(&v1, &v2);
-        fprintf(stderr, "电池电压: %f,%f\n", v1, v2);
+        float v1=0,v2=0;
+        ConfigPara	cfg_para={};
+        ReadDeviceConfig(&cfg_para);
+        if(cfg_para.device == 2) {
+			bettery_getV_II(&v1);
+			fprintf(stderr, "II型集中器：时钟电池电压: %f\n", v1);
+        }else {
+			bettery_getV(&v1,&v2);
+			fprintf(stderr, "时钟电池电压: %f,　设备电池电压: %f\n", v1,v2);
+        }
         return EXIT_SUCCESS;
     }
 
