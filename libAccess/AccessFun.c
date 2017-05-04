@@ -1041,7 +1041,7 @@ INT16U CalcFreq(TI runti,CLASS_6015 class6015,INT16U startmin,INT16U endmin,INT3
 	INT16U sec_unit = 0;
 	INT8U  inval_flg = 0;
 	asyslog(LOG_INFO,"\n---@@@---class6015.cjtype = %d\n",class6015.cjtype);
-	if(class6015.cjtype == 3 || class6015.cjtype == 0)//按时标间隔采集
+	if(class6015.cjtype == 3 || class6015.cjtype == 0 || class6015.cjtype == 1)//按时标间隔采集
 	{
 		if(class6015.cjtype == 3)//按抄表间隔
 		{
@@ -1060,8 +1060,8 @@ INT16U CalcFreq(TI runti,CLASS_6015 class6015,INT16U startmin,INT16U endmin,INT3
 			default:
 				break;
 			}
-			asyslog(LOG_INFO,"\n---@@@---按抄表间隔采集%d\n",((endmin-startmin)*60)/sec_unit+1);
-			return ((endmin-startmin)*60)/sec_unit+1;
+			asyslog(LOG_INFO,"\n---@@@---按抄表间隔采集1\n");
+			return 1;
 		}
 		fprintf(stderr,"\n结束分钟数：%d 开始分钟数：%d 单位 %d\n",endmin, startmin, runti.units);
 		if(endmin <= startmin || runti.units > 3)
@@ -1180,7 +1180,6 @@ INT8U ReadTaskInfo(INT8U taskid,TASKSET_INFO *tasknor_info)//读取普通采集�
 			memcpy(&tasknor_info->csds,&class6015.csds,sizeof(CSD_ARRAYTYPE));
 			if(tasknor_info->runtime == 1)//日月年冻结
 			{
-				tasknor_info->runtime = 1;
 				tasknor_info->freq = 86400;//
 				if(class6013.interval.units == 3)//日冻结
 					return 1;
@@ -1769,7 +1768,6 @@ int collectData(INT8U *databuf,INT8U *srcbuf,OAD_INDEX *oad_offset,ROAD_ITEM ite
 		memset(tmpbuf,0x00,256);
 		for(j=0;j<item_road.oadmr_num;j++)
 		{
-			asyslog(LOG_INFO,"@@@-1--offset0=%d",oad_offset[0].offset);
 			fprintf(stderr,"\n%04x-%04x--%d\n",item_road.oad[j].oad_m.OI,item_road.oad[j].oad_r.OI,item_road.oad[j].oad_num);
 			if(item_road.oad[j].oad_num != 0)
 			{
@@ -2531,13 +2529,12 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds)
 			fread(recordbuf,recordlen,1,fp);
 			printRecordBytes(recordbuf,recordlen);
 			//7\根据csds挑选数据，组织存储缓存
-			asyslog(LOG_INFO,"@@@---offset0=%d",oad_offset[0].offset);
 			memcpy(oad_offset_can,oad_offset,sizeof(oad_offset));
 			indexn += collectData(&onefrmbuf[indexn],recordbuf,oad_offset_can,item_road);
 			recordnum++;
 			asyslog(LOG_INFO,"recordnum=%d  seqnumindex=%d\n",recordnum,seqnumindex);
 
-			if (indexn>=2000)
+			if (indexn>=1500)
 			{
 				framesum++;
 				//8 存储1帧
