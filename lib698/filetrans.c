@@ -144,9 +144,30 @@ int appendFile(int shift, int length, unsigned char *buf) {
 
     setFileState(shift+1);
 
-    if (shift * blocksize + length != mstats.st_size) {
-        return res;
+    int blocks = (mstats.st_size / blocksize) / 8;
+    int tail = (mstats.st_size / blocksize) % 8;
+
+    char true_tail = 0x00;
+    for(int i = 0; i < tail+1; i++){
+    	true_tail |= 0x01 << (7-i);
     }
+
+    printf("##############%d\n", blocks);
+    for (int i = 0; i < blocks; i++) {
+    	printf("===================%02x \n", file_state[i]);
+    	if(file_state[i] != 0xff){
+    		return res;
+    	}
+    }
+
+    printf("##===================%02x-%02x ##\n", file_state[blocks], true_tail);
+
+    if(file_state[blocks] != true_tail){
+    	return res;
+    }
+
+    printf("shengji\n\n\n\n\n");
+
 
     char order[256];
     memset(order, 0x00, sizeof(order));
