@@ -194,6 +194,9 @@ int dataInit(INT16U attr)
 		clearEvent();
 		clearDemand();
 		break;
+	case 4://恢复出厂参数
+		clearPara();
+		break;
 	case 5://事件初始化
 		clearEvent();
 		break;
@@ -205,6 +208,9 @@ int dataInit(INT16U attr)
 	gettimeofday(&end, NULL);
 	interval = 1000000*(end.tv_sec - start.tv_sec) + (end.tv_usec - start.tv_usec);
     fprintf(stderr,"dataInit interval = %f(ms)\n", interval/1000.0);
+    if(interval>60*1000) {
+    	syslog(LOG_ERR,"初始化时间过长=%f(ms)\n", interval/1000.0);
+    }
  	return 0;
 }
 
@@ -1065,7 +1071,7 @@ INT16U CalcFreq(TI runti,CLASS_6015 class6015,INT16U startmin,INT16U endmin,INT3
 		}
 		fprintf(stderr,"\n结束分钟数：%d 开始分钟数：%d 单位 %d\n",endmin, startmin, runti.units);
 		if(endmin <= startmin || runti.units > 3)
-			return 0;//无效设置
+			return 1;//无效设置
 		switch(runti.units)
 		{
 		case 0://秒
@@ -1126,7 +1132,7 @@ INT16U CalcFreq(TI runti,CLASS_6015 class6015,INT16U startmin,INT16U endmin,INT3
 }
 INT32U freqtosec(TI interval)//ti格式频率转化为秒数,只计算秒分时日，其他返回0
 {
-	INT16U rate = 0;
+	INT32U rate = 0;
 	switch(interval.units)
 	{
 	case 0:

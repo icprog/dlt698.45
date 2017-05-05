@@ -111,6 +111,7 @@ BOOLEAN oi_f203_changed(INT8U save_changed)
 		//将此时遥信状态保存，规约招测
 		saveCoverClass(0xf203,0,&oif203,sizeof(CLASS_f203),para_vari_save);
 		changed = save_changed;
+		fprintf(stderr,"\n save_change= %d  保存文件oif203\n",save_changed);
 		fprintf(stderr,"CD=%d-%d-%d-%d-%d-%d-%d-%d\n",
 				oif203.statearri.stateunit[0].CD,oif203.statearri.stateunit[1].CD,oif203.statearri.stateunit[2].CD,oif203.statearri.stateunit[3].CD,
 				oif203.statearri.stateunit[4].CD,oif203.statearri.stateunit[5].CD,oif203.statearri.stateunit[6].CD,oif203.statearri.stateunit[7].CD);

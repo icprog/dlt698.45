@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <syslog.h>
 #include "ParaDef.h"
 #include "AccessFun.h"
 #include "StdDataType.h"
@@ -413,7 +414,7 @@ void AddCjiFangAnInfo(INT8U *data, Action_result *act_ret) {
         index += getUnsigned(&dealdata[index], (INT8U *) &fangAn.sernum);
         fprintf(stderr, "fangan sernum =%d ,index=%d\n", fangAn.sernum, index);
         index += getLongUnsigned(&dealdata[index], (INT8U *) &fangAn.deepsize);
-        index = index + 2;//struct
+        index += getStructure(&dealdata[index], NULL);
         index += getUnsigned(&dealdata[index], (INT8U *) &fangAn.cjtype);
         fprintf(stderr, "cjtype=%d\n", fangAn.cjtype);
         switch (fangAn.cjtype) {
@@ -730,6 +731,7 @@ void TerminalInfo(INT16U attr_act, INT8U *data) {
         case 1://设备复位
             Reset_add();
             fprintf(stderr, "\n4300 设备复位！");
+            syslog(LOG_NOTICE, "4300 设备复位!（act=%d）",attr_act);
             break;
         case 3://数据初始化
         case 5://事件初始化
@@ -737,7 +739,8 @@ void TerminalInfo(INT16U attr_act, INT8U *data) {
             dataInit(attr_act);
             //Event_3100(NULL,0,memp);//初始化，产生事件
             Reset_add();            //国网台体测试,数据初始化认为是复位操作
-            fprintf(stderr, "\n终端数据初始化!");
+            fprintf(stderr, "\n终端数据初始化！");
+            syslog(LOG_NOTICE, "终端数据初始化!（act=%d）",attr_act);
             break;
         case 151://湖南切换到3761规约程序转换主站通信参数
             fprintf(stderr, "\nhunan change 3761 protocol f151\n");
