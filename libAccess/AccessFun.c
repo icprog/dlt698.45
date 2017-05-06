@@ -1178,6 +1178,7 @@ INT8U ReadTaskInfo(INT8U taskid,TASKSET_INFO *tasknor_info)//读取普通采集�
 			return 0;
 		if(readCoverClass(0x6015,class6013.sernum,&class6015,sizeof(CLASS_6015),coll_para_save) == 1)
 		{
+			tasknor_info->save_timetype = class6015.savetimeflag;
 			asyslog(LOG_INFO,"\n---class6015.cjtype = %d  class6013.sernum = %d \n",class6015.cjtype,class6013.sernum);
 			tasknor_info->taskfreq = freqtosec(class6013.interval);
 			fprintf(stderr,"\n任务执行间隔%d\n",tasknor_info->taskfreq);
@@ -1964,6 +1965,8 @@ INT8U initrecinfo(CURR_RECINFO *recinfo,TASKSET_INFO tasknor_info,INT8U selectyp
 {
 	time_t time_s,time_tmp,sec_tmp=0;
 	struct tm *tm_p;
+	time(&time_s);
+	tm_p = localtime(&time_s);
 	switch(selectype)
 	{
 	case 0://招测上一条记录
@@ -1972,30 +1975,47 @@ INT8U initrecinfo(CURR_RECINFO *recinfo,TASKSET_INFO tasknor_info,INT8U selectyp
 		recinfo->rec_start = time(NULL);//当前时间的秒数
 		recinfo->rec_end = time(NULL);
 		break;
-	case 5://冻结的招测时间要比文件时间提前一天,因此找文件时，要加上一天
+	case 5:
 		recinfo->recordno_num = tasknor_info.runtime;
-		time(&time_s);
-		if(freezetype == 3)//日冻结
-			time_s += 86400;//24*60*60; 加上一天的秒数
-		tm_p = localtime(&time_s);
+		//		if(freezetype == 3)//日冻结
+		//			time_s += 86400;//24*60*60; 加上一天的秒数
 		tm_p->tm_year = select.selec5.collect_save.year.data - 1900;
 		tm_p->tm_mon = select.selec5.collect_save.month.data - 1;
-		tm_p->tm_mday = select.selec5.collect_save.day.data;
+		tm_p->tm_mday = select.selec5.collect_save.day.data;//天数
 		tm_p->tm_hour = tasknor_info.starthour;
 		tm_p->tm_min = tasknor_info.startmin;
 		tm_p->tm_sec = 0;
+		asyslog(LOG_INFO,"sele5 tasknor_info.save_timetype=%d",tasknor_info.save_timetype);
+		if(freezetype == 1 && (tasknor_info.save_timetype == 3 || tasknor_info.save_timetype == 4))
+		{
+			asyslog(LOG_INFO,"日冻结招测小时=%d",select.selec7.collect_save_star.hour.data);
+			tm_p->tm_mday = tm_p->tm_mday+1;
+		}
 		recinfo->rec_start = mktime(tm_p);
+		/////////////////////////////////////////TEST
+		tm_p = localtime(&recinfo->rec_start);
+		asyslog(LOG_INFO,"招测的时间%d-%d-%d %d:%d:%d",select.selec7.collect_save_star.year.data,select.selec7.collect_save_star.month.data
+				,select.selec7.collect_save_star.day.data,select.selec7.collect_save_star.hour.data
+				,select.selec7.collect_save_star.min.data,select.selec7.collect_save_star.sec.data);
+		asyslog(LOG_INFO,"重新计算后的时间%d-%d-%d %d:%d:%d",tm_p->tm_year+1900,tm_p->tm_mon+1,tm_p->tm_mday,
+				tm_p->tm_hour,tm_p->tm_min,tm_p->tm_sec);
+		/////////////////////////////////////////////
 
-		time(&time_s);
-		if(freezetype == 3)//日冻结
-			time_s += 86400;//24*60*60; 加上一天的秒数
-		tm_p = localtime(&time_s);
+//		time(&time_s);
+//		if(freezetype == 3)//日冻结
+//			time_s += 86400;//24*60*60; 加上一天的秒数
+//		tm_p = localtime(&time_s);
 		tm_p->tm_year = select.selec5.collect_save.year.data - 1900;
 		tm_p->tm_mon = select.selec5.collect_save.month.data - 1;
 		tm_p->tm_mday = select.selec5.collect_save.day.data;
 		tm_p->tm_hour = tasknor_info.endhour;
 		tm_p->tm_min = tasknor_info.endmin;
 		tm_p->tm_sec = 0;
+		if(freezetype == 1 && (tasknor_info.save_timetype == 3 || tasknor_info.save_timetype == 4))
+		{
+			asyslog(LOG_INFO,"日冻结招测小时=%d",select.selec7.collect_save_star.hour.data);
+			tm_p->tm_mday = tm_p->tm_mday+1;
+		}
 		recinfo->rec_end = mktime(tm_p);
 		break;
 	case 7://实时数据类
@@ -2438,10 +2458,10 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds)
 			fprintf(stderr,"\n得到任务信息失败\n");
 			return 0;
 		}
-		fprintf(stderr,"\n得到任务信息成功\n");
+		asyslog(LOG_INFO,"\n得到任务信息成功\n");
 
 		memset(&recinfo,0x00,sizeof(CURR_RECINFO));
-		fprintf(stderr,"\n----------获得recinfo信息\n");
+		asyslog(LOG_INFO,"\n----------获得recinfo信息\n");
 		initrecinfo(&recinfo,tasknor_info,selectype,select,taskinfoflg);//获得recinfo信息
 		fprintf(stderr,"\n----------获得recinfo信息成功\n");
 		//获得第一个序号
