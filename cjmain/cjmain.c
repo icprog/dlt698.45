@@ -17,6 +17,7 @@
 #include "PublicFunction.h"
 #include "AccessFun.h"
 #include "cjmain.h"
+#include "basedef.h"
 #include "../lib698/dlt698.h"
 #include "../libMq/libmmq.h"
 #include "../include/version.h"
@@ -578,7 +579,7 @@ int main(int argc, char *argv[]) {
         //喂狗
         Watchdog(5);
 
-        if (JProgramInfo->cfg_para.device == 1 || JProgramInfo->cfg_para.device == 3) { //I型集中器，III型专变
+        if (JProgramInfo->cfg_para.device == CCTT1 || JProgramInfo->cfg_para.device == SPTF3) { //I型集中器，III型专变
             //电池检测掉电关闭设备
             PowerOffToClose(90);
         }

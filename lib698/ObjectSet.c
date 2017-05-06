@@ -238,6 +238,7 @@ INT16U set4001_4002_4003(OAD oad,INT8U *data,INT8U *DAR)	//通信地址，表号
 			fprintf(stderr,"%02x ",class_addr.curstom_num[i]);
 		}
 		*DAR = saveCoverClass(oad.OI,0,&class_addr,sizeof(CLASS_4001_4002_4003),para_vari_save);
+		*DAR = saveCoverClass(oad.OI,0,&class_addr,sizeof(CLASS_4001_4002_4003), para_init_save);
 	}
 	return index;
 }

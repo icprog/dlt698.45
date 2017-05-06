@@ -223,6 +223,7 @@ void SetID(int argc, char *argv[]) {
             fprintf(stderr, "%02x ", classtmp.curstom_num[i]);
         }
         saveCoverClass(0x4001, 0, &classtmp, sizeof(CLASS_4001_4002_4003), para_vari_save);
+        saveCoverClass(0x4001, 0, &classtmp, sizeof(CLASS_4001_4002_4003), para_init_save);
     } else {
         readCoverClass(0x4001, 0, &classtmp, sizeof(CLASS_4001_4002_4003), para_vari_save);
         fprintf(stderr, "\n通信地址[%d]:", classtmp.curstom_num[0]);

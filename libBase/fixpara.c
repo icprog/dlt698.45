@@ -21,10 +21,10 @@
 #include "Objectdef.h"
 
 typedef struct {
-    INT8U apn[VISIBLE_STRING_LEN-1];      // apn
-    INT8U userName[VISIBLE_STRING_LEN-1]; //用户名称
-    INT8U passWord[VISIBLE_STRING_LEN-1]; //密码
-    INT8U proxyIp[OCTET_STRING_LEN-1];    //代理服务器地址
+    INT8U apn[VISIBLE_STRING_LEN];      // apn
+    INT8U userName[VISIBLE_STRING_LEN]; //用户名称
+    INT8U passWord[VISIBLE_STRING_LEN]; //密码
+    INT8U proxyIp[OCTET_STRING_LEN];    //代理服务器地址
 }GprsPara;
 
 								//厂商代码　　软件版本　软件日期　　硬件版本　硬件日期  扩展信息
@@ -49,12 +49,15 @@ void InitClass4500(MASTER_STATION_INFO master_info,GprsPara gprs_para)
     class4500.commconfig.workModel     = 1; //客户机模式
     class4500.commconfig.listenPortnum = 1;
     class4500.commconfig.heartBeat     = 60; // 60s
-    memcpy(&class4500.commconfig.apn[1],&gprs_para.apn,sizeof(gprs_para.apn));
-    memcpy(&class4500.commconfig.userName[1],&gprs_para.userName,sizeof(gprs_para.userName));
-    memcpy(&class4500.commconfig.passWord[1],&gprs_para.passWord,sizeof(gprs_para.passWord));
+    memcpy(&class4500.commconfig.apn[1],&gprs_para.apn,strlen((char *)gprs_para.apn));
+    class4500.commconfig.apn[0] = strlen((char *)gprs_para.apn);
+    memcpy(&class4500.commconfig.userName[1],&gprs_para.userName,strlen((char *)gprs_para.userName));
+    class4500.commconfig.userName[0] = strlen((char *)gprs_para.userName);
+    memcpy(&class4500.commconfig.passWord[1],&gprs_para.passWord,strlen((char *)(gprs_para.passWord)));
+    class4500.commconfig.passWord[0] = strlen((char *)(gprs_para.passWord));
     class4500.master.masternum = 4;
     for(i=0;i<4;i++) {
-    	memcpy(&class4500.master.master[i].ip[1],&master_info.ip,sizeof(master_info.ip));
+    	memcpy(&class4500.master.master[i].ip[1],&master_info.ip,strlen((char *)master_info.ip));
     	class4500.master.master[i].ip[0] = strlen((char *)master_info.ip);
     	class4500.master.master[i].port = master_info.port;
     }
@@ -138,8 +141,9 @@ void InitClass4300() //电气设备信息
 
     memset(&oi4300, 0, sizeof(CLASS19));
     ret = readCoverClass(0x4300, 0, &oi4300, sizeof(CLASS19), para_vari_save);
-    if ((ret != 1) || (memcmp(&oi4300.info, &verinfo, sizeof(VERINFO)) != 0) || memcmp(&oi4300.date_Product, &product_date, sizeof(DateTimeBCD)) != 0 ||
-        memcmp(&oi4300.protcol, protcol, sizeof(protcol)) != 0) {
+    if ((ret != 1) || (memcmp(&oi4300.info, &verinfo, sizeof(VERINFO)) != 0)
+    				|| memcmp(&oi4300.date_Product, &product_date, sizeof(DateTimeBCD)) != 0
+    				|| memcmp(&oi4300.protcol, protcol, sizeof(protcol)) != 0) {
         fprintf(stderr, "\n初始化电气设备信息：4300\n");
         memcpy(&oi4300.info, &verinfo, sizeof(VERINFO));
         memcpy(&oi4300.date_Product, &product_date, sizeof(DateTimeBCD));

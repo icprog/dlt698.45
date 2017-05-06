@@ -742,7 +742,7 @@ void TerminalInfo(INT16U attr_act, INT8U *data, Action_result *act_ret) {
             break;
         case 4:	//参数初始化，恢复出厂参数
         	if(data[index]==1) {	//参数：array OAD
-        		index += getArray(&data[index],oadnum);
+        		index += getArray(&data[index],(INT8U *)&oadnum);
         		if(oadnum >= 10)  oadnum = 10;
         		for(i=0;i<oadnum;i++) {
         			index += getOAD(1,&data[index],&oad[i]);
