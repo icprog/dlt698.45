@@ -75,6 +75,7 @@ typedef struct {
 	INT8U  KBtype;   //开闭方式 0000 0011前闭后闭 0000 0000前开后开,以此类推
 	INT16U memdep;   //存储深度
 	CSD_ARRAYTYPE    csds;   //采集方案号
+	INT8U save_timetype;//6015中存储时标选择
 }TASKSET_INFO;
 typedef struct {//例如：oad_m为50040200，oad_r为00100200 关联属性oad，没有的oad_m写为00000000
 	INT8U taskid;
