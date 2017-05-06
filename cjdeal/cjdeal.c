@@ -665,7 +665,7 @@ INT8S dealMsgProcess()
 					if(cjguiProxy.isInUse == 0)
 					{
 						memcpy(&cjguiProxy.strProxyMsg,rev_485_buf,sizeof(Proxy_Msg));
-						cjguiProxy.isInUse = 7;
+						cjguiProxy.isInUse = 3;
 					}
 					else
 					{

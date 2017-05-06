@@ -119,6 +119,8 @@ extern int deleteClass(OI_698 oi,INT8U id);
  * */
 extern int dataInit(INT16U attr);
 
+extern void paraInit(INT8U oadnum,OAD *oad);
+
 ////////////////////////////////////////////////////////////////////////////////////////
 /*		第一类参数文件：文件包含接口类公用属性，配置单元按照配置序号在相应的位置存储，
  *           方法：存储更新（追加，更新），删除，清空

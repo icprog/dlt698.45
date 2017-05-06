@@ -726,13 +726,30 @@ void TaskInfo(INT16U attr_act, INT8U *data, Action_result *act_ret) {
     }
 }
 
-void TerminalInfo(INT16U attr_act, INT8U *data) {
+void TerminalInfo(INT16U attr_act, INT8U *data, Action_result *act_ret) {
+	int   index = 0;
+	int	  oadnum = 0,i=0;
+	OAD	  oad[10]={};
+
+	if(data[index]==0) {	//数据为空
+		index = 1;		//数据位
+	}
     switch (attr_act) {
         case 1://设备复位
             Reset_add();
             fprintf(stderr, "\n4300 设备复位！");
             syslog(LOG_NOTICE, "4300 设备复位!（act=%d）",attr_act);
             break;
+        case 4:	//参数初始化，恢复出厂参数
+        	if(data[index]==1) {	//参数：array OAD
+        		index += getArray(&data[index],oadnum);
+        		if(oadnum >= 10)  oadnum = 10;
+        		for(i=0;i<oadnum;i++) {
+        			index += getOAD(1,&data[index],&oad[i]);
+        		}
+        	}
+        	paraInit(oadnum,oad);
+        	break;
         case 3://数据初始化
         case 5://事件初始化
         case 6://需量初始化
@@ -765,6 +782,8 @@ void TerminalInfo(INT16U attr_act, INT8U *data) {
             }
             break;
     }
+    act_ret->datalen = index;
+    act_ret->DAR = success;
 }
 
 void FileTransMothod(INT16U attr_act, INT8U *data) {
@@ -1100,7 +1119,7 @@ int doObjectAction(OAD oad, INT8U *data, Action_result *act_ret) {
     }
     switch (oi) {
         case 0x4300:    //终端对象
-            TerminalInfo(attr_act, data);
+            TerminalInfo(attr_act, data, act_ret);
             break;
         case 0x5004:    //日冻结
         case 0x5006:    //月冻结

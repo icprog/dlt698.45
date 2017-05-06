@@ -176,6 +176,20 @@ void clearDemand()
 	system("rm -rf /nand/demand");
 }
 
+void paraInit(INT8U oadnum,OAD *oad)
+{
+	int		i=0;
+	if(oadnum == 0) {	//恢复出厂参数
+		system("rm -rf /nand/para");
+		system("rm -rf /nand/event/property");
+		InitClass4300();
+		InitClassByZone(0);
+	}else {
+		for(i=0;i<oadnum;i++) {
+
+		}
+	}
+}
 /*
  * 数据区初始化接口函数
  * 返回值 =0: 删除成功
@@ -193,9 +207,6 @@ int dataInit(INT16U attr)
 		clearData();
 		clearEvent();
 		clearDemand();
-		break;
-	case 4://恢复出厂参数
-		clearPara();
 		break;
 	case 5://事件初始化
 		clearEvent();

@@ -98,6 +98,9 @@ void para_process(int argc, char *argv[])
 					case 6:		//需量初始化
 						dataInit(method);
 						break;
+					case 4:		//恢复出厂参数
+						paraInit(0,NULL);
+						break;
 					}
 					break;
 				}
