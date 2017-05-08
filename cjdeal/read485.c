@@ -1547,7 +1547,7 @@ INT8S checkEvent698(OAD rcvOAD,INT8U* data,INT8U dataLen,CLASS_6001 obj6001,INT1
  * 解析单个OAD数据
  * */
 
-INT16U parseSingleOADData(INT8U isProxyResponse,INT8U* oadData,INT8U* dataContent,INT8U* dataIndex,CLASS_6001 obj6001,INT16U taskID)
+INT16U parseSingleOADData(INT8U isProxyResponse,INT8U* oadData,INT8U* dataContent,INT16U* dataIndex,CLASS_6001 obj6001,INT16U taskID)
 {
 	fprintf(stderr,"\n --------------------------parseSingleOADData-------------------------\n");
 	INT8U dataLen = 0;
@@ -2038,20 +2038,45 @@ INT8S dealProxyType7(PROXY_GETLIST getlist,INT8U port485)
 	}
 
 
-	INT8U RecvBuff[256];
+	INT8U RecvBuff[BUFFSIZE256];
 	INT16S RecvLen = 0;
 	memset(&RecvBuff[0], 0, BUFFSIZE256);
 
 	SendDataTo485(port485, getlist.transcmd.cmdbuf, getlist.transcmd.cmdlen);
-	RecvLen = ReceDataFrom485(DLT_698,port485, 500, RecvBuff);
-	fprintf(stderr,"\n代理透传　RecvLen = %d\n",RecvLen);
+
+	//RecvLen = ReceDataFrom485(DLT_698,port485, 500, RecvBuff);
+
+	usleep(20000);	//20ms
+	INT32S fd = comfd485[port485-1];
+	RecvLen = read(fd, RecvBuff, BUFFSIZE256);
+	DbPrt1(port485,"代理透传返回:", (char *) RecvBuff, RecvLen, NULL);
+
+
 	if(RecvLen > 0)
 	{
+		INT16U tIndex;
+		INT16U starttIndex = 0;
+		for(tIndex = 0;tIndex < RecvLen;tIndex++)
+		{
+			if(RecvBuff[tIndex]!=0x68)
+			{
+				continue;
+			}
+			else
+			{
+				starttIndex = tIndex;
+				break;
+			}
+		}
+
+		INT8U datalen = RecvLen - starttIndex;
+		fprintf(stderr,"\n代理透传　datalen = %d\n",datalen);
+
 		OADtoBuff(getlist.transcmd.oad,getlist.data);
 		getlist.data[4] = 1;
-		getlist.data[5] = RecvLen;
-		memcpy(&getlist.data[6],RecvBuff,RecvLen);
-		getlist.datalen = RecvLen + 6;
+		getlist.data[5] = datalen;
+		memcpy(&getlist.data[6],&RecvBuff[starttIndex],datalen);
+		getlist.datalen = datalen + 6;
 		mqs_send((INT8S *)PROXY_NET_MQ_NAME,1,TERMINALPROXY_RESPONSE,(INT8U *)&getlist,sizeof(PROXY_GETLIST));
 	}
 	else
