@@ -77,6 +77,7 @@ extern INT32S gpio_writebytes(char* devpath, INT8S* vals, INT32S valnum);
 extern BOOLEAN pwr_has();
 extern BOOLEAN pwr_has_byVolt(INT8U valid, INT32U volt, INT16U limit);
 extern BOOLEAN bettery_getV(FP32* clock_bt, FP32* tmnl_bt);
+extern BOOLEAN bettery_getV_II(FP32* clock_bt);
 
 extern INT8S getSpiAnalogState();
 /*
@@ -116,5 +117,16 @@ extern int ReadDeviceConfig(ConfigPara	*cfg_para);
  * 返回值　=０:满足该地区要求　 =1: 非该地区
  * */
 extern int getZone(char *zone);
+
+/*
+ * 参数初始化
+ * */
+extern void InitClass4016();	//当前套日时段表
+extern void InitClass4300();	//电气设备信息
+extern void InitClass4500();	//公网通信模块1
+extern void InitClass4510();	//以太网通信模块1
+extern void InitClass6000();	//采集配置单元
+extern void InitClassf203();	//开关量输入
+extern void InitClassByZone(INT8U type);	//根据地区进行相应初始化
 
 #endif /* PUBLICFUNCTION_H_ */

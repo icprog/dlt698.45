@@ -667,6 +667,18 @@ void setACS(FORMAT07 format07) {
 void dealProcess() {
     BOOLEAN nextFlag;
     while (1) {
+
+        for (int j = 0; j < 5; ++j) {
+            JProgramInfo->Projects[j].WaitTimes = 0;
+        }
+
+        gpio_writebyte("/dev/gpoRUN_LED", 1);
+        gpio_writebyte("/dev/gpoALARM", 1);
+        usleep(250 * 1000);
+        gpio_writebyte("/dev/gpoRUN_LED", 0);
+        gpio_writebyte("/dev/gpoALARM", 0);
+        usleep(50 * 1000);
+
         RecvLen = ReceDataFrom485(comfd, RecvBuf);
         if (RecvLen > 0) {
             fprintf(stderr, "v645 RECV: ");
@@ -734,6 +746,5 @@ void dealProcess() {
                 fprintf(stderr, "未知功能!!!\n");
             }
         }
-        sleep(1);
     }
 }

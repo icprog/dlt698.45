@@ -17,11 +17,13 @@
 #include "PublicFunction.h"
 #include "AccessFun.h"
 #include "cjmain.h"
+#include "basedef.h"
 #include "../lib698/dlt698.h"
 #include "../libMq/libmmq.h"
+#include "../include/version.h"
 
 static ProgramInfo *JProgramInfo = NULL;
-static int mmqFds[MAX_MMQ_SIZE];
+static int mmqFds[MAX_MMQ_SIZE]={};
 
 const static mmq_attribute mmq_register[] = {{cjcomm, PROXY_485_MQ_NAME,    MAXSIZ_PROXY_NET,    MAXNUM_PROXY_NET},
                                              {cjdeal, PROXY_NET_MQ_NAME,    MAXSIZ_PROXY_485,    MAXNUM_PROXY_485},
@@ -77,7 +79,7 @@ void PowerOffToClose(INT8U pwrdelay) {
         cnt_pwroff++;
         if (cnt_pwroff == pwrdelay) {
             fprintf(stderr, "\n设备关闭.....");
-            gpio_writebyte((INT8S *) DEV_BAT_SWITCH, (INT8S) 0);
+            gpio_writebyte((char *) DEV_BAT_SWITCH, (INT8S) 0);
         }
     } else
         cnt_pwroff = 0;
@@ -224,7 +226,8 @@ void Checkupdate() {
 
     if (access("/dos/cjgwn", 0) == 0) {
         asyslog(LOG_INFO, "检测有升级目录{3}，开始执行升级脚本...");
-        system("chmod 777 /dos/cjgwn/update.sh");
+        system("mkdir /nand/UpFiles");
+        system("chmod 777 /dos/cjgwn/index.sh");
         fp_org = fopen("/nand/Version.log", "r");
         if (fp_org != NULL) {
             char md5_org[24];
@@ -240,7 +243,7 @@ void Checkupdate() {
                 fread(md5_org, sizeof(md5_org), 1, fp_org);
                 int res = strncmp(md5_new, md5_org, 24);
                 if (res != 0) {
-                    system("/dos/cjgwn/update.sh&");
+                    system("/dos/cjgwn/index.sh");
                     asyslog(LOG_INFO, "版本比对不同，开始升级....");
                 } else {
                     asyslog(LOG_INFO, "版本比对相同，不予升级....");
@@ -248,7 +251,7 @@ void Checkupdate() {
             }
         } else {
             asyslog(LOG_INFO, "找不到原始md5版本，开始升级....");
-            system("/dos/cjgwn/update.sh");
+            system("/dos/cjgwn/index.sh");
         }
 
         if (access("/nand/UpFiles/update.sh", 0) == 0) {
@@ -296,10 +299,11 @@ void InitSharedMem(int argc, char *argv[]) {
 
     InitClass4016();    //当前套日时段表
     InitClass4300();    //电气设备信息
-    InitClass4500();    //公网通信模块1
     InitClass4510();    //以太网通信模块1
     //InitClass6000();	//初始化交采采集档案
     //InitClassf203();	//开关量输入
+    InitClassByZone(1);	//根据地区进行相应初始化
+
     //事件参数初始化
     readCoverClass(0x3100, 0, &JProgramInfo->event_obj.Event3100_obj, sizeof(JProgramInfo->event_obj.Event3100_obj),
                    event_para_save);
@@ -540,6 +544,11 @@ void checkRebootFile() {
 }
 
 int main(int argc, char *argv[]) {
+
+    printf(">>>>>>>>>>>>>>>version>>>>>>>>>>>>>>>\n");
+    printf("VERSION : %d\n", GL_VERSION);
+    printf(">>>>>>>>>>>>>>>version>>>>>>>>>>>>>>>\n\n\n\n");
+
     int ProgsNum = 0;
 
     //检查是否已经有程序在运行
@@ -570,7 +579,7 @@ int main(int argc, char *argv[]) {
         //喂狗
         Watchdog(5);
 
-        if (JProgramInfo->cfg_para.device == 1 || JProgramInfo->cfg_para.device == 3) { //I型集中器，III型专变
+        if (JProgramInfo->cfg_para.device == CCTT1 || JProgramInfo->cfg_para.device == SPTF3) { //I型集中器，III型专变
             //电池检测掉电关闭设备
             PowerOffToClose(90);
         }

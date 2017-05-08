@@ -66,8 +66,11 @@ static char *usage_event = "--------------------事件类对象-----------------
         "-------------------------------------------------------\n\n";
 static char *usage_para = "\n--------------------参变量类对象----------------------------\n"
         "[电气设备] "
-        "		 【参数读取】cj para pro 4300 		\n"
+        "		 【设备管理基本参数读取】cj para pro 4300 		\n"
         "		 【数据初始化】cj para method 4300 3		\n"
+        "		 【恢复出厂参数】cj para method 4300 4		\n"
+        "		 【事件初始化】cj para method 4300 5		\n"
+        "		 【需量初始化】cj para method 4300 6		\n"
         "		 【时钟参数】cj para pro 4000		\n"
         "		 【终端广播校时】cj para pro 4204		\n"
         "-------------------------------------------------------\n\n";
@@ -330,9 +333,39 @@ int main(int argc, char *argv[]) {
     }
 
     if (strcmp("bettery", argv[1]) == 0) {
-        float v1, v2;
-        bettery_getV(&v1, &v2);
-        fprintf(stderr, "电池电压: %f,%f\n", v1, v2);
+        float v1=0,v2=0;
+        ConfigPara	cfg_para={};
+        ReadDeviceConfig(&cfg_para);
+        if(cfg_para.device == 2) {
+			bettery_getV_II(&v1);
+			fprintf(stderr, "II型集中器：时钟电池电压: %f\n", v1);
+        }else {
+			bettery_getV(&v1,&v2);
+			fprintf(stderr, "时钟电池电压: %f,　设备电池电压: %f\n", v1,v2);
+        }
+        return EXIT_SUCCESS;
+    }
+
+
+    if (strcmp("bt", argv[1]) == 0) {
+        float v1=0,v2=0;
+        ConfigPara	cfg_para={};
+        ReadDeviceConfig(&cfg_para);
+        if(cfg_para.device == 2) {
+            bettery_getV_II(&v1);
+            fprintf(stderr, "II型集中器：时钟电池电压: %f\n", v1);
+        }else {
+            bettery_getV(&v1,&v2);
+            fprintf(stderr, "时钟电池电压: %f,　设备电池电压: %f\n", v1,v2);
+        }
+
+        float th = atof(argv[2]);
+        if(v1 > th) {
+            fprintf(stderr, "时钟电池电压正常\n");
+        }else{
+            fprintf(stderr, "时钟电池电压异常%f\n", th);
+        }
+
         return EXIT_SUCCESS;
     }
 

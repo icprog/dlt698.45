@@ -471,7 +471,7 @@ int appConnectResponse(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 	 */
 	//return 1;
 	csinfo->dir = 1;
-	csinfo->prm = 0;
+	csinfo->prm = 1;
 	index = FrameHead(csinfo,buf);
 	hcsi = index;
 	index = index + 2;
@@ -488,7 +488,7 @@ int appConnectResponse(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 	memcpy(&buf[index],response.server_factory_version.hardware_date,6);
 	index = index +6;
 	memcpy(&buf[index],response.server_factory_version.additioninfo,8);
-	index = index +8;
+		index = index +8;
 	memcpy(&buf[index],&response.app_version,2);
 	index = index +2;
 	memcpy(&buf[index],response.ProtocolConformance,8);
@@ -497,7 +497,7 @@ int appConnectResponse(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 	index = index +16;
 	buf[index++] = (response.server_send_size & 0xFF00)>>8;
 	buf[index++] = response.server_send_size & 0x00FF;
-	buf[index++] = (response.server_recv_size & 0x00FF)>>8;
+	buf[index++] = (response.server_recv_size & 0xFF00)>>8;
 	buf[index++] = response.server_recv_size & 0x00FF;
 	buf[index++] = response.server_recv_maxWindow;
 	buf[index++] = (response.server_deal_maxApdu & 0xFF00) >>8;
@@ -1207,7 +1207,8 @@ int doReleaseConnect(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
 	int apduplace =0,index=0, hcsi=0;
 	ClientPiid = apdu[1];
 	csinfo->dir = 1;
-	csinfo->prm = 0;
+//	csinfo->prm = 0;
+	csinfo->prm = 1;
 	index = FrameHead(csinfo,sendbuf);
 	hcsi = index;
 	index = index + 2;

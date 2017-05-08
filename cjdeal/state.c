@@ -92,8 +92,9 @@ BOOLEAN oi_f203_changed(INT8U save_changed)
 {
 	INT8U i=0;
 	static INT8U changed = 0xff;
-	if(changed != 0 && changed != save_changed)
+	if(changed != save_changed)
 	{
+		fprintf(stderr,"\n changed = %d  save_change= %d  保存文件oif203\n",changed,save_changed);
 		read_oif203_para();
 		for(i=0; i < STATE_MAXNUM;i++)
 		{
@@ -108,15 +109,15 @@ BOOLEAN oi_f203_changed(INT8U save_changed)
 			}
 			oif203.statearri.stateunit[i].CD = 0;		//参数变化后，清除状态变位标志
 		}
+		//将此时遥信状态保存，规约招测
+		saveCoverClass(0xf203,0,&oif203,sizeof(CLASS_f203),para_vari_save);
+		changed = save_changed;
 		fprintf(stderr,"CD=%d-%d-%d-%d-%d-%d-%d-%d\n",
 				oif203.statearri.stateunit[0].CD,oif203.statearri.stateunit[1].CD,oif203.statearri.stateunit[2].CD,oif203.statearri.stateunit[3].CD,
 				oif203.statearri.stateunit[4].CD,oif203.statearri.stateunit[5].CD,oif203.statearri.stateunit[6].CD,oif203.statearri.stateunit[7].CD);
 		fprintf(stderr,"ST=%d-%d-%d-%d-%d-%d-%d-%d\n",
 				oif203.statearri.stateunit[0].ST,oif203.statearri.stateunit[1].ST,oif203.statearri.stateunit[2].ST,oif203.statearri.stateunit[3].ST,
 				oif203.statearri.stateunit[4].ST,oif203.statearri.stateunit[5].ST,oif203.statearri.stateunit[6].ST,oif203.statearri.stateunit[7].ST);
-		//将此时遥信状态保存
-		saveCoverClass(0xf203,0,&oif203,sizeof(CLASS_f203),para_vari_save);
-		changed = save_changed;
 		return TRUE;
 	}
 	return FALSE;

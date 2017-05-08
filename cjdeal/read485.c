@@ -443,7 +443,7 @@ INT32S open_com_para_chg(INT8U port, INT32U baud, INT32S oldcomfd, unsigned char
 		sleep(1);
 	}
 	fprintf(stderr,"\n JProgramInfo->cfg_para.device = %d",JProgramInfo->cfg_para.device);
-	if(JProgramInfo->cfg_para.device == 2)
+	if(JProgramInfo->cfg_para.device == CCTT2)
 	{
 		if (port==1)
 			port = 2;
@@ -1079,7 +1079,7 @@ INT8U getASNInfo(FORMAT07* DI07,Base_DataType* dataType)
 	//电压　电流 功率 特殊处理  07回来的是3个字节  6984个字节
 	if(memcmp(flag07_0CF25_1,DI07->DI,4) == 0)
 	{
-		if(JProgramInfo->cfg_para.device == 2)
+		if(JProgramInfo->cfg_para.device == CCTT2)
 		{
 			memset(&DI07->Data[2],0,4);
 		}
@@ -1090,7 +1090,7 @@ INT8U getASNInfo(FORMAT07* DI07,Base_DataType* dataType)
 		unitNum = 3;
 		INT8U f25_2_buff[12] = {0};
 		memcpy(&f25_2_buff[0],&DI07->Data[0],3);
-		if(JProgramInfo->cfg_para.device != 2)
+		if(JProgramInfo->cfg_para.device != CCTT2)
 		{
 			memcpy(&f25_2_buff[4],&DI07->Data[3],3);
 			memcpy(&f25_2_buff[8],&DI07->Data[6],3);
@@ -1117,7 +1117,7 @@ INT8U getASNInfo(FORMAT07* DI07,Base_DataType* dataType)
 		INT8U f25_3_buff[16] = {0};
 		memcpy(&f25_3_buff[1],&DI07->Data[0],3);
 		memcpy(&f25_3_buff[5],&DI07->Data[3],3);
-		if(JProgramInfo->cfg_para.device != 2)
+		if(JProgramInfo->cfg_para.device != CCTT2)
 		{
 			memcpy(&f25_3_buff[9],&DI07->Data[6],3);
 			memcpy(&f25_3_buff[13],&DI07->Data[9],3);

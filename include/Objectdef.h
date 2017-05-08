@@ -682,29 +682,27 @@ typedef struct {
     time_t nexttime; //执行时间
 } AutoTaskStrap;
 typedef struct {
-    LINK_Request link_request;
+    INT8U securetype;           //安全类型
+    CLASS_F101 f101;            //安全模式信息
+    void *shmem;
+    INT8U taskaddr;  			//客户机地址
+    time_t lasttime; 			//最后一次通信时间
+    int Heartbeat;
     int phy_connect_fd;
     INT8U linkstate;
     INT8U testcounter;
     INT8U serveraddr[16];
-    INT8U SendBuf[BUFLEN];      //发送数据
-    INT8U DealBuf[FRAMELEN];    //保存接口函数处理长度
-    INT8U RecBuf[BUFLEN];       //接收数
     int RHead, RTail;           //接收报文头指针，尾指针
     int deal_step;              //数据接收状态机处理标记
     int rev_delay;              //接收延时
-    INT8U securetype;           //安全类型
+    LINK_Request link_request;
     LINK_Response linkResponse; //心跳确认
     CONNECT_Response myAppVar;  //集中器支持的应用层会话参数
     CONNECT_Response AppVar;    //与主站协商后的应用层会话参数
-    CLASS_F101 f101;            //安全模式信息
-    void *shmem;
-
     INT8S (*p_send)(int fd, INT8U *buf, INT16U len);
-
-    INT8U taskaddr;  //客户机地址
-    time_t lasttime; //最后一次通信时间
-    int Heartbeat;
+    INT8U SendBuf[BUFLEN];      //发送数据
+    INT8U DealBuf[FRAMELEN];    //保存接口函数处理长度
+    INT8U RecBuf[BUFLEN];       //接收数
 } CommBlock;
 ////////////////////////////////////////////////////////////////////
 

@@ -105,17 +105,21 @@ void SetUsrPwd(int argc, char *argv[]) {
     }
 }
 
+
+//TODO: 字符串第一个字节是否要保存长度，规约读取
 void SetIPort(int argc, char *argv[]) {
     CLASS25 class4500;
     MASTER_STATION_INFO_LIST master;
 
+    JProgramInfo = OpenShMem("ProgramInfo", sizeof(ProgramInfo), NULL);
+
     memset(&master, 0, sizeof(MASTER_STATION_INFO_LIST));
     memset(&class4500, 0, sizeof(CLASS25));
     readCoverClass(0x4500, 0, &class4500, sizeof(CLASS25), para_vari_save);
-    fprintf(stderr, "\n先读出 主IP %d.%d.%d.%d :%d\n", class4500.master.master[0].ip[1], class4500.master.master[0].ip[2],
+    fprintf(stderr, "\n先读出 主IP %d.%d.%d.%d:%d\n", class4500.master.master[0].ip[1], class4500.master.master[0].ip[2],
             class4500.master.master[0].ip[3],
             class4500.master.master[0].ip[4], class4500.master.master[0].port);
-    fprintf(stderr, "\n先读出 备IP %d.%d.%d.%d :%d\n", class4500.master.master[1].ip[1], class4500.master.master[1].ip[2],
+    fprintf(stderr, "\n先读出 备IP %d.%d.%d.%d:%d\n", class4500.master.master[1].ip[1], class4500.master.master[1].ip[2],
             class4500.master.master[1].ip[3],
             class4500.master.master[1].ip[4], class4500.master.master[1].port);
     int i = 0;
@@ -126,13 +130,14 @@ void SetIPort(int argc, char *argv[]) {
             getipnum(&master.master[i], argv[2 + i]);
         }
         memcpy(&class4500.master, &master, sizeof(MASTER_STATION_INFO_LIST));
-        fprintf(stderr, "\n存储前 主IP %d.%d.%d.%d :%d\n", class4500.master.master[0].ip[1],
+        fprintf(stderr, "\n存储前 主IP %d.%d.%d.%d:%d\n", class4500.master.master[0].ip[1],
                 class4500.master.master[0].ip[2], class4500.master.master[0].ip[3],
                 class4500.master.master[0].ip[4], class4500.master.master[0].port);
-        fprintf(stderr, "\n存储前 备IP %d.%d.%d.%d :%d\n", class4500.master.master[1].ip[1],
+        fprintf(stderr, "\n存储前 备IP %d.%d.%d.%d:%d\n", class4500.master.master[1].ip[1],
                 class4500.master.master[1].ip[2], class4500.master.master[1].ip[3],
                 class4500.master.master[1].ip[4], class4500.master.master[1].port);
         saveCoverClass(0x4500, 0, &class4500, sizeof(CLASS25), para_vari_save);
+        JProgramInfo->oi_changed.oi4500++;
     }
 }
 
@@ -140,13 +145,15 @@ void SetNetIPort(int argc, char *argv[]) {
     CLASS26 class4510;
     MASTER_STATION_INFO_LIST master;
 
+    JProgramInfo = OpenShMem("ProgramInfo", sizeof(ProgramInfo), NULL);
+
     memset(&master, 0, sizeof(MASTER_STATION_INFO_LIST));
     memset(&class4510, 0, sizeof(CLASS26));
     readCoverClass(0x4510, 0, &class4510, sizeof(CLASS26), para_vari_save);
-    fprintf(stderr, "\n先读出 主IP %d.%d.%d.%d :%d\n", class4510.master.master[0].ip[1], class4510.master.master[0].ip[2],
+    fprintf(stderr, "\n先读出 主IP %d.%d.%d.%d:%d\n", class4510.master.master[0].ip[1], class4510.master.master[0].ip[2],
             class4510.master.master[0].ip[3],
             class4510.master.master[0].ip[4], class4510.master.master[0].port);
-    fprintf(stderr, "\n先读出 备IP %d.%d.%d.%d :%d\n", class4510.master.master[1].ip[1], class4510.master.master[1].ip[2],
+    fprintf(stderr, "\n先读出 备IP %d.%d.%d.%d:%d\n", class4510.master.master[1].ip[1], class4510.master.master[1].ip[2],
             class4510.master.master[1].ip[3],
             class4510.master.master[1].ip[4], class4510.master.master[1].port);
     int i = 0;
@@ -157,13 +164,14 @@ void SetNetIPort(int argc, char *argv[]) {
             getipnum(&master.master[i], argv[2 + i]);
         }
         memcpy(&class4510.master, &master, sizeof(MASTER_STATION_INFO_LIST));
-        fprintf(stderr, "\n存储前 主IP %d.%d.%d.%d :%d\n", class4510.master.master[0].ip[1],
+        fprintf(stderr, "\n存储前 主IP %d.%d.%d.%d:%d\n", class4510.master.master[0].ip[1],
                 class4510.master.master[0].ip[2], class4510.master.master[0].ip[3],
                 class4510.master.master[0].ip[4], class4510.master.master[0].port);
-        fprintf(stderr, "\n存储前 备IP %d.%d.%d.%d :%d\n", class4510.master.master[1].ip[1],
+        fprintf(stderr, "\n存储前 备IP %d.%d.%d.%d:%d\n", class4510.master.master[1].ip[1],
                 class4510.master.master[1].ip[2], class4510.master.master[1].ip[3],
                 class4510.master.master[1].ip[4], class4510.master.master[1].port);
         saveCoverClass(0x4510, 0, &class4510, sizeof(CLASS26), para_vari_save);
+        JProgramInfo->oi_changed.oi4500++;
     }
 }
 
@@ -177,8 +185,8 @@ void setOnlineMode(int argc, char *argv[]) {
     readCoverClass(0x4510, 0, &class4510, sizeof(CLASS26), para_vari_save);
     if (argc != 4) {
         fprintf(stderr, "设置gprs和以太网的工作模式(0:混合模式 1:客户端模式 2:服务器模式)\n");
-        fprintf(stderr," 	gprs工作模式:%d\n",class4500.commconfig.workModel);
-        fprintf(stderr," 	以太网工作模式:%d\n",class4510.commconfig.workModel);
+        fprintf(stderr, " 	gprs工作模式:%d\n", class4500.commconfig.workModel);
+        fprintf(stderr, " 	以太网工作模式:%d\n", class4510.commconfig.workModel);
         return;
     }
 
@@ -215,6 +223,7 @@ void SetID(int argc, char *argv[]) {
             fprintf(stderr, "%02x ", classtmp.curstom_num[i]);
         }
         saveCoverClass(0x4001, 0, &classtmp, sizeof(CLASS_4001_4002_4003), para_vari_save);
+        saveCoverClass(0x4001, 0, &classtmp, sizeof(CLASS_4001_4002_4003), para_init_save);
     } else {
         readCoverClass(0x4001, 0, &classtmp, sizeof(CLASS_4001_4002_4003), para_vari_save);
         fprintf(stderr, "\n通信地址[%d]:", classtmp.curstom_num[0]);

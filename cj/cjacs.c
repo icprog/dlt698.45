@@ -265,6 +265,67 @@ void rn8209_regdata_print()
 	syslog(LOG_NOTICE,"读取RN8209校表系数=%d\n",coef);
 }
 
+/////////////////////////RN8209校表过程
+//校验寄存器读出的数值是否正确
+INT8S check_regvalue_rn8209(INT32S regvalue)
+{
+	INT32S 	RRec[128];							//RN8209计量参数寄存器数据
+
+	RRec[SYS_RData>>4] = rn_spi_read(spifp, SYS_RData);
+//	usleep(500000);
+	fprintf(stderr, "校验寄存器值为： %d \n", RRec[SYS_RData>>4]);
+	if(regvalue == RRec[SYS_RData>>4]){
+		return 0;
+	}else
+		return -1;
+}
+
+/*
+ * RN8209 交采电压系数校正过程
+ * */
+void phase_check_rn8209(FP64 u)
+{
+	INT32U vrms = 0;
+	INT32S regvalue = 0;
+	FP64 cur_value;
+	INT8U i;
+	INT8U temp[3];
+
+	i = AV_COUNT;
+
+	cur_value = u;	//当前电压值
+	fprintf(stderr, "校表中...... \n");
+	while(i--)
+	{
+		regvalue = rn_spi_read(spifp, U_RMS);//电压通道有效值
+		usleep(400*1000);//3.4Hz 更新
+		if((check_regvalue_rn8209(regvalue) == 0)){
+			vrms += regvalue;
+		}else{
+			i++;
+			continue;
+		}
+	}
+	vrms /= AV_COUNT;
+//	vrms *= REG_COUNT;	//电压寄存器的值扩大REG_COUNT倍
+	K_vrms = floor((FP64)vrms / cur_value);
+	fprintf(stderr, "校正系数：K_vrms = %d \n", K_vrms);
+//	if(K_vrms > 740000 && K_vrms < 756000)
+//	{
+//		fprintf(stderr, "校表结束！！！ \n");
+//	}else{
+//		fprintf(stderr, "校表失败，请重新校表！！！ \n");
+//		return;
+//	}
+
+	temp[0] = (K_vrms & 0xff0000) >> 16;
+	temp[1] = (K_vrms & 0xff00) >> 8;
+	temp[2] = K_vrms & 0xff;
+	memset(&attCoef, 0, sizeof(ACCoe_SAVE));
+	write_coef_val( 0, 3, &temp[0]);
+	saveCoverClass(0,0,&attCoef,sizeof(ACCoe_SAVE),acs_coef_save);
+}
+
 void WriteRegInit(INT32S fp)
 {
 	INT8U temp[3];
@@ -1150,64 +1211,37 @@ void acs_check_phase_coef(INT8U type)
 }
 
 
-//校验寄存器读出的数值是否正确
-INT8S check_regvalue_rn8209(INT32S regvalue)
+
+//电压电流有效值offset校正，零漂处理
+void offset_check(INT32S fp)
 {
-	INT32S 	RRec[128];							//RN8209计量参数寄存器数据
+	INT32S		regval[4];
+	INT32U 		UrmsOffset[3],IrmsOffset[3];
+	INT8U 		i;
+	INT8U 		temp[3];
+	int			val;
+	sem_t * sem_fd=NULL;
 
-	RRec[SYS_RData>>4] = rn_spi_read(spifp, SYS_RData);
-//	usleep(500000);
-	fprintf(stderr, "校验寄存器值为： %d \n", RRec[SYS_RData>>4]);
-	if(regvalue == RRec[SYS_RData>>4]){
-		return 0;
-	}else
-		return -1;
-}
+	sem_fd = open_named_sem(SEMNAME_SPI0_0);
+	sem_wait(sem_fd);
+	clean_coef();
+	sleep(3);
 
-/*
- * RN8209 交采电压系数校正过程
- * */
-void phase_check_rn8209(FP64 u)
-{
-	INT32U vrms = 0;
-	INT32S regvalue = 0;
-	FP64 cur_value;
-	INT8U i;
-	INT8U temp[3];
-
-	i = AV_COUNT;
-
-	cur_value = u;	//当前电压值
-	fprintf(stderr, "校表中...... \n");
-	while(i--)
-	{
-		regvalue = rn_spi_read(spifp, U_RMS);//电压通道有效值
-		usleep(400*1000);//3.4Hz 更新
-		if((check_regvalue_rn8209(regvalue) == 0)){
-			vrms += regvalue;
-		}else{
-			i++;
-			continue;
-		}
+	for(i=0;i<3;i++) {
+		read_reg_val(i,&regval[0],&regval[1],&regval[2],&regval[3]);
+		UrmsOffset[i] = pow(regval[2],2)/32768;
+		IrmsOffset[i] = pow(regval[3],2)/32768;
+		fprintf(stderr,"%c 相：读取寄存器:电压 U=%d，电流I=%d,校正系数 Uoffset=%02x,Ioffset=%02x\n",i+65,regval[2],regval[3],UrmsOffset[i],IrmsOffset[i]);
+		temp[0] = 0;
+		temp[1] = (IrmsOffset[i] & 0xff00) >> 8;
+		temp[2] = IrmsOffset[i] & 0xff;
+		write_coef_val(i,6,&temp[0]);
+		write_coef_reg(fp);
 	}
-	vrms /= AV_COUNT;
-//	vrms *= REG_COUNT;	//电压寄存器的值扩大REG_COUNT倍
-	K_vrms = floor((FP64)vrms / cur_value);
-	fprintf(stderr, "校正系数：K_vrms = %d \n", K_vrms);
-//	if(K_vrms > 740000 && K_vrms < 756000)
-//	{
-//		fprintf(stderr, "校表结束！！！ \n");
-//	}else{
-//		fprintf(stderr, "校表失败，请重新校表！！！ \n");
-//		return;
-//	}
-
-	temp[0] = (K_vrms & 0xff0000) >> 16;
-	temp[1] = (K_vrms & 0xff00) >> 8;
-	temp[2] = K_vrms & 0xff;
-	memset(&attCoef, 0, sizeof(ACCoe_SAVE));
-	write_coef_val( 0, 3, &temp[0]);
+	fprintf(stderr,"----------ACCoe_SAVE=%d\n",sizeof(ACCoe_SAVE));
 	saveCoverClass(0,0,&attCoef,sizeof(ACCoe_SAVE),acs_coef_save);
+	sem_post(sem_fd);
+	sem_close(sem_fd);
 }
 
 void acs_phase(int argc, char *argv[])
@@ -1304,6 +1338,9 @@ void acs_process(int argc, char *argv[])
 	fprintf(stderr,"\n计量芯片版本：%06X, 接线方式=%X(0600:三相四，1200：三相三)\n",VersionID,WireType);
     if(argc>=3) {	//
 		if(strcmp(argv[1],"acs")==0) {
+			if(strcmp("acoffset",argv[1])==0){
+//				offset_check(argc,argv);
+			}
 			if(strcmp(argv[2],"acreg")==0) {
 				acs_regist(argc,argv);
 			}

@@ -176,6 +176,20 @@ void clearDemand()
 	system("rm -rf /nand/demand");
 }
 
+void paraInit(INT8U oadnum,OAD *oad)
+{
+	int		i=0;
+	if(oadnum == 0) {	//恢复出厂参数
+		system("rm -rf /nand/para");
+		system("rm -rf /nand/event/property");
+		InitClass4300();
+		InitClassByZone(0);
+	}else {
+		for(i=0;i<oadnum;i++) {
+
+		}
+	}
+}
 /*
  * 数据区初始化接口函数
  * 返回值 =0: 删除成功
@@ -205,6 +219,9 @@ int dataInit(INT16U attr)
 	gettimeofday(&end, NULL);
 	interval = 1000000*(end.tv_sec - start.tv_sec) + (end.tv_usec - start.tv_usec);
     fprintf(stderr,"dataInit interval = %f(ms)\n", interval/1000.0);
+    if(interval>60*1000) {
+    	syslog(LOG_ERR,"初始化时间过长=%f(ms)\n", interval/1000.0);
+    }
  	return 0;
 }
 
@@ -981,7 +998,7 @@ INT16U GetFileOadLen(INT8U units,INT8U tens)//个位十位转化为一个INT16U
 void GetOADPosofUnit(ROAD_ITEM item_road,HEAD_UNIT *head_unit,INT8U unitnum,OAD_INDEX *oad_offset)
 {
 	int i=0,j=0,datapos=0;
-	fprintf(stderr,"oadmr_num=%d,unitnum=%d\n",item_road.oadmr_num,unitnum);
+	asyslog(LOG_INFO,"-------oadmr_num=%d,unitnum=%d\n",item_road.oadmr_num,unitnum);
 	for(i=0;i<item_road.oadmr_num;i++)//找不到呢
 	{
 		datapos=0;
@@ -1041,7 +1058,7 @@ INT16U CalcFreq(TI runti,CLASS_6015 class6015,INT16U startmin,INT16U endmin,INT3
 	INT16U sec_unit = 0;
 	INT8U  inval_flg = 0;
 	asyslog(LOG_INFO,"\n---@@@---class6015.cjtype = %d\n",class6015.cjtype);
-	if(class6015.cjtype == 3 || class6015.cjtype == 0)//按时标间隔采集
+	if(class6015.cjtype == 3 || class6015.cjtype == 0 || class6015.cjtype == 1)//按时标间隔采集
 	{
 		if(class6015.cjtype == 3)//按抄表间隔
 		{
@@ -1060,12 +1077,12 @@ INT16U CalcFreq(TI runti,CLASS_6015 class6015,INT16U startmin,INT16U endmin,INT3
 			default:
 				break;
 			}
-			asyslog(LOG_INFO,"\n---@@@---按抄表间隔采集%d\n",((endmin-startmin)*60)/sec_unit+1);
-			return ((endmin-startmin)*60)/sec_unit+1;
+			asyslog(LOG_INFO,"\n---@@@---按抄表间隔采集1\n");
+			return 1;
 		}
 		fprintf(stderr,"\n结束分钟数：%d 开始分钟数：%d 单位 %d\n",endmin, startmin, runti.units);
 		if(endmin <= startmin || runti.units > 3)
-			return 0;//无效设置
+			return 1;//无效设置
 		switch(runti.units)
 		{
 		case 0://秒
@@ -1126,7 +1143,7 @@ INT16U CalcFreq(TI runti,CLASS_6015 class6015,INT16U startmin,INT16U endmin,INT3
 }
 INT32U freqtosec(TI interval)//ti格式频率转化为秒数,只计算秒分时日，其他返回0
 {
-	INT16U rate = 0;
+	INT32U rate = 0;
 	switch(interval.units)
 	{
 	case 0:
@@ -1161,6 +1178,8 @@ INT8U ReadTaskInfo(INT8U taskid,TASKSET_INFO *tasknor_info)//读取普通采集�
 			return 0;
 		if(readCoverClass(0x6015,class6013.sernum,&class6015,sizeof(CLASS_6015),coll_para_save) == 1)
 		{
+			tasknor_info->save_timetype = class6015.savetimeflag;
+			asyslog(LOG_INFO,"\n---class6015.cjtype = %d  class6013.sernum = %d \n",class6015.cjtype,class6013.sernum);
 			tasknor_info->taskfreq = freqtosec(class6013.interval);
 			fprintf(stderr,"\n任务执行间隔%d\n",tasknor_info->taskfreq);
 			tasknor_info->starthour = class6013.runtime.runtime[0].beginHour;
@@ -1180,7 +1199,6 @@ INT8U ReadTaskInfo(INT8U taskid,TASKSET_INFO *tasknor_info)//读取普通采集�
 			memcpy(&tasknor_info->csds,&class6015.csds,sizeof(CSD_ARRAYTYPE));
 			if(tasknor_info->runtime == 1)//日月年冻结
 			{
-				tasknor_info->runtime = 1;
 				tasknor_info->freq = 86400;//
 				if(class6013.interval.units == 3)//日冻结
 					return 1;
@@ -1719,6 +1737,7 @@ int getrecordno(INT8U starthour,INT8U startmin,int interval,CURR_RECINFO recinfo
 	if(interval!=0) {
 		recordno = recordno/(interval/60);
 	}else recordno = 1;		//冻结抄读
+	asyslog(LOG_INFO,"当前：%d:%d 任务开始：%d:%d 任务间隔:%d 记录序号%d",tm_p->tm_hour,tm_p->tm_min,starthour,startmin,interval,recordno);
 	fprintf(stderr,"\n当前：%d:%d 任务开始：%d:%d 任务间隔:%d 记录序号%d\n",tm_p->tm_hour,tm_p->tm_min,starthour,startmin,interval,recordno);
 	return recordno;
 }
@@ -1946,6 +1965,8 @@ INT8U initrecinfo(CURR_RECINFO *recinfo,TASKSET_INFO tasknor_info,INT8U selectyp
 {
 	time_t time_s,time_tmp,sec_tmp=0;
 	struct tm *tm_p;
+	time(&time_s);
+	tm_p = localtime(&time_s);
 	switch(selectype)
 	{
 	case 0://招测上一条记录
@@ -1954,30 +1975,47 @@ INT8U initrecinfo(CURR_RECINFO *recinfo,TASKSET_INFO tasknor_info,INT8U selectyp
 		recinfo->rec_start = time(NULL);//当前时间的秒数
 		recinfo->rec_end = time(NULL);
 		break;
-	case 5://冻结的招测时间要比文件时间提前一天,因此找文件时，要加上一天
+	case 5:
 		recinfo->recordno_num = tasknor_info.runtime;
-		time(&time_s);
-		if(freezetype == 3)//日冻结
-			time_s += 86400;//24*60*60; 加上一天的秒数
-		tm_p = localtime(&time_s);
+		//		if(freezetype == 3)//日冻结
+		//			time_s += 86400;//24*60*60; 加上一天的秒数
 		tm_p->tm_year = select.selec5.collect_save.year.data - 1900;
 		tm_p->tm_mon = select.selec5.collect_save.month.data - 1;
-		tm_p->tm_mday = select.selec5.collect_save.day.data;
+		tm_p->tm_mday = select.selec5.collect_save.day.data;//天数
 		tm_p->tm_hour = tasknor_info.starthour;
 		tm_p->tm_min = tasknor_info.startmin;
 		tm_p->tm_sec = 0;
+		asyslog(LOG_INFO,"sele5 tasknor_info.save_timetype=%d",tasknor_info.save_timetype);
+		if(freezetype == 1 && (tasknor_info.save_timetype == 3 || tasknor_info.save_timetype == 4))
+		{
+			asyslog(LOG_INFO,"日冻结招测小时=%d",select.selec7.collect_save_star.hour.data);
+			tm_p->tm_mday = tm_p->tm_mday+1;
+		}
 		recinfo->rec_start = mktime(tm_p);
+		/////////////////////////////////////////TEST
+		tm_p = localtime(&recinfo->rec_start);
+		asyslog(LOG_INFO,"招测的时间%d-%d-%d %d:%d:%d",select.selec7.collect_save_star.year.data,select.selec7.collect_save_star.month.data
+				,select.selec7.collect_save_star.day.data,select.selec7.collect_save_star.hour.data
+				,select.selec7.collect_save_star.min.data,select.selec7.collect_save_star.sec.data);
+		asyslog(LOG_INFO,"重新计算后的时间%d-%d-%d %d:%d:%d",tm_p->tm_year+1900,tm_p->tm_mon+1,tm_p->tm_mday,
+				tm_p->tm_hour,tm_p->tm_min,tm_p->tm_sec);
+		/////////////////////////////////////////////
 
-		time(&time_s);
-		if(freezetype == 3)//日冻结
-			time_s += 86400;//24*60*60; 加上一天的秒数
-		tm_p = localtime(&time_s);
+//		time(&time_s);
+//		if(freezetype == 3)//日冻结
+//			time_s += 86400;//24*60*60; 加上一天的秒数
+//		tm_p = localtime(&time_s);
 		tm_p->tm_year = select.selec5.collect_save.year.data - 1900;
 		tm_p->tm_mon = select.selec5.collect_save.month.data - 1;
 		tm_p->tm_mday = select.selec5.collect_save.day.data;
 		tm_p->tm_hour = tasknor_info.endhour;
 		tm_p->tm_min = tasknor_info.endmin;
 		tm_p->tm_sec = 0;
+		if(freezetype == 1 && (tasknor_info.save_timetype == 3 || tasknor_info.save_timetype == 4))
+		{
+			asyslog(LOG_INFO,"日冻结招测小时=%d",select.selec7.collect_save_star.hour.data);
+			tm_p->tm_mday = tm_p->tm_mday+1;
+		}
 		recinfo->rec_end = mktime(tm_p);
 		break;
 	case 7://实时数据类
@@ -1991,7 +2029,7 @@ INT8U initrecinfo(CURR_RECINFO *recinfo,TASKSET_INFO tasknor_info,INT8U selectyp
 			tm_p->tm_hour = 0;
 			tm_p->tm_min = 0;
 			tm_p->tm_sec = 0;
-			recinfo->rec_end = mktime(tm_p) - tasknor_info.taskfreq;//上报上一次
+			recinfo->rec_end = mktime(tm_p) + sec_tmp - tasknor_info.taskfreq;//上报上一次
 			recinfo->rec_start = recinfo->rec_end - tasknor_info.taskfreq;
 			recinfo->recordno_num = tasknor_info.taskfreq/tasknor_info.freq;
 		}
@@ -2363,7 +2401,7 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds)
 	ROAD_ITEM item_road;
 	CURR_RECINFO recinfo;
 	HEAD_UNIT *headunit = NULL;//文件头
-	OAD_INDEX oad_offset[100];//oad索引
+	OAD_INDEX oad_offset[100],oad_offset_can[100];//oad索引
 	TASKSET_INFO tasknor_info;
 	INT16U  blocksize=0,headsize=0;
 	int offsetTsa = 0,recordoffset = 0,unitnum=0,i=0,j=0,indexn=0,recordlen = 0,currecord = 0,rec_tmp = 0,firecord = 0,tsa_num=0,framesum=0;
@@ -2416,14 +2454,14 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds)
 		}
 		if((taskinfoflg = ReadTaskInfo(taskid,&tasknor_info))==0)//得到任务信息
 		{
-			asyslog(LOG_INFO,"n得到任务信息失败\n");
+			asyslog(LOG_INFO,"得到任务信息失败\n");
 			fprintf(stderr,"\n得到任务信息失败\n");
 			return 0;
 		}
-		fprintf(stderr,"\n得到任务信息成功\n");
+		asyslog(LOG_INFO,"\n得到任务信息成功\n");
 
 		memset(&recinfo,0x00,sizeof(CURR_RECINFO));
-		fprintf(stderr,"\n----------获得recinfo信息\n");
+		asyslog(LOG_INFO,"\n----------获得recinfo信息\n");
 		initrecinfo(&recinfo,tasknor_info,selectype,select,taskinfoflg);//获得recinfo信息
 		fprintf(stderr,"\n----------获得recinfo信息成功\n");
 		//获得第一个序号
@@ -2529,11 +2567,12 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds)
 			fread(recordbuf,recordlen,1,fp);
 			printRecordBytes(recordbuf,recordlen);
 			//7\根据csds挑选数据，组织存储缓存
-			indexn += collectData(&onefrmbuf[indexn],recordbuf,oad_offset,item_road);
+			memcpy(oad_offset_can,oad_offset,sizeof(oad_offset));
+			indexn += collectData(&onefrmbuf[indexn],recordbuf,oad_offset_can,item_road);
 			recordnum++;
 			asyslog(LOG_INFO,"recordnum=%d  seqnumindex=%d\n",recordnum,seqnumindex);
 
-			if (indexn>=2000)
+			if (indexn>=1500)
 			{
 				framesum++;
 				//8 存储1帧

@@ -194,11 +194,9 @@ extern INT16U show_offtime;
 int g_PressKey_old;//用于液晶点抄 半途退出
 
 
-//#ifdef CCTT_I
 int getMenuSize(){
 	return sizeof(menu)/sizeof(Menu);
 }
-//#endif
 
 void show_realdata(int pindex, LcdDataItem *item, int itemcount){
 	int pageno=0;

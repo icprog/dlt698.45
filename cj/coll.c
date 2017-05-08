@@ -121,6 +121,7 @@ char *getenum(int type,int val)
 		if(val==4)	strcpy(name,"相对上日0点0分");
 		if(val==5)	strcpy(name,"相对当月1日0点0分");
 		if(val==6)	strcpy(name,"数据冻结时标");
+		if(val==7)	strcpy(name,"相对上月月末0点0分");
 		break;
 	}
 	return name;
@@ -163,7 +164,7 @@ void print6000(OI_698	oi)
 //						meter.basicinfo.addr.addr[0],meter.basicinfo.addr.addr[1],meter.basicinfo.addr.addr[2],meter.basicinfo.addr.addr[3],
 //						meter.basicinfo.addr.addr[4],meter.basicinfo.addr.addr[5]);
 				}
-				fprintf(stderr," [2]%s ",getenum(coll_bps,meter.basicinfo.baud));
+				fprintf(stderr," [2]%s(%d) ",getenum(coll_bps,meter.basicinfo.baud),meter.basicinfo.baud);
 				fprintf(stderr,"[3]%s ",getenum(coll_protocol,meter.basicinfo.protocol));
 				fprintf(stderr,"[4]%04X_%02X%02X ",meter.basicinfo.port.OI,meter.basicinfo.port.attflg,meter.basicinfo.port.attrindex);
 				fprintf(stderr,"[5]");

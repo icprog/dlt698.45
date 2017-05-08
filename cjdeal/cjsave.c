@@ -380,6 +380,11 @@ int SaveNorData(INT8U taskid,ROAD *road_eve,INT8U *databuf,int datalen,TS ts_cc)
 	{
 		asyslog(LOG_WARNING, "file：%s存在",fname);
 		ReadFileHeadLen(fp,&headlen,&unitlen);
+		if(unitlen==0)
+		{
+			asyslog(LOG_WARNING, "cjsave 存储文件头%s headlen=%d unitlen=%d unitnum=%d runtime=%d",fname,headlen,unitlen,unitnum,runtime);
+			return 0;
+		}
 		databuf_tmp = malloc(unitlen);
 		fseek(fp,headlen,SEEK_SET);//跳过文件头
 		while(!feof(fp))

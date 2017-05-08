@@ -1,0 +1,58 @@
+pre_install()
+{
+    echo "准备安装环境（略）..."
+    mkdir ./install.tmp.$$
+}
+extract()
+{
+    echo "从脚本中提取文件"
+    line_number=`awk '/^__BIN_FILE_BEGIN__/ {print NR + 1; exit 0; }' "$0"`
+    tail -n +$line_number "$0" >./install.tmp.$$/extract.$$
+    # tail -n +$line_number "$0" >./install.tmp.$$/extract_tmp.$$
+    # base64 -d ./install.tmp.$$/extract_tmp.$$ >./install.tmp.$$/extract.$$
+}
+check_sum()
+{
+    if [ -f "install.tmp.$$/extract.$$" ]; then
+        echo "正在检查md5......"
+        sum_tmp=$(md5sum install.tmp.$$/extract.$$)
+        if [ ${sum_tmp%% *} != $md5 ]; then
+            echo "文件md5不一致，请检查文件完整性,退出!"
+            exit 1
+        fi
+    else
+        echo "找不到md5sum命令或文件未提取,退出"
+        exit 1
+    fi
+}
+install()
+{
+    echo "安装中..."
+    mv install.tmp.$$/extract.$$ install.tmp.$$/app.tar.gz
+    gunzip install.tmp.$$/app.tar.gz
+    tar -xvf install.tmp.$$/app.tar
+    cp ./app/cj* /nand/bin/
+    cp ./app/lib* /nor/lib/
+    cp ./app/*.cfg /nor/config/
+}
+post_install()
+{
+    echo "配置中(略)..."
+    echo "清理临时文件"
+    rm -rf app
+    rm -rf install.tmp.$$
+}
+ 
+main()
+{
+    pre_install
+    extract
+    check_sum
+    install
+    post_install
+    exit 0
+}
+ 
+main
+ 
+__BIN_FILE_BEGIN__

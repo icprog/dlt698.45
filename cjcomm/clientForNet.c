@@ -25,15 +25,15 @@ static CommBlock ClientForNetObject;
 static long long ClientForNet_Task_Id;
 static MASTER_STATION_INFO IpPool[4];
 
-CommBlock* GetComBlockForNet() {
+CommBlock *GetComBlockForNet() {
     return &ClientForNetObject;
 }
 
 /*
  *所有模块共享的写入函数，所有模块共享使用
  */
-int ClientForNetWrite(int fd, INT8U* buf, INT16U len) {
-    int ret = anetWrite(fd, buf, (int)len);
+int ClientForNetWrite(int fd, INT8U *buf, INT16U len) {
+    int ret = anetWrite(fd, buf, (int) len);
     if (ret != len) {
         asyslog(LOG_WARNING, "客户端[以太网]报文发送失败(长度:%d,错误:%d-%d)", len, errno, fd);
     }
@@ -44,12 +44,12 @@ int ClientForNetWrite(int fd, INT8U* buf, INT16U len) {
 /*
  *所有模块共享的写入函数，所有模块共享使用
  */
-int MixForNetWrite(int fd, INT8U* buf, INT16U len) {
+int MixForNetWrite(int fd, INT8U *buf, INT16U len) {
     return SendBufWrite(buf, len);
 }
 
-void ClientForNetRead(struct aeEventLoop* eventLoop, int fd, void* clientData, int mask) {
-    CommBlock* nst = (CommBlock*)clientData;
+void ClientForNetRead(struct aeEventLoop *eventLoop, int fd, void *clientData, int mask) {
+    CommBlock *nst = (CommBlock *) clientData;
 
     //判断fd中有多少需要接收的数据
     int revcount = 0;
@@ -93,7 +93,7 @@ void ClientForNetRead(struct aeEventLoop* eventLoop, int fd, void* clientData, i
                         if (GetTimeOffsetFlag() == 1) {
                             Getk_curr(nst->linkResponse, nst->shmem);
                         }
-                        nst->linkstate   = build_connection;
+                        nst->linkstate = build_connection;
                         nst->testcounter = 0;
                         break;
                     default:
@@ -104,11 +104,22 @@ void ClientForNetRead(struct aeEventLoop* eventLoop, int fd, void* clientData, i
     }
 }
 
-MASTER_STATION_INFO getNextNetIpPort(void) {
+MASTER_STATION_INFO getNextNetIpPort(CommBlock *commBlock) {
     static int index = 0;
+    static int ChangeFlag = 0;
+    //检查主站参数是否有变化
+    if (ChangeFlag != ((ProgramInfo *) commBlock->shmem)->oi_changed.oi4500) {
+        memset(&Class26, 0, sizeof(CLASS26));
+        readCoverClass(0x4510, 0, (void *) &Class26, sizeof(CLASS26), para_vari_save);
+        memcpy(&IpPool, &Class26.master.master, sizeof(IpPool));
+        asyslog(LOG_WARNING, "检测到通信参数变化！刷新主站参数！");
+        ChangeFlag = ((ProgramInfo *) commBlock->shmem)->oi_changed.oi4500;
+        commBlock->Heartbeat = Class26.commconfig.heartBeat;
+    }
     MASTER_STATION_INFO res;
     memset(&res, 0x00, sizeof(MASTER_STATION_INFO));
-    snprintf((char*)res.ip, sizeof(res.ip), "%d.%d.%d.%d", IpPool[index].ip[1], IpPool[index].ip[2], IpPool[index].ip[3], IpPool[index].ip[4]);
+    snprintf((char *) res.ip, sizeof(res.ip), "%d.%d.%d.%d", IpPool[index].ip[1], IpPool[index].ip[2],
+             IpPool[index].ip[3], IpPool[index].ip[4]);
     res.port = IpPool[index].port;
     index++;
     index %= 2;
@@ -116,19 +127,19 @@ MASTER_STATION_INFO getNextNetIpPort(void) {
     return res;
 }
 
-int CertainConnectForNet(char* interface) {
+int CertainConnectForNet(char *interface, CommBlock *commBlock) {
     static int step = 0;
-    static int fd   = 0;
+    static int fd = 0;
     static char peerBuf[32];
     static char boundBuf[32];
     static int port = 0;
 
     if (step == 0) {
-        MASTER_STATION_INFO ip_port = getNextNetIpPort();
+        MASTER_STATION_INFO ip_port = getNextNetIpPort(commBlock);
 
         memset(boundBuf, 0x00, sizeof(boundBuf));
         if (GetInterFaceIp(interface, boundBuf) == 1) {
-            fd = anetTcpNonBlockBindConnect(NULL, (char*)ip_port.ip, ip_port.port, boundBuf);
+            fd = anetTcpNonBlockBindConnect(NULL, (char *) ip_port.ip, ip_port.port, boundBuf);
             if (fd > 0) {
                 step = 1;
             }
@@ -149,8 +160,17 @@ int CertainConnectForNet(char* interface) {
     }
 }
 
-int RegularClientForNet(struct aeEventLoop* ep, long long id, void* clientData) {
-    CommBlock* nst = (CommBlock*)clientData;
+void check_F101_changed_Net(CommBlock *commBlock){
+    static  int ChangeFlag = 0;
+    if(ChangeFlag != ((ProgramInfo *) commBlock->shmem)->oi_changed.oiF101){
+        ChangeFlag = ((ProgramInfo *) commBlock->shmem)->oi_changed.oiF101;
+        asyslog(LOG_WARNING, "检测到安全参数变化！刷新安全参数！");
+        readCoverClass(0xf101, 0, (void *)&commBlock->f101, sizeof(CLASS_F101), para_vari_save);
+    }
+}
+
+int RegularClientForNet(struct aeEventLoop *ep, long long id, void *clientData) {
+    CommBlock *nst = (CommBlock *) clientData;
     clearcount();
 
     if (nst->phy_connect_fd <= 0) {
@@ -159,7 +179,7 @@ int RegularClientForNet(struct aeEventLoop* ep, long long id, void* clientData) 
         }
         refreshComPara(nst);
 
-        nst->phy_connect_fd = CertainConnectForNet("eth0");
+        nst->phy_connect_fd = CertainConnectForNet("eth0", nst);
         if (nst->phy_connect_fd > 0) {
             if (aeCreateFileEvent(ep, nst->phy_connect_fd, AE_READABLE, ClientForNetRead, nst) < 0) {
                 close(nst->phy_connect_fd);
@@ -178,6 +198,8 @@ int RegularClientForNet(struct aeEventLoop* ep, long long id, void* clientData) 
             nst->phy_connect_fd = -1;
             SetOnlineType(0);
         }
+
+        check_F101_changed_Net(nst);
         CalculateTransFlow(nst->shmem);
         //暂时忽略函数返回
         RegularAutoTask(ep, nst);
@@ -186,8 +208,8 @@ int RegularClientForNet(struct aeEventLoop* ep, long long id, void* clientData) 
     return 2000;
 }
 
-static int RegularMixForNet(struct aeEventLoop* ep, long long id, void* clientData) {
-    CommBlock* nst = (CommBlock*)clientData;
+static int RegularMixForNet(struct aeEventLoop *ep, long long id, void *clientData) {
+    CommBlock *nst = (CommBlock *) clientData;
     clearcount();
     if (GetOnlineType() == 0x01) {
         // GPRS上线
@@ -198,7 +220,7 @@ static int RegularMixForNet(struct aeEventLoop* ep, long long id, void* clientDa
         SendBufClean();
         refreshComPara(nst);
         //在这里拨号上线，并发送登录报文
-        nst->phy_connect_fd = CertainConnectForNet("eth0");
+        nst->phy_connect_fd = CertainConnectForNet("eth0", nst);
         if (nst->phy_connect_fd > 0) {
             dumpPeerStat(nst->phy_connect_fd, "混合模式[以太网]与主站链路建立成功");
             gpofun("/dev/gpoONLINE_LED", 1);
@@ -221,7 +243,7 @@ static int RegularMixForNet(struct aeEventLoop* ep, long long id, void* clientDa
         //检查是否有报文需要发送
         if (SendBufCheck()) {
             if (nst->phy_connect_fd < 0) {
-                nst->phy_connect_fd = CertainConnectForNet("eth0");
+                nst->phy_connect_fd = CertainConnectForNet("eth0", nst);
             } else {
                 SendBufSendNext(nst->phy_connect_fd, ClientForNetWrite);
             }
@@ -240,7 +262,7 @@ void ClientForNetInit(void) {
 
     //读取设备参数
     memset(&Class26, 0, sizeof(CLASS26));
-    readCoverClass(0x4510, 0, (void*)&Class26, sizeof(CLASS26), para_vari_save);
+    readCoverClass(0x4510, 0, (void *) &Class26, sizeof(CLASS26), para_vari_save);
     asyslog(LOG_INFO, "工作模式 enum{混合模式(0),客户机模式(1),服务器模式(2)}：%d", Class26.commconfig.workModel);
     asyslog(LOG_INFO, "连接方式 enum{TCP(0),UDP(1)}：%d", Class26.commconfig.connectType);
     asyslog(LOG_INFO, "连接应用方式 enum{主备模式(0),多连接模式(1)}：%d", Class26.commconfig.appConnectType);
@@ -248,8 +270,10 @@ void ClientForNetInit(void) {
     asyslog(LOG_INFO, "超时时间，重发次数：%02x", Class26.commconfig.timeoutRtry);
     asyslog(LOG_INFO, "心跳周期秒：%d", Class26.commconfig.heartBeat);
     memcpy(&IpPool, &Class26.master.master, sizeof(IpPool));
-    asyslog(LOG_INFO, "主站通信地址(1)为：%d.%d.%d.%d:%d", IpPool[0].ip[1], IpPool[0].ip[2], IpPool[0].ip[3], IpPool[0].ip[4], IpPool[0].port);
-    asyslog(LOG_INFO, "主站通信地址(2)为：%d.%d.%d.%d:%d", IpPool[1].ip[1], IpPool[1].ip[2], IpPool[1].ip[3], IpPool[1].ip[4], IpPool[1].port);
+    asyslog(LOG_INFO, "主站通信地址(1)为：%d.%d.%d.%d:%d", IpPool[0].ip[1], IpPool[0].ip[2], IpPool[0].ip[3], IpPool[0].ip[4],
+            IpPool[0].port);
+    asyslog(LOG_INFO, "主站通信地址(2)为：%d.%d.%d.%d:%d", IpPool[1].ip[1], IpPool[1].ip[2], IpPool[1].ip[3], IpPool[1].ip[4],
+            IpPool[1].port);
 
     if (Class26.commconfig.workModel == 0x01) {
         initComPara(&ClientForNetObject, ClientForNetWrite);
@@ -258,13 +282,15 @@ void ClientForNetInit(void) {
     }
 
     ClientForNetObject.Heartbeat = Class26.commconfig.heartBeat;
+    readCoverClass(0xf101, 0, (void *) &ClientForNetObject.f101, sizeof(CLASS_F101), para_vari_save);
+
     asyslog(LOG_INFO, ">>>======初始化（客户端[以太网]模式）结束======<<<");
 }
 
 /*
  * 供外部使用的初始化函数，并开启维护循环
  */
-int StartClientForNet(struct aeEventLoop* ep, long long id, void* clientData) {
+int StartClientForNet(struct aeEventLoop *ep, long long id, void *clientData) {
     ClientForNetInit();
     if (Class26.commconfig.workModel == 0x01) {
         ClientForNet_Task_Id = aeCreateTimeEvent(ep, 1000, RegularClientForNet, &ClientForNetObject, NULL);
