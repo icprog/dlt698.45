@@ -102,6 +102,7 @@ void SetUsrPwd(int argc, char *argv[]) {
     } else {
         readCoverClass(0x4500, 0, &class4500, sizeof(CLASS25), para_vari_save);
         fprintf(stderr, "用户名：%s\t密码：%s\n", &class4500.commconfig.userName[1], &class4500.commconfig.passWord[1]);
+        fprintf(stderr, "【cdma电信用户名密码设置】cj usr-pwd 参数:　user  password	apn \n");
     }
 }
 
