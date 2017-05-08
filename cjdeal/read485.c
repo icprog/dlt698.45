@@ -194,9 +194,9 @@ void DbPrt1(INT8U comport,char *prefix, char *buf, int len, char *suffix)
 	}
 }
 
-
-typedef enum {
-	coll_bps = 1,
+char name1[128]={};
+typedef enum{
+	coll_bps=1,
 	coll_protocol,
 	coll_wiretype,
 	task_ti,
@@ -207,117 +207,99 @@ typedef enum {
 	coll_mode,
 	ms_type,
 	savetime_sel,
-} OBJ_ENUM;
-char *getenum(int type, int val) {
-	char name1[128] = { };
-	char *name = NULL;
+}OBJ_ENUM;
 
+char *getenum(int type, int val) {
+	char *name=NULL;
 	name = name1;
-	memset(name1, 0, sizeof(name1));
+	memset(name1,0,sizeof(name1));
 //	fprintf(stderr,"val=%d ,type=%d\n",val,type);
-	switch (type) {
+	switch(type) {
 	case coll_bps:
-		if (val == bps300)
-			strcpy(name, "300");
-		if (val == bps600)
-			strcpy(name, "600");
-		if (val == bps1200)
-			strcpy(name, "1200");
-		if (val == bps2400)
-			strcpy(name, "2400");
-		if (val == bps4800)
-			strcpy(name, "4800");
-		if (val == bps7200)
-			strcpy(name, "7200");
-		if (val == bps9600)
-			strcpy(name, "9600");
-		if (val == bps19200)
-			strcpy(name, "19200");
-		if (val == bps38400)
-			strcpy(name, "38400");
-		if (val == bps57600)
-			strcpy(name, "57600");
-		if (val == bps115200)
-			strcpy(name, "115200");
-		if (val == autoa)
-			strcpy(name, "自适应");
+		if(val==bps300)	strcpy(name,"300");
+		if(val==bps600)	strcpy(name,"600");
+		if(val==bps1200)	strcpy(name,"1200");
+		if(val==bps2400)	strcpy(name,"2400");
+		if(val==bps4800)	strcpy(name,"4800");
+		if(val==bps7200)	strcpy(name,"7200");
+		if(val==bps9600)	strcpy(name,"9600");
+		if(val==bps19200)	strcpy(name,"19200");
+		if(val==bps38400)	strcpy(name,"38400");
+		if(val==bps57600)	strcpy(name,"57600");
+		if(val==bps115200)	strcpy(name,"115200");
+		if(val==autoa)		strcpy(name,"自适应");
 		break;
 	case coll_protocol:
-		if (val == 0)
-			strcpy(name, "未知");
-		if (val == 1)
-			strcpy(name, "DL/T645-1997");
-		if (val == 2)
-			strcpy(name, "DL/T645-2007");
-		if (val == 3)
-			strcpy(name, "DL/T698.45");
-		if (val == 4)
-			strcpy(name, "CJ/T18802004");
+		if(val==0)	strcpy(name,"未知");
+		if(val==1)	strcpy(name,"DL/T645-1997");
+		if(val==2)	strcpy(name,"DL/T645-2007");
+		if(val==3)	strcpy(name,"DL/T698.45");
+		if(val==4)	strcpy(name,"CJ/T18802004");
 		break;
 	case coll_wiretype:
-		if (val == 0)
-			strcpy(name, "未知");
-		if (val == 1)
-			strcpy(name, "单相");
-		if (val == 2)
-			strcpy(name, "三相三线");
-		if (val == 3)
-			strcpy(name, "三相四线");
+		if(val==0)	strcpy(name,"未知");
+		if(val==1)	strcpy(name,"单相");
+		if(val==2)	strcpy(name,"三相三线");
+		if(val==3)	strcpy(name,"三相四线");
 		break;
 	case task_ti:
-		if (val == 0)
-			strcpy(name, "秒");
-		if (val == 1)
-			strcpy(name, "分");
-		if (val == 2)
-			strcpy(name, "时");
-		if (val == 3)
-			strcpy(name, "日");
-		if (val == 4)
-			strcpy(name, "月");
-		if (val == 5)
-			strcpy(name, "年");
+		if(val==0)	strcpy(name,"秒");
+		if(val==1)	strcpy(name,"分");
+		if(val==2)	strcpy(name,"时");
+		if(val==3)	strcpy(name,"日");
+		if(val==4)	strcpy(name,"月");
+		if(val==5)	strcpy(name,"年");
 		break;
 	case task_cjtype:
-		if (val == 1)
-			strcpy(name, "普通采集方案");
-		if (val == 2)
-			strcpy(name, "事件采集方案");
-		if (val == 3)
-			strcpy(name, "透明方案");
-		if (val == 4)
-			strcpy(name, "上报方案");
-		if (val == 5)
-			strcpy(name, "脚本方案");
+		if(val==1)	strcpy(name,"普通采集方案");
+		if(val==2)	strcpy(name,"事件采集方案");
+		if(val==3)	strcpy(name,"透明方案");
+		if(val==4)	strcpy(name,"上报方案");
+		if(val==5)	strcpy(name,"脚本方案");
 		break;
 	case task_prio:
-		if (val == 1)
-			strcpy(name, "首要");
-		if (val == 2)
-			strcpy(name, "必要");
-		if (val == 3)
-			strcpy(name, "需要");
-		if (val == 4)
-			strcpy(name, "可能");
+		if(val==1)	strcpy(name,"首要");
+		if(val==2)	strcpy(name,"必要");
+		if(val==3)	strcpy(name,"需要");
+		if(val==4)	strcpy(name,"可能");
 		break;
 	case task_status:
-		if (val == 1)
-			strcpy(name, "正常");
-		if (val == 2)
-			strcpy(name, "停用");
+		if(val==1)	strcpy(name,"正常");
+		if(val==2)	strcpy(name,"停用");
 		break;
 	case task_runtime:
-		if (val == 0)
-			strcpy(name, "前闭后开");
-		if (val == 1)
-			strcpy(name, "前开后闭");
-		if (val == 2)
-			strcpy(name, "前闭后闭");
-		if (val == 3)
-			strcpy(name, "前开后开");
+		if(val==0)	strcpy(name,"前闭后开");
+		if(val==1)	strcpy(name,"前开后闭");
+		if(val==2)	strcpy(name,"前闭后闭");
+		if(val==3)	strcpy(name,"前开后开");
+		break;
+	case coll_mode:
+		if(val==0)	strcpy(name,"采集当前数据");
+		if(val==1)	strcpy(name,"采集上第N次");
+		if(val==2)	strcpy(name,"按冻结时标采集");
+		if(val==3)	strcpy(name,"按时间间隔采集");
+		if(val==4)	strcpy(name,"补抄");
+		break;
+	case ms_type:
+		if(val==0)	strcpy(name,"无电能表");
+		if(val==1)	strcpy(name,"全部用户地址");
+		if(val==2)	strcpy(name,"一组用户类型");
+		if(val==3)	strcpy(name,"一组用户地址");
+		if(val==4)	strcpy(name,"一组配置序号");
+		if(val==5)	strcpy(name,"一组用户类型区间");
+		if(val==6)	strcpy(name,"一组用户地址区间");
+		if(val==7)	strcpy(name,"一组配置序号区间");
+		break;
+	case savetime_sel:
+		if(val==0)	strcpy(name,"未定义");
+		if(val==1)	strcpy(name,"任务开始时间");
+		if(val==2)	strcpy(name,"相对当日0点0分");
+		if(val==3)	strcpy(name,"相对上日23点59分");
+		if(val==4)	strcpy(name,"相对上日0点0分");
+		if(val==5)	strcpy(name,"相对当月1日0点0分");
+		if(val==6)	strcpy(name,"数据冻结时标");
 		break;
 	}
-//	fprintf(stderr,"get name=%s\n",name);
 	return name;
 }
 INT32U getMeterBaud(INT8U bps)
@@ -387,45 +369,59 @@ void printMY_CSD(MY_CSD prtMyCSD) {
 	fprintf(stderr, "\n printMY_CSD---------end-------\n");
 }
 void print6015(CLASS_6015 class6015) {
-	INT8U i = 0;
+	INT8U type=0,w=0,i=0;
 
-	fprintf(stderr,
-			"[1]方案编号 [2]存储深度 [3]采集类型 [4]采集内容 [5]OAD-ROAD [6]MS [7]存储时标\n");
-	fprintf(stderr, "[6015]普通采集方案:[1]方案号: %d  \n", class6015.sernum);
-	fprintf(stderr, "     [2]%d  [3]%s ", class6015.deepsize,
-			getenum(coll_mode, class6015.cjtype));
-	switch (class6015.cjtype) {
+	fprintf(stderr,"[1]方案编号 [2]存储深度 [3]采集类型 [4]采集内容 [5]OAD-ROAD [6]MS [7]存储时标\n");
+	fprintf(stderr,"[6015]普通采集方案:[1]方案号: %d  \n",class6015.sernum);
+	fprintf(stderr,"     [2]%d  [3]%s ",class6015.deepsize,getenum(coll_mode,class6015.cjtype));
+	switch(class6015.cjtype) {
 	case 0: // NULL
-		fprintf(stderr, "[4]%02x ", class6015.data.data[0]);
+		fprintf(stderr,"[4]%02x ",class6015.data.data[0]);
 		break;
 	case 1:	//unsigned
-		fprintf(stderr, "[4]%02x ", class6015.data.data[0]);
+		fprintf(stderr,"[4]%02x ",class6015.data.data[0]);
 		break;
-	case 2:	// NULL
-		fprintf(stderr, "[4]%02x ", class6015.data.data[0]);
+	case 2:// NULL
+		fprintf(stderr,"[4]%02x ",class6015.data.data[0]);
 		break;
-	case 3:	//TI
-		fprintf(stderr, "[4]%s-%d ", getenum(task_ti, class6015.data.data[0]),
-				((class6015.data.data[2] << 8) | class6015.data.data[1]));
+	case 3://TI
+		fprintf(stderr,"[4]%s-%d ",getenum(task_ti,class6015.data.data[0]),((class6015.data.data[1]<<8)|class6015.data.data[2]));
 		break;
-	case 4:	//RetryMetering
-		fprintf(stderr, "[4]%s-%d %d\n",
-				getenum(task_ti, class6015.data.data[0]),
-				((class6015.data.data[2] << 8) | class6015.data.data[1]),
-				((class6015.data.data[4] << 8) | class6015.data.data[3]));
+	case 4://RetryMetering
+		fprintf(stderr,"[4]%s-%d %d\n",getenum(task_ti,class6015.data.data[0]),((class6015.data.data[1]<<8)|class6015.data.data[2]),
+									((class6015.data.data[3]<<8)|class6015.data.data[4]));
 		break;
 	}
-	if (class6015.csds.num >= MY_CSD_NUM) {
-		fprintf(stderr, "csd overvalue MY_CSD_NUM error\n");
+	if(class6015.csds.num >= MY_CSD_NUM) {
+		fprintf(stderr,"csd overvalue MY_CSD_NUM error\n");
 		return;
 	}
-	fprintf(stderr, "[5]");
-	for (i = 0; i < class6015.csds.num; i++) {
-		printMY_CSD(class6015.csds.csd[i]);
+	fprintf(stderr,"[5]");
+	for(i=0; i<class6015.csds.num;i++)
+	{
+		type = class6015.csds.csd[i].type;
+		if (type==0)
+		{
+			fprintf(stderr,"<%d>OAD%04x-%02x%02x ",i,class6015.csds.csd[i].csd.oad.OI,class6015.csds.csd[i].csd.oad.attflg,class6015.csds.csd[i].csd.oad.attrindex);
+		}else if (type==1)
+		{
+			fprintf(stderr,"<%d>ROAD%04x-%02x%02x ",i,
+					class6015.csds.csd[i].csd.road.oad.OI,class6015.csds.csd[i].csd.road.oad.attflg,class6015.csds.csd[i].csd.road.oad.attrindex);
+			if(class6015.csds.csd[i].csd.road.num >= 16) {
+				fprintf(stderr,"csd overvalue 16 error\n");
+				return;
+			}
+//			fprintf(stderr,"csds.num=%d\n",class6015.csds.num);
+			for(w=0;w<class6015.csds.csd[i].csd.road.num;w++)
+			{
+				fprintf(stderr,"<..%d>%04x-%02x%02x ",w,
+						class6015.csds.csd[i].csd.road.oads[w].OI,class6015.csds.csd[i].csd.road.oads[w].attflg,class6015.csds.csd[i].csd.road.oads[w].attrindex);
+			}
+		}
 	}
-	fprintf(stderr, "[6]%s ", getenum(ms_type, class6015.mst.mstype));
-	fprintf(stderr, "[7]%s ", getenum(savetime_sel, class6015.savetimeflag));
-	fprintf(stderr, "\n");
+	fprintf(stderr,"[6]%s ",getenum(ms_type,class6015.mst.mstype));
+	fprintf(stderr,"[7]%s ",getenum(savetime_sel,class6015.savetimeflag));
+	fprintf(stderr,"\n");
 
 }
 /*
@@ -484,7 +480,7 @@ INT8S getComfdBy6001(INT8U baud,INT8U port)
  * 输入 cjType 采集方案类型；方案ID fanganID
  * 输出 st6015
  */
-INT8S use6013find6015or6017(INT8U cjType,INT16U fanganID, CLASS_6015* st6015)
+INT8S use6013find6015or6017(INT8U cjType,INT16U fanganID,TI interval6013,CLASS_6015* st6015)
 {
 	INT8S result = -1;
 	if(cjType == norm)
@@ -493,6 +489,139 @@ INT8S use6013find6015or6017(INT8U cjType,INT16U fanganID, CLASS_6015* st6015)
 		if (readCoverClass(oi, fanganID, st6015, sizeof(CLASS_6015), coll_para_save)== 1)
 		{
 			print6015(*st6015);
+			if(st6015->cjtype == TYPE_INTERVAL)
+			{
+				//计算需要抄多少个数据点
+				INT16U minSpan = 0;//任务执行间隔-分钟
+				INT16U minInterVal = 0;//冻结时标间隔-分钟
+				INT16U dataNum = 0;//需要抄读冻结数据点数
+				if(interval6013.units < st6015->data.data[0])
+				{
+					asyslog(LOG_NOTICE,"参数错误,执行频率小于冻结间隔");
+				}
+				if(interval6013.units == day_units)
+				{
+					minSpan = interval6013.interval*60*24;
+				}
+				if(interval6013.units == hour_units)
+				{
+					minSpan = interval6013.interval*60;
+				}
+				if(interval6013.units == minute_units)
+				{
+					minSpan = interval6013.interval;
+				}
+				if(st6015->data.data[0] == minute_units)
+				{
+					minInterVal = (st6015->data.data[1]<<8)+st6015->data.data[2];
+				}
+				if(st6015->data.data[0] == hour_units)
+				{
+					minInterVal = ((st6015->data.data[1]<<8)+st6015->data.data[2])*60;
+				}
+				if((minSpan&minInterVal)==0)
+				{
+					asyslog(LOG_NOTICE,"ERROR 目前不支持的类型");
+				}
+
+				dataNum = minSpan/minInterVal;
+				fprintf(stderr,"\n\n 曲线任务执行频率分=%d　 冻结时标间隔=%d分　　数据点数=%d \n\n",minSpan,minInterVal,dataNum);
+				//计算开始时标
+				TS ts_start;
+				TSGet(&ts_start);
+
+				if(interval6013.units == minute_units)
+				{
+					INT16U minInterval = 0;
+					minInterval = interval6013.interval;
+					INT8U minIntervalindex;
+					for(minIntervalindex=0;minIntervalindex<minInterval;minIntervalindex++)
+					{
+						if((ts_start.Minute%minInterval) == 0)
+						{
+							break;
+						}
+						else
+						{
+							tminc(&ts_start,minute_units,-1);
+						}
+
+					}
+				}
+				else
+				{
+					INT16U hourInterVal = 0;
+					if(interval6013.units == day_units)
+					{
+						hourInterVal = interval6013.interval*24;
+					}
+					if(interval6013.units == hour_units)
+					{
+						hourInterVal = interval6013.interval;
+					}
+					INT8U hourindex;
+					for(hourindex=0;hourindex<hourInterVal;hourindex++)
+					{
+						if((ts_start.Hour%hourInterVal) == 0)
+						{
+							break;
+						}
+						else
+						{
+							tminc(&ts_start,hour_units,-1);
+						}
+					}
+				}
+
+				INT16U tmpTime = ts_start.Year;
+				st6015->data.data[CURVE_INFO_STARTINDEX+16] = (tmpTime>>8)&0x00ff;
+				st6015->data.data[CURVE_INFO_STARTINDEX+17] = tmpTime&0x00ff;
+				st6015->data.data[CURVE_INFO_STARTINDEX+18] = ts_start.Month;
+				st6015->data.data[CURVE_INFO_STARTINDEX+19] = ts_start.Day;
+				st6015->data.data[CURVE_INFO_STARTINDEX+20] = ts_start.Hour;
+				if(interval6013.units == minute_units)
+				{
+					st6015->data.data[CURVE_INFO_STARTINDEX+21] = ts_start.Minute;
+				}
+				else
+				{
+					st6015->data.data[CURVE_INFO_STARTINDEX+21] = 0;
+				}
+
+				st6015->data.data[CURVE_INFO_STARTINDEX+22] = (dataNum>>8)&0x00ff;
+				st6015->data.data[CURVE_INFO_STARTINDEX+23] = dataNum&0x00ff;
+
+				INT8U csdIndex = 0;
+				for(csdIndex = 0;csdIndex < st6015->csds.num;csdIndex++)
+				{
+
+					if(st6015->csds.csd[csdIndex].type == 1)
+					{
+						ROAD sourceRoad;
+						memcpy(&sourceRoad,&st6015->csds.csd[csdIndex].csd.road,sizeof(ROAD));
+						//事件序号
+						st6015->csds.csd[csdIndex].csd.road.oads[0].OI = DATA_TIMESTAMP_OI;
+						st6015->csds.csd[csdIndex].csd.road.oads[0].attflg = 0x02;
+						st6015->csds.csd[csdIndex].csd.road.oads[0].attrindex = 0x00;
+						st6015->csds.csd[csdIndex].csd.road.num = 1;
+						INT8U oadIndex = 0;
+						for(oadIndex = 0;oadIndex < sourceRoad.num;oadIndex++)
+						{
+							if(sourceRoad.oads[oadIndex].OI == DATA_TIMESTAMP_OI)
+							{
+								continue;
+							}
+							else
+							{
+								st6015->csds.csd[csdIndex].csd.road.oads[st6015->csds.csd[csdIndex].csd.road.num].OI = sourceRoad.oads[oadIndex].OI;
+								st6015->csds.csd[csdIndex].csd.road.oads[st6015->csds.csd[csdIndex].csd.road.num].attflg = sourceRoad.oads[oadIndex].attflg;
+								st6015->csds.csd[csdIndex].csd.road.oads[st6015->csds.csd[csdIndex].csd.road.num].attrindex = sourceRoad.oads[oadIndex].attrindex;
+								st6015->csds.csd[csdIndex].csd.road.num++;
+							}
+						}
+					}
+				}
+			}
 			return 1;
 		}
 	}
@@ -1498,7 +1627,7 @@ INT16U parseSingleOADData(INT8U isProxyResponse,INT8U* oadData,INT8U* dataConten
  * 数据为空按road格式补0
  * */
 
-INT16U parseSingleROADData(ROAD road,INT8U* oadData,INT8U* dataContent,INT8U* dataIndex,OAD_DATA* oadListContent)
+INT16U parseSingleROADData(ROAD road,INT8U* oadData,INT8U* dataContent,INT16U* dataIndex,OAD_DATA* oadListContent)
 {
 	fprintf(stderr,"\n --------------------------parseSingle---ROAD----Data-------------------------\n");
 	INT16U length = 0;
@@ -1545,6 +1674,7 @@ INT16U parseSingleROADData(ROAD road,INT8U* oadData,INT8U* dataContent,INT8U* da
 	INT8U recordIndex;
 	for(recordIndex = 0;recordIndex<recordNum;recordIndex++)
 	{
+		fprintf(stderr,"\n-----------------------第%d条记录-------------------------------\n",recordIndex);
 		for(csdIndex = 0;csdIndex < rcvCSDnum;csdIndex++)
 		{
 			startIndex = length;
@@ -1586,10 +1716,12 @@ INT16U parseSingleROADData(ROAD road,INT8U* oadData,INT8U* dataContent,INT8U* da
 			}
 			dataLen += oiDataLen;
 		}
+		fprintf(stderr,"dataLen=================================%d",dataLen);
 	}
 
 
 	*dataIndex = dataLen;
+	fprintf(stderr,"dataIndex=================================%d",*dataIndex);
 	return length;
 }
 
@@ -1618,7 +1750,7 @@ INT16S deal698RequestResponse(INT8U isProxyResponse,INT8U getResponseType,INT8U 
 {
 	INT16U apdudataIndex =0;
 	INT16S dataContentIndex =0;
-	INT8U dataContentLen =0;//按存储格式填充的数据长度--无效数据填0
+	INT16U dataContentLen =0;//按存储格式填充的数据长度--无效数据填0
 	INT8U oaddataLen = 0;//报文中OAD+数据的长度obj6001
 
 
@@ -1649,7 +1781,7 @@ INT16S deal698RequestResponse(INT8U isProxyResponse,INT8U getResponseType,INT8U 
 			OAD_DATA oadListContent[ROAD_OADS_NUM];
 			oaddataLen = parseSingleROADData(csds.csd[0].csd.road,&apdudata[apdudataIndex],&dataContent[dataContentIndex],&dataContentLen,oadListContent);
 			dataContentIndex = dataContentLen;
-			fprintf(stderr,"\n dataContentIndex = %d dataContentLen = %d \n",dataContentIndex,dataContentLen);
+			fprintf(stderr,"\n dataContentLen = %d \n",dataContentLen);
 
 			if((cjType==TYPE_FREEZE)&&(csds.csd[0].csd.road.oad.OI == 0x5004))
 			{
@@ -2980,7 +3112,7 @@ INT16S deal6017_698(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8
 				if(getResponseType > 0)
 				{
 					OAD_DATA oadListContent[ROAD_OADS_NUM];
-					INT8U dataContentLen = 0;
+					INT16U dataContentLen = 0;
 					parseSingleROADData(test6015.csds.csd[0].csd.road,&recvbuff[apduDataStartIndex],dataContent,&dataContentLen,oadListContent);
 					if(dataContentLen > 0)
 					{
@@ -3196,10 +3328,8 @@ INT16S deal6015or6017_singlemeter(CLASS_6013 st6013,CLASS_6015 st6015,CLASS_6001
 					}
 					else
 					{
-#if 1
-						DbgPrintToFile1(port485,"6013任务执行频率%d-%d　6015 冻结间隔　%d-%d-%d",
-								st6013.interval.units, st6013.interval.interval,
-								st6015.data.data[0],st6015.data.data[1],st6015.data.data[2]);
+
+#if 0
 
 						INT8U hourInterVal = 0;
 						if(st6013.interval.units == day_units)
@@ -3210,11 +3340,16 @@ INT16S deal6015or6017_singlemeter(CLASS_6013 st6013,CLASS_6015 st6015,CLASS_6001
 						{
 							hourInterVal = st6013.interval.interval;
 						}
+						if(hourInterVal==0)
+						{
+							return 0;
+						}
 						TS ts_start;
 						TSGet(&ts_start);
 						DbgPrintToFile1(port485,"当前时间 %04d-%02d-%02d %02d:%02d:%02d  hourInterVal = %d \n",
 								ts_start.Year,ts_start.Month,ts_start.Day,ts_start.Hour,
 								ts_start.Minute,ts_start.Sec,hourInterVal);
+
 						INT8U hourindex;
 						for(hourindex=0;hourindex<hourInterVal;hourindex++)
 						{
@@ -3232,9 +3367,15 @@ INT16S deal6015or6017_singlemeter(CLASS_6013 st6013,CLASS_6015 st6015,CLASS_6001
 						INT8U oadIndex = 0;
 						for(oadIndex = 0;oadIndex < st6015.csds.csd[0].csd.road.num;oadIndex++)
 						{
-							roadDataLen +=CalcOIDataLen(st6015.csds.csd[0].csd.road.oads[oadIndex].OI,st6015.csds.csd[0].csd.road.oads[oadIndex].attrindex);
+							roadDataLen += CalcOIDataLen(st6015.csds.csd[0].csd.road.oads[oadIndex].OI,st6015.csds.csd[0].csd.road.oads[oadIndex].attrindex);
 						}
 						DbgPrintToFile1(port485,"roadDataLen = %d \n",roadDataLen);
+
+						if(roadDataLen == 0)
+						{
+							fprintf(stderr,"\n------------\n");
+							return 0;
+						}
 						INT8U hourIndex = 0;
 						for(hourIndex = 0;hourIndex < hourInterVal;hourIndex++)
 						{
@@ -3300,6 +3441,102 @@ INT16S deal6015or6017_singlemeter(CLASS_6013 st6013,CLASS_6015 st6015,CLASS_6001
 								DbgPrintToFile1(port485,"曲线数据错误");
 							}
 						}
+#else
+						INT16U roadDataLen = 0;
+						INT8U oadIndex = 0;
+						for(oadIndex = 0;oadIndex < st6015.csds.csd[0].csd.road.num;oadIndex++)
+						{
+							roadDataLen += CalcOIDataLen(st6015.csds.csd[0].csd.road.oads[oadIndex].OI,st6015.csds.csd[0].csd.road.oads[oadIndex].attrindex);
+						}
+
+						DbgPrintToFile1(port485,"6013任务执行频率%d-%d　6015 冻结间隔　%d-%d-%d　数据长度roadDataLen = %d",
+													st6013.interval.units, st6013.interval.interval,
+													st6015.data.data[0],st6015.data.data[1],st6015.data.data[2],roadDataLen);
+						TS ts_start;
+						ts_start.Year = (st6015.data.data[CURVE_INFO_STARTINDEX+16]<<8) + st6015.data.data[CURVE_INFO_STARTINDEX+17];
+						ts_start.Month = st6015.data.data[CURVE_INFO_STARTINDEX+18];
+						ts_start.Day = st6015.data.data[CURVE_INFO_STARTINDEX+19];
+						ts_start.Hour = st6015.data.data[CURVE_INFO_STARTINDEX+20];
+						ts_start.Minute = st6015.data.data[CURVE_INFO_STARTINDEX+21];
+						INT16U dataNum = (st6015.data.data[CURVE_INFO_STARTINDEX+22]<<8) + st6015.data.data[CURVE_INFO_STARTINDEX+23];
+
+						INT8U dataNumOneGroup = 4;//一次抄4个数据点
+						INT16U readTimes = dataNum/dataNumOneGroup;
+						INT8U readTimeIndex = 0;
+						INT8U tsIndex = 0;
+						//一次抄读四个数据点
+						for(readTimeIndex=0;readTimeIndex<readTimes;readTimeIndex++)
+						{
+							INT16U tmpTime = ts_start.Year;
+							st6015.data.data[CURVE_INFO_STARTINDEX+8] = 0x1c;
+							st6015.data.data[CURVE_INFO_STARTINDEX+9] = (tmpTime>>8)&0x00ff;
+							st6015.data.data[CURVE_INFO_STARTINDEX+10] = tmpTime&0x00ff;
+							st6015.data.data[CURVE_INFO_STARTINDEX+11] = ts_start.Month;
+							st6015.data.data[CURVE_INFO_STARTINDEX+12] = ts_start.Day;
+							st6015.data.data[CURVE_INFO_STARTINDEX+13] = ts_start.Hour;
+							st6015.data.data[CURVE_INFO_STARTINDEX+14] = 0;
+							st6015.data.data[CURVE_INFO_STARTINDEX+15] = 0;
+
+							for(tsIndex = 0;tsIndex < dataNumOneGroup;tsIndex++)
+							{
+								INT32S bactm = 0-((st6015.data.data[1]<<8)+st6015.data.data[2]);
+								tminc(&ts_start,st6015.data.data[0],bactm);
+							}
+
+							DbgPrintToFile1(port485,"第[%d]次抄读曲线-----------------开始时标 %04d-%02d-%02d %02d:%02d:%02d \n",
+									readTimeIndex,ts_start.Year,ts_start.Month,ts_start.Day,ts_start.Hour,ts_start.Minute,ts_start.Sec);
+							tmpTime = ts_start.Year;
+							st6015.data.data[CURVE_INFO_STARTINDEX] = 0x1c;
+							st6015.data.data[CURVE_INFO_STARTINDEX+1] = (tmpTime>>8)&0x00ff;
+							st6015.data.data[CURVE_INFO_STARTINDEX+2] = tmpTime&0x00ff;
+							st6015.data.data[CURVE_INFO_STARTINDEX+3] = ts_start.Month;
+							st6015.data.data[CURVE_INFO_STARTINDEX+4] = ts_start.Day;
+							st6015.data.data[CURVE_INFO_STARTINDEX+5] = ts_start.Hour;
+							st6015.data.data[CURVE_INFO_STARTINDEX+6] = 0;
+							st6015.data.data[CURVE_INFO_STARTINDEX+7] = 0;
+							INT8U curvedataContent[BUFFSIZE2048];
+							memset(curvedataContent,0,BUFFSIZE2048);
+							ret = deal6015_698(st6015,obj6001,st6035,curvedataContent,port485);
+
+
+							DbPrt1(port485,"曲线数据 :", (char *) curvedataContent, ret, NULL);
+
+							INT8U recordNum = ret/roadDataLen;
+
+							if((ret%roadDataLen) == 0)
+							{
+								INT16U dataIndex = 0;
+								INT8U singleDatabuf[DATA_CONTENT_LEN];
+								INT8U recordIndex;
+								for(recordIndex=0;recordIndex<recordNum;recordIndex++)
+								{
+									TS freezeTimeStamp;
+									freezeTimeStamp.Year = curvedataContent[dataIndex+1];
+									freezeTimeStamp.Year = freezeTimeStamp.Year<<8;
+									freezeTimeStamp.Year += curvedataContent[dataIndex+2];
+									freezeTimeStamp.Month = curvedataContent[dataIndex+3];
+									freezeTimeStamp.Day = curvedataContent[dataIndex+4];
+									freezeTimeStamp.Hour = curvedataContent[dataIndex+5];
+									freezeTimeStamp.Minute = curvedataContent[dataIndex+6];
+									freezeTimeStamp.Sec = curvedataContent[dataIndex+7];
+									freezeTimeStamp.Week = 0;
+									DbgPrintToFile1(port485,"曲线数据时标[%d] %04d-%02d-%02d %02d:%02d:%02d",
+									recordIndex,freezeTimeStamp.Year,freezeTimeStamp.Month,freezeTimeStamp.Day,freezeTimeStamp.Hour,freezeTimeStamp.Minute,freezeTimeStamp.Sec);
+									memset(singleDatabuf,0,DATA_CONTENT_LEN);
+									memcpy(singleDatabuf,&curvedataContent[dataIndex],roadDataLen);
+									int bufflen = compose6012Buff(st6035->starttime,obj6001.basicinfo.addr,roadDataLen,singleDatabuf,port485);
+									SaveNorData(st6035->taskID,NULL,singleDatabuf,bufflen,freezeTimeStamp);
+									dataIndex+=roadDataLen;
+								}
+							}
+							else
+							{
+								DbgPrintToFile1(port485,"曲线数据错误");
+							}
+
+
+						}
+
 #endif
 					}
 
@@ -3675,7 +3912,7 @@ void read485_thread(void* i485port) {
 				case norm:/*普通采集方案*/
 				case events:/*事件采集方案*/
 				{
-					ret = use6013find6015or6017(list6013[taskIndex].basicInfo.cjtype,list6013[taskIndex].basicInfo.sernum,&to6015);
+					ret = use6013find6015or6017(list6013[taskIndex].basicInfo.cjtype,list6013[taskIndex].basicInfo.sernum,list6013[taskIndex].basicInfo.interval,&to6015);
 					if(ret == 1)
 					{
 							ret = deal6015or6017(list6013[taskIndex].basicInfo,to6015,port,&result6035);
