@@ -36,29 +36,21 @@ extern INT16S getTaskIndex(INT8U port);
 #define CJT188  4
 #define NUM_07DI_698OAD 100
 
-CLASS_6013 taskunite[TASK6012_MAX];
-typedef struct
-{
-	OAD oad1;	//非关联 oad1.OI=0
-	OAD oad2;	//数据项
-}DATA_ITEM;
-typedef struct
-{
-	INT8U type;						//方案类型
-	CLASS_6015 to6015;				//普通采集方案
-	CLASS_6017 to6017;				//事件采集方案
-	DATA_ITEM items[FANGAN_ITEM_MAX ];			//数据项数组
-	INT8U item_n;					//数据项总数 < FANGAN_ITEM_MAX
-}CJ_FANGAN;
+//---------------------------------------------------------------
+
+TASK_INFO taskinfo;
+
 typedef struct
 {
 	TS nowts;
 	TS oldts;
 	int initflag;
+	int redo;			//0:无动作   1:重启抄读  2:恢复抄读
 	int comfd;
 	int state_bak;					//运行状态备份
-	int tasktype;					//当前任务类型
+	int state;						//当前运行状态
 	INT8U taskno;					//当前任务编号
+	DateTimeBCD endtime;			//任务结束时间
 	CJ_FANGAN fangAn;				//当前采集方案
 	time_t send_start_time;			//发送开始时间
 	CLASS_6035 result6035;			//采集任务监测
@@ -73,6 +65,7 @@ AFN03_F10_UP module_info;
 struct Tsa_Node
 {
 	TSA tsa;
+	int tsa_index;
 	INT8U protocol;
 	INT8U usrtype;
 	INT8U flag[8];

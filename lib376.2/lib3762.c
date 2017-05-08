@@ -52,6 +52,82 @@ void setFN(INT8U* dt, INT8U fn)
 	dt[0] = 1<<((fn-1)%8);
 	dt[1] = (fn-1)/8;
 }
+
+int AFN11_F5(FORMAT3762 *down,INT8U *sendBuf,INT8U minute)
+{//激活从节点主动注册
+
+	INT8U sendLen;
+	memset(&sendBuf[0], 0, 256);
+
+	down->afn = 0x11;
+	down->fn = 5;
+	down->ctrl.PRM = 1;//启动站
+	down->info_down.ChannelFlag = 0;//信道标识
+	down->info_down.ModuleFlag = 0;//无地址域A
+	down->info_down.Seq = down->info_down.Seq++;//序列号
+	down->afn11_f5_down.Duration = minute;//持续时间
+	sendLen = composeProtocol3762(down, sendBuf);
+
+	return sendLen ;
+}
+
+int AFN12_F2(FORMAT3762 *down,INT8U *sendBuf)
+{
+	//暂停
+	INT8U sendLen;
+	memset(&sendBuf[0], 0, 256);
+
+	down->afn = 0x12;
+	down->fn = 2;
+	down->ctrl.PRM = 1;//启动站
+	down->info_down.ChannelFlag = 0;//信道标识
+	down->info_down.ModuleFlag = 0;//无地址域A
+	down->info_down.Seq = down->info_down.Seq++;//序列号
+
+	sendLen = composeProtocol3762(down, sendBuf);
+	return sendLen ;
+}
+
+int AFN12_F3(FORMAT3762 *down,INT8U *sendBuf)
+{//恢复抄表
+	INT8U sendLen;
+	memset(&sendBuf[0], 0, 256);
+
+	down->afn = 0x12;
+	down->fn = 3;
+	down->ctrl.PRM = 1;//启动站
+	down->info_down.ChannelFlag = 0;//信道标识
+	down->info_down.ModuleFlag = 0;//无地址域A
+	down->info_down.Seq = down->info_down.Seq++;//序列号
+
+	sendLen = composeProtocol3762(down, sendBuf);
+	return sendLen ;
+}
+
+int AFN13_F1(FORMAT3762 *down,INT8U *sendBuf3762,INT8U* destAddr, INT8U protocol, INT8U delayFlag, INT8U* sendBuf645, INT8U sendLen645)
+{//监控从节点
+	INT8U sendLen3762;
+	memset(&sendBuf3762[0], 0, 256);
+
+	//组3762报文
+	down->afn = 0x13;
+	down->fn = 1;
+	down->ctrl.PRM = 1;//启动站
+	down->info_down.ChannelFlag = 0;//信道标识
+	down->info_down.ModuleFlag = 1;//有地址域A
+	down->info_down.Seq = down->info_down.Seq++;//序列号
+
+//	getMasterPointAddr(down->addr.SourceAddr);
+	memcpy(down->addr.DestAddr, destAddr, 6);//目的地址
+	down->afn13_f1_down.Protocol = 2;
+	down->afn13_f1_down.DelayFlag = delayFlag;
+	down->afn13_f1_down.SubPointNum = 0;
+	down->afn13_f1_down.MsgLength = sendLen645;
+	memcpy(down->afn13_f1_down.MsgContent, sendBuf645, sendLen645);
+	sendLen3762 = composeProtocol3762(down, sendBuf3762);
+	return sendLen3762 ;
+}
+
 int AFN14_F1(FORMAT3762 *down,INT8U *sendBuf,INT8U* destAddr, INT8U readFlag, INT8U delayTime, INT8U msgLen, INT8U *msgContent)
 {
 	INT8U sendLen;
@@ -178,6 +254,30 @@ int AFN05_F1(FORMAT3762 *down,INT8U *sendBuf,INT8U *addr)
 	memcpy(down->afn05_f1_down.MasterPointAddr,addr,6);
 	sendlen = composeProtocol3762(down, sendBuf);
 	return sendlen ;
+}
+int AFN05_F3(FORMAT3762 *down,INT8U moduleFlag, INT8U ctrl, INT8U* sendBuf645, INT8U sendLen645,INT8U *sendBuf)
+{//启动广播
+	int sendLen;
+	memset(&sendBuf[0], 0, 256);
+
+	down->afn = 0x05;
+	down->fn = 3;
+	down->ctrl.PRM = 1;//启动站
+	down->info_down.ChannelFlag = 0;//信道标识
+	down->info_down.ModuleFlag = moduleFlag;//地址域A
+	down->info_down.Seq = down->info_down.Seq++;//序列号
+
+	if (moduleFlag == 1)//有地址域
+	{
+//		getMasterPointAddr(down->addr.SourceAddr);
+		memset(down->addr.DestAddr, 0x99, 6);//目的地址
+	}
+	down->afn05_f3_down.ctrl = ctrl;
+	down->afn05_f3_down.MsgLength = sendLen645;
+	memcpy(&down->afn05_f3_down.MsgContent, sendBuf645, sendLen645);
+
+	sendLen = composeProtocol3762(down, sendBuf);
+	return sendLen;
 }
 
 
