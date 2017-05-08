@@ -705,5 +705,40 @@ typedef struct {
     INT8U RecBuf[BUFLEN];       //接收数
 } CommBlock;
 ////////////////////////////////////////////////////////////////////
+typedef struct
+{
+	int sucessflg;		//0:没抄读	n:抄读n次
+	OAD oad1;			//非关联 oad1.OI=0
+	OAD oad2;			//数据项
+	INT8U item07[4];	//07规约
+}DATA_ITEM;
+typedef struct
+{
+	INT8U type;							//方案类型
+	INT8U No;							//方案编号
+	DATA_ITEM items[20 ];				//数据项数组
+	INT8U item_n;						//数据项总数 < FANGAN_ITEM_MAX
+}CJ_FANGAN;
+
+typedef struct
+{
+	INT8U taskId;						//任务编号
+	time_t beginTime;					//开始时间
+	time_t endTime;						//结束时间
+	DateTimeBCD begin;
+	DateTimeBCD end;
+	INT8U leve;							//优先级别
+	CJ_FANGAN fangan;					//采集方案
+}TASK_UNIT;
+
+typedef struct
+{
+	TASK_UNIT task_list[10];			//任务数组
+	int task_n;							//任务个数  < TASK_MAXNUM
+	TSA tsa;							//表地址
+	int tsa_index;						//表序号
+	int now_taski;//当前抄读的任务
+	int now_itemi;//当前抄读的数据项
+}TASK_INFO;
 
 #endif /* OBJECTACTION_H_ */
