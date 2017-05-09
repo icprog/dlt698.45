@@ -245,15 +245,15 @@ int Array_OAD_Items(CJ_FANGAN *fangAn)
 	}
 	fangAn->item_n = num;
 
-	if (num>0)
-	{
-		DbgPrintToFile1(31,"-----------全部数据项 %d 个-----------",num);
-		for(i=0;i<num;i++)
-		{
-			DbgPrintToFile1(31,"[ %d ] %04x - %04x ",i,fangAn->items[i].oad1.OI,fangAn->items[i].oad2.OI);
-		}
-		fprintf(stderr,"\n\n\n");
-	}
+//	if (num>0)
+//	{
+//		DbgPrintToFile1(31,"-----------全部数据项 %d 个-----------",num);
+//		for(i=0;i<num;i++)
+//		{
+//			DbgPrintToFile1(31,"[ %d ] %04x - %04x ",i,fangAn->items[i].oad1.OI,fangAn->items[i].oad2.OI);
+//		}
+//		fprintf(stderr,"\n\n\n");
+//	}
 	return num;
 }
 int task_leve(INT8U leve,TASK_UNIT *taskunit)
@@ -1562,7 +1562,6 @@ void readplc_thread()
 	initTaskData(&taskinfo);
 	PrintTaskInfo2(&taskinfo);
 	DbgPrintToFile1(31,"载波线程开始");
-	DbgPrintToFile1(31,"-----%d",sizeof(taskinfo));
 
 	while(1)
 	{
