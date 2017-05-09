@@ -2038,17 +2038,37 @@ INT8S dealProxyType7(PROXY_GETLIST getlist,INT8U port485)
 	}
 
 
-	INT8U RecvBuff[BUFFSIZE256];
+	INT8U RecvBuff[BUFFSIZE1024];
+	INT8U TmprevBuf[BUFFSIZE1024];
 	INT16S RecvLen = 0;
-	memset(&RecvBuff[0], 0, BUFFSIZE256);
+	memset(&RecvBuff[0], 0, BUFFSIZE1024);
+	memset(&TmprevBuf[0], 0, BUFFSIZE1024);
 
 	SendDataTo485(port485, getlist.transcmd.cmdbuf, getlist.transcmd.cmdlen);
 
 	//RecvLen = ReceDataFrom485(DLT_698,port485, 500, RecvBuff);
+	INT32S fd = comfd485[port485-1];
 
 	usleep(20000);	//20ms
-	INT32S fd = comfd485[port485-1];
-	RecvLen = read(fd, RecvBuff, BUFFSIZE256);
+	INT16U i= 0,j = 0,len = 0,rec_head = 0;
+	for (j = 0; j < 15; j++)
+	{
+		usleep(20000);	//20ms
+		len = read(fd, TmprevBuf,BUFFSIZE1024);
+
+		if (len > 0) {
+			RecvLen += len;
+			if (RecvLen > BUFFSIZE1024) {
+				fprintf(stderr, "len_Total=%d, xxxxxxxxxxx\n", RecvLen);
+				break;
+			}
+			for (i = 0; i < len; i++) {
+				RecvBuff[rec_head++] = TmprevBuf[i];
+			}
+		}
+
+	}
+
 	DbPrt1(port485,"代理透传返回:", (char *) RecvBuff, RecvLen, NULL);
 
 
