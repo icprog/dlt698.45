@@ -37,6 +37,7 @@ typedef struct
 
 const static CLASS_INFO  class_info[] ={
 		{0x6000,sizeof(CLASS11),sizeof(CLASS_6001),OCTET_STRING_LEN,"6000","/nand/para/table6000.par"},		//采集档案配置表
+		{0x8888,sizeof(TASK_INFO),sizeof(TASK_INFO),0,"8888","/nand/para/plcrecord.par"},		//采集档案配置表
 };
 
 /*　　变量类对象的数据存储文件结构

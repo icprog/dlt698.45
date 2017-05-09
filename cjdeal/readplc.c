@@ -519,6 +519,8 @@ int doInit(RUNTIME_PLC *runtime_p)
 			reset_ZB();
 			tsa_count = initTsaList(&tsa_head);
 			tsa_print(tsa_head,tsa_count);
+			initTaskData(&taskinfo);
+			system("rm /nand/para/plcrecord.par  /nand/para/plcrecord.bak");
 			if (runtime_p->comfd >0)
 				CloseCom( runtime_p->comfd );
 			runtime_p->comfd = OpenCom(5, 9600,(unsigned char*)"even",1,8);
@@ -1158,7 +1160,6 @@ int checkAllData(struct Tsa_Node* head,struct Tsa_Node desnode)
 int doTask(RUNTIME_PLC *runtime_p)
 {
 	static int step_cj = 0, beginwork=0;
-	static struct Tsa_Node *currtsa;
 	struct Tsa_Node *nodetmp;
 	TSA tsatmp;
 	int sendlen=0;
