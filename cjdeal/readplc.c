@@ -1103,9 +1103,11 @@ int saveTaskData(FORMAT3762 format_3762_Up,INT8U taskid)
 					tsatmp.addr[6],tsatmp.addr[7],tsatmp.addr[8]);
 			if (memcmp(taskinfo.tsa.addr,tsatmp.addr,8) == 0 )
 			{//是当前抄读TSA 数据
+				TS ts;
 				INT8U tmp[4]={0,0,0,0};
 				int taski = taskinfo.now_taski;
 				int itemi = taskinfo.now_itemi;
+				TSGet(&ts);
 				memcpy(tmp,taskinfo.task_list[taski].fangan.items[itemi].item07,4);
 				DbgPrintToFile1(31,"回码数据项 %02x%02x%02x%02x",frame07.DI[0],frame07.DI[1],frame07.DI[2],frame07.DI[3]);
 				DbgPrintToFile1(31,"抄读数据项 %02x%02x%02x%02x",tmp[0],tmp[1],tmp[2],tmp[3]);
@@ -1115,8 +1117,11 @@ int saveTaskData(FORMAT3762 format_3762_Up,INT8U taskid)
 					if(len698 > 0)
 					{
 						DbPrt1(31,"存储:", (char *) dataContent, len698, NULL);
-	//					SaveOADData(taskid,OAD oad_m,OAD oad_r,INT8U *databuf,int datalen,TS ts_res);
-	//					SaveOADData(taskid,OAD oad_m,OAD oad_r,INT8U *databuf,int datalen,TS ts_res);
+						SaveOADData(taskinfo.task_list[taski].taskId,
+								taskinfo.task_list[taski].fangan.items[itemi].oad1,
+								taskinfo.task_list[taski].fangan.items[itemi].oad2,
+								dataContent,len698,
+								ts);
 					}
 				}
 			}
