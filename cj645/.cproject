@@ -46,6 +46,7 @@
 								<option id="org.eclipse.cdt.cross.arm.gnu.cpp.link.option.nostart.1510271487" name="Do not use standard start files (-nostartfiles)" superClass="org.eclipse.cdt.cross.arm.gnu.cpp.link.option.nostart" value="false" valueType="boolean"/>
 								<option id="org.eclipse.cdt.cross.arm.gnu.cpp.link.option.libs.1812506497" name="Libraries (-l)" superClass="org.eclipse.cdt.cross.arm.gnu.cpp.link.option.libs" valueType="libs">
 									<listOptionValue builtIn="false" value="Dlt645"/>
+									<listOptionValue builtIn="false" value="Mq"/>
 									<listOptionValue builtIn="false" value="event"/>
 									<listOptionValue builtIn="false" value="698"/>
 									<listOptionValue builtIn="false" value="698Esam"/>
@@ -55,6 +56,7 @@
 								</option>
 								<option id="org.eclipse.cdt.cross.arm.gnu.cpp.link.option.paths.612404717" name="Library search path (-L)" superClass="org.eclipse.cdt.cross.arm.gnu.cpp.link.option.paths" valueType="libPaths">
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/lib698Esam/Release}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/libMq/Release_ARM}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/libDlt645/Release}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/lib698/Release}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/libBase/Release}&quot;"/>

@@ -946,6 +946,66 @@ int getSel1_coll(RESULT_RECORD *record)
 	fprintf(stderr,"\nrecord->datalen = %d",record->datalen);
 	return ret;
 }
+
+
+///
+int getSel2_coll(RESULT_RECORD *record)
+{
+	int ret=0;
+	int		index = 0;
+	int		taskid_from=0,taskid_to=0,sel_id=0;
+
+	switch(record->select.selec2.data_from.type) {
+	case dtlongunsigned:
+		taskid_from = (record->select.selec2.data_from.data[0]<<8 | record->select.selec2.data_from.data[1]);
+		break;
+	case dtunsigned:
+		taskid_from = record->select.selec2.data_from.data[0];
+		break;
+	}
+	switch(record->select.selec2.data_to.type) {
+	case dtlongunsigned:
+		taskid_to = (record->select.selec2.data_to.data[0]<<8 | record->select.selec2.data_to.data[1]);
+		break;
+	case dtunsigned:
+		taskid_to = record->select.selec2.data_to.data[0];;
+		break;
+	}
+//	switch(record->select.selec2.data_jiange.type) {
+//	case NULL:
+//		break;
+//	}
+	fprintf(stderr,"getSel2: OI=%04x  taskid_from=%d taskid_to=%d\n",record->select.selec1.oad.OI,taskid_from,taskid_to);
+
+	for(sel_id=taskid_from;sel_id<taskid_to;sel_id++) {
+		switch(record->select.selec2.oad.OI)
+		{
+			case 0x6001:
+				index += Get_6001(0,sel_id,&record->data[index]);
+				break;
+			case 0x6013:
+				index += Get_6013(0,sel_id,&record->data[index]);
+				break;
+			case 0x6015:
+				index += Get_6015(0,sel_id,&record->data[index]);
+				break;
+			case 0x6035:
+				index += Get_6035(0,sel_id,&record->data[index]);
+				break;
+			case 0x601d:
+				index += Get_601D(0,sel_id,&record->data[index]);
+				break;
+			default:
+				fprintf(stderr,"\nrecord switch default!");
+		}
+	}
+	if(index==0) {	//0条记录     [1] SEQUENCE OF A-RecordRow
+		record->data[0] = 0;
+	}
+	record->datalen = index;
+	fprintf(stderr,"\nrecord->datalen = %d",record->datalen);
+	return ret;
+}
 /*
  * 选择方法1: 读取指定对象指定值
  * */
@@ -962,6 +1022,23 @@ int getSelector1(RESULT_RECORD *record)
 	case 6:			//采集监控类对象
 		fprintf(stderr,"\n读取采集监控对象\n");
 		getSel1_coll(record);
+		break;
+	default:
+		record->datalen = 0;
+		break;
+	}
+	return ret;
+}
+
+int getSelector2(RESULT_RECORD *record)
+{
+	int  ret=0;
+	INT8U oihead = (record->oad.OI & 0xF000) >>12;
+
+	switch(oihead) {
+	case 6:			//采集监控类对象
+		fprintf(stderr,"\n读取采集监控对象\n");
+		getSel2_coll(record);
 		break;
 	default:
 		record->datalen = 0;
@@ -1013,8 +1090,7 @@ int doGetrecord(INT8U type,OAD oad,INT8U *data,RESULT_RECORD *record,INT16U *sub
 		record->datalen += dest_index;			//数据长度+ResultRecord
 	break;
 	case 2:
-
-		if(oihead == 3){
+		if(oihead == 3){	//事件类
 			*subframe = 1;		//TODO:未处理分帧
 			TmpDataBuf[dest_index++] = 4;
 			INT8U ai=0;
@@ -1027,6 +1103,24 @@ int doGetrecord(INT8U type,OAD oad,INT8U *data,RESULT_RECORD *record,INT16U *sub
 			}
 			record->data = &TmpDataBuf[dest_index];
 			Getevent_Record_Selector(record,memp);
+			record->data = TmpDataBuf;				//data 指向回复报文帧头
+			record->datalen += dest_index;			//数据长度+ResultRecord
+		}else {
+			*subframe = 1;		//TODO:未处理分帧
+			if(record->rcsd.csds.num == 0) {
+				record->data[dest_index++] = 1;	//一行记录M列属性描述符 	RCSD
+				record->data[dest_index++] = 0;	//OAD
+				record->select.selec1.oad.attrindex = 0;		//上送属性下所有索引值
+				dest_index += create_OAD(0,&record->data[dest_index],record->select.selec1.oad);
+				record->data[dest_index++] = 1; //CHOICE  [1]  data
+				record->data[dest_index++] = 1; //M = 1  Sequence  of A-RecordRow
+			}else {
+				dest_index +=fill_RCSD(0,&record->data[dest_index],record->rcsd.csds);
+				record->data[dest_index++] = 1; //CHOICE  [1]  data
+				record->data[dest_index++] = 1; //M = 1  Sequence  of A-RecordRow
+			}
+			record->data = &TmpDataBuf[dest_index];		//修改record的数据帧的位置
+			getSelector2(record);
 			record->data = TmpDataBuf;				//data 指向回复报文帧头
 			record->datalen += dest_index;			//数据长度+ResultRecord
 		}
@@ -1316,7 +1410,7 @@ int GetCollOneUnit(OI_698 oi,INT8U readType,INT8U seqnum,INT8U *data,INT16U *one
 	}
 	*oneUnitLen = one_unitlen;
 	*blknum = one_blknum;
-	fprintf(stderr,"GetCollOneUnitLen oad.oi=%04x one_unitlen=%d one_blknum=%d\n",oi,one_unitlen,one_blknum);
+	if(one_unitlen!=0)	fprintf(stderr,"GetCollOneUnitLen oad.oi=%04x one_unitlen=%d one_blknum=%d\n",oi,one_unitlen,one_blknum);
 	return 1;
 }
 /*
@@ -1339,10 +1433,14 @@ int GetCollPara(INT8U seqOfNum,RESULT_NORMAL *response)
 		fprintf(stderr,"get OI=%04x oneUnitLen=%d blknum=%d 退出",oad.OI,oneUnitLen,blknum);
 		return 0;
 	}
-	index = 2;			//空出 array,结束后填入
+	if(seqOfNum!=0) {
+		index = 2;			//空出 array,结束后填入
+	}
 	for(i=0;i<blknum;i++)
 	{
-		create_array(&data[0],meternum);		//每次循环填充配置单元array个数，为了组帧分帧
+		if(seqOfNum!=0) {	//getRequestNormal请求时不需要SEQUENCE OF
+			create_array(&data[0],meternum);		//每次循环填充配置单元array个数，为了组帧分帧
+		}
 		response->datalen = index;
 		///在读取数据组帧前判断是否需要进行分帧
 		Build_subFrame(0,(index+oneUnitLen),seqOfNum,response);
@@ -1357,8 +1455,13 @@ int GetCollPara(INT8U seqOfNum,RESULT_NORMAL *response)
 			meternum++;
 		}
 		index += retlen;
+		if(seqOfNum==0 && meternum==1)  {	//getReponseNormal只返回一个A-ResultNormal结果数据
+			break;
+		}
 	}
-	create_array(&data[0],meternum);		//配置单元个数
+	if(seqOfNum!=0) {
+		create_array(&data[0],meternum);		//配置单元个数
+	}
 	response->datalen = index;
 	if(next_info.subframeSum!=0) {		//已经存在分帧情况
 		Build_subFrame(1,index,seqOfNum,response);		//后续帧组帧, TODO:RequestNormalList 方法此处调用是否合适
