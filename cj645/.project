@@ -3,8 +3,14 @@
 	<name>cj645</name>
 	<comment></comment>
 	<projects>
+		<project>lib376.2</project>
+		<project>lib698</project>
+		<project>lib698Esam</project>
+		<project>libAccess</project>
 		<project>libBase</project>
 		<project>libDlt645</project>
+		<project>libevent</project>
+		<project>libMq</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>
