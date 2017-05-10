@@ -1105,6 +1105,7 @@ int saveTaskData(FORMAT3762 format_3762_Up,INT8U taskid)
 			{//是当前抄读TSA 数据
 				TS ts;
 				INT8U tmp[4]={0,0,0,0};
+				INT8U alldata[100]={};
 				int taski = taskinfo.now_taski;
 				int itemi = taskinfo.now_itemi;
 				TSGet(&ts);
@@ -1116,11 +1117,16 @@ int saveTaskData(FORMAT3762 format_3762_Up,INT8U taskid)
 					int len698 = data07Tobuff698(frame07,dataContent);
 					if(len698 > 0)
 					{
-						DbPrt1(31,"存储:", (char *) dataContent, len698, NULL);
+
+						alldata[0] = 0x55;
+						memcpy(&alldata[1],taskinfo.tsa.addr,17);
+						memcpy(&alldata[18],dataContent,len698);
+						len698 = len698 + 18;
+						DbPrt1(31,"存储:", (char *) alldata, len698, NULL);
 						SaveOADData(taskinfo.task_list[taski].taskId,
 								taskinfo.task_list[taski].fangan.items[itemi].oad1,
 								taskinfo.task_list[taski].fangan.items[itemi].oad2,
-								dataContent,len698,
+								alldata,len698,
 								ts);
 					}
 				}
