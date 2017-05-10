@@ -1091,8 +1091,8 @@ INT8U getASNInfo(FORMAT07* DI07,Base_DataType* dataType)
 	if(memcmp(flag07_0CF25_2,DI07->DI,4) == 0)
 	{
 		*dataType = dtdoublelong;
-		unitNum = 3;
-		INT8U f25_2_buff[12] = {0};
+		unitNum = 4;
+		INT8U f25_2_buff[16] = {0};
 		memcpy(&f25_2_buff[0],&DI07->Data[0],3);
 
 		if((DI07->Data[3] = 0xff)&&(DI07->Data[4] = 0xff)&&(DI07->Data[5] = 0xff))
@@ -1107,8 +1107,8 @@ INT8U getASNInfo(FORMAT07* DI07,Base_DataType* dataType)
 		memcpy(&f25_2_buff[4],&DI07->Data[3],3);
 		memcpy(&f25_2_buff[8],&DI07->Data[6],3);
 
-		memcpy(&DI07->Data[0],&f25_2_buff[0],12);
-		DI07->Length += 3;
+		memcpy(&DI07->Data[0],&f25_2_buff[0],16);
+		DI07->Length += 7;
 	}
 	if((memcmp(flag07_0CF25_2_A,DI07->DI,4) == 0)
 			||(memcmp(flag07_0CF25_2_B,DI07->DI,4) == 0)
@@ -3000,6 +3000,13 @@ INT16S deal6015_07(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8U
 			to6001.sernum, st6015.sernum, st6015.csds.num);
 	DbgPrintToFile1(port485,"st6015.csds.csd[%d]",
 			to6001.sernum, st6015.sernum, st6015.csds.num);
+	INT8U singleCurveDatabuf[DATA_CONTENT_LEN];
+	memset(singleCurveDatabuf,0,DATA_CONTENT_LEN);
+	TS freezeTimeStamp;
+	TSGet(&freezeTimeStamp);
+	int bufflen = compose6012Buff(st6035->starttime,to6001.basicinfo.addr,totaldataLen,dataContent,port485);
+	SaveNorData(st6035->taskID,NULL,dataContent,bufflen,freezeTimeStamp);
+
 	return totaldataLen;
 }
 //按照任务6012格式上报
@@ -4179,7 +4186,7 @@ void read485_proccess() {
 
 	while ((thread_read4851_id = pthread_create(&thread_read4851,&read485_attr_t, (void*) read485_thread, &i485port1)) != 0)
 	{
-		sleep( 1 );
+		sleep(1);
 	}
 
 	while ((thread_read4852_id=pthread_create(&thread_read4852, &read485_attr_t, (void*)read485_thread, &i485port2)) != 0)
