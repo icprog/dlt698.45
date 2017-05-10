@@ -977,7 +977,7 @@ int getSel2_coll(RESULT_RECORD *record)
 //	}
 	fprintf(stderr,"getSel2: OI=%04x  taskid_from=%d taskid_to=%d\n",record->select.selec1.oad.OI,taskid_from,taskid_to);
 
-	for(sel_id=taskid_from;sel_id<taskid_to;sel_id++) {
+	for(sel_id=taskid_from;sel_id<=taskid_to;sel_id++) {
 		switch(record->select.selec2.oad.OI)
 		{
 			case 0x6001:
@@ -1113,11 +1113,11 @@ int doGetrecord(INT8U type,OAD oad,INT8U *data,RESULT_RECORD *record,INT16U *sub
 				record->select.selec1.oad.attrindex = 0;		//上送属性下所有索引值
 				dest_index += create_OAD(0,&record->data[dest_index],record->select.selec1.oad);
 				record->data[dest_index++] = 1; //CHOICE  [1]  data
-				record->data[dest_index++] = 1; //M = 1  Sequence  of A-RecordRow
+				record->data[dest_index++] = 2; //M = 1  Sequence  of A-RecordRow   //test
 			}else {
 				dest_index +=fill_RCSD(0,&record->data[dest_index],record->rcsd.csds);
 				record->data[dest_index++] = 1; //CHOICE  [1]  data
-				record->data[dest_index++] = 1; //M = 1  Sequence  of A-RecordRow
+				record->data[dest_index++] = 2; //M = 1  Sequence  of A-RecordRow    //test
 			}
 			record->data = &TmpDataBuf[dest_index];		//修改record的数据帧的位置
 			getSelector2(record);
