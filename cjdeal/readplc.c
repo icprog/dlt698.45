@@ -245,15 +245,15 @@ int Array_OAD_Items(CJ_FANGAN *fangAn)
 	}
 	fangAn->item_n = num;
 
-	if (num>0)
-	{
-		DbgPrintToFile1(31,"-----------全部数据项 %d 个-----------",num);
-		for(i=0;i<num;i++)
-		{
-			DbgPrintToFile1(31,"[ %d ] %04x - %04x ",i,fangAn->items[i].oad1.OI,fangAn->items[i].oad2.OI);
-		}
-		fprintf(stderr,"\n\n\n");
-	}
+//	if (num>0)
+//	{
+//		DbgPrintToFile1(31,"-----------全部数据项 %d 个-----------",num);
+//		for(i=0;i<num;i++)
+//		{
+//			DbgPrintToFile1(31,"[ %d ] %04x - %04x ",i,fangAn->items[i].oad1.OI,fangAn->items[i].oad2.OI);
+//		}
+//		fprintf(stderr,"\n\n\n");
+//	}
 	return num;
 }
 int task_leve(INT8U leve,TASK_UNIT *taskunit)
@@ -519,6 +519,8 @@ int doInit(RUNTIME_PLC *runtime_p)
 			reset_ZB();
 			tsa_count = initTsaList(&tsa_head);
 			tsa_print(tsa_head,tsa_count);
+			initTaskData(&taskinfo);
+			system("rm /nand/para/plcrecord.par  /nand/para/plcrecord.bak");
 			if (runtime_p->comfd >0)
 				CloseCom( runtime_p->comfd );
 			runtime_p->comfd = OpenCom(5, 9600,(unsigned char*)"even",1,8);
@@ -1158,7 +1160,6 @@ int checkAllData(struct Tsa_Node* head,struct Tsa_Node desnode)
 int doTask(RUNTIME_PLC *runtime_p)
 {
 	static int step_cj = 0, beginwork=0;
-	static struct Tsa_Node *currtsa;
 	struct Tsa_Node *nodetmp;
 	TSA tsatmp;
 	int sendlen=0;
@@ -1562,7 +1563,6 @@ void readplc_thread()
 	initTaskData(&taskinfo);
 	PrintTaskInfo2(&taskinfo);
 	DbgPrintToFile1(31,"载波线程开始");
-	DbgPrintToFile1(31,"-----%d",sizeof(taskinfo));
 
 	while(1)
 	{
