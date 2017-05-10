@@ -4179,7 +4179,7 @@ void read485_proccess() {
 
 	while ((thread_read4851_id = pthread_create(&thread_read4851,&read485_attr_t, (void*) read485_thread, &i485port1)) != 0)
 	{
-		sleep(1);
+		sleep( 1 );
 	}
 
 	while ((thread_read4852_id=pthread_create(&thread_read4852, &read485_attr_t, (void*)read485_thread, &i485port2)) != 0)

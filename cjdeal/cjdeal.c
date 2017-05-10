@@ -853,7 +853,7 @@ int main(int argc, char *argv[])
 	if(JProgramInfo->cfg_para.device == CCTT1)
 	{
 		//载波
-//		readplc_proccess();
+		readplc_proccess();
 	}
 	if(JProgramInfo->cfg_para.device != CCTT2)
 	{

@@ -245,15 +245,15 @@ int Array_OAD_Items(CJ_FANGAN *fangAn)
 	}
 	fangAn->item_n = num;
 
-	if (num>0)
-	{
-		DbgPrintToFile1(31,"-----------全部数据项 %d 个-----------",num);
-		for(i=0;i<num;i++)
-		{
-			DbgPrintToFile1(31,"[ %d ] %04x - %04x ",i,fangAn->items[i].oad1.OI,fangAn->items[i].oad2.OI);
-		}
-		fprintf(stderr,"\n\n\n");
-	}
+//	if (num>0)
+//	{
+//		DbgPrintToFile1(31,"-----------全部数据项 %d 个-----------",num);
+//		for(i=0;i<num;i++)
+//		{
+//			DbgPrintToFile1(31,"[ %d ] %04x - %04x ",i,fangAn->items[i].oad1.OI,fangAn->items[i].oad2.OI);
+//		}
+//		fprintf(stderr,"\n\n\n");
+//	}
 	return num;
 }
 int task_leve(INT8U leve,TASK_UNIT *taskunit)
@@ -519,6 +519,8 @@ int doInit(RUNTIME_PLC *runtime_p)
 			reset_ZB();
 			tsa_count = initTsaList(&tsa_head);
 			tsa_print(tsa_head,tsa_count);
+			initTaskData(&taskinfo);
+			system("rm /nand/para/plcrecord.par  /nand/para/plcrecord.bak");
 			if (runtime_p->comfd >0)
 				CloseCom( runtime_p->comfd );
 			runtime_p->comfd = OpenCom(5, 9600,(unsigned char*)"even",1,8);
@@ -1105,6 +1107,7 @@ int saveTaskData(FORMAT3762 format_3762_Up,INT8U taskid)
 			{//是当前抄读TSA 数据
 				TS ts;
 				INT8U tmp[4]={0,0,0,0};
+				INT8U alldata[100]={};
 				int taski = taskinfo.now_taski;
 				int itemi = taskinfo.now_itemi;
 				TSGet(&ts);
@@ -1116,11 +1119,15 @@ int saveTaskData(FORMAT3762 format_3762_Up,INT8U taskid)
 					int len698 = data07Tobuff698(frame07,dataContent);
 					if(len698 > 0)
 					{
-						DbPrt1(31,"存储:", (char *) dataContent, len698, NULL);
+						alldata[0] = 0x55;
+						memcpy(&alldata[1],taskinfo.tsa.addr,17);
+						memcpy(&alldata[18],dataContent,len698);
+						len698 = len698 + 18;
+						DbPrt1(31,"存储:", (char *) alldata, len698, NULL);
 						SaveOADData(taskinfo.task_list[taski].taskId,
 								taskinfo.task_list[taski].fangan.items[itemi].oad1,
 								taskinfo.task_list[taski].fangan.items[itemi].oad2,
-								dataContent,len698,
+								alldata,len698,
 								ts);
 					}
 				}
@@ -1153,7 +1160,6 @@ int checkAllData(struct Tsa_Node* head,struct Tsa_Node desnode)
 int doTask(RUNTIME_PLC *runtime_p)
 {
 	static int step_cj = 0, beginwork=0;
-	static struct Tsa_Node *currtsa;
 	struct Tsa_Node *nodetmp;
 	TSA tsatmp;
 	int sendlen=0;
@@ -1557,7 +1563,6 @@ void readplc_thread()
 	initTaskData(&taskinfo);
 	PrintTaskInfo2(&taskinfo);
 	DbgPrintToFile1(31,"载波线程开始");
-	DbgPrintToFile1(31,"-----%d",sizeof(taskinfo));
 
 	while(1)
 	{
