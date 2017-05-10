@@ -1117,7 +1117,6 @@ int saveTaskData(FORMAT3762 format_3762_Up,INT8U taskid)
 					int len698 = data07Tobuff698(frame07,dataContent);
 					if(len698 > 0)
 					{
-
 						alldata[0] = 0x55;
 						memcpy(&alldata[1],taskinfo.tsa.addr,17);
 						memcpy(&alldata[18],dataContent,len698);

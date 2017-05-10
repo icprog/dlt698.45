@@ -4158,19 +4158,19 @@ void read485_proccess() {
 	mqd_485_2_task = mmq_open((INT8S *)TASKID_485_2_MQ_NAME,&attr_485_2_task,O_RDONLY);
 
 
-//	pthread_attr_init(&read485_attr_t);
-//	pthread_attr_setstacksize(&read485_attr_t, 2048 * 1024);
-//	pthread_attr_setdetachstate(&read485_attr_t, PTHREAD_CREATE_DETACHED);
-//
-//	while ((thread_read4851_id = pthread_create(&thread_read4851,&read485_attr_t, (void*) read485_thread, &i485port1)) != 0)
-//	{
-//		sleep(1);
-//	}
-//
-//	while ((thread_read4852_id=pthread_create(&thread_read4852, &read485_attr_t, (void*)read485_thread, &i485port2)) != 0)
-//	{
-//		sleep(1);
-//	}
+	pthread_attr_init(&read485_attr_t);
+	pthread_attr_setstacksize(&read485_attr_t, 2048 * 1024);
+	pthread_attr_setdetachstate(&read485_attr_t, PTHREAD_CREATE_DETACHED);
+
+	while ((thread_read4851_id = pthread_create(&thread_read4851,&read485_attr_t, (void*) read485_thread, &i485port1)) != 0)
+	{
+		sleep( 1 );
+	}
+
+	while ((thread_read4852_id=pthread_create(&thread_read4852, &read485_attr_t, (void*)read485_thread, &i485port2)) != 0)
+	{
+		sleep(1);
+	}
 
 }
 void read485QuitProcess()
