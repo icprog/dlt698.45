@@ -1079,9 +1079,13 @@ INT8U getASNInfo(FORMAT07* DI07,Base_DataType* dataType)
 	//电压　电流 功率 特殊处理  07回来的是3个字节  6984个字节
 	if(memcmp(flag07_0CF25_1,DI07->DI,4) == 0)
 	{
-		if(JProgramInfo->cfg_para.device == CCTT2)
+		if((DI07->Data[2] = 0xff)&&(DI07->Data[3] = 0xff))
 		{
-			memset(&DI07->Data[2],0,4);
+			memset(&DI07->Data[2],0,2);
+		}
+		if((DI07->Data[4] = 0xff)&&(DI07->Data[5] = 0xff))
+		{
+			memset(&DI07->Data[4],0,2);
 		}
 	}
 	if(memcmp(flag07_0CF25_2,DI07->DI,4) == 0)
@@ -1090,11 +1094,18 @@ INT8U getASNInfo(FORMAT07* DI07,Base_DataType* dataType)
 		unitNum = 3;
 		INT8U f25_2_buff[12] = {0};
 		memcpy(&f25_2_buff[0],&DI07->Data[0],3);
-		if(JProgramInfo->cfg_para.device != CCTT2)
+
+		if((DI07->Data[3] = 0xff)&&(DI07->Data[4] = 0xff)&&(DI07->Data[5] = 0xff))
 		{
-			memcpy(&f25_2_buff[4],&DI07->Data[3],3);
-			memcpy(&f25_2_buff[8],&DI07->Data[6],3);
+			memset(&DI07->Data[3],0,3);
 		}
+		if((DI07->Data[6] = 0xff)&&(DI07->Data[7] = 0xff)&&(DI07->Data[8] = 0xff))
+		{
+			memset(&DI07->Data[6],0,3);
+		}
+
+		memcpy(&f25_2_buff[4],&DI07->Data[3],3);
+		memcpy(&f25_2_buff[8],&DI07->Data[6],3);
 
 		memcpy(&DI07->Data[0],&f25_2_buff[0],12);
 		DI07->Length += 3;
@@ -2934,7 +2945,11 @@ INT16S deal6015_07(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8U
 			{
 				isFreezeValid = checkTimeStamp07(to6001,port485);
 			}
-
+			//对于07表　曲线就是抄实时数据
+			if(st6015.csds.csd[dataIndex].csd.road.oad.OI == 0x5002)
+			{
+				st6015.csds.csd[dataIndex].csd.road.oad.OI = 0x0000;
+			}
 			INT8U csdIndex;
 			for(csdIndex=0;csdIndex<st6015.csds.csd[dataIndex].csd.road.num;csdIndex++)
 			{
