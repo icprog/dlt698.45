@@ -402,7 +402,8 @@ void AddCjiFangAnInfo(INT8U *data, Action_result *act_ret) {
     int k = 0;
     INT8U addnum = data[1];        //data[0] = apdu[7]
     INT8U *dealdata = NULL;
-    int index = 0;
+    int index = 0, retlen = 0;
+
     fprintf(stderr, "\nsizeof fangAn=%d", sizeof(fangAn));
     fprintf(stderr, "\n添加个数 %d", addnum);
     dealdata = &data[2];
@@ -424,15 +425,22 @@ void AddCjiFangAnInfo(INT8U *data, Action_result *act_ret) {
                 index++;
                 break;
             case 1:
-                fangAn.data.type = 0x11;    // unsigned
+                fangAn.data.type = dtunsigned;    // unsigned
                 index += getUnsigned(&dealdata[index], (INT8U *) &fangAn.data.data);
                 break;
             case 3:
-                fangAn.data.type = 0x54;    // TI
+                fangAn.data.type = dtti;    // TI
                 index += getTI(1, &dealdata[index], (TI *) &fangAn.data.data);
                 fprintf(stderr, "\n方案类型：%02x  data=%02x-%02x-%02x\n", fangAn.data.type, fangAn.data.data[0],
                         fangAn.data.data[1], fangAn.data.data[2]);
                 break;
+            case 4:
+            	fangAn.data.type = dtstructure;    //
+            	index += getStructure(&dealdata[index],NULL);
+            	retlen += getTI(1, &dealdata[index], (TI *) &fangAn.data.data[0]);
+            	index += retlen;
+            	index += getLongUnsigned(&dealdata[index], (INT8U *) &fangAn.data.data[retlen]);
+            	break;
             default:
                 return;
         }

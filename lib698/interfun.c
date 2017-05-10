@@ -373,14 +373,31 @@ int fill_RCSD(INT8U type,INT8U *data,CSD_ARRAYTYPE csds)		//0x60
 int fill_Data(INT8U *data,INT8U *value)
 {
 	INT8U type=0;
-	fprintf(stderr,"value=%02x  %02x\n",value[0],value[1]);
+	int	 index = 0;
+//	fprintf(stderr,"value=%02x  %02x\n",value[0],value[1]);
 	type = value[0];
 	switch(type) {
-	case dtunsigned:
-		fill_unsigned(data,value[1]);
-		return 2;
+	case dtnull://采集当前数据	//按冻结时标采集
+		data[index++] = value[1];
+		break;
+	case dtunsigned:	//采集上第N次
+		index += fill_unsigned(data,value[1]);
+		break;
+	case dtti:
+		data[index++] = dtti;
+		memcpy(&data[index],&value[0],3);
+		index += 3;
+		break;
+	case dtstructure:
+		index += create_struct(&data[index],2);
+		data[index++] = dtti;
+		memcpy(&data[index],&value[1],3);		//TI
+		index += 3;
+		data[index++] = dtlongunsigned;
+		index += fill_long_unsigned(&data[index],(INT16U)value[4]);
+		break;
 	}
-	return 0;
+	return index;
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -972,8 +989,9 @@ int Get_6015(INT8U type,INT8U seqnum,INT8U *data)
 	CLASS_6015 coll={};
 
 	ret = readCoverClass(0x6015,seqnum,&coll,sizeof(CLASS_6015),coll_para_save);
+	fprintf(stderr,"\n 6015 read coll ok　seqnum=%d  type=%d  ret=%d\n",seqnum,type,ret);
 	if ((ret == 1) || (type==1)) {
-		fprintf(stderr,"\n 6015 read coll ok");
+		fprintf(stderr,"\n 6015 read coll ok　seqnum=%d  type=%d  ret=%d\n",seqnum,type,ret);
 		index += create_struct(&data[index],6);		//属性2：struct 6个元素
 		index += fill_unsigned(&data[index],coll.sernum);		//方案序号
 		index += fill_long_unsigned(&data[index],coll.deepsize);	//存储深度
@@ -981,7 +999,7 @@ int Get_6015(INT8U type,INT8U seqnum,INT8U *data)
 
 		fprintf(stderr,"coll.cjtype = %d\n",coll.cjtype);
 		index += fill_unsigned(&data[index],coll.cjtype);		//采集类型
-		data[index++] = coll.data.data[0];
+//		data[index++] = coll.data.data[0];
 		index += fill_Data(&data[index],&coll.data.type);		//数据
 		if(coll.csds.num > MY_CSD_NUM) {
 			coll.csds.num = MY_CSD_NUM;

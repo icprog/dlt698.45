@@ -33,7 +33,7 @@ static char *usage_set = "\n--------------------参数设置及基本维护命�
         "		 【以太网通信参数：主站IP端口设置】cj net-ip XXX.XXX.XXX.XXX:port XXX.XXX.XXX.XXX:port 	\n"
         "		 【设置gprs和以太网的工作模式(0:混合模式 1:客户端模式 2:服务器模式)】 cj online-mode 1 1 \n"
         "		 【主站apn设置】cj apn cmnet		\n"
-        "		 【cdma电信用户名密码设置】cj usr-pwd 　user  password		\n"
+        "		 【cdma电信用户名密码设置】cj usr-pwd 　user  password	apn	\n"
         "		 【通信地址】cj id <addr>	如：地址为123456  :cj id 12 34 56	\n"
         "		 【停程序】cj dog 或者 cj stop		\n"
         "[读取心跳] cj heart \n"
