@@ -521,6 +521,7 @@ int doInit(RUNTIME_PLC *runtime_p)
 			tsa_print(tsa_head,tsa_count);
 			initTaskData(&taskinfo);
 			system("rm /nand/para/plcrecord.par  /nand/para/plcrecord.bak");
+
 			if (runtime_p->comfd >0)
 				CloseCom( runtime_p->comfd );
 			runtime_p->comfd = OpenCom(5, 9600,(unsigned char*)"even",1,8);
