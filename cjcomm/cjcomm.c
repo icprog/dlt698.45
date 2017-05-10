@@ -308,7 +308,7 @@ int main(int argc, char *argv[]) {
 
 //    StartIfr(ep, 0, NULL);
 //    StartSerial(ep, 0, NULL);
-    
+
     StartServer(ep, 0, NULL);
     StartVerifiTime(ep, 0, JProgramInfo);
     StartClientForGprs(ep, 0, NULL);

@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <syslog.h>
 #include "ParaDef.h"
 #include "AccessFun.h"
 #include "StdDataType.h"
@@ -401,7 +402,8 @@ void AddCjiFangAnInfo(INT8U *data, Action_result *act_ret) {
     int k = 0;
     INT8U addnum = data[1];        //data[0] = apdu[7]
     INT8U *dealdata = NULL;
-    int index = 0;
+    int index = 0, retlen = 0;
+
     fprintf(stderr, "\nsizeof fangAn=%d", sizeof(fangAn));
     fprintf(stderr, "\n添加个数 %d", addnum);
     dealdata = &data[2];
@@ -413,7 +415,7 @@ void AddCjiFangAnInfo(INT8U *data, Action_result *act_ret) {
         index += getUnsigned(&dealdata[index], (INT8U *) &fangAn.sernum);
         fprintf(stderr, "fangan sernum =%d ,index=%d\n", fangAn.sernum, index);
         index += getLongUnsigned(&dealdata[index], (INT8U *) &fangAn.deepsize);
-        index = index + 2;//struct
+        index += getStructure(&dealdata[index], NULL);
         index += getUnsigned(&dealdata[index], (INT8U *) &fangAn.cjtype);
         fprintf(stderr, "cjtype=%d\n", fangAn.cjtype);
         switch (fangAn.cjtype) {
@@ -423,15 +425,22 @@ void AddCjiFangAnInfo(INT8U *data, Action_result *act_ret) {
                 index++;
                 break;
             case 1:
-                fangAn.data.type = 0x11;    // unsigned
+                fangAn.data.type = dtunsigned;    // unsigned
                 index += getUnsigned(&dealdata[index], (INT8U *) &fangAn.data.data);
                 break;
             case 3:
-                fangAn.data.type = 0x54;    // TI
+                fangAn.data.type = dtti;    // TI
                 index += getTI(1, &dealdata[index], (TI *) &fangAn.data.data);
                 fprintf(stderr, "\n方案类型：%02x  data=%02x-%02x-%02x\n", fangAn.data.type, fangAn.data.data[0],
                         fangAn.data.data[1], fangAn.data.data[2]);
                 break;
+            case 4:
+            	fangAn.data.type = dtstructure;    //
+            	index += getStructure(&dealdata[index],NULL);
+            	retlen += getTI(1, &dealdata[index], (TI *) &fangAn.data.data[0]);
+            	index += retlen;
+            	index += getLongUnsigned(&dealdata[index], (INT8U *) &fangAn.data.data[retlen]);
+            	break;
             default:
                 return;
         }
@@ -725,19 +734,38 @@ void TaskInfo(INT16U attr_act, INT8U *data, Action_result *act_ret) {
     }
 }
 
-void TerminalInfo(INT16U attr_act, INT8U *data) {
+void TerminalInfo(INT16U attr_act, INT8U *data, Action_result *act_ret) {
+	int   index = 0;
+	int	  oadnum = 0,i=0;
+	OAD	  oad[10]={};
+
+	if(data[index]==0) {	//数据为空
+		index = 1;		//数据位
+	}
     switch (attr_act) {
         case 1://设备复位
             Reset_add();
             fprintf(stderr, "\n4300 设备复位！");
+            syslog(LOG_NOTICE, "4300 设备复位!（act=%d）",attr_act);
             break;
+        case 4:	//参数初始化，恢复出厂参数
+        	if(data[index]==1) {	//参数：array OAD
+        		index += getArray(&data[index],(INT8U *)&oadnum);
+        		if(oadnum >= 10)  oadnum = 10;
+        		for(i=0;i<oadnum;i++) {
+        			index += getOAD(1,&data[index],&oad[i]);
+        		}
+        	}
+        	paraInit(oadnum,oad);
+        	break;
         case 3://数据初始化
         case 5://事件初始化
         case 6://需量初始化
             dataInit(attr_act);
             //Event_3100(NULL,0,memp);//初始化，产生事件
             Reset_add();            //国网台体测试,数据初始化认为是复位操作
-            fprintf(stderr, "\n终端数据初始化!");
+            fprintf(stderr, "\n终端数据初始化！");
+            syslog(LOG_NOTICE, "终端数据初始化!（act=%d）",attr_act);
             break;
         case 151://湖南切换到3761规约程序转换主站通信参数
             fprintf(stderr, "\nhunan change 3761 protocol f151\n");
@@ -762,6 +790,8 @@ void TerminalInfo(INT16U attr_act, INT8U *data) {
             }
             break;
     }
+    act_ret->datalen = index;
+    act_ret->DAR = success;
 }
 
 void FileTransMothod(INT16U attr_act, INT8U *data) {
@@ -1097,7 +1127,7 @@ int doObjectAction(OAD oad, INT8U *data, Action_result *act_ret) {
     }
     switch (oi) {
         case 0x4300:    //终端对象
-            TerminalInfo(attr_act, data);
+            TerminalInfo(attr_act, data, act_ret);
             break;
         case 0x5004:    //日冻结
         case 0x5006:    //月冻结

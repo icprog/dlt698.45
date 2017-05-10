@@ -300,8 +300,11 @@ int GetOADPos(FILE *fp,INT16U headlen,OAD oadm,OAD oadr)
 	memset(headbuf,0x00,512);
 	memset(headunit,0x00,100*sizeof(HEAD_UNIT));
 	rewind(fp);
+
 	fread(headbuf,headlen,1,fp);
+
 	memcpy(headunit,&headbuf[4],headlen-4);
+
 	unitnum = (headlen-4)/(sizeof(HEAD_UNIT));
 	if(unitnum == 0)
 		return -1;
@@ -380,6 +383,11 @@ int SaveNorData(INT8U taskid,ROAD *road_eve,INT8U *databuf,int datalen,TS ts_cc)
 	{
 		asyslog(LOG_WARNING, "file：%s存在",fname);
 		ReadFileHeadLen(fp,&headlen,&unitlen);
+		if(unitlen==0)
+		{
+			asyslog(LOG_WARNING, "cjsave 存储文件头%s headlen=%d unitlen=%d unitnum=%d runtime=%d",fname,headlen,unitlen,unitnum,runtime);
+			return 0;
+		}
 		databuf_tmp = malloc(unitlen);
 		fseek(fp,headlen,SEEK_SET);//跳过文件头
 		while(!feof(fp))
@@ -495,9 +503,15 @@ int SaveOADData(INT8U taskid,OAD oad_m,OAD oad_r,INT8U *databuf,int datalen,TS t
 	if(fp == NULL)//文件没内容 组文件头，如果文件已存在，提取文件头信息
 	{
 		CreateSaveHead(fname,NULL,csds,&headlen,&unitlen,&unitnum,runtime,1);//写文件头信息并返回
-		asyslog(LOG_WARNING, "cjsave 存储文件头%s headlen=%d unitlen=%d unitnum=%d runtime=%d",fname,headlen,unitlen,unitnum,runtime);
+		asyslog(LOG_WARNING, "cjsave 存储文件头%s headlen=%d unitlen=%d unitnum=%d runtime=%d datalen=%d",fname,headlen,unitlen,unitnum,runtime,datalen);
 		databuf_tmp = malloc(unitlen);
 		savepos=0;
+		fp = fopen(fname,"r");
+		if(fp == NULL)
+		{
+			asyslog(LOG_WARNING, "file-%s is NULL",fname);
+			return 0;
+		}
 	}
 	else
 	{
@@ -531,20 +545,27 @@ int SaveOADData(INT8U taskid,OAD oad_m,OAD oad_r,INT8U *databuf,int datalen,TS t
 	}
 	unitseq = (ts_res.Hour*60*60+ts_res.Minute*60+ts_res.Sec)/((24*60*60)/runtime)+1;
 	asyslog(LOG_NOTICE,"ts: %d:%d:%d",ts_res.Hour,ts_res.Minute,ts_res.Sec);
-	asyslog(LOG_NOTICE,"存储序号: unitseq=%d runtime=%d  %d--%d",unitseq,runtime,(ts_res.Hour*60*60+ts_res.Minute*60+ts_res.Sec),((24*60*60)/runtime));
+	asyslog(LOG_NOTICE,"存储序号: unitseq=%d unitlen=%d runtime=%d  %d--%d",unitseq,unitlen,runtime,(ts_res.Hour*60*60+ts_res.Minute*60+ts_res.Sec),((24*60*60)/runtime));
 	if(unitseq > runtime)
 	{
+		asyslog(LOG_NOTICE,"不符和unitseq=%d runtime=%d",unitseq, runtime);
 		if(databuf_tmp != NULL)
 			free(databuf_tmp);
 		return 0;//出错了，序列号超过了总长度
 	}
+	asyslog(LOG_NOTICE,"计算oadoffset");
 	oadoffset = GetOADPos(fp,headlen,oad_m,oad_r);
+	asyslog(LOG_NOTICE,"计算oadoffset=%d::%d ts: %d:%d:%d",oadoffset,ts_res.Hour,ts_res.Minute,ts_res.Sec,unitlen/runtime);
 	if(oadoffset>=unitlen/runtime)
 		return 0;//计算的有问题
-	memcpy(&databuf_tmp[unitlen*(unitseq-1)/runtime+oadoffset],&databuf[18],datalen);//赋值到应该赋值的oad位置
-	oadlen = CalcOIDataLen(oad_r.OI,oad_r.attflg);
+	asyslog(LOG_NOTICE,"oadoffset=%d合理::%d",oadoffset,unitlen*(unitseq-1)/runtime+oadoffset);
+	memcpy(&databuf_tmp[unitlen*(unitseq-1)/runtime+oadoffset],&databuf[18],datalen-18);//赋值到应该赋值的oad位置
+	asyslog(LOG_NOTICE,"oadoffset=%d合理",oadoffset);
+	oadlen = CalcOIDataLen(oad_r.OI,oad_r.attrindex);
+	asyslog(LOG_NOTICE,"计算长度%04x-%02x-%02x:len=%d",oad_r.OI,oad_r.attflg,oad_r.attrindex,oadlen);
 	if(datalen != oadlen+TSA_LEN+1)
 	{
+		asyslog(LOG_NOTICE,"计算的长度不对%d::%d",datalen, oadlen+TSA_LEN+1);
 		if(databuf_tmp != NULL)
 			free(databuf_tmp);
 		return 0;//长度不对

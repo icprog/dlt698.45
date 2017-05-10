@@ -1228,7 +1228,7 @@ INT8U Event_3106(ProgramInfo* prginfo_event,MeterPower *MeterPowerInfo,INT8U *st
 	INT8U off_flag=0,on_flag=0;
 	//判断下电
 	if(TermialPowerInfo.ERC3106State == POWER_START){
-		if(prginfo_event->cfg_para.device == 2){//II型
+		if(prginfo_event->cfg_para.device == CCTT2){//II型
 			if(((prginfo_event->ACSRealData.Available==TRUE)
 							&&(prginfo_event->ACSRealData.Ua>100
 									&& prginfo_event->ACSRealData.Ua<poweroff_happen_vlim)) ||
@@ -1258,7 +1258,7 @@ INT8U Event_3106(ProgramInfo* prginfo_event,MeterPower *MeterPowerInfo,INT8U *st
 			SendERC3106(flag,0,prginfo_event);
 		}
 	}else if(TermialPowerInfo.ERC3106State == POWER_OFF){
-		if(prginfo_event->cfg_para.device == 2){//II型
+		if(prginfo_event->cfg_para.device == CCTT2){//II型
 			if((prginfo_event->ACSRealData.Available && prginfo_event->ACSRealData.Ua>recover_voltage_limit && recover_voltage_limit>0)
 					||(prginfo_event->ACSRealData.Available && prginfo_event->ACSRealData.Ua>180))
 				on_flag=1;

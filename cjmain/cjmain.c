@@ -17,6 +17,7 @@
 #include "PublicFunction.h"
 #include "AccessFun.h"
 #include "cjmain.h"
+#include "basedef.h"
 #include "../lib698/dlt698.h"
 #include "../libMq/libmmq.h"
 #include "../include/version.h"
@@ -298,10 +299,11 @@ void InitSharedMem(int argc, char *argv[]) {
 
     InitClass4016();    //当前套日时段表
     InitClass4300();    //电气设备信息
-    InitClass4500();    //公网通信模块1
     InitClass4510();    //以太网通信模块1
     //InitClass6000();	//初始化交采采集档案
     //InitClassf203();	//开关量输入
+    InitClassByZone(1);	//根据地区进行相应初始化
+
     //事件参数初始化
     readCoverClass(0x3100, 0, &JProgramInfo->event_obj.Event3100_obj, sizeof(JProgramInfo->event_obj.Event3100_obj),
                    event_para_save);
@@ -577,7 +579,7 @@ int main(int argc, char *argv[]) {
         //喂狗
         Watchdog(5);
 
-        if (JProgramInfo->cfg_para.device == 1 || JProgramInfo->cfg_para.device == 3) { //I型集中器，III型专变
+        if (JProgramInfo->cfg_para.device == CCTT1 || JProgramInfo->cfg_para.device == SPTF3) { //I型集中器，III型专变
             //电池检测掉电关闭设备
             PowerOffToClose(90);
         }

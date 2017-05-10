@@ -665,7 +665,7 @@ INT8S dealMsgProcess()
 					if(cjguiProxy.isInUse == 0)
 					{
 						memcpy(&cjguiProxy.strProxyMsg,rev_485_buf,sizeof(Proxy_Msg));
-						cjguiProxy.isInUse = 7;
+						cjguiProxy.isInUse = 3;
 					}
 					else
 					{
@@ -850,12 +850,12 @@ int main(int argc, char *argv[])
 	read485_proccess();
 	//统计计算 电压合格率 停电事件等
 	calc_proccess();
-	if(JProgramInfo->cfg_para.device == 1)
+	if(JProgramInfo->cfg_para.device == CCTT1)
 	{
 		//载波
-//		readplc_proccess();
+		readplc_proccess();
 	}
-	if(JProgramInfo->cfg_para.device != 2)
+	if(JProgramInfo->cfg_para.device != CCTT2)
 	{
 		//液晶、控制
 		guictrl_proccess();

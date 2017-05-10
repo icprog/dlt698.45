@@ -412,7 +412,6 @@ int readFileName(OI_698 oi,INT16U seqno,INT16U type,char *fname)
 		sprintf(fname,"%s/%04x/%d.dat",EVENT_CURR,oi,seqno);
 		break;
 	case para_vari_save:
-//	case freeze_atti_save:
 		sprintf(fname,"%s/%04x.par",PARADIR,oi);
 		break;
 	case coll_para_save:
@@ -432,6 +431,11 @@ int readFileName(OI_698 oi,INT16U seqno,INT16U type,char *fname)
 		break;
 	}
 	ret = access(fname,F_OK);
+	if(ret!=0 && oi==0x4001){	 //通信地址
+		memset(fname,0,FILENAMELEN);
+		sprintf(fname,"%s/%04x.par",INITDIR,oi);
+		ret = access(fname,F_OK);
+	}
 	return ret;
 }
 

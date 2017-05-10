@@ -92,8 +92,9 @@ BOOLEAN oi_f203_changed(INT8U save_changed)
 {
 	INT8U i=0;
 	static INT8U changed = 0xff;
-	if(changed != 0 && changed != save_changed)
+	if(changed != save_changed)
 	{
+		fprintf(stderr,"\n changed = %d  save_change= %d  保存文件oif203\n",changed,save_changed);
 		read_oif203_para();
 		for(i=0; i < STATE_MAXNUM;i++)
 		{
