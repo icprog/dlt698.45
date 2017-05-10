@@ -25,6 +25,9 @@ void AT_POWOFF();
 
 void CreateATWorker(void* clientdata);
 
+int RecieveFromComm(char* buf, int mlen, int com);
+int SendATCommand(char* buf, int len, int com);
+
 int gpofun(char* devname, int data);
 int absoluteKill(char * name, int timeout);
 

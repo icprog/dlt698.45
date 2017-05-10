@@ -82,6 +82,14 @@ Tools()
 {
     echo "更新生产检测脚本..."
     cd app ;md5sum * > ../QCheck/md5.ini; cd ..
+    if [ -f QCheck/back/$2.$1.check.ini ] && [ -f QCheck/back/$2.$1.config.ini ]; then
+        cp QCheck/back/$2.$1.check.ini QCheck/check.ini
+        cp QCheck/back/$2.$1.config.ini QCheck/config.ini
+    else
+        echo ">>>>>>>>>>>>>>>>>>>>>>>>>"
+        echo "没有找到对应类型的出厂参数...!"
+        echo ">>>>>>>>>>>>>>>>>>>>>>>>>"
+    fi
 }
 
 Post_Clean()
@@ -99,7 +107,7 @@ main()
     UpdateLocation $1 $2
     Package
     CreateUSB
-    Tools
+    Tools $1 $2
     Post_Clean
 }
 
