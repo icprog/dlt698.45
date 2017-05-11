@@ -69,4 +69,6 @@ extern void First_VerifiTime(LINK_Response linkResponse, ProgramInfo* JProgramIn
 void ConformAutoTask(struct aeEventLoop* ep, CommBlock* nst, int res);
 void RegularAutoTask(struct aeEventLoop* ep, CommBlock* nst);
 
+//内部协议栈
+void CreateOnModel(void *clientdata);
 #endif
