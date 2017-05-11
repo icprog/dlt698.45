@@ -43,6 +43,8 @@ INT8U flag07_0CF25_2_B[4] = {0x00,0x02,0x02,0x02};//当前B相电流
 INT8U flag07_0CF25_2_C[4] = {0x00,0x03,0x02,0x02};//当前C相电流
 INT8U flag07_0CF25_3[4] = {0x00,0xff,0x03,0x02};//当前有功功率
 INT8U flag07_0CF25_4[4] = {0x00,0xff,0x04,0x02};//当前无功功率
+INT8U flag07_0CF25_5[4] = {0x00,0xff,0x05,0x02};//视在功率
+INT8U flag07_0CF25_9[4] = {0x00,0xff,0x06,0x02};//功率因数
 INT8U freezeflag07_1[4] = {0x01,0x00,0x06,0x05};//上一次日冻结时标
 INT8U freezeflag07_2[4] = {0x01,0x01,0x06,0x05};//上一次日冻结正向有功总电能示值
 INT8U freezeflag07_3[4] = {0x01,0x02,0x06,0x05};//上一次日冻结反向有功总电能示值
@@ -1088,6 +1090,22 @@ INT8U getASNInfo(FORMAT07* DI07,Base_DataType* dataType)
 			memset(&DI07->Data[4],0,2);
 		}
 	}
+	//功率因数
+	if(memcmp(flag07_0CF25_9,DI07->DI,4) == 0)
+	{
+		if((DI07->Data[2] = 0xff)&&(DI07->Data[3] = 0xff))
+		{
+			memset(&DI07->Data[2],0,2);
+		}
+		if((DI07->Data[4] = 0xff)&&(DI07->Data[5] = 0xff))
+		{
+			memset(&DI07->Data[4],0,2);
+		}
+		if((DI07->Data[6] = 0xff)&&(DI07->Data[7] = 0xff))
+		{
+			memset(&DI07->Data[6],0,2);
+		}
+	}
 	if(memcmp(flag07_0CF25_2,DI07->DI,4) == 0)
 	{
 		*dataType = dtdoublelong;
@@ -1121,7 +1139,7 @@ INT8U getASNInfo(FORMAT07* DI07,Base_DataType* dataType)
 		memcpy(&DI07->Data[0],&f25_2_buff[0],4);
 		DI07->Length += 1;
 	}
-	if((memcmp(flag07_0CF25_3,DI07->DI,4) == 0)||(memcmp(flag07_0CF25_4,DI07->DI,4) == 0))
+	if((memcmp(flag07_0CF25_3,DI07->DI,4) == 0)||(memcmp(flag07_0CF25_4,DI07->DI,4) == 0)||(memcmp(flag07_0CF25_5,DI07->DI,4) == 0))
 	{
 		*dataType = dtdoublelong;
 		unitNum = 4;
@@ -3000,12 +3018,16 @@ INT16S deal6015_07(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8U
 			to6001.sernum, st6015.sernum, st6015.csds.num);
 	DbgPrintToFile1(port485,"st6015.csds.csd[%d]",
 			to6001.sernum, st6015.sernum, st6015.csds.num);
-	INT8U singleCurveDatabuf[DATA_CONTENT_LEN];
-	memset(singleCurveDatabuf,0,DATA_CONTENT_LEN);
-	TS freezeTimeStamp;
-	TSGet(&freezeTimeStamp);
-	int bufflen = compose6012Buff(st6035->starttime,to6001.basicinfo.addr,totaldataLen,dataContent,port485);
-	SaveNorData(st6035->taskID,NULL,dataContent,bufflen,freezeTimeStamp);
+	if(st6015.cjtype == TYPE_INTERVAL)
+	{
+		INT8U singleCurveDatabuf[DATA_CONTENT_LEN];
+		memset(singleCurveDatabuf,0,DATA_CONTENT_LEN);
+		TS freezeTimeStamp;
+		TSGet(&freezeTimeStamp);
+		int bufflen = compose6012Buff(st6035->starttime,to6001.basicinfo.addr,totaldataLen,dataContent,port485);
+		SaveNorData(st6035->taskID,NULL,dataContent,bufflen,freezeTimeStamp);
+	}
+
 
 	return totaldataLen;
 }
