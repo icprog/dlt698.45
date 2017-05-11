@@ -58,7 +58,8 @@ INT8U flag07_kaibiaogai[4] =   {0x01,0x0d,0x30,0x03};//电能表开盖事件
 
 INT8U flag07_kaibiaogaicishu[4] =   {0x00,0x0d,0x30,0x03};//电能表开盖事件次数
 INT8U flag07_diaodiancishu[4] =  {0x00,0x00,0x11,0x03};//电能表掉电次数
-
+INT8U flag07_xuliang_1[4] =  {0x00,0xff,0x01,0x01};//当前正向有功最大需量
+INT8U flag07_xuliang_2[4] =  {0x00,0xff,0x02,0x01};//当前反向有功最大需量
 #endif
 
 INT8U zeroBuff[4] = {0x00,0x00,0x00,0x00};
@@ -1019,7 +1020,6 @@ INT8U getASNInfo(FORMAT07* DI07,Base_DataType* dataType)
 	INT8U unitNum = 1;
 	INT8U index;
 
-#if 1
 	//电表日期
 	if(memcmp(flag07_date,DI07->DI,4) == 0)
 	{
@@ -1139,6 +1139,35 @@ INT8U getASNInfo(FORMAT07* DI07,Base_DataType* dataType)
 		memcpy(&DI07->Data[0],&f25_2_buff[0],4);
 		DI07->Length += 1;
 	}
+	//需量类
+	if((DI07->DI[3] == 0x01)&&(DI07->DI[2] >= 0x00)&&(DI07->DI[2]<=0x0A))
+	{
+		INT8U xuliangdata[20];
+		memset(xuliangdata,0,20);
+		*dataType = dtdoublelongunsigned;
+		if(DI07->DI[1]==0xff)
+		{
+			unitNum = 5;
+		}
+		else
+		{
+			unitNum = 1;
+		}
+		INT8U tmpIndex = 0;
+		for(tmpIndex = 0;tmpIndex < unitNum;tmpIndex++)
+		{
+			if((DI07->Data[tmpIndex*8]==0xff)&&(DI07->Data[tmpIndex*8+1]==0xff)&&(DI07->Data[tmpIndex*8+2]==0xff))
+			{
+				memset(&xuliangdata[tmpIndex*4],0,4);
+			}
+			else
+			{
+				memcpy(&xuliangdata[tmpIndex*4],&DI07->Data[tmpIndex*8],3);
+			}
+		}
+		memcpy(&DI07->Data[0],xuliangdata,20);
+		DI07->Length = (unitNum*4)+4;
+	}
 	if((memcmp(flag07_0CF25_3,DI07->DI,4) == 0)||(memcmp(flag07_0CF25_4,DI07->DI,4) == 0)||(memcmp(flag07_0CF25_5,DI07->DI,4) == 0))
 	{
 		*dataType = dtdoublelong;
@@ -1204,75 +1233,7 @@ INT8U getASNInfo(FORMAT07* DI07,Base_DataType* dataType)
 
 	}
 
-#else
-	//电压
-	if(memcmp(flag07_0CF25_1,DI07->DI,4) == 0)
-	{
-		*dataType = dtlongunsigned;
-		unitNum = 3;
-	}
-	//A相电压
-	if(memcmp(flag07_0CF25_1_A,DI07->DI,4) == 0)
-	{
-		*dataType = dtlongunsigned;
-		unitNum = 1;
-	}
-	if(memcmp(flag07_0CF25_2,DI07->DI,4) == 0)
-	{
-		*dataType = dtdoublelong;
-		unitNum = 3;
-		INT8U f25_2_buff[12] = {0};
-		memcpy(&f25_2_buff[1],&DI07->Data[0],3);
-		memcpy(&f25_2_buff[5],&DI07->Data[3],3);
-		memcpy(&f25_2_buff[9],&DI07->Data[6],3);
-		memcpy(&DI07->Data[0],&f25_2_buff[0],12);
-		DI07->Length += 3;
-	}
-	if(memcmp(flag07_0CF25_2_A,DI07->DI,4) == 0)
-	{
-		*dataType = dtdoublelong;
-		unitNum = 1;
-		INT8U f25_2_buff[4] = {0};
-		memcpy(&f25_2_buff[1],&DI07->Data[0],3);
-		memcpy(&DI07->Data[0],&f25_2_buff[0],4);
-		DI07->Length += 1;
-	}
-	if((memcmp(flag07_0CF25_3,DI07->DI,4) == 0)||(memcmp(flag07_0CF25_4,DI07->DI,4) == 0))
-	{
-		*dataType = dtdoublelong;
-		unitNum = 4;
-		INT8U f25_3_buff[16] = {0};
-		memcpy(&f25_3_buff[1],&DI07->Data[0],3);
-		memcpy(&f25_3_buff[5],&DI07->Data[3],3);
-		memcpy(&f25_3_buff[9],&DI07->Data[6],3);
-		memcpy(&f25_3_buff[13],&DI07->Data[9],3);
-		memcpy(&DI07->Data[0],&f25_3_buff[0],16);
-		DI07->Length += 4;
-	}
 
-	//冻结时标数据07为5个字节 698为7个 需要特殊处理
-	if(memcmp(freezeflag07_1,DI07->DI,4) == 0)
-	{
-		*dataType = dtdatetimes;
-		DI07->Length += 2;
-		fprintf(stderr,"\n 1-----getASNInfo dataType = %d",*dataType);
-	}
-
-	if((memcmp(flag07_0CF25_3,DI07->DI,4) == 0) || (memcmp(flag07_0CF25_4,DI07->DI,4) == 0))
-	{
-		*dataType = dtdoublelong;
-		unitNum = 4;
-	}
-
-	if((memcmp(freezeflag07_2,DI07->DI,4) == 0)||(memcmp(freezeflag07_3,DI07->DI,4) == 0)
-			||(memcmp(flag07_0CF33,DI07->DI,4) == 0)||(memcmp(flag07_0CF34,DI07->DI,4) == 0)
-			||(memcmp(flag07_0CF177,DI07->DI,4) == 0))
-	{
-		*dataType = dtdoublelongunsigned;
-		unitNum = 5;
-		fprintf(stderr,"\n 2-----getASNInfo dataType = %d",*dataType);
-	}
-#endif
 	return unitNum;
 }
 
@@ -3018,8 +2979,10 @@ INT16S deal6015_07(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8U
 			to6001.sernum, st6015.sernum, st6015.csds.num);
 	DbgPrintToFile1(port485,"st6015.csds.csd[%d]",
 			to6001.sernum, st6015.sernum, st6015.csds.num);
+	DbgPrintToFile1(port485, " 11111st6015.cjtype　＝ %d",st6015.cjtype);
 	if(st6015.cjtype == TYPE_INTERVAL)
 	{
+		DbgPrintToFile1(port485, " st6015.cjtype　＝ %d",st6015.cjtype);
 		INT8U singleCurveDatabuf[DATA_CONTENT_LEN];
 		memset(singleCurveDatabuf,0,DATA_CONTENT_LEN);
 		TS freezeTimeStamp;
