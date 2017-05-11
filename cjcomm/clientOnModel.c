@@ -55,6 +55,8 @@ static int NetSend(int fd, INT8U *buf, INT16U len) {
     if (netObject.tail + 1 != netObject.head) {
         memcpy(netObject.send[netObject.tail].buf, buf, len);
         asyslog(LOG_WARNING, "内部协议栈发送(长度:%d,头尾:%d-%d)", len, netObject.head, netObject.tail);
+        netObject.tail++;
+        netObject.tail %= 16;
     } else {
         asyslog(LOG_WARNING, "内部协议栈发送[缓冲区满](长度:%d,头尾:%d-%d)", len, netObject.head, netObject.tail);
     }
@@ -71,6 +73,22 @@ static int NetRecv(INT8U *buf) {
     for (int i = 0; i < len; ++i) {
         buf[i] = netObject.recv.buf[i];
     }
+    pthread_mutex_unlock(&locker);
+    return len;
+}
+
+static int getNext(INT8U *buf) {
+    if (netObject.head == netObject.tail) {
+        return -1;
+    }
+    pthread_mutex_lock(&locker);
+    int res = netObject.head;
+    int len = netObject.send[res].len;
+    for (int i = 0; i < netObject.send[res].len; ++i) {
+        buf[i] = netObject.send[res].buf[i];
+    }
+    netObject.head++;
+    netObject.head %= 16;
     pthread_mutex_unlock(&locker);
     return len;
 }
@@ -436,31 +454,43 @@ void *ModelWorker(void *args) {
                 goto err;
             }
 
-            for (int timeout = 0; timeout < 3; timeout++) {
-                char Mrecvbuf[128];
+            INT8U sendBuf[2048];
+            memset(sendBuf, 0x00, sizeof(sendBuf));
+            int res = getNext(sendBuf);
 
-                SendATCommand("\rAT$MYNETWRITE=1,12\r", strlen("\rAT$MYNETWRITE=1,12\r"), sMux0);
-                delay(1000);
-                memset(Mrecvbuf, 0, 128);
-                RecieveFromComm(Mrecvbuf, 128, sMux0);
+            if (res != -1) {
+                for (int timeout = 0; timeout < 3; timeout++) {
+                    char Mrecvbuf[128];
 
-                if (strstr(Mrecvbuf, "OK") != 0) {
-                    break;
+                    char CommandBuf[128];
+                    memset(CommandBuf, 0x00, sizeof(CommandBuf));
+                    sprintf(CommandBuf, "\rAT$MYNETWRITE=1,%d\r", res);
+
+                    SendATCommand(CommandBuf, strlen(CommandBuf), sMux0);
+                    delay(1000);
+                    memset(Mrecvbuf, 0, 128);
+                    RecieveFromComm(Mrecvbuf, 128, sMux0);
+
+                    if (strstr(Mrecvbuf, "OK") != 0) {
+                        break;
+                    }
+                }
+
+                for (int timeout = 0; timeout < 3; timeout++) {
+                    char Mrecvbuf[128];
+
+                    SendATCommand(sendBuf, res, sMux0);
+                    delay(1000);
+                    memset(Mrecvbuf, 0, 128);
+                    RecieveFromComm(Mrecvbuf, 128, sMux0);
+
+                    if (strstr(Mrecvbuf, "OK") != 0) {
+                        break;
+                    }
                 }
             }
 
-            for (int timeout = 0; timeout < 3; timeout++) {
-                char Mrecvbuf[128];
 
-                SendATCommand("\r123456789123\r", strlen("\r123456789123\r"), sMux0);
-                delay(1000);
-                memset(Mrecvbuf, 0, 128);
-                RecieveFromComm(Mrecvbuf, 128, sMux0);
-
-                if (strstr(Mrecvbuf, "OK") != 0) {
-                    break;
-                }
-            }
         }
 
         err:
@@ -534,6 +564,7 @@ static int RegularClientOnModel(struct aeEventLoop *ep, long long id, void *clie
         }
     }
 
+    Comm_task(nst);
     check_F101_changed_Gprs(nst);
     CalculateTransFlow(nst->shmem);
     //暂时忽略函数返回
