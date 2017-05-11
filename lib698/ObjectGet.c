@@ -743,7 +743,6 @@ int Get4500(RESULT_NORMAL *response)
 		index += fill_enum(&data[index],class_tmp.commconfig.connectType);
 		index += fill_enum(&data[index],class_tmp.commconfig.appConnectType);
 		if(class_tmp.commconfig.listenPortnum>=5) class_tmp.commconfig.listenPortnum = 5;
-
 		index += create_array(&data[index],class_tmp.commconfig.listenPortnum);
 		if(class_tmp.commconfig.listenPortnum) {
 			for(i=0;i<class_tmp.commconfig.listenPortnum;i++) {

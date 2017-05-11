@@ -24,7 +24,7 @@
 #include "dlt645.h"
 #include "dlt698.h"
 extern ProgramInfo* JProgramInfo;
-extern int SaveOADData(INT8U taskid,OAD oad_m,OAD oad_r,INT8U *databuf,int datalen,TS ts_res,INT8U first);
+extern int SaveOADData(INT8U taskid,OAD oad_m,OAD oad_r,INT8U *databuf,int datalen,TS ts_res);
 extern INT16U data07Tobuff698(FORMAT07 Data07,INT8U* dataContent);
 extern INT8S analyzeProtocol07(FORMAT07* format07, INT8U* recvBuf, const INT16U recvLen, BOOLEAN *nextFlag);
 extern INT8S OADMap07DI(OI_698 roadOI,OAD sourceOAD, C601F_07Flag* obj601F_07Flag);
@@ -1140,7 +1140,7 @@ int saveTaskData(FORMAT3762 format_3762_Up,INT8U taskid)
 								taskinfo.task_list[taski].fangan.items[itemi].oad1,
 								taskinfo.task_list[taski].fangan.items[itemi].oad2,
 								alldata,len698,
-								ts,taskinfo.task_list[taski].fangan.item_i);
+								ts);
 					}
 				}
 			}
