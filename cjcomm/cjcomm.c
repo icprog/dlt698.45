@@ -15,7 +15,7 @@
 //共享内存地址
 static ProgramInfo *JProgramInfo = NULL;
 static int ProgIndex = 0;
-static int OnlineType; // 0:没在线 1:GPRS 2:以太网
+static int OnlineType; // 0:没在线 1:GPRS 2:以太网 3:内部协议栈连接主站成功
 CLASS_4000 class_4000;
 
 /*
@@ -306,8 +306,9 @@ int main(int argc, char *argv[]) {
         exit(0);
     }
 
-    // StartIfr(ep, 0, NULL);
-    // StartSerial(ep, 0, NULL);
+//    StartIfr(ep, 0, NULL);
+//    StartSerial(ep, 0, NULL);
+
     StartServer(ep, 0, NULL);
     StartVerifiTime(ep, 0, JProgramInfo);
     StartClientForGprs(ep, 0, NULL);

@@ -34,7 +34,7 @@ static char protcol[]           = "DL/T 698.45";                                
 
 ///湖南　Ｉ型
 static MASTER_STATION_INFO	master_info_HuNan = {{10,223,31,200},4000};			//IP				端口号
-static GprsPara 	gprs_para_HuNan = {"","cs@dl.vpdn.hn","hn123456",""};		//apn ,userName,passWord,proxyIp
+static GprsPara 	gprs_para_HuNan = {"cssdl.hn","cs@dl.vpdn.hn","hn123456",""};		//apn ,userName,passWord,proxyIp
 
 ///浙江　ＩＩ型
 static MASTER_STATION_INFO	master_info_ZheJiang = {{10,223,31,200},4000};		//IP				端口号
@@ -55,8 +55,8 @@ void InitClass4500(MASTER_STATION_INFO master_info,GprsPara gprs_para)
     class4500.commconfig.userName[0] = strlen((char *)gprs_para.userName);
     memcpy(&class4500.commconfig.passWord[1],&gprs_para.passWord,strlen((char *)(gprs_para.passWord)));
     class4500.commconfig.passWord[0] = strlen((char *)(gprs_para.passWord));
-    class4500.master.masternum = 4;
-    for(i=0;i<4;i++) {
+    class4500.master.masternum = 2;
+    for(i=0;i<class4500.master.masternum;i++) {
     	memcpy(&class4500.master.master[i].ip[1],&master_info.ip,strlen((char *)master_info.ip));
     	class4500.master.master[i].ip[0] = strlen((char *)master_info.ip);
     	class4500.master.master[i].port = master_info.port;
