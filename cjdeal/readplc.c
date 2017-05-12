@@ -22,6 +22,7 @@
 #include "readplc.h"
 #include "cjdeal.h"
 #include "dlt645.h"
+#include "dlt698.h"
 extern ProgramInfo* JProgramInfo;
 extern int SaveOADData(INT8U taskid,OAD oad_m,OAD oad_r,INT8U *databuf,int datalen,TS ts_res);
 extern INT16U data07Tobuff698(FORMAT07 Data07,INT8U* dataContent);
@@ -266,7 +267,7 @@ int task_leve(INT8U leve,TASK_UNIT *taskunit)
 		{
 			taskunit[t].taskId = list6013[i].basicInfo.taskID;
 			taskunit[t].leve = list6013[i].basicInfo.runprio;
-			taskunit[t].beginTime = tmtotime_t( DateBCD2Ts(list6013[i].basicInfo.startime) );
+			taskunit[t].beginTime = calcnexttime(list6013[i].basicInfo.interval,list6013[i].basicInfo.startime,list6013[i].basicInfo.delay);;
 			taskunit[t].endTime = tmtotime_t( DateBCD2Ts(list6013[i].basicInfo.endtime ));
 			taskunit[t].begin = list6013[i].basicInfo.startime;
 			taskunit[t].end = list6013[i].basicInfo.endtime;
@@ -1031,6 +1032,7 @@ int processMeter(INT8U *buf,struct Tsa_Node *desnode)
 		taskinfo.task_list[taski].fangan.items[itemi].item07[3] = item07[3];
 		taskinfo.now_taski = taski;
 		taskinfo.now_itemi = itemi;
+		taskinfo.task_list[taski].fangan.item_i = itemi;
 		PrintTaskInfo2(&taskinfo);
 	}else
 	{
@@ -1076,7 +1078,17 @@ int buildMeterFrame(INT8U *buf,struct Tsa_Node *desnode,CJ_FANGAN fangAn)
 	}
 	return 0;
 }
-
+void addTimeLable(TASK_INFO *tskinfo,int taski,int itemi)
+{
+	INT8U index = tskinfo->task_list[taski].fangan.item_i;//当前抄到方案数据项第几数据项目
+	if (index == 0)
+	{
+		//保存开始时间
+	}else if (index == tskinfo->task_list[taski].fangan.item_n)
+	{
+		//保存完成时间
+	}
+}
 int saveTaskData(FORMAT3762 format_3762_Up,INT8U taskid)
 {
 	struct Tsa_Node *nodetmp = NULL;
@@ -1128,7 +1140,7 @@ int saveTaskData(FORMAT3762 format_3762_Up,INT8U taskid)
 								taskinfo.task_list[taski].fangan.items[itemi].oad1,
 								taskinfo.task_list[taski].fangan.items[itemi].oad2,
 								alldata,len698,
-								ts);
+								ts,taskinfo.task_list[taski].fangan.item_i);
 					}
 				}
 			}
@@ -1597,8 +1609,8 @@ void readplc_thread()
 				state = doTask(&runtimevar);					//按任务抄表	  ( 1、根据方案类型和编号号确定抄表报文  )
 				break;
 			default :
-				runtimevar.state = NONE_PROCE;
-				sleep(1);
+					runtimevar.state = NONE_PROCE;
+					sleep(1);
 				break;
 		}
 		runtimevar.state  = state;

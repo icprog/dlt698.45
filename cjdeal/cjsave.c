@@ -480,7 +480,7 @@ int SaveNorData(INT8U taskid,ROAD *road_eve,INT8U *databuf,int datalen,TS ts_cc)
  * 存储oad数据,给定数据，接口函数自己计算数据长度，不够字节自己补0
  * databuf前18个字节为55+地址，后面为数据
  */
-int SaveOADData(INT8U taskid,OAD oad_m,OAD oad_r,INT8U *databuf,int datalen,TS ts_res)
+int SaveOADData(INT8U taskid,OAD oad_m,OAD oad_r,INT8U *databuf,int datalen,TS ts_res,INT8U first)
 {
 	FILE *fp;
 	CSD_ARRAYTYPE csds;
