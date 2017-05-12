@@ -89,6 +89,10 @@ extern int getMS(INT8U type, INT8U* source, MY_MS* ms);                         
 extern int getCOMDCB(INT8U type, INT8U* source, COMDCB* comdcb);                  // 0x5F
 extern int get_BasicRCSD(INT8U type, INT8U* source, CSD_ARRAYTYPE* csds);         // 0x60
 extern int get_Data(INT8U* source, INT8U* dest);
+/*
+ * 根据数据类型返回相应的数据长度
+ * */
+extern int getDataTypeLen(int dt);
 /*----------------------具体OI类组帧函数----------------------*/
 /*----------------------统计相关数据----------------------*/
 extern INT8U Get_Vacs(RESULT_NORMAL *response,ProgramInfo* prginfo_acs);

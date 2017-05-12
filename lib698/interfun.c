@@ -91,6 +91,8 @@ void print_rcsd(CSD_ARRAYTYPE csds)
 	}
 }
 
+
+
 ////////////////////////////////////////////////////////////////////
 int getTItoSec(TI ti)
 {
@@ -486,7 +488,7 @@ int getLongUnsigned(INT8U *source,INT8U *dest)	//0x12
 	return 3;
 }
 
-int getEnum(INT8U type,INT8U *source,INT8U *enumvalue)	//16
+int getEnum(INT8U type,INT8U *source,INT8U *enumvalue)	//0x16
 {
 	if (type==1 || type==0)
 	{
@@ -587,17 +589,22 @@ int getTI(INT8U type,INT8U *source,TI *ti)	//0x54
 
 int get_Data(INT8U *source,INT8U *dest)
 {
-	int type=0,i=0;
-	type = source[0];
-	dest[0] = type;
-//	fprintf(stderr,"get_Data type=%02x\n",type);
-	switch(type){
+	int dttype=0,dtlen=0,i=0;
+	dttype = source[0];
+	dest[0] = dttype;
+//	dtlen = getDataTypeLen(dttype);
+//	if(dtlen>=0) {
+//		memcpy(&dest[1],&source[1],dtlen);
+//	}
+
+	fprintf(stderr,"get_Data type=%02x\n",dttype);
+	switch(dttype){
 	case dtunsigned:
 		dest[1] = source[1];
 		return 2;
 	case dtlongunsigned:
-		dest[1] = source[1];
-		dest[2] = source[2];
+		dest[1] = source[2];		//高低位
+		dest[2] = source[1];
 		return 3;
 	case dtfloat64:
 	case dtlong64:
@@ -762,6 +769,7 @@ int getCSD(INT8U type,INT8U *source,MY_CSD* csd)		//0X5B
 	}
 	return 0;
 }
+
 int getMS(INT8U type,INT8U *source,MY_MS *ms)		//0x5C
 {
 	INT8U choicetype=0;
@@ -847,7 +855,6 @@ int getCOMDCB(INT8U type, INT8U* source, COMDCB* comdcb)		//0x5F
 	}
 	return 0;
 }
-
 
 /*
  * 解析记录列选择 RCSD
@@ -1071,6 +1078,38 @@ int Get_6035(INT8U type,INT8U taskid,INT8U *data)
 	return index;
 }
 
+/*
+ * 根据数据类型返回相应的数据长度
+ * */
+int getDataTypeLen(int dt)
+{
+	switch(dt) {
+	case dtnull: 			return 0;
+	case dtbool: 			return 1;
+	case dtdoublelong:  	return 4;
+	case dtdoublelongunsigned: return 4;
+	case dtinteger:			return 1;
+	case dtlong:			return 2;
+	case dtunsigned:		return 1;
+	case dtlongunsigned: 	return 2;
+	case dtlong64:			return 8;
+	case dtlong64unsigned: 	return 8;
+	case dtenum:		 	return 1;
+	case dtfloat32:			return 4;
+	case dtfloat64:			return 8;
+	case dtdatetime:		return 10;
+	case dtdate:			return 5;
+	case dttime:			return 3;
+	case dtdatetimes:		return 7;
+	case dtoi:				return 2;
+	case dtoad:				return 4;
+	case dtomd:				return 4;
+	case dtti:				return 3;
+	default:
+		syslog(LOG_NOTICE,"未处理数据类型");
+		return -1;
+	}
+}
 /*参数文件修改，改变共享内存的标记值，通知相关进程，参数有改变
  * */
 void setOIChange(OI_698 oi)

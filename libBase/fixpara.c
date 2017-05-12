@@ -34,7 +34,7 @@ static char protcol[]           = "DL/T 698.45";                                
 
 ///湖南　Ｉ型
 static MASTER_STATION_INFO	master_info_HuNan = {{10,223,31,200},4000};			//IP				端口号
-static GprsPara 	gprs_para_HuNan = {"cssdl.hn","cs@dl.vpdn.hn","hn123456",""};		//apn ,userName,passWord,proxyIp
+static GprsPara 	gprs_para_HuNan = {"dl.vpdn.hn","cs@dl.vpdn.hn","hn123456",""};		//apn ,userName,passWord,proxyIp
 
 ///浙江　ＩＩ型
 static MASTER_STATION_INFO	master_info_ZheJiang = {{10,223,31,200},4000};		//IP				端口号
