@@ -482,101 +482,137 @@ int SaveNorData(INT8U taskid,ROAD *road_eve,INT8U *databuf,int datalen,TS ts_cc)
  */
 int SaveOADData(INT8U taskid,OAD oad_m,OAD oad_r,INT8U *databuf,int datalen,TS ts_res)
 {
-	FILE *fp;
-	CSD_ARRAYTYPE csds;
-	char	fname[FILENAMELEN]={};
-	INT8U *databuf_tmp=NULL,eveflg=0;
-	int savepos=0, currpos=0, i=0, oadoffset=0, oadlen=0;
-	INT16U headlen=0,unitlen=0,unitnum=0,unitseq=0,runtime=0;//runtime执行次数
-	TASKSET_INFO tasknor_info;
-	memset(&csds,0x00,sizeof(ROAD));
-//	csds.num = 1;
-//	csds.csd[0].type = 1;//road
+		FILE *fp;
+		CSD_ARRAYTYPE csds;
+		char	fname[FILENAMELEN]={};
+		INT8U *databuf_tmp=NULL,eveflg=0, firOIflg=0;
+		int savepos=0, currpos=0, i=0, oadoffset=0, oadlen=0;
+		INT16U headlen=0,unitlen=0,unitnum=0,unitseq=0,runtime=0;//runtime执行次数
+		TASKSET_INFO tasknor_info;
+		DateTimeBCD datetime;
+		TS ts_now;
+		TSGet(&ts_now);
+		memset(&csds,0x00,sizeof(ROAD));
+	//	csds.num = 1;
+	//	csds.csd[0].type = 1;//road
 
-	fprintf(stderr,"SaveOADData==========\n");
-	if(ReadTaskInfo(taskid,&tasknor_info)!=1)
-		return 0;
-	runtime = tasknor_info.runtime;
-	memcpy(&csds,&tasknor_info.csds,sizeof(CSD_ARRAYTYPE));//
-	getTaskFileName(taskid,ts_res,fname);
-	fp = fopen(fname,"r");
-	if(fp == NULL)//文件没内容 组文件头，如果文件已存在，提取文件头信息
-	{
-		CreateSaveHead(fname,NULL,csds,&headlen,&unitlen,&unitnum,runtime,1);//写文件头信息并返回
-		asyslog(LOG_WARNING, "cjsave 存储文件头%s headlen=%d unitlen=%d unitnum=%d runtime=%d datalen=%d",fname,headlen,unitlen,unitnum,runtime,datalen);
-		databuf_tmp = malloc(unitlen);
-		savepos=0;
-		fp = fopen(fname,"r");
-		if(fp == NULL)
-		{
-			asyslog(LOG_WARNING, "file-%s is NULL",fname);
+		fprintf(stderr,"SaveOADData==========\n");
+		if(ReadTaskInfo(taskid,&tasknor_info)==0)
 			return 0;
-		}
-	}
-	else
-	{
-		ReadFileHeadLen(fp,&headlen,&unitlen);
-		databuf_tmp = malloc(unitlen);
-		fseek(fp,headlen,SEEK_SET);//跳过文件头
-		while(!feof(fp))
+		runtime = tasknor_info.runtime;
+		memcpy(&csds,&tasknor_info.csds,sizeof(CSD_ARRAYTYPE));//
+		getTaskFileName(taskid,ts_res,fname);
+		fp = fopen(fname,"r");
+		if(fp == NULL)//文件没内容 组文件头，如果文件已存在，提取文件头信息
 		{
-			if(fread(databuf_tmp,unitlen,1,fp)==0)
+			CreateSaveHead(fname,NULL,csds,&headlen,&unitlen,&unitnum,runtime,1);//写文件头信息并返回
+			asyslog(LOG_WARNING, "cjsave 存储文件头%s headlen=%d unitlen=%d unitnum=%d runtime=%d datalen=%d",fname,headlen,unitlen,unitnum,runtime,datalen);
+			databuf_tmp = malloc(unitlen);
+			savepos=0;
+			fp = fopen(fname,"r");
+			if(fp == NULL)
 			{
-				break;
-			}
-			if(memcmp(databuf_tmp,databuf,18)==0)//找到了存储结构的位置，一个存储结构可能含有unitnum个单元
-			{
-				savepos=ftell(fp)-unitlen;
-				break;
+				asyslog(LOG_WARNING, "file-%s is NULL",fname);
+				return 0;
 			}
 		}
-	}
-	if(fp != NULL)
-		currpos = ftell(fp);
-	if(savepos==0)//存储位置为0.说明文件中没找到，则应添加而不是覆盖
-	{
-		if(currpos == 0)//第一个存储的
-			savepos=headlen;
 		else
-			savepos=currpos;
-		memset(databuf_tmp,0x00,unitlen);
-		for(i=0;i<runtime;i++)
-			memcpy(&databuf_tmp[unitlen*i/runtime],databuf,18);//每个小单元地址附上
-	}
-	unitseq = (ts_res.Hour*60*60+ts_res.Minute*60+ts_res.Sec)/((24*60*60)/runtime)+1;
-	asyslog(LOG_NOTICE,"ts: %d:%d:%d",ts_res.Hour,ts_res.Minute,ts_res.Sec);
-	asyslog(LOG_NOTICE,"存储序号: unitseq=%d unitlen=%d runtime=%d  %d--%d",unitseq,unitlen,runtime,(ts_res.Hour*60*60+ts_res.Minute*60+ts_res.Sec),((24*60*60)/runtime));
-	if(unitseq > runtime)
-	{
-		asyslog(LOG_NOTICE,"不符和unitseq=%d runtime=%d",unitseq, runtime);
+		{
+			ReadFileHeadLen(fp,&headlen,&unitlen);
+			databuf_tmp = malloc(unitlen);
+			fseek(fp,headlen,SEEK_SET);//跳过文件头
+			while(!feof(fp))
+			{
+				if(fread(databuf_tmp,unitlen,1,fp)==0)
+				{
+					break;
+				}
+				if(memcmp(databuf_tmp,databuf,18)==0)//找到了存储结构的位置，一个存储结构可能含有unitnum个单元
+				{
+					savepos=ftell(fp)-unitlen;
+					break;
+				}
+			}
+		}
+		if(fp != NULL)
+			currpos = ftell(fp);
+		if(savepos==0)//存储位置为0.说明文件中没找到，则应添加而不是覆盖
+		{
+			if(currpos == 0)//第一个存储的
+				savepos=headlen;
+			else
+				savepos=currpos;
+			memset(databuf_tmp,0x00,unitlen);
+			for(i=0;i<runtime;i++)
+				memcpy(&databuf_tmp[unitlen*i/runtime],databuf,18);//每个小单元地址附上
+		}
+		unitseq = (ts_res.Hour*60*60+ts_res.Minute*60+ts_res.Sec)/((24*60*60)/runtime)+1;
+		asyslog(LOG_NOTICE,"ts: %d:%d:%d",ts_res.Hour,ts_res.Minute,ts_res.Sec);
+		asyslog(LOG_NOTICE,"存储序号: unitseq=%d unitlen=%d runtime=%d  %d--%d",unitseq,unitlen,runtime,(ts_res.Hour*60*60+ts_res.Minute*60+ts_res.Sec),((24*60*60)/runtime));
+		if(unitseq > runtime)
+		{
+			asyslog(LOG_NOTICE,"不符和unitseq=%d runtime=%d",unitseq, runtime);
+			if(databuf_tmp != NULL)
+				free(databuf_tmp);
+			return 0;//出错了，序列号超过了总长度
+		}
+		asyslog(LOG_NOTICE,"计算oadoffset");
+		oadoffset = GetOADPos(fp,headlen,oad_m,oad_r);
+		if(oadoffset < 0)//没找到
+			return 0;
+		asyslog(LOG_NOTICE,"计算oadoffset=%d::%d ts: %d:%d:%d",oadoffset,ts_res.Hour,ts_res.Minute,ts_res.Sec,unitlen/runtime);
+		if(oadoffset>=unitlen/runtime)
+			return 0;//计算的有问题
+		asyslog(LOG_NOTICE,"oadoffset=%d合理::%d",oadoffset,unitlen*(unitseq-1)/runtime+oadoffset);
+		memcpy(&databuf_tmp[unitlen*(unitseq-1)/runtime+oadoffset],&databuf[18],datalen-18);//赋值到应该赋值的oad位置
+
+		memset(&datetime,0x00,sizeof(DateTimeBCD));
+		asyslog(LOG_NOTICE,"文件里开始时标%d:%02x %02x%02x %02x %02x %02x %02x %02x"
+				,sizeof(DateTimeBCD),
+				databuf_tmp[18],databuf_tmp[19],databuf_tmp[20],databuf_tmp[21],
+				databuf_tmp[22],databuf_tmp[23],databuf_tmp[24],databuf_tmp[25]);
+		if(memcmp(&databuf_tmp[18],&datetime,sizeof(DateTimeBCD))==0)//开始时间为空
+		{
+			firOIflg = 1;
+		}
+		datetime.year.data = ((ts_now.Year&0xff00)>>8) + ((ts_now.Year&0x00ff)<<8);
+		datetime.month.data = ts_now.Month;
+		datetime.day.data = ts_now.Day;
+		datetime.hour.data = ts_now.Hour;
+		datetime.min.data = ts_now.Minute;
+		datetime.sec.data = ts_now.Sec;
+		asyslog(LOG_NOTICE,"当前赋值时标%d:%04x %02x %02x %02x %02x %02x %02x"
+				,sizeof(DateTimeBCD),
+				datetime.year.data,datetime.month.data,datetime.day.data,datetime.hour.data,
+				datetime.min.data,datetime.sec.data);
+		if(firOIflg == 1)
+		{
+			databuf_tmp[unitlen*(unitseq-1)/runtime+18] = 0x1c;
+			memcpy(&databuf_tmp[unitlen*(unitseq-1)/runtime+19],&datetime,7);//赋值抄表开始时间
+		}
+		databuf_tmp[unitlen*(unitseq-1)/runtime+18+8] = 0x1c;
+		memcpy(&databuf_tmp[unitlen*(unitseq-1)/runtime+19+8],&datetime,7);//赋值抄表成功时间
+
+		databuf_tmp[unitlen*(unitseq-1)/runtime+18+16] = 0x1c;
+		memcpy(&databuf_tmp[unitlen*(unitseq-1)/runtime+19+16],&datetime,7);//赋值抄表存储时间
+
+		asyslog(LOG_NOTICE,"oadoffset=%d合理",oadoffset);
+		oadlen = CalcOIDataLen(oad_r.OI,oad_r.attrindex);
+		asyslog(LOG_NOTICE,"计算长度%04x-%02x-%02x:len=%d",oad_r.OI,oad_r.attflg,oad_r.attrindex,oadlen);
+		if(datalen != oadlen+TSA_LEN+1)
+		{
+			asyslog(LOG_NOTICE,"计算的长度不对%d::%d",datalen, oadlen+TSA_LEN+1);
+			if(databuf_tmp != NULL)
+				free(databuf_tmp);
+			return 0;//长度不对
+		}
+		else
+			datafile_write(fname, databuf_tmp, unitlen, savepos);
+		if(fp!=NULL)
+			fclose(fp);
 		if(databuf_tmp != NULL)
 			free(databuf_tmp);
-		return 0;//出错了，序列号超过了总长度
-	}
-	asyslog(LOG_NOTICE,"计算oadoffset");
-	oadoffset = GetOADPos(fp,headlen,oad_m,oad_r);
-	asyslog(LOG_NOTICE,"计算oadoffset=%d::%d ts: %d:%d:%d",oadoffset,ts_res.Hour,ts_res.Minute,ts_res.Sec,unitlen/runtime);
-	if(oadoffset>=unitlen/runtime)
-		return 0;//计算的有问题
-	asyslog(LOG_NOTICE,"oadoffset=%d合理::%d",oadoffset,unitlen*(unitseq-1)/runtime+oadoffset);
-	memcpy(&databuf_tmp[unitlen*(unitseq-1)/runtime+oadoffset],&databuf[18],datalen-18);//赋值到应该赋值的oad位置
-	asyslog(LOG_NOTICE,"oadoffset=%d合理",oadoffset);
-	oadlen = CalcOIDataLen(oad_r.OI,oad_r.attrindex);
-	asyslog(LOG_NOTICE,"计算长度%04x-%02x-%02x:len=%d",oad_r.OI,oad_r.attflg,oad_r.attrindex,oadlen);
-	if(datalen != oadlen+TSA_LEN+1)
-	{
-		asyslog(LOG_NOTICE,"计算的长度不对%d::%d",datalen, oadlen+TSA_LEN+1);
-		if(databuf_tmp != NULL)
-			free(databuf_tmp);
-		return 0;//长度不对
-	}
-	else
-		datafile_write(fname, databuf_tmp, unitlen, savepos);
-	if(fp!=NULL)
-		fclose(fp);
-	if(databuf_tmp != NULL)
-		free(databuf_tmp);
-	return eveflg;
+		return eveflg;
 }
 
 

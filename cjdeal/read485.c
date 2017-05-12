@@ -43,6 +43,8 @@ INT8U flag07_0CF25_2_B[4] = {0x00,0x02,0x02,0x02};//当前B相电流
 INT8U flag07_0CF25_2_C[4] = {0x00,0x03,0x02,0x02};//当前C相电流
 INT8U flag07_0CF25_3[4] = {0x00,0xff,0x03,0x02};//当前有功功率
 INT8U flag07_0CF25_4[4] = {0x00,0xff,0x04,0x02};//当前无功功率
+INT8U flag07_0CF25_5[4] = {0x00,0xff,0x05,0x02};//视在功率
+INT8U flag07_0CF25_9[4] = {0x00,0xff,0x06,0x02};//功率因数
 INT8U freezeflag07_1[4] = {0x01,0x00,0x06,0x05};//上一次日冻结时标
 INT8U freezeflag07_2[4] = {0x01,0x01,0x06,0x05};//上一次日冻结正向有功总电能示值
 INT8U freezeflag07_3[4] = {0x01,0x02,0x06,0x05};//上一次日冻结反向有功总电能示值
@@ -56,7 +58,8 @@ INT8U flag07_kaibiaogai[4] =   {0x01,0x0d,0x30,0x03};//电能表开盖事件
 
 INT8U flag07_kaibiaogaicishu[4] =   {0x00,0x0d,0x30,0x03};//电能表开盖事件次数
 INT8U flag07_diaodiancishu[4] =  {0x00,0x00,0x11,0x03};//电能表掉电次数
-
+INT8U flag07_xuliang_1[4] =  {0x00,0xff,0x01,0x01};//当前正向有功最大需量
+INT8U flag07_xuliang_2[4] =  {0x00,0xff,0x02,0x01};//当前反向有功最大需量
 #endif
 
 INT8U zeroBuff[4] = {0x00,0x00,0x00,0x00};
@@ -591,12 +594,13 @@ INT8S use6013find6015or6017(INT8U cjType,INT16U fanganID,TI interval6013,CLASS_6
 				st6015->data.data[CURVE_INFO_STARTINDEX+22] = (dataNum>>8)&0x00ff;
 				st6015->data.data[CURVE_INFO_STARTINDEX+23] = dataNum&0x00ff;
 
+
 				INT8U csdIndex = 0;
 				for(csdIndex = 0;csdIndex < st6015->csds.num;csdIndex++)
 				{
-
 					if(st6015->csds.csd[csdIndex].type == 1)
 					{
+						INT8U ishas2021 = 0;
 						ROAD sourceRoad;
 						memcpy(&sourceRoad,&st6015->csds.csd[csdIndex].csd.road,sizeof(ROAD));
 						//事件序号
@@ -609,6 +613,7 @@ INT8S use6013find6015or6017(INT8U cjType,INT16U fanganID,TI interval6013,CLASS_6
 						{
 							if(sourceRoad.oads[oadIndex].OI == DATA_TIMESTAMP_OI)
 							{
+								ishas2021 =1;
 								continue;
 							}
 							else
@@ -619,8 +624,14 @@ INT8S use6013find6015or6017(INT8U cjType,INT16U fanganID,TI interval6013,CLASS_6
 								st6015->csds.csd[csdIndex].csd.road.num++;
 							}
 						}
+						if(ishas2021 == 0)
+						{
+							memcpy(&st6015->csds.csd[csdIndex].csd.road,&sourceRoad,sizeof(ROAD));
+						}
 					}
 				}
+
+
 			}
 			return 1;
 		}
@@ -1017,7 +1028,6 @@ INT8U getASNInfo(FORMAT07* DI07,Base_DataType* dataType)
 	INT8U unitNum = 1;
 	INT8U index;
 
-#if 1
 	//电表日期
 	if(memcmp(flag07_date,DI07->DI,4) == 0)
 	{
@@ -1088,12 +1098,28 @@ INT8U getASNInfo(FORMAT07* DI07,Base_DataType* dataType)
 			memset(&DI07->Data[4],0,2);
 		}
 	}
+	//功率因数
+	if(memcmp(flag07_0CF25_9,DI07->DI,4) == 0)
+	{
+		if((DI07->Data[2] = 0xff)&&(DI07->Data[3] = 0xff))
+		{
+			memset(&DI07->Data[2],0,2);
+		}
+		if((DI07->Data[4] = 0xff)&&(DI07->Data[5] = 0xff))
+		{
+			memset(&DI07->Data[4],0,2);
+		}
+		if((DI07->Data[6] = 0xff)&&(DI07->Data[7] = 0xff))
+		{
+			memset(&DI07->Data[6],0,2);
+		}
+	}
 	if(memcmp(flag07_0CF25_2,DI07->DI,4) == 0)
 	{
 		*dataType = dtdoublelong;
-		unitNum = 3;
-		INT8U f25_2_buff[12] = {0};
-		memcpy(&f25_2_buff[0],&DI07->Data[0],3);
+		unitNum = 4;
+		INT8U f25_2_buff[16] = {0};
+		memcpy(&f25_2_buff[1],&DI07->Data[0],3);
 
 		if((DI07->Data[3] = 0xff)&&(DI07->Data[4] = 0xff)&&(DI07->Data[5] = 0xff))
 		{
@@ -1104,11 +1130,11 @@ INT8U getASNInfo(FORMAT07* DI07,Base_DataType* dataType)
 			memset(&DI07->Data[6],0,3);
 		}
 
-		memcpy(&f25_2_buff[4],&DI07->Data[3],3);
-		memcpy(&f25_2_buff[8],&DI07->Data[6],3);
+		memcpy(&f25_2_buff[5],&DI07->Data[3],3);
+		memcpy(&f25_2_buff[9],&DI07->Data[6],3);
 
-		memcpy(&DI07->Data[0],&f25_2_buff[0],12);
-		DI07->Length += 3;
+		memcpy(&DI07->Data[0],&f25_2_buff[0],16);
+		DI07->Length += 7;
 	}
 	if((memcmp(flag07_0CF25_2_A,DI07->DI,4) == 0)
 			||(memcmp(flag07_0CF25_2_B,DI07->DI,4) == 0)
@@ -1121,18 +1147,54 @@ INT8U getASNInfo(FORMAT07* DI07,Base_DataType* dataType)
 		memcpy(&DI07->Data[0],&f25_2_buff[0],4);
 		DI07->Length += 1;
 	}
-	if((memcmp(flag07_0CF25_3,DI07->DI,4) == 0)||(memcmp(flag07_0CF25_4,DI07->DI,4) == 0))
+	//需量类
+	if((DI07->DI[3] == 0x01)&&(DI07->DI[2] >= 0x00)&&(DI07->DI[2]<=0x0A))
+	{
+		INT8U xuliangdata[20];
+		memset(xuliangdata,0,20);
+		*dataType = dtdoublelongunsigned;
+		if(DI07->DI[1]==0xff)
+		{
+			unitNum = 5;
+		}
+		else
+		{
+			unitNum = 1;
+		}
+		INT8U tmpIndex = 0;
+		for(tmpIndex = 0;tmpIndex < unitNum;tmpIndex++)
+		{
+			if((DI07->Data[tmpIndex*8]==0xff)&&(DI07->Data[tmpIndex*8+1]==0xff)&&(DI07->Data[tmpIndex*8+2]==0xff))
+			{
+				memset(&xuliangdata[tmpIndex*4],0,4);
+			}
+			else
+			{
+				memcpy(&xuliangdata[tmpIndex*4],&DI07->Data[tmpIndex*8],3);
+			}
+		}
+		memcpy(&DI07->Data[0],xuliangdata,20);
+		DI07->Length = (unitNum*4)+4;
+	}
+	if((memcmp(flag07_0CF25_3,DI07->DI,4) == 0)||(memcmp(flag07_0CF25_4,DI07->DI,4) == 0)||(memcmp(flag07_0CF25_5,DI07->DI,4) == 0))
 	{
 		*dataType = dtdoublelong;
 		unitNum = 4;
 		INT8U f25_3_buff[16] = {0};
 		memcpy(&f25_3_buff[1],&DI07->Data[0],3);
 		memcpy(&f25_3_buff[5],&DI07->Data[3],3);
-		if(JProgramInfo->cfg_para.device != CCTT2)
+		if((DI07->Data[6] == 0xff)&&(DI07->Data[7]==0xff)&&(DI07->Data[8]==0xff))
 		{
-			memcpy(&f25_3_buff[9],&DI07->Data[6],3);
-			memcpy(&f25_3_buff[13],&DI07->Data[9],3);
+			memset(&DI07->Data[6],0,3);
 		}
+		if((DI07->Data[9] == 0xff)&&(DI07->Data[10]==0xff)&&(DI07->Data[11]==0xff))
+		{
+			memset(&DI07->Data[9],0,3);
+		}
+
+		memcpy(&f25_3_buff[9],&DI07->Data[6],3);
+		memcpy(&f25_3_buff[13],&DI07->Data[9],3);
+
 		memcpy(&DI07->Data[0],&f25_3_buff[0],16);
 		DI07->Length += 4;
 	}
@@ -1186,75 +1248,7 @@ INT8U getASNInfo(FORMAT07* DI07,Base_DataType* dataType)
 
 	}
 
-#else
-	//电压
-	if(memcmp(flag07_0CF25_1,DI07->DI,4) == 0)
-	{
-		*dataType = dtlongunsigned;
-		unitNum = 3;
-	}
-	//A相电压
-	if(memcmp(flag07_0CF25_1_A,DI07->DI,4) == 0)
-	{
-		*dataType = dtlongunsigned;
-		unitNum = 1;
-	}
-	if(memcmp(flag07_0CF25_2,DI07->DI,4) == 0)
-	{
-		*dataType = dtdoublelong;
-		unitNum = 3;
-		INT8U f25_2_buff[12] = {0};
-		memcpy(&f25_2_buff[1],&DI07->Data[0],3);
-		memcpy(&f25_2_buff[5],&DI07->Data[3],3);
-		memcpy(&f25_2_buff[9],&DI07->Data[6],3);
-		memcpy(&DI07->Data[0],&f25_2_buff[0],12);
-		DI07->Length += 3;
-	}
-	if(memcmp(flag07_0CF25_2_A,DI07->DI,4) == 0)
-	{
-		*dataType = dtdoublelong;
-		unitNum = 1;
-		INT8U f25_2_buff[4] = {0};
-		memcpy(&f25_2_buff[1],&DI07->Data[0],3);
-		memcpy(&DI07->Data[0],&f25_2_buff[0],4);
-		DI07->Length += 1;
-	}
-	if((memcmp(flag07_0CF25_3,DI07->DI,4) == 0)||(memcmp(flag07_0CF25_4,DI07->DI,4) == 0))
-	{
-		*dataType = dtdoublelong;
-		unitNum = 4;
-		INT8U f25_3_buff[16] = {0};
-		memcpy(&f25_3_buff[1],&DI07->Data[0],3);
-		memcpy(&f25_3_buff[5],&DI07->Data[3],3);
-		memcpy(&f25_3_buff[9],&DI07->Data[6],3);
-		memcpy(&f25_3_buff[13],&DI07->Data[9],3);
-		memcpy(&DI07->Data[0],&f25_3_buff[0],16);
-		DI07->Length += 4;
-	}
 
-	//冻结时标数据07为5个字节 698为7个 需要特殊处理
-	if(memcmp(freezeflag07_1,DI07->DI,4) == 0)
-	{
-		*dataType = dtdatetimes;
-		DI07->Length += 2;
-		fprintf(stderr,"\n 1-----getASNInfo dataType = %d",*dataType);
-	}
-
-	if((memcmp(flag07_0CF25_3,DI07->DI,4) == 0) || (memcmp(flag07_0CF25_4,DI07->DI,4) == 0))
-	{
-		*dataType = dtdoublelong;
-		unitNum = 4;
-	}
-
-	if((memcmp(freezeflag07_2,DI07->DI,4) == 0)||(memcmp(freezeflag07_3,DI07->DI,4) == 0)
-			||(memcmp(flag07_0CF33,DI07->DI,4) == 0)||(memcmp(flag07_0CF34,DI07->DI,4) == 0)
-			||(memcmp(flag07_0CF177,DI07->DI,4) == 0))
-	{
-		*dataType = dtdoublelongunsigned;
-		unitNum = 5;
-		fprintf(stderr,"\n 2-----getASNInfo dataType = %d",*dataType);
-	}
-#endif
 	return unitNum;
 }
 
@@ -3000,6 +2994,19 @@ INT16S deal6015_07(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8U
 			to6001.sernum, st6015.sernum, st6015.csds.num);
 	DbgPrintToFile1(port485,"st6015.csds.csd[%d]",
 			to6001.sernum, st6015.sernum, st6015.csds.num);
+	DbgPrintToFile1(port485, " 11111st6015.cjtype　＝ %d",st6015.cjtype);
+	if(st6015.cjtype == TYPE_INTERVAL)
+	{
+		DbgPrintToFile1(port485, " st6015.cjtype　＝ %d",st6015.cjtype);
+		INT8U singleCurveDatabuf[DATA_CONTENT_LEN];
+		memset(singleCurveDatabuf,0,DATA_CONTENT_LEN);
+		TS freezeTimeStamp;
+		TSGet(&freezeTimeStamp);
+		int bufflen = compose6012Buff(st6035->starttime,to6001.basicinfo.addr,totaldataLen,dataContent,port485);
+		SaveNorData(st6035->taskID,NULL,dataContent,bufflen,freezeTimeStamp);
+	}
+
+
 	return totaldataLen;
 }
 //按照任务6012格式上报
@@ -3388,120 +3395,6 @@ INT16S deal6015or6017_singlemeter(CLASS_6013 st6013,CLASS_6015 st6015,CLASS_6001
 					}
 					else
 					{
-
-#if 0
-
-						INT8U hourInterVal = 0;
-						if(st6013.interval.units == day_units)
-						{
-							hourInterVal = st6013.interval.interval*24;
-						}
-						if(st6013.interval.units == hour_units)
-						{
-							hourInterVal = st6013.interval.interval;
-						}
-						if(hourInterVal==0)
-						{
-							return 0;
-						}
-						TS ts_start;
-						TSGet(&ts_start);
-						DbgPrintToFile1(port485,"当前时间 %04d-%02d-%02d %02d:%02d:%02d  hourInterVal = %d \n",
-								ts_start.Year,ts_start.Month,ts_start.Day,ts_start.Hour,
-								ts_start.Minute,ts_start.Sec,hourInterVal);
-
-						INT8U hourindex;
-						for(hourindex=0;hourindex<hourInterVal;hourindex++)
-						{
-							if((ts_start.Hour%hourInterVal) == 0)
-							{
-								break;
-							}
-							else
-							{
-								tminc(&ts_start,hour_units,-1);
-							}
-
-						}
-						INT16U roadDataLen = 0;
-						INT8U oadIndex = 0;
-						for(oadIndex = 0;oadIndex < st6015.csds.csd[0].csd.road.num;oadIndex++)
-						{
-							roadDataLen += CalcOIDataLen(st6015.csds.csd[0].csd.road.oads[oadIndex].OI,st6015.csds.csd[0].csd.road.oads[oadIndex].attrindex);
-						}
-						DbgPrintToFile1(port485,"roadDataLen = %d \n",roadDataLen);
-
-						if(roadDataLen == 0)
-						{
-							fprintf(stderr,"\n------------\n");
-							return 0;
-						}
-						INT8U hourIndex = 0;
-						for(hourIndex = 0;hourIndex < hourInterVal;hourIndex++)
-						{
-							INT16U tmpTime = ts_start.Year;
-							st6015.data.data[CURVE_INFO_STARTINDEX+8] = 0x1c;
-							st6015.data.data[CURVE_INFO_STARTINDEX+9] = (tmpTime>>8)&0x00ff;
-							st6015.data.data[CURVE_INFO_STARTINDEX+10] = tmpTime&0x00ff;
-							st6015.data.data[CURVE_INFO_STARTINDEX+11] = ts_start.Month;
-							st6015.data.data[CURVE_INFO_STARTINDEX+12] = ts_start.Day;
-							st6015.data.data[CURVE_INFO_STARTINDEX+13] = ts_start.Hour;
-							st6015.data.data[CURVE_INFO_STARTINDEX+14] = 0;
-							st6015.data.data[CURVE_INFO_STARTINDEX+15] = 0;
-
-							tminc(&ts_start,hour_units,-1);
-
-							DbgPrintToFile1(port485,"计算曲线抄读开始时标[%d] %04d-%02d-%02d %02d:%02d:%02d  hourInterVal = %d \n",
-							hourIndex,ts_start.Year,ts_start.Month,ts_start.Day,ts_start.Hour,ts_start.Minute,ts_start.Sec,hourInterVal);
-							tmpTime = ts_start.Year;
-							st6015.data.data[CURVE_INFO_STARTINDEX] = 0x1c;
-							st6015.data.data[CURVE_INFO_STARTINDEX+1] = (tmpTime>>8)&0x00ff;
-							st6015.data.data[CURVE_INFO_STARTINDEX+2] = tmpTime&0x00ff;
-							st6015.data.data[CURVE_INFO_STARTINDEX+3] = ts_start.Month;
-							st6015.data.data[CURVE_INFO_STARTINDEX+4] = ts_start.Day;
-							st6015.data.data[CURVE_INFO_STARTINDEX+5] = ts_start.Hour;
-							st6015.data.data[CURVE_INFO_STARTINDEX+6] = 0;
-							st6015.data.data[CURVE_INFO_STARTINDEX+7] = 0;
-
-							ret = deal6015_698(st6015,obj6001,st6035,dataContent,port485);
-
-
-							DbPrt1(port485,"曲线数据 :", (char *) dataContent, ret, NULL);
-
-							INT8U recordNum = ret/roadDataLen;
-
-							if((ret%roadDataLen) == 0)
-							{
-								INT16U dataIndex = 0;
-								INT8U singleDatabuf[DATA_CONTENT_LEN];
-								INT8U recordIndex;
-								for(recordIndex=0;recordIndex<recordNum;recordIndex++)
-								{
-									TS freezeTimeStamp;
-									freezeTimeStamp.Year = dataContent[dataIndex+1];
-									freezeTimeStamp.Year = freezeTimeStamp.Year<<8;
-									freezeTimeStamp.Year += dataContent[dataIndex+2];
-									freezeTimeStamp.Month = dataContent[dataIndex+3];
-									freezeTimeStamp.Day = dataContent[dataIndex+4];
-									freezeTimeStamp.Hour = dataContent[dataIndex+5];
-									freezeTimeStamp.Minute = dataContent[dataIndex+6];
-									freezeTimeStamp.Sec = dataContent[dataIndex+7];
-									freezeTimeStamp.Week = 0;
-									DbgPrintToFile1(port485,"曲线数据时标[%d] %04d-%02d-%02d %02d:%02d:%02d",
-									recordIndex,freezeTimeStamp.Year,freezeTimeStamp.Month,freezeTimeStamp.Day,freezeTimeStamp.Hour,freezeTimeStamp.Minute,freezeTimeStamp.Sec);
-									memset(singleDatabuf,0,DATA_CONTENT_LEN);
-									memcpy(singleDatabuf,&dataContent[dataIndex],roadDataLen);
-									int bufflen = compose6012Buff(st6035->starttime,obj6001.basicinfo.addr,roadDataLen,singleDatabuf,port485);
-									SaveNorData(st6035->taskID,NULL,singleDatabuf,bufflen,freezeTimeStamp);
-									dataIndex+=roadDataLen;
-								}
-							}
-							else
-							{
-								DbgPrintToFile1(port485,"曲线数据错误");
-							}
-						}
-#else
 						INT16U roadDataLen = 0;
 						INT8U oadIndex = 0;
 						for(oadIndex = 0;oadIndex < st6015.csds.csd[0].csd.road.num;oadIndex++)
@@ -3571,15 +3464,23 @@ INT16S deal6015or6017_singlemeter(CLASS_6013 st6013,CLASS_6015 st6015,CLASS_6001
 								for(recordIndex=0;recordIndex<recordNum;recordIndex++)
 								{
 									TS freezeTimeStamp;
-									freezeTimeStamp.Year = curvedataContent[dataIndex+1];
-									freezeTimeStamp.Year = freezeTimeStamp.Year<<8;
-									freezeTimeStamp.Year += curvedataContent[dataIndex+2];
-									freezeTimeStamp.Month = curvedataContent[dataIndex+3];
-									freezeTimeStamp.Day = curvedataContent[dataIndex+4];
-									freezeTimeStamp.Hour = curvedataContent[dataIndex+5];
-									freezeTimeStamp.Minute = curvedataContent[dataIndex+6];
-									freezeTimeStamp.Sec = curvedataContent[dataIndex+7];
-									freezeTimeStamp.Week = 0;
+									if(st6015.csds.csd[0].csd.road.oads[0].OI == DATA_TIMESTAMP_OI)
+									{
+										freezeTimeStamp.Year = curvedataContent[dataIndex+1];
+										freezeTimeStamp.Year = freezeTimeStamp.Year<<8;
+										freezeTimeStamp.Year += curvedataContent[dataIndex+2];
+										freezeTimeStamp.Month = curvedataContent[dataIndex+3];
+										freezeTimeStamp.Day = curvedataContent[dataIndex+4];
+										freezeTimeStamp.Hour = curvedataContent[dataIndex+5];
+										freezeTimeStamp.Minute = curvedataContent[dataIndex+6];
+										freezeTimeStamp.Sec = curvedataContent[dataIndex+7];
+										freezeTimeStamp.Week = 0;
+									}
+									else//如果采集方案里没有冻结时标用当前时间
+									{
+										TSGet(&freezeTimeStamp);
+									}
+
 									DbgPrintToFile1(port485,"曲线数据时标[%d] %04d-%02d-%02d %02d:%02d:%02d",
 									recordIndex,freezeTimeStamp.Year,freezeTimeStamp.Month,freezeTimeStamp.Day,freezeTimeStamp.Hour,freezeTimeStamp.Minute,freezeTimeStamp.Sec);
 									memset(singleDatabuf,0,DATA_CONTENT_LEN);
@@ -3597,7 +3498,6 @@ INT16S deal6015or6017_singlemeter(CLASS_6013 st6013,CLASS_6015 st6015,CLASS_6001
 
 						}
 
-#endif
 					}
 
 				}
@@ -4179,7 +4079,7 @@ void read485_proccess() {
 
 	while ((thread_read4851_id = pthread_create(&thread_read4851,&read485_attr_t, (void*) read485_thread, &i485port1)) != 0)
 	{
-		sleep( 1 );
+		sleep(1);
 	}
 
 	while ((thread_read4852_id=pthread_create(&thread_read4852, &read485_attr_t, (void*)read485_thread, &i485port2)) != 0)
