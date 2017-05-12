@@ -61,7 +61,7 @@ void print_road(ROAD road)
 
 //	asyslog(LOG_INFO,"ROAD:%04x-%02x%02x ",road.oad.OI,road.oad.attflg,road.oad.attrindex);
 	fprintf(stderr,"ROAD:%04x-%02x%02x ",road.oad.OI,road.oad.attflg,road.oad.attrindex);
-	if(road.num >= 16) {
+	if(road.num >= ROAD_OADS_NUM) {
 		fprintf(stderr,"csd overvalue 16 error\n");
 		return;
 	}
@@ -257,6 +257,20 @@ int  create_OAD(INT8U type,INT8U *data,OAD oad)		//0x51
 	data[index++] = oad.OI & 0xff;
 	data[index++] = oad.attflg;
 	data[index++] = oad.attrindex;
+	return index;
+}
+
+int fill_ROAD(INT8U type,INT8U *data,ROAD road)			//0x52
+{
+	int 	index=0,i=0;
+	if(type)
+		data[index++] = dtroad;
+	index += create_OAD(0,&data[index],road.oad);
+	if(road.num>ROAD_OADS_NUM)	road.num = ROAD_OADS_NUM;
+	data[index++] = road.num;
+	for(i=0;i<road.num;i++) {
+		index += create_OAD(0,&data[index],road.oads[i]);
+	}
 	return index;
 }
 
@@ -1023,6 +1037,41 @@ int Get_6015(INT8U type,INT8U seqnum,INT8U *data)
 	return index;
 }
 
+/*
+ * 事件采集方案
+ * */
+int Get_6017(INT8U type,INT8U seqnum,INT8U *data)
+{
+	int 	index=0,ret=0,i=0;
+	CLASS_6017 event={};
+
+	ret = readCoverClass(0x6017,seqnum,&event,sizeof(CLASS_6017),coll_para_save);
+	fprintf(stderr,"\n 6017 read coll ok　seqnum=%d  type=%d  ret=%d\n",seqnum,type,ret);
+	if ((ret == 1) || (type==1)) {
+		fprintf(stderr,"\n 6017 read coll ok　seqnum=%d  type=%d  ret=%d\n",seqnum,type,ret);
+		index += create_struct(&data[index],5);					//属性2：struct 5个元素
+		index += fill_unsigned(&data[index],event.sernum);		//方案序号
+		index += create_struct(&data[index],2);					//属性2：struct 2个元素
+		index += fill_unsigned(&data[index],event.collstyle.colltype);		//采集类型
+		switch(event.collstyle.colltype) {
+		case 0://周期采集事件数据
+		case 2://根据通知采集指定事件数据
+			if(event.collstyle.roads.num>ARRAY_ROAD_NUM)	event.collstyle.roads.num = ARRAY_ROAD_NUM;
+			index += create_array(&data[index],event.collstyle.roads.num);
+			for(i=0;i<event.collstyle.roads.num;i++) {
+				index += fill_ROAD(1,&data[index],event.collstyle.roads.road[i]);	//采集数据
+			}
+			break;
+		case 1://NULL,根据通知采集所有事件数据
+			data[index++]=0;
+			break;
+		}
+		index += fill_MS(1,&data[index],event.ms);		//电能表集合
+		index += fill_bool(&data[index],event.ifreport);		//上报标识
+		index += fill_long_unsigned(&data[index],event.deepsize);		//存储深度
+	}
+	return index;
+}
 /*
  * 上报方案
  * */
