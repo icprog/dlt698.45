@@ -170,24 +170,25 @@ TS DateBCD2Ts(DateTimeBCD timebcd)
 
 void PrintTaskInfo2(TASK_INFO *task)
 {
-	struct tm ctm;
+//	struct tm ctm;
 	int i=0,j=0,numindex=0;
-	time_t t;
+//	time_t t;
 	for(i=0;i<task->task_n;i++)
 	{
 		for(j=0;j<task->task_list[i].fangan.item_n;j++)
 		{
 			numindex++;
-			t = task->task_list[i].beginTime;
-			localtime_r(&t, &ctm);
-			DbgPrintToFile1(31," %02d | %04x-%02x%02x - %04x-%02x%02x 【任务%d ， 优先级%d    方案%d ， 类型%d】  开始 %d-%d-%d %d:%d:%d  结束 %d-%d-%d %d:%d:%d  OK=%d  item %02x%02x%02x%02x",numindex,
+//			t = task->task_list[i].beginTime;
+//			localtime_r(&t, &ctm);
+			DbgPrintToFile1(31," %02d | %04x-%02x%02x - %04x-%02x%02x 【任务%d ， 优先级%d    方案%d ， 类型%d】  开始 %d-%d-%d %d:%d:%d  %ld  OK=%d  item %02x%02x%02x%02x",numindex,
 					task->task_list[i].fangan.items[j].oad1.OI,task->task_list[i].fangan.items[j].oad1.attflg,task->task_list[i].fangan.items[j].oad1.attrindex,
 					task->task_list[i].fangan.items[j].oad2.OI,task->task_list[i].fangan.items[j].oad2.attflg,task->task_list[i].fangan.items[j].oad2.attrindex,
 					task->task_list[i].taskId,task->task_list[i].leve,task->task_list[i].fangan.No,task->task_list[i].fangan.type,
 					task->task_list[i].begin.year.data,task->task_list[i].begin.month.data,task->task_list[i].begin.day.data,
 					task->task_list[i].begin.hour.data,task->task_list[i].begin.min.data,task->task_list[i].begin.sec.data,
-					task->task_list[i].end.year.data,task->task_list[i].end.month.data,task->task_list[i].end.day.data,
-					task->task_list[i].end.hour.data,task->task_list[i].end.min.data,task->task_list[i].end.sec.data,
+//					task->task_list[i].end.year.data,task->task_list[i].end.month.data,task->task_list[i].end.day.data,
+//					task->task_list[i].end.hour.data,task->task_list[i].end.min.data,task->task_list[i].end.sec.data,
+					task->task_list[i].beginTime,
 					task->task_list[i].fangan.items[j].sucessflg,
 					task->task_list[i].fangan.items[j].item07[3],task->task_list[i].fangan.items[j].item07[2],
 					task->task_list[i].fangan.items[j].item07[1],task->task_list[i].fangan.items[j].item07[0]
@@ -257,8 +258,26 @@ int Array_OAD_Items(CJ_FANGAN *fangAn)
 //	}
 	return num;
 }
+DateTimeBCD timet_bcd(time_t t)
+{
+	DateTimeBCD ts;
+    struct tm set;
+    time_t times;
+    times = time(NULL);
+    localtime_r(&times, &set);
+    ts.year.data  = set.tm_year + 1900;
+    ts.month.data = set.tm_mon + 1;
+    ts.day.data   = set.tm_mday;
+    ts.hour.data  = set.tm_hour;
+    ts.min.data   = set.tm_min;
+    ts.sec.data   = set.tm_sec;
+	//DbgPrintToFile1(31," 查1 %d-%d-%d %d:%d:%d  time-t=%ld",ts.year.data,ts.month.data,ts.day.data,ts.hour.data,ts.min.data,ts.sec.data,t);
+    return ts;
+}
+
 int task_leve(INT8U leve,TASK_UNIT *taskunit)
 {
+	DateTimeBCD ts;
 	int i=0,t=0;
 	INT8U type=0 ,serNo=0;
 	for(i=0;i<TASK6012_MAX;i++)
@@ -267,9 +286,14 @@ int task_leve(INT8U leve,TASK_UNIT *taskunit)
 		{
 			taskunit[t].taskId = list6013[i].basicInfo.taskID;
 			taskunit[t].leve = list6013[i].basicInfo.runprio;
-			taskunit[t].beginTime = calcnexttime(list6013[i].basicInfo.interval,list6013[i].basicInfo.startime,list6013[i].basicInfo.delay);;
+			taskunit[t].beginTime = list6013[i].ts_next;//calcnexttime(list6013[i].basicInfo.interval,list6013[i].basicInfo.startime,list6013[i].basicInfo.delay);
 			taskunit[t].endTime = tmtotime_t( DateBCD2Ts(list6013[i].basicInfo.endtime ));
-			taskunit[t].begin = list6013[i].basicInfo.startime;
+
+			ts = timet_bcd(taskunit[t].beginTime);
+			DbgPrintToFile1(31,"taskid=%d 开始时间 %d-%d-%d %d:%d:%d   %ld",list6013[i].basicInfo.taskID,ts.year,ts.month,ts.day,ts.hour,ts.min,ts.sec,taskunit[t].beginTime);
+
+
+			taskunit[t].begin = ts;//list6013[i].basicInfo.startime;
 			taskunit[t].end = list6013[i].basicInfo.endtime;
 			type = list6013[i].basicInfo.cjtype;
 			serNo = list6013[i].basicInfo.sernum;//方案序号
@@ -341,7 +365,6 @@ int initTsaList(struct Tsa_Node **head)
 	return n;
 }
 
-
 void reset_ZB()
 {
 	gpio_writebyte((char *)"/dev/gpoZAIBO_RST", 0);
@@ -349,7 +372,6 @@ void reset_ZB()
 //	sleep(5);
 	gpio_writebyte((char *)"/dev/gpoZAIBO_RST", 1);
 	sleep(10);
-
 }
 void tsa_print(struct Tsa_Node *head,int num)
 {
@@ -886,6 +908,32 @@ int saveProxyData(FORMAT3762 format_3762_Up)
 	}
 	return 0;
 }
+int task_ID(TASK_UNIT *taskunit)
+{
+	int i=0,t=0;
+	INT8U type=0 ,serNo=0,id=0;
+	id = taskunit->taskId;
+	for(i=0;i<TASK6012_MAX;i++)
+	{
+		if (list6013[i].basicInfo.taskID == id)
+		{
+			taskunit[t].taskId = list6013[i].basicInfo.taskID;
+			taskunit[t].leve = list6013[i].basicInfo.runprio;
+			taskunit[t].beginTime = calcnexttime(list6013[i].basicInfo.interval,list6013[i].basicInfo.startime,list6013[i].basicInfo.delay);;
+			taskunit[t].endTime = tmtotime_t( DateBCD2Ts(list6013[i].basicInfo.endtime ));
+			taskunit[t].begin = list6013[i].basicInfo.startime;
+			taskunit[t].end = list6013[i].basicInfo.endtime;
+			type = list6013[i].basicInfo.cjtype;
+			serNo = list6013[i].basicInfo.sernum;//方案序号
+			memset(&taskunit[t].fangan,0,sizeof(CJ_FANGAN));
+			taskunit[t].fangan.No = serNo;
+			taskunit[t].fangan.type = type;
+			taskunit[t].fangan.item_n = Array_OAD_Items(&taskunit[t].fangan);
+			t++;
+		}
+	}
+	return t;
+}
 DATA_ITEM checkMeterData(TASK_INFO *meterinfo,int *taski,int *itemi)
 {
 	int i=0,j=0;
@@ -901,7 +949,7 @@ DATA_ITEM checkMeterData(TASK_INFO *meterinfo,int *taski,int *itemi)
 
 	for(i=0; i< meterinfo->task_n; i++)
 	{
-//		if (nowt >= meterinfo->task_list[i].beginTime )
+		if (nowt >= meterinfo->task_list[i].beginTime )
 		{
 			 for(j = 0; j<meterinfo->task_list[i].fangan.item_n; j++)
 			 {
@@ -912,9 +960,18 @@ DATA_ITEM checkMeterData(TASK_INFO *meterinfo,int *taski,int *itemi)
 					 meterinfo->task_list[i].fangan.items[j].sucessflg = 1;
 					 *taski = i;
 					 *itemi = j;
+					 if (j == meterinfo->task_list[i].fangan.item_n-1)//最后一个
+					 {
+						 DbgPrintToFile1(31,"需要重新初始化开始时间1 %ld",meterinfo->task_list[i].beginTime);
+						 task_ID(&meterinfo->task_list[i]);
+						 DbgPrintToFile1(31,"需要重新初始化开始时间2 %ld",meterinfo->task_list[i].beginTime);
+					 }
 					 return item;
 				 }
 			 }
+		}else
+		{
+			DbgPrintToFile1(31,"任务%d 未到 %ld  （当前 %ld）",meterinfo->task_list[i].taskId,meterinfo->task_list[i].beginTime,nowt);
 		}
 	}
 	return item;
@@ -1203,6 +1260,7 @@ int doTask(RUNTIME_PLC *runtime_p)
 			}else if(runtime_p->format_Up.afn == 0x00 && runtime_p->format_Up.fn == 1)
 			{//确认
 				clearvar(runtime_p);
+				runtime_p->send_start_time = nowtime ;
 				step_cj = 2;
 				beginwork = 0;
 			}
@@ -1220,12 +1278,13 @@ int doTask(RUNTIME_PLC *runtime_p)
 			}else if(runtime_p->format_Up.afn == 0x00 && runtime_p->format_Up.fn == 1)
 			{//确认
 				clearvar(runtime_p);
+				runtime_p->send_start_time = nowtime ;
 				step_cj = 2;
 				beginwork = 0;
 			}
 			break;
 		case 2://开始抄表
-			if (runtime_p->format_Up.afn == 0x14 && runtime_p->format_Up.fn == 1)//收到请求抄读命令
+			if (runtime_p->format_Up.afn == 0x14 && runtime_p->format_Up.fn == 1  )//收到请求抄读命令
 			{
 				beginwork = 1;//收到第一个请求抄读开始
 				Addr_TSA(runtime_p->format_Up.afn14_f1_up.SlavePointAddr,&tsatmp);
@@ -1248,6 +1307,10 @@ int doTask(RUNTIME_PLC *runtime_p)
 				SendDataToCom(runtime_p->comfd, runtime_p->sendbuf,sendlen );
 				clearvar(runtime_p);
 				runtime_p->send_start_time = nowtime;
+			}else if( nowtime - runtime_p->send_start_time > 90)
+			{
+				DbgPrintToFile1(31,"抄表过程，通讯超时,重启抄表");
+				step_cj = 0;
 			}
 			break;
 	}
@@ -1407,6 +1470,7 @@ int doSerch(RUNTIME_PLC *runtime_p)
 				clearvar(runtime_p);
 				memcpy(runtime_p->format_Down.addr.SourceAddr,runtime_p->masteraddr,6);
 				sendlen = startSearch(&runtime_p->format_Down,runtime_p->sendbuf);
+				DbgPrintToFile1(31," sendlen=%d",sendlen);
 				SendDataToCom(runtime_p->comfd, runtime_p->sendbuf,sendlen );
 				runtime_p->send_start_time = nowtime ;
 			}else if (runtime_p->format_Up.afn == 0x00 && runtime_p->format_Up.fn == 1 && beginwork==0)//收到确认
@@ -1609,8 +1673,8 @@ void readplc_thread()
 				state = doTask(&runtimevar);					//按任务抄表	  ( 1、根据方案类型和编号号确定抄表报文  )
 				break;
 			default :
-					runtimevar.state = NONE_PROCE;
-					sleep(1);
+				runtimevar.state = NONE_PROCE;
+				sleep(1);
 				break;
 		}
 		runtimevar.state  = state;

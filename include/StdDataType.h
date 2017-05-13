@@ -431,6 +431,7 @@ typedef struct
 
 typedef union
 {
+//	INT8U	selectype;		//Selector类型
 	INT8U null;
 	Selector1 selec1;
 	Selector2 selec2;
