@@ -34,10 +34,12 @@ static char *usage_set = "\n--------------------参数设置及基本维护命�
         "		 【设置gprs和以太网的工作模式(0:混合模式 1:客户端模式 2:服务器模式)】 cj online-mode 1 1 \n"
         "		 【主站apn设置】cj apn cmnet		\n"
         "		 【cdma电信用户名密码设置】cj usr-pwd 　user  password	apn	\n"
+		"		 【主站通信状态查询】cj cm	\n"
         "		 【通信地址】cj id <addr>	如：地址为123456  :cj id 12 34 56	\n"
         "		 【停程序】cj dog 或者 cj stop		\n"
-        "[读取心跳] cj heart \n"
-        "[设置心跳] cj heart 60 s"
+        "[读取心跳] cj heart       "
+        "[设置心跳] cj heart 60 s\n"
+		"【初始化】cj InIt 3 [数据区初始化]	\n　　　　　　cj InIt 5 [事件初始化]\n　　　　　　cj InIt 6 [需量初始化]\n　　　　　　cj InIt 4 [恢复出厂参数]\n"
         "[ESAM 测试，测试写到/nand/esam.log] 测试模式1[20M通信1次]：cj esam\n"
         "            测试模式2[speed M通信1次，speed范围可从1到25]：cj esam speed\n"
         "            测试模式3[speed M通信n次，speed范围可从1到25]：cj esam speed n\n"
@@ -266,6 +268,11 @@ int main(int argc, char *argv[]) {
         para_process(argc, argv);
         return EXIT_SUCCESS;
     }
+    if (strcmp("InIt", argv[1]) == 0) {
+    	fprintf(stderr,"　　　　　　cj InIt 3 [数据区初始化]	\n　　　　　　cj InIt 5 [事件初始化]\n　　　　　　cj InIt 6 [需量初始化]\n　　　　　　cj InIt 4 [恢复出厂参数]\n");
+        InIt_Process(argc, argv);
+        return EXIT_SUCCESS;
+    }
     if (strcmp("coll", argv[1]) == 0) {
         fprintf(stderr, "%s", usage_coll);
         coll_process(argc, argv);
@@ -373,6 +380,7 @@ int main(int argc, char *argv[]) {
         showStatus();
         return EXIT_SUCCESS;
     }
+
 
     prthelp();
     return EXIT_SUCCESS;

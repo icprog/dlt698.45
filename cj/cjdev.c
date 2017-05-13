@@ -117,6 +117,7 @@ void showStatus() {
     fprintf(stderr, "在线类型1:GPRS  2:CDMA2000  2:TD_LTE  3:FDD_LTE[%d]\n", JProgramInfo->dev_info.wirelessType);
     fprintf(stderr, "拨号成功(0:拨号未成功 1:拨号成功)[%d]\n", JProgramInfo->dev_info.pppd_status);
     fprintf(stderr, "主站连接状态(0:尚未连接 1:已经连接)[%d]\n", JProgramInfo->dev_info.connect_ok);
+    shmm_unregister("ProgramInfo", sizeof(ProgramInfo));
 }
 
 

@@ -77,6 +77,27 @@ void print4300()
 
 }
 
+void InIt_Process(int argc, char *argv[])
+{
+	int 	tmp=0;
+	int 	method=0;
+
+	if(argc==3) {	//para
+		sscanf(argv[2],"%d",&tmp);
+		method = tmp;
+		switch(method) {
+		case 3:		//数据区初始化
+		case 5:		//事件初始化
+		case 6:		//需量初始化
+			dataInit(method);
+			break;
+		case 4:		//恢复出厂参数
+			paraInit(0,NULL);
+			break;
+		}
+	}
+}
+
 void para_process(int argc, char *argv[])
 {
 	int 	tmp=0;
