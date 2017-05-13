@@ -20,6 +20,7 @@
 extern INT32S comfd;
 extern INT8U addr[6];//表地址，低在前，高在后
 extern void dealProcess();
+extern void acs_process();
 
 ProgramInfo *JProgramInfo = NULL;
 
@@ -34,20 +35,17 @@ void QuitProcess() {
 }
 
 int InitPro(ProgramInfo **prginfo, int argc, char *argv[]) {
-    if (argc >= 2) {
         *prginfo = OpenShMem("ProgramInfo", sizeof(ProgramInfo), NULL);
         ProIndex = atoi(argv[1]);
         fprintf(stderr, "\n%s start", (*prginfo)->Projects[ProIndex].ProjectName);
         (*prginfo)->Projects[ProIndex].ProjectID = getpid();//保存当前进程的进程号
         fprintf(stderr, "ProjectID[%d]=%d\n", ProIndex, (*prginfo)->Projects[ProIndex].ProjectID);
         return 1;
-    }
-    return 0;
-}
+ }
 
 //主程序
 int main(int argc, char *argv[]) {
-    printf("Checking...\n");
+    printf("Checking11...\n");
     INT8U comport = 2;
 
     int Test_485_result = 1;
@@ -113,6 +111,8 @@ int main(int argc, char *argv[]) {
     if ((comfd = OpenCom(comport, 2400, (INT8U *) "even", 1, 8)) < 1) {
         fprintf(stderr, "OpenCom645 ERR!!! ........................\n");
     }
+
+    acs_process();
     dealProcess();
 
     sleep(1);

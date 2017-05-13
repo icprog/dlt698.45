@@ -66,7 +66,8 @@
 
 #define	REPORT_CHANN_OAD_NUM	10			//上报方案 array OAD最大个数
 #define MY_CSD_NUM				20			//my_csd数组最大各数
-#define ROAD_OADS_NUM           16          //ROAD结构体里oads的最大个数
+#define ROAD_OADS_NUM           20          //ROAD结构体里oads的最大个数
+#define ARRAY_ROAD_NUM			20			//raod数组的最大个数
 #define CLASS7_OAD_NUM			10			//关联对象属性表
 #define MAX_PERIOD_RATE   		48      	//支持的最到终端费率时段数
 #define MAX_FREEZE_OBJ			255			//冻结最大关联冻结对象个数
