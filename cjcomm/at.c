@@ -19,7 +19,7 @@
 #include "at.h"
 
 int checkgprs_exist() {
-    INT8S gprsid  = 0;
+    INT8S gprsid = 0;
     INT8S gprs_s0 = -1, gprs_s1 = -1, gprs_s2 = -1;
 
     gprsid = getSpiAnalogState() & 0x1f;
@@ -41,7 +41,7 @@ int checkgprs_exist() {
     return 0;
 }
 
-int gpofun(char* devname, int data) {
+int gpofun(char *devname, int data) {
     int fd = -1;
     if ((fd = open(devname, O_RDWR | O_NDELAY)) >= 0) {
         write(fd, &data, sizeof(int));
@@ -51,16 +51,16 @@ int gpofun(char* devname, int data) {
     return 0;
 }
 
-int OpenMuxCom(INT8U port, int baud, unsigned char* par, unsigned char stopb, INT8U bits) {
+int OpenMuxCom(INT8U port, int baud, unsigned char *par, unsigned char stopb, INT8U bits) {
     int Com_Port = 0;
     struct termios old_termi, new_termi;
     int baud_lnx = 0;
     unsigned char tmp[128];
     memset(tmp, 0, 128);
-    sprintf((char*)tmp, "/dev/mux%d", port);
+    sprintf((char *) tmp, "/dev/mux%d", port);
     //    sprintf((char*)tmp, "/dev/ttyS%d", port);
 
-    Com_Port = open((char*)tmp, O_RDWR | O_NOCTTY); /* 打开串口文件 */
+    Com_Port = open((char *) tmp, O_RDWR | O_NOCTTY); /* 打开串口文件 */
     if (Com_Port < 0) {
         fprintf(stderr, "open the serial port fail! errno is: %d\n", errno);
         return -1; /*打开串口失败*/
@@ -77,7 +77,7 @@ int OpenMuxCom(INT8U port, int baud, unsigned char* par, unsigned char stopb, IN
     new_termi.c_lflag &= ~(ICANON | ECHO | ECHOE); /*选择为原始输入模式*/
     new_termi.c_oflag &= ~OPOST;                   /*选择为原始输出模式*/
     new_termi.c_cc[VTIME] = 2;                     /*设置超时时间为0.5 s*/
-    new_termi.c_cc[VMIN]  = 0;                     /*最少返回的字节数是 7*/
+    new_termi.c_cc[VMIN] = 0;                     /*最少返回的字节数是 7*/
     new_termi.c_cflag &= ~CSIZE;
     // new_termi.c_iflag &= ~INPCK;     /* Enable parity checking */
     new_termi.c_iflag &= ~ISTRIP;
@@ -129,20 +129,20 @@ int OpenMuxCom(INT8U port, int baud, unsigned char* par, unsigned char stopb, IN
             break;
     }
 
-    if (strncmp((char*)par, "even", 4) == 0) //设置奇偶校验为偶校验
+    if (strncmp((char *) par, "even", 4) == 0) //设置奇偶校验为偶校验
     {
         // new_termi.c_iflag |= (INPCK | ISTRIP);
         new_termi.c_cflag |= PARENB;
         new_termi.c_cflag &= ~PARODD;
 
-    } else if (strncmp((char*)par, "odd", 3) == 0) //设置奇偶校验为奇校验
+    } else if (strncmp((char *) par, "odd", 3) == 0) //设置奇偶校验为奇校验
     {
         new_termi.c_cflag |= PARENB;
         new_termi.c_cflag |= PARODD;
         // new_termi.c_iflag |= (INPCK | ISTRIP);
     } else {
         new_termi.c_cflag &= ~PARENB; //设置奇偶校验为无校验
-                                      // new_termi.c_iflag &=~ ISTRIP;
+        // new_termi.c_iflag &=~ ISTRIP;
     }
 
     if (stopb == 1) //停止位
@@ -166,9 +166,9 @@ int OpenMuxCom(INT8U port, int baud, unsigned char* par, unsigned char stopb, IN
     return Com_Port;
 }
 
-int SendATCommand(char* buf, int len, int com) {
+int SendATCommand(char *buf, int len, int com) {
     int res = write(com, buf, len);
-    int i   = 0;
+    int i = 0;
     if (len > 0) {
         for (i = 0; i < len; i++)
             fprintf(stderr, "%c", buf[i]);
@@ -176,9 +176,9 @@ int SendATCommand(char* buf, int len, int com) {
     return (res < 0) ? 0 : res;
 }
 
-int RecieveFromComm(char* buf, int mlen, int com) {
+int RecieveFromComm(char *buf, int mlen, int com) {
     int len = read(com, buf, mlen);
-    int i   = 0;
+    int i = 0;
     fprintf(stderr, "[AT]recv:\n");
     if (len > 0) {
         for (i = 0; i < len; i++)
@@ -189,7 +189,7 @@ int RecieveFromComm(char* buf, int mlen, int com) {
 }
 
 //查看拨号程序是否获取到ip地址
-int tryifconfig(CLASS25* class25) {
+int tryifconfig(CLASS25 *class25) {
     int sock;
     struct sockaddr_in sin;
     struct ifreq ifr;
@@ -237,7 +237,7 @@ void AT_POWOFF() {
 // pDst: 目标数据指针
 // nSrcLength: 源字符串长度
 // 返回: 目标数据长度
-int gsmString2Bytes(const char* pSrc, unsigned char* pDst, int nSrcLength) {
+int gsmString2Bytes(const char *pSrc, unsigned char *pDst, int nSrcLength) {
     int i;
     //	fprintf(stderr,"gsmString2Bytes:nSrcLength=%d,pSrc=%s\n",nSrcLength,pSrc);
     for (i = 0; i < nSrcLength; i += 2) {
@@ -270,9 +270,9 @@ int gsmString2Bytes(const char* pSrc, unsigned char* pDst, int nSrcLength) {
 // pDst: 目标字符串指针
 // nSrcLength: 源字符串长度
 // 返回: 目标字符串长度
-int gsmSerializeNumbers(const char* pSrc, char* pDst, int nSrcLength) {
+int gsmSerializeNumbers(const char *pSrc, char *pDst, int nSrcLength) {
     int nDstLength; // 目标字符串长度
-                    //    char ch;          // 用于保存一个字符
+    //    char ch;          // 用于保存一个字符
     int i;
 
     // 复制串长度
@@ -303,7 +303,7 @@ int gsmSerializeNumbers(const char* pSrc, char* pDst, int nSrcLength) {
 // pDst: 目标字符串指针
 // nSrcLength: 源编码串长度
 // 返回: 目标字符串长度
-int gsmDecode7bit(const unsigned char* pSrc, char* pDst, int nSrcLength) {
+int gsmDecode7bit(const unsigned char *pSrc, char *pDst, int nSrcLength) {
     int nSrc;            // 源字符串的计数值
     int nDst;            // 目标解码串的计数值
     int nByte;           // 当前正在处理的组内字节的序号，范围是0-6
@@ -356,7 +356,7 @@ int gsmDecode7bit(const unsigned char* pSrc, char* pDst, int nSrcLength) {
 // pSrc: 源PDU串指针
 // pDst: 目标PDU参数指针
 // 返回: 用户信息串长度
-int gsmDecodePdu(const char* pSrc, SM_PARAM* pDst) {
+int gsmDecodePdu(const char *pSrc, SM_PARAM *pDst) {
     int nDstLength = 0;     // 目标PDU串长度
     unsigned char tmp;      // 内部用的临时字节变量
     unsigned char buf[512]; // 内部用的缓冲区
@@ -379,14 +379,14 @@ int gsmDecodePdu(const char* pSrc, SM_PARAM* pDst) {
         tmp += 1;                              // 调整奇偶性
     pSrc += 4;                                 // 指针后移
     gsmSerializeNumbers(pSrc, pDst->TPA, tmp); // 取TP-RA号码
-                                               //        fprintf(stderr,"TPA=%s\n",pDst->TPA);
+    //        fprintf(stderr,"TPA=%s\n",pDst->TPA);
     pSrc += tmp;                               // 指针后移
 
     // TPDU段协议标识、编码方式、用户信息等
-    gsmString2Bytes(pSrc, (unsigned char*)&pDst->TP_PID, 2); // 取协议标识(TP-PID)
+    gsmString2Bytes(pSrc, (unsigned char *) &pDst->TP_PID, 2); // 取协议标识(TP-PID)
     asyslog(LOG_DEBUG, "TP_PID=%d", pDst->TP_PID);
     pSrc += 2;                                               // 指针后移
-    gsmString2Bytes(pSrc, (unsigned char*)&pDst->TP_DCS, 2); // 取编码方式(TP-DCS)
+    gsmString2Bytes(pSrc, (unsigned char *) &pDst->TP_DCS, 2); // 取编码方式(TP-DCS)
     pDst->TP_DCS = pDst->TP_DCS & 0x0c;
     asyslog(LOG_DEBUG, "TP_DCS=%x,接收号码：%s", pDst->TP_DCS, pDst->TPA);
     pSrc += 2;                                    // 指针后移
@@ -397,7 +397,7 @@ int gsmDecodePdu(const char* pSrc, SM_PARAM* pDst) {
 
     if (pDst->TP_DCS == GSM_7BIT) {
         // 7-bit解码
-        nDstLength = gsmString2Bytes(pSrc, buf, tmp & 7 ? (int)tmp * 7 / 4 + 2 : (int)tmp * 7 / 4); // 格式转换
+        nDstLength = gsmString2Bytes(pSrc, buf, tmp & 7 ? (int) tmp * 7 / 4 + 2 : (int) tmp * 7 / 4); // 格式转换
         if (nDstLength > 161) {
             asyslog(LOG_DEBUG, "7-Bit:错误短信长度>161,返回");
             return 0;
@@ -438,7 +438,7 @@ void checkSms(int port) {
 
         char cimi[256];
         memset(cimi, 0x00, sizeof(cimi));
-        char* position = strstr(Mrecvbuf, "0891683108");
+        char *position = strstr(Mrecvbuf, "0891683108");
         if (position != Mrecvbuf && position != NULL) {
             if (sscanf(position, "%[0-9|A-F]", cimi) == 1) {
                 asyslog(LOG_INFO, "CMGR = %s\n", cimi);
@@ -458,11 +458,11 @@ void checkSms(int port) {
     }
 }
 
-int absoluteKill(char* name, int timeout) {
+int absoluteKill(char *name, int timeout) {
     pid_t pids[128];
     for (int i = 0; i < timeout; i++) {
         memset(pids, 0x00, sizeof(pids));
-        if (prog_find_pid_by_name((signed char*)name, pids) >= 1) {
+        if (prog_find_pid_by_name((signed char *) name, pids) >= 1) {
             char command[64];
             memset(command, 0x00, sizeof(command));
             sprintf(command, "kill %d", pids[0]);
@@ -476,10 +476,10 @@ int absoluteKill(char* name, int timeout) {
     return -1;
 }
 
-void* ATWorker(void* args) {
-    CLASS25* class25 = (CLASS25*)args;
-    int sMux0        = -1;
-    int sMux1        = -1;
+void *ATWorker(void *args) {
+    CLASS25 *class25 = (CLASS25 *) args;
+    int sMux0 = -1;
+    int sMux1 = -1;
 
     while (1) {
         if (GetOnlineType() != 0) {
@@ -520,6 +520,11 @@ void* ATWorker(void* args) {
         gpofun("/dev/gpoGPRS_SWITCH", 1);
         sleep(10);
 
+        SetGprsStatus(0);
+        SetGprsCSQ(0);
+        SetWireLessType(0);
+        SetPPPDStatus(0);
+
         if (GetOnlineType() != 0) {
             goto wait;
         }
@@ -531,8 +536,8 @@ void* ATWorker(void* args) {
         system("mux.sh &");
         sleep(10);
 
-        sMux0 = OpenMuxCom(0, 115200, (unsigned char*)"none", 1, 8); // 0
-        sMux1 = OpenMuxCom(1, 115200, (unsigned char*)"none", 1, 8);
+        sMux0 = OpenMuxCom(0, 115200, (unsigned char *) "none", 1, 8); // 0
+        sMux1 = OpenMuxCom(1, 115200, (unsigned char *) "none", 1, 8);
         if (sMux0 < 0 || sMux1 < 0) {
             close(sMux0);
             close(sMux1);
@@ -555,6 +560,7 @@ void* ATWorker(void* args) {
                 goto err;
             }
         }
+        SetGprsStatus(1);
 
         for (int timeout = 0; timeout < 10; timeout++) {
             char Mrecvbuf[128];
@@ -565,7 +571,8 @@ void* ATWorker(void* args) {
             RecieveFromComm(Mrecvbuf, 128, sMux0);
 
             char INFO[6][32];
-            if (sscanf(Mrecvbuf, "%*[^\n]\n%[^\n]\n%[^\n]\n%[^\n]\n%[^\n]\n%[^\n]\n%[^\n]", INFO[0], INFO[1], INFO[2], INFO[3], INFO[4], INFO[5]) == 6) {
+            if (sscanf(Mrecvbuf, "%*[^\n]\n%[^\n]\n%[^\n]\n%[^\n]\n%[^\n]\n%[^\n]\n%[^\n]", INFO[0], INFO[1], INFO[2],
+                       INFO[3], INFO[4], INFO[5]) == 6) {
                 break;
             }
         }
@@ -590,6 +597,7 @@ void* ATWorker(void* args) {
                 }
             }
         }
+        SetGprsStatus(2);
 
         for (int timeout = 0; timeout < 10; timeout++) {
             char Mrecvbuf[128];
@@ -606,6 +614,7 @@ void* ATWorker(void* args) {
                 break;
             }
         }
+        SetGprsStatus(3);
 
         for (int timeout = 0; timeout < 50; timeout++) {
             char Mrecvbuf[128];
@@ -619,6 +628,7 @@ void* ATWorker(void* args) {
             if (sscanf(Mrecvbuf, "%*[^:]: %d,%d", &k, &l) == 2) {
                 asyslog(LOG_INFO, "GprsCSQ = %d,%d\n", k, l);
                 if (k != 99) {
+                    SetGprsCSQ(k);
                     class25->signalStrength = k;
                     if (k > 20) {
                         gpofun("/dev/gpoCSQ_GREEN", 1);
@@ -647,6 +657,7 @@ void* ATWorker(void* args) {
                 asyslog(LOG_INFO, "GprsCREG = %d,%d\n", k, l);
                 if (l == 1 || l == 5) {
                     reg_ok = 1;
+                    SetGprsStatus(4);
                     break;
                 }
             }
@@ -656,8 +667,8 @@ void* ATWorker(void* args) {
             goto err;
         }
 
-        char* cimiType[] = {
-            "46003", "46011",
+        char *cimiType[] = {
+                "46003", "46011",
         };
 
         int callType = 1;
@@ -672,7 +683,7 @@ void* ATWorker(void* args) {
 
             char cimi[64];
             memset(cimi, 0x00, sizeof(cimi));
-            if (sscanf((char*)&Mrecvbuf[0], "%*[^0-9]%[0-9]", cimi) == 1) {
+            if (sscanf((char *) &Mrecvbuf[0], "%*[^0-9]%[0-9]", cimi) == 1) {
                 asyslog(LOG_INFO, "CIMI = %s\n", cimi);
                 for (int i = 0; i < 2; i++) {
                     if (strncmp(cimiType[i], cimi, 5) == 0) {
@@ -694,9 +705,11 @@ void* ATWorker(void* args) {
          */
         if (callType == 1) {
             asyslog(LOG_INFO, "拨号类型：GPRS\n");
+            SetWireLessType(1);
             system("pppd call gprs &");
         } else {
             asyslog(LOG_INFO, "拨号类型：CDMA2000\n");
+            SetWireLessType(2);
             system("pppd call cdma2000 &");
         }
 
@@ -704,13 +717,14 @@ void* ATWorker(void* args) {
             sleep(1);
             if (tryifconfig(class25) == 1) {
                 //拨号成功，存储参数，以备召唤
+                SetPPPDStatus(1);
                 saveCoverClass(0x4500, 0, class25, sizeof(CLASS25), para_vari_save);
                 break;
             }
         }
         sleep(20);
 
-    wait:
+        wait:
         //等待在线状态为“否”，重新拨号
         while (1) {
             static int step = 0;
@@ -725,7 +739,7 @@ void* ATWorker(void* args) {
             }
         }
 
-    err:
+        err:
         sleep(1);
         close(sMux0);
         close(sMux1);
@@ -735,7 +749,7 @@ void* ATWorker(void* args) {
     return NULL;
 }
 
-void CreateATWorker(void* clientdata) {
+void CreateATWorker(void *clientdata) {
     pthread_attr_t attr;
     pthread_attr_init(&attr);
     pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
