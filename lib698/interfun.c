@@ -61,7 +61,7 @@ void print_road(ROAD road)
 
 //	asyslog(LOG_INFO,"ROAD:%04x-%02x%02x ",road.oad.OI,road.oad.attflg,road.oad.attrindex);
 	fprintf(stderr,"ROAD:%04x-%02x%02x ",road.oad.OI,road.oad.attflg,road.oad.attrindex);
-	if(road.num >= 16) {
+	if(road.num >= ROAD_OADS_NUM) {
 		fprintf(stderr,"csd overvalue 16 error\n");
 		return;
 	}
@@ -90,6 +90,8 @@ void print_rcsd(CSD_ARRAYTYPE csds)
 		}
 	}
 }
+
+
 
 ////////////////////////////////////////////////////////////////////
 int getTItoSec(TI ti)
@@ -255,6 +257,20 @@ int  create_OAD(INT8U type,INT8U *data,OAD oad)		//0x51
 	data[index++] = oad.OI & 0xff;
 	data[index++] = oad.attflg;
 	data[index++] = oad.attrindex;
+	return index;
+}
+
+int fill_ROAD(INT8U type,INT8U *data,ROAD road)			//0x52
+{
+	int 	index=0,i=0;
+	if(type)
+		data[index++] = dtroad;
+	index += create_OAD(0,&data[index],road.oad);
+	if(road.num>ROAD_OADS_NUM)	road.num = ROAD_OADS_NUM;
+	data[index++] = road.num;
+	for(i=0;i<road.num;i++) {
+		index += create_OAD(0,&data[index],road.oads[i]);
+	}
 	return index;
 }
 
@@ -486,7 +502,7 @@ int getLongUnsigned(INT8U *source,INT8U *dest)	//0x12
 	return 3;
 }
 
-int getEnum(INT8U type,INT8U *source,INT8U *enumvalue)	//16
+int getEnum(INT8U type,INT8U *source,INT8U *enumvalue)	//0x16
 {
 	if (type==1 || type==0)
 	{
@@ -587,17 +603,22 @@ int getTI(INT8U type,INT8U *source,TI *ti)	//0x54
 
 int get_Data(INT8U *source,INT8U *dest)
 {
-	int type=0,i=0;
-	type = source[0];
-	dest[0] = type;
-//	fprintf(stderr,"get_Data type=%02x\n",type);
-	switch(type){
+	int dttype=0,dtlen=0,i=0;
+	dttype = source[0];
+	dest[0] = dttype;
+//	dtlen = getDataTypeLen(dttype);
+//	if(dtlen>=0) {
+//		memcpy(&dest[1],&source[1],dtlen);
+//	}
+
+	fprintf(stderr,"get_Data type=%02x\n",dttype);
+	switch(dttype){
 	case dtunsigned:
 		dest[1] = source[1];
 		return 2;
 	case dtlongunsigned:
-		dest[1] = source[1];
-		dest[2] = source[2];
+		dest[1] = source[2];		//高低位
+		dest[2] = source[1];
 		return 3;
 	case dtfloat64:
 	case dtlong64:
@@ -762,6 +783,7 @@ int getCSD(INT8U type,INT8U *source,MY_CSD* csd)		//0X5B
 	}
 	return 0;
 }
+
 int getMS(INT8U type,INT8U *source,MY_MS *ms)		//0x5C
 {
 	INT8U choicetype=0;
@@ -847,7 +869,6 @@ int getCOMDCB(INT8U type, INT8U* source, COMDCB* comdcb)		//0x5F
 	}
 	return 0;
 }
-
 
 /*
  * 解析记录列选择 RCSD
@@ -1017,6 +1038,41 @@ int Get_6015(INT8U type,INT8U seqnum,INT8U *data)
 }
 
 /*
+ * 事件采集方案
+ * */
+int Get_6017(INT8U type,INT8U seqnum,INT8U *data)
+{
+	int 	index=0,ret=0,i=0;
+	CLASS_6017 event={};
+
+	ret = readCoverClass(0x6017,seqnum,&event,sizeof(CLASS_6017),coll_para_save);
+	fprintf(stderr,"\n 6017 read coll ok　seqnum=%d  type=%d  ret=%d\n",seqnum,type,ret);
+	if ((ret == 1) || (type==1)) {
+		fprintf(stderr,"\n 6017 read coll ok　seqnum=%d  type=%d  ret=%d\n",seqnum,type,ret);
+		index += create_struct(&data[index],5);					//属性2：struct 5个元素
+		index += fill_unsigned(&data[index],event.sernum);		//方案序号
+		index += create_struct(&data[index],2);					//属性2：struct 2个元素
+		index += fill_unsigned(&data[index],event.collstyle.colltype);		//采集类型
+		switch(event.collstyle.colltype) {
+		case 0://周期采集事件数据
+		case 2://根据通知采集指定事件数据
+			if(event.collstyle.roads.num>ARRAY_ROAD_NUM)	event.collstyle.roads.num = ARRAY_ROAD_NUM;
+			index += create_array(&data[index],event.collstyle.roads.num);
+			for(i=0;i<event.collstyle.roads.num;i++) {
+				index += fill_ROAD(1,&data[index],event.collstyle.roads.road[i]);	//采集数据
+			}
+			break;
+		case 1://NULL,根据通知采集所有事件数据
+			data[index++]=0;
+			break;
+		}
+		index += fill_MS(1,&data[index],event.ms);		//电能表集合
+		index += fill_bool(&data[index],event.ifreport);		//上报标识
+		index += fill_long_unsigned(&data[index],event.deepsize);		//存储深度
+	}
+	return index;
+}
+/*
  * 上报方案
  * */
 int Get_601D(INT8U type,INT8U seqnum,INT8U *data)
@@ -1071,6 +1127,38 @@ int Get_6035(INT8U type,INT8U taskid,INT8U *data)
 	return index;
 }
 
+/*
+ * 根据数据类型返回相应的数据长度
+ * */
+int getDataTypeLen(int dt)
+{
+	switch(dt) {
+	case dtnull: 			return 0;
+	case dtbool: 			return 1;
+	case dtdoublelong:  	return 4;
+	case dtdoublelongunsigned: return 4;
+	case dtinteger:			return 1;
+	case dtlong:			return 2;
+	case dtunsigned:		return 1;
+	case dtlongunsigned: 	return 2;
+	case dtlong64:			return 8;
+	case dtlong64unsigned: 	return 8;
+	case dtenum:		 	return 1;
+	case dtfloat32:			return 4;
+	case dtfloat64:			return 8;
+	case dtdatetime:		return 10;
+	case dtdate:			return 5;
+	case dttime:			return 3;
+	case dtdatetimes:		return 7;
+	case dtoi:				return 2;
+	case dtoad:				return 4;
+	case dtomd:				return 4;
+	case dtti:				return 3;
+	default:
+		syslog(LOG_NOTICE,"未处理数据类型");
+		return -1;
+	}
+}
 /*参数文件修改，改变共享内存的标记值，通知相关进程，参数有改变
  * */
 void setOIChange(OI_698 oi)
@@ -1111,11 +1199,13 @@ void setOIChange(OI_698 oi)
 	case 0x3203:	memp->oi_changed.oi3203++;	break;
 
 	case 0x4000:	memp->oi_changed.oi4000++;	break;
+	case 0x4001:	memp->oi_changed.oi4001++;	break;
 	case 0x4016:	memp->oi_changed.oi4016++;	break;
 	case 0x4030:	memp->oi_changed.oi4030++;	break;
 	case 0x4204:	memp->oi_changed.oi4204++;	break;
 	case 0x4300:	memp->oi_changed.oi4300++;  break;
 	case 0x4500:	memp->oi_changed.oi4500++;  break;
+	case 0x4510:	memp->oi_changed.oi4510++;  break;
 
 	case 0x6000:	memp->oi_changed.oi6000++;  break;
 	case 0x6002:	memp->oi_changed.oi6002++;  break;

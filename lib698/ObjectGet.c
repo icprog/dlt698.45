@@ -971,6 +971,9 @@ int getSel1_coll(RESULT_RECORD *record)
 		case 0x6015:
 			index += Get_6015(0,taskid,&record->data[index]);
 			break;
+		case 0x6017:
+			index += Get_6017(0,taskid,&record->data[index]);
+			break;
 		case 0x6035:
 			index += Get_6035(0,taskid,&record->data[index]);
 			break;
@@ -982,6 +985,7 @@ int getSel1_coll(RESULT_RECORD *record)
 	}
 	if(index==0) {	//0条记录     [1] SEQUENCE OF A-RecordRow
 		record->data[0] = 0;
+		index=1;
 	}
 	record->datalen = index;
 	fprintf(stderr,"\nrecord->datalen = %d",record->datalen);

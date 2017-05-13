@@ -15,7 +15,6 @@
 #include "lcd_menu.h"
 #include "lcd_ctrl.h"
 #include "lcdprt_jzq.h"
-#include "usertype.h"
 #include "../libMq/libmmq.h"
 #include "mutils.h"
 #include "gui.h"
@@ -34,10 +33,10 @@ Menu menu[]={//必须是一级菜单，然后二级菜单。。。。
 {{level0,"     ",		NULL, 				MENU_NOPASSWD},		NULL},
 	{{level1,"测量点数据显示", 	NULL, 				MENU_NOPASSWD},		NULL},
 		//二级菜单 测量点数据显示子菜单
-		{{level2,"0.交采数据",	menu_ac_info, 		MENU_NOPASSWD},		NULL},
-		{{level2,"1.实时数据",	menu_showclddata, 	MENU_NOPASSWD},		NULL},
-		{{level2,"2.日 数 据", 	menu_showdaydata, 	MENU_NOPASSWD},		NULL},//0
-		{{level2,"3.月 数 据", 	menu_showmonthdata, MENU_NOPASSWD},		NULL},//0
+		{{level2,"1.交采数据",	menu_ac_info, 		MENU_NOPASSWD},		NULL},
+		{{level2,"2.实时数据",	menu_showclddata, 	MENU_NOPASSWD},		NULL},
+		{{level2,"3.日 数 据", 	menu_showdaydata, 	MENU_NOPASSWD},		NULL},//0
+		{{level2,"4.月 数 据", 	menu_showmonthdata, MENU_NOPASSWD},		NULL},//0
 	{{level1,"参数设置与查看", 	NULL, 				MENU_NOPASSWD},		NULL},
 		//二级菜单 参数设置与查看子菜单
 		{{level2,"1.通信通道设置", 	NULL, 				MENU_ISPASSWD_EDITMODE},	NULL},
@@ -49,7 +48,7 @@ Menu menu[]={//必须是一级菜单，然后二级菜单。。。。
 			{{level3,"3.主站通信参数", 	NULL, 		MENU_NOPASSWD},		NULL},//1
 				{{level4,"1.以太网通信参数",	menu_netmaster,		MENU_NOPASSWD}},//1111
 				{{level4,"2.无线通信参数",		menu_wlanmaster,	MENU_NOPASSWD}},//1111
-			{{level3,"4.以太网参数配置", 	menu_eth0para, 		MENU_NOPASSWD},		NULL},//11
+			{{level3,"4.本地以太网配置", 	menu_eth0para, 		MENU_NOPASSWD},		NULL},//11
 //			{{level3,"5.虚拟专网参数", 	menu_Virpara, 		MENU_NOPASSWD},		NULL},//-1
 		{{level2,"2.电表参数设置", 	NULL, 	MENU_ISPASSWD_EDITMODE},	NULL},
 			{{level3,"1.修改测量点", 		menu_jzqsetmeter,	MENU_ISPASSWD},	NULL},//11
@@ -89,7 +88,6 @@ Menu menu[]={//必须是一级菜单，然后二级菜单。。。。
 //			{{level3,"7.载波模块信息",	menu_zb_info,		MENU_NOPASSWD},		NULL},//0
 //			{{level3,"8.GPRS模块信息",menu_gprs_info,		MENU_NOPASSWD},		NULL},//0
 			{{level3,"4.交采芯片信息",menu_ac_info,		MENU_NOPASSWD},		NULL},
-			{{level3,"5.配置设置",menu_TorF_info,		MENU_NOPASSWD},		NULL},
 #else
 			{{level3,"3.抄表结果查看",menu_readmeter_info,		MENU_NOPASSWD},		NULL},
 			{{level3,"4.液晶对比度", 	menu_lcdcontrast, 	MENU_NOPASSWD},		NULL},
@@ -97,7 +95,6 @@ Menu menu[]={//必须是一级菜单，然后二级菜单。。。。
 			{{level3,"6.载波模块信息",	menu_zb_info,		MENU_NOPASSWD},		NULL},
 			{{level3,"7.GPRS模块信息",menu_gprs_info,		MENU_NOPASSWD},		NULL},
 			{{level3,"8.交采芯片信息",menu_ac_info,		MENU_NOPASSWD},		NULL},
-			{{level3,"9.配置设置",menu_TorF_info,		MENU_NOPASSWD},		NULL},
 #endif
 //		{{level2,"5.页面设置", 	menu_pagesetup, 	MENU_NOPASSWD},		NULL},
 //		{{level2,"6.手动抄表", 	NULL, 				MENU_NOPASSWD},		NULL},
@@ -171,7 +168,6 @@ Menu menu[]={//必须是一级菜单，然后二级菜单。。。。
 //			{{level3,"5.GPRSIP查看",	menu_gprsip, 		MENU_NOPASSWD},		NULL},
 //			{{level3,"6.抄表结果查看",menu_readmeter_info,		MENU_NOPASSWD},		NULL},
 //			{{level3,"7.时钟电池", 	menu_rtcpower, 		MENU_NOPASSWD},		NULL},
-//			{{level3,"8.配置设置",menu_TorF_info,		MENU_NOPASSWD},		NULL},
 //		{{level2,"5.页面设置", 	menu_pagesetup, 	MENU_NOPASSWD},		NULL},
 //		{{level2,"6.手动抄表", 	NULL, 				MENU_NOPASSWD},		NULL},
 //		//////三级菜单 手动抄表子菜单
@@ -187,10 +183,10 @@ Menu menu[]={//必须是一级菜单，然后二级菜单。。。。
 extern LunXian_t LunXian[LunPageNum];
 extern Proxy_Msg* p_Proxy_Msg_Data;
 
+extern INT8U g_chgOI4510;
+extern INT8U g_chgOI4001;
+
 TS Tcurr_tm_his;
-#ifdef JIANGSU
-extern INT16U show_offtime;
-#endif
 int g_PressKey_old;//用于液晶点抄 半途退出
 
 
@@ -231,20 +227,6 @@ void show_realdata(int pindex, LcdDataItem *item, int itemcount){
 			delay(200);
 		}
 	}
-#ifdef SHANGHAI
-	else if(ParaAll->f10.para_mp[pindex-1].Protocol==21)  //上海表
-	{
-		gui_clrrect(rect_Client);
-		ShowCLDDataPage_SH(item, itemcount, 2,ParaAll->f10.para_mp[pindex-1].RateNum);
-		PressKey = NOKEY;
-		while(g_LcdPoll_Flag==LCD_NOTPOLL){
-			if(PressKey==ESC)
-				return;
-			PressKey = NOKEY;
-			delay(300);
-		}
-	}
-#endif
 	else
 	{
 		gui_clrrect(rect_Client);
@@ -270,31 +252,6 @@ int message_send_data(mmq_head mq_h,mqd_t mqd_mr,unsigned prio_t,INT8U *sendbuf)
 	}else{
 		return 0;
 	}
-}
-
-void setpara(void *para_f, int pn, int fn, int para_f_len){//发送消息给vmain
-//#ifndef FB_SIM
-//	gdm_3761 gdm_3761_tmp;
-//	mqd_t 	mqfd_ask;
-//	gdm_3761_tmp.afn = 0x04;
-//	gdm_3761_tmp.dunum = 1;
-//	gdm_3761_tmp.du[0].pn = pn;
-//	gdm_3761_tmp.du[0].fn = fn;
-//	gdm_3761_tmp.du[0].datalen = para_f_len;
-//	memcpy(gdm_3761_tmp.du[0].data, para_f, para_f_len);
-//	int ret;
-//	struct mq_attr attr_main;
-//	mqfd_ask = mmq_open((INT8S *)COM_VMAIN_MQ,&attr_main,O_WRONLY);
-//	mmq_head mq_h;
-//	mq_h.pid = vgui;
-//	mq_h.cmd = SETPARA;
-//	mq_h.bufsiz = sizeof(gdm_3761_tmp);
-//	ret = message_send_data(mq_h,mqfd_ask,0,(INT8U *)&gdm_3761_tmp);
-//	if(ret >=1){
-//		//dbg_prt("\n vd ip：id parameter share memory success!\n");
-//		mmq_close(mqfd_ask);
-//	}
-//#endif
 }
 
 mqd_t createMsg(INT8S *mq_name, INT8U flg){
@@ -828,141 +785,6 @@ void gui_mp_free(CLASS_6001 *gui_mp){
 	free(gui_mp);
 }
 
-#ifdef SHANGHAI
-//cldaddr为表号后6位
-void showselectmeter(char *cldaddr,char *box_addr)
-{
-	Gui_MP_t *gui_mp=NULL;
-	int cur_cldno=1, begin_cldno=1, i=0, presskey_ok_acs=NOKEY;
-	Point pos;
-	char first_flg=0, str_cld[50], addr[13];
-	Rect rect;
-	int cld_max=0;
-	cld_max = gui_mp_select(&gui_mp,box_addr);
-	if(cld_max<=0){
-		msgbox_label((char *)"未搜素到测量点", CTRL_BUTTON_OK);
-		return;
-	}
-//	dbg_prt("\n 测量点总数为：%d",cld_max);
-	PressKey = NOKEY;
-	while(g_LcdPoll_Flag==LCD_NOTPOLL){
-		switch(PressKey)
-		{
-		case LEFT:
-			if(cld_max>PAGE_COLNUM-1){
-				if(begin_cldno!=1 ){
-					begin_cldno -= PAGE_COLNUM-1;
-					if(begin_cldno<=0)
-						begin_cldno = 1;
-					cur_cldno = begin_cldno;
-				}else
-					cur_cldno = begin_cldno = cld_max - (PAGE_COLNUM-1);
-			}
-			break;
-		case UP:
-			cur_cldno--;
-			if(cur_cldno<=0 && cld_max>PAGE_COLNUM){
-				cur_cldno = cld_max;
-				begin_cldno = cld_max - PAGE_COLNUM + 2;
-			}else if(cur_cldno<=0 && cld_max<=PAGE_COLNUM){
-				cur_cldno = cld_max;
-			}else if(cur_cldno<=begin_cldno)
-				begin_cldno = cur_cldno;
-			break;
-		case RIGHT:
-			if((begin_cldno+PAGE_COLNUM-1)>=cld_max){
-				cur_cldno = begin_cldno = 1;
-			}else{
-				begin_cldno += PAGE_COLNUM-1;
-				cur_cldno = begin_cldno;
-			}
-			break;
-		case DOWN:
-			cur_cldno++;
-			if(cur_cldno>cld_max)
-				begin_cldno = cur_cldno = 1;
-			else if(cur_cldno>begin_cldno+PAGE_COLNUM-2)
-				begin_cldno++;
-			break;
-		case OK:
-			memcpy(cldaddr,(gui_mp+cur_cldno-1)->cldaddr,12);
-			gui_mp_free(gui_mp);
-			return;
-		case ESC:
-			gui_mp_free(gui_mp);
-			return;
-		default:
-			break;
-		}
-		if(PressKey!=NOKEY||first_flg==0||presskey_ok_acs==OK){
-			presskey_ok_acs = NOKEY;
-			first_flg = 1;
-			gui_clrrect(rect_Client);
-			pos.x = rect_Client.left;
-			pos.y = rect_Client.top+1;
-			gui_textshow((char *)"测量点号        表地址", pos, LCD_NOREV);
-			for(i=begin_cldno; i<begin_cldno+PAGE_COLNUM-1; i++){
-				if(i>cld_max)
-					continue;
-				memset(str_cld, 0, 50);
-				memset(addr, 0, 13);
-				memcpy(addr, (gui_mp+i-1)->cldaddr, 12);
-				sprintf(str_cld, "  %04d       %s",(gui_mp+i-1)->mpno, addr);
-//				dbg_prt("\n [%d]str_cld=%s iindex=%d mpno=%d", i-1, str_cld,(gui_mp+i-1)->iidnex,(gui_mp+i-1)->mpno);
-				pos.x = rect_Client.left;
-				pos.y = rect_Client.top + (i-begin_cldno+1)*FONTSIZE*2 + 2;
-				gui_textshow(str_cld, pos, LCD_NOREV);
-				if(i==cur_cldno){
-					memset(&rect, 0, sizeof(Rect));
-					rect = gui_getstrrect((unsigned char*)str_cld, pos);//获得字符串区域
-					gui_reverserect(rect);
-				}
-			}
-			set_time_show_flag(1);
-		}
-		PressKey = NOKEY;
-		delay(50);
-	}
-	gui_mp_free(gui_mp);
-}
-
-int gui_mp_select(Gui_MP_t **ppgui_mp,char *cldaddr){
-	Gui_MP_t *gui_mp=NULL;
-	int i, num=0, cld_max=0;
-	for(i=0; i<MP_MAXNUM;i++){
-		if(gui_isValidCld(i+1)>=1)
-		{
-			if(memcmp(cldaddr, &ParaAll->f10.para_mp[i].addr[6], 6)==0)//从第7位开始比较（比较后6位）
-				num++;
-		}
-	}
-	cld_max = num;
-	if(cld_max>0){
-		gui_mp = (Gui_MP_t*)malloc(cld_max*sizeof(Gui_MP_t));
-		*ppgui_mp = gui_mp;
-		if(gui_mp==NULL){
-//			dbg_prt("\n malloc gui_mp error!!!");
-			return -1;
-		}
-	}
-	num = 0;
-	for(i=0; i<MP_MAXNUM;i++){
-		if(gui_isValidCld(i+1)>=1){
-			if(memcmp(cldaddr, &ParaAll->f10.para_mp[i].addr[6], 6)==0)
-			{
-				(gui_mp+num)->iidnex = ParaAll->f10.para_mp[i].Index;
-				(gui_mp+num)->mpno = ParaAll->f10.para_mp[i].MPNo;
-				memcpy((gui_mp+num)->cldaddr, ParaAll->f10.para_mp[i].addr, 12);
-//				dbg_prt("\n lcd_num =%d iindex=%d mpno=%d (gui_mp+num)->cldaddr=%s",
-//						num,(gui_mp+num)->iidnex, (gui_mp+num)->mpno, (gui_mp+num)->cldaddr);
-				num++;
-			}
-		}
-	}
-	return cld_max;
-}
-#endif
-
 void showallmeter(void (*pfun)(int cldno))
 {
 	CLASS_6001* gui_mp = NULL;
@@ -1077,12 +899,7 @@ void showallmeter(void (*pfun)(int cldno))
 */
 void menu_showclddata()
 {
-#ifdef JIANGSU
-	showallmeter(show_realdatabycld_js);
-	g_curcldno=1;
-#else
 	showallmeter(show_realdatabycld);
-#endif
 }
 /***********************************************
 * 函数说明：查询当前数据，冻结数据，曲线数据
@@ -1242,19 +1059,19 @@ void dataitem_showvalue(INT8U *filename, int cldno, char *idname,
 								int dataid, int len, int pos_x, int pos_y){
 	char str[100];
 	LcdDataItem lcd_data;
-	FreezeData_SAVE fd_s;
+	//FreezeData_SAVE fd_s;
 	float fval;
 	memset(&lcd_data, 0, sizeof(LcdDataItem));
 	memset(str, 0, 100);
-	if(read_filedata((char*)filename, cldno, dataid, DONGJIE_DATA, (void*)&fd_s)==1){
-		memcpy(lcd_data.val, fd_s.data, LcdDataItem_VALLEN);
-		fval = bcd2double((INT8U*)lcd_data.val, LcdDataItem_VALLEN,2, positive);
-//		dbg_prt( "\n fval=%f", fval);
-		if(len==2)
-			sprintf(str,"%s % 9.2f kWh", idname, fval);
-		else
-			sprintf(str,"%s % 8.4f kWh", idname, fval);
-	}else
+//	if(read_filedata((char*)filename, cldno, dataid, DONGJIE_DATA, (void*)&fd_s)==1){
+//		memcpy(lcd_data.val, fd_s.data, LcdDataItem_VALLEN);
+//		fval = bcd2double((INT8U*)lcd_data.val, LcdDataItem_VALLEN,2, positive);
+////		dbg_prt( "\n fval=%f", fval);
+//		if(len==2)
+//			sprintf(str,"%s % 9.2f kWh", idname, fval);
+//		else
+//			sprintf(str,"%s % 8.4f kWh", idname, fval);
+//	}else
 		sprintf(str,"%s xxxxxx.xx kWh", idname);
 	lcd_data.pos.x = pos_x;
 	lcd_data.pos.y = pos_y;
@@ -1263,7 +1080,7 @@ void dataitem_showvalue(INT8U *filename, int cldno, char *idname,
 void show_day_djdata(int cldno){
 	char str[100];
 	TS cj_date;
-	FreezeData_SAVE fd_s;
+	//FreezeData_SAVE fd_s;
 	Point pos;
 	memset(&cj_date, 0, sizeof(TS));
 	gui_clrrect(rect_Client);
@@ -1271,37 +1088,13 @@ void show_day_djdata(int cldno){
 	gui_textshow((char*)"正向有功电能示值", pos, LCD_NOREV);
 					// 测量点 DID 位数 位置
 	dataitem_showvalue(DongJie_FileName,cldno, (char*)"正向有功总:", 824, 2, 0, rect_Client.top + FONTSIZE*4);
-#ifdef SHANGHAI
-	if(ParaAll->f10.para_mp[cldno-1].Protocol == 21)
-	{
-		if(ParaAll->f10.para_mp[cldno-1].RateNum == 2)
-		{
-			dataitem_showvalue(DongJie_FileName,cldno, (char*)"正向有功平:", 825, 2, 0, rect_Client.top + FONTSIZE*6+3);
-			dataitem_showvalue(DongJie_FileName,cldno, (char*)"正向有功谷:", 826, 2, 0, rect_Client.top + FONTSIZE*8+6);
-		}
-		else
-		{
-			dataitem_showvalue(DongJie_FileName,cldno, (char*)"正向有功尖:", 825, 2, 0, rect_Client.top + FONTSIZE*6+3);
-			dataitem_showvalue(DongJie_FileName,cldno, (char*)"正向有功峰:", 827, 2, 0, rect_Client.top + FONTSIZE*8+6);
-			dataitem_showvalue(DongJie_FileName,cldno, (char*)"正向有功平:", 826, 2, 0, rect_Client.top + FONTSIZE*10+9);
-			dataitem_showvalue(DongJie_FileName,cldno, (char*)"正向有功谷:", 828, 2, 0, rect_Client.top + FONTSIZE*12+12);
-		}
-	}
-	else
-	{
-		dataitem_showvalue(DongJie_FileName,cldno, (char*)"正向有功尖:", 825, 2, 0, rect_Client.top + FONTSIZE*6+3);
-		dataitem_showvalue(DongJie_FileName,cldno, (char*)"正向有功峰:", 826, 2, 0, rect_Client.top + FONTSIZE*8+6);
-		dataitem_showvalue(DongJie_FileName,cldno, (char*)"正向有功平:", 827, 2, 0, rect_Client.top + FONTSIZE*10+9);
-		dataitem_showvalue(DongJie_FileName,cldno, (char*)"正向有功谷:", 828, 2, 0, rect_Client.top + FONTSIZE*12+12);
-	}
-#else
-	dataitem_showvalue(DongJie_FileName,cldno, (char*)"正向有功尖:", 825, 2, 0, rect_Client.top + FONTSIZE*6+3);
-	dataitem_showvalue(DongJie_FileName,cldno, (char*)"正向有功峰:", 826, 2, 0, rect_Client.top + FONTSIZE*8+6);
-	dataitem_showvalue(DongJie_FileName,cldno, (char*)"正向有功平:", 827, 2, 0, rect_Client.top + FONTSIZE*10+9);
-	dataitem_showvalue(DongJie_FileName,cldno, (char*)"正向有功谷:", 828, 2, 0, rect_Client.top + FONTSIZE*12+12);
-#endif
-	if(read_filedata((char*)DongJie_FileName, cldno, 824, DONGJIE_DATA, (void*)&fd_s)==1)
-		memcpy(&cj_date, &fd_s.tm_collect, sizeof(TS));
+
+//	dataitem_showvalue(DongJie_FileName,cldno, (char*)"正向有功尖:", 825, 2, 0, rect_Client.top + FONTSIZE*6+3);
+//	dataitem_showvalue(DongJie_FileName,cldno, (char*)"正向有功峰:", 826, 2, 0, rect_Client.top + FONTSIZE*8+6);
+//	dataitem_showvalue(DongJie_FileName,cldno, (char*)"正向有功平:", 827, 2, 0, rect_Client.top + FONTSIZE*10+9);
+//	dataitem_showvalue(DongJie_FileName,cldno, (char*)"正向有功谷:", 828, 2, 0, rect_Client.top + FONTSIZE*12+12);
+
+
 	memset(str, 0, 100);
 	if(cj_date.Year==0|| cj_date.Month==0||cj_date.Day==0)
 		sprintf((char*)str,"抄表时间 00/00/00 00:00");
@@ -1387,30 +1180,6 @@ void menu_showdaydata(){
 	tminc(&curr_tm, day_units, -1);
 	sprintf(s_date, "%04d%02d%02d",curr_tm.Year,curr_tm.Month, curr_tm.Day);
 	sprintf(old_date, "%04d%02d%02d",curr_tm.Year,curr_tm.Month, curr_tm.Day);
-//	dbg_prt("\n s_jzqtime=%s", s_date);
-#ifdef JIANGSU
-	int edit_ret=0;
-//	DEBUG_TIME_LINE("s_date %s \n",s_date);
-	edit_ret = editctrl_time(s_date, strlen(s_date));
-	if(edit_ret>0)
-	{
-		memset(str, 0, 5);
-		memcpy(str, &s_date[0], 4);
-		year = atoi(str);
-		memset(str, 0, 5);
-		memcpy(str, &s_date[4], 2);
-		month = atoi(str);
-		memset(str, 0, 5);
-		memcpy(str, &s_date[6], 2);
-		day = atoi(str);
-		tmass(&curr_tm_his,year,month,day,0,0,0);
-		memset(s_date, 0, 20);
-		memset(DongJie_FileName, 0, 100);
-		memcpy(&Tcurr_tm_his,&curr_tm_his,sizeof(curr_tm_his));
-		showallmeter(show_daydata_JS);
-		g_curcldno=1;
-	}
-#else
 	int msgbox_ret=0;
 	msgbox_ret = msgbox_inputjzqtime(s_date, strlen(s_date));
 	if(msgbox_ret == ACK){
@@ -1433,7 +1202,6 @@ void menu_showdaydata(){
 		memcpy(&Tcurr_tm_his,&curr_tm_his,sizeof(curr_tm_his));
 		showallmeter(show_day_djdata);
 	}
-#endif
 }
 
 void menu_showmonthdata(){
@@ -1559,19 +1327,6 @@ static void setmp_cbtext_con_type(char(*cb_text)[TEXTLEN_Y])
 	memcpy(cb_text[3],"三相四线",strlen("三相四线"));
 }
 
-int getxiaoleibycb(int cb_index, int daleihao){
-	int i, item_count=0, index=0;
-	for(i=0; i<16; i++){
-		if(tXiaoLei[daleihao][i].index==0 && i!=0)
-			continue;
-		if(cb_index == item_count){
-			index = i;
-			break;
-		}
-		item_count++;
-	}
-	return tXiaoLei[daleihao][index].index;
-}
 static int addmp_showlabel(struct list *head, struct list *node){
 	int ret=0;
 	//int npos=0;
@@ -1702,9 +1457,9 @@ void setmeterpara(int pindex)
 	memset(&edit_cjqaddr, 0, sizeof(Edit));
 
 	memcpy(&meter,cur_pindex,sizeof(CLASS_6001));
-	if(pindex<1)
+	if(cur_pindex == NULL)
 		 return;
-	g_curcldno = pindex;//cldno;
+	g_curcldno = cur_pindex->sernum;//cldno;
 	memset(&client, 0, sizeof(Form));
 	client.node.child = (struct list*)malloc(sizeof(struct list));
 	if(client.node.child==NULL){
@@ -1900,7 +1655,6 @@ void setmeterpara(int pindex)
 						if(ParaAll->f10.para_mp[pindex-1].MPNo >0)
 							memcpy(&para_f29, &ParaAll->f29s.f29[ParaAll->f10.para_mp[pindex-1].MPNo-1], sizeof(para_F29));
 						eidt_gettext(&edit_cjqaddr, (char*)para_f29.MeterDisplayNo);
-						setpara(&para_f29, ParaAll->f10.para_mp[pindex-1].MPNo, 29, sizeof(para_F29));
 #endif
 						if(f10_flg==1){
 //							DEBUG_TIME_LINE("\n-----begin---save------\n");
@@ -2191,7 +1945,6 @@ void addmeter()
 						memcpy(&para_f29, &ParaAll->f29s.f29[ParaAll->f10.para_mp[pindex-1].MPNo-1], sizeof(para_F29));
 					eidt_gettext(&edit_cjqaddr, (char*)para_f29.MeterDisplayNo);
 					dbg_prt( "\n para_f29.MeterDisplayNo=%s---1", para_f29.MeterDisplayNo);
-					setpara(&para_f29, ParaAll->f10.para_mp[pindex].MPNo, 29, sizeof(para_F29));
 	#endif
 					if(f10_flg==1){
 //						DEBUG_TIME_LINE("\n-----begin---save------\n");
@@ -2257,15 +2010,7 @@ void deletemeter(int pindex)
 }
 //菜单 电表档案设置  160-32=128/12=10
 void menu_jzqsetmeter(){
-#ifdef JIANGSU
-	DEBUG_TIME_LINE("OprMode == %d \n",get_oprmode());
-	if(get_oprmode() == OPRMODE_LOOK)
-		showallmeter(querymeterpara_js);
-	else if (get_oprmode() == OPRMODE_MODIFY)
-		showallmeter(setmeterpara_js);
-#else
 	showallmeter(setmeterpara);
-#endif
 }
 void menu_jzqaddmeter(){
 	addmeter();
@@ -2329,11 +2074,7 @@ void menu_setpasswd()
 	memset(s_passwd_ret, 0, 6);
 	oprmode_old = get_oprmode();
 	set_oprmode(OPRMODE_MODIFY);
-#ifdef JIANGSU
-	ret = msgbox_password_js(passwd, 6,s_passwd_ret);
-#else
 	ret = msgbox_setpasswd(passwd, 6, s_passwd_ret);
-#endif
 		set_oprmode(oprmode_old);
 	if(ret==PASSWD_OK){
 		memset(passwd, 0, 7);
@@ -2347,9 +2088,7 @@ void menu_setpasswd()
 	}
 	else
 	{
-#ifndef JIANGSU
 		msgbox_label((char *)"密码错误！", CTRL_BUTTON_OK);
-#endif
 	}
 }
 
@@ -2485,7 +2224,6 @@ void gui_clearEvent()
 			if(eventbuff!=NULL) {
 				memset(eventbuff,0,classlen);
 				DEBUG_TIME_LINE("i=%d, oi=%04x, size=%d\n",i,event_class_len[i].oi,classlen);
-				saveflg = 0;
 				saveflg = readCoverClass(event_class_len[i].oi,0,(INT8U *)eventbuff,classlen,event_para_save);
 				DEBUG_TIME_LINE("saveflg=%d oi=%04x\n",saveflg,event_class_len[i].oi);
 
@@ -2529,12 +2267,6 @@ void jzq_reset(int type_init){
 void menu_initjzqdata(){
 	jzq_reset(DATA_INIT);
 }
-#ifdef HUBEI
-void menu_initjzqparaf3()//恢复出厂设置
-{
-	jzq_reset(F3_PARA_INIT);
-}
-#endif
 //初始化集中器参数
 
 void menu_initjzqevent(){
@@ -2801,10 +2533,9 @@ void menu_set_nettx()
 	gui_setpos(&pos, rect_Client.left+15*FONTSIZE, rect_Client.top);
 	pos.y += FONTSIZE*3 + ROW_INTERVAL;
 
-	if (PARA_NOT_READ == g_oi4510_has_read) {
-		g_oi4510_has_read = PARA_HAS_READ;
-		readCoverClass(0x4510, 0, (void*)&g_class26_oi4510, \
-						sizeof(CLASS26), para_vari_save);
+	if (p_JProgramInfo->oi_changed.oi4510 != g_chgOI4510) {
+		g_chgOI4510 = p_JProgramInfo->oi_changed.oi4510;
+		readCoverClass(0x4510, 0, (void*)&g_class26_oi4510, sizeof(CLASS26), para_vari_save);
 	}
 
 	memset(str, 0, INPUTKEYNUM);
@@ -2902,11 +2633,11 @@ void menu_set_nettx()
 
 						g_class26_oi4510.commconfig.connectType = cb_conntype.cur_index;
 						g_class26_oi4510.commconfig.workModel = cb_worktype.cur_index;
-
 						g_class26_oi4510.commconfig.appConnectType = cb_appcontype.cur_index;
 
+						//保存时不作参数变更比较，只要用户点击确认，那就重新更新参数
 						saveCoverClass(0x4510, 0, (void*)&g_class26_oi4510, sizeof(CLASS26), para_vari_save);
-//TODO:给cjcomm发消息
+						p_JProgramInfo->oi_changed.oi4510++;//更新oi标志，其他进程检测该标志
 					}
 					g_curcldno = 1;
 				}
@@ -2988,13 +2719,9 @@ void menu_set_wlantx()
 	gui_setpos(&pos, rect_Client.left+15*FONTSIZE, rect_Client.top);
 	pos.y += FONTSIZE*3 + ROW_INTERVAL;
 
-	if (PARA_NOT_READ == g_oi4500_has_read ||\
-	    g_chgOI4500 != p_JProgramInfo->oi_changed.oi4500) {
-		g_oi4500_has_read = PARA_HAS_READ;
+	if (g_chgOI4500 != p_JProgramInfo->oi_changed.oi4500) {
 		g_chgOI4500 = p_JProgramInfo->oi_changed.oi4500;
-		readCoverClass(0x4500, 0, (void*)&g_class25_oi4500, \
-						sizeof(CLASS26), para_vari_save);
-
+		readCoverClass(0x4500, 0, (void*)&g_class25_oi4500, sizeof(CLASS25), para_vari_save);
 	}
 
 	memset(str, 0, INPUTKEYNUM);
@@ -3098,14 +2825,12 @@ void menu_set_wlantx()
 							g_class25_oi4500.commconfig.heartBeat = 65535;//TODO:心跳周期应设置成INT16U
 
 						g_class25_oi4500.commconfig.onlineType = cb_onlinetype.cur_index;
-
 						g_class25_oi4500.commconfig.connectType = cb_conntype.cur_index;
 						g_class25_oi4500.commconfig.workModel = cb_worktype.cur_index;
-
 						g_class25_oi4500.commconfig.appConnectType = cb_appcontype.cur_index;
 
 						saveCoverClass(0x4500, 0, (void*)&g_class25_oi4500, sizeof(CLASS25), para_vari_save);
-//TODO:给cjcomm发消息
+						p_JProgramInfo->oi_changed.oi4500++;//更新oi标志，其他进程检测该标志
 					}
 					g_curcldno = 1;
 				}
@@ -3265,10 +2990,9 @@ void menu_netmaster()
 	pos.y += FONTSIZE*5 + ROW_INTERVAL;
 	memset(str, 0, INPUTKEYNUM);
 
-	if (PARA_NOT_READ == g_oi4510_has_read) {
-		g_oi4510_has_read = PARA_HAS_READ;
-		readCoverClass(0x4510, 0, (void*)&g_class26_oi4510, \
-						sizeof(CLASS26), para_vari_save);
+	if (g_chgOI4510 != p_JProgramInfo->oi_changed.oi4510) {
+		g_chgOI4510 = p_JProgramInfo->oi_changed.oi4510;
+		readCoverClass(0x4510, 0, (void*)&g_class26_oi4510,sizeof(CLASS26), para_vari_save);
 	}
 	sprintf(ip_chg,"%d.%d.%d.%d",g_class26_oi4510.master.master[0].ip[1],g_class26_oi4510.master.master[0].ip[2],
 	                             g_class26_oi4510.master.master[0].ip[3],g_class26_oi4510.master.master[0].ip[4]);
@@ -3357,8 +3081,8 @@ void menu_netmaster()
 						memset(str, 0, INPUTKEYNUM);
 						eidt_gettext(&edit_salveport, str);
 						g_class26_oi4510.master.master[1].port = atoi(str);
-//TODO:将以太网主站通讯参数写入文件，并且给cjcomm发送消息
 						saveCoverClass(0x4510, 0, (void*)&g_class26_oi4510, sizeof(CLASS26), para_vari_save);
+						p_JProgramInfo->oi_changed.oi4510++;//更新oi标志，其他进程检测该标志
 					}
 					g_curcldno = 1;
 				}
@@ -3420,8 +3144,8 @@ void menu_wlanmaster()
 	memset(&edit_salveip, 0, sizeof(Edit));
 	memset(&edit_salveport, 0, sizeof(Edit));
 	memset(&edit_apn, 0, sizeof(Edit));
-
 	memset(&client, 0, sizeof(Form));
+
 	client.node.child = (struct list*)malloc(sizeof(struct list));
 	if(client.node.child==NULL){
 		g_curcldno = 1;//上状态栏显示
@@ -3437,13 +3161,9 @@ void menu_wlanmaster()
 	pos.y += FONTSIZE*5 + ROW_INTERVAL;
 	memset(str, 0, INPUTKEYNUM);
 
-	if (PARA_NOT_READ == g_oi4500_has_read ||\
-	    g_chgOI4500 != p_JProgramInfo->oi_changed.oi4500) {
-		g_oi4500_has_read = PARA_HAS_READ;
+	if (g_chgOI4500 != p_JProgramInfo->oi_changed.oi4500) {
 		g_chgOI4500 = p_JProgramInfo->oi_changed.oi4500;
-		readCoverClass(0x4500, 0, (void*)&g_class25_oi4500, \
-						sizeof(CLASS26), para_vari_save);
-
+		readCoverClass(0x4500, 0, (void*)&g_class25_oi4500,sizeof(CLASS25), para_vari_save);
 	}
 
 	sprintf(ip_chg,"%d.%d.%d.%d",g_class25_oi4500.master.master[0].ip[1],g_class25_oi4500.master.master[0].ip[2],
@@ -3546,9 +3266,9 @@ void menu_wlanmaster()
 						strcpy((char*)&g_class25_oi4500.commconfig.apn[1], str);
 						g_class25_oi4500.commconfig.apn[0] = (INT8U)(strlen(str));
 //						DEBUG_TIME_LINE("\nthe len of apn %s is %d\n",&Class25.commconfig.apn[1],Class25.commconfig.apn[0]);
-//TODO:将GPRS主站通讯参数写入文件，并且给cjcomm发送消息
 						write_apn((char*)&g_class25_oi4500.commconfig.apn[1]);
 						saveCoverClass(0x4500, 0, (void*)&g_class25_oi4500, sizeof(CLASS25), para_vari_save);
+						p_JProgramInfo->oi_changed.oi4500++;//更新oi标志，其他进程检测该标志
 					}
 					g_curcldno = 1;
 				}
@@ -3644,10 +3364,9 @@ void menu_eth0para(){
     set_time_show_flag(1);
 	Point pos;
 
-	if (PARA_NOT_READ == g_oi4510_has_read) {
-		g_oi4510_has_read = PARA_HAS_READ;
-		readCoverClass(0x4510, 0, (void*)&g_class26_oi4510, \
-						sizeof(CLASS26), para_vari_save);
+	if (g_chgOI4510 != p_JProgramInfo->oi_changed.oi4510) {
+		g_chgOI4510 = p_JProgramInfo->oi_changed.oi4510;
+		readCoverClass(0x4510, 0, (void*)&g_class26_oi4510,sizeof(CLASS26), para_vari_save);
 	}
 	gui_setpos(&pos, rect_Client.left+10.5*FONTSIZE, rect_Client.top);
 	//IP配置、终端IP、子网掩码、网关地址、侦听端口、PPPoE用户名、PPPoE密码
@@ -3764,8 +3483,10 @@ void menu_eth0para(){
 						g_class26_oi4510.IP.password_pppoe[0] = strlen(str);
 
 						if(input_valid==1)
+						{
 							saveCoverClass(0x4510, 0, (void*)&g_class26_oi4510, sizeof(CLASS26), para_vari_save);
-						//TODO:给cjcomm发消息
+							p_JProgramInfo->oi_changed.oi4510++;//更新oi标志，其他进程检测该标志
+						}
 						else
 							msgbox_label((char *)"保存失败！", CTRL_BUTTON_OK);
 					}
@@ -3857,13 +3578,10 @@ void menu_jzqtelephone()
 
 	pos.y += FONTSIZE*5 + ROW_INTERVAL;
 
-	if (PARA_NOT_READ == g_oi4500_has_read ||\
-	    g_chgOI4500 != p_JProgramInfo->oi_changed.oi4500) {
-		g_oi4500_has_read = PARA_HAS_READ;
+	if (g_chgOI4500 != p_JProgramInfo->oi_changed.oi4500) {
 		g_chgOI4500 = p_JProgramInfo->oi_changed.oi4500;
-		readCoverClass(0x4500, 0, (void*)&g_class25_oi4500, \
-						sizeof(CLASS26), para_vari_save);
-
+		g_chgOI4500 = p_JProgramInfo->oi_changed.oi4500;
+		readCoverClass(0x4500, 0, (void*)&g_class25_oi4500, sizeof(CLASS25), para_vari_save);
 	}
 
 	memset(str, 0, INPUTKEYNUM);
@@ -3944,7 +3662,7 @@ void menu_jzqtelephone()
 						write_userpwd(&g_class25_oi4500.commconfig.userName[1],&g_class25_oi4500.commconfig.passWord[1],
 								      &g_class25_oi4500.commconfig.apn[1]);
 						saveCoverClass(0x4500, 0, (void*)&g_class25_oi4500, sizeof(CLASS25), para_vari_save);
-//TODO:给cjcomm发消息
+						p_JProgramInfo->oi_changed.oi4500++;//更新oi标志，其他进程检测该标志
 					}
 					g_curcldno = 1;
 				}
@@ -4009,40 +3727,34 @@ void jzq_id_edit()
 	INT8U str[50] = {0};
 	INT8U sever_addr[20] = {0};
 	INT8U addr_len = 0;
-	char s_jzqdizhi10[30] = {0}, oprmode_old=0;
+	char idtmp[30] = {0}, oprmode_old=0;
 
 	memset(sever_addr,0,sizeof(sever_addr));
-	memset(s_jzqdizhi10, 0, sizeof(s_jzqdizhi10));
-
-	if (PARA_NOT_READ == g_oi4001_has_read) {
-		g_oi4001_has_read = PARA_HAS_READ;
-		readCoverClass(0x4001, 0, (void*)&g_Class4001_4002_4003, \
-							sizeof(CLASS_4001_4002_4003), para_vari_save);
-	}
-
+	memset(idtmp, 0, sizeof(idtmp));
 	memset(str,0,sizeof(str));
+
+	if (g_chgOI4001 != p_JProgramInfo->oi_changed.oi4001) {
+		g_chgOI4500 = p_JProgramInfo->oi_changed.oi4001;
+		readCoverClass(0x4001, 0, (void*)&g_Class4001_4002_4003, 	sizeof(CLASS_4001_4002_4003), para_vari_save);
+	}
 
 	bcd2str(&g_Class4001_4002_4003.curstom_num[1],\
 			(INT8U*)str,g_Class4001_4002_4003.curstom_num[0],\
 			sizeof(str),positive);
-
-	sscanf((char*)str,"%[0-9]",s_jzqdizhi10);
-
+	sscanf((char*)str,"%[0-9]",idtmp);
 	DEBUG_TIME_LINE("terminal id: %s\n", str);
 
 	oprmode_old = get_oprmode();
 	set_oprmode(OPRMODE_MODIFY);
-#ifdef JIANGSU
-	if(msgbox_jzqaddr_js(s_jzqdizhi10, KEYBOARD_DEC)==ACK){
-#else
-	if(msgbox_jzqaddr_10(s_jzqdizhi10, 16)==ACK){
-#endif
+	if(msgbox_jzqaddr_10(idtmp, 16)==ACK){
 		memset(str, 0, sizeof(str));
-		sscanf(s_jzqdizhi10,"%*[^0-9]%[0-9]",str);
+		if(idtmp[0] == ' ')
+			sscanf(idtmp,"%*[^0-9]%[0-9]",str);//为空时剔除空字节
+		else
+			sscanf(idtmp,"%[0-9]",str);
 
 		addr_len = strlen((char*)str);
-
-		if(addr_len==0){
+		if(addr_len!=0){
 			str2bcd(str,sever_addr,sizeof(sever_addr));
 			memcpy(&g_Class4001_4002_4003.curstom_num[1],sever_addr,strlen((char*)sever_addr));
 			if(addr_len%2)
@@ -4053,7 +3765,6 @@ void jzq_id_edit()
 			else{
 				g_Class4001_4002_4003.curstom_num[0] = addr_len/2;
 			}
-
 			saveCoverClass(0x4001, 0, (void*)&g_Class4001_4002_4003, sizeof(CLASS_4001_4002_4003), para_vari_save);
 			msgbox_label((char *)"设置成功！", CTRL_BUTTON_OK);
 		}else
@@ -4069,13 +3780,10 @@ void show_jzq_ver()
 
     memset(str,0,sizeof(str));
 
-	if (PARA_NOT_READ == g_oi4300_has_read ||\
-	    g_chgOI4300 != p_JProgramInfo->oi_changed.oi4300) {
-		g_oi4300_has_read = PARA_HAS_READ;
+	if (g_chgOI4300 != p_JProgramInfo->oi_changed.oi4300) {
 		g_chgOI4300 = p_JProgramInfo->oi_changed.oi4300;
-		readCoverClass(0x4300, 0, (void*)&g_class19_oi4300, \
-						sizeof(CLASS19), para_vari_save);
-
+		g_chgOI4300 = p_JProgramInfo->oi_changed.oi4300;
+		readCoverClass(0x4300, 0, (void*)&g_class19_oi4300, sizeof(CLASS19), para_vari_save);
 	}
 
     gui_clrrect(rect_Client);
@@ -4160,19 +3868,11 @@ void show_jzq_ip(){
     Point pos = {0};
     gui_clrrect(rect_Client);
     gui_setpos(&pos, rect_Client.left+10*FONTSIZE, rect_Client.top+ROW_INTERVAL );
-#ifdef HUBEI
-    gui_textshow((char*)"主站IP", pos, LCD_NOREV);
-	memset(ip, 0, 4);
-	getlocalip(ip);
-	gui_setpos(&pos, rect_Client.left+FONTSIZE, rect_Client.top+2*FONTSIZE + 2*ROW_INTERVAL);
-	sprintf((char *)tmpstr,"IP :%s",(char *)ParaAll->f3.IP_MS);
-#else
 	gui_textshow((char*)"本地IP", pos, LCD_NOREV);
 	memset(ip, 0, 4);
 	getlocalip(ip);
 	gui_setpos(&pos, rect_Client.left+FONTSIZE, rect_Client.top+2*FONTSIZE + 2*ROW_INTERVAL);
 	sprintf((char *)tmpstr,"IP : %03d.%03d.%03d.%03d",ip[0],ip[1],ip[2],ip[3]);
-#endif
 	gui_textshow((char*)tmpstr, pos, LCD_NOREV);
 	//MAC地址
 	FILE *fpmac = NULL;
@@ -4191,43 +3891,6 @@ void show_jzq_ip(){
 			mac[4],mac[5],mac[6],mac[7],mac[8],mac[9],mac[10],mac[11]);
 	gui_setpos(&pos, rect_Client.left+FONTSIZE, rect_Client.top+4*FONTSIZE + 3*ROW_INTERVAL );
 	gui_textshow((char*)tmpstr, pos, LCD_NOREV);
-#ifdef HUBEI
-	memset(TempBuf, 0, 60);
-	memset(tmpstr,0,sizeof(tmpstr));
-	gui_setpos(&pos, rect_Client.left+FONTSIZE, rect_Client.top+6*FONTSIZE + 4*ROW_INTERVAL);
-	if(strlen((char*)ParaAll->f3.APN)!=0)
-			memcpy(TempBuf, ParaAll->f3.APN, strlen((char*)ParaAll->f3.APN));
-		else
-			memcpy(TempBuf, "CMNET", strlen("CMNET"));
-	sprintf((char *)tmpstr,"APN: %s",TempBuf);
-	gui_textshow((char*)tmpstr, pos, LCD_NOREV);
-	memset(tmpstr,0,sizeof(tmpstr));
-	gui_setpos(&pos, rect_Client.left+FONTSIZE, rect_Client.top+8*FONTSIZE + 5*ROW_INTERVAL);
-	sprintf((char *)tmpstr,"端口:%d",ParaAll->f3.Port_MS);
-	gui_textshow((char*)tmpstr, pos, LCD_NOREV);
-	memset(tmpstr,0,sizeof(tmpstr));
-	gui_setpos(&pos, rect_Client.left+FONTSIZE, rect_Client.top+10*FONTSIZE + 6*ROW_INTERVAL);
-	sprintf((char *)tmpstr,"心跳周期(分钟):%d",ParaAll->f1.HeartInterval);
-	gui_textshow((char*)tmpstr, pos, LCD_NOREV);
-	memset(TempBuf, 0, 60);
-	memset(tmpstr,0,sizeof(tmpstr));
-	gui_setpos(&pos, rect_Client.left+FONTSIZE, rect_Client.top+12*FONTSIZE + 7*ROW_INTERVAL);
-	if(strlen((char*)ParaAll->f16.UsrName_Virtual)!=0)
-		memcpy(TempBuf, ParaAll->f16.UsrName_Virtual, strlen((char*)ParaAll->f16.UsrName_Virtual));
-	else
-		memcpy(TempBuf, "username", strlen("username"));
-	sprintf((char *)tmpstr,"虚拟专网:%s",TempBuf);
-	gui_textshow((char*)tmpstr, pos, LCD_NOREV);
-	memset(TempBuf, 0, 60);
-	memset(tmpstr,0,sizeof(tmpstr));
-	gui_setpos(&pos, rect_Client.left+FONTSIZE, rect_Client.top+14*FONTSIZE + 8*ROW_INTERVAL);
-	if(strlen((char*)ParaAll->f16.Pwd_Virtual)!=0)
-		memcpy(TempBuf, ParaAll->f16.Pwd_Virtual, strlen((char*)ParaAll->f16.Pwd_Virtual));
-	else
-		memcpy(TempBuf, "passwd", strlen("passwd"));
-	sprintf((char *)tmpstr,"密码:%s",TempBuf);
-	gui_textshow((char*)tmpstr, pos, LCD_NOREV);
-#endif
     set_time_show_flag(1);
 	return;
 }
@@ -4256,21 +3919,12 @@ void menu_jzqstatus(){
 		case 0:
 			show_jzq_ver();
 			break;
-#ifdef JIANGSU
-		case 1:
-			show_jzq_ip();
-			break;
-		case 2:
-			show_jzqused();
-			break;
-#else
 		case 1:
 			show_jzqused();
 			break;
 		case 2:
 			show_jzq_ip();
 			break;
-#endif
 
 		}
 		PressKey = NOKEY;
@@ -4337,12 +3991,10 @@ void menu_gprsip(){
 	Point pos;
 	memset(s_gprsip, 0, 20);
 
-	if (PARA_NOT_READ == g_oi4500_has_read ||\
-	    g_chgOI4500 != p_JProgramInfo->oi_changed.oi4500) {
-		g_oi4500_has_read = PARA_HAS_READ;
+	if (g_chgOI4500 != p_JProgramInfo->oi_changed.oi4500) {
 		g_chgOI4500 = p_JProgramInfo->oi_changed.oi4500;
-		readCoverClass(0x4500, 0, (void*)&g_class25_oi4500, \
-						sizeof(CLASS26), para_vari_save);
+		g_chgOI4500 = p_JProgramInfo->oi_changed.oi4500;
+		readCoverClass(0x4500, 0, (void*)&g_class25_oi4500, sizeof(CLASS25), para_vari_save);
 	}
 
 	gui_clrrect(rect_Client);
@@ -4676,14 +4328,8 @@ int msgbox_pro(int type)
 	if (baud !=0)
 	{
 		if(type == 1){
-#ifdef SHANGHAI
-			memcpy(cb_text[0], "2400", strlen("2400"));
-			memcpy(cb_text[1], "1200", strlen("1200"));
-#else
 			memcpy(cb_text[0], "1200", strlen("1200"));
 //			memcpy(cb_text[1], "2400", strlen("2400"));
-
-#endif
 			if(baud == 1200) tmpindex = 1;
 			else tmpindex = 0;
 		}
@@ -4891,217 +4537,6 @@ void menu_gprs_info(){
 //		PressKey = NOKEY;
 //	}
 }
-#ifdef HUBEI
-void menu_Virpara()
-{
-	int tmp=0;
-	para_F16 para_f16;
-	char first_flg=0;
-	struct list *cur_node=NULL, *tmpnode=NULL;
-	Form *cur_form=NULL, client;//client 液晶显示客户区
-	Point pos,lab_pos;
-	char str[INPUTKEYNUM];
-	Rect rect;
-	Edit deit_UsrName_Virtual,edit_Pwd_Virtual;
-	memset(&deit_UsrName_Virtual, 0, sizeof(Edit));
-	memset(&edit_Pwd_Virtual, 0, sizeof(Edit));
-	memset(&client, 0, sizeof(Form));
-	client.node.child = (struct list*)malloc(sizeof(struct list));
-	if(client.node.child==NULL){
-		g_curcldno = 1;//上状态栏显示
-		return;
-	}
-	memset(client.node.child, 0, sizeof(struct list));
-	gui_clrrect(rect_Client);
-	gui_setpos(&pos, rect_Client.left+FONTSIZE, rect_Client.top+FONTSIZE*2+ROW_INTERVAL);
-	gui_textshow((char *)"用户名:", pos, LCD_NOREV);
-
-	//------------------------------------------
-	pos.y = rect_Client.top + FONTSIZE*4 + ROW_INTERVAL*2;
-	memset(str, ' ', INPUTKEYNUM);
-	if(strlen((char*)ParaAll->f16.UsrName_Virtual)!=0)
-		memcpy(str, ParaAll->f16.UsrName_Virtual, strlen((char*)ParaAll->f16.UsrName_Virtual));
-	else
-		memcpy(str, "username", strlen("username"));
-	edit_init(&deit_UsrName_Virtual, str, 24, pos, NOFRAME, NORETFLG, client.node.child,KEYBOARD_ASC);
-	pos.y += FONTSIZE*2 + ROW_INTERVAL;
-	gui_textshow((char *)"密码: ", pos, LCD_NOREV);
-	//------------------------------------------
-	pos.y += FONTSIZE*2 + ROW_INTERVAL;
-	memset(str, ' ', INPUTKEYNUM);
-	if(strlen((char*)ParaAll->f16.Pwd_Virtual)!=0)
-		memcpy(str, ParaAll->f16.Pwd_Virtual, strlen((char*)ParaAll->f16.Pwd_Virtual));
-	else
-		memcpy(str, "passwd", strlen("passwd"));
-	edit_init(&edit_Pwd_Virtual, str, 24, pos, NOFRAME, NORETFLG, client.node.child,KEYBOARD_ASC);
-	//------------------------------------------
-	cur_node = &deit_UsrName_Virtual.form.node;
-	cur_form = &deit_UsrName_Virtual.form;
-	PressKey = NOKEY;
-	while(g_LcdPoll_Flag==LCD_NOTPOLL){
-		switch(PressKey)
-		{
-		case LEFT:
-		case UP:
-			cur_form->focus = NOFOCUS;
-			cur_node=list_getprev(cur_node);
-			if(cur_node==client.node.child)
-				cur_node = list_getlast(client.node.child);
-			break;
-		case RIGHT:
-		case DOWN:
-			cur_form->focus = NOFOCUS;
-			if(list_getnext(cur_node)==NULL){
-				cur_node = list_getfirst(cur_node);
-				cur_node = cur_node->next;
-			}else
-				cur_node = list_getnext(cur_node);
-			break;
-		case OK:
-			if(get_oprmode()==OPRMODE_MODIFY){
-				cur_form->pfun_process(cur_form);
-				if(cur_form->pfun_process_ret==OK){
-//					cur_node = list_getfirst(cur_node);
-					if(msgbox_label((char *)"保存参数?", CTRL_BUTTON_OK)==ACK){
-						dbg_prt("\n msgbox_ret = OK  save para here!!!!");
-						memcpy(&para_f16, &ParaAll->f16, sizeof(para_F16));
-						memset(str,0,INPUTKEYNUM);
-						memset(para_f16.UsrName_Virtual, 0, 32);
-						eidt_gettext(&deit_UsrName_Virtual, str);
-						memcpy(para_f16.UsrName_Virtual,str,32);
-						memset(para_f16.Pwd_Virtual, 0, 32);
-						memset(str,0,INPUTKEYNUM);
-						eidt_gettext(&edit_Pwd_Virtual, str);
-						memcpy(para_f16.Pwd_Virtual,str,32);
-						setpara(&para_f16, 0, 16, sizeof(para_F16));
-					}else
-						dbg_prt("\n msgbox_ret = CANCEL  do not save***");
-					g_curcldno = 1;
-				}
-			}
-			break;
-		case ESC:
-			if(client.node.child!=NULL)
-				free(client.node.child);
-			return;
-		}
-		if(PressKey!=NOKEY||first_flg==0){
-			memcpy(&rect, &rect_Client, sizeof(Rect));
-			rect.left = rect_Client.left ;
-			gui_clrrect(rect);
-			gui_setpos(&pos, rect_Client.left+FONTSIZE, rect_Client.top+FONTSIZE*2+ROW_INTERVAL);
-			gui_textshow((char *)"用户名:", pos, LCD_NOREV);
-			gui_setpos(&pos, rect_Client.left+FONTSIZE, rect_Client.top+FONTSIZE*6+ROW_INTERVAL*3);
-			gui_textshow((char *)"密码: ", pos, LCD_NOREV);
-			tmpnode = client.node.child;
-			while(tmpnode->next!=NULL){
-				tmpnode = tmpnode->next;
-				cur_form = list_entry(tmpnode, Form, node);
-				if(tmp==1){
-					if(list_getListIndex(client.node.child, tmpnode)>=list_getListIndex(client.node.child, cur_node))
-						cur_form->pfun_show(cur_form);
-				}else
-					cur_form->pfun_show(cur_form);
-			}
-			cur_form = list_entry(cur_node, Form, node);//根据链表节点找到控件指针
-			cur_form->focus = FOCUS;
-			dbg_prt("\n cur_form:(%d)", cur_form->CtlType);
-			memcpy(&rect, &cur_form->rect, sizeof(Rect));
-			rect.left += 2;
-			rect.right -= 3;
-			rect.top -= 1;
-			gui_rectangle(gui_changerect(gui_moverect(rect, DOWN, 4), 4));
-			first_flg = 1;
-		}
-		PressKey = NOKEY;
-		delay(100);
-	}
-	if(client.node.child!=NULL)
-		free(client.node.child);
-	return;
-}
-void menu_login_stat(){
-	 char	str[50];
-	 Point pos;
-	int gprs_status = GPRS_CHECKMODEM;
-	char stat_str[100];
-	memset(stat_str, 0, 100);
-	INT16U csq;
-	csq = shmm_getdevstat()->Gprs_csq;
-	if(shmm_getdevstat()->gprs_status==1)
-		gprs_status = GPRS_CHECKMODEM;//AT OK
-	else if(shmm_getdevstat()->gprs_status==2)
-		gprs_status = GPRS_GETVER;//GWR OK
-	else if(shmm_getdevstat()->gprs_status==3)
-		gprs_status = GPRS_SIMOK;//CPIN OK
-	else if(shmm_getdevstat()->gprs_status==4){
-		gprs_status = GPRS_CREGOK;//CREG OK
-		if(shmm_getdevstat()->jzq_login==1)
-			gprs_status = GPRS_ONLINE;
-		else if(shmm_getdevstat()->connect_ok==1)
-			gprs_status = GPRS_CONNECTING;
-		else if(shmm_getdevstat()->pppd_status==1)
-			gprs_status = GPRS_DIALING;
-	}else if(shmm_getdevstat()->gprs_status==0)
-		gprs_status = GPRS_MODEM_INIT;//init
-	switch(gprs_status)
-	{
-	case GPRS_MODEM_INIT:
-		sprintf(stat_str, "%s", "GPRS:初始化通信模块");
-		break;
-	case GPRS_CHECKMODEM:
-		sprintf(stat_str, "%s", "GPRS:检测AT命令成功");
-		break;
-	case GPRS_GETVER:
-		sprintf(stat_str, "%s", "GPRS:获取模块版本信息");
-		break;
-	case GPRS_SIMOK:
-		sprintf(stat_str, "%s", "GPRS:检测到SIM卡");
-		break;
-	case GPRS_CREGOK:
-		sprintf(stat_str, "%s%d", "GPRS:注册网络,信号强度为",shmm_getdevstat()->Gprs_csq);
-		break;
-	case GPRS_DIALING:
-		sprintf(stat_str, "%s", "GPRS:拨号中...");
-		break;
-	case GPRS_CONNECTING:
-		sprintf(stat_str, "%s", "GPRS:连接到主站...");
-		break;
-	case GPRS_ONLINE:
-		sprintf(stat_str, "%s", "GPRS:终端在线");
-		break;
-	}
-
-	 gui_clrrect(rect_Client);
-	 DEBUG_TIME_LINE( "\n ------登录状态-----------");
-	 gui_setpos(&pos, rect_Client.left+8*FONTSIZE, rect_Client.top+2*FONTSIZE);
-	 memset(str,0, 50);
-	 gui_textshow((char*)"终端登录状态", pos, LCD_NOREV);
-	 pos.x = rect_Client.left + FONTSIZE*5;
-	 pos.y += FONTSIZE*3;
-	 memset(str,0, 50);
-	 sprintf(str,"信号强度:%d", shmm_getdevstat()->Gprs_csq);
-	 gui_textshow(str, pos, LCD_NOREV);
-	 pos.x = rect_Client.left + FONTSIZE*5;
-	 pos.y += FONTSIZE*3;
-	 memset(str,0, 50);
-	 sprintf(str,"登录状态");
-	 gui_textshow(str, pos, LCD_NOREV);
-	 pos.x = rect_Client.left + FONTSIZE*5;
-	 pos.y += FONTSIZE*3;
-	 sprintf(str,"%s", stat_str);
-	 gui_textshow(str, pos, LCD_NOREV);
-	 set_time_show_flag(1);
-	PressKey = NOKEY;
-	while(g_LcdPoll_Flag==LCD_NOTPOLL){
-		delay(300);
-		if(PressKey==ESC)
-			return;
-		PressKey = NOKEY;
-	}
-}
-
-#endif
 
 void menu_ac_info(){
 	INT32U acChipType;
@@ -5150,308 +4585,6 @@ void menu_ac_info(){
 			return;
 		PressKey = NOKEY;
 	}
-}
-
-void menu_TorF_info()
-{
-//	 INT8U ret = 0;
-//	 if((access((const char*)FILE_OPTIONS_FILED_PATH,W_OK) ==0)&&(access((const char*)FILE_OPTIONS_TEST_PATH,W_OK) ==0))
-//	 {
-//		 msgbox_label((char*)"请确认option文件", CTRL_BUTTON_OK);
-//		 return;
-//	 }
-//	 if(access((const char*)FILE_OPTIONS_FILED_PATH,W_OK) ==0)
-//	  {
-//		ret = msgbox_label((char*)"当前状态T,切换?", CTRL_BUTTON_OK);
-//		if(ret==ACK){
-//			if(access((const char*)FILE_OPTIONS_PATH,W_OK) ==0)
-//			  {
-//				  rename(FILE_OPTIONS_PATH,FILE_OPTIONS_TEST_PATH);
-//				  rename(FILE_OPTIONS_FILED_PATH,FILE_OPTIONS_PATH);
-//				  printf("\n已切换到现场配置..");
-//			  }
-//		}
-//	  }
-//	  else if(access((const char*)FILE_OPTIONS_TEST_PATH,W_OK) ==0)
-//	  {
-//		  ret = msgbox_label((char*)"当前状态F,切换?", CTRL_BUTTON_OK);
-//		  if(ret==ACK){
-//			  if(access((const char*)FILE_OPTIONS_PATH,W_OK) ==0)
-//			  {
-//				  rename(FILE_OPTIONS_PATH,FILE_OPTIONS_FILED_PATH);
-//				  rename(FILE_OPTIONS_TEST_PATH,FILE_OPTIONS_PATH);
-//				  printf("\n已切换到测试配置..");
-//			  }
-//		  }
-//	  }
-//	  else
-//	  {
-//		  msgbox_label((char*)"请确认option文件", CTRL_BUTTON_OK);
-//	  }
-//	 return;
-}
-#if 1//(defined(NINGXIA)||defined(SHANDONG))
-
-void menu_485func_change()
-{
-//	INT8U firstFlag = 1;
-//	mmq_head	mq_h;
-//	mqd_t mqd;
-//	gdm_chg_cfgfile protswitch;
-//	INT8U ret;
-//	char str[100];
-//	memset(str, 0, 100);
-//	while(1)
-//	{
-//		if(firstFlag == 0)
-//			usleep(3000*1000);
-//		firstFlag = 0;
-//		if(prog_getsyspid_bycmd((INT8S *)"vs485 2") > 0)
-//		{
-//			sprintf(str, "当前:%s","抄表口");
-//			protswitch.how = 2;
-//		}
-//		else if(prog_getsyspid_bycmd((INT8S *)"vcom 2") > 0)
-//		{
-//			sprintf(str, "当前:%s","维护口");
-//			protswitch.how = 1;
-//		}
-//		else
-//			sprintf(str, "当前:%s","unkown");
-//		ret = menu_485func_show((char*)str, CTRL_BUTTON_OK);//按键触发返回，没有按键时一直显示当前的状态
-//		if(ret == 0)
-//			return;
-//		else if(ret == ACK)
-//		{
-//			DEBUG_TIME_LINE("ack\n");
-//			if(protswitch.how == 1)
-//			{
-//				protswitch.how = 2;
-//			}
-//			else if(protswitch.how == 2)
-//			{
-//				protswitch.how = 1;
-//			}
-//			memset(&mq_h, 0, sizeof(mmq_head));
-//			if((mqd =  createMsg((INT8S *)COM_VMAIN_MQ, O_WRONLY)) <0)
-//			{//创建液晶发送消息队列
-//				dbg_prt( "\nGUI createMsg %s  error!!2  mqd=%d",COM_VMAIN_MQ, mqd);
-//				return;
-//			}
-//			DEBUG_TIME_LINE("creat message success\n");
-//			if(sendMsg(mqd, MAIN_CHG_CFGFILE, (INT8S*)&protswitch.how,sizeof(protswitch.how)) < 0)
-//			{
-//				dbg_prt( "\nGUI sendmsg %s  error!!2  mqd=%d",COM_VMAIN_MQ, mqd);
-//				colseMsg(mqd);
-//				return;
-//			}
-//			DEBUG_TIME_LINE("send message success\n");
-//		}
-//	}
-//	return;
-}
-#endif
-
-void menu_readmeter_info()
-{
-//	int i=0,m=0,fail_num=0,total_all=0,total_all_suc=0;
-//	INT16U totalnum_succ_RdM;
-//	INT16U n_grp = MP_MAXNUM/MAXMPNUM_DATAFILE;
-//	INT16U fail_mpindex[MP_MAXNUM];
-//	memset(fail_mpindex,0,sizeof(fail_mpindex));
-//	TmS cbdate;
-//	tmget(&cbdate);
-//	tminc(&cbdate,DAY,-1);
-//	int meter_total[6];
-//	memset(meter_total,0,sizeof(meter_total));
-//	char	str[128];
-//	Point pos;
-//	meter_total[0] = shmm_getdevstat()->info_RdM[1].totalnum_RdM;  //485-1总抄表块数
-//	meter_total[1] = shmm_getdevstat()->info_RdM[2].totalnum_RdM; ////485-2总抄表块数
-//	meter_total[2] = shmm_getdevstat()->info_RdM[30].totalnum_RdM;//载波总抄表块数
-//	total_all = meter_total[0] + meter_total[1] + meter_total[2];
-//	for(i=0; i< MAXNUM_READMETER_ROAD; i++)
-//	{
-//		if(shmm_getdevstat()->info_RdM[i].is_valid == 1)
-//		{
-//			INT8U cindex=0;
-//			totalnum_succ_RdM=0;
-//			char DataFileName[50];
-//			for(cindex=0;cindex<=n_grp;cindex++)
-//			{
-//				memset(DataFileName,0,50);
-//				sprintf((char*)DataFileName,"%s/%04d%02d%02d_%d.dat",SAVE_PATH_DAY,cbdate.Year,cbdate.Month,cbdate.Day,cindex);
-//				if(access((char*)DataFileName,F_OK)!=0)
-//				{
-//					continue;
-//				}
-//				FreezeData_SAVE dayfreez_data;
-//				for(m=cindex*MAXMPNUM_DATAFILE-1;m<(cindex+1)*MAXMPNUM_DATAFILE-1;m++)
-//				{
-//					if(m<0)
-//						continue;
-//					if((shmm_getpara()->f10.para_mp[m].MPNo>0)&&(shmm_getpara()->f10.para_mp[m].Port==(i+PortBegNum)))
-//					{
-//						memset(&dayfreez_data,0,sizeof(FreezeData_SAVE));
-//						dayfreez_data.id_d=824;
-//						dayfreez_data.id_mp=shmm_getpara()->f10.para_mp[m].MPNo;
-//						dayfreez_data.tm_collect.Year=cbdate.Year;
-//						dayfreez_data.tm_collect.Month=cbdate.Month;
-//						dayfreez_data.tm_collect.Day=cbdate.Day;
-//						dayfreez_data.tm_collect.Hour=0;
-//						dayfreez_data.tm_collect.Minute=0;
-//						if(fu_query((INT8S*)DataFileName,(void*)&dayfreez_data,sizeof(FreezeData_SAVE),2)>=0)
-//						{
-//							totalnum_succ_RdM++;
-//						}
-//						else
-//						{
-//							fail_mpindex[fail_num++] = m;
-//						}
-//					}
-//				}
-//			}
-//			if(i == 1) meter_total[3] = totalnum_succ_RdM; //485-1成功块数
-//			if(i == 2) meter_total[4] = totalnum_succ_RdM;//485-2成功块数
-//			if(i == 30) meter_total[5] = totalnum_succ_RdM;//载波成功块数
-//		}
-//	}
-//	for(i = 0;i<fail_num;i++)
-//		DEBUG_TIME_LINE("failmp == %d\n",shmm_getpara()->f10.para_mp[i].MPNo);
-//	total_all_suc = meter_total[3] + meter_total[4] + meter_total[5];
-//	//if(total_all_suc > 1024)  total_all_suc = 0; //超限，归零
-//	gui_clrrect(rect_Client);
-//	gui_setpos(&pos, rect_Client.left+10*FONTSIZE, rect_Client.top+FONTSIZE);
-//	gui_textshow((char*)"抄表信息", pos, LCD_NOREV);
-//	pos.x = rect_Client.left + FONTSIZE*2;
-//	pos.y += FONTSIZE*3;
-//	sprintf(str,"总数:%d  成功数:%d",total_all,total_all_suc);
-//	gui_textshow(str, pos, LCD_NOREV);
-//	pos.y += FONTSIZE*3+1;
-//	sprintf(str,"485-1总数:%d  成功:%d",meter_total[0],meter_total[3]);
-//	gui_textshow(str, pos, LCD_NOREV);
-//	pos.y += FONTSIZE*3+1;
-//	sprintf(str,"485-2总数:%0d  成功:%d",meter_total[1],meter_total[4]);
-//	gui_textshow(str, pos, LCD_NOREV);
-//	pos.y += FONTSIZE*3+1;
-//	sprintf(str,"载波表总数:%d  成功:%d",meter_total[2],meter_total[5]);
-//	gui_textshow(str, pos, LCD_NOREV);
-//	pos.y += FONTSIZE*3+1;
-//	sprintf(str,"查看详细信息，请按确认键");
-//	gui_textshow(str, pos, LCD_NOREV);
-//  set_show_time_flag(1);
-//	while(g_LcdPoll_Flag==LCD_NOTPOLL){
-//		PressKey = NOKEY;
-//		delay(300);
-//		if(PressKey==ESC)
-//			return;
-//		if(PressKey==OK)
-//		{
-//			if(fail_num == 0) continue;
-//			menu_fail_meterinfo(fail_mpindex,fail_num);
-//			return;
-//		}
-//	}
-}
-
-void menu_fail_meterinfo(INT16U *fail_mpindex,INT16U fail_num)
-{
-//	Gui_MP_t *fail_mp = NULL;
-//	int cur_cldno=1, begin_cldno=1, i=0, presskey_ok_acs=NOKEY;
-//	Point pos;
-//	char first_flg=0, str_cld[50], addr[13];
-//	Rect rect;
-//	if(fail_num > MP_MAXNUM){
-//		msgbox_label((char *)"统计错误", CTRL_BUTTON_OK);
-//		return;
-//	}
-//	fail_mp = (Gui_MP_t*)malloc(fail_num*sizeof(Gui_MP_t));
-//	for(i = 0;i<fail_num;i++)
-//	{
-//		if(*(fail_mpindex+i) != 0 )
-//		{
-//			fail_mp[i].iidnex = shmm_getpara()->f10.para_mp[*(fail_mpindex+i)].Index;
-//			fail_mp[i].mpno = shmm_getpara()->f10.para_mp[*(fail_mpindex+i)].MPNo;
-//			memcpy(fail_mp[i].cldaddr,shmm_getpara()->f10.para_mp[*(fail_mpindex+i)].addr,12);
-//		}
-//	}
-//	dbg_prt("\n 抄读失败测量点总数：%d",fail_num);
-//	PressKey = NOKEY;
-//	while(g_LcdPoll_Flag==LCD_NOTPOLL){
-//		switch(PressKey)
-//		{
-//		case LEFT:
-//			if(fail_num>PAGE_COLNUM-1){
-//				if(begin_cldno!=1 ){
-//					begin_cldno -= PAGE_COLNUM-1;
-//					if(begin_cldno<=0)
-//						begin_cldno = 1;
-//					cur_cldno = begin_cldno;
-//				}else
-//					cur_cldno = begin_cldno = fail_num - (PAGE_COLNUM-1);
-//			}
-//			break;
-//		case UP:
-//			cur_cldno--;
-//			if(cur_cldno<=0 && fail_num>PAGE_COLNUM){
-//				cur_cldno = fail_num;
-//				begin_cldno = fail_num - PAGE_COLNUM + 2;
-//			}else if(cur_cldno<=0 && fail_num<=PAGE_COLNUM){
-//				cur_cldno = fail_num;
-//			}else if(cur_cldno<=begin_cldno)
-//				begin_cldno = cur_cldno;
-//			break;
-//		case RIGHT:
-//			if((begin_cldno+PAGE_COLNUM-1)>=fail_num){
-//				cur_cldno = begin_cldno = 1;
-//			}else{
-//				begin_cldno += PAGE_COLNUM-1;
-//				cur_cldno = begin_cldno;
-//			}
-//			break;
-//		case DOWN:
-//			cur_cldno++;
-//			if(cur_cldno>fail_num)
-//				begin_cldno = cur_cldno = 1;
-//			else if(cur_cldno>begin_cldno+PAGE_COLNUM-2)
-//				begin_cldno++;
-//			break;
-//		case OK:
-//			break;
-//		case ESC:
-//			gui_mp_free(fail_mp);
-//			return;
-//		default:
-//			break;
-//		}
-//		if(PressKey!=NOKEY||first_flg==0||presskey_ok_acs==OK){
-//			presskey_ok_acs = NOKEY;
-//			first_flg = 1;
-//			gui_clrrect(rect_Client);
-//			pos.x = rect_Client.left;
-//			pos.y = rect_Client.top+1;
-//			gui_textshow((char *)"测量点号        表地址", pos, LCD_NOREV);
-//			for(i=begin_cldno; i<begin_cldno+PAGE_COLNUM-1; i++){
-//				if(i>fail_num)
-//					continue;
-//				memset(str_cld, 0, 50);
-//				memset(addr, 0, 13);
-//				memcpy(addr, (fail_mp+i-1)->cldaddr, 12);
-//				sprintf(str_cld, "  %04d       %s",(fail_mp+i-1)->mpno, addr);
-//				pos.x = rect_Client.left;
-//				pos.y = rect_Client.top + (i-begin_cldno+1)*FONTSIZE*2 + 2;
-//				gui_textshow(str_cld, pos, LCD_NOREV);
-//				if(i==cur_cldno){
-//					memset(&rect, 0, sizeof(Rect));
-//					rect = gui_getstrrect((unsigned char*)str_cld, pos);//获得字符串区域
-//					gui_reverserect(rect);
-//				}
-//			}
-//          set_time_show_flag(1);
-//		}
-//		PressKey = NOKEY;
-//		delay(50);
-//	}
 }
 
 void menu_yxstatus_js()
@@ -5680,1354 +4813,4 @@ void menu_manualsearch(){
 //	}
 //	return;
 }
-#ifdef JIANGSU
-static void setmp_cbtext_isvalid(char cb_text[][TEXTLEN_Y]){
-	memset(cb_text, 0, TEXTLEN_X*TEXTLEN_Y);
-	memcpy(cb_text[0], "否", strlen("否"));
-	memcpy(cb_text[1], "是", strlen("是"));
-}
-void show_realdatabycld_js(int pindex)
-{
-	if(pindex <=0)
-		return;
-	LcdDataItem item[10];
-	memset(item,0,sizeof(LcdDataItem)*10);
-	int data_did[16][2]={{3117,5},{3122,5},{3137,5},{3142,5},{3127,5},
-			{3147,5},{3152,5},{3132,5},{3043,4},{3036,3},{3039,3},{3024,4},{3028,4},{3032,4},{3157,3162},{3177,3182}};
-	INT8U cur_did=0;
-	INT8U mp_port=0;
-	INT16U i;
-	INT16U cur_index=0;//当前总的有效电表块数序号
-	INT16U cld_max=0;
-	INT8U first_flg=0;
-	INT8U mqcount=0;
-	Gui_MP_t *gui_mpmax=NULL;
-	cld_max = gui_mp_compose(&gui_mpmax);
-	PressKey = NOKEY;
-	int PressKey_ok=0;
-//	cur_index=pindex;
-	for(i=0;i<cld_max;i++)
-	{
-		cur_index++;
-//		DEBUG_TIME_LINE("iindex =%d\n",(gui_mpmax+i)->iidnex);
-//		DEBUG_TIME_LINE("cur_index 1111 = %d\n",cur_index);
-		if((gui_mpmax+i)->iidnex == pindex)
-			break;
-	}
-//	DEBUG_TIME_LINE("cur_index 1111 = %d\n",cur_index);
-	while(g_LcdPoll_Flag==LCD_NOTPOLL){
-		switch(PressKey){
-		case LEFT:
-			cur_index++;
-			if(cur_index>cld_max) cur_index=1;
-			PressKey_ok=PressKey;
-			break;
-		case RIGHT:
-			cur_index--;
-			if(cur_index>cld_max) cur_index=1;
-			if(cur_index<=0)cur_index=cld_max;
-			PressKey_ok=PressKey;
-			break;
-		case UP:
-			cur_did++;
-			if(cur_did>15) cur_did=0;
-			PressKey_ok=PressKey;
-			break;
-		case DOWN:
-			cur_did--;
-			if(cur_did<0 || cur_did>=16) cur_did=15;
-			PressKey_ok=PressKey;
-			break;
-		case OK:
-			PressKey_ok=NOKEY;
-			break;
-		case ESC:
-		{
-			gui_mp_free(gui_mpmax);
-			return;//如果转换到轮显状态此处如何处理？？？？
-		}
-		default:
-			break;
-		}
-		if(PressKey_ok!=NOKEY||first_flg==0)
-		{
-			PressKey_ok=0;
-			first_flg=1;
-			if(cur_index>cld_max || cur_index<0) cur_index=1;
-			mp_port = getmpport((gui_mpmax+cur_index-1)->iidnex);
-			if(mp_port == PORT_JC && cur_did == 15)
-			{
-				if(PressKey == UP) cur_did = 1;
-				if(PressKey == DOWN) cur_did = 14;
-			}
-			if(mp_port == 0)
-				break;
-			g_curcldno=(gui_mpmax+cur_index-1)->mpno;
-			if(mp_port !=PORT_JC)
-			{
-				if(cur_did == 14 || cur_did == 15)//需量需要抄读2个数据项，单独处理,只能这样了，我也没办法
-				{
-					if(mp_port == PORT_ZB)
-					{
-						mqcount = requestdata_485_ZB_Block((gui_mpmax+cur_index-1)->mpno, (INT8U*)PLC_REV_GUI_MQ,5,data_did[cur_did][0], item);
-						mqcount += requestdata_485_ZB_Block((gui_mpmax+cur_index-1)->mpno, (INT8U*)PLC_REV_GUI_MQ,5,data_did[cur_did][1], &item[5]);
-					}
-					else if(mp_port == PORT_485I)
-					{
-						mqcount = requestdata_485_ZB_Block((gui_mpmax+cur_index-1)->mpno,(INT8U*)S485_1_REV_GUI_MQ, 5,data_did[cur_did][0], item);
-						mqcount += requestdata_485_ZB_Block((gui_mpmax+cur_index-1)->mpno,(INT8U*)S485_1_REV_GUI_MQ, 5,data_did[cur_did][1], &item[5]);
-					}
-					else if(mp_port == PORT_485II)
-					{
-						mqcount = requestdata_485_ZB_Block((gui_mpmax+cur_index-1)->mpno,(INT8U*)S485_2_REV_GUI_MQ, 5,data_did[cur_did][0], item);
-						mqcount += requestdata_485_ZB_Block((gui_mpmax+cur_index-1)->mpno,(INT8U*)S485_2_REV_GUI_MQ, 5,data_did[cur_did][1], &item[5]);
-					}
-					if(cur_did == 14)
-						show_xuliang(mqcount,item,157);
-					if(cur_did == 15)
-						show_xuliang(mqcount,item,177);
-				}
-				else
-				{
-					if(mp_port == PORT_ZB)
-						mqcount = requestdata_485_ZB_Block((gui_mpmax+cur_index-1)->mpno, (INT8U*)PLC_REV_GUI_MQ,data_did[cur_did][1], data_did[cur_did][0], item);
-					else if(mp_port == PORT_485I)
-						mqcount = requestdata_485_ZB_Block((gui_mpmax+cur_index-1)->mpno,(INT8U*)S485_1_REV_GUI_MQ,data_did[cur_did][1], data_did[cur_did][0], item);
-					else if(mp_port == PORT_485II)
-						mqcount = requestdata_485_ZB_Block((gui_mpmax+cur_index-1)->mpno,(INT8U*)S485_2_REV_GUI_MQ,data_did[cur_did][1], data_did[cur_did][0], item);
-					pass_mpdata(1,data_did[cur_did][0],mqcount,item);
-				}
-			}
-			else if(mp_port == PORT_JC)
-			{
-				gui_clrrect(rect_Client);//清除客户区
-				ShowJCData(cur_did, item, data_did[cur_did][1], 2);
-			}
-			PressKey=NOKEY;
-		}
-		delay(100);
-	}
-	gui_mp_free(gui_mpmax);//跳入轮显后释放？？？
-}
-void show_daydata_JS(int cldno){//江苏专用
-	char str[100];
-	TmS cj_date;
-	FreezeData_SAVE fd_s;
-	Point pos;
-	INT8U cur_did=1;
-	INT16U i;
-	INT16U cur_index=0;//当前总的有效电表块数序号
-	INT16U cld_max=0;
-	INT8U first_flg=0;
-	Gui_MP_t *gui_mpmax=NULL;
-	cld_max = gui_mp_compose(&gui_mpmax);
-	int PressKey_ok=0;
-	memset(&cj_date, 0, sizeof(TmS));
-	if(cldno <=0)
-	return;
-	for(i=0;i<cld_max;i++)
-	{
-		cur_index++;
-		if((gui_mpmax+i)->iidnex == cldno)
-			break;
-	}
-	PressKey = NOKEY;
-	while(g_LcdPoll_Flag==LCD_NOTPOLL){
-		switch(PressKey){
-		case LEFT:
-			cur_index++;
-			if(cur_index>cld_max) cur_index=1;
-			PressKey_ok=PressKey;
-			break;
-		case RIGHT:
-			cur_index--;
-			if(cur_index>cld_max) cur_index=1;
-			if(cur_index<=0)cur_index=cld_max;
-			PressKey_ok=PressKey;
-			break;
-		case UP:
-			cur_did++;
-			if(cur_did>4) cur_did=1;
-			PressKey_ok=PressKey;
-			break;
-		case DOWN:
-			cur_did--;
-			if(cur_did<1)  cur_did=4;
-			if(cur_did>4) cur_did=1;
-			PressKey_ok=PressKey;
-			break;
-		case OK:
-			PressKey_ok=NOKEY;
-			break;
-		case ESC:
-		{
-			gui_mp_free(gui_mpmax);
-			return;//如果转换到轮显状态此处如何处理？？？？
-		}
-		default:
-			break;
-		}
-		if(PressKey_ok!=NOKEY||first_flg==0)
-		{
-			setFontSize(16);
-			PressKey=NOKEY;
-			PressKey_ok=0;
-			first_flg=1;
-			if(cur_index>cld_max || cur_index<0) cur_index=1;
-			gui_clrrect(rect_Client);
-			gui_setpos(&pos, rect_Client.left+8*FONTSIZE, rect_Client.top+FONTSIZE);
-			g_curcldno=(gui_mpmax+cur_index-1)->mpno;
-			setFontSize(16);
-			gui_textshow((char*)"日数据", pos, LCD_NOREV);
-			setFontSize(12);
-			DEBUG_TIME_LINE("cur_did = %d cur_index = %d mpno = %d \n",cur_did,cur_index,(gui_mpmax+cur_index-1)->mpno);
-			if(cur_did == 1)//正向有功
-			{
-				dataitem_showvalue(DongJie_FileName,(gui_mpmax+cur_index-1)->mpno, (char*)"正向有功总:", 824, 2, 0, rect_Client.top + FONTSIZE*4);
-				dataitem_showvalue(DongJie_FileName,(gui_mpmax+cur_index-1)->mpno, (char*)"正向有功尖:", 825, 2, 0, rect_Client.top + FONTSIZE*6+3);
-				dataitem_showvalue(DongJie_FileName,(gui_mpmax+cur_index-1)->mpno, (char*)"正向有功峰:", 826, 2, 0, rect_Client.top + FONTSIZE*8+6);
-				dataitem_showvalue(DongJie_FileName,(gui_mpmax+cur_index-1)->mpno, (char*)"正向有功平:", 827, 2, 0, rect_Client.top + FONTSIZE*10+9);
-				dataitem_showvalue(DongJie_FileName,(gui_mpmax+cur_index-1)->mpno, (char*)"正向有功谷:", 828, 2, 0, rect_Client.top + FONTSIZE*12+12);
-			}
-			else if(cur_did == 2)
-			{
-				dataitem_showvalue(DongJie_FileName,(gui_mpmax+cur_index-1)->mpno, (char*)"反向有功总:", 844, 2, 0, rect_Client.top + FONTSIZE*4);
-				dataitem_showvalue(DongJie_FileName,(gui_mpmax+cur_index-1)->mpno, (char*)"反向有功尖:", 945, 2, 0, rect_Client.top + FONTSIZE*6+3);
-				dataitem_showvalue(DongJie_FileName,(gui_mpmax+cur_index-1)->mpno, (char*)"反向有功峰:", 946, 2, 0, rect_Client.top + FONTSIZE*8+6);
-				dataitem_showvalue(DongJie_FileName,(gui_mpmax+cur_index-1)->mpno, (char*)"反向有功平:", 947, 2, 0, rect_Client.top + FONTSIZE*10+9);
-				dataitem_showvalue(DongJie_FileName,(gui_mpmax+cur_index-1)->mpno, (char*)"反向有功谷:", 948, 2, 0, rect_Client.top + FONTSIZE*12+12);
-			}
-			else if(cur_did == 3)
-			{
-				dataitem_showvalue(DongJie_FileName,(gui_mpmax+cur_index-1)->mpno, (char*)"正向需量总:", 864, 4, 0, rect_Client.top + FONTSIZE*4);
-				dataitem_showvalue(DongJie_FileName,(gui_mpmax+cur_index-1)->mpno, (char*)"正向需量尖:", 865, 4, 0, rect_Client.top + FONTSIZE*6+3);
-				dataitem_showvalue(DongJie_FileName,(gui_mpmax+cur_index-1)->mpno, (char*)"正向需量峰:", 866, 4, 0, rect_Client.top + FONTSIZE*8+6);
-				dataitem_showvalue(DongJie_FileName,(gui_mpmax+cur_index-1)->mpno, (char*)"正向需量平:", 867, 4, 0, rect_Client.top + FONTSIZE*10+9);
-				dataitem_showvalue(DongJie_FileName,(gui_mpmax+cur_index-1)->mpno, (char*)"正向需量谷:", 868, 4, 0, rect_Client.top + FONTSIZE*12+12);
-			}
-			else
-			{
-				dataitem_showvalue(DongJie_FileName,(gui_mpmax+cur_index-1)->mpno, (char*)"反向需量总:", 884, 4, 0, rect_Client.top + FONTSIZE*4);
-				dataitem_showvalue(DongJie_FileName,(gui_mpmax+cur_index-1)->mpno, (char*)"反向需量尖:", 885, 4, 0, rect_Client.top + FONTSIZE*6+3);
-				dataitem_showvalue(DongJie_FileName,(gui_mpmax+cur_index-1)->mpno, (char*)"反向需量峰:", 886, 4, 0, rect_Client.top + FONTSIZE*8+6);
-				dataitem_showvalue(DongJie_FileName,(gui_mpmax+cur_index-1)->mpno, (char*)"反向需量平:", 887, 4, 0, rect_Client.top + FONTSIZE*10+9);
-				dataitem_showvalue(DongJie_FileName,(gui_mpmax+cur_index-1)->mpno, (char*)"反向需量谷:", 888, 4, 0, rect_Client.top + FONTSIZE*12+12);
-			}
-			if(read_filedata((char*)DongJie_FileName, cldno, 824, DONGJIE_DATA, (void*)&fd_s)==1)
-				memcpy(&cj_date, &fd_s.tm_collect, sizeof(TmS));
-			memset(str, 0, 100);
-			if(cj_date.Year==0|| cj_date.Month==0||cj_date.Day==0)
-				sprintf((char*)str,"抄表时间 00/00/00 00:00");
-			else
-				sprintf((char*)str,"抄表时间 %02d/%02d/%02d %02d:%02d",
-					cj_date.Year-2000, cj_date.Month, cj_date.Day, cj_date.Hour, cj_date.Minute);
-			gui_setpos(&pos, rect_Client.left+2*FONTSIZE, rect_Client.top+18*FONTSIZE);
-			gui_textshow(str, pos, LCD_NOREV);
-			set_time_show_flag(1);
-//			DEBUG_TIME_LINE("cur_did2222 = %d\n",cur_did);
-//			DEBUG_TIME_LINE("mpno = %d  mpindex=%d\n",(gui_mpmax+cur_index-1)->mpno,cur_index);
-		}
-		delay(100);
-	}
-	gui_mp_free(gui_mpmax);//跳入轮显后释放？？？
-}
-void show_monthdata_JS(int cldno){//江苏专用
-	char str[100];
-	TmS cj_date;
-	FreezeData_SAVE fd_s;
-	Point pos;
-	INT8U cur_did=1;
-	INT16U i;
-	INT16U cur_index=0;//当前总的有效电表块数序号
-	INT16U cld_max=0;
-	INT8U first_flg=0;
-	Gui_MP_t *gui_mpmax=NULL;
-	cld_max = gui_mp_compose(&gui_mpmax);
-	int PressKey_ok=0;
-	memset(&cj_date, 0, sizeof(TmS));
-	if(cldno <=0)
-	return;
-	for(i=0;i<cld_max;i++)
-	{
-		cur_index++;
-		if((gui_mpmax+i)->iidnex == cldno)
-			break;
-	}
-	PressKey = NOKEY;
-	while(g_LcdPoll_Flag==LCD_NOTPOLL){
-		switch(PressKey){
-		case LEFT:
-			cur_index++;
-			if(cur_index>cld_max) cur_index=1;
-			PressKey_ok=PressKey;
-			break;
-		case RIGHT:
-			cur_index--;
-			if(cur_index>cld_max) cur_index=1;
-			if(cur_index<=0)cur_index=cld_max;
-			PressKey_ok=PressKey;
-			break;
-		case UP:
-			cur_did++;
-			if(cur_did>4) cur_did=1;
-			PressKey_ok=PressKey;
-			break;
-		case DOWN:
-			cur_did--;
-			if(cur_did<1)  cur_did=4;
-			if(cur_did>4) cur_did=1;
-			PressKey_ok=PressKey;
-			break;
-		case OK:
-			PressKey_ok=NOKEY;
-			break;
-		case ESC:
-		{
-			gui_mp_free(gui_mpmax);
-			return;//如果转换到轮显状态此处如何处理？？？？
-		}
-		default:
-			break;
-		}
-		if(PressKey_ok!=NOKEY||first_flg==0)
-		{
-			PressKey=NOKEY;
-			PressKey_ok=0;
-			first_flg=1;
-			if(cur_index>cld_max || cur_index<0) cur_index=1;
-			gui_clrrect(rect_Client);
-			gui_setpos(&pos, rect_Client.left+8*FONTSIZE, rect_Client.top+FONTSIZE);
-			g_curcldno=(gui_mpmax+cur_index-1)->mpno;
-			setFontSize(16);
-			gui_textshow((char*)"月数据", pos, LCD_NOREV);
-			setFontSize(12);
-			if(cur_did == 1)//正向有功
-			{
-				dataitem_showvalue(DongJie_FileName,(gui_mpmax+cur_index-1)->mpno, (char*)"正向有功总:", 924, 2, 0, rect_Client.top + FONTSIZE*4);
-				dataitem_showvalue(DongJie_FileName,(gui_mpmax+cur_index-1)->mpno, (char*)"正向有功尖:", 925, 2, 0, rect_Client.top + FONTSIZE*6+3);
-				dataitem_showvalue(DongJie_FileName,(gui_mpmax+cur_index-1)->mpno, (char*)"正向有功峰:", 926, 2, 0, rect_Client.top + FONTSIZE*8+6);
-				dataitem_showvalue(DongJie_FileName,(gui_mpmax+cur_index-1)->mpno, (char*)"正向有功平:", 927, 2, 0, rect_Client.top + FONTSIZE*10+9);
-				dataitem_showvalue(DongJie_FileName,(gui_mpmax+cur_index-1)->mpno, (char*)"正向有功谷:", 928, 2, 0, rect_Client.top + FONTSIZE*12+12);
-			}
-			else if(cur_did == 2)
-			{
-				dataitem_showvalue(DongJie_FileName,(gui_mpmax+cur_index-1)->mpno, (char*)"反向有功总:", 944, 2, 0, rect_Client.top + FONTSIZE*4);
-				dataitem_showvalue(DongJie_FileName,(gui_mpmax+cur_index-1)->mpno, (char*)"反向有功尖:", 945, 2, 0, rect_Client.top + FONTSIZE*6+3);
-				dataitem_showvalue(DongJie_FileName,(gui_mpmax+cur_index-1)->mpno, (char*)"反向有功峰:", 946, 2, 0, rect_Client.top + FONTSIZE*8+6);
-				dataitem_showvalue(DongJie_FileName,(gui_mpmax+cur_index-1)->mpno, (char*)"反向有功平:", 947, 2, 0, rect_Client.top + FONTSIZE*10+9);
-				dataitem_showvalue(DongJie_FileName,(gui_mpmax+cur_index-1)->mpno, (char*)"反向有功谷:", 948, 2, 0, rect_Client.top + FONTSIZE*12+12);
-			}
-			else if(cur_did == 3)
-			{
-				dataitem_showvalue(DongJie_FileName,(gui_mpmax+cur_index-1)->mpno, (char*)"正向需量总:", 964, 4, 0, rect_Client.top + FONTSIZE*4);
-				dataitem_showvalue(DongJie_FileName,(gui_mpmax+cur_index-1)->mpno, (char*)"正向需量尖:", 965, 4, 0, rect_Client.top + FONTSIZE*6+3);
-				dataitem_showvalue(DongJie_FileName,(gui_mpmax+cur_index-1)->mpno, (char*)"正向需量峰:", 966, 4, 0, rect_Client.top + FONTSIZE*8+6);
-				dataitem_showvalue(DongJie_FileName,(gui_mpmax+cur_index-1)->mpno, (char*)"正向需量平:", 967, 4, 0, rect_Client.top + FONTSIZE*10+9);
-				dataitem_showvalue(DongJie_FileName,(gui_mpmax+cur_index-1)->mpno, (char*)"正向需量谷:", 968, 4, 0, rect_Client.top + FONTSIZE*12+12);
-			}
-			else
-			{
-				dataitem_showvalue(DongJie_FileName,(gui_mpmax+cur_index-1)->mpno, (char*)"反向需量总:", 984, 4, 0, rect_Client.top + FONTSIZE*4);
-				dataitem_showvalue(DongJie_FileName,(gui_mpmax+cur_index-1)->mpno, (char*)"反向需量尖:", 985, 4, 0, rect_Client.top + FONTSIZE*6+3);
-				dataitem_showvalue(DongJie_FileName,(gui_mpmax+cur_index-1)->mpno, (char*)"反向需量峰:", 986, 4, 0, rect_Client.top + FONTSIZE*8+6);
-				dataitem_showvalue(DongJie_FileName,(gui_mpmax+cur_index-1)->mpno, (char*)"反向需量平:", 987, 4, 0, rect_Client.top + FONTSIZE*10+9);
-				dataitem_showvalue(DongJie_FileName,(gui_mpmax+cur_index-1)->mpno, (char*)"反向需量谷:", 988, 4, 0, rect_Client.top + FONTSIZE*12+12);
-			}
-			if(read_filedata((char*)DongJie_FileName, cldno, 924, DONGJIE_DATA, (void*)&fd_s)==1)
-				memcpy(&cj_date, &fd_s.tm_collect, sizeof(TmS));
-			memset(str, 0, 100);
-			if(cj_date.Year==0|| cj_date.Month==0||cj_date.Day==0)
-				sprintf((char*)str,"抄表时间 00/00/00 00:00");
-			else
-				sprintf((char*)str,"抄表时间 %02d/%02d/%02d %02d:%02d",
-					cj_date.Year-2000, cj_date.Month, cj_date.Day, cj_date.Hour, cj_date.Minute);
-			gui_setpos(&pos, rect_Client.left+2*FONTSIZE, rect_Client.top+18*FONTSIZE);
-			gui_textshow(str, pos, LCD_NOREV);
-			set_time_show_flag(1);
-//			DEBUG_TIME_LINE("cur_did2222 = %d\n",cur_did);
-//			DEBUG_TIME_LINE("mpno = %d  mpindex=%d\n",(gui_mpmax+cur_index-1)->mpno,cur_index);
-		}
-		delay(100);
-	}
-	gui_mp_free(gui_mpmax);//跳入轮显后释放？？？
-}
 
-void setmeterpara_js(int pindex)
-{
-	int daleihao=0,xiaoleihao=0,tmp=0, f10_flg=1,cld_isvalid=0;
-	INT8U cur_page=1;//当前页数
-	para_1mp para_f10;
-	para_F150 para_f150;
-#ifdef SPTF_III
-	para_F29 para_f29;
-#endif
-	int form_cldno=0;//通过控件修改的测量点地址
-	char first_flg=0;
-	struct list *cur1_node=NULL, *tmp1node=NULL;
-	struct list *cur2_node=NULL, *tmp2node=NULL;
-	Form *cur1_form=NULL, client1;//client 液晶显示客户区page1
-	Form *cur2_form=NULL,client2;//液晶显示客户区page2
-	char cb_text[TEXTLEN_X][TEXTLEN_Y];//用于存放combox的元素
-	char str[INPUTKEYNUM];
-	Rect rect;
-	int tmpindex,tem_cldvalid;
-	//测量点号、表地址、端口、规约、通信速率、大小类号、采集器地址
-	Edit edit_cldindex,edit_cldno, edit_cldaddr, edit_cjqaddr;
-	Combox cb_port,cb_gueyue,cb_baud,cb_dalei,cb_xiaolei,cb_isvalid;
-	memset(&edit_cldno, 0, sizeof(Edit));
-	memset(&edit_cldaddr, 0, sizeof(Edit));
-	memset(&cb_port, 0, sizeof(Combox));
-	memset(&cb_gueyue, 0, sizeof(Combox));
-	memset(&cb_baud, 0, sizeof(Combox));
-	memset(&cb_dalei, 0, sizeof(Combox));
-	memset(&cb_xiaolei, 0, sizeof(Combox));
-	memset(&cb_isvalid, 0, sizeof(Combox));
-	memset(&edit_cjqaddr, 0, sizeof(Edit));
-	DEBUG_TIME_LINE("\npindex=%d",pindex);
-	if(pindex<1)
-		 return;
-	g_curcldno = ParaAll->f10.para_mp[pindex-1].MPNo;//cldno;
-	memset(&client1, 0, sizeof(Form));
-	memset(&client2, 0, sizeof(Form));
-	client1.node.child = (struct list*)malloc(sizeof(struct list));
-	client2.node.child = (struct list*)malloc(sizeof(struct list));
-	if(client1.node.child==NULL || client2.node.child==NULL){
-		g_curcldno = 1;//上状态栏显示
-		return;
-	}
-	memset(client1.node.child, 0, sizeof(struct list));
-	memset(client2.node.child, 0, sizeof(struct list));
-	gui_clrrect(rect_Client);
-	//往控件里放入测量点数据 应该在控件init里设置
-	Point pos;
-
-	pos.x = rect_Client.left+FONTSIZE*9;
-	pos.y = rect_Client.top;
-	pos.y += ROW_INTERVAL+FONTSIZE*3;
-	memset(str, 0, INPUTKEYNUM);
-	sprintf(str,"%04d", ParaAll->f10.para_mp[pindex-1].Index);
-	edit_init(&edit_cldindex, str, 4, pos, 0, 0, client1.node.child,KEYBOARD_DEC);//测量点序号
-	//------------------------------------------------------------
-	pos.y += FONTSIZE*2 + ROW_INTERVAL;
-	memset(str, 0, INPUTKEYNUM);
-	sprintf(str,"%04d", ParaAll->f10.para_mp[pindex-1].MPNo);
-	edit_init(&edit_cldno, str, 4, pos, 0, 0, client1.node.child,KEYBOARD_DEC);//测量点号
-	//------------------------------------------------------------
-	pos.y += FONTSIZE*2 + ROW_INTERVAL;
-	memset(str, 0, INPUTKEYNUM);
-	memcpy(str, ParaAll->f10.para_mp[pindex-1].addr, 12);
-	edit_init(&edit_cldaddr, str, 12, pos, 0, 0, client1.node.child,KEYBOARD_HEX);//表地址
-	//------------------------------------------
-	setmp_cbtext_baud(cb_text);
-	pos.y += FONTSIZE*2 + ROW_INTERVAL;
-	if(ParaAll->f10.para_mp[pindex-1].BaudRate==1200)
-		tmpindex = 0;
-	else
-		tmpindex = 1;
-	combox_init(&cb_baud, tmpindex, cb_text, pos, 0,client1.node.child);//通信速率
-	//------------------------------------------
-	setmp_cbtext_port(cb_text);
-	pos.y += FONTSIZE*2 + ROW_INTERVAL;
-	combox_init(&cb_port, port2index(ParaAll->f10.para_mp[pindex-1].Port), cb_text, pos, 0,client1.node.child);//端口
-	//------------------------------------------
-	setmp_cbtext_guiyue(cb_text);
-	pos.y += FONTSIZE*2 + ROW_INTERVAL;
-	if(ParaAll->f10.para_mp[pindex-1].Protocol==PROTOCOL_97)
-		tmpindex = 0;
-	else if(ParaAll->f10.para_mp[pindex-1].Protocol==PROTOCOL_07)
-		tmpindex = 1;
-	else if(ParaAll->f10.para_mp[pindex-1].Protocol==PROTOCOL_JC)
-		tmpindex = 2;
-	else
-		tmpindex = 1;
-	combox_init(&cb_gueyue, tmpindex, cb_text, pos, 0,client1.node.child);//规约
-	//------------------------------------------
-	pos.y += FONTSIZE*2 + ROW_INTERVAL;
-	memset(str, 0, INPUTKEYNUM);
-	memcpy(str, ParaAll->f10.para_mp[pindex-1].colladdr, 12);
-	edit_init(&edit_cjqaddr, str, 12, pos, 0, 0, client1.node.child,KEYBOARD_DEC);//采集器地址
-	//------------------------------------------
-	setmp_cbtext_dalei(cb_text);
-	pos.x = rect_Client.left+FONTSIZE*9; //重新放置控件
-	pos.y = rect_Client.top;
-	pos.y += ROW_INTERVAL+FONTSIZE*3;
-	daleihao = ParaAll->f10.para_mp[pindex-1].TypeofBigUser;
-	if(daleihao<0 || daleihao>16)
-		daleihao = 0;
-	//daleihao = 5;
-	combox_init(&cb_dalei, daleihao, cb_text, pos, 0,client2.node.child);//第二页大类
-	//------------------------------------------
-	setmp_cbtext_xiaolei(daleihao, cb_text);
-	pos.y += FONTSIZE*2 + ROW_INTERVAL;
-	xiaoleihao = ParaAll->f10.para_mp[pindex-1].TypeOfLitUser;
-	if(xiaoleihao<0 || xiaoleihao>16)
-		xiaoleihao = 1;
-	combox_init(&cb_xiaolei, xiaoleihao, cb_text, pos, 0, client2.node.child);//第二页小类
-	//------------------------------------------
-	setmp_cbtext_isvalid(cb_text);
-	pos.y += FONTSIZE*2 + ROW_INTERVAL;
-	cld_isvalid = ParaAll->f150.Flag_MPValid[pindex-1];
-	if(cld_isvalid<0 || cld_isvalid>1)
-		cld_isvalid = 0;
-	combox_init(&cb_isvalid, cld_isvalid, cb_text, pos, 0, client2.node.child);//第二页测量点是否投抄
-	tem_cldvalid=cb_isvalid.cur_index;
-	//------------------------------------------
-	cur1_node = &edit_cldindex.form.node;
-	cur1_form = &edit_cldindex.form;
-	cur2_node = &cb_dalei.form.node;
-	cur2_form = &cb_dalei.form;
-
-	setmp_showlabel1(client1.node.child, cur1_node);//显示各个控件的标签(首先显示第一页)
-	PressKey = NOKEY;
-	while(g_LcdPoll_Flag==LCD_NOTPOLL){
-		switch(PressKey)
-		{
-		case LEFT:
-			if(cur_page==2)
-				cur_page=1;
-			DEBUG_TIME_LINE("left cur_page == %d\n",cur_page);
-			break;
-		case UP:
-			if(cur_page==1)
-			{
-				cur1_form->focus = NOFOCUS;
-				cur1_node=list_getprev(cur1_node);
-				if(cur1_node==client1.node.child)
-					cur1_node = list_getlast(client1.node.child);
-			}
-			else
-			{
-				cur2_form->focus = NOFOCUS;
-				cur2_node=list_getprev(cur2_node);
-				if(cur2_node==client2.node.child)
-					cur2_node = list_getlast(client2.node.child);
-			}
-			break;
-		case RIGHT:
-			if(cur_page==1)
-				cur_page=2;
-			DEBUG_TIME_LINE("right cur_page == %d\n",cur_page);
-			break;
-		case DOWN:
-			if(cur_page==1)
-			{
-				cur1_form->focus = NOFOCUS;
-				if(list_getnext(cur1_node)==NULL){
-					cur1_node = list_getfirst(cur1_node);
-					cur1_node = cur1_node->next;
-				}else
-					cur1_node = list_getnext(cur1_node);
-			}
-			else
-			{
-				cur2_form->focus = NOFOCUS;
-				if(list_getnext(cur2_node)==NULL){
-					cur2_node = list_getfirst(cur2_node);
-					cur2_node = cur2_node->next;
-				}else
-					cur2_node = list_getnext(cur2_node);
-			}
-			break;
-		case OK:
-			if(get_oprmode()==OPRMODE_MODIFY){
-				if(cur_page==2)
-				{
-					DEBUG_TIME_LINE("\npfun_process_ret=%d",cur2_form->pfun_process_ret);
-					cur2_form->pfun_process(cur2_form);
-						if(cur2_form==&cb_dalei.form){
-						setmp_cbtext_xiaolei(cb_dalei.cur_index, cb_text);
-						xiaoleihao = 1;
-						memcpy(cb_xiaolei.text, cb_text, TEXTLEN_X*TEXTLEN_Y);
-						cb_xiaolei.form.pfun_show(&cb_xiaolei);
-					}
-				}
-				else
-				{
-					DEBUG_TIME_LINE("\npfun_process_ret=%d",cur1_form->pfun_process_ret);
-					cur1_form->pfun_process(cur1_form);
-				}
-				if(cur1_form->pfun_process_ret==OK || cur2_form->pfun_process_ret){
-					if(msgbox_label((char *)"保存参数?", CTRL_BUTTON_OK)==ACK){
-						memcpy(&para_f10, &ParaAll->f10.para_mp[pindex-1], sizeof(para_1mp));//sizeof(para_F10));
-						memset(str, 0, INPUTKEYNUM);
-						eidt_gettext(&edit_cldno, str);
-						form_cldno = atoi(str);
-						para_f10.MPNo = form_cldno;
-						if(form_cldno>2048||form_cldno<=0)
-							f10_flg = 0;
-						eidt_gettext(&edit_cldaddr, (char*)para_f10.addr);
-						para_f10.Port = index2port(cb_port.cur_index);
-						if(isValidMeterAddr_12((char*)para_f10.addr)==0)
-							f10_flg = 0;
-
-						if(cb_gueyue.cur_index==0)
-							para_f10.Protocol = PROTOCOL_97;
-						else if(cb_gueyue.cur_index==1)
-							para_f10.Protocol = PROTOCOL_07;
-						else
-							para_f10.Protocol = PROTOCOL_JC;
-						if(cb_baud.cur_index==0)
-							para_f10.BaudRate = 1200;
-						else if(cb_baud.cur_index==1)
-							para_f10.BaudRate = 2400;
-						para_f10.TypeofBigUser = cb_dalei.cur_index;
-						para_f10.TypeOfLitUser = getxiaoleibycb(cb_xiaolei.cur_index,cb_dalei.cur_index);//cb_xiaolei.cur_index;
-
-						if (NULL != p_JProgramInfo) {
-							if (CCTT1 == p_JProgramInfo->cfg_para.device) {
-								eidt_gettext(&edit_cjqaddr, (char*)para_f10.colladdr);
-								if(isValidMeterAddr_12((char*)para_f10.colladdr)==0)
-									f10_flg = 0;
-							}
-						}
-
-						if (NULL != p_JProgramInfo) {
-							if (SPTF3 == p_JProgramInfo->cfg_para.device) {
-								if(ParaAll->f10.para_mp[pindex-1].MPNo >0) {
-									memcpy(&para_f29, \
-											&ParaAll->f29s.f29[ParaAll->f10.para_mp[pindex-1].MPNo-1], \
-											sizeof(para_F29));
-								}
-
-								eidt_gettext(&edit_cjqaddr, \
-										(char*)para_f29.MeterDisplayNo);
-
-								setpara(&para_f29, \
-										ParaAll->f10.para_mp[pindex-1].MPNo, \
-										29, sizeof(para_F29));
-							}
-						}
-
-						if(f10_flg==1){
-							setpara_f10(&para_f10,10);
-							if(tem_cldvalid != cb_isvalid.cur_index)//是否投放有变化
-							{
-								memset(&para_f150,0,sizeof(para_f150));
-								memcpy(&para_f150,&ParaAll->f150,sizeof(para_f150));
-								if(cb_isvalid.cur_index==1)
-									para_f150.Flag_MPValid[pindex-1]=1;
-								else
-									para_f150.Flag_MPValid[pindex-1]=0;
-								setpara(&para_f150, 0, 150, sizeof(para_F150));
-							}
-						}else
-							msgbox_label((char *)"保存失败！", CTRL_BUTTON_CANCEL);
-					}//else
-//						dbg_prt("\n msgbox_ret = CANCEL  do not save***");
-					g_curcldno = 1;
-				}
-			}
-			break;
-		case ESC:
-			if(client1.node.child!=NULL)
-				free(client1.node.child);
-			if(client2.node.child!=NULL)
-				free(client2.node.child);
-			return;
-		}
-		if(PressKey!=NOKEY||first_flg==0){
-			gui_clrrect(rect_Client);
-			if(cur_page==1)
-			{
-				tmp1node = client1.node.child;
-				tmp = setmp_showlabel1(client1.node.child, cur1_node);
-				while(tmp1node->next!=NULL){
-					tmp1node = tmp1node->next;
-					cur1_form = list_entry(tmp1node, Form, node);
-					if(tmp==1){
-						if(list_getListIndex(client1.node.child, tmp1node)>=list_getListIndex(client1.node.child, cur1_node))
-							cur1_form->pfun_show(cur1_form);
-					}else
-						cur1_form->pfun_show(cur1_form);
-				}
-				cur1_form = list_entry(cur1_node, Form, node);//根据链表节点找到控件指针
-				cur1_form->focus = FOCUS;
-//				dbg_prt("\n cur_form:(%d)", cur1_form->CtlType);
-				memcpy(&rect, &cur1_form->rect, sizeof(Rect));
-			}
-			else
-			{
-				tmp2node = client2.node.child;
-				tmp = setmp_showlabel2(client2.node.child, cur2_node);
-				while(tmp2node->next!=NULL){
-					tmp2node = tmp2node->next;
-					cur2_form = list_entry(tmp2node, Form, node);
-					if(tmp==1){
-						if(list_getListIndex(client2.node.child, tmp2node)>=list_getListIndex(client2.node.child, cur2_node))
-							cur2_form->pfun_show(cur2_form);
-					}else
-						cur2_form->pfun_show(cur2_form);
-				}
-				cur2_form = list_entry(cur2_node, Form, node);//根据链表节点找到控件指针
-				cur2_form->focus = FOCUS;
-//				dbg_prt("\n cur_form:(%d)", cur2_form->CtlType);
-				memcpy(&rect, &cur2_form->rect, sizeof(Rect));
-			}
-			rect.left += 2;
-			rect.right -= 3;
-			rect.top -= 1;
-			gui_rectangle(gui_changerect(gui_moverect(rect, DOWN, 4), 4));
-			first_flg = 1;
-		}
-		PressKey = NOKEY;
-		delay(100);
-	}
-	if(client1.node.child!=NULL)
-		free(client1.node.child);
-	if(client2.node.child!=NULL)
-		free(client2.node.child);
-}
-void querymeterpara_js(int pindex)
-{
-	int daleihao=0,xiaoleihao=0,tmp=0, f10_flg=1;
-		para_1mp para_f10;
-	#ifdef SPTF_III
-		para_F29 para_f29;
-	#endif
-	int form_cldno=0;//通过控件修改的测量点地址
-	char first_flg=0;
-	struct list *cur_node=NULL, *tmpnode=NULL;
-	Form *cur_form=NULL, client;//client 液晶显示客户区
-	char cb_text[TEXTLEN_X][TEXTLEN_Y];//用于存放combox的元素
-	char str[INPUTKEYNUM];
-	Rect rect;
-	int tmpindex;
-	//测量点号、表地址、端口、规约、通信速率、大小类号、采集器地址
-	Edit edit_cldno, edit_cldaddr, edit_cjqaddr;
-	Combox cb_port,cb_gueyue,cb_baud,cb_dalei,cb_xiaolei;
-	memset(&edit_cldno, 0, sizeof(Edit));
-	memset(&edit_cldaddr, 0, sizeof(Edit));
-	memset(&cb_port, 0, sizeof(Combox));
-	memset(&cb_gueyue, 0, sizeof(Combox));
-	memset(&cb_baud, 0, sizeof(Combox));
-	memset(&cb_dalei, 0, sizeof(Combox));
-	memset(&cb_xiaolei, 0, sizeof(Combox));
-	memset(&edit_cjqaddr, 0, sizeof(Edit));
-	DEBUG_TIME_LINE("\npindex=%d",pindex);
-	if(pindex<1)
-		 return;
-	g_curcldno = ParaAll->f10.para_mp[pindex-1].MPNo;//cldno;
-	memset(&client, 0, sizeof(Form));
-	client.node.child = (struct list*)malloc(sizeof(struct list));
-	if(client.node.child==NULL){
-		g_curcldno = 1;//上状态栏显示
-		return;
-	}
-	memset(client.node.child, 0, sizeof(struct list));
-	gui_clrrect(rect_Client);
-	//往控件里放入测量点数据 应该在控件init里设置
-	Point pos;
-	pos.x = rect_Client.left+FONTSIZE*9;
-	pos.y = rect_Client.top+2*FONTSIZE + 2;
-//	dbg_prt("\nclient.node.child=%x",(int)client.node.child);
-	memset(str, 0, INPUTKEYNUM);
-	sprintf(str,"%04d", ParaAll->f10.para_mp[pindex-1].MPNo);
-	edit_init(&edit_cldno, str, 4, pos, 0, 0, client.node.child,KEYBOARD_DEC);//测量点号
-	//------------------------------------------------------------
-	pos.y += FONTSIZE*2 + 2;
-	memset(str, 0, INPUTKEYNUM);
-	memcpy(str, ParaAll->f10.para_mp[pindex-1].addr, 12);
-	edit_init(&edit_cldaddr, str, 12, pos, 0, 0, client.node.child,KEYBOARD_HEX);//表地址
-	//------------------------------------------
-	setmp_cbtext_baud(cb_text);
-	pos.y += FONTSIZE*2 + 2;
-	if(ParaAll->f10.para_mp[pindex-1].BaudRate==1200)
-		tmpindex = 0;
-	else
-		tmpindex = 1;
-	combox_init(&cb_baud, tmpindex, cb_text, pos, 0,client.node.child);//通信速率
-	//-----------------------------------------------
-	setmp_cbtext_port(cb_text);
-	pos.y += FONTSIZE*2 + 2;
-	combox_init(&cb_port, port2index(ParaAll->f10.para_mp[pindex-1].Port), cb_text, pos, 0,client.node.child);//端口
-	//------------------------------------------
-	setmp_cbtext_guiyue(cb_text);
-	pos.y += FONTSIZE*2 + 2;
-	if(ParaAll->f10.para_mp[pindex-1].Protocol==PROTOCOL_97)
-		tmpindex = 0;
-	else if(ParaAll->f10.para_mp[pindex-1].Protocol==PROTOCOL_07)
-		tmpindex = 1;
-	else if(ParaAll->f10.para_mp[pindex-1].Protocol==PROTOCOL_JC)
-		tmpindex = 2;
-	else
-		tmpindex = 1;
-	combox_init(&cb_gueyue, tmpindex, cb_text, pos, 0,client.node.child);//规约
-	//------------------------------------------
-	pos.y += FONTSIZE*2 + 2;
-	memset(str, 0, INPUTKEYNUM);
-	if (NULL != p_JProgramInfo) {
-		if (CCTT1 == p_JProgramInfo->cfg_para.device) {
-			memcpy(str, ParaAll->f10.para_mp[pindex-1].colladdr, 12);
-			edit_init(&edit_cjqaddr, str, 12, pos, 0, 0, client.node.child,KEYBOARD_DEC);//采集器地址
-		}
-	}
-
-	if (NULL != p_JProgramInfo) {
-		if (SPTF3 == p_JProgramInfo->cfg_para.device) {
-			if(ParaAll->f10.para_mp[pindex-1].MPNo >0) {
-				memcpy(str, ParaAll->f29s.f29[ParaAll->f10.para_mp[pindex-1].MPNo-1].MeterDisplayNo, 12);
-			}
-			edit_init(&edit_cjqaddr, str, 12, pos, 0, 0, client.node.child,KEYBOARD_ASC);//局编号
-		}
-	}
-
-	//------------------------------------------
-	setmp_cbtext_dalei(cb_text);
-	pos.y += FONTSIZE*2 + 2;
-	daleihao = ParaAll->f10.para_mp[pindex-1].TypeofBigUser;
-	if(daleihao<0 || daleihao>16)
-		daleihao = 0;
-	//daleihao = 5;
-	combox_init(&cb_dalei, daleihao, cb_text, pos, 0,client.node.child);//大类
-	//------------------------------------------
-	setmp_cbtext_xiaolei(daleihao, cb_text);
-	pos.y += FONTSIZE*2 + 2;
-	xiaoleihao = ParaAll->f10.para_mp[pindex-1].TypeOfLitUser;
-	if(xiaoleihao<0 || xiaoleihao>16)
-		xiaoleihao = 1;
-	//xiaoleihao = 1;
-	combox_init(&cb_xiaolei, xiaoleihao, cb_text, pos, 0, client.node.child);//小类
-	//------------------------------------------
-	cur_node = &edit_cldno.form.node;
-	cur_form = &edit_cldno.form;
-	PressKey = NOKEY;
-	while(g_LcdPoll_Flag==LCD_NOTPOLL){
-		switch(PressKey)
-		{
-		case LEFT:
-		case UP:
-			cur_form->focus = NOFOCUS;
-			cur_node=list_getprev(cur_node);
-			if(cur_node==client.node.child)
-				cur_node = list_getlast(client.node.child);
-			break;
-		case RIGHT:
-		case DOWN:
-			cur_form->focus = NOFOCUS;
-			if(list_getnext(cur_node)==NULL){
-				cur_node = list_getfirst(cur_node);
-				cur_node = cur_node->next;
-			}else
-				cur_node = list_getnext(cur_node);
-			break;
-		case OK:
-			if(get_oprmode()==OPRMODE_MODIFY){
-				DEBUG_TIME_LINE("\npfun_process_ret=%d",cur_form->pfun_process_ret);
-				cur_form->pfun_process(cur_form);
-				if(cur_form==&cb_dalei.form){
-					setmp_cbtext_xiaolei(cb_dalei.cur_index, cb_text);
-					xiaoleihao = 1;
-					memcpy(cb_xiaolei.text, cb_text, TEXTLEN_X*TEXTLEN_Y);
-					cb_xiaolei.form.pfun_show(&cb_xiaolei);
-				}
-				if(cur_form->pfun_process_ret==OK){
-					//cur_node = list_getfirst(cur_node);
-					if(msgbox_label((char *)"保存参数?", CTRL_BUTTON_OK)==ACK){
-//						dbg_prt("\n msgbox_ret = OK  save para here!!!!");
-						memcpy(&para_f10, &ParaAll->f10.para_mp[pindex-1], sizeof(para_1mp));//sizeof(para_F10));
-						memset(str, 0, INPUTKEYNUM);
-						eidt_gettext(&edit_cldno, str);
-						form_cldno = atoi(str);
-						para_f10.MPNo = form_cldno;
-						if(form_cldno>2048||form_cldno<=0)
-							f10_flg = 0;
-						eidt_gettext(&edit_cldaddr, (char*)para_f10.addr);
-						para_f10.Port = index2port(cb_port.cur_index);
-						if(isValidMeterAddr_12((char*)para_f10.addr)==0)
-							f10_flg = 0;
-
-						if(cb_gueyue.cur_index==0)
-							para_f10.Protocol = PROTOCOL_97;
-						else if(cb_gueyue.cur_index==1)
-							para_f10.Protocol = PROTOCOL_07;
-						else
-							para_f10.Protocol = PROTOCOL_JC;
-						if(cb_baud.cur_index==0)
-							para_f10.BaudRate = 1200;
-						else if(cb_baud.cur_index==1)
-							para_f10.BaudRate = 2400;
-						para_f10.TypeofBigUser = cb_dalei.cur_index;
-						para_f10.TypeOfLitUser = getxiaoleibycb(cb_xiaolei.cur_index,cb_dalei.cur_index);//cb_xiaolei.cur_index;
-
-						if (NULL != p_JProgramInfo) {
-							if (CCTT1 == p_JProgramInfo->cfg_para.device) {
-								eidt_gettext(&edit_cjqaddr, (char*)para_f10.colladdr);
-
-								if(isValidMeterAddr_12((char*)para_f10.colladdr)==0)
-									f10_flg = 0;
-							}
-						}
-
-						if (NULL != p_JProgramInfo) {
-							if (SPTF3 == p_JProgramInfo->cfg_para.device) {
-								if(ParaAll->f10.para_mp[pindex-1].MPNo >0)
-									memcpy(&para_f29, &ParaAll->f29s.f29[ParaAll->f10.para_mp[pindex-1].MPNo-1], sizeof(para_F29));
-
-								eidt_gettext(&edit_cjqaddr, (char*)para_f29.MeterDisplayNo);
-								setpara(&para_f29, ParaAll->f10.para_mp[pindex-1].MPNo, 29, sizeof(para_F29));
-							}
-						}
-
-						if(f10_flg==1){
-							setpara_f10(&para_f10,10);
-						}else
-							msgbox_label((char *)"保存失败！", CTRL_BUTTON_CANCEL);
-					}else
-//						dbg_prt("\n msgbox_ret = CANCEL  do not save***");
-					g_curcldno = 1;
-				}
-			}
-			break;
-		case ESC:
-			if(client.node.child!=NULL)
-				free(client.node.child);
-			return;
-		}
-		if(PressKey!=NOKEY||first_flg==0){
-			memcpy(&rect, &rect_Client, sizeof(Rect));
-			rect.left = rect_Client.left + FONTSIZE*8 - 8;
-			gui_clrrect(rect);
-			tmpnode = client.node.child;
-			tmp = querymp_showlabel_js(client.node.child, cur_node);
-			while(tmpnode->next!=NULL){
-				tmpnode = tmpnode->next;
-				cur_form = list_entry(tmpnode, Form, node);
-				if(tmp==1){
-					if(list_getListIndex(client.node.child, tmpnode)>=list_getListIndex(client.node.child, cur_node))
-						cur_form->pfun_show(cur_form);
-				}else
-					cur_form->pfun_show(cur_form);
-			}
-			cur_form = list_entry(cur_node, Form, node);//根据链表节点找到控件指针
-			cur_form->focus = FOCUS;
-//			dbg_prt("\n cur_form:(%d)", cur_form->CtlType);
-			memcpy(&rect, &cur_form->rect, sizeof(Rect));
-			rect.left += 2;
-			rect.right -= 3;
-			rect.top -= 1;
-		//	gui_rectangle(gui_changerect(gui_moverect(rect, DOWN, 4), 4));
-			first_flg = 1;
-		}
-		PressKey = NOKEY;
-		delay(100);
-	}
-	if(client.node.child!=NULL)
-		free(client.node.child);
-}
-int querymp_showlabel_js(struct list *head, struct list *node){
-	int ret=0;
-	//int npos=0;
-	Point label_pos;
-	gui_setpos(&label_pos, rect_Client.left+8*FONTSIZE, rect_Client.top);
-	gui_textshow((char *)"电能表参数", label_pos, LCD_NOREV);
-	label_pos.x = rect_Client.left;
-	label_pos.y = rect_Client.top+2*FONTSIZE + 2;
-	gui_textshow((char *)"测量点号  ", label_pos, LCD_NOREV);
-	label_pos.y += FONTSIZE*2 + 2;
-	gui_textshow((char *)"电表地址  ", label_pos, LCD_NOREV);
-	label_pos.y += FONTSIZE*2 + 2;
-	gui_textshow((char *)"通讯速率  ", label_pos, LCD_NOREV);
-	label_pos.y += FONTSIZE*2 + 2;
-	gui_textshow((char *)"通讯端口  ", label_pos, LCD_NOREV);
-	label_pos.y += FONTSIZE*2 + 2;
-	gui_textshow((char *)"通讯协议  ", label_pos, LCD_NOREV);
-	label_pos.y += FONTSIZE*2 + 2;
-
-	if (NULL != p_JProgramInfo) {
-		if (CCTT1 == p_JProgramInfo->cfg_para.device) {
-				gui_textshow((char *)"采 集 器", label_pos, LCD_NOREV);
-		}
-	}
-
-	if (NULL != p_JProgramInfo) {
-		if (SPTF3 == p_JProgramInfo->cfg_para.device) {
-			gui_textshow((char *)"局编号  ", label_pos, LCD_NOREV);
-		}
-	}
-
-	label_pos.y += FONTSIZE*2 + 2;
-	gui_textshow((char *)"用户大类  ", label_pos, LCD_NOREV);
-	label_pos.y += FONTSIZE*2 + 2;
-	gui_textshow((char *)"用户小类  ", label_pos, LCD_NOREV);
-	set_time_show_flag(1);
-	return ret;
-}
-
-void USB_DataCopy()
-{
-	Point label_pos;
-	INT8U ret=0;
-	gui_clrrect(rect_Client);
-	setFontSize(16);
-	gui_setpos(&label_pos, rect_Client.left+8*FONTSIZE, rect_Client.top+6*FONTSIZE);
-	gui_textshow((char *)"请插入U盘", label_pos, LCD_NOREV);
-	set_time_show_flag(1);
-	setFontSize(12);
-	PressKey=NOKEY;
-	while(g_LcdPoll_Flag==LCD_NOTPOLL){
-		switch(PressKey)
-		{
-		case ESC:
-			return;
-		default:
-			break;
-		}
-		if(access("/dos/gwncp",0) == 0)
-		{
-			DEBUG_TIME_LINE("gwncp ext >>>\n");
-			ret=system("cp -rf /nand/* /dos/gwncp/");
-			if(ret==0)
-			{
-				gui_clrrect(rect_Client);
-				setFontSize(16);
-				gui_setpos(&label_pos, rect_Client.left+8*FONTSIZE, rect_Client.top+6*FONTSIZE);
-				gui_textshow((char *)"拷贝完成！", label_pos, LCD_NOREV);
-				setFontSize(12);
-			}
-			else
-			{
-				gui_clrrect(rect_Client);
-				setFontSize(16);
-				gui_setpos(&label_pos, rect_Client.left+8*FONTSIZE, rect_Client.top+6*FONTSIZE);
-				gui_textshow((char *)"拷贝失败！", label_pos, LCD_NOREV);
-				setFontSize(12);
-			}
-			set_time_show_flag(1);
-			sleep(3);
-			break;
-		}
-		delay(100);
-	}
-}
-void USB_UpdateSoft()
-{
-	Point label_pos;
-	gui_clrrect(rect_Client);
-	setFontSize(16);
-	gui_setpos(&label_pos, rect_Client.left+8*FONTSIZE, rect_Client.top+6*FONTSIZE);
-	gui_textshow((char *)"请插入U盘", label_pos, LCD_NOREV);
-	set_time_show_flag(1);
-	setFontSize(12);
-	PressKey=NOKEY;
-	while(g_LcdPoll_Flag==LCD_NOTPOLL){
-		switch(PressKey)
-		{
-		case ESC:
-			return;
-		default:
-			break;
-		}
-		delay(100);
-	}
-}
-void Term_StartConn()
-{
-	Point label_pos;
-	gui_clrrect(rect_Client);
-	setFontSize(16);
-	gui_setpos(&label_pos, rect_Client.left+4*FONTSIZE, rect_Client.top+6*FONTSIZE);
-	sleep(2);
-	gui_textshow((char *)"激活连接成功!", label_pos, LCD_NOREV);
-	set_time_show_flag(1);
-	setFontSize(12);
-	PressKey=NOKEY;
-	while(g_LcdPoll_Flag==LCD_NOTPOLL){
-		switch(PressKey)
-		{
-		case ESC:
-			return;
-		default:
-			break;
-		}
-		delay(100);
-	}
-}
-void Term_StopConn()
-{
-	Point label_pos;
-	gui_clrrect(rect_Client);
-	setFontSize(16);
-	sleep(2);
-	gui_setpos(&label_pos, rect_Client.left+4*FONTSIZE, rect_Client.top+6*FONTSIZE);
-	gui_textshow((char *)"断开连接成功!", label_pos, LCD_NOREV);
-	set_time_show_flag(1);
-	setFontSize(12);
-	PressKey=NOKEY;
-	while(g_LcdPoll_Flag==LCD_NOTPOLL){
-		switch(PressKey)
-		{
-		case ESC:
-			return;
-		default:
-			break;
-		}
-		delay(100);
-	}
-}
-int setmp_showlabel1(struct list *head, struct list *node){ //page1
-	int ret=0;
-	//int npos=0;
-	Point label_pos;
-	label_pos.x = rect_Client.left + 5*FONTSIZE;
-	label_pos.y = rect_Client.top + ROW_INTERVAL;
-	setFontSize(16);
-	gui_textshow((char *)"电能表参数", label_pos, LCD_NOREV);
-	setFontSize(12);
-	label_pos.x = rect_Client.left;
-	label_pos.y += 3*FONTSIZE;
-	gui_textshow((char *)"电表序号 ", label_pos, LCD_NOREV);
-	label_pos.x = rect_Client.left;
-	label_pos.y += FONTSIZE*2 + ROW_INTERVAL;
-	gui_textshow((char *)"测量点号", label_pos, LCD_NOREV);
-	label_pos.y += FONTSIZE*2 + ROW_INTERVAL;
-	gui_textshow((char *)"电表地址", label_pos, LCD_NOREV);
-	label_pos.y += FONTSIZE*2 + ROW_INTERVAL;
-	gui_textshow((char *)"通信速率", label_pos, LCD_NOREV);
-	label_pos.y += FONTSIZE*2 + ROW_INTERVAL;
-	gui_textshow((char *)"通信端口", label_pos, LCD_NOREV);
-	label_pos.y += FONTSIZE*2 + ROW_INTERVAL;
-	gui_textshow((char *)"通信协议", label_pos, LCD_NOREV);
-	label_pos.y += FONTSIZE*2 + ROW_INTERVAL;
-	gui_textshow((char *)"采 集 器", label_pos, LCD_NOREV);
-	set_time_show_flag(1);
-	return ret;
-}
-int setmp_showlabel2(struct list *head, struct list *node){ //page2
-	int ret=0;
-	//int npos=0;
-	Point label_pos;
-	label_pos.x = rect_Client.left + 5*FONTSIZE;
-	label_pos.y = rect_Client.top + ROW_INTERVAL;
-	setFontSize(16);
-	gui_textshow((char *)"电能表参数", label_pos, LCD_NOREV);
-	setFontSize(12);
-	label_pos.y += 3*FONTSIZE;
-	label_pos.x = rect_Client.left;
-	gui_textshow((char *)"用户大类", label_pos, LCD_NOREV);
-	label_pos.x = rect_Client.left;
-	label_pos.y += FONTSIZE*2 + ROW_INTERVAL;
-	gui_textshow((char *)"用户小类", label_pos, LCD_NOREV);
-	label_pos.y += FONTSIZE*2 + ROW_INTERVAL;
-	gui_textshow((char *)"是否投抄", label_pos, LCD_NOREV);
-	set_time_show_flag(1);
-	return ret;
-}
-static void setmp_cbtext_tcpudp(char cb_text[][TEXTLEN_Y]){
-	memset(cb_text, 0, TEXTLEN_X*TEXTLEN_Y);
-	memcpy(cb_text[0], "TCP", strlen("TCP"));
-	memcpy(cb_text[1], "UDP", strlen("UDP"));
-}
-static void setmp_cbtext_termod(char cb_text[][TEXTLEN_Y]){
-	memset(cb_text, 0, TEXTLEN_X*TEXTLEN_Y);
-	memcpy(cb_text[0], "混合模式", strlen("混合模式"));
-	memcpy(cb_text[1], "客户机模式", strlen("客户机模式"));
-	memcpy(cb_text[2], "服务器模式", strlen("服务器模式"));
-}
-void menu_eth0para_js(){
-	char cmd[50],cmd1[100], input_valid=1;
-	INT8U  sip[16];
-	int tmp=0;
-	para_F7 para_f7;
-	para_F7 para_f7_old;
-	para_F8 para_f8;
-	char first_flg=0;
-	INT8U gway_flag=0;
-	INT8U TCPorUDP,TER_MOD;
-	struct list *cur_node=NULL, *tmpnode=NULL;
-	Form *cur_form=NULL, client;//client 液晶显示客户区
-	char str[INPUTKEYNUM];
-	Rect rect;
-	Edit edit_termip, edit_netmask, edit_gateway, edit_listenport;
-	Combox cb_TCPorUDP,cb_termod;
-	char cb_text[TEXTLEN_X][TEXTLEN_Y];//用于存放combox的元素
-	memset(&edit_termip, 0, sizeof(Edit));
-	memset(&edit_netmask, 0, sizeof(Edit));
-	memset(&edit_gateway, 0, sizeof(Edit));
-	memset(&edit_listenport, 0, sizeof(Edit));
-	memset(&cb_TCPorUDP,0,sizeof(cb_TCPorUDP));
-	memset(&cb_termod,0,sizeof(cb_termod));
-	memset(&client, 0, sizeof(Form));
-	client.node.child = (struct list*)malloc(sizeof(struct list));
-	if(client.node.child==NULL){
-		g_curcldno = 1;//上状态栏显示
-		return;
-	}
-	memset(client.node.child, 0, sizeof(struct list));
-	gui_clrrect(rect_Client);
-	//往控件里放入测量点数据 应该在控件init里设置
-	Point pos;
-	memcpy(&para_f7, &ParaAll->f7, sizeof(para_F7));
-	memcpy(&para_f7_old, &ParaAll->f7, sizeof(para_F7));
-	memcpy(&para_f8, &ParaAll->f8, sizeof(para_F8));
-	gui_setpos(&pos, rect_Client.left+10.5*FONTSIZE, rect_Client.top);
-	pos.y += FONTSIZE*5 + ROW_INTERVAL;
-	memset(str, 0, INPUTKEYNUM);
-	//memset(ip, 0, 4);
-	//getlocalip(ip);
-	ip2asc((char*)ParaAll->f7.IP_Addr, str);
-	editip_init(&edit_termip, CTRL_EDITIP, str, 12, pos, NOFRAME, NORETFLG, client.node.child,KEYBOARD_DEC);//主IP
-	//------------------------------------------
-	pos.y += FONTSIZE*2 + ROW_INTERVAL;
-	memset(str, 0, INPUTKEYNUM);
-	ip2asc((char*)ParaAll->f7.IP_SubNet, str);
-	editip_init(&edit_netmask, CTRL_EDITIP, str, 12, pos, NOFRAME, NORETFLG, client.node.child,KEYBOARD_DEC);//掩码
-	//-----------------------------------------
-	pos.y += FONTSIZE*2 + ROW_INTERVAL;
-	memset(str, 0, INPUTKEYNUM);
-	ip2asc((char*)ParaAll->f7.IP_GateWay, str);
-//	dbg_prt("\n f7.IP_GateWay=%d %d %d %d  str=%s",ParaAll->f7.IP_GateWay[0],ParaAll->f7.IP_GateWay[1],
-//			ParaAll->f7.IP_GateWay[2],ParaAll->f7.IP_GateWay[3], str);
-	editip_init(&edit_gateway, CTRL_EDITIP, str, 12, pos, NOFRAME, NORETFLG, client.node.child,KEYBOARD_DEC);//网关
-	//------------------------------------------
-	pos.y += FONTSIZE*2 + ROW_INTERVAL;
-	memset(str, 0, INPUTKEYNUM);
-	sprintf(str, "%04d", ParaAll->f7.Port_Listen);
-	edit_init(&edit_listenport, str, 4, pos, NOFRAME, NORETFLG, client.node.child,KEYBOARD_DEC);//备端口
-	//-------------------------------------------
-	setmp_cbtext_tcpudp(cb_text);
-	pos.y += FONTSIZE*2 + ROW_INTERVAL;
-	TCPorUDP= ParaAll->f8.TCPorUDP;
-	if(TCPorUDP>1 || TCPorUDP<0)
-		TCPorUDP=0;
-	combox_init(&cb_TCPorUDP, TCPorUDP, cb_text, pos, 0, client.node.child);//TCPorUDP
-	//	------------------------------------------
-	setmp_cbtext_termod(cb_text);
-	pos.y += FONTSIZE*2 + ROW_INTERVAL;
-	TER_MOD=ParaAll->f8.Ter_mod;
-	if(TER_MOD<0 ||TER_MOD>3)
-		TER_MOD=1;
-	combox_init(&cb_termod, TER_MOD, cb_text, pos, 0, client.node.child);//工作模式，混合/服务器/客户端
-	//--------------------------------------------
-	cur_node = &edit_termip.form.node;
-	cur_form = &edit_termip.form;
-	seteth0_showlabel();//显示各个控件的标签
-	set_time_show_flag(1);
-	PressKey = NOKEY;
-	while(g_LcdPoll_Flag==LCD_NOTPOLL){
-		switch(PressKey)
-		{
-		case LEFT:
-		case UP:
-			cur_form->focus = NOFOCUS;
-			cur_node=list_getprev(cur_node);
-			if(cur_node==client.node.child)
-				cur_node = list_getlast(client.node.child);
-			break;
-		case RIGHT:
-		case DOWN:
-			cur_form->focus = NOFOCUS;
-			if(list_getnext(cur_node)==NULL){
-				cur_node = list_getfirst(cur_node);
-				cur_node = cur_node->next;
-			}else
-				cur_node = list_getnext(cur_node);
-			break;
-		case OK:
-			if(get_oprmode()==OPRMODE_MODIFY){//如果用户选择了设置模式
-				cur_form->pfun_process(cur_form);
-				if(cur_form->pfun_process_ret==OK){//按下了确认键
-//					cur_node = list_getfirst(cur_node);
-					if(msgbox_label((char *)"保存参数?", CTRL_BUTTON_OK)==ACK){
-//						dbg_prt("\n msgbox_ret = OK  save para here!!!!");
-						memcpy(&para_f7, &ParaAll->f7, sizeof(para_F7));//将共享内存f7拷贝到本地作为
-						memcpy(&para_f8, &ParaAll->f8, sizeof(para_F8));
-						memset(para_f7.IP_Addr, 0, 4);
-						memset(sip, 0, 16);
-						eidtip12_gettext(&edit_termip, (char*)sip);//取得编辑框中的ip值
-						if(ip_strtobyte(sip, para_f7.IP_Addr)==0)
-							input_valid = 0;
-						else{
-						if((para_f7.IP_Addr[0]!=para_f7_old.IP_Addr[0])||(para_f7.IP_Addr[1]!=para_f7_old.IP_Addr[1])||
-								(para_f7.IP_Addr[2]!=para_f7_old.IP_Addr[2])||(para_f7.IP_Addr[3]!=para_f7_old.IP_Addr[3]))//ip地址改变，则重新设置网关
-							gway_flag=1;
-							memset(cmd, 0, 50);
-							sprintf(cmd, "ifconfig eth0 %d.%d.%d.%d up", para_f7.IP_Addr[0],para_f7.IP_Addr[1],
-									para_f7.IP_Addr[2],para_f7.IP_Addr[3]);
-							system(cmd);
-							memset(cmd1, 0, 100);
-							sprintf(cmd1, "echo %s > /nor/rc.d/ip.sh", cmd);
-							system(cmd1);
-						}
-						memset(para_f7.IP_SubNet, 0, 4);
-						memset(sip, 0, 16);
-						eidtip12_gettext(&edit_netmask, (char*)sip);
-						if(ip_strtobyte(sip, para_f7.IP_SubNet)==0)
-							input_valid = 0;
-						memset(para_f7.IP_GateWay, 0, 4);
-						memset(sip, 0, 16);
-						eidtip12_gettext(&edit_gateway, (char*)sip);
-						if(ip_strtobyte(sip, para_f7.IP_GateWay)==0)
-							input_valid = 0;
-						if(gway_flag==1)
-						{
-							memcpy(para_f7.IP_GateWay,para_f7.IP_Addr,4);
-							para_f7.IP_GateWay[3]--;
-						}
-						memset(&para_f7.Port_Listen, 0, 2);
-						memset(str, 0, INPUTKEYNUM);
-						eidt_gettext(&edit_listenport, str);
-						para_f7.Port_Listen = atoi(str);
-						para_f8.TCPorUDP = cb_TCPorUDP.cur_index;
-						para_f8.Ter_mod = cb_termod.cur_index;
-						if(input_valid==1)
-						{
-							setpara(&para_f7, 0, 7, sizeof(para_F7));
-							setpara(&para_f8, 0, 8, sizeof(para_F8));
-							gui_clrrect(rect_Client);
-							memset(str, 0, 50);
-							sprintf(str, "正在保存修改(等待6秒)...");
-							gui_setpos(&pos, rect_Client.left+2*FONTSIZE, rect_Client.top+8*FONTSIZE);
-							gui_textshow(str, pos, LCD_NOREV);
-							set_time_show_flag(1);
-							sleep(6);
-						}
-						else{
-							msgbox_label((char *)"保存失败！", CTRL_BUTTON_OK);
-							set_time_show_flag(1);
-						}
-					}else
-//						dbg_prt("\n msgbox_ret = CANCEL  do not save***");
-					g_curcldno = 1;
-				}
-			}
-			break;
-		case ESC:
-			if(client.node.child!=NULL)
-				free(client.node.child);
-			return;
-		}
-		if(PressKey!=NOKEY||first_flg==0){
-			memcpy(&rect, &rect_Client, sizeof(Rect));
-			rect.left = rect_Client.left + FONTSIZE*8 - 8;
-			gui_clrrect(rect);
-			tmpnode = client.node.child;
-			tmp = seteth0_showlabel();
-			while(tmpnode->next!=NULL){//从开始节点显示到最后
-				tmpnode = tmpnode->next;
-				cur_form = list_entry(tmpnode, Form, node);
-				//dbg_prt("\n ctltype = %d", cur_form->CtlType);
-				if(tmp==1){
-					if(list_getListIndex(client.node.child, tmpnode)>=list_getListIndex(client.node.child, cur_node))
-						cur_form->pfun_show(cur_form);
-				}else
-					cur_form->pfun_show(cur_form);
-			}
-			cur_form = list_entry(cur_node, Form, node);//根据链表节点找到控件指针
-			cur_form->focus = FOCUS;
-//			dbg_prt("\n cur_form:(%d)", cur_form->CtlType);
-			memcpy(&rect, &cur_form->rect, sizeof(Rect));
-			rect.left += 2;
-			rect.right -= 3;
-			rect.top -= 1;
-			gui_rectangle(gui_changerect(gui_moverect(rect, DOWN, 4), 4));
-			set_time_show_flag(1);
-			first_flg = 1;
-		}
-		PressKey = NOKEY;
-		delay(100);
-	}
-	if(client.node.child!=NULL)
-		free(client.node.child);
-	return;
-}
-#endif

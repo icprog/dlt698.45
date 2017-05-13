@@ -484,14 +484,7 @@ void edit_init(Edit *edit, char *text, int c_num, Point pos, char frame_flg,
 			else
 				edit->form.key[i].c = text[i];
 			edit->form.key[i].index.index_x = i;
-#ifdef JIANGSU
-			if(getFontSize()==16)
-			edit->form.key[i].pos.x = edit->form.pos.x + FONTSIZE_8 * i;
-			else
-				edit->form.key[i].pos.x = edit->form.pos.x + FONTSIZE * i;
-#else
 			edit->form.key[i].pos.x = edit->form.pos.x + FONTSIZE * i;
-#endif
 			edit->form.key[i].pos.y = edit->form.pos.y;
 	//		dbg_prt("\n edit->key[%d].c=%d pos:%d %d", i,
 	//				edit->key[i].c,edit->key[i].pos.x,edit->key[i].pos.y);
@@ -501,14 +494,7 @@ void edit_init(Edit *edit, char *text, int c_num, Point pos, char frame_flg,
 	edit->form.ret_flg = ret_flg;
 	edit->frame_flg = frame_flg;
 	edit->form.c_num = c_num;
-#ifdef JIANGSU
-	if(getFontSize()==16)
-		edit->form.rect = getrect(pos, FONTSIZE_8 * c_num, FONTSIZE);
-	else
-		edit->form.rect = getrect(pos, FONTSIZE * c_num, FONTSIZE);
-#else
 	edit->form.rect = getrect(pos, FONTSIZE * c_num, FONTSIZE);
-#endif
 	memcpy(&rect, &edit->form.rect, sizeof(Rect));
 	edit->form.pfun_process = edit_process;
 	edit->form.pfun_show = edit_show;
@@ -544,11 +530,7 @@ void edit_process(void* form)
 			return;
 		while (g_LcdPoll_Flag == LCD_NOTPOLL) {
 			if (PressKey == OK) {
-#ifdef SHANGHAI  //上海程序用全液晶键盘
-				edit->mode = EDITMODE;
-#else
 				edit->mode = SHOWMODE;
-#endif
 				while (edit->mode != NORMALMODE) {
 					switch (edit->mode) {
 					case EDITMODE:
@@ -722,25 +704,11 @@ void edittime_show(void* form)
 		gui_rectangle(gui_changerect(rect, 4));
 	for (i = 0; i < edit->form.c_num; i++)
 		gui_charshow(edit->form.key[i].c, edit->form.key[i].pos, LCD_NOREV);
-#ifdef JIANGSU
-	if(getFontSize()==12)
-		gui_setpos(&pos, edit->form.pos.x+(FONTSIZE)*4+2, edit->form.pos.y);
-	else
-		gui_setpos(&pos, edit->form.pos.x+(FONTSIZE_8)*4+2, edit->form.pos.y);
-#else
 	gui_setpos(&pos, edit->form.pos.x+FONTSIZE*4+2, edit->form.pos.y);
-#endif
 	gui_charshow('-', pos, LCD_NOREV);
 	if(edit->form.c_num<=6)
 		return;
-#ifdef JIANGSU
-	if(getFontSize()==12)
-		gui_setpos(&pos, edit->form.pos.x+(FONTSIZE)*7+2, edit->form.pos.y);
-	else
-		gui_setpos(&pos, edit->form.pos.x+(FONTSIZE_8)*7+2, edit->form.pos.y);
-#else
 	gui_setpos(&pos, edit->form.pos.x+FONTSIZE*7+2, edit->form.pos.y);
-#endif
 
 	gui_charshow('-', pos, LCD_NOREV);
 	if(edit->form.c_num<=8)
@@ -783,14 +751,7 @@ void edittime_init(Edit *edit, char type, char *text, int c_num, Point pos, char
 			i_pos = i+5;
 		else
 			i_pos = i;
-#ifdef JIANGSU
-		if(getFontSize()==12)
-			edit->form.key[i].pos.x = edit->form.pos.x + FONTSIZE * i_pos + 2;
-		else
-			edit->form.key[i].pos.x = edit->form.pos.x + FONTSIZE_8 * i_pos + 2;
-#else
 		edit->form.key[i].pos.x = edit->form.pos.x + FONTSIZE * i_pos + 2;
-#endif
 		edit->form.key[i].pos.y = edit->form.pos.y;
 	}
 	edit->keyboard_style = KEYBOARD_DEC;

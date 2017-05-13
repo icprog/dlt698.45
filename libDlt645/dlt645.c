@@ -109,6 +109,41 @@ INT16S composeProtocol07(FORMAT07* format07, INT8U* sendBuf)
 		sendBuf[16] = 0x16;
 
 		return 17;
+	}else if(format07->Ctrl == 0x14)  //  台体校表扩展
+	{
+		INT8U len = format07->Length;
+		sendBuf[0] = 0x68;
+		memcpy(&sendBuf[1], format07->Addr, 6);//地址
+		sendBuf[7] = 0x68;
+		sendBuf[8] = format07->Ctrl;
+		sendBuf[9] = len;//长度
+		memcpy(&sendBuf[10], format07->DI, 4);//数据标识
+		memcpy(&sendBuf[14], format07->Data, len-4);
+		for(i=10;i<10+len;i++)
+		{
+			sendBuf[i] += 0x33;
+		}
+		sendBuf[10+len] = getCS645(&sendBuf[0], 10+len);
+		sendBuf[11+len] = 0x16;
+		return (12+len);
+	}else if (format07->Ctrl == 0x13)//启动搜表（鼎信用）
+	{
+		sendBuf[0] = 0x68;
+		memset(&sendBuf[1], 0xAA, 6);//地址
+		sendBuf[7] = 0x68;
+		sendBuf[8] = format07->Ctrl;
+		sendBuf[9] = 0x02;//长度
+		memcpy(&sendBuf[10], format07->SearchTime, 2);//搜表时长
+
+		for (i=10; i<12; i++)
+		{
+			sendBuf[i] += 0x33;
+		}
+
+		sendBuf[12] = getCS645(&sendBuf[0], 16);
+		sendBuf[13] = 0x16;
+
+		return 14;
 	}
 	else if (format07->Ctrl == 0x08)//广播校时
 	{
@@ -151,7 +186,6 @@ INT8S analyzeProtocol07(FORMAT07* format07, INT8U* recvBuf, const INT16U recvLen
 		memcpy(&format07->Addr[0], &recvBuf[count+1], 6);
 		format07->Ctrl = recvBuf[count+8];
 		format07->Length = recvBuf[count+9];
-
 		if (format07->Ctrl & 0x20)//控制码D5=1，表示有后续帧
 		{
 			*nextFlag = TRUE;
@@ -212,6 +246,11 @@ INT8S analyzeProtocol07(FORMAT07* format07, INT8U* recvBuf, const INT16U recvLen
 				format07->Time[i] = Time[i];
 			}
 			ret = 1;
+		}else if (format07->Ctrl == 0x14)//写数据（校表-自定义）
+		{
+			memcpy(format07->DI, &recvBuf[count+10], 4);
+			memcpy(format07->Data, &recvBuf[count+14], format07->Length-4);
+			ret = 8;
 		}
 		else if ((format07->Ctrl==0xD1) || (format07->Ctrl==0xD2))//异常应答
 		{

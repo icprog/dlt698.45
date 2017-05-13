@@ -214,6 +214,7 @@ void Collect6000(int argc, char *argv[])
 				if(seqno == meter.sernum) {
 					meter.sernum = 0;
 					ret = saveParaClass(0x6000,&meter,seqno);
+			        setOIChange_CJ(0x6000);
 					if(ret==1)
 						fprintf(stderr,"删除 序号 %d 成功, ret=%d\n",seqno,ret);
 				}
@@ -228,7 +229,7 @@ void Collect6000(int argc, char *argv[])
 			fprintf(stderr,"配置说明:\n【1】通信地址TSA，【10】采集器地址:第一个字节为TSA长度如： 05 12 34 56 78 9A\n");
 			fprintf(stderr,"【2】波特率:300bps(0),600bps(1),1200bps(2),2400bps(3),4800bps(4),7200bps(5),9600bps(6),19200bps(7),38400bps(8),57600bps(9),115200bps(10),自适应(255)\n");
 			fprintf(stderr,"【3】规约:未知(0),DL/T645-1997(1),DL/T645-2007(2),DL/T698.45(3),CJ/T188-2004(4)\n");
-			fprintf(stderr,"【4】OAD:格式输入 04x-04x，如OAD=f2010201, 输入：f201-0201\n");
+			fprintf(stderr,"【4】OAD:格式输入 04x-04x，如OAD=f2010201, 输入：f201-0201(485-I) f201-0202(485-II)\n");
 			fprintf(stderr,"【7】接线方式:未知(0),单相(1),三相三线(2),三相四线(3)\n");
 			fprintf(stderr,"\n例如<配置序号1的内容>：\n");
 			fprintf(stderr,"cj coll add 6000 序号 表地址 		波特率 规约 端口OAD 费率格式 用户类型 接线方式 额定电压 额定电流 采集器地址 PT CT\n");
@@ -335,6 +336,7 @@ void Collect6000(int argc, char *argv[])
 			po++;
 			ret = saveParaClass(0x6000,&meter,meter.sernum);
 			fprintf(stderr,"保存采集档案配置单元 序号 %d, ret=%d\n",meter.sernum,ret);
+	        setOIChange_CJ(0x6000);
 		}
 	}
 }
@@ -482,6 +484,7 @@ void Task6013(int argc, char *argv[])
 				pi++;
 				po=po+4;
 				saveCoverClass(oi,class6013.taskID,&class6013,sizeof(CLASS_6013),coll_para_save);
+		        setOIChange_CJ(0x6013);
 			}
 		}
 	}

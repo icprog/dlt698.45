@@ -145,9 +145,4 @@ int menu_485func_show(char *text,INT8U ctrl_focus);
 extern int get_oprmode();
 extern void set_oprmode(int mode);
 
-#ifdef JIANGSU
-int editctrl_time(char *s_jzqtime, int len);
-int msgbox_password_js(char *passwd, int len, char *s_passwd_ret);
-int msgbox_jzqaddr_10_js(char *s_jzqdizhi10, int len);
-#endif
 #endif /* LCD_CTRL_H_ */

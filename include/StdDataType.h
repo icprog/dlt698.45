@@ -431,6 +431,7 @@ typedef struct
 
 typedef union
 {
+//	INT8U	selectype;		//Selector类型
 	INT8U null;
 	Selector1 selec1;
 	Selector2 selec2;
@@ -467,7 +468,7 @@ typedef struct
 typedef struct{
 	INT8U flag;
 	INT8U num;
-	ROAD road[10];
+	ROAD road[ARRAY_ROAD_NUM];
 }ARRAY_ROAD;
 
 typedef struct

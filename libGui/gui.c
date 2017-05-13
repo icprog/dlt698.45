@@ -12,7 +12,6 @@ char HzBuf[32];
 
 unsigned char HzDat[267615];//262144
 unsigned char HzDat_12[198576];//8274*24
-#ifndef FB_SIM
 
 volatile INT8U time_show_flag = 0;
 INT8U ret_show_time_flag()
@@ -24,7 +23,7 @@ void set_time_show_flag(INT8U value)
 	time_show_flag = value;
 }
 
-void ReadHzkBuff()
+void ReadHzkBuff_16()
 {
 	int hdrfp;
 	unsigned char TempBuf[60];
@@ -36,7 +35,6 @@ void ReadHzkBuff()
 		sprintf((char *) TempBuf, "%s/16", "/nor/bin");
 		hdrfp = open((char *) TempBuf, O_RDONLY);
 	}
-	//printf("hdrfp = %x \n", hdrfp);
 	if (hdrfp == -1) {
 		fprintf(stderr,"han zi ku error!16\n");
 		exit(1);
@@ -66,26 +64,6 @@ void ReadHzkBuff_12()
 		fprintf(stderr,"\n Read font 12 error!!!err=%d",err);
 	close(hdrfp);
 }
-#else
-void ReadHzkBuff()
-{
-	int err;
-	int hdrfp;
-	unsigned char TempBuf[60];
-	memset(TempBuf, 0, 60);
-	sprintf((char *) TempBuf, "16");
-	hdrfp = open((char *) TempBuf, O_RDONLY);
-	fprintf(stderr, "hdrfp = %x \n", hdrfp);
-	if (hdrfp <0) {
-		fprintf(stderr, "han zi ku error!\n");
-		exit(1);
-	}
-	err = read(hdrfp, HzDat, 267615);
-	if(err<=0)
-		fprintf(stderr,"\n Read font 16 error!!!err=%d",err);
-	close(hdrfp);
-}
-#endif
 //画点
 void gui_pixel_color(Point pt, unsigned char color)
 {
