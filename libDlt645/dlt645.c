@@ -237,3 +237,100 @@ INT8S analyzeProtocol07(FORMAT07* format07, INT8U* recvBuf, const INT16U recvLen
 	}
 	return ret;
 }
+
+
+//97报文解析入口函数
+INT8S analyzeProtocol97(FORMAT97* format97, INT8U* recvBuf, const INT16U recvLen, BOOLEAN *nextFlag)
+{
+	INT16U i, count, count2;
+	INT8S ret = 0;
+	count = getFECount(recvBuf, recvLen);//得到待解析报文中前导符FE的个数
+	count2 = getFFCount(recvBuf, recvLen);//得到待解析报文中后缀FF的个数（江苏II型新联的电表）
+
+	if (isValid645(&recvBuf[count], recvLen-count-count2) == 0)	//校验通过
+	{
+		format97->SEQ = 0;
+		memcpy(&format97->Addr[0], &recvBuf[count+1], 6);
+		format97->Ctrl = recvBuf[count+8];
+		format97->Length = recvBuf[count+9];
+
+		if (format97->Ctrl & 0x20)//控制码D5=1，表示有后续帧
+		{
+			*nextFlag = TRUE;
+		}
+		else
+		{
+			*nextFlag = FALSE;
+		}
+
+		for (i=count+10; i<count+10+format97->Length; i++)//数据域-33H处理
+		{
+			recvBuf[i] -= 0x33;
+		}
+
+		if ((format97->Ctrl == 0x81) || (format97->Ctrl == 0xA1))//正常应答
+		{
+			memcpy(format97->DI, &recvBuf[count+10], 2);
+			memcpy(format97->Data, &recvBuf[count+12], format97->Length);
+			ret = 0;
+		}
+		else if ((format97->Ctrl == 0x82) || (format97->Ctrl == 0xA2))//正常应答读后续帧
+		{
+			memcpy(format97->DI, &recvBuf[count+10], 2);
+			memcpy(format97->Data, &recvBuf[count+14], format97->Length-3);
+			format97->SEQ = recvBuf[count+10+format97->Length-1];
+			ret = 0;
+		}
+		else if (format97->Ctrl == 0x08)//广播校时
+		{
+			memcpy(format97->Time, &recvBuf[count+10], 6);
+			ret = 1;
+		}
+		else if (format97->Ctrl == 0xC1)//异常应答
+		{
+			format97->Err = recvBuf[count+10];
+			if (format97->Err == 0x02)//电表异常应答，无该数据项
+			{
+				ret = -1;
+			}
+			else//电表异常应答，未知错误
+			{
+				ret = -2;
+			}
+		}
+		else//其他功能
+		{
+			ret = -3;
+		}
+	}
+	else//校验错误
+	{
+		ret = -4;
+	}
+	return ret;
+}
+
+
+//97报文组合入口函数
+INT16S composeProtocol97(FORMAT97* format97, INT8U* sendBuf)
+{
+	INT8U i;
+
+	sendBuf[0] = 0x68;
+	memcpy(&sendBuf[1], format97->Addr, 6);//地址
+	sendBuf[7] = 0x68;
+	sendBuf[8] = format97->Ctrl;//控制码
+	sendBuf[9] = 0x02;//长度
+	memcpy(&sendBuf[10], format97->DI, 2);//数据标识
+
+	for (i=10; i<12; i++)//数据域+33H处理
+	{
+		sendBuf[i] += 0x33;
+	}
+
+	sendBuf[12] = getCS645(&sendBuf[0], 12);
+	sendBuf[13] = 0x16;
+
+	return 14;
+}
+

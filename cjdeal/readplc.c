@@ -27,7 +27,7 @@ extern ProgramInfo* JProgramInfo;
 extern int SaveOADData(INT8U taskid,OAD oad_m,OAD oad_r,INT8U *databuf,int datalen,TS ts_res);
 extern INT16U data07Tobuff698(FORMAT07 Data07,INT8U* dataContent);
 extern INT8S analyzeProtocol07(FORMAT07* format07, INT8U* recvBuf, const INT16U recvLen, BOOLEAN *nextFlag);
-extern INT8S OADMap07DI(OI_698 roadOI,OAD sourceOAD, C601F_07Flag* obj601F_07Flag);
+extern INT8S OADMap07DI((OI_698 roadOI,OAD sourceOAD, C601F_645* flag645);
 extern void DbgPrintToFile1(INT8U comport,const char *format,...);
 extern void DbPrt1(INT8U comport,char *prefix, char *buf, int len, char *suffix);
 extern  INT16U data07Tobuff698(FORMAT07 Data07,INT8U* dataContent);
@@ -798,17 +798,20 @@ int Format07(FORMAT07 *Data07,OAD oad1,OAD oad2,TSA tsa)
 {
 	INT8U startIndex =0;
 	int find_07item = 0;
-	C601F_07Flag obj601F_07Flag;
+
+	C601F_645 Flag645;
+	memset(&Flag645,0,sizeof(C601F_07Flag));
+	Flag645.protocol = DLT_645_07;
 
 	memset(Data07, 0, sizeof(FORMAT07));
-	find_07item = OADMap07DI(oad1.OI,oad2,&obj601F_07Flag) ;
+	find_07item = OADMap07DI(oad1.OI,oad2,&Flag645) ;
 	DbgPrintToFile1(31,"find_07item=%d   %04x %04x",find_07item,oad1.OI,oad2.OI);
 	if (find_07item == 1)
 	{
 		Data07->Ctrl = 0x11;
 		startIndex = 5 - tsa.addr[1];
 		memcpy(&Data07->Addr[startIndex], &tsa.addr[2], (tsa.addr[1]+1));
-		memcpy(Data07->DI, &obj601F_07Flag.DI_1[0], 4);
+		memcpy(Data07->DI, &Flag645.DI._07.DI_1[0], 4);
 		return 1;
 	}
 	return 0;

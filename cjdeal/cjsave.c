@@ -91,85 +91,6 @@ INT16U CalcHeadRcsdUnitNum(CSD_ARRAYTYPE csds)
 	else
 		return headunit_num;
 }
-/*
- * 计算某个OI的数据长度，指针对抄表数据 todo 先写个简单的，以后完善 而且没有考虑费率
- * attr_flg:0 全部属性 非0 一个属性  例如20000200 则为全部属性 20000201则为一个属性
- * OI_TYPE.cfg格式定义：
- * 对象标识OI-数据类型描述-数据长度-接口类IC-单位换算
- * 2000-12-002-03-11 解析：
- * 2000：OI 电压
- * 12：long-unsigned
- * 002:1个数据长度
- * 03：接口类IC 变量类参数
- * 11：换算：-1   如果12：表示换算：-2,  02：表示换算：+2
- */
-INT16U CalcOILen(OAD oad,INT8U rate)
-{
-	FILE *fp;
-	char ln[60];
-	char lnf[5];
-	INT16U oi_len=0,oi_tmp = 0;
-	INT8U ic_type = 1;
-
-	//TODO:  MET_RATE 替换成6000档案的电表费率个数rate
-	if(oad.OI>=0x0000 && oad.OI<0x2000)		//接口IC的1,2类，每个数据长度固定为4个字节
-	{
-		if(oad.attrindex == 0){	//全部属性
-			oi_len += 2;			//数组+元素个数
-			oi_len += 5*(MET_RATE+1);	//5:数据类型描述+数据,(MET_RATE+1):总及4费率
-			return oi_len;
-		}
-		else
-			return (4+1);	//4:数据长度+1个字节数据类型
-	}
-	fp = fopen("/nor/config/OI_TYPE.cfg","r");
-	if(fp == NULL)
-	{
-		fprintf(stderr,"\nOI_TYPE.cfg do not exist,hard error!!\n");
-		return 0;
-	}
-	while(1)
-	{
-		memset(ln,0x00,60);
-		fscanf(fp,"%s",ln);
-		if(strncmp(ln,"begin",5) == 0) continue;
-		if(strncmp(ln,"end",3) == 0) break;
-		if(strncmp(ln,"//",2) == 0) continue;
-
-		memset(lnf,0x00,sizeof(lnf));
-		memcpy(lnf,&ln[0],4);
-		fprintf(stderr," lnf=%s\n",lnf);
-		oi_tmp = strtol(lnf,NULL,16);
-		if(oi_tmp != oad.OI)
-			continue;
-		memset(lnf,0x00,sizeof(lnf));
-		memcpy(lnf,&ln[8],3);
-		oi_len = strtol(lnf,NULL,10)+1;		//返回长度+1个字节数据类型描述
-		memset(lnf,0x00,sizeof(lnf));
-		memcpy(lnf,&ln[12],2);
-		ic_type = strtol(lnf,NULL,10);
-		break;
-	}
-	fclose(fp);
-	if(oi_len != 0 && ic_type != 0)
-	{
-		switch(ic_type)
-		{
-		case 3:	//分相变量接口类
-			if(oad.attrindex == 0)
-				oi_len = oi_len*3+1+1;//三相			+1：数组， +1：元素个数
-			break;
-		case 4://功率接口类
-			if(oad.attrindex == 0)
-				oi_len = oi_len*4+1+1;//总及分项
-			break;
-		default:
-			break;
-		}
-	}
-	fprintf(stderr,"return oi_len=%d\n",oi_len);
-	return oi_len;
-}
 
 INT8U getOneUnit(INT8U *headbuf,OAD oad_m,OAD oad_r,INT16U len)
 {
@@ -220,7 +141,7 @@ void CreateSaveHead(char *fname,ROAD *road_eve,CSD_ARRAYTYPE csds,INT16U *headle
 			continue;
 		if(csds.csd[i].type == 0)	//OAD
 		{
-			len_tmp = CalcOILen(csds.csd[i].csd.oad,4);//多一个数据类型
+			len_tmp = CalcOIDataLen(csds.csd[i].csd.oad.OI,csds.csd[i].csd.oad.attrindex);//多一个数据类型
 			memset(&oad_m,0,sizeof(OAD));
 			pindex += getOneUnit(&headbuf[pindex],oad_m,csds.csd[i].csd.oad,len_tmp);
 			*unitlen += len_tmp;
@@ -241,7 +162,7 @@ void CreateSaveHead(char *fname,ROAD *road_eve,CSD_ARRAYTYPE csds,INT16U *headle
 				}
 				if(csds.csd[i].csd.road.oads[j].OI == 0xeeee)
 					break;
-				len_tmp = CalcOILen(csds.csd[i].csd.road.oads[j],4);//多一个数据类型
+				len_tmp = CalcOIDataLen(csds.csd[i].csd.road.oads[j].OI,csds.csd[i].csd.road.oads[j].attrindex);//多一个数据类型
 				pindex += getOneUnit(&headbuf[pindex],csds.csd[i].csd.road.oad,csds.csd[i].csd.road.oads[j],len_tmp);
 				*unitlen += len_tmp;
 				(*unitnum)++;
