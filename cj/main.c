@@ -369,6 +369,11 @@ int main(int argc, char *argv[]) {
         return EXIT_SUCCESS;
     }
 
+    if (strcmp("cm", argv[1]) == 0) {
+        showStatus();
+        return EXIT_SUCCESS;
+    }
+
     prthelp();
     return EXIT_SUCCESS;
 }

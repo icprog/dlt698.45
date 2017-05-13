@@ -109,6 +109,16 @@ void SetUsrPwd(int argc, char *argv[]) {
     }
 }
 
+void showStatus() {
+    JProgramInfo = OpenShMem("ProgramInfo", sizeof(ProgramInfo), NULL);
+    fprintf(stderr, "集中器登陆(0:没有登陆 1:GPRS登陆 2:以太网登陆 3:串口登陆)[%d]\n", JProgramInfo->dev_info.jzq_login);
+    fprintf(stderr, "1:AT检测成功 2:获取GPRS模块信息 3:检测SIM卡 4:注册网络成功[%d]\n", JProgramInfo->dev_info.gprs_status);
+    fprintf(stderr, "信号强度[%d]\n", JProgramInfo->dev_info.Gprs_csq);
+    fprintf(stderr, "在线类型1:GPRS  2:CDMA2000  2:TD_LTE  3:FDD_LTE[%d]\n", JProgramInfo->dev_info.wirelessType);
+    fprintf(stderr, "拨号成功(0:拨号未成功 1:拨号成功)[%d]\n", JProgramInfo->dev_info.pppd_status);
+    fprintf(stderr, "主站连接状态(0:尚未连接 1:已经连接)[%d]\n", JProgramInfo->dev_info.connect_ok);
+}
+
 
 //TODO: 字符串第一个字节是否要保存长度，规约读取
 void SetIPort(int argc, char *argv[]) {
