@@ -1410,6 +1410,7 @@ INT16S request698_97DataSingle(FORMAT97* format97, INT8U* SendBuf,INT16S SendLen
 		recsta = analyzeProtocol97(format97, RecvBuff, RecvLen, &nextFlag);
 		if (recsta == 0)
 		{
+#if 0
 			//检查是否是事件关联数据标识
 			if(format97->DI[3]==0x03)
 			{
@@ -1421,7 +1422,7 @@ INT16S request698_97DataSingle(FORMAT97* format97, INT8U* SendBuf,INT16S SendLen
 				buffLen = data07Tobuff698(*format97,dataContent);
 				checkEvent(meter,*format97,st6035->taskID);
 			}
-
+#endif
 		} else
 		{
 
@@ -1603,7 +1604,7 @@ INT8S OADMap07DI(OI_698 roadOI,OAD sourceOAD, C601F_645* flag645) {
 				memcpy(&flag645->DI._07, &map07DI_698OAD[index].flag07, sizeof(C601F_07Flag));
 				if(sourceOAD.attrindex != 0x00)
 				{
-					flag645->DI._07->DI_1[0][1] = sourceOAD.attrindex;
+					flag645->DI._07.DI_1[0][1] = sourceOAD.attrindex;
 				}
 			}
 			return 1;
@@ -2055,9 +2056,9 @@ INT16U dealProxy_645_07(GETOBJS obj07,INT8U* dataContent,INT8U port485,INT16U ti
 		dataLen += sizeof(OAD);
 
 		C601F_645 Flag645;
-		memset(&Flag645,0,sizeof(C601F_07Flag));
+		memset(&Flag645,0,sizeof(C601F_645));
 		Flag645.protocol = DLT_645_07;
-		if(OADMap07DI(0x0000,obj07.oads[oadIndex],&C601F_645)!=1)
+		if(OADMap07DI(0x0000,obj07.oads[oadIndex],&Flag645)!=1)
 		{
 			asyslog(LOG_WARNING,"dealProxy_645_07 找不到%04x%02x%02x对应07数据项",obj07.oads[oadIndex].OI,obj07.oads[oadIndex].attflg,obj07.oads[oadIndex].attrindex);
 			fprintf(stderr,"\n 找不到%04x%02x%02x对应07数据项",obj07.oads[oadIndex].OI,obj07.oads[oadIndex].attflg,obj07.oads[oadIndex].attrindex);
@@ -2067,9 +2068,9 @@ INT16U dealProxy_645_07(GETOBJS obj07,INT8U* dataContent,INT8U port485,INT16U ti
 		dataFlagPos = dataLen;
 		dataContent[dataLen++] = 0x01;//默认有数据
 
-		for(diIndex=0;diIndex<obj601F_07Flag.dinum;diIndex++)
+		for(diIndex=0;diIndex<Flag645.DI._07.dinum;diIndex++)
 		{
-			singledataLen = request698_07Data(obj601F_07Flag.DI_1[diIndex],&dataContent[dataLen],meter,&inValid6035,port485);
+			singledataLen = request698_07Data(Flag645.DI._07.DI_1[diIndex],&dataContent[dataLen],meter,&inValid6035,port485);
 			if(singledataLen >= 0)
 			{
 				dataLen += singledataLen;
@@ -2343,7 +2344,7 @@ INT8S dealGuiRead(Proxy_Msg pMsg,INT8U port485)
 				requestOAD.attrindex = 0x00;
 
 				C601F_645 Flag645;
-				memset(&Flag645,0,sizeof(C601F_07Flag));
+				memset(&Flag645,0,sizeof(C601F_645));
 				Flag645.protocol = DLT_645_07;
 
 				if(OADMap07DI(0x0000,requestOAD, &Flag645) == 1)
@@ -3024,7 +3025,7 @@ INT16S request698_97DataList(C601F_97Flag obj601F_97Flag, CLASS_6001 meter,INT8U
 	INT8U index;
 	INT16S singleBuffLen = 0;
 	INT8U isSuccess = 1;
-	fprintf(stderr,"\n\n-------request698_07DataList obj601F_07Flag.dinum = %d",obj601F_07Flag.dinum);
+
 	for (index = 0; index < obj601F_97Flag.dinum; index++)
 	{
 		singleBuffLen = request698_97Data(obj601F_97Flag.DI_1[index],&dataContent[DataLen],meter,st6035,port485);
@@ -3059,7 +3060,7 @@ INT16S request9707_singleOAD(INT8U protocol,OI_698 roadOI,OAD soureOAD,CLASS_600
 	fprintf(stderr,"\n formatLen = %d",formatLen);
 	memset(dataContent,0,formatLen);
 	C601F_645 Flag645;
-	memset(&Flag645,0,sizeof(C601F_07Flag))
+	memset(&Flag645,0,sizeof(C601F_645));
 
 	if(protocol == DLT_645_97)
 	{
@@ -3539,7 +3540,7 @@ INT16S deal6017_07(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8U
 		DbgPrintToFile1(port485,"请求07表的事件 = %04x%02x%02x",eventRoad.OI,eventRoad.attflg,eventRoad.attrindex);
 
 		C601F_645 Flag645;
-		memset(&Flag645,0,sizeof(C601F_07Flag));
+		memset(&Flag645,0,sizeof(C601F_645));
 		Flag645.protocol = DLT_645_07;
 
 		if(OADMap07DI(eventOI,eventRoad, &Flag645) == 1)
@@ -3568,9 +3569,9 @@ INT16S deal6017_07(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8U
 		headDataLen += 5;
 
 		//请求07表的事件记录
-		obj601F_07Flag.DI_1[0][0] = 1;
+		Flag645.DI._07.DI_1[0][0] = 1;
 		memset(dataContent,0,DATA_CONTENT_LEN);
-		INT16U datalen = request698_07Data(obj601F_07Flag.DI_1[0],dataContent,to6001,st6035,port485);
+		INT16U datalen = request698_07Data(Flag645.DI._07.DI_1[0],dataContent,to6001,st6035,port485);
 		memcpy(&saveContentHead[headDataLen],dataContent,16);
 		headDataLen += 16;
 		TS ts_cc;
