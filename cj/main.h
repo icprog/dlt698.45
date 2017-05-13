@@ -47,5 +47,7 @@ extern void SetF202(int argc, char* argv[]);
 extern void getFrmCS(int argc, char* argv[]);
 extern void getFrmFCS(int argc, char* argv[]);
 
+void showStatus();
+
 #endif /* MAIN_H_ */
 
