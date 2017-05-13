@@ -372,3 +372,74 @@ int main(int argc, char *argv[]) {
     prthelp();
     return EXIT_SUCCESS;
 }
+
+/*参数文件修改，改变共享内存的标记值，通知相关进程，参数有改变
+ * */
+void setOIChange_CJ(OI_698 oi)
+{
+	ProgramInfo *memp = NULL;
+	memp = OpenShMem("ProgramInfo", sizeof(ProgramInfo), NULL);
+
+	switch(oi) {
+	case 0x300F:	memp->oi_changed.oi300F++;	break;
+	case 0x3010:	memp->oi_changed.oi3010++;	break;
+	case 0x301B:	memp->oi_changed.oi301B++;	break;
+	case 0x3100:  	memp->oi_changed.oi3100++; 	break;
+	case 0x3101:  	memp->oi_changed.oi3101++; 	break;
+	case 0x3104:	memp->oi_changed.oi3104++; 	break;
+	case 0x3105:	memp->oi_changed.oi3105++; 	break;
+	case 0x3106:	memp->oi_changed.oi3106++; 	break;
+	case 0x3107:	memp->oi_changed.oi3107++; 	break;
+	case 0x3108:	memp->oi_changed.oi3108++; 	break;
+	case 0x3109: 	memp->oi_changed.oi3109++; 	break;
+	case 0x310A:	memp->oi_changed.oi310A++; 	break;
+	case 0x310B:	memp->oi_changed.oi310B++; 	break;
+	case 0x310C:	memp->oi_changed.oi310C++; 	break;
+	case 0x310D:	memp->oi_changed.oi310D++; 	break;
+	case 0x310E:	memp->oi_changed.oi310E++; 	break;
+	case 0x310F:	memp->oi_changed.oi310F++; 	break;
+	case 0x3110:	memp->oi_changed.oi3110++;	break;
+	case 0x3111:	memp->oi_changed.oi3111++;	break;
+	case 0x3112:	memp->oi_changed.oi3112++;  break;
+	case 0x3114:	memp->oi_changed.oi3114++; 	break;
+	case 0x3115:	memp->oi_changed.oi3115++; 	break;
+	case 0x3116:	memp->oi_changed.oi3116++;	break;
+	case 0x3117:	memp->oi_changed.oi3117++;	break;
+	case 0x3118:	memp->oi_changed.oi3118++;	break;
+	case 0x3119:	memp->oi_changed.oi3119++;	break;
+	case 0x311A:	memp->oi_changed.oi311A++;	break;
+	case 0x311B:	memp->oi_changed.oi311B++;	break;
+	case 0x311C:	memp->oi_changed.oi311C++;	break;
+	case 0x3200:	memp->oi_changed.oi3200++;	break;
+	case 0x3201:	memp->oi_changed.oi3201++;	break;
+	case 0x3202:	memp->oi_changed.oi3202++;	break;
+	case 0x3203:	memp->oi_changed.oi3203++;	break;
+
+	case 0x4000:	memp->oi_changed.oi4000++;	break;
+	case 0x4001:	memp->oi_changed.oi4001++;	break;
+	case 0x4016:	memp->oi_changed.oi4016++;	break;
+	case 0x4030:	memp->oi_changed.oi4030++;	break;
+	case 0x4204:	memp->oi_changed.oi4204++;	break;
+	case 0x4300:	memp->oi_changed.oi4300++;  break;
+	case 0x4500:	memp->oi_changed.oi4500++;  break;
+	case 0x4510:	memp->oi_changed.oi4510++;  break;
+
+	case 0x6000:	memp->oi_changed.oi6000++;  break;
+	case 0x6002:	memp->oi_changed.oi6002++;  break;
+	case 0x6012:	memp->oi_changed.oi6012++;  break;
+	case 0x6014:	memp->oi_changed.oi6014++;  break;
+	case 0x6016:	memp->oi_changed.oi6016++;  break;
+	case 0x6018:	memp->oi_changed.oi6018++;  break;
+	case 0x601C:	memp->oi_changed.oi601C++;  break;
+	case 0x601E:	memp->oi_changed.oi601E++;  break;
+	case 0x6051:	memp->oi_changed.oi6051++;  break;
+
+	case 0xf203:
+		memp->oi_changed.oiF203++;
+		fprintf(stderr,"memp->oi_changed.oiF203=%d\n",memp->oi_changed.oiF203);
+		break;
+	case 0xf101:	memp->oi_changed.oiF101++;  break;
+	}
+	shmm_unregister("ProgramInfo", sizeof(ProgramInfo));
+}
+

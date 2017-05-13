@@ -67,6 +67,7 @@ void SetF101(int argc, char *argv[]) {
         memset(&f101, 0, sizeof(CLASS_F101));
         f101.active = 1; //初始化启用
         saveCoverClass(0xf101, 0, &f101, sizeof(CLASS_F101), para_init_save);
+        setOIChange_CJ(0xf101);
     }
     if (strcmp(argv[2], "set") == 0) {
         memset(&f101, 0, sizeof(CLASS_F101));
@@ -74,6 +75,7 @@ void SetF101(int argc, char *argv[]) {
         sscanf(argv[4], "%d", &tmp);
         f101.active = tmp;
         saveCoverClass(0xf101, 0, &f101, sizeof(CLASS_F101), para_vari_save);
+        setOIChange_CJ(0xf101);
     }
 }
 
@@ -99,6 +101,7 @@ void SetUsrPwd(int argc, char *argv[]) {
         class4500.commconfig.passWord[0] = strlen(argv[3]);
         memcpy(&class4500.commconfig.passWord[1], argv[3], strlen(argv[3]));
         saveCoverClass(0x4500, 0, &class4500, sizeof(CLASS25), para_vari_save);
+        setOIChange_CJ(0x4500);
     } else {
         readCoverClass(0x4500, 0, &class4500, sizeof(CLASS25), para_vari_save);
         fprintf(stderr, "用户名：%s\t密码：%s\n", &class4500.commconfig.userName[1], &class4500.commconfig.passWord[1]);
@@ -111,8 +114,6 @@ void SetUsrPwd(int argc, char *argv[]) {
 void SetIPort(int argc, char *argv[]) {
     CLASS25 class4500;
     MASTER_STATION_INFO_LIST master;
-
-    JProgramInfo = OpenShMem("ProgramInfo", sizeof(ProgramInfo), NULL);
 
     memset(&master, 0, sizeof(MASTER_STATION_INFO_LIST));
     memset(&class4500, 0, sizeof(CLASS25));
@@ -138,15 +139,13 @@ void SetIPort(int argc, char *argv[]) {
                 class4500.master.master[1].ip[2], class4500.master.master[1].ip[3],
                 class4500.master.master[1].ip[4], class4500.master.master[1].port);
         saveCoverClass(0x4500, 0, &class4500, sizeof(CLASS25), para_vari_save);
-        JProgramInfo->oi_changed.oi4500++;
+        setOIChange_CJ(0x4500);
     }
 }
 
 void SetNetIPort(int argc, char *argv[]) {
     CLASS26 class4510;
     MASTER_STATION_INFO_LIST master;
-
-    JProgramInfo = OpenShMem("ProgramInfo", sizeof(ProgramInfo), NULL);
 
     memset(&master, 0, sizeof(MASTER_STATION_INFO_LIST));
     memset(&class4510, 0, sizeof(CLASS26));
@@ -172,7 +171,7 @@ void SetNetIPort(int argc, char *argv[]) {
                 class4510.master.master[1].ip[2], class4510.master.master[1].ip[3],
                 class4510.master.master[1].ip[4], class4510.master.master[1].port);
         saveCoverClass(0x4510, 0, &class4510, sizeof(CLASS26), para_vari_save);
-        JProgramInfo->oi_changed.oi4500++;
+        setOIChange_CJ(0x4510);
     }
 }
 
@@ -198,7 +197,8 @@ void setOnlineMode(int argc, char *argv[]) {
 
     class4510.commconfig.workModel = atoi(argv[3]);
     saveCoverClass(0x4510, 0, &class4510, sizeof(CLASS26), para_vari_save);
-
+    setOIChange_CJ(0x4500);
+    setOIChange_CJ(0x4510);
     fprintf(stderr, "在线模式设置完成\n");
 
 }
@@ -225,6 +225,7 @@ void SetID(int argc, char *argv[]) {
         }
         saveCoverClass(0x4001, 0, &classtmp, sizeof(CLASS_4001_4002_4003), para_vari_save);
         saveCoverClass(0x4001, 0, &classtmp, sizeof(CLASS_4001_4002_4003), para_init_save);
+        setOIChange_CJ(0x4001);
     } else {
         readCoverClass(0x4001, 0, &classtmp, sizeof(CLASS_4001_4002_4003), para_vari_save);
         fprintf(stderr, "\n通信地址[%d]:", classtmp.curstom_num[0]);
@@ -249,9 +250,8 @@ void SetHEART(int argc, char *argv[]) {
         class4510.commconfig.heartBeat = tmpval;
         saveCoverClass(0x4500, 0, &class4500, sizeof(CLASS25), para_vari_save);
         saveCoverClass(0x4510, 0, &class4510, sizeof(CLASS26), para_vari_save);
-        ProgramInfo *JProgramInfo = NULL;
-        JProgramInfo = OpenShMem("ProgramInfo", sizeof(ProgramInfo), NULL);
-        JProgramInfo->oi_changed.oi4500++;
+        setOIChange_CJ(0x4500);
+        setOIChange_CJ(0x4510);
     } else {
         fprintf(stderr, "\n心跳周期:%d s \n", class4500.commconfig.heartBeat);
     }
@@ -273,6 +273,7 @@ void SetApn(int argc, char *argv[]) {
             fprintf(stderr, "\n存储前 APN : %s\n", &class4500.commconfig.apn[1]);
             saveCoverClass(0x4500, 0, &class4500, sizeof(CLASS25), para_vari_save);
             write_apn((char *) &class4500.commconfig.apn[1]);
+            setOIChange_CJ(0x4500);
         }
     }
 }
@@ -295,6 +296,7 @@ void Init_4500() {
     obj.master.master[0].port = 5022;
 
     saveCoverClass(0x4500, 0, (void *) &obj, sizeof(CLASS25), para_vari_save);
+    setOIChange_CJ(0x4500);
 }
 
 void inoutdev_process(int argc, char *argv[]) {
@@ -333,9 +335,6 @@ void inoutdev_process(int argc, char *argv[]) {
     }
 }
 
-void cjfangAn() {
-    CLASS_6017 obj6017;
-}
 
 void SetF201(int argc, char *argv[]) {
     CLASS_f201 oif201 = {};
@@ -365,6 +364,7 @@ void SetF201(int argc, char *argv[]) {
     oif201.devpara.databits = atoi(argv[4]);
     oif201.devpara.stopbits = atoi(argv[5]);
     saveCoverClass(0xf201, 0, &oif201, sizeof(CLASS_f201), para_vari_save);
+    setOIChange_CJ(0xf201);
 }
 
 void SetF202(int argc, char *argv[]) {
@@ -395,4 +395,5 @@ void SetF202(int argc, char *argv[]) {
     oif202.devpara.databits = atoi(argv[4]);
     oif202.devpara.stopbits = atoi(argv[5]);
     saveCoverClass(0xf202, 0, &oif202, sizeof(CLASS_f202), para_vari_save);
+    setOIChange_CJ(0xf202);
 }

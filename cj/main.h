@@ -8,6 +8,7 @@
 #ifndef MAIN_H_
 #define MAIN_H_
 
+extern void setOIChange_CJ(OI_698 oi);
 extern void SetApn(int argc, char *argv[]);
 extern void SetUsrPwd(int argc, char *argv[]);
 extern void setOnlineMode(int argc, char* argv[]);

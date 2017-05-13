@@ -7,10 +7,9 @@
 #include <string.h>
 #include <time.h>
 #include "comm.h"
-#include "lcd_led.h"
 #include "gui.h"
 #include "show_ctrl.h"
-#define MAX_INTERVAL 2//显示开关切换最大间隔时间 单位s
+#define MAX_INTERVAL 1//显示开关切换最大间隔时间 单位s
 #define LED_EC_COUNT 10 //告警灯闪烁时长
 volatile static time_t curts,oldts;
 
@@ -21,183 +20,62 @@ volatile static time_t curts,oldts;
 */
 ProgramInfo* p_JProgramInfo = NULL;
 
+INT8U g_chgOI4001;
+INT8U g_chgOI4300;//oi4300参数变更标记记录
+INT8U g_chgOI4500;//oi4500参数变更标记记录
+INT8U g_chgOI4510;
 
-/**********************************
- *			start global
- **********************************/
-INT8U g_firstRun = GUI_FIRST_RUN;//GUI代码首次运行标志
-
-INT8U g_oi4001_has_read = PARA_NOT_READ;//OI_4001_4002_4003已被读取标志
-INT8U g_oi4300_has_read = PARA_NOT_READ;//OI_4300已被读取标志
-INT8U g_oi4500_has_read = PARA_NOT_READ;//OI_4500已被读取标志
-INT8U g_oi4510_has_read = PARA_NOT_READ;//OI_4510已被读取标志
-
-INT8U g_chgOI4500 = 0;//oi4500参数变更标记记录
-INT8U g_chgOI4300 = 0;//oi4300参数变更标记记录
-
-CLASS26 g_class26_oi4510;
-CLASS25 g_class25_oi4500;
 CLASS_4001_4002_4003 g_Class4001_4002_4003;
 CLASS19 g_class19_oi4300;
-/**********************************
- *			end global
- **********************************/
+CLASS25 g_class25_oi4500;
+CLASS26 g_class26_oi4510;
 
 Proxy_Msg* p_Proxy_Msg_Data;//液晶给抄表发送代理处理结构体，指向由guictrl.c配置的全局变量
 extern void lcd_showTopStatus();
 extern void lcd_showBottomStatus(int zb_status, int gprs_status);
-#ifdef JIANGSU
-void lcd_Bottom_allshow()
-{
-	INT8U stepx=16;
-	char str[3];
-	Point icon_pos;
-	memset(str,0,sizeof(str));
-	memset(&icon_pos,0,sizeof(Point));
-	icon_pos.x+=6;
-	icon_pos.y=145;
-	str[0]=0x0f;
-	str[1]=0x10;
-	gui_textshow_16(str, icon_pos, LCD_NOREV);//以太网小电脑
-	icon_pos.x+=stepx;
-	str[0]=0x28;
-	str[1]=0x29;
-	gui_textshow_16(str, icon_pos, LCD_NOREV);//维护口
-	icon_pos.x+=stepx;
-	str[0]=0x15;
-	str[1]=0x16;
-	gui_textshow_16(str, icon_pos, LCD_NOREV);//GPRS
-	icon_pos.x+=stepx;
-	str[0]=0x0a;
-	str[1]=0x0b;
-	gui_textshow_16(str, icon_pos, LCD_NOREV);//电话1
-	icon_pos.x+=stepx;
-	str[0]=0x0a;
-	str[1]=0x0c;
-	gui_textshow_16(str, icon_pos, LCD_NOREV);//电话2
-	icon_pos.x+=stepx;
-	str[0]=0x0a;
-	str[1]=0x0d;
-	gui_textshow_16(str, icon_pos, LCD_NOREV);//电话3
-	icon_pos.x+=stepx;
-	str[0]=0x0a;
-	str[1]=0x0e;
-	gui_textshow_16(str, icon_pos, LCD_NOREV);//电话4
-	icon_pos.x+=stepx;
-	str[0]=0x17;
-	str[1]=0x18;
-	gui_textshow_16(str, icon_pos, LCD_NOREV);//USB
-	icon_pos.x+=stepx;
-	str[0]=0x19;
-	str[1]=0x1a;
-	gui_textshow_16(str, icon_pos, LCD_NOREV);//存储卡
-	set_time_show_flag(1);//TODO:new
-}
-
-void icon_work(Point icon_pos,char *str,INT8U *para_state,INT8U *para_delay)
-{
-	char char_icon[3];
-	memset(str,0,sizeof(str));
-	memset(char_icon,0,3);
-	if(*para_state == 1)
-	{
-		(*para_delay)++;
-		if((*para_delay)%2==0)//str空值，图案消失
-		{
-			char_icon[0]=' ';
-			char_icon[1]=' ';
-			gui_textshow_16(char_icon, icon_pos, LCD_NOREV);
-			*para_delay=0;
-			*para_state=0;
-		}
-		else
-		{
-			gui_textshow_16(str, icon_pos, LCD_NOREV);
-		}
-		set_time_show_flag(1);//TODO:new
-	}
-	else
-		*para_delay=0;
-}
-
-void lcd_Bottom_bar()
-{
-	Point icon;
-	memset(&icon,0,sizeof(Point));
-	INT8U stepx=16;
-	char str[3];
-	memset(str,0,sizeof(str));
-
-	static INT8U ethernet_delay=0;
-	static INT8U weihu_delay=0;
-	static INT8U gprs_delay=0;
-	static INT8U telep1_delay=0;
-	static INT8U telep2_delay=0;
-	static INT8U telep3_delay=0;
-	static INT8U telep4_delay=0;
-	static INT8U usb_delay=0;
-	static INT8U sdcard_delay=0;
-	icon.x+=6;
-	icon.y=145;
-	lcd_Bottom_allshow();
-	str[0]=0x0f;
-	str[1]=0x10;
-	icon_work(icon,str,&shmm_getdevstat()->Rev_flag[0],&ethernet_delay);
-	icon.x+=stepx;
-	str[0]=0x28;
-	str[1]=0x29;
-	icon_work(icon,str,&shmm_getdevstat()->Rev_flag[1],&weihu_delay);
-	icon.x+=stepx;
-	str[0]=0x15;
-	str[1]=0x16;
-	icon_work(icon,str,&shmm_getdevstat()->Rev_flag[2],&gprs_delay);
-	icon.x+=stepx;
-	str[0]=0x0a;
-	str[1]=0x0b;
-	icon_work(icon,str,&shmm_getdevstat()->Rev_flag[3],&telep1_delay);
-	icon.x+=stepx;
-	str[0]=0x0a;
-	str[1]=0x0c;
-	icon_work(icon,str,&shmm_getdevstat()->Rev_flag[4],&telep2_delay);
-	icon.x+=stepx;
-	str[0]=0x0a;
-	str[1]=0x0d;
-	icon_work(icon,str,&shmm_getdevstat()->Rev_flag[5],&telep3_delay);
-	icon.x+=stepx;
-	str[0]=0x0a;
-	str[1]=0x0e;
-	icon_work(icon,str,&shmm_getdevstat()->Rev_flag[6],&telep4_delay);
-	icon.x+=stepx;
-	str[0]=0x0a;
-	str[1]=0x0e;
-	icon_work(icon,str,&shmm_getdevstat()->Rev_flag[7],&usb_delay);
-	icon.x+=stepx;
-	str[0]=0x0a;
-	str[1]=0x0e;
-	icon_work(icon,str,&shmm_getdevstat()->Rev_flag[8],&sdcard_delay);
-}
-#endif
 
 void ProgramInfo_register(ProgramInfo* JProgramInfo)
 {
 	p_JProgramInfo = JProgramInfo;
-
-	/*
-	 * 全局变量默认初始化为0, 但不能过于依赖编译器.
-	 * 一旦有的编译器设计的不符合规范, 将出现麻烦.
-	 */
-	g_chgOI4500 = 0;
-	g_chgOI4300 = 0;
-
-	memset(&g_class26_oi4510, 0, sizeof(g_class26_oi4510));
-	memset(&g_class25_oi4500, 0, sizeof(g_class25_oi4500));
-	memset(&g_Class4001_4002_4003, 0, sizeof(g_Class4001_4002_4003));
-	memset(&g_class19_oi4300, 0, sizeof(g_class19_oi4300));
 }
 
 void Proxy_Msg_Data_register(Proxy_Msg* Proxy_Msg_Data)
 {
 	p_Proxy_Msg_Data = Proxy_Msg_Data;
+}
+//cjdeal gui线程开头，调用该函数初始化库内全局变量
+//先从文件中读取全局变量，失败后，全局变量归零
+//将涉及到参数读取的项的oi_changed全部赋值成当前值。
+void Init_GuiLib_variable()
+{
+	if (readCoverClass(0x4001, 0, (void*)&g_Class4001_4002_4003, sizeof(CLASS_4001_4002_4003), para_vari_save)<=0)//读取失败
+	{
+		memset(&g_Class4001_4002_4003,0,sizeof(CLASS_4001_4002_4003));
+		printf("\nlibgui:read para  0x4001 err!!\n");
+	}
+
+	if(readCoverClass(0x4300, 0, (void*)&g_class19_oi4300, sizeof(CLASS19), para_vari_save)<=0)
+	{
+		memset(&g_class19_oi4300,0,sizeof(CLASS19));
+		printf("\nlibgui:read para  0x4300 err!!\n");
+	}
+	if(readCoverClass(0x4500, 0, (void*)&g_class25_oi4500, sizeof(CLASS25), para_vari_save)<=0)
+	{
+		memset(&g_class25_oi4500,0,sizeof(g_class25_oi4500));
+		printf("\nlibgui:read para  0x4500 err!!\n");
+	}
+	if(readCoverClass(0x4510, 0, (void*)&g_class26_oi4510,sizeof(CLASS26), para_vari_save)<=0)
+	{
+		memset(&g_class26_oi4510,0,sizeof(CLASS26));
+		printf("\nlibgui:read para  0x4510 err!!\n");
+	}
+	if(p_JProgramInfo!=NULL	)
+	{
+		g_chgOI4001 = p_JProgramInfo->oi_changed.oi4001;
+		g_chgOI4300 = p_JProgramInfo->oi_changed.oi4300;
+		g_chgOI4500 = p_JProgramInfo->oi_changed.oi4500;
+		g_chgOI4510 = p_JProgramInfo->oi_changed.oi4510;
+	}
 }
 /*
  *显示选择开关函数
@@ -335,12 +213,11 @@ void showmain()
 	memset(str, 0, 50);
 	int fontsize=getFontSize();
 	setFontSize(16);
-//#ifdef CCTT_I
-//#ifdef CCTT_I
+#ifdef CCTT_I
 	sprintf((char*)str, "低压集抄集中器");
-//#else
-//	sprintf((char*)str, "专变III型终端");
-//#endif
+#else
+sprintf((char*)str, "专变III型终端");
+#endif
 	gui_textshow((char*)str, pos, LCD_NOREV);
 	gui_setpos(&pos, rect_Client.left+7*FONTSIZE, rect_Client.top+8*FONTSIZE);
 	ts = time(NULL);

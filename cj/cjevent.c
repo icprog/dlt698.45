@@ -122,6 +122,7 @@ void Class7_Init(OI_698 oi){
 	memset(&obj,0,sizeof(obj));
 	Class7_BaseInit(oi,&obj);
 	saveCoverClass(oi,0,(void *)&obj,sizeof(Class7_Object),para_init_save);
+    setOIChange_CJ(oi);
 }
 /*
  * Event3105 初始化
@@ -132,6 +133,7 @@ void Init_3105(){
 	Class7_BaseInit(0x3105,&obj.event_obj);
 	obj.mto_obj.over_threshold=240;
 	saveCoverClass(0x3105,0,(void *)&obj,sizeof(Event3105_Object),para_init_save);
+    setOIChange_CJ(0x3105);
 }
 /*
  * Event3106 初始化
@@ -142,6 +144,7 @@ void Init_3106(){
 	Class7_BaseInit(0x3106,&obj.event_obj);
 	//
 	saveCoverClass(0x3106,0,(void *)&obj,sizeof(Event3106_Object),para_init_save);
+    setOIChange_CJ(0x3106);
 }
 /*
  * Event3107 初始化
@@ -152,6 +155,7 @@ void Init_3107(){
 	Class7_BaseInit(0x3107,&obj.event_obj);
 	//
 	saveCoverClass(0x3107,0,(void *)&obj,sizeof(Event3107_Object),para_init_save);
+    setOIChange_CJ(0x3107);
 }
 /*
  * Event3108 初始化
@@ -162,6 +166,7 @@ void Init_3108(){
 	Class7_BaseInit(0x3108,&obj.event_obj);
 	//
 	saveCoverClass(0x3108,0,(void *)&obj,sizeof(Event3108_Object),para_init_save);
+    setOIChange_CJ(0x3108);
 }
 /*
  * Event310B 初始化
@@ -172,6 +177,7 @@ void Init_310B(){
 	Class7_BaseInit(0x310B,&obj.event_obj);
 	//
 	saveCoverClass(0x310B,0,(void *)&obj,sizeof(Event310B_Object),para_init_save);
+    setOIChange_CJ(0x310b);
 }
 /*
  * Event310C 初始化
@@ -182,6 +188,7 @@ void Init_310C(){
 	Class7_BaseInit(0x310C,&obj.event_obj);
 	//
 	saveCoverClass(0x310C,0,(void *)&obj,sizeof(Event310C_Object),para_init_save);
+    setOIChange_CJ(0x310C);
 }
 /*
  * Event310D 初始化
@@ -192,6 +199,7 @@ void Init_310D(){
 	Class7_BaseInit(0x310D,&obj.event_obj);
 	//
 	saveCoverClass(0x310D,0,(void *)&obj,sizeof(Event310D_Object),para_init_save);
+    setOIChange_CJ(0x310D);
 }
 /*
  * Event310E 初始化
@@ -202,6 +210,7 @@ void Init_310E(){
 	Class7_BaseInit(0x310E,&obj.event_obj);
 	//
 	saveCoverClass(0x310E,0,(void *)&obj,sizeof(Event310E_Object),para_init_save);
+    setOIChange_CJ(0x310E);
 }
 /*
  * Event310F 初始化
@@ -212,6 +221,7 @@ void Init_310F(){
 	Class7_BaseInit(0x310F,&obj.event_obj);
 	//
 	saveCoverClass(0x310F,0,(void *)&obj,sizeof(Event310F_Object),para_init_save);
+    setOIChange_CJ(0x310F);
 }
 /*
  * Event3110 初始化
@@ -222,6 +232,7 @@ void Init_3110(){
 	Class7_BaseInit(0x3110,&obj.event_obj);
 	//
 	saveCoverClass(0x3110,0,(void *)&obj,sizeof(Event3110_Object),para_init_save);
+    setOIChange_CJ(0x3110);
 }
 /*
  * Event3116 初始化
@@ -232,6 +243,7 @@ void Init_3116(){
 	Class7_BaseInit(0x3116,&obj.event_obj);
 	//
 	saveCoverClass(0x3116,0,(void *)&obj,sizeof(Event3116_Object),para_init_save);
+    setOIChange_CJ(0x3116);
 }
 /*
  * Event311A 初始化
@@ -242,6 +254,7 @@ void Init_311A(){
 	Class7_BaseInit(0x311A,&obj.event_obj);
 	//
 	saveCoverClass(0x311A,0,(void *)&obj,sizeof(Event311A_Object),para_init_save);
+    setOIChange_CJ(0x311A);
 }
 /*
  * Event311C 初始化
@@ -252,6 +265,7 @@ void Init_311C(){
 	Class7_BaseInit(0x311C,&obj.event_obj);
 	//
 	saveCoverClass(0x311C,0,(void *)&obj,sizeof(Event311C_Object),para_init_save);
+    setOIChange_CJ(0x311C);
 }
 
 void printEventEnable()

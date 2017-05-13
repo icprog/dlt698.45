@@ -137,13 +137,9 @@ void msgbox(Rect form_rect, struct list *head, Text_t *ttext, MsgBoxRet *msgbox_
 			return;
 		}
 		if(PressKey!=NOKEY || first_flg==0){
-#ifdef JIANGSU
-			gui_clrrect(rect_Client);
-#else
 			gui_clrrect(msgbox.rect);
 			gui_rectangle(gui_changerect(msgbox.rect, -1));
 			gui_rectangle(gui_changerect(msgbox.rect, -2));
-#endif
 			tmpnode = msgbox.node.child;
 //			list_print(msgbox.node.child);
 			while(tmpnode->next!=NULL){
@@ -195,11 +191,7 @@ int msgbox_passwd(char *passwd, int len) {
 	struct list *head=NULL;
 	char str[10];
 	Point msgbox_pos;
-#ifdef HUBEI
-	memset(str, '1', 10);
-#else
 	memset(str,'0',10);
-#endif
 	Edit edit1;
 	Button btn_ok, btn_esc;
 	memset(&edit1, 0, sizeof(Edit));
@@ -233,53 +225,6 @@ int msgbox_passwd(char *passwd, int len) {
 		passwd_ok = PASSWD_ERR;//密码错误
 	return passwd_ok;
 }
-#ifdef JIANGSU
-int msgbox_passwd_js(char *passwd, int len) {
-	int passwd_ok=0;
-	char str[10];
-	INT8U i;
-	Point msgbox_pos,str_pos;
-	memset(str,'0',10);
-	Edit edit1;
-	memset(&edit1, 0, sizeof(Edit));
-	gui_setpos(&msgbox_pos, (LCM_X-13*FONTSIZE)/2, (LCM_Y-10*FONTSIZE)/2);
-	setFontSize(16);
-	gui_clrrect(rect_Client);
-	gui_setpos(&str_pos, rect_Client.left+5*FONTSIZE, rect_Client.top+3*FONTSIZE);
-	gui_textshow((char *)("请输入密码..."), str_pos, LCD_NOREV);
-	Point editctrl_pos = {msgbox_pos.x+FONTSIZE*4-4, msgbox_pos.y+2*FONTSIZE};  //位置
-	edit_init(&edit1, str, 6, editctrl_pos, NOFRAME, NORETFLG, NULL,KEYBOARD_ASC);	//控件初始化
-//	gui_setrect(&msgbox_rect, msgbox_pos.x, msgbox_pos.y, msgbox_pos.x+13*FONTSIZE, msgbox_pos.y+8*FONTSIZE);
-	edit1.mode = EDITMODE;
-	edit1.form.focus=FOCUS;
-	edit1.form.pfun_show(&edit1);
-	edit1.form.pfun_process(&edit1);
-	setFontSize(12);
-	PressKey = NOKEY;
-	if(len>INPUTKEYNUM)
-			return PASSWD_ERR;
-	while (g_LcdPoll_Flag == LCD_NOTPOLL)
-	{
-		switch(PressKey) {
-		case OK:
-			for(i=0;i<len;i++)
-				str[i]=edit1.form.key[i].c;
-			if(memcmp(passwd, str, len)==0)
-				passwd_ok = PASSWD_OK;//密码正确
-			else
-				passwd_ok = PASSWD_ERR;//密码错误
-//			PressKey = NOKEY;
-			return passwd_ok;
-		case ESC:
-			passwd_ok = PASSWD_ERR;
-//			PressKey = NOKEY;
-			return 0;
-		}
-		delay(50);
-	}
-	return 0;
-}
-#endif
 int msgbox_setpasswd(char *passwd, int len, char *s_passwd_ret)
 {
 	Text_t ttext[MSGBOX_TEXTSIZE];
@@ -468,11 +413,7 @@ int msgbox_inputcldaddr(char *cldaddr,int num){
 	head = (struct list*)malloc(sizeof(struct list));
 	if(head==NULL) 	return 0;
 	list_init(head);
-#ifdef SHANGHAI
-	Point editctrl_pos = {msgbox_pos.x+FONTSIZE*5, msgbox_pos.y+2*FONTSIZE};  //位置
-#else
 	Point editctrl_pos = {msgbox_pos.x+FONTSIZE*2, msgbox_pos.y+2*FONTSIZE};  //位置
-#endif
 	edit_init(&edit1, str, num, editctrl_pos, FRAME, RETFLG, head,KEYBOARD_DEC);	//控件初始化
 	Point button_ok_pos = {msgbox_pos.x+2*FONTSIZE, msgbox_pos.y+5*FONTSIZE};
 	button_init(&btn_ok,(char *)"确定", button_ok_pos, CTRL_BUTTON_OK, head);
@@ -490,11 +431,7 @@ int msgbox_inputcldaddr(char *cldaddr,int num){
 //		asc2bcd((INT8U*)msgbox_ret.s_ret, 12, (INT8U*)cldaddr, inverted);
 //		dbg_prt("\n s_cldnoaddr=[%02x%02x%02x%02x%02x%02x] ",
 //				cldaddr[5],cldaddr[4],cldaddr[3],cldaddr[2],cldaddr[1],cldaddr[0]);
-#ifdef SHANGHAI
-		showselectmeter(cldaddr,msgbox_ret.s_ret);
-#else
 		memcpy(cldaddr, msgbox_ret.s_ret, 12);
-#endif
 //		dbg_prt("\n input addr = %s",cldaddr);
 	}
 	return msgbox_ret.btn_ret;
@@ -921,13 +858,6 @@ int msgbox_oprmode(int ctrl_focus){
 	head = (struct list*)malloc(sizeof(struct list));
 	if(head==NULL) 	return 0;
 	list_init(head);
-#ifdef JIANGSU
-	Point button_ok_pos = {msgbox_pos.x + 3*FONTSIZE, msgbox_pos.y+7*FONTSIZE};
-	button_init(&btn_ok,(char *)"2.设置模式", button_ok_pos, CTRL_BUTTON_OK, head);
-	Point button_esc_pos = {msgbox_pos.x + 3*FONTSIZE, msgbox_pos.y+3*FONTSIZE};
-	button_init(&btn_esc,(char *)"1.查询模式", button_esc_pos, CTRL_BUTTON_CANCEL, head);
-	btn_ok.form.focus = FOCUS;
-#else
 	Point button_ok_pos = {msgbox_pos.x + 3*FONTSIZE, msgbox_pos.y+3*FONTSIZE};
 	button_init(&btn_ok,(char *)"1.设置模式", button_ok_pos, CTRL_BUTTON_OK, head);
 	Point button_esc_pos = {msgbox_pos.x + 3*FONTSIZE, msgbox_pos.y+7*FONTSIZE};
@@ -936,7 +866,6 @@ int msgbox_oprmode(int ctrl_focus){
 		btn_ok.form.focus = FOCUS;
 	else
 		btn_esc.form.focus = FOCUS;
-#endif
 
 	gui_setrect(&msgbox_rect, msgbox_pos.x, msgbox_pos.y, msgbox_pos.x+16*FONTSIZE, msgbox_pos.y+12*FONTSIZE);
 	msgbox(msgbox_rect, head, NULL, &msgbox_ret);
@@ -949,259 +878,3 @@ int msgbox_oprmode(int ctrl_focus){
 	else
 		return 0;
 }
-#ifdef JIANGSU
-#define ROW_INTERVAL 3
-int editctrl_time(char *s_jzqtime, int len)
-{
-	INT8U i;
-	Edit edit_timeset;
-	char str[INPUTKEYNUM];
-	gui_clrrect(rect_Client);
-	Point pos;
-	setFontSize(16);
-	gui_setpos(&pos, rect_Client.left+8*FONTSIZE, rect_Client.top+FONTSIZE);
-	if(len == 8)
-		gui_textshow((char*)"日数据查询", pos, LCD_NOREV);
-	else
-		gui_textshow((char*)"月数据查询", pos, LCD_NOREV);
-	gui_setpos(&pos, rect_Client.left+5*FONTSIZE, rect_Client.top+6*FONTSIZE);
-	gui_textshow((char*)"请选择查询日期", pos, LCD_NOREV);
-	gui_setpos(&pos, rect_Client.left+8*FONTSIZE, rect_Client.top+5*FONTSIZE);
-	pos.y += FONTSIZE*5 + ROW_INTERVAL;
-	memset(str, 0, INPUTKEYNUM);
-	edittime_init(&edit_timeset, CTRL_EDITTIME, s_jzqtime, len, pos, NOFRAME, RETFLG, NULL);
-	edit_timeset.mode = EDITMODE;
-	edit_timeset.form.focus=FOCUS;
-	edit_timeset.form.pfun_show(&edit_timeset);
-	edit_timeset.form.pfun_process(&edit_timeset);
-	setFontSize(12);
-	PressKey = NOKEY;
-//	fprintf(stderr,"len = %d\n",len);
-//	for(i=0;i<len;i++)
-//		fprintf(stderr,"%c ",edit_timeset.form.key[i].c);
-//	fprintf(stderr,"\n");
-	while (g_LcdPoll_Flag == LCD_NOTPOLL)
-	{
-		switch(PressKey) {
-		case OK:
-			memset(s_jzqtime,0,len);
-			for(i=0;i<len;i++)
-				*(s_jzqtime+i)=edit_timeset.form.key[i].c;
-			PressKey = NOKEY;
-			return len;
-		case ESC:
-			PressKey = NOKEY;
-			return 0;
-		}
-		delay(50);
-	}
-	return 0;
-}
-int msgbox_password_js(char *passwd, int len, char *s_passwd_ret)
-{
-	char first_flg=0;
-	char str[INPUTKEYNUM];
-	struct list *cur_node=NULL, *tmpnode=NULL;
-	Form *cur_form=NULL, client;//client 液晶显示客户区
-	Edit edit_password;
-	memset(&edit_password, 0, sizeof(Edit));
-	client.node.child = (struct list*)malloc(sizeof(struct list));
-	if(client.node.child==NULL){
-		g_curcldno = 1;//上状态栏显示
-		return 0;
-	}
-	memset(client.node.child, 0, sizeof(struct list));
-	Point pos;
-	Rect rect;
-	pos.x = rect_Client.left+FONTSIZE*10;
-	pos.y = rect_Client.top + ROW_INTERVAL + 10*FONTSIZE;
-	memset(str, 0, INPUTKEYNUM);
-	edit_init(&edit_password, passwd, 6, pos, 0, 0, client.node.child,KEYBOARD_DEC);
-	//------------------------------------------------------------
-	cur_node = &edit_password.form.node;
-	cur_form = &edit_password.form;
-	PressKey = NOKEY;
-	while(g_LcdPoll_Flag==LCD_NOTPOLL){
-		switch(PressKey)
-		{
-		case LEFT:
-		case UP:
-			cur_form->focus = NOFOCUS;
-			cur_node=list_getprev(cur_node);
-			if(cur_node==client.node.child)
-				cur_node = list_getlast(client.node.child);
-			break;
-		case RIGHT:
-		case DOWN:
-			cur_form->focus = NOFOCUS;
-			if(list_getnext(cur_node)==NULL){
-				cur_node = list_getfirst(cur_node);
-				cur_node = cur_node->next;
-			}else
-				cur_node = list_getnext(cur_node);
-			break;
-		case OK:
-			if(get_oprmode()==OPRMODE_MODIFY){
-				cur_form->pfun_process(cur_form);
-				if(cur_form->pfun_process_ret==OK){
-					eidt_gettext(&edit_password,s_passwd_ret);
-					if(strncmp(s_passwd_ret,passwd,6)!=0){
-						if(msgbox_label((char *)"确定修改密码?", CTRL_BUTTON_OK)==ACK)
-							return PASSWD_OK;
-						else{
-							msgbox_label((char *)"密码未更改", CTRL_BUTTON_OK);
-							return PASSWD_ERR;
-						}
-					}else{
-						msgbox_label((char *)"密码未更改", CTRL_BUTTON_OK);
-						return PASSWD_ERR;
-					}
-				}
-			}
-			break;
-		case ESC:
-			if(client.node.child!=NULL)
-				free(client.node.child);
-			return 0;
-		}
-		if(PressKey!=NOKEY||first_flg==0){
-			gui_clrrect(rect_Client);
-			setFontSize(16);
-			gui_setpos(&pos, rect_Client.left+8*FONTSIZE, rect_Client.top+FONTSIZE);
-			gui_textshow((char*)"密码设置", pos, LCD_NOREV);
-			gui_setpos(&pos, rect_Client.left+5*FONTSIZE, rect_Client.top+6*FONTSIZE);
-			gui_textshow((char*)"请输入新密码...", pos, LCD_NOREV);
-			gui_setpos(&pos, rect_Client.left+8*FONTSIZE, rect_Client.top+5*FONTSIZE);
-			setFontSize(12);
-			tmpnode = client.node.child;
-			while(tmpnode->next!=NULL){
-				tmpnode = tmpnode->next;
-				cur_form = list_entry(tmpnode, Form, node);
-				cur_form->pfun_show(cur_form);
-			}
-			cur_form = list_entry(cur_node, Form, node);//根据链表节点找到控件指针
-			cur_form->focus = FOCUS;
-			memcpy(&rect, &cur_form->rect, sizeof(Rect));
-			rect.left += 2;
-			rect.right -= 3;
-			rect.top -= 1;
-			gui_rectangle(gui_changerect(gui_moverect(rect, DOWN, 4), 4));
-			first_flg = 1;
-		}
-		PressKey = NOKEY;
-		delay(100);
-	}
-	if(client.node.child!=NULL)
-		free(client.node.child);
-	return 0;
-}
-int msgbox_jzqaddr_js(char *s_jzqdizhi10,  char keyboard_style){
-	char first_flg=0;
-	char str[10],str_tmp[10];
-	struct list *cur_node=NULL, *tmpnode=NULL;
-	Form *cur_form=NULL, client;//client 液晶显示客户区
-	Edit edit_quma,edit_addr;
-	memset(&edit_quma, 0, sizeof(Edit));
-	memset(&edit_addr, 0, sizeof(Edit));
-	client.node.child = (struct list*)malloc(sizeof(struct list));
-	if(client.node.child==NULL){
-		g_curcldno = 1;//上状态栏显示
-		return 0;
-	}
-	memset(client.node.child, 0, sizeof(struct list));
-	Point pos;
-	Rect rect;
-	pos.x = rect_Client.left+FONTSIZE*15;
-	pos.y = rect_Client.top + ROW_INTERVAL + 6*FONTSIZE;
-	setFontSize(16);
-	edit_init(&edit_quma, &s_jzqdizhi10[0], 4, pos, 0, 0, client.node.child,KEYBOARD_DEC);//区码
-	//------------------------------------------------------------
-	pos.y += 4*FONTSIZE;
-	if(keyboard_style == KEYBOARD_DEC)
-		edit_init(&edit_addr, &s_jzqdizhi10[4], 5, pos, 0, 0, client.node.child,keyboard_style);//地址
-	else
-		edit_init(&edit_addr, &s_jzqdizhi10[4], 4, pos, 0, 0, client.node.child,keyboard_style);//地址
-	setFontSize(12);
-	//------------------------------------------------------------
-	cur_node = &edit_quma.form.node;
-	cur_form = &edit_quma.form;
-	PressKey = NOKEY;
-	while(g_LcdPoll_Flag==LCD_NOTPOLL){
-		switch(PressKey)
-		{
-		case LEFT:
-		case UP:
-			cur_form->focus = NOFOCUS;
-			cur_node=list_getprev(cur_node);
-			if(cur_node==client.node.child)
-				cur_node = list_getlast(client.node.child);
-			break;
-		case RIGHT:
-		case DOWN:
-			cur_form->focus = NOFOCUS;
-			if(list_getnext(cur_node)==NULL){
-				cur_node = list_getfirst(cur_node);
-				cur_node = cur_node->next;
-			}else
-				cur_node = list_getnext(cur_node);
-			break;
-		case OK:
-			if(get_oprmode()==OPRMODE_MODIFY){
-				setFontSize(16);
-				cur_form->pfun_process(cur_form);
-				setFontSize(12);
-				if(cur_form->pfun_process_ret==OK){
-					memset(str,0,10);
-					eidt_gettext(&edit_quma,str);
-					memset(str_tmp,0,10);
-					eidt_gettext(&edit_addr,str_tmp);
-					strcat(str,str_tmp);
-					if(msgbox_label((char *)"确定修改地址?", CTRL_BUTTON_OK)==ACK){
-						memcpy(s_jzqdizhi10,str,9);
-						return ACK;
-					}
-				}
-			}
-			break;
-		case ESC:
-			if(client.node.child!=NULL)
-				free(client.node.child);
-			return 0;
-		}
-		if(PressKey!=NOKEY||first_flg==0){
-			gui_clrrect(rect_Client);
-			pos.x = rect_Client.left+FONTSIZE*6;
-			pos.y = rect_Client.top + ROW_INTERVAL + FONTSIZE;
-			setFontSize(16);
-			gui_textshow((char *)"终端编号设置", pos, LCD_NOREV);
-			pos.x = rect_Client.left+FONTSIZE*2;
-			pos.y = rect_Client.top + ROW_INTERVAL + 6*FONTSIZE;
-			gui_textshow((char *)"行政区码:", pos, LCD_NOREV);
-			pos.y += 4*FONTSIZE;
-			gui_textshow((char *)"终端地址:", pos, LCD_NOREV);
-			setFontSize(12);
-			tmpnode = client.node.child;
-			setFontSize(16);
-			while(tmpnode->next!=NULL){
-				tmpnode = tmpnode->next;
-				cur_form = list_entry(tmpnode, Form, node);
-				cur_form->pfun_show(cur_form);
-			}
-			setFontSize(12);
-			cur_form = list_entry(cur_node, Form, node);//根据链表节点找到控件指针
-			cur_form->focus = FOCUS;
-			memcpy(&rect, &cur_form->rect, sizeof(Rect));
-			rect.left += 2;
-			rect.right -= 3;
-			rect.top -= 1;
-			gui_rectangle(gui_changerect(gui_moverect(rect, DOWN, 4), 4));
-			first_flg = 1;
-		}
-		PressKey = NOKEY;
-		delay(100);
-	}
-	if(client.node.child!=NULL)
-		free(client.node.child);
-	return 0;
-}
-#endif

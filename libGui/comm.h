@@ -60,15 +60,12 @@
 extern int PressKey; //全局变量 按键值
 
 #define _USERDIR_ 	"/nand/bin"
-//#define _PARADIR_ 	"/nand/para"
-//#define _ALARMDIR_ 	"/nand/DataAlarm"			//lhl1.8	保存告警信息目录
-//#define _CURRDIR_ 	"/nand/DataCurr"			//lhl1.8	保存当前信息目录
-//#define _HOURDIR_ 	"/nand/DataHour"			//lhl1.9	保存小时冻结目录
-//#define _DAYDIR_ 	"/nand/DataDay"				//lhl1.8	保存日冻结目录
-//#define _MONTHDIR_ 	"/nand/DataMonth"			//lhl1.8	保存月冻结目录
-//#define _DAYTJDIR_ 	"/nand/DataRiTongJi"		//lhl1.9	保存日统计目录
-//#define _MONTJDIR_ 	"/nand/DataYueTongJi"		//lhl1.9	保存月统计目录
-//#define _CFGDIR_ 	"/nor/config"
+
+#define LED_RUN 	"/dev/gpoRUN_LED"
+#define LED_ALARM 	"/dev/gpoALARM"
+
+#define LED_ON 	1
+#define LED_OFF 0
 
 //液晶长宽像素
 #define LCM_X	160//液晶长

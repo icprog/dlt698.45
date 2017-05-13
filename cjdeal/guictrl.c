@@ -34,7 +34,7 @@ lcd_show接口延续之前376.1液晶显示处理逻辑，更新的是将三个�
 
 extern Menu menu[];
 MenuList *pmenulist_head;
-pthread_t thread_key, thread_menu, thread_status, thread_lcm,thread_downstatus;//thread_send;
+//pthread_t thread_key, thread_menu, thread_status, thread_lcm,thread_downstatus;//thread_send;
 int thread_run;
 Proxy_Msg Proxy_Msg_Data;
 
@@ -81,30 +81,12 @@ void GuiQuitProcess() // TODO：线程退出处理函数
 
 void init_gobal_variable(void)
 {
-//	thread_key=0; TODO:全局变量配置
-//	thread_menu=0;
-//	thread_status=0;
-//	thread_lcm=0;
+	thread_run = PTHREAD_RUN;
 	g_LcdPoll_Flag = LCD_NOTPOLL; //TODO:是否进行轮显标志
-//	struct sigaction sa_gui;
-//	sa_gui.sa_handler = QuitProcess;
-//	sigemptyset(&sa_gui.sa_mask);
-//	sa_gui.sa_flags = 0;
-//	sigaction(SIGTERM, &sa_gui, NULL);
-//	sigaction(SIGSYS, &sa_gui, NULL);
-//	sigaction(SIGPWR, &sa_gui, NULL);
-//	sigaction(SIGKILL, &sa_gui, NULL);
-//	sigaction(SIGQUIT, &sa_gui, NULL);
-//	sigaction(SIGILL, &sa_gui, NULL);
-//	sigaction(SIGINT, &sa_gui, NULL);
-//	sigaction(SIGHUP, &sa_gui, NULL);
-//	sigaction(SIGABRT, &sa_gui, NULL);
-//	sigaction(SIGBUS, &sa_gui, NULL);
-//	sig_set(&sa_gui,QuitProcess);
+	ProgramInfo_register(JProgramInfo);//注册共享内存
+	Proxy_Msg_Data_register(&Proxy_Msg_Data);//注册消息结构体指针
+	Init_GuiLib_variable();//共享内存调用完成后，才可以初始化guilib库的全局变量
 }
-#ifdef FB_SIM
-extern int initX11();
-#endif
 
 extern void initliangdu();
 extern void initlunxian();
@@ -276,17 +258,14 @@ void guictrl_proccess()
 		fprintf(stderr,"\n\n open fb0 fail!!!!! return");
 		return;
 	}
-	ProgramInfo_register(JProgramInfo);//注册共享内存
-	Proxy_Msg_Data_register(&Proxy_Msg_Data);//注册消息结构体指针
 	lcm_ac_power();
-	thread_run = PTHREAD_RUN;
 	init_gobal_variable();//初始化全局变量
 	initmenu();//初始化液晶菜单
-	ReadHzkBuff();//读字库
-	ReadHzkBuff_12();
+	ReadHzkBuff_16();//读字库16*16
+	ReadHzkBuff_12();//12*12
 	initliangdu();//初始化液晶亮度
 	initlunxian();//读配置文件
-	gpio_writebyte((char*)"/dev/gpoLCD_LIGHT", 1);//背光
+
 	setFontSize(12);//设置字体
 	pthread_attr_init(&guictrl_attr_t);
 	pthread_attr_setstacksize(&guictrl_attr_t,2048*1024);

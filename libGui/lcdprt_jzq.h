@@ -45,7 +45,6 @@ void menu_gprs_info();
 void menu_ac_info();
 void menu_485func_change();
 void menu_readmeter_info();
-void menu_TorF_info();
 void menu_heartcycle();
 void menu_yxstatus();
 void menu_yxstatus_js();
@@ -95,23 +94,4 @@ extern void ShowCLDDataPage(LcdDataItem *item, int size, INT8U show_flg);
 extern void ShowJCData(ProgramInfo* p_JProgramInfo,int PageNo, LcdDataItem *item, int size, int show_flg);
 extern int sendMsg(mqd_t mqd, INT32U cmd, INT8S *sendbuf, INT32U bufsiz);
 extern void menu_Virpara();
-#ifdef JIANGSU
-void USB_UpdateSoft();
-void USB_DataCopy();
-void Term_StartConn();
-void Term_StopConn();
-void menu_eth0para_js();
-void show_daydata_JS(int cldno);
-void setmeterpara_js(int pindex);
-void show_monthdata_JS(int cldno);
-void querymeterpara_js(int pindex);
-void show_realdatabycld_js(int pindex);
-int querymp_showlabel_js(struct list *head, struct list *node);
-int setmp_showlabel1(struct list *head, struct list *node);
-int setmp_showlabel2(struct list *head, struct list *node);
-#endif
-#ifdef SHANGHAI
-void showselectmeter(char *cldaddr,char *box_addr);
-void ShowCLDDataPage_SH(LcdDataItem *item, int size, INT8U show_flg,INT8U RateNum);
-#endif
 #endif /* LCDPRT_JZQ_H_ */
