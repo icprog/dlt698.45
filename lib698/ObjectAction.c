@@ -472,7 +472,7 @@ void AddCjiFangAnInfo(INT8U *data, Action_result *act_ret) {
                         fangAn.csds.csd[i].csd.oad.attrindex);
             } else if (type == 1) {
                 fprintf(stderr, "\nROAD");
-                fprintf(stderr, "\n		OAD-%04x %02x %02x", fangAn.csds.csd[i].csd.road.oad.OI,
+                fprintf(stderr, "\n	main OAD-%04x %02x %02x", fangAn.csds.csd[i].csd.road.oad.OI,
                         fangAn.csds.csd[i].csd.road.oad.attflg, fangAn.csds.csd[i].csd.road.oad.attrindex);
                 for (w = 0; w < fangAn.csds.csd[i].csd.road.num; w++) {
                     if (fangAn.csds.csd[i].csd.road.oads[w].OI != 0xeeee)

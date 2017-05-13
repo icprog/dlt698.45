@@ -895,6 +895,22 @@ void printrecord(RESULT_RECORD record)
 		break;
 	}
 }
+//
+//int getSelectData(INT8U seltype,INT8U *data,INT8U *selval)
+//{
+//	int ret=-1;
+//	switch(seltype) {
+//	case dtdatetimes:
+//		ret = getDateTimeS(0,data,selval);
+//		break;
+//	case dtlongunsigned:
+//		ret = ;
+//		break;
+//	case dtunsigned:
+//		taskid = record->select.selec1.data.data[0];
+//		break;
+//	}
+//}
 
 int getSel1_freeze(RESULT_RECORD *record)
 {
