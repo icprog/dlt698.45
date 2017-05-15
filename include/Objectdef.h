@@ -385,8 +385,8 @@ typedef struct {
 
 typedef struct {
     INT8U dinum;
-    INT8U DI_1[DI97_NUM_601F][4];
-    INT8U DI_2[DI97_NUM_601F][4];
+    INT8U DI_1[DI97_NUM_601F][2];
+    INT8U DI_2[DI97_NUM_601F][2];
 } C601F_97Flag;
 
 typedef struct {

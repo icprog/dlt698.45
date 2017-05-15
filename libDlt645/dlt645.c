@@ -354,9 +354,13 @@ INT8S analyzeProtocol97(FORMAT97* format97, INT8U* recvBuf, const INT16U recvLen
 INT16S composeProtocol97(FORMAT97* format97, INT8U* sendBuf)
 {
 	INT8U i;
+	INT8U addrBuff[6] = {0};
+	fprintf(stderr,"composeProtocol07 format07->Addr = %02x%02x%02x%02x%02x%02x",
+			format97->Addr[0],format97->Addr[1],format97->Addr[2],format97->Addr[3],format97->Addr[4],format97->Addr[5]);
+	reversebuff(format97->Addr,6,addrBuff);
 
 	sendBuf[0] = 0x68;
-	memcpy(&sendBuf[1], format97->Addr, 6);//地址
+	memcpy(&sendBuf[1], addrBuff, 6);//地址
 	sendBuf[7] = 0x68;
 	sendBuf[8] = format97->Ctrl;//控制码
 	sendBuf[9] = 0x02;//长度
