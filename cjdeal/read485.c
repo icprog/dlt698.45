@@ -1130,8 +1130,8 @@ INT8U getASNInfo(FORMAT07* DI07,Base_DataType* dataType)
 			memset(&DI07->Data[6],0,3);
 		}
 
-		memcpy(&f25_2_buff[4],&DI07->Data[3],3);
-		memcpy(&f25_2_buff[8],&DI07->Data[6],3);
+		memcpy(&f25_2_buff[5],&DI07->Data[3],3);
+		memcpy(&f25_2_buff[9],&DI07->Data[6],3);
 
 		memcpy(&DI07->Data[0],&f25_2_buff[0],16);
 		DI07->Length += 7;

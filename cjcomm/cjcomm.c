@@ -351,6 +351,8 @@ int main(int argc, char *argv[]) {
     StartVerifiTime(ep, 0, JProgramInfo);
     StartClientForGprs(ep, 0, NULL);
     StartClientForNet(ep, 0, NULL);
+
+//    StartClientOnModel(ep, 0, NULL);
     StartMmq(ep, 0, NULL);
 
     aeMain(ep);
