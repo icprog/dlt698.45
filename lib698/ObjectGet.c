@@ -1674,7 +1674,7 @@ int getRequestRecord(OAD oad,INT8U *data,CSINFO *csinfo,INT8U *sendbuf)
 	doGetrecord(GET_REQUEST_RECORD,oad,data,&record,&subframe);
 	if(subframe==1) {
 		BuildFrame_GetResponseRecord(GET_REQUEST_RECORD,csinfo,record,sendbuf);
-	}else  {
+	}else  if(subframe>1){
 		next_info.subframeSum = subframe;
 		next_info.frameNo = 1;
 		next_info.repsonseType = GET_REQUEST_RECORD;	//此处不直接赋值上送值是因为需要读取分帧文件的第一个字节是sequence of的值
@@ -1711,9 +1711,9 @@ int getRequestRecordList(INT8U *data,CSINFO *csinfo,INT8U *sendbuf)
 	}
 	record.data = TmpDataBufList;
 	record.datalen = destindex;
-	if(subframe==0) {
+	if(subframe==1) {		//不分帧　原来判断＝０？有错
 		BuildFrame_GetResponseRecord(GET_REQUEST_RECORD_LIST,csinfo,record,sendbuf);//原来是GET_REQUEST_RECORD，是否有错？？
-	}else  {
+	}else  if(subframe>1){
 		next_info.subframeSum = subframe;
 		next_info.frameNo = 1;
 		next_info.repsonseType = GET_REQUEST_RECORD_LIST;

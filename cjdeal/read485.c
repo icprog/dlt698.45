@@ -195,6 +195,7 @@ void DbPrt1(INT8U comport,char *prefix, char *buf, int len, char *suffix)
 		if(count>=len)
 			break;
 	}
+	int prtlen=0;
 }
 
 char name1[128]={};

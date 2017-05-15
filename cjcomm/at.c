@@ -170,8 +170,13 @@ int SendATCommand(char *buf, int len, int com) {
     int res = write(com, buf, len);
     int i = 0;
     if (len > 0) {
-        for (i = 0; i < len; i++)
-            fprintf(stderr, "%c", buf[i]);
+        fprintf(stderr, "[AT]Send:\n");
+        for (i = 0; i < len; i++) {
+            if (buf[i] >= 0x20 && buf[i] <= 0x7E) {
+                fprintf(stderr, "%c", buf[i]);
+            }
+        }
+        fprintf(stderr, "\n");
     }
     return (res < 0) ? 0 : res;
 }
@@ -181,10 +186,13 @@ int RecieveFromComm(char *buf, int mlen, int com) {
     int i = 0;
     fprintf(stderr, "[AT]recv:\n");
     if (len > 0) {
-        for (i = 0; i < len; i++)
-            fprintf(stderr, "%c", buf[i]);
+        for (i = 0; i < len; i++) {
+            if (buf[i] >= 0x20 && buf[i] <= 0x7E) {
+                fprintf(stderr, "%c", buf[i]);
+            }
+        }
+        fprintf(stderr, "\n");
     }
-    fprintf(stderr, "================\n");
     return (len < 0) ? 0 : len;
 }
 

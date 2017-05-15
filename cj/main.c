@@ -455,4 +455,3 @@ void setOIChange_CJ(OI_698 oi)
 	}
 	shmm_unregister("ProgramInfo", sizeof(ProgramInfo));
 }
-
