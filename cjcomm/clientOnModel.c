@@ -54,6 +54,7 @@ static int NetSend(int fd, INT8U *buf, INT16U len) {
     pthread_mutex_lock(&locker);
     if (netObject.tail + 1 != netObject.head) {
         memcpy(netObject.send[netObject.tail].buf, buf, len);
+        netObject.send[netObject.tail].len = len;
         asyslog(LOG_WARNING, "内部协议栈发送(长度:%d,头尾:%d-%d)", len, netObject.head, netObject.tail);
         netObject.tail++;
         netObject.tail %= 16;
@@ -67,6 +68,7 @@ static int NetRecv(INT8U *buf) {
     pthread_mutex_lock(&locker);
     int len = netObject.recv.len;
     if (len < 1) {
+        pthread_mutex_unlock(&locker);
         return 0;
     }
     netObject.recv.len = 0;
@@ -89,6 +91,23 @@ static int getNext(INT8U *buf) {
     }
     netObject.head++;
     netObject.head %= 16;
+    pthread_mutex_unlock(&locker);
+    return len;
+}
+
+
+static int putNext(INT8U *buf, INT16U len) {
+    pthread_mutex_lock(&locker);
+    if (netObject.recv.len + len > 2048) {
+        pthread_mutex_unlock(&locker);
+        return -1;
+    }
+
+    for (int i = 0; i < len; ++i) {
+        netObject.recv.buf[netObject.recv.len + i] = buf[i];
+        printf("2=========%02x\n", buf[i]);
+    }
+    netObject.recv.len += len;
     pthread_mutex_unlock(&locker);
     return len;
 }
@@ -390,8 +409,8 @@ void *ModelWorker(void *args) {
             for (int timeout = 0; timeout < 3; timeout++) {
                 char Mrecvbuf[128];
 
-                SendATCommand("\rAT$MYNETSRV=1,1,0,0,\"119.180.24.156:7360\"\r",
-                              strlen("\rAT$MYNETSRV=1,1,0,0,\"119.180.24.156:7360\"\r"), sMux0);
+                SendATCommand("\rAT$MYNETSRV=1,1,0,0,\"118.178.140.32:8001\"\r",
+                              strlen("\rAT$MYNETSRV=1,1,0,0,\"118.178.140.32:8001\"\r"), sMux0);
                 delay(1000);
                 memset(Mrecvbuf, 0, 128);
                 RecieveFromComm(Mrecvbuf, 128, sMux0);
@@ -467,29 +486,56 @@ void *ModelWorker(void *args) {
                     sprintf(CommandBuf, "\rAT$MYNETWRITE=1,%d\r", res);
 
                     SendATCommand(CommandBuf, strlen(CommandBuf), sMux0);
-                    delay(1000);
+                    write(sMux0, CommandBuf, strlen(CommandBuf));
+                    delay(3000);
                     memset(Mrecvbuf, 0, 128);
                     RecieveFromComm(Mrecvbuf, 128, sMux0);
 
-                    if (strstr(Mrecvbuf, "OK") != 0) {
-                        break;
-                    }
-                }
-
-                for (int timeout = 0; timeout < 3; timeout++) {
-                    char Mrecvbuf[128];
-
-                    SendATCommand(sendBuf, res, sMux0);
-                    delay(1000);
-                    memset(Mrecvbuf, 0, 128);
-                    RecieveFromComm(Mrecvbuf, 128, sMux0);
-
-                    if (strstr(Mrecvbuf, "OK") != 0) {
+                    if (strstr(Mrecvbuf, "MYNETWRITE") != 0) {
+                        for (int i = 0; i < res; ++i) {
+                            printf("%02x\n", sendBuf[i]);
+                        }
+                        SendATCommand(sendBuf, res, sMux0);
+                        for (int j = 0; j < 3; ++j) {
+                            delay(1000);
+                            memset(Mrecvbuf, 0, 128);
+                            RecieveFromComm(Mrecvbuf, 128, sMux0);
+                        }
                         break;
                     }
                 }
             }
 
+            for (int timeout = 0; timeout < 3; timeout++) {
+                char Mrecvbuf[128];
+
+                char CommandBuf[128];
+                memset(CommandBuf, 0x00, sizeof(CommandBuf));
+                sprintf(CommandBuf, "\rAT$MYNETREAD=1,1024\r");
+
+                SendATCommand("\rAT$MYNETREAD=1,1024\r", strlen("\rAT$MYNETREAD=1,1024\r"), sMux0);
+                delay(1000);
+                memset(Mrecvbuf, 0, 128);
+                RecieveFromComm(Mrecvbuf, 128, sMux0);
+
+                int k = 0;
+                int l = 0;
+
+                if (sscanf(Mrecvbuf, "%*[^:]: %d,%d", &k, &l) == 2) {
+                    printf("============%d-%d\n", k, l);
+                    if (l == 0) {
+                        break;
+                    }
+                    for (int i = 0; i < l; ++i) {
+                        printf("%02x ", Mrecvbuf[40 + i]);
+                    }
+                    printf("\n");
+                    putNext(&Mrecvbuf[40], l);
+                    break;
+                } else {
+                    printf("+++++++++++++++++++++++");
+                }
+            }
 
         }
 
@@ -506,7 +552,7 @@ void CreateOnModel(void *clientdata) {
     pthread_attr_t attr;
     pthread_attr_init(&attr);
     pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
-    pthread_mutex_init(&locker, &attr);
+    pthread_mutex_init(&locker, NULL);
 
     pthread_t temp_key;
     pthread_create(&temp_key, &attr, ModelWorker, clientdata);
@@ -519,14 +565,15 @@ static int RegularClientOnModel(struct aeEventLoop *ep, long long id, void *clie
         return 1000;
     }
 
+
     INT8U recvBuf[2048];
     memset(recvBuf, 0x00, sizeof(recvBuf));
 
     int revcount = NetRecv(recvBuf);
-
     if (revcount > 0) {
         for (int j = 0; j < revcount; j++) {
             nst->RecBuf[nst->RHead] = recvBuf[j];
+
             nst->RHead = (nst->RHead + 1) % BUFLEN;
         }
 

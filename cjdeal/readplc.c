@@ -1676,8 +1676,8 @@ void readplc_thread()
 				state = doTask(&runtimevar);					//按任务抄表	  ( 1、根据方案类型和编号号确定抄表报文  )
 				break;
 			default :
-				runtimevar.state = NONE_PROCE;
-				sleep(1);
+					runtimevar.state = NONE_PROCE;
+					sleep(1);
 				break;
 		}
 		runtimevar.state  = state;

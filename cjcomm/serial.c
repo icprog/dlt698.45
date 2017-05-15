@@ -14,16 +14,16 @@
 static CommBlock SerialObject;
 static long long Serial_Task_Id;
 
-static int GlobBand[]  = { 300, 600, 1200, 2400, 4800, 7200, 9600, 19200, 38400, 57600, 115200 };
-static char* GlobCrc[] = { "none", "odd", "even" };
-static int GlobData[]  = { 0, 1, 2, 3, 4, 5, 6, 7, 8 };
-static int GlobStop[]  = { 0, 1, 2 };
+static int GlobBand[] = {300, 600, 1200, 2400, 4800, 7200, 9600, 19200, 38400, 57600, 115200};
+static char *GlobCrc[] = {"none", "odd", "even"};
+static int GlobData[] = {0, 1, 2, 3, 4, 5, 6, 7, 8};
+static int GlobStop[] = {0, 1, 2};
 
 /*
  *所有模块共享的写入函数，所有模块共享使用
  */
-int SerialWrite(int fd, INT8U* buf, INT16U len) {
-    int ret = anetWrite(fd, buf, (int)len);
+int SerialWrite(int fd, INT8U *buf, INT16U len) {
+    int ret = anetWrite(fd, buf, (int) len);
     if (ret != len) {
         asyslog(LOG_WARNING, "[维护]报文发送失败(长度:%d,错误:%d)", len, errno);
     }
@@ -42,8 +42,8 @@ void SerialInit(void) {
 /*
  * 红外、维护串口通行的读取函数，函数共享使用
  */
-void SerialRead(struct aeEventLoop* eventLoop, int fd, void* clientData, int mask) {
-    CommBlock* nst = (CommBlock*)clientData;
+void SerialRead(struct aeEventLoop *eventLoop, int fd, void *clientData, int mask) {
+    CommBlock *nst = (CommBlock *) clientData;
 
     //判断fd中有多少需要接收的数据
     int revcount = 0;
@@ -75,7 +75,7 @@ void SerialRead(struct aeEventLoop* eventLoop, int fd, void* clientData, int mas
                 int apduType = ProcessData(nst);
                 switch (apduType) {
                     case LINK_RESPONSE:
-                        nst->linkstate   = build_connection;
+                        nst->linkstate = build_connection;
                         nst->testcounter = 0;
                         break;
                     default:
@@ -89,18 +89,22 @@ void SerialRead(struct aeEventLoop* eventLoop, int fd, void* clientData, int mas
 /*
  * 模块维护循环
  */
-int RegularSerial(struct aeEventLoop* ep, long long id, void* clientData) {
+int RegularSerial(struct aeEventLoop *ep, long long id, void *clientData) {
     CLASS_f201 oif201 = {};
-    CommBlock* nst    = (CommBlock*)clientData;
+    CommBlock *nst = (CommBlock *) clientData;
 
     if (nst->phy_connect_fd < 0) {
         if (readCoverClass(0xf201, 0, &oif201, sizeof(CLASS_f201), para_vari_save) > 0) {
             fprintf(stderr, "维护串口模块读取参数：波特率(%d)，校验方式(%s)，数据位(%d)，停止位(%d)\n", GlobBand[oif201.devpara.baud],
-                    GlobCrc[oif201.devpara.verify], GlobData[oif201.devpara.databits], GlobStop[oif201.devpara.stopbits]);
+                    GlobCrc[oif201.devpara.verify], GlobData[oif201.devpara.databits],
+                    GlobStop[oif201.devpara.stopbits]);
             nst->phy_connect_fd =
-            OpenCom(2, GlobBand[oif201.devpara.baud], GlobCrc[oif201.devpara.verify], GlobStop[oif201.devpara.stopbits], GlobData[oif201.devpara.databits]);
+                    OpenCom((nst->shm->cfg_para.device == CCTT1 ? 2 : 3), GlobBand[oif201.devpara.baud],
+                            GlobCrc[oif201.devpara.verify], GlobStop[oif201.devpara.stopbits],
+                            GlobData[oif201.devpara.databits]);
         } else {
-            nst->phy_connect_fd = OpenCom(3, 2400, (unsigned char*)"even", 1, 8);
+            nst->phy_connect_fd = OpenCom((nst->shm->cfg_para.device == CCTT1 ? 2 : 3), 2400, (unsigned char *) "even",
+                                          1, 8);
         }
 
         if (nst->phy_connect_fd <= 0) {
@@ -120,7 +124,7 @@ int RegularSerial(struct aeEventLoop* ep, long long id, void* clientData) {
 /*
  * 供外部使用的初始化函数，并开启维护循环
  */
-int StartSerial(struct aeEventLoop* ep, long long id, void* clientData) {
+int StartSerial(struct aeEventLoop *ep, long long id, void *clientData) {
     SerialInit();
 
     Serial_Task_Id = aeCreateTimeEvent(ep, 1000, RegularSerial, &SerialObject, NULL);
