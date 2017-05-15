@@ -26,7 +26,45 @@ int GetOnlineType(void) {
 }
 
 void SetOnlineType(int type) {
+    if (JProgramInfo != NULL) {
+        JProgramInfo->dev_info.jzq_login = type;
+    }
     OnlineType = type;
+    if (type == 0){
+        SetConnectStatus(0);
+    } else{
+        SetConnectStatus(1);
+    }
+}
+
+void SetGprsStatus(int status) {
+    if (JProgramInfo != NULL) {
+        JProgramInfo->dev_info.gprs_status = status;
+    }
+}
+
+void SetGprsCSQ(int csq) {
+    if (JProgramInfo != NULL) {
+        JProgramInfo->dev_info.Gprs_csq = csq;
+    }
+}
+
+void SetWireLessType(int type) {
+    if (JProgramInfo != NULL) {
+        JProgramInfo->dev_info.wirelessType = type;
+    }
+}
+
+void SetPPPDStatus(int status) {
+    if (JProgramInfo != NULL) {
+        JProgramInfo->dev_info.pppd_status = status;
+    }
+}
+
+void SetConnectStatus(int status) {
+    if (JProgramInfo != NULL) {
+        JProgramInfo->dev_info.connect_ok = status;
+    }
 }
 
 void CalculateTransFlow(ProgramInfo *prginfo_event) {
@@ -308,12 +346,14 @@ int main(int argc, char *argv[]) {
 
 //    StartIfr(ep, 0, NULL);
 //    StartSerial(ep, 0, NULL);
+//
+//    StartServer(ep, 0, NULL);
+//    StartVerifiTime(ep, 0, JProgramInfo);
+//    StartClientForGprs(ep, 0, NULL);
+//    StartClientForNet(ep, 0, NULL);
 
-    StartServer(ep, 0, NULL);
-    StartVerifiTime(ep, 0, JProgramInfo);
-    StartClientForGprs(ep, 0, NULL);
-    StartClientForNet(ep, 0, NULL);
-    StartMmq(ep, 0, NULL);
+    StartClientOnModel(ep, 0, NULL);
+//    StartMmq(ep, 0, NULL);
 
     aeMain(ep);
 

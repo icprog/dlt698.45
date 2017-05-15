@@ -44,7 +44,7 @@ extern void print_rsd(INT8U choice, RSD rsd);
 extern int getTItoSec(TI ti);
 extern void setOIChange(OI_698 oi);
 /*----------------------接口类及对象实例的基本数据类型组帧----------------------*/
-extern int create_OAD(INT8U type,INT8U* data, OAD oad);
+extern int create_OAD(INT8U type,INT8U* data, OAD oad);		//0x51
 extern int create_array(INT8U* data, INT8U numm);
 extern int create_struct(INT8U* data, INT8U numm);
 extern int fill_bool(INT8U* data, INT8U value);
@@ -60,6 +60,7 @@ extern int fill_long_unsigned(INT8U* data, INT16U value);
 extern int fill_enum(INT8U* data, INT8U value);
 extern int fill_time(INT8U* data, INT8U* value);
 extern int fill_date_time_s(INT8U* data, DateTimeBCD* time);
+extern int fill_ROAD(INT8U type,INT8U *data,ROAD road);			//0x52
 extern int fill_TI(INT8U* data, TI ti);
 extern int fill_RSD(INT8U choice,INT8U *data,RSD rsd);			//0x5A
 extern int fill_CSD(INT8U type, INT8U* data, MY_CSD csd);
@@ -106,6 +107,7 @@ extern int Get_4000(OAD oad,INT8U *data);
 extern int Get_6001(INT8U type,INT16U seqnum, INT8U* data);
 extern int Get_6013(INT8U type,INT8U taskid,INT8U *data);
 extern int Get_6015(INT8U type,INT8U seqnum, INT8U* data);
+extern int Get_6017(INT8U type,INT8U seqnum,INT8U *data);
 extern int Get_6035(INT8U type,INT8U seqnum, INT8U* data);
 extern int Get_601D(INT8U type,INT8U seqnum,INT8U *data);
 extern int GetFileState(RESULT_NORMAL* response);

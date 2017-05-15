@@ -24,7 +24,7 @@
 #include "Shmem.h"
 #include "PublicFunction.h"
 
-
+extern void InitACSCoef();
 #define MsgSendOverTime 3
 #define MC 6400
 
@@ -632,8 +632,10 @@ void setACS(FORMAT07 format07) {
                             Msg2AcsValue(format07);
                             execACS(5);//校表
                             fprintf(stderr, "校表结束!!!\n");
+                            sleep(2);
+                            InitACSCoef();
                             sleep(3);
-                            system("reboot");
+//                            system("reboot");
                             break;
                         }
                         case 2://电压读取
@@ -686,13 +688,13 @@ void dealProcess() {
             for (i = 0; i < RecvLen; i++) {
                 fprintf(stderr, "%02x ", RecvBuf[i]);
             }
-            fprintf(stderr, "\n");
+            fprintf(stderr, "end\n");
 
             FORMAT07 format07_down;
             //返回值：1-广播校时；4-读数据；5-读表地址；6-最大需量清零；7-电表清零；8-写数据（校表等）
             INT8S ret = analyzeProtocol07(&format07_down, RecvBuf, RecvLen, &nextFlag);
 
-            fprintf(stderr, "ret=%d\n", ret);
+            fprintf(stderr, "ret1=%d\n", ret);
             if (ret == 1)//广播校时
             {
                 broadCast(format07_down);//ok
@@ -707,6 +709,7 @@ void dealProcess() {
             else if (ret == 8)//校表
             {
                 //34 34 33 37
+            	fprintf(stderr,"format07_down.DI=%02x_%02x_%02x_%02x\n",format07_down.DI[3],format07_down.DI[2],format07_down.DI[1],format07_down.DI[0]);
                 if ((format07_down.DI[3] == 0x04) && (format07_down.DI[2] == 0x00) &&
                     (format07_down.DI[1] == 0x01) && (format07_down.DI[0] == 0x01))//对时-日期
                 {
