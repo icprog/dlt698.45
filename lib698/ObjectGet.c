@@ -736,6 +736,38 @@ int Get4500(RESULT_NORMAL *response)
 
 	switch(oad.attflg )
 	{
+	case 2:	//通信配置
+		index += create_struct(&data[index],12);
+		index += fill_enum(&data[index],class_tmp.commconfig.workModel);
+		index += fill_enum(&data[index],class_tmp.commconfig.onlineType);
+		index += fill_enum(&data[index],class_tmp.commconfig.connectType);
+		index += fill_enum(&data[index],class_tmp.commconfig.appConnectType);
+		if(class_tmp.commconfig.listenPortnum>=5) class_tmp.commconfig.listenPortnum = 5;
+		index += create_array(&data[index],class_tmp.commconfig.listenPortnum);
+		if(class_tmp.commconfig.listenPortnum) {
+			for(i=0;i<class_tmp.commconfig.listenPortnum;i++) {
+				index += fill_long_unsigned(&data[index],class_tmp.commconfig.listenPort[i]);
+			}
+		}
+		index += fill_visible_string(&data[index],(char *)&class_tmp.commconfig.apn[1],class_tmp.commconfig.apn[0]);
+		index += fill_visible_string(&data[index],(char *)&class_tmp.commconfig.userName[1],class_tmp.commconfig.userName[0]);
+		index += fill_visible_string(&data[index],(char *)&class_tmp.commconfig.passWord[1],class_tmp.commconfig.passWord[0]);
+		index += fill_octet_string(&data[index],(char *)&class_tmp.commconfig.proxyIp[1],class_tmp.commconfig.proxyIp[0]);
+		index += fill_long_unsigned(&data[index],class_tmp.commconfig.proxyPort);
+		//index += fill_bit_string8(&data[index],class_tmp.commconfig.timeoutRtry);
+		index += fill_unsigned(&data[index],class_tmp.commconfig.timeoutRtry);
+		index += fill_long_unsigned(&data[index],class_tmp.commconfig.heartBeat);
+		break;
+	case 3:	//主站通信参数表
+		//if(class_tmp.master.masternum==0) class_tmp.master.masternum = 2;
+		fprintf(stderr,"masternum=%d\n",class_tmp.master.masternum);
+		index += create_array(&data[index],class_tmp.master.masternum);
+		for(i=0;i<class_tmp.master.masternum;i++) {
+			index += create_struct(&data[index],2);
+			index += fill_octet_string(&data[index],(char *)&class_tmp.master.master[i].ip[1],4);//默认长度，class_tmp.master.master.ip[0]
+			index += fill_long_unsigned(&data[index],class_tmp.master.master[i].port);
+		}
+		break;
 	case 4:	//短信通信参数
 		index += create_struct(&data[index],3);
 		index += fill_visible_string(&data[index],&class_tmp.sms.center[1],class_tmp.sms.center[0]);
@@ -797,6 +829,15 @@ int Get4510(RESULT_NORMAL *response)
 			//index += fill_bit_string8(&data[index],class_tmp.commconfig.timeoutRtry);
 			index += fill_unsigned(&data[index],class_tmp.commconfig.timeoutRtry);
 			index += fill_long_unsigned(&data[index],class_tmp.commconfig.heartBeat);
+			break;
+		case 3:	//主站通信参数表
+			fprintf(stderr,"Get4510 masternum=%d\n",class_tmp.master.masternum);
+			index += create_array(&data[index],class_tmp.master.masternum);
+			for(i=0;i<class_tmp.master.masternum;i++) {
+				index += create_struct(&data[index],2);
+				index += fill_octet_string(&data[index],(char *)&class_tmp.master.master[i].ip[1],4);//默认长度，class_tmp.master.master.ip[0]
+				index += fill_long_unsigned(&data[index],class_tmp.master.master[i].port);
+			}
 			break;
 	}
 	response->datalen = index;
@@ -930,6 +971,9 @@ int getSel1_coll(RESULT_RECORD *record)
 		case 0x6015:
 			index += Get_6015(0,taskid,&record->data[index]);
 			break;
+		case 0x6017:
+			index += Get_6017(0,taskid,&record->data[index]);
+			break;
 		case 0x6035:
 			index += Get_6035(0,taskid,&record->data[index]);
 			break;
@@ -941,6 +985,7 @@ int getSel1_coll(RESULT_RECORD *record)
 	}
 	if(index==0) {	//0条记录     [1] SEQUENCE OF A-RecordRow
 		record->data[0] = 0;
+		index=1;
 	}
 	record->datalen = index;
 	fprintf(stderr,"\nrecord->datalen = %d",record->datalen);

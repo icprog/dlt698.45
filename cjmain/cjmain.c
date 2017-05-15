@@ -506,7 +506,8 @@ void checkDevReset() {
             }
             break;
         case 1:
-            if (abs(time(NULL) - oldtime) >= 5) {
+            if (abs(time(NULL) - oldtime) >= 5) {		//掉电前电量处理
+
                 system("reboot");
             }
             break;
@@ -597,7 +598,7 @@ int main(int argc, char *argv[]) {
         Checkupdate();
 
         //检查设备是否需要重启
-        //checkDevReset();
+        checkDevReset();
 
         //检查系统升级文件
         checkRebootFile();
