@@ -344,8 +344,8 @@ int main(int argc, char *argv[]) {
         exit(0);
     }
 
-//    StartIfr(ep, 0, NULL);
-//    StartSerial(ep, 0, NULL);
+    StartIfr(ep, 0, NULL);
+    StartSerial(ep, 0, NULL);
 
     StartServer(ep, 0, NULL);
     StartVerifiTime(ep, 0, JProgramInfo);
