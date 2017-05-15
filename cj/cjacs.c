@@ -1210,8 +1210,6 @@ void acs_check_phase_coef(INT8U type)
 	sem_close(sem_fd);
 }
 
-
-
 //电压电流有效值offset校正，零漂处理
 void offset_check(INT32S fp)
 {

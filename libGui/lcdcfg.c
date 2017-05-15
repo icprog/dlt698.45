@@ -209,9 +209,8 @@ void initliangdu()
 			Contrast_alue=YJ_DEFAULTLIMIT2;
 	}else
 		Contrast_alue=YJ_DEFAULTLIMIT2;
-//	if((fdyj = open("/dev/fb0", O_RDWR | O_NDELAY)) >0)
 		ioctl(FB_Handle,LCD_IOC_CONTRAST,&Contrast_alue);
-//	close(fdyj);
+		gpio_writebyte((char*)"/dev/gpoLCD_LIGHT", 1);//背光
 }
 
 void modify_lcd_contrast(){

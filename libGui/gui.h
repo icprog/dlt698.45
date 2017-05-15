@@ -56,7 +56,7 @@ void lcdregion_restore(unsigned char *buf, Rect rect);//恢复此块区域
 
 extern INT8U getFontSize();
 extern void setFontSize(INT8U size);
-void ReadHzkBuff();
+void ReadHzkBuff_16();
 void ReadHzkBuff_12();
 
 int readcfg(char *filename, char *name, char *ret);

@@ -16,7 +16,6 @@
 #include "../libGui/lcd_menu.h"
 #include "../libGui/lcm.h"
 #include "../libGui/lcd_ctrl.h"
-#include "../libGui/lcd_led.h"
 #include "../libGui/show_ctrl.h"
 #include "../libGui/lcdprt_jzq.h"
 #include "../libGui/comm.h"

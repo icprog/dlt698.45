@@ -214,6 +214,7 @@ void Collect6000(int argc, char *argv[])
 				if(seqno == meter.sernum) {
 					meter.sernum = 0;
 					ret = saveParaClass(0x6000,&meter,seqno);
+			        setOIChange_CJ(0x6000);
 					if(ret==1)
 						fprintf(stderr,"删除 序号 %d 成功, ret=%d\n",seqno,ret);
 				}
@@ -335,6 +336,7 @@ void Collect6000(int argc, char *argv[])
 			po++;
 			ret = saveParaClass(0x6000,&meter,meter.sernum);
 			fprintf(stderr,"保存采集档案配置单元 序号 %d, ret=%d\n",meter.sernum,ret);
+	        setOIChange_CJ(0x6000);
 		}
 	}
 }
@@ -482,6 +484,7 @@ void Task6013(int argc, char *argv[])
 				pi++;
 				po=po+4;
 				saveCoverClass(oi,class6013.taskID,&class6013,sizeof(CLASS_6013),coll_para_save);
+		        setOIChange_CJ(0x6013);
 			}
 		}
 	}

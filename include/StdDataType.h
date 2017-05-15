@@ -22,8 +22,6 @@ typedef double         FP64;                     /* Double precision floating po
 typedef unsigned char MAC_698;	//数据安全MAC
 typedef unsigned char RN_698;	//随机数
 typedef unsigned short OI_698;	//对象标识
-#define ASN_NULL 0
-
 
 //////////////////////////////////////////////////////////////////
 /*
@@ -431,7 +429,7 @@ typedef struct
 
 typedef union
 {
-	INT8U null;
+	INT8U	null;
 	Selector1 selec1;
 	Selector2 selec2;
 	Selector3 selec3;
