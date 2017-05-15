@@ -99,11 +99,11 @@ int RegularSerial(struct aeEventLoop *ep, long long id, void *clientData) {
                     GlobCrc[oif201.devpara.verify], GlobData[oif201.devpara.databits],
                     GlobStop[oif201.devpara.stopbits]);
             nst->phy_connect_fd =
-                    OpenCom((nst->shm->cfg_para.device == CCTT1 ? 2 : 3), GlobBand[oif201.devpara.baud],
+                    OpenCom((nst->shm->cfg_para.device == CCTT1 ? 4 : 4), GlobBand[oif201.devpara.baud],
                             GlobCrc[oif201.devpara.verify], GlobStop[oif201.devpara.stopbits],
                             GlobData[oif201.devpara.databits]);
         } else {
-            nst->phy_connect_fd = OpenCom((nst->shm->cfg_para.device == CCTT1 ? 2 : 3), 2400, (unsigned char *) "even",
+            nst->phy_connect_fd = OpenCom((nst->shm->cfg_para.device == CCTT1 ? 4 : 4), 2400, (unsigned char *) "even",
                                           1, 8);
         }
 

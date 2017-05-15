@@ -98,12 +98,12 @@ static int RegularIfr(struct aeEventLoop *ep, long long id, void *clientData) {
             fprintf(stderr, "红外模块读取参数：波特率(%d)，校验方式(%s)，数据位(%d)，停止位(%d)\n", GlobBand[oif202.devpara.baud],
                     GlobCrc[oif202.devpara.verify], GlobData[oif202.devpara.databits],
                     GlobStop[oif202.devpara.stopbits]);
-            nst->phy_connect_fd = OpenCom((nst->shm->cfg_para.device == CCTT1 ? 2 : 3), GlobBand[oif202.devpara.baud],
+            nst->phy_connect_fd = OpenCom(3, GlobBand[oif202.devpara.baud],
                                           (unsigned char *) GlobCrc[oif202.devpara.verify],
                                           GlobStop[oif202.devpara.stopbits],
                                           GlobData[oif202.devpara.databits]);
         } else {
-            nst->phy_connect_fd = OpenCom((nst->shm->cfg_para.device == CCTT1 ? 2 : 3), 2400, (unsigned char *) "even",
+            nst->phy_connect_fd = OpenCom(3, 2400, (unsigned char *) "even",
                                           1, 8);
         }
 
