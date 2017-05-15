@@ -95,6 +95,23 @@ static int getNext(INT8U *buf) {
     return len;
 }
 
+
+static int putNext(INT8U *buf, INT16U len) {
+    pthread_mutex_lock(&locker);
+    if (netObject.recv.len + len > 2048) {
+        pthread_mutex_unlock(&locker);
+        return -1;
+    }
+
+    for (int i = 0; i < len; ++i) {
+        netObject.recv.buf[netObject.recv.len + i] = buf[i];
+        printf("2=========%02x\n", buf[i]);
+    }
+    netObject.recv.len += len;
+    pthread_mutex_unlock(&locker);
+    return len;
+}
+
 static MASTER_STATION_INFO getNextGprsIpPort(CommBlock *commBlock) {
     static int index = 0;
     static int ChangeFlag = -1;
@@ -469,11 +486,12 @@ void *ModelWorker(void *args) {
                     sprintf(CommandBuf, "\rAT$MYNETWRITE=1,%d\r", res);
 
                     SendATCommand(CommandBuf, strlen(CommandBuf), sMux0);
-                    delay(1000);
+                    write(sMux0, CommandBuf, strlen(CommandBuf));
+                    delay(3000);
                     memset(Mrecvbuf, 0, 128);
                     RecieveFromComm(Mrecvbuf, 128, sMux0);
 
-                    if (strstr(Mrecvbuf, "OK") != 0) {
+                    if (strstr(Mrecvbuf, "MYNETWRITE") != 0) {
                         for (int i = 0; i < res; ++i) {
                             printf("%02x\n", sendBuf[i]);
                         }
@@ -505,13 +523,14 @@ void *ModelWorker(void *args) {
 
                 if (sscanf(Mrecvbuf, "%*[^:]: %d,%d", &k, &l) == 2) {
                     printf("============%d-%d\n", k, l);
-                    if (l == 0){
+                    if (l == 0) {
                         break;
                     }
-                    for (int i = 0; i < 128; ++i) {
-                        printf("%02x ", Mrecvbuf[i]);
+                    for (int i = 0; i < l; ++i) {
+                        printf("%02x ", Mrecvbuf[40 + i]);
                     }
                     printf("\n");
+                    putNext(&Mrecvbuf[40], l);
                     break;
                 } else {
                     printf("+++++++++++++++++++++++");
@@ -554,6 +573,7 @@ static int RegularClientOnModel(struct aeEventLoop *ep, long long id, void *clie
     if (revcount > 0) {
         for (int j = 0; j < revcount; j++) {
             nst->RecBuf[nst->RHead] = recvBuf[j];
+
             nst->RHead = (nst->RHead + 1) % BUFLEN;
         }
 
