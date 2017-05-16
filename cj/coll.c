@@ -344,6 +344,7 @@ void Collect6000(int argc, char *argv[])
 void print6013(CLASS_6013 class6013)
 {
 	INT8U	i=0;
+	fprintf(stderr,"\n\n[1]执行频率 [2]方案类型 [3]方案编号 [4]开始时间 [5]结束时间 [6]延时 [7]执行优先级 [8]状态 [9]开始前脚本id [10]开始后脚本id [11]运行时段【起始HH:MM 结束HH:MM】\n");
 	fprintf(stderr,"【6013】任务配置单元: 任务ID--%d\n",class6013.taskID);
 	fprintf(stderr,"       [1]%s-%d ",getenum(task_ti,class6013.interval.units),class6013.interval.interval);
 	fprintf(stderr,"[2]%s  [3]%d   ",getenum(task_cjtype,class6013.cjtype),class6013.sernum);
@@ -494,7 +495,7 @@ void print6015(CLASS_6015 class6015)
 {
 	INT8U type=0,w=0,i=0;
 
-	fprintf(stderr,"[1]方案编号 [2]存储深度 [3]采集类型 [4]采集内容 [5]OAD-ROAD [6]MS [7]存储时标\n");
+	fprintf(stderr,"\n\n[1]方案编号 [2]存储深度 [3]采集类型 [4]采集内容 [5]OAD-ROAD [6]MS [7]存储时标\n");
 	fprintf(stderr,"[6015]普通采集方案:[1]方案号: %d  \n",class6015.sernum);
 	fprintf(stderr,"     [2]%d  [3]%s ",class6015.deepsize,getenum(coll_mode,class6015.cjtype));
 	switch(class6015.cjtype) {
@@ -606,7 +607,7 @@ void print_6017(CLASS_6017 eventFangAn)
 {
 	INT8U j=0;
 
-	fprintf(stderr,"\n事件采集方案：[1]方案编号 采集方式{[2] 采集类型 [3]采集事件数据ROAD} [4]电能表集合MS [5]上报标识 [6]存储深度");
+	fprintf(stderr,"\n\n事件采集方案：[1]方案编号 采集方式{[2] 采集类型 [3]采集事件数据ROAD} [4]电能表集合MS [5]上报标识 [6]存储深度");
 
 	fprintf(stderr,"\n[1]方案编号 ：%d ",eventFangAn.sernum);
 	fprintf(stderr,"\n[2]采集类型 ：%d ",eventFangAn.collstyle.colltype);
@@ -677,7 +678,7 @@ void Event6017(int argc, char *argv[])
 void print_601d(CLASS_601D	 reportplan)
 {
 	int j=0;
-	fprintf(stderr,"\n[1]上报方案编号 [2]上报通道 [3]上报响应超时时间 [4]最大上报次数 [5]上报内容 {[5.1]类型(0:OAD,1:RecordData) [5.2]数据 [5.3]RSD}");
+	fprintf(stderr,"\n\n[1]上报方案编号 [2]上报通道 [3]上报响应超时时间 [4]最大上报次数 [5]上报内容 {[5.1]类型(0:OAD,1:RecordData) [5.2]数据 [5.3]RSD}");
 	fprintf(stderr,"\n[1]上报方案编号:%d \n",reportplan.reportnum);
 	fprintf(stderr,"[2]OAD[%d] ",reportplan.chann_oad.num);
 	for(j=0;j<reportplan.chann_oad.num;j++) {
@@ -754,7 +755,7 @@ void Report601d(int argc, char *argv[])
 void print6035(CLASS_6035 class6035)
 {
 	fprintf(stderr,"[6035]采集任务监控单元 \n");
-	fprintf(stderr,"[1]任务ID [2]执行状态<0:未执行 1:执行中 2:已执行> [3]任务执行开始时间 [4]任务执行结束时间 [5]采集总数量 [6]采集成功数量 [7]已发送报文条数 [8]已接收报文条数 \n");
+	fprintf(stderr,"\n\n[1]任务ID [2]执行状态<0:未执行 1:执行中 2:已执行> [3]任务执行开始时间 [4]任务执行结束时间 [5]采集总数量 [6]采集成功数量 [7]已发送报文条数 [8]已接收报文条数 \n");
 	fprintf(stderr,"[1]%d [2]%d ",class6035.taskID,class6035.taskState);
 	fprintf(stderr,"[3]%d-%d-%d %02d:%02d:%02d ",class6035.starttime.year.data,class6035.starttime.month.data,class6035.starttime.day.data,
 			class6035.starttime.hour.data,class6035.starttime.min.data,class6035.starttime.sec.data);
