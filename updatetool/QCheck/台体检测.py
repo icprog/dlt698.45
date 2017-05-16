@@ -202,7 +202,7 @@ def checkNormal(config):
 #
 def showDeviceId(config):
     lNet = ReadyNet(config.get('info', 'host'), config.get('info', 'user'), config.get('info', 'passwd'))
-    lNet.write("cj ip 119.180.24.156:8001 119.180.24.156:8001" + "\r\n")
+    lNet.write("cj ip 119.180.24.156:6360 119.180.24.156:6360" + "\r\n")
     lNet.write("cj apn cmnet" + "\r\n")
     lNet.write("cj heart 60" + "\r\n")
 

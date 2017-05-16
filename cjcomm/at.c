@@ -504,6 +504,7 @@ void *ATWorker(void *args) {
 
         gpofun("/dev/gpoCSQ_GREEN", 0);
         gpofun("/dev/gpoCSQ_RED", 0);
+        gpofun("/dev/gpoONLINE_LED", 0);
 
         if (GetOnlineType() != 0) {
             goto wait;
