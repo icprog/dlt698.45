@@ -195,6 +195,7 @@ void DbPrt1(INT8U comport,char *prefix, char *buf, int len, char *suffix)
 		if(count>=len)
 			break;
 	}
+	int prtlen=0;
 }
 
 char name1[128]={};
@@ -1062,7 +1063,6 @@ INT8U getASNInfo(FORMAT07* DI07,Base_DataType* dataType)
 		if((map07DI_698OAD[index].flag07.DI_1[0][3]==DI07->DI[3])
 				&&(map07DI_698OAD[index].flag07.DI_1[0][2]==DI07->DI[2]))
 			{
-
 				//实时数据考虑的有分费率分相匹配前两个就可以
 				if(DI07->DI[3]!=0x05)
 				{
@@ -1116,10 +1116,13 @@ INT8U getASNInfo(FORMAT07* DI07,Base_DataType* dataType)
 	}
 	if(memcmp(flag07_0CF25_2,DI07->DI,4) == 0)
 	{
+		DI07->Data[0] = 0;
+		DI07->Data[1] = 0x00;
+		DI07->Data[2] = 0x80;
 		*dataType = dtdoublelong;
 		unitNum = 4;
 		INT8U f25_2_buff[16] = {0};
-		memcpy(&f25_2_buff[0],&DI07->Data[0],3);
+		memcpy(&f25_2_buff[1],&DI07->Data[0],3);
 
 		if((DI07->Data[3] = 0xff)&&(DI07->Data[4] = 0xff)&&(DI07->Data[5] = 0xff))
 		{
@@ -1143,7 +1146,7 @@ INT8U getASNInfo(FORMAT07* DI07,Base_DataType* dataType)
 		*dataType = dtdoublelong;
 		unitNum = 1;
 		INT8U f25_2_buff[4] = {0};
-		memcpy(&f25_2_buff[0],&DI07->Data[0],3);
+		memcpy(&f25_2_buff[1],&DI07->Data[0],3);
 		memcpy(&DI07->Data[0],&f25_2_buff[0],4);
 		DI07->Length += 1;
 	}
@@ -1410,19 +1413,9 @@ INT16S request698_97DataSingle(FORMAT97* format97, INT8U* SendBuf,INT16S SendLen
 		recsta = analyzeProtocol97(format97, RecvBuff, RecvLen, &nextFlag);
 		if (recsta == 0)
 		{
-#if 0
-			//检查是否是事件关联数据标识
-			if(format97->DI[3]==0x03)
-			{
-				buffLen = dealEventRecord(meter,*format97,st6035->taskID,dataContent);
-			}
-			else
-			{
-				//把07数据格式化放到dataContent
-				buffLen = data07Tobuff698(*format97,dataContent);
-				checkEvent(meter,*format97,st6035->taskID);
-			}
-#endif
+			//把07数据格式化放到dataContent
+			//buffLen = data07Tobuff698(*format97,dataContent);
+
 		} else
 		{
 
@@ -1541,7 +1534,7 @@ INT16S request698_97Data(INT8U* DI97,INT8U* dataContent,CLASS_6001 meter,CLASS_6
 	if(meter.basicinfo.addr.addr[1] > 5)
 	{
 		meter.basicinfo.addr.addr[1] = 5;
-		fprintf(stderr,"request698_07Data 电表地址长度大于6");
+		fprintf(stderr,"request698_97Data 电表地址长度大于6");
 	}
 
 	INT8U startIndex = 5 - meter.basicinfo.addr.addr[1];
@@ -1562,7 +1555,7 @@ INT16S request698_97Data(INT8U* DI97,INT8U* dataContent,CLASS_6001 meter,CLASS_6
 	subindex = 0;
 	while(subindex < MAX_RETRY_NUM)
 	{
-		retLen = request698_97DataSingle(&DI97,SendBuff,SendLen,st6035,dataContent,meter,port485);
+		retLen = request698_97DataSingle(&Data97,SendBuff,SendLen,st6035,dataContent,meter,port485);
 
 		if(retLen >= 0)
 		{
@@ -1596,8 +1589,8 @@ INT8S OADMap07DI(OI_698 roadOI,OAD sourceOAD, C601F_645* flag645) {
 		{
 			if(flag645->protocol == DLT_645_97)
 			{
+				fprintf(stderr,"\n 找到了对应97数据项　%02x%02x \n",map07DI_698OAD[index].flag97.DI_1[0][0],map07DI_698OAD[index].flag97.DI_1[0][1]);
 				memcpy(&flag645->DI._97, &map07DI_698OAD[index].flag97, sizeof(C601F_07Flag));
-
 			}
 			if(flag645->protocol == DLT_645_07)
 			{
@@ -1614,39 +1607,7 @@ INT8S OADMap07DI(OI_698 roadOI,OAD sourceOAD, C601F_645* flag645) {
 	fprintf(stderr, "\n CSDMap07DI--------没有对应的07数据项--------\n");
 	return result;
 }
-/*
- * 698 OAD 和 645 07规约 数据标识转换
- * dir:0-通过698OAD找64507DI 1-通过64507DI找698OAD
- * */
-INT8S OADMap97DI(OI_698 roadOI,OAD sourceOAD, C601F_97Flag* obj601F_97Flag) {
-	fprintf(stderr, "\n CSDMap07DI--------start--------\n");
-	fprintf(stderr, "\n roadOI = %04x sourceOAD = %04x%02x%02x\n",roadOI,sourceOAD.OI,sourceOAD.attflg,sourceOAD.attrindex);
 
-
-	INT8S result = 0;
-	INT8U index;
-	for (index = 0; index < map07DI_698OAD_NUM; index++)
-	{
-#if 0
-		fprintf(stderr,"\n map07DI_698OAD[index].roadOI = %04x OAD = %04x%02x%02x",map07DI_698OAD[index].roadOI
-				,map07DI_698OAD[index].flag698.OI,map07DI_698OAD[index].flag698.attflg,map07DI_698OAD[index].flag698.attrindex);
-#endif
-		if((memcmp(&roadOI,&map07DI_698OAD[index].roadOI,sizeof(OI_698))==0)
-				&&(memcmp(&sourceOAD.OI,&map07DI_698OAD[index].flag698.OI,sizeof(OI_698))==0))
-		{
-
-			memcpy(obj601F_97Flag, &map07DI_698OAD[index].flag07, sizeof(C601F_07Flag));
-			if(sourceOAD.attrindex != 0x00)
-			{
-				obj601F_97Flag->DI_1[0][1] = sourceOAD.attrindex;
-			}
-			return 1;
-		}
-	}
-
-	fprintf(stderr, "\n CSDMap07DI--------没有对应的07数据项--------\n");
-	return result;
-}
 INT8U getSinglegOADDataUnit(INT8U* oadData)
 {
 	INT8U length = 0;
@@ -3065,7 +3026,7 @@ INT16S request9707_singleOAD(INT8U protocol,OI_698 roadOI,OAD soureOAD,CLASS_600
 	if(protocol == DLT_645_97)
 	{
 		Flag645.protocol = DLT_645_97;
-		if (OADMap97DI(roadOI,soureOAD, &Flag645) == 1)
+		if (OADMap07DI(roadOI,soureOAD, &Flag645) == 1)
 		{
 			memset(dataContent,0,formatLen);
 
@@ -4171,7 +4132,7 @@ INT8U initMap07DI_698OAD()
 	OI_698 oadOI = 0xffff;
 	INT8U unitnum =0,dataType = 0;
 
-
+	INT8U dataflag97[2];
 	INT8U dataflag07[DF07_BYTES];
 	INT8U dataInfo[DF07_INFO_BYTES];
 
@@ -4215,19 +4176,21 @@ INT8U initMap07DI_698OAD()
 
 		fprintf(stderr,"\n oi698 = %04x\n",oi698);
 
-
+		memset(dataflag97,0xff,2);
 		memset(dataflag07,0xff,DF07_BYTES);
 		memset(dataInfo,0,DF07_INFO_BYTES);
 
-		int val[3] = {0};
+		int val[4] = {0};
 
 		fprintf(stderr,"\n------------------------");
-		sscanf((const char*)aline,"%04x %s %d %d %s",&val[0],dataflag07,&val[1],&val[2],dataInfo);
+		sscanf((const char*)aline,"%04x %04x %s %d %d %s",&val[0],&val[1],dataflag07,&val[2],&val[3],dataInfo);
 
 
 		oadOI = (OI_698)val[0];
-		unitnum = (INT8U)val[1];
-		dataType = (INT8U)val[2];
+		dataflag97[1] = (val[1]>>8)&0x00ff;
+		dataflag97[0] = val[1]&0x00ff;
+		unitnum = (INT8U)val[2];
+		dataType = (INT8U)val[3];
 
 		INT8U asc07[DF07_BYTES*2];
 		memset(asc07,0,DF07_BYTES*2);
@@ -4238,8 +4201,8 @@ INT8U initMap07DI_698OAD()
 		reversebuff(buf07, 4, dataflag07);
 
 
-		fprintf(stderr,"\n linenum = %d  oadOI=%04x  datatype = %d unitnum= %d	dataflag07 = %02x-%02x-%02x-%02x dataInfo = %s\n"
-						,linenum,oadOI,dataType,unitnum,dataflag07[0],dataflag07[1],dataflag07[2],dataflag07[3],dataInfo);
+		fprintf(stderr,"\n linenum = %d  oadOI=%04x  datatype = %d unitnum= %d	dataflag97 = %02x%02x dataflag07 = %02x-%02x-%02x-%02x dataInfo = %s\n"
+						,linenum,oadOI,dataType,unitnum,dataflag97[0],dataflag97[1],dataflag07[0],dataflag07[1],dataflag07[2],dataflag07[3],dataInfo);
 
 		map07DI_698OAD[linenum].roadOI = oi698;
 		map07DI_698OAD[linenum].flag698.OI = oadOI;
@@ -4247,6 +4210,8 @@ INT8U initMap07DI_698OAD()
 		map07DI_698OAD[linenum].flag698.attrindex = 0x00;
 		map07DI_698OAD[linenum].unitnum = unitnum;
 		map07DI_698OAD[linenum].datatype = dataType;
+		map07DI_698OAD[linenum].flag97.dinum =1;
+		memcpy(map07DI_698OAD[linenum].flag97.DI_1,dataflag97,2);
 		map07DI_698OAD[linenum].flag07.dinum =1;
 		memcpy(map07DI_698OAD[linenum].flag07.DI_1,dataflag07,DF07_BYTES);
 		linenum++;
@@ -4266,6 +4231,11 @@ INT8U initMap07DI_698OAD()
 	map07DI_698OAD[linenum].flag698.attrindex = 0x00;
 	map07DI_698OAD[linenum].unitnum = 1;
 	map07DI_698OAD[linenum].datatype = 0;
+	map07DI_698OAD[linenum].flag97.dinum = 2;
+	map07DI_698OAD[linenum].flag97.DI_1[0][0] = 0xc0;
+	map07DI_698OAD[linenum].flag97.DI_1[0][1] = 0x10;
+	map07DI_698OAD[linenum].flag97.DI_1[1][0] = 0xc0;
+	map07DI_698OAD[linenum].flag97.DI_1[1][1] = 0x11;
 	map07DI_698OAD[linenum].flag07.dinum = 2;
 	memcpy(map07DI_698OAD[linenum].flag07.DI_1[0],flag07_date,DF07_BYTES);
 	memcpy(map07DI_698OAD[linenum].flag07.DI_1[1],flag07_time,DF07_BYTES);
