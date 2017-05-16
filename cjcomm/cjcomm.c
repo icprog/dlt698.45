@@ -30,9 +30,9 @@ void SetOnlineType(int type) {
         JProgramInfo->dev_info.jzq_login = type;
     }
     OnlineType = type;
-    if (type == 0){
+    if (type == 0) {
         SetConnectStatus(0);
-    } else{
+    } else {
         SetConnectStatus(1);
     }
 }
@@ -308,6 +308,30 @@ void dumpPeerStat(int fd, char *info) {
     asyslog(LOG_INFO, "[%s%s]:%d\n", info, peerBuf, port);
 }
 
+int netWatch(struct aeEventLoop *ep, long long id, void *clientData) {
+    static int deadline = 0;
+//    printf("deadline = %d\n", deadline);
+    if(GetOnlineType() == 0){
+        deadline ++;
+    } else{
+        deadline = 0;
+    }
+
+    if(deadline > 2 * 60 * 60){
+        system("date >> /nand/reboot.log");
+        sleep(1);
+        system("reboot");
+    }
+
+    return 1000;
+}
+
+
+void createWatch(struct aeEventLoop *ep) {
+    int code = aeCreateTimeEvent(ep, 1000, netWatch, NULL, NULL);
+    asyslog(LOG_ERR, "注册在线监听程序[%d]\n", code);
+}
+
 /*********************************************************
  * 进程初始化
  *********************************************************/
@@ -354,6 +378,7 @@ int main(int argc, char *argv[]) {
 
 //    StartClientOnModel(ep, 0, NULL);
     StartMmq(ep, 0, NULL);
+    createWatch(ep);
 
     aeMain(ep);
 
