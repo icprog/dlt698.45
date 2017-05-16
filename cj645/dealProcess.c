@@ -668,17 +668,39 @@ void setACS(FORMAT07 format07) {
 //ret：1-广播校时；4-读数据；5-读表地址；6-最大需量清零；7-电表清零；8-校表
 void dealProcess() {
     BOOLEAN nextFlag;
+    int readstate = 1,ledstep=0;
     while (1) {
 
         for (int j = 0; j < 5; ++j) {
             JProgramInfo->Projects[j].WaitTimes = 0;
         }
-
+        ///yx 检测
+        readstate = gpio_readbyte("/dev/gpiYX1");
+        if(readstate==0) {
+        	switch(ledstep%2) {
+        	case 0:
+        		gpio_writebyte("/dev/gpoREMOTE_RED", 1);
+        		usleep(250 * 1000);
+        		gpio_writebyte("/dev/gpoREMOTE_GREEN", 1);
+        		usleep(250 * 1000);
+        		break;
+        	case 1:
+        		gpio_writebyte("/dev/gpoREMOTE_GREEN", 0);
+        		usleep(250 * 1000);
+        		gpio_writebyte("/dev/gpoREMOTE_RED", 0);
+        		usleep(250 * 1000);
+        		break;
+        	}
+        	ledstep++;
+        }
         gpio_writebyte("/dev/gpoRUN_LED", 1);
         gpio_writebyte("/dev/gpoALARM", 1);
         usleep(250 * 1000);
         gpio_writebyte("/dev/gpoRUN_LED", 0);
         gpio_writebyte("/dev/gpoALARM", 0);
+        usleep(250 * 1000);
+        gpio_writebyte("/dev/gpoRUN_LED", 1);
+        gpio_writebyte("/dev/gpoALARM", 1);
         usleep(50 * 1000);
 
         RecvLen = ReceDataFrom485(comfd, RecvBuf);

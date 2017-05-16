@@ -162,7 +162,7 @@ def checkNormal(config):
     lNet = ReadyNet(config.get('info', 'host'), config.get('info', 'user'), config.get('info', 'passwd'))
     lNet.write("cat /nand/check.log" + "\r\n")
     lNet.write("cat /proc/version" + "\r\n")
-    lNet.write("cj bt 3.6" + "\r\n")
+    lNet.write("cj bt 3.5" + "\r\n")
     lNet.write("exit" + "\r\n")
     msg = lNet.read_all()
 
@@ -202,10 +202,11 @@ def checkNormal(config):
 #
 def showDeviceId(config):
     lNet = ReadyNet(config.get('info', 'host'), config.get('info', 'user'), config.get('info', 'passwd'))
-    lNet.write("cj ip 119.180.24.156:8001 119.180.24.156:8001" + "\r\n")
+    lNet.write("cj ip 119.180.24.156:6360 119.180.24.156:6360" + "\r\n")
     lNet.write("cj apn cmnet" + "\r\n")
+    lNet.write("cj id 00 00 00 00 00 01" + "\r\n")
     lNet.write("cj heart 60" + "\r\n")
-
+    lNet.write("cj checkled &" + "\r\n")
     lNet.write("exit" + "\r\n")
     msg = lNet.read_all()
 

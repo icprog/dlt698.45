@@ -36,7 +36,7 @@ static char *usage_set = "\n--------------------参数设置及基本维护命�
         "		 【cdma电信用户名密码设置】cj usr-pwd 　user  password	apn	\n"
 		"		 【主站通信状态查询】cj cm	\n"
         "		 【通信地址】cj id <addr>	如：地址为123456  :cj id 12 34 56	\n"
-        "		 【停程序】cj dog 或者 cj stop		\n"
+        "		 【停程序】cj dog[停程序并且清狗] 或者 cj stop[清狗]		\n"
         "[读取心跳] cj heart       "
         "[设置心跳] cj heart 60 s\n"
 		"【初始化】cj InIt 3 [数据区初始化]	\n　　　　　　cj InIt 5 [事件初始化]\n　　　　　　cj InIt 6 [需量初始化]\n　　　　　　cj InIt 4 [恢复出厂参数]\n"
@@ -144,29 +144,48 @@ void prthelp() {
 }
 
 
-void dog_feed() {
+void dog_feed(char *argv) {
     INT32S fd = -1;
-    INT32S tm = 888888;
-    system("pkill cjmain");
-    sleep(1);
+    INT32S tm = 3600;
+
+    if (strcmp("dog", argv) == 0 ) {
+		system("pkill cjmain");
+		sleep(1);
+    }
     if ((fd = open(DEV_WATCHDOG, O_RDWR | O_NDELAY)) == -1) {
         fprintf(stderr, "\n\r open /dev/watchdog error!!!");
         return;
     }
     write(fd, &tm, sizeof(int));
     close(fd);
-    system("pkill cjcomm");
-    system("pkill cjdeal");
-    system("pkill gsmMuxd");
+    if (strcmp("dog", argv) == 0 ) {
+		system("pkill cjmain");
+		sleep(1);
+		system("pkill cjcomm");
+		system("pkill cjdeal");
+		system("pkill gsmMuxd");
+    }
 }
 
+//心跳报文
+static INT8U checkbuf[]={0x68,0x1e,0x00,0x43,0x05,0x05,0x00,0x00,0x00,0x00,0x00,0x01,0x63,0x71,0x01,
+						0x00,0x01,0x02,0x58,0x07,0xe1,0x05,0x10,0x02,0x00,0x15,0x19,0x00,0x00,0xcc,0x45,0x16};
 
 int main(int argc, char *argv[]) {
     if (argc < 2) {
         prthelp();
         return EXIT_SUCCESS;
     }
-
+    if (strcmp("checkled", argv[1]) == 0) {	//生产检测本地状态灯，使用485_II口发送报文，台体485_II与485_III短接，cjcomm会返回请求的数据
+    	int i=0;
+    	int comfd1;
+    	for(i=0;i<5;i++) {
+    		comfd1 = OpenCom(1, 9600, (INT8U *) "even", 1, 8);
+			write(comfd1, checkbuf, sizeof(checkbuf));
+			sleep(1);
+    	}
+    	close(comfd1);
+    }
     if (strcmp("savetest", argv[1]) == 0) {
         DateTimeBCD dt;
         PassRate_U passu[3];
@@ -198,7 +217,6 @@ int main(int argc, char *argv[]) {
             passu[i].downLimitTime = val * (i + 1) + 4;
             saveFreezeRecord(0x5004, oad, dt, sizeof(PassRate_U), (INT8U * ) & passu[i]);
         }
-
         return EXIT_SUCCESS;
     }
 
@@ -246,7 +264,7 @@ int main(int argc, char *argv[]) {
     }
 
     if (strcmp("dog", argv[1]) == 0 || strcmp("stop", argv[1]) == 0) {
-        dog_feed();
+        dog_feed(argv[1]);
         return EXIT_SUCCESS;
     }
     if (strcmp("help", argv[1]) == 0) {

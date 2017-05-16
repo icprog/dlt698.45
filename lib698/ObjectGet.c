@@ -1494,12 +1494,12 @@ int GetCollPara(INT8U seqOfNum,RESULT_NORMAL *response)
 		fprintf(stderr,"get OI=%04x oneUnitLen=%d blknum=%d 退出",oad.OI,oneUnitLen,blknum);
 		return 0;
 	}
-//	if(seqOfNum!=0) {
+//	if(seqOfNum!=0) {　　　//台体抄表参数读取多个，去掉判断
 		index = 2;			//空出 array,结束后填入
 //	}
 	for(i=0;i<blknum;i++)
 	{
-//		if(seqOfNum!=0) {	//getRequestNormal请求时不需要SEQUENCE OF
+//		if(seqOfNum!=0) {							//getRequestNormal请求时不需要SEQUENCE OF
 			create_array(&data[0],meternum);		//每次循环填充配置单元array个数，为了组帧分帧
 //		}
 		response->datalen = index;
@@ -1516,9 +1516,9 @@ int GetCollPara(INT8U seqOfNum,RESULT_NORMAL *response)
 			meternum++;
 		}
 		index += retlen;
-		if(seqOfNum==0 && meternum==1)  {	//getReponseNormal只返回一个A-ResultNormal结果数据
-			break;
-		}
+//		if(seqOfNum==0 && meternum==1)  {	//getReponseNormal只返回一个A-ResultNormal结果数据
+//			break;
+//		}
 	}
 //	if(seqOfNum!=0) {
 		create_array(&data[0],meternum);		//配置单元个数
