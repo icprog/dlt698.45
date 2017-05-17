@@ -170,28 +170,38 @@ int SendATCommand(char *buf, int len, int com) {
     int res = write(com, buf, len);
     int i = 0;
     if (len > 0) {
-        fprintf(stderr, "[AT]Send:\n");
+        INT8U atbuf[1024];
+        memset(atbuf, 0x00, sizeof(atbuf));
+        int atbufindex = 0;
+
+        asyslog(LOG_INFO, "[AT]send:");
+
         for (i = 0; i < len; i++) {
             if (buf[i] >= 0x20 && buf[i] <= 0x7E) {
-                fprintf(stderr, "%c", buf[i]);
+                atbuf[atbufindex++] = buf[i];
             }
         }
-        fprintf(stderr, "\n");
+        asyslog(LOG_INFO, "%s", atbuf);
     }
     return (res < 0) ? 0 : res;
 }
 
 int RecieveFromComm(char *buf, int mlen, int com) {
     int len = read(com, buf, mlen);
-    int i = 0;
-    fprintf(stderr, "[AT]recv:\n");
+
     if (len > 0) {
-        for (i = 0; i < len; i++) {
+        INT8U atbuf[1024];
+        memset(atbuf, 0x00, sizeof(atbuf));
+        int atbufindex = 0;
+
+        asyslog(LOG_INFO, "[AT]recv:\n");
+
+        for (int i = 0; i < len; i++) {
             if (buf[i] >= 0x20 && buf[i] <= 0x7E) {
-                fprintf(stderr, "%c", buf[i]);
+                atbuf[atbufindex++] = buf[i];
             }
         }
-        fprintf(stderr, "\n");
+        asyslog(LOG_INFO, "%s", atbuf);
     }
     return (len < 0) ? 0 : len;
 }
@@ -510,6 +520,12 @@ void *ATWorker(void *args) {
         gpofun("/dev/gpoCSQ_RED", 0);
         gpofun("/dev/gpoONLINE_LED", 0);
 
+        SetGprsStatus(0);
+        SetGprsCSQ(0);
+        SetWireLessType(0);
+        SetPPPDStatus(0);
+
+
         if (GetOnlineType() != 0) {
             goto wait;
         }
@@ -519,7 +535,7 @@ void *ATWorker(void *args) {
          */
         asyslog(LOG_INFO, "重置模块状态...");
         gpofun("/dev/gpoGPRS_POWER", 0);
-        sleep(5);
+        sleep(8);
         gpofun("/dev/gpoGPRS_POWER", 1);
         gpofun("/dev/gpoGPRS_RST", 1);
         gpofun("/dev/gpoGPRS_SWITCH", 1);
@@ -532,11 +548,6 @@ void *ATWorker(void *args) {
         sleep(1);
         gpofun("/dev/gpoGPRS_SWITCH", 1);
         sleep(10);
-
-        SetGprsStatus(0);
-        SetGprsCSQ(0);
-        SetWireLessType(0);
-        SetPPPDStatus(0);
 
         if (GetOnlineType() != 0) {
             goto wait;
@@ -569,7 +580,7 @@ void *ATWorker(void *args) {
                     break;
                 }
             }
-            if (i == 2) {
+            if (i == 5) {
                 goto err;
             }
         }
