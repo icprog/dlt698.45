@@ -1132,9 +1132,12 @@ INT8U getASNInfo(FORMAT07* DI07,Base_DataType* dataType)
 			else
 			{
 				memcpy(&f25_2_buff[(tmpIndex*4)+1],&DI07->Data[tmpIndex*3],3);
+			//	fprintf(stderr,"\n tmpIndex = %d DI07->Data =  %02x%02x%02x f25_2_buff = %02x%02x%02x%02x\n ",tmpIndex,
+			//			DI07->Data[0],DI07->Data[1],DI07->Data[2],f25_2_buff[0],f25_2_buff[1],f25_2_buff[2],f25_2_buff[3]);
 			}
 		}
 		memcpy(&DI07->Data[0],f25_2_buff,16);
+		//fprintf(stderr,"\n DI07->Data = %02x%02x%02x%02x\n ",DI07->Data[0],DI07->Data[1],DI07->Data[2],DI07->Data[3]);
 		if(unitNum == 1)
 		{
 			DI07->Length += 1;
@@ -1149,8 +1152,9 @@ INT8U getASNInfo(FORMAT07* DI07,Base_DataType* dataType)
 		||((DI07->DI[3] == 0x05)&&(DI07->DI[2] == 0x06)&&(DI07->DI[1]==0x09))
 		||((DI07->DI[3] == 0x05)&&(DI07->DI[2] == 0x06)&&(DI07->DI[1]==0x0A)))
 	{
+		*dataType = dtnull;
 		//02 02 06 xx xx xx xx 1c xx xx xx xx xx xx xx
-		DI07->Length = 0;
+		DI07->Length = 4;
 		INT8U xuliangdata[75];
 		memset(xuliangdata,0,75);
 
@@ -1206,6 +1210,7 @@ INT8U getASNInfo(FORMAT07* DI07,Base_DataType* dataType)
 			DI07->Length += 15;
 			memcpy(&DI07->Data[tmpIndex*15],&xuliangdata[tmpIndex*15],15);
 		}
+		fprintf(stderr,"需量 DI07->Length = %d",DI07->Length);
 		return unitNum;
 	}
 	//功率
