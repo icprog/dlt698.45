@@ -92,10 +92,21 @@ Tools()
     fi
 }
 
+Composer()
+{
+    echo "生成集合包..."
+    #$path = 'history/$1.$2.$(date +%Y%m%d%H)'
+    mkdir -p history/$1.$2.$(date +%Y%m%d%H)
+    cp -R QCheck history/$1.$2.$(date +%Y%m%d%H)
+    cp app.tar.gz history/$1.$2.$(date +%Y%m%d%H)
+    cp -R cjgwn history/$1.$2.$(date +%Y%m%d%H)
+    cp update.sh history/$1.$2.$(date +%Y%m%d%H)
+}
+
 Post_Clean()
 {
     echo "执行清理..."
-#    rm app.tar.gz
+    rm app.tar.gz
     rm -rf app
 }
 
@@ -108,6 +119,7 @@ main()
     Package
     CreateUSB
     Tools $1 $2
+    Composer $1 $2
     Post_Clean
 }
 
