@@ -179,12 +179,13 @@ int main(int argc, char *argv[]) {
     if (strcmp("checkled", argv[1]) == 0) {	//生产检测本地状态灯，使用485_II口发送报文，台体485_II与485_III短接，cjcomm会返回请求的数据
     	int i=0;
     	int comfd1;
-    	for(i=0;i<5;i++) {
+    	for(i=0;i<3;i++) {
     		comfd1 = OpenCom(1, 9600, (INT8U *) "even", 1, 8);
 			write(comfd1, checkbuf, sizeof(checkbuf));
-			sleep(1);
+			usleep(500 * 1000);
     	}
     	close(comfd1);
+        return EXIT_SUCCESS;
     }
     if (strcmp("savetest", argv[1]) == 0) {
         DateTimeBCD dt;

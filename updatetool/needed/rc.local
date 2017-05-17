@@ -10,7 +10,7 @@ if [ -f "/nand/UpFiles/update.sh" ]; then
   rm /nand/UpFiles/*
 fi
 
-syslogd -l 7 -s 20480 -O /nand/log
+syslogd -l 7 -s 4096 -O /nand/log
 mkfifo /dev/shm/null
 tail -f /dev/shm/null>> /dev/null &
 cjmain all 2> /dev/shm/null &
