@@ -17,3 +17,4 @@ updatetool/*
 updatetool/*/*
 
 include/version.h
+libTransmit/.project
