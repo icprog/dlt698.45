@@ -95,7 +95,7 @@ Tools()
 Post_Clean()
 {
     echo "执行清理..."
-    rm app.tar.gz
+#    rm app.tar.gz
     rm -rf app
 }
 
