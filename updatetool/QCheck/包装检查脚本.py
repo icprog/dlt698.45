@@ -48,7 +48,7 @@ def checkConfig(config):
 #
 def ReadyNet(host, user, passwd):
     try:
-        telnetfp = telnetlib.Telnet(host)
+        telnetfp = telnetlib.Telnet(host, timeout=3)
 
         telnetfp.read_until("ogin: ")
         telnetfp.write(user + "\r\n")
@@ -57,7 +57,6 @@ def ReadyNet(host, user, passwd):
         return telnetfp
 
     except IOError, e:
-        print '网络连接错误，检查网线连接状态。'
         raise e
 
 
@@ -200,17 +199,23 @@ def showDeviceId(config):
 if __name__ == '__main__':
     config = checkConfig("./check.ini")
     while True:
-        getInputGiveInfo()
+        try:
+            getInputGiveInfo()
 
-        ok = 1
-        os.system('cls;clear')
-        ok &= checkDevice(config)
-        ok &= checkProgs(config)
-        ok &= checkSoftVersion(config)
-        ok &= checkDateTime(config)
-        showDeviceId(config)
+            ok = 1
+            os.system('cls;clear')
+            so.system('arp -d')
+            ok &= checkDevice(config)
+            ok &= checkProgs(config)
+            ok &= checkSoftVersion(config)
+            ok &= checkDateTime(config)
+            showDeviceId(config)
 
-        if ok == 1:
-            print "\n\n>>>>>>>>>>>>>>>>>\n全部正确\n>>>>>>>>>>>>>>>>>\n\n".decode('utf-8')
-        else:
-            print "\n\n>>>>>>>>>>>>>>>>>\n设备异常!!!!!\n>>>>>>>>>>>>>>>>>\n\n".decode('utf-8')
+            if ok == 1:
+                print "\n\n>>>>>>>>>>>>>>>>>\n全部正确\n>>>>>>>>>>>>>>>>>\n\n".decode('utf-8')
+            else:
+                print "\n\n>>>>>>>>>>>>>>>>>\n设备异常!!!!!\n>>>>>>>>>>>>>>>>>\n\n".decode('utf-8')
+
+        except IOError, e:
+            print '网络连接错误，检查网线连接状态。'.decode('utf-8')
+            continue

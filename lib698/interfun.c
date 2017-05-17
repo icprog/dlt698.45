@@ -16,6 +16,18 @@
 
 extern ProgramInfo *memp;
 //////////////////////////////////////////////////////////////////////
+
+void printDataTimeS(char *pro,DateTimeBCD datetimes)
+{
+	fprintf(stderr,"[%s]: %04d:%02d:%02d %02d:%02d:%02d\n",pro,datetimes.year.data,datetimes.month.data,datetimes.day.data,
+			datetimes.hour.data,datetimes.min.data,datetimes.sec.data);
+}
+
+void printTI(char *pro,TI ti)
+{
+	fprintf(stderr,"[%s]:单位(%d)-间隔值(%d)  [秒:0,分:1,时:2,日:3,月:4,年:5]\n",pro,ti.units,ti.interval);
+}
+
 void printMS(MY_MS ms)
 {
 	int i=0,j=0;
@@ -48,6 +60,12 @@ void print_rsd(INT8U choice,RSD rsd)
 {
 	fprintf(stderr,"RSD:choice=%d\n",choice);
 	switch(choice) {
+	case 8:
+		printDataTimeS("采集成功时间起始值",rsd.selec8.collect_succ_star);
+		printDataTimeS("采集成功时间结束值",rsd.selec8.collect_succ_finish);
+		printTI("上报响应超时时间",rsd.selec8.ti);
+		printMS(rsd.selec8.meters);
+		break;
 	case 10:
 		fprintf(stderr,"Select10为指定选取最新的 %d 条记录:\n",rsd.selec10.recordn);
 		printMS(rsd.selec10.meters);
@@ -619,8 +637,8 @@ int get_Data(INT8U *source,INT8U *dest)
 		dest[1] = source[1];
 		return 2;
 	case dtlongunsigned:
-		dest[1] = source[2];		//高低位
-		dest[2] = source[1];
+		dest[1] = source[1];		//高低位
+		dest[2] = source[2];
 		return 3;
 	case dtfloat64:
 	case dtlong64:
@@ -797,8 +815,27 @@ int getMS(INT8U type,INT8U *source,MY_MS *ms)		//0x5C
 			ms->mstype = source[type];  //0表示 没有电表  1表示 全部电表	//区分MS类型，人工加入一个字节，报文中无此说明
 			ms->mstype = source[type];
 			return 1+type;
-		case 2:
-			break;
+		case 2://一组用户类型
+			type++;
+			seqlen = source[type];	//sequence 的长度
+			if(seqlen & 0x80) {		//长度两个字节
+				seqnum = (source[type] << 8) | source[type+1];
+				type += 2;
+			}else {
+				seqnum = seqlen;
+				type += 1;
+			}
+			if(seqnum>COLLCLASS_MAXNUM) {
+				fprintf(stderr,"sequence of num 大于容量 %d,无法处理！！！",COLLCLASS_MAXNUM);
+				return 1+type;
+			}
+			ms->mstype = choicetype;
+			fprintf(stderr,"seqnum=%d\n",seqnum);		//只测试了一个电表
+			ms->ms.userType[0] = seqnum;
+			for(i=0;i<seqnum;i++) {
+				ms->ms.userType[i+1] = source[type++];
+			}
+			return type;
 		case 3:
 			type++;
 			seqlen = source[type];	//sequence 的长度

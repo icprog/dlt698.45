@@ -57,7 +57,7 @@ void ClientForNetRead(struct aeEventLoop *eventLoop, int fd, void *clientData, i
 
     //关闭异常端口
     if (revcount == 0) {
-        asyslog(LOG_WARNING, "客户端[以太网]链接出现异常，关闭端口");
+        asyslog(LOG_WARNING, "客户端[以太网]链接出现异常[%d]，关闭端口", errno);
         aeDeleteFileEvent(eventLoop, fd, AE_READABLE);
         close(fd);
         nst->phy_connect_fd = -1;
@@ -160,12 +160,12 @@ int CertainConnectForNet(char *interface, CommBlock *commBlock) {
     }
 }
 
-void check_F101_changed_Net(CommBlock *commBlock){
-    static  int ChangeFlag = 0;
-    if(ChangeFlag != ((ProgramInfo *) commBlock->shmem)->oi_changed.oiF101){
+void check_F101_changed_Net(CommBlock *commBlock) {
+    static int ChangeFlag = 0;
+    if (ChangeFlag != ((ProgramInfo *) commBlock->shmem)->oi_changed.oiF101) {
         ChangeFlag = ((ProgramInfo *) commBlock->shmem)->oi_changed.oiF101;
         asyslog(LOG_WARNING, "检测到安全参数变化！刷新安全参数！");
-        readCoverClass(0xf101, 0, (void *)&commBlock->f101, sizeof(CLASS_F101), para_vari_save);
+        readCoverClass(0xf101, 0, (void *) &commBlock->f101, sizeof(CLASS_F101), para_vari_save);
     }
 }
 

@@ -83,6 +83,7 @@ void InitClassByZone(INT8U type)
     	ret = readCoverClass(0x4500, 0, (void*)&class4500, sizeof(CLASS25), para_vari_save);
 	}else ret = 0;
     if (ret != 1) {
+
     	if(getZone("ZheJiang")==0) {
 			InitClass4500(master_info_ZheJiang,gprs_para_ZheJiang);
 		}else if(getZone("HuNan")==0) {

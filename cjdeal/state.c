@@ -140,8 +140,8 @@ INT8U state_check(BOOLEAN changed,INT8U devicetype)
 
 	memset(bit_state,0,sizeof(bit_state));
 	if(devicetype == CCTT2) {
-		state_num = 1;
-	}else state_num = 4;
+		state_num = 1;		//防止读取其他无用的yx设备
+	}else state_num = STATE_MAXNUM;
 
 	for(i=0; i < state_num; i++)
 	{
