@@ -498,6 +498,10 @@ void *ATWorker(void *args) {
          * 清除外部程序
          */
         asyslog(LOG_INFO, "清除外部程序...");
+
+        //提前为模块断电，防止模块出问题
+        gpofun("/dev/gpoGPRS_POWER", 0);
+
         system("ppp-off");
         absoluteKill("ftpget", 15);
         absoluteKill("gsmMuxd", 15);
@@ -543,7 +547,7 @@ void *ATWorker(void *args) {
          */
         asyslog(LOG_INFO, "打开串口复用模块");
         system("mux.sh &");
-        sleep(10);
+        sleep(15);
 
         sMux0 = OpenMuxCom(0, 115200, (unsigned char *) "none", 1, 8); // 0
         sMux1 = OpenMuxCom(1, 115200, (unsigned char *) "none", 1, 8);
