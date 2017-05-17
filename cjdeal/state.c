@@ -29,6 +29,7 @@
 #include "Objectdef.h"
 #include "PublicFunction.h"
 #include "event.h"
+#include "basedef.h"
 
 static CLASS_f203	oif203={};
 
@@ -131,13 +132,18 @@ BOOLEAN oi_f203_changed(INT8U save_changed)
  * */
 INT8U state_check(BOOLEAN changed,INT8U devicetype)
 {
+	INT8U 	state_num=1;
 	INT8U	staret=0;
 	INT8U 	i =0;
 	INT8U 	bit_state[STATE_MAXNUM]={};
 	INT8S	readstate[STATE_MAXNUM]={};	//读取开关量状态
 
 	memset(bit_state,0,sizeof(bit_state));
-	for(i=0; i < STATE_MAXNUM; i++)
+	if(devicetype == CCTT2) {
+		state_num = 1;		//防止读取其他无用的yx设备
+	}else state_num = STATE_MAXNUM;
+
+	for(i=0; i < state_num; i++)
 	{
 		if(((oif203.state4.StateAcessFlag >>(STATE_MAXNUM-1-i))&0x01) ==1) {
 			if(i>=0 && i<=3) {		//YX1-YX4
@@ -148,7 +154,7 @@ INT8U state_check(BOOLEAN changed,INT8U devicetype)
 					bit_state[i] = bit_state[0];			//II型无设备，台体测试测试1-4路状态
 				}
 			}else if(i==4) {		//门节点
-				if(devicetype==1) {		//I型集中器
+				if(devicetype==CCTT1) {		//I型集中器
 					readstate[i] = getSpiAnalogState();
 					if(readstate[i]!=-1) {
 						bit_state[i] = ((~(readstate[i]>>5))&0x01);

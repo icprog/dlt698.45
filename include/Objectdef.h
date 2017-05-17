@@ -380,23 +380,30 @@ typedef struct {
 typedef struct {
     INT8U dinum;
     INT8U DI_1[DI07_NUM_601F][4];
-//    INT8U dinum2;
     INT8U DI_2[DI07_NUM_601F][4];
 } C601F_07Flag;
 
-//typedef struct {
-//    INT8U dinum1;
-//    INT8U DI_1[DI97_NUM_601F][2];
-//    INT8U dinum2;
-//    INT8U DI_2[DI97_NUM_601F][2];
-//} C601F_97Flag;
+typedef struct {
+    INT8U dinum;
+    INT8U DI_1[DI97_NUM_601F][2];
+    INT8U DI_2[DI97_NUM_601F][2];
+} C601F_97Flag;
+
+typedef struct {
+    INT8U protocol;
+    union
+    {
+    	C601F_97Flag _97;
+    	C601F_07Flag _07;
+    }DI;
+}C601F_645;
 
 typedef struct {
     OI_698 roadOI; //实时数据 0000  日冻结数据5004
     OAD flag698;
     INT8U unitnum;
     INT8U datatype;
-//    CSD_ARRAYTYPE csds;           //记录列选择 array CSD,
+    C601F_97Flag flag97;
     C601F_07Flag flag07;
 } CLASS_601F; //采集规则
 

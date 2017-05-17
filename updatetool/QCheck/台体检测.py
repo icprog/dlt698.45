@@ -48,7 +48,7 @@ def checkConfig(config):
 #
 def ReadyNet(host, user, passwd):
     try:
-        telnetfp = telnetlib.Telnet(host)
+        telnetfp = telnetlib.Telnet(host, timeout=3)
 
         telnetfp.read_until("ogin: ")
         telnetfp.write(user + "\r\n")
@@ -57,7 +57,6 @@ def ReadyNet(host, user, passwd):
         return telnetfp
 
     except IOError, e:
-        print '网络连接错误，检查网线连接状态。'.decode('utf-8')
         raise e
 
 
@@ -99,6 +98,7 @@ def checkDevice(config):
         lNet.close()
         time.sleep(0.2)
     print "\n\n"
+
 
 #
 # 检查设备时间误差
@@ -162,7 +162,7 @@ def checkNormal(config):
     lNet = ReadyNet(config.get('info', 'host'), config.get('info', 'user'), config.get('info', 'passwd'))
     lNet.write("cat /nand/check.log" + "\r\n")
     lNet.write("cat /proc/version" + "\r\n")
-    lNet.write("cj bt 3.6" + "\r\n")
+    lNet.write("cj bt 3.5" + "\r\n")
     lNet.write("exit" + "\r\n")
     msg = lNet.read_all()
 
@@ -202,10 +202,11 @@ def checkNormal(config):
 #
 def showDeviceId(config):
     lNet = ReadyNet(config.get('info', 'host'), config.get('info', 'user'), config.get('info', 'passwd'))
-    lNet.write("cj ip 119.180.24.156:8001 119.180.24.156:8001" + "\r\n")
+    lNet.write("cj ip 119.180.24.156:6360 119.180.24.156:6360" + "\r\n")
     lNet.write("cj apn cmnet" + "\r\n")
+    lNet.write("cj id 00 00 00 00 00 01" + "\r\n")
     lNet.write("cj heart 60" + "\r\n")
-
+    lNet.write("cj checkled &" + "\r\n")
     lNet.write("exit" + "\r\n")
     msg = lNet.read_all()
 
@@ -216,17 +217,23 @@ def showDeviceId(config):
 if __name__ == '__main__':
     config = checkConfig("./check.ini")
     while True:
-        getInputGiveInfo()
+        try:
+            getInputGiveInfo()
 
-        ok = 1
+            ok = 1
 
-        os.system('cls;clear')
-        ok &= checkNormal(config);
-        ok &= checkSoftVersion(config)
-        ok &= checkDateTime(config)
-        ok &= showDeviceId(config)
+            os.system('cls;clear')
+            os.system('arp -d')
+            ok &= checkNormal(config);
+            ok &= checkSoftVersion(config)
+            ok &= checkDateTime(config)
+            ok &= showDeviceId(config)
 
-        if ok == 1:
-            print "\n\n\n>>>>>>>>>>>>>>>>>全部正确\n\n\n".decode('utf-8')
-        else:
-            print "\n\n\n>>>>>>>>>>>>>>>>>设备异常!!!!!\n\n\n".decode('utf-8')
+            if ok == 1:
+                print "\n\n\n>>>>>>>>>>>>>>>>>全部正确\n\n\n".decode('utf-8')
+            else:
+                print "\n\n\n>>>>>>>>>>>>>>>>>设备异常!!!!!\n\n\n".decode('utf-8')
+
+        except IOError, e:
+            print '网络连接错误，检查网线连接状态。'.decode('utf-8')
+            continue

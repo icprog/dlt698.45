@@ -59,22 +59,7 @@ typedef struct
     RealDataInfo realdata;       //请求结果,总及4费率
 }Proxy_Msg;
 
-#ifdef JIANGSU
-extern void lcd_Bottom_allshow();
-extern void icon_work(Point icon_pos,char *str,INT8U *para_state,INT8U *para_delay);
-extern void lcd_Bottom_bar();
-#endif
-
-
-
 extern ProgramInfo* p_JProgramInfo;
-extern INT8U g_firstRun;
-
-
-extern INT8U g_oi4001_has_read;
-extern INT8U g_oi4300_has_read;
-extern INT8U g_oi4500_has_read;
-extern INT8U g_oi4510_has_read;
 
 extern INT8U g_chgOI4500;
 extern INT8U g_chgOI4300;
@@ -84,11 +69,11 @@ extern CLASS25 g_class25_oi4500;
 extern CLASS_4001_4002_4003 g_Class4001_4002_4003;
 extern CLASS19 g_class19_oi4300;
 
-
 extern void showmain();
 extern void show_ctrl();
 extern void lcd_showTopStatus();
 extern void lcd_showBottomStatus(int zb_status, int gprs_status);
 extern void ProgramInfo_register(ProgramInfo* JProgramInfo);
 extern void Proxy_Msg_Data_register(Proxy_Msg* Proxy_Msg_Data);
+extern void Init_GuiLib_variable();
 #endif /* SHOW_CTRL_H_ */

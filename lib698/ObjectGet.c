@@ -895,6 +895,22 @@ void printrecord(RESULT_RECORD record)
 		break;
 	}
 }
+//
+//int getSelectData(INT8U seltype,INT8U *data,INT8U *selval)
+//{
+//	int ret=-1;
+//	switch(seltype) {
+//	case dtdatetimes:
+//		ret = getDateTimeS(0,data,selval);
+//		break;
+//	case dtlongunsigned:
+//		ret = ;
+//		break;
+//	case dtunsigned:
+//		taskid = record->select.selec1.data.data[0];
+//		break;
+//	}
+//}
 
 int getSel1_freeze(RESULT_RECORD *record)
 {
@@ -1478,14 +1494,14 @@ int GetCollPara(INT8U seqOfNum,RESULT_NORMAL *response)
 		fprintf(stderr,"get OI=%04x oneUnitLen=%d blknum=%d 退出",oad.OI,oneUnitLen,blknum);
 		return 0;
 	}
-	if(seqOfNum!=0) {
+//	if(seqOfNum!=0) {　　　//台体抄表参数读取多个，去掉判断
 		index = 2;			//空出 array,结束后填入
-	}
+//	}
 	for(i=0;i<blknum;i++)
 	{
-		if(seqOfNum!=0) {	//getRequestNormal请求时不需要SEQUENCE OF
+//		if(seqOfNum!=0) {							//getRequestNormal请求时不需要SEQUENCE OF
 			create_array(&data[0],meternum);		//每次循环填充配置单元array个数，为了组帧分帧
-		}
+//		}
 		response->datalen = index;
 		///在读取数据组帧前判断是否需要进行分帧
 		Build_subFrame(0,(index+oneUnitLen),seqOfNum,response);
@@ -1500,13 +1516,13 @@ int GetCollPara(INT8U seqOfNum,RESULT_NORMAL *response)
 			meternum++;
 		}
 		index += retlen;
-		if(seqOfNum==0 && meternum==1)  {	//getReponseNormal只返回一个A-ResultNormal结果数据
-			break;
-		}
+//		if(seqOfNum==0 && meternum==1)  {	//getReponseNormal只返回一个A-ResultNormal结果数据
+//			break;
+//		}
 	}
-	if(seqOfNum!=0) {
+//	if(seqOfNum!=0) {
 		create_array(&data[0],meternum);		//配置单元个数
-	}
+//	}
 	response->datalen = index;
 	if(next_info.subframeSum!=0) {		//已经存在分帧情况
 		Build_subFrame(1,index,seqOfNum,response);		//后续帧组帧, TODO:RequestNormalList 方法此处调用是否合适
@@ -1658,7 +1674,7 @@ int getRequestRecord(OAD oad,INT8U *data,CSINFO *csinfo,INT8U *sendbuf)
 	doGetrecord(GET_REQUEST_RECORD,oad,data,&record,&subframe);
 	if(subframe==1) {
 		BuildFrame_GetResponseRecord(GET_REQUEST_RECORD,csinfo,record,sendbuf);
-	}else  {
+	}else  if(subframe>1){
 		next_info.subframeSum = subframe;
 		next_info.frameNo = 1;
 		next_info.repsonseType = GET_REQUEST_RECORD;	//此处不直接赋值上送值是因为需要读取分帧文件的第一个字节是sequence of的值
@@ -1695,9 +1711,9 @@ int getRequestRecordList(INT8U *data,CSINFO *csinfo,INT8U *sendbuf)
 	}
 	record.data = TmpDataBufList;
 	record.datalen = destindex;
-	if(subframe==0) {
+	if(subframe==1) {		//不分帧　原来判断＝０？有错
 		BuildFrame_GetResponseRecord(GET_REQUEST_RECORD_LIST,csinfo,record,sendbuf);//原来是GET_REQUEST_RECORD，是否有错？？
-	}else  {
+	}else  if(subframe>1){
 		next_info.subframeSum = subframe;
 		next_info.frameNo = 1;
 		next_info.repsonseType = GET_REQUEST_RECORD_LIST;

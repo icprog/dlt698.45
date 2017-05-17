@@ -9,23 +9,18 @@
 #include "../include/att7022e.h"
 #include "../libBase/PublicFunction.h"
 
-//#include "att7022e.h"
-#ifdef HUBEI
-#include  "../lib3761/appendix.h"
-#endif
-
 #ifdef CCTT_I
 #include "lcdprt_jzq.h"
-#elif defined SPTF_III
-#include "lcdprt_fk.h"
 #else
-#include "lcdprt_jzq.h"
+#include "lcdprt_fk.h"
 #endif
 
 #define MUL_OFFSET 1000
 extern int read_filedata(char* FileName, int point, int did, INT8U flag, void *source);
 extern void dataitem_showvalue(INT8U *filename, int cldno, char *idname, int dataid, int len, int pos_x, int pos_y);
 
+extern ProgramInfo* p_JProgramInfo;
+extern INT8U g_chgOI4001 ;
 //获得有效的数据项个数
 int getjcelementcount(LcdDataItem *item)
 {
@@ -225,10 +220,9 @@ void ShowCLDDataPage(LcdDataItem *item, int size, INT8U show_flg)
 	gui_textshow((char*)str, pos, LCD_NOREV);
 	if(show_flg==1){
 		//地址类型、逻辑地址、终端地址
-		if (PARA_NOT_READ == g_oi4001_has_read) {
-			g_oi4001_has_read = PARA_HAS_READ;
-			readCoverClass(0x4001, 0, (void*)&g_Class4001_4002_4003, \
-								sizeof(CLASS_4001_4002_4003), para_vari_save);
+		if (p_JProgramInfo->oi_changed.oi4001 != g_chgOI4001) {
+			g_chgOI4001 = p_JProgramInfo->oi_changed.oi4001;
+			readCoverClass(0x4001, 0, (void*)&g_Class4001_4002_4003, sizeof(CLASS_4001_4002_4003), para_vari_save);
 		}
 
 		bcd2str(&g_Class4001_4002_4003.curstom_num[1],(INT8U*)chg_str,g_Class4001_4002_4003.curstom_num[0],sizeof(str),positive);
@@ -250,85 +244,6 @@ void ShowCLDDataPage(LcdDataItem *item, int size, INT8U show_flg)
 	}
 	return;
 }
-
-#ifdef SHANGHAI
-//费率为2时，118，119为平和谷。为4时，119，121为平和谷。尖和峰直接用X表示。
-void ShowCLDDataPage_SH(LcdDataItem *item, int size, INT8U show_flg,INT8U RateNum)
-{
-	Point pos = {0};
-	TmS curts;
-	int temp1, temp2, temp3, temp4;
-	INT8U str[100] = {0};
-	gui_setpos(&pos, rect_Client.left+3*FONTSIZE, rect_Client.top+FONTSIZE);
-	gui_textshow((char *)"当前正向有功电能示值", pos, LCD_NOREV);
-
-	FP64 dval=0;
-	if(get_itemdata1(item, size, 117, &dval, 2)==1)
-		sprintf((char*)str,"正向有功总% 10.2f kWh",dval);
-	else
-		sprintf((char*)str,"正向有功总 xxxxxx.xx kWh");
-	gui_setpos(&pos, rect_Client.left+FONTSIZE, rect_Client.top+5*FONTSIZE);
-	gui_textshow((char*)str, pos, LCD_NOREV);
-	if(RateNum == 2)
-	{
-		if(get_itemdata1(item, size, 118, &dval, 2)==1)
-			sprintf((char*)str,"正向有功平% 10.2f kWh",dval);
-		else
-			sprintf((char*)str,"正向有功平 xxxxxx.xx kWh");
-		pos.y += 2*FONTSIZE+OFFSET_Y;
-		gui_textshow((char*)str, pos, LCD_NOREV);
-		if(get_itemdata1(item, size, 119, &dval, 2)==1)
-			sprintf((char*)str,"正向有功谷% 10.2f kWh",dval);
-		else
-			sprintf((char*)str,"正向有功谷 xxxxxx.xx kWh");
-		pos.y += 2*FONTSIZE+OFFSET_Y;
-		gui_textshow((char*)str, pos, LCD_NOREV);
-	}
-	else
-	{
-		sprintf((char*)str,"正向有功尖 xxxxxx.xx kWh");
-		pos.y += 2*FONTSIZE+OFFSET_Y;
-		gui_textshow((char*)str, pos, LCD_NOREV);
-		sprintf((char*)str,"正向有功峰 xxxxxx.xx kWh");
-		pos.y += 2*FONTSIZE+OFFSET_Y;
-		gui_textshow((char*)str, pos, LCD_NOREV);
-		if(get_itemdata1(item, size, 119, &dval, 2)==1)
-			sprintf((char*)str,"正向有功平% 10.2f kWh",dval);
-		else
-			sprintf((char*)str,"正向有功平 xxxxxx.xx kWh");
-		pos.y += 2*FONTSIZE+OFFSET_Y;
-		gui_textshow((char*)str, pos, LCD_NOREV);
-		if(get_itemdata1(item, size, 121, &dval, 2)==1)
-			sprintf((char*)str,"正向有功谷% 10.2f kWh",dval);
-		else
-			sprintf((char*)str,"正向有功谷 xxxxxx.xx kWh");
-		pos.y += 2*FONTSIZE+OFFSET_Y;
-		gui_textshow((char*)str, pos, LCD_NOREV);
-	}
-
-	if(show_flg==1){
-
-		temp1 = ParaAll->f89.AreaNo[0];
-		temp2 = ParaAll->f89.AreaNo[1];
-		temp3 = ParaAll->f89.TmnlAddr[0];
-		temp4 = ParaAll->f89.TmnlAddr[1];
-		sprintf((char*)str,"终端地址 %02x%02x-%05d",temp1,temp2,((temp3<<8)+temp4));
-		gui_setpos(&pos, rect_Client.left+3*FONTSIZE, rect_Client.top+18*FONTSIZE);
-		gui_textshow((char*)str, pos, LCD_NOREV);
-	}else if(show_flg==2){
-		tmget(&curts);
-
-		if(curts.Year==0|| curts.Month==0||curts.Day==0)
-			sprintf((char*)str,"抄表时间 00/00/00 00:00");
-		else
-		sprintf((char*)str,"抄表时间 %02d/%02d/%02d %02d:%02d",
-				curts.Year-2000, curts.Month, curts.Day, curts.Hour, curts.Minute);
-		gui_setpos(&pos, rect_Client.left+2*FONTSIZE, rect_Client.top+18*FONTSIZE);
-		gui_textshow((char*)str, pos, LCD_NOREV);
-	}
-	return;
-}
-#endif
 
 void LunXunShowPage1(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT8U show_flg){
 	Point pos = {0};
@@ -357,10 +272,9 @@ void LunXunShowPage1(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT8
 	gui_textshow((char*)str, pos, LCD_NOREV);
 	if(show_flg==1){
 		//地址类型、逻辑地址、终端地址
-		if (PARA_NOT_READ == g_oi4001_has_read) {
-			g_oi4001_has_read = PARA_HAS_READ;
-			readCoverClass(0x4001, 0, (void*)&g_Class4001_4002_4003, \
-								sizeof(CLASS_4001_4002_4003), para_vari_save);
+		if (p_JProgramInfo->oi_changed.oi4001 != g_chgOI4001) {
+			g_chgOI4001 = p_JProgramInfo->oi_changed.oi4001;
+			readCoverClass(0x4001, 0, (void*)&g_Class4001_4002_4003, sizeof(CLASS_4001_4002_4003), para_vari_save);
 		}
 
 		bcd2str(&g_Class4001_4002_4003.curstom_num[1],(INT8U*)chg_str,g_Class4001_4002_4003.curstom_num[0],sizeof(str),positive);
@@ -415,10 +329,9 @@ void LunXunShowPage2(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT8
 		//地址类型、逻辑地址、终端地址
 
 
-		if (PARA_NOT_READ == g_oi4001_has_read) {
-			g_oi4001_has_read = PARA_HAS_READ;
-			readCoverClass(0x4001, 0, (void*)&g_Class4001_4002_4003, \
-								sizeof(CLASS_4001_4002_4003), para_vari_save);
+		if (p_JProgramInfo->oi_changed.oi4001 != g_chgOI4001) {
+			g_chgOI4001 = p_JProgramInfo->oi_changed.oi4001;
+			readCoverClass(0x4001, 0, (void*)&g_Class4001_4002_4003,sizeof(CLASS_4001_4002_4003), para_vari_save);
 		}
 
 		bcd2str(&g_Class4001_4002_4003.curstom_num[1],(INT8U*)chg_str,g_Class4001_4002_4003.curstom_num[0],sizeof(str),positive);
@@ -467,21 +380,13 @@ void LunXunShowPage3(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT8
 	bzero(str,100);
 	if(jprograminfo->dev_info.WireType == 0x0600)
 	{
-#ifdef JIANGSU
-		sprintf((char*)str,"A相电压% 9.1f V",jprograminfo->ACSRealData.Ua*1.0/U_COEF);
-#else
 		sprintf((char*)str,"A相电压% 9.3f V",jprograminfo->ACSRealData.Ua*1.0/U_COEF);
-#endif
 		gui_setpos(&pos, rect_Client.left+4*FONTSIZE, rect_Client.top+5*FONTSIZE);
 		gui_textshow((char*)str, pos, LCD_NOREV);
 	}
 	else if(jprograminfo->dev_info.WireType == 0x1200)
 	{
-#ifdef JIANGSU
-		sprintf((char*)str,"    Uab% 9.1f V",jprograminfo->ACSRealData.Ua*1.0/U_COEF);
-#else
 		sprintf((char*)str,"    Uab% 9.3f V",jprograminfo->ACSRealData.Ua*1.0/U_COEF);
-#endif
 		gui_setpos(&pos, rect_Client.left+4*FONTSIZE, rect_Client.top+5*FONTSIZE);
 		gui_textshow((char*)str, pos, LCD_NOREV);
 	}
@@ -489,11 +394,9 @@ void LunXunShowPage3(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT8
 	if(show_flg==1){
 		//地址类型、逻辑地址、终端地址
 
-
-		if (PARA_NOT_READ == g_oi4001_has_read) {
-			g_oi4001_has_read = PARA_HAS_READ;
-			readCoverClass(0x4001, 0, (void*)&g_Class4001_4002_4003, \
-								sizeof(CLASS_4001_4002_4003), para_vari_save);
+		if (p_JProgramInfo->oi_changed.oi4001 != g_chgOI4001) {
+			g_chgOI4001 = p_JProgramInfo->oi_changed.oi4001;
+			readCoverClass(0x4001, 0, (void*)&g_Class4001_4002_4003, sizeof(CLASS_4001_4002_4003), para_vari_save);
 		}
 
 		bcd2str(&g_Class4001_4002_4003.curstom_num[1],(INT8U*)chg_str,g_Class4001_4002_4003.curstom_num[0],sizeof(str),positive);
@@ -542,32 +445,22 @@ void LunXunShowPage4(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT8
 
 	if(jprograminfo->dev_info.WireType == 0x0600)
 	{
-#ifdef JIANGSU
-		sprintf((char*)str,"B相电压% 9.1f V",jprograminfo->ACSRealData.Ub*1.0/U_COEF);
-#else
 		sprintf((char*)str,"B相电压% 9.3f V",jprograminfo->ACSRealData.Ub*1.0/U_COEF);
-#endif
 		gui_setpos(&pos, rect_Client.left+4*FONTSIZE, rect_Client.top+5*FONTSIZE);
 		gui_textshow((char*)str, pos, LCD_NOREV);
 	}
 	else if(jprograminfo->dev_info.WireType == 0x1200)
 	{
-#ifdef JIANGSU
-		sprintf((char*)str,"    Ubc% 9.1f V",jprograminfo->ACSRealData.Uc*1.0/U_COEF);
-#else
 		sprintf((char*)str,"    Ubc% 9.3f V",jprograminfo->ACSRealData.Uc*1.0/U_COEF);
-#endif
 		pos.y += 2*FONTSIZE+OFFSET_Y;
 		gui_textshow((char*)str, pos, LCD_NOREV);
 	}
 	if(show_flg==1){
 		//地址类型、逻辑地址、终端地址
 
-
-		if (PARA_NOT_READ == g_oi4001_has_read) {
-			g_oi4001_has_read = PARA_HAS_READ;
-			readCoverClass(0x4001, 0, (void*)&g_Class4001_4002_4003, \
-								sizeof(CLASS_4001_4002_4003), para_vari_save);
+		if (p_JProgramInfo->oi_changed.oi4001 != g_chgOI4001) {
+			g_chgOI4001 = p_JProgramInfo->oi_changed.oi4001;
+			readCoverClass(0x4001, 0, (void*)&g_Class4001_4002_4003, sizeof(CLASS_4001_4002_4003), para_vari_save);
 		}
 		bcd2str(&g_Class4001_4002_4003.curstom_num[1],(INT8U*)chg_str,g_Class4001_4002_4003.curstom_num[0],sizeof(str),positive);
 		sprintf((char*)str,"终端地址 %s",chg_str);
@@ -614,11 +507,7 @@ void LunXunShowPage5(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT8
 
 	if(jprograminfo->dev_info.WireType == 0x0600)
 	{
-#ifdef JIANGSU
-		sprintf((char*)str,"C相电压% 9.1f V",jprograminfo->ACSRealData.Uc*1.0/U_COEF);
-#else
 		sprintf((char*)str,"C相电压% 9.3f V",jprograminfo->ACSRealData.Uc*1.0/U_COEF);
-#endif
 		gui_setpos(&pos, rect_Client.left+4*FONTSIZE, rect_Client.top+5*FONTSIZE);
 		gui_textshow((char*)str, pos, LCD_NOREV);
 	}
@@ -626,10 +515,9 @@ void LunXunShowPage5(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT8
 		//地址类型、逻辑地址、终端地址
 
 
-		if (PARA_NOT_READ == g_oi4001_has_read) {
-			g_oi4001_has_read = PARA_HAS_READ;
-			readCoverClass(0x4001, 0, (void*)&g_Class4001_4002_4003, \
-								sizeof(CLASS_4001_4002_4003), para_vari_save);
+		if (p_JProgramInfo->oi_changed.oi4001 != g_chgOI4001) {
+			g_chgOI4001 = p_JProgramInfo->oi_changed.oi4001;
+			readCoverClass(0x4001, 0, (void*)&g_Class4001_4002_4003, sizeof(CLASS_4001_4002_4003), para_vari_save);
 		}
 		bcd2str(&g_Class4001_4002_4003.curstom_num[1],(INT8U*)chg_str,g_Class4001_4002_4003.curstom_num[0],sizeof(str),positive);
 		sprintf((char*)str,"终端地址 %s",chg_str);
@@ -680,11 +568,9 @@ void LunXunShowPage6(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT8
 	if(show_flg==1){
 		//地址类型、逻辑地址、终端地址
 
-
-		if (PARA_NOT_READ == g_oi4001_has_read) {
-			g_oi4001_has_read = PARA_HAS_READ;
-			readCoverClass(0x4001, 0, (void*)&g_Class4001_4002_4003, \
-								sizeof(CLASS_4001_4002_4003), para_vari_save);
+		if (p_JProgramInfo->oi_changed.oi4001 != g_chgOI4001) {
+			g_chgOI4001 = p_JProgramInfo->oi_changed.oi4001;
+			readCoverClass(0x4001, 0, (void*)&g_Class4001_4002_4003,sizeof(CLASS_4001_4002_4003), para_vari_save);
 		}
 		bcd2str(&g_Class4001_4002_4003.curstom_num[1],(INT8U*)chg_str,g_Class4001_4002_4003.curstom_num[0],sizeof(str),positive);
 		sprintf((char*)str,"终端地址 %s",chg_str);
@@ -737,11 +623,9 @@ void LunXunShowPage7(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT8
 	if(show_flg==1){
 		//地址类型、逻辑地址、终端地址
 
-
-		if (PARA_NOT_READ == g_oi4001_has_read) {
-			g_oi4001_has_read = PARA_HAS_READ;
-			readCoverClass(0x4001, 0, (void*)&g_Class4001_4002_4003, \
-								sizeof(CLASS_4001_4002_4003), para_vari_save);
+		if (p_JProgramInfo->oi_changed.oi4001 != g_chgOI4001) {
+			g_chgOI4001 = p_JProgramInfo->oi_changed.oi4001;
+			readCoverClass(0x4001, 0, (void*)&g_Class4001_4002_4003, sizeof(CLASS_4001_4002_4003), para_vari_save);
 		}
 		bcd2str(&g_Class4001_4002_4003.curstom_num[1],(INT8U*)chg_str,g_Class4001_4002_4003.curstom_num[0],sizeof(str),positive);
 		sprintf((char*)str,"终端地址 %s",chg_str);
@@ -791,11 +675,9 @@ void LunXunShowPage8(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT8
 	if(show_flg==1){
 		//地址类型、逻辑地址、终端地址
 
-
-		if (PARA_NOT_READ == g_oi4001_has_read) {
-			g_oi4001_has_read = PARA_HAS_READ;
-			readCoverClass(0x4001, 0, (void*)&g_Class4001_4002_4003, \
-								sizeof(CLASS_4001_4002_4003), para_vari_save);
+		if (p_JProgramInfo->oi_changed.oi4001 != g_chgOI4001) {
+			g_chgOI4001 = p_JProgramInfo->oi_changed.oi4001;
+			readCoverClass(0x4001, 0, (void*)&g_Class4001_4002_4003,sizeof(CLASS_4001_4002_4003), para_vari_save);
 		}
 		bcd2str(&g_Class4001_4002_4003.curstom_num[1],(INT8U*)chg_str,g_Class4001_4002_4003.curstom_num[0],sizeof(str),positive);
 		sprintf((char*)str,"终端地址 %s",chg_str);
@@ -849,11 +731,9 @@ void LunXunShowPage9(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT8
 	if(show_flg==1){
 		//地址类型、逻辑地址、终端地址
 
-
-		if (PARA_NOT_READ == g_oi4001_has_read) {
-			g_oi4001_has_read = PARA_HAS_READ;
-			readCoverClass(0x4001, 0, (void*)&g_Class4001_4002_4003, \
-								sizeof(CLASS_4001_4002_4003), para_vari_save);
+		if (p_JProgramInfo->oi_changed.oi4001 != g_chgOI4001) {
+			g_chgOI4001 = p_JProgramInfo->oi_changed.oi4001;
+			readCoverClass(0x4001, 0, (void*)&g_Class4001_4002_4003, sizeof(CLASS_4001_4002_4003), para_vari_save);
 		}
 		bcd2str(&g_Class4001_4002_4003.curstom_num[1],(INT8U*)chg_str,g_Class4001_4002_4003.curstom_num[0],sizeof(str),positive);
 		sprintf((char*)str,"终端地址 %s",chg_str);
@@ -910,11 +790,9 @@ void LunXunShowPage10(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT
 	if(show_flg==1){
 		//地址类型、逻辑地址、终端地址
 
-
-		if (PARA_NOT_READ == g_oi4001_has_read) {
-			g_oi4001_has_read = PARA_HAS_READ;
-			readCoverClass(0x4001, 0, (void*)&g_Class4001_4002_4003, \
-								sizeof(CLASS_4001_4002_4003), para_vari_save);
+		if (p_JProgramInfo->oi_changed.oi4001 != g_chgOI4001) {
+			g_chgOI4001 = p_JProgramInfo->oi_changed.oi4001;
+			readCoverClass(0x4001, 0, (void*)&g_Class4001_4002_4003, sizeof(CLASS_4001_4002_4003), para_vari_save);
 		}
 		bcd2str(&g_Class4001_4002_4003.curstom_num[1],(INT8U*)chg_str,g_Class4001_4002_4003.curstom_num[0],sizeof(str),positive);
 		sprintf((char*)str,"终端地址 %s",chg_str);
@@ -968,10 +846,9 @@ void LunXunShowPage11(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT
 	if(show_flg==1){
 		//地址类型、逻辑地址、终端地址
 
-		if (PARA_NOT_READ == g_oi4001_has_read) {
-			g_oi4001_has_read = PARA_HAS_READ;
-			readCoverClass(0x4001, 0, (void*)&g_Class4001_4002_4003, \
-								sizeof(CLASS_4001_4002_4003), para_vari_save);
+		if (p_JProgramInfo->oi_changed.oi4001 != g_chgOI4001) {
+			g_chgOI4001 = p_JProgramInfo->oi_changed.oi4001;
+			readCoverClass(0x4001, 0, (void*)&g_Class4001_4002_4003, sizeof(CLASS_4001_4002_4003), para_vari_save);
 		}
 		bcd2str(&g_Class4001_4002_4003.curstom_num[1],(INT8U*)chg_str,g_Class4001_4002_4003.curstom_num[0],sizeof(str),positive);
 		sprintf((char*)str,"终端地址 %s",chg_str);

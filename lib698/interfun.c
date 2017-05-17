@@ -16,6 +16,18 @@
 
 extern ProgramInfo *memp;
 //////////////////////////////////////////////////////////////////////
+
+void printDataTimeS(char *pro,DateTimeBCD datetimes)
+{
+	fprintf(stderr,"[%s]: %04d:%02d:%02d %02d:%02d:%02d\n",pro,datetimes.year.data,datetimes.month.data,datetimes.day.data,
+			datetimes.hour.data,datetimes.min.data,datetimes.sec.data);
+}
+
+void printTI(char *pro,TI ti)
+{
+	fprintf(stderr,"[%s]:单位(%d)-间隔值(%d)  [秒:0,分:1,时:2,日:3,月:4,年:5]\n",pro,ti.units,ti.interval);
+}
+
 void printMS(MY_MS ms)
 {
 	int i=0,j=0;
@@ -48,6 +60,12 @@ void print_rsd(INT8U choice,RSD rsd)
 {
 	fprintf(stderr,"RSD:choice=%d\n",choice);
 	switch(choice) {
+	case 8:
+		printDataTimeS("采集成功时间起始值",rsd.selec8.collect_succ_star);
+		printDataTimeS("采集成功时间结束值",rsd.selec8.collect_succ_finish);
+		printTI("上报响应超时时间",rsd.selec8.ti);
+		printMS(rsd.selec8.meters);
+		break;
 	case 10:
 		fprintf(stderr,"Select10为指定选取最新的 %d 条记录:\n",rsd.selec10.recordn);
 		printMS(rsd.selec10.meters);
@@ -609,16 +627,18 @@ int get_Data(INT8U *source,INT8U *dest)
 //	dtlen = getDataTypeLen(dttype);
 //	if(dtlen>=0) {
 //		memcpy(&dest[1],&source[1],dtlen);
+//		return (dtlen+1);  //+1:dttype
+//	}else {
+//		return 0;
 //	}
-
 	fprintf(stderr,"get_Data type=%02x\n",dttype);
 	switch(dttype){
 	case dtunsigned:
 		dest[1] = source[1];
 		return 2;
 	case dtlongunsigned:
-		dest[1] = source[2];		//高低位
-		dest[2] = source[1];
+		dest[1] = source[1];		//高低位
+		dest[2] = source[2];
 		return 3;
 	case dtfloat64:
 	case dtlong64:
@@ -676,13 +696,7 @@ int get_BasicRSD(INT8U type,INT8U *source,INT8U *dest,INT8U *seletype)		//0x5A
 {
 	INT16U source_sumindex=0,source_index=0,dest_index=0;
 	int index = 0,i=0;
-//	INT16U tmpbuf[COLLCLASS_MAXNUM];
-	Selector4 select4;
-	Selector6 select6;
-	Selector9 select9;
-	Selector10 select10;
-	Selector1 select1;
-	Selector2 select2;
+	RSD		rsd={};
 
 	int	classtype=0;
 	if(type == 1) {		//有RSD类型描述
@@ -691,66 +705,66 @@ int get_BasicRSD(INT8U type,INT8U *source,INT8U *dest,INT8U *seletype)		//0x5A
 	}
 	*seletype = source[index++];//选择方法
 	fprintf(stderr,"\n\n----------seletype=%d\n",*seletype);
-	switch(*seletype )
+	switch(*seletype)
 	{
 		case 0:
 			dest[0] = 0;
 			index = 1;
 			break;
 		case 1:
-			memset(&select1,0,sizeof(select1));
-			index += getOAD(0,&source[index],&select1.oad);
-			index += get_Data(&source[index],&select1.data.type);
-			memcpy(dest,&select1,sizeof(select1));
-			fprintf(stderr,"\n index = %d   select1 OI=%04x  select1.data.type=%d !!!!\n",index,select1.oad.OI,select1.data.type);
+			memset(&rsd.selec1,0,sizeof(rsd.selec1));
+			index += getOAD(0,&source[index],&rsd.selec1.oad);
+			index += get_Data(&source[index],&rsd.selec1.data.type);
+			memcpy(dest,&rsd.selec1,sizeof(rsd.selec1));
+			fprintf(stderr,"\n index = %d   select1 OI=%04x  select1.data.type=%d !!!!\n",index,rsd.selec1.oad.OI,rsd.selec1.data.type);
 			break;
 		case 2:
-			memset(&select2,0,sizeof(select2));
-			index += getOAD(0,&source[index],&select2.oad);
-			index += get_Data(&source[index],&select2.data_from.type);
-			index += get_Data(&source[index],&select2.data_to.type);
-			index += get_Data(&source[index],&select2.data_jiange.type);
-			memcpy(dest,&select2,sizeof(select2));
-			fprintf(stderr," select2 OAD=%04x-%02x-%02x\n",select2.oad.OI,select2.oad.attflg,select2.oad.attrindex);
-			fprintf(stderr," 起始值 type=%02x data=%02x-%02x-%02x-%02x-%02x-%02x-%02x\n",select2.data_from.type,
-					select2.data_from.data[0],select2.data_from.data[1],select2.data_from.data[2],select2.data_from.data[3],
-					select2.data_from.data[4],select2.data_from.data[5],select2.data_from.data[6]);
-			fprintf(stderr," 结束值 type=%02x data=%02x-%02x-%02x-%02x-%02x-%02x-%02x\n",select2.data_to.type,
-					select2.data_to.data[0],select2.data_to.data[1],select2.data_to.data[2],select2.data_to.data[3],
-					select2.data_to.data[4],select2.data_to.data[5],select2.data_to.data[6]);
-			fprintf(stderr," 数据间隔 type=%02x data=%02x-%02x-%02x\n",select2.data_jiange.type,
-					select2.data_jiange.data[0],select2.data_jiange.data[1],select2.data_jiange.data[2]);
+			memset(&rsd.selec2,0,sizeof(rsd.selec2));
+			index += getOAD(0,&source[index],&rsd.selec2.oad);
+			index += get_Data(&source[index],&rsd.selec2.data_from.type);
+			index += get_Data(&source[index],&rsd.selec2.data_to.type);
+			index += get_Data(&source[index],&rsd.selec2.data_jiange.type);
+			memcpy(dest,&rsd.selec2,sizeof(rsd.selec2));
+			fprintf(stderr," select2 OAD=%04x-%02x-%02x\n",rsd.selec2.oad.OI,rsd.selec2.oad.attflg,rsd.selec2.oad.attrindex);
+			fprintf(stderr," 起始值 type=%02x data=%02x-%02x-%02x-%02x-%02x-%02x-%02x\n",rsd.selec2.data_from.type,
+					rsd.selec2.data_from.data[0],rsd.selec2.data_from.data[1],rsd.selec2.data_from.data[2],rsd.selec2.data_from.data[3],
+					rsd.selec2.data_from.data[4],rsd.selec2.data_from.data[5],rsd.selec2.data_from.data[6]);
+			fprintf(stderr," 结束值 type=%02x data=%02x-%02x-%02x-%02x-%02x-%02x-%02x\n",rsd.selec2.data_to.type,
+					rsd.selec2.data_to.data[0],rsd.selec2.data_to.data[1],rsd.selec2.data_to.data[2],rsd.selec2.data_to.data[3],
+					rsd.selec2.data_to.data[4],rsd.selec2.data_to.data[5],rsd.selec2.data_to.data[6]);
+			fprintf(stderr," 数据间隔 type=%02x data=%02x-%02x-%02x\n",rsd.selec2.data_jiange.type,
+					rsd.selec2.data_jiange.data[0],rsd.selec2.data_jiange.data[1],rsd.selec2.data_jiange.data[2]);
 			break;
 		case 3:
 
 			break;
 		case 4:
 		case 5:
-			index += getDateTimeS(0,&source[index],(INT8U *)&select4.collect_star);
+			index += getDateTimeS(0,&source[index],(INT8U *)&rsd.selec4.collect_star);
 			fprintf(stderr,"\n--- %02x %02x --",source[1+index],source[1+index+1]);
-			index += getMS(0,&source[index],&select4.meters);
-			memcpy(dest,&select4,sizeof(select4));
+			index += getMS(0,&source[index],&rsd.selec4.meters);
+			memcpy(dest,&rsd.selec4,sizeof(rsd.selec4));
 			break;
 		case 6:
 		case 7:
 		case 8:
 //			index++;	//type
-			index += getDateTimeS(0,&source[index],(INT8U *)&select6.collect_star);
-			index += getDateTimeS(0,&source[index],(INT8U *)&select6.collect_finish);
-			index += getTI(0,&source[index],&select6.ti);
-			index += getMS(0,&source[index],&select6.meters);
-			memcpy(dest,&select6,sizeof(select6));
+			index += getDateTimeS(0,&source[index],(INT8U *)&rsd.selec6.collect_star);
+			index += getDateTimeS(0,&source[index],(INT8U *)&rsd.selec6.collect_finish);
+			index += getTI(0,&source[index],&rsd.selec6.ti);
+			index += getMS(0,&source[index],&rsd.selec6.meters);
+			memcpy(dest,&rsd.selec6,sizeof(rsd.selec6));
 			break;
 		case 9:
-			select9.recordn = source[index];
-			memcpy(dest,&select9,sizeof(select9));
+			rsd.selec9.recordn = source[index];
+			memcpy(dest,&rsd.selec9,sizeof(rsd.selec9));
 			index = 2;
 			break;
 		case 10:
-			select10.recordn = source[index++];
-			index += getMS(0,&source[index],&select10.meters);
-			printMS(select10.meters);
-			memcpy(dest,&select10,sizeof(select10));
+			rsd.selec10.recordn = source[index++];
+			index += getMS(0,&source[index],&rsd.selec10.meters);
+			printMS(rsd.selec10.meters);
+			memcpy(dest,&rsd.selec10,sizeof(rsd.selec10));
 			break;
 	}
 	return index;
@@ -801,8 +815,27 @@ int getMS(INT8U type,INT8U *source,MY_MS *ms)		//0x5C
 			ms->mstype = source[type];  //0表示 没有电表  1表示 全部电表	//区分MS类型，人工加入一个字节，报文中无此说明
 			ms->mstype = source[type];
 			return 1+type;
-		case 2:
-			break;
+		case 2://一组用户类型
+			type++;
+			seqlen = source[type];	//sequence 的长度
+			if(seqlen & 0x80) {		//长度两个字节
+				seqnum = (source[type] << 8) | source[type+1];
+				type += 2;
+			}else {
+				seqnum = seqlen;
+				type += 1;
+			}
+			if(seqnum>COLLCLASS_MAXNUM) {
+				fprintf(stderr,"sequence of num 大于容量 %d,无法处理！！！",COLLCLASS_MAXNUM);
+				return 1+type;
+			}
+			ms->mstype = choicetype;
+			fprintf(stderr,"seqnum=%d\n",seqnum);		//只测试了一个电表
+			ms->ms.userType[0] = seqnum;
+			for(i=0;i<seqnum;i++) {
+				ms->ms.userType[i+1] = source[type++];
+			}
+			return type;
 		case 3:
 			type++;
 			seqlen = source[type];	//sequence 的长度
@@ -851,6 +884,25 @@ int getMS(INT8U type,INT8U *source,MY_MS *ms)		//0x5C
 			for(i=0;i<seqnum;i++) {
 				ms->ms.configSerial[i+1] = (source[type]<<8)|source[type+1];
 				type = type+2;
+			}
+			return type;
+		case 5:	//一组用户类型区间 [5] SEQUENCE OF Region
+			type++;
+			seqlen = source[type];	//sequence 的长度
+			if(seqlen & 0x80) {		// 只考虑长度最多两个字节情况
+				seqnum = (source[type] << 8) | source[type+1];
+				type += 2;
+			}else {
+				seqnum = seqlen;
+				type += 1;
+			}
+			ms->mstype = choicetype;
+			fprintf(stderr,"choicetype=%d,seqnum=%d\n",choicetype,seqnum);
+			for(i=0;i<seqnum;i++) {
+				ms->ms.type[i].type = source[type];
+				type = type+1;
+				type += get_Data(&source[type],ms->ms.type[i].begin);
+				type += get_Data(&source[type],ms->ms.type[i].end);
 			}
 			return type;
 	}
@@ -1199,11 +1251,13 @@ void setOIChange(OI_698 oi)
 	case 0x3203:	memp->oi_changed.oi3203++;	break;
 
 	case 0x4000:	memp->oi_changed.oi4000++;	break;
+	case 0x4001:	memp->oi_changed.oi4001++;	break;
 	case 0x4016:	memp->oi_changed.oi4016++;	break;
 	case 0x4030:	memp->oi_changed.oi4030++;	break;
 	case 0x4204:	memp->oi_changed.oi4204++;	break;
 	case 0x4300:	memp->oi_changed.oi4300++;  break;
 	case 0x4500:	memp->oi_changed.oi4500++;  break;
+	case 0x4510:	memp->oi_changed.oi4510++;  break;
 
 	case 0x6000:	memp->oi_changed.oi6000++;  break;
 	case 0x6002:	memp->oi_changed.oi6002++;  break;

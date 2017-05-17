@@ -1290,13 +1290,13 @@ void testframe(INT8U *apdu,int len)
 	buf[i++]= 0;
 	buf[i++]= 0x43;
 	buf[i++]= 0x05;
-	buf[i++]= 0x08;
+	buf[i++]= 0x05;
 	buf[i++]= 0x00;
 	buf[i++]= 0x00;
 	buf[i++]= 0x00;
 	buf[i++]= 0x00;
 	buf[i++]= 0x00;
-	buf[i++]= 0x10;
+	buf[i++]= 0x01;
 	hcsi = i;
 	i = i + 2;
 	memcpy(&buf[i],apdu,len);

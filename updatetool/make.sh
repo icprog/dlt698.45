@@ -6,7 +6,7 @@ Usage()
     echo "使用方式:"
     echo "\t./make 型号 地区\n"
     echo "\t设备类型，1：I型集中器，2:II型集中器，3：III型专变"
-    echo "\tZheJiang(II型),HuNan(I型)"
+    echo "\tZheJiang(II型),ShanDong(II型),HuNan(I型)"
     echo "============================================="
     exit 1
 }
@@ -21,7 +21,7 @@ ParaCheck()
         Usage
     fi
 
-    if [ $2 != "ZheJiang" ] && [ $2 != "HuNan" ]; then
+    if [ $2 != "ZheJiang" ] && [ $2 != "HuNan" ] && [ $2 != "ShanDong" ]; then
          Usage
     fi
 
@@ -92,6 +92,17 @@ Tools()
     fi
 }
 
+Composer()
+{
+    echo "生成集合包..."
+    #$path = 'history/$1.$2.$(date +%Y%m%d%H)'
+    mkdir -p history/$1.$2.$(date +%Y%m%d%H)
+    cp -R QCheck history/$1.$2.$(date +%Y%m%d%H)
+    cp app.tar.gz history/$1.$2.$(date +%Y%m%d%H)
+    cp -R cjgwn history/$1.$2.$(date +%Y%m%d%H)
+    cp update.sh history/$1.$2.$(date +%Y%m%d%H)
+}
+
 Post_Clean()
 {
     echo "执行清理..."
@@ -108,6 +119,7 @@ main()
     Package
     CreateUSB
     Tools $1 $2
+    Composer $1 $2
     Post_Clean
 }
 

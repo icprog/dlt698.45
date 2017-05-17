@@ -34,10 +34,12 @@ static char *usage_set = "\n--------------------参数设置及基本维护命�
         "		 【设置gprs和以太网的工作模式(0:混合模式 1:客户端模式 2:服务器模式)】 cj online-mode 1 1 \n"
         "		 【主站apn设置】cj apn cmnet		\n"
         "		 【cdma电信用户名密码设置】cj usr-pwd 　user  password	apn	\n"
+		"		 【主站通信状态查询】cj cm	\n"
         "		 【通信地址】cj id <addr>	如：地址为123456  :cj id 12 34 56	\n"
-        "		 【停程序】cj dog 或者 cj stop		\n"
-        "[读取心跳] cj heart \n"
-        "[设置心跳] cj heart 60 s"
+        "		 【停程序】cj dog[停程序并且清狗] 或者 cj stop[清狗]		\n"
+        "[读取心跳] cj heart       "
+        "[设置心跳] cj heart 60 s\n"
+		"【初始化】cj InIt 3 [数据区初始化]	\n　　　　　　cj InIt 5 [事件初始化]\n　　　　　　cj InIt 6 [需量初始化]\n　　　　　　cj InIt 4 [恢复出厂参数]\n"
         "[ESAM 测试，测试写到/nand/esam.log] 测试模式1[20M通信1次]：cj esam\n"
         "            测试模式2[speed M通信1次，speed范围可从1到25]：cj esam speed\n"
         "            测试模式3[speed M通信n次，speed范围可从1到25]：cj esam speed n\n"
@@ -80,9 +82,9 @@ static char *usage_coll =
                 "[删除一个配置单元]cj coll delete <oi> <id>  	id=【1..255】	\n"
                 "[采集档案配置表读取]cj coll pro 6000	\n"
                 "[增加一个采集档案配置表 ]查看帮助：cj coll add 6000	\n"
+        		"[增加任务配置单元]cj coll pro 6013 任务ID 执行频率 方案类型 方案编号 开始时间 结束时间 延时 执行优先级 状态 运行时段 起始小时:起始分钟 结束小时:结束分钟\n"
+        		"             cj coll pro 6013 1 1-5 1 1 2016-11-11 0:0:0 2099-9-9 9:9:9 1-2 2 1 0 0:0-23:59\n"
                 "[任务配置单元] cj coll pro 6013 <任务号> [读取任务配置单元]\n"
-                "			  cj coll pro 6013 任务ID 执行频率 方案类型 方案编号 开始时间 结束时间 延时 执行优先级 状态 运行时段 起始小时:起始分钟 结束小时:结束分钟\n"
-                "             cj coll pro 6013 1 1-5 1 1 2016-11-11 0:0:0 2099-9-9 9:9:9 1-2 2 1 0 0:0-23:59\n"
                 "[普通采集方案] cj coll pro 6015 <采集方案号>\n"
                 "[事件采集方案] cj coll pro 6017 <方案编号>\n"
                 "[上报方案] 	  cj coll pro 601d <方案编号>\n"
@@ -142,29 +144,49 @@ void prthelp() {
 }
 
 
-void dog_feed() {
+void dog_feed(char *argv) {
     INT32S fd = -1;
-    INT32S tm = 888888;
-    system("pkill cjmain");
-    sleep(1);
+    INT32S tm = 3600;
+
+    if (strcmp("dog", argv) == 0 ) {
+		system("pkill cjmain");
+		sleep(1);
+    }
     if ((fd = open(DEV_WATCHDOG, O_RDWR | O_NDELAY)) == -1) {
         fprintf(stderr, "\n\r open /dev/watchdog error!!!");
         return;
     }
     write(fd, &tm, sizeof(int));
     close(fd);
-    system("pkill cjcomm");
-    system("pkill cjdeal");
-    system("pkill gsmMuxd");
+    if (strcmp("dog", argv) == 0 ) {
+		system("pkill cjmain");
+		sleep(1);
+		system("pkill cjcomm");
+		system("pkill cjdeal");
+		system("pkill gsmMuxd");
+    }
 }
 
+//心跳报文
+static INT8U checkbuf[]={0x68,0x1e,0x00,0x43,0x05,0x05,0x00,0x00,0x00,0x00,0x00,0x01,0x63,0x71,0x01,
+						0x00,0x01,0x02,0x58,0x07,0xe1,0x05,0x10,0x02,0x00,0x15,0x19,0x00,0x00,0xcc,0x45,0x16};
 
 int main(int argc, char *argv[]) {
     if (argc < 2) {
         prthelp();
         return EXIT_SUCCESS;
     }
-
+    if (strcmp("checkled", argv[1]) == 0) {	//生产检测本地状态灯，使用485_II口发送报文，台体485_II与485_III短接，cjcomm会返回请求的数据
+    	int i=0;
+    	int comfd1;
+    	for(i=0;i<3;i++) {
+    		comfd1 = OpenCom(1, 9600, (INT8U *) "even", 1, 8);
+			write(comfd1, checkbuf, sizeof(checkbuf));
+			usleep(500 * 1000);
+    	}
+    	close(comfd1);
+        return EXIT_SUCCESS;
+    }
     if (strcmp("savetest", argv[1]) == 0) {
         DateTimeBCD dt;
         PassRate_U passu[3];
@@ -196,7 +218,6 @@ int main(int argc, char *argv[]) {
             passu[i].downLimitTime = val * (i + 1) + 4;
             saveFreezeRecord(0x5004, oad, dt, sizeof(PassRate_U), (INT8U * ) & passu[i]);
         }
-
         return EXIT_SUCCESS;
     }
 
@@ -244,7 +265,7 @@ int main(int argc, char *argv[]) {
     }
 
     if (strcmp("dog", argv[1]) == 0 || strcmp("stop", argv[1]) == 0) {
-        dog_feed();
+        dog_feed(argv[1]);
         return EXIT_SUCCESS;
     }
     if (strcmp("help", argv[1]) == 0) {
@@ -264,6 +285,11 @@ int main(int argc, char *argv[]) {
     if (strcmp("para", argv[1]) == 0) {
         fprintf(stderr, "%s", usage_para);
         para_process(argc, argv);
+        return EXIT_SUCCESS;
+    }
+    if (strcmp("InIt", argv[1]) == 0) {
+    	fprintf(stderr,"　　　　　　cj InIt 3 [数据区初始化]	\n　　　　　　cj InIt 5 [事件初始化]\n　　　　　　cj InIt 6 [需量初始化]\n　　　　　　cj InIt 4 [恢复出厂参数]\n");
+        InIt_Process(argc, argv);
         return EXIT_SUCCESS;
     }
     if (strcmp("coll", argv[1]) == 0) {
@@ -374,6 +400,77 @@ int main(int argc, char *argv[]) {
         return EXIT_SUCCESS;
     }
 
+
     prthelp();
     return EXIT_SUCCESS;
+}
+
+/*参数文件修改，改变共享内存的标记值，通知相关进程，参数有改变
+ * */
+void setOIChange_CJ(OI_698 oi)
+{
+	ProgramInfo *memp = NULL;
+	memp = OpenShMem("ProgramInfo", sizeof(ProgramInfo), NULL);
+
+	switch(oi) {
+	case 0x300F:	memp->oi_changed.oi300F++;	break;
+	case 0x3010:	memp->oi_changed.oi3010++;	break;
+	case 0x301B:	memp->oi_changed.oi301B++;	break;
+	case 0x3100:  	memp->oi_changed.oi3100++; 	break;
+	case 0x3101:  	memp->oi_changed.oi3101++; 	break;
+	case 0x3104:	memp->oi_changed.oi3104++; 	break;
+	case 0x3105:	memp->oi_changed.oi3105++; 	break;
+	case 0x3106:	memp->oi_changed.oi3106++; 	break;
+	case 0x3107:	memp->oi_changed.oi3107++; 	break;
+	case 0x3108:	memp->oi_changed.oi3108++; 	break;
+	case 0x3109: 	memp->oi_changed.oi3109++; 	break;
+	case 0x310A:	memp->oi_changed.oi310A++; 	break;
+	case 0x310B:	memp->oi_changed.oi310B++; 	break;
+	case 0x310C:	memp->oi_changed.oi310C++; 	break;
+	case 0x310D:	memp->oi_changed.oi310D++; 	break;
+	case 0x310E:	memp->oi_changed.oi310E++; 	break;
+	case 0x310F:	memp->oi_changed.oi310F++; 	break;
+	case 0x3110:	memp->oi_changed.oi3110++;	break;
+	case 0x3111:	memp->oi_changed.oi3111++;	break;
+	case 0x3112:	memp->oi_changed.oi3112++;  break;
+	case 0x3114:	memp->oi_changed.oi3114++; 	break;
+	case 0x3115:	memp->oi_changed.oi3115++; 	break;
+	case 0x3116:	memp->oi_changed.oi3116++;	break;
+	case 0x3117:	memp->oi_changed.oi3117++;	break;
+	case 0x3118:	memp->oi_changed.oi3118++;	break;
+	case 0x3119:	memp->oi_changed.oi3119++;	break;
+	case 0x311A:	memp->oi_changed.oi311A++;	break;
+	case 0x311B:	memp->oi_changed.oi311B++;	break;
+	case 0x311C:	memp->oi_changed.oi311C++;	break;
+	case 0x3200:	memp->oi_changed.oi3200++;	break;
+	case 0x3201:	memp->oi_changed.oi3201++;	break;
+	case 0x3202:	memp->oi_changed.oi3202++;	break;
+	case 0x3203:	memp->oi_changed.oi3203++;	break;
+
+	case 0x4000:	memp->oi_changed.oi4000++;	break;
+	case 0x4001:	memp->oi_changed.oi4001++;	break;
+	case 0x4016:	memp->oi_changed.oi4016++;	break;
+	case 0x4030:	memp->oi_changed.oi4030++;	break;
+	case 0x4204:	memp->oi_changed.oi4204++;	break;
+	case 0x4300:	memp->oi_changed.oi4300++;  break;
+	case 0x4500:	memp->oi_changed.oi4500++;  break;
+	case 0x4510:	memp->oi_changed.oi4510++;  break;
+
+	case 0x6000:	memp->oi_changed.oi6000++;  break;
+	case 0x6002:	memp->oi_changed.oi6002++;  break;
+	case 0x6012:	memp->oi_changed.oi6012++;  break;
+	case 0x6014:	memp->oi_changed.oi6014++;  break;
+	case 0x6016:	memp->oi_changed.oi6016++;  break;
+	case 0x6018:	memp->oi_changed.oi6018++;  break;
+	case 0x601C:	memp->oi_changed.oi601C++;  break;
+	case 0x601E:	memp->oi_changed.oi601E++;  break;
+	case 0x6051:	memp->oi_changed.oi6051++;  break;
+
+	case 0xf203:
+		memp->oi_changed.oiF203++;
+		fprintf(stderr,"memp->oi_changed.oiF203=%d\n",memp->oi_changed.oiF203);
+		break;
+	case 0xf101:	memp->oi_changed.oiF101++;  break;
+	}
+	shmm_unregister("ProgramInfo", sizeof(ProgramInfo));
 }
