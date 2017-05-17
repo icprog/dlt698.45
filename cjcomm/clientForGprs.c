@@ -33,11 +33,13 @@ CommBlock *GetComBlockForGprs() {
  *所有模块共享的写入函数，所有模块共享使用
  */
 int ClientForGprsWrite(int fd, INT8U *buf, INT16U len) {
+    gpofun("gpoREMOTE_GREEN", 1);
     int ret = anetWrite(fd, buf, (int) len);
     if (ret != len) {
         asyslog(LOG_WARNING, "客户端[GPRS]报文发送失败(长度:%d,错误:%d-%d)", len, errno, fd);
     }
     bufsyslog(buf, "客户端[GPRS]发送:", len, 0, BUFLEN);
+    gpofun("gpoREMOTE_GREEN", 0);
     return ret;
 }
 
@@ -57,7 +59,7 @@ static void ClientForGprsRead(struct aeEventLoop *eventLoop, int fd, void *clien
 
     //关闭异常端口
     if (revcount == 0) {
-        asyslog(LOG_WARNING, "客户端[GPRS]链接出现异常，关闭端口");
+        asyslog(LOG_WARNING, "客户端[GPRS]链接出现异常[%d]，关闭端口", errno);
         aeDeleteFileEvent(eventLoop, fd, AE_READABLE);
         close(fd);
         nst->phy_connect_fd = -1;
@@ -65,11 +67,13 @@ static void ClientForGprsRead(struct aeEventLoop *eventLoop, int fd, void *clien
     }
 
     if (revcount > 0) {
+        gpofun("gpoREMOTE_RED", 1);
         for (int j = 0; j < revcount; j++) {
             read(fd, &nst->RecBuf[nst->RHead], 1);
             nst->RHead = (nst->RHead + 1) % BUFLEN;
         }
         bufsyslog(nst->RecBuf, "客户端[GPRS]接收:", nst->RHead, nst->RTail, BUFLEN);
+        gpofun("gpoREMOTE_RED", 0);
 
         for (int k = 0; k < 5; k++) {
             int len = 0;
