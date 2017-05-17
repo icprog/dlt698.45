@@ -501,9 +501,35 @@ void *ATWorker(void *args) {
     int sMux0 = -1;
     int sMux1 = -1;
 
+    int atCounts = 0;
+
     while (1) {
         if (GetOnlineType() != 0) {
             goto wait;
+        }
+
+        if(atCounts > 15) {
+            atCounts = 0;
+            asyslog(LOG_ALERT, "发现15次拨号不成功，开始异常处理...");
+            asyslog(LOG_ALERT, "关闭模块电源(30秒)...");
+            gpofun("/dev/gpoGPRS_POWER", 0);
+            sleep(30);
+            asyslog(LOG_ALERT, "清除在线状态指示...");
+            gpofun("/dev/gpoCSQ_GREEN", 0);
+            gpofun("/dev/gpoCSQ_RED", 0);
+            gpofun("/dev/gpoONLINE_LED", 0);
+
+            SetGprsStatus(0);
+            SetGprsCSQ(0);
+            SetWireLessType(0);
+            SetPPPDStatus(0);
+            sleep(5);
+
+            asyslog(LOG_ALERT, "关闭pppd、gsmMux...(可能会耗时5分钟)");
+            system("ppp-off");
+            absoluteKill("gsmMuxd", 60 * 5);
+            sleep(10);
+            asyslog(LOG_ALERT, "清理完毕，回到正常拨号流程...");
         }
 
         /*
@@ -748,11 +774,16 @@ void *ATWorker(void *args) {
                 break;
             }
         }
-        sleep(20);
+        sleep(30);
 
         wait:
         //等待在线状态为“否”，重新拨号
         while (1) {
+            if (GetOnlineType() == 0) {
+                goto err;
+            }
+
+            atCounts = 0;
             static int step = 0;
             if (step % 60 == 0) {
                 checkSms(sMux1);
@@ -760,15 +791,13 @@ void *ATWorker(void *args) {
             }
             step++;
             sleep(1);
-            if (GetOnlineType() == 0) {
-                goto err;
-            }
         }
 
         err:
         sleep(1);
         close(sMux0);
         close(sMux1);
+        atCounts++;
         continue;
     }
 
