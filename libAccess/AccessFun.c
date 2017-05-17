@@ -2572,7 +2572,7 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds)
 			recordnum++;
 			asyslog(LOG_INFO,"recordnum=%d  seqnumindex=%d\n",recordnum,seqnumindex);
 
-			if (indexn>=1500)
+			if (indexn>=900)//if (indexn>=1500)
 			{
 				framesum++;
 				//8 存储1帧
@@ -2582,7 +2582,6 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds)
 				indexn = 2;
 				indexn += initFrameHead(&onefrmbuf[indexn],oad,select,selectype,csds,&seqnumindex);
 				recordnum = 0;
-//				continue;
 			}
 //			if (indexn>=1000)
 //			{
