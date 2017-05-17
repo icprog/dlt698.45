@@ -195,7 +195,6 @@ void DbPrt1(INT8U comport,char *prefix, char *buf, int len, char *suffix)
 		if(count>=len)
 			break;
 	}
-	int prtlen=0;
 }
 
 char name1[128]={};
@@ -1071,6 +1070,10 @@ INT8U getASNInfo(FORMAT07* DI07,Base_DataType* dataType)
 					{
 						unitNum = map07DI_698OAD[index].unitnum;
 					}
+					else
+					{
+						unitNum = 1;
+					}
 					break;
 				}
 				else
@@ -1114,50 +1117,43 @@ INT8U getASNInfo(FORMAT07* DI07,Base_DataType* dataType)
 			memset(&DI07->Data[6],0,2);
 		}
 	}
-	if(memcmp(flag07_0CF25_2,DI07->DI,4) == 0)
+	if((DI07->DI[2] == 0x02)&&(DI07->DI[3] == 0x02))
 	{
-		DI07->Data[0] = 0;
-		DI07->Data[1] = 0x00;
-		DI07->Data[2] = 0x80;
 		*dataType = dtdoublelong;
-		unitNum = 4;
 		INT8U f25_2_buff[16] = {0};
-		memcpy(&f25_2_buff[1],&DI07->Data[0],3);
 
-		if((DI07->Data[3] = 0xff)&&(DI07->Data[4] = 0xff)&&(DI07->Data[5] = 0xff))
+		INT8U tmpIndex = 0;
+		for(tmpIndex = 0;tmpIndex < unitNum;tmpIndex++)
 		{
-			memset(&DI07->Data[3],0,3);
+			if((DI07->Data[tmpIndex*3]==0xff)&&(DI07->Data[tmpIndex*3+1]==0xff)&&(DI07->Data[tmpIndex*3+2]==0xff))
+			{
+				memset(&f25_2_buff[tmpIndex*4],0,4);
+			}
+			else
+			{
+				memcpy(&f25_2_buff[(tmpIndex*4)+1],&DI07->Data[tmpIndex*3],3);
+			}
 		}
-		if((DI07->Data[6] = 0xff)&&(DI07->Data[7] = 0xff)&&(DI07->Data[8] = 0xff))
+		memcpy(&DI07->Data[0],f25_2_buff,16);
+		if(unitNum == 1)
 		{
-			memset(&DI07->Data[6],0,3);
+			DI07->Length += 1;
 		}
-
-		memcpy(&f25_2_buff[5],&DI07->Data[3],3);
-		memcpy(&f25_2_buff[9],&DI07->Data[6],3);
-
-		memcpy(&DI07->Data[0],&f25_2_buff[0],16);
-		DI07->Length += 7;
-	}
-	if((memcmp(flag07_0CF25_2_A,DI07->DI,4) == 0)
-			||(memcmp(flag07_0CF25_2_B,DI07->DI,4) == 0)
-			||(memcmp(flag07_0CF25_2_C,DI07->DI,4) == 0))
-	{
-		*dataType = dtdoublelong;
-		unitNum = 1;
-		INT8U f25_2_buff[4] = {0};
-		memcpy(&f25_2_buff[1],&DI07->Data[0],3);
-		memcpy(&DI07->Data[0],&f25_2_buff[0],4);
-		DI07->Length += 1;
+		else
+		{
+			DI07->Length += 7;
+		}
 	}
 	//需量类
 	if(((DI07->DI[3] == 0x01)&&(DI07->DI[2] >= 0x00)&&(DI07->DI[2]<=0x0A))
 		||((DI07->DI[3] == 0x05)&&(DI07->DI[2] == 0x06)&&(DI07->DI[1]==0x09))
 		||((DI07->DI[3] == 0x05)&&(DI07->DI[2] == 0x06)&&(DI07->DI[1]==0x0A)))
 	{
-		INT8U xuliangdata[20];
-		memset(xuliangdata,0,20);
-		*dataType = dtdoublelongunsigned;
+		//02 02 06 xx xx xx xx 1c xx xx xx xx xx xx xx
+		DI07->Length = 0;
+		INT8U xuliangdata[75];
+		memset(xuliangdata,0,75);
+
 		if((DI07->DI[1]==0xff)||(DI07->DI[3] == 0x05))
 		{
 			unitNum = 5;
@@ -1169,39 +1165,67 @@ INT8U getASNInfo(FORMAT07* DI07,Base_DataType* dataType)
 		INT8U tmpIndex = 0;
 		for(tmpIndex = 0;tmpIndex < unitNum;tmpIndex++)
 		{
+			xuliangdata[tmpIndex*15] = 0x02;
+			xuliangdata[tmpIndex*15+1] = 0x02;
+			xuliangdata[tmpIndex*15+2] = 0x06;
+			//最大需量
 			if((DI07->Data[tmpIndex*8]==0xff)&&(DI07->Data[tmpIndex*8+1]==0xff)&&(DI07->Data[tmpIndex*8+2]==0xff))
 			{
-				memset(&xuliangdata[tmpIndex*4],0,4);
+				memset(&xuliangdata[tmpIndex*15+3],0,4);
 			}
 			else
 			{
-				memcpy(&xuliangdata[(tmpIndex*4)+1],&DI07->Data[tmpIndex*8],3);
+				INT8U tmpBuff[4] = {0};
+				INT8U reverBuff[4] = {0};
+				memcpy(&tmpBuff[1],&DI07->Data[tmpIndex*8],3);
+				INT32U value = 0;
+
+				bcd2int32u(tmpBuff,4,inverted,&value);
+				fprintf(stderr,"\n value = %d",value);
+				memcpy(tmpBuff,&value,4);
+
+				reversebuff(tmpBuff, 4, reverBuff);
+				memcpy(&xuliangdata[tmpIndex*15+3],reverBuff,4);
 			}
+			//发生时间
+			xuliangdata[tmpIndex*15+7] = dtdatetimes;
+
+			INT16U year  = (DI07->Data[tmpIndex*8+7] >> 4)*10 + (DI07->Data[tmpIndex*8+7]&0x0f) + 2000;
+			INT8U month = (DI07->Data[tmpIndex*8+6] >> 4)*10 + (DI07->Data[tmpIndex*8+6]&0x0f);
+			INT8U day = (DI07->Data[tmpIndex*8+5] >> 4)*10 + (DI07->Data[tmpIndex*8+5]&0x0f);
+			INT8U hour  = (DI07->Data[tmpIndex*8+4] >> 4)*10 + (DI07->Data[tmpIndex*8+4]&0x0f);
+			INT8U minute = (DI07->Data[tmpIndex*8+3] >> 4)*10 + (DI07->Data[tmpIndex*8+3]&0x0f);
+
+			xuliangdata[tmpIndex*15+8] = (year>>8)&0x00ff;
+			xuliangdata[tmpIndex*15+9] =  year&0x00ff;
+			xuliangdata[tmpIndex*15+10] = month;
+			xuliangdata[tmpIndex*15+11] = day;
+			xuliangdata[tmpIndex*15+12] = hour;
+			xuliangdata[tmpIndex*15+13] = minute;
+			xuliangdata[tmpIndex*15+14] = 0;
+			DI07->Length += 15;
+			memcpy(&DI07->Data[tmpIndex*15],&xuliangdata[tmpIndex*15],15);
 		}
-		memcpy(&DI07->Data[0],xuliangdata,20);
-		DI07->Length = (unitNum*4)+4;
+		return unitNum;
 	}
-	if((memcmp(flag07_0CF25_3,DI07->DI,4) == 0)||(memcmp(flag07_0CF25_4,DI07->DI,4) == 0)||(memcmp(flag07_0CF25_5,DI07->DI,4) == 0))
+	//功率
+	if((DI07->DI[3]==0x02)&&((DI07->DI[2]==0x03)||(DI07->DI[2]==0x04)||(DI07->DI[2]==0x05)))
 	{
 		*dataType = dtdoublelong;
-		unitNum = 4;
 		INT8U f25_3_buff[16] = {0};
-		memcpy(&f25_3_buff[0],&DI07->Data[0],2);
-		memcpy(&f25_3_buff[4],&DI07->Data[3],2);
-		if((DI07->Data[6] == 0xff)&&(DI07->Data[7]==0xff)&&(DI07->Data[8]==0xff))
+		INT8U tmpIndex = 0;
+		for(tmpIndex = 0;tmpIndex < unitNum;tmpIndex++)
 		{
-			memset(&DI07->Data[6],0,3);
+			if((DI07->Data[tmpIndex*8]==0xff)&&(DI07->Data[tmpIndex*8+1]==0xff)&&(DI07->Data[tmpIndex*8+2]==0xff))
+			{
+				memset(&f25_3_buff[tmpIndex*4],0,4);
+			}
+			else
+			{
+				memcpy(&f25_3_buff[tmpIndex*4],&DI07->Data[tmpIndex*3],2);
+			}
 		}
-		if((DI07->Data[9] == 0xff)&&(DI07->Data[10]==0xff)&&(DI07->Data[11]==0xff))
-		{
-			memset(&DI07->Data[9],0,3);
-		}
-
-		memcpy(&f25_3_buff[8],&DI07->Data[6],2);
-		memcpy(&f25_3_buff[12],&DI07->Data[9],2);
-
-		memcpy(&DI07->Data[0],&f25_3_buff[0],16);
-		DI07->Length += 4;
+		DI07->Length += unitNum;
 	}
 	//冻结时标数据07为5个字节 698为7个 需要特殊处理
 	if(memcmp(freezeflag07_1,DI07->DI,4) == 0)
@@ -1253,7 +1277,173 @@ INT8U getASNInfo(FORMAT07* DI07,Base_DataType* dataType)
 
 	return unitNum;
 }
+//根据07 DI 返回数据类型dataType 数组大小size 信息
+INT8U getASNInfo97(FORMAT97* DI97,Base_DataType* dataType)
+{
+	fprintf(stderr, "\n getASNInfo DI97 = %02x%02x",DI97->DI[1],DI97->DI[0]);
+	INT8U unitNum = 1;
+	INT8U index;
 
+	//电表日期
+	if((DI97->DI[0] == 11)&&(DI97->DI[1] == 0xc0))
+	{
+		*dataType = dtdatetimes;
+		unitNum = 1;
+		INT16U year  = (DI97->Data[3] >> 4)*10 + (DI97->Data[3]&0x0f) + 2000;
+		INT8U month = (DI97->Data[2] >> 4)*10 + (DI97->Data[2]&0x0f);
+		INT8U day = (DI97->Data[1] >> 4)*10 + (DI97->Data[1]&0x0f);
+		DI97->Data[0] = (year>>8)&0x00ff;
+		DI97->Data[1] = year&0x00ff;
+		DI97->Data[2] = month;
+		DI97->Data[3] = day;
+		return unitNum;
+	}
+	if((DI97->DI[0] == 10)&&(DI97->DI[1] == 0xc0))
+	{
+		*dataType = dtnull;
+		unitNum = 1;
+		INT8U hour  = (DI97->Data[2] >> 4)*10 + (DI97->Data[2]&0x0f);
+		INT8U minute = (DI97->Data[1] >> 4)*10 + (DI97->Data[1]&0x0f);
+		INT8U second = (DI97->Data[0] >> 4)*10 + (DI97->Data[0]&0x0f);
+		DI97->Data[0] = hour;
+		DI97->Data[1] = minute;
+		DI97->Data[2] = second;
+		return unitNum;
+	}
+
+
+	for (index = 0; index < map07DI_698OAD_NUM; index++)
+	{
+		if((map07DI_698OAD[index].flag97.DI_1[0][1]==DI97->DI[1])
+				&&((map07DI_698OAD[index].flag97.DI_1[0][0]&0xf0)==(DI97->DI[0]&0xf0)))
+			{
+				*dataType = map07DI_698OAD[index].datatype;
+				if((DI97->DI[0]&0x0f)==0x0f)
+				{
+					unitNum = map07DI_698OAD[index].unitnum;
+				}
+				else
+				{
+					unitNum = 1;
+				}
+				break;
+			}
+	}
+	//电压　电流 功率 特殊处理  07回来的是3个字节  6984个字节
+
+	if(DI97->DI[1]==0xb6)
+	{
+		//电压
+		if((DI97->DI[0]&0xf0) == 1)
+		{
+			if((DI97->Data[2] = 0xff)&&(DI97->Data[3] = 0xff))
+			{
+				memset(&DI97->Data[2],0,2);
+			}
+			if((DI97->Data[4] = 0xff)&&(DI97->Data[5] = 0xff))
+			{
+				memset(&DI97->Data[4],0,2);
+			}
+		}
+		//电流
+		if((DI97->DI[0]&0xf0) == 0x20)
+		{
+			*dataType = dtdoublelong;
+			INT8U f25_2_buff[16] = {0};
+
+			INT8U tmpIndex = 0;
+			for(tmpIndex = 0;tmpIndex < unitNum;tmpIndex++)
+			{
+				if((DI97->Data[tmpIndex*2]==0xff)&&(DI97->Data[tmpIndex*2+1]==0xff))
+				{
+					memset(&f25_2_buff[tmpIndex*4],0,4);
+				}
+				else
+				{
+					memcpy(&f25_2_buff[(tmpIndex*4)+2],&DI97->Data[tmpIndex*2],2);
+				}
+			}
+			memcpy(&DI97->Data[0],f25_2_buff,16);
+			if(unitNum == 1)
+			{
+				DI97->Length += 2;
+			}
+			else
+			{
+				DI97->Length += 10;
+			}
+
+		}
+		//有功功率
+		if(((DI97->DI[0]&0xf0) == 0x30)||((DI97->DI[0]&0xf0) == 0x40))
+		{
+			*dataType = dtdoublelong;
+			INT8U f25_3_buff[16] = {0};
+			INT8U tmpIndex = 0;
+			for(tmpIndex = 0;tmpIndex < unitNum;tmpIndex++)
+			{
+				if((DI97->Data[tmpIndex*8]==0xff)&&(DI97->Data[tmpIndex*8+1]==0xff)&&(DI97->Data[tmpIndex*8+2]==0xff))
+				{
+					memset(&f25_3_buff[tmpIndex*4],0,4);
+				}
+				else
+				{
+					memcpy(&f25_3_buff[tmpIndex*4],&DI97->Data[tmpIndex*2],2);
+				}
+			}
+			DI97->Length += unitNum*2;
+		}
+
+	}
+
+	//功率因数
+	if((DI97->DI[0]&0xf0) == 0x50)
+	{
+		if((DI97->Data[2] = 0xff)&&(DI97->Data[3] = 0xff))
+		{
+			memset(&DI97->Data[2],0,2);
+		}
+		if((DI97->Data[4] = 0xff)&&(DI97->Data[5] = 0xff))
+		{
+			memset(&DI97->Data[4],0,2);
+		}
+		if((DI97->Data[6] = 0xff)&&(DI97->Data[7] = 0xff))
+		{
+			memset(&DI97->Data[6],0,2);
+		}
+
+	}
+
+	INT8U unitIndex;
+	INT8U unitSize = (DI97->Length-2)/unitNum;
+	fprintf(stderr,"DI07->Length = %d unitNum = %d unitSize = %d",DI97->Length,unitNum,unitSize);
+	for(unitIndex = 0;unitIndex < unitNum; unitIndex++)
+	{
+		//目前07单个数据单元最大字节数为4
+		INT8U reverBuff[4] = {0};
+		INT32U value = 0;
+		INT8U dataIndex = unitIndex*unitSize;
+		bcd2int32u(&DI97->Data[dataIndex],unitSize,inverted,&value);
+		fprintf(stderr,"\n value = %d",value);
+		memcpy(&DI97->Data[dataIndex],&value,unitSize);
+
+		if(unitSize == 2)
+		{
+			fprintf(stderr,"\n 123123  DI07->Data[%d] = %d  DI07->Data[%d+1] = %d",dataIndex,dataIndex,DI97->Data[dataIndex],DI97->Data[dataIndex+1]);
+			INT8U tmpvalue = DI97->Data[dataIndex];
+			DI97->Data[dataIndex] = DI97->Data[dataIndex+1];
+			DI97->Data[dataIndex+1] = tmpvalue;
+		}
+		else
+		{
+			reversebuff(&DI97->Data[dataIndex], 4, reverBuff);
+			memcpy(&DI97->Data[dataIndex],reverBuff,unitSize);
+		}
+
+	}
+
+	return unitNum;
+}
 INT8U isTimerSame(INT8S index, INT8U* timeData)
 {
 	INT8S ret = 1;
@@ -1342,6 +1532,62 @@ INT16U data07Tobuff698(FORMAT07 Data07,INT8U* dataContent)
 #endif
 	return len;
 }
+//把抄回来的07数据转换成698格式存储
+INT16U data97Tobuff698(FORMAT97 Data97,INT8U* dataContent)
+{
+	INT16U index;
+
+	INT16U len = 0;
+	Base_DataType dataType = dtnull;
+	INT8U unitSize = 0;
+	INT8U unitNum = getASNInfo97(&Data97,&dataType);
+	if(unitNum == 0)
+	{
+		return 0;
+	}
+	INT16U dataLen97 = Data97.Length-2;
+	#ifdef TESTDEF
+		fprintf(stderr, "正常应答！  DI97 = %02x%02x datalen = %d data=", Data97.DI[1], Data97.DI[0],dataLen97);
+		for(index = 0;index < dataLen97;index++)
+		{
+			fprintf(stderr," %02x",Data97.Data[index]);
+		}
+	#endif
+
+	unitSize = dataLen97/unitNum;
+	fprintf(stderr,"dataLen97 = %d unitNum = %d unitSize = %d",dataLen97,unitNum,unitSize);
+	if((dataLen97%unitNum)!=0)
+	{
+		dataLen97 = dataLen97*unitNum;
+	}
+	if(unitNum > 1)
+	{
+		dataContent[len++] = dtarray;
+		dataContent[len++] = unitNum;
+//		fprintf(stderr,"\n 1---- dataContent[%d] = %d",len,unitNum);
+	}
+
+	for(index = 0;index < unitNum;index++)
+	{
+		INT16U dataIndex = unitSize*index;
+		if(dataType != dtnull)
+		{
+			dataContent[len++] = dataType;
+		}
+		fprintf(stderr,"\n 2---index = %d dataIndex = %d dataContent[%d] = %d",index,dataIndex,len,dataType);
+		memcpy(&dataContent[len],&Data97.Data[dataIndex],unitSize);
+		len += unitSize;
+	}
+#ifdef TESTDEF
+	fprintf(stderr, "\n\n\n ###############data97Tobuff698[%d] = ",len);
+	for(index = 0;index < len;index++)
+	{
+		fprintf(stderr," %02x",dataContent[index]);
+	}
+	fprintf(stderr, "###############\n\n\n");
+#endif
+	return len;
+}
 INT16S request698_07DataSingle(FORMAT07* format07, INT8U* SendBuf,INT16S SendLen,
 		CLASS_6035* st6035,INT8U* dataContent,CLASS_6001 meter,INT8U por485)
 {
@@ -1413,8 +1659,8 @@ INT16S request698_97DataSingle(FORMAT97* format97, INT8U* SendBuf,INT16S SendLen
 		recsta = analyzeProtocol97(format97, RecvBuff, RecvLen, &nextFlag);
 		if (recsta == 0)
 		{
-			//把07数据格式化放到dataContent
-			//buffLen = data07Tobuff698(*format97,dataContent);
+			//把97数据格式化放到dataContent
+			buffLen = data97Tobuff698(*format97,dataContent);
 
 		} else
 		{
@@ -1589,6 +1835,11 @@ INT8S OADMap07DI(OI_698 roadOI,OAD sourceOAD, C601F_645* flag645) {
 		{
 			if(flag645->protocol == DLT_645_97)
 			{
+				if((map07DI_698OAD[index].flag97.DI_1[0][0]==0xff)&&(map07DI_698OAD[index].flag97.DI_1[0][1]==0xff))
+				{
+					fprintf(stderr,"\n 97数据项无效ffff");
+					return 0;
+				}
 				fprintf(stderr,"\n 找到了对应97数据项　%02x%02x \n",map07DI_698OAD[index].flag97.DI_1[0][0],map07DI_698OAD[index].flag97.DI_1[0][1]);
 				memcpy(&flag645->DI._97, &map07DI_698OAD[index].flag97, sizeof(C601F_07Flag));
 			}
@@ -3032,7 +3283,7 @@ INT16S request9707_singleOAD(INT8U protocol,OI_698 roadOI,OAD soureOAD,CLASS_600
 
 			datalen = request698_97DataList(Flag645.DI._97, to6001,dataContent,st6035,port485);
 
-			fprintf(stderr,"\n deal6015_07 datalen=%d",datalen);
+			fprintf(stderr,"\n deal6015_97 datalen=%d",datalen);
 
 		}
 		else
@@ -3121,7 +3372,7 @@ INT16S deal6015_9707(INT8U protocol,CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6
 		{
 			INT8U isFreezeValid = 1;
 			//日冻结检查时标
-			if((st6015.csds.csd[dataIndex].csd.road.oad.OI == 0x5004)&&(st6015.cjtype==TYPE_FREEZE))
+			if((st6015.csds.csd[dataIndex].csd.road.oad.OI == 0x5004)&&(st6015.cjtype==TYPE_FREEZE)&&(protocol==DLT_645_07))
 			{
 				isFreezeValid = checkTimeStamp07(to6001,port485);
 			}
@@ -3151,6 +3402,7 @@ INT16S deal6015_9707(INT8U protocol,CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6
 			}
 			if(isFreezeValid==0)
 			{
+				DbgPrintToFile1(port485, "冻结时标不正确");
 				memset(dataContent,0,totaldataLen);
 			}
 		}
@@ -3188,6 +3440,9 @@ INT16S deal6015_9707(INT8U protocol,CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6
 		memset(singleCurveDatabuf,0,DATA_CONTENT_LEN);
 		TS freezeTimeStamp;
 		TSGet(&freezeTimeStamp);
+		freezeTimeStamp.Minute = 0;
+		freezeTimeStamp.Sec = 0;
+
 		int bufflen = compose6012Buff(st6035->starttime,to6001.basicinfo.addr,totaldataLen,dataContent,port485);
 		SaveNorData(st6035->taskID,NULL,dataContent,bufflen,freezeTimeStamp);
 	}
@@ -3237,28 +3492,7 @@ INT8U createSendEventBuffHead(ROAD roadBody,INT8U* reportEventBuf,INT8U saveCont
 	eventBufLen += 21;
 	return eventBufLen;
 }
-INT8U createSendEventBuffHead_BK(ROAD roadBody,INT8U* reportEventBuf,INT8U saveContentHead[SAVE_EVENT_BUFF_HEAD_LEN])
-{
-	INT8U eventBufLen = 0;
 
-	//ROAD event
-	eventBufLen += OADtoBuff(roadBody.oad,&reportEventBuf[eventBufLen]);
-	reportEventBuf[eventBufLen++] = roadBody.num;
-
-	INT8U oadIndex = 0;
-	for(oadIndex = 0;oadIndex < roadBody.num;oadIndex++)
-	{
-		reportEventBuf[eventBufLen++] = 0;
-		eventBufLen += OADtoBuff(roadBody.oads[oadIndex],&reportEventBuf[eventBufLen]);
-	}
-
-	reportEventBuf[eventBufLen++] = 1;
-	reportEventBuf[eventBufLen++] = 1;
-
-	memcpy(&reportEventBuf[eventBufLen],&saveContentHead[18],21);
-	eventBufLen += 21;
-	return eventBufLen;
-}
 INT8S sendEventReportBuff698(ROAD eventRoad,INT8U saveContentHead[SAVE_EVENT_BUFF_HEAD_LEN],INT8U port485,OAD_DATA oadListContent[ROAD_OADS_NUM])
 {
 	INT8S ret = -1;
@@ -4133,9 +4367,10 @@ INT8U initMap07DI_698OAD()
 	INT8U unitnum =0,dataType = 0;
 
 	INT8U dataflag97[2];
-	INT8U dataflag07[DF07_BYTES];
+	INT8U dataflag07[DF07_BYTES*2];
 	INT8U dataInfo[DF07_INFO_BYTES];
-
+	int val[4] = {0,0,0,0};
+	INT16U flag97 = 0;
 
 	memset(&map07DI_698OAD[0], 0, sizeof(CLASS_601F)*NUM_07DI_698OAD);
 
@@ -4177,18 +4412,18 @@ INT8U initMap07DI_698OAD()
 		fprintf(stderr,"\n oi698 = %04x\n",oi698);
 
 		memset(dataflag97,0xff,2);
-		memset(dataflag07,0xff,DF07_BYTES);
+		memset(dataflag07,0xff,DF07_BYTES*2);
 		memset(dataInfo,0,DF07_INFO_BYTES);
-
-		int val[4] = {0};
+		flag97 = 0;
+		memset(val,0,4);
 
 		fprintf(stderr,"\n------------------------");
 		sscanf((const char*)aline,"%04x %04x %s %d %d %s",&val[0],&val[1],dataflag07,&val[2],&val[3],dataInfo);
 
-
 		oadOI = (OI_698)val[0];
-		dataflag97[1] = (val[1]>>8)&0x00ff;
-		dataflag97[0] = val[1]&0x00ff;
+		flag97 = (INT16U)val[1];
+		memcpy(dataflag97,&flag97,2);
+
 		unitnum = (INT8U)val[2];
 		dataType = (INT8U)val[3];
 
@@ -4196,9 +4431,12 @@ INT8U initMap07DI_698OAD()
 		memset(asc07,0,DF07_BYTES*2);
 		memcpy(asc07,dataflag07,DF07_BYTES*2);
 
-		INT8U buf07[DF07_BYTES];
+		INT8U buf07[DF07_BYTES*2];
+		memset(buf07,0,DF07_BYTES*2);
 		asc2bcd(asc07,DF07_BYTES*2,buf07,positive);
 		reversebuff(buf07, 4, dataflag07);
+
+
 
 
 		fprintf(stderr,"\n linenum = %d  oadOI=%04x  datatype = %d unitnum= %d	dataflag97 = %02x%02x dataflag07 = %02x-%02x-%02x-%02x dataInfo = %s\n"
@@ -4232,10 +4470,10 @@ INT8U initMap07DI_698OAD()
 	map07DI_698OAD[linenum].unitnum = 1;
 	map07DI_698OAD[linenum].datatype = 0;
 	map07DI_698OAD[linenum].flag97.dinum = 2;
-	map07DI_698OAD[linenum].flag97.DI_1[0][0] = 0xc0;
-	map07DI_698OAD[linenum].flag97.DI_1[0][1] = 0x10;
-	map07DI_698OAD[linenum].flag97.DI_1[1][0] = 0xc0;
-	map07DI_698OAD[linenum].flag97.DI_1[1][1] = 0x11;
+	map07DI_698OAD[linenum].flag97.DI_1[0][0] = 0x10;
+	map07DI_698OAD[linenum].flag97.DI_1[0][1] = 0xc0;
+	map07DI_698OAD[linenum].flag97.DI_1[1][0] = 0x11;
+	map07DI_698OAD[linenum].flag97.DI_1[1][1] = 0xc0;
 	map07DI_698OAD[linenum].flag07.dinum = 2;
 	memcpy(map07DI_698OAD[linenum].flag07.DI_1[0],flag07_date,DF07_BYTES);
 	memcpy(map07DI_698OAD[linenum].flag07.DI_1[1],flag07_time,DF07_BYTES);
