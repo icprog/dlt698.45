@@ -484,8 +484,10 @@ int absoluteKill(char *name, int timeout) {
             char command[64];
             memset(command, 0x00, sizeof(command));
             sprintf(command, "kill %d", pids[0]);
-            system(command);
-            asyslog(LOG_INFO, "正在停止进程[%s],进程号[%d],使用的终止命令[%s]", name, pids[0], command);
+            if( i % 3 == 0) {
+                system(command);
+                asyslog(LOG_INFO, "正在停止进程[%s],进程号[%d],使用的终止命令[%s]", name, pids[0], command);
+            }
         } else {
             return 0;
         }
@@ -557,8 +559,8 @@ void *ATWorker(void *args) {
          * 处理AT参数，等待注册状态。
          */
         asyslog(LOG_INFO, "打开串口复用模块");
-        system("mux.sh &");
-        sleep(15);
+        system("mux.sh");
+        sleep(1);
 
         sMux0 = OpenMuxCom(0, 115200, (unsigned char *) "none", 1, 8); // 0
         sMux1 = OpenMuxCom(1, 115200, (unsigned char *) "none", 1, 8);
