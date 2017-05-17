@@ -15,3 +15,5 @@ bin_arm/
 bin_arm_test/
 updatetool/*
 updatetool/*/*
+
+include/version.h

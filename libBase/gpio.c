@@ -41,6 +41,7 @@ INT32S gpio_readint(char* devpath) {
 }
 
 INT32S gpio_writebyte(char* devpath, INT8S data) {
+
     int fd = -1;
     if ((fd = open((const char*)devpath, O_RDWR | O_NDELAY)) >= 0) {
         write(fd, &data, sizeof(char));

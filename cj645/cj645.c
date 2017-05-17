@@ -112,10 +112,12 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "OpenCom645 ERR!!! ........................\n");
     }
 
+    system("cjcomm 2 &");
+
     acs_process();
     dealProcess();
 
-    sleep(1);
+    usleep(500*1000);
 
     QuitProcess(0);
     return EXIT_SUCCESS;
