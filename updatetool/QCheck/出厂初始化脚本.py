@@ -25,7 +25,7 @@ def readConfig(name):
 #
 def ReadyNet(host, user, passwd):
     try:
-        telnetfp = telnetlib.Telnet(host)
+        telnetfp = telnetlib.Telnet(host, timeout=3)
 
         telnetfp.read_until("ogin: ")
         telnetfp.write(user + "\r\n")
@@ -34,8 +34,7 @@ def ReadyNet(host, user, passwd):
         return telnetfp
 
     except IOError, e:
-        print '网络连接错误，检查网线连接状态。'
-        sys.exit()
+        raise e
 
 
 #
@@ -73,7 +72,7 @@ def formatId(config, deviceId):
     while localID != 0:
         part = localID % 100;
         localID //= 100;
-        mainID = "%02d" %part + " " + mainID
+        mainID = "%02d" % part + " " + mainID
 
     return mainID
 
@@ -108,12 +107,18 @@ if __name__ == '__main__':
     deviceId = getInputGiveInfo("输入产品逻辑地址>>>")
 
     while True:
-        os.system('cls;clear')
+        try:
+            os.system('cls;clear')
+            os.system('arp -d')
 
-        newDeviceId = getInputGiveInfo("确认序列号:(可以重新输入逻辑地址):" + formatId(config, deviceId) + "#")
-        if newDeviceId is not "":
-            deviceId = newDeviceId
-        config.set('parameter', 'id', formatId(config, deviceId))
+            newDeviceId = getInputGiveInfo("确认序列号:(可以重新输入逻辑地址):" + formatId(config, deviceId) + "#")
+            if newDeviceId is not "":
+                deviceId = newDeviceId
+            config.set('parameter', 'id', formatId(config, deviceId))
 
-        doSetDevice(config)
-        deviceId = "%d" % (int(deviceId) + 1)
+            doSetDevice(config)
+            deviceId = "%d" % (int(deviceId) + 1)
+
+        except IOError, e:
+            print '网络连接错误，检查网线连接状态。'.decode('utf-8')
+            continue
