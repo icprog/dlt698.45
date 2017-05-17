@@ -239,16 +239,40 @@ void FrameTail(INT8U *buf,int index,int hcsi)
 	buf[index+2] = 0x16;
 	return;
 }
+
+int broadServerAddr(INT8U *sa,int sa_len)
+{
+	int i=0,cmpret=1;
+	for(i=0;i<sa_len;i++) {
+		if(sa[i]!=0xAA) {
+			cmpret = 0;
+		}
+	}
+	return cmpret;
+}
+
 int FrameHead(CSINFO *csinfo,INT8U *buf)
 {
-	int i=0;
+	CLASS_4001_4002_4003 sa = {};
+	int i=0,j=0;
 	buf[i++]= 0x68;//起始码
 	buf[i++]= 0;	//长度
 	buf[i++]= 0;
 	buf[i++]= CtrlWord(*csinfo);
 	buf[i++]= (csinfo->sa_type<<6) | (0<<4) | ((csinfo->sa_length-1) & 0xf);
-	memcpy(&buf[i],csinfo->sa,csinfo->sa_length );
-	i = i + csinfo->sa_length;
+
+	if(broadServerAddr(csinfo->sa,csinfo->sa_length)==1) {	//广播地址,应答终端的通信地址
+		memset(&sa, 0, sizeof(CLASS_4001_4002_4003));
+		readCoverClass(0x4001, 0, &sa, sizeof(CLASS_4001_4002_4003), para_vari_save);
+		for(j=0;j<sa.curstom_num[0];j++) {
+			buf[i++] = sa.curstom_num[sa.curstom_num[0]-j];
+		}
+		//memcpy(&buf[i],&sa.curstom_num[1],sa.curstom_num[0]);
+	}else {
+		memcpy(&buf[i],csinfo->sa,csinfo->sa_length );
+		i = i + csinfo->sa_length;
+	}
+
 	buf[i++]=csinfo->ca;
 	return i;
 }
