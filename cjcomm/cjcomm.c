@@ -289,9 +289,9 @@ void initComPara(CommBlock *compara, INT8S (*p_send)(int fd, INT8U *buf, INT16U 
     for (int i = 0; i < 5; i++) {
         compara->myAppVar.ProtocolConformance[i] = 0xff;
     }
-    compara->myAppVar.server_deal_maxApdu = 1024;
-    compara->myAppVar.server_recv_size = 1024;
-    compara->myAppVar.server_send_size = 1024;
+    compara->myAppVar.server_deal_maxApdu = FRAMELEN;
+    compara->myAppVar.server_recv_size = FRAMELEN;
+    compara->myAppVar.server_send_size = FRAMELEN;
     compara->myAppVar.server_recv_maxWindow = 1;
     compara->myAppVar.expect_connect_timeout = 56400;
 

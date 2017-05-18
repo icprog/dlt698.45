@@ -435,10 +435,13 @@ void varconsult(CONNECT_Response *response ,CONNECT_Request *request,CONNECT_Res
 	for(i=0;i<8;i++)
 		response->ProtocolConformance[i] = myvar->ProtocolConformance[i] & request->ProtocolConformance[i];
 	memcpy(&response->app_version,&request->expect_app_ver,sizeof(request->expect_app_ver));
-	//if (myvar->server_deal_maxApdu < request->client_deal_maxApdu)
+
+	//if (myvar->server_deal_maxApdu < request->client_deal_maxApdu)//
 		response->server_deal_maxApdu = myvar->server_deal_maxApdu;
 	//else
 	//	response->server_deal_maxApdu = request->client_deal_maxApdu;
+
+
 	//if (myvar->server_recv_size < request->client_recv_size)
 		response->server_recv_size = myvar->server_recv_size;
 	//else

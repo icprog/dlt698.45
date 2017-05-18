@@ -290,7 +290,7 @@ int GetReportData(CLASS_601D report)
 		ret = getSelector(report.reportdata.data.oad,
 							report.reportdata.data.recorddata.rsd,
 							report.reportdata.data.recorddata.selectType,
-							report.reportdata.data.recorddata.csds,NULL, NULL);
+							report.reportdata.data.recorddata.csds,NULL, NULL,AppVar_p->server_send_size);
 		fprintf(stderr,"GetReportData   ret=%d\n",ret);
 		ret = REPROTNOTIFICATIONRECORDLIST;	//
 	}
