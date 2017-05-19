@@ -222,10 +222,9 @@ int Comm_task(CommBlock *compara) {
     if (abs(time(NULL) - compara->lasttime) < heartbeat) {
         return 0;
     }
-
     compara->lasttime = time(NULL);
 
-    if (compara->testcounter > 3) {
+    if (compara->testcounter > 2) {
         return -1;
     }
 
@@ -303,7 +302,7 @@ void dumpPeerStat(int fd, char *info) {
     int port = 0;
 
     memset(peerBuf, 0x00, sizeof(peerBuf));
-//    anetTcpKeepAlive(NULL, fd);
+    anetTcpKeepAlive(NULL, fd);
     anetPeerToString(fd, peerBuf, sizeof(peerBuf), &port);
     asyslog(LOG_INFO, "[%s%s]:%d\n", info, peerBuf, port);
 }

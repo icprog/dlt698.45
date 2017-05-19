@@ -356,7 +356,7 @@ void *ModelWorker(void *args) {
 
                     if (sscanf(Mrecvbuf, "%*[^:]: %d,%d", &k, &l) == 2) {
 
-                        SendATCommand(sendBuf, res, sMux0);
+                        SendATCommand(sendBuf, readySendLen, sMux0);
                         for (int j = 0; j < 3; ++j) {
                             delay(1000);
                             memset(Mrecvbuf, 0, 128);
