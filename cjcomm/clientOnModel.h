@@ -136,6 +136,23 @@ static MASTER_STATION_INFO getNextGprsIpPort(CommBlock *commBlock) {
     return res;
 }
 
+void SendCommandGetOK(int fd, char *buf, int retry) {
+    char Mrecvbuf[128];
+
+    for (int timeout = 0; timeout < retry; timeout++) {
+
+        SendATCommand("\rAT$MYNETACT=1,0\r", 17, sMux0);
+        delay(1000);
+        memset(Mrecvbuf, 0, 128);
+        RecieveFromComm(Mrecvbuf, 128, sMux0);
+
+        if (strstr(Mrecvbuf, "OK") != 0) {
+            break;
+        }
+    }
+
+}
+
 void *ModelWorker(void *args) {
     CLASS25 *class25 = (CLASS25 *) args;
     int sMux0 = -1;

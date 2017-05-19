@@ -354,8 +354,6 @@ void enviromentCheck(int argc, char *argv[]) {
 }
 
 int main(int argc, char *argv[]) {
-    printf("version 1019\n");
-
     memset(&class_4000, 0, sizeof(CLASS_4000));
     enviromentCheck(argc, argv);
     SetOnlineType(0);
@@ -371,12 +369,16 @@ int main(int argc, char *argv[]) {
     StartIfr(ep, 0, NULL);
     StartSerial(ep, 0, NULL);
 
-    StartServer(ep, 0, NULL);
-    StartVerifiTime(ep, 0, JProgramInfo);
-    StartClientForGprs(ep, 0, NULL);
-    StartClientForNet(ep, 0, NULL);
+    if(argc > 1 && atoi(argv[2]) == 2){
+        StartClientOnModel(ep, 0, NULL);
 
-//    StartClientOnModel(ep, 0, NULL);
+    }else{
+        StartServer(ep, 0, NULL);
+        StartClientForGprs(ep, 0, NULL);
+        StartClientForNet(ep, 0, NULL);
+    }
+
+    StartVerifiTime(ep, 0, JProgramInfo);
     StartMmq(ep, 0, NULL);
     createWatch(ep);
 
