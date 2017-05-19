@@ -369,7 +369,7 @@ int main(int argc, char *argv[]) {
     StartIfr(ep, 0, NULL);
     StartSerial(ep, 0, NULL);
 
-    if(argc > 1 && atoi(argv[2]) == 2){
+    if(argc > 2 && atoi(argv[2]) == 2){
         StartClientOnModel(ep, 0, NULL);
 
     }else{
