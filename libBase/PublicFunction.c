@@ -420,6 +420,15 @@ void TimeBCDToTs(DateTimeBCD timeBCD,TS* outTs)
 	outTs->Minute = timeBCD.min.data;
 	outTs->Sec = timeBCD.sec.data;
 }
+void TsToTimeBCD(TS inTs,DateTimeBCD* outTimeBCD)
+{
+	outTimeBCD->year.data = inTs.Year;
+	outTimeBCD->month.data = inTs.Month;
+	outTimeBCD->day.data = inTs.Day;
+	outTimeBCD->hour.data = inTs.Hour;
+	outTimeBCD->min.data = inTs.Minute;
+	outTimeBCD->sec.data = inTs.Sec;
+}
 
 //判断该年是否闫年
 BOOLEAN LeapYear(INT16U Year) {
