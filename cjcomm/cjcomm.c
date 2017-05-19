@@ -303,7 +303,7 @@ void dumpPeerStat(int fd, char *info) {
     int port = 0;
 
     memset(peerBuf, 0x00, sizeof(peerBuf));
-    anetTcpKeepAlive(NULL, fd);
+//    anetTcpKeepAlive(NULL, fd);
     anetPeerToString(fd, peerBuf, sizeof(peerBuf), &port);
     asyslog(LOG_INFO, "[%s%s]:%d\n", info, peerBuf, port);
 }

@@ -335,15 +335,15 @@ void *ModelWorker(void *args) {
 
             INT8U sendBuf[2048];
             memset(sendBuf, 0x00, sizeof(sendBuf));
-            int res = getNext(sendBuf);
+            int readySendLen = getNext(sendBuf);
 
-            if (res != -1) {
+            if (readySendLen != -1) {
                 for (int timeout = 0; timeout < 3; timeout++) {
                     char Mrecvbuf[128];
 
                     char CommandBuf[128];
                     memset(CommandBuf, 0x00, sizeof(CommandBuf));
-                    sprintf(CommandBuf, "\rAT$MYNETWRITE=1,%d\r", res);
+                    sprintf(CommandBuf, "\rAT$MYNETWRITE=1,%d\r", readySendLen);
 
                     SendATCommand(CommandBuf, strlen(CommandBuf), sMux0);
                     write(sMux0, CommandBuf, strlen(CommandBuf));
