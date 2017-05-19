@@ -8,6 +8,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <syslog.h>
+#include <string.h>
 
 #include <net/if.h>
 #include <netinet/in.h>
@@ -89,9 +90,7 @@ static int putNext(INT8U *buf, INT16U len) {
 
     for (int i = 0; i < len; ++i) {
         netObject.recv.buf[netObject.recv.len + i] = buf[i];
-        printf("%02x  ", buf[i]);
     }
-    printf("\n");
     netObject.recv.len += len;
     pthread_mutex_unlock(&locker);
     return len;
@@ -228,6 +227,54 @@ int regIntoNet(int fd) {
     return 0;
 }
 
+int myStrnstr(char *buf, int len) {
+    for (int i = 0; i < len - 1; ++i) {
+        if (buf[i] == 'O' && buf[i + 1] == 'K') {
+            return i;
+        }
+    }
+    return 0;
+}
+
+
+int modelSendExactly(int fd, int retry, int len, int buf) {
+    int chl = 0;
+    int sum = 0;
+    int length = len;
+
+    char recbuf[2048];
+    char cmdBuf[2048];
+
+    for (int timeout = 0; timeout < retry; timeout++) {
+        memset(recbuf, 0x00, sizeof(recbuf));
+        memset(cmdBuf, 0x00, sizeof(cmdBuf));
+
+        sprintf(cmdBuf, "\rAT$MYNETWRITE=1,%d\r", length);
+        SendATCommand(cmdBuf, strlen(cmdBuf), fd);
+
+        delay(1000);
+        RecieveFromComm(recbuf, sizeof(recbuf), fd);
+
+        if (sscanf(recbuf, "%*[^:]: %d,%d", &chl, &sum) == 2) {
+            write(fd, buf, sum);
+            for (int j = 0; j < 3; ++j) {
+                delay(1000);
+                memset(recbuf, 0, sizeof(recbuf));
+                int position = RecieveFromComm(recbuf, sizeof(recbuf), fd);
+                if (myStrnstr(recbuf, position) != 0) {
+                    printf("~~~~~~~~~~~~~%d-%d-%d", length, sum, position);
+                    length -= sum;
+                    if (length == 0) {
+                        return len;
+                    }
+                }
+
+            }
+        }
+    }
+    return 0;
+}
+
 void *ModelWorker(void *args) {
     CLASS25 *class25 = (CLASS25 *) args;
     int sMux0 = -1;
@@ -329,42 +376,14 @@ void *ModelWorker(void *args) {
         //等待在线状态为“否”，重新拨号
         while (1) {
             sleep(1);
-            if (GetOnlineType() == 0) {
-                goto err;
-            }
+            if (GetOnlineType() == 0) { goto err; }
 
             INT8U sendBuf[2048];
             memset(sendBuf, 0x00, sizeof(sendBuf));
             int readySendLen = getNext(sendBuf);
 
             if (readySendLen != -1) {
-                for (int timeout = 0; timeout < 3; timeout++) {
-                    char Mrecvbuf[128];
-
-                    char CommandBuf[128];
-                    memset(CommandBuf, 0x00, sizeof(CommandBuf));
-                    sprintf(CommandBuf, "\rAT$MYNETWRITE=1,%d\r", readySendLen);
-
-                    SendATCommand(CommandBuf, strlen(CommandBuf), sMux0);
-                    write(sMux0, CommandBuf, strlen(CommandBuf));
-                    delay(3000);
-                    memset(Mrecvbuf, 0, 128);
-                    RecieveFromComm(Mrecvbuf, 128, sMux0);
-
-                    int k = 0;
-                    int l = 0;
-
-                    if (sscanf(Mrecvbuf, "%*[^:]: %d,%d", &k, &l) == 2) {
-
-                        SendATCommand(sendBuf, readySendLen, sMux0);
-                        for (int j = 0; j < 3; ++j) {
-                            delay(1000);
-                            memset(Mrecvbuf, 0, 128);
-                            RecieveFromComm(Mrecvbuf, 128, sMux0);
-                        }
-                        break;
-                    }
-                }
+                modelSendExactly(sMux0, 5, readySendLen, sendBuf);
             }
 
             for (int timeout = 0; timeout < 3; timeout++) {
@@ -384,17 +403,9 @@ void *ModelWorker(void *args) {
 
                 if (sscanf(Mrecvbuf, "%*[^:]: %d,%d", &k, &l) == 2) {
                     printf("============%d-%d\n", k, l);
-                    if (l == 0) {
-                        break;
-                    }
-                    for (int i = 0; i < l; ++i) {
-                        printf("%02x ", Mrecvbuf[40 + i]);
-                    }
-                    printf("\n");
+                    if (l == 0) { break; }
                     putNext(&Mrecvbuf[40], l);
                     break;
-                } else {
-                    printf("+++++++++++++++++++++++");
                 }
             }
 
@@ -405,8 +416,6 @@ void *ModelWorker(void *args) {
         close(sMux0);
         continue;
     }
-
-    return NULL;
 }
 
 void CreateOnModel(void *clientdata) {
