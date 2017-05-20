@@ -222,10 +222,9 @@ int Comm_task(CommBlock *compara) {
     if (abs(time(NULL) - compara->lasttime) < heartbeat) {
         return 0;
     }
-
     compara->lasttime = time(NULL);
 
-    if (compara->testcounter > 3) {
+    if (compara->testcounter > 2) {
         return -1;
     }
 
@@ -354,8 +353,6 @@ void enviromentCheck(int argc, char *argv[]) {
 }
 
 int main(int argc, char *argv[]) {
-    printf("version 1019\n");
-
     memset(&class_4000, 0, sizeof(CLASS_4000));
     enviromentCheck(argc, argv);
     SetOnlineType(0);
@@ -371,12 +368,16 @@ int main(int argc, char *argv[]) {
     StartIfr(ep, 0, NULL);
     StartSerial(ep, 0, NULL);
 
-    StartServer(ep, 0, NULL);
-    StartVerifiTime(ep, 0, JProgramInfo);
-    StartClientForGprs(ep, 0, NULL);
-    StartClientForNet(ep, 0, NULL);
+    if(argc > 2 && atoi(argv[2]) == 2){
+        StartClientOnModel(ep, 0, NULL);
 
-//    StartClientOnModel(ep, 0, NULL);
+    }else{
+        StartServer(ep, 0, NULL);
+        StartClientForGprs(ep, 0, NULL);
+        StartClientForNet(ep, 0, NULL);
+    }
+
+    StartVerifiTime(ep, 0, JProgramInfo);
     StartMmq(ep, 0, NULL);
     createWatch(ep);
 

@@ -12,28 +12,14 @@
 #include <net/if.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
-
+#include <stdarg.h>
 #include <pthread.h>
 
 #include "PublicFunction.h"
 #include "dlt698def.h"
 #include "cjcomm.h"
-#include "at.h"
-#include "ae.h"
 #include "../include/Shmem.h"
-
-
-typedef struct {
-    INT8U buf[2048];
-    INT16U len;
-} Block;
-
-typedef struct {
-    Block send[16];
-    Block recv;
-    INT16U head;
-    INT16U tail;
-} NetObject;
+#include "clientOnModel.h"
 
 /*
  * 内部协议栈参数
@@ -43,7 +29,6 @@ static CommBlock ClientForModelObject;
 static long long ClientOnModel_Task_Id;
 static MASTER_STATION_INFO NetIps[4];
 static pthread_mutex_t locker;
-
 static NetObject netObject;
 
 static int NetSend(int fd, INT8U *buf, INT16U len) {
@@ -95,7 +80,6 @@ static int getNext(INT8U *buf) {
     return len;
 }
 
-
 static int putNext(INT8U *buf, INT16U len) {
     pthread_mutex_lock(&locker);
     if (netObject.recv.len + len > 2048) {
@@ -105,8 +89,9 @@ static int putNext(INT8U *buf, INT16U len) {
 
     for (int i = 0; i < len; ++i) {
         netObject.recv.buf[netObject.recv.len + i] = buf[i];
-        printf("2=========%02x\n", buf[i]);
+        printf("%02x  ", buf[i]);
     }
+    printf("\n");
     netObject.recv.len += len;
     pthread_mutex_unlock(&locker);
     return len;
@@ -136,74 +121,129 @@ static MASTER_STATION_INFO getNextGprsIpPort(CommBlock *commBlock) {
     return res;
 }
 
+int SendCommandGetOK(int fd, int retry, const char *fmt, ...) {
+    va_list argp;
+    va_start(argp, fmt);
+    char cmd[128];
+    memset(cmd, 0x00, sizeof(cmd));
+    vsprintf(cmd, fmt, argp);
+    va_end(argp);
+
+    for (int timeout = 0; timeout < retry; timeout++) {
+        char Mrecvbuf[128];
+        SendATCommand(cmd, strlen(cmd), fd);
+        delay(800);
+        memset(Mrecvbuf, 0, 128);
+        RecieveFromComm(Mrecvbuf, 128, fd);
+        if (strstr(Mrecvbuf, "OK") != 0) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+void resetModel() {
+    asyslog(LOG_INFO, "重置模块状态...");
+    gpofun("/dev/gpoGPRS_POWER", 0);
+    sleep(8);
+    gpofun("/dev/gpoGPRS_POWER", 1);
+    gpofun("/dev/gpoGPRS_RST", 1);
+    gpofun("/dev/gpoGPRS_SWITCH", 1);
+    sleep(2);
+    gpofun("/dev/gpoGPRS_RST", 0);
+    sleep(1);
+    gpofun("/dev/gpoGPRS_RST", 1);
+    sleep(5);
+    gpofun("/dev/gpoGPRS_SWITCH", 0);
+    sleep(1);
+    gpofun("/dev/gpoGPRS_SWITCH", 1);
+    sleep(10);
+}
+
+int getNetType(int fd) {
+    char Mrecvbuf[128];
+    for (int timeout = 0; timeout < 10; timeout++) {
+        SendATCommand("\rAT$MYTYPE?\r", 12, fd);
+        delay(1000);
+        memset(Mrecvbuf, 0, 128);
+        RecieveFromComm(Mrecvbuf, 128, fd);
+
+        int k, l, m;
+        if (sscanf(Mrecvbuf, "%*[^:]: %d,%d,%d", &k, &l, &m) == 3) {
+            if ((l & 0x01) == 1) {
+                asyslog(LOG_INFO, "远程通信单元类型为GPRS。\n");
+                break;
+            }
+            if ((l & 0x08) == 8) {
+                asyslog(LOG_INFO, "远程通信单元类型为CDMA2000。\n");
+                break;
+            }
+        }
+    }
+}
+
+int getCIMIType(int fd) {
+    char *cimiType[] = {
+            "46003", "46011",
+    };
+
+    char Mrecvbuf[128];
+    for (int timeout = 0; timeout < 5; timeout++) {
+        SendATCommand("\rAT+CIMI\r", 9, fd);
+        delay(1000);
+        memset(Mrecvbuf, 0, 128);
+        RecieveFromComm(Mrecvbuf, 128, fd);
+
+        char cimi[64];
+        memset(cimi, 0x00, sizeof(cimi));
+        if (sscanf((char *) &Mrecvbuf[0], "%*[^0-9]%[0-9]", cimi) == 1) {
+            asyslog(LOG_INFO, "CIMI = %s\n", cimi);
+            for (int i = 0; i < 2; i++) {
+                if (strncmp(cimiType[i], cimi, 5) == 0) {
+                    return 3;
+                }
+            }
+            return 1;
+        }
+    }
+    return 0;
+}
+
+int regIntoNet(int fd) {
+    char Mrecvbuf[128];
+    for (int timeout = 0; timeout < 80; timeout++) {
+        SendATCommand("\rAT+CREG?\r", 10, fd);
+        delay(1000);
+        memset(Mrecvbuf, 0, 128);
+        RecieveFromComm(Mrecvbuf, 128, fd);
+
+        int k, l;
+        if (sscanf(Mrecvbuf, "%*[^:]: %d,%d", &k, &l) == 2) {
+            asyslog(LOG_INFO, "GprsCREG = %d,%d\n", k, l);
+            if (l == 1 || l == 5) {
+                return 1;
+            }
+        }
+    }
+    return 0;
+}
+
 void *ModelWorker(void *args) {
     CLASS25 *class25 = (CLASS25 *) args;
     int sMux0 = -1;
-    int sMux1 = -1;
 
     while (1) {
-        if (GetOnlineType() != 0) {
-            goto wait;
-        }
-
         gpofun("/dev/gpoCSQ_GREEN", 0);
         gpofun("/dev/gpoCSQ_RED", 0);
+        gpofun("/dev/gpoONLINE_LED", 0);
 
-        if (GetOnlineType() != 0) {
-            goto wait;
-        }
+        resetModel();
 
-        /*
-         * 重置模块状态
-         */
-        asyslog(LOG_INFO, "重置模块状态...");
-        gpofun("/dev/gpoGPRS_POWER", 0);
-        sleep(5);
-        gpofun("/dev/gpoGPRS_POWER", 1);
-        gpofun("/dev/gpoGPRS_RST", 1);
-        gpofun("/dev/gpoGPRS_SWITCH", 1);
-        sleep(2);
-        gpofun("/dev/gpoGPRS_RST", 0);
-        sleep(1);
-        gpofun("/dev/gpoGPRS_RST", 1);
-        sleep(5);
-        gpofun("/dev/gpoGPRS_SWITCH", 0);
-        sleep(1);
-        gpofun("/dev/gpoGPRS_SWITCH", 1);
-        sleep(10);
+        if (GetOnlineType() != 0) { goto wait; }
+        if ((sMux0 = OpenCom(5, 115200, (unsigned char *) "none", 1, 8)) < 0) { goto err; }
+        if (SendCommandGetOK(sMux0, 5, "\rat\r") == 0) { goto err; }
 
-        if (GetOnlineType() != 0) {
-            goto wait;
-        }
-
-        /*
-         * 处理AT参数，等待注册状态。
-         */
-        asyslog(LOG_INFO, "打开通信串口");
-
-        sMux0 = OpenCom(5, 115200, (unsigned char *) "none", 1, 8); // 0
-        if (sMux0 < 0) {
-            close(sMux0);
-            fprintf(stderr, "\n打开串口错误！\n");
-            goto err;
-        }
-
-        for (int i = 0; i < 5; i++) {
-            char Mrecvbuf[128];
-            memset(Mrecvbuf, 0, 128);
-
-            SendATCommand("at\r", 3, sMux0);
-            sleep(3);
-            if (RecieveFromComm(Mrecvbuf, 128, sMux0) > 0) {
-                if (strstr(Mrecvbuf, "OK") != NULL) {
-                    break;
-                }
-            }
-            if (i == 2) {
-                goto err;
-            }
-        }
-
+        ////////////////////获取信息////////////////////
         for (int timeout = 0; timeout < 10; timeout++) {
             char Mrecvbuf[128];
 
@@ -216,27 +256,6 @@ void *ModelWorker(void *args) {
             if (sscanf(Mrecvbuf, "%*[^\n]\n%[^\n]\n%[^\n]\n%[^\n]\n%[^\n]\n%[^\n]\n%[^\n]", INFO[0], INFO[1], INFO[2],
                        INFO[3], INFO[4], INFO[5]) == 6) {
                 break;
-            }
-        }
-
-        for (int timeout = 0; timeout < 10; timeout++) {
-            char Mrecvbuf[128];
-
-            SendATCommand("\rAT$MYTYPE?\r", 12, sMux0);
-            delay(1000);
-            memset(Mrecvbuf, 0, 128);
-            RecieveFromComm(Mrecvbuf, 128, sMux0);
-
-            int k, l, m;
-            if (sscanf(Mrecvbuf, "%*[^:]: %d,%d,%d", &k, &l, &m) == 3) {
-                if ((l & 0x01) == 1) {
-                    asyslog(LOG_INFO, "远程通信单元类型为GPRS。\n");
-                    break;
-                }
-                if ((l & 0x08) == 8) {
-                    asyslog(LOG_INFO, "远程通信单元类型为CDMA2000。\n");
-                    break;
-                }
             }
         }
 
@@ -281,189 +300,30 @@ void *ModelWorker(void *args) {
                 }
             }
         }
-
-        int reg_ok = 0;
-        for (int timeout = 0; timeout < 80; timeout++) {
-            char Mrecvbuf[128];
-
-            SendATCommand("\rAT+CREG?\r", 10, sMux0);
-            delay(1000);
-            memset(Mrecvbuf, 0, 128);
-            RecieveFromComm(Mrecvbuf, 128, sMux0);
-
-            int k, l;
-            if (sscanf(Mrecvbuf, "%*[^:]: %d,%d", &k, &l) == 2) {
-                asyslog(LOG_INFO, "GprsCREG = %d,%d\n", k, l);
-                if (l == 1 || l == 5) {
-                    reg_ok = 1;
-                    break;
-                }
-            }
-        }
-        if (reg_ok == 0) {
-            asyslog(LOG_INFO, "注册网络失败");
-            goto err;
-        }
-
-        char *cimiType[] = {
-                "46003", "46011",
-        };
-
-        int callType = 1;
-
-        for (int timeout = 0; timeout < 50; timeout++) {
-            char Mrecvbuf[128];
-
-            SendATCommand("\rAT+CIMI\r", 9, sMux0);
-            delay(1000);
-            memset(Mrecvbuf, 0, 128);
-            RecieveFromComm(Mrecvbuf, 128, sMux0);
-
-            char cimi[64];
-            memset(cimi, 0x00, sizeof(cimi));
-            if (sscanf((char *) &Mrecvbuf[0], "%*[^0-9]%[0-9]", cimi) == 1) {
-                asyslog(LOG_INFO, "CIMI = %s\n", cimi);
-                for (int i = 0; i < 2; i++) {
-                    if (strncmp(cimiType[i], cimi, 5) == 0) {
-                        callType = 3;
-                        break;
-                    }
-                }
-                break;
-            }
-        }
-
-        if (GetOnlineType() != 0) {
-            goto wait;
-        }
-
-        /*
-         * 关闭通信端口
-         */
-        for (int timeout = 0; timeout < 3; timeout++) {
-            char Mrecvbuf[128];
-
-            SendATCommand("\rAT$MYNETACT=1,0\r", 17, sMux0);
-            delay(1000);
-            memset(Mrecvbuf, 0, 128);
-            RecieveFromComm(Mrecvbuf, 128, sMux0);
-
-            if (strstr(Mrecvbuf, "OK") != 0) {
-                break;
-            }
-        }
-
-        /*
-         * 运行拨号准备
-         */
-        if (callType == 1) {
-            asyslog(LOG_INFO, "拨号类型：GPRS\n");
-            for (int timeout = 0; timeout < 3; timeout++) {
-                char Mrecvbuf[128];
-                char cmd[64];
-                memset(cmd, 0x00, sizeof(cmd));
-                sprintf(cmd, "\rAT$MYNETCON=1,\"APN\",\"cmnet\"\r");
-
-                SendATCommand(cmd, strlen(cmd), sMux0);
-                delay(1000);
-                memset(Mrecvbuf, 0, 128);
-                RecieveFromComm(Mrecvbuf, 128, sMux0);
-
-                if (strstr(Mrecvbuf, "OK") != 0) {
-                    break;
-                }
-            }
-
-            for (int timeout = 0; timeout < 3; timeout++) {
-                char Mrecvbuf[128];
-                char cmd[64];
-                memset(cmd, 0x00, sizeof(cmd));
-                sprintf(cmd, "\rAT$MYNETCON=1,\"USERPWD\",\"None,None\"\r");
-
-                SendATCommand(cmd, strlen(cmd), sMux0);
-                delay(1000);
-                memset(Mrecvbuf, 0, 128);
-                RecieveFromComm(Mrecvbuf, 128, sMux0);
-
-                if (strstr(Mrecvbuf, "OK") != 0) {
-                    break;
-                }
-            }
-
-            for (int timeout = 0; timeout < 3; timeout++) {
-                char Mrecvbuf[128];
-                char cmd[64];
-                memset(cmd, 0x00, sizeof(cmd));
-                sprintf(cmd, "\rAT$MYNETURC=1\r");
-
-                SendATCommand(cmd, strlen(cmd), sMux0);
-                delay(1000);
-                memset(Mrecvbuf, 0, 128);
-                RecieveFromComm(Mrecvbuf, 128, sMux0);
-
-                if (strstr(Mrecvbuf, "OK") != 0) {
-                    break;
-                }
-            }
-
-            for (int timeout = 0; timeout < 3; timeout++) {
-                char Mrecvbuf[128];
-
-                SendATCommand("\rAT$MYNETSRV=1,1,0,0,\"118.178.140.32:8001\"\r",
-                              strlen("\rAT$MYNETSRV=1,1,0,0,\"118.178.140.32:8001\"\r"), sMux0);
-                delay(1000);
-                memset(Mrecvbuf, 0, 128);
-                RecieveFromComm(Mrecvbuf, 128, sMux0);
-
-                if (strstr(Mrecvbuf, "OK") != 0) {
-                    break;
-                }
-            }
-
-            for (int timeout = 0; timeout < 3; timeout++) {
-                char Mrecvbuf[128];
-
-                SendATCommand("\rAT$MYNETACT=1,1\r", 17, sMux0);
-                delay(1000);
-                memset(Mrecvbuf, 0, 128);
-                RecieveFromComm(Mrecvbuf, 128, sMux0);
-
-                if (strstr(Mrecvbuf, "OK") != 0) {
-                    break;
-                }
-            }
-
-            for (int timeout = 0; timeout < 3; timeout++) {
-                char Mrecvbuf[128];
-
-                SendATCommand("\rAT$MYNETOPEN=1\r", strlen("\rAT$MYNETOPEN=1\r"), sMux0);
-                delay(1000);
-                memset(Mrecvbuf, 0, 128);
-                RecieveFromComm(Mrecvbuf, 128, sMux0);
-
-                if (strstr(Mrecvbuf, "OK") != 0) {
-                    SetOnlineType(3);
-                    break;
-                }
-            }
-        } else {
-            asyslog(LOG_INFO, "拨号类型：CDMA2000\n");
-            for (int timeout = 0; timeout < 3; timeout++) {
-                char Mrecvbuf[128];
-
-                SendATCommand("\rAT$MYNETACT=1,1\r", 17, sMux0);
-                delay(1000);
-                memset(Mrecvbuf, 0, 128);
-                RecieveFromComm(Mrecvbuf, 128, sMux0);
-
-                if (strstr(Mrecvbuf, "OK") == 3) {
-                    break;
-                }
-            }
-        }
-
-        //拨号成功，存储参数，以备召唤
         saveCoverClass(0x4500, 0, class25, sizeof(CLASS25), para_vari_save);
+        ////////////////////获取信息////////////////////
+
+
+        if (GetOnlineType() != 0) { goto wait; }
+        if (regIntoNet(sMux0) == 0) { goto err; }
+
+        switch (getCIMIType(sMux0)) {
+            case 1:
+                SendCommandGetOK(sMux0, 5, "\rAT$MYNETACT=1,0\r");
+                if (SendCommandGetOK(sMux0, 5, "\rAT$MYNETCON=1,\"APN\",\"%s\"\r", "cmnet") == 0) { goto err; }
+                if (SendCommandGetOK(sMux0, 5, "\rAT$MYNETCON=1,\"USERPWD\",\"None,None\"\r") == 0) { goto err; }
+                if (SendCommandGetOK(sMux0, 5, "\rAT$MYNETURC=1\r") == 0) { goto err; }
+                MASTER_STATION_INFO m = getNextGprsIpPort(&ClientForModelObject);
+                if (SendCommandGetOK(sMux0, 5, "\rAT$MYNETSRV=1,1,0,0,\"%s:%d\"\r", m.ip, m.port) == 0) { goto err; }
+                if (SendCommandGetOK(sMux0, 8, "\rAT$MYNETACT=1,1\r") == 0) { goto err; }
+                if (SendCommandGetOK(sMux0, 20, "\rAT$MYNETOPEN=1\r") == 0) { goto err; }
+                SetOnlineType(3);
+                break;
+            case 3:
+                break;
+            default:
+                goto err;
+        }
 
         wait:
         //等待在线状态为“否”，重新拨号
@@ -475,15 +335,15 @@ void *ModelWorker(void *args) {
 
             INT8U sendBuf[2048];
             memset(sendBuf, 0x00, sizeof(sendBuf));
-            int res = getNext(sendBuf);
+            int readySendLen = getNext(sendBuf);
 
-            if (res != -1) {
+            if (readySendLen != -1) {
                 for (int timeout = 0; timeout < 3; timeout++) {
                     char Mrecvbuf[128];
 
                     char CommandBuf[128];
                     memset(CommandBuf, 0x00, sizeof(CommandBuf));
-                    sprintf(CommandBuf, "\rAT$MYNETWRITE=1,%d\r", res);
+                    sprintf(CommandBuf, "\rAT$MYNETWRITE=1,%d\r", readySendLen);
 
                     SendATCommand(CommandBuf, strlen(CommandBuf), sMux0);
                     write(sMux0, CommandBuf, strlen(CommandBuf));
@@ -491,11 +351,12 @@ void *ModelWorker(void *args) {
                     memset(Mrecvbuf, 0, 128);
                     RecieveFromComm(Mrecvbuf, 128, sMux0);
 
-                    if (strstr(Mrecvbuf, "MYNETWRITE") != 0) {
-                        for (int i = 0; i < res; ++i) {
-                            printf("%02x\n", sendBuf[i]);
-                        }
-                        SendATCommand(sendBuf, res, sMux0);
+                    int k = 0;
+                    int l = 0;
+
+                    if (sscanf(Mrecvbuf, "%*[^:]: %d,%d", &k, &l) == 2) {
+
+                        SendATCommand(sendBuf, readySendLen, sMux0);
                         for (int j = 0; j < 3; ++j) {
                             delay(1000);
                             memset(Mrecvbuf, 0, 128);

@@ -245,8 +245,11 @@ void AT_POWOFF() {
     system("ppp-off");
     absoluteKill("ftpget", 15);
     absoluteKill("gsmMuxd", 15);
-    sleep(3);
     gpofun("/dev/gpoGPRS_POWER", 0);
+    SetGprsStatus(0);
+    SetGprsCSQ(0);
+    SetWireLessType(0);
+    SetPPPDStatus(0);
 }
 
 // 可打印字符串转换为字节数据

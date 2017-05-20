@@ -723,7 +723,7 @@ typedef struct
 {
 	INT8U type;							//方案类型
 	INT8U No;							//方案编号
-	DATA_ITEM items[20 ];				//数据项数组
+	DATA_ITEM items[20];				//数据项数组
 	INT8U item_n;						//数据项总数 < FANGAN_ITEM_MAX
 	INT8U item_i;//当前抄的数据项序号
 }CJ_FANGAN;
