@@ -69,6 +69,7 @@ extern int fill_CSD(INT8U type, INT8U* data, MY_CSD csd);
 extern int fill_MS(INT8U type,INT8U *data,MY_MS myms);			//0x5C
 extern int fill_TSA(INT8U* data, INT8U* value, INT8U len);
 extern int fill_RCSD(INT8U type, INT8U* data, CSD_ARRAYTYPE csds);
+extern int fill_Data(INT8U type,INT8U *data,INT8U *value);
 /*----------------------接口类及对象实例的数据类型解析----------------------*/
 extern int getArray(INT8U* source, INT8U* dest);                                  // 1
 extern int getStructure(INT8U* source, INT8U* dest);                              // 2
@@ -92,6 +93,7 @@ extern int getMS(INT8U type, INT8U* source, MY_MS* ms);                         
 extern int getCOMDCB(INT8U type, INT8U* source, COMDCB* comdcb);                  // 0x5F
 extern int get_BasicRCSD(INT8U type, INT8U* source, CSD_ARRAYTYPE* csds);         // 0x60
 extern int get_Data(INT8U* source, INT8U* dest);
+extern int getSel_Data(INT8U type,INT8U *seldata,INT8U *destdata);
 /*
  * 根据数据类型返回相应的数据长度
  * */

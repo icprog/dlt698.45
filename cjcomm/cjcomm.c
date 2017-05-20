@@ -291,7 +291,7 @@ void initComPara(CommBlock *compara, INT8S (*p_send)(int fd, INT8U *buf, INT16U 
     }
     compara->myAppVar.server_deal_maxApdu = FRAMELEN;
     compara->myAppVar.server_recv_size = FRAMELEN;
-    compara->myAppVar.server_send_size = FRAMELEN;
+    compara->myAppVar.server_send_size = FRAMELEN;	//台体测试终端主动上报时一帧数据超过1024个字节，并且需要一帧上送，此处最大2048
     compara->myAppVar.server_recv_maxWindow = 1;
     compara->myAppVar.expect_connect_timeout = 56400;
 

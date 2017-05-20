@@ -247,12 +247,6 @@ void SetID(int argc, char *argv[]) {
         for (i = 0; i < classtmp.curstom_num[0]; i++) {
             fprintf(stderr, "%02x ", classtmp.curstom_num[i + 1]);
         }
-        fprintf(stderr,"=======");
-        int j=0;
-		for(j=0;j<classtmp.curstom_num[0];j++) {
-			 fprintf(stderr, "%02x ",classtmp.curstom_num[classtmp.curstom_num[0]-j]);
-		}
-
     }
 }
 

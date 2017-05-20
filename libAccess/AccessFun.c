@@ -367,6 +367,13 @@ int saveParaClass(OI_698 oi,void *blockdata,int seqnum)
 	if(infoi == -1) {
 		return -1;
 	}
+	switch(oi){
+	case 0x6000:
+		if(seqnum>MAX_POINT_NUM) {
+			syslog(LOG_ERR,"save oi=%x seqnum=%d 超过限值 %d\n,无法存储！！",oi,seqnum,MAX_POINT_NUM);
+		}
+		break;
+	}
 	sem_save = InitSem();
 	makeSubDir(PARADIR);
 	ret = save_block_file((char *)class_info[infoi].file_name,blockdata,class_info[infoi].unit_len,class_info[infoi].interface_len,seqnum);
