@@ -222,10 +222,9 @@ int Comm_task(CommBlock *compara) {
     if (abs(time(NULL) - compara->lasttime) < heartbeat) {
         return 0;
     }
-
     compara->lasttime = time(NULL);
 
-    if (compara->testcounter > 3) {
+    if (compara->testcounter > 2) {
         return -1;
     }
 
@@ -289,9 +288,9 @@ void initComPara(CommBlock *compara, INT8S (*p_send)(int fd, INT8U *buf, INT16U 
     for (int i = 0; i < 5; i++) {
         compara->myAppVar.ProtocolConformance[i] = 0xff;
     }
-    compara->myAppVar.server_deal_maxApdu = 1024;
-    compara->myAppVar.server_recv_size = 1024;
-    compara->myAppVar.server_send_size = 1024;
+    compara->myAppVar.server_deal_maxApdu = FRAMELEN;
+    compara->myAppVar.server_recv_size = FRAMELEN;
+    compara->myAppVar.server_send_size = FRAMELEN;	//台体测试终端主动上报时一帧数据超过1024个字节，并且需要一帧上送，此处最大2048
     compara->myAppVar.server_recv_maxWindow = 1;
     compara->myAppVar.expect_connect_timeout = 56400;
 
@@ -354,8 +353,6 @@ void enviromentCheck(int argc, char *argv[]) {
 }
 
 int main(int argc, char *argv[]) {
-    printf("version 1019\n");
-
     memset(&class_4000, 0, sizeof(CLASS_4000));
     enviromentCheck(argc, argv);
     SetOnlineType(0);
@@ -371,12 +368,16 @@ int main(int argc, char *argv[]) {
     StartIfr(ep, 0, NULL);
     StartSerial(ep, 0, NULL);
 
-    StartServer(ep, 0, NULL);
-    StartVerifiTime(ep, 0, JProgramInfo);
-    StartClientForGprs(ep, 0, NULL);
-    StartClientForNet(ep, 0, NULL);
+    if(argc > 2 && atoi(argv[2]) == 2){
+        StartClientOnModel(ep, 0, NULL);
 
-//    StartClientOnModel(ep, 0, NULL);
+    }else{
+        StartServer(ep, 0, NULL);
+        StartClientForGprs(ep, 0, NULL);
+        StartClientForNet(ep, 0, NULL);
+    }
+
+    StartVerifiTime(ep, 0, JProgramInfo);
     StartMmq(ep, 0, NULL);
     createWatch(ep);
 

@@ -15,6 +15,7 @@
 #include "dlt698.h"
 #include "PublicFunction.h"
 #include "secure.h"
+
 extern INT8S (*pSendfun)(int fd,INT8U* sndbuf,INT16U sndlen);
 extern int FrameHead(CSINFO *csinfo,INT8U *buf);
 extern void FrameTail(INT8U *buf,int index,int hcsi);
@@ -895,22 +896,66 @@ void printrecord(RESULT_RECORD record)
 		break;
 	}
 }
-//
-//int getSelectData(INT8U seltype,INT8U *data,INT8U *selval)
-//{
-//	int ret=-1;
-//	switch(seltype) {
-//	case dtdatetimes:
-//		ret = getDateTimeS(0,data,selval);
-//		break;
-//	case dtlongunsigned:
-//		ret = ;
-//		break;
-//	case dtunsigned:
-//		taskid = record->select.selec1.data.data[0];
-//		break;
-//	}
-//}
+/*　type :数据类型
+ * seldata:selector数据
+ * destdata:目标
+ * */
+int getSel_Data(INT8U type,INT8U *seldata,INT8U *destdata)
+{
+	int ret=-1;
+	fprintf(stderr,"getSel_Data type=%02x\n",type);
+	switch(type) {
+	case dtnull:
+		destdata[0] = 0;
+		ret = 1;
+		break;
+	case dtunsigned:
+		destdata[0] = seldata[0];
+		ret = 1;
+		break;
+	case dtlongunsigned:
+		destdata[0] = seldata[1];
+		destdata[1] = seldata[0];
+		ret = 2;
+		break;
+	case dtdatetimes:
+		ret = getDateTimeS(0,seldata,destdata);
+		break;
+	}
+	fprintf(stderr,"getSel_Data return %d\n",ret);
+	return ret;
+}
+
+/*
+ * 获取采集类数据
+ * */
+int getColl_Data(OI_698 oi,INT16U seqnum,INT8U *data)
+{
+	int	index=0;
+	switch(oi) {
+	case 0x6001:
+		index += Get_6001(0,seqnum,data);
+		break;
+	case 0x6013:
+		index += Get_6013(0,seqnum,data);
+		break;
+	case 0x6015:
+		index += Get_6015(0,seqnum,data);
+		break;
+	case 0x6017:
+		index += Get_6017(0,seqnum,data);
+		break;
+	case 0x6035:
+		index += Get_6035(0,seqnum,data);
+		break;
+	case 0x601d:
+		index += Get_601D(0,seqnum,data);
+		break;
+	default:
+		fprintf(stderr,"\n oi=%x not found!",oi);
+	}
+	return index;
+}
 
 int getSel1_freeze(RESULT_RECORD *record)
 {
@@ -920,11 +965,8 @@ int getSel1_freeze(RESULT_RECORD *record)
 	INT8U  data[VARI_LEN];
 	int		datalen=0,j=0;
 //	OAD		readoad={};
-	switch(record->select.selec1.data.type) {
-	case dtdatetimes:
-		getDateTimeS(0,record->select.selec1.data.data,(INT8U *)&datetime);
-		break;
-	}
+
+	getSel_Data(record->select.selec1.data.type,record->select.selec1.data.data,(INT8U *)&datetime);
 	fprintf(stderr,"getSel1: OI=%04x  Time=%d:%d:%d %d-%d-%d\n",record->select.selec1.oad.OI,datetime.year.data,datetime.month.data,datetime.day.data,
 			datetime.hour.data,datetime.min.data,datetime.sec.data);
 
@@ -967,38 +1009,9 @@ int getSel1_coll(RESULT_RECORD *record)
 	int		index = 0;
 	int		taskid=0;
 
-	switch(record->select.selec1.data.type) {
-	case dtlongunsigned:
-		taskid = (record->select.selec1.data.data[0]<<8 | record->select.selec1.data.data[1]);
-		break;
-	case dtunsigned:
-		taskid = record->select.selec1.data.data[0];
-		break;
-	}
+	getSel_Data(record->select.selec1.data.type,record->select.selec1.data.data,(INT8U *)&taskid);
 	fprintf(stderr,"getSel1: OI=%04x  taskid=%d\n",record->select.selec1.oad.OI,taskid);
-	switch(record->select.selec1.oad.OI)
-	{
-		case 0x6001:
-			index += Get_6001(0,taskid,&record->data[index]);
-			break;
-		case 0x6013:
-			index += Get_6013(0,taskid,&record->data[index]);
-			break;
-		case 0x6015:
-			index += Get_6015(0,taskid,&record->data[index]);
-			break;
-		case 0x6017:
-			index += Get_6017(0,taskid,&record->data[index]);
-			break;
-		case 0x6035:
-			index += Get_6035(0,taskid,&record->data[index]);
-			break;
-		case 0x601d:
-			index += Get_601D(0,taskid,&record->data[index]);
-			break;
-		default:
-			fprintf(stderr,"\nrecord switch default!");
-	}
+	index += getColl_Data(record->select.selec1.oad.OI,taskid,&record->data[index]);
 	if(index==0) {	//0条记录     [1] SEQUENCE OF A-RecordRow
 		record->data[0] = 0;
 		index=1;
@@ -1014,54 +1027,22 @@ int getSel2_coll(RESULT_RECORD *record)
 {
 	int ret=0;
 	int		index = 0;
-	int		taskid_from=0,taskid_to=0,sel_id=0;
+	int		taskid_from=0,taskid_to=0,taskid_jiange=0;
+	int		sel_id=0;
 
-	switch(record->select.selec2.data_from.type) {
-	case dtlongunsigned:
-		taskid_from = (record->select.selec2.data_from.data[0]<<8 | record->select.selec2.data_from.data[1]);
-		break;
-	case dtunsigned:
-		taskid_from = record->select.selec2.data_from.data[0];
-		break;
-	}
-	switch(record->select.selec2.data_to.type) {
-	case dtlongunsigned:
-		taskid_to = (record->select.selec2.data_to.data[0]<<8 | record->select.selec2.data_to.data[1]);
-		break;
-	case dtunsigned:
-		taskid_to = record->select.selec2.data_to.data[0];;
-		break;
-	}
-//	switch(record->select.selec2.data_jiange.type) {
-//	case NULL:
-//		break;
-//	}
+	getSel_Data(record->select.selec2.data_from.type,record->select.selec2.data_from.data,(INT8U *)&taskid_from);
+	getSel_Data(record->select.selec2.data_to.type,record->select.selec2.data_from.data,(INT8U *)&taskid_to);
+	getSel_Data(record->select.selec2.data_jiange.type,record->select.selec2.data_from.data,(INT8U *)&taskid_jiange);
+
 	fprintf(stderr,"getSel2: OI=%04x  taskid_from=%d taskid_to=%d\n",record->select.selec1.oad.OI,taskid_from,taskid_to);
+	record->data[index++] = taskid_to-taskid_from; 	//M = 1  Sequence  of A-RecordRow
 
 	for(sel_id=taskid_from;sel_id<=taskid_to;sel_id++) {
-		switch(record->select.selec2.oad.OI)
-		{
-			case 0x6001:
-				index += Get_6001(0,sel_id,&record->data[index]);
-				break;
-			case 0x6013:
-				index += Get_6013(0,sel_id,&record->data[index]);
-				break;
-			case 0x6015:
-				index += Get_6015(0,sel_id,&record->data[index]);
-				break;
-			case 0x6035:
-				index += Get_6035(0,sel_id,&record->data[index]);
-				break;
-			case 0x601d:
-				index += Get_601D(0,sel_id,&record->data[index]);
-				break;
-			default:
-				fprintf(stderr,"\nrecord switch default!");
+		index += getColl_Data(record->select.selec2.oad.OI,sel_id,&record->data[index]);
+		if(index==0) {	//0条记录     [1] SEQUENCE OF A-RecordRow
+			record->data[0] = 0;
+			index += 1;
 		}
-	}
-	if(index==0) {	//0条记录     [1] SEQUENCE OF A-RecordRow
-		record->data[0] = 0;
 	}
 	record->datalen = index;
 	fprintf(stderr,"\nrecord->datalen = %d",record->datalen);
@@ -1070,7 +1051,7 @@ int getSel2_coll(RESULT_RECORD *record)
 /*
  * 选择方法1: 读取指定对象指定值
  * */
-int getSelector1(RESULT_RECORD *record)
+int getSelector12(RESULT_RECORD *record)
 {
 	int  ret=0;
 	INT8U oihead = (record->oad.OI & 0xF000) >>12;
@@ -1078,28 +1059,12 @@ int getSelector1(RESULT_RECORD *record)
 	switch(oihead) {
 	case 5:
 		fprintf(stderr,"\n冻结类对象\n");
-		getSel1_freeze(record);
+		if(record->selectType == 1) 	getSel1_freeze(record);
 		break;
 	case 6:			//采集监控类对象
 		fprintf(stderr,"\n读取采集监控对象\n");
-		getSel1_coll(record);
-		break;
-	default:
-		record->datalen = 0;
-		break;
-	}
-	return ret;
-}
-
-int getSelector2(RESULT_RECORD *record)
-{
-	int  ret=0;
-	INT8U oihead = (record->oad.OI & 0xF000) >>12;
-
-	switch(oihead) {
-	case 6:			//采集监控类对象
-		fprintf(stderr,"\n读取采集监控对象\n");
-		getSel2_coll(record);
+		if(record->selectType == 1)  	getSel1_coll(record);
+		else if(record->selectType == 2)  	getSel2_coll(record);
 		break;
 	default:
 		record->datalen = 0;
@@ -1146,7 +1111,7 @@ int doGetrecord(INT8U type,OAD oad,INT8U *data,RESULT_RECORD *record,INT16U *sub
 			record->data[dest_index++] = 1; //M = 1  Sequence  of A-RecordRow
 		}
 		record->data = &TmpDataBuf[dest_index];		//修改record的数据帧的位置
-		getSelector1(record);
+		getSelector12(record);
 		record->data = TmpDataBuf;				//data 指向回复报文帧头
 		record->datalen += dest_index;			//数据长度+ResultRecord
 	break;
@@ -1181,7 +1146,7 @@ int doGetrecord(INT8U type,OAD oad,INT8U *data,RESULT_RECORD *record,INT16U *sub
 				record->data[dest_index++] = 2; //M = 1  Sequence  of A-RecordRow    //test
 			}
 			record->data = &TmpDataBuf[dest_index];		//修改record的数据帧的位置
-			getSelector2(record);
+			getSelector12(record);
 			record->data = TmpDataBuf;				//data 指向回复报文帧头
 			record->datalen += dest_index;			//数据长度+ResultRecord
 		}
@@ -1190,7 +1155,7 @@ int doGetrecord(INT8U type,OAD oad,INT8U *data,RESULT_RECORD *record,INT16U *sub
 	case 7:
 		dest_index +=fill_RCSD(0,&record->data[dest_index],record->rcsd.csds);
 		record->data = &TmpDataBuf[dest_index];
-		*subframe = getSelector(oad,record->select, record->selectType,record->rcsd.csds,(INT8U *)record->data,(int *)&record->datalen);
+		*subframe = getSelector(oad,record->select, record->selectType,record->rcsd.csds,(INT8U *)record->data,(int *)&record->datalen,AppVar_p->server_send_size);
 
 		if(*subframe>=1) {		//无分帧
 			next_info.nextSite = readFrameDataFile(TASK_FRAME_DATA,0,TmpDataBuf,&datalen);
@@ -1215,7 +1180,7 @@ int doGetrecord(INT8U type,OAD oad,INT8U *data,RESULT_RECORD *record,INT16U *sub
 		record->datalen += dest_index;			//数据长度+ResultRecord
 		break;
 	case 10:	//指定读取最新的n条记录
-		*subframe = getSelector(record->oad,record->select,record->selectType,record->rcsd.csds,NULL,NULL);
+		*subframe = getSelector(record->oad,record->select,record->selectType,record->rcsd.csds,NULL,NULL,AppVar_p->server_send_size);
 		if(*subframe==1) {		//无分帧
 			next_info.nextSite = readFrameDataFile(TASK_FRAME_DATA,0,TmpDataBuf,&datalen);//文件中第一个字节保存的是：SEQUENCE OF A-ResultRecord，此处从TmpDataBuf[1]上送，上送长度也要-1
 			if(type==GET_REQUEST_RECORD) {//文件中第一个字节保存的是：SEQUENCE OF A-ResultRecord，此处从TmpDataBuf[1]上送，上送长度也要-1

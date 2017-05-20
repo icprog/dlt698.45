@@ -330,21 +330,23 @@ typedef struct
 }TSA;
 typedef struct
 {
-	Region_Type type;
-	INT8U  begin[20];//data类型
-	INT8U  end[20];//date类型
+	Region_Type type;			////type = interface 无效
+	INT8U  begin[REGION_NUM];
+	INT8U  end[REGION_NUM];
 }Region;
+
 typedef union
 {
-	INT8U nometer_null;		//0
-	INT8U allmeter_null;	//1
-	INT8U userType[COLLCLASS_MAXNUM];		//2：userType[0]:表示后面有效的序列个数
-	TSA	userAddr[COLLCLASS_MAXNUM];			//3：userAddr[0]:表示后面的有效TSA个数
+	INT8U nometer_null;						//0
+	INT8U allmeter_null;					//1
+	INT8U userType[COLLCLASS_MAXNUM];		//2：userType[0][1]:表示后面有效的序列个数,[0]:长度高字节,[1]:长度低字节
+	TSA	userAddr[COLLCLASS_MAXNUM];			//3：userAddr[0].addr[0][1]:表示后面的有效TSA个数,同上先高后低
 	INT16U configSerial[COLLCLASS_MAXNUM];	//4：configSerial[0]:表示后面有效的序列个数
-	Region type[COLLCLASS_MAXNUM];			//5
-	Region addr[COLLCLASS_MAXNUM];			//6
-	Region serial[COLLCLASS_MAXNUM];		//7
+	Region type[COLLCLASS_MAXNUM];			//5：一组用户类型区间
+	Region addr[COLLCLASS_MAXNUM];			//6：一组用户地址区间
+	Region serial[COLLCLASS_MAXNUM];		//7：一组配置序号区间
 }MS;
+
 typedef struct
 {
 	INT8U mstype;
@@ -681,29 +683,29 @@ typedef struct
 typedef struct
 {
 	PIID piid;
-	ComBCD4 expect_app_ver;
-	INT8U ProtocolConformance[8];
-	INT8U FunctionConformance[16];
-	INT16U client_send_size;
-	INT16U client_recv_size;
-	INT8U client_recv_maxWindow;
-	INT16U client_deal_maxApdu;
-	INT32U expect_connect_timeout;
-	INT8U connecttype;
+	ComBCD4 expect_app_ver;			//期望的应用层协议版本号
+	INT8U ProtocolConformance[8];	//期望的协议一致性块
+	INT8U FunctionConformance[16];	//期望的功能一致性块
+	INT16U client_send_size;		//客户机发送帧最大尺寸
+	INT16U client_recv_size;		//客户机接收帧最大尺寸
+	INT8U client_recv_maxWindow;	//客户机接收帧最大窗口尺寸
+	INT16U client_deal_maxApdu;		//客户机最大可处理APDU尺寸
+	INT32U expect_connect_timeout;	//期望的应用连接超时时间
+	INT8U connecttype;				//认证机制信息
 	ConnectMechanismInfo info;
 }CONNECT_Request;
 typedef struct
 {
 	PIID piid_acd;
-	FactoryVersion server_factory_version;
+	FactoryVersion server_factory_version;	//服务器厂商版本信息
 	ComBCD4 app_version;
-	INT8U ProtocolConformance[8];
-	INT8U FunctionConformance[16];
-	INT16U server_send_size;
-	INT16U server_recv_size;
-	INT8U server_recv_maxWindow;
-	INT16U server_deal_maxApdu;
-	INT32U expect_connect_timeout;
+	INT8U ProtocolConformance[8];		//协议一致性协商
+	INT8U FunctionConformance[16];		//功能一致性协商
+	INT16U server_send_size;			//服务器发送帧最大尺寸
+	INT16U server_recv_size;			//服务器接收帧最大尺寸
+	INT8U server_recv_maxWindow;		//服务器接收帧最大窗口尺寸
+	INT16U server_deal_maxApdu;			//服务器最大可处理ＡＰＤＵ尺寸
+	INT32U expect_connect_timeout;		//商定的应用连接超时时间
 	ConnectResponseInfo info;
 }CONNECT_Response;
 

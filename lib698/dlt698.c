@@ -239,16 +239,40 @@ void FrameTail(INT8U *buf,int index,int hcsi)
 	buf[index+2] = 0x16;
 	return;
 }
+
+int broadServerAddr(INT8U *sa,int sa_len)
+{
+	int i=0,cmpret=1;
+	for(i=0;i<sa_len;i++) {
+		if(sa[i]!=0xAA) {
+			cmpret = 0;
+		}
+	}
+	return cmpret;
+}
+
 int FrameHead(CSINFO *csinfo,INT8U *buf)
 {
-	int i=0;
+	CLASS_4001_4002_4003 sa = {};
+	int i=0,j=0;
 	buf[i++]= 0x68;//起始码
 	buf[i++]= 0;	//长度
 	buf[i++]= 0;
 	buf[i++]= CtrlWord(*csinfo);
 	buf[i++]= (csinfo->sa_type<<6) | (0<<4) | ((csinfo->sa_length-1) & 0xf);
-	memcpy(&buf[i],csinfo->sa,csinfo->sa_length );
-	i = i + csinfo->sa_length;
+
+	if(broadServerAddr(csinfo->sa,csinfo->sa_length)==1) {	//广播地址,应答终端的通信地址
+		memset(&sa, 0, sizeof(CLASS_4001_4002_4003));
+		readCoverClass(0x4001, 0, &sa, sizeof(CLASS_4001_4002_4003), para_vari_save);
+		for(j=0;j<sa.curstom_num[0];j++) {
+			buf[i++] = sa.curstom_num[sa.curstom_num[0]-j];
+		}
+		//memcpy(&buf[i],&sa.curstom_num[1],sa.curstom_num[0]);
+	}else {
+		memcpy(&buf[i],csinfo->sa,csinfo->sa_length );
+		i = i + csinfo->sa_length;
+	}
+
 	buf[i++]=csinfo->ca;
 	return i;
 }
@@ -406,35 +430,53 @@ void GetconnetRequest(CONNECT_Request *request,INT8U *apdu)
 void varconsult(CONNECT_Response *response ,CONNECT_Request *request,CONNECT_Response *myvar)
 {
 	int i =0;
-	for(i=0;i<16;i++)
-		response->FunctionConformance[i] = myvar->FunctionConformance[i] & request->FunctionConformance[i];
+
+	//具体参照宣贯资料P10
+	//商定的应用层协议版本号: 为服务器支持的协议版本号
+	memcpy(&response->server_factory_version, &myvar->server_factory_version,sizeof(FactoryVersion));
+	//商定的协议一致性块：客户机请求的协议一致性块与服务器支持的协议一致性块按位与的结果
 	for(i=0;i<8;i++)
 		response->ProtocolConformance[i] = myvar->ProtocolConformance[i] & request->ProtocolConformance[i];
+	//商定的功能一致性块：客户机请求的功能一致性块与服务器支持的功能一致性块按位与的结果
+	for(i=0;i<16;i++)
+		response->FunctionConformance[i] = myvar->FunctionConformance[i] & request->FunctionConformance[i];
+	//商定的应用层协议版本号:为服务器支持的协议版本号
 	memcpy(&response->app_version,&request->expect_app_ver,sizeof(request->expect_app_ver));
-	//if (myvar->server_deal_maxApdu < request->client_deal_maxApdu)
-		response->server_deal_maxApdu = myvar->server_deal_maxApdu;
-	//else
-	//	response->server_deal_maxApdu = request->client_deal_maxApdu;
-	//if (myvar->server_recv_size < request->client_recv_size)
+
+	//服务器发送帧最大尺寸：取服务器支持发送帧最大尺寸与客户机请求接收最大尺寸的小值
+	if (myvar->server_send_size < request->client_recv_size)
+		response->server_send_size = myvar->server_send_size;
+	else
+		response->server_send_size = request->client_recv_size;
+
+	//服务器接收帧最大尺寸:取服务器支持的接收帧最大尺寸与客户机请求发送帧最大尺寸的小值
+	if (myvar->server_recv_size < request->client_send_size)
 		response->server_recv_size = myvar->server_recv_size;
-	//else
-	//	response->server_recv_size = request->client_deal_maxApdu;
+	else
+		response->server_recv_size = request->client_send_size;
+
+	//服务器接收帧最大窗口尺寸:为服务器支持的最大窗口尺寸
 	//if (myvar->server_recv_maxWindow < request->client_recv_maxWindow)
 		response->server_recv_maxWindow = myvar->server_recv_maxWindow;
 	//else
 	//	response->server_recv_maxWindow = request->client_recv_maxWindow;
-	//if (myvar->server_send_size < request->client_send_size)
-		response->server_send_size = myvar->server_send_size;
+
+	//服务器最大可处理APDU尺寸:服务器支持的最大可处理apdu尺寸
+	//if (myvar->server_deal_maxApdu < request->client_deal_maxApdu)//
+		response->server_deal_maxApdu = myvar->server_deal_maxApdu;
 	//else
-	//	response->server_send_size = request->client_send_size;
+	//	response->server_deal_maxApdu = request->client_deal_maxApdu;
+
+	//商定的应用连接超时时间：取客户机请求应用连接超时时间和服务器支持的最大超时时间两者的小值
 	if(myvar->expect_connect_timeout < request->expect_connect_timeout)
-		response->expect_connect_timeout = request->expect_connect_timeout;
-	else
 		response->expect_connect_timeout = myvar->expect_connect_timeout;
-	memcpy(&response->server_factory_version, &myvar->server_factory_version,sizeof(FactoryVersion));
+	else
+		response->expect_connect_timeout = request->expect_connect_timeout;
+
 	response->info.result = allow;
 //	response->info.addinfo  //在发送前从 ESAM取值
 }
+
 int appConnectResponse(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 {
 	int index=1, hcsi=0,bytenum=0;
