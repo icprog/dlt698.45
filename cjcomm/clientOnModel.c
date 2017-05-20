@@ -236,6 +236,41 @@ int myStrnstr(char *buf, int len) {
     return 0;
 }
 
+int checkModelStatus(char *buf, int len) {
+    static int status = 0;
+    static int merror = 0;
+
+    if (len < 0) {
+        int res = status;
+        status = 0;
+        return res;
+    }
+
+    for (int i = 0; i < len - 8; ++i) {
+        if (buf[i] == 'U'
+            && buf[i + 1] == 'R' && buf[i + 2] == 'C'
+            && buf[i + 3] == 'R' && buf[i + 4] == 'E'
+            && buf[i + 5] == 'A' && buf[i + 6] == 'D') {
+            status = 1; //有数据读入
+            return 0;
+        }
+    }
+
+    for (int i = 0; i < len - 5; ++i) {
+        if (buf[i] == 'E'
+            && buf[i + 1] == 'R' && buf[i + 2] == 'R'
+            && buf[i + 3] == 'O' && buf[i + 4] == 'R') {
+            if (sscanf(buf, "%*[^:]: %d", &merror) == 1) {
+                status = 99;//有错误
+                return 0;
+            }
+            status = 99;
+            merror = 99;
+            return 0;
+        }
+    }
+}
+
 
 int modelSendExactly(int fd, int retry, int len, int buf) {
     int chl = 0;
@@ -253,7 +288,8 @@ int modelSendExactly(int fd, int retry, int len, int buf) {
         SendATCommand(cmdBuf, strlen(cmdBuf), fd);
 
         delay(1000);
-        RecieveFromComm(recbuf, sizeof(recbuf), fd);
+        int recLen = RecieveFromComm(recbuf, sizeof(recbuf), fd);
+        checkModelStatus(recbuf, recLen);
 
         if (sscanf(recbuf, "%*[^:]: %d,%d", &chl, &sum) == 2) {
             write(fd, buf, sum);
@@ -261,6 +297,7 @@ int modelSendExactly(int fd, int retry, int len, int buf) {
                 delay(1000);
                 memset(recbuf, 0, sizeof(recbuf));
                 int position = RecieveFromComm(recbuf, sizeof(recbuf), fd);
+                checkModelStatus(recbuf, position);
                 if (myStrnstr(recbuf, position) != 0) {
                     printf("~~~~~~~~~~~~~%d-%d-%d", length, sum, position);
                     length -= sum;
@@ -268,8 +305,40 @@ int modelSendExactly(int fd, int retry, int len, int buf) {
                         return len;
                     }
                 }
-
             }
+        }
+    }
+    return 0;
+}
+
+int modelReadExactly(int fd, int retry) {
+    int chl = 0;
+    int sum = 0;
+
+    char Mrecvbuf[128];
+    for (int timeout = 0; timeout < retry; timeout++) {
+        memset(Mrecvbuf, 0, 128);
+        SendATCommand("\rAT$MYNETREAD=1,1024\r", strlen("\rAT$MYNETREAD=1,1024\r"), fd);
+        delay(1000);
+        int resLen = RecieveFromComm(Mrecvbuf, 128, fd);
+        checkModelStatus(Mrecvbuf, resLen);
+
+        if (sscanf(Mrecvbuf, "%*[^:]: %d,%d", &chl, &sum) == 2) {
+            printf("============%d-%d\n", chl, sum);
+            if (sum == 0) { break; }
+            putNext(&Mrecvbuf[40], sum);
+            break;
+        }
+    }
+}
+
+int checkRecv(int fd, int retry) {
+    char Mrecvbuf[128];
+    for (int timeout = 0; timeout < retry; timeout++) {
+        memset(Mrecvbuf, 0, 128);
+        RecieveFromComm(Mrecvbuf, 128, fd);
+        if (strstr(Mrecvbuf, "MYURCREAD") != 0) {
+            return 1;
         }
     }
     return 0;
@@ -384,31 +453,18 @@ void *ModelWorker(void *args) {
 
             if (readySendLen != -1) {
                 modelSendExactly(sMux0, 5, readySendLen, sendBuf);
+                modelReadExactly(sMux0, 3);
             }
 
-            for (int timeout = 0; timeout < 3; timeout++) {
-                char Mrecvbuf[128];
-
-                char CommandBuf[128];
-                memset(CommandBuf, 0x00, sizeof(CommandBuf));
-                sprintf(CommandBuf, "\rAT$MYNETREAD=1,1024\r");
-
-                SendATCommand("\rAT$MYNETREAD=1,1024\r", strlen("\rAT$MYNETREAD=1,1024\r"), sMux0);
-                delay(1000);
-                memset(Mrecvbuf, 0, 128);
-                RecieveFromComm(Mrecvbuf, 128, sMux0);
-
-                int k = 0;
-                int l = 0;
-
-                if (sscanf(Mrecvbuf, "%*[^:]: %d,%d", &k, &l) == 2) {
-                    printf("============%d-%d\n", k, l);
-                    if (l == 0) { break; }
-                    putNext(&Mrecvbuf[40], l);
+            switch (checkModelStatus(NULL, -1)) {
+                case 1:
+                    modelReadExactly(sMux0, 3);
                     break;
-                }
-            }
+                case 99:
+                    asyslog(LOG_ERR, "内部协议栈连接出错!");
+                    break;
 
+            }
         }
 
         err:
