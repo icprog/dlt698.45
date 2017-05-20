@@ -462,7 +462,7 @@ void *ModelWorker(void *args) {
                     break;
                 case 99:
                     asyslog(LOG_ERR, "内部协议栈连接出错!");
-                    break;
+                    goto err;
 
             }
         }
