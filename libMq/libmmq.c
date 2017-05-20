@@ -103,6 +103,12 @@ INT32S mmq_put(mqd_t fd,INT32U time_out,mmq_head msg_head, void * buff, INT8U pr
 				msg_head.pid,msg_head.cmd,strerror(errno));
 		return -3;
 	}
+	if((attr_mq.mq_curmsgs+1) >= attr_mq.mq_maxmsg)
+	{
+		fprintf(stderr,"\n消息队列满了　[libmmq]:pid:%d,cmd=%d,mq_curmsgs = %ld mq_maxmsg = %ld",
+						msg_head.pid,msg_head.cmd,attr_mq.mq_curmsgs,attr_mq.mq_maxmsg);
+		return -5;
+	}
 	//fprintf(stderr,"\n bufsiz=%d + sizeof(mmq_head)=%d         mq_msgsize=%d",msg_head.bufsiz,sizeof(mmq_head),attr_mq.mq_msgsize);
 	if (msg_head.bufsiz+sizeof(mmq_head) >= (INT32U)attr_mq.mq_msgsize)
 	{
