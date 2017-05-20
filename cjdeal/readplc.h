@@ -35,7 +35,6 @@ extern INT16S getTaskIndex(INT8U port);
 #define DLT698  3
 #define CJT188  4
 #define NUM_07DI_698OAD 100
-
 //---------------------------------------------------------------
 
 TASK_INFO taskinfo;
