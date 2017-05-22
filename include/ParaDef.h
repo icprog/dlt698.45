@@ -39,7 +39,7 @@
 #define MAXNUM_TASKID_QUEUE    25
 #define MAXNUM_AUTOTASK		20					//采用上报方案的任务最大数
 
-#define MAXSIZ_FAM	1600						//
+#define MAXSIZ_FAM			2048						//原1600, 台体负荷曲线的时候分帧为1980个字节,调用readFrameDataFile超限更改
 ///////////////////////////////////////////////////////////////
 /*
  * 	终端类相关容量及参数定义

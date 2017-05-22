@@ -1159,6 +1159,7 @@ int doGetrecord(INT8U type,OAD oad,INT8U *data,RESULT_RECORD *record,INT16U *sub
 
 		if(*subframe>=1) {		//无分帧
 			next_info.nextSite = readFrameDataFile(TASK_FRAME_DATA,0,TmpDataBuf,&datalen);
+			fprintf(stderr,"next_info.nextSite=%d\n",next_info.nextSite);
 			if(type==GET_REQUEST_RECORD) {//文件中第一个字节保存的是：SEQUENCE OF A-ResultRecord，此处从TmpDataBuf[1]上送，上送长度也要-1
 				if(datalen>=1) {
 					record->data = &TmpDataBuf[1];				//data 指向回复报文帧头

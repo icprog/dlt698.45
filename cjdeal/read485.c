@@ -3446,13 +3446,12 @@ INT16S deal6015_9707(INT8U protocol,CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6
 		DbgPrintToFile1(port485, " st6015.cjtype　＝ %d",st6015.cjtype);
 		INT8U singleCurveDatabuf[DATA_CONTENT_LEN];
 		memset(singleCurveDatabuf,0,DATA_CONTENT_LEN);
-
+		TS ts_cc;
+		TSGet(&ts_cc);
 		DateTimeBCD saveTime;
 		getSaveTime(&saveTime,st6015.cjtype,st6015.savetimeflag,st6015.data);
-		TS freezeTimeStamp;
-		TSGet(&freezeTimeStamp);
 		int bufflen = compose6012Buff(st6035->starttime,saveTime,to6001.basicinfo.addr,totaldataLen,dataContent,port485);
-		SaveNorData(st6035->taskID,NULL,dataContent,bufflen,freezeTimeStamp);
+		SaveNorData(st6035->taskID,NULL,dataContent,bufflen,ts_cc);
 	}
 
 
@@ -3921,10 +3920,9 @@ INT16S deal6015or6017_singlemeter(CLASS_6013 st6013,CLASS_6015 st6015,CLASS_6001
 									recordIndex,freezeTimeStamp.Year,freezeTimeStamp.Month,freezeTimeStamp.Day,freezeTimeStamp.Hour,freezeTimeStamp.Minute,freezeTimeStamp.Sec);
 									memset(singleDatabuf,0,DATA_CONTENT_LEN);
 									memcpy(singleDatabuf,&curvedataContent[dataIndex],roadDataLen);
-									DateTimeBCD saveTime;
-									getSaveTime(&saveTime,st6015.cjtype,st6015.savetimeflag,st6015.data);
-
-									int bufflen = compose6012Buff(st6035->starttime,saveTime,obj6001.basicinfo.addr,roadDataLen,singleDatabuf,port485);
+									DateTimeBCD savetime;
+									TsToTimeBCD(freezeTimeStamp,&savetime);
+									int bufflen = compose6012Buff(st6035->starttime,savetime,obj6001.basicinfo.addr,roadDataLen,singleDatabuf,port485);
 									SaveNorData(st6035->taskID,NULL,singleDatabuf,bufflen,freezeTimeStamp);
 									dataIndex+=roadDataLen;
 								}
@@ -4010,6 +4008,7 @@ INT8U getSaveTime(DateTimeBCD* saveTime,INT8U cjType,INT8U saveTimeFlag,DATA_TYP
 		{
 			saveTime->min.data = 0;
 		}
+		saveTime->sec.data = 0;
 	}
 	if((cjType== TYPE_LAST)||(cjType== TYPE_FREEZE))
 	{
@@ -4153,8 +4152,22 @@ INT8S deal6015or6017(CLASS_6013 st6013,CLASS_6015 st6015, INT8U port485,CLASS_60
 					{
 						TS ts_cc;
 						TSGet(&ts_cc);
+
 						DateTimeBCD saveTime;
 						getSaveTime(&saveTime,st6015.cjtype,st6015.savetimeflag,st6015.data);
+						if((st6015.cjtype == TYPE_NULL)&&(getZone("ZheJiang")==0))
+						{
+							if(st6013.interval.units == minute_units)
+							{
+								INT8U minute =  (INT8U)st6013.interval.interval;
+								saveTime.min.data = (saveTime.min.data/minute)*minute;
+							}
+							if(st6013.interval.units == hour_units)
+							{
+								saveTime.min.data = 0;
+							}
+							saveTime.sec.data = 0;
+						}
 						int bufflen = compose6012Buff(startTime,saveTime,meter.basicinfo.addr,dataLen,dataContent,port485);
 
 						SaveNorData(st6035->taskID,NULL,dataContent,bufflen,ts_cc);
