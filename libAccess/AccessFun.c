@@ -1282,12 +1282,19 @@ INT16U CalcOIDataLen(OI_698 oi,INT8U attr_flg)
 	INT16U oi_len=0;
 	INT8U ic_type = 1;
 
-	if(oi>=0x0000 && oi<0x2000)
+	if(oi>=0x0000 && oi<0x1000)
 	{
 		if(attr_flg == 0)
 			return 27;//长度4+1个字节数据类型
 		else
 			return 5;
+	}
+	if(oi>=0x1000 && oi<0x2000)
+	{
+		if(attr_flg == 0)
+			return 15*5+2;
+		else
+			return 15;
 	}
 	if(oi ==0x202a)
 	{
