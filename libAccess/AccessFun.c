@@ -2026,7 +2026,12 @@ INT8U initrecinfo(CURR_RECINFO *recinfo,TASKSET_INFO tasknor_info,INT8U selectyp
 		recinfo->rec_end = mktime(tm_p);
 		break;
 	case 7://实时数据类
-		asyslog(LOG_INFO,"select.selec7.collect_save_star.year.data=%d",select.selec7.collect_save_star.year.data);
+		asyslog(LOG_INFO,"zc_start:%04d-%02d-%02d %02d:%02d",select.selec7.collect_save_star.year.data,
+				select.selec7.collect_save_star.month.data,select.selec7.collect_save_star.day.data
+				,select.selec7.collect_save_star.hour.data,select.selec7.collect_save_star.min.data);
+		asyslog(LOG_INFO,"zc_end:%04d-%02d-%02d %02d:%02d",select.selec7.collect_save_finish.year.data,
+				select.selec7.collect_save_finish.month.data,select.selec7.collect_save_finish.day.data
+				,select.selec7.collect_save_finish.hour.data,select.selec7.collect_save_finish.min.data);
 		time(&time_s);
 		tm_p = localtime(&time_s);
 		if(select.selec7.collect_save_star.year.data == 0xffff)//时标默认
@@ -2042,6 +2047,7 @@ INT8U initrecinfo(CURR_RECINFO *recinfo,TASKSET_INFO tasknor_info,INT8U selectyp
 		}
 		else
 		{
+			tm_p = localtime(&time_s);
 			tm_p->tm_year = select.selec7.collect_save_star.year.data-1900;
 			tm_p->tm_mon = select.selec7.collect_save_star.month.data-1;
 			tm_p->tm_mday = select.selec7.collect_save_star.day.data;
@@ -2061,7 +2067,10 @@ INT8U initrecinfo(CURR_RECINFO *recinfo,TASKSET_INFO tasknor_info,INT8U selectyp
 			tm_p->tm_sec = select.selec7.collect_save_finish.sec.data;
 			recinfo->rec_end = mktime(tm_p);
 			if(time_tmp <= recinfo->rec_end)
+			{
+				asyslog(LOG_INFO,"--------%d---%d",time_tmp,recinfo->rec_end);
 				recinfo->rec_end = time_tmp;
+			}
 			recinfo->recordno_num = (recinfo->rec_end - recinfo->rec_start)/tasknor_info.freq + 1;
 		}
 		asyslog(LOG_INFO,"n-----recinfo->recordno_num=%d,recinfo->rec_end=%d,recinfo->rec_start=%d,tasknor_info.freq=%d\n"
@@ -2404,7 +2413,7 @@ INT16U GetOADData(OAD oad_m,OAD oad_r,TS ts_zc,TSA tsa,INT8U *databuf)
 int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds,INT16U frmmaxsize)
 {
 	FILE *fp = NULL,*myfp = NULL;
-	INT8U 	taskid=0,recordbuf[1000],onefrmbuf[2000];
+	INT8U 	taskid=0,recordbuf[1000],onefrmbuf[2000],tmpnull[8];
 	ROAD_ITEM item_road;
 	CURR_RECINFO recinfo;
 	HEAD_UNIT *headunit = NULL;//文件头
@@ -2574,6 +2583,11 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds,INT16U fr
 			//6\读出一行数据到临时缓存
 			fseek(fp,recordoffset,SEEK_SET);
 			fread(recordbuf,recordlen,1,fp);
+
+			memset(tmpnull,0x00,8);
+			if(memcmp(&recordbuf[18],tmpnull,8)==0)
+				continue;
+
 			printRecordBytes(recordbuf,recordlen);
 			//7\根据csds挑选数据，组织存储缓存
 			memcpy(oad_offset_can,oad_offset,sizeof(oad_offset));
