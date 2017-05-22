@@ -2513,6 +2513,7 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds,INT16U fr
 		tsa_num = getTsas(meters_null,(INT8U **)&tsa_group);
 		break;
 	case 5:
+		fprintf(stderr,"selec5.meters mstype = %d,data=%d-%d\n",select.selec5.meters.mstype,select.selec5.meters.ms.userAddr[0].addr[0],select.selec5.meters.ms.userAddr[0].addr[1]);
 		tsa_num = getTsas(select.selec5.meters,(INT8U **)&tsa_group);
 		break;
 	case 7:

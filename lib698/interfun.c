@@ -55,6 +55,7 @@ void printMS(MY_MS ms)
 			for(i=0;i<(ms.ms.userAddr[j+1].addr[0]+1);i++) {
 				fprintf(stderr,"%02x ",ms.ms.userAddr[j+1].addr[i]);
 			}
+			fprintf(stderr,"\n");
 		}
 		break;
 	case 4://一组配置序号
@@ -63,6 +64,7 @@ void printMS(MY_MS ms)
 		for(i=0;i<ms.ms.configSerial[0];i++) {
 			fprintf(stderr,"%d ",ms.ms.configSerial[i+1]);
 		}
+		fprintf(stderr,"\n");
 		break;
 	case 5://一组用户类型区间
 		seqOfLen = 0;
@@ -931,12 +933,13 @@ int getMS(INT8U type,INT8U *source,MY_MS *ms)		//0x5C
 		break;
 	case 3://一组用户地址
 		msindex = 0;
-		ms->ms.userAddr[msindex++].addr[0] = (seqlen>>8)&0xff;
-		ms->ms.userAddr[msindex++].addr[1] = seqlen & 0xff;
+		ms->ms.userAddr[msindex].addr[0] = (seqlen>>8)&0xff;
+		ms->ms.userAddr[msindex].addr[1] = seqlen & 0xff;
+		msindex++;
 		for(i=0;i<seqlen;i++) {
 			index += getOctetstring(0,&source[index],(INT8U *)&ms->ms.userAddr[msindex++].addr);
 		}
-		fprintf(stderr,"TSA len=%d\n",ms->ms.userAddr[1].addr[0]);
+		fprintf(stderr,"seqlen = %d TSA len=%d\n",seqlen,ms->ms.userAddr[1].addr[0]);
 		for(i=0;i<(ms->ms.userAddr[1].addr[0]+1);i++) {
 			fprintf(stderr,"%02x ",ms->ms.userAddr[1].addr[i]);
 		}
