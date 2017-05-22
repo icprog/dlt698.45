@@ -126,6 +126,8 @@ char *getenum(int type,int val)
 	}
 	return name;
 }
+
+
 /*
  * 采集档案配置表
  * */
@@ -544,6 +546,7 @@ void print6015(CLASS_6015 class6015)
 		}
 	}
 	fprintf(stderr,"[6]%s ",getenum(ms_type,class6015.mst.mstype));
+	printMS(class6015.mst);
 	fprintf(stderr,"[7]%s ",getenum(savetime_sel,class6015.savetimeflag));
 	fprintf(stderr,"\n");
 

@@ -437,7 +437,7 @@ INT32S open_com_para_chg(INT8U port, INT32U baud, INT32S oldcomfd, unsigned char
 	INT32S newfd = 0;
 	static INT8U lastport = 0;
 	static INT32U lastbaud = 0;
-
+	fprintf(stderr,"oldcomfd = %d lastport = %d lastbaud = %d port=%d baud =%d",oldcomfd,lastport,lastbaud,port,baud);
 	if ((oldcomfd>0)&&(lastbaud == baud) && (lastport == port))
 	{
 		return oldcomfd;
@@ -3446,11 +3446,12 @@ INT16S deal6015_9707(INT8U protocol,CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6
 		DbgPrintToFile1(port485, " st6015.cjtype　＝ %d",st6015.cjtype);
 		INT8U singleCurveDatabuf[DATA_CONTENT_LEN];
 		memset(singleCurveDatabuf,0,DATA_CONTENT_LEN);
-
+		TS ts_cc;
+		TSGet(&ts_cc);
 		DateTimeBCD saveTime;
 		getSaveTime(&saveTime,st6015.cjtype,st6015.savetimeflag,st6015.data);
 		int bufflen = compose6012Buff(st6035->starttime,saveTime,to6001.basicinfo.addr,totaldataLen,dataContent,port485);
-		SaveNorData(st6035->taskID,NULL,dataContent,bufflen,saveTime);
+		SaveNorData(st6035->taskID,NULL,dataContent,bufflen,ts_cc);
 	}
 
 
@@ -3557,12 +3558,13 @@ INT16S deal6017_698(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8
 	INT8U sendbuff[BUFFSIZE256];
 	INT8U recvbuff[BUFFSIZE512];
 
-	memset(sendbuff, 0, BUFFSIZE256);
+
 #ifdef TESTDEF
 	CLASS_6015 test6015;
 	INT8U csdIndex = 0;
 	for(csdIndex = 0;csdIndex < st6015.csds.num;csdIndex++)
 	{
+		memset(sendbuff, 0, BUFFSIZE256);
 		INT8S ret = dealRealTimeRequst(port485);
 		if(getComfdBy6001(to6001.basicinfo.baud,port485) != 1)
 		{
@@ -3585,7 +3587,7 @@ INT16S deal6017_698(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8
 			fprintf(stderr,"deal6015_698  sendLen < 0");
 			return retLen;
 		}
-
+		fprintf(stderr,"\n\n1------------comfd1 = %d",comfd485[0]);
 		subindex = 0;
 		while(subindex < MAX_RETRY_NUM)
 		{
@@ -3602,11 +3604,13 @@ INT16S deal6017_698(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8
 				INT8U apduDataStartIndex = 0;
 				getResponseType = analyzeProtocol698(recvbuff,&csdNum,recvLen,&apduDataStartIndex,&dataLen);
 				fprintf(stderr,"\n getResponseType = %d  csdNum = %d dataLen = %d \n",getResponseType,csdNum,dataLen);
+				fprintf(stderr,"\n\n2------------comfd1 = %d",comfd485[0]);
 				if(getResponseType > 0)
 				{
 					OAD_DATA oadListContent[ROAD_OADS_NUM];
 					INT16U dataContentLen = 0;
 					parseSingleROADData(test6015.csds.csd[0].csd.road,&recvbuff[apduDataStartIndex],dataContent,&dataContentLen,oadListContent);
+					fprintf(stderr,"\n\n3------------comfd1 = %d",comfd485[0]);
 					if(dataContentLen > 0)
 					{
 						if(memcpy(zeroBuff,oadListContent[0].data,4)==0)
@@ -3622,7 +3626,7 @@ INT16S deal6017_698(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8
 						memcpy(&saveContentHead[18],oadListContent[0].data,oadListContent[0].datalen);
 						memcpy(&saveContentHead[23],oadListContent[1].data,oadListContent[1].datalen);
 						memcpy(&saveContentHead[31],oadListContent[2].data,oadListContent[2].datalen);
-
+						fprintf(stderr,"\n\n4------------comfd1 = %d",comfd485[0]);
 						DbPrt1(port485,"deal6017_698 存储事件 buff:", (char *) saveContentHead,SAVE_EVENT_BUFF_HEAD_LEN, NULL);
 						TS ts_cc;
 						TSGet(&ts_cc);
@@ -3632,6 +3636,7 @@ INT16S deal6017_698(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8
 						{
 							sendEventReportBuff698(test6015.csds.csd[0].csd.road,saveContentHead,port485,oadListContent);
 						}
+						fprintf(stderr,"\n\n5------------comfd1 = %d",comfd485[0]);
 					}
 
 					break;
@@ -3915,8 +3920,9 @@ INT16S deal6015or6017_singlemeter(CLASS_6013 st6013,CLASS_6015 st6015,CLASS_6001
 									recordIndex,freezeTimeStamp.Year,freezeTimeStamp.Month,freezeTimeStamp.Day,freezeTimeStamp.Hour,freezeTimeStamp.Minute,freezeTimeStamp.Sec);
 									memset(singleDatabuf,0,DATA_CONTENT_LEN);
 									memcpy(singleDatabuf,&curvedataContent[dataIndex],roadDataLen);
-
-									int bufflen = compose6012Buff(st6035->starttime,saveTime,obj6001.basicinfo.addr,roadDataLen,singleDatabuf,port485);
+									DateTimeBCD savetime;
+									TsToTimeBCD(freezeTimeStamp,&savetime);
+									int bufflen = compose6012Buff(st6035->starttime,savetime,obj6001.basicinfo.addr,roadDataLen,singleDatabuf,port485);
 									SaveNorData(st6035->taskID,NULL,singleDatabuf,bufflen,freezeTimeStamp);
 									dataIndex+=roadDataLen;
 								}
@@ -4144,6 +4150,9 @@ INT8S deal6015or6017(CLASS_6013 st6013,CLASS_6015 st6015, INT8U port485,CLASS_60
 
 					if((dataLen > 0)&&(st6013.cjtype == norm)&&(st6015.cjtype != TYPE_INTERVAL))
 					{
+						TS ts_cc;
+						TSGet(&ts_cc);
+
 						DateTimeBCD saveTime;
 						getSaveTime(&saveTime,st6015.cjtype,st6015.savetimeflag,st6015.data);
 						if((st6015.cjtype == TYPE_NULL)&&(getZone("ZheJiang")==0))
@@ -4161,7 +4170,7 @@ INT8S deal6015or6017(CLASS_6013 st6013,CLASS_6015 st6015, INT8U port485,CLASS_60
 						}
 						int bufflen = compose6012Buff(startTime,saveTime,meter.basicinfo.addr,dataLen,dataContent,port485);
 
-						SaveNorData(st6035->taskID,NULL,dataContent,bufflen,saveTime);
+						SaveNorData(st6035->taskID,NULL,dataContent,bufflen,ts_cc);
 					}
 				}
 				else
@@ -4198,10 +4207,10 @@ INT16S getTaskIndex(INT8U port)
 		{
 			if(mqd_485_2_task < 0)
 			{
-				fprintf(stderr,"mqd_485_2_task:mq_open_ret=%d\n",mqd_485_2_task);
 				return taskIndex;
 			}
 			ret = mmq_get(mqd_485_2_task, 1, &mq_h, rev_485_buf);
+//			fprintf(stderr,"\n\n mqd_485_2_task = %d :mmq_get=%d\n",mqd_485_2_task,ret);
 			if(ret > 0)
 			{
 				//fprintf(stderr,"mqd_485_2_task 接受消息 mq_h.cmd = %d rev_485_buf[0] = %d",mq_h.cmd,rev_485_buf[0]);
@@ -4234,9 +4243,9 @@ INT16S getTaskIndex(INT8U port)
 		{
 				if(mqd_485_1_task < 0)
 				{
-					fprintf(stderr,"mqd_485_1_task:mq_open_ret=%d\n",mqd_485_1_task);
 					return taskIndex;
 				}
+//				fprintf(stderr,"\n\n mqd_485_1_task = %d :mmq_get=%d\n",mqd_485_1_task,ret);
 				ret = mmq_get(mqd_485_1_task, 1, &mq_h, rev_485_buf);
 				if(ret > 0)
 				{
@@ -4491,7 +4500,7 @@ INT8U initMap07DI_698OAD()
 
 		fprintf(stderr,"\n------------------------");
 		sscanf((const char*)aline,"%04x %04x %s %d %d %s",&val[0],&val[1],dataflag07,&val[2],&val[3],dataInfo);
-
+		fprintf(stderr,"\n aline = %s ------------------------",aline);
 		oadOI = (OI_698)val[0];
 		flag97 = (INT16U)val[1];
 		memcpy(dataflag97,&flag97,2);

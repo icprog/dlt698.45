@@ -255,7 +255,7 @@ extern int	readFreezeRecordByTime(OI_698 freezeOI,OAD oad,DateTimeBCD datetime,i
 
 ///////////////数据文件存储
 
-extern int getSelector(OAD oad_h,RSD select, INT8U selectype, CSD_ARRAYTYPE csds, INT8U *data, int *datalen);
+extern int getSelector(OAD oad_h,RSD select, INT8U selectype, CSD_ARRAYTYPE csds, INT8U *data, int *datalen,INT16U frmmaxsize);
 
 extern long int readFrameDataFile(char *filename,int offset,INT8U *buf,int *datalen);
 //extern void ReadFileHeadLen(FILE *fp,int *headlen,int *blocklen);

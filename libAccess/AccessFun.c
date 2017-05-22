@@ -367,6 +367,13 @@ int saveParaClass(OI_698 oi,void *blockdata,int seqnum)
 	if(infoi == -1) {
 		return -1;
 	}
+	switch(oi){
+	case 0x6000:
+		if(seqnum>MAX_POINT_NUM) {
+			syslog(LOG_ERR,"save oi=%x seqnum=%d 超过限值 %d\n,无法存储！！",oi,seqnum,MAX_POINT_NUM);
+		}
+		break;
+	}
 	sem_save = InitSem();
 	makeSubDir(PARADIR);
 	ret = save_block_file((char *)class_info[infoi].file_name,blockdata,class_info[infoi].unit_len,class_info[infoi].interface_len,seqnum);
@@ -1057,7 +1064,7 @@ INT16U CalcFreq(TI runti,CLASS_6015 class6015,INT16U startmin,INT16U endmin,INT3
 	int rate = 0;//倍率
 	INT16U sec_unit = 0;
 	INT8U  inval_flg = 0;
-	asyslog(LOG_INFO,"\n---@@@---class6015.cjtype = %d\n",class6015.cjtype);
+	asyslog(LOG_INFO,"\n---@@@---class6015.cjtype = %d  data=%d-%d-%d\n",class6015.cjtype,class6015.data.data[0],class6015.data.data[1],class6015.data.data[2]);
 	if(class6015.cjtype == 3 || class6015.cjtype == 0 || class6015.cjtype == 1)//按时标间隔采集
 	{
 		if(class6015.cjtype == 3)//按抄表间隔
@@ -1275,19 +1282,12 @@ INT16U CalcOIDataLen(OI_698 oi,INT8U attr_flg)
 	INT16U oi_len=0;
 	INT8U ic_type = 1;
 
-	if(oi>=0x0000 && oi<0x1000)
+	if(oi>=0x0000 && oi<0x2000)
 	{
 		if(attr_flg == 0)
 			return 27;//长度4+1个字节数据类型
 		else
 			return 5;
-	}
-	if(oi>=0x1000 && oi<0x2000)
-	{
-		if(attr_flg == 0)
-			return 15*5 + 2;//长度4+1个字节数据类型
-		else
-			return 15;
 	}
 	if(oi ==0x202a)
 	{
@@ -2401,7 +2401,7 @@ INT16U GetOADData(OAD oad_m,OAD oad_r,TS ts_zc,TSA tsa,INT8U *databuf)
 /*
  *获得任务数据和事件记录
  */
-int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds)
+int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds,INT16U frmmaxsize)
 {
 	FILE *fp = NULL,*myfp = NULL;
 	INT8U 	taskid=0,recordbuf[1000],onefrmbuf[2000];
@@ -2417,6 +2417,7 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds)
 	ROAD road_eve;
 	INT8U eveflg=0;
 	MY_MS meters_null;
+	asyslog(LOG_INFO,"帧最大长度　－－frmmaxsize = %d\n",frmmaxsize);
 	memset(&item_road,0x00,sizeof(ROAD_ITEM));
 	if(selectype == 8 || selectype == 6)//将selector8和6写成selector7的处理办法
 		selectype = 7;
@@ -2579,7 +2580,10 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds)
 			recordnum++;
 			asyslog(LOG_INFO,"recordnum=%d  seqnumindex=%d\n",recordnum,seqnumindex);
 
-			if (indexn>=900)//if (indexn>=1500)
+			if(frmmaxsize <= 256+100)
+				frmmaxsize = 900;
+			if (indexn>=frmmaxsize-100)
+//			if (indexn>=900)
 			{
 				framesum++;
 				//8 存储1帧
@@ -2617,6 +2621,17 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds)
 		onefrmbuf[seqnumindex] = recordnum;
 		saveOneFrame(onefrmbuf,indexn,myfp);
 	}
+	else {
+		if(recordnum != 0)
+		{
+			framesum++;
+			fprintf(stderr,"\n last frm indexn = %d saveOneFrame  seqnumindex=%d,  recordnum=%d!!!!!!!!!!!!!!!!\n",indexn,seqnumindex,recordnum);
+			asyslog(LOG_INFO,"任务数据文件组帧:indexn = %d , seqnumindex=%d,  recordnum=%d\n",indexn,seqnumindex,recordnum);
+			intToBuf((indexn-2),onefrmbuf);
+			onefrmbuf[seqnumindex] = recordnum;
+			saveOneFrame(onefrmbuf,indexn,myfp);
+		}
+	}
 	if(tsa_group != NULL)
 		free(tsa_group);
 	if(headunit!=NULL){
@@ -2638,7 +2653,7 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds)
 //	fseek(fp,headlen+unitlen*unitno_index,SEEK_SET);
 //
 //}
-int getSelector(OAD oad_h,RSD select, INT8U selectype, CSD_ARRAYTYPE csds, INT8U *data, int *datalen)
+int getSelector(OAD oad_h,RSD select, INT8U selectype, CSD_ARRAYTYPE csds, INT8U *data, int *datalen,INT16U frmmaxsize)
 {
 	int  framesum=0;		//分帧
 	asyslog(LOG_INFO,"getSelector: selectype=%d\n",selectype);
@@ -2653,7 +2668,7 @@ int getSelector(OAD oad_h,RSD select, INT8U selectype, CSD_ARRAYTYPE csds, INT8U
 //		framesum = GetTaskData(oad_h,select,selectype,csds);//程序里面计算
 //		break;
 //	case 10:
-		framesum = GetTaskData(oad_h,select,selectype,csds);
+		framesum = GetTaskData(oad_h,select,selectype,csds,frmmaxsize);
 		fprintf(stderr,"framesum=%d\n",framesum);
 //		break;
 //	default:break;

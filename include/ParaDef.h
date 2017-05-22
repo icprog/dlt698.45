@@ -39,7 +39,7 @@
 #define MAXNUM_TASKID_QUEUE    25
 #define MAXNUM_AUTOTASK		20					//采用上报方案的任务最大数
 
-#define MAXSIZ_FAM	1600						//
+#define MAXSIZ_FAM			2048						//原1600, 台体负荷曲线的时候分帧为1980个字节,调用readFrameDataFile超限更改
 ///////////////////////////////////////////////////////////////
 /*
  * 	终端类相关容量及参数定义
@@ -62,6 +62,7 @@
 #define TSA_LEN					17
 #define OCTET_STRING_LEN		16
 #define VISIBLE_STRING_LEN		40
+
 #define COLLCLASS_MAXNUM		1024		//定义集合类最大元素个数
 
 #define	REPORT_CHANN_OAD_NUM	10			//上报方案 array OAD最大个数
@@ -69,6 +70,7 @@
 #define ROAD_OADS_NUM           20          //ROAD结构体里oads的最大个数
 #define ARRAY_ROAD_NUM			20			//raod数组的最大个数
 #define CLASS7_OAD_NUM			10			//关联对象属性表
+#define	REGION_NUM				20			//MS类型数据区间长度
 #define MAX_PERIOD_RATE   		48      	//支持的最到终端费率时段数
 #define MAX_FREEZE_OBJ			255			//冻结最大关联冻结对象个数
 #define	STATE_MAXNUM			8			//开关量单元最大个数
