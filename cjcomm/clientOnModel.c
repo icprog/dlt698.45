@@ -311,6 +311,20 @@ int modelSendExactly(int fd, int retry, int len, int buf) {
     return 0;
 }
 
+int readPositionGet(int length) {
+    int pos = 1;
+    int tmp = length;
+    for (int i = 0; i < 5; ++i) {
+        tmp /= 10;
+        if (tmp == 0) {
+            break;
+        }
+        pos++;
+    }
+    return pos;
+}
+
+
 int modelReadExactly(int fd, int retry) {
     int chl = 0;
     int sum = 0;
@@ -324,9 +338,10 @@ int modelReadExactly(int fd, int retry) {
         checkModelStatus(Mrecvbuf, resLen);
 
         if (sscanf(Mrecvbuf, "%*[^:]: %d,%d", &chl, &sum) == 2) {
-            printf("============%d-%d\n", chl, sum);
             if (sum == 0) { break; }
-            putNext(&Mrecvbuf[40], sum);
+            int pos = readPositionGet(sum);
+            printf("============at %d has %d bytes\n", 38 + pos, sum);
+            putNext(&Mrecvbuf[38 + pos], sum);
             break;
         }
     }
@@ -353,11 +368,17 @@ void *ModelWorker(void *args) {
         gpofun("/dev/gpoCSQ_RED", 0);
         gpofun("/dev/gpoONLINE_LED", 0);
 
+        SetGprsStatus(0);
+        SetGprsCSQ(0);
+        SetWireLessType(0);
+        SetPPPDStatus(0);
+
         resetModel();
 
         if (GetOnlineType() != 0) { goto wait; }
         if ((sMux0 = OpenCom(5, 115200, (unsigned char *) "none", 1, 8)) < 0) { goto err; }
         if (SendCommandGetOK(sMux0, 5, "\rat\r") == 0) { goto err; }
+        SetGprsStatus(1);
 
         ////////////////////获取信息////////////////////
         for (int timeout = 0; timeout < 10; timeout++) {
@@ -404,6 +425,7 @@ void *ModelWorker(void *args) {
                 asyslog(LOG_INFO, "GprsCSQ = %d,%d\n", k, l);
                 if (k != 99) {
                     class25->signalStrength = k;
+                    SetGprsCSQ(k);
                     if (k > 20) {
                         gpofun("/dev/gpoCSQ_GREEN", 1);
                     } else if (k > 10) {
@@ -416,6 +438,7 @@ void *ModelWorker(void *args) {
                 }
             }
         }
+        SetGprsStatus(2);
         saveCoverClass(0x4500, 0, class25, sizeof(CLASS25), para_vari_save);
         ////////////////////获取信息////////////////////
 
@@ -423,26 +446,51 @@ void *ModelWorker(void *args) {
         if (GetOnlineType() != 0) { goto wait; }
         if (regIntoNet(sMux0) == 0) { goto err; }
 
+        SetGprsStatus(3);
+
+        MASTER_STATION_INFO m = getNextGprsIpPort(&ClientForModelObject);
         switch (getCIMIType(sMux0)) {
             case 1:
                 SendCommandGetOK(sMux0, 5, "\rAT$MYNETACT=1,0\r");
-                if (SendCommandGetOK(sMux0, 5, "\rAT$MYNETCON=1,\"APN\",\"%s\"\r", "cmnet") == 0) { goto err; }
-                if (SendCommandGetOK(sMux0, 5, "\rAT$MYNETCON=1,\"USERPWD\",\"None,None\"\r") == 0) { goto err; }
+                if (SendCommandGetOK(sMux0, 5, "\rAT$MYNETCON=1,\"APN\",\"%s\"\r",
+                                     &class25->commconfig.apn[1]) == 0) { goto err; }
+                if (SendCommandGetOK(sMux0, 5, "\rAT$MYNETCON=1,\"USERPWD\",\"%s,%s\"\r",
+                                     &class25->commconfig.userName[1],
+                                     &class25->commconfig.passWord[1]) == 0) { goto err; }
                 if (SendCommandGetOK(sMux0, 5, "\rAT$MYNETURC=1\r") == 0) { goto err; }
-                MASTER_STATION_INFO m = getNextGprsIpPort(&ClientForModelObject);
+
                 if (SendCommandGetOK(sMux0, 5, "\rAT$MYNETSRV=1,1,0,0,\"%s:%d\"\r", m.ip, m.port) == 0) { goto err; }
                 if (SendCommandGetOK(sMux0, 8, "\rAT$MYNETACT=1,1\r") == 0) { goto err; }
                 if (SendCommandGetOK(sMux0, 20, "\rAT$MYNETOPEN=1\r") == 0) { goto err; }
                 SetOnlineType(3);
+                SetGprsStatus(4);
+                SetWireLessType(1);
+                SetPPPDStatus(1);
+                gpofun("/dev/gpoONLINE_LED", 1);
                 break;
             case 3:
+                SendCommandGetOK(sMux0, 5, "\rAT$MYNETACT=1,0\r");
+                if (SendCommandGetOK(sMux0, 5, "\rAT$MYNETCON=1,\"APN\",\"%s\"\r",
+                                     &class25->commconfig.apn[1]) == 0) { goto err; }
+                if (SendCommandGetOK(sMux0, 5, "\rAT$MYNETCON=1,\"USERPWD\",\"%s,%s\"\r",
+                                     &class25->commconfig.userName[1],
+                                     &class25->commconfig.passWord[1]) == 0) { goto err; }
+                if (SendCommandGetOK(sMux0, 5, "\rAT$MYNETURC=1\r") == 0) { goto err; }
+
+                if (SendCommandGetOK(sMux0, 5, "\rAT$MYNETSRV=1,1,0,0,\"%s:%d\"\r", m.ip, m.port) == 0) { goto err; }
+                if (SendCommandGetOK(sMux0, 8, "\rAT$MYNETACT=1,1\r") == 0) { goto err; }
+                if (SendCommandGetOK(sMux0, 20, "\rAT$MYNETOPEN=1\r") == 0) { goto err; }
+                SetOnlineType(3);
+                SetGprsStatus(4);
+                SetWireLessType(1);
+                SetPPPDStatus(1);
+                gpofun("/dev/gpoONLINE_LED", 1);
                 break;
             default:
                 goto err;
         }
 
         wait:
-        //等待在线状态为“否”，重新拨号
         while (1) {
             sleep(1);
             if (GetOnlineType() == 0) { goto err; }
@@ -458,6 +506,7 @@ void *ModelWorker(void *args) {
 
             switch (checkModelStatus(NULL, -1)) {
                 case 1:
+                    sleep(1);
                     modelReadExactly(sMux0, 3);
                     break;
                 case 99:
