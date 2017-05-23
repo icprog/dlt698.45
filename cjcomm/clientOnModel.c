@@ -329,18 +329,18 @@ int modelReadExactly(int fd, int retry) {
     int chl = 0;
     int sum = 0;
 
-    char Mrecvbuf[128];
+    char Mrecvbuf[2048];
     for (int timeout = 0; timeout < retry; timeout++) {
-        memset(Mrecvbuf, 0, 128);
+        memset(Mrecvbuf, 0, 2048);
         SendATCommand("\rAT$MYNETREAD=1,1024\r", strlen("\rAT$MYNETREAD=1,1024\r"), fd);
         delay(1000);
-        int resLen = RecieveFromComm(Mrecvbuf, 128, fd);
+        int resLen = RecieveFromComm(Mrecvbuf, 2048, fd);
         checkModelStatus(Mrecvbuf, resLen);
 
         if (sscanf(Mrecvbuf, "%*[^:]: %d,%d", &chl, &sum) == 2) {
             if (sum == 0) { break; }
             int pos = readPositionGet(sum);
-            printf("============at %d has %d bytes\n", 38 + pos, sum);
+            printf("============recv %d, at %d has %d bytes\n", resLen, 38 + pos, sum);
             putNext(&Mrecvbuf[38 + pos], sum);
             break;
         }
@@ -548,7 +548,6 @@ static int RegularClientOnModel(struct aeEventLoop *ep, long long id, void *clie
     if (revcount > 0) {
         for (int j = 0; j < revcount; j++) {
             nst->RecBuf[nst->RHead] = recvBuf[j];
-
             nst->RHead = (nst->RHead + 1) % BUFLEN;
         }
 
@@ -586,7 +585,11 @@ static int RegularClientOnModel(struct aeEventLoop *ep, long long id, void *clie
         }
     }
 
-    Comm_task(nst);
+    if (Comm_task(nst) == -1) {
+        asyslog(LOG_WARNING, "内部协议栈[GPRS]链接心跳超时，关闭端口");
+        SetOnlineType(0);
+    }
+
     check_F101_changed_Gprs(nst);
     CalculateTransFlow(nst->shmem);
     //暂时忽略函数返回

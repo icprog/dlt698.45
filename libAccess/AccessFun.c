@@ -1282,12 +1282,19 @@ INT16U CalcOIDataLen(OI_698 oi,INT8U attr_flg)
 	INT16U oi_len=0;
 	INT8U ic_type = 1;
 
-	if(oi>=0x0000 && oi<0x2000)
+	if(oi>=0x0000 && oi<0x1000)
 	{
 		if(attr_flg == 0)
 			return 27;//长度4+1个字节数据类型
 		else
 			return 5;
+	}
+	if(oi>=0x1000 && oi<0x2000)
+	{
+		if(attr_flg == 0)
+			return 15*5+2;
+		else
+			return 15;
 	}
 	if(oi ==0x202a)
 	{
@@ -2949,3 +2956,50 @@ INT8U write_3761_rc_local()
 	}
 	return ret;
 }
+//void deloutofdatafile()//删除过期任务数据文件
+//{
+//	int i=0,taskday,fileday;
+//	char dirname[60];
+//	TASKSET_INFO tasknor_info;
+//	DIR *dir;
+//	struct dirent *ptr;
+//	struct tm tm_p,tm_f;
+//	time_t time_s,time_p,time_f;
+//
+//	time(&time_s);
+//	tm_p = localtime(&time_s);
+//	tm_p->tm_min = 0;
+//	tm_p->tm_sec = 0;
+//	tm_f = tm_p;
+//	time_p = mktime(&tm_p);
+//	for(i=0;i<256;i++)
+//	{
+//		memset(dirname,0x00,60);
+//		sprintf(dirname,"/nand/task/%03d/",i);
+//		if(access(dirname,F_OK)!=0)//文件不存在
+//			continue;
+//		if(ReadTaskInfo(i,&tasknor_info)==0)//得到任务信息
+//		{
+//			asyslog(LOG_INFO,"得到任务信息失败\n");
+//			fprintf(stderr,"\n得到任务信息失败\n");
+//			continue;
+//		}
+//		taskday = (tasknor_info.memdep * tasknor_info.freq)/86400;
+//		if((tasknor_info.memdep * tasknor_info.freq)%86400 != 0)
+//			taskday++;
+//
+//		dir = opendir(dirname);
+//		while((ptr = readdir(dir)) != NULL)
+//		{
+//			sscanf(ptr->d_name,"%04d%02d%02d.dat",tm_f.tm_year,tm_f.tm_mon,tm_f.tm_yday);
+//			time_f = mktime(&tm_f);
+//			if(time_f>=time_p)
+//				continue;
+//			fileday = (time_p-time_f)/86400;
+//			if((time_p-time_f)%86400 != 1)
+//				fileday++;
+//			if(fileday >taskday)
+//				unlink(ptr->d_name);
+//		}
+//	}
+//}
