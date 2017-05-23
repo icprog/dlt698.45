@@ -811,7 +811,7 @@ INT16S ReceDataFrom485(METER_PROTOCOL meterPro,INT8U port485, INT16U delayms, IN
 					{
 						if (str[rec_tail + 9 + DataLen + 2] == 0x16) {
 							DbPrt1(port485,"R:",(char *)str, rec_head, NULL);
-							return rec_head;
+							return (rec_tail + 9 + DataLen + 3);
 						}
 					}
 				}
@@ -4380,7 +4380,7 @@ void read485_thread(void* i485port) {
 					ret = use6013find6015or6017(list6013[taskIndex].basicInfo.cjtype,list6013[taskIndex].basicInfo.sernum,list6013[taskIndex].basicInfo.interval,&to6015);
 					if(ret == 1)
 					{
-							ret = deal6015or6017(list6013[taskIndex].basicInfo,to6015,port,&result6035);
+						ret = deal6015or6017(list6013[taskIndex].basicInfo,to6015,port,&result6035);
 					}
 					else
 					{

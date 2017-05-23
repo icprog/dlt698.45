@@ -193,14 +193,14 @@ int getTsas(MY_MS ms,INT8U **tsas)
 					tsa_len = (ms.ms.userAddr[0].addr[0]<<8) | ms.ms.userAddr[0].addr[1];
 					fprintf(stderr,"\n一组用户地址(%d)\n\n",tsa_len);
 					for(j=0;j<tsa_len;j++) {
-						for(k=0;k<TSA_LEN;k++) {
-							fprintf(stderr,"%02x ",ms.ms.userAddr[j+1].addr[k]);
-						}
-						fprintf(stderr,"\n");
-						for(k=0;k<TSA_LEN;k++) {
-							fprintf(stderr,"%02x ",meter.basicinfo.addr.addr[k]);
-						}
-						fprintf(stderr,"\n");
+//						for(k=0;k<TSA_LEN;k++) {
+//							fprintf(stderr,"%02x ",ms.ms.userAddr[j+1].addr[k]);
+//						}
+//						fprintf(stderr,"\n");
+//						for(k=0;k<TSA_LEN;k++) {
+//							fprintf(stderr,"%02x ",meter.basicinfo.addr.addr[k]);
+//						}
+//						fprintf(stderr,"\n");
 						if(memcmp(&ms.ms.userAddr[j+1].addr[0],&meter.basicinfo.addr,sizeof(TSA))==0) {  //TODO:TSA下发的地址是否按照00：长度，01：TSA长度格式
 							memcpy(*tsas+(tsa_num*sizeof(TSA)),&meter.basicinfo.addr,sizeof(TSA));
 							tsa_num++;
