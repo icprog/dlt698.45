@@ -220,11 +220,7 @@ int getTsas(MY_MS ms,INT8U **tsas)
 					}
 					break;
 				case 5://一组用户类型区间
-
-					break;
 				case 6://一组用户地址区间
-
-					break;
 				case 7://一组配置序号区间
 
 					break;
@@ -292,16 +288,22 @@ int getTaskOadData(OAD taskoad)
 int GetReportData(CLASS_601D report)
 {
 	int  ret = 0;
-//	fprintf(stderr,"report.reportdata.type=%d\n",report.reportdata.type);
+	INT16U server_send_size=0;			//服务器发送帧最大尺寸
+
+	fprintf(stderr,"report.reportdata.type=%d  report.reportdata.data.recorddata.selectType=%d\n",report.reportdata.type,report.reportdata.data.recorddata.selectType);
 	if (report.reportdata.type==0)//OAD
 	{
 		ret = getTaskOadData(report.reportdata.data.oad);
 	}else if(report.reportdata.type==1)//RecordData
 	{
+		if(AppVar_p==NULL) {
+			server_send_size = FRAMELEN;
+		}else server_send_size = AppVar_p->server_send_size;
+		fprintf(stderr,"server_send_size = %d\n",server_send_size);
 		ret = getSelector(report.reportdata.data.oad,
 							report.reportdata.data.recorddata.rsd,
 							report.reportdata.data.recorddata.selectType,
-							report.reportdata.data.recorddata.csds,NULL, NULL,AppVar_p->server_send_size);
+							report.reportdata.data.recorddata.csds,NULL, NULL,server_send_size);
 		fprintf(stderr,"GetReportData   ret=%d\n",ret);
 		ret = REPROTNOTIFICATIONRECORDLIST;	//
 	}

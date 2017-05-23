@@ -2545,6 +2545,10 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds,INT16U fr
 	indexn = 2;
 	indexn += initFrameHead(&onefrmbuf[indexn],oad,select,selectype,csds,&seqnumindex);
 
+	if(tsa_num == 0) {
+		asyslog(LOG_INFO,"未找到符合条件的TSA数据\n");
+		return 0;
+	}
 	//3\定位TSA , 返回offset
 	for(i =0; i< tsa_num; i++)
 	{
@@ -2671,7 +2675,8 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds,INT16U fr
 int getSelector(OAD oad_h,RSD select, INT8U selectype, CSD_ARRAYTYPE csds, INT8U *data, int *datalen,INT16U frmmaxsize)
 {
 	int  framesum=0;		//分帧
-	asyslog(LOG_INFO,"getSelector: selectype=%d\n",selectype);
+//	asyslog(LOG_INFO,"getSelector: selectype=%d\n",selectype);
+	fprintf(stderr,"getSelector: selectype=%d\n",selectype);
 //	switch(selectype)
 //	{
 //	case 0:

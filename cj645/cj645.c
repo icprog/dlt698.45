@@ -43,23 +43,23 @@ int InitPro(ProgramInfo **prginfo, int argc, char *argv[]) {
         return 1;
  }
 
-//主程序
-int main(int argc, char *argv[]) {
-    printf("Checking11...\n");
-    INT8U comport = 2;
-
+/*
+ * 485口通信测试,两个串口互相发送接收
+ * II型集中器, port1 = 1, port2 = 4 ,485_I 与 485_III 互相抄读
+ *
+ * */
+int  vs485_test(int port1,int port2)
+{
     int Test_485_result = 1;
 
     INT8U msg[256];
     INT8U res[256];
 
-    system("rm /nand/check.log");
-
     memset(msg, 0x00, sizeof(msg));
     memset(res, 0x00, sizeof(res));
 
-    int comfd1 = OpenCom(1, 9600, (INT8U *) "even", 1, 8);
-    int comfd2 = OpenCom(4, 9600, (INT8U *) "even", 1, 8);
+    int comfd1 = OpenCom(port1, 9600, (INT8U *) "even", 1, 8);
+    int comfd2 = OpenCom(port2, 9600, (INT8U *) "even", 1, 8);
 
     for (int i = 0; i < 256; ++i) {
         msg[i] = i;
@@ -79,6 +79,10 @@ int main(int argc, char *argv[]) {
     memset(msg, 0x00, sizeof(msg));
     memset(res, 0x00, sizeof(res));
 
+    for (int i = 0; i < 256; ++i) {
+        msg[i] = i;
+    }
+
     write(comfd2, msg, sizeof(msg));
     sleep(1);
     read(comfd1, res, sizeof(res));
@@ -92,6 +96,18 @@ int main(int argc, char *argv[]) {
     close(comfd1);
     close(comfd2);
 
+    return Test_485_result;
+}
+
+//主程序
+int main(int argc, char *argv[])
+{
+    printf("Checking11...\n");
+    int		Test_485_result=0;
+    INT8U comport = 2;
+
+    system("rm /nand/check.log");
+    Test_485_result = vs485_test(1,4);
     if (Test_485_result == 1) {
         system("echo 485OK >> /nand/check.log");
     }
@@ -99,13 +115,13 @@ int main(int argc, char *argv[]) {
     system("cj esam 2>> /nand/check.log");
 
     JProgramInfo = OpenShMem("ProgramInfo", sizeof(ProgramInfo), NULL);
-
     fprintf(stderr, "\ncj645 start ....\n\r");
     if (JProgramInfo->cfg_para.device == 2) {    //II型集中器
         comport = 2;
     } else {
         comport = 4;
     }
+
     fprintf(stderr, "open /dev/ttyS%d\n", comport);
 
     if ((comfd = OpenCom(comport, 2400, (INT8U *) "even", 1, 8)) < 1) {
