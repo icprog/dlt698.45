@@ -479,15 +479,15 @@ INT8U init6013ListFrom6012File() {
 						taskStartTime.Year,taskStartTime.Month,taskStartTime.Day,taskStartTime.Hour,
 						taskStartTime.Minute,taskStartTime.Sec);
 #endif
-				if(timeCmp < 2)
-				{
-					list6013[total_tasknum].ts_next  = tmtotime_t(ts_now);
-				}
-				else
-				{
+//				if(timeCmp < 2)
+//				{
+//					list6013[total_tasknum].ts_next  = tmtotime_t(ts_now);
+//				}
+//				else
+//				{
 					list6013[total_tasknum].ts_next  =
 									calcnexttime(list6013[total_tasknum].basicInfo.interval,list6013[total_tasknum].basicInfo.startime,list6013[total_tasknum].basicInfo.delay);
-				}
+//				}
 
 				//TODO
 				total_tasknum++;
