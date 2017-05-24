@@ -22,7 +22,20 @@ extern void FrameTail(INT8U *buf,int index,int hcsi);
 extern int FrameHead(CSINFO *csinfo,INT8U *buf);
 extern INT16S composeSecurityResponse(INT8U* SendApdu,INT16U Length);
 //-------
-
+//DateTimeBCD timet_bcd(time_t t)
+//{
+//	DateTimeBCD ts;
+//    struct tm set;
+//
+//    localtime_r(&t, &set);
+//    ts.year.data  = set.tm_year + 1900;
+//    ts.month.data = set.tm_mon + 1;
+//    ts.day.data   = set.tm_mday;
+//    ts.hour.data  = set.tm_hour;
+//    ts.min.data   = set.tm_min;
+//    ts.sec.data   = set.tm_sec;
+//    return ts;
+//}
 /*
  * datetime 开始时间
  * ti 间隔
@@ -66,6 +79,12 @@ time_t calcnexttime(TI ti,DateTimeBCD datetime,TI ti_delay)
 			{
 				timeret = (intpart + 1) * jiange  + timestart ;
 				fprintf(stderr,"\n计算下次开始时间 %ld ",timeret);
+
+//				DateTimeBCD  mybcd;
+//				mybcd = timet_bcd(timeret);
+//				fprintf(stderr,"\n\n*******my 下次开始时间--------1 %d-%d-%d %d:%d:%d",
+//						mybcd.year.data,mybcd.month.data,mybcd.day.data,mybcd.hour.data,mybcd.min.data,mybcd.sec.data);
+
 				return timeret ;
 			}
 			else
