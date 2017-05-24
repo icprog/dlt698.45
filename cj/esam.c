@@ -442,7 +442,7 @@ void EsamTest(int argc, char* argv[])
 			sleep(1);
 			test1 = TermiSingleInfo_Test(i);
 			sleep(2);
-			writeLog(i,j,test1,test2);
+//			writeLog(i,j,test1,test2);
 		}
 	}
 	shmm_unregister("ProgramInfo", sizeof(ProgramInfo));
