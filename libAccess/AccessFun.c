@@ -1296,6 +1296,13 @@ INT16U CalcOIDataLen(OI_698 oi,INT8U attr_flg)
 		else
 			return 15;
 	}
+	if(oi == 0x2014)
+	{
+		if(attr_flg == 0)
+			return 4*7+2;
+		else
+			return 4;
+	}
 	if(oi ==0x202a)
 	{
 		return 18;

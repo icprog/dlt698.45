@@ -1183,7 +1183,10 @@ INT8U getASNInfo(FORMAT07* DI07,Base_DataType* dataType)
 				zhuantaizi[tmpIndex*4+3] = DI07->Data[tmpIndex*2];
 			}
 			DI07->Length += 4;
+
 		}
+		memcpy(DI07->Data,zhuantaizi,28);
+		return unitNum;
 	}
 	//需量类
 
@@ -1890,7 +1893,15 @@ INT8S OADMap07DI(OI_698 roadOI,OAD sourceOAD, C601F_645* flag645) {
 				memcpy(&flag645->DI._07, &map07DI_698OAD[index].flag07, sizeof(C601F_07Flag));
 				if(sourceOAD.attrindex != 0x00)
 				{
-					flag645->DI._07.DI_1[0][1] = sourceOAD.attrindex-1;
+					if((sourceOAD.OI==0x2000)||(sourceOAD.OI==0x2001))
+					{
+						flag645->DI._07.DI_1[0][1] = sourceOAD.attrindex;
+					}
+					else
+					{
+						flag645->DI._07.DI_1[0][1] = sourceOAD.attrindex-1;
+					}
+
 				}
 			}
 			return 1;
