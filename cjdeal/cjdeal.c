@@ -590,7 +590,7 @@ void timeProcess()
 {
 	static TS lastTime;
 	static INT8U firstFlag = 1;
-
+	static INT8U resetFlag = 0;//00:01清理队列中还没完成的任务
 	TS nowTime;
 	TSGet(&nowTime);
 
@@ -606,6 +606,13 @@ void timeProcess()
 	}
 	else
 	{
+		if((nowTime.Hour == 23)&&(nowTime.Minute > 55)&&(resetFlag == 1))
+		{
+			para_change485[0] = 1;
+			para_change485[1] = 1;
+
+			resetFlag = 0;
+		}
 		//跨天处理
 		if(lastTime.Day != nowTime.Day)
 		{
@@ -619,6 +626,9 @@ void timeProcess()
 			isReplenishOver[1] = 1;
 			isReplenishOver[2] = 1;
 			isReplenishOver[3] = 1;
+
+			resetFlag = 1;
+
 		}
 	}
 }
