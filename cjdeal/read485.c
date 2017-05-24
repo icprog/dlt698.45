@@ -1152,7 +1152,41 @@ INT8U getASNInfo(FORMAT07* DI07,Base_DataType* dataType)
 			DI07->Length += 7;
 		}
 	}
+	//电表状态字
+	if((DI07->DI[3] == 0x04)&&(DI07->DI[2] == 0x00)&&(DI07->DI[1]==0x05))
+	{
+		*dataType = dtnull;
+		if(DI07->DI[0]==0xff)
+		{
+			unitNum = 7;
+		}
+		else
+		{
+			unitNum = 1;
+		}
+		DI07->Length = 4;
+		INT8U zhuantaizi[28];
+		memset(zhuantaizi,0,28);
+		INT8U tmpIndex = 0;
+		for(tmpIndex = 0;tmpIndex < unitNum;tmpIndex++)
+		{
+			zhuantaizi[tmpIndex*4] = dtbitstring;
+			zhuantaizi[tmpIndex*4+1] = 0x10;
+			//最大需量
+			if((DI07->Data[tmpIndex*2]==0xff)&&(DI07->Data[tmpIndex*2+1]==0xff))
+			{
+				memset(&zhuantaizi[tmpIndex*4+2],0,2);
+			}
+			else
+			{
+				zhuantaizi[tmpIndex*4+2] = DI07->Data[tmpIndex*2+1];
+				zhuantaizi[tmpIndex*4+3] = DI07->Data[tmpIndex*2];
+			}
+			DI07->Length += 4;
+		}
+	}
 	//需量类
+
 	if(((DI07->DI[3] == 0x01)&&(DI07->DI[2] >= 0x00)&&(DI07->DI[2]<=0x0A))
 		||((DI07->DI[3] == 0x05)&&(DI07->DI[2] == 0x06)&&(DI07->DI[1]==0x09))
 		||((DI07->DI[3] == 0x05)&&(DI07->DI[2] == 0x06)&&(DI07->DI[1]==0x0A)))
@@ -1856,7 +1890,7 @@ INT8S OADMap07DI(OI_698 roadOI,OAD sourceOAD, C601F_645* flag645) {
 				memcpy(&flag645->DI._07, &map07DI_698OAD[index].flag07, sizeof(C601F_07Flag));
 				if(sourceOAD.attrindex != 0x00)
 				{
-					flag645->DI._07.DI_1[0][1] = sourceOAD.attrindex;
+					flag645->DI._07.DI_1[0][1] = sourceOAD.attrindex-1;
 				}
 			}
 			return 1;
@@ -3969,6 +4003,10 @@ INT8U checkMeterType(MY_MS mst, INT8U port485, TSA meterAddr, OAD portOAD) {
 		fprintf(stderr,"\n checkMeterType 非485 %d 测量点",port485);
 		return 0;
 	}
+	if (mst.mstype == 0)
+	{
+		return 0;
+	}
 	if (mst.mstype == 1)
 	{
 		return 1;
@@ -4267,7 +4305,7 @@ INT8S cleanTaskIDmmq(INT8U port485)
 	do
 	{
 		taskIndex = getTaskIndex(port485);
-		fprintf(stderr,"清理485 %d消息队列中任务index = %d",port485,taskIndex);
+		DbgPrintToFile1(port485,"清理485 %d消息队列中任务index = %d",port485,taskIndex);
 	}while(taskIndex > -1);
 	para_change485[port485-1] = 0;
 	return ret;
