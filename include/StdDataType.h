@@ -331,7 +331,7 @@ typedef struct
 typedef struct
 {
 	Region_Type type;			////type = interface 无效
-	INT8U  begin[REGION_NUM];
+	INT8U  begin[REGION_NUM];	//[1]:数据类型  [2-n]：实际数据
 	INT8U  end[REGION_NUM];
 }Region;
 
