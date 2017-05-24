@@ -1856,7 +1856,7 @@ INT8S OADMap07DI(OI_698 roadOI,OAD sourceOAD, C601F_645* flag645) {
 				memcpy(&flag645->DI._07, &map07DI_698OAD[index].flag07, sizeof(C601F_07Flag));
 				if(sourceOAD.attrindex != 0x00)
 				{
-					flag645->DI._07.DI_1[0][1] = sourceOAD.attrindex;
+					flag645->DI._07.DI_1[0][1] = sourceOAD.attrindex-1;
 				}
 			}
 			return 1;
