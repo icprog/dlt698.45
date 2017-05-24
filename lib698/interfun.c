@@ -70,22 +70,22 @@ void printMS(MY_MS ms)
 		seqOfLen = 0;
 		for(i=0;i<COLLCLASS_MAXNUM;i++) {
 			if(ms.ms.type[i].type!=interface) {
-				seqOfLen++;
 				dtlen = getDataTypeLen(ms.ms.type[i].begin[0]);
-//				if(dtlen>0) {
+				if(dtlen>0) {
+					seqOfLen++;
 					fprintf(stderr,"Region:单位[%d](前闭后开:0,前开后闭:1,前闭后闭:2,前闭后闭:3)\n",ms.ms.type[i].type);
 					fprintf(stderr,"Region:[类型：%02x]起始值 ",ms.ms.type[i].begin[0]);
 					for(j=0;j<(dtlen+1);j++) {
 						fprintf(stderr,"%02x ",ms.ms.type[i].begin[j]);
 					}
 					fprintf(stderr,"\nRegion:[类型：%02x]结束值  ",ms.ms.type[i].end[0]);
-//				}
+				}
 				dtlen = getDataTypeLen(ms.ms.type[i].end[0]);
-//				if(dtlen>0) {
+				if(dtlen>0) {
 					for(j=0;j<(dtlen+1);j++) {
 						fprintf(stderr,"%02x ",ms.ms.type[i].end[j]);
 					}
-//				}
+				}
 			}
 		}
 		fprintf(stderr,"\n     一组用户类型区间：个数=%d\n ",seqOfLen);
@@ -409,6 +409,8 @@ int fill_MS(INT8U type,INT8U *data,MY_MS myms)		//0x5C
 		data[index++] = dtms;
 	choicetype = myms.mstype;
 	data[index++] = choicetype;
+	fprintf(stderr,"fill_MS type = %d \n",choicetype);
+
 	switch (choicetype)
 	{
 		case 0://0表示 没有电表  1表示 全部电表   //测试过
@@ -442,16 +444,19 @@ int fill_MS(INT8U type,INT8U *data,MY_MS myms)		//0x5C
 		case 6:	//一组用户地址区间
 		case 7:	//一组配置序号区间
 			seqof_len = 0;
-			seqof_index = index;
+			seqof_index = index;	//记录seqof位置
 			index++;
 			for(i=0;i<COLLCLASS_MAXNUM;i++) {
 				if(myms.ms.type[i].type!=interface) {
-					seqof_len++;
-					data[index++] = myms.ms.type[i].type;
-					index += fill_Data(myms.ms.type[i].begin[0],&data[index],&myms.ms.type[i].begin[1]);
-					index += fill_Data(myms.ms.type[i].end[0],&data[index],&myms.ms.type[i].end[1]);
+					if(myms.ms.type[i].begin[0]!=0 && myms.ms.type[i].end[0]!=0) {
+						seqof_len++;
+						data[index++] = myms.ms.type[i].type;
+						index += fill_Data(myms.ms.type[i].begin[0],&data[index],&myms.ms.type[i].begin[1]);
+						index += fill_Data(myms.ms.type[i].end[0],&data[index],&myms.ms.type[i].end[1]);
+					}
 				}else break;
 			}
+//			fprintf(stderr,"seqof_len=%d\n",seqof_len);
 			data[seqof_index] = seqof_len;
 			break;
 	}
@@ -933,6 +938,10 @@ int getMS(INT8U type,INT8U *source,MY_MS *ms)		//0x5C
 		ms->ms.userType[msindex++] = seqlen & 0xff;
 		for(i=0;i<seqlen;i++) {
 			ms->ms.userType[msindex++] = source[index++];
+			if(index>=(MAXSIZ_FAM-48)) {
+				syslog(LOG_ERR,"MS 数据类型填充数据[%d]超限[%d],不予处理",index,MAXSIZ_FAM);
+				break;
+			}
 		}
 		break;
 	case 3://一组用户地址
@@ -942,7 +951,12 @@ int getMS(INT8U type,INT8U *source,MY_MS *ms)		//0x5C
 		msindex++;
 		for(i=0;i<seqlen;i++) {
 			index += getOctetstring(0,&source[index],(INT8U *)&ms->ms.userAddr[msindex++].addr);
+			if(index>=(MAXSIZ_FAM-48)) {
+				syslog(LOG_ERR,"MS 数据类型填充数据[%d]超限[%d],不予处理",index,MAXSIZ_FAM);
+				break;
+			}
 		}
+
 		fprintf(stderr,"seqlen = %d TSA len=%d\n",seqlen,ms->ms.userAddr[1].addr[0]);
 		for(i=0;i<(ms->ms.userAddr[1].addr[0]+1);i++) {
 			fprintf(stderr,"%02x ",ms->ms.userAddr[1].addr[i]);
@@ -954,6 +968,10 @@ int getMS(INT8U type,INT8U *source,MY_MS *ms)		//0x5C
 		for(i=0;i<seqlen;i++) {
 			ms->ms.configSerial[msindex++] = (source[index]<<8)|source[index+1];
 			index = index+2;
+			if(index>=(MAXSIZ_FAM-48)) {
+				syslog(LOG_ERR,"MS 数据类型填充数据[%d]超限[%d],不予处理",index,MAXSIZ_FAM);
+				break;
+			}
 		}
 		break;
 	case 5:	//一组用户类型区间 [5] SEQUENCE OF Region //类型5:6015设置及读取湖南测试通过
@@ -968,6 +986,10 @@ int getMS(INT8U type,INT8U *source,MY_MS *ms)		//0x5C
 			index += get_Data(&source[index],ms->ms.type[msindex].begin);
 			index += get_Data(&source[index],ms->ms.type[msindex].end);
 			msindex++;
+			if(index>=(MAXSIZ_FAM-48)) {
+				syslog(LOG_ERR,"MS 数据类型填充数据[%d]超限[%d],不予处理",index,MAXSIZ_FAM);
+				break;
+			}
 		}
 		break;
 	}

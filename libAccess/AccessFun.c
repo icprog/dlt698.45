@@ -2552,6 +2552,10 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds,INT16U fr
 	indexn = 2;
 	indexn += initFrameHead(&onefrmbuf[indexn],oad,select,selectype,csds,&seqnumindex);
 
+	if(tsa_num == 0) {
+		asyslog(LOG_INFO,"未找到符合条件的TSA数据\n");
+		return 0;
+	}
 	//3\定位TSA , 返回offset
 	for(i =0; i< tsa_num; i++)
 	{
@@ -2678,7 +2682,8 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds,INT16U fr
 int getSelector(OAD oad_h,RSD select, INT8U selectype, CSD_ARRAYTYPE csds, INT8U *data, int *datalen,INT16U frmmaxsize)
 {
 	int  framesum=0;		//分帧
-	asyslog(LOG_INFO,"getSelector: selectype=%d\n",selectype);
+//	asyslog(LOG_INFO,"getSelector: selectype=%d\n",selectype);
+	fprintf(stderr,"getSelector: selectype=%d\n",selectype);
 //	switch(selectype)
 //	{
 //	case 0:
@@ -2951,3 +2956,50 @@ INT8U write_3761_rc_local()
 	}
 	return ret;
 }
+//void deloutofdatafile()//删除过期任务数据文件
+//{
+//	int i=0,taskday,fileday;
+//	char dirname[60];
+//	TASKSET_INFO tasknor_info;
+//	DIR *dir;
+//	struct dirent *ptr;
+//	struct tm tm_p,tm_f;
+//	time_t time_s,time_p,time_f;
+//
+//	time(&time_s);
+//	tm_p = localtime(&time_s);
+//	tm_p->tm_min = 0;
+//	tm_p->tm_sec = 0;
+//	tm_f = tm_p;
+//	time_p = mktime(&tm_p);
+//	for(i=0;i<256;i++)
+//	{
+//		memset(dirname,0x00,60);
+//		sprintf(dirname,"/nand/task/%03d/",i);
+//		if(access(dirname,F_OK)!=0)//文件不存在
+//			continue;
+//		if(ReadTaskInfo(i,&tasknor_info)==0)//得到任务信息
+//		{
+//			asyslog(LOG_INFO,"得到任务信息失败\n");
+//			fprintf(stderr,"\n得到任务信息失败\n");
+//			continue;
+//		}
+//		taskday = (tasknor_info.memdep * tasknor_info.freq)/86400;
+//		if((tasknor_info.memdep * tasknor_info.freq)%86400 != 0)
+//			taskday++;
+//
+//		dir = opendir(dirname);
+//		while((ptr = readdir(dir)) != NULL)
+//		{
+//			sscanf(ptr->d_name,"%04d%02d%02d.dat",tm_f.tm_year,tm_f.tm_mon,tm_f.tm_yday);
+//			time_f = mktime(&tm_f);
+//			if(time_f>=time_p)
+//				continue;
+//			fileday = (time_p-time_f)/86400;
+//			if((time_p-time_f)%86400 != 1)
+//				fileday++;
+//			if(fileday >taskday)
+//				unlink(ptr->d_name);
+//		}
+//	}
+//}

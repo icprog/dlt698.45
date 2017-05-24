@@ -27,7 +27,7 @@ extern ProgramInfo* JProgramInfo;
 extern int SaveOADData(INT8U taskid,OAD oad_m,OAD oad_r,INT8U *databuf,int datalen,TS ts_res);
 extern INT16U data07Tobuff698(FORMAT07 Data07,INT8U* dataContent);
 extern INT8S analyzeProtocol07(FORMAT07* format07, INT8U* recvBuf, const INT16U recvLen, BOOLEAN *nextFlag);
-extern INT8S OADMap07DI(OI_698 roadOI,OAD sourceOAD, C601F_07Flag* obj601F_07Flag);
+extern INT8S OADMap07DI(OI_698 roadOI,OAD sourceOAD, C601F_645* flag645);
 extern void DbgPrintToFile1(INT8U comport,const char *format,...);
 extern void DbPrt1(INT8U comport,char *prefix, char *buf, int len, char *suffix);
 extern  INT16U data07Tobuff698(FORMAT07 Data07,INT8U* dataContent);
@@ -299,6 +299,7 @@ int task_leve(INT8U leve,TASK_UNIT *taskunit)
 			taskunit[t].fangan.type = type;
 			taskunit[t].fangan.No = serNo;
 			taskunit[t].fangan.item_n = Array_OAD_Items(&taskunit[t].fangan);
+			DbgPrintToFile1(31,"leve %d  fangan.No = %d  itemn=%d",leve,serNo,taskunit[t].fangan.item_n);
 			t++;
 		}
 	}
@@ -310,13 +311,18 @@ int initTaskData(TASK_INFO *task)
 	int num =0;
 	if (task==NULL)
 		return 0;
-
+	DbgPrintToFile1(31,"initTaskData");
 	memset(task,0,sizeof(TASK_INFO));
+	DbgPrintToFile1(31,"leve 1");
 	num += task_leve(1,&task->task_list[num]);
+	DbgPrintToFile1(31,"leve 2");
 	num += task_leve(2,&task->task_list[num]);
+	DbgPrintToFile1(31,"leve 3");
 	num += task_leve(3,&task->task_list[num]);
+	DbgPrintToFile1(31,"leve 4");
 	num += task_leve(4,&task->task_list[num]);
 	task->task_n = num;
+	DbgPrintToFile1(31,"任务总数 %d",num);
 	return 1;
 }
 int initTsaList(struct Tsa_Node **head)
@@ -813,21 +819,25 @@ int findFirstZeroFlg(struct Tsa_Node *desnode,int itemnum)
 	}while(index!=itemnum-1);
 	return -1;
 }
+
 int Format07(FORMAT07 *Data07,OAD oad1,OAD oad2,TSA tsa)
 {
 	INT8U startIndex =0;
 	int find_07item = 0;
-	C601F_07Flag obj601F_07Flag;
+	C601F_645 obj601F_07Flag;
 
 	memset(Data07, 0, sizeof(FORMAT07));
+	obj601F_07Flag.protocol = 2;
 	find_07item = OADMap07DI(oad1.OI,oad2,&obj601F_07Flag) ;
-	DbgPrintToFile1(31,"find_07item=%d   %04x %04x",find_07item,oad1.OI,oad2.OI);
+	DbgPrintToFile1(31,"find_07item=%d   %04x %04x    ",find_07item,oad1.OI,oad2.OI);
 	if (find_07item == 1)
 	{
 		Data07->Ctrl = 0x11;
 		startIndex = 5 - tsa.addr[1];
 		memcpy(&Data07->Addr[startIndex], &tsa.addr[2], (tsa.addr[1]+1));
-		memcpy(Data07->DI, &obj601F_07Flag.DI_1[0], 4);
+//		memcpy(Data07->DI, &obj601F_07Flag.DI_1[0], 4);
+		memcpy(Data07->DI, &obj601F_07Flag.DI._07.DI_1[0], 4);
+
 		return 1;
 	}
 	return 0;

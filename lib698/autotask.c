@@ -22,7 +22,20 @@ extern void FrameTail(INT8U *buf,int index,int hcsi);
 extern int FrameHead(CSINFO *csinfo,INT8U *buf);
 extern INT16S composeSecurityResponse(INT8U* SendApdu,INT16U Length);
 //-------
-
+//DateTimeBCD timet_bcd(time_t t)
+//{
+//	DateTimeBCD ts;
+//    struct tm set;
+//
+//    localtime_r(&t, &set);
+//    ts.year.data  = set.tm_year + 1900;
+//    ts.month.data = set.tm_mon + 1;
+//    ts.day.data   = set.tm_mday;
+//    ts.hour.data  = set.tm_hour;
+//    ts.min.data   = set.tm_min;
+//    ts.sec.data   = set.tm_sec;
+//    return ts;
+//}
 /*
  * datetime 开始时间
  * ti 间隔
@@ -66,6 +79,12 @@ time_t calcnexttime(TI ti,DateTimeBCD datetime,TI ti_delay)
 			{
 				timeret = (intpart + 1) * jiange  + timestart ;
 				fprintf(stderr,"\n计算下次开始时间 %ld ",timeret);
+
+//				DateTimeBCD  mybcd;
+//				mybcd = timet_bcd(timeret);
+//				fprintf(stderr,"\n\n*******my 下次开始时间--------1 %d-%d-%d %d:%d:%d",
+//						mybcd.year.data,mybcd.month.data,mybcd.day.data,mybcd.hour.data,mybcd.min.data,mybcd.sec.data);
+
 				return timeret ;
 			}
 			else
@@ -220,11 +239,7 @@ int getTsas(MY_MS ms,INT8U **tsas)
 					}
 					break;
 				case 5://一组用户类型区间
-
-					break;
 				case 6://一组用户地址区间
-
-					break;
 				case 7://一组配置序号区间
 
 					break;
@@ -292,16 +307,22 @@ int getTaskOadData(OAD taskoad)
 int GetReportData(CLASS_601D report)
 {
 	int  ret = 0;
-//	fprintf(stderr,"report.reportdata.type=%d\n",report.reportdata.type);
+	INT16U server_send_size=0;			//服务器发送帧最大尺寸
+
+	fprintf(stderr,"report.reportdata.type=%d  report.reportdata.data.recorddata.selectType=%d\n",report.reportdata.type,report.reportdata.data.recorddata.selectType);
 	if (report.reportdata.type==0)//OAD
 	{
 		ret = getTaskOadData(report.reportdata.data.oad);
 	}else if(report.reportdata.type==1)//RecordData
 	{
+		if(AppVar_p==NULL) {
+			server_send_size = FRAMELEN;
+		}else server_send_size = AppVar_p->server_send_size;
+		fprintf(stderr,"server_send_size = %d\n",server_send_size);
 		ret = getSelector(report.reportdata.data.oad,
 							report.reportdata.data.recorddata.rsd,
 							report.reportdata.data.recorddata.selectType,
-							report.reportdata.data.recorddata.csds,NULL, NULL,AppVar_p->server_send_size);
+							report.reportdata.data.recorddata.csds,NULL, NULL,server_send_size);
 		fprintf(stderr,"GetReportData   ret=%d\n",ret);
 		ret = REPROTNOTIFICATIONRECORDLIST;	//
 	}

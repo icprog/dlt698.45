@@ -636,7 +636,8 @@ void setACS(FORMAT07 format07) {
                             fprintf(stderr, "校表结束!!!\n");
                             sleep(2);
                             acs_check_end = 1;
-                            InitACSCoef();			//重新读取参数，并不重新启动，控制闪灯来判断
+                            InitACSPara();
+  //                          InitACSCoef();			//重新读取参数，并不重新启动，控制闪灯来判断
                             sleep(3);
 //                            system("reboot");
                             break;
@@ -698,6 +699,7 @@ void dealProcess() {
         }
         fprintf(stderr,"acs_check_end=%d\n",acs_check_end);
         if(acs_check_end==1) {	//校表结束，进行闪灯
+
     		gpio_writebyte("/dev/gpoREMOTE_GREEN", 1);
     		usleep(250 * 1000);
     		gpio_writebyte("/dev/gpoREMOTE_GREEN", 0);
