@@ -479,15 +479,17 @@ INT8U init6013ListFrom6012File() {
 						taskStartTime.Year,taskStartTime.Month,taskStartTime.Day,taskStartTime.Hour,
 						taskStartTime.Minute,taskStartTime.Sec);
 #endif
-//				if(timeCmp < 2)
-//				{
-//					list6013[total_tasknum].ts_next  = tmtotime_t(ts_now);
-//				}
-//				else
-//				{
+#if 0
+				if(timeCmp < 2)
+				{
+					list6013[total_tasknum].ts_next  = tmtotime_t(ts_now);
+				}
+				else
+#endif
+				{
 					list6013[total_tasknum].ts_next  =
 									calcnexttime(list6013[total_tasknum].basicInfo.interval,list6013[total_tasknum].basicInfo.startime,list6013[total_tasknum].basicInfo.delay);
-//				}
+				}
 
 				//TODO
 				total_tasknum++;
@@ -590,7 +592,7 @@ void timeProcess()
 {
 	static TS lastTime;
 	static INT8U firstFlag = 1;
-
+	static INT8U resetFlag = 0;//00:01清理队列中还没完成的任务
 	TS nowTime;
 	TSGet(&nowTime);
 
@@ -606,6 +608,13 @@ void timeProcess()
 	}
 	else
 	{
+		if((nowTime.Hour == 23)&&(nowTime.Minute > 55)&&(resetFlag == 1))
+		{
+			para_change485[0] = 1;
+			para_change485[1] = 1;
+
+			resetFlag = 0;
+		}
 		//跨天处理
 		if(lastTime.Day != nowTime.Day)
 		{
@@ -619,6 +628,9 @@ void timeProcess()
 			isReplenishOver[1] = 1;
 			isReplenishOver[2] = 1;
 			isReplenishOver[3] = 1;
+
+			resetFlag = 1;
+
 		}
 	}
 }
