@@ -2420,7 +2420,7 @@ INT16U GetOADData(OAD oad_m,OAD oad_r,TS ts_zc,TSA tsa,INT8U *databuf)
 int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds,INT16U frmmaxsize)
 {
 	FILE *fp = NULL,*myfp = NULL;
-	INT8U 	taskid=0,recordbuf[1000],onefrmbuf[2000],tmpnull[8];
+	INT8U 	taskid=0,autoflg=0,recordbuf[1000],onefrmbuf[2000],tmpnull[8];
 	ROAD_ITEM item_road;
 	CURR_RECINFO recinfo;
 	HEAD_UNIT *headunit = NULL;//文件头
@@ -2433,6 +2433,15 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds,INT16U fr
 	ROAD road_eve;
 	INT8U eveflg=0;
 	MY_MS meters_null;
+
+	asyslog(LOG_INFO,"－1－selectype = %d\n",selectype);
+	if((selectype & 0x80) != 0)//主动上报
+	{
+		autoflg = 1;
+		selectype &= ~0x80;
+	}
+	asyslog(LOG_INFO,"－2－selectype = %d\n",selectype);
+
 	asyslog(LOG_INFO,"帧最大长度　－－frmmaxsize = %d\n",frmmaxsize);
 	memset(&item_road,0x00,sizeof(ROAD_ITEM));
 	if(selectype == 8 || selectype == 6)//将selector8和6写成selector7的处理办法
@@ -2565,7 +2574,7 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds,INT16U fr
 		//4\计算当前点
 //		currecord = getrecordno(tasknor_info.starthour,tasknor_info.startmin,tasknor_info.freq,recinfo);//freq为执行间隔,单位分钟
 //		for(j=0; j<recordn ; j++)
-		asyslog(LOG_INFO,"招测的序列总数%d\n",recinfo.recordno_num);
+		asyslog(LOG_INFO,"招测的序列总数%d---firecord=%d\n",recinfo.recordno_num,firecord);
 		for(j=1; j<=recinfo.recordno_num;j++)		//test
 		{
 			if(eveflg != 1 && taskinfoflg == 0)//事件和日月冻结不更新数据流
@@ -2587,6 +2596,15 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds,INT16U fr
 				{
 					asyslog(LOG_INFO,"\n招测天数跨度超出10天\n",currecord);
 					break;
+				}else
+				{
+					if(autoflg == 1 && tasknor_info.runtime > 1 && recinfo.recordno_num == 1)//主动上报曲线并且只上报一个点
+					{
+						fprintf(stderr,"\n---曲线主动上报\n");
+						currecord = firecord;
+					}
+					else
+						fprintf(stderr,"\n---非曲线主动上报\n");
 				}
 			asyslog(LOG_INFO,"\n计算出来的currecord=%d\n",currecord+rec_tmp);
 			recordoffset = findrecord(offsetTsa,recordlen,currecord+rec_tmp);
@@ -2596,8 +2614,47 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds,INT16U fr
 			fread(recordbuf,recordlen,1,fp);
 
 			memset(tmpnull,0x00,8);
-			if(memcmp(&recordbuf[18],tmpnull,8)==0)
-				continue;
+			if(memcmp(&recordbuf[18],tmpnull,8)==0)//本条记录为空
+			{
+				if(autoflg == 1 && tasknor_info.runtime > 1 && recinfo.recordno_num == 1)//主动上报曲线并且只上报一个点
+				{
+					fprintf(stderr,"\n---曲线主动上报\n");
+					fprintf(stderr,"当前   currecord=%d\n",currecord);
+					if(currecord == 0)//往前跨一天
+					{
+						TS ts_tmp;
+						char fname[FILENAMELEN]={};
+						TSGet(&ts_tmp);
+						tminc(&ts_tmp,day_units,-1);
+						getTaskFileName(taskid,ts_tmp,fname);//得到要抄读的文件名称
+						fprintf(stderr," 往前跨一天 fname=%s\n",fname);
+						if(fp != NULL)
+							fclose(fp);
+						fp =fopen(fname,"r");
+						currecord = tasknor_info.runtime-1;
+					}
+					else
+						currecord--;
+					fprintf(stderr,"查找上一个  currecord=%d\n",currecord);
+					recordoffset = findrecord(offsetTsa,recordlen,currecord);
+					memset(recordbuf,0x00,sizeof(recordbuf));
+					//6\读出一行数据到临时缓存
+					fseek(fp,recordoffset,SEEK_SET);//再读一次上一条记录上报
+					fread(recordbuf,recordlen,1,fp);
+					memset(tmpnull,0x00,8);
+					if(memcmp(&recordbuf[18],tmpnull,8)==0)//本条记录为空
+					{
+						fprintf(stderr,"\n本条记录号%d为空\n",currecord);
+						continue;
+					}
+				}
+				else
+				{
+					if(autoflg == 1)
+						fprintf(stderr,"\n---非曲线主动上报\n");
+					continue;
+				}
+			}
 
 			printRecordBytes(recordbuf,recordlen);
 			//7\根据csds挑选数据，组织存储缓存
