@@ -479,7 +479,7 @@ INT8U init6013ListFrom6012File() {
 						taskStartTime.Year,taskStartTime.Month,taskStartTime.Day,taskStartTime.Hour,
 						taskStartTime.Minute,taskStartTime.Sec);
 #endif
-#if 0
+#if 1
 				if(timeCmp < 2)
 				{
 					list6013[total_tasknum].ts_next  = tmtotime_t(ts_now);
