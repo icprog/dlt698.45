@@ -669,6 +669,12 @@ void setACS(FORMAT07 format07) {
     }
 }
 
+/*
+ * 1.遥信变位时:控制远程灯红绿闪烁
+ * 2.校表结束后:控制远程灯绿地闪烁
+ * 3.程序运行正常后:本地与告警灯同时闪烁
+ * 4.本地灯指示:通过运行cjcomm,检测脚本调用cj checkled来控制灯闪烁
+ * */
 void checkProcess()
 {
     int readstate = 1;
