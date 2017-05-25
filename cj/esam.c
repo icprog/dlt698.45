@@ -20,7 +20,6 @@
 #include "AccessFun.h"
 #include "Objectdef.h"
 #include "ParaDef.h"
-#include "Shmem.h"
 #include "main.h"
 #include "Esam.h"
 #include "SPI.h"
