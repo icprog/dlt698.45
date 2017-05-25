@@ -94,17 +94,17 @@ void Test(int argc, char *argv[])
     		break;
     	}
     	tsa_num = getTsas(ms,(INT8U **)&tsa_group);
-    	fprintf(stderr,"get 需要上报的：tsa_num=%d,tsa_group=%p\n",tsa_num,tsa_group);
-    	for(i=0;i<tsa_num;i++) {
-    		fprintf(stderr,"\nTSA%d: %d-",i,tsa_group[i].addr[0]);
-    		for(j=0;j<tsa_group[i].addr[0];j++) {
-    			fprintf(stderr,"-%02x",tsa_group[i].addr[j+1]);
-    		}
-    	}
-//    	fprintf(stderr,"tsa_num = %d\n",tsa_num);
+//    	fprintf(stderr,"get 需要上报的：tsa_num=%d,tsa_group=%p\n",tsa_num,tsa_group);
 //    	for(i=0;i<tsa_num;i++) {
-//    		printTSA(tsa_group);
+//    		fprintf(stderr,"\nTSA%d: %d-",i,tsa_group[i].addr[0]);
+//    		for(j=0;j<tsa_group[i].addr[0];j++) {
+//    			fprintf(stderr,"-%02x",tsa_group[i].addr[j+1]);
+//    		}
 //    	}
+    	fprintf(stderr,"tsa_num = %d\n",tsa_num);
+    	for(i=0;i<tsa_num;i++) {
+    		printTSA(tsa_group[i]);
+    	}
     	if(tsa_group != NULL)
     		free(tsa_group);
 

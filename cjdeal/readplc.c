@@ -176,7 +176,7 @@ void PrintTaskInfo2(TASK_INFO *task)
 		for(j=0;j<task->task_list[i].fangan.item_n;j++)
 		{
 			numindex++;
-			DbgPrintToFile1(31," %02d | %04x-%02x%02x - %04x-%02x%02x .%02d任务 %d级 方案%d ，类型%d | 开始 %d-%d-%d %d:%d:%d  OK=%d  cov %02x%02x%02x%02x",
+			DbgPrintToFile1(31," %02d | %04x-%02x%02x - %04x-%02x%02x .%02d任务 %d级 方案%d ，类型%d | 开 %d-%d-%d %d:%d:%d  OK=%d  cov %02x%02x%02x%02x",
 					numindex,
 					task->task_list[i].fangan.items[j].oad1.OI,task->task_list[i].fangan.items[j].oad1.attflg,task->task_list[i].fangan.items[j].oad1.attrindex,
 					task->task_list[i].fangan.items[j].oad2.OI,task->task_list[i].fangan.items[j].oad2.attflg,task->task_list[i].fangan.items[j].oad2.attrindex,
@@ -981,6 +981,38 @@ int createMeterFrame(struct Tsa_Node *desnode,DATA_ITEM item,INT8U *buf,INT8U *i
 	}
 	return 0;
 }
+int createMeterFrame_Curve(struct Tsa_Node *desnode,DATA_ITEM item,INT8U *buf,INT8U *item07)
+{
+	INT8U type = 0;
+	FORMAT07 Data07;
+	int sendlen = 0 ;
+
+	if (desnode == NULL)
+		return 0;
+	type = desnode->protocol;
+	memset(buf,0,BUFSIZE645);
+	switch (type)
+	{
+		case DLT645_07:
+			Format07(&Data07,item.oad1,item.oad2,desnode->tsa);
+			DbgPrintToFile1(31,"当前抄读 【OAD1 %04x-%02x %02x    OAD2 %04x-%02x %02x】%02x%02x%02x%02x ",
+						item.oad1.OI,item.oad1.attflg,item.oad1.attrindex,item.oad2.OI,item.oad2.attflg,item.oad2.attrindex,
+						Data07.DI[3],Data07.DI[2],Data07.DI[1],Data07.DI[0]);
+
+			sendlen = composeProtocol07(&Data07, buf);
+			if (sendlen>0)
+			{
+				memcpy(item07,Data07.DI,4);// 保存07规约数据项
+//					DbPrt1(31,"645:", (char *) buf, sendlen, NULL);
+				return sendlen;
+			}
+			break;
+		case DLT698:
+			return 20;
+	}
+	return 0;
+}
+
 int ifTsaValid(TSA tsa)
 {
 	if(tsa.addr[0]!=0 || tsa.addr[1]!=0 || tsa.addr[2]!=0|| tsa.addr[3]!=0|| tsa.addr[4]!=0|| tsa.addr[5]!=0
@@ -1042,15 +1074,22 @@ int processMeter(INT8U *buf,struct Tsa_Node *desnode)
 
 	if (tmpitem.oad1.OI !=0 || tmpitem.oad2.OI !=0 )
 	{	//组织抄读报文
-		sendlen = createMeterFrame(desnode, tmpitem, buf, item07);
-		taskinfo.task_list[taski].fangan.items[itemi].item07[0] = item07[0];
-		taskinfo.task_list[taski].fangan.items[itemi].item07[1] = item07[1];
-		taskinfo.task_list[taski].fangan.items[itemi].item07[2] = item07[2];
-		taskinfo.task_list[taski].fangan.items[itemi].item07[3] = item07[3];
-		taskinfo.now_taski = taski;
-		taskinfo.now_itemi = itemi;
-		taskinfo.task_list[taski].fangan.items[itemi].sucessflg = 1;
-		taskinfo.task_list[taski].fangan.item_i = itemi;
+		if (tmpitem.oad1.OI == 0x5002)
+		{//负荷记录
+			sendlen = createMeterFrame_Curve(desnode, tmpitem, buf, item07);
+
+		}else
+		{
+			sendlen = createMeterFrame(desnode, tmpitem, buf, item07);
+			taskinfo.task_list[taski].fangan.items[itemi].item07[0] = item07[0];
+			taskinfo.task_list[taski].fangan.items[itemi].item07[1] = item07[1];
+			taskinfo.task_list[taski].fangan.items[itemi].item07[2] = item07[2];
+			taskinfo.task_list[taski].fangan.items[itemi].item07[3] = item07[3];
+			taskinfo.now_taski = taski;
+			taskinfo.now_itemi = itemi;
+			taskinfo.task_list[taski].fangan.items[itemi].sucessflg = 1;
+			taskinfo.task_list[taski].fangan.item_i = itemi;
+		}
 		PrintTaskInfo2(&taskinfo);
 		if (itemi == taskinfo.task_list[taski].fangan.item_n-1)//最后一个
 		{
