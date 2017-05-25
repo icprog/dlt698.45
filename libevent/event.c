@@ -1204,6 +1204,7 @@ INT8U Get_meter_powoffon(ProgramInfo* prginfo_event,MeterPower *MeterPowerInfo,
  * 终端停/上电事件5-停电事件-放在交采模块
  */
 INT8U Event_3106(ProgramInfo* prginfo_event,MeterPower *MeterPowerInfo,INT8U *state) {
+	BOOLEAN gpio_5V = 0;
 	if(oi_chg.oi3106 != prginfo_event->oi_changed.oi3106){
 	    readCoverClass(0x3106,0,&prginfo_event->event_obj.Event3106_obj,sizeof(prginfo_event->event_obj.Event3106_obj),event_para_save);
 		oi_chg.oi3106 = prginfo_event->oi_changed.oi3106;
@@ -1211,7 +1212,9 @@ INT8U Event_3106(ProgramInfo* prginfo_event,MeterPower *MeterPowerInfo,INT8U *st
 	if (prginfo_event->event_obj.Event3106_obj.event_obj.enableflag == 0) {
 		return 0;
 	}
-	BOOLEAN gpio_5V=pwr_has();
+	if((prginfo_event->cfg_para.device == CCTT1)||(prginfo_event->cfg_para.device == SPTF3)){
+		gpio_5V=pwr_has();
+	}
 	time_t time_of_now;
 	time_of_now = time(NULL);
 	INT8U flag = 0;
