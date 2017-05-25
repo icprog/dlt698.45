@@ -2157,7 +2157,7 @@ INT16U parseSingleROADData(ROAD road,INT8U* oadData,INT8U* dataContent,INT16U* d
 
 INT8U checkTimeStamp698(OAD_DATA oadListContent[ROAD_OADS_NUM])
 {
-	INT8U ret = 0;
+	INT8U ret = 1;
 	INT8U oadIndex = 0;
 	INT8U oadTimeStamp[4] = {0x20,0x21,0x02,0x00};
 	for(oadIndex = 0;oadIndex < ROAD_OADS_NUM;oadIndex++)
@@ -3899,9 +3899,18 @@ INT16S deal6015or6017_singlemeter(CLASS_6013 st6013,CLASS_6015 st6015,CLASS_6001
 						ts_start.Hour = st6015.data.data[CURVE_INFO_STARTINDEX+20];
 						ts_start.Minute = st6015.data.data[CURVE_INFO_STARTINDEX+21];
 						INT16U dataNum = (st6015.data.data[CURVE_INFO_STARTINDEX+22]<<8) + st6015.data.data[CURVE_INFO_STARTINDEX+23];
-
+						INT16U readTimes = 0;
 						INT8U dataNumOneGroup = 4;//一次抄4个数据点
-						INT16U readTimes = dataNum/dataNumOneGroup;
+						if(dataNum >= dataNumOneGroup)
+						{
+							readTimes = dataNum/dataNumOneGroup;
+						}
+						else
+						{
+							readTimes = dataNum;
+							dataNumOneGroup = 1;
+						}
+
 						INT8U readTimeIndex = 0;
 						INT8U tsIndex = 0;
 						//一次抄读四个数据点
