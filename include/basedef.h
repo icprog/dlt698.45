@@ -18,7 +18,5 @@
 #define CCTT2	2//与配置文件约定的II型集中器编号
 #define SPTF3	3//与配置文件约定的III型专变编号
 
-//国网台体测试
-#define GW_TAI_TI
 
 #endif//BASEDEF_H_

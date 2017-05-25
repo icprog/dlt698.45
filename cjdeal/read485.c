@@ -604,7 +604,7 @@ INT8S use6013find6015or6017(INT8U cjType,INT16U fanganID,TI interval6013,CLASS_6
 						INT8U ishas2021 = 0;
 						ROAD sourceRoad;
 						memcpy(&sourceRoad,&st6015->csds.csd[csdIndex].csd.road,sizeof(ROAD));
-						//事件序号
+
 						st6015->csds.csd[csdIndex].csd.road.oads[0].OI = DATA_TIMESTAMP_OI;
 						st6015->csds.csd[csdIndex].csd.road.oads[0].attflg = 0x02;
 						st6015->csds.csd[csdIndex].csd.road.oads[0].attrindex = 0x00;
@@ -3375,15 +3375,23 @@ INT16S request9707_singleOAD(INT8U protocol,OI_698 roadOI,OAD soureOAD,CLASS_600
 //index=1，上一次
 INT8S checkTimeStamp07(CLASS_6001 obj6001,INT8U port485)
 {
-	INT8S ret = 0;
+	INT8S result = 0;
+	INT16S retlen = 0;
 	CLASS_6035 invalidst6035;
 	INT8U dataContent[BUFFSIZE128];
 	memset(dataContent,0,BUFFSIZE128);
 
-	request698_07Data(freezeflag07_1,dataContent,obj6001,&invalidst6035,port485);
+	retlen = request698_07Data(freezeflag07_1,dataContent,obj6001,&invalidst6035,port485);
+	result = isTimerSame(0,dataContent);
+	if(retlen <= 0)
+	{
+		memset(dataContent,0,BUFFSIZE128);
+		request698_07Data(freezeflag07_1,dataContent,obj6001,&invalidst6035,port485);
+		result = isTimerSame(0,dataContent);
+	}
+
 	DbPrt1(port485,"checkTimeStamp07 buff:", (char *) dataContent, 10, NULL);
-	ret = isTimerSame(0,dataContent);
-	return ret;
+	return result;
 }
 
 INT16S deal6015_9707(INT8U protocol,CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8U* dataContent,INT8U port485) {
@@ -3446,7 +3454,6 @@ INT16S deal6015_9707(INT8U protocol,CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6
 				{
 					return 0;
 				}
-
 
 				datalen = request9707_singleOAD(protocol,st6015.csds.csd[dataIndex].csd.road.oad.OI,
 						st6015.csds.csd[dataIndex].csd.road.oads[csdIndex],to6001,st6035,&dataContent[totaldataLen],port485);
@@ -4223,6 +4230,36 @@ INT16U compose6012Buff(DateTimeBCD startTime,DateTimeBCD saveTime,TSA meterAddr,
 	DbPrt1(port485,"存储数据  compose6012Buff:", (char *) dataContent, bufflen, NULL);
 	return bufflen;
 }
+//GetOrSet 0 -get 1-set
+INT8U GetOrSetFreezeDataSuccess(INT8U GetOrSet,INT8U taskID,INT8U port,INT16U mpSernum)
+{
+	INT8U ret = 0;
+	INT8U tIndex = 0;
+	for(tIndex = 0;tIndex < infoReplenish.tasknum;tIndex++)
+	{
+		if(taskID == infoReplenish.unitReplenish[tIndex].taskID)
+		{
+			INT16U mpIndex = 0;
+			for(mpIndex = 0;mpIndex < infoReplenish.unitReplenish[tIndex].list6001[port].meterSum;mpIndex++)
+			{
+				if(mpSernum == infoReplenish.unitReplenish[tIndex].list6001[port].list6001[mpIndex])
+				{
+					if(GetOrSet == 0)
+					{
+						return infoReplenish.unitReplenish[tIndex].isSuccess[port][mpIndex];
+					}
+					else
+					{
+						DbgPrintToFile1(port+1,"任务ID:%d deal6015 测量点 = %d　抄读成功",taskID,mpSernum);
+						infoReplenish.unitReplenish[tIndex].isSuccess[port][mpIndex] = 1;
+					}
+
+				}
+			}
+		}
+	}
+	return ret;
+}
 /*
  * 处理一个普通采集方案/事件采集方案
  * */
@@ -4243,6 +4280,12 @@ INT8S deal6015or6017(CLASS_6013 st6013,CLASS_6015 st6015, INT8U port485,CLASS_60
 			{
 				if (checkMeterType(st6015.mst, port485, meter))
 				{
+					//判断冻结数据是否已经抄读成功了
+					if(GetOrSetFreezeDataSuccess(0,st6013.taskID,port,info6000[port].list6001[meterIndex])==1)
+					{
+						DbgPrintToFile1(port485,"任务ID:%d deal6015 测量点 = %d　已经抄读成功,不用再抄了",st6013.taskID,info6000[port].list6001[meterIndex]);
+						continue;
+					}
 					st6035->totalMSNum++;
 					fprintf(stderr,"\n\n 任务号:%d  方案号:%d deal6015 测量点 = %d-----",st6035->taskID,st6015.sernum,meter.sernum);
 					DbgPrintToFile1(port485,"任务号:%d  方案号:%d deal6015 测量点 = %d-----",st6035->taskID,st6015.sernum,meter.sernum);
@@ -4277,6 +4320,15 @@ INT8S deal6015or6017(CLASS_6013 st6013,CLASS_6015 st6015, INT8U port485,CLASS_60
 								saveTime.min.data = 0;
 							}
 							saveTime.sec.data = 0;
+						}
+						if(st6013.interval.units == day_units)
+						{
+							INT8U zeroBuf[DATA_CONTENT_LEN];
+							memset(zeroBuf,0,DATA_CONTENT_LEN);
+							if(memcmp(dataContent,zeroBuf,dataLen)!=0)
+							{
+								GetOrSetFreezeDataSuccess(1,st6013.taskID,port,info6000[port].list6001[meterIndex]);
+							}
 						}
 						int bufflen = compose6012Buff(startTime,saveTime,meter.basicinfo.addr,dataLen,dataContent,port485);
 
