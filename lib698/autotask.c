@@ -36,6 +36,11 @@ extern INT16S composeSecurityResponse(INT8U* SendApdu,INT16U Length);
 //    ts.sec.data   = set.tm_sec;
 //    return ts;
 //}
+TS mylookback(time_t times,TI ti,INT8U n)//根据当前时间times 和间隔 ti，计算当前时间为基准的上 n 间隔值的时刻
+{
+	TS ts;
+	return ts;
+}
 /*
  * datetime 开始时间
  * ti 间隔
