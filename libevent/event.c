@@ -1204,6 +1204,7 @@ INT8U Get_meter_powoffon(ProgramInfo* prginfo_event,MeterPower *MeterPowerInfo,
  * 终端停/上电事件5-停电事件-放在交采模块
  */
 INT8U Event_3106(ProgramInfo* prginfo_event,MeterPower *MeterPowerInfo,INT8U *state) {
+	BOOLEAN gpio_5V = 0;
 	if(oi_chg.oi3106 != prginfo_event->oi_changed.oi3106){
 	    readCoverClass(0x3106,0,&prginfo_event->event_obj.Event3106_obj,sizeof(prginfo_event->event_obj.Event3106_obj),event_para_save);
 		oi_chg.oi3106 = prginfo_event->oi_changed.oi3106;
