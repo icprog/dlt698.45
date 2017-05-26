@@ -37,14 +37,77 @@ extern GUI_PROXY cjguiProxy;
 extern Proxy_Msg* p_Proxy_Msg_Data;//液晶给抄表发送代理处理结构体，指向由guictrl.c配置的全局变量
 extern TASK_CFG list6013[TASK6012_MAX];
 //-----------------------------------------------------------------------------------------------------------------------------------------------------
+typedef struct
+{
+	INT8U startIndex; 	//报文中的某数据的起始字节
+	INT8U dataLen;	 	//数据长度（字节数）
+	INT8U aunite;		//一个数据单元长度
+	INT8U intbits;		//整数部分长度
+	INT8U decbits;		//小数部分长度
+	char name[30];
+	INT8U Flg07[4];//对应07表实时数据标识
+	OAD oad1;
+	OAD oad2;
+}MeterCurveDataType;
+#define CURVENUM 29
+MeterCurveDataType meterCurveData[CURVENUM]=
+{
+			{60, 4, 4, 6, 2, "正向有功总电能曲线",	 {0x00,0x01,0x00,0x00},{0x5002,0x02,0x00},{0x0010,0x02,0x00}},
+			{64, 4, 4, 6, 2, "反向有功总电能曲线",	 {0x00,0x02,0x00,0x00},{0x5002,0x02,0x00},{0x0020,0x02,0x00}},
+			{77, 4, 4, 6, 2, "一象限无功总电能曲线",{0x00,0x05,0x00,0x00},{0x5002,0x02,0x00},{0x0050,0x02,0x00}},
+			{81, 4, 4, 6, 2, "二象限无功总电能曲线",{0x00,0x06,0x00,0x00},{0x5002,0x02,0x00},{0x0060,0x02,0x00}},
+			{85, 4, 4, 6, 2, "三象限无功总电能曲线",{0x00,0x07,0x00,0x00},{0x5002,0x02,0x00},{0x0070,0x02,0x00}},
+			{89, 4, 4, 6, 2, "四象限无功总电能曲线",{0x00,0x08,0x00,0x00},{0x5002,0x02,0x00},{0x0080,0x02,0x00}},
+			{8,  6, 2, 3, 1, "当前电压",			 {0x02,0x01,0xff,0x00},{0x5002,0x02,0x00},{0x2000,0x02,0x00}},
+			{14, 9, 3, 3, 3, "当前电流",			 {0x02,0x02,0xff,0x00},{0x5002,0x02,0x00},{0x2001,0x02,0x00}},
+			{26, 12,3, 2, 4, "有功功率曲线",	 	 {0x02,0x03,0xff,0x00},{0x5002,0x02,0x00},{0x2004,0x02,0x00}},
+			{51, 8, 2, 2, 1, "功率因数曲线",		 {0x02,0x06,0xff,0x00},{0x5002,0x02,0x00},{0x200a,0x02,0x00}}
+
+
+//	{8,  2, 3, 1, "A相电压",			{0x01,0x01,0x10,0x06}},
+//	{10, 2, 3, 1, "B相电压",			{0x02,0x01,0x10,0x06}},
+//	{12, 2, 3, 1, "C相电压",			{0x03,0x01,0x10,0x06}},
+//
+//	{14, 3, 3, 3, "A相电流",			{0x01,0x02,0x10,0x06}},
+//	{17, 3, 3, 3, "B相电流",			{0x02,0x02,0x10,0x06}},
+//	{20, 3, 3, 3, "C相电流",			{0x03,0x02,0x10,0x06}},
+//
+//	{23, 2, 2, 2, "频率曲线",			{0xFF,0xFF,0xFF,0xFF}},
+//
+//	{26, 3, 2, 4, "总有功功率曲线",	{0x00,0x03,0x10,0x06}},
+//	{29, 3, 2, 4, "A相有功功率曲线",	{0x01,0x03,0x10,0x06}},
+//	{32, 3, 2, 4, "B相有功功率曲线",	{0x02,0x03,0x10,0x06}},
+//	{35, 3, 2, 4, "C相有功功率曲线",	{0x03,0x03,0x10,0x06}},
+//
+//	{38, 3, 2, 4, "总无功功率曲线",	{0x00,0x04,0x10,0x06}},
+//	{41, 3, 2, 4, "A相无功功率曲线",	{0x01,0x04,0x10,0x06}},
+//	{44, 3, 2, 4, "B相无功功率曲线",	{0x02,0x04,0x10,0x06}},
+//	{47, 3, 2, 4, "C相无功功率曲线",	{0x03,0x04,0x10,0x06}},
+//
+//	{51, 2, 3, 1, "总功率因数曲线",	{0x00,0x05,0x10,0x06}},
+//	{53, 2, 3, 1, "A相功率因数曲线",	{0x01,0x05,0x10,0x06}},
+//	{55, 2, 3, 1, "B相功率因数曲线",	{0x02,0x05,0x10,0x06}},
+//	{57, 2, 3, 1, "C相功率因数曲线",	{0x03,0x05,0x10,0x06}},
+//
+//	{60, 4, 6, 2, "正向有功总电能曲线",{0x01,0x06,0x10,0x06}},
+//	{64, 4, 6, 2, "反向有功总电能曲线",{0x02,0x06,0x10,0x06}},
+//	{68, 4, 6, 2, "正向无功总电能曲线",{0x03,0x06,0x10,0x06}},
+//	{72, 4, 6, 2, "反向无功总电能曲线",{0x04,0x06,0x10,0x06}},
+//
+//	{77, 4, 6, 2, "一象限无功总电能曲线",{0x01,0x07,0x10,0x06}},
+//	{81, 4, 6, 2, "二象限无功总电能曲线",{0x02,0x07,0x10,0x06}},
+//	{85, 4, 6, 2, "三象限无功总电能曲线",{0x03,0x07,0x10,0x06}},
+//	{89, 4, 6, 2, "四象限无功总电能曲线",{0x04,0x07,0x10,0x06}},
+//
+//	{94, 3, 2, 4, "当前有功需量曲线",	{0xFF,0xFF,0xFF,0xFF}},
+//	{97, 3, 2, 4, "当前无功需量曲线",	{0xFF,0xFF,0xFF,0xFF}},
+};
+
 void SendDataToCom(int fd, INT8U *sendbuf, INT16U sendlen)
 {
 	int i=0;
 	ssize_t slen;
 	slen = write(fd, sendbuf, sendlen);
-//	fprintf(stderr,"\nzb_send(%d): ",sendlen);
-//	for(i=0;i<sendlen; i++)
-//		fprintf(stderr,"%02x ",sendbuf[i]);
 	DbPrt1(31,"发:", (char *) sendbuf, slen, NULL);
 }
 int RecvDataFromCom(int fd,INT8U* buf,int* head)
@@ -1269,14 +1332,77 @@ void addTimeLable(TASK_INFO *tskinfo,int taski,int itemi)
 		//保存完成时间
 	}
 }
+void saveTaskData_MeterCurve(TASK_INFO *tskinfo,FORMAT07 *frame07,TS ts)
+{
+	int ti=0,ii=0,n=0,len698=0;
+	INT8U tmp[50];
+	C601F_645 obj601F_07Flag;
+	int find_07item =0 ,i=0,f=0;
+	obj601F_07Flag.protocol = 2;
+	MeterCurveDataType result;
+	INT8U dataContent[50]={};
+	INT8U alldata[100]={};
+	FORMAT07 myframe07;
+	INT8U errCode[2] = {0xE0, 0xE0};//错误的起始码
+
+	DbPrt1(31,"curve:", (char *) frame07->Data, frame07->Length, NULL);
+	if (memcmp(&frame07->Data[0], errCode, 2) == 0)
+		return;
+
+
+	ti = tskinfo->now_taski;
+	ii = tskinfo->now_itemi;
+	for(n=0;n<tskinfo->task_list[ti].fangan.item_n; n++)
+	{
+		if(tskinfo->task_list[ti].fangan.items[n].oad1.OI == 0x5002)
+		{
+			for(i=0;i<CURVENUM;i++)
+			{
+				if (tskinfo->task_list[ti].fangan.items[n].oad2.OI == meterCurveData[i].oad2.OI )
+				{
+					memcpy(&result, &meterCurveData[i], sizeof(MeterCurveDataType));
+					memset(&myframe07,0,sizeof(myframe07));
+					myframe07.DI[0] = result.Flg07[3];
+					myframe07.DI[1] = result.Flg07[2];
+					myframe07.DI[2] = result.Flg07[1];
+					myframe07.DI[3] = result.Flg07[0];
+					myframe07.Length = 4 + result.dataLen;//数据长度+4
+					memcpy(myframe07.Data,&frame07->Data[result.startIndex],result.dataLen);
+					len698 = data07Tobuff698(*frame07,dataContent);
+					if(len698 > 0)
+					{
+						alldata[0] = 0x55;
+						memcpy(&alldata[1],tskinfo->tsa.addr,17);
+						memcpy(&alldata[18],dataContent,len698);
+						len698 = len698 + 18;
+						DbPrt1(31,"存储:", (char *) alldata, len698, NULL);
+						SaveOADData(tskinfo->task_list[ti].taskId,
+								tskinfo->task_list[ti].fangan.items[ii].oad1,
+								taskinfo.task_list[ti].fangan.items[ii].oad2,
+								alldata,len698,
+								ts);
+						sleep(1);
+					}
+
+				}
+			}
+		}
+	}
+	return ;
+}
+int Curve07Tobuff698(INT8U *buf,INT8U len,INT8U *countent)
+{
+
+	return 0;
+}
 int saveTaskData(FORMAT3762 format_3762_Up,INT8U taskid)
 {
 	int len645=0, taski=0 ,itemi=0 ,len698=0;
-	INT8U nextFlag=0, dataContent[50]={}, buf645[255]={} ,tmp[4]={0,0,0,0}  ,alldata[100]={};
+	INT8U nextFlag=0, dataContent[50]={}, buf645[255]={} ,taskFlag[4]={0,0,0,0}  ,alldata[100]={};
 	TSA tsatmp;
 	FORMAT07 frame07;
 	TS ts;
-
+	INT8U CurveFlg[4]={0x01, 0x00, 0x00, 0x06};
 	memset(dataContent,0,sizeof(dataContent));
 	if (format_3762_Up.afn06_f2_up.MsgLength > 0)
 	{
@@ -1297,29 +1423,34 @@ int saveTaskData(FORMAT3762 format_3762_Up,INT8U taskid)
 			{//是当前抄读TSA 数据
 				taski = taskinfo.now_taski;
 				itemi = taskinfo.now_itemi;
-
-				//TSGet(&ts);
 				TimeBCDToTs(taskinfo.task_list[taski].begin,&ts);//ts 为数据存储时间
 
-				memcpy(tmp,taskinfo.task_list[taski].fangan.items[itemi].item07,4);
-				DbgPrintToFile1(31,"抄读数据项 %02x%02x%02x%02x",tmp[0],tmp[1],tmp[2],tmp[3]);
+				memcpy(taskFlag,taskinfo.task_list[taski].fangan.items[itemi].item07,4);
+				DbgPrintToFile1(31,"抄读数据项 %02x%02x%02x%02x",taskFlag[0],taskFlag[1],taskFlag[2],taskFlag[3]);
 				DbgPrintToFile1(31,"回码数据项 %02x%02x%02x%02x",frame07.DI[0],frame07.DI[1],frame07.DI[2],frame07.DI[3]);
 
-				if (memcmp(tmp,frame07.DI,4) == 0)//抄读项 与 回码数据项相同
+				if (memcmp(taskFlag,frame07.DI,4) == 0)//抄读项 与 回码数据项相同
 				{
-					len698 = data07Tobuff698(frame07,dataContent);
-					if(len698 > 0)
+					if(memcmp(CurveFlg,taskFlag,4) == 4)//负荷曲线数据项
 					{
-						alldata[0] = 0x55;
-						memcpy(&alldata[1],taskinfo.tsa.addr,17);
-						memcpy(&alldata[18],dataContent,len698);
-						len698 = len698 + 18;
-						DbPrt1(31,"存储:", (char *) alldata, len698, NULL);
-						SaveOADData(taskinfo.task_list[taski].taskId,
-								taskinfo.task_list[taski].fangan.items[itemi].oad1,
-								taskinfo.task_list[taski].fangan.items[itemi].oad2,
-								alldata,len698,
-								ts);
+						DbgPrintToFile1(31,"收到负荷曲线回码");
+						saveTaskData_MeterCurve(&taskinfo,&frame07,ts);
+					}else		//其它数据项
+					{
+						len698 = data07Tobuff698(frame07,dataContent);
+						if(len698 > 0)
+						{
+							alldata[0] = 0x55;
+							memcpy(&alldata[1],taskinfo.tsa.addr,17);
+							memcpy(&alldata[18],dataContent,len698);
+							len698 = len698 + 18;
+							DbPrt1(31,"存储:", (char *) alldata, len698, NULL);
+							SaveOADData(taskinfo.task_list[taski].taskId,
+									taskinfo.task_list[taski].fangan.items[itemi].oad1,
+									taskinfo.task_list[taski].fangan.items[itemi].oad2,
+									alldata,len698,
+									ts);
+						}
 					}
 				}
 			}
