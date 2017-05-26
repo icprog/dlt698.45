@@ -261,10 +261,16 @@ int main(int argc, char *argv[])
     fprintf(stderr,"\n===========================\nstep1:停止进程cjdeal(为了U盘功能检测)\n===========================\n");
     system("pkill cjdeal");
     fprintf(stderr,"\n===========================\nstep2:停止进程cjcomm(为了检测485口)\n===========================\n");
-	cjcomm_pid = check_cjcomm();
-	if(cjcomm_pid>0) {
-		system("pkill cjcomm");
-	}
+    for(i=0;i<10;i++) {
+		cjcomm_pid = check_cjcomm();
+		if(cjcomm_pid>0) {
+			system("pkill cjcomm");
+			break;
+		}else {		//防止cjdeal与cjcomm未运行,先检测到U盘运行cj645
+			system("pkill cjdeal");
+		}
+		sleep(1);
+    }
 	for(i=0;i<30;i++) {
     	if(pgpl_isExist(cjcomm_pid)==FALSE) {
     		fprintf(stderr,"cjcomm 已退出\n");
@@ -298,7 +304,7 @@ int main(int argc, char *argv[])
         fprintf(stderr, "OpenCom645 ERR!!! ........................\n");
     }
 
-    fprintf(stderr,"\n===========================\nstep6:运行cjcomm(为了红外测试通信功能)\n===========================\n");
+    fprintf(stderr,"\n===========================\nstep6:运行cjcomm(为了1.红外测试通信 2.cj checkled发送报文来控制本地灯指示功能)\n===========================\n");
     system("cjcomm 2 &");
 
     acs_process();		//交采线程,实时计量数据,为了精度检测

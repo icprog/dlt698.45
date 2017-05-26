@@ -299,9 +299,8 @@ void InitSharedMem(int argc, char *argv[]) {
 
     InitClass4016();    //当前套日时段表
     InitClass4300();    //电气设备信息
-    InitClass4510();    //以太网通信模块1
     //InitClass6000();	//初始化交采采集档案
-    //InitClassf203();	//开关量输入
+    InitClassf203(JProgramInfo->cfg_para.device);	//开关量输入
     InitClassByZone(1);	//根据地区进行相应初始化
 
     //事件参数初始化

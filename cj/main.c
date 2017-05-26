@@ -68,13 +68,15 @@ static char *usage_event = "--------------------事件类对象-----------------
         "-------------------------------------------------------\n\n";
 static char *usage_para = "\n--------------------参变量类对象----------------------------\n"
         "[电气设备] "
-        "		 【设备管理基本参数读取】cj para pro 4300 		\n"
+        "		 【时钟参数】cj para pro 4000		\n"
+        "		 【终端广播校时】cj para pro 4204		\n"
+       "		 【设备管理基本参数读取】cj para pro 4300 		\n"
         "		 【数据初始化】cj para method 4300 3		\n"
         "		 【恢复出厂参数】cj para method 4300 4		\n"
         "		 【事件初始化】cj para method 4300 5		\n"
         "		 【需量初始化】cj para method 4300 6		\n"
-        "		 【时钟参数】cj para pro 4000		\n"
-        "		 【终端广播校时】cj para pro 4204		\n"
+		"		 【无线公网通信接口类】cj para pro 4500 		\n"
+		"		 【以太网通信接口类】cj para pro 4510 		\n"
         "-------------------------------------------------------\n\n";
 static char *usage_coll =
         "\n--------------------采集监控类对象----------------------------\n"
@@ -176,7 +178,9 @@ int main(int argc, char *argv[]) {
         prthelp();
         return EXIT_SUCCESS;
     }
-    if (strcmp("checkled", argv[1]) == 0) {	//生产检测本地状态灯，使用485_II口发送报文，台体485_II与485_III短接，cjcomm会返回请求的数据
+    //生产检测本地状态灯，使用485_II口发送报文，台体485_II与485_III短接，cjcomm的维护口485III会返回请求的数据
+    //在台体检测的python脚本运行时候会调用cj checkled命令,来实现维护口通信,收到报文本地灯会闪烁
+    if (strcmp("checkled", argv[1]) == 0) {
     	int i=0;
     	int comfd1;
     	for(i=0;i<3;i++) {
@@ -187,52 +191,9 @@ int main(int argc, char *argv[]) {
     	close(comfd1);
         return EXIT_SUCCESS;
     }
-    if (strcmp("savetest", argv[1]) == 0) {
-        DateTimeBCD dt;
-        PassRate_U passu[3];
-        OAD oad;
-        int val = 1, i = 0;
-        INT8U buf[256];
-        int buflen = 0;
-
-        if (argc == 6) {
-            dt.year.data = atoi(argv[2]);
-            dt.month.data = atoi(argv[3]);
-            dt.day.data = atoi(argv[4]);
-            val = atoi(argv[5]);
-        }
-        dt.hour.data = 0;
-        dt.min.data = 0;
-        dt.sec.data = 0;
-        fprintf(stderr, "write time %04d-%02d-%02d %02d:%02d:%02d,val=%d\n", dt.year.data, dt.month.data, dt.day.data,
-                dt.hour.data, dt.min.data, dt.sec.data, val);
-
-        for (i = 0; i < 3; i++) {
-            oad.OI = 0x2131 + i;
-            oad.attflg = 0x02;
-            oad.attrindex = 0x01;
-            passu[i].monitorTime = val * (i + 1);
-            passu[i].passRate = val * (i + 1) + 1;
-            passu[i].overRate = val * (i + 1) + 2;
-            passu[i].upLimitTime = val * (i + 1) + 3;
-            passu[i].downLimitTime = val * (i + 1) + 4;
-            saveFreezeRecord(0x5004, oad, dt, sizeof(PassRate_U), (INT8U * ) & passu[i]);
-        }
-        return EXIT_SUCCESS;
-    }
-
-    if (strcmp("ms", argv[1]) == 0) {
-        int taskid = 64;
-        int ret = 0;
-        if (argc >= 3) {
-            taskid = atoi(argv[2]);
-        }
-        fprintf(stderr, "taskid=%d\n", taskid);
-        CLASS_601D class601d = {};
-        if (readCoverClass(0x601D, taskid, &class601d, sizeof(CLASS_601D), coll_para_save) == 1) {
-            ret = GetReportData(class601d);
-        }
-        return EXIT_SUCCESS;
+    if ((strcmp("savetest", argv[1]) == 0) || (strcmp("ms", argv[1]) == 0) || (strcmp("gettsas", argv[1]) == 0)) {
+    	Test(argc, argv);
+    	return EXIT_SUCCESS;
     }
 
     if (strcmp("ip", argv[1]) == 0) {
@@ -400,6 +361,10 @@ int main(int argc, char *argv[]) {
         return EXIT_SUCCESS;
     }
 
+//    if (strcmp("gwpara", argv[1]) == 0) {
+//        showPara();
+//        return EXIT_SUCCESS;
+//    }
 
     prthelp();
     return EXIT_SUCCESS;

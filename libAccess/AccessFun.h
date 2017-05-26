@@ -254,7 +254,7 @@ extern int	readFreezeRecordByTime(OI_698 freezeOI,OAD oad,DateTimeBCD datetime,i
 
 
 ///////////////数据文件存储
-
+extern int getTsas(MY_MS ms, INT8U** tsas); //注意：！！！！！函数调用需要外部释放内存
 extern int getSelector(OAD oad_h,RSD select, INT8U selectype, CSD_ARRAYTYPE csds, INT8U *data, int *datalen,INT16U frmmaxsize);
 
 extern long int readFrameDataFile(char *filename,int offset,INT8U *buf,int *datalen);

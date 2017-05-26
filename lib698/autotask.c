@@ -169,92 +169,6 @@ int fillcsinfo(CSINFO *csinfo,INT8U *addr,INT8U clientaddr)
 	csinfo->ca = clientaddr;
 	return 1;
 }
-/*
- * 根据ms.type填充tsas ; 返回TS 的数量
- * 注意调用后，释放**tsas的内存
- */
-
-int getTsas(MY_MS ms,INT8U **tsas)
-{
-	int  tsa_num = 0;
-	int	 record_num = 0;
-	int	 tsa_len = 0;
-	int	 i=0,j=0,k=0;
-	CLASS_6001	 meter={};
-
-	if(ms.mstype == 0) { //无电能表
-		tsa_num = 0;
-		return tsa_num;
-	}
-	record_num = getFileRecordNum(0x6000);
-	*tsas = malloc(record_num*sizeof(TSA));
-	fprintf(stderr," tsas  p=%p record_num=%d",*tsas,record_num);
-	tsa_num = 0;
-	for(i=0;i<record_num;i++) {
-		if(readParaClass(0x6000,&meter,i)==1) {
-			if(meter.sernum!=0 && meter.sernum!=0xffff) {
-				switch(ms.mstype) {
-				case 1:	//全部用户地址
-					fprintf(stderr,"\nTSA: %d-",meter.basicinfo.addr.addr[0]);
-					for(j=0;j<meter.basicinfo.addr.addr[0];j++) {
-						fprintf(stderr,"-%02x",meter.basicinfo.addr.addr[j+1]);
-					}
-					memcpy(*tsas+(tsa_num*sizeof(TSA)),&meter.basicinfo.addr,sizeof(TSA));
-					tsa_num++;
-					break;
-				case 2:	//一组用户类型
-					tsa_len = (ms.ms.userType[0]<<8) | ms.ms.userType[1];
-					fprintf(stderr,"\n一组用户类型(%d)",tsa_len);
-					for(j=0;j<tsa_len;j++) {
-						if(meter.basicinfo.usrtype == ms.ms.userType[j+2]) {
-							memcpy(*tsas+(tsa_num*sizeof(TSA)),&meter.basicinfo.addr,sizeof(TSA));
-							tsa_num++;
-							break;
-						}
-					}
-					break;
-				case 3:	//一组用户地址
-					tsa_len = (ms.ms.userAddr[0].addr[0]<<8) | ms.ms.userAddr[0].addr[1];
-					fprintf(stderr,"\n一组用户地址(%d)\n\n",tsa_len);
-					for(j=0;j<tsa_len;j++) {
-//						for(k=0;k<TSA_LEN;k++) {
-//							fprintf(stderr,"%02x ",ms.ms.userAddr[j+1].addr[k]);
-//						}
-//						fprintf(stderr,"\n");
-//						for(k=0;k<TSA_LEN;k++) {
-//							fprintf(stderr,"%02x ",meter.basicinfo.addr.addr[k]);
-//						}
-//						fprintf(stderr,"\n");
-						if(memcmp(&ms.ms.userAddr[j+1].addr[0],&meter.basicinfo.addr,sizeof(TSA))==0) {  //TODO:TSA下发的地址是否按照00：长度，01：TSA长度格式
-							memcpy(*tsas+(tsa_num*sizeof(TSA)),&meter.basicinfo.addr,sizeof(TSA));
-							tsa_num++;
-							break;
-						}
-					}
-					break;
-				case 4:	//一组配置序号
-					fprintf(stderr,"\n招测序号集(%d)",ms.ms.configSerial[0]);
-					for(j=0;j<ms.ms.configSerial[0];j++) {
-						fprintf(stderr," %04x",ms.ms.configSerial[j+1]);
-						if(meter.sernum == ms.ms.configSerial[j+1]) {
-							memcpy(*tsas+(tsa_num*sizeof(TSA)),&meter.basicinfo.addr,sizeof(TSA));
-							tsa_num++;
-							break;
-						}
-					}
-					break;
-				case 5://一组用户类型区间
-				case 6://一组用户地址区间
-				case 7://一组配置序号区间
-
-					break;
-				}
-			}
-		}
-	}
-	fprintf(stderr,"\nms.mstype = %d,tsa_num = %d",ms.mstype,tsa_num);
-	return tsa_num;
-}
 
 /*
  * 填充frmdata 文件，组织数据上报帧
@@ -326,7 +240,7 @@ int GetReportData(CLASS_601D report)
 		fprintf(stderr,"server_send_size = %d\n",server_send_size);
 		ret = getSelector(report.reportdata.data.oad,
 							report.reportdata.data.recorddata.rsd,
-							report.reportdata.data.recorddata.selectType,
+							report.reportdata.data.recorddata.selectType | 0x80,
 							report.reportdata.data.recorddata.csds,NULL, NULL,server_send_size);
 		fprintf(stderr,"GetReportData   ret=%d\n",ret);
 		ret = REPROTNOTIFICATIONRECORDLIST;	//

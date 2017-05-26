@@ -51,5 +51,7 @@ extern void getFrmFCS(int argc, char* argv[]);
 
 void showStatus();
 
+extern void Test(int argc, char *argv[]);
+
 #endif /* MAIN_H_ */
 
