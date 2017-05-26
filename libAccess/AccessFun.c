@@ -1139,15 +1139,28 @@ void GetOADPosofUnit(ROAD_ITEM item_road,HEAD_UNIT *head_unit,INT8U unitnum,OAD_
 //			fprintf(stderr,"j=%d,len=%d,datapos=%d\n",j,head_unit[j].len,datapos);
 			memcpy(&oad_offset[i].oad_m,&item_road.oad[i].oad_m,sizeof(OAD));
 			memcpy(&oad_offset[i].oad_r,&item_road.oad[i].oad_r,sizeof(OAD));
+//			if(memcmp(&item_road.oad[i].oad_m,&head_unit[j].oad_m,sizeof(OAD))==0 &&
+//					memcmp(&item_road.oad[i].oad_r,&head_unit[j].oad_r,sizeof(OAD))==0)
 			if(memcmp(&item_road.oad[i].oad_m,&head_unit[j].oad_m,sizeof(OAD))==0 &&
-					memcmp(&item_road.oad[i].oad_r,&head_unit[j].oad_r,sizeof(OAD))==0)
+					item_road.oad[i].oad_r.OI == head_unit[j].oad_r.OI)
 			{
 //				fprintf(stderr,"\nfind oad %04x%02x%02x-%04x%02x%02x:offset:%d\n",
 //						item_road.oad[i].oad_m.OI,item_road.oad[i].oad_m.attflg,item_road.oad[i].oad_m.attrindex,
 //						item_road.oad[i].oad_r.OI,item_road.oad[i].oad_r.attflg,item_road.oad[i].oad_r.attrindex,
 //						datapos);
-				oad_offset[i].offset = datapos;
-				oad_offset[i].len = head_unit[j].len;
+				if(item_road.oad[i].oad_r.attrindex != 0 && head_unit[j].oad_r.attrindex == 0)//招测某一项
+				{
+					INT16U oadlen = CalcOIDataLen(item_road.oad[i].oad_r.OI,item_road.oad[i].oad_r.attrindex);
+					oad_offset[i].offset = datapos + (item_road.oad[i].oad_r.attrindex-1)*oadlen +2;
+					oad_offset[i].len = oadlen;
+				}
+				else
+				{
+					oad_offset[i].offset = datapos;
+					oad_offset[i].len = head_unit[j].len;
+				}
+
+
 			}
 			else {
 				datapos += head_unit[j].len;
@@ -1605,15 +1618,18 @@ INT8U GetTaskidFromCSDs(CSD_ARRAYTYPE csds,ROAD_ITEM *item_road)
 						switch(class6015.csds.csd[j].type)
 						{
 						case 0:
-//							  asyslog(LOG_INFO,"mm=%d,oad_r  =%04x_%02x%02x \n",mm,item_road->oad[mm].oad_r.OI,
-//											item_road->oad[mm].oad_r.attflg,item_road->oad[mm].oad_r.attrindex);
-//							  asyslog(LOG_INFO,"jj=%d,csd.oad=%04x_%02x%02x \n",j,class6015.csds.csd[j].csd.oad.OI,
-//											class6015.csds.csd[j].csd.oad.attflg,class6015.csds.csd[j].csd.oad.attrindex);
+							  asyslog(LOG_INFO,"mm=%d,oad_r  =%04x_%02x%02x \n",mm,item_road->oad[mm].oad_r.OI,
+											item_road->oad[mm].oad_r.attflg,item_road->oad[mm].oad_r.attrindex);
+							  asyslog(LOG_INFO,"jj=%d,csd.oad=%04x_%02x%02x \n",j,class6015.csds.csd[j].csd.oad.OI,
+											class6015.csds.csd[j].csd.oad.attflg,class6015.csds.csd[j].csd.oad.attrindex);
 							if(item_road->oad[mm].oad_m.OI == 0x0000)//都为oad类型
 							{
-								if(memcmp(&item_road->oad[mm].oad_r,&class6015.csds.csd[j].csd.oad,sizeof(OAD))==0){
+								if(memcmp(&item_road->oad[mm].oad_r,&class6015.csds.csd[j].csd.oad,sizeof(OAD))==0 ||
+										(item_road->oad[mm].oad_r.OI == class6015.csds.csd[j].csd.oad.OI &&
+												item_road->oad[mm].oad_r.attrindex != 0 &&
+												class6015.csds.csd[j].csd.oad.attrindex == 0)){
 									item_road->oad[mm].taskid = i+1;
-//									asyslog(LOG_INFO,"0000:item_road->oad[%d].taskid=%d\n",mm,item_road->oad[mm].taskid);
+									asyslog(LOG_INFO,"taskid find one %d",i+1);
 								}
 							}
 							break;
@@ -1626,7 +1642,10 @@ INT8U GetTaskidFromCSDs(CSD_ARRAYTYPE csds,ROAD_ITEM *item_road)
 							{
 								for(nn=0;nn<class6015.csds.csd[j].csd.road.num;nn++)
 								{
-									if(memcmp(&item_road->oad[mm].oad_r,&class6015.csds.csd[j].csd.road.oads[nn],sizeof(OAD))==0){
+									if(memcmp(&item_road->oad[mm].oad_r,&class6015.csds.csd[j].csd.road.oads[nn],sizeof(OAD))==0 ||
+											(item_road->oad[mm].oad_r.OI == class6015.csds.csd[j].csd.road.oads[nn].OI &&
+												item_road->oad[mm].oad_r.attrindex != 0 &&
+												class6015.csds.csd[j].csd.road.oads[nn].attrindex == 0)){
 										item_road->oad[mm].taskid = i+1;
 //										asyslog(LOG_INFO,"1111:item_road->oad[%d].taskid=%d\n",mm,item_road->oad[mm].taskid);
 									}
@@ -2205,7 +2224,7 @@ INT8U initrecinfo(CURR_RECINFO *recinfo,TASKSET_INFO tasknor_info,INT8U selectyp
 			tm_p->tm_min = select.selec7.collect_save_finish.min.data;
 			tm_p->tm_sec = select.selec7.collect_save_finish.sec.data;
 			recinfo->rec_end = mktime(tm_p);
-			if(time_tmp <= recinfo->rec_end)
+			if(time_tmp <= recinfo->rec_end && time_tmp >= recinfo->rec_start)
 			{
 				asyslog(LOG_INFO,"--------%d---%d",time_tmp,recinfo->rec_end);
 				recinfo->rec_end = time_tmp;
