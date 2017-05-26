@@ -37,6 +37,8 @@ static char *usage_set = "\n--------------------参数设置及基本维护命�
 		"		 【主站通信状态查询】cj cm	\n"
         "		 【通信地址】cj id <addr>	如：地址为123456  :cj id 12 34 56	\n"
         "		 【停程序】cj dog[停程序并且清狗] 或者 cj stop[清狗]		\n"
+		"		  [设置维护485端口参数] cj rs485	\n"
+		"		  [设置红外ifr端口参数] cj ifr	\n"
         "[读取心跳] cj heart       "
         "[设置心跳] cj heart 60 s\n"
 		"【初始化】cj InIt 3 [数据区初始化]	\n　　　　　　cj InIt 5 [事件初始化]\n　　　　　　cj InIt 6 [需量初始化]\n　　　　　　cj InIt 4 [恢复出厂参数]\n"

@@ -399,6 +399,7 @@ void AddCjiFangAnInfo(INT8U *data, Action_result *act_ret) {
 
     INT8U *buf;
     CLASS_6015 fangAn = {};
+
     int k = 0;
     INT8U addnum = data[1];        //data[0] = apdu[7]
     INT8U *dealdata = NULL;
@@ -486,7 +487,9 @@ void AddCjiFangAnInfo(INT8U *data, Action_result *act_ret) {
         fprintf(stderr, "\n存储时标选择 ： %d (1:任务开始时间  2：相对当日0点0分  3:相对上日23点59分  4:相对上日0点0分  5:相对当月1日0点0分)",
                 fangAn.savetimeflag);
         fprintf(stderr, "\n");
-
+//		if(readCoverClass(oi,fangAn.sernum,&class6015,sizeof(CLASS_6015),coll_para_save)== 1) {
+//
+//		}
         act_ret->DAR = saveCoverClass(0x6015, fangAn.sernum, &fangAn, sizeof(fangAn), coll_para_save);
     }
     act_ret->datalen = index + 2;    //2 array + num
