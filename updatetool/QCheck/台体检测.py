@@ -233,7 +233,6 @@ if __name__ == '__main__':
                 print "\n\n\n>>>>>>>>>>>>>>>>>全部正确\n\n\n".decode('utf-8')
             else:
                 print "\n\n\n>>>>>>>>>>>>>>>>>设备异常!!!!!\n\n\n".decode('utf-8')
-
         except IOError, e:
             print '网络连接错误，检查网线连接状态。'.decode('utf-8')
             continue

@@ -6,7 +6,7 @@ Usage()
     echo "使用方式:"
     echo "\t./make 型号 地区\n"
     echo "\t设备类型，1：I型集中器，2:II型集中器，3：III型专变"
-    echo "\tZheJiang(II型),ShanDong(II型),HuNan(I型)"
+    echo "\tZheJiang(II型),ShanDong(II型),HuNan(I型),GW(国网送检)"
     echo "============================================="
     exit 1
 }
@@ -21,7 +21,7 @@ ParaCheck()
         Usage
     fi
 
-    if [ $2 != "ZheJiang" ] && [ $2 != "HuNan" ] && [ $2 != "ShanDong" ]; then
+    if [ $2 != "ZheJiang" ] && [ $2 != "HuNan" ] && [ $2 != "ShanDong" ] && [ $2 != "GW" ]; then
          Usage
     fi
 
