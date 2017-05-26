@@ -93,10 +93,25 @@ int getZone(char *zone)
 		fprintf(stderr,"first read cfg_zone=%s\n",cfg_para.zone);
 	}
 	fprintf(stderr,"cfg_zone=%s\n",cfg_para.zone);
-	fprintf(stderr,"readzone=%s,len=%d\n",zone,strlen(zone));
+//	fprintf(stderr,"readzone=%s,len=%d\n",zone,strlen(zone));
 	ret = strncmp(cfg_para.zone,zone,strlen(zone));
-//	fprintf(stderr,"getZone return = %d\n",ret);
+	fprintf(stderr,"getZone return = %d (0:满足地区)\n",ret);
 	return ret;
+}
+
+void writeIpSh(INT8U *ip,INT8U *netmask)
+{
+	INT8U Ip_sh[100];
+	memset(Ip_sh,0,100);
+	sprintf((char*)Ip_sh,"ifconfig eth0 %d.%d.%d.%d netmask %d.%d.%d.%d up",
+			ip[1],ip[2],ip[3],ip[4],netmask[1],netmask[2],netmask[3],netmask[4]);
+	fprintf(stderr,"set Ip_sh=%s\n",Ip_sh);
+//	FILE* fpip = fopen("/nor/rc.d/ip.sh","wb");//集中器中的文件
+//	if(fpip != NULL)
+//	{
+//		fputs((const char*)Ip_sh,fpip);
+//		fclose(fpip);
+//	}
 }
 
 INT8S bcd2int32u(INT8U* bcd, INT8U len, ORDER order, INT32U* dint) {

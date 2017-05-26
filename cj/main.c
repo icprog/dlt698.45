@@ -68,13 +68,15 @@ static char *usage_event = "--------------------事件类对象-----------------
         "-------------------------------------------------------\n\n";
 static char *usage_para = "\n--------------------参变量类对象----------------------------\n"
         "[电气设备] "
-        "		 【设备管理基本参数读取】cj para pro 4300 		\n"
+        "		 【时钟参数】cj para pro 4000		\n"
+        "		 【终端广播校时】cj para pro 4204		\n"
+       "		 【设备管理基本参数读取】cj para pro 4300 		\n"
         "		 【数据初始化】cj para method 4300 3		\n"
         "		 【恢复出厂参数】cj para method 4300 4		\n"
         "		 【事件初始化】cj para method 4300 5		\n"
         "		 【需量初始化】cj para method 4300 6		\n"
-        "		 【时钟参数】cj para pro 4000		\n"
-        "		 【终端广播校时】cj para pro 4204		\n"
+		"		 【无线公网通信接口类】cj para pro 4500 		\n"
+		"		 【以太网通信接口类】cj para pro 4510 		\n"
         "-------------------------------------------------------\n\n";
 static char *usage_coll =
         "\n--------------------采集监控类对象----------------------------\n"
@@ -359,6 +361,10 @@ int main(int argc, char *argv[]) {
         return EXIT_SUCCESS;
     }
 
+//    if (strcmp("gwpara", argv[1]) == 0) {
+//        showPara();
+//        return EXIT_SUCCESS;
+//    }
 
     prthelp();
     return EXIT_SUCCESS;

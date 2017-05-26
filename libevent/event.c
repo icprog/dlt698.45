@@ -1925,11 +1925,13 @@ INT8U Event_3110(INT32U data,INT8U len,ProgramInfo* prginfo_event) {
 		readCoverClass(0x3110,0,&prginfo_event->event_obj.Event3110_obj,sizeof(prginfo_event->event_obj.Event3110_obj),event_para_save);
 		oi_chg.oi3110 = prginfo_event->oi_changed.oi3110;
 	}
+	fprintf(stderr,"[Event3110]enableflag=%d \n",prginfo_event->event_obj.Event3110_obj.event_obj.enableflag);
     if (prginfo_event->event_obj.Event3110_obj.event_obj.enableflag == 0) {
         return 0;
     }
     static INT8U flag=0;
     INT32U offset=prginfo_event->event_obj.Event3110_obj.Monthtrans_obj.month_offset;
+    fprintf(stderr,"Event3110:data=%d offset=%d \n",data,offset);
     //通信处判断还是这里判断 TODO
     if(data>offset){
     	if(flag==0){
