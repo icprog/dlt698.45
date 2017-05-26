@@ -4290,7 +4290,8 @@ INT8S deal6015or6017(CLASS_6013 st6013,CLASS_6015 st6015, INT8U port485,CLASS_60
 				if (checkMeterType(st6015.mst, port485, meter))
 				{
 					//判断冻结数据是否已经抄读成功了
-					if(GetOrSetFreezeDataSuccess(0,st6013.taskID,port,info6000[port].list6001[meterIndex])==1)
+					if((st6015.csds.csd[0].csd.road.oad.OI == 0x5004)
+						&&(GetOrSetFreezeDataSuccess(0,st6013.taskID,port,info6000[port].list6001[meterIndex])==1))
 					{
 						DbgPrintToFile1(port485,"任务ID:%d deal6015 测量点 = %d　已经抄读成功,不用再抄了",st6013.taskID,info6000[port].list6001[meterIndex]);
 						continue;
@@ -4330,11 +4331,32 @@ INT8S deal6015or6017(CLASS_6013 st6013,CLASS_6015 st6015, INT8U port485,CLASS_60
 							}
 							saveTime.sec.data = 0;
 						}
-						if(st6013.interval.units == day_units)
+						//判断日冻结正向有功电量是否抄成功了
+						if(st6015.csds.csd[0].csd.road.oad.OI == 0x5004)
 						{
-							INT8U zeroBuf[DATA_CONTENT_LEN];
-							memset(zeroBuf,0,DATA_CONTENT_LEN);
-							if(memcmp(dataContent,zeroBuf,dataLen)!=0)
+							INT8U zeroBuf[BUFFSIZE128];
+							memset(zeroBuf,0,BUFFSIZE128);
+							INT8U tmpIndex = 0;
+							INT8U data_0010_len = 0;
+							INT16U dataIndex = 0;
+							for(tmpIndex = 0;tmpIndex < st6015.csds.csd[0].csd.road.num;tmpIndex++)
+							{
+								if(st6015.csds.csd[0].csd.road.oads[tmpIndex].OI == 0x0010)
+								{
+									data_0010_len = CalcOIDataLen(st6015.csds.csd[0].csd.road.oads[tmpIndex].OI,st6015.csds.csd[0].csd.road.oads[tmpIndex].attrindex);
+									break;
+								}
+								else
+								{
+									dataIndex += CalcOIDataLen(st6015.csds.csd[0].csd.road.oads[tmpIndex].OI,st6015.csds.csd[0].csd.road.oads[tmpIndex].attrindex);
+								}
+							}
+#ifdef TESTDEF
+							DbgPrintToFile1(port485,"0010 data[%d]= %02x %02x %02x %02x %02x %02x %02x",data_0010_len,dataContent[dataIndex],
+									dataContent[dataIndex+1],dataContent[dataIndex+2],dataContent[dataIndex+3]
+								   ,dataContent[dataIndex+4],dataContent[dataIndex+5],dataContent[dataIndex+6]);
+#endif
+							if(memcmp(&dataContent[dataIndex],zeroBuf,data_0010_len)!=0)
 							{
 								GetOrSetFreezeDataSuccess(1,st6013.taskID,port,info6000[port].list6001[meterIndex]);
 							}
