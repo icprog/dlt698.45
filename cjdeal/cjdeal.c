@@ -708,7 +708,7 @@ INT8S dealMsgProcess()
 				}
 				if(mq_h.pid == cjgui)
 				{
-					fprintf(stderr, "\n收到液晶点抄\n");
+					fprintf(stderr, "\n收到液晶点抄-----------------------------------23232323\n");
 					if(cjguiProxy.isInUse == 0)
 					{
 						memcpy(&cjguiProxy.strProxyMsg,rev_485_buf,sizeof(Proxy_Msg));

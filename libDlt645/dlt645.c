@@ -157,7 +157,7 @@ INT16S composeProtocol07(FORMAT07* format07, INT8U* sendBuf)
 		int32u2bcd(format07->Time[2], &sendBuf[12], inverted);
 		int32u2bcd(format07->Time[3], &sendBuf[13], inverted);
 		int32u2bcd(format07->Time[4], &sendBuf[14], inverted);
-		int32u2bcd(format07->Time[5], &sendBuf[15], inverted);
+		int32u2bcd(format07->Time[5]%100, &sendBuf[15], inverted);
 
 		for (i=10; i<16; i++)
 		{
@@ -177,11 +177,11 @@ INT16S composeProtocol07(FORMAT07* format07, INT8U* sendBuf)
 		sendBuf[9] = 10;//长度
 		memcpy(&sendBuf[10], format07->DI, 4);//数据标识
 		sendBuf[14] = format07->sections;
-		int32u2bcd(format07->startMinute, &sendBuf[15], positive);
-		int32u2bcd(format07->startHour, &sendBuf[16], positive);
-		int32u2bcd(format07->startDay, &sendBuf[17], positive);
-		int32u2bcd(format07->startMonth, &sendBuf[18], positive);
-		int32u2bcd(format07->startYear%100, &sendBuf[19], positive);
+		sendBuf[15] = format07->startMinute;
+		sendBuf[16] = format07->startHour;
+		sendBuf[17] = format07->startDay;
+		sendBuf[18] = format07->startMonth;
+		sendBuf[19] = format07->startYear;
 
 		for (i=10; i<20; i++)
 		{
