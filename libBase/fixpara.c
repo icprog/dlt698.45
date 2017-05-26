@@ -257,10 +257,10 @@ void InitClassByZone(INT8U type)
 
     	if(getZone("ZheJiang")==0) {
 			InitClass4500(master_info_ZheJiang,null_info,gprs_para_ZheJiang);
-			InitClass4510(master_info_ZheJiang_4510,IP_GW);    //以太网通信模块1
+			InitClass4510(master_info_ZheJiang_4510,IP_ZheJiang);    //以太网通信模块1
 		}else if(getZone("HuNan")==0) {
 			InitClass4500(master_info_HuNan,null_info,gprs_para_HuNan);
-			InitClass4510(master_info_HuNan_4510,IP_GW);    //以太网通信模块1
+			InitClass4510(master_info_HuNan_4510,IP_HuNan);    //以太网通信模块1
 		}else if(getZone("GW")==0) {
 			InitClass4500(master_info_GW,master_info_GW,gprs_para_GW);
 			InitClass4510(master_info_GW_4510,IP_GW);    //以太网通信模块1

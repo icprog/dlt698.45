@@ -361,10 +361,10 @@ int main(int argc, char *argv[]) {
         return EXIT_SUCCESS;
     }
 
-    if (strcmp("gwpara", argv[1]) == 0) {
-        showPara();
-        return EXIT_SUCCESS;
-    }
+//    if (strcmp("gwpara", argv[1]) == 0) {
+//        showPara();
+//        return EXIT_SUCCESS;
+//    }
 
     prthelp();
     return EXIT_SUCCESS;

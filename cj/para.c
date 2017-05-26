@@ -229,3 +229,7 @@ void para_process(int argc, char *argv[])
 	}
 }
 
+//void showStatus()
+//{
+//
+//}
