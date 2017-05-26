@@ -499,9 +499,15 @@ INT8U init6013ListFrom6012File() {
 						taskStartTime.Year,taskStartTime.Month,taskStartTime.Day,taskStartTime.Hour,
 						taskStartTime.Minute,taskStartTime.Sec);
 #endif
-				if(list6013[total_tasknum].basicInfo.interval.units == day_units)
+				//把需要补抄的任务放进infoReplenish
+				CLASS_6015 st6015;
+				memset(&st6015,0,sizeof(CLASS_6015));
+				if (readCoverClass(0x6015, list6013[total_tasknum].basicInfo.sernum,&st6015, sizeof(CLASS_6015), coll_para_save)== 1)
 				{
-					infoReplenish.unitReplenish[infoReplenish.tasknum++].taskID = list6013[total_tasknum].basicInfo.taskID;
+					if(st6015.csds.csd[0].csd.road.oad.OI == 0x5004)
+					{
+						infoReplenish.unitReplenish[infoReplenish.tasknum++].taskID = list6013[total_tasknum].basicInfo.taskID;
+					}
 				}
 #if 1
 				if(timeCmp < 2)
