@@ -55,7 +55,7 @@ static MASTER_STATION_INFO	master_info_GW_4510 = {{192,168,127,127},9027};			//n
 static NETCONFIG 	IP_GW={1,{192,168,127,244},{255,255,255,0},{192,168,127,1},{},{}};	//网络配置
 
 
-void InitClass4500(MASTER_STATION_INFO master_info,MASTER_STATION_INFO bak_info,GprsPara gprs_para)
+void InitClass4500(INT16U heartBeat,MASTER_STATION_INFO master_info,MASTER_STATION_INFO bak_info,GprsPara gprs_para)
 {
 	int		i=0;
 	CLASS25 class4500 = {};
@@ -68,7 +68,7 @@ void InitClass4500(MASTER_STATION_INFO master_info,MASTER_STATION_INFO bak_info,
     class4500.commconfig.listenPortnum = 0;		//监听端口 NULL
     class4500.commconfig.proxyPort = 0;			//代理端口 NULL
     class4500.commconfig.timeoutRtry = (30<<2) | (3 & 0x03);	// bit7~bit2:超时时间 30秒, bit1~bit0:重发次数:3次
-    class4500.commconfig.heartBeat  = 60; 	//心跳周期 60s
+    class4500.commconfig.heartBeat  = heartBeat; 	//心跳周期 60s
     memcpy(&class4500.commconfig.apn[1],&gprs_para.apn,strlen((char *)gprs_para.apn));
     class4500.commconfig.apn[0] = strlen((char *)gprs_para.apn);
     memcpy(&class4500.commconfig.userName[1],&gprs_para.userName,strlen((char *)gprs_para.userName));
@@ -104,7 +104,7 @@ void InitClass4500(MASTER_STATION_INFO master_info,MASTER_STATION_INFO bak_info,
 }
 
 
-void InitClass4510(MASTER_STATION_INFO master_info,NETCONFIG net_ip) //以太网通信模块1
+void InitClass4510(INT16U heartBeat,MASTER_STATION_INFO master_info,NETCONFIG net_ip) //以太网通信模块1
 {
     CLASS26 oi4510 = {};
     int ret        = 0;
@@ -133,7 +133,7 @@ void InitClass4510(MASTER_STATION_INFO master_info,NETCONFIG net_ip) //以太网
 
         oi4510.commconfig.workModel     = 1; 	//客户机模式
         oi4510.commconfig.connectType   = 0;	//连接方式:TCP
-        oi4510.commconfig.heartBeat     = 60; 	// 60s
+        oi4510.commconfig.heartBeat     = heartBeat; 	// 60s
         saveCoverClass(0x4510, 0, &oi4510, sizeof(CLASS26), para_vari_save);
     }
 }
@@ -254,21 +254,22 @@ void InitClassByZone(INT8U type)
 {
 	int ret        = 0;
 	CLASS25 class4500 = {};
-
+	INT16U		heartBeat = 60;	//单位秒
 	if(type == 1) {
     	ret = readCoverClass(0x4500, 0, (void*)&class4500, sizeof(CLASS25), para_vari_save);
 	}else ret = 0;
     if (ret != 1) {
 
     	if(getZone("ZheJiang")==0) {
-			InitClass4500(master_info_ZheJiang,null_info,gprs_para_ZheJiang);
-			InitClass4510(master_info_ZheJiang_4510,IP_ZheJiang);    //以太网通信模块1
+    		heartBeat = 300;
+			InitClass4500(heartBeat,master_info_ZheJiang,null_info,gprs_para_ZheJiang);
+			InitClass4510(heartBeat,master_info_ZheJiang_4510,IP_ZheJiang);    //以太网通信模块1
 		}else if(getZone("HuNan")==0) {
-			InitClass4500(master_info_HuNan,null_info,gprs_para_HuNan);
-			InitClass4510(master_info_HuNan_4510,IP_HuNan);    //以太网通信模块1
+			InitClass4500(heartBeat,master_info_HuNan,null_info,gprs_para_HuNan);
+			InitClass4510(heartBeat,master_info_HuNan_4510,IP_HuNan);    //以太网通信模块1
 		}else if(getZone("GW")==0) {
-			InitClass4500(master_info_GW,master_info_GW,gprs_para_GW);
-			InitClass4510(master_info_GW_4510,IP_GW);    //以太网通信模块1
+			InitClass4500(heartBeat,master_info_GW,master_info_GW,gprs_para_GW);
+			InitClass4510(heartBeat,master_info_GW_4510,IP_GW);    //以太网通信模块1
 		}
     }
 }

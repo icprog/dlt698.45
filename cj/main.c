@@ -175,6 +175,10 @@ void dog_feed(char *argv) {
 static INT8U checkbuf[]={0x68,0x1e,0x00,0x43,0x05,0x05,0x00,0x00,0x00,0x00,0x00,0x01,0x63,0x71,0x01,
 						0x00,0x01,0x02,0x58,0x07,0xe1,0x05,0x10,0x02,0x00,0x15,0x19,0x00,0x00,0xcc,0x45,0x16};
 
+//
+static INT8U getversion[]={0x68,0x17,0x00,0x43,0x05,0x01,0x00,0x00,0x00,0x00,0x00,0x10,0x26,0xf6,0x05,0x01,0x00,
+						0x43,0x00,0x03,0x00,0x00,0x46,0x58,0x16};
+
 int main(int argc, char *argv[]) {
     if (argc < 2) {
         prthelp();
@@ -183,16 +187,46 @@ int main(int argc, char *argv[]) {
     //生产检测本地状态灯，使用485_II口发送报文，台体485_II与485_III短接，cjcomm的维护口485III会返回请求的数据
     //在台体检测的python脚本运行时候会调用cj checkled命令,来实现维护口通信,收到报文本地灯会闪烁
     if (strcmp("checkled", argv[1]) == 0) {
+    	int port = 1;
+    	if(argc==3) {
+    		port = atoi(argv[2]);
+    	}
+    	fprintf(stderr,"port=%d\n",port);
     	int i=0;
     	int comfd1;
     	for(i=0;i<3;i++) {
-    		comfd1 = OpenCom(1, 9600, (INT8U *) "even", 1, 8);
+    		comfd1 = OpenCom(port, 9600, (INT8U *) "even", 1, 8);
 			write(comfd1, checkbuf, sizeof(checkbuf));
 			usleep(500 * 1000);
     	}
     	close(comfd1);
         return EXIT_SUCCESS;
     }
+    if (strcmp("sertest", argv[1]) == 0) {
+    	int port = 4;
+    	INT8U buf[256]={};
+    	int comfd1;
+    	int i=0,ret=0;
+
+    	if(argc==3) {
+    		port = atoi(argv[2]);
+    	}
+    	fprintf(stderr,"port=%d\n",port);
+		comfd1 = OpenCom(port, 9600, (INT8U *) "even", 1, 8);
+		write(comfd1, getversion, sizeof(getversion));
+		usleep(500 * 1000);
+		ret = read(comfd1, buf, 256);
+		for(i=0;i<10;i++) {
+			sleep(1);
+			fprintf(stderr,"R[%d]=",ret);
+			for(i=0;i<ret;i++) {
+				fprintf(stderr,"%02x ",buf[i]);
+			}
+		}
+    	close(comfd1);
+        return EXIT_SUCCESS;
+    }
+
     if ((strcmp("savetest", argv[1]) == 0) || (strcmp("ms", argv[1]) == 0) || (strcmp("gettsas", argv[1]) == 0)) {
     	Test(argc, argv);
     	return EXIT_SUCCESS;
@@ -363,10 +397,10 @@ int main(int argc, char *argv[]) {
         return EXIT_SUCCESS;
     }
 
-//    if (strcmp("gwpara", argv[1]) == 0) {
-//        showPara();
-//        return EXIT_SUCCESS;
-//    }
+    if (strcmp("check", argv[1]) == 0) {
+        showCheckPara();
+        return EXIT_SUCCESS;
+    }
 
     prthelp();
     return EXIT_SUCCESS;
