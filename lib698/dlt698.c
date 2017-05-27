@@ -1112,24 +1112,26 @@ INT16S composeProtocol698_GetRequest(INT8U* sendBuf,CLASS_6015 obj6015,TSA meter
 
 
 	INT8U reverseAddr[OCTET_STRING_LEN]= {0};
+#if 0
 	fprintf(stderr," \n\n composeProtocol698_GetRequest  meterAddr : %02x  %02x  %02x%02x%02x%02x%02x%02x%02x\n\n",
 			meterAddr.addr[0],meterAddr.addr[1],meterAddr.addr[2],meterAddr.addr[3],meterAddr.addr[4],
 			meterAddr.addr[5],meterAddr.addr[6],meterAddr.addr[7],meterAddr.addr[8]);
+#endif
 	csinfo.sa_length = (meterAddr.addr[1]&0x0f) + 1;//sizeof(addr)-1;//服务器地址长度
 
 	reversebuff(&meterAddr.addr[2],csinfo.sa_length,reverseAddr);
-
+#if 0
 	fprintf(stderr," \n reverseAddr[%d] = ",csinfo.sa_length);
 	INT8U prtIndex;
 	for(prtIndex = 0;prtIndex < csinfo.sa_length;prtIndex++)
 	{
 		fprintf(stderr," %02x",reverseAddr[prtIndex]);
 	}
-
+#endif
 	memcpy(csinfo.sa,reverseAddr,csinfo.sa_length);//服务器地址
 	csinfo.ca = 0x02;
 
-	fprintf(stderr,"sa_length = %d \n",csinfo.sa_length);
+	//fprintf(stderr,"sa_length = %d \n",csinfo.sa_length);
 	sendLen = FrameHead(&csinfo,sendBuf) ; //	2：hcs  hcs
 	hcsi = sendLen;
 	sendLen = sendLen + 2;
@@ -1137,7 +1139,7 @@ INT16S composeProtocol698_GetRequest(INT8U* sendBuf,CLASS_6015 obj6015,TSA meter
 	sendBuf[sendLen++] = GET_REQUEST;
 
 	INT8S requestType = getRequestType(obj6015.cjtype,obj6015.csds.num);
-	fprintf(stderr,"\n composeProtocol698_GetRequest requestType = %d",requestType);
+	//fprintf(stderr,"\n composeProtocol698_GetRequest requestType = %d cjtype = %d obj6015.csds.num = %d",requestType,obj6015.cjtype,obj6015.csds.num);
 	if(requestType < 0)
 	{
 		return-1;

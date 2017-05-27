@@ -3165,6 +3165,7 @@ INT8S dealRealTimeRequst(INT8U port485)
 
 INT16S deal6015_698(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8U* dataContent,INT8U port485)
 {
+
 	fprintf(stderr, "\n deal6015_698-------------------  meter = %d\n", to6001.sernum);
 	DbgPrintToFile1(port485,"普通采集方案 698测量点   meter = %d 任务号 = %d 采集数据项个数 = %d---------",
 			to6001.sernum, st6015.sernum, st6015.csds.num);
@@ -3588,19 +3589,20 @@ INT8S sendEventReportBuff698(ROAD eventRoad,INT8U saveContentHead[SAVE_EVENT_BUF
 	DbPrt1(port485,"698 上报事件 buff:", (char *) reportEventBuf, eventBufLen, NULL);
 	//TODO 发送消息
 	mqs_send((INT8S *)PROXY_NET_MQ_NAME,1,METEREVENT_REPORT,reportEventBuf,eventBufLen);
-
+	DbgPrintToFile1(port485,"上报完毕");
 	return ret;
 }
 INT16S deal6017_698(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8U* dataContent,INT8U port485)
 {
+	DbgPrintToFile1(port485,"3----------");
 	INT16U totaldataLen =0;
-
+#if 0
 	fprintf(stderr,"事件采集方案 698测量点   meter = %d 任务号 = %d 采集数据项个数 = %d---------",
 			to6001.sernum, st6015.sernum, st6015.csds.num);
 
 	DbgPrintToFile1(port485,"事件采集方案 698测量点   meter = %d 任务号 = %d 采集数据项个数 = %d---------",
 			to6001.sernum, st6015.sernum, st6015.csds.num);
-
+#endif
 
 	INT8U getResponseType = 0;
 	INT16S retLen = 0;
@@ -3639,7 +3641,8 @@ INT16S deal6017_698(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8
 			fprintf(stderr,"deal6015_698  sendLen < 0");
 			return retLen;
 		}
-		fprintf(stderr,"\n\n1------------comfd1 = %d",comfd485[0]);
+	//	fprintf(stderr,"\n\n1------------comfd1 = %d",comfd485[0]);
+		DbgPrintToFile1(port485,"4----------");
 		subindex = 0;
 		while(subindex < MAX_RETRY_NUM)
 		{
@@ -3655,14 +3658,14 @@ INT16S deal6017_698(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8
 				INT16S dataLen = recvLen;
 				INT8U apduDataStartIndex = 0;
 				getResponseType = analyzeProtocol698(recvbuff,&csdNum,recvLen,&apduDataStartIndex,&dataLen);
-				fprintf(stderr,"\n getResponseType = %d  csdNum = %d dataLen = %d \n",getResponseType,csdNum,dataLen);
-				fprintf(stderr,"\n\n2------------comfd1 = %d",comfd485[0]);
+				//fprintf(stderr,"\n getResponseType = %d  csdNum = %d dataLen = %d \n",getResponseType,csdNum,dataLen);
+
 				if(getResponseType > 0)
 				{
 					OAD_DATA oadListContent[ROAD_OADS_NUM];
 					INT16U dataContentLen = 0;
 					parseSingleROADData(test6015.csds.csd[0].csd.road,&recvbuff[apduDataStartIndex],dataContent,&dataContentLen,oadListContent);
-					fprintf(stderr,"\n\n3------------comfd1 = %d",comfd485[0]);
+
 					if(dataContentLen > 0)
 					{
 						if(memcpy(zeroBuff,oadListContent[0].data,4)==0)
@@ -3678,17 +3681,17 @@ INT16S deal6017_698(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8
 						memcpy(&saveContentHead[18],oadListContent[0].data,oadListContent[0].datalen);
 						memcpy(&saveContentHead[23],oadListContent[1].data,oadListContent[1].datalen);
 						memcpy(&saveContentHead[31],oadListContent[2].data,oadListContent[2].datalen);
-						fprintf(stderr,"\n\n4------------comfd1 = %d",comfd485[0]);
-						DbPrt1(port485,"deal6017_698 存储事件 buff:", (char *) saveContentHead,SAVE_EVENT_BUFF_HEAD_LEN, NULL);
+						//fprintf(stderr,"\n\n4------------comfd1 = %d",comfd485[0]);
+						//DbPrt1(port485,"deal6017_698 存储事件 buff:", (char *) saveContentHead,SAVE_EVENT_BUFF_HEAD_LEN, NULL);
 						TS ts_cc;
 						TSGet(&ts_cc);
 						int isEventOccur = SaveNorData(st6035->taskID,&test6015.csds.csd[0].csd.road,saveContentHead,SAVE_EVENT_BUFF_HEAD_LEN,ts_cc);
-						DbgPrintToFile1(port485,"isEventOccur = %d---------",isEventOccur);
+						//DbgPrintToFile1(port485,"isEventOccur = %d---------",isEventOccur);
 						if((isEventOccur == 1)&&(isAllowReport==1))
 						{
 							sendEventReportBuff698(test6015.csds.csd[0].csd.road,saveContentHead,port485,oadListContent);
 						}
-						fprintf(stderr,"\n\n5------------comfd1 = %d",comfd485[0]);
+						//fprintf(stderr,"\n\n5------------comfd1 = %d",comfd485[0]);
 					}
 
 					break;
@@ -3709,7 +3712,7 @@ INT16S deal6017_698(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8
 	subindex = 0;
 	while(subindex < 3)
 	{
-		memset(recvbuff, 0, BUFFSIZE);
+		memset(recvbuff, 0, BUFFSIZE512);
 		SendDataTo485(port485, sendbuff, sendLen);
 		st6035->sendMsgNum++;
 		recvLen = ReceDataFrom485(DLT_698,port485, 500, recvbuff);
@@ -3724,7 +3727,7 @@ INT16S deal6017_698(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8
 			fprintf(stderr,"\n getResponseType = %d  csdNum = %d dataLen = %d \n",getResponseType,csdNum,dataLen);
 			if(getResponseType > 0)
 			{
-				retLen = deal698RequestResponse(0,getResponseType,csdNum,&recvbuff[apduDataStartIndex],dataContent,st6015.csds);
+				retLen = deal698RequestResponse(0,getResponseType,csdNum,&recvbuff[apduDataStartIndex],dataContent,st6015.csds,to6001,st6035->taskID,st6015.cjtype);
 				break;
 			}
 
@@ -3851,6 +3854,7 @@ INT16S deal6017_07(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8U
  */
 INT16S deal6015or6017_singlemeter(CLASS_6013 st6013,CLASS_6015 st6015,CLASS_6001 obj6001,CLASS_6035* st6035,INT8U* dataContent,INT8U port485)
 {
+	DbgPrintToFile1(port485,"2----------");
 	INT16S ret = 0;
 
 	ret = dealRealTimeRequst(port485);
@@ -4023,13 +4027,8 @@ INT16S deal6015or6017_singlemeter(CLASS_6013 st6013,CLASS_6015 st6015,CLASS_6001
  *根据6015中的MS 和电表地址 和端口好判断此电表是否需要抄读
  *0-不抄 1-抄
  */
-INT8U checkMeterType(MY_MS mst, INT8U port485,CLASS_6001 obj6001) {
+INT8U checkMeterType(MY_MS mst,INT8U usrType,TSA usrAddr) {
 
-	if(is485OAD(obj6001.basicinfo.port,port485)==0)
-	{
-		fprintf(stderr,"\n checkMeterType 非485 %d 测量点",port485);
-		return 0;
-	}
 	INT16U ms_num=0;
 	INT16U collIndex = 0;
 
@@ -4046,7 +4045,7 @@ INT8U checkMeterType(MY_MS mst, INT8U port485,CLASS_6001 obj6001) {
 			fprintf(stderr,"2 一组用户类型：个数=%d\n 值=",ms_num);
 			for(collIndex=0;collIndex < ms_num;collIndex++)
 			{
-				if(mst.ms.userType[collIndex+2] == obj6001.basicinfo.usrtype)
+				if(mst.ms.userType[collIndex+2] == usrType)
 				{
 					return 1;
 				}
@@ -4058,7 +4057,7 @@ INT8U checkMeterType(MY_MS mst, INT8U port485,CLASS_6001 obj6001) {
 			if(ms_num > COLLCLASS_MAXNUM) fprintf(stderr,"配置序号 超过限值 %d ,error !!!!!!",COLLCLASS_MAXNUM);
 			for(collIndex = 0;collIndex < ms_num;collIndex++)
 			{
-				if(memcmp(&mst.ms.userAddr[collIndex+1],&obj6001.basicinfo.addr,sizeof(TSA)) == 0)
+				if(memcmp(&mst.ms.userAddr[collIndex+1],&usrAddr,sizeof(TSA)) == 0)
 				{
 					return 1;
 				}
@@ -4080,28 +4079,28 @@ INT8U checkMeterType(MY_MS mst, INT8U port485,CLASS_6001 obj6001) {
 					{
 						typeEnd = mst.ms.type[collIndex].end[1];
 					}
-					fprintf(stderr,"\n metertype = %d typeBegin = %d typeEnd = %d \n",obj6001.basicinfo.usrtype,typeBegin,typeEnd);
-					if((obj6001.basicinfo.usrtype > typeBegin)&&(obj6001.basicinfo.usrtype < typeEnd))
+					fprintf(stderr,"\n metertype = %d typeBegin = %d typeEnd = %d \n",usrType,typeBegin,typeEnd);
+					if((usrType > typeBegin)&&(usrType < typeEnd))
 					{
 						return 1;
 					}
 					else if(mst.ms.type[collIndex].type == close_open)
 					{
-						if(obj6001.basicinfo.usrtype == typeBegin)
+						if(usrType == typeBegin)
 						{
 							return 1;
 						}
 					}
 					else if(mst.ms.type[collIndex].type == open_close)
 					{
-						if(obj6001.basicinfo.usrtype == typeEnd)
+						if(usrType == typeEnd)
 						{
 							return 1;
 						}
 					}
 					else if(mst.ms.type[collIndex].type == close_close)
 					{
-						if((obj6001.basicinfo.usrtype == typeBegin)||(obj6001.basicinfo.usrtype == typeEnd))
+						if((usrType == typeBegin)||(usrType == typeEnd))
 						{
 							return 1;
 						}
@@ -4282,12 +4281,17 @@ INT8S deal6015or6017(CLASS_6013 st6013,CLASS_6015 st6015, INT8U port485,CLASS_60
 
 	for (meterIndex = 0; meterIndex < info6000[port].meterSum; meterIndex++)
 	{
+		DbgPrintToFile1(port485,"1-----------任务ID:%d deal6015 测量点 = %d",st6013.taskID,info6000[port].list6001[meterIndex]);
 		memset(&meter,0,sizeof(CLASS_6001));
 		if (readParaClass(oi, &meter, info6000[port].list6001[meterIndex]) == 1)
 		{
 			if (meter.sernum != 0 && meter.sernum != 0xffff)
 			{
-				if (checkMeterType(st6015.mst, port485, meter))
+				if(is485OAD(meter.basicinfo.port,port485)==0)
+				{
+					continue;
+				}
+				if (checkMeterType(st6015.mst, meter.basicinfo.usrtype,meter.basicinfo.addr))
 				{
 					//判断冻结数据是否已经抄读成功了
 					if((st6015.csds.csd[0].csd.road.oad.OI == 0x5004)
@@ -4297,8 +4301,10 @@ INT8S deal6015or6017(CLASS_6013 st6013,CLASS_6015 st6015, INT8U port485,CLASS_60
 						continue;
 					}
 					st6035->totalMSNum++;
+#if 0
 					fprintf(stderr,"\n\n 任务号:%d  方案号:%d deal6015 测量点 = %d-----",st6035->taskID,st6015.sernum,meter.sernum);
 					DbgPrintToFile1(port485,"任务号:%d  方案号:%d deal6015 测量点 = %d-----",st6035->taskID,st6015.sernum,meter.sernum);
+#endif
 					INT8U dataContent[DATA_CONTENT_LEN];
 					memset(dataContent,0,DATA_CONTENT_LEN);
 					INT16S dataLen = 0;
