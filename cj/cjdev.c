@@ -109,7 +109,8 @@ void SetUsrPwd(int argc, char *argv[]) {
     }
 }
 
-void showStatus() {
+void showStatus()
+{
     JProgramInfo = OpenShMem("ProgramInfo", sizeof(ProgramInfo), NULL);
     fprintf(stderr, "集中器登陆(0:没有登陆 1:GPRS登陆 2:以太网登陆 3:串口登陆)[%d]\n", JProgramInfo->dev_info.jzq_login);
     fprintf(stderr, "1:AT检测成功 2:获取GPRS模块信息 3:检测SIM卡 4:注册网络成功[%d]\n", JProgramInfo->dev_info.gprs_status);

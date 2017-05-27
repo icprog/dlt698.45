@@ -182,8 +182,11 @@ void paraInit(INT8U oadnum,OAD *oad)
 	if(oadnum == 0) {	//恢复出厂参数
 		system("rm -rf /nand/para");
 		system("rm -rf /nand/event/property");
-		InitClass4300();
-		InitClassByZone(0);
+		InitClass4016();    //当前套日时段表
+		InitClass4300();    //电气设备信息
+		//InitClass6000();	//初始化交采采集档案
+	    InitClassf203();	//开关量输入
+		InitClassByZone(0);		//根据地区进行相应初始化	4500,4510参数
 	}else {
 		for(i=0;i<oadnum;i++) {
 

@@ -18,6 +18,7 @@
 #include "StdDataType.h"
 #include "Shmem.h"
 #include "PublicFunction.h"
+#include "def645.h"
 
 #define READ_BUF_SIZE 256
 extern INT32S comfd;
@@ -243,6 +244,7 @@ int  vs485_test(int port1,int port2)
     return Test_485_result;
 }
 
+
 //主程序
 int main(int argc, char *argv[])
 {
@@ -261,21 +263,17 @@ int main(int argc, char *argv[])
     fprintf(stderr,"\n===========================\nstep1:停止进程cjdeal(为了U盘功能检测)\n===========================\n");
     system("pkill cjdeal");
     fprintf(stderr,"\n===========================\nstep2:停止进程cjcomm(为了检测485口)\n===========================\n");
-    for(i=0;i<10;i++) {
+    for(;;) {
 		cjcomm_pid = check_cjcomm();
 		if(cjcomm_pid>0) {
+			syslog(LOG_NOTICE,"cj645检测到cjcomm运行,pid=%ld,正在停止程序!!!!!!!!!!!!\n ",cjcomm_pid);
 			system("pkill cjcomm");
-			break;
-		}else {		//防止cjdeal与cjcomm未运行,先检测到U盘运行cj645
 			system("pkill cjdeal");
+	    	if(pgpl_isExist(cjcomm_pid)==FALSE) {
+	    		fprintf(stderr,"cjcomm 已退出\n");
+	    		break;
+	    	}
 		}
-		sleep(1);
-    }
-	for(i=0;i<30;i++) {
-    	if(pgpl_isExist(cjcomm_pid)==FALSE) {
-    		fprintf(stderr,"cjcomm 已退出\n");
-    		break;
-    	}
     	sleep(1);
     }
     fprintf(stderr,"\n===========================\nstep3:485 串口互发测试\n===========================\n");
@@ -305,8 +303,17 @@ int main(int argc, char *argv[])
     }
 
     fprintf(stderr,"\n===========================\nstep6:运行cjcomm(为了1.红外测试通信 2.cj checkled发送报文来控制本地灯指示功能)\n===========================\n");
+    JProgramInfo->Projects[CjDealIndex].WaitTimes = 0;
     system("cjcomm 2 &");
-
+    for(i=0;i<60;i++) {
+    	JProgramInfo->Projects[CjDealIndex].WaitTimes = 0;
+		cjcomm_pid = check_cjcomm();
+		if(cjcomm_pid>0) {
+			syslog(LOG_NOTICE,"cj645调用cjcomm成功运行................,pid=%ld\n ",cjcomm_pid);
+			break;
+		}
+		sleep(1);
+    }
     acs_process();		//交采线程,实时计量数据,为了精度检测
     dealProcess();
 
