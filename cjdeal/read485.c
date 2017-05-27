@@ -437,7 +437,7 @@ INT32S open_com_para_chg(INT8U port, INT32U baud, INT32S oldcomfd, unsigned char
 	INT32S newfd = 0;
 	static INT8U lastport = 0;
 	static INT32U lastbaud = 0;
-	fprintf(stderr,"oldcomfd = %d lastport = %d lastbaud = %d port=%d baud =%d",oldcomfd,lastport,lastbaud,port,baud);
+	//fprintf(stderr,"oldcomfd = %d lastport = %d lastbaud = %d port=%d baud =%d",oldcomfd,lastport,lastbaud,port,baud);
 	if ((oldcomfd>0)&&(lastbaud == baud) && (lastport == port))
 	{
 		return oldcomfd;
@@ -446,7 +446,7 @@ INT32S open_com_para_chg(INT8U port, INT32U baud, INT32S oldcomfd, unsigned char
 		CloseCom(oldcomfd);
 		sleep(1);
 	}
-	fprintf(stderr,"\n JProgramInfo->cfg_para.device = %d",JProgramInfo->cfg_para.device);
+	//fprintf(stderr,"\n JProgramInfo->cfg_para.device = %d",JProgramInfo->cfg_para.device);
 	if(JProgramInfo->cfg_para.device == CCTT2)
 	{
 		if (port==1)
@@ -468,7 +468,7 @@ INT8S getComfdBy6001(INT8U baud,INT8U port)
 
 	INT8S result = -1;
 	INT32U baudrate = getMeterBaud(baud);
-	fprintf(stderr,"\n\n baud = %d port = %d baudrate = %d comfd4851 = %d comfd4852 = %d\n\n",baud,port,baudrate,comfd485[0],comfd485[1]);
+	//fprintf(stderr,"\n\n baud = %d port = %d baudrate = %d comfd4851 = %d comfd4852 = %d\n\n",baud,port,baudrate,comfd485[0],comfd485[1]);
 	comfd485[port-1] = open_com_para_chg(port, baudrate, comfd485[port-1], (unsigned char *) "even", 1, 8);
 	if (comfd485[port-1] <= 0)
 	{
@@ -850,10 +850,12 @@ void SendDataTo485(INT8U port485, INT8U *sendbuf, INT16U sendlen) {
 
 	INT8U str[50];
 	memset(str, 0, 50);
+#if 0
 	sprintf((char *) str, "485(%d)_S(%d):", port485, sendlen);
 	printbuff((char *) str, sendbuf, sendlen, "%02x", " ", "\n");
 
 	fprintf(stderr,"\n port485 = %d fd = %d \n",port485,fd);
+#endif
 	slen = write(fd, sendbuf, sendlen);
 	if (slen < 0)
 		fprintf(stderr, "slen=%d,send err!\n", slen);
@@ -2067,7 +2069,7 @@ INT16U parseSingleROADData(ROAD road,INT8U* oadData,INT8U* dataContent,INT16U* d
 	INT8U oadbuff[4];
 	memset(oadListContent,0,ROAD_OADS_NUM*sizeof(OAD_DATA));
 
-	fprintf(stderr,"\n receive ROAD %02x %02x %02x %02x\n",oadData[length],oadData[length+1],oadData[length+2],oadData[length+3]);
+	//fprintf(stderr,"\n receive ROAD %02x %02x %02x %02x\n",oadData[length],oadData[length+1],oadData[length+2],oadData[length+3]);
 	OADtoBuff(road.oad,oadbuff);
 	if(memcmp(oadbuff,oadData,4)!=0)
 	{
@@ -2076,18 +2078,18 @@ INT16U parseSingleROADData(ROAD road,INT8U* oadData,INT8U* dataContent,INT16U* d
 	}
 	length += 4;
 	INT8U rcvCSDnum = oadData[length++];//csd数量
-	fprintf(stderr,"\n rcvCSDnum = %d",rcvCSDnum);
+	//fprintf(stderr,"\n rcvCSDnum = %d",rcvCSDnum);
 	if((rcvCSDnum > ROAD_OADS_NUM)||(rcvCSDnum == 0))
 	{
 		return length;
 	}
 	INT8U csdIndex;
-	fprintf(stderr,"\n 收到回复的OAD ：");
+	//fprintf(stderr,"\n 收到回复的OAD ：");
 	for(csdIndex = 0;csdIndex < rcvCSDnum;csdIndex++)
 	{
 		length ++;
 		memcpy(oadListContent[csdIndex].oad,&oadData[length],4);
-		fprintf(stderr," /%d-%02x%02x%02x%02x ",csdIndex,oadData[length],oadData[length+1],oadData[length+2],oadData[length+3]);
+		//fprintf(stderr," /%d-%02x%02x%02x%02x ",csdIndex,oadData[length],oadData[length+1],oadData[length+2],oadData[length+3]);
 		length += 4;
 	}
 	if(oadData[length++] == 0)// 1-数据  0-错误
@@ -2104,7 +2106,7 @@ INT16U parseSingleROADData(ROAD road,INT8U* oadData,INT8U* dataContent,INT16U* d
 	INT8U recordIndex;
 	for(recordIndex = 0;recordIndex<recordNum;recordIndex++)
 	{
-		fprintf(stderr,"\n-----------------------第%d条记录-------------------------------\n",recordIndex);
+		//fprintf(stderr,"\n-----------------------第%d条记录-------------------------------\n",recordIndex);
 		for(csdIndex = 0;csdIndex < rcvCSDnum;csdIndex++)
 		{
 			startIndex = length;
@@ -2112,6 +2114,7 @@ INT16U parseSingleROADData(ROAD road,INT8U* oadData,INT8U* dataContent,INT16U* d
 			length += singledataLen;
 			oadListContent[csdIndex].datalen = singledataLen;
 			memcpy(oadListContent[csdIndex].data,&oadData[startIndex],singledataLen);
+#if 0
 			fprintf(stderr,"\n--------receive content -------\n");
 			fprintf(stderr,"\nOAD = %02x%02x%02x%02x",oadListContent[csdIndex].oad[0],oadListContent[csdIndex].oad[1],oadListContent[csdIndex].oad[2],oadListContent[csdIndex].oad[3]);
 			fprintf(stderr,"\ndatalen = %d",singledataLen);
@@ -2121,12 +2124,13 @@ INT16U parseSingleROADData(ROAD road,INT8U* oadData,INT8U* dataContent,INT16U* d
 			{
 				fprintf(stderr,"%02x ",oadListContent[csdIndex].data[prtIndex]);
 			}
+#endif
 		}
 		//按存储格式填充ROAD数据
 		for(csdIndex = 0;csdIndex < road.num;csdIndex++)
 		{
 			INT16U oiDataLen = CalcOIDataLen(road.oads[csdIndex].OI,road.oads[csdIndex].attrindex);
-			fprintf(stderr,"\n OI = %04x len = %d \n",road.oads[csdIndex].OI,oiDataLen);
+			//fprintf(stderr,"\n OI = %04x len = %d \n",road.oads[csdIndex].OI,oiDataLen);
 			memset(&dataContent[dataLen],0,oiDataLen);
 			memset(oadbuff,0,4);
 			OADtoBuff(road.oads[csdIndex],oadbuff);
@@ -2146,12 +2150,12 @@ INT16U parseSingleROADData(ROAD road,INT8U* oadData,INT8U* dataContent,INT16U* d
 			}
 			dataLen += oiDataLen;
 		}
-		fprintf(stderr,"dataLen=================================%d",dataLen);
+		//fprintf(stderr,"dataLen=================================%d",dataLen);
 	}
 
 
 	*dataIndex = dataLen;
-	fprintf(stderr,"dataIndex=================================%d",*dataIndex);
+	//fprintf(stderr,"dataIndex=================================%d",*dataIndex);
 	return length;
 }
 
@@ -3451,10 +3455,6 @@ INT16S deal6015_9707(INT8U protocol,CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6
 				{
 					return PARA_CHANGE_RETVALUE;
 				}
-				if(getComfdBy6001(to6001.basicinfo.baud,port485) != 1)
-				{
-					return 0;
-				}
 
 				datalen = request9707_singleOAD(protocol,st6015.csds.csd[dataIndex].csd.road.oad.OI,
 						st6015.csds.csd[dataIndex].csd.road.oads[csdIndex],to6001,st6035,&dataContent[totaldataLen],port485);
@@ -3474,10 +3474,7 @@ INT16S deal6015_9707(INT8U protocol,CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6
 			{
 				return PARA_CHANGE_RETVALUE;
 			}
-			if(getComfdBy6001(to6001.basicinfo.baud,port485) != 1)
-			{
-				return 0;
-			}
+
 			datalen = request9707_singleOAD(protocol,0x0000,st6015.csds.csd[dataIndex].csd.oad,to6001,st6035,&dataContent[totaldataLen],port485);
 			totaldataLen += datalen;
 		}
@@ -3589,12 +3586,10 @@ INT8S sendEventReportBuff698(ROAD eventRoad,INT8U saveContentHead[SAVE_EVENT_BUF
 	DbPrt1(port485,"698 上报事件 buff:", (char *) reportEventBuf, eventBufLen, NULL);
 	//TODO 发送消息
 	mqs_send((INT8S *)PROXY_NET_MQ_NAME,1,METEREVENT_REPORT,reportEventBuf,eventBufLen);
-	DbgPrintToFile1(port485,"上报完毕");
 	return ret;
 }
 INT16S deal6017_698(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8U* dataContent,INT8U port485)
 {
-	DbgPrintToFile1(port485,"3----------");
 	INT16U totaldataLen =0;
 #if 0
 	fprintf(stderr,"事件采集方案 698测量点   meter = %d 任务号 = %d 采集数据项个数 = %d---------",
@@ -3615,34 +3610,30 @@ INT16S deal6017_698(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8
 
 #ifdef TESTDEF
 	CLASS_6015 test6015;
+	memset(&test6015,0,sizeof(CLASS_6015));
+	test6015.csds.num = 1;
+	test6015.cjtype = TYPE_LAST;
+	test6015.csds.csd[0].type = 1;
+
 	INT8U csdIndex = 0;
 	for(csdIndex = 0;csdIndex < st6015.csds.num;csdIndex++)
 	{
 		memset(sendbuff, 0, BUFFSIZE256);
 		INT8S ret = dealRealTimeRequst(port485);
-		if(getComfdBy6001(to6001.basicinfo.baud,port485) != 1)
-		{
-			return 0;
-		}
 		if(ret == PARA_CHANGE_RETVALUE)
 		{
 			return PARA_CHANGE_RETVALUE;
 		}
-
-		memset(&test6015,0,sizeof(CLASS_6015));
-		test6015.csds.num = 1;
-		test6015.cjtype = TYPE_LAST;
-		test6015.csds.csd[0].type = 1;
 		memcpy(&test6015.csds.csd[0].csd.road,&st6015.csds.csd[csdIndex].csd.road,sizeof(ROAD));
 
 		sendLen = composeProtocol698_GetRequest(sendbuff, test6015, to6001.basicinfo.addr);
+
 		if(sendLen < 0)
 		{
 			fprintf(stderr,"deal6015_698  sendLen < 0");
 			return retLen;
 		}
 	//	fprintf(stderr,"\n\n1------------comfd1 = %d",comfd485[0]);
-		DbgPrintToFile1(port485,"4----------");
 		subindex = 0;
 		while(subindex < MAX_RETRY_NUM)
 		{
@@ -3693,10 +3684,8 @@ INT16S deal6017_698(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8
 						}
 						//fprintf(stderr,"\n\n5------------comfd1 = %d",comfd485[0]);
 					}
-
 					break;
 				}
-
 			}
 			subindex++;
 		}
@@ -3769,10 +3758,7 @@ INT16S deal6017_07(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8U
 	for (dataIndex = 0; dataIndex < st6015.csds.num; dataIndex++)
 	{
 		INT8S ret = dealRealTimeRequst(port485);
-		if(getComfdBy6001(to6001.basicinfo.baud,port485) != 1)
-		{
-			return 0;
-		}
+
 		if(ret == PARA_CHANGE_RETVALUE)
 		{
 			return PARA_CHANGE_RETVALUE;
@@ -3854,7 +3840,6 @@ INT16S deal6017_07(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8U
  */
 INT16S deal6015or6017_singlemeter(CLASS_6013 st6013,CLASS_6015 st6015,CLASS_6001 obj6001,CLASS_6035* st6035,INT8U* dataContent,INT8U port485)
 {
-	DbgPrintToFile1(port485,"2----------");
 	INT16S ret = 0;
 
 	ret = dealRealTimeRequst(port485);
@@ -4559,7 +4544,7 @@ void read485_thread(void* i485port) {
 		}
 #endif
 
-		if(taskIndex > -1)
+		if((taskIndex > -1)&&(info6000[port-1].meterSum > 0))
 		{
 			fprintf(stderr,"\n read485_thread ---------port = %d ------ taskIndex = %d \n",port,taskIndex);
 			DbgPrintToFile1(port,"******************************************taskIndex = %d 任务开始*******************************",taskIndex);
