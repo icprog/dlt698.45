@@ -45,7 +45,8 @@ static NETCONFIG 	IP_HuNan={1,{192,168,0,10},{255,255,255,0},{192,168,0,1},{},{}
 ///浙江　ＩＩ型
 static MASTER_STATION_INFO	master_info_ZheJiang = {{10,137,253,7},9006};		//IP				端口号
 static GprsPara 	gprs_para_ZheJiang = {"ZJDL.ZJ","card.ZJ","card",""};		//apn ,userName,passWord,proxyIp
-static MASTER_STATION_INFO	master_info_ZheJiang_4510 = {{10,137,253,7},9006};			//net IP	端口号
+static MASTER_STATION_INFO	master_info_ZheJiang_4510 = {{10,137,253,7},9006};			//主net IP	端口号
+static MASTER_STATION_INFO	bak_info_ZheJiang_4510 = {{10,137,253,7},9005};			//备net IP	端口号
 static NETCONFIG 	IP_ZheJiang={1,{192,168,0,4},{255,255,255,0},{192,168,0,1},{},{}};	//网络配置
 
 ///国网送检
@@ -85,14 +86,12 @@ void InitClass4500(INT16U heartBeat,MASTER_STATION_INFO master_info,MASTER_STATI
     }
     if(memcmp(&bak_info,&null_info,sizeof(MASTER_STATION_INFO))!=0) {
     	class4500.master.master[1].ip[0] = IP_LEN;
-		memcpy(&class4500.master.master[1].ip[1],&master_info.ip,class4500.master.master[1].ip[0]);
-		class4500.master.master[1].port = master_info.port;
+		memcpy(&class4500.master.master[1].ip[1],&bak_info.ip,class4500.master.master[1].ip[0]);
+		class4500.master.master[1].port = bak_info.port;
 		class4500.master.masternum++;
-    }
-    for(i=0;i<class4500.master.masternum;i++) {
-    	class4500.master.master[i].ip[0] = IP_LEN;
-    	memcpy(&class4500.master.master[i].ip[1],&master_info.ip,class4500.master.master[i].ip[0]);
-    	class4500.master.master[i].port = master_info.port;
+	    fprintf(stderr, "ssss备IP %d.%d.%d.%d:%d\n", class4500.master.master[1].ip[1],
+	            class4500.master.master[1].ip[2], class4500.master.master[1].ip[3],
+	            class4500.master.master[1].ip[4], class4500.master.master[1].port);
     }
     fprintf(stderr, "\n主IP %d.%d.%d.%d:%d  ", class4500.master.master[0].ip[1],
             class4500.master.master[0].ip[2], class4500.master.master[0].ip[3],
@@ -217,17 +216,20 @@ void InitClass6000() {
 /*
  * 开关量输入
  * */
-void InitClassf203(INT8U device)
+void InitClassf203()
 {
     CLASS_f203 oif203 = {};
     int readret       = 0;
+    ConfigPara	cfgpara = {};
 
+    cfgpara.device = CCTT2;
+    ReadDeviceConfig(&cfgpara);
     memset(&oif203, 0, sizeof(oif203));
     readret = readCoverClass(0xf203, 0, &oif203, sizeof(CLASS_f203), para_vari_save);
     if (readret != 1) {
-        fprintf(stderr, "初始化开关量输入：【F203】\n");
+        fprintf(stderr, "初始化开关量输入：【F203】 设备类型:%d\n",cfgpara.device);
         strncpy((char*)&oif203.class22.logic_name, "F203", sizeof(oif203.class22.logic_name));
-        switch(device) {
+        switch(cfgpara.device) {
         case CCTT1:
             oif203.class22.device_num    = 1;
             oif203.statearri.num         = 4;
@@ -247,7 +249,7 @@ void InitClassf203(INT8U device)
 
 
 /*
- * type = 1: 判断参数不存在初始化
+ * type = 1: 判断参数不存在初始化,上电运行判断参数文件
  * 　　　　　= 0: 初始化参数
  * */
 void InitClassByZone(INT8U type)
@@ -259,10 +261,9 @@ void InitClassByZone(INT8U type)
     	ret = readCoverClass(0x4500, 0, (void*)&class4500, sizeof(CLASS25), para_vari_save);
 	}else ret = 0;
     if (ret != 1) {
-
     	if(getZone("ZheJiang")==0) {
     		heartBeat = 300;
-			InitClass4500(heartBeat,master_info_ZheJiang,null_info,gprs_para_ZheJiang);
+			InitClass4500(heartBeat,master_info_ZheJiang,bak_info_ZheJiang_4510,gprs_para_ZheJiang);
 			InitClass4510(heartBeat,master_info_ZheJiang_4510,IP_ZheJiang);    //以太网通信模块1
 		}else if(getZone("HuNan")==0) {
 			InitClass4500(heartBeat,master_info_HuNan,null_info,gprs_para_HuNan);

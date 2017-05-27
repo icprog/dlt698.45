@@ -16,7 +16,7 @@ extern void setOnlineMode(int argc, char* argv[]);
 extern void SetIPort(int argc, char *argv[]);
 extern void SetNetIPort(int argc, char* argv[]);
 extern void SetID(int argc, char *argv[]);
-
+extern void showStatus() ;
 extern void SetHEART(int argc, char* argv[]);
 
 extern void EsamTest(int argc, char* argv[]);

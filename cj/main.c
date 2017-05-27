@@ -39,6 +39,7 @@ static char *usage_set = "\n--------------------参数设置及基本维护命�
         "		 【停程序】cj dog[停程序并且清狗] 或者 cj stop[清狗]		\n"
 		"		  [设置维护485端口参数] cj rs485	\n"
 		"		  [设置红外ifr端口参数] cj ifr	\n"
+		"		  [显示遥信状态值] cj yx\n"
         "[读取心跳] cj heart       "
         "[设置心跳] cj heart 60 s\n"
 		"【初始化】cj InIt 3 [数据区初始化]	\n　　　　　　cj InIt 5 [事件初始化]\n　　　　　　cj InIt 6 [需量初始化]\n　　　　　　cj InIt 4 [恢复出厂参数]\n"
@@ -402,6 +403,21 @@ int main(int argc, char *argv[]) {
         return EXIT_SUCCESS;
     }
 
+    if (strcmp("yx", argv[1]) == 0) {
+        for(;;){
+            CLASS_f203 oif203 = {};
+            readCoverClass(0xf203, 0, &oif203, sizeof(CLASS_f203), para_vari_save);
+            fprintf(stderr, "[F203]开关量输入\n");
+            fprintf(stderr, "属性2：ST=%d_%d_%d_%d %d_%d_%d_%d\n",
+            		oif203.statearri.stateunit[0].ST, oif203.statearri.stateunit[1].ST,
+            		oif203.statearri.stateunit[2].ST, oif203.statearri.stateunit[3].ST,
+            		oif203.statearri.stateunit[4].ST, oif203.statearri.stateunit[5].ST,
+                    oif203.statearri.stateunit[6].ST, oif203.statearri.stateunit[7].ST);
+            usleep(500000);
+        }
+        return EXIT_SUCCESS;
+    }
+
     prthelp();
     return EXIT_SUCCESS;
 }
@@ -467,10 +483,7 @@ void setOIChange_CJ(OI_698 oi)
 	case 0x601E:	memp->oi_changed.oi601E++;  break;
 	case 0x6051:	memp->oi_changed.oi6051++;  break;
 
-	case 0xf203:
-		memp->oi_changed.oiF203++;
-		fprintf(stderr,"memp->oi_changed.oiF203=%d\n",memp->oi_changed.oiF203);
-		break;
+	case 0xf203:   memp->oi_changed.oiF203++;	break;
 	case 0xf101:	memp->oi_changed.oiF101++;  break;
 	}
 	shmm_unregister("ProgramInfo", sizeof(ProgramInfo));

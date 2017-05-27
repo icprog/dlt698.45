@@ -570,8 +570,8 @@ INT16U set4510(OAD oad,INT8U *data,INT8U *DAR)
 	memset(&class4510,0,sizeof(CLASS26));
 
 	readCoverClass(oad.OI,0,&class4510,sizeof(CLASS26),para_vari_save);
-	if (oad.attflg == 2 )
-	{
+	switch(oad.attflg) {
+	case 2:
 		index += getStructure(&data[index],NULL);
 		index += getEnum(1,&data[index],(INT8U *)&class4510.commconfig.workModel);
 		index += getEnum(1,&data[index],(INT8U *)&class4510.commconfig.connectType);
@@ -605,6 +605,29 @@ INT16U set4510(OAD oad,INT8U *data,INT8U *DAR)
 			*DAR = refuse_rw;
 			return index;
 		}
+	break;
+	case 3://主站通信参数表
+		index += getArray(&data[index],(INT8U *)&class4510.master.masternum);
+		if(class4510.master.masternum>4) {
+			class4510.master.masternum = 4;
+			syslog(LOG_ERR,"主站设置端口数量%d大于限值%d\n",class4510.master.masternum,4);
+		}
+		for(i=0;i<class4510.master.masternum;i++) {
+			index += getStructure(&data[index],NULL);
+			index += getOctetstring(1,&data[index],class4510.master.master[i].ip);
+			index += getLongUnsigned(&data[index],(INT8U *)&class4510.master.master[i].port);
+		}
+		break;
+	case 4:
+		index += getStructure(&data[index],NULL);
+		index += getEnum(1,&data[index],(INT8U *)&class4510.IP.ipConfigType);
+		index += getOctetstring(1,&data[index],class4510.IP.ip);
+		index += getOctetstring(1,&data[index],class4510.IP.subnet_mask);
+		index += getOctetstring(1,&data[index],class4510.IP.gateway);
+		index += getVisibleString(&data[index],class4510.IP.username_pppoe);
+		index += getVisibleString(&data[index],class4510.IP.password_pppoe);
+		writeIpSh(class4510.IP.ip,class4510.IP.subnet_mask);
+		break;
 	}
 	*DAR = saveCoverClass(oad.OI,0,&class4510,sizeof(CLASS26),para_vari_save);
 

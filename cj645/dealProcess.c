@@ -679,9 +679,10 @@ void checkProcess()
 {
     int readstate = 1;
 
-    for (int j = 0; j < 5; ++j) {			//清死亡计数,防止cjmain调用cjdeal,cjcomm
-        JProgramInfo->Projects[j].WaitTimes = 0;
-    }
+    JProgramInfo->Projects[CjDealIndex].WaitTimes = 0;	//清cjdeal死亡计数,防止cjmain调用cjdeal
+//    for (int j = 0; j < 5; ++j) {			//清死亡计数,防止cjmain调用cjdeal,cjcomm
+//        JProgramInfo->Projects[j].WaitTimes = 0;
+//    }
     ///yx 检测
     readstate = gpio_readbyte("/dev/gpiYX1");
     if(readstate==0) {
