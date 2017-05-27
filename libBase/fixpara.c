@@ -45,7 +45,8 @@ static NETCONFIG 	IP_HuNan={1,{192,168,0,10},{255,255,255,0},{192,168,0,1},{},{}
 ///浙江　ＩＩ型
 static MASTER_STATION_INFO	master_info_ZheJiang = {{10,137,253,7},9006};		//IP				端口号
 static GprsPara 	gprs_para_ZheJiang = {"ZJDL.ZJ","card.ZJ","card",""};		//apn ,userName,passWord,proxyIp
-static MASTER_STATION_INFO	master_info_ZheJiang_4510 = {{10,137,253,7},9006};			//net IP	端口号
+static MASTER_STATION_INFO	master_info_ZheJiang_4510 = {{10,137,253,7},9006};			//主net IP	端口号
+static MASTER_STATION_INFO	bak_info_ZheJiang_4510 = {{10,137,253,7},9005};			//备net IP	端口号
 static NETCONFIG 	IP_ZheJiang={1,{192,168,0,4},{255,255,255,0},{192,168,0,1},{},{}};	//网络配置
 
 ///国网送检
@@ -85,14 +86,12 @@ void InitClass4500(INT16U heartBeat,MASTER_STATION_INFO master_info,MASTER_STATI
     }
     if(memcmp(&bak_info,&null_info,sizeof(MASTER_STATION_INFO))!=0) {
     	class4500.master.master[1].ip[0] = IP_LEN;
-		memcpy(&class4500.master.master[1].ip[1],&master_info.ip,class4500.master.master[1].ip[0]);
-		class4500.master.master[1].port = master_info.port;
+		memcpy(&class4500.master.master[1].ip[1],&bak_info.ip,class4500.master.master[1].ip[0]);
+		class4500.master.master[1].port = bak_info.port;
 		class4500.master.masternum++;
-    }
-    for(i=0;i<class4500.master.masternum;i++) {
-    	class4500.master.master[i].ip[0] = IP_LEN;
-    	memcpy(&class4500.master.master[i].ip[1],&master_info.ip,class4500.master.master[i].ip[0]);
-    	class4500.master.master[i].port = master_info.port;
+	    fprintf(stderr, "ssss备IP %d.%d.%d.%d:%d\n", class4500.master.master[1].ip[1],
+	            class4500.master.master[1].ip[2], class4500.master.master[1].ip[3],
+	            class4500.master.master[1].ip[4], class4500.master.master[1].port);
     }
     fprintf(stderr, "\n主IP %d.%d.%d.%d:%d  ", class4500.master.master[0].ip[1],
             class4500.master.master[0].ip[2], class4500.master.master[0].ip[3],
@@ -264,7 +263,7 @@ void InitClassByZone(INT8U type)
     if (ret != 1) {
     	if(getZone("ZheJiang")==0) {
     		heartBeat = 300;
-			InitClass4500(heartBeat,master_info_ZheJiang,null_info,gprs_para_ZheJiang);
+			InitClass4500(heartBeat,master_info_ZheJiang,bak_info_ZheJiang_4510,gprs_para_ZheJiang);
 			InitClass4510(heartBeat,master_info_ZheJiang_4510,IP_ZheJiang);    //以太网通信模块1
 		}else if(getZone("HuNan")==0) {
 			InitClass4500(heartBeat,master_info_HuNan,null_info,gprs_para_HuNan);

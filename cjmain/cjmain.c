@@ -297,6 +297,11 @@ void InitSharedMem(int argc, char *argv[]) {
     JProgramInfo = (ProgramInfo *) CreateShMem("ProgramInfo", sizeof(ProgramInfo), NULL);
     asyslog(LOG_NOTICE, "打开共享内存，地址[%d]，大小[%d]", JProgramInfo, sizeof(ProgramInfo));
 
+    InitClass4016();    	//当前套日时段表
+	InitClass4300();    	//电气设备信息
+    InitClassf203();		//开关量输入
+	InitClassByZone(1);		//根据地区进行相应初始化	4500,4510参数,防止参数丢失,重新生产
+
     //事件参数初始化
     readCoverClass(0x3100, 0, &JProgramInfo->event_obj.Event3100_obj, sizeof(JProgramInfo->event_obj.Event3100_obj),
                    event_para_save);
