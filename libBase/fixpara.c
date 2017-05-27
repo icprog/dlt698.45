@@ -28,12 +28,14 @@ typedef struct {
     INT8U proxyIp[OCTET_STRING_LEN];    //代理服务器地址
 }GprsPara;
 
-								//厂商代码　　软件版本　软件日期　　硬件版本　硬件日期  扩展信息
+#define  IP_LEN		4		//参数ip类长度
+
+									//厂商代码　　软件版本　软件日期　　硬件版本　硬件日期  扩展信息
 static VERINFO verinfo          = { "QDGK", "V1.1", "170328", "1.10", "150628", "00000000" }; // 4300 版本信息
 static DateTimeBCD product_date = { { 2016 }, { 04 }, { 6 }, { 0 }, { 0 }, { 0 } };   // 4300 生产日期
 static char protcol[]           = "DL/T 698.45";                                      // 4300 支持规约类型
 
-static MASTER_STATION_INFO null_info = {};
+static MASTER_STATION_INFO null_info = {};   //备用地址不设置传入
 ///湖南　Ｉ型
 static MASTER_STATION_INFO	master_info_HuNan = {{10,223,31,200},4000};			//IP				端口号
 static GprsPara 	gprs_para_HuNan = {"dl.vpdn.hn","cs@dl.vpdn.hn","hn123456",""};		//apn ,userName,passWord,proxyIp
@@ -41,9 +43,9 @@ static MASTER_STATION_INFO	master_info_HuNan_4510 = {{192,168,127,127},9027};			
 static NETCONFIG 	IP_HuNan={1,{192,168,0,10},{255,255,255,0},{192,168,0,1},{},{}};	//网络配置
 
 ///浙江　ＩＩ型
-static MASTER_STATION_INFO	master_info_ZheJiang = {{10,223,31,200},4000};		//IP				端口号
+static MASTER_STATION_INFO	master_info_ZheJiang = {{10,137,253,7},9006};		//IP				端口号
 static GprsPara 	gprs_para_ZheJiang = {"ZJDL.ZJ","card.ZJ","card",""};		//apn ,userName,passWord,proxyIp
-static MASTER_STATION_INFO	master_info_ZheJiang_4510 = {{192,168,127,127},9027};			//net IP	端口号
+static MASTER_STATION_INFO	master_info_ZheJiang_4510 = {{10,137,253,7},9006};			//net IP	端口号
 static NETCONFIG 	IP_ZheJiang={1,{192,168,0,4},{255,255,255,0},{192,168,0,1},{},{}};	//网络配置
 
 ///国网送检
@@ -52,7 +54,8 @@ static GprsPara 	gprs_para_GW = {"CMNET","CARD","CARD",""};		//apn ,userName,pas
 static MASTER_STATION_INFO	master_info_GW_4510 = {{192,168,127,127},9027};			//net IP	端口号
 static NETCONFIG 	IP_GW={1,{192,168,127,244},{255,255,255,0},{192,168,127,1},{},{}};	//网络配置
 
-void InitClass4500(MASTER_STATION_INFO master_info,MASTER_STATION_INFO bak_info,GprsPara gprs_para)
+
+void InitClass4500(INT16U heartBeat,MASTER_STATION_INFO master_info,MASTER_STATION_INFO bak_info,GprsPara gprs_para)
 {
 	int		i=0;
 	CLASS25 class4500 = {};
@@ -65,7 +68,7 @@ void InitClass4500(MASTER_STATION_INFO master_info,MASTER_STATION_INFO bak_info,
     class4500.commconfig.listenPortnum = 0;		//监听端口 NULL
     class4500.commconfig.proxyPort = 0;			//代理端口 NULL
     class4500.commconfig.timeoutRtry = (30<<2) | (3 & 0x03);	// bit7~bit2:超时时间 30秒, bit1~bit0:重发次数:3次
-    class4500.commconfig.heartBeat  = 60; 	//心跳周期 60s
+    class4500.commconfig.heartBeat  = heartBeat; 	//心跳周期 60s
     memcpy(&class4500.commconfig.apn[1],&gprs_para.apn,strlen((char *)gprs_para.apn));
     class4500.commconfig.apn[0] = strlen((char *)gprs_para.apn);
     memcpy(&class4500.commconfig.userName[1],&gprs_para.userName,strlen((char *)gprs_para.userName));
@@ -73,21 +76,22 @@ void InitClass4500(MASTER_STATION_INFO master_info,MASTER_STATION_INFO bak_info,
     memcpy(&class4500.commconfig.passWord[1],&gprs_para.passWord,strlen((char *)(gprs_para.passWord)));
     class4500.commconfig.passWord[0] = strlen((char *)(gprs_para.passWord));
     class4500.master.masternum = 0;
-    if(memcmp(&master_info,&null_info,sizeof(MASTER_STATION_INFO))==0) {
-		memcpy(&class4500.master.master[0].ip[1],&master_info.ip,strlen((char *)master_info.ip));
+    if(memcmp(&master_info,&null_info,sizeof(MASTER_STATION_INFO))!=0) {
 		class4500.master.master[0].ip[0] = strlen((char *)master_info.ip);
+		if(class4500.master.master[0].ip[0]<4) 	class4500.master.master[0].ip[0] = 4;
+		memcpy(&class4500.master.master[0].ip[1],&master_info.ip,class4500.master.master[0].ip[0]);
 		class4500.master.master[0].port = master_info.port;
 		class4500.master.masternum++;
     }
-    if(memcmp(&bak_info,&null_info,sizeof(MASTER_STATION_INFO))==0) {
-		memcpy(&class4500.master.master[1].ip[1],&master_info.ip,strlen((char *)master_info.ip));
-		class4500.master.master[1].ip[0] = strlen((char *)master_info.ip);
+    if(memcmp(&bak_info,&null_info,sizeof(MASTER_STATION_INFO))!=0) {
+    	class4500.master.master[1].ip[0] = IP_LEN;
+		memcpy(&class4500.master.master[1].ip[1],&master_info.ip,class4500.master.master[1].ip[0]);
 		class4500.master.master[1].port = master_info.port;
 		class4500.master.masternum++;
     }
     for(i=0;i<class4500.master.masternum;i++) {
-    	memcpy(&class4500.master.master[i].ip[1],&master_info.ip,strlen((char *)master_info.ip));
-    	class4500.master.master[i].ip[0] = strlen((char *)master_info.ip);
+    	class4500.master.master[i].ip[0] = IP_LEN;
+    	memcpy(&class4500.master.master[i].ip[1],&master_info.ip,class4500.master.master[i].ip[0]);
     	class4500.master.master[i].port = master_info.port;
     }
     fprintf(stderr, "\n主IP %d.%d.%d.%d:%d  ", class4500.master.master[0].ip[1],
@@ -100,7 +104,7 @@ void InitClass4500(MASTER_STATION_INFO master_info,MASTER_STATION_INFO bak_info,
 }
 
 
-void InitClass4510(MASTER_STATION_INFO master_info,NETCONFIG net_ip) //以太网通信模块1
+void InitClass4510(INT16U heartBeat,MASTER_STATION_INFO master_info,NETCONFIG net_ip) //以太网通信模块1
 {
     CLASS26 oi4510 = {};
     int ret        = 0;
@@ -112,23 +116,24 @@ void InitClass4510(MASTER_STATION_INFO master_info,NETCONFIG net_ip) //以太网
         fprintf(stderr, "\n初始化以太网通信模块1：4510\n");
         oi4510.master.masternum         = 2;		//主站通信参数配置
         for(i=0;i<oi4510.master.masternum;i++) {
+        	oi4510.master.master[i].ip[0] = IP_LEN;
         	memcpy(&oi4510.master.master[i].ip[1],&master_info.ip,strlen((char *)master_info.ip));
-        	oi4510.master.master[i].ip[0] = strlen((char *)master_info.ip);
         	oi4510.master.master[i].port = master_info.port;
         }
         oi4510.IP.ipConfigType = net_ip.ipConfigType;		//IP配置方式:静态
-    	memcpy(&oi4510.IP.ip[1],&net_ip.ip,strlen((char *)net_ip.ip));
-    	oi4510.IP.ip[0] = strlen((char *)net_ip.ip);
-    	memcpy(&oi4510.IP.subnet_mask[1],&net_ip.subnet_mask,strlen((char *)net_ip.subnet_mask));
-    	oi4510.IP.subnet_mask[0] = strlen((char *)net_ip.subnet_mask);
+        oi4510.IP.ip[0] = IP_LEN;//strlen((char *)net_ip.ip);
+        memcpy(&oi4510.IP.ip[1],&net_ip.ip[0],oi4510.IP.ip[0]);
+    	oi4510.IP.subnet_mask[0] = IP_LEN;
+    	memcpy(&oi4510.IP.subnet_mask[1],&net_ip.subnet_mask,oi4510.IP.subnet_mask[0]);
+       	oi4510.IP.gateway[0] = IP_LEN;
     	memcpy(&oi4510.IP.gateway[1],&net_ip.gateway,strlen((char *)net_ip.gateway));
-    	oi4510.IP.gateway[0] = strlen((char *)net_ip.gateway);
+
         //修改ip.sh文件
         writeIpSh(oi4510.IP.ip,oi4510.IP.subnet_mask);
 
         oi4510.commconfig.workModel     = 1; 	//客户机模式
         oi4510.commconfig.connectType   = 0;	//连接方式:TCP
-        oi4510.commconfig.heartBeat     = 60; 	// 60s
+        oi4510.commconfig.heartBeat     = heartBeat; 	// 60s
         saveCoverClass(0x4510, 0, &oi4510, sizeof(CLASS26), para_vari_save);
     }
 }
@@ -249,21 +254,22 @@ void InitClassByZone(INT8U type)
 {
 	int ret        = 0;
 	CLASS25 class4500 = {};
-
+	INT16U		heartBeat = 60;	//单位秒
 	if(type == 1) {
     	ret = readCoverClass(0x4500, 0, (void*)&class4500, sizeof(CLASS25), para_vari_save);
 	}else ret = 0;
     if (ret != 1) {
 
     	if(getZone("ZheJiang")==0) {
-			InitClass4500(master_info_ZheJiang,null_info,gprs_para_ZheJiang);
-			InitClass4510(master_info_ZheJiang_4510,IP_ZheJiang);    //以太网通信模块1
+    		heartBeat = 300;
+			InitClass4500(heartBeat,master_info_ZheJiang,null_info,gprs_para_ZheJiang);
+			InitClass4510(heartBeat,master_info_ZheJiang_4510,IP_ZheJiang);    //以太网通信模块1
 		}else if(getZone("HuNan")==0) {
-			InitClass4500(master_info_HuNan,null_info,gprs_para_HuNan);
-			InitClass4510(master_info_HuNan_4510,IP_HuNan);    //以太网通信模块1
+			InitClass4500(heartBeat,master_info_HuNan,null_info,gprs_para_HuNan);
+			InitClass4510(heartBeat,master_info_HuNan_4510,IP_HuNan);    //以太网通信模块1
 		}else if(getZone("GW")==0) {
-			InitClass4500(master_info_GW,master_info_GW,gprs_para_GW);
-			InitClass4510(master_info_GW_4510,IP_GW);    //以太网通信模块1
+			InitClass4500(heartBeat,master_info_GW,master_info_GW,gprs_para_GW);
+			InitClass4510(heartBeat,master_info_GW_4510,IP_GW);    //以太网通信模块1
 		}
     }
 }

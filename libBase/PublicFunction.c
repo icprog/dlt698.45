@@ -90,12 +90,12 @@ int getZone(char *zone)
 		zonefirst = 0;
 		memset(&cfg_para,0,sizeof(ConfigPara));
 		ReadDeviceConfig(&cfg_para);
-		fprintf(stderr,"first read cfg_zone=%s\n",cfg_para.zone);
+		fprintf(stderr,"上电第一次读出地区: cfg_zone=%s\n",cfg_para.zone);
 	}
-	fprintf(stderr,"cfg_zone=%s\n",cfg_para.zone);
-//	fprintf(stderr,"readzone=%s,len=%d\n",zone,strlen(zone));
 	ret = strncmp(cfg_para.zone,zone,strlen(zone));
-	fprintf(stderr,"getZone return = %d (0:满足地区)\n",ret);
+	if(ret==0) {
+		fprintf(stderr,"cfg_zone=%s 满足地区\n",cfg_para.zone,ret);
+	}
 	return ret;
 }
 

@@ -103,7 +103,7 @@ static int RegularIfr(struct aeEventLoop *ep, long long id, void *clientData) {
                                           GlobStop[oif202.devpara.stopbits],
                                           GlobData[oif202.devpara.databits]);
         } else {
-            nst->phy_connect_fd = OpenCom(3, 2400, (unsigned char *) "even",
+            nst->phy_connect_fd = OpenCom(3, 1200, (unsigned char *) "even",
                                           1, 8);
         }
 

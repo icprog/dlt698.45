@@ -11,6 +11,9 @@
 #include "StdDataType.h"
 #include "Objectdef.h"
 #include "main.h"
+#include "version.h"
+#include "Shmem.h"
+#include "PublicFunction.h"
 
 //typedef struct
 //{
@@ -88,6 +91,7 @@ void print4300()
 	fprintf(stderr,"\n7.是否允许跟随上报:%d",oi4300.follow_report);
 	fprintf(stderr,"\n8.是否允许主动上报:%d",oi4300.active_report);
 	fprintf(stderr,"\n9.是否允许与主站通话:%d",oi4300.talk_master);
+	fprintf(stderr,"\n");
 }
 
 void print4500()
@@ -95,9 +99,9 @@ void print4500()
 	CLASS25  oi4500={};
 	int		i=0;
 
-	fprintf(stderr,"无线公网通信接口类[4500]\n");
+	fprintf(stderr,"***************无线公网通信接口类[4500]***************\n");
 	readCoverClass(0x4500,0,&oi4500,sizeof(CLASS25),para_vari_save);
-	fprintf(stderr,"\n======================================");
+	fprintf(stderr,"\n---------------------------------------");
 	fprintf(stderr,"\n属性2.通信配置");
 	fprintf(stderr,"\n工作模式{混合模式（0），客户机模式（1），服务器模式（2）}------------%d",oi4500.commconfig.workModel);
 	fprintf(stderr,"\n在线方式{永久在线（0），被动激活（1）}------------%d",oi4500.commconfig.onlineType);
@@ -115,13 +119,14 @@ void print4500()
 	fprintf(stderr,"\n代理端口------------[%d]",oi4500.commconfig.proxyPort);
 	fprintf(stderr,"\n超时时间{秒}------------[%d] 重发次数------------[%d]",(oi4500.commconfig.timeoutRtry>>2)&0xff,oi4500.commconfig.timeoutRtry&0x03);
 	fprintf(stderr,"\n心跳周期{秒}------------[%d]",oi4500.commconfig.heartBeat);
-	fprintf(stderr,"\n======================================");
+	fprintf(stderr,"\n---------------------------------------");
 	fprintf(stderr,"\n属性3.主站通信参数表");
 	fprintf(stderr,"\n主站通信参数(%d)",oi4500.master.masternum);
 	for(i=0;i<oi4500.master.masternum;i++) {
 		printoctetstr("		IP地址:长度",oi4500.master.master[i].ip);
 		fprintf(stderr,"	端口:%d",oi4500.master.master[i].port);
 	}
+	fprintf(stderr,"\n");
 }
 
 void print4510()
@@ -129,9 +134,9 @@ void print4510()
 	CLASS26  oi4510={};
 	int		i=0;
 
-	fprintf(stderr,"以太网通信接口类[4510]\n");
+	fprintf(stderr,"***************以太网通信接口类[4510]***************\n");
 	readCoverClass(0x4510,0,&oi4510,sizeof(CLASS26),para_vari_save);
-	fprintf(stderr,"\n======================================");
+	fprintf(stderr,"\n---------------------------------------");
 	fprintf(stderr,"\n属性2.通信配置");
 	fprintf(stderr,"\n工作模式{混合模式（0），客户机模式（1），服务器模式（2）}------------%d",oi4510.commconfig.workModel);
 	fprintf(stderr,"\n连接方式{TCP（0），UDP（1）}------------%d",oi4510.commconfig.connectType);
@@ -144,13 +149,14 @@ void print4510()
 	fprintf(stderr,"\n代理端口------------[%d]",oi4510.commconfig.proxyPort);
 	fprintf(stderr,"\n超时时间{秒}------------[%d] 重发次数------------[%d]",(oi4510.commconfig.timeoutRtry>>2)&0xff,oi4510.commconfig.timeoutRtry&0x03);
 	fprintf(stderr,"\n心跳周期{秒}------------[%d]",oi4510.commconfig.heartBeat);
-	fprintf(stderr,"\n======================================");
+	fprintf(stderr,"\n---------------------------------------");
 	fprintf(stderr,"\n属性3.主站通信参数表");
 	fprintf(stderr,"\n主站通信参数(%d)",oi4510.master.masternum);
 	for(i=0;i<oi4510.master.masternum;i++) {
 		printoctetstr("		IP地址:长度",oi4510.master.master[i].ip);
 		fprintf(stderr,"	端口:%d",oi4510.master.master[i].port);
 	}
+	fprintf(stderr,"\n");
 }
 
 void InIt_Process(int argc, char *argv[])
@@ -229,7 +235,62 @@ void para_process(int argc, char *argv[])
 	}
 }
 
-//void showStatus()
-//{
-//
-//}
+void showCheckPara()
+{
+	ConfigPara	cfg_para={};
+	fprintf(stderr,"\n======================================================\n");
+	fprintf(stderr,"===================详细通信参数=========================\n");
+	print4500();
+	print4510();
+	fprintf(stderr,"\n======================================================\n");
+
+	fprintf(stderr,"\n======================================================\n");
+	fprintf(stderr,"===================基本运行参数=========================\n");
+	ReadDeviceConfig(&cfg_para);
+	fprintf(stderr,"\n终端类型:%d",cfg_para.device);
+	fprintf(stderr,"\n设备地区:%s",cfg_para.zone);
+	fprintf(stderr,"\n------------------------------------------------------\n");
+	fprintf(stderr,"------------------------------------------------------\n");
+	system("cj id");
+	fprintf(stderr,"\n------------------------------------------------------\n");
+	system("cj ip");
+	fprintf(stderr,"------------------------------------------------------\n");
+	system("cj apn");
+	fprintf(stderr,"------------------------------------------------------\n");
+	system("cj usr-pwd");
+	fprintf(stderr,"------------------------------------------------------\n");
+	system("cj online-mode");
+	fprintf(stderr,"------------------------------------------------------\n");
+	system("cj net-ip");
+	fprintf(stderr,"------------------------------------------------------\n");
+	system("cj heart");
+	fprintf(stderr,"\n======================================================\n");
+	fprintf(stderr,"\n======================================================\n");
+	fprintf(stderr,"===================程序基本版本信息========================\n");
+	print4300();
+	fprintf(stderr,"\n------------------------------------------------------\n");
+	fprintf(stderr,"GIT VERSION : %d\n", GL_VERSION);
+	fprintf(stderr,"------------------------------------------------------\n");
+	system("md5sum /nand/bin/cjmain");
+	system("md5sum /nand/bin/cjdeal");
+	system("md5sum /nand/bin/cjcomm");
+	system("md5sum /nand/bin/cj");
+	system("md5sum /nor/lib/lib376.2.so");
+	system("md5sum /nor/lib/lib698.so");
+	system("md5sum /nor/lib/lib698Esam.so");
+	system("md5sum /nor/lib/libAccess.so");
+	system("md5sum /nor/lib/libBase.so");
+	system("md5sum /nor/lib/libDlt645.so");
+	system("md5sum /nor/lib/libGui.so");
+	system("md5sum /nor/lib/libMq.so");
+	system("md5sum /nor/lib/libevent.so");
+	system("md5sum /nor/lib/libzlib.so");
+	system("md5sum /nor/config/07DI_698OAD.cfg");
+	system("md5sum /nor/config/OI_TYPE.cfg");
+	system("md5sum /nor/config/device.cfg");
+	system("md5sum /nor/config/systema.cfg");
+
+	fprintf(stderr,"------------------------------------------------------\n");
+	fprintf(stderr,"\n======================================================\n");
+
+}
