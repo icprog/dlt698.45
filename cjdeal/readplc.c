@@ -27,7 +27,7 @@ extern ProgramInfo* JProgramInfo;
 extern int SaveOADData(INT8U taskid,OAD oad_m,OAD oad_r,INT8U *databuf,int datalen,TS ts_res);
 extern INT16U data07Tobuff698(FORMAT07 Data07,INT8U* dataContent);
 extern INT8S analyzeProtocol07(FORMAT07* format07, INT8U* recvBuf, const INT16U recvLen, BOOLEAN *nextFlag);
-extern INT8S OADMap07DI(OI_698 roadOI,OAD sourceOAD, C601F_07Flag* obj601F_07Flag);
+extern INT8S OADMap07DI(OI_698 roadOI,OAD sourceOAD, C601F_645* flag645);
 extern void DbgPrintToFile1(INT8U comport,const char *format,...);
 extern void DbPrt1(INT8U comport,char *prefix, char *buf, int len, char *suffix);
 extern  INT16U data07Tobuff698(FORMAT07 Data07,INT8U* dataContent);
@@ -37,14 +37,77 @@ extern GUI_PROXY cjguiProxy;
 extern Proxy_Msg* p_Proxy_Msg_Data;//液晶给抄表发送代理处理结构体，指向由guictrl.c配置的全局变量
 extern TASK_CFG list6013[TASK6012_MAX];
 //-----------------------------------------------------------------------------------------------------------------------------------------------------
+typedef struct
+{
+	INT8U startIndex; 	//报文中的某数据的起始字节
+	INT8U dataLen;	 	//数据长度（字节数）
+	INT8U aunite;		//一个数据单元长度
+	INT8U intbits;		//整数部分长度
+	INT8U decbits;		//小数部分长度
+	char name[30];
+	INT8U Flg07[4];//对应07表实时数据标识
+	OAD oad1;
+	OAD oad2;
+}MeterCurveDataType;
+#define CURVENUM 29
+MeterCurveDataType meterCurveData[CURVENUM]=
+{
+			{60, 4, 4, 6, 2, "正向有功总电能曲线",	 {0x00,0x01,0x00,0x00},{0x5002,0x02,0x00},{0x0010,0x02,0x00}},
+			{64, 4, 4, 6, 2, "反向有功总电能曲线",	 {0x00,0x02,0x00,0x00},{0x5002,0x02,0x00},{0x0020,0x02,0x00}},
+			{77, 4, 4, 6, 2, "一象限无功总电能曲线",{0x00,0x05,0x00,0x00},{0x5002,0x02,0x00},{0x0050,0x02,0x00}},
+			{81, 4, 4, 6, 2, "二象限无功总电能曲线",{0x00,0x06,0x00,0x00},{0x5002,0x02,0x00},{0x0060,0x02,0x00}},
+			{85, 4, 4, 6, 2, "三象限无功总电能曲线",{0x00,0x07,0x00,0x00},{0x5002,0x02,0x00},{0x0070,0x02,0x00}},
+			{89, 4, 4, 6, 2, "四象限无功总电能曲线",{0x00,0x08,0x00,0x00},{0x5002,0x02,0x00},{0x0080,0x02,0x00}},
+			{8,  6, 2, 3, 1, "当前电压",			 {0x02,0x01,0xff,0x00},{0x5002,0x02,0x00},{0x2000,0x02,0x00}},
+			{14, 9, 3, 3, 3, "当前电流",			 {0x02,0x02,0xff,0x00},{0x5002,0x02,0x00},{0x2001,0x02,0x00}},
+			{26, 12,3, 2, 4, "有功功率曲线",	 	 {0x02,0x03,0xff,0x00},{0x5002,0x02,0x00},{0x2004,0x02,0x00}},
+			{51, 8, 2, 2, 1, "功率因数曲线",		 {0x02,0x06,0xff,0x00},{0x5002,0x02,0x00},{0x200a,0x02,0x00}}
+
+
+//	{8,  2, 3, 1, "A相电压",			{0x01,0x01,0x10,0x06}},
+//	{10, 2, 3, 1, "B相电压",			{0x02,0x01,0x10,0x06}},
+//	{12, 2, 3, 1, "C相电压",			{0x03,0x01,0x10,0x06}},
+//
+//	{14, 3, 3, 3, "A相电流",			{0x01,0x02,0x10,0x06}},
+//	{17, 3, 3, 3, "B相电流",			{0x02,0x02,0x10,0x06}},
+//	{20, 3, 3, 3, "C相电流",			{0x03,0x02,0x10,0x06}},
+//
+//	{23, 2, 2, 2, "频率曲线",			{0xFF,0xFF,0xFF,0xFF}},
+//
+//	{26, 3, 2, 4, "总有功功率曲线",	{0x00,0x03,0x10,0x06}},
+//	{29, 3, 2, 4, "A相有功功率曲线",	{0x01,0x03,0x10,0x06}},
+//	{32, 3, 2, 4, "B相有功功率曲线",	{0x02,0x03,0x10,0x06}},
+//	{35, 3, 2, 4, "C相有功功率曲线",	{0x03,0x03,0x10,0x06}},
+//
+//	{38, 3, 2, 4, "总无功功率曲线",	{0x00,0x04,0x10,0x06}},
+//	{41, 3, 2, 4, "A相无功功率曲线",	{0x01,0x04,0x10,0x06}},
+//	{44, 3, 2, 4, "B相无功功率曲线",	{0x02,0x04,0x10,0x06}},
+//	{47, 3, 2, 4, "C相无功功率曲线",	{0x03,0x04,0x10,0x06}},
+//
+//	{51, 2, 3, 1, "总功率因数曲线",	{0x00,0x05,0x10,0x06}},
+//	{53, 2, 3, 1, "A相功率因数曲线",	{0x01,0x05,0x10,0x06}},
+//	{55, 2, 3, 1, "B相功率因数曲线",	{0x02,0x05,0x10,0x06}},
+//	{57, 2, 3, 1, "C相功率因数曲线",	{0x03,0x05,0x10,0x06}},
+//
+//	{60, 4, 6, 2, "正向有功总电能曲线",{0x01,0x06,0x10,0x06}},
+//	{64, 4, 6, 2, "反向有功总电能曲线",{0x02,0x06,0x10,0x06}},
+//	{68, 4, 6, 2, "正向无功总电能曲线",{0x03,0x06,0x10,0x06}},
+//	{72, 4, 6, 2, "反向无功总电能曲线",{0x04,0x06,0x10,0x06}},
+//
+//	{77, 4, 6, 2, "一象限无功总电能曲线",{0x01,0x07,0x10,0x06}},
+//	{81, 4, 6, 2, "二象限无功总电能曲线",{0x02,0x07,0x10,0x06}},
+//	{85, 4, 6, 2, "三象限无功总电能曲线",{0x03,0x07,0x10,0x06}},
+//	{89, 4, 6, 2, "四象限无功总电能曲线",{0x04,0x07,0x10,0x06}},
+//
+//	{94, 3, 2, 4, "当前有功需量曲线",	{0xFF,0xFF,0xFF,0xFF}},
+//	{97, 3, 2, 4, "当前无功需量曲线",	{0xFF,0xFF,0xFF,0xFF}},
+};
+
 void SendDataToCom(int fd, INT8U *sendbuf, INT16U sendlen)
 {
 	int i=0;
 	ssize_t slen;
 	slen = write(fd, sendbuf, sendlen);
-//	fprintf(stderr,"\nzb_send(%d): ",sendlen);
-//	for(i=0;i<sendlen; i++)
-//		fprintf(stderr,"%02x ",sendbuf[i]);
 	DbPrt1(31,"发:", (char *) sendbuf, slen, NULL);
 }
 int RecvDataFromCom(int fd,INT8U* buf,int* head)
@@ -153,6 +216,20 @@ INT8U judgebit(INT8U Byte,int n)
 	}
 	return 0;
 }
+DateTimeBCD timet_bcd(time_t t)
+{
+	DateTimeBCD ts;
+    struct tm set;
+
+    localtime_r(&t, &set);
+    ts.year.data  = set.tm_year + 1900;
+    ts.month.data = set.tm_mon + 1;
+    ts.day.data   = set.tm_mday;
+    ts.hour.data  = set.tm_hour;
+    ts.min.data   = set.tm_min;
+    ts.sec.data   = set.tm_sec;
+    return ts;
+}
 TS DateBCD2Ts(DateTimeBCD timebcd)
 {
 	TS ts;
@@ -176,21 +253,108 @@ void PrintTaskInfo2(TASK_INFO *task)
 		for(j=0;j<task->task_list[i].fangan.item_n;j++)
 		{
 			numindex++;
-			DbgPrintToFile1(31," %02d | %04x-%02x%02x - %04x-%02x%02x .%02d任务 %d级 方案%d ，类型%d | 开始 %d-%d-%d %d:%d:%d  OK=%d  cov %02x%02x%02x%02x",
-					numindex,
-					task->task_list[i].fangan.items[j].oad1.OI,task->task_list[i].fangan.items[j].oad1.attflg,task->task_list[i].fangan.items[j].oad1.attrindex,
-					task->task_list[i].fangan.items[j].oad2.OI,task->task_list[i].fangan.items[j].oad2.attflg,task->task_list[i].fangan.items[j].oad2.attrindex,
-					task->task_list[i].taskId,
-					task->task_list[i].leve,
-					task->task_list[i].fangan.No,
-					task->task_list[i].fangan.type,
-					task->task_list[i].begin.year.data,task->task_list[i].begin.month.data,task->task_list[i].begin.day.data,
-					task->task_list[i].begin.hour.data,task->task_list[i].begin.min.data,task->task_list[i].begin.sec.data,
-					task->task_list[i].fangan.items[j].sucessflg,
-					task->task_list[i].fangan.items[j].item07[3],task->task_list[i].fangan.items[j].item07[2],
-					task->task_list[i].fangan.items[j].item07[1],task->task_list[i].fangan.items[j].item07[0]
-					);
+			switch(task->task_list[i].fangan.cjtype)
+			{
+			case 0:
+				DbgPrintToFile1(31,"%02d| %04x-%02x%02x - %04x-%02x%02x .%02d任务 执行频率%d[%d] %d级 方案%d ，类型%d  采集当前数据 | %d-%d-%d %d:%d:%d OK=%d cov %02x%02x%02x%02x",
+						numindex,
+						task->task_list[i].fangan.items[j].oad1.OI,task->task_list[i].fangan.items[j].oad1.attflg,task->task_list[i].fangan.items[j].oad1.attrindex,
+						task->task_list[i].fangan.items[j].oad2.OI,task->task_list[i].fangan.items[j].oad2.attflg,task->task_list[i].fangan.items[j].oad2.attrindex,
+						task->task_list[i].taskId,
+						task->task_list[i].ti.interval,task->task_list[i].ti.units,
+						task->task_list[i].leve,
+						task->task_list[i].fangan.No,
+						task->task_list[i].fangan.type,
+						task->task_list[i].begin.year.data,task->task_list[i].begin.month.data,task->task_list[i].begin.day.data,
+						task->task_list[i].begin.hour.data,task->task_list[i].begin.min.data,task->task_list[i].begin.sec.data,
+						task->task_list[i].fangan.items[j].sucessflg,
+						task->task_list[i].fangan.items[j].item07[3],task->task_list[i].fangan.items[j].item07[2],
+						task->task_list[i].fangan.items[j].item07[1],task->task_list[i].fangan.items[j].item07[0]
+						);
+				break;
+			case 1:
+				DbgPrintToFile1(31,"%02d| %04x-%02x%02x - %04x-%02x%02x .%02d任务 执行频率%d[%d] %d级 方案%d ，类型%d  采集上%d次 | %d-%d-%d %d:%d:%d OK=%d cov %02x%02x%02x%02x",
+						numindex,
+						task->task_list[i].fangan.items[j].oad1.OI,task->task_list[i].fangan.items[j].oad1.attflg,task->task_list[i].fangan.items[j].oad1.attrindex,
+						task->task_list[i].fangan.items[j].oad2.OI,task->task_list[i].fangan.items[j].oad2.attflg,task->task_list[i].fangan.items[j].oad2.attrindex,
+						task->task_list[i].taskId,
+						task->task_list[i].ti.interval,task->task_list[i].ti.units,
+						task->task_list[i].leve,
+						task->task_list[i].fangan.No,task->task_list[i].fangan.type,
+						task->task_list[i].fangan.N,
+						task->task_list[i].begin.year.data,task->task_list[i].begin.month.data,task->task_list[i].begin.day.data,
+						task->task_list[i].begin.hour.data,task->task_list[i].begin.min.data,task->task_list[i].begin.sec.data,
+						task->task_list[i].fangan.items[j].sucessflg,
+						task->task_list[i].fangan.items[j].item07[3],task->task_list[i].fangan.items[j].item07[2],
+						task->task_list[i].fangan.items[j].item07[1],task->task_list[i].fangan.items[j].item07[0]
+						);
+				break;
+			case 2:
+				DbgPrintToFile1(31,"%02d| %04x-%02x%02x - %04x-%02x%02x .%02d任务 执行频率%d[%d] %d级 方案%d ，类型%d  按冻结时标采集 | %d-%d-%d %d:%d:%d OK=%d cov %02x%02x%02x%02x",
+						numindex,
+						task->task_list[i].fangan.items[j].oad1.OI,task->task_list[i].fangan.items[j].oad1.attflg,task->task_list[i].fangan.items[j].oad1.attrindex,
+						task->task_list[i].fangan.items[j].oad2.OI,task->task_list[i].fangan.items[j].oad2.attflg,task->task_list[i].fangan.items[j].oad2.attrindex,
+						task->task_list[i].taskId,
+						task->task_list[i].ti.interval,task->task_list[i].ti.units,
+						task->task_list[i].leve,
+						task->task_list[i].fangan.No,task->task_list[i].fangan.type,
+						task->task_list[i].begin.year.data,task->task_list[i].begin.month.data,task->task_list[i].begin.day.data,
+						task->task_list[i].begin.hour.data,task->task_list[i].begin.min.data,task->task_list[i].begin.sec.data,
+						task->task_list[i].fangan.items[j].sucessflg,
+						task->task_list[i].fangan.items[j].item07[3],task->task_list[i].fangan.items[j].item07[2],
+						task->task_list[i].fangan.items[j].item07[1],task->task_list[i].fangan.items[j].item07[0]
+						);
+				break;
+			case 3:
+				DbgPrintToFile1(31,"%02d| %04x-%02x%02x - %04x-%02x%02x .%02d任务 执行频率%d[%d] %d级 方案%d ，类型%d  间隔%d (%d) | %d-%d-%d %d:%d:%d OK=%d cov %02x%02x%02x%02x",
+						numindex,
+						task->task_list[i].fangan.items[j].oad1.OI,task->task_list[i].fangan.items[j].oad1.attflg,task->task_list[i].fangan.items[j].oad1.attrindex,
+						task->task_list[i].fangan.items[j].oad2.OI,task->task_list[i].fangan.items[j].oad2.attflg,task->task_list[i].fangan.items[j].oad2.attrindex,
+						task->task_list[i].taskId,
+						task->task_list[i].ti.interval,task->task_list[i].ti.units,
+						task->task_list[i].leve,
+						task->task_list[i].fangan.No,task->task_list[i].fangan.type,
+						task->task_list[i].fangan.ti.interval,
+						task->task_list[i].fangan.ti.units,
+						task->task_list[i].begin.year.data,task->task_list[i].begin.month.data,task->task_list[i].begin.day.data,
+						task->task_list[i].begin.hour.data,task->task_list[i].begin.min.data,task->task_list[i].begin.sec.data,
+						task->task_list[i].fangan.items[j].sucessflg,
+						task->task_list[i].fangan.items[j].item07[3],task->task_list[i].fangan.items[j].item07[2],
+						task->task_list[i].fangan.items[j].item07[1],task->task_list[i].fangan.items[j].item07[0]
+						);
+				break;
+			default:
+				DbgPrintToFile1(31,"%02d| %04x-%02x%02x - %04x-%02x%02x .%02d任务 执行频率%d[%d] %d级 方案%d ，类型%d 未知采集类型 | %d-%d-%d %d:%d:%d OK=%d cov %02x%02x%02x%02x",
+						numindex,
+						task->task_list[i].fangan.items[j].oad1.OI,task->task_list[i].fangan.items[j].oad1.attflg,task->task_list[i].fangan.items[j].oad1.attrindex,
+						task->task_list[i].fangan.items[j].oad2.OI,task->task_list[i].fangan.items[j].oad2.attflg,task->task_list[i].fangan.items[j].oad2.attrindex,
+						task->task_list[i].taskId,
+						task->task_list[i].ti.interval,task->task_list[i].ti.units,
+						task->task_list[i].leve,
+						task->task_list[i].fangan.No,task->task_list[i].fangan.type,
+						task->task_list[i].begin.year.data,task->task_list[i].begin.month.data,task->task_list[i].begin.day.data,
+						task->task_list[i].begin.hour.data,task->task_list[i].begin.min.data,task->task_list[i].begin.sec.data,
+						task->task_list[i].fangan.items[j].sucessflg,
+						task->task_list[i].fangan.items[j].item07[3],task->task_list[i].fangan.items[j].item07[2],
+						task->task_list[i].fangan.items[j].item07[1],task->task_list[i].fangan.items[j].item07[0]
+						);
+			}
 		}
+	}
+}
+void getCjTypeData(CJ_FANGAN *fangAn,CLASS_6015 *Class6015)
+{
+	fangAn->cjtype = Class6015->cjtype;
+	switch(fangAn->cjtype)
+	{
+		case 1:
+			if (Class6015->data.type == dtunsigned)
+				fangAn->N = Class6015->data.data[0];  //采集上第N次
+			break;
+		case 3:
+			if (Class6015->data.type == dtti)
+				memcpy((INT8U *)&fangAn->ti,&Class6015->data.data[0],sizeof(TI));
+			break;
 	}
 }
 int Array_OAD_Items(CJ_FANGAN *fangAn)
@@ -205,6 +369,7 @@ int Array_OAD_Items(CJ_FANGAN *fangAn)
 		for(i=0;i<Class6015.csds.num;i++)//全部CSD循环
 		{
 			oadtype = Class6015.csds.csd[i].type;
+			getCjTypeData(fangAn,&Class6015);
 			if(oadtype == 1)//ROAD
 			{
 				for(j=0;j<Class6015.csds.csd[i].csd.road.num;j++)
@@ -243,20 +408,7 @@ int Array_OAD_Items(CJ_FANGAN *fangAn)
 	fangAn->item_n = num;
 	return num;
 }
-DateTimeBCD timet_bcd(time_t t)
-{
-	DateTimeBCD ts;
-    struct tm set;
 
-    localtime_r(&t, &set);
-    ts.year.data  = set.tm_year + 1900;
-    ts.month.data = set.tm_mon + 1;
-    ts.day.data   = set.tm_mday;
-    ts.hour.data  = set.tm_hour;
-    ts.min.data   = set.tm_min;
-    ts.sec.data   = set.tm_sec;
-    return ts;
-}
 int task_Refresh(TASK_UNIT *taskunit)
 {
 	DateTimeBCD ts;
@@ -298,7 +450,9 @@ int task_leve(INT8U leve,TASK_UNIT *taskunit)
 			memset(&taskunit[t].fangan,0,sizeof(CJ_FANGAN));
 			taskunit[t].fangan.type = type;
 			taskunit[t].fangan.No = serNo;
+			taskunit[t].ti = list6013[i].basicInfo.interval;
 			taskunit[t].fangan.item_n = Array_OAD_Items(&taskunit[t].fangan);
+			DbgPrintToFile1(31,"leve %d  fangan.No = %d  itemn=%d",leve,serNo,taskunit[t].fangan.item_n);
 			t++;
 		}
 	}
@@ -310,7 +464,6 @@ int initTaskData(TASK_INFO *task)
 	int num =0;
 	if (task==NULL)
 		return 0;
-
 	memset(task,0,sizeof(TASK_INFO));
 	num += task_leve(1,&task->task_list[num]);
 	num += task_leve(2,&task->task_list[num]);
@@ -776,6 +929,7 @@ void Echo_Frame(RUNTIME_PLC *runtime_p,INT8U *framebuf,int len)
 	{
 		flag = 0;
 		fprintf(stderr,"\n失败切表！");
+		sleep(2);
 	}else
 	{
 		flag = 1;
@@ -813,21 +967,25 @@ int findFirstZeroFlg(struct Tsa_Node *desnode,int itemnum)
 	}while(index!=itemnum-1);
 	return -1;
 }
+
 int Format07(FORMAT07 *Data07,OAD oad1,OAD oad2,TSA tsa)
 {
 	INT8U startIndex =0;
 	int find_07item = 0;
-	C601F_07Flag obj601F_07Flag;
+	C601F_645 obj601F_07Flag;
 
 	memset(Data07, 0, sizeof(FORMAT07));
+	obj601F_07Flag.protocol = 2;
 	find_07item = OADMap07DI(oad1.OI,oad2,&obj601F_07Flag) ;
-	DbgPrintToFile1(31,"find_07item=%d   %04x %04x",find_07item,oad1.OI,oad2.OI);
+	DbgPrintToFile1(31,"find_07item=%d   %04x %04x    ",find_07item,oad1.OI,oad2.OI);
 	if (find_07item == 1)
 	{
 		Data07->Ctrl = 0x11;
 		startIndex = 5 - tsa.addr[1];
 		memcpy(&Data07->Addr[startIndex], &tsa.addr[2], (tsa.addr[1]+1));
-		memcpy(Data07->DI, &obj601F_07Flag.DI_1[0], 4);
+//		memcpy(Data07->DI, &obj601F_07Flag.DI_1[0], 4);
+		memcpy(Data07->DI, &obj601F_07Flag.DI._07.DI_1[0], 4);
+
 		return 1;
 	}
 	return 0;
@@ -971,6 +1129,48 @@ int createMeterFrame(struct Tsa_Node *desnode,DATA_ITEM item,INT8U *buf,INT8U *i
 	}
 	return 0;
 }
+int createMeterFrame_Curve(struct Tsa_Node *desnode,DATA_ITEM item,INT8U *buf,INT8U *item07,DateTimeBCD timebcd)
+{
+	INT8U type = 0;
+	FORMAT07 Data07;
+	INT8U CurveFlg[4] = {0x01, 0x00, 0x00, 0x06};//给定时间记录块
+	int sendlen = 0 ;
+	INT8U startIndex =0;
+	if (desnode == NULL)
+		return 0;
+	type = desnode->protocol;
+	memset(buf,0,BUFSIZE645);
+	switch (type)
+	{
+		case DLT645_07:
+			Data07.Ctrl = 0xff;
+			startIndex = 5 - desnode->tsa.addr[1];
+			memcpy(&Data07.Addr[startIndex], &desnode->tsa.addr[2], (desnode->tsa.addr[1]+1));
+			memcpy(Data07.DI, &CurveFlg, 4);
+			Data07.sections = 1;
+			int32u2bcd(timebcd.year.data - 2000, &Data07.startYear,positive);
+			int32u2bcd(timebcd.month.data,&Data07.startMonth,positive);
+			int32u2bcd(timebcd.day.data,&Data07.startDay,positive);
+			int32u2bcd(timebcd.hour.data,&Data07.startHour,positive);
+			int32u2bcd(timebcd.min.data,&Data07.startMinute,positive);
+			DbgPrintToFile1(31,"BCD %02x-%02x-%02x %02x:%02x",Data07.startYear,Data07.startMonth,Data07.startDay,Data07.startHour,Data07.startMinute);
+			sendlen = composeProtocol07(&Data07, buf);
+
+			if (sendlen>0)
+			{
+				memcpy(item07,Data07.DI,4);// 保存07规约数据项
+				DbgPrintToFile1(31,"读负荷曲线 【OAD1 %04x-%02x %02x    OAD2 %04x-%02x %02x】%02x%02x%02x%02x ",
+							item.oad1.OI,item.oad1.attflg,item.oad1.attrindex,item.oad2.OI,item.oad2.attflg,item.oad2.attrindex,
+							Data07.DI[3],Data07.DI[2],Data07.DI[1],Data07.DI[0]);
+				return sendlen;
+			}
+			break;
+		case DLT698:
+			return 20;
+	}
+	return 0;
+}
+
 int ifTsaValid(TSA tsa)
 {
 	if(tsa.addr[0]!=0 || tsa.addr[1]!=0 || tsa.addr[2]!=0|| tsa.addr[3]!=0|| tsa.addr[4]!=0|| tsa.addr[5]!=0
@@ -1029,23 +1229,54 @@ int processMeter(INT8U *buf,struct Tsa_Node *desnode)
 	}
 
 	tmpitem = checkMeterData(&taskinfo,&taski,&itemi);	//根据任务的时间计划，查找一个适合抄读的数据项
-
+	time_t getTheTime;
+	DateTimeBCD timebcd;
+	int i=0;
 	if (tmpitem.oad1.OI !=0 || tmpitem.oad2.OI !=0 )
 	{	//组织抄读报文
-		sendlen = createMeterFrame(desnode, tmpitem, buf, item07);
-		taskinfo.task_list[taski].fangan.items[itemi].item07[0] = item07[0];
-		taskinfo.task_list[taski].fangan.items[itemi].item07[1] = item07[1];
-		taskinfo.task_list[taski].fangan.items[itemi].item07[2] = item07[2];
-		taskinfo.task_list[taski].fangan.items[itemi].item07[3] = item07[3];
-		taskinfo.now_taski = taski;
-		taskinfo.now_itemi = itemi;
-		taskinfo.task_list[taski].fangan.items[itemi].sucessflg = 1;
-		taskinfo.task_list[taski].fangan.item_i = itemi;
-		PrintTaskInfo2(&taskinfo);
-		if (itemi == taskinfo.task_list[taski].fangan.item_n-1)//最后一个
-		{
+		if (tmpitem.oad1.OI == 0x5002)
+		{//负荷记录
+			switch(taskinfo.task_list[taski].fangan.cjtype)
+			{
+				case 3://按时间间隔抄表
+					getTheTime = taskinfo.task_list[taski].beginTime - (taskinfo.task_list[taski].fangan.ti.interval * 60);
+					timebcd =   timet_bcd(getTheTime);
+					break;
+				default:
+					getTheTime = taskinfo.task_list[taski].beginTime ;
+					timebcd =   timet_bcd(getTheTime);
+					break;
+			}
+			DbgPrintToFile1(31,"begin=%ld   get=%ld   曲线时标%d-%d-%d %d:%d ",taskinfo.task_list[taski].beginTime ,getTheTime,timebcd.year.data,timebcd.month.data,timebcd.day.data,timebcd.hour.data,timebcd.min.data);
+			sendlen = createMeterFrame_Curve(desnode, tmpitem, buf, item07, timebcd);
+			for(i=0;i<taskinfo.task_list[taski].fangan.item_n;i++)
+			{
+				taskinfo.task_list[taski].fangan.items[i].sucessflg = 1;
+				taskinfo.task_list[taski].fangan.items[i].item07[0] = item07[0];
+				taskinfo.task_list[taski].fangan.items[i].item07[1] = item07[1];
+				taskinfo.task_list[taski].fangan.items[i].item07[2] = item07[2];
+				taskinfo.task_list[taski].fangan.items[i].item07[3] = item07[3];
+			}
+			PrintTaskInfo2(&taskinfo);
 			DbgPrintToFile1(31,"重新初始化 任务%d 开始时间",taskinfo.task_list[taski].taskId);
 			task_Refresh(&taskinfo.task_list[taski]);
+		}else
+		{
+			sendlen = createMeterFrame(desnode, tmpitem, buf, item07);
+			taskinfo.task_list[taski].fangan.items[itemi].item07[0] = item07[0];
+			taskinfo.task_list[taski].fangan.items[itemi].item07[1] = item07[1];
+			taskinfo.task_list[taski].fangan.items[itemi].item07[2] = item07[2];
+			taskinfo.task_list[taski].fangan.items[itemi].item07[3] = item07[3];
+			taskinfo.now_taski = taski;
+			taskinfo.now_itemi = itemi;
+			taskinfo.task_list[taski].fangan.items[itemi].sucessflg = 1;
+			taskinfo.task_list[taski].fangan.item_i = itemi;
+			PrintTaskInfo2(&taskinfo);
+			if (itemi == taskinfo.task_list[taski].fangan.item_n-1)//最后一个
+			{
+				DbgPrintToFile1(31,"重新初始化 任务%d 开始时间",taskinfo.task_list[taski].taskId);
+				task_Refresh(&taskinfo.task_list[taski]);
+			}
 		}
 	}else
 	{
@@ -1101,14 +1332,77 @@ void addTimeLable(TASK_INFO *tskinfo,int taski,int itemi)
 		//保存完成时间
 	}
 }
+void saveTaskData_MeterCurve(TASK_INFO *tskinfo,FORMAT07 *frame07,TS ts)
+{
+	int ti=0,ii=0,n=0,len698=0;
+	INT8U tmp[50];
+	C601F_645 obj601F_07Flag;
+	int find_07item =0 ,i=0,f=0;
+	obj601F_07Flag.protocol = 2;
+	MeterCurveDataType result;
+	INT8U dataContent[50]={};
+	INT8U alldata[100]={};
+	FORMAT07 myframe07;
+	INT8U errCode[2] = {0xE0, 0xE0};//错误的起始码
+
+	DbPrt1(31,"curve:", (char *) frame07->Data, frame07->Length, NULL);
+	if (memcmp(&frame07->Data[0], errCode, 2) == 0)
+		return;
+
+
+	ti = tskinfo->now_taski;
+	ii = tskinfo->now_itemi;
+	for(n=0;n<tskinfo->task_list[ti].fangan.item_n; n++)
+	{
+		if(tskinfo->task_list[ti].fangan.items[n].oad1.OI == 0x5002)
+		{
+			for(i=0;i<CURVENUM;i++)
+			{
+				if (tskinfo->task_list[ti].fangan.items[n].oad2.OI == meterCurveData[i].oad2.OI )
+				{
+					memcpy(&result, &meterCurveData[i], sizeof(MeterCurveDataType));
+					memset(&myframe07,0,sizeof(myframe07));
+					myframe07.DI[0] = result.Flg07[3];
+					myframe07.DI[1] = result.Flg07[2];
+					myframe07.DI[2] = result.Flg07[1];
+					myframe07.DI[3] = result.Flg07[0];
+					myframe07.Length = 4 + result.dataLen;//数据长度+4
+					memcpy(myframe07.Data,&frame07->Data[result.startIndex],result.dataLen);
+					len698 = data07Tobuff698(*frame07,dataContent);
+					if(len698 > 0)
+					{
+						alldata[0] = 0x55;
+						memcpy(&alldata[1],tskinfo->tsa.addr,17);
+						memcpy(&alldata[18],dataContent,len698);
+						len698 = len698 + 18;
+						DbPrt1(31,"存储:", (char *) alldata, len698, NULL);
+						SaveOADData(tskinfo->task_list[ti].taskId,
+								tskinfo->task_list[ti].fangan.items[ii].oad1,
+								taskinfo.task_list[ti].fangan.items[ii].oad2,
+								alldata,len698,
+								ts);
+						sleep(1);
+					}
+
+				}
+			}
+		}
+	}
+	return ;
+}
+int Curve07Tobuff698(INT8U *buf,INT8U len,INT8U *countent)
+{
+
+	return 0;
+}
 int saveTaskData(FORMAT3762 format_3762_Up,INT8U taskid)
 {
 	int len645=0, taski=0 ,itemi=0 ,len698=0;
-	INT8U nextFlag=0, dataContent[50]={}, buf645[255]={} ,tmp[4]={0,0,0,0}  ,alldata[100]={};
+	INT8U nextFlag=0, dataContent[50]={}, buf645[255]={} ,taskFlag[4]={0,0,0,0}  ,alldata[100]={};
 	TSA tsatmp;
 	FORMAT07 frame07;
 	TS ts;
-
+	INT8U CurveFlg[4]={0x01, 0x00, 0x00, 0x06};
 	memset(dataContent,0,sizeof(dataContent));
 	if (format_3762_Up.afn06_f2_up.MsgLength > 0)
 	{
@@ -1129,29 +1423,34 @@ int saveTaskData(FORMAT3762 format_3762_Up,INT8U taskid)
 			{//是当前抄读TSA 数据
 				taski = taskinfo.now_taski;
 				itemi = taskinfo.now_itemi;
-
-				//TSGet(&ts);
 				TimeBCDToTs(taskinfo.task_list[taski].begin,&ts);//ts 为数据存储时间
 
-				memcpy(tmp,taskinfo.task_list[taski].fangan.items[itemi].item07,4);
-				DbgPrintToFile1(31,"抄读数据项 %02x%02x%02x%02x",tmp[0],tmp[1],tmp[2],tmp[3]);
+				memcpy(taskFlag,taskinfo.task_list[taski].fangan.items[itemi].item07,4);
+				DbgPrintToFile1(31,"抄读数据项 %02x%02x%02x%02x",taskFlag[0],taskFlag[1],taskFlag[2],taskFlag[3]);
 				DbgPrintToFile1(31,"回码数据项 %02x%02x%02x%02x",frame07.DI[0],frame07.DI[1],frame07.DI[2],frame07.DI[3]);
 
-				if (memcmp(tmp,frame07.DI,4) == 0)//抄读项 与 回码数据项相同
+				if (memcmp(taskFlag,frame07.DI,4) == 0)//抄读项 与 回码数据项相同
 				{
-					len698 = data07Tobuff698(frame07,dataContent);
-					if(len698 > 0)
+					if(memcmp(CurveFlg,taskFlag,4) == 4)//负荷曲线数据项
 					{
-						alldata[0] = 0x55;
-						memcpy(&alldata[1],taskinfo.tsa.addr,17);
-						memcpy(&alldata[18],dataContent,len698);
-						len698 = len698 + 18;
-						DbPrt1(31,"存储:", (char *) alldata, len698, NULL);
-						SaveOADData(taskinfo.task_list[taski].taskId,
-								taskinfo.task_list[taski].fangan.items[itemi].oad1,
-								taskinfo.task_list[taski].fangan.items[itemi].oad2,
-								alldata,len698,
-								ts);
+						DbgPrintToFile1(31,"收到负荷曲线回码");
+						saveTaskData_MeterCurve(&taskinfo,&frame07,ts);
+					}else		//其它数据项
+					{
+						len698 = data07Tobuff698(frame07,dataContent);
+						if(len698 > 0)
+						{
+							alldata[0] = 0x55;
+							memcpy(&alldata[1],taskinfo.tsa.addr,17);
+							memcpy(&alldata[18],dataContent,len698);
+							len698 = len698 + 18;
+							DbPrt1(31,"存储:", (char *) alldata, len698, NULL);
+							SaveOADData(taskinfo.task_list[taski].taskId,
+									taskinfo.task_list[taski].fangan.items[itemi].oad1,
+									taskinfo.task_list[taski].fangan.items[itemi].oad2,
+									alldata,len698,
+									ts);
+						}
 					}
 				}
 			}

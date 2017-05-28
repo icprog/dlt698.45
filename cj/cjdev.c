@@ -105,11 +105,12 @@ void SetUsrPwd(int argc, char *argv[]) {
     } else {
         readCoverClass(0x4500, 0, &class4500, sizeof(CLASS25), para_vari_save);
         fprintf(stderr, "用户名：%s\t密码：%s\n", &class4500.commconfig.userName[1], &class4500.commconfig.passWord[1]);
-        fprintf(stderr, "【cdma电信用户名密码设置】cj usr-pwd 参数:　user  password	apn \n");
+        fprintf(stderr, "说明:【cdma电信用户名密码设置】cj usr-pwd 参数:　user  password	apn \n");
     }
 }
 
-void showStatus() {
+void showStatus()
+{
     JProgramInfo = OpenShMem("ProgramInfo", sizeof(ProgramInfo), NULL);
     fprintf(stderr, "集中器登陆(0:没有登陆 1:GPRS登陆 2:以太网登陆 3:串口登陆)[%d]\n", JProgramInfo->dev_info.jzq_login);
     fprintf(stderr, "1:AT检测成功 2:获取GPRS模块信息 3:检测SIM卡 4:注册网络成功[%d]\n", JProgramInfo->dev_info.gprs_status);
@@ -129,10 +130,10 @@ void SetIPort(int argc, char *argv[]) {
     memset(&master, 0, sizeof(MASTER_STATION_INFO_LIST));
     memset(&class4500, 0, sizeof(CLASS25));
     readCoverClass(0x4500, 0, &class4500, sizeof(CLASS25), para_vari_save);
-    fprintf(stderr, "\n先读出 主IP %d.%d.%d.%d:%d\n", class4500.master.master[0].ip[1], class4500.master.master[0].ip[2],
+    fprintf(stderr, "\n无线公网 主IP %d.%d.%d.%d:%d\n", class4500.master.master[0].ip[1], class4500.master.master[0].ip[2],
             class4500.master.master[0].ip[3],
             class4500.master.master[0].ip[4], class4500.master.master[0].port);
-    fprintf(stderr, "\n先读出 备IP %d.%d.%d.%d:%d\n", class4500.master.master[1].ip[1], class4500.master.master[1].ip[2],
+    fprintf(stderr, "\n无线公网 备IP %d.%d.%d.%d:%d\n", class4500.master.master[1].ip[1], class4500.master.master[1].ip[2],
             class4500.master.master[1].ip[3],
             class4500.master.master[1].ip[4], class4500.master.master[1].port);
     int i = 0;
@@ -142,9 +143,9 @@ void SetIPort(int argc, char *argv[]) {
         for (i = 0; i < num; i++) {
             getipnum(&master.master[i], argv[2 + i]);
         }
+        memcpy(&class4500.master, &master, sizeof(MASTER_STATION_INFO_LIST));
         class4500.master.master[0].ip[0] = 4;	//ｉｐ长度
         class4500.master.master[1].ip[0] = 4;	//ｉｐ长度
-        memcpy(&class4500.master, &master, sizeof(MASTER_STATION_INFO_LIST));
         fprintf(stderr, "\n存储前 主IP %d.%d.%d.%d:%d\n", class4500.master.master[0].ip[1],
                 class4500.master.master[0].ip[2], class4500.master.master[0].ip[3],
                 class4500.master.master[0].ip[4], class4500.master.master[0].port);
@@ -163,10 +164,10 @@ void SetNetIPort(int argc, char *argv[]) {
     memset(&master, 0, sizeof(MASTER_STATION_INFO_LIST));
     memset(&class4510, 0, sizeof(CLASS26));
     readCoverClass(0x4510, 0, &class4510, sizeof(CLASS26), para_vari_save);
-    fprintf(stderr, "\n先读出 主IP %d.%d.%d.%d:%d\n", class4510.master.master[0].ip[1], class4510.master.master[0].ip[2],
+    fprintf(stderr, "\n以太网接口 主IP %d.%d.%d.%d:%d\n", class4510.master.master[0].ip[1], class4510.master.master[0].ip[2],
             class4510.master.master[0].ip[3],
             class4510.master.master[0].ip[4], class4510.master.master[0].port);
-    fprintf(stderr, "\n先读出 备IP %d.%d.%d.%d:%d\n", class4510.master.master[1].ip[1], class4510.master.master[1].ip[2],
+    fprintf(stderr, "\n以太网接口 备IP %d.%d.%d.%d:%d\n", class4510.master.master[1].ip[1], class4510.master.master[1].ip[2],
             class4510.master.master[1].ip[3],
             class4510.master.master[1].ip[4], class4510.master.master[1].port);
     int i = 0;
@@ -176,9 +177,9 @@ void SetNetIPort(int argc, char *argv[]) {
         for (i = 0; i < num; i++) {
             getipnum(&master.master[i], argv[2 + i]);
         }
+        memcpy(&class4510.master, &master, sizeof(MASTER_STATION_INFO_LIST));
         class4510.master.master[0].ip[0] = 4;	//ｉｐ长度
         class4510.master.master[1].ip[0] = 4;	//ｉｐ长度
-        memcpy(&class4510.master, &master, sizeof(MASTER_STATION_INFO_LIST));
         fprintf(stderr, "\n存储前 主IP %d.%d.%d.%d:%d\n", class4510.master.master[0].ip[1],
                 class4510.master.master[0].ip[2], class4510.master.master[0].ip[3],
                 class4510.master.master[0].ip[4], class4510.master.master[0].port);
@@ -199,7 +200,7 @@ void setOnlineMode(int argc, char *argv[]) {
     memset(&class4510, 0, sizeof(CLASS26));
     readCoverClass(0x4510, 0, &class4510, sizeof(CLASS26), para_vari_save);
     if (argc != 4) {
-        fprintf(stderr, "设置gprs和以太网的工作模式(0:混合模式 1:客户端模式 2:服务器模式)\n");
+        fprintf(stderr, "说明:gprs和以太网的工作模式(0:混合模式 1:客户端模式 2:服务器模式)\n");
         fprintf(stderr, " 	gprs工作模式:%d\n", class4500.commconfig.workModel);
         fprintf(stderr, " 	以太网工作模式:%d\n", class4510.commconfig.workModel);
         return;
@@ -280,7 +281,7 @@ void SetApn(int argc, char *argv[]) {
     memset(&config1, 0, sizeof(COMM_CONFIG_1));
     memset(&class4500, 0, sizeof(CLASS25));
     readCoverClass(0x4500, 0, &class4500, sizeof(CLASS25), para_vari_save);
-    fprintf(stderr, "\n先读出 APN : %s\n", &class4500.commconfig.apn[1]);
+    fprintf(stderr, "\n读出 APN : %s\n", &class4500.commconfig.apn[1]);
     if (argc > 2) {
         memset(apnbuf, 0, sizeof(apnbuf));
         if (sscanf(argv[2], "%s", apnbuf)) {

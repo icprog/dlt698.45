@@ -8,6 +8,10 @@
 #ifndef DEF645_H_
 #define DEF645_H_
 
+//////////与systema.cfg内部运行参数有关,systema.cfg配置更改,相应的进行调整
+#define  CjDealIndex		1			//cjdeal程序索引
+#define  CjCommIndex		2			//cjcomm程序索引
+
 
 typedef struct
 {

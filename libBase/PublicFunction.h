@@ -120,12 +120,15 @@ extern int ReadDeviceConfig(ConfigPara	*cfg_para);
 extern int getZone(char *zone);
 
 /*
+ * 写/nor/rc.d/ip.sh脚本
+ * */
+extern void writeIpSh(INT8U *ip,INT8U *netmask);
+/*
  * 参数初始化
  * */
 extern void InitClass4016();	//当前套日时段表
 extern void InitClass4300();	//电气设备信息
-extern void InitClass4500();	//公网通信模块1
-extern void InitClass4510();	//以太网通信模块1
+//extern void InitClass4510(INT16U heartBeat,MASTER_STATION_INFO master_info,NETCONFIG net_ip); //以太网通信模块1
 extern void InitClass6000();	//采集配置单元
 extern void InitClassf203();	//开关量输入
 extern void InitClassByZone(INT8U type);	//根据地区进行相应初始化

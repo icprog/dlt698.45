@@ -180,6 +180,18 @@
 #define S4851   1
 #define S4852   2
 #define S4853   3
-
+//  I型集中器串口定义
+//　　　GPRS  [ /dev/ttyS0 ]
+//　　　485I  [ /dev/ttyS1 ]
+//　　　485II [ /dev/ttyS2 ]
+//　　载波　 [ /dev/ttyS5 ]
+//　　维护口 [ /dev/ttyS4 ]
+//　　红外　 [ /dev/ttyS3 ]
+//  II型集中器串口定义
+//　　GPRS  [ /dev/ttyS5 ]
+//　　485I  [ /dev/ttyS2 ]
+//　　485II [ /dev/ttyS1 ]
+//　　485III[ /dev/ttyS4 ]
+//　红外　 [ /dev/ttyS3 ]
 ////////////////////////////////////////////////////////////////
 #endif /* PARADEF_H_ */

@@ -641,7 +641,9 @@ void *ATWorker(void *args) {
             RecieveFromComm(Mrecvbuf, 128, sMux0);
 
             int k, l, m;
-            if (sscanf(Mrecvbuf, "%*[^:]: %d,%d,%d", &k, &l, &m) == 3) {
+//            if (sscanf(Mrecvbuf, "%*[^:]: %d,%d,%d", &k, &l, &m) == 3) {
+            if (sscanf(Mrecvbuf, "%*[^:]: %d,%d%*[^]", &k, &l) == 2) {	//接收到AT命令:AT$MYTYPE?$MYTYPE: 03,3F,00OK
+            	fprintf(stderr,"k=%x,l=%x,m=%x",k,l,m);
                 if ((l & 0x01) == 1) {
                     asyslog(LOG_INFO, "远程通信单元类型为GPRS。\n");
                     break;

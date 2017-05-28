@@ -840,6 +840,15 @@ int Get4510(RESULT_NORMAL *response)
 				index += fill_long_unsigned(&data[index],class_tmp.master.master[i].port);
 			}
 			break;
+		case 4:	//网络配置
+			index += create_struct(&data[index],6);
+			index += fill_enum(&data[index],class_tmp.IP.ipConfigType);
+			index += fill_octet_string(&data[index],(char *)&class_tmp.IP.ip[1],class_tmp.IP.ip[0]);
+			index += fill_octet_string(&data[index],(char *)&class_tmp.IP.subnet_mask[1],class_tmp.IP.subnet_mask[0]);
+			index += fill_octet_string(&data[index],(char *)&class_tmp.IP.gateway[1],class_tmp.IP.gateway[0]);
+			index += fill_visible_string(&data[index],(char *)&class_tmp.IP.username_pppoe,class_tmp.IP.username_pppoe[0]);
+			index += fill_visible_string(&data[index],(char *)&class_tmp.IP.password_pppoe,class_tmp.IP.password_pppoe[0]);
+			break;
 	}
 	response->datalen = index;
 	return 0;

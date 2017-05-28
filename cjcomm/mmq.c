@@ -53,7 +53,7 @@ void MmqRead(struct aeEventLoop *eventLoop, int fd, void *clientData, int mask) 
             ProxyListResponse((PROXY_GETLIST *) getBuf, nst);
             break;
         case TERMINALEVENT_REPORT :
-            Report_Event(nst, getBuf, 2);
+            Report_Event(nst, getBuf, 2, 1);
             break;
         case METEREVENT_REPORT:
             callEventAutoReport(nst, getBuf, headBuf.bufsiz);

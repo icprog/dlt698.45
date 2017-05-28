@@ -28,6 +28,17 @@ void printTI(char *pro,TI ti)
 	fprintf(stderr,"[%s]:单位(%d)-间隔值(%d)  [秒:0,分:1,时:2,日:3,月:4,年:5]\n",pro,ti.units,ti.interval);
 }
 
+void printTSA(TSA tsa)
+{
+	int	j=0;
+	fprintf(stderr,"%d-%d-",tsa.addr[0],tsa.addr[1]);
+	if(tsa.addr[0]>TSA_LEN)   fprintf(stderr,"TSA 长度[%d]超过17个字节，错误！！！\n",tsa.addr[0]);
+	for(j=0;j<(tsa.addr[1]+1);j++) {
+		fprintf(stderr,"%02x",tsa.addr[j+2]);
+	}
+	fprintf(stderr,"\n");
+}
+
 void printMS(MY_MS ms)
 {
 	int i=0,j=0;
@@ -67,25 +78,27 @@ void printMS(MY_MS ms)
 		fprintf(stderr,"\n");
 		break;
 	case 5://一组用户类型区间
+	case 6://一组用户地址区间
+	case 7://一组配置序号区间
 		seqOfLen = 0;
 		for(i=0;i<COLLCLASS_MAXNUM;i++) {
 			if(ms.ms.type[i].type!=interface) {
-				seqOfLen++;
 				dtlen = getDataTypeLen(ms.ms.type[i].begin[0]);
-//				if(dtlen>0) {
+				if(dtlen>0) {
+					seqOfLen++;
 					fprintf(stderr,"Region:单位[%d](前闭后开:0,前开后闭:1,前闭后闭:2,前闭后闭:3)\n",ms.ms.type[i].type);
 					fprintf(stderr,"Region:[类型：%02x]起始值 ",ms.ms.type[i].begin[0]);
 					for(j=0;j<(dtlen+1);j++) {
 						fprintf(stderr,"%02x ",ms.ms.type[i].begin[j]);
 					}
 					fprintf(stderr,"\nRegion:[类型：%02x]结束值  ",ms.ms.type[i].end[0]);
-//				}
+				}
 				dtlen = getDataTypeLen(ms.ms.type[i].end[0]);
-//				if(dtlen>0) {
+				if(dtlen>0) {
 					for(j=0;j<(dtlen+1);j++) {
 						fprintf(stderr,"%02x ",ms.ms.type[i].end[j]);
 					}
-//				}
+				}
 			}
 		}
 		fprintf(stderr,"\n     一组用户类型区间：个数=%d\n ",seqOfLen);
@@ -409,6 +422,8 @@ int fill_MS(INT8U type,INT8U *data,MY_MS myms)		//0x5C
 		data[index++] = dtms;
 	choicetype = myms.mstype;
 	data[index++] = choicetype;
+	fprintf(stderr,"fill_MS type = %d \n",choicetype);
+
 	switch (choicetype)
 	{
 		case 0://0表示 没有电表  1表示 全部电表   //测试过
@@ -442,16 +457,19 @@ int fill_MS(INT8U type,INT8U *data,MY_MS myms)		//0x5C
 		case 6:	//一组用户地址区间
 		case 7:	//一组配置序号区间
 			seqof_len = 0;
-			seqof_index = index;
+			seqof_index = index;	//记录seqof位置
 			index++;
 			for(i=0;i<COLLCLASS_MAXNUM;i++) {
 				if(myms.ms.type[i].type!=interface) {
-					seqof_len++;
-					data[index++] = myms.ms.type[i].type;
-					index += fill_Data(myms.ms.type[i].begin[0],&data[index],&myms.ms.type[i].begin[1]);
-					index += fill_Data(myms.ms.type[i].end[0],&data[index],&myms.ms.type[i].end[1]);
+					if(myms.ms.type[i].begin[0]!=0 && myms.ms.type[i].end[0]!=0) {
+						seqof_len++;
+						data[index++] = myms.ms.type[i].type;
+						index += fill_Data(myms.ms.type[i].begin[0],&data[index],&myms.ms.type[i].begin[1]);
+						index += fill_Data(myms.ms.type[i].end[0],&data[index],&myms.ms.type[i].end[1]);
+					}
 				}else break;
 			}
+//			fprintf(stderr,"seqof_len=%d\n",seqof_len);
 			data[seqof_index] = seqof_len;
 			break;
 	}
@@ -483,17 +501,25 @@ int fill_RCSD(INT8U type,INT8U *data,CSD_ARRAYTYPE csds)		//0x60
 int fill_Data(INT8U type,INT8U *data,INT8U *value)
 {
 	int	 index = 0;
+	INT16U  tmpval = 0;
 	switch(type) {
 	case dtnull://采集当前数据	//按冻结时标采集
 		data[index++] = value[0];
 		break;
-	case dtunsigned:	//采集上第N次
+	case dtunsigned:			//采集上第N次
 		index += fill_unsigned(data,value[0]);
+		break;
+	case dtlongunsigned:	//
+		tmpval = (value[0]<<8) | value[1];
+		index += fill_long_unsigned(data,tmpval);
 		break;
 	case dtti:
 		data[index++] = dtti;
 		memcpy(&data[index],&value[0],3);	//需测试
 		index += 3;
+		break;
+	case dttsa:	//需测试
+		index += fill_TSA(&data[index],&value[1],value[1]);
 		break;
 	case dtstructure:
 		index += create_struct(&data[index],2);
@@ -693,8 +719,8 @@ int getTI(INT8U type,INT8U *source,TI *ti)	//0x54
 
 /*
  * 返回的Data数据
- * [1]:数据类型
- * [2-n]：实际数据
+ * [0]:数据类型
+ * [1-n]：实际数据
  * */
 int get_Data(INT8U *source,INT8U *dest)
 {
@@ -704,7 +730,6 @@ int get_Data(INT8U *source,INT8U *dest)
 	fprintf(stderr,"get_Data type=%02x\n",dttype);
 	dtlen = getDataTypeLen(dttype);
 	if(dtlen>=0) {
-//		dest[0] = dtlen+1;	//+1:dttype
 		dest[0] = dttype;
 		memcpy(&dest[1],&source[1],dtlen);
 		return (dtlen+1);  //+1:dttype
@@ -933,6 +958,10 @@ int getMS(INT8U type,INT8U *source,MY_MS *ms)		//0x5C
 		ms->ms.userType[msindex++] = seqlen & 0xff;
 		for(i=0;i<seqlen;i++) {
 			ms->ms.userType[msindex++] = source[index++];
+			if(index>=(MAXSIZ_FAM-48)) {
+				syslog(LOG_ERR,"MS 数据类型填充数据[%d]超限[%d],不予处理",index,MAXSIZ_FAM);
+				break;
+			}
 		}
 		break;
 	case 3://一组用户地址
@@ -942,7 +971,12 @@ int getMS(INT8U type,INT8U *source,MY_MS *ms)		//0x5C
 		msindex++;
 		for(i=0;i<seqlen;i++) {
 			index += getOctetstring(0,&source[index],(INT8U *)&ms->ms.userAddr[msindex++].addr);
+			if(index>=(MAXSIZ_FAM-48)) {
+				syslog(LOG_ERR,"MS 数据类型填充数据[%d]超限[%d],不予处理",index,MAXSIZ_FAM);
+				break;
+			}
 		}
+
 		fprintf(stderr,"seqlen = %d TSA len=%d\n",seqlen,ms->ms.userAddr[1].addr[0]);
 		for(i=0;i<(ms->ms.userAddr[1].addr[0]+1);i++) {
 			fprintf(stderr,"%02x ",ms->ms.userAddr[1].addr[i]);
@@ -954,6 +988,10 @@ int getMS(INT8U type,INT8U *source,MY_MS *ms)		//0x5C
 		for(i=0;i<seqlen;i++) {
 			ms->ms.configSerial[msindex++] = (source[index]<<8)|source[index+1];
 			index = index+2;
+			if(index>=(MAXSIZ_FAM-48)) {
+				syslog(LOG_ERR,"MS 数据类型填充数据[%d]超限[%d],不予处理",index,MAXSIZ_FAM);
+				break;
+			}
 		}
 		break;
 	case 5:	//一组用户类型区间 [5] SEQUENCE OF Region //类型5:6015设置及读取湖南测试通过
@@ -968,6 +1006,10 @@ int getMS(INT8U type,INT8U *source,MY_MS *ms)		//0x5C
 			index += get_Data(&source[index],ms->ms.type[msindex].begin);
 			index += get_Data(&source[index],ms->ms.type[msindex].end);
 			msindex++;
+			if(index>=(MAXSIZ_FAM-48)) {
+				syslog(LOG_ERR,"MS 数据类型填充数据[%d]超限[%d],不予处理",index,MAXSIZ_FAM);
+				break;
+			}
 		}
 		break;
 	}

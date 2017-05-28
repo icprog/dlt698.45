@@ -69,7 +69,6 @@ void SetConnectStatus(int status) {
 
 void CalculateTransFlow(ProgramInfo *prginfo_event) {
     static Flow_tj c2200;
-
     //统计临时变量
     static int rtx_bytes = 0;
     static int rx_bytes = 0;
@@ -120,7 +119,6 @@ void CalculateTransFlow(ProgramInfo *prginfo_event) {
         }
     }
     fclose(rfd);
-
     if (index >= 8) {
         asyslog(LOG_INFO, "获取流量统计数据失败.");
         return;
