@@ -11,11 +11,11 @@ def readConfig(name):
     config = ConfigParser.ConfigParser()
 
     try:
-        with open(name, 'rw') as cfgFile:
+        with open(name, 'r') as cfgFile:
             config.readfp(cfgFile)
             return config
     except IOError, e:
-        print '程序没有找到配置文件，程序当前目录需要config.ini文件。'
+        print '程序没有找到配置文件，程序当前目录需要config.ini文件。'.decode('utf-8')
         sys.exit()
 
 
@@ -42,9 +42,9 @@ def ReadyNet(host, user, passwd):
 #
 def getInputGiveInfo(info):
     try:
-        return str(input(info))
+        return str(input(info.decode('utf-8')))
     except IOError, e:
-        print '请输入正确格式的信息。'
+        print '请输入正确格式的信息。'.decode('utf-8')
     except SyntaxError, e:
         return ''
 
@@ -57,7 +57,7 @@ def checkConfig(config):
     process = config.options('process')
     for p in process:
         if not config.has_option('parameter', p) or not config.has_option('timer', p):
-            print '配置文件参数数量不匹配'
+            print '配置文件参数数量不匹配'.decode('utf-8')
             sys.exit()
 
     return config
@@ -114,7 +114,7 @@ if __name__ == '__main__':
             newDeviceId = getInputGiveInfo("确认序列号:(可以重新输入逻辑地址):" + formatId(config, deviceId) + "#")
             if newDeviceId is not "":
                 deviceId = newDeviceId
-            config.set('parameter', 'id', formatId(config, deviceId))
+            #config.set('parameter', 'id', formatId(config, deviceId))
 
             doSetDevice(config)
             deviceId = "%d" % (int(deviceId) + 1)

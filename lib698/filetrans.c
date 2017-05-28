@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <sys/stat.h>
+#include <syslog.h>
 #include "ParaDef.h"
 #include "AccessFun.h"
 #include "StdDataType.h"
@@ -81,7 +82,7 @@ void setFileState(int shift) {
     int index = shift / 8;
     int node = shift % 8;
     if (node > 0) {
-        file_state[index] |= 0x80 >> (node -1);
+        file_state[index] |= 0x80 >> (node - 1);
     } else {
         file_state[index - 1] |= 0x01;
     }
@@ -142,28 +143,28 @@ int appendFile(int shift, int length, unsigned char *buf) {
     stat(file_path, &mstats);
     int res = (int) ((shift * blocksize + length) * 100) / mstats.st_size;
 
-    setFileState(shift+1);
+    setFileState(shift + 1);
 
     int blocks = (mstats.st_size / blocksize) / 8;
     int tail = (mstats.st_size / blocksize) % 8;
 
     char true_tail = 0x00;
-    for(int i = 0; i < tail+1; i++){
-    	true_tail |= 0x01 << (7-i);
+    for (int i = 0; i < tail + 1; i++) {
+        true_tail |= 0x01 << (7 - i);
     }
 
     printf("##############%d\n", blocks);
     for (int i = 0; i < blocks; i++) {
-    	printf("===================%02x \n", file_state[i]);
-    	if(file_state[i] != 0xff){
-    		return res;
-    	}
+        printf("===================%02x \n", file_state[i]);
+        if (file_state[i] != 0xff) {
+            return res;
+        }
     }
 
     printf("##===================%02x-%02x ##\n", file_state[blocks], true_tail);
 
-    if(file_state[blocks] != true_tail){
-    	return res;
+    if (file_state[blocks] != true_tail) {
+        return res;
     }
 
     printf("shengji\n\n\n\n\n");
@@ -182,20 +183,30 @@ int appendFile(int shift, int length, unsigned char *buf) {
 }
 
 int GetFileState(RESULT_NORMAL *response) {
+    struct stat mstats;
+
     FILE *fp = fopen((const char *) file_path, "r+");
     if (fp == NULL) {
-        fprintf(stderr, "尝试获取文件状态，但文件不存在...\n");
-        return 107;
+        asyslog(LOG_ERR, "尝试获取文件状态，但文件不存在...\n");
+        ///nand/UpFiles/update.sh
+        fp = fopen("/nand/UpFiles/update.sh", "r+");
+        if (fp == NULL) {
+            asyslog(LOG_ERR, "尝试获取升级文件文件状态，但文件仍不存在...\n");
+            return 107;
+        } else {
+            stat("/nand/UpFiles/update.sh", &mstats);
+            asyslog(LOG_INFO, "获取文件[update.sh]状态，长度(%d)", mstats.st_size);
+        }
+    } else {
+        stat(file_path, &mstats);
+        asyslog(LOG_INFO, "获取文件[original]状态，长度(%d)", mstats.st_size);
     }
-
-    //获取文件长度
-    struct stat mstats;
-    stat(file_path, &mstats);
-    fprintf(stderr, "获取文件状态，长度(%d)", mstats.st_size);
 
     fclose(fp);
 
     int blocks = mstats.st_size / blocksize;
+
+    asyslog(LOG_INFO, "文件块数量，(%d)；块长度(%d)", blocks, blocksize);
 
     if (mstats.st_size % blocksize > 0) {
         blocks += 1;
@@ -206,11 +217,17 @@ int GetFileState(RESULT_NORMAL *response) {
     response->data[2] = ((blocks) & 0xff00) >> 8;
     response->data[3] = ((blocks) & 0x00ff);
 
-    for (int i = 0; i < blocks; i++) {
+    int reblock = blocks / 8;
+    if (blocks % 8 != 0) {
+        reblock += 1;
+    }
+
+    asyslog(LOG_INFO, "循环前文件总块数，(%d)", reblock);
+    for (int i = 0; i < reblock; i++) {
         response->data[i + 4] = file_state[i];
     }
 
-    response->datalen += blocks + 4;
+    response->datalen += reblock + 4;
 
     return 0;
 }

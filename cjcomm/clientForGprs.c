@@ -211,7 +211,7 @@ static int RegularClientForGprs(struct aeEventLoop *ep, long long id, void *clie
         RegularAutoTask(ep, nst);
     }
 
-    return 2000;
+    return 1000;
 }
 
 static int RegularMixForGprs(struct aeEventLoop *ep, long long id, void *clientData) {
@@ -258,7 +258,7 @@ static int RegularMixForGprs(struct aeEventLoop *ep, long long id, void *clientD
         }
     }
 
-    return 2000;
+    return 1000;
 }
 
 /*
