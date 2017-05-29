@@ -244,7 +244,7 @@ void SetID(int argc, char *argv[]) {
         setOIChange_CJ(0x4001);
     } else {
         readCoverClass(0x4001, 0, &classtmp, sizeof(CLASS_4001_4002_4003), para_vari_save);
-        fprintf(stderr, "\n通信地址[%d]:", classtmp.curstom_num[0]);
+        fprintf(stderr, "\nCommAddr[%d]:", classtmp.curstom_num[0]);
         for (i = 0; i < classtmp.curstom_num[0]; i++) {
             fprintf(stderr, "%02x ", classtmp.curstom_num[i + 1]);
         }

@@ -58,7 +58,6 @@ static NETCONFIG 	IP_GW={1,{192,168,127,244},{255,255,255,0},{192,168,127,1},{},
 
 void InitClass4500(INT16U heartBeat,MASTER_STATION_INFO master_info,MASTER_STATION_INFO bak_info,GprsPara gprs_para)
 {
-	int		i=0;
 	CLASS25 class4500 = {};
     memset(&class4500, 0, sizeof(CLASS25));
 

@@ -11,11 +11,11 @@ def readConfig(name):
     config = ConfigParser.ConfigParser()
 
     try:
-        with open(name, 'rw') as cfgFile:
+        with open(name, 'r') as cfgFile:
             config.readfp(cfgFile)
             return config
     except IOError, e:
-        print '程序没有找到配置文件，程序当前目录需要config.ini文件。'
+        print '程序没有找到配置文件，程序当前目录需要config.ini文件。'.decode('utf-8')
         sys.exit()
 
 
@@ -44,7 +44,7 @@ def getInputGiveInfo(info):
     try:
         return str(input(info))
     except IOError, e:
-        print '请输入正确格式的信息。'
+        print '请输入正确格式的信息。'.decode('utf-8')
     except SyntaxError, e:
         return ''
 
@@ -57,7 +57,7 @@ def checkConfig(config):
     process = config.options('process')
     for p in process:
         if not config.has_option('parameter', p) or not config.has_option('timer', p):
-            print '配置文件参数数量不匹配'
+            print '配置文件参数数量不匹配'.decode('utf-8')
             sys.exit()
 
     return config
@@ -104,14 +104,14 @@ def doSetDevice(config):
 if __name__ == '__main__':
     config = checkConfig("./config.ini")
 
-    deviceId = getInputGiveInfo("输入产品逻辑地址>>>")
+    deviceId = getInputGiveInfo("输入产品逻辑地址>>>").decode('utf-8')
 
     while True:
         try:
             os.system('cls;clear')
             os.system('arp -d')
 
-            newDeviceId = getInputGiveInfo("确认序列号:(可以重新输入逻辑地址):" + formatId(config, deviceId) + "#")
+            newDeviceId = getInputGiveInfo("确认序列号:(可以重新输入逻辑地址):" + formatId(config, deviceId) + "#").decode('utf-8')
             if newDeviceId is not "":
                 deviceId = newDeviceId
             config.set('parameter', 'id', formatId(config, deviceId))
@@ -120,5 +120,5 @@ if __name__ == '__main__':
             deviceId = "%d" % (int(deviceId) + 1)
 
         except IOError, e:
-            print '网络连接错误，检查网线连接状态。'.decode('utf-8')
+            print '网络连接错误，检查网线连接状态。'.decode('utf-8').decode('utf-8')
             continue
