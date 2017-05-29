@@ -76,6 +76,7 @@ void CalculateTransFlow(ProgramInfo *prginfo_event) {
     static int localMin = 0;
     static int localDay = 0;
     static int localMonth = 0;
+    static int localSec = 0;
 
     static int first_flag = 1;
 
@@ -91,11 +92,12 @@ void CalculateTransFlow(ProgramInfo *prginfo_event) {
         localMin = ts.Minute;
         localDay = ts.Day;
         localMonth = ts.Month;
+        localSec = ts.Sec;
     }
 
 
-    if (localMin != ts.Minute) {
-        localMin = ts.Minute;
+    if (localSec != ts.Sec) {
+        localSec = ts.Sec;
     } else {
         return;
     }
@@ -111,13 +113,14 @@ void CalculateTransFlow(ProgramInfo *prginfo_event) {
     for (index = 0; index < 8; ++index) {
         memset(buf, 0x00, sizeof(buf));
         fgets(buf, sizeof(buf), rfd);
-        if (strstr(buf, "ppp0") > 0) {
+        if (strstr(buf, "eth0") > 0) {
             sscanf(buf, "%*[^:]:%d%*d%*d%*d%*d%*d%*d%*d%d", &rx_bytes, &tx_bytes);
             break;
         }
     }
     fclose(rfd);
     if (index >= 8) {
+        asyslog(LOG_INFO, "获取流量统计数据失败.");
         return;
     }
 
@@ -125,7 +128,8 @@ void CalculateTransFlow(ProgramInfo *prginfo_event) {
         rtx_bytes = 0;
     }
 
-    if (ts.Minute % 2 == 0) {
+//    fprintf(stderr, "开始流量统计,当前[秒]时间(%d)", ts.Sec);
+    if (ts.Sec % 2 == 0) {
         asyslog(LOG_INFO, "20分钟月流量统计，未统计流量%d", (rx_bytes + tx_bytes) - rtx_bytes);
         //跨日月流量分别清零
         if (localDay != ts.Day) {

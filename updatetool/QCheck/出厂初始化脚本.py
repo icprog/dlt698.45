@@ -42,7 +42,7 @@ def ReadyNet(host, user, passwd):
 #
 def getInputGiveInfo(info):
     try:
-        return str(input(info))
+        return str(input(info.decode('utf-8')))
     except IOError, e:
         print '请输入正确格式的信息。'.decode('utf-8')
     except SyntaxError, e:
@@ -114,7 +114,7 @@ if __name__ == '__main__':
             newDeviceId = getInputGiveInfo("确认序列号:(可以重新输入逻辑地址):" + formatId(config, deviceId) + "#").decode('utf-8')
             if newDeviceId is not "":
                 deviceId = newDeviceId
-            config.set('parameter', 'id', formatId(config, deviceId))
+            #config.set('parameter', 'id', formatId(config, deviceId))
 
             doSetDevice(config)
             deviceId = "%d" % (int(deviceId) + 1)
