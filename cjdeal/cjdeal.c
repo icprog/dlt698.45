@@ -54,6 +54,8 @@ void QuitProcess()
  * 清死亡计数
  */
 void clearcount(int index) {
+	fprintf(stderr,"\n  cjdeal pid=%d  JProgramInfo->Projects[%d].WaitTimes = %d    ",JProgramInfo->Projects[index].ProjectID,index,JProgramInfo->Projects[index].WaitTimes);
+	fprintf(stderr,"\n  cjdeal prog name = %s\n",JProgramInfo->Projects[index].ProjectName);
     JProgramInfo->Projects[index].WaitTimes = 0;
 }
 /*********************************************************
@@ -912,7 +914,7 @@ int main(int argc, char *argv[])
 
 	fprintf(stderr,"\n[cjdeal]:cjdeal run!");
 	if(InitPro(&JProgramInfo,argc,argv)==0){
-		fprintf(stderr,"进程 %s 参数错误",argv[0]);
+		syslog(LOG_ERR,"进程 %s 参数错误",argv[0]);
 		return EXIT_FAILURE;
 	}
 
@@ -939,15 +941,19 @@ int main(int argc, char *argv[])
 
 	while(1)
    	{
+		fprintf(stderr,"\n--------------------------1");
 	    struct timeval start={}, end={};
 	    long  interval=0;
 		gettimeofday(&start, NULL);
+		fprintf(stderr,"\n--------------------------2");
 		DealState(JProgramInfo);
+		fprintf(stderr,"\n--------------------------3");
 		gettimeofday(&end, NULL);
 		interval = 1000000*(end.tv_sec - start.tv_sec) + (end.tv_usec - start.tv_usec);
 	    if(interval>=1000000)
 	    	fprintf(stderr,"deal main interval = %f(ms)\n", interval/1000.0);
 		usleep(10 * 1000);
+		fprintf(stderr,"\n--------------------------4");
 		clearcount(ProIndex);
    	}
 	close_named_sem(SEMNAME_SPI0_0);

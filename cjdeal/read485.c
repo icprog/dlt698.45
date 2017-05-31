@@ -4733,6 +4733,7 @@ INT8U initMap07DI_698OAD()
 		if(linenum >= NUM_07DI_698OAD)
 		{
 			fprintf(stderr,"\n 07DI_698OAD.cfg数据项超过 NUM_07DI_698OAD \n");
+			fclose(fp);		////异常add
 			return linenum;
 		}
 
@@ -4761,10 +4762,8 @@ INT8U initMap07DI_698OAD()
 	{
 		fprintf(stderr,"\nLoad  07DI_698OAD.cfg  OK!!!        lineNum=%d\n", linenum);
 	}
-
+	fclose(fp);		///add
 	return linenum;
-
-
 }
 
 void read485_proccess() {

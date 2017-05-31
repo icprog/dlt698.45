@@ -339,6 +339,7 @@ void createWatch(struct aeEventLoop *ep) {
  *********************************************************/
 void enviromentCheck(int argc, char *argv[]) {
     pid_t pids[128];
+
     if (prog_find_pid_by_name((INT8S *) argv[0], pids) > 1) {
         asyslog(LOG_ERR, "CJCOMM进程仍在运行,进程号[%d]，程序退出...", pids[0]);
         exit(0);
@@ -348,11 +349,16 @@ void enviromentCheck(int argc, char *argv[]) {
     struct sigaction sa = {};
     Setsig(&sa, QuitProcess);
 
-    //向cjmain报告启动
-    ProgIndex = atoi(argv[1]);
-    JProgramInfo = OpenShMem("ProgramInfo", sizeof(ProgramInfo), NULL);
-    memcpy(JProgramInfo->Projects[ProgIndex].ProjectName, "cjcomm", sizeof("cjcomm"));
-    JProgramInfo->Projects[ProgIndex].ProjectID = getpid();
+    if (argc >= 2) {
+		//向cjmain报告启动
+		ProgIndex = atoi(argv[1]);
+		JProgramInfo = OpenShMem("ProgramInfo", sizeof(ProgramInfo), NULL);
+		memcpy(JProgramInfo->Projects[ProgIndex].ProjectName, "cjcomm", sizeof("cjcomm"));
+		JProgramInfo->Projects[ProgIndex].ProjectID = getpid();
+    }else {
+    	asyslog(LOG_ERR, "CJCOMM打开共享内存失败,退出...");
+    	exit(0);
+    }
 }
 
 int main(int argc, char *argv[]) {
@@ -385,6 +391,8 @@ int main(int argc, char *argv[]) {
     createWatch(ep);
 
     aeMain(ep);
+
+
 
     //退出信号
     QuitProcess(99);
