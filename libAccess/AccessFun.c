@@ -535,7 +535,7 @@ int readCoverClass(OI_698 oi,INT16U seqno,void *blockdata,int datalen,int type)
 	}
 	//信号量post，注意正常退出
 	CloseSem(sem_save);
-	syslog(LOG_NOTICE,"readCoverClass ret=%d",ret);//////7
+//	syslog(LOG_NOTICE,"readCoverClass ret=%d",ret);//////7
 	return ret;
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////

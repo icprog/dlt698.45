@@ -739,10 +739,10 @@ INT8U block_file_sync(char *fname,void *blockdata,int size,int headsize,int inde
 	ret1 = file_read(fname,blockdata1,sizenew,offset,readcrc1);
 	ret2 = file_read(fname2,blockdata2,sizenew,offset,readcrc2);
 //	fprintf(stderr,"\ncrc1=%04x,crc2=%04x,ret1=%d,ret2=%d\n",*readcrc1,*readcrc2,ret1,ret2);
-	syslog(LOG_NOTICE,"\ncrc1=%04x,crc2=%04x,ret1=%d,ret2=%d\n",*readcrc1,*readcrc2,ret1,ret2);////2
+//	syslog(LOG_NOTICE,"\ncrc1=%04x,crc2=%04x,ret1=%d,ret2=%d\n",*readcrc1,*readcrc2,ret1,ret2);////2
 	if((*readcrc1 == *readcrc2) && (ret1==1) && (ret2==1))  {		//两个文件校验正确，并且校验码相等，返回 1
 //		fprintf(stderr,"正确\n");
-		syslog(LOG_NOTICE," %s 校验正确 ",fname);			////3
+//		syslog(LOG_NOTICE," %s 校验正确 ",fname);			////3
 		ret= 1;
 	}
 	if ((*readcrc1!=*readcrc2) && (ret1==1) && (ret2==1)) {		//两个文件校验正确，但是校验码不等，采用文件保存日期新的数据
@@ -787,7 +787,7 @@ INT8U block_file_sync(char *fname,void *blockdata,int size,int headsize,int inde
 	if (ret ==1)
 	{
 		memcpy(blockdata,blockdata1,size);
-		syslog(LOG_NOTICE," %s 返回数据 ret=%d",fname,ret);///4
+//		syslog(LOG_NOTICE," %s 返回数据 ret=%d",fname,ret);///4
 	}else {
 //		fprintf(stderr,"\n 读取失败！！\n");
 //		syslog(LOG_NOTICE," %s 读取失败! ",fname);
