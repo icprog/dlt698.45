@@ -2955,8 +2955,10 @@ long int readFrameDataFile(char *filename,int offset,INT8U *buf,int *datalen)
 			syslog(LOG_ERR,"read filename=%s bytelen = %d 大于限定值=%d\n",filename,bytelen,MAX_APDU_SIZE);
 			return 0;
 		}
-		if (fread(buf,bytelen,1,fp) <=0 ) 	//按数据报文长度，读出全部字节
+		if (fread(buf,bytelen,1,fp) <=0 ) {	//按数据报文长度，读出全部字节
+			fclose(fp);
 			return 0;
+		}
 		*datalen = bytelen;
 		retoffset = ftell(fp);
 		fclose(fp);
