@@ -129,8 +129,9 @@ void CalculateTransFlow(ProgramInfo *prginfo_event) {
     }
 
 //    fprintf(stderr, "开始流量统计,当前[秒]时间(%d)", ts.Sec);
-    if (ts.Sec % 2 == 0) {
-        asyslog(LOG_INFO, "20分钟月流量统计，未统计流量%d", (rx_bytes + tx_bytes) - rtx_bytes);
+//    if (ts.Sec % 2 == 0) {
+    if (ts.Sec % 50 == 0) {		//现场运行调慢时间
+//        asyslog(LOG_INFO, "20分钟月流量统计，未统计流量%d", (rx_bytes + tx_bytes) - rtx_bytes);
         //跨日月流量分别清零
         if (localDay != ts.Day) {
             asyslog(LOG_INFO, "检测到夸日，流量统计清零，清零前数据(%d)", c2200.flow.day_tj);
