@@ -113,6 +113,7 @@ void write_userpwd(unsigned char* user, unsigned char* pwd, unsigned char* apn) 
     fprintf(fp, "CONNECT ''\n");
     fclose(fp);
 }
+
 void clearData()
 {
 	syslog(LOG_NOTICE,"__%s__",__func__);

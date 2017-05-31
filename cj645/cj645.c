@@ -253,7 +253,7 @@ int main(int argc, char *argv[])
     long	cjcomm_pid=0;
     int		i=0;
 	struct tm tm_curr;
-
+	char	cmd[64]={};
     system("rm /nand/check.log");
     sleep(1);
 
@@ -267,15 +267,20 @@ int main(int argc, char *argv[])
 		cjcomm_pid = check_cjcomm();
 		if(cjcomm_pid>0) {
 			syslog(LOG_NOTICE,"cj645检测到cjcomm运行,pid=%ld,正在停止程序!!!!!!!!!!!!\n ",cjcomm_pid);
-			system("pkill cjcomm");
+			memset(&cmd,0,sizeof(cmd));
+			sprintf(cmd,"kill -9 %ld",cjcomm_pid);
+			fprintf(stderr,"cmd=%s\n",cmd);
+			system(cmd);
+			sleep(1);
 			system("pkill cjdeal");
 	    	if(pgpl_isExist(cjcomm_pid)==FALSE) {
 	    		fprintf(stderr,"cjcomm 已退出\n");
 	    		break;
 	    	}
 		}
-    	sleep(1);
+    	usleep(50000);
     }
+    sleep(1);
     fprintf(stderr,"\n===========================\nstep3:485 串口互发测试\n===========================\n");
     Test_485_result = vs485_test(1,4);
     if (Test_485_result == 1) {

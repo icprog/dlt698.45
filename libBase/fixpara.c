@@ -29,7 +29,6 @@ typedef struct {
 }GprsPara;
 
 #define  IP_LEN		4		//参数ip类长度
-
 									//厂商代码　　软件版本　软件日期　　硬件版本　硬件日期  扩展信息
 static VERINFO verinfo          = { "QDGK", "V1.1", "170328", "1.10", "150628", "00000000" }; // 4300 版本信息
 static DateTimeBCD product_date = { { 2016 }, { 04 }, { 6 }, { 0 }, { 0 }, { 0 } };   // 4300 生产日期
@@ -58,7 +57,6 @@ static NETCONFIG 	IP_GW={1,{192,168,127,244},{255,255,255,0},{192,168,127,1},{},
 
 void InitClass4500(INT16U heartBeat,MASTER_STATION_INFO master_info,MASTER_STATION_INFO bak_info,GprsPara gprs_para)
 {
-	int		i=0;
 	CLASS25 class4500 = {};
     memset(&class4500, 0, sizeof(CLASS25));
 

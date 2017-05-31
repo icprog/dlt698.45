@@ -729,7 +729,6 @@ INT16S ReceDataFrom485(METER_PROTOCOL meterPro,INT8U port485, INT16U delayms, IN
 	INT8U prtstr[50];
 	INT16U len_Total = 0, len, rec_step, rec_head, rec_tail, DataLen, i, j;
 	INT32S fd = comfd485[port485-1];
-
 	if (fd <= 2)
 		return -1;
 
@@ -756,6 +755,9 @@ INT16S ReceDataFrom485(METER_PROTOCOL meterPro,INT8U port485, INT16U delayms, IN
 			sprintf((char *) prtstr, "485(%d)_R(%d):", port485, len);
 
 			printbuff((char *) prtstr, TmprevBuf, len, "%02x", " ", "\n");
+			char title[20];
+			sprintf(title,"[485_%d]R:",port485);
+			bufsyslog(TmprevBuf, title, len, 0, BUFFSIZE2048);
 		}
 		switch (rec_step) {
 		case 0:
@@ -860,7 +862,12 @@ void SendDataTo485(INT8U port485, INT8U *sendbuf, INT16U sendlen) {
 	if (slen < 0)
 		fprintf(stderr, "slen=%d,send err!\n", slen);
 	DbPrt1(port485,"S:", (char *) sendbuf, sendlen, NULL);
+
+	char title[20];
+	sprintf(title,"[485_%d]S:",port485);
+	bufsyslog(sendbuf, title, sendlen, 0, BUFLEN);
 }
+
 //根据TSA从文件中找出6001
 INT8U get6001ObjByTSA(TSA addr,CLASS_6001* targetMeter)
 {
@@ -2500,11 +2507,12 @@ INT8S dealProxyType7(PROXY_GETLIST getlist,INT8U port485)
 				RecvBuff[rec_head++] = TmprevBuf[i];
 			}
 		}
-
 	}
 
 	DbPrt1(port485,"代理透传返回:", (char *) RecvBuff, RecvLen, NULL);
-
+	char title[20];
+	sprintf(title,"[485_%d]R:",port485);
+	bufsyslog(RecvBuff, title, len, 0, BUFFSIZE1024);
 
 	if(RecvLen > 0)
 	{
