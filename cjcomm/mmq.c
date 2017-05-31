@@ -52,16 +52,16 @@ void MmqRead(struct aeEventLoop *eventLoop, int fd, void *clientData, int mask) 
 
     switch (GetOnlineType()) {
         case 1:
-            GetComBlockForGprs();
+            nst = GetComBlockForGprs();
             break;
         case 2:
-            GetComBlockForNet();
+            nst = GetComBlockForNet();
             break;
         case 3:
-            getComBlockForModel();
+            nst = getComBlockForModel();
             break;
     }
-
+    asyslog(LOG_INFO, "获取到nst，开始回复代理数据");
     switch (headBuf.cmd) {
         case TERMINALPROXY_RESPONSE:
             ProxyListResponse((PROXY_GETLIST *) getBuf, nst);
