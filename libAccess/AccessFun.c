@@ -2662,6 +2662,15 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds,INT16U fr
 	myfp = openFramefile(TASK_FRAME_DATA);
 	if (fp==NULL || myfp==NULL)
 	{
+		if(tsa_group != NULL)
+			free(tsa_group);
+		if(headunit!=NULL){
+			free(headunit);
+		}
+		if(fp != NULL)
+			fclose(fp);
+		if(myfp != NULL)
+			fclose(myfp);
 		asyslog(LOG_INFO,"\n打开文件%s失败\n",TASK_FRAME_DATA);
 		return 0;
 	}
@@ -2718,6 +2727,15 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds,INT16U fr
 
 	if(tsa_num == 0) {
 		asyslog(LOG_INFO,"未找到符合条件的TSA数据\n");
+		if(tsa_group != NULL)
+			free(tsa_group);
+		if(headunit!=NULL){
+			free(headunit);
+		}
+		if(fp != NULL)
+			fclose(fp);
+		if(myfp != NULL)
+			fclose(myfp);
 		return 0;
 	}
 	//3\定位TSA , 返回offset
