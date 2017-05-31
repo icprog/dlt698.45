@@ -916,6 +916,8 @@ int main(int argc, char *argv[])
 		return EXIT_FAILURE;
 	}
 
+	asyslog(LOG_INFO,"进程 %s PID = %d",JProgramInfo->Projects[1].ProjectName,JProgramInfo->Projects[1].ProjectID);
+	asyslog(LOG_INFO,"进程 %s PID = %d",JProgramInfo->Projects[2].ProjectName,JProgramInfo->Projects[2].ProjectID);
 	//载入档案、参数
 	InitPara();
 	//任务调度进程
