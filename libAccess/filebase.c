@@ -600,12 +600,18 @@ INT8U file_read(char *FileName, void *source, int size,int offset,INT16U *retcrc
 				*retcrc = readcrc;
 				ret = 1;
 			}
-			else ret = 0;
+			else {
+				syslog(LOG_ERR,"__%s__,校验错误:crc=%d__readcrc=%d",__func__,crc,readcrc);
+				ret = 0;
+			}
+		}else {
+			syslog(LOG_ERR,"__%s__,read num=%d,size=%d",__func__,num,size);
 		}
 		fclose(fp);
 	} else
 	{
 		ret = 0;
+		syslog(LOG_ERR,"__%s__,文件打开失败,ret=%d",__func__,ret);
 //		fprintf(stderr, "%s read error\n\r", FileName);
 	}
 	return ret;
@@ -696,7 +702,10 @@ INT8U block_file_sync(char *fname,void *blockdata,int size,int headsize,int inde
 	INT16U  ret=0;
 
 //	fprintf(stderr,"\n read file :%s　size=%d\n",fname,size);
-	if(fname==NULL || strlen(fname)<=4 || size<2) 	return 0;
+	if(fname==NULL || strlen(fname)<=4 || size<2) {
+		syslog(LOG_NOTICE,"strlen(%s)=%d,size=%d",fname,strlen(fname),size);
+		return 0;
+	}
 
 	//文件默认最后两个字节为CRC16校验，原结构体尺寸如果不是4个字节对齐，进行补齐，加CRC16
 	if(size%4==0)	sizenew = size+2;
@@ -730,9 +739,10 @@ INT8U block_file_sync(char *fname,void *blockdata,int size,int headsize,int inde
 	ret1 = file_read(fname,blockdata1,sizenew,offset,readcrc1);
 	ret2 = file_read(fname2,blockdata2,sizenew,offset,readcrc2);
 //	fprintf(stderr,"\ncrc1=%04x,crc2=%04x,ret1=%d,ret2=%d\n",*readcrc1,*readcrc2,ret1,ret2);
+	syslog(LOG_NOTICE,"\ncrc1=%04x,crc2=%04x,ret1=%d,ret2=%d\n",*readcrc1,*readcrc2,ret1,ret2);////2
 	if((*readcrc1 == *readcrc2) && (ret1==1) && (ret2==1))  {		//两个文件校验正确，并且校验码相等，返回 1
 //		fprintf(stderr,"正确\n");
-//		syslog(LOG_NOTICE," %s 校验正确 ",fname);
+		syslog(LOG_NOTICE," %s 校验正确 ",fname);			////3
 		ret= 1;
 	}
 	if ((*readcrc1!=*readcrc2) && (ret1==1) && (ret2==1)) {		//两个文件校验正确，但是校验码不等，采用文件保存日期新的数据
@@ -742,7 +752,7 @@ INT8U block_file_sync(char *fname,void *blockdata,int size,int headsize,int inde
 //		fprintf(stderr,"info1=%ld,info2=%ld\n",info1.st_mtim.tv_sec,info2.st_mtim.tv_sec);
 //		if(info1.st_mtim.tv_sec >= info2.st_mtim.tv_sec) {			//fname1文件修改时间新,更新fname2备份数据
 		//校验码不等，使用fname1文件内容更新fname2
-			syslog(LOG_NOTICE," %s 校验码不等,更新备份文件 ",fname);
+//			syslog(LOG_NOTICE," %s 校验码不等,更新备份文件 ",fname);
 //			fprintf(stderr," %s 校验码不等,更新备份文件 ",fname);
 			file_write(fname2,blockdata1,sizenew,offset);
 			ret= 1;
@@ -777,7 +787,7 @@ INT8U block_file_sync(char *fname,void *blockdata,int size,int headsize,int inde
 	if (ret ==1)
 	{
 		memcpy(blockdata,blockdata1,size);
-//		syslog(LOG_NOTICE," %s 返回数据 ",fname);
+		syslog(LOG_NOTICE," %s 返回数据 ret=%d",fname,ret);///4
 	}else {
 //		fprintf(stderr,"\n 读取失败！！\n");
 //		syslog(LOG_NOTICE," %s 读取失败! ",fname);
@@ -785,6 +795,7 @@ INT8U block_file_sync(char *fname,void *blockdata,int size,int headsize,int inde
 	free(blockdata1);
 	free(blockdata2);
 //	fprintf(stderr,"ret=%d\n",ret);
+//	syslog(LOG_NOTICE,"after free  %s 返回数据 ret=%d",fname,ret);////////5
 	return ret;					//异常情况，程序返回0，参数初始默认值，产生ERC2参数丢失事件
 }
 

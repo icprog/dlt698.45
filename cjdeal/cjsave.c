@@ -360,20 +360,7 @@ int SaveNorData(INT8U taskid,ROAD *road_eve,INT8U *databuf,int datalen,TS ts_cc)
 	unitseq = (ts_cc.Hour*60*60+ts_cc.Minute*60+ts_cc.Sec)/((24*60*60)/runtime)+1;
 	asyslog(LOG_NOTICE,"ts: %d:%d:%d",ts_cc.Hour,ts_cc.Minute,ts_cc.Sec);
 	asyslog(LOG_NOTICE,"存储序号: unitseq=%d runtime=%d  %d--%d",unitseq,runtime,(ts_cc.Hour*60*60+ts_cc.Minute*60+ts_cc.Sec),((24*60*60)/runtime));
-	if(unitseq > runtime)
-	{
-		asyslog(LOG_NOTICE,"unitseq　= %d　runtime = %d",ts_cc.Hour,ts_cc.Minute,ts_cc.Sec);
-		if(databuf_tmp != NULL)
-			free(databuf_tmp);
-		return 0;//出错了，序列号超过了总长度
-	}
-	if(datalen > unitlen/runtime)
-	{
-		asyslog(LOG_NOTICE,"111111 datalen　= %d　unitlen = %d runtime= %d",datalen,unitlen,runtime);
-		return 0;
-	}
-	memcpy(&databuf_tmp[unitlen*(unitseq-1)/runtime],databuf,datalen);
-	if(datalen != unitlen/runtime)
+	if(unitseq > runtime || datalen != unitlen/runtime)
 	{
 		if(databuf_tmp != NULL)
 			free(databuf_tmp);
@@ -381,10 +368,12 @@ int SaveNorData(INT8U taskid,ROAD *road_eve,INT8U *databuf,int datalen,TS ts_cc)
 			asyslog(LOG_NOTICE,"数据长度不对，不存: datalen=%d,need=%d",datalen,unitlen/runtime);
 		else
 			asyslog(LOG_NOTICE,"事件长度不对，不存: datalen=%d,need=%d",datalen,unitlen/runtime);
-		return 0;//长度不对
+//		return 0;//长度不对
+		eveflg = 0;
 	}
 	else
 	{
+		memcpy(&databuf_tmp[unitlen*(unitseq-1)/runtime],databuf,datalen);
 		if(road_eve == NULL)
 			asyslog(LOG_NOTICE,"任务数据存储: %s,savepos=%d,unitlen=%d",fname,savepos,unitlen);
 		else
@@ -473,17 +462,25 @@ int SaveOADData(INT8U taskid,OAD oad_m,OAD oad_r,INT8U *databuf,int datalen,TS t
 		if(unitseq > runtime)
 		{
 			asyslog(LOG_NOTICE,"不符和unitseq=%d runtime=%d",unitseq, runtime);
+			if(fp!=NULL)
+				fclose(fp);
 			if(databuf_tmp != NULL)
 				free(databuf_tmp);
 			return 0;//出错了，序列号超过了总长度
 		}
 		asyslog(LOG_NOTICE,"计算oadoffset");
+
 		oadoffset = GetOADPos(fp,headlen,oad_m,oad_r);
-		if(oadoffset < 0)//没找到
-			return 0;
 		asyslog(LOG_NOTICE,"计算oadoffset=%d::%d ts: %d:%d:%d",oadoffset,ts_res.Hour,ts_res.Minute,ts_res.Sec,unitlen/runtime);
-		if(oadoffset>=unitlen/runtime)
-			return 0;//计算的有问题
+		if(oadoffset < 0 || oadoffset>=unitlen/runtime)//没找到//计算的有问题
+		{
+			if(fp!=NULL)
+				fclose(fp);
+			if(databuf_tmp != NULL)
+				free(databuf_tmp);
+			return 0;
+		}
+
 		asyslog(LOG_NOTICE,"oadoffset=%d合理::%d",oadoffset,unitlen*(unitseq-1)/runtime+oadoffset);
 		memcpy(&databuf_tmp[unitlen*(unitseq-1)/runtime+oadoffset],&databuf[18],datalen-18);//赋值到应该赋值的oad位置
 
@@ -523,6 +520,8 @@ int SaveOADData(INT8U taskid,OAD oad_m,OAD oad_r,INT8U *databuf,int datalen,TS t
 		if(datalen != oadlen+TSA_LEN+1)
 		{
 			asyslog(LOG_NOTICE,"计算的长度不对%d::%d",datalen, oadlen+TSA_LEN+1);
+			if(fp!=NULL)
+				fclose(fp);
 			if(databuf_tmp != NULL)
 				free(databuf_tmp);
 			return 0;//长度不对

@@ -61,7 +61,7 @@ void MmqRead(struct aeEventLoop *eventLoop, int fd, void *clientData, int mask) 
             getComBlockForModel();
             break;
     }
-    
+
     switch (headBuf.cmd) {
         case TERMINALPROXY_RESPONSE:
             ProxyListResponse((PROXY_GETLIST *) getBuf, nst);
