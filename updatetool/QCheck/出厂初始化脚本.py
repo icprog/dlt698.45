@@ -105,14 +105,14 @@ def doSetDevice(config):
 if __name__ == '__main__':
     config = checkConfig("./config.ini")
 
-    deviceId = getInputGiveInfo("输入产品逻辑地址>>>")
+    deviceId = getInputGiveInfo("输入产品逻辑地址>>>").decode('utf-8')
 
     while True:
         try:
             os.system('cls;clear')
             os.system('arp -d')
 
-            newDeviceId = getInputGiveInfo("确认序列号:(可以重新输入逻辑地址):" + formatId(config, deviceId) + "#")
+            newDeviceId = getInputGiveInfo("确认序列号:(可以重新输入逻辑地址):" + formatId(config, deviceId) + "#").decode('utf-8')
             if newDeviceId is not "":
                 deviceId = newDeviceId
             #config.set('parameter', 'id', formatId(config, deviceId))
@@ -123,4 +123,5 @@ if __name__ == '__main__':
         except IOError, e:
             print '网络连接错误，检查网线连接状态。'.decode('utf-8')
             time.sleep(2)
+
             continue

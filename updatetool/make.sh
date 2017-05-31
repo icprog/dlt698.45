@@ -4,10 +4,10 @@ Usage()
 {
     echo "============================================="
     echo "使用方式:"
-    echo "\t./make 型号 地区\n"
+    echo "\t./make 型号 地区 说明内容\n"
     echo "\t设备类型，1：I型集中器，2:II型集中器，3：III型专变"
     echo "\tZheJiang(II型),ShanDong(II型),HuNan(I型),GW(国网送检)"
-    echo "\t注释内容"
+    echo "\t说明内容"
     echo "============================================="
     exit 1
 }
