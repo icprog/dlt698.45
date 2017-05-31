@@ -32,6 +32,10 @@ static MASTER_STATION_INFO NetIps[4];
 static pthread_mutex_t locker;
 static NetObject netObject;
 
+CommBlock *getComBlockForModel(){
+    return &ClientForModelObject;
+}
+
 static int NetSend(int fd, INT8U *buf, INT16U len) {
     if (len > 2048) {
         asyslog(LOG_WARNING, "发送报文太长[2048-%d]", len);

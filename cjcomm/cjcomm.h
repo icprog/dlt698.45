@@ -66,6 +66,9 @@ int StartClientForGprs(struct aeEventLoop *ep, long long id, void *clientData);
 
 void ClientForGprsDestory(void);
 
+
+CommBlock *getComBlockForModel();
+
 //消息队列通信接口
 void MmqDestory(void);
 
