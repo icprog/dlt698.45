@@ -374,7 +374,10 @@ int main(int argc, char *argv[]) {
         StartClientOnModel(ep, 0, NULL);
 
     }else{
-        StartServer(ep, 0, NULL);
+        /*
+         * 根据范工的稳定要求，不开启服务端监听
+         * StartServer(ep, 0, NULL);
+         */
         StartClientForGprs(ep, 0, NULL);
         StartClientForNet(ep, 0, NULL);
     }
