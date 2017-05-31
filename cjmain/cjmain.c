@@ -23,7 +23,7 @@
 #include "../include/version.h"
 
 static ProgramInfo *JProgramInfo = NULL;
-static int mmqFds[MAX_MMQ_SIZE]={};
+static int mmqFds[MAX_MMQ_SIZE] = {};
 
 const static mmq_attribute mmq_register[] = {{cjcomm, PROXY_485_MQ_NAME,    MAXSIZ_PROXY_NET,    MAXNUM_PROXY_NET},
                                              {cjdeal, PROXY_NET_MQ_NAME,    MAXSIZ_PROXY_485,    MAXNUM_PROXY_485},
@@ -84,7 +84,6 @@ void PowerOffToClose(INT8U pwrdelay) {
     } else
         cnt_pwroff = 0;
 }
-
 
 //读取系统配置文件
 int ReadSystemInfo() {
@@ -243,7 +242,7 @@ void Checkupdate() {
                 fread(md5_org, sizeof(md5_org), 1, fp_org);
                 int res = strncmp(md5_new, md5_org, 24);
                 if (res != 0) {
-                	asyslog(LOG_INFO, "版本比对不同，开始升级....");
+                    asyslog(LOG_INFO, "版本比对不同，开始升级....");
                     system("/dos/cjgwn/index.sh");
                 } else {
                     asyslog(LOG_INFO, "版本比对相同，不予升级....");
@@ -297,10 +296,10 @@ void InitSharedMem(int argc, char *argv[]) {
     JProgramInfo = (ProgramInfo *) CreateShMem("ProgramInfo", sizeof(ProgramInfo), NULL);
     asyslog(LOG_NOTICE, "打开共享内存，地址[%d]，大小[%d]", JProgramInfo, sizeof(ProgramInfo));
 
-    InitClass4016();    	//当前套日时段表
-	InitClass4300();    	//电气设备信息
-    InitClassf203();		//开关量输入
-	InitClassByZone(1);		//根据地区进行相应初始化	4500,4510参数,防止参数丢失,重新生产
+    InitClass4016();        //当前套日时段表
+    InitClass4300();        //电气设备信息
+    InitClassf203();        //开关量输入
+    InitClassByZone(1);        //根据地区进行相应初始化	4500,4510参数,防止参数丢失,重新生产
 
     //事件参数初始化
     readCoverClass(0x3100, 0, &JProgramInfo->event_obj.Event3100_obj, sizeof(JProgramInfo->event_obj.Event3100_obj),
@@ -504,7 +503,7 @@ void checkDevReset() {
             }
             break;
         case 1:
-            if (abs(time(NULL) - oldtime) >= 5) {		//掉电前电量处理
+            if (abs(time(NULL) - oldtime) >= 5) {        //掉电前电量处理
                 system("reboot");
             }
             break;
