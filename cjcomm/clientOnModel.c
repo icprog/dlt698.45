@@ -32,7 +32,7 @@ static MASTER_STATION_INFO NetIps[4];
 static pthread_mutex_t locker;
 static NetObject netObject;
 
-CommBlock *getComBlockForModel(){
+CommBlock *getComBlockForModel() {
     return &ClientForModelObject;
 }
 
@@ -341,12 +341,22 @@ int modelReadExactly(int fd, int retry) {
         int resLen = RecieveFromComm(Mrecvbuf, 2048, fd);
         checkModelStatus(Mrecvbuf, resLen);
 
-        if (sscanf(Mrecvbuf, "%*[^:]: %d,%d", &chl, &sum) == 2) {
+        char *netReadPos = strstr(Mrecvbuf, "MYNETREAD:");
+        if (netReadPos == NULL) {
+            printf("找不到MYNETREAD\n");
+            continue;
+        }
+
+        if (sscanf(netReadPos, "%*[^:]: %d,%d", &chl, &sum) == 2) {
+            printf("报文通道：长度(%d-%d)\n", chl, sum);
             if (sum == 0) { break; }
             int pos = readPositionGet(sum);
-            printf("============recv %d, at %d has %d bytes\n", resLen, 38 + pos, sum);
-            putNext(&Mrecvbuf[38 + pos], sum);
+            printf("============recv %d, at %d has %d [bytes] (%c %c %c)\n", resLen, 15 + pos, sum,
+                   netReadPos + 12 + pos, netReadPos + 13 + pos, netReadPos + 14 + pos);
+            putNext(netReadPos + 15 + pos, sum);
             break;
+        } else {
+            printf("没有解析到报文\n");
         }
     }
 }
@@ -496,7 +506,7 @@ void *ModelWorker(void *args) {
 
         wait:
         while (1) {
-            sleep(1);
+            sleep(2);
             if (GetOnlineType() == 0) { goto err; }
 
             INT8U sendBuf[2048];
@@ -505,8 +515,9 @@ void *ModelWorker(void *args) {
 
             if (readySendLen != -1) {
                 modelSendExactly(sMux0, 5, readySendLen, sendBuf);
-                modelReadExactly(sMux0, 3);
             }
+
+            modelReadExactly(sMux0, 3);
 
             switch (checkModelStatus(NULL, -1)) {
                 case 1:
@@ -516,6 +527,7 @@ void *ModelWorker(void *args) {
                 case 99:
                     asyslog(LOG_ERR, "内部协议栈连接出错!");
                     goto err;
+                    break;
 
             }
         }
@@ -523,6 +535,7 @@ void *ModelWorker(void *args) {
         err:
         sleep(1);
         close(sMux0);
+        SetOnlineType(0);
         continue;
     }
 }
@@ -541,6 +554,7 @@ static int RegularClientOnModel(struct aeEventLoop *ep, long long id, void *clie
     CommBlock *nst = (CommBlock *) clientData;
 
     if (GetOnlineType() != 3) {
+        refreshComPara(nst);
         return 1000;
     }
 

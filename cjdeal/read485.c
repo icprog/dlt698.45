@@ -852,7 +852,7 @@ void SendDataTo485(INT8U port485, INT8U *sendbuf, INT16U sendlen) {
 
 	INT8U str[50];
 	memset(str, 0, 50);
-#if 0
+#if 1
 	sprintf((char *) str, "485(%d)_S(%d):", port485, sendlen);
 	printbuff((char *) str, sendbuf, sendlen, "%02x", " ", "\n");
 
@@ -3947,50 +3947,51 @@ INT16S deal6015or6017_singlemeter(CLASS_6013 st6013,CLASS_6015 st6015,CLASS_6001
 
 
 							DbPrt1(port485,"曲线数据 :", (char *) curvedataContent, ret, NULL);
-
-							INT8U recordNum = ret/roadDataLen;
-
-							if((ret%roadDataLen) == 0)
+							if(roadDataLen > 0)
 							{
-								INT16U dataIndex = 0;
-								INT8U singleDatabuf[DATA_CONTENT_LEN];
-								INT8U recordIndex;
-								for(recordIndex=0;recordIndex<recordNum;recordIndex++)
-								{
-									TS freezeTimeStamp;
-									if(st6015.csds.csd[0].csd.road.oads[0].OI == DATA_TIMESTAMP_OI)
-									{
-										freezeTimeStamp.Year = curvedataContent[dataIndex+1];
-										freezeTimeStamp.Year = freezeTimeStamp.Year<<8;
-										freezeTimeStamp.Year += curvedataContent[dataIndex+2];
-										freezeTimeStamp.Month = curvedataContent[dataIndex+3];
-										freezeTimeStamp.Day = curvedataContent[dataIndex+4];
-										freezeTimeStamp.Hour = curvedataContent[dataIndex+5];
-										freezeTimeStamp.Minute = curvedataContent[dataIndex+6];
-										freezeTimeStamp.Sec = curvedataContent[dataIndex+7];
-										freezeTimeStamp.Week = 0;
-									}
-									else//如果采集方案里没有冻结时标用当前时间
-									{
-										TSGet(&freezeTimeStamp);
-									}
+								INT8U recordNum = ret/roadDataLen;
 
-									DbgPrintToFile1(port485,"曲线数据时标[%d] %04d-%02d-%02d %02d:%02d:%02d",
-									recordIndex,freezeTimeStamp.Year,freezeTimeStamp.Month,freezeTimeStamp.Day,freezeTimeStamp.Hour,freezeTimeStamp.Minute,freezeTimeStamp.Sec);
-									memset(singleDatabuf,0,DATA_CONTENT_LEN);
-									memcpy(singleDatabuf,&curvedataContent[dataIndex],roadDataLen);
-									DateTimeBCD savetime;
-									TsToTimeBCD(freezeTimeStamp,&savetime);
-									int bufflen = compose6012Buff(st6035->starttime,savetime,obj6001.basicinfo.addr,roadDataLen,singleDatabuf,port485);
-									SaveNorData(st6035->taskID,NULL,singleDatabuf,bufflen,freezeTimeStamp);
-									dataIndex+=roadDataLen;
+								if((ret%roadDataLen) == 0)
+								{
+									INT16U dataIndex = 0;
+									INT8U singleDatabuf[DATA_CONTENT_LEN];
+									INT8U recordIndex;
+									for(recordIndex=0;recordIndex<recordNum;recordIndex++)
+									{
+										TS freezeTimeStamp;
+										if(st6015.csds.csd[0].csd.road.oads[0].OI == DATA_TIMESTAMP_OI)
+										{
+											freezeTimeStamp.Year = curvedataContent[dataIndex+1];
+											freezeTimeStamp.Year = freezeTimeStamp.Year<<8;
+											freezeTimeStamp.Year += curvedataContent[dataIndex+2];
+											freezeTimeStamp.Month = curvedataContent[dataIndex+3];
+											freezeTimeStamp.Day = curvedataContent[dataIndex+4];
+											freezeTimeStamp.Hour = curvedataContent[dataIndex+5];
+											freezeTimeStamp.Minute = curvedataContent[dataIndex+6];
+											freezeTimeStamp.Sec = curvedataContent[dataIndex+7];
+											freezeTimeStamp.Week = 0;
+										}
+										else//如果采集方案里没有冻结时标用当前时间
+										{
+											TSGet(&freezeTimeStamp);
+										}
+
+										DbgPrintToFile1(port485,"曲线数据时标[%d] %04d-%02d-%02d %02d:%02d:%02d",
+										recordIndex,freezeTimeStamp.Year,freezeTimeStamp.Month,freezeTimeStamp.Day,freezeTimeStamp.Hour,freezeTimeStamp.Minute,freezeTimeStamp.Sec);
+										memset(singleDatabuf,0,DATA_CONTENT_LEN);
+										memcpy(singleDatabuf,&curvedataContent[dataIndex],roadDataLen);
+										DateTimeBCD savetime;
+										TsToTimeBCD(freezeTimeStamp,&savetime);
+										int bufflen = compose6012Buff(st6035->starttime,savetime,obj6001.basicinfo.addr,roadDataLen,singleDatabuf,port485);
+										SaveNorData(st6035->taskID,NULL,singleDatabuf,bufflen,freezeTimeStamp);
+										dataIndex+=roadDataLen;
+									}
+								}
+								else
+								{
+									DbgPrintToFile1(port485,"曲线数据错误");
 								}
 							}
-							else
-							{
-								DbgPrintToFile1(port485,"曲线数据错误");
-							}
-
 
 						}
 
@@ -4121,7 +4122,10 @@ INT8U getSaveTime(DateTimeBCD* saveTime,INT8U cjType,INT8U saveTimeFlag,DATA_TYP
 		if(curvedata.data[0] == minute_units)
 		{
 			INT8U minute = (curvedata.data[1]<<8)+curvedata.data[2];
-			saveTime->min.data = (saveTime->min.data/minute)*minute;
+			if(minute!=0)
+			{
+				saveTime->min.data = (saveTime->min.data/minute)*minute;
+			}
 		}
 		if(curvedata.data[0] == hour_units)
 		{
@@ -4733,11 +4737,12 @@ INT8U initMap07DI_698OAD()
 		if(linenum >= NUM_07DI_698OAD)
 		{
 			fprintf(stderr,"\n 07DI_698OAD.cfg数据项超过 NUM_07DI_698OAD \n");
-			fclose(fp);		////异常add
+			fclose(fp);
 			return linenum;
 		}
 
 	}
+
 	map07DI_698OAD[linenum].roadOI = 0x0000;
 	map07DI_698OAD[linenum].flag698.OI = 0x4000;
 	map07DI_698OAD[linenum].flag698.attflg = 0x02;
@@ -4762,7 +4767,7 @@ INT8U initMap07DI_698OAD()
 	{
 		fprintf(stderr,"\nLoad  07DI_698OAD.cfg  OK!!!        lineNum=%d\n", linenum);
 	}
-	fclose(fp);		///add
+	fclose(fp);
 	return linenum;
 }
 
