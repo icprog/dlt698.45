@@ -47,8 +47,22 @@ void MmqRead(struct aeEventLoop *eventLoop, int fd, void *clientData, int mask) 
         asyslog(LOG_WARNING, "当前无通道在线，收到代理消息[%d]", headBuf.cmd);
         return;
     }
-    CommBlock *nst = (GetOnlineType() == 1) ? GetComBlockForGprs() : GetComBlockForNet();
-    switch (headBuf.cmd){
+
+    CommBlock *nst = NULL;
+
+    switch (GetOnlineType()) {
+        case 1:
+            nst = GetComBlockForGprs();
+            break;
+        case 2:
+            nst = GetComBlockForNet();
+            break;
+        case 3:
+            nst = getComBlockForModel();
+            break;
+    }
+    asyslog(LOG_INFO, "获取到nst，开始回复代理数据");
+    switch (headBuf.cmd) {
         case TERMINALPROXY_RESPONSE:
             ProxyListResponse((PROXY_GETLIST *) getBuf, nst);
             break;

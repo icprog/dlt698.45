@@ -865,6 +865,7 @@ void SendDataTo485(INT8U port485, INT8U *sendbuf, INT16U sendlen) {
 
 	char title[20];
 	sprintf(title,"[485_%d]S:",port485);
+	fprintf(stderr,"port485=%s\n",title);
 	bufsyslog(sendbuf, title, sendlen, 0, BUFLEN);
 }
 
@@ -4736,10 +4737,7 @@ INT8U initMap07DI_698OAD()
 		if(linenum >= NUM_07DI_698OAD)
 		{
 			fprintf(stderr,"\n 07DI_698OAD.cfg数据项超过 NUM_07DI_698OAD \n");
-			if(fp!=NULL)
-			{
-				fclose(fp);
-			}
+			fclose(fp);
 			return linenum;
 		}
 
@@ -4769,13 +4767,8 @@ INT8U initMap07DI_698OAD()
 	{
 		fprintf(stderr,"\nLoad  07DI_698OAD.cfg  OK!!!        lineNum=%d\n", linenum);
 	}
-	if(fp!=NULL)
-	{
-		fclose(fp);
-	}
+	fclose(fp);
 	return linenum;
-
-
 }
 
 void read485_proccess() {

@@ -96,8 +96,8 @@ void CalculateTransFlow(ProgramInfo *prginfo_event) {
     }
 
 
-    if (localSec != ts.Sec) {
-        localSec = ts.Sec;
+    if (localMonth != ts.Minute) {
+        localMonth = ts.Minute;
     } else {
         return;
     }
@@ -113,7 +113,7 @@ void CalculateTransFlow(ProgramInfo *prginfo_event) {
     for (index = 0; index < 8; ++index) {
         memset(buf, 0x00, sizeof(buf));
         fgets(buf, sizeof(buf), rfd);
-        if (strstr(buf, "eth0") > 0) {
+        if (strstr(buf, "ppp0") > 0) {
             sscanf(buf, "%*[^:]:%d%*d%*d%*d%*d%*d%*d%*d%d", &rx_bytes, &tx_bytes);
             break;
         }
@@ -129,8 +129,8 @@ void CalculateTransFlow(ProgramInfo *prginfo_event) {
     }
 
 //    fprintf(stderr, "开始流量统计,当前[秒]时间(%d)", ts.Sec);
-    if (ts.Sec % 2 == 0) {
-        asyslog(LOG_INFO, "20分钟月流量统计，未统计流量%d", (rx_bytes + tx_bytes) - rtx_bytes);
+    if (ts.Minute % 2 == 0) {
+        asyslog(LOG_INFO, "2分钟月流量统计，未统计流量%d", (rx_bytes + tx_bytes) - rtx_bytes);
         //跨日月流量分别清零
         if (localDay != ts.Day) {
             asyslog(LOG_INFO, "检测到夸日，流量统计清零，清零前数据(%d)", c2200.flow.day_tj);
@@ -338,6 +338,7 @@ void createWatch(struct aeEventLoop *ep) {
  *********************************************************/
 void enviromentCheck(int argc, char *argv[]) {
     pid_t pids[128];
+
     if (prog_find_pid_by_name((INT8S *) argv[0], pids) > 1) {
         asyslog(LOG_ERR, "CJCOMM进程仍在运行,进程号[%d]，程序退出...", pids[0]);
         exit(0);
@@ -347,11 +348,16 @@ void enviromentCheck(int argc, char *argv[]) {
     struct sigaction sa = {};
     Setsig(&sa, QuitProcess);
 
-    //向cjmain报告启动
-    ProgIndex = atoi(argv[1]);
-    JProgramInfo = OpenShMem("ProgramInfo", sizeof(ProgramInfo), NULL);
-    memcpy(JProgramInfo->Projects[ProgIndex].ProjectName, "cjcomm", sizeof("cjcomm"));
-    JProgramInfo->Projects[ProgIndex].ProjectID = getpid();
+    if (argc >= 2) {
+		//向cjmain报告启动
+		ProgIndex = atoi(argv[1]);
+		JProgramInfo = OpenShMem("ProgramInfo", sizeof(ProgramInfo), NULL);
+		memcpy(JProgramInfo->Projects[ProgIndex].ProjectName, "cjcomm", sizeof("cjcomm"));
+		JProgramInfo->Projects[ProgIndex].ProjectID = getpid();
+    }else {
+    	asyslog(LOG_ERR, "CJCOMM打开共享内存失败,退出...");
+    	exit(0);
+    }
 }
 
 int main(int argc, char *argv[]) {
@@ -374,7 +380,10 @@ int main(int argc, char *argv[]) {
         StartClientOnModel(ep, 0, NULL);
 
     }else{
-        StartServer(ep, 0, NULL);
+        /*
+         * 根据范工的稳定要求，不开启服务端监听
+         * StartServer(ep, 0, NULL);
+         */
         StartClientForGprs(ep, 0, NULL);
         StartClientForNet(ep, 0, NULL);
     }
@@ -384,6 +393,8 @@ int main(int argc, char *argv[]) {
     createWatch(ep);
 
     aeMain(ep);
+
+
 
     //退出信号
     QuitProcess(99);

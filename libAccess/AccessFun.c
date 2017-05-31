@@ -506,6 +506,7 @@ int readCoverClass(OI_698 oi,INT16U seqno,void *blockdata,int datalen,int type)
 	case coll_para_save:
 	case acs_energy_save:
 //		ret = readFileName(oi,seqno,type,fname);
+//		syslog(LOG_NOTICE,"read type=%d,oi=%04x,seqno=%d ret=%d",type,oi,seqno,ret);/////1
 		if(ret==0) {		//文件存在
 //			fprintf(stderr,"readClass %s filelen=%d,type=%d\n",fname,datalen,type);
 			ret = block_file_sync(fname,blockdata,datalen,0,0);
@@ -534,6 +535,7 @@ int readCoverClass(OI_698 oi,INT16U seqno,void *blockdata,int datalen,int type)
 	}
 	//信号量post，注意正常退出
 	CloseSem(sem_save);
+	syslog(LOG_NOTICE,"readCoverClass ret=%d",ret);//////7
 	return ret;
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -2662,6 +2664,15 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds,INT16U fr
 	myfp = openFramefile(TASK_FRAME_DATA);
 	if (fp==NULL || myfp==NULL)
 	{
+		if(tsa_group != NULL)
+			free(tsa_group);
+		if(headunit!=NULL){
+			free(headunit);
+		}
+		if(fp != NULL)
+			fclose(fp);
+		if(myfp != NULL)
+			fclose(myfp);
 		asyslog(LOG_INFO,"\n打开文件%s失败\n",TASK_FRAME_DATA);
 		return 0;
 	}
@@ -2718,6 +2729,15 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds,INT16U fr
 
 	if(tsa_num == 0) {
 		asyslog(LOG_INFO,"未找到符合条件的TSA数据\n");
+		if(tsa_group != NULL)
+			free(tsa_group);
+		if(headunit!=NULL){
+			free(headunit);
+		}
+		if(fp != NULL)
+			fclose(fp);
+		if(myfp != NULL)
+			fclose(myfp);
 		return 0;
 	}
 	//3\定位TSA , 返回offset
@@ -2935,8 +2955,10 @@ long int readFrameDataFile(char *filename,int offset,INT8U *buf,int *datalen)
 			syslog(LOG_ERR,"read filename=%s bytelen = %d 大于限定值=%d\n",filename,bytelen,MAX_APDU_SIZE);
 			return 0;
 		}
-		if (fread(buf,bytelen,1,fp) <=0 ) 	//按数据报文长度，读出全部字节
+		if (fread(buf,bytelen,1,fp) <=0 ) {	//按数据报文长度，读出全部字节
+			fclose(fp);
 			return 0;
+		}
 		*datalen = bytelen;
 		retoffset = ftell(fp);
 		fclose(fp);

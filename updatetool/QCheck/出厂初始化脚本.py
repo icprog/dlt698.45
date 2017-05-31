@@ -42,7 +42,8 @@ def ReadyNet(host, user, passwd):
 #
 def getInputGiveInfo(info):
     try:
-        return str(input(info.decode('utf-8')))
+        print info.decode('utf-8')
+        return str(input(">>>"))
     except IOError, e:
         print '请输入正确格式的信息。'.decode('utf-8')
     except SyntaxError, e:
@@ -120,5 +121,7 @@ if __name__ == '__main__':
             deviceId = "%d" % (int(deviceId) + 1)
 
         except IOError, e:
-            print '网络连接错误，检查网线连接状态。'.decode('utf-8').decode('utf-8')
+            print '网络连接错误，检查网线连接状态。'.decode('utf-8')
+            time.sleep(2)
+
             continue

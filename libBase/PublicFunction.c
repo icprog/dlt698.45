@@ -69,6 +69,7 @@ int ReadDeviceConfig(ConfigPara	*cfg_para)
     if (cfg_para->device < 1 || cfg_para->device > 3) { //无效值
     	cfg_para->device = 1;                                      //默认I型
     }
+    fclose(fp);
     return 1;
 }
 
