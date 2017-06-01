@@ -279,4 +279,9 @@ extern int save_protocol_3761_tx_para(INT8U* dealdata);
  * 重写3761 规约程序rc.local
  * */
 extern INT8U write_3761_rc_local();
+
+/*
+ * 支持液晶部分查找日月冻结数据
+ */
+extern INT16S GUI_GetFreezeData(CSD_ARRAYTYPE csds,TSA tsa,TS ts_zc,INT8U *databuf);
 #endif /* ACCESS_H_ */

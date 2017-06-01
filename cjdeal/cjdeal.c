@@ -54,6 +54,8 @@ void QuitProcess()
  * 清死亡计数
  */
 void clearcount(int index) {
+//	fprintf(stderr,"\n  cjdeal pid=%d  JProgramInfo->Projects[%d].WaitTimes = %d    ",JProgramInfo->Projects[index].ProjectID,index,JProgramInfo->Projects[index].WaitTimes);
+//	fprintf(stderr,"\n  cjdeal prog name = %s\n",JProgramInfo->Projects[index].ProjectName);
     JProgramInfo->Projects[index].WaitTimes = 0;
 }
 /*********************************************************
@@ -65,10 +67,11 @@ int InitPro(ProgramInfo** prginfo, int argc, char *argv[])
 	{
 		*prginfo = OpenShMem("ProgramInfo",sizeof(ProgramInfo),NULL);
 		ProIndex = atoi(argv[1]);
-
-		fprintf(stderr,"\n%s start",(*prginfo)->Projects[ProIndex].ProjectName);
-		(*prginfo)->Projects[ProIndex].ProjectID=getpid();//保存当前进程的进程号
-		fprintf(stderr,"ProjectID[%d]=%d\n",ProIndex,(*prginfo)->Projects[ProIndex].ProjectID);
+		if(*prginfo!=NULL) {
+			fprintf(stderr,"\n%s start",(*prginfo)->Projects[ProIndex].ProjectName);
+			(*prginfo)->Projects[ProIndex].ProjectID=getpid();//保存当前进程的进程号
+			fprintf(stderr,"ProjectID[%d]=%d\n",ProIndex,(*prginfo)->Projects[ProIndex].ProjectID);
+		}
 		return 1;
 	}
 	return 0;
@@ -912,10 +915,12 @@ int main(int argc, char *argv[])
 
 	fprintf(stderr,"\n[cjdeal]:cjdeal run!");
 	if(InitPro(&JProgramInfo,argc,argv)==0){
-		fprintf(stderr,"进程 %s 参数错误",argv[0]);
+		syslog(LOG_ERR,"进程 %s 参数错误",argv[0]);
 		return EXIT_FAILURE;
 	}
 
+	asyslog(LOG_INFO,"进程 %s PID = %d",JProgramInfo->Projects[1].ProjectName,JProgramInfo->Projects[1].ProjectID);
+	asyslog(LOG_INFO,"进程 %s PID = %d",JProgramInfo->Projects[2].ProjectName,JProgramInfo->Projects[2].ProjectID);
 	//载入档案、参数
 	InitPara();
 	//任务调度进程

@@ -16,8 +16,6 @@
 #endif
 
 #define MUL_OFFSET 1000
-extern int read_filedata(char* FileName, int point, int did, INT8U flag, void *source);
-extern void dataitem_showvalue(INT8U *filename, int cldno, char *idname, int dataid, int len, int pos_x, int pos_y);
 
 extern ProgramInfo* p_JProgramInfo;
 extern INT8U g_chgOI4001 ;
@@ -75,7 +73,6 @@ void lcdpoll_showidapnip(LcdDataItem *item, int size, INT8U show_flg){
 //		PressKey = NOKEY;
 //		delay(200);
 //	}
-//  set_time_show_flag(1);//TODO:new
 }
 
 
@@ -229,7 +226,6 @@ void ShowCLDDataPage(LcdDataItem *item, int size, INT8U show_flg)
 		sprintf((char*)str,"终端地址 %s",chg_str);
 		gui_setpos(&pos, rect_Client.left+3*FONTSIZE, rect_Client.top+18*FONTSIZE);
 		gui_textshow((char*)str, pos, LCD_NOREV);
-		set_time_show_flag(1);
 	}else if(show_flg==2){
 		TSGet(&curts);
 
@@ -240,7 +236,6 @@ void ShowCLDDataPage(LcdDataItem *item, int size, INT8U show_flg)
 				curts.Year-2000, curts.Month, curts.Day, curts.Hour, curts.Minute);
 		gui_setpos(&pos, rect_Client.left+2*FONTSIZE, rect_Client.top+18*FONTSIZE);
 		gui_textshow((char*)str, pos, LCD_NOREV);
-		set_time_show_flag(1);
 	}
 	return;
 }
@@ -248,7 +243,6 @@ void ShowCLDDataPage(LcdDataItem *item, int size, INT8U show_flg)
 void LunXunShowPage1(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT8U show_flg){
 	Point pos = {0};
 	TS curts = {0};
-
 	INT8U str[100] = {0};
 	INT8U chg_str[50] = {0};
 
@@ -281,7 +275,6 @@ void LunXunShowPage1(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT8
 		sprintf((char*)str,"终端地址 %s",chg_str);
 		gui_setpos(&pos, rect_Client.left+3*FONTSIZE, rect_Client.top+18*FONTSIZE);
 		gui_textshow((char*)str, pos, LCD_NOREV);
-		set_time_show_flag(1);
 	}else if(show_flg==2){
 		TSGet(&curts);
 
@@ -293,7 +286,6 @@ void LunXunShowPage1(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT8
 				curts.Hour, curts.Minute);
 		gui_setpos(&pos, rect_Client.left+2*FONTSIZE, rect_Client.top+18*FONTSIZE);
 		gui_textshow((char*)str, pos, LCD_NOREV);
-		set_time_show_flag(1);
 	}
 	return;
 }
@@ -301,8 +293,6 @@ void LunXunShowPage1(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT8
 void LunXunShowPage2(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT8U show_flg){
 	Point pos = {0};
 	TS curts = {0};
-
-
 	INT8U str[100] = {0};
 	INT8U chg_str[50] = {0};
 
@@ -338,7 +328,6 @@ void LunXunShowPage2(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT8
 		sprintf((char*)str,"终端地址 %s",chg_str);
 		gui_setpos(&pos, rect_Client.left+3*FONTSIZE, rect_Client.top+18*FONTSIZE);
 		gui_textshow((char*)str, pos, LCD_NOREV);
-		set_time_show_flag(1);
 	}
 	else if(show_flg==2){
 		TSGet(&curts);
@@ -350,7 +339,6 @@ void LunXunShowPage2(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT8
 				curts.Year-2000, curts.Month, curts.Day, curts.Hour, curts.Minute);
 		gui_setpos(&pos, rect_Client.left+2*FONTSIZE, rect_Client.top+18*FONTSIZE);
 		gui_textshow((char*)str, pos, LCD_NOREV);
-		set_time_show_flag(1);
 	}
 	return;
 }
@@ -359,8 +347,6 @@ void LunXunShowPage3(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT8
 
 	Point pos = {0};
 	TS curts = {0};
-
-
 	INT8U str[100] = {0};
 	INT8U chg_str[50] = {0};
 
@@ -374,7 +360,6 @@ void LunXunShowPage3(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT8
 		sprintf((char*)str,"未知的接线方式");
 		gui_setpos(&pos, rect_Client.left+4*FONTSIZE, rect_Client.top+5*FONTSIZE);
 		gui_textshow((char*)str, pos, LCD_NOREV);
-		set_time_show_flag(1);
 		return;
 	}
 	bzero(str,100);
@@ -403,7 +388,6 @@ void LunXunShowPage3(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT8
 		sprintf((char*)str,"终端地址 %s",chg_str);
 		gui_setpos(&pos, rect_Client.left+3*FONTSIZE, rect_Client.top+18*FONTSIZE);
 		gui_textshow((char*)str, pos, LCD_NOREV);
-		set_time_show_flag(1);
 	}else if(show_flg==2){
 		TSGet(&curts);
 
@@ -414,7 +398,6 @@ void LunXunShowPage3(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT8
 				curts.Year-2000, curts.Month, curts.Day, curts.Hour, curts.Minute);
 		gui_setpos(&pos, rect_Client.left+2*FONTSIZE, rect_Client.top+18*FONTSIZE);
 		gui_textshow((char*)str, pos, LCD_NOREV);
-		set_time_show_flag(1);
 	}
 	return;
 }
@@ -423,8 +406,6 @@ void LunXunShowPage4(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT8
 
 	Point pos = {0};
 	TS curts = {0};
-
-
 	INT8U str[100] = {0};
 	INT8U chg_str[50] = {0};
 
@@ -439,7 +420,6 @@ void LunXunShowPage4(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT8
 		sprintf((char*)str,"未知的接线方式");
 		gui_setpos(&pos, rect_Client.left+4*FONTSIZE, rect_Client.top+5*FONTSIZE);
 		gui_textshow((char*)str, pos, LCD_NOREV);
-		set_time_show_flag(1);
 		return;
 	}
 
@@ -466,7 +446,6 @@ void LunXunShowPage4(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT8
 		sprintf((char*)str,"终端地址 %s",chg_str);
 		gui_setpos(&pos, rect_Client.left+3*FONTSIZE, rect_Client.top+18*FONTSIZE);
 		gui_textshow((char*)str, pos, LCD_NOREV);
-		set_time_show_flag(1);
 	}else if(show_flg==2){
 		TSGet(&curts);
 
@@ -477,7 +456,6 @@ void LunXunShowPage4(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT8
 				curts.Year-2000, curts.Month, curts.Day, curts.Hour, curts.Minute);
 		gui_setpos(&pos, rect_Client.left+2*FONTSIZE, rect_Client.top+18*FONTSIZE);
 		gui_textshow((char*)str, pos, LCD_NOREV);
-		set_time_show_flag(1);
 	}
 	return;
 }
@@ -485,8 +463,6 @@ void LunXunShowPage5(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT8
 
 	Point pos = {0};
 	TS curts = {0};
-
-
 	INT8U str[100] = {0};
 	INT8U chg_str[50] = {0};
 
@@ -501,7 +477,6 @@ void LunXunShowPage5(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT8
 		sprintf((char*)str,"未知的接线方式");
 		gui_setpos(&pos, rect_Client.left+4*FONTSIZE, rect_Client.top+5*FONTSIZE);
 		gui_textshow((char*)str, pos, LCD_NOREV);
-		set_time_show_flag(1);
 		return;
 	}
 
@@ -523,7 +498,6 @@ void LunXunShowPage5(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT8
 		sprintf((char*)str,"终端地址 %s",chg_str);
 		gui_setpos(&pos, rect_Client.left+3*FONTSIZE, rect_Client.top+18*FONTSIZE);
 		gui_textshow((char*)str, pos, LCD_NOREV);
-		set_time_show_flag(1);
 	}else if(show_flg==2){
 		TSGet(&curts);
 
@@ -534,7 +508,6 @@ void LunXunShowPage5(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT8
 				curts.Year-2000, curts.Month, curts.Day, curts.Hour, curts.Minute);
 		gui_setpos(&pos, rect_Client.left+2*FONTSIZE, rect_Client.top+18*FONTSIZE);
 		gui_textshow((char*)str, pos, LCD_NOREV);
-		set_time_show_flag(1);
 	}
 	return;
 }
@@ -542,8 +515,6 @@ void LunXunShowPage6(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT8
 
 	Point pos = {0};
 	TS curts = {0};
-
-
 	INT8U str[100] = {0};
 	INT8U chg_str[50] = {0};
 
@@ -557,7 +528,6 @@ void LunXunShowPage6(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT8
 		sprintf((char*)str,"未知的接线方式");
 		gui_setpos(&pos, rect_Client.left+4*FONTSIZE, rect_Client.top+5*FONTSIZE);
 		gui_textshow((char*)str, pos, LCD_NOREV);
-		set_time_show_flag(1);
 		return;
 	}
 	bzero(str,100);
@@ -576,7 +546,6 @@ void LunXunShowPage6(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT8
 		sprintf((char*)str,"终端地址 %s",chg_str);
 		gui_setpos(&pos, rect_Client.left+3*FONTSIZE, rect_Client.top+18*FONTSIZE);
 		gui_textshow((char*)str, pos, LCD_NOREV);
-		set_time_show_flag(1);
 	}else if(show_flg==2){
 		TSGet(&curts);
 
@@ -587,7 +556,6 @@ void LunXunShowPage6(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT8
 				curts.Year-2000, curts.Month, curts.Day, curts.Hour, curts.Minute);
 		gui_setpos(&pos, rect_Client.left+2*FONTSIZE, rect_Client.top+18*FONTSIZE);
 		gui_textshow((char*)str, pos, LCD_NOREV);
-		set_time_show_flag(1);
 	}
 	return;
 }
@@ -595,8 +563,6 @@ void LunXunShowPage7(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT8
 
 	Point pos = {0};
 	TS curts = {0};
-
-
 	INT8U str[100] = {0};
 	INT8U chg_str[50] = {0};
 
@@ -610,7 +576,6 @@ void LunXunShowPage7(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT8
 		sprintf((char*)str,"未知的接线方式");
 		gui_setpos(&pos, rect_Client.left+4*FONTSIZE, rect_Client.top+5*FONTSIZE);
 		gui_textshow((char*)str, pos, LCD_NOREV);
-		set_time_show_flag(1);
 		return;
 	}
 	bzero(str,100);
@@ -631,7 +596,6 @@ void LunXunShowPage7(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT8
 		sprintf((char*)str,"终端地址 %s",chg_str);
 		gui_setpos(&pos, rect_Client.left+3*FONTSIZE, rect_Client.top+18*FONTSIZE);
 		gui_textshow((char*)str, pos, LCD_NOREV);
-		set_time_show_flag(1);
 	}else if(show_flg==2){
 		TSGet(&curts);
 
@@ -642,7 +606,6 @@ void LunXunShowPage7(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT8
 				curts.Year-2000, curts.Month, curts.Day, curts.Hour, curts.Minute);
 		gui_setpos(&pos, rect_Client.left+2*FONTSIZE, rect_Client.top+18*FONTSIZE);
 		gui_textshow((char*)str, pos, LCD_NOREV);
-		set_time_show_flag(1);
 	}
 	return;
 }
@@ -650,8 +613,6 @@ void LunXunShowPage8(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT8
 
 	Point pos = {0};
 	TS curts = {0};
-
-
 	INT8U str[100] = {0};
 	INT8U chg_str[50] = {0};
 
@@ -665,7 +626,6 @@ void LunXunShowPage8(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT8
 		sprintf((char*)str,"未知的接线方式");
 		gui_setpos(&pos, rect_Client.left+4*FONTSIZE, rect_Client.top+5*FONTSIZE);
 		gui_textshow((char*)str, pos, LCD_NOREV);
-		set_time_show_flag(1);
 		return;
 	}
 
@@ -683,7 +643,6 @@ void LunXunShowPage8(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT8
 		sprintf((char*)str,"终端地址 %s",chg_str);
 		gui_setpos(&pos, rect_Client.left+3*FONTSIZE, rect_Client.top+18*FONTSIZE);
 		gui_textshow((char*)str, pos, LCD_NOREV);
-		set_time_show_flag(1);
 	}else if(show_flg==2){
 		TSGet(&curts);
 
@@ -694,7 +653,6 @@ void LunXunShowPage8(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT8
 				curts.Year-2000, curts.Month, curts.Day, curts.Hour, curts.Minute);
 		gui_setpos(&pos, rect_Client.left+2*FONTSIZE, rect_Client.top+18*FONTSIZE);
 		gui_textshow((char*)str, pos, LCD_NOREV);
-		set_time_show_flag(1);
 	}
 	return;
 }
@@ -702,8 +660,6 @@ void LunXunShowPage9(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT8
 
 	Point pos = {0};
 	TS curts = {0};
-
-
 	INT8U str[100] = {0};
 	INT8U chg_str[50] = {0};
 
@@ -721,7 +677,6 @@ void LunXunShowPage9(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT8
 		sprintf((char*)str,"未知的接线方式");
 		gui_setpos(&pos, rect_Client.left+4*FONTSIZE, rect_Client.top+5*FONTSIZE);
 		gui_textshow((char*)str, pos, LCD_NOREV);
-		set_time_show_flag(1);
 		return;
 	}
 	bzero(str,100);
@@ -739,7 +694,6 @@ void LunXunShowPage9(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT8
 		sprintf((char*)str,"终端地址 %s",chg_str);
 		gui_setpos(&pos, rect_Client.left+3*FONTSIZE, rect_Client.top+18*FONTSIZE);
 		gui_textshow((char*)str, pos, LCD_NOREV);
-		set_time_show_flag(1);
 	}else if(show_flg==2){
 		TSGet(&curts);
 
@@ -750,7 +704,6 @@ void LunXunShowPage9(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT8
 				curts.Year-2000, curts.Month, curts.Day, curts.Hour, curts.Minute);
 		gui_setpos(&pos, rect_Client.left+2*FONTSIZE, rect_Client.top+18*FONTSIZE);
 		gui_textshow((char*)str, pos, LCD_NOREV);
-		set_time_show_flag(1);
 	}
 	return;
 }
@@ -758,8 +711,6 @@ void LunXunShowPage10(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT
 
 	Point pos = {0};
 	TS curts = {0};
-
-
 	INT8U str[100] = {0};
 	INT8U chg_str[50] = {0};
 
@@ -777,7 +728,6 @@ void LunXunShowPage10(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT
 		sprintf((char*)str,"未知的接线方式");
 		gui_setpos(&pos, rect_Client.left+4*FONTSIZE, rect_Client.top+5*FONTSIZE);
 		gui_textshow((char*)str, pos, LCD_NOREV);
-		set_time_show_flag(1);
 		return;
 	}
 
@@ -798,7 +748,6 @@ void LunXunShowPage10(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT
 		sprintf((char*)str,"终端地址 %s",chg_str);
 		gui_setpos(&pos, rect_Client.left+3*FONTSIZE, rect_Client.top+18*FONTSIZE);
 		gui_textshow((char*)str, pos, LCD_NOREV);
-		set_time_show_flag(1);
 	}else if(show_flg==2){
 		TSGet(&curts);
 
@@ -809,7 +758,6 @@ void LunXunShowPage10(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT
 				curts.Year-2000, curts.Month, curts.Day, curts.Hour, curts.Minute);
 		gui_setpos(&pos, rect_Client.left+2*FONTSIZE, rect_Client.top+18*FONTSIZE);
 		gui_textshow((char*)str, pos, LCD_NOREV);
-		set_time_show_flag(1);
 	}
 	return;
 }
@@ -818,7 +766,6 @@ void LunXunShowPage11(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT
 
 	Point pos = {0};
 	TS curts = {0};
-
 	INT8U str[100] = {0};
 	INT8U chg_str[50] = {0};
 
@@ -836,7 +783,6 @@ void LunXunShowPage11(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT
 		sprintf((char*)str,"未知的接线方式");
 		gui_setpos(&pos, rect_Client.left+4*FONTSIZE, rect_Client.top+5*FONTSIZE);
 		gui_textshow((char*)str, pos, LCD_NOREV);
-		set_time_show_flag(1);
 		return;
 	}
 
@@ -854,7 +800,6 @@ void LunXunShowPage11(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT
 		sprintf((char*)str,"终端地址 %s",chg_str);
 		gui_setpos(&pos, rect_Client.left+3*FONTSIZE, rect_Client.top+18*FONTSIZE);
 		gui_textshow((char*)str, pos, LCD_NOREV);
-		set_time_show_flag(1);
 	}else if(show_flg==2){
 		TSGet(&curts);
 
@@ -865,7 +810,6 @@ void LunXunShowPage11(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT
 				curts.Year-2000, curts.Month, curts.Day, curts.Hour, curts.Minute);
 		gui_setpos(&pos, rect_Client.left+2*FONTSIZE, rect_Client.top+18*FONTSIZE);
 		gui_textshow((char*)str, pos, LCD_NOREV);
-		set_time_show_flag(1);
 	}
 	return;
 }
@@ -958,6 +902,7 @@ void lcdpoll_show(ProgramInfo* jprograminfo)
 			continue;
 		else{
 			gui_clrrect(rect_Client);
+			show_ctrl();//显示控制非客户区//TODO:new//轮显时更新上下状态栏
 			LunXian[i].pfun(jprograminfo,item, JC_ITEM_COUNT, 1);
 			pageno = i;
 			while(g_LcdPoll_Flag==LCD_INPOLL){

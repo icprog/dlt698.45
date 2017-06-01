@@ -211,7 +211,6 @@ void ShowMenuItems(struct list *begin, int count, struct list *current)
 	}
 	menuitem = getMenuListItembyList(current);
 	gui_textshow(menuitem->data.name, cur_pos, LCD_REV);
-	set_time_show_flag(1);
 	setFontSize(fontsize);
 }
 
@@ -231,9 +230,12 @@ void ShowItself(struct list *head)
 	char passwd[6];//
 	g_curcldno = 1;
 	while(1) {
-		delay(100);
+
 		if(g_LcdPoll_Flag==LCD_INPOLL)//如果处于轮选状态，则一直等待轮显结束
+		{
+			delay(100);
 			return;
+		}
 		if(g_LcdPoll_Keypress==1)
 		{//在轮显模式下进入正常模式 菜单显示顶层菜单 同时当前按键只能算是唤醒液晶
 			head = tophead;
@@ -245,13 +247,13 @@ void ShowItself(struct list *head)
 			switch(PressKey)
 			{
 			case LEFT:
-				DEBUG_TIME_LINE("PressKey LEFT\n");
+			//	DEBUG_TIME_LINE("PressKey LEFT\n");
 				break;
 			case RIGHT:
-				DEBUG_TIME_LINE("PressKey RIGHT\n");
+			//	DEBUG_TIME_LINE("PressKey RIGHT\n");
 				break;
 			case UP:
-				DEBUG_TIME_LINE("PressKey UP\n");
+			//	DEBUG_TIME_LINE("PressKey UP\n");
 				if(pageitem_count>0){
 					current=list_getprev(current);
 					if(current==head){//如果当前菜单项是菜单项链表的第一个菜单项
@@ -264,7 +266,7 @@ void ShowItself(struct list *head)
 				}
 				break;
 			case DOWN:
-				DEBUG_TIME_LINE("PressKey DOWN\n");
+			//	DEBUG_TIME_LINE("PressKey DOWN\n");
 				if(pageitem_count>0){
 					current = list_getnext(current);
 					if(current==NULL)
@@ -277,7 +279,7 @@ void ShowItself(struct list *head)
 				break;
 			case OK:
 				//oprmode_bak = get_oprmode();
-				DEBUG_TIME_LINE("PressKey OK\n");
+			//	DEBUG_TIME_LINE("PressKey OK\n");
 				menuitem = getMenuListItembyList(current);//获取当前菜单项信息，根据获取的信息判断其是否有密码和子菜单项
 				if(menuitem->data.ispasswd == MENU_ISPASSWD_EDITMODE)
 				{//如果菜单项需要输入密码
@@ -326,7 +328,7 @@ void ShowItself(struct list *head)
 				//set_oprmode(oprmode_bak);
 				break;
 			case ESC:
-				DEBUG_TIME_LINE("PressKey ESC\n");
+		//		DEBUG_TIME_LINE("PressKey ESC\n");
 				memset(&tmenustat, 0, sizeof(MenuStat_t));
 				if(top(&tmenustat))
 				{//利用堆栈来存储菜单显示的页面
@@ -355,11 +357,11 @@ void ShowItself(struct list *head)
 			 * */
 			pageitem_count = my_min(list_getListNum(head),MENU_PAGEITEM_COUNT-1);
 			ShowMenuItems(begin, pageitem_count, current);
-			set_time_show_flag(1);
 			first_flg = 1;
 		}
 		PressKey = NOKEY;
 		show_ctrl();//显示控制非客户区//TODO:new
+		delay(100);
 	}
 }
 //TODO:获取测量点端口号

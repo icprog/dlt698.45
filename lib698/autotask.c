@@ -263,10 +263,10 @@ INT16U  composeAutoTask(AutoTaskStrap *list)
 
 	if(timenow >= list->nexttime)
 	{
-		fprintf(stderr, "任务上报时间%ld, %ld\n", list->nexttime, timenow);
+		asyslog(LOG_INFO,"任务上报时间%ld, %ld\n", list->nexttime, timenow);
 		if (readCoverClass(0x6013, list->ID, &class6013, sizeof(CLASS_6013),coll_para_save) == 1)
 		{
-			fprintf(stderr,"\ni=%d 任务【 %d 】 	 开始执行   上报方案编号【 %d 】",i,list->ID,list->SerNo);
+			asyslog(LOG_INFO,"\ni=%d 任务【 %d 】 	 开始执行   上报方案编号【 %d 】",i,list->ID,list->SerNo);
 			if (readCoverClass(0x601D, list->SerNo, &class601d, sizeof(CLASS_601D),coll_para_save) == 1)
 			{
 				asyslog(LOG_INFO,"方案编号601d:reportnum=%d",class601d.reportnum);

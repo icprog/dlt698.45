@@ -27,7 +27,6 @@ extern unsigned char HzDat_12[198576];//8274*24
 //缓冲区刷新标志处理
 extern volatile INT8U show_time_flag;
 extern INT8U ret_show_time_flag();
-extern void set_time_show_flag(INT8U value);
 
 void gui_setrect(Rect *rect, int left, int top, int right, int bottom);
 void gui_setpos(Point *pos, int x, int y);
