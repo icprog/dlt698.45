@@ -26,7 +26,7 @@ ParaCheck()
          Usage
     fi
     
-    echo $1 $2 $3  
+#    echo $1 $2 $3  
     echo "创建必要条件..."
     if [ ! -d app ]; then
         mkdir app
@@ -46,6 +46,10 @@ CopyNew()
     cp ../bin_arm/cj* ./app/
     cp ../bin_arm/*.so ./app/
     cp ../config/* ./app/
+    rm ./app/systema_2.cfg
+    if [ $1 = "GW" ]; then
+         cp ../config/systema_2.cfg ./app/systema.cfg
+    fi
 }
 
 UpdateLocation()
@@ -116,7 +120,7 @@ main()
 {
     ParaCheck $1 $2 $3
     Clean
-    CopyNew
+    CopyNew $2
     UpdateLocation $1 $2
     Package
     CreateUSB
