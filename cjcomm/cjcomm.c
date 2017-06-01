@@ -68,7 +68,6 @@ void SetConnectStatus(int status) {
 }
 
 void CalculateTransFlow(ProgramInfo *prginfo_event) {
-    static Flow_tj c2200;
     //统计临时变量
     static int rtx_bytes = 0;
     static int rx_bytes = 0;
@@ -85,9 +84,9 @@ void CalculateTransFlow(ProgramInfo *prginfo_event) {
 
     if (first_flag == 1) {
         first_flag = 0;
-        memset(&c2200, 0x00, sizeof(c2200));
-        readVariData(0x2200, 0, &c2200, sizeof(c2200));
-        asyslog(LOG_INFO, "初始化月流量统计(%d)", c2200.flow.month_tj);
+        memset(&prginfo_event->dev_info.realTimeC2200, 0x00, sizeof(Flow_tj));
+        readVariData(0x2200, 0, &prginfo_event->dev_info.realTimeC2200, sizeof(Flow_tj));
+        asyslog(LOG_INFO, "初始化月流量统计(%d)", prginfo_event->dev_info.realTimeC2200.flow.month_tj);
 
         localMin = ts.Minute;
         localDay = ts.Day;
@@ -96,8 +95,8 @@ void CalculateTransFlow(ProgramInfo *prginfo_event) {
     }
 
 
-    if (localMonth != ts.Minute) {
-        localMonth = ts.Minute;
+    if (localSec != ts.Sec) {
+        localSec = ts.Sec;
     } else {
         return;
     }
@@ -128,27 +127,26 @@ void CalculateTransFlow(ProgramInfo *prginfo_event) {
         rtx_bytes = 0;
     }
 
-//    fprintf(stderr, "开始流量统计,当前[秒]时间(%d)", ts.Sec);
+    prginfo_event->dev_info.realTimeC2200.flow.day_tj += (rx_bytes + tx_bytes) - rtx_bytes;
+    prginfo_event->dev_info.realTimeC2200.flow.month_tj += (rx_bytes + tx_bytes) - rtx_bytes;
+    rtx_bytes = rx_bytes + tx_bytes;
+    Event_3110(prginfo_event->dev_info.realTimeC2200.flow.month_tj, sizeof(prginfo_event->dev_info.realTimeC2200.flow), prginfo_event);
+
     if (ts.Minute % 2 == 0) {
         asyslog(LOG_INFO, "2分钟月流量统计，未统计流量%d", (rx_bytes + tx_bytes) - rtx_bytes);
         //跨日月流量分别清零
         if (localDay != ts.Day) {
-            asyslog(LOG_INFO, "检测到夸日，流量统计清零，清零前数据(%d)", c2200.flow.day_tj);
-            c2200.flow.day_tj = 0;
+            asyslog(LOG_INFO, "检测到夸日，流量统计清零，清零前数据(%d)", prginfo_event->dev_info.realTimeC2200.flow.day_tj);
+            prginfo_event->dev_info.realTimeC2200.flow.day_tj = 0;
             localDay = ts.Day;
         }
 
         if (localMonth != ts.Month) {
-            asyslog(LOG_INFO, "检测到夸月，流量统计清零，清零前数据(%d)", c2200.flow.month_tj);
-            c2200.flow.month_tj = 0;
+            asyslog(LOG_INFO, "检测到夸月，流量统计清零，清零前数据(%d)", prginfo_event->dev_info.realTimeC2200.flow.month_tj);
+            prginfo_event->dev_info.realTimeC2200.flow.month_tj = 0;
             localMonth = ts.Month;
         }
-        c2200.flow.day_tj += (rx_bytes + tx_bytes) - rtx_bytes;
-        c2200.flow.month_tj += (rx_bytes + tx_bytes) - rtx_bytes;
-
-        saveVariData(0x2200, 0, &c2200, sizeof(c2200));
-        rtx_bytes = rx_bytes + tx_bytes;
-        Event_3110(c2200.flow.month_tj, sizeof(c2200.flow), prginfo_event);
+        saveVariData(0x2200, 0, &prginfo_event->dev_info.realTimeC2200, sizeof(Flow_tj));
     }
 
     return;
@@ -292,7 +290,7 @@ void initComPara(CommBlock *compara, INT8S (*p_send)(int fd, INT8U *buf, INT16U 
     }
     compara->myAppVar.server_deal_maxApdu = FRAMELEN;
     compara->myAppVar.server_recv_size = FRAMELEN;
-    compara->myAppVar.server_send_size = FRAMELEN;	//台体测试终端主动上报时一帧数据超过1024个字节，并且需要一帧上送，此处最大2048
+    compara->myAppVar.server_send_size = FRAMELEN;    //台体测试终端主动上报时一帧数据超过1024个字节，并且需要一帧上送，此处最大2048
     compara->myAppVar.server_recv_maxWindow = 1;
     compara->myAppVar.expect_connect_timeout = 56400;
 
@@ -312,13 +310,13 @@ void dumpPeerStat(int fd, char *info) {
 int netWatch(struct aeEventLoop *ep, long long id, void *clientData) {
     static int deadline = 0;
 //    printf("deadline = %d\n", deadline);
-    if(GetOnlineType() == 0){
-        deadline ++;
-    } else{
+    if (GetOnlineType() == 0) {
+        deadline++;
+    } else {
         deadline = 0;
     }
 
-    if(deadline > 2 * 60 * 60){
+    if (deadline > 2 * 60 * 60) {
         system("date >> /nand/reboot.log");
         sleep(1);
         system("reboot");
@@ -349,14 +347,14 @@ void enviromentCheck(int argc, char *argv[]) {
     Setsig(&sa, QuitProcess);
 
     if (argc >= 2) {
-		//向cjmain报告启动
-		ProgIndex = atoi(argv[1]);
-		JProgramInfo = OpenShMem("ProgramInfo", sizeof(ProgramInfo), NULL);
-		memcpy(JProgramInfo->Projects[ProgIndex].ProjectName, "cjcomm", sizeof("cjcomm"));
-		JProgramInfo->Projects[ProgIndex].ProjectID = getpid();
-    }else {
-    	asyslog(LOG_ERR, "CJCOMM打开共享内存失败,退出...");
-    	exit(0);
+        //向cjmain报告启动
+        ProgIndex = atoi(argv[1]);
+        JProgramInfo = OpenShMem("ProgramInfo", sizeof(ProgramInfo), NULL);
+        memcpy(JProgramInfo->Projects[ProgIndex].ProjectName, "cjcomm", sizeof("cjcomm"));
+        JProgramInfo->Projects[ProgIndex].ProjectID = getpid();
+    } else {
+        asyslog(LOG_ERR, "CJCOMM打开共享内存失败,退出...");
+        exit(0);
     }
 }
 
@@ -376,10 +374,9 @@ int main(int argc, char *argv[]) {
     StartIfr(ep, 0, NULL);
     StartSerial(ep, 0, NULL);
 
-    if(argc > 2 && atoi(argv[2]) == 2){
+    if (argc > 2 && atoi(argv[2]) == 2) {
         StartClientOnModel(ep, 0, NULL);
-
-    }else{
+    } else {
         /*
          * 根据范工的稳定要求，不开启服务端监听
          * StartServer(ep, 0, NULL);
