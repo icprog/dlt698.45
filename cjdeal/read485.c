@@ -2007,7 +2007,8 @@ INT16U parseSingleOADData(INT8U isProxyResponse,INT8U* oadData,INT8U* dataConten
 	fprintf(stderr,"\n rcvOI = %04x  len = %d\n",rcvOAD.OI,oiDataLen);
 	if(oiDataLen <= 0)
 	{
-		fprintf(stderr,"\n 未在OI_TYPE.cfg找到对应OI");
+		asyslog(LOG_INFO,"\n 未在OI_TYPE.cfg找到对应OI=%04x",rcvOAD.OI);
+		return 0;
 	}
 	if(oadData[length++] == 0)//0------ 没有数据  1--数据
 	{
