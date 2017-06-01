@@ -768,7 +768,9 @@ void TerminalInfo(INT16U attr_act, INT8U *data, Action_result *act_ret) {
         case 5://事件初始化
         case 6://需量初始化
             dataInit(attr_act);
-            //Event_3100(NULL,0,memp);//初始化，产生事件
+        	//共享内存实际流量清零
+        	memset(&memp->dev_info.realTimeC2200,0,sizeof(Flow_tj));
+            //Event_3100(NULL,0,memp);//初始化，产生事件,移到复位应答帧之后再进行事件的上报
             Reset_add();            //国网台体测试,数据初始化认为是复位操作
             fprintf(stderr, "\n终端数据初始化！");
             syslog(LOG_NOTICE, "终端数据初始化!（act=%d）",attr_act);
