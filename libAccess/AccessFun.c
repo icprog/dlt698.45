@@ -2954,7 +2954,10 @@ long int readFrameDataFile(char *filename,int offset,INT8U *buf,int *datalen)
 			return 0;
 		}
 		if (fread(buf,bytelen,1,fp) <=0 ) 	//按数据报文长度，读出全部字节
+		{
+			syslog(LOG_ERR,"readFrameDataFile fread<=0\n");
 			return 0;
+		}
 		*datalen = bytelen;
 		retoffset = ftell(fp);
 		fclose(fp);

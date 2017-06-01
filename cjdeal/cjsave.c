@@ -250,6 +250,7 @@ int SaveNorData(INT8U taskid,ROAD *road_eve,INT8U *databuf,int datalen,TS ts_cc)
 {
 	FILE *fp;	CSD_ARRAYTYPE csds;
 	char	fname[FILENAMELEN]={};
+	char    cmdname[FILENAMELEN]={};
 	INT8U *databuf_tmp=NULL,eveflg=0,taskinfoflg=0;
 	int savepos=0,currpos=0,i=0;
 	INT16U headlen=0,unitlen=0,unitnum=0,unitseq=0,runtime=0;//runtime执行次数
@@ -362,8 +363,12 @@ int SaveNorData(INT8U taskid,ROAD *road_eve,INT8U *databuf,int datalen,TS ts_cc)
 	asyslog(LOG_NOTICE,"存储序号: unitseq=%d runtime=%d  %d--%d",unitseq,runtime,(ts_cc.Hour*60*60+ts_cc.Minute*60+ts_cc.Sec),((24*60*60)/runtime));
 	if(unitseq > runtime || datalen != unitlen/runtime)
 	{
-		if(databuf_tmp != NULL)
-			free(databuf_tmp);
+		if(datalen != unitlen/runtime)//长度不对
+		{
+			sprintf(cmdname,"rm -rf %s",fname);
+			system(cmdname);
+			asyslog(LOG_NOTICE,"数据长度不对，删除文件%s,执行%s",fname,cmdname);
+		}
 		if(road_eve == NULL)
 			asyslog(LOG_NOTICE,"数据长度不对，不存: datalen=%d,need=%d",datalen,unitlen/runtime);
 		else

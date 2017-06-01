@@ -322,11 +322,11 @@ int main(int argc, char *argv[]) {
         cjframe(argc, argv);
         return EXIT_SUCCESS;
     }
-    if (strcmp("cjread", argv[1]) == 0) {
-        fprintf(stderr, "\n查看任务抄表数据\n");
-        cjread(argc, argv);
-        return EXIT_SUCCESS;
-    }
+//    if (strcmp("cjread", argv[1]) == 0) {
+//        fprintf(stderr, "\n查看任务抄表数据\n");
+//        cjread(argc, argv);
+//        return EXIT_SUCCESS;
+//    }
     if (strcmp("rs485", argv[1]) == 0) {
         fprintf(stderr, "\n设置维护485端口参数\n");
         SetF201(argc, argv);
