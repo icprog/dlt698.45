@@ -729,6 +729,8 @@ INT16S ReceDataFrom485(METER_PROTOCOL meterPro,INT8U port485, INT16U delayms, IN
 	INT8U prtstr[50];
 	INT16U len_Total = 0, len, rec_step, rec_head, rec_tail, DataLen, i, j;
 	INT32S fd = comfd485[port485-1];
+	char title[20];
+
 	if (fd <= 2)
 		return -1;
 
@@ -753,11 +755,8 @@ INT16S ReceDataFrom485(METER_PROTOCOL meterPro,INT8U port485, INT16U delayms, IN
 
 			memset(prtstr, 0, sizeof(prtstr));
 			sprintf((char *) prtstr, "485(%d)_R(%d):", port485, len);
-
 			printbuff((char *) prtstr, TmprevBuf, len, "%02x", " ", "\n");
-			char title[20];
-			sprintf(title,"[485_%d]R:",port485);
-			bufsyslog(TmprevBuf, title, len, 0, BUFFSIZE2048);
+
 		}
 		switch (rec_step) {
 		case 0:
@@ -813,6 +812,10 @@ INT16S ReceDataFrom485(METER_PROTOCOL meterPro,INT8U port485, INT16U delayms, IN
 					{
 						if (str[rec_tail + 9 + DataLen + 2] == 0x16) {
 							DbPrt1(port485,"R:",(char *)str, rec_head, NULL);
+
+							sprintf(title,"[485_%d_07]R:",port485);
+							bufsyslog(TmprevBuf, title, rec_head, 0, BUFFSIZE256);
+
 							return (rec_tail + 9 + DataLen + 3);
 						}
 					}
@@ -825,6 +828,8 @@ INT16S ReceDataFrom485(METER_PROTOCOL meterPro,INT8U port485, INT16U delayms, IN
 					{
 							if (str[rec_tail + DataLen +1] == 0x16) {
 								DbPrt1(port485,"R:",(char *)str, rec_head, NULL);
+								sprintf(title,"[485_%d_07]R:",port485);
+								bufsyslog(TmprevBuf, title, rec_head, 0, BUFFSIZE256);
 								return rec_head;
 							}
 					}
@@ -2007,7 +2012,8 @@ INT16U parseSingleOADData(INT8U isProxyResponse,INT8U* oadData,INT8U* dataConten
 	fprintf(stderr,"\n rcvOI = %04x  len = %d\n",rcvOAD.OI,oiDataLen);
 	if(oiDataLen <= 0)
 	{
-		fprintf(stderr,"\n 未在OI_TYPE.cfg找到对应OI");
+		asyslog(LOG_INFO,"\n 未在OI_TYPE.cfg找到对应OI=%04x",rcvOAD.OI);
+		return 0;
 	}
 	if(oadData[length++] == 0)//0------ 没有数据  1--数据
 	{

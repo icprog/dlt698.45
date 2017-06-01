@@ -1,2 +1,2 @@
 #define GL_VERSION \
-1496
+1506
