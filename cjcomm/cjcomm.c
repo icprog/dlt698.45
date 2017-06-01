@@ -119,7 +119,9 @@ void CalculateTransFlow(ProgramInfo *prginfo_event) {
     }
     fclose(rfd);
     if (index >= 8) {
-        asyslog(LOG_INFO, "获取流量统计数据失败.");
+    	if(prginfo_event->dev_info.jzq_login==1) {		//GPRS登陆
+    		asyslog(LOG_INFO, "获取流量统计数据失败.");
+    	}
         return;
     }
 
@@ -132,8 +134,10 @@ void CalculateTransFlow(ProgramInfo *prginfo_event) {
     rtx_bytes = rx_bytes + tx_bytes;
     Event_3110(prginfo_event->dev_info.realTimeC2200.flow.month_tj, sizeof(prginfo_event->dev_info.realTimeC2200.flow), prginfo_event);
 
-    if (ts.Minute % 2 == 0) {
-        asyslog(LOG_INFO, "2分钟月流量统计，未统计流量%d", (rx_bytes + tx_bytes) - rtx_bytes);
+//    if (ts.Minute % 2 == 0 && (localMin != ts.Minute)) {
+    if (ts.Minute % 30 == 0 && (localMin != ts.Minute)) {	//延长存储时间,上送直接读取内存值
+    	localMin = ts.Minute;
+//        asyslog(LOG_INFO, "30分钟月流量统计，未统计流量%d", (rx_bytes + tx_bytes) - rtx_bytes);
         //跨日月流量分别清零
         if (localDay != ts.Day) {
             asyslog(LOG_INFO, "检测到夸日，流量统计清零，清零前数据(%d)", prginfo_event->dev_info.realTimeC2200.flow.day_tj);

@@ -1224,7 +1224,8 @@ int GetVariable(RESULT_NORMAL *response)
 		}
 		break;
 	case 0x2200:	//通信流量
-		len = readVariData(response->oad.OI,0,&databuf,VARI_LEN);
+//		len = readVariData(response->oad.OI,0,&databuf,VARI_LEN);
+		memcpy(databuf,&memp->dev_info.realTimeC2200,sizeof(Flow_tj));
 		Get_2200(response->oad.OI,databuf,response->data,&index);
 		response->datalen = index;
 		break;

@@ -243,7 +243,9 @@ int GetReportData(CLASS_601D report)
 							report.reportdata.data.recorddata.selectType | 0x80,
 							report.reportdata.data.recorddata.csds,NULL, NULL,server_send_size);
 		fprintf(stderr,"GetReportData   ret=%d\n",ret);
-		ret = REPROTNOTIFICATIONRECORDLIST;	//
+		if(ret>=1) {	//查找到相应的数据
+			ret = REPROTNOTIFICATIONRECORDLIST;	//
+		}
 	}
 	return ret;
 }
