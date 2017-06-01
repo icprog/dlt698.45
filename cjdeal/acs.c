@@ -1446,6 +1446,7 @@ void InitACSPara()
 	sem_getvalue(sem_check_fd, &val);
 	if(val==0) {
 		fprintf(stderr,"SEMNAME_SPI0_0 val==0,post......\n\n\n");
+		syslog(LOG_ERR,"SEMNAME_SPI0_0 val==0,post......\n\n\n");
 		sem_post(sem_check_fd);
 	}
 	fprintf(stderr,"process The sem is %d\n", val);

@@ -601,7 +601,7 @@ INT8U file_read(char *FileName, void *source, int size,int offset,INT16U *retcrc
 				ret = 1;
 			}
 			else {
-				syslog(LOG_ERR,"__%s__,校验错误:crc=%d__readcrc=%d",__func__,crc,readcrc);
+//				syslog(LOG_ERR,"__%s__,校验错误:crc=%d__readcrc=%d",__func__,crc,readcrc);
 				ret = 0;
 			}
 		}else {

@@ -67,10 +67,11 @@ int InitPro(ProgramInfo** prginfo, int argc, char *argv[])
 	{
 		*prginfo = OpenShMem("ProgramInfo",sizeof(ProgramInfo),NULL);
 		ProIndex = atoi(argv[1]);
-
-		fprintf(stderr,"\n%s start",(*prginfo)->Projects[ProIndex].ProjectName);
-		(*prginfo)->Projects[ProIndex].ProjectID=getpid();//保存当前进程的进程号
-		fprintf(stderr,"ProjectID[%d]=%d\n",ProIndex,(*prginfo)->Projects[ProIndex].ProjectID);
+		if(*prginfo!=NULL) {
+			fprintf(stderr,"\n%s start",(*prginfo)->Projects[ProIndex].ProjectName);
+			(*prginfo)->Projects[ProIndex].ProjectID=getpid();//保存当前进程的进程号
+			fprintf(stderr,"ProjectID[%d]=%d\n",ProIndex,(*prginfo)->Projects[ProIndex].ProjectID);
+		}
 		return 1;
 	}
 	return 0;
