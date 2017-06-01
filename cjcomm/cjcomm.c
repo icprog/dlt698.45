@@ -140,7 +140,6 @@ void CalculateTransFlow(ProgramInfo *prginfo_event) {
             prginfo_event->dev_info.realTimeC2200.flow.day_tj = 0;
             localDay = ts.Day;
         }
-
         if (localMonth != ts.Month) {
             asyslog(LOG_INFO, "检测到夸月，流量统计清零，清零前数据(%d)", prginfo_event->dev_info.realTimeC2200.flow.month_tj);
             prginfo_event->dev_info.realTimeC2200.flow.month_tj = 0;
@@ -382,8 +381,8 @@ int main(int argc, char *argv[]) {
          * StartServer(ep, 0, NULL);
          */
         StartClientForGprs(ep, 0, NULL);
-        StartClientForNet(ep, 0, NULL);
     }
+    StartClientForNet(ep, 0, NULL);
 
     StartVerifiTime(ep, 0, JProgramInfo);
     StartMmq(ep, 0, NULL);
