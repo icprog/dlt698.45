@@ -723,9 +723,12 @@ typedef struct
 {
 	INT8U type;							//方案类型
 	INT8U No;							//方案编号
-	DATA_ITEM items[20 ];				//数据项数组
+	DATA_ITEM items[20];				//数据项数组
 	INT8U item_n;						//数据项总数 < FANGAN_ITEM_MAX
 	INT8U item_i;//当前抄的数据项序号
+	INT8U cjtype;		//采集类型	0：采集当前	1：采集上N次   2:按冻结时标采集		3：按时标间隔采集
+	INT8U N;			//							上N次
+	TI ti;				//按时标间隔采集
 }CJ_FANGAN;
 
 typedef struct
@@ -735,6 +738,7 @@ typedef struct
 	time_t endTime;						//结束时间
 	DateTimeBCD begin;
 	DateTimeBCD end;
+	TI ti;		  //任务执行频率
 	INT8U leve;							//优先级别
 	CJ_FANGAN fangan;					//采集方案
 }TASK_UNIT;
