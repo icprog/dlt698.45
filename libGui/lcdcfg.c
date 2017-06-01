@@ -249,7 +249,6 @@ void modify_lcd_contrast(){
 			sprintf(showstr,"液晶对比度: %d",Contrast_alue);
 			gui_setpos(&pos, rect_Client.left+FONTSIZE*4, rect_Client.top+FONTSIZE*9);
 			gui_textshow((char *)showstr, pos, LCD_NOREV);
-			set_time_show_flag(1);//TODO:new
 		//	if((fdyj = open("/dev/fb0", O_RDWR | O_NDELAY)) >0){
 				ioctl(FB_Handle,LCD_IOC_CONTRAST,&Contrast_alue);
 		//		close(fdyj);

@@ -172,7 +172,6 @@ INT8U gui_keyinput(Point start_pos, Key *curkey, char keyboard_style) {
 			memcpy(&curkey->pos, &KeyBoard[curkey->index.index_x][curkey->index.index_y].pos,
 					sizeof(Point));
 			gui_charshow(curkey->c, curkey->pos, LCD_REV); //--反显选中的字符
-			set_time_show_flag(1);//TODO:new
 //			dbg_prt( "\n gui_keyinput:%d %d ==  %d %d %d[%c]  ",
 //					curkey->index.index_x, curkey->index.index_y, curkey->pos.x, curkey->pos.y, curkey->c, curkey->c);
 		}
@@ -274,7 +273,6 @@ INT8U edit_editmode(Edit* edit, Key *curkey, int *press_ok)
 				memcpy(curkey, &edit->form.key[curkey->index.index_x], sizeof(Key));
 				gui_charshow(curkey->c, curkey->pos, LCD_REV); //反显当前字符
 //			}
-			set_time_show_flag(1);
 			if(PressKey == OK )//此处为从gui_keyinput中跳出，如果为OK，则继续进入，不修改键值
 				continue;
 			PressKey = NOKEY;
@@ -453,12 +451,10 @@ INT8U edit_showmode_old(Edit* edit, Key *curkey, int *press_ok)
 			memcpy(&curkey->pos, &edit->form.key[curkey->index.index_x].pos,sizeof(Point));
 			gui_charshow(curkey->c, curkey->pos, LCD_REV);
 			keyboard_index = keyboard_getindex_old(curkey->c, edit->keyboard_style);
-			set_time_show_flag(1);
 		}else if(PressKey==UP || PressKey==DOWN){
 			edit->form.key[curkey->index.index_x].c = keyboard_getc_old(keyboard_index);
 			curkey->c = edit->form.key[curkey->index.index_x].c;
 			gui_charshow(curkey->c, curkey->pos, LCD_REV);
-			set_time_show_flag(1);
 		}
 		PressKey = NOKEY;
 		delay(100);
@@ -591,7 +587,6 @@ void combox_show(void* form)
 {
 	Combox *combox=(Combox*)form;
 	gui_textshow(combox->text[combox->cur_index], combox->form.pos, LCD_NOREV);
-	set_time_show_flag(1);
 }
 void combox_process(void* form)
 {
@@ -646,7 +641,6 @@ void combox_process(void* form)
 //				fprintf(stderr,"\n combox_process--------------------------ESC");
 				return;
 			}
-			set_time_show_flag(1);
 			first_flg = 1;
 		}
 		PressKey = NOKEY;
@@ -678,7 +672,6 @@ void button_show(void* form)
 {
 	Button *btn=(Button*)form;
 	gui_textshow(btn->name, btn->form.pos, LCD_NOREV);
-	set_time_show_flag(1);//TODO:new
 }
 void button_process(void* form)
 {

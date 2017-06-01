@@ -2520,6 +2520,81 @@ INT16U GetOADFileData(OAD oad_m,OAD oad_r,INT8U taskid,TSA tsa,TS ts_zc,INT8U *d
 	fread(recordbuf,recordlen,1,fp);
 	return collectData(databuf,recordbuf,&oad_offset,item_road);
 }
+
+/*
+ * 支持液晶招测日月冻结
+ * csds存储需要查询的日月冻结数据（抄读成功时间/正向有功电能量等）
+ * tsa电表地址
+ * ts_zc冻结时间
+ * databuf返回存储（此处液晶库中开辟10个指针数组，具体数据存储空间在本函数开辟）
+ * item_road存储需要查询的
+ */
+INT16S GUI_GetFreezeData(CSD_ARRAYTYPE csds,TSA tsa,TS ts_zc,INT8U *databuf)
+{
+	INT32U unitnum=0, offsetTsa=0, recordoffset=0;
+	INT16U  blocksize=0,headsize=0;//blocksize每个块长度（开头3，4字节）headsize头部大小（开头1，2字节）
+	ROAD_ITEM item_road;
+	memset(&item_road,0,sizeof(ROAD_ITEM));
+	HEAD_UNIT *headunit = NULL;//文件头
+	OAD_INDEX *oad_offset=NULL;//
+	INT8U taskid=0;
+	INT16S retBufLen=0;
+	FILE *fp = NULL;
+	int i,j=0;
+	char fname[FILENAMELEN]={};
+
+	if(csds.num>10 || csds.num<=0) return -1;//查询数量不允许超过10
+
+	//根据传入的csds，获取到taskid编号，同时填充item_road
+	taskid = GetTaskidFromCSDs(csds,&item_road);
+	if(taskid<=0)		return -2;
+
+	getTaskFileName(taskid,ts_zc,fname);//得到要抄读的文件名称
+	fp =fopen(fname,"r");
+	if(fp == NULL) return -3;
+	do//方便跳出，释放资源
+	{
+		unitnum = GetTaskHead(fp,&headsize,&blocksize,&headunit);//获取文件头由多少个HEAD_UNIT单元组成
+		if(unitnum<=0 )
+		{
+			retBufLen = -4;
+			break;
+		}
+		 oad_offset =(OAD_INDEX *) malloc(unitnum*sizeof(OAD_INDEX));//为每个查询oad准备一个空间存数据
+		 memset(oad_offset,0,unitnum*sizeof(OAD_INDEX));
+
+			//获取所查询oad在块中的偏移起始位置和长度,放入oad_offset中
+		GetOADPosofUnit(item_road,headunit,unitnum,oad_offset);//得到所需查询oad在文件头中的偏移。该偏移也代表在每个数据块中的偏移
+
+		//获取所查询表号在数据块中的起始偏移位置
+		offsetTsa = findTsa(tsa,fp,headsize,blocksize);
+		if(offsetTsa<=0)
+		{
+			retBufLen = -5;
+			break;
+		}
+		//拷贝出所有查询的oad对应的数据到databuf对应的指针数组中
+		j=0;
+		for(i=0;i<unitnum;i++)
+		{
+			if((oad_offset+i)->len <= 0) continue;
+			fprintf(stderr,"oad_offset .len = %d\n",(oad_offset+i)->len);
+			recordoffset = offsetTsa + oad_offset[i].offset;
+			databuf[retBufLen++] = (oad_offset+i)->len;
+			fseek(fp,recordoffset,SEEK_SET);
+			fread(&databuf[retBufLen],(oad_offset+i)->len,1,fp);
+			retBufLen+=(oad_offset+i)->len;
+			j++;
+		}
+	}while(0);
+	//free close then return
+	if(headunit != NULL) free(headunit);
+	if(oad_offset!=NULL) free(oad_offset);
+	if(retBufLen>=255) return 0;//该函数只作液晶日月冻结，共3个项查询数据，不会大于255
+	if(fp!=NULL) fclose(fp);
+	 return retBufLen;
+}
+
 /*
  * 要得到的主从oad,为其他进程提供接口
  */
