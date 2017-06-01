@@ -37,8 +37,6 @@ extern struct erc_t ERCNAME[EVENTCOUNT];
 
 extern Rect rect_TopStatus, rect_BottomStatus, rect_Client;//液晶划分的3个区域
 //void showpage(LcdDataItem *item, int item_index, int item_total, Point page_pos);
-int index2port(int index);
-int port2index(int port);
 
 #define PAGEITEM_COUNT 	4 //每页显示的数据项数量
 #define PAGE_COLNUM 	10 //每页显示的行数  指客户区
@@ -68,8 +66,6 @@ extern mqd_t createMsg(INT8S *mq_name, INT8U flg);
 extern int sendMsg(mqd_t mqd, INT32U cmd, INT8S *sendbuf, INT32U bufsiz);
 //extern int recvMsg(mqd_t mqd, mmq_head *mqh, INT8U *recvbuf, int timeout);
 extern void getlocalip(char *ip);
-extern int index2port(int index);
-extern int port2index(int port);
 extern int bcd2int(char *bcd);
 extern int get_oprmode();
 extern void set_oprmode(int mode);
@@ -89,8 +85,6 @@ extern int gui_isValidCld(int cldno);
 extern int gui_GetCldNum();
 extern int gui_GetJCMP();
 extern int gui_isValidCldAddr(INT8U *addr);
-extern int read_filedata(char* FileName, int point, int did, INT8U flag, void *source);
-extern int read_filedata_curve(char* FileName, int point, int did, int hour, int minute, void *source);
 extern int ip_strtobyte(INT8U *sip, INT8U *ip_ret);
 extern void ip2asc(INT8U *ip, char* sip);
 typedef struct{
