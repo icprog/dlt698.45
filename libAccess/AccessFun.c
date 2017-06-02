@@ -1022,8 +1022,15 @@ int getTsas(MY_MS ms,INT8U **tsas)
 							case close_open://前闭后开
 								tsa_num += getUserType(TypeStart[1],TypeEnd[1],&ms.ms.type[j].begin[2],meter.basicinfo.usrtype,meter.basicinfo.addr,tsa_num,tsas);
 								break;
+							case open_close:
+								break;
+							case close_close:
+								break;
+							case open_open:
+								break;
+							default:
+								break;
 							}
-							//close_open, open_close, close_close, open_open
 						}
 					}
 					break;
