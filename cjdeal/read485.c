@@ -814,7 +814,7 @@ INT16S ReceDataFrom485(METER_PROTOCOL meterPro,INT8U port485, INT16U delayms, IN
 							DbPrt1(port485,"R:",(char *)str, rec_head, NULL);
 
 							sprintf(title,"[485_%d_07]R:",port485);
-							bufsyslog(TmprevBuf, title, rec_head, 0, BUFFSIZE256);
+							bufsyslog(TmprevBuf, title, rec_head, 0, BUFFSIZE2048);
 
 							return (rec_tail + 9 + DataLen + 3);
 						}
@@ -828,8 +828,8 @@ INT16S ReceDataFrom485(METER_PROTOCOL meterPro,INT8U port485, INT16U delayms, IN
 					{
 							if (str[rec_tail + DataLen +1] == 0x16) {
 								DbPrt1(port485,"R:",(char *)str, rec_head, NULL);
-								sprintf(title,"[485_%d_07]R:",port485);
-								bufsyslog(TmprevBuf, title, rec_head, 0, BUFFSIZE256);
+								sprintf(title,"[485_%d_698]R:",port485);
+								bufsyslog(TmprevBuf, title, rec_head, 0, BUFFSIZE2048);
 								return rec_head;
 							}
 					}

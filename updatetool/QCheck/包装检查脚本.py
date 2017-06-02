@@ -142,7 +142,7 @@ def checkDateTime(config):
     deviceDate = datetime.datetime.strptime(msg[pos + 4:pos + 23], "%Y-%m-%d %H:%M:%S")
     devation = deviceDate - datetime.datetime.now()
     cas = (devation.days * 24 * 3600 + devation.seconds)
-    if cas > 5:
+    if abs(cas) > 5:
         print "对时\t错误\t时间差距%d秒".decode('utf-8') % cas
         ok = 0
     else:

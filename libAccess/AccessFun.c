@@ -925,12 +925,15 @@ int	readFreezeRecordByTime(OI_698 freezeOI,OAD oad,DateTimeBCD datetime,int *dat
  * tsas: 返回符合条件的TSA
  * 返回0: 未查到,  1: 查找到
  * */
-int getUserType(INT8U startn,INT8U endn,INT8U findtype,TSA meter_tsa,int tsa_num,INT8U **tsas)
+int getUserType(INT8U startn,INT8U endn,INT8U *findtype,INT8U meter_type,TSA meter_tsa,int tsa_num,INT8U **tsas)
 {
 	int	i=0;
+	fprintf(stderr,"startn=%d,endn=%d,meter_type=%d\n",startn,endn,meter_type);
 	for(i=startn;i<endn;i++) {
-		if(i == findtype) {
+		if(findtype[i]==meter_type) {
 			memcpy(*tsas+(tsa_num*sizeof(TSA)),&meter_tsa.addr,sizeof(TSA));
+			fprintf(stderr,"tsa_num=%d\n",tsa_num);
+			printTSA(meter_tsa);
 			return 1;
 		}
 	}
@@ -989,7 +992,7 @@ int getTsas(MY_MS ms,INT8U **tsas)
 				case 2:	//一组用户类型
 					tsa_len = (ms.ms.userType[0]<<8) | ms.ms.userType[1];
 					fprintf(stderr,"\n一组用户类型(%d)",tsa_len);
-					tsa_num += getUserType(0,tsa_len,meter.basicinfo.usrtype,meter.basicinfo.addr,tsa_num,tsas);
+					tsa_num += getUserType(0,tsa_len,&ms.ms.userType[2],meter.basicinfo.usrtype,meter.basicinfo.addr,tsa_num,tsas);
 					break;
 				case 3:	//一组用户地址
 					tsa_len = (ms.ms.userAddr[0].addr[0]<<8) | ms.ms.userAddr[0].addr[1];
@@ -1017,10 +1020,17 @@ int getTsas(MY_MS ms,INT8U **tsas)
 							fprintf(stderr,"Start-userType=%d  End-userType=%d\n",TypeStart[1],TypeEnd[1]);
 							switch(ms.ms.type[j].type) {
 							case close_open://前闭后开
-								tsa_num += getUserType(TypeStart[1],TypeEnd[1],meter.basicinfo.usrtype,meter.basicinfo.addr,tsa_num,tsas);
+								tsa_num += getUserType(TypeStart[1],TypeEnd[1],&ms.ms.type[j].begin[2],meter.basicinfo.usrtype,meter.basicinfo.addr,tsa_num,tsas);
+								break;
+							case open_close:
+								break;
+							case close_close:
+								break;
+							case open_open:
+								break;
+							default:
 								break;
 							}
-							//close_open, open_close, close_close, open_open
 						}
 					}
 					break;
@@ -1160,11 +1170,13 @@ void GetOADPosofUnit(ROAD_ITEM item_road,HEAD_UNIT *head_unit,INT8U unitnum,OAD_
 					oad_offset[i].offset = datapos + (item_road.oad[i].oad_r.attrindex-1)*oadlen +2;
 					oad_offset[i].len = oadlen;
 				}
-				else
+				else if(item_road.oad[i].oad_r.attrindex == head_unit[j].oad_r.attrindex)
 				{
 					oad_offset[i].offset = datapos;
 					oad_offset[i].len = head_unit[j].len;
 				}
+				else
+					datapos += head_unit[j].len;
 
 
 			}
@@ -1624,10 +1636,10 @@ INT8U GetTaskidFromCSDs(CSD_ARRAYTYPE csds,ROAD_ITEM *item_road)
 						switch(class6015.csds.csd[j].type)
 						{
 						case 0:
-							  asyslog(LOG_INFO,"mm=%d,oad_r  =%04x_%02x%02x \n",mm,item_road->oad[mm].oad_r.OI,
-											item_road->oad[mm].oad_r.attflg,item_road->oad[mm].oad_r.attrindex);
-							  asyslog(LOG_INFO,"jj=%d,csd.oad=%04x_%02x%02x \n",j,class6015.csds.csd[j].csd.oad.OI,
-											class6015.csds.csd[j].csd.oad.attflg,class6015.csds.csd[j].csd.oad.attrindex);
+//							  asyslog(LOG_INFO,"mm=%d,oad_r  =%04x_%02x%02x \n",mm,item_road->oad[mm].oad_r.OI,
+//											item_road->oad[mm].oad_r.attflg,item_road->oad[mm].oad_r.attrindex);
+//							  asyslog(LOG_INFO,"jj=%d,csd.oad=%04x_%02x%02x \n",j,class6015.csds.csd[j].csd.oad.OI,
+//											class6015.csds.csd[j].csd.oad.attflg,class6015.csds.csd[j].csd.oad.attrindex);
 							if(item_road->oad[mm].oad_m.OI == 0x0000)//都为oad类型
 							{
 								if(memcmp(&item_road->oad[mm].oad_r,&class6015.csds.csd[j].csd.oad,sizeof(OAD))==0 ||
@@ -3263,7 +3275,7 @@ INT8U write_3761_rc_local()
 		fclose(fp);
 		fp = NULL;
 	}
-	return ret;
+	return 1;
 }
 //void deloutofdatafile()//删除过期任务数据文件
 //{
