@@ -774,8 +774,13 @@ void *ATWorker(void *args) {
             sleep(1);
             if (tryifconfig(class25) == 1) {
                 //拨号成功，存储参数，以备召唤
+                CLASS25 class25_temp;
+                readCoverClass(0x4500, 0, &class25_temp, sizeof(CLASS25), para_vari_save);
+                fprintf(stderr, "刷新4500数据（2）");
+                memcpy(class25_temp.ccid, class25->ccid , sizeof(32));
+                class25_temp.signalStrength = class25->signalStrength;
                 SetPPPDStatus(1);
-                saveCoverClass(0x4500, 0, class25, sizeof(CLASS25), para_vari_save);
+                saveCoverClass(0x4500, 0, &class25_temp, sizeof(CLASS25), para_vari_save);
                 break;
             }
         }

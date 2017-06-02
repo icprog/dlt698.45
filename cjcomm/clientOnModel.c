@@ -452,8 +452,14 @@ void *ModelWorker(void *args) {
                 }
             }
         }
+
+        CLASS25 class25_temp;
+        readCoverClass(0x4500, 0, &class25_temp, sizeof(CLASS25), para_vari_save);
+        fprintf(stderr, "刷新4500数据（1）");
+        memcpy(class25_temp.ccid, class25->ccid , sizeof(32));
+        class25_temp.signalStrength = class25->signalStrength;
         SetGprsStatus(2);
-        saveCoverClass(0x4500, 0, class25, sizeof(CLASS25), para_vari_save);
+        saveCoverClass(0x4500, 0, &class25_temp, sizeof(CLASS25), para_vari_save);
         ////////////////////获取信息////////////////////
 
 
