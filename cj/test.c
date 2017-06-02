@@ -21,6 +21,13 @@
 #include "Shmem.h"
 #include "main.h"
 
+TSA tsas[]={
+		{0x07,0x05,0x00,0x00,0x00,0x00,0x00,0x01},
+		{0x07,0x05,0x00,0x00,0x00,0x00,0x00,0x02},
+		{0x07,0x05,0x00,0x00,0x00,0x00,0x00,0x03},
+		{0x07,0x05,0x00,0x00,0x00,0x00,0x00,0x04},
+		{0x07,0x05,0x00,0x00,0x00,0x00,0x00,0x05},
+};
 
 void Test(int argc, char *argv[])
 {
@@ -75,6 +82,7 @@ void Test(int argc, char *argv[])
     	MY_MS	ms;
     	int		tsa_num=0;
     	int		i=0,j=0;
+		int 	seqNum = 1;
 
     	if(argc >= 3) {
     		ms.mstype = atoi(argv[2]);
@@ -84,13 +92,56 @@ void Test(int argc, char *argv[])
 		for(i=0;i<COLLCLASS_MAXNUM;i++) {
 			ms.ms.type[i].type = interface;//初始化interface, 用来获取有效的区间长度，Region_Type type;//type = interface 无效
 		}
+		fprintf(stderr,"test  ms.mstype = %d\n",ms.mstype);
     	switch(ms.mstype) {
+    	case 2:
+    		seqNum = 2;
+    		ms.ms.userType[0]= (seqNum >> 8);
+    		ms.ms.userType[1]= seqNum & 0xff;
+    		for(i=0;i<seqNum;i++) {
+    			ms.ms.userType[i+2] = 3+i;
+    		}
+    		for(i=0;i<(seqNum+2);i++) {
+    			fprintf(stderr,"userType[%d]=%d\n",i,ms.ms.userType[i]);
+    		}
+    		break;
+    	case 3:
+    		seqNum = 5;
+    		ms.ms.userAddr[0].addr[0] = (seqNum >> 8);
+    		ms.ms.userAddr[0].addr[1] = seqNum & 0xff;
+    		fprintf(stderr,"seqNum = %d\n",seqNum);
+    		for(i=0;i<seqNum;i++) {
+    			memcpy(&ms.ms.userAddr[i+1].addr,&tsas[i],sizeof(TSA));
+    		}
+    		for(i=0;i<(seqNum+1);i++) {
+    			printTSA(ms.ms.userAddr[i]);
+    		}
+    		break;
+    	case 4:
+    		seqNum = 4;
+    		ms.ms.configSerial[0] = seqNum;
+    		ms.ms.configSerial[1] = 12;
+    		ms.ms.configSerial[2] = 99;
+    		ms.ms.configSerial[3] = 111;
+    		ms.ms.configSerial[4] = 290;
+    		break;
     	case 5:
     		ms.ms.type[0].type = close_open;
     		ms.ms.type[0].begin[0] = dtunsigned;
     		ms.ms.type[0].begin[1] = 96;
     		ms.ms.type[0].end[0] = dtunsigned;
     		ms.ms.type[0].end[1] = 111;
+    		break;
+    	case 7:
+    		ms.ms.serial[0].type = close_open;
+    		seqNum = 22;
+    		ms.ms.serial[0].begin[0] = dtlongunsigned;
+    		ms.ms.serial[0].begin[1] = (seqNum >> 8) & 0xff;
+    		ms.ms.serial[0].begin[2] = seqNum & 0xff;
+    		seqNum = 291;
+    		ms.ms.serial[0].end[0] = dtlongunsigned;
+    		ms.ms.serial[0].end[1] = (seqNum >> 8) & 0xff;
+    		ms.ms.serial[0].end[2] = seqNum & 0xff;
     		break;
     	}
     	tsa_num = getTsas(ms,(INT8U **)&tsa_group);
@@ -101,7 +152,7 @@ void Test(int argc, char *argv[])
 //    			fprintf(stderr,"-%02x",tsa_group[i].addr[j+1]);
 //    		}
 //    	}
-    	fprintf(stderr,"tsa_num = %d\n",tsa_num);
+    	fprintf(stderr,"\n\ntsa_num = %d\n",tsa_num);
     	for(i=0;i<tsa_num;i++) {
     		printTSA(tsa_group[i]);
     	}

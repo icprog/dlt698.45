@@ -518,7 +518,7 @@ int fill_Data(INT8U type,INT8U *data,INT8U *value)
 		memcpy(&data[index],&value[0],3);	//需测试
 		index += 3;
 		break;
-	case dttsa:	//需测试
+	case dttsa:		//需测试
 		index += fill_TSA(&data[index],&value[1],value[1]);
 		break;
 	case dtstructure:
