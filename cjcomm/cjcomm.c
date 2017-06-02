@@ -386,7 +386,7 @@ int main(int argc, char *argv[]) {
     StartClientForNet(ep, 0, NULL);
 
     StartVerifiTime(ep, 0, JProgramInfo);
-    StartPowerOff(ep, 0, JProgramInfo);
+//    StartPowerOff(ep, 0, JProgramInfo);
     StartMmq(ep, 0, NULL);
     createWatch(ep);
 
