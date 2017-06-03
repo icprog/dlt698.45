@@ -160,67 +160,6 @@ INT8U Get_Vacs(RESULT_NORMAL *response,ProgramInfo* prginfo_acs)
 	response->datalen = index;
 	return 1;
 }
-/*
- * 电压合格率
- */
-INT8U Get_213x(OAD oad,INT8U *sourcebuf,INT8U *buf,int *len)
-{
-	PassRate_U passu={};
-
-	memcpy(&passu,sourcebuf,sizeof(PassRate_U));
-	*len=0;
-	*len += create_struct(&buf[*len],5);
-	*len += fill_double_long_unsigned(&buf[*len],passu.monitorTime);
-	*len += fill_long_unsigned(&buf[*len],passu.passRate);
-	*len += fill_long_unsigned(&buf[*len],passu.overRate);
-	*len += fill_double_long_unsigned(&buf[*len],passu.upLimitTime);
-	*len += fill_double_long_unsigned(&buf[*len],passu.downLimitTime);
-	return 1;
-}
-/*
- * 通信流量
- */
-INT8U Get_2200(OI_698 oi,INT8U *sourcebuf,INT8U *buf,int *len)
-{
-	Flow_tj	flow_tj={};
-
-	memcpy(&flow_tj,sourcebuf,sizeof(flow_tj));
-	*len=0;
-	*len += create_struct(&buf[*len],2);
-	*len += fill_double_long_unsigned(&buf[*len],flow_tj.flow.day_tj);
-	*len += fill_double_long_unsigned(&buf[*len],flow_tj.flow.month_tj);
-	return 1;
-}
-/*
- * 获取日月供电时间
- */
-INT8U Get_2203(OI_698 oi,INT8U *sourcebuf,INT8U *buf,int *len)
-{
-	Gongdian_tj gongdian_tj={};
-	memcpy(&gongdian_tj,sourcebuf,sizeof(Gongdian_tj));
-
-	fprintf(stderr,"Get_2203 :day_gongdian=%d,month_gongdian=%d\n",gongdian_tj.gongdian.day_tj,gongdian_tj.gongdian.month_tj);
-	*len=0;
-	*len += create_struct(&buf[*len],2);
-	*len += fill_double_long_unsigned(&buf[*len],gongdian_tj.gongdian.day_tj);
-	*len += fill_double_long_unsigned(&buf[*len],gongdian_tj.gongdian.month_tj);
-	return 1;
-}
-
-/*
- * 获取日月复位次数
- */
-INT8U Get_2204(OI_698 oi,INT8U *sourcebuf,INT8U *buf,int *len)
-{
-	Reset_tj reset_tj={};
-	memcpy(&reset_tj,sourcebuf,sizeof(Reset_tj));
-	fprintf(stderr,"Get_2204 :reset day_tj=%d,month_tj=%d\n",reset_tj.reset.day_tj,reset_tj.reset.month_tj);
-	*len=0;
-	*len += create_struct(&buf[*len],2);
-	*len += fill_long_unsigned(&buf[*len],reset_tj.reset.day_tj);
-	*len += fill_long_unsigned(&buf[*len],reset_tj.reset.month_tj);
-	return 1;
-}
 
 /*
  * 获取电压合格率 0x2131 2132 2133
@@ -309,32 +248,3 @@ INT8U Get_Maxp(INT8U *buf,INT8U *len,TSA tsa,OAD oad){
 	return 1;
 }
 
-int Get_4000(OAD oad,INT8U *data)
-{
-	DateTimeBCD time;
-	CLASS_4000	class_tmp={};
-	int index=0;
-
-	switch(oad.attflg )
-	{
-		case 2://安全模式选择
-			system((const char*)"hwclock -s");
-			DataTimeGet(&time);
-			index += fill_date_time_s(&data[index],&time);
-			break;
-		case 3://校时模式
-			readCoverClass(oad.OI,0,&class_tmp,sizeof(CLASS_4000),para_vari_save);
-			index += fill_enum(&data[index],class_tmp.type);
-			break;
-		case 4://精准校时模式
-			readCoverClass(oad.OI,0,&class_tmp,sizeof(CLASS_4000),para_vari_save);
-			index += create_struct(&data[index],5);
-			index += fill_unsigned(&data[index],class_tmp.hearbeatnum);
-			index += fill_unsigned(&data[index],class_tmp.tichu_max);
-			index += fill_unsigned(&data[index],class_tmp.tichu_min);
-			index += fill_unsigned(&data[index],class_tmp.delay);
-			index += fill_unsigned(&data[index],class_tmp.num_min);
-			break;
-	}
-	return index;
-}

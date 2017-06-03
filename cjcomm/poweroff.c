@@ -22,13 +22,11 @@ int getPowerOffState(ProgramInfo *JProgramInfo) {
 
     //II型
     if (JProgramInfo->cfg_para.device == CCTT2) {
-        if (JProgramInfo->ACSRealData.Ua <= 100) {
-            off_flag = 1;
-        }
+    	off_flag = pwr_has_byVolt(JProgramInfo->ACSRealData.Available,JProgramInfo->ACSRealData.Ua,1300);
     } else {
         BOOLEAN gpio_5V = pwr_has();
         if ((JProgramInfo->ACSRealData.Ua < 100) && (JProgramInfo->ACSRealData.Ub < 100) &&
-            (JProgramInfo->ACSRealData.Uc < 100)) {
+            (JProgramInfo->ACSRealData.Uc < 100) && (!gpio_5V)) {
             off_flag = 1;
         }
     }

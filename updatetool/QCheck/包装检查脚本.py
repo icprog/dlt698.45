@@ -191,7 +191,7 @@ def showDeviceId(config):
     lNet.write("exit" + "\r\n")
     msg = lNet.read_all()
 
-    print msg[142:-6].decode('utf-8')
+    print msg[142:-6]
 
     lNet.close()
 
@@ -204,7 +204,7 @@ if __name__ == '__main__':
 
             ok = 1
             os.system('cls;clear')
-            so.system('arp -d')
+            os.system('arp -d')
             ok &= checkDevice(config)
             ok &= checkProgs(config)
             ok &= checkSoftVersion(config)

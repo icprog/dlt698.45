@@ -14,6 +14,7 @@
 #include "../libAccess/AccessFun.h"
 #include "dlt698def.h"
 #include "dlt698.h"
+#include "OIfunc.h"
 
 extern INT8U securetype;
 extern INT8U TmpDataBuf[MAXSIZ_FAM];

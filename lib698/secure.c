@@ -446,6 +446,19 @@ INT16U getEsamAttribute(OAD oad,INT8U *retBuff)
 	}
 	return retLen;
 }
+//每次进行密钥更新时，需要再读一下芯片信息，更新共享内存中Esam_VersionStatus状态，涉及液晶小房子
+INT8S esam_UpdateShmemStatus()
+{
+	INT32S retLen=0;
+	EsamInfo esamInfo;
+	INT8U i=0;
+	memset(&esamInfo,0,sizeof(EsamInfo));
+	retLen = Esam_GetTermiInfo(&esamInfo);
+	if(retLen<0) return -1;
+	for(i=0;i<16;i++)
+		if(esamInfo.SecretKeyVersion[i]!=0x00) return 1;//测试芯片16字节全为0
+	return 0;
+}
 //esam方法操作7，秘钥更新（02 02 09 82 00 C0 7F CA 75。。。。）
 //输入：Data2为原始报文头，包括真个秘钥更新的结构体  02结构体 02 2个元素 09 octetstring 82 可变2个字节 00 C0长度字节 7F CA 75。。。。
 //输出：

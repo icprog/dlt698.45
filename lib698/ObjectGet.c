@@ -352,6 +352,7 @@ int GetSecurePara(RESULT_NORMAL *response)
 	}
 	return 0;
 }
+#if 0
 int GetSysDateTime(RESULT_NORMAL *response)
 {
 	INT8U *data=NULL;
@@ -386,7 +387,7 @@ int GetSysDateTime(RESULT_NORMAL *response)
 	}
 	return 0;
 }
-
+#endif
 int Get3105(RESULT_NORMAL *response)
 {
 	int index=0;
@@ -1380,7 +1381,8 @@ int GetEnvironmentValue(RESULT_NORMAL *response)
 	switch(response->oad.OI)
 	{
 		case 0x4000:
-			GetSysDateTime(response);
+			response->datalen = Get_4000(response->oad,response->data);
+//			GetSysDateTime(response);
 			break;
 		case 0x4001:
 		case 0x4002:
@@ -1431,6 +1433,7 @@ int GetCollOneUnit(OI_698 oi,INT8U readType,INT8U seqnum,INT8U *data,INT16U *one
 		if(one_blknum<=1)	return 0;
 		break;
 	case 0x6002:	//搜表
+
 		break;
 	case 0x6012:	//任务配置表
 		one_unitlen = Get_6013(readType,seqnum,data);

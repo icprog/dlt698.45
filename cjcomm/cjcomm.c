@@ -386,7 +386,9 @@ int main(int argc, char *argv[]) {
     StartClientForNet(ep, 0, NULL);
 
     StartVerifiTime(ep, 0, JProgramInfo);
-//    StartPowerOff(ep, 0, JProgramInfo);
+    if(getZone("ShanDong")==0) {		//山东要求掉电1分钟后无通讯
+    	StartPowerOff(ep, 0, JProgramInfo);
+    }
     StartMmq(ep, 0, NULL);
     createWatch(ep);
 

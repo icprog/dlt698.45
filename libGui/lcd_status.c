@@ -69,6 +69,7 @@ void topstatus_showcommtype(INT8U online_type)
 	pos.x = FONTSIZE_8*2.5;
 	pos.y = 0;
 	gui_clrrect(getrect(pos, FONTSIZE_8*2, FONTSIZE_8*2));
+
 	switch(online_type)
 	{
 		case GPRS_COM:
@@ -76,10 +77,15 @@ void topstatus_showcommtype(INT8U online_type)
 			{
 				str[0] = 0x05;//C
 				str[1] = 0x06;
-			}else
+			}else if(p_JProgramInfo->dev_info.wirelessType==1)
 			{
 				str[0] = 0x01;//G
 				str[1] = 0x02;
+			}
+			else if(p_JProgramInfo->dev_info.wirelessType==3 || p_JProgramInfo->dev_info.wirelessType==4)
+			{
+				str[0] = 0x34;//4G
+				str[1] = 0x47;
 			}
 			break;
 		case NET_COM:
@@ -154,13 +160,28 @@ void topstatus_showcldno(int cldno)
 	memset(&pos, 0, sizeof(Point));
 	memset(str, 0, 5);
 	sprintf(str, "%04d", cldno);
-	pos.x = FONTSIZE_8*8.75;
+	//pos.x = FONTSIZE_8*8.75;
+	pos.x = FONTSIZE_8*9.75;
 	gui_textshow_16(str, pos, LCD_NOREV);
 
-	pos.x = FONTSIZE_8*7.5;
+	//pos.x = FONTSIZE_8*7.5;
+	pos.x = FONTSIZE_8*9.25;
 	gui_vline(pos, FONTSIZE_8*2);
+	//pos.x = LCM_X - FONTSIZE_8*6;
 	pos.x = LCM_X - FONTSIZE_8*6;
 	gui_vline(pos, FONTSIZE_8*2);
+}
+void topstatus_showEsamStatus()
+{
+	char str[3] = {0x00,0x00,0x00};
+	Point pos;
+	gui_setpos(&pos,rect_TopStatus.left+FONTSIZE_8*7.25, rect_TopStatus.top);
+	if(p_JProgramInfo->dev_info.Esam_VersionStatus == 0)//如果芯片为测试密钥，显示小房子信息
+	{
+		str[0] = 0x0f;
+		str[1] = 0x10;
+		gui_textshow_16(str, pos, LCD_NOREV);
+	}
 }
 
 //gprs模块信号显示，液晶上面部分显示
@@ -181,9 +202,8 @@ void lcd_showTopStatus()
 		}
 	}
 	topstatus_showCSQ(gprs_csq);
-
 	topstatus_showAlarm(ercno_curr);
-
+	 topstatus_showEsamStatus();//显示esam状态信息
 	topstatus_showcldno(g_curcldno);
 	topstatus_showtime();
 

@@ -826,31 +826,31 @@ void ShowJCData(ProgramInfo* p_JProgramInfo,int PageNo, LcdDataItem *item, int s
 		LunXunShowPage2(p_JProgramInfo,item, size, show_flg);//当前正向无功电能示值
 		break;
 	case 2:
-		LunXunShowPage3(p_JProgramInfo,item, size, show_flg);//当前反向有功电能示值
+		LunXunShowPage3(p_JProgramInfo,item, size, show_flg);//A相电压
 		break;
 	case 3:
-		LunXunShowPage4(p_JProgramInfo,item, size, show_flg);//当前反向无功电能示值
+		LunXunShowPage4(p_JProgramInfo,item, size, show_flg);//B相电压
 		break;
 	case 4:
-		LunXunShowPage5(p_JProgramInfo,item, size, show_flg);//一象限无功电能示值
+		LunXunShowPage5(p_JProgramInfo,item, size, show_flg);//C相电压
 		break;
 	case 5:
-		LunXunShowPage6(p_JProgramInfo,item, size, show_flg);//二象限无功电能示值
+		LunXunShowPage6(p_JProgramInfo,item, size, show_flg);//A相电流
 		break;
 	case 6:
-		LunXunShowPage7(p_JProgramInfo,item, size, show_flg);//三象限无功电能示值
+		LunXunShowPage7(p_JProgramInfo,item, size, show_flg);//B相电流
 		break;
 	case 7:
-		LunXunShowPage8(p_JProgramInfo,item, size, show_flg);//四象限无功电能示值
+		LunXunShowPage8(p_JProgramInfo,item, size, show_flg);//C相电流
 		break;
 	case 8:
-		LunXunShowPage9(p_JProgramInfo,item, size, show_flg);//视在功率
+		LunXunShowPage9(p_JProgramInfo,item, size, show_flg);//A相有功功率
 		break;
 	case 9:
-		LunXunShowPage10(p_JProgramInfo,item, size, show_flg);//当前电压
+		LunXunShowPage10(p_JProgramInfo,item, size, show_flg);//B相有功功率
 		break;
 	case 10:
-		LunXunShowPage11(p_JProgramInfo,item, size, show_flg);//当前电流
+		LunXunShowPage11(p_JProgramInfo,item, size, show_flg);//C相有功功率
 		break;
 	default:
 		break;

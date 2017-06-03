@@ -105,18 +105,7 @@ extern int getDataTypeLen(int dt);
 /*----------------------具体OI类组帧函数----------------------*/
 /*----------------------统计相关数据----------------------*/
 extern INT8U Get_Vacs(RESULT_NORMAL *response,ProgramInfo* prginfo_acs);
-extern INT8U Get_213x(OAD oad,INT8U *sourcebuf,INT8U *buf,int *len);
-extern INT8U Get_2200(OI_698 oi, INT8U* sourcebuf, INT8U* buf, int* len);
-extern INT8U Get_2203(OI_698 oi, INT8U* sourcebuf, INT8U* buf, int* len);
-extern INT8U Get_2204(OI_698 oi, INT8U* sourcebuf, INT8U* buf, int* len);
 
-extern int Get_4000(OAD oad,INT8U *data);
-/*----------------------参变量类----------------------*/
-extern int Get_6001(INT8U type,INT16U seqnum, INT8U* data);
-extern int Get_6013(INT8U type,INT8U taskid,INT8U *data);
-extern int Get_6015(INT8U type,INT8U seqnum, INT8U* data);
-extern int Get_6017(INT8U type,INT8U seqnum,INT8U *data);
-extern int Get_6035(INT8U type,INT8U seqnum, INT8U* data);
-extern int Get_601D(INT8U type,INT8U seqnum,INT8U *data);
+
 extern int GetFileState(RESULT_NORMAL* response);
 #endif

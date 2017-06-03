@@ -876,6 +876,7 @@ void bufsyslog(const INT8U* buf, const char* title, int head, int tail, int len)
     int local_tail = tail;
     int count      = 0;
     char msg[1024];
+
     memset(msg, 0x00, sizeof(msg));
     asyslog(LOG_INFO, "%s(%d,%d)", title, local_head, local_tail);
     while (head != tail) {
