@@ -342,6 +342,14 @@ int main(int argc, char *argv[]) {
         analyTaskData(argc, argv);
         return EXIT_SUCCESS;
     }
+    if (strcmp("taskinfo", argv[1]) == 0) {
+        analyTaskInfo(argc, argv);
+        return EXIT_SUCCESS;
+    }
+    if (strcmp("oadinfo", argv[1]) == 0) {
+        analyTaskOADInfo(argc, argv);
+        return EXIT_SUCCESS;
+    }
     if (strcmp("freezedata", argv[1]) == 0) {
         analyFreezeData(argc, argv);
         return EXIT_SUCCESS;
