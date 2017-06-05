@@ -205,11 +205,15 @@ int fill_bool(INT8U *data,INT8U value)		//0x03
 	return 2;
 }
 
-int fill_bit_string8(INT8U *data,INT8U bits)		//0x04
+int fill_bit_string(INT8U *data,INT8U size,INT8U bits)		//0x04
 {
 	//TODO : 默认8bit ，不符合A-XDR规范
+	if(size>=0 && size<=8){
+		size = 8;
+		syslog(LOG_ERR,"fill_bit_string size=%d, error",size);
+	}
 	data[0] = dtbitstring;
-	data[1] = 0x08;
+	data[1] = size;
 	data[2] = bits;
 	return 3;
 }

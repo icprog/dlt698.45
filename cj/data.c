@@ -356,7 +356,7 @@ void recordinfo_prt(int recordnum,int recordsize,FILE *fp)
 }
 void recordoadinfo_prt(int recordnum,int unitnum,int recordsize,HEAD_UNIT0 *length,FILE *fp)
 {
-	int i=0,j=0,oknum=0;
+	int i=0,j=0,k=0,oknum=0;
 	int	nullbuf[50]={};
 	INT8U *blockbuf = NULL;
 	INT32U blocksize = recordsize*recordnum;
@@ -385,20 +385,27 @@ void recordoadinfo_prt(int recordnum,int unitnum,int recordsize,HEAD_UNIT0 *leng
 					offset += length[i].len;
 					continue;
 				}
-				fprintf(stderr,"%04x%02x%02x-%04x%02x%02x\n",length[i].oad_m.OI,length[i].oad_m.attflg,length[i].oad_m.attrindex,
+				fprintf(stderr,"%04x%02x%02x-%04x%02x%02x----\n",length[i].oad_m.OI,length[i].oad_m.attflg,length[i].oad_m.attrindex,
 						length[i].oad_r.OI,length[i].oad_r.attflg,length[i].oad_r.attrindex);
 				oknum=0;
-				for(j=0;j<recordnum;j++)
+				fprintf(stderr,"  ");
+				for(j=0;j<24;j++)
+					fprintf(stderr," %02d",j);
+				fprintf(stderr,"\n");
+				for(k=0;k<4;k++)
 				{
-					if(j==48)
-						fprintf(stderr,"\n");
-					if(blockbuf[offset+j*recordsize]==0)
-						fprintf(stderr," - ");
-					else
+					fprintf(stderr,"%02d",k*15);
+					for(j=0;j<recordnum/4;j++)
 					{
-						oknum++;
-						fprintf(stderr," * ");
+						if(blockbuf[offset+(4*j+k)*recordsize]==0)
+							fprintf(stderr," - ");
+						else
+						{
+							oknum++;
+							fprintf(stderr," D ");
+						}
 					}
+					fprintf(stderr,"\n");
 				}
 				offset += length[i].len;
 				fprintf(stderr,"\n记录总数:%d  成功总数:%d\n\n",recordnum,oknum);

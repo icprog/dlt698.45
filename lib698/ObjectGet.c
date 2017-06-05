@@ -294,8 +294,8 @@ int GetYxPara(RESULT_NORMAL *response)
 	{
 		case 4://配置参数
 			index += create_struct(&data[index],2);
-			index += fill_bit_string8(&data[index],objtmp.state4.StateAcessFlag);
-			index += fill_bit_string8(&data[index],objtmp.state4.StatePropFlag);
+			index += fill_bit_string(&data[index],8,objtmp.state4.StateAcessFlag);
+			index += fill_bit_string(&data[index],8,objtmp.state4.StatePropFlag);
 			break;
 		case 2://设备对象列表
 			fprintf(stderr,"GetYxPara oi.att=%d\n",oad.attflg);
@@ -423,7 +423,7 @@ int Get3106(RESULT_NORMAL *response)
 	}
 	if(oad.attrindex != 0x02){
 		index += create_struct(&data[index],4);	//停电数据采集配置参数　４个元素
-		index += fill_bit_string8(&data[index],tmpobj.poweroff_para_obj.collect_para_obj.collect_flag);
+		index += fill_bit_string(&data[index],8,tmpobj.poweroff_para_obj.collect_para_obj.collect_flag);
 		index += fill_unsigned(&data[index],tmpobj.poweroff_para_obj.collect_para_obj.time_space);
 		index += fill_unsigned(&data[index],tmpobj.poweroff_para_obj.collect_para_obj.time_threshold);
 		index += create_array(&data[index],tmpobj.poweroff_para_obj.collect_para_obj.tsaarr.num);
@@ -756,8 +756,8 @@ int Get4500(RESULT_NORMAL *response)
 		index += fill_visible_string(&data[index],(char *)&class_tmp.commconfig.passWord[1],class_tmp.commconfig.passWord[0]);
 		index += fill_octet_string(&data[index],(char *)&class_tmp.commconfig.proxyIp[1],class_tmp.commconfig.proxyIp[0]);
 		index += fill_long_unsigned(&data[index],class_tmp.commconfig.proxyPort);
-		//index += fill_bit_string8(&data[index],class_tmp.commconfig.timeoutRtry);
-		index += fill_unsigned(&data[index],class_tmp.commconfig.timeoutRtry);
+		//index += fill_bit_string(&data[index],8,class_tmp.commconfig.timeoutRtry);
+		index += fill_unsigned(&data[index],class_tmp.commconfig.timeoutRtry);	//勘误
 		index += fill_long_unsigned(&data[index],class_tmp.commconfig.heartBeat);
 		break;
 	case 3:	//主站通信参数表
@@ -828,8 +828,8 @@ int Get4510(RESULT_NORMAL *response)
 			}
 			index += fill_octet_string(&data[index],(char *)&class_tmp.commconfig.proxyIp[1],class_tmp.commconfig.proxyIp[0]);
 			index += fill_long_unsigned(&data[index],class_tmp.commconfig.proxyPort);
-			//index += fill_bit_string8(&data[index],class_tmp.commconfig.timeoutRtry);
-			index += fill_unsigned(&data[index],class_tmp.commconfig.timeoutRtry);
+			//index += fill_bit_string(&data[index],8,class_tmp.commconfig.timeoutRtry);
+			index += fill_unsigned(&data[index],class_tmp.commconfig.timeoutRtry);//勘误
 			index += fill_long_unsigned(&data[index],class_tmp.commconfig.heartBeat);
 			break;
 		case 3:	//主站通信参数表
@@ -1523,7 +1523,17 @@ int GetDeviceIo(RESULT_NORMAL *response)
 			GetYxPara(response);
 			break;
 		case 0xF001:
-			GetFileState(response);
+			switch(response->oad.attflg)
+			{
+			case 2:	//文件信息
+			case 3:	//命令结果
+				response->datalen = GetClass18(response->oad.attflg,response->data);
+				break;
+			case 4:	//传输块状态字
+				GetFileState(response);
+				break;
+			}
+
 	}
 	return 1;
 }

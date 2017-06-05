@@ -28,6 +28,9 @@
 
 #define 	LIB_ACCESS_VER 			0x0001
 
+//syslog_info 信息记录标记
+//#define		SYS_INFO		1
+
 CLASS_INFO	info={};
 void write_apn(char* apn) {
 	syslog(LOG_NOTICE,"__%s__",__func__);
@@ -366,7 +369,9 @@ int saveParaClass(OI_698 oi,void *blockdata,int seqnum)
 	INT16S	infoi=-1;
 	sem_t   *sem_save=NULL;
 
+#ifdef SYS_INFO
 	syslog(LOG_NOTICE,"__%s__,oi=%04x,seqnum=%d",__func__,oi,seqnum);
+#endif
 	infoi = getclassinfo(oi,&info);
 	if(infoi == -1) {
 		return -1;
@@ -401,8 +406,9 @@ int  readParaClass(OI_698 oi,void *blockdata,int seqnum)
 	int 	ret=-1;
 	INT16S	infoi=-1;
 	sem_t   *sem_save=NULL;
-
+#ifdef SYS_INFO
 	syslog(LOG_NOTICE,"__%s__,oi=%04x,seqnum=%d",__func__,oi,seqnum);
+#endif
 	infoi = getclassinfo(oi,&info);
 	if(infoi==-1) {
 		fprintf(stderr,"infoi=%d\n",infoi);
@@ -426,7 +432,9 @@ int saveCoverClass(OI_698 oi,INT16U seqno,void *blockdata,int savelen,int type)
 	char	fname[FILENAMELEN]={};
 	sem_t   *sem_save=NULL;
 
+#ifdef SYS_INFO
 	syslog(LOG_NOTICE,"__%s__,type=%d,oi=%04x,seqno=%d",__func__,type,oi,seqno);
+#endif
 	sem_save = InitSem();
 	memset(fname,0,sizeof(fname));
 	getFileName(oi,seqno,type,fname);
@@ -486,7 +494,9 @@ int readCoverClass(OI_698 oi,INT16U seqno,void *blockdata,int datalen,int type)
 	if(ret!=0) {	//文件不存在
 		return -1;
 	}
+#ifdef SYS_INFO
 	syslog(LOG_NOTICE,"__%s__,type=%d,oi=%04x,seqno=%d",__func__,type,oi,seqno);
+#endif
 	sem_save = InitSem();
 	switch(type) {
 	case event_para_save:
@@ -557,7 +567,9 @@ int saveVariData(OI_698 oi,int coll_seqnum,void *blockdata,int datalen)
 	char	filename[FILENAMELEN];
 	sem_t   *sem_save=NULL;
 
+#ifdef SYS_INFO
 	syslog(LOG_NOTICE,"__%s__,oi=%04x,coll_seqnum=%d",__func__,oi,coll_seqnum);
+#endif
 	if(blockdata==NULL) {
 		fprintf(stderr,"存储数据为空，不可保存\n");
 		return -1;
@@ -631,7 +643,9 @@ int  readVariData(OI_698 oi,int coll_seqnum,void *blockdata,int len)
 	int		blklen=0;
 	char	*rbuf=NULL;
 
+#ifdef SYS_INFO
 	syslog(LOG_NOTICE,"__%s__,oi=%04x,coll_seqnum=%d",__func__,oi,coll_seqnum);
+#endif
 	if(len > VARI_LEN) {
 		fprintf(stderr,"读取数据长度[%d]大于申请返回数据空间[%d]，返回失败!!!\n",len,VARI_LEN);
 		return -1;
@@ -734,7 +748,9 @@ int	saveFreezeRecord(OI_698 freezeOI,OAD oad,DateTimeBCD datetime,int len,INT8U 
 	int		blklen = 0;
 	sem_t   *sem_save=NULL;
 
+#ifdef SYS_INFO
 	syslog(LOG_NOTICE,"__%s__,freezeOI=%04x,oad.oi=%04x",__func__,freezeOI,oad.OI);
+#endif
 	if(len>VARI_LEN) {
 		fprintf(stderr,"save %s/%04x-%04x.dat 数据长度[%d]大于限定值[%d],不予保存",VARI_DIR,freezeOI,oad.OI,len,VARI_LEN);
 	}
@@ -794,7 +810,9 @@ int readFreezeRecordNum(OI_698 freezeOI,OI_698 relateOI,int *currRecordNum,int *
 	int		tmp1=0;
 	sem_t   *sem_save=NULL;
 
+#ifdef SYS_INFO
 	syslog(LOG_NOTICE,"__%s__,freezeOI=%04x,relateOI=%04x",__func__,freezeOI,relateOI);
+#endif
 	sem_save = InitSem();
 	*currRecordNum = 0;
 	*MaxRecordNum = 0;
@@ -827,7 +845,9 @@ int readFreezeRecordByNum(OI_698 freezeOI,OAD oad,int RecordNum,DateTimeBCD *dat
 //	int		i=0;
 	sem_t   *sem_save=NULL;
 
+#ifdef SYS_INFO
 	syslog(LOG_NOTICE,"__%s__,freezeOI=%04x,oad=%04x,RecordNum=%d",__func__,freezeOI,oad.OI,RecordNum);
+#endif
 	sem_save = InitSem();
 
 	memset(&filename,0,sizeof(filename));
@@ -872,7 +892,9 @@ int	readFreezeRecordByTime(OI_698 freezeOI,OAD oad,DateTimeBCD datetime,int *dat
 
 	sem_t   *sem_save=NULL;
 
+#ifdef SYS_INFO
 	syslog(LOG_NOTICE,"__%s__,freezeOI=%04x,oad=%04x,[%04d-%02d-%02d %02d:%02d:%02d]",__func__,freezeOI,oad.OI,datetime.year.data,datetime.month.data,datetime.day.data,datetime.hour.data,datetime.min.data,datetime.sec.data);
+#endif
 	sem_save = InitSem();
 
 	memset(&filename,0,sizeof(filename));
