@@ -2707,7 +2707,7 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds,INT16U fr
 	OAD_INDEX oad_offset[100],oad_offset_can[100];//oad索引
 	TASKSET_INFO tasknor_info;
 	INT16U  blocksize=0,headsize=0;
-	int offsetTsa = 0,recordoffset = 0,unitnum=0,i=0,j=0,indexn=0,recordlen = 0,currecord = 0,rec_tmp = 0,firecord = 0,tsa_num=0,framesum=0;
+	int offsetTsa = 0,recordoffset = 0,unitnum=0,i=0,j=0,k=0,indexn=0,recordlen = 0,currecord = 0,rec_tmp = 0,firecord = 0,tsa_num=0,framesum=0;
 	INT8U recordnum=0,seqnumindex=0,taskinfoflg=0;
 	TSA *tsa_group = NULL;
 	ROAD road_eve;
@@ -2910,46 +2910,65 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds,INT16U fr
 			fseek(fp,recordoffset,SEEK_SET);
 			fread(recordbuf,recordlen,1,fp);
 
-			memset(tmpnull,0x00,8);
-			if(memcmp(&recordbuf[18],tmpnull,8)==0)//本条记录为空
+			for(k=0;k<5;k++)//TsToTimeBCD(TS inTs,DateTimeBCD* outTimeBCD)
 			{
-				if(autoflg == 1 && tasknor_info.runtime > 1 && recinfo.recordno_num == 1)//主动上报曲线并且只上报一个点
+				memset(tmpnull,0x00,8);
+				if(memcmp(&recordbuf[18],tmpnull,8)==0)//本条记录为空
 				{
-					fprintf(stderr,"\n---曲线主动上报\n");
-					fprintf(stderr,"当前   currecord=%d\n",currecord);
-					if(currecord == 0)//往前跨一天
+					if(autoflg == 1 && tasknor_info.runtime > 1 && recinfo.recordno_num == 1)//主动上报曲线并且只上报一个点
 					{
-						TS ts_tmp;
-						char fname[FILENAMELEN]={};
-						TSGet(&ts_tmp);
-						tminc(&ts_tmp,day_units,-1);
-						getTaskFileName(taskid,ts_tmp,fname);//得到要抄读的文件名称
-						fprintf(stderr," 往前跨一天 fname=%s\n",fname);
-						if(fp != NULL)
-							fclose(fp);
-						fp =fopen(fname,"r");
-						currecord = tasknor_info.runtime-1;
+						fprintf(stderr,"\n---曲线主动上报k=%d\n",k);
+						fprintf(stderr,"当前   currecord=%d\n",currecord);
+						if(currecord == 0)//往前跨一天
+						{
+							TS ts_tmp;
+							char fname[FILENAMELEN]={};
+							TSGet(&ts_tmp);
+							tminc(&ts_tmp,day_units,-1);
+							getTaskFileName(taskid,ts_tmp,fname);//得到要抄读的文件名称
+							fprintf(stderr," 往前跨一天 fname=%s\n",fname);
+							if(fp != NULL)
+								fclose(fp);
+							fp =fopen(fname,"r");
+							currecord = tasknor_info.runtime-1;
+						}
+						else
+							currecord--;
+						fprintf(stderr,"查找上一个  currecord=%d\n",currecord);
+						recordoffset = findrecord(offsetTsa,recordlen,currecord);
+						memset(recordbuf,0x00,sizeof(recordbuf));
+						//6\读出一行数据到临时缓存
+						fseek(fp,recordoffset,SEEK_SET);//再读一次上一条记录上报
+						fread(recordbuf,recordlen,1,fp);
+						memset(tmpnull,0x00,8);
+						if(memcmp(&recordbuf[18],tmpnull,8)==0)//本条记录为空
+						{
+							fprintf(stderr,"\n本条记录号%d为空\n",currecord);
+							continue;
+						}
 					}
 					else
-						currecord--;
-					fprintf(stderr,"查找上一个  currecord=%d\n",currecord);
-					recordoffset = findrecord(offsetTsa,recordlen,currecord);
-					memset(recordbuf,0x00,sizeof(recordbuf));
-					//6\读出一行数据到临时缓存
-					fseek(fp,recordoffset,SEEK_SET);//再读一次上一条记录上报
-					fread(recordbuf,recordlen,1,fp);
-					memset(tmpnull,0x00,8);
-					if(memcmp(&recordbuf[18],tmpnull,8)==0)//本条记录为空
 					{
-						fprintf(stderr,"\n本条记录号%d为空\n",currecord);
+						if(autoflg == 1)
+							fprintf(stderr,"\n---非曲线主动上报\n");
 						continue;
 					}
 				}
-				else
+				else//有数据跳出
 				{
-					if(autoflg == 1)
-						fprintf(stderr,"\n---非曲线主动上报\n");
-					continue;
+					fprintf(stderr,"\n更改时标\n");
+					TS ts_curr;
+					DateTimeBCD CHTimeBCD[2];
+					TSGet(&ts_curr);
+					TsToTimeBCD(ts_curr,&CHTimeBCD[0]);
+					ts_curr.Minute = ts_curr.Minute/15;
+					ts_curr.Minute = ts_curr.Minute*15;//取整
+					ts_curr.Sec = 0;
+					TsToTimeBCD(ts_curr,&CHTimeBCD[1]);
+					fill_date_time_s(&recordbuf[18],&CHTimeBCD[0]);
+					fill_date_time_s(&recordbuf[26],&CHTimeBCD[0]);
+					fill_date_time_s(&recordbuf[34],&CHTimeBCD[1]);
+					break;
 				}
 			}
 
