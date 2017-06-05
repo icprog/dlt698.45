@@ -298,6 +298,118 @@ void record_prt(int recordnum,int indexn,HEAD_UNIT0 *length,FILE *fp)
 	}
 	return ;
 }
+void recordinfo_prt(int recordnum,int recordsize,FILE *fp)
+{
+	int i=0,j=0,oknum=0;
+	int	nullbuf[50]={};
+	INT8U *buf = NULL;
+
+	buf = malloc(recordsize);
+	memset(&nullbuf,0,sizeof(nullbuf));
+//	fprintf(stderr,"序号:");
+//	for(i=0;i<recordnum;i++)
+//		fprintf(stderr,"%02d ",i+1);
+	while(!feof(fp))
+	{
+		oknum = 0;
+		for(i=0;i<recordnum;i++)
+		{
+			memset(buf,0,recordsize);
+			if (fread(buf,recordsize,1,fp)>0)
+			{
+				if(i%10==0)
+				{
+					fprintf(stderr,"\n");
+					if(i!=0)
+						fprintf(stderr,"                      %02d:",i/10);
+				}
+				if(i==0)
+				{
+					fprintf(stderr,"TSA:");
+					for(j=0;j<buf[1];j++)
+						fprintf(stderr,"%02x ",buf[j+2]);
+					fprintf(stderr,":");
+					for(j=0;j<10;j++)
+						fprintf(stderr,"%02d ",j+1);
+					fprintf(stderr,"\n                      00:");
+				}
+				if(memcmp(&buf[18],nullbuf,8)!=0)
+				{
+					oknum++;
+					fprintf(stderr," * ");
+				}
+				else
+					fprintf(stderr," - ");
+			}
+			else
+			{
+				if(buf != NULL)
+					free(buf);
+				return;
+			}
+		}
+		fprintf(stderr,"\n数据点数%d\n",oknum);
+	}
+	if(buf != NULL)
+		free(buf);
+	return ;
+}
+void recordoadinfo_prt(int recordnum,int unitnum,int recordsize,HEAD_UNIT0 *length,FILE *fp)
+{
+	int i=0,j=0,oknum=0;
+	int	nullbuf[50]={};
+	INT8U *blockbuf = NULL;
+	INT32U blocksize = recordsize*recordnum;
+	int offset = 0;
+
+	blockbuf = malloc(blocksize);
+	memset(&nullbuf,0,sizeof(nullbuf));
+//	fprintf(stderr,"序号:");
+//	for(i=0;i<recordnum;i++)
+//		fprintf(stderr,"%02d ",i+1);
+
+	while(!feof(fp))
+	{
+		memset(blockbuf,0,blocksize);
+		if (fread(blockbuf,blocksize,1,fp)>0)
+		{
+			offset = 0;
+			fprintf(stderr,"\n**********TSA:");
+			for(i=0;i<blockbuf[1];i++)
+				fprintf(stderr,"%02x ",blockbuf[i+2]);
+			fprintf(stderr,"*****************************************************************************************************************\n");
+			for(i=0;i<unitnum;i++)
+			{
+				if((length[i].oad_r.OI==0x202a) || (length[i].oad_r.OI==0x6040) || (length[i].oad_r.OI==0x6041) || (length[i].oad_r.OI==0x6042))//找第一个不是固定格式的数据项
+				{
+					offset += length[i].len;
+					continue;
+				}
+				fprintf(stderr,"%04x%02x%02x-%04x%02x%02x\n",length[i].oad_m.OI,length[i].oad_m.attflg,length[i].oad_m.attrindex,
+						length[i].oad_r.OI,length[i].oad_r.attflg,length[i].oad_r.attrindex);
+				oknum=0;
+				for(j=0;j<recordnum;j++)
+				{
+					if(j==48)
+						fprintf(stderr,"\n");
+					if(blockbuf[offset+j*recordsize]==0)
+						fprintf(stderr," - ");
+					else
+					{
+						oknum++;
+						fprintf(stderr," * ");
+					}
+				}
+				offset += length[i].len;
+				fprintf(stderr,"\n记录总数:%d  成功总数:%d\n\n",recordnum,oknum);
+			}
+		}
+		else
+			break;
+	}
+	if(blockbuf != NULL)
+		free(blockbuf);
+}
 int head_prt(int unitnum,HEAD_UNIT0 *length,int *indexn,FILE *fp)
 {
 	INT8U buf[50]={};
@@ -381,6 +493,78 @@ void analyTaskData(int argc, char* argv[])
 	return ;
 }
 
+void analyTaskInfo(int argc, char* argv[])
+{
+	char *filename= argv[2];
+	FILE *fp=NULL;
+	int indexn=0,A_record=0,A_TSAblock=0;
+	HEAD_UNIT0 length[20];
+	int head_len=0,recordnum =0, unitnum=0;
+
+	if (filename!=NULL)
+	{
+		fp = fopen(filename,"r");
+		if(fp!=NULL)
+		{
+			fprintf(stderr,"\n\n\n--------------------------------------------------------");
+			head_len = readfile_int(fp);
+			fprintf(stderr,"\n文件头长度 %d (字节)",head_len);
+
+			A_TSAblock = readfile_int(fp);
+			memset(&length,0,sizeof(length));
+			unitnum = (head_len )/sizeof(HEAD_UNIT0);
+
+			//打印文件头结构
+			A_record = head_prt(unitnum,length,&indexn,fp);
+
+			recordnum = A_TSAblock/A_record;
+			fprintf(stderr,"\n\n\n TSA块 %d（字节）  每记录 %d （字节）  共 %d 条记录\n",A_TSAblock,A_record,recordnum);
+
+//			fprintf(stderr,"\n\n\n>>>>查找到相关的TSA数据(%d)\n",ftell(fp));
+			//打印TSA的全部记录
+			fprintf(stderr,"\n文件指针位置%d\n",ftell(fp));
+			recordinfo_prt(recordnum,A_record,fp);
+			fclose(fp);
+		}
+	}
+	return ;
+}
+void analyTaskOADInfo(int argc, char* argv[])
+{
+	char *filename= argv[2];
+	FILE *fp=NULL;
+	int indexn=0,A_record=0,A_TSAblock=0;
+	HEAD_UNIT0 length[20];
+	int head_len=0,recordnum =0, unitnum=0;
+
+	if (filename!=NULL)
+	{
+		fp = fopen(filename,"r");
+		if(fp!=NULL)
+		{
+			fprintf(stderr,"\n\n\n--------------------------------------------------------");
+			head_len = readfile_int(fp);
+			fprintf(stderr,"\n文件头长度 %d (字节)",head_len);
+
+			A_TSAblock = readfile_int(fp);
+			memset(&length,0,sizeof(length));
+			unitnum = (head_len )/sizeof(HEAD_UNIT0);
+
+			//打印文件头结构
+			A_record = head_prt(unitnum,length,&indexn,fp);
+
+			recordnum = A_TSAblock/A_record;
+			fprintf(stderr,"\n\n\n TSA块 %d（字节）  每记录 %d （字节）  共 %d 条记录\n",A_TSAblock,A_record,recordnum);
+
+//			fprintf(stderr,"\n\n\n>>>>查找到相关的TSA数据(%d)\n",ftell(fp));
+			//打印TSA的全部记录
+			fprintf(stderr,"\n文件指针位置%d\n",ftell(fp));
+			recordoadinfo_prt(recordnum,unitnum,A_record,length,fp);
+			fclose(fp);
+		}
+	}
+	return ;
+}
 void printBuf(INT8U* buf, INT32U len)
 {
 	INT32U i;
