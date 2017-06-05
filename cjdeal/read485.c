@@ -813,9 +813,10 @@ INT16S ReceDataFrom485(METER_PROTOCOL meterPro,INT8U port485, INT16U delayms, IN
 						if (str[rec_tail + 9 + DataLen + 2] == 0x16) {
 							DbPrt1(port485,"R:",(char *)str, rec_head, NULL);
 
-							sprintf(title,"[485_%d_07]R:",port485);
-							bufsyslog(TmprevBuf, title, rec_head, 0, BUFFSIZE256);
-
+							if(getZone("GW")==0) {
+								sprintf(title,"[485_%d_07]R:",port485);
+								bufsyslog(TmprevBuf, title, rec_head, 0, BUFFSIZE2048);
+							}
 							return (rec_tail + 9 + DataLen + 3);
 						}
 					}
@@ -828,8 +829,10 @@ INT16S ReceDataFrom485(METER_PROTOCOL meterPro,INT8U port485, INT16U delayms, IN
 					{
 							if (str[rec_tail + DataLen +1] == 0x16) {
 								DbPrt1(port485,"R:",(char *)str, rec_head, NULL);
-								sprintf(title,"[485_%d_07]R:",port485);
-								bufsyslog(TmprevBuf, title, rec_head, 0, BUFFSIZE256);
+								if(getZone("GW")==0) {
+									sprintf(title,"[485_%d_698]R:",port485);
+									bufsyslog(TmprevBuf, title, rec_head, 0, BUFFSIZE2048);
+								}
 								return rec_head;
 							}
 					}
@@ -868,10 +871,11 @@ void SendDataTo485(INT8U port485, INT8U *sendbuf, INT16U sendlen) {
 		fprintf(stderr, "slen=%d,send err!\n", slen);
 	DbPrt1(port485,"S:", (char *) sendbuf, sendlen, NULL);
 
-	char title[20];
-	sprintf(title,"[485_%d]S:",port485);
-	fprintf(stderr,"port485=%s\n",title);
-	bufsyslog(sendbuf, title, sendlen, 0, BUFLEN);
+	if(getZone("GW")==0) {
+		char title[20];
+		sprintf(title,"[485_%d]S:",port485);
+		bufsyslog(sendbuf, title, sendlen, 0, BUFLEN);
+	}
 }
 
 //根据TSA从文件中找出6001
@@ -2517,10 +2521,12 @@ INT8S dealProxyType7(PROXY_GETLIST getlist,INT8U port485)
 	}
 
 	DbPrt1(port485,"代理透传返回:", (char *) RecvBuff, RecvLen, NULL);
-	char title[20];
-	sprintf(title,"[485_%d]R:",port485);
-	bufsyslog(RecvBuff, title, len, 0, BUFFSIZE1024);
 
+	if(getZone("GW")==0) {
+		char title[20];
+		sprintf(title,"[485_%d]R:",port485);
+		bufsyslog(RecvBuff, title, len, 0, BUFFSIZE1024);
+	}
 	if(RecvLen > 0)
 	{
 		INT16U tIndex;
@@ -4378,7 +4384,8 @@ INT8S deal6015or6017(CLASS_6013 st6013,CLASS_6015 st6015, INT8U port485,CLASS_60
 				}
 				else
 				{
-					asyslog(LOG_WARNING, "序号=%d的测量点 不是485 %d测量点或者不满足MS条件",info6000[port].list6001[meterIndex],port485);
+//					asyslog(LOG_WARNING, "序号=%d的测量点 不是485 %d测量点或者不满足MS条件",info6000[port].list6001[meterIndex],port485);
+					DbgPrintToFile1("序号=%d的测量点 不是485 %d测量点或者不满足MS条件",info6000[port].list6001[meterIndex],port485);
 				}
 			}
 			else

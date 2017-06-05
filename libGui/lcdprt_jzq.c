@@ -3459,7 +3459,7 @@ void show_jzq_ver()
     gui_setpos(&pos, rect_Client.left+10*FONTSIZE, rect_Client.top+FONTSIZE);
     gui_textshow((char*)"终端信息", pos, LCD_NOREV);
 
-    pos.x = rect_Client.left + FONTSIZE*5;
+    pos.x = rect_Client.left + FONTSIZE*3;
     pos.y += FONTSIZE*3;
     memcpy(str,&g_class19_oi4300.name[1],g_class19_oi4300.name[0]);
     sprintf(str,"厂商代码:%c%c%c%c",g_class19_oi4300.info.factoryCode[0],g_class19_oi4300.info.factoryCode[1],
@@ -3492,10 +3492,13 @@ void show_jzq_ver()
 
     memset(str,0,sizeof(str));
     pos.y += FONTSIZE*2+2;
-    sprintf(str,"生产日期:%d-%d-%d %d:%d:%d",g_class19_oi4300.date_Product.year.data,g_class19_oi4300.date_Product.month.data,g_class19_oi4300.date_Product.day.data,
-    										g_class19_oi4300.date_Product.hour.data,g_class19_oi4300.date_Product.min.data,g_class19_oi4300.date_Product.sec.data);
+    sprintf(str,"生产日期:%d-%d-%d ",g_class19_oi4300.date_Product.year.data,g_class19_oi4300.date_Product.month.data,g_class19_oi4300.date_Product.day.data);
     gui_textshow(str, pos, LCD_NOREV);
 
+    memset(str,0,sizeof(str));
+    pos.y += FONTSIZE*2+2;
+    sprintf(str,"规约协议:698 ");
+    gui_textshow(str, pos, LCD_NOREV);
 }
 
 void menu_jzqstatus_showused(char* name, int used, Point pos){

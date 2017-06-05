@@ -1119,8 +1119,17 @@ INT32S EsamMothod(INT16U attr_act, INT8U *data) {
             ret = -1;
             break;
     }
+    if(attr_act ==  7) //密钥更新需要再次读取esam信息，判断密钥版本（测试/正式）
+    {
+    	INT8S esamRET = esam_UpdateShmemStatus();//小于0代码读取芯片信息失败，不作处理
+    	if(esamRET == 1)//正式密钥
+    		memp->dev_info.Esam_VersionStatus = 1;
+    	else if(esamRET == 0)//测试密钥
+    		memp->dev_info.Esam_VersionStatus = 0;
+    }
     return ret;
 }
+
 
 int doObjectAction(OAD oad, INT8U *data, Action_result *act_ret) {
     INT32S errflg = 0;

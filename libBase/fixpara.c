@@ -30,7 +30,7 @@ typedef struct {
 
 #define  IP_LEN		4		//参数ip类长度
 									//厂商代码　　软件版本　软件日期　　硬件版本　硬件日期  扩展信息
-static VERINFO verinfo          = { "QDGK", "V1.1", "170601", "1.10", "150628", "00000000" }; // 4300 版本信息
+static VERINFO verinfo          = { "QDGK", "V1.1", "170601", "1.10", "160328", "00000000" }; // 4300 版本信息
 static DateTimeBCD product_date = { { 2016 }, { 04 }, { 6 }, { 0 }, { 0 }, { 0 } };   // 4300 生产日期
 static char protcol[]           = "DL/T 698.45";                                      // 4300 支持规约类型
 
@@ -218,29 +218,33 @@ void InitClassf203()
 {
     CLASS_f203 oif203 = {};
     int readret       = 0;
-    ConfigPara	cfgpara = {};
+//    ConfigPara	cfgpara = {};
 
-    cfgpara.device = CCTT2;
-    ReadDeviceConfig(&cfgpara);
+//    cfgpara.device = CCTT2;
+//    ReadDeviceConfig(&cfgpara);
     memset(&oif203, 0, sizeof(oif203));
     readret = readCoverClass(0xf203, 0, &oif203, sizeof(CLASS_f203), para_vari_save);
     if (readret != 1) {
-        fprintf(stderr, "初始化开关量输入：【F203】 设备类型:%d\n",cfgpara.device);
+//        fprintf(stderr, "初始化开关量输入：【F203】 设备类型:%d\n",cfgpara.device);
         strncpy((char*)&oif203.class22.logic_name, "F203", sizeof(oif203.class22.logic_name));
-        switch(cfgpara.device) {
-        case CCTT1:
-            oif203.class22.device_num    = 1;
-            oif203.statearri.num         = 4;
-            oif203.state4.StateAcessFlag = 0xF0; //第1路状态接入
-            oif203.state4.StatePropFlag  = 0xF0; //第1路状态常开触点
-        	break;
-        case CCTT2:
-            oif203.class22.device_num    = 1;
-            oif203.statearri.num         = 1;
-            oif203.state4.StateAcessFlag = 0x80; //第1路状态接入
-            oif203.state4.StatePropFlag  = 0x80; //第1路状态常开触点
-        	break;
-        }
+		oif203.class22.device_num    = 1;
+		oif203.statearri.num         = 8;
+		oif203.state4.StateAcessFlag = 0xFF; //所有开关量接入标志位均为1(接入)
+		oif203.state4.StatePropFlag  = 0xFF; //所有开关量属性标志位均为1(常开)
+//        switch(cfgpara.device) {
+//        case CCTT1:
+//            oif203.class22.device_num    = 1;
+//            oif203.statearri.num         = 4;
+//            oif203.state4.StateAcessFlag = 0xF0; //第1路状态接入
+//            oif203.state4.StatePropFlag  = 0xF0; //第1路状态常开触点
+//        	break;
+//        case CCTT2:
+//            oif203.class22.device_num    = 1;
+//            oif203.statearri.num         = 1;
+//            oif203.state4.StateAcessFlag = 0x80; //第1路状态接入
+//            oif203.state4.StatePropFlag  = 0x80; //第1路状态常开触点
+//        	break;
+//        }
         saveCoverClass(0xf203, 0, &oif203, sizeof(CLASS_f203), para_vari_save);
     }
 }
@@ -269,6 +273,9 @@ void InitClassByZone(INT8U type)
 		}else if(getZone("GW")==0) {
 			InitClass4500(heartBeat,master_info_GW,master_info_GW,gprs_para_GW);
 			InitClass4510(heartBeat,master_info_GW_4510,IP_GW);    //以太网通信模块1
+			system("cp /nor/init/table6000.* /nand/para/");
+			system("cp -rf /nor/init/6015 /nand/para/");
+			system("cp -rf /nor/init/6013 /nand/para/");
 		}
     }
 }

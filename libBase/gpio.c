@@ -13,6 +13,7 @@
 #include "PublicFunction.h"
 #include "StdDataType.h"
 #include "ParaDef.h"
+#include "att7022e.h"
 
 INT8S gpio_readbyte(char* devpath) {
     char data = 0;
@@ -71,17 +72,21 @@ INT32S gpio_writebytes(char* devpath, INT8S* vals, INT32S valnum) {
     return 0;
 }
 
-//二型集中器没有电池只有电容，所以不能够读出底板是否有电，且二型集中器只有一相电压，停上电事件在硬件复位时不能产生，
-//所以判断时，需要判断当前电压大于一个定值且小时参数时，产生事件(大于的定时暂定为10v交采已经将实时电压值乘以１０).
-BOOLEAN pwr_has_byVolt(INT8U valid, INT32U volt, INT16U limit) {
-    if ((valid == TRUE) && ((volt > 100 && volt < limit) || (volt < 30))) {
-        return FALSE;
+/*
+ * 二型集中器没有电池只有电容，所以不能够读出底板是否有电，且二型集中器只有一相电压，停上电事件在硬件复位时不能产生，
+ * 所以判断时，需要判断当前电压大于一个定值且小时参数时，产生事件(大于的定时暂定为100v交采已经将实时电压值乘以１０).
+ */
+INT8U pwr_has_byVolt(INT8U valid, INT32U volt, INT16U limit)
+{
+    if ((valid == TRUE) && ((volt > 100*U_COEF && volt < limit) || (volt <= 100*U_COEF))) {
+        return 1;
     }
-    return TRUE; //上电
+    return 0; //上电
 }
 
 /*
  * 底板电源是否有电
+ * 返回 TRUE: 有电   FALSE:掉电
  */
 BOOLEAN pwr_has()
 {
