@@ -255,7 +255,7 @@ int SaveNorData(INT8U taskid,ROAD *road_eve,INT8U *databuf,int datalen,TS ts_cc)
 	int savepos=0,currpos=0,i=0;
 	INT16U headlen=0,unitlen=0,unitnum=0,unitseq=0,runtime=0;//runtime执行次数
 	TASKSET_INFO tasknor_info;
-	HEAD_UNIT *headunit = NULL;//文件头
+//	HEAD_UNIT *headunit = NULL;//文件头
 	memset(&csds,0x00,sizeof(ROAD));
 	//TS ts_cc;
 	//TSGet(&ts_cc);
