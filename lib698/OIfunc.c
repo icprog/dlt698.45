@@ -315,3 +315,28 @@ int Get_6035(INT8U type,INT8U taskid,INT8U *data)
 	return index;
 }
 
+/*
+ *  文件传输接口类接口
+ * */
+int GetClass18(INT8U attflg,INT8U *data)
+{
+	CLASS18		class18={};
+	int	index = 0,ret = 0;
+
+	ret = readCoverClass(0x18,0,&class18,sizeof(CLASS18),para_vari_save);
+	switch(attflg) {
+	case 2:	//文件信息
+		index += create_struct(&data[index],6);
+		index += fill_visible_string(&data[index],class18.source_file,strlen(class18.source_file));
+		index += fill_visible_string(&data[index],class18.dist_file,strlen(class18.dist_file));
+		index += fill_double_long_unsigned(&data[index],class18.file_size);
+		index += fill_bit_string(&data[index],3,class18.file_attr & 0x03);
+		index += fill_visible_string(&data[index],class18.file_version,strlen(class18.file_version));
+		index += fill_enum(&data[index],class18.file_type);
+		break;
+	case 3:	//命令结果
+		index += fill_enum(&data[index],class18.cmd_result);
+		break;
+	}
+	return index;
+}

@@ -148,12 +148,12 @@ void print_rcsd(CSD_ARRAYTYPE csds)
 	{
 		if (csds.csd[i].type==0)
 		{
-			asyslog(LOG_INFO,"<%d>OAD%04x-%02x%02x ",i,csds.csd[i].csd.oad.OI,csds.csd[i].csd.oad.attflg,csds.csd[i].csd.oad.attrindex);
-//			fprintf(stderr,"<%d>OAD%04x-%02x%02x ",i,csds.csd[i].csd.oad.OI,csds.csd[i].csd.oad.attflg,csds.csd[i].csd.oad.attrindex);
+//			asyslog(LOG_INFO,"<%d>OAD%04x-%02x%02x ",i,csds.csd[i].csd.oad.OI,csds.csd[i].csd.oad.attflg,csds.csd[i].csd.oad.attrindex);
+			fprintf(stderr,"<%d>OAD%04x-%02x%02x ",i,csds.csd[i].csd.oad.OI,csds.csd[i].csd.oad.attflg,csds.csd[i].csd.oad.attrindex);
 		}else if (csds.csd[i].type==1)
 		{
-			asyslog(LOG_INFO,"<%d> ",i);
-//			fprintf(stderr,"<%d>",i);
+//			asyslog(LOG_INFO,"<%d> ",i);
+			fprintf(stderr,"<%d>",i);
 			print_road(csds.csd[i].csd.road);
 		}
 	}
@@ -205,11 +205,15 @@ int fill_bool(INT8U *data,INT8U value)		//0x03
 	return 2;
 }
 
-int fill_bit_string8(INT8U *data,INT8U bits)		//0x04
+int fill_bit_string(INT8U *data,INT8U size,INT8U bits)		//0x04
 {
 	//TODO : 默认8bit ，不符合A-XDR规范
+	if(size>=0 && size<=8){
+		size = 8;
+		syslog(LOG_ERR,"fill_bit_string size=%d, error",size);
+	}
 	data[0] = dtbitstring;
-	data[1] = 0x08;
+	data[1] = size;
 	data[2] = bits;
 	return 3;
 }

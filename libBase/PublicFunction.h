@@ -58,6 +58,8 @@ extern void TSGet(TS* ts);
 extern time_t tmtotime_t(TS ptm);
 extern void TimeBCDToTs(DateTimeBCD timeBCD,TS* outTs);
 extern void TsToTimeBCD(TS inTs,DateTimeBCD* outTimeBCD);
+extern DateTimeBCD timet_bcd(time_t t);
+
 
 /* BCD码转int32u
  *参数：bcd为bcd码头指针，len为bcd码长度，order为positive正序/inverted反序，dint转换结果

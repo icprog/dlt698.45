@@ -216,20 +216,7 @@ INT8U judgebit(INT8U Byte,int n)
 	}
 	return 0;
 }
-DateTimeBCD timet_bcd(time_t t)
-{
-	DateTimeBCD ts;
-    struct tm set;
 
-    localtime_r(&t, &set);
-    ts.year.data  = set.tm_year + 1900;
-    ts.month.data = set.tm_mon + 1;
-    ts.day.data   = set.tm_mday;
-    ts.hour.data  = set.tm_hour;
-    ts.min.data   = set.tm_min;
-    ts.sec.data   = set.tm_sec;
-    return ts;
-}
 TS DateBCD2Ts(DateTimeBCD timebcd)
 {
 	TS ts;

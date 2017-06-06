@@ -257,7 +257,7 @@ INT16U  composeAutoTask(AutoTaskStrap *list)
 	time_t timenow = time(NULL);
 	CLASS_6013 class6013={};
 	CLASS_601D class601d={};
-
+	DateTimeBCD timebcd={};
 	if(list->nexttime==0)	return ret;		//防止无效重复读取文件
 
 	timenow = time(NULL);
@@ -266,23 +266,33 @@ INT16U  composeAutoTask(AutoTaskStrap *list)
 
 	if(timenow >= list->nexttime)
 	{
-		asyslog(LOG_INFO,"任务上报时间%ld, %ld\n", list->nexttime, timenow);
+//		asyslog(LOG_INFO,"任务上报时间%ld, %ld\n", list->nexttime, timenow);
+		timebcd = timet_bcd(timenow);
+		asyslog(LOG_INFO,"[任务上报时间%ld, %ld]: %04d:%02d:%02d %02d:%02d:%02d\n",list->nexttime, timenow,
+				timebcd.year.data,timebcd.month.data,timebcd.day.data,
+				timebcd.hour.data,timebcd.min.data,timebcd.sec.data);
+
 		if (readCoverClass(0x6013, list->ID, &class6013, sizeof(CLASS_6013),coll_para_save) == 1)
 		{
-			asyslog(LOG_INFO,"\ni=%d 任务【 %d 】 	 开始执行   上报方案编号【 %d 】",i,list->ID,list->SerNo);
+//			asyslog(LOG_INFO,"\ni=%d 任务【 %d 】 	 开始执行   上报方案编号【 %d 】",i,list->ID,list->SerNo);
 			if (readCoverClass(0x601D, list->SerNo, &class601d, sizeof(CLASS_601D),coll_para_save) == 1)
 			{
-				asyslog(LOG_INFO,"方案编号601d:reportnum=%d",class601d.reportnum);
+//				asyslog(LOG_INFO,"方案编号601d:reportnum=%d",class601d.reportnum);
 				print_rcsd(class601d.reportdata.data.recorddata.csds);
 				list->ReportNum = class601d.maxreportnum;
 				list->OverTime = getTItoSec(class601d.timeout);
-				asyslog(LOG_INFO,"i=%d 任务【 %d 】 	 开始执行   上报方案编号【 %d 】 重发次数=%d, 超时时间=%d",i,list->ID,list->SerNo,list->ReportNum,list->OverTime);
+				asyslog(LOG_INFO,"任务【 %d 】上报方案编号【 %d 】重发=%d,超时=%d",list->ID,list->SerNo,list->ReportNum,list->OverTime);
 				fprintf(stderr,"list->SerNo = %d\n",list->SerNo);
 				ret = GetReportData(class601d);// =1,=2, 数据组织好了
 				fprintf(stderr,"GetReportData=%d\n",ret);
 			}
 			list->nexttime = calcnexttime(class6013.interval,class6013.startime,class6013.delay);
-			fprintf(stderr, "再次计算任务上报时间%ld, %ld\n", list->nexttime, timenow);
+//			asyslog(LOG_INFO, "再次计算任务上报时间%ld, %ld\n", list->nexttime, timenow);
+			timebcd = timet_bcd(list->nexttime);
+			asyslog(LOG_INFO,"[计算下次上报%ld, %ld]: %04d:%02d:%02d %02d:%02d:%02d\n",list->nexttime, timenow,
+					timebcd.year.data,timebcd.month.data,timebcd.day.data,
+					timebcd.hour.data,timebcd.min.data,timebcd.sec.data);
+
 		}else
 		{
 //				fprintf(stderr,"\n任务参数丢失！");
@@ -319,7 +329,7 @@ int callAutoReport(INT8U reportChoice,CommBlock* com, INT8U ifecho)
 	}
 	sendcounter++;
 	datalen = 0;
-	fprintf(stderr,"\n当前偏移位置 nowoffset = %d  ",nowoffset);
+//	fprintf(stderr,"\n当前偏移位置 nowoffset = %d  ",nowoffset);
 	nextoffset = readFrameDataFile(TASK_FRAME_DATA,nowoffset,TmpDataBuf,&datalen);
 	fprintf(stderr,"\n读出 (%d)：",datalen);
 	for(j=0; j<datalen; j++)
@@ -327,7 +337,8 @@ int callAutoReport(INT8U reportChoice,CommBlock* com, INT8U ifecho)
 		if (j%20==0)fprintf(stderr,"\n");
 		fprintf(stderr,"%02x ",TmpDataBuf[j]);
 	}
-	fprintf(stderr,"\n下帧偏移位置 nextoffset = %d ",nextoffset);
+//	fprintf(stderr,"\n下帧偏移位置 nextoffset = %d ",nextoffset);
+	asyslog(LOG_INFO,"当前偏移nowoffset = %d  下帧偏移nextoffset = %d ",nowoffset,nextoffset);
 	if (nextoffset == 0)
 	{
 		fprintf(stderr,"\n发送完毕！");

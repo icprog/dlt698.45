@@ -53,7 +53,7 @@ extern void setOIChange(OI_698 oi);
 extern int create_array(INT8U* data, INT8U numm);			//0x01
 extern int create_struct(INT8U* data, INT8U numm);			//0x02
 extern int fill_bool(INT8U* data, INT8U value);				//0x03
-extern int fill_bit_string8(INT8U* data, INT8U bits);		//0x04
+extern int fill_bit_string(INT8U *data,INT8U size,INT8U bits);		//0x04
 extern int fill_double_long(INT8U *data,INT32S value);		//0x05
 extern int fill_double_long_unsigned(INT8U* data, INT32U value);	//0x06
 extern int fill_octet_string(INT8U* data, char* value, INT8U len);	//0x09
