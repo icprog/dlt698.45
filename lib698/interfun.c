@@ -148,12 +148,12 @@ void print_rcsd(CSD_ARRAYTYPE csds)
 	{
 		if (csds.csd[i].type==0)
 		{
-			asyslog(LOG_INFO,"<%d>OAD%04x-%02x%02x ",i,csds.csd[i].csd.oad.OI,csds.csd[i].csd.oad.attflg,csds.csd[i].csd.oad.attrindex);
-//			fprintf(stderr,"<%d>OAD%04x-%02x%02x ",i,csds.csd[i].csd.oad.OI,csds.csd[i].csd.oad.attflg,csds.csd[i].csd.oad.attrindex);
+//			asyslog(LOG_INFO,"<%d>OAD%04x-%02x%02x ",i,csds.csd[i].csd.oad.OI,csds.csd[i].csd.oad.attflg,csds.csd[i].csd.oad.attrindex);
+			fprintf(stderr,"<%d>OAD%04x-%02x%02x ",i,csds.csd[i].csd.oad.OI,csds.csd[i].csd.oad.attflg,csds.csd[i].csd.oad.attrindex);
 		}else if (csds.csd[i].type==1)
 		{
-			asyslog(LOG_INFO,"<%d> ",i);
-//			fprintf(stderr,"<%d>",i);
+//			asyslog(LOG_INFO,"<%d> ",i);
+			fprintf(stderr,"<%d>",i);
 			print_road(csds.csd[i].csd.road);
 		}
 	}

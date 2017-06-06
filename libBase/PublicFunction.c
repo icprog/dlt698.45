@@ -447,6 +447,21 @@ void TsToTimeBCD(TS inTs,DateTimeBCD* outTimeBCD)
 	outTimeBCD->sec.data = inTs.Sec;
 }
 
+DateTimeBCD timet_bcd(time_t t)
+{
+	DateTimeBCD ts;
+    struct tm set;
+
+    localtime_r(&t, &set);
+    ts.year.data  = set.tm_year + 1900;
+    ts.month.data = set.tm_mon + 1;
+    ts.day.data   = set.tm_mday;
+    ts.hour.data  = set.tm_hour;
+    ts.min.data   = set.tm_min;
+    ts.sec.data   = set.tm_sec;
+    return ts;
+}
+
 //判断该年是否闫年
 BOOLEAN LeapYear(INT16U Year) {
     if (((Year % 4 == 0) && (Year % 100 != 0)) || (Year % 400 == 0)) //闰年

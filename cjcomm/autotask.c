@@ -14,8 +14,8 @@
 static int stopSign = 0;
 //上报确认标志
 static int conformSign     = 0;
-static int conformTimes    = 0;
-static int conformOverTime = 0;
+static int conformTimes    = 0, bak_conformTimes = 0;
+static int conformOverTime = 0, bak_conformOverTime = 0;
 static int reportChoice = 0;
 //是否还有更多报文标示
 static int MoreContentSign = 0;
@@ -55,27 +55,36 @@ void init6013ListFrom6012File(ProgramInfo *JProgramInfo) {
 int ConformCheck(struct aeEventLoop* ep, long long id, void* clientData) {
     CommBlock* nst = (CommBlock*)clientData;
 
+    fprintf(stderr,"conformSign = %d\n",conformSign);
     //在此检查上报报文是否得到确认
     if (conformSign == 1) {
         return AE_NOMORE;
     }
 
-    asyslog(LOG_INFO, "上报信息未得到确认,重试(%d)", conformTimes);
+    asyslog(LOG_INFO, "上报未确认,重试(%d)", conformTimes);
     //第一次调用此函数，启动任务上报
 
 
     if (conformTimes == 1) {
-        stopSign    = 0;
+//        stopSign    = 0;	//注释,改在最后一帧清除
         conformSign = 0;
         //强制确认数据帧，跳下一帧发送
         MoreContentSign = callAutoReport(reportChoice,nst, 1);
-        asyslog(LOG_INFO, "强制跳下一帧，更多报文标识[%d]", MoreContentSign);
-        return AE_NOMORE;
+        if(MoreContentSign>=1) {
+        	conformTimes = bak_conformTimes;
+        	conformOverTime = bak_conformOverTime;
+        	asyslog(LOG_INFO, "强制跳下一帧，标识[%d],重发[%d],超时[%d秒]", MoreContentSign,conformTimes,conformOverTime);
+        }else {
+        	stopSign    = 0;
+        	asyslog(LOG_INFO, "无更多报文,stopSign=%d", stopSign);
+        	return AE_NOMORE;
+        }
     }
     else{
     	MoreContentSign = callAutoReport(reportChoice,nst, 0);
+    	conformTimes--;
     }
-    conformTimes--;
+//    conformTimes--;
 
     return conformOverTime * 1000;
 }
@@ -109,8 +118,20 @@ void RegularAutoTask(struct aeEventLoop* ep, CommBlock* nst) {
             stopSign = 1;
             //标示上报任务尚未获得确认
             conformSign     = 0;
-            conformTimes    = shmem->autotask[i].ReportNum;
-            conformOverTime = shmem->autotask[i].OverTime;
+            if(shmem->autotask[i].ReportNum>5) {
+            	conformTimes    = 5;
+            	asyslog(LOG_INFO, "任务重复上报设置次数[%d]过大,设置默认上报5次", shmem->autotask[i].ReportNum);
+            }else  {
+            	conformTimes    = shmem->autotask[i].ReportNum;
+            }
+            if(shmem->autotask[i].OverTime>120) {
+            	conformOverTime = 120;
+            	asyslog(LOG_INFO, "任务重复上报超时时间[%d]秒,设置超时120秒", shmem->autotask[i].OverTime);
+            }else {
+            	conformOverTime = shmem->autotask[i].OverTime;
+            }
+            bak_conformTimes = conformTimes;				//记录第一帧无应答后,下一帧重复发送次数
+            bak_conformOverTime = conformOverTime;
             //注册时间事件，检查确认状态
             conformCheckId = aeCreateTimeEvent(ep, conformOverTime * 1000, ConformCheck, nst, NULL);
             asyslog(LOG_INFO, "检查到上报任务，初始化上报状态(次数=%d-时间=%d)、注册时间事件(%d)", conformTimes, conformOverTime, conformCheckId);
@@ -121,19 +142,23 @@ void RegularAutoTask(struct aeEventLoop* ep, CommBlock* nst) {
 
 void ConformAutoTask(struct aeEventLoop* ep, CommBlock* nst, int res) {
     if (res == REPORT_RESPONSE && stopSign == 1) {
-    	asyslog(LOG_INFO, "任务收到确认报文，发送状态置０");
-        //暂时不使用分帧重复发送
-        stopSign    = 0;
+    	asyslog(LOG_INFO, "任务收到确认");
+        //暂时不使用分帧重复发送  -
+    	//曲线分帧第一帧上送完 不清除标记,等待全部上送结束,注释stopSign=0
+//        stopSign    = 0;
         conformSign = 1;
-
 //        return;
         //有更多的报文
         MoreContentSign = callAutoReport(reportChoice,nst, 1);
         if (MoreContentSign == 1) {
-            asyslog(LOG_INFO, "发现更多的报文，注销之前的时间检查函数，任务序号(%d)", conformCheckId);
-            aeDeleteTimeEvent(ep, conformCheckId);
-            conformCheckId = aeCreateTimeEvent(ep, conformOverTime * 1000, ConformCheck, nst, NULL);
-            asyslog(LOG_INFO, "重新注册时间事件，任务序号(%d)", conformCheckId);
+            asyslog(LOG_INFO, "发现更多的报文，注销检查函数，任务序号(%d)", conformCheckId);
+            if(aeDeleteTimeEvent(ep, conformCheckId)==AE_OK) {	//TODO:是否需要增加删除成功,重新注册,删除失败会有什么问题?
+            	conformSign = 0;		//清除确认标记,方便重新进入检查函数
+				conformTimes = bak_conformTimes;
+				conformOverTime = bak_conformOverTime;
+				conformCheckId = aeCreateTimeEvent(ep, conformOverTime * 1000, ConformCheck, nst, NULL);
+				asyslog(LOG_INFO, "重新注册，任务序号(%d),(次数=%d-时间=%d)", conformCheckId,conformTimes,conformOverTime);
+            }
         } else {
             stopSign    = 0;
             conformSign = 1;
