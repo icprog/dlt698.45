@@ -1155,7 +1155,7 @@ INT8U getASNInfo(FORMAT07* DI07,Base_DataType* dataType)
 				{
 					DI07->Data[tmpIndex*3] = DI07->Data[tmpIndex*3]&0x7f;
 				}
-				memcpy(&f25_2_buff[(tmpIndex*4)+1],&DI07->Data[tmpIndex*3],3);
+				memcpy(&f25_2_buff[(tmpIndex*4)],&DI07->Data[tmpIndex*3],3);
 			//	fprintf(stderr,"\n tmpIndex = %d DI07->Data =  %02x%02x%02x f25_2_buff = %02x%02x%02x%02x\n ",tmpIndex,
 			//			DI07->Data[0],DI07->Data[1],DI07->Data[2],f25_2_buff[0],f25_2_buff[1],f25_2_buff[2],f25_2_buff[3]);
 			}
