@@ -13,6 +13,7 @@
 #include "Objectdef.h"
 #include "dlt698def.h"
 #include "dlt698.h"
+#include "OIfunc.h"
 #include "PublicFunction.h"
 #include "secure.h"
 
@@ -1041,11 +1042,11 @@ int getSel2_coll(RESULT_RECORD *record)
 	int		sel_id=0;
 
 	getSel_Data(record->select.selec2.data_from.type,record->select.selec2.data_from.data,(INT8U *)&taskid_from);
-	getSel_Data(record->select.selec2.data_to.type,record->select.selec2.data_from.data,(INT8U *)&taskid_to);
-	getSel_Data(record->select.selec2.data_jiange.type,record->select.selec2.data_from.data,(INT8U *)&taskid_jiange);
+	getSel_Data(record->select.selec2.data_to.type,record->select.selec2.data_to.data,(INT8U *)&taskid_to);
+	getSel_Data(record->select.selec2.data_jiange.type,record->select.selec2.data_jiange.data,(INT8U *)&taskid_jiange);
 
 	fprintf(stderr,"getSel2: OI=%04x  taskid_from=%d taskid_to=%d\n",record->select.selec1.oad.OI,taskid_from,taskid_to);
-	record->data[index++] = taskid_to-taskid_from; 	//M = 1  Sequence  of A-RecordRow
+	record->data[index++] = taskid_to-taskid_from + 1; 	//M = 1  Sequence  of A-RecordRow
 
 	for(sel_id=taskid_from;sel_id<=taskid_to;sel_id++) {
 		index += getColl_Data(record->select.selec2.oad.OI,sel_id,&record->data[index]);
@@ -1149,11 +1150,9 @@ int doGetrecord(INT8U type,OAD oad,INT8U *data,RESULT_RECORD *record,INT16U *sub
 				record->select.selec1.oad.attrindex = 0;		//上送属性下所有索引值
 				dest_index += create_OAD(0,&record->data[dest_index],record->select.selec1.oad);
 				record->data[dest_index++] = 1; //CHOICE  [1]  data
-				record->data[dest_index++] = 2; //M = 1  Sequence  of A-RecordRow   //test
-			}else {
+			}else {	//RCSD 招测两个序号湖南测过
 				dest_index +=fill_RCSD(0,&record->data[dest_index],record->rcsd.csds);
 				record->data[dest_index++] = 1; //CHOICE  [1]  data
-				record->data[dest_index++] = 2; //M = 1  Sequence  of A-RecordRow    //test
 			}
 			record->data = &TmpDataBuf[dest_index];		//修改record的数据帧的位置
 			getSelector12(record);
