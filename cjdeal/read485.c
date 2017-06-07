@@ -1285,7 +1285,7 @@ INT8U getASNInfo(FORMAT07* DI07,Base_DataType* dataType)
 			}
 			else
 			{
-				memcpy(&f25_3_buff[tmpIndex*4],&DI07->Data[tmpIndex*3+1],2);
+				memcpy(&f25_3_buff[tmpIndex*4],&DI07->Data[tmpIndex*3],3);
 			}
 		}
 		memcpy(DI07->Data,f25_3_buff,16);
