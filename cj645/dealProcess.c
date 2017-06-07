@@ -24,11 +24,12 @@
 #include "Shmem.h"
 #include "PublicFunction.h"
 
-extern void InitACSCoef();
+extern void InitACSPara();
 #define MsgSendOverTime 3
 #define MC 6400
 
 INT8U 	acs_check_end = 0;
+INT8U	ledstep=0;
 
 pid_t pid;
 INT32S comfd;        //通讯口打开返回句柄
@@ -635,10 +636,11 @@ void setACS(FORMAT07 format07) {
                             execACS(5);//校表
                             fprintf(stderr, "校表结束!!!\n");
                             sleep(2);
-                            acs_check_end = 1;
-                            InitACSCoef();			//重新读取参数，并不重新启动，控制闪灯来判断
-                            sleep(3);
+                            acs_check_end = 1;		//控制灯闪烁
+                            InitACSPara();			//重新读取参数，并不重新启动，控制闪灯来判断
+  //                          InitACSCoef();
 //                            system("reboot");
+                            sleep(3);
                             break;
                         }
                         case 2://电压读取
@@ -667,50 +669,67 @@ void setACS(FORMAT07 format07) {
     }
 }
 
+/*
+ * 1.遥信变位时:控制远程灯红绿闪烁
+ * 2.校表结束后:控制远程灯绿地闪烁
+ * 3.程序运行正常后:本地与告警灯同时闪烁
+ * 4.本地灯指示:通过运行cjcomm,检测脚本调用cj checkled来控制灯闪烁
+ * */
+void checkProcess()
+{
+    int readstate = 1;
 
-//ret：1-广播校时；4-读数据；5-读表地址；6-最大需量清零；7-电表清零；8-校表
-void dealProcess() {
-    BOOLEAN nextFlag;
-    int readstate = 1,ledstep=0;
-    while (1) {
-
-        for (int j = 0; j < 5; ++j) {
-            JProgramInfo->Projects[j].WaitTimes = 0;
-        }
-        ///yx 检测
-        readstate = gpio_readbyte("/dev/gpiYX1");
-        if(readstate==0) {
-        	switch(ledstep%2) {
-        	case 0:
-        		gpio_writebyte("/dev/gpoREMOTE_RED", 1);
-        		usleep(250 * 1000);
-        		gpio_writebyte("/dev/gpoREMOTE_GREEN", 1);
-        		usleep(250 * 1000);
-        		break;
-        	case 1:
-        		gpio_writebyte("/dev/gpoREMOTE_GREEN", 0);
-        		usleep(250 * 1000);
-        		gpio_writebyte("/dev/gpoREMOTE_RED", 0);
-        		usleep(250 * 1000);
-        		break;
-        	}
-        	ledstep++;
-        }
-        fprintf(stderr,"acs_check_end=%d\n",acs_check_end);
-        if(acs_check_end==1) {	//校表结束，进行闪灯
+    JProgramInfo->Projects[CjDealIndex].WaitTimes = 0;	//清cjdeal死亡计数,防止cjmain调用cjdeal
+//    for (int j = 0; j < 5; ++j) {			//清死亡计数,防止cjmain调用cjdeal,cjcomm
+//        JProgramInfo->Projects[j].WaitTimes = 0;
+//    }
+    ///yx 检测
+    readstate = gpio_readbyte("/dev/gpiYX1");
+    if(readstate==0) {
+        fprintf(stderr,"\n=======YX变位检测(控制远程灯红绿闪烁)\n===========================\n");
+    	switch(ledstep%2) {
+    	case 0:
+    		gpio_writebyte("/dev/gpoREMOTE_RED", 1);
+    		usleep(250 * 1000);
     		gpio_writebyte("/dev/gpoREMOTE_GREEN", 1);
     		usleep(250 * 1000);
-    		gpio_writebyte("/dev/gpoREMOTE_GREEN", 0);
-        }
-        gpio_writebyte("/dev/gpoRUN_LED", 1);
-        gpio_writebyte("/dev/gpoALARM", 1);
-        usleep(250 * 1000);
-        gpio_writebyte("/dev/gpoRUN_LED", 0);
-        gpio_writebyte("/dev/gpoALARM", 0);
-        usleep(250 * 1000);
-        gpio_writebyte("/dev/gpoRUN_LED", 1);
-        gpio_writebyte("/dev/gpoALARM", 1);
-        usleep(50 * 1000);
+    		break;
+    	case 1:
+       		gpio_writebyte("/dev/gpoREMOTE_RED", 0);
+        	usleep(250 * 1000);
+        	gpio_writebyte("/dev/gpoREMOTE_GREEN", 0);
+    		usleep(250 * 1000);
+     		break;
+    	}
+    	ledstep++;
+    }
+
+    if(acs_check_end==1) {	//校表结束，进行闪灯
+        fprintf(stderr,"\n=====校表结束(控制远程绿灯闪烁)\n===========================\n");
+		gpio_writebyte("/dev/gpoREMOTE_GREEN", 1);
+		usleep(250 * 1000);
+		gpio_writebyte("/dev/gpoREMOTE_GREEN", 0);
+    }
+    /*运行\告警灯闪烁,台体功能检测功能开始*/
+    gpio_writebyte("/dev/gpoRUN_LED", 1);
+    gpio_writebyte("/dev/gpoALARM", 1);
+    usleep(250 * 1000);
+    gpio_writebyte("/dev/gpoRUN_LED", 0);
+    gpio_writebyte("/dev/gpoALARM", 0);
+    usleep(250 * 1000);
+    gpio_writebyte("/dev/gpoRUN_LED", 1);
+    gpio_writebyte("/dev/gpoALARM", 1);
+    usleep(50 * 1000);
+}
+
+
+//ret：1-广播校时；4-读数据；5-读表地址；6-最大需量清零；7-电表清零；8-校表
+void dealProcess()
+{
+    BOOLEAN nextFlag;
+
+    while (1) {
+    	checkProcess();			//指示灯控制功能检测
 
         RecvLen = ReceDataFrom485(comfd, RecvBuf);
         if (RecvLen > 0) {

@@ -167,8 +167,8 @@ void Calc_Tj()
 		gongdian_tj.gongdian.day_tj = 0;
 		//TSGet(&gongdian_tj.ts);
 		Save_Vol_Rate(0,datetime);
-		if(newts.Month != gongdian_tj.ts.Month) {
-			gongdian_tj.gongdian.month_tj = 0;
+		if(newts.Month != gongdian_tj.ts.Month && newts.Hour == 0) {
+//			gongdian_tj.gongdian.month_tj = 0;
 			datetime.day.data= 1;
 			fprintf(stderr,"跨月");
 			Save_Vol_Rate(1,datetime);

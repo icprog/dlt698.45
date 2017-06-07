@@ -96,7 +96,7 @@ extern INT16S getTaskIndex(INT8U port);
 //};
 
 
-
+CLASS_6015 fangAn6015[20];
 TASK_INFO taskinfo;
 
 typedef struct

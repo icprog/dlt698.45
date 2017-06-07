@@ -205,7 +205,7 @@ int RegularClientForNet(struct aeEventLoop *ep, long long id, void *clientData) 
         RegularAutoTask(ep, nst);
     }
 
-    return 2000;
+    return 1000;
 }
 
 static int RegularMixForNet(struct aeEventLoop *ep, long long id, void *clientData) {
@@ -250,7 +250,7 @@ static int RegularMixForNet(struct aeEventLoop *ep, long long id, void *clientDa
         }
     }
 
-    return 2000;
+    return 1000;
 }
 
 /*

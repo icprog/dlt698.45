@@ -745,7 +745,7 @@ typedef struct
 
 typedef struct
 {
-	TASK_UNIT task_list[10];			//任务数组
+	TASK_UNIT task_list[20];			//任务数组
 	int task_n;							//任务个数  < TASK_MAXNUM
 	TSA tsa;							//表地址
 	int tsa_index;						//表序号

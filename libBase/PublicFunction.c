@@ -69,6 +69,7 @@ int ReadDeviceConfig(ConfigPara	*cfg_para)
     if (cfg_para->device < 1 || cfg_para->device > 3) { //无效值
     	cfg_para->device = 1;                                      //默认I型
     }
+    fclose(fp);
     return 1;
 }
 
@@ -90,13 +91,29 @@ int getZone(char *zone)
 		zonefirst = 0;
 		memset(&cfg_para,0,sizeof(ConfigPara));
 		ReadDeviceConfig(&cfg_para);
-		fprintf(stderr,"first read cfg_zone=%s\n",cfg_para.zone);
+		fprintf(stderr,"上电第一次读出地区: cfg_zone=%s\n",cfg_para.zone);
 	}
-	fprintf(stderr,"cfg_zone=%s\n",cfg_para.zone);
-	fprintf(stderr,"readzone=%s,len=%d\n",zone,strlen(zone));
 	ret = strncmp(cfg_para.zone,zone,strlen(zone));
-//	fprintf(stderr,"getZone return = %d\n",ret);
+	if(ret==0) {
+		fprintf(stderr,"cfg_zone=%s 满足地区\n",cfg_para.zone,ret);
+	}
 	return ret;
+}
+
+void writeIpSh(INT8U *ip,INT8U *netmask)
+{
+	INT8U Ip_sh[100];
+	memset(Ip_sh,0,100);
+	sprintf((char*)Ip_sh,"ifconfig eth0 %d.%d.%d.%d netmask %d.%d.%d.%d up",
+			ip[1],ip[2],ip[3],ip[4],netmask[1],netmask[2],netmask[3],netmask[4]);
+	syslog(LOG_NOTICE,"接收到设置网络配置信息,设置ip.sh,内容:%s\n",Ip_sh);
+	fprintf(stderr,"set Ip_sh=%s\n",Ip_sh);
+	FILE* fpip = fopen("/nor/rc.d/ip.sh","wb");//集中器中的文件
+	if(fpip != NULL)
+	{
+		fputs((const char*)Ip_sh,fpip);
+		fclose(fpip);
+	}
 }
 
 INT8S bcd2int32u(INT8U* bcd, INT8U len, ORDER order, INT32U* dint) {
@@ -419,6 +436,15 @@ void TimeBCDToTs(DateTimeBCD timeBCD,TS* outTs)
 	outTs->Hour = timeBCD.hour.data;
 	outTs->Minute = timeBCD.min.data;
 	outTs->Sec = timeBCD.sec.data;
+}
+void TsToTimeBCD(TS inTs,DateTimeBCD* outTimeBCD)
+{
+	outTimeBCD->year.data = inTs.Year;
+	outTimeBCD->month.data = inTs.Month;
+	outTimeBCD->day.data = inTs.Day;
+	outTimeBCD->hour.data = inTs.Hour;
+	outTimeBCD->min.data = inTs.Minute;
+	outTimeBCD->sec.data = inTs.Sec;
 }
 
 //判断该年是否闫年

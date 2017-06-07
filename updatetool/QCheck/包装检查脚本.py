@@ -191,7 +191,7 @@ def showDeviceId(config):
     lNet.write("exit" + "\r\n")
     msg = lNet.read_all()
 
-    print msg[142:-6]
+    print msg[142:-6].decode('utf-8')
 
     lNet.close()
 

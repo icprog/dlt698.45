@@ -399,6 +399,7 @@ void AddCjiFangAnInfo(INT8U *data, Action_result *act_ret) {
 
     INT8U *buf;
     CLASS_6015 fangAn = {};
+
     int k = 0;
     INT8U addnum = data[1];        //data[0] = apdu[7]
     INT8U *dealdata = NULL;
@@ -486,7 +487,6 @@ void AddCjiFangAnInfo(INT8U *data, Action_result *act_ret) {
         fprintf(stderr, "\n存储时标选择 ： %d (1:任务开始时间  2：相对当日0点0分  3:相对上日23点59分  4:相对上日0点0分  5:相对当月1日0点0分)",
                 fangAn.savetimeflag);
         fprintf(stderr, "\n");
-
         act_ret->DAR = saveCoverClass(0x6015, fangAn.sernum, &fangAn, sizeof(fangAn), coll_para_save);
     }
     act_ret->datalen = index + 2;    //2 array + num
@@ -757,6 +757,12 @@ void TerminalInfo(INT16U attr_act, INT8U *data, Action_result *act_ret) {
         		}
         	}
         	paraInit(oadnum,oad);
+        	//参数初始化将相应的变位标志置位
+        	memp->oi_changed.oi4016++;
+        	memp->oi_changed.oiF203++;
+        	memp->oi_changed.oi4300++;
+        	memp->oi_changed.oi4500++;
+        	memp->oi_changed.oi4510++;
         	break;
         case 3://数据初始化
         case 5://事件初始化

@@ -16,6 +16,7 @@
 #include <wait.h>
 #include <errno.h>
 #include <unistd.h>
+#include <termios.h>
 #include "time.h"
 #include <sys/time.h>
 #include "lib3762.h"
@@ -110,6 +111,9 @@ void SendDataToCom(int fd, INT8U *sendbuf, INT16U sendlen)
 	ssize_t slen;
 	slen = write(fd, sendbuf, sendlen);
 	DbPrt1(31,"发:", (char *) sendbuf, slen, NULL);
+	fprintf(stderr,"\nsend(%d)",slen);
+	for(i=0;i<slen;i++)
+		fprintf(stderr," %02x",sendbuf[i]);
 }
 int RecvDataFromCom(int fd,INT8U* buf,int* head)
 {
@@ -120,7 +124,7 @@ int RecvDataFromCom(int fd,INT8U* buf,int* head)
 	len = read(fd,TmpBuf,ZBBUFSIZE);
 	if (len>0)
 	{
-		fprintf(stderr,"\nzb_recv(%d): ",len);
+		fprintf(stderr,"\nrecv(%d): ",len);
 	}
 
 	for(i=0;i<len;i++)
@@ -416,10 +420,12 @@ int task_Refresh(TASK_UNIT *taskunit)
 	int i=0,t=0;
 	INT8U id=0;
 	id = taskunit->taskId;
+	DbgPrintToFile1(31,"task_Refresh  重新初始化 任务%d ",id);
 	for(i=0;i<TASK6012_MAX;i++)
 	{
 		if (list6013[i].basicInfo.taskID == id)
 		{
+			DbgPrintToFile1(31,"找到");
 			taskunit->beginTime = calcnexttime(list6013[i].basicInfo.interval,list6013[i].basicInfo.startime,list6013[i].basicInfo.delay);
 			ts =  timet_bcd(taskunit->beginTime);
 			taskunit->begin = ts;
@@ -462,13 +468,33 @@ int task_leve(INT8U leve,TASK_UNIT *taskunit)
 	}
 	return t;
 }
-
+/*初始化 全部 普通采集方案6015数组  （CLASS_6015 task6015[20] 为请求抄读时提供参数支持）*/
+void task_init6015(CLASS_6015 *fangAn6015p)
+{
+	int i=0,j=0;
+	for(i=0;i<TASK6012_MAX;i++)
+	{
+		if (list6013[i].basicInfo.cjtype == norm)//普通采集任务
+		{
+			readCoverClass(0x6015, list6013[i].basicInfo.sernum, (void *)&fangAn6015p[j], sizeof(CLASS_6015), coll_para_save);
+			DbgPrintToFile1(31,"fangan.No = %d  mstype = %d  mstype[0]=%02x  [1] =%02x",
+					fangAn6015p[j].sernum,fangAn6015p[j].mst.mstype,fangAn6015p[j].mst.ms.type[0],fangAn6015p[j].mst.ms.type[1]);
+			j++;
+			if(j>=20)
+				break;
+		}
+	}
+}
 int initTaskData(TASK_INFO *task)
 {
 	int num =0;
 	if (task==NULL)
 		return 0;
 	memset(task,0,sizeof(TASK_INFO));
+	memset(fangAn6015,0,sizeof(fangAn6015));
+
+	task_init6015(fangAn6015);
+
 	num += task_leve(1,&task->task_list[num]);
 	num += task_leve(2,&task->task_list[num]);
 	num += task_leve(3,&task->task_list[num]);
@@ -542,7 +568,7 @@ void tsa_print(struct Tsa_Node *head,int num)
 			fprintf(stderr,"-%02x",tmp->tsa.addr[j+1]);
 		}
 		fprintf(stderr,"\nFLAG: %02x %02x %02x %02x %02x %02x %02x %02x\n",tmp->flag[0],tmp->flag[1],tmp->flag[2],tmp->flag[3],tmp->flag[4],tmp->flag[5],tmp->flag[6],tmp->flag[7]);
-		fprintf(stderr,"\nProtocol = %d  curr_i=%d\n\n",tmp->protocol,tmp->curr_i);
+		fprintf(stderr,"\nProtocol = %d  curr_i=%d   usertype=%02x\n\n",tmp->protocol,tmp->curr_i,tmp->usrtype);
 		tmp = tmp->next;
 		i++;
 	}
@@ -676,6 +702,8 @@ void printModelinfo(AFN03_F10_UP info)
 }
 void clearvar(RUNTIME_PLC *runtime_p)
 {
+	memset(runtime_p->recvbuf,0, ZBBUFSIZE);
+	memset(runtime_p->dealbuf,0, ZBBUFSIZE);
 	runtime_p->send_start_time = 0;
 	memset(&runtime_p->format_Up,0,sizeof(runtime_p->format_Up));
 }
@@ -1067,12 +1095,24 @@ int saveProxyData(FORMAT3762 format_3762_Up)
 	}
 	return 0;
 }
-DATA_ITEM checkMeterData(TASK_INFO *meterinfo,int *taski,int *itemi)
+int findFangAnIndex(int code)
 {
-	int i=0,j=0;
+	int i=0;
+	for(i=0;i<20;i++)
+	{
+		if (fangAn6015[i].sernum == code)
+		{
+			return i;
+		}
+	}
+	return -1;
+}
+DATA_ITEM checkMeterData(TASK_INFO *meterinfo,int *taski,int *itemi,INT8U usrtype)
+{
+	int i=0,j=0,needflg=0;
 	time_t nowt = time(NULL);
 	DATA_ITEM item;
-
+	int fangAnIndex = 0;
 	memset(&item,0,sizeof(DATA_ITEM));
 	DbgPrintToFile1(31,"检查  %02x%02x%02x%02x%02x%02x%02x%02x%02x  index=%d 任务数 %d   数据相个数 %d",
 			meterinfo->tsa.addr[0],meterinfo->tsa.addr[1],meterinfo->tsa.addr[2],
@@ -1084,17 +1124,26 @@ DATA_ITEM checkMeterData(TASK_INFO *meterinfo,int *taski,int *itemi)
 	{
 		if (nowt >= meterinfo->task_list[i].beginTime )
 		{
-			 for(j = 0; j<meterinfo->task_list[i].fangan.item_n; j++)
-			 {
-				 if ( meterinfo->task_list[i].fangan.items[j].sucessflg==0)
+			//判断是否需要抄读
+			fangAnIndex = findFangAnIndex(meterinfo->task_list[i].fangan.No);//查被抄电表当前任务的采集方案编号，在6015中的索引
+			if (fangAnIndex >=0 )
+			{
+				needflg = checkMeterType(fangAn6015[fangAnIndex].mst, usrtype ,meterinfo->tsa);//查被抄电表的用户类型 是否满足6015中的用户类型条件
+			}
+			if (needflg == 1)
+			{
+				 for(j = 0; j<meterinfo->task_list[i].fangan.item_n; j++)
 				 {
-					 item.oad1 = meterinfo->task_list[i].fangan.items[j].oad1;
-					 item.oad2 = meterinfo->task_list[i].fangan.items[j].oad2;
-					 *taski = i;
-					 *itemi = j;
-					 return item;
+					 if ( meterinfo->task_list[i].fangan.items[j].sucessflg==0)
+					 {
+						 item.oad1 = meterinfo->task_list[i].fangan.items[j].oad1;
+						 item.oad2 = meterinfo->task_list[i].fangan.items[j].oad2;
+						 *taski = i;
+						 *itemi = j;
+						 return item;
+					 }
 				 }
-			 }
+			}
 		}else
 		{
 			DbgPrintToFile1(31,"任务%d 未到 %ld  （当前 %ld）",meterinfo->task_list[i].taskId,meterinfo->task_list[i].beginTime,nowt);
@@ -1234,7 +1283,7 @@ int ProcessMeter(INT8U *buf,struct Tsa_Node *desnode)
 		}
 	}
 
-	tmpitem = checkMeterData(&taskinfo,&taski,&itemi);	//根据任务的时间计划，查找一个适合抄读的数据项
+	tmpitem = checkMeterData(&taskinfo,&taski,&itemi,desnode->usrtype);	//根据任务的时间计划，查找一个适合抄读的数据项
 	time_t getTheTime;
 	DateTimeBCD timebcd;
 	int i=0;
@@ -1340,13 +1389,32 @@ void addTimeLable(TASK_INFO *tskinfo,int taski,int itemi)
 		//保存完成时间
 	}
 }
+void saveTaskData_NormalData(TASK_INFO *tskinfo,FORMAT07 *frame07,TS ts)
+{
+	INT8U dataContent[50]={},alldata[100]={};
+	int ti=0,ii=0,len698=0;
+	ti = tskinfo->now_taski;
+	ii = tskinfo->now_itemi;
+
+	DbgPrintToFile1(31,"收到普通数据回码");
+
+	len698 = data07Tobuff698(*frame07,dataContent);
+	if(len698 > 0)
+	{
+		alldata[0] = 0x55;
+		memcpy(&alldata[1],taskinfo.tsa.addr,17);
+		memcpy(&alldata[18],dataContent,len698);
+		len698 = len698 + 18;
+		DbPrt1(31,"存储:", (char *) alldata, len698, NULL);
+		SaveOADData(tskinfo->task_list[ti].taskId,tskinfo->task_list[ti].fangan.items[ii].oad1,tskinfo->task_list[ti].fangan.items[ii].oad2,alldata,len698,ts);
+	}
+
+}
 void saveTaskData_MeterCurve(TASK_INFO *tskinfo,FORMAT07 *frame07,TS ts)
 {
-	int ti=0,ii=0,n=0,len698=0;
-	INT8U tmp[50];
-	C601F_645 obj601F_07Flag;
-	int find_07item =0 ,i=0,f=0;
-	obj601F_07Flag.protocol = 2;
+	int i=0,ti=0,ii=0,n=0,len698=0;
+//	C601F_645 obj601F_07Flag;
+//	obj601F_07Flag.protocol = 2;
 	MeterCurveDataType result;
 	INT8U dataContent[50]={};
 	INT8U alldata[100]={};
@@ -1357,7 +1425,7 @@ void saveTaskData_MeterCurve(TASK_INFO *tskinfo,FORMAT07 *frame07,TS ts)
 	if (memcmp(&frame07->Data[0], errCode, 2) == 0)
 		return;
 
-
+	DbgPrintToFile1(31,"收到负荷曲线回码");
 	ti = tskinfo->now_taski;
 	ii = tskinfo->now_itemi;
 	for(n=0;n<tskinfo->task_list[ti].fangan.item_n; n++)
@@ -1387,8 +1455,8 @@ void saveTaskData_MeterCurve(TASK_INFO *tskinfo,FORMAT07 *frame07,TS ts)
 						len698 = len698 + 18;
 						DbPrt1(31,"存储:", (char *) alldata, len698, NULL);
 						SaveOADData(tskinfo->task_list[ti].taskId,
-								tskinfo->task_list[ti].fangan.items[ii].oad1,
-								taskinfo.task_list[ti].fangan.items[ii].oad2,
+								tskinfo->task_list[ti].fangan.items[n].oad1,
+								taskinfo.task_list[ti].fangan.items[n].oad2,
 								alldata,len698,
 								ts);
 						sleep(1);
@@ -1400,19 +1468,14 @@ void saveTaskData_MeterCurve(TASK_INFO *tskinfo,FORMAT07 *frame07,TS ts)
 	}
 	return ;
 }
-int Curve07Tobuff698(INT8U *buf,INT8U len,INT8U *countent)
-{
-
-	return 0;
-}
 int SaveTaskData(FORMAT3762 format_3762_Up,INT8U taskid)
 {
-	int len645=0, taski=0 ,itemi=0 ,len698=0;
-	INT8U nextFlag=0, dataContent[50]={}, buf645[255]={} ,taskFlag[4]={0,0,0,0}  ,alldata[100]={};
+	int len645=0, taski=0 ,itemi=0 ;
+	INT8U nextFlag=0, dataContent[50]={}, buf645[255]={} ,taskFlag[4]={0,0,0,0} ,CurveFlg[4]={0x01, 0x00, 0x00, 0x06};
 	TSA tsatmp;
 	FORMAT07 frame07;
 	TS ts;
-	INT8U CurveFlg[4]={0x01, 0x00, 0x00, 0x06};
+
 	memset(dataContent,0,sizeof(dataContent));
 	if (format_3762_Up.afn06_f2_up.MsgLength > 0)
 	{
@@ -1439,28 +1502,14 @@ int SaveTaskData(FORMAT3762 format_3762_Up,INT8U taskid)
 				DbgPrintToFile1(31,"抄读数据项 %02x%02x%02x%02x",taskFlag[0],taskFlag[1],taskFlag[2],taskFlag[3]);
 				DbgPrintToFile1(31,"回码数据项 %02x%02x%02x%02x",frame07.DI[0],frame07.DI[1],frame07.DI[2],frame07.DI[3]);
 
-				if (memcmp(taskFlag,frame07.DI,4) == 0)//抄读项 与 回码数据项相同
+				if (memcmp(taskFlag,frame07.DI,4) == 0) //抄读项 与 回码数据项相同
 				{
 					if(memcmp(CurveFlg,taskFlag,4) == 0)//负荷曲线数据项
 					{
-						DbgPrintToFile1(31,"收到负荷曲线回码");
 						saveTaskData_MeterCurve(&taskinfo,&frame07,ts);
-					}else		//其它数据项
+					}else								//其它数据项
 					{
-						len698 = data07Tobuff698(frame07,dataContent);
-						if(len698 > 0)
-						{
-							alldata[0] = 0x55;
-							memcpy(&alldata[1],taskinfo.tsa.addr,17);
-							memcpy(&alldata[18],dataContent,len698);
-							len698 = len698 + 18;
-							DbPrt1(31,"存储:", (char *) alldata, len698, NULL);
-							SaveOADData(taskinfo.task_list[taski].taskId,
-									taskinfo.task_list[taski].fangan.items[itemi].oad1,
-									taskinfo.task_list[taski].fangan.items[itemi].oad2,
-									alldata,len698,
-									ts);
-						}
+						saveTaskData_NormalData(&taskinfo,&frame07,ts);
 					}
 				}
 			}
@@ -1472,6 +1521,7 @@ int SaveTaskData(FORMAT3762 format_3762_Up,INT8U taskid)
 //	}
 	return 1;
 }
+
 int saveSerchMeter(FORMAT3762 format_3762_Up)
 {
 	if (format_3762_Up.afn06_f4_up.DeviceType == 1)
@@ -1569,10 +1619,11 @@ int doTask(RUNTIME_PLC *runtime_p)
 			{
 				DbgPrintToFile1(31,"收数据");
 				inWaitFlag = 0;
-				SaveTaskData(runtime_p->format_Up, runtime_p->taskno);
 				sendlen = AFN00_F01( &runtime_p->format_Down,runtime_p->sendbuf );//确认
 				SendDataToCom(runtime_p->comfd, runtime_p->sendbuf,sendlen );
+				SaveTaskData(runtime_p->format_Up, runtime_p->taskno);
 				clearvar(runtime_p);
+				DbgPrintToFile1(31,"afn=%02x  fn=%02x",runtime_p->format_Up.afn,runtime_p->format_Up.fn );
 				runtime_p->send_start_time = nowtime;
 			}else if( (nowtime - runtime_p->send_start_time > 10)  && inWaitFlag== 1)//等待超时,忽略超时过程中的请求抄读
 			{
@@ -1832,6 +1883,7 @@ void dealData(int state,RUNTIME_PLC *runtime_p)
 	datalen = StateProcessZb(runtime_p->dealbuf,runtime_p->recvbuf);
 	if (datalen>0)
 	{
+		tcflush(runtime_p->comfd,TCIOFLUSH);
 		analyzeProtocol3762(&runtime_p->format_Up,runtime_p->dealbuf,datalen);
 //		fprintf(stderr,"\nafn=%02x   fn=%d 返回",runtime_p->format_Up.afn ,runtime_p->format_Up.fn);
 	}

@@ -20,7 +20,6 @@
 #include "AccessFun.h"
 #include "Objectdef.h"
 #include "ParaDef.h"
-#include "Shmem.h"
 #include "main.h"
 #include "Esam.h"
 #include "SPI.h"
@@ -442,7 +441,7 @@ void EsamTest(int argc, char* argv[])
 			sleep(1);
 			test1 = TermiSingleInfo_Test(i);
 			sleep(2);
-			writeLog(i,j,test1,test2);
+//			writeLog(i,j,test1,test2);
 		}
 	}
 	shmm_unregister("ProgramInfo", sizeof(ProgramInfo));

@@ -37,6 +37,9 @@ static char *usage_set = "\n--------------------参数设置及基本维护命�
 		"		 【主站通信状态查询】cj cm	\n"
         "		 【通信地址】cj id <addr>	如：地址为123456  :cj id 12 34 56	\n"
         "		 【停程序】cj dog[停程序并且清狗] 或者 cj stop[清狗]		\n"
+		"		  [设置维护485端口参数] cj rs485	\n"
+		"		  [设置红外ifr端口参数] cj ifr	\n"
+		"		  [显示遥信状态值] cj yx\n"
         "[读取心跳] cj heart       "
         "[设置心跳] cj heart 60 s\n"
 		"【初始化】cj InIt 3 [数据区初始化]	\n　　　　　　cj InIt 5 [事件初始化]\n　　　　　　cj InIt 6 [需量初始化]\n　　　　　　cj InIt 4 [恢复出厂参数]\n"
@@ -68,13 +71,15 @@ static char *usage_event = "--------------------事件类对象-----------------
         "-------------------------------------------------------\n\n";
 static char *usage_para = "\n--------------------参变量类对象----------------------------\n"
         "[电气设备] "
-        "		 【设备管理基本参数读取】cj para pro 4300 		\n"
+        "		 【时钟参数】cj para pro 4000		\n"
+        "		 【终端广播校时】cj para pro 4204		\n"
+       "		 【设备管理基本参数读取】cj para pro 4300 		\n"
         "		 【数据初始化】cj para method 4300 3		\n"
         "		 【恢复出厂参数】cj para method 4300 4		\n"
         "		 【事件初始化】cj para method 4300 5		\n"
         "		 【需量初始化】cj para method 4300 6		\n"
-        "		 【时钟参数】cj para pro 4000		\n"
-        "		 【终端广播校时】cj para pro 4204		\n"
+		"		 【无线公网通信接口类】cj para pro 4500 		\n"
+		"		 【以太网通信接口类】cj para pro 4510 		\n"
         "-------------------------------------------------------\n\n";
 static char *usage_coll =
         "\n--------------------采集监控类对象----------------------------\n"
@@ -171,68 +176,61 @@ void dog_feed(char *argv) {
 static INT8U checkbuf[]={0x68,0x1e,0x00,0x43,0x05,0x05,0x00,0x00,0x00,0x00,0x00,0x01,0x63,0x71,0x01,
 						0x00,0x01,0x02,0x58,0x07,0xe1,0x05,0x10,0x02,0x00,0x15,0x19,0x00,0x00,0xcc,0x45,0x16};
 
+//
+static INT8U getversion[]={0x68,0x17,0x00,0x43,0x05,0x01,0x00,0x00,0x00,0x00,0x00,0x10,0x26,0xf6,0x05,0x01,0x00,
+						0x43,0x00,0x03,0x00,0x00,0x46,0x58,0x16};
+
 int main(int argc, char *argv[]) {
     if (argc < 2) {
         prthelp();
         return EXIT_SUCCESS;
     }
-    if (strcmp("checkled", argv[1]) == 0) {	//生产检测本地状态灯，使用485_II口发送报文，台体485_II与485_III短接，cjcomm会返回请求的数据
+    //生产检测本地状态灯，使用485_II口发送报文，台体485_II与485_III短接，cjcomm的维护口485III会返回请求的数据
+    //在台体检测的python脚本运行时候会调用cj checkled命令,来实现维护口通信,收到报文本地灯会闪烁
+    if (strcmp("checkled", argv[1]) == 0) {
+    	int port = 1;
+    	if(argc==3) {
+    		port = atoi(argv[2]);
+    	}
+    	fprintf(stderr,"port=%d\n",port);
     	int i=0;
     	int comfd1;
     	for(i=0;i<3;i++) {
-    		comfd1 = OpenCom(1, 9600, (INT8U *) "even", 1, 8);
+    		comfd1 = OpenCom(port, 9600, (INT8U *) "even", 1, 8);
 			write(comfd1, checkbuf, sizeof(checkbuf));
 			usleep(500 * 1000);
     	}
     	close(comfd1);
         return EXIT_SUCCESS;
     }
-    if (strcmp("savetest", argv[1]) == 0) {
-        DateTimeBCD dt;
-        PassRate_U passu[3];
-        OAD oad;
-        int val = 1, i = 0;
-        INT8U buf[256];
-        int buflen = 0;
+    if (strcmp("sertest", argv[1]) == 0) {
+    	int port = 4;
+    	INT8U buf[256]={};
+    	int comfd1;
+    	int i=0,ret=0;
 
-        if (argc == 6) {
-            dt.year.data = atoi(argv[2]);
-            dt.month.data = atoi(argv[3]);
-            dt.day.data = atoi(argv[4]);
-            val = atoi(argv[5]);
-        }
-        dt.hour.data = 0;
-        dt.min.data = 0;
-        dt.sec.data = 0;
-        fprintf(stderr, "write time %04d-%02d-%02d %02d:%02d:%02d,val=%d\n", dt.year.data, dt.month.data, dt.day.data,
-                dt.hour.data, dt.min.data, dt.sec.data, val);
-
-        for (i = 0; i < 3; i++) {
-            oad.OI = 0x2131 + i;
-            oad.attflg = 0x02;
-            oad.attrindex = 0x01;
-            passu[i].monitorTime = val * (i + 1);
-            passu[i].passRate = val * (i + 1) + 1;
-            passu[i].overRate = val * (i + 1) + 2;
-            passu[i].upLimitTime = val * (i + 1) + 3;
-            passu[i].downLimitTime = val * (i + 1) + 4;
-            saveFreezeRecord(0x5004, oad, dt, sizeof(PassRate_U), (INT8U * ) & passu[i]);
-        }
+    	if(argc==3) {
+    		port = atoi(argv[2]);
+    	}
+    	fprintf(stderr,"port=%d\n",port);
+		comfd1 = OpenCom(port, 9600, (INT8U *) "even", 1, 8);
+		write(comfd1, getversion, sizeof(getversion));
+		usleep(500 * 1000);
+		ret = read(comfd1, buf, 256);
+		for(i=0;i<10;i++) {
+			sleep(1);
+			fprintf(stderr,"R[%d]=",ret);
+			for(i=0;i<ret;i++) {
+				fprintf(stderr,"%02x ",buf[i]);
+			}
+		}
+    	close(comfd1);
         return EXIT_SUCCESS;
     }
 
-    if (strcmp("ms", argv[1]) == 0) {
-        int taskid = 64;
-        int ret = 0;
-        if (argc >= 3) {
-            taskid = atoi(argv[2]);
-        }
-        fprintf(stderr, "taskid=%d\n", taskid);
-        CLASS_601D class601d = {};
-        if (readCoverClass(0x601D, taskid, &class601d, sizeof(CLASS_601D), coll_para_save) == 1) {
-            ret = GetReportData(class601d);
-        }
-        return EXIT_SUCCESS;
+    if ((strcmp("savetest", argv[1]) == 0) || (strcmp("ms", argv[1]) == 0) || (strcmp("gettsas", argv[1]) == 0)) {
+    	Test(argc, argv);
+    	return EXIT_SUCCESS;
     }
 
     if (strcmp("ip", argv[1]) == 0) {
@@ -400,6 +398,25 @@ int main(int argc, char *argv[]) {
         return EXIT_SUCCESS;
     }
 
+    if (strcmp("check", argv[1]) == 0) {
+        showCheckPara();
+        return EXIT_SUCCESS;
+    }
+
+    if (strcmp("yx", argv[1]) == 0) {
+        for(;;){
+            CLASS_f203 oif203 = {};
+            readCoverClass(0xf203, 0, &oif203, sizeof(CLASS_f203), para_vari_save);
+            fprintf(stderr, "[F203]开关量输入\n");
+            fprintf(stderr, "属性2：ST=%d_%d_%d_%d %d_%d_%d_%d\n",
+            		oif203.statearri.stateunit[0].ST, oif203.statearri.stateunit[1].ST,
+            		oif203.statearri.stateunit[2].ST, oif203.statearri.stateunit[3].ST,
+            		oif203.statearri.stateunit[4].ST, oif203.statearri.stateunit[5].ST,
+                    oif203.statearri.stateunit[6].ST, oif203.statearri.stateunit[7].ST);
+            usleep(500000);
+        }
+        return EXIT_SUCCESS;
+    }
 
     prthelp();
     return EXIT_SUCCESS;
@@ -466,10 +483,7 @@ void setOIChange_CJ(OI_698 oi)
 	case 0x601E:	memp->oi_changed.oi601E++;  break;
 	case 0x6051:	memp->oi_changed.oi6051++;  break;
 
-	case 0xf203:
-		memp->oi_changed.oiF203++;
-		fprintf(stderr,"memp->oi_changed.oiF203=%d\n",memp->oi_changed.oiF203);
-		break;
+	case 0xf203:   memp->oi_changed.oiF203++;	break;
 	case 0xf101:	memp->oi_changed.oiF101++;  break;
 	}
 	shmm_unregister("ProgramInfo", sizeof(ProgramInfo));
