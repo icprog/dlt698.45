@@ -634,19 +634,19 @@ INT16U set4510(OAD oad,INT8U *data,INT8U *DAR)
 	return index;
 }
 
-INT16U setf203(OAD oad,INT8U *data,INT8U *DAR)
+INT16U setclass18(OAD oad,INT8U *data,INT8U *DAR)
 {
 	INT16U index=0;
-	CLASS_f203	f203={};
-	memset(&f203,0,sizeof(CLASS_f203));
-	readCoverClass(0xf203,0,&f203,sizeof(CLASS_f203),para_vari_save);
-	if ( oad.attflg == 4 )//配置参数
-	{
+	CLASS18	class18={};
+	memset(&class18,0,sizeof(CLASS18));
+	readCoverClass(0x18,0,&class18,sizeof(CLASS18),para_vari_save);
+	switch(oad.attflg) {
+	case 2://文件信息
 		index += getStructure(&data[index],NULL);
-		index += getBitString(1,&data[index],(INT8U *)&f203.state4.StateAcessFlag);
-		index += getBitString(1,&data[index],(INT8U *)&f203.state4.StatePropFlag);
-		*DAR = saveCoverClass(0xf203,0,&f203,sizeof(CLASS_f203),para_vari_save);
-		fprintf(stderr,"\n状态量配置参数 : 接入标志 %02x  属性标志 %02x \n",f203.state4.StateAcessFlag,f203.state4.StatePropFlag);
+//		index += getVisibleString(&data[index],);
+		break;
+	case 4://命令结果
+		break;
 	}
 	return index;
 }
@@ -677,6 +677,22 @@ INT16U setf101(OAD oad,INT8U *data,INT8U *DAR)
 	return index;
 }
 
+INT16U setf203(OAD oad,INT8U *data,INT8U *DAR)
+{
+	INT16U index=0;
+	CLASS_f203	f203={};
+	memset(&f203,0,sizeof(CLASS_f203));
+	readCoverClass(0xf203,0,&f203,sizeof(CLASS_f203),para_vari_save);
+	if ( oad.attflg == 4 )//配置参数
+	{
+		index += getStructure(&data[index],NULL);
+		index += getBitString(1,&data[index],(INT8U *)&f203.state4.StateAcessFlag);
+		index += getBitString(1,&data[index],(INT8U *)&f203.state4.StatePropFlag);
+		*DAR = saveCoverClass(0xf203,0,&f203,sizeof(CLASS_f203),para_vari_save);
+		fprintf(stderr,"\n状态量配置参数 : 接入标志 %02x  属性标志 %02x \n",f203.state4.StateAcessFlag,f203.state4.StatePropFlag);
+	}
+	return index;
+}
 ///////////////////////////////////////////////////////////////////////////////
 /*
  * 根据oi参数，查找相应的class_info的结构体数据
@@ -891,12 +907,18 @@ INT16U DeviceIoSetAttrib(OAD oad,INT8U *data,INT8U *DAR)
 	fprintf(stderr,"\n输入输出设备类对象属性设置");
 	switch(oad.OI)
 	{
+		case 0xF000://文件分帧传输管理
+		case 0xF001://文件分开传输管理
+		case 0xF002://文件扩展传输管理
+			data_index = setclass18(oad,data,DAR);
+			break;
 		case 0xF203:	//开关量输入
 			data_index = setf203(oad,data,DAR);
 			break;
 		case 0xF101:
 			data_index = setf101(oad,data,DAR);
 			break;
+
 	}
 	return data_index;
 }

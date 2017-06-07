@@ -142,7 +142,7 @@ def checkDateTime(config):
     deviceDate = datetime.datetime.strptime(msg[pos + 4:pos + 23], "%Y-%m-%d %H:%M:%S")
     devation = deviceDate - datetime.datetime.now()
     cas = (devation.days * 24 * 3600 + devation.seconds)
-    if cas > 5:
+    if abs(cas) > 5:
         print "对时\t错误\t时间差距%d秒".decode('utf-8') % cas
         ok = 0
     else:
@@ -191,7 +191,7 @@ def showDeviceId(config):
     lNet.write("exit" + "\r\n")
     msg = lNet.read_all()
 
-    print msg[142:-6].decode('utf-8')
+    print msg[142:-6]
 
     lNet.close()
 
@@ -204,7 +204,7 @@ if __name__ == '__main__':
 
             ok = 1
             os.system('cls;clear')
-            so.system('arp -d')
+            os.system('arp -d')
             ok &= checkDevice(config)
             ok &= checkProgs(config)
             ok &= checkSoftVersion(config)

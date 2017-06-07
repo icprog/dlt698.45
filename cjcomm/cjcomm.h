@@ -103,5 +103,6 @@ void RegularAutoTask(struct aeEventLoop *ep, CommBlock *nst);
 
 //内部协议栈
 void CreateOnModel(void *clientdata);
+int StartPowerOff(struct aeEventLoop *ep, long long id, void *clientData);
 
 #endif

@@ -58,6 +58,8 @@ extern void TSGet(TS* ts);
 extern time_t tmtotime_t(TS ptm);
 extern void TimeBCDToTs(DateTimeBCD timeBCD,TS* outTs);
 extern void TsToTimeBCD(TS inTs,DateTimeBCD* outTimeBCD);
+extern DateTimeBCD timet_bcd(time_t t);
+
 
 /* BCD码转int32u
  *参数：bcd为bcd码头指针，len为bcd码长度，order为positive正序/inverted反序，dint转换结果
@@ -76,7 +78,7 @@ extern INT32S gpio_writebyte(char* devpath, INT8S data);
 extern INT32S gpio_writebytes(char* devpath, INT8S* vals, INT32S valnum);
 
 extern BOOLEAN pwr_has();
-extern BOOLEAN pwr_has_byVolt(INT8U valid, INT32U volt, INT16U limit);
+extern INT8U pwr_has_byVolt(INT8U valid, INT32U volt, INT16U limit);
 extern BOOLEAN bettery_getV(FP32* clock_bt, FP32* tmnl_bt);
 extern BOOLEAN bettery_getV_II(FP32* clock_bt);
 

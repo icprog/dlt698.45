@@ -81,6 +81,7 @@ char *getenum(int type,int val)
 		if(val==5)	strcpy(name,"脚本方案");
 		break;
 	case task_prio:
+		if(val==0)	strcpy(name,"0");
 		if(val==1)	strcpy(name,"首要");
 		if(val==2)	strcpy(name,"必要");
 		if(val==3)	strcpy(name,"需要");

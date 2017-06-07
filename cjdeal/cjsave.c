@@ -255,6 +255,7 @@ int SaveNorData(INT8U taskid,ROAD *road_eve,INT8U *databuf,int datalen,TS ts_cc)
 	int savepos=0,currpos=0,i=0;
 	INT16U headlen=0,unitlen=0,unitnum=0,unitseq=0,runtime=0;//runtime执行次数
 	TASKSET_INFO tasknor_info;
+//	HEAD_UNIT *headunit = NULL;//文件头
 	memset(&csds,0x00,sizeof(ROAD));
 	//TS ts_cc;
 	//TSGet(&ts_cc);
@@ -286,7 +287,7 @@ int SaveNorData(INT8U taskid,ROAD *road_eve,INT8U *databuf,int datalen,TS ts_cc)
 		csds.num = 1;
 		getEveFileName(road_eve->oad.OI,fname);//创建eve文件
 	}
-	asyslog(LOG_WARNING, "filename=%s",fname);
+//	asyslog(LOG_WARNING, "filename=%s",fname);
 	fp = fopen(fname,"r");
 	if(fp == NULL)//文件没内容 组文件头，如果文件已存在，提取文件头信息
 	{
@@ -303,8 +304,12 @@ int SaveNorData(INT8U taskid,ROAD *road_eve,INT8U *databuf,int datalen,TS ts_cc)
 	}
 	else
 	{
-		asyslog(LOG_WARNING, "file：%s存在",fname);
+//		asyslog(LOG_WARNING, "file：%s存在",fname);
 		ReadFileHeadLen(fp,&headlen,&unitlen);
+//		unitnum = GetTaskHead(fp,&headlen,&unitlen,&headunit);
+//		for(i=0;i<unitnum;i++)
+//		{
+
 		if(unitlen==0)
 		{
 			asyslog(LOG_WARNING, "cjsave 存储文件头%s headlen=%d unitlen=%d unitnum=%d runtime=%d",fname,headlen,unitlen,unitnum,runtime);
@@ -359,7 +364,7 @@ int SaveNorData(INT8U taskid,ROAD *road_eve,INT8U *databuf,int datalen,TS ts_cc)
 			memcpy(&databuf_tmp[unitlen*i/runtime],databuf,18);//每个小单元地址附上
 	}
 	unitseq = (ts_cc.Hour*60*60+ts_cc.Minute*60+ts_cc.Sec)/((24*60*60)/runtime)+1;
-	asyslog(LOG_NOTICE,"ts: %d:%d:%d",ts_cc.Hour,ts_cc.Minute,ts_cc.Sec);
+//	asyslog(LOG_NOTICE,"ts: %d:%d:%d",ts_cc.Hour,ts_cc.Minute,ts_cc.Sec);
 	asyslog(LOG_NOTICE,"存储序号: unitseq=%d runtime=%d  %d--%d",unitseq,runtime,(ts_cc.Hour*60*60+ts_cc.Minute*60+ts_cc.Sec),((24*60*60)/runtime));
 	if(unitseq > runtime || datalen != unitlen/runtime)
 	{

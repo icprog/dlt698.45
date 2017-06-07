@@ -28,8 +28,14 @@ typedef struct {
 
 typedef struct {
     INT8U logic_name[OCTET_STRING_LEN]; //逻辑名
-    INT16U device_num;                  //设备对象数量
-} CLASS22;                              //输入输出设备接口类
+    char  source_file[VISIBLE_STRING_LEN];	//源文件
+    char  dist_file[VISIBLE_STRING_LEN];	//目标文件
+    INT32U	file_size;						//文件大小
+    INT8U	file_attr;						//文件属性 bit0:读(1:可读,0:不可读),bit1:写,bit2:执行
+    char   file_version[VISIBLE_STRING_LEN];	//文件版本
+    FILE_Type	file_type;					//文件类别
+    INT8U   cmd_result;						//命令结果:最近一次传输或执行结果的状态信息,具体见规约定义
+} CLASS18; //文件传输接口类                             //输入输出设备接口类
 
 typedef struct {
     char factoryCode[4];    //厂商代码
@@ -51,6 +57,11 @@ typedef struct {
     INT8U active_report;              //是否允许主动上报
     INT8U talk_master;                //是否允许与主站通话
 } CLASS19;                            //设备管理接口类
+
+typedef struct {
+    INT8U logic_name[OCTET_STRING_LEN]; //逻辑名
+    INT16U device_num;                  //设备对象数量
+} CLASS22;                              //输入输出设备接口类
 
 typedef struct {
     INT8U workModel;                    //工作模式 enum{混合模式(0),客户机模式(1),服务器模式(2)},

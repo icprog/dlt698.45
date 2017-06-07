@@ -12,10 +12,6 @@
 2、其中液晶显示线程是以面向对象（借鉴控件的想法）的思路去显示页面的。
 lcd_ctl接口延续之前376.1液晶按键控制逻辑，更新的是将功能-显示缓冲区写入驱动设备中，放入接口内;
 lcd_show接口延续之前376.1液晶显示处理逻辑，更新的是将三个显示区域的显示处理放到同一个接口内处理;
-注意：
-   刷新的机制：方案1：定时检测LcdBuf是否有变化；
-   	   	   	 方案2：要刷新的时刻置标志位;
-   目前使用的是第二种，set_time_show_flag(1);置位刷新标志，现在刷新显示缓冲区放在来lcd_ctl内;
  */
 #include <stdlib.h>
 #include <stdio.h>
@@ -54,7 +50,6 @@ extern void lcdpoll_show(ProgramInfo* jprograminfo);
 
 //轮显
 void lcd_poll(){
-	sleep(1);
 	lcdpoll_show(JProgramInfo);
 }
 
@@ -99,6 +94,17 @@ void gui_thread_quit_deal()
 	gpio_writebyte((char*)LED_RUN, LED_OFF);
 	gpio_writebyte((char*)LED_ALARM, LED_OFF);
 }
+//液晶屏在非轮显状态下，需要按照lcd_ctl（）函数内while循环实时写入。轮显状态，则一秒一次
+void deal_lcm_write(time_t nowtime)
+{
+	static time_t dealtime;
+	static INT8U count=0;
+	if(g_LcdPoll_Flag==LCD_NOTPOLL && dealtime ==nowtime )//处于轮抄状态，而且当前时间等于存储时间，不作液晶屏更新
+		return;
+	count++;
+	if(count%4!=0) return ;//外层有个50ms延时，此处200ms刷新一次
+	lcm_write();//
+}
 /*
  * 轮讯按键键值，控制显示，向终端显卡驱动写入显示缓冲区，控制液晶轮显标志;
  * */
@@ -112,16 +118,16 @@ void lcd_ctl()
 	int count=0;
 	g_LcdPoll_Keypress = 0;
 	g_JZQ_TimeSetUp_flg = 0;
+	if (NULL != JProgramInfo) {
+		if (SPTF3 == JProgramInfo->cfg_para.device) {
+			overTime = POLLTIME_SPTF_III;
+		}
+	}
 	while(1)
 	{
 		if(thread_run == PTHREAD_STOP)
 			break;
-		if(ret_show_time_flag())
-		{
-			set_time_show_flag(0);
-			lcm_write();
-		}
-		usleep(50*1000);
+		deal_lcm_write(curtime);
 		keypress = 0;
 		presskey_qudou_old = presskey_qudou;
 		presskey_qudou = getkey();
@@ -183,17 +189,11 @@ void lcd_ctl()
 			curtime = time(NULL);
 		if(g_JZQ_TimeSetUp_flg==1)
 			Time_PressKey = curtime;
-
-		if (NULL != JProgramInfo) {
-			if (SPTF3 == JProgramInfo->cfg_para.device) {
-				overTime = POLLTIME_SPTF_III;
-			}
-		}
-
 		if(abs(curtime-Time_PressKey)>overTime && g_LcdPoll_Flag==LCD_NOTPOLL){
 			g_LcdPoll_Flag = LCD_INPOLL;
 			gpio_writebyte((char*)"/dev/gpoLCD_LIGHT", 0);
 		}
+		usleep(50*1000);
 	}
 }
 //非轮显显示函数接口
@@ -211,7 +211,6 @@ void gui_show_init()
 {
 	int menu_count=0;
 	showmain();
-	set_time_show_flag(1);//配置刷新标志
 	menu_count = getMenuSize();
 	pmenulist_head = ComposeDList(menu, menu_count);//构建菜单项链表，菜单项链表的构建和显示是分离的，这是一种设计思想
 }
@@ -234,15 +233,13 @@ void* guictrl_thread()
 void* guishow_thread()
 {
 	gui_show_init();
-//	fprintf(stderr,"\n菜单项链表初始化成功!!!\n");
 	while(PTHREAD_RUN == thread_run)
 	{
 		if((LCD_INPOLL==g_LcdPoll_Flag))//开始轮显
 		{
 			lcd_poll();
-//			fprintf(stderr,"\n开始轮显！！！\n");
 		}
-		else if((LCD_NOTPOLL==g_LcdPoll_Flag))//非轮显显示
+		else//非轮显显示
 		{
 			lcd_not_poll();
 		}

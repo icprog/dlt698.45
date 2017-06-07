@@ -40,6 +40,7 @@ static char *usage_set = "\n--------------------参数设置及基本维护命�
 		"		  [设置维护485端口参数] cj rs485	\n"
 		"		  [设置红外ifr端口参数] cj ifr	\n"
 		"		  [显示遥信状态值] cj yx\n"
+		"		  [基本信息配置查询] cj check\n"
         "[读取心跳] cj heart       "
         "[设置心跳] cj heart 60 s\n"
 		"【初始化】cj InIt 3 [数据区初始化]	\n　　　　　　cj InIt 5 [事件初始化]\n　　　　　　cj InIt 6 [需量初始化]\n　　　　　　cj InIt 4 [恢复出厂参数]\n"
@@ -50,7 +51,10 @@ static char *usage_set = "\n--------------------参数设置及基本维护命�
         "-------------------------------------------------------\n\n";
 static char *usage_data = "\n--------------------数据维护命令----------------------------\n"
         "		 【任务数据读取】cj taskdata <文件名>		\n"
+		"		 【曲线数据点采集率显示】cj taskinfo <文件名>		\n"
+		"		 【曲线OAD采集率显示】cj oadinfo <文件名>		\n"
         "		 【冻结数据读取】cj freezedata 冻结OI 关联OI	\n"
+		"		 【曲线数据补送】cj report 64 2017 6 6 10 30 11 30 **上报任务17-6-6 10:30到11:30这个点的数据上报	\n"
         "-------------------------------------------------------\n\n";
 static char *usage_vari = "\n--------------------变量类对象----------------------------\n"
         "		 【供电时间】cj vari 2203		\n"
@@ -228,7 +232,8 @@ int main(int argc, char *argv[]) {
         return EXIT_SUCCESS;
     }
 
-    if ((strcmp("savetest", argv[1]) == 0) || (strcmp("ms", argv[1]) == 0) || (strcmp("gettsas", argv[1]) == 0)) {
+    if ((strcmp("savetest", argv[1]) == 0) || (strcmp("report", argv[1]) == 0)
+    		|| (strcmp("ms", argv[1]) == 0) || (strcmp("gettsas", argv[1]) == 0)) {
     	Test(argc, argv);
     	return EXIT_SUCCESS;
     }
@@ -322,11 +327,11 @@ int main(int argc, char *argv[]) {
         cjframe(argc, argv);
         return EXIT_SUCCESS;
     }
-    if (strcmp("cjread", argv[1]) == 0) {
-        fprintf(stderr, "\n查看任务抄表数据\n");
-        cjread(argc, argv);
-        return EXIT_SUCCESS;
-    }
+//    if (strcmp("cjread", argv[1]) == 0) {
+//        fprintf(stderr, "\n查看任务抄表数据\n");
+//        cjread(argc, argv);
+//        return EXIT_SUCCESS;
+//    }
     if (strcmp("rs485", argv[1]) == 0) {
         fprintf(stderr, "\n设置维护485端口参数\n");
         SetF201(argc, argv);
@@ -339,6 +344,14 @@ int main(int argc, char *argv[]) {
     }
     if (strcmp("taskdata", argv[1]) == 0) {
         analyTaskData(argc, argv);
+        return EXIT_SUCCESS;
+    }
+    if (strcmp("taskinfo", argv[1]) == 0) {
+        analyTaskInfo(argc, argv);
+        return EXIT_SUCCESS;
+    }
+    if (strcmp("oadinfo", argv[1]) == 0) {
+        analyTaskOADInfo(argc, argv);
         return EXIT_SUCCESS;
     }
     if (strcmp("freezedata", argv[1]) == 0) {

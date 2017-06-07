@@ -13,6 +13,7 @@
 #include "Objectdef.h"
 #include "dlt698def.h"
 #include "dlt698.h"
+#include "OIfunc.h"
 #include "PublicFunction.h"
 #include "secure.h"
 
@@ -294,8 +295,8 @@ int GetYxPara(RESULT_NORMAL *response)
 	{
 		case 4://配置参数
 			index += create_struct(&data[index],2);
-			index += fill_bit_string8(&data[index],objtmp.state4.StateAcessFlag);
-			index += fill_bit_string8(&data[index],objtmp.state4.StatePropFlag);
+			index += fill_bit_string(&data[index],8,objtmp.state4.StateAcessFlag);
+			index += fill_bit_string(&data[index],8,objtmp.state4.StatePropFlag);
 			break;
 		case 2://设备对象列表
 			fprintf(stderr,"GetYxPara oi.att=%d\n",oad.attflg);
@@ -352,6 +353,7 @@ int GetSecurePara(RESULT_NORMAL *response)
 	}
 	return 0;
 }
+#if 0
 int GetSysDateTime(RESULT_NORMAL *response)
 {
 	INT8U *data=NULL;
@@ -386,7 +388,7 @@ int GetSysDateTime(RESULT_NORMAL *response)
 	}
 	return 0;
 }
-
+#endif
 int Get3105(RESULT_NORMAL *response)
 {
 	int index=0;
@@ -422,7 +424,7 @@ int Get3106(RESULT_NORMAL *response)
 	}
 	if(oad.attrindex != 0x02){
 		index += create_struct(&data[index],4);	//停电数据采集配置参数　４个元素
-		index += fill_bit_string8(&data[index],tmpobj.poweroff_para_obj.collect_para_obj.collect_flag);
+		index += fill_bit_string(&data[index],8,tmpobj.poweroff_para_obj.collect_para_obj.collect_flag);
 		index += fill_unsigned(&data[index],tmpobj.poweroff_para_obj.collect_para_obj.time_space);
 		index += fill_unsigned(&data[index],tmpobj.poweroff_para_obj.collect_para_obj.time_threshold);
 		index += create_array(&data[index],tmpobj.poweroff_para_obj.collect_para_obj.tsaarr.num);
@@ -755,8 +757,8 @@ int Get4500(RESULT_NORMAL *response)
 		index += fill_visible_string(&data[index],(char *)&class_tmp.commconfig.passWord[1],class_tmp.commconfig.passWord[0]);
 		index += fill_octet_string(&data[index],(char *)&class_tmp.commconfig.proxyIp[1],class_tmp.commconfig.proxyIp[0]);
 		index += fill_long_unsigned(&data[index],class_tmp.commconfig.proxyPort);
-		//index += fill_bit_string8(&data[index],class_tmp.commconfig.timeoutRtry);
-		index += fill_unsigned(&data[index],class_tmp.commconfig.timeoutRtry);
+		//index += fill_bit_string(&data[index],8,class_tmp.commconfig.timeoutRtry);
+		index += fill_unsigned(&data[index],class_tmp.commconfig.timeoutRtry);	//勘误
 		index += fill_long_unsigned(&data[index],class_tmp.commconfig.heartBeat);
 		break;
 	case 3:	//主站通信参数表
@@ -827,8 +829,8 @@ int Get4510(RESULT_NORMAL *response)
 			}
 			index += fill_octet_string(&data[index],(char *)&class_tmp.commconfig.proxyIp[1],class_tmp.commconfig.proxyIp[0]);
 			index += fill_long_unsigned(&data[index],class_tmp.commconfig.proxyPort);
-			//index += fill_bit_string8(&data[index],class_tmp.commconfig.timeoutRtry);
-			index += fill_unsigned(&data[index],class_tmp.commconfig.timeoutRtry);
+			//index += fill_bit_string(&data[index],8,class_tmp.commconfig.timeoutRtry);
+			index += fill_unsigned(&data[index],class_tmp.commconfig.timeoutRtry);//勘误
 			index += fill_long_unsigned(&data[index],class_tmp.commconfig.heartBeat);
 			break;
 		case 3:	//主站通信参数表
@@ -1040,11 +1042,11 @@ int getSel2_coll(RESULT_RECORD *record)
 	int		sel_id=0;
 
 	getSel_Data(record->select.selec2.data_from.type,record->select.selec2.data_from.data,(INT8U *)&taskid_from);
-	getSel_Data(record->select.selec2.data_to.type,record->select.selec2.data_from.data,(INT8U *)&taskid_to);
-	getSel_Data(record->select.selec2.data_jiange.type,record->select.selec2.data_from.data,(INT8U *)&taskid_jiange);
+	getSel_Data(record->select.selec2.data_to.type,record->select.selec2.data_to.data,(INT8U *)&taskid_to);
+	getSel_Data(record->select.selec2.data_jiange.type,record->select.selec2.data_jiange.data,(INT8U *)&taskid_jiange);
 
 	fprintf(stderr,"getSel2: OI=%04x  taskid_from=%d taskid_to=%d\n",record->select.selec1.oad.OI,taskid_from,taskid_to);
-	record->data[index++] = taskid_to-taskid_from; 	//M = 1  Sequence  of A-RecordRow
+	record->data[index++] = taskid_to-taskid_from + 1; 	//M = 1  Sequence  of A-RecordRow
 
 	for(sel_id=taskid_from;sel_id<=taskid_to;sel_id++) {
 		index += getColl_Data(record->select.selec2.oad.OI,sel_id,&record->data[index]);
@@ -1148,11 +1150,9 @@ int doGetrecord(INT8U type,OAD oad,INT8U *data,RESULT_RECORD *record,INT16U *sub
 				record->select.selec1.oad.attrindex = 0;		//上送属性下所有索引值
 				dest_index += create_OAD(0,&record->data[dest_index],record->select.selec1.oad);
 				record->data[dest_index++] = 1; //CHOICE  [1]  data
-				record->data[dest_index++] = 2; //M = 1  Sequence  of A-RecordRow   //test
-			}else {
+			}else {	//RCSD 招测两个序号湖南测过
 				dest_index +=fill_RCSD(0,&record->data[dest_index],record->rcsd.csds);
 				record->data[dest_index++] = 1; //CHOICE  [1]  data
-				record->data[dest_index++] = 2; //M = 1  Sequence  of A-RecordRow    //test
 			}
 			record->data = &TmpDataBuf[dest_index];		//修改record的数据帧的位置
 			getSelector12(record);
@@ -1224,7 +1224,8 @@ int GetVariable(RESULT_NORMAL *response)
 		}
 		break;
 	case 0x2200:	//通信流量
-		len = readVariData(response->oad.OI,0,&databuf,VARI_LEN);
+//		len = readVariData(response->oad.OI,0,&databuf,VARI_LEN);
+		memcpy(databuf,&memp->dev_info.realTimeC2200,sizeof(Flow_tj));
 		Get_2200(response->oad.OI,databuf,response->data,&index);
 		response->datalen = index;
 		break;
@@ -1379,7 +1380,8 @@ int GetEnvironmentValue(RESULT_NORMAL *response)
 	switch(response->oad.OI)
 	{
 		case 0x4000:
-			GetSysDateTime(response);
+			response->datalen = Get_4000(response->oad,response->data);
+//			GetSysDateTime(response);
 			break;
 		case 0x4001:
 		case 0x4002:
@@ -1430,6 +1432,7 @@ int GetCollOneUnit(OI_698 oi,INT8U readType,INT8U seqnum,INT8U *data,INT16U *one
 		if(one_blknum<=1)	return 0;
 		break;
 	case 0x6002:	//搜表
+
 		break;
 	case 0x6012:	//任务配置表
 		one_unitlen = Get_6013(readType,seqnum,data);
@@ -1519,7 +1522,17 @@ int GetDeviceIo(RESULT_NORMAL *response)
 			GetYxPara(response);
 			break;
 		case 0xF001:
-			GetFileState(response);
+			switch(response->oad.attflg)
+			{
+			case 2:	//文件信息
+			case 3:	//命令结果
+				response->datalen = GetClass18(response->oad.attflg,response->data);
+				break;
+			case 4:	//传输块状态字
+				GetFileState(response);
+				break;
+			}
+
 	}
 	return 1;
 }

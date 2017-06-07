@@ -22,7 +22,7 @@ ParaCheck()
         Usage
     fi
 
-    if [ $2 != "ZheJiang" ] && [ $2 != "HuNan" ] && [ $2 != "ShanDong" ] && [ $2 != "GW" ]; then
+    if [ $2 != "ZheJiang" ] && [ $2 != "HuNan" ] && [ $2 != "ShanDong" ] && [ $2 != "GW" ]  && [ $2 != "GWFILE" ]; then
          Usage
     fi
     
@@ -43,22 +43,29 @@ Clean()
 CopyNew()
 {
     echo "复制最新的程序与库..."
-    cp ../bin_arm/cj* ./app/
-    cp ../bin_arm/*.so ./app/
-    cp ../config/* ./app/
-    rm ./app/systema_2.cfg
-    if [ $1 = "GW" ]; then
-         cp ../config/systema_2.cfg ./app/systema.cfg
+    if [ $1 = "GWFILE" ]; then
+        cp ../bin_arm/cjmain ./app/
+        cp ../bin_arm/libBase.so ./app/
+    else
+        cp ../bin_arm/cj* ./app/
+        cp ../bin_arm/*.so ./app/
+        cp ../config/* ./app/
+        rm ./app/systema_2.cfg
+        if [ $1 = "GW" ]; then
+            cp ../config/systema_2.cfg ./app/systema.cfg
+        fi
     fi
 }
 
 UpdateLocation()
 {
-    rm app/device.cfg
-    echo "[device]" >> app/device.cfg
-    echo "device="$1 >> app/device.cfg
-    echo "zone="$2 >> app/device.cfg
-    echo "[end]" >> app/device.cfg
+    if [ $2 != "GWFILE" ]; then
+        rm app/device.cfg
+        echo "[device]" >> app/device.cfg
+        echo "device="$1 >> app/device.cfg
+        echo "zone="$2 >> app/device.cfg
+        echo "[end]" >> app/device.cfg
+    fi
 }
 
 Package()

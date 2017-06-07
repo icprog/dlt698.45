@@ -92,6 +92,19 @@ typedef struct {
 	time_t rec_start;//开始时间秒数
 	time_t rec_end;//结束时间秒数
 }CURR_RECINFO;//当前记录信息
+
+typedef struct{
+	OAD   oad_m;	//主OAD		oad 不存在主OAD，填0 ，road  存在主oad，如50040200
+	OAD   oad_r;	//关联OAD
+	INT16U len;		//oad 的数据长度，包括类型描述
+}HEAD_UNIT;
+
+typedef struct{
+	OAD    oad_m;
+	OAD    oad_r;
+	int    offset;
+	INT16U len;
+}OAD_INDEX;//oad索引
 /*
  * 更改拨号脚本
  * */
@@ -279,4 +292,22 @@ extern int save_protocol_3761_tx_para(INT8U* dealdata);
  * 重写3761 规约程序rc.local
  * */
 extern INT8U write_3761_rc_local();
+
+/*
+ * 支持液晶部分查找日月冻结数据
+ */
+extern INT16S GUI_GetFreezeData(CSD_ARRAYTYPE csds,TSA tsa,TS ts_zc,INT8U *databuf);
+
+extern void extendcsds(CSD_ARRAYTYPE csds,ROAD_ITEM *item_road);
+
+extern int initFrameHead(INT8U *buf,OAD oad,RSD select,INT8U selectype,CSD_ARRAYTYPE csds,INT8U *seqnumindex);
+extern int findTsa(TSA tsa,FILE *fp,int headsize,int blocksize);
+extern int findrecord(int offsetTsa,int recordlen,int recordno);
+extern void printRecordBytes(INT8U *data,int datalen);
+extern INT16S GetTaskHead(FILE *fp,INT16U *head_len,INT16U *tsa_len,HEAD_UNIT **head_unit);
+extern void GetOADPosofUnit(ROAD_ITEM item_road,HEAD_UNIT *head_unit,INT8U unitnum,OAD_INDEX *oad_offset);
+extern int collectData(INT8U *databuf,INT8U *srcbuf,OAD_INDEX *oad_offset,ROAD_ITEM item_road);
+extern int fillTsaNullData(INT8U *databuf,TSA tsa,ROAD_ITEM item_road);
+extern void intToBuf(int value,INT8U *buf);
+extern INT8U GetTaskidFromCSDs(CSD_ARRAYTYPE csds,ROAD_ITEM *item_road);
 #endif /* ACCESS_H_ */

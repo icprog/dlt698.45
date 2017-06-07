@@ -15,7 +15,7 @@ def readConfig(name):
             config.readfp(cfgFile)
             return config
     except IOError, e:
-        print '程序没有找到配置文件，程序当前目录需要config.ini文件。'.decode('utf-8')
+        print '程序没有找到配置文件，程序当前目录需要config.ini文件。'
         sys.exit()
 
 
@@ -42,10 +42,9 @@ def ReadyNet(host, user, passwd):
 #
 def getInputGiveInfo(info):
     try:
-        print info.decode('utf-8')
-        return str(input(">>>"))
+        return str(input(info))
     except IOError, e:
-        print '请输入正确格式的信息。'.decode('utf-8')
+        print '请输入正确格式的信息。'
     except SyntaxError, e:
         return ''
 
@@ -58,7 +57,7 @@ def checkConfig(config):
     process = config.options('process')
     for p in process:
         if not config.has_option('parameter', p) or not config.has_option('timer', p):
-            print '配置文件参数数量不匹配'.decode('utf-8')
+            print '配置文件参数数量不匹配'
             sys.exit()
 
     return config
@@ -105,23 +104,21 @@ def doSetDevice(config):
 if __name__ == '__main__':
     config = checkConfig("./config.ini")
 
-    deviceId = getInputGiveInfo("输入产品逻辑地址>>>").decode('utf-8')
+    deviceId = getInputGiveInfo("Input Begin ID >>>")
 
     while True:
         try:
             os.system('cls;clear')
             os.system('arp -d')
 
-            newDeviceId = getInputGiveInfo("确认序列号:(可以重新输入逻辑地址):" + formatId(config, deviceId) + "#").decode('utf-8')
+            newDeviceId = getInputGiveInfo("Please Confirm ID:(or you can input a new ID):" + formatId(config, deviceId) + "#")
             if newDeviceId is not "":
                 deviceId = newDeviceId
-            #config.set('parameter', 'id', formatId(config, deviceId))
+            config.set('parameter', 'id', formatId(config, deviceId))
 
             doSetDevice(config)
             deviceId = "%d" % (int(deviceId) + 1)
 
         except IOError, e:
             print '网络连接错误，检查网线连接状态。'.decode('utf-8')
-            time.sleep(2)
-
             continue

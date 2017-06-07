@@ -159,6 +159,15 @@ typedef enum {
 	TYPE_INTERVAL=3/*按时标间隔*/
 }CJTYPE_6015;//任务执行状态
 
+typedef enum {
+	Terminal_File=0,		//终端文件          （0），
+	Online_Module_File=1,	//本地通信模块文件  （1），
+	Remote_Module_File=2,	//远程通信模块文件  （2），
+	Collector_File=3,	 	//采集器文件        （3），
+	Sub_node_Module_File=4,	//从节点通信模块文件（4），
+	OtherFile=255,			//其它文件          (255)
+}FILE_Type;	/*文件类型*/
+
 //////////////////////////////////////////////////////////////////
 //typedef struct
 //{

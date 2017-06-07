@@ -19,7 +19,7 @@ extern void testframe(INT8U* apdu, int len);
 extern INT8U Report_Event(CommBlock* com, INT8U *oiarr, INT8U report_type,INT8U *com_flag);
 extern INT16U composeAutoReport(INT8U* SendApdu, INT16U length);
 extern INT16U composeAutoTask(AutoTaskStrap* list);
-extern int callAutoReport(INT8U reportChoice,CommBlock* com, INT8U ifecho);
+extern int callAutoReport(char *filename,INT8U reportChoice,CommBlock* com, INT8U ifecho);
 extern int callEventAutoReport(CommBlock* com,INT8U *eventbuf,int datalen);
 extern int GetReportData(CLASS_601D report);
 
@@ -53,7 +53,7 @@ extern void setOIChange(OI_698 oi);
 extern int create_array(INT8U* data, INT8U numm);			//0x01
 extern int create_struct(INT8U* data, INT8U numm);			//0x02
 extern int fill_bool(INT8U* data, INT8U value);				//0x03
-extern int fill_bit_string8(INT8U* data, INT8U bits);		//0x04
+extern int fill_bit_string(INT8U *data,INT8U size,INT8U bits);		//0x04
 extern int fill_double_long(INT8U *data,INT32S value);		//0x05
 extern int fill_double_long_unsigned(INT8U* data, INT32U value);	//0x06
 extern int fill_octet_string(INT8U* data, char* value, INT8U len);	//0x09
@@ -105,18 +105,7 @@ extern int getDataTypeLen(int dt);
 /*----------------------具体OI类组帧函数----------------------*/
 /*----------------------统计相关数据----------------------*/
 extern INT8U Get_Vacs(RESULT_NORMAL *response,ProgramInfo* prginfo_acs);
-extern INT8U Get_213x(OAD oad,INT8U *sourcebuf,INT8U *buf,int *len);
-extern INT8U Get_2200(OI_698 oi, INT8U* sourcebuf, INT8U* buf, int* len);
-extern INT8U Get_2203(OI_698 oi, INT8U* sourcebuf, INT8U* buf, int* len);
-extern INT8U Get_2204(OI_698 oi, INT8U* sourcebuf, INT8U* buf, int* len);
 
-extern int Get_4000(OAD oad,INT8U *data);
-/*----------------------参变量类----------------------*/
-extern int Get_6001(INT8U type,INT16U seqnum, INT8U* data);
-extern int Get_6013(INT8U type,INT8U taskid,INT8U *data);
-extern int Get_6015(INT8U type,INT8U seqnum, INT8U* data);
-extern int Get_6017(INT8U type,INT8U seqnum,INT8U *data);
-extern int Get_6035(INT8U type,INT8U seqnum, INT8U* data);
-extern int Get_601D(INT8U type,INT8U seqnum,INT8U *data);
+
 extern int GetFileState(RESULT_NORMAL* response);
 #endif
