@@ -307,9 +307,9 @@ INT16U  composeAutoTask(AutoTaskStrap *list)
  *  ifecho ：  0 没收到确认，或第一次调用    1 收到确认
  *  返回    :  1  需要继续发送   0 发送完成
  */
-int callAutoReport(INT8U reportChoice,CommBlock* com, INT8U ifecho)
+int callAutoReport(char *filename,INT8U reportChoice,CommBlock* com, INT8U ifecho)
 {
-	if (com==NULL)
+	if (com==NULL || filename == NULL)
 		return 0;
 	INT8U *sendbuf = com->SendBuf;
 	static int nowoffset = 0;
@@ -318,7 +318,6 @@ int callAutoReport(INT8U reportChoice,CommBlock* com, INT8U ifecho)
 	int datalen = 0, j=0,index=0 ,hcsi=0;//,apduplace=0;
 	INT8U apdu_buf[MAXSIZ_FAM]={};
 	int	apdu_index=0;
-
 	CSINFO csinfo={};
 
 	memset(TmpDataBuf,0,sizeof(TmpDataBuf));  //长度 1600
@@ -330,7 +329,7 @@ int callAutoReport(INT8U reportChoice,CommBlock* com, INT8U ifecho)
 	sendcounter++;
 	datalen = 0;
 //	fprintf(stderr,"\n当前偏移位置 nowoffset = %d  ",nowoffset);
-	nextoffset = readFrameDataFile(TASK_FRAME_DATA,nowoffset,TmpDataBuf,&datalen);
+	nextoffset = readFrameDataFile(filename,nowoffset,TmpDataBuf,&datalen);
 	fprintf(stderr,"\n读出 (%d)：",datalen);
 	for(j=0; j<datalen; j++)
 	{

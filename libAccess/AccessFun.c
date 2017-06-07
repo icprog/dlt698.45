@@ -1716,7 +1716,8 @@ INT8U GetTaskidFromCSDs(CSD_ARRAYTYPE csds,ROAD_ITEM *item_road)
 												item_road->oad[mm].oad_r.attrindex != 0 &&
 												class6015.csds.csd[j].csd.oad.attrindex == 0)){
 									item_road->oad[mm].taskid = i+1;
-//									asyslog(LOG_INFO,"taskid find one %d",i+1);
+									asyslog(LOG_INFO,"taskid find one %d",i+1);
+									continue;
 								}
 							}
 							break;
@@ -1735,6 +1736,7 @@ INT8U GetTaskidFromCSDs(CSD_ARRAYTYPE csds,ROAD_ITEM *item_road)
 												class6015.csds.csd[j].csd.road.oads[nn].attrindex == 0)){
 										item_road->oad[mm].taskid = i+1;
 //										asyslog(LOG_INFO,"1111:item_road->oad[%d].taskid=%d\n",mm,item_road->oad[mm].taskid);
+										continue;
 									}
 								}
 							}
@@ -1750,16 +1752,21 @@ INT8U GetTaskidFromCSDs(CSD_ARRAYTYPE csds,ROAD_ITEM *item_road)
 				for(mm=0;mm<(item_road->oadmr_num);mm++)
 				{
 //					asyslog(LOG_INFO,"taskno=%d ,item_road->oad[%d].taskid=%d\n",taskno,mm,item_road->oad[mm].taskid);
-					if(taskno != 0 && taskno != item_road->oad[mm].taskid)
-					{
-						taskno = 0;
-#ifdef SYS_INFO
-						asyslog(LOG_INFO,"break taskno=%d\n",taskno);
-#endif
-						break;
-					}
-					if(item_road->oad[mm].taskid != 0)
+//					if(taskno != 0 && taskno != item_road->oad[mm].taskid)
+//					{
+//						taskno = 0;
+//						asyslog(LOG_INFO,"break taskno=%d\n",taskno);
+//						break;
+//					}
+//					if(item_road->oad[mm].taskid != 0)
+//						taskno = item_road->oad[mm].taskid;
+					if(item_road->oad[mm].oad_r.OI == 0x202a || item_road->oad[mm].oad_r.OI == 0x6040 ||
+							item_road->oad[mm].oad_r.OI == 0x6041 || item_road->oad[mm].oad_r.OI == 0x6042)
+						continue;
+					if(taskno == 0)
 						taskno = item_road->oad[mm].taskid;
+					if(taskno == 0 || taskno != item_road->oad[mm].taskid)
+						break;
 //					asyslog(LOG_INFO,"i=%d ,taskno=%d\n",mm,taskno);
 				}
 				if(taskno != 0)
@@ -2953,12 +2960,12 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds,INT16U fr
 			fseek(fp,recordoffset,SEEK_SET);
 			fread(recordbuf,recordlen,1,fp);
 
-			for(k=0;k<5;k++)//TsToTimeBCD(TS inTs,DateTimeBCD* outTimeBCD)
+			if(autoflg == 1 && tasknor_info.runtime > 1 && recinfo.recordno_num == 1)//主动上报曲线并且只上报一个点
 			{
-				memset(tmpnull,0x00,8);
-				if(memcmp(&recordbuf[18],tmpnull,8)==0)//本条记录为空
+				for(k=0;k<5;k++)//TsToTimeBCD(TS inTs,DateTimeBCD* outTimeBCD)
 				{
-					if(autoflg == 1 && tasknor_info.runtime > 1 && recinfo.recordno_num == 1)//主动上报曲线并且只上报一个点
+					memset(tmpnull,0x00,8);
+					if(memcmp(&recordbuf[18],tmpnull,8)==0)//本条记录为空
 					{
 						fprintf(stderr,"\n---曲线主动上报k=%d\n",k);
 						fprintf(stderr,"当前   currecord=%d\n",currecord);
@@ -3004,26 +3011,20 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds,INT16U fr
 							break;
 						}
 					}
-					else
+					else//有数据跳出
 					{
-						if(autoflg == 1)
-							fprintf(stderr,"\n---非曲线主动上报\n");
-						continue;
+						fprintf(stderr,"\n更改时标\n");
+						TSGet(&ts_curr);
+						TsToTimeBCD(ts_curr,&CHTimeBCD[0]);
+						ts_curr.Minute = ts_curr.Minute/15;
+						ts_curr.Minute = ts_curr.Minute*15;//取整
+						ts_curr.Sec = 0;
+						TsToTimeBCD(ts_curr,&CHTimeBCD[1]);
+						fill_date_time_s(&recordbuf[18],&CHTimeBCD[0]);
+						fill_date_time_s(&recordbuf[26],&CHTimeBCD[0]);
+						fill_date_time_s(&recordbuf[34],&CHTimeBCD[1]);
+						break;
 					}
-				}
-				else//有数据跳出
-				{
-					fprintf(stderr,"\n更改时标\n");
-					TSGet(&ts_curr);
-					TsToTimeBCD(ts_curr,&CHTimeBCD[0]);
-					ts_curr.Minute = ts_curr.Minute/15;
-					ts_curr.Minute = ts_curr.Minute*15;//取整
-					ts_curr.Sec = 0;
-					TsToTimeBCD(ts_curr,&CHTimeBCD[1]);
-					fill_date_time_s(&recordbuf[18],&CHTimeBCD[0]);
-					fill_date_time_s(&recordbuf[26],&CHTimeBCD[0]);
-					fill_date_time_s(&recordbuf[34],&CHTimeBCD[1]);
-					break;
 				}
 			}
 			if(memcmp(&recordbuf[18],tmpnull,8)==0)

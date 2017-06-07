@@ -351,6 +351,8 @@ typedef struct {
 	INT8U	device;			//设备类型，1：I型集中器，2:II型集中器，3：III型专变
 	char	zone[32];		//地区
 	INT8U	extpara[128];	//预留参数
+	/*extpara[0]:cj report文件保存成功后,通知cjcomm补数上送
+	 * */
 }ConfigPara;
 
 typedef struct {

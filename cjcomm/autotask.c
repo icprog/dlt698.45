@@ -9,7 +9,7 @@
 #include <unistd.h>
 
 #include "cjcomm.h"
-
+#include "ParaDef.h"
 //停止日常上报检测标志
 static int stopSign = 0;
 //上报确认标志
@@ -69,7 +69,7 @@ int ConformCheck(struct aeEventLoop* ep, long long id, void* clientData) {
 //        stopSign    = 0;	//注释,改在最后一帧清除
         conformSign = 0;
         //强制确认数据帧，跳下一帧发送
-        MoreContentSign = callAutoReport(reportChoice,nst, 1);
+        MoreContentSign = callAutoReport(TASK_FRAME_DATA,reportChoice,nst, 1);
         if(MoreContentSign>=1) {
         	conformTimes = bak_conformTimes;
         	conformOverTime = bak_conformOverTime;
@@ -81,7 +81,7 @@ int ConformCheck(struct aeEventLoop* ep, long long id, void* clientData) {
         }
     }
     else{
-    	MoreContentSign = callAutoReport(reportChoice,nst, 0);
+    	MoreContentSign = callAutoReport(TASK_FRAME_DATA,reportChoice,nst, 0);
     	conformTimes--;
     }
 //    conformTimes--;
@@ -89,13 +89,35 @@ int ConformCheck(struct aeEventLoop* ep, long long id, void* clientData) {
     return conformOverTime * 1000;
 }
 
+/*
+ * 通过cj report命令进行曲线数据的补送,
+ * 准备好的数据放在REPORT_FRAME_DATA文件中,上送结束后,自动删除文件
+ * */
+void HandReportTask(CommBlock* nst,INT8U *saveover)
+{
+	int	callret = 0;
+
+	if((access(REPORT_FRAME_DATA,F_OK)==0) && (*saveover==1)){
+		sleep(3);
+		asyslog(LOG_INFO,"发现手动补报曲线文件");
+		callret = callAutoReport(REPORT_FRAME_DATA,REPROTNOTIFICATIONRECORDLIST,nst, 1);//1:默认收到确认数据
+		if(callret == 0) {	//上报结束
+			asyslog(LOG_INFO,"补报结束,删除文件");
+			callret = unlink(REPORT_FRAME_DATA);
+			if(callret == 0) {
+				*saveover = 0;
+				asyslog(LOG_INFO,"补报文件删除成功");
+			}
+		}
+	}
+}
 
 void RegularAutoTask(struct aeEventLoop* ep, CommBlock* nst) {
 
     ProgramInfo* shmem = (ProgramInfo*)nst->shmem;
 
     if (stopSign == 1) {
-        return;
+         return;
     }
 
     if(taskChangeSign != shmem->oi_changed.oi6012 || timeChangeSign != shmem->oi_changed.oi4000){
@@ -106,6 +128,8 @@ void RegularAutoTask(struct aeEventLoop* ep, CommBlock* nst) {
     	stopSign = 0;		//清除上报标记
     }
 
+    HandReportTask(nst,&shmem->cfg_para.extpara[0]);		//cj report命令手动补抄进行任务上送
+
     for (int i = 0; i < MAXNUM_AUTOTASK; i++) {
         //调用日常通信接口
         int res = composeAutoTask(&shmem->autotask[i]);
@@ -113,7 +137,7 @@ void RegularAutoTask(struct aeEventLoop* ep, CommBlock* nst) {
         if ((res == 1) || (res == 2)) {
             //第一次调用此函数，启动任务上报
         	reportChoice = res;
-            MoreContentSign = callAutoReport(reportChoice,nst, 0);
+            MoreContentSign = callAutoReport(TASK_FRAME_DATA,reportChoice,nst, 0);
             //不再调用此函数标志
             stopSign = 1;
             //标示上报任务尚未获得确认
@@ -149,7 +173,7 @@ void ConformAutoTask(struct aeEventLoop* ep, CommBlock* nst, int res) {
         conformSign = 1;
 //        return;
         //有更多的报文
-        MoreContentSign = callAutoReport(reportChoice,nst, 1);
+        MoreContentSign = callAutoReport(TASK_FRAME_DATA,reportChoice,nst, 1);
         if (MoreContentSign == 1) {
             asyslog(LOG_INFO, "发现更多的报文，注销检查函数，任务序号(%d)", conformCheckId);
             if(aeDeleteTimeEvent(ep, conformCheckId)==AE_OK) {	//TODO:是否需要增加删除成功,重新注册,删除失败会有什么问题?

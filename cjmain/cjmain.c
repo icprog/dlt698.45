@@ -543,7 +543,7 @@ void checkRebootFile() {
 int main(int argc, char *argv[]) {
 
     printf("==================version==================\n");
-    printf("VERSION : %d\n", GL_VERSION);
+//    printf("VERSION : %d\n", GL_VERSION);
     asyslog(LOG_INFO, "VERSION : %d\n", GL_VERSION);
     printf("==================version==================\n\n\n\n");
 

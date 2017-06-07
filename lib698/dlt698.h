@@ -19,7 +19,7 @@ extern void testframe(INT8U* apdu, int len);
 extern INT8U Report_Event(CommBlock* com, INT8U *oiarr, INT8U report_type,INT8U *com_flag);
 extern INT16U composeAutoReport(INT8U* SendApdu, INT16U length);
 extern INT16U composeAutoTask(AutoTaskStrap* list);
-extern int callAutoReport(INT8U reportChoice,CommBlock* com, INT8U ifecho);
+extern int callAutoReport(char *filename,INT8U reportChoice,CommBlock* com, INT8U ifecho);
 extern int callEventAutoReport(CommBlock* com,INT8U *eventbuf,int datalen);
 extern int GetReportData(CLASS_601D report);
 

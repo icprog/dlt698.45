@@ -27,32 +27,6 @@ void ReadFileHeadLen(FILE *fp,INT16U *headlen,INT16U *blocklen)
 	fread(&blocklength,2,1,fp);
 	*blocklen = ((blocklength>>8)+((blocklength&0xff)<<8));
 }
-typedef struct{
-	INT8U type;//0：oad 1：road
-	OAD   oad;
-	INT8U num[2];//长度或个数，类型为0，表示长度；类型为1，表示个数
-}HEAD_UNIT;
-void ReadFileHead(FILE *fp,INT16U headlen,INT16U unitlen,INT16U unitnum,INT8U *headbuf)
-{
-	HEAD_UNIT *headunit = NULL;
-//	INT16U unitlen = 0,unitnum = 0;
-//	INT16U headlen=0;
-	int i=0;
-	fread(headbuf,headlen,1,fp);
-	headunit = malloc(headlen-4);
-	memcpy(headunit,&headbuf[4],headlen-4);
-	for(i=0;i<unitnum;i++)
-	{
-		fprintf(stderr,"\ntype:");
-		fprintf(stderr,"%02x",headunit[i].type);
-		fprintf(stderr,"oad:");
-		fprintf(stderr,"%04x%02x%02x",headunit[i].oad.OI,headunit[i].oad.attflg,headunit[i].oad.attrindex);
-		fprintf(stderr," num:");
-		fprintf(stderr,"%02x%02x",headunit[i].num[0],headunit[i].num[1]);
-	}
-	fprintf(stderr,"\n");
-	free(headunit);
-}
 /*
  * 读取抄表数据，读取某个测量点某任务某天一整块数据，放在内存里，根据需要提取数据,并根据csd
  */

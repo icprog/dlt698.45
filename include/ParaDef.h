@@ -14,6 +14,7 @@
 #define DEVICE_CFG				"/nor/config/device.cfg"	//设备配置信息文件
 #define _CFGDIR_ 				"/nor/config"
 #define _ACSDIR_				"/nor/acs"
+#define REPORT_FRAME_DATA		"/nand/reportdata"		//通过cj report命令手动补送曲线数据的临时文件,上送结束后,自动删除文件
 #define TASK_FRAME_DATA			"/nand/frmdata"		//任务分帧的数据文件
 #define PARA_FRAME_DATA			"/nand/frmpara"		//参数类分帧的数据文件
 ///////////////////////////////////////////////////////////////
