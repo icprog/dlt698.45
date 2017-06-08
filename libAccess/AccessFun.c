@@ -2929,9 +2929,14 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds,INT16U fr
 			}
 			if(offsetTsa == 0) {
 				asyslog(LOG_INFO,"task未找到数据,i=%d\n",i);
-				indexn += fillTsaNullData(&onefrmbuf[indexn],tsa_group[i],item_road);
-				recordnum++;
-				continue;
+				if(autoflg == 1 && tasknor_info.runtime > 1 && recinfo.recordno_num == 1)//主动上报曲线并且只上报一个点
+					fprintf(stderr,"\n曲线没TSA记录,查找上一日的数据\n");
+				else
+				{
+					indexn += fillTsaNullData(&onefrmbuf[indexn],tsa_group[i],item_road);
+					recordnum++;
+					continue;
+				}
 			}
 			//5\定位指定的点（行）, 返回offset
 			if(selectype == 7 || selectype == 5)
@@ -2957,15 +2962,20 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds,INT16U fr
 			recordoffset = findrecord(offsetTsa,recordlen,currecord+rec_tmp);
 			memset(recordbuf,0x00,sizeof(recordbuf));
 			//6\读出一行数据到临时缓存
-			fseek(fp,recordoffset,SEEK_SET);
-			fread(recordbuf,recordlen,1,fp);
+			if(offsetTsa == 0)
+				fprintf(stderr,"\n曲线主动上报tsa空\n");
+			else
+			{
+				fseek(fp,recordoffset,SEEK_SET);
+				fread(recordbuf,recordlen,1,fp);
+			}
 
 			if(autoflg == 1 && tasknor_info.runtime > 1 && recinfo.recordno_num == 1)//主动上报曲线并且只上报一个点
 			{
 				for(k=0;k<5;k++)//TsToTimeBCD(TS inTs,DateTimeBCD* outTimeBCD)
 				{
 					memset(tmpnull,0x00,8);
-					if(memcmp(&recordbuf[18],tmpnull,8)==0)//本条记录为空
+					if(memcmp(&recordbuf[18],tmpnull,8)==0 || offsetTsa == 0)//本条记录为空或者没有这个tsa
 					{
 						fprintf(stderr,"\n---曲线主动上报k=%d\n",k);
 						fprintf(stderr,"当前   currecord=%d\n",currecord);
@@ -2980,6 +2990,8 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds,INT16U fr
 							if(fp != NULL)
 								fclose(fp);
 							fp =fopen(fname,"r");
+							offsetTsa = findTsa(tsa_group[i],fp,headsize,blocksize);
+							fprintf(stderr,"\n@@@@@@offsetTsa=%d\n",offsetTsa);
 							currecord = tasknor_info.runtime-1;
 						}
 						else
