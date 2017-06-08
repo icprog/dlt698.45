@@ -26,7 +26,7 @@ static int conformCheckId = 0;
 static INT16S taskChangeSign = -1;
 //对时标识
 static INT16S timeChangeSign = -1;
-
+extern TS	online_ts,offline_ts;		//记录上线及掉线时间
 
 void init6013ListFrom6012File(ProgramInfo *JProgramInfo) {
 
@@ -96,6 +96,17 @@ int ConformCheck(struct aeEventLoop* ep, long long id, void* clientData) {
 void HandReportTask(CommBlock* nst,INT8U *saveover)
 {
 	int	callret = 0;
+	double offline_val = 0;
+
+//	if(access(PATCH_FLAG,F_OK)!=0)	return;			//没有/nand/patchflag文件,不进行曲线数据补报
+//
+//	offline_val = difftime(tmtotime_t(offline_ts), tmtotime_t(online_ts));	//离线时间 - 上线时间
+//	if((offline_val >= 10*60) && (offline_val <= 10*60)) {
+//		asyslog(LOG_INFO,"离线时间:%d-%d-%d %d:%d  上线时间:%d-%d-%d %d:%d",
+//				offline_ts.Year,offline_ts.Month,offline_ts.Day,offline_ts.Hour,offline_ts.Minute,
+//				online_ts.Year,online_ts.Month,online_ts.Day,online_ts.Hour,online_ts.Minute);
+//		return;
+//	}
 
 	if((access(REPORT_FRAME_DATA,F_OK)==0) && (*saveover==1)){
 		sleep(3);
@@ -128,6 +139,7 @@ void RegularAutoTask(struct aeEventLoop* ep, CommBlock* nst) {
     	stopSign = 0;		//清除上报标记
     }
 
+    //////////2017.6.7浙江曲线补点增加
     HandReportTask(nst,&shmem->cfg_para.extpara[0]);		//cj report命令手动补抄进行任务上送
 
     for (int i = 0; i < MAXNUM_AUTOTASK; i++) {

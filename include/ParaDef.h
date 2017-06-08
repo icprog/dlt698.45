@@ -14,6 +14,7 @@
 #define DEVICE_CFG				"/nor/config/device.cfg"	//设备配置信息文件
 #define _CFGDIR_ 				"/nor/config"
 #define _ACSDIR_				"/nor/acs"
+#define	PATCH_FLAG				"/nand/patchflag"		//曲线数据补报标记,nand下有此文件,离线再次上线后进行曲线的补报,为了处理浙江目前曲线漏点,同时主站没有曲线补抄的功能
 #define REPORT_FRAME_DATA		"/nand/reportdata"		//通过cj report命令手动补送曲线数据的临时文件,上送结束后,自动删除文件
 #define TASK_FRAME_DATA			"/nand/frmdata"		//任务分帧的数据文件
 #define PARA_FRAME_DATA			"/nand/frmpara"		//参数类分帧的数据文件

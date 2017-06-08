@@ -81,23 +81,16 @@ time_t calcnexttime(TI ti,DateTimeBCD datetime,TI ti_delay)
 			int intpart = timetmp / jiange;
 			int rempart = timetmp % jiange;
 			fprintf(stderr,"\n任务开始时间(%ld)  早于当前时间(%ld)  %d个间隔 余%d 秒",timestart,timenow,intpart,rempart);
-			if (rempart>0)
-			{
+//			if (rempart>0)	//修改去掉else的判断条件,当余数=0时,原代码进入else返回当前时间,重新发送曲线数据
+//			{
 				timeret = (intpart + 1) * jiange  + timestart ;
 				fprintf(stderr,"\n计算下次开始时间 %ld ",timeret);
-
-//				DateTimeBCD  mybcd;
-//				mybcd = timet_bcd(timeret);
-//				fprintf(stderr,"\n\n*******my 下次开始时间--------1 %d-%d-%d %d:%d:%d",
-//						mybcd.year.data,mybcd.month.data,mybcd.day.data,mybcd.hour.data,mybcd.min.data,mybcd.sec.data);
-
 				return timeret ;
-			}
-			else
-			{
-				fprintf(stderr,"\n任务在当前时间 %ld 执行",timenow);
-				return timenow;
-			}
+//			}else
+//			{
+//				fprintf(stderr,"\n任务在当前时间 %ld 执行",timenow);
+//				return timenow;
+//			}
 		}
 		else//间隔日 月 或者 年
 		{
