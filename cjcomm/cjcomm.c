@@ -17,6 +17,7 @@ static ProgramInfo *JProgramInfo = NULL;
 static int ProgIndex = 0;
 static int OnlineType; // 0:没在线 1:GPRS 2:以太网 3:内部协议栈连接主站成功
 CLASS_4000 class_4000;
+TS	online_ts={},offline_ts={};		//记录上线及掉线时间
 
 /*
  * 获取当前在线状态

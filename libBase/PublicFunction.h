@@ -31,12 +31,7 @@
 #define	FILE_LINE		__FILE__,__FUNCTION__,__LINE__
 #define	DEBUG_TIME_LINE(format, ...)	debug(FILE_LINE, format, ##__VA_ARGS__)
 
-extern void setsystime(DateTimeBCD datetime);
-extern void TSGet(TS* ts);
-extern INT8U TScompare(TS ts1, TS ts2);
-extern time_t tmtotime_t(TS ptm);
-extern void DataTimeGet(DateTimeBCD* ts);
-extern INT8S tminc(TS* tmi, Time_Units unit, INT32S val);
+
 extern void Setsig(struct sigaction* psa, void (*pfun)(ProjectInfo* proinfo));
 /*
  * 共享内存操作函数
@@ -59,7 +54,10 @@ extern time_t tmtotime_t(TS ptm);
 extern void TimeBCDToTs(DateTimeBCD timeBCD,TS* outTs);
 extern void TsToTimeBCD(TS inTs,DateTimeBCD* outTimeBCD);
 extern DateTimeBCD timet_bcd(time_t t);
-
+extern void setsystime(DateTimeBCD datetime);
+extern INT8U TScompare(TS ts1, TS ts2);
+extern void DataTimeGet(DateTimeBCD* ts);
+extern INT8S tminc(TS* tmi, Time_Units unit, INT32S val);
 
 /* BCD码转int32u
  *参数：bcd为bcd码头指针，len为bcd码长度，order为positive正序/inverted反序，dint转换结果
