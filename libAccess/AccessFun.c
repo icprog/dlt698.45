@@ -1433,6 +1433,12 @@ INT8U ReadTaskInfo(INT8U taskid,TASKSET_INFO *tasknor_info)//读取普通采集�
 					return 2;
 				if(class6013.interval.units == 5)//年冻结
 					return 3;
+				if(class6013.interval.units == 0)//秒冻结
+					return 5;
+				if(class6013.interval.units == 1)//分钟冻结
+					return 6;
+				if(class6013.interval.units == 2)//小时冻结
+					return 7;
 			}
 			fprintf(stderr,"\n---@@@---返回4\n");
 #ifdef SYS_INFO
