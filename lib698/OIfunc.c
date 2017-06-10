@@ -239,20 +239,28 @@ int Get_6017(INT8U type,INT8U seqnum,INT8U *data)
 		fprintf(stderr,"\n 6017 read coll ok　seqnum=%d  type=%d  ret=%d\n",seqnum,type,ret);
 		index += create_struct(&data[index],5);					//属性2：struct 5个元素
 		index += fill_unsigned(&data[index],event.sernum);		//方案序号
-		index += create_struct(&data[index],2);					//属性2：struct 2个元素
-		index += fill_unsigned(&data[index],event.collstyle.colltype);		//采集类型
-		switch(event.collstyle.colltype) {
-		case 0://周期采集事件数据
-		case 2://根据通知采集指定事件数据
+		if(event.collstyle.colltype == 0xff ) {					//采集类型无效,为勘误前的定义结构
 			if(event.collstyle.roads.num>ARRAY_ROAD_NUM)	event.collstyle.roads.num = ARRAY_ROAD_NUM;
 			index += create_array(&data[index],event.collstyle.roads.num);
 			for(i=0;i<event.collstyle.roads.num;i++) {
 				index += fill_ROAD(1,&data[index],event.collstyle.roads.road[i]);	//采集数据
 			}
-			break;
-		case 1://NULL,根据通知采集所有事件数据
-			data[index++]=0;
-			break;
+		}else {
+			index += create_struct(&data[index],2);					//属性2：struct 2个元素
+			index += fill_unsigned(&data[index],event.collstyle.colltype);		//采集类型
+			switch(event.collstyle.colltype) {
+			case 0://周期采集事件数据
+			case 2://根据通知采集指定事件数据
+				if(event.collstyle.roads.num>ARRAY_ROAD_NUM)	event.collstyle.roads.num = ARRAY_ROAD_NUM;
+				index += create_array(&data[index],event.collstyle.roads.num);
+				for(i=0;i<event.collstyle.roads.num;i++) {
+					index += fill_ROAD(1,&data[index],event.collstyle.roads.road[i]);	//采集数据
+				}
+				break;
+			case 1://NULL,根据通知采集所有事件数据
+				data[index++]=0;
+				break;
+			}
 		}
 		index += fill_MS(1,&data[index],event.ms);		//电能表集合
 		index += fill_bool(&data[index],event.ifreport);		//上报标识
@@ -327,11 +335,11 @@ int GetClass18(INT8U attflg,INT8U *data)
 	switch(attflg) {
 	case 2:	//文件信息
 		index += create_struct(&data[index],6);
-		index += fill_visible_string(&data[index],class18.source_file,strlen(class18.source_file));
-		index += fill_visible_string(&data[index],class18.dist_file,strlen(class18.dist_file));
+		index += fill_visible_string(&data[index],&class18.source_file[1],class18.source_file[0]);
+		index += fill_visible_string(&data[index],&class18.dist_file[1],class18.dist_file[0]);
 		index += fill_double_long_unsigned(&data[index],class18.file_size);
 		index += fill_bit_string(&data[index],3,class18.file_attr & 0x03);
-		index += fill_visible_string(&data[index],class18.file_version,strlen(class18.file_version));
+		index += fill_visible_string(&data[index],&class18.file_version[1],class18.file_version[0]);
 		index += fill_enum(&data[index],class18.file_type);
 		break;
 	case 3:	//命令结果

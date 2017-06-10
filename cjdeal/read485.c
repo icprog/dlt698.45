@@ -100,7 +100,8 @@ void DbgPrintToFile1(INT8U comport,const char *format,...)
 
 	struct stat fileInfo;
 	stat(fname, &fileInfo);
-	if (fileInfo.st_size>3000*1000)//超过300K
+//	if (fileInfo.st_size>3000*1000)//超过300K
+	if (fileInfo.st_size>4096*1000)//超过300K
 	{
 		memset(tmpcmd,0,sizeof(tmpcmd));
 		sprintf(tmpcmd,"cp %s %s.0",fname,fname);
