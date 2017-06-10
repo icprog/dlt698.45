@@ -1327,26 +1327,6 @@ INT16U CalcFreq(TI runti,CLASS_6015 class6015,INT16U startmin,INT16U endmin,INT3
 			asyslog(LOG_INFO,"\n---@@@---采集类型%d  data:%02x-%02x%02x\n",class6015.cjtype,class6015.data.data[0],class6015.data.data[1],class6015.data.data[2]);
 			if(class6015.data.data[1] == 0 && class6015.data.data[2] == 0)
 				return 1;
-//			if(class6015.cjtype == 3)//按抄表间隔
-//			{
-//				switch(class6015.data.data[0])
-//				{
-//				case 0:
-//					*sec_freq = ((class6015.data.data[1]<<8)+class6015.data.data[2]);
-//					return ((endmin-startmin)*60)/((class6015.data.data[1]<<8)+class6015.data.data[2])+1;
-//				case 1:
-//					asyslog(LOG_INFO,"\n---@@@---按抄表间隔采集,间隔%d\n",((endmin-startmin)*60)/((class6015.data.data[1]<<8)+class6015.data.data[2])*60+1);
-//					*sec_freq = ((class6015.data.data[1]<<8)+class6015.data.data[2])*60;
-//					return (endmin-startmin)/((class6015.data.data[1]<<8)+class6015.data.data[2])+1;
-//				case 2:
-//					*sec_freq = ((class6015.data.data[1]<<8)+class6015.data.data[2])*3600;
-//					return ((endmin-startmin)*60)/(((class6015.data.data[1]<<8)+class6015.data.data[2])*60)+1;
-//				default:
-//					break;
-//				}
-//				asyslog(LOG_INFO,"\n---@@@---按抄表间隔采集%d\n",((endmin-startmin)*60)/sec_unit+1);
-//				return ((endmin-startmin)*60)/sec_unit+1;
-//			}
 			*sec_freq = 86400;
 			return 1;
 			break;
@@ -1433,12 +1413,6 @@ INT8U ReadTaskInfo(INT8U taskid,TASKSET_INFO *tasknor_info)//读取普通采集�
 					return 2;
 				if(class6013.interval.units == 5)//年冻结
 					return 3;
-				if(class6013.interval.units == 0)//秒冻结
-					return 5;
-				if(class6013.interval.units == 1)//分钟冻结
-					return 6;
-				if(class6013.interval.units == 2)//小时冻结
-					return 7;
 			}
 			fprintf(stderr,"\n---@@@---返回4\n");
 #ifdef SYS_INFO

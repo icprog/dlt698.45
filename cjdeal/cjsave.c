@@ -420,6 +420,7 @@ int SaveOADData(INT8U taskid,OAD oad_m,OAD oad_r,INT8U *databuf,int datalen,TS t
 		fprintf(stderr,"SaveOADData==========\n");
 		if((taskinfoflg = ReadTaskInfo(taskid,&tasknor_info))==0)
 			return 0;
+		fprintf(stderr,"\ntaskinfoflg=%d\n",taskinfoflg);
 //		if(ReadTaskInfo(taskid,&tasknor_info)==0)
 //			return 0;
 		runtime = tasknor_info.runtime;
@@ -524,7 +525,7 @@ int SaveOADData(INT8U taskid,OAD oad_m,OAD oad_r,INT8U *databuf,int datalen,TS t
 		datetime.hour.data = ts_now.Hour;
 		datetime.min.data = ts_now.Minute;
 		datetime.sec.data = ts_now.Sec;
-		asyslog(LOG_NOTICE,"当前赋值时标%d:%04x %02x %02x %02x %02x %02x %02x"
+		asyslog(LOG_NOTICE,"当前赋值时标%d:%04x %02x %02x %02x %02x %02x"
 				,sizeof(DateTimeBCD),
 				datetime.year.data,datetime.month.data,datetime.day.data,datetime.hour.data,
 				datetime.min.data,datetime.sec.data);
@@ -579,24 +580,30 @@ int SaveOADData(INT8U taskid,OAD oad_m,OAD oad_r,INT8U *databuf,int datalen,TS t
 				default:break;
 				}
 			}
-			else
-				if(tasknor_info.runtime > 1)//曲线 不支持秒冻结
+			else if(taskinfoflg == 4)//曲线
+			{
+				int jiange = 0;
+				if(tasknor_info.taskfreq >= 60 && tasknor_info.taskfreq < 3600)//分钟冻结
 				{
-					if(taskinfoflg == 6)//分钟冻结
-					{
-						fprintf(stderr,"\n分钟冻结\n");
-						datetime.min.data = ((ts_res.Minute*60)/tasknor_info.taskfreq)*(tasknor_info.taskfreq/60);//算成整分钟数
-						datetime.sec.data = 0;
-					}
-					else if(taskinfoflg == 7)//小时冻结
-					{
-						fprintf(stderr,"\n小时冻结\n");
-						datetime.hour.data = ((ts_res.Hour*3600)/tasknor_info.taskfreq)*(tasknor_info.taskfreq/3600);//算成整分钟数
-						datetime.min.data = 0;
-						datetime.sec.data = 0;
-					}
+					jiange = tasknor_info.taskfreq/60;
+					fprintf(stderr,"\n分钟冻结--jiange=%d,ts_res.Minute=%d\n",jiange,ts_res.Minute);
+					datetime.min.data = (ts_res.Minute/jiange)*jiange;//算成整分钟数
+					datetime.sec.data = 0;
 				}
+				else if(tasknor_info.taskfreq >= 3600)//小时冻结
+				{
+					fprintf(stderr,"\n小时冻结\n");
+					jiange = tasknor_info.taskfreq/3600;
+					datetime.hour.data = (ts_res.Hour/jiange)*jiange;//算成整小时数
+					datetime.min.data = 0;
+					datetime.sec.data = 0;
+				}
+			}
 
+		asyslog(LOG_NOTICE,"当前赋值存储时标%d:%04x %02x %02x %02x %02x %02x"
+				,sizeof(DateTimeBCD),
+				datetime.year.data,datetime.month.data,datetime.day.data,datetime.hour.data,
+				datetime.min.data,datetime.sec.data);
 		databuf_tmp[unitlen*(unitseq-1)/runtime+18+16] = 0x1c;
 		memcpy(&databuf_tmp[unitlen*(unitseq-1)/runtime+19+16],&datetime,7);//赋值抄表存储时间
 
