@@ -406,22 +406,37 @@ int SaveOADData(INT8U taskid,OAD oad_m,OAD oad_r,INT8U *databuf,int datalen,TS t
 		CSD_ARRAYTYPE csds;
 		char	fname[FILENAMELEN]={};
 		INT8U *databuf_tmp=NULL,eveflg=0, firOIflg=0;
-		int savepos=0, currpos=0, i=0, oadoffset=0, oadlen=0;
+		int savepos=0, currpos=0, i=0, oadoffset=0, oadlen=0, taskinfoflg=0;
 		INT16U headlen=0,unitlen=0,unitnum=0,unitseq=0,runtime=0;//runtime执行次数
 		TASKSET_INFO tasknor_info;
 		DateTimeBCD datetime;
-		TS ts_now;
+		TS ts_now,ts_cc;
+		ts_cc = ts_res;
 		TSGet(&ts_now);
 		memset(&csds,0x00,sizeof(ROAD));
 	//	csds.num = 1;
 	//	csds.csd[0].type = 1;//road
 
 		fprintf(stderr,"SaveOADData==========\n");
-		if(ReadTaskInfo(taskid,&tasknor_info)==0)
+		if((taskinfoflg = ReadTaskInfo(taskid,&tasknor_info))==0)
 			return 0;
+//		if(ReadTaskInfo(taskid,&tasknor_info)==0)
+//			return 0;
 		runtime = tasknor_info.runtime;
 		memcpy(&csds,&tasknor_info.csds,sizeof(CSD_ARRAYTYPE));//
-		getTaskFileName(taskid,ts_res,fname);
+		if(taskinfoflg == 2)//月冻结
+		{
+			ts_cc.Day = 0;
+			ts_cc.Hour = 0;
+			ts_cc.Minute = 0;
+			ts_cc.Sec = 0;
+			asyslog(LOG_WARNING, "月冻结存储:%d",ts_cc.Month);
+		}
+		getTaskFileName(taskid,ts_cc,fname);
+
+		ts_cc= ts_res;//重新赋值，减一天用于日冻结存储时标赋值
+		tminc(&ts_cc,day_units,-1);
+
 		fp = fopen(fname,"r");
 		if(fp == NULL)//文件没内容 组文件头，如果文件已存在，提取文件头信息
 		{
@@ -520,6 +535,67 @@ int SaveOADData(INT8U taskid,OAD oad_m,OAD oad_r,INT8U *databuf,int datalen,TS t
 		}
 		databuf_tmp[unitlen*(unitseq-1)/runtime+18+8] = 0x1c;
 		memcpy(&databuf_tmp[unitlen*(unitseq-1)/runtime+19+8],&datetime,7);//赋值抄表成功时间
+
+		if(taskinfoflg == 2)//月冻结----------------------------------------//赋值抄表存储时间
+		{
+			fprintf(stderr,"\n月冻结\n");
+			datetime.year.data = ((ts_res.Year&0xff00)>>8) + ((ts_res.Year&0x00ff)<<8);
+			datetime.month.data = ts_res.Month;
+			datetime.day.data = 0;
+			datetime.hour.data = 0;
+			datetime.min.data = 0;
+			datetime.sec.data = 0;
+		}
+		else
+			if(taskinfoflg == 1)//日冻结
+			{
+				fprintf(stderr,"\n日冻结tasknor_info.save_timetype)=%d\n",tasknor_info.save_timetype);
+				switch(tasknor_info.save_timetype)
+				{
+				case 2://相对当日零点零分
+					datetime.year.data = ((ts_res.Year&0xff00)>>8) + ((ts_res.Year&0x00ff)<<8);
+					datetime.month.data = ts_res.Month;
+					datetime.day.data = ts_res.Day;
+					datetime.hour.data = 0;
+					datetime.min.data = 0;
+					datetime.sec.data = 0;
+					break;
+				case 3://相对上日33点59分
+					datetime.year.data = ((ts_cc.Year&0xff00)>>8) + ((ts_cc.Year&0x00ff)<<8);
+					datetime.month.data = ts_cc.Month;
+					datetime.day.data = ts_cc.Day;
+					datetime.hour.data = 23;
+					datetime.min.data = 59;
+					datetime.sec.data = 0;
+					break;
+				case 4://相对上日零点零分
+					datetime.year.data = ((ts_cc.Year&0xff00)>>8) + ((ts_cc.Year&0x00ff)<<8);
+					datetime.month.data = ts_cc.Month;
+					datetime.day.data = ts_cc.Day;
+					datetime.hour.data = 0;
+					datetime.min.data = 0;
+					datetime.sec.data = 0;
+					break;
+				default:break;
+				}
+			}
+			else
+				if(tasknor_info.runtime > 1)//曲线 不支持秒冻结
+				{
+					if(taskinfoflg == 6)//分钟冻结
+					{
+						fprintf(stderr,"\n分钟冻结\n");
+						datetime.min.data = ((ts_res.Minute*60)/tasknor_info.taskfreq)*(tasknor_info.taskfreq/60);//算成整分钟数
+						datetime.sec.data = 0;
+					}
+					else if(taskinfoflg == 7)//小时冻结
+					{
+						fprintf(stderr,"\n小时冻结\n");
+						datetime.hour.data = ((ts_res.Hour*3600)/tasknor_info.taskfreq)*(tasknor_info.taskfreq/3600);//算成整分钟数
+						datetime.min.data = 0;
+						datetime.sec.data = 0;
+					}
+				}
 
 		databuf_tmp[unitlen*(unitseq-1)/runtime+18+16] = 0x1c;
 		memcpy(&databuf_tmp[unitlen*(unitseq-1)/runtime+19+16],&datetime,7);//赋值抄表存储时间
