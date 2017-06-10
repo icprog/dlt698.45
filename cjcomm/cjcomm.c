@@ -17,7 +17,6 @@ static ProgramInfo *JProgramInfo = NULL;
 static int ProgIndex = 0;
 static int OnlineType; // 0:没在线 1:GPRS 2:以太网 3:内部协议栈连接主站成功
 CLASS_4000 class_4000;
-TS	online_ts={},offline_ts={};		//记录上线及掉线时间
 
 /*
  * 获取当前在线状态
@@ -135,7 +134,7 @@ void CalculateTransFlow(ProgramInfo *prginfo_event) {
 
     if (localMin != ts.Minute && ts.Minute % 2 == 0) {
         localMin = ts.Minute;
-        asyslog(LOG_INFO, "2分钟月流量统计，未统计流量%d", (rx_bytes + tx_bytes) - rtx_bytes);
+//        asyslog(LOG_INFO, "2分钟月流量统计，未统计流量%d", (rx_bytes + tx_bytes) - rtx_bytes);//一直是0,上面已经赋值rtx_bytes
         //跨日月流量分别清零
         if (localDay != ts.Day) {
             asyslog(LOG_INFO, "检测到夸日，流量统计清零，清零前数据(%d)", prginfo_event->dev_info.realTimeC2200.flow.day_tj);

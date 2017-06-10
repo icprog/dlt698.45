@@ -26,7 +26,6 @@ static int conformCheckId = 0;
 static INT16S taskChangeSign = -1;
 //对时标识
 static INT16S timeChangeSign = -1;
-extern TS	online_ts,offline_ts;		//记录上线及掉线时间
 
 void init6013ListFrom6012File(ProgramInfo *JProgramInfo) {
 
@@ -46,11 +45,9 @@ void init6013ListFrom6012File(ProgramInfo *JProgramInfo) {
 				init_autotask(total_autotasknum,class6013,JProgramInfo->autotask);
 				total_autotasknum++;
 			}
-
 		}
 	}
 }
-
 
 int ConformCheck(struct aeEventLoop* ep, long long id, void* clientData) {
     CommBlock* nst = (CommBlock*)clientData;
@@ -63,7 +60,6 @@ int ConformCheck(struct aeEventLoop* ep, long long id, void* clientData) {
 
     asyslog(LOG_INFO, "上报未确认,重试(%d)", conformTimes);
     //第一次调用此函数，启动任务上报
-
 
     if (conformTimes == 1) {
 //        stopSign    = 0;	//注释,改在最后一帧清除
@@ -96,18 +92,6 @@ int ConformCheck(struct aeEventLoop* ep, long long id, void* clientData) {
 void HandReportTask(CommBlock* nst,INT8U *saveover)
 {
 	int	callret = 0;
-	double offline_val = 0;
-
-//	if(access(PATCH_FLAG,F_OK)!=0)	return;			//没有/nand/patchflag文件,不进行曲线数据补报
-//
-//	offline_val = difftime(tmtotime_t(offline_ts), tmtotime_t(online_ts));	//离线时间 - 上线时间
-//	if((offline_val >= 10*60) && (offline_val <= 10*60)) {
-//		asyslog(LOG_INFO,"离线时间:%d-%d-%d %d:%d  上线时间:%d-%d-%d %d:%d",
-//				offline_ts.Year,offline_ts.Month,offline_ts.Day,offline_ts.Hour,offline_ts.Minute,
-//				online_ts.Year,online_ts.Month,online_ts.Day,online_ts.Hour,online_ts.Minute);
-//		return;
-//	}
-
 	if((access(REPORT_FRAME_DATA,F_OK)==0) && (*saveover==1)){
 		sleep(3);
 		asyslog(LOG_INFO,"发现手动补报曲线文件");
@@ -145,7 +129,6 @@ void RegularAutoTask(struct aeEventLoop* ep, CommBlock* nst) {
     for (int i = 0; i < MAXNUM_AUTOTASK; i++) {
         //调用日常通信接口
         int res = composeAutoTask(&shmem->autotask[i]);
-
         if ((res == 1) || (res == 2)) {
             //第一次调用此函数，启动任务上报
         	reportChoice = res;

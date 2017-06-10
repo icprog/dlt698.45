@@ -1716,7 +1716,9 @@ INT8U GetTaskidFromCSDs(CSD_ARRAYTYPE csds,ROAD_ITEM *item_road)
 												item_road->oad[mm].oad_r.attrindex != 0 &&
 												class6015.csds.csd[j].csd.oad.attrindex == 0)){
 									item_road->oad[mm].taskid = i+1;
+#ifdef SYS_INFO
 									asyslog(LOG_INFO,"taskid find one %d",i+1);
+#endif
 									continue;
 								}
 							}
@@ -3051,8 +3053,8 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds,INT16U fr
 			asyslog(LOG_INFO,"recordnum=%d  seqnumindex=%d\n",recordnum,seqnumindex);
 #endif
 			if(frmmaxsize <= 256+100)
-				frmmaxsize = 900;
-			if (indexn>=frmmaxsize-100)
+				frmmaxsize = 700;
+			if (indexn>=frmmaxsize-300)
 //			if (indexn>=900)
 			{
 				framesum++;

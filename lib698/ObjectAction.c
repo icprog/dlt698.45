@@ -507,6 +507,8 @@ void AddEventCjiFangAnInfo(INT8U *data, Action_result *act_ret) {
         if (data[index] == dtstructure) {        //勘误增加了采集方式类型，浙江测试还未修改，故判断
             index += getStructure(&data[index], NULL);
             index += getUnsigned(&data[index], (INT8U *) &eventFangAn.collstyle.colltype);
+        }else  {
+        	eventFangAn.collstyle.colltype = 0xff;	//无效采集类型
         }
         index += getArray(&data[index], (INT8U *) &eventFangAn.collstyle.roads.num);
         for (i = 0; i < eventFangAn.collstyle.roads.num; i++)
@@ -595,6 +597,20 @@ void Set_CSD(INT8U *data) {
 
 }
 
+
+void DeleteArrayID(OI_698 oi,INT8U *data)
+{
+	INT8U 	i=0,arrayid = 0, taskid=0;
+	int 	index = 0;
+
+	index += getArray(&data[index],(INT8U *)&arrayid);
+	for(i=0;i<arrayid;i++) {
+		getUnsigned(&data[index],(INT8U *)&taskid);
+		fprintf(stderr,"Delete taskid=%d\n",taskid);
+		deleteClass(oi, taskid);
+	}
+}
+
 void CjiFangAnInfo(INT16U attr_act, INT8U *data, Action_result *act_ret) {
     switch (attr_act) {
         case 127:    //方法 127:Add (array 普通采集方案)
@@ -602,7 +618,7 @@ void CjiFangAnInfo(INT16U attr_act, INT8U *data, Action_result *act_ret) {
             AddCjiFangAnInfo(data, act_ret);
             break;
         case 128:    //方法 128:Delete(array 方案编号)
-//			DeleteCjFangAn(data[1]);
+        	DeleteArrayID(0x6015,data);
             break;
         case 129:    //方法 129:Clear( )
             fprintf(stderr, "\n清空普通采集方案");
@@ -621,11 +637,11 @@ void EventCjFangAnInfo(INT16U attr_act, INT8U *data, Action_result *act_ret) {
             AddEventCjiFangAnInfo(data, act_ret);
             break;
         case 128:    //方法 128:Delete(array 方案编号)
-            //		DeleteEventCjFangAn(data[1]);
+        	DeleteArrayID(0x6017,data);
             break;
         case 129:    //方法 129:Clear( )
             fprintf(stderr, "\n清空事件采集方案");
-            clearClass(0x6016);
+            clearClass(0x6017);
             break;
         case 130:    //方法 130:Set_CSD(方案编号,array CSD)
             //		UpdateReportFlag(data);
@@ -702,6 +718,7 @@ void AddReportInfo(INT8U *data, Action_result *act_ret) {
     act_ret->datalen = index;
 }
 
+
 void ReportInfo(INT16U attr_act, INT8U *data, Action_result *act_ret) {
     switch (attr_act) {
         case 127:    //方法 127:Add(array 上报方案)
@@ -709,23 +726,23 @@ void ReportInfo(INT16U attr_act, INT8U *data, Action_result *act_ret) {
             AddReportInfo(data, act_ret);
             break;
         case 128:    //方法 128:Delete(array 方案编号)
-
+        	DeleteArrayID(0x601d,data);
             break;
         case 129:    //方法 129:Clear( )
             fprintf(stderr, "\n清空上报方案集");
-            clearClass(0x601D);
+            clearClass(0x601d);
             break;
     }
 }
 
 void TaskInfo(INT16U attr_act, INT8U *data, Action_result *act_ret) {
+
     switch (attr_act) {
         case 127://方法 127:Add (任务配置单元)
             AddTaskInfo(data, act_ret);
             break;
         case 128://方法 128:Delete(array任务 ID )
-
-            deleteClass(0x6013, 1);
+        	DeleteArrayID(0x6013,data);
             break;
         case 129://方法 129:Clear()
             fprintf(stderr, "\n清空采集任务配置表");
