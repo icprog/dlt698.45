@@ -29,6 +29,9 @@
 extern INT32S 			spifp_rn8209;
 extern INT32S 			spifp;
 
+extern INT8S use6013find6015or6017(INT8U cjType,INT16U fanganID,TI interval6013,CLASS_6015* st6015);
+extern INT8U checkMeterType(MY_MS mst,INT8U usrType,TSA usrAddr);
+
 ProgramInfo* JProgramInfo=NULL;
 int ProIndex=0;
 INT8U poweroffon_state = 0; //停上电抄读标志 0无效，1抄读，2抄读完毕
@@ -620,6 +623,38 @@ INT8S init4204Info()
 	}
 	return ret;
 }
+INT8U findfake6001(INT8U tIndex,CLASS_6001* meter)
+{
+	INT8S ret = -1;
+	INT16U meterIndex = 0;
+	CLASS_6015 to6015;	//采集方案集
+	memset(&to6015, 0, sizeof(CLASS_6015));
+	memset(meter,0,sizeof(CLASS_6001));
+
+	ret = use6013find6015or6017(list6013[tIndex].basicInfo.cjtype,list6013[tIndex].basicInfo.sernum,list6013[tIndex].basicInfo.interval,&to6015);
+	if(ret == 1)
+	{
+		INT8U portIndex = 0;
+		for(portIndex = 0;portIndex < 2;portIndex++)
+		{
+			for (meterIndex = 0; meterIndex < info6000[portIndex].meterSum; meterIndex++)
+			{
+				if (readParaClass(0x6000, meter, info6000[portIndex].list6001[meterIndex]) == 1)
+				{
+					if (meter->sernum != 0 && meter->sernum != 0xffff)
+					{
+						if (checkMeterType(to6015.mst, meter->basicinfo.usrtype,meter->basicinfo.addr))
+						{
+							fprintf(stderr,"\n 找到任务对应测量点　%d portIndex = %d meterIndex = %d",meter->sernum,portIndex,meterIndex);
+							return 1;
+						}
+					}
+				}
+			}
+		}
+	}
+	return ret;
+}
 INT8U createFakeTaskFileHead()
 {
 	CSD_ARRAYTYPE csds;
@@ -638,13 +673,16 @@ INT8U createFakeTaskFileHead()
 
 	CLASS_6001 meter;
 	memset(&meter,0,sizeof(CLASS_6001));
-	readParaClass(0x6000, &meter, info6000[0].list6001[0]);
-
 	INT8U tIndex;
 	for (tIndex = 0; tIndex < total_tasknum; tIndex++)
 	{
 		if ((list6013[tIndex].basicInfo.cjtype == norm)&&(list6013[tIndex].basicInfo.interval.units < day_units))
 		{
+			if(findfake6001(tIndex,&meter)==-1)
+			{
+				continue;
+			}
+
 			memset(dataContent,0,DATA_CONTENT_LEN);
 			taskinfoflg=0;
 			memset(&tasknor_info,0,sizeof(TASKSET_INFO));
