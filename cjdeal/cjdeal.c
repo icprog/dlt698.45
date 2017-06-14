@@ -625,7 +625,7 @@ void timeProcess()
 {
 	static TS lastTime;
 	static INT8U firstFlag = 1;
-	static INT8U resetFlag = 0;//00:01清理队列中还没完成的任务
+
 	TS nowTime;
 	TSGet(&nowTime);
 
@@ -641,13 +641,6 @@ void timeProcess()
 	}
 	else
 	{
-		if((nowTime.Hour == 23)&&(nowTime.Minute > 55)&&(resetFlag == 1))
-		{
-			para_change485[0] = 1;
-			para_change485[1] = 1;
-
-			resetFlag = 0;
-		}
 		//跨天处理
 		if(lastTime.Day != nowTime.Day)
 		{
@@ -662,7 +655,11 @@ void timeProcess()
 			isReplenishOver[2] = 1;
 			isReplenishOver[3] = 1;
 
-			resetFlag = 1;
+
+			para_change485[0] = 1;
+			para_change485[1] = 1;
+
+
 
 			INT8U taskIndex = 0;
 			for(taskIndex = 0;taskIndex < infoReplenish.tasknum;taskIndex++)
@@ -825,8 +822,7 @@ void dispatch_thread()
 		if (tastIndex > -1)
 		{
 #if 0
-			fprintf(stderr, "\n\n\n\n*************任务开始执行 ************ tastIndexIndex = %d taskID = %d*****************\n",
-					tastIndex, list6013[tastIndex].basicInfo.taskID);
+			DbgPrintToFile1(port,"dispatch_thread　taskIndex = %d 任务开始",taskIndex);
 #endif
 			//计算下一次抄读此任务的时间;
 			list6013[tastIndex].ts_next = calcnexttime(list6013[tastIndex].basicInfo.interval,list6013[tastIndex].basicInfo.startime,list6013[tastIndex].basicInfo.delay);
