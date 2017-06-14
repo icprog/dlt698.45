@@ -901,6 +901,8 @@ int main(int argc, char *argv[])
 {
 //	printf("a\n");
 	//return ctrl_base_test();
+	int del_day = 0;
+	TS ts;
 
 	pid_t pids[128];
     struct sigaction sa = {};
@@ -943,6 +945,13 @@ int main(int argc, char *argv[])
 	    struct timeval start={}, end={};
 	    long  interval=0;
 		gettimeofday(&start, NULL);
+		TSGet(&ts);
+		if (ts.Hour==15 && ts.Minute==5 && del_day!=ts.Day)
+		{
+			deloutofdatafile();
+			del_day = ts.Day;
+			asyslog(LOG_INFO,"判断删除过期文件");
+		}
 		DealState(JProgramInfo);
 		gettimeofday(&end, NULL);
 		interval = 1000000*(end.tv_sec - start.tv_sec) + (end.tv_usec - start.tv_usec);
@@ -950,6 +959,8 @@ int main(int argc, char *argv[])
 	    	fprintf(stderr,"deal main interval = %f(ms)\n", interval/1000.0);
 		usleep(10 * 1000);
 		clearcount(ProIndex);
+
+
    	}
 	close_named_sem(SEMNAME_SPI0_0);
 	return EXIT_SUCCESS;//退出

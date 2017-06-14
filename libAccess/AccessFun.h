@@ -310,4 +310,7 @@ extern int collectData(INT8U *databuf,INT8U *srcbuf,OAD_INDEX *oad_offset,ROAD_I
 extern int fillTsaNullData(INT8U *databuf,TSA tsa,ROAD_ITEM item_road);
 extern void intToBuf(int value,INT8U *buf);
 extern INT8U GetTaskidFromCSDs(CSD_ARRAYTYPE csds,ROAD_ITEM *item_road);
+
+extern void deloutofdatafile();//删除过期任务数据文件;
+
 #endif /* ACCESS_H_ */
