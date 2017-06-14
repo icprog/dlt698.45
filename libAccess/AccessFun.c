@@ -1235,8 +1235,6 @@ void GetOADPosofUnit(ROAD_ITEM item_road,HEAD_UNIT *head_unit,INT8U unitnum,OAD_
 				}
 				else
 					datapos += head_unit[j].len;
-
-
 			}
 			else {
 				datapos += head_unit[j].len;
@@ -1613,8 +1611,11 @@ INT16U GetTSACon(MY_MS meters,TSA *tsa_con,INT16U tsa_num)
 }
 /*
  * 根据csds得到任务号
+ * findmethod = 1: 按照csds 的下发实际类型查找
+ * findmethod = 2: 对与road,只查找相关的oad.解决浙江下发的曲线任务为oad,但是主站主动招测下发road 5002-0200(200a-0201.....),
+ * 				   类型不匹配,如果按照oad方式查找,无法查找到实际的任务号
  */
-INT8U GetTaskidFromCSDs(CSD_ARRAYTYPE csds,ROAD_ITEM *item_road)
+INT8U GetTaskidFromCSDs(CSD_ARRAYTYPE csds,ROAD_ITEM *item_road,INT8U findmethod)
 {
 	CLASS_6015	class6015={};
 	CLASS_6013	class6013={};
@@ -1643,7 +1644,6 @@ INT8U GetTaskidFromCSDs(CSD_ARRAYTYPE csds,ROAD_ITEM *item_road)
 			item_road->oad[item_road->oadmr_num].oad_num = 0;//oad类型写为0
 			item_road->oadmr_num++;
 //			asyslog(LOG_INFO,"0000:item_road->oadmr_num=%d\n",item_road->oadmr_num);
-
 			break;
 		case 1:
 			if(csds.csd[i].csd.road.num > ROAD_OADS_NUM)
@@ -1661,6 +1661,8 @@ INT8U GetTaskidFromCSDs(CSD_ARRAYTYPE csds,ROAD_ITEM *item_road)
 		default:break;
 		}
 	}
+
+
 #ifdef SYS_INFO
 	asyslog(LOG_INFO,"任务下发的主-从OI配置：oadmr_num=%d\n",item_road->oadmr_num);
 	for(i=0;i<item_road->oadmr_num;i++){
@@ -1695,8 +1697,30 @@ INT8U GetTaskidFromCSDs(CSD_ARRAYTYPE csds,ROAD_ITEM *item_road)
 							asyslog(LOG_INFO,"mm=%d,oad_r  =%04x_%02x%02x \n",mm,item_road->oad[mm].oad_r.OI,
 										item_road->oad[mm].oad_r.attflg,item_road->oad[mm].oad_r.attrindex);
 #endif
-//							if(item_road->oad[mm].oad_m.OI == 0x0000)//都为oad类型
+							//浙江主站下发曲线任务oad,主动招测曲线数据,下发的oad为5002-*, 与任务的id不一致
+//							if(findmethod == 2) {		//深度查找满足的任务oad
+//						//		if((item_road->oad[mm].oad_m.OI > 0x0000) && (item_road->oad[mm].oad_m.OI < 0x5004))
+//								if(item_road->oad[mm].oad_m.OI > 0x0000)
+//								{
+//									item_road->oad[mm].oad_m.OI = 0x0000;
+//									item_road->oad[mm].oad_m.attflg = 0;
+//									item_road->oad[mm].oad_m.attrindex = 0;
+//									item_road->oad[mm].oad_num = 0;
+//								}
+//							}
+							if(findmethod == 1 && (item_road->oad[mm].oad_m.OI == 0x0000)) 	//深度查找满足的任务oad
 							{
+								if(memcmp(&item_road->oad[mm].oad_r,&class6015.csds.csd[j].csd.oad,sizeof(OAD))==0 ||
+										(item_road->oad[mm].oad_r.OI == class6015.csds.csd[j].csd.oad.OI &&
+												item_road->oad[mm].oad_r.attrindex != 0 &&
+												class6015.csds.csd[j].csd.oad.attrindex == 0)){
+									item_road->oad[mm].taskid = i+1;
+#ifdef SYS_INFO
+									asyslog(LOG_INFO,"taskid find one %d",i+1);
+#endif
+									continue;
+								}
+							}else if(findmethod == 2) {
 								if(memcmp(&item_road->oad[mm].oad_r,&class6015.csds.csd[j].csd.oad,sizeof(OAD))==0 ||
 										(item_road->oad[mm].oad_r.OI == class6015.csds.csd[j].csd.oad.OI &&
 												item_road->oad[mm].oad_r.attrindex != 0 &&
@@ -2038,6 +2062,7 @@ int collectData(INT8U *databuf,INT8U *srcbuf,OAD_INDEX *oad_offset,ROAD_ITEM ite
 //	for(i=0;i<item_road.oadmr_num;i++)
 	{
 		memset(tmpbuf,0x00,256);
+		fprintf(stderr,"item_road.oadmr_num = %d\n",item_road.oadmr_num);
 		for(j=0;j<item_road.oadmr_num;j++)
 		{
 			fprintf(stderr,"\n%04x-%04x--%d\n",item_road.oad[j].oad_m.OI,item_road.oad[j].oad_r.OI,item_road.oad[j].oad_num);
@@ -2628,7 +2653,7 @@ INT16S GUI_GetFreezeData(CSD_ARRAYTYPE csds,TSA tsa,TS ts_zc,INT8U *databuf)
 	if(csds.num>10 || csds.num<=0) return -1;//查询数量不允许超过10
 
 	//根据传入的csds，获取到taskid编号，同时填充item_road
-	taskid = GetTaskidFromCSDs(csds,&item_road);
+	taskid = GetTaskidFromCSDs(csds,&item_road,1);
 	if(taskid<=0)		return -2;
 
 	getTaskFileName(taskid,ts_zc,fname);//得到要抄读的文件名称
@@ -2738,6 +2763,7 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds,INT16U fr
 	FILE *fp = NULL,*myfp = NULL;
 	INT8U 	taskid=0,autoflg=0,recordbuf[1000],onefrmbuf[2000],tmpnull[8];
 	ROAD_ITEM item_road;
+	ROAD_ITEM item_road_2;
 	CURR_RECINFO recinfo;
 	HEAD_UNIT *headunit = NULL;//文件头
 	OAD_INDEX oad_offset[100],oad_offset_can[100];//oad索引
@@ -2749,6 +2775,8 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds,INT16U fr
 	ROAD road_eve;
 	INT8U eveflg=0;
 	MY_MS meters_null;
+	int		findmethod = 0,mm=0;
+
 #ifdef SYS_INFO
 	asyslog(LOG_INFO,"－1－selectype = %d\n",selectype);
 #endif
@@ -2798,9 +2826,15 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds,INT16U fr
 	{
 		asyslog(LOG_INFO,"普通任务采集方案！！\n");
 		memset(&item_road,0,sizeof(item_road));
-		if((taskid = GetTaskidFromCSDs(csds,&item_road)) == 0) {//暂时不支持招测的不在一个采集方案
+		findmethod = 1;
+		if((taskid = GetTaskidFromCSDs(csds,&item_road,findmethod)) == 0) {//暂时不支持招测的不在一个采集方案
 			asyslog(LOG_INFO,"GetTaskData: taskid=%d\n",taskid);
-			return 0;
+			memset(&item_road,0,sizeof(item_road));
+			findmethod = 2;
+			if((taskid = GetTaskidFromCSDs(csds,&item_road,findmethod)) == 0) {
+				asyslog(LOG_INFO," 只比对oad:GetTaskData: taskid=%d\n",taskid);
+				return 0;
+			}
 		}
 		if((taskinfoflg = ReadTaskInfo(taskid,&tasknor_info))==0)//得到任务信息
 		{
@@ -2848,7 +2882,21 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds,INT16U fr
 				headunit[i].oad_r.OI,headunit[i].oad_r.attflg,headunit[i].oad_r.attrindex,headunit[i].len);
 
 	memset(oad_offset,0x00,sizeof(oad_offset));
-	GetOADPosofUnit(item_road,headunit,unitnum,oad_offset);//得到每一个oad在块数据中的偏移
+	if(findmethod==2) {
+		memcpy(&item_road_2,&item_road,sizeof(ROAD_ITEM));
+		for(mm=0;mm<item_road_2.oadmr_num;mm++) {
+			if(item_road_2.oad[mm].oad_m.OI > 0x0000)
+			{
+				item_road_2.oad[mm].oad_m.OI = 0x0000;
+				item_road_2.oad[mm].oad_m.attflg = 0;
+				item_road_2.oad[mm].oad_m.attrindex = 0;
+				item_road_2.oad[mm].oad_num = 0;
+			}
+		}
+		GetOADPosofUnit(item_road_2,headunit,unitnum,oad_offset);//得到每一个oad在块数据中的偏移
+	}else {
+		GetOADPosofUnit(item_road,headunit,unitnum,oad_offset);//得到每一个oad在块数据中的偏移
+	}
 	fprintf(stderr,"\n----------4\n");
 	if(tasknor_info.runtime!=0) 	//异常处理
 		recordlen = blocksize/tasknor_info.runtime;//计算每条记录的字节数
@@ -3037,6 +3085,11 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds,INT16U fr
 			printRecordBytes(recordbuf,recordlen);
 			//7\根据csds挑选数据，组织存储缓存
 			memcpy(oad_offset_can,oad_offset,sizeof(oad_offset));
+			for(i=0;i<13;i++){
+				fprintf(stderr,"oad_m %04x-%02x-%02x",oad_offset_can[i].oad_m.OI,oad_offset_can[i].oad_m.attflg,oad_offset_can[i].oad_m.attrindex);
+				fprintf(stderr,"    oad_r %04x-%02x-%02x",oad_offset_can[i].oad_r.OI,oad_offset_can[i].oad_r.attflg,oad_offset_can[i].oad_r.attrindex);
+				fprintf(stderr,"    len = %d offset=%d\n",oad_offset_can[i].len,oad_offset_can[i].offset);
+			}
 			indexn += collectData(&onefrmbuf[indexn],recordbuf,oad_offset_can,item_road);
 			recordnum++;
 #ifdef SYS_INFO
@@ -3049,6 +3102,7 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds,INT16U fr
 			{
 				framesum++;
 				//8 存储1帧
+				fprintf(stderr,"indexn=%d  recordnum=%d\n",indexn,recordnum);
 				intToBuf((indexn-2),onefrmbuf);		//帧长度保存帧的数据长度
 				onefrmbuf[seqnumindex] = recordnum;
 				saveOneFrame(onefrmbuf,indexn,myfp);

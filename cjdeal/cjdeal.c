@@ -620,7 +620,67 @@ INT8S init4204Info()
 	}
 	return ret;
 }
+INT8U createFakeTaskFileHead()
+{
+	CSD_ARRAYTYPE csds;
+	char	fname[FILENAMELEN]={};
 
+	INT8U taskinfoflg=0;
+	TASKSET_INFO tasknor_info;
+	INT16U headlen=0,unitlen=0,unitnum=0,runtime=0;//runtime执行次数
+
+	INT8U dataContent[DATA_CONTENT_LEN];
+	memset(dataContent,0,DATA_CONTENT_LEN);
+	TS ts_cc;
+	TSGet(&ts_cc);
+	DateTimeBCD startTime;
+	DataTimeGet(&startTime);
+
+	CLASS_6001 meter;
+	memset(&meter,0,sizeof(CLASS_6001));
+	readParaClass(0x6000, &meter, info6000[0].list6001[0]);
+
+	INT8U tIndex;
+	for (tIndex = 0; tIndex < total_tasknum; tIndex++)
+	{
+		if ((list6013[tIndex].basicInfo.cjtype == norm)&&(list6013[tIndex].basicInfo.interval.units < day_units))
+		{
+			memset(dataContent,0,DATA_CONTENT_LEN);
+			taskinfoflg=0;
+			memset(&tasknor_info,0,sizeof(TASKSET_INFO));
+			memset(&csds,0x00,sizeof(ROAD));
+
+			if((taskinfoflg = ReadTaskInfo(list6013[tIndex].basicInfo.taskID,&tasknor_info))==0)
+			{
+				continue;
+			}
+			runtime = tasknor_info.runtime;
+			memcpy(&csds,&tasknor_info.csds,sizeof(CSD_ARRAYTYPE));
+
+			if(taskinfoflg == 2)//月冻结
+			{
+				ts_cc.Day = 0;
+				ts_cc.Hour = 0;
+				ts_cc.Minute = 0;
+				ts_cc.Sec = 0;
+				asyslog(LOG_WARNING, "月冻结存储:%d",ts_cc.Month);
+			}
+
+			getTaskFileName(list6013[tIndex].basicInfo.taskID,ts_cc,fname);
+			CreateSaveHead(fname,NULL,csds,&headlen,&unitlen,&unitnum,runtime,1);//写文件头信息并返回
+			INT16U index = 0;
+			dataContent[index++] = dttsa;
+			memcpy(&dataContent[index],meter.basicinfo.addr.addr,sizeof(TSA));//采集通信地址
+			index += sizeof(TSA);
+			index += fill_date_time_s(&dataContent[index],&startTime);
+			index += fill_date_time_s(&dataContent[index],&startTime);
+			index += fill_date_time_s(&dataContent[index],&startTime);
+
+			SaveNorData(list6013[tIndex].basicInfo.taskID,NULL,dataContent,unitlen/runtime,ts_cc);
+		}
+	}
+	return 1;
+}
 void timeProcess()
 {
 	static TS lastTime;
@@ -666,6 +726,7 @@ void timeProcess()
 			{
 				memset(infoReplenish.unitReplenish[taskIndex].isSuccess,0,2*MAX_METER_NUM_1_PORT);
 			}
+			createFakeTaskFileHead();
 		}
 	}
 }
@@ -901,7 +962,7 @@ int main(int argc, char *argv[])
 {
 //	printf("a\n");
 	//return ctrl_base_test();
-	int del_day = 0;
+	int del_day = 0,del_min = 0;
 	TS ts;
 
 	pid_t pids[128];
@@ -946,10 +1007,11 @@ int main(int argc, char *argv[])
 	    long  interval=0;
 		gettimeofday(&start, NULL);
 		TSGet(&ts);
-		if (ts.Hour==15 && ts.Minute==5 && del_day!=ts.Day)
+		if (ts.Hour==15 && ts.Minute==5 && del_day != ts.Day && del_min != ts.Minute)
 		{
 			deloutofdatafile();
 			del_day = ts.Day;
+			del_min = 0;
 			asyslog(LOG_INFO,"判断删除过期文件");
 		}
 		DealState(JProgramInfo);
