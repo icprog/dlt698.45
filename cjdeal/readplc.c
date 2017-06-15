@@ -39,6 +39,7 @@ extern GUI_PROXY cjguiProxy;
 extern Proxy_Msg* p_Proxy_Msg_Data;//液晶给抄表发送代理处理结构体，指向由guictrl.c配置的全局变量
 extern TASK_CFG list6013[TASK6012_MAX];
 //-----------------------------------------------------------------------------------------------------------------------------------------------------
+
 typedef struct
 {
 	INT8U startIndex; 	//报文中的某数据的起始字节
@@ -104,6 +105,7 @@ MeterCurveDataType meterCurveData[CURVENUM]=
 //	{94, 3, 2, 4, "当前有功需量曲线",	{0xFF,0xFF,0xFF,0xFF}},
 //	{97, 3, 2, 4, "当前无功需量曲线",	{0xFF,0xFF,0xFF,0xFF}},
 };
+
 
 void SendDataToCom(int fd, INT8U *sendbuf, INT16U sendlen)
 {
@@ -536,7 +538,8 @@ int initTsaList(struct Tsa_Node **head)
 void reset_ZB()
 {
 	gpio_writebyte((char *)"/dev/gpoZAIBO_RST", 0);
-	usleep(500*1000);
+//	usleep(500*1000);
+	sleep (1);
 //	sleep(5);
 	gpio_writebyte((char *)"/dev/gpoZAIBO_RST", 1);
 	sleep(10);
@@ -697,6 +700,7 @@ void clearvar(RUNTIME_PLC *runtime_p)
 int doInit(RUNTIME_PLC *runtime_p)
 {
 	static int step_init = 0;
+	static int read_num = 0;
 	int sendlen=0;
 	time_t nowtime = time(NULL);
 	if (runtime_p->initflag == 1)
@@ -709,15 +713,19 @@ int doInit(RUNTIME_PLC *runtime_p)
 			freeList(tsa_zb_head);
 			tsa_head = NULL;
 			tsa_zb_head = NULL;
-			reset_ZB();
 			tsa_count = initTsaList(&tsa_head);
 			tsa_print(tsa_head,tsa_count);
 			system("rm /nand/para/plcrecord.par  /nand/para/plcrecord.bak");
+
 			if (runtime_p->comfd >0)
 				CloseCom( runtime_p->comfd );
+
 			runtime_p->comfd = OpenCom(5, 9600,(unsigned char*)"even",1,8);
+			DbgPrintToFile1(31,"comfd=%d",runtime_p->comfd);
 			runtime_p->initflag = 0;
 			clearvar(runtime_p);//376.2上行内容容器清空，发送计时归零
+			reset_ZB();
+
 			fprintf(stderr,"\n-----------tsacount=%d",tsa_count);
 			if (tsa_count <= 0)
 			{
@@ -725,13 +733,15 @@ int doInit(RUNTIME_PLC *runtime_p)
 				step_init = 0;
 				return NONE_PROCE;
 			}
+			runtime_p->send_start_time = nowtime ;
 			step_init = 1;
+			read_num = 0;
 			break;
 
 		case 1://读取载波信息
 			fprintf(stderr,"\n读取信息状态 nowtime = %ld  runtime_p->send_start_time =%ld",nowtime,runtime_p->send_start_time );
 			fprintf(stderr,"\nruntime_p->format_Up.afn= %02x  runtime_p->format_Up.fn=%d",runtime_p->format_Up.afn,runtime_p->format_Up.fn);
-			if ((nowtime  - runtime_p->send_start_time > 20) &&
+			if ((nowtime  - runtime_p->send_start_time > 60) &&
 				runtime_p->format_Up.afn != 0x03 && runtime_p->format_Up.fn!= 10)
 			{
 				fprintf(stderr,"\n读取载波信息");
@@ -739,6 +749,7 @@ int doInit(RUNTIME_PLC *runtime_p)
 				runtime_p->send_start_time = nowtime ;
 				sendlen = AFN03_F10(&runtime_p->format_Down,runtime_p->sendbuf);//查询载波模块信息
 				SendDataToCom(runtime_p->comfd, runtime_p->sendbuf,sendlen );
+				read_num ++;
 			}else if (runtime_p->format_Up.afn == 0x03 && runtime_p->format_Up.fn == 10)
 			{//返回载波信息
 				fprintf(stderr,"\n返回载波信息");
@@ -746,9 +757,10 @@ int doInit(RUNTIME_PLC *runtime_p)
 				printModelinfo(module_info);
 				clearvar(runtime_p);//376.2上行内容容器清空，发送计时归零
 				step_init = 0;
-				return SLAVE_COMP;
+				return TASK_PROCESS; //INIT_MASTERADDR;
 			}
-			else if  (runtime_p->send_start_time !=0 && (nowtime  - runtime_p->send_start_time)>10)
+			//else if  (runtime_p->send_start_time !=0 && (nowtime  - runtime_p->send_start_time)>10)
+			else if (read_num>=3)
 			{//超时
 				fprintf(stderr,"\n读取载波信息超时");
 				step_init = 0;
@@ -779,7 +791,7 @@ int doSetMasterAddr(RUNTIME_PLC *runtime_p)
 				clearvar(runtime_p);
 				DbgPrintToFile1(31,"\n设置主节点完成");
 
-				return NONE_PROCE;
+				return SLAVE_COMP;
 			}
 			break;
 	}
@@ -801,6 +813,9 @@ int doCompSlaveMeter(RUNTIME_PLC *runtime_p)
 			if ((nowtime  - runtime_p->send_start_time > 20) &&
 				runtime_p->format_Up.afn != 0x10 && runtime_p->format_Up.fn!= 1)
 			{
+				sendlen = AFN12_F2(&runtime_p->format_Down,runtime_p->sendbuf);
+				SendDataToCom(runtime_p->comfd, runtime_p->sendbuf,sendlen );
+				sleep(2);
 				DbgPrintToFile1(31,"读从节点数量");
 				clearvar(runtime_p);//376.2上行内容容器清空，发送计时归零
 				runtime_p->send_start_time = nowtime ;
@@ -894,7 +909,7 @@ int doCompSlaveMeter(RUNTIME_PLC *runtime_p)
 						DbgPrintToFile1(31,"添加判断完成");
 						step_cmpslave = 0;
 						clearvar(runtime_p);
-						return INIT_MASTERADDR;
+						return TASK_PROCESS;
 					}else
 					{
 						nodetmp.tsa = getNextTsa(&currtsa);	//从档案中取一个tsa
@@ -996,7 +1011,8 @@ int Format07(FORMAT07 *Data07,OAD oad1,OAD oad2,TSA tsa)
 	memset(Data07, 0, sizeof(FORMAT07));
 	obj601F_07Flag.protocol = 2;
 	find_07item = OADMap07DI(oad1.OI,oad2,&obj601F_07Flag) ;
-	DbgPrintToFile1(31,"find_07item=%d   %04x %04x    ",find_07item,oad1.OI,oad2.OI);
+	DbgPrintToFile1(31,"find_07item=%d   %04x %04x    07Flg %02x%02x%02x%02x",find_07item,oad1.OI,oad2.OI,
+			obj601F_07Flag.DI._07.DI_1[0][3],obj601F_07Flag.DI._07.DI_1[0][2],obj601F_07Flag.DI._07.DI_1[0][1],obj601F_07Flag.DI._07.DI_1[0][0]);
 	if (find_07item == 1)
 	{
 		Data07->Ctrl = 0x11;
@@ -1997,11 +2013,11 @@ void readplc_thread()
 			case DATE_CHANGE :
 				state = doInit(&runtimevar);					//初始化 		 （ 1、硬件复位 2、模块版本信息查询  ）
 				break;
-			case SLAVE_COMP :
-				state = doCompSlaveMeter(&runtimevar);			//从节点比对    ( 1、测量点比对  )
-				break;
 			case INIT_MASTERADDR:
 				state = doSetMasterAddr(&runtimevar);			//设置主节点地址 ( 1、主节点地址设置  )
+				break;
+			case SLAVE_COMP :
+				state = doCompSlaveMeter(&runtimevar);			//从节点比对    ( 1、测量点比对  )
 				break;
 			case DATA_REAL :
 				state = doProxy(&runtimevar);					//代理		  ( 1、发送代理抄读报文 2、根据超时限定主动退出代理state  ->> oldstate)
