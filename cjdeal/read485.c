@@ -1882,7 +1882,7 @@ INT16S request698_97Data(INT8U* DI97,INT8U* dataContent,CLASS_6001 meter,CLASS_6
  * dir:0-通过698OAD找64507DI 1-通过64507DI找698OAD
  * */
 INT8S OADMap07DI(OI_698 roadOI,OAD sourceOAD, C601F_645* flag645) {
-	fprintf(stderr, "\n CSDMap07DI--------start--------\n");
+	fprintf(stderr, "\n CSDMap07DI--------start------------------------------------------------------\n\n\n");
 	fprintf(stderr, "\n roadOI = %04x sourceOAD = %04x%02x%02x\n",roadOI,sourceOAD.OI,sourceOAD.attflg,sourceOAD.attrindex);
 
 
@@ -1909,6 +1909,9 @@ INT8S OADMap07DI(OI_698 roadOI,OAD sourceOAD, C601F_645* flag645) {
 			}
 			if(flag645->protocol == DLT_645_07)
 			{
+				fprintf(stderr,"\n 找到了对应07数据项　%02x%02x%02x%02x \n",
+						map07DI_698OAD[index].flag07.DI_1[0][0],map07DI_698OAD[index].flag07.DI_1[0][1],
+						map07DI_698OAD[index].flag07.DI_1[0][2],map07DI_698OAD[index].flag07.DI_1[0][3]);
 				memcpy(&flag645->DI._07, &map07DI_698OAD[index].flag07, sizeof(C601F_07Flag));
 				if(sourceOAD.attrindex != 0x00)
 				{
