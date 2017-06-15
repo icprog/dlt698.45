@@ -55,7 +55,7 @@ void Watchdog(int count) //硬件看门狗
 {
     int fd = -1;
 
-    if (count < 2 || count > 20) {
+    if (count < 2 || count > 120) {
         count = 5;
     }
 
@@ -224,6 +224,7 @@ void Checkupdate() {
     FILE *fp_new = 0;
 
     if (access("/dos/cjgwn", 0) == 0) {
+    	Watchdog(60);
         asyslog(LOG_INFO, "检测有升级目录{3}，开始执行升级脚本...");
         system("mkdir /nand/UpFiles");
         system("chmod 777 /dos/cjgwn/index.sh");
@@ -540,7 +541,10 @@ void checkRebootFile() {
     }
 }
 
-int main(int argc, char *argv[]) {
+int main(int argc, char *argv[])
+{
+    struct timeval start={}, end={};
+    long  interval=0;
 
     printf("==================version==================\n");
 //    printf("VERSION : %d\n", GL_VERSION);
@@ -573,9 +577,13 @@ int main(int argc, char *argv[]) {
     Runled(1);
     while (1) {
         sleep(1);
+		gettimeofday(&start, NULL);
 
-        //喂狗
-        Watchdog(5);
+		//喂狗
+		if (access("/dos/cjgwn", 0) == 0) {
+//			asyslog(LOG_INFO, "检测有升级目录，延长喂狗时间...");
+			Watchdog(60);
+		}else Watchdog(5);
 
         if (JProgramInfo->cfg_para.device == CCTT1 || JProgramInfo->cfg_para.device == SPTF3) { //I型集中器，III型专变
             //电池检测掉电关闭设备
@@ -599,6 +607,13 @@ int main(int argc, char *argv[]) {
 
         //检查系统升级文件
         checkRebootFile();
+
+		gettimeofday(&end, NULL);
+
+		interval = 1000000*(end.tv_sec - start.tv_sec) + (end.tv_usec - start.tv_usec);
+	    if(interval>=1000000)
+	    	fprintf(stderr,"main interval = %f(ms)\n", interval/1000.0);
+
     }
 
     exit(1);
