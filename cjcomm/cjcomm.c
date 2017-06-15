@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
+#include <sys/stat.h>
 #include <unistd.h>
 #include <net/if.h>
 #include <netinet/in.h>
@@ -317,7 +318,13 @@ int netWatch(struct aeEventLoop *ep, long long id, void *clientData) {
     }
 
     if (deadline > 2 * 60 * 60) {
-        system("date >> /nand/reboot.log");
+    	struct stat fileInfo;
+    	stat("/nand/reboot.log", &fileInfo);
+     	if (fileInfo.st_size > 256*1000)//超过256K
+    	{
+     		system("date > /nand/reboot.log");
+    	}else
+    		system("date >> /nand/reboot.log");
         sleep(1);
         system("reboot");
     }

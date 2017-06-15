@@ -309,5 +309,8 @@ extern void GetOADPosofUnit(ROAD_ITEM item_road,HEAD_UNIT *head_unit,INT8U unitn
 extern int collectData(INT8U *databuf,INT8U *srcbuf,OAD_INDEX *oad_offset,ROAD_ITEM item_road);
 extern int fillTsaNullData(INT8U *databuf,TSA tsa,ROAD_ITEM item_road);
 extern void intToBuf(int value,INT8U *buf);
-extern INT8U GetTaskidFromCSDs(CSD_ARRAYTYPE csds,ROAD_ITEM *item_road);
+extern INT8U GetTaskidFromCSDs(CSD_ARRAYTYPE csds,ROAD_ITEM *item_road,INT8U findmethod);
+
+extern void deloutofdatafile();//删除过期任务数据文件;
+
 #endif /* ACCESS_H_ */

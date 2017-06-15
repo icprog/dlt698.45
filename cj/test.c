@@ -93,7 +93,7 @@ void bu_report(TS ts1,TS ts2,INT8U retaskid,INT8U *saveflg)
 
 //	extendcsds(class601d.reportdata.data.recorddata.csds,&item_road);
 //	memset(&item_road,0,sizeof(item_road));
-	if((taskid = GetTaskidFromCSDs(class601d.reportdata.data.recorddata.csds,&item_road)) == 0) {//暂时不支持招测的不在一个采集方案
+	if((taskid = GetTaskidFromCSDs(class601d.reportdata.data.recorddata.csds,&item_road,1)) == 0) {//暂时不支持招测的不在一个采集方案
 		system("rm /nand/reportdata");
 		fprintf(stderr,"GetTaskData: taskid=%d\n",taskid);
 		if(tk_fp!=NULL)
@@ -257,6 +257,9 @@ void bu_report(TS ts1,TS ts2,INT8U retaskid,INT8U *saveflg)
 }
 void Test(int argc, char *argv[])
 {
+    if (strcmp("trydel", argv[1]) == 0) {
+    	deloutofdatafile();
+    }
     if (strcmp("savetest", argv[1]) == 0) {
         DateTimeBCD dt;
         PassRate_U passu[3];
