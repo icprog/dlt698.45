@@ -757,7 +757,8 @@ int doInit(RUNTIME_PLC *runtime_p)
 				printModelinfo(module_info);
 				clearvar(runtime_p);//376.2上行内容容器清空，发送计时归零
 				step_init = 0;
-				return TASK_PROCESS; //INIT_MASTERADDR;
+				sleep(1);
+				return INIT_MASTERADDR;
 			}
 			//else if  (runtime_p->send_start_time !=0 && (nowtime  - runtime_p->send_start_time)>10)
 			else if (read_num>=3)
@@ -777,7 +778,28 @@ int doSetMasterAddr(RUNTIME_PLC *runtime_p)
 	time_t nowtime = time(NULL);
 	switch(step_MasterAddr )
 	{
-		case 0:
+		case 0://查询主节点地址
+			if ((nowtime  - runtime_p->send_start_time > 20) &&
+				runtime_p->format_Up.afn != 0x03 && runtime_p->format_Up.fn!= 4)
+			{
+				sendlen = AFN03_F4(&runtime_p->format_Down,runtime_p->sendbuf);
+				SendDataToCom(runtime_p->comfd, runtime_p->sendbuf,sendlen );
+				DbgPrintToFile1(31,"查询主节点地址");
+				clearvar(runtime_p);//376.2上行内容容器清空，发送计时归零
+				runtime_p->send_start_time = nowtime ;
+			}else if(runtime_p->format_Up.afn == 0x03 && runtime_p->format_Up.fn == 4)
+			{//返回从节点数量
+				DbgPrintToFile1(31,"载波模块主节点 ：%02x%02x%02x%02x%02x%02x ",runtime_p->format_Up.afn03_f4_up.MasterPointAddr[0],
+																			 runtime_p->format_Up.afn03_f4_up.MasterPointAddr[1],
+																			 runtime_p->format_Up.afn03_f4_up.MasterPointAddr[2],
+																			 runtime_p->format_Up.afn03_f4_up.MasterPointAddr[3],
+																			 runtime_p->format_Up.afn03_f4_up.MasterPointAddr[4],
+																			 runtime_p->format_Up.afn03_f4_up.MasterPointAddr[5]);
+				step_MasterAddr = 1;
+				clearvar(runtime_p);//376.2上行内容容器清空，发送计时归零
+			}
+			break;
+		case 1:
 			if (nowtime  - runtime_p->send_start_time > 20)
 			{
 				DbgPrintToFile1(31,"\n设置主节点地址 ");
@@ -800,7 +822,7 @@ int doSetMasterAddr(RUNTIME_PLC *runtime_p)
 int doCompSlaveMeter(RUNTIME_PLC *runtime_p)
 {
 	static int step_cmpslave = 0;
-	static int slavenum = 0;
+	static unsigned int slavenum = 0;
 	static int index=0;
 	static struct Tsa_Node *currtsa;//=tsa_zb_head;
 	struct Tsa_Node nodetmp;
@@ -836,26 +858,34 @@ int doCompSlaveMeter(RUNTIME_PLC *runtime_p)
 				runtime_p->format_Up.afn != 0x10 && runtime_p->format_Up.fn!= 2)
 			{
 				DbgPrintToFile1(31,"读从节点信息 %d ",index);
-				sendlen = AFN10_F2(&runtime_p->format_Down,runtime_p->sendbuf,index,26);
+				if (slavenum > 26)
+				{
+					sendlen = AFN10_F2(&runtime_p->format_Down,runtime_p->sendbuf,index,26);
+				}
+				else if(slavenum > 0)
+				{
+					sendlen = AFN10_F2(&runtime_p->format_Down,runtime_p->sendbuf,index,slavenum);
+				}
+
 				SendDataToCom(runtime_p->comfd, runtime_p->sendbuf,sendlen );
 				clearvar(runtime_p);
 				runtime_p->send_start_time = nowtime;
-				index += 26;
 			}else if (runtime_p->format_Up.afn == 0x10 && runtime_p->format_Up.fn == 2)
 			{
 				int replyn = runtime_p->format_Up.afn10_f2_up.ReplyNum;
 				DbgPrintToFile1(31,"返回从节点数量 %d ",replyn);
+				slavenum -= replyn;
+				index += replyn;
 				for(i=0; i<replyn; i++)
 				{
 					addTsaList(&tsa_zb_head,runtime_p->format_Up.afn10_f2_up.SlavePoint[i].Addr);
 				}
 				clearvar(runtime_p);//376.2上行内容容器清空，发送计时归零
-				if (index >= slavenum)
+				if (slavenum==0)
 				{
 					DbgPrintToFile1(31,"读取结束 读%d 个  实际 %d 个",index,slavenum);
 					tsa_print(tsa_zb_head,slavenum);
 					step_cmpslave = 2;//读取结束
-					index = 0;
 					currtsa = tsa_zb_head;
 				}
 			}
@@ -1995,6 +2025,7 @@ void readplc_thread()
 	initTaskData(&taskinfo);
 	PrintTaskInfo2(&taskinfo);
 	DbgPrintToFile1(31,"载波线程开始");
+	runtimevar.format_Down.info_down.ReplyBytes = 0x28;
 
 	while(1)
 	{
