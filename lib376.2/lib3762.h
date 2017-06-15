@@ -27,4 +27,5 @@ extern int AFN12_F3(FORMAT3762 *down,INT8U *sendBuf);
 extern int AFN12_F2(FORMAT3762 *down,INT8U *sendBuf);
 extern int AFN11_F5(FORMAT3762 *down,INT8U *sendBuf,INT8U minute);
 extern int AFN05_F3(FORMAT3762 *down,INT8U moduleFlag, INT8U ctrl, INT8U* sendBuf645, INT8U sendLen645,INT8U *sendBuf);
+extern INT8S AFN03_F4(FORMAT3762 *down,INT8U *sendBuf);
 #endif /* J3762_H_ */
