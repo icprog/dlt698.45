@@ -21,7 +21,7 @@
 #include "cjcomm.h"
 #include "../include/Shmem.h"
 #include "clientOnModel.h"
-
+#include "basedef.h"
 /*
  * 内部协议栈参数
  */
@@ -376,6 +376,11 @@ int checkRecv(int fd, int retry) {
 void *ModelWorker(void *args) {
     CLASS25 *class25 = (CLASS25 *) args;
     int sMux0 = -1;
+    int com = 0;	//I型\III型GPRS打开串口0,II型打开串口5
+
+    ProgramInfo* memp = ClientForModelObject.shmem;
+    if (memp->cfg_para.device == CCTT2)
+    	com = 5;
 
     while (1) {
         gpofun("/dev/gpoCSQ_GREEN", 0);
@@ -390,7 +395,8 @@ void *ModelWorker(void *args) {
         resetModel();
 
         if (GetOnlineType() != 0) { goto wait; }
-        if ((sMux0 = OpenCom(5, 115200, (unsigned char *) "none", 1, 8)) < 0) { goto err; }
+
+        if ((sMux0 = OpenCom(com, 115200, (unsigned char *) "none", 1, 8)) < 0) { goto err; }
         if (SendCommandGetOK(sMux0, 5, "\rat\r") == 0) { goto err; }
         SetGprsStatus(1);
 

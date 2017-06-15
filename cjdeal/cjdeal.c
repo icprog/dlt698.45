@@ -29,6 +29,9 @@
 extern INT32S 			spifp_rn8209;
 extern INT32S 			spifp;
 
+extern INT8S use6013find6015or6017(INT8U cjType,INT16U fanganID,TI interval6013,CLASS_6015* st6015);
+extern INT8U checkMeterType(MY_MS mst,INT8U usrType,TSA usrAddr);
+
 ProgramInfo* JProgramInfo=NULL;
 int ProIndex=0;
 INT8U poweroffon_state = 0; //停上电抄读标志 0无效，1抄读，2抄读完毕
@@ -620,12 +623,107 @@ INT8S init4204Info()
 	}
 	return ret;
 }
+INT8U findfake6001(INT8U tIndex,CLASS_6001* meter)
+{
+	INT8S ret = -1;
+	INT16U meterIndex = 0;
+	CLASS_6015 to6015;	//采集方案集
+	memset(&to6015, 0, sizeof(CLASS_6015));
+	memset(meter,0,sizeof(CLASS_6001));
 
+	ret = use6013find6015or6017(list6013[tIndex].basicInfo.cjtype,list6013[tIndex].basicInfo.sernum,list6013[tIndex].basicInfo.interval,&to6015);
+	if(ret == 1)
+	{
+		INT8U portIndex = 0;
+		for(portIndex = 0;portIndex < 2;portIndex++)
+		{
+			for (meterIndex = 0; meterIndex < info6000[portIndex].meterSum; meterIndex++)
+			{
+				if (readParaClass(0x6000, meter, info6000[portIndex].list6001[meterIndex]) == 1)
+				{
+					if (meter->sernum != 0 && meter->sernum != 0xffff)
+					{
+						if (checkMeterType(to6015.mst, meter->basicinfo.usrtype,meter->basicinfo.addr))
+						{
+							fprintf(stderr,"\n 找到任务对应测量点　%d portIndex = %d meterIndex = %d",meter->sernum,portIndex,meterIndex);
+							return 1;
+						}
+					}
+				}
+			}
+		}
+	}
+	return ret;
+}
+INT8U createFakeTaskFileHead()
+{
+	CSD_ARRAYTYPE csds;
+	char	fname[FILENAMELEN]={};
+
+	INT8U taskinfoflg=0;
+	TASKSET_INFO tasknor_info;
+	INT16U headlen=0,unitlen=0,unitnum=0,runtime=0;//runtime执行次数
+
+	INT8U dataContent[DATA_CONTENT_LEN];
+	memset(dataContent,0,DATA_CONTENT_LEN);
+	TS ts_cc;
+	TSGet(&ts_cc);
+	DateTimeBCD startTime;
+	DataTimeGet(&startTime);
+
+	CLASS_6001 meter;
+	memset(&meter,0,sizeof(CLASS_6001));
+	INT8U tIndex;
+	for (tIndex = 0; tIndex < total_tasknum; tIndex++)
+	{
+		if ((list6013[tIndex].basicInfo.cjtype == norm)&&(list6013[tIndex].basicInfo.interval.units < day_units))
+		{
+			if(findfake6001(tIndex,&meter)==-1)
+			{
+				continue;
+			}
+
+			memset(dataContent,0,DATA_CONTENT_LEN);
+			taskinfoflg=0;
+			memset(&tasknor_info,0,sizeof(TASKSET_INFO));
+			memset(&csds,0x00,sizeof(ROAD));
+
+			if((taskinfoflg = ReadTaskInfo(list6013[tIndex].basicInfo.taskID,&tasknor_info))==0)
+			{
+				continue;
+			}
+			runtime = tasknor_info.runtime;
+			memcpy(&csds,&tasknor_info.csds,sizeof(CSD_ARRAYTYPE));
+
+			if(taskinfoflg == 2)//月冻结
+			{
+				ts_cc.Day = 0;
+				ts_cc.Hour = 0;
+				ts_cc.Minute = 0;
+				ts_cc.Sec = 0;
+				asyslog(LOG_WARNING, "月冻结存储:%d",ts_cc.Month);
+			}
+
+			getTaskFileName(list6013[tIndex].basicInfo.taskID,ts_cc,fname);
+			CreateSaveHead(fname,NULL,csds,&headlen,&unitlen,&unitnum,runtime,1);//写文件头信息并返回
+			INT16U index = 0;
+			dataContent[index++] = dttsa;
+			memcpy(&dataContent[index],meter.basicinfo.addr.addr,sizeof(TSA));//采集通信地址
+			index += sizeof(TSA);
+			index += fill_date_time_s(&dataContent[index],&startTime);
+			index += fill_date_time_s(&dataContent[index],&startTime);
+			index += fill_date_time_s(&dataContent[index],&startTime);
+
+			SaveNorData(list6013[tIndex].basicInfo.taskID,NULL,dataContent,unitlen/runtime,ts_cc);
+		}
+	}
+	return 1;
+}
 void timeProcess()
 {
 	static TS lastTime;
 	static INT8U firstFlag = 1;
-	static INT8U resetFlag = 0;//00:01清理队列中还没完成的任务
+
 	TS nowTime;
 	TSGet(&nowTime);
 
@@ -641,13 +739,6 @@ void timeProcess()
 	}
 	else
 	{
-		if((nowTime.Hour == 23)&&(nowTime.Minute > 55)&&(resetFlag == 1))
-		{
-			para_change485[0] = 1;
-			para_change485[1] = 1;
-
-			resetFlag = 0;
-		}
 		//跨天处理
 		if(lastTime.Day != nowTime.Day)
 		{
@@ -662,13 +753,18 @@ void timeProcess()
 			isReplenishOver[2] = 1;
 			isReplenishOver[3] = 1;
 
-			resetFlag = 1;
+
+			para_change485[0] = 1;
+			para_change485[1] = 1;
+
+
 
 			INT8U taskIndex = 0;
 			for(taskIndex = 0;taskIndex < infoReplenish.tasknum;taskIndex++)
 			{
 				memset(infoReplenish.unitReplenish[taskIndex].isSuccess,0,2*MAX_METER_NUM_1_PORT);
 			}
+			createFakeTaskFileHead();
 		}
 	}
 }
@@ -825,8 +921,7 @@ void dispatch_thread()
 		if (tastIndex > -1)
 		{
 #if 0
-			fprintf(stderr, "\n\n\n\n*************任务开始执行 ************ tastIndexIndex = %d taskID = %d*****************\n",
-					tastIndex, list6013[tastIndex].basicInfo.taskID);
+			DbgPrintToFile1(port,"dispatch_thread　taskIndex = %d 任务开始",taskIndex);
 #endif
 			//计算下一次抄读此任务的时间;
 			list6013[tastIndex].ts_next = calcnexttime(list6013[tastIndex].basicInfo.interval,list6013[tastIndex].basicInfo.startime,list6013[tastIndex].basicInfo.delay);

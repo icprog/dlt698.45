@@ -729,6 +729,7 @@ typedef struct
 	OAD oad1;			//非关联 oad1.OI=0
 	OAD oad2;			//数据项
 	INT8U item07[4];	//07规约
+	DateTimeBCD savetime;//存储时标
 }DATA_ITEM;
 typedef struct
 {

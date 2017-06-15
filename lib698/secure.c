@@ -393,13 +393,13 @@ INT16U getEsamAttribute(OAD oad,INT8U *retBuff)
 	{
 		case 0x02:    //ESAM序列号
 			retBuff[0] = 0x09;//octet-string
-			retBuff[1]=0x08;//长度
+			retBuff[1] = 0x08;//长度
 			memcpy(&retBuff[2],esamInfo.EsamSID,8);
 			retLen=2+8;
 			break;
 		case 0x03:   //ESAM版本号
 			retBuff[0] = 0x09;//octet-string
-			retBuff[1]=0x04;
+			retBuff[1] = 0x04;
 			memcpy(&retBuff[2],esamInfo.EsamVID,4);
 			retLen=2+4;
 			break;
@@ -410,16 +410,16 @@ INT16U getEsamAttribute(OAD oad,INT8U *retBuff)
 			retLen=2+16;
 			break;
 		case 0x05:    //会话时效门限
-			retBuff[0]=0x06;//double-long-unsigned
-			retBuff[1] = 0x04;
+			retBuff[0] = 0x06;//double-long-unsigned
+//			retBuff[1] = 0x04;		//湖南测试招测ESAM信息去掉,该属性为 [类型+数据],不需要长度
 			memcpy(&retBuff[2],esamInfo.SessionTimeHold,4);
-			retLen=2+4;
+			retLen=1+4;//retLen=2+4;
 			break;
 		case 0x06:   //会话时效剩余时间
-			retBuff[0]=0x06;//double-long-unsigned
-			retBuff[1] = 0x04;
+			retBuff[0] = 0x06;//double-long-unsigned
+//			retBuff[1] = 0x04;
 			memcpy(&retBuff[2],esamInfo.SessionTimeLeft,4);
-			retLen=2+4;
+			retLen=1+4;//retLen=2+4;
 			break;
 		case 0x07:    //当前计数器
 			retLen = composeEsamCurrentCounter(oad.attrindex,&esamInfo,retBuff);

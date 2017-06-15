@@ -1314,19 +1314,46 @@ int ProcessMeter(INT8U *buf,struct Tsa_Node *desnode)
 				taskinfo.task_list[taski].fangan.items[i].item07[1] = item07[1];
 				taskinfo.task_list[taski].fangan.items[i].item07[2] = item07[2];
 				taskinfo.task_list[taski].fangan.items[i].item07[3] = item07[3];
+				taskinfo.task_list[taski].fangan.items[i].savetime = timebcd;
 			}
 			taskinfo.now_taski = taski;
 			taskinfo.now_itemi = itemi;
 			PrintTaskInfo2(&taskinfo);
 			DbgPrintToFile1(31,"重新初始化 任务%d 开始时间",taskinfo.task_list[taski].taskId);
 			task_Refresh(&taskinfo.task_list[taski]);
-		}else
+		}else if (tmpitem.oad1.OI == 0x5004)
+		{
+			getTheTime = taskinfo.task_list[taski].beginTime ;
+			timebcd =   timet_bcd(getTheTime);
+			timebcd.hour.data = 0;
+			timebcd.min.data = 0;
+			sendlen = createMeterFrame(desnode, tmpitem, buf, item07);
+			taskinfo.task_list[taski].fangan.items[itemi].item07[0] = item07[0];
+			taskinfo.task_list[taski].fangan.items[itemi].item07[1] = item07[1];
+			taskinfo.task_list[taski].fangan.items[itemi].item07[2] = item07[2];
+			taskinfo.task_list[taski].fangan.items[itemi].item07[3] = item07[3];
+			taskinfo.task_list[taski].fangan.items[itemi].savetime = timebcd;
+
+			taskinfo.now_taski = taski;
+			taskinfo.now_itemi = itemi;
+			taskinfo.task_list[taski].fangan.items[itemi].sucessflg = 1;
+			taskinfo.task_list[taski].fangan.item_i = itemi;
+			PrintTaskInfo2(&taskinfo);
+			if (itemi == taskinfo.task_list[taski].fangan.item_n-1)//最后一个
+			{
+				DbgPrintToFile1(31,"重新初始化 任务%d 开始时间",taskinfo.task_list[taski].taskId);
+				task_Refresh(&taskinfo.task_list[taski]);
+			}
+
+		}
+		else
 		{
 			sendlen = createMeterFrame(desnode, tmpitem, buf, item07);
 			taskinfo.task_list[taski].fangan.items[itemi].item07[0] = item07[0];
 			taskinfo.task_list[taski].fangan.items[itemi].item07[1] = item07[1];
 			taskinfo.task_list[taski].fangan.items[itemi].item07[2] = item07[2];
 			taskinfo.task_list[taski].fangan.items[itemi].item07[3] = item07[3];
+			taskinfo.task_list[taski].fangan.items[itemi].savetime = taskinfo.task_list[taski].begin;
 			taskinfo.now_taski = taski;
 			taskinfo.now_itemi = itemi;
 			taskinfo.task_list[taski].fangan.items[itemi].sucessflg = 1;
@@ -1499,12 +1526,13 @@ int SaveTaskData(FORMAT3762 format_3762_Up,INT8U taskid)
 			{//是当前抄读TSA 数据
 				taski = taskinfo.now_taski;
 				itemi = taskinfo.now_itemi;
-				TimeBCDToTs(taskinfo.task_list[taski].begin,&ts);//ts 为数据存储时间
+//				TimeBCDToTs(taskinfo.task_list[taski].begin,&ts);
+				TimeBCDToTs(taskinfo.task_list[taski].fangan.items[itemi].savetime,&ts);//ts 为数据存储时间
 
 				memcpy(taskFlag,taskinfo.task_list[taski].fangan.items[itemi].item07,4);
 				DbgPrintToFile1(31,"抄读数据项 %02x%02x%02x%02x",taskFlag[0],taskFlag[1],taskFlag[2],taskFlag[3]);
 				DbgPrintToFile1(31,"回码数据项 %02x%02x%02x%02x",frame07.DI[0],frame07.DI[1],frame07.DI[2],frame07.DI[3]);
-
+				DbgPrintToFile1(31,"存储时间 %d -%d -%d  %d:%d:%d",ts.Year,ts.Month,ts.Day,ts.Hour,ts.Minute,ts.Sec);
 				if (memcmp(taskFlag,frame07.DI,4) == 0) //抄读项 与 回码数据项相同
 				{
 					if(memcmp(CurveFlg,taskFlag,4) == 0)//负荷曲线数据项

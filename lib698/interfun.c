@@ -591,7 +591,7 @@ int getOctetstring(INT8U type,INT8U *source,INT8U *tsa)   //9
 	{
 		INT8U num = source[type];//字节数
 		if(num>TSA_LEN) {		//todo: 定义 OCTET_STRING_LEN也会调用该函数
-			fprintf(stderr,"长度越限[%d]  num=%d\n",TSA_LEN,num);
+			asyslog(LOG_ERR,"Octetstring 长度越限[%d]  num=%d\n",TSA_LEN,num);
 			num = TSA_LEN;
 		}
 		memcpy(tsa, &source[type],num+1);
@@ -602,10 +602,12 @@ int getOctetstring(INT8U type,INT8U *source,INT8U *tsa)   //9
 
 int getVisibleString(INT8U *source,INT8U *dest)	//0x0A
 {
-	int	len=VISIBLE_STRING_LEN;
+	int	len=VISIBLE_STRING_LEN-1;
 	if(source[1]<VISIBLE_STRING_LEN) {
 		len = source[1]+1;			// source[0]表示类型，source[1]表示长度，字符串长度加 长度字节本身
-	}else fprintf(stderr,"VisibleString over %d\n",VISIBLE_STRING_LEN);
+	}else {
+		asyslog(LOG_ERR,"VisibleString (%d) over %d\n",(source[1]+1),VISIBLE_STRING_LEN);
+	}
 	memcpy(&dest[0],&source[1],len);
 	return (len+1);			//+1:类型
 }

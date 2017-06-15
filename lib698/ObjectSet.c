@@ -638,16 +638,27 @@ INT16U setclass18(OAD oad,INT8U *data,INT8U *DAR)
 {
 	INT16U index=0;
 	CLASS18	class18={};
+
 	memset(&class18,0,sizeof(CLASS18));
 	readCoverClass(0x18,0,&class18,sizeof(CLASS18),para_vari_save);
+	fprintf(stderr,"oad=%x attflg=%d\n",oad.OI,oad.attflg);
 	switch(oad.attflg) {
 	case 2://文件信息
 		index += getStructure(&data[index],NULL);
-//		index += getVisibleString(&data[index],);
+		index += getVisibleString(&data[index],(INT8U *)&class18.source_file);
+		index += getVisibleString(&data[index],(INT8U *)&class18.dist_file);
+		index += getDouble(&data[index],(INT8U *)&class18.file_size);
+		index += getBitString(1,&data[index],(INT8U *)&class18.file_attr);
+		index += getVisibleString(&data[index],(INT8U *)&class18.file_version);
+		index += getEnum(1,&data[index],(INT8U *)&class18.file_type);
+		fprintf(stderr,"source=%s,dist=%s\n,size-%d,attr=%d,version=%s,file_type=%d\n",
+				&class18.source_file[1],&class18.dist_file[1],class18.file_size,class18.file_attr,&class18.file_version[1],class18.file_type);
 		break;
-	case 4://命令结果
+	case 3://命令结果
+		index += getEnum(1,&data[index],(INT8U *)&class18.cmd_result);
 		break;
 	}
+	*DAR = saveCoverClass(0x18,0,&class18,sizeof(CLASS18),para_vari_save);
 	return index;
 }
 
