@@ -29,7 +29,7 @@
 #define 	LIB_ACCESS_VER 			0x0001
 
 //syslog_info 信息记录标记
-#define		SYS_INFO		1
+//#define		SYS_INFO		1
 
 CLASS_INFO	info={};
 void write_apn(char* apn) {
