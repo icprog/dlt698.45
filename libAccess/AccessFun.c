@@ -2894,7 +2894,8 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds,INT16U fr
 			}
 		}
 		GetOADPosofUnit(item_road_2,headunit,unitnum,oad_offset);//得到每一个oad在块数据中的偏移
-	}else {
+	}else
+	{
 		GetOADPosofUnit(item_road,headunit,unitnum,oad_offset);//得到每一个oad在块数据中的偏移
 	}
 	fprintf(stderr,"\n----------4\n");
@@ -2949,6 +2950,7 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds,INT16U fr
 		return 0;
 	}
 	//3\定位TSA , 返回offset
+	fprintf(stderr,"tsa_num=%d\n",tsa_num);
 	for(i =0; i< tsa_num; i++)
 	{
 		currecord = firecord;//每次切换表地址，当前记录序号赋值第一次的数值
@@ -3085,11 +3087,7 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds,INT16U fr
 			printRecordBytes(recordbuf,recordlen);
 			//7\根据csds挑选数据，组织存储缓存
 			memcpy(oad_offset_can,oad_offset,sizeof(oad_offset));
-			for(i=0;i<13;i++){
-				fprintf(stderr,"oad_m %04x-%02x-%02x",oad_offset_can[i].oad_m.OI,oad_offset_can[i].oad_m.attflg,oad_offset_can[i].oad_m.attrindex);
-				fprintf(stderr,"    oad_r %04x-%02x-%02x",oad_offset_can[i].oad_r.OI,oad_offset_can[i].oad_r.attflg,oad_offset_can[i].oad_r.attrindex);
-				fprintf(stderr,"    len = %d offset=%d\n",oad_offset_can[i].len,oad_offset_can[i].offset);
-			}
+
 			indexn += collectData(&onefrmbuf[indexn],recordbuf,oad_offset_can,item_road);
 			recordnum++;
 #ifdef SYS_INFO
