@@ -865,6 +865,12 @@ int doCompSlaveMeter(RUNTIME_PLC *runtime_p)
 				else if(slavenum > 0)
 				{
 					sendlen = AFN10_F2(&runtime_p->format_Down,runtime_p->sendbuf,index,slavenum);
+				}else
+				{
+					step_cmpslave = 3;
+					clearvar(runtime_p);
+					currtsa = tsa_head;	//删除完成 ,开始第 3 步
+					break;
 				}
 
 				SendDataToCom(runtime_p->comfd, runtime_p->sendbuf,sendlen );
@@ -981,7 +987,7 @@ void Addr_TSA(INT8U *addr,TSA *tsa)
 
 //	memcpy(&tsa->addr[2],addr,6);
 }
-void Echo_Frame(RUNTIME_PLC *runtime_p,INT8U *framebuf,int len)
+int Echo_Frame(RUNTIME_PLC *runtime_p,INT8U *framebuf,int len)
 {
 	int sendlen = 0,flag = 0;
 	if ( len > 1 )
@@ -992,17 +998,18 @@ void Echo_Frame(RUNTIME_PLC *runtime_p,INT8U *framebuf,int len)
 	else if ( len == 1)
 	{
 		flag = 0;
-		fprintf(stderr,"\n失败切表！");
+		fprintf(stderr,"\n失败切表！");//失败切表
 		sleep(2);
 	}else
 	{
 		flag = 1;
-		fprintf(stderr,"\n抄读成功！");
+		fprintf(stderr,"\n抄读成功！");//成功切表
 	}
 	memcpy(runtime_p->format_Down.addr.SourceAddr,runtime_p->masteraddr,6);
 	sendlen = AFN14_F1(&runtime_p->format_Down,runtime_p->sendbuf,runtime_p->format_Up.afn14_f1_up.SlavePointAddr, flag, 0, len, framebuf);
 	SendDataToCom(runtime_p->comfd, runtime_p->sendbuf,sendlen );
 	clearvar(runtime_p);
+	return flag;
 }
 /***********************************************************************
  *  从index指向的bit开始，找到第一个为0的位 返回该位标示的数据项索引
@@ -1607,7 +1614,7 @@ int doTask(RUNTIME_PLC *runtime_p)
 	struct Tsa_Node *nodetmp;
 
 	TSA tsatmp;
-	int sendlen=0;
+	int sendlen=0, flag=0;
 
 	time_t nowtime = time(NULL);
 	if (runtime_p->redo == 1)
@@ -1674,7 +1681,9 @@ int doTask(RUNTIME_PLC *runtime_p)
 				{
 					sendlen = ProcessMeter(buf645,nodetmp);
 				}
-				Echo_Frame( runtime_p,buf645,sendlen);//内部根据sendlen判断抄表 / 切表
+				flag= Echo_Frame( runtime_p,buf645,sendlen);//内部根据sendlen判断抄表 / 切表
+				if (flag==0 || flag == 1)
+					inWaitFlag = 0;
 				runtime_p->send_start_time = nowtime;
 			}else if ( runtime_p->format_Up.afn == 0x06 && runtime_p->format_Up.fn == 2 )//收到返回抄表数据
 			{
