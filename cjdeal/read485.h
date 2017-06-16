@@ -24,7 +24,7 @@
 #define DF07_INFO_BYTES  50
 #define MAXLEN_1LINE  100
 #define CLASS_601F_CFG_FILE "/nor/config/07DI_698OAD.cfg"
-
+#define REPLENISHFILEPATH "/nand/replenish.dat"
 #define PARA_CHANGE_RETVALUE  -1
 
 #define MAX_RETRY_NUM 1 //抄表失败重试次数
@@ -77,7 +77,7 @@ struct mq_attr attr_485_2_task;
 
 INT32S comfd485[2];
 INT8U i485port1;
-INT8U readState;//是否正在处理实时消息
+INT8U readState;//是否正抄停上电事件－抄停上电事件的时候需要暂停正常抄表流程
 INT8U i485port2;
 
 //698 OAD 和 645 07规约 数据标识对应关系

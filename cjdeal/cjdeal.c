@@ -612,6 +612,9 @@ INT8U getParaChangeType()
 
 	return ret;
 }
+/*
+ * 读取终端广播校时参数
+ * */
 INT8S init4204Info()
 {
 	INT8S ret = -1;
@@ -891,6 +894,9 @@ void dispatch_thread()
 			para_change485[0] = 1;
 			para_change485[1] = 1;
 			init6000InfoFrom6000FIle();
+#if 0
+			filewrite(REPLENISHFILEPATH,&infoReplenish,sizeof(Replenish_TaskInfo));
+#endif
 		}
 		if(para_ChangeType&para_4000_chg)
 		{
@@ -902,7 +908,9 @@ void dispatch_thread()
 			para_change485[0] = 1;
 			para_change485[1] = 1;
 			init6013ListFrom6012File();
-
+#if 0
+			filewrite(REPLENISHFILEPATH,&infoReplenish,sizeof(Replenish_TaskInfo));
+#endif
 			system("rm -rf /nand/para/6035");
 		}
 		if(para_ChangeType&para_4204_chg)
@@ -951,6 +959,9 @@ void dispatchTask_proccess()
 	//读取所有任务文件		TODO：参数下发后需要更新内存值
 	init6013ListFrom6012File();
 	init6000InfoFrom6000FIle();
+#if 0
+	fileread(REPLENISHFILEPATH,&infoReplenish,sizeof(Replenish_TaskInfo));
+#endif
 	init4204Info();
 #ifdef TESTDEF
 	fprintf(stderr,"\n补抄内容:\n");
