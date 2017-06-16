@@ -316,6 +316,7 @@ typedef struct {
     DateTimeBCD startime;  //开始时间
     DateTimeBCD endtime;   //结束时间
     TI delay;              //延时
+    INT8U priotype;			//优先级的类型描述，区别勘误
     INT8U runprio;         //执行优先级
     INT8U state;           //任务状态
     INT16U befscript;      //任务开始前脚本  //long unsigned

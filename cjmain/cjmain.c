@@ -612,7 +612,7 @@ int main(int argc, char *argv[])
 
 		interval = 1000000*(end.tv_sec - start.tv_sec) + (end.tv_usec - start.tv_usec);
 	    if(interval>=1000000)
-	    	fprintf(stderr,"main interval = %f(ms)\n", interval/1000.0);
+	    	asyslog(LOG_NOTICE,"main interval = %f(ms)\n", interval/1000.0);
 
     }
 

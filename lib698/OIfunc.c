@@ -171,7 +171,11 @@ int Get_6013(INT8U type,INT8U taskid,INT8U *data)
 		index += fill_date_time_s(&data[index],&task.startime);		//开始时间
 		index += fill_date_time_s(&data[index],&task.endtime);		//结束时间
 		index += fill_TI(&data[index],task.delay);				//延时
-		index += fill_enum(&data[index],task.runprio);			//执行优先级
+		if(task.priotype==dtenum) {
+			index += fill_enum(&data[index],task.runprio);			//执行优先级
+		}else if(task.priotype==dtunsigned) {
+			index += fill_unsigned(&data[index],task.runprio);		//执行优先级
+		}
 		index += fill_enum(&data[index],task.state);			//任务状态
 		index += fill_long_unsigned(&data[index],task.befscript); //任务开始前脚本
 		index += fill_long_unsigned(&data[index],task.aftscript); //任务完成后脚本

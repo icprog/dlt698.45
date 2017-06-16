@@ -538,7 +538,8 @@ void AddEventCjiFangAnInfo(INT8U *data, Action_result *act_ret) {
 //	act_ret->datalen = index;
 }
 
-void AddTaskInfo(INT8U *data, Action_result *act_ret) {
+void AddTaskInfo(INT8U *data, Action_result *act_ret)
+{
     act_ret->DAR = success;
     CLASS_6013 task = {};
     int k = 0, index = 0;
@@ -557,7 +558,13 @@ void AddTaskInfo(INT8U *data, Action_result *act_ret) {
         index += getDateTimeS(1, &dealdata[index], (INT8U *) &task.startime);
         index += getDateTimeS(1, &dealdata[index], (INT8U *) &task.endtime);
         index += getTI(1, &dealdata[index], &task.delay);
-        index += getEnum(1, &dealdata[index], &task.runprio);
+        if(dealdata[index] == dtenum) {
+        	task.priotype = dtenum;
+        	index += getEnum(1, &dealdata[index], &task.runprio);
+        }else if(dealdata[index] == dtunsigned) {
+        	task.priotype = dtunsigned;
+        	index += getEnum(1, &dealdata[index], &task.runprio);
+        }
         index += getEnum(1, &dealdata[index], &task.state);
         index += getLongUnsigned(&dealdata[index], (INT8U *) &task.befscript);
         index += getLongUnsigned(&dealdata[index], (INT8U *) &task.aftscript);
