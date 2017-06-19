@@ -3157,7 +3157,7 @@ INT8S checkBroadCast(INT8U port485)
 	return ret;
 }
 
-//处理代理等实时请求-
+//处理代理抄读停上实时请求-
 INT8S dealRealTimeRequst(INT8U port485)
 {
 	INT8S result = 0;
@@ -3167,6 +3167,7 @@ INT8S dealRealTimeRequst(INT8U port485)
 		DbgPrintToFile1(port485,"\n 另一个线程正在处理消息 dealRealTimeRequst \n");
 		sleep(1);
 	}
+	//处理代理
 	result = dealProxyQueue(port485);
 
 	//fprintf(stderr,"\n poweroffon_state = %d",poweroffon_state);
@@ -4516,7 +4517,7 @@ void read485_thread(void* i485port) {
 	fprintf(stderr, "\n port = %d", port);
 
 
-#ifdef TESTDEF1
+#ifdef TESTDEF1 //这部分是设置新的698表地址用的
 	INT8S result = getComfdBy6001(3,2);
 	if(result != 1)
 	{
@@ -4621,7 +4622,14 @@ void read485_thread(void* i485port) {
 			DbgPrintToFile1(port,"****************taskIndex = %d 任务结束 发送报文数量：%d  接受报文数量：%d*******************************",
 					taskIndex,result6035.sendMsgNum,result6035.rcvMsgNum);
 			saveClass6035(&result6035);
-
+#if 0//抄完日冻结任务需要把infoReplenish　保存到文件里　保证重启后补抄不用全部都抄
+			//日冻结任务
+			if(to6015.csds.csd[0].csd.road.oad.OI == 0x5004)
+			{
+				//保存需要补抄的数据到文件
+				filewrite(REPLENISHFILEPATH,&infoReplenish,sizeof(Replenish_TaskInfo));
+			}
+#endif
 			//判断485故障事件
 			if((result6035.sendMsgNum > 0)&&(result6035.rcvMsgNum==0))
 			{
@@ -4652,6 +4660,10 @@ void read485_thread(void* i485port) {
 	sleep(1);
 
 }
+/*
+ * 读取CLASS_601F_CFG_FILE "/nor/config/07DI_698OAD.cfg" map07DI_698OAD
+ * 将698-07-97 数据标识对应关系放到map07DI_698OAD
+ * */
 INT8U initMap07DI_698OAD()
 {
 	map07DI_698OAD_NUM = 0;
@@ -4790,10 +4802,14 @@ INT8U initMap07DI_698OAD()
 
 void read485_proccess() {
 
+	/*
+	 * 初始化698-07-97数据对应关系结构体map07DI_698OAD
+	 * */
 	map07DI_698OAD_NUM = initMap07DI_698OAD();
 
 	i485port1 = 1;
 	i485port2 = 2;
+	//comfd-存放打开串口fd
 	comfd485[0] = -1;
 	comfd485[1] = -1;
 	readState = 0;

@@ -50,18 +50,20 @@ typedef struct
 
 INFO_6001_LIST info6000[2];//两路485
 
-
+/*补抄相关结构体*/
+INT16U replenishTime[4];
+INT8U isReplenishOver[4];//00:30 01:00 01:30 02:00
 typedef struct
 {
 	INT8U taskID;
-	INFO_6001_LIST list6001[2];//测量点序号
+	INFO_6001_LIST list6001[2];//测量点序号-两路485
 	INT8U isSuccess[2][MAX_METER_NUM_1_PORT];//此任务此测量点是否抄读成功
 }Replenish_TaskInfoUnit;
 
 typedef struct
 {
-	INT8U tasknum;
-	Replenish_TaskInfoUnit unitReplenish[MAX_REPLENISH_TASK_NUM];
+	INT8U tasknum;//有多少个任务需要补抄
+	Replenish_TaskInfoUnit unitReplenish[MAX_REPLENISH_TASK_NUM];//需要补抄的任务详细信息
 }Replenish_TaskInfo;
 
 Replenish_TaskInfo infoReplenish;
@@ -77,9 +79,7 @@ pthread_t thread_dispatchTask;
 
 mqd_t mqd_485_main;//接受点抄的消息队列
 
-//补抄结构体
-INT16U replenishTime[4];
-INT8U isReplenishOver[4];//00:30 01:00 01:30 02:00
+
 //保存代理召测信息的结构体
 typedef struct
 {
