@@ -157,7 +157,7 @@ INT16S composeProtocol07(FORMAT07* format07, INT8U* sendBuf)
 		int32u2bcd(format07->Time[2], &sendBuf[12], inverted);
 		int32u2bcd(format07->Time[3], &sendBuf[13], inverted);
 		int32u2bcd(format07->Time[4], &sendBuf[14], inverted);
-		int32u2bcd(format07->Time[5], &sendBuf[15], inverted);
+		int32u2bcd(format07->Time[5]%100, &sendBuf[15], inverted);
 
 		for (i=10; i<16; i++)
 		{
@@ -168,6 +168,30 @@ INT16S composeProtocol07(FORMAT07* format07, INT8U* sendBuf)
 		sendBuf[17] = 0x16;
 
 		return 18;
+	}else if (format07->Ctrl == 0xff)//读负荷曲线
+	{
+		sendBuf[0] = 0x68;
+		memcpy(&sendBuf[1], format07->Addr, 6);//地址
+		sendBuf[7] = 0x68;
+		sendBuf[8] = 0x11;
+		sendBuf[9] = 10;//长度
+		memcpy(&sendBuf[10], format07->DI, 4);//数据标识
+		sendBuf[14] = format07->sections;
+		sendBuf[15] = format07->startMinute;
+		sendBuf[16] = format07->startHour;
+		sendBuf[17] = format07->startDay;
+		sendBuf[18] = format07->startMonth;
+		sendBuf[19] = format07->startYear;
+
+		for (i=10; i<20; i++)
+		{
+			sendBuf[i] += 0x33;
+		}
+
+		sendBuf[20] = getCS645(&sendBuf[0], 20);
+		sendBuf[21] = 0x16;
+
+		return 22;
 	}
 	return -1;
 }

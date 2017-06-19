@@ -66,6 +66,9 @@ int StartClientForGprs(struct aeEventLoop *ep, long long id, void *clientData);
 
 void ClientForGprsDestory(void);
 
+
+CommBlock *getComBlockForModel();
+
 //消息队列通信接口
 void MmqDestory(void);
 
@@ -100,5 +103,6 @@ void RegularAutoTask(struct aeEventLoop *ep, CommBlock *nst);
 
 //内部协议栈
 void CreateOnModel(void *clientdata);
+int StartPowerOff(struct aeEventLoop *ep, long long id, void *clientData);
 
 #endif

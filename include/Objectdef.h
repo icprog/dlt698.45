@@ -28,8 +28,14 @@ typedef struct {
 
 typedef struct {
     INT8U logic_name[OCTET_STRING_LEN]; //逻辑名
-    INT16U device_num;                  //设备对象数量
-} CLASS22;                              //输入输出设备接口类
+    char  source_file[VISIBLE_STRING_LEN];	//源文件
+    char  dist_file[VISIBLE_STRING_LEN];	//目标文件
+    INT32U	file_size;						//文件大小
+    INT8U	file_attr;						//文件属性 bit0:读(1:可读,0:不可读),bit1:写,bit2:执行
+    char   file_version[VISIBLE_STRING_LEN];	//文件版本
+    FILE_Type	file_type;					//文件类别
+    INT8U   cmd_result;						//命令结果:最近一次传输或执行结果的状态信息,具体见规约定义
+} CLASS18; //文件传输接口类                             //输入输出设备接口类
 
 typedef struct {
     char factoryCode[4];    //厂商代码
@@ -51,6 +57,11 @@ typedef struct {
     INT8U active_report;              //是否允许主动上报
     INT8U talk_master;                //是否允许与主站通话
 } CLASS19;                            //设备管理接口类
+
+typedef struct {
+    INT8U logic_name[OCTET_STRING_LEN]; //逻辑名
+    INT16U device_num;                  //设备对象数量
+} CLASS22;                              //输入输出设备接口类
 
 typedef struct {
     INT8U workModel;                    //工作模式 enum{混合模式(0),客户机模式(1),服务器模式(2)},
@@ -718,14 +729,18 @@ typedef struct
 	OAD oad1;			//非关联 oad1.OI=0
 	OAD oad2;			//数据项
 	INT8U item07[4];	//07规约
+	DateTimeBCD savetime;//存储时标
 }DATA_ITEM;
 typedef struct
 {
 	INT8U type;							//方案类型
 	INT8U No;							//方案编号
-	DATA_ITEM items[20 ];				//数据项数组
+	DATA_ITEM items[20];				//数据项数组
 	INT8U item_n;						//数据项总数 < FANGAN_ITEM_MAX
 	INT8U item_i;//当前抄的数据项序号
+	INT8U cjtype;		//采集类型	0：采集当前	1：采集上N次   2:按冻结时标采集		3：按时标间隔采集
+	INT8U N;			//							上N次
+	TI ti;				//按时标间隔采集
 }CJ_FANGAN;
 
 typedef struct
@@ -735,13 +750,14 @@ typedef struct
 	time_t endTime;						//结束时间
 	DateTimeBCD begin;
 	DateTimeBCD end;
+	TI ti;		  //任务执行频率
 	INT8U leve;							//优先级别
 	CJ_FANGAN fangan;					//采集方案
 }TASK_UNIT;
 
 typedef struct
 {
-	TASK_UNIT task_list[10];			//任务数组
+	TASK_UNIT task_list[20];			//任务数组
 	int task_n;							//任务个数  < TASK_MAXNUM
 	TSA tsa;							//表地址
 	int tsa_index;						//表序号

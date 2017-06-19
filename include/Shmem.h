@@ -343,12 +343,16 @@ typedef struct{
 	INT8U  	PLC_status;				//0、空闲 1、载波初始化 2、载波正在抄表中 	3、正在同步档案 4、正在搜表中
 	INT32U 	ac_chip_type; 			//==0x820900:	RN8029芯片，II型集中器	//==1： ATT7022D-E芯片 	//==0x7022E0:	ATT7022E-D芯片
 	INT32U	WireType;				//接线方式，0x1200：三相三，0x0600：三相四
+	Flow_tj realTimeC2200;			//事实通信流量
+	INT8U Esam_VersionStatus;		//ESAM芯片对称密钥版本状态=0，测试版本。=1正式版本
 }Terminal_Dev_Info;
 
 typedef struct {
 	INT8U	device;			//设备类型，1：I型集中器，2:II型集中器，3：III型专变
 	char	zone[32];		//地区
 	INT8U	extpara[128];	//预留参数
+	/*extpara[0]:cj report文件保存成功后,通知cjcomm补数上送
+	 * */
 }ConfigPara;
 
 typedef struct {

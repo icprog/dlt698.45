@@ -1204,6 +1204,7 @@ INT8U Get_meter_powoffon(ProgramInfo* prginfo_event,MeterPower *MeterPowerInfo,
  * 终端停/上电事件5-停电事件-放在交采模块
  */
 INT8U Event_3106(ProgramInfo* prginfo_event,MeterPower *MeterPowerInfo,INT8U *state) {
+	BOOLEAN gpio_5V = 0;
 	if(oi_chg.oi3106 != prginfo_event->oi_changed.oi3106){
 	    readCoverClass(0x3106,0,&prginfo_event->event_obj.Event3106_obj,sizeof(prginfo_event->event_obj.Event3106_obj),event_para_save);
 		oi_chg.oi3106 = prginfo_event->oi_changed.oi3106;
@@ -1211,7 +1212,7 @@ INT8U Event_3106(ProgramInfo* prginfo_event,MeterPower *MeterPowerInfo,INT8U *st
 	if (prginfo_event->event_obj.Event3106_obj.event_obj.enableflag == 0) {
 		return 0;
 	}
-	BOOLEAN gpio_5V=pwr_has();
+
 	time_t time_of_now;
 	time_of_now = time(NULL);
 	INT8U flag = 0;
@@ -1229,12 +1230,13 @@ INT8U Event_3106(ProgramInfo* prginfo_event,MeterPower *MeterPowerInfo,INT8U *st
 	//判断下电
 	if(TermialPowerInfo.ERC3106State == POWER_START){
 		if(prginfo_event->cfg_para.device == CCTT2){//II型
-			if(((prginfo_event->ACSRealData.Available==TRUE)
-							&&(prginfo_event->ACSRealData.Ua>100
-									&& prginfo_event->ACSRealData.Ua<poweroff_happen_vlim)) ||
-					(prginfo_event->ACSRealData.Ua <=100))
-				off_flag=1;
+//			if(((prginfo_event->ACSRealData.Available==TRUE)
+//							&&(prginfo_event->ACSRealData.Ua>100
+//									&& prginfo_event->ACSRealData.Ua<poweroff_happen_vlim)) ||
+//					(prginfo_event->ACSRealData.Ua <=100))
+			off_flag=pwr_has_byVolt(prginfo_event->ACSRealData.Available,prginfo_event->ACSRealData.Ua,poweroff_happen_vlim);
 		}else{
+			BOOLEAN gpio_5V=pwr_has();
 			if((((prginfo_event->ACSRealData.Ua<poweroff_happen_vlim)&&(prginfo_event->ACSRealData.Ub<poweroff_happen_vlim)
 									&&(prginfo_event->ACSRealData.Uc<poweroff_happen_vlim))&&((prginfo_event->ACSRealData.Ua|prginfo_event->ACSRealData.Ub|prginfo_event->ACSRealData.Uc)>0)&&gpio_5V)
 									||((prginfo_event->ACSRealData.Available == TRUE&&prginfo_event->ACSRealData.Ua==0&&prginfo_event->ACSRealData.Ua<poweroff_happen_vlim)
@@ -1923,11 +1925,13 @@ INT8U Event_3110(INT32U data,INT8U len,ProgramInfo* prginfo_event) {
 		readCoverClass(0x3110,0,&prginfo_event->event_obj.Event3110_obj,sizeof(prginfo_event->event_obj.Event3110_obj),event_para_save);
 		oi_chg.oi3110 = prginfo_event->oi_changed.oi3110;
 	}
+	fprintf(stderr,"[Event3110]enableflag=%d \n",prginfo_event->event_obj.Event3110_obj.event_obj.enableflag);
     if (prginfo_event->event_obj.Event3110_obj.event_obj.enableflag == 0) {
         return 0;
     }
     static INT8U flag=0;
     INT32U offset=prginfo_event->event_obj.Event3110_obj.Monthtrans_obj.month_offset;
+    fprintf(stderr,"Event3110:data=%d offset=%d \n",data,offset);
     //通信处判断还是这里判断 TODO
     if(data>offset){
     	if(flag==0){

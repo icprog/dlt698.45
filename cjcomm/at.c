@@ -245,8 +245,11 @@ void AT_POWOFF() {
     system("ppp-off");
     absoluteKill("ftpget", 15);
     absoluteKill("gsmMuxd", 15);
-    sleep(3);
     gpofun("/dev/gpoGPRS_POWER", 0);
+    SetGprsStatus(0);
+    SetGprsCSQ(0);
+    SetWireLessType(0);
+    SetPPPDStatus(0);
 }
 
 // 可打印字符串转换为字节数据
@@ -501,9 +504,35 @@ void *ATWorker(void *args) {
     int sMux0 = -1;
     int sMux1 = -1;
 
+    int atCounts = 0;
+
     while (1) {
         if (GetOnlineType() != 0) {
             goto wait;
+        }
+
+        if(atCounts > 15) {
+            atCounts = 0;
+            asyslog(LOG_ALERT, "发现15次拨号不成功，开始异常处理...");
+            asyslog(LOG_ALERT, "关闭模块电源(30秒)...");
+            gpofun("/dev/gpoGPRS_POWER", 0);
+            sleep(30);
+            asyslog(LOG_ALERT, "清除在线状态指示...");
+            gpofun("/dev/gpoCSQ_GREEN", 0);
+            gpofun("/dev/gpoCSQ_RED", 0);
+            gpofun("/dev/gpoONLINE_LED", 0);
+
+            SetGprsStatus(0);
+            SetGprsCSQ(0);
+            SetWireLessType(0);
+            SetPPPDStatus(0);
+            sleep(5);
+
+            asyslog(LOG_ALERT, "关闭pppd、gsmMux...(可能会耗时5分钟)");
+            system("ppp-off");
+            absoluteKill("gsmMuxd", 60 * 5);
+            sleep(10);
+            asyslog(LOG_ALERT, "清理完毕，回到正常拨号流程...");
         }
 
         /*
@@ -612,7 +641,9 @@ void *ATWorker(void *args) {
             RecieveFromComm(Mrecvbuf, 128, sMux0);
 
             int k, l, m;
-            if (sscanf(Mrecvbuf, "%*[^:]: %d,%d,%d", &k, &l, &m) == 3) {
+//            if (sscanf(Mrecvbuf, "%*[^:]: %d,%d,%d", &k, &l, &m) == 3) {
+            if (sscanf(Mrecvbuf, "%*[^:]: %d,%d%*[^]", &k, &l) == 2) {	//接收到AT命令:AT$MYTYPE?$MYTYPE: 03,3F,00OK
+            	fprintf(stderr,"k=%x,l=%x,m=%x",k,l,m);
                 if ((l & 0x01) == 1) {
                     asyslog(LOG_INFO, "远程通信单元类型为GPRS。\n");
                     break;
@@ -743,16 +774,26 @@ void *ATWorker(void *args) {
             sleep(1);
             if (tryifconfig(class25) == 1) {
                 //拨号成功，存储参数，以备召唤
+                CLASS25 class25_temp;
+                readCoverClass(0x4500, 0, &class25_temp, sizeof(CLASS25), para_vari_save);
+                fprintf(stderr, "刷新4500数据（2）");
+                memcpy(class25_temp.ccid, class25->ccid , sizeof(32));
+                class25_temp.signalStrength = class25->signalStrength;
                 SetPPPDStatus(1);
-                saveCoverClass(0x4500, 0, class25, sizeof(CLASS25), para_vari_save);
+                saveCoverClass(0x4500, 0, &class25_temp, sizeof(CLASS25), para_vari_save);
                 break;
             }
         }
-        sleep(20);
+        sleep(30);
 
         wait:
         //等待在线状态为“否”，重新拨号
         while (1) {
+            if (GetOnlineType() == 0) {
+                goto err;
+            }
+
+            atCounts = 0;
             static int step = 0;
             if (step % 60 == 0) {
                 checkSms(sMux1);
@@ -760,15 +801,13 @@ void *ATWorker(void *args) {
             }
             step++;
             sleep(1);
-            if (GetOnlineType() == 0) {
-                goto err;
-            }
         }
 
         err:
         sleep(1);
         close(sMux0);
         close(sMux1);
+        atCounts++;
         continue;
     }
 

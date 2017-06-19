@@ -47,13 +47,27 @@ void MmqRead(struct aeEventLoop *eventLoop, int fd, void *clientData, int mask) 
         asyslog(LOG_WARNING, "当前无通道在线，收到代理消息[%d]", headBuf.cmd);
         return;
     }
-    CommBlock *nst = (GetOnlineType() == 1) ? GetComBlockForGprs() : GetComBlockForNet();
-    switch (headBuf.cmd){
+
+    CommBlock *nst = NULL;
+
+    switch (GetOnlineType()) {
+        case 1:
+            nst = GetComBlockForGprs();
+            break;
+        case 2:
+            nst = GetComBlockForNet();
+            break;
+        case 3:
+            nst = getComBlockForModel();
+            break;
+    }
+    asyslog(LOG_INFO, "获取到nst，开始回复代理数据");
+    switch (headBuf.cmd) {
         case TERMINALPROXY_RESPONSE:
             ProxyListResponse((PROXY_GETLIST *) getBuf, nst);
             break;
         case TERMINALEVENT_REPORT :
-            Report_Event(nst, getBuf, 2);
+            Report_Event(nst, getBuf, 2, 1);
             break;
         case METEREVENT_REPORT:
             callEventAutoReport(nst, getBuf, headBuf.bufsiz);
@@ -66,13 +80,53 @@ void MmqRead(struct aeEventLoop *eventLoop, int fd, void *clientData, int mask) 
  * 模块维护循环
  */
 int RegularMmq(struct aeEventLoop *ep, long long id, void *clientData) {
+    //获取当前的上线通道
+    if (GetOnlineType() == 0) {
+        asyslog(LOG_WARNING, "当前无通道在线, 不开启消息监听");
+        close(mmqd);
+        mmqd = -1;
+        return 5000;
+    }
+
     if (mmqd < 0) {
         mmqd = mmq_open(PROXY_NET_MQ_NAME, &mmqAttr, O_RDONLY);
-        if (mmqd >= 0) {
-            aeCreateFileEvent(ep, mmqd, AE_READABLE, MmqRead, clientData);
-        } else {
+        if (mmqd <= 0) {
             asyslog(LOG_ERR, "消息队列监听建立失败，1分钟后重建");
             return 60 * 1000;
+        }
+    } else {
+        INT8U getBuf[MAXSIZ_PROXY_NET];
+        mmq_head headBuf;
+        int res = mmq_get(mmqd, 1, &headBuf, getBuf);
+        if (res <= 0) {
+            return 1000;
+        }
+        asyslog(LOG_INFO, "收到代理消息，返回(%d)，类型(%d)", res, headBuf.cmd);
+
+        CommBlock *nst = NULL;
+
+        switch (GetOnlineType()) {
+            case 1:
+                nst = GetComBlockForGprs();
+                break;
+            case 2:
+                nst = GetComBlockForNet();
+                break;
+            case 3:
+                nst = getComBlockForModel();
+                break;
+        }
+        asyslog(LOG_INFO, "获取到nst，开始回复代理数据");
+        switch (headBuf.cmd) {
+            case TERMINALPROXY_RESPONSE:
+                ProxyListResponse((PROXY_GETLIST *) getBuf, nst);
+                break;
+            case TERMINALEVENT_REPORT :
+                Report_Event(nst, getBuf, 2, 1);
+                break;
+            case METEREVENT_REPORT:
+                callEventAutoReport(nst, getBuf, headBuf.bufsiz);
+                break;
         }
     }
     return 1000;

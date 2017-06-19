@@ -393,13 +393,13 @@ INT16U getEsamAttribute(OAD oad,INT8U *retBuff)
 	{
 		case 0x02:    //ESAM序列号
 			retBuff[0] = 0x09;//octet-string
-			retBuff[1]=0x08;//长度
+			retBuff[1] = 0x08;//长度
 			memcpy(&retBuff[2],esamInfo.EsamSID,8);
 			retLen=2+8;
 			break;
 		case 0x03:   //ESAM版本号
 			retBuff[0] = 0x09;//octet-string
-			retBuff[1]=0x04;
+			retBuff[1] = 0x04;
 			memcpy(&retBuff[2],esamInfo.EsamVID,4);
 			retLen=2+4;
 			break;
@@ -410,16 +410,16 @@ INT16U getEsamAttribute(OAD oad,INT8U *retBuff)
 			retLen=2+16;
 			break;
 		case 0x05:    //会话时效门限
-			retBuff[0]=0x06;//double-long-unsigned
-			retBuff[1] = 0x04;
+			retBuff[0] = 0x06;//double-long-unsigned
+//			retBuff[1] = 0x04;		//湖南测试招测ESAM信息去掉,该属性为 [类型+数据],不需要长度
 			memcpy(&retBuff[2],esamInfo.SessionTimeHold,4);
-			retLen=2+4;
+			retLen=1+4;//retLen=2+4;
 			break;
 		case 0x06:   //会话时效剩余时间
-			retBuff[0]=0x06;//double-long-unsigned
-			retBuff[1] = 0x04;
+			retBuff[0] = 0x06;//double-long-unsigned
+//			retBuff[1] = 0x04;
 			memcpy(&retBuff[2],esamInfo.SessionTimeLeft,4);
-			retLen=2+4;
+			retLen=1+4;//retLen=2+4;
 			break;
 		case 0x07:    //当前计数器
 			retLen = composeEsamCurrentCounter(oad.attrindex,&esamInfo,retBuff);
@@ -445,6 +445,19 @@ INT16U getEsamAttribute(OAD oad,INT8U *retBuff)
 			break;
 	}
 	return retLen;
+}
+//每次进行密钥更新时，需要再读一下芯片信息，更新共享内存中Esam_VersionStatus状态，涉及液晶小房子
+INT8S esam_UpdateShmemStatus()
+{
+	INT32S retLen=0;
+	EsamInfo esamInfo;
+	INT8U i=0;
+	memset(&esamInfo,0,sizeof(EsamInfo));
+	retLen = Esam_GetTermiInfo(&esamInfo);
+	if(retLen<0) return -1;
+	for(i=0;i<16;i++)
+		if(esamInfo.SecretKeyVersion[i]!=0x00) return 1;//测试芯片16字节全为0
+	return 0;
 }
 //esam方法操作7，秘钥更新（02 02 09 82 00 C0 7F CA 75。。。。）
 //输入：Data2为原始报文头，包括真个秘钥更新的结构体  02结构体 02 2个元素 09 octetstring 82 可变2个字节 00 C0长度字节 7F CA 75。。。。

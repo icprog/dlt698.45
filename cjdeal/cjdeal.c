@@ -29,6 +29,9 @@
 extern INT32S 			spifp_rn8209;
 extern INT32S 			spifp;
 
+extern INT8S use6013find6015or6017(INT8U cjType,INT16U fanganID,TI interval6013,CLASS_6015* st6015);
+extern INT8U checkMeterType(MY_MS mst,INT8U usrType,TSA usrAddr);
+
 ProgramInfo* JProgramInfo=NULL;
 int ProIndex=0;
 INT8U poweroffon_state = 0; //停上电抄读标志 0无效，1抄读，2抄读完毕
@@ -54,6 +57,8 @@ void QuitProcess()
  * 清死亡计数
  */
 void clearcount(int index) {
+//	fprintf(stderr,"\n  cjdeal pid=%d  JProgramInfo->Projects[%d].WaitTimes = %d    ",JProgramInfo->Projects[index].ProjectID,index,JProgramInfo->Projects[index].WaitTimes);
+//	fprintf(stderr,"\n  cjdeal prog name = %s\n",JProgramInfo->Projects[index].ProjectName);
     JProgramInfo->Projects[index].WaitTimes = 0;
 }
 /*********************************************************
@@ -65,10 +70,11 @@ int InitPro(ProgramInfo** prginfo, int argc, char *argv[])
 	{
 		*prginfo = OpenShMem("ProgramInfo",sizeof(ProgramInfo),NULL);
 		ProIndex = atoi(argv[1]);
-
-		fprintf(stderr,"\n%s start",(*prginfo)->Projects[ProIndex].ProjectName);
-		(*prginfo)->Projects[ProIndex].ProjectID=getpid();//保存当前进程的进程号
-		fprintf(stderr,"ProjectID[%d]=%d\n",ProIndex,(*prginfo)->Projects[ProIndex].ProjectID);
+		if(*prginfo!=NULL) {
+			fprintf(stderr,"\n%s start",(*prginfo)->Projects[ProIndex].ProjectName);
+			(*prginfo)->Projects[ProIndex].ProjectID=getpid();//保存当前进程的进程号
+			fprintf(stderr,"ProjectID[%d]=%d\n",ProIndex,(*prginfo)->Projects[ProIndex].ProjectID);
+		}
 		return 1;
 	}
 	return 0;
@@ -326,8 +332,14 @@ INT8U is485OAD(OAD portOAD,INT8U port485)
  * */
 INT8S init6000InfoFrom6000FIle()
 {
-	memset(&info6000,0,2*sizeof(INFO_6001_LIST));
 
+	memset(&info6000,0,2*sizeof(INFO_6001_LIST));
+	INT8U tIndex = 0;
+	for(tIndex = 0;tIndex < infoReplenish.tasknum;tIndex++)
+	{
+		memset(infoReplenish.unitReplenish[tIndex].list6001,0,2*sizeof(INFO_6001_LIST));
+		memset(infoReplenish.unitReplenish[tIndex].isSuccess,0,2*MAX_REPLENISH_TASK_NUM);
+	}
 	INT8S result = -1;
 	INT16U meterIndex = 0;
 	CLASS_6001 meter = { };
@@ -381,6 +393,12 @@ INT8S init6000InfoFrom6000FIle()
 		}
 	}
 //	fprintf(stderr,"485 1口测量点数量 = %d   485 2口测量点数量 = %d",info6000[0].meterSum,info6000[1].meterSum);
+
+	for(tIndex = 0;tIndex < infoReplenish.tasknum;tIndex++)
+	{
+		memcpy(&infoReplenish.unitReplenish[tIndex].list6001[0],&info6000[0],sizeof(INFO_6001_LIST));
+		memcpy(&infoReplenish.unitReplenish[tIndex].list6001[1],&info6000[1],sizeof(INFO_6001_LIST));
+	}
 	return result;
 }
 INT8S saveClass6035(CLASS_6035* class6035)
@@ -445,6 +463,14 @@ INT8U deal6013_onPara4000changed()
  * 从文件里把所有的任务单元读上来
  * */
 INT8U init6013ListFrom6012File() {
+	INT16U tIndex = 0;
+
+	for(tIndex = 0;tIndex < infoReplenish.tasknum;tIndex++)
+	{
+		infoReplenish.unitReplenish[tIndex].taskID = 0;
+		memset(infoReplenish.unitReplenish[tIndex].isSuccess,0,2*MAX_REPLENISH_TASK_NUM);
+	}
+	infoReplenish.tasknum = 0;
 
 	total_tasknum = 0;
 	//list6013  初始化下一次抄表时间
@@ -455,7 +481,7 @@ INT8U init6013ListFrom6012File() {
 	INT8U result = 0;
 	memset(list6013, 0, TASK6012_MAX * sizeof(TASK_CFG));
 
-	INT16U tIndex = 0;
+
 	OI_698 oi = 0x6013;
 	CLASS_6013 class6013 = { };
 
@@ -479,11 +505,23 @@ INT8U init6013ListFrom6012File() {
 						taskStartTime.Year,taskStartTime.Month,taskStartTime.Day,taskStartTime.Hour,
 						taskStartTime.Minute,taskStartTime.Sec);
 #endif
+				//把需要补抄的任务放进infoReplenish
+				CLASS_6015 st6015;
+				memset(&st6015,0,sizeof(CLASS_6015));
+				if (readCoverClass(0x6015, list6013[total_tasknum].basicInfo.sernum,&st6015, sizeof(CLASS_6015), coll_para_save)== 1)
+				{
+					if(st6015.csds.csd[0].csd.road.oad.OI == 0x5004)
+					{
+						infoReplenish.unitReplenish[infoReplenish.tasknum++].taskID = list6013[total_tasknum].basicInfo.taskID;
+					}
+				}
+#if 1
 				if(timeCmp < 2)
 				{
 					list6013[total_tasknum].ts_next  = tmtotime_t(ts_now);
 				}
 				else
+#endif
 				{
 					list6013[total_tasknum].ts_next  =
 									calcnexttime(list6013[total_tasknum].basicInfo.interval,list6013[total_tasknum].basicInfo.startime,list6013[total_tasknum].basicInfo.delay);
@@ -574,6 +612,9 @@ INT8U getParaChangeType()
 
 	return ret;
 }
+/*
+ * 读取终端广播校时参数
+ * */
 INT8S init4204Info()
 {
 	INT8S ret = -1;
@@ -585,7 +626,102 @@ INT8S init4204Info()
 	}
 	return ret;
 }
+INT8U findfake6001(INT8U tIndex,CLASS_6001* meter)
+{
+	INT8S ret = -1;
+	INT16U meterIndex = 0;
+	CLASS_6015 to6015;	//采集方案集
+	memset(&to6015, 0, sizeof(CLASS_6015));
+	memset(meter,0,sizeof(CLASS_6001));
 
+	ret = use6013find6015or6017(list6013[tIndex].basicInfo.cjtype,list6013[tIndex].basicInfo.sernum,list6013[tIndex].basicInfo.interval,&to6015);
+	if(ret == 1)
+	{
+		INT8U portIndex = 0;
+		for(portIndex = 0;portIndex < 2;portIndex++)
+		{
+			for (meterIndex = 0; meterIndex < info6000[portIndex].meterSum; meterIndex++)
+			{
+				if (readParaClass(0x6000, meter, info6000[portIndex].list6001[meterIndex]) == 1)
+				{
+					if (meter->sernum != 0 && meter->sernum != 0xffff)
+					{
+						if (checkMeterType(to6015.mst, meter->basicinfo.usrtype,meter->basicinfo.addr))
+						{
+							fprintf(stderr,"\n 找到任务对应测量点　%d portIndex = %d meterIndex = %d",meter->sernum,portIndex,meterIndex);
+							return 1;
+						}
+					}
+				}
+			}
+		}
+	}
+	return ret;
+}
+INT8U createFakeTaskFileHead()
+{
+	CSD_ARRAYTYPE csds;
+	char	fname[FILENAMELEN]={};
+
+	INT8U taskinfoflg=0;
+	TASKSET_INFO tasknor_info;
+	INT16U headlen=0,unitlen=0,unitnum=0,runtime=0;//runtime执行次数
+
+	INT8U dataContent[DATA_CONTENT_LEN];
+	memset(dataContent,0,DATA_CONTENT_LEN);
+	TS ts_cc;
+	TSGet(&ts_cc);
+	DateTimeBCD startTime;
+	DataTimeGet(&startTime);
+
+	CLASS_6001 meter;
+	memset(&meter,0,sizeof(CLASS_6001));
+	INT8U tIndex;
+	for (tIndex = 0; tIndex < total_tasknum; tIndex++)
+	{
+		if ((list6013[tIndex].basicInfo.cjtype == norm)&&(list6013[tIndex].basicInfo.interval.units < day_units))
+		{
+			if(findfake6001(tIndex,&meter)==-1)
+			{
+				continue;
+			}
+
+			memset(dataContent,0,DATA_CONTENT_LEN);
+			taskinfoflg=0;
+			memset(&tasknor_info,0,sizeof(TASKSET_INFO));
+			memset(&csds,0x00,sizeof(ROAD));
+
+			if((taskinfoflg = ReadTaskInfo(list6013[tIndex].basicInfo.taskID,&tasknor_info))==0)
+			{
+				continue;
+			}
+			runtime = tasknor_info.runtime;
+			memcpy(&csds,&tasknor_info.csds,sizeof(CSD_ARRAYTYPE));
+
+			if(taskinfoflg == 2)//月冻结
+			{
+				ts_cc.Day = 0;
+				ts_cc.Hour = 0;
+				ts_cc.Minute = 0;
+				ts_cc.Sec = 0;
+				asyslog(LOG_WARNING, "月冻结存储:%d",ts_cc.Month);
+			}
+
+			getTaskFileName(list6013[tIndex].basicInfo.taskID,ts_cc,fname);
+			CreateSaveHead(fname,NULL,csds,&headlen,&unitlen,&unitnum,runtime,1);//写文件头信息并返回
+			INT16U index = 0;
+			dataContent[index++] = dttsa;
+			memcpy(&dataContent[index],meter.basicinfo.addr.addr,sizeof(TSA));//采集通信地址
+			index += sizeof(TSA);
+			index += fill_date_time_s(&dataContent[index],&startTime);
+			index += fill_date_time_s(&dataContent[index],&startTime);
+			index += fill_date_time_s(&dataContent[index],&startTime);
+
+			SaveNorData(list6013[tIndex].basicInfo.taskID,NULL,dataContent,unitlen/runtime,ts_cc);
+		}
+	}
+	return 1;
+}
 void timeProcess()
 {
 	static TS lastTime;
@@ -619,6 +755,19 @@ void timeProcess()
 			isReplenishOver[1] = 1;
 			isReplenishOver[2] = 1;
 			isReplenishOver[3] = 1;
+
+
+			para_change485[0] = 1;
+			para_change485[1] = 1;
+
+
+
+			INT8U taskIndex = 0;
+			for(taskIndex = 0;taskIndex < infoReplenish.tasknum;taskIndex++)
+			{
+				memset(infoReplenish.unitReplenish[taskIndex].isSuccess,0,2*MAX_METER_NUM_1_PORT);
+			}
+			createFakeTaskFileHead();
 		}
 	}
 }
@@ -661,7 +810,7 @@ INT8S dealMsgProcess()
 				}
 				if(mq_h.pid == cjgui)
 				{
-					fprintf(stderr, "\n收到液晶点抄\n");
+					fprintf(stderr, "\n收到液晶点抄-----------------------------------23232323\n");
 					if(cjguiProxy.isInUse == 0)
 					{
 						memcpy(&cjguiProxy.strProxyMsg,rev_485_buf,sizeof(Proxy_Msg));
@@ -697,15 +846,24 @@ void replenish_tmp()
 	{
 		if((isReplenishOver[tmpIndex] == 1)&&(nowMin >= replenishTime[tmpIndex]))
 		{
-			asyslog(LOG_WARNING,"第%d次补抄　时间%d分",tmpIndex,replenishTime[tmpIndex]);
-			INT8U tIndex;
-			for (tIndex = 0; tIndex < total_tasknum; tIndex++)
+			asyslog(LOG_WARNING,"第%d次补抄　时间%d分 补抄任务数量=%d",tmpIndex,replenishTime[tmpIndex],infoReplenish.tasknum);
+			INT8U tIndex = 0;
+			for(tIndex = 0;tIndex < infoReplenish.tasknum;tIndex++)
 			{
-				if (list6013[tIndex].basicInfo.interval.units == day_units)
+				INT8U findIndex;
+				for (findIndex = 0; findIndex < total_tasknum; findIndex++)
 				{
-					asyslog(LOG_WARNING,"发送任务ID tIndex = %d　",tIndex);
-					INT8S ret = mqs_send((INT8S *)TASKID_485_2_MQ_NAME,cjdeal,1,(INT8U *)&tIndex,sizeof(INT16S));
-					ret = mqs_send((INT8S *)TASKID_485_1_MQ_NAME,cjdeal,1,(INT8U *)&tIndex,sizeof(INT16S));
+#if 0
+					fprintf(stderr,"\nlist6013[%d].basicInfo.taskID = %d infoReplenish.unitReplenish[%d].taskID = %d\n",
+							findIndex,tIndex,
+							list6013[findIndex].basicInfo.taskID,infoReplenish.unitReplenish[tIndex].taskID);
+#endif
+					if (list6013[findIndex].basicInfo.taskID == infoReplenish.unitReplenish[tIndex].taskID)
+					{
+						asyslog(LOG_WARNING,"发送补抄任务ID tIndex = %d　",tIndex);
+						INT8S ret = mqs_send((INT8S *)TASKID_485_2_MQ_NAME,cjdeal,1,(INT8U *)&findIndex,sizeof(INT16S));
+						ret = mqs_send((INT8S *)TASKID_485_1_MQ_NAME,cjdeal,1,(INT8U *)&findIndex,sizeof(INT16S));
+					}
 				}
 			}
 			isReplenishOver[tmpIndex] = 0;
@@ -736,6 +894,9 @@ void dispatch_thread()
 			para_change485[0] = 1;
 			para_change485[1] = 1;
 			init6000InfoFrom6000FIle();
+#if 0
+			filewrite(REPLENISHFILEPATH,&infoReplenish,sizeof(Replenish_TaskInfo));
+#endif
 		}
 		if(para_ChangeType&para_4000_chg)
 		{
@@ -747,7 +908,9 @@ void dispatch_thread()
 			para_change485[0] = 1;
 			para_change485[1] = 1;
 			init6013ListFrom6012File();
-
+#if 0
+			filewrite(REPLENISHFILEPATH,&infoReplenish,sizeof(Replenish_TaskInfo));
+#endif
 			system("rm -rf /nand/para/6035");
 		}
 		if(para_ChangeType&para_4204_chg)
@@ -766,8 +929,7 @@ void dispatch_thread()
 		if (tastIndex > -1)
 		{
 #if 0
-			fprintf(stderr, "\n\n\n\n*************任务开始执行 ************ tastIndexIndex = %d taskID = %d*****************\n",
-					tastIndex, list6013[tastIndex].basicInfo.taskID);
+			DbgPrintToFile1(port,"dispatch_thread　taskIndex = %d 任务开始",taskIndex);
 #endif
 			//计算下一次抄读此任务的时间;
 			list6013[tastIndex].ts_next = calcnexttime(list6013[tastIndex].basicInfo.interval,list6013[tastIndex].basicInfo.startime,list6013[tastIndex].basicInfo.delay);
@@ -783,11 +945,8 @@ void dispatch_thread()
 		}
 		else
 		{
-#ifndef GW_TAI_TI
 			//补抄
 			replenish_tmp();
-#endif
-			//fprintf(stderr,"\n当前无任务执行\n");
 		}
 
 		sleep(1);
@@ -800,8 +959,32 @@ void dispatchTask_proccess()
 	//读取所有任务文件		TODO：参数下发后需要更新内存值
 	init6013ListFrom6012File();
 	init6000InfoFrom6000FIle();
+#if 0
+	fileread(REPLENISHFILEPATH,&infoReplenish,sizeof(Replenish_TaskInfo));
+#endif
 	init4204Info();
+#ifdef TESTDEF
+	fprintf(stderr,"\n补抄内容:\n");
+	INT8U tIndex = 0;
+	for(tIndex = 0;tIndex < infoReplenish.tasknum;tIndex++)
+	{
+		fprintf(stderr,"\n任务taskID = %d--------------\n",infoReplenish.unitReplenish[tIndex].taskID);
+		INT16U mpIndex = 0;
 
+		for(mpIndex = 0;mpIndex < infoReplenish.unitReplenish[tIndex].list6001[0].meterSum;mpIndex++)
+		{
+			fprintf(stderr,"\n测量点＝%d  isSuccess = %d",
+					infoReplenish.unitReplenish[tIndex].list6001[0].list6001[mpIndex],
+					infoReplenish.unitReplenish[tIndex].isSuccess[0][mpIndex]);
+		}
+		for(mpIndex = 0;mpIndex < infoReplenish.unitReplenish[tIndex].list6001[1].meterSum;mpIndex++)
+		{
+			fprintf(stderr,"\n测量点＝%d  isSuccess = %d",
+					infoReplenish.unitReplenish[tIndex].list6001[1].list6001[mpIndex],
+					infoReplenish.unitReplenish[tIndex].isSuccess[1][mpIndex]);
+		}
+	}
+#endif
 	para_change485[0] = 0;
 	para_change485[1] = 0;
 
@@ -828,6 +1011,8 @@ int main(int argc, char *argv[])
 {
 //	printf("a\n");
 	//return ctrl_base_test();
+	int del_day = 0,del_min = 0;
+	TS ts;
 
 	pid_t pids[128];
     struct sigaction sa = {};
@@ -838,10 +1023,12 @@ int main(int argc, char *argv[])
 
 	fprintf(stderr,"\n[cjdeal]:cjdeal run!");
 	if(InitPro(&JProgramInfo,argc,argv)==0){
-		fprintf(stderr,"进程 %s 参数错误",argv[0]);
+		syslog(LOG_ERR,"进程 %s 参数错误",argv[0]);
 		return EXIT_FAILURE;
 	}
 
+	asyslog(LOG_INFO,"进程 %s PID = %d",JProgramInfo->Projects[1].ProjectName,JProgramInfo->Projects[1].ProjectID);
+	asyslog(LOG_INFO,"进程 %s PID = %d",JProgramInfo->Projects[2].ProjectName,JProgramInfo->Projects[2].ProjectID);
 	//载入档案、参数
 	InitPara();
 	//任务调度进程
@@ -868,6 +1055,14 @@ int main(int argc, char *argv[])
 	    struct timeval start={}, end={};
 	    long  interval=0;
 		gettimeofday(&start, NULL);
+		TSGet(&ts);
+		if (ts.Hour==15 && ts.Minute==5 && del_day != ts.Day && del_min != ts.Minute)
+		{
+			deloutofdatafile();
+			del_day = ts.Day;
+			del_min = 0;
+			asyslog(LOG_INFO,"判断删除过期文件");
+		}
 		DealState(JProgramInfo);
 		gettimeofday(&end, NULL);
 		interval = 1000000*(end.tv_sec - start.tv_sec) + (end.tv_usec - start.tv_usec);
@@ -875,6 +1070,8 @@ int main(int argc, char *argv[])
 	    	fprintf(stderr,"deal main interval = %f(ms)\n", interval/1000.0);
 		usleep(10 * 1000);
 		clearcount(ProIndex);
+
+
    	}
 	close_named_sem(SEMNAME_SPI0_0);
 	return EXIT_SUCCESS;//退出

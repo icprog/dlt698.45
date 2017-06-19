@@ -16,7 +16,7 @@ extern void setOnlineMode(int argc, char* argv[]);
 extern void SetIPort(int argc, char *argv[]);
 extern void SetNetIPort(int argc, char* argv[]);
 extern void SetID(int argc, char *argv[]);
-
+extern void showStatus() ;
 extern void SetHEART(int argc, char* argv[]);
 
 extern void EsamTest(int argc, char* argv[]);
@@ -49,7 +49,9 @@ extern void SetF202(int argc, char* argv[]);
 extern void getFrmCS(int argc, char* argv[]);
 extern void getFrmFCS(int argc, char* argv[]);
 
-void showStatus();
+void showCheckPara();
+
+extern void Test(int argc, char *argv[]);
 
 #endif /* MAIN_H_ */
 

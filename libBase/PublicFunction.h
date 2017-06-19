@@ -31,12 +31,7 @@
 #define	FILE_LINE		__FILE__,__FUNCTION__,__LINE__
 #define	DEBUG_TIME_LINE(format, ...)	debug(FILE_LINE, format, ##__VA_ARGS__)
 
-extern void setsystime(DateTimeBCD datetime);
-extern void TSGet(TS* ts);
-extern INT8U TScompare(TS ts1, TS ts2);
-extern time_t tmtotime_t(TS ptm);
-extern void DataTimeGet(DateTimeBCD* ts);
-extern INT8S tminc(TS* tmi, Time_Units unit, INT32S val);
+
 extern void Setsig(struct sigaction* psa, void (*pfun)(ProjectInfo* proinfo));
 /*
  * 共享内存操作函数
@@ -57,6 +52,12 @@ extern void CloseCom(int ComPort);
 extern void TSGet(TS* ts);
 extern time_t tmtotime_t(TS ptm);
 extern void TimeBCDToTs(DateTimeBCD timeBCD,TS* outTs);
+extern void TsToTimeBCD(TS inTs,DateTimeBCD* outTimeBCD);
+extern DateTimeBCD timet_bcd(time_t t);
+extern void setsystime(DateTimeBCD datetime);
+extern INT8U TScompare(TS ts1, TS ts2);
+extern void DataTimeGet(DateTimeBCD* ts);
+extern INT8S tminc(TS* tmi, Time_Units unit, INT32S val);
 
 /* BCD码转int32u
  *参数：bcd为bcd码头指针，len为bcd码长度，order为positive正序/inverted反序，dint转换结果
@@ -75,7 +76,7 @@ extern INT32S gpio_writebyte(char* devpath, INT8S data);
 extern INT32S gpio_writebytes(char* devpath, INT8S* vals, INT32S valnum);
 
 extern BOOLEAN pwr_has();
-extern BOOLEAN pwr_has_byVolt(INT8U valid, INT32U volt, INT16U limit);
+extern INT8U pwr_has_byVolt(INT8U valid, INT32U volt, INT16U limit);
 extern BOOLEAN bettery_getV(FP32* clock_bt, FP32* tmnl_bt);
 extern BOOLEAN bettery_getV_II(FP32* clock_bt);
 
@@ -119,12 +120,15 @@ extern int ReadDeviceConfig(ConfigPara	*cfg_para);
 extern int getZone(char *zone);
 
 /*
+ * 写/nor/rc.d/ip.sh脚本
+ * */
+extern void writeIpSh(INT8U *ip,INT8U *netmask);
+/*
  * 参数初始化
  * */
 extern void InitClass4016();	//当前套日时段表
 extern void InitClass4300();	//电气设备信息
-extern void InitClass4500();	//公网通信模块1
-extern void InitClass4510();	//以太网通信模块1
+//extern void InitClass4510(INT16U heartBeat,MASTER_STATION_INFO master_info,NETCONFIG net_ip); //以太网通信模块1
 extern void InitClass6000();	//采集配置单元
 extern void InitClassf203();	//开关量输入
 extern void InitClassByZone(INT8U type);	//根据地区进行相应初始化

@@ -14,6 +14,7 @@
 #include "../libAccess/AccessFun.h"
 #include "dlt698def.h"
 #include "dlt698.h"
+#include "OIfunc.h"
 
 extern INT8U securetype;
 extern INT8U TmpDataBuf[MAXSIZ_FAM];
@@ -22,7 +23,25 @@ extern void FrameTail(INT8U *buf,int index,int hcsi);
 extern int FrameHead(CSINFO *csinfo,INT8U *buf);
 extern INT16S composeSecurityResponse(INT8U* SendApdu,INT16U Length);
 //-------
-
+//DateTimeBCD timet_bcd(time_t t)
+//{
+//	DateTimeBCD ts;
+//    struct tm set;
+//
+//    localtime_r(&t, &set);
+//    ts.year.data  = set.tm_year + 1900;
+//    ts.month.data = set.tm_mon + 1;
+//    ts.day.data   = set.tm_mday;
+//    ts.hour.data  = set.tm_hour;
+//    ts.min.data   = set.tm_min;
+//    ts.sec.data   = set.tm_sec;
+//    return ts;
+//}
+TS mylookback(time_t times,TI ti,INT8U n)//根据当前时间times 和间隔 ti，计算当前时间为基准的上 n 间隔值的时刻
+{
+	TS ts;
+	return ts;
+}
 /*
  * datetime 开始时间
  * ti 间隔
@@ -62,17 +81,16 @@ time_t calcnexttime(TI ti,DateTimeBCD datetime,TI ti_delay)
 			int intpart = timetmp / jiange;
 			int rempart = timetmp % jiange;
 			fprintf(stderr,"\n任务开始时间(%ld)  早于当前时间(%ld)  %d个间隔 余%d 秒",timestart,timenow,intpart,rempart);
-			if (rempart>0)
-			{
+//			if (rempart>0)	//修改去掉else的判断条件,当余数=0时,原代码进入else返回当前时间,重新发送曲线数据
+//			{
 				timeret = (intpart + 1) * jiange  + timestart ;
 				fprintf(stderr,"\n计算下次开始时间 %ld ",timeret);
 				return timeret ;
-			}
-			else
-			{
-				fprintf(stderr,"\n任务在当前时间 %ld 执行",timenow);
-				return timenow;
-			}
+//			}else
+//			{
+//				fprintf(stderr,"\n任务在当前时间 %ld 执行",timenow);
+//				return timenow;
+//			}
 		}
 		else//间隔日 月 或者 年
 		{
@@ -145,85 +163,6 @@ int fillcsinfo(CSINFO *csinfo,INT8U *addr,INT8U clientaddr)
 	csinfo->ca = clientaddr;
 	return 1;
 }
-/*
- * 根据ms.type填充tsas ; 返回TS 的数量
- * 注意调用后，释放**tsas的内存
- */
-
-int getTsas(MY_MS ms,INT8U **tsas)
-{
-	int  tsa_num = 0;
-	int	 record_num = 0;
-	int	 tsa_len = 0;
-	int	 i=0,j=0;
-	CLASS_6001	 meter={};
-
-	if(ms.mstype == 0) { //无电能表
-		tsa_num = 0;
-		return tsa_num;
-	}
-	record_num = getFileRecordNum(0x6000);
-	*tsas = malloc(record_num*sizeof(TSA));
-	fprintf(stderr," tsas  p=%p record_num=%d",*tsas,record_num);
-	tsa_num = 0;
-	for(i=0;i<record_num;i++) {
-		if(readParaClass(0x6000,&meter,i)==1) {
-			if(meter.sernum!=0 && meter.sernum!=0xffff) {
-				switch(ms.mstype) {
-				case 1:	//全部用户地址
-					fprintf(stderr,"\nTSA: %d-",meter.basicinfo.addr.addr[0]);
-					for(j=0;j<meter.basicinfo.addr.addr[0];j++) {
-						fprintf(stderr,"-%02x",meter.basicinfo.addr.addr[j+1]);
-					}
-					memcpy(*tsas+(tsa_num*sizeof(TSA)),&meter.basicinfo.addr,sizeof(TSA));
-					tsa_num++;
-					break;
-				case 2:	//一组用户类型
-					for(j=0;j<ms.ms.userType[0];j++) {
-						if(meter.basicinfo.usrtype == ms.ms.userType[j+1]) {
-							memcpy(*tsas+(tsa_num*sizeof(TSA)),&meter.basicinfo.addr,sizeof(TSA));
-							tsa_num++;
-							break;
-						}
-					}
-					break;
-				case 3:	//一组用户地址
-					tsa_len = (ms.ms.userAddr[0].addr[0]<<8) | ms.ms.userAddr[0].addr[1];
-					for(j=0;j<tsa_len;j++) {
-						if(memcmp(&ms.ms.userAddr[j+1].addr[0],&meter.basicinfo.addr,sizeof(TSA))==0) {  //TODO:TSA下发的地址是否按照00：长度，01：TSA长度格式
-							memcpy(*tsas+(tsa_num*sizeof(TSA)),&meter.basicinfo.addr,sizeof(TSA));
-							tsa_num++;
-							break;
-						}
-					}
-					break;
-				case 4:	//一组配置序号
-					fprintf(stderr,"\n招测序号集(%d)",ms.ms.configSerial[0]);
-					for(j=0;j<ms.ms.configSerial[0];j++) {
-						fprintf(stderr," %04x",ms.ms.configSerial[j+1]);
-						if(meter.sernum == ms.ms.configSerial[j+1]) {
-							memcpy(*tsas+(tsa_num*sizeof(TSA)),&meter.basicinfo.addr,sizeof(TSA));
-							tsa_num++;
-							break;
-						}
-					}
-					break;
-				case 5://一组用户类型区间
-
-					break;
-				case 6://一组用户地址区间
-
-					break;
-				case 7://一组配置序号区间
-
-					break;
-				}
-			}
-		}
-	}
-	fprintf(stderr,"\nms.mstype = %d,tsa_num = %d",ms.mstype,tsa_num);
-	return tsa_num;
-}
 
 /*
  * 填充frmdata 文件，组织数据上报帧
@@ -281,18 +220,26 @@ int getTaskOadData(OAD taskoad)
 int GetReportData(CLASS_601D report)
 {
 	int  ret = 0;
-//	fprintf(stderr,"report.reportdata.type=%d\n",report.reportdata.type);
+	INT16U server_send_size=0;			//服务器发送帧最大尺寸
+
+	fprintf(stderr,"report.reportdata.type=%d  report.reportdata.data.recorddata.selectType=%d\n",report.reportdata.type,report.reportdata.data.recorddata.selectType);
 	if (report.reportdata.type==0)//OAD
 	{
 		ret = getTaskOadData(report.reportdata.data.oad);
 	}else if(report.reportdata.type==1)//RecordData
 	{
+		if(AppVar_p==NULL) {
+			server_send_size = FRAMELEN;
+		}else server_send_size = AppVar_p->server_send_size;
+		fprintf(stderr,"server_send_size = %d\n",server_send_size);
 		ret = getSelector(report.reportdata.data.oad,
 							report.reportdata.data.recorddata.rsd,
-							report.reportdata.data.recorddata.selectType,
-							report.reportdata.data.recorddata.csds,NULL, NULL);
+							report.reportdata.data.recorddata.selectType | 0x80,
+							report.reportdata.data.recorddata.csds,NULL, NULL,server_send_size);
 		fprintf(stderr,"GetReportData   ret=%d\n",ret);
-		ret = REPROTNOTIFICATIONRECORDLIST;	//
+		if(ret>=1) {	//查找到相应的数据
+			ret = REPROTNOTIFICATIONRECORDLIST;	//
+		}
 	}
 	return ret;
 }
@@ -303,7 +250,7 @@ INT16U  composeAutoTask(AutoTaskStrap *list)
 	time_t timenow = time(NULL);
 	CLASS_6013 class6013={};
 	CLASS_601D class601d={};
-
+	DateTimeBCD timebcd={};
 	if(list->nexttime==0)	return ret;		//防止无效重复读取文件
 
 	timenow = time(NULL);
@@ -312,23 +259,33 @@ INT16U  composeAutoTask(AutoTaskStrap *list)
 
 	if(timenow >= list->nexttime)
 	{
-		fprintf(stderr, "任务上报时间%ld, %ld\n", list->nexttime, timenow);
+//		asyslog(LOG_INFO,"任务上报时间%ld, %ld\n", list->nexttime, timenow);
+		timebcd = timet_bcd(timenow);
+		asyslog(LOG_INFO,"[任务上报时间%ld, %ld]: %04d:%02d:%02d %02d:%02d:%02d\n",list->nexttime, timenow,
+				timebcd.year.data,timebcd.month.data,timebcd.day.data,
+				timebcd.hour.data,timebcd.min.data,timebcd.sec.data);
+
 		if (readCoverClass(0x6013, list->ID, &class6013, sizeof(CLASS_6013),coll_para_save) == 1)
 		{
-			fprintf(stderr,"\ni=%d 任务【 %d 】 	 开始执行   上报方案编号【 %d 】",i,list->ID,list->SerNo);
+//			asyslog(LOG_INFO,"\ni=%d 任务【 %d 】 	 开始执行   上报方案编号【 %d 】",i,list->ID,list->SerNo);
 			if (readCoverClass(0x601D, list->SerNo, &class601d, sizeof(CLASS_601D),coll_para_save) == 1)
 			{
-				asyslog(LOG_INFO,"方案编号601d:reportnum=%d",class601d.reportnum);
+//				asyslog(LOG_INFO,"方案编号601d:reportnum=%d",class601d.reportnum);
 				print_rcsd(class601d.reportdata.data.recorddata.csds);
 				list->ReportNum = class601d.maxreportnum;
 				list->OverTime = getTItoSec(class601d.timeout);
-				asyslog(LOG_INFO,"i=%d 任务【 %d 】 	 开始执行   上报方案编号【 %d 】 重发次数=%d, 超时时间=%d",i,list->ID,list->SerNo,list->ReportNum,list->OverTime);
+				asyslog(LOG_INFO,"任务【 %d 】上报方案编号【 %d 】重发=%d,超时=%d",list->ID,list->SerNo,list->ReportNum,list->OverTime);
 				fprintf(stderr,"list->SerNo = %d\n",list->SerNo);
 				ret = GetReportData(class601d);// =1,=2, 数据组织好了
 				fprintf(stderr,"GetReportData=%d\n",ret);
 			}
 			list->nexttime = calcnexttime(class6013.interval,class6013.startime,class6013.delay);
-			fprintf(stderr, "再次计算任务上报时间%ld, %ld\n", list->nexttime, timenow);
+//			asyslog(LOG_INFO, "再次计算任务上报时间%ld, %ld\n", list->nexttime, timenow);
+			timebcd = timet_bcd(list->nexttime);
+			asyslog(LOG_INFO,"[计算下次上报%ld, %ld]: %04d:%02d:%02d %02d:%02d:%02d\n",list->nexttime, timenow,
+					timebcd.year.data,timebcd.month.data,timebcd.day.data,
+					timebcd.hour.data,timebcd.min.data,timebcd.sec.data);
+
 		}else
 		{
 //				fprintf(stderr,"\n任务参数丢失！");
@@ -343,9 +300,9 @@ INT16U  composeAutoTask(AutoTaskStrap *list)
  *  ifecho ：  0 没收到确认，或第一次调用    1 收到确认
  *  返回    :  1  需要继续发送   0 发送完成
  */
-int callAutoReport(INT8U reportChoice,CommBlock* com, INT8U ifecho)
+int callAutoReport(char *filename,INT8U reportChoice,CommBlock* com, INT8U ifecho)
 {
-	if (com==NULL)
+	if (com==NULL || filename == NULL)
 		return 0;
 	INT8U *sendbuf = com->SendBuf;
 	static int nowoffset = 0;
@@ -354,7 +311,6 @@ int callAutoReport(INT8U reportChoice,CommBlock* com, INT8U ifecho)
 	int datalen = 0, j=0,index=0 ,hcsi=0;//,apduplace=0;
 	INT8U apdu_buf[MAXSIZ_FAM]={};
 	int	apdu_index=0;
-
 	CSINFO csinfo={};
 
 	memset(TmpDataBuf,0,sizeof(TmpDataBuf));  //长度 1600
@@ -365,15 +321,16 @@ int callAutoReport(INT8U reportChoice,CommBlock* com, INT8U ifecho)
 	}
 	sendcounter++;
 	datalen = 0;
-	fprintf(stderr,"\n当前偏移位置 nowoffset = %d  ",nowoffset);
-	nextoffset = readFrameDataFile(TASK_FRAME_DATA,nowoffset,TmpDataBuf,&datalen);
+//	fprintf(stderr,"\n当前偏移位置 nowoffset = %d  ",nowoffset);
+	nextoffset = readFrameDataFile(filename,nowoffset,TmpDataBuf,&datalen);
 	fprintf(stderr,"\n读出 (%d)：",datalen);
 	for(j=0; j<datalen; j++)
 	{
 		if (j%20==0)fprintf(stderr,"\n");
 		fprintf(stderr,"%02x ",TmpDataBuf[j]);
 	}
-	fprintf(stderr,"\n下帧偏移位置 nextoffset = %d ",nextoffset);
+//	fprintf(stderr,"\n下帧偏移位置 nextoffset = %d ",nextoffset);
+	asyslog(LOG_INFO,"当前偏移nowoffset = %d  下帧偏移nextoffset = %d ",nowoffset,nextoffset);
 	if (nextoffset == 0)
 	{
 		fprintf(stderr,"\n发送完毕！");

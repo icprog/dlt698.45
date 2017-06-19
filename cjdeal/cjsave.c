@@ -250,10 +250,12 @@ int SaveNorData(INT8U taskid,ROAD *road_eve,INT8U *databuf,int datalen,TS ts_cc)
 {
 	FILE *fp;	CSD_ARRAYTYPE csds;
 	char	fname[FILENAMELEN]={};
+	char    cmdname[FILENAMELEN]={};
 	INT8U *databuf_tmp=NULL,eveflg=0,taskinfoflg=0;
 	int savepos=0,currpos=0,i=0;
 	INT16U headlen=0,unitlen=0,unitnum=0,unitseq=0,runtime=0;//runtime执行次数
 	TASKSET_INFO tasknor_info;
+//	HEAD_UNIT *headunit = NULL;//文件头
 	memset(&csds,0x00,sizeof(ROAD));
 	//TS ts_cc;
 	//TSGet(&ts_cc);
@@ -285,7 +287,7 @@ int SaveNorData(INT8U taskid,ROAD *road_eve,INT8U *databuf,int datalen,TS ts_cc)
 		csds.num = 1;
 		getEveFileName(road_eve->oad.OI,fname);//创建eve文件
 	}
-	asyslog(LOG_WARNING, "filename=%s",fname);
+//	asyslog(LOG_WARNING, "filename=%s",fname);
 	fp = fopen(fname,"r");
 	if(fp == NULL)//文件没内容 组文件头，如果文件已存在，提取文件头信息
 	{
@@ -302,8 +304,12 @@ int SaveNorData(INT8U taskid,ROAD *road_eve,INT8U *databuf,int datalen,TS ts_cc)
 	}
 	else
 	{
-		asyslog(LOG_WARNING, "file：%s存在",fname);
+//		asyslog(LOG_WARNING, "file：%s存在",fname);
 		ReadFileHeadLen(fp,&headlen,&unitlen);
+//		unitnum = GetTaskHead(fp,&headlen,&unitlen,&headunit);
+//		for(i=0;i<unitnum;i++)
+//		{
+
 		if(unitlen==0)
 		{
 			asyslog(LOG_WARNING, "cjsave 存储文件头%s headlen=%d unitlen=%d unitnum=%d runtime=%d",fname,headlen,unitlen,unitnum,runtime);
@@ -358,33 +364,26 @@ int SaveNorData(INT8U taskid,ROAD *road_eve,INT8U *databuf,int datalen,TS ts_cc)
 			memcpy(&databuf_tmp[unitlen*i/runtime],databuf,18);//每个小单元地址附上
 	}
 	unitseq = (ts_cc.Hour*60*60+ts_cc.Minute*60+ts_cc.Sec)/((24*60*60)/runtime)+1;
-	asyslog(LOG_NOTICE,"ts: %d:%d:%d",ts_cc.Hour,ts_cc.Minute,ts_cc.Sec);
+//	asyslog(LOG_NOTICE,"ts: %d:%d:%d",ts_cc.Hour,ts_cc.Minute,ts_cc.Sec);
 	asyslog(LOG_NOTICE,"存储序号: unitseq=%d runtime=%d  %d--%d",unitseq,runtime,(ts_cc.Hour*60*60+ts_cc.Minute*60+ts_cc.Sec),((24*60*60)/runtime));
-	if(unitseq > runtime)
+	if(unitseq > runtime || datalen != unitlen/runtime)
 	{
-		asyslog(LOG_NOTICE,"unitseq　= %d　runtime = %d",ts_cc.Hour,ts_cc.Minute,ts_cc.Sec);
-		if(databuf_tmp != NULL)
-			free(databuf_tmp);
-		return 0;//出错了，序列号超过了总长度
-	}
-	if(datalen > unitlen/runtime)
-	{
-		asyslog(LOG_NOTICE,"111111 datalen　= %d　unitlen = %d runtime= %d",datalen,unitlen,runtime);
-		return 0;
-	}
-	memcpy(&databuf_tmp[unitlen*(unitseq-1)/runtime],databuf,datalen);
-	if(datalen != unitlen/runtime)
-	{
-		if(databuf_tmp != NULL)
-			free(databuf_tmp);
+		if(datalen != unitlen/runtime)//长度不对
+		{
+			sprintf(cmdname,"rm -rf %s",fname);
+			system(cmdname);
+			asyslog(LOG_NOTICE,"数据长度不对，删除文件%s,执行%s",fname,cmdname);
+		}
 		if(road_eve == NULL)
 			asyslog(LOG_NOTICE,"数据长度不对，不存: datalen=%d,need=%d",datalen,unitlen/runtime);
 		else
 			asyslog(LOG_NOTICE,"事件长度不对，不存: datalen=%d,need=%d",datalen,unitlen/runtime);
-		return 0;//长度不对
+//		return 0;//长度不对
+		eveflg = 0;
 	}
 	else
 	{
+		memcpy(&databuf_tmp[unitlen*(unitseq-1)/runtime],databuf,datalen);
 		if(road_eve == NULL)
 			asyslog(LOG_NOTICE,"任务数据存储: %s,savepos=%d,unitlen=%d",fname,savepos,unitlen);
 		else
@@ -407,22 +406,38 @@ int SaveOADData(INT8U taskid,OAD oad_m,OAD oad_r,INT8U *databuf,int datalen,TS t
 		CSD_ARRAYTYPE csds;
 		char	fname[FILENAMELEN]={};
 		INT8U *databuf_tmp=NULL,eveflg=0, firOIflg=0;
-		int savepos=0, currpos=0, i=0, oadoffset=0, oadlen=0;
+		int savepos=0, currpos=0, i=0, oadoffset=0, oadlen=0, taskinfoflg=0;
 		INT16U headlen=0,unitlen=0,unitnum=0,unitseq=0,runtime=0;//runtime执行次数
 		TASKSET_INFO tasknor_info;
 		DateTimeBCD datetime;
-		TS ts_now;
+		TS ts_now,ts_cc;
+		ts_cc = ts_res;
 		TSGet(&ts_now);
 		memset(&csds,0x00,sizeof(ROAD));
 	//	csds.num = 1;
 	//	csds.csd[0].type = 1;//road
 
 		fprintf(stderr,"SaveOADData==========\n");
-		if(ReadTaskInfo(taskid,&tasknor_info)==0)
+		if((taskinfoflg = ReadTaskInfo(taskid,&tasknor_info))==0)
 			return 0;
+		fprintf(stderr,"\ntaskinfoflg=%d\n",taskinfoflg);
+//		if(ReadTaskInfo(taskid,&tasknor_info)==0)
+//			return 0;
 		runtime = tasknor_info.runtime;
 		memcpy(&csds,&tasknor_info.csds,sizeof(CSD_ARRAYTYPE));//
-		getTaskFileName(taskid,ts_res,fname);
+		if(taskinfoflg == 2)//月冻结
+		{
+			ts_cc.Day = 0;
+			ts_cc.Hour = 0;
+			ts_cc.Minute = 0;
+			ts_cc.Sec = 0;
+			asyslog(LOG_WARNING, "月冻结存储:%d",ts_cc.Month);
+		}
+		getTaskFileName(taskid,ts_cc,fname);
+
+		ts_cc= ts_res;//重新赋值，减一天用于日冻结存储时标赋值
+		tminc(&ts_cc,day_units,-1);
+
 		fp = fopen(fname,"r");
 		if(fp == NULL)//文件没内容 组文件头，如果文件已存在，提取文件头信息
 		{
@@ -473,17 +488,25 @@ int SaveOADData(INT8U taskid,OAD oad_m,OAD oad_r,INT8U *databuf,int datalen,TS t
 		if(unitseq > runtime)
 		{
 			asyslog(LOG_NOTICE,"不符和unitseq=%d runtime=%d",unitseq, runtime);
+			if(fp!=NULL)
+				fclose(fp);
 			if(databuf_tmp != NULL)
 				free(databuf_tmp);
 			return 0;//出错了，序列号超过了总长度
 		}
 		asyslog(LOG_NOTICE,"计算oadoffset");
+
 		oadoffset = GetOADPos(fp,headlen,oad_m,oad_r);
-		if(oadoffset < 0)//没找到
-			return 0;
 		asyslog(LOG_NOTICE,"计算oadoffset=%d::%d ts: %d:%d:%d",oadoffset,ts_res.Hour,ts_res.Minute,ts_res.Sec,unitlen/runtime);
-		if(oadoffset>=unitlen/runtime)
-			return 0;//计算的有问题
+		if(oadoffset < 0 || oadoffset>=unitlen/runtime)//没找到//计算的有问题
+		{
+			if(fp!=NULL)
+				fclose(fp);
+			if(databuf_tmp != NULL)
+				free(databuf_tmp);
+			return 0;
+		}
+
 		asyslog(LOG_NOTICE,"oadoffset=%d合理::%d",oadoffset,unitlen*(unitseq-1)/runtime+oadoffset);
 		memcpy(&databuf_tmp[unitlen*(unitseq-1)/runtime+oadoffset],&databuf[18],datalen-18);//赋值到应该赋值的oad位置
 
@@ -502,7 +525,7 @@ int SaveOADData(INT8U taskid,OAD oad_m,OAD oad_r,INT8U *databuf,int datalen,TS t
 		datetime.hour.data = ts_now.Hour;
 		datetime.min.data = ts_now.Minute;
 		datetime.sec.data = ts_now.Sec;
-		asyslog(LOG_NOTICE,"当前赋值时标%d:%04x %02x %02x %02x %02x %02x %02x"
+		asyslog(LOG_NOTICE,"当前赋值时标%d:%04x %02x %02x %02x %02x %02x"
 				,sizeof(DateTimeBCD),
 				datetime.year.data,datetime.month.data,datetime.day.data,datetime.hour.data,
 				datetime.min.data,datetime.sec.data);
@@ -514,6 +537,73 @@ int SaveOADData(INT8U taskid,OAD oad_m,OAD oad_r,INT8U *databuf,int datalen,TS t
 		databuf_tmp[unitlen*(unitseq-1)/runtime+18+8] = 0x1c;
 		memcpy(&databuf_tmp[unitlen*(unitseq-1)/runtime+19+8],&datetime,7);//赋值抄表成功时间
 
+		if(taskinfoflg == 2)//月冻结----------------------------------------//赋值抄表存储时间
+		{
+			fprintf(stderr,"\n月冻结\n");
+			datetime.year.data = ((ts_res.Year&0xff00)>>8) + ((ts_res.Year&0x00ff)<<8);
+			datetime.month.data = ts_res.Month;
+			datetime.day.data = 0;
+			datetime.hour.data = 0;
+			datetime.min.data = 0;
+			datetime.sec.data = 0;
+		}
+		else
+			if(taskinfoflg == 1)//日冻结
+			{
+				fprintf(stderr,"\n日冻结tasknor_info.save_timetype)=%d\n",tasknor_info.save_timetype);
+				switch(tasknor_info.save_timetype)
+				{
+				case 2://相对当日零点零分
+					datetime.year.data = ((ts_res.Year&0xff00)>>8) + ((ts_res.Year&0x00ff)<<8);
+					datetime.month.data = ts_res.Month;
+					datetime.day.data = ts_res.Day;
+					datetime.hour.data = 0;
+					datetime.min.data = 0;
+					datetime.sec.data = 0;
+					break;
+				case 3://相对上日33点59分
+					datetime.year.data = ((ts_cc.Year&0xff00)>>8) + ((ts_cc.Year&0x00ff)<<8);
+					datetime.month.data = ts_cc.Month;
+					datetime.day.data = ts_cc.Day;
+					datetime.hour.data = 23;
+					datetime.min.data = 59;
+					datetime.sec.data = 0;
+					break;
+				case 4://相对上日零点零分
+					datetime.year.data = ((ts_cc.Year&0xff00)>>8) + ((ts_cc.Year&0x00ff)<<8);
+					datetime.month.data = ts_cc.Month;
+					datetime.day.data = ts_cc.Day;
+					datetime.hour.data = 0;
+					datetime.min.data = 0;
+					datetime.sec.data = 0;
+					break;
+				default:break;
+				}
+			}
+			else if(taskinfoflg == 4)//曲线
+			{
+				int jiange = 0;
+				if(tasknor_info.taskfreq >= 60 && tasknor_info.taskfreq < 3600)//分钟冻结
+				{
+					jiange = tasknor_info.taskfreq/60;
+					fprintf(stderr,"\n分钟冻结--jiange=%d,ts_res.Minute=%d\n",jiange,ts_res.Minute);
+					datetime.min.data = (ts_res.Minute/jiange)*jiange;//算成整分钟数
+					datetime.sec.data = 0;
+				}
+				else if(tasknor_info.taskfreq >= 3600)//小时冻结
+				{
+					fprintf(stderr,"\n小时冻结\n");
+					jiange = tasknor_info.taskfreq/3600;
+					datetime.hour.data = (ts_res.Hour/jiange)*jiange;//算成整小时数
+					datetime.min.data = 0;
+					datetime.sec.data = 0;
+				}
+			}
+
+		asyslog(LOG_NOTICE,"当前赋值存储时标%d:%04x %02x %02x %02x %02x %02x"
+				,sizeof(DateTimeBCD),
+				datetime.year.data,datetime.month.data,datetime.day.data,datetime.hour.data,
+				datetime.min.data,datetime.sec.data);
 		databuf_tmp[unitlen*(unitseq-1)/runtime+18+16] = 0x1c;
 		memcpy(&databuf_tmp[unitlen*(unitseq-1)/runtime+19+16],&datetime,7);//赋值抄表存储时间
 
@@ -523,6 +613,8 @@ int SaveOADData(INT8U taskid,OAD oad_m,OAD oad_r,INT8U *databuf,int datalen,TS t
 		if(datalen != oadlen+TSA_LEN+1)
 		{
 			asyslog(LOG_NOTICE,"计算的长度不对%d::%d",datalen, oadlen+TSA_LEN+1);
+			if(fp!=NULL)
+				fclose(fp);
 			if(databuf_tmp != NULL)
 				free(databuf_tmp);
 			return 0;//长度不对

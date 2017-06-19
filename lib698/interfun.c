@@ -28,22 +28,45 @@ void printTI(char *pro,TI ti)
 	fprintf(stderr,"[%s]:单位(%d)-间隔值(%d)  [秒:0,分:1,时:2,日:3,月:4,年:5]\n",pro,ti.units,ti.interval);
 }
 
+void printTSA(TSA tsa)
+{
+	int	j=0;
+	fprintf(stderr,"%d-%d-",tsa.addr[0],tsa.addr[1]);
+	if(tsa.addr[0]>TSA_LEN)   fprintf(stderr,"TSA 长度[%d]超过17个字节，错误！！！\n",tsa.addr[0]);
+	for(j=0;j<(tsa.addr[1]+1);j++) {
+		fprintf(stderr,"%02x",tsa.addr[j+2]);
+	}
+	fprintf(stderr,"\n");
+}
+
 void printMS(MY_MS ms)
 {
 	int i=0,j=0;
 	int ms_num=0;
+	int	seqOfLen=0;
+	int	dtlen=0;
+
 	fprintf(stderr,"电能表集合：MS choice=%d\n",ms.mstype);
 	switch(ms.mstype) {
 	case 0:	fprintf(stderr,"无电能表");		break;
 	case 1:	fprintf(stderr,"全部用户地址");	break;
+	case 2: //一组用户类型
+		ms_num = (ms.ms.userType[0]<<8) | ms.ms.userType[1];
+		fprintf(stderr,"一组用户类型：个数=%d\n 值=",ms_num);
+		for(j=0;j<ms_num;j++) {
+			fprintf(stderr,"%d ",ms.ms.userType[j+2]);
+		}
+		fprintf(stderr,"\n");
+		break;
 	case 3:	//一组用户地址
 		ms_num = (ms.ms.userAddr[0].addr[0]<<8)|ms.ms.userAddr[0].addr[1];
 		fprintf(stderr,"一组用户地址：个数=%d\n ",ms_num);
 		if(ms.ms.configSerial[0] > COLLCLASS_MAXNUM) fprintf(stderr,"配置序号 超过限值 %d ,error !!!!!!",COLLCLASS_MAXNUM);
-		for(j=1;j<ms_num;j++) {
-			for(i=0;i<(ms.ms.userAddr[j].addr[0]+1);i++) {
-				fprintf(stderr,"%02x ",ms.ms.userAddr[j].addr[i]);
+		for(j=0;j<ms_num;j++) {
+			for(i=0;i<(ms.ms.userAddr[j+1].addr[0]+1);i++) {
+				fprintf(stderr,"%02x ",ms.ms.userAddr[j+1].addr[i]);
 			}
+			fprintf(stderr,"\n");
 		}
 		break;
 	case 4://一组配置序号
@@ -52,6 +75,33 @@ void printMS(MY_MS ms)
 		for(i=0;i<ms.ms.configSerial[0];i++) {
 			fprintf(stderr,"%d ",ms.ms.configSerial[i+1]);
 		}
+		fprintf(stderr,"\n");
+		break;
+	case 5://一组用户类型区间
+	case 6://一组用户地址区间
+	case 7://一组配置序号区间
+		seqOfLen = 0;
+		for(i=0;i<COLLCLASS_MAXNUM;i++) {
+			if(ms.ms.type[i].type!=interface) {
+				dtlen = getDataTypeLen(ms.ms.type[i].begin[0]);
+				if(dtlen>0) {
+					seqOfLen++;
+					fprintf(stderr,"Region:单位[%d](前闭后开:0,前开后闭:1,前闭后闭:2,前闭后闭:3)\n",ms.ms.type[i].type);
+					fprintf(stderr,"Region:[类型：%02x]起始值 ",ms.ms.type[i].begin[0]);
+					for(j=0;j<(dtlen+1);j++) {
+						fprintf(stderr,"%02x ",ms.ms.type[i].begin[j]);
+					}
+					fprintf(stderr,"\nRegion:[类型：%02x]结束值  ",ms.ms.type[i].end[0]);
+				}
+				dtlen = getDataTypeLen(ms.ms.type[i].end[0]);
+				if(dtlen>0) {
+					for(j=0;j<(dtlen+1);j++) {
+						fprintf(stderr,"%02x ",ms.ms.type[i].end[j]);
+					}
+				}
+			}
+		}
+		fprintf(stderr,"\n     一组用户类型区间：个数=%d\n ",seqOfLen);
 		break;
 	}
 }
@@ -98,12 +148,12 @@ void print_rcsd(CSD_ARRAYTYPE csds)
 	{
 		if (csds.csd[i].type==0)
 		{
-			asyslog(LOG_INFO,"<%d>OAD%04x-%02x%02x ",i,csds.csd[i].csd.oad.OI,csds.csd[i].csd.oad.attflg,csds.csd[i].csd.oad.attrindex);
-//			fprintf(stderr,"<%d>OAD%04x-%02x%02x ",i,csds.csd[i].csd.oad.OI,csds.csd[i].csd.oad.attflg,csds.csd[i].csd.oad.attrindex);
+//			asyslog(LOG_INFO,"<%d>OAD%04x-%02x%02x ",i,csds.csd[i].csd.oad.OI,csds.csd[i].csd.oad.attflg,csds.csd[i].csd.oad.attrindex);
+			fprintf(stderr,"<%d>OAD%04x-%02x%02x ",i,csds.csd[i].csd.oad.OI,csds.csd[i].csd.oad.attflg,csds.csd[i].csd.oad.attrindex);
 		}else if (csds.csd[i].type==1)
 		{
-			asyslog(LOG_INFO,"<%d> ",i);
-//			fprintf(stderr,"<%d>",i);
+//			asyslog(LOG_INFO,"<%d> ",i);
+			fprintf(stderr,"<%d>",i);
 			print_road(csds.csd[i].csd.road);
 		}
 	}
@@ -155,11 +205,15 @@ int fill_bool(INT8U *data,INT8U value)		//0x03
 	return 2;
 }
 
-int fill_bit_string8(INT8U *data,INT8U bits)		//0x04
+int fill_bit_string(INT8U *data,INT8U size,INT8U bits)		//0x04
 {
 	//TODO : 默认8bit ，不符合A-XDR规范
+	if(size>=0 && size<=8){
+		size = 8;
+		syslog(LOG_ERR,"fill_bit_string size=%d, error",size);
+	}
 	data[0] = dtbitstring;
-	data[1] = 0x08;
+	data[1] = size;
 	data[2] = bits;
 	return 3;
 }
@@ -348,35 +402,80 @@ int fill_CSD(INT8U type,INT8U *data,MY_CSD csd)		//0x5b
 	return index;
 }
 
+/*填充TS类型的seqofLen
+ * */
+INT8U fill_SeqofLen(int seqlen,INT8U *msbuf)
+{
+	INT8U index=0;
+	if(seqlen <= 0xff) {
+		msbuf[index++] = seqlen;
+	}else {
+		msbuf[index++] = 0x82;	//0x80:长度区存在，0x02:长度２个字节
+		msbuf[index++] = (seqlen >>8) & 0xff;
+		msbuf[index++] = seqlen & 0xff;
+	}
+	return index;
+}
+
 int fill_MS(INT8U type,INT8U *data,MY_MS myms)		//0x5C
 {
-	INT8U choicetype=0;
-	int 	index=0;
+	INT8U 	choicetype=0;
+	int 	index=0,seqof_index=0;
 	int		i=0;
+	int		seqof_len = 0;
 
 	if(type)
 		data[index++] = dtms;
 	choicetype = myms.mstype;
+	data[index++] = choicetype;
+	fprintf(stderr,"fill_MS type = %d \n",choicetype);
+
 	switch (choicetype)
 	{
-		case 0:
-			data[index++] = 0;//myms.ms.nometer_null;  //0表示 没有电表  1表示 全部电表
-			break;
+		case 0://0表示 没有电表  1表示 全部电表   //测试过
 		case 1:
-			data[index++] = 1;//myms.ms.allmeter_null;  //0表示 没有电表  1表示 全部电表
 			break;
-		case 2:
+		case 2://一组用户类型   //测试过
+			seqof_len = (myms.ms.userType[0]<<8) + myms.ms.userType[1];
+			index += fill_SeqofLen(seqof_len,&data[index]);
+			for(i=0;i<seqof_len;i++) {
+				data[index++] = myms.ms.userType[2+i];		//不需要类型描述
+			}
 			break;
-		case 3:
+		case 3://一组用户地址
+			seqof_len = (myms.ms.userAddr[0].addr[0]<<8) + myms.ms.userAddr[0].addr[1];
+			index += fill_SeqofLen(seqof_len,&data[index]);
+			for(i=0;i<seqof_len;i++) {
+				memcpy(&data[index],&myms.ms.userAddr[i+1].addr[0],myms.ms.userAddr[i+1].addr[0]);
+				index += myms.ms.userAddr[i+1].addr[0];
+			}
 			break;
 		case 4:	//一组配置序号
-			data[index++] = choicetype;
-			data[index++] = myms.ms.configSerial[0];
-			for(i=0;i<myms.ms.configSerial[0];i++) {
-				data[index++] = ( myms.ms.configSerial[i+1]>>8 ) & 0xff;
+			seqof_len = myms.ms.configSerial[0];
+			index += fill_SeqofLen(seqof_len,&data[index]);
+			for(i=0;i<seqof_len;i++) {
+				data[index++] = (myms.ms.configSerial[i+1]>>8) & 0xff;		//TODO:是否包含类型
 				data[index++] = myms.ms.configSerial[i+1] & 0xff;
 				//index += fill_long_unsigned(&data[index],myms.ms.configSerial[i+1]);
 			}
+			break;
+		case 5:	//一组用户类型区间		//ms联合体，一起处理 ，case5 湖南测试过
+		case 6:	//一组用户地址区间
+		case 7:	//一组配置序号区间
+			seqof_len = 0;
+			seqof_index = index;	//记录seqof位置
+			index++;
+			for(i=0;i<COLLCLASS_MAXNUM;i++) {
+				if(myms.ms.type[i].type!=interface) {
+					if(myms.ms.type[i].begin[0]!=0 && myms.ms.type[i].end[0]!=0) {
+						seqof_len++;
+						data[index++] = myms.ms.type[i].type;
+						index += fill_Data(myms.ms.type[i].begin[0],&data[index],&myms.ms.type[i].begin[1]);
+						index += fill_Data(myms.ms.type[i].end[0],&data[index],&myms.ms.type[i].end[1]);
+					}
+				}else break;
+			}
+			data[seqof_index] = seqof_len;
 			break;
 	}
 	return index;
@@ -404,31 +503,35 @@ int fill_RCSD(INT8U type,INT8U *data,CSD_ARRAYTYPE csds)		//0x60
 	return index;
 }
 
-int fill_Data(INT8U *data,INT8U *value)
+int fill_Data(INT8U type,INT8U *data,INT8U *value)
 {
-	INT8U type=0;
 	int	 index = 0;
-//	fprintf(stderr,"value=%02x  %02x\n",value[0],value[1]);
-	type = value[0];
+	INT16U  tmpval = 0;
 	switch(type) {
 	case dtnull://采集当前数据	//按冻结时标采集
-		data[index++] = value[1];
+		data[index++] = value[0];
 		break;
-	case dtunsigned:	//采集上第N次
-		index += fill_unsigned(data,value[1]);
+	case dtunsigned:			//采集上第N次
+		index += fill_unsigned(data,value[0]);
+		break;
+	case dtlongunsigned:	//
+		tmpval = (value[0]<<8) | value[1];
+		index += fill_long_unsigned(data,tmpval);
 		break;
 	case dtti:
 		data[index++] = dtti;
-		memcpy(&data[index],&value[0],3);
+		memcpy(&data[index],&value[0],3);	//需测试
 		index += 3;
+		break;
+	case dttsa:		//需测试
+		index += fill_TSA(&data[index],&value[1],value[1]);
 		break;
 	case dtstructure:
 		index += create_struct(&data[index],2);
 		data[index++] = dtti;
-		memcpy(&data[index],&value[1],3);		//TI
+		memcpy(&data[index],&value[0],3);		//TI
 		index += 3;
-		data[index++] = dtlongunsigned;
-		index += fill_long_unsigned(&data[index],(INT16U)value[4]);
+		index += fill_long_unsigned(&data[index],(INT16U)value[3]);
 		break;
 	}
 	return index;
@@ -488,7 +591,7 @@ int getOctetstring(INT8U type,INT8U *source,INT8U *tsa)   //9
 	{
 		INT8U num = source[type];//字节数
 		if(num>TSA_LEN) {		//todo: 定义 OCTET_STRING_LEN也会调用该函数
-			fprintf(stderr,"长度越限[%d]  num=%d\n",TSA_LEN,num);
+			asyslog(LOG_ERR,"Octetstring 长度越限[%d]  num=%d\n",TSA_LEN,num);
 			num = TSA_LEN;
 		}
 		memcpy(tsa, &source[type],num+1);
@@ -499,10 +602,12 @@ int getOctetstring(INT8U type,INT8U *source,INT8U *tsa)   //9
 
 int getVisibleString(INT8U *source,INT8U *dest)	//0x0A
 {
-	int	len=VISIBLE_STRING_LEN;
+	int	len=VISIBLE_STRING_LEN-1;
 	if(source[1]<VISIBLE_STRING_LEN) {
 		len = source[1]+1;			// source[0]表示类型，source[1]表示长度，字符串长度加 长度字节本身
-	}else fprintf(stderr,"VisibleString over %d\n",VISIBLE_STRING_LEN);
+	}else {
+		asyslog(LOG_ERR,"VisibleString (%d) over %d\n",(source[1]+1),VISIBLE_STRING_LEN);
+	}
 	memcpy(&dest[0],&source[1],len);
 	return (len+1);			//+1:类型
 }
@@ -619,75 +724,82 @@ int getTI(INT8U type,INT8U *source,TI *ti)	//0x54
 	return 0;
 }
 
+/*
+ * 返回的Data数据
+ * [0]:数据类型
+ * [1-n]：实际数据
+ * */
 int get_Data(INT8U *source,INT8U *dest)
 {
-	int dttype=0,dtlen=0,i=0;
+	int dttype=0,dtlen=0;//,i=0;
+
 	dttype = source[0];
-	dest[0] = dttype;
-//	dtlen = getDataTypeLen(dttype);
-//	if(dtlen>=0) {
-//		memcpy(&dest[1],&source[1],dtlen);
-//		return (dtlen+1);  //+1:dttype
-//	}else {
-//		return 0;
-//	}
 	fprintf(stderr,"get_Data type=%02x\n",dttype);
-	switch(dttype){
-	case dtunsigned:
-		dest[1] = source[1];
-		return 2;
-	case dtlongunsigned:
-		dest[1] = source[1];		//高低位
-		dest[2] = source[2];
-		return 3;
-	case dtfloat64:
-	case dtlong64:
-	case dtlong64unsigned:
-		for(i=0 ; i<8; i++)
-			dest[8-i] = source[i+1];	//dest[8] ,7 ,6 ,5, 4 ,3 ,2 ,1   dest[0]:type
-		return 8 + 1;
-	case dtenum:
-		dest[1] = source[1];
-		return 2;
-	case dtfloat32:
-		for(i=0 ; i<4; i++)
-			dest[4-i] = source[i+1];	//dest[4] ,3 ,2 ,1   dest[0]:type
-		return 4 + 1;
-	case dtdatetime:
-		dest[1] = source[1];//年
-		dest[2] = source[2];
-		dest[3] = source[3];//月
-		dest[4] = source[4];//day_of_month
-		dest[5] = source[5];//day_of_week
-		dest[6] = source[6];//时
-		dest[7] = source[7];//分
-		dest[8] = source[8];//秒
-		dest[9] = source[9];//毫秒
-		dest[10] = source[10];//
-		return 10 + 1;
-	case dtdatetimes:
-		dest[1] = source[1];//年
-		dest[2] = source[2];
-		dest[3] = source[3];//月
-		dest[4] = source[4];//日
-		dest[5] = source[5];//时
-		dest[6] = source[6];//分
-		dest[7] = source[7];//秒
-		return 7 + 1;
-		break;
-	case dtti:
-		memcpy(&dest[1],&source[1],3);
-		return 3 + 1;
-		break;
-	case dttsa:
-		i = source[1];//长度
-		memcpy(&dest[1],&source[1],i+1);
-		return i+1;
-	default:
-		fprintf(stderr,"未处理的数据类型\n");
-		break;
+	dtlen = getDataTypeLen(dttype);
+	if(dtlen>=0) {
+		dest[0] = dttype;
+		memcpy(&dest[1],&source[1],dtlen);
+		return (dtlen+1);  //+1:dttype
+	}else {
+		fprintf(stderr,"未知数据长度");
+		return 0;
 	}
-	return 0;
+//	switch(dttype){
+//	case dtunsigned:
+//		dest[1] = source[1];
+//		return 2;
+//	case dtlongunsigned:
+//		dest[1] = source[1];		//高低位
+//		dest[2] = source[2];
+//		return 3;
+//	case dtfloat64:
+//	case dtlong64:
+//	case dtlong64unsigned:
+//		for(i=0 ; i<8; i++)
+//			dest[8-i] = source[i+1];	//dest[8] ,7 ,6 ,5, 4 ,3 ,2 ,1   dest[0]:type
+//		return 8 + 1;
+//	case dtenum:
+//		dest[1] = source[1];
+//		return 2;
+//	case dtfloat32:
+//		for(i=0 ; i<4; i++)
+//			dest[4-i] = source[i+1];	//dest[4] ,3 ,2 ,1   dest[0]:type
+//		return 4 + 1;
+//	case dtdatetime:
+//		dest[1] = source[1];//年
+//		dest[2] = source[2];
+//		dest[3] = source[3];//月
+//		dest[4] = source[4];//day_of_month
+//		dest[5] = source[5];//day_of_week
+//		dest[6] = source[6];//时
+//		dest[7] = source[7];//分
+//		dest[8] = source[8];//秒
+//		dest[9] = source[9];//毫秒
+//		dest[10] = source[10];//
+//		return 10 + 1;
+//	case dtdatetimes:
+//		dest[1] = source[1];//年
+//		dest[2] = source[2];
+//		dest[3] = source[3];//月
+//		dest[4] = source[4];//日
+//		dest[5] = source[5];//时
+//		dest[6] = source[6];//分
+//		dest[7] = source[7];//秒
+//		return 7 + 1;
+//		break;
+//	case dtti:
+//		memcpy(&dest[1],&source[1],3);
+//		return 3 + 1;
+//		break;
+//	case dttsa:
+//		i = source[1];//长度
+//		memcpy(&dest[1],&source[1],i+1);
+//		return i+1;
+//	default:
+//		fprintf(stderr,"未处理的数据类型\n");
+//		break;
+//	}
+//	return 0;
 }
 /*
  * 解析选择方法类型 RSD
@@ -798,115 +910,118 @@ int getCSD(INT8U type,INT8U *source,MY_CSD* csd)		//0X5B
 	return 0;
 }
 
+/*
+ * 获取sequenceOf len,目前只考虑长度为两个字节
+ * seqOfLen：　获取长度，
+ * 返回：　source缓冲区的位置
+ * */
+INT8U getSeqofLen(INT8U *source,int *seqOfLen)
+{
+	INT8U 	index = 0;
+	INT8U	seqofFlg = 0;
+
+	seqofFlg = source[0];	//sequence 的长度
+	if(seqofFlg & 0x80) {
+		if((seqofFlg & 0x7f)==2) {		//只考虑长度两个字节，未测试
+			*seqOfLen = (source[1] << 8) | source[2];
+		}
+		index = 3;
+	}else {
+		*seqOfLen = seqofFlg;
+		index = 1;
+	}
+	return index;
+}
+
 int getMS(INT8U type,INT8U *source,MY_MS *ms)		//0x5C
 {
-	INT8U choicetype=0;
-	int	  seqnum = 0,seqlen = 0,i=0;
-	if(type>1) {
+	INT8U 	choicetype=0;
+	int	  	seqlen = 0,i=0;
+	int		msindex = 0;
+	int 	index = type;
+	if(type>1) {		//是否存在类型字节
 		fprintf(stderr,"MS 类型标识不符 type=%d\n",type);
 		return 0;
 	}
-	choicetype = source[type];//0
+	choicetype = source[index++];//0
+	ms->mstype = choicetype;		//区分MS类型，加入一个字节
 	fprintf(stderr,"MS:Choice = %d\n",choicetype);
+	if(choicetype>=2 && choicetype<=7) {
+		index += getSeqofLen(&source[index],&seqlen);
+		if(seqlen>COLLCLASS_MAXNUM) {
+			fprintf(stderr,"sequence of len=%d 大于容量 %d,无法处理！！！",seqlen,COLLCLASS_MAXNUM);
+			return index;
+		}
+		fprintf(stderr,"seqlen=%d\n",seqlen);		//只测试了一个电表
+	}
 	switch (choicetype)
 	{
-		case 0:
-		case 1:
-			ms->mstype = source[type];  //0表示 没有电表  1表示 全部电表	//区分MS类型，人工加入一个字节，报文中无此说明
-			ms->mstype = source[type];
-			return 1+type;
-		case 2://一组用户类型
-			type++;
-			seqlen = source[type];	//sequence 的长度
-			if(seqlen & 0x80) {		//长度两个字节
-				seqnum = (source[type] << 8) | source[type+1];
-				type += 2;
-			}else {
-				seqnum = seqlen;
-				type += 1;
+	case 0:
+	case 1:
+		break;
+	case 2://一组用户类型
+		msindex = 0;
+		ms->ms.userType[msindex++] = (seqlen>>8)&0xff;
+		ms->ms.userType[msindex++] = seqlen & 0xff;
+		for(i=0;i<seqlen;i++) {
+			ms->ms.userType[msindex++] = source[index++];
+			if(index>=(MAXSIZ_FAM-48)) {
+				syslog(LOG_ERR,"MS 数据类型填充数据[%d]超限[%d],不予处理",index,MAXSIZ_FAM);
+				break;
 			}
-			if(seqnum>COLLCLASS_MAXNUM) {
-				fprintf(stderr,"sequence of num 大于容量 %d,无法处理！！！",COLLCLASS_MAXNUM);
-				return 1+type;
+		}
+		break;
+	case 3://一组用户地址
+		msindex = 0;
+		ms->ms.userAddr[msindex].addr[0] = (seqlen>>8)&0xff;
+		ms->ms.userAddr[msindex].addr[1] = seqlen & 0xff;
+		msindex++;
+		for(i=0;i<seqlen;i++) {
+			index += getOctetstring(0,&source[index],(INT8U *)&ms->ms.userAddr[msindex++].addr);
+			if(index>=(MAXSIZ_FAM-48)) {
+				syslog(LOG_ERR,"MS 数据类型填充数据[%d]超限[%d],不予处理",index,MAXSIZ_FAM);
+				break;
 			}
-			ms->mstype = choicetype;
-			fprintf(stderr,"seqnum=%d\n",seqnum);		//只测试了一个电表
-			ms->ms.userType[0] = seqnum;
-			for(i=0;i<seqnum;i++) {
-				ms->ms.userType[i+1] = source[type++];
+		}
+
+		fprintf(stderr,"seqlen = %d TSA len=%d\n",seqlen,ms->ms.userAddr[1].addr[0]);
+		for(i=0;i<(ms->ms.userAddr[1].addr[0]+1);i++) {
+			fprintf(stderr,"%02x ",ms->ms.userAddr[1].addr[i]);
+		}
+		break;
+	case 4:	//一组配置序号  	[4] 	SEQUENCE OF long-unsigned
+		msindex = 0;
+		ms->ms.configSerial[msindex++] = seqlen;
+		for(i=0;i<seqlen;i++) {
+			ms->ms.configSerial[msindex++] = (source[index]<<8)|source[index+1];
+			index = index+2;
+			if(index>=(MAXSIZ_FAM-48)) {
+				syslog(LOG_ERR,"MS 数据类型填充数据[%d]超限[%d],不予处理",index,MAXSIZ_FAM);
+				break;
 			}
-			return type;
-		case 3:
-			type++;
-			seqlen = source[type];	//sequence 的长度
-			if(seqlen & 0x80) {		//长度两个字节
-				seqnum = (source[type] << 8) | source[type+1];
-				type += 2;
-			}else {
-				seqnum = seqlen;
-				type += 1;
+		}
+		break;
+	case 5:	//一组用户类型区间 [5] SEQUENCE OF Region //类型5:6015设置及读取湖南测试通过
+	case 6: //一组用户地址区间
+	case 7://一组配置序号区间
+		msindex = 0;
+		for(i=0;i<COLLCLASS_MAXNUM;i++) {
+			ms->ms.type[i].type = interface;//初始化interface, 用来获取有效的区间长度，Region_Type type;//type = interface 无效
+		}
+		for(i=0;i<seqlen;i++) {
+			ms->ms.type[msindex].type = source[index++];
+			index += get_Data(&source[index],ms->ms.type[msindex].begin);
+			index += get_Data(&source[index],ms->ms.type[msindex].end);
+			msindex++;
+			if(index>=(MAXSIZ_FAM-48)) {
+				syslog(LOG_ERR,"MS 数据类型填充数据[%d]超限[%d],不予处理",index,MAXSIZ_FAM);
+				break;
 			}
-			if(seqnum>COLLCLASS_MAXNUM) {
-				fprintf(stderr,"sequence of num 大于容量 %d,无法处理！！！",COLLCLASS_MAXNUM);
-				return 1+type;
-			}
-			ms->mstype = choicetype;
-			ms->ms.userAddr[0].addr[0] = (seqnum>>8)&0xff;
-			ms->ms.userAddr[0].addr[1] = seqnum & 0xff;
-			fprintf(stderr,"seqnum=%d\n",seqnum);		//只测试了一个电表
-			for(i=0;i<seqnum;i++) {
-				memcpy(&ms->ms.userAddr[i+1].addr,&source[type],(source[type]+1));
-				type = type+source[type]+1;
-			}
-			fprintf(stderr,"TSA len=%d\n",ms->ms.userAddr[1].addr[0]);
-			for(i=0;i<(ms->ms.userAddr[1].addr[0]+1);i++) {
-				fprintf(stderr,"%02x ",ms->ms.userAddr[1].addr[i]);
-			}
-			return type;
-		case 4:	//一组配置序号  	[4] 	SEQUENCE OF long-unsigned
-			type++;
-			seqlen = source[type];	//sequence 的长度
-			if(seqlen & 0x80) {		// 只考虑长度最多两个字节情况
-				seqnum = (source[type] << 8) | source[type+1];
-				type += 2;
-			}else {
-				seqnum = seqlen;
-				type += 1;
-			}
-			fprintf(stderr,"type=%d\n",type);
-			if(seqnum>COLLCLASS_MAXNUM) {
-				fprintf(stderr,"sequence of num 大于容量 %d,无法处理！！！",COLLCLASS_MAXNUM);
-				return 1+type;
-			}
-			ms->mstype = choicetype;
-			ms->ms.configSerial[0] = seqnum;
-			fprintf(stderr,"choicetype=%d,seqnum=%d\n",choicetype,seqnum);
-			for(i=0;i<seqnum;i++) {
-				ms->ms.configSerial[i+1] = (source[type]<<8)|source[type+1];
-				type = type+2;
-			}
-			return type;
-		case 5:	//一组用户类型区间 [5] SEQUENCE OF Region
-			type++;
-			seqlen = source[type];	//sequence 的长度
-			if(seqlen & 0x80) {		// 只考虑长度最多两个字节情况
-				seqnum = (source[type] << 8) | source[type+1];
-				type += 2;
-			}else {
-				seqnum = seqlen;
-				type += 1;
-			}
-			ms->mstype = choicetype;
-			fprintf(stderr,"choicetype=%d,seqnum=%d\n",choicetype,seqnum);
-			for(i=0;i<seqnum;i++) {
-				ms->ms.type[i].type = source[type];
-				type = type+1;
-				type += get_Data(&source[type],ms->ms.type[i].begin);
-				type += get_Data(&source[type],ms->ms.type[i].end);
-			}
-			return type;
+		}
+		break;
 	}
-	return 0;
+	fprintf(stderr,"get MS index= %d\n",index);
+	return index;
 }
 
 int getCOMDCB(INT8U type, INT8U* source, COMDCB* comdcb)		//0x5F
@@ -975,209 +1090,6 @@ int get_BasicRCSD(INT8U type,INT8U *source,CSD_ARRAYTYPE *csds)	//0x60
 	return index;
 }
 
-////////////////////////////////////////////////////////////
-/*
- * 采集档案配置单元
- * type = 1: 获取一个配置单元长度，不判断数据有效性，为了分帧计算
- *      = 0: 获取配置单元数据
- * */
-int Get_6001(INT8U type,INT16U seqnum,INT8U *data)
-{
-	int 	index=0,ret=0;
-	CLASS_6001 meter={};
-
-	ret = readParaClass(0x6000,&meter,seqnum);
-	if((ret==1)||(type==1)) {
-		if(type==0) {
-			if(meter.sernum==0 || meter.sernum==0xffff)  return index;
-		}
-		fprintf(stderr,"\n 6000 read meter %d ok",seqnum);
-		index += create_struct(&data[index],4);		//属性2：struct 四个元素
-		index += fill_long_unsigned(&data[index],meter.sernum);		//配置序号
-		index += create_struct(&data[index],10);					//基本信息:10个元素
-		index += fill_TSA(&data[index],(INT8U *)&meter.basicinfo.addr.addr[1],meter.basicinfo.addr.addr[0]);		//TSA
-		index += fill_enum(&data[index],meter.basicinfo.baud);			//波特率
-		index += fill_enum(&data[index],meter.basicinfo.protocol);		//规约类型
-
-		index += create_OAD(1,&data[index],meter.basicinfo.port);		//端口
-		index += fill_octet_string(&data[index],(char *)&meter.basicinfo.pwd[1],meter.basicinfo.pwd[0]);		//通信密码
-		index += fill_unsigned(&data[index],meter.basicinfo.ratenum);		//费率个数
-		index += fill_unsigned(&data[index],meter.basicinfo.usrtype);		//用户类型
-		index += fill_enum(&data[index],meter.basicinfo.connectype);		//接线方式
-		index += fill_long_unsigned(&data[index],meter.basicinfo.ratedU);		//额定电压
-		index += fill_long_unsigned(&data[index],meter.basicinfo.ratedI);		//额定电流
-		index += create_struct(&data[index],4);					//扩展信息:4个元素
-		index += fill_TSA(&data[index],(INT8U *)&meter.extinfo.cjq_addr.addr[1],meter.extinfo.cjq_addr.addr[0]);		//TSA
-		index += fill_octet_string(&data[index],(char *)&meter.extinfo.asset_code[1],meter.extinfo.asset_code[0]);	//资产号
-		index += fill_long_unsigned(&data[index],meter.extinfo.pt);		//PT
-		index += fill_long_unsigned(&data[index],meter.extinfo.ct);		//CT
-		index += create_array(&data[index],0);					//附属信息:0个元素
-	}
-	return index;
-}
-
-/*
- * 任务配置单元
- * */
-int Get_6013(INT8U type,INT8U taskid,INT8U *data)
-{
-	int 	index=0,i=0,ret=0;
-	CLASS_6013 task={};
-
-	ret = readCoverClass(0x6013,taskid,&task,sizeof(CLASS_6013),coll_para_save);
-	if ((ret == 1) || (type==1)) {
-		fprintf(stderr,"\n 6013 read meter ok");
-		index += create_struct(&data[index],12);		//属性2：struct 12个元素
-		index += fill_unsigned(&data[index],task.taskID);		//配置序号
-		index += fill_TI(&data[index],task.interval);			//执行频率
-		index += fill_enum(&data[index],task.cjtype);			//方案类型
-		index += fill_unsigned(&data[index],task.sernum);			//方案序号
-		index += fill_date_time_s(&data[index],&task.startime);		//开始时间
-		index += fill_date_time_s(&data[index],&task.endtime);		//结束时间
-		index += fill_TI(&data[index],task.delay);				//延时
-		index += fill_enum(&data[index],task.runprio);			//执行优先级
-		index += fill_enum(&data[index],task.state);			//任务状态
-		index += fill_long_unsigned(&data[index],task.befscript); //任务开始前脚本
-		index += fill_long_unsigned(&data[index],task.aftscript); //任务完成后脚本
-		index += create_struct(&data[index],2);					//任务运行时段:2个元素
-		index += fill_enum(&data[index],task.runtime.type);
-		index += create_array(&data[index],task.runtime.num);	  //时段表
-		for(i=0;i<task.runtime.num;i++) {
-			index += create_struct(&data[index],4);
-			index += fill_unsigned(&data[index],task.runtime.runtime[i].beginHour);
-			index += fill_unsigned(&data[index],task.runtime.runtime[i].beginMin);
-			index += fill_unsigned(&data[index],task.runtime.runtime[i].endHour);
-			index += fill_unsigned(&data[index],task.runtime.runtime[i].endMin);
-		}
-	}
-	return index;
-}
-
-/*
- * 普通采集方案
- * */
-int Get_6015(INT8U type,INT8U seqnum,INT8U *data)
-{
-	int 	index=0,i=0,ret=0;
-	CLASS_6015 coll={};
-
-	ret = readCoverClass(0x6015,seqnum,&coll,sizeof(CLASS_6015),coll_para_save);
-	fprintf(stderr,"\n 6015 read coll ok　seqnum=%d  type=%d  ret=%d\n",seqnum,type,ret);
-	if ((ret == 1) || (type==1)) {
-		fprintf(stderr,"\n 6015 read coll ok　seqnum=%d  type=%d  ret=%d\n",seqnum,type,ret);
-		index += create_struct(&data[index],6);		//属性2：struct 6个元素
-		index += fill_unsigned(&data[index],coll.sernum);		//方案序号
-		index += fill_long_unsigned(&data[index],coll.deepsize);	//存储深度
-		index += create_struct(&data[index],2);		//属性2：struct 2个元素
-
-		fprintf(stderr,"coll.cjtype = %d\n",coll.cjtype);
-		index += fill_unsigned(&data[index],coll.cjtype);		//采集类型
-//		data[index++] = coll.data.data[0];
-		index += fill_Data(&data[index],&coll.data.type);		//数据
-		if(coll.csds.num > MY_CSD_NUM) {
-			coll.csds.num = MY_CSD_NUM;
-			fprintf(stderr,"采集档案记录列选择大于限值 %d\n",coll.csds.num );
-		}
-		fprintf(stderr,"采集档案记录列: array=%d\n",coll.csds.num);
-		index += create_array(&data[index],coll.csds.num);
-		for(i=0;i<coll.csds.num;i++) {
-			index += fill_CSD(1,&data[index],coll.csds.csd[i]);
-		}
-		index += fill_MS(1,&data[index],coll.mst);		//电能表集合MS
-		index += fill_enum(&data[index],coll.savetimeflag);		//存储时标选择
-	}
-	return index;
-}
-
-/*
- * 事件采集方案
- * */
-int Get_6017(INT8U type,INT8U seqnum,INT8U *data)
-{
-	int 	index=0,ret=0,i=0;
-	CLASS_6017 event={};
-
-	ret = readCoverClass(0x6017,seqnum,&event,sizeof(CLASS_6017),coll_para_save);
-	fprintf(stderr,"\n 6017 read coll ok　seqnum=%d  type=%d  ret=%d\n",seqnum,type,ret);
-	if ((ret == 1) || (type==1)) {
-		fprintf(stderr,"\n 6017 read coll ok　seqnum=%d  type=%d  ret=%d\n",seqnum,type,ret);
-		index += create_struct(&data[index],5);					//属性2：struct 5个元素
-		index += fill_unsigned(&data[index],event.sernum);		//方案序号
-		index += create_struct(&data[index],2);					//属性2：struct 2个元素
-		index += fill_unsigned(&data[index],event.collstyle.colltype);		//采集类型
-		switch(event.collstyle.colltype) {
-		case 0://周期采集事件数据
-		case 2://根据通知采集指定事件数据
-			if(event.collstyle.roads.num>ARRAY_ROAD_NUM)	event.collstyle.roads.num = ARRAY_ROAD_NUM;
-			index += create_array(&data[index],event.collstyle.roads.num);
-			for(i=0;i<event.collstyle.roads.num;i++) {
-				index += fill_ROAD(1,&data[index],event.collstyle.roads.road[i]);	//采集数据
-			}
-			break;
-		case 1://NULL,根据通知采集所有事件数据
-			data[index++]=0;
-			break;
-		}
-		index += fill_MS(1,&data[index],event.ms);		//电能表集合
-		index += fill_bool(&data[index],event.ifreport);		//上报标识
-		index += fill_long_unsigned(&data[index],event.deepsize);		//存储深度
-	}
-	return index;
-}
-/*
- * 上报方案
- * */
-int Get_601D(INT8U type,INT8U seqnum,INT8U *data)
-{
-	int 	index=0,i=0,ret=0;
-	CLASS_601D plan={};
-
-	ret = readCoverClass(0x601D,seqnum,&plan,sizeof(CLASS_601D),coll_para_save);
-	if ((ret == 1) || (type==1)) {
-		fprintf(stderr,"\n 601d read report plan ok");
-		index += create_struct(&data[index],5);		//属性2：struct 5个元素
-		index += fill_unsigned(&data[index],plan.reportnum);		//方案序号
-		index += create_array(&data[index],plan.chann_oad.num);
-		for(i=0;i<plan.chann_oad.num;i++) {
-			index += create_OAD(1,&data[index],plan.chann_oad.oadarr[i]);		//上报通道
-		}
-		index += fill_TI(&data[index],plan.timeout);				//上报响应超时时间
-		index += fill_unsigned(&data[index],plan.maxreportnum);		//最大上报次数
-		index += create_struct(&data[index],2);						//上报内容：struct 2个元素
-		index += fill_unsigned(&data[index],plan.reportdata.type);	//类型
-		if(plan.reportdata.type==0) {			//oad
-			index += create_OAD(1,&data[index],plan.reportdata.data.oad);
-		}else if(plan.reportdata.type==1){		//RecordData
-			index += create_struct(&data[index],3);						//上报内容：struct 3个元素
-			index += create_OAD(1,&data[index],plan.reportdata.data.recorddata.oad);
-			index += fill_RCSD(1,&data[index],plan.reportdata.data.recorddata.csds);
-			index += fill_RSD(plan.reportdata.data.recorddata.selectType,&data[index],plan.reportdata.data.recorddata.rsd);
-		}
-	}
-	return index;
-}
-/*
- * 采集任务监控单元
- * */
-int Get_6035(INT8U type,INT8U taskid,INT8U *data)
-{
-	int 	index=0,ret=0;
-	CLASS_6035	classoi={};
-
-	ret = readCoverClass(0x6035,taskid,&classoi,sizeof(CLASS_6035),coll_para_save);
-	if ((ret == 1) || (type==1)) {
-		index += create_struct(&data[index],8);
-		index += fill_unsigned(&data[index],classoi.taskID);
-		index += fill_enum(&data[index],classoi.taskState);
-		index += fill_date_time_s(&data[index],&classoi.starttime);
-		index += fill_date_time_s(&data[index],&classoi.endtime);
-		index += fill_long_unsigned(&data[index],classoi.totalMSNum);
-		index += fill_long_unsigned(&data[index],classoi.successMSNum);
-		index += fill_long_unsigned(&data[index],classoi.sendMsgNum);
-		index += fill_long_unsigned(&data[index],classoi.rcvMsgNum);
-	}
-	return index;
-}
 
 /*
  * 根据数据类型返回相应的数据长度

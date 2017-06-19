@@ -79,18 +79,7 @@ const static  Variable_TJ_Class vari_tj_data[] ={
 		{0x2101,5,288},//小时区间统计	24*12=288
 };
 
-typedef struct{
-	OAD   oad_m;	//主OAD		oad 不存在主OAD，填0 ，road  存在主oad，如50040200
-	OAD   oad_r;	//关联OAD
-	INT16U len;		//oad 的数据长度，包括类型描述
-}HEAD_UNIT;
 
-typedef struct{
-	OAD    oad_m;
-	OAD    oad_r;
-	int    offset;
-	INT16U len;
-}OAD_INDEX;//oad索引
 /*
  * 该文件定义的函数为libAccess接口库内部使用函数。不是对外接口
  * */
@@ -118,5 +107,7 @@ extern int getvarioffset(OI_698 oi,int coll_seqnum,int *offset,int *blklen);
 
 extern sem_t * InitSem();
 extern void CloseSem(sem_t * sem_parasave);
+
+
 
 #endif /* FILEBASE_H_ */

@@ -9,6 +9,7 @@
 #include "comm.h"
 #include "gui.h"
 #include "show_ctrl.h"
+#include "../include/basedef.h"
 #define MAX_INTERVAL 1//显示开关切换最大间隔时间 单位s
 #define LED_EC_COUNT 10 //告警灯闪烁时长
 volatile static time_t curts,oldts;
@@ -80,25 +81,25 @@ void Init_GuiLib_variable()
 /*
  *显示选择开关函数
  * */
-INT8U switch_show_ret()
-{
-	INT8U ret = 0;
-	curts = time(NULL);
-	if((curts - oldts) < MAX_INTERVAL)//小于2s
-	{
-		ret = 1;
-	}
-	else if((curts - oldts) < MAX_INTERVAL*2)//大于等于2s小于4s
-	{
-		ret = 2;
-	}
-	else if((curts - oldts) >= MAX_INTERVAL*2)//大于等于4s
-	{
-		oldts = curts;
-		ret = 1;
-	}
-	return ret;
-}
+//INT8U switch_show_ret()
+//{
+//	INT8U ret = 0;
+//	curts = time(NULL);
+//	if((curts - oldts) < MAX_INTERVAL)//小于2s
+//	{
+//		ret = 1;
+//	}
+//	else if((curts - oldts) < MAX_INTERVAL*2)//大于等于2s小于4s
+//	{
+//		ret = 2;
+//	}
+//	else if((curts - oldts) >= MAX_INTERVAL*2)//大于等于4s
+//	{
+//		oldts = curts;
+//		ret = 1;
+//	}
+//	return ret;
+//}
 /*
  * 状态运行灯控制
  * */
@@ -166,12 +167,8 @@ void lcd_showstatus()
 			}else
 				gpio_writebyte((char*)LED_RUN, 1);
 		}
-//		}
 //上状态条显示
 		lcd_showTopStatus();
-//		set_time_show_flag(1);//TODO:new
-//		delay(600);
-//	}
 }
 /*
  * 设备状态信息显示处理
@@ -235,15 +232,6 @@ sprintf((char*)str, "专变III型终端");
 //
 void show_ctrl()
 {
-	switch(switch_show_ret())
-	{
-	case 1:
-		lcd_showdownstatus();//显示液晶设备状态
-		break;
-	case 2:
-		lcd_showstatus();//显示状态灯
-		break;
-	default:
-		break;
-	}
+		lcd_showdownstatus();//显示下方状态栏
+		lcd_showstatus();//显示状态灯和上方状态栏
 }

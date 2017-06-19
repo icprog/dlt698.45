@@ -211,4 +211,8 @@ extern void  Get698_event(OAD oad,ProgramInfo* prginfo_event);
  *若设置多个参变量 会产生电能表数据监控变更事件
  */
 extern void Get698_3118_moreoad(OAD *oad,INT8U len,ProgramInfo* prginfo_event);
+
+extern INT8U filewrite(char *FileName, void *source, int size);
+
+extern INT8U fileread(char *FileName, void *source, INT32U size);
 #endif

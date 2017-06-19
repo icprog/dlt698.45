@@ -52,7 +52,6 @@ void msgbox(Rect form_rect, struct list *head, Text_t *ttext, MsgBoxRet *msgbox_
 		}
 	}
 //	list_print(msgbox.node.child);
-	set_time_show_flag(1);
 	PressKey = NOKEY;
 	while(g_LcdPoll_Flag==LCD_NOTPOLL){
 		switch(PressKey)
@@ -95,11 +94,9 @@ void msgbox(Rect form_rect, struct list *head, Text_t *ttext, MsgBoxRet *msgbox_
 						}
 					}
 					lcdregion_restore(lcd_buf, msgbox.rect);
-					set_time_show_flag(1);
 					return;
 				}else if(cur_form->CtlType==CTRL_BUTTON_CANCEL){//取消
 					lcdregion_restore(lcd_buf, msgbox.rect);
-					set_time_show_flag(1);
 					return;
 				}
 			}else if(get_oprmode()==OPRMODE_MODIFY){
@@ -173,7 +170,6 @@ void msgbox(Rect form_rect, struct list *head, Text_t *ttext, MsgBoxRet *msgbox_
 				rect.bottom +=4;
 				gui_rectangle(gui_changerect(rect, 4));
 			}
-			set_time_show_flag(1);
 //			dbg_prt("\n------PressKey=%d------------4",PressKey);
 			first_flg = 1;
 		}
@@ -469,7 +465,7 @@ int msgbox_inputjzqtime(char *s_jzqtime, int len)
 	button_init(&btn_ok,(char *)"确定", button_ok_pos, CTRL_BUTTON_OK, head);
 	Point button_esc_pos = {msgbox_pos.x+11*FONTSIZE, msgbox_pos.y+FONTSIZE*5};
 	button_init(&btn_esc,(char *)"取消", button_esc_pos, CTRL_BUTTON_CANCEL, head);
-	btn_esc.form.focus = FOCUS;//默认按键
+	btn_ok.form.focus = FOCUS;//默认按键
 	if(len==6)
 		gui_setrect(&msgbox_rect, msgbox_pos.x, msgbox_pos.y, msgbox_pos.x+19*FONTSIZE, msgbox_pos.y+8*FONTSIZE);
 	else if(len==8)
@@ -528,106 +524,6 @@ int msgbox_jzqaddr_10(char *s_jzqdizhi10, int len){
 //	dbg_prt("\n");
 	return msgbox_ret.btn_ret;
 }
-//int msgbox_jzqaddr_10(char *s_jzqdizhi10, int len){
-//	int i;
-//	Text_t ttext[MSGBOX_TEXTSIZE];
-//	char cb_text[TEXTLEN_X][TEXTLEN_Y];//用于存放combox的元素
-//	Combox cb_type_addr;
-//	Rect msgbox_rect;
-//	MsgBoxRet msgbox_ret;
-//	struct list *head=NULL;
-//	char str[10];
-//	Point pos;
-//	Point msgbox_pos;
-//	memset(str, 0, 10);
-//	Edit edit1, edit2;
-//	Button btn_ok, btn_esc;
-//	memset(&edit1, 0, sizeof(Edit));
-//	memset(&edit2, 0, sizeof(Edit));
-//	memset(&btn_ok, 0, sizeof(Button));
-//	memset(&btn_esc, 0, sizeof(Button));
-//	memset(&msgbox_ret, 0, sizeof(MsgBoxRet));
-//	memset(cb_text, 0, TEXTLEN_X*TEXTLEN_Y);
-//	gui_setpos(&pos, rect_Client.left+15*FONTSIZE, rect_Client.top);
-//
-//	gui_setpos(&msgbox_pos, (LCM_X-18*FONTSIZE)/2, (LCM_Y-14*FONTSIZE)/2);
-//	head = (struct list*)malloc(sizeof(struct list));
-//	if(head==NULL) 	return 0;
-//	list_init(head);
-//
-//	Point editctrl_pos = {msgbox_pos.x+FONTSIZE*13, msgbox_pos.y+1*FONTSIZE};  //位置
-//	edit_init(&edit1, &s_jzqdizhi10[0], len, editctrl_pos, FRAME, RETFLG, head,KEYBOARD_DEC);	//控件初始化 区号
-//	Point editctrl_pos1 = {msgbox_pos.x+FONTSIZE*13, msgbox_pos.y+3*FONTSIZE+6};  //位置
-//	edit_init(&edit2, &s_jzqdizhi10[4], len+1, editctrl_pos1, FRAME, RETFLG, head,KEYBOARD_DEC);	//控件初始化 逻辑地址
-//	Point button_ok_pos = {msgbox_pos.x+3*FONTSIZE, msgbox_pos.y+7*FONTSIZE};
-//	button_init(&btn_ok,(char *)"确定", button_ok_pos, CTRL_BUTTON_OK, head);
-//	Point button_esc_pos = {msgbox_pos.x+10*FONTSIZE, msgbox_pos.y+FONTSIZE*7};
-//	button_init(&btn_esc,(char *)"取消", button_esc_pos, CTRL_BUTTON_CANCEL, head);
-//	btn_esc.form.focus = FOCUS;
-//
-//	memset(ttext, 0, MSGBOX_TEXTSIZE*sizeof(Text_t));
-//	gui_setpos(&ttext[0].pos, msgbox_pos.x+FONTSIZE, msgbox_pos.y+FONTSIZE);
-//	memcpy(ttext[0].text, (char*)"服务器地址:", strlen("服务器地址:"));
-//	gui_setpos(&ttext[1].pos, msgbox_pos.x+FONTSIZE, msgbox_pos.y+3*FONTSIZE+6);
-//	memcpy(ttext[1].text, (char*)"客户机地址:", strlen("客户机地址:"));
-//	gui_setrect(&msgbox_rect, msgbox_pos.x, msgbox_pos.y, msgbox_pos.x+18*FONTSIZE, msgbox_pos.y+10*FONTSIZE);
-//	setid_showlabel();
-//	msgbox(msgbox_rect, head, ttext, &msgbox_ret);
-//	if(head!=NULL)
-//		free(head);
-//
-//	memcpy(s_jzqdizhi10, msgbox_ret.s_ret, len*2+1);
-////	dbg_prt("\n intput dizhi10: ");
-//	for(i=0; i<len; i++)
-////		dbg_prt("%d ", s_jzqdizhi10[i]);
-////	dbg_prt("\n");
-//	return msgbox_ret.btn_ret;
-//}
-//int msgbox_jzqaddr_16(char *s_jzqdizhi16, int len){
-//	int i;
-//	Text_t ttext[MSGBOX_TEXTSIZE];
-//	Rect msgbox_rect;
-//	MsgBoxRet msgbox_ret;
-//	struct list *head=NULL;
-//	char str[10];
-//	Point msgbox_pos;
-//	memset(str, 0, 10);
-//	Edit edit1, edit2;
-//	Button btn_ok, btn_esc;
-//	memset(&edit1, 0, sizeof(Edit));
-//	memset(&edit2, 0, sizeof(Edit));
-//	memset(&btn_ok, 0, sizeof(Button));
-//	memset(&btn_esc, 0, sizeof(Button));
-//	memset(&msgbox_ret, 0, sizeof(MsgBoxRet));
-//	gui_setpos(&msgbox_pos, (LCM_X-18*FONTSIZE)/2, (LCM_Y-14*FONTSIZE)/2);
-//	head = (struct list*)malloc(sizeof(struct list));
-//	if(head==NULL) 	return 0;
-//	list_init(head);
-//	Point editctrl_pos = {msgbox_pos.x+FONTSIZE*11, msgbox_pos.y+1*FONTSIZE};  //位置
-//	edit_init(&edit1, &s_jzqdizhi16[0], len, editctrl_pos, FRAME, RETFLG, head,KEYBOARD_DEC);	//控件初始化
-//	Point editctrl_pos1 = {msgbox_pos.x+FONTSIZE*11, msgbox_pos.y+3*FONTSIZE+6};  //位置
-//	edit_init(&edit2, &s_jzqdizhi16[4], len, editctrl_pos1, FRAME, RETFLG, head,KEYBOARD_HEX);	//控件初始化
-//	Point button_ok_pos = {msgbox_pos.x+3*FONTSIZE, msgbox_pos.y+7*FONTSIZE};
-//	button_init(&btn_ok,(char *)"确定", button_ok_pos, CTRL_BUTTON_OK, head);
-//	Point button_esc_pos = {msgbox_pos.x+10*FONTSIZE, msgbox_pos.y+FONTSIZE*7};
-//	button_init(&btn_esc,(char *)"取消", button_esc_pos, CTRL_BUTTON_CANCEL, head);
-//	btn_esc.form.focus = FOCUS;
-//	memset(ttext, 0, MSGBOX_TEXTSIZE*sizeof(Text_t));
-//	gui_setpos(&ttext[0].pos, msgbox_pos.x+FONTSIZE, msgbox_pos.y+FONTSIZE);
-//	memcpy(ttext[0].text, (char*)"行政区号:", strlen("行政区号:"));
-//	gui_setpos(&ttext[1].pos, msgbox_pos.x+FONTSIZE, msgbox_pos.y+3*FONTSIZE+6);
-//	memcpy(ttext[1].text, (char*)"逻辑地址:", strlen("逻辑地址:"));
-//	gui_setrect(&msgbox_rect, msgbox_pos.x, msgbox_pos.y, msgbox_pos.x+18*FONTSIZE, msgbox_pos.y+10*FONTSIZE);
-//	msgbox(msgbox_rect, head, ttext, &msgbox_ret);
-//	if(head!=NULL)
-//		free(head);
-//	memcpy(s_jzqdizhi16, msgbox_ret.s_ret, len*2);
-////	dbg_prt("\n intput dizhi16: ");
-//	for(i=0; i<2*len; i++)
-////		dbg_prt("%d ", s_jzqdizhi16[i]);
-////	dbg_prt("\n");
-//	return msgbox_ret.btn_ret;
-//}
 
 //设置ip port  前12个字节代表ip 后4个字节代表port
 int msgbox_masterip(char *s_ipport, int len){

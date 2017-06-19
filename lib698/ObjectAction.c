@@ -399,6 +399,7 @@ void AddCjiFangAnInfo(INT8U *data, Action_result *act_ret) {
 
     INT8U *buf;
     CLASS_6015 fangAn = {};
+
     int k = 0;
     INT8U addnum = data[1];        //data[0] = apdu[7]
     INT8U *dealdata = NULL;
@@ -486,7 +487,6 @@ void AddCjiFangAnInfo(INT8U *data, Action_result *act_ret) {
         fprintf(stderr, "\n存储时标选择 ： %d (1:任务开始时间  2：相对当日0点0分  3:相对上日23点59分  4:相对上日0点0分  5:相对当月1日0点0分)",
                 fangAn.savetimeflag);
         fprintf(stderr, "\n");
-
         act_ret->DAR = saveCoverClass(0x6015, fangAn.sernum, &fangAn, sizeof(fangAn), coll_para_save);
     }
     act_ret->datalen = index + 2;    //2 array + num
@@ -507,6 +507,8 @@ void AddEventCjiFangAnInfo(INT8U *data, Action_result *act_ret) {
         if (data[index] == dtstructure) {        //勘误增加了采集方式类型，浙江测试还未修改，故判断
             index += getStructure(&data[index], NULL);
             index += getUnsigned(&data[index], (INT8U *) &eventFangAn.collstyle.colltype);
+        }else  {
+        	eventFangAn.collstyle.colltype = 0xff;	//无效采集类型
         }
         index += getArray(&data[index], (INT8U *) &eventFangAn.collstyle.roads.num);
         for (i = 0; i < eventFangAn.collstyle.roads.num; i++)
@@ -595,6 +597,20 @@ void Set_CSD(INT8U *data) {
 
 }
 
+
+void DeleteArrayID(OI_698 oi,INT8U *data)
+{
+	INT8U 	i=0,arrayid = 0, taskid=0;
+	int 	index = 0;
+
+	index += getArray(&data[index],(INT8U *)&arrayid);
+	for(i=0;i<arrayid;i++) {
+		getUnsigned(&data[index],(INT8U *)&taskid);
+		fprintf(stderr,"Delete taskid=%d\n",taskid);
+		deleteClass(oi, taskid);
+	}
+}
+
 void CjiFangAnInfo(INT16U attr_act, INT8U *data, Action_result *act_ret) {
     switch (attr_act) {
         case 127:    //方法 127:Add (array 普通采集方案)
@@ -602,7 +618,7 @@ void CjiFangAnInfo(INT16U attr_act, INT8U *data, Action_result *act_ret) {
             AddCjiFangAnInfo(data, act_ret);
             break;
         case 128:    //方法 128:Delete(array 方案编号)
-//			DeleteCjFangAn(data[1]);
+        	DeleteArrayID(0x6015,data);
             break;
         case 129:    //方法 129:Clear( )
             fprintf(stderr, "\n清空普通采集方案");
@@ -621,11 +637,11 @@ void EventCjFangAnInfo(INT16U attr_act, INT8U *data, Action_result *act_ret) {
             AddEventCjiFangAnInfo(data, act_ret);
             break;
         case 128:    //方法 128:Delete(array 方案编号)
-            //		DeleteEventCjFangAn(data[1]);
+        	DeleteArrayID(0x6017,data);
             break;
         case 129:    //方法 129:Clear( )
             fprintf(stderr, "\n清空事件采集方案");
-            clearClass(0x6016);
+            clearClass(0x6017);
             break;
         case 130:    //方法 130:Set_CSD(方案编号,array CSD)
             //		UpdateReportFlag(data);
@@ -702,6 +718,7 @@ void AddReportInfo(INT8U *data, Action_result *act_ret) {
     act_ret->datalen = index;
 }
 
+
 void ReportInfo(INT16U attr_act, INT8U *data, Action_result *act_ret) {
     switch (attr_act) {
         case 127:    //方法 127:Add(array 上报方案)
@@ -709,23 +726,23 @@ void ReportInfo(INT16U attr_act, INT8U *data, Action_result *act_ret) {
             AddReportInfo(data, act_ret);
             break;
         case 128:    //方法 128:Delete(array 方案编号)
-
+        	DeleteArrayID(0x601d,data);
             break;
         case 129:    //方法 129:Clear( )
             fprintf(stderr, "\n清空上报方案集");
-            clearClass(0x601D);
+            clearClass(0x601d);
             break;
     }
 }
 
 void TaskInfo(INT16U attr_act, INT8U *data, Action_result *act_ret) {
+
     switch (attr_act) {
         case 127://方法 127:Add (任务配置单元)
             AddTaskInfo(data, act_ret);
             break;
         case 128://方法 128:Delete(array任务 ID )
-
-            deleteClass(0x6013, 1);
+        	DeleteArrayID(0x6013,data);
             break;
         case 129://方法 129:Clear()
             fprintf(stderr, "\n清空采集任务配置表");
@@ -757,12 +774,20 @@ void TerminalInfo(INT16U attr_act, INT8U *data, Action_result *act_ret) {
         		}
         	}
         	paraInit(oadnum,oad);
+        	//参数初始化将相应的变位标志置位
+        	memp->oi_changed.oi4016++;
+        	memp->oi_changed.oiF203++;
+        	memp->oi_changed.oi4300++;
+        	memp->oi_changed.oi4500++;
+        	memp->oi_changed.oi4510++;
         	break;
         case 3://数据初始化
         case 5://事件初始化
         case 6://需量初始化
             dataInit(attr_act);
-            //Event_3100(NULL,0,memp);//初始化，产生事件
+        	//共享内存实际流量清零
+        	memset(&memp->dev_info.realTimeC2200,0,sizeof(Flow_tj));
+            //Event_3100(NULL,0,memp);//初始化，产生事件,移到复位应答帧之后再进行事件的上报
             Reset_add();            //国网台体测试,数据初始化认为是复位操作
             fprintf(stderr, "\n终端数据初始化！");
             syslog(LOG_NOTICE, "终端数据初始化!（act=%d）",attr_act);
@@ -1111,8 +1136,17 @@ INT32S EsamMothod(INT16U attr_act, INT8U *data) {
             ret = -1;
             break;
     }
+    if(attr_act ==  7) //密钥更新需要再次读取esam信息，判断密钥版本（测试/正式）
+    {
+    	INT8S esamRET = esam_UpdateShmemStatus();//小于0代码读取芯片信息失败，不作处理
+    	if(esamRET == 1)//正式密钥
+    		memp->dev_info.Esam_VersionStatus = 1;
+    	else if(esamRET == 0)//测试密钥
+    		memp->dev_info.Esam_VersionStatus = 0;
+    }
     return ret;
 }
+
 
 int doObjectAction(OAD oad, INT8U *data, Action_result *act_ret) {
     INT32S errflg = 0;

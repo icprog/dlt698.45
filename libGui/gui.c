@@ -18,10 +18,6 @@ INT8U ret_show_time_flag()
 {
 	return time_show_flag;
 }
-void set_time_show_flag(INT8U value)
-{
-	time_show_flag = value;
-}
 
 void ReadHzkBuff_16()
 {
@@ -155,7 +151,6 @@ void gui_rectangle(Rect rect)
 	gui_vline(pt2, pt3.y); //pt2-->pt3
 	gui_hline(pt3, pt4.x); //pt3-->pt4
 	gui_vline(pt4, pt1.y); //pt4-->pt1
-	set_time_show_flag(1);//TODO:new
 }
 
 void gui_setrect(Rect *rect, int left, int top, int right, int bottom){
@@ -243,7 +238,6 @@ void gui_textshowreverse(unsigned char *str, Point pos)
 	Rect rect;
 	rect = gui_getstrrect(str, pos);
 	gui_reverserect(rect);
-	set_time_show_flag(1);//TODO:new
 }
 //放大或缩小区域
 Rect gui_changerect(Rect rect, int size)

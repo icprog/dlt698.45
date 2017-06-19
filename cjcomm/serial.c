@@ -103,8 +103,7 @@ int RegularSerial(struct aeEventLoop *ep, long long id, void *clientData) {
                             GlobCrc[oif201.devpara.verify], GlobStop[oif201.devpara.stopbits],
                             GlobData[oif201.devpara.databits]);
         } else {
-            nst->phy_connect_fd = OpenCom(4, 2400, (unsigned char *) "even",
-                                          1, 8);
+            nst->phy_connect_fd = OpenCom(4, 9600, (unsigned char *) "even", 1, 8);
         }
 
         if (nst->phy_connect_fd <= 0) {

@@ -11,7 +11,7 @@ def readConfig(name):
     config = ConfigParser.ConfigParser()
 
     try:
-        with open(name, 'rw') as cfgFile:
+        with open(name, 'r') as cfgFile:
             config.readfp(cfgFile)
             return config
     except IOError, e:
@@ -104,14 +104,14 @@ def doSetDevice(config):
 if __name__ == '__main__':
     config = checkConfig("./config.ini")
 
-    deviceId = getInputGiveInfo("输入产品逻辑地址>>>")
+    deviceId = getInputGiveInfo("Input Begin ID >>>")
 
     while True:
         try:
             os.system('cls;clear')
             os.system('arp -d')
 
-            newDeviceId = getInputGiveInfo("确认序列号:(可以重新输入逻辑地址):" + formatId(config, deviceId) + "#")
+            newDeviceId = getInputGiveInfo("Please Confirm ID:(or you can input a new ID):" + formatId(config, deviceId) + "#")
             if newDeviceId is not "":
                 deviceId = newDeviceId
             config.set('parameter', 'id', formatId(config, deviceId))

@@ -81,6 +81,7 @@ char *getenum(int type,int val)
 		if(val==5)	strcpy(name,"脚本方案");
 		break;
 	case task_prio:
+		if(val==0)	strcpy(name,"0");
 		if(val==1)	strcpy(name,"首要");
 		if(val==2)	strcpy(name,"必要");
 		if(val==3)	strcpy(name,"需要");
@@ -126,6 +127,8 @@ char *getenum(int type,int val)
 	}
 	return name;
 }
+
+
 /*
  * 采集档案配置表
  * */
@@ -171,7 +174,7 @@ void print6000(OI_698	oi)
 				for(j=0;j<meter.basicinfo.pwd[0];j++) {
 					fprintf(stderr,"%02x",meter.basicinfo.pwd[j+1]);
 				}
-				fprintf(stderr,"[6]%d [7]%d ",meter.basicinfo.ratenum,meter.basicinfo.usrtype);
+				fprintf(stderr,"[6]%d [7]%02x ",meter.basicinfo.ratenum,meter.basicinfo.usrtype);
 				fprintf(stderr,"[8]%s ",getenum(coll_wiretype,meter.basicinfo.connectype));
 				fprintf(stderr,"[9]%d [10]%d ",meter.basicinfo.ratedU,meter.basicinfo.ratedI);
 				fprintf(stderr,"[11]");
@@ -544,6 +547,7 @@ void print6015(CLASS_6015 class6015)
 		}
 	}
 	fprintf(stderr,"[6]%s ",getenum(ms_type,class6015.mst.mstype));
+	printMS(class6015.mst);
 	fprintf(stderr,"[7]%s ",getenum(savetime_sel,class6015.savetimeflag));
 	fprintf(stderr,"\n");
 
@@ -575,31 +579,33 @@ void Task6015(int argc, char *argv[])
 				fprintf(stderr,"删除一个配置单元oi【%04x】【%d】成功",oi,taskid);
 			}
 		}else fprintf(stderr,"参数错误，查看cj help");
-	}else {
-		if(strcmp("pro",argv[2])==0) {
-			if(argc<5) {
+	}
+	if(strcmp("pro",argv[2])==0) {
+		if(argc<5) {
 //				fprintf(stderr,"[1]方案编号 [2]存储深度 [3]采集类型 [4]采集内容 [5]OAD-ROAD [6]MS [7]存储时标\n");
-				for(i=0;i<=255;i++) {
-					taskid = i;
-					memset(&class6015,0,sizeof(CLASS_6015));
-					if(readCoverClass(oi,taskid,&class6015,sizeof(CLASS_6015),coll_para_save)== 1) {
-						print6015(class6015);
-					}else {
-//						fprintf(stderr,"任务ID=%d 无任务配置单元",taskid);
-					}
-				}
-			}else if(argc==5) {
-				sscanf(argv[4],"%04x",&tmp[0]);
-				taskid = tmp[0];
-				fprintf(stderr,"taskid=%d\n",taskid);
+			for(i=0;i<=255;i++) {
+				taskid = i;
 				memset(&class6015,0,sizeof(CLASS_6015));
-				if(readCoverClass(oi,taskid,&class6015,sizeof(class6015),coll_para_save)==1) {
+				if(readCoverClass(oi,taskid,&class6015,sizeof(CLASS_6015),coll_para_save)== 1) {
 					print6015(class6015);
 				}else {
-					fprintf(stderr,"无任务配置单元");
+//						fprintf(stderr,"任务ID=%d 无任务配置单元",taskid);
 				}
 			}
+		}else if(argc==5) {
+			sscanf(argv[4],"%04x",&tmp[0]);
+			taskid = tmp[0];
+			fprintf(stderr,"taskid=%d\n",taskid);
+			memset(&class6015,0,sizeof(CLASS_6015));
+			if(readCoverClass(oi,taskid,&class6015,sizeof(class6015),coll_para_save)==1) {
+				print6015(class6015);
+			}else {
+				fprintf(stderr,"无任务配置单元");
+			}
 		}
+	}
+	if(strcmp("add",argv[2])==0) {
+
 	}
 }
 

@@ -2,7 +2,62 @@
 
 from __future__ import division
 import sys, time, datetime, telnetlib, ConfigParser, fileinput, os, re, exceptions, hashlib
+import ctypes
 
+
+STD_INPUT_HANDLE = -10  
+STD_OUTPUT_HANDLE= -11  
+STD_ERROR_HANDLE = -12  
+
+FOREGROUND_BLACK = 0x0  
+FOREGROUND_BLUE = 0x01 # text color contains blue.  
+FOREGROUND_GREEN= 0x02 # text color contains green.  
+FOREGROUND_RED = 0x04 # text color contains red.  
+FOREGROUND_INTENSITY = 0x08 # text color is intensified.  
+
+BACKGROUND_BLUE = 0x10 # background color contains blue.  
+BACKGROUND_GREEN= 0x20 # background color contains green.  
+BACKGROUND_RED = 0x40 # background color contains red.  
+BACKGROUND_INTENSITY = 0x80 # background color is intensified.
+
+
+#Color class, to print colored chars
+class Color:  
+    ''''' See http://msdn.microsoft.com/library/default.asp?url=/library/en-us/winprog/winprog/windows_api_reference.asp 
+    for information on Windows APIs.'''  
+    std_out_handle = ctypes.windll.kernel32.GetStdHandle(STD_OUTPUT_HANDLE)  
+
+    def set_cmd_color(self, color, handle=std_out_handle):  
+        """(color) -> bit 
+        Example: set_cmd_color(FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE | FOREGROUND_INTENSITY) 
+        """  
+        bool = ctypes.windll.kernel32.SetConsoleTextAttribute(handle, color)  
+        return bool  
+      
+    def reset_color(self):  
+        self.set_cmd_color(FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE)  
+      
+    def print_red_text(self, print_text):  
+        self.set_cmd_color(FOREGROUND_RED | FOREGROUND_INTENSITY)  
+        print print_text  
+        self.reset_color()  
+          
+    def print_green_text(self, print_text):  
+        self.set_cmd_color(FOREGROUND_GREEN | FOREGROUND_INTENSITY)  
+        print print_text  
+        self.reset_color()  
+      
+    def print_blue_text(self, print_text):   
+        self.set_cmd_color(FOREGROUND_BLUE | FOREGROUND_INTENSITY)  
+        print print_text  
+        self.reset_color()  
+            
+    def print_red_text_with_blue_bg(self, print_text):  
+        self.set_cmd_color(FOREGROUND_RED | FOREGROUND_INTENSITY| BACKGROUND_BLUE | BACKGROUND_INTENSITY)  
+        print print_text  
+        self.reset_color()      
+
+g_clr = Color()
 
 # 根据文件名，计算md5
 def md5sum(filename):
@@ -25,6 +80,7 @@ def readConfig(name):
             return config
     except IOError, e:
         print '程序没有找到配置文件，程序当前目录需要config.ini文件。'.decode('utf-8')
+        
         sys.exit()
 
 
@@ -115,8 +171,9 @@ def checkDateTime(config):
     deviceDate = datetime.datetime.strptime(msg[pos + 4:pos + 23], "%Y-%m-%d %H:%M:%S")
     devation = deviceDate - datetime.datetime.now()
     cas = (devation.days * 24 * 3600 + devation.seconds)
-    if cas > 5:
-        print "对时\t错误\t时间差距%d秒".decode('utf-8') % cas
+    if abs(cas) > 5:
+        #print "对时\t错误\t时间差距%d秒".decode('utf-8') % cas
+        g_clr.print_red_text("对时\t错误\t时间差距%d秒".decode('utf-8') % cas)
         ok = 0
     else:
         print "对时\t正确\t时间差距%d秒".decode('utf-8') % cas
@@ -173,25 +230,29 @@ def checkNormal(config):
     if msg.find("485OK") > 0:
         print "485\t正确".decode('utf-8')
     else:
-        print "485\t错误".decode('utf-8')
+        #print "485\t错误".decode('utf-8')
+        g_clr.print_red_text("485\t错误".decode('utf-8'))
         ok = 0
 
     if msg.find("主站证书 OK") > 0:
         print "ESAM\t正确".decode('utf-8')
     else:
-        print "ESAM\t错误".decode('utf-8')
+        #print "ESAM\t错误".decode('utf-8')
+        g_clr.print_red_text("ESAM\t错误".decode('utf-8'))
         ok = 0
 
     if msg.find(config.get('target', 'kernal')) > 0:
         print "内核\t正确".decode('utf-8')
     else:
-        print "内核\t错误".decode('utf-8')
+        #print "内核\t错误".decode('utf-8')
+        g_clr.print_red_text("内核\t错误".decode('utf-8'))
         ok = 0
 
     if msg.find("电池电压正常") > 0:
         print "电池\t正确".decode('utf-8')
     else:
-        print "电池\t错误".decode('utf-8')
+        #print "电池\t错误".decode('utf-8')
+        g_clr.print_red_text("电池\t错误".decode('utf-8'))
         ok = 0
     lNet.close()
     return ok
@@ -232,8 +293,8 @@ if __name__ == '__main__':
             if ok == 1:
                 print "\n\n\n>>>>>>>>>>>>>>>>>全部正确\n\n\n".decode('utf-8')
             else:
-                print "\n\n\n>>>>>>>>>>>>>>>>>设备异常!!!!!\n\n\n".decode('utf-8')
-
+                #print "\n\n\n>>>>>>>>>>>>>>>>>设备异常!!!!!\n\n\n".decode('utf-8')
+                g_clr.print_red_text("\n\n\n>>>>>>>>>>>>>>>>>设备异常!!!!!\n\n\n".decode('utf-8'))
         except IOError, e:
             print '网络连接错误，检查网线连接状态。'.decode('utf-8')
             continue

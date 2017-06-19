@@ -14,6 +14,8 @@
 #define DEVICE_CFG				"/nor/config/device.cfg"	//设备配置信息文件
 #define _CFGDIR_ 				"/nor/config"
 #define _ACSDIR_				"/nor/acs"
+#define	PATCH_FLAG				"/nand/patchflag"		//曲线数据补报标记,nand下有此文件,离线再次上线后进行曲线的补报,为了处理浙江目前曲线漏点,同时主站没有曲线补抄的功能
+#define REPORT_FRAME_DATA		"/nand/reportdata"		//通过cj report命令手动补送曲线数据的临时文件,上送结束后,自动删除文件
 #define TASK_FRAME_DATA			"/nand/frmdata"		//任务分帧的数据文件
 #define PARA_FRAME_DATA			"/nand/frmpara"		//参数类分帧的数据文件
 ///////////////////////////////////////////////////////////////
@@ -39,7 +41,7 @@
 #define MAXNUM_TASKID_QUEUE    25
 #define MAXNUM_AUTOTASK		20					//采用上报方案的任务最大数
 
-#define MAXSIZ_FAM	1600						//
+#define MAXSIZ_FAM			2048						//原1600, 台体负荷曲线的时候分帧为1980个字节,调用readFrameDataFile超限更改
 ///////////////////////////////////////////////////////////////
 /*
  * 	终端类相关容量及参数定义
@@ -62,6 +64,7 @@
 #define TSA_LEN					17
 #define OCTET_STRING_LEN		16
 #define VISIBLE_STRING_LEN		40
+
 #define COLLCLASS_MAXNUM		1024		//定义集合类最大元素个数
 
 #define	REPORT_CHANN_OAD_NUM	10			//上报方案 array OAD最大个数
@@ -69,6 +72,7 @@
 #define ROAD_OADS_NUM           20          //ROAD结构体里oads的最大个数
 #define ARRAY_ROAD_NUM			20			//raod数组的最大个数
 #define CLASS7_OAD_NUM			10			//关联对象属性表
+#define	REGION_NUM				20			//MS类型数据区间长度
 #define MAX_PERIOD_RATE   		48      	//支持的最到终端费率时段数
 #define MAX_FREEZE_OBJ			255			//冻结最大关联冻结对象个数
 #define	STATE_MAXNUM			8			//开关量单元最大个数
@@ -178,6 +182,18 @@
 #define S4851   1
 #define S4852   2
 #define S4853   3
-
+//  I型集中器串口定义
+//　　　GPRS  [ /dev/ttyS0 ]
+//　　　485I  [ /dev/ttyS1 ]
+//　　　485II [ /dev/ttyS2 ]
+//　　载波　 [ /dev/ttyS5 ]
+//　　维护口 [ /dev/ttyS4 ]
+//　　红外　 [ /dev/ttyS3 ]
+//  II型集中器串口定义
+//　　GPRS  [ /dev/ttyS5 ]
+//　　485I  [ /dev/ttyS2 ]
+//　　485II [ /dev/ttyS1 ]
+//　　485III[ /dev/ttyS4 ]
+//　红外　 [ /dev/ttyS3 ]
 ////////////////////////////////////////////////////////////////
 #endif /* PARADEF_H_ */

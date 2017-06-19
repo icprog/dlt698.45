@@ -570,8 +570,8 @@ INT16U set4510(OAD oad,INT8U *data,INT8U *DAR)
 	memset(&class4510,0,sizeof(CLASS26));
 
 	readCoverClass(oad.OI,0,&class4510,sizeof(CLASS26),para_vari_save);
-	if (oad.attflg == 2 )
-	{
+	switch(oad.attflg) {
+	case 2:
 		index += getStructure(&data[index],NULL);
 		index += getEnum(1,&data[index],(INT8U *)&class4510.commconfig.workModel);
 		index += getEnum(1,&data[index],(INT8U *)&class4510.commconfig.connectType);
@@ -605,26 +605,60 @@ INT16U set4510(OAD oad,INT8U *data,INT8U *DAR)
 			*DAR = refuse_rw;
 			return index;
 		}
+	break;
+	case 3://主站通信参数表
+		index += getArray(&data[index],(INT8U *)&class4510.master.masternum);
+		if(class4510.master.masternum>4) {
+			class4510.master.masternum = 4;
+			syslog(LOG_ERR,"主站设置端口数量%d大于限值%d\n",class4510.master.masternum,4);
+		}
+		for(i=0;i<class4510.master.masternum;i++) {
+			index += getStructure(&data[index],NULL);
+			index += getOctetstring(1,&data[index],class4510.master.master[i].ip);
+			index += getLongUnsigned(&data[index],(INT8U *)&class4510.master.master[i].port);
+		}
+		break;
+	case 4:
+		index += getStructure(&data[index],NULL);
+		index += getEnum(1,&data[index],(INT8U *)&class4510.IP.ipConfigType);
+		index += getOctetstring(1,&data[index],class4510.IP.ip);
+		index += getOctetstring(1,&data[index],class4510.IP.subnet_mask);
+		index += getOctetstring(1,&data[index],class4510.IP.gateway);
+		index += getVisibleString(&data[index],class4510.IP.username_pppoe);
+		index += getVisibleString(&data[index],class4510.IP.password_pppoe);
+		writeIpSh(class4510.IP.ip,class4510.IP.subnet_mask);
+		break;
 	}
 	*DAR = saveCoverClass(oad.OI,0,&class4510,sizeof(CLASS26),para_vari_save);
 
 	return index;
 }
 
-INT16U setf203(OAD oad,INT8U *data,INT8U *DAR)
+INT16U setclass18(OAD oad,INT8U *data,INT8U *DAR)
 {
 	INT16U index=0;
-	CLASS_f203	f203={};
-	memset(&f203,0,sizeof(CLASS_f203));
-	readCoverClass(0xf203,0,&f203,sizeof(CLASS_f203),para_vari_save);
-	if ( oad.attflg == 4 )//配置参数
-	{
+	CLASS18	class18={};
+
+	memset(&class18,0,sizeof(CLASS18));
+	readCoverClass(0x18,0,&class18,sizeof(CLASS18),para_vari_save);
+	fprintf(stderr,"oad=%x attflg=%d\n",oad.OI,oad.attflg);
+	switch(oad.attflg) {
+	case 2://文件信息
 		index += getStructure(&data[index],NULL);
-		index += getBitString(1,&data[index],(INT8U *)&f203.state4.StateAcessFlag);
-		index += getBitString(1,&data[index],(INT8U *)&f203.state4.StatePropFlag);
-		*DAR = saveCoverClass(0xf203,0,&f203,sizeof(CLASS_f203),para_vari_save);
-		fprintf(stderr,"\n状态量配置参数 : 接入标志 %02x  属性标志 %02x \n",f203.state4.StateAcessFlag,f203.state4.StatePropFlag);
+		index += getVisibleString(&data[index],(INT8U *)&class18.source_file);
+		index += getVisibleString(&data[index],(INT8U *)&class18.dist_file);
+		index += getDouble(&data[index],(INT8U *)&class18.file_size);
+		index += getBitString(1,&data[index],(INT8U *)&class18.file_attr);
+		index += getVisibleString(&data[index],(INT8U *)&class18.file_version);
+		index += getEnum(1,&data[index],(INT8U *)&class18.file_type);
+		fprintf(stderr,"source=%s,dist=%s\n,size-%d,attr=%d,version=%s,file_type=%d\n",
+				&class18.source_file[1],&class18.dist_file[1],class18.file_size,class18.file_attr,&class18.file_version[1],class18.file_type);
+		break;
+	case 3://命令结果
+		index += getEnum(1,&data[index],(INT8U *)&class18.cmd_result);
+		break;
 	}
+	*DAR = saveCoverClass(0x18,0,&class18,sizeof(CLASS18),para_vari_save);
 	return index;
 }
 
@@ -654,6 +688,22 @@ INT16U setf101(OAD oad,INT8U *data,INT8U *DAR)
 	return index;
 }
 
+INT16U setf203(OAD oad,INT8U *data,INT8U *DAR)
+{
+	INT16U index=0;
+	CLASS_f203	f203={};
+	memset(&f203,0,sizeof(CLASS_f203));
+	readCoverClass(0xf203,0,&f203,sizeof(CLASS_f203),para_vari_save);
+	if ( oad.attflg == 4 )//配置参数
+	{
+		index += getStructure(&data[index],NULL);
+		index += getBitString(1,&data[index],(INT8U *)&f203.state4.StateAcessFlag);
+		index += getBitString(1,&data[index],(INT8U *)&f203.state4.StatePropFlag);
+		*DAR = saveCoverClass(0xf203,0,&f203,sizeof(CLASS_f203),para_vari_save);
+		fprintf(stderr,"\n状态量配置参数 : 接入标志 %02x  属性标志 %02x \n",f203.state4.StateAcessFlag,f203.state4.StatePropFlag);
+	}
+	return index;
+}
 ///////////////////////////////////////////////////////////////////////////////
 /*
  * 根据oi参数，查找相应的class_info的结构体数据
@@ -868,12 +918,18 @@ INT16U DeviceIoSetAttrib(OAD oad,INT8U *data,INT8U *DAR)
 	fprintf(stderr,"\n输入输出设备类对象属性设置");
 	switch(oad.OI)
 	{
+		case 0xF000://文件分帧传输管理
+		case 0xF001://文件分开传输管理
+		case 0xF002://文件扩展传输管理
+			data_index = setclass18(oad,data,DAR);
+			break;
 		case 0xF203:	//开关量输入
 			data_index = setf203(oad,data,DAR);
 			break;
 		case 0xF101:
 			data_index = setf101(oad,data,DAR);
 			break;
+
 	}
 	return data_index;
 }
