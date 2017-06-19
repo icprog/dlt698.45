@@ -570,14 +570,14 @@ void *ATWorker(void *args) {
         gpofun("/dev/gpoGPRS_POWER", 1);
         gpofun("/dev/gpoGPRS_RST", 1);
         gpofun("/dev/gpoGPRS_SWITCH", 1);
-        sleep(2);
-        gpofun("/dev/gpoGPRS_RST", 0);
-        sleep(1);
-        gpofun("/dev/gpoGPRS_RST", 1);
         sleep(5);
         gpofun("/dev/gpoGPRS_SWITCH", 0);
         sleep(1);
         gpofun("/dev/gpoGPRS_SWITCH", 1);
+        sleep(1);
+        gpofun("/dev/gpoGPRS_RST", 0);
+        sleep(1);
+        gpofun("/dev/gpoGPRS_RST", 1);
         sleep(10);
 
         if (GetOnlineType() != 0) {
