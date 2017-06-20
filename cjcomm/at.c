@@ -668,10 +668,10 @@ void *ATWorker(void *args) {
             if (sscanf(Mrecvbuf, "%*[^\"]\"%[0-9|A-Z|a-z]", CCID) == 1) {
                 asyslog(LOG_INFO, "CCID: %s\n", CCID);
                 memcpy(class25->ccid, CCID, sizeof(32));
+                SetGprsStatus(3);
                 break;
             }
         }
-        SetGprsStatus(3);
 
         for (int timeout = 0; timeout < 50; timeout++) {
             char Mrecvbuf[128];
