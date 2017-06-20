@@ -667,8 +667,7 @@ void Event6017(int argc, char *argv[])
 					}
 				}
 			}else if(argc==5) {
-				sscanf(argv[4],"%d",&tmp[0]);
-				taskid = tmp[0];
+				sscanf(argv[4],"%d",&tmp[0]);taskid = tmp[0];
 				fprintf(stderr,"taskid=%d\n",taskid);
 				memset(&eventFangAn,0,sizeof(CLASS_6017));
 				if(readCoverClass(oi,taskid,&eventFangAn,sizeof(CLASS_6017),coll_para_save)==1) {
@@ -676,6 +675,61 @@ void Event6017(int argc, char *argv[])
 				}else {
 					fprintf(stderr,"无任务配置单元");
 				}
+			}
+		}
+	}
+}
+
+void print6019(CLASS_6019 TransFangAn)
+{
+	int  i=0,j=0;
+	fprintf(stderr,"\n\n透明方案：[1]方案编号 [2]采集内容集{[2.1序号 [2.1]通信地址 [2.3]开始前脚本id [2.4]开始后脚本id [2.5]方案控制标志}\n");
+	fprintf(stderr,"[2.5.1]等待后续报文 [2.5.2]等待报文超时时间（秒） [2.5.3]结果比对标识 [2.5.5]结果比对参数\n");
+	fprintf(stderr,"[2.5.5.1]特征字节 [2.5.5.2]截取开始 [2.5.5.3]截取长度\n");
+	fprintf(stderr,"[2.6]方案报文集 [2.6.1]报文序号 [2.6.2]报文内容\n");
+	fprintf(stderr,"[3]存储深度\n");
+	fprintf(stderr,"[1]%d [2]%d",TransFangAn.planno,TransFangAn.contentnum);
+	for(i=0;i<TransFangAn.contentnum;i++) {
+		fprintf(stderr,"[2.1]%d [2.2]",TransFangAn.plan[i].seqno);
+		printTSA(TransFangAn.plan[i].addr);
+		fprintf(stderr,"[2.3]%d [2.4]%d\n",TransFangAn.plan[i].befscript,TransFangAn.plan[i].aftscript);
+		fprintf(stderr,"[2.5.1]%d [2.5.2]%d [2.5.3]%d\n",TransFangAn.plan[i].planflag.waitnext,TransFangAn.plan[i].planflag.overtime,TransFangAn.plan[i].planflag.resultflag);
+		fprintf(stderr,"[2.5.5.1]%d [2.5.5.2]%d [2.5.5.3]%d\n",TransFangAn.plan[i].planflag.resultpara.featureByte,TransFangAn.plan[i].planflag.resultpara.interstart,TransFangAn.plan[i].planflag.resultpara.interlen);
+		fprintf(stderr,"[2.6]%d ",TransFangAn.plan[i].datanum);
+		for(j=0;j<TransFangAn.plan[i].datanum;j++) {
+			fprintf(stderr,"[2.6.1]%d ",TransFangAn.plan[i].data[j].datano);
+		}
+	}
+}
+
+void Trans6019(int argc, char *argv[])
+{
+	INT8U	i=0;
+	INT8U	planno = 0;
+	int		tmp[2]={};
+	CLASS_6019 TransFangAn={};
+
+	if(strcmp("pro",argv[2])==0) {
+		if(argc<5) {
+//				fprintf(stderr,"[1]方案编号 [2]存储深度 [3]采集类型 [4]采集内容 [5]OAD-ROAD [6]MS [7]存储时标\n");
+			for(i=0;i<=255;i++) {
+				planno = i;
+				memset(&TransFangAn,0,sizeof(CLASS_6019));
+				if(readCoverClass(0x6019,planno,&TransFangAn,sizeof(CLASS_6019),coll_para_save)== 1) {
+					print6019(TransFangAn);
+				}else {
+//						fprintf(stderr,"任务ID=%d 无任务配置单元",taskid);
+				}
+			}
+		}else if(argc==5) {
+			sscanf(argv[4],"%04x",&tmp[0]);
+			planno = tmp[0];
+			fprintf(stderr,"planno=%d\n",planno);
+			memset(&TransFangAn,0,sizeof(CLASS_6019));
+			if(readCoverClass(0x6019,planno,&TransFangAn,sizeof(CLASS_6019),coll_para_save)==1) {
+				print6019(TransFangAn);
+			}else {
+				fprintf(stderr,"无任务配置单元");
 			}
 		}
 	}
@@ -843,6 +897,9 @@ void coll_process(int argc, char *argv[])
 				break;
 			case 0x6017:
 				Event6017(argc,argv);
+				break;
+			case 0x6019:
+				Trans6019(argc,argv);
 				break;
 			case 0x601d:
 				Report601d(argc,argv);

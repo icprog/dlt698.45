@@ -956,6 +956,9 @@ int getColl_Data(OI_698 oi,INT16U seqnum,INT8U *data)
 	case 0x6017:
 		index += Get_6017(0,seqnum,data);
 		break;
+	case 0x6019:
+		index += Get_6019(0,seqnum,data);
+		break;
 	case 0x6035:
 		index += Get_6035(0,seqnum,data);
 		break;
