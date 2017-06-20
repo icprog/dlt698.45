@@ -186,7 +186,7 @@ void print6000(OI_698	oi)
 					fprintf(stderr,"%02x",meter.extinfo.asset_code[j+1]);
 				}
 				fprintf(stderr," [13]%d [14]%d",meter.extinfo.pt,meter.extinfo.ct);
-				fprintf(stderr,"\n       [15]%04X_%02X%02X",meter.aninfo.oad.OI,meter.aninfo.oad.attflg,meter.aninfo.oad.attrindex);
+				fprintf(stderr," [15]%04X_%02X%02X",meter.aninfo.oad.OI,meter.aninfo.oad.attflg,meter.aninfo.oad.attrindex);
 			}
 		}
 	}

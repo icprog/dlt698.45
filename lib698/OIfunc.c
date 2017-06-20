@@ -277,16 +277,18 @@ int Get_6017(INT8U type,INT8U seqnum,INT8U *data)
  * */
 int Get_6019(INT8U type,INT8U seqnum,INT8U *data)
 {
-	int 	index=0,ret=0,i=0;
+	int 	index=0,ret=0,i=0,j=0;
 	CLASS_6019 trans={};
 
 	ret = readCoverClass(0x6019,seqnum,&trans,sizeof(CLASS_6019),coll_para_save);
-//	fprintf(stderr,"\n 6019 read coll ok　seqnum=%d  type=%d  ret=%d\n",seqnum,type,ret);
-//	if ((ret == 1) || (type==1)) {
-//		fprintf(stderr,"\n 6017 read coll ok　seqnum=%d  type=%d  ret=%d\n",seqnum,type,ret);
-//		index += create_struct(&data[index],5);					//属性2：struct 5个元素
-//		index += fill_unsigned(&data[index],event.sernum);		//方案序号
-//		if(event.collstyle.colltype == 0xff ) {					//采集类型无效,为勘误前的定义结构
+	if ((ret == 1) || (type==1)) {
+		fprintf(stderr,"\n 6019 read coll ok　seqnum=%d  type=%d  ret=%d\n",seqnum,type,ret);
+		index += create_struct(&data[index],3);					//属性2：struct 3个元素
+		index += fill_unsigned(&data[index],trans.planno);		//方案序号
+		for(i=0;i<trans.contentnum;i++) {		//方案内容集
+
+		}
+//		if(trans.contentnum == 0xff ) {					//采集类型无效,为勘误前的定义结构
 //			if(event.collstyle.roads.num>ARRAY_ROAD_NUM)	event.collstyle.roads.num = ARRAY_ROAD_NUM;
 //			index += create_array(&data[index],event.collstyle.roads.num);
 //			for(i=0;i<event.collstyle.roads.num;i++) {
@@ -312,7 +314,7 @@ int Get_6019(INT8U type,INT8U seqnum,INT8U *data)
 //		index += fill_MS(1,&data[index],event.ms);		//电能表集合
 //		index += fill_bool(&data[index],event.ifreport);		//上报标识
 //		index += fill_long_unsigned(&data[index],event.deepsize);		//存储深度
-//	}
+	}
 	return index;
 }
 /*
