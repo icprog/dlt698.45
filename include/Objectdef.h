@@ -263,29 +263,28 @@ typedef struct {
 /********************************************************
  *				A.7　采集监控类对象
  ********************************************************/
-
-typedef struct {
-    TSA addr;                    //通信地址
-    INT8U baud;                  //波特率
-    INT8U protocol;              //规约类型
-    OAD port;                    //端口
-    INT8U pwd[OCTET_STRING_LEN]; //通信密码
-    INT8U ratenum;               //费率个数
-    INT8U usrtype;               //用户类型
-    INT8U connectype;            //接线方式
-    INT16U ratedU;               //额定电压
-    INT16U ratedI;               //额定电流
-} BASIC_OBJECT;
-typedef struct {
-    TSA cjq_addr;                       //采集器地址
-    INT8U asset_code[OCTET_STRING_LEN]; //资产号
-    INT16U pt;
-    INT16U ct;
-} EXTEND_OBJECT;
-typedef struct {
-    OAD oad;
-    INT8U data[OCTET_STRING_LEN];
-} ANNEX_OBJECT;
+	typedef struct {
+		TSA addr;                    //通信地址
+		INT8U baud;                  //波特率
+		INT8U protocol;              //规约类型
+		OAD port;                    //端口
+		INT8U pwd[OCTET_STRING_LEN]; //通信密码
+		INT8U ratenum;               //费率个数
+		INT8U usrtype;               //用户类型
+		INT8U connectype;            //接线方式
+		INT16U ratedU;               //额定电压
+		INT16U ratedI;               //额定电流
+	} BASIC_OBJECT;
+	typedef struct {
+		TSA cjq_addr;                       //采集器地址
+		INT8U asset_code[OCTET_STRING_LEN]; //资产号
+		INT16U pt;
+		INT16U ct;
+	} EXTEND_OBJECT;
+	typedef struct {
+		OAD oad;
+		INT8U data[OCTET_STRING_LEN];
+	} ANNEX_OBJECT;
 
 typedef struct {
     INT8U name[OCTET_STRING_LEN]; //参数变量接口类逻辑名
@@ -295,18 +294,19 @@ typedef struct {
     ANNEX_OBJECT aninfo;          //附属信息
 } CLASS_6001;                     //采集档案配置表对象
 
-typedef struct {
-    INT8U beginHour;
-    INT8U beginMin;
-    INT8U endHour;
-    INT8U endMin;
-} TIMEPART; //时段
+	typedef struct {
+		INT8U beginHour;
+		INT8U beginMin;
+		INT8U endHour;
+		INT8U endMin;
+	} TIMEPART; //时段
 
-typedef struct {
-    INT8U type; //运行时段类型
-    INT8U num;
-    TIMEPART runtime[24]; //时段表 0-3分别表示起始小时.分钟，结束小时.分钟
-} TASK_RUN_TIME;
+	typedef struct {
+		INT8U type; //运行时段类型
+		INT8U num;
+		TIMEPART runtime[24]; //时段表 0-3分别表示起始小时.分钟，结束小时.分钟
+		//runtime[23].beginHour 用来标记任务的执行优先级的数据类型
+	} TASK_RUN_TIME;
 
 typedef struct {
     INT8U taskID;          //参数变量接口类逻辑名
@@ -316,11 +316,13 @@ typedef struct {
     DateTimeBCD startime;  //开始时间
     DateTimeBCD endtime;   //结束时间
     TI delay;              //延时
-    INT8U runprio;         //执行优先级
+//    注意：国网勘误执行优先级由enum改为unsigned类型，为了兼容浙江现场运行已经下发的任务，将runtime[23].beginHour时间来标注类型来区分处理
+    INT8U runprio;         //执行优先级，
     INT8U state;           //任务状态
     INT16U befscript;      //任务开始前脚本  //long unsigned
     INT16U aftscript;      //任务完成后脚本  //long unsigned
     TASK_RUN_TIME runtime; //任务运行时段
+//    INT8U priotype;			//优先级的类型描述，区别勘误
 } CLASS_6013;              //任务配置单元
 
 typedef struct {
@@ -344,10 +346,10 @@ typedef struct {
 //    INT16U deepsize;  //存储深度
 //} CLASS_6017;         //事件采集方案
 
-typedef struct {
-    INT8U colltype;        //采集类型   0 array ROAD 周期采集事件数据 	1 NULL 根据通知采集所有事件数据 	2 array ROAD 根据通知采集指定事件数据
-    ARRAY_ROAD roads;        //采集的事件数据
-} COLL_STYLE;    //采集方式
+	typedef struct {
+		INT8U colltype;        //采集类型   0 array ROAD 周期采集事件数据 	1 NULL 根据通知采集所有事件数据 	2 array ROAD 根据通知采集指定事件数据
+		ARRAY_ROAD roads;        //采集的事件数据
+	} COLL_STYLE;    //采集方式
 //勘误修订后
 typedef struct {
     //	INT8U name[OCTET_STRING_LEN];		//参数变量接口类逻辑名
@@ -358,27 +360,62 @@ typedef struct {
     INT16U deepsize;  //存储深度
 } CLASS_6017;         //事件采集方案
 
-typedef struct {
-    INT8U num;
-    OAD oadarr[REPORT_CHANN_OAD_NUM];
-} ARRAY_OAD;
+	typedef struct {
+		INT8U 	datano;			//报文序号
+		INT32U	data[256];		//报文内容
+	}PLAN_DATA;	//方案报文
+
+	typedef struct {
+		INT8U 	featureByte;		//特征字节
+		INT32U	interstart;			//截取开始
+		INT32U	interlen;			//截取长度
+	}RESULT_PARA;	//结果比对参数
+
+	typedef struct {
+		INT8U 	waitnext;		//上报透明方案结果并等待后续报文
+		INT32U	overtime;		//等待后续报文超时时间（秒）
+		INT8U	resultflag;		//结果比对标识{不比对（0），比（1），比对上报（2）}
+		RESULT_PARA	resultpara;
+	}PLAN_FLAG;	//方案控制标志
+
+	typedef struct {
+		INT32U 	seqno;		//序号
+		TSA 	addr;       //通信地址
+	    INT32U 	befscript;      //任务开始前脚本
+	    INT32U 	aftscript;      //任务完成后脚本
+	    PLAN_FLAG	planflag;	//方案控制标志
+	    INT8U		datanum;	//方案报文集有效个数
+	    PLAN_DATA	data[256];	//方案报文集
+	}PLAN_CONTENT;
 
 typedef struct {
-    OAD oad;
-    CSD_ARRAYTYPE csds; // RCSD csd数组
-    INT8U selectType;   // rsd 选择类型
-    RSD rsd;
-} RecordData;
+    INT8U 	planno;            	//方案编号
+    INT8U   contentnum;			//内容个数
+    PLAN_CONTENT	plan[20];	//方案内容
+    INT16U 	savedepth;			//存储深度
+} CLASS_6019;         //透明方案
 
-typedef union {
-    OAD oad;
-    RecordData recorddata;
-} DataUnit;
+	typedef struct {
+		INT8U num;
+		OAD oadarr[REPORT_CHANN_OAD_NUM];
+	} ARRAY_OAD;
 
-typedef struct {
-    INT8U type; //上报类型　0:OAD对象属性数据【终端数据】　1:RecordData:上报记录型对象属性[电表]
-    DataUnit data;
-} REPORT_DATA;
+	typedef struct {
+		OAD oad;
+		CSD_ARRAYTYPE csds; // RCSD csd数组
+		INT8U selectType;   // rsd 选择类型
+		RSD rsd;
+	} RecordData;
+
+	typedef union {
+		OAD oad;
+		RecordData recorddata;
+	} DataUnit;
+
+	typedef struct {
+		INT8U type; //上报类型　0:OAD对象属性数据【终端数据】　1:RecordData:上报记录型对象属性[电表]
+		DataUnit data;
+	} REPORT_DATA;
 
 typedef struct {
     INT8U reportnum;        //方案编号
@@ -388,26 +425,26 @@ typedef struct {
     REPORT_DATA reportdata; //上报数据
 } CLASS_601D;               //上报方案
 
-typedef struct {
-    INT8U dinum;
-    INT8U DI_1[DI07_NUM_601F][4];
-    INT8U DI_2[DI07_NUM_601F][4];
-} C601F_07Flag;
+	typedef struct {
+		INT8U dinum;
+		INT8U DI_1[DI07_NUM_601F][4];
+		INT8U DI_2[DI07_NUM_601F][4];
+	} C601F_07Flag;
 
-typedef struct {
-    INT8U dinum;
-    INT8U DI_1[DI97_NUM_601F][2];
-    INT8U DI_2[DI97_NUM_601F][2];
-} C601F_97Flag;
+	typedef struct {
+		INT8U dinum;
+		INT8U DI_1[DI97_NUM_601F][2];
+		INT8U DI_2[DI97_NUM_601F][2];
+	} C601F_97Flag;
 
-typedef struct {
-    INT8U protocol;
-    union
-    {
-    	C601F_97Flag _97;
-    	C601F_07Flag _07;
-    }DI;
-}C601F_645;
+	typedef struct {
+		INT8U protocol;
+		union
+		{
+			C601F_97Flag _97;
+			C601F_07Flag _07;
+		}DI;
+	}C601F_645;
 
 typedef struct {
     OI_698 roadOI; //实时数据 0000  日冻结数据5004

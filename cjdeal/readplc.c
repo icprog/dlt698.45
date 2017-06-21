@@ -707,7 +707,7 @@ int doInit(RUNTIME_PLC *runtime_p)
 	switch(step_init )
 	{
 		case 0://初始化
-			DbgPrintToFile1(31,"硬件复位");
+			DbgPrintToFile1(31,"硬件复位...");
 			freeList(tsa_head);
 			freeList(tsa_zb_head);
 			tsa_head = NULL;
@@ -740,6 +740,7 @@ int doInit(RUNTIME_PLC *runtime_p)
 		case 1://读取载波信息
 			fprintf(stderr,"\n读取信息状态 nowtime = %ld  runtime_p->send_start_time =%ld",nowtime,runtime_p->send_start_time );
 			fprintf(stderr,"\nruntime_p->format_Up.afn= %02x  runtime_p->format_Up.fn=%d",runtime_p->format_Up.afn,runtime_p->format_Up.fn);
+			DbgPrintToFile1(31,"读取载波信息");
 			if ((nowtime  - runtime_p->send_start_time > 60) &&
 				runtime_p->format_Up.afn != 0x03 && runtime_p->format_Up.fn!= 10)
 			{
@@ -763,6 +764,7 @@ int doInit(RUNTIME_PLC *runtime_p)
 			else if (read_num>=3)
 			{//超时
 				fprintf(stderr,"\n读取载波信息超时");
+				DbgPrintToFile1(31,"读取载波信息超时");
 				step_init = 0;
 			}
 			break;

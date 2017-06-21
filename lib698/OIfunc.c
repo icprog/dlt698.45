@@ -171,7 +171,10 @@ int Get_6013(INT8U type,INT8U taskid,INT8U *data)
 		index += fill_date_time_s(&data[index],&task.startime);		//开始时间
 		index += fill_date_time_s(&data[index],&task.endtime);		//结束时间
 		index += fill_TI(&data[index],task.delay);				//延时
-		index += fill_enum(&data[index],task.runprio);			//执行优先级
+		if(task.runtime.runtime[23].beginHour==dtunsigned) {
+			index += fill_unsigned(&data[index],task.runprio);		//执行优先级
+		}else index += fill_enum(&data[index],task.runprio);			//执行优先级
+
 		index += fill_enum(&data[index],task.state);			//任务状态
 		index += fill_long_unsigned(&data[index],task.befscript); //任务开始前脚本
 		index += fill_long_unsigned(&data[index],task.aftscript); //任务完成后脚本
@@ -266,6 +269,50 @@ int Get_6017(INT8U type,INT8U seqnum,INT8U *data)
 		index += fill_bool(&data[index],event.ifreport);		//上报标识
 		index += fill_long_unsigned(&data[index],event.deepsize);		//存储深度
 	}
+	return index;
+}
+
+/*
+ * 透明方案
+ * */
+int Get_6019(INT8U type,INT8U seqnum,INT8U *data)
+{
+	int 	index=0,ret=0,i=0;
+	CLASS_6019 trans={};
+
+	ret = readCoverClass(0x6019,seqnum,&trans,sizeof(CLASS_6019),coll_para_save);
+//	fprintf(stderr,"\n 6019 read coll ok　seqnum=%d  type=%d  ret=%d\n",seqnum,type,ret);
+//	if ((ret == 1) || (type==1)) {
+//		fprintf(stderr,"\n 6017 read coll ok　seqnum=%d  type=%d  ret=%d\n",seqnum,type,ret);
+//		index += create_struct(&data[index],5);					//属性2：struct 5个元素
+//		index += fill_unsigned(&data[index],event.sernum);		//方案序号
+//		if(event.collstyle.colltype == 0xff ) {					//采集类型无效,为勘误前的定义结构
+//			if(event.collstyle.roads.num>ARRAY_ROAD_NUM)	event.collstyle.roads.num = ARRAY_ROAD_NUM;
+//			index += create_array(&data[index],event.collstyle.roads.num);
+//			for(i=0;i<event.collstyle.roads.num;i++) {
+//				index += fill_ROAD(1,&data[index],event.collstyle.roads.road[i]);	//采集数据
+//			}
+//		}else {
+//			index += create_struct(&data[index],2);					//属性2：struct 2个元素
+//			index += fill_unsigned(&data[index],event.collstyle.colltype);		//采集类型
+//			switch(event.collstyle.colltype) {
+//			case 0://周期采集事件数据
+//			case 2://根据通知采集指定事件数据
+//				if(event.collstyle.roads.num>ARRAY_ROAD_NUM)	event.collstyle.roads.num = ARRAY_ROAD_NUM;
+//				index += create_array(&data[index],event.collstyle.roads.num);
+//				for(i=0;i<event.collstyle.roads.num;i++) {
+//					index += fill_ROAD(1,&data[index],event.collstyle.roads.road[i]);	//采集数据
+//				}
+//				break;
+//			case 1://NULL,根据通知采集所有事件数据
+//				data[index++]=0;
+//				break;
+//			}
+//		}
+//		index += fill_MS(1,&data[index],event.ms);		//电能表集合
+//		index += fill_bool(&data[index],event.ifreport);		//上报标识
+//		index += fill_long_unsigned(&data[index],event.deepsize);		//存储深度
+//	}
 	return index;
 }
 /*

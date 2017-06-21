@@ -570,14 +570,14 @@ void *ATWorker(void *args) {
         gpofun("/dev/gpoGPRS_POWER", 1);
         gpofun("/dev/gpoGPRS_RST", 1);
         gpofun("/dev/gpoGPRS_SWITCH", 1);
-        sleep(2);
-        gpofun("/dev/gpoGPRS_RST", 0);
-        sleep(1);
-        gpofun("/dev/gpoGPRS_RST", 1);
         sleep(5);
         gpofun("/dev/gpoGPRS_SWITCH", 0);
         sleep(1);
         gpofun("/dev/gpoGPRS_SWITCH", 1);
+        sleep(1);
+        gpofun("/dev/gpoGPRS_RST", 0);
+        sleep(1);
+        gpofun("/dev/gpoGPRS_RST", 1);
         sleep(10);
 
         if (GetOnlineType() != 0) {
@@ -668,10 +668,10 @@ void *ATWorker(void *args) {
             if (sscanf(Mrecvbuf, "%*[^\"]\"%[0-9|A-Z|a-z]", CCID) == 1) {
                 asyslog(LOG_INFO, "CCID: %s\n", CCID);
                 memcpy(class25->ccid, CCID, sizeof(32));
+                SetGprsStatus(3);
                 break;
             }
         }
-        SetGprsStatus(3);
 
         for (int timeout = 0; timeout < 50; timeout++) {
             char Mrecvbuf[128];

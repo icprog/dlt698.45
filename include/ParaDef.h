@@ -72,6 +72,7 @@
 #define ROAD_OADS_NUM           20          //ROAD结构体里oads的最大个数
 #define ARRAY_ROAD_NUM			20			//raod数组的最大个数
 #define CLASS7_OAD_NUM			10			//关联对象属性表
+#define CLASS6019_PLAN_NUM		20			//透明内容集的个数
 #define	REGION_NUM				20			//MS类型数据区间长度
 #define MAX_PERIOD_RATE   		48      	//支持的最到终端费率时段数
 #define MAX_FREEZE_OBJ			255			//冻结最大关联冻结对象个数

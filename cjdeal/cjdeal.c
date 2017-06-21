@@ -1023,6 +1023,8 @@ int main(int argc, char *argv[])
 	//return ctrl_base_test();
 	int del_day = 0,del_min = 0;
 	TS ts;
+    struct timeval start={}, end={};
+    long  interval=0;
 
 	pid_t pids[128];
     struct sigaction sa = {};
@@ -1062,8 +1064,6 @@ int main(int argc, char *argv[])
 
 	while(1)
    	{
-	    struct timeval start={}, end={};
-	    long  interval=0;
 		gettimeofday(&start, NULL);
 		TSGet(&ts);
 		if (ts.Hour==15 && ts.Minute==5 && del_day != ts.Day && del_min != ts.Minute)
@@ -1080,7 +1080,6 @@ int main(int argc, char *argv[])
 	    	fprintf(stderr,"deal main interval = %f(ms)\n", interval/1000.0);
 		usleep(10 * 1000);
 		clearcount(ProIndex);
-
 
    	}
 	close_named_sem(SEMNAME_SPI0_0);

@@ -620,9 +620,12 @@ int getUnsigned(INT8U *source,INT8U *dest)	//0x11
 
 int getLongUnsigned(INT8U *source,INT8U *dest)	//0x12
 {
-	dest[1] = source[1];
-	dest[0] = source[2];
-	return 3;
+	if(source[0] == dtlongunsigned) {
+		dest[1] = source[1];
+		dest[0] = source[2];
+		return 3;
+	}
+	return 0;
 }
 
 int getEnum(INT8U type,INT8U *source,INT8U *enumvalue)	//0x16
