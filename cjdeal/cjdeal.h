@@ -94,6 +94,6 @@ typedef struct
 	Proxy_Msg strProxyMsg;
 }GUI_PROXY;
 GUI_PROXY cjguiProxy;
-
+GUI_PROXY cjguiProxy_plc;
 INT8S saveClass6035(CLASS_6035* class6035);
 #endif

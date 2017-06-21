@@ -576,7 +576,7 @@ int requestdata_485_ZB_Block(CLASS_6001* cldno, INT8U *mq_name, int msg_num, Lcd
 	int mq_cnt=5;
 	memset(msgbuf,0,sizeof(msgbuf));
 //	bzero(&msg_real,sizeof(Proxy_Msg));
-	result = requestDataBlock(cldno,(INT8S*)mq_name,PROXY,msg_num,40,msgbuf);
+	result = requestDataBlock(cldno,(INT8S*)mq_name,PROXY,msg_num,60,msgbuf);
 //	DEBUG_TIME_LINE("\ngui: -------------cur rev msg from 485 result = %d\n",result);
 	if(result > 0)
 	{
@@ -647,7 +647,7 @@ void show_realdatabycld(void * pindex){
 	if(cur_pindex == NULL)
 		return;
 	memset(item, 0, 10*sizeof(LcdDataItem));
-	if(cur_pindex->basicinfo.port.OI == PORT_485){
+	if(cur_pindex->basicinfo.port.OI == PORT_485 ||cur_pindex->basicinfo.port.OI == PORT_ZB){
 		mqcount = requestdata_485_ZB_Block(cur_pindex,(INT8U*)PROXY_485_MQ_NAME,5, item);
 	}
 	show_realdata(cur_pindex->sernum, item, mqcount);

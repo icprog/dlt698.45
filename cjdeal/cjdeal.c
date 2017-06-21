@@ -780,7 +780,7 @@ INT8S dealMsgProcess()
 		fprintf(stderr,"\n ％％％％％％％％％％％％cjcommProxy.isInUse = %d cjguiProxy.isInUse = %d\n",cjcommProxy.isInUse,cjguiProxy.isInUse);
 		return 	result;
 	}
-
+	GUI_PROXY cjguiProxy_Tmp;
 	INT8U  rev_485_buf[2048];
 	INT32S ret;
 
@@ -811,16 +811,26 @@ INT8S dealMsgProcess()
 				if(mq_h.pid == cjgui)
 				{
 					fprintf(stderr, "\n收到液晶点抄-----------------------------------23232323\n");
-					if(cjguiProxy.isInUse == 0)
+					memcpy(&cjguiProxy_Tmp.strProxyMsg,rev_485_buf,sizeof(Proxy_Msg));
+					if (cjguiProxy_Tmp.strProxyMsg.port.OI== PORT_ZB)
 					{
-						memcpy(&cjguiProxy.strProxyMsg,rev_485_buf,sizeof(Proxy_Msg));
-						cjguiProxy.isInUse = 3;
-					}
-					else
+						if (cjguiProxy_plc.isInUse ==0 )
+						{
+							memcpy(&cjguiProxy_plc,&cjguiProxy_Tmp,sizeof(cjguiProxy_plc));//如果点抄的是载波测量点，消息变量转存
+							cjguiProxy_plc.isInUse = 1;
+						}
+					}else
 					{
-						fprintf(stderr,"上一个液晶点抄没处理完");
+						if(cjguiProxy.isInUse == 0)
+						{
+							memcpy(&cjguiProxy.strProxyMsg,rev_485_buf,sizeof(Proxy_Msg));
+							cjguiProxy.isInUse = 3;
+						}
+						else
+						{
+							fprintf(stderr,"上一个液晶点抄没处理完");
+						}
 					}
-
 				}
 
 				readState = 0;

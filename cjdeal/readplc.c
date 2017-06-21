@@ -35,7 +35,7 @@ extern  INT16U data07Tobuff698(FORMAT07 Data07,INT8U* dataContent);
 extern INT8U checkMeterType(MY_MS mst,INT8U usrType,TSA usrAddr);
 extern mqd_t mqd_zb_task;
 extern CJCOMM_PROXY cjcommProxy;
-extern GUI_PROXY cjguiProxy;
+extern GUI_PROXY cjguiProxy_plc;
 extern Proxy_Msg* p_Proxy_Msg_Data;//液晶给抄表发送代理处理结构体，指向由guictrl.c配置的全局变量
 extern TASK_CFG list6013[TASK6012_MAX];
 //-----------------------------------------------------------------------------------------------------------------------------------------------------
@@ -112,7 +112,7 @@ void SendDataToCom(int fd, INT8U *sendbuf, INT16U sendlen)
 	int i=0;
 	ssize_t slen;
 	slen = write(fd, sendbuf, sendlen);
-	DbPrt1(31,"发:", (char *) sendbuf, slen, NULL);
+	DbPrt1(31,"S:", (char *) sendbuf, slen, NULL);
 	fprintf(stderr,"\nsend(%d)",slen);
 	for(i=0;i<slen;i++)
 		fprintf(stderr," %02x",sendbuf[i]);
@@ -189,7 +189,7 @@ int StateProcessZb(unsigned char *str,INT8U* Buf )
 					RecvTail = (RecvTail+1)%ZBBUFSIZE;
 				}
 				rec_step = 0;
-				DbPrt1(31,"收:", (char *) str, DataLen, NULL);
+				DbPrt1(31,"R:", (char *) str, DataLen, NULL);
 				return DataLen;
 			}else {
 				RecvTail = (RecvTail+1)%ZBBUFSIZE;
@@ -431,11 +431,10 @@ int task_leve(INT8U leve,TASK_UNIT *taskunit)
 	DateTimeBCD ts;
 	int i=0,t=0;
 	INT8U type=0 ,serNo=0;
-	ts =   timet_bcd(1496024460);
-	DbgPrintToFile1(31,"------------ %d-%d-%d  %d:%d:%d",ts.year.data,ts.month.data,ts.day.data,ts.hour.data,ts.min.data,ts.sec.data);
+
 	for(i=0;i<TASK6012_MAX;i++)
 	{
-		if (list6013[i].basicInfo.runprio == leve)
+		if (list6013[i].basicInfo.runprio == leve && list6013[i].basicInfo.taskID>0)
 		{
 			taskunit[t].taskId = list6013[i].basicInfo.taskID;
 			taskunit[t].leve = list6013[i].basicInfo.runprio;
@@ -451,7 +450,6 @@ int task_leve(INT8U leve,TASK_UNIT *taskunit)
 			taskunit[t].fangan.No = serNo;
 			taskunit[t].ti = list6013[i].basicInfo.interval;
 			taskunit[t].fangan.item_n = Array_OAD_Items(&taskunit[t].fangan);
-			DbgPrintToFile1(31,"leve %d  fangan.No = %d  itemn=%d",leve,serNo,taskunit[t].fangan.item_n);
 			t++;
 		}
 	}
@@ -465,9 +463,10 @@ void task_init6015(CLASS_6015 *fangAn6015p)
 	{
 		if (list6013[i].basicInfo.cjtype == norm)//普通采集任务
 		{
+
 			readCoverClass(0x6015, list6013[i].basicInfo.sernum, (void *)&fangAn6015p[j], sizeof(CLASS_6015), coll_para_save);
-			DbgPrintToFile1(31,"fangan.No = %d  mstype = %d  mstype[0]=%02x  [1] =%02x",
-					fangAn6015p[j].sernum,fangAn6015p[j].mst.mstype,fangAn6015p[j].mst.ms.type[0],fangAn6015p[j].mst.ms.type[1]);
+			DbgPrintToFile1(31,"fangAn6015p[%d].sernum = %d  fangAn6015p[%d].mst = %d ",
+					j,fangAn6015p[j].sernum,j,fangAn6015p[j].mst.mstype);
 			j++;
 			if(j>=20)
 				break;
@@ -483,7 +482,7 @@ int initTaskData(TASK_INFO *task)
 	memset(fangAn6015,0,sizeof(fangAn6015));
 
 	task_init6015(fangAn6015);
-
+	num += task_leve(0,&task->task_list[num]);
 	num += task_leve(1,&task->task_list[num]);
 	num += task_leve(2,&task->task_list[num]);
 	num += task_leve(3,&task->task_list[num]);
@@ -858,9 +857,9 @@ int doCompSlaveMeter(RUNTIME_PLC *runtime_p)
 				runtime_p->format_Up.afn != 0x10 && runtime_p->format_Up.fn!= 2)
 			{
 				DbgPrintToFile1(31,"读从节点信息 %d ",index);
-				if (slavenum > 26)
+				if (slavenum > 10)
 				{
-					sendlen = AFN10_F2(&runtime_p->format_Down,runtime_p->sendbuf,index,26);
+					sendlen = AFN10_F2(&runtime_p->format_Down,runtime_p->sendbuf,index,10);
 				}
 				else if(slavenum > 0)
 				{
@@ -1172,6 +1171,7 @@ DATA_ITEM checkMeterData(TASK_INFO *meterinfo,int *taski,int *itemi,INT8U usrtyp
 			}
 			if (needflg == 1)
 			{
+				DbgPrintToFile1(31,"itemn = %d",meterinfo->task_list[i].fangan.item_n);
 				 for(j = 0; j<meterinfo->task_list[i].fangan.item_n; j++)
 				 {
 					 if ( meterinfo->task_list[i].fangan.items[j].sucessflg==0)
@@ -1322,7 +1322,6 @@ int ProcessMeter(INT8U *buf,struct Tsa_Node *desnode)
 						taskinfo.tsa.addr[6],taskinfo.tsa.addr[7],taskinfo.tsa_index);
 		}
 	}
-
 	tmpitem = checkMeterData(&taskinfo,&taski,&itemi,desnode->usrtype);	//根据任务的时间计划，查找一个适合抄读的数据项
 	time_t getTheTime;
 	DateTimeBCD timebcd;
@@ -1738,31 +1737,29 @@ int doProxy(RUNTIME_PLC *runtime_p)
 			break;
 
 		case 1://开始监控载波从节点
-			if (beginwork==0  &&
-				judgebit(cjguiProxy.isInUse,2)==1 &&
-				cjguiProxy.strProxyMsg.port.OI == 0xf209 )
+			if (beginwork==0  && cjguiProxy_plc.strProxyMsg.port.OI == 0xf209 && cjguiProxy_plc.isInUse==1 )
 			{//发送点抄
 				DbgPrintToFile1(31,"dealGuiRead 处理液晶点抄 :%02x%02x%02x%02x%02x%02x%02x%02x 波特率=%d protocol=%d 端口号=%04x%02x%02x 规约类型=%d 数据标识=%04x"
-						,cjguiProxy.strProxyMsg.addr.addr[0],cjguiProxy.strProxyMsg.addr.addr[1],cjguiProxy.strProxyMsg.addr.addr[2],cjguiProxy.strProxyMsg.addr.addr[3]
-						,cjguiProxy.strProxyMsg.addr.addr[4],cjguiProxy.strProxyMsg.addr.addr[5],cjguiProxy.strProxyMsg.addr.addr[6],cjguiProxy.strProxyMsg.addr.addr[7]
-						,cjguiProxy.strProxyMsg.baud,cjguiProxy.strProxyMsg.protocol,cjguiProxy.strProxyMsg.port.OI,cjguiProxy.strProxyMsg.port.attflg,cjguiProxy.strProxyMsg.port.attrindex
-						,cjguiProxy.strProxyMsg.protocol,cjguiProxy.strProxyMsg.oi);
+						,cjguiProxy_plc.strProxyMsg.addr.addr[0],cjguiProxy_plc.strProxyMsg.addr.addr[1],cjguiProxy_plc.strProxyMsg.addr.addr[2],cjguiProxy_plc.strProxyMsg.addr.addr[3]
+						,cjguiProxy_plc.strProxyMsg.addr.addr[4],cjguiProxy_plc.strProxyMsg.addr.addr[5],cjguiProxy_plc.strProxyMsg.addr.addr[6],cjguiProxy_plc.strProxyMsg.addr.addr[7]
+						,cjguiProxy_plc.strProxyMsg.baud,cjguiProxy_plc.strProxyMsg.protocol,cjguiProxy_plc.strProxyMsg.port.OI,cjguiProxy_plc.strProxyMsg.port.attflg,cjguiProxy_plc.strProxyMsg.port.attrindex
+						,cjguiProxy_plc.strProxyMsg.protocol,cjguiProxy_plc.strProxyMsg.oi);
 				beginwork = 1;
 				nodetmp = NULL;
-				nodetmp = getNodeByTSA(tsa_head,cjguiProxy.strProxyMsg.addr) ;
+				nodetmp = getNodeByTSA(tsa_head,cjguiProxy_plc.strProxyMsg.addr) ;
 				clearvar(runtime_p);
 				if( nodetmp != NULL )
 				{
 					DbgPrintToFile1(31,"发送点抄报文");
 					memcpy(runtime_p->format_Down.addr.SourceAddr,runtime_p->masteraddr,6);
-					sendlen = buildProxyFrame(runtime_p,nodetmp,cjguiProxy.strProxyMsg);
+					sendlen = buildProxyFrame(runtime_p,nodetmp,cjguiProxy_plc.strProxyMsg);
 					SendDataToCom(runtime_p->comfd, runtime_p->sendbuf,sendlen );
 				}
 				runtime_p->send_start_time = nowtime;
 			}
 			else if ((runtime_p->format_Up.afn == 0x13 && runtime_p->format_Up.fn == 1 ))
 			{//收到应答数据，或超时10秒，
-				cjguiProxy.isInUse = cjguiProxy.isInUse & 0b11111011;
+				cjguiProxy_plc.isInUse = 0;
 				beginwork = 0;
 				saveProxyData(runtime_p->format_Up);
 				memset(&runtime_p->format_Up,0,sizeof(runtime_p->format_Up));
@@ -1770,7 +1767,7 @@ int doProxy(RUNTIME_PLC *runtime_p)
 			}else if ((nowtime - runtime_p->send_start_time > 20  ) && beginwork==1)
 			{
 				DbgPrintToFile1(31,"单次点抄超时");
-				cjguiProxy.isInUse = cjguiProxy.isInUse & 0b11111011;
+				cjguiProxy_plc.isInUse = 0;
 				beginwork = 0;
 			}
 			else if( nowtime - runtime_p->send_start_time > 100  )
@@ -2003,8 +2000,9 @@ int stateJuge(int nowdstate,INT8U my6000,RUNTIME_PLC *runtime_p)
 	}
 
 	//-------------------------------------------------------------------------------------------------------------------------
-	if ( judgebit(cjguiProxy.isInUse ,2) && cjguiProxy.strProxyMsg.port.OI == 0xf209 &&
-		 state!=DATE_CHANGE && state!=DATA_REAL)
+	//if ( judgebit(cjguiProxy.isInUse ,2) && cjguiProxy.strProxyMsg.port.OI == 0xf209 &&
+	//	 state!=DATE_CHANGE && state!=DATA_REAL)
+	if (cjguiProxy_plc.isInUse ==1 && cjguiProxy_plc.strProxyMsg.port.OI == 0xf209 && state!=DATE_CHANGE && state!=DATA_REAL)
 	{	//出现液晶点抄载波表标识，并且不在初始化和点抄状态
 		DbgPrintToFile1(31,"\n载波收到点抄消息 需要处理 %04x ",cjguiProxy.strProxyMsg.port.OI);
 		runtime_p->state_bak = runtime_p->state;
@@ -2032,9 +2030,16 @@ void readplc_thread()
 	RecvHead = 0;
 	RecvTail = 0;
 	initTaskData(&taskinfo);
+
+	DbgPrintToFile1(31,"2-fangAn6015[%d].sernum = %d  fangAn6015[%d].mst.mstype = %d ",
+			0,fangAn6015[0].sernum,0,fangAn6015[0].mst.mstype);
+
 	PrintTaskInfo2(&taskinfo);
 	DbgPrintToFile1(31,"载波线程开始");
 	runtimevar.format_Down.info_down.ReplyBytes = 0x28;
+
+	DbgPrintToFile1(31,"1-fangAn6015[%d].sernum = %d  fangAn6015[%d].mst.mstype = %d ",
+			0,fangAn6015[0].sernum,0,fangAn6015[0].mst.mstype);
 
 	while(1)
 	{

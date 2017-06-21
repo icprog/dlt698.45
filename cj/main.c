@@ -312,7 +312,6 @@ int main(int argc, char *argv[]) {
         return EXIT_SUCCESS;
     }
 
-
     if (strcmp("usr-pwd", argv[1]) == 0) {
         SetUsrPwd(argc, argv);
         return EXIT_SUCCESS;
@@ -384,7 +383,6 @@ int main(int argc, char *argv[]) {
         return EXIT_SUCCESS;
     }
 
-
     if (strcmp("bt", argv[1]) == 0) {
         float v1=0,v2=0;
         ConfigPara	cfg_para={};
@@ -417,6 +415,11 @@ int main(int argc, char *argv[]) {
         return EXIT_SUCCESS;
     }
 
+    if(strcmp("plc",argv[1])==0)
+    {
+    	shwoPlcMeterstatus();
+    	return EXIT_SUCCESS;
+    }
     if (strcmp("yx", argv[1]) == 0) {
         for(;;){
             CLASS_f203 oif203 = {};
