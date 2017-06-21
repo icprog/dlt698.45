@@ -88,6 +88,7 @@ static void ClientForGprsRead(struct aeEventLoop *eventLoop, int fd, void *clien
             }
 
             if (len > 0) {
+            	len = 0;
                 int apduType = ProcessData(nst);
                 fprintf(stderr, "apduType=%d\n", apduType);
                 ConformAutoTask(eventLoop, nst, apduType);
