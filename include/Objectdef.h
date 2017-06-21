@@ -362,7 +362,7 @@ typedef struct {
 
 	typedef struct {
 		INT8U 	datano;			//报文序号
-		INT32U	data[256];		//报文内容
+		INT8U	data[256];		//报文内容	//data【0】代表后面有效报文内容
 	}PLAN_DATA;	//方案报文
 
 	typedef struct {

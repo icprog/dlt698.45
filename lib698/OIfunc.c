@@ -286,34 +286,31 @@ int Get_6019(INT8U type,INT8U seqnum,INT8U *data)
 		index += create_struct(&data[index],3);					//属性2：struct 3个元素
 		index += fill_unsigned(&data[index],trans.planno);		//方案序号
 		for(i=0;i<trans.contentnum;i++) {		//方案内容集
-
+			if(trans.plan[i].seqno!=0) {	//勘误增加序号设置
+				index += create_struct(&data[index],6);
+				index += fill_long_unsigned(&data[index],trans.plan[i].seqno);
+			}else {
+				index += create_struct(&data[index],5);
+			}
+			index += fill_TSA(&data[index],(INT8U *)&trans.plan[i].addr.addr[1],trans.plan[i].addr.addr[0]);
+			index += fill_long_unsigned(&data[index],trans.plan[i].befscript);
+			index += fill_long_unsigned(&data[index],trans.plan[i].aftscript);
+			index += create_struct(&data[index],4);					//方案控制标志：struct 4个元素
+			index += fill_bool(&data[index],trans.plan[i].planflag.waitnext);
+			index += fill_long_unsigned(&data[index],trans.plan[i].planflag.overtime);
+			index += fill_enum(&data[index],trans.plan[i].planflag.resultflag);
+			index += create_struct(&data[index],3);					//结果比对参数：struct 3个元素
+			index += fill_unsigned(&data[index],trans.plan[i].planflag.resultpara.featureByte);
+			index += fill_long_unsigned(&data[index],trans.plan[i].planflag.resultpara.interstart);
+			index += fill_long_unsigned(&data[index],trans.plan[i].planflag.resultpara.interlen);
+			index += create_array(&data[index],trans.plan[i].datanum);//方案报文集
+			for(j=0;j<trans.plan[i].datanum;j++) {
+				index += create_struct(&data[index],2);
+				index += fill_unsigned(&data[index],trans.plan[i].data[j].datano);
+				index += fill_octet_string(&data[index],(char *)&trans.plan[i].data[j].data[1],trans.plan[i].data[j].data[0]);
+			}
 		}
-//		if(trans.contentnum == 0xff ) {					//采集类型无效,为勘误前的定义结构
-//			if(event.collstyle.roads.num>ARRAY_ROAD_NUM)	event.collstyle.roads.num = ARRAY_ROAD_NUM;
-//			index += create_array(&data[index],event.collstyle.roads.num);
-//			for(i=0;i<event.collstyle.roads.num;i++) {
-//				index += fill_ROAD(1,&data[index],event.collstyle.roads.road[i]);	//采集数据
-//			}
-//		}else {
-//			index += create_struct(&data[index],2);					//属性2：struct 2个元素
-//			index += fill_unsigned(&data[index],event.collstyle.colltype);		//采集类型
-//			switch(event.collstyle.colltype) {
-//			case 0://周期采集事件数据
-//			case 2://根据通知采集指定事件数据
-//				if(event.collstyle.roads.num>ARRAY_ROAD_NUM)	event.collstyle.roads.num = ARRAY_ROAD_NUM;
-//				index += create_array(&data[index],event.collstyle.roads.num);
-//				for(i=0;i<event.collstyle.roads.num;i++) {
-//					index += fill_ROAD(1,&data[index],event.collstyle.roads.road[i]);	//采集数据
-//				}
-//				break;
-//			case 1://NULL,根据通知采集所有事件数据
-//				data[index++]=0;
-//				break;
-//			}
-//		}
-//		index += fill_MS(1,&data[index],event.ms);		//电能表集合
-//		index += fill_bool(&data[index],event.ifreport);		//上报标识
-//		index += fill_long_unsigned(&data[index],event.deepsize);		//存储深度
+		index += fill_long_unsigned(&data[index],trans.savedepth);
 	}
 	return index;
 }

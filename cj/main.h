@@ -38,6 +38,7 @@ extern void analyFreezeData(int argc, char* argv[]);
  * 参变量类*/
 extern void para_process(int argc, char *argv[]);
 extern void InIt_Process(int argc, char *argv[]);
+extern void get_softver();
 /*
  * 文件传输类对象 ESAM接口类对象 输入输出设备类对象 显示类对象
  * */

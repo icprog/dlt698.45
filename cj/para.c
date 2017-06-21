@@ -159,6 +159,15 @@ void print4510()
 	fprintf(stderr,"\n");
 }
 
+void get_softver()
+{
+	CLASS19  oi4300={};
+	readCoverClass(0x4300,0,&oi4300,sizeof(CLASS19),para_vari_save);
+	fprintf(stderr,"softver:%c%c%c%c",oi4300.info.softVer[0],oi4300.info.softVer[1],oi4300.info.softVer[2],oi4300.info.softVer[3]);
+	fprintf(stderr,"	softdate:%c%c%c%c%c%c",oi4300.info.softDate[0],oi4300.info.softDate[1],oi4300.info.softDate[2],oi4300.info.softDate[3],oi4300.info.softDate[4],oi4300.info.softDate[5]);
+	fprintf(stderr,"\n");
+}
+
 void InIt_Process(int argc, char *argv[])
 {
 	int 	tmp=0;

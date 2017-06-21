@@ -647,7 +647,7 @@ void show_realdatabycld(void * pindex){
 	if(cur_pindex == NULL)
 		return;
 	memset(item, 0, 10*sizeof(LcdDataItem));
-	if(cur_pindex->basicinfo.port.OI == PORT_485){
+	if(cur_pindex->basicinfo.port.OI == PORT_485 ||cur_pindex->basicinfo.port.OI ==  PORT_ZB){
 		mqcount = requestdata_485_ZB_Block(cur_pindex,(INT8U*)PROXY_485_MQ_NAME,5, item);
 	}
 	show_realdata(cur_pindex->sernum, item, mqcount);
@@ -3394,7 +3394,7 @@ int setid_showlabel(){
 void jzq_id_edit()
 {
 	INT8U str[50] = {0};
-	INT8U sever_addr[20] = {0};
+	INT8U sever_addr[OCTET_STRING_LEN-1];//去掉首部第一个代表长度字节
 	INT8U addr_len = 0;
 	char idtmp[30] = {0}, oprmode_old=0;
 
@@ -3425,7 +3425,7 @@ void jzq_id_edit()
 		addr_len = strlen((char*)str);
 		if(addr_len!=0){
 			str2bcd(str,sever_addr,sizeof(sever_addr));
-			memcpy(&g_Class4001_4002_4003.curstom_num[1],sever_addr,strlen((char*)sever_addr));
+			memcpy(&g_Class4001_4002_4003.curstom_num[1],sever_addr,OCTET_STRING_LEN-1);
 			if(addr_len%2)
 			{
 				g_Class4001_4002_4003.curstom_num[addr_len/2+1] |= 0x0F;
