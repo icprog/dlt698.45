@@ -71,7 +71,7 @@ void ClientForNetRead(struct aeEventLoop *eventLoop, int fd, void *clientData, i
         }
         bufsyslog(nst->RecBuf, "客户端[以太网]接收:", nst->RHead, nst->RTail, BUFLEN);
 
-        for (int k = 0; k < 5; k++) {
+        for (int k = 0; k < 50; k++) {
             int len = 0;
             for (int i = 0; i < 5; i++) {
                 len = StateProcess(nst, 10);
