@@ -61,11 +61,11 @@ static void IfrRead(struct aeEventLoop *eventLoop, int fd, void *clientData, int
             read(nst->phy_connect_fd, &nst->RecBuf[nst->RHead], 1);
             nst->RHead = (nst->RHead + 1) % BUFLEN;
         }
-        bufsyslog(nst->RecBuf, "红外接收:", nst->RHead, nst->RTail, BUFLEN);
+        bufsyslog(nst->RecBuf, "红外接收(100):", nst->RHead, nst->RTail, BUFLEN);
         for (int k = 0; k < 3; k++) {
             int len = 0;
             for (int i = 0; i < 5; i++) {
-                len = StateProcess(nst, 10);
+                len = StateProcess(nst, 100);
                 if (len > 0) {
                     break;
                 }
@@ -82,6 +82,41 @@ static void IfrRead(struct aeEventLoop *eventLoop, int fd, void *clientData, int
                         break;
                 }
             }
+        }
+    }
+}
+
+/*
+ * 为I型集中器的特殊处理，改为轮询红外口数据的方式
+ */
+static void IfrReadLoop(struct aeEventLoop *eventLoop, int fd, void *clientData, int mask) {
+    CommBlock *nst = (CommBlock *) clientData;
+
+    //判断fd中有多少需要接收的数据
+    int revcount = 0;
+    ioctl(nst->phy_connect_fd, FIONREAD, &revcount);
+
+    if (revcount > 0) {
+        for (int j = 0; j < revcount; j++) {
+            read(nst->phy_connect_fd, &nst->RecBuf[nst->RHead], 1);
+            nst->RHead = (nst->RHead + 1) % BUFLEN;
+        }
+    }
+
+    if (nst->RHead != nst->RTail) {
+        bufsyslog(nst->RecBuf, "红外接收():", nst->RHead, nst->RTail, BUFLEN);
+    }
+
+    int len = StateProcess(nst, 10);
+    if (len > 0) {
+        int apduType = ProcessData(nst);
+        switch (apduType) {
+            case LINK_RESPONSE:
+                nst->linkstate = build_connection;
+                nst->testcounter = 0;
+                break;
+            default:
+                break;
         }
     }
 }
@@ -110,13 +145,16 @@ static int RegularIfr(struct aeEventLoop *ep, long long id, void *clientData) {
         if (nst->phy_connect_fd <= 0) {
             asyslog(LOG_ERR, "红外串口打开失败");
         } else {
-            if (aeCreateFileEvent(ep, nst->phy_connect_fd, AE_READABLE, IfrRead, nst) < 0) {
-                asyslog(LOG_ERR, "红外串口监听失败");
-                close(nst->phy_connect_fd);
-                nst->phy_connect_fd = -1;
-                return 10 * 1000;
-            }
+//            if (aeCreateFileEvent(ep, nst->phy_connect_fd, AE_READABLE, IfrRead, nst) < 0) {
+//                asyslog(LOG_ERR, "红外串口监听失败");
+//                close(nst->phy_connect_fd);
+//                nst->phy_connect_fd = -1;
+//                return 10 * 1000;
+//            }
         }
+    } else {
+        // 为I型集中器的特殊处理
+        IfrReadLoop(ep, 0, nst, 0);
     }
     return 1000;
 }

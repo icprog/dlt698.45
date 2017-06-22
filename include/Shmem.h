@@ -334,7 +334,7 @@ typedef struct{
 
 typedef struct{
 	INT8U   Cur_Ercno;				//当前事件序号
-	INT8U   jzq_login;				//集中器登陆       0 没有登陆    1 GPRS登陆    2 以太网登陆   3 内部协议栈登陆；
+	INT8U   jzq_login;				//集中器登陆       0 没有登陆    1 GPRS登陆    2 以太网登陆   3 内部协议栈登录；
 	INT8U   gprs_status;			//1AT检测成功，2获取GPRS模块信息，3检测SIM卡，4注册网络成功
 	INT8U	Gprs_csq;				//信号强度
 	INT8U   wirelessType; 			//1:GPRS  2:CDMA2000  3:TD_LTE  4:FDD_LTE
