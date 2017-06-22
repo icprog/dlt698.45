@@ -72,7 +72,8 @@ void topstatus_showcommtype(INT8U online_type)
 
 	switch(online_type)
 	{
-		case GPRS_COM:
+		case GPRS_COM://外部协议栈上线
+		case 3:  //内部协议栈上线
 			if (p_JProgramInfo->dev_info.wirelessType==2)
 			{
 				str[0] = 0x05;//C
@@ -93,7 +94,7 @@ void topstatus_showcommtype(INT8U online_type)
 			str[1] = 0x08;
 			break;
 	}
-	if(online_type==GPRS_COM||online_type==NET_COM)
+	if(online_type==GPRS_COM||online_type==NET_COM || online_type == 3)
 	{
 		gui_textshow_16(str, pos, LCD_NOREV);
 		rect = gui_changerect(getrect(pos, FONTSIZE_8*2, FONTSIZE_8*2), -2);

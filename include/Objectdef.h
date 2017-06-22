@@ -239,10 +239,10 @@ typedef struct {
 
 typedef struct {
     INT8U startime[3];  //广播校时启动时间 time类型 octet-string(SIZE(3))
-    INT8U enable;       //是否启用
+    INT8U enable;       //终端广播校时是否启用
     INT16S upleve;       //时钟误差阀值
-    INT8U startime1[3]; //终端广播校时启动时间
-    INT8U enable1;      //是否启用
+    INT8U startime1[3]; //终端单地址广播校时启动时间
+    INT8U enable1;      //终端单地址广播校时是否启用
 } CLASS_4204;           //终端广播校时
 
 /********************************************************
@@ -362,7 +362,7 @@ typedef struct {
 
 	typedef struct {
 		INT8U 	datano;			//报文序号
-		INT32U	data[256];		//报文内容
+		INT8U	data[256];		//报文内容	//data【0】代表后面有效报文内容
 	}PLAN_DATA;	//方案报文
 
 	typedef struct {

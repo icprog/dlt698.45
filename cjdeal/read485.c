@@ -3065,33 +3065,49 @@ INT8S dealBroadCastSingleMeter(INT8U port485,CLASS_6001 meter)
  * */
 INT8S checkBroadCast(INT8U port485)
 {
-	INT8S ret = -1;
-	if(broadcase4204.enable)
+	INT8S 	ret = -1;
+	static  INT8U broadtime[5],broad_day=0;
+	TS nowTime;
+
+//	fprintf(stderr,"port485=%d enable=%d broadtime=%d-%d-%d-%d\n",port485,broadcase4204.enable,broadtime[0],broadtime[1],broadtime[2],broadtime[3]);
+	if(port485 > S4853) {
+		asyslog(LOG_WARNING,"广播对时串口%d 大于集中器串口容量%d 无效退出",port485,S4853);
+		return ret;
+	}
+
+	if(broadcase4204.enable) {		//广播对时有效，每天清除对时标记，保证到启动时间，进入一次
+		TSGet(&nowTime);
+		if(broad_day != nowTime.Day) {
+			broad_day = nowTime.Day;
+			memset(&broadtime,0,sizeof(broadtime));
+		}
+	}
+	if(broadcase4204.enable && broadtime[port485]==0)	//增加标记，到时间只下发一次广播对时命令,防止单地址广播校时未到时间重复进入
 	{
-		TS nowTime;
 		TSGet(&nowTime);
 		TS broadcastTime;
 		broadcastTime.Year = nowTime.Year;
 		broadcastTime.Month = nowTime.Month;
 		broadcastTime.Day = nowTime.Day;
-		broadcastTime.Hour = broadcase4204.startime1[0];
-		broadcastTime.Minute = broadcase4204.startime1[1];
-		broadcastTime.Sec = broadcase4204.startime1[2];
+		broadcastTime.Hour = broadcase4204.startime[0];//broadcase4204.startime1[0];
+		broadcastTime.Minute = broadcase4204.startime[1];
+		broadcastTime.Sec = broadcase4204.startime[2];
 
 		INT8U timeCmp = TScompare(nowTime,broadcastTime);
+		fprintf(stderr,"now Hour=%d, %d  timeCmp=%d\n",nowTime.Hour,broadcastTime.Hour,timeCmp);
 		if(timeCmp < 2)
 		{
-			asyslog(LOG_WARNING,"广播校时时间到");
+			asyslog(LOG_WARNING,"抄表口[%d],广播校时时间到",port485); //将下面几句话移到timeCmp<2之内，到广播对时时间再进行对时
+			TSA meterAddr;
+			meterAddr.addr[0] = 7;
+			meterAddr.addr[1] = 5;
+			sendSetTimeCMD698(meterAddr,port485,1);	//？？？？698广播校时时间不正确
+			sendBroadCastTime07(port485);
+			broadtime[port485] = 1;
 		}
-		TSA meterAddr;
-		meterAddr.addr[0] = 7;
-		meterAddr.addr[1] = 5;
-		sendSetTimeCMD698(meterAddr,port485,1);
-		sendBroadCastTime07(port485);
 	}
 	if(broadcase4204.enable1)
 	{
-		TS nowTime;
 		TSGet(&nowTime);
 		TS broadcastTime;
 		broadcastTime.Year = nowTime.Year;
@@ -3150,8 +3166,6 @@ INT8S checkBroadCast(INT8U port485)
 			}
 			flagDay_4204[port485-1] = 0;
 		}
-
-
 	}
 
 	return ret;

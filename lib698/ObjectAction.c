@@ -604,7 +604,6 @@ void AddEventCjiFangAnInfo(INT8U *data, Action_result *act_ret) {
 void AddOI6019(INT8U *data, Action_result *act_ret) {
     CLASS_6019  TransFangAn = {};
     int i = 0,j=0;
-    INT8U addnum = 0;
     int index = 0;
 
     memset(&TransFangAn,0,sizeof(CLASS_6019));
@@ -613,7 +612,7 @@ void AddOI6019(INT8U *data, Action_result *act_ret) {
 
     if(TransFangAn.contentnum > CLASS6019_PLAN_NUM) {
     	TransFangAn.contentnum = CLASS6019_PLAN_NUM;
-    	asyslog(LOG_ERR,"透明方案内容%d ,大于设定值%d,处理不全",TransFangAn.contentnum,CLASS6019_PLAN_NUM);
+    	syslog(LOG_ERR,"透明方案内容%d ,大于设定值%d,处理不全",TransFangAn.contentnum,CLASS6019_PLAN_NUM);
     }
     for (i = 0; i < TransFangAn.contentnum; i++) {
         index += getLongUnsigned(&data[index], (INT8U *) &TransFangAn.plan[i].seqno);
