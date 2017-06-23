@@ -1042,7 +1042,7 @@ int getTsas(MY_MS ms,INT8U **tsas)
 					break;
 				case 3:	//一组用户地址
 					tsa_len = (ms.ms.userAddr[0].addr[0]<<8) | ms.ms.userAddr[0].addr[1];
-					fprintf(stderr,"\n一组用户地址(%d)\n\n",tsa_len);
+//					fprintf(stderr,"\n一组用户地址(%d)\n\n",tsa_len);
 					for(j=0;j<tsa_len;j++) {
 						if(memcmp(&ms.ms.userAddr[j+1],&meter.basicinfo.addr,sizeof(TSA))==0) {  //TODO:TSA下发的地址是否按照00：长度，01：TSA长度格式
 							memcpy(*tsas+(tsa_num*sizeof(TSA)),&meter.basicinfo.addr,sizeof(TSA));
@@ -1367,6 +1367,7 @@ INT32U freqtosec(TI interval)//ti格式频率转化为秒数,只计算秒分时�
 //读取taskid相应的配置结构体，return 1成功，0失败
 INT8U ReadTaskInfo(INT8U taskid,TASKSET_INFO *tasknor_info)//读取普通采集方案配置
 {
+	int i=0;
 	CLASS_6015	class6015={};
 	CLASS_6013	class6013={};
 	memset(tasknor_info,0x00,sizeof(TASKSET_INFO));
@@ -1396,22 +1397,48 @@ INT8U ReadTaskInfo(INT8U taskid,TASKSET_INFO *tasknor_info)//读取普通采集�
 //			tasknor_info->runtime = CalcFreq(class6013.interval,class6015,tasknor_info->starthour*60+tasknor_info->startmin,tasknor_info->endhour*60+tasknor_info->endmin,&tasknor_info->freq);
 			if(tasknor_info->runtime == 0)
 				return 0;
-			fprintf(stderr,"\n---@@@---任务%d执行次数%d\n",taskid,tasknor_info->runtime);
+			fprintf(stderr,"\n---@@@---任务%d执行次数%d 设置的单位%d\n",taskid,tasknor_info->runtime,class6013.interval.units);
 			tasknor_info->KBtype = CalcKBType(class6013.runtime.type);
 			fprintf(stderr,"\n---@@@---开闭方式%d\n",tasknor_info->KBtype);
 			tasknor_info->memdep = class6015.deepsize;
 			fprintf(stderr,"\n---@@@---存储深度%d\n",class6015.deepsize);
 			memcpy(&tasknor_info->csds,&class6015.csds,sizeof(CSD_ARRAYTYPE));
-			if(tasknor_info->runtime == 1)//日月年冻结
+			for(i=0;i<MY_CSD_NUM;i++)
 			{
-				tasknor_info->freq = 86400;//
-				if(class6013.interval.units == 3)//日冻结
+				switch(tasknor_info->csds.csd[i].csd.road.oad.OI)//union
+				{
+				case 0x0000://
+				case 0x5000:
+				case 0x5002:
+				case 0x5003://
+					break;
+				case 0x5004://日冻结
+				case 0x5005://结算日
+					tasknor_info->freq = 86400;
 					return 1;
-				if(class6013.interval.units == 4)//月冻结
+					break;
+				case 0x5006://月冻结
+					tasknor_info->freq = 86400;
 					return 2;
-				if(class6013.interval.units == 5)//年冻结
+					break;
+				case 0x5007://年冻结
+					tasknor_info->freq = 86400;
 					return 3;
+					break;
+				default:break;
+
+				}
 			}
+//			if(tasknor_info->runtime == 1)//日月年冻结
+//			{
+//				tasknor_info->freq = 86400;//
+//				if(class6013.interval.units == 3)//日冻结
+//					return 1;
+//				if(class6013.interval.units == 4)//月冻结
+//					return 2;
+//				if(class6013.interval.units == 5)//年冻结
+//					return 3;
+//			}
 			fprintf(stderr,"\n---@@@---返回4\n");
 #ifdef SYS_INFO
 			asyslog(LOG_INFO,"任务%d执行次数%d [%d:%d--%d:%d]\n",taskid,tasknor_info->runtime,tasknor_info->starthour,tasknor_info->startmin,tasknor_info->endhour,tasknor_info->endmin);
@@ -2013,7 +2040,7 @@ int getrecordno(INT8U starthour,INT8U startmin,int interval,CURR_RECINFO recinfo
 	recordno = (tm_p->tm_hour*60 + tm_p->tm_min) - (starthour*60 + startmin);
 	if(interval!=0) {
 		recordno = recordno/(interval/60);
-	}else recordno = 1;		//冻结抄读
+	}else recordno = 0;		//冻结抄读
 	asyslog(LOG_INFO,"当前：%d:%d 任务开始：%d:%d 任务间隔:%d 记录序号%d",tm_p->tm_hour,tm_p->tm_min,starthour,startmin,interval,recordno);
 	fprintf(stderr,"\n当前：%d:%d 任务开始：%d:%d 任务间隔:%d 记录序号%d\n",tm_p->tm_hour,tm_p->tm_min,starthour,startmin,interval,recordno);
 	return recordno;
@@ -2263,8 +2290,8 @@ INT8U initrecinfo(CURR_RECINFO *recinfo,TASKSET_INFO tasknor_info,INT8U selectyp
 		tm_p->tm_hour = tasknor_info.starthour;
 		tm_p->tm_min = tasknor_info.startmin;
 		tm_p->tm_sec = 0;
-		asyslog(LOG_INFO,"sele5 tasknor_info.save_timetype=%d",tasknor_info.save_timetype);
-		if(freezetype == 1 && (tasknor_info.save_timetype == 3 || tasknor_info.save_timetype == 4))
+		asyslog(LOG_INFO,"sele5 tasknor_info.save_timetype=%d,freezetype=%d",tasknor_info.save_timetype,freezetype);
+		if(freezetype == 1 && (tasknor_info.save_timetype == 2 || tasknor_info.save_timetype == 3 || tasknor_info.save_timetype == 4))
 		{
 			asyslog(LOG_INFO,"日冻结招测小时=%d",select.selec7.collect_save_star.hour.data);
 			tm_p->tm_mday = tm_p->tm_mday+1;
@@ -2809,6 +2836,22 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds,INT16U fr
 			break;
 		}
 	}
+	switch(selectype)
+	{
+	case 0:
+		meters_null.mstype = 1;//全部电表
+		tsa_num = getTsas(meters_null,(INT8U **)&tsa_group);
+		break;
+	case 5:
+		fprintf(stderr,"selec5.meters mstype = %d,data=%d-%d\n",select.selec5.meters.mstype,select.selec5.meters.ms.userAddr[0].addr[0],select.selec5.meters.ms.userAddr[0].addr[1]);
+		tsa_num = getTsas(select.selec5.meters,(INT8U **)&tsa_group);
+		break;
+	case 7:
+		tsa_num = getTsas(select.selec7.meters,(INT8U **)&tsa_group);
+		break;
+	default:
+		tsa_num = getTsas(select.selec10.meters,(INT8U **)&tsa_group);
+	}
 	if(eveflg == 1)
 	{
 		asyslog(LOG_INFO,"事件任务采集方案！！\n");
@@ -2843,7 +2886,6 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds,INT16U fr
 			return 0;
 		}
 //		asyslog(LOG_INFO,"\n得到任务信息成功\n");
-
 		memset(&recinfo,0x00,sizeof(CURR_RECINFO));
 //		asyslog(LOG_INFO,"\n----------获得recinfo信息\n");
 		initrecinfo(&recinfo,tasknor_info,selectype,select,taskinfoflg);//获得recinfo信息
@@ -2906,22 +2948,22 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds,INT16U fr
 	fprintf(stderr,"\n-----------------------------------1-----------------------------------------------------------\n");
 	//2\获得全部TSA列表
 //	fprintf(stderr,"\nmstype=%d recordno=%d\n",select.selec10.meters.mstype,recordno);s
-	switch(selectype)
-	{
-	case 0:
-		meters_null.mstype = 1;//全部电表
-		tsa_num = getTsas(meters_null,(INT8U **)&tsa_group);
-		break;
-	case 5:
-		fprintf(stderr,"selec5.meters mstype = %d,data=%d-%d\n",select.selec5.meters.mstype,select.selec5.meters.ms.userAddr[0].addr[0],select.selec5.meters.ms.userAddr[0].addr[1]);
-		tsa_num = getTsas(select.selec5.meters,(INT8U **)&tsa_group);
-		break;
-	case 7:
-		tsa_num = getTsas(select.selec7.meters,(INT8U **)&tsa_group);
-		break;
-	default:
-		tsa_num = getTsas(select.selec10.meters,(INT8U **)&tsa_group);
-	}
+//	switch(selectype)
+//	{
+//	case 0:
+//		meters_null.mstype = 1;//全部电表
+//		tsa_num = getTsas(meters_null,(INT8U **)&tsa_group);
+//		break;
+//	case 5:
+//		fprintf(stderr,"selec5.meters mstype = %d,data=%d-%d\n",select.selec5.meters.mstype,select.selec5.meters.ms.userAddr[0].addr[0],select.selec5.meters.ms.userAddr[0].addr[1]);
+//		tsa_num = getTsas(select.selec5.meters,(INT8U **)&tsa_group);
+//		break;
+//	case 7:
+//		tsa_num = getTsas(select.selec7.meters,(INT8U **)&tsa_group);
+//		break;
+//	default:
+//		tsa_num = getTsas(select.selec10.meters,(INT8U **)&tsa_group);
+//	}
 
 	fprintf(stderr,"get 需要上报的：tsa_num=%d,tsa_group=%p\n",tsa_num,tsa_group);
 	for(i=0;i<tsa_num;i++) {
