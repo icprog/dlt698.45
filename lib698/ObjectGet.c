@@ -1180,6 +1180,7 @@ int doGetrecord(INT8U type,OAD oad,INT8U *data,RESULT_RECORD *record,INT16U *sub
 			}else if(type==GET_REQUEST_RECORD_LIST) {
 				record->data = TmpDataBuf;				//data 指向回复报文帧头
 				record->datalen += dest_index;			//数据长度+ResultRecord
+				record->datalen += datalen;				//湖南招测 .....case10:????
 			}
 		}
 		break;

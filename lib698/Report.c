@@ -112,8 +112,8 @@ INT8U Report_Event(CommBlock *com,INT8U *oiarr,INT8U report_type,INT8U *com_flag
 	if(com->f101.active == 1){
 		sendbuf_report[index++]=16; //SECURIGY-REQUEST
 		sendbuf_report[index++]=0;  //明文应用数据单元
-		tem_buf[temindex++] = 0;//跟随上报信息域 	FollowReport
-		tem_buf[temindex++] = 0;//时间标签		TimeTag
+		tem_buf[temindex++] = 0;	//跟随上报信息域 	FollowReport
+		tem_buf[temindex++] = 0;	//时间标签		TimeTag
 		INT16U seclen=composeAutoReport(tem_buf,temindex);
 		if(seclen>0){
 			memcpy(&sendbuf_report[index],tem_buf,seclen);
