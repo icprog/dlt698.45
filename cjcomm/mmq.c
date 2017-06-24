@@ -3,6 +3,7 @@
 #include <unistd.h>
 
 #include "cjcomm.h"
+#include "mmq.h"
 #include "../libMq/libmmq.h"
 #include "../include/StdDataType.h"
 
@@ -10,6 +11,76 @@
 static long long Mmq_Task_Id;
 static struct mq_attr mmqAttr;
 static mqd_t mmqd;
+static EventBuf autoEventBuf[AUTO_EVENT_BUF_SIZE];
+
+void initAutoEventBuf(EventBuf *eb) {
+    memset(autoEventBuf, 0x00, sizeof(autoEventBuf));
+    for (int i = 0; i < AUTO_EVENT_BUF_SIZE; ++i) {
+        eb[i].header.cmd = -1;
+    }
+}
+
+int putAutoEventBuf(EventBuf *eb, mmq_head *msg_head, void *buff) {
+    for (int i = 0; i < AUTO_EVENT_BUF_SIZE; ++i) {
+        if (eb[i].header.cmd == -1) {
+            memcpy(&eb[i].header, msg_head, sizeof(mmq_head));
+            memcpy(&eb[i].content, buff, MAXSIZ_PROXY_NET);
+            eb[i].repeat_timeout = -1;
+            saveCoverClass(0x4520, 0, autoEventBuf, sizeof(autoEventBuf), para_vari_save);
+            return 1;
+        }
+    }
+    return -1;
+}
+
+int getAutoEventBuf(EventBuf *eb, mmq_head *msg_head, void *buff) {
+    /*
+     * 获取需要再次发送的事件
+     */
+    for (int i = 0; i < AUTO_EVENT_BUF_SIZE; ++i) {
+        if (eb[i].repeat_timeout == 0 && eb[i].header.cmd != -1) {
+            memcpy(&eb[i].header, msg_head, sizeof(mmq_head));
+            memcpy(&eb[i].content, buff, MAXSIZ_PROXY_NET);
+            eb[i].repeat_timeout = -1;
+            eb[i].header.cmd = -1;
+            return 1;
+        }
+    }
+    /*
+     * 获取首次发送的事件
+     */
+    for (int i = 0; i < AUTO_EVENT_BUF_SIZE; ++i) {
+        if (eb[i].header.cmd != -1) {
+            memcpy(&eb[i].header, msg_head, sizeof(mmq_head));
+            memcpy(&eb[i].content, buff, MAXSIZ_PROXY_NET);
+            eb[i].repeat_timeout = AUTO_EVENT_REPEAT_TIMEOUT;
+            return 1;
+        }
+    }
+    return -1;
+}
+
+void refreshAutoEventBuf(EventBuf *eb) {
+    for (int i = 0; i < AUTO_EVENT_BUF_SIZE; ++i) {
+        if (eb[i].header.cmd != -1 && eb[i].repeat_timeout != 0) {
+            eb[i].repeat_timeout--;
+            return;
+        }
+    }
+    return;
+}
+
+void freeAutoEventBuf() {
+    for (int i = 0; i < AUTO_EVENT_BUF_SIZE; ++i) {
+        if (autoEventBuf[i].header.cmd != -1 && autoEventBuf[i].repeat_timeout != -1) {
+            autoEventBuf[i].header.cmd = -1;
+            autoEventBuf[i].repeat_timeout = -1;
+            return;
+        }
+    }
+    return;
+}
+
 
 /*
  * 模块*内部*使用的初始化参数
@@ -35,20 +106,25 @@ void MmqRead(struct aeEventLoop *eventLoop, int fd, void *clientData, int mask) 
     INT8U getBuf[MAXSIZ_PROXY_NET];
     mmq_head headBuf;
     int res = mmq_get(fd, 1, &headBuf, getBuf);
-    asyslog(LOG_INFO, "收到代理消息，返回(%d)，类型(%d)", res, headBuf.cmd);
     if (res <= 0) {
-        close(fd);
-        mmqd = -1;
         return;
     }
-
-    //获取当前的上线通道
-    if (GetOnlineType() == 0) {
-        asyslog(LOG_WARNING, "当前无通道在线，收到代理消息[%d]", headBuf.cmd);
-        return;
+    asyslog(LOG_INFO, "收到代理消息，返回(%d)，类型(%d)", res, headBuf.cmd);
+    if (putAutoEventBuf(autoEventBuf, &headBuf, getBuf) == -1) {
+        asyslog(LOG_ALERT, "警告：事件缓冲区已满,事件上送丢失！");
     }
+    return;
+}
 
+void MmqSend(struct aeEventLoop *eventLoop, int fd, void *clientData, int mask) {
+    INT8U getBuf[MAXSIZ_PROXY_NET];
+    mmq_head headBuf;
     CommBlock *nst = NULL;
+
+    refreshAutoEventBuf(autoEventBuf);
+    if (getAutoEventBuf(autoEventBuf, &headBuf, getBuf) == -1) {
+        return;
+    }
 
     switch (GetOnlineType()) {
         case 1:
@@ -73,7 +149,6 @@ void MmqRead(struct aeEventLoop *eventLoop, int fd, void *clientData, int mask) 
             callEventAutoReport(nst, getBuf, headBuf.bufsiz);
             break;
     }
-    return;
 }
 
 /*
@@ -95,39 +170,8 @@ int RegularMmq(struct aeEventLoop *ep, long long id, void *clientData) {
             return 60 * 1000;
         }
     } else {
-        INT8U getBuf[MAXSIZ_PROXY_NET];
-        mmq_head headBuf;
-        int res = mmq_get(mmqd, 1, &headBuf, getBuf);
-        if (res <= 0) {
-            return 1000;
-        }
-        asyslog(LOG_INFO, "收到代理消息，返回(%d)，类型(%d)", res, headBuf.cmd);
-
-        CommBlock *nst = NULL;
-
-        switch (GetOnlineType()) {
-            case 1:
-                nst = GetComBlockForGprs();
-                break;
-            case 2:
-                nst = GetComBlockForNet();
-                break;
-            case 3:
-                nst = getComBlockForModel();
-                break;
-        }
-        asyslog(LOG_INFO, "获取到nst，开始回复代理数据");
-        switch (headBuf.cmd) {
-            case TERMINALPROXY_RESPONSE:
-                ProxyListResponse((PROXY_GETLIST *) getBuf, nst);
-                break;
-            case TERMINALEVENT_REPORT :
-                Report_Event(nst, getBuf, 2, 1);
-                break;
-            case METEREVENT_REPORT:
-                callEventAutoReport(nst, getBuf, headBuf.bufsiz);
-                break;
-        }
+        MmqRead(ep, mmqd, NULL, 0);
+        MmqSend(ep, mmqd, NULL, 0);
     }
     return 1000;
 }
@@ -137,6 +181,7 @@ int RegularMmq(struct aeEventLoop *ep, long long id, void *clientData) {
  */
 int StartMmq(struct aeEventLoop *ep, long long id, void *clientData) {
     MmqInit();
+    readCoverClass(0x4520, 0, autoEventBuf, sizeof(autoEventBuf), para_vari_save);
     Mmq_Task_Id = aeCreateTimeEvent(ep, 1000, RegularMmq, clientData, NULL);
     asyslog(LOG_INFO, "监听服务器时间事件注册完成(%lld)", Mmq_Task_Id);
     return 1;
