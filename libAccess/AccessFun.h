@@ -105,6 +105,19 @@ typedef struct{
 	int    offset;
 	INT16U len;
 }OAD_INDEX;//oad索引
+
+typedef struct{
+	INT8U mem_unit;//成员单位
+	INT8U mem_len;//成员长度
+	INT8U mem_chg;//成员换算
+}OI_MEM;
+typedef struct{
+	INT8U ic;//接口类
+	INT8U oinum;//最大费率或相数
+	INT8U io_unit;//针对array和struct类型，其他写0
+	INT8U mem_num;//成员个数
+	OI_MEM oi_mem[10];//最多10个
+}OI_INFO;
 /*
  * 更改拨号脚本
  * */
@@ -310,7 +323,7 @@ extern void GetOADPosofUnit(ROAD_ITEM item_road,HEAD_UNIT *head_unit,INT8U unitn
 extern int collectData(INT8U *databuf,INT8U *srcbuf,OAD_INDEX *oad_offset,ROAD_ITEM item_road);
 extern int fillTsaNullData(INT8U *databuf,TSA tsa,ROAD_ITEM item_road);
 extern void intToBuf(int value,INT8U *buf);
-extern INT8U GetTaskidFromCSDs(CSD_ARRAYTYPE csds,ROAD_ITEM *item_road,INT8U findmethod);
+extern INT8U GetTaskidFromCSDs(CSD_ARRAYTYPE csds,ROAD_ITEM *item_road,INT8U findmethod,CLASS_6001 *tsa);
 
 extern void deloutofdatafile();//删除过期任务数据文件;
 
