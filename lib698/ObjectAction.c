@@ -350,7 +350,7 @@ void AddBatchMeterInfo(INT8U *data, INT8U type, Action_result *act_ret) {
         index += getOctetstring(1, &dealdata[index], (INT8U *) &meter.basicinfo.pwd);
         index += getUnsigned(&dealdata[index], &meter.basicinfo.ratenum);
         index += getUnsigned(&dealdata[index], &meter.basicinfo.usrtype);
-        index += getUnsigned(&dealdata[index], &meter.basicinfo.connectype);
+        index += getEnum(1, &dealdata[index], &meter.basicinfo.connectype);
         index += getLongUnsigned(&dealdata[index], (INT8U *) &meter.basicinfo.ratedU);
         index += getLongUnsigned(&dealdata[index], (INT8U *) &meter.basicinfo.ratedI);
         index = index + 2;//struct

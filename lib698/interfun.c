@@ -595,7 +595,7 @@ int getDouble(INT8U *source,INT8U *dest)	//5  and 6
  */
 int getOctetstring(INT8U type,INT8U *source,INT8U *tsa)   //9
 {
-	if ((type==1 && source[0]==dtoctetstring) || type==0)
+	if ((type==1 && (source[0]==dtoctetstring || source[0]==dttsa) ) || type==0)
 	{
 		INT8U num = source[type];//字节数
 		if(num>TSA_LEN) {		//todo: 定义 OCTET_STRING_LEN也会调用该函数
