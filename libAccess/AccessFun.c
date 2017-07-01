@@ -1109,7 +1109,433 @@ int getOI6001(MY_MS ms,INT8U **tsas)
 	fprintf(stderr,"\nms.mstype = %d,tsa_num = %d",ms.mstype,tsa_num);
 	return tsa_num;
 }
+/*
+ * rate表示费率
+ */
+INT16U GetOIinfo(OI_698 oi,INT8U rate,OI_INFO *oi_info)//得到oi的信息
+{
+	memset(oi_info,0x00,sizeof(oi_info));
 
+	oi_info->oinum = 1;//默认1
+	oi_info->mem_num = 1;//默认1 不是默认值修改
+	oi_info->io_unit = 0;//只有array和struct才赋值
+	fprintf(stderr,"\noi=%04x\n",oi);
+	fprintf(stderr,"\n-----case %d\n",((oi&0xf000)>>12));
+	switch((oi&0xf000)>>12)//穷举
+	{
+	case 0:
+		oi_info->ic = 1;
+		oi_info->oinum = rate+1;//总加rate个费率
+		oi_info->io_unit = 1;
+		oi_info->oi_mem[0].mem_len = 4;
+		oi_info->oi_mem[0].mem_chg = 12;//-2
+		switch(oi)
+		{
+		case 0x0000:
+		case 0x0030:
+		case 0x0031:
+		case 0x0032:
+		case 0x0033:
+		case 0x0040:
+		case 0x0041:
+		case 0x0042:
+		case 0x0043:
+		case 0x0500:
+		case 0x0501:
+		case 0x0502:
+		case 0x0503:
+			oi_info->oi_mem[0].mem_unit = 5;
+		break;
+		default:
+			oi_info->oi_mem[0].mem_unit = 6;
+			break;
+		}
+		break;
+	case 1:
+		oi_info->ic = 2;
+		oi_info->oinum = rate+1;//总加rate个费率
+		oi_info->io_unit = 1;
+		oi_info->oi_mem[0].mem_len = 4;
+		oi_info->oi_mem[0].mem_chg = 14;//-4
+		switch(oi)
+		{
+		case 0x1030:
+		case 0x1031:
+		case 0x1032:
+		case 0x1033:
+		case 0x1040:
+		case 0x1041:
+		case 0x1042:
+		case 0x1043:
+		case 0x1050:
+		case 0x1051:
+		case 0x1052:
+		case 0x1053:
+		case 0x1130:
+		case 0x1131:
+		case 0x1132:
+		case 0x1133:
+		case 0x1140:
+		case 0x1141:
+		case 0x1142:
+		case 0x1143:
+			oi_info->oi_mem[0].mem_unit = 5;
+		break;
+		default:
+			oi_info->oi_mem[0].mem_unit = 6;
+			break;
+		}
+		break;
+	case 2:
+		switch(oi)
+		{
+		///////////////////////////////////////////////////////////ic = 2
+		case 0x2140:
+		case 0x2141:
+			oi_info->ic = 2;
+			oi_info->oinum = rate+1;//总加rate个费率
+			oi_info->io_unit = 2;//struct
+			oi_info->mem_num = 2;
+
+			oi_info->oi_mem[0].mem_unit = 6;
+			oi_info->oi_mem[0].mem_len = 4;
+			oi_info->oi_mem[0].mem_chg = 14;
+
+			oi_info->oi_mem[1].mem_unit = 30;
+			oi_info->oi_mem[1].mem_len = 6;
+			oi_info->oi_mem[1].mem_chg = 0;
+			break;
+			////////////////////////////////////////////////////////ic = 3
+		case 0x2001:
+			oi_info->ic = 3;
+			oi_info->oinum = 4;//三相加零序
+			oi_info->oi_mem[0].mem_chg = 13;//-3
+			oi_info->oi_mem[0].mem_len = 4;
+			oi_info->oi_mem[0].mem_unit = 5;
+			break;
+		case 0x2000:
+		case 0x2002:
+		case 0x2003:
+			oi_info->ic = 3;
+			oi_info->oinum = 3;//三相
+			oi_info->oi_mem[0].mem_chg = 11;//-1
+			oi_info->oi_mem[0].mem_len = 2;
+			oi_info->oi_mem[0].mem_unit = 18;
+			break;
+		case 0x200b:
+		case 0x200c:
+			oi_info->ic = 3;
+			oi_info->oinum = 3;//三相
+			oi_info->oi_mem[0].mem_chg = 12;//-2
+			oi_info->oi_mem[0].mem_len = 2;
+			oi_info->oi_mem[0].mem_unit = 16;
+			break;
+			////////////////////////////////////////////////////////ic = 4
+		case 0x2004:
+		case 0x2005:
+		case 0x2006:
+		case 0x2007:
+		case 0x2008:
+		case 0x2009:
+			oi_info->ic = 4;
+			oi_info->oinum = 4;//总及分相
+			oi_info->oi_mem[0].mem_chg = 11;//-1
+			oi_info->oi_mem[0].mem_len = 4;
+			oi_info->oi_mem[0].mem_unit = 5;
+			break;
+		case 0x200a:
+			oi_info->ic = 4;
+			oi_info->oinum = 4;//总及分相
+			oi_info->oi_mem[0].mem_chg = 13;//-3
+			oi_info->oi_mem[0].mem_len = 2;
+			oi_info->oi_mem[0].mem_unit = 16;
+			break;
+			////////////////////////////////////////////////////////ic = 5 谐波
+		case 0x200d:
+		case 0x200e:
+			//不知到怎么处理 todo
+			break;
+			////////////////////////////////////////////////////////ic = 6
+		case 0x200f:
+		case 0x2011:
+		case 0x2012:
+		case 0x2026:
+		case 0x2027:
+		case 0x2028:
+			oi_info->ic = 6;
+			oi_info->oinum = 1;
+			oi_info->oi_mem[0].mem_chg = 12;//-2
+			oi_info->oi_mem[0].mem_len = 2;
+			oi_info->oi_mem[0].mem_unit = 18;
+			break;
+		case 0x2010:
+			oi_info->ic = 6;
+			oi_info->oinum = 1;
+			oi_info->oi_mem[0].mem_chg = 11;//-1
+			oi_info->oi_mem[0].mem_len = 2;
+			oi_info->oi_mem[0].mem_unit = 16;
+			break;
+		case 0x2013:
+		case 0x2504:
+			oi_info->ic = 6;
+			oi_info->oinum = 1;
+			oi_info->oi_mem[0].mem_chg = 0;//
+			oi_info->oi_mem[0].mem_len = 4;
+			oi_info->oi_mem[0].mem_unit = 6;
+			break;
+		case 0x2014:
+			oi_info->ic = 6;
+			oi_info->oinum = 7;
+			oi_info->io_unit = 1;//array
+			oi_info->mem_num = 2;
+			oi_info->oi_mem[0].mem_chg = 0;//
+			oi_info->oi_mem[0].mem_len = 1;
+			oi_info->oi_mem[0].mem_unit = 9;
+			break;
+		case 0x2015:
+			oi_info->ic = 6;
+			oi_info->oinum = 1;
+			oi_info->oi_mem[0].mem_chg = 0;//
+			oi_info->oi_mem[0].mem_len = 64;
+			oi_info->oi_mem[0].mem_unit = 4;
+			break;
+		case 0x2016:
+		case 0x2040:
+		case 0x2041:
+			oi_info->ic = 6;
+			oi_info->oinum = 1;
+			oi_info->oi_mem[0].mem_chg = 0;//
+			oi_info->oi_mem[0].mem_len = 16;
+			oi_info->oi_mem[0].mem_unit = 4;
+			break;
+		case 0x2017:
+		case 0x2018:
+		case 0x2019:
+			oi_info->ic = 6;
+			oi_info->oinum = 1;
+			oi_info->oi_mem[0].mem_chg = 14;//-4
+			oi_info->oi_mem[0].mem_len = 4;
+			oi_info->oi_mem[0].mem_unit = 5;
+			break;
+		case 0x201a:
+		case 0x201b:
+		case 0x201c:
+		case 0x2500:
+		case 0x2501:
+			oi_info->ic = 6;
+			oi_info->oinum = 1;
+			oi_info->oi_mem[0].mem_chg = 14;//-4
+			oi_info->oi_mem[0].mem_len = 4;
+			oi_info->oi_mem[0].mem_unit = 6;
+			break;
+		case 0x201d:
+			oi_info->ic = 6;
+			oi_info->oinum = 1;
+			oi_info->oi_mem[0].mem_chg = 0;//
+			oi_info->oi_mem[0].mem_len = 2;
+			oi_info->oi_mem[0].mem_unit = 18;
+			break;
+		case 0x2029:
+			oi_info->ic = 6;
+			oi_info->oinum = 4;//总及三相s
+			oi_info->oi_mem[0].mem_chg = 12;//-2
+			oi_info->oi_mem[0].mem_len = 4;
+			oi_info->oi_mem[0].mem_unit = 5;
+			break;
+		case 0x202d:
+		case 0x202e:
+		case 0x2031:
+		case 0x2032:
+		case 0x2502:
+		case 0x2503:
+			oi_info->ic = 6;
+			oi_info->oinum = 1;
+			oi_info->oi_mem[0].mem_chg = 12;//-2
+			oi_info->oi_mem[0].mem_len = 4;
+			oi_info->oi_mem[0].mem_unit = 6;
+			break;
+		case 0x2130:
+		case 0x2131:
+		case 0x2132:
+		case 0x2133:
+			oi_info->ic = 6;
+			oi_info->oinum = 1;//
+			oi_info->io_unit = 2;//struct
+			oi_info->mem_num = 6;
+
+			oi_info->oi_mem[0].mem_unit = 6;
+			oi_info->oi_mem[0].mem_len = 4;
+			oi_info->oi_mem[0].mem_chg = 0;
+
+			oi_info->oi_mem[1].mem_unit = 6;
+			oi_info->oi_mem[1].mem_len = 4;
+			oi_info->oi_mem[1].mem_chg = 0;
+
+			oi_info->oi_mem[2].mem_unit = 18;
+			oi_info->oi_mem[2].mem_len = 2;
+			oi_info->oi_mem[2].mem_chg = 12;
+
+			oi_info->oi_mem[3].mem_unit = 18;
+			oi_info->oi_mem[3].mem_len = 2;
+			oi_info->oi_mem[3].mem_chg = 12;
+
+			oi_info->oi_mem[4].mem_unit = 6;
+			oi_info->oi_mem[4].mem_len = 4;
+			oi_info->oi_mem[4].mem_chg = 0;
+
+			oi_info->oi_mem[5].mem_unit = 6;
+			oi_info->oi_mem[5].mem_len = 4;
+			oi_info->oi_mem[5].mem_chg = 0;
+			break;
+		case 0x2200:
+		case 0x2203:
+			oi_info->ic = 6;
+			oi_info->oinum = 1;//
+			oi_info->io_unit = 2;//struct
+			oi_info->mem_num = 2;
+
+			oi_info->oi_mem[0].mem_unit = 6;
+			oi_info->oi_mem[0].mem_len = 4;
+			oi_info->oi_mem[0].mem_chg = 0;
+
+			oi_info->oi_mem[1].mem_unit = 6;
+			oi_info->oi_mem[1].mem_len = 4;
+			oi_info->oi_mem[1].mem_chg = 0;
+			break;
+		case 0x2204:
+			oi_info->ic = 6;
+			oi_info->oinum = 1;//
+			oi_info->io_unit = 2;//struct
+			oi_info->mem_num = 2;
+
+			oi_info->oi_mem[0].mem_unit = 18;
+			oi_info->oi_mem[0].mem_len = 2;
+			oi_info->oi_mem[0].mem_chg = 0;
+
+			oi_info->oi_mem[1].mem_unit = 18;
+			oi_info->oi_mem[1].mem_len = 2;
+			oi_info->oi_mem[1].mem_chg = 0;
+			break;
+		case 0x2505:
+			oi_info->ic = 6;
+			oi_info->oinum = 1;//
+			oi_info->io_unit = 2;//struct
+			oi_info->mem_num = 2;
+
+			oi_info->oi_mem[0].mem_unit = 6;
+			oi_info->oi_mem[0].mem_len = 4;
+			oi_info->oi_mem[0].mem_chg = 12;
+
+			oi_info->oi_mem[1].mem_unit = 6;
+			oi_info->oi_mem[1].mem_len = 4;
+			oi_info->oi_mem[1].mem_chg = 12;
+			break;
+		case 0x2506:
+			oi_info->ic = 6;
+			oi_info->oinum = 1;//
+			oi_info->io_unit = 2;//struct
+			oi_info->mem_num = 2;
+
+			oi_info->oi_mem[0].mem_unit = 22;
+			oi_info->oi_mem[0].mem_len = 1;
+			oi_info->oi_mem[0].mem_chg = 0;
+
+			oi_info->oi_mem[1].mem_unit = 22;
+			oi_info->oi_mem[1].mem_len = 1;
+			oi_info->oi_mem[1].mem_chg = 0;
+			break;
+			////////////////////////////////////////////////////////ic = 7 null
+			////////////////////////////////////////////////////////ic = 8
+		case 0x202a:
+			oi_info->ic = 8;
+			oi_info->oinum = 1;
+			oi_info->oi_mem[0].mem_chg = 0;//
+			oi_info->oi_mem[0].mem_len = 17;
+			oi_info->oi_mem[0].mem_unit = 85;//tsa
+			break;
+		case 0x201e:
+		case 0x2020:
+		case 0x2021:
+			oi_info->ic = 8;
+			oi_info->oinum = 1;
+			oi_info->oi_mem[0].mem_chg = 0;//
+			oi_info->oi_mem[0].mem_len = 7;
+			oi_info->oi_mem[0].mem_unit = 28;
+			break;
+		case 0x2022:
+		case 0x2023:
+			oi_info->ic = 8;
+			oi_info->oinum = 1;
+			oi_info->oi_mem[0].mem_chg = 0;//
+			oi_info->oi_mem[0].mem_len = 4;
+			oi_info->oi_mem[0].mem_unit = 6;
+			break;
+		case 0x2025:
+			oi_info->ic = 8;
+			oi_info->oinum = 1;//
+			oi_info->io_unit = 2;//struct
+			oi_info->mem_num = 2;
+
+			oi_info->oi_mem[0].mem_unit = 6;
+			oi_info->oi_mem[0].mem_len = 4;
+			oi_info->oi_mem[0].mem_chg = 0;
+
+			oi_info->oi_mem[1].mem_unit = 6;
+			oi_info->oi_mem[1].mem_len = 4;
+			oi_info->oi_mem[1].mem_chg = 0;
+			break;
+		case 0x202c:
+			oi_info->ic = 8;
+			oi_info->oinum = 1;//
+			oi_info->io_unit = 2;//struct
+			oi_info->mem_num = 2;
+
+			oi_info->oi_mem[0].mem_unit = 6;
+			oi_info->oi_mem[0].mem_len = 4;
+			oi_info->oi_mem[0].mem_chg = 12;
+
+			oi_info->oi_mem[1].mem_unit = 6;
+			oi_info->oi_mem[1].mem_len = 4;
+			oi_info->oi_mem[1].mem_chg = 0;
+			break;
+		}
+		break;
+	case 3://事件
+		break;
+	case 4:
+		switch(oi)
+		{
+		case 0x4000:
+			oi_info->ic = 8;
+			oi_info->oinum = 1;
+			oi_info->oi_mem[0].mem_chg = 0;//
+			oi_info->oi_mem[0].mem_len = 7;
+			oi_info->oi_mem[0].mem_unit = 28;
+			break;
+		}
+		break;
+	case 5:
+		break;
+	case 6:
+		switch(oi)
+		{
+		case 0x6040:
+		case 0x6041:
+		case 0x6042:
+			oi_info->ic = 8;
+			oi_info->oinum = 1;
+			oi_info->oi_mem[0].mem_chg = 0;//
+			oi_info->oi_mem[0].mem_len = 7;
+			oi_info->oi_mem[0].mem_unit = 28;
+			break;
+		}
+		break;
+	default:break;
+	}
+
+
+	return 1;
+}
 /*
  * 根据ms.type填充tsas ; 返回TS 的数量
  * 注意调用后，释放**tsas的内存
@@ -1757,12 +2183,12 @@ INT16U GetTSACon(MY_MS meters,TSA *tsa_con,INT16U tsa_num)
  * findmethod = 2: 对与road,只查找相关的oad.解决浙江下发的曲线任务为oad,但是主站主动招测下发road 5002-0200(200a-0201.....),
  * 				   类型不匹配,如果按照oad方式查找,无法查找到实际的任务号
  */
-INT8U GetTaskidFromCSDs(CSD_ARRAYTYPE csds,ROAD_ITEM *item_road,INT8U findmethod)
+INT8U GetTaskidFromCSDs(CSD_ARRAYTYPE csds,ROAD_ITEM *item_road,INT8U findmethod,CLASS_6001 *tsa)
 {
 	CLASS_6015	class6015={};
 	CLASS_6013	class6013={};
-	int i=0,j=0,mm=0,nn=0;
-	INT8U taskno=0;
+	int i=0,j=0,mm=0,nn=0,kk=0;
+	INT8U taskno=0,tsa_equ=0;
 
 	print_rcsd(csds);
 	if(csds.num > MY_CSD_NUM)//超了
@@ -1815,12 +2241,63 @@ INT8U GetTaskidFromCSDs(CSD_ARRAYTYPE csds,ROAD_ITEM *item_road,INT8U findmethod
 	memset(&class6015,0,sizeof(CLASS_6015));
 	for(i=0;i<256;i++)
 	{
+		tsa_equ = 0;
 		if(readCoverClass(0x6013,i+1,&class6013,sizeof(class6013),coll_para_save) == 1)
 		{
 			if(class6013.cjtype != 1 || class6013.state != 1)//过滤掉不是普通采集方案的
 				continue;
 			if(readCoverClass(0x6015,class6013.sernum,&class6015,sizeof(CLASS_6015),coll_para_save) == 1)
 			{
+				if(tsa != NULL)
+				{
+					fprintf(stderr,"\n  metertype=%d\n",class6015.mst.mstype);
+					switch(class6015.mst.mstype)
+					{
+					case 0:
+						return 0;
+					case 1:
+						tsa_equ = 1;
+						break;
+					case 2:
+						for(kk=0;kk<COLLCLASS_MAXNUM;kk++)
+						{
+							if(class6015.mst.ms.userType[kk] == tsa[0].basicinfo.usrtype)
+								tsa_equ = 1;
+						}
+						break;
+					case 3:
+						for(kk=0;kk<COLLCLASS_MAXNUM;kk++)
+						{
+							if(memcmp(&class6015.mst.ms.userAddr[kk],&tsa[0].basicinfo.addr,sizeof(TSA)) == 0)
+								tsa_equ = 1;
+						}
+						break;
+					case 4:
+						for(kk=0;kk<COLLCLASS_MAXNUM;kk++)
+						{
+							if(class6015.mst.ms.configSerial[kk] == tsa[0].sernum)
+								tsa_equ = 1;
+						}
+						break;
+					case 5:
+						fprintf(stderr,"\n\n------");
+						for(kk=0;kk<20;kk++)
+							fprintf(stderr," %02x",class6015.mst.ms.type[0].begin[kk]);
+						fprintf(stderr,"\n%02x-%02x : %02x \n",class6015.mst.ms.type[0].begin[1],class6015.mst.ms.type[0].end[1],
+								tsa[0].basicinfo.usrtype);
+						if(tsa[0].basicinfo.usrtype>=class6015.mst.ms.type[0].begin[1] && tsa[0].basicinfo.usrtype<=class6015.mst.ms.type[0].end[1])
+							tsa_equ = 1;
+						break;
+					case 6:break;//暂时不实现
+					case 7:break;
+					default:
+						break;
+					}
+				}
+				if(tsa_equ==0)
+					continue;
+				else
+					fprintf(stderr,"\ntsa_equ=1\n");
 #ifdef SYS_INFO
 				asyslog(LOG_INFO,"查找任务号 %d，方案序号：%d class6015.csds.num=%d",i+1,class6013.sernum,class6015.csds.num);
 #endif
@@ -2224,7 +2701,41 @@ int collectData(INT8U *databuf,INT8U *srcbuf,OAD_INDEX *oad_offset,ROAD_ITEM ite
 				switch(tmpbuf[0])
 				{
 				case 0:
-					databuf[pindex++] = 0;
+					fprintf(stderr,"\n---------------tmpbuf[0]=%d\n",tmpbuf[0]);
+					if(getZone("HuNan")==0)
+					{
+						fprintf(stderr,"\n地区：湖南\n");
+						OI_INFO oi_info;
+						GetOIinfo(oad_offset[j].oad_r.OI,4,&oi_info);
+						if(oi_info.oinum != 0 && oad_offset[j].oad_r.attrindex == 0)
+						{
+							switch(oi_info.io_unit)
+							{
+							case 1://array
+								databuf[pindex++] = 1;
+								databuf[pindex++] = oi_info.oinum;
+								memset(&databuf[pindex],0x00,oi_info.oinum);
+								pindex += oi_info.oinum;
+								break;
+							case 2://struct
+								databuf[pindex++] = 2;
+								databuf[pindex++] = oi_info.oinum;
+								memset(&databuf[pindex],0x00,oi_info.oinum);
+								pindex += oi_info.oinum;
+								break;
+							default:
+								databuf[pindex++] = 0;
+								break;
+							}
+						}
+						else
+							databuf[pindex++] = 0;
+					}
+					else
+					{
+						fprintf(stderr,"地区：非湖南");
+						databuf[pindex++] = 0;
+					}
 					fprintf(stderr,"000 pindex=%d\n",pindex);
 					break;
 				case 1://array
@@ -2274,7 +2785,39 @@ int fillTsaNullData(INT8U *databuf,TSA tsa,ROAD_ITEM item_road)
 			pindex += (tsa.addr[0]+1);
 		}else {
 			if((item_road.oad[i].oad_m.OI == 0x0000) || (item_road.oad[i].oad_num != 0)) {
-				databuf[pindex++] = 0;
+				if(getZone("HuNan")==0)
+				{
+					fprintf(stderr,"\n地区：湖南\n");
+					OI_INFO oi_info;
+					GetOIinfo(item_road.oad[i].oad_r.OI,4,&oi_info);
+					fprintf(stderr,"oi = %04x,oi_info.io_unit=%d,oi_info.oinum=%d,item_road.oad[i].oad_r.attrindex=%d",
+							item_road.oad[i].oad_r.OI,oi_info.io_unit,oi_info.oinum,item_road.oad[i].oad_r.attrindex);
+					if(oi_info.oinum != 0 && item_road.oad[i].oad_r.attrindex == 0)
+					{
+						switch(oi_info.io_unit)
+						{
+						case 1://array
+							databuf[pindex++] = 1;
+							databuf[pindex++] = oi_info.oinum;
+							memset(&databuf[pindex],0x00,oi_info.oinum);
+							pindex += oi_info.oinum;
+							break;
+						case 2://struct
+							databuf[pindex++] = 2;
+							databuf[pindex++] = oi_info.oinum;
+							memset(&databuf[pindex],0x00,oi_info.oinum);
+							pindex += oi_info.oinum;
+							break;
+						default:
+							databuf[pindex++] = 0;
+							break;
+						}
+					}
+					else
+						databuf[pindex++] = 0;
+				}
+				else
+					databuf[pindex++] = 0;
 				fprintf(stderr,"\npindex = %d\n",pindex);
 			}
 		}
@@ -2795,7 +3338,7 @@ INT16S GUI_GetFreezeData(CSD_ARRAYTYPE csds,TSA tsa,TS ts_zc,INT8U *databuf)
 	if(csds.num>10 || csds.num<=0) return -1;//查询数量不允许超过10
 
 	//根据传入的csds，获取到taskid编号，同时填充item_road
-	taskid = GetTaskidFromCSDs(csds,&item_road,1);
+	taskid = GetTaskidFromCSDs(csds,&item_road,1,NULL);
 	if(taskid<=0)		return -2;
 
 	getTaskFileName(taskid,ts_zc,fname);//得到要抄读的文件名称
@@ -2913,7 +3456,8 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds,INT16U fr
 	INT16U  blocksize=0,headsize=0;
 	int offsetTsa = 0,recordoffset = 0,unitnum=0,i=0,j=0,k=0,indexn=0,recordlen = 0,currecord = 0,rec_tmp = 0,firecord = 0,tsa_num=0,framesum=0;
 	INT8U recordnum=0,seqnumindex=0,taskinfoflg=0;
-	TSA *tsa_group = NULL;
+//	TSA *tsa_group = NULL;
+	CLASS_6001 *tsa_group = NULL;
 	ROAD road_eve;
 	INT8U eveflg=0;
 	MY_MS meters_null;
@@ -2951,21 +3495,37 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds,INT16U fr
 			break;
 		}
 	}
+//	switch(selectype)
+//	{
+//	case 0:
+//		meters_null.mstype = 1;//全部电表
+//		tsa_num = getTsas(meters_null,(INT8U **)&tsa_group);
+//		break;
+//	case 5:
+//		fprintf(stderr,"selec5.meters mstype = %d,data=%d-%d\n",select.selec5.meters.mstype,select.selec5.meters.ms.userAddr[0].addr[0],select.selec5.meters.ms.userAddr[0].addr[1]);
+//		tsa_num = getTsas(select.selec5.meters,(INT8U **)&tsa_group);
+//		break;
+//	case 7:
+//		tsa_num = getTsas(select.selec7.meters,(INT8U **)&tsa_group);
+//		break;
+//	default:
+//		tsa_num = getTsas(select.selec10.meters,(INT8U **)&tsa_group);
+//	}
 	switch(selectype)
 	{
 	case 0:
 		meters_null.mstype = 1;//全部电表
-		tsa_num = getTsas(meters_null,(INT8U **)&tsa_group);
+		tsa_num = getOI6001(meters_null,(INT8U **)&tsa_group);
 		break;
 	case 5:
 		fprintf(stderr,"selec5.meters mstype = %d,data=%d-%d\n",select.selec5.meters.mstype,select.selec5.meters.ms.userAddr[0].addr[0],select.selec5.meters.ms.userAddr[0].addr[1]);
-		tsa_num = getTsas(select.selec5.meters,(INT8U **)&tsa_group);
+		tsa_num = getOI6001(select.selec5.meters,(INT8U **)&tsa_group);
 		break;
 	case 7:
-		tsa_num = getTsas(select.selec7.meters,(INT8U **)&tsa_group);
+		tsa_num = getOI6001(select.selec7.meters,(INT8U **)&tsa_group);
 		break;
 	default:
-		tsa_num = getTsas(select.selec10.meters,(INT8U **)&tsa_group);
+		tsa_num = getOI6001(select.selec10.meters,(INT8U **)&tsa_group);
 	}
 	if(eveflg == 1)
 	{
@@ -2985,11 +3545,11 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds,INT16U fr
 		asyslog(LOG_INFO,"普通任务采集方案！！\n");
 		memset(&item_road,0,sizeof(item_road));
 		findmethod = 1;
-		if((taskid = GetTaskidFromCSDs(csds,&item_road,findmethod)) == 0) {//暂时不支持招测的不在一个采集方案
+		if((taskid = GetTaskidFromCSDs(csds,&item_road,findmethod,tsa_group)) == 0) {//暂时不支持招测的不在一个采集方案
 			asyslog(LOG_INFO,"GetTaskData: taskid=%d\n",taskid);
 			memset(&item_road,0,sizeof(item_road));
 			findmethod = 2;
-			if((taskid = GetTaskidFromCSDs(csds,&item_road,findmethod)) == 0) {
+			if((taskid = GetTaskidFromCSDs(csds,&item_road,findmethod,tsa_group)) == 0) {
 				asyslog(LOG_INFO," 只比对oad:GetTaskData: taskid=%d\n",taskid);
 				return 0;
 			}
@@ -3082,9 +3642,9 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds,INT16U fr
 
 	fprintf(stderr,"get 需要上报的：tsa_num=%d,tsa_group=%p\n",tsa_num,tsa_group);
 	for(i=0;i<tsa_num;i++) {
-		fprintf(stderr,"\nTSA%d: %d-",i,tsa_group[i].addr[0]);
-		for(j=0;j<tsa_group[i].addr[0];j++) {
-			fprintf(stderr,"-%02x",tsa_group[i].addr[j+1]);
+		fprintf(stderr,"\nTSA%d: %d-",i,tsa_group[i].basicinfo.addr.addr[0]);
+		for(j=0;j<tsa_group[i].basicinfo.addr.addr[0];j++) {
+			fprintf(stderr,"-%02x",tsa_group[i].basicinfo.addr.addr[j+1]);
 		}
 	}
 	fprintf(stderr,"\n----------------------------------2------------------------------------------------------------\n");
@@ -3111,7 +3671,7 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds,INT16U fr
 	for(i =0; i< tsa_num; i++)
 	{
 		currecord = firecord;//每次切换表地址，当前记录序号赋值第一次的数值
-		offsetTsa = findTsa(tsa_group[i],fp,headsize,blocksize);
+		offsetTsa = findTsa(tsa_group[i].basicinfo.addr,fp,headsize,blocksize);
 		fprintf(stderr,"\n-----offsetTsa = %d\n",offsetTsa);
 		//4\计算当前点
 //		currecord = getrecordno(tasknor_info.starthour,tasknor_info.startmin,tasknor_info.freq,recinfo);//freq为执行间隔,单位分钟
@@ -3124,7 +3684,7 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds,INT16U fr
 			if(eveflg != 1 && taskinfoflg == 0)//事件和日月冻结不更新数据流
 			{
 				if(updatedatafp(fp,j,selectype,tasknor_info.freq,recinfo,taskid)==2)
-					offsetTsa = findTsa(tsa_group[i],fp,headsize,blocksize);
+					offsetTsa = findTsa(tsa_group[i].basicinfo.addr,fp,headsize,blocksize);
 			}
 			if(offsetTsa == 0) {
 				asyslog(LOG_INFO,"task未找到数据,i=%d\n",i);
@@ -3132,7 +3692,9 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds,INT16U fr
 					fprintf(stderr,"\n曲线没TSA记录,查找上一日的数据\n");
 				else
 				{
-					indexn += fillTsaNullData(&onefrmbuf[indexn],tsa_group[i],item_road);
+					if(getZone("HuNan")==0)//湖南的，没有数据直接跳过
+						continue;
+					indexn += fillTsaNullData(&onefrmbuf[indexn],tsa_group[i].basicinfo.addr,item_road);
 					recordnum++;
 					continue;
 				}
@@ -3189,7 +3751,7 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds,INT16U fr
 							if(fp != NULL)
 								fclose(fp);
 							fp =fopen(fname,"r");
-							offsetTsa = findTsa(tsa_group[i],fp,headsize,blocksize);
+							offsetTsa = findTsa(tsa_group[i].basicinfo.addr,fp,headsize,blocksize);
 							fprintf(stderr,"\n@@@@@@offsetTsa=%d\n",offsetTsa);
 							currecord = tasknor_info.runtime-1;
 						}
