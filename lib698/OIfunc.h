@@ -11,6 +11,7 @@
 #include "Objectdef.h"
 #include "Shmem.h"
 
+extern int Set_4000(INT8U *data,INT8U *DAR);
 /*----------------------变量类----------------------*/
 extern INT8U Get_213x(OAD oad,INT8U *sourcebuf,INT8U *buf,int *len);
 extern INT8U Get_2200(OI_698 oi, INT8U* sourcebuf, INT8U* buf, int* len);

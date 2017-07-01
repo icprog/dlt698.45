@@ -43,6 +43,7 @@ INT8U securetype;  //安全等级类型  01明文，02明文+MAC 03密文  04密
 INT8U secureRN[20];//安全认证随机数，主站下发，终端回复时需用到，esam计算使用
 static INT8U	client_addr=0;
 PIID piid_g={};
+TimeTag		Response_timetag;		//响应的时间标签值
 INT8U broadcast=0;
 /**************************************
  * 函数功能：DL/T698.45 状态机
@@ -278,6 +279,24 @@ int FrameHead(CSINFO *csinfo,INT8U *buf)
 	return i;
 }
 
+int FrameTimeTag(TimeTag *tag,INT8U *buf)
+{
+	int	i=0;
+	buf[i++] = tag->flag;
+	if(tag->flag==1) {		//时间标签有效
+		buf[i++] = (tag->sendTimeTag.year.data >> 8) & 0xff;
+		buf[i++] = tag->sendTimeTag.year.data & 0xff;
+		buf[i++] = tag->sendTimeTag.month.data & 0xff;
+		buf[i++] = tag->sendTimeTag.day.data & 0xff;
+		buf[i++] = tag->sendTimeTag.hour.data & 0xff;
+		buf[i++] = tag->sendTimeTag.min.data & 0xff;
+		buf[i++] = tag->sendTimeTag.sec.data & 0xff;
+		buf[i++] = tag->ti.units;
+		buf[i++] = (tag->ti.interval >> 8) & 0xff;
+		buf[i++] = tag->ti.interval & 0xff;
+	}
+	return i;
+}
 /**********************************************************************
  *	服务器向远方客户机提出
  *	1.登录
@@ -605,7 +624,9 @@ int doSetAttribute(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 			index += create_OAD(0,&TmpDataBuf[index],oad);
 			TmpDataBuf[index++] = (INT8U)DAR;
 			doReponse(SET_RESPONSE,SET_REQUEST_NORMAL,csinfo,index,TmpDataBuf,buf);
-			Get698_event(oad,memp);
+			if(DAR==0) {	//sucess
+				Get698_event(oad,memp);
+			}
 			break;
 		case SET_REQUEST_NORMAL_LIST:
 			setRequestNormalList(&apdu[3],csinfo,buf);
@@ -626,7 +647,6 @@ int doGetAttribute(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
 	INT8U *data=NULL;
 	piid_g.data = apdu[2];
 	fprintf(stderr,"\n- get type = %d PIID=%02x",getType,piid_g.data);
-
 
 	switch(getType)
 	{
@@ -697,7 +717,6 @@ int doProxyRequest(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
 
 int doActionRequest(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 {
-	int  DAR=success;
 	int	 seqnum = 0,i=0;
 	int	 index = 0,apdu_index=0;
 	OAD  oad={};
@@ -716,10 +735,12 @@ int doActionRequest(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 			oad.attflg = apdu[apdu_index+5];
 			oad.attrindex = apdu[apdu_index+6];
 			data = &apdu[apdu_index+7];					//Data
-			DAR = doObjectAction(oad,data,&act_ret);
+			doObjectAction(oad,data,&act_ret);
 			index += create_OAD(0,&TmpDataBuf[index],oad);
-			TmpDataBuf[index++] = DAR;// DAR;
-			TmpDataBuf[index++] = 0;
+			TmpDataBuf[index++] = act_ret.DAR;
+			if(act_ret.DAR == success) {
+				TmpDataBuf[index++] = 0;	//数据为空
+			}
 			doReponse(ACTION_RESPONSE,ActionResponseNormal,csinfo,index,TmpDataBuf,buf);
 			Get698_event(oad,memp);
 			break;
@@ -738,7 +759,7 @@ int doActionRequest(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 				index += create_OAD(0,&TmpDataBuf[index],oad);
 				doObjectAction(oad,&apdu[apdu_index],&act_ret);
 				TmpDataBuf[index++] = act_ret.DAR;
-				if(act_ret.DAR == 0) {
+				if(act_ret.DAR == success) {
 					TmpDataBuf[index++] = 0;		//数据为空
 				}
 				apdu_index += act_ret.datalen;
@@ -1273,14 +1294,32 @@ int doReleaseConnect(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
 	return 1;
 }
 
+/*
+ * 获取TimeTag
+ * */
+void getTimeTag(INT8U *buf,TimeTag *tag)
+{
+	memset(tag,0,sizeof(TimeTag));
+	tag->flag = buf[0];
+	tag->sendTimeTag.year.data = (buf[1]<<8) | buf[2];
+	tag->sendTimeTag.month.data = buf[3];
+	tag->sendTimeTag.day.data = buf[4];
+	tag->sendTimeTag.hour.data = buf[5];
+	tag->sendTimeTag.min.data = buf[6];
+	tag->sendTimeTag.sec.data = buf[7];
+	tag->ti.units = buf[8];
+	tag->ti.interval = (buf[9]<<8) | buf[10];
+}
+
 /**********************************************************************
  * 1.	CONNECT.request 服务,本服务由客户机应用进程调用,用于向远方服务器的应用进程提出建立应用连接请求。
  * 						主站（客户机）请求集中器（客户机）建立应用连接
  */
-INT8U dealClientRequest(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
+INT8U dealClientRequest(INT8U *apdu,CSINFO *csinfo,TimeTag timetag,INT8U *sendbuf)
 {
-	INT16S SecurityRe =0;
-	INT8U apduType = apdu[0];//0x10  [16]
+	INT16S 	SecurityRe =0;
+	INT8U 	apduType = apdu[0];//0x10  [16]
+
 	fprintf(stderr,"\n-------- apduType = %d ",apduType);
 
 	if (apduType == SECURITY_REQUEST)//安全请求的数据类型
@@ -1300,7 +1339,12 @@ INT8U dealClientRequest(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
 //			fprintf(stderr,"\n");
 //		}
 		apduType = apdu[0];
+		if(SecurityRe > sizeof(TimeTag)) {
+			getTimeTag(&apdu[SecurityRe-11],&timetag);	//1:0x68,-2:cs cs(帧校验),-11:时间标签数据
+		}
 	}
+	//判断时间标签是否有效
+	isTimeTagEffect(timetag,&Response_timetag);
 	switch(apduType)
 	{
 		case CONNECT_REQUEST:
@@ -1326,6 +1370,7 @@ INT8U dealClientRequest(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
 	}
 	return(apduType);
 }
+
 void testframe(INT8U *apdu,int len)
 {
 	int hcsi=0;
@@ -1354,8 +1399,10 @@ void testframe(INT8U *apdu,int len)
 		fprintf(stderr,"%02x ",buf[k]);
 	fprintf(stderr,"\n----------------------------------------\n");
 }
+
 int ProcessData(CommBlock *com)
 {
+	TimeTag		timetag={};
 	CSINFO csinfo={};
 	int hcsok = 0 ,fcsok = 0;
 	INT8U *apdu= NULL;
@@ -1371,6 +1418,9 @@ int ProcessData(CommBlock *com)
 	com->taskaddr = csinfo.ca;
 	broadcast = csinfo.sa_type;
 	fcsok = CheckTail( Rcvbuf ,csinfo.frame_length);
+	if(csinfo.frame_length > (sizeof(TimeTag)+2)) {
+		getTimeTag(&Rcvbuf[1+csinfo.frame_length-2-11],&timetag);	//1:0x68,-2:cs cs(帧校验),-11:时间标签数据
+	}
 	securetype = 0x00;
 	if ((hcsok==1) && (fcsok==1))
 	{
@@ -1382,7 +1432,7 @@ int ProcessData(CommBlock *com)
 		}else if (csinfo.dir==0 && csinfo.prm == 1)	/*客户机发起的请求			（主站对集中器发起的请求）*/
 		{
 			fprintf(stderr,"\n-------- 客户机发起请求 ");
-			return(dealClientRequest(apdu,&csinfo,SendBuf));
+			return(dealClientRequest(apdu,&csinfo,timetag,SendBuf));
 		}else if (csinfo.dir==1 && csinfo.prm == 0)	/*服务器发起的上报			（电表主动上报）*/
 		{
 			fprintf(stderr,"\n服务器发起的上报			（电表主动上报）");

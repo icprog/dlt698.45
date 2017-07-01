@@ -22,19 +22,10 @@
 #include "class8.h"
 #include "class23.h"
 
-extern INT8U Reset_add();
-
-extern void FrameTail(INT8U *buf, int index, int hcsi);
-
-extern int FrameHead(CSINFO *csinfo, INT8U *buf);
-
-extern INT8S (*pSendfun)(int fd, INT8U *sndbuf, INT16U sndlen);
-
-extern void Get698_event(OAD oad, ProgramInfo *prginfo_event);
-extern INT16S composeSecurityResponse(INT8U* SendApdu,INT16U Length);
 extern int comfd;
 extern ProgramInfo *memp;
 extern PIID piid_g;
+extern TimeTag	Response_timetag;		//响应的时间标签值
 extern INT8U securetype;
 extern INT8U broadcast;
 
@@ -87,6 +78,7 @@ int doReponse(int server, int reponse, CSINFO *csinfo, int datalen, INT8U *data,
     //buf[index++] = 0;	//操作返回数据
     buf[index++] = 0;    //跟随上报信息域 	FollowReport
     buf[index++] = 0;    //时间标签		TimeTag
+//    index += FrameTimeTag(&Response_timetag,&buf[index]);
     fprintf(stderr,"securetype = %d\n",securetype);
     int ret=0;
     if (securetype != 0)//安全等级类型不为0，代表是通过安全传输下发报文，上行报文需要以不低于请求的安全级别回复
@@ -321,6 +313,14 @@ void get_BasicUnit(INT8U *source, INT16U *sourceindex, INT8U *dest, INT16U *dest
     *destindex = dest_sumindex;
 }
 
+int class4000_act(INT16U attr_act, INT8U *data, Action_result *act_ret)
+{
+	DateTimeBCD datetime={};
+	int index=0;
+	if (attr_act == 127) {  //方法 127 广播校时
+		index += Set_4000(&data,&act_ret->DAR);
+	}
+}
 
 void AddBatchMeterInfo(INT8U *data, INT8U type, Action_result *act_ret) {
     CLASS_6001 meter = {};
@@ -348,9 +348,9 @@ void AddBatchMeterInfo(INT8U *data, INT8U type, Action_result *act_ret) {
         index += getEnum(1, &dealdata[index], &meter.basicinfo.protocol);
         index += getOAD(1, &dealdata[index], &meter.basicinfo.port);
         index += getOctetstring(1, &dealdata[index], (INT8U *) &meter.basicinfo.pwd);
-        index += getUnsigned(&dealdata[index], &meter.basicinfo.ratenum);
-        index += getUnsigned(&dealdata[index], &meter.basicinfo.usrtype);
-        index += getUnsigned(&dealdata[index], &meter.basicinfo.connectype);
+        index += getUnsigned(&dealdata[index], &meter.basicinfo.ratenum,&act_ret->DAR);
+        index += getUnsigned(&dealdata[index], &meter.basicinfo.usrtype,&act_ret->DAR);
+        index += getEnum(1,&dealdata[index], &meter.basicinfo.connectype);
         index += getLongUnsigned(&dealdata[index], (INT8U *) &meter.basicinfo.ratedU);
         index += getLongUnsigned(&dealdata[index], (INT8U *) &meter.basicinfo.ratedI);
         index = index + 2;//struct
@@ -407,16 +407,16 @@ void AddTaskInfo(INT8U *data, Action_result *act_ret)
     for (k = 0; k < addnum; k++) {
         memset(&task, 0, sizeof(task));
         index = index + 2;//struct
-        index += getUnsigned(&dealdata[index], (INT8U *) &task.taskID);
+        index += getUnsigned(&dealdata[index], (INT8U *) &task.taskID,&act_ret->DAR);
         index += getTI(1, &dealdata[index], &task.interval);
         index += getEnum(1, &dealdata[index], (INT8U *) &task.cjtype);
-        index += getUnsigned(&dealdata[index], (INT8U *) &task.sernum);
-        index += getDateTimeS(1, &dealdata[index], (INT8U *) &task.startime);
-        index += getDateTimeS(1, &dealdata[index], (INT8U *) &task.endtime);
+        index += getUnsigned(&dealdata[index], (INT8U *) &task.sernum,&act_ret->DAR);
+        index += getDateTimeS(1, &dealdata[index], (INT8U *) &task.startime,&act_ret->DAR);
+        index += getDateTimeS(1, &dealdata[index], (INT8U *) &task.endtime,&act_ret->DAR);
         index += getTI(1, &dealdata[index], &task.delay);
         if(dealdata[index] == dtunsigned) {
         	task.runtime.runtime[23].beginHour = dtunsigned;
-        	index += getUnsigned(&dealdata[index], &task.runprio);
+        	index += getUnsigned(&dealdata[index], &task.runprio, &act_ret->DAR);
         }else {
         	task.runtime.runtime[23].beginHour = dtenum;
         	index += getEnum(1, &dealdata[index], &task.runprio);
@@ -432,10 +432,10 @@ void AddTaskInfo(INT8U *data, Action_result *act_ret)
         int w = 0;
         for (w = 0; w < arraysize; w++) {
             index = index + 2;//struct
-            index += getUnsigned(&dealdata[index], (INT8U *) &task.runtime.runtime[w].beginHour);
-            index += getUnsigned(&dealdata[index], (INT8U *) &task.runtime.runtime[w].beginMin);
-            index += getUnsigned(&dealdata[index], (INT8U *) &task.runtime.runtime[w].endHour);
-            index += getUnsigned(&dealdata[index], (INT8U *) &task.runtime.runtime[w].endMin);
+            index += getUnsigned(&dealdata[index], (INT8U *) &task.runtime.runtime[w].beginHour,&act_ret->DAR);
+            index += getUnsigned(&dealdata[index], (INT8U *) &task.runtime.runtime[w].beginMin,&act_ret->DAR);
+            index += getUnsigned(&dealdata[index], (INT8U *) &task.runtime.runtime[w].endHour,&act_ret->DAR);
+            index += getUnsigned(&dealdata[index], (INT8U *) &task.runtime.runtime[w].endMin,&act_ret->DAR);
         }
         fprintf(stderr, "\n任务 ID=%d", task.taskID);
         fprintf(stderr, "\n执行频率 单位=%d   value=%d", task.interval.units, task.interval.interval);
@@ -475,11 +475,11 @@ void AddCjiFangAnInfo(INT8U *data, Action_result *act_ret) {
     for (k = 0; k < addnum; k++) {
         memset(&fangAn, 0, sizeof(fangAn));
         index += getStructure(&dealdata[index], NULL);
-        index += getUnsigned(&dealdata[index], (INT8U *) &fangAn.sernum);
+        index += getUnsigned(&dealdata[index], (INT8U *) &fangAn.sernum,&act_ret->DAR);
         fprintf(stderr, "fangan sernum =%d ,index=%d\n", fangAn.sernum, index);
         index += getLongUnsigned(&dealdata[index], (INT8U *) &fangAn.deepsize);
         index += getStructure(&dealdata[index], NULL);
-        index += getUnsigned(&dealdata[index], (INT8U *) &fangAn.cjtype);
+        index += getUnsigned(&dealdata[index], (INT8U *) &fangAn.cjtype,&act_ret->DAR);
         fprintf(stderr, "cjtype=%d\n", fangAn.cjtype);
         switch (fangAn.cjtype) {
             case 0:
@@ -489,7 +489,7 @@ void AddCjiFangAnInfo(INT8U *data, Action_result *act_ret) {
                 break;
             case 1:
                 fangAn.data.type = dtunsigned;    // unsigned
-                index += getUnsigned(&dealdata[index], (INT8U *) &fangAn.data.data);
+                index += getUnsigned(&dealdata[index], (INT8U *) &fangAn.data.data,&act_ret->DAR);
                 break;
             case 3:
                 fangAn.data.type = dtti;    // TI
@@ -565,10 +565,10 @@ void AddEventCjiFangAnInfo(INT8U *data, Action_result *act_ret) {
     fprintf(stderr, "\n添加个数 %d", addnum);
     for (k = 0; k < addnum; k++) {
         memset(&eventFangAn, 0, sizeof(eventFangAn));
-        index += getUnsigned(&data[index], (INT8U *) &eventFangAn.sernum);
+        index += getUnsigned(&data[index], (INT8U *) &eventFangAn.sernum,&act_ret->DAR);
         if (data[index] == dtstructure) {        //勘误增加了采集方式类型，浙江测试还未修改，故判断
             index += getStructure(&data[index], NULL);
-            index += getUnsigned(&data[index], (INT8U *) &eventFangAn.collstyle.colltype);
+            index += getUnsigned(&data[index], (INT8U *) &eventFangAn.collstyle.colltype,&act_ret->DAR);
         }else  {
         	eventFangAn.collstyle.colltype = 0xff;	//无效采集类型
         }
@@ -607,7 +607,7 @@ void AddOI6019(INT8U *data, Action_result *act_ret) {
     int index = 0;
 
     memset(&TransFangAn,0,sizeof(CLASS_6019));
-    index += getUnsigned(&data[index], &TransFangAn.planno);
+    index += getUnsigned(&data[index], &TransFangAn.planno,&act_ret->DAR);
     index += getArray(&data[index], &TransFangAn.contentnum);
 
     if(TransFangAn.contentnum > CLASS6019_PLAN_NUM) {
@@ -624,12 +624,12 @@ void AddOI6019(INT8U *data, Action_result *act_ret) {
         index += getLongUnsigned(&data[index], (INT8U *) &TransFangAn.plan[i].planflag.overtime);
         index += getEnum(1,&data[index],(INT8U *)&TransFangAn.plan[i].planflag.resultflag);
         index += getStructure(&data[index],NULL);	//结果比对参数
-        index += getUnsigned(&data[index],(INT8U *)&TransFangAn.plan[i].planflag.resultpara.featureByte);
+        index += getUnsigned(&data[index],(INT8U *)&TransFangAn.plan[i].planflag.resultpara.featureByte,&act_ret->DAR);
         index += getLongUnsigned(&data[index],(INT8U *)&TransFangAn.plan[i].planflag.resultpara.interstart);
         index += getLongUnsigned(&data[index],(INT8U *)&TransFangAn.plan[i].planflag.resultpara.interlen);
         index += getArray(&data[index], &TransFangAn.plan[i].datanum);//方案报文集
         for(j=0;j<TransFangAn.plan[i].datanum;j++) {
-        	index += getUnsigned(&data[index],&TransFangAn.plan[i].data[j].datano);
+        	index += getUnsigned(&data[index],&TransFangAn.plan[i].data[j].datano,&act_ret->DAR);
         	index += getOctetstring(1, &data[index], (INT8U *) &TransFangAn.plan[i].data[j].data);
         }
         index += getLongUnsigned(&data[index], (INT8U *) &TransFangAn.savedepth);
@@ -648,10 +648,11 @@ void DeleteArrayID(OI_698 oi,INT8U *data)
 {
 	INT8U 	i=0,arrayid = 0, taskid=0;
 	int 	index = 0;
+	INT8U	DAR = success;
 
 	index += getArray(&data[index],(INT8U *)&arrayid);
 	for(i=0;i<arrayid;i++) {
-		getUnsigned(&data[index],(INT8U *)&taskid);
+		getUnsigned(&data[index],(INT8U *)&taskid,&DAR);
 		fprintf(stderr,"Delete taskid=%d\n",taskid);
 		deleteClass(oi, taskid);
 	}
@@ -760,15 +761,15 @@ void AddReportInfo(INT8U *data, Action_result *act_ret) {
     for (k = 0; k < addnum; k++) {
         memset(&reportplan, 0, sizeof(CLASS_601D));
         index += getStructure(&data[index], &strunum);
-        index += getUnsigned(&data[index], &reportplan.reportnum);
+        index += getUnsigned(&data[index], &reportplan.reportnum,&act_ret->DAR);
         index += getArray(&data[index], &reportplan.chann_oad.num);
         for (j = 0; j < reportplan.chann_oad.num; j++) {
             index += getOAD(1, &data[index], &reportplan.chann_oad.oadarr[j]);
         }
         index += getTI(1, &data[index], &reportplan.timeout);
-        index += getUnsigned(&data[index], &reportplan.maxreportnum);
+        index += getUnsigned(&data[index], &reportplan.maxreportnum,&act_ret->DAR);
         index += getStructure(&data[index], &strunum);
-        index += getUnsigned(&data[index], &reportplan.reportdata.type);
+        index += getUnsigned(&data[index], &reportplan.reportdata.type,&act_ret->DAR);
         switch (reportplan.reportdata.type) {
             case 0:    //OAD
                 index += getOAD(1, &data[index], &reportplan.reportdata.data.oad);
@@ -1225,12 +1226,30 @@ int doObjectAction(OAD oad, INT8U *data, Action_result *act_ret) {
     INT8U attr_act = oad.attflg;
     INT8U oihead = (oi & 0xF000) >> 12;
     fprintf(stderr, "\n----------  oi =%04x   ", oi);
+
+	if(Response_timetag.effect==0) {
+		act_ret->DAR = timetag_invalid;
+		act_ret->datalen = 0;
+		return act_ret->datalen;
+	}else if(oi==0x8000 || oi==0x8001){		//国网一致性测试：遥控与保电，必须带时间标签，否则认为无效
+		if(Response_timetag.flag == 0) {		//无时间标签
+			act_ret->DAR = timetag_invalid;
+			act_ret->datalen = 0;
+			syslog(LOG_NOTICE,"下发无时间标签,返回无效【oi=%x】 ",oi);
+			return act_ret->datalen;
+		}
+	}
     switch (oihead) {
         case 3:            //事件类对象方法操作
             EventMothod(oad, data);
             break;
     }
     switch (oi) {
+    	case 0x4000:	//广播校时
+     		if (attr_act == 127) {  //方法 127 广播校时
+    			act_ret->datalen = Set_4000(data,&act_ret->DAR);
+    		}
+    		break;
         case 0x4300:    //终端对象
             TerminalInfo(attr_act, data, act_ret);
             break;
@@ -1317,12 +1336,14 @@ int doObjectAction(OAD oad, INT8U *data, Action_result *act_ret) {
             break;
 
     }
-    if (oi == 0x4300 && attr_act == 1) {        //设备复位
-        memp->oi_changed.reset++;
+    if(act_ret->DAR == success) {
+		if (oi == 0x4300 && attr_act == 1) {        //设备复位
+			memp->oi_changed.reset++;
+		}
+		if (oi == 0x4300 && attr_act == 3) {        //数据区初始化
+			memp->oi_changed.init++;
+		}
+		setOIChange(oi);
     }
-    if (oi == 0x4300 && attr_act == 3) {        //数据区初始化
-        memp->oi_changed.init++;
-    }
-    setOIChange(oi);
-    return success;    //DAR=0，成功	TODO：增加DAR各种错误判断
+    return act_ret->DAR;    //DAR=0，成功
 }

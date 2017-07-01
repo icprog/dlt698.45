@@ -12,7 +12,6 @@ extern CONNECT_Response *AppVar_p;
 extern unsigned short tryfcs16(unsigned char *cp, int  len);
 extern int doObjectAction(OAD oad, INT8U* data, Action_result* result);
 extern int StateProcess(CommBlock* nst, int delay_num);
-
 extern int ProcessData(CommBlock* com);
 extern int Link_Request(LINK_Request request, INT8U* addr, INT8U* buf);
 extern void testframe(INT8U* apdu, int len);
@@ -23,6 +22,13 @@ extern int callAutoReport(char *filename,INT8U reportChoice,CommBlock* com, INT8
 extern int callEventAutoReport(CommBlock* com,INT8U *eventbuf,int datalen);
 extern int GetReportData(CLASS_601D report);
 
+extern INT8U Reset_add();
+extern void FrameTail(INT8U *buf, int index, int hcsi);
+extern int FrameHead(CSINFO *csinfo, INT8U *buf);
+extern int FrameTimeTag(TimeTag *tag,INT8U *buf);
+extern INT8S (*pSendfun)(int fd, INT8U *sndbuf, INT16U sndlen);
+extern void Get698_event(OAD oad, ProgramInfo *prginfo_event);
+extern INT16S composeSecurityResponse(INT8U* SendApdu,INT16U Length);
 
 /*----------------------抄表相关*************************/
 extern INT16S composeProtocol698_GetRequest(INT8U*, CLASS_6015, TSA);
@@ -80,13 +86,13 @@ extern int getStructure(INT8U* source, INT8U* dest);                            
 extern int getBool(INT8U* source, INT8U* dest);                                   // 3
 extern int getBitString(INT8U type, INT8U* source, INT8U* dest);                  // 4
 extern int getDouble(INT8U* source, INT8U* dest);                                 // 5 6
-extern int getOctetstring(INT8U type, INT8U* source, INT8U* tsa);                 // 9
+extern int getOctetstring(INT8U type, INT8U* source, INT8U* tsa);                 // 9 and 0x55
 extern int getVisibleString(INT8U* source, INT8U* dest);                          // 0x0A
-extern int getUnsigned(INT8U* source, INT8U* dest);                               // 0x11
+extern int getUnsigned(INT8U *source,INT8U *dest,INT8U *DAR);                     // 0x11
 extern int getLongUnsigned(INT8U* source, INT8U* dest);                           // 0x12
 extern int getEnum(INT8U type, INT8U* source, INT8U* enumvalue);                  // 0x16
 extern int getTime(INT8U type, INT8U* source, INT8U* enumvalue);                  // 0x1B
-extern int getDateTimeS(INT8U type, INT8U* source, INT8U* dest);                  // 0x1C
+extern int getDateTimeS(INT8U type,INT8U *source,INT8U *dest,INT8U *DAR);                 // 0x1C
 extern int getOI(INT8U type, INT8U* source, OI_698 oi);                           // 0x50
 extern int getOAD(INT8U type, INT8U* source, OAD* oad);                           // 0x51
 extern int getROAD(INT8U* source, ROAD* dest);                                    // 0x52
@@ -106,6 +112,10 @@ extern int getDataTypeLen(int dt);
 /*----------------------统计相关数据----------------------*/
 extern INT8U Get_Vacs(RESULT_NORMAL *response,ProgramInfo* prginfo_acs);
 
-
 extern int GetFileState(RESULT_NORMAL* response);
+
+/*----------------------规约一致性 数据有效性判断接口----------------------*/
+extern INT8U check_date(int year, int month, int day, int hour, int min, int sec);
+extern INT8U getEnumValid(INT16U value,INT16U start,INT16U end,INT16U other);
+extern void isTimeTagEffect(TimeTag timetag,TimeTag *rec_timetag);
 #endif

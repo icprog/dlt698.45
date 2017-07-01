@@ -108,12 +108,12 @@ MASTER_STATION_INFO getNextNetIpPort(CommBlock *commBlock) {
     static int index = 0;
     static int ChangeFlag = 0;
     //检查主站参数是否有变化
-    if (ChangeFlag != ((ProgramInfo *) commBlock->shmem)->oi_changed.oi4500) {
+    if (ChangeFlag != ((ProgramInfo *) commBlock->shmem)->oi_changed.oi4510) {
         memset(&Class26, 0, sizeof(CLASS26));
         readCoverClass(0x4510, 0, (void *) &Class26, sizeof(CLASS26), para_vari_save);
         memcpy(&IpPool, &Class26.master.master, sizeof(IpPool));
-        asyslog(LOG_WARNING, "检测到通信参数变化！刷新主站参数！");
-        ChangeFlag = ((ProgramInfo *) commBlock->shmem)->oi_changed.oi4500;
+        asyslog(LOG_WARNING, "检测到以太网通信参数变化！刷新主站参数！");
+        ChangeFlag = ((ProgramInfo *) commBlock->shmem)->oi_changed.oi4510;
         commBlock->Heartbeat = Class26.commconfig.heartBeat;
     }
     MASTER_STATION_INFO res;
