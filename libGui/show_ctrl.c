@@ -161,7 +161,7 @@ void lcd_showstatus()
 		if(p_JProgramInfo!=NULL)
 		{
 			if(p_JProgramInfo->dev_info.jzq_login==GPRS_COM||
-					p_JProgramInfo->dev_info.jzq_login==NET_COM){
+					p_JProgramInfo->dev_info.jzq_login==NET_COM ||p_JProgramInfo->dev_info.jzq_login == 3 ){  //3 内部协议栈上线
 				led_run_state = (~led_run_state)&0x01;
 				gpio_writebyte((char*)LED_RUN, led_run_state);
 			}else
@@ -186,7 +186,7 @@ void lcd_showdownstatus()
 			gprs_status = GPRS_SIMOK;//CPIN OK
 		else if(p_JProgramInfo->dev_info.gprs_status==4){
 			gprs_status = GPRS_CREGOK;//CREG OK
-			if(p_JProgramInfo->dev_info.jzq_login==1)
+			if(p_JProgramInfo->dev_info.jzq_login==1 || p_JProgramInfo->dev_info.jzq_login==3)//1/GPRS外部协议栈上线2/内部协议栈上线
 				gprs_status = GPRS_ONLINE;
 			else if(p_JProgramInfo->dev_info.connect_ok==1)
 				gprs_status = GPRS_CONNECTING;

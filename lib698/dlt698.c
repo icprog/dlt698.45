@@ -261,7 +261,8 @@ int FrameHead(CSINFO *csinfo,INT8U *buf)
 	buf[i++]= CtrlWord(*csinfo);
 	buf[i++]= (csinfo->sa_type<<6) | (0<<4) | ((csinfo->sa_length-1) & 0xf);
 
-	if(broadServerAddr(csinfo->sa,csinfo->sa_length)==1) {	//广播地址,应答终端的通信地址
+	//集中器与浙江汉普台体测试，台体下发广播地址,应答终端的通信地址上报，其他情况如电表下发广播对时命令时，是不能进行修改服务器端地址的
+	if(broadServerAddr(csinfo->sa,csinfo->sa_length)==1 && csinfo->dir==1 && csinfo->prm==1) {
 		memset(&sa, 0, sizeof(CLASS_4001_4002_4003));
 		readCoverClass(0x4001, 0, &sa, sizeof(CLASS_4001_4002_4003), para_vari_save);
 		for(j=0;j<sa.curstom_num[0];j++) {
@@ -269,7 +270,7 @@ int FrameHead(CSINFO *csinfo,INT8U *buf)
 		}
 		//memcpy(&buf[i],&sa.curstom_num[1],sa.curstom_num[0]);
 	}else {
-		memcpy(&buf[i],csinfo->sa,csinfo->sa_length );
+		memcpy(&buf[i],csinfo->sa,csinfo->sa_length);
 		i = i + csinfo->sa_length;
 	}
 
@@ -1063,7 +1064,8 @@ INT16S composeProtocol698_SetRequest(INT8U* sendBuf,RESULT_NORMAL setData,TSA me
 			meterAddr.addr[0],meterAddr.addr[1],meterAddr.addr[2],meterAddr.addr[3],meterAddr.addr[4],
 			meterAddr.addr[5],meterAddr.addr[6],meterAddr.addr[7],meterAddr.addr[8]);
 	csinfo.sa_length = (meterAddr.addr[1]&0x0f) + 1;//sizeof(addr)-1;//服务器地址长度
-
+	///当广播地址时，地址类型=3：广播地址，增加下面的赋值
+	csinfo.sa_type = (meterAddr.addr[1] >> 6) & 0x03;		//服务器地址类型
 	reversebuff(&meterAddr.addr[2],csinfo.sa_length,reverseAddr);
 
 	fprintf(stderr," \n reverseAddr[%d] = ",csinfo.sa_length);

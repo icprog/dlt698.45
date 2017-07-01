@@ -350,7 +350,7 @@ void AddBatchMeterInfo(INT8U *data, INT8U type, Action_result *act_ret) {
         index += getOctetstring(1, &dealdata[index], (INT8U *) &meter.basicinfo.pwd);
         index += getUnsigned(&dealdata[index], &meter.basicinfo.ratenum);
         index += getUnsigned(&dealdata[index], &meter.basicinfo.usrtype);
-        index += getUnsigned(&dealdata[index], &meter.basicinfo.connectype);
+        index += getEnum(1, &dealdata[index], &meter.basicinfo.connectype);
         index += getLongUnsigned(&dealdata[index], (INT8U *) &meter.basicinfo.ratedU);
         index += getLongUnsigned(&dealdata[index], (INT8U *) &meter.basicinfo.ratedI);
         index = index + 2;//struct
@@ -392,6 +392,68 @@ void AddBatchMeterInfo(INT8U *data, INT8U type, Action_result *act_ret) {
     }
     act_ret->datalen = index;
     act_ret->DAR = success;
+}
+
+void AddTaskInfo(INT8U *data, Action_result *act_ret)
+{
+    act_ret->DAR = success;
+    CLASS_6013 task = {};
+    int k = 0, index = 0;
+    INT8U *dealdata = NULL;
+    INT8U addnum = data[1];
+    fprintf(stderr, "\nsizeof task=%d", sizeof(task));
+    fprintf(stderr, "\n添加个数 %d", addnum);
+    dealdata = &data[2];
+    for (k = 0; k < addnum; k++) {
+        memset(&task, 0, sizeof(task));
+        index = index + 2;//struct
+        index += getUnsigned(&dealdata[index], (INT8U *) &task.taskID);
+        index += getTI(1, &dealdata[index], &task.interval);
+        index += getEnum(1, &dealdata[index], (INT8U *) &task.cjtype);
+        index += getUnsigned(&dealdata[index], (INT8U *) &task.sernum);
+        index += getDateTimeS(1, &dealdata[index], (INT8U *) &task.startime);
+        index += getDateTimeS(1, &dealdata[index], (INT8U *) &task.endtime);
+        index += getTI(1, &dealdata[index], &task.delay);
+        if(dealdata[index] == dtunsigned) {
+        	task.runtime.runtime[23].beginHour = dtunsigned;
+        	index += getUnsigned(&dealdata[index], &task.runprio);
+        }else {
+        	task.runtime.runtime[23].beginHour = dtenum;
+        	index += getEnum(1, &dealdata[index], &task.runprio);
+        }
+        index += getEnum(1, &dealdata[index], &task.state);
+        index += getLongUnsigned(&dealdata[index], (INT8U *) &task.befscript);
+        index += getLongUnsigned(&dealdata[index], (INT8U *) &task.aftscript);
+        index = index + 2;//struct
+        index += getEnum(1, &dealdata[index], &task.runtime.type);
+        INT8U arraysize = 0;
+        index += getArray(&dealdata[index], &arraysize);
+        task.runtime.num = arraysize;
+        int w = 0;
+        for (w = 0; w < arraysize; w++) {
+            index = index + 2;//struct
+            index += getUnsigned(&dealdata[index], (INT8U *) &task.runtime.runtime[w].beginHour);
+            index += getUnsigned(&dealdata[index], (INT8U *) &task.runtime.runtime[w].beginMin);
+            index += getUnsigned(&dealdata[index], (INT8U *) &task.runtime.runtime[w].endHour);
+            index += getUnsigned(&dealdata[index], (INT8U *) &task.runtime.runtime[w].endMin);
+        }
+        fprintf(stderr, "\n任务 ID=%d", task.taskID);
+        fprintf(stderr, "\n执行频率 单位=%d   value=%d", task.interval.units, task.interval.interval);
+        fprintf(stderr, "\n方案类型 =%d", task.cjtype);
+        fprintf(stderr, "\n方案序号 =%d", task.sernum);
+        fprintf(stderr, "\n开始时间 =%d年 %d月 %d日 %d时 %d分 %d秒 ", task.startime.year.data, task.startime.month.data,
+                task.startime.day.data, task.startime.hour.data, task.startime.min.data, task.startime.sec.data);
+        fprintf(stderr, "\n结束时间 =%d年 %d月 %d日 %d时 %d分 %d秒 ", task.endtime.year.data, task.endtime.month.data,
+                task.endtime.day.data, task.endtime.hour.data, task.endtime.min.data, task.endtime.sec.data);
+        fprintf(stderr, "\n优先级别 =%d", task.runprio);
+        fprintf(stderr, "\n任务状态 =%d", task.state);
+        fprintf(stderr, "\n运行时段类型 =%02x", task.runtime.type);
+        fprintf(stderr, "\n开始  %d时 %d分  ", task.runtime.runtime[0].beginHour, task.runtime.runtime[0].beginMin);
+        fprintf(stderr, "\n结束  %d时 %d分  ", task.runtime.runtime[0].endHour, task.runtime.runtime[0].endMin);
+
+        act_ret->DAR = saveCoverClass(0x6013, task.taskID, &task, sizeof(task), coll_para_save);
+    }
+    act_ret->datalen = index + 2;        //2:array
 }
 
 void AddCjiFangAnInfo(INT8U *data, Action_result *act_ret) {
@@ -538,59 +600,43 @@ void AddEventCjiFangAnInfo(INT8U *data, Action_result *act_ret) {
 //	act_ret->datalen = index;
 }
 
-void AddTaskInfo(INT8U *data, Action_result *act_ret) {
-    act_ret->DAR = success;
-    CLASS_6013 task = {};
-    int k = 0, index = 0;
-    INT8U *dealdata = NULL;
-    INT8U addnum = data[1];
-    fprintf(stderr, "\nsizeof task=%d", sizeof(task));
-    fprintf(stderr, "\n添加个数 %d", addnum);
-    dealdata = &data[2];
-    for (k = 0; k < addnum; k++) {
-        memset(&task, 0, sizeof(task));
-        index = index + 2;//struct
-        index += getUnsigned(&dealdata[index], (INT8U *) &task.taskID);
-        index += getTI(1, &dealdata[index], &task.interval);
-        index += getEnum(1, &dealdata[index], (INT8U *) &task.cjtype);
-        index += getUnsigned(&dealdata[index], (INT8U *) &task.sernum);
-        index += getDateTimeS(1, &dealdata[index], (INT8U *) &task.startime);
-        index += getDateTimeS(1, &dealdata[index], (INT8U *) &task.endtime);
-        index += getTI(1, &dealdata[index], &task.delay);
-        index += getEnum(1, &dealdata[index], &task.runprio);
-        index += getEnum(1, &dealdata[index], &task.state);
-        index += getLongUnsigned(&dealdata[index], (INT8U *) &task.befscript);
-        index += getLongUnsigned(&dealdata[index], (INT8U *) &task.aftscript);
-        index = index + 2;//struct
-        index += getEnum(1, &dealdata[index], &task.runtime.type);
-        INT8U arraysize = 0;
-        index += getArray(&dealdata[index], &arraysize);
-        task.runtime.num = arraysize;
-        int w = 0;
-        for (w = 0; w < arraysize; w++) {
-            index = index + 2;//struct
-            index += getUnsigned(&dealdata[index], (INT8U *) &task.runtime.runtime[w].beginHour);
-            index += getUnsigned(&dealdata[index], (INT8U *) &task.runtime.runtime[w].beginMin);
-            index += getUnsigned(&dealdata[index], (INT8U *) &task.runtime.runtime[w].endHour);
-            index += getUnsigned(&dealdata[index], (INT8U *) &task.runtime.runtime[w].endMin);
-        }
-        fprintf(stderr, "\n任务 ID=%d", task.taskID);
-        fprintf(stderr, "\n执行频率 单位=%d   value=%d", task.interval.units, task.interval.interval);
-        fprintf(stderr, "\n方案类型 =%d", task.cjtype);
-        fprintf(stderr, "\n方案序号 =%d", task.sernum);
-        fprintf(stderr, "\n开始时间 =%d年 %d月 %d日 %d时 %d分 %d秒 ", task.startime.year.data, task.startime.month.data,
-                task.startime.day.data, task.startime.hour.data, task.startime.min.data, task.startime.sec.data);
-        fprintf(stderr, "\n结束时间 =%d年 %d月 %d日 %d时 %d分 %d秒 ", task.endtime.year.data, task.endtime.month.data,
-                task.endtime.day.data, task.endtime.hour.data, task.endtime.min.data, task.endtime.sec.data);
-        fprintf(stderr, "\n优先级别 =%d", task.runprio);
-        fprintf(stderr, "\n任务状态 =%d", task.state);
-        fprintf(stderr, "\n运行时段类型 =%02x", task.runtime.type);
-        fprintf(stderr, "\n开始  %d时 %d分  ", task.runtime.runtime[0].beginHour, task.runtime.runtime[0].beginMin);
-        fprintf(stderr, "\n结束  %d时 %d分  ", task.runtime.runtime[0].endHour, task.runtime.runtime[0].endMin);
+//透明方案
+void AddOI6019(INT8U *data, Action_result *act_ret) {
+    CLASS_6019  TransFangAn = {};
+    int i = 0,j=0;
+    int index = 0;
 
-        act_ret->DAR = saveCoverClass(0x6013, task.taskID, &task, sizeof(task), coll_para_save);
+    memset(&TransFangAn,0,sizeof(CLASS_6019));
+    index += getUnsigned(&data[index], &TransFangAn.planno);
+    index += getArray(&data[index], &TransFangAn.contentnum);
+
+    if(TransFangAn.contentnum > CLASS6019_PLAN_NUM) {
+    	TransFangAn.contentnum = CLASS6019_PLAN_NUM;
+    	syslog(LOG_ERR,"透明方案内容%d ,大于设定值%d,处理不全",TransFangAn.contentnum,CLASS6019_PLAN_NUM);
     }
-    act_ret->datalen = index + 2;        //2:array
+    for (i = 0; i < TransFangAn.contentnum; i++) {
+        index += getLongUnsigned(&data[index], (INT8U *) &TransFangAn.plan[i].seqno);
+        index += getOctetstring(1, &data[index], (INT8U *) &TransFangAn.plan[i].addr);
+        index += getLongUnsigned(&data[index], (INT8U *) &TransFangAn.plan[i].befscript);
+        index += getLongUnsigned(&data[index], (INT8U *) &TransFangAn.plan[i].aftscript);
+        index += getStructure(&data[index],NULL);	//方案控制标志
+        index += getBool(&data[index],(INT8U *)&TransFangAn.plan[i].planflag.waitnext);
+        index += getLongUnsigned(&data[index], (INT8U *) &TransFangAn.plan[i].planflag.overtime);
+        index += getEnum(1,&data[index],(INT8U *)&TransFangAn.plan[i].planflag.resultflag);
+        index += getStructure(&data[index],NULL);	//结果比对参数
+        index += getUnsigned(&data[index],(INT8U *)&TransFangAn.plan[i].planflag.resultpara.featureByte);
+        index += getLongUnsigned(&data[index],(INT8U *)&TransFangAn.plan[i].planflag.resultpara.interstart);
+        index += getLongUnsigned(&data[index],(INT8U *)&TransFangAn.plan[i].planflag.resultpara.interlen);
+        index += getArray(&data[index], &TransFangAn.plan[i].datanum);//方案报文集
+        for(j=0;j<TransFangAn.plan[i].datanum;j++) {
+        	index += getUnsigned(&data[index],&TransFangAn.plan[i].data[j].datano);
+        	index += getOctetstring(1, &data[index], (INT8U *) &TransFangAn.plan[i].data[j].data);
+        }
+        index += getLongUnsigned(&data[index], (INT8U *) &TransFangAn.savedepth);
+        act_ret->DAR = saveCoverClass(0x6019, TransFangAn.planno, &TransFangAn, sizeof(CLASS_6019), coll_para_save);
+    }
+    fprintf(stderr, "\n方案编号 %d", TransFangAn.planno);
+    act_ret->datalen = index;
 }
 
 void Set_CSD(INT8U *data) {
@@ -646,6 +692,31 @@ void EventCjFangAnInfo(INT16U attr_act, INT8U *data, Action_result *act_ret) {
         case 130:    //方法 130:Set_CSD(方案编号,array CSD)
             //		UpdateReportFlag(data);
             break;
+    }
+}
+
+void Class6018Info(INT16U attr_act, INT8U *data, Action_result *act_ret)
+{
+    switch (attr_act) {
+        case 127:    //方法 127:Add
+            fprintf(stderr, "\n添加透明方案");
+            AddOI6019(data, act_ret);
+            break;
+        case 128:    //方法 128:AddMeterFrame
+        	fprintf(stderr, "\n添加一组报文");
+            break;
+        case 129:    //方法 129:Delete(方案编号，array通信地址)
+            fprintf(stderr, "\n删除一个方案的一组方案内容");
+
+            break;
+        case 130:    //方法 130:Delete(array 方案编号)
+            //		UpdateReportFlag(data);
+        	fprintf(stderr,"\n删除一组透明方案集");
+        	clearClass(0x6019);
+            break;
+        case 131: 	//Clear()
+        	fprintf(stderr,"\n清空透明方案集");
+        	break;
     }
 }
 
@@ -1182,6 +1253,7 @@ int doObjectAction(OAD oad, INT8U *data, Action_result *act_ret) {
             EventCjFangAnInfo(attr_act, data, act_ret);
             break;
         case 0x6018:    //透明方案集
+        	Class6018Info(attr_act, data, act_ret);
             break;
         case 0x601C:    //上报方案
             ReportInfo(attr_act, data, act_ret);

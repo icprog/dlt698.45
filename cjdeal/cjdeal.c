@@ -638,6 +638,7 @@ INT8U findfake6001(INT8U tIndex,CLASS_6001* meter)
 	if(ret == 1)
 	{
 		INT8U portIndex = 0;
+		ret = -1;
 		for(portIndex = 0;portIndex < 2;portIndex++)
 		{
 			for (meterIndex = 0; meterIndex < info6000[portIndex].meterSum; meterIndex++)
@@ -656,7 +657,7 @@ INT8U findfake6001(INT8U tIndex,CLASS_6001* meter)
 			}
 		}
 	}
-	return ret;
+	return -1;
 }
 INT8U createFakeTaskFileHead()
 {
@@ -686,6 +687,8 @@ INT8U createFakeTaskFileHead()
 				continue;
 			}
 
+			if(meter.basicinfo.addr.addr[0]==0)
+				continue;
 			memset(dataContent,0,DATA_CONTENT_LEN);
 			taskinfoflg=0;
 			memset(&tasknor_info,0,sizeof(TASKSET_INFO));
@@ -780,7 +783,7 @@ INT8S dealMsgProcess()
 		fprintf(stderr,"\n ％％％％％％％％％％％％cjcommProxy.isInUse = %d cjguiProxy.isInUse = %d\n",cjcommProxy.isInUse,cjguiProxy.isInUse);
 		return 	result;
 	}
-
+	GUI_PROXY cjguiProxy_Tmp;
 	INT8U  rev_485_buf[2048];
 	INT32S ret;
 
@@ -811,16 +814,26 @@ INT8S dealMsgProcess()
 				if(mq_h.pid == cjgui)
 				{
 					fprintf(stderr, "\n收到液晶点抄-----------------------------------23232323\n");
-					if(cjguiProxy.isInUse == 0)
+					memcpy(&cjguiProxy_Tmp.strProxyMsg,rev_485_buf,sizeof(Proxy_Msg));
+					if (cjguiProxy_Tmp.strProxyMsg.port.OI== PORT_ZB)
 					{
-						memcpy(&cjguiProxy.strProxyMsg,rev_485_buf,sizeof(Proxy_Msg));
-						cjguiProxy.isInUse = 3;
-					}
-					else
+						if (cjguiProxy_plc.isInUse ==0 )
+						{
+							memcpy(&cjguiProxy_plc,&cjguiProxy_Tmp,sizeof(cjguiProxy_plc));//如果点抄的是载波测量点，消息变量转存
+							cjguiProxy_plc.isInUse = 1;
+						}
+					}else
 					{
-						fprintf(stderr,"上一个液晶点抄没处理完");
+						if(cjguiProxy.isInUse == 0)
+						{
+							memcpy(&cjguiProxy.strProxyMsg,rev_485_buf,sizeof(Proxy_Msg));
+							cjguiProxy.isInUse = 3;
+						}
+						else
+						{
+							fprintf(stderr,"上一个液晶点抄没处理完");
+						}
 					}
-
 				}
 
 				readState = 0;
@@ -1013,6 +1026,8 @@ int main(int argc, char *argv[])
 	//return ctrl_base_test();
 	int del_day = 0,del_min = 0;
 	TS ts;
+    struct timeval start={}, end={};
+    long  interval=0;
 
 	pid_t pids[128];
     struct sigaction sa = {};
@@ -1052,8 +1067,6 @@ int main(int argc, char *argv[])
 
 	while(1)
    	{
-	    struct timeval start={}, end={};
-	    long  interval=0;
 		gettimeofday(&start, NULL);
 		TSGet(&ts);
 		if (ts.Hour==15 && ts.Minute==5 && del_day != ts.Day && del_min != ts.Minute)
@@ -1070,7 +1083,6 @@ int main(int argc, char *argv[])
 	    	fprintf(stderr,"deal main interval = %f(ms)\n", interval/1000.0);
 		usleep(10 * 1000);
 		clearcount(ProIndex);
-
 
    	}
 	close_named_sem(SEMNAME_SPI0_0);

@@ -53,13 +53,74 @@ typedef struct {
 	INT8U	oi3203;				//电控告警事件记录
 ////////////////////////////////////////////////////////
     INT8U 	oi4000;       	//对时参数
-    INT8U   oi4001;			//通信地址/表号/通信地址
+    INT8U   oi4001;			//通信地址
+    INT8U	oi4002;			//表号
+    INT8U	oi4003;			//客户编号
+    INT8U	oi4004;			//设备地理位置
+    INT8U	oi4005;			//组地址
+    INT8U	oi4007;			//LCD参数
+    INT8U	oi4008;			//备用套时区表切换时间
+    INT8U	oi4009;			//备用套日时段切换时间
+    INT8U	oi400A;			//备用套分时费率切换时间
+    INT8U	oi400B;			//备用阶梯电价切换时间
+    INT8U	oi400C;			//时区时段数
+    INT8U	oi400D;			//阶梯数
+    INT8U	oi400E;			//谐波分析次数
+    INT8U	oi400F;			//
+    INT8U	oi4010;			//
+    INT8U	oi4011;			//
+    INT8U	oi4012;			//
+    INT8U	oi4013;			//
+    INT8U	oi4014;			//
+    INT8U	oi4015;			//
 	INT8U	oi4016;			//当前套日时段表
+	INT8U	oi4017;			//
+	INT8U	oi4018;			//
+	INT8U	oi4019;			//
+	INT8U	oi401A;			//
+	INT8U	oi401B;			//
+	INT8U	oi401C;			//
+	INT8U	oi401D;			//
+	INT8U	oi401E;			//
+	INT8U	oi401F;			//
+	INT8U	oi4020;			//
+	INT8U	oi4021;			//
+	INT8U	oi4022;			//
+	INT8U	oi4024;			//
+	INT8U	oi4025;			//
+	INT8U	oi4026;			//
 	INT8U 	oi4030;      	//电压合格率统计
+	INT8U	oi4100;			//
+	INT8U	oi4101;			//
+	INT8U	oi4103;			//
+	INT8U	oi410C;			//
+	INT8U	oi410D;			//
+	INT8U	oi410E;			//
+	INT8U	oi410F;			//
+	INT8U	oi4110;			//
+	INT8U	oi4112;			//
+	INT8U	oi4113;			//
+	INT8U	oi4114;			//
+	INT8U	oi4116;			//
+	INT8U	oi4117;			//
+	INT8U	oi4202;			//
 	INT8U 	oi4204;       	//终端广播校时参数
 	INT8U 	oi4300;       	//设备管理接口类
+	INT8U 	oi4307;       	//
+	INT8U 	oi4308;       	//
+	INT8U 	oi4309;       	//
+	INT8U 	oi4400;       	//
 	INT8U 	oi4500;			//通讯参数
-	INT8U 	oi4510; 		//以太网通信接口
+	INT8U 	oi4501;			//公共通信模块2
+	INT8U 	oi4510; 		//以太网通信模块1
+	INT8U 	oi4511; 		//以太网通信模块2
+	INT8U 	oi4512; 		//以太网通信模块3
+	INT8U 	oi4513; 		//以太网通信模块4
+	INT8U 	oi4514; 		//以太网通信模块5
+	INT8U 	oi4515; 		//以太网通信模块6
+	INT8U 	oi4516; 		//以太网通信模块7
+	INT8U 	oi4517; 		//以太网通信模块8
+	INT8U 	oi4520; 		//
 	INT8U 	reset;		/*4300方法1，设备复位*/   //
 	INT8U 	init;		/*4300方法3,5,6，数据初始化*/   //
 ////////////////////////////////////////////////////////
@@ -334,10 +395,10 @@ typedef struct{
 
 typedef struct{
 	INT8U   Cur_Ercno;				//当前事件序号
-	INT8U   jzq_login;				//集中器登陆       0 没有登陆    1 GPRS登陆    2 以太网登陆   3 串口登陆；
+	INT8U   jzq_login;				//集中器登陆       0 没有登陆    1 GPRS登陆    2 以太网登陆   3 内部协议栈登录；
 	INT8U   gprs_status;			//1AT检测成功，2获取GPRS模块信息，3检测SIM卡，4注册网络成功
 	INT8U	Gprs_csq;				//信号强度
-	INT8U   wirelessType; 			//1:GPRS  2:CDMA2000  2:TD_LTE  3:FDD_LTE
+	INT8U   wirelessType; 			//1:GPRS  2:CDMA2000  3:TD_LTE  4:FDD_LTE
 	INT8U   pppd_status;			//拨号成功
 	INT8U   connect_ok;				//连接主站是否成功
 	INT8U  	PLC_status;				//0、空闲 1、载波初始化 2、载波正在抄表中 	3、正在同步档案 4、正在搜表中

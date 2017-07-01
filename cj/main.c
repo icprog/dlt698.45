@@ -40,6 +40,7 @@ static char *usage_set = "\n--------------------参数设置及基本维护命�
 		"		  [设置维护485端口参数] cj rs485	\n"
 		"		  [设置红外ifr端口参数] cj ifr	\n"
 		"		  [显示遥信状态值] cj yx\n"
+		"		  [查询软件版本和软件日期，方便远程查询集中器版本信息] cj ver\n"
 		"		  [基本信息配置查询] cj check\n"
         "[读取心跳] cj heart       "
         "[设置心跳] cj heart 60 s\n"
@@ -96,6 +97,7 @@ static char *usage_coll =
                 "[任务配置单元] cj coll pro 6013 <任务号> [读取任务配置单元]\n"
                 "[普通采集方案] cj coll pro 6015 <采集方案号>\n"
                 "[事件采集方案] cj coll pro 6017 <方案编号>\n"
+				"[透明方案] 	cj coll pro 6019 <方案编号>\n"
                 "[上报方案] 	  cj coll pro 601d <方案编号>\n"
                 "[采集任务监控] cj coll pro 6035 <采集方案号>\n"
                 "-------------------------------------------------------\n\n";
@@ -291,6 +293,12 @@ int main(int argc, char *argv[]) {
         para_process(argc, argv);
         return EXIT_SUCCESS;
     }
+    //查询软件版本和软件日期，方便远程查询集中器版本信息
+    if (strcmp("ver", argv[1]) == 0) {
+        get_softver();
+        return EXIT_SUCCESS;
+    }
+
     if (strcmp("InIt", argv[1]) == 0) {
     	fprintf(stderr,"　　　　　　cj InIt 3 [数据区初始化]	\n　　　　　　cj InIt 5 [事件初始化]\n　　　　　　cj InIt 6 [需量初始化]\n　　　　　　cj InIt 4 [恢复出厂参数]\n");
         InIt_Process(argc, argv);
@@ -311,7 +319,6 @@ int main(int argc, char *argv[]) {
         setOnlineMode(argc, argv);
         return EXIT_SUCCESS;
     }
-
 
     if (strcmp("usr-pwd", argv[1]) == 0) {
         SetUsrPwd(argc, argv);
@@ -384,7 +391,6 @@ int main(int argc, char *argv[]) {
         return EXIT_SUCCESS;
     }
 
-
     if (strcmp("bt", argv[1]) == 0) {
         float v1=0,v2=0;
         ConfigPara	cfg_para={};
@@ -417,6 +423,11 @@ int main(int argc, char *argv[]) {
         return EXIT_SUCCESS;
     }
 
+    if(strcmp("plc",argv[1])==0)
+    {
+    	shwoPlcMeterstatus();
+    	return EXIT_SUCCESS;
+    }
     if (strcmp("yx", argv[1]) == 0) {
         for(;;){
             CLASS_f203 oif203 = {};

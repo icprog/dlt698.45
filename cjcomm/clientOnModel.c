@@ -22,6 +22,7 @@
 #include "../include/Shmem.h"
 #include "clientOnModel.h"
 #include "basedef.h"
+
 /*
  * 内部协议栈参数
  */
@@ -212,6 +213,28 @@ int getCIMIType(int fd) {
     return 0;
 }
 
+int getNetworkType(int fd) {
+    for (int timeout = 0; timeout < 5; timeout++) {
+        char Mrecvbuf[128];
+
+        SendATCommand("\rAT+QNWINFO\r", 12, fd);
+        delay(1000);
+        memset(Mrecvbuf, 0, 128);
+        RecieveFromComm(Mrecvbuf, 128, fd);
+        if (strstr(Mrecvbuf, "TDD LTE") != NULL) {
+            asyslog(LOG_INFO, "TDD LTE模式在线");
+            SetWireLessType(2);
+            break;
+        }
+        if (strstr(Mrecvbuf, "FDD LTE") != NULL) {
+            asyslog(LOG_INFO, "FDD LTE模式在线");
+            SetWireLessType(3);
+            break;
+        }
+    }
+
+}
+
 int regIntoNet(int fd) {
     char Mrecvbuf[128];
     for (int timeout = 0; timeout < 80; timeout++) {
@@ -376,11 +399,11 @@ int checkRecv(int fd, int retry) {
 void *ModelWorker(void *args) {
     CLASS25 *class25 = (CLASS25 *) args;
     int sMux0 = -1;
-    int com = 0;	//I型\III型GPRS打开串口0,II型打开串口5
+    int com = 0;    //I型\III型GPRS打开串口0,II型打开串口5
 
-    ProgramInfo* memp = ClientForModelObject.shmem;
+    ProgramInfo *memp = ClientForModelObject.shmem;
     if (memp->cfg_para.device == CCTT2)
-    	com = 5;
+        com = 5;
 
     while (1) {
         gpofun("/dev/gpoCSQ_GREEN", 0);
@@ -462,7 +485,7 @@ void *ModelWorker(void *args) {
         CLASS25 class25_temp;
         readCoverClass(0x4500, 0, &class25_temp, sizeof(CLASS25), para_vari_save);
         fprintf(stderr, "刷新4500数据（1）");
-        memcpy(class25_temp.ccid, class25->ccid , sizeof(32));
+        memcpy(class25_temp.ccid, class25->ccid, sizeof(32));
         class25_temp.signalStrength = class25->signalStrength;
         SetGprsStatus(2);
         saveCoverClass(0x4500, 0, &class25_temp, sizeof(CLASS25), para_vari_save);
@@ -492,6 +515,7 @@ void *ModelWorker(void *args) {
                 SetGprsStatus(4);
                 SetWireLessType(1);
                 SetPPPDStatus(1);
+                getNetworkType(sMux0);
                 gpofun("/dev/gpoONLINE_LED", 1);
                 break;
             case 3:
@@ -510,6 +534,7 @@ void *ModelWorker(void *args) {
                 SetGprsStatus(4);
                 SetWireLessType(1);
                 SetPPPDStatus(1);
+                getNetworkType(sMux0);
                 gpofun("/dev/gpoONLINE_LED", 1);
                 break;
             default:

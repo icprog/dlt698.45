@@ -171,7 +171,10 @@ int Get_6013(INT8U type,INT8U taskid,INT8U *data)
 		index += fill_date_time_s(&data[index],&task.startime);		//开始时间
 		index += fill_date_time_s(&data[index],&task.endtime);		//结束时间
 		index += fill_TI(&data[index],task.delay);				//延时
-		index += fill_enum(&data[index],task.runprio);			//执行优先级
+		if(task.runtime.runtime[23].beginHour==dtunsigned) {
+			index += fill_unsigned(&data[index],task.runprio);		//执行优先级
+		}else index += fill_enum(&data[index],task.runprio);			//执行优先级
+
 		index += fill_enum(&data[index],task.state);			//任务状态
 		index += fill_long_unsigned(&data[index],task.befscript); //任务开始前脚本
 		index += fill_long_unsigned(&data[index],task.aftscript); //任务完成后脚本
@@ -265,6 +268,49 @@ int Get_6017(INT8U type,INT8U seqnum,INT8U *data)
 		index += fill_MS(1,&data[index],event.ms);		//电能表集合
 		index += fill_bool(&data[index],event.ifreport);		//上报标识
 		index += fill_long_unsigned(&data[index],event.deepsize);		//存储深度
+	}
+	return index;
+}
+
+/*
+ * 透明方案
+ * */
+int Get_6019(INT8U type,INT8U seqnum,INT8U *data)
+{
+	int 	index=0,ret=0,i=0,j=0;
+	CLASS_6019 trans={};
+
+	ret = readCoverClass(0x6019,seqnum,&trans,sizeof(CLASS_6019),coll_para_save);
+	if ((ret == 1) || (type==1)) {
+		fprintf(stderr,"\n 6019 read coll ok　seqnum=%d  type=%d  ret=%d\n",seqnum,type,ret);
+		index += create_struct(&data[index],3);					//属性2：struct 3个元素
+		index += fill_unsigned(&data[index],trans.planno);		//方案序号
+		for(i=0;i<trans.contentnum;i++) {		//方案内容集
+			if(trans.plan[i].seqno!=0) {	//勘误增加序号设置
+				index += create_struct(&data[index],6);
+				index += fill_long_unsigned(&data[index],trans.plan[i].seqno);
+			}else {
+				index += create_struct(&data[index],5);
+			}
+			index += fill_TSA(&data[index],(INT8U *)&trans.plan[i].addr.addr[1],trans.plan[i].addr.addr[0]);
+			index += fill_long_unsigned(&data[index],trans.plan[i].befscript);
+			index += fill_long_unsigned(&data[index],trans.plan[i].aftscript);
+			index += create_struct(&data[index],4);					//方案控制标志：struct 4个元素
+			index += fill_bool(&data[index],trans.plan[i].planflag.waitnext);
+			index += fill_long_unsigned(&data[index],trans.plan[i].planflag.overtime);
+			index += fill_enum(&data[index],trans.plan[i].planflag.resultflag);
+			index += create_struct(&data[index],3);					//结果比对参数：struct 3个元素
+			index += fill_unsigned(&data[index],trans.plan[i].planflag.resultpara.featureByte);
+			index += fill_long_unsigned(&data[index],trans.plan[i].planflag.resultpara.interstart);
+			index += fill_long_unsigned(&data[index],trans.plan[i].planflag.resultpara.interlen);
+			index += create_array(&data[index],trans.plan[i].datanum);//方案报文集
+			for(j=0;j<trans.plan[i].datanum;j++) {
+				index += create_struct(&data[index],2);
+				index += fill_unsigned(&data[index],trans.plan[i].data[j].datano);
+				index += fill_octet_string(&data[index],(char *)&trans.plan[i].data[j].data[1],trans.plan[i].data[j].data[0]);
+			}
+		}
+		index += fill_long_unsigned(&data[index],trans.savedepth);
 	}
 	return index;
 }

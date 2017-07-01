@@ -75,7 +75,7 @@ static void ClientForGprsRead(struct aeEventLoop *eventLoop, int fd, void *clien
         bufsyslog(nst->RecBuf, "客户端[GPRS]接收:", nst->RHead, nst->RTail, BUFLEN);
         gpofun("gpoREMOTE_RED", 0);
 
-        for (int k = 0; k < 5; k++) {
+        for (int k = 0; k < 50; k++) {
             int len = 0;
             for (int i = 0; i < 5; i++) {
                 len = StateProcess(nst, 10);
@@ -88,6 +88,7 @@ static void ClientForGprsRead(struct aeEventLoop *eventLoop, int fd, void *clien
             }
 
             if (len > 0) {
+            	len = 0;
                 int apduType = ProcessData(nst);
                 fprintf(stderr, "apduType=%d\n", apduType);
                 ConformAutoTask(eventLoop, nst, apduType);
