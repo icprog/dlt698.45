@@ -87,7 +87,8 @@ typedef struct
 	PROXY_GETLIST strProxyList;
 }CJCOMM_PROXY;
 CJCOMM_PROXY cjcommProxy;
-CJCOMM_PROXY cjcommProxy_ZB;
+CJCOMM_PROXY cjcommProxy_plc;
+
 //保存液晶点抄信息的结构体
 typedef struct
 {
@@ -95,6 +96,6 @@ typedef struct
 	Proxy_Msg strProxyMsg;
 }GUI_PROXY;
 GUI_PROXY cjguiProxy;
-GUI_PROXY cjguiProxy_plc;
+GUI_PROXY cjGuiProxy_plc;
 INT8S saveClass6035(CLASS_6035* class6035);
 #endif

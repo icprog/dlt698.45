@@ -326,6 +326,17 @@ INT8U is485OAD(OAD portOAD,INT8U port485)
 	}
 	return 1;
 }
+
+/*
+ * 判断测量点档案的端口是否属于载波
+ * */
+INT8U isPlcOAD(OAD portOAD)
+{
+	if (portOAD.OI == 0xF209)
+		return 1;
+	return 0;
+}
+
 /*
  * 读取table6000 填充info6000  此结构体保存了每一个485口上有那些测量点
  * 抄表是根据此结构体读取测量点信息
@@ -778,11 +789,26 @@ void timeProcess()
 INT8S dealMsgProcess()
 {
 	INT8S result = 0;
+
+	//TODO
+	//需要增加载波和485代理操作的统一操作接口,
+	//按照点抄或主站的测量点所在端口来决定由
+	//哪个接口的线程来操作
+	//目前的方式, 485和载波的代理请求互相影响, 不合理
 	if((cjcommProxy.isInUse != 0) ||(cjguiProxy.isInUse != 0))
 	{
 		fprintf(stderr,"\n ％％％％％％％％％％％％cjcommProxy.isInUse = %d cjguiProxy.isInUse = %d\n",cjcommProxy.isInUse,cjguiProxy.isInUse);
 		return 	result;
 	}
+
+	if((cjcommProxy_plc.isInUse != 0) ||(cjcommProxy_plc.isInUse != 0))
+	{
+		fprintf(stderr,"\n$$$$$$$$$$$$$$cjcommProxy_ZB.isInUse = %d cjguiProxy_plc.isInUse = %d\n",cjcommProxy_plc.isInUse,cjGuiProxy_plc.isInUse);
+		return 	result;
+	}
+
+	//////////////////////////////////////////
+
 	GUI_PROXY cjguiProxy_Tmp;
 	CJCOMM_PROXY cjcommProxy_Tmp;
 	INT8U  rev_485_buf[2048];
@@ -796,14 +822,15 @@ INT8S dealMsgProcess()
 		switch(mq_h.cmd)
 		{
 			case ProxyGetResponseList://代理
-			{
+			{//TODO 按照测量点来复制对应的TSA给对应的全局变量
+			 //cjcommProxy, cjcommProxy_plc, cjguiProxy, cjGuiProxy_plc;
 
 				if(mq_h.pid == cjdeal)
 				{
 					DEBUG_TIME_LINE("\n收到代理召测\n");
 
-					memcpy(&cjcommProxy_ZB.strProxyList,rev_485_buf,sizeof(PROXY_GETLIST));
-					cjcommProxy_ZB.isInUse = 1;
+					memcpy(&cjcommProxy_plc.strProxyList,rev_485_buf,sizeof(PROXY_GETLIST));
+					cjcommProxy_plc.isInUse = 1;
 
 					if(cjcommProxy.isInUse == 0)
 					{
@@ -822,10 +849,10 @@ INT8S dealMsgProcess()
 					memcpy(&cjguiProxy_Tmp.strProxyMsg,rev_485_buf,sizeof(Proxy_Msg));
 					if (cjguiProxy_Tmp.strProxyMsg.port.OI== PORT_ZB)
 					{
-						if (cjguiProxy_plc.isInUse ==0 )
+						if (cjGuiProxy_plc.isInUse ==0 )
 						{
-							memcpy(&cjguiProxy_plc,&cjguiProxy_Tmp,sizeof(cjguiProxy_plc));//如果点抄的是载波测量点，消息变量转存
-							cjguiProxy_plc.isInUse = 1;
+							memcpy(&cjGuiProxy_plc,&cjguiProxy_Tmp,sizeof(cjGuiProxy_plc));//如果点抄的是载波测量点，消息变量转存
+							cjGuiProxy_plc.isInUse = 1;
 						}
 					}else
 					{

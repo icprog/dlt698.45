@@ -1009,16 +1009,16 @@ void get_local_time(char* buf, INT32U bufSize)
 			timeinfo.Hour,	timeinfo.Minute, timeinfo.Sec);
 }
 
-void debug(int fd,  const char* file, const char* func, INT32U line, const char *fmt, ...)
+void debug(const char* file, const char* func, INT32U line, const char *fmt, ...)
 {
 	va_list ap;
 	char bufTime[20] = { 0 };
 	get_local_time(bufTime, sizeof(bufTime));
-	fprintf(fd, "[%s][%s][%s()][%d]: ", bufTime, file, func, line);
+	fprintf(stderr, "[%s][%s][%s()][%d]: ", bufTime, file, func, line);
 	va_start(ap, fmt);
-	vfprintf(fd, fmt, ap);
+	vfprintf(stderr, fmt, ap);
 	va_end(ap);
-	fprintf(fd, "\n");
+	fprintf(stderr, "\n");
 }
 
 /*

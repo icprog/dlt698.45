@@ -35,7 +35,7 @@ extern  INT16U data07Tobuff698(FORMAT07 Data07,INT8U* dataContent);
 extern INT8U checkMeterType(MY_MS mst,INT8U usrType,TSA usrAddr);
 extern mqd_t mqd_zb_task;
 extern CJCOMM_PROXY cjcommProxy;
-extern GUI_PROXY cjguiProxy_plc;
+extern GUI_PROXY cjGuiProxy_plc;
 extern Proxy_Msg* p_Proxy_Msg_Data;//液晶给抄表发送代理处理结构体，指向由guictrl.c配置的全局变量
 extern TASK_CFG list6013[TASK6012_MAX];
 //-----------------------------------------------------------------------------------------------------------------------------------------------------
@@ -1839,6 +1839,65 @@ int doTask(RUNTIME_PLC *runtime_p)
 	}
 	return TASK_PROCESS;
 }
+
+/*
+ * 判断两个TSA是否相等
+ * @pT1: 第1个TSA
+ * @pT2: 第2个TSA
+ * $return: 相等返回1, 不相等返回0
+ */
+INT8U tsaEqual(TSA* pT1, TSA* pT2)
+{
+	int i=0;
+
+	for(i=0;i<TSA_LEN;i++)
+		if(pT1->addr[i] != pT2->addr[i])
+			return 0;
+	return 1;
+}
+
+/*
+ * 根据给定的测量点TSA, 得到这个测量点的抄表端口信息
+ * @pTsa: 给定的测量点的TSA
+ * @pOI: 端口的标识
+ * @pPort: 端口内部索引, 如485-1或485-2
+ * $return: 找到返回1, 没找到返回0
+ */
+INT8U getOADPortByTSA(TSA* pTsa, OAD* pOAD)
+{
+	if(NULL == pTsa || NULL == pOAD)
+		return 0;
+	CLASS_6001 meter = { };
+	int i = 0;
+	OI_698 oi = (OI_698)0x6000;
+	int recordnum = getFileRecordNum(oi);
+
+	for(i=0; i < recordnum; i++) {
+		readParaClass(oi, &meter,i);
+		if(tsaEqual(pTsa, &(meter.basicinfo.addr))) {
+			memcpy(pOAD, &(meter.basicinfo.port), sizeof(OAD));
+			return 1;
+		}
+	}
+	return 0;
+}
+
+/*
+ * 根据给定的tsa判断这个测量点
+ * 是否挂载于载波端口
+ * @pTsa: 给定的测量点的TSA
+ * $return: 0-测量点不挂载在载波端口
+ * 			1-测量点挂载在载波端口
+ */
+INT8U isPlcMeterByTsa(TSA* pTsa)
+{
+	OAD oad = {};
+	getOADPortByTSA(pTsa, &oad);
+	if(oad.OI == 0xF209)
+		return 1;
+	return 0;
+}
+
 int doProxy(RUNTIME_PLC *runtime_p)
 {
 	static int step_cj = 0, beginwork=0;
@@ -1865,29 +1924,29 @@ int doProxy(RUNTIME_PLC *runtime_p)
 			}
 			break;
 		case 1://开始监控载波从节点
-			if (beginwork==0  && cjguiProxy_plc.strProxyMsg.port.OI == 0xf209 && cjguiProxy_plc.isInUse==1 )
+			if (beginwork==0  && cjGuiProxy_plc.strProxyMsg.port.OI == 0xf209 && cjGuiProxy_plc.isInUse==1 )
 			{//发送点抄
 				DbgPrintToFile1(31,"dealGuiRead 处理液晶点抄 :%02x%02x%02x%02x%02x%02x%02x%02x 波特率=%d protocol=%d 端口号=%04x%02x%02x 规约类型=%d 数据标识=%04x"
-						,cjguiProxy_plc.strProxyMsg.addr.addr[0],cjguiProxy_plc.strProxyMsg.addr.addr[1],cjguiProxy_plc.strProxyMsg.addr.addr[2],cjguiProxy_plc.strProxyMsg.addr.addr[3]
-						,cjguiProxy_plc.strProxyMsg.addr.addr[4],cjguiProxy_plc.strProxyMsg.addr.addr[5],cjguiProxy_plc.strProxyMsg.addr.addr[6],cjguiProxy_plc.strProxyMsg.addr.addr[7]
-						,cjguiProxy_plc.strProxyMsg.baud,cjguiProxy_plc.strProxyMsg.protocol,cjguiProxy_plc.strProxyMsg.port.OI,cjguiProxy_plc.strProxyMsg.port.attflg,cjguiProxy_plc.strProxyMsg.port.attrindex
-						,cjguiProxy_plc.strProxyMsg.protocol,cjguiProxy_plc.strProxyMsg.oi);
+						,cjGuiProxy_plc.strProxyMsg.addr.addr[0],cjGuiProxy_plc.strProxyMsg.addr.addr[1],cjGuiProxy_plc.strProxyMsg.addr.addr[2],cjGuiProxy_plc.strProxyMsg.addr.addr[3]
+						,cjGuiProxy_plc.strProxyMsg.addr.addr[4],cjGuiProxy_plc.strProxyMsg.addr.addr[5],cjGuiProxy_plc.strProxyMsg.addr.addr[6],cjGuiProxy_plc.strProxyMsg.addr.addr[7]
+						,cjGuiProxy_plc.strProxyMsg.baud,cjGuiProxy_plc.strProxyMsg.protocol,cjGuiProxy_plc.strProxyMsg.port.OI,cjGuiProxy_plc.strProxyMsg.port.attflg,cjGuiProxy_plc.strProxyMsg.port.attrindex
+						,cjGuiProxy_plc.strProxyMsg.protocol,cjGuiProxy_plc.strProxyMsg.oi);
 				beginwork = 1;
 				nodetmp = NULL;
-				nodetmp = getNodeByTSA(tsa_head,cjguiProxy_plc.strProxyMsg.addr) ;
+				nodetmp = getNodeByTSA(tsa_head,cjGuiProxy_plc.strProxyMsg.addr) ;
 				clearvar(runtime_p);
 				if( nodetmp != NULL )
 				{
 					DbgPrintToFile1(31,"发送点抄报文");
 					memcpy(runtime_p->format_Down.addr.SourceAddr,runtime_p->masteraddr,6);
-					sendlen = buildProxyFrame(runtime_p,nodetmp,cjguiProxy_plc.strProxyMsg);
+					sendlen = buildProxyFrame(runtime_p,nodetmp,cjGuiProxy_plc.strProxyMsg);
 					SendDataToCom(runtime_p->comfd, runtime_p->sendbuf,sendlen );
 				}
 				runtime_p->send_start_time = nowtime;
 			}
 			else if ((runtime_p->format_Up.afn == 0x13 && runtime_p->format_Up.fn == 1 ))
 			{//收到应答数据，或超时10秒，
-				cjguiProxy_plc.isInUse = 0;
+				cjGuiProxy_plc.isInUse = 0;
 				beginwork = 0;
 				saveProxyData(runtime_p->format_Up);
 				memset(&runtime_p->format_Up,0,sizeof(runtime_p->format_Up));
@@ -1895,7 +1954,7 @@ int doProxy(RUNTIME_PLC *runtime_p)
 			}else if ((nowtime - runtime_p->send_start_time > 20  ) && beginwork==1)
 			{
 				DbgPrintToFile1(31,"单次点抄超时");
-				cjguiProxy_plc.isInUse = 0;
+				cjGuiProxy_plc.isInUse = 0;
 				beginwork = 0;
 			}
 			else if( nowtime - runtime_p->send_start_time > 100  )
@@ -2133,7 +2192,7 @@ int stateJuge(int nowdstate,INT8U* my6000_p,RUNTIME_PLC *runtime_p)
 	//-------------------------------------------------------------------------------------------------------------------------
 	//if ( judgebit(cjguiProxy.isInUse ,2) && cjguiProxy.strProxyMsg.port.OI == 0xf209 &&
 	//	 state!=DATE_CHANGE && state!=DATA_REAL)
-	if (cjguiProxy_plc.isInUse ==1 && cjguiProxy_plc.strProxyMsg.port.OI == 0xf209 && state!=DATE_CHANGE && state!=DATA_REAL)
+	if (cjGuiProxy_plc.isInUse ==1 && cjGuiProxy_plc.strProxyMsg.port.OI == 0xf209 && state!=DATE_CHANGE && state!=DATA_REAL)
 	{	//出现液晶点抄载波表标识，并且不在初始化和点抄状态
 		DbgPrintToFile1(31,"\n载波收到点抄消息 需要处理 %04x ",cjguiProxy.strProxyMsg.port.OI);
 		runtime_p->state_bak = runtime_p->state;
@@ -2143,7 +2202,7 @@ int stateJuge(int nowdstate,INT8U* my6000_p,RUNTIME_PLC *runtime_p)
 		return DATA_REAL;
 	}
 
-	if (cjcommProxy_ZB.isInUse ==1 && state!=DATE_CHANGE && state!=DATA_REAL)
+	if (cjcommProxy_plc.isInUse ==1 && state!=DATE_CHANGE && state!=DATA_REAL)
 	{	//出现液晶点抄载波表标识，并且不在初始化和点抄状态
 		DbgPrintToFile1(31,"\n载波收到点抄消息 需要处理 %04x ",cjguiProxy.strProxyMsg.port.OI);
 		// && cjcommProxy_ZB. == 0xf209
@@ -2177,9 +2236,7 @@ void readplc_thread()
 	system("rm /nand/para/plcrecord.par  /nand/para/plcrecord.bak");
 	DbgPrintToFile1(31,"2-fangAn6015[%d].sernum = %d  fangAn6015[%d].mst.mstype = %d ",
 			0,fangAn6015[0].sernum,0,fangAn6015[0].mst.mstype);
-	DbgPrintToFile1(31,"\n[%s][%s()][%d]\n", __FILE__,__FUNCTION__,__LINE__);
 	PrintTaskInfo2(&taskinfo);
-	DbgPrintToFile1(31,"\n[%s][%s()][%d]\n", __FILE__,__FUNCTION__,__LINE__);
 	DbgPrintToFile1(31,"载波线程开始");
 	runtimevar.format_Down.info_down.ReplyBytes = 0x28;
 
