@@ -87,6 +87,7 @@ typedef struct
 	PROXY_GETLIST strProxyList;
 }CJCOMM_PROXY;
 CJCOMM_PROXY cjcommProxy;
+CJCOMM_PROXY cjcommProxy_ZB;
 //保存液晶点抄信息的结构体
 typedef struct
 {

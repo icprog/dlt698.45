@@ -93,19 +93,19 @@ void bu_report(TS ts1,TS ts2,INT8U retaskid,INT8U *saveflg)
 
 //	extendcsds(class601d.reportdata.data.recorddata.csds,&item_road);
 //	memset(&item_road,0,sizeof(item_road));
-	if((taskid = GetTaskidFromCSDs(class601d.reportdata.data.recorddata.csds,&item_road,1)) == 0) {//暂时不支持招测的不在一个采集方案
-		system("rm /nand/reportdata");
-		fprintf(stderr,"GetTaskData: taskid=%d\n",taskid);
-		if(tk_fp!=NULL)
-			fclose(tk_fp);
-		if(fr_fp!=NULL)
-			fclose(fr_fp);
-		if(tsa_group != NULL)
-			free(tsa_group);
-		if(headunit!=NULL)
-			free(headunit);
-		return;
-	}
+//	if((taskid = GetTaskidFromCSDs(class601d.reportdata.data.recorddata.csds,&item_road,1)) == 0) {//暂时不支持招测的不在一个采集方案
+//		system("rm /nand/reportdata");
+//		fprintf(stderr,"GetTaskData: taskid=%d\n",taskid);
+//		if(tk_fp!=NULL)
+//			fclose(tk_fp);
+//		if(fr_fp!=NULL)
+//			fclose(fr_fp);
+//		if(tsa_group != NULL)
+//			free(tsa_group);
+//		if(headunit!=NULL)
+//			free(headunit);
+//		return;
+//	}
 
 	memset(filename,0x00,sizeof(filename));
 	sprintf(filename,"/nand/task/%03d/%04d%02d%02d.dat",taskid,ts1.Year,ts1.Month,ts1.Day);
