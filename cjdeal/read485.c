@@ -1231,6 +1231,9 @@ INT8U getASNInfo(FORMAT07* DI07,Base_DataType* dataType)
 		INT8U tmpIndex = 0;
 		for(tmpIndex = 0;tmpIndex < unitNum;tmpIndex++)
 		{
+			xuliangdata[tmpIndex*15] = 0x02;
+			xuliangdata[tmpIndex*15+1] = 0x02;
+			xuliangdata[tmpIndex*15+2] = 0x06;
 			//最大需量
 			if((DI07->Data[tmpIndex*8]==0xff)&&(DI07->Data[tmpIndex*8+1]==0xff)&&(DI07->Data[tmpIndex*8+2]==0xff))
 			{
