@@ -93,19 +93,19 @@ void bu_report(TS ts1,TS ts2,INT8U retaskid,INT8U *saveflg)
 
 //	extendcsds(class601d.reportdata.data.recorddata.csds,&item_road);
 //	memset(&item_road,0,sizeof(item_road));
-	if((taskid = GetTaskidFromCSDs(class601d.reportdata.data.recorddata.csds,&item_road,1)) == 0) {//暂时不支持招测的不在一个采集方案
-		system("rm /nand/reportdata");
-		fprintf(stderr,"GetTaskData: taskid=%d\n",taskid);
-		if(tk_fp!=NULL)
-			fclose(tk_fp);
-		if(fr_fp!=NULL)
-			fclose(fr_fp);
-		if(tsa_group != NULL)
-			free(tsa_group);
-		if(headunit!=NULL)
-			free(headunit);
-		return;
-	}
+//	if((taskid = GetTaskidFromCSDs(class601d.reportdata.data.recorddata.csds,&item_road,1)) == 0) {//暂时不支持招测的不在一个采集方案
+//		system("rm /nand/reportdata");
+//		fprintf(stderr,"GetTaskData: taskid=%d\n",taskid);
+//		if(tk_fp!=NULL)
+//			fclose(tk_fp);
+//		if(fr_fp!=NULL)
+//			fclose(fr_fp);
+//		if(tsa_group != NULL)
+//			free(tsa_group);
+//		if(headunit!=NULL)
+//			free(headunit);
+//		return;
+//	}
 
 	memset(filename,0x00,sizeof(filename));
 	sprintf(filename,"/nand/task/%03d/%04d%02d%02d.dat",taskid,ts1.Year,ts1.Month,ts1.Day);
@@ -340,7 +340,8 @@ void Test(int argc, char *argv[])
 		 return EXIT_SUCCESS;
     }
     if (strcmp("gettsas", argv[1]) == 0) {
-    	TSA *tsa_group = NULL;
+    	CLASS_6001  *tsa_group = NULL;
+//    	TSA *tsa_group = NULL;
     	MY_MS	ms;
     	int		tsa_num=0;
     	int		i=0,j=0;
@@ -390,9 +391,9 @@ void Test(int argc, char *argv[])
     	case 5:
     		ms.ms.type[0].type = close_open;
     		ms.ms.type[0].begin[0] = dtunsigned;
-    		ms.ms.type[0].begin[1] = 96;
+    		ms.ms.type[0].begin[1] = 31;
     		ms.ms.type[0].end[0] = dtunsigned;
-    		ms.ms.type[0].end[1] = 111;
+    		ms.ms.type[0].end[1] = 43;
     		break;
     	case 7:
     		ms.ms.serial[0].type = close_open;
@@ -406,7 +407,11 @@ void Test(int argc, char *argv[])
     		ms.ms.serial[0].end[2] = seqNum & 0xff;
     		break;
     	}
-    	tsa_num = getTsas(ms,(INT8U **)&tsa_group);
+//    	tsa_num = getTsas(ms,(INT8U **)&tsa_group);
+
+
+    	tsa_num = getOI6001(ms,(INT8U **)&tsa_group);
+
 //    	fprintf(stderr,"get 需要上报的：tsa_num=%d,tsa_group=%p\n",tsa_num,tsa_group);
 //    	for(i=0;i<tsa_num;i++) {
 //    		fprintf(stderr,"\nTSA%d: %d-",i,tsa_group[i].addr[0]);
@@ -417,6 +422,7 @@ void Test(int argc, char *argv[])
     	fprintf(stderr,"\n\ntsa_num = %d\n",tsa_num);
     	for(i=0;i<tsa_num;i++) {
     		printTSA(tsa_group[i]);
+    		fprintf(stderr,"用户类型:%d\n",tsa_group[i].basicinfo.usrtype);
     	}
     	if(tsa_group != NULL)
     		free(tsa_group);

@@ -638,6 +638,7 @@ INT8U findfake6001(INT8U tIndex,CLASS_6001* meter)
 	if(ret == 1)
 	{
 		INT8U portIndex = 0;
+		ret = -1;
 		for(portIndex = 0;portIndex < 2;portIndex++)
 		{
 			for (meterIndex = 0; meterIndex < info6000[portIndex].meterSum; meterIndex++)
@@ -656,7 +657,7 @@ INT8U findfake6001(INT8U tIndex,CLASS_6001* meter)
 			}
 		}
 	}
-	return ret;
+	return -1;
 }
 INT8U createFakeTaskFileHead()
 {
@@ -686,6 +687,8 @@ INT8U createFakeTaskFileHead()
 				continue;
 			}
 
+			if(meter.basicinfo.addr.addr[0]==0)
+				continue;
 			memset(dataContent,0,DATA_CONTENT_LEN);
 			taskinfoflg=0;
 			memset(&tasknor_info,0,sizeof(TASKSET_INFO));
