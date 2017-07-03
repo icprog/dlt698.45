@@ -670,7 +670,7 @@ int doProxyRequest(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
 	switch(getType)
 	{
 		case ProxyGetRequestList:
-			fprintf(stderr,"\n==========\n");
+			fprintf(stderr,"\n====ProxyGetRequestList======\n");
 			Proxy_GetRequestlist(data,csinfo,sendbuf,piid_g.data);
 			break;
 		case ProxyGetRequestRecord:

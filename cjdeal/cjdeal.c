@@ -784,6 +784,7 @@ INT8S dealMsgProcess()
 		return 	result;
 	}
 	GUI_PROXY cjguiProxy_Tmp;
+	CJCOMM_PROXY cjcommProxy_Tmp;
 	INT8U  rev_485_buf[2048];
 	INT32S ret;
 
@@ -799,7 +800,11 @@ INT8S dealMsgProcess()
 
 				if(mq_h.pid == cjdeal)
 				{
-					fprintf(stderr, "\n收到代理召测\n");
+					DEBUG_TIME_LINE("\n收到代理召测\n");
+
+					memcpy(&cjcommProxy_ZB.strProxyList,rev_485_buf,sizeof(PROXY_GETLIST));
+					cjcommProxy_ZB.isInUse = 1;
+
 					if(cjcommProxy.isInUse == 0)
 					{
 						memcpy(&cjcommProxy.strProxyList,rev_485_buf,sizeof(PROXY_GETLIST));

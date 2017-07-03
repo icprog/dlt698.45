@@ -1385,9 +1385,8 @@ void zeroitemflag(TASK_INFO *task)
 	}
 }
 
-int do_5004_type( int taski, int itemi ,INT8U *buf, struct Tsa_Node *desnode)
+int do_5004_type( int taski, int itemi ,INT8U *buf, struct Tsa_Node *desnode, DATA_ITEM  tmpitem)
 {
-	DATA_ITEM  tmpitem;
 	time_t getTheTime;
 	DateTimeBCD timebcd;
 	INT8U item07[4]={0,0,0,0};
@@ -1416,9 +1415,9 @@ int do_5004_type( int taski, int itemi ,INT8U *buf, struct Tsa_Node *desnode)
 	}
 	return sendlen;
 }
-int do_5002_type( int taski, int itemi ,INT8U *buf, struct Tsa_Node *desnode)
+int do_5002_type( int taski, int itemi ,INT8U *buf, struct Tsa_Node *desnode, DATA_ITEM  tmpitem)
 {
-	DATA_ITEM  tmpitem;
+
 	time_t getTheTime;
 	DateTimeBCD timebcd;
 	INT8U item07[4]={0,0,0,0};
@@ -1454,9 +1453,8 @@ int do_5002_type( int taski, int itemi ,INT8U *buf, struct Tsa_Node *desnode)
 
 	return sendlen;
 }
-int do_other_type( int taski, int itemi ,INT8U *buf, struct Tsa_Node *desnode)
+int do_other_type( int taski, int itemi ,INT8U *buf, struct Tsa_Node *desnode, DATA_ITEM  tmpitem)
 {
-	DATA_ITEM  tmpitem;
 	time_t getTheTime;
 	DateTimeBCD timebcd;
 	INT8U item07[4]={0,0,0,0};
@@ -1522,15 +1520,16 @@ int ProcessMeter(INT8U *buf,struct Tsa_Node *desnode)
 	{	//组织抄读报文
 		if (tmpitem.oad1.OI == 0x5002)
 		{
-			sendlen = do_5002_type( taski, itemi , buf, desnode);//负荷记录
+//			sendlen = do_5002_type( taski, itemi , buf, desnode, tmpitem);//负荷记录
+			sendlen = do_other_type( taski, itemi , buf, desnode, tmpitem);//其它数据
 
 		}else if (tmpitem.oad1.OI == 0x5004)
 		{
-			sendlen = do_5004_type( taski, itemi , buf, desnode);//日冻结
+			sendlen = do_5004_type( taski, itemi , buf, desnode, tmpitem);//日冻结
 		}
 		else
 		{
-			sendlen = do_other_type( taski, itemi , buf, desnode);//其它数据
+			sendlen = do_other_type( taski, itemi , buf, desnode, tmpitem);//其它数据
 		}
 	}else
 	{
@@ -1865,7 +1864,6 @@ int doProxy(RUNTIME_PLC *runtime_p)
 				beginwork = 0;
 			}
 			break;
-
 		case 1://开始监控载波从节点
 			if (beginwork==0  && cjguiProxy_plc.strProxyMsg.port.OI == 0xf209 && cjguiProxy_plc.isInUse==1 )
 			{//发送点抄
@@ -1905,10 +1903,13 @@ int doProxy(RUNTIME_PLC *runtime_p)
 				DbgPrintToFile1(31,"100秒超时");
 				clearvar(runtime_p);
 				beginwork = 0;
-				step_cj = 2;
+				step_cj = 3;
 			}
 			break;
-		case 2:
+		case 2://处理主站代理
+
+			break;
+		case 3:
 			if (runtime_p->state_bak == TASK_PROCESS )
 			{
 				if ( nowtime - runtime_p->send_start_time > 20)
@@ -2100,12 +2101,11 @@ void initlist(struct Tsa_Node *head)
 	return;
 }
 
-int stateJuge(int nowdstate,INT8U my6000,RUNTIME_PLC *runtime_p)
+int stateJuge(int nowdstate,INT8U* my6000_p,RUNTIME_PLC *runtime_p)
 {
 	int state = nowdstate;
-	int taskindex = 0;
 
-	if ( dateJudge(&runtime_p->oldts,&runtime_p->nowts) == 1 || JProgramInfo->oi_changed.oi6000 != my6000)
+	if ( dateJudge(&runtime_p->oldts,&runtime_p->nowts) == 1 || JProgramInfo->oi_changed.oi6000 != *my6000_p)
 	{
 		DbgPrintToFile1(31,"\n状态切换到初始化");
 		runtime_p->initflag = 1;
@@ -2113,6 +2113,7 @@ int stateJuge(int nowdstate,INT8U my6000,RUNTIME_PLC *runtime_p)
 		state = DATE_CHANGE;
 		runtime_p->state = state;
 		runtime_p->redo = 1;  //初始化之后需要重启抄读
+		*my6000_p = JProgramInfo->oi_changed.oi6000;
 		return state;
 	}
 
@@ -2142,6 +2143,16 @@ int stateJuge(int nowdstate,INT8U my6000,RUNTIME_PLC *runtime_p)
 		return DATA_REAL;
 	}
 
+	if (cjcommProxy_ZB.isInUse ==1 && state!=DATE_CHANGE && state!=DATA_REAL)
+	{	//出现液晶点抄载波表标识，并且不在初始化和点抄状态
+		DbgPrintToFile1(31,"\n载波收到点抄消息 需要处理 %04x ",cjguiProxy.strProxyMsg.port.OI);
+		// && cjcommProxy_ZB. == 0xf209
+		runtime_p->state_bak = runtime_p->state;
+		runtime_p->state = DATA_REAL;
+		clearvar(runtime_p);
+		runtime_p->redo = 2;	//点抄后需要恢复抄读
+		return DATA_REAL;
+	}
 	if (state == NONE_PROCE && taskinfo.task_n>0)
 	{
 		state = TASK_PROCESS;
@@ -2159,12 +2170,16 @@ void readplc_thread()
 	my6000 = JProgramInfo->oi_changed.oi6000 ;
 	RecvHead = 0;
 	RecvTail = 0;
+
 	initTaskData(&taskinfo);
+
+
 	system("rm /nand/para/plcrecord.par  /nand/para/plcrecord.bak");
 	DbgPrintToFile1(31,"2-fangAn6015[%d].sernum = %d  fangAn6015[%d].mst.mstype = %d ",
 			0,fangAn6015[0].sernum,0,fangAn6015[0].mst.mstype);
-
+	DbgPrintToFile1(31,"\n[%s][%s()][%d]\n", __FILE__,__FUNCTION__,__LINE__);
 	PrintTaskInfo2(&taskinfo);
+	DbgPrintToFile1(31,"\n[%s][%s()][%d]\n", __FILE__,__FUNCTION__,__LINE__);
 	DbgPrintToFile1(31,"载波线程开始");
 	runtimevar.format_Down.info_down.ReplyBytes = 0x28;
 
@@ -2178,7 +2193,7 @@ void readplc_thread()
 		 * 	   状态判断
 		********************************/
 		TSGet(&runtimevar.nowts);
-		state = stateJuge(state,my6000,&runtimevar);
+		state = stateJuge(state, &my6000,&runtimevar);
 
 		/********************************
 		 * 	   状态流程处理
