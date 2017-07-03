@@ -540,27 +540,33 @@ int fill_Data(INT8U type,INT8U *data,INT8U *value)
 ///////////////////////////////////////////////////////////////////////////
 int getArray(INT8U *source,INT8U *dest)		//1
 {
-	dest[0] = source[1];
-	return 2;//source[0] 0x1 (array type)   source[1] =num
+	if(source[0]==dtarray) {
+		dest[0] = source[1];
+		return 2;//source[0] 0x1 (array type)   source[1] =num
+	}else return 0;
 }
 
 int getStructure(INT8U *source,INT8U *dest)		//2
 {
-	if (dest!=NULL)
-		dest[0] = source[1];
-	return 2;//source[0] 0x2 (stru type)   source[1] =num
+	if(source[0]==dtstructure) {
+		if (dest!=NULL)
+			dest[0] = source[1];
+		return 2;//source[0] 0x2 (stru type)   source[1] =num
+	}else return 0;
 }
 
 int getBool(INT8U *source,INT8U *dest)		//3
 {
-	dest[0] = source[1];
-	return 2;//source[0] 0x3 (bool type)   source[1] =value
+	if(source[0]==dtbool) {
+		dest[0] = source[1];
+		return 2;//source[0] 0x3 (bool type)   source[1] =value
+	}else return 0;
 }
 
 int getBitString(INT8U type,INT8U *source,INT8U *dest)   //4
 {
 	int  bits=0,bytes=0;
-	if (type==1 || type==0)
+	if ((type==1 && source[0]==dtbitstring) || (type==0))
 	{
 		bits = source[type];		//位串
 		bytes = bits/8;
@@ -575,11 +581,13 @@ int getBitString(INT8U type,INT8U *source,INT8U *dest)   //4
 
 int getDouble(INT8U *source,INT8U *dest)	//5  and 6
 {
-	dest[0] = source[4];
-	dest[1] = source[3];
-	dest[2] = source[2];
-	dest[3] = source[1];
-	return 5;
+	if(source[0] == dtdoublelong || source[0] == dtdoublelongunsigned) {
+		dest[0] = source[4];
+		dest[1] = source[3];
+		dest[2] = source[2];
+		dest[3] = source[1];
+		return 5;
+	}else return 0;
 }
 
 /*
@@ -587,7 +595,7 @@ int getDouble(INT8U *source,INT8U *dest)	//5  and 6
  */
 int getOctetstring(INT8U type,INT8U *source,INT8U *tsa)   //9
 {
-	if (type==1 || type==0)
+	if ((type==1 && (source[0]==dtoctetstring || source[0]==dttsa) ) || type==0)
 	{
 		INT8U num = source[type];//字节数
 		if(num>TSA_LEN) {		//todo: 定义 OCTET_STRING_LEN也会调用该函数
@@ -602,20 +610,24 @@ int getOctetstring(INT8U type,INT8U *source,INT8U *tsa)   //9
 
 int getVisibleString(INT8U *source,INT8U *dest)	//0x0A
 {
-	int	len=VISIBLE_STRING_LEN-1;
-	if(source[1]<VISIBLE_STRING_LEN) {
-		len = source[1]+1;			// source[0]表示类型，source[1]表示长度，字符串长度加 长度字节本身
-	}else {
-		asyslog(LOG_ERR,"VisibleString (%d) over %d\n",(source[1]+1),VISIBLE_STRING_LEN);
-	}
-	memcpy(&dest[0],&source[1],len);
-	return (len+1);			//+1:类型
+	if(source[0] == dtvisiblestring) {
+		int	len=VISIBLE_STRING_LEN-1;
+		if(source[1]<VISIBLE_STRING_LEN) {
+			len = source[1]+1;			// source[0]表示类型，source[1]表示长度，字符串长度加 长度字节本身
+		}else {
+			asyslog(LOG_ERR,"VisibleString (%d) over %d\n",(source[1]+1),VISIBLE_STRING_LEN);
+		}
+		memcpy(&dest[0],&source[1],len);
+		return (len+1);			//+1:类型
+	}else return 0;
 }
 
 int getUnsigned(INT8U *source,INT8U *dest)	//0x11
 {
-	dest[0] = source[1];
-	return 2;//source[0] 0x11(unsigned type)   source[1] =data
+	if(source[0] == dtunsigned) {
+		dest[0] = source[1];
+		return 2;//source[0] 0x11(unsigned type)   source[1] =data
+	}else return 0;
 }
 
 int getLongUnsigned(INT8U *source,INT8U *dest)	//0x12
@@ -630,7 +642,7 @@ int getLongUnsigned(INT8U *source,INT8U *dest)	//0x12
 
 int getEnum(INT8U type,INT8U *source,INT8U *enumvalue)	//0x16
 {
-	if (type==1 || type==0)
+	if ((type==1 && source[0]==dtenum) || (type==0))
 	{
 		*enumvalue = source[type];
 		return (1 + type);
@@ -640,7 +652,7 @@ int getEnum(INT8U type,INT8U *source,INT8U *enumvalue)	//0x16
 
 int getTime(INT8U type,INT8U *source,INT8U *dest) 	//0x1B
 {
-	if((type == 1) || (type == 0)) {
+	if((type == 1 && source[0] == dttime) || (type == 0)) {
 		dest[0] = source[type+0];//时
 		dest[1] = source[type+1];//分
 		dest[2] = source[type+2];//秒
@@ -654,7 +666,7 @@ int getTime(INT8U type,INT8U *source,INT8U *dest) 	//0x1B
  */
 int getDateTimeS(INT8U type,INT8U *source,INT8U *dest)		//0x1C
 {
-	if((type == 1) || (type == 0)) {
+	if((type == 1 && source[0]==dtdatetimes) || (type == 0)) {
 		dest[1] = source[type+0];//年
 		dest[0] = source[type+1];
 		dest[2] = source[type+2];//月
@@ -669,7 +681,7 @@ int getDateTimeS(INT8U type,INT8U *source,INT8U *dest)		//0x1C
 
 int getOI(INT8U type,INT8U *source,OI_698 oi)		//0x50
 {
-	if((type == 1) || (type == 0)) {
+	if((type == 1 && source[0]==dtoi) || (type == 0)) {
 		oi = source[type];
 		oi = (oi<<8) + source[type+1];
 		return (type+2);
@@ -679,7 +691,7 @@ int getOI(INT8U type,INT8U *source,OI_698 oi)		//0x50
 
 int getOAD(INT8U type,INT8U *source,OAD *oad)		//0x51
 {
-	if((type == 1) || (type == 0)) {
+	if((type == 1 && source[0]==dtoad) || (type == 0)) {
 		oad->OI = source[type];
 		oad->OI = (oad->OI <<8) | source[type+1];
 		oad->attflg = source[type+2];
@@ -694,31 +706,34 @@ int getROAD(INT8U *source,ROAD *dest)		//0x52
 	INT8U oadtmp[4]={};
 	int i=0,oadnum=0,index=1;
 
-	memset(oadtmp,0,4);
-	oadtmp[0] = source[index+1];
-	oadtmp[1] = source[index+0];
-	oadtmp[2] = source[index+2];
-	oadtmp[3] = source[index+3];
-	memcpy(&dest->oad,oadtmp,4);//source[0] == ROAD type (0x52)
-	index += 4;
-	dest->num = source[index++];
-	oadnum = dest->num;
-	memset(oadtmp,0,4);
-	for(i=0; i<oadnum;i++)
-	{
+	if(source[0]==dtroad) {
+		memset(oadtmp,0,4);
 		oadtmp[0] = source[index+1];
 		oadtmp[1] = source[index+0];
 		oadtmp[2] = source[index+2];
 		oadtmp[3] = source[index+3];
-		memcpy(&dest->oads[i],oadtmp,4);
-		index +=4;
+		memcpy(&dest->oad,oadtmp,4);//source[0] == ROAD type (0x52)
+		index += 4;
+		dest->num = source[index++];
+		oadnum = dest->num;
+		memset(oadtmp,0,4);
+		for(i=0; i<oadnum;i++)
+		{
+			oadtmp[0] = source[index+1];
+			oadtmp[1] = source[index+0];
+			oadtmp[2] = source[index+2];
+			oadtmp[3] = source[index+3];
+			memcpy(&dest->oads[i],oadtmp,4);
+			index +=4;
+		}
+		return index;
 	}
-	return index;
+	return 0;
 }
 
 int getTI(INT8U type,INT8U *source,TI *ti)	//0x54
 {
-	if((type==1) || (type==0)) {
+	if((type==1 && source[0]==dtti) || (type==0)) {
 		ti->units = source[type];//单位
 		ti->interval = source[type+1];	//long unsigned数值
 		ti->interval = (ti->interval <<8) | source[type+2];//

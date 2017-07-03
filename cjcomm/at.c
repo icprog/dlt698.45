@@ -487,7 +487,7 @@ int absoluteKill(char *name, int timeout) {
             char command[64];
             memset(command, 0x00, sizeof(command));
             sprintf(command, "kill %d", pids[0]);
-            if( i % 3 == 0) {
+            if (i % 3 == 0) {
                 system(command);
                 asyslog(LOG_INFO, "正在停止进程[%s],进程号[%d],使用的终止命令[%s]", name, pids[0], command);
             }
@@ -511,7 +511,7 @@ void *ATWorker(void *args) {
             goto wait;
         }
 
-        if(atCounts > 15) {
+        if (atCounts > 15) {
             atCounts = 0;
             asyslog(LOG_ALERT, "发现15次拨号不成功，开始异常处理...");
             asyslog(LOG_ALERT, "关闭模块电源(30秒)...");
@@ -642,8 +642,8 @@ void *ATWorker(void *args) {
 
             int k, l, m;
 //            if (sscanf(Mrecvbuf, "%*[^:]: %d,%d,%d", &k, &l, &m) == 3) {
-            if (sscanf(Mrecvbuf, "%*[^:]: %d,%d%*[^]", &k, &l) == 2) {	//接收到AT命令:AT$MYTYPE?$MYTYPE: 03,3F,00OK
-            	fprintf(stderr,"k=%x,l=%x,m=%x",k,l,m);
+            if (sscanf(Mrecvbuf, "%*[^:]: %d,%d%*[^]", &k, &l) == 2) {    //接收到AT命令:AT$MYTYPE?$MYTYPE: 03,3F,00OK
+                fprintf(stderr, "k=%x,l=%x,m=%x", k, l, m);
                 if ((l & 0x01) == 1) {
                     asyslog(LOG_INFO, "远程通信单元类型为GPRS。\n");
                     break;
@@ -729,6 +729,7 @@ void *ATWorker(void *args) {
         };
 
         int callType = 1;
+        SetWireLessType(1);
 
         for (int timeout = 0; timeout < 50; timeout++) {
             char Mrecvbuf[128];
@@ -745,12 +746,33 @@ void *ATWorker(void *args) {
                 for (int i = 0; i < 2; i++) {
                     if (strncmp(cimiType[i], cimi, 5) == 0) {
                         callType = 3;
+                        SetWireLessType(3);
                         break;
                     }
                 }
                 break;
             }
         }
+
+        for (int timeout = 0; timeout < 5; timeout++) {
+            char Mrecvbuf[128];
+
+            SendATCommand("\rAT+QNWINFO\r", 12, sMux0);
+            delay(1000);
+            memset(Mrecvbuf, 0, 128);
+            RecieveFromComm(Mrecvbuf, 128, sMux0);
+            if (strstr(Mrecvbuf, "TDD LTE") != NULL) {
+                asyslog(LOG_INFO, "TDD LTE模式在线");
+                SetWireLessType(2);
+                break;
+            }
+            if (strstr(Mrecvbuf, "FDD LTE") != NULL) {
+                asyslog(LOG_INFO, "FDD LTE模式在线");
+                SetWireLessType(3);
+                break;
+            }
+        }
+
         close(sMux0);
 
         if (GetOnlineType() != 0) {
@@ -762,11 +784,11 @@ void *ATWorker(void *args) {
          */
         if (callType == 1) {
             asyslog(LOG_INFO, "拨号类型：GPRS\n");
-            SetWireLessType(1);
+//            SetWireLessType(1);
             system("pppd call gprs &");
         } else {
             asyslog(LOG_INFO, "拨号类型：CDMA2000\n");
-            SetWireLessType(2);
+//            SetWireLessType(2);
             system("pppd call cdma2000 &");
         }
 
@@ -777,7 +799,7 @@ void *ATWorker(void *args) {
                 CLASS25 class25_temp;
                 readCoverClass(0x4500, 0, &class25_temp, sizeof(CLASS25), para_vari_save);
                 fprintf(stderr, "刷新4500数据（2）");
-                memcpy(class25_temp.ccid, class25->ccid , sizeof(32));
+                memcpy(class25_temp.ccid, class25->ccid, sizeof(32));
                 class25_temp.signalStrength = class25->signalStrength;
                 SetPPPDStatus(1);
                 saveCoverClass(0x4500, 0, &class25_temp, sizeof(CLASS25), para_vari_save);
