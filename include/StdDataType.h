@@ -219,6 +219,15 @@ typedef union {//control code
 	} ctl;
 } ctlUN;
 
+typedef union {//server address's length word
+	INT8U u8b;//convenient to set value to 0
+	struct {//only for little endian mathine!
+		INT8U saLen		: 4;//server address's length
+		INT8U logicAddr	: 2;//logic addr
+		INT8U saType	: 2;//server address's type, 0 - single, 1 - wildcard, 2 - group，3 - broadcast.
+	} sa;
+} saUN;
+
 typedef struct
 {
 	INT8U sa_type;		//服务器地址类型	0:单地址   1:通配地址   2：组地址   3：广播地址
