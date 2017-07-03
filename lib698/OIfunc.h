@@ -26,6 +26,7 @@ extern int Get_6001(INT8U type,INT16U seqnum, INT8U* data);
 extern int Get_6013(INT8U type,INT8U taskid,INT8U *data);
 extern int Get_6015(INT8U type,INT8U seqnum, INT8U* data);
 extern int Get_6017(INT8U type,INT8U seqnum,INT8U *data);
+extern int Get_6019(INT8U type,INT8U seqnum,INT8U *data);
 extern int Get_6035(INT8U type,INT8U seqnum, INT8U* data);
 extern int Get_601D(INT8U type,INT8U seqnum,INT8U *data);
 

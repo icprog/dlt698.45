@@ -911,8 +911,8 @@ void printrecord(RESULT_RECORD record)
  * */
 int getSel_Data(INT8U type,INT8U *seldata,INT8U *destdata)
 {
-	int ret=-1;
-	int	DAR=success;
+	int 	ret=-1;
+	INT8U	DAR=success;
 	fprintf(stderr,"getSel_Data type=%02x\n",type);
 	switch(type) {
 	case dtnull:
