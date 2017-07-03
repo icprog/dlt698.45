@@ -274,6 +274,7 @@ int main(int argc, char *argv[]) {
         dog_feed(argv[1]);
         return EXIT_SUCCESS;
     }
+
     if (strcmp("help", argv[1]) == 0) {
         prthelp();
         return EXIT_SUCCESS;
