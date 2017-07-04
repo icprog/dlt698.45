@@ -19,7 +19,7 @@ extern ProgramInfo *memp;
 
 void printDataTimeS(char *pro,DateTimeBCD datetimes)
 {
-	fprintf(stderr,"[%s]: %04d:%02d:%02d %02d:%02d:%02d\n",pro,datetimes.year.data,datetimes.month.data,datetimes.day.data,
+	fprintf(stderr,"[%s]: %04d-%02d-%02d %02d:%02d:%02d\n",pro,datetimes.year.data,datetimes.month.data,datetimes.day.data,
 			datetimes.hour.data,datetimes.min.data,datetimes.sec.data);
 }
 
@@ -388,6 +388,9 @@ int fill_CSD(INT8U type,INT8U *data,MY_CSD csd)		//0x5b
 		data[index++] = dtcsd;
 	}
 	data[index++] = csd.type;
+
+	fprintf(stderr,"csd.type = %d\n",csd.type);
+
 	if(csd.type == 0) {	//oad
 		index += create_OAD(0,&data[index],csd.csd.oad);
 	}else if(csd.type == 1) {	//road
@@ -494,12 +497,15 @@ int fill_RCSD(INT8U type,INT8U *data,CSD_ARRAYTYPE csds)		//0x60
 	if(num==0) {		//OAD  RCSD=0,即sequence of数据个数=0，表示不选择，国网台体测试终端编程事件时，读取上1次编程事件记录，RCSD=0，应答帧oad不应在此处填写
 //		index += create_OAD(0,&data[index],csds.csd[0].csd.oad);
 	}else {				//RCSD		SEQUENCE OF CSD
+//		fprintf(stderr,"RCSD num = %d\n",num);
 		data[index++] = num;
 		for(i=0;i<num;i++)
 		{
 			index += fill_CSD(0,&data[index],csds.csd[i]);
+//			fprintf(stderr,"index[%d]=%d\n",i,index);
 		}
 	}
+//	fprintf(stderr,"index=%d\n",index);
 	return index;
 }
 
@@ -593,9 +599,9 @@ int getDouble(INT8U *source,INT8U *dest)	//5  and 6
 /*
  *  type ==1 存在类型字节
  */
-int getOctetstring(INT8U type,INT8U *source,INT8U *tsa)   //9
+int getOctetstring(INT8U type,INT8U *source,INT8U *tsa)   //9  and  0x55
 {
-	if ((type==1 && (source[0]==dtoctetstring || source[0]==dttsa) ) || type==0)
+	if ((type==1 && (source[0]==dtoctetstring || source[0]==dttsa)) || type==0)
 	{
 		INT8U num = source[type];//字节数
 		if(num>TSA_LEN) {		//todo: 定义 OCTET_STRING_LEN也会调用该函数
@@ -622,12 +628,15 @@ int getVisibleString(INT8U *source,INT8U *dest)	//0x0A
 	}else return 0;
 }
 
-int getUnsigned(INT8U *source,INT8U *dest)	//0x11
+int getUnsigned(INT8U *source,INT8U *dest,INT8U *DAR)	//0x11
 {
 	if(source[0] == dtunsigned) {
 		dest[0] = source[1];
 		return 2;//source[0] 0x11(unsigned type)   source[1] =data
-	}else return 0;
+	}else {
+		*DAR = type_mismatch;
+		return 0;
+	}
 }
 
 int getLongUnsigned(INT8U *source,INT8U *dest)	//0x12
@@ -660,13 +669,15 @@ int getTime(INT8U type,INT8U *source,INT8U *dest) 	//0x1B
 	}
 	return 0;
 }
+
 /*
  * type: =1 包含类型描述字节
  * 		　=0 不包含类型描述字节
  */
-int getDateTimeS(INT8U type,INT8U *source,INT8U *dest)		//0x1C
+int getDateTimeS(INT8U type,INT8U *source,INT8U *dest,INT8U *DAR)		//0x1C
 {
 	if((type == 1 && source[0]==dtdatetimes) || (type == 0)) {
+		*DAR = check_date((source[type+0]<<8)+source[type+1],source[type+2],source[type+3],source[type+4],source[type+5],source[type+6]);
 		dest[1] = source[type+0];//年
 		dest[0] = source[type+1];
 		dest[2] = source[type+2];//月
@@ -749,7 +760,9 @@ int getTI(INT8U type,INT8U *source,TI *ti)	//0x54
  * */
 int get_Data(INT8U *source,INT8U *dest)
 {
-	int dttype=0,dtlen=0;//,i=0;
+	int dttype=0,dtlen=0,i=0;
+	int index=0;
+	int	arraynum = 0;
 
 	dttype = source[0];
 	fprintf(stderr,"get_Data type=%02x\n",dttype);
@@ -759,8 +772,21 @@ int get_Data(INT8U *source,INT8U *dest)
 		memcpy(&dest[1],&source[1],dtlen);
 		return (dtlen+1);  //+1:dttype
 	}else {
-		fprintf(stderr,"未知数据长度");
-		return 0;
+		if(dttype == dtarray) {		//一致性测试 GET_11处理,为了寻找正确的RCSD，将Selector1异常数据处理结束
+			index++;
+//			fprintf(stderr,"array num = %d\n",source[index]);
+			arraynum = source[index];
+			index++;
+			for(i=0;i<arraynum;i++) {
+				dttype = source[index];
+				dtlen = getDataTypeLen(dttype);
+				index = index + dtlen + 1;
+//				fprintf(stderr,"dtlen = %d  dttype=%d index=%d\n",dtlen,dttype,index);
+			}
+		}
+		dest[0] = 255;
+		fprintf(stderr,"未知数据长度 dtlen = %d\n",dtlen);
+		return index;
 	}
 //	switch(dttype){
 //	case dtunsigned:
@@ -827,6 +853,7 @@ int get_BasicRSD(INT8U type,INT8U *source,INT8U *dest,INT8U *seletype)		//0x5A
 	INT16U source_sumindex=0,source_index=0,dest_index=0;
 	int index = 0,i=0;
 	RSD		rsd={};
+	INT8U	DAR=success;
 
 	int	classtype=0;
 	if(type == 1) {		//有RSD类型描述
@@ -870,7 +897,7 @@ int get_BasicRSD(INT8U type,INT8U *source,INT8U *dest,INT8U *seletype)		//0x5A
 			break;
 		case 4:
 		case 5:
-			index += getDateTimeS(0,&source[index],(INT8U *)&rsd.selec4.collect_star);
+			index += getDateTimeS(0,&source[index],(INT8U *)&rsd.selec4.collect_star,&DAR);
 			fprintf(stderr,"\n--- %02x %02x --",source[1+index],source[1+index+1]);
 			index += getMS(0,&source[index],&rsd.selec4.meters);
 			memcpy(dest,&rsd.selec4,sizeof(rsd.selec4));
@@ -879,8 +906,8 @@ int get_BasicRSD(INT8U type,INT8U *source,INT8U *dest,INT8U *seletype)		//0x5A
 		case 7:
 		case 8:
 //			index++;	//type
-			index += getDateTimeS(0,&source[index],(INT8U *)&rsd.selec6.collect_star);
-			index += getDateTimeS(0,&source[index],(INT8U *)&rsd.selec6.collect_finish);
+			index += getDateTimeS(0,&source[index],(INT8U *)&rsd.selec6.collect_star,&DAR);
+			index += getDateTimeS(0,&source[index],(INT8U *)&rsd.selec6.collect_finish,&DAR);
 			index += getTI(0,&source[index],&rsd.selec6.ti);
 			index += getMS(0,&source[index],&rsd.selec6.meters);
 			memcpy(dest,&rsd.selec6,sizeof(rsd.selec6));
@@ -897,6 +924,7 @@ int get_BasicRSD(INT8U type,INT8U *source,INT8U *dest,INT8U *seletype)		//0x5A
 			memcpy(dest,&rsd.selec10,sizeof(rsd.selec10));
 			break;
 	}
+//	fprintf(stderr,"return index = %d\n",index);
 	return index;
 }
 
@@ -1074,9 +1102,10 @@ int get_BasicRCSD(INT8U type,INT8U *source,CSD_ARRAYTYPE *csds)	//0x60
 		num = MY_CSD_NUM;
 	}
 	csds->num = num;
-	for(i=0;i<num ;i++)
+	for(i=0;i<num;i++)
 	{
 		csds->csd[i].type = source[index++];
+//		fprintf(stderr,"type = %d\n",csds->csd[i].type);
 		if (csds->csd[i].type  == 1)
 		{//road
 			oadtmp[0] = source[index+1];
@@ -1095,8 +1124,7 @@ int get_BasicRCSD(INT8U type,INT8U *source,CSD_ARRAYTYPE *csds)	//0x60
 				index = index +4;
 				memcpy(&csds->csd[i].csd.road.oads[j],oadtmp,4);
 			}
-		}else
-		{//oad  6字节
+		}else 	{//oad  6字节
 			oadtmp[0] = source[index+1];
 			oadtmp[1] = source[index+0];
 			oadtmp[2] = source[index+2];
@@ -1107,7 +1135,6 @@ int get_BasicRCSD(INT8U type,INT8U *source,CSD_ARRAYTYPE *csds)	//0x60
 	}
 	return index;
 }
-
 
 /*
  * 根据数据类型返回相应的数据长度
@@ -1141,6 +1168,8 @@ int getDataTypeLen(int dt)
 		return -1;
 	}
 }
+
+
 /*参数文件修改，改变共享内存的标记值，通知相关进程，参数有改变
  * */
 void setOIChange(OI_698 oi)

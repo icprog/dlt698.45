@@ -144,13 +144,18 @@ typedef enum {
 	K_K=3/*前开后开*/
 }RUN_TIME_TYPE;//运行时段类型
 
-
 typedef enum {
 	BEFORE_OPR=0/*未执行*/,
 	IN_OPR=1/*执行中*/,
 	AFTER_OPR=2/*已执行*/,
 }TASK_STATE;//任务执行状态
 
+typedef enum {
+	MAIN=0,/*主站授时*/
+	TERMINAL=1,/*终端精确校时*/
+	GPS=2,/*北斗/GPS*/
+	OTHER=255/*其它*/
+}OI4000_TYPE;//校时模式
 
 typedef enum {
 	TYPE_NULL=0/*采集当前数据*/,
@@ -324,6 +329,8 @@ typedef struct
 }TI;					/*时间间隔数据类型*/
 typedef struct
 {
+	INT8U		effect;		//有效
+	INT8U		flag;		//时间标签标记
 	DateTimeBCD sendTimeTag;
 	TI ti;
 }TimeTag;				/*时间标签*/

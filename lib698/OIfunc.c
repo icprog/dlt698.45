@@ -14,6 +14,20 @@
 #include "OIfunc.h"
 #include "dlt698.h"
 
+
+int Set_4000(INT8U *data,INT8U *DAR)
+{
+	DateTimeBCD datetime={};
+	int		index=0;
+
+//	DataTimeGet(&datetime);
+	index += getDateTimeS(1,data,(INT8U *)&datetime,DAR);
+	if(*DAR==success) {	//时间合法
+		setsystime(datetime);
+	}
+	sleep(2);		//延时2秒，确保台体测试过程中，修改时间设置成功
+	return index;
+}
 ////////////////////////////////////////////////////////////
 /*
  * 电压合格率
@@ -394,3 +408,4 @@ int GetClass18(INT8U attflg,INT8U *data)
 	}
 	return index;
 }
+

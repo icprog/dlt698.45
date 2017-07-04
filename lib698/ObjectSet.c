@@ -17,6 +17,7 @@
 #include "event.h"
 #include "dlt698.h"
 #include "dlt698def.h"
+#include "OIfunc.h"
 #include "class8.h"
 #include "class23.h"
 
@@ -25,6 +26,7 @@ extern int doGetnormal(INT8U seqOfNum,RESULT_NORMAL *response);
 extern ProgramInfo *memp;
 extern INT8U TmpDataBuf[MAXSIZ_FAM];
 extern INT8U TmpDataBufList[MAXSIZ_FAM*2];
+extern TimeTag	Response_timetag;		//响应的时间标签值
 
 //INT8U prtstat(int flg)
 //{
@@ -43,7 +45,7 @@ INT16U set300F(OAD oad,INT8U *data,INT8U *DAR)
 
 	readCoverClass(oad.OI,0,&tmp300f,sizeof(Event300F_Object),event_para_save);
 	index += getStructure(&data[index],NULL);
-	index += getUnsigned(&data[index],(INT8U *)&tmp300f.offset);
+	index += getUnsigned(&data[index],(INT8U *)&tmp300f.offset,DAR);
 	fprintf(stderr,"\n：300F: 判定延时 =%d\n",tmp300f.offset);
 	*DAR = saveCoverClass(oad.OI,0,&tmp300f,sizeof(Event300F_Object),event_para_save);
 	return index;
@@ -58,7 +60,7 @@ INT16U set3105(OAD oad,INT8U *data,INT8U *DAR)  //属性6
 	fprintf(stderr,"\n[3105]电能表时钟超差事件 阈值=%d 任务号=%d\n",tmp3105.mto_obj.over_threshold,tmp3105.mto_obj.task_no);
 	index += getStructure(&data[index],NULL);
 	index += getLongUnsigned(&data[index],(INT8U *)&tmp3105.mto_obj.over_threshold);
-	index += getUnsigned(&data[index],(INT8U *)&tmp3105.mto_obj.task_no);
+	index += getUnsigned(&data[index],(INT8U *)&tmp3105.mto_obj.task_no,DAR);
 	fprintf(stderr,"\n：属性6 阈值=%d 任务号=%d\n",tmp3105.mto_obj.over_threshold,tmp3105.mto_obj.task_no);
 	*DAR = saveCoverClass(oad.OI,0,&tmp3105,sizeof(Event3105_Object),event_para_save);
 	return index;
@@ -77,8 +79,8 @@ INT16U set3106(OAD oad,INT8U *data,INT8U *DAR)
 		index += getStructure(&data[index],NULL);
 
 		index += getBitString(1,&data[index],&tmpobj.poweroff_para_obj.collect_para_obj.collect_flag);//00
-		index += getUnsigned(&data[index],&tmpobj.poweroff_para_obj.collect_para_obj.time_space);//04
-		index += getUnsigned(&data[index],&tmpobj.poweroff_para_obj.collect_para_obj.time_threshold);//04
+		index += getUnsigned(&data[index],&tmpobj.poweroff_para_obj.collect_para_obj.time_space,DAR);//04
+		index += getUnsigned(&data[index],&tmpobj.poweroff_para_obj.collect_para_obj.time_threshold,DAR);//04
 		INT8U arraysize =0;
 		index += getArray(&data[index],&arraysize);
 		tmpobj.poweroff_para_obj.collect_para_obj.tsaarr.num = arraysize;
@@ -111,7 +113,7 @@ INT16U set310c(OAD oad,INT8U *data,INT8U *DAR)	 //超差  属性6
 	index += getStructure(&data[index],NULL);
 	index += getDouble(&data[index],(INT8U *)&tmp310c.poweroffset_obj.power_offset);
 	fprintf(stderr,"data[index]=%02x %02x \n",data[index],data[index+1]);
-	index += getUnsigned(&data[index],(INT8U *)&tmp310c.poweroffset_obj.task_no);
+	index += getUnsigned(&data[index],(INT8U *)&tmp310c.poweroffset_obj.task_no,DAR);
 	fprintf(stderr,"\n电能量超差事件：属性6 阈值=%x",tmp310c.poweroffset_obj.power_offset);
 	*DAR = saveCoverClass(oad.OI,0,&tmp310c,sizeof(tmp310c),event_para_save);
 	return index;
@@ -126,7 +128,7 @@ INT16U set310d(OAD oad,INT8U *data,INT8U *DAR)	//电能表飞走  属性6
 	fprintf(stderr,"\n[310d]电能表飞走事件 阈值=%d 任务号=%d\n",tmp310d.poweroffset_obj.power_offset,tmp310d.poweroffset_obj.task_no);
 	index += getStructure(&data[index],NULL);
 	index += getDouble(&data[index],(INT8U *)&tmp310d.poweroffset_obj.power_offset);
-	index += getUnsigned(&data[index],(INT8U *)&tmp310d.poweroffset_obj.task_no);
+	index += getUnsigned(&data[index],(INT8U *)&tmp310d.poweroffset_obj.task_no,DAR);
 	fprintf(stderr,"\n：属性6 阈值=%d 任务号=%d",tmp310d.poweroffset_obj.power_offset,tmp310d.poweroffset_obj.task_no);
 	*DAR = saveCoverClass(oad.OI,0,&tmp310d,sizeof(Event310D_Object),event_para_save);
 	return index;
@@ -141,7 +143,7 @@ INT16U set310e(OAD oad,INT8U *data,INT8U *DAR)	//电能表停走	属性6
 	fprintf(stderr,"\ntmp310e 阈值=%d 单位=%d",tmp310e.powerstoppara_obj.power_offset.interval,tmp310e.powerstoppara_obj.power_offset.units);
 	index += getStructure(&data[index],NULL);
 	index += getTI(1,&data[index],&tmp310e.powerstoppara_obj.power_offset);
-	index += getUnsigned(&data[index],(INT8U *)&tmp310e.powerstoppara_obj.task_no);
+	index += getUnsigned(&data[index],(INT8U *)&tmp310e.powerstoppara_obj.task_no,DAR);
 	fprintf(stderr,"\n电能表停走事件：属性6 阈值=%d 单位=%d",tmp310e.powerstoppara_obj.power_offset.interval,tmp310e.powerstoppara_obj.power_offset.units);
 	*DAR = saveCoverClass(oad.OI,0,&tmp310e,sizeof(tmp310e),event_para_save);
 	return index;
@@ -154,8 +156,8 @@ INT16U set310f(OAD oad,INT8U *data,INT8U *DAR)		//终端抄表失败  属性6
 
 	readCoverClass(oad.OI,0,&tmp310f,sizeof(tmp310f),event_para_save);
 	index += getStructure(&data[index],NULL);
-	index += getUnsigned(&data[index],(INT8U *)&tmp310f.collectfail_obj.retry_nums);
-	index += getUnsigned(&data[index],(INT8U *)&tmp310f.collectfail_obj.task_no);
+	index += getUnsigned(&data[index],(INT8U *)&tmp310f.collectfail_obj.retry_nums,DAR);
+	index += getUnsigned(&data[index],(INT8U *)&tmp310f.collectfail_obj.task_no,DAR);
 	fprintf(stderr,"\n终端抄表失败事件：属性6 重试轮次=%d ",tmp310f.collectfail_obj.retry_nums);
 	*DAR = saveCoverClass(oad.OI,0,&tmp310f,sizeof(tmp310f),event_para_save);
 	return index;
@@ -181,7 +183,7 @@ INT16U set311c(OAD oad,INT8U *data,INT8U *DAR)		//电能表数据变更监控记
 
 	readCoverClass(oad.OI,0,&tmpobj,sizeof(tmpobj),event_para_save);
 	index += getStructure(&data[index],NULL);
-	index += getUnsigned(&data[index],(INT8U *)&tmpobj.task_para.task_no);
+	index += getUnsigned(&data[index],(INT8U *)&tmpobj.task_para.task_no,DAR);
 	fprintf(stderr,"\n电能表数据变更监控记录 关联采集任务号=%d ",tmpobj.task_para.task_no);
 	*DAR = saveCoverClass(oad.OI,0,&tmpobj,sizeof(tmpobj),event_para_save);
 	return index;
@@ -189,31 +191,33 @@ INT16U set311c(OAD oad,INT8U *data,INT8U *DAR)		//电能表数据变更监控记
 
 INT16U set4000(OAD oad,INT8U *data,INT8U *DAR)
 {
-	DateTimeBCD datetime={};
 	CLASS_4000	class_tmp={};
 	int		index=0;
 
 	*DAR = success;
 	switch(oad.attflg) {
 	case 2:
-		DataTimeGet(&datetime);
-		index += getDateTimeS(1,&data[index],(INT8U *)&datetime);
-		setsystime(datetime);
+		index += Set_4000(&data[index],DAR);
 		break;
 	case 3://校时模式
 		readCoverClass(oad.OI,0,&class_tmp,sizeof(CLASS_4000),para_vari_save);
 		index += getEnum(1,&data[index],&class_tmp.type);
-		*DAR = saveCoverClass(oad.OI,0,&class_tmp,sizeof(CLASS_4000),para_vari_save);
+		*DAR = getEnumValid(class_tmp.type,MAIN,GPS,OTHER);
+		if(*DAR == success) {
+			*DAR = saveCoverClass(oad.OI,0,&class_tmp,sizeof(CLASS_4000),para_vari_save);
+		}
 		break;
 	case 4:		//精准校时模式
 		readCoverClass(oad.OI,0,&class_tmp,sizeof(CLASS_4000),para_vari_save);
 		index += getStructure(&data[index],NULL);
-		index += getUnsigned(&data[index],&class_tmp.hearbeatnum);
-		index += getUnsigned(&data[index],&class_tmp.tichu_max);
-		index += getUnsigned(&data[index],&class_tmp.tichu_min);
-		index += getUnsigned(&data[index],&class_tmp.delay);
-		index += getUnsigned(&data[index],&class_tmp.num_min);
-		*DAR = saveCoverClass(oad.OI,0,&class_tmp,sizeof(CLASS_4000),para_vari_save);
+		index += getUnsigned(&data[index],&class_tmp.hearbeatnum,DAR);
+		index += getUnsigned(&data[index],&class_tmp.tichu_max,DAR);
+		index += getUnsigned(&data[index],&class_tmp.tichu_min,DAR);
+		index += getUnsigned(&data[index],&class_tmp.delay,DAR);
+		index += getUnsigned(&data[index],&class_tmp.num_min,DAR);
+		if(*DAR == success) {
+			*DAR = saveCoverClass(oad.OI,0,&class_tmp,sizeof(CLASS_4000),para_vari_save);
+		}
 		break;
 	}
 	return index;
@@ -254,14 +258,14 @@ INT16U set4004(OAD oad,INT8U *data,INT8U *DAR)
 		index += getStructure(&data[index],NULL);
 		index += getStructure(&data[index],NULL);
 		index += getEnum(1,&data[index],&class4004.jing.fangwei);
-		index += getUnsigned(&data[index],&class4004.jing.du);
-		index += getUnsigned(&data[index],&class4004.jing.fen);
-		index += getUnsigned(&data[index],&class4004.jing.miao);
+		index += getUnsigned(&data[index],&class4004.jing.du,DAR);
+		index += getUnsigned(&data[index],&class4004.jing.fen,DAR);
+		index += getUnsigned(&data[index],&class4004.jing.miao,DAR);
 		index += getStructure(&data[index],NULL);
 		index += getEnum(1,&data[index],&class4004.wei.fangwei);
-		index += getUnsigned(&data[index],&class4004.wei.du);
-		index += getUnsigned(&data[index],&class4004.wei.fen);
-		index += getUnsigned(&data[index],&class4004.wei.miao);
+		index += getUnsigned(&data[index],&class4004.wei.du,DAR);
+		index += getUnsigned(&data[index],&class4004.wei.fen,DAR);
+		index += getUnsigned(&data[index],&class4004.wei.miao,DAR);
 		index += getDouble(&data[index],(INT8U *)&class4004.heigh);
 		fprintf(stderr,"\n【精度】方位 %d  度 %d  分 %d  秒 %d",class4004.jing.fangwei,class4004.jing.du,class4004.jing.fen,class4004.jing.miao);
 		fprintf(stderr,"\n【纬度】方位 %d  度 %d  分 %d  秒 %d",class4004.jing.fangwei,class4004.jing.du,class4004.jing.fen,class4004.jing.miao);
@@ -298,13 +302,13 @@ INT16U set4007(OAD oad,INT8U *data,INT8U *DAR)
 	if (oad.attflg == 2 )
 	{
 		index += getStructure(&data[index],NULL);
-		index += getUnsigned(&data[index],&class4007.poweon_showtime);
+		index += getUnsigned(&data[index],&class4007.poweon_showtime,DAR);
 		index += getLongUnsigned(&data[index],(INT8U *)&class4007.lcdlight_time);
 		index += getLongUnsigned(&data[index],(INT8U *)&class4007.looklight_time);
 		index += getLongUnsigned(&data[index],(INT8U *)&class4007.poweron_maxtime);
 		index += getLongUnsigned(&data[index],(INT8U *)&class4007.poweroff_maxtime);
-		index += getUnsigned(&data[index],&class4007.energydata_dec);
-		index += getUnsigned(&data[index],&class4007.powerdata_dec);
+		index += getUnsigned(&data[index],&class4007.energydata_dec,DAR);
+		index += getUnsigned(&data[index],&class4007.powerdata_dec,DAR);
 
 		fprintf(stderr,"\n【上电全显时间】%d",class4007.poweon_showtime);
 		fprintf(stderr,"\n【背光点亮时间（按键）】 %d",class4007.lcdlight_time);
@@ -383,7 +387,7 @@ INT16U set4204(OAD oad,INT8U *data,INT8U *DAR)
 	}else if(oad.attflg == 3)
 	{
 		index += getStructure(&data[index],NULL);
-		index += getUnsigned(&data[index],(INT8U *)&class4204.upleve);
+		index += getUnsigned(&data[index],(INT8U *)&class4204.upleve,DAR);
 		index += getTime(1,&data[index],(INT8U *)&class4204.startime1);
 		index += getBool(&data[index],(INT8U *)&class4204.enable1);
 		fprintf(stderr,"\n【终端广播校时，属性3】:");
@@ -495,7 +499,7 @@ INT16U set4500(OAD oad,INT8U *data,INT8U *DAR)
 		index += getVisibleString(&data[index],class4500.commconfig.passWord);
 		index += getOctetstring(1,&data[index],class4500.commconfig.proxyIp);
 		index += getLongUnsigned(&data[index],(INT8U *)&class4500.commconfig.proxyPort);
-		index += getUnsigned(&data[index],(INT8U *)&class4500.commconfig.timeoutRtry);	//勘误更改
+		index += getUnsigned(&data[index],(INT8U *)&class4500.commconfig.timeoutRtry,DAR);	//勘误更改
 		index += getLongUnsigned(&data[index],(INT8U *)&class4500.commconfig.heartBeat);
 		if(index>=sizeof(class4500.commconfig)) {
 			*DAR = refuse_rw;
@@ -586,7 +590,7 @@ INT16U set4510(OAD oad,INT8U *data,INT8U *DAR)
 		}
 		index += getOctetstring(1,&data[index],class4510.commconfig.proxyIp);
 		index += getLongUnsigned(&data[index],(INT8U *)&class4510.commconfig.proxyPort);
-		index += getUnsigned(&data[index],(INT8U *)&class4510.commconfig.timeoutRtry);//勘误更改类型
+		index += getUnsigned(&data[index],(INT8U *)&class4510.commconfig.timeoutRtry,DAR);//勘误更改类型
 		index += getLongUnsigned(&data[index],(INT8U *)&class4510.commconfig.heartBeat);
 		fprintf(stderr,"\n【工作模式】%d",class4510.commconfig.workModel);
 		fprintf(stderr,"\n【连接方式】%d",class4510.commconfig.connectType);
@@ -770,11 +774,11 @@ INT16U setClass7attr(OAD oad,INT8U *data,INT8U *DAR)
 		fprintf(stderr,"\n设置:class7.最大记录数 = %d",class7.maxnum);
 		break;
 	case 8: //上报标识
-		index += getEnum(1,&data[index],(INT8U *)&class7.reportflag);
+		index += getBool(&data[index],(INT8U *)&class7.reportflag);
 		fprintf(stderr,"\n设置:class7.上报标识 = %d",class7.reportflag);
 		break;
 	case 9: //有效标识
-		index += getEnum(1,&data[index],(INT8U *)&class7.enableflag);
+		index += getBool(&data[index],(INT8U *)&class7.enableflag);
 		fprintf(stderr,"\n设置:class7.有效标识 = %d",class7.enableflag);
 		break;
 	}
@@ -963,10 +967,13 @@ INT16U ALSetAttrib(OAD oad, INT8U *data, INT8U *DAR) {
 			break;
 		case 0x8100:
 			data_index = class8100_set(8, oad, data, DAR);
+			break;
         case 0x8101:
             data_index = class8101_set(8, oad, data, DAR);
+            break;
         case 0x8102:
             data_index = class8102_set(8, oad, data, DAR);
+            break;
 	}
 	return data_index;
 }
@@ -977,6 +984,10 @@ INT16U setRequestNormal(INT8U *data,OAD oad,INT8U *DAR,CSINFO *csinfo,INT8U *buf
 	INT16U	data_index=0;
 	fprintf(stderr,"\n对象属性设置  【 %04x 】",oad.OI);
 
+	if(Response_timetag.effect==0) {
+		*DAR = timetag_invalid;
+		return data_index;
+	}
 	switch(oihead)
 	{
 		case 0x2:
@@ -1020,6 +1031,16 @@ int setRequestNormalList(INT8U *data,CSINFO *csinfo,INT8U *buf)
 	for(i=0;i<oadnum;i++)
 	{
 		sourceindex += getOAD(0,&data[sourceindex],&oad);
+//
+//		if(Response_timetag.effect) {
+//			memset(TmpDataBuf,0,sizeof(TmpDataBuf));
+//			getOAD(0,&apdu[3],&oad);
+//			data = &apdu[7];					//Data
+//			setRequestNormal(data,oad,&DAR,NULL,buf);
+//		}else {
+//			DAR = timetag_invalid;
+//		}
+
 		if(oad.OI!=0x4300 && oad.OI!=0x4000 && ((oad.OI>>12)==0x04)) {
 			memcpy(&event_oad[event_oadnum],&oad,sizeof(OAD));
 			event_oadnum++;
@@ -1033,7 +1054,9 @@ int setRequestNormalList(INT8U *data,CSINFO *csinfo,INT8U *buf)
 //	for(i=0;i<event_oadnum;i++) {
 //		Get698_event(event_oad[i],memp);
 //	}
-	Get698_3118_moreoad(event_oad,event_oadnum,memp);
+	if(Response_timetag.effect==1)  {		//有效 产生事件
+		Get698_3118_moreoad(event_oad,event_oadnum,memp);
+	}
 	return 0;
 }
 
@@ -1095,7 +1118,9 @@ int setThenGetRequestNormalList(INT8U *data,CSINFO *csinfo,INT8U *buf)
 //	for(i=0;i<event_oadnum;i++) {
 //		Get698_event(event_oad[i],memp);
 //	}
-	Get698_3118_moreoad(event_oad,event_oadnum,memp);
+	if(Response_timetag.effect==1) {
+		Get698_3118_moreoad(event_oad,event_oadnum,memp);
+	}
 	return 0;
 }
 
