@@ -798,6 +798,66 @@ void timeProcess()
 	}
 }
 
+
+/*
+ * 判断两个TSA是否相等
+ * @pT1: 第1个TSA
+ * @pT2: 第2个TSA
+ * $return: 相等返回1, 不相等返回0
+ */
+INT8U tsaEqual(TSA* pT1, TSA* pT2)
+{
+	int i=0;
+
+	for(i=0;i<TSA_LEN;i++)
+		if(pT1->addr[i] != pT2->addr[i])
+			return 0;
+	return 1;
+}
+
+/*
+ * 根据给定的测量点TSA, 得到这个测量点的抄表端口信息
+ * @pTsa: 给定的测量点的TSA
+ * @pOI: 端口的标识
+ * @pPort: 端口内部索引, 如485-1或485-2
+ * $return: 找到返回1, 没找到返回0
+ */
+INT8U getOADPortByTSA(TSA* pTsa, OAD* pOAD)
+{
+	if(NULL == pTsa || NULL == pOAD)
+		return 0;
+	CLASS_6001 meter = { };
+	int i = 0;
+	OI_698 oi = (OI_698)0x6000;
+	int recordnum = getFileRecordNum(oi);
+
+	for(i=0; i < recordnum; i++) {
+		readParaClass(oi, &meter,i);
+		if(tsaEqual(pTsa, &(meter.basicinfo.addr))) {
+			memcpy(pOAD, &(meter.basicinfo.port), sizeof(OAD));
+			return 1;
+		}
+	}
+	return 0;
+}
+
+/*
+ * 根据给定的tsa判断这个测量点
+ * 是否挂载于载波端口
+ * @pTsa: 给定的测量点的TSA
+ * $return: 0-测量点不挂载在载波端口
+ * 			1-测量点挂载在载波端口
+ */
+INT8U isPlcMeterByTsa(TSA* pTsa)
+{
+	OAD oad = {};
+	getOADPortByTSA(pTsa, &oad);
+	if(oad.OI == PORT_ZB)
+		return 1;
+	return 0;
+}
+
+
 /*
  * 	dealMsgProcess() 只负责统一将TSA集中的
  * 	测量点分配对应端口的代理变量cjcommProxy_xxx中.
@@ -817,6 +877,7 @@ INT8S dealMsgProcess()
 	CJCOMM_PROXY cjcommProxy_Tmp;
 	INT8U  rev_485_buf[2048];
 	INT32S ret;
+	INT16U oad = 0;
 
 	mmq_head mq_h;
 	ret = mmq_get(mqd_485_main, 1, &mq_h, rev_485_buf);
@@ -833,21 +894,41 @@ INT8S dealMsgProcess()
 					DEBUG_TIME_LINE("\n收到代理召测\n");
 					memcpy(&cjcommProxy_Tmp.strProxyList,rev_485_buf,sizeof(PROXY_GETLIST));
 
-					for(i=0;  cjcommProxy_Tmp.strProxyList.num; i++) {
-//						if(isPlcOAD(cjcommProxy_Tmp.strProxyList.objs[i].tsa)) {
-//							//copy to cjcommProxy_plc
-//						} else if(1/**/) {
-//							//copy to cjcommProxy
-//						}
+					switch(cjcommProxy_Tmp.strProxyList.proxytype) {
+					case ProxyGetRequestList://TODO   按照端口分配TSA. 目前暂时都给485端口
+						memcpy(&cjcommProxy.strProxyList,rev_485_buf,sizeof(PROXY_GETLIST));
+						cjcommProxy.isInUse = 3;
+						break;
+					case ProxyGetRequestRecord:
+						break;
+					case ProxySetRequestList:
+						break;
+					case ProxySetThenGetRequestList:
+						break;
+					case ProxyActionRequestList:
+						break;
+					case ProxyActionThenGetRequestList:
+						break;
+					case ProxyTransCommandRequest:
+						oad = (INT16U)cjcommProxy_Tmp.strProxyList.transcmd.oad.OI;
+						switch(oad) {
+						case PORT_ZB:
+							memcpy(&cjcommProxy_plc.strProxyList,rev_485_buf,sizeof(PROXY_GETLIST));
+							cjcommProxy_plc.isInUse = 1;
+							proxyInUse.devUse.plcNeed = 1;
+							break;
+						case PORT_485:
+							memcpy(&cjcommProxy.strProxyList,rev_485_buf,sizeof(PROXY_GETLIST));
+							cjcommProxy.isInUse = 3;
+							proxyInUse.devUse.rs485Need = 1;
+							break;
+						default:
+							break;
+						}
+						break;
+					default:
+						break;
 					}
-
-					memcpy(&cjcommProxy_plc.strProxyList,rev_485_buf,sizeof(PROXY_GETLIST));
-					cjcommProxy_plc.isInUse = 1;
-
-
-					memcpy(&cjcommProxy.strProxyList,rev_485_buf,sizeof(PROXY_GETLIST));
-					cjcommProxy.isInUse = 3;
-
 				}
 				if(mq_h.pid == cjgui)
 				{
