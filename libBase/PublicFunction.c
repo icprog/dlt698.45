@@ -385,6 +385,37 @@ int OpenCom(int port, int baud, unsigned char* par, unsigned char stopb, unsigne
 void CloseCom(int ComPort) {
     close(ComPort);
 }
+
+/*
+ * 根据TI类型及间隔，返回时间的秒数。类型为月，年未处理
+ * */
+int TItoSec(TI ti)
+{
+	int  sec = 0;
+	switch(ti.units)
+	{
+		case sec_units://秒
+			sec = ti.interval;
+			break;
+		case minute_units://分
+			sec = ti.interval * 60;
+			break;
+		case hour_units://时
+			sec =  ti.interval * 3600;
+			break;
+		case day_units://日
+			sec = ti.interval * 86400;
+			break;
+		case month_units: //月
+		case year_units://年
+			break;
+		default:
+			break;
+	}
+	fprintf(stderr,"get TI(%d-%d) sec=%d\n",ti.units,ti.interval,sec);
+	return sec;
+}
+
 //获取时间
 void TSGet(TS* ts) {
     struct tm tmp_tm;
@@ -587,6 +618,23 @@ time_t tmtotime_t(TS ptm) {
     ctime       = mktime(&ctm);
     return ctime;
 }
+
+time_t	TimeBCDTotime_t(DateTimeBCD datetime)
+{
+	time_t ctime;
+    struct tm ctm;
+    ctime = time(NULL);
+    localtime_r(&ctime, &ctm);
+    ctm.tm_year = datetime.year.data - 1900;
+    ctm.tm_mon  = datetime.month.data - 1;
+    ctm.tm_mday = datetime.day.data;
+    ctm.tm_hour = datetime.hour.data;
+    ctm.tm_min  = datetime.min.data;
+    ctm.tm_sec  = datetime.sec.data;
+    ctime       = mktime(&ctm);
+    return ctime;
+}
+
 void setsystime(DateTimeBCD datetime) {
     fprintf(stderr, "\n终端对时：%d年-%d月-%d日 %d时:%d分:%d秒", datetime.year.data, datetime.month.data, datetime.day.data, datetime.hour.data,
             datetime.min.data, datetime.sec.data);

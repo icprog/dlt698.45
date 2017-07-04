@@ -159,31 +159,6 @@ void print_rcsd(CSD_ARRAYTYPE csds)
 	}
 }
 
-
-
-////////////////////////////////////////////////////////////////////
-int getTItoSec(TI ti)
-{
-	int  sec = 0;
-	switch(ti.units)
-	{
-		case sec_units://秒
-			sec = ti.interval;
-			break;
-		case minute_units://分
-			sec = ti.interval * 60;
-			break;
-		case hour_units://时
-			sec =  ti.interval * 3600;
-			break;
-		default:
-			break;
-	}
-	fprintf(stderr,"get TI(%d-%d) sec=%d\n",ti.units,ti.interval,sec);
-	return sec;
-}
-//////////////////////////////////////////////////////////////////////
-
 int create_array(INT8U *data,INT8U numm)	//0x01
 {
 	data[0] = dtarray;
