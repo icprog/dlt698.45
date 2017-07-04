@@ -1460,7 +1460,11 @@ int do_other_type( int taski, int itemi ,INT8U *buf, struct Tsa_Node *desnode, D
 	INT8U item07[4]={0,0,0,0};
 	int i=0,sendlen = 0;
 
+	DEBUG_TIME_LINE("createMeterFrame start");
 	sendlen = createMeterFrame(desnode, tmpitem, buf, item07);
+	DEBUG_TIME_LINE("createMeterFrame end");
+
+	DEBUG_TIME_LINE("PrintTaskInfo2 start");
 	taskinfo.task_list[taski].fangan.items[itemi].item07[0] = item07[0];
 	taskinfo.task_list[taski].fangan.items[itemi].item07[1] = item07[1];
 	taskinfo.task_list[taski].fangan.items[itemi].item07[2] = item07[2];
@@ -1471,6 +1475,7 @@ int do_other_type( int taski, int itemi ,INT8U *buf, struct Tsa_Node *desnode, D
 	taskinfo.task_list[taski].fangan.items[itemi].sucessflg = 1;
 	taskinfo.task_list[taski].fangan.item_i = itemi;
 	PrintTaskInfo2(&taskinfo);
+	DEBUG_TIME_LINE("PrintTaskInfo2 start");
 	if (itemi == taskinfo.task_list[taski].fangan.item_n-1)//最后一个
 	{
 		DbgPrintToFile1(31,"重新初始化 任务%d 开始时间",taskinfo.task_list[taski].taskId);
@@ -1521,7 +1526,12 @@ int ProcessMeter(INT8U *buf,struct Tsa_Node *desnode)
 		if (tmpitem.oad1.OI == 0x5002)
 		{
 //			sendlen = do_5002_type( taski, itemi , buf, desnode, tmpitem);//负荷记录
+
+			DEBUG_TIME_LINE("0x5002 start");
+			tmpitem.oad1.OI = 0;
+			DEBUG_TIME_LINE("tmpitem.oad1.OI %04X, tmpitem.oad2.OI  %04X", tmpitem.oad1.OI, tmpitem.oad2.OI);
 			sendlen = do_other_type( taski, itemi , buf, desnode, tmpitem);//其它数据
+			DEBUG_TIME_LINE("0x5002 end");
 
 		}else if (tmpitem.oad1.OI == 0x5004)
 		{
@@ -1820,7 +1830,10 @@ int doTask(RUNTIME_PLC *runtime_p)
 				inWaitFlag = 0;
 				sendlen = AFN00_F01( &runtime_p->format_Down,runtime_p->sendbuf );//确认
 				SendDataToCom(runtime_p->comfd, runtime_p->sendbuf,sendlen );
+
+				DEBUG_TIME_LINE("SaveTaskData-------start------------>");
 				SaveTaskData(runtime_p->format_Up, runtime_p->taskno);
+				DEBUG_TIME_LINE("<------------SaveTaskData-------end");
 				clearvar(runtime_p);
 				DbgPrintToFile1(31,"afn=%02x  fn=%02x",runtime_p->format_Up.afn,runtime_p->format_Up.fn );
 				runtime_p->send_start_time = nowtime;
@@ -2202,10 +2215,11 @@ int stateJuge(int nowdstate,INT8U* my6000_p,RUNTIME_PLC *runtime_p)
 		return DATA_REAL;
 	}
 
+
+	//先不判断代理读取的电表是否是载波端口的表, 后期由统一接口分发各端口的电表
 	if (cjcommProxy_plc.isInUse ==1 && state!=DATE_CHANGE && state!=DATA_REAL)
 	{	//出现液晶点抄载波表标识，并且不在初始化和点抄状态
 		DbgPrintToFile1(31,"\n载波收到点抄消息 需要处理 %04x ",cjguiProxy.strProxyMsg.port.OI);
-		// && cjcommProxy_ZB. == 0xf209
 		runtime_p->state_bak = runtime_p->state;
 		runtime_p->state = DATA_REAL;
 		clearvar(runtime_p);
