@@ -20,6 +20,7 @@
 #include "secure.h"
 #include "basedef.h"
 #include "class8.h"
+#include "class12.h"
 #include "class23.h"
 
 extern INT8U Reset_add();
@@ -1224,7 +1225,7 @@ int doObjectAction(OAD oad, INT8U *data, Action_result *act_ret) {
     INT16U oi = oad.OI;
     INT8U attr_act = oad.attflg;
     INT8U oihead = (oi & 0xF000) >> 12;
-    fprintf(stderr, "\n----------  oi =%04x   ", oi);
+    fprintf(stderr, "\n----------  oi =%04x act=%02x  ", oi, attr_act);
     switch (oihead) {
         case 3:            //事件类对象方法操作
             EventMothod(oad, data);
@@ -1270,6 +1271,9 @@ int doObjectAction(OAD oad, INT8U *data, Action_result *act_ret) {
 //				act_ret->datalen = 1;
             }
             break;
+        case 0x2401:
+        	class12_router(1, attr_act, data, act_ret);
+			break;
         case 0x2301:
             class23_selector(1, attr_act, data, act_ret);
             break;

@@ -13,5 +13,6 @@ int class23_act1(int index);
 int class23_act3(int index, INT8U* data);
 
 int class23_set(int index, OAD oad,  INT8U *data,INT8U *DAR);
+int class23_get(OI_698 oi,INT8U *sourcebuf,INT8U *buf,int *len);
 
 #endif //INC_698_CLASS23_H

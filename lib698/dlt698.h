@@ -9,6 +9,8 @@
 
 extern CONNECT_Response *AppVar_p;
 
+extern ProgramInfo *getShareAddr(void);//获取共享内存的地址
+
 extern unsigned short tryfcs16(unsigned char *cp, int  len);
 extern int doObjectAction(OAD oad, INT8U* data, Action_result* result);
 extern int StateProcess(CommBlock* nst, int delay_num);

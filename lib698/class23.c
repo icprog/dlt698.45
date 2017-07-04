@@ -3,85 +3,109 @@
 //
 
 #include "class23.h"
+#include "dlt698.h"
 #include "PublicFunction.h"
 
-int class23_selector(int index, int attr_act,INT8U *data, Action_result *act_ret)
-{
-    switch (attr_act) {
-        case 1:
-            class23_act1(index);
-            break;
-        case 3:
-            class23_act3(index, data);
-            break;
-    }
-    return 0;
+int class23_selector(int index, int attr_act, INT8U *data,
+		Action_result *act_ret) {
+	switch (attr_act) {
+	case 1:
+		class23_act1(index);
+		break;
+	case 3:
+		class23_act3(index, data);
+		break;
+	}
+	return 0;
 }
 
-int class23_act1(int index)
-{
-    asyslog(LOG_WARNING, "清除所有配置单元(%d)", index);
-    return 0;
+int class23_act1(int index) {
+	ProgramInfo *shareAddr = getShareAddr();
+	asyslog(LOG_WARNING, "清除所有配置单元(%d)", index);
+	memset(&shareAddr->class23[index], 0x00, sizeof(CLASS23));
+	return 0;
 }
 
-int class23_act3(int index, INT8U* data)
-{
-    CLASS23 class23;
-    if(data[0] != 0x02 || data[1] != 0x03 || data[2] != 0x55){
-        return 0;
-    }
+int class23_act3(int index, INT8U* data) {
+	AL_UNIT al_unit;
+	if (data[0] != 0x02 || data[1] != 0x03 || data[2] != 0x55) {
+		return 0;
+	}
 
-    int tsa_len = data[3];
-    int data_index = 4;
+	int tsa_len = data[3];
+	int data_index = 4;
 
-    if(tsa_len > 17)
-    {
-        return 0;
-    }
-    class23.allist[0].tsa.addr[0] = tsa_len+1;
-    class23.allist[0].tsa.addr[1] = tsa_len-1;
+	if (tsa_len > 17) {
+		return 0;
+	}
+	al_unit.tsa.addr[0] = tsa_len + 1;
+	al_unit.tsa.addr[1] = tsa_len - 1;
 
-    for (int i = 0; i < tsa_len; ++i) {
-        class23.allist[0].tsa.addr[2+i] = data[data_index];
-        data_index++;
-    }
+	for (int i = 0; i < tsa_len; ++i) {
+		al_unit.tsa.addr[2 + i] = data[data_index];
+		data_index++;
+	}
 
-    if(data[data_index] != 0x16 || data[data_index+2] != 0x16){
-        return 0;
-    }
+	if (data[data_index] != 0x16 || data[data_index + 2] != 0x16) {
+		return 0;
+	}
 
-    class23.allist[0].al_flag = data[data_index+1];
-    class23.allist[0].cal_flag = data[data_index+3];
+	al_unit.al_flag = data[data_index + 1];
+	al_unit.cal_flag = data[data_index + 3];
 
-    asyslog(LOG_WARNING, "添加一个配置单元(%d)", index);
+	asyslog(LOG_WARNING, "添加一个配置单元(%d)", index);
+	ProgramInfo *shareAddr = getShareAddr();
+	for (int i = 0; i < MAX_AL_UNIT; i++) {
+		if (shareAddr->class23[index].allist[i].tsa.addr[0] != 0x00) {
+			memcpy(&shareAddr->class23[index].allist[i], &al_unit,
+					sizeof(AL_UNIT));
+			break;
+		}
+	}
 
-    return 0;
+	return 0;
 }
 
-int class23_set(int index, OAD oad, INT8U *data,INT8U *DAR)
-{
-    CLASS23 class23;
-    asyslog(LOG_WARNING, "修改总加组属性(%d)", oad.attflg);
+int class23_set(int index, OAD oad, INT8U *data, INT8U *DAR) {
+	ProgramInfo *shareAddr = getShareAddr();
+	asyslog(LOG_WARNING, "修改总加组属性(%d)", oad.attflg);
 
-    switch (oad.attflg) {
-        case 13:
-            if (data[0] != 0x17){
-                return 0;
-            }
-            class23.aveCircle = data[1];
-            break;
-        case 14:
-            if(data[0] != 0x04){
-                return 0;
-            }
-            class23.pConfig = data[1];
-            break;
-        case 15:
-            if(data[0] != 0x04){
-                return 0;
-            }
-            class23.eConfig = data[1];
-            break;
-    }
-    return 0;
+	switch (oad.attflg) {
+	case 13:
+		if (data[0] != 0x17) {
+			return 0;
+		}
+		shareAddr->class23[index].aveCircle = data[1];
+		break;
+	case 14:
+		if (data[0] != 0x04) {
+			return 0;
+		}
+		shareAddr->class23[index].pConfig = data[1];
+		break;
+	case 15:
+		if (data[0] != 0x04) {
+			return 0;
+		}
+		shareAddr->class23[index].eConfig = data[1];
+		break;
+	}
+	return 0;
 }
+
+int class23_get_17(OI_698 oi, INT8U *sourcebuf, INT8U *buf, int *len) {
+
+}
+
+int class23_get(OI_698 oi, INT8U *sourcebuf, INT8U *buf, int *len) {
+	ProgramInfo *shareAddr = getShareAddr();
+//	asyslog(LOG_WARNING, "召唤总加组属性(%d)",);
+//
+//	switch (oad.attflg) {
+//	case 17:
+//		class23_get_17(oi, sourcebuf, buf, len);
+//		break;
+//	}
+
+}
+
