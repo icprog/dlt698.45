@@ -83,8 +83,7 @@ int BuildFrame_GetResponse(INT8U response_type,CSINFO *csinfo,INT8U oadnum,RESUL
 {
 	int apduplace =0;
 	int index=0, hcsi=0;
-	csinfo->dir = 1;
-	csinfo->prm = 1;
+
 	index = FrameHead(csinfo,sendbuf);
 	hcsi = index;
 	index = index + 2;
@@ -1172,15 +1171,21 @@ int doGetrecord(INT8U type,OAD oad,INT8U *data,RESULT_RECORD *record,INT16U *sub
 		if(*subframe>=1) {		//无分帧
 			next_info.nextSite = readFrameDataFile(TASK_FRAME_DATA,0,TmpDataBuf,&datalen);
 			fprintf(stderr,"next_info.nextSite=%d\n",next_info.nextSite);
-			if(type==GET_REQUEST_RECORD) {//文件中第一个字节保存的是：SEQUENCE OF A-ResultRecord，此处从TmpDataBuf[1]上送，上送长度也要-1
-				if(datalen>=1) {
-					record->data = &TmpDataBuf[1];				//data 指向回复报文帧头
-					record->datalen += (datalen-1);				//数据长度+ResultRecord
-				}
-			}else if(type==GET_REQUEST_RECORD_LIST) {
-				record->data = TmpDataBuf;				//data 指向回复报文帧头
-				record->datalen += dest_index;			//数据长度+ResultRecord
+			//文件中第一个字节保存的是：SEQUENCE OF A-ResultRecord，GET_REQUEST_RECORD 此处从TmpDataBuf[1]上送，上送长度也要-1
+			//湖南招测多个测量点报文使用 GET_REQUEST_RECORD_LIST 解析过程中上送了SEQUENCE OF A-ResultRecord，不读取文件中该值
+			if(datalen>=1) {
+				record->data = &TmpDataBuf[1];				//data 指向回复报文帧头
+				record->datalen += (datalen-1);				//数据长度+ResultRecord
 			}
+//			if(type==GET_REQUEST_RECORD) {//文件中第一个字节保存的是：SEQUENCE OF A-ResultRecord，此处从TmpDataBuf[1]上送，上送长度也要-1
+//				if(datalen>=1) {
+//					record->data = &TmpDataBuf[1];				//data 指向回复报文帧头
+//					record->datalen += (datalen-1);				//数据长度+ResultRecord
+//				}
+//			}else if(type==GET_REQUEST_RECORD_LIST) {
+//				record->data = &TmpDataBuf[1];				//data 指向回复报文帧头
+//				record->datalen += (datalen-1);			//湖南招测 .....case10:????
+//			}
 		}
 		break;
 
@@ -1195,16 +1200,21 @@ int doGetrecord(INT8U type,OAD oad,INT8U *data,RESULT_RECORD *record,INT16U *sub
 	case 10:	//指定读取最新的n条记录
 		*subframe = getSelector(record->oad,record->select,record->selectType,record->rcsd.csds,NULL,NULL,AppVar_p->server_send_size);
 		if(*subframe==1) {		//无分帧
-			next_info.nextSite = readFrameDataFile(TASK_FRAME_DATA,0,TmpDataBuf,&datalen);//文件中第一个字节保存的是：SEQUENCE OF A-ResultRecord，此处从TmpDataBuf[1]上送，上送长度也要-1
-			if(type==GET_REQUEST_RECORD) {//文件中第一个字节保存的是：SEQUENCE OF A-ResultRecord，此处从TmpDataBuf[1]上送，上送长度也要-1
-				if(datalen>=1) {								//TODO:浙江曲线招测测试过
-					record->data = &TmpDataBuf[1];				//data 指向回复报文帧头
-					record->datalen += (datalen-1);				//数据长度+ResultRecord
-				}
-			}else if(type==GET_REQUEST_RECORD_LIST) {
-				record->data = TmpDataBuf;				//data 指向回复报文帧头
-				record->datalen += dest_index;			//数据长度+ResultRecord
+			//文件中第一个字节保存的是：SEQUENCE OF A-ResultRecord，此处从TmpDataBuf[1]上送，上送长度也要-1
+			next_info.nextSite = readFrameDataFile(TASK_FRAME_DATA,0,TmpDataBuf,&datalen);
+			if(datalen>=1) {
+				record->data = &TmpDataBuf[1];				//data 指向回复报文帧头
+				record->datalen += (datalen-1);				//数据长度+ResultRecord
 			}
+//			if(type==GET_REQUEST_RECORD) {//文件中第一个字节保存的是：SEQUENCE OF A-ResultRecord，此处从TmpDataBuf[1]上送，上送长度也要-1
+//				if(datalen>=1) {								//TODO:浙江曲线招测测试过
+//					record->data = &TmpDataBuf[1];				//data 指向回复报文帧头
+//					record->datalen += (datalen-1);				//数据长度+ResultRecord
+//				}
+//			}else if(type==GET_REQUEST_RECORD_LIST) {
+//				record->data = TmpDataBuf;				//data 指向回复报文帧头
+//				record->datalen += dest_index;			//数据长度+ResultRecord
+//			}
 		}
 		break;
 	}

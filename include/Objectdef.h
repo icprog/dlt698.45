@@ -554,7 +554,7 @@ typedef struct {
     INT8U proxytype;    //代理类型
     INT8U piid;        //本次代理请求PIID
     INT16U timeout;    //代理超时时间
-    INT16U num;        //个数
+    INT16U num;        //TSA个数
     GETOBJS objs[10];  //代理请求列表
     TRANSCMD transcmd;    //代理操作透明转发
     INT8U data[512];   //请求结果
@@ -794,6 +794,8 @@ typedef struct {
     INT8U linkstate;
     INT8U testcounter;
     INT8U serveraddr[16];
+    INT8U	report_piid[16];		//上报piid,数组为了多窗口通信协议
+    INT8U	response_piid[16];		//上报响应piid
     int RHead, RTail;           //接收报文头指针，尾指针
     int deal_step;              //数据接收状态机处理标记
     int rev_delay;              //接收延时

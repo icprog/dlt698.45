@@ -313,6 +313,14 @@ INT16S getNextTastIndexIndex() {
 	}
 	return taskIndex;
 }
+
+INT8U is485PortOAD(OAD portOAD)
+{
+	if (portOAD.OI == PORT_485)
+		return 1;
+	return 0;
+}
+
 /*
  * 判断portOAD是否属于485 port485 口
  * */
@@ -320,12 +328,27 @@ INT8U is485OAD(OAD portOAD,INT8U port485)
 {
 	fprintf(stderr,"\n portOAD.OI = %04x portOAD.attflg = %d  portOAD.attrindex = %d port485 = %d \ n"
 			,portOAD.OI,portOAD.attflg,portOAD.attrindex,port485);
-	if ((portOAD.OI != 0xF201) || (portOAD.attflg != 0x02)
-			|| (portOAD.attrindex != port485)) {
+
+	if(!is485PortOAD(portOAD))
+		return 0;
+
+	if ((portOAD.attflg != 0x02) || \
+		(portOAD.attrindex != port485)) {
 		return 0;
 	}
 	return 1;
 }
+
+/*
+ * 判断测量点档案的端口是否属于载波
+ * */
+INT8U isPlcOAD(OAD portOAD)
+{
+	if (portOAD.OI == PORT_ZB)
+		return 1;
+	return 0;
+}
+
 /*
  * 读取table6000 填充info6000  此结构体保存了每一个485口上有那些测量点
  * 抄表是根据此结构体读取测量点信息
@@ -638,6 +661,7 @@ INT8U findfake6001(INT8U tIndex,CLASS_6001* meter)
 	if(ret == 1)
 	{
 		INT8U portIndex = 0;
+		ret = -1;
 		for(portIndex = 0;portIndex < 2;portIndex++)
 		{
 			for (meterIndex = 0; meterIndex < info6000[portIndex].meterSum; meterIndex++)
@@ -656,7 +680,7 @@ INT8U findfake6001(INT8U tIndex,CLASS_6001* meter)
 			}
 		}
 	}
-	return ret;
+	return -1;
 }
 INT8U createFakeTaskFileHead()
 {
@@ -686,6 +710,8 @@ INT8U createFakeTaskFileHead()
 				continue;
 			}
 
+			if(meter.basicinfo.addr.addr[0]==0)
+				continue;
 			memset(dataContent,0,DATA_CONTENT_LEN);
 			taskinfoflg=0;
 			memset(&tasknor_info,0,sizeof(TASKSET_INFO));
@@ -772,15 +798,23 @@ void timeProcess()
 	}
 }
 
+/*
+ * 	dealMsgProcess() 只负责统一将TSA集中的
+ * 	测量点分配对应端口的代理变量cjcommProxy_xxx中.
+ *	全局变量cjcommProxy_xxx.isInUse在这里不
+ *	做判断.
+ *	全局变量proxyInUse判断当前代理操作是否
+ *	结束.
+ *	结束前一个代理操作之前, 不处理下一个
+ *	代理操作, 即不读取代理队列中的数据.
+ *	组织应答报文的工作, 交给各端口线程来做.
+ */
 INT8S dealMsgProcess()
 {
 	INT8S result = 0;
-	if((cjcommProxy.isInUse != 0) ||(cjguiProxy.isInUse != 0))
-	{
-		fprintf(stderr,"\n ％％％％％％％％％％％％cjcommProxy.isInUse = %d cjguiProxy.isInUse = %d\n",cjcommProxy.isInUse,cjguiProxy.isInUse);
-		return 	result;
-	}
+	INT16U i=0;
 	GUI_PROXY cjguiProxy_Tmp;
+	CJCOMM_PROXY cjcommProxy_Tmp;
 	INT8U  rev_485_buf[2048];
 	INT32S ret;
 
@@ -792,44 +826,39 @@ INT8S dealMsgProcess()
 		switch(mq_h.cmd)
 		{
 			case ProxyGetResponseList://代理
-			{
+			{//TODO 按照测量点来复制对应的TSA给对应的全局变量
+			 //cjcommProxy, cjcommProxy_plc, cjguiProxy, cjGuiProxy_plc;
 
-				if(mq_h.pid == cjdeal)
-				{
-					fprintf(stderr, "\n收到代理召测\n");
-					if(cjcommProxy.isInUse == 0)
-					{
-						memcpy(&cjcommProxy.strProxyList,rev_485_buf,sizeof(PROXY_GETLIST));
-						cjcommProxy.isInUse = 3;
+				if(mq_h.pid == cjdeal) {
+					DEBUG_TIME_LINE("\n收到代理召测\n");
+					memcpy(&cjcommProxy_Tmp.strProxyList,rev_485_buf,sizeof(PROXY_GETLIST));
+
+					for(i=0;  cjcommProxy_Tmp.strProxyList.num; i++) {
+//						if(isPlcOAD(cjcommProxy_Tmp.strProxyList.objs[i].tsa)) {
+//							//copy to cjcommProxy_plc
+//						} else if(1/**/) {
+//							//copy to cjcommProxy
+//						}
 					}
-					else
-					{
-						fprintf(stderr,"上一个代理召测没处理完");
-					}
+
+					memcpy(&cjcommProxy_plc.strProxyList,rev_485_buf,sizeof(PROXY_GETLIST));
+					cjcommProxy_plc.isInUse = 1;
+
+
+					memcpy(&cjcommProxy.strProxyList,rev_485_buf,sizeof(PROXY_GETLIST));
+					cjcommProxy.isInUse = 3;
 
 				}
 				if(mq_h.pid == cjgui)
 				{
 					fprintf(stderr, "\n收到液晶点抄-----------------------------------23232323\n");
 					memcpy(&cjguiProxy_Tmp.strProxyMsg,rev_485_buf,sizeof(Proxy_Msg));
-					if (cjguiProxy_Tmp.strProxyMsg.port.OI== PORT_ZB)
-					{
-						if (cjguiProxy_plc.isInUse ==0 )
-						{
-							memcpy(&cjguiProxy_plc,&cjguiProxy_Tmp,sizeof(cjguiProxy_plc));//如果点抄的是载波测量点，消息变量转存
-							cjguiProxy_plc.isInUse = 1;
-						}
-					}else
-					{
-						if(cjguiProxy.isInUse == 0)
-						{
-							memcpy(&cjguiProxy.strProxyMsg,rev_485_buf,sizeof(Proxy_Msg));
-							cjguiProxy.isInUse = 3;
-						}
-						else
-						{
-							fprintf(stderr,"上一个液晶点抄没处理完");
-						}
+					if (cjguiProxy_Tmp.strProxyMsg.port.OI== PORT_ZB) {
+						memcpy(&cjGuiProxy_plc,&cjguiProxy_Tmp,sizeof(cjGuiProxy_plc));//如果点抄的是载波测量点，消息变量转存
+						cjGuiProxy_plc.isInUse = 1;
+					} else if (cjguiProxy_Tmp.strProxyMsg.port.OI== PORT_485) {
+						memcpy(&cjguiProxy.strProxyMsg,rev_485_buf,sizeof(Proxy_Msg));
+						cjguiProxy.isInUse = 3;
 					}
 				}
 
@@ -842,8 +871,9 @@ INT8S dealMsgProcess()
 			}
 
 		}
-
 	}
+
+
 	return result;
 }
 void replenish_tmp()
@@ -890,12 +920,24 @@ void dispatch_thread()
 	replenishTime[1] = 60;
 	replenishTime[2] = 90;
 	replenishTime[3] = 120;
+
+	proxyInUse.u8b = 0;//初始化代理操作标记
 	while(1)
 	{
 		timeProcess();
+
 		if(mqd_485_main >= 0)
 		{
-			dealMsgProcess();
+			if(proxyInUse.devUse.proxyIdle == 0) {//只有当代理操作空闲时, 才处理下一个代理操作
+				dealMsgProcess();
+			} else {//当某一个设备的需要使用标记和就绪标记同时为0, 或者同时为1, 意即当需要使用
+					//某个设备, 且当他就绪时, 才认为这个设备上的代理操作已完毕.
+					//当代理所使用的所有设备操作完毕后, 将代理标记清零, 处理下一个代理操作.
+				if( !(proxyInUse.devUse.plcNeed ^ proxyInUse.devUse.plcReady)&&\
+				    !(proxyInUse.devUse.rs485Need ^ proxyInUse.devUse.rs485Ready) ) {
+					proxyInUse.u8b = 0;
+				}
+			}
 		}
 		para_ChangeType = getParaChangeType();
 
