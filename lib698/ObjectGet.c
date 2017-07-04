@@ -42,7 +42,6 @@ typedef struct {
 
 static NEXT_INFO	next_info={};
 
-
 int BuildFrame_GetResponseRecord(INT8U response_type,CSINFO *csinfo,RESULT_RECORD record,INT8U *sendbuf)
 {
 	int index=0, hcsi=0;
@@ -917,7 +916,7 @@ int getSel_Data(INT8U type,INT8U *seldata,INT8U *destdata)
 	switch(type) {
 	case dtnull:
 		destdata[0] = 0;
-		ret = 1;
+		ret = 0;
 		break;
 	case dtunsigned:
 		destdata[0] = seldata[0];
@@ -931,8 +930,11 @@ int getSel_Data(INT8U type,INT8U *seldata,INT8U *destdata)
 	case dtdatetimes:
 		ret = getDateTimeS(0,seldata,destdata,&DAR);
 		break;
+	case dtti:
+		ret = getTI(0,seldata,(TI *)&destdata);
+		break;
 	default:
-		ret = 0;
+		ret = -1;
 		break;
 	}
 	fprintf(stderr,"getSel_Data return %d\n",ret);
@@ -973,6 +975,9 @@ int getColl_Data(OI_698 oi,INT16U seqnum,INT8U *data)
 	return index;
 }
 
+/*
+ * 返回SEQUENCE OF GetRecord 的个数
+ * */
 int getSel1_freeze(RESULT_RECORD *record)
 {
 	int ret=0;
@@ -984,11 +989,15 @@ int getSel1_freeze(RESULT_RECORD *record)
 //	OAD		readoad={};
 
 	getSel_ret = getSel_Data(record->select.selec1.data.type,record->select.selec1.data.data,(INT8U *)&datetime);
-	if(getSel_ret == 0) {
+	if(getSel_ret == -1) {
 		fprintf(stderr,"select1 查询类型不匹配。。。。。\n");
 		record->datalen = 0;
 		record->dar = dblock_invalid;
-		return ret;
+		return 0;
+	}else if(getSel_ret == 0){
+		//一致性测试GET_10，RSD=1,OAD不在赛选范围内（数据Data为NULL） 响应报文seqof=0
+		record->datalen = 0;
+		return 0;
 	}
 	fprintf(stderr,"getSel1: OI=%04x  Time=%d:%d:%d %d-%d-%d\n",record->select.selec1.oad.OI,datetime.year.data,datetime.month.data,datetime.day.data,
 			datetime.hour.data,datetime.min.data,datetime.sec.data);
@@ -1014,6 +1023,7 @@ int getSel1_freeze(RESULT_RECORD *record)
 			}
 		}else {
 			record->data[index] = 0;
+			ret = 1;	//一致性测试，正常响应报文seqof=1
 		}
 	}
 //	一致性测试修改，是否影响正常？？？？
@@ -1025,10 +1035,50 @@ int getSel1_freeze(RESULT_RECORD *record)
 	return ret;
 }
 
-///
-int getSel1_coll(RESULT_RECORD *record)
+int getSel2_freeze(RESULT_RECORD *record)
 {
 	int ret=0;
+	int		index = 0,ti_sec=0;
+	DateTimeBCD start_from={},end_to={};
+	TI		jiange={};
+	time_t	sub_time=0;
+	int		seqofNum = 0;
+	if(record->select.selec2.oad.OI == 0x2021) {	//数据冻结时间
+		getSel_Data(record->select.selec2.data_from.type,record->select.selec2.data_from.data,(INT8U *)&start_from);
+		getSel_Data(record->select.selec2.data_to.type,record->select.selec2.data_to.data,(INT8U *)&end_to);
+		getSel_Data(record->select.selec2.data_jiange.type,record->select.selec2.data_jiange.data,(INT8U *)&jiange);
+		sub_time = TimeBCDTotime_t(end_to)-TimeBCDTotime_t(start_from);
+		ti_sec = TItoSec(jiange);
+		fprintf(stderr,"sub_time=%ld\n",sub_time);
+		if(ti_sec!=0) {
+			seqofNum = sub_time/ti_sec;
+		}
+		fprintf(stderr,"getSel2: OI=%04x  \n",record->select.selec1.oad.OI);
+		printDataTimeS("起始时间",start_from);
+		printDataTimeS("结束时间",end_to);
+		printTI("间隔",jiange);
+		fprintf(stderr,"seqOfNum = %d\n",seqofNum);
+	}
+	record->data[index++] = seqofNum; 	//M = 1  Sequence  of A-RecordRow
+//	for(sel_id=taskid_from;sel_id<=taskid_to;sel_id++) {
+////		index += getColl_Data(record->select.selec2.oad.OI,sel_id,&record->data[index]);
+//		if(index==0) {	//0条记录     [1] SEQUENCE OF A-RecordRow
+//			record->data[0] = 0;
+//			index += 1;
+//		}
+//	}
+	record->datalen = index;
+	fprintf(stderr,"\nrecord->datalen = %d",record->datalen);
+	return ret;
+	return ret;
+}
+
+/*
+ * 返回SEQUENCE OF GetRecord 的个数
+ * */
+int getSel1_coll(RESULT_RECORD *record)
+{
+	int ret=1;
 	int		index = 0;
 	int		taskid=0;
 
@@ -1037,7 +1087,7 @@ int getSel1_coll(RESULT_RECORD *record)
 	index += getColl_Data(record->select.selec1.oad.OI,taskid,&record->data[index]);
 	if(index==0) {	//0条记录     [1] SEQUENCE OF A-RecordRow
 		record->data[0] = 0;
-		index=1;
+		index=1;	//？？？？
 	}
 	record->datalen = index;
 	fprintf(stderr,"\nrecord->datalen = %d",record->datalen);
@@ -1084,6 +1134,8 @@ int getSelector12(RESULT_RECORD *record)
 		fprintf(stderr,"\n冻结类对象\n");
 		if(record->selectType == 1) {
 			ret = getSel1_freeze(record);
+		}else {
+			ret = getSel2_freeze(record);
 		}
 		break;
 	case 6:			//采集监控类对象
@@ -1106,6 +1158,7 @@ int getSelector12(RESULT_RECORD *record)
 /*
  * type = 3:GetResponseRecord
  * type = 4:GetResponseRecordList
+ * RSD用于选择记录型对象属性的各条记录，即二维记录表的行选择，其通过对构成记录的某些对象属性数值进行指定来进行选择，范围选择区间：前闭后开，即[起始值，结束值）。
  * */
 int doGetrecord(INT8U type,OAD oad,INT8U *data,RESULT_RECORD *record,INT16U *subframe)
 {
@@ -1115,7 +1168,8 @@ int doGetrecord(INT8U type,OAD oad,INT8U *data,RESULT_RECORD *record,INT16U *sub
 	int		dest_index=0;		//getreponse 指针
 	int		response_choice_index = 0;		//记录response的choice的位置
 	INT8U 	SelectorN =0;
-	int		datalen=0, sel12_len = 0;
+	int		datalen=0;
+	int		seqof_len = 0;
 
 	fprintf(stderr,"\nGetRequestRecord   oi=%x  %02x  %02x",record->oad.OI,record->oad.attflg,record->oad.attrindex);
 	source_index = get_BasicRSD(0,&data[source_index],(INT8U *)&record->select,&record->selectType);
@@ -1143,15 +1197,12 @@ int doGetrecord(INT8U type,OAD oad,INT8U *data,RESULT_RECORD *record,INT16U *sub
 			dest_index += 2;
 		}
 		record->data = &TmpDataBuf[dest_index];		//修改record的数据帧的位置
-		sel12_len = getSelector12(record);
+		seqof_len = getSelector12(record);
 		fprintf(stderr,"record.dar = %d , response_choice_index = %d\n",record->dar,response_choice_index);
 		record->data = TmpDataBuf;				//data 指向回复报文帧头
 		if(record->dar == success) {
 			record->data[response_choice_index] = 1; //CHOICE  [1]  data
-			if(sel12_len)
-				record->data[response_choice_index+1] = 1; //M = 1  Sequence  of A-RecordRow
-			else
-				record->data[response_choice_index+1] = 0; //M = 0  Sequence  of A-RecordRow
+			record->data[response_choice_index+1] = seqof_len; //M = 1  Sequence  of A-RecordRow
 		}else {
 			record->data[response_choice_index] = 0; //DAR
 			record->data[response_choice_index+1] = record->dar; //错误类型

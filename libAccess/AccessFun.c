@@ -1883,6 +1883,7 @@ INT16U CalcFreq(TI runti,CLASS_6015 class6015,INT16U startmin,INT16U endmin,INT3
 	}
 	return 1;
 }
+#if 0
 INT32U freqtosec(TI interval)//ti格式频率转化为秒数,只计算秒分时日，其他返回0
 {
 	INT32U rate = 0;
@@ -1905,6 +1906,7 @@ INT32U freqtosec(TI interval)//ti格式频率转化为秒数,只计算秒分时�
 	}
 	return rate*interval.interval;
 }
+#endif
 //读取taskid相应的配置结构体，return 1成功，0失败
 INT8U ReadTaskInfo(INT8U taskid,TASKSET_INFO *tasknor_info)//读取普通采集方案配置
 {
@@ -1927,7 +1929,7 @@ INT8U ReadTaskInfo(INT8U taskid,TASKSET_INFO *tasknor_info)//读取普通采集�
 #ifdef SYS_INFO
 			asyslog(LOG_INFO,"\n---class6015.cjtype = %d  class6013.sernum = %d \n",class6015.cjtype,class6013.sernum);
 #endif
-			tasknor_info->taskfreq = freqtosec(class6013.interval);
+			tasknor_info->taskfreq = TItoSec(class6013.interval);	//替换原来的freqtosec
 			fprintf(stderr,"\n任务执行间隔%d\n",tasknor_info->taskfreq);
 			tasknor_info->starthour = class6013.runtime.runtime[0].beginHour;
 			tasknor_info->startmin = class6013.runtime.runtime[0].beginMin;//按照设置一个时段来
