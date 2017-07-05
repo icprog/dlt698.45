@@ -1165,6 +1165,7 @@ INT16U setRequestNormal(INT8U *data,OAD oad,INT8U *DAR,CSINFO *csinfo,INT8U *buf
 {
 	INT8U oihead = (oad.OI&0xF000) >>12;
 	INT16U	data_index=0;
+	INT8U	tmp_buf[64]={};
 	fprintf(stderr,"\n对象属性设置  【 %04x 】",oad.OI);
 
 	if(Response_timetag.effect==0) {
@@ -1190,6 +1191,12 @@ INT16U setRequestNormal(INT8U *data,OAD oad,INT8U *DAR,CSINFO *csinfo,INT8U *buf
 			break;
 		case 0xf:		//输入输出设备类对象 + ESAM接口类对象
 			data_index = DeviceIoSetAttrib(oad,data,DAR);
+			break;
+		default:
+			data_index = get_Data(data,tmp_buf);
+			fprintf(stderr,"oad.oi=%04x,data_index=%d\n",oad.OI,data_index);
+			*DAR = obj_undefine;
+			break;
 	}
 	if(*DAR==success) {		//参数文件更改，通知进程
 		setOIChange(oad.OI);
@@ -1228,6 +1235,7 @@ int setRequestNormalList(INT8U *data,CSINFO *csinfo,INT8U *buf)
 			memcpy(&event_oad[event_oadnum],&oad,sizeof(OAD));
 			event_oadnum++;
 		}
+		DAR = success;		//每一个OAD的设置初始值设置为成功
 		sourceindex += setRequestNormal(&data[sourceindex],oad,&DAR,NULL,buf);
 		listindex += create_OAD(0,&TmpDataBufList[listindex],oad);
 		TmpDataBufList[listindex++] = (INT8U)DAR;

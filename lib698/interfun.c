@@ -678,6 +678,7 @@ int getTime(INT8U type,INT8U *source,INT8U *dest,INT8U *DAR) 	//0x1B
  */
 int getDateTimeS(INT8U type,INT8U *source,INT8U *dest,INT8U *DAR)		//0x1C
 {
+	int  data_len = 0;
 	if((type == 1 && source[0]==dtdatetimes) || (type == 0)) {
 		*DAR = check_date((source[type+0]<<8)+source[type+1],source[type+2],source[type+3],source[type+4],source[type+5],source[type+6]);
 		dest[1] = source[type+0];//年
@@ -688,6 +689,12 @@ int getDateTimeS(INT8U type,INT8U *source,INT8U *dest,INT8U *DAR)		//0x1C
 		dest[5] = source[type+5];//分
 		dest[6] = source[type+6];//秒
 		return (7+type);
+	}
+	if(type == 1 && source[0]!=dtdatetimes) {
+		data_len = get_Data(source,dest);		//错误类型，为了setnormalList查找到下一个oad位置
+		fprintf(stderr,"data_len = %d\n",data_len);
+		*DAR = type_mismatch;
+		return data_len;
 	}
 	return 0;
 }
