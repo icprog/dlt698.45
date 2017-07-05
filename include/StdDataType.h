@@ -59,7 +59,7 @@ typedef enum {
 }Base_DataType;
 
 typedef enum {
-	bps300,bps600,bps1200,bps2400,bps4800,bps7200,bps9600,bps19200,bps38400,bps57600,bps115200,autoa
+	bps300,bps600,bps1200,bps2400,bps4800,bps7200,bps9600,bps19200,bps38400,bps57600,bps115200,autoa=255
 }Baud_Rate;	/*波特率*/
 typedef enum {
 	none,odd,even

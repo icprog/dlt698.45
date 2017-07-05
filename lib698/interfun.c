@@ -545,8 +545,10 @@ int getStructure(INT8U *source,INT8U *dest,INT8U *DAR)		//2
 			dest[0] = source[1];
 		return 2;//source[0] 0x2 (stru type)   source[1] =num
 	}else {
+		int	data_len=0;
+		data_len = get_Data(source,NULL);		//错误类型，为了setnormalList查找到下一个oad位置
 		*DAR=type_mismatch;
-		return 0;
+		return data_len;
 	}
 }
 
@@ -765,100 +767,6 @@ int getTI(INT8U type,INT8U *source,TI *ti)	//0x54
 	return 0;
 }
 
-/*
- * 返回的Data数据
- * [0]:数据类型
- * [1-n]：实际数据
- * */
-int get_Data(INT8U *source,INT8U *dest)
-{
-	int dttype=0,dtlen=0,i=0;
-	int index=0;
-	int	arraynum = 0;
-
-	dttype = source[0];
-	fprintf(stderr,"get_Data type=%02x\n",dttype);
-	dtlen = getDataTypeLen(dttype);
-	if(dtlen>=0) {
-		if(dest!=NULL) {
-			dest[0] = dttype;
-			memcpy(&dest[1],&source[1],dtlen);
-		}
-		return (dtlen+1);  //+1:dttype
-	}else {
-		if(dttype == dtarray) {		//一致性测试 GET_11处理,为了寻找正确的RCSD，将Selector1异常数据处理结束
-			index++;
-//			fprintf(stderr,"array num = %d\n",source[index]);
-			arraynum = source[index];
-			index++;
-			for(i=0;i<arraynum;i++) {
-				dttype = source[index];
-				dtlen = getDataTypeLen(dttype);
-				index = index + dtlen + 1;
-//				fprintf(stderr,"dtlen = %d  dttype=%d index=%d\n",dtlen,dttype,index);
-			}
-		}
-		dest[0] = 255;
-		fprintf(stderr,"未知数据长度 dtlen = %d\n",dtlen);
-		return index;
-	}
-//	switch(dttype){
-//	case dtunsigned:
-//		dest[1] = source[1];
-//		return 2;
-//	case dtlongunsigned:
-//		dest[1] = source[1];		//高低位
-//		dest[2] = source[2];
-//		return 3;
-//	case dtfloat64:
-//	case dtlong64:
-//	case dtlong64unsigned:
-//		for(i=0 ; i<8; i++)
-//			dest[8-i] = source[i+1];	//dest[8] ,7 ,6 ,5, 4 ,3 ,2 ,1   dest[0]:type
-//		return 8 + 1;
-//	case dtenum:
-//		dest[1] = source[1];
-//		return 2;
-//	case dtfloat32:
-//		for(i=0 ; i<4; i++)
-//			dest[4-i] = source[i+1];	//dest[4] ,3 ,2 ,1   dest[0]:type
-//		return 4 + 1;
-//	case dtdatetime:
-//		dest[1] = source[1];//年
-//		dest[2] = source[2];
-//		dest[3] = source[3];//月
-//		dest[4] = source[4];//day_of_month
-//		dest[5] = source[5];//day_of_week
-//		dest[6] = source[6];//时
-//		dest[7] = source[7];//分
-//		dest[8] = source[8];//秒
-//		dest[9] = source[9];//毫秒
-//		dest[10] = source[10];//
-//		return 10 + 1;
-//	case dtdatetimes:
-//		dest[1] = source[1];//年
-//		dest[2] = source[2];
-//		dest[3] = source[3];//月
-//		dest[4] = source[4];//日
-//		dest[5] = source[5];//时
-//		dest[6] = source[6];//分
-//		dest[7] = source[7];//秒
-//		return 7 + 1;
-//		break;
-//	case dtti:
-//		memcpy(&dest[1],&source[1],3);
-//		return 3 + 1;
-//		break;
-//	case dttsa:
-//		i = source[1];//长度
-//		memcpy(&dest[1],&source[1],i+1);
-//		return i+1;
-//	default:
-//		fprintf(stderr,"未处理的数据类型\n");
-//		break;
-//	}
-//	return 0;
-}
 /*
  * 解析选择方法类型 RSD
  */
@@ -1109,15 +1017,34 @@ int getMS(INT8U type,INT8U *source,MY_MS *ms)		//0x5C
 	return index;
 }
 
-int getCOMDCB(INT8U type, INT8U* source, COMDCB* comdcb)		//0x5F
+int getCOMDCB(INT8U type, INT8U* source, COMDCB* comdcb,INT8U *DAR)		//0x5F
 {
-	if((type == 1) || (type == 0)) {
+	INT8U tmpDAR=success;
+	if((type==1 && source[0]==dtcomdcb) || (type==0)) {
 		comdcb->baud = source[type];
+		tmpDAR = getEnumValid(comdcb->baud,bps300,bps115200,autoa);
+		if(tmpDAR != success) *DAR = tmpDAR;
 		comdcb->verify = source[type+1];
+		tmpDAR = getEnumValid(comdcb->verify,none,even,none);
+		if(tmpDAR != success) *DAR = tmpDAR;
 		comdcb->databits = source[type+2];
+		tmpDAR = getEnumValid(comdcb->databits,d5,d8,d5);
+		if(tmpDAR != success) *DAR = tmpDAR;
 		comdcb->stopbits = source[type+3];
+		tmpDAR = getEnumValid(comdcb->stopbits,stop1,stop2,stop1);
+		if(tmpDAR != success) *DAR = tmpDAR;
 		comdcb->flow = source[type+4];
+		tmpDAR = getEnumValid(comdcb->flow,no,soft,no);
+		if(tmpDAR != success) *DAR = tmpDAR;
 		return (5+type);
+	}
+	if(type == 1 && source[0]!=dtcomdcb) {
+		int	data_len=0;
+		fprintf(stderr,"source=%02x\n",source[0]);
+		data_len = get_Data(source,NULL);		//错误类型，为了setnormalList查找到下一个oad位置
+		fprintf(stderr,"error data_len = %d\n",data_len);
+		*DAR = type_mismatch;
+		return data_len;
 	}
 	return 0;
 }
@@ -1175,6 +1102,7 @@ int get_BasicRCSD(INT8U type,INT8U *source,CSD_ARRAYTYPE *csds)	//0x60
 	return index;
 }
 
+
 /*
  * 根据数据类型返回相应的数据长度
  * */
@@ -1206,6 +1134,103 @@ int getDataTypeLen(int dt)
 		syslog(LOG_NOTICE,"未处理数据类型");
 		return -1;
 	}
+}
+
+/*
+ * 返回的Data数据
+ * [0]:数据类型
+ * [1-n]：实际数据
+ * */
+int get_Data(INT8U *source,INT8U *dest)
+{
+	int dttype=0,dtlen=0,i=0;
+	int index=0;
+	int	arraynum = 0;
+
+	dttype = source[0];
+	fprintf(stderr,"get_Data type=%02x\n",dttype);
+	dtlen = getDataTypeLen(dttype);
+	if(dtlen>=0) {
+		if(dest!=NULL) {
+			dest[0] = dttype;
+			memcpy(&dest[1],&source[1],dtlen);
+		}
+		return (dtlen+1);  //+1:dttype
+	}else {
+		if(dttype == dtarray) {		//一致性测试 GET_11处理,为了寻找正确的RCSD，将Selector1异常数据处理结束
+			index++;
+//			fprintf(stderr,"array num = %d\n",source[index]);
+			arraynum = source[index];
+			index++;
+			for(i=0;i<arraynum;i++) {
+				dttype = source[index];
+				dtlen = getDataTypeLen(dttype);
+				index = index + dtlen + 1;
+//				fprintf(stderr,"dtlen = %d  dttype=%d index=%d\n",dtlen,dttype,index);
+			}
+		}
+		if(dest!=NULL) {
+			dest[0] = 255;
+		}
+		fprintf(stderr,"未知数据长度 dtlen = %d\n",dtlen);
+		return index;
+	}
+//	switch(dttype){
+//	case dtunsigned:
+//		dest[1] = source[1];
+//		return 2;
+//	case dtlongunsigned:
+//		dest[1] = source[1];		//高低位
+//		dest[2] = source[2];
+//		return 3;
+//	case dtfloat64:
+//	case dtlong64:
+//	case dtlong64unsigned:
+//		for(i=0 ; i<8; i++)
+//			dest[8-i] = source[i+1];	//dest[8] ,7 ,6 ,5, 4 ,3 ,2 ,1   dest[0]:type
+//		return 8 + 1;
+//	case dtenum:
+//		dest[1] = source[1];
+//		return 2;
+//	case dtfloat32:
+//		for(i=0 ; i<4; i++)
+//			dest[4-i] = source[i+1];	//dest[4] ,3 ,2 ,1   dest[0]:type
+//		return 4 + 1;
+//	case dtdatetime:
+//		dest[1] = source[1];//年
+//		dest[2] = source[2];
+//		dest[3] = source[3];//月
+//		dest[4] = source[4];//day_of_month
+//		dest[5] = source[5];//day_of_week
+//		dest[6] = source[6];//时
+//		dest[7] = source[7];//分
+//		dest[8] = source[8];//秒
+//		dest[9] = source[9];//毫秒
+//		dest[10] = source[10];//
+//		return 10 + 1;
+//	case dtdatetimes:
+//		dest[1] = source[1];//年
+//		dest[2] = source[2];
+//		dest[3] = source[3];//月
+//		dest[4] = source[4];//日
+//		dest[5] = source[5];//时
+//		dest[6] = source[6];//分
+//		dest[7] = source[7];//秒
+//		return 7 + 1;
+//		break;
+//	case dtti:
+//		memcpy(&dest[1],&source[1],3);
+//		return 3 + 1;
+//		break;
+//	case dttsa:
+//		i = source[1];//长度
+//		memcpy(&dest[1],&source[1],i+1);
+//		return i+1;
+//	default:
+//		fprintf(stderr,"未处理的数据类型\n");
+//		break;
+//	}
+//	return 0;
 }
 
 
