@@ -273,7 +273,7 @@ void get_BasicUnit(INT8U *source, INT16U *sourceindex, INT8U *dest, INT16U *dest
                 dest[4] = source[5];
                 int numm = source[6];//SEQUENCE 0F OAD 数量
                 dest[5] = (INT8U) numm;
-                fprintf(stderr, "\nnumm=%d", numm);
+                //fprintf(stderr, "\nnumm=%d", numm);
                 for (int k = 0; k < numm; k++) {
                     dest[6 + k * 4 + 0] = source[7 + k * 4 + 1];
                     dest[6 + k * 4 + 1] = source[7 + k * 4 + 0];
@@ -320,6 +320,7 @@ int class4000_act(INT16U attr_act, INT8U *data, Action_result *act_ret)
 	if (attr_act == 127) {  //方法 127 广播校时
 		index += Set_4000(&data,&act_ret->DAR);
 	}
+	return 0;
 }
 
 void AddBatchMeterInfo(INT8U *data, INT8U type, Action_result *act_ret) {
@@ -717,10 +718,28 @@ void AddOI6019(INT8U *data, Action_result *act_ret) {
     act_ret->datalen = index;
 }
 
-void Set_CSD(INT8U *data) {
-
+void Set_CSD(INT8U *data,Action_result *act_ret) {
+	CLASS_6015 task = {};
+	int index=0;
+	memset(&task, 0, sizeof(task));
+	INT8U taskid=0;
+	index = index + 2;//array
+	index = index + 2;//structure
+	index +=getUnsigned(&data[index],&taskid,NULL);
+	int ret=readCoverClass(0x6013,taskid,&task,sizeof(CLASS_6013),coll_para_save);
+	if(ret == 1)
+	{
+		INT8U arraysize = 0;
+		index += getArray(&data[index], &arraysize,&act_ret->DAR);
+		task.csds.num = arraysize;
+		int w = 0;
+		for (w = 0; w < arraysize; w++) {
+			index += getCSD(1, &data[index], (MY_CSD *) &task.csds.csd[w]);
+		}
+		saveCoverClass(0x6015, task.sernum, &task, sizeof(task), coll_para_save);
+	}else
+		act_ret->DAR=type_mismatch;
 }
-
 
 void DeleteArrayID(OI_698 oi,INT8U *data)
 {
@@ -730,12 +749,31 @@ void DeleteArrayID(OI_698 oi,INT8U *data)
 
 	index += getArray(&data[index],(INT8U *)&arrayid,NULL);
 	for(i=0;i<arrayid;i++) {
-		getUnsigned(&data[index],(INT8U *)&taskid,&DAR);
+		index += getUnsigned(&data[index],(INT8U *)&taskid,&DAR);
 		fprintf(stderr,"Delete taskid=%d\n",taskid);
 		deleteClass(oi, taskid);
 	}
+	sleep(3);
 }
 
+void UpdateTaskStatus(OI_698 oi,INT8U *data,Action_result *act_ret)
+{
+	CLASS_6013 task = {};
+	int index=0;
+	memset(&task, 0, sizeof(task));
+	INT8U taskid=0;
+	index = index + 2;
+	index +=getUnsigned(&data[index],&taskid,NULL);
+	fprintf(stderr,"taskid=%d\n",taskid);
+	int ret=readCoverClass(0x6013,taskid,&task,sizeof(CLASS_6013),coll_para_save);
+	if(ret == 1)
+	{
+		fprintf(stderr,"找到taskid=%d\n",taskid);
+		index += getEnum(1, &data[index], &task.state);
+		saveCoverClass(0x6013, task.taskID, &task, sizeof(task), coll_para_save);
+	}else
+		act_ret->DAR=type_mismatch;
+}
 void CjiFangAnInfo(INT16U attr_act, INT8U *data, Action_result *act_ret) {
     switch (attr_act) {
         case 127:    //方法 127:Add (array 普通采集方案)
@@ -750,7 +788,7 @@ void CjiFangAnInfo(INT16U attr_act, INT8U *data, Action_result *act_ret) {
             clearClass(0x6015);            //普通采集方案放置在6015目录下
             break;
         case 130:    //方法 130:Set_CSD(方案编号,array CSD)
-            Set_CSD(data);
+            Set_CSD(data,act_ret);
             break;
     }
 }
@@ -898,6 +936,9 @@ void TaskInfo(INT16U attr_act, INT8U *data, Action_result *act_ret) {
             fprintf(stderr, "\n清空采集任务配置表");
             clearClass(0x6013);        //任务配置单元存放在/nand/para/6013目录
             break;
+        case 130://方法130：update（任务ID，状态）更新任务状态
+        	UpdateTaskStatus(0x6013,data,act_ret);
+        	break;
     }
 }
 
@@ -1257,7 +1298,13 @@ void MeterInfo(INT16U attr_act, INT8U *data, Action_result *act_ret) {
             break;
         case 134://方法 134:Clear()
             fprintf(stderr, "\n清空采集档案配置表");
-            clearClass(0x6000);
+            fprintf(stderr,"data[0]=%d\n",data[0]);
+            if(data[0]!=0 && (data[0]!=1)) {	//TimeTag=0,无时间标签，TimeTag=1，有时间标签
+            	act_ret->DAR = type_mismatch;
+            	fprintf(stderr,"包含数据，类型不匹配");
+            }else {
+            	clearClass(0x6000);
+            }
             break;
     }
 }
@@ -1301,24 +1348,24 @@ INT32S EsamMothod(INT16U attr_act, INT8U *data) {
 
 
 int doObjectAction(OAD oad, INT8U *data, Action_result *act_ret) {
-    INT32S errflg = 0;
-    INT16U oi = oad.OI;
-    INT8U attr_act = oad.attflg;
-    INT8U oihead = (oi & 0xF000) >> 12;
-    fprintf(stderr, "\n----------  oi =%04x   ", oi);
+	INT32S errflg = 0;
+	    INT16U oi = oad.OI;
+	    INT8U attr_act = oad.attflg;
+	    INT8U oihead = (oi & 0xF000) >> 12;
+	    fprintf(stderr, "\n----------  oi =%04x   ", oi);
 
-	if(Response_timetag.effect==0) {
-		act_ret->DAR = timetag_invalid;
-		act_ret->datalen = 0;
-		return act_ret->datalen;
-	}else if(oi==0x8000 || oi==0x8001){		//国网一致性测试：遥控与保电，必须带时间标签，否则认为无效
-		if(Response_timetag.flag == 0) {		//无时间标签
+		if(Response_timetag.effect==0) {
 			act_ret->DAR = timetag_invalid;
 			act_ret->datalen = 0;
-			syslog(LOG_NOTICE,"下发无时间标签,返回无效【oi=%x】 ",oi);
 			return act_ret->datalen;
+		}else if(oi==0x8000 || oi==0x8001){		//国网一致性测试：遥控与保电，必须带时间标签，否则认为无效
+			if(Response_timetag.flag == 0) {		//无时间标签
+				act_ret->DAR = timetag_invalid;
+				act_ret->datalen = 0;
+				syslog(LOG_NOTICE,"下发无时间标签,返回无效【oi=%x】 ",oi);
+				return act_ret->datalen;
+			}
 		}
-	}
     switch (oihead) {
         case 3:            //事件类对象方法操作
             EventMothod(oad, data);
@@ -1329,6 +1376,9 @@ int doObjectAction(OAD oad, INT8U *data, Action_result *act_ret) {
      		if (attr_act == 127) {  //方法 127 广播校时
     			act_ret->datalen = Set_4000(data,&act_ret->DAR);
     		}
+    		break;
+    	case 0x4006:
+    		Set_4006(data,&act_ret->DAR,attr_act);
     		break;
         case 0x4300:    //终端对象
             TerminalInfo(attr_act, data, act_ret);
@@ -1369,6 +1419,11 @@ int doObjectAction(OAD oad, INT8U *data, Action_result *act_ret) {
 //				act_ret->datalen = 1;
             }
             break;
+        case 0xF200:	//RS232
+        	act_ret->datalen = Set_F200(data,&act_ret->DAR);
+        	break;
+        case 0xF202:	//红外
+        	break;
         case 0x2301:
             class23_selector(1, attr_act, data, act_ret);
             break;
@@ -1414,7 +1469,10 @@ int doObjectAction(OAD oad, INT8U *data, Action_result *act_ret) {
         case 0x8108:
             class8108_act_route(1, attr_act, data, act_ret);
             break;
-
+        default:
+        	act_ret->datalen = get_Data(data,NULL);
+        	act_ret->DAR = obj_undefine;
+        	break;
     }
     if(act_ret->DAR == success) {
 		if (oi == 0x4300 && attr_act == 1) {        //设备复位

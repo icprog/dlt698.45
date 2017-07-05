@@ -102,7 +102,7 @@ extern int getCSD(INT8U type, INT8U* source, MY_CSD* csd);                      
 extern int getMS(INT8U type, INT8U* source, MY_MS* ms);                           // 0x5C
 extern int getCOMDCB(INT8U type, INT8U* source, COMDCB* comdcb);                  // 0x5F
 extern int get_BasicRCSD(INT8U type, INT8U* source, CSD_ARRAYTYPE* csds);         // 0x60
-extern int get_Data(INT8U* source, INT8U* dest);
+extern int get_Data(INT8U* source, INT8U* dest);								//根据类型返回数据的长度
 extern int getSel_Data(INT8U type,INT8U *seldata,INT8U *destdata);				//根据selector类型的参数返回读取的数据
 /*
  * 根据数据类型返回相应的数据长度

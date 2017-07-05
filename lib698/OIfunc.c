@@ -28,6 +28,18 @@ int Set_4000(INT8U *data,INT8U *DAR)
 	sleep(2);		//延时2秒，确保台体测试过程中，修改时间设置成功
 	return index;
 }
+int Set_4006(INT8U *data,INT8U *DAR,INT8U attr_act)
+{
+    if(attr_act == 127 || attr_act == 128)
+    {
+    	CLASS_4006 class_tmp={};
+    	int ret = readCoverClass(0x4006,0,&class_tmp,sizeof(CLASS_4006),para_vari_save);
+    	if(ret == 1)
+    		getEnum(0,data,&class_tmp.state);
+    	saveCoverClass(0x4006,0,&class_tmp,sizeof(CLASS_4006),para_vari_save);
+    }
+	return 0;
+}
 ////////////////////////////////////////////////////////////
 /*
  * 电压合格率
@@ -198,6 +210,7 @@ int Get_6013(INT8U type,INT8U taskid,INT8U *data)
 		index += fill_date_time_s(&data[index],&task.startime);		//开始时间
 		index += fill_date_time_s(&data[index],&task.endtime);		//结束时间
 		index += fill_TI(&data[index],task.delay);				//延时
+
 		if(task.runtime.runtime[23].beginHour==dtunsigned) {
 			index += fill_unsigned(&data[index],task.runprio);		//执行优先级
 		}else index += fill_enum(&data[index],task.runprio);			//执行优先级
@@ -228,9 +241,9 @@ int Get_6015(INT8U type,INT8U seqnum,INT8U *data)
 	CLASS_6015 coll={};
 
 	ret = readCoverClass(0x6015,seqnum,&coll,sizeof(CLASS_6015),coll_para_save);
-	fprintf(stderr,"\n 6015 read coll ok　seqnum=%d  type=%d  ret=%d\n",seqnum,type,ret);
+	//fprintf(stderr,"\n 6015 read coll ok　seqnum=%d  type=%d  ret=%d\n",seqnum,type,ret);
 	if ((ret == 1) || (type==1)) {
-		fprintf(stderr,"\n 6015 read coll ok　seqnum=%d  type=%d  ret=%d\n",seqnum,type,ret);
+		//fprintf(stderr,"\n 6015 read coll ok　seqnum=%d  type=%d  ret=%d\n",seqnum,type,ret);
 		index += create_struct(&data[index],6);		//属性2：struct 6个元素
 		index += fill_unsigned(&data[index],coll.sernum);		//方案序号
 		index += fill_long_unsigned(&data[index],coll.deepsize);	//存储深度
@@ -264,9 +277,9 @@ int Get_6017(INT8U type,INT8U seqnum,INT8U *data)
 	CLASS_6017 event={};
 
 	ret = readCoverClass(0x6017,seqnum,&event,sizeof(CLASS_6017),coll_para_save);
-	fprintf(stderr,"\n 6017 read coll ok　seqnum=%d  type=%d  ret=%d\n",seqnum,type,ret);
+	//fprintf(stderr,"\n 6017 read coll ok　seqnum=%d  type=%d  ret=%d\n",seqnum,type,ret);
 	if ((ret == 1) || (type==1)) {
-		fprintf(stderr,"\n 6017 read coll ok　seqnum=%d  type=%d  ret=%d\n",seqnum,type,ret);
+		//fprintf(stderr,"\n 6017 read coll ok　seqnum=%d  type=%d  ret=%d\n",seqnum,type,ret);
 		index += create_struct(&data[index],5);					//属性2：struct 5个元素
 		index += fill_unsigned(&data[index],event.sernum);		//方案序号
 		if(event.collstyle.colltype == 0xff ) {					//采集类型无效,为勘误前的定义结构
@@ -309,7 +322,7 @@ int Get_6019(INT8U type,INT8U seqnum,INT8U *data)
 
 	ret = readCoverClass(0x6019,seqnum,&trans,sizeof(CLASS_6019),coll_para_save);
 	if ((ret == 1) || (type==1)) {
-		fprintf(stderr,"\n 6019 read coll ok　seqnum=%d  type=%d  ret=%d\n",seqnum,type,ret);
+		//fprintf(stderr,"\n 6019 read coll ok　seqnum=%d  type=%d  ret=%d\n",seqnum,type,ret);
 		index += create_struct(&data[index],3);					//属性2：struct 3个元素
 		index += fill_unsigned(&data[index],trans.planno);		//方案序号
 		for(i=0;i<trans.contentnum;i++) {		//方案内容集

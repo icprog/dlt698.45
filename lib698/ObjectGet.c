@@ -1462,8 +1462,15 @@ int doGetrecord(INT8U type,OAD oad,INT8U *data,RESULT_RECORD *record,INT16U *sub
 	fprintf(stderr,"\n- getRequestRecord SelectorN=%d OI = %04x  attrib=%d  index=%d",SelectorN,record->oad.OI,record->oad.attflg,record->oad.attrindex);
 	printrecord(*record);
 	dest_index += create_OAD(0,&record->data[dest_index],record->oad);
-
+    fprintf(stderr,"selectorn=%d \n",SelectorN);
 	switch(SelectorN) {
+	case 0:
+		*subframe = 1;
+		dest_index +=fill_RCSD(0,&record->data[dest_index],record->rcsd.csds);
+		fprintf(stderr,"jintu 0..........");
+		record->data[dest_index++]=1;
+		record->data[dest_index++]=0; //按找不到数据处理
+		record->datalen += dest_index;
 	case 1:		//指定对象指定值
 		*subframe = 1;		//TODO:未处理分帧
 		if(record->rcsd.csds.num == 0) {
@@ -1579,6 +1586,14 @@ int doGetrecord(INT8U type,OAD oad,INT8U *data,RESULT_RECORD *record,INT16U *sub
 		record->datalen += dest_index;			//数据长度+ResultRecord
 		break;
 	case 10:	//指定读取最新的n条记录
+		if(((record->oad.OI>>12)&0x00ff)==6){
+			*subframe = 1;
+			dest_index +=fill_RCSD(0,&record->data[dest_index],record->rcsd.csds);
+			record->data[dest_index++]=1;
+			record->data[dest_index++]=0; //按找不到数据处理
+			record->datalen += dest_index;
+			return 0;
+		}
 		*subframe = getSelector(record->oad,record->select,record->selectType,record->rcsd.csds,NULL,NULL,AppVar_p->server_send_size);
 		if(*subframe==1) {		//无分帧
 			//文件中第一个字节保存的是：SEQUENCE OF A-ResultRecord，此处从TmpDataBuf[1]上送，上送长度也要-1
@@ -1861,8 +1876,8 @@ int GetCollOneUnit(OI_698 oi,INT8U readType,INT8U seqnum,INT8U *data,INT16U *one
 		one_blknum = 256;
 		break;
 	case 0x6016:	//事件采集方案
-//		one_unitlen = Get_6016(readType,seqnum,data);
-//		one_blknum = 256;
+		one_unitlen = Get_6017(readType,seqnum,data);
+		one_blknum = 256;
 		break;
 	}
 	*oneUnitLen = one_unitlen;
@@ -1985,6 +2000,7 @@ int doGetnormal(INT8U seqOfNum,RESULT_NORMAL *response)
 		fprintf(stderr,"\n");
 		break;
 	case 6:			//采集监控类对象
+		fprintf(stderr,"\nddddoi=%d \n",oi);
 		GetCollPara(seqOfNum,response);
 		break;
 	case 0xF:		//文件类/esam类/设备类
