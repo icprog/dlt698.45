@@ -198,6 +198,7 @@ int Get_6013(INT8U type,INT8U taskid,INT8U *data)
 		index += fill_date_time_s(&data[index],&task.startime);		//开始时间
 		index += fill_date_time_s(&data[index],&task.endtime);		//结束时间
 		index += fill_TI(&data[index],task.delay);				//延时
+
 		if(task.runtime.runtime[23].beginHour==dtunsigned) {
 			index += fill_unsigned(&data[index],task.runprio);		//执行优先级
 		}else index += fill_enum(&data[index],task.runprio);			//执行优先级
