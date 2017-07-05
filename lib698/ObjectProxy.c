@@ -76,7 +76,7 @@ int getProxylist(INT8U *data,PROXY_GETLIST *getlist)
 		getlist->objs[i].num = oadnum;
 		for(k=0; k<oadnum; k++)
 		{
-			getOAD(0,&data[iindex],&oadtmp);
+			getOAD(0,&data[iindex],&oadtmp,NULL);
 			memcpy(&getlist->objs[i].oads[k],&oadtmp,sizeof(oadtmp));
 			iindex = iindex + 4;
 		}
@@ -138,7 +138,7 @@ int Proxy_TransCommandRequest(INT8U *data,CSINFO *csinfo,INT8U *sendbuf,INT8U pi
 
 	getlist.piid = piid;
 	getlist.proxytype = ProxyTransCommandRequest;
-	index += getOAD(0,&data[index],&getlist.transcmd.oad);
+	index += getOAD(0,&data[index],&getlist.transcmd.oad,NULL);
 	index += getCOMDCB(0,&data[index],&getlist.transcmd.comdcb);
 	getlist.transcmd.revtimeout = (data[index]<<8) | data[index+1];
 	index += 2;

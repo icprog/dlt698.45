@@ -161,6 +161,7 @@ void print_rcsd(CSD_ARRAYTYPE csds)
 
 int create_array(INT8U *data,INT8U numm)	//0x01
 {
+	fprintf(stderr,"numm =%d \n",numm);
 	data[0] = dtarray;
 	data[1] = numm;
 	return 2;
@@ -180,7 +181,7 @@ int fill_bool(INT8U *data,INT8U value)		//0x03
 	return 2;
 }
 
-int fill_bit_string(INT8U *data,INT8U size,INT8U bits)		//0x04
+int fill_bit_string(INT8U *data,INT8U size,INT8U *bits)		//0x04
 {
 	//TODO : 默认8bit ，不符合A-XDR规范
 	if(size>=0 && size<=8){
@@ -189,8 +190,9 @@ int fill_bit_string(INT8U *data,INT8U size,INT8U bits)		//0x04
 	}
 	data[0] = dtbitstring;
 	data[1] = size;
-	data[2] = bits;
-	return 3;
+	INT8U num=size/8;
+	memcpy(&data[2],bits,num);
+	return 2+num;
 }
 
 int fill_double_long(INT8U *data,INT32S value)		//0x05
@@ -306,7 +308,13 @@ int  create_OAD(INT8U type,INT8U *data,OAD oad)		//0x51
 	data[index++] = oad.attrindex;
 	return index;
 }
-
+int fill_OI(INT8U *data,INT8U value)
+{
+	data[0] = dtoi;
+	data[1] = ( value >> 8 ) & 0xff;
+	data[2] = value & 0xff;
+	return 3;
+}
 int fill_ROAD(INT8U type,INT8U *data,ROAD road)			//0x52
 {
 	int 	index=0,i=0;
@@ -519,29 +527,38 @@ int fill_Data(INT8U type,INT8U *data,INT8U *value)
 }
 
 ///////////////////////////////////////////////////////////////////////////
-int getArray(INT8U *source,INT8U *dest)		//1
+int getArray(INT8U *source,INT8U *dest,INT8U *DAR)		//1
 {
 	if(source[0]==dtarray) {
 		dest[0] = source[1];
 		return 2;//source[0] 0x1 (array type)   source[1] =num
-	}else return 0;
+	}else{
+		*DAR = type_mismatch;
+		return 0;
+	}
 }
 
-int getStructure(INT8U *source,INT8U *dest)		//2
+int getStructure(INT8U *source,INT8U *dest,INT8U *DAR)		//2
 {
 	if(source[0]==dtstructure) {
 		if (dest!=NULL)
 			dest[0] = source[1];
 		return 2;//source[0] 0x2 (stru type)   source[1] =num
-	}else return 0;
+	}else {
+		*DAR=type_mismatch;
+		return 0;
+	}
 }
 
-int getBool(INT8U *source,INT8U *dest)		//3
+int getBool(INT8U *source,INT8U *dest,INT8U *DAR)		//3
 {
 	if(source[0]==dtbool) {
 		dest[0] = source[1];
 		return 2;//source[0] 0x3 (bool type)   source[1] =value
-	}else return 0;
+	}else {
+		*DAR=type_mismatch;
+		return 0;
+	}
 }
 
 int getBitString(INT8U type,INT8U *source,INT8U *dest)   //4
@@ -574,7 +591,7 @@ int getDouble(INT8U *source,INT8U *dest)	//5  and 6
 /*
  *  type ==1 存在类型字节
  */
-int getOctetstring(INT8U type,INT8U *source,INT8U *tsa)   //9  and  0x55
+int getOctetstring(INT8U type,INT8U *source,INT8U *tsa,INT8U *DAR)   //9  and  0x55
 {
 	if ((type==1 && (source[0]==dtoctetstring || source[0]==dttsa)) || type==0)
 	{
@@ -585,11 +602,14 @@ int getOctetstring(INT8U type,INT8U *source,INT8U *tsa)   //9  and  0x55
 		}
 		memcpy(tsa, &source[type],num+1);
 		return (num + type + 1);	// 1:长度字节
+	}else{
+		*DAR = type_mismatch;
+		return 0;
 	}
 	return 0;
 }
 
-int getVisibleString(INT8U *source,INT8U *dest)	//0x0A
+int getVisibleString(INT8U *source,INT8U *dest,INT8U *DAR)	//0x0A
 {
 	if(source[0] == dtvisiblestring) {
 		int	len=VISIBLE_STRING_LEN-1;
@@ -600,12 +620,15 @@ int getVisibleString(INT8U *source,INT8U *dest)	//0x0A
 		}
 		memcpy(&dest[0],&source[1],len);
 		return (len+1);			//+1:类型
-	}else return 0;
+	}else{
+		*DAR=type_mismatch;
+		return 0;
+	}
 }
 
 int getUnsigned(INT8U *source,INT8U *dest,INT8U *DAR)	//0x11
 {
-	if(source[0] == dtunsigned) {
+	if(source[0] == dtunsigned || source[0] == dtinteger) {
 		dest[0] = source[1];
 		return 2;//source[0] 0x11(unsigned type)   source[1] =data
 	}else {
@@ -634,9 +657,13 @@ int getEnum(INT8U type,INT8U *source,INT8U *enumvalue)	//0x16
 	return 0;
 }
 
-int getTime(INT8U type,INT8U *source,INT8U *dest) 	//0x1B
+int getTime(INT8U type,INT8U *source,INT8U *dest,INT8U *DAR) 	//0x1B
 {
 	if((type == 1 && source[0] == dttime) || (type == 0)) {
+		if(source[type+0]>23 || source[type+1]>59 || source[type+2]>59){
+			*DAR = boundry_over;
+			return 0;
+		}
 		dest[0] = source[type+0];//时
 		dest[1] = source[type+1];//分
 		dest[2] = source[type+2];//秒
@@ -675,7 +702,7 @@ int getOI(INT8U type,INT8U *source,OI_698 oi)		//0x50
 	return 0;
 }
 
-int getOAD(INT8U type,INT8U *source,OAD *oad)		//0x51
+int getOAD(INT8U type,INT8U *source,OAD *oad,INT8U *DAR)		//0x51
 {
 	if((type == 1 && source[0]==dtoad) || (type == 0)) {
 		oad->OI = source[type];
@@ -683,6 +710,9 @@ int getOAD(INT8U type,INT8U *source,OAD *oad)		//0x51
 		oad->attflg = source[type+2];
 		oad->attrindex = source[type+3];
 		return (4+type);
+	}else{
+		*DAR=type_mismatch;
+		return 0;
 	}
 	return 0;
 }
@@ -845,14 +875,14 @@ int get_BasicRSD(INT8U type,INT8U *source,INT8U *dest,INT8U *seletype)		//0x5A
 			break;
 		case 1:
 			memset(&rsd.selec1,0,sizeof(rsd.selec1));
-			index += getOAD(0,&source[index],&rsd.selec1.oad);
+			index += getOAD(0,&source[index],&rsd.selec1.oad,&DAR);
 			index += get_Data(&source[index],&rsd.selec1.data.type);
 			memcpy(dest,&rsd.selec1,sizeof(rsd.selec1));
 			fprintf(stderr,"\n index = %d   select1 OI=%04x  select1.data.type=%d !!!!\n",index,rsd.selec1.oad.OI,rsd.selec1.data.type);
 			break;
 		case 2:
 			memset(&rsd.selec2,0,sizeof(rsd.selec2));
-			index += getOAD(0,&source[index],&rsd.selec2.oad);
+			index += getOAD(0,&source[index],&rsd.selec2.oad,&DAR);
 			index += get_Data(&source[index],&rsd.selec2.data_from.type);
 			index += get_Data(&source[index],&rsd.selec2.data_to.type);
 			index += get_Data(&source[index],&rsd.selec2.data_jiange.type);
@@ -911,18 +941,18 @@ int getCSD(INT8U type,INT8U *source,MY_CSD* csd)		//0X5B
 		csd->type = source[index++];
 		if (csd->type==0)//OAD
 		{
-			getOAD(0,&source[index],&csd->csd.oad);
+			getOAD(0,&source[index],&csd->csd.oad,NULL);
 			index = index + sizeof(OAD);
 			return index;
 		}else if (csd->type==1)//ROAD
 		{
-			getOAD(0,&source[index],&csd->csd.road.oad);
+			getOAD(0,&source[index],&csd->csd.road.oad,NULL);
 			index = index + sizeof(OAD);
 			csd->csd.road.num = source[index++];
 			int k=0;
 			for(k=0;k<csd->csd.road.num;k++)
 			{
-				getOAD(0,&source[index],&csd->csd.road.oads[k]);
+				getOAD(0,&source[index],&csd->csd.road.oads[k],NULL);
 				index = index + 4;
 			}
 			return index;
@@ -998,7 +1028,7 @@ int getMS(INT8U type,INT8U *source,MY_MS *ms)		//0x5C
 		ms->ms.userAddr[msindex].addr[1] = seqlen & 0xff;
 		msindex++;
 		for(i=0;i<seqlen;i++) {
-			index += getOctetstring(0,&source[index],(INT8U *)&ms->ms.userAddr[msindex++].addr);
+			index += getOctetstring(0,&source[index],(INT8U *)&ms->ms.userAddr[msindex++].addr,NULL);
 			if(index>=(MAXSIZ_FAM-48)) {
 				syslog(LOG_ERR,"MS 数据类型填充数据[%d]超限[%d],不予处理",index,MAXSIZ_FAM);
 				break;

@@ -133,6 +133,12 @@ typedef enum {
 }RUN_PRIO;//执行优先级
 
 typedef enum {
+	E_S=0/*东、南*/,
+	W_N=1/*西、北*/,
+	OTHERSTATUS=255
+}LNG_LAT;//经纬度方位
+
+typedef enum {
 	 task_valid=1/*正常*/,
 	 task_novalid=2/*停用*/
 }TASK_VALID;//任务状态
