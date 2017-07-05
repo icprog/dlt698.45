@@ -1345,116 +1345,6 @@ int doObjectAction(OAD oad, INT8U *data, Action_result *act_ret) {
 				return act_ret->datalen;
 			}
 		}
-<<<<<<< HEAD
-	    switch (oihead) {
-	        case 3:            //事件类对象方法操作
-	            EventMothod(oad, data);
-	            break;
-	    }
-	    switch (oi) {
-	    	case 0x4000:	//广播校时
-	     		if (attr_act == 127) {  //方法 127 广播校时
-	    			act_ret->datalen = Set_4000(data,&act_ret->DAR);
-	    		}
-	    		break;
-	        case 0x4300:    //终端对象
-	            TerminalInfo(attr_act, data, act_ret);
-	            break;
-	        case 0x5004:    //日冻结
-	        case 0x5006:    //月冻结
-	            FreezeAction(oad, data, act_ret);
-	            break;
-	        case 0x6000:    //采集档案配置表
-	            MeterInfo(attr_act, data, act_ret);
-	            break;
-	        case 0x6002:    //搜表
-	            break;
-	        case 0x6012:    //任务配置表
-	            TaskInfo(attr_act, data, act_ret);
-	            break;
-	        case 0x6014:    //普通采集方案集
-	            CjiFangAnInfo(attr_act, data, act_ret);
-	            break;
-	        case 0x6016:    //事件采集方案
-	            EventCjFangAnInfo(attr_act, data, act_ret);
-	            break;
-	        case 0x6018:    //透明方案集
-	        	Class6018Info(attr_act, data, act_ret);
-	            break;
-	        case 0x601C:    //上报方案
-	            ReportInfo(attr_act, data, act_ret);
-	            break;
-	        case 0x601E:    //采集规则库
-	            break;
-	        case 0xF001: //文件传输
-	            FileTransMothod(attr_act, data);
-	            break;
-	        case 0xF100:
-	            errflg = EsamMothod(attr_act, data);
-	            if (errflg > 0) {
-	                act_ret->DAR = 0;
-	//				act_ret->datalen = 1;
-	            }
-	            break;
-	        case 0x2301:
-	            class23_selector(1, attr_act, data, act_ret);
-	            break;
-	        case 0x2302:
-	            class23_selector(2, attr_act, data, act_ret);
-	            break;
-	        case 0x2303:
-	            class23_selector(3, attr_act, data, act_ret);
-	            break;
-	        case 0x2304:
-	            class23_selector(4, attr_act, data, act_ret);
-	            break;
-	        case 0x2305:
-	            class23_selector(5, attr_act, data, act_ret);
-	            break;
-	        case 0x2306:
-	            class23_selector(6, attr_act, data, act_ret);
-	            break;
-	        case 0x2307:
-	            class23_selector(7, attr_act, data, act_ret);
-	            break;
-	        case 0x2308:
-	            class23_selector(8, attr_act, data, act_ret);
-	            break;
-	        case 0x8001:
-	            class8001_act_route(1, attr_act, data, act_ret);
-	            break;
-	        case 0x8103:
-	            class8103_act_route(1, attr_act, data, act_ret);
-	            break;
-	        case 0x8104:
-	            class8104_act_route(1, attr_act, data, act_ret);
-	            break;
-	        case 0x8105:
-	            class8105_act_route(1, attr_act, data, act_ret);
-	            break;
-	        case 0x8106:
-	            class8106_act_route(1, attr_act, data, act_ret);
-	            break;
-	        case 0x8107:
-	            class8107_act_route(1, attr_act, data, act_ret);
-	            break;
-	        case 0x8108:
-	            class8108_act_route(1, attr_act, data, act_ret);
-	            break;
-
-	    }
-	    if(act_ret->DAR == success) {
-			if (oi == 0x4300 && attr_act == 1) {        //设备复位
-				memp->oi_changed.reset++;
-			}
-			if (oi == 0x4300 && attr_act == 3) {        //数据区初始化
-				memp->oi_changed.init++;
-			}
-			setOIChange(oi);
-	    }
-	    return act_ret->DAR;    //DAR=0，成功
-=======
-	}
     switch (oihead) {
         case 3:            //事件类对象方法操作
             EventMothod(oad, data);
@@ -1559,7 +1449,6 @@ int doObjectAction(OAD oad, INT8U *data, Action_result *act_ret) {
         	act_ret->datalen = get_Data(data,NULL);
         	act_ret->DAR = obj_undefine;
         	break;
-
     }
     if(act_ret->DAR == success) {
 		if (oi == 0x4300 && attr_act == 1) {        //设备复位
@@ -1571,5 +1460,4 @@ int doObjectAction(OAD oad, INT8U *data, Action_result *act_ret) {
 		setOIChange(oi);
     }
     return act_ret->DAR;    //DAR=0，成功
->>>>>>> 2a459f1c9b41eedc2a9d6acb79b1aa7b0517c19e
 }

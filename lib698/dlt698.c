@@ -877,15 +877,9 @@ int doActionRequest(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 			doObjectAction(oad,data,&act_ret);
 			index += create_OAD(0,&TmpDataBuf[index],oad);
 			TmpDataBuf[index++] = act_ret.DAR;
-<<<<<<< HEAD
-			//if(act_ret.DAR == success) {
-				TmpDataBuf[index++] = 0;	//数据为空
-		//	}
-=======
 //			if(act_ret.DAR == success) {
 				TmpDataBuf[index++] = 0;	//数据为空
 //			}
->>>>>>> 2a459f1c9b41eedc2a9d6acb79b1aa7b0517c19e
 			doReponse(ACTION_RESPONSE,ActionResponseNormal,csinfo,index,TmpDataBuf,buf);
 			Get698_event(oad,memp);
 			break;
@@ -904,15 +898,9 @@ int doActionRequest(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 				index += create_OAD(0,&TmpDataBuf[index],oad);
 				doObjectAction(oad,&apdu[apdu_index],&act_ret);
 				TmpDataBuf[index++] = act_ret.DAR;
-<<<<<<< HEAD
-				//if(act_ret.DAR == success) {
-					TmpDataBuf[index++] = 0;		//数据为空
-			//	}
-=======
 //				if(act_ret.DAR == success) {
 					TmpDataBuf[index++] = 0;		//数据为空
 //				}
->>>>>>> 2a459f1c9b41eedc2a9d6acb79b1aa7b0517c19e
 				apdu_index += act_ret.datalen;
 			}
 			doReponse(ACTION_RESPONSE,ActionResponseNormalList,csinfo,index,TmpDataBuf,buf);
