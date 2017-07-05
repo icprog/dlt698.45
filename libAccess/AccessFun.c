@@ -4138,7 +4138,7 @@ int save_protocol_3761_tx_para(INT8U* dealdata)
 		system("mkdir 755 /nor/ProTransCfg");
 	}
 
-	index += getArray(&dealdata[index],(INT8U*)&array_num);
+	index += getArray(&dealdata[index],(INT8U*)&array_num,NULL);
 
 	if(master.masternum>4) {
 		fprintf(stderr,"!!!!!!!!!越限 masternum=%d\n",master.masternum);
@@ -4146,8 +4146,8 @@ int save_protocol_3761_tx_para(INT8U* dealdata)
 	}
 
 	for(i=0;i<array_num;i++) {
-		index += getStructure(&dealdata[index],(INT8U *)&master.masternum);
-		index += getOctetstring(1,&dealdata[index],master.master[i].ip);
+		index += getStructure(&dealdata[index],(INT8U *)&master.masternum,NULL);
+		index += getOctetstring(1,&dealdata[index],master.master[i].ip,NULL);
 		index += getLongUnsigned(&dealdata[index],(INT8U *)&master.master[i].port);
 	}
 

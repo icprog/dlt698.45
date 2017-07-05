@@ -111,3 +111,15 @@ INT8U	getEnumValid(INT16U value,INT16U start,INT16U end,INT16U other)
 	return dblock_invalid;
 }
 
+/*
+ * 判断设置得OAD端口是否正确？
+ */
+INT8U getPortValid(OAD oad)
+{
+    if(oad.OI == 0xF200 ||
+    		oad.OI == 0xF201 ||
+    		oad.OI == 0xF202 ||
+    		oad.OI == 0xF209)
+    	return success;
+	return type_mismatch;
+}

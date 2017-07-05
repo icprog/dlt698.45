@@ -71,7 +71,7 @@ int BuildFrame_GetResponseRecord(INT8U response_type,CSINFO *csinfo,RESULT_RECOR
 		index=apduplace;
 	}
 	FrameTail(sendbuf,index,hcsi);
-	if(pSendfun!=NULL)
+	if(pSendfun!=NULL && csinfo->sa_type!=2 && csinfo->sa_type!=3)//组地址或广播地址不需要应答
 		pSendfun(comfd,sendbuf,index+3);
 	return (index+3);
 }
@@ -102,7 +102,7 @@ int BuildFrame_GetResponse(INT8U response_type,CSINFO *csinfo,INT8U oadnum,RESUL
 		index=apduplace;
 	}
 	FrameTail(sendbuf,index,hcsi);
-	if(pSendfun!=NULL)
+	if(pSendfun!=NULL && csinfo->sa_type!=2 && csinfo->sa_type!=3)//组地址或广播地址不需要应答
 		pSendfun(comfd,sendbuf,index+3);
 	return (index+3);
 }
@@ -152,7 +152,7 @@ int BuildFrame_GetResponseNext(INT8U response_type,CSINFO *csinfo,INT8U DAR,INT1
 	}
 
 	FrameTail(sendbuf,index,hcsi);
-	if(pSendfun!=NULL)
+	if(pSendfun!=NULL && csinfo->sa_type!=2 && csinfo->sa_type!=3)//组地址或广播地址不需要应答
 		pSendfun(comfd,sendbuf,index+3);
 	return (index+3);
 }
@@ -292,8 +292,8 @@ int GetYxPara(RESULT_NORMAL *response)
 	{
 		case 4://配置参数
 			index += create_struct(&data[index],2);
-			index += fill_bit_string(&data[index],8,objtmp.state4.StateAcessFlag);
-			index += fill_bit_string(&data[index],8,objtmp.state4.StatePropFlag);
+			index += fill_bit_string(&data[index],8,&objtmp.state4.StateAcessFlag);
+			index += fill_bit_string(&data[index],8,&objtmp.state4.StatePropFlag);
 			break;
 		case 2://设备对象列表
 			fprintf(stderr,"GetYxPara oi.att=%d\n",oad.attflg);
@@ -421,7 +421,7 @@ int Get3106(RESULT_NORMAL *response)
 	}
 	if(oad.attrindex != 0x02){
 		index += create_struct(&data[index],4);	//停电数据采集配置参数　４个元素
-		index += fill_bit_string(&data[index],8,tmpobj.poweroff_para_obj.collect_para_obj.collect_flag);
+		index += fill_bit_string(&data[index],8,&tmpobj.poweroff_para_obj.collect_para_obj.collect_flag);
 		index += fill_unsigned(&data[index],tmpobj.poweroff_para_obj.collect_para_obj.time_space);
 		index += fill_unsigned(&data[index],tmpobj.poweroff_para_obj.collect_para_obj.time_threshold);
 		index += create_array(&data[index],tmpobj.poweroff_para_obj.collect_para_obj.tsaarr.num);
@@ -585,6 +585,37 @@ int Get4004(RESULT_NORMAL *response)
 	}
 	return 0;
 }
+int Get4005(RESULT_NORMAL *response)
+{
+	int index=0;
+	INT8U *data = NULL;
+	OAD oad;
+	CLASS_4005	class_tmp={};
+	data = response->data;
+	oad = response->oad;
+	memset(&class_tmp,0,sizeof(CLASS_4005));
+	int ret=readCoverClass(oad.OI,0,&class_tmp,sizeof(CLASS_4005),para_vari_save);
+	fprintf(stderr,"4005ret= %d \n",ret);
+	switch(oad.attflg )
+	{
+		case 2:
+			if(ret == -1)
+				data[index++] = 0;
+			else
+			{
+				fprintf(stderr,"4005num=%d \n",class_tmp.num);
+				index +=create_array(&data[index],class_tmp.num);
+				INT8U i=0;
+				for(i=0;i<class_tmp.num;i++){
+					fprintf(stderr,"addrlen=%d \n",class_tmp.addr[i][0]);
+					index +=fill_octet_string(&data[index],&class_tmp.addr[i][1],class_tmp.addr[i][0]);
+				}
+			}
+			response->datalen = index;
+			break;
+	}
+	return 0;
+}
 int Get4006(RESULT_NORMAL *response)
 {
 	int index=0;
@@ -652,6 +683,47 @@ int Get4103(RESULT_NORMAL *response)
 	}
 	return 0;
 }
+int Get4202(RESULT_NORMAL *response)
+{
+	int index=0;
+	INT8U *data = NULL;
+	OAD oad;
+	CLASS_4202	class_tmp={};
+	data = response->data;
+	oad = response->oad;
+	memset(&class_tmp,0,sizeof(CLASS_4202));
+	int ret=readCoverClass(oad.OI,0,&class_tmp,sizeof(CLASS_4202),para_vari_save);
+	switch(oad.attflg )
+	{
+		case 2:
+			if(ret != -1)
+			{
+				index += create_struct(&data[index],8);
+				index += fill_bool(&data[index],class_tmp.flag);
+				index += create_OAD(1,&data[index],class_tmp.oad);
+				index += fill_long_unsigned(&data[index],class_tmp.total_timeout);
+				index += fill_long_unsigned(&data[index],class_tmp.byte_timeout);
+				index += fill_unsigned(&data[index],class_tmp.resendnum);
+				index += fill_unsigned(&data[index],class_tmp.cycle);
+				index += fill_unsigned(&data[index],class_tmp.portnum);
+				index += create_array(&data[index],class_tmp.tsanum);
+				int i=0;
+				for(i=0;i<class_tmp.tsanum;i++)
+				{
+					data[index++]=dttsa;
+					memcpy(&data[index],&class_tmp.tsa[i][0],class_tmp.tsa[i][0]+1);
+					index +=class_tmp.tsa[i][0]+1;
+				}
+			}
+			else
+			{
+				data[index++]=0;
+			}
+			response->datalen = index;
+			break;
+	}
+	return 0;
+}
 int Get4204(RESULT_NORMAL *response)
 {
 	int index=0;
@@ -690,8 +762,13 @@ int Get4300(RESULT_NORMAL *response)
 	oad = response->oad;
 	memset(&class_tmp,0,sizeof(CLASS19));
 	readCoverClass(0x4300,0,&class_tmp,sizeof(CLASS19),para_vari_save);
+	int arrindex=index;
+	INT8U i=0,num=0;
 	switch(oad.attflg )
 	{
+	    case 2:
+	    	index += fill_visible_string(&data[index],&class_tmp.devdesc[1],class_tmp.devdesc[0]);
+	    	break;
 		case 3:
 			index += create_struct(&data[index],6);
 			index += fill_visible_string(&data[index],class_tmp.info.factoryCode,4);
@@ -703,6 +780,16 @@ int Get4300(RESULT_NORMAL *response)
 			break;
 		case 4:
 			index +=fill_date_time_s(&data[index],&class_tmp.date_Product);
+			break;
+		case 5:
+			index +=2;
+			for(i=0;i<10;i++){
+				if(class_tmp.ois[i]>0){ //剔除0得情况
+					index +=fill_OI(&data[index],class_tmp.ois[i]);
+					num++;
+				}
+			}
+			create_array(&data[arrindex],num);
 			break;
 		case 6://支持规约列表
 			index += create_array(&data[index],1);
@@ -717,11 +804,102 @@ int Get4300(RESULT_NORMAL *response)
 		case 9:
 			index += fill_bool(&data[index],class_tmp.talk_master);
 			break;
+		case 10:
+			index +=2;
+			for(i=0;i<10;i++){
+				if(!(class_tmp.oads[i].OI == 0
+						&&class_tmp.oads[i].attflg == 0
+						&&class_tmp.oads[i].attrindex == 0)){ //剔除0得情况
+					index +=create_OAD(1,&data[index],class_tmp.oads[i]);
+					fprintf(stderr,"%d-oad.oi=%04x \n",i,class_tmp.oads[i].OI);
+					num++;
+				}
+			}
+			if(num>0)
+				create_array(&data[arrindex],num);
+			else
+				data[index++]=0;
+			break;
 	}
 	response->datalen = index;
 	return 0;
 }
+int Get4400(RESULT_NORMAL *response)
+{
+	int index=0;
+	INT8U *data = NULL;
 
+	OAD oad={};
+	CLASS_4400	class_tmp={};
+	data = response->data;
+	oad = response->oad;
+	memset(&class_tmp,0,sizeof(CLASS_4400));
+	readCoverClass(0x4400,0,&class_tmp,sizeof(CLASS_4400),para_vari_save);
+	INT8U i=0,m=0;
+	switch(oad.attflg )
+	{
+	    case 1:
+	    	index +=fill_octet_string(&data[index],(char *)&class_tmp.login_name[1],class_tmp.login_name[0]);
+		break;
+	    case 2:
+	    	if(class_tmp.num>0)
+	    	{
+	    		//fprintf(stderr,);
+               index +=create_array(&data[index],class_tmp.num);
+               for(i=0;i<class_tmp.num;i++)
+               {
+            	   index +=create_struct(&data[index],2);
+            	   index +=fill_OI(&data[index],class_tmp.authority[i].OI);
+            	   index +=create_struct(&data[index],2);
+            	   if(class_tmp.authority[i].one_authority.pro_num>0){
+            		   index +=create_array(&data[index],class_tmp.authority[i].one_authority.pro_num);
+            		   for(m=0;m<class_tmp.authority[i].one_authority.pro_num;m++){
+            			   index +=create_struct(&data[index],2);
+            			   index +=fill_unsigned(&data[index],class_tmp.authority[i].one_authority.property[m].id);
+                           index +=fill_enum(&data[index], class_tmp.authority[i].one_authority.property[m].visit_authority);
+            		   }
+            	   }
+            	   else
+            		   data[index++]=0;
+
+            	   if(class_tmp.authority[i].one_authority.met_num>0){
+					   index +=create_array(&data[index],class_tmp.authority[i].one_authority.met_num);
+					   for(m=0;m<class_tmp.authority[i].one_authority.met_num;m++){
+						   index +=create_struct(&data[index],2);
+						   index +=fill_unsigned(&data[index],class_tmp.authority[i].one_authority.method[m].id);
+							  index +=fill_bool(&data[index], class_tmp.authority[i].one_authority.method[m].visit_authority);
+					   }
+				   }
+				   else
+					   data[index++]=0;
+               }
+	    	}
+	    	else
+	    	{
+	    		data[index++]=0;
+	    	}
+	    	break;
+		case 3:
+			index +=create_struct(&data[index],7);
+			index +=fill_long_unsigned(&data[index],class_tmp.use_lan_info.xieyi_banben);
+			index +=fill_long_unsigned(&data[index],class_tmp.use_lan_info.max_rev_num);
+			index +=fill_long_unsigned(&data[index],class_tmp.use_lan_info.max_send_num);
+			index +=fill_long_unsigned(&data[index],class_tmp.use_lan_info.al_num);
+			index +=fill_bit_string(&data[index],64,class_tmp.use_lan_info.xieyi);
+			index +=fill_bit_string(&data[index],128,class_tmp.use_lan_info.power);
+			index +=fill_double_long_unsigned(&data[index], class_tmp.use_lan_info.static_outtime);
+			break;
+		case 4:
+            index +=fill_unsigned(&data[index], class_tmp.custom);
+			break;
+		case 5:
+			index +=fill_enum(&data[index], class_tmp.renzheng);
+			break;
+
+	}
+	response->datalen = index;
+	return 0;
+}
 int Get4500(RESULT_NORMAL *response)
 {
 	int index=0,i=0;
@@ -788,6 +966,43 @@ int Get4500(RESULT_NORMAL *response)
 		index += fill_visible_string(&data[index],class_tmp.info.hardVer,4);
 		index += fill_visible_string(&data[index],class_tmp.info.hardDate,6);
 		index += fill_visible_string(&data[index],class_tmp.info.factoryExpInfo,8);
+		break;
+	case 6:
+		if(class_tmp.protocolnum>0)
+		{
+			index += create_array(&data[index],class_tmp.protocolnum);
+			for(i=0;i<class_tmp.protocolnum;i++)
+				index +=fill_visible_string(&data[index],&class_tmp.protcol[i][1],class_tmp.protcol[i][0]);
+		}
+		else
+            data[index++]=0;
+		break;
+	case 7:
+		if(class_tmp.ccid[0]>0)
+			index +=fill_visible_string(&data[index],&class_tmp.ccid[1],class_tmp.ccid[0]);
+		else
+			data[index++]=0;
+	    break;
+	case 8:
+		if(class_tmp.imsi[0]>0)
+			index +=fill_visible_string(&data[index],&class_tmp.imsi[1],class_tmp.imsi[0]);
+		else
+			data[index++]=0;
+		break;
+	case 9:
+		index +=fill_long(&data[index],class_tmp.signalStrength);
+		break;
+	case 10:
+		if(class_tmp.simkard[0]>0)
+			index +=fill_visible_string(&data[index],&class_tmp.simkard[1],class_tmp.simkard[0]);
+		else
+			data[index++]=0;
+		break;
+	case 11:
+		if(class_tmp.pppip[0]>0)
+			index +=fill_octet_string(&data[index],&class_tmp.pppip[1],class_tmp.pppip[0]);
+		else
+			data[index++]=0;
 		break;
 	}
 	response->datalen = index;
@@ -1093,10 +1308,12 @@ int getSel2_freeze(RESULT_RECORD *record)
 			memcpy(&sel2,&record->select.selec3.selectors[i],sizeof(Selector2));
 		}
 		if(sel2.oad.OI == 0x2021) {	//数据冻结时间
-			repflag = repeatSel(record->select.selec3,i);
-			if(repflag==0) {
-				fprintf(stderr,"i=%d sel repeat\n");
-				continue;
+			if(i!=0) {		//第一次查询，不判断selector条件
+				repflag = repeatSel(record->select.selec3,i);
+				if(repflag==1) {
+					fprintf(stderr,"i=%d sel repeat\n",i);
+					continue;
+				}
 			}
 			getSel_Data(sel2.data_from.type,sel2.data_from.data,(INT8U *)&start_from);
 			getSel_Data(sel2.data_to.type,sel2.data_to.data,(INT8U *)&end_to);
@@ -1581,6 +1798,9 @@ int GetEnvironmentValue(RESULT_NORMAL *response)
 		case 0x4004:
 			Get4004(response);
 			break;
+		case 0x4005:
+			Get4005(response);
+			break;
 		case 0x4006:
 			Get4006(response);
 			break;
@@ -1590,11 +1810,17 @@ int GetEnvironmentValue(RESULT_NORMAL *response)
 		case 0x4103:
 			Get4103(response);
 			break;
+		case 0x4202:
+			Get4202(response);
+			break;
 		case 0x4204:
 			Get4204(response);
 			break;
 		case 0x4300:
 			Get4300(response);
+			break;
+		case 0x4400:
+			Get4400(response);
 			break;
 		case 0x4500://无线公网设备版本
 			Get4500(response);
@@ -1753,6 +1979,11 @@ int doGetnormal(INT8U seqOfNum,RESULT_NORMAL *response)
 		break;
 	case 4:			//参变量类对象
 		GetEnvironmentValue(response);
+		int i=0;
+		fprintf(stderr,"当前data：");
+		for(i=0;i<response->datalen;i++)
+			fprintf(stderr,"%02x ",response->data[i]);
+		fprintf(stderr,"\n");
 		break;
 	case 6:			//采集监控类对象
 		GetCollPara(seqOfNum,response);
@@ -1829,7 +2060,7 @@ int getRequestNormalList(INT8U *data,CSINFO *csinfo,INT8U *sendbuf)
 		memset(TmpDataBuf,0,sizeof(TmpDataBuf));
 		memcpy(oadtmp,&data[1 + i*4],4);
 		response.dar = 0;
-		getOAD(0,oadtmp, &response.oad);
+		getOAD(0,oadtmp, &response.oad,NULL);
 		response.datalen = 0;
 		response.data = TmpDataBuf + 5;
 		fprintf(stderr,"\n【%d】OI = %x  %02x  %02x",i,response.oad.OI,response.oad.attflg,response.oad.attrindex);
@@ -1896,7 +2127,7 @@ int getRequestRecordList(INT8U *data,CSINFO *csinfo,INT8U *sendbuf)
 		memset(TmpDataBuf,0,sizeof(TmpDataBuf));
 		record.data = TmpDataBuf;
 		record.datalen = 0;
-		sourceindex += getOAD(0,&data[sourceindex],&oad);
+		sourceindex += getOAD(0,&data[sourceindex],&oad,NULL);
 		record.oad = oad;
 		sourceindex += doGetrecord(GET_REQUEST_RECORD_LIST,oad,&data[sourceindex],&record,&subframe);
 		memcpy(&TmpDataBufList[destindex],record.data,record.datalen);
