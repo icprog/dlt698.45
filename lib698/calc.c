@@ -26,6 +26,8 @@ INT8U Reset_add()
 	Reset_tj reset_tj={};
 	TS 		newts={};
 	int	  	len=0;
+	OAD		oad={};
+	DateTimeBCD datetime={};
 
 	memset(&reset_tj,0,sizeof(Reset_tj));
 	TSGet(&newts);
@@ -36,11 +38,13 @@ INT8U Reset_add()
 		fprintf(stderr,"当前时间:%d-%d  记录时间 %d-%d\n",newts.Month,newts.Day,reset_tj.ts.Month,reset_tj.ts.Day);
 		//如果跨天 日供电清零
 		if(reset_tj.ts.Day != newts.Day) {
+			Save_TJ_Freeze(0x2204,0x0200,0,newts,sizeof(reset_tj.reset),(INT8U *)&reset_tj.reset);
 			TSGet(&reset_tj.ts);
 			reset_tj.reset.day_tj = 0;
 		}
 		//如果跨月 月供电清零
 		if(reset_tj.ts.Month != newts.Month) {
+			Save_TJ_Freeze(0x2204,0x0200,0,newts,sizeof(reset_tj.reset),(INT8U *)&reset_tj.reset);
 			TSGet(&reset_tj.ts);
 			reset_tj.reset.month_tj = 0;
 		}

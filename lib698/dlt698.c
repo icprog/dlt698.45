@@ -251,14 +251,20 @@ int CheckSerAddr(unsigned char* buf ,INT8U *addr)
  */
 int CheckHead(unsigned char* buf ,CSINFO *csinfo)
 {
+	//TODO
+	//添加逻辑地址的比对, 如果不是针对本集中器的报文, 则舍弃
 	INT8U sa_length=0;
 	INT16U	cs16=0;//程序计算的校验码
 	INT16U	fcs16=0;//从帧中取出的校验码
 	ctlUN ctl;
 	lengthUN frameLen;
 
+	ctl.u8b = 0;
+	frameLen.u16b = 0;
 	if(buf[0]==0x68  && csinfo!=NULL)
 	{
+		memcpy(&frameLen, &buf[1], 2);
+		memcpy(&ctl, &buf[3], 1);
 		sa_length 	= (buf[4]& 0x0f) + 1; 		/*服务器地址长度 0,1,，，15 表示 1,2,，，16*/
 		cs16 = tryfcs16(&buf[1], sa_length + 5);//小端存储 低位在左 高位在右
 
@@ -268,12 +274,10 @@ int CheckHead(unsigned char* buf ,CSINFO *csinfo)
 			return 0;
 		}
 
-		memcpy(&frameLen, &buf[1], 2);
-		memcpy(&ctl, &buf[3], 1);
-		fprintf(stderr,"\nframe length: %d\n", frameLen.length.len);
-		fprintf(stderr,"direction: %s\n", ctl.ctl.dir?"send by server":"send by client");
-		fprintf(stderr,"prm: %s\n", ctl.ctl.prm?"send by client":"send by server");
-		fprintf(stderr,"divS: %s\n", ctl.ctl.divS?"part of APDU":"Whole APDU");
+		DEBUG_TIME_LINE("\nframe length: %d", frameLen.length.len);
+		DEBUG_TIME_LINE("direction: %s", ctl.ctl.dir?"send by server":"send by client");
+		DEBUG_TIME_LINE("prm: %s", ctl.ctl.prm?"send by client":"send by server");
+		DEBUG_TIME_LINE("divS: %s", ctl.ctl.divS?"part of APDU":"Whole APDU");
 		switch (ctl.ctl.func) {
 		case 1:
 			fprintf(stderr,"登录, 心跳, 退出登录\n");
@@ -319,17 +323,22 @@ int CheckTail(unsigned char * buf,INT16U length)
 	}
 	return 0;
 }
-INT8U CtrlWord(CSINFO csinfo)
+INT8U CtrlWord(CSINFO* csinfo)
 {
-	INT8U word=0;
-//	fprintf(stderr,"\ncsinfo.dir=%d  csinfo.prm=%d gf=%d fun=%d",csinfo.dir,csinfo.prm,csinfo.gframeflg,csinfo.funcode);
+	ctlUN ctl;
 
-	word = word | (csinfo.dir<<7);
-	word = word | (csinfo.prm<<6);
-	word = word | (csinfo.gframeflg<<5);
-	word = word | (csinfo.funcode);
-//	fprintf(stderr,"crtl word = %02x",word);
-	return word;
+	if(csinfo == NULL)
+		return 0;
+
+	ctl.u8b = 0;
+	if(csinfo->dir == 0)//如果接收报文来自客户机, 则应给出服务器的应答
+		ctl.ctl.dir = 1;
+
+	ctl.ctl.prm = csinfo->prm;//直接使用接收报文的启动标志
+	ctl.ctl.divS = csinfo->gframeflg;
+	ctl.ctl.func = csinfo->funcode;
+
+	return ctl.u8b;
 }
 void FrameTail(INT8U *buf,int index,int hcsi)
 {
@@ -356,33 +365,46 @@ void FrameTail(INT8U *buf,int index,int hcsi)
 
 int broadServerAddr(INT8U *sa,int sa_len)
 {
-	int i=0,cmpret=1;
-	for(i=0;i<sa_len;i++) {
-		if(sa[i]!=0xAA) {
-			cmpret = 0;
-		}
-	}
-	return cmpret;
+	int i=0;
+
+	if(sa == NULL)
+		return 0;
+
+	for(i=0;i<sa_len;i++)
+		if(sa[i]!=0xAA)
+			return 0;
+
+	return 1;
 }
 
 int FrameHead(CSINFO *csinfo,INT8U *buf)
 {
 	CLASS_4001_4002_4003 sa = {};
 	int i=0,j=0;
+	saUN saTypeLen;
+
 	buf[i++]= 0x68;//起始码
 	buf[i++]= 0;	//长度
 	buf[i++]= 0;
-	buf[i++]= CtrlWord(*csinfo);
+	buf[i++]= CtrlWord(csinfo);
 	buf[i++]= (csinfo->sa_type<<6) | (0<<4) | ((csinfo->sa_length-1) & 0xf);
 
-	//集中器与浙江汉普台体测试，台体下发广播地址,应答终端的通信地址上报，其他情况如电表下发广播对时命令时，是不能进行修改服务器端地址的
-	if(broadServerAddr(csinfo->sa,csinfo->sa_length)==1 && csinfo->dir==1 && csinfo->prm==1) {
+	//集中器与浙江汉普台体测试，台体下发广播地址,应答终端的通信地址上报，
+	//其他情况如电表下发广播对时命令时，是不能进行修改服务器端地址的
+	//只有客户机启动的下行广播报文才响应
+	if(broadServerAddr(csinfo->sa,csinfo->sa_length)==1 &&\
+			csinfo->dir==0 &&\
+			csinfo->prm==1) {
 		memset(&sa, 0, sizeof(CLASS_4001_4002_4003));
 		readCoverClass(0x4001, 0, &sa, sizeof(CLASS_4001_4002_4003), para_vari_save);
+		saTypeLen.u8b = 0;//初始化saTypeLen各位域为0
+		saTypeLen.sa.saType = 0;//应该应答单地址
+		saTypeLen.sa.logicAddr = 0;//逻辑地址
+		saTypeLen.sa.saLen = sa.curstom_num[0]-1;//终端地址长度
+		buf[i-1] = saTypeLen.u8b;//重新设置终端地址的长度字
 		for(j=0;j<sa.curstom_num[0];j++) {
 			buf[i++] = sa.curstom_num[sa.curstom_num[0]-j];
 		}
-		//memcpy(&buf[i],&sa.curstom_num[1],sa.curstom_num[0]);
 	}else {
 		memcpy(&buf[i],csinfo->sa,csinfo->sa_length);
 		i = i + csinfo->sa_length;
@@ -807,7 +829,7 @@ int doProxyRequest(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
 	switch(getType)
 	{
 		case ProxyGetRequestList:
-			fprintf(stderr,"\n==========\n");
+			fprintf(stderr,"\n====ProxyGetRequestList======\n");
 			Proxy_GetRequestlist(data,csinfo,sendbuf,piid_g.data);
 			break;
 		case ProxyGetRequestRecord:

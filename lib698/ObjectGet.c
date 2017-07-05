@@ -80,8 +80,7 @@ int BuildFrame_GetResponse(INT8U response_type,CSINFO *csinfo,INT8U oadnum,RESUL
 {
 	int apduplace =0;
 	int index=0, hcsi=0;
-	csinfo->dir = 1;
-	csinfo->prm = 1;
+
 	index = FrameHead(csinfo,sendbuf);
 	hcsi = index;
 	index = index + 2;
@@ -1126,8 +1125,9 @@ void printrecord(RESULT_RECORD record)
 int getSel_Data(INT8U type,INT8U *seldata,INT8U *destdata)
 {
 	int 	ret=-1;
+	TI		ti;
 	INT8U	DAR=success;
-	fprintf(stderr,"getSel_Data type=%02x\n",type);
+//	fprintf(stderr,"getSel_Data type=%02x\n",type);
 	switch(type) {
 	case dtnull:
 		destdata[0] = 0;
@@ -1146,13 +1146,16 @@ int getSel_Data(INT8U type,INT8U *seldata,INT8U *destdata)
 		ret = getDateTimeS(0,seldata,destdata,&DAR);
 		break;
 	case dtti:
-		ret = getTI(0,seldata,(TI *)&destdata);
+		ret = getTI(0,seldata,&ti);
+		destdata[0] = ti.units;
+		destdata[1] = (ti.interval >> 8) & 0xff;
+		destdata[2] = ti.interval & 0xff;
 		break;
 	default:
 		ret = -1;
 		break;
 	}
-	fprintf(stderr,"getSel_Data return %d\n",ret);
+//	fprintf(stderr,"getSel_Data return %d\n",ret);
 	return ret;
 }
 
@@ -1190,18 +1193,55 @@ int getColl_Data(OI_698 oi,INT16U seqnum,INT8U *data)
 	return index;
 }
 
+int  fill_RecordRow(int *index,RESULT_RECORD *record,DateTimeBCD datetime)
+{
+	int 	i=0,j=0;
+	int		getflg = 0;
+	int		buflen = 0;
+	int		datalen=0;
+	INT8U  	data[VARI_LEN]={};
+
+	for(i=0;i<record->rcsd.csds.num;i++) {
+		fprintf(stderr,"\n%d: %04x%02x%02x\n",i,record->rcsd.csds.csd[i].csd.oad.OI,record->rcsd.csds.csd[i].csd.oad.attflg,record->rcsd.csds.csd[i].csd.oad.attrindex);
+		getflg = readFreezeRecordByTime(record->oad.OI,record->rcsd.csds.csd[i].csd.oad,datetime,&datalen,(INT8U *)data);
+		fprintf(stderr,"冻结时间:%04d-%02d-%02d %02d:%02d:%02d ",datetime.year.data,datetime.month.data,datetime.day.data,
+				datetime.hour.data,datetime.min.data,datetime.sec.data);
+		fprintf(stderr,"数据【%d】 ",datalen);
+		for(j=0;j<datalen;j++) {
+			fprintf(stderr,"%02x ",data[j]);
+		}
+		fprintf(stderr,"\n");
+		switch(record->rcsd.csds.csd[i].csd.oad.OI) {
+		case 0x2200:	//通信流量
+			Get_2200(getflg,(INT8U *)data,&record->data[*index],&buflen);
+			*index += buflen;
+			break;
+		case 0x2203:	//供电时间
+			Get_2203(getflg,(INT8U *)data,&record->data[*index],&buflen);
+			*index += buflen;
+			break;
+		case 0x2204:	//复位次数
+			Get_2204(getflg,(INT8U *)data,&record->data[*index],&buflen);
+			*index += buflen;
+			break;
+		case 0x2131:
+		case 0x2132:
+		case 0x2133:
+			Get_213x(getflg,(INT8U *)data,&record->data[*index],&buflen);
+			*index += buflen;
+			break;
+		}
+	}
+	return *index;
+}
 /*
  * 返回SEQUENCE OF GetRecord 的个数
  * */
 int getSel1_freeze(RESULT_RECORD *record)
 {
-	int ret=0;
-	int		index = 0, buflen=0, i=0;
 	DateTimeBCD datetime={};
-	INT8U  data[VARI_LEN];
-	int		datalen=0,j=0;
 	int		getSel_ret = 0;
-//	OAD		readoad={};
+	int		index = 0;
 
 	getSel_ret = getSel_Data(record->select.selec1.data.type,record->select.selec1.data.data,(INT8U *)&datetime);
 	if(getSel_ret == -1) {
@@ -1216,75 +1256,98 @@ int getSel1_freeze(RESULT_RECORD *record)
 	}
 	fprintf(stderr,"getSel1: OI=%04x  Time=%d:%d:%d %d-%d-%d\n",record->select.selec1.oad.OI,datetime.year.data,datetime.month.data,datetime.day.data,
 			datetime.hour.data,datetime.min.data,datetime.sec.data);
-
-	for(i=0;i<record->rcsd.csds.num;i++) {
-		fprintf(stderr,"\n%d: %04x%02x%02x\n",i,record->rcsd.csds.csd[i].csd.oad.OI,record->rcsd.csds.csd[i].csd.oad.attflg,record->rcsd.csds.csd[i].csd.oad.attrindex);
-		ret = readFreezeRecordByTime(record->oad.OI,record->rcsd.csds.csd[i].csd.oad,datetime,&datalen,(INT8U *)data);
-		if(ret==1) {
-			fprintf(stderr,"冻结时间:%04d-%02d-%02d %02d:%02d:%02d ",datetime.year.data,datetime.month.data,datetime.day.data,
-					datetime.hour.data,datetime.min.data,datetime.sec.data);
-			fprintf(stderr,"数据【%d】 ",datalen);
-			for(j=0;j<datalen;j++) {
-				fprintf(stderr,"%02x ",data[j]);
-			}
-			fprintf(stderr,"\n");
-			switch(record->rcsd.csds.csd[i].csd.oad.OI) {
-			case 0x2131:
-			case 0x2132:
-			case 0x2133:
-				Get_213x(record->rcsd.csds.csd[i].csd.oad,(INT8U *)data,&record->data[index],&buflen);
-				index += buflen;
-				break;
-			}
-		}else {
-			record->data[index] = 0;
-			ret = 1;	//一致性测试，正常响应报文seqof=1
-		}
-	}
+	fill_RecordRow(&index,record,datetime);
+	record->datalen = index;
 //	一致性测试修改，是否影响正常？？？？
 //	if(index==0) {	//0条记录     [1] SEQUENCE OF A-RecordRow
 //		record->data[index] = 0;
 //	}
-	record->datalen = index;
+//	record->datalen = index;
 	fprintf(stderr,"\nrecord->datalen = %d",record->datalen);
-	return ret;
+	return 1;//ret;  //一致性测试，正常响应报文seqof=1
 }
 
+int repeatSel(Selector3 sel3,int seq)
+{
+	int ret = 0;
+	int	i=0;
+	for(i=0;i<sel3.sel2_num;i++) {
+		if(i!=seq) {
+			if(memcmp(&sel3.selectors[i],&sel3.selectors[seq],sizeof(Selector2))==0) {
+				ret = 1;
+				break;
+			}
+		}
+	}
+	return ret;
+}
 int getSel2_freeze(RESULT_RECORD *record)
 {
-	int ret=0;
+	int 	ret=0,i=0,sel_id =0;
 	int		index = 0,ti_sec=0;
-	DateTimeBCD start_from={},end_to={};
+	DateTimeBCD start_from={},end_to={},datetime={};
+	TS		tmNext={};
 	TI		jiange={};
 	time_t	sub_time=0;
-	int		seqofNum = 0;
-	if(record->select.selec2.oad.OI == 0x2021) {	//数据冻结时间
-		getSel_Data(record->select.selec2.data_from.type,record->select.selec2.data_from.data,(INT8U *)&start_from);
-		getSel_Data(record->select.selec2.data_to.type,record->select.selec2.data_to.data,(INT8U *)&end_to);
-		getSel_Data(record->select.selec2.data_jiange.type,record->select.selec2.data_jiange.data,(INT8U *)&jiange);
-		sub_time = TimeBCDTotime_t(end_to)-TimeBCDTotime_t(start_from);
-		ti_sec = TItoSec(jiange);
-		fprintf(stderr,"sub_time=%ld\n",sub_time);
-		if(ti_sec!=0) {
-			seqofNum = sub_time/ti_sec;
-		}
-		fprintf(stderr,"getSel2: OI=%04x  \n",record->select.selec1.oad.OI);
-		printDataTimeS("起始时间",start_from);
-		printDataTimeS("结束时间",end_to);
-		printTI("间隔",jiange);
-		fprintf(stderr,"seqOfNum = %d\n",seqofNum);
+	int		seqofNum = 1;		//一致性测试GET_16:如间隔为NULL，应正常应答
+	INT8U	selector2_num = 1, seqofsum = 0;
+	int		repflag = 0;
+	Selector2 sel2={};
+	if(record->selectType == 2) {
+		selector2_num = 1;
+	}else if(record->selectType == 3) {
+		selector2_num = record->select.selec3.sel2_num;
 	}
+	fprintf(stderr,"selector2_num = %d\n",selector2_num);
 	record->data[index++] = seqofNum; 	//M = 1  Sequence  of A-RecordRow
-//	for(sel_id=taskid_from;sel_id<=taskid_to;sel_id++) {
-////		index += getColl_Data(record->select.selec2.oad.OI,sel_id,&record->data[index]);
-//		if(index==0) {	//0条记录     [1] SEQUENCE OF A-RecordRow
-//			record->data[0] = 0;
-//			index += 1;
-//		}
-//	}
+	for(i=0;i<selector2_num;i++) {
+		if(record->selectType == 2) {
+			memcpy(&sel2,&record->select.selec2,sizeof(Selector2));
+		}else if(record->selectType == 3) {
+			memcpy(&sel2,&record->select.selec3.selectors[i],sizeof(Selector2));
+		}
+		if(sel2.oad.OI == 0x2021) {	//数据冻结时间
+			if(i!=0) {		//第一次查询，不判断selector条件
+				repflag = repeatSel(record->select.selec3,i);
+				if(repflag==1) {
+					fprintf(stderr,"i=%d sel repeat\n",i);
+					continue;
+				}
+			}
+			getSel_Data(sel2.data_from.type,sel2.data_from.data,(INT8U *)&start_from);
+			getSel_Data(sel2.data_to.type,sel2.data_to.data,(INT8U *)&end_to);
+			getSel_Data(sel2.data_jiange.type,sel2.data_jiange.data,(INT8U *)&jiange);
+			sub_time = TimeBCDTotime_t(end_to)-TimeBCDTotime_t(start_from);
+			ti_sec = TItoSec(jiange);
+			fprintf(stderr,"sub_time=%ld,ti_sec = %d\n",sub_time,ti_sec);
+			if(ti_sec!=0) {
+				seqofNum = sub_time/ti_sec;
+			}
+			seqofsum += seqofNum;
+			fprintf(stderr,"getSel2: OI=%04x  \n",record->select.selec1.oad.OI);
+			printDataTimeS("起始时间",start_from);
+			printDataTimeS("结束时间",end_to);
+			printTI("间隔",jiange);
+			fprintf(stderr,"seqOfNum = %d\n",seqofNum);
+		}
+		memcpy(&datetime,&start_from,sizeof(DateTimeBCD));
+		for(sel_id=0;sel_id<seqofNum;sel_id++) {
+			fill_RecordRow(&index,record,datetime);
+			TimeBCDToTs(datetime,&tmNext);		//获取需要查找的下一次时间点
+			tminc(&tmNext,jiange.units,1);
+			TsToTimeBCD(tmNext,&datetime);
+		}
+	}
+	if(seqofsum!=0) {
+		record->data[0] = seqofsum; 	//M = 1  Sequence  of A-RecordRow
+	}
+	record->datalen += 1;
+	//		if(index==0) {	//0条记录     [1] SEQUENCE OF A-RecordRow
+	//			record->data[0] = 0;
+	//			index += 1;
+	//		}
 	record->datalen = index;
 	fprintf(stderr,"\nrecord->datalen = %d",record->datalen);
-	return ret;
 	return ret;
 }
 
@@ -1341,16 +1404,20 @@ int getSel2_coll(RESULT_RECORD *record)
  * */
 int getSelector12(RESULT_RECORD *record)
 {
-	int  ret=0;
+	int  ret=0, i = 0;
 	INT8U oihead = (record->oad.OI & 0xF000) >>12;
 
 	switch(oihead) {
 	case 5:
 		fprintf(stderr,"\n冻结类对象\n");
-		if(record->selectType == 1) {
+		switch(record->selectType) {
+		case 1:
 			ret = getSel1_freeze(record);
-		}else {
+			break;
+		case 2:
+		case 3:
 			ret = getSel2_freeze(record);
+			break;
 		}
 		break;
 	case 6:			//采集监控类对象
@@ -1459,6 +1526,23 @@ int doGetrecord(INT8U type,OAD oad,INT8U *data,RESULT_RECORD *record,INT16U *sub
 			record->datalen += dest_index;			//数据长度+ResultRecord
 		}
 		break;
+	case 3:	//Selector3为组合筛选，即若干个指定对象连续值。 SEQUENCE OF Selector2
+		*subframe = 1;		//TODO:未处理分帧
+		if(record->rcsd.csds.num == 0) {
+			record->data[dest_index++] = 1;	//一行记录M列属性描述符 	RCSD
+			record->data[dest_index++] = 0;	//OAD
+			record->select.selec1.oad.attrindex = 0;		//上送属性下所有索引值
+			dest_index += create_OAD(0,&record->data[dest_index],record->select.selec1.oad);
+			record->data[dest_index++] = 1; //CHOICE  [1]  data
+		}else {	//RCSD 招测两个序号湖南测过
+			dest_index +=fill_RCSD(0,&record->data[dest_index],record->rcsd.csds);
+			record->data[dest_index++] = 1; //CHOICE  [1]  data
+		}
+		record->data = &TmpDataBuf[dest_index];		//修改record的数据帧的位置
+		getSelector12(record);
+		record->data = TmpDataBuf;				//data 指向回复报文帧头
+		record->datalen += dest_index;			//数据长度+ResultRecord
+		break;
 	case 5:
 	case 7:
 		dest_index +=fill_RCSD(0,&record->data[dest_index],record->rcsd.csds);
@@ -1548,17 +1632,17 @@ int GetVariable(RESULT_NORMAL *response)
 	case 0x2200:	//通信流量
 //		len = readVariData(response->oad.OI,0,&databuf,VARI_LEN);
 		memcpy(databuf,&memp->dev_info.realTimeC2200,sizeof(Flow_tj));
-		Get_2200(response->oad.OI,databuf,response->data,&index);
+		Get_2200(1,databuf,response->data,&index);
 		response->datalen = index;
 		break;
 	case 0x2203:	//供电时间
 		len = readVariData(response->oad.OI,0,&databuf,VARI_LEN);
-		Get_2203(response->oad.OI,databuf,response->data,&index);
+		Get_2203(1,databuf,response->data,&index);
 		response->datalen = index;
 		break;
 	case 0x2204:	//复位次数
 		len = readVariData(response->oad.OI,0,&databuf,VARI_LEN);
-		Get_2204(response->oad.OI,databuf,response->data,&index);
+		Get_2204(1,databuf,response->data,&index);
 		response->datalen = index;
 		break;
 	default:

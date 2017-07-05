@@ -276,6 +276,16 @@ extern int readFreezeRecordByNum(OI_698 freezeOI,OAD oad,int RecordNum,DateTimeB
  * */
 extern int	readFreezeRecordByTime(OI_698 freezeOI,OAD oad,DateTimeBCD datetime,int *datalen,INT8U *data);
 
+/*
+ * 按照冻结关联属性，进行数据存储
+ * flag 	0：日冻结，1：月冻结
+ * oi，attr		存储的OI及属性
+ * datetime		存储时标
+ * savelen		需要存储数据长度
+ * data			数据内容
+ * */
+extern void Save_TJ_Freeze(INT8U flag,OI_698 oi,INT16U attr,TS savets,int savelen,INT8U *data);
+
 //////////////////////////////////////////////////////////////////////////////////////
 
 

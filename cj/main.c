@@ -441,9 +441,20 @@ int main(int argc, char *argv[]) {
 
     if(strcmp("plc",argv[1])==0)
     {
-    	shwoPlcMeterstatus();
+    	showPlcMeterstatus(argc, argv);
     	return EXIT_SUCCESS;
     }
+    if(strcmp("time",argv[1])==0  && argc==3)
+    {
+    	DateTimeBCD bcdtime;
+    	time_t tmpt;
+        sscanf(argv[2],"%ld",&tmpt);
+        bcdtime = timet_bcd(tmpt);
+        fprintf(stderr,"\n%d-%d-%d %d:%d:%d\n",bcdtime.year.data,bcdtime.month.data,bcdtime.day.data,bcdtime.hour.data,bcdtime.min.data,bcdtime.sec.data);
+    	return EXIT_SUCCESS;
+    }
+
+
     if (strcmp("yx", argv[1]) == 0) {
         for(;;){
             CLASS_f203 oif203 = {};
