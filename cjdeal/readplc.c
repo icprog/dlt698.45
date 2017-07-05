@@ -1875,6 +1875,7 @@ INT8U doClientProxyRequest(RUNTIME_PLC *runtime_p, int* beginwork, int* step_cj)
 	INT8U proto = 0;
 	time_t nowtime = time(NULL);
 
+	DEBUG_TIME_LINE("");
 	switch(cjcommProxy_plc.strProxyList.proxytype) {
 	case ProxyGetRequestList:
 		break;
@@ -1976,6 +1977,7 @@ int doProxy(RUNTIME_PLC *runtime_p)
 			if ( nowtime - runtime_p->send_start_time > 20)
 			{
 				DbgPrintToFile1(31,"暂停抄表");
+				DEBUG_TIME_LINE("暂停抄表");
 				clearvar(runtime_p);
 				runtime_p->send_start_time = nowtime ;
 				sendlen = AFN12_F2(&runtime_p->format_Down,runtime_p->sendbuf);
@@ -1983,7 +1985,15 @@ int doProxy(RUNTIME_PLC *runtime_p)
 			}else if(runtime_p->format_Up.afn == 0x00 && runtime_p->format_Up.fn == 1)
 			{//确认
 				clearvar(runtime_p);
-				step_cj = 1;
+				DEBUG_TIME_LINE("暂停抄表已确认");
+				if(cjcommProxy_plc.isInUse == 1) {
+					DEBUG_TIME_LINE("进入主站代理");
+					step_cj = 2;
+				} else if (cjGuiProxy_plc.isInUse == 1) {
+					DEBUG_TIME_LINE("进入液晶点抄");
+					step_cj = 1;
+				}
+
 				beginwork = 0;
 			}
 			break;

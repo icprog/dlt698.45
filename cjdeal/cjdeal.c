@@ -892,7 +892,7 @@ INT8S dealMsgProcess()
 				if(mq_h.pid == cjdeal) {
 					DEBUG_TIME_LINE("\n收到代理召测\n");
 					memcpy(&cjcommProxy_Tmp.strProxyList,rev_485_buf,sizeof(PROXY_GETLIST));
-
+					DEBUG_TIME_LINE("receive proxy frame on port: %04X", cjcommProxy_Tmp.strProxyList.transcmd.oad.OI);
 					switch(cjcommProxy_Tmp.strProxyList.proxytype) {
 					case ProxyGetRequestList://TODO   按照端口分配TSA. 目前暂时都给485端口
 						memcpy(&cjcommProxy.strProxyList,rev_485_buf,sizeof(PROXY_GETLIST));
@@ -912,6 +912,7 @@ INT8S dealMsgProcess()
 						oad = (INT16U)cjcommProxy_Tmp.strProxyList.transcmd.oad.OI;
 						switch(oad) {
 						case PORT_ZB:
+							DEBUG_TIME_LINE("receive proxy frame on plc");
 							memcpy(&cjcommProxy_plc.strProxyList,rev_485_buf,sizeof(PROXY_GETLIST));
 							cjcommProxy_plc.isInUse = 1;
 							proxyInUse.devUse.plcNeed = 1;
