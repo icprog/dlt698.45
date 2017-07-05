@@ -494,6 +494,26 @@ INT8S use6013find6015or6017(INT8U cjType,INT16U fanganID,TI interval6013,CLASS_6
 		if (readCoverClass(oi, fanganID, st6015, sizeof(CLASS_6015), coll_para_save)== 1)
 		{
 			print6015(*st6015);
+#if 1
+			//调整6015采集方案　过滤掉不需要抄表的内容
+			if((st6015->cjtype == TYPE_LAST)||(st6015->cjtype == TYPE_FREEZE))
+			{
+				MY_CSD destCSDS[MY_CSD_NUM];//CSD
+				memset(destCSDS,0,sizeof(MY_CSD)*MY_CSD_NUM);
+				INT8U csdIndex = 0;
+				INT8U csdCount = 0;
+				for(csdIndex = 0;csdIndex < st6015->csds.num;csdIndex++)
+				{
+					if(st6015->csds.csd[csdIndex].type == 1)
+					{
+						memcpy(&destCSDS[csdCount],&st6015->csds.csd[csdIndex],sizeof(MY_CSD));
+						csdCount++;
+					}
+				}
+				st6015->csds.num = csdCount;
+				memcpy(st6015->csds.csd,destCSDS,sizeof(MY_CSD)*MY_CSD_NUM);
+			}
+#endif
 			if(st6015->cjtype == TYPE_INTERVAL)
 			{
 				//计算需要抄多少个数据点
@@ -1231,6 +1251,9 @@ INT8U getASNInfo(FORMAT07* DI07,Base_DataType* dataType)
 		INT8U tmpIndex = 0;
 		for(tmpIndex = 0;tmpIndex < unitNum;tmpIndex++)
 		{
+			xuliangdata[tmpIndex*15] = 0x02;
+			xuliangdata[tmpIndex*15+1] = 0x02;
+			xuliangdata[tmpIndex*15+2] = 0x06;
 			//最大需量
 			if((DI07->Data[tmpIndex*8]==0xff)&&(DI07->Data[tmpIndex*8+1]==0xff)&&(DI07->Data[tmpIndex*8+2]==0xff))
 			{
@@ -1883,21 +1906,21 @@ INT16S request698_97Data(INT8U* DI97,INT8U* dataContent,CLASS_6001 meter,CLASS_6
  * dir:0-通过698OAD找64507DI 1-通过64507DI找698OAD
  * */
 INT8S OADMap07DI(OI_698 roadOI,OAD sourceOAD, C601F_645* flag645) {
-	fprintf(stderr, "\n CSDMap07DI--------start------------------------------------------------------\n\n\n");
-	fprintf(stderr, "\n roadOI = %04x sourceOAD = %04x%02x%02x\n",roadOI,sourceOAD.OI,sourceOAD.attflg,sourceOAD.attrindex);
+	DEBUG_TIME_LINE("INT8S OADMap07DI CSDMap07DI--------start------------------------------------------------------");
+	DEBUG_TIME_LINE("INT8S OADMap07DI roadOI = %04x sourceOAD = %04x%02x%02x\n",roadOI,sourceOAD.OI,sourceOAD.attflg,sourceOAD.attrindex);
 
 
 	INT8S result = 0;
-	INT8U index;
+	INT8U index = 0;
 	for (index = 0; index < map07DI_698OAD_NUM; index++)
 	{
-#if 0
-		fprintf(stderr,"\n map07DI_698OAD[index].roadOI = %04x OAD = %04x%02x%02x",map07DI_698OAD[index].roadOI
+		DEBUG_TIME_LINE("\n map07DI_698OAD[%d].roadOI = %04x OAD = %04x%02x%02x", index, map07DI_698OAD[index].roadOI
 				,map07DI_698OAD[index].flag698.OI,map07DI_698OAD[index].flag698.attflg,map07DI_698OAD[index].flag698.attrindex);
-#endif
+
 		if((memcmp(&roadOI,&map07DI_698OAD[index].roadOI,sizeof(OI_698))==0)
 				&&(memcmp(&sourceOAD.OI,&map07DI_698OAD[index].flag698.OI,sizeof(OI_698))==0))
 		{
+			DEBUG_TIME_LINE("");
 			if(flag645->protocol == DLT_645_97)
 			{
 				if((map07DI_698OAD[index].flag97.DI_1[0][0]==0xff)&&(map07DI_698OAD[index].flag97.DI_1[0][1]==0xff))
@@ -1910,7 +1933,7 @@ INT8S OADMap07DI(OI_698 roadOI,OAD sourceOAD, C601F_645* flag645) {
 			}
 			if(flag645->protocol == DLT_645_07)
 			{
-				fprintf(stderr,"\n 找到了对应07数据项　%02x%02x%02x%02x \n",
+				DEBUG_TIME_LINE("\n 找到了对应07数据项　%02x%02x%02x%02x \n",
 						map07DI_698OAD[index].flag07.DI_1[0][0],map07DI_698OAD[index].flag07.DI_1[0][1],
 						map07DI_698OAD[index].flag07.DI_1[0][2],map07DI_698OAD[index].flag07.DI_1[0][3]);
 				memcpy(&flag645->DI._07, &map07DI_698OAD[index].flag07, sizeof(C601F_07Flag));
@@ -1927,6 +1950,7 @@ INT8S OADMap07DI(OI_698 roadOI,OAD sourceOAD, C601F_645* flag645) {
 
 				}
 			}
+			DEBUG_TIME_LINE("");
 			return 1;
 		}
 	}
