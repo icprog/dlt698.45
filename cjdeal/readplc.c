@@ -1855,12 +1855,25 @@ int doTask(RUNTIME_PLC *runtime_p)
 	return TASK_PROCESS;
 }
 
+INT8U getTransCmdAddrProto(INT8U* cmdbuf, INT8U* addrtmp, INT8U* proto)
+{
+	if(NULL == cmdbuf || NULL == addrtmp || NULL == proto) {
+		return 0;
+	}
+
+	memcpy(addrtmp, cmdbuf+1, 6);
+	*proto = 2;//dlt645-07
+
+	return 1;
+}
+
 //响应主站代理操作
 INT8U doClientProxyRequest(RUNTIME_PLC *runtime_p, int* beginwork, int* step_cj){
 	int sendlen=0;
-
+	struct Tsa_Node *nodetmp = NULL;
+	INT8U addrtmp[10] = {0};//645报文中的目标地址
+	INT8U proto = 0;
 	time_t nowtime = time(NULL);
-
 
 	switch(cjcommProxy_plc.strProxyList.proxytype) {
 	case ProxyGetRequestList:
@@ -1876,38 +1889,76 @@ INT8U doClientProxyRequest(RUNTIME_PLC *runtime_p, int* beginwork, int* step_cj)
 	case ProxyActionThenGetRequestList:
 		break;
 	case ProxyTransCommandRequest:
-		*beginwork = 1;
-		clearvar(runtime_p);
+		if (*beginwork==0 && cjcommProxy_plc.isInUse==1) {//发送点抄
+			*beginwork = 1;
+			clearvar(runtime_p);
+
+			debugToPlcFile(FILE_LINE, "发送代理报文");
+			getTransCmdAddrProto(cjcommProxy_plc.strProxyList.transcmd.cmdbuf, addrtmp, &proto);
+			memcpy(runtime_p->format_Down.addr.SourceAddr, runtime_p->masteraddr, 6);
+
+			sendlen = AFN13_F1(&runtime_p->format_Down,runtime_p->sendbuf, addrtmp, 2, 0, \
+					cjcommProxy_plc.strProxyList.transcmd.cmdbuf, cjcommProxy_plc.strProxyList.transcmd.cmdlen);
+			SendDataToCom(runtime_p->comfd, runtime_p->sendbuf, sendlen );
+
+			runtime_p->send_start_time = nowtime;
+		} else if ((runtime_p->format_Up.afn == 0x13 && runtime_p->format_Up.fn == 1 ))	{//收到应答数据，或超时10秒，
+			cjcommProxy_plc.isInUse = 0;
+			*beginwork = 0;
+
+			if(runtime_p->format_Up.afn13_f1_up.MsgLength > 0) {
+				INT16U tIndex = 0;
+				INT16U starttIndex = 0;
+				for(tIndex = 0;tIndex < runtime_p->format_Up.afn13_f1_up.MsgLength;tIndex++) {//去掉前导符
+					if(runtime_p->format_Up.afn13_f1_up.MsgContent[tIndex]!=0x68) {
+						continue;
+					} else {
+						starttIndex = tIndex;
+						break;
+					}
+				}
+
+				INT8U datalen = runtime_p->format_Up.afn13_f1_up.MsgLength - starttIndex;
+
+				OADtoBuff(cjcommProxy_plc.strProxyList.transcmd.oad,cjcommProxy_plc.strProxyList.data);
+				cjcommProxy_plc.strProxyList.data[4] = 1;
+				cjcommProxy_plc.strProxyList.data[5] = datalen;
+				memcpy(&cjcommProxy_plc.strProxyList.data[6],\
+						&runtime_p->format_Up.afn13_f1_up.MsgContent[starttIndex],\
+						datalen);
+				cjcommProxy_plc.strProxyList.datalen = datalen + 6;
+				mqs_send((INT8S *)PROXY_NET_MQ_NAME,1,TERMINALPROXY_RESPONSE,\
+						(INT8U *)&cjcommProxy_plc.strProxyList,sizeof(PROXY_GETLIST));
+			} else {
+				OADtoBuff(cjcommProxy_plc.strProxyList.transcmd.oad,cjcommProxy_plc.strProxyList.data);
+				cjcommProxy_plc.strProxyList.data[4] = 0;
+				cjcommProxy_plc.strProxyList.datalen = 5;
+				mqs_send((INT8S *)PROXY_NET_MQ_NAME,1,\
+						ProxySetResponseList,\
+						(INT8U *)&cjcommProxy_plc.strProxyList,\
+						sizeof(PROXY_GETLIST));
+			}
+
+			memset(&runtime_p->format_Up, 0, sizeof(runtime_p->format_Up));
+			proxyInUse.devUse.plcReady = 1;
+			DbgPrintToFile1(31,"收到点抄数据");
+		} else if ((nowtime - runtime_p->send_start_time > 20  ) && *beginwork==1) {
+			DbgPrintToFile1(31,"单次点抄超时");
+			cjcommProxy_plc.isInUse = 0;
+			*beginwork = 0;
+			proxyInUse.devUse.plcReady = 1;
+		} else if( nowtime - runtime_p->send_start_time > 100  ) {//100秒等待
+			DbgPrintToFile1(31,"100秒超时");
+			clearvar(runtime_p);
+			*beginwork = 0;
+			*step_cj = 3;
+			proxyInUse.devUse.plcReady = 1;
+		}
 		break;
 	default:
 		break;
 	}
 
-	if (*beginwork==0 && proxyInUse.devUse.plcNeed ==1 )
-	{//发送点抄
-		SendDataToCom(runtime_p->comfd, runtime_p->sendbuf,sendlen );
-		runtime_p->send_start_time = nowtime;
-	}
-	else if ((runtime_p->format_Up.afn == 0x13 && runtime_p->format_Up.fn == 1 ))
-	{//收到应答数据，或超时10秒，
-		cjGuiProxy_plc.isInUse = 0;
-		*beginwork = 0;
-		saveProxyData(runtime_p->format_Up);
-		memset(&runtime_p->format_Up,0,sizeof(runtime_p->format_Up));
-		DbgPrintToFile1(31,"收到点抄数据");
-	}else if ((nowtime - runtime_p->send_start_time > 20  ) && *beginwork==1)
-	{
-		DbgPrintToFile1(31,"单次点抄超时");
-		cjGuiProxy_plc.isInUse = 0;
-		*beginwork = 0;
-	}
-	else if( nowtime - runtime_p->send_start_time > 100  )
-	{//100秒等待
-		DbgPrintToFile1(31,"100秒超时");
-		clearvar(runtime_p);
-		*beginwork = 0;
-		*step_cj = 3;
-	}
 	return 1;
 }
 

@@ -884,10 +884,9 @@ INT8S dealMsgProcess()
 
 	if (ret>0)
 	{
-		switch(mq_h.cmd)
-		{
-			case ProxyGetResponseList://代理
-			{//TODO 按照测量点来复制对应的TSA给对应的全局变量
+		switch(mq_h.cmd) {
+			case ProxyGetResponseList: //代理
+			//TODO 按照测量点来复制对应的TSA给对应的全局变量
 			 //cjcommProxy, cjcommProxy_plc, cjguiProxy, cjGuiProxy_plc;
 
 				if(mq_h.pid == cjdeal) {
@@ -930,8 +929,7 @@ INT8S dealMsgProcess()
 						break;
 					}
 				}
-				if(mq_h.pid == cjgui)
-				{
+				if(mq_h.pid == cjgui) {
 					fprintf(stderr, "\n收到液晶点抄-----------------------------------23232323\n");
 					memcpy(&cjguiProxy_Tmp.strProxyMsg,rev_485_buf,sizeof(Proxy_Msg));
 					if (cjguiProxy_Tmp.strProxyMsg.port.OI== PORT_ZB) {
@@ -944,13 +942,10 @@ INT8S dealMsgProcess()
 				}
 
 				readState = 0;
-			}
-			break;
+				break;
 			default:
-			{
 				asyslog(LOG_WARNING,"485收到未知消息  cmd=%d!!!---------------", mq_h.cmd);
-			}
-
+				break;
 		}
 	}
 

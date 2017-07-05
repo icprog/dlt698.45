@@ -1021,6 +1021,20 @@ void debug(const char* file, const char* func, INT32U line, const char *fmt, ...
 	fprintf(stderr, "\n");
 }
 
+void debugToPlcFile(const char* file, const char* func, INT32U line, const char *fmt, ...)
+{
+	char filename[] = "/nand/vplc_31.log";
+	FILE* fp = fopen(filename, "a+");
+	va_list ap;
+	char bufTime[20] = { 0 };
+	get_local_time(bufTime, sizeof(bufTime));
+	fprintf(fp, "[%s][%s][%s()][%d]: ", bufTime, file, func, line);
+	va_start(ap, fmt);
+	vfprintf(fp, fmt, ap);
+	va_end(ap);
+	fprintf(fp, "\n");
+}
+
 /*
  * 功能: 将帧字符串转化为16进制字节串 *
  * @str: 帧字符串
