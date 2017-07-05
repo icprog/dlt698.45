@@ -353,13 +353,7 @@ void AddBatchMeterInfo(INT8U *data, INT8U type, Action_result *act_ret) {
         if(act_ret->DAR!=success)
         	return;
         index += getEnum(1, &dealdata[index], &meter.basicinfo.protocol);
-<<<<<<< HEAD
-        index += getOAD(1, &dealdata[index], &meter.basicinfo.port);
-        index += getOctetstring(1, &dealdata[index], (INT8U *) &meter.basicinfo.pwd);
-        index += getUnsigned(&dealdata[index], &meter.basicinfo.ratenum,&act_ret->DAR);
-        index += getUnsigned(&dealdata[index], &meter.basicinfo.usrtype,&act_ret->DAR);
-        index += getEnum(1,&dealdata[index], &meter.basicinfo.connectype);
-=======
+
         act_ret->DAR=getEnumValid(meter.basicinfo.protocol,0,4,255);
 		if(act_ret->DAR!=success)
 			return;
@@ -371,7 +365,6 @@ void AddBatchMeterInfo(INT8U *data, INT8U type, Action_result *act_ret) {
         act_ret->DAR=getEnumValid(meter.basicinfo.connectype,0,3,255);
 		if(act_ret->DAR!=success)
 			return;
->>>>>>> b92815575425903a7783eea74a47d36c6a062425
         index += getLongUnsigned(&dealdata[index], (INT8U *) &meter.basicinfo.ratedU);
         index += getLongUnsigned(&dealdata[index], (INT8U *) &meter.basicinfo.ratedI);
         index = index + 2;//struct

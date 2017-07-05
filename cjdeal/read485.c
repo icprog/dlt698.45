@@ -2304,7 +2304,7 @@ INT16U dealProxy_698(CLASS_6001 obj6001,GETOBJS obj07,INT8U* dataContent,INT8U p
 		DbgPrintToFile1(port485," OAD[%d] = %04x%02x%02x",csdIndex,st6015.csds.csd[csdIndex].csd.oad.OI,
 				st6015.csds.csd[csdIndex].csd.oad.attflg,st6015.csds.csd[csdIndex].csd.oad.attrindex);
 	}
-
+	INT16U dataLen = 0;
 	INT16S sendLen = 0;
 	INT16S recvLen = 0;
 	INT16U retdataLen = 0;
@@ -2327,7 +2327,6 @@ INT16U dealProxy_698(CLASS_6001 obj6001,GETOBJS obj07,INT8U* dataContent,INT8U p
 		SendDataTo485(port485, sendbuff, sendLen);
 
 		recvLen = ReceDataFrom485(DLT_698,port485, 500, recvbuff);
-		//fprintf(stderr,"\n\n recvLen = %d \n",recvLen);
 		if(recvLen > 0)
 		{
 			INT8U csdNum = 0;
@@ -2346,6 +2345,13 @@ INT16U dealProxy_698(CLASS_6001 obj6001,GETOBJS obj07,INT8U* dataContent,INT8U p
 			{
 				retdataLen = 0;
 			}
+		}else
+		{
+			OADtoBuff(obj07.oads[0],&dataContent[dataLen]);
+			dataLen += sizeof(OAD);
+			dataContent[dataLen++] = 0x00;//没有数据
+			dataContent[dataLen++] = 0x21;//DARType
+			return dataLen;
 		}
 		subindex++;
 	}
