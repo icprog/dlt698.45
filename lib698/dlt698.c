@@ -678,7 +678,7 @@ int doSetAttribute(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 	{
 		case SET_REQUEST_NORMAL:
 			memset(TmpDataBuf,0,sizeof(TmpDataBuf));
-			getOAD(0,&apdu[3],&oad);
+			getOAD(0,&apdu[3],&oad,NULL);
 			data = &apdu[7];					//Data
 			setRequestNormal(data,oad,&DAR,NULL,buf);
 			fprintf(stderr,"setRequestNormal dar = %d\n",DAR);
@@ -712,7 +712,7 @@ int doGetAttribute(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
 	switch(getType)
 	{
 		case GET_REQUEST_NORMAL:
-			getOAD(0,&apdu[3],&oad);
+			getOAD(0,&apdu[3],&oad,NULL);
 			data = &apdu[7];					//*重新定位数据指针地址*/
 			getRequestNormal(oad,data,csinfo,sendbuf);
 			break;
@@ -721,7 +721,7 @@ int doGetAttribute(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
 			getRequestNormalList(data,csinfo,sendbuf);
 			break;
 		case GET_REQUEST_RECORD:
-			getOAD(0,&apdu[3],&oad);
+			getOAD(0,&apdu[3],&oad,NULL);
 			data = &apdu[7];
 			getRequestRecord(oad,data,csinfo,sendbuf);
 			break;

@@ -398,7 +398,8 @@ int GetClass18(INT8U attflg,INT8U *data)
 		index += fill_visible_string(&data[index],&class18.source_file[1],class18.source_file[0]);
 		index += fill_visible_string(&data[index],&class18.dist_file[1],class18.dist_file[0]);
 		index += fill_double_long_unsigned(&data[index],class18.file_size);
-		index += fill_bit_string(&data[index],3,class18.file_attr & 0x03);
+		INT8U file_attr=class18.file_attr & 0x03;
+		index += fill_bit_string(&data[index],3,&file_attr);
 		index += fill_visible_string(&data[index],&class18.file_version[1],class18.file_version[0]);
 		index += fill_enum(&data[index],class18.file_type);
 		break;

@@ -65,29 +65,12 @@ void isTimeTagEffect(TimeTag timetag,TimeTag *rec_timetag)
 				timetag.sendTimeTag.hour.data,timetag.sendTimeTag.min.data,timetag.sendTimeTag.sec.data);
 		if(ret == success) {
 			if(timetag.ti.units >=0 && timetag.ti.units <=5) {		//TI 间隔时间单位满足条件
-				switch(timetag.ti.units) {
-				case 0:	//秒
-					interval_s = timetag.ti.interval;
-					break;
-				case 1:	//分
-					interval_s = timetag.ti.interval*60;
-					break;
-				case 2:	//时
-					interval_s = timetag.ti.interval*24*60;
-					break;
-				case 3:	//日
-					interval_s = timetag.ti.interval*24*60*60;
-					break;
-				case 4:	//月
-				case 5:	//年
-					fprintf(stderr,"时间间隔为月，年，未处理.............\n");
-					interval_s = 0;
-					break;
-				}
+				interval_s = TItoSec(timetag.ti);
 //				fprintf(stderr,"interval_s = %d\n",interval_s);
 				nowtime_t = time(NULL);
-				TimeBCDToTs(timetag.sendTimeTag,&tmpts);
-				tagtime_t = tmtotime_t(tmpts);
+//				TimeBCDToTs(timetag.sendTimeTag,&tmpts);
+//				tagtime_t = tmtotime_t(tmpts);
+				tagtime_t = TimeBCDTotime_t(timetag.sendTimeTag);
 //				fprintf(stderr,"nowtime=%ld, rece_tag=%ld, sub=%d interval_s=%d\n",nowtime_t,tagtime_t,(int)(nowtime_t-tagtime_t),interval_s);
 				//国网台体测试，下发时间后，再设置参数的timetag比集中器时间慢1秒.此处用绝对值进行比较,防止判断时间标签无效
 				//一致性测试：延时时间=0，应正确响应
@@ -128,3 +111,15 @@ INT8U	getEnumValid(INT16U value,INT16U start,INT16U end,INT16U other)
 	return dblock_invalid;
 }
 
+/*
+ * 判断设置得OAD端口是否正确？
+ */
+INT8U getPortValid(OAD oad)
+{
+    if(oad.OI == 0xF200 ||
+    		oad.OI == 0xF201 ||
+    		oad.OI == 0xF202 ||
+    		oad.OI == 0xF209)
+    	return success;
+	return type_mismatch;
+}
