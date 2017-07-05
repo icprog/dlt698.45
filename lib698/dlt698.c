@@ -52,7 +52,7 @@ INT8U broadcast=0;
 int StateProcess(CommBlock* nst, int delay_num)
 {
 	int length=0,i=0;
-
+	int ret = 1;
 	switch(nst->deal_step)
 	{
 		case 0:		 // 找到第一个 0x68
@@ -61,6 +61,8 @@ int StateProcess(CommBlock* nst, int delay_num)
 				if (nst->RecBuf[nst->RTail]== 0x68)
 				{
 					nst->deal_step = 1;
+					fprintf(stderr,"\n找到 68");
+					ret = 0;//需要继续
 					break;
 				}else {
 					nst->RTail = (nst->RTail + 1)% FRAMELEN;
@@ -71,20 +73,30 @@ int StateProcess(CommBlock* nst, int delay_num)
 			if(((nst->RHead-nst->RTail+FRAMELEN)%FRAMELEN) >= 3)
 			{
 //				fprintf(stderr,"\nNetRevBuf[*rev_tail] = %02x  %02x\n ",NetRevBuf[(*rev_tail+ 2)%FRAMELEN],NetRevBuf[(*rev_tail+ 1)%FRAMELEN]);
+				fprintf(stderr,"\nRevBuf[%d]=%02x  %02x  %02x  %02x",
+						nst->RTail,
+						nst->RecBuf[(nst->RTail+ 1 + FRAMELEN )%FRAMELEN],
+						nst->RecBuf[(nst->RTail+ 2 + FRAMELEN )%FRAMELEN]);
+
 				length = (nst->RecBuf[(nst->RTail+ 2 + FRAMELEN )%FRAMELEN] << 8) + nst->RecBuf[(nst->RTail+ 1 + FRAMELEN)%FRAMELEN];
+				fprintf(stderr,"\n---length =%d  ",length);
+
 				length = (length) & 0x03FFF;//bit15 bit14 保留
-//				fprintf(stderr,"\nlength = %d \n",length);
+				fprintf(stderr,"\nlength = %d \n",length);
 				if (length <= 0)//长度异常
 				{
 					nst->RTail = (nst->RTail + 1)% FRAMELEN;
 					nst->deal_step = 0;
+					ret = 0;//需要继续
 					break;
 				}else {
 //					fprintf(stderr,"*rev_head = %d *rev_tail = %d ",*rev_head,*rev_tail);
 					if((nst->RHead-nst->RTail+FRAMELEN)%FRAMELEN >= (length+2))//长度length为除 68和16 以外的字节数
 					{
+						fprintf(stderr,"\n找16");
 						if(nst->RecBuf[ (nst->RTail + length + 1 + FRAMELEN)% FRAMELEN ]== 0x16)
 						{
+							fprintf(stderr,"\n找到16!!!!!!!");
 							nst->rev_delay = 0;
 //							fprintf(stderr,"RRR=[%d]\n",length+2);
 							for(i=0;i<(length+2);i++)
@@ -98,28 +110,36 @@ int StateProcess(CommBlock* nst, int delay_num)
 						}
 						else
 						{
+							fprintf(stderr,"\n1、 delay =%d  ",nst->rev_delay);
 							if (nst->rev_delay < delay_num)
 							{
 								(nst->rev_delay)++;
+								ret = 0;//需要继续
 								break;
 							}else
 							{
+								fprintf(stderr,"\n1、超时  Tail 移动 ！！");
 								nst->rev_delay = 0;
 								nst->RTail = (nst->RTail +1 )% FRAMELEN;
 								nst->deal_step = 0;//返回第一步
+								ret = 0;//需要继续
 							}
 						}
 					}else
 					{
+							fprintf(stderr,"\n2、 delay =%d  ",nst->rev_delay);
 							if (nst->rev_delay < delay_num)
 							{
 								(nst->rev_delay)++;
+								ret = 0;//需要继续
 								break;
 							}else
 							{
+								fprintf(stderr,"\n2、超时  Tail 移动 ！！");
 								nst->rev_delay = 0;
 								nst->RTail = (nst->RTail +1 )% FRAMELEN;
 								nst->deal_step = 0;
+								ret = 0;//需要继续
 							}
 					}
 				}
@@ -128,9 +148,51 @@ int StateProcess(CommBlock* nst, int delay_num)
 		default :
 			break;
 	}
-	return 0;
+	return ret;
 }
+/**********************************************************
+ * 检测下行帧服务器地址是否与本终端匹配
+ */
+int CheckSerAddr(unsigned char* buf ,INT8U *addr)
+{
+	INT8U sa_length=0,mycslen=0;
 
+	int i=0;
+	INT8U cstype = 0;
+	if(buf[0]==0x68 )
+	{
+		sa_length 	= (buf[4]& 0x0f) + 1; 		/*服务器地址长度 0,1,，，15 表示 1,2,，，16*/
+		cstype = (buf[4]& 0xc0) >> 6;
+		mycslen = addr[0];
+		if(mycslen > OCTET_STRING_LEN)
+			mycslen = OCTET_STRING_LEN;
+
+		fprintf(stderr,"\n本终端地址(%d字节): ",mycslen);
+		for(i=1;i<=mycslen;i++)
+			fprintf(stderr,"%02x ",addr[i]);//addr[0]为字节数
+
+		fprintf(stderr,"\n本帧 地址(%d字节)： ",sa_length);
+		for(i=0;i<sa_length;i++)
+			fprintf(stderr,"%02x ",buf[5+i]);
+
+		switch (cstype)
+		{
+			case 0://单地址类型，需要判断是否与本服务器地址匹配
+				fprintf(stderr,"\n单地址，地址字节数 %d",sa_length);
+				break;
+			case 1:
+				fprintf(stderr,"\n通配地址，地址字节数 %d",sa_length);
+				break;
+			case 2:
+				fprintf(stderr,"\n组地址，地址字节数 %d",sa_length);
+				break;
+			case 3:
+				fprintf(stderr,"\n广播地址，地址字节数 %d",sa_length);
+				break;
+		}
+	}
+	return 1;
+}
 /**********************************************************
  * 处理帧头
  * 	获取：1、帧长度       2、控制码      3、服务器地址    4、客户机地址
@@ -172,7 +234,6 @@ int CheckHead(unsigned char* buf ,CSINFO *csinfo)
 			fprintf(stderr,"功能码未定义\n");
 			break;
 		}
-
 		csinfo->frame_length = frameLen.length.len;//帧长度
 		csinfo->funcode		= ctl.ctl.func;//功能码
 		csinfo->dir			= ctl.ctl.dir;
@@ -599,7 +660,7 @@ int appConnectResponse(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 
 	FrameTail(buf,index,hcsi);
 
-	if(pSendfun!=NULL)
+	if(pSendfun!=NULL && csinfo->sa_type!=2 && csinfo->sa_type!=2)//组地址或广播地址不需要应答
 		pSendfun(comfd,buf,index+3);
 	return (index+3);
 }
@@ -1414,6 +1475,8 @@ int ProcessData(CommBlock *com)
 	memp = (ProgramInfo*)com->shmem;
 	pSendfun = com->p_send;
 	comfd = com->phy_connect_fd;
+	if (CheckSerAddr(Rcvbuf ,com->serveraddr)==0)
+		return 0;
 	hcsok = CheckHead( Rcvbuf ,&csinfo);
 	com->taskaddr = csinfo.ca;
 	broadcast = csinfo.sa_type;

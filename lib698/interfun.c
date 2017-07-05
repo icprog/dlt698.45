@@ -898,7 +898,32 @@ int get_BasicRSD(INT8U type,INT8U *source,INT8U *dest,INT8U *seletype)		//0x5A
 					rsd.selec2.data_jiange.data[0],rsd.selec2.data_jiange.data[1],rsd.selec2.data_jiange.data[2]);
 			break;
 		case 3:
+			memset(&rsd.selec3,0,sizeof(rsd.selec3));
+			rsd.selec3.sel2_num = source[index++];
+			if(rsd.selec3.sel2_num > SELECTOR3_NUM) {
+				syslog(LOG_ERR,"设置的SEL3的个数[%d]大于限值[%d]\n",rsd.selec3.sel2_num,SELECTOR3_NUM);
+				rsd.selec3.sel2_num = SELECTOR3_NUM;
+			}
+			fprintf(stderr,"sel2_num=%d\n",rsd.selec3.sel2_num);
+			for(i=0;i<rsd.selec3.sel2_num;i++) {
+				index += getOAD(0,&source[index],&rsd.selec3.selectors[i].oad,&DAR);
+				index += get_Data(&source[index],&rsd.selec3.selectors[i].data_from.type);
+				index += get_Data(&source[index],&rsd.selec3.selectors[i].data_to.type);
+				index += get_Data(&source[index],&rsd.selec3.selectors[i].data_jiange.type);
+				fprintf(stderr," select3 OAD=%04x-%02x-%02x\n",rsd.selec3.selectors[i].oad.OI,rsd.selec3.selectors[i].oad.attflg,rsd.selec3.selectors[i].oad.attrindex);
+				fprintf(stderr," 起始值 type=%02x data=%02x-%02x-%02x-%02x-%02x-%02x-%02x\n",rsd.selec3.selectors[i].data_from.type,
+						rsd.selec3.selectors[i].data_from.data[0],rsd.selec3.selectors[i].data_from.data[1],rsd.selec3.selectors[i].data_from.data[2],
+						rsd.selec3.selectors[i].data_from.data[3],
+						rsd.selec3.selectors[i].data_from.data[4],rsd.selec3.selectors[i].data_from.data[5],rsd.selec3.selectors[i].data_from.data[6]);
+				fprintf(stderr," 结束值 type=%02x data=%02x-%02x-%02x-%02x-%02x-%02x-%02x\n",rsd.selec3.selectors[i].data_to.type,
+						rsd.selec3.selectors[i].data_to.data[0],rsd.selec3.selectors[i].data_to.data[1],rsd.selec3.selectors[i].data_to.data[2],
+						rsd.selec3.selectors[i].data_to.data[3],
+						rsd.selec3.selectors[i].data_to.data[4],rsd.selec3.selectors[i].data_to.data[5],rsd.selec3.selectors[i].data_to.data[6]);
+				fprintf(stderr," 数据间隔 type=%02x data=%02x-%02x-%02x\n",rsd.selec3.selectors[i].data_jiange.type,
+						rsd.selec3.selectors[i].data_jiange.data[0],rsd.selec3.selectors[i].data_jiange.data[1],rsd.selec3.selectors[i].data_jiange.data[2]);
 
+			}
+			memcpy(dest,&rsd.selec3,sizeof(rsd.selec3));
 			break;
 		case 4:
 		case 5:

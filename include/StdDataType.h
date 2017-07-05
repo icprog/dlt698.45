@@ -404,7 +404,8 @@ typedef struct
 }Selector2;
 typedef struct
 {
-	Selector2 selectors[10];
+	INT8U	sel2_num;
+	Selector2 selectors[SELECTOR3_NUM];
 }Selector3;
 typedef struct
 {
