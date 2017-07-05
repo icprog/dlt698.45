@@ -340,17 +340,29 @@ void AddBatchMeterInfo(INT8U *data, INT8U type, Action_result *act_ret) {
 
     for (k = 0; k < addnum; k++) {
         memset(&meter, 0, sizeof(meter));
-        index = index + 2;//struct
+        index += getStructure(&dealdata[index],NULL,&act_ret->DAR);
+        if(act_ret->DAR!=success)
+        	return;
+       // index = index + 2;//struct
         index += getLongUnsigned(&dealdata[index], (INT8U *) &meter.sernum);
         index = index + 2;//struct
         index += getOctetstring(1, &dealdata[index], (INT8U *) &meter.basicinfo.addr,&act_ret->DAR);
         index += getEnum(1, &dealdata[index], &meter.basicinfo.baud);
+        act_ret->DAR=getEnumValid(meter.basicinfo.baud,0,10,255);
+        if(act_ret->DAR!=success)
+        	return;
         index += getEnum(1, &dealdata[index], &meter.basicinfo.protocol);
+        act_ret->DAR=getEnumValid(meter.basicinfo.protocol,0,4,255);
+		if(act_ret->DAR!=success)
+			return;
         index += getOAD(1, &dealdata[index], &meter.basicinfo.port,&act_ret->DAR);
         index += getOctetstring(1, &dealdata[index], (INT8U *) &meter.basicinfo.pwd,&act_ret->DAR);
         index += getUnsigned(&dealdata[index], &meter.basicinfo.ratenum,&act_ret->DAR);
         index += getUnsigned(&dealdata[index], &meter.basicinfo.usrtype,&act_ret->DAR);
         index += getEnum(1,&dealdata[index], &meter.basicinfo.connectype);
+        act_ret->DAR=getEnumValid(meter.basicinfo.connectype,0,3,255);
+		if(act_ret->DAR!=success)
+			return;
         index += getLongUnsigned(&dealdata[index], (INT8U *) &meter.basicinfo.ratedU);
         index += getLongUnsigned(&dealdata[index], (INT8U *) &meter.basicinfo.ratedI);
         index = index + 2;//struct
@@ -393,7 +405,73 @@ void AddBatchMeterInfo(INT8U *data, INT8U type, Action_result *act_ret) {
     act_ret->datalen = index;
     act_ret->DAR = success;
 }
-
+void UpdateBatchMeterInfo(INT8U *data, INT8U type, Action_result *act_ret) {
+    CLASS_6001 meter = {};
+    CLASS11	coll={};
+    OI_698 oi=0x6000;
+    int k = 0, saveflg = 0, index = 0,sucflag=0;
+    INT8U blknum = 0;
+    INT16U sernum=0;
+    if(readInterClass(oi,&coll)==-1){
+    	act_ret->DAR = dblock_invalid_serial;
+    	return;
+    }
+    blknum = getFileRecordNum(oi);
+    index += getStructure(&data[index],NULL,&act_ret->DAR);
+    getLongUnsigned(&data[index], (INT8U *) &sernum);
+	if(act_ret->DAR!=success)
+		return;
+    for (k = 0; k < blknum; k++) {
+        memset(&meter, 0, sizeof(meter));
+        if(readParaClass(oi,&meter,k)==1) {
+            if(meter.sernum == sernum)
+            {
+            	sucflag++;
+            	index = index + 2;//跳过序号
+            	if(type==129)
+            	{
+					index = index + 2;//struct
+					index += getOctetstring(1, &data[index], (INT8U *) &meter.basicinfo.addr,&act_ret->DAR);
+					index += getEnum(1, &data[index], &meter.basicinfo.baud);
+					index += getEnum(1, &data[index], &meter.basicinfo.protocol);
+					index += getOAD(1, &data[index], &meter.basicinfo.port,&act_ret->DAR);
+					index += getOctetstring(1, &data[index], (INT8U *) &meter.basicinfo.pwd,&act_ret->DAR);
+					index += getUnsigned(&data[index], &meter.basicinfo.ratenum,&act_ret->DAR);
+					index += getUnsigned(&data[index], &meter.basicinfo.usrtype,&act_ret->DAR);
+					index += getEnum(1,&data[index], &meter.basicinfo.connectype);
+					index += getLongUnsigned(&data[index], (INT8U *) &meter.basicinfo.ratedU);
+					index += getLongUnsigned(&data[index], (INT8U *) &meter.basicinfo.ratedI);
+            	}
+            	else if(type==130)
+            	{
+            		index = index + 2;//struct
+					index += getOctetstring(1, &data[index], (INT8U *) &meter.extinfo.cjq_addr,&act_ret->DAR);
+					index += getOctetstring(1, &data[index], (INT8U *) &meter.extinfo.asset_code,&act_ret->DAR);
+					index += getLongUnsigned(&data[index], (INT8U *) &meter.extinfo.pt);
+					index += getLongUnsigned(&data[index], (INT8U *) &meter.extinfo.ct);
+					INT8U arraysize = 0;
+					index += getArray(&data[index], &arraysize,&act_ret->DAR);
+					int w = 0;
+					for (w = 0; w < arraysize; w++) {
+						index = index + 2;//struct
+						getOAD(1, &data[index], &meter.aninfo.oad,&act_ret->DAR);
+					}
+            	}
+				saveflg = saveParaClass(0x6000, (unsigned char *) &meter, meter.sernum);
+				if (saveflg != 0) {
+					fprintf(stderr, "\n采集档案配置 %d 保存失败", meter.sernum);
+					act_ret->DAR = refuse_rw;
+				}else {
+					fprintf(stderr, "\n采集档案配置 %d 保存成功", meter.sernum);
+					act_ret->datalen = index;
+					act_ret->DAR = success;
+				}
+            }
+        }
+    }
+    if(sucflag == 0)
+    	act_ret->DAR = dblock_invalid_serial;
+}
 void AddTaskInfo(INT8U *data, Action_result *act_ret)
 {
     act_ret->DAR = success;
@@ -1163,8 +1241,10 @@ void MeterInfo(INT16U attr_act, INT8U *data, Action_result *act_ret) {
             AddBatchMeterInfo(data, attr_act, act_ret);
             break;
         case 129://方法 129:Update(配置序号,基本信息)
+        	UpdateBatchMeterInfo(data, attr_act, act_ret);
             break;
         case 130://方法 130:Update(配置序号,扩展信息,附属信息)
+        	UpdateBatchMeterInfo(data, attr_act, act_ret);
             break;
         case 131://方法 131:Delete(配置序号)
             getLongUnsigned(&data[0], (INT8U *) &seqnum);
@@ -1177,7 +1257,13 @@ void MeterInfo(INT16U attr_act, INT8U *data, Action_result *act_ret) {
             break;
         case 134://方法 134:Clear()
             fprintf(stderr, "\n清空采集档案配置表");
-            clearClass(0x6000);
+            fprintf(stderr,"data[0]=%d\n",data[0]);
+            if(data[0]!=0 && (data[0]!=1)) {	//TimeTag=0,无时间标签，TimeTag=1，有时间标签
+            	act_ret->DAR = type_mismatch;
+            	fprintf(stderr,"包含数据，类型不匹配");
+            }else {
+            	clearClass(0x6000);
+            }
             break;
     }
 }
@@ -1289,6 +1375,11 @@ int doObjectAction(OAD oad, INT8U *data, Action_result *act_ret) {
 //				act_ret->datalen = 1;
             }
             break;
+        case 0xF200:	//RS232
+        	act_ret->datalen = Set_F200(data,&act_ret->DAR);
+        	break;
+        case 0xF202:	//红外
+        	break;
         case 0x2301:
             class23_selector(1, attr_act, data, act_ret);
             break;
@@ -1334,6 +1425,10 @@ int doObjectAction(OAD oad, INT8U *data, Action_result *act_ret) {
         case 0x8108:
             class8108_act_route(1, attr_act, data, act_ret);
             break;
+        default:
+        	act_ret->datalen = get_Data(data,NULL);
+        	act_ret->DAR = obj_undefine;
+        	break;
 
     }
     if(act_ret->DAR == success) {

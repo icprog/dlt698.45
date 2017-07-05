@@ -868,6 +868,16 @@ INT16U setf101(OAD oad,INT8U *data,INT8U *DAR)
 	return index;
 }
 
+int	Set_F200(OI_698 oi,INT8U *data,INT8U *DAR)
+{
+	int	 index=0;
+	CLASS_f201	f201={};
+
+	readCoverClass(oi,0,&f201,sizeof(CLASS_f201),para_vari_save);
+
+	return index;
+}
+
 INT16U setf203(OAD oad,INT8U *data,INT8U *DAR)
 {
 	INT16U index=0;
@@ -1110,13 +1120,12 @@ INT16U DeviceIoSetAttrib(OAD oad,INT8U *data,INT8U *DAR)
 		case 0xF002://文件扩展传输管理
 			data_index = setclass18(oad,data,DAR);
 			break;
-		case 0xF203:	//开关量输入
-			data_index = setf203(oad,data,DAR);
-			break;
 		case 0xF101:
 			data_index = setf101(oad,data,DAR);
 			break;
-
+		case 0xF203:	//开关量输入
+			data_index = setf203(oad,data,DAR);
+			break;
 	}
 	return data_index;
 }
@@ -1165,7 +1174,7 @@ INT16U setRequestNormal(INT8U *data,OAD oad,INT8U *DAR,CSINFO *csinfo,INT8U *buf
 {
 	INT8U oihead = (oad.OI&0xF000) >>12;
 	INT16U	data_index=0;
-	INT8U	tmp_buf[64]={};
+
 	fprintf(stderr,"\n对象属性设置  【 %04x 】",oad.OI);
 
 	if(Response_timetag.effect==0) {
@@ -1193,7 +1202,7 @@ INT16U setRequestNormal(INT8U *data,OAD oad,INT8U *DAR,CSINFO *csinfo,INT8U *buf
 			data_index = DeviceIoSetAttrib(oad,data,DAR);
 			break;
 		default:
-			data_index = get_Data(data,tmp_buf);
+			data_index = get_Data(data,NULL);	//一致性测试中，为了查找解析后续的OAD的内容
 			fprintf(stderr,"oad.oi=%04x,data_index=%d\n",oad.OI,data_index);
 			*DAR = obj_undefine;
 			break;

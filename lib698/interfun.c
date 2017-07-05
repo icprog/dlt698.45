@@ -780,8 +780,10 @@ int get_Data(INT8U *source,INT8U *dest)
 	fprintf(stderr,"get_Data type=%02x\n",dttype);
 	dtlen = getDataTypeLen(dttype);
 	if(dtlen>=0) {
-		dest[0] = dttype;
-		memcpy(&dest[1],&source[1],dtlen);
+		if(dest!=NULL) {
+			dest[0] = dttype;
+			memcpy(&dest[1],&source[1],dtlen);
+		}
 		return (dtlen+1);  //+1:dttype
 	}else {
 		if(dttype == dtarray) {		//一致性测试 GET_11处理,为了寻找正确的RCSD，将Selector1异常数据处理结束

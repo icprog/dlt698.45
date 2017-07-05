@@ -799,9 +799,9 @@ int doActionRequest(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 			doObjectAction(oad,data,&act_ret);
 			index += create_OAD(0,&TmpDataBuf[index],oad);
 			TmpDataBuf[index++] = act_ret.DAR;
-			if(act_ret.DAR == success) {
+//			if(act_ret.DAR == success) {
 				TmpDataBuf[index++] = 0;	//数据为空
-			}
+//			}
 			doReponse(ACTION_RESPONSE,ActionResponseNormal,csinfo,index,TmpDataBuf,buf);
 			Get698_event(oad,memp);
 			break;
@@ -820,9 +820,9 @@ int doActionRequest(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 				index += create_OAD(0,&TmpDataBuf[index],oad);
 				doObjectAction(oad,&apdu[apdu_index],&act_ret);
 				TmpDataBuf[index++] = act_ret.DAR;
-				if(act_ret.DAR == success) {
+//				if(act_ret.DAR == success) {
 					TmpDataBuf[index++] = 0;		//数据为空
-				}
+//				}
 				apdu_index += act_ret.datalen;
 			}
 			doReponse(ACTION_RESPONSE,ActionResponseNormalList,csinfo,index,TmpDataBuf,buf);
