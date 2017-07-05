@@ -2,6 +2,8 @@
 // Created by 周立海 on 2017/4/21.
 //
 
+#include <stdio.h>
+
 #include "class23.h"
 #include "dlt698.h"
 #include "PublicFunction.h"
@@ -94,18 +96,40 @@ int class23_set(int index, OAD oad, INT8U *data, INT8U *DAR) {
 }
 
 int class23_get_17(OI_698 oi, INT8U *sourcebuf, INT8U *buf, int *len) {
+	ProgramInfo *shareAddr = getShareAddr();
+	int index = -1;
+	for (int i = 0; i < 8; i++) {
+		if (oi == 0x2301 + i) {
+			index = i;
+		}
+	}
+	if (index == -1) {
+		return 0;
+	}
 
+	*len = 0;
+	*len += create_struct(&buf[*len],7);
+	*len += fill_double_long64(&buf[*len],shareAddr->class23[index].alCtlState.v);
+	*len += fill_integer(&buf[*len],shareAddr->class23[index].alCtlState.Downc);
+	*len += fill_bit_string(&buf[*len],8,shareAddr->class23[index].alCtlState.Downc);
+	*len += fill_bit_string(&buf[*len],8,shareAddr->class23[index].alCtlState.OutputState);
+	*len += fill_bit_string(&buf[*len],8,shareAddr->class23[index].alCtlState.MonthOutputState);
+	*len += fill_bit_string(&buf[*len],8,shareAddr->class23[index].alCtlState.BuyOutputState);
+	*len += fill_bit_string(&buf[*len],8,shareAddr->class23[index].alCtlState.PCAlarmState);
+	*len += fill_bit_string(&buf[*len],8,shareAddr->class23[index].alCtlState.ECAlarmState);
+
+	return 1;
 }
 
-int class23_get(OI_698 oi, INT8U *sourcebuf, INT8U *buf, int *len) {
+int class23_get(OAD oad, INT8U *sourcebuf, INT8U *buf, int *len) {
 	ProgramInfo *shareAddr = getShareAddr();
-//	asyslog(LOG_WARNING, "召唤总加组属性(%d)",);
-//
-//	switch (oad.attflg) {
-//	case 17:
-//		class23_get_17(oi, sourcebuf, buf, len);
-//		break;
-//	}
+	asyslog(LOG_WARNING, "召唤总加组属性(%d)", oad.attflg);
+
+	switch (oad.attflg) {
+	case 17:
+		return class23_get_17(oad.OI, sourcebuf, buf, len);
+
+	}
 
 }
 

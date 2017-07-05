@@ -64,6 +64,7 @@ int getAutoEventBuf(EventBuf *eb, mmq_head *msg_head, void *buff) {
             memcpy(buff, &eb[i].content, MAXSIZ_PROXY_NET);
             eb[i].repeat_timeout = AUTO_EVENT_REPEAT_TIMEOUT;
             eb[i].header.cmd = -1;
+            saveCoverClass(0x4520, 0, autoEventBuf, sizeof(autoEventBuf), para_vari_save);
             return 1;
         }
     }
