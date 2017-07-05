@@ -155,21 +155,34 @@ int StateProcess(CommBlock* nst, int delay_num)
  */
 int CheckSerAddr(unsigned char* buf ,INT8U *addr)
 {
+	INT8U checkByte=0;
+	INT8U Check_Hb=0,Check_Lb=0,My_Hb=0,My_Lb=0;
 	INT8U sa_length=0,mycslen=0;
-
+	INT8U logicID=0;
+	INT8U tmp[OCTET_STRING_LEN];
 	int i=0;
 	INT8U cstype = 0;
 	if(buf[0]==0x68 )
 	{
 		sa_length 	= (buf[4]& 0x0f) + 1; 		/*服务器地址长度 0,1,，，15 表示 1,2,，，16*/
+		logicID = (buf[4]& 0x30)>>4;			/*逻辑地址*/
 		cstype = (buf[4]& 0xc0) >> 6;
 		mycslen = addr[0];
 		if(mycslen > OCTET_STRING_LEN)
 			mycslen = OCTET_STRING_LEN;
 
+		fprintf(stderr,"\n下行报文逻辑地址 %d",logicID);\
+		if (logicID!=0 && logicID!=1)
+		{
+			fprintf(stderr,"\n逻辑地址非0并且非1 ");
+			return 0;
+		}
 		fprintf(stderr,"\n本终端地址(%d字节): ",mycslen);
-		for(i=1;i<=mycslen;i++)
-			fprintf(stderr,"%02x ",addr[i]);//addr[0]为字节数
+		for(i=0;i<mycslen;i++)
+		{
+			tmp[i] = addr[mycslen-i];
+			fprintf(stderr,"%02x ",tmp[i]);
+		}
 
 		fprintf(stderr,"\n本帧 地址(%d字节)： ",sa_length);
 		for(i=0;i<sa_length;i++)
@@ -179,9 +192,47 @@ int CheckSerAddr(unsigned char* buf ,INT8U *addr)
 		{
 			case 0://单地址类型，需要判断是否与本服务器地址匹配
 				fprintf(stderr,"\n单地址，地址字节数 %d",sa_length);
+				if (mycslen!=sa_length)
+				{
+					fprintf(stderr,"\n单地址，长度不符合 ");
+					return 0;
+				}else
+				{
+					for(i=0;i<mycslen;i++)
+					{
+						fprintf(stderr,"\n本终端 addr[%d]=%02x buf[%d]=%02x",i,tmp[i],5+i,buf[5+i]);
+						if (tmp[i]!=buf[5+i])
+						{
+							fprintf(stderr,"\n单地址招测报文与本终端不符合!!");
+							return 0;
+						}
+					}
+				}
 				break;
 			case 1:
 				fprintf(stderr,"\n通配地址，地址字节数 %d",sa_length);
+				for(i=0;i<mycslen;i++)
+				{
+					fprintf(stderr,"\n本终端 addr[%d]=%02x buf[%d]=%02x",i,tmp[i],5+i,buf[5+i]);
+					if (tmp[i]!= buf[5+i])
+					{
+						Check_Hb = buf[5+i] & 0xF0;
+						Check_Lb = buf[5+i] & 0x0F;
+						My_Hb = tmp[i] & 0xF0;
+						My_Lb = tmp[i] & 0x0F;
+						if (Check_Hb != 0xA0  &&  Check_Hb != My_Hb)//低4位不是通配符  而且还不相等
+						{
+							fprintf(stderr,"\n不符合");
+							return 0;
+						}
+						if (Check_Lb != 0x0A  &&  Check_Lb != My_Lb)//低4位不是通配符  而且还不相等
+						{
+							fprintf(stderr,"\n不符合");
+							return 0;
+						}
+						continue;
+					}
+				}
 				break;
 			case 2:
 				fprintf(stderr,"\n组地址，地址字节数 %d",sa_length);
@@ -247,6 +298,7 @@ int CheckHead(unsigned char* buf ,CSINFO *csinfo)
 		memcpy(csinfo->sa, &buf[5], sa_length);		/*服务器地址*/
 		csinfo->ca			= buf[5+ sa_length]; 			/*客户机地址*/
 		csinfo->sa_length	= sa_length;
+		fprintf(stderr,"\n地址类型 %d",csinfo->sa_type);
 		return 1;
 	}
 	return 0;
@@ -682,7 +734,7 @@ int appConnectResponse(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 
 	FrameTail(buf,index,hcsi);
 
-	if(pSendfun!=NULL && csinfo->sa_type!=2 && csinfo->sa_type!=2)//组地址或广播地址不需要应答
+	if(pSendfun!=NULL && csinfo->sa_type!=2 && csinfo->sa_type!=3)//组地址或广播地址不需要应答
 		pSendfun(comfd,buf,index+3);
 	return (index+3);
 }
@@ -695,7 +747,11 @@ int doSetAttribute(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 	OAD oad={};
 	INT8U *data=NULL;
 	piid_g.data = apdu[2];
-
+	if (csinfo->sa_type == 2 || csinfo->sa_type == 3)
+	{
+		fprintf(stderr,"\n组地址或广播地址，不响应设置服务");
+		return 0;
+	}
 	switch(setType)
 	{
 		case SET_REQUEST_NORMAL:
