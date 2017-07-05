@@ -1030,24 +1030,62 @@ void PrintTaskInfo2(TASK_INFO *task)
 	}
 }
 
-void shwoPlcMeterstatus()
+void showPlcMeterstatus(int argc, char *argv[])
 {
 	TASK_INFO taskinfo;
 	CLASS_6001	 meter={};
 	int i=0,ret=0;
 	int record_num = getFileRecordNum(0x6000);
-	fprintf(stderr,"\n--------------plc =%d ------------\n",record_num);
-	for(i=0;i<record_num;i++)
+	TSA tsa;
+	int addrtmp[8];
+	memset(tsa.addr,0,sizeof(tsa.addr));
+	if (argc==3)
 	{
-		if(readParaClass(0x6000,&meter,i)==1)
+		sscanf(argv[2],"%02x%02x%02x%02x%02x%02x%02x%02x",&addrtmp[0],&addrtmp[1],&addrtmp[2],&addrtmp[3],&addrtmp[4],&addrtmp[5],&addrtmp[6],&addrtmp[7]);
+		tsa.addr[0] = addrtmp[0];
+		tsa.addr[1] = addrtmp[1];
+		tsa.addr[2] = addrtmp[2];
+		tsa.addr[3] = addrtmp[3];
+		tsa.addr[4] = addrtmp[4];
+		tsa.addr[5] = addrtmp[5];
+		tsa.addr[6] = addrtmp[6];
+		tsa.addr[7] = addrtmp[7];
+		for(i=0;i<record_num;i++)
 		{
-			if (meter.sernum!=0 && meter.sernum!=0xffff && meter.basicinfo.port.OI==0xf209)
+			if(readParaClass(0x6000,&meter,i)==1)
 			{
-				ret = readParaClass(0x8888, &taskinfo, meter.sernum);
-				fprintf(stderr,"\n---------------------[ %d ]- sernum=%d   OI=%02x   ret=%d\n",i,meter.sernum,meter.basicinfo.port.OI,ret);
-				if (ret == 1 )
+				if (meter.sernum!=0 && meter.sernum!=0xffff && meter.basicinfo.port.OI==0xf209 && memcmp(tsa.addr,meter.basicinfo.addr.addr,TSA_LEN)==0)
 				{
-					PrintTaskInfo2(&taskinfo);
+					fprintf(stderr,"\n电表序号 %d   ,规约 %d    ,用户类型 %d [%02x H]",meter.sernum,meter.basicinfo.connectype,meter.basicinfo.usrtype,meter.basicinfo.usrtype);
+					ret = readParaClass(0x8888, &taskinfo, meter.sernum);
+					if (ret == 1 )
+					{
+						PrintTaskInfo2(&taskinfo);
+					}else
+					{
+						fprintf(stderr,"\n读失败");
+					}
+				}
+			}
+		}
+	}else
+	{
+		for(i=0;i<record_num;i++)
+		{
+			if(readParaClass(0x6000,&meter,i)==1)
+			{
+				if (meter.sernum!=0 && meter.sernum!=0xffff && meter.basicinfo.port.OI==0xf209)
+				{
+					ret = readParaClass(0x8888, &taskinfo, meter.sernum);
+					//fprintf(stderr,"\n---------------------[ %d ]- sernum=%d   OI=%02x   ret=%d\n",i,meter.sernum,meter.basicinfo.port.OI,ret);
+					if (ret == 1 )
+					{
+						fprintf(stderr,"\nTSA: %02x%02x%02x%02x%02x%02x%02x%02x    index=%d    任务数=%d",
+								taskinfo.tsa.addr[0],taskinfo.tsa.addr[1],taskinfo.tsa.addr[2],taskinfo.tsa.addr[3],
+								taskinfo.tsa.addr[4],taskinfo.tsa.addr[5],taskinfo.tsa.addr[6],taskinfo.tsa.addr[7],taskinfo.tsa_index,taskinfo.task_n);
+
+						//PrintTaskInfo2(&taskinfo);
+					}
 				}
 			}
 		}

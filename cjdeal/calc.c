@@ -70,6 +70,8 @@ void Vol_Rate_Tj(PassRate_U *passu_d_tmp,PassRate_U *passu_m_tmp,INT32U voltage,
 	}
 }
 
+
+#if 0
 void Save_Vol_Rate(INT8U flag,DateTimeBCD datetime)
 {
    if(flag == 0){
@@ -112,20 +114,16 @@ void Save_Vol_Rate(INT8U flag,DateTimeBCD datetime)
 		 }
    }
 }
+#endif
 void Calc_Tj()
 {
 	static time_t	currtime=0,nexttime=0;
 	static INT8U 	first=1;
-	TS newts;
 	static INT8U lastchgoi4030=0;
+	int		j=0;
+	TS 		newts;
+
 	TSGet(&newts);
-	DateTimeBCD datetime={};
-	datetime.year.data=newts.Year;
-	datetime.month.data=newts.Month;
-	datetime.day.data=newts.Day;
-	datetime.hour.data=0;
-	datetime.min.data=0;
-	datetime.sec.data=0;
 	if(first==1) {
 		first = 0;
 		currtime = time(NULL);
@@ -166,17 +164,24 @@ void Calc_Tj()
 //		fprintf(stderr,"跨日	:时间: %d-%d-%d %d:%d:%d\n",gongdian_tj.ts.Year,gongdian_tj.ts.Month,gongdian_tj.ts.Day,gongdian_tj.ts.Hour,gongdian_tj.ts.Minute,gongdian_tj.ts.Sec);
 		gongdian_tj.gongdian.day_tj = 0;
 		//TSGet(&gongdian_tj.ts);
-		Save_Vol_Rate(0,datetime);
+//		Save_Vol_Rate(0,datetime);
+		Save_TJ_Freeze(0,0x2203,0x0200,newts,sizeof(gongdian_tj.gongdian),(INT8U *)&gongdian_tj.gongdian);
+		for(j=0;j<3;j++) {
+			Save_TJ_Freeze(0,(0x2131+j),0x0201,newts,sizeof(PassRate_U),(INT8U *)&passu_d[j]);
+			memset(&passu_d[j],0,sizeof(PassRate_U));
+		}
 		if(newts.Month != gongdian_tj.ts.Month && newts.Hour == 0) {
 //			gongdian_tj.gongdian.month_tj = 0;
-			datetime.day.data= 1;
 			fprintf(stderr,"跨月");
-			Save_Vol_Rate(1,datetime);
+//			Save_Vol_Rate(1,datetime);
+			Save_TJ_Freeze(1,0x2203,0x0200,newts,sizeof(gongdian_tj.gongdian),(INT8U *)&gongdian_tj.gongdian);
+			for(j=0;j<3;j++) {
+				Save_TJ_Freeze(1,(0x2131+j),0x0202,newts,sizeof(PassRate_U),(INT8U *)&passu_m[j]);
+				memset(&passu_m[j],0,sizeof(PassRate_U));
+			}
 		}
 		TSGet(&gongdian_tj.ts);
 	}
-
-
 }
 /*
  * 统计主线程

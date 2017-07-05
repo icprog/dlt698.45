@@ -171,7 +171,7 @@ INT16S composeProtocol07(FORMAT07* format07, INT8U* sendBuf)
 	}else if (format07->Ctrl == 0xff)//读负荷曲线
 	{
 		sendBuf[0] = 0x68;
-		memcpy(&sendBuf[1], format07->Addr, 6);//地址
+		memcpy(&sendBuf[1], addrBuff, 6);//地址
 		sendBuf[7] = 0x68;
 		sendBuf[8] = 0x11;
 		sendBuf[9] = 10;//长度

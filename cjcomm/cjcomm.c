@@ -139,11 +139,13 @@ void CalculateTransFlow(ProgramInfo *prginfo_event) {
         //跨日月流量分别清零
         if (localDay != ts.Day) {
             asyslog(LOG_INFO, "检测到夸日，流量统计清零，清零前数据(%d)", prginfo_event->dev_info.realTimeC2200.flow.day_tj);
+            Save_TJ_Freeze(0x2200,0x0200,0,ts,sizeof(Flow_tj),(INT8U *)&prginfo_event->dev_info.realTimeC2200);
             prginfo_event->dev_info.realTimeC2200.flow.day_tj = 0;
             localDay = ts.Day;
         }
         if (localMonth != ts.Month) {
             asyslog(LOG_INFO, "检测到夸月，流量统计清零，清零前数据(%d)", prginfo_event->dev_info.realTimeC2200.flow.month_tj);
+            Save_TJ_Freeze(0x2200,0x0200,1,ts,sizeof(Flow_tj),(INT8U *)&prginfo_event->dev_info.realTimeC2200);
             prginfo_event->dev_info.realTimeC2200.flow.month_tj = 0;
             localMonth = ts.Month;
         }

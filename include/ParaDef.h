@@ -71,6 +71,7 @@
 #define MY_CSD_NUM				20			//my_csd数组最大各数
 #define ROAD_OADS_NUM           20          //ROAD结构体里oads的最大个数
 #define ARRAY_ROAD_NUM			20			//raod数组的最大个数
+#define SELECTOR3_NUM			10			//selector3 包含的sel2的最大个数
 #define CLASS7_OAD_NUM			10			//关联对象属性表
 #define CLASS6019_PLAN_NUM		20			//透明内容集的个数
 #define	REGION_NUM				20			//MS类型数据区间长度

@@ -133,6 +133,12 @@ typedef enum {
 }RUN_PRIO;//执行优先级
 
 typedef enum {
+	E_S=0/*东、南*/,
+	W_N=1/*西、北*/,
+	OTHERSTATUS=255
+}LNG_LAT;//经纬度方位
+
+typedef enum {
 	 task_valid=1/*正常*/,
 	 task_novalid=2/*停用*/
 }TASK_VALID;//任务状态
@@ -223,6 +229,15 @@ typedef union {//control code
 		INT8U dir		: 1;//direction flag
 	} ctl;
 } ctlUN;
+
+typedef union {//server address's length word
+	INT8U u8b;//convenient to set value to 0
+	struct {//only for little endian mathine!
+		INT8U saLen		: 4;//server address's length
+		INT8U logicAddr	: 2;//logic addr
+		INT8U saType	: 2;//server address's type, 0 - single, 1 - wildcard, 2 - group，3 - broadcast.
+	} sa;
+} saUN;
 
 typedef struct
 {
@@ -398,7 +413,8 @@ typedef struct
 }Selector2;
 typedef struct
 {
-	Selector2 selectors[10];
+	INT8U	sel2_num;
+	Selector2 selectors[SELECTOR3_NUM];
 }Selector3;
 typedef struct
 {

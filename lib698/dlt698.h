@@ -52,14 +52,13 @@ extern void print_road(ROAD road);
 extern void print_rcsd(CSD_ARRAYTYPE csds);
 extern void print_rsd(INT8U choice, RSD rsd);
 /**/
-extern int getTItoSec(TI ti);
 extern void setOIChange(OI_698 oi);
 /*----------------------接口类及对象实例的基本数据类型组帧----------------------*/
 
 extern int create_array(INT8U* data, INT8U numm);			//0x01
 extern int create_struct(INT8U* data, INT8U numm);			//0x02
 extern int fill_bool(INT8U* data, INT8U value);				//0x03
-extern int fill_bit_string(INT8U *data,INT8U size,INT8U bits);		//0x04
+extern int fill_bit_string(INT8U *data,INT8U size,INT8U *bits);		//0x04
 extern int fill_double_long(INT8U *data,INT32S value);		//0x05
 extern int fill_double_long_unsigned(INT8U* data, INT32U value);	//0x06
 extern int fill_octet_string(INT8U* data, char* value, INT8U len);	//0x09
@@ -74,6 +73,7 @@ extern int fill_date_time_s(INT8U* data, DateTimeBCD* time);		//0x1c
 extern int create_OAD(INT8U type,INT8U* data, OAD oad);				//0x51
 extern int fill_ROAD(INT8U type,INT8U *data,ROAD road);				//0x52
 extern int fill_TI(INT8U* data, TI ti);								//0x54
+extern int fill_OI(INT8U *data,INT8U value);                        //
 extern int fill_TSA(INT8U* data, INT8U* value, INT8U len);			//0x55
 extern int fill_RSD(INT8U choice,INT8U *data,RSD rsd);				//0x5A
 extern int fill_CSD(INT8U type, INT8U* data, MY_CSD csd);			//0x5b
@@ -81,20 +81,20 @@ extern int fill_MS(INT8U type,INT8U *data,MY_MS myms);				//0x5C
 extern int fill_RCSD(INT8U type, INT8U* data, CSD_ARRAYTYPE csds);	//0x60
 extern int fill_Data(INT8U type,INT8U *data,INT8U *value);
 /*----------------------接口类及对象实例的数据类型解析----------------------*/
-extern int getArray(INT8U* source, INT8U* dest);                                  // 1
-extern int getStructure(INT8U* source, INT8U* dest);                              // 2
-extern int getBool(INT8U* source, INT8U* dest);                                   // 3
+extern int getArray(INT8U *source,INT8U *dest,INT8U *DAR);                                  // 1
+extern int getStructure(INT8U *source,INT8U *dest,INT8U *DAR);                              // 2
+extern int getBool(INT8U* source, INT8U* dest,INT8U *DAR);                                   // 3
 extern int getBitString(INT8U type, INT8U* source, INT8U* dest);                  // 4
 extern int getDouble(INT8U* source, INT8U* dest);                                 // 5 6
-extern int getOctetstring(INT8U type, INT8U* source, INT8U* tsa);                 // 9 and 0x55
-extern int getVisibleString(INT8U* source, INT8U* dest);                          // 0x0A
+extern int getOctetstring(INT8U type, INT8U* source, INT8U* tsa,INT8U *DAR);                 // 9 and 0x55
+extern int getVisibleString(INT8U *source,INT8U *dest,INT8U *DAR);                          // 0x0A
 extern int getUnsigned(INT8U *source,INT8U *dest,INT8U *DAR);                     // 0x11
 extern int getLongUnsigned(INT8U* source, INT8U* dest);                           // 0x12
 extern int getEnum(INT8U type, INT8U* source, INT8U* enumvalue);                  // 0x16
-extern int getTime(INT8U type, INT8U* source, INT8U* enumvalue);                  // 0x1B
+extern int getTime(INT8U type,INT8U *source,INT8U *dest,INT8U *DAR);                  // 0x1B
 extern int getDateTimeS(INT8U type,INT8U *source,INT8U *dest,INT8U *DAR);                 // 0x1C
 extern int getOI(INT8U type, INT8U* source, OI_698 oi);                           // 0x50
-extern int getOAD(INT8U type, INT8U* source, OAD* oad);                           // 0x51
+extern int getOAD(INT8U type,INT8U *source,OAD *oad,INT8U *DAR);                           // 0x51
 extern int getROAD(INT8U* source, ROAD* dest);                                    // 0x52
 extern int getTI(INT8U type, INT8U* source, TI* ti);                              // 0x54
 extern int get_BasicRSD(INT8U type, INT8U* source, INT8U* dest, INT8U* seletype); // 0x5A
@@ -102,7 +102,7 @@ extern int getCSD(INT8U type, INT8U* source, MY_CSD* csd);                      
 extern int getMS(INT8U type, INT8U* source, MY_MS* ms);                           // 0x5C
 extern int getCOMDCB(INT8U type, INT8U* source, COMDCB* comdcb);                  // 0x5F
 extern int get_BasicRCSD(INT8U type, INT8U* source, CSD_ARRAYTYPE* csds);         // 0x60
-extern int get_Data(INT8U* source, INT8U* dest);
+extern int get_Data(INT8U* source, INT8U* dest);								//根据类型返回数据的长度
 extern int getSel_Data(INT8U type,INT8U *seldata,INT8U *destdata);				//根据selector类型的参数返回读取的数据
 /*
  * 根据数据类型返回相应的数据长度
@@ -118,4 +118,5 @@ extern int GetFileState(RESULT_NORMAL* response);
 extern INT8U check_date(int year, int month, int day, int hour, int min, int sec);
 extern INT8U getEnumValid(INT16U value,INT16U start,INT16U end,INT16U other);
 extern void isTimeTagEffect(TimeTag timetag,TimeTag *rec_timetag);
+extern INT8U getPortValid(OAD oad);
 #endif
