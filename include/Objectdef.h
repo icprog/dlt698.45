@@ -549,7 +549,7 @@ typedef struct {
     char devdesc[VISIBLE_STRING_LEN]; //设备描述
     COMDCB devpara;                   //设备参数
     INT8U devfunc;                    //端口功能
-} CLASS_f201;                         // RS485维护口
+} CLASS_f201;                         //RS232\ RS485维护口
 
 typedef struct {
     CLASS22 class22;                  //接口类IC
@@ -604,7 +604,7 @@ typedef struct {
     INT8U proxytype;    //代理类型
     INT8U piid;        //本次代理请求PIID
     INT16U timeout;    //代理超时时间
-    INT16U num;        //个数
+    INT16U num;        //TSA个数
     GETOBJS objs[10];  //代理请求列表
     TRANSCMD transcmd;    //代理操作透明转发
     INT8U data[512];   //请求结果
