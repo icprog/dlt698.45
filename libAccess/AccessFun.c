@@ -940,6 +940,61 @@ int	readFreezeRecordByTime(OI_698 freezeOI,OAD oad,DateTimeBCD datetime,int *dat
 	return ret;
 }
 
+/*
+ * 按照冻结关联属性，进行数据存储
+ * flag 	0：日冻结，1：月冻结
+ * oi，attr		存储的OI及属性
+ * savets		存储时标
+ * savelen		需要存储数据长度
+ * data			数据内容
+ * */
+void Save_TJ_Freeze(INT8U flag,OI_698 oi,INT16U attr,TS savets,int savelen,INT8U *data)
+{
+	OAD	 oad={};
+	DateTimeBCD datetime={};
+
+	datetime.year.data=savets.Year;
+	datetime.month.data=savets.Month;
+	if(flag == 0) {
+		datetime.day.data=savets.Day;
+	}else  if(flag == 1){
+		datetime.day.data=1;
+	}
+	datetime.hour.data=0;
+	datetime.min.data=0;
+	datetime.sec.data=0;
+
+	oad.OI = oi;
+	oad.attflg = (attr>>8) & 0xff;
+	oad.attrindex = attr & 0xff;
+	if(flag == 0){
+		FreezeObject obj_5004={};
+		memset(&obj_5004,0,sizeof(FreezeObject));
+		readCoverClass(0x5004,0,&obj_5004,sizeof(FreezeObject),para_vari_save);
+		INT8U i=0;
+		for(i=0;i<obj_5004.RelateNum;i++){
+			if(memcmp(&oad,&obj_5004.RelateObj[i].oad,sizeof(OAD))==0){
+				int ret=saveFreezeRecord(0x5004,oad,datetime,savelen,data);
+			//				  fprintf(stderr,"ret=%d oad=%04x %02x %02x  \n",ret,oad.OI,oad.attflg,oad.attrindex);
+			//				  fprintf(stderr,"passu_d[%d]:%d %d %d %d %d \n",j,passu_d[j].monitorTime,passu_d[j].downLimitTime,passu_d[j].overRate,passu_d[j].passRate,passu_d[j].upLimitTime);
+//			  memset(&passu_d[j],0,sizeof(PassRate_U));
+			}
+		}
+	}else{
+		FreezeObject obj_5006={};
+		memset(&obj_5006,0,sizeof(FreezeObject));
+		readCoverClass(0x5006,0,&obj_5006,sizeof(FreezeObject),para_vari_save);
+		INT8U i=0;
+		for(i=0;i<obj_5006.RelateNum;i++){
+			if(memcmp(&oad,&obj_5006.RelateObj[i].oad,sizeof(OAD))==0){
+				int ret=saveFreezeRecord(0x5006,oad,datetime,savelen,data);
+			//				  fprintf(stderr,"ret=%d oad=%04x %02x %02x \n",ret,oad.OI,oad.attflg,oad.attrindex);
+			//				  fprintf(stderr,"passu_m[%d]:%d %d %d %d %d \n",j,passu_m[j].monitorTime,passu_m[j].downLimitTime,passu_m[j].overRate,passu_m[j].passRate,passu_m[j].upLimitTime);
+			//				  memset(&passu_m[j],0,sizeof(PassRate_U));
+			}
+		}
+	}
+}
 ////////////////////////////////////////////////////////////////////////////////
 #if 0
 /*
@@ -1883,6 +1938,7 @@ INT16U CalcFreq(TI runti,CLASS_6015 class6015,INT16U startmin,INT16U endmin,INT3
 	}
 	return 1;
 }
+#if 0
 INT32U freqtosec(TI interval)//ti格式频率转化为秒数,只计算秒分时日，其他返回0
 {
 	INT32U rate = 0;
@@ -1905,6 +1961,7 @@ INT32U freqtosec(TI interval)//ti格式频率转化为秒数,只计算秒分时�
 	}
 	return rate*interval.interval;
 }
+#endif
 //读取taskid相应的配置结构体，return 1成功，0失败
 INT8U ReadTaskInfo(INT8U taskid,TASKSET_INFO *tasknor_info)//读取普通采集方案配置
 {
@@ -1927,7 +1984,7 @@ INT8U ReadTaskInfo(INT8U taskid,TASKSET_INFO *tasknor_info)//读取普通采集�
 #ifdef SYS_INFO
 			asyslog(LOG_INFO,"\n---class6015.cjtype = %d  class6013.sernum = %d \n",class6015.cjtype,class6013.sernum);
 #endif
-			tasknor_info->taskfreq = freqtosec(class6013.interval);
+			tasknor_info->taskfreq = TItoSec(class6013.interval);	//替换原来的freqtosec
 			fprintf(stderr,"\n任务执行间隔%d\n",tasknor_info->taskfreq);
 			tasknor_info->starthour = class6013.runtime.runtime[0].beginHour;
 			tasknor_info->startmin = class6013.runtime.runtime[0].beginMin;//按照设置一个时段来
@@ -4081,7 +4138,7 @@ int save_protocol_3761_tx_para(INT8U* dealdata)
 		system("mkdir 755 /nor/ProTransCfg");
 	}
 
-	index += getArray(&dealdata[index],(INT8U*)&array_num);
+	index += getArray(&dealdata[index],(INT8U*)&array_num,NULL);
 
 	if(master.masternum>4) {
 		fprintf(stderr,"!!!!!!!!!越限 masternum=%d\n",master.masternum);
@@ -4089,8 +4146,8 @@ int save_protocol_3761_tx_para(INT8U* dealdata)
 	}
 
 	for(i=0;i<array_num;i++) {
-		index += getStructure(&dealdata[index],(INT8U *)&master.masternum);
-		index += getOctetstring(1,&dealdata[index],master.master[i].ip);
+		index += getStructure(&dealdata[index],(INT8U *)&master.masternum,NULL);
+		index += getOctetstring(1,&dealdata[index],master.master[i].ip,NULL);
 		index += getLongUnsigned(&dealdata[index],(INT8U *)&master.master[i].port);
 	}
 

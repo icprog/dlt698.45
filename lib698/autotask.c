@@ -71,7 +71,7 @@ time_t calcnexttime(TI ti,DateTimeBCD datetime,TI ti_delay)
 
 	timestart = tmtotime_t(ptm);//开始时间
 	timenow = time(NULL);//当前时间
-	jiange = getTItoSec(ti);
+	jiange = TItoSec(ti);
 	fprintf(stderr,"延迟　TI:%d-%d, jiange = %d 秒\n",ti.units,ti.interval,jiange);
 	if (timenow >= timestart)
 	{
@@ -273,7 +273,7 @@ INT16U  composeAutoTask(AutoTaskStrap *list)
 //				asyslog(LOG_INFO,"方案编号601d:reportnum=%d",class601d.reportnum);
 				print_rcsd(class601d.reportdata.data.recorddata.csds);
 				list->ReportNum = class601d.maxreportnum;
-				list->OverTime = getTItoSec(class601d.timeout);
+				list->OverTime = TItoSec(class601d.timeout);
 				asyslog(LOG_INFO,"任务【 %d 】上报方案编号【 %d 】重发=%d,超时=%d",list->ID,list->SerNo,list->ReportNum,list->OverTime);
 				fprintf(stderr,"list->SerNo = %d\n",list->SerNo);
 				ret = GetReportData(class601d);// =1,=2, 数据组织好了

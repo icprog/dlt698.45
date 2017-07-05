@@ -186,7 +186,22 @@ static INT8U checkbuf[]={0x68,0x1e,0x00,0x43,0x05,0x05,0x00,0x00,0x00,0x00,0x00,
 static INT8U getversion[]={0x68,0x17,0x00,0x43,0x05,0x01,0x00,0x00,0x00,0x00,0x00,0x10,0x26,0xf6,0x05,0x01,0x00,
 						0x43,0x00,0x03,0x00,0x00,0x46,0x58,0x16};
 
+void set_4400()
+{
+  CLASS_4400 class={};
+  class.num=1;
+  class.authority[0].OI=0x4000;
+  class.authority[0].one_authority.met_num=1;
+  class.authority[0].one_authority.method[0].id=1;
+  class.authority[0].one_authority.method[0].visit_authority=1;
+  class.authority[0].one_authority.pro_num=1;
+  class.authority[0].one_authority.property[0].id=1;
+  class.authority[0].one_authority.property[0].visit_authority=1;
+  saveCoverClass(0x4400,0,&class,sizeof(CLASS_4400),para_vari_save);
+}
 int main(int argc, char *argv[]) {
+	// set_4400();
+	 //return 0;
     if (argc < 2) {
         prthelp();
         return EXIT_SUCCESS;
@@ -274,6 +289,7 @@ int main(int argc, char *argv[]) {
         dog_feed(argv[1]);
         return EXIT_SUCCESS;
     }
+
     if (strcmp("help", argv[1]) == 0) {
         prthelp();
         return EXIT_SUCCESS;

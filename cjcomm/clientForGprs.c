@@ -76,18 +76,27 @@ static void ClientForGprsRead(struct aeEventLoop *eventLoop, int fd, void *clien
         gpofun("gpoREMOTE_RED", 0);
 
         for (int k = 0; k < 50; k++) {
+        	int exist=0;
             int len = 0;
+            fprintf(stderr,"\n-----------第 %d 次",k+1);
             for (int i = 0; i < 5; i++) {
+            	fprintf(stderr,"\n--i=%d",i);
                 len = StateProcess(nst, 10);
-                if (len > 0) {
+                if (len==0)
+                	i = 0;		//需要继续
+                if (len ==1)
+                	break;		//不需要继续，并且无有效报文
+                if (len > 1) {
+                	exist = 1;	//存在有效报文需要立即处理
                     break;
                 }
             }
-            if (len <= 0) {
+            if (exist  == 0) {
+            	fprintf(stderr,"\n取消多帧判断");
                 break;
             }
 
-            if (len > 0) {
+            if (exist == 1) {
             	len = 0;
                 int apduType = ProcessData(nst);
                 fprintf(stderr, "apduType=%d\n", apduType);
@@ -116,7 +125,7 @@ static MASTER_STATION_INFO getNextGprsIpPort(CommBlock *commBlock) {
     if (ChangeFlag != ((ProgramInfo *) commBlock->shmem)->oi_changed.oi4500) {
         readCoverClass(0x4500, 0, (void *) &Class25, sizeof(CLASS25), para_vari_save);
         memcpy(&NetIps, &Class25.master.master, sizeof(NetIps));
-        asyslog(LOG_WARNING, "检测到通信参数变化！刷新主站参数！");
+        asyslog(LOG_WARNING, "检测到GPRS通信参数变化！刷新主站参数！");
         ChangeFlag = ((ProgramInfo *) commBlock->shmem)->oi_changed.oi4500;
         commBlock->Heartbeat = Class25.commconfig.heartBeat;
         readCoverClass(0xf101, 0, (void *) &ClientForGprsObject.f101, sizeof(CLASS_F101), para_vari_save);

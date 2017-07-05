@@ -49,8 +49,10 @@ extern void CloseCom(int ComPort);
 /*
  * 时间转换函数
  * */
+extern int TItoSec(TI ti);
 extern void TSGet(TS* ts);
 extern time_t tmtotime_t(TS ptm);
+extern time_t TimeBCDTotime_t(DateTimeBCD timeBCD);
 extern void TimeBCDToTs(DateTimeBCD timeBCD,TS* outTs);
 extern void TsToTimeBCD(TS inTs,DateTimeBCD* outTimeBCD);
 extern DateTimeBCD timet_bcd(time_t t);

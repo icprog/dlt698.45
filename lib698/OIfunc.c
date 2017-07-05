@@ -14,15 +14,32 @@
 #include "OIfunc.h"
 #include "dlt698.h"
 
+
+int Set_4000(INT8U *data,INT8U *DAR)
+{
+	DateTimeBCD datetime={};
+	int		index=0;
+
+//	DataTimeGet(&datetime);
+	index += getDateTimeS(1,data,(INT8U *)&datetime,DAR);
+	if(*DAR==success) {	//时间合法
+		setsystime(datetime);
+	}
+	sleep(2);		//延时2秒，确保台体测试过程中，修改时间设置成功
+	return index;
+}
 ////////////////////////////////////////////////////////////
 /*
  * 电压合格率
  */
-INT8U Get_213x(OAD oad,INT8U *sourcebuf,INT8U *buf,int *len)
+INT8U Get_213x(INT8U getflg,INT8U *sourcebuf,INT8U *buf,int *len)
 {
 	PassRate_U passu={};
 
-	memcpy(&passu,sourcebuf,sizeof(PassRate_U));
+	memset(&passu,0,sizeof(PassRate_U));
+	if(getflg) {
+		memcpy(&passu,sourcebuf,sizeof(PassRate_U));
+	}
 	*len=0;
 	*len += create_struct(&buf[*len],5);
 	*len += fill_double_long_unsigned(&buf[*len],passu.monitorTime);
@@ -35,11 +52,14 @@ INT8U Get_213x(OAD oad,INT8U *sourcebuf,INT8U *buf,int *len)
 /*
  * 通信流量
  */
-INT8U Get_2200(OI_698 oi,INT8U *sourcebuf,INT8U *buf,int *len)
+INT8U Get_2200(INT8U getflg,INT8U *sourcebuf,INT8U *buf,int *len)
 {
 	Flow_tj	flow_tj={};
 
-	memcpy(&flow_tj,sourcebuf,sizeof(flow_tj));
+	memset(&flow_tj,0,sizeof(Flow_tj));
+	if(getflg) {
+		memcpy(&flow_tj,sourcebuf,sizeof(flow_tj));
+	}
 	*len=0;
 	*len += create_struct(&buf[*len],2);
 	*len += fill_double_long_unsigned(&buf[*len],flow_tj.flow.day_tj);
@@ -49,11 +69,14 @@ INT8U Get_2200(OI_698 oi,INT8U *sourcebuf,INT8U *buf,int *len)
 /*
  * 获取日月供电时间
  */
-INT8U Get_2203(OI_698 oi,INT8U *sourcebuf,INT8U *buf,int *len)
+INT8U Get_2203(INT8U getflg,INT8U *sourcebuf,INT8U *buf,int *len)
 {
 	Gongdian_tj gongdian_tj={};
-	memcpy(&gongdian_tj,sourcebuf,sizeof(Gongdian_tj));
 
+	memset(&gongdian_tj,0,sizeof(Gongdian_tj));
+	if(getflg) {
+		memcpy(&gongdian_tj,sourcebuf,sizeof(Gongdian_tj));
+	}
 	fprintf(stderr,"Get_2203 :day_gongdian=%d,month_gongdian=%d\n",gongdian_tj.gongdian.day_tj,gongdian_tj.gongdian.month_tj);
 	*len=0;
 	*len += create_struct(&buf[*len],2);
@@ -65,10 +88,14 @@ INT8U Get_2203(OI_698 oi,INT8U *sourcebuf,INT8U *buf,int *len)
 /*
  * 获取日月复位次数
  */
-INT8U Get_2204(OI_698 oi,INT8U *sourcebuf,INT8U *buf,int *len)
+INT8U Get_2204(INT8U getflg,INT8U *sourcebuf,INT8U *buf,int *len)
 {
 	Reset_tj reset_tj={};
-	memcpy(&reset_tj,sourcebuf,sizeof(Reset_tj));
+
+	memset(&reset_tj,0,sizeof(Reset_tj));
+	if(getflg) {
+		memcpy(&reset_tj,sourcebuf,sizeof(Reset_tj));
+	}
 	fprintf(stderr,"Get_2204 :reset day_tj=%d,month_tj=%d\n",reset_tj.reset.day_tj,reset_tj.reset.month_tj);
 	*len=0;
 	*len += create_struct(&buf[*len],2);
@@ -384,7 +411,8 @@ int GetClass18(INT8U attflg,INT8U *data)
 		index += fill_visible_string(&data[index],&class18.source_file[1],class18.source_file[0]);
 		index += fill_visible_string(&data[index],&class18.dist_file[1],class18.dist_file[0]);
 		index += fill_double_long_unsigned(&data[index],class18.file_size);
-		index += fill_bit_string(&data[index],3,class18.file_attr & 0x03);
+		INT8U file_attr=class18.file_attr & 0x03;
+		index += fill_bit_string(&data[index],3,&file_attr);
 		index += fill_visible_string(&data[index],&class18.file_version[1],class18.file_version[0]);
 		index += fill_enum(&data[index],class18.file_type);
 		break;
@@ -394,3 +422,4 @@ int GetClass18(INT8U attflg,INT8U *data)
 	}
 	return index;
 }
+
