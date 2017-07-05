@@ -1876,8 +1876,8 @@ int GetCollOneUnit(OI_698 oi,INT8U readType,INT8U seqnum,INT8U *data,INT16U *one
 		one_blknum = 256;
 		break;
 	case 0x6016:	//事件采集方案
-//		one_unitlen = Get_6016(readType,seqnum,data);
-//		one_blknum = 256;
+		one_unitlen = Get_6017(readType,seqnum,data);
+		one_blknum = 256;
 		break;
 	}
 	*oneUnitLen = one_unitlen;
@@ -2000,6 +2000,7 @@ int doGetnormal(INT8U seqOfNum,RESULT_NORMAL *response)
 		fprintf(stderr,"\n");
 		break;
 	case 6:			//采集监控类对象
+		fprintf(stderr,"\nddddoi=%d \n",oi);
 		GetCollPara(seqOfNum,response);
 		break;
 	case 0xF:		//文件类/esam类/设备类

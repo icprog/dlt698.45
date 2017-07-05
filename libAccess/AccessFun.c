@@ -328,6 +328,7 @@ int deleteClass(OI_698 oi,INT8U id)
 	system(cmd);
 	sprintf(cmd,"rm -rf %s/%04x/%d.bak",PARADIR,oi,id);
 	system(cmd);
+
 	return 1;
 }
 

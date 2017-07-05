@@ -161,7 +161,7 @@ void print_rcsd(CSD_ARRAYTYPE csds)
 
 int create_array(INT8U *data,INT8U numm)	//0x01
 {
-	fprintf(stderr,"numm =%d \n",numm);
+	//fprintf(stderr,"numm =%d \n",numm);
 	data[0] = dtarray;
 	data[1] = numm;
 	return 2;

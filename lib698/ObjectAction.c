@@ -718,8 +718,27 @@ void AddOI6019(INT8U *data, Action_result *act_ret) {
     act_ret->datalen = index;
 }
 
-void Set_CSD(INT8U *data) {
-
+void Set_CSD(INT8U *data,Action_result *act_ret) {
+	CLASS_6015 task = {};
+	int index=0;
+	memset(&task, 0, sizeof(task));
+	INT8U taskid=0;
+	index = index + 2;//array
+	index = index + 2;//structure
+	index +=getUnsigned(&data[index],&taskid,NULL);
+	int ret=readCoverClass(0x6013,taskid,&task,sizeof(CLASS_6013),coll_para_save);
+	if(ret == 1)
+	{
+		INT8U arraysize = 0;
+		index += getArray(&data[index], &arraysize,&act_ret->DAR);
+		task.csds.num = arraysize;
+		int w = 0;
+		for (w = 0; w < arraysize; w++) {
+			index += getCSD(1, &data[index], (MY_CSD *) &task.csds.csd[w]);
+		}
+		saveCoverClass(0x6015, task.sernum, &task, sizeof(task), coll_para_save);
+	}else
+		act_ret->DAR=type_mismatch;
 }
 
 void DeleteArrayID(OI_698 oi,INT8U *data)
@@ -730,13 +749,14 @@ void DeleteArrayID(OI_698 oi,INT8U *data)
 
 	index += getArray(&data[index],(INT8U *)&arrayid,NULL);
 	for(i=0;i<arrayid;i++) {
-		getUnsigned(&data[index],(INT8U *)&taskid,&DAR);
+		index += getUnsigned(&data[index],(INT8U *)&taskid,&DAR);
 		fprintf(stderr,"Delete taskid=%d\n",taskid);
 		deleteClass(oi, taskid);
 	}
+	sleep(3);
 }
 
-void UpdateTaskStatus(OI_698 oi,INT8U *data)
+void UpdateTaskStatus(OI_698 oi,INT8U *data,Action_result *act_ret)
 {
 	CLASS_6013 task = {};
 	int index=0;
@@ -751,7 +771,8 @@ void UpdateTaskStatus(OI_698 oi,INT8U *data)
 		fprintf(stderr,"找到taskid=%d\n",taskid);
 		index += getEnum(1, &data[index], &task.state);
 		saveCoverClass(0x6013, task.taskID, &task, sizeof(task), coll_para_save);
-	}
+	}else
+		act_ret->DAR=type_mismatch;
 }
 void CjiFangAnInfo(INT16U attr_act, INT8U *data, Action_result *act_ret) {
     switch (attr_act) {
@@ -767,7 +788,7 @@ void CjiFangAnInfo(INT16U attr_act, INT8U *data, Action_result *act_ret) {
             clearClass(0x6015);            //普通采集方案放置在6015目录下
             break;
         case 130:    //方法 130:Set_CSD(方案编号,array CSD)
-            Set_CSD(data);
+            Set_CSD(data,act_ret);
             break;
     }
 }
@@ -916,7 +937,7 @@ void TaskInfo(INT16U attr_act, INT8U *data, Action_result *act_ret) {
             clearClass(0x6013);        //任务配置单元存放在/nand/para/6013目录
             break;
         case 130://方法130：update（任务ID，状态）更新任务状态
-        	UpdateTaskStatus(0x6013,data);
+        	UpdateTaskStatus(0x6013,data,act_ret);
         	break;
     }
 }
@@ -1355,6 +1376,9 @@ int doObjectAction(OAD oad, INT8U *data, Action_result *act_ret) {
      		if (attr_act == 127) {  //方法 127 广播校时
     			act_ret->datalen = Set_4000(data,&act_ret->DAR);
     		}
+    		break;
+    	case 0x4006:
+    		Set_4006(data,&act_ret->DAR,attr_act);
     		break;
         case 0x4300:    //终端对象
             TerminalInfo(attr_act, data, act_ret);
