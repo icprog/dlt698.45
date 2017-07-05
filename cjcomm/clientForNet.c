@@ -53,8 +53,43 @@ void ClientForNetRead(struct aeEventLoop *eventLoop, int fd, void *clientData, i
 
     //判断fd中有多少需要接收的数据
     int revcount = 0;
-    ioctl(fd, FIONREAD, &revcount);
+//    while(1)
+//    {
+//        ioctl(fd, FIONREAD, &revcount);
+//
+//        if ( revcount >0 )
+//        {
+//    		for (int j = 0; j < revcount; j++) {
+//    			read(fd, &nst->RecBuf[nst->RHead], 1);
+//    			nst->RHead = (nst->RHead + 1) % BUFLEN;
+//    		}
+//    		bufsyslog(nst->RecBuf, "客户端[以太网]接收:", nst->RHead, nst->RTail, BUFLEN);
+//        }
+//
+//        fprintf(stderr,"\nstep = %d",nst->deal_step);
+//        int len = StateProcess(nst, 10);
+//        if (len >0)
+//        {
+//    		int apduType = ProcessData(nst);
+//    		fprintf(stderr, "apduType=%d\n", apduType);
+//    		ConformAutoTask(eventLoop, nst, apduType);
+//    		switch (apduType) {
+//    			case LINK_RESPONSE:
+//    				First_VerifiTime(nst->linkResponse, nst->shmem); //简单对时
+//    				if (GetTimeOffsetFlag() == 1) {
+//    					Getk_curr(nst->linkResponse, nst->shmem);
+//    				}
+//    				nst->linkstate = build_connection;
+//    				nst->testcounter = 0;
+//    				break;
+//    			default:
+//    				break;
+//    		}
+//        }
+//        delay(100);
+//    }
 
+	ioctl(fd, FIONREAD, &revcount);
     //关闭异常端口
     if (revcount == 0) {
         asyslog(LOG_WARNING, "客户端[以太网]链接出现异常[%d]，关闭端口", errno);
@@ -71,19 +106,29 @@ void ClientForNetRead(struct aeEventLoop *eventLoop, int fd, void *clientData, i
         }
         bufsyslog(nst->RecBuf, "客户端[以太网]接收:", nst->RHead, nst->RTail, BUFLEN);
 
-        for (int k = 0; k < 50; k++) {
+        for (int k = 0; k < 50; k++)
+        {
+        	int exist=0;
             int len = 0;
+            fprintf(stderr,"\n-----------第 %d 次",k+1);
             for (int i = 0; i < 5; i++) {
+            	fprintf(stderr,"\n--i=%d",i);
                 len = StateProcess(nst, 10);
-                if (len > 0) {
+                if (len==0)
+                	i = 0;		//需要继续
+                if (len ==1)
+                	break;		//不需要继续，并且无有效报文
+                if (len > 1) {
+                	exist = 1;	//存在有效报文需要立即处理
                     break;
                 }
             }
-            if (len <= 0) {
+            if (exist  == 0) {
+            	fprintf(stderr,"\n取消多帧判断");
                 break;
             }
 
-            if (len > 0) {
+            if (exist == 1) {
                 int apduType = ProcessData(nst);
                 fprintf(stderr, "apduType=%d\n", apduType);
                 ConformAutoTask(eventLoop, nst, apduType);
@@ -100,7 +145,7 @@ void ClientForNetRead(struct aeEventLoop *eventLoop, int fd, void *clientData, i
                         break;
                 }
             }
-        }
+        }//end for 50
     }
 }
 

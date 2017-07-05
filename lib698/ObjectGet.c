@@ -72,7 +72,7 @@ int BuildFrame_GetResponseRecord(INT8U response_type,CSINFO *csinfo,RESULT_RECOR
 		index=apduplace;
 	}
 	FrameTail(sendbuf,index,hcsi);
-	if(pSendfun!=NULL)
+	if(pSendfun!=NULL && csinfo->sa_type!=2 && csinfo->sa_type!=3)//组地址或广播地址不需要应答
 		pSendfun(comfd,sendbuf,index+3);
 	return (index+3);
 }
@@ -103,7 +103,7 @@ int BuildFrame_GetResponse(INT8U response_type,CSINFO *csinfo,INT8U oadnum,RESUL
 		index=apduplace;
 	}
 	FrameTail(sendbuf,index,hcsi);
-	if(pSendfun!=NULL)
+	if(pSendfun!=NULL && csinfo->sa_type!=2 && csinfo->sa_type!=3)//组地址或广播地址不需要应答
 		pSendfun(comfd,sendbuf,index+3);
 	return (index+3);
 }
@@ -153,7 +153,7 @@ int BuildFrame_GetResponseNext(INT8U response_type,CSINFO *csinfo,INT8U DAR,INT1
 	}
 
 	FrameTail(sendbuf,index,hcsi);
-	if(pSendfun!=NULL)
+	if(pSendfun!=NULL && csinfo->sa_type!=2 && csinfo->sa_type!=3)//组地址或广播地址不需要应答
 		pSendfun(comfd,sendbuf,index+3);
 	return (index+3);
 }
