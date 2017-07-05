@@ -48,6 +48,12 @@ INT8U broadcast=0;
  * 函数功能：DL/T698.45 状态机
  * 参数含义：
  **************************************/
+
+ProgramInfo *getShareAddr(void)
+{
+	return memp;
+}
+
 int StateProcess(CommBlock* nst, int delay_num)
 {
 	int length=0,i=0;

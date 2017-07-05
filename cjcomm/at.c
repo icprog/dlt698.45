@@ -791,6 +791,7 @@ void *ATWorker(void *args) {
 //            SetWireLessType(2);
             system("pppd call cdma2000 &");
         }
+//        SetWireLessType(3); 测试4G图标，强制4G在线
 
         for (int i = 0; i < 50; i++) {
             sleep(1);

@@ -1254,6 +1254,10 @@ int GetVariable(RESULT_NORMAL *response)
 		Get_2204(response->oad.OI,databuf,response->data,&index);
 		response->datalen = index;
 		break;
+	case 0x2301:
+		class23_get(response->oad,databuf,response->data,&index);
+		response->datalen = index;
+		break;
 	default:
 		Get_Vacs(response,memp);
 		break;

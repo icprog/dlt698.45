@@ -494,6 +494,7 @@ INT8S use6013find6015or6017(INT8U cjType,INT16U fanganID,TI interval6013,CLASS_6
 		if (readCoverClass(oi, fanganID, st6015, sizeof(CLASS_6015), coll_para_save)== 1)
 		{
 			print6015(*st6015);
+#if 0
 			//调整6015采集方案　过滤掉不需要抄表的内容
 			if((st6015->cjtype == TYPE_LAST)||(st6015->cjtype == TYPE_FREEZE))
 			{
@@ -512,6 +513,7 @@ INT8S use6013find6015or6017(INT8U cjType,INT16U fanganID,TI interval6013,CLASS_6
 				st6015->csds.num = csdCount;
 				memcpy(st6015->csds.csd,destCSDS,sizeof(MY_CSD)*MY_CSD_NUM);
 			}
+#endif
 			if(st6015->cjtype == TYPE_INTERVAL)
 			{
 				//计算需要抄多少个数据点
