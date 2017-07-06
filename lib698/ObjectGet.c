@@ -1350,7 +1350,39 @@ int getSel2_freeze(RESULT_RECORD *record)
 	fprintf(stderr,"\nrecord->datalen = %d",record->datalen);
 	return ret;
 }
-
+/*
+ * 返回SEQUENCE OF GetRecord 的个数
+ * */
+int getSel0_coll(RESULT_RECORD *record)
+{
+	int	index = 0,temindex = 0,ret=0;
+	int	taskid=0,i=0;
+	if(record->oad.OI==0x6012 && record->oad.attflg == 03)
+	{
+//		for(i=0;i<record->rcsd.csds.num;i++){
+//			if(record->rcsd.csds.csd[i].type == 0)
+//				index += getColl_Data(record->rcsd.csds.csd[i].csd.oad.OI,taskid,&record->data[index]);
+//		}
+	}
+	else
+	{
+		for(taskid=0;taskid<255;taskid++){
+			for(i=0;i<record->rcsd.csds.num;i++){
+				if(record->rcsd.csds.csd[i].type == 0)
+					index += getColl_Data(record->rcsd.csds.csd[i].csd.oad.OI,taskid,&record->data[index]);
+			}
+			if(index != temindex)
+				ret++;
+			temindex=index;
+		}
+	}
+	if(index==0) {	//0条记录     [1] SEQUENCE OF A-RecordRow
+		record->data[0] = 0;
+		index=1;	//？？？？
+	}
+	record->datalen = index;
+	return ret;
+}
 /*
  * 返回SEQUENCE OF GetRecord 的个数
  * */
@@ -1422,7 +1454,9 @@ int getSelector12(RESULT_RECORD *record)
 		break;
 	case 6:			//采集监控类对象
 		fprintf(stderr,"\n读取采集监控对象\n");
-		if(record->selectType == 1) {
+		if(record->selectType == 0) {
+			ret = getSel0_coll(record);
+		}else if(record->selectType == 1) {
 			ret = getSel1_coll(record);
 		}else if(record->selectType == 2) {
 			ret = getSel2_coll(record);
@@ -1465,12 +1499,6 @@ int doGetrecord(INT8U type,OAD oad,INT8U *data,RESULT_RECORD *record,INT16U *sub
     fprintf(stderr,"selectorn=%d \n",SelectorN);
 	switch(SelectorN) {
 	case 0:
-		*subframe = 1;
-		dest_index +=fill_RCSD(0,&record->data[dest_index],record->rcsd.csds);
-		fprintf(stderr,"jintu 0..........");
-		record->data[dest_index++]=1;
-		record->data[dest_index++]=0; //按找不到数据处理
-		record->datalen += dest_index;
 	case 1:		//指定对象指定值
 		*subframe = 1;		//TODO:未处理分帧
 		if(record->rcsd.csds.num == 0) {
@@ -1489,6 +1517,8 @@ int doGetrecord(INT8U type,OAD oad,INT8U *data,RESULT_RECORD *record,INT16U *sub
 		seqof_len = getSelector12(record);
 		fprintf(stderr,"record.dar = %d , response_choice_index = %d\n",record->dar,response_choice_index);
 		record->data = TmpDataBuf;				//data 指向回复报文帧头
+		record->datalen += dest_index;			//数据长度+ResultRecord
+
 		if(record->dar == success) {
 			record->data[response_choice_index] = 1; //CHOICE  [1]  data
 			record->data[response_choice_index+1] = seqof_len; //M = 1  Sequence  of A-RecordRow
@@ -1496,7 +1526,6 @@ int doGetrecord(INT8U type,OAD oad,INT8U *data,RESULT_RECORD *record,INT16U *sub
 			record->data[response_choice_index] = 0; //DAR
 			record->data[response_choice_index+1] = record->dar; //错误类型
 		}
-		record->datalen += dest_index;			//数据长度+ResultRecord
 	break;
 	case 2:
 		oihead=((record->oad.OI & 0xF000) >>12);
