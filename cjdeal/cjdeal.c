@@ -823,6 +823,7 @@ INT8S dealMsgProcess()
 
 	if (ret>0)
 	{
+		fprintf(stderr,"\n\n\n\n\n----------cmd=%d-----------------------\n\n\n\n\n\n\n",mq_h.cmd);
 		switch(mq_h.cmd)
 		{
 			case ProxyGetResponseList://代理
