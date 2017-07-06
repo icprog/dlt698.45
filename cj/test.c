@@ -93,7 +93,6 @@ void bu_report(TS ts1,TS ts2,INT8U retaskid,INT8U *saveflg)
 
 //	extendcsds(class601d.reportdata.data.recorddata.csds,&item_road);
 //	memset(&item_road,0,sizeof(item_road));
-
 	if((taskid = GetTaskidFromCSDs(class601d.reportdata.data.recorddata.csds,&item_road,1,NULL)) == 0) {//暂时不支持招测的不在一个采集方案
 		system("rm /nand/reportdata");
 		fprintf(stderr,"GetTaskData: taskid=%d\n",taskid);

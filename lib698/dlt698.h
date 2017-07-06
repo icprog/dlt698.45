@@ -120,4 +120,5 @@ extern INT8U check_date(int year, int month, int day, int hour, int min, int sec
 extern INT8U getEnumValid(INT16U value,INT16U start,INT16U end,INT16U other);
 extern void isTimeTagEffect(TimeTag timetag,TimeTag *rec_timetag);
 extern INT8U getPortValid(OAD oad);
+extern INT8U DataTimeCmp(DateTimeBCD startdt,DateTimeBCD enddt);
 #endif

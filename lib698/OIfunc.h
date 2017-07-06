@@ -12,6 +12,7 @@
 #include "Shmem.h"
 
 extern int Set_4000(INT8U *data,INT8U *DAR);
+extern int Set_4006(INT8U *data,INT8U *DAR,INT8U attr_act);
 extern int	Set_F200(OI_698 oi,INT8U *data,INT8U *DAR);
 extern int	Set_F202(OI_698 oi,INT8U *data,INT8U *DAR);
 /*----------------------变量类----------------------*/

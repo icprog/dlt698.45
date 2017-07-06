@@ -607,7 +607,7 @@ int Get4005(RESULT_NORMAL *response)
 				INT8U i=0;
 				for(i=0;i<class_tmp.num;i++){
 					fprintf(stderr,"addrlen=%d \n",class_tmp.addr[i][0]);
-					index +=fill_octet_string(&data[index],&class_tmp.addr[i][1],class_tmp.addr[i][0]);
+					index +=fill_octet_string(&data[index],(char *)&class_tmp.addr[i][1],class_tmp.addr[i][0]);
 				}
 			}
 			response->datalen = index;
@@ -1107,6 +1107,9 @@ void printrecord(RESULT_RECORD record)
 		fprintf(stderr,"\nOAD %04x %02x %02x",record.select.selec1.oad.OI,record.select.selec1.oad.attflg,record.select.selec1.oad.attrindex);
 		fprintf(stderr,"\nData Type= %02x  Value=%d ",record.select.selec1.data.type,record.select.selec1.data.data[0]);
 		break;
+	case 2:
+		fprintf(stderr,"\nOAD %04x %02x %02x",record.select.selec2.oad.OI,record.select.selec2.oad.attflg,record.select.selec2.oad.attrindex);
+		break;
 	case 5:
 		printSel5(record);
 		break;
@@ -1127,7 +1130,7 @@ int getSel_Data(INT8U type,INT8U *seldata,INT8U *destdata)
 	int 	ret=-1;
 	TI		ti;
 	INT8U	DAR=success;
-//	fprintf(stderr,"getSel_Data type=%02x\n",type);
+	fprintf(stderr,"getSel_Data type=%02x\n",type);
 	switch(type) {
 	case dtnull:
 		destdata[0] = 0;
@@ -1146,6 +1149,7 @@ int getSel_Data(INT8U type,INT8U *seldata,INT8U *destdata)
 		ret = getDateTimeS(0,seldata,destdata,&DAR);
 		break;
 	case dtti:
+		fprintf(stderr,"seldata=%02x_%02x_%02x\n",seldata[0],seldata[1],seldata[2]);
 		ret = getTI(0,seldata,&ti);
 		destdata[0] = ti.units;
 		destdata[1] = (ti.interval >> 8) & 0xff;
@@ -1311,12 +1315,26 @@ int getSel2_freeze(RESULT_RECORD *record)
 				repflag = repeatSel(record->select.selec3,i);
 				if(repflag==1) {
 					fprintf(stderr,"i=%d sel repeat\n",i);
-					continue;
+					return ret;
 				}
+			}
+			if((sel2.data_from.type!=dtdatetimes)||(sel2.data_to.type!=dtdatetimes)||(sel2.data_jiange.type!=dtti)){
+				record->data[0] = 0;	//seqofNum = 0
+				record->datalen = 1;
+				fprintf(stderr,"selector2 类型错误");
+				return ret;
 			}
 			getSel_Data(sel2.data_from.type,sel2.data_from.data,(INT8U *)&start_from);
 			getSel_Data(sel2.data_to.type,sel2.data_to.data,(INT8U *)&end_to);
 			getSel_Data(sel2.data_jiange.type,sel2.data_jiange.data,(INT8U *)&jiange);
+
+			if(DataTimeCmp(start_from,end_to)==0) {
+				record->data[0] = 0;	//seqofNum = 0
+				record->datalen = 1;
+				fprintf(stderr,"selector2 起始值>=结束值");
+				return ret;
+			}
+
 			sub_time = TimeBCDTotime_t(end_to)-TimeBCDTotime_t(start_from);
 			ti_sec = TItoSec(jiange);
 			fprintf(stderr,"sub_time=%ld,ti_sec = %d\n",sub_time,ti_sec);
@@ -1341,11 +1359,7 @@ int getSel2_freeze(RESULT_RECORD *record)
 	if(seqofsum!=0) {
 		record->data[0] = seqofsum; 	//M = 1  Sequence  of A-RecordRow
 	}
-	record->datalen += 1;
-	//		if(index==0) {	//0条记录     [1] SEQUENCE OF A-RecordRow
-	//			record->data[0] = 0;
-	//			index += 1;
-	//		}
+//	record->datalen += 1;
 	record->datalen = index;
 	fprintf(stderr,"\nrecord->datalen = %d",record->datalen);
 	return ret;
@@ -1471,6 +1485,7 @@ int doGetrecord(INT8U type,OAD oad,INT8U *data,RESULT_RECORD *record,INT16U *sub
 		record->data[dest_index++]=1;
 		record->data[dest_index++]=0; //按找不到数据处理
 		record->datalen += dest_index;
+		break;
 	case 1:		//指定对象指定值
 		*subframe = 1;		//TODO:未处理分帧
 		if(record->rcsd.csds.num == 0) {
@@ -1876,8 +1891,8 @@ int GetCollOneUnit(OI_698 oi,INT8U readType,INT8U seqnum,INT8U *data,INT16U *one
 		one_blknum = 256;
 		break;
 	case 0x6016:	//事件采集方案
-//		one_unitlen = Get_6016(readType,seqnum,data);
-//		one_blknum = 256;
+		one_unitlen = Get_6017(readType,seqnum,data);
+		one_blknum = 256;
 		break;
 	}
 	*oneUnitLen = one_unitlen;
@@ -2000,6 +2015,7 @@ int doGetnormal(INT8U seqOfNum,RESULT_NORMAL *response)
 		fprintf(stderr,"\n");
 		break;
 	case 6:			//采集监控类对象
+		fprintf(stderr,"\nddddoi=%d \n",oi);
 		GetCollPara(seqOfNum,response);
 		break;
 	case 0xF:		//文件类/esam类/设备类
