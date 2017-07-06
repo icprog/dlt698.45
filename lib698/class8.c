@@ -251,6 +251,14 @@ int class8103_act127(int index, int attr_act, INT8U *data,
 
 	asyslog(LOG_WARNING, "控制方案切换[8103-127],%04x-%02d-%02d", oi, sign, numb);
 
+	CLASS_8103 c8103;
+		readCoverClass(0x8103, 0, (void *) &c8103, sizeof(CLASS_8103),
+				para_vari_save);
+	c8103.sign = sign;
+	c8103.numb = numb;
+	saveCoverClass(0x8103, 0, (void *) &c8103, sizeof(CLASS_8103),
+				para_vari_save);
+
 	return 0;
 }
 

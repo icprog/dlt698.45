@@ -692,6 +692,8 @@ typedef struct {
     ALSTATE enable[MAX_AL_UNIT];
     ALSTATE output[MAX_AL_UNIT];
     ALSTATE overflow[MAX_AL_UNIT];
+    INT8U sign;
+    INT8U numb;
 } CLASS_8103;
 
 typedef struct {
