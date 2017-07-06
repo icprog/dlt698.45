@@ -884,6 +884,7 @@ INT8S dealMsgProcess()
 
 	if (ret>0)
 	{
+		proxyInUse.devUse.proxyIdle = 1;
 		switch(mq_h.cmd) {
 			case ProxyGetResponseList: //代理
 			//TODO 按照测量点来复制对应的TSA给对应的全局变量
@@ -988,6 +989,41 @@ void replenish_tmp()
 	}
 
 }
+
+
+/*
+ * 	dealProxyAnswer() 只负责统一将收到的应答,
+ * 	放入最终的应答队列中, 从而实现统一发送.
+ *	要对主站下发的TSA进行判断, 如果本终端
+ *	的6000参数表里没有某个TSA, 则直接组织
+ *	一条异常应答报文放到应答队列中;
+ *	若某个设备上的TSA都接收全了, 则将这个
+ *	设备的proxyInUse.devUse.xxxReady置1,
+ *	至于抄没抄到数据, 则由具体的设备线程去
+ *	完成数据的填写, 这里直接拿来用.
+ *	如果某个设备超时后, 还没接收全它的TSA数据,
+ *	则将剩下的TSA数据组织为异常报文, 放到总的
+ *	应答报文, 且将对应的设备Ready标记置1.
+ *	如果所有的设备(包括rs485, plc, 异常)
+ *	都就绪或者没使用, 则将总的应答报文
+ *	发走.
+ */
+INT8U dealProxyAnswer()
+{
+
+	if( !(proxyInUse.devUse.plcNeed ^ proxyInUse.devUse.plcReady)&&\
+		!(proxyInUse.devUse.rs485Need ^ proxyInUse.devUse.rs485Ready) ) {//当某一个设备的需要使用标记和就绪标记同时为0,
+																		//或者同时为1, 意即当需要使用
+																		//某个设备, 且当他就绪时,
+																		//才认为这个设备上的代理操作已完毕.
+																		//当代理所使用的所有设备操作完毕后,
+																		//将代理标记清零, 处理下一个代理操作.
+
+		proxyInUse.u8b = 0;
+	}
+	return 1;
+}
+
 void dispatch_thread()
 {
 	//运行调度任务进程
@@ -1007,13 +1043,8 @@ void dispatch_thread()
 		{
 			if(proxyInUse.devUse.proxyIdle == 0) {//只有当代理操作空闲时, 才处理下一个代理操作
 				dealMsgProcess();
-			} else {//当某一个设备的需要使用标记和就绪标记同时为0, 或者同时为1, 意即当需要使用
-					//某个设备, 且当他就绪时, 才认为这个设备上的代理操作已完毕.
-					//当代理所使用的所有设备操作完毕后, 将代理标记清零, 处理下一个代理操作.
-				if( !(proxyInUse.devUse.plcNeed ^ proxyInUse.devUse.plcReady)&&\
-				    !(proxyInUse.devUse.rs485Need ^ proxyInUse.devUse.rs485Ready) ) {
-					proxyInUse.u8b = 0;
-				}
+			} else {
+				dealProxyAnswer();
 			}
 		}
 		para_ChangeType = getParaChangeType();

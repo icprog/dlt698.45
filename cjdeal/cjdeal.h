@@ -84,7 +84,9 @@ typedef union {
 	INT8U u8b;//方便变量初始化
 	struct {
 		INT8U proxyIdle		:1;//代理操作是否空闲, 0-空闲, 1-被占用
-		INT8U reserv		:3;//保留
+		INT8U reserv		:1;//保留
+		INT8U exceptpNeed	:1;//需要使用异常设备. 主站如果下发了不在本终端6000表内的TSA, 则将其放到异常设备内
+		INT8U exceptReady	:1;//异常设备就绪
 		INT8U plcNeed		:1;//需要使用载波模块标记, 0-需要, 1-不需要
 		INT8U plcReady		:1;//载波模块本次代理操作完成, 0-未就绪, 1-就绪
 		INT8U rs485Need		:1;//需要使用rs485标记, 0-需要, 1-不需要
