@@ -1315,10 +1315,12 @@ int getSel2_freeze(RESULT_RECORD *record)
 				repflag = repeatSel(record->select.selec3,i);
 				if(repflag==1) {
 					fprintf(stderr,"i=%d sel repeat\n",i);
-					return ret;
+					continue;
 				}
 			}
-			if((sel2.data_from.type!=dtdatetimes)||(sel2.data_to.type!=dtdatetimes)||(sel2.data_jiange.type!=dtti)){
+			/*GET_16 间隔为NULL,查找数据 GET_12 间隔类型不是TI，返回记录数0*/
+			if((sel2.data_from.type!=dtdatetimes)||(sel2.data_to.type!=dtdatetimes)
+					||((sel2.data_jiange.type!=dtti) && sel2.data_jiange.type!=0)){
 				record->data[0] = 0;	//seqofNum = 0
 				record->datalen = 1;
 				fprintf(stderr,"selector2 类型错误");
@@ -1361,7 +1363,10 @@ int getSel2_freeze(RESULT_RECORD *record)
 	}
 //	record->datalen += 1;
 	record->datalen = index;
-	fprintf(stderr,"\nrecord->datalen = %d",record->datalen);
+	fprintf(stderr,"\nrecord->datalen = %d index=%d",record->datalen,index);
+	for(i=0;i<record->datalen;i++) {
+		fprintf(stderr,"%02x ",record->data[i]);
+	}
 	return ret;
 }
 
@@ -1418,7 +1423,7 @@ int getSel2_coll(RESULT_RECORD *record)
  * */
 int getSelector12(RESULT_RECORD *record)
 {
-	int  ret=0, i = 0;
+	int  ret=0;
 	INT8U oihead = (record->oad.OI & 0xF000) >>12;
 
 	switch(oihead) {
@@ -1564,6 +1569,9 @@ int doGetrecord(INT8U type,OAD oad,INT8U *data,RESULT_RECORD *record,INT16U *sub
 		getSelector12(record);
 		record->data = TmpDataBuf;				//data 指向回复报文帧头
 		record->datalen += dest_index;			//数据长度+ResultRecord
+		break;
+	case 4:
+
 		break;
 	case 5:
 	case 7:
