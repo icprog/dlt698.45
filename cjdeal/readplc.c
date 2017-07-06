@@ -24,6 +24,8 @@
 #include "cjdeal.h"
 #include "dlt645.h"
 #include "dlt698.h"
+#include "dlt698def.h"
+
 extern ProgramInfo* JProgramInfo;
 extern int SaveOADData(INT8U taskid,OAD oad_m,OAD oad_r,INT8U *databuf,int datalen,TS ts_res);
 extern INT16U data07Tobuff698(FORMAT07 Data07,INT8U* dataContent);
@@ -1853,62 +1855,112 @@ int doTask(RUNTIME_PLC *runtime_p)
 	return TASK_PROCESS;
 }
 
-/*
- * 判断两个TSA是否相等
- * @pT1: 第1个TSA
- * @pT2: 第2个TSA
- * $return: 相等返回1, 不相等返回0
- */
-INT8U tsaEqual(TSA* pT1, TSA* pT2)
+INT8U getTransCmdAddrProto(INT8U* cmdbuf, INT8U* addrtmp, INT8U* proto)
 {
-	int i=0;
+	if(NULL == cmdbuf || NULL == addrtmp || NULL == proto) {
+		return 0;
+	}
 
-	for(i=0;i<TSA_LEN;i++)
-		if(pT1->addr[i] != pT2->addr[i])
-			return 0;
+	memcpy(addrtmp, cmdbuf+1, 6);
+	*proto = 2;//dlt645-07
+
 	return 1;
 }
 
-/*
- * 根据给定的测量点TSA, 得到这个测量点的抄表端口信息
- * @pTsa: 给定的测量点的TSA
- * @pOI: 端口的标识
- * @pPort: 端口内部索引, 如485-1或485-2
- * $return: 找到返回1, 没找到返回0
- */
-INT8U getOADPortByTSA(TSA* pTsa, OAD* pOAD)
-{
-	if(NULL == pTsa || NULL == pOAD)
-		return 0;
-	CLASS_6001 meter = { };
-	int i = 0;
-	OI_698 oi = (OI_698)0x6000;
-	int recordnum = getFileRecordNum(oi);
+//响应主站代理操作
+INT8U doClientProxyRequest(RUNTIME_PLC *runtime_p, int* beginwork, int* step_cj){
+	int sendlen=0;
+	struct Tsa_Node *nodetmp = NULL;
+	INT8U addrtmp[10] = {0};//645报文中的目标地址
+	INT8U proto = 0;
+	time_t nowtime = time(NULL);
 
-	for(i=0; i < recordnum; i++) {
-		readParaClass(oi, &meter,i);
-		if(tsaEqual(pTsa, &(meter.basicinfo.addr))) {
-			memcpy(pOAD, &(meter.basicinfo.port), sizeof(OAD));
-			return 1;
+	DEBUG_TIME_LINE("");
+	switch(cjcommProxy_plc.strProxyList.proxytype) {
+	case ProxyGetRequestList:
+		break;
+	case ProxyGetRequestRecord:
+		break;
+	case ProxySetRequestList:
+		break;
+	case ProxySetThenGetRequestList:
+		break;
+	case ProxyActionRequestList:
+		break;
+	case ProxyActionThenGetRequestList:
+		break;
+	case ProxyTransCommandRequest:
+		if (*beginwork==0 && cjcommProxy_plc.isInUse==1) {//发送点抄
+			*beginwork = 1;
+			clearvar(runtime_p);
+
+			debugToPlcFile(FILE_LINE, "发送代理报文");
+			getTransCmdAddrProto(cjcommProxy_plc.strProxyList.transcmd.cmdbuf, addrtmp, &proto);
+			memcpy(runtime_p->format_Down.addr.SourceAddr, runtime_p->masteraddr, 6);
+
+			sendlen = AFN13_F1(&runtime_p->format_Down,runtime_p->sendbuf, addrtmp, 2, 0, \
+					cjcommProxy_plc.strProxyList.transcmd.cmdbuf, cjcommProxy_plc.strProxyList.transcmd.cmdlen);
+			SendDataToCom(runtime_p->comfd, runtime_p->sendbuf, sendlen );
+
+			runtime_p->send_start_time = nowtime;
+		} else if ((runtime_p->format_Up.afn == 0x13 && runtime_p->format_Up.fn == 1 ))	{//收到应答数据，或超时10秒，
+			cjcommProxy_plc.isInUse = 0;
+			*beginwork = 0;
+
+			if(runtime_p->format_Up.afn13_f1_up.MsgLength > 0) {
+				INT16U tIndex = 0;
+				INT16U starttIndex = 0;
+				for(tIndex = 0;tIndex < runtime_p->format_Up.afn13_f1_up.MsgLength;tIndex++) {//去掉前导符
+					if(runtime_p->format_Up.afn13_f1_up.MsgContent[tIndex]!=0x68) {
+						continue;
+					} else {
+						starttIndex = tIndex;
+						break;
+					}
+				}
+
+				INT8U datalen = runtime_p->format_Up.afn13_f1_up.MsgLength - starttIndex;
+
+				OADtoBuff(cjcommProxy_plc.strProxyList.transcmd.oad,cjcommProxy_plc.strProxyList.data);
+				cjcommProxy_plc.strProxyList.data[4] = 1;
+				cjcommProxy_plc.strProxyList.data[5] = datalen;
+				memcpy(&cjcommProxy_plc.strProxyList.data[6],\
+						&runtime_p->format_Up.afn13_f1_up.MsgContent[starttIndex],\
+						datalen);
+				cjcommProxy_plc.strProxyList.datalen = datalen + 6;
+				mqs_send((INT8S *)PROXY_NET_MQ_NAME,1,TERMINALPROXY_RESPONSE,\
+						(INT8U *)&cjcommProxy_plc.strProxyList,sizeof(PROXY_GETLIST));
+			} else {
+				OADtoBuff(cjcommProxy_plc.strProxyList.transcmd.oad,cjcommProxy_plc.strProxyList.data);
+				cjcommProxy_plc.strProxyList.data[4] = 0;
+				cjcommProxy_plc.strProxyList.datalen = 5;
+				mqs_send((INT8S *)PROXY_NET_MQ_NAME,1,\
+						ProxySetResponseList,\
+						(INT8U *)&cjcommProxy_plc.strProxyList,\
+						sizeof(PROXY_GETLIST));
+			}
+
+			memset(&runtime_p->format_Up, 0, sizeof(runtime_p->format_Up));
+			proxyInUse.devUse.plcReady = 1;
+			DbgPrintToFile1(31,"收到点抄数据");
+		} else if ((nowtime - runtime_p->send_start_time > 20  ) && *beginwork==1) {
+			DbgPrintToFile1(31,"单次点抄超时");
+			cjcommProxy_plc.isInUse = 0;
+			*beginwork = 0;
+			proxyInUse.devUse.plcReady = 1;
+		} else if( nowtime - runtime_p->send_start_time > 100  ) {//100秒等待
+			DbgPrintToFile1(31,"100秒超时");
+			clearvar(runtime_p);
+			*beginwork = 0;
+			*step_cj = 3;
+			proxyInUse.devUse.plcReady = 1;
 		}
+		break;
+	default:
+		break;
 	}
-	return 0;
-}
 
-/*
- * 根据给定的tsa判断这个测量点
- * 是否挂载于载波端口
- * @pTsa: 给定的测量点的TSA
- * $return: 0-测量点不挂载在载波端口
- * 			1-测量点挂载在载波端口
- */
-INT8U isPlcMeterByTsa(TSA* pTsa)
-{
-	OAD oad = {};
-	getOADPortByTSA(pTsa, &oad);
-	if(oad.OI == 0xF209)
-		return 1;
-	return 0;
+	return 1;
 }
 
 int doProxy(RUNTIME_PLC *runtime_p)
@@ -1925,6 +1977,7 @@ int doProxy(RUNTIME_PLC *runtime_p)
 			if ( nowtime - runtime_p->send_start_time > 20)
 			{
 				DbgPrintToFile1(31,"暂停抄表");
+				DEBUG_TIME_LINE("暂停抄表");
 				clearvar(runtime_p);
 				runtime_p->send_start_time = nowtime ;
 				sendlen = AFN12_F2(&runtime_p->format_Down,runtime_p->sendbuf);
@@ -1932,7 +1985,15 @@ int doProxy(RUNTIME_PLC *runtime_p)
 			}else if(runtime_p->format_Up.afn == 0x00 && runtime_p->format_Up.fn == 1)
 			{//确认
 				clearvar(runtime_p);
-				step_cj = 1;
+				DEBUG_TIME_LINE("暂停抄表已确认");
+				if(cjcommProxy_plc.isInUse == 1) {
+					DEBUG_TIME_LINE("进入主站代理");
+					step_cj = 2;
+				} else if (cjGuiProxy_plc.isInUse == 1) {
+					DEBUG_TIME_LINE("进入液晶点抄");
+					step_cj = 1;
+				}
+
 				beginwork = 0;
 			}
 			break;
@@ -1979,7 +2040,7 @@ int doProxy(RUNTIME_PLC *runtime_p)
 			}
 			break;
 		case 2://处理主站代理
-
+			doClientProxyRequest(runtime_p, &beginwork, &step_cj);
 			break;
 		case 3:
 			if (runtime_p->state_bak == TASK_PROCESS )
@@ -2215,11 +2276,13 @@ int stateJuge(int nowdstate,INT8U* my6000_p,RUNTIME_PLC *runtime_p)
 		return DATA_REAL;
 	}
 
-
-	//先不判断代理读取的电表是否是载波端口的表, 后期由统一接口分发各端口的电表
-	if (cjcommProxy_plc.isInUse ==1 && state!=DATE_CHANGE && state!=DATA_REAL)
-	{	//出现液晶点抄载波表标识，并且不在初始化和点抄状态
-		DbgPrintToFile1(31,"\n载波收到点抄消息 需要处理 %04x ",cjguiProxy.strProxyMsg.port.OI);
+	if (proxyInUse.devUse.plcNeed == 1 && \
+			cjcommProxy_plc.isInUse ==1 && \
+			state!=DATE_CHANGE && \
+			state!=DATA_REAL)
+	{	//出现代理标识，并且不在初始化和点抄状态
+		DbgPrintToFile1(31,"\n载波收到点代理请求, plcNeed: %d, plcReady: %d",\
+				proxyInUse.devUse.plcNeed, proxyInUse.devUse.plcReady);
 		runtime_p->state_bak = runtime_p->state;
 		runtime_p->state = DATA_REAL;
 		clearvar(runtime_p);

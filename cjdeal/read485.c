@@ -1133,11 +1133,11 @@ INT8U getASNInfo(FORMAT07* DI07,Base_DataType* dataType)
 	//电压　电流 功率 特殊处理  07回来的是3个字节  6984个字节
 	if(memcmp(flag07_0CF25_1,DI07->DI,4) == 0)
 	{
-		if((DI07->Data[2] = 0xff)&&(DI07->Data[3] = 0xff))
+		if((DI07->Data[2] == 0xff)&&(DI07->Data[3] == 0xff))
 		{
 			memset(&DI07->Data[2],0,2);
 		}
-		if((DI07->Data[4] = 0xff)&&(DI07->Data[5] = 0xff))
+		if((DI07->Data[4] == 0xff)&&(DI07->Data[5] == 0xff))
 		{
 			memset(&DI07->Data[4],0,2);
 		}
@@ -1145,15 +1145,15 @@ INT8U getASNInfo(FORMAT07* DI07,Base_DataType* dataType)
 	//功率因数
 	if(memcmp(flag07_0CF25_9,DI07->DI,4) == 0)
 	{
-		if((DI07->Data[2] = 0xff)&&(DI07->Data[3] = 0xff))
+		if((DI07->Data[2] == 0xff)&&(DI07->Data[3] == 0xff))
 		{
 			memset(&DI07->Data[2],0,2);
 		}
-		if((DI07->Data[4] = 0xff)&&(DI07->Data[5] = 0xff))
+		if((DI07->Data[4] == 0xff)&&(DI07->Data[5] == 0xff))
 		{
 			memset(&DI07->Data[4],0,2);
 		}
-		if((DI07->Data[6] = 0xff)&&(DI07->Data[7] = 0xff))
+		if((DI07->Data[6] == 0xff)&&(DI07->Data[7] == 0xff))
 		{
 			memset(&DI07->Data[6],0,2);
 		}
@@ -2493,8 +2493,8 @@ INT8S dealProxyType1(PROXY_GETLIST getlist,INT8U port485)
 #endif
 		mqs_send((INT8S *)PROXY_NET_MQ_NAME,1,TERMINALPROXY_RESPONSE,(INT8U *)&getlist,sizeof(PROXY_GETLIST));
 		fprintf(stderr,"\n代理消息已经发出\n\n");
-
 	}
+	proxyInUse.devUse.rs485Ready = 1;
 	return result;
 }
 INT8S dealProxyType7(PROXY_GETLIST getlist,INT8U port485)
@@ -2581,6 +2581,7 @@ INT8S dealProxyType7(PROXY_GETLIST getlist,INT8U port485)
 		memcpy(&getlist.data[6],&RecvBuff[starttIndex],datalen);
 		getlist.datalen = datalen + 6;
 		mqs_send((INT8S *)PROXY_NET_MQ_NAME,1,TERMINALPROXY_RESPONSE,(INT8U *)&getlist,sizeof(PROXY_GETLIST));
+		proxyInUse.devUse.rs485Ready = 1;
 	}
 	else
 	{
@@ -2588,6 +2589,7 @@ INT8S dealProxyType7(PROXY_GETLIST getlist,INT8U port485)
 		getlist.data[4] = 0;
 		getlist.datalen = 5;
 		mqs_send((INT8S *)PROXY_NET_MQ_NAME,1,ProxySetResponseList,(INT8U *)&getlist,sizeof(PROXY_GETLIST));
+		proxyInUse.devUse.rs485Ready = 1;
 	}
 	return result;
 }

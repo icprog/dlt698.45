@@ -84,6 +84,8 @@ int BuildFrame_GetResponse(INT8U response_type,CSINFO *csinfo,INT8U oadnum,RESUL
 	int apduplace =0;
 	int index=0, hcsi=0;
 
+	csinfo->dir = 1;
+	csinfo->prm = 1;
 	index = FrameHead(csinfo,sendbuf);
 	hcsi = index;
 	index = index + 2;
@@ -1097,13 +1099,13 @@ int doGetrecord(INT8U type,OAD oad,INT8U *data,RESULT_RECORD *record,INT16U *sub
 	INT8U 	SelectorN =0;
 	int		datalen=0;
 
-	fprintf(stderr,"\nGetRequestRecord   oi=%x  %02x  %02x",record->oad.OI,record->oad.attflg,record->oad.attrindex);
+	DEBUG_TIME_LINE("\nGetRequestRecord   oi=%x  %02x  %02x",record->oad.OI,record->oad.attflg,record->oad.attrindex);
 	source_index = get_BasicRSD(0,&data[source_index],(INT8U *)&record->select,&record->selectType);
-	fprintf(stderr,"\nRSD Select%d     data[%d] = %02x",record->selectType,source_index,data[source_index]);
+	DEBUG_TIME_LINE("\nRSD Select%d     data[%d] = %02x",record->selectType,source_index,data[source_index]);
 	source_index +=get_BasicRCSD(0,&data[source_index],&record->rcsd.csds);
 	//record.rcsd.csds.csd[i].csd.oad.OI
 	SelectorN = record->selectType;
-	fprintf(stderr,"\n- getRequestRecord SelectorN=%d OI = %04x  attrib=%d  index=%d",SelectorN,record->oad.OI,record->oad.attflg,record->oad.attrindex);
+	DEBUG_TIME_LINE("\n- getRequestRecord SelectorN=%d OI = %04x  attrib=%d  index=%d",SelectorN,record->oad.OI,record->oad.attflg,record->oad.attrindex);
 	printrecord(*record);
 	dest_index += create_OAD(0,&record->data[dest_index],record->oad);
 	const static OI_698 oi[]={0x2022,0x201e,0x2020,0x2024};

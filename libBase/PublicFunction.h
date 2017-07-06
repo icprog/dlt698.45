@@ -108,6 +108,7 @@ extern INT8U getBase_DataTypeLen(Base_DataType dataType,INT8U data);
 extern INT8S reversebuff(INT8U* buff,INT32U len,INT8U* invbuff);
 
 extern void debug(const char* file, const char* func, INT32U line, const char *fmt, ...);
+extern void debugToPlcFile(const char* file, const char* func, INT32U line, const char *fmt, ...);
 extern void readFrm(char* str,  INT8U* buf, INT32U* bufSize);
 
 //读取设备配置信息

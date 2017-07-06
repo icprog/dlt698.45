@@ -798,6 +798,66 @@ void timeProcess()
 	}
 }
 
+
+/*
+ * 判断两个TSA是否相等
+ * @pT1: 第1个TSA
+ * @pT2: 第2个TSA
+ * $return: 相等返回1, 不相等返回0
+ */
+INT8U tsaEqual(TSA* pT1, TSA* pT2)
+{
+	int i=0;
+
+	for(i=0;i<TSA_LEN;i++)
+		if(pT1->addr[i] != pT2->addr[i])
+			return 0;
+	return 1;
+}
+
+/*
+ * 根据给定的测量点TSA, 得到这个测量点的抄表端口信息
+ * @pTsa: 给定的测量点的TSA
+ * @pOI: 端口的标识
+ * @pPort: 端口内部索引, 如485-1或485-2
+ * $return: 找到返回1, 没找到返回0
+ */
+INT8U getOADPortByTSA(TSA* pTsa, OAD* pOAD)
+{
+	if(NULL == pTsa || NULL == pOAD)
+		return 0;
+	CLASS_6001 meter = { };
+	int i = 0;
+	OI_698 oi = (OI_698)0x6000;
+	int recordnum = getFileRecordNum(oi);
+
+	for(i=0; i < recordnum; i++) {
+		readParaClass(oi, &meter,i);
+		if(tsaEqual(pTsa, &(meter.basicinfo.addr))) {
+			memcpy(pOAD, &(meter.basicinfo.port), sizeof(OAD));
+			return 1;
+		}
+	}
+	return 0;
+}
+
+/*
+ * 根据给定的tsa判断这个测量点
+ * 是否挂载于载波端口
+ * @pTsa: 给定的测量点的TSA
+ * $return: 0-测量点不挂载在载波端口
+ * 			1-测量点挂载在载波端口
+ */
+INT8U isPlcMeterByTsa(TSA* pTsa)
+{
+	OAD oad = {};
+	getOADPortByTSA(pTsa, &oad);
+	if(oad.OI == PORT_ZB)
+		return 1;
+	return 0;
+}
+
+
 /*
  * 	dealMsgProcess() 只负责统一将TSA集中的
  * 	测量点分配对应端口的代理变量cjcommProxy_xxx中.
@@ -817,40 +877,61 @@ INT8S dealMsgProcess()
 	CJCOMM_PROXY cjcommProxy_Tmp;
 	INT8U  rev_485_buf[2048];
 	INT32S ret;
+	INT16U oad = 0;
 
 	mmq_head mq_h;
 	ret = mmq_get(mqd_485_main, 1, &mq_h, rev_485_buf);
 
 	if (ret>0)
 	{
-		switch(mq_h.cmd)
-		{
-			case ProxyGetResponseList://代理
-			{//TODO 按照测量点来复制对应的TSA给对应的全局变量
+		proxyInUse.devUse.proxyIdle = 1;
+		switch(mq_h.cmd) {
+			case ProxyGetResponseList: //代理
+			//TODO 按照测量点来复制对应的TSA给对应的全局变量
 			 //cjcommProxy, cjcommProxy_plc, cjguiProxy, cjGuiProxy_plc;
 
 				if(mq_h.pid == cjdeal) {
 					DEBUG_TIME_LINE("\n收到代理召测\n");
 					memcpy(&cjcommProxy_Tmp.strProxyList,rev_485_buf,sizeof(PROXY_GETLIST));
-
-					for(i=0;  cjcommProxy_Tmp.strProxyList.num; i++) {
-//						if(isPlcOAD(cjcommProxy_Tmp.strProxyList.objs[i].tsa)) {
-//							//copy to cjcommProxy_plc
-//						} else if(1/**/) {
-//							//copy to cjcommProxy
-//						}
+					DEBUG_TIME_LINE("receive proxy frame on port: %04X", cjcommProxy_Tmp.strProxyList.transcmd.oad.OI);
+					switch(cjcommProxy_Tmp.strProxyList.proxytype) {
+					case ProxyGetRequestList://TODO   按照端口分配TSA. 目前暂时都给485端口
+						memcpy(&cjcommProxy.strProxyList,rev_485_buf,sizeof(PROXY_GETLIST));
+						cjcommProxy.isInUse = 3;
+						break;
+					case ProxyGetRequestRecord:
+						break;
+					case ProxySetRequestList:
+						break;
+					case ProxySetThenGetRequestList:
+						break;
+					case ProxyActionRequestList:
+						break;
+					case ProxyActionThenGetRequestList:
+						break;
+					case ProxyTransCommandRequest:
+						oad = (INT16U)cjcommProxy_Tmp.strProxyList.transcmd.oad.OI;
+						switch(oad) {
+						case PORT_ZB:
+							DEBUG_TIME_LINE("receive proxy frame on plc");
+							memcpy(&cjcommProxy_plc.strProxyList,rev_485_buf,sizeof(PROXY_GETLIST));
+							cjcommProxy_plc.isInUse = 1;
+							proxyInUse.devUse.plcNeed = 1;
+							break;
+						case PORT_485:
+							memcpy(&cjcommProxy.strProxyList,rev_485_buf,sizeof(PROXY_GETLIST));
+							cjcommProxy.isInUse = 3;
+							proxyInUse.devUse.rs485Need = 1;
+							break;
+						default:
+							break;
+						}
+						break;
+					default:
+						break;
 					}
-
-					memcpy(&cjcommProxy_plc.strProxyList,rev_485_buf,sizeof(PROXY_GETLIST));
-					cjcommProxy_plc.isInUse = 1;
-
-
-					memcpy(&cjcommProxy.strProxyList,rev_485_buf,sizeof(PROXY_GETLIST));
-					cjcommProxy.isInUse = 3;
-
 				}
-				if(mq_h.pid == cjgui)
-				{
+				if(mq_h.pid == cjgui) {
 					fprintf(stderr, "\n收到液晶点抄-----------------------------------23232323\n");
 					memcpy(&cjguiProxy_Tmp.strProxyMsg,rev_485_buf,sizeof(Proxy_Msg));
 					if (cjguiProxy_Tmp.strProxyMsg.port.OI== PORT_ZB) {
@@ -863,13 +944,10 @@ INT8S dealMsgProcess()
 				}
 
 				readState = 0;
-			}
-			break;
+				break;
 			default:
-			{
 				asyslog(LOG_WARNING,"485收到未知消息  cmd=%d!!!---------------", mq_h.cmd);
-			}
-
+				break;
 		}
 	}
 
@@ -911,6 +989,41 @@ void replenish_tmp()
 	}
 
 }
+
+
+/*
+ * 	dealProxyAnswer() 只负责统一将收到的应答,
+ * 	放入最终的应答队列中, 从而实现统一发送.
+ *	要对主站下发的TSA进行判断, 如果本终端
+ *	的6000参数表里没有某个TSA, 则直接组织
+ *	一条异常应答报文放到应答队列中;
+ *	若某个设备上的TSA都接收全了, 则将这个
+ *	设备的proxyInUse.devUse.xxxReady置1,
+ *	至于抄没抄到数据, 则由具体的设备线程去
+ *	完成数据的填写, 这里直接拿来用.
+ *	如果某个设备超时后, 还没接收全它的TSA数据,
+ *	则将剩下的TSA数据组织为异常报文, 放到总的
+ *	应答报文, 且将对应的设备Ready标记置1.
+ *	如果所有的设备(包括rs485, plc, 异常)
+ *	都就绪或者没使用, 则将总的应答报文
+ *	发走.
+ */
+INT8U dealProxyAnswer()
+{
+
+	if( !(proxyInUse.devUse.plcNeed ^ proxyInUse.devUse.plcReady)&&\
+		!(proxyInUse.devUse.rs485Need ^ proxyInUse.devUse.rs485Ready) ) {//当某一个设备的需要使用标记和就绪标记同时为0,
+																		//或者同时为1, 意即当需要使用
+																		//某个设备, 且当他就绪时,
+																		//才认为这个设备上的代理操作已完毕.
+																		//当代理所使用的所有设备操作完毕后,
+																		//将代理标记清零, 处理下一个代理操作.
+
+		proxyInUse.u8b = 0;
+	}
+	return 1;
+}
+
 void dispatch_thread()
 {
 	//运行调度任务进程
@@ -930,13 +1043,8 @@ void dispatch_thread()
 		{
 			if(proxyInUse.devUse.proxyIdle == 0) {//只有当代理操作空闲时, 才处理下一个代理操作
 				dealMsgProcess();
-			} else {//当某一个设备的需要使用标记和就绪标记同时为0, 或者同时为1, 意即当需要使用
-					//某个设备, 且当他就绪时, 才认为这个设备上的代理操作已完毕.
-					//当代理所使用的所有设备操作完毕后, 将代理标记清零, 处理下一个代理操作.
-				if( !(proxyInUse.devUse.plcNeed ^ proxyInUse.devUse.plcReady)&&\
-				    !(proxyInUse.devUse.rs485Need ^ proxyInUse.devUse.rs485Ready) ) {
-					proxyInUse.u8b = 0;
-				}
+			} else {
+				dealProxyAnswer();
 			}
 		}
 		para_ChangeType = getParaChangeType();
