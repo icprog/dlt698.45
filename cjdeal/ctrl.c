@@ -66,7 +66,6 @@ int initAll() {
     return 0;
 }
 
-
 int check_c8103(PowerCtrlParam pcp, TS ts) {
 
     return;
@@ -74,54 +73,36 @@ int check_c8103(PowerCtrlParam pcp, TS ts) {
 
 int deal8103(TS ts) {
     //判断投入状态
-    if (c8103.index < 0x02301 || c8103.index > 0x2308){
-        return 0;
-    }
+//    if (c8103.index < 0x02301 || c8103.index > 0x2308){
+//        return 0;
+//    }
 
     //获取总加组
     int index = -1;
     for (int i = 0; i < MAX_AL_UNIT; ++i) {
-        if (c8103.list[i].index == c8103.index) {
-            index = i;
-            break;
-        }
+//        if (c8103.list[i].index == c8103.index) {
+//            index = i;
+//            break;
+//        }
     }
 
     if (index == -1) {
         return 0;
     }
 
-
-    //获取定值
-    PowerCtrlParam pcp;
-    switch (c8103.no) {
-        case 0:
-            pcp = c8103.list[index].v1;
-            break;
-        case 1:
-            pcp = c8103.list[index].v2;
-            break;
-        case 2:
-            pcp = c8103.list[index].v3;
-            break;
-        default:
-            pcp = c8103.list[0].v1;
-            break;
-    }
-
-
     //获取当前时段的有效定值
-    int val = check_c8103(pcp, ts);
-    if (val == -1) {
-        return;
-    }
+//    int val = check_c8103(pcp, ts);
+//    if (val == -1) {
+//        return;
+//    }
 
-    if (class23[index].p > val) {
-        //产生时段功控
-    }
+//    if (class23[index].p > val) {
+//        //产生时段功控
+//    }
 
     return 0;
 }
+
 
 int check_c8104(int index, TS ts) {
     //根据ts返回当前厂休定值
@@ -132,10 +113,10 @@ int deal8104(TS ts) {
     //获取总加组
     int index = -1;
     for (int i = 0; i < MAX_AL_UNIT; ++i) {
-        if (c8104.list[i].index == c8104.index) {
-            index = i;
-            break;
-        }
+//        if (c8104.list[i].index == c8104.index) {
+//            index = i;
+//            break;
+//        }
     }
     if (index == -1) {
         return 0;
@@ -164,10 +145,10 @@ int deal8105(TS ts) {
     //获取总加组
     int index = -1;
     for (int i = 0; i < MAX_AL_UNIT; ++i) {
-        if (c8105.list[i].index == c8105.index) {
-            index = i;
-            break;
-        }
+//        if (c8105.list[i].index == c8105.index) {
+//            index = i;
+//            break;
+//        }
     }
     if (index == -1) {
         return 0;
@@ -207,10 +188,10 @@ int deal8107(TS ts) {
     //获取总加组
     int index = -1;
     for (int i = 0; i < MAX_AL_UNIT; ++i) {
-        if (c8107.list[i].index == c8107.index) {
-            index = i;
-            break;
-        }
+//        if (c8107.list[i].index == c8107.index) {
+//            index = i;
+//            break;
+//        }
     }
     if (index == -1) {
         return 0;
@@ -234,10 +215,10 @@ void deal8108(TS ts) {
     //获取总加组
     int index = -1;
     for (int i = 0; i < MAX_AL_UNIT; ++i) {
-        if (c8108.list[i].index == c8108.index) {
-            index = i;
-            break;
-        }
+//        if (c8108.list[i].index == c8108.index) {
+//            index = i;
+//            break;
+//        }
     }
     if (index == -1) {
         return 0;

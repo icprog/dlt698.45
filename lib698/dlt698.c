@@ -48,6 +48,12 @@ INT8U broadcast=0;
  * 函数功能：DL/T698.45 状态机
  * 参数含义：
  **************************************/
+
+ProgramInfo *getShareAddr(void)
+{
+	return memp;
+}
+
 int StateProcess(CommBlock* nst, int delay_num)
 {
 	int length=0,i=0;
@@ -217,10 +223,9 @@ INT8U CtrlWord(CSINFO* csinfo)
 		return 0;
 
 	ctl.u8b = 0;
-	if(csinfo->dir == 0)//如果接收报文来自客户机, 则应给出服务器的应答
-		ctl.ctl.dir = 1;
 
-	ctl.ctl.prm = csinfo->prm;//直接使用接收报文的启动标志
+	ctl.ctl.dir = csinfo->dir;//调用方会决定终端作为服务器还是客户端
+	ctl.ctl.prm = csinfo->prm;//直接使用csinfo的启动标志
 	ctl.ctl.divS = csinfo->gframeflg;
 	ctl.ctl.func = csinfo->funcode;
 
