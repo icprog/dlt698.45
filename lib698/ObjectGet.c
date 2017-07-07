@@ -1770,15 +1770,13 @@ int doGetrecord(INT8U type,OAD oad,INT8U *data,RESULT_RECORD *record,INT16U *sub
 		*subframe = 1;		//TODO:未处理分帧
 		dest_index +=fill_RCSD(0,&record->data[dest_index],record->rcsd.csds);
 		record->data = &TmpDataBuf[dest_index];
-		 //一致性测试GET_24 rcsd=0,应答帧应填写rcsd=0
-		if((record->oad.OI & 0xf000) == 0x5000) {	//招测冻结类数据
-			if(record->rcsd.csds.num==0) {
-				record->data[dest_index++] = 0;	//RCSD=0
-				record->data[dest_index++] = 1;	//Data
-				record->data[dest_index++] = 1;	//seqof A-RecordRow
-				record->data[dest_index++] = 0;	//A-RecordRow len
-				record->datalen += dest_index;
-			}
+		 //一致性测试GET_24 rcsd=0,应答帧应填写rcsd=0 ,
+		if(((record->oad.OI & 0xf000) == 0x5000) && (record->rcsd.csds.num==0)) {	//招测冻结类数据
+			record->data[dest_index++] = 0;	//RCSD=0
+			record->data[dest_index++] = 1;	//Data
+			record->data[dest_index++] = 1;	//seqof A-RecordRow
+			record->data[dest_index++] = 0;	//A-RecordRow len
+			record->datalen += dest_index;
 		}else {
 			Getevent_Record_Selector(record,memp);
 			record->data = TmpDataBuf;				//data 指向回复报文帧头
