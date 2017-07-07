@@ -1664,8 +1664,13 @@ int doGetrecord(INT8U type,OAD oad,INT8U *data,RESULT_RECORD *record,INT16U *sub
 			record->data[dest_index++] = 0;	//OAD
 			record->select.selec1.oad.attrindex = 0;		//上送属性下所有索引值
 			dest_index += create_OAD(0,&record->data[dest_index],record->select.selec1.oad);
-		}else
+		}else{
 			dest_index +=fill_RCSD(0,&record->data[dest_index],record->rcsd.csds);
+			if(record->rcsd.csds.num == 0){
+				record->data[dest_index++] = 0;
+			}
+		}
+
 		response_choice_index = dest_index;
 		dest_index += 2;
 		record->data = &TmpDataBuf[dest_index];		//修改record的数据帧的位置
@@ -1677,6 +1682,7 @@ int doGetrecord(INT8U type,OAD oad,INT8U *data,RESULT_RECORD *record,INT16U *sub
 			record->data[response_choice_index] = 1; //CHOICE  [1]  data
 			record->data[response_choice_index+1] = seqof_len; //M = 1  Sequence  of A-RecordRow
 		}else {
+
 			record->data[response_choice_index] = 0; //DAR
 			record->data[response_choice_index+1] = record->dar; //错误类型
 		}
