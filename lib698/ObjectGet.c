@@ -1651,15 +1651,13 @@ int doGetrecord(INT8U type,OAD oad,INT8U *data,RESULT_RECORD *record,INT16U *sub
 	case 0:
 	case 1:		//指定对象指定值
 		*subframe = 1;		//TODO:未处理分帧
-		if(record->rcsd.csds.num == 0 && SelectorN == 0){
+		if(record->rcsd.csds.num == 0 && SelectorN == 0 && record->oad.OI == 0x6000){
 			record->data[dest_index++]=1;
 			record->data[dest_index++]=00;
-			if(record->oad.OI == 0x6000){
-				record->data[dest_index++]=0x60;
-				record->data[dest_index++]=0x01;
-				record->data[dest_index++]=0x02;
-				record->data[dest_index++]=0x00;
-			}
+			record->data[dest_index++]=0x60;
+			record->data[dest_index++]=0x01;
+			record->data[dest_index++]=0x02;
+			record->data[dest_index++]=0x00;
 		}
 		else if(record->rcsd.csds.num == 0 && SelectorN == 1) {
 			record->data[dest_index++] = 1;	//一行记录M列属性描述符 	RCSD
@@ -1672,7 +1670,6 @@ int doGetrecord(INT8U type,OAD oad,INT8U *data,RESULT_RECORD *record,INT16U *sub
 		dest_index += 2;
 		record->data = &TmpDataBuf[dest_index];		//修改record的数据帧的位置
 		seqof_len = getSelector12(record);
-		fprintf(stderr,"record.dar = %d , response_choice_index = %d\n",record->dar,response_choice_index);
 		record->data = TmpDataBuf;				//data 指向回复报文帧头
 		record->datalen += dest_index;			//数据长度+ResultRecord
 
