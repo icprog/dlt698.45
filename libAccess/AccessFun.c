@@ -29,7 +29,7 @@
 #define 	LIB_ACCESS_VER 			0x0001
 
 //syslog_info 信息记录标记
-//#define		SYS_INFO		1
+#define		SYS_INFO		1
 
 CLASS_INFO	info={};
 void write_apn(char* apn) {
@@ -1769,7 +1769,6 @@ void getTaskFileName(INT8U taskid,TS ts,char *fname)
 {
 	char dirname[FILENAMELEN]={};
 	if (fname==NULL)
-		return ;
 	memset(fname,0,FILENAMELEN);
 	sprintf(dirname,"%s",TASKDATA);
 	makeSubDir(dirname);
@@ -2421,11 +2420,15 @@ INT8U GetTaskidFromCSDs(CSD_ARRAYTYPE csds,ROAD_ITEM *item_road,INT8U findmethod
 							{
 								for(nn=0;nn<class6015.csds.csd[j].csd.road.num;nn++)
 								{
+									fprintf(stderr,"oad_r=%04x%02x%02x %d.oad=%04x%02x%02x\n",
+											item_road->oad[mm].oad_r.OI,item_road->oad[mm].oad_r.attflg,item_road->oad[mm].oad_r.attrindex,nn,
+											class6015.csds.csd[j].csd.road.oads[nn].OI,class6015.csds.csd[j].csd.road.oads[nn].attflg,class6015.csds.csd[j].csd.road.oads[nn].attrindex);
 									if(memcmp(&item_road->oad[mm].oad_r,&class6015.csds.csd[j].csd.road.oads[nn],sizeof(OAD))==0 ||
 											(item_road->oad[mm].oad_r.OI == class6015.csds.csd[j].csd.road.oads[nn].OI &&
 												item_road->oad[mm].oad_r.attrindex != 0 &&
 												class6015.csds.csd[j].csd.road.oads[nn].attrindex == 0)){
 										item_road->oad[mm].taskid = i+1;
+										fprintf(stderr,"\n------find \n");
 //										asyslog(LOG_INFO,"1111:item_road->oad[%d].taskid=%d\n",mm,item_road->oad[mm].taskid);
 										continue;
 									}
@@ -2453,13 +2456,19 @@ INT8U GetTaskidFromCSDs(CSD_ARRAYTYPE csds,ROAD_ITEM *item_road,INT8U findmethod
 //					}
 //					if(item_road->oad[mm].taskid != 0)
 //						taskno = item_road->oad[mm].taskid;
+					fprintf(stderr,"=========taskno=%d oad=%04x%02x%02x taskid=%d",
+							taskno,item_road->oad[mm].oad_r.OI,item_road->oad[mm].oad_r.attflg,item_road->oad[mm].oad_r.attrindex,
+							item_road->oad[mm].taskid);
 					if(item_road->oad[mm].oad_r.OI == 0x202a || item_road->oad[mm].oad_r.OI == 0x6040 ||
 							item_road->oad[mm].oad_r.OI == 0x6041 || item_road->oad[mm].oad_r.OI == 0x6042)
 						continue;
-					if(taskno == 0)
-						taskno = item_road->oad[mm].taskid;
-					if(taskno == 0 || taskno != item_road->oad[mm].taskid)
+					//if(taskno == 0)
+					taskno = item_road->oad[mm].taskid;
+					if(taskno >0)
 						break;
+					//TODO:这里注释行不行？？？？？？
+//					if(taskno == 0 || taskno != item_road->oad[mm].taskid)
+//						break;
 //					asyslog(LOG_INFO,"i=%d ,taskno=%d\n",mm,taskno);
 				}
 				if(taskno != 0)
@@ -2467,6 +2476,8 @@ INT8U GetTaskidFromCSDs(CSD_ARRAYTYPE csds,ROAD_ITEM *item_road,INT8U findmethod
 					asyslog(LOG_INFO,"return  ,taskno=%d\n",taskno);
 					return taskno;
 				}
+				else
+					fprintf(stderr,"\n=======taskno=%d \n",taskno);
 			}
 		}
 	}

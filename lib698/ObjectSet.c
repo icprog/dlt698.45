@@ -872,9 +872,26 @@ int	Set_F200(OI_698 oi,INT8U *data,INT8U *DAR)
 {
 	int	 index=0;
 	CLASS_f201	f201={};
+	OAD		oad={};
 
 	readCoverClass(oi,0,&f201,sizeof(CLASS_f201),para_vari_save);
+	index += getStructure(&data[index],NULL,DAR);
+	index += getOAD(1,&data[index],&oad,DAR);
+	index += getCOMDCB(1,&data[index],&f201.devpara,DAR);
+	index += getEnum(1,&data[index],&f201.devfunc);
+	return index;
+}
 
+int	Set_F202(OI_698 oi,INT8U *data,INT8U *DAR)
+{
+	int	 index=0;
+	CLASS_f202	f202={};
+	OAD		oad={};
+
+	readCoverClass(oi,0,&f202,sizeof(CLASS_f202),para_vari_save);
+	index += getStructure(&data[index],NULL,DAR);
+	index += getOAD(1,&data[index],&oad,DAR);
+	index += getCOMDCB(1,&data[index],&f202.devpara,DAR);
 	return index;
 }
 
@@ -1297,7 +1314,7 @@ int setThenGetRequestNormalList(INT8U *data,CSINFO *csinfo,INT8U *buf)
 		get_delay = data[sourceindex];						//延时读取时间
 		sourceindex++;
 		//get_delay = 0, 	//按照ProtocolConformance协商结果
-		if(get_delay>=0 && get_delay<=5) 	sleep(get_delay,DAR);
+		if(get_delay>=0 && get_delay<=5) 	sleep(get_delay);
 		memset(TmpDataBuf,0,sizeof(TmpDataBuf));
 		memcpy(&response.oad,&oad,sizeof(response.oad));
 		response.datalen = 0;

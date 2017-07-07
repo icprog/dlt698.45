@@ -21,6 +21,7 @@ extern INT16U composeAutoTask(AutoTaskStrap* list);
 extern int callAutoReport(char *filename,INT8U reportChoice,CommBlock* com, INT8U ifecho);
 extern int callEventAutoReport(CommBlock* com,INT8U *eventbuf,int datalen);
 extern int GetReportData(CLASS_601D report);
+extern int doGetnormal(INT8U seqOfNum,RESULT_NORMAL *response);
 
 extern INT8U Reset_add();
 extern void FrameTail(INT8U *buf, int index, int hcsi);
@@ -100,7 +101,7 @@ extern int getTI(INT8U type, INT8U* source, TI* ti);                            
 extern int get_BasicRSD(INT8U type, INT8U* source, INT8U* dest, INT8U* seletype); // 0x5A
 extern int getCSD(INT8U type, INT8U* source, MY_CSD* csd);                        // 0X5B
 extern int getMS(INT8U type, INT8U* source, MY_MS* ms);                           // 0x5C
-extern int getCOMDCB(INT8U type, INT8U* source, COMDCB* comdcb);                  // 0x5F
+extern int getCOMDCB(INT8U type, INT8U* source, COMDCB* comdcb,INT8U *DAR);       // 0x5F
 extern int get_BasicRCSD(INT8U type, INT8U* source, CSD_ARRAYTYPE* csds);         // 0x60
 extern int get_Data(INT8U* source, INT8U* dest);								//根据类型返回数据的长度
 extern int getSel_Data(INT8U type,INT8U *seldata,INT8U *destdata);				//根据selector类型的参数返回读取的数据
@@ -119,4 +120,5 @@ extern INT8U check_date(int year, int month, int day, int hour, int min, int sec
 extern INT8U getEnumValid(INT16U value,INT16U start,INT16U end,INT16U other);
 extern void isTimeTagEffect(TimeTag timetag,TimeTag *rec_timetag);
 extern INT8U getPortValid(OAD oad);
+extern INT8U DataTimeCmp(DateTimeBCD startdt,DateTimeBCD enddt);
 #endif

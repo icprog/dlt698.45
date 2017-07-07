@@ -823,31 +823,19 @@ INT8S dealMsgProcess()
 
 	if (ret>0)
 	{
+		fprintf(stderr,"\n\n\n\n\n----------cmd=%d-----------------------\n\n\n\n\n\n\n",mq_h.cmd);
 		switch(mq_h.cmd)
 		{
 			case ProxyGetResponseList://代理
 			{//TODO 按照测量点来复制对应的TSA给对应的全局变量
-			 //cjcommProxy, cjcommProxy_plc, cjguiProxy, cjGuiProxy_plc;
-
 				if(mq_h.pid == cjdeal) {
-					DEBUG_TIME_LINE("\n收到代理召测\n");
-					memcpy(&cjcommProxy_Tmp.strProxyList,rev_485_buf,sizeof(PROXY_GETLIST));
-
-					for(i=0;  cjcommProxy_Tmp.strProxyList.num; i++) {
-//						if(isPlcOAD(cjcommProxy_Tmp.strProxyList.objs[i].tsa)) {
-//							//copy to cjcommProxy_plc
-//						} else if(1/**/) {
-//							//copy to cjcommProxy
-//						}
-					}
+					DEBUG_TIME_LINE("\n收到代理召测!! \n");
 
 					memcpy(&cjcommProxy_plc.strProxyList,rev_485_buf,sizeof(PROXY_GETLIST));
 					cjcommProxy_plc.isInUse = 1;
 
-
 					memcpy(&cjcommProxy.strProxyList,rev_485_buf,sizeof(PROXY_GETLIST));
 					cjcommProxy.isInUse = 3;
-
 				}
 				if(mq_h.pid == cjgui)
 				{

@@ -2304,7 +2304,7 @@ INT16U dealProxy_698(CLASS_6001 obj6001,GETOBJS obj07,INT8U* dataContent,INT8U p
 		DbgPrintToFile1(port485," OAD[%d] = %04x%02x%02x",csdIndex,st6015.csds.csd[csdIndex].csd.oad.OI,
 				st6015.csds.csd[csdIndex].csd.oad.attflg,st6015.csds.csd[csdIndex].csd.oad.attrindex);
 	}
-
+	INT16U dataLen = 0;
 	INT16S sendLen = 0;
 	INT16S recvLen = 0;
 	INT16U retdataLen = 0;
@@ -2327,7 +2327,6 @@ INT16U dealProxy_698(CLASS_6001 obj6001,GETOBJS obj07,INT8U* dataContent,INT8U p
 		SendDataTo485(port485, sendbuff, sendLen);
 
 		recvLen = ReceDataFrom485(DLT_698,port485, 500, recvbuff);
-		//fprintf(stderr,"\n\n recvLen = %d \n",recvLen);
 		if(recvLen > 0)
 		{
 			INT8U csdNum = 0;
@@ -2346,6 +2345,13 @@ INT16U dealProxy_698(CLASS_6001 obj6001,GETOBJS obj07,INT8U* dataContent,INT8U p
 			{
 				retdataLen = 0;
 			}
+		}else
+		{
+			OADtoBuff(obj07.oads[0],&dataContent[dataLen]);
+			dataLen += sizeof(OAD);
+			dataContent[dataLen++] = 0x00;//没有数据
+			dataContent[dataLen++] = 0x21;//DARType
+			return dataLen;
 		}
 		subindex++;
 	}
@@ -2354,7 +2360,7 @@ INT16U dealProxy_698(CLASS_6001 obj6001,GETOBJS obj07,INT8U* dataContent,INT8U p
 }
 INT16U dealProxy_645_07(GETOBJS obj07,INT8U* dataContent,INT8U port485,INT16U timeout)
 {
-	INT16U singledataLen = -1;
+	INT16S singledataLen = -1;
 	INT16U dataLen = 0;
 	INT16U dataFlagPos = 0;
 	CLASS_6001 meter = {};
@@ -2386,6 +2392,7 @@ INT16U dealProxy_645_07(GETOBJS obj07,INT8U* dataContent,INT8U port485,INT16U ti
 		for(diIndex=0;diIndex<Flag645.DI._07.dinum;diIndex++)
 		{
 			singledataLen = request698_07Data(Flag645.DI._07.DI_1[diIndex],&dataContent[dataLen],meter,&inValid6035,port485);
+
 			if(singledataLen >= 0)
 			{
 				dataLen += singledataLen;
@@ -2402,6 +2409,9 @@ INT16U dealProxy_645_07(GETOBJS obj07,INT8U* dataContent,INT8U port485,INT16U ti
 		if(dataLen == (dataFlagPos+1))
 		{
 			dataContent[dataFlagPos] = 0x00;//没有数据
+			dataContent[dataLen++] = 0x21;//DARType
+
+			fprintf(stderr,"\n没有数据 dataLen=%d",dataLen);
 		}
 	}
 	fprintf(stderr,"\n 处理07测量点代理返回 dealProxy_645_07 dataLen = %d",dataLen);
@@ -2428,7 +2438,6 @@ INT8S dealProxyType1(PROXY_GETLIST getlist,INT8U port485)
 			continue;
 		}
 
-
 		if(obj6001.basicinfo.port.attrindex != port485)
 		{
 			fprintf(stderr,"非本端口测量点不处理");
@@ -2441,11 +2450,9 @@ INT8S dealProxyType1(PROXY_GETLIST getlist,INT8U port485)
 			continue;
 		}
 
-
 		INT8U addlen = getlist.objs[index].tsa.addr[0]+1;
 		memcpy(&getlist.data[totalLen],&getlist.objs[index].tsa.addr[0],addlen);
 		totalLen += addlen;
-
 
 		INT8U portUse = obj6001.basicinfo.port.attrindex;
 		DbgPrintToFile1(port485,"dealProxy--------1 addr:%02x%02x%02x%02x%02x%02x%02x%02x",
@@ -2493,7 +2500,7 @@ INT8S dealProxyType1(PROXY_GETLIST getlist,INT8U port485)
 #endif
 		mqs_send((INT8S *)PROXY_NET_MQ_NAME,1,TERMINALPROXY_RESPONSE,(INT8U *)&getlist,sizeof(PROXY_GETLIST));
 		fprintf(stderr,"\n代理消息已经发出\n\n");
-
+		result = 1;
 	}
 	return result;
 }
@@ -2610,11 +2617,11 @@ INT8S dealProxy(PROXY_GETLIST getlist,INT8U port485)
 
 	if(getlist.proxytype == 1)
 	{
-		dealProxyType1(getlist,port485);
+		result = dealProxyType1(getlist,port485);
 	}
 	if(getlist.proxytype == 7)
 	{
-		dealProxyType7(getlist,port485);
+		result = dealProxyType7(getlist,port485);
 	}
 
 
@@ -2878,12 +2885,12 @@ INT8S dealProxyQueue(INT8U port485)
 
 	if(cjcommProxy.isInUse&(1<<(port485-1)))
 	{
-		dealProxy(cjcommProxy.strProxyList,port485);
+		result = dealProxy(cjcommProxy.strProxyList,port485);
 		cjcommProxy.isInUse &= ~(1<<(port485-1));
 	}
 	if(cjguiProxy.isInUse&(1<<(port485-1)))
 	{
-		dealGuiRead(cjguiProxy.strProxyMsg,port485);
+		result = dealGuiRead(cjguiProxy.strProxyMsg,port485);
 		cjguiProxy.isInUse &= ~(1<<(port485-1));
 	}
 
@@ -3194,12 +3201,18 @@ INT8S checkBroadCast(INT8U port485)
 
 	return ret;
 }
-
+void sendProxyFault(PROXY_GETLIST getlist)
+{
+	getlist.status = 3;
+	getlist.datalen = 1;
+	memset(getlist.data,0,BUFFSIZE512);
+	mqs_send((INT8S *)PROXY_NET_MQ_NAME,1,TERMINALPROXY_RESPONSE,(INT8U *)&getlist,sizeof(PROXY_GETLIST));
+	fprintf(stderr,"\n代理消息已经发出\n\n");
+}
 //处理代理抄读停上实时请求-
 INT8S dealRealTimeRequst(INT8U port485)
 {
 	INT8S result = 0;
-
 	while(readState)
 	{
 		DbgPrintToFile1(port485,"\n 另一个线程正在处理消息 dealRealTimeRequst \n");
@@ -3207,7 +3220,6 @@ INT8S dealRealTimeRequst(INT8U port485)
 	}
 	//处理代理
 	result = dealProxyQueue(port485);
-
 	//fprintf(stderr,"\n poweroffon_state = %d",poweroffon_state);
 	//先抄读停上电事件
 	if(poweroffon_state == 1)
