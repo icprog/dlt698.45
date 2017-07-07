@@ -1263,7 +1263,7 @@ INT8U getASNInfo(FORMAT07* DI07,Base_DataType* dataType)
 			{
 				INT8U tmpBuff[4] = {0};
 				INT8U reverBuff[4] = {0};
-				memcpy(&tmpBuff[1],&DI07->Data[tmpIndex*8],3);
+				memcpy(&tmpBuff[0],&DI07->Data[tmpIndex*8],3);
 				INT32U value = 0;
 
 				bcd2int32u(tmpBuff,4,inverted,&value);
@@ -1290,8 +1290,8 @@ INT8U getASNInfo(FORMAT07* DI07,Base_DataType* dataType)
 			xuliangdata[tmpIndex*15+13] = minute;
 			xuliangdata[tmpIndex*15+14] = 0;
 			DI07->Length += 15;
-			memcpy(&DI07->Data[tmpIndex*15],&xuliangdata[tmpIndex*15],15);
 		}
+		memcpy(&DI07->Data[0],xuliangdata,unitNum*15);
 		fprintf(stderr,"需量 DI07->Length = %d",DI07->Length);
 		return unitNum;
 	}
