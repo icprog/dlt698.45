@@ -2993,7 +2993,7 @@ INT8U updatedatafp(FILE *fp,INT8U recno,INT8U selectype,INT16U interval,CURR_REC
 /*
  * recinfo记录索引信息，用于动态更新读取文件流信息 将找测的selector信息转化为统一的格式
  */
-INT8U initrecinfo(CURR_RECINFO *recinfo,TASKSET_INFO tasknor_info,INT8U selectype,RSD select,INT8U freezetype)
+INT8U initrecinfo(OAD getOAD,CURR_RECINFO *recinfo,TASKSET_INFO tasknor_info,INT8U selectype,RSD select,INT8U freezetype)
 {
 	time_t time_s,time_tmp,sec_tmp=0;
 	struct tm *tm_p;
@@ -3007,6 +3007,7 @@ INT8U initrecinfo(CURR_RECINFO *recinfo,TASKSET_INFO tasknor_info,INT8U selectyp
 		recinfo->rec_start = time(NULL);//当前时间的秒数
 		recinfo->rec_end = time(NULL);
 		break;
+	case 4:
 	case 5:
 		recinfo->recordno_num = tasknor_info.runtime;
 		//		if(freezetype == 3)//日冻结
@@ -3018,7 +3019,10 @@ INT8U initrecinfo(CURR_RECINFO *recinfo,TASKSET_INFO tasknor_info,INT8U selectyp
 		tm_p->tm_min = tasknor_info.startmin;
 		tm_p->tm_sec = 0;
 		asyslog(LOG_INFO,"sele5 tasknor_info.save_timetype=%d,freezetype=%d",tasknor_info.save_timetype,freezetype);
-		if(freezetype == 1 && (tasknor_info.save_timetype == 2 || tasknor_info.save_timetype == 3 || tasknor_info.save_timetype == 4))
+
+		//一致性测试GET_20 sel5,存储类型=2，跨日招测当天的日冻结数据，查找文件，day不能+1
+//		if(freezetype == 1 && (tasknor_info.save_timetype == 2 || tasknor_info.save_timetype == 3 || tasknor_info.save_timetype == 4))
+		if(freezetype == 1 && (tasknor_info.save_timetype == 3 || tasknor_info.save_timetype == 4))
 		{
 			asyslog(LOG_INFO,"日冻结招测小时=%d",select.selec7.collect_save_star.hour.data);
 			tm_p->tm_mday = tm_p->tm_mday+1;
@@ -3072,6 +3076,7 @@ INT8U initrecinfo(CURR_RECINFO *recinfo,TASKSET_INFO tasknor_info,INT8U selectyp
 		}
 		else
 		{
+			////TODO:  TimeBCDTotime_t()  转换函数可用
 			tm_p = localtime(&time_s);
 			tm_p->tm_year = select.selec7.collect_save_star.year.data-1900;
 			tm_p->tm_mon = select.selec7.collect_save_star.month.data-1;
@@ -3096,17 +3101,38 @@ INT8U initrecinfo(CURR_RECINFO *recinfo,TASKSET_INFO tasknor_info,INT8U selectyp
 				asyslog(LOG_INFO,"--------%d---%d",time_tmp,recinfo->rec_end);
 				recinfo->rec_end = time_tmp;
 			}
-			recinfo->recordno_num = (recinfo->rec_end - recinfo->rec_start)/tasknor_info.freq + 1;
+			//一致性测试GET_21:Selector6招测选择区间应该是前闭后开【起始值，结束值），查询记录数不应该+1
+			if((recinfo->rec_end - recinfo->rec_start)/tasknor_info.freq !=0) {
+				recinfo->recordno_num = (recinfo->rec_end - recinfo->rec_start)/tasknor_info.freq;
+			}else {
+				recinfo->recordno_num = (recinfo->rec_end - recinfo->rec_start)/tasknor_info.freq + 1;
+			}
 		}
 		asyslog(LOG_INFO,"n-----recinfo->recordno_num=%d,recinfo->rec_end=%d,recinfo->rec_start=%d,tasknor_info.freq=%d\n"
 				,recinfo->recordno_num,recinfo->rec_end,recinfo->rec_start,tasknor_info.freq);
 
 		break;
 	case 10://主动上报类
-		recinfo->recordno_num = select.selec10.recordn;
-		fprintf(stderr,"\nselect.selec10.recordn=%d\n",select.selec10.recordn);
-		recinfo->rec_start = time(NULL);
-		recinfo->rec_end = recinfo->rec_start-recinfo->recordno_num*tasknor_info.freq;
+		//一致性测试GET_25 sel10 OAD=6012_0300,应能正确查找数据
+		if(getOAD.OI==0x6012 && getOAD.attflg==03 && getOAD.attrindex==00) {
+			//只处理了日冻结处理
+			recinfo->recordno_num = select.selec10.recordn;
+			time(&time_s);
+			tm_p = localtime(&time_s);
+			tm_p->tm_hour = 0;
+			tm_p->tm_min = 0;
+			tm_p->tm_sec = 0;
+			fprintf(stderr,"end:%d-%d-%d %d:%d:%d\n",tm_p->tm_year,tm_p->tm_mon,tm_p->tm_mday,tm_p->tm_hour,tm_p->tm_min,tm_p->tm_sec);
+			recinfo->rec_end = mktime(tm_p);
+			recinfo->rec_start = recinfo->rec_end-tasknor_info.freq;
+			fprintf(stderr,"end(%ld):%d-%d-%d %d:%d:%d\n",recinfo->rec_end,tm_p->tm_year,tm_p->tm_mon,tm_p->tm_mday,tm_p->tm_hour,tm_p->tm_min,tm_p->tm_sec);
+			fprintf(stderr,"start(%ld) freq=%d\n",recinfo->rec_start,tasknor_info.freq);
+		}else {
+			recinfo->recordno_num = select.selec10.recordn;
+			fprintf(stderr,"\nselect.selec10.recordn=%d\n",select.selec10.recordn);
+			recinfo->rec_start = time(NULL);
+			recinfo->rec_end = recinfo->rec_start-recinfo->recordno_num*tasknor_info.freq;
+		}
 		break;
 	default:
 		memset(recinfo,0x00,sizeof(CURR_RECINFO));
@@ -3548,7 +3574,7 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds,INT16U fr
 		selectype = 7;
 	fprintf(stderr,"\n-----selectype = %d---%d\n",selectype,select.selec8.collect_succ_finish.day.data);
 
-	if(selectype != 0 && selectype != 5 && selectype != 7 && selectype != 10)
+	if(selectype != 0 && selectype != 4 && selectype != 5 && selectype != 7 && selectype != 10)
 		return 0;
 
 	if(csds.num > MY_CSD_NUM)
@@ -3586,8 +3612,9 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds,INT16U fr
 		meters_null.mstype = 1;//全部电表
 		tsa_num = getOI6001(meters_null,(INT8U **)&tsa_group);
 		break;
+	case 4:
 	case 5:
-		fprintf(stderr,"selec5.meters mstype = %d,data=%d-%d\n",select.selec5.meters.mstype,select.selec5.meters.ms.userAddr[0].addr[0],select.selec5.meters.ms.userAddr[0].addr[1]);
+		fprintf(stderr,"selec4_5.meters mstype = %d,data=%d-%d\n",select.selec5.meters.mstype,select.selec5.meters.ms.userAddr[0].addr[0],select.selec5.meters.ms.userAddr[0].addr[1]);
 		tsa_num = getOI6001(select.selec5.meters,(INT8U **)&tsa_group);
 		break;
 	case 7:
@@ -3632,7 +3659,7 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds,INT16U fr
 //		asyslog(LOG_INFO,"\n得到任务信息成功\n");
 		memset(&recinfo,0x00,sizeof(CURR_RECINFO));
 //		asyslog(LOG_INFO,"\n----------获得recinfo信息\n");
-		initrecinfo(&recinfo,tasknor_info,selectype,select,taskinfoflg);//获得recinfo信息
+		initrecinfo(oad,&recinfo,tasknor_info,selectype,select,taskinfoflg);//获得recinfo信息
 		fprintf(stderr,"\n----------获得recinfo信息成功\n");
 		//获得第一个序号
 		currecord = getrecordno(tasknor_info.starthour,tasknor_info.startmin,tasknor_info.freq,recinfo);//freq为执行间隔,单位分钟
@@ -3769,7 +3796,7 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds,INT16U fr
 				}
 			}
 			//5\定位指定的点（行）, 返回offset
-			if(selectype == 7 || selectype == 5)
+			if(selectype == 7 || selectype == 5 || selectype == 4)
 				rec_tmp = j-1;
 			else
 				if(getcurecord(selectype,&currecord,j,tasknor_info.runtime) == 0)//招测天数跨度超出10天

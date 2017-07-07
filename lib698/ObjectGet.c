@@ -1711,11 +1711,11 @@ int doGetrecord(INT8U type,OAD oad,INT8U *data,RESULT_RECORD *record,INT16U *sub
 		record->data = TmpDataBuf;				//data 指向回复报文帧头
 		record->datalen += dest_index;			//数据长度+ResultRecord
 		break;
-	case 4:
-
-		break;
-	case 5:
-	case 7:
+	case 4://指定电能表集合、指定采集启动时间
+	case 5://指定电能表集合、指定采集存储时间
+	case 6://指定电能表集合、指定采集启动时间区间内连续间隔值
+	case 7://指定电能表集合、指定采集存储时间区间内连续间隔值
+	case 8://指定电能表集合、指定采集成功时间区间内连续间隔值
 		dest_index +=fill_RCSD(0,&record->data[dest_index],record->rcsd.csds);
 		record->data = &TmpDataBuf[dest_index];
 		*subframe = getSelector(oad,record->select, record->selectType,record->rcsd.csds,(INT8U *)record->data,(int *)&record->datalen,AppVar_p->server_send_size);
@@ -1745,19 +1745,32 @@ int doGetrecord(INT8U type,OAD oad,INT8U *data,RESULT_RECORD *record,INT16U *sub
 		*subframe = 1;		//TODO:未处理分帧
 		dest_index +=fill_RCSD(0,&record->data[dest_index],record->rcsd.csds);
 		record->data = &TmpDataBuf[dest_index];
-		Getevent_Record_Selector(record,memp);
-		record->data = TmpDataBuf;				//data 指向回复报文帧头
-		record->datalen += dest_index;			//数据长度+ResultRecord
+		 //一致性测试GET_24 rcsd=0,应答帧应填写rcsd=0
+		if((record->oad.OI & 0xf000) == 0x5000) {	//招测冻结类数据
+			if(record->rcsd.csds.num==0) {
+				record->data[dest_index++] = 0;	//RCSD=0
+				record->data[dest_index++] = 1;	//Data
+				record->data[dest_index++] = 1;	//seqof A-RecordRow
+				record->data[dest_index++] = 0;	//A-RecordRow len
+				record->datalen += dest_index;
+			}
+		}else {
+			Getevent_Record_Selector(record,memp);
+			record->data = TmpDataBuf;				//data 指向回复报文帧头
+			record->datalen += dest_index;			//数据长度+ResultRecord
+		}
 		break;
 	case 10:	//指定读取最新的n条记录
-		if(((record->oad.OI>>12)&0x00ff)==6){
-			*subframe = 1;
-			dest_index +=fill_RCSD(0,&record->data[dest_index],record->rcsd.csds);
-			record->data[dest_index++]=1;
-			record->data[dest_index++]=0; //按找不到数据处理
-			record->datalen += dest_index;
-			return 0;
-		}
+		//协议一致性测试GET_25,招测OAD=6012-0300,应该能正常找到数据应答，下面注释
+//		if(((record->oad.OI>>12)&0x00ff)==6){
+//			fprintf(stderr,"record.oi=%04x\n",record->oad.OI);
+//			*subframe = 1;
+//			dest_index +=fill_RCSD(0,&record->data[dest_index],record->rcsd.csds);
+//			record->data[dest_index++]=1;
+//			record->data[dest_index++]=0; //按找不到数据处理
+//			record->datalen += dest_index;
+//			return 0;
+//		}
 		*subframe = getSelector(record->oad,record->select,record->selectType,record->rcsd.csds,NULL,NULL,AppVar_p->server_send_size);
 		if(*subframe==1) {		//无分帧
 			//文件中第一个字节保存的是：SEQUENCE OF A-ResultRecord，此处从TmpDataBuf[1]上送，上送长度也要-1

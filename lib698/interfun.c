@@ -846,6 +846,7 @@ int get_BasicRSD(INT8U type,INT8U *source,INT8U *dest,INT8U *seletype)		//0x5A
 		case 5:
 			index += getDateTimeS(0,&source[index],(INT8U *)&rsd.selec4.collect_star,&DAR);
 			fprintf(stderr,"\n--- %02x %02x --",source[1+index],source[1+index+1]);
+			printDataTimeS("采集启动/存储时间",rsd.selec4.collect_star);
 			index += getMS(0,&source[index],&rsd.selec4.meters);
 			memcpy(dest,&rsd.selec4,sizeof(rsd.selec4));
 			break;
