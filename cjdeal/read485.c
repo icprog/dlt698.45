@@ -1263,7 +1263,7 @@ INT8U getASNInfo(FORMAT07* DI07,Base_DataType* dataType)
 			{
 				INT8U tmpBuff[4] = {0};
 				INT8U reverBuff[4] = {0};
-				memcpy(&tmpBuff[1],&DI07->Data[tmpIndex*8],3);
+				memcpy(&tmpBuff[0],&DI07->Data[tmpIndex*8],3);
 				INT32U value = 0;
 
 				bcd2int32u(tmpBuff,4,inverted,&value);
@@ -1290,8 +1290,9 @@ INT8U getASNInfo(FORMAT07* DI07,Base_DataType* dataType)
 			xuliangdata[tmpIndex*15+13] = minute;
 			xuliangdata[tmpIndex*15+14] = 0;
 			DI07->Length += 15;
-			memcpy(&DI07->Data[tmpIndex*15],&xuliangdata[tmpIndex*15],15);
+
 		}
+		memcpy(&DI07->Data[0],xuliangdata,15*unitNum);
 		fprintf(stderr,"需量 DI07->Length = %d",DI07->Length);
 		return unitNum;
 	}
@@ -3343,11 +3344,7 @@ INT16S deal6015_698(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8
 		}
 		subindex++;
 	}
-	if(isSuccess == 1)
-	{
-		st6035->successMSNum++;
-	}
-	else
+	if(isSuccess != 1)
 	{
 		fprintf(stderr,"\n 抄表失败　　Event_310F \n");
 		Event_310F(to6001.basicinfo.addr,NULL,0,JProgramInfo);
@@ -3380,13 +3377,9 @@ INT16S request698_07DataList(C601F_07Flag obj601F_07Flag, CLASS_6001 meter,INT8U
 		}
 
 	}
-	if(isSuccess ==1)
+	if(isSuccess !=1)
 	{
-		st6035->successMSNum++;
-	}
-
-	else //485抄表失败
-	{
+		//485抄表失败
 		//Event_310F()
 	}
 	return DataLen;
@@ -3416,12 +3409,7 @@ INT16S request698_97DataList(C601F_97Flag obj601F_97Flag, CLASS_6001 meter,INT8U
 		}
 
 	}
-	if(isSuccess ==1)
-	{
-		st6035->successMSNum++;
-	}
-
-	else //485抄表失败
+	if(isSuccess !=1)
 	{
 		//Event_310F()
 	}
@@ -4411,7 +4399,10 @@ INT8S deal6015or6017(CLASS_6013 st6013,CLASS_6015 st6015, INT8U port485,CLASS_60
 						DbgPrintToFile1(port485,"参数变更 重新抄表");
 						return PARA_CHANGE_RETVALUE;
 					}
-
+					if(dataLen > 0)
+					{
+						st6035->successMSNum++;
+					}
 					if((dataLen > 0)&&(st6013.cjtype == norm)&&(st6015.cjtype != TYPE_INTERVAL))
 					{
 						TS ts_cc;
