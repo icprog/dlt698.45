@@ -1263,7 +1263,7 @@ INT8U getASNInfo(FORMAT07* DI07,Base_DataType* dataType)
 			{
 				INT8U tmpBuff[4] = {0};
 				INT8U reverBuff[4] = {0};
-				memcpy(&tmpBuff[1],&DI07->Data[tmpIndex*8],3);
+				memcpy(&tmpBuff[0],&DI07->Data[tmpIndex*8],3);
 				INT32U value = 0;
 
 				bcd2int32u(tmpBuff,4,inverted,&value);
@@ -1290,8 +1290,8 @@ INT8U getASNInfo(FORMAT07* DI07,Base_DataType* dataType)
 			xuliangdata[tmpIndex*15+13] = minute;
 			xuliangdata[tmpIndex*15+14] = 0;
 			DI07->Length += 15;
-			memcpy(&DI07->Data[tmpIndex*15],&xuliangdata[tmpIndex*15],15);
 		}
+		memcpy(&DI07->Data[0],xuliangdata,unitNum*15);
 		fprintf(stderr,"需量 DI07->Length = %d",DI07->Length);
 		return unitNum;
 	}
@@ -3067,11 +3067,42 @@ INT8S checkBroadCast(INT8U port485)
 		if(timeCmp < 2)
 		{
 			asyslog(LOG_WARNING,"抄表口[%d],广播校时时间到",port485); //将下面几句话移到timeCmp<2之内，到广播对时时间再进行对时
-			TSA meterAddr;
-			meterAddr.addr[0] = 7;
-			meterAddr.addr[1] = 5;
-			sendSetTimeCMD698(meterAddr,port485,1);	//？？？？698广播校时时间不正确
-			sendBroadCastTime07(port485);
+
+			INT8U port = port485-1;
+			INT16U meterIndex = 0;
+			CLASS_6001 meter = { };
+			INT8U isHas698Meter = 0;
+			INT8U isHas07Meter = 0;
+			for (meterIndex = 0; meterIndex < info6000[port].meterSum; meterIndex++)
+			{
+				dealProxyQueue(port485);
+				memset(&meter,0,sizeof(CLASS_6001));
+				if (readParaClass(0x6000, &meter, info6000[port].list6001[meterIndex]) == 1)
+				{
+					if (meter.sernum != 0 && meter.sernum != 0xffff)
+					{
+						if((is485OAD(meter.basicinfo.port,port485)==1) && (meter.basicinfo.protocol == DLT_698)&& (isHas698Meter == 0))
+						{
+							TSA meterAddr;
+							meterAddr.addr[0] = 7;
+							meterAddr.addr[1] = 5;
+							sendSetTimeCMD698(meterAddr,port485,1);	//？？？？698广播校时时间不正确
+							isHas698Meter = 1;
+						}
+						if((is485OAD(meter.basicinfo.port,port485)==1) && (meter.basicinfo.protocol == DLT_645_07)&& (isHas07Meter == 0))
+						{
+							sendBroadCastTime07(port485);
+							isHas07Meter = 1;
+						}
+						if((isHas698Meter==1)&&(isHas07Meter==1))
+						{
+							break;
+						}
+					}
+
+				}
+			}
+
 			broadtime[port485] = 1;
 		}
 	}
@@ -3096,9 +3127,8 @@ INT8S checkBroadCast(INT8U port485)
 			CLASS_6001 meter = { };
 
 			//07表广播对时
-			sendBroadCastTime07(port485);
 			sleep(5);
-
+			INT8U isHas07Meter = 0;
 			for (meterIndex = 0; meterIndex < info6000[port].meterSum; meterIndex++)
 			{
 				dealProxyQueue(port485);
@@ -3112,10 +3142,19 @@ INT8S checkBroadCast(INT8U port485)
 							dealBroadCastSingleMeter(port485,meter);
 						}
 					}
+					if((is485OAD(meter.basicinfo.port,port485)==1) && (meter.basicinfo.protocol == DLT_645_07))
+					{
+						isHas07Meter = 1;
+					}
 				}
 			}
+			if(isHas07Meter == 0)
+			{
+				flagDay_4204[port485-1] = 0;
+				return ret;
+			}
 			//07表广播对时
-			sendBroadCastTime07(port485);
+//			sendBroadCastTime07(port485);
 			sleep(5);
 
 			for (meterIndex = 0; meterIndex < info6000[port].meterSum; meterIndex++)

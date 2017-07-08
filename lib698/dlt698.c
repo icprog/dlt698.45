@@ -73,10 +73,10 @@ int StateProcess(CommBlock* nst, int delay_num)
 			if(((nst->RHead-nst->RTail+FRAMELEN)%FRAMELEN) >= 3)
 			{
 //				fprintf(stderr,"\nNetRevBuf[*rev_tail] = %02x  %02x\n ",NetRevBuf[(*rev_tail+ 2)%FRAMELEN],NetRevBuf[(*rev_tail+ 1)%FRAMELEN]);
-				fprintf(stderr,"\nRevBuf[%d]=%02x  %02x  %02x  %02x",
-						nst->RTail,
-						nst->RecBuf[(nst->RTail+ 1 + FRAMELEN )%FRAMELEN],
-						nst->RecBuf[(nst->RTail+ 2 + FRAMELEN )%FRAMELEN]);
+//				fprintf(stderr,"\nRevBuf[%d]=%02x  %02x  %02x",
+//						nst->RTail,
+//						nst->RecBuf[(nst->RTail+ 1 + FRAMELEN )%FRAMELEN],
+//						nst->RecBuf[(nst->RTail+ 2 + FRAMELEN )%FRAMELEN]);
 
 				length = (nst->RecBuf[(nst->RTail+ 2 + FRAMELEN )%FRAMELEN] << 8) + nst->RecBuf[(nst->RTail+ 1 + FRAMELEN)%FRAMELEN];
 				fprintf(stderr,"\n---length =%d  ",length);
@@ -327,17 +327,16 @@ INT8U CtrlWord(CSINFO* csinfo)
 {
 	ctlUN ctl;
 
+	fprintf(stderr,"csinfo.dir=%d,prm=%d",csinfo->dir,csinfo->prm);
 	if(csinfo == NULL)
 		return 0;
 
 	ctl.u8b = 0;
-	if(csinfo->dir == 0)//如果接收报文来自客户机, 则应给出服务器的应答
-		ctl.ctl.dir = 1;
-
+	ctl.ctl.dir = csinfo->dir;//如果接收报文来自客户机, 则应给出服务器的应答
 	ctl.ctl.prm = csinfo->prm;//直接使用接收报文的启动标志
 	ctl.ctl.divS = csinfo->gframeflg;
 	ctl.ctl.func = csinfo->funcode;
-
+	fprintf(stderr,"ctl.u8b=%02x",ctl.u8b);
 	return ctl.u8b;
 }
 void FrameTail(INT8U *buf,int index,int hcsi)
@@ -859,11 +858,14 @@ int doActionRequest(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 {
 	int	 seqnum = 0,i=0;
 	int	 index = 0,apdu_index=0;
+	int	 choice_index = 0;
 	OAD  oad={};
 	INT8U *data=NULL;
 	INT8U request_choice = apdu[apdu_index+1];		//ACTION-Request
 	piid_g.data = apdu[apdu_index+2];				//PIID
 	Action_result	act_ret={};
+	INT8U get_delay = 0;		//延时读取时间
+	RESULT_NORMAL response={};
 
 	fprintf(stderr,"\n-------- request choice = %d",request_choice);
 	switch(request_choice)
@@ -892,6 +894,7 @@ int doActionRequest(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 			fprintf(stderr,"seqnum = %d\n",seqnum);
 			TmpDataBuf[index++] = seqnum;
 			for(i=0;i<seqnum;i++) {
+				act_ret.DAR = success;	//每个OAD先默认成功
 				oad.OI= (apdu[apdu_index]<<8) | apdu[apdu_index+1];
 				apdu_index+=2;
 				oad.attflg = apdu[apdu_index++];
@@ -907,6 +910,57 @@ int doActionRequest(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 			doReponse(ACTION_RESPONSE,ActionResponseNormalList,csinfo,index,TmpDataBuf,buf);
 			break;
 		case ACTIONTHENGET_REQUEST_NORMAL_LIST:
+			index = 0;
+			apdu_index = 3;
+			data = &apdu[apdu_index];					//Data
+			seqnum = apdu[apdu_index++];				//3
+			fprintf(stderr,"ACTIONTHENGET_REQUEST_NORMAL_LIST  seqnum = %d\n",seqnum);
+			TmpDataBuf[index++] = seqnum;
+			for(i=0;i<seqnum;i++) {
+				act_ret.DAR = success;	//每个OAD先默认成功
+				oad.OI= (apdu[apdu_index]<<8) | apdu[apdu_index+1];
+				apdu_index+=2;
+				oad.attflg = apdu[apdu_index++];
+				oad.attrindex = apdu[apdu_index++];
+				index += create_OAD(0,&TmpDataBuf[index],oad);
+				doObjectAction(oad,&apdu[apdu_index],&act_ret);
+				TmpDataBuf[index++] = act_ret.DAR;
+//				if(act_ret.DAR == success) {
+					TmpDataBuf[index++] = 0;		//数据为空
+//				}
+				apdu_index += act_ret.datalen;
+				//read
+				oad.OI= (apdu[apdu_index]<<8) | apdu[apdu_index+1];
+				apdu_index+=2;
+				oad.attflg = apdu[apdu_index++];
+				oad.attrindex = apdu[apdu_index++];
+				get_delay = apdu[apdu_index++];						//延时读取时间
+				if(get_delay>=0 && get_delay<=5) 	sleep(get_delay);
+				fprintf(stderr,"read oad=%04x_%02x%02x,get_delay=%d\n",oad.OI,oad.attflg,oad.attrindex,get_delay);
+				//A-ReusltNormal.OAD
+				index += create_OAD(0,&TmpDataBuf[index],oad);
+				memcpy(&response.oad,&oad,sizeof(response.oad));
+				choice_index = index;
+				index += 1;		//空出Get-Result::CHOICE的 DAR，Data的位置
+				response.datalen = 0;
+				response.data = &TmpDataBuf[index];	//将reposnse获取的data指向Data数据
+				doGetnormal(0,&response);
+				int j=0;
+				fprintf(stderr,"datalen=%d\n",response.datalen);
+				for(j=0;j<response.datalen;j++) {
+					fprintf(stderr,"%02x ",response.data[j]);
+				}
+				if(response.datalen>0) {
+					//A-ReusltNormal.Get-Result
+					TmpDataBuf[choice_index] = 1;		//Get-Result::Data
+					index = index + response.datalen;
+				}else {
+					TmpDataBuf[choice_index++] = 0;//错误
+					TmpDataBuf[choice_index++] = response.dar;
+					index = choice_index;
+				}
+			}
+			doReponse(ACTION_RESPONSE,ActionThenGetResponseNormalList,csinfo,index,TmpDataBuf,buf);
 			break;
 	}
 	return 1;

@@ -123,3 +123,14 @@ INT8U getPortValid(OAD oad)
     	return success;
 	return type_mismatch;
 }
+/*
+ * selector2 选择条件的合法性判断，起始时间>=结束时间，返回0，否则返回1
+ * */
+INT8U DataTimeCmp(DateTimeBCD startdt,DateTimeBCD enddt)
+{
+	time_t t1=0,t2=0;
+	t1 = TimeBCDTotime_t(startdt);
+	t2 = TimeBCDTotime_t(enddt);
+	if(t1>=t2)  return 0;
+	else return 1;
+}

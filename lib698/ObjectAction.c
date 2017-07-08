@@ -353,7 +353,6 @@ void AddBatchMeterInfo(INT8U *data, INT8U type, Action_result *act_ret) {
         if(act_ret->DAR!=success)
         	return;
         index += getEnum(1, &dealdata[index], &meter.basicinfo.protocol);
-
         act_ret->DAR=getEnumValid(meter.basicinfo.protocol,0,4,255);
 		if(act_ret->DAR!=success)
 			return;
@@ -1421,9 +1420,14 @@ int doObjectAction(OAD oad, INT8U *data, Action_result *act_ret) {
             }
             break;
         case 0xF200:	//RS232
-        	act_ret->datalen = Set_F200(data,&act_ret->DAR);
+     		if (attr_act == 127) {  //方法 127 配置端口
+     			act_ret->datalen = Set_F200(0xf200,data,&act_ret->DAR);
+     		}
         	break;
         case 0xF202:	//红外
+        	if (attr_act == 127) {  //方法 127 配置端口
+        		act_ret->datalen = Set_F202(0xf202,data,&act_ret->DAR);
+        	}
         	break;
         case 0x2301:
             class23_selector(1, attr_act, data, act_ret);

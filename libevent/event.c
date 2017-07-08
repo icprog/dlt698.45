@@ -414,6 +414,7 @@ INT8U Getevent_Record_Selector(RESULT_RECORD *record_para,ProgramInfo* prginfo_e
 		 oi_array[oi_index++]=0x2020;
 		 oi_array[oi_index++]=0x2024;
 	 }
+	 fprintf(stderr,"oi_index= %d\n",oi_index);
 	 int j=0;
 	 for(j=0;j<oi_index;j++)
 		 fprintf(stderr,"j:%04x \n",oi_array[j]);
@@ -458,19 +459,24 @@ INT8U Getevent_Record_Selector(RESULT_RECORD *record_para,ProgramInfo* prginfo_e
 				break;
 			 }
 		 }
-			INT8U *data=NULL;
-			int datalen=0;
-			if(Get_Event(record_para->oad,1,&data,&datalen,prginfo_event) == 1){
-				if(data!=NULL && datalen>0 && datalen<256){
-					record_para->data[real_index++] = 1; //data
-					record_para->data[real_index++] = 1; //1个
-					memcpy(&record_para->data[real_index],&data[STANDARD_NO_INDEX],datalen-2);//事件序号以后得数据
-					real_index +=datalen-2;
-				}else
-					record_para->data[real_index++] = 0;
+		INT8U *data=NULL;
+		int datalen=0;
+		if(Get_Event(record_para->oad,1,&data,&datalen,prginfo_event) == 1){
+			if(data!=NULL && datalen>0 && datalen<256){
+				record_para->data[real_index++] = 1; //data
+				record_para->data[real_index++] = 1; //1个
+				memcpy(&record_para->data[real_index],&data[STANDARD_NO_INDEX],datalen-2);//事件序号以后得数据
+				real_index +=datalen-2;
 			}else
 				record_para->data[real_index++] = 0;
-			record_para->datalen =real_index;//最终长度
+		}else {
+			fprintf(stderr,"GET_26:未定义对象属性，上送数据NULL\n");
+			record_para->data[0] = 1;	//A-ResultRecord CHOICE=1
+			record_para->data[1] = 1;	//Sequence of A-RecordRow
+			record_para->data[2] = 0;	//Data = NULL
+			real_index = 3;
+		}
+		record_para->datalen =real_index;//最终长度
 	 }
 	return 1;
 }
@@ -1925,13 +1931,13 @@ INT8U Event_3110(INT32U data,INT8U len,ProgramInfo* prginfo_event) {
 		readCoverClass(0x3110,0,&prginfo_event->event_obj.Event3110_obj,sizeof(prginfo_event->event_obj.Event3110_obj),event_para_save);
 		oi_chg.oi3110 = prginfo_event->oi_changed.oi3110;
 	}
-	fprintf(stderr,"[Event3110]enableflag=%d \n",prginfo_event->event_obj.Event3110_obj.event_obj.enableflag);
+	//fprintf(stderr,"[Event3110]enableflag=%d \n",prginfo_event->event_obj.Event3110_obj.event_obj.enableflag);
     if (prginfo_event->event_obj.Event3110_obj.event_obj.enableflag == 0) {
         return 0;
     }
     static INT8U flag=0;
     INT32U offset=prginfo_event->event_obj.Event3110_obj.Monthtrans_obj.month_offset;
-    fprintf(stderr,"Event3110:data=%d offset=%d \n",data,offset);
+    //fprintf(stderr,"Event3110:data=%d offset=%d \n",data,offset);
     //通信处判断还是这里判断 TODO
     if(data>offset){
     	if(flag==0){

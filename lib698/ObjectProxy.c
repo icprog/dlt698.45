@@ -171,11 +171,11 @@ int Proxy_TransCommandRequest(INT8U *data,CSINFO *csinfo,INT8U *sendbuf,INT8U pi
 	PROXY_GETLIST getlist;
 	INT8S	ret=0;
 	INT16U	index=0;
-
+	INT8U	DAR=success;
 	getlist.piid = piid;
 	getlist.proxytype = ProxyTransCommandRequest;
 	index += getOAD(0,&data[index],&getlist.transcmd.oad,NULL);
-	index += getCOMDCB(0,&data[index],&getlist.transcmd.comdcb);
+	index += getCOMDCB(0,&data[index],&getlist.transcmd.comdcb,&DAR);
 	getlist.transcmd.revtimeout = (data[index]<<8) | data[index+1];
 	index += 2;
 	getlist.transcmd.bytetimeout = (data[index]<<8) | data[index+1];
