@@ -3189,7 +3189,6 @@ INT8S checkBroadCast(INT8U port485)
 			CLASS_6001 meter = { };
 
 			//07表广播对时
-			sendBroadCastTime07(port485);
 			sleep(5);
 			INT8U isHas07Meter = 0;
 			for (meterIndex = 0; meterIndex < info6000[port].meterSum; meterIndex++)
