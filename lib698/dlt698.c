@@ -833,7 +833,8 @@ int doProxyRequest(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
 			Proxy_GetRequestlist(data,csinfo,sendbuf,piid_g.data);
 			break;
 		case ProxyGetRequestRecord:
-
+			fprintf(stderr,"\n====ProxyGetRequestRecord======\n");
+			Proxy_GetRequestRecord(data,csinfo,sendbuf,piid_g.data);
 			break;
 		case ProxySetRequestList:
 

@@ -809,34 +809,189 @@ void timeProcess()
  *	代理操作, 即不读取代理队列中的数据.
  *	组织应答报文的工作, 交给各端口线程来做.
  */
+extern INT8U get6001ObjByTSA(TSA addr,CLASS_6001* targetMeter);
+#define PORT_ZB  	0xF209
+#define PORT_485  	0xF201
+#define PORT_JC		0xF208
+PROXY_GETLIST proxyList_manager;
+int proxy_one_fill_record(GETRECORD record,int len,INT8U *source,INT8U DARtype,INT8U *desbuf)
+{
+
+}
+int proxy_one_fill(GETOBJS obj,int len,INT8U *source,INT8U DARtype,INT8U *desbuf)
+{
+	//填充代理应答   ProxyGetResponseList
+	int index = 0,i=0;
+	int addrlen = obj.tsa.addr[0]+1;
+
+	memcpy(&desbuf[index],&obj.tsa.addr[0],addrlen);
+	index += addrlen;
+	desbuf[index++] = obj.num;
+
+	for(i=0; i<obj.num; i++)
+	{
+		OADtoBuff(obj.oads[i],&desbuf[index]);
+		index += sizeof(OAD);
+		if (source==NULL || len==0)
+		{
+			desbuf[index++] = 0x00;
+			desbuf[index++] = DARtype;
+		}else
+		{
+			desbuf[index++] = 0x01;
+			memcpy(&desbuf[index],source, len);
+		}
+	}
+	return index;
+}
+extern void set_port_active(INT8U port485,INT8U value);
+void divProxy(CJCOMM_PROXY proxy)
+{
+	int num = proxy.strProxyList.num ,i=0,num_485=0,num_zb=0,dataindex=0;
+	CLASS_6001 obj6001 = {};
+	INT8U addlen = 0;
+	memset(&cjcommProxy,0,sizeof(cjcommProxy));
+	memset(&cjcommProxy_plc,0,sizeof(cjcommProxy_plc));
+	memcpy(&proxyList_manager,&proxy.strProxyList,sizeof(PROXY_GETLIST));
+	memset(&proxyList_manager.data,0,sizeof(proxyList_manager.data));
+
+	proxyList_manager.datalen = 0;
+	proxyList_manager.data[dataindex++] = num;
+	if (proxyList_manager.timeout == 0)
+		proxyList_manager.timeout = 60;
+
+	if (proxy.strProxyList.proxytype == ProxyGetRequestRecord)
+	{
+		if(get6001ObjByTSA(proxy.strProxyList.record.tsa,&obj6001) != 1 )
+		{
+			dataindex += proxy_one_fill_record(proxy.strProxyList.record, 0, NULL,0x21, &proxyList_manager.data[dataindex]);
+		}else
+		{
+			if (obj6001.basicinfo.port.OI==PORT_485)
+			{
+				memcpy(&cjcommProxy.strProxyList.record, &proxy.strProxyList.record, sizeof(GETRECORD));
+			}else if(obj6001.basicinfo.port.OI==PORT_ZB)
+			{
+				memcpy(&cjcommProxy_plc.strProxyList.record, &proxy.strProxyList.record, sizeof(GETRECORD));
+			}
+		}
+	}
+	if (proxy.strProxyList.proxytype == ProxyGetRequestList)
+	{
+		for(i=0;i<num;i++)
+		{
+			if(get6001ObjByTSA(proxy.strProxyList.objs[i].tsa,&obj6001) != 1 )
+			{//TSA未找到
+				dataindex += proxy_one_fill(proxy.strProxyList.objs[i], 0, NULL,0x21, &proxyList_manager.data[dataindex]);
+			}else
+			{
+				if (obj6001.basicinfo.port.OI==PORT_485)
+				{
+					memcpy(&cjcommProxy.strProxyList.objs[num_485++], &proxy.strProxyList.objs[i], sizeof(GETOBJS));
+					cjcommProxy.strProxyList.num = num_485;
+				}else if(obj6001.basicinfo.port.OI==PORT_ZB)
+				{
+					memcpy(&cjcommProxy_plc.strProxyList.objs[num_zb++], &proxy.strProxyList.objs[i], sizeof(GETOBJS));
+					cjcommProxy_plc.strProxyList.num = num_zb;
+				}
+			}
+		}
+	}
+
+	proxyList_manager.datalen = dataindex;
+	fprintf(stderr,"\n代理任务分配");
+	if (num_485 > 0)
+	{
+		set_port_active(1,1);
+		set_port_active(2,1);
+		cjcommProxy.strProxyList.proxytype = proxy.strProxyList.proxytype;
+		for(i=0;i<num_485;i++)
+			fprintf(stderr,"\n485通道 %d   TSA: %02x%02x%02x%02x%02x%02x%02x%02x ",i+1,
+					cjcommProxy.strProxyList.objs[i].tsa.addr[0],cjcommProxy.strProxyList.objs[i].tsa.addr[1],cjcommProxy.strProxyList.objs[i].tsa.addr[2],
+					cjcommProxy.strProxyList.objs[i].tsa.addr[3],cjcommProxy.strProxyList.objs[i].tsa.addr[4],cjcommProxy.strProxyList.objs[i].tsa.addr[5],
+					cjcommProxy.strProxyList.objs[i].tsa.addr[6],cjcommProxy.strProxyList.objs[i].tsa.addr[7]);
+
+		cjcommProxy.isInUse = 3;
+		proxyInUse.devUse.rs485Need = 1;
+	}
+	if (num_zb > 0)
+	{
+		cjcommProxy_plc.strProxyList.proxytype = proxy.strProxyList.proxytype;
+		for(i=0;i<num_zb;i++)
+			fprintf(stderr,"\n载波通道 %d   TSA: %02x%02x%02x%02x%02x%02x%02x%02x ",i+1,
+					cjcommProxy_plc.strProxyList.objs[i].tsa.addr[0],cjcommProxy_plc.strProxyList.objs[i].tsa.addr[1],cjcommProxy_plc.strProxyList.objs[i].tsa.addr[2],
+					cjcommProxy_plc.strProxyList.objs[i].tsa.addr[3],cjcommProxy_plc.strProxyList.objs[i].tsa.addr[4],cjcommProxy_plc.strProxyList.objs[i].tsa.addr[5],
+					cjcommProxy_plc.strProxyList.objs[i].tsa.addr[6],cjcommProxy_plc.strProxyList.objs[i].tsa.addr[7]);
+
+		cjcommProxy_plc.isInUse = 1;
+		proxyInUse.devUse.plcNeed = 1;
+	}
+}
 INT8S dealMsgProcess()
 {
 	INT8S result = 0;
-	INT16U i=0;
 	GUI_PROXY cjguiProxy_Tmp;
 	CJCOMM_PROXY cjcommProxy_Tmp;
 	INT8U  rev_485_buf[2048];
 	INT32S ret;
-
+	OI_698 oad;
 	mmq_head mq_h;
+
 	ret = mmq_get(mqd_485_main, 1, &mq_h, rev_485_buf);
 
 	if (ret>0)
 	{
-		fprintf(stderr,"\n\n\n\n\n----------cmd=%d-----------------------\n\n\n\n\n\n\n",mq_h.cmd);
 		switch(mq_h.cmd)
 		{
 			case ProxyGetResponseList://代理
-			{//TODO 按照测量点来复制对应的TSA给对应的全局变量
-				if(mq_h.pid == cjdeal) {
-					DEBUG_TIME_LINE("\n收到代理召测!! \n");
+			{
+				if(mq_h.pid == cjdeal)
+				{
+					proxyInUse.devUse.proxyIdle = 1;
+					DEBUG_TIME_LINE("\n收到代理召测\n");
+					memcpy(&cjcommProxy_Tmp.strProxyList,rev_485_buf,sizeof(PROXY_GETLIST));
+					DEBUG_TIME_LINE("receive proxy frame on port: %04X", cjcommProxy_Tmp.strProxyList.transcmd.oad.OI);
+					switch(cjcommProxy_Tmp.strProxyList.proxytype)
+					{
+						case ProxyGetRequestList:
+							divProxy(cjcommProxy_Tmp);
+							break;
+						case ProxyGetRequestRecord:
+							divProxy(cjcommProxy_Tmp);
+							break;
+						case ProxySetRequestList:
+							break;
+						case ProxySetThenGetRequestList:
+							break;
+						case ProxyActionRequestList:
+							break;
+						case ProxyActionThenGetRequestList:
+							break;
+						case ProxyTransCommandRequest:
+							oad = (INT16U)cjcommProxy_Tmp.strProxyList.transcmd.oad.OI;
+							OADtoBuff(cjcommProxy_Tmp.strProxyList.transcmd.oad,proxyList_manager.data);
 
-					memcpy(&cjcommProxy_plc.strProxyList,rev_485_buf,sizeof(PROXY_GETLIST));
-					cjcommProxy_plc.isInUse = 1;
+							switch(oad) {
+							case PORT_ZB:
+								DEBUG_TIME_LINE("receive proxy frame on plc");
+								memcpy(&cjcommProxy_plc.strProxyList,rev_485_buf,sizeof(PROXY_GETLIST));
+								cjcommProxy_plc.isInUse = 1;
+								proxyInUse.devUse.plcNeed = 1;
+								break;
+							case PORT_485:
+								memcpy(&cjcommProxy.strProxyList,rev_485_buf,sizeof(PROXY_GETLIST));
+								cjcommProxy.isInUse = 3;
+								proxyInUse.devUse.rs485Need = 1;
+								break;
+							default:
 
-					memcpy(&cjcommProxy.strProxyList,rev_485_buf,sizeof(PROXY_GETLIST));
-					cjcommProxy.isInUse = 3;
-				}
+								break;
+							}
+							break;
+						default:
+							break;
+					}
+				}// end if cjdeal
 				if(mq_h.pid == cjgui)
 				{
 					fprintf(stderr, "\n收到液晶点抄-----------------------------------23232323\n");
@@ -849,7 +1004,6 @@ INT8S dealMsgProcess()
 						cjguiProxy.isInUse = 3;
 					}
 				}
-
 				readState = 0;
 			}
 			break;
@@ -857,11 +1011,8 @@ INT8S dealMsgProcess()
 			{
 				asyslog(LOG_WARNING,"485收到未知消息  cmd=%d!!!---------------", mq_h.cmd);
 			}
-
 		}
 	}
-
-
 	return result;
 }
 void replenish_tmp()
@@ -897,8 +1048,97 @@ void replenish_tmp()
 			isReplenishOver[tmpIndex] = 0;
 		}
 	}
-
 }
+/*
+ * 	dealProxyAnswer() 只负责统一将收到的应答,
+ * 	放入最终的应答队列中, 从而实现统一发送.
+ *	要对主站下发的TSA进行判断, 如果本终端
+ *	的6000参数表里没有某个TSA, 则直接组织
+ *	一条异常应答报文放到应答队列中;
+ *	若某个设备上的TSA都接收全了, 则将这个
+ *	设备的proxyInUse.devUse.xxxReady置1,
+ *	至于抄没抄到数据, 则由具体的设备线程去
+ *	完成数据的填写, 这里直接拿来用.
+ *	如果某个设备超时后, 还没接收全它的TSA数据,
+ *	则将剩下的TSA数据组织为异常报文, 放到总的
+ *	应答报文, 且将对应的设备Ready标记置1.
+ *	如果所有的设备(包括rs485, plc, 异常)
+ *	都就绪或者没使用, 则将总的应答报文
+ *	发走.
+ */
+INT8U dealProxyAnswer()
+{
+	static int timecount=0;
+	static time_t begintime=0;
+	time_t nowtime = time(NULL);
+	int index=0;
+	if (timecount==0)
+	{
+		begintime = nowtime;
+		timecount++;
+	}
+
+	if(begintime != nowtime)
+	{
+		if (abs(nowtime-begintime)<30)
+			timecount = abs(nowtime-begintime);
+		else
+			timecount++;//可能存在对时操作
+	}
+	fprintf(stderr,"\n[载波通道 %d   RS485通道 %d ]  timecount=%d  timeout=%d\n",proxyInUse.devUse.plcNeed,proxyInUse.devUse.rs485Need,timecount,proxyList_manager.timeout);
+	if (proxyInUse.devUse.plcNeed ==1 )
+	{
+		if ( proxyInUse.devUse.plcReady == 1 || timecount > proxyList_manager.timeout)
+		{//收集数据
+			pthread_mutex_lock(&mutex); //上锁
+			index = proxyList_manager.datalen;
+			memcpy(&proxyList_manager.data[index],cjcommProxy_plc.strProxyList.data,cjcommProxy_plc.strProxyList.datalen);
+			proxyList_manager.datalen += cjcommProxy_plc.strProxyList.datalen;
+			proxyInUse.devUse.plcReady = 1;
+			pthread_mutex_unlock(&mutex);
+		}
+	}
+	if (proxyInUse.devUse.rs485Need ==1 )
+	{
+		if (proxyInUse.devUse.rs485_1_Active==0 && proxyInUse.devUse.rs485_2_Active==0)
+			proxyInUse.devUse.rs485Ready = 1;
+		if ( proxyInUse.devUse.rs485Ready  == 1 || timecount > proxyList_manager.timeout)
+		{//收集数据
+			pthread_mutex_lock(&mutex); //上锁
+			fprintf(stderr,"\n\nRS485 代理返回报文 长度：%d :",cjcommProxy.strProxyList.datalen);
+
+			for(index = 0; index < cjcommProxy.strProxyList.datalen;index++)
+			{
+				fprintf(stderr,"%02x ",cjcommProxy.strProxyList.data[index]);
+				if((index+1)%20 ==0)
+				{
+					fprintf(stderr,"\n");
+				}
+			}
+			fprintf(stderr,"\n\n\n");
+
+			index = proxyList_manager.datalen;
+			memcpy(&proxyList_manager.data[index],cjcommProxy.strProxyList.data,cjcommProxy.strProxyList.datalen);
+			proxyList_manager.datalen += cjcommProxy.strProxyList.datalen;
+			proxyInUse.devUse.rs485Ready = 1;
+			pthread_mutex_unlock(&mutex);
+		}
+	}
+	if( !(proxyInUse.devUse.plcNeed ^ proxyInUse.devUse.plcReady)&&\
+		!(proxyInUse.devUse.rs485Need ^ proxyInUse.devUse.rs485Ready) ) {//当某一个设备的需要使用标记和就绪标记同时为0,
+																		//或者同时为1, 意即当需要使用
+																		//某个设备, 且当他就绪时,
+																		//才认为这个设备上的代理操作已完毕.
+																		//当代理所使用的所有设备操作完毕后,
+																		//将代理标记清零, 处理下一个代理操作.
+		mqs_send((INT8S *)PROXY_NET_MQ_NAME,1,TERMINALPROXY_RESPONSE,(INT8U *)&proxyList_manager,sizeof(PROXY_GETLIST));
+		fprintf(stderr,"\n全部代理操作完成，发消息 ！！");
+		timecount = 0;
+		proxyInUse.u8b = 0;
+	}
+	return 1;
+}
+
 void dispatch_thread()
 {
 	//运行调度任务进程
@@ -908,23 +1148,17 @@ void dispatch_thread()
 	replenishTime[1] = 60;
 	replenishTime[2] = 90;
 	replenishTime[3] = 120;
-
+	proxyTimeOut = 0;
 	proxyInUse.u8b = 0;//初始化代理操作标记
 	while(1)
 	{
 		timeProcess();
-
 		if(mqd_485_main >= 0)
 		{
 			if(proxyInUse.devUse.proxyIdle == 0) {//只有当代理操作空闲时, 才处理下一个代理操作
 				dealMsgProcess();
-			} else {//当某一个设备的需要使用标记和就绪标记同时为0, 或者同时为1, 意即当需要使用
-					//某个设备, 且当他就绪时, 才认为这个设备上的代理操作已完毕.
-					//当代理所使用的所有设备操作完毕后, 将代理标记清零, 处理下一个代理操作.
-				if( !(proxyInUse.devUse.plcNeed ^ proxyInUse.devUse.plcReady)&&\
-				    !(proxyInUse.devUse.rs485Need ^ proxyInUse.devUse.rs485Ready) ) {
-					proxyInUse.u8b = 0;
-				}
+			} else {
+				dealProxyAnswer();
 			}
 		}
 		para_ChangeType = getParaChangeType();
@@ -1068,6 +1302,7 @@ int main(int argc, char *argv[])
 		syslog(LOG_ERR,"进程 %s 参数错误",argv[0]);
 		return EXIT_FAILURE;
 	}
+	pthread_mutex_init(&mutex, NULL); //初始化互斥锁
 
 	asyslog(LOG_INFO,"进程 %s PID = %d",JProgramInfo->Projects[1].ProjectName,JProgramInfo->Projects[1].ProjectID);
 	asyslog(LOG_INFO,"进程 %s PID = %d",JProgramInfo->Projects[2].ProjectName,JProgramInfo->Projects[2].ProjectID);
@@ -1112,6 +1347,7 @@ int main(int argc, char *argv[])
 		clearcount(ProIndex);
 
    	}
+	pthread_mutex_destroy(&mutex); //销毁互斥锁
 	close_named_sem(SEMNAME_SPI0_0);
 	return EXIT_SUCCESS;//退出
 }
