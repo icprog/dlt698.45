@@ -1475,6 +1475,10 @@ int GetSle0_task(RESULT_RECORD *record)
 			ret=tsa_num;
 			if(fp !=NULL)
 				fclose(fp);
+			if(blockbuf!=NULL){
+				free(blockbuf);
+				blockbuf = NULL;
+			}
 		}
 		else
 			record->data[0] = 0;
@@ -1482,6 +1486,10 @@ int GetSle0_task(RESULT_RECORD *record)
 	else
 		record->data[0] = 0;
 	record->datalen = index;
+	if(headunit != NULL){
+		free(headunit);
+		headunit = NULL;
+	}
 	return ret;
 }
 /*
@@ -1498,14 +1506,32 @@ int getSel0_coll(RESULT_RECORD *record)
 	}
 	else
 	{
-		for(taskid=0;taskid<255;taskid++){
-			for(i=0;i<record->rcsd.csds.num;i++){
-				if(record->rcsd.csds.csd[i].type == 0)
-					index += getColl_Data(record->rcsd.csds.csd[i].csd.oad.OI,taskid,&record->data[index]);
+		if(record->rcsd.csds.num >0)
+		{
+			for(taskid=0;taskid<255;taskid++){
+				for(i=0;i<record->rcsd.csds.num;i++){
+					if(record->rcsd.csds.csd[i].type == 0)
+						index += getColl_Data(record->rcsd.csds.csd[i].csd.oad.OI,taskid,&record->data[index]);
+				}
+				if(index != temindex)
+					ret++;
+				temindex=index;
 			}
-			if(index != temindex)
-				ret++;
-			temindex=index;
+		}
+		else
+		{
+			if((record->oad.OI>>12) == 6){
+				ret= getFileRecordNum(record->oad.OI);
+
+				for(i=0;i<ret;i++)
+				{
+					if(i==0 && record->oad.OI == 0x6000)
+						continue;
+					index +=getColl_Data(record->oad.OI,i,&record->data[index]);
+				}
+				if(record->oad.OI == 0x6000)
+					ret--;
+			}
 		}
 	}
 	if(ret==0) {	//0条记录     [1] SEQUENCE OF A-RecordRow
@@ -1633,21 +1659,30 @@ int doGetrecord(INT8U type,OAD oad,INT8U *data,RESULT_RECORD *record,INT16U *sub
 	case 0:
 	case 1:		//指定对象指定值
 		*subframe = 1;		//TODO:未处理分帧
-		if(record->rcsd.csds.num == 0) {
+		if(record->rcsd.csds.num == 0 && SelectorN == 0 && record->oad.OI == 0x6000){
+			record->data[dest_index++]=1;
+			record->data[dest_index++]=00;
+			record->data[dest_index++]=0x60;
+			record->data[dest_index++]=0x01;
+			record->data[dest_index++]=0x02;
+			record->data[dest_index++]=0x00;
+		}
+		else if(record->rcsd.csds.num == 0 && SelectorN == 1) {
 			record->data[dest_index++] = 1;	//一行记录M列属性描述符 	RCSD
 			record->data[dest_index++] = 0;	//OAD
 			record->select.selec1.oad.attrindex = 0;		//上送属性下所有索引值
 			dest_index += create_OAD(0,&record->data[dest_index],record->select.selec1.oad);
-			response_choice_index = dest_index;	//先记录choice的位置，数据读取成功后，再填入choice的值
-			dest_index += 2;
-		}else {
+		}else{
 			dest_index +=fill_RCSD(0,&record->data[dest_index],record->rcsd.csds);
-			response_choice_index = dest_index;
-			dest_index += 2;
+			if(record->rcsd.csds.num == 0){
+				record->data[dest_index++] = 0;
+			}
 		}
+
+		response_choice_index = dest_index;
+		dest_index += 2;
 		record->data = &TmpDataBuf[dest_index];		//修改record的数据帧的位置
 		seqof_len = getSelector12(record);
-		fprintf(stderr,"record.dar = %d , response_choice_index = %d\n",record->dar,response_choice_index);
 		record->data = TmpDataBuf;				//data 指向回复报文帧头
 		record->datalen += dest_index;			//数据长度+ResultRecord
 
@@ -1655,6 +1690,7 @@ int doGetrecord(INT8U type,OAD oad,INT8U *data,RESULT_RECORD *record,INT16U *sub
 			record->data[response_choice_index] = 1; //CHOICE  [1]  data
 			record->data[response_choice_index+1] = seqof_len; //M = 1  Sequence  of A-RecordRow
 		}else {
+
 			record->data[response_choice_index] = 0; //DAR
 			record->data[response_choice_index+1] = record->dar; //错误类型
 		}
