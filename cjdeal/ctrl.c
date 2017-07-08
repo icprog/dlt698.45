@@ -28,6 +28,7 @@ static struct {
 
 	CLASS_8107 c8107; //购电控
 	CLASS_8108 c8108; //月电控
+
 } CtrlC;
 
 int ctrl_base_test() {
@@ -71,6 +72,10 @@ int initAll() {
 
 int getBit(INT8U v, int index) {
 	return (v >> (index)) & 0x01;
+}
+
+int setBit(INT8U v, int index) {
+	return (0x01 << (index)) | v;
 }
 
 int CheckAllUnitEmpty(AL_UNIT au[]) {
@@ -122,6 +127,45 @@ int getCurrTimeValue(OI_698 oi, TS ts) {
 	return -1;
 }
 
+//更新各种控制的告警和轮次跳闸的状态
+void updateState(ALSTATE *warn, ALSTATE* op, OI_698 name) {
+	//找到对应的总价组
+	int index = -1;
+	for (int i = 0; i < MAX_AL_UNIT; i++) {
+		if (warn[i].name == name) {
+			index = i;
+			break;
+		}
+	}
+	if (index == -1) {
+		return;
+	}
+
+	//第一轮告警
+	if (getBit(warn[index].state, 0) == 0x00) {
+		setBit(warn[index].state, 0);
+		return;
+	}
+
+	//第一轮跳闸
+	if (getBit(op[index].state, 0) == 0x00) {
+		setBit(op[index].state, 0);
+		return;
+	}
+
+	//第二轮告警
+	if (getBit(warn[index].state, 1) == 0x00) {
+		setBit(warn[index].state, 1);
+		return;
+	}
+
+	//第二轮跳闸
+	if (getBit(op[index].state, 1) == 0x00) {
+		setBit(op[index].state, 1);
+		return;
+	}
+}
+
 int deal8103() {
 	TS ts;
 	TSGet(&ts);
@@ -131,6 +175,8 @@ int deal8103() {
 			if (getCurrTimeValue(0x2301 + i, ts) != -1) {
 				if (JProgramInfo->class23[i].DayP[0] > val) {
 					//产生约负荷越限
+					updateState(CtrlC.c8103.overflow, CtrlC.c8103.output,
+							0x2301 + i);
 					return 1;
 				} else {
 					//清除告警状态
@@ -189,6 +235,8 @@ int deal8104() {
 		if (val != -1) {
 			if (JProgramInfo->class23[i].DayP[0] > val) {
 				//产生约负荷越限
+				updateState(CtrlC.c8104.overflow, CtrlC.c8103.output,
+						0x2301 + i);
 				return 1;
 			} else {
 				//清除告警状态
@@ -237,6 +285,8 @@ int deal8105() {
 		if (val != -1) {
 			if (JProgramInfo->class23[i].DayP[0] > val) {
 				//产生约负荷越限
+				updateState(CtrlC.c8105.overflow, CtrlC.c8103.output,
+						0x2301 + i);
 				return 1;
 			} else {
 				//清除告警状态
@@ -287,7 +337,154 @@ int deal8108() {
 	return 0;
 }
 
-void dealControl() {
+//汇总总加组状态，产生每个总加组独立的控制结果
+void sumUpCtrl() {
+	for (int i = 0; i < 8; i++) {
+		//时段功控状态汇总
+		for (int i = 0; i < MAX_AL_UNIT; i++) {
+			if (CtrlC.c8103.overflow[i].name == 0x2301 + i) {
+				JProgramInfo->class23[i].alCtlState.PCAlarmState |=
+						CtrlC.c8103.overflow[i].state;
+			}
+
+			if (CtrlC.c8103.output[i].name == 0x2301 + i) {
+				JProgramInfo->class23[i].alCtlState.OutputState |=
+						CtrlC.c8103.output[i].state;
+			}
+		}
+
+		//厂休控状态汇总
+		for (int i = 0; i < MAX_AL_UNIT; i++) {
+			if (CtrlC.c8104.overflow[i].name == 0x2301 + i) {
+				JProgramInfo->class23[i].alCtlState.PCAlarmState |=
+						CtrlC.c8104.overflow[i].state;
+			}
+
+			if (CtrlC.c8104.output[i].name == 0x2301 + i) {
+				JProgramInfo->class23[i].alCtlState.OutputState |=
+						CtrlC.c8104.output[i].state;
+			}
+		}
+
+		//营业报停控状态汇总
+		for (int i = 0; i < MAX_AL_UNIT; i++) {
+			if (CtrlC.c8105.overflow[i].name == 0x2301 + i) {
+				JProgramInfo->class23[i].alCtlState.PCAlarmState |=
+						CtrlC.c8105.overflow[i].state;
+			}
+
+			if (CtrlC.c8105.output[i].name == 0x2301 + i) {
+				JProgramInfo->class23[i].alCtlState.OutputState |=
+						CtrlC.c8105.output[i].state;
+			}
+		}
+
+		//功率下浮控状态汇总
+		for (int i = 0; i < MAX_AL_UNIT; i++) {
+			if (CtrlC.c8106.overflow[i].name == 0x2301 + i) {
+				JProgramInfo->class23[i].alCtlState.PCAlarmState |=
+						CtrlC.c8106.overflow[i].state;
+			}
+
+			if (CtrlC.c8106.output[i].name == 0x2301 + i) {
+				JProgramInfo->class23[i].alCtlState.OutputState |=
+						CtrlC.c8106.output[i].state;
+			}
+		}
+
+		//购电控状态汇总
+		for (int i = 0; i < MAX_AL_UNIT; i++) {
+			if (CtrlC.c8107.overflow[i].name == 0x2301 + i) {
+				JProgramInfo->class23[i].alCtlState.ECAlarmState |=
+						CtrlC.c8107.overflow[i].state;
+			}
+
+			if (CtrlC.c8107.output[i].name == 0x2301 + i) {
+				JProgramInfo->class23[i].alCtlState.BuyOutputState |=
+						CtrlC.c8107.output[i].state;
+				JProgramInfo->class23[i].alCtlState.OutputState |=
+						CtrlC.c8107.output[i].state;
+			}
+		}
+
+		//月电控状态汇总
+		for (int i = 0; i < MAX_AL_UNIT; i++) {
+			if (CtrlC.c8108.overflow[i].name == 0x2301 + i) {
+				JProgramInfo->class23[i].alCtlState.ECAlarmState |=
+						CtrlC.c8108.overflow[i].state;
+			}
+
+			if (CtrlC.c8108.output[i].name == 0x2301 + i) {
+				JProgramInfo->class23[i].alCtlState.MonthOutputState |=
+						CtrlC.c8108.output[i].state;
+				JProgramInfo->class23[i].alCtlState.OutputState |=
+						CtrlC.c8108.output[i].state;
+			}
+		}
+	}
+}
+
+static struct {
+	INT8U alarm;
+	INT8U output1;
+	INT8U output2;
+	INT8U ECs;
+	INT8U PCs;
+	INT8U light1;
+	INT8U light2;
+} finalCtrl;
+
+void getFinalCtrl() {
+	for (int i = 0; i < 8; i++) {
+		if (CheckAllUnitEmpty(JProgramInfo->class23[i].allist)) {
+
+			//更新告警状态
+			finalCtrl.alarm |= getBit(
+					JProgramInfo->class23[i].alCtlState.ECAlarmState, 0);
+			finalCtrl.alarm |= getBit(
+					JProgramInfo->class23[i].alCtlState.PCAlarmState, 0);
+			finalCtrl.alarm |= getBit(
+					JProgramInfo->class23[i].alCtlState.ECAlarmState, 1);
+			finalCtrl.alarm |= getBit(
+					JProgramInfo->class23[i].alCtlState.PCAlarmState, 1);
+
+			//更新一轮跳闸状态
+			finalCtrl.output1 |= getBit(
+					JProgramInfo->class23[i].alCtlState.OutputState, 0);
+			finalCtrl.output1 |= getBit(
+					JProgramInfo->class23[i].alCtlState.OutputState, 1);
+
+			//更新二轮跳闸状态
+			finalCtrl.output2 |= getBit(
+					JProgramInfo->class23[i].alCtlState.OutputState, 0);
+			finalCtrl.output2 |= getBit(
+					JProgramInfo->class23[i].alCtlState.OutputState, 1);
+
+			//更新功控指示灯
+			finalCtrl.ECs += JProgramInfo->class23[i].alCtlState.PCAlarmState;
+
+			//更新电控指示灯
+			finalCtrl.ECs += JProgramInfo->class23[i].alCtlState.ECAlarmState;
+		}
+	}
+
+	//正规化参数
+	finalCtrl.ECs = (finalCtrl.ECs == 0) ? 0x00 : 0x01;
+	finalCtrl.PCs = (finalCtrl.PCs == 0) ? 0x00 : 0x01;
+
+	finalCtrl.light1 = (finalCtrl.output1 == 0) ? 0x00 : 0x01;
+	finalCtrl.light2 = (finalCtrl.output2 == 0) ? 0x00 : 0x01;
+
+	//做出控制
+	int fd = OpenSerialPort();
+	SetCtrl_CMD(fd, finalCtrl.output1, finalCtrl.light1, ~finalCtrl.light1,
+			finalCtrl.output2, finalCtrl.light2, ~finalCtrl.light2,
+			finalCtrl.PCs, finalCtrl.ECs, finalCtrl.alarm, 1);
+	fclose(fd);
+
+}
+
+void dealCtrl() {
 	//直接跳闸，必须检测
 	deal8107();
 	deal8108();
@@ -295,17 +492,19 @@ void dealControl() {
 	//检测控制有优先级，当高优先级条件产生时，忽略低优先级的配置
 
 	if (deal8106() != 0) {
-		return;
+		;
+	} else if (deal8105() != 0) {
+		;
+	} else if (deal8104() != 0) {
+		;
+	} else if (deal8103() != 0) {
+		;
 	}
-	if (deal8105() != 0) {
-		return;
-	}
-	if (deal8104() != 0) {
-		return;
-	}
-	if (deal8103() != 0) {
-		return;
-	}
+	//统计输出与告警状态
+	sumUpCtrl();
+
+	//汇总所有总加组的状态
+	getFinalCtrl();
 
 }
 
@@ -322,6 +521,6 @@ int ctrlMain() {
 		CheckParaUpdate();
 
 		//处理控制逻辑
-		dealControl();
+		dealCtrl();
 	}
 }

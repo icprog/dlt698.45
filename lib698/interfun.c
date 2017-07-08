@@ -403,6 +403,7 @@ int fill_CSD(INT8U type,INT8U *data,MY_CSD csd)		//0x5b
 		data[index++] = dtcsd;
 	}
 	data[index++] = csd.type;
+	DEBUG_TIME_LINE("");
 	if(csd.type == 0) {	//oad
 		index += create_OAD(0,&data[index],csd.csd.oad);
 	}else if(csd.type == 1) {	//road
@@ -505,7 +506,7 @@ int fill_RCSD(INT8U type,INT8U *data,CSD_ARRAYTYPE csds)		//0x60
 		data[index++] = dtrcsd;
 	}
 	num = csds.num;
-	fprintf(stderr,"csds.num=%d\n",csds.num);
+	DEBUG_TIME_LINE("csds.num=%d\n",csds.num);
 	if(num==0) {		//OAD  RCSD=0,即sequence of数据个数=0，表示不选择，国网台体测试终端编程事件时，读取上1次编程事件记录，RCSD=0，应答帧oad不应在此处填写
 //		index += create_OAD(0,&data[index],csds.csd[0].csd.oad);
 	}else {				//RCSD		SEQUENCE OF CSD

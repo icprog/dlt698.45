@@ -2495,7 +2495,7 @@ INT8S dealProxyType1(PROXY_GETLIST getlist,INT8U port485)
 		mqs_send((INT8S *)PROXY_NET_MQ_NAME,1,TERMINALPROXY_RESPONSE,(INT8U *)&getlist,sizeof(PROXY_GETLIST));
 		fprintf(stderr,"\n代理消息已经发出\n\n");
 	}
-	proxyInUse.devUse.rs485Ready = 1;
+
 	return result;
 }
 INT8S dealProxyType7(PROXY_GETLIST getlist,INT8U port485)
@@ -2582,7 +2582,6 @@ INT8S dealProxyType7(PROXY_GETLIST getlist,INT8U port485)
 		memcpy(&getlist.data[6],&RecvBuff[starttIndex],datalen);
 		getlist.datalen = datalen + 6;
 		mqs_send((INT8S *)PROXY_NET_MQ_NAME,1,TERMINALPROXY_RESPONSE,(INT8U *)&getlist,sizeof(PROXY_GETLIST));
-		proxyInUse.devUse.rs485Ready = 1;
 	}
 	else
 	{
@@ -2590,7 +2589,6 @@ INT8S dealProxyType7(PROXY_GETLIST getlist,INT8U port485)
 		getlist.data[4] = 0;
 		getlist.datalen = 5;
 		mqs_send((INT8S *)PROXY_NET_MQ_NAME,1,ProxySetResponseList,(INT8U *)&getlist,sizeof(PROXY_GETLIST));
-		proxyInUse.devUse.rs485Ready = 1;
 	}
 	return result;
 }
@@ -2619,7 +2617,7 @@ INT8S dealProxy(PROXY_GETLIST getlist,INT8U port485)
 	{
 		dealProxyType7(getlist,port485);
 	}
-
+	proxyInUse.devUse.rs485Ready = 1;
 
 	return result;
 }
