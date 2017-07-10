@@ -26,6 +26,7 @@ extern INT16U setRequestNormal(INT8U *data,OAD oad,INT8U *DAR,CSINFO *csinfo,INT
 extern int setRequestNormalList(INT8U *Object,CSINFO *csinfo,INT8U *buf);
 extern int setThenGetRequestNormalList(INT8U *data,CSINFO *csinfo,INT8U *buf);
 extern int Proxy_GetRequestlist(INT8U *data,CSINFO *csinfo,INT8U *sendbuf,INT8U piid);
+extern int Proxy_GetRequestRecord(INT8U *data,CSINFO *csinfo,INT8U *sendbuf,INT8U piid);
 extern int Proxy_TransCommandRequest(INT8U *data,CSINFO *csinfo,INT8U *sendbuf,INT8U piid);
 extern unsigned short tryfcs16(unsigned char *cp, int  len);
 extern INT32S secureConnectRequest(SignatureSecurity* securityInfo ,SecurityData* RetInfo);

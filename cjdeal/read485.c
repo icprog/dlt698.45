@@ -2287,6 +2287,10 @@ INT16S deal698RequestResponse(INT8U isProxyResponse,INT8U getResponseType,INT8U 
 
 	return dataContentIndex;
 }
+INT16U dealProxy_Record_698(CLASS_6001 obj6001,GETOBJS obj07,INT8U* dataContent,INT8U port485)
+{
+	return 0;
+}
 INT16U dealProxy_698(CLASS_6001 obj6001,GETOBJS obj07,INT8U* dataContent,INT8U port485)
 {
 	DbgPrintToFile1(port485," 处理698测量点 代理消息 dealProxy_698 obj07.num = %d",obj07.num);
@@ -2425,6 +2429,56 @@ void set_port_active(INT8U port485,INT8U value)
 	if (port485==2)
 		proxyInUse.devUse.rs485_2_Active = value;
 }
+INT8S dealProxyType2(PROXY_GETLIST *getlist,INT8U port485)
+{
+	INT8U addrlen=0;
+	int dataindex=0;
+	INT8S result = -1;
+	INT8U index;
+	INT16U singleLen = 0;
+	INT8U tmpbuf[256]={};
+	CLASS_6001 obj6001 = {};
+
+	if( get6001ObjByTSA(getlist->objs[index].tsa,&obj6001) != 1 ||
+	    obj6001.basicinfo.port.attrindex != port485 ||
+	    getComfdBy6001(obj6001.basicinfo.baud,obj6001.basicinfo.port.attrindex) != 1	)
+	{
+		continue;
+	}
+	INT8U portUse = obj6001.basicinfo.port.attrindex;
+	switch(obj6001.basicinfo.protocol)
+	{
+		case DLT_645_07:
+			singleLen = dealProxy_645_07(getlist->objs[index],tmpbuf,portUse,getlist->objs[index].onetimeout);
+			break;
+		default:
+			singleLen = dealProxy_Record_698(obj6001,getlist->record,tmpbuf,portUse);
+	}
+	pthread_mutex_lock(&mutex);
+	fprintf(stderr,"\nTSA 返回长度 singleLen=%d\n",singleLen);
+	dataindex= getlist->datalen;
+	addrlen = getlist->objs[index].tsa.addr[0]+1;
+	fprintf(stderr,"\nTSA addr长度 addrlen=%d\n",addrlen);
+	memcpy(&getlist->data[dataindex],&getlist->objs[index].tsa.addr[0],addrlen);
+	dataindex += addrlen;
+	getlist->data[dataindex++] = getlist->objs[index].num;
+	fprintf(stderr,"\nTSA buf 指针 dataindex=%d\n",dataindex);
+
+	if(singleLen > 0)
+	{
+		memcpy(&getlist->data[dataindex],tmpbuf,singleLen);
+		dataindex += singleLen;
+		getlist->datalen += dataindex;
+	}else
+	{
+		getlist->data[dataindex++] = 0;
+		getlist->datalen += dataindex;
+	}
+	pthread_mutex_unlock(&mutex);
+
+	set_port_active(port485,0);
+	return result;
+}
 INT8S dealProxyType1(PROXY_GETLIST *getlist,INT8U port485)
 {
 	INT8U addrlen=0;
@@ -2554,11 +2608,15 @@ INT8S dealProxy(PROXY_GETLIST *getlist,INT8U port485)
 {
 	INT8S result = -1;
 	fprintf(stderr,"\nRS485 代理类型 =%d",getlist->proxytype);
-	if(getlist->proxytype == 1)
+	if(getlist->proxytype == ProxyGetRequestList)
 	{
 		result = dealProxyType1(getlist,port485);
 	}
-	if(getlist->proxytype == 7)
+	if (getlist->proxytype == ProxyGetRequestRecord)
+	{
+		result = dealProxyType2(getlist,port485);
+	}
+	if(getlist->proxytype == ProxyTransCommandRequest)
 	{
 		result = dealProxyType7(*getlist,port485);
 	}

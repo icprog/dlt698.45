@@ -595,10 +595,15 @@ typedef struct {
     INT8U cmdlen;            //透明转发命令 长度
     INT8U cmdbuf[255];    //透明转发内容
 } TRANSCMD;
+typedef struct{
+	INT8U type;
+	INT8U len;
+	INT8U buf[512];
+}RSDBUF;
 typedef struct {
     TSA tsa;           //目标地址
     OAD oad;
-    RSD select;       //选择方法实例
+    RSDBUF selectbuf;       //选择方法实例
     RCSD rcsd;
 }GETRECORD;
 typedef struct {
