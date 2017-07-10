@@ -1105,4 +1105,12 @@ final:
 	*bufSize = destLen;
 }
 
+void printBuf(INT8U* buf, INT16U bufSize)
+{
+	INT16U i=0;
+	for(i=0;i<bufSize-1;i++)
+		fprintf(stderr, "%02X ", buf[i]);
+	fprintf(stderr, "%02X", buf[i]);
+}
+
 #endif /*JPublicFunctionH*/
