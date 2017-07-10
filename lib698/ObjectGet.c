@@ -1475,6 +1475,10 @@ int GetSle0_task(RESULT_RECORD *record)
 			ret=tsa_num;
 			if(fp !=NULL)
 				fclose(fp);
+			if(blockbuf!=NULL){
+				free(blockbuf);
+				blockbuf = NULL;
+			}
 		}
 		else
 			record->data[0] = 0;
@@ -1482,6 +1486,10 @@ int GetSle0_task(RESULT_RECORD *record)
 	else
 		record->data[0] = 0;
 	record->datalen = index;
+	if(headunit != NULL){
+		free(headunit);
+		headunit = NULL;
+	}
 	return ret;
 }
 /*
