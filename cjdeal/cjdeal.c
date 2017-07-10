@@ -974,6 +974,7 @@ INT8S dealMsgProcess()
 							index = 0;
 							oad = (INT16U)cjcommProxy_Tmp.strProxyList.transcmd.oad.OI;
 //							OADtoBuff(cjcommProxy_Tmp.strProxyList.transcmd.oad,proxyList_manager.data);
+							memcpy(&proxyList_manager,&cjcommProxy_Tmp.strProxyList,sizeof(PROXY_GETLIST));
 							index += create_OAD(0,proxyList_manager.data,cjcommProxy_Tmp.strProxyList.transcmd.oad);
 							//COMDCB合法性判断
 							dar = getCOMDCBValid(cjcommProxy_Tmp.strProxyList.transcmd.comdcb);
@@ -981,6 +982,7 @@ INT8S dealMsgProcess()
 								proxyList_manager.data[index++] = 0;
 								proxyList_manager.data[index++] = dar;
 								proxyList_manager.datalen = index;
+								proxyInUse.devUse.proxyIdle = 1;		//进入代理状态
 							}else {
 								switch(oad) {
 									case PORT_ZB:
@@ -995,6 +997,9 @@ INT8S dealMsgProcess()
 										proxyInUse.devUse.rs485Need = 1;
 										break;
 									default:
+										proxyList_manager.data[index++] = 0;
+										proxyList_manager.data[index++] = other_err1;
+										proxyList_manager.datalen = index;
 										break;
 									}
 								}
