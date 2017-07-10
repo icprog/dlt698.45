@@ -595,7 +595,17 @@ typedef struct {
     INT8U cmdlen;            //透明转发命令 长度
     INT8U cmdbuf[255];    //透明转发内容
 } TRANSCMD;
-
+typedef struct{
+	INT8U type;
+	INT8U len;
+	INT8U buf[512];
+}RSDBUF;
+typedef struct {
+    TSA tsa;           //目标地址
+    OAD oad;
+    RSDBUF selectbuf;       //选择方法实例
+    RCSD rcsd;
+}GETRECORD;
 typedef struct {
     INT8U status;      //代理传输状态		0 表示就绪     1 已经表示返回数据  2 已经响应主站   3 超时
     long int position; //记录文件中的位置
@@ -606,6 +616,7 @@ typedef struct {
     INT16U timeout;    //代理超时时间
     INT16U num;        //TSA个数
     GETOBJS objs[10];  //代理请求列表
+    GETRECORD record;	//代理请求记录
     TRANSCMD transcmd;    //代理操作透明转发
     INT8U data[512];   //请求结果
     INT16U datalen;    //数据长度

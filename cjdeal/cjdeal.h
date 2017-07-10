@@ -78,21 +78,23 @@ int thread_dispatchTask_id;
 pthread_t thread_dispatchTask;
 
 mqd_t mqd_485_main;//接受点抄的消息队列
-
+pthread_mutex_t mutex;
 
 typedef union {
 	INT8U u8b;//方便变量初始化
 	struct {
-		INT8U proxyIdle		:1;//代理操作是否空闲, 0-空闲, 1-被占用
-		INT8U reserv		:3;//保留
-		INT8U plcNeed		:1;//需要使用载波模块标记, 0-需要, 1-不需要
-		INT8U plcReady		:1;//载波模块本次代理操作完成, 0-未就绪, 1-就绪
-		INT8U rs485Need		:1;//需要使用rs485标记, 0-需要, 1-不需要
-		INT8U rs485Ready	:1;//rs485本次代理操作完成, 0-未就绪, 1-就绪
+		INT8U proxyIdle		 :1;//代理操作是否空闲, 0-空闲, 1-被占用
+		INT8U reser			 :1;//保留
+		INT8U rs485_1_Active :1;//485-1代理执行标记 0-空闲 ，1-执行中
+		INT8U rs485_2_Active :1;//485-2代理执行标记 0-空闲 ，1-执行中
+		INT8U plcNeed		 :1;//需要使用载波模块标记, 0-不需要, 1-需要
+		INT8U plcReady		 :1;//载波模块本次代理操作完成, 0-未就绪, 1-就绪
+		INT8U rs485Need		 :1;//需要使用rs485标记, 0-不需要, 1-需要
+		INT8U rs485Ready	 :1;//rs485本次代理操作完成, 0-未就绪, 1-就绪
 	}devUse;
 }proxyFlag_u;
 proxyFlag_u proxyInUse;//判断本次代理操作是否完成
-
+int proxyTimeOut;//
 //保存代理召测信息的结构体
 typedef struct
 {
