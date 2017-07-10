@@ -111,6 +111,21 @@ INT8U	getEnumValid(INT16U value,INT16U start,INT16U end,INT16U other)
 	return dblock_invalid;
 }
 
+INT8U	getCOMDCBValid(COMDCB comdcb)
+{
+	INT8U DAR=success;
+	DAR = getEnumValid(comdcb.baud,bps300,bps115200,autoa);
+	if(DAR!=success)  return dblock_invalid;
+	DAR = getEnumValid(comdcb.verify,none,even,none);
+	if(DAR!=success)  return dblock_invalid;
+	DAR = getEnumValid(comdcb.databits,d5,d8,d5);
+	if(DAR!=success)  return dblock_invalid;
+	DAR = getEnumValid(comdcb.stopbits,stop1,stop2,stop1);
+	if(DAR!=success)  return dblock_invalid;
+	DAR = getEnumValid(comdcb.flow,no,soft,no);
+	if(DAR!=success)  return dblock_invalid;
+	return success;
+}
 /*
  * 判断设置得OAD端口是否正确？
  */

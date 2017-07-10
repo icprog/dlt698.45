@@ -37,7 +37,7 @@ extern INT16S composeProtocol698_SetRequest(INT8U* ,RESULT_NORMAL,TSA);
 extern TS mylookback(time_t times,TI ti,INT8U n);
 extern time_t calcnexttime(TI ti, DateTimeBCD datetime,TI ti_delay);
 // OAD转换为报文
-extern INT8U OADtoBuff(OAD fromOAD, INT8U* buff);
+//extern INT8U OADtoBuff(OAD fromOAD, INT8U* buff);
 extern INT8U analyzeProtocol698(INT8U* Rcvbuf, INT8U* resultCount, INT16S recvLen, INT8U* apduDataStartIndex, INT16S* dataLen);
 extern void ProxyListResponse(PROXY_GETLIST* list, CommBlock* com);
 int createFile(const char* path, int length, unsigned char crc, unsigned short bs);
@@ -118,6 +118,7 @@ extern int GetFileState(RESULT_NORMAL* response);
 /*----------------------规约一致性 数据有效性判断接口----------------------*/
 extern INT8U check_date(int year, int month, int day, int hour, int min, int sec);
 extern INT8U getEnumValid(INT16U value,INT16U start,INT16U end,INT16U other);
+extern INT8U getCOMDCBValid(COMDCB comdcb);
 extern void isTimeTagEffect(TimeTag timetag,TimeTag *rec_timetag);
 extern INT8U getPortValid(OAD oad);
 extern INT8U DataTimeCmp(DateTimeBCD startdt,DateTimeBCD enddt);

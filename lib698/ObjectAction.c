@@ -351,7 +351,7 @@ void AddBatchMeterInfo(INT8U *data, INT8U type, Action_result *act_ret) {
         index += getEnum(1, &dealdata[index], &meter.basicinfo.baud);
         act_ret->DAR=getEnumValid(meter.basicinfo.baud,0,10,255);
         if(act_ret->DAR!=success)
-        	return;
+        	return;		//TODO: 是否退出？如果下发的ReponseNormalList是否会影响后续的帧解析？？？
         index += getEnum(1, &dealdata[index], &meter.basicinfo.protocol);
         act_ret->DAR=getEnumValid(meter.basicinfo.protocol,0,4,255);
 		if(act_ret->DAR!=success)
