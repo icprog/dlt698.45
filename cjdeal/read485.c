@@ -2116,7 +2116,8 @@ INT16U parseSingleROADData(ROAD road,INT8U* oadData,INT8U* dataContent,INT16U* d
 	memset(oadListContent,0,ROAD_OADS_NUM*sizeof(OAD_DATA));
 
 	//fprintf(stderr,"\n receive ROAD %02x %02x %02x %02x\n",oadData[length],oadData[length+1],oadData[length+2],oadData[length+3]);
-	OADtoBuff(road.oad,oadbuff);
+//	OADtoBuff(road.oad,oadbuff);
+	create_OAD(0,oadbuff,road.oad);
 	if(memcmp(oadbuff,oadData,4)!=0)
 	{
 		fprintf(stderr,"\n request ROAD %02x %02x %02x %02x\n",oadbuff[length],oadbuff[length+1],oadbuff[length+2],oadbuff[length+3]);
@@ -2179,7 +2180,8 @@ INT16U parseSingleROADData(ROAD road,INT8U* oadData,INT8U* dataContent,INT16U* d
 			//fprintf(stderr,"\n OI = %04x len = %d \n",road.oads[csdIndex].OI,oiDataLen);
 			memset(&dataContent[dataLen],0,oiDataLen);
 			memset(oadbuff,0,4);
-			OADtoBuff(road.oads[csdIndex],oadbuff);
+//			OADtoBuff(road.oads[csdIndex],oadbuff);
+			create_OAD(0,oadbuff,road.oads[csdIndex]);
 			INT8U subIndex=0;
 			for(subIndex=0;subIndex<rcvCSDnum;subIndex++)
 			{
@@ -2347,7 +2349,8 @@ INT16U dealProxy_698(CLASS_6001 obj6001,GETOBJS obj07,INT8U* dataContent,INT8U p
 			}
 		}else
 		{
-			OADtoBuff(obj07.oads[0],&dataContent[dataLen]);
+//			OADtoBuff(obj07.oads[0],&dataContent[dataLen]);
+			create_OAD(0,&dataContent[dataLen],obj07.oads[0]);
 			dataLen += sizeof(OAD);
 			dataContent[dataLen++] = 0x00;//没有数据
 			dataContent[dataLen++] = 0x21;//DARType
@@ -2372,9 +2375,9 @@ INT16U dealProxy_645_07(GETOBJS obj07,INT8U* dataContent,INT8U port485,INT16U ti
 	for(oadIndex = 0;oadIndex < obj07.num;oadIndex++)
 	{
 		DbgPrintToFile1(port485," OAD[%d] = %04x%02x%02x",oadIndex,obj07.oads[oadIndex].OI,obj07.oads[oadIndex].attflg,obj07.oads[oadIndex].attrindex);
-		OADtoBuff(obj07.oads[oadIndex],&dataContent[dataLen]);
-		dataLen += sizeof(OAD);
-
+//		OADtoBuff(obj07.oads[oadIndex],&dataContent[dataLen]);
+//		dataLen += sizeof(OAD);
+		dataLen += create_OAD(0,&dataContent[dataLen],obj07.oads[oadIndex]);
 		C601F_645 Flag645;
 		memset(&Flag645,0,sizeof(C601F_645));
 		Flag645.protocol = DLT_645_07;
@@ -3579,13 +3582,15 @@ INT8U createSendEventBuffHead(ROAD roadBody,INT8U* reportEventBuf,INT8U saveCont
 	reportEventBuf[eventBufLen++] = 0x00;
 	reportEventBuf[eventBufLen++] = 1;
 	//ROAD event
-	eventBufLen += OADtoBuff(roadBody.oad,&reportEventBuf[eventBufLen]);
+//	eventBufLen += OADtoBuff(roadBody.oad,&reportEventBuf[eventBufLen]);
+	eventBufLen += create_OAD(0,&reportEventBuf[eventBufLen],roadBody.oad);
 	reportEventBuf[eventBufLen++] = roadBody.num;
 
 	INT8U oadIndex = 0;
 	for(oadIndex = 0;oadIndex < roadBody.num;oadIndex++)
 	{
-		eventBufLen += OADtoBuff(roadBody.oads[oadIndex],&reportEventBuf[eventBufLen]);
+//		eventBufLen += OADtoBuff(roadBody.oads[oadIndex],&reportEventBuf[eventBufLen]);
+		eventBufLen += create_OAD(0,&reportEventBuf[eventBufLen],roadBody.oads[oadIndex]);
 	}
 
 	reportEventBuf[eventBufLen++] = 1;
@@ -3621,8 +3626,8 @@ INT8S sendEventReportBuff698(ROAD eventRoad,INT8U saveContentHead[SAVE_EVENT_BUF
 		for(subIndex =0;subIndex<ROAD_OADS_NUM;subIndex++)
 		{
 			INT8U findOADBuf[4] = {0,0,0,0};
-			OADtoBuff(eventRoad.oads[oadIndex],findOADBuf);
-
+//			OADtoBuff(eventRoad.oads[oadIndex],findOADBuf);
+			create_OAD(0,findOADBuf,eventRoad.oads[oadIndex]);
 			if(memcmp(findOADBuf,oadListContent[subIndex].oad,4)==0)
 			{
 				memcpy(&reportEventBuf[eventBufLen],oadListContent[subIndex].data,oadListContent[subIndex].datalen);

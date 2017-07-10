@@ -814,10 +814,10 @@ extern INT8U get6001ObjByTSA(TSA addr,CLASS_6001* targetMeter);
 #define PORT_485  	0xF201
 #define PORT_JC		0xF208
 PROXY_GETLIST proxyList_manager;
-int proxy_one_fill_record(GETRECORD record,int len,INT8U *source,INT8U DARtype,INT8U *desbuf)
-{
-
-}
+//int proxy_one_fill_record(GETRECORD record,int len,INT8U *source,INT8U DARtype,INT8U *desbuf)
+//{
+//
+//}
 int proxy_one_fill(GETOBJS obj,int len,INT8U *source,INT8U DARtype,INT8U *desbuf)
 {
 	//填充代理应答   ProxyGetResponseList
@@ -830,8 +830,9 @@ int proxy_one_fill(GETOBJS obj,int len,INT8U *source,INT8U DARtype,INT8U *desbuf
 
 	for(i=0; i<obj.num; i++)
 	{
-		OADtoBuff(obj.oads[i],&desbuf[index]);
-		index += sizeof(OAD);
+//		OADtoBuff(obj.oads[i],&desbuf[index]);
+//		index += sizeof(OAD);
+		index += create_OAD(0,&desbuf[index],obj.oads[i]);
 		if (source==NULL || len==0)
 		{
 			desbuf[index++] = 0x00;
@@ -860,22 +861,22 @@ void divProxy(CJCOMM_PROXY proxy)
 	if (proxyList_manager.timeout == 0)
 		proxyList_manager.timeout = 60;
 
-	if (proxy.strProxyList.proxytype == ProxyGetRequestRecord)
-	{
-		if(get6001ObjByTSA(proxy.strProxyList.record.tsa,&obj6001) != 1 )
-		{
-			dataindex += proxy_one_fill_record(proxy.strProxyList.record, 0, NULL,0x21, &proxyList_manager.data[dataindex]);
-		}else
-		{
-			if (obj6001.basicinfo.port.OI==PORT_485)
-			{
-				memcpy(&cjcommProxy.strProxyList.record, &proxy.strProxyList.record, sizeof(GETRECORD));
-			}else if(obj6001.basicinfo.port.OI==PORT_ZB)
-			{
-				memcpy(&cjcommProxy_plc.strProxyList.record, &proxy.strProxyList.record, sizeof(GETRECORD));
-			}
-		}
-	}
+//	if (proxy.strProxyList.proxytype == ProxyGetRequestRecord)
+//	{
+//		if(get6001ObjByTSA(proxy.strProxyList.record.tsa,&obj6001) != 1 )
+//		{
+//			dataindex += proxy_one_fill_record(proxy.strProxyList.record, 0, NULL,0x21, &proxyList_manager.data[dataindex]);
+//		}else
+//		{
+//			if (obj6001.basicinfo.port.OI==PORT_485)
+//			{
+//				memcpy(&cjcommProxy.strProxyList.record, &proxy.strProxyList.record, sizeof(GETRECORD));
+//			}else if(obj6001.basicinfo.port.OI==PORT_ZB)
+//			{
+//				memcpy(&cjcommProxy_plc.strProxyList.record, &proxy.strProxyList.record, sizeof(GETRECORD));
+//			}
+//		}
+//	}
 	if (proxy.strProxyList.proxytype == ProxyGetRequestList)
 	{
 		for(i=0;i<num;i++)
@@ -935,6 +936,8 @@ INT8S dealMsgProcess()
 	INT8U  rev_485_buf[2048];
 	INT32S ret;
 	OI_698 oad;
+	INT8U	dar=success;
+	INT16U	index=0;
 	mmq_head mq_h;
 
 	ret = mmq_get(mqd_485_main, 1, &mq_h, rev_485_buf);
@@ -968,25 +971,33 @@ INT8S dealMsgProcess()
 						case ProxyActionThenGetRequestList:
 							break;
 						case ProxyTransCommandRequest:
+							index = 0;
 							oad = (INT16U)cjcommProxy_Tmp.strProxyList.transcmd.oad.OI;
-							OADtoBuff(cjcommProxy_Tmp.strProxyList.transcmd.oad,proxyList_manager.data);
-
-							switch(oad) {
-							case PORT_ZB:
-								DEBUG_TIME_LINE("receive proxy frame on plc");
-								memcpy(&cjcommProxy_plc.strProxyList,rev_485_buf,sizeof(PROXY_GETLIST));
-								cjcommProxy_plc.isInUse = 1;
-								proxyInUse.devUse.plcNeed = 1;
-								break;
-							case PORT_485:
-								memcpy(&cjcommProxy.strProxyList,rev_485_buf,sizeof(PROXY_GETLIST));
-								cjcommProxy.isInUse = 3;
-								proxyInUse.devUse.rs485Need = 1;
-								break;
-							default:
-
-								break;
-							}
+//							OADtoBuff(cjcommProxy_Tmp.strProxyList.transcmd.oad,proxyList_manager.data);
+							index += create_OAD(0,proxyList_manager.data,cjcommProxy_Tmp.strProxyList.transcmd.oad);
+							//COMDCB合法性判断
+							dar = getCOMDCBValid(cjcommProxy_Tmp.strProxyList.transcmd.comdcb);
+							if(dar != success) {
+								proxyList_manager.data[index++] = 0;
+								proxyList_manager.data[index++] = dar;
+								proxyList_manager.datalen = index;
+							}else {
+								switch(oad) {
+									case PORT_ZB:
+										DEBUG_TIME_LINE("receive proxy frame on plc");
+										memcpy(&cjcommProxy_plc.strProxyList,rev_485_buf,sizeof(PROXY_GETLIST));
+										cjcommProxy_plc.isInUse = 1;
+										proxyInUse.devUse.plcNeed = 1;
+										break;
+									case PORT_485:
+										memcpy(&cjcommProxy.strProxyList,rev_485_buf,sizeof(PROXY_GETLIST));
+										cjcommProxy.isInUse = 3;
+										proxyInUse.devUse.rs485Need = 1;
+										break;
+									default:
+										break;
+									}
+								}
 							break;
 						default:
 							break;

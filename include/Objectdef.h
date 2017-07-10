@@ -611,7 +611,7 @@ typedef struct {
     INT16U timeout;    //代理超时时间
     INT16U num;        //TSA个数
     GETOBJS objs[10];  //代理请求列表
-    GETRECORD record;	//代理请求记录
+//    GETRECORD record;	//代理请求记录
     TRANSCMD transcmd;    //代理操作透明转发
     INT8U data[512];   //请求结果
     INT16U datalen;    //数据长度

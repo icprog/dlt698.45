@@ -284,18 +284,24 @@ int fill_time(INT8U *data,INT8U *value)			//0x1b
 int fill_date_time_s(INT8U *data,DateTimeBCD *time)		//0x1c
 {
 	DateTimeBCD  init_datatimes={};
-
+	int		index=0;
 	memset(&init_datatimes,0xEE,sizeof(DateTimeBCD));
 	if(memcmp(time,&init_datatimes,sizeof(DateTimeBCD))==0) {		//时间无效，上送NULL（0）
-		data[0] = 0;
+		data[index++] = 0;
 		return 1;
 	}else {
-		data[0] = dtdatetimes;
-		time->year.data = time->year.data >>8 | time->year.data<<8;
-		memcpy(&data[1],time,sizeof(DateTimeBCD));
-		return (7+1);
+		data[index++] = dtdatetimes;
+		data[index++] = (time->year.data>>8)&0xff;
+		data[index++] = time->year.data & 0xff;
+		data[index++] = time->month.data;
+		data[index++] = time->day.data;
+		data[index++] = time->hour.data;
+		data[index++] = time->min.data;
+		data[index++] = time->sec.data;
+		return index;
 	}
 }
+
 
 int  create_OAD(INT8U type,INT8U *data,OAD oad)		//0x51
 {
@@ -1023,19 +1029,11 @@ int getCOMDCB(INT8U type, INT8U* source, COMDCB* comdcb,INT8U *DAR)		//0x5F
 	INT8U tmpDAR=success;
 	if((type==1 && source[0]==dtcomdcb) || (type==0)) {
 		comdcb->baud = source[type];
-		tmpDAR = getEnumValid(comdcb->baud,bps300,bps115200,autoa);
-		if(tmpDAR != success) *DAR = tmpDAR;
 		comdcb->verify = source[type+1];
-		tmpDAR = getEnumValid(comdcb->verify,none,even,none);
-		if(tmpDAR != success) *DAR = tmpDAR;
 		comdcb->databits = source[type+2];
-		tmpDAR = getEnumValid(comdcb->databits,d5,d8,d5);
-		if(tmpDAR != success) *DAR = tmpDAR;
 		comdcb->stopbits = source[type+3];
-		tmpDAR = getEnumValid(comdcb->stopbits,stop1,stop2,stop1);
-		if(tmpDAR != success) *DAR = tmpDAR;
 		comdcb->flow = source[type+4];
-		tmpDAR = getEnumValid(comdcb->flow,no,soft,no);
+		tmpDAR = getCOMDCBValid(*comdcb);
 		if(tmpDAR != success) *DAR = tmpDAR;
 		return (5+type);
 	}
