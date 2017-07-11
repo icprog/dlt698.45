@@ -153,11 +153,31 @@ int Proxy_GetRequestRecord(INT8U *data,CSINFO *csinfo,INT8U *sendbuf,INT8U piid)
 	getlist.timeold = time(NULL);
 	memcpy(&getlist.csinfo,csinfo,sizeof(CSINFO));
 
-	ret= mqs_send((INT8S *)PROXY_485_MQ_NAME,1,ProxyGetResponseList,(INT8U *)&getlist,sizeof(PROXY_GETLIST));
+	ret= mqs_send((INT8S *)PROXY_485_MQ_NAME,1,ProxyGetResponseRecord,(INT8U *)&getlist,sizeof(PROXY_GETLIST));
 	fprintf(stderr,"\n代理消息已经发出,ret=%d\n\n",ret);
 	return 1;
 }
-
+int Proxy_SetThenGetRequestList(INT8U *data,CSINFO *csinfo,INT8U *sendbuf,INT8U piid)
+{
+	INT8S	ret=0;
+	PROXY_GETLIST getlist;
+	ret= mqs_send((INT8S *)PROXY_485_MQ_NAME,1,ProxySetThenGetResponseList,(INT8U *)&getlist,sizeof(PROXY_GETLIST));
+	return 0;
+}
+int Proxy_ActionRequestList(INT8U *data,CSINFO *csinfo,INT8U *sendbuf,INT8U piid)
+{
+	INT8S	ret=0;
+	PROXY_GETLIST getlist;
+	ret= mqs_send((INT8S *)PROXY_485_MQ_NAME,1,ProxyActionResponseList,(INT8U *)&getlist,sizeof(PROXY_GETLIST));
+	return 0;
+}
+int Proxy_ActionThenGetRequestList(INT8U *data,CSINFO *csinfo,INT8U *sendbuf,INT8U piid)
+{
+	INT8S	ret=0;
+	PROXY_GETLIST getlist;
+	ret= mqs_send((INT8S *)PROXY_485_MQ_NAME,1,ProxyActionThenGetResponseList,(INT8U *)&getlist,sizeof(PROXY_GETLIST));
+	return 0;
+}
 void printcmd(PROXY_GETLIST getlist)
 {
 	int i=0;

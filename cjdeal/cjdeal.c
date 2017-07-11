@@ -814,10 +814,22 @@ extern INT8U get6001ObjByTSA(TSA addr,CLASS_6001* targetMeter);
 #define PORT_485  	0xF201
 #define PORT_JC		0xF208
 PROXY_GETLIST proxyList_manager;
-//int proxy_one_fill_record(GETRECORD record,int len,INT8U *source,INT8U DARtype,INT8U *desbuf)
-//{
-//
-//}
+int proxy_one_fill_record(GETRECORD record,int len,INT8U *source,INT8U DARtype,INT8U *desbuf)
+{
+	int index =0;
+	if (DARtype>0 ||source==NULL || len==0)
+	{
+		int addrlen = record.tsa.addr[0]+1;
+		memcpy(&desbuf[index],&record.tsa.addr[0],addrlen);
+		index += addrlen;
+		desbuf[index++] = 0x00;
+		desbuf[index++] = DARtype;
+	}else{
+		desbuf[index++] = 0x01;
+		memcpy(&desbuf[index],source, len);
+	}
+	return index;
+}
 int proxy_one_fill(GETOBJS obj,int len,INT8U *source,INT8U DARtype,INT8U *desbuf)
 {
 	//填充代理应答   ProxyGetResponseList
@@ -830,10 +842,8 @@ int proxy_one_fill(GETOBJS obj,int len,INT8U *source,INT8U DARtype,INT8U *desbuf
 
 	for(i=0; i<obj.num; i++)
 	{
-//		OADtoBuff(obj.oads[i],&desbuf[index]);
-//		index += sizeof(OAD);
 		index += create_OAD(0,&desbuf[index],obj.oads[i]);
-		if (source==NULL || len==0)
+		if (DARtype>0 ||source==NULL || len==0)
 		{
 			desbuf[index++] = 0x00;
 			desbuf[index++] = DARtype;
@@ -850,7 +860,6 @@ void Pre_ProxyGetRequestList(CJCOMM_PROXY proxy)
 {
 	int num = proxy.strProxyList.num ,i=0,num_485=0,num_zb=0,dataindex=0;
 	CLASS_6001 obj6001 = {};
-	INT8U addlen = 0;
 
 	proxyList_manager.data[dataindex++] = num;
 	for(i=0;i<num;i++)
@@ -891,12 +900,12 @@ void Pre_ProxyGetRequestList(CJCOMM_PROXY proxy)
 void Pre_ProxyGetRequestRecord(CJCOMM_PROXY proxy)
 {
 	CLASS_6001 obj6001 = {};
-	int num = proxy.strProxyList.num ,i=0,num_485=0,num_zb=0,dataindex=0;
+	int dataindex=0;
 	memset(&proxyList_manager.record,0,sizeof(GETRECORD));
 
 	if(get6001ObjByTSA(proxy.strProxyList.record.tsa,&obj6001) != 1 )
 	{
-	//	dataindex += proxy_one_fill_record(proxy.strProxyList.record, 0, NULL,0x21, &proxyList_manager.data[dataindex]);
+		dataindex += proxy_one_fill_record(proxy.strProxyList.record, 0, NULL,0x21, &proxyList_manager.data[dataindex]);
 	}else
 	{
 		if (obj6001.basicinfo.port.OI==PORT_485)
@@ -915,6 +924,7 @@ void Pre_ProxyGetRequestRecord(CJCOMM_PROXY proxy)
 			proxyInUse.devUse.plcNeed = 1;
 		}
 	}
+	proxyList_manager.datalen = dataindex;
 }
 
 void Pre_ProxyTransCommandRequest(CJCOMM_PROXY proxy)

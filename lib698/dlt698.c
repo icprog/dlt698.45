@@ -840,15 +840,19 @@ int doProxyRequest(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
 
 			break;
 		case ProxySetThenGetRequestList:
-
+			fprintf(stderr,"\n====ProxySetThenGetRequestList======\n");
+			Proxy_SetThenGetRequestList(data,csinfo,sendbuf,piid_g.data);
 			break;
 		case ProxyActionRequestList:
-
+			fprintf(stderr,"\n====ProxyActionRequestList======\n");
+			Proxy_ActionRequestList(data,csinfo,sendbuf,piid_g.data);
 			break;
 		case ProxyActionThenGetRequestList:
-
+			fprintf(stderr,"\n====ProxyActionThenGetRequestList======\n");
+			Proxy_ActionThenGetRequestList(data,csinfo,sendbuf,piid_g.data);
 			break;
 		case ProxyTransCommandRequest:
+			fprintf(stderr,"\n====ProxyTransCommandRequest======\n");
 			Proxy_TransCommandRequest(data,csinfo,sendbuf,piid_g.data);
 			break;
 	}
