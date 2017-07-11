@@ -4,6 +4,8 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
+#include <fcntl.h>
 #include <string.h>
 
 #include "ctrl.h"
@@ -41,8 +43,73 @@ int ctrl_base_test() {
 	return 0;
 }
 
+void getNewPulseVal(unsigned int *pulse) {
+	int fd = open("/dev/pulse", O_RDWR);
+	read(fd, pulse, sizeof(unsigned int) * 2);
+	close(fd);
+}
+
+//根据脉冲计算电量
+void cacl_DD(unsigned int *pulse) {
+	int con = JProgramInfo->class12.unit[0].k;
+	//正向有功 = 脉冲总数 * 1000/con;
+	JProgramInfo->class12.day_pos_p = pulse[0] * 1000 / con;
+
+	//反向有功 = 脉冲总数 * 100/con;
+	JProgramInfo->class12.day_nag_p = pulse[0] * 100 / con;
+
+	//正向无功 = 脉冲总数 * 100/con + 脉冲总数%10;
+	JProgramInfo->class12.day_pos_q = pulse[0] * 100 / con + pulse[0] % 10;
+
+	//反向无功 = 脉冲总数 * 100/con + 脉冲总数%10;
+	JProgramInfo->class12.day_nag_q = pulse[0] * 100 / con + pulse[0] % 10;
+}
+
+//计算周期内实时功率
+void cacl_PQ(unsigned int *pulse) {
+
+}
+
 //刷新脉冲
 void refreshPulse() {
+	//用于统计脉冲数
+	static int pulseCount[2] = { 0, 0 };
+	//用于存储增量
+	int pulseCountPlus[2] = { 0, 0 };
+	//用于统计周期内的脉冲计数
+	int pulseCountPeriod[2] = { 0, 0 };
+	//用于计算时间
+	int pulseCountTime[2] = { 0, 0 };
+	//获取寄存器的值
+	unsigned int pulse[2];
+	getNewPulseVal(pulse);
+
+	for (int i = 0; i < 2; i++) {
+		if (pulse[i] > pulseCount[i]) {
+			pulseCountPlus[i] = pulse[i] - pulseCount[i];
+			pulseCount[i] = pulse[i];
+		}
+
+		pulseCountPeriod[i] = pulseCountPlus[i];
+		if (pulseCountPeriod[i] > 0) {
+			pulseCountTime[i]++;
+		} else {
+			pulseCountTime[i] = 0;
+		}
+
+		//计算周期内的电量
+		cacl_DD(pulseCount);
+
+		if (pulseCountTime[i] >= 60) {
+			//计算周期内实时功率
+			cacl_PQ(pulseCountPeriod);
+			//周期内脉冲计数清零
+			pulseCountPeriod[i] = 0;
+			//周期重新计数
+			pulseCountTime[i] = 0;
+		}
+
+	}
 
 }
 
@@ -517,20 +584,32 @@ void dealCtrl() {
 
 int ctrlMain() {
 
+	int secOld = 0;
 	//初始化参数,搭建8个总加组数据，读取功控、电控参数
 	initAll();
 
 	while (1) {
-		//更新脉冲计量数据
-		refreshPulse();
+		TS now;
+		TSGet(&now);
 
-		//更新总加组数据
-		refreshSumUp();
+		//一秒钟刷新一次脉冲数据
+		if (secOld != now.Sec) {
+			refreshPulse();
+		}
 
-		//检查参数更新
-		CheckParaUpdate();
+		//一分钟计算一次控制逻辑
+		if (secOld == 0) {
 
-		//处理控制逻辑
-		dealCtrl();
+			//更新总加组数据
+//			refreshSumUp();
+
+			//检查参数更新
+//			CheckParaUpdate();
+
+			//处理控制逻辑
+//			dealCtrl();
+		}
+
+		secOld = now.Sec;
 	}
 }
