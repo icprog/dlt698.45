@@ -4495,7 +4495,6 @@ INT8S deal6015or6017(CLASS_6013 st6013,CLASS_6015 st6015, INT8U port485,CLASS_60
 			 asyslog(LOG_WARNING, "table6000 中不存在 序号=%d的测量点",info6000[port].list6001[meterIndex]);
 		}
 	}
-
 	return result;
 }
 
@@ -4714,12 +4713,13 @@ void read485_thread(void* i485port) {
 			DbgPrintToFile1(port,"****************taskIndex = %d 任务结束 发送报文数量：%d  接受报文数量：%d*******************************",
 					taskIndex,result6035.sendMsgNum,result6035.rcvMsgNum);
 			saveClass6035(&result6035);
-#if 0//抄完日冻结任务需要把infoReplenish　保存到文件里　保证重启后补抄不用全部都抄
+#if 1//抄完日冻结任务需要把infoReplenish　保存到文件里　保证重启后补抄不用全部都抄
 			//日冻结任务
 			if(to6015.csds.csd[0].csd.road.oad.OI == 0x5004)
 			{
 				//保存需要补抄的数据到文件
 				filewrite(REPLENISHFILEPATH,&infoReplenish,sizeof(Replenish_TaskInfo));
+				printinfoReplenish(0);
 			}
 #endif
 			//判断485故障事件

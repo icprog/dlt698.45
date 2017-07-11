@@ -793,6 +793,7 @@ void timeProcess()
 			{
 				memset(infoReplenish.unitReplenish[taskIndex].isSuccess,0,2*MAX_METER_NUM_1_PORT);
 			}
+			filewrite(REPLENISHFILEPATH,&infoReplenish,sizeof(Replenish_TaskInfo));
 			createFakeTaskFileHead();
 		}
 	}
@@ -1158,7 +1159,7 @@ void dispatch_thread()
 			para_change485[0] = 1;
 			para_change485[1] = 1;
 			init6000InfoFrom6000FIle();
-#if 0
+#if 1
 			filewrite(REPLENISHFILEPATH,&infoReplenish,sizeof(Replenish_TaskInfo));
 #endif
 		}
@@ -1172,7 +1173,7 @@ void dispatch_thread()
 			para_change485[0] = 1;
 			para_change485[1] = 1;
 			init6013ListFrom6012File();
-#if 0
+#if 1
 			filewrite(REPLENISHFILEPATH,&infoReplenish,sizeof(Replenish_TaskInfo));
 #endif
 			system("rm -rf /nand/para/6035");
@@ -1218,13 +1219,41 @@ void dispatch_thread()
 	  pthread_detach(pthread_self());
 	  pthread_exit(&thread_dispatchTask);
 }
+void printinfoReplenish(INT8U flag)
+{
+	if(flag == 1)
+	DbgPrintToFile1(3,"\n从文件中读取需要补抄任务数量 = %d－－－－－－－－－－\n",infoReplenish.tasknum);
+	else
+	DbgPrintToFile1(3,"\n抄读冻结完后还需要补抄任务数量 = %d－－－－－－－－－－\n",infoReplenish.tasknum);
+	INT8U prtIndex = 0;
+	for(prtIndex = 0;prtIndex < infoReplenish.tasknum;prtIndex++)
+	{
+		DbgPrintToFile1(3,"第%d个需要补抄任务ID = %d－－－－－－－－－－\n",prtIndex,infoReplenish.unitReplenish[prtIndex].taskID);
+		DbgPrintToFile1(3,"485 1 测量点%d个 :",infoReplenish.unitReplenish[prtIndex].list6001[0].meterSum);
+		INT16U mpIndex = 0;
+		for(mpIndex = 0;mpIndex <infoReplenish.unitReplenish[prtIndex].list6001[0].meterSum;mpIndex++)
+		{
+			DbgPrintToFile1(3,"点号%d-%d",infoReplenish.unitReplenish[prtIndex].list6001[0].list6001[mpIndex],
+					infoReplenish.unitReplenish[prtIndex].isSuccess[0][mpIndex]);
+		}
+		DbgPrintToFile1(3,"\n485 2 测量点%d个 :",infoReplenish.unitReplenish[prtIndex].list6001[1].meterSum);
+
+		for(mpIndex = 0;mpIndex <infoReplenish.unitReplenish[prtIndex].list6001[1].meterSum;mpIndex++)
+		{
+			DbgPrintToFile1(3,"点号%d-%d",infoReplenish.unitReplenish[prtIndex].list6001[1].list6001[mpIndex],
+					infoReplenish.unitReplenish[prtIndex].isSuccess[1][mpIndex]);
+		}
+	}
+
+}
 void dispatchTask_proccess()
 {
 	//读取所有任务文件		TODO：参数下发后需要更新内存值
 	init6013ListFrom6012File();
 	init6000InfoFrom6000FIle();
-#if 0
+#if 1
 	fileread(REPLENISHFILEPATH,&infoReplenish,sizeof(Replenish_TaskInfo));
+	printinfoReplenish(1);
 #endif
 	init4204Info();
 #ifdef TESTDEF

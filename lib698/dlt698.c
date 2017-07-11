@@ -1117,7 +1117,7 @@ INT16S fillGetRequestAPDU(INT8U* sendBuf,CLASS_6015 obj6015,INT8U requestType)
 			if(obj6015.csds.csd[csdIndex].type == 0)//OAD
 			{
 //				len = OADtoBuff(obj6015.csds.csd[csdIndex].csd.oad,&sendBuf[length]);
-				len += create_OAD(0,&sendBuf[length],obj6015.csds.csd[csdIndex].csd.oad);
+				len = create_OAD(0,&sendBuf[length],obj6015.csds.csd[csdIndex].csd.oad);
 				length +=len;
 			}
 			else
@@ -1136,7 +1136,7 @@ INT16S fillGetRequestAPDU(INT8U* sendBuf,CLASS_6015 obj6015,INT8U requestType)
 			if(obj6015.csds.csd[csdIndex].type == 1)//ROAD
 			{
 //				len = OADtoBuff(obj6015.csds.csd[csdIndex].csd.road.oad,&sendBuf[length]);
-				len += create_OAD(0,&sendBuf[length],obj6015.csds.csd[csdIndex].csd.road.oad);
+				len = create_OAD(0,&sendBuf[length],obj6015.csds.csd[csdIndex].csd.road.oad);
 				length +=len;
 				/*采集上N次数据*/
 				if(obj6015.cjtype == TYPE_LAST)
@@ -1199,7 +1199,7 @@ INT16S fillGetRequestAPDU(INT8U* sendBuf,CLASS_6015 obj6015,INT8U requestType)
 
 					sendBuf[length++] = 0;//OAD
 //					len = OADtoBuff(obj6015.csds.csd[csdIndex].csd.road.oads[oadsIndex],&sendBuf[length]);
-					len += create_OAD(0,&sendBuf[length],obj6015.csds.csd[csdIndex].csd.road.oads[oadsIndex]);
+					len = create_OAD(0,&sendBuf[length],obj6015.csds.csd[csdIndex].csd.road.oads[oadsIndex]);
 					length +=len;
 				}
 
