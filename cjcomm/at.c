@@ -659,6 +659,8 @@ void *ATWorker(void *args) {
         for (int timeout = 0; timeout < 10; timeout++) {
             char Mrecvbuf[128];
 
+            break;
+            //暂时不检查CCID
             SendATCommand("\rAT$MYCCID\r", 11, sMux0);
             delay(1000);
             memset(Mrecvbuf, 0, 128);

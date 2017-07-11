@@ -108,10 +108,10 @@ void write_userpwd(unsigned char* user, unsigned char* pwd, unsigned char* apn) 
     fprintf(fp, "TIMEOUT        10\n");
     fprintf(fp, "OK        AT$MYNETCON=0,\"USERPWD\",\"%s,%s\"\n", user, pwd);
     fprintf(fp, "TIMEOUT        10\n");
-    fprintf(fp, "OK        AT$MYNETCON=0,\"APN\",\"%s\"\n", apn);
-    fprintf(fp, "TIMEOUT        10\n");
-    fprintf(fp, "OK        AT$MYNETCON=0,\"AUTH\",1\n");
-    fprintf(fp, "TIMEOUT        10\n");
+//    fprintf(fp, "OK        AT$MYNETCON=0,\"APN\",\"%s\"\n", apn);
+//    fprintf(fp, "TIMEOUT        10\n");
+//    fprintf(fp, "OK        AT$MYNETCON=0,\"AUTH\",1\n");
+//    fprintf(fp, "TIMEOUT        10\n");
     fprintf(fp, "OK ATDT#777\n");
     fprintf(fp, "CONNECT ''\n");
     fclose(fp);

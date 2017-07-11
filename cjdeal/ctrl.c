@@ -41,10 +41,17 @@ int ctrl_base_test() {
 	return 0;
 }
 
+//刷新脉冲
+void refreshPulse() {
+
+}
+
+//刷新总加组
 void refreshSumUp() {
 
 }
 
+//检查参数更新
 void CheckParaUpdate() {
 
 }
@@ -514,6 +521,9 @@ int ctrlMain() {
 	initAll();
 
 	while (1) {
+		//更新脉冲计量数据
+		refreshPulse();
+
 		//更新总加组数据
 		refreshSumUp();
 
