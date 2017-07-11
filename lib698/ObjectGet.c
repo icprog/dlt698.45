@@ -1386,10 +1386,10 @@ int GetSle0_task(RESULT_RECORD *record)
 	memset(&item_road,0,sizeof(item_road));
 	findmethod = 1;
 	//fprintf(stderr,"\n\\\\\开始找任务序号...... \n");
-	if((taskid = GetTaskidFromCSDs(record->rcsd.csds,&item_road,findmethod,tsa_group)) == 0) {//暂时不支持招测的不在一个采集方案
+	if((taskid = GetTaskidFromCSDs_Sle0(record->rcsd.csds,&item_road,findmethod,tsa_group)) == 0) {//暂时不支持招测的不在一个采集方案
 		memset(&item_road,0,sizeof(item_road));
 		findmethod = 2;
-		if((taskid = GetTaskidFromCSDs(record->rcsd.csds,&item_road,findmethod,tsa_group)) == 0) {
+		if((taskid = GetTaskidFromCSDs_Sle0(record->rcsd.csds,&item_road,findmethod,tsa_group)) == 0) {
 			return 0;
 		}
 	}

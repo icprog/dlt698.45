@@ -2464,6 +2464,272 @@ INT8U GetTaskidFromCSDs(CSD_ARRAYTYPE csds,ROAD_ITEM *item_road,INT8U findmethod
 						continue;
 					//if(taskno == 0)
 					taskno = item_road->oad[mm].taskid;
+//					if(taskno >0)
+//						break;
+					//TODO:这里注释行不行？？？？？？
+					if(taskno == 0 || taskno != item_road->oad[mm].taskid)
+						break;
+//					asyslog(LOG_INFO,"i=%d ,taskno=%d\n",mm,taskno);
+				}
+				if(taskno != 0)
+				{
+					asyslog(LOG_INFO,"return  ,taskno=%d\n",taskno);
+					return taskno;
+				}
+				else
+					fprintf(stderr,"\n=======taskno=%d \n",taskno);
+			}
+		}
+	}
+//	asyslog(LOG_INFO,"item_road->oadmr_num=%d\n",item_road->oadmr_num);
+//	for(i=0;i<item_road->oadmr_num;i++) {
+//		asyslog(LOG_INFO,"taskid[%d]=%d\n",i,item_road->oad[i].taskid);
+//	}
+//	for(i=0;i<(item_road->oadmr_num);i++)
+//	{
+//		asyslog(LOG_INFO,"taskno=%d ,item_road->oad[%d].taskid=%d\n",taskno,i,item_road->oad[i].taskid);
+//		if(taskno != 0 && taskno != item_road->oad[i].taskid)
+//		{
+//			taskno = 0;
+//			asyslog(LOG_INFO,"break taskno=%d\n",taskno);
+//			break;
+//		}
+//		taskno = item_road->oad[i].taskid;
+//		asyslog(LOG_INFO,"i=%d ,taskno=%d\n",i,taskno);
+//	}
+//	asyslog(LOG_INFO,"return  ,taskno=%d\n",taskno);
+	return taskno;
+}
+/*
+ * 根据csds得到任务号
+ * findmethod = 1: 按照csds 的下发实际类型查找
+ * findmethod = 2: 对与road,只查找相关的oad.解决浙江下发的曲线任务为oad,但是主站主动招测下发road 5002-0200(200a-0201.....),
+ * 				   类型不匹配,如果按照oad方式查找,无法查找到实际的任务号
+ */
+INT8U GetTaskidFromCSDs_Sle0(CSD_ARRAYTYPE csds,ROAD_ITEM *item_road,INT8U findmethod,CLASS_6001 *tsa)
+{
+	CLASS_6015	class6015={};
+	CLASS_6013	class6013={};
+	int i=0,j=0,mm=0,nn=0,kk=0;
+	INT8U taskno=0,tsa_equ=0;
+
+	print_rcsd(csds);
+	if(csds.num > MY_CSD_NUM)//超了
+		csds.num = MY_CSD_NUM;
+#ifdef SYS_INFO
+	asyslog(LOG_INFO,"csds.num=%d\n",csds.num);
+#endif
+	for(i=0;i<csds.num;i++)
+	{
+//		asyslog(LOG_INFO,"csds.csd[%d].type=%d\n",i,csds.csd[i].type);
+		switch(csds.csd[i].type)
+		{
+		case 0://OAD类型，第一个oad为0x00000000，第二个oad为OAD
+//			if(csds.csd[i].csd.oad.OI == 0x202a || csds.csd[i].csd.oad.OI == 0x6040 ||//时标和地址不统计在内
+//					csds.csd[i].csd.oad.OI == 0x6041 || csds.csd[i].csd.oad.OI == 0x6042)
+//				break;
+			item_road->oad[item_road->oadmr_num].oad_m.OI=0x0000;
+			item_road->oad[item_road->oadmr_num].oad_m.attflg=0x00;
+			item_road->oad[item_road->oadmr_num].oad_m.attrindex=0x00;
+			memcpy(&item_road->oad[item_road->oadmr_num].oad_r,&csds.csd[i].csd.oad,sizeof(OAD));
+			item_road->oad[item_road->oadmr_num].oad_num = 0;//oad类型写为0
+			item_road->oadmr_num++;
+//			asyslog(LOG_INFO,"0000:item_road->oadmr_num=%d\n",item_road->oadmr_num);
+			break;
+		case 1:
+			if(csds.csd[i].csd.road.num > ROAD_OADS_NUM)
+				csds.csd[i].csd.road.num = ROAD_OADS_NUM;
+			item_road->oad[item_road->oadmr_num].oad_num = csds.csd[i].csd.road.num;//road类型的从oad个数写为实际从oad个数
+			for(j=0;j<csds.csd[i].csd.road.num;j++)
+			{
+				memcpy(&item_road->oad[item_road->oadmr_num].oad_m,&csds.csd[i].csd.road.oad,sizeof(OAD));
+				memcpy(&item_road->oad[item_road->oadmr_num].oad_r,&csds.csd[i].csd.road.oads[j],sizeof(OAD));
+				item_road->oadmr_num++;
+			}
+//			asyslog(LOG_INFO,"11111:item_road->oadmr_num=%d\n",item_road->oadmr_num);
+
+			break;
+		default:break;
+		}
+	}
+
+
+#ifdef SYS_INFO
+	asyslog(LOG_INFO,"任务下发的主-从OI配置：oadmr_num=%d\n",item_road->oadmr_num);
+	for(i=0;i<item_road->oadmr_num;i++){
+		asyslog(LOG_INFO,"[%d] %04x_%04x\n",i,item_road->oad[i].oad_m.OI,item_road->oad[i].oad_r.OI);
+	}
+#endif
+	memset(&class6013,0,sizeof(CLASS_6013));
+	memset(&class6015,0,sizeof(CLASS_6015));
+	for(i=0;i<256;i++)
+	{
+		tsa_equ = 0;
+		if(readCoverClass(0x6013,i+1,&class6013,sizeof(class6013),coll_para_save) == 1)
+		{
+			if(class6013.cjtype != 1 || class6013.state != 1)//过滤掉不是普通采集方案的
+				continue;
+			if(readCoverClass(0x6015,class6013.sernum,&class6015,sizeof(CLASS_6015),coll_para_save) == 1)
+			{
+				if(tsa != NULL)
+				{
+					fprintf(stderr,"\n  metertype=%d\n",class6015.mst.mstype);
+					switch(class6015.mst.mstype)
+					{
+					case 0:
+						return 0;
+					case 1:
+						tsa_equ = 1;
+						break;
+					case 2:
+						for(kk=0;kk<COLLCLASS_MAXNUM;kk++)
+						{
+							if(class6015.mst.ms.userType[kk] == tsa[0].basicinfo.usrtype)
+								tsa_equ = 1;
+						}
+						break;
+					case 3:
+						for(kk=0;kk<COLLCLASS_MAXNUM;kk++)
+						{
+							if(memcmp(&class6015.mst.ms.userAddr[kk],&tsa[0].basicinfo.addr,sizeof(TSA)) == 0)
+								tsa_equ = 1;
+						}
+						break;
+					case 4:
+						for(kk=0;kk<COLLCLASS_MAXNUM;kk++)
+						{
+							if(class6015.mst.ms.configSerial[kk] == tsa[0].sernum)
+								tsa_equ = 1;
+						}
+						break;
+					case 5:
+						fprintf(stderr,"\n\n------");
+						for(kk=0;kk<20;kk++)
+							fprintf(stderr," %02x",class6015.mst.ms.type[0].begin[kk]);
+						fprintf(stderr,"\n%02x-%02x : %02x \n",class6015.mst.ms.type[0].begin[1],class6015.mst.ms.type[0].end[1],
+								tsa[0].basicinfo.usrtype);
+						if(tsa[0].basicinfo.usrtype>=class6015.mst.ms.type[0].begin[1] && tsa[0].basicinfo.usrtype<=class6015.mst.ms.type[0].end[1])
+							tsa_equ = 1;
+						break;
+					case 6:break;//暂时不实现
+					case 7:break;
+					default:
+						break;
+					}
+				}
+				if(tsa_equ==0)
+					continue;
+				else
+					fprintf(stderr,"\ntsa_equ=1\n");
+#ifdef SYS_INFO
+				asyslog(LOG_INFO,"查找任务号 %d，方案序号：%d class6015.csds.num=%d",i+1,class6013.sernum,class6015.csds.num);
+#endif
+				for(j=0;j<class6015.csds.num;j++)
+				{
+#ifdef SYS_INFO
+					asyslog(LOG_INFO,"jj=%d,csd.oad=%04x_%02x%02x \n",j,class6015.csds.csd[j].csd.oad.OI,
+								class6015.csds.csd[j].csd.oad.attflg,class6015.csds.csd[j].csd.oad.attrindex);
+#endif
+					for(mm=0;mm<item_road->oadmr_num;mm++)
+					{
+						switch(class6015.csds.csd[j].type)
+						{
+						case 0:
+#ifdef SYS_INFO
+							asyslog(LOG_INFO,"mm=%d,oad_r  =%04x_%02x%02x \n",mm,item_road->oad[mm].oad_r.OI,
+										item_road->oad[mm].oad_r.attflg,item_road->oad[mm].oad_r.attrindex);
+#endif
+							//浙江主站下发曲线任务oad,主动招测曲线数据,下发的oad为5002-*, 与任务的id不一致
+//							if(findmethod == 2) {		//深度查找满足的任务oad
+//						//		if((item_road->oad[mm].oad_m.OI > 0x0000) && (item_road->oad[mm].oad_m.OI < 0x5004))
+//								if(item_road->oad[mm].oad_m.OI > 0x0000)
+//								{
+//									item_road->oad[mm].oad_m.OI = 0x0000;
+//									item_road->oad[mm].oad_m.attflg = 0;
+//									item_road->oad[mm].oad_m.attrindex = 0;
+//									item_road->oad[mm].oad_num = 0;
+//								}
+//							}
+							if(findmethod == 1 && (item_road->oad[mm].oad_m.OI == 0x0000)) 	//深度查找满足的任务oad
+							{
+								if(memcmp(&item_road->oad[mm].oad_r,&class6015.csds.csd[j].csd.oad,sizeof(OAD))==0 ||
+										(item_road->oad[mm].oad_r.OI == class6015.csds.csd[j].csd.oad.OI &&
+												item_road->oad[mm].oad_r.attrindex != 0 &&
+												class6015.csds.csd[j].csd.oad.attrindex == 0)){
+									item_road->oad[mm].taskid = i+1;
+#ifdef SYS_INFO
+									asyslog(LOG_INFO,"taskid find one %d",i+1);
+#endif
+									continue;
+								}
+							}else if(findmethod == 2) {
+								if(memcmp(&item_road->oad[mm].oad_r,&class6015.csds.csd[j].csd.oad,sizeof(OAD))==0 ||
+										(item_road->oad[mm].oad_r.OI == class6015.csds.csd[j].csd.oad.OI &&
+												item_road->oad[mm].oad_r.attrindex != 0 &&
+												class6015.csds.csd[j].csd.oad.attrindex == 0)){
+									item_road->oad[mm].taskid = i+1;
+#ifdef SYS_INFO
+									asyslog(LOG_INFO,"taskid find one %d",i+1);
+#endif
+									continue;
+								}
+							}
+							break;
+						case 1:
+#ifdef SYS_INFO
+							  asyslog(LOG_INFO,"11111 mm=%d,oad_r  =%04x_%02x%02x \n",mm,item_road->oad[mm].oad_r.OI,
+											item_road->oad[mm].oad_r.attflg,item_road->oad[mm].oad_r.attrindex);
+							  asyslog(LOG_INFO,"11111 jj=%d,csd.oad=%04x_%02x%02x \n",j,class6015.csds.csd[j].csd.oad.OI,
+											class6015.csds.csd[j].csd.oad.attflg,class6015.csds.csd[j].csd.oad.attrindex);
+#endif
+							if(memcmp(&item_road->oad[mm].oad_m,&class6015.csds.csd[j].csd.road.oad,sizeof(OAD))==0)//
+							{
+								for(nn=0;nn<class6015.csds.csd[j].csd.road.num;nn++)
+								{
+									fprintf(stderr,"oad_r=%04x%02x%02x %d.oad=%04x%02x%02x\n",
+											item_road->oad[mm].oad_r.OI,item_road->oad[mm].oad_r.attflg,item_road->oad[mm].oad_r.attrindex,nn,
+											class6015.csds.csd[j].csd.road.oads[nn].OI,class6015.csds.csd[j].csd.road.oads[nn].attflg,class6015.csds.csd[j].csd.road.oads[nn].attrindex);
+									if(memcmp(&item_road->oad[mm].oad_r,&class6015.csds.csd[j].csd.road.oads[nn],sizeof(OAD))==0 ||
+											(item_road->oad[mm].oad_r.OI == class6015.csds.csd[j].csd.road.oads[nn].OI &&
+												item_road->oad[mm].oad_r.attrindex != 0 &&
+												class6015.csds.csd[j].csd.road.oads[nn].attrindex == 0)){
+										item_road->oad[mm].taskid = i+1;
+										fprintf(stderr,"\n------find \n");
+//										asyslog(LOG_INFO,"1111:item_road->oad[%d].taskid=%d\n",mm,item_road->oad[mm].taskid);
+										continue;
+									}
+								}
+							}
+							break;
+						default:break;
+						}
+					}
+				}
+#ifdef SYS_INFO
+				asyslog(LOG_INFO,"item_road->oadmr_num=%d\n",item_road->oadmr_num);
+				for(mm=0;mm<item_road->oadmr_num;mm++) {
+					asyslog(LOG_INFO,"taskid[%d]=%d\n",mm,item_road->oad[mm].taskid);
+				}
+#endif
+				for(mm=0;mm<(item_road->oadmr_num);mm++)
+				{
+//					asyslog(LOG_INFO,"taskno=%d ,item_road->oad[%d].taskid=%d\n",taskno,mm,item_road->oad[mm].taskid);
+//					if(taskno != 0 && taskno != item_road->oad[mm].taskid)
+//					{
+//						taskno = 0;
+//						asyslog(LOG_INFO,"break taskno=%d\n",taskno);
+//						break;
+//					}
+//					if(item_road->oad[mm].taskid != 0)
+//						taskno = item_road->oad[mm].taskid;
+					fprintf(stderr,"=========taskno=%d oad=%04x%02x%02x taskid=%d",
+							taskno,item_road->oad[mm].oad_r.OI,item_road->oad[mm].oad_r.attflg,item_road->oad[mm].oad_r.attrindex,
+							item_road->oad[mm].taskid);
+					if(item_road->oad[mm].oad_r.OI == 0x202a || item_road->oad[mm].oad_r.OI == 0x6040 ||
+							item_road->oad[mm].oad_r.OI == 0x6041 || item_road->oad[mm].oad_r.OI == 0x6042)
+						continue;
+					//if(taskno == 0)
+					taskno = item_road->oad[mm].taskid;
 					if(taskno >0)
 						break;
 					//TODO:这里注释行不行？？？？？？
@@ -3102,7 +3368,7 @@ INT8U initrecinfo(OAD getOAD,CURR_RECINFO *recinfo,TASKSET_INFO tasknor_info,INT
 				recinfo->rec_end = time_tmp;
 			}
 			//一致性测试GET_21:Selector6招测选择区间应该是前闭后开【起始值，结束值），查询记录数不应该+1
-			if((recinfo->rec_end - recinfo->rec_start)/tasknor_info.freq !=0) {
+			if((recinfo->rec_end - recinfo->rec_start)%tasknor_info.freq ==0) {//测试负荷曲线改得
 				recinfo->recordno_num = (recinfo->rec_end - recinfo->rec_start)/tasknor_info.freq;
 			}else {
 				recinfo->recordno_num = (recinfo->rec_end - recinfo->rec_start)/tasknor_info.freq + 1;
