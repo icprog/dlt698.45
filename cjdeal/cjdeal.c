@@ -815,10 +815,10 @@ extern INT8U get6001ObjByTSA(TSA addr,CLASS_6001* targetMeter);
 #define PORT_485  	0xF201
 #define PORT_JC		0xF208
 PROXY_GETLIST proxyList_manager;
-int proxy_one_fill_record(GETRECORD record,int len,INT8U *source,INT8U DARtype,INT8U *desbuf)
-{
-
-}
+//int proxy_one_fill_record(GETRECORD record,int len,INT8U *source,INT8U DARtype,INT8U *desbuf)
+//{
+//
+//}
 int proxy_one_fill(GETOBJS obj,int len,INT8U *source,INT8U DARtype,INT8U *desbuf)
 {
 	//填充代理应答   ProxyGetResponseList
@@ -831,8 +831,9 @@ int proxy_one_fill(GETOBJS obj,int len,INT8U *source,INT8U DARtype,INT8U *desbuf
 
 	for(i=0; i<obj.num; i++)
 	{
-		OADtoBuff(obj.oads[i],&desbuf[index]);
-		index += sizeof(OAD);
+//		OADtoBuff(obj.oads[i],&desbuf[index]);
+//		index += sizeof(OAD);
+		index += create_OAD(0,&desbuf[index],obj.oads[i]);
 		if (source==NULL || len==0)
 		{
 			desbuf[index++] = 0x00;
@@ -846,59 +847,31 @@ int proxy_one_fill(GETOBJS obj,int len,INT8U *source,INT8U DARtype,INT8U *desbuf
 	return index;
 }
 extern void set_port_active(INT8U port485,INT8U value);
-void divProxy(CJCOMM_PROXY proxy)
+void Pre_ProxyGetRequestList(CJCOMM_PROXY proxy)
 {
 	int num = proxy.strProxyList.num ,i=0,num_485=0,num_zb=0,dataindex=0;
 	CLASS_6001 obj6001 = {};
 	INT8U addlen = 0;
-	memset(&cjcommProxy,0,sizeof(cjcommProxy));
-	memset(&cjcommProxy_plc,0,sizeof(cjcommProxy_plc));
-	memcpy(&proxyList_manager,&proxy.strProxyList,sizeof(PROXY_GETLIST));
-	memset(&proxyList_manager.data,0,sizeof(proxyList_manager.data));
 
-	proxyList_manager.datalen = 0;
 	proxyList_manager.data[dataindex++] = num;
-	if (proxyList_manager.timeout == 0)
-		proxyList_manager.timeout = 60;
-
-	if (proxy.strProxyList.proxytype == ProxyGetRequestRecord)
+	for(i=0;i<num;i++)
 	{
-		if(get6001ObjByTSA(proxy.strProxyList.record.tsa,&obj6001) != 1 )
-		{
-			dataindex += proxy_one_fill_record(proxy.strProxyList.record, 0, NULL,0x21, &proxyList_manager.data[dataindex]);
+		if(get6001ObjByTSA(proxy.strProxyList.objs[i].tsa,&obj6001) != 1 )
+		{//TSA未找到
+			dataindex += proxy_one_fill(proxy.strProxyList.objs[i], 0, NULL,0x21, &proxyList_manager.data[dataindex]);
 		}else
 		{
 			if (obj6001.basicinfo.port.OI==PORT_485)
 			{
-				memcpy(&cjcommProxy.strProxyList.record, &proxy.strProxyList.record, sizeof(GETRECORD));
+				memcpy(&cjcommProxy.strProxyList.objs[num_485++], &proxy.strProxyList.objs[i], sizeof(GETOBJS));
+				cjcommProxy.strProxyList.num = num_485;
 			}else if(obj6001.basicinfo.port.OI==PORT_ZB)
 			{
-				memcpy(&cjcommProxy_plc.strProxyList.record, &proxy.strProxyList.record, sizeof(GETRECORD));
+				memcpy(&cjcommProxy_plc.strProxyList.objs[num_zb++], &proxy.strProxyList.objs[i], sizeof(GETOBJS));
+				cjcommProxy_plc.strProxyList.num = num_zb;
 			}
 		}
 	}
-	if (proxy.strProxyList.proxytype == ProxyGetRequestList)
-	{
-		for(i=0;i<num;i++)
-		{
-			if(get6001ObjByTSA(proxy.strProxyList.objs[i].tsa,&obj6001) != 1 )
-			{//TSA未找到
-				dataindex += proxy_one_fill(proxy.strProxyList.objs[i], 0, NULL,0x21, &proxyList_manager.data[dataindex]);
-			}else
-			{
-				if (obj6001.basicinfo.port.OI==PORT_485)
-				{
-					memcpy(&cjcommProxy.strProxyList.objs[num_485++], &proxy.strProxyList.objs[i], sizeof(GETOBJS));
-					cjcommProxy.strProxyList.num = num_485;
-				}else if(obj6001.basicinfo.port.OI==PORT_ZB)
-				{
-					memcpy(&cjcommProxy_plc.strProxyList.objs[num_zb++], &proxy.strProxyList.objs[i], sizeof(GETOBJS));
-					cjcommProxy_plc.strProxyList.num = num_zb;
-				}
-			}
-		}
-	}
-
 	proxyList_manager.datalen = dataindex;
 	fprintf(stderr,"\n代理任务分配");
 	if (num_485 > 0)
@@ -906,26 +879,89 @@ void divProxy(CJCOMM_PROXY proxy)
 		set_port_active(1,1);
 		set_port_active(2,1);
 		cjcommProxy.strProxyList.proxytype = proxy.strProxyList.proxytype;
-		for(i=0;i<num_485;i++)
-			fprintf(stderr,"\n485通道 %d   TSA: %02x%02x%02x%02x%02x%02x%02x%02x ",i+1,
-					cjcommProxy.strProxyList.objs[i].tsa.addr[0],cjcommProxy.strProxyList.objs[i].tsa.addr[1],cjcommProxy.strProxyList.objs[i].tsa.addr[2],
-					cjcommProxy.strProxyList.objs[i].tsa.addr[3],cjcommProxy.strProxyList.objs[i].tsa.addr[4],cjcommProxy.strProxyList.objs[i].tsa.addr[5],
-					cjcommProxy.strProxyList.objs[i].tsa.addr[6],cjcommProxy.strProxyList.objs[i].tsa.addr[7]);
-
 		cjcommProxy.isInUse = 3;
 		proxyInUse.devUse.rs485Need = 1;
 	}
 	if (num_zb > 0)
 	{
 		cjcommProxy_plc.strProxyList.proxytype = proxy.strProxyList.proxytype;
-		for(i=0;i<num_zb;i++)
-			fprintf(stderr,"\n载波通道 %d   TSA: %02x%02x%02x%02x%02x%02x%02x%02x ",i+1,
-					cjcommProxy_plc.strProxyList.objs[i].tsa.addr[0],cjcommProxy_plc.strProxyList.objs[i].tsa.addr[1],cjcommProxy_plc.strProxyList.objs[i].tsa.addr[2],
-					cjcommProxy_plc.strProxyList.objs[i].tsa.addr[3],cjcommProxy_plc.strProxyList.objs[i].tsa.addr[4],cjcommProxy_plc.strProxyList.objs[i].tsa.addr[5],
-					cjcommProxy_plc.strProxyList.objs[i].tsa.addr[6],cjcommProxy_plc.strProxyList.objs[i].tsa.addr[7]);
-
 		cjcommProxy_plc.isInUse = 1;
 		proxyInUse.devUse.plcNeed = 1;
+	}
+}
+void Pre_ProxyGetRequestRecord(CJCOMM_PROXY proxy)
+{
+	CLASS_6001 obj6001 = {};
+	int num = proxy.strProxyList.num ,i=0,num_485=0,num_zb=0,dataindex=0;
+	memset(&proxyList_manager.record,0,sizeof(GETRECORD));
+
+	if(get6001ObjByTSA(proxy.strProxyList.record.tsa,&obj6001) != 1 )
+	{
+	//	dataindex += proxy_one_fill_record(proxy.strProxyList.record, 0, NULL,0x21, &proxyList_manager.data[dataindex]);
+	}else
+	{
+		if (obj6001.basicinfo.port.OI==PORT_485)
+		{
+			set_port_active(1,1);
+			set_port_active(2,1);
+			memcpy(&cjcommProxy.strProxyList.record, &proxy.strProxyList.record, sizeof(GETRECORD));
+			cjcommProxy.strProxyList.proxytype = proxy.strProxyList.proxytype;
+			cjcommProxy.isInUse = 3;
+			proxyInUse.devUse.rs485Need = 1;
+		}else if(obj6001.basicinfo.port.OI==PORT_ZB)
+		{
+			cjcommProxy_plc.strProxyList.proxytype = proxy.strProxyList.proxytype;
+			memcpy(&cjcommProxy_plc.strProxyList.record, &proxy.strProxyList.record, sizeof(GETRECORD));
+			cjcommProxy_plc.isInUse = 1;
+			proxyInUse.devUse.plcNeed = 1;
+		}
+	}
+}
+
+void Pre_ProxyTransCommandRequest(CJCOMM_PROXY proxy)
+{
+	OI_698 oad;
+	int num = proxy.strProxyList.num ,i=0,num_485=0,num_zb=0,dataindex=0;
+	oad = (INT16U)proxy.strProxyList.transcmd.oad.OI;
+//	OADtoBuff(proxy.strProxyList.transcmd.oad,proxyList_manager.data);
+	create_OAD(0,proxyList_manager.data,proxy.strProxyList.transcmd.oad);
+	if (oad == PORT_ZB)
+	{
+		DEBUG_TIME_LINE("receive proxy frame on plc");
+		memcpy(&cjcommProxy_plc.strProxyList,&proxy.strProxyList,sizeof(PROXY_GETLIST));
+		cjcommProxy_plc.isInUse = 1;
+		proxyInUse.devUse.plcNeed = 1;
+	}else if(oad == PORT_485)
+	{
+		set_port_active(1,1);
+		set_port_active(2,1);
+		memcpy(&cjcommProxy.strProxyList,&proxy.strProxyList,sizeof(PROXY_GETLIST));
+		cjcommProxy.isInUse = 3;
+		proxyInUse.devUse.rs485Need = 1;
+	}
+}
+void divProxy(CJCOMM_PROXY proxy)
+{
+	memset(&cjcommProxy,0,sizeof(cjcommProxy));
+	memset(&cjcommProxy_plc,0,sizeof(cjcommProxy_plc));
+	memcpy(&proxyList_manager,&proxy.strProxyList,sizeof(PROXY_GETLIST));
+	memset(&proxyList_manager.data,0,sizeof(proxyList_manager.data));
+
+
+	if (proxyList_manager.timeout == 0)
+		proxyList_manager.timeout = 60;
+	proxyList_manager.datalen = 0;
+	switch(proxy.strProxyList.proxytype)
+	{
+		case ProxyGetRequestList:
+			Pre_ProxyGetRequestList(proxy);
+			break;
+		case ProxyGetRequestRecord:
+			Pre_ProxyGetRequestRecord(proxy);
+			break;
+		case ProxyTransCommandRequest:
+			Pre_ProxyTransCommandRequest(proxy);
+			break;
 	}
 }
 INT8S dealMsgProcess()
@@ -936,6 +972,8 @@ INT8S dealMsgProcess()
 	INT8U  rev_485_buf[2048];
 	INT32S ret;
 	OI_698 oad;
+	INT8U	dar=success;
+	INT16U	index=0;
 	mmq_head mq_h;
 
 	ret = mmq_get(mqd_485_main, 1, &mq_h, rev_485_buf);
@@ -944,74 +982,26 @@ INT8S dealMsgProcess()
 	{
 		switch(mq_h.cmd)
 		{
-			case ProxyGetResponseList://代理
+			if(mq_h.pid == cjdeal)
 			{
-				if(mq_h.pid == cjdeal)
-				{
-					proxyInUse.devUse.proxyIdle = 1;
-					DEBUG_TIME_LINE("\n收到代理召测\n");
-					memcpy(&cjcommProxy_Tmp.strProxyList,rev_485_buf,sizeof(PROXY_GETLIST));
-					DEBUG_TIME_LINE("receive proxy frame on port: %04X", cjcommProxy_Tmp.strProxyList.transcmd.oad.OI);
-					switch(cjcommProxy_Tmp.strProxyList.proxytype)
-					{
-						case ProxyGetRequestList:
-							divProxy(cjcommProxy_Tmp);
-							break;
-						case ProxyGetRequestRecord:
-							divProxy(cjcommProxy_Tmp);
-							break;
-						case ProxySetRequestList:
-							break;
-						case ProxySetThenGetRequestList:
-							break;
-						case ProxyActionRequestList:
-							break;
-						case ProxyActionThenGetRequestList:
-							break;
-						case ProxyTransCommandRequest:
-							oad = (INT16U)cjcommProxy_Tmp.strProxyList.transcmd.oad.OI;
-							OADtoBuff(cjcommProxy_Tmp.strProxyList.transcmd.oad,proxyList_manager.data);
-
-							switch(oad) {
-							case PORT_ZB:
-								DEBUG_TIME_LINE("receive proxy frame on plc");
-								memcpy(&cjcommProxy_plc.strProxyList,rev_485_buf,sizeof(PROXY_GETLIST));
-								cjcommProxy_plc.isInUse = 1;
-								proxyInUse.devUse.plcNeed = 1;
-								break;
-							case PORT_485:
-								memcpy(&cjcommProxy.strProxyList,rev_485_buf,sizeof(PROXY_GETLIST));
-								cjcommProxy.isInUse = 3;
-								proxyInUse.devUse.rs485Need = 1;
-								break;
-							default:
-
-								break;
-							}
-							break;
-						default:
-							break;
-					}
-				}// end if cjdeal
-				if(mq_h.pid == cjgui)
-				{
-					fprintf(stderr, "\n收到液晶点抄-----------------------------------23232323\n");
-					memcpy(&cjguiProxy_Tmp.strProxyMsg,rev_485_buf,sizeof(Proxy_Msg));
-					if (cjguiProxy_Tmp.strProxyMsg.port.OI== PORT_ZB) {
-						memcpy(&cjGuiProxy_plc,&cjguiProxy_Tmp,sizeof(cjGuiProxy_plc));//如果点抄的是载波测量点，消息变量转存
-						cjGuiProxy_plc.isInUse = 1;
-					} else if (cjguiProxy_Tmp.strProxyMsg.port.OI== PORT_485) {
-						memcpy(&cjguiProxy.strProxyMsg,rev_485_buf,sizeof(Proxy_Msg));
-						cjguiProxy.isInUse = 3;
-					}
+				proxyInUse.devUse.proxyIdle = 1;
+				DEBUG_TIME_LINE("\n收到代理召测\n");
+				memcpy(&cjcommProxy_Tmp.strProxyList,rev_485_buf,sizeof(PROXY_GETLIST));
+				divProxy(cjcommProxy_Tmp);
+			}
+			if(mq_h.pid == cjgui)
+			{
+				fprintf(stderr, "\n收到液晶点抄-----------------------------------23232323\n");
+				memcpy(&cjguiProxy_Tmp.strProxyMsg,rev_485_buf,sizeof(Proxy_Msg));
+				if (cjguiProxy_Tmp.strProxyMsg.port.OI== PORT_ZB) {
+					memcpy(&cjGuiProxy_plc,&cjguiProxy_Tmp,sizeof(cjGuiProxy_plc));//如果点抄的是载波测量点，消息变量转存
+					cjGuiProxy_plc.isInUse = 1;
+				} else if (cjguiProxy_Tmp.strProxyMsg.port.OI== PORT_485) {
+					memcpy(&cjguiProxy.strProxyMsg,rev_485_buf,sizeof(Proxy_Msg));
+					cjguiProxy.isInUse = 3;
 				}
-				readState = 0;
 			}
-			break;
-			default:
-			{
-				asyslog(LOG_WARNING,"485收到未知消息  cmd=%d!!!---------------", mq_h.cmd);
-			}
+			readState = 0;
 		}
 	}
 	return result;

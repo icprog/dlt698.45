@@ -454,7 +454,6 @@ int main(int argc, char *argv[]) {
     	return EXIT_SUCCESS;
     }
 
-
     if (strcmp("yx", argv[1]) == 0) {
         for(;;){
             CLASS_f203 oif203 = {};

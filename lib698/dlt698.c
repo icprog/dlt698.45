@@ -26,6 +26,7 @@ extern INT16U setRequestNormal(INT8U *data,OAD oad,INT8U *DAR,CSINFO *csinfo,INT
 extern int setRequestNormalList(INT8U *Object,CSINFO *csinfo,INT8U *buf);
 extern int setThenGetRequestNormalList(INT8U *data,CSINFO *csinfo,INT8U *buf);
 extern int Proxy_GetRequestlist(INT8U *data,CSINFO *csinfo,INT8U *sendbuf,INT8U piid);
+extern int Proxy_GetRequestRecord(INT8U *data,CSINFO *csinfo,INT8U *sendbuf,INT8U piid);
 extern int Proxy_TransCommandRequest(INT8U *data,CSINFO *csinfo,INT8U *sendbuf,INT8U piid);
 extern unsigned short tryfcs16(unsigned char *cp, int  len);
 extern INT32S secureConnectRequest(SignatureSecurity* securityInfo ,SecurityData* RetInfo);
@@ -1087,15 +1088,15 @@ INT16S parseSecurityResponse(INT8U* RN,INT8U* apdu)//apdu负责传入和传出�
 }
 
 
-//OAD转换为报文
-INT8U OADtoBuff(OAD fromOAD,INT8U* buff)
-{
-	memcpy(&buff[0],&fromOAD,sizeof(OAD));
-	INT8U tmp = buff[0];
-	buff[0] = buff[1];
-	buff[1] = tmp;
-	return sizeof(OAD);
-}
+////OAD转换为报文
+//INT8U OADtoBuff(OAD fromOAD,INT8U* buff)
+//{
+//	memcpy(&buff[0],&fromOAD,sizeof(OAD));
+//	INT8U tmp = buff[0];
+//	buff[0] = buff[1];
+//	buff[1] = tmp;
+//	return sizeof(OAD);
+//}
 
 INT16S fillGetRequestAPDU(INT8U* sendBuf,CLASS_6015 obj6015,INT8U requestType)
 {
@@ -1114,7 +1115,8 @@ INT16S fillGetRequestAPDU(INT8U* sendBuf,CLASS_6015 obj6015,INT8U requestType)
 			/*采集当前数据*/
 			if(obj6015.csds.csd[csdIndex].type == 0)//OAD
 			{
-				len = OADtoBuff(obj6015.csds.csd[csdIndex].csd.oad,&sendBuf[length]);
+//				len = OADtoBuff(obj6015.csds.csd[csdIndex].csd.oad,&sendBuf[length]);
+				len += create_OAD(0,&sendBuf[length],obj6015.csds.csd[csdIndex].csd.oad);
 				length +=len;
 			}
 			else
@@ -1132,7 +1134,8 @@ INT16S fillGetRequestAPDU(INT8U* sendBuf,CLASS_6015 obj6015,INT8U requestType)
 
 			if(obj6015.csds.csd[csdIndex].type == 1)//ROAD
 			{
-				len = OADtoBuff(obj6015.csds.csd[csdIndex].csd.road.oad,&sendBuf[length]);
+//				len = OADtoBuff(obj6015.csds.csd[csdIndex].csd.road.oad,&sendBuf[length]);
+				len += create_OAD(0,&sendBuf[length],obj6015.csds.csd[csdIndex].csd.road.oad);
 				length +=len;
 				/*采集上N次数据*/
 				if(obj6015.cjtype == TYPE_LAST)
@@ -1194,7 +1197,8 @@ INT16S fillGetRequestAPDU(INT8U* sendBuf,CLASS_6015 obj6015,INT8U requestType)
 				{
 
 					sendBuf[length++] = 0;//OAD
-					len = OADtoBuff(obj6015.csds.csd[csdIndex].csd.road.oads[oadsIndex],&sendBuf[length]);
+//					len = OADtoBuff(obj6015.csds.csd[csdIndex].csd.road.oads[oadsIndex],&sendBuf[length]);
+					len += create_OAD(0,&sendBuf[length],obj6015.csds.csd[csdIndex].csd.road.oads[oadsIndex]);
 					length +=len;
 				}
 
@@ -1301,8 +1305,9 @@ INT16S composeProtocol698_SetRequest(INT8U* sendBuf,RESULT_NORMAL setData,TSA me
 	sendBuf[sendLen++] = SET_REQUEST;
 	sendBuf[sendLen++] = SET_REQUEST_NORMAL;
 	sendBuf[sendLen++] = PIID;
-	OADtoBuff(setData.oad,&sendBuf[sendLen]);
-	sendLen += 4;
+//	OADtoBuff(setData.oad,&sendBuf[sendLen]);
+//	sendLen += 4;
+	sendLen += create_OAD(0,&sendBuf[sendLen],setData.oad);
 	INT16U dataIndex = 0;
 	for(dataIndex = 0;dataIndex < setData.datalen;dataIndex++)
 	{
