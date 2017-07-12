@@ -150,7 +150,9 @@ int Proxy_TransCommandRequest(INT8U *data,CSINFO *csinfo,INT8U *sendbuf,INT8U pi
 	getlist.timeold = time(NULL);
 	memcpy(&getlist.csinfo,csinfo,sizeof(CSINFO));
 
+
 	printcmd(getlist);
+	DEBUG_TIME_LINE("");
 	ret= mqs_send((INT8S *)PROXY_485_MQ_NAME,1,ProxyGetResponseList,(INT8U *)&getlist,sizeof(PROXY_GETLIST));
 	fprintf(stderr,"\n代理消息已经发出,ret=%d\n\n",ret);
 	return 1;

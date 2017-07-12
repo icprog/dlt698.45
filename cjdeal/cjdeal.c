@@ -882,6 +882,7 @@ INT8S dealMsgProcess()
 	mmq_head mq_h;
 	ret = mmq_get(mqd_485_main, 1, &mq_h, rev_485_buf);
 
+	DEBUG_TIME_LINE("ret: %d", ret);
 	if (ret>0)
 	{
 		proxyInUse.devUse.proxyIdle = 1;
@@ -1011,6 +1012,8 @@ void replenish_tmp()
 INT8U dealProxyAnswer()
 {
 
+	DEBUG_TIME_LINE("proxyInUse.devUse.plcNeed: %d; proxyInUse.devUse.plcReady: %d; proxyInUse.devUse.rs485Need: %d; proxyInUse.devUse.rs485Ready: %d", \
+			proxyInUse.devUse.plcNeed, proxyInUse.devUse.plcReady, proxyInUse.devUse.rs485Need, proxyInUse.devUse.rs485Ready);
 	if( !(proxyInUse.devUse.plcNeed ^ proxyInUse.devUse.plcReady)&&\
 		!(proxyInUse.devUse.rs485Need ^ proxyInUse.devUse.rs485Ready) ) {//当某一个设备的需要使用标记和就绪标记同时为0,
 																		//或者同时为1, 意即当需要使用
