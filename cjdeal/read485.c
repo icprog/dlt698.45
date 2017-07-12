@@ -2632,7 +2632,7 @@ INT8S dealProxyType6(PROXY_GETLIST *getlist,INT8U port485)
 INT8S dealProxy(PROXY_GETLIST *getlist,INT8U port485)
 {
 	INT8S result = -1;
-	fprintf(stderr,"\nRS485 代理类型 =%d  datalen",getlist->proxytype,getlist->datalen);
+	fprintf(stderr,"\nRS485 代理类型 =%d  datalen=%d",getlist->proxytype,getlist->datalen);
 	if(getlist->proxytype == ProxyGetRequestList)
 	{
 		result = dealProxyType1(getlist,port485);
