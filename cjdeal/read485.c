@@ -2595,16 +2595,13 @@ INT8S dealProxyType7(PROXY_GETLIST *getlist,INT8U port485)
 		sprintf(title,"[485_%d]R:",port485);
 		bufsyslog(RecvBuff, title, len, 0, BUFFSIZE1024);
 	}
-	if(RecvLen > 0)
-	{
+	if(RecvLen > 0)	{
 		fprintf(stderr,"\n代理透传　RecvLen = %d\n",RecvLen);
 		getlist->data[0] = 1;
 		getlist->data[1] = RecvLen;
 		memcpy(&getlist->data[2],&RecvBuff,RecvLen);
 		getlist->datalen = RecvLen + 2;
-	}
-	else
-	{
+	}else {
 		getlist->data[0] = 0;
 		getlist->data[1] = request_overtime;//DAR
 		getlist->datalen = 2;

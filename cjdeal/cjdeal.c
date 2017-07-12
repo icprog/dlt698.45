@@ -1108,7 +1108,7 @@ INT8U dealProxyAnswer()
 	{
 		if (proxyInUse.devUse.rs485_1_Active==0 && proxyInUse.devUse.rs485_2_Active==0)
 			proxyInUse.devUse.rs485Ready = 1;
-		if ( proxyInUse.devUse.rs485Ready  == 1 || timecount > proxyList_manager.timeout)
+		if ( proxyInUse.devUse.rs485Ready == 1 || timecount > proxyList_manager.timeout)
 		{//收集数据
 			fprintf(stderr,"proxyInUse.devUse.rs485Ready = %d timecount = %d proxyList_manager.timeout = %d",proxyInUse.devUse.rs485Ready,timecount,proxyList_manager.timeout);
 			pthread_mutex_lock(&mutex); //上锁
@@ -1125,13 +1125,22 @@ INT8U dealProxyAnswer()
 			fprintf(stderr,"\n\n\n");
 
 			index = proxyList_manager.datalen;
-			fprintf(stderr,"proxyList_manager.datalen = %d\n",index);
 			memcpy(&proxyList_manager.data[index],cjcommProxy.strProxyList.data,cjcommProxy.strProxyList.datalen);
 			proxyList_manager.datalen += cjcommProxy.strProxyList.datalen;
-			proxyInUse.devUse.rs485Ready = 1;
+			if(timecount > proxyList_manager.timeout) {		//TODO：超时，发送超时的错误，ProxyTransCommandRequest支持，其他类型是否需要？？？
+				index = proxyList_manager.datalen;
+				proxyList_manager.data[index++] = 0;		//错误
+				proxyList_manager.data[index++] = request_overtime;//DAR
+				proxyList_manager.datalen = index;
+				proxyInUse.devUse.rs485Ready = 1;
+			}
+			fprintf(stderr,"proxyList_manager.datalen = %d\n",index);
+//			proxyInUse.devUse.rs485Ready = 1;		//移到上面超时判断
 			pthread_mutex_unlock(&mutex);
 		}
 	}
+	fprintf(stderr,"plcNeed=%d,plcReday=%d,rs485Need=%d,rs485Reday=%d\n",proxyInUse.devUse.plcNeed,
+			proxyInUse.devUse.plcReady,proxyInUse.devUse.rs485Need,proxyInUse.devUse.rs485Ready);
 	if( !(proxyInUse.devUse.plcNeed ^ proxyInUse.devUse.plcReady)&&\
 		!(proxyInUse.devUse.rs485Need ^ proxyInUse.devUse.rs485Ready) ) {//当某一个设备的需要使用标记和就绪标记同时为0,
 																		//或者同时为1, 意即当需要使用

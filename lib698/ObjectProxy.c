@@ -187,13 +187,15 @@ int Proxy_TransCommandRequest(INT8U *data,CSINFO *csinfo,INT8U *sendbuf,INT8U pi
 	getlist.proxy_obj.transcmd.bytetimeout = (data[index]<<8) | data[index+1];
 	index += 2;
 	getlist.proxy_obj.transcmd.cmdlen = data[index++];		//默认长度不超过255
+	getlist.timeout = getlist.proxy_obj.transcmd.revtimeout;	//代理超时时间，为了在发送代理消息dealProxyAnswer的时候判断
+
 	memcpy(getlist.proxy_obj.transcmd.cmdbuf,&data[index],getlist.proxy_obj.transcmd.cmdlen);
 	//写入文件，等待转发			规约中只负责解析代理的内容，并追加写入到代理文件 /nand/proxy_list
 	getlist.timeold = time(NULL);
 	memcpy(&getlist.csinfo,csinfo,sizeof(CSINFO));
 
 	printcmd(getlist);
-	fprintf(stderr,"sizeof(getlist)=%d\n",sizeof(PROXY_GETLIST));
+	fprintf(stderr,"代理内容：sizeof(getlist)=%d\n",sizeof(PROXY_GETLIST));
 
 	ret= mqs_send((INT8S *)PROXY_485_MQ_NAME,1,ProxyGetResponseList,(INT8U *)&getlist,sizeof(PROXY_GETLIST));
 	fprintf(stderr,"\n代理消息已经发出,ret=%d\n\n",ret);
