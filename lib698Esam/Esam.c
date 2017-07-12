@@ -164,6 +164,7 @@ INT32S _esam_WriteThenRead(INT32S fd, INT8U* Tbuf, INT16U Tlen, INT8U* Rbuf){
 			usleep(50);
 			continue;
 		}
+		fprintf(stderr,"rx=%02x %02x \n",rx[0],rx[1]);
 		if((rx[0] == 0x90)&&(rx[1] == 0x00))//接收数据状态判断
 		{
 			INT32S length =((0xff & rx[3])|(0xff00 & (rx[2]<<8)));
@@ -188,6 +189,7 @@ INT32S _esam_WriteThenRead(INT32S fd, INT8U* Tbuf, INT16U Tlen, INT8U* Rbuf){
 			if(rx[RevHeadLen_ESAM+length] == LRC(rx,RevHeadLen_ESAM+length))//LRC校验
 			{
 				Result = RevHeadLen_ESAM+length+1;//返回数据长度
+				fprintf(stderr,"eeeeeeREsult=%d \n",Result);
 				memcpy(Rbuf,rx,Result);
 				break;
 			}
@@ -201,11 +203,13 @@ INT32S _esam_WriteThenRead(INT32S fd, INT8U* Tbuf, INT16U Tlen, INT8U* Rbuf){
 		else
 		{
 			Result = Esam_ErrMessageCheck(rx);
+			fprintf(stderr,"ddddREsult=%d \n",Result);
 		}
 	}
 	gpio_writebyte(DEV_ESAM_CS,1);
 //    if(sem_spi0_0!=NULL)
 //    	sem_post(sem_spi0_0);
+	fprintf(stderr,"ccccccREsult=%d \n",Result);
 	return Result;
 }
 /**********************************
@@ -464,11 +468,13 @@ INT32S Esam_SIDTerminalCheck( SID_MAC SidMac,INT8U* Data, INT8U* Rbuf) {
 	 GetInfo_ESAM[len]=LRC(&GetInfo_ESAM[1],len-1);//获取LRC校验值
 	 len+=1;
 	 Result = Esam_WriteThenRead((INT8U*)GetInfo_ESAM, len, tmp);
+	 fprintf(stderr,"aaaaresult =%d \n",Result);
 	 if(Result>0 && Result<BUFFLENMAX_SPI) //大于BUFFLENMAX_SPI错误，此处做比较
 	{
 		 memcpy(Rbuf,&tmp[4],Result-5);
 		return Result-5;//头部4字节,尾部1字节
 	}
+	 fprintf(stderr,"bbbresult =%d \n",Result);
 	return Result;
 }
 /**********************************

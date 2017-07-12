@@ -1104,7 +1104,7 @@ int Echo_Frame(RUNTIME_PLC *runtime_p,INT8U *framebuf,int len)
 		fprintf(stderr,"\n抄读成功！");//成功切表
 	}
 	memcpy(runtime_p->format_Down.addr.SourceAddr,runtime_p->masteraddr,6);
-	sendlen = AFN14_F1(&runtime_p->format_Down,runtime_p->sendbuf,runtime_p->format_Up.afn14_f1_up.SlavePointAddr, flag, 0, len, framebuf);
+	sendlen = AFN14_F1(&runtime_p->format_Down,&runtime_p->format_Up,runtime_p->sendbuf,runtime_p->format_Up.afn14_f1_up.SlavePointAddr, flag, 0, len, framebuf);
 	SendDataToCom(runtime_p->comfd, runtime_p->sendbuf,sendlen );
 	clearvar(runtime_p);
 	return flag;

@@ -598,7 +598,7 @@ typedef struct {
 typedef struct{
 	INT8U type;
 	INT8U len;
-	INT8U buf[512];
+	INT8U buf[255];
 }RSDBUF;
 typedef struct {
     TSA tsa;           //目标地址
@@ -606,6 +606,40 @@ typedef struct {
     RSDBUF selectbuf;       //选择方法实例
     RCSD rcsd;
 }GETRECORD;
+typedef struct{
+	OAD   oad_set;
+	INT8U datatype;
+	INT8U len;
+	INT8U data[50];
+	OAD   oad_get;
+	INT16U dealy;
+}SETATTRIB ;
+typedef struct{
+	OAD oad;
+	INT8U datatype;
+	INT8U len;
+	INT8U data[50];
+}SETOBJ;
+typedef struct{
+	TSA tsa;
+	INT16U num;
+	INT16U timeout;
+	SETATTRIB setoads[5];
+}DO_Then_GET;
+typedef struct{
+	TSA tsa;
+	INT16U num;
+	INT16U timeout;
+	SETOBJ setobjs[5];
+}ACTION_SET_OBJ;
+typedef union {
+	INT8U buf[2048];
+	GETOBJS objs[10];  				//代理请求列表		ProxyGetRequestList
+    GETRECORD record;				//代理请求记录		ProxyGetRequestRecord
+    TRANSCMD transcmd;   		 	//代理操作透明转发	ProxyTransCommandRequest
+    DO_Then_GET doTsaThenGet[5];	//TSA[n]	ProxySetThenGetRequestList	ProxyActionThenGetRequestList
+    ACTION_SET_OBJ doTsaList[5];	//TSA[n]	Proxy  Action\Set- tList
+}PROXYOBJ;
 typedef struct {
     INT8U status;      //代理传输状态		0 表示就绪     1 已经表示返回数据  2 已经响应主站   3 超时
     long int position; //记录文件中的位置
@@ -615,9 +649,7 @@ typedef struct {
     INT8U piid;        //本次代理请求PIID
     INT16U timeout;    //代理超时时间
     INT16U num;        //TSA个数
-    GETOBJS objs[10];  //代理请求列表
-    GETRECORD record;	//代理请求记录
-    TRANSCMD transcmd;    //代理操作透明转发
+    PROXYOBJ proxy_obj;//代理内容
     INT8U data[512];   //请求结果
     INT16U datalen;    //数据长度
 } PROXY_GETLIST;

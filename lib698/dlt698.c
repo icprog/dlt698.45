@@ -28,6 +28,8 @@ extern int setThenGetRequestNormalList(INT8U *data,CSINFO *csinfo,INT8U *buf);
 extern int Proxy_GetRequestlist(INT8U *data,CSINFO *csinfo,INT8U *sendbuf,INT8U piid);
 extern int Proxy_GetRequestRecord(INT8U *data,CSINFO *csinfo,INT8U *sendbuf,INT8U piid);
 extern int Proxy_TransCommandRequest(INT8U *data,CSINFO *csinfo,INT8U *sendbuf,INT8U piid);
+extern int Proxy_DoRequestList(INT8U *data,CSINFO *csinfo,INT8U *sendbuf,INT8U piid,INT8U type);
+extern int Proxy_DoThenGetRequestList(INT8U *data,CSINFO *csinfo,INT8U *sendbuf,INT8U piid,INT8U type);
 extern unsigned short tryfcs16(unsigned char *cp, int  len);
 extern INT32S secureConnectRequest(SignatureSecurity* securityInfo ,SecurityData* RetInfo);
 INT8S (*pSendfun)(int fd,INT8U* sndbuf,INT16U sndlen);
@@ -837,19 +839,20 @@ int doProxyRequest(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
 			Proxy_GetRequestRecord(data,csinfo,sendbuf,piid_g.data);
 			break;
 		case ProxySetRequestList:
-
+			fprintf(stderr,"\n====ProxySetRequestList======\n");
+			Proxy_DoRequestList(data,csinfo,sendbuf,piid_g.data,ProxySetRequestList);
 			break;
 		case ProxySetThenGetRequestList:
 			fprintf(stderr,"\n====ProxySetThenGetRequestList======\n");
-			Proxy_SetThenGetRequestList(data,csinfo,sendbuf,piid_g.data);
+			Proxy_DoThenGetRequestList(data,csinfo,sendbuf,piid_g.data,ProxySetThenGetRequestList);
 			break;
 		case ProxyActionRequestList:
 			fprintf(stderr,"\n====ProxyActionRequestList======\n");
-			Proxy_ActionRequestList(data,csinfo,sendbuf,piid_g.data);
+			Proxy_DoRequestList(data,csinfo,sendbuf,piid_g.data,ProxyActionRequestList);
 			break;
 		case ProxyActionThenGetRequestList:
 			fprintf(stderr,"\n====ProxyActionThenGetRequestList======\n");
-			Proxy_ActionThenGetRequestList(data,csinfo,sendbuf,piid_g.data);
+			Proxy_DoThenGetRequestList(data,csinfo,sendbuf,piid_g.data,ProxyActionThenGetRequestList);
 			break;
 		case ProxyTransCommandRequest:
 			fprintf(stderr,"\n====ProxyTransCommandRequest======\n");
@@ -979,6 +982,7 @@ int doActionRequest(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
  **********************************************************************/
 INT16S doSecurityRequest(INT8U* apdu,CSINFO *csinfo)//
 {
+	fprintf(stderr,"apdu=%02x %02x \n",apdu[0],apdu[1]);
 	if(apdu[0]!=0x10) return -1;//非安全传输，不处理
 	if(apdu[1] !=0x00 && apdu[1] != 0x01) return -2 ;   //明文应用数据单元
 	 INT16S retLen=0;
@@ -1120,7 +1124,7 @@ INT16S fillGetRequestAPDU(INT8U* sendBuf,CLASS_6015 obj6015,INT8U requestType)
 			if(obj6015.csds.csd[csdIndex].type == 0)//OAD
 			{
 //				len = OADtoBuff(obj6015.csds.csd[csdIndex].csd.oad,&sendBuf[length]);
-				len += create_OAD(0,&sendBuf[length],obj6015.csds.csd[csdIndex].csd.oad);
+				len = create_OAD(0,&sendBuf[length],obj6015.csds.csd[csdIndex].csd.oad);
 				length +=len;
 			}
 			else
@@ -1139,7 +1143,7 @@ INT16S fillGetRequestAPDU(INT8U* sendBuf,CLASS_6015 obj6015,INT8U requestType)
 			if(obj6015.csds.csd[csdIndex].type == 1)//ROAD
 			{
 //				len = OADtoBuff(obj6015.csds.csd[csdIndex].csd.road.oad,&sendBuf[length]);
-				len += create_OAD(0,&sendBuf[length],obj6015.csds.csd[csdIndex].csd.road.oad);
+				len = create_OAD(0,&sendBuf[length],obj6015.csds.csd[csdIndex].csd.road.oad);
 				length +=len;
 				/*采集上N次数据*/
 				if(obj6015.cjtype == TYPE_LAST)
@@ -1202,7 +1206,7 @@ INT16S fillGetRequestAPDU(INT8U* sendBuf,CLASS_6015 obj6015,INT8U requestType)
 
 					sendBuf[length++] = 0;//OAD
 //					len = OADtoBuff(obj6015.csds.csd[csdIndex].csd.road.oads[oadsIndex],&sendBuf[length]);
-					len += create_OAD(0,&sendBuf[length],obj6015.csds.csd[csdIndex].csd.road.oads[oadsIndex]);
+					len = create_OAD(0,&sendBuf[length],obj6015.csds.csd[csdIndex].csd.road.oads[oadsIndex]);
 					length +=len;
 				}
 
@@ -1530,7 +1534,7 @@ INT8U dealClientRequest(INT8U *apdu,CSINFO *csinfo,TimeTag timetag,INT8U *sendbu
 		SecurityRe = doSecurityRequest(apdu,csinfo);
 		if (SecurityRe <= 0)
 		{
-			fprintf(stderr,"\n安全请求计算错误!!!");
+			fprintf(stderr,"\n安全请求计算错误!!! SecurityRe=%d \n",SecurityRe);
 			return 0;
 		}
 //		else
