@@ -66,8 +66,8 @@ void MmqRead(struct aeEventLoop *eventLoop, int fd, void *clientData, int mask) 
         case TERMINALPROXY_RESPONSE:
             ProxyListResponse((PROXY_GETLIST *) getBuf, nst);
             break;
-        case TERMINALEVENT_REPORT :
-            Report_Event(nst, getBuf, 2, 1);
+        case TERMINALEVENT_REPORT:
+            Report_Event(nst, getBuf, 2);
             break;
         case METEREVENT_REPORT:
             callEventAutoReport(nst, getBuf, headBuf.bufsiz);
@@ -121,8 +121,8 @@ int RegularMmq(struct aeEventLoop *ep, long long id, void *clientData) {
             case TERMINALPROXY_RESPONSE:
                 ProxyListResponse((PROXY_GETLIST *) getBuf, nst);
                 break;
-            case TERMINALEVENT_REPORT :
-                Report_Event(nst, getBuf, 2, 1);
+            case TERMINALEVENT_REPORT:
+                Report_Event(nst, getBuf, 2);
                 break;
             case METEREVENT_REPORT:
                 callEventAutoReport(nst, getBuf, headBuf.bufsiz);

@@ -92,8 +92,17 @@ INT8U Get_2203(INT8U getflg,INT8U *sourcebuf,INT8U *buf,int *len)
 	fprintf(stderr,"Get_2203 :day_gongdian=%d,month_gongdian=%d\n",gongdian_tj.gongdian.day_tj,gongdian_tj.gongdian.month_tj);
 	*len=0;
 	*len += create_struct(&buf[*len],2);
-	*len += fill_double_long_unsigned(&buf[*len],gongdian_tj.gongdian.day_tj);
-	*len += fill_double_long_unsigned(&buf[*len],gongdian_tj.gongdian.month_tj);
+	INT32U day_tj=0,month_tj=0;
+	if(gongdian_tj.gongdian.day_tj%60==0)
+		day_tj = gongdian_tj.gongdian.day_tj/60;
+	else
+		day_tj = gongdian_tj.gongdian.day_tj/60+1;
+	if(gongdian_tj.gongdian.month_tj%60==0)
+		month_tj = gongdian_tj.gongdian.month_tj/60;
+	else
+		month_tj = gongdian_tj.gongdian.month_tj/60+1;
+	*len += fill_double_long_unsigned(&buf[*len],day_tj);
+	*len += fill_double_long_unsigned(&buf[*len],month_tj);
 	return 1;
 }
 

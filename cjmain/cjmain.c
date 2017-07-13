@@ -510,7 +510,7 @@ void checkDevReset() {
             break;
     }
     asyslog(LOG_WARNING, "检测到设备需要复位");
-
+    sleep(3);
     for (int i = 1; i < PROJECTCOUNT; i++) {
         if (JProgramInfo->Projects[i].ProjectID > 0) {
             JProgramInfo->Projects[i].ProjectState = NeedStop;
