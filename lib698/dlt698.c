@@ -28,6 +28,8 @@ extern int setThenGetRequestNormalList(INT8U *data,CSINFO *csinfo,INT8U *buf);
 extern int Proxy_GetRequestlist(INT8U *data,CSINFO *csinfo,INT8U *sendbuf,INT8U piid);
 extern int Proxy_GetRequestRecord(INT8U *data,CSINFO *csinfo,INT8U *sendbuf,INT8U piid);
 extern int Proxy_TransCommandRequest(INT8U *data,CSINFO *csinfo,INT8U *sendbuf,INT8U piid);
+extern int Proxy_DoRequestList(INT8U *data,CSINFO *csinfo,INT8U *sendbuf,INT8U piid,INT8U type);
+extern int Proxy_DoThenGetRequestList(INT8U *data,CSINFO *csinfo,INT8U *sendbuf,INT8U piid,INT8U type);
 extern unsigned short tryfcs16(unsigned char *cp, int  len);
 extern INT32S secureConnectRequest(SignatureSecurity* securityInfo ,SecurityData* RetInfo);
 INT8S (*pSendfun)(int fd,INT8U* sndbuf,INT16U sndlen);
@@ -837,18 +839,23 @@ int doProxyRequest(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
 			Proxy_GetRequestRecord(data,csinfo,sendbuf,piid_g.data);
 			break;
 		case ProxySetRequestList:
-
+			fprintf(stderr,"\n====ProxySetRequestList======\n");
+			Proxy_DoRequestList(data,csinfo,sendbuf,piid_g.data,ProxySetRequestList);
 			break;
 		case ProxySetThenGetRequestList:
-
+			fprintf(stderr,"\n====ProxySetThenGetRequestList======\n");
+			Proxy_DoThenGetRequestList(data,csinfo,sendbuf,piid_g.data,ProxySetThenGetRequestList);
 			break;
 		case ProxyActionRequestList:
-
+			fprintf(stderr,"\n====ProxyActionRequestList======\n");
+			Proxy_DoRequestList(data,csinfo,sendbuf,piid_g.data,ProxyActionRequestList);
 			break;
 		case ProxyActionThenGetRequestList:
-
+			fprintf(stderr,"\n====ProxyActionThenGetRequestList======\n");
+			Proxy_DoThenGetRequestList(data,csinfo,sendbuf,piid_g.data,ProxyActionThenGetRequestList);
 			break;
 		case ProxyTransCommandRequest:
+			fprintf(stderr,"\n====ProxyTransCommandRequest======\n");
 			Proxy_TransCommandRequest(data,csinfo,sendbuf,piid_g.data);
 			break;
 	}

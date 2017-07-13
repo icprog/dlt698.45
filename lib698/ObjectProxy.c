@@ -65,19 +65,19 @@ int getProxylist(INT8U *data,PROXY_GETLIST *getlist)
 	for(i=0;i<getlist->num;i++)
 	{
 		num = data[iindex];
-		if (num>sizeof(getlist->objs[i].tsa))
-			num = sizeof(getlist->objs[i].tsa);
-		memcpy(&getlist->objs[i].tsa,&data[iindex],num+1);
+		if (num>sizeof(getlist->proxy_obj.objs[i].tsa))
+			num = sizeof(getlist->proxy_obj.objs[i].tsa);
+		memcpy(&getlist->proxy_obj.objs[i].tsa,&data[iindex],num+1);
 		iindex = iindex + num +1;
 		timeout = data[iindex];
-		getlist->objs[i].onetimeout = timeout<<8 |data[iindex+1];
+		getlist->proxy_obj.objs[i].onetimeout = timeout<<8 |data[iindex+1];
 		iindex = iindex + 2;
 		oadnum = data[iindex++];
-		getlist->objs[i].num = oadnum;
+		getlist->proxy_obj.objs[i].num = oadnum;
 		for(k=0; k<oadnum; k++)
 		{
 			getOAD(0,&data[iindex],&oadtmp,NULL);
-			memcpy(&getlist->objs[i].oads[k],&oadtmp,sizeof(oadtmp));
+			memcpy(&getlist->proxy_obj.objs[i].oads[k],&oadtmp,sizeof(oadtmp));
 			iindex = iindex + 4;
 		}
 	}
@@ -102,9 +102,9 @@ int Proxy_GetRequestlist(INT8U *data,CSINFO *csinfo,INT8U *sendbuf,INT8U piid)
 	{
 		if (getlist.num>10) break;
 		fprintf(stderr,"\n第%d组代理对象",i);
-		for(j=0; j<getlist.objs[i].num; j++)
+		for(j=0; j<getlist.proxy_obj.objs[i].num; j++)
 		{
-			fprintf(stderr,"\n%04x %02x %02x",getlist.objs[i].oads[j].OI,getlist.objs[i].oads[j].attflg,getlist.objs[i].oads[j].attrindex);
+			fprintf(stderr,"\n%04x %02x %02x",getlist.proxy_obj.objs[i].oads[j].OI,getlist.proxy_obj.objs[i].oads[j].attflg,getlist.proxy_obj.objs[i].oads[j].attrindex);
 		}
 	}
 	//写入文件，等待转发			规约中只负责解析代理的内容，并追加写入到代理文件 /nand/proxy_list
@@ -115,6 +115,7 @@ int Proxy_GetRequestlist(INT8U *data,CSINFO *csinfo,INT8U *sendbuf,INT8U piid)
 	fprintf(stderr,"\n代理消息已经发出,ret=%d ,getlist_len=%d\n\n",ret,sizeof(PROXY_GETLIST));
 	return 1;
 }
+
 int Proxy_GetRequestRecord(INT8U *data,CSINFO *csinfo,INT8U *sendbuf,INT8U piid)
 {
 	INT8U num=0;
@@ -135,40 +136,137 @@ int Proxy_GetRequestRecord(INT8U *data,CSINFO *csinfo,INT8U *sendbuf,INT8U piid)
 	num = data[iindex];
 	if (num>sizeof(TSA))
 		num = sizeof(TSA);
-	memcpy(&getlist.record.tsa,&data[iindex],num+1);
+	memcpy(&getlist.proxy_obj.record.tsa,&data[iindex],num+1);
 	iindex = iindex + num +1;
 	getOAD(0,&data[iindex],&oadtmp,NULL);
-	memcpy(&getlist.record.oad,&oadtmp,sizeof(oadtmp));
+	memcpy(&getlist.proxy_obj.record.oad,&oadtmp,sizeof(oadtmp));
 	iindex = iindex + 4;
 
 	rsdlen = get_BasicRSD(0,&data[iindex],(INT8U *)&record.select,&record.selectType);
-	getlist.record.selectbuf.len  = rsdlen;
-	getlist.record.selectbuf.type = record.selectType;
+	getlist.proxy_obj.record.selectbuf.len  = rsdlen;
+	getlist.proxy_obj.record.selectbuf.type = record.selectType;
 	if (rsdlen<=512)
-		memcpy(getlist.record.selectbuf.buf,&record.select,rsdlen);
+		memcpy(getlist.proxy_obj.record.selectbuf.buf,&record.select,rsdlen);
 	iindex  += rsdlen;
-	iindex  += get_BasicRCSD(0,&data[iindex],&getlist.record.rcsd.csds);
+	iindex  += get_BasicRCSD(0,&data[iindex],&getlist.proxy_obj.record.rcsd.csds);
 
 	//写入文件，等待转发			规约中只负责解析代理的内容，并追加写入到代理文件 /nand/proxy_list
 	getlist.timeold = time(NULL);
 	memcpy(&getlist.csinfo,csinfo,sizeof(CSINFO));
 
-	ret= mqs_send((INT8S *)PROXY_485_MQ_NAME,1,ProxyGetResponseList,(INT8U *)&getlist,sizeof(PROXY_GETLIST));
+	ret= mqs_send((INT8S *)PROXY_485_MQ_NAME,1,ProxyGetResponseRecord,(INT8U *)&getlist,sizeof(PROXY_GETLIST));
 	fprintf(stderr,"\n代理消息已经发出,ret=%d\n\n",ret);
 	return 1;
 }
+int getProxyDO_Then_Get_list(INT8U *data,DO_Then_GET *doget)
+{
+	int i=0,k=0, iindex=0;
+	INT8U num=0,oadnum=0,num_tsa=0;
+	INT16U timeout=0;
+	OAD oadtmp;
+	num_tsa = data[iindex++];// sequence of 代理
+	fprintf(stderr,"\n---%d",num_tsa);
+	for(i=0;i<num_tsa;i++)//TSA 个数
+	{
+		num = data[iindex];
+		if (num>sizeof(doget[i].tsa))
+			num = sizeof(doget[i].tsa);
+		memcpy(&doget[i].tsa,&data[iindex],num+1);
+		iindex = iindex + num +1;
+		timeout = data[iindex];
+		doget[i].timeout = timeout<<8 |data[iindex+1];
+		iindex = iindex + 2;
+		oadnum = data[iindex++];
+		doget[i].num = oadnum;
+		for(k=0; k<oadnum; k++)
+		{
+			getOAD(0,&data[iindex],&oadtmp,NULL);
+			memcpy(&doget[i].setoads[k].oad_set,&oadtmp,sizeof(oadtmp));
+			iindex = iindex + 4;
+			iindex += get_Data(&data[iindex],doget[i].setoads[k].data);
+			getOAD(0,&data[iindex],&oadtmp,NULL);
+			memcpy(&doget[i].setoads[k],&oadtmp,sizeof(oadtmp));
+			iindex = iindex + 4;
+			doget[i].setoads[k].dealy = data[iindex];
+		}
+	}
+	return num_tsa;
+}
 
+int Proxy_DoThenGetRequestList(INT8U *data,CSINFO *csinfo,INT8U *sendbuf,INT8U piid,INT8U type)
+{
+	INT16U timeout=0 ;
+	PROXY_GETLIST getlist;
+	INT8S	ret=0;
+
+	timeout = data[0] ;
+	timeout = timeout <<8 | data[1];
+
+	getlist.timeout = timeout;
+	getlist.piid = piid;
+	getlist.proxytype = type;
+	getlist.num = getProxyDO_Then_Get_list(&data[2], getlist.proxy_obj.doTsaThenGet);
+	getlist.timeold = time(NULL);
+
+	memcpy(&getlist.csinfo,csinfo,sizeof(CSINFO));
+
+	ret= mqs_send((INT8S *)PROXY_485_MQ_NAME,1,type ,(INT8U *)&getlist,sizeof(PROXY_GETLIST));
+	fprintf(stderr,"\n代理消息已经发出,ret=%d ,getlist_len=%d\n\n",ret,sizeof(PROXY_GETLIST));
+
+	return 0;
+}
+int Proxy_DoRequestList(INT8U *data,CSINFO *csinfo,INT8U *sendbuf,INT8U piid,INT8U type)
+{
+	INT16U timeout=0 ;
+	INT8U num=0;
+	int i=0,j=0;
+	PROXY_GETLIST getlist;
+	OAD oadtmp;
+	INT8S	ret=0;
+	int iindex=0;
+	timeout = data[0] ;
+	timeout = timeout <<8 | data[1];
+
+	getlist.timeout = timeout;
+	getlist.piid = piid;
+	getlist.proxytype = type;
+	getlist.num = data[iindex++];// sequence of 代理
+	fprintf(stderr,"\n---%d",getlist.num);
+	for(i=0;i<getlist.num;i++)//TSA 个数
+	{
+		num = data[iindex];
+		if (num>sizeof(getlist.proxy_obj.doTsaList[i].tsa))
+			num = sizeof(getlist.proxy_obj.doTsaList[i].tsa);
+		memcpy(&getlist.proxy_obj.doTsaList[i].tsa,&data[iindex],num+1);
+		iindex = iindex + num +1;
+		timeout = data[iindex];
+		getlist.proxy_obj.doTsaList[i].timeout = timeout<<8 |data[iindex+1];
+		iindex = iindex + 2;
+		num = data[iindex++];	//OAD 个数
+		getlist.proxy_obj.doTsaList[i].num = num;
+		for(j=0; j<num; j++)
+		{
+			getOAD(0,&data[iindex],&oadtmp,NULL);
+			memcpy(&getlist.proxy_obj.doTsaList[i].setobjs[j],&oadtmp,sizeof(oadtmp));
+			iindex = iindex + 4;
+			iindex += get_Data(&data[iindex],getlist.proxy_obj.doTsaList[i].setobjs[j].data);
+		}
+	}
+	ret= mqs_send((INT8S *)PROXY_485_MQ_NAME,1,type,(INT8U *)&getlist,sizeof(PROXY_GETLIST));
+	fprintf(stderr,"\n代理消息已经发出,ret=%d\n\n",ret);
+	return 1;
+}
 void printcmd(PROXY_GETLIST getlist)
 {
 	int i=0;
 	fprintf(stderr,"proxytype = %d\n",getlist.proxytype);
-	fprintf(stderr,"OAD=%04x-%02x-%02x\n",getlist.transcmd.oad.OI,getlist.transcmd.oad.attflg,getlist.transcmd.oad.attrindex);
-	fprintf(stderr,"COMDCB:baud=%d,par=%d,datab=%d,stopb=%d,flow=%d\n",getlist.transcmd.comdcb.baud,getlist.transcmd.comdcb.verify,
-			getlist.transcmd.comdcb.databits,getlist.transcmd.comdcb.stopbits,getlist.transcmd.comdcb.flow);
-	fprintf(stderr,"RevTimeOut=%d,ByteTimeOut=%d\n",getlist.transcmd.revtimeout,getlist.transcmd.bytetimeout);
-	fprintf(stderr,"autoCmdLen=%d\n",getlist.transcmd.cmdlen);
-	for(i=0;i<getlist.transcmd.cmdlen;i++) {
-		fprintf(stderr,"%02x ",getlist.transcmd.cmdbuf[i]);
+	fprintf(stderr,"OAD=%04x-%02x-%02x\n",getlist.proxy_obj.transcmd.oad.OI,getlist.proxy_obj.transcmd.oad.attflg,getlist.proxy_obj.transcmd.oad.attrindex);
+	fprintf(stderr,"COMDCB:baud=%d,par=%d,datab=%d,stopb=%d,flow=%d\n",getlist.proxy_obj.transcmd.comdcb.baud,getlist.proxy_obj.transcmd.comdcb.verify,
+			getlist.proxy_obj.transcmd.comdcb.databits,getlist.proxy_obj.transcmd.comdcb.stopbits,getlist.proxy_obj.transcmd.comdcb.flow);
+	fprintf(stderr,"RevTimeOut=%d,ByteTimeOut=%d\n",getlist.proxy_obj.transcmd.revtimeout,getlist.proxy_obj.transcmd.bytetimeout);
+	fprintf(stderr,"autoCmdLen=%d\n",getlist.proxy_obj.transcmd.cmdlen);
+	for(i=0;i<getlist.proxy_obj.transcmd.cmdlen;i++) {
+		fprintf(stderr,"%02x ",getlist.proxy_obj.transcmd.cmdbuf[i]);
 	}
 }
 
@@ -180,19 +278,23 @@ int Proxy_TransCommandRequest(INT8U *data,CSINFO *csinfo,INT8U *sendbuf,INT8U pi
 	INT8U	DAR=success;
 	getlist.piid = piid;
 	getlist.proxytype = ProxyTransCommandRequest;
-	index += getOAD(0,&data[index],&getlist.transcmd.oad,NULL);
-	index += getCOMDCB(0,&data[index],&getlist.transcmd.comdcb,&DAR);
-	getlist.transcmd.revtimeout = (data[index]<<8) | data[index+1];
+	index += getOAD(0,&data[index],&getlist.proxy_obj.transcmd.oad,NULL);
+	index += getCOMDCB(0,&data[index],&getlist.proxy_obj.transcmd.comdcb,&DAR);
+	getlist.proxy_obj.transcmd.revtimeout = (data[index]<<8) | data[index+1];
 	index += 2;
-	getlist.transcmd.bytetimeout = (data[index]<<8) | data[index+1];
+	getlist.proxy_obj.transcmd.bytetimeout = (data[index]<<8) | data[index+1];
 	index += 2;
-	getlist.transcmd.cmdlen = data[index++];		//默认长度不超过255
-	memcpy(getlist.transcmd.cmdbuf,&data[index],getlist.transcmd.cmdlen);
+	getlist.proxy_obj.transcmd.cmdlen = data[index++];		//默认长度不超过255
+	getlist.timeout = getlist.proxy_obj.transcmd.revtimeout;	//代理超时时间，为了在发送代理消息dealProxyAnswer的时候判断
+
+	memcpy(getlist.proxy_obj.transcmd.cmdbuf,&data[index],getlist.proxy_obj.transcmd.cmdlen);
 	//写入文件，等待转发			规约中只负责解析代理的内容，并追加写入到代理文件 /nand/proxy_list
 	getlist.timeold = time(NULL);
 	memcpy(&getlist.csinfo,csinfo,sizeof(CSINFO));
 
 	printcmd(getlist);
+	fprintf(stderr,"代理内容：sizeof(getlist)=%d\n",sizeof(PROXY_GETLIST));
+
 	ret= mqs_send((INT8S *)PROXY_485_MQ_NAME,1,ProxyGetResponseList,(INT8U *)&getlist,sizeof(PROXY_GETLIST));
 	fprintf(stderr,"\n代理消息已经发出,ret=%d\n\n",ret);
 	return 1;
