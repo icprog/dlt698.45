@@ -609,18 +609,27 @@ static int RegularClientOnModel(struct aeEventLoop *ep, long long id, void *clie
         bufsyslog(nst->RecBuf, "客户端[GPRS]接收:", nst->RHead, nst->RTail, BUFLEN);
 
         for (int k = 0; k < 5; k++) {
+        	int exist=0;
             int len = 0;
+            fprintf(stderr,"\n-----------第 %d 次",k+1);
             for (int i = 0; i < 5; i++) {
+            	fprintf(stderr,"\n--i=%d",i);
                 len = StateProcess(nst, 10);
-                if (len > 0) {
-                    break;
-                }
+                if (len==0)
+					i = 0;		//需要继续
+				if (len ==1)
+					break;		//不需要继续，并且无有效报文
+				if (len > 1) {
+					exist = 1;	//存在有效报文需要立即处理
+					break;
+				}
             }
-            if (len <= 0) {
-                break;
-            }
+            if (exist  == 0) {
+				fprintf(stderr,"\n取消多帧判断");
+				break;
+			}
 
-            if (len > 0) {
+            if (exist == 1) {
                 int apduType = ProcessData(nst);
                 fprintf(stderr, "apduType=%d\n", apduType);
                 ConformAutoTask(ep, nst, apduType);
