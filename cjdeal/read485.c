@@ -2496,6 +2496,7 @@ INT8S dealProxyType1(PROXY_GETLIST *getlist,INT8U port485)
 	INT8U tmpbuf[256]={};
 	CLASS_6001 obj6001 = {};
 	fprintf(stderr,"\n RS485-%d 判断代理对象(TSA)数量 objs num = %d :",port485,getlist->num);
+	fprintf(stderr,"22222dar=%d-------------%d\n ",getlist->proxy_obj.objs[0].dar,getlist->proxy_obj.objs[1].dar);
 
 	for(index = 0;index < getlist->num;index++)
 	{
@@ -2531,7 +2532,7 @@ INT8S dealProxyType1(PROXY_GETLIST *getlist,INT8U port485)
 
 		if(singleLen > 0)
 		{
-			getlist->proxy_obj.objs[index].dar = success;
+			getlist->proxy_obj.objs[index].dar = proxy_success;
 			memcpy(&getlist->data[dataindex],tmpbuf,singleLen);
 			dataindex += singleLen;
 			getlist->datalen += dataindex;
@@ -2544,6 +2545,8 @@ INT8S dealProxyType1(PROXY_GETLIST *getlist,INT8U port485)
 //		}
 		pthread_mutex_unlock(&mutex);
 	}
+	fprintf(stderr,"333333dar=%d-------------%d\n ",getlist->proxy_obj.objs[0].dar,getlist->proxy_obj.objs[1].dar);
+
 	set_port_active(port485,0);
 	return result;
 }
@@ -2933,7 +2936,7 @@ INT8S dealProxyQueue(INT8U port485)
 
 	if(cjcommProxy.isInUse&(1<<(port485-1)))
 	{
-		fprintf(stderr,"\n-------------------------485 %d 开始代理工作",port485);
+		fprintf(stderr,"\n-------------------------485 %d 开始代理工作 测量点数量=%d\n",port485,cjcommProxy.strProxyList.num);
 		result = dealProxy(&cjcommProxy.strProxyList,port485);
 		cjcommProxy.isInUse &= ~(1<<(port485-1));
 		fprintf(stderr,"\n-------------------------result=%d,strProxyList.datalen=%d\n",result,cjcommProxy.strProxyList.datalen);

@@ -104,6 +104,7 @@ typedef enum {
 	addr_exception/*27地址异常*/,				symmetric_decryption_err/*28对称解密错误*/,	unsymmetric_decryption_err/*29非对称解密错误*/,
 	signature_err1/*30签名错误*/,				meter_suspend/*31电表挂起*/,					timetag_invalid/*32时间标签无效*/,
 	request_overtime/*33请求超时*/,			esam_p1p2_err/*34 ESAM的P1P2不正确*/,			esam_lc_err/*ESAM的LC错误*/,
+	proxy_success=100,	/*代理抄读数据成功*/
 	other_err1=255/*其他*/
 }DAR;	/*数据访问结果*/
 

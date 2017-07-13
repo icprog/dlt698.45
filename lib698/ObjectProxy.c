@@ -65,7 +65,6 @@ int getProxylist(INT8U *data,PROXY_GETLIST *getlist)
 	fprintf(stderr,"\n---%d",getlist->num);
 	for(i=0;i<getlist->num;i++)
 	{
-		getlist->proxy_obj.objs[i].dar = other_err1;		//初始化状态，已应答帧处理超时错误的数据
 		num = data[iindex];
 		if (num>sizeof(getlist->proxy_obj.objs[i].tsa))
 			num = sizeof(getlist->proxy_obj.objs[i].tsa);
