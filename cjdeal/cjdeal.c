@@ -831,29 +831,55 @@ int proxy_one_fill_record(GETRECORD record,int len,INT8U *source,INT8U DARtype,I
 	}
 	return index;
 }
-int proxy_one_fill(GETOBJS obj,int len,INT8U *source,INT8U DARtype,INT8U *desbuf)
+
+
+//			dataindex += proxy_one_fill(proxy.strProxyList.proxy_obj.objs[i], 0, NULL,request_overtime, &proxyList_manager.data[dataindex]);
+//A-ResultNormal∷=SEQUENCE
+//{
+//  对象属性描述符  OAD，
+//  及其结果        Get-Result
+//}
+//proxy_dar_fill(proxyList_manager.proxytype,proxyList_manager.num,proxyList_manager.proxy_obj,&proxyList_manager.datalen,&proxyList_manager.data[index]);
+
+//int proxy_dar_fill(INT8U proxytype,INT8U seqofNum,PROXYOBJ proxy_obj,INT16U *destindex,INT8U *desbuf)
+int proxy_dar_fill(PROXY_GETLIST dest_list,PROXY_GETLIST get_list)
 {
-	//填充代理应答   ProxyGetResponseList
-	int index = 0,i=0;
-	int addrlen = obj.tsa.addr[0]+1;
+	INT16U index = 0,i=0,j=0;
+	int addrlen = 0;
+	int	result_index = 0, result_num=0;
 
-	memcpy(&desbuf[index],&obj.tsa.addr[0],addrlen);
-	index += addrlen;
-	desbuf[index++] = obj.num;
-
-	for(i=0; i<obj.num; i++)
-	{
-		index += create_OAD(0,&desbuf[index],obj.oads[i]);
-		if (DARtype>0 ||source==NULL || len==0)
-		{
-			desbuf[index++] = 0x00;
-			desbuf[index++] = DARtype;
-		}else
-		{
-			desbuf[index++] = 0x01;
-			memcpy(&desbuf[index],source, len);
+	index = dest_list.datalen;
+	fprintf(stderr,"proxy_dar_fill  proxytype=%d index=%d\n",dest_list.proxytype,index);
+	switch(dest_list.proxytype) {
+	case ProxyGetRequestList:
+		fprintf(stderr,"seqofNum = %d\n",dest_list.num);
+		for(i=0; i<dest_list.num; i++) {
+			fprintf(stderr,"dar[%d]=%d \n",i,get_list.proxy_obj.objs[i].dar);
+			if(get_list.proxy_obj.objs[i].dar != success) {
+				addrlen = get_list.proxy_obj.objs[i].tsa.addr[0]+1;
+				memcpy(&dest_list.data[index],&get_list.proxy_obj.objs[i].tsa.addr[0],addrlen);
+				printTSA(get_list.proxy_obj.objs[i].tsa);
+				index += addrlen;
+				result_index = index;	//记录SEQUENCE of A-ResultNormal的位置
+				result_num=0;
+				for(j=0;j<get_list.proxy_obj.objs[i].num;j++) {
+					result_num++;
+					index += create_OAD(0,&dest_list.data[index],get_list.proxy_obj.objs[i].oads[j]);
+					dest_list.data[index++] = 0x00;
+					dest_list.data[index++] = request_overtime;
+				}
+				dest_list.data[result_index] = result_num; //SEQUENCE of A-ResultNormal
+			}
 		}
+		break;
+	case ProxyTransCommandRequest:
+		if(get_list.proxy_obj.transcmd.dar!=success) {
+			dest_list.data[index++] = 0;		//错误
+			dest_list.data[index++] = get_list.proxy_obj.transcmd.dar;//DAR
+		}
+		break;
 	}
+	dest_list.datalen = index;
 	return index;
 }
 extern void set_port_active(INT8U port485,INT8U value);
@@ -865,10 +891,12 @@ void Pre_ProxyGetRequestList(CJCOMM_PROXY proxy)
 	proxyList_manager.data[dataindex++] = num;
 	for(i=0;i<num;i++)
 	{
-		if(get6001ObjByTSA(proxy.strProxyList.proxy_obj.objs[i].tsa,&obj6001) != 1 )
-		{//TSA未找到
-			dataindex += proxy_one_fill(proxy.strProxyList.proxy_obj.objs[i], 0, NULL,0x21, &proxyList_manager.data[dataindex]);
-		}else
+		fprintf(stderr,"&&&&&&&&&&proxy.strProxyList.proxy_obj.objs[%d].dar=%d",i,proxy.strProxyList.proxy_obj.objs[i].dar);
+//		if(get6001ObjByTSA(proxy.strProxyList.proxy_obj.objs[i].tsa,&obj6001) != 1 )
+//		{//TSA未找到
+//			dataindex += proxy_one_fill(proxy.strProxyList.proxy_obj.objs[i], 0, NULL,request_overtime, &proxyList_manager.data[dataindex]);
+//		}else
+		if(get6001ObjByTSA(proxy.strProxyList.proxy_obj.objs[i].tsa,&obj6001) == 1 )
 		{
 			if (obj6001.basicinfo.port.OI==PORT_485)
 			{
@@ -897,6 +925,9 @@ void Pre_ProxyGetRequestList(CJCOMM_PROXY proxy)
 		cjcommProxy_plc.isInUse = 1;
 		proxyInUse.devUse.plcNeed = 1;
 	}
+	fprintf(stderr,"0000000000000proxy.strProxyList.proxy_obj.objs[0].dar=%d",i,proxy.strProxyList.proxy_obj.objs[0].dar);
+	fprintf(stderr,"1111111111111proxy.strProxyList.proxy_obj.objs[1].dar=%d",i,proxy.strProxyList.proxy_obj.objs[0].dar);
+
 }
 void Pre_ProxyGetRequestRecord(CJCOMM_PROXY proxy)
 {
@@ -1227,15 +1258,12 @@ INT8U dealProxyAnswer()
 			index = proxyList_manager.datalen;
 			memcpy(&proxyList_manager.data[index],cjcommProxy.strProxyList.data,cjcommProxy.strProxyList.datalen);
 			proxyList_manager.datalen += cjcommProxy.strProxyList.datalen;
-			if(timecount > proxyList_manager.timeout) {		//TODO：超时，发送超时的错误，ProxyTransCommandRequest支持，其他类型是否需要？？？
-				index = proxyList_manager.datalen;
-				proxyList_manager.data[index++] = 0;		//错误
-				proxyList_manager.data[index++] = request_overtime;//DAR
-				proxyList_manager.datalen = index;
-				proxyInUse.devUse.rs485Ready = 1;
-			}
+//			if(timecount > proxyList_manager.timeout) {		//TODO：超时，发送超时的错误，ProxyTransCommandRequest支持，其他类型是否需要？？？
+
+			proxy_dar_fill(proxyList_manager,cjcommProxy.strProxyList);
+//			}
 			fprintf(stderr,"proxyList_manager.datalen = %d\n",index);
-//			proxyInUse.devUse.rs485Ready = 1;		//移到上面超时判断
+			proxyInUse.devUse.rs485Ready = 1;		//移到上面超时判断
 			pthread_mutex_unlock(&mutex);
 		}
 	}

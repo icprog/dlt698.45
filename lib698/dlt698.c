@@ -892,6 +892,11 @@ int doActionRequest(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 				TmpDataBuf[index++] = 0;	//数据为空
 //			}
 			doReponse(ACTION_RESPONSE,ActionResponseNormal,csinfo,index,TmpDataBuf,buf);
+			//在应答帧接收到之后再发送复位参数
+			if (oad.OI == 0x4300 && oad.attflg == 1 && act_ret.DAR == success) {        //设备复位 ,TODO:只考虑ACTIONREQUEST的
+				syslog(LOG_NOTICE,"接收到硬件复位命令");
+				memp->oi_changed.reset++;
+			}
 			Get698_event(oad,memp);
 			break;
 		case ACTIONREQUEST_LIST:

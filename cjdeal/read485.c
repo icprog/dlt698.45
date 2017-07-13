@@ -2332,7 +2332,7 @@ INT16U dealProxy_698(CLASS_6001 obj6001,GETOBJS obj07,INT8U* dataContent,INT8U p
 		memset(recvbuff, 0, BUFFSIZE256);
 		SendDataTo485(port485, sendbuff, sendLen);
 
-		recvLen = ReceDataFrom485(DLT_698,port485, 500, recvbuff);
+		recvLen = ReceDataFrom485(DLT_698,port485, 1000, recvbuff);
 		if(recvLen > 0)
 		{
 			INT8U csdNum = 0;
@@ -2353,12 +2353,14 @@ INT16U dealProxy_698(CLASS_6001 obj6001,GETOBJS obj07,INT8U* dataContent,INT8U p
 			}
 		}else
 		{
+			obj07.dar = request_overtime;	//消息队列最后组帧，要组织多个OAD的值
+			retdataLen = 0;
 //			OADtoBuff(obj07.oads[0],&dataContent[dataLen]);
-			create_OAD(0,&dataContent[dataLen],obj07.oads[0]);
-			dataLen += sizeof(OAD);
-			dataContent[dataLen++] = 0x00;//没有数据
-			dataContent[dataLen++] = 0x21;//DARType
-			return dataLen;
+//			create_OAD(0,&dataContent[dataLen],obj07.oads[0]);
+//			dataLen += sizeof(OAD);
+//			dataContent[dataLen++] = 0x00;//错误，没有数据
+//			dataContent[dataLen++] = request_overtime;//DARType
+//			return dataLen;
 		}
 		subindex++;
 	}
@@ -2497,11 +2499,13 @@ INT8S dealProxyType1(PROXY_GETLIST *getlist,INT8U port485)
 
 	for(index = 0;index < getlist->num;index++)
 	{
+		fprintf(stderr,"\n\n###########index=%d,dar=%d\n",index,getlist->proxy_obj.objs[index].dar);
+
 		if (proxyInUse.devUse.rs485Need == 0)
 			break;
 		if( get6001ObjByTSA(getlist->proxy_obj.objs[index].tsa,&obj6001) != 1 ||
 		    obj6001.basicinfo.port.attrindex != port485 ||
-		    getComfdBy6001(obj6001.basicinfo.baud,obj6001.basicinfo.port.attrindex) != 1	)
+		    getComfdBy6001(obj6001.basicinfo.baud,obj6001.basicinfo.port.attrindex) != 1)
 		{
 			continue;
 		}
@@ -2527,14 +2531,17 @@ INT8S dealProxyType1(PROXY_GETLIST *getlist,INT8U port485)
 
 		if(singleLen > 0)
 		{
+			getlist->proxy_obj.objs[index].dar = success;
 			memcpy(&getlist->data[dataindex],tmpbuf,singleLen);
 			dataindex += singleLen;
 			getlist->datalen += dataindex;
-		}else
-		{
-			getlist->data[dataindex++] = 0;
-			getlist->datalen += dataindex;
+			fprintf(stderr,"\n\n@@@@@@@@@@@@@@@@@@@@@@@index=%d,dar=%d,datalen=%d\n",index,getlist->proxy_obj.objs[index].dar,getlist->datalen);
 		}
+//		else	//TODO：？？？没有数据放在最后统一处理
+//		{
+//			getlist->data[dataindex++] = 0;
+//			getlist->datalen += dataindex;
+//		}
 		pthread_mutex_unlock(&mutex);
 	}
 	set_port_active(port485,0);
@@ -2573,7 +2580,9 @@ INT8S dealProxyType7(PROXY_GETLIST *getlist,INT8U port485)
 	INT32S fd = comfd485[port485-1];
 	usleep(20000);	//20ms
 	INT16U i= 0,j = 0,len = 0,rec_head = 0;
-	for (j = 0; j < 15; j++)
+	//TODO: 此处延时是否应该按照代理下发的超时时间进行处理？
+	//getlist->proxy_obj.transcmd.bytetimeout,getlist->proxy_obj.transcmd.revtimeout
+	for (j = 0; j < 20; j++)
 	{
 		usleep(20000);	//20ms
 		len = read(fd, TmprevBuf,BUFFSIZE1024);
@@ -2597,11 +2606,13 @@ INT8S dealProxyType7(PROXY_GETLIST *getlist,INT8U port485)
 	}
 	if(RecvLen > 0)	{
 		fprintf(stderr,"\n代理透传　RecvLen = %d\n",RecvLen);
+		getlist->proxy_obj.transcmd.dar = success;
 		getlist->data[0] = 1;
 		getlist->data[1] = RecvLen;
 		memcpy(&getlist->data[2],&RecvBuff,RecvLen);
 		getlist->datalen = RecvLen + 2;
 	}else {
+		getlist->proxy_obj.transcmd.dar = request_overtime;
 		getlist->data[0] = 0;
 		getlist->data[1] = request_overtime;//DAR
 		getlist->datalen = 2;

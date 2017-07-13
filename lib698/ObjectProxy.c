@@ -60,10 +60,12 @@ int getProxylist(INT8U *data,PROXY_GETLIST *getlist)
 	INT8U num=0,oadnum=0;
 	INT16U timeout=0;
 	OAD oadtmp;
+
 	getlist->num = data[iindex++];// sequence of 代理
 	fprintf(stderr,"\n---%d",getlist->num);
 	for(i=0;i<getlist->num;i++)
 	{
+		getlist->proxy_obj.objs[i].dar = other_err1;		//初始化状态，已应答帧处理超时错误的数据
 		num = data[iindex];
 		if (num>sizeof(getlist->proxy_obj.objs[i].tsa))
 			num = sizeof(getlist->proxy_obj.objs[i].tsa);
@@ -278,6 +280,7 @@ int Proxy_TransCommandRequest(INT8U *data,CSINFO *csinfo,INT8U *sendbuf,INT8U pi
 	INT8U	DAR=success;
 	getlist.piid = piid;
 	getlist.proxytype = ProxyTransCommandRequest;
+	getlist.proxy_obj.transcmd.dar = other_err1;
 	index += getOAD(0,&data[index],&getlist.proxy_obj.transcmd.oad,NULL);
 	index += getCOMDCB(0,&data[index],&getlist.proxy_obj.transcmd.comdcb,&DAR);
 	getlist.proxy_obj.transcmd.revtimeout = (data[index]<<8) | data[index+1];
