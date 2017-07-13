@@ -102,3 +102,17 @@ int class2401_set(int index, OAD oad, INT8U *data, INT8U *DAR) {
 
 	return 0;
 }
+
+int class2401_get(int index, OAD oad, INT8U *data, INT8U *DAR) {
+
+	switch (oad.attflg) {
+	case 2:
+		class2401_set_attr_2(0, oad, data, DAR);
+		break;
+	case 3:
+		class2401_set_attr_3(0, oad, data, DAR);
+		break;
+	}
+
+	return 0;
+}

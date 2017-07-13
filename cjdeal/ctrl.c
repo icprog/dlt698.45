@@ -52,22 +52,47 @@ void getNewPulseVal(unsigned int *pulse) {
 //根据脉冲计算电量
 void cacl_DD(unsigned int *pulse) {
 	int con = JProgramInfo->class12.unit[0].k;
+
+	switch (JProgramInfo->class12.unit[0].conf) {
+
 	//正向有功 = 脉冲总数 * 1000/con;
-	JProgramInfo->class12.day_pos_p = pulse[0] * 1000 / con;
+	case 0:
+		JProgramInfo->class12.day_pos_p = pulse[0] * 1000 / con;
+		break;
 
-	//反向有功 = 脉冲总数 * 100/con;
-	JProgramInfo->class12.day_nag_p = pulse[0] * 100 / con;
+		//反向有功 = 脉冲总数 * 100/con;
+	case 2:
+		JProgramInfo->class12.day_nag_p = pulse[0] * 100 / con;
+		break;
 
-	//正向无功 = 脉冲总数 * 100/con + 脉冲总数%10;
-	JProgramInfo->class12.day_pos_q = pulse[0] * 100 / con + pulse[0] % 10;
+		//正向无功 = 脉冲总数 * 100/con + 脉冲总数%10;
+	case 1:
+		JProgramInfo->class12.day_pos_q = pulse[0] * 100 / con + pulse[0] % 10;
+		break;
 
-	//反向无功 = 脉冲总数 * 100/con + 脉冲总数%10;
-	JProgramInfo->class12.day_nag_q = pulse[0] * 100 / con + pulse[0] % 10;
+		//反向无功 = 脉冲总数 * 100/con + 脉冲总数%10;
+	case 3:
+		JProgramInfo->class12.day_nag_q = pulse[0] * 100 / con + pulse[0] % 10;
+		break;
+	}
 }
 
 //计算周期内实时功率
 void cacl_PQ(unsigned int *pulse) {
+	int con = JProgramInfo->class12.unit[0].k;
 
+	switch (JProgramInfo->class12.unit[0].conf) {
+	//瞬时有功功率 = 实时脉冲*3600*变比/60/con
+	case 0:
+	case 2:
+		JProgramInfo->class12.p = pulse[0] * 3600.0 *JProgramInfo->class12.ct / (60 * con);
+		break;
+		//瞬时无功功率 = 实时脉冲*3600*变比/60/con
+	case 1:
+	case 3:
+		JProgramInfo->class12.q = pulse[0] * 3600.0 *JProgramInfo->class12.ct / (60 * con);
+		break;
+	}
 }
 
 //刷新脉冲
