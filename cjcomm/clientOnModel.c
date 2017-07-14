@@ -615,6 +615,8 @@ static int RegularClientOnModel(struct aeEventLoop *ep, long long id, void *clie
             for (int i = 0; i < 5; i++) {
             	fprintf(stderr,"\n--i=%d",i);
                 len = StateProcess(nst, 10);
+                if (len==-1)
+                	break;
                 if (len==0)
 					i = 0;		//需要继续
 				if (len ==1)
