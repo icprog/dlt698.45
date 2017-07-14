@@ -113,4 +113,5 @@ typedef struct
 GUI_PROXY cjguiProxy;
 GUI_PROXY cjGuiProxy_plc;
 INT8S saveClass6035(CLASS_6035* class6035);
+int getTaskDataTsaNum(INT8U taskID);
 #endif

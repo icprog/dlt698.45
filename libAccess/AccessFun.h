@@ -118,6 +118,14 @@ typedef struct{
 	INT8U mem_num;//成员个数
 	OI_MEM oi_mem[10];//最多10个
 }OI_INFO;
+
+
+typedef struct{
+	OAD   oad_m;
+	OAD   oad_r;
+	INT16U len;
+}HEAD_UNIT0;
+
 /*
  * 更改拨号脚本
  * */
@@ -327,4 +335,7 @@ extern INT8U GetTaskidFromCSDs(CSD_ARRAYTYPE csds,ROAD_ITEM *item_road,INT8U fin
 
 extern void deloutofdatafile();//删除过期任务数据文件;
 
+int readfile_int(FILE *fp);
+int getOADf(INT8U type,INT8U *source,OAD *oad);
+int head_prt(int unitnum,HEAD_UNIT0 *length,int *indexn,FILE *fp);
 #endif /* ACCESS_H_ */

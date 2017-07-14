@@ -1708,7 +1708,75 @@ INT8U datafile_read(char *FileName, void *source, int size, int offset)
 		ret = 0;
 	return ret;
 }
+int buf_int(INT8U  *buf)
+{
+	int value=0;
+	value = buf[0];
+	value = (value<<8) + buf[1];
+	return value;
+}
+int buf_int2(INT8U  *buf)
+{
+	int value=0;
+	value = buf[1];
+	value = (value<<8) + buf[0];
+	return value;
+}
 
+int readfile_int(FILE *fp)
+{
+	INT8U buf[2]={};
+	int value=0;
+	if (fp!=NULL)
+	{
+		if(fread(buf,2,1,fp)>0)
+		{
+			//value = buf[0];
+			//value = (value<<8) + buf[1];
+			value = buf_int(buf);
+		}
+	}
+	return value;
+}
+
+int getOADf(INT8U type,INT8U *source,OAD *oad)		//0x51
+{
+	if((type == 1) || (type == 0)) {
+		oad->OI = source[type+1];
+		oad->OI = (oad->OI <<8) | source[type];
+		oad->attflg = source[type+2];
+		oad->attrindex = source[type+3];
+		return (4+type);
+	}
+	return 0;
+}
+int head_prt(int unitnum,HEAD_UNIT0 *length,int *indexn,FILE *fp)
+{
+	INT8U buf[50]={};
+	int A_record=0,i=0,j=0;
+	OAD oad;
+
+	for(i=0;i<unitnum  ;i++)
+	{
+		memset(buf,0,50);
+		fread(buf,10,1,fp);
+		getOADf(0,&buf[0],&oad);
+		memcpy(&length[i].oad_m,&oad,sizeof(oad));
+		fprintf(stderr,"\n【%02d】  %04x-%02x-%02x   ",i,oad.OI,oad.attflg,oad.attrindex);
+		getOADf(0,&buf[4],&oad);
+		memcpy(&length[i].oad_r,&oad,sizeof(oad));
+		fprintf(stderr,  "%04x-%02x-%02x   ",oad.OI,oad.attflg,oad.attrindex);
+		length[i].len = buf_int2(&buf[8]);
+		fprintf(stderr," %02d 字节        |   ",length[i].len);
+		(*indexn)++;
+		for(j=0;j<10;j++)
+			fprintf(stderr,"%02x ",buf[j]);
+		if (i==3)
+			fprintf(stderr,"\n");
+		A_record += length[i].len;
+	}
+	return A_record ;
+}
 void getTaskFileName(INT8U taskid,TS ts,char *fname)
 {
 	char dirname[FILENAMELEN]={};
