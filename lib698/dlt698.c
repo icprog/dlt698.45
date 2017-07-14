@@ -130,20 +130,21 @@ int StateProcess(CommBlock* nst, int delay_num)
 						}
 					}else
 					{
-							fprintf(stderr,"\n2、 delay =%d  ",nst->rev_delay);
-							if (nst->rev_delay < delay_num)
-							{
-								(nst->rev_delay)++;
-								ret = 0;//需要继续
-								break;
-							}else
-							{
-								fprintf(stderr,"\n2、超时  Tail 移动 ！！");
-								nst->rev_delay = 0;
-								nst->RTail = (nst->RTail +1 )% FRAMELEN;
-								nst->deal_step = 0;
-								ret = 0;//需要继续
-							}
+						ret = -1;
+//							fprintf(stderr,"\n2、 delay =%d  ",nst->rev_delay);
+//							if (nst->rev_delay < delay_num)
+//							{
+//								(nst->rev_delay)++;
+//								ret = 0;//需要继续
+//								break;
+//							}else
+//							{
+//								fprintf(stderr,"\n2、超时  Tail 移动 ！！");
+//								nst->rev_delay = 0;
+//								nst->RTail = (nst->RTail +1 )% FRAMELEN;
+//								nst->deal_step = 0;
+//								ret = 0;//需要继续
+//							}
 					}
 				}
 			}
