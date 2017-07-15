@@ -840,6 +840,7 @@ typedef struct
 	DateTimeBCD end;
 	TI ti;		  //任务执行频率
 	INT8U leve;							//优先级别
+	INT8U tryAgain;						//需要补抄
 	CJ_FANGAN fangan;					//采集方案
 }TASK_UNIT;
 

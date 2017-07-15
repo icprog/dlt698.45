@@ -2646,6 +2646,9 @@ void ReadFileHeadLen(FILE *fp,int *headlen,int *blocklen)
 	*blocklen = ((blocklength>>8)+((blocklength&0xff)<<8));
 }
 
+/*
+ * 在文件fp中查找tsa第一次出现的文件偏移位置
+ */
 int findTsa(TSA tsa,FILE *fp,int headsize,int blocksize)
 {
 	int i=0;
@@ -2903,6 +2906,17 @@ int fillTsaNullData(INT8U *databuf,TSA tsa,ROAD_ITEM item_road)
 	return pindex;
 }
 
+/*
+ * 文件最前面两个字节是 INT16U类型的,
+ * 表示文件头的大小; 紧接着的两个
+ * 字节, 也是INT6U类型的, 表示每行数据
+ * 的长度; 头部的每个块是一个HEAD_UNIT
+ * 类型, 通过文件头部的长度, 可以计算出
+ * 表格有多少列.
+ * @head_len: 文件头的长度
+ * @tsa_len: 每行数据的长度
+ * @head_unit: 列描述
+ */
 INT16S GetTaskHead(FILE *fp,INT16U *head_len,INT16U *tsa_len,HEAD_UNIT **head_unit)
 {
 	INT8U 	headl[2],blockl[2];
@@ -3534,7 +3548,7 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds,INT16U fr
 	int offsetTsa = 0,recordoffset = 0,unitnum=0,i=0,j=0,k=0,indexn=0,recordlen = 0,currecord = 0,rec_tmp = 0,firecord = 0,tsa_num=0,framesum=0;
 	INT8U recordnum=0,seqnumindex=0,taskinfoflg=0;
 //	TSA *tsa_group = NULL;
-	CLASS_6001 *tsa_group = NULL;
+	CLASS_6001 *tsa_group = NULL;//本次召测的tsa集合
 	ROAD road_eve;
 	INT8U eveflg=0;
 	MY_MS meters_null;
@@ -3544,8 +3558,7 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds,INT16U fr
 #ifdef SYS_INFO
 	asyslog(LOG_INFO,"－1－selectype = %d\n",selectype);
 #endif
-	if((selectype & 0x80) != 0)//主动上报
-	{
+	if((selectype & 0x80) != 0) {//主动上报
 		autoflg = 1;
 		selectype &= ~0x80;
 	}
@@ -3562,33 +3575,17 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds,INT16U fr
 
 	if(csds.num > MY_CSD_NUM)
 		csds.num = MY_CSD_NUM;
-	for(i=0;i<csds.num;i++)//招测单个事件
-	{
+	for(i=0;i<csds.num;i++) {//招测单个事件
 		if(csds.csd[i].type != 1)
 			continue;
-		if(csds.csd[i].csd.road.oad.OI >= 0x3000 && csds.csd[i].csd.road.oad.OI < 0x4000)//事件关联对象
-		{
+		if(csds.csd[i].csd.road.oad.OI >= 0x3000 && \
+			csds.csd[i].csd.road.oad.OI < 0x4000){//事件关联对象
 			eveflg = 1;
 			memcpy(&road_eve,&csds.csd[i].csd.road,sizeof(ROAD));
 			break;
 		}
 	}
-//	switch(selectype)
-//	{
-//	case 0:
-//		meters_null.mstype = 1;//全部电表
-//		tsa_num = getTsas(meters_null,(INT8U **)&tsa_group);
-//		break;
-//	case 5:
-//		fprintf(stderr,"selec5.meters mstype = %d,data=%d-%d\n",select.selec5.meters.mstype,select.selec5.meters.ms.userAddr[0].addr[0],select.selec5.meters.ms.userAddr[0].addr[1]);
-//		tsa_num = getTsas(select.selec5.meters,(INT8U **)&tsa_group);
-//		break;
-//	case 7:
-//		tsa_num = getTsas(select.selec7.meters,(INT8U **)&tsa_group);
-//		break;
-//	default:
-//		tsa_num = getTsas(select.selec10.meters,(INT8U **)&tsa_group);
-//	}
+
 	switch(selectype)
 	{
 	case 0:
@@ -3638,9 +3635,7 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds,INT16U fr
 			fprintf(stderr,"\n得到任务信息失败\n");
 			return 0;
 		}
-//		asyslog(LOG_INFO,"\n得到任务信息成功\n");
 		memset(&recinfo,0x00,sizeof(CURR_RECINFO));
-//		asyslog(LOG_INFO,"\n----------获得recinfo信息\n");
 		initrecinfo(&recinfo,tasknor_info,selectype,select,taskinfoflg);//获得recinfo信息
 		fprintf(stderr,"\n----------获得recinfo信息成功\n");
 		//获得第一个序号
@@ -3667,9 +3662,7 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds,INT16U fr
 		return 0;
 	}
 	asyslog(LOG_INFO,"\n打开文件%s成功\n",TASK_FRAME_DATA);
-//	ReadFileHeadLen(fp,&headsize,&blocksize);
-//	memset(headunit,0x00,sizeof(headunit));
-//	fread(headunit,headsize-4,1,fp);
+
 	unitnum = GetTaskHead(fp,&headsize,&blocksize,&headunit);
 	fprintf(stderr,"\n----------2\n");
 	for(i=0;i<unitnum;i++)
@@ -3681,8 +3674,7 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds,INT16U fr
 	if(findmethod==2) {
 		memcpy(&item_road_2,&item_road,sizeof(ROAD_ITEM));
 		for(mm=0;mm<item_road_2.oadmr_num;mm++) {
-			if(item_road_2.oad[mm].oad_m.OI > 0x0000)
-			{
+			if(item_road_2.oad[mm].oad_m.OI > 0x0000) {
 				item_road_2.oad[mm].oad_m.OI = 0x0000;
 				item_road_2.oad[mm].oad_m.attflg = 0;
 				item_road_2.oad[mm].oad_m.attrindex = 0;
@@ -3690,43 +3682,20 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds,INT16U fr
 			}
 		}
 		GetOADPosofUnit(item_road_2,headunit,unitnum,oad_offset);//得到每一个oad在块数据中的偏移
-	}else
-	{
+	} else {
 		GetOADPosofUnit(item_road,headunit,unitnum,oad_offset);//得到每一个oad在块数据中的偏移
 	}
 	fprintf(stderr,"\n----------4\n");
 	if(tasknor_info.runtime!=0) 	//异常处理
 		recordlen = blocksize/tasknor_info.runtime;//计算每条记录的字节数
 	DEBUG_TIME_LINE("\nrecordlen = %d,freq=%d\n",recordlen,tasknor_info.freq);
-//	recordno = getrecordno(tasknor_info.starthour,tasknor_info.startmin,tasknor_info.freq,ts_sele);//计算招测的第一个的序列号
-	DEBUG_TIME_LINE("\n-----------------------------------1-----------------------------------------------------------\n");
-	//2\获得全部TSA列表
-//	fprintf(stderr,"\nmstype=%d recordno=%d\n",select.selec10.meters.mstype,recordno);s
-//	switch(selectype)
-//	{
-//	case 0:
-//		meters_null.mstype = 1;//全部电表
-//		tsa_num = getTsas(meters_null,(INT8U **)&tsa_group);
-//		break;
-//	case 5:
-//		fprintf(stderr,"selec5.meters mstype = %d,data=%d-%d\n",select.selec5.meters.mstype,select.selec5.meters.ms.userAddr[0].addr[0],select.selec5.meters.ms.userAddr[0].addr[1]);
-//		tsa_num = getTsas(select.selec5.meters,(INT8U **)&tsa_group);
-//		break;
-//	case 7:
-//		tsa_num = getTsas(select.selec7.meters,(INT8U **)&tsa_group);
-//		break;
-//	default:
-//		tsa_num = getTsas(select.selec10.meters,(INT8U **)&tsa_group);
-//	}
-
 	DEBUG_TIME_LINE("get 需要上报的：tsa_num=%d,tsa_group=%p\n",tsa_num,tsa_group);
 	for(i=0;i<tsa_num;i++) {
-		DEBUG_TIME_LINE("\nTSA%d: %d-",i,tsa_group[i].basicinfo.addr.addr[0]);
+		fprintf(stderr,"\nTSA%d: %d-",i,tsa_group[i].basicinfo.addr.addr[0]);
 		for(j=0;j<tsa_group[i].basicinfo.addr.addr[0];j++) {
-			DEBUG_TIME_LINE("-%02x",tsa_group[i].basicinfo.addr.addr[j+1]);
+			fprintf(stderr,"-%02x",tsa_group[i].basicinfo.addr.addr[j+1]);
 		}
 	}
-	DEBUG_TIME_LINE("----------------------------------2------------------------------------------------------------\n");
 	memset(onefrmbuf,0,sizeof(onefrmbuf));
 	//初始化分帧头
 	indexn = 2;
@@ -3747,21 +3716,13 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds,INT16U fr
 	}
 	//3\定位TSA , 返回offset
 	DEBUG_TIME_LINE("tsa_num=%d\n",tsa_num);
-	for(i =0; i< tsa_num; i++)
-	{
+	for(i =0; i< tsa_num; i++) {//遍历tsa_group
 		currecord = firecord;//每次切换表地址，当前记录序号赋值第一次的数值
 		offsetTsa = findTsa(tsa_group[i].basicinfo.addr,fp,headsize,blocksize);
 		DEBUG_TIME_LINE("-----offsetTsa = %d\n",offsetTsa);
-		//4\计算当前点
-//		currecord = getrecordno(tasknor_info.starthour,tasknor_info.startmin,tasknor_info.freq,recinfo);//freq为执行间隔,单位分钟
-//		for(j=0; j<recordn ; j++)
-#ifdef SYS_INFO
-		asyslog(LOG_INFO,"招测的序列总数%d---firecord=%d\n",recinfo.recordno_num,firecord);
-#endif
-		for(j=1; j<=recinfo.recordno_num;j++)		//test
-		{
-			if(eveflg != 1 && taskinfoflg == 0)//事件和日月冻结不更新数据流
-			{
+
+		for(j=1; j<=recinfo.recordno_num;j++) {//test
+			if(eveflg != 1 && taskinfoflg == 0) {//事件和日月冻结不更新数据流
 				if(updatedatafp(fp,j,selectype,tasknor_info.freq,recinfo,taskid)==2)
 					offsetTsa = findTsa(tsa_group[i].basicinfo.addr,fp,headsize,blocksize);
 			}
@@ -3769,10 +3730,9 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds,INT16U fr
 			if(offsetTsa == 0) {
 				asyslog(LOG_INFO,"task未找到数据,i=%d\n",i);
 				DEBUG_TIME_LINE("");
-				if(autoflg == 1 && tasknor_info.runtime > 1 && recinfo.recordno_num == 1)//主动上报曲线并且只上报一个点
+				if(autoflg == 1 && tasknor_info.runtime > 1 && recinfo.recordno_num == 1) {//主动上报曲线并且只上报一个点
 					fprintf(stderr,"\n曲线没TSA记录,查找上一日的数据\n");
-				else
-				{
+				} else {
 					if(getZone("HuNan")==0) {//湖南的，没有数据直接跳过
 						DEBUG_TIME_LINE("");
 						continue;
@@ -3790,12 +3750,10 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds,INT16U fr
 			if(selectype == 7 || selectype == 5)
 				rec_tmp = j-1;
 			else
-				if(getcurecord(selectype,&currecord,j,tasknor_info.runtime) == 0)//招测天数跨度超出10天
-				{
+				if(getcurecord(selectype,&currecord,j,tasknor_info.runtime) == 0) {//招测天数跨度超出10天
 					asyslog(LOG_INFO,"\n招测天数跨度超出10天\n",currecord);
 					break;
-				}else
-				{
+				} else {
 					if(autoflg == 1 && tasknor_info.runtime > 1 && recinfo.recordno_num == 1)//主动上报曲线并且只上报一个点
 					{
 						fprintf(stderr,"\n---曲线主动上报\n");
@@ -3813,19 +3771,15 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds,INT16U fr
 			//6\读出一行数据到临时缓存
 			if(offsetTsa == 0)
 				fprintf(stderr,"\n曲线主动上报tsa空\n");
-			else
-			{
+			else {
 				fseek(fp,recordoffset,SEEK_SET);
 				fread(recordbuf,recordlen,1,fp);
 			}
 			DEBUG_TIME_LINE("");
-			if(autoflg == 1 && tasknor_info.runtime > 1 && recinfo.recordno_num == 1)//主动上报曲线并且只上报一个点
-			{
-				for(k=0;k<5;k++)//TsToTimeBCD(TS inTs,DateTimeBCD* outTimeBCD)
-				{
+			if(autoflg == 1 && tasknor_info.runtime > 1 && recinfo.recordno_num == 1) {//主动上报曲线并且只上报一个点
+				for(k=0;k<5;k++) {//TsToTimeBCD(TS inTs,DateTimeBCD* outTimeBCD)
 					memset(tmpnull,0x00,8);
-					if(memcmp(&recordbuf[18],tmpnull,8)==0 || offsetTsa == 0)//本条记录为空或者没有这个tsa
-					{
+					if(memcmp(&recordbuf[18],tmpnull,8)==0 || offsetTsa == 0) {//本条记录为空或者没有这个tsa
 						fprintf(stderr,"\n---曲线主动上报k=%d\n",k);
 						fprintf(stderr,"当前   currecord=%d\n",currecord);
 						if(currecord == 0)//往前跨一天
@@ -3904,9 +3858,7 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds,INT16U fr
 #endif
 			if(frmmaxsize <= 256+100)
 				frmmaxsize = 700;
-			if (indexn>=frmmaxsize-300)
-//			if (indexn>=900)
-			{
+			if (indexn>=frmmaxsize-300) {
 				framesum++;
 				//8 存储1帧
 				fprintf(stderr,"indexn=%d  recordnum=%d\n",indexn,recordnum);
@@ -3917,27 +3869,16 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds,INT16U fr
 				indexn += initFrameHead(&onefrmbuf[indexn],oad,select,selectype,csds,&seqnumindex);
 				recordnum = 0;
 			}
-//			if (indexn>=1000)
-//			{
-//				framesum++;
-//				//8 存储1帧
-//				intToBuf((indexn-2),onefrmbuf);		//帧长度保存帧的数据长度
-//				saveOneFrame(onefrmbuf,indexn,myfp);
-//				indexn = 2;
-//				indexn += initFrameHead(&onefrmbuf[indexn],oad,select,selectype,csds,&seqnumindex);
-//				onefrmbuf[seqnumindex] = recordnum;   //此处逻辑错误？？
-//				recordnum = 0;
-//				break;
-//			}
 		}
 	}
 #ifdef SYS_INFO
 	asyslog(LOG_INFO,"组帧：indexn=%d\n",indexn);
 #endif
+	DEBUG_TIME_LINE("");
 	for(i=0;i<indexn;i++) {
 		fprintf(stderr,"%02x ",onefrmbuf[i]);
 	}
-
+	DEBUG_TIME_LINE("");
 	if(framesum==0) {
 		framesum = 1; //一帧
 		fprintf(stderr,"\n indexn = %d saveOneFrame  seqnumindex=%d,  recordnum=%d!!!!!!!!!!!!!!!!\n",indexn,seqnumindex,recordnum);
