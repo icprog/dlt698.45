@@ -1287,10 +1287,87 @@ INT8S getRequestType(INT8U cjtype,INT8U csdcount)
 
 	return requestType;
 }
-/*
- * type = 0 set
- * type = 1 action
- * */
+INT16S composeProtocol698_SetActionThenGetRequest(INT8U* sendBuf,INT8U type,DO_Then_GET dogetOBJ)
+{
+
+	INT8U PIID = 0x02;
+	int sendLen = 0, hcsi = 0;
+	INT8U oadIndex = 0;
+	CSINFO csinfo={};
+
+	csinfo.dir = 0;		//服务器发出
+	csinfo.prm = 1; 	//服务器发出
+	csinfo.funcode = 3; //链路管理
+	csinfo.sa_type = 0 ;//单地址
+
+
+	INT8U reverseAddr[OCTET_STRING_LEN]= {0};
+	fprintf(stderr," \n\n composeProtocol698_GetRequest  meterAddr : %02x  %02x  %02x%02x%02x%02x%02x%02x%02x\n\n",
+			dogetOBJ.tsa.addr[0],dogetOBJ.tsa.addr[1],dogetOBJ.tsa.addr[2],dogetOBJ.tsa.addr[3],dogetOBJ.tsa.addr[4],
+			dogetOBJ.tsa.addr[5],dogetOBJ.tsa.addr[6],dogetOBJ.tsa.addr[7],dogetOBJ.tsa.addr[8]);
+	csinfo.sa_length = (dogetOBJ.tsa.addr[1]&0x0f) + 1;//sizeof(addr)-1;//服务器地址长度
+	///当广播地址时，地址类型=3：广播地址，增加下面的赋值
+	csinfo.sa_type = (dogetOBJ.tsa.addr[1] >> 6) & 0x03;		//服务器地址类型
+	reversebuff(&dogetOBJ.tsa.addr[2],csinfo.sa_length,reverseAddr);
+
+	fprintf(stderr," \n reverseAddr[%d] = ",csinfo.sa_length);
+	INT8U prtIndex=0;
+	for(prtIndex = 0;prtIndex < csinfo.sa_length;prtIndex++)
+	{
+		fprintf(stderr," %02x",reverseAddr[prtIndex]);
+	}
+
+	memcpy(csinfo.sa,reverseAddr,csinfo.sa_length);//服务器地址
+	csinfo.ca = 0x02;
+
+	fprintf(stderr,"sa_length = %d \n",csinfo.sa_length);
+	sendLen = FrameHead(&csinfo,sendBuf) ; //	2：hcs  hcs
+	hcsi = sendLen;
+	sendLen = sendLen + 2;
+
+	sendBuf[sendLen++] = type;
+	if(dogetOBJ.num > 1)
+	{
+		sendBuf[sendLen++] = SET_THENGET_REQUEST_NORMAL_LIST;
+		sendBuf[sendLen++] = dogetOBJ.num;
+	}
+	else
+	{
+		sendBuf[sendLen++] = SET_THENGET_REQUEST_NORMAL_LIST;
+	}
+
+	sendBuf[sendLen++] = PIID;
+//	OADtoBuff(setData.oad,&sendBuf[sendLen]);
+//	sendLen += 4;
+	typedef struct{
+		OAD   oad_set;
+		INT8U datatype;
+		INT8U len;
+		INT8U data[50];
+		OAD   oad_get;
+		INT16U dealy;
+	}SETATTRIB ;
+
+	for(oadIndex = 0;oadIndex < dogetOBJ.num;oadIndex++)
+	{
+		sendLen += create_OAD(0,&sendBuf[sendLen],dogetOBJ.setoads[oadIndex].oad_set);
+		INT16U dataIndex = 0;
+		for(dataIndex = 0;dataIndex < dogetOBJ.setoads[oadIndex].len;dataIndex++)
+		{
+			sendBuf[sendLen++] =  dogetOBJ.setoads[oadIndex].data[dataIndex];
+		}
+		sendLen += create_OAD(0,&sendBuf[sendLen],dogetOBJ.setoads[oadIndex].oad_get);
+		sendBuf[sendLen++] = dogetOBJ.setoads[oadIndex].dealy;
+	}
+
+	sendBuf[sendLen++] = 0x00;//没有时间标签
+
+	FrameTail(sendBuf,sendLen,hcsi);
+	return (sendLen + 3);			//3: cs cs 16
+
+
+
+}
 INT16S composeProtocol698_SetActionRequest(INT8U* sendBuf,INT8U type,ACTION_SET_OBJ setOBJ)
 {
 	INT8U PIID = 0x02;
@@ -1507,13 +1584,41 @@ INT8U analyzeProtocol698(INT8U* Rcvbuf,INT8U* resultCount,INT16S recvLen,INT8U* 
 				*dataLen = *dataLen - (3+3);
 				*apduDataStartIndex = startIndex;
 			}
-			if(getType == GET_REQUEST_NORMAL_LIST)
+			if(getType == SET_REQUEST_NORMAL_LIST)
 			{
 				*resultCount = apdu[3];
 				startIndex += 4;
 				*dataLen = *dataLen - (4+3);
 			}
-
+			if(getType == SET_THENGET_REQUEST_NORMAL_LIST)
+			{
+				*resultCount = apdu[3];
+				startIndex += 4;
+				*dataLen = *dataLen - (4+3);
+			}
+		}
+		else if(apdu[0] == ACTION_RESPONSE)
+		{
+			getType = apdu[1];
+			if(getType == ActionResponseNormal)
+			{
+				*resultCount = 1;
+				startIndex += 3;
+				*dataLen = *dataLen - (3+3);
+				*apduDataStartIndex = startIndex;
+			}
+			if(getType == ActionResponseNormalList)
+			{
+				*resultCount = apdu[3];
+				startIndex += 4;
+				*dataLen = *dataLen - (4+3);
+			}
+			if(getType == ACTIONTHENGET_REQUEST_NORMAL_LIST)
+			{
+				*resultCount = apdu[3];
+				startIndex += 4;
+				*dataLen = *dataLen - (4+3);
+			}
 		}
 		else
 		{
