@@ -32,6 +32,15 @@ static long long ClientOnModel_Task_Id;
 static MASTER_STATION_INFO NetIps[4];
 static pthread_mutex_t locker;
 static NetObject netObject;
+//月流量统计
+static int MonthTJ;
+
+void showTime()
+{
+	TS ts;
+	TSGet(&ts);
+	fprintf(stderr, "时间%d-%d\n", ts.Minute, ts.Sec);
+}
 
 CommBlock *getComBlockForModel() {
     return &ClientForModelObject;
@@ -62,6 +71,7 @@ static int NetRecv(INT8U *buf) {
         pthread_mutex_unlock(&locker);
         return 0;
     }
+    MonthTJ += len;
     netObject.recv.len = 0;
     for (int i = 0; i < len; ++i) {
         buf[i] = netObject.recv.buf[i];
@@ -77,6 +87,7 @@ static int getNext(INT8U *buf) {
     pthread_mutex_lock(&locker);
     int res = netObject.head;
     int len = netObject.send[res].len;
+
     for (int i = 0; i < netObject.send[res].len; ++i) {
         buf[i] = netObject.send[res].buf[i];
     }
@@ -88,6 +99,7 @@ static int getNext(INT8U *buf) {
 
 static int putNext(INT8U *buf, INT16U len) {
     pthread_mutex_lock(&locker);
+    MonthTJ += len;
     if (netObject.recv.len + len > 2048) {
         pthread_mutex_unlock(&locker);
         return -1;
@@ -314,14 +326,14 @@ int modelSendExactly(int fd, int retry, int len, int buf) {
         sprintf(cmdBuf, "\rAT$MYNETWRITE=1,%d\r", length);
         SendATCommand(cmdBuf, strlen(cmdBuf), fd);
 
-        delay(1000);
+        delay(800);
         int recLen = RecieveFromComm(recbuf, sizeof(recbuf), fd);
         checkModelStatus(recbuf, recLen);
 
         if (sscanf(recbuf, "%*[^:]: %d,%d", &chl, &sum) == 2) {
             write(fd, buf, sum);
             for (int j = 0; j < 3; ++j) {
-                delay(1000);
+                delay(800);
                 memset(recbuf, 0, sizeof(recbuf));
                 int position = RecieveFromComm(recbuf, sizeof(recbuf), fd);
                 checkModelStatus(recbuf, position);
@@ -351,7 +363,6 @@ int readPositionGet(int length) {
     return pos;
 }
 
-
 int modelReadExactly(int fd, int retry) {
     int chl = 0;
     int sum = 0;
@@ -360,7 +371,7 @@ int modelReadExactly(int fd, int retry) {
     for (int timeout = 0; timeout < retry; timeout++) {
         memset(Mrecvbuf, 0, 2048);
         SendATCommand("\rAT$MYNETREAD=1,1024\r", strlen("\rAT$MYNETREAD=1,1024\r"), fd);
-        delay(1000);
+        delay(800);
         int resLen = RecieveFromComm(Mrecvbuf, 2048, fd);
         checkModelStatus(Mrecvbuf, resLen);
 
@@ -543,7 +554,7 @@ void *ModelWorker(void *args) {
 
         wait:
         while (1) {
-            sleep(2);
+            sleep(1);
             if (GetOnlineType() == 0) { goto err; }
 
             INT8U sendBuf[2048];
@@ -551,6 +562,7 @@ void *ModelWorker(void *args) {
             int readySendLen = getNext(sendBuf);
 
             if (readySendLen != -1) {
+//            	showTime();
                 modelSendExactly(sMux0, 5, readySendLen, sendBuf);
             }
 
@@ -589,6 +601,7 @@ void CreateOnModel(void *clientdata) {
 
 static int RegularClientOnModel(struct aeEventLoop *ep, long long id, void *clientData) {
     CommBlock *nst = (CommBlock *) clientData;
+    ProgramInfo* prginfo_event = (ProgramInfo*)nst->shmem;
 
     if (GetOnlineType() != 3) {
         refreshComPara(nst);
@@ -598,7 +611,7 @@ static int RegularClientOnModel(struct aeEventLoop *ep, long long id, void *clie
 
     INT8U recvBuf[2048];
     memset(recvBuf, 0x00, sizeof(recvBuf));
-
+//    showTime();
     int revcount = NetRecv(recvBuf);
     if (revcount > 0) {
         for (int j = 0; j < revcount; j++) {
@@ -614,6 +627,7 @@ static int RegularClientOnModel(struct aeEventLoop *ep, long long id, void *clie
             fprintf(stderr,"\n-----------第 %d 次",k+1);
             for (int i = 0; i < 5; i++) {
             	fprintf(stderr,"\n--i=%d",i);
+//            	showTime();
                 len = StateProcess(nst, 10);
                 if (len==-1)
                 	break;
@@ -632,7 +646,9 @@ static int RegularClientOnModel(struct aeEventLoop *ep, long long id, void *clie
 			}
 
             if (exist == 1) {
+//            	showTime();
                 int apduType = ProcessData(nst);
+//                showTime();
                 fprintf(stderr, "apduType=%d\n", apduType);
                 ConformAutoTask(ep, nst, apduType);
                 switch (apduType) {
@@ -650,18 +666,26 @@ static int RegularClientOnModel(struct aeEventLoop *ep, long long id, void *clie
             }
         }
     }
-
+//    showTime();
     if (Comm_task(nst) == -1) {
         asyslog(LOG_WARNING, "内部协议栈[GPRS]链接心跳超时，关闭端口");
         SetOnlineType(0);
     }
+
+
+    //判断流量越限事件
+    prginfo_event->dev_info.realTimeC2200.flow.month_tj += MonthTJ;
+    fprintf(stderr, "流量越限事件 %d-%d\n", MonthTJ, prginfo_event->dev_info.realTimeC2200.flow.month_tj);
+    MonthTJ = 0;
+    Event_3110(prginfo_event->dev_info.realTimeC2200.flow.month_tj, sizeof(prginfo_event->dev_info.realTimeC2200.flow),
+                   prginfo_event);
 
     check_F101_changed_Gprs(nst);
     CalculateTransFlow(nst->shmem);
     //暂时忽略函数返回
     RegularAutoTask(ep, nst);
 
-    return 1000;
+    return 600;
 }
 
 /*
@@ -703,6 +727,7 @@ int StartClientOnModel(struct aeEventLoop *ep, long long id, void *clientData) {
     CreateOnModel(&Class25);
     ClientOnModel_Task_Id = aeCreateTimeEvent(ep, 1000, RegularClientOnModel, &ClientForModelObject, NULL);
     asyslog(LOG_INFO, "内部协议栈[GPRS]时间事件注册完成(%lld)", ClientOnModel_Task_Id);
+    MonthTJ = 0;
 
     return 1;
 }

@@ -25,7 +25,7 @@ int Set_4000(INT8U *data,INT8U *DAR)
 	if(*DAR==success) {	//时间合法
 		setsystime(datetime);
 	}
-	sleep(2);		//延时2秒，确保台体测试过程中，修改时间设置成功
+//	sleep(2);		//延时2秒，确保台体测试过程中，修改时间设置成功
 	return index;
 }
 int Set_4006(INT8U *data,INT8U *DAR,INT8U attr_act)
@@ -140,6 +140,8 @@ int Get_4000(OAD oad,INT8U *data)
 		case 2://安全模式选择
 			system((const char*)"hwclock -s");
 			DataTimeGet(&time);
+			tminc(&time, 0, 7);
+			fprintf(stderr, "============================================\n\n\n\n\n\nadd10min\n");
 			index += fill_date_time_s(&data[index],&time);
 			break;
 		case 3://校时模式
