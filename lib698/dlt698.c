@@ -130,20 +130,21 @@ int StateProcess(CommBlock* nst, int delay_num)
 						}
 					}else
 					{
-							fprintf(stderr,"\n2、 delay =%d  ",nst->rev_delay);
-							if (nst->rev_delay < delay_num)
-							{
-								(nst->rev_delay)++;
-								ret = 0;//需要继续
-								break;
-							}else
-							{
-								fprintf(stderr,"\n2、超时  Tail 移动 ！！");
-								nst->rev_delay = 0;
-								nst->RTail = (nst->RTail +1 )% FRAMELEN;
-								nst->deal_step = 0;
-								ret = 0;//需要继续
-							}
+						ret = -1;
+//							fprintf(stderr,"\n2、 delay =%d  ",nst->rev_delay);
+//							if (nst->rev_delay < delay_num)
+//							{
+//								(nst->rev_delay)++;
+//								ret = 0;//需要继续
+//								break;
+//							}else
+//							{
+//								fprintf(stderr,"\n2、超时  Tail 移动 ！！");
+//								nst->rev_delay = 0;
+//								nst->RTail = (nst->RTail +1 )% FRAMELEN;
+//								nst->deal_step = 0;
+//								ret = 0;//需要继续
+//							}
 					}
 				}
 			}
@@ -1286,12 +1287,15 @@ INT8S getRequestType(INT8U cjtype,INT8U csdcount)
 
 	return requestType;
 }
-INT16S composeProtocol698_SetRequest(INT8U* sendBuf,RESULT_NORMAL setData,TSA meterAddr)
+/*
+ * type = 0 set
+ * type = 1 action
+ * */
+INT16S composeProtocol698_SetActionRequest(INT8U* sendBuf,INT8U type,ACTION_SET_OBJ setOBJ)
 {
-
 	INT8U PIID = 0x02;
-	int sendLen = 0, hcsi = 0,apdulen = 0;
-
+	int sendLen = 0, hcsi = 0;
+	INT8U oadIndex = 0;
 	CSINFO csinfo={};
 
 	csinfo.dir = 0;		//服务器发出
@@ -1302,12 +1306,12 @@ INT16S composeProtocol698_SetRequest(INT8U* sendBuf,RESULT_NORMAL setData,TSA me
 
 	INT8U reverseAddr[OCTET_STRING_LEN]= {0};
 	fprintf(stderr," \n\n composeProtocol698_GetRequest  meterAddr : %02x  %02x  %02x%02x%02x%02x%02x%02x%02x\n\n",
-			meterAddr.addr[0],meterAddr.addr[1],meterAddr.addr[2],meterAddr.addr[3],meterAddr.addr[4],
-			meterAddr.addr[5],meterAddr.addr[6],meterAddr.addr[7],meterAddr.addr[8]);
-	csinfo.sa_length = (meterAddr.addr[1]&0x0f) + 1;//sizeof(addr)-1;//服务器地址长度
+			setOBJ.tsa.addr[0],setOBJ.tsa.addr[1],setOBJ.tsa.addr[2],setOBJ.tsa.addr[3],setOBJ.tsa.addr[4],
+			setOBJ.tsa.addr[5],setOBJ.tsa.addr[6],setOBJ.tsa.addr[7],setOBJ.tsa.addr[8]);
+	csinfo.sa_length = (setOBJ.tsa.addr[1]&0x0f) + 1;//sizeof(addr)-1;//服务器地址长度
 	///当广播地址时，地址类型=3：广播地址，增加下面的赋值
-	csinfo.sa_type = (meterAddr.addr[1] >> 6) & 0x03;		//服务器地址类型
-	reversebuff(&meterAddr.addr[2],csinfo.sa_length,reverseAddr);
+	csinfo.sa_type = (setOBJ.tsa.addr[1] >> 6) & 0x03;		//服务器地址类型
+	reversebuff(&setOBJ.tsa.addr[2],csinfo.sa_length,reverseAddr);
 
 	fprintf(stderr," \n reverseAddr[%d] = ",csinfo.sa_length);
 	INT8U prtIndex=0;
@@ -1324,17 +1328,30 @@ INT16S composeProtocol698_SetRequest(INT8U* sendBuf,RESULT_NORMAL setData,TSA me
 	hcsi = sendLen;
 	sendLen = sendLen + 2;
 
-	sendBuf[sendLen++] = SET_REQUEST;
-	sendBuf[sendLen++] = SET_REQUEST_NORMAL;
+	sendBuf[sendLen++] = type;
+	if(setOBJ.num > 1)
+	{
+		sendBuf[sendLen++] = SET_REQUEST_NORMAL_LIST;
+		sendBuf[sendLen++] = setOBJ.num;
+	}
+	else
+	{
+		sendBuf[sendLen++] = SET_REQUEST_NORMAL;
+	}
+
 	sendBuf[sendLen++] = PIID;
 //	OADtoBuff(setData.oad,&sendBuf[sendLen]);
 //	sendLen += 4;
-	sendLen += create_OAD(0,&sendBuf[sendLen],setData.oad);
-	INT16U dataIndex = 0;
-	for(dataIndex = 0;dataIndex < setData.datalen;dataIndex++)
+	for(oadIndex = 0;oadIndex < setOBJ.num;oadIndex++)
 	{
-		sendBuf[sendLen++] = setData.data[dataIndex];
+		sendLen += create_OAD(0,&sendBuf[sendLen],setOBJ.setobjs[oadIndex].oad);
+		INT16U dataIndex = 0;
+		for(dataIndex = 0;dataIndex < setOBJ.setobjs[oadIndex].len;dataIndex++)
+		{
+			sendBuf[sendLen++] =  setOBJ.setobjs[oadIndex].data[dataIndex];
+		}
 	}
+
 	sendBuf[sendLen++] = 0x00;//没有时间标签
 
 	FrameTail(sendBuf,sendLen,hcsi);

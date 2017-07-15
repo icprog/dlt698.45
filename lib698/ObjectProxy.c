@@ -247,10 +247,10 @@ int Proxy_DoRequestList(INT8U *data,CSINFO *csinfo,INT8U *sendbuf,INT8U piid,INT
 		getlist.proxy_obj.doTsaList[i].num = num;
 		for(j=0; j<num; j++)
 		{
-			getOAD(0,&data[iindex],&oadtmp,NULL);
+			iindex += getOAD(0,&data[iindex],&oadtmp,NULL);
 			memcpy(&getlist.proxy_obj.doTsaList[i].setobjs[j],&oadtmp,sizeof(oadtmp));
-			iindex = iindex + 4;
-			iindex += get_Data(&data[iindex],getlist.proxy_obj.doTsaList[i].setobjs[j].data);
+			getlist.proxy_obj.doTsaList[i].setobjs[j].len = get_Data(&data[iindex],getlist.proxy_obj.doTsaList[i].setobjs[j].data);
+			iindex += getlist.proxy_obj.doTsaList[i].setobjs[j].len;
 		}
 	}
 	ret= mqs_send((INT8S *)PROXY_485_MQ_NAME,1,type,(INT8U *)&getlist,sizeof(PROXY_GETLIST));
