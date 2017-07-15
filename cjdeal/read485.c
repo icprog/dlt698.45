@@ -2319,7 +2319,13 @@ INT16U dealProxy_SET_ACTION_698(INT8U type,ACTION_SET_OBJ setactionOBJ,INT8U* da
 		recvLen = ReceDataFrom485(DLT_698,port485, 1000, recvbuff);
 		if(recvLen > 0)
 		{
-			fprintf(stderr,"\n收到回复\n");
+			INT8U csdNum = 0;
+			INT16S dataLen = recvLen;
+			INT8U apduDataStartIndex = 0;
+			INT8U getResponseType = analyzeProtocol698(recvbuff,&csdNum,recvLen,&apduDataStartIndex,&dataLen);
+			fprintf(stderr,"\n dealProxy_SET_ACTION_698 getResponseType = %d  csdNum = %d dataLen = %d \n",getResponseType,csdNum,dataLen);
+			memcpy(dataContent,&recvbuff[apduDataStartIndex],dataLen);
+			retdataLen = dataLen;
 			break;
 		}
 		subindex++;
@@ -2719,7 +2725,7 @@ INT8S dealProxyType3(PROXY_GETLIST *getlist,INT8U port485)
 				singleLen = dealProxy_SET_ACTION_698(SET_REQUEST,getlist->proxy_obj.doTsaList[mpindex],tmpbuf,portUse);
 		}
 		pthread_mutex_lock(&mutex);
-#if 0
+
 		fprintf(stderr,"\nTSA 返回长度 singleLen=%d\n",singleLen);
 		dataindex= getlist->datalen;
 		addrlen = getlist->proxy_obj.doTsaList[mpindex].tsa.addr[0]+1;
@@ -2731,18 +2737,26 @@ INT8S dealProxyType3(PROXY_GETLIST *getlist,INT8U port485)
 
 		if(singleLen > 0)
 		{
-			getlist->proxy_obj.doTsaList[mpindex].dar = proxy_success;
+			fprintf(stderr,"\n $$$$$$$$$$$$$填充数据11111");
+			for(prtIndex = 0;prtIndex<singleLen;prtIndex++)
+			{
+				fprintf(stderr,"%02x ",tmpbuf[prtIndex]);
+			}
 			memcpy(&getlist->data[dataindex],tmpbuf,singleLen);
 			dataindex += singleLen;
 			getlist->datalen += dataindex;
-			fprintf(stderr,"\n\n@@@@@@@@@@@@@@@@@@@@@@@index=%d,dar=%d,datalen=%d\n",mpindex,getlist->proxy_obj.doTsaList[mpindex].dar,getlist->datalen);
+		}
+		fprintf(stderr,"\n$$$$$$$$$$$$$填充数据11111");
+		for(prtIndex = 0;prtIndex<getlist->datalen;prtIndex++)
+		{
+			fprintf(stderr,"%02x ",getlist->data[prtIndex]);
 		}
 //		else	//TODO：？？？没有数据放在最后统一处理
 //		{
 //			getlist->data[dataindex++] = 0;
 //			getlist->datalen += dataindex;
 //		}
-#endif
+
 		pthread_mutex_unlock(&mutex);
 	}
 

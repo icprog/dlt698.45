@@ -1497,6 +1497,24 @@ INT8U analyzeProtocol698(INT8U* Rcvbuf,INT8U* resultCount,INT16S recvLen,INT8U* 
 			}
 #endif
 		}
+		else if(apdu[0] == SET_RESPONSE)
+		{
+			getType = apdu[1];
+			if(getType == SET_REQUEST_NORMAL)
+			{
+				*resultCount = 1;
+				startIndex += 3;
+				*dataLen = *dataLen - (3+3);
+				*apduDataStartIndex = startIndex;
+			}
+			if(getType == GET_REQUEST_NORMAL_LIST)
+			{
+				*resultCount = apdu[3];
+				startIndex += 4;
+				*dataLen = *dataLen - (4+3);
+			}
+
+		}
 		else
 		{
 			fprintf(stderr,"\nanalyzeProtocol698 校验错误");
