@@ -539,7 +539,7 @@ INT8U init6013ListFrom6012File() {
 					}
 				}
 #if 1
-				if(timeCmp < 2)
+				if((timeCmp < 2)&&(list6013[total_tasknum].basicInfo.interval.units<= day_units))
 				{
 					list6013[total_tasknum].ts_next  = tmtotime_t(ts_now);
 				}
@@ -794,6 +794,7 @@ void timeProcess()
 				memset(infoReplenish.unitReplenish[taskIndex].isSuccess,0,2*MAX_METER_NUM_1_PORT);
 			}
 			filewrite(REPLENISHFILEPATH,&infoReplenish,sizeof(Replenish_TaskInfo));
+			printinfoReplenish(2);
 			createFakeTaskFileHead();
 		}
 	}
@@ -1194,7 +1195,12 @@ void replenish_tmp()
 					}
 				}
 			}
-			isReplenishOver[tmpIndex] = 0;
+			INT8U tmpIndex1 = 0;
+			for(tmpIndex1 = 0;tmpIndex1 < tmpIndex;tmpIndex1++)
+			{
+				isReplenishOver[tmpIndex1] = 0;
+			}
+
 		}
 	}
 }
@@ -1397,9 +1403,11 @@ void dispatch_thread()
 }
 void printinfoReplenish(INT8U flag)
 {
+	if(flag == 2)
+	DbgPrintToFile1(3,"\n跨天清理后还需要补抄任务数量 = %d－－－－－－－－－－\n",infoReplenish.tasknum);
 	if(flag == 1)
 	DbgPrintToFile1(3,"\n从文件中读取需要补抄任务数量 = %d－－－－－－－－－－\n",infoReplenish.tasknum);
-	else
+	if(flag == 0)
 	DbgPrintToFile1(3,"\n抄读冻结完后还需要补抄任务数量 = %d－－－－－－－－－－\n",infoReplenish.tasknum);
 	INT8U prtIndex = 0;
 	for(prtIndex = 0;prtIndex < infoReplenish.tasknum;prtIndex++)
