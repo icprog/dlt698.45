@@ -2882,11 +2882,9 @@ INT8S dealProxy(PROXY_GETLIST *getlist,INT8U port485)
 		break;
 	case ProxySetRequestList:
 	case ProxyActionRequestList:
-		result = dealProxyType3(getlist,port485);		//new
-		break;
 	case ProxySetThenGetRequestList:
 	case ProxyActionThenGetRequestList:
-		result = dealProxyType4(getlist,port485);		//new
+		result = dealProxyType3(getlist,port485);		//new
 		break;
 	}
 	return result;
