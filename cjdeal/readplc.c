@@ -1912,10 +1912,10 @@ INT8U doClientProxyRequest(RUNTIME_PLC *runtime_p, int* beginwork, int* step_cj)
 	INT8U addrtmp[10] = {0};//645报文中的目标地址
 	INT8U proto = 0;
 	time_t nowtime = time(NULL);
+	INT16U timeout = 20;
 
-	if(!proxyInUse.devUse.plcNeed)
-		return 0;
-	DEBUG_TIME_LINE("");
+	//TODO: 将状态机置于switch外层才符合逻辑, 否则外部的变量对状态机影响太大
+
 	switch(cjcommProxy_plc.strProxyList.proxytype) {
 	case ProxyGetRequestList:
 		break;
@@ -1930,12 +1930,16 @@ INT8U doClientProxyRequest(RUNTIME_PLC *runtime_p, int* beginwork, int* step_cj)
 	case ProxyActionThenGetRequestList:
 		break;
 	case ProxyTransCommandRequest:
-		DEBUG_TIME_LINE("");
+		timeout = (cjcommProxy_plc.strProxyList.transcmd.revtimeout > 0) ?  \
+										cjcommProxy_plc.strProxyList.transcmd.revtimeout : 20;
+
+		DEBUG_TIME_LINE("cjcommProxy_plc.strProxyList.transcmd.revtimeout: %d; timeout: %d",\
+						 cjcommProxy_plc.strProxyList.transcmd.revtimeout, timeout);
+
 		if (*beginwork==0 && cjcommProxy_plc.isInUse==1) {//发送点抄
 			*beginwork = 1;
 			clearvar(runtime_p);
 
-			debugToPlcFile(FILE_LINE, "发送代理报文");
 			getTransCmdAddrProto(cjcommProxy_plc.strProxyList.transcmd.cmdbuf, addrtmp, &proto);
 			memcpy(runtime_p->format_Down.addr.SourceAddr, runtime_p->masteraddr, 6);
 
@@ -1987,22 +1991,29 @@ INT8U doClientProxyRequest(RUNTIME_PLC *runtime_p, int* beginwork, int* step_cj)
 
 			memset(&runtime_p->format_Up, 0, sizeof(runtime_p->format_Up));
 			proxyInUse.devUse.plcReady = 1;
-			clearvar(runtime_p);
 			DbgPrintToFile1(31,"收到点抄数据");
-			DEBUG_TIME_LINE("");
-		} else if ((nowtime - runtime_p->send_start_time > 20  ) && *beginwork==1) {
+		} else if (((nowtime - runtime_p->send_start_time) > timeout) \
+				&& *beginwork==1) {//代理超时后, 放弃本次操作, 上报超时应答
+
 			DbgPrintToFile1(31,"单次点抄超时");
 			cjcommProxy_plc.isInUse = 0;
-			*beginwork = 0;
+
+			OADtoBuff(cjcommProxy_plc.strProxyList.transcmd.oad,cjcommProxy_plc.strProxyList.data);
+			cjcommProxy_plc.strProxyList.data[4] = 0;
+			cjcommProxy_plc.strProxyList.datalen = 5;
+			mqs_send((INT8S *)PROXY_NET_MQ_NAME,1,\
+					ProxySetResponseList,\
+					(INT8U *)&cjcommProxy_plc.strProxyList,\
+					sizeof(PROXY_GETLIST));
+
 			proxyInUse.devUse.plcReady = 1;
 			clearvar(runtime_p);
 			DEBUG_TIME_LINE("");
-		} else if( nowtime - runtime_p->send_start_time > 100  ) {//100秒等待
+		} else if( nowtime - runtime_p->send_start_time > 100  ) {//最后一次代理操作后100秒, 才恢复抄读
 			DbgPrintToFile1(31,"100秒超时");
 			clearvar(runtime_p);
 			*beginwork = 0;
 			*step_cj = 3;
-			proxyInUse.devUse.plcReady = 1;
 			clearvar(runtime_p);
 			DEBUG_TIME_LINE("");
 		}
@@ -2093,7 +2104,7 @@ int doProxy(RUNTIME_PLC *runtime_p)
 		case 2://处理主站代理
 			doClientProxyRequest(runtime_p, &beginwork, &step_cj);
 			break;
-		case 3:
+		case 3://恢复抄表
 			if (runtime_p->state_bak == TASK_PROCESS )
 			{
 				if ( nowtime - runtime_p->send_start_time > 20)

@@ -2856,45 +2856,45 @@ int fillTsaNullData(INT8U *databuf,TSA tsa,ROAD_ITEM item_road)
 			pindex += (tsa.addr[0]+1);
 		}else {
 			if((item_road.oad[i].oad_m.OI == 0x0000) || (item_road.oad[i].oad_num != 0)) {
-				if(getZone("HuNan")==0)
-				{
-					DEBUG_TIME_LINE("");
-					fprintf(stderr,"\n地区：湖南\n");
-					OI_INFO oi_info;
-					GetOIinfo(item_road.oad[i].oad_r.OI,4,&oi_info);
-					fprintf(stderr,"oi = %04x,oi_info.io_unit=%d,oi_info.oinum=%d,item_road.oad[i].oad_r.attrindex=%d",
-							item_road.oad[i].oad_r.OI,oi_info.io_unit,oi_info.oinum,item_road.oad[i].oad_r.attrindex);
-					if(oi_info.oinum != 0 && item_road.oad[i].oad_r.attrindex == 0)
-					{
-						switch(oi_info.io_unit)
-						{
-						case 1://array
-							databuf[pindex++] = 1;
-							databuf[pindex++] = oi_info.oinum;
-							memset(&databuf[pindex],0x00,oi_info.oinum);
-							pindex += oi_info.oinum;
-							break;
-						case 2://struct
-							databuf[pindex++] = 2;
-							databuf[pindex++] = oi_info.oinum;
-							memset(&databuf[pindex],0x00,oi_info.oinum);
-							pindex += oi_info.oinum;
-							break;
-						default:
-							databuf[pindex++] = 0;
-							break;
-						}
-					}
-					else {
-						databuf[pindex++] = 0;
-						DEBUG_TIME_LINE("");
-					}
-					DEBUG_TIME_LINE("");
-				}
-				else {
+//				if(getZone("HuNan")==0)
+//				{
+//					DEBUG_TIME_LINE("");
+//					fprintf(stderr,"\n地区：湖南\n");
+//					OI_INFO oi_info;
+//					GetOIinfo(item_road.oad[i].oad_r.OI,4,&oi_info);
+//					fprintf(stderr,"oi = %04x,oi_info.io_unit=%d,oi_info.oinum=%d,item_road.oad[i].oad_r.attrindex=%d",
+//							item_road.oad[i].oad_r.OI,oi_info.io_unit,oi_info.oinum,item_road.oad[i].oad_r.attrindex);
+//					if(oi_info.oinum != 0 && item_road.oad[i].oad_r.attrindex == 0)
+//					{
+//						switch(oi_info.io_unit)
+//						{
+//						case 1://array
+//							databuf[pindex++] = 1;
+//							databuf[pindex++] = oi_info.oinum;
+//							memset(&databuf[pindex],0x00,oi_info.oinum);
+//							pindex += oi_info.oinum;
+//							break;
+//						case 2://struct
+//							databuf[pindex++] = 2;
+//							databuf[pindex++] = oi_info.oinum;
+//							memset(&databuf[pindex],0x00,oi_info.oinum);
+//							pindex += oi_info.oinum;
+//							break;
+//						default:
+//							databuf[pindex++] = 0;
+//							break;
+//						}
+//					}
+//					else {
+//						databuf[pindex++] = 0;
+//						DEBUG_TIME_LINE("");
+//					}
+//					DEBUG_TIME_LINE("");
+//				}
+//				else {
 					databuf[pindex++] = 0;
 					DEBUG_TIME_LINE("");
-				}
+//				}
 				fprintf(stderr,"\npindex = %d\n",pindex);
 			}
 		}
