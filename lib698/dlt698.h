@@ -34,6 +34,7 @@ extern INT16S composeSecurityResponse(INT8U* SendApdu,INT16U Length);
 /*----------------------抄表相关*************************/
 extern INT16S composeProtocol698_GetRequest(INT8U*, CLASS_6015, TSA);
 extern INT16S composeProtocol698_SetRequest(INT8U* ,RESULT_NORMAL,TSA);
+extern INT16S composeProtocol698_SetActionRequest(INT8U* sendBuf,INT8U type,ACTION_SET_OBJ setOBJ);
 extern TS mylookback(time_t times,TI ti,INT8U n);
 extern time_t calcnexttime(TI ti, DateTimeBCD datetime,TI ti_delay);
 // OAD转换为报文

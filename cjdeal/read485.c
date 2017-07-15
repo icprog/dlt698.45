@@ -2289,9 +2289,40 @@ INT16S deal698RequestResponse(INT8U isProxyResponse,INT8U getResponseType,INT8U 
 
 	return dataContentIndex;
 }
-INT16U dealProxy_Record_698(CLASS_6001 obj6001,GETOBJS obj07,INT8U* dataContent,INT8U port485)
+INT16U dealProxy_Record_698(CLASS_6001 obj6001,INT8U* dataContent,INT8U port485)
 {
 	return 0;
+}
+INT16U dealProxy_SET_ACTION_698(INT8U type,ACTION_SET_OBJ setactionOBJ,INT8U* dataContent,INT8U port485)
+{
+	INT16U retdataLen = 0;
+	INT16S sendLen = 0;
+	INT16S recvLen = 0;
+	INT8U sendbuff[BUFFSIZE128];
+	INT8U recvbuff[BUFFSIZE256];
+
+	memset(sendbuff, 0, BUFFSIZE128);
+	memset(recvbuff, 0, BUFFSIZE256);
+	sendLen = composeProtocol698_SetActionRequest(sendbuff,type,setactionOBJ);
+	if(sendLen < 0)
+	{
+		fprintf(stderr,"deal6015_698  sendLen < 0");
+		return retdataLen;
+	}
+
+	INT8U subindex = 0;
+	while(subindex < MAX_RETRY_NUM)
+	{
+		memset(recvbuff, 0, BUFFSIZE256);
+		SendDataTo485(port485, sendbuff, sendLen);
+
+		recvLen = ReceDataFrom485(DLT_698,port485, 1000, recvbuff);
+		if(recvLen > 0)
+		{
+			fprintf(stderr,"\n收到回复\n");
+		}
+	}
+	return retdataLen;
 }
 INT16U dealProxy_698(CLASS_6001 obj6001,GETOBJS obj07,INT8U* dataContent,INT8U port485)
 {
@@ -2629,6 +2660,86 @@ INT8S dealProxyType7(PROXY_GETLIST *getlist,INT8U port485)
 }
 INT8S dealProxyType3(PROXY_GETLIST *getlist,INT8U port485)
 {
+
+	INT8U addrlen=0;
+	int dataindex=0;
+	INT8S result = -1;
+	INT8U mpindex = 0;
+	INT16U singleLen = 0;
+	INT8U tmpbuf[256]={};
+	CLASS_6001 obj6001 = {};
+	fprintf(stderr,"\n\n\n -------------------port485 = %d dealProxyType3 代理对象(TSA)数量 objs num = %d :",port485,getlist->num);
+
+	INT8U prtIndex = 0,prtIndex1 = 0;
+	for(mpindex = 0;mpindex < getlist->num;mpindex++)
+	{
+		fprintf(stderr,"\n#####mpindex=%d,tsa=",mpindex);
+
+		for(prtIndex = 0;prtIndex < 8;prtIndex++)
+		{
+			fprintf(stderr,"%02x ",getlist->proxy_obj.doTsaList[mpindex].tsa.addr[0]);
+		}
+		for(prtIndex = 0;prtIndex < getlist->proxy_obj.doTsaList[mpindex].num;prtIndex++)
+		{
+			fprintf(stderr,"\n\n SETOAD[%d] ",prtIndex);
+			fprintf(stderr,"OAD = %04x%02x%02x",
+					getlist->proxy_obj.doTsaList[mpindex].setobjs[prtIndex].oad.OI,
+					getlist->proxy_obj.doTsaList[mpindex].setobjs[prtIndex].oad.attflg,
+					getlist->proxy_obj.doTsaList[mpindex].setobjs[prtIndex].oad.attrindex);
+			fprintf(stderr,"datatype = %02x ",getlist->proxy_obj.doTsaList[mpindex].setobjs[prtIndex].datatype);
+			fprintf(stderr,"\n data[%d] = ",getlist->proxy_obj.doTsaList[mpindex].setobjs[prtIndex].len);
+			for(prtIndex1 = 0;prtIndex1 < getlist->proxy_obj.doTsaList[mpindex].setobjs[prtIndex].len;prtIndex1++)
+			{
+				fprintf(stderr,"%02x ",getlist->proxy_obj.doTsaList[mpindex].setobjs[prtIndex].data[prtIndex1]);
+			}
+		}
+		if (proxyInUse.devUse.rs485Need == 0)
+			break;
+		if( get6001ObjByTSA(getlist->proxy_obj.objs[mpindex].tsa,&obj6001) != 1 ||
+		    obj6001.basicinfo.port.attrindex != port485 ||
+		    getComfdBy6001(obj6001.basicinfo.baud,obj6001.basicinfo.port.attrindex) != 1)
+		{
+			continue;
+		}
+		fprintf(stderr,"\nRS485-%d 合法检查通过！ obj-%d ",port485,mpindex);
+		INT8U portUse = obj6001.basicinfo.port.attrindex;
+		switch(obj6001.basicinfo.protocol)
+		{
+			case DLT_645_07:
+				//singleLen = dealProxy_645_07(getlist->proxy_obj.objs[index],tmpbuf,portUse,getlist->proxy_obj.objs[index].onetimeout);
+				break;
+			default:
+				singleLen = dealProxy_SET_ACTION_698(0,getlist->proxy_obj.doTsaList[mpindex],tmpbuf,portUse);
+		}
+		pthread_mutex_lock(&mutex);
+		fprintf(stderr,"\nTSA 返回长度 singleLen=%d\n",singleLen);
+		dataindex= getlist->datalen;
+		addrlen = getlist->proxy_obj.objs[mpindex].tsa.addr[0]+1;
+		fprintf(stderr,"\nTSA addr长度 addrlen=%d\n",addrlen);
+		memcpy(&getlist->data[dataindex],&getlist->proxy_obj.objs[mpindex].tsa.addr[0],addrlen);
+		dataindex += addrlen;
+		getlist->data[dataindex++] = getlist->proxy_obj.objs[mpindex].num;
+		fprintf(stderr,"\nTSA buf 指针 dataindex=%d\n",dataindex);
+
+		if(singleLen > 0)
+		{
+			getlist->proxy_obj.objs[mpindex].dar = proxy_success;
+			memcpy(&getlist->data[dataindex],tmpbuf,singleLen);
+			dataindex += singleLen;
+			getlist->datalen += dataindex;
+			fprintf(stderr,"\n\n@@@@@@@@@@@@@@@@@@@@@@@index=%d,dar=%d,datalen=%d\n",mpindex,getlist->proxy_obj.objs[mpindex].dar,getlist->datalen);
+		}
+//		else	//TODO：？？？没有数据放在最后统一处理
+//		{
+//			getlist->data[dataindex++] = 0;
+//			getlist->datalen += dataindex;
+//		}
+		pthread_mutex_unlock(&mutex);
+	}
+
+	set_port_active(port485,0);
+	return result;
+
 	return 0;
 }
 INT8S dealProxyType4(PROXY_GETLIST *getlist,INT8U port485)
@@ -2991,16 +3102,19 @@ INT8S sendSetTimeCMD698(TSA meterAddr,INT8U port485,INT8U isbroadCast)
 	INT16S RecvLen = 0;
 	fprintf(stderr,"\n 下发对时报文");
 	//下发对时
-	RESULT_NORMAL setData={};
-	setData.oad.OI = 0x4000;
-	setData.oad.attflg = 0x02;
-	setData.oad.attrindex = 0x00;
+	ACTION_SET_OBJ setOBJ;
+	memcpy(&setOBJ.tsa,&meterAddr,sizeof(TSA));
+	setOBJ.num = 1;
+	setOBJ.setobjs[0].oad.OI = 0x4000;
+	setOBJ.setobjs[0].oad.attflg = 0x02;
+	setOBJ.setobjs[0].oad.attrindex = 0x00;
 	DateTimeBCD nowtime;
 	DataTimeGet(&nowtime);
 
 	INT8U timeData[8];
-	setData.datalen = fill_date_time_s(timeData,&nowtime);
-	setData.data = timeData;
+	setOBJ.setobjs[0].len = fill_date_time_s(timeData,&nowtime);
+
+	memcpy(setOBJ.setobjs[0].data,timeData,8);
 	if(isbroadCast)
 	{
 		INT8U length = (meterAddr.addr[1]&0x0f) + 1;//sizeof(addr)-1;//服务器地址长度
@@ -3008,7 +3122,7 @@ INT8S sendSetTimeCMD698(TSA meterAddr,INT8U port485,INT8U isbroadCast)
 		meterAddr.addr[1] = meterAddr.addr[1] | 0xc0;//广播地址
 	}
 
-	sendLen = composeProtocol698_SetRequest(sendBuf,setData,meterAddr);
+	sendLen = composeProtocol698_SetActionRequest(sendBuf,0,setOBJ);
 	fprintf(stderr,"sendSetTimeCMD sendLen698 = %d",sendLen);
 	DbPrt1(port485,"698 下发对时报文:", (char *) sendBuf, sendLen, NULL);
 	subindex = 0;
