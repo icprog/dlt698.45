@@ -2832,9 +2832,9 @@ INT8S dealProxyType3(PROXY_GETLIST *getlist,INT8U port485)
 			getlist->datalen += dataindex;
 		}else {
 			getlist->proxy_obj.doTsaList[mpindex].dar = request_overtime;
-			getlist->data[0] = 0;
-			getlist->data[1] = request_overtime;//DAR
-			getlist->datalen = 2;
+//			getlist->data[0] = 0;
+//			getlist->data[1] = request_overtime;//DAR
+//			getlist->datalen = 2;
 			fprintf(stderr,"\nProxySetRequestList overtime.....getlist->datalen=%d\n",getlist->datalen);
 		}
 		fprintf(stderr,"\n$$$$$$$$$$$$$填充数据11111");
