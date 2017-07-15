@@ -30,7 +30,8 @@ extern int FrameTimeTag(TimeTag *tag,INT8U *buf);
 extern INT8S (*pSendfun)(int fd, INT8U *sndbuf, INT16U sndlen);
 extern void Get698_event(OAD oad, ProgramInfo *prginfo_event);
 extern INT16S composeSecurityResponse(INT8U* SendApdu,INT16U Length);
-
+extern int CheckHead(unsigned char* buf ,CSINFO *csinfo);
+extern int CheckTail(unsigned char * buf,INT16U length);
 /*----------------------抄表相关*************************/
 extern INT16S composeProtocol698_GetRequest(INT8U*, CLASS_6015, TSA);
 extern INT16S composeProtocol698_SetRequest(INT8U* ,RESULT_NORMAL,TSA);

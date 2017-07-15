@@ -299,7 +299,7 @@ int CheckHead(unsigned char* buf ,CSINFO *csinfo)
 		csinfo->gframeflg	= ctl.ctl.divS;
 		csinfo->sa_type		= (buf[4]& 0xc0) >> 6;	/*0:单地址   1：通配地址   2：组地址   3：广播地址*/
 		memcpy(csinfo->sa, &buf[5], sa_length);		/*服务器地址*/
-		csinfo->ca			= buf[5+ sa_length]; 			/*客户机地址*/
+		csinfo->ca			= buf[5+ sa_length]; 	/*客户机地址*/
 		csinfo->sa_length	= sa_length;
 		fprintf(stderr,"\n地址类型 %d",csinfo->sa_type);
 		return 1;
@@ -315,6 +315,7 @@ int CheckTail(unsigned char * buf,INT16U length)
 	INT16U cs16=0;
 	INT16U fcs16=0;
 
+	if(length<2) return 0;
 	if( buf[0]==0x68 ) {
 		cs16 = tryfcs16(&buf[1], length-2);
 		memcpy(&fcs16, &buf[length - 1], 2);
@@ -820,14 +821,22 @@ int doGetAttribute(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
 
 int doProxyRequest(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
 {
-	PIID piid={};
+//	PIID piid={};
 	INT8U getType = apdu[1];
 	INT8U *data=NULL;
 
+	fprintf(stderr,"doProxyRequest....getType=%d\n",getType);
+	for(int i=0;i<8;i++) {
+		fprintf(stderr,"%02x ",apdu[i]);
+	}
+	getType = apdu[1];
+	fprintf(stderr,"apdu[2]=%02x\n",apdu[2]);
 	piid_g.data = apdu[2];
+	fprintf(stderr,"\n代理 PIID %02x   ",piid_g.data);
 	data = &apdu[3];
-	fprintf(stderr,"\n代理 PIID %02x   ",piid.data);
-
+	for(int i=0;i<8;i++) {
+		fprintf(stderr,"%02x ",apdu[i]);
+	}
 	switch(getType)
 	{
 		case ProxyGetRequestList:

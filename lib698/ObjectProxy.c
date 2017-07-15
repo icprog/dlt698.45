@@ -225,18 +225,18 @@ int Proxy_DoRequestList(INT8U *data,CSINFO *csinfo,INT8U *sendbuf,INT8U piid,INT
 	OAD oadtmp;
 	INT8S	ret=0;
 	int iindex=0;
-	timeout = data[0] ;
-	timeout = timeout <<8 | data[1];
 
+	timeout = data[iindex] ;
+	timeout = (timeout <<8) | data[iindex+1];
+	iindex = iindex + 2;
 	getlist.timeout = timeout;
 	getlist.piid = piid;
 	getlist.proxytype = type;
 	getlist.num = data[iindex++];// sequence of 代理
-	fprintf(stderr,"\n---%d",getlist.num);
 	for(i=0;i<getlist.num;i++)//TSA 个数
 	{
 		num = data[iindex];
-		if (num>sizeof(getlist.proxy_obj.doTsaList[i].tsa))
+		if (num > sizeof(getlist.proxy_obj.doTsaList[i].tsa))
 			num = sizeof(getlist.proxy_obj.doTsaList[i].tsa);
 		memcpy(&getlist.proxy_obj.doTsaList[i].tsa,&data[iindex],num+1);
 		iindex = iindex + num +1;
