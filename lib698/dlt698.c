@@ -1582,7 +1582,6 @@ INT8U analyzeProtocol698(INT8U* Rcvbuf,INT8U* resultCount,INT16S recvLen,INT8U* 
 				*resultCount = 1;
 				startIndex += 3;
 				*dataLen = *dataLen - (3+3);
-				*apduDataStartIndex = startIndex;
 			}
 			if(getType == SET_REQUEST_NORMAL_LIST)
 			{
@@ -1596,16 +1595,17 @@ INT8U analyzeProtocol698(INT8U* Rcvbuf,INT8U* resultCount,INT16S recvLen,INT8U* 
 				startIndex += 4;
 				*dataLen = *dataLen - (4+3);
 			}
+			*apduDataStartIndex = startIndex;
 		}
 		else if(apdu[0] == ACTION_RESPONSE)
 		{
+			fprintf(stderr,"\n&&&&&&&&&&&apdu[0] = %d apdu[1] = %d",apdu[0],apdu[1]);
 			getType = apdu[1];
 			if(getType == ActionResponseNormal)
 			{
 				*resultCount = 1;
 				startIndex += 3;
 				*dataLen = *dataLen - (3+3);
-				*apduDataStartIndex = startIndex;
 			}
 			if(getType == ActionResponseNormalList)
 			{
@@ -1619,6 +1619,7 @@ INT8U analyzeProtocol698(INT8U* Rcvbuf,INT8U* resultCount,INT16S recvLen,INT8U* 
 				startIndex += 4;
 				*dataLen = *dataLen - (4+3);
 			}
+			*apduDataStartIndex = startIndex;
 		}
 		else
 		{
