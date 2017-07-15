@@ -2325,7 +2325,7 @@ INT16U dealProxy_SET_ACTION_698(INT8U type,ACTION_SET_OBJ setOBJ,INT8U* dataCont
 			INT8U getResponseType = analyzeProtocol698(recvbuff,&csdNum,recvLen,&apduDataStartIndex,&dataLen);
 			fprintf(stderr,"\n dealProxy_SET_ACTION_698 getResponseType = %d  csdNum = %d dataLen = %d \n",getResponseType,csdNum,dataLen);
 			memcpy(dataContent,&recvbuff[apduDataStartIndex],dataLen);
-			retdataLen = dataLen;
+			retdataLen = dataLen-2;
 			break;
 		}
 		subindex++;
@@ -2882,11 +2882,9 @@ INT8S dealProxy(PROXY_GETLIST *getlist,INT8U port485)
 		break;
 	case ProxySetRequestList:
 	case ProxyActionRequestList:
-		result = dealProxyType3(getlist,port485);		//new
-		break;
 	case ProxySetThenGetRequestList:
 	case ProxyActionThenGetRequestList:
-		result = dealProxyType4(getlist,port485);		//new
+		result = dealProxyType3(getlist,port485);		//new
 		break;
 	}
 	return result;
