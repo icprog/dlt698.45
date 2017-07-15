@@ -253,6 +253,9 @@ int Proxy_DoRequestList(INT8U *data,CSINFO *csinfo,INT8U *sendbuf,INT8U piid,INT
 			iindex += getlist.proxy_obj.doTsaList[i].setobjs[j].len;
 		}
 	}
+	getlist.timeold = time(NULL);
+	memcpy(&getlist.csinfo,csinfo,sizeof(CSINFO));
+
 	ret= mqs_send((INT8S *)PROXY_485_MQ_NAME,1,type,(INT8U *)&getlist,sizeof(PROXY_GETLIST));
 	fprintf(stderr,"\n代理消息已经发出,ret=%d\n\n",ret);
 	return 1;

@@ -623,12 +623,14 @@ typedef struct{
 	INT8U data[50];
 }SETOBJ;
 typedef struct{
+	INT8U	dar;		//数据状态值
 	TSA tsa;
 	INT16U num;
 	INT16U timeout;
 	SETATTRIB setoads[5];
 }DO_Then_GET;
 typedef struct{
+	INT8U	dar;		//数据状态值
 	TSA tsa;
 	INT16U num;
 	INT16U timeout;

@@ -2325,7 +2325,7 @@ INT16U dealProxy_SET_ACTION_698(INT8U type,ACTION_SET_OBJ setactionOBJ,INT8U* da
 			INT8U getResponseType = analyzeProtocol698(recvbuff,&csdNum,recvLen,&apduDataStartIndex,&dataLen);
 			fprintf(stderr,"\n dealProxy_SET_ACTION_698 getResponseType = %d  csdNum = %d dataLen = %d \n",getResponseType,csdNum,dataLen);
 			memcpy(dataContent,&recvbuff[apduDataStartIndex],dataLen);
-			retdataLen = dataLen;
+			retdataLen = dataLen -2;
 			break;
 		}
 		subindex++;
@@ -2745,6 +2745,12 @@ INT8S dealProxyType3(PROXY_GETLIST *getlist,INT8U port485)
 			memcpy(&getlist->data[dataindex],tmpbuf,singleLen);
 			dataindex += singleLen;
 			getlist->datalen += dataindex;
+		}else {
+			getlist->proxy_obj.doTsaList[mpindex].dar = request_overtime;
+			getlist->data[0] = 0;
+			getlist->data[1] = request_overtime;//DAR
+			getlist->datalen = 2;
+			fprintf(stderr,"\nProxySetRequestList overtime.....getlist->datalen=%d\n",getlist->datalen);
 		}
 		fprintf(stderr,"\n$$$$$$$$$$$$$填充数据11111");
 		for(prtIndex = 0;prtIndex<getlist->datalen;prtIndex++)
@@ -2779,35 +2785,24 @@ INT8S dealProxy(PROXY_GETLIST *getlist,INT8U port485)
 {
 	INT8S result = -1;
 	fprintf(stderr,"\nRS485 代理类型 =%d  datalen=%d",getlist->proxytype,getlist->datalen);
-	if(getlist->proxytype == ProxyGetRequestList)
-	{
+	switch(getlist->proxytype) {
+	case ProxyGetRequestList:
 		result = dealProxyType1(getlist,port485);
-	}
-	if(getlist->proxytype == ProxyTransCommandRequest)
-	{
+		break;
+	case ProxyTransCommandRequest:
 		result = dealProxyType7(getlist,port485);
-	}
-	//----------------------------------------------------
-	if (getlist->proxytype == ProxyGetRequestRecord)
-	{
+		break;
+	case ProxyGetRequestRecord:
 		result = dealProxyType2(getlist,port485);		//new
-	}
-	fprintf(stderr,"\n############getlist->proxytype = %d\n",getlist->proxytype);
-	if (getlist->proxytype == ProxySetRequestList)
-	{
+		break;
+	case ProxySetRequestList:
+	case ProxyActionRequestList:
 		result = dealProxyType3(getlist,port485);		//new
-	}
-	if (getlist->proxytype == ProxyActionRequestList)
-	{
-		result = dealProxyType5(getlist,port485);		//new
-	}
-	if (getlist->proxytype == ProxyActionThenGetRequestList)
-	{
-		result = dealProxyType6(getlist,port485);		//new
-	}
-	if (getlist->proxytype == ProxySetThenGetRequestList)
-	{
+		break;
+	case ProxySetThenGetRequestList:
+	case ProxyActionThenGetRequestList:
 		result = dealProxyType4(getlist,port485);		//new
+		break;
 	}
 	return result;
 }

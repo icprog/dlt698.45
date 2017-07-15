@@ -874,6 +874,31 @@ int proxy_dar_fill(PROXY_GETLIST *dest_list,PROXY_GETLIST get_list)
 			}
 		}
 		break;
+	case ProxySetRequestList:
+		for(i=0; i<dest_list->num; i++) {
+			if(get_list.proxy_obj.doTsaList[i].dar == proxy_success) {
+				dest_list->proxy_obj.doTsaList[i].dar = success;
+			}else if(get_list.proxy_obj.doTsaList[i].dar == request_overtime) {
+				dest_list->proxy_obj.doTsaList[i].dar = request_overtime;
+			}
+			if(dest_list->proxy_obj.doTsaList[i].dar != success) {
+				printTSA(dest_list->proxy_obj.doTsaList[i].tsa);
+				addrlen = dest_list->proxy_obj.doTsaList[i].tsa.addr[0]+1;
+				memcpy(&dest_list->data[index],&dest_list->proxy_obj.doTsaList[i].tsa.addr[0],addrlen);
+				index += addrlen;
+				result_index = index;	//记录SEQUENCE of 对象属性描述符及结果
+				index++;
+				result_num=0;
+				for(j=0;j<dest_list->proxy_obj.doTsaList[i].num;j++) {
+					result_num++;
+					index += create_OAD(0,&dest_list->data[index],dest_list->proxy_obj.doTsaList[i].setobjs[j].oad);
+					dest_list->data[index++] = 0x00;
+					dest_list->data[index++] = dest_list->proxy_obj.doTsaList[i].dar;
+				}
+				dest_list->data[result_index] = result_num; //SEQUENCE of A-ResultNormal
+			}
+		}
+		break;
 	case ProxyTransCommandRequest:
 		if(get_list.proxy_obj.transcmd.dar!=success) {
 			dest_list->data[index++] = 0;		//错误
@@ -1270,15 +1295,17 @@ INT8U dealProxyAnswer()
 //			if(timecount > proxyList_manager.timeout) {		//TODO：超时，发送超时的错误，ProxyTransCommandRequest支持，其他类型是否需要？？？
 			proxy_dar_fill(&proxyList_manager,cjcommProxy.strProxyList);
 //			}
-//			for(i = 0; i < proxyList_manager.datalen;i++)
-//			{
-//				fprintf(stderr,"%02x ",proxyList_manager.data[i]);
-//				if((i+1)%20 ==0)
-//				{
-//					fprintf(stderr,"\n");
-//				}
-//			}
-//			fprintf(stderr,"\n\n\n");
+			fprintf(stderr,"\n代理消息内容.........datalen=%d\n",proxyList_manager.datalen);
+			fprintf(stderr,"proxyList_manager piid=%02x  ca=%02x \n",proxyList_manager.piid,proxyList_manager.csinfo.ca);
+			for(i = 0; i < proxyList_manager.datalen;i++)
+			{
+				fprintf(stderr,"%02x ",proxyList_manager.data[i]);
+				if((i+1)%20 ==0)
+				{
+					fprintf(stderr,"\n");
+				}
+			}
+			fprintf(stderr,"\n\n\n");
 			proxyInUse.devUse.rs485Ready = 1;		//移到上面超时判断
 			pthread_mutex_unlock(&mutex);
 		}
