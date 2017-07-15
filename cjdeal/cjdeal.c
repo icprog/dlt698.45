@@ -889,6 +889,7 @@ int proxy_dar_fill(PROXY_GETLIST *dest_list,PROXY_GETLIST get_list)
 				result_index = index;	//记录SEQUENCE of 对象属性描述符及结果
 				index++;
 				result_num=0;
+				fprintf(stderr,"dest_list->proxy_obj.doTsaList[i].num=%d\n",dest_list->proxy_obj.doTsaList[i].num);
 				for(j=0;j<dest_list->proxy_obj.doTsaList[i].num;j++) {
 					result_num++;
 					index += create_OAD(0,&dest_list->data[index],dest_list->proxy_obj.doTsaList[i].setobjs[j].oad);
@@ -905,6 +906,10 @@ int proxy_dar_fill(PROXY_GETLIST *dest_list,PROXY_GETLIST get_list)
 			dest_list->data[index++] = get_list.proxy_obj.transcmd.dar;//DAR
 		}
 		break;
+	}
+	fprintf(stderr,"datelen=%d,index=%d\n",dest_list->datalen,index);
+	for(j=dest_list->datalen;j<index;j++) {
+		fprintf(stderr,"%02x ",dest_list->data[j]);
 	}
 	dest_list->datalen = index;
 	return index;
