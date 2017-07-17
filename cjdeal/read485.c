@@ -2298,11 +2298,11 @@ INT16U dealProxy_SET_ACTION_698(INT8U type,ACTION_SET_OBJ setOBJ,INT8U* dataCont
 	INT16U retdataLen = 0;
 	INT16S sendLen = 0;
 	INT16S recvLen = 0;
-	INT8U sendbuff[BUFFSIZE128];
-	INT8U recvbuff[BUFFSIZE256];
+	INT8U sendbuff[BUFFSIZE256];
+	INT8U recvbuff[BUFFSIZE2048];
 
-	memset(sendbuff, 0, BUFFSIZE128);
-	memset(recvbuff, 0, BUFFSIZE256);
+	memset(sendbuff, 0, BUFFSIZE256);
+	memset(recvbuff, 0, BUFFSIZE2048);
 	sendLen = composeProtocol698_SetActionRequest(sendbuff,type,setOBJ);
 	if(sendLen < 0)
 	{
@@ -2313,7 +2313,7 @@ INT16U dealProxy_SET_ACTION_698(INT8U type,ACTION_SET_OBJ setOBJ,INT8U* dataCont
 	INT8U subindex = 0;
 	while(subindex < MAX_RETRY_NUM)
 	{
-		memset(recvbuff, 0, BUFFSIZE256);
+		memset(recvbuff, 0, BUFFSIZE2048);
 		SendDataTo485(port485, sendbuff, sendLen);
 
 		recvLen = ReceDataFrom485(DLT_698,port485, 1000, recvbuff);
@@ -2340,8 +2340,8 @@ INT16U dealProxy_SET_ACTION_THEN_GET698(INT8U type,DO_Then_GET DOGETOBJ,INT8U* d
 	INT8U sendbuff[BUFFSIZE128];
 	INT8U recvbuff[BUFFSIZE256];
 
-	memset(sendbuff, 0, BUFFSIZE128);
-	memset(recvbuff, 0, BUFFSIZE256);
+	memset(sendbuff, 0, BUFFSIZE256);
+	memset(recvbuff, 0, BUFFSIZE2048);
 	sendLen = composeProtocol698_SetActionThenGetRequest(sendbuff,type,DOGETOBJ);
 	if(sendLen < 0)
 	{
@@ -2352,7 +2352,7 @@ INT16U dealProxy_SET_ACTION_THEN_GET698(INT8U type,DO_Then_GET DOGETOBJ,INT8U* d
 	INT8U subindex = 0;
 	while(subindex < MAX_RETRY_NUM)
 	{
-		memset(recvbuff, 0, BUFFSIZE256);
+		memset(recvbuff, 0, BUFFSIZE2048);
 		SendDataTo485(port485, sendbuff, sendLen);
 
 		recvLen = ReceDataFrom485(DLT_698,port485, 1000, recvbuff);
