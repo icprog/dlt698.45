@@ -637,7 +637,7 @@ typedef struct{
 	SETOBJ setobjs[5];
 }ACTION_SET_OBJ;
 typedef union {
-	INT8U buf[2048];
+	INT8U buf[1024];
 	GETOBJS objs[10];  				//代理请求列表		ProxyGetRequestList
     GETRECORD record;				//代理请求记录		ProxyGetRequestRecord
     TRANSCMD transcmd;   		 	//代理操作透明转发	ProxyTransCommandRequest
@@ -864,7 +864,7 @@ typedef struct
 	int sucessflg;		//0:没抄读	n:抄读n次
 	OAD oad1;			//非关联 oad1.OI=0
 	OAD oad2;			//数据项
-	INT8U item07[4];	//07规约
+	INT8U item07[4];	//07规约  15753578781
 	DateTimeBCD savetime;//存储时标
 }DATA_ITEM;
 typedef struct
@@ -886,8 +886,9 @@ typedef struct
 	time_t endTime;						//结束时间
 	DateTimeBCD begin;
 	DateTimeBCD end;
-	TI ti;		  //任务执行频率
+	TI ti;		  						//任务执行频率
 	INT8U leve;							//优先级别
+	INT8U tryAgain;						//需要补抄
 	CJ_FANGAN fangan;					//采集方案
 }TASK_UNIT;
 

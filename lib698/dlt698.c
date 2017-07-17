@@ -1419,8 +1419,6 @@ INT16S composeProtocol698_SetActionRequest(INT8U* sendBuf,INT8U type,ACTION_SET_
 
 	FrameTail(sendBuf,sendLen,hcsi);
 	return (sendLen + 3);			//3: cs cs 16
-
-
 }
 INT16S composeProtocol698_GetRequest(INT8U* sendBuf,CLASS_6015 obj6015,TSA meterAddr)
 {
@@ -1477,6 +1475,39 @@ INT16S composeProtocol698_GetRequest(INT8U* sendBuf,CLASS_6015 obj6015,TSA meter
 	FrameTail(sendBuf,sendLen,hcsi);
 	return (sendLen + 3);			//3: cs cs 16
 
+}
+INT16U composeProtocol698_GetRequestRecord(PROXY_GETLIST *getlist,INT8U *sendbuf)
+{
+	INT8U PIID = 0x02;
+	int sendLen = 0, hcsi = 0, datalen = 0, iindex=0;
+	CSINFO csinfo={};
+	INT8U *data = getlist->proxy_obj.buf;
+	INT8U reverseAddr[OCTET_STRING_LEN]= {0};
+	TSA tsa;
+
+	csinfo.dir = 0;		//服务器发出
+	csinfo.prm = 1; 	//服务器发出
+	csinfo.funcode = 3; //链路管理
+	csinfo.sa_type = 0 ;//单地址
+
+	iindex = 0;
+	datalen  = data[iindex];
+	if (datalen>sizeof(TSA))
+		datalen = sizeof(TSA);
+	memcpy(&tsa,&data[iindex],datalen+1);
+	csinfo.sa_length = (tsa.addr[1]&0x0f) + 1;//sizeof(addr)-1;//服务器地址长度
+	reversebuff(&tsa.addr[2],csinfo.sa_length,reverseAddr);
+	sendLen = FrameHead(&csinfo,sendbuf) ; //	2：hcs  hcs
+	hcsi = sendLen;
+	sendLen = sendLen + 2;
+	sendbuf[sendLen++] = GET_REQUEST;
+	sendbuf[sendLen++] = GET_REQUEST_RECORD;
+	sendbuf[sendLen++] = PIID;
+	memcpy(&sendbuf[sendLen],&getlist->proxy_obj.buf[datalen+1],getlist->datalen);
+	sendLen += getlist->datalen;
+	sendbuf[sendLen++] = 0; //没有时间标签
+	FrameTail(sendbuf,sendLen,hcsi);
+	return (sendLen + 3);			//3: cs cs 16
 }
 INT16U getFECount(INT8U* recvBuf, const INT16U recvLen)//得到待解析报文中前导符FE的个数
 {
