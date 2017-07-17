@@ -48,6 +48,7 @@ int appendFile(int shift, int length, unsigned char* buf);
 
 /*规约类型打印
  * */
+extern void printProxyDoThenGet(int tsa_num,DO_Then_GET *doget);
 extern void printDataTimeS(char *pro,DateTimeBCD datetimes);
 extern void printTI(char *pro,TI ti);
 extern void printMS(MY_MS ms);

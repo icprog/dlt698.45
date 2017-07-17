@@ -16,6 +16,27 @@
 
 extern ProgramInfo *memp;
 //////////////////////////////////////////////////////////////////////
+void printProxyDoThenGet(int tsa_num,DO_Then_GET *doget)
+{
+	int i=0,j=0,k=0;
+	fprintf(stderr,".doTsaThenGet seqofTSA=%d\n",tsa_num);
+	for(i=0;i<tsa_num;i++) {
+		fprintf(stderr,"	..timeout=%d\n",doget[i].timeout);
+		fprintf(stderr,"	..seqofTSA=%d\n",doget[i].num);
+		for(j=0;j<doget[i].num;j++) {
+			printTSA(doget[i].tsa);
+			fprintf(stderr,"		...set_oad=%04x_%02x%02x\n",doget[i].setoads[j].oad_set.OI,doget[i].setoads[j].oad_set.attflg,doget[i].setoads[j].oad_set.attrindex);
+			fprintf(stderr,"		...len data=%d\n",doget[i].setoads[j].len);
+			fprintf(stderr,"		");
+			for(k=0;k<doget[i].setoads[j].len;k++) {
+				fprintf(stderr,"%02x ",doget[i].setoads[j].data[k]);
+			}
+			fprintf(stderr,"\n");
+			fprintf(stderr,"...get_oad=%04x_%02x%02x\n",doget[i].setoads[j].oad_get.OI,doget[i].setoads[j].oad_get.attflg,doget[i].setoads[j].oad_get.attrindex);
+			fprintf(stderr,"...delay=%d\n",doget[i].setoads[j].dealy);
+		}
+	}
+}
 
 void printDataTimeS(char *pro,DateTimeBCD datetimes)
 {

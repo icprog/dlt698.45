@@ -843,7 +843,7 @@ int proxy_dar_fill(PROXY_GETLIST *dest_list,PROXY_GETLIST get_list)
 	int	result_index = 0, result_num=0;
 
 	index = dest_list->datalen;
-//	fprintf(stderr,"proxy_dar_fill  proxytype=%d index=%d\n",dest_list->proxytype,index);
+	fprintf(stderr,"proxy_dar_fill  proxytype=%d index=%d\n",dest_list->proxytype,index);
 	switch(dest_list->proxytype) {
 	case ProxyGetRequestList:
 		for(i=0; i<dest_list->num; i++) {
@@ -867,10 +867,6 @@ int proxy_dar_fill(PROXY_GETLIST *dest_list,PROXY_GETLIST get_list)
 					dest_list->data[index++] = dest_list->proxy_obj.objs[i].dar;
 				}
 				dest_list->data[result_index] = result_num; //SEQUENCE of A-ResultNormal
-//				fprintf(stderr,"datelen=%d,index=%d\n",dest_list->datalen,index);
-//				for(j=dest_list->datalen;j<index;j++) {
-//					fprintf(stderr,"%02x ",dest_list->data[j]);
-//				}
 			}
 		}
 		break;
@@ -898,6 +894,44 @@ int proxy_dar_fill(PROXY_GETLIST *dest_list,PROXY_GETLIST get_list)
 					if(dest_list->proxytype == ProxyActionRequestList) {
 						dest_list->data[index++] = 0;		//Data Optional NULL
 					}
+				}
+				dest_list->data[result_index] = result_num; //SEQUENCE of A-ResultNormal
+			}
+		}
+		break;
+	case ProxySetThenGetRequestList:
+	case ProxyActionThenGetRequestList:
+		fprintf(stderr,"dest_list->num=%d\n",dest_list->num);
+		for(i=0; i<dest_list->num; i++) {
+			fprintf(stderr,"dest_list->dar=%d\n",get_list.proxy_obj.doTsaThenGet[i].dar);
+			if(get_list.proxy_obj.doTsaThenGet[i].dar == proxy_success) {
+				dest_list->proxy_obj.doTsaThenGet[i].dar = success;
+			}else if(get_list.proxy_obj.doTsaThenGet[i].dar == request_overtime) {
+				dest_list->proxy_obj.doTsaThenGet[i].dar = request_overtime;
+			}
+			if(dest_list->proxy_obj.doTsaThenGet[i].dar != success) {
+				printTSA(dest_list->proxy_obj.doTsaThenGet[i].tsa);
+				addrlen = dest_list->proxy_obj.doTsaThenGet[i].tsa.addr[0]+1;
+				memcpy(&dest_list->data[index],&dest_list->proxy_obj.doTsaThenGet[i].tsa.addr[0],addrlen);
+				index += addrlen;
+				result_index = index;	//记录SEQUENCE of 对象属性描述符及结果
+				index++;
+				result_num=0;
+				fprintf(stderr,"dest_list->proxy_obj.doTsaThenGet[i].num=%d\n",dest_list->proxy_obj.doTsaThenGet[i].num);
+				for(j=0;j<dest_list->proxy_obj.doTsaThenGet[i].num;j++) {
+					result_num++;
+					//设置的对象属性描述符
+					index += create_OAD(0,&dest_list->data[index],dest_list->proxy_obj.doTsaThenGet[i].setoads[j].oad_set);
+					//及其设置结果
+					dest_list->data[index++] = dest_list->proxy_obj.doTsaThenGet[i].dar;
+					if(dest_list->proxytype == ProxyActionThenGetRequestList) {
+						dest_list->data[index++] = 0; 		//Data OPTIONAL: 数据为NULL
+					}
+					//A-ResultNormal:设置的对象属性描述符
+					index += create_OAD(0,&dest_list->data[index],dest_list->proxy_obj.doTsaThenGet[i].setoads[j].oad_get);
+					//及其设置结果
+					dest_list->data[index++] = 0;	//错误信息【0】 DAR
+					dest_list->data[index++] = dest_list->proxy_obj.doTsaThenGet[i].dar;
 				}
 				dest_list->data[result_index] = result_num; //SEQUENCE of A-ResultNormal
 			}
@@ -1000,10 +1034,13 @@ void  Pre_ProxyDoThenGetRequestList(CJCOMM_PROXY proxy)
 	CLASS_6001 obj6001 = {};
 
 	proxyList_manager.data[dataindex++] = num;
+	fprintf(stderr,"num = %d\n",num);
 	for(i=0;i<num;i++)
 	{
 		if(get6001ObjByTSA(proxy.strProxyList.proxy_obj.doTsaThenGet[i].tsa,&obj6001) != 1 )
 		{//TSA未找到
+			proxyList_manager.proxy_obj.doTsaThenGet[i].dar = other_err1;
+			fprintf(stderr,"==========dar=%d\n",proxyList_manager.proxy_obj.doTsaThenGet[i].dar);
 //			dataindex += proxy_one_fill(proxy.strProxyList.proxy_obj.doTsaThenGet[i], 0, NULL,0x21, &proxyList_manager.data[dataindex]);
 		}else
 		{
@@ -1011,6 +1048,7 @@ void  Pre_ProxyDoThenGetRequestList(CJCOMM_PROXY proxy)
 			{
 				memcpy(&cjcommProxy.strProxyList.proxy_obj.doTsaThenGet[num_485++], &proxy.strProxyList.proxy_obj.doTsaThenGet[i], sizeof(DO_Then_GET));
 				cjcommProxy.strProxyList.num = num_485;
+
 			}else if(obj6001.basicinfo.port.OI==PORT_ZB)
 			{
 				memcpy(&cjcommProxy_plc.strProxyList.proxy_obj.doTsaThenGet[num_zb++], &proxy.strProxyList.proxy_obj.doTsaThenGet[i], sizeof(DO_Then_GET));
@@ -1018,6 +1056,8 @@ void  Pre_ProxyDoThenGetRequestList(CJCOMM_PROXY proxy)
 			}
 		}
 	}
+	fprintf(stderr,"\n&&&&&&&&&&&&&&&&&&&&&&&&&&&");
+	printProxyDoThenGet(cjcommProxy.strProxyList.num,cjcommProxy.strProxyList.proxy_obj.doTsaThenGet);
 	proxyList_manager.datalen = dataindex;
 	fprintf(stderr,"\n代理任务分配");
 	if (num_485 > 0)
@@ -1123,7 +1163,6 @@ void divProxy(CJCOMM_PROXY proxy)
 	memcpy(&proxyList_manager,&proxy.strProxyList,sizeof(PROXY_GETLIST));
 	memset(&proxyList_manager.data,0,sizeof(proxyList_manager.data));
 	proxyList_manager.datalen = 0;
-
 	if (proxyList_manager.timeout == 0)
 		proxyList_manager.timeout = 60;
 	switch(proxy.strProxyList.proxytype)
@@ -1140,6 +1179,7 @@ void divProxy(CJCOMM_PROXY proxy)
 			break;
 		case ProxySetThenGetRequestList:	//SetThenGetRequestList	ActionThenGetRequestList
 		case ProxyActionThenGetRequestList:
+			printProxyDoThenGet(proxyList_manager.num,proxyList_manager.proxy_obj.doTsaThenGet);
 			Pre_ProxyDoThenGetRequestList(proxy);
 		break;
 		case ProxyTransCommandRequest:
@@ -1169,7 +1209,7 @@ INT8S dealMsgProcess()
 			proxyInUse.devUse.proxyIdle = 1;
 			DEBUG_TIME_LINE("\n收到代理召测\n");
 			memcpy(&cjcommProxy_Tmp.strProxyList,rev_485_buf,sizeof(PROXY_GETLIST));
-//			fprintf(stderr,"proxy.strProxyList.num=%d\n",cjcommProxy_Tmp.strProxyList.num);
+			fprintf(stderr,"proxy.strProxyList.num=%d\n",cjcommProxy_Tmp.strProxyList.num);
 			cjcommProxy_Tmp.strProxyList.datalen=0;		//清除代理返回数据
 			memset(&cjcommProxy_Tmp.strProxyList.data,0,sizeof(cjcommProxy_Tmp.strProxyList.data));
 			divProxy(cjcommProxy_Tmp);
@@ -1328,6 +1368,10 @@ INT8U dealProxyAnswer()
 																		//才认为这个设备上的代理操作已完毕.
 																		//当代理所使用的所有设备操作完毕后,
 																		//将代理标记清零, 处理下一个代理操作.
+		//处理非载波及485表的TSA的透传应答帧处理
+		if(proxyInUse.devUse.plcNeed==0 && proxyInUse.devUse.rs485Need==0) {
+			proxy_dar_fill(&proxyList_manager,cjcommProxy.strProxyList);
+		}
 		mqs_send((INT8S *)PROXY_NET_MQ_NAME,1,TERMINALPROXY_RESPONSE,(INT8U *)&proxyList_manager,sizeof(PROXY_GETLIST));
 		fprintf(stderr,"\n全部代理操作完成，发消息 ！！");
 		timecount = 0;

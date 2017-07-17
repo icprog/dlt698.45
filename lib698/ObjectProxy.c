@@ -165,15 +165,17 @@ int getProxyDO_Then_Get_list(INT8U *data,DO_Then_GET *doget)
 	INT8U num=0,oadnum=0,num_tsa=0;
 	INT16U timeout=0;
 	OAD oadtmp;
+	INT8U	dar=success;
 	num_tsa = data[iindex++];// sequence of 代理
-	fprintf(stderr,"\n---%d",num_tsa);
+	fprintf(stderr,"\nseqOf_TSA---%d",num_tsa);
 	for(i=0;i<num_tsa;i++)//TSA 个数
 	{
-		num = data[iindex];
-		if (num>sizeof(doget[i].tsa))
-			num = sizeof(doget[i].tsa);
-		memcpy(&doget[i].tsa,&data[iindex],num+1);
-		iindex = iindex + num +1;
+//		num = data[iindex];
+//		if (num>sizeof(doget[i].tsa))
+//			num = sizeof(doget[i].tsa);
+//		memcpy(&doget[i].tsa,&data[iindex],num+1);
+//		iindex = iindex + num +1;
+		iindex += getOctetstring(0,&data[iindex],(INT8U *)&doget[i].tsa,&dar);
 		timeout = data[iindex];
 		doget[i].timeout = timeout<<8 |data[iindex+1];
 		iindex = iindex + 2;
@@ -181,17 +183,16 @@ int getProxyDO_Then_Get_list(INT8U *data,DO_Then_GET *doget)
 		doget[i].num = oadnum;
 		for(k=0; k<oadnum; k++)
 		{
-			getOAD(0,&data[iindex],&oadtmp,NULL);
+			iindex += getOAD(0,&data[iindex],&oadtmp,NULL);
 			memcpy(&doget[i].setoads[k].oad_set,&oadtmp,sizeof(oadtmp));
-			iindex = iindex + 4;
 			doget[i].setoads[k].len = get_Data(&data[iindex],doget[i].setoads[k].data);
 			iindex += doget[i].setoads[k].len;
-			getOAD(0,&data[iindex],&oadtmp,NULL);
-			memcpy(&doget[i].setoads[k],&oadtmp,sizeof(oadtmp));
-			iindex = iindex + 4;
-			doget[i].setoads[k].dealy = data[iindex];
+			iindex += getOAD(0,&data[iindex],&oadtmp,NULL);
+			memcpy(&doget[i].setoads[k].oad_get,&oadtmp,sizeof(oadtmp));
+			doget[i].setoads[k].dealy = data[iindex++];
 		}
 	}
+	printProxyDoThenGet(num_tsa,doget);
 	return num_tsa;
 }
 

@@ -1328,21 +1328,12 @@ INT16S composeProtocol698_SetActionThenGetRequest(INT8U* sendBuf,INT8U type,DO_T
 	sendBuf[sendLen++] = type;
 
 	sendBuf[sendLen++] = SET_THENGET_REQUEST_NORMAL_LIST;
-	sendBuf[sendLen++] = dogetOBJ.num;
 
 
 	sendBuf[sendLen++] = PIID;
 //	OADtoBuff(setData.oad,&sendBuf[sendLen]);
 //	sendLen += 4;
-	typedef struct{
-		OAD   oad_set;
-		INT8U datatype;
-		INT8U len;
-		INT8U data[50];
-		OAD   oad_get;
-		INT16U dealy;
-	}SETATTRIB ;
-
+	sendBuf[sendLen++] = dogetOBJ.num;
 	for(oadIndex = 0;oadIndex < dogetOBJ.num;oadIndex++)
 	{
 		sendLen += create_OAD(0,&sendBuf[sendLen],dogetOBJ.setoads[oadIndex].oad_set);
