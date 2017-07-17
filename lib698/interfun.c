@@ -322,16 +322,21 @@ int fill_time(INT8U *data,INT8U *value)			//0x1b
 int fill_date_time_s(INT8U *data,DateTimeBCD *time)		//0x1c
 {
 	DateTimeBCD  init_datatimes={};
-
+	int		index=0;
 	memset(&init_datatimes,0xEE,sizeof(DateTimeBCD));
 	if(memcmp(time,&init_datatimes,sizeof(DateTimeBCD))==0) {		//时间无效，上送NULL（0）
-		data[0] = 0;
+		data[index++] = 0;
 		return 1;
 	}else {
-		data[0] = dtdatetimes;
-		time->year.data = time->year.data >>8 | time->year.data<<8;
-		memcpy(&data[1],time,sizeof(DateTimeBCD));
-		return (7+1);
+		data[index++] = dtdatetimes;
+		data[index++] = (time->year.data>>8)&0xff;
+		data[index++] = time->year.data & 0xff;
+		data[index++] = time->month.data;
+		data[index++] = time->day.data;
+		data[index++] = time->hour.data;
+		data[index++] = time->min.data;
+		data[index++] = time->sec.data;
+		return index;
 	}
 }
 

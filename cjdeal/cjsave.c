@@ -405,7 +405,7 @@ int SaveOADData(INT8U taskid,OAD oad_m,OAD oad_r,INT8U *databuf,int datalen,TS t
 		FILE *fp;
 		CSD_ARRAYTYPE csds;
 		char	fname[FILENAMELEN]={};
-		INT8U *databuf_tmp=NULL,eveflg=0, firOIflg=0;
+		INT8U *databuf_tmp=NULL,eveflg=0;
 		int savepos=0, currpos=0, i=0, oadoffset=0, oadlen=0, taskinfoflg=0;
 		INT16U headlen=0,unitlen=0,unitnum=0,unitseq=0,runtime=0;//runtime执行次数
 		TASKSET_INFO tasknor_info;
@@ -515,10 +515,10 @@ int SaveOADData(INT8U taskid,OAD oad_m,OAD oad_r,INT8U *databuf,int datalen,TS t
 				,sizeof(DateTimeBCD),
 				databuf_tmp[18],databuf_tmp[19],databuf_tmp[20],databuf_tmp[21],
 				databuf_tmp[22],databuf_tmp[23],databuf_tmp[24],databuf_tmp[25]);
-		if(memcmp(&databuf_tmp[18],&datetime,sizeof(DateTimeBCD))==0)//开始时间为空
-		{
-			firOIflg = 1;
-		}
+//		if(memcmp(&databuf_tmp[18],&datetime,sizeof(DateTimeBCD))==0)//开始时间为空
+//		{
+//			firOIflg = 1;
+//		}
 		datetime.year.data = ((ts_now.Year&0xff00)>>8) + ((ts_now.Year&0x00ff)<<8);
 		datetime.month.data = ts_now.Month;
 		datetime.day.data = ts_now.Day;
@@ -529,7 +529,7 @@ int SaveOADData(INT8U taskid,OAD oad_m,OAD oad_r,INT8U *databuf,int datalen,TS t
 				,sizeof(DateTimeBCD),
 				datetime.year.data,datetime.month.data,datetime.day.data,datetime.hour.data,
 				datetime.min.data,datetime.sec.data);
-		if(firOIflg == 1)
+		if(databuf_tmp[unitlen*(unitseq-1)/runtime+18] != 0x1c)
 		{
 			databuf_tmp[unitlen*(unitseq-1)/runtime+18] = 0x1c;
 			memcpy(&databuf_tmp[unitlen*(unitseq-1)/runtime+19],&datetime,7);//赋值抄表开始时间

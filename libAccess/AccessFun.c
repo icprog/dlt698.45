@@ -2700,41 +2700,44 @@ int collectData(INT8U *databuf,INT8U *srcbuf,OAD_INDEX *oad_offset,ROAD_ITEM ite
 			else
 			{
 				memcpy(tmpbuf,&srcbuf[oad_offset[j].offset],oad_offset[j].len);
+				if(getZone("HuNan")==0 && tmpbuf[0] == 0)
+					continue;
+
 //				fprintf(stderr,"tmpbuf[0]=%02x\n",tmpbuf[0]);
 				switch(tmpbuf[0])
 				{
 				case 0:
 					fprintf(stderr,"\n---------------tmpbuf[0]=%d\n",tmpbuf[0]);
-					if(getZone("HuNan")==0)
-					{
-						fprintf(stderr,"\n地区：湖南\n");
-						OI_INFO oi_info;
-						GetOIinfo(oad_offset[j].oad_r.OI,4,&oi_info);
-						if(oi_info.oinum != 0 && oad_offset[j].oad_r.attrindex == 0)
-						{
-							switch(oi_info.io_unit)
-							{
-							case 1://array
-								databuf[pindex++] = 1;
-								databuf[pindex++] = oi_info.oinum;
-								memset(&databuf[pindex],0x00,oi_info.oinum);
-								pindex += oi_info.oinum;
-								break;
-							case 2://struct
-								databuf[pindex++] = 2;
-								databuf[pindex++] = oi_info.oinum;
-								memset(&databuf[pindex],0x00,oi_info.oinum);
-								pindex += oi_info.oinum;
-								break;
-							default:
-								databuf[pindex++] = 0;
-								break;
-							}
-						}
-						else
-							databuf[pindex++] = 0;
-					}
-					else
+//					if(getZone("HuNan")==0)
+//					{
+//						fprintf(stderr,"\n地区：湖南\n");
+//						OI_INFO oi_info;
+//						GetOIinfo(oad_offset[j].oad_r.OI,4,&oi_info);
+//						if(oi_info.oinum != 0 && oad_offset[j].oad_r.attrindex == 0)
+//						{
+//							switch(oi_info.io_unit)
+//							{
+//							case 1://array
+//								databuf[pindex++] = 1;
+//								databuf[pindex++] = oi_info.oinum;
+//								memset(&databuf[pindex],0x00,oi_info.oinum);
+//								pindex += oi_info.oinum;
+//								break;
+//							case 2://struct
+//								databuf[pindex++] = 2;
+//								databuf[pindex++] = oi_info.oinum;
+//								memset(&databuf[pindex],0x00,oi_info.oinum);
+//								pindex += oi_info.oinum;
+//								break;
+//							default:
+//								databuf[pindex++] = 0;
+//								break;
+//							}
+//						}
+//						else
+//							databuf[pindex++] = 0;
+//					}
+//					else
 					{
 						fprintf(stderr,"地区：非湖南");
 						databuf[pindex++] = 0;
@@ -3749,6 +3752,7 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds,INT16U fr
 			{
 				fseek(fp,recordoffset,SEEK_SET);
 				fread(recordbuf,recordlen,1,fp);
+				printRecordBytes(recordbuf,recordlen);
 			}
 			DEBUG_TIME_LINE("");
 			if(autoflg == 1 && tasknor_info.runtime > 1 && recinfo.recordno_num == 1)//主动上报曲线并且只上报一个点
@@ -3820,7 +3824,10 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds,INT16U fr
 					}
 				}
 			}
-			if(memcmp(&recordbuf[18],tmpnull,8)==0)
+			memset(tmpnull,0x00,8);
+			printRecordBytes(recordbuf,recordlen);
+			if(memcmp(&recordbuf[18],tmpnull,8)==0 && memcmp(&recordbuf[26],tmpnull,8)==0 &&
+					memcmp(&recordbuf[34],tmpnull,8)==0)
 				continue;
 
 			DEBUG_TIME_LINE("");
