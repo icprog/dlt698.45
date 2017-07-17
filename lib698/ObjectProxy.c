@@ -120,12 +120,14 @@ int Proxy_GetRequestRecord(INT8U *data,CSINFO *csinfo,INT8U *sendbuf,INT8U piid)
 {
 	INT8U num=0;
 	INT16U timeout=0 ;
-	int iindex=0,rsdlen=0;
+	int iindex=0,rsdlen=0, beginPlace=0,datalen=0;
 	PROXY_GETLIST getlist;
 	INT8S	ret=0;
 	OAD oadtmp;
 	RESULT_RECORD record={};
 
+
+	memset(getlist.proxy_obj.buf,0,1024);
 	timeout = data[0] ;
 	timeout = timeout <<8 | data[1];
 
@@ -150,12 +152,18 @@ int Proxy_GetRequestRecord(INT8U *data,CSINFO *csinfo,INT8U *sendbuf,INT8U piid)
 	iindex  += rsdlen;
 	iindex  += get_BasicRCSD(0,&data[iindex],&getlist.proxy_obj.record.rcsd.csds);
 
-	//写入文件，等待转发			规约中只负责解析代理的内容，并追加写入到代理文件 /nand/proxy_list
-	getlist.timeold = time(NULL);
-	memcpy(&getlist.csinfo,csinfo,sizeof(CSINFO));
+	datalen = iindex-2;
+	if (datalen >0 && datalen<1024)
+	{
+		memcpy(getlist.proxy_obj.buf, &data[beginPlace], datalen);
+		getlist.datalen = datalen;
+		getlist.timeold = time(NULL);
+		memcpy(&getlist.csinfo,csinfo,sizeof(CSINFO));
 
-	ret= mqs_send((INT8S *)PROXY_485_MQ_NAME,1,ProxyGetResponseRecord,(INT8U *)&getlist,sizeof(PROXY_GETLIST));
-	fprintf(stderr,"\n代理消息已经发出,ret=%d\n\n",ret);
+		ret= mqs_send((INT8S *)PROXY_485_MQ_NAME,1,ProxyGetResponseRecord,(INT8U *)&getlist,sizeof(PROXY_GETLIST));
+		fprintf(stderr,"\n代理消息已经发出,ret=%d\n\n",ret);
+	}
+
 	return 1;
 }
 int getProxyDO_Then_Get_list(INT8U *data,DO_Then_GET *doget)
