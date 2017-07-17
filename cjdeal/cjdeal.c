@@ -875,6 +875,7 @@ int proxy_dar_fill(PROXY_GETLIST *dest_list,PROXY_GETLIST get_list)
 		}
 		break;
 	case ProxySetRequestList:
+	case ProxyActionRequestList:
 		for(i=0; i<dest_list->num; i++) {
 			if(get_list.proxy_obj.doTsaList[i].dar == proxy_success) {
 				dest_list->proxy_obj.doTsaList[i].dar = success;
@@ -893,8 +894,10 @@ int proxy_dar_fill(PROXY_GETLIST *dest_list,PROXY_GETLIST get_list)
 				for(j=0;j<dest_list->proxy_obj.doTsaList[i].num;j++) {
 					result_num++;
 					index += create_OAD(0,&dest_list->data[index],dest_list->proxy_obj.doTsaList[i].setobjs[j].oad);
-//					dest_list->data[index++] = 0x00;
 					dest_list->data[index++] = dest_list->proxy_obj.doTsaList[i].dar;
+					if(dest_list->proxytype == ProxyActionRequestList) {
+						dest_list->data[index++] = 0;		//Data Optional NULL
+					}
 				}
 				dest_list->data[result_index] = result_num; //SEQUENCE of A-ResultNormal
 			}

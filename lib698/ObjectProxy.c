@@ -184,7 +184,8 @@ int getProxyDO_Then_Get_list(INT8U *data,DO_Then_GET *doget)
 			getOAD(0,&data[iindex],&oadtmp,NULL);
 			memcpy(&doget[i].setoads[k].oad_set,&oadtmp,sizeof(oadtmp));
 			iindex = iindex + 4;
-			iindex += get_Data(&data[iindex],doget[i].setoads[k].data);
+			doget[i].setoads[k].len = get_Data(&data[iindex],doget[i].setoads[k].data);
+			iindex += doget[i].setoads[k].len;
 			getOAD(0,&data[iindex],&oadtmp,NULL);
 			memcpy(&doget[i].setoads[k],&oadtmp,sizeof(oadtmp));
 			iindex = iindex + 4;

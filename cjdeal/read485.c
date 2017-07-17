@@ -2787,7 +2787,6 @@ INT8S dealProxyType3(PROXY_GETLIST *getlist,INT8U port485)
 		    obj6001.basicinfo.port.attrindex != port485 ||
 		    getComfdBy6001(obj6001.basicinfo.baud,obj6001.basicinfo.port.attrindex) != 1)
 		{
-
 			continue;
 		}
 		fprintf(stderr,"\nRS485-%d 合法检查通过！ obj-%d ",port485,mpindex);
