@@ -2822,6 +2822,7 @@ INT8S dealProxyType3(PROXY_GETLIST *getlist,INT8U port485)
 
 		if(singleLen > 0)
 		{
+			getlist->proxy_obj.doTsaList[mpindex].dar = proxy_success;
 			fprintf(stderr,"\n $$$$$$$$$$$$$填充数据11111");
 			for(prtIndex = 0;prtIndex<singleLen;prtIndex++)
 			{
@@ -2831,10 +2832,8 @@ INT8S dealProxyType3(PROXY_GETLIST *getlist,INT8U port485)
 			dataindex += singleLen;
 			getlist->datalen += dataindex;
 		}else {
+			//只置DAR状态值，在组帧的时候proxy_dar_fill进行处理
 			getlist->proxy_obj.doTsaList[mpindex].dar = request_overtime;
-//			getlist->data[0] = 0;
-//			getlist->data[1] = request_overtime;//DAR
-//			getlist->datalen = 2;
 			fprintf(stderr,"\nProxySetRequestList overtime.....getlist->datalen=%d\n",getlist->datalen);
 		}
 		fprintf(stderr,"\n$$$$$$$$$$$$$填充数据11111");
