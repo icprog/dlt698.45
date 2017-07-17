@@ -1326,15 +1326,10 @@ INT16S composeProtocol698_SetActionThenGetRequest(INT8U* sendBuf,INT8U type,DO_T
 	sendLen = sendLen + 2;
 
 	sendBuf[sendLen++] = type;
-	if(dogetOBJ.num > 1)
-	{
-		sendBuf[sendLen++] = SET_THENGET_REQUEST_NORMAL_LIST;
-		sendBuf[sendLen++] = dogetOBJ.num;
-	}
-	else
-	{
-		sendBuf[sendLen++] = SET_THENGET_REQUEST_NORMAL_LIST;
-	}
+
+	sendBuf[sendLen++] = SET_THENGET_REQUEST_NORMAL_LIST;
+	sendBuf[sendLen++] = dogetOBJ.num;
+
 
 	sendBuf[sendLen++] = PIID;
 //	OADtoBuff(setData.oad,&sendBuf[sendLen]);
