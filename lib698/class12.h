@@ -20,4 +20,6 @@ int class2401_set(int index, OAD oad, INT8U *data, INT8U *DAR);
 int class2401_set_attr_2(int index, OAD oad, INT8U *data, INT8U *DAR);
 int class2401_set_attr_3(int index, OAD oad, INT8U *data, INT8U *DAR);
 
+int class12_get(OAD oad, INT8U *sourcebuf, INT8U *buf, int *len);
+
 #endif /* CLASS12_H_ */

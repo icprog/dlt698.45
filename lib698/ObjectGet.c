@@ -16,6 +16,9 @@
 #include "OIfunc.h"
 #include "PublicFunction.h"
 #include "secure.h"
+#include "class8.h"
+#include "class12.h"
+#include "class23.h"
 
 extern INT8S (*pSendfun)(int fd,INT8U* sndbuf,INT16U sndlen);
 extern int FrameHead(CSINFO *csinfo,INT8U *buf);
@@ -1257,6 +1260,10 @@ int GetVariable(RESULT_NORMAL *response)
 		break;
 	case 0x2301:
 		class23_get(response->oad,databuf,response->data,&index);
+		response->datalen = index;
+		break;
+	case 0x2401:
+		class12_get(response->oad,databuf,response->data,&index);
 		response->datalen = index;
 		break;
 	default:
