@@ -428,14 +428,14 @@ INT8S saveClass6035(CLASS_6035* class6035)
 {
 	INT8U isFind = 0;
 	INT8S ret = -1;
-	int recordNum = getFileRecordNum(0x6035);
 	CLASS_6035 file6035;
 	memset(&file6035,0,sizeof(CLASS_6035));
 	INT16U i;
-	for(i=0;i<=recordNum;i++)
+	for(i=0;i<=255;i++)
 	{
 		if(readCoverClass(0x6035,i,&file6035,sizeof(CLASS_6035),coll_para_save)== 1)
 		{
+			asyslog(LOG_INFO,"saveClass6035 file6035.taskID= %d  class6035->taskID = %d",file6035.taskID,class6035->taskID);
 			if(file6035.taskID == class6035->taskID)
 			{
 				isFind = 1;
@@ -443,13 +443,20 @@ INT8S saveClass6035(CLASS_6035* class6035)
 			}
 		}
 	}
+
 	if(isFind)
 	{
 		memcpy(&class6035->starttime,&file6035.starttime,sizeof(DateTimeBCD));
-		class6035->totalMSNum += file6035.totalMSNum;
-		class6035->successMSNum += file6035.successMSNum;
+		class6035->totalMSNum = file6035.totalMSNum;
+		//class6035->successMSNum += file6035.successMSNum;
+		if(class6035->successMSNum > file6035.totalMSNum)
+		{
+			class6035->totalMSNum = class6035->successMSNum;
+		}
 		class6035->sendMsgNum += file6035.sendMsgNum;
 		class6035->rcvMsgNum += file6035.rcvMsgNum;
+		asyslog(LOG_INFO,"class6035->successMSNum = %d class6035->totalMSNum = %d",
+				class6035->successMSNum,class6035->totalMSNum);
 	}
 
 	saveCoverClass(0x6035, class6035->taskID, class6035,
@@ -537,6 +544,7 @@ INT8U init6013ListFrom6012File() {
 					{
 						infoReplenish.unitReplenish[infoReplenish.tasknum++].taskID = list6013[total_tasknum].basicInfo.taskID;
 					}
+
 				}
 #if 1
 				if(timeCmp < 2)
@@ -549,17 +557,14 @@ INT8U init6013ListFrom6012File() {
 					list6013[total_tasknum].ts_next  =
 									calcnexttime(list6013[total_tasknum].basicInfo.interval,list6013[total_tasknum].basicInfo.startime,list6013[total_tasknum].basicInfo.delay);
 				}
-
 				//TODO
 				total_tasknum++;
-
 				//任务初始化新建6035
 				CLASS_6035 result6035;	//采集任务监控单元
 				memset(&result6035,0,sizeof(CLASS_6035));
 				result6035.taskState = BEFORE_OPR;
 				result6035.taskID = class6013.taskID;
-				saveClass6035(&result6035);
-
+				saveCoverClass(0x6035, result6035.taskID, &result6035,sizeof(CLASS_6035), coll_para_save);
 			}
 		}
 	}
@@ -794,6 +799,20 @@ void timeProcess()
 				memset(infoReplenish.unitReplenish[taskIndex].isSuccess,0,2*MAX_METER_NUM_1_PORT);
 			}
 			createFakeTaskFileHead();
+			  //跨天的时候要初始化任务^M
+			CLASS_6035 file6035;
+			INT16U i;
+			for(i=0;i<=255;i++)
+			{
+				memset(&file6035,0,sizeof(CLASS_6035));
+				if(readCoverClass(0x6035,i,&file6035,sizeof(CLASS_6035),coll_para_save)== 1)
+				{
+					file6035.successMSNum = 0;
+					file6035.sendMsgNum = 0;
+					file6035.rcvMsgNum = 0;
+					saveCoverClass(0x6035, file6035.taskID, &file6035,sizeof(CLASS_6035), coll_para_save);
+				}
+			}
 		}
 	}
 }
@@ -882,6 +901,7 @@ INT8S dealMsgProcess()
 	mmq_head mq_h;
 	ret = mmq_get(mqd_485_main, 1, &mq_h, rev_485_buf);
 
+	DEBUG_TIME_LINE("ret: %d", ret);
 	if (ret>0)
 	{
 		proxyInUse.devUse.proxyIdle = 1;
@@ -1011,6 +1031,8 @@ void replenish_tmp()
 INT8U dealProxyAnswer()
 {
 
+	DEBUG_TIME_LINE("proxyInUse.devUse.plcNeed: %d; proxyInUse.devUse.plcReady: %d; proxyInUse.devUse.rs485Need: %d; proxyInUse.devUse.rs485Ready: %d", \
+			proxyInUse.devUse.plcNeed, proxyInUse.devUse.plcReady, proxyInUse.devUse.rs485Need, proxyInUse.devUse.rs485Ready);
 	if( !(proxyInUse.devUse.plcNeed ^ proxyInUse.devUse.plcReady)&&\
 		!(proxyInUse.devUse.rs485Need ^ proxyInUse.devUse.rs485Ready) ) {//当某一个设备的需要使用标记和就绪标记同时为0,
 																		//或者同时为1, 意即当需要使用
@@ -1234,4 +1256,59 @@ int main(int argc, char *argv[])
    	}
 	close_named_sem(SEMNAME_SPI0_0);
 	return EXIT_SUCCESS;//退出
+}
+int getTaskDataTsaNum(INT8U taskID)
+{
+	TS ts_tmp;
+	TSGet(&ts_tmp);
+	char	fname[128]={};
+	getTaskFileName(taskID,ts_tmp,fname);//得到要抄读的文件名称
+	fprintf(stderr,"\n打开文件名%s\n",fname);
+	INT8U tmp=0,buf[20]={};
+	int begitoffset =0 ;
+
+	int indexn=0,A_record=0,A_TSAblock=0;
+	HEAD_UNIT0 length[20];
+	int tsaNum =0 , head_len=0,unitnum=0;
+
+
+	FILE *fp=NULL;
+	fp = fopen(fname,"r");
+	if(fp==NULL)
+		return 0;
+	fprintf(stderr,"\n\n\n--------------------------------------------------------");
+	head_len = readfile_int(fp);
+	fprintf(stderr,"\n文件头长度 %d (字节)",head_len);
+
+	A_TSAblock = readfile_int(fp);
+	memset(&length,0,sizeof(length));
+	unitnum = (head_len )/sizeof(HEAD_UNIT0);
+
+	//打印文件头结构
+	A_record = head_prt(unitnum,length,&indexn,fp);
+
+	fprintf(stderr,"\nA_TSAblock = %d\n",A_TSAblock);
+	for(;;)
+	{
+		begitoffset = ftell(fp);
+		if (fread(&tmp,1,1,fp)<=0)
+		{
+			fprintf(stderr,"1111111");
+			return tsaNum;
+		}
+		if(tmp!=0X55)
+		{
+			fprintf(stderr,"2222222");
+			return tsaNum;
+		}
+		fread(&tmp,1,1,fp);
+		fread(&buf,tmp,1,fp);
+
+		tsaNum++;
+		fseek(fp,begitoffset+A_TSAblock,0);
+
+	}
+
+	return tsaNum;
+
 }

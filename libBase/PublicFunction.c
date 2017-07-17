@@ -1014,11 +1014,27 @@ void debug(const char* file, const char* func, INT32U line, const char *fmt, ...
 	va_list ap;
 	char bufTime[20] = { 0 };
 	get_local_time(bufTime, sizeof(bufTime));
-	fprintf(stderr, "[%s][%s][%s()][%d]: ", bufTime, file, func, line);
+	fprintf(stderr, "\n[%s][%s][%s()][%d]: ", bufTime, file, func, line);
 	va_start(ap, fmt);
 	vfprintf(stderr, fmt, ap);
 	va_end(ap);
 	fprintf(stderr, "\n");
+}
+
+void debugBuf(const char* file, const char* func, INT32U line, INT8U* buf, INT32U bufSize)
+{
+	INT32U i=0;
+	char bufTime[20] = { 0 };
+
+	if(NULL == buf)
+		return;
+
+	get_local_time(bufTime, sizeof(bufTime));
+	fprintf(stderr, "\n[%s][%s][%s()][%d]: ", bufTime, file, func, line);
+
+	for(i=0;i<bufSize-1;i++)
+		fprintf(stderr, "%02X ", *(buf+i));
+	fprintf(stderr, "%02X\n", *(buf+i));
 }
 
 void debugToPlcFile(const char* file, const char* func, INT32U line, const char *fmt, ...)

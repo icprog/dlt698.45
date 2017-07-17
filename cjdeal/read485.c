@@ -4379,7 +4379,6 @@ INT8S deal6015or6017(CLASS_6013 st6013,CLASS_6015 st6015, INT8U port485,CLASS_60
 						DbgPrintToFile1(port485,"任务ID:%d deal6015 测量点 = %d　已经抄读成功,不用再抄了",st6013.taskID,info6000[port].list6001[meterIndex]);
 						continue;
 					}
-					st6035->totalMSNum++;
 #if 0
 					fprintf(stderr,"\n\n 任务号:%d  方案号:%d deal6015 测量点 = %d-----",st6035->taskID,st6015.sernum,meter.sernum);
 					DbgPrintToFile1(port485,"任务号:%d  方案号:%d deal6015 测量点 = %d-----",st6035->taskID,st6015.sernum,meter.sernum);
@@ -4394,10 +4393,6 @@ INT8S deal6015or6017(CLASS_6013 st6013,CLASS_6015 st6015, INT8U port485,CLASS_60
 					{
 						DbgPrintToFile1(port485,"参数变更 重新抄表");
 						return PARA_CHANGE_RETVALUE;
-					}
-					if(dataLen > 0)
-					{
-						st6035->successMSNum++;
 					}
 					if((dataLen > 0)&&(st6013.cjtype == norm)&&(st6015.cjtype != TYPE_INTERVAL))
 					{
@@ -4555,29 +4550,6 @@ INT8S cleanTaskIDmmq(INT8U port485)
 	return ret;
 }
 
-INT8S get6035ByTaskID(INT16U taskID,CLASS_6035* class6035)
-{
-	memset(class6035,0,sizeof(CLASS_6035));
-	class6035->taskID = taskID;
-
-//	int recordNum = getFileRecordNum(0x6035);
-	CLASS_6035 tmp6035;
-	memset(&tmp6035,0,sizeof(CLASS_6035));
-	INT16U i;
-//	for(i=0;i<=recordNum;i++)
-	for(i=0;i<=255;i++)
-	{
-		if(readCoverClass(0x6035,i,&tmp6035,sizeof(CLASS_6035),coll_para_save)== 1)
-		{
-			if(tmp6035.taskID == taskID)
-			{
-				memcpy(class6035,&tmp6035,sizeof(CLASS_6035));
-				return 1;
-			}
-		}
-	}
-	return -1;
-}
 
 void read485_thread(void* i485port) {
 	INT8U port = *(INT8U*) i485port;
@@ -4651,6 +4623,7 @@ void read485_thread(void* i485port) {
 			result6035.taskState = IN_OPR;
 			DataTimeGet(&result6035.starttime);
 			saveClass6035(&result6035);
+
 			CLASS_6015 to6015;	//采集方案集
 			memset(&to6015, 0, sizeof(CLASS_6015));
 
@@ -4682,13 +4655,17 @@ void read485_thread(void* i485port) {
 				}
 					break;
 			}
-			DataTimeGet(&result6035.endtime);
-			result6035.taskState = AFTER_OPR;
 
 			fprintf(stderr,"\n发送报文数量：%d  接受报文数量：%d",result6035.sendMsgNum,result6035.rcvMsgNum);
 			DbgPrintToFile1(port,"****************taskIndex = %d 任务结束 发送报文数量：%d  接受报文数量：%d*******************************",
 					taskIndex,result6035.sendMsgNum,result6035.rcvMsgNum);
+
+			DataTimeGet(&result6035.endtime);
+			result6035.taskState = AFTER_OPR;
+			result6035.successMSNum = getTaskDataTsaNum(result6035.taskID);
 			saveClass6035(&result6035);
+
+
 #if 0//抄完日冻结任务需要把infoReplenish　保存到文件里　保证重启后补抄不用全部都抄
 			//日冻结任务
 			if(to6015.csds.csd[0].csd.road.oad.OI == 0x5004)

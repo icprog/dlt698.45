@@ -145,7 +145,7 @@ int AFN13_F1(FORMAT3762 *down,INT8U *sendBuf3762,INT8U* destAddr, INT8U protocol
 	return sendLen3762 ;
 }
 
-int AFN14_F1(FORMAT3762 *down,INT8U *sendBuf,INT8U* destAddr, INT8U readFlag, INT8U delayTime, INT8U msgLen, INT8U *msgContent)
+int AFN14_F1(FORMAT3762 *down,FORMAT3762 *up,INT8U *sendBuf,INT8U* destAddr, INT8U readFlag, INT8U delayTime, INT8U msgLen, INT8U *msgContent)
 {
 	INT8U sendLen;
 	memset(&sendBuf[0], 0, 256);
@@ -153,9 +153,9 @@ int AFN14_F1(FORMAT3762 *down,INT8U *sendBuf,INT8U* destAddr, INT8U readFlag, IN
 	down->afn = 0x14;
 	down->fn = 1;
 	down->ctrl.PRM = 0;//从动站
-	down->info_down.ChannelFlag = down->info_up.ChannelFlag;//信道标识
+	down->info_down.ChannelFlag = up->info_up.ChannelFlag;//信道标识
 	down->info_down.ModuleFlag = 1;//有地址域A
-	down->info_down.Seq = down->info_up.Seq;//format3762_Down->info_down.Seq++;//序列号
+	down->info_down.Seq = up->info_up.Seq;//format3762_Down->info_down.Seq++;//序列号
 	down->ctrl.ComType = 1;//窄带载波通信
 //	down->addr.SourceAddr  在组帧前填充
 	memcpy(down->addr.DestAddr, destAddr, 6);//目的地址
