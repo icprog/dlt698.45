@@ -108,7 +108,10 @@ void First_VerifiTime(LINK_Response linkResponse, ProgramInfo* JProgramInfo){
 		readCoverClass(0x4000,0,&class_4000,sizeof(CLASS_4000),para_vari_save);
 		fprintf(stderr,"判断是否要进行简单对时，avg=%d delay=%d \n",avg,class_4000.delay);
 		if(abs(avg)>=class_4000.delay && class_4000.delay>0){
-			Event_VerifiTime(JProgramInfo,avg);
+			if(getZone("ZheJiang")==0)
+				Event_VerifiTime(JProgramInfo,avg);
+			else
+				fprintf(stderr,"非浙江地区，不必进行简单对时！\n");
 		}
 	}
 }

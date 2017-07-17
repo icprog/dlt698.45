@@ -581,6 +581,7 @@ typedef struct {
 } RESULT_RECORD;
 
 typedef struct {
+	INT8U	dar;		//数据状态值
     TSA tsa;           //目标地址
     INT16U onetimeout; //一个服务器的超时时间
     INT16U num;        // oad的个数
@@ -588,7 +589,8 @@ typedef struct {
 } GETOBJS;
 
 typedef struct {
-    OAD oad;           //数据转发OAD
+	INT8U	dar;		//数据状态值
+	OAD oad;           //数据转发OAD
     COMDCB comdcb;       //端口通信控制块
     INT16U revtimeout;    // 接收等待报文超时时间（秒）
     INT16U bytetimeout;    // 接收等待字节超时时间（毫秒）
@@ -621,12 +623,14 @@ typedef struct{
 	INT8U data[50];
 }SETOBJ;
 typedef struct{
+	INT8U	dar;		//数据状态值
 	TSA tsa;
 	INT16U num;
 	INT16U timeout;
 	SETATTRIB setoads[5];
 }DO_Then_GET;
 typedef struct{
+	INT8U	dar;		//数据状态值
 	TSA tsa;
 	INT16U num;
 	INT16U timeout;

@@ -189,7 +189,6 @@ INT32S _esam_WriteThenRead(INT32S fd, INT8U* Tbuf, INT16U Tlen, INT8U* Rbuf){
 			if(rx[RevHeadLen_ESAM+length] == LRC(rx,RevHeadLen_ESAM+length))//LRC校验
 			{
 				Result = RevHeadLen_ESAM+length+1;//返回数据长度
-				fprintf(stderr,"eeeeeeREsult=%d \n",Result);
 				memcpy(Rbuf,rx,Result);
 				break;
 			}
@@ -203,13 +202,11 @@ INT32S _esam_WriteThenRead(INT32S fd, INT8U* Tbuf, INT16U Tlen, INT8U* Rbuf){
 		else
 		{
 			Result = Esam_ErrMessageCheck(rx);
-			fprintf(stderr,"ddddREsult=%d \n",Result);
 		}
 	}
 	gpio_writebyte(DEV_ESAM_CS,1);
 //    if(sem_spi0_0!=NULL)
 //    	sem_post(sem_spi0_0);
-	fprintf(stderr,"ccccccREsult=%d \n",Result);
 	return Result;
 }
 /**********************************

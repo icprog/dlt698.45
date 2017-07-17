@@ -25,7 +25,7 @@ int Set_4000(INT8U *data,INT8U *DAR)
 	if(*DAR==success) {	//时间合法
 		setsystime(datetime);
 	}
-	sleep(2);		//延时2秒，确保台体测试过程中，修改时间设置成功
+//	sleep(2);		//延时2秒，确保台体测试过程中，修改时间设置成功
 	return index;
 }
 int Set_4006(INT8U *data,INT8U *DAR,INT8U attr_act)
@@ -92,8 +92,17 @@ INT8U Get_2203(INT8U getflg,INT8U *sourcebuf,INT8U *buf,int *len)
 	fprintf(stderr,"Get_2203 :day_gongdian=%d,month_gongdian=%d\n",gongdian_tj.gongdian.day_tj,gongdian_tj.gongdian.month_tj);
 	*len=0;
 	*len += create_struct(&buf[*len],2);
-	*len += fill_double_long_unsigned(&buf[*len],gongdian_tj.gongdian.day_tj);
-	*len += fill_double_long_unsigned(&buf[*len],gongdian_tj.gongdian.month_tj);
+	INT32U day_tj=0,month_tj=0;
+	if(gongdian_tj.gongdian.day_tj%60==0)
+		day_tj = gongdian_tj.gongdian.day_tj/60;
+	else
+		day_tj = gongdian_tj.gongdian.day_tj/60+1;
+	if(gongdian_tj.gongdian.month_tj%60==0)
+		month_tj = gongdian_tj.gongdian.month_tj/60;
+	else
+		month_tj = gongdian_tj.gongdian.month_tj/60+1;
+	*len += fill_double_long_unsigned(&buf[*len],day_tj);
+	*len += fill_double_long_unsigned(&buf[*len],month_tj);
 	return 1;
 }
 
@@ -131,6 +140,8 @@ int Get_4000(OAD oad,INT8U *data)
 		case 2://安全模式选择
 			system((const char*)"hwclock -s");
 			DataTimeGet(&time);
+			tminc(&time, 0, 7);
+			fprintf(stderr, "============================================\n\n\n\n\n\nadd10min\n");
 			index += fill_date_time_s(&data[index],&time);
 			break;
 		case 3://校时模式

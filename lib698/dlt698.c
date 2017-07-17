@@ -300,7 +300,7 @@ int CheckHead(unsigned char* buf ,CSINFO *csinfo)
 		csinfo->gframeflg	= ctl.ctl.divS;
 		csinfo->sa_type		= (buf[4]& 0xc0) >> 6;	/*0:单地址   1：通配地址   2：组地址   3：广播地址*/
 		memcpy(csinfo->sa, &buf[5], sa_length);		/*服务器地址*/
-		csinfo->ca			= buf[5+ sa_length]; 			/*客户机地址*/
+		csinfo->ca			= buf[5+ sa_length]; 	/*客户机地址*/
 		csinfo->sa_length	= sa_length;
 		fprintf(stderr,"\n地址类型 %d",csinfo->sa_type);
 		return 1;
@@ -316,6 +316,7 @@ int CheckTail(unsigned char * buf,INT16U length)
 	INT16U cs16=0;
 	INT16U fcs16=0;
 
+	if(length<2) return 0;
 	if( buf[0]==0x68 ) {
 		cs16 = tryfcs16(&buf[1], length-2);
 		memcpy(&fcs16, &buf[length - 1], 2);
@@ -821,14 +822,22 @@ int doGetAttribute(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
 
 int doProxyRequest(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
 {
-	PIID piid={};
+//	PIID piid={};
 	INT8U getType = apdu[1];
 	INT8U *data=NULL;
 
+	fprintf(stderr,"doProxyRequest....getType=%d\n",getType);
+	for(int i=0;i<8;i++) {
+		fprintf(stderr,"%02x ",apdu[i]);
+	}
+	getType = apdu[1];
+	fprintf(stderr,"apdu[2]=%02x\n",apdu[2]);
 	piid_g.data = apdu[2];
+	fprintf(stderr,"\n代理 PIID %02x   ",piid_g.data);
 	data = &apdu[3];
-	fprintf(stderr,"\n代理 PIID %02x   ",piid.data);
-
+	for(int i=0;i<8;i++) {
+		fprintf(stderr,"%02x ",apdu[i]);
+	}
 	switch(getType)
 	{
 		case ProxyGetRequestList:
@@ -893,6 +902,11 @@ int doActionRequest(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 				TmpDataBuf[index++] = 0;	//数据为空
 //			}
 			doReponse(ACTION_RESPONSE,ActionResponseNormal,csinfo,index,TmpDataBuf,buf);
+			//在应答帧接收到之后再发送复位参数
+			if (oad.OI == 0x4300 && oad.attflg == 1 && act_ret.DAR == success) {        //设备复位 ,TODO:只考虑ACTIONREQUEST的
+				syslog(LOG_NOTICE,"接收到硬件复位命令");
+				memp->oi_changed.reset++;
+			}
 			Get698_event(oad,memp);
 			break;
 		case ACTIONREQUEST_LIST:
@@ -1273,12 +1287,12 @@ INT8S getRequestType(INT8U cjtype,INT8U csdcount)
 
 	return requestType;
 }
-INT16S composeProtocol698_SetRequest(INT8U* sendBuf,RESULT_NORMAL setData,TSA meterAddr)
+INT16S composeProtocol698_SetActionThenGetRequest(INT8U* sendBuf,INT8U type,DO_Then_GET dogetOBJ)
 {
 
 	INT8U PIID = 0x02;
-	int sendLen = 0, hcsi = 0,apdulen = 0;
-
+	int sendLen = 0, hcsi = 0;
+	INT8U oadIndex = 0;
 	CSINFO csinfo={};
 
 	csinfo.dir = 0;		//服务器发出
@@ -1289,12 +1303,12 @@ INT16S composeProtocol698_SetRequest(INT8U* sendBuf,RESULT_NORMAL setData,TSA me
 
 	INT8U reverseAddr[OCTET_STRING_LEN]= {0};
 	fprintf(stderr," \n\n composeProtocol698_GetRequest  meterAddr : %02x  %02x  %02x%02x%02x%02x%02x%02x%02x\n\n",
-			meterAddr.addr[0],meterAddr.addr[1],meterAddr.addr[2],meterAddr.addr[3],meterAddr.addr[4],
-			meterAddr.addr[5],meterAddr.addr[6],meterAddr.addr[7],meterAddr.addr[8]);
-	csinfo.sa_length = (meterAddr.addr[1]&0x0f) + 1;//sizeof(addr)-1;//服务器地址长度
+			dogetOBJ.tsa.addr[0],dogetOBJ.tsa.addr[1],dogetOBJ.tsa.addr[2],dogetOBJ.tsa.addr[3],dogetOBJ.tsa.addr[4],
+			dogetOBJ.tsa.addr[5],dogetOBJ.tsa.addr[6],dogetOBJ.tsa.addr[7],dogetOBJ.tsa.addr[8]);
+	csinfo.sa_length = (dogetOBJ.tsa.addr[1]&0x0f) + 1;//sizeof(addr)-1;//服务器地址长度
 	///当广播地址时，地址类型=3：广播地址，增加下面的赋值
-	csinfo.sa_type = (meterAddr.addr[1] >> 6) & 0x03;		//服务器地址类型
-	reversebuff(&meterAddr.addr[2],csinfo.sa_length,reverseAddr);
+	csinfo.sa_type = (dogetOBJ.tsa.addr[1] >> 6) & 0x03;		//服务器地址类型
+	reversebuff(&dogetOBJ.tsa.addr[2],csinfo.sa_length,reverseAddr);
 
 	fprintf(stderr," \n reverseAddr[%d] = ",csinfo.sa_length);
 	INT8U prtIndex=0;
@@ -1311,17 +1325,110 @@ INT16S composeProtocol698_SetRequest(INT8U* sendBuf,RESULT_NORMAL setData,TSA me
 	hcsi = sendLen;
 	sendLen = sendLen + 2;
 
-	sendBuf[sendLen++] = SET_REQUEST;
-	sendBuf[sendLen++] = SET_REQUEST_NORMAL;
+	sendBuf[sendLen++] = type;
+	if(dogetOBJ.num > 1)
+	{
+		sendBuf[sendLen++] = SET_THENGET_REQUEST_NORMAL_LIST;
+		sendBuf[sendLen++] = dogetOBJ.num;
+	}
+	else
+	{
+		sendBuf[sendLen++] = SET_THENGET_REQUEST_NORMAL_LIST;
+	}
+
 	sendBuf[sendLen++] = PIID;
 //	OADtoBuff(setData.oad,&sendBuf[sendLen]);
 //	sendLen += 4;
-	sendLen += create_OAD(0,&sendBuf[sendLen],setData.oad);
-	INT16U dataIndex = 0;
-	for(dataIndex = 0;dataIndex < setData.datalen;dataIndex++)
+	typedef struct{
+		OAD   oad_set;
+		INT8U datatype;
+		INT8U len;
+		INT8U data[50];
+		OAD   oad_get;
+		INT16U dealy;
+	}SETATTRIB ;
+
+	for(oadIndex = 0;oadIndex < dogetOBJ.num;oadIndex++)
 	{
-		sendBuf[sendLen++] = setData.data[dataIndex];
+		sendLen += create_OAD(0,&sendBuf[sendLen],dogetOBJ.setoads[oadIndex].oad_set);
+		INT16U dataIndex = 0;
+		for(dataIndex = 0;dataIndex < dogetOBJ.setoads[oadIndex].len;dataIndex++)
+		{
+			sendBuf[sendLen++] =  dogetOBJ.setoads[oadIndex].data[dataIndex];
+		}
+		sendLen += create_OAD(0,&sendBuf[sendLen],dogetOBJ.setoads[oadIndex].oad_get);
+		sendBuf[sendLen++] = dogetOBJ.setoads[oadIndex].dealy;
 	}
+
+	sendBuf[sendLen++] = 0x00;//没有时间标签
+
+	FrameTail(sendBuf,sendLen,hcsi);
+	return (sendLen + 3);			//3: cs cs 16
+
+
+
+}
+INT16S composeProtocol698_SetActionRequest(INT8U* sendBuf,INT8U type,ACTION_SET_OBJ setOBJ)
+{
+	INT8U PIID = 0x02;
+	int sendLen = 0, hcsi = 0;
+	INT8U oadIndex = 0;
+	CSINFO csinfo={};
+
+	csinfo.dir = 0;		//服务器发出
+	csinfo.prm = 1; 	//服务器发出
+	csinfo.funcode = 3; //链路管理
+	csinfo.sa_type = 0 ;//单地址
+
+
+	INT8U reverseAddr[OCTET_STRING_LEN]= {0};
+	fprintf(stderr," \n\n composeProtocol698_GetRequest  meterAddr : %02x  %02x  %02x%02x%02x%02x%02x%02x%02x\n\n",
+			setOBJ.tsa.addr[0],setOBJ.tsa.addr[1],setOBJ.tsa.addr[2],setOBJ.tsa.addr[3],setOBJ.tsa.addr[4],
+			setOBJ.tsa.addr[5],setOBJ.tsa.addr[6],setOBJ.tsa.addr[7],setOBJ.tsa.addr[8]);
+	csinfo.sa_length = (setOBJ.tsa.addr[1]&0x0f) + 1;//sizeof(addr)-1;//服务器地址长度
+	///当广播地址时，地址类型=3：广播地址，增加下面的赋值
+	csinfo.sa_type = (setOBJ.tsa.addr[1] >> 6) & 0x03;		//服务器地址类型
+	reversebuff(&setOBJ.tsa.addr[2],csinfo.sa_length,reverseAddr);
+
+	fprintf(stderr," \n reverseAddr[%d] = ",csinfo.sa_length);
+	INT8U prtIndex=0;
+	for(prtIndex = 0;prtIndex < csinfo.sa_length;prtIndex++)
+	{
+		fprintf(stderr," %02x",reverseAddr[prtIndex]);
+	}
+
+	memcpy(csinfo.sa,reverseAddr,csinfo.sa_length);//服务器地址
+	csinfo.ca = 0x02;
+
+	fprintf(stderr,"sa_length = %d \n",csinfo.sa_length);
+	sendLen = FrameHead(&csinfo,sendBuf) ; //	2：hcs  hcs
+	hcsi = sendLen;
+	sendLen = sendLen + 2;
+
+	sendBuf[sendLen++] = type;
+	if(setOBJ.num > 1)
+	{
+		sendBuf[sendLen++] = SET_REQUEST_NORMAL_LIST;
+		sendBuf[sendLen++] = setOBJ.num;
+	}
+	else
+	{
+		sendBuf[sendLen++] = SET_REQUEST_NORMAL;
+	}
+
+	sendBuf[sendLen++] = PIID;
+//	OADtoBuff(setData.oad,&sendBuf[sendLen]);
+//	sendLen += 4;
+	for(oadIndex = 0;oadIndex < setOBJ.num;oadIndex++)
+	{
+		sendLen += create_OAD(0,&sendBuf[sendLen],setOBJ.setobjs[oadIndex].oad);
+		INT16U dataIndex = 0;
+		for(dataIndex = 0;dataIndex < setOBJ.setobjs[oadIndex].len;dataIndex++)
+		{
+			sendBuf[sendLen++] =  setOBJ.setobjs[oadIndex].data[dataIndex];
+		}
+	}
+
 	sendBuf[sendLen++] = 0x00;//没有时间标签
 
 	FrameTail(sendBuf,sendLen,hcsi);
@@ -1497,6 +1604,53 @@ INT8U analyzeProtocol698(INT8U* Rcvbuf,INT8U* resultCount,INT16S recvLen,INT8U* 
 
 			}
 #endif
+		}
+		else if(apdu[0] == SET_RESPONSE)
+		{
+			getType = apdu[1];
+			if(getType == SET_REQUEST_NORMAL)
+			{
+				*resultCount = 1;
+				startIndex += 3;
+				*dataLen = *dataLen - (3+3);
+			}
+			if(getType == SET_REQUEST_NORMAL_LIST)
+			{
+				*resultCount = apdu[3];
+				startIndex += 4;
+				*dataLen = *dataLen - (4+3);
+			}
+			if(getType == SET_THENGET_REQUEST_NORMAL_LIST)
+			{
+				*resultCount = apdu[3];
+				startIndex += 4;
+				*dataLen = *dataLen - (4+3);
+			}
+			*apduDataStartIndex = startIndex;
+		}
+		else if(apdu[0] == ACTION_RESPONSE)
+		{
+			fprintf(stderr,"\n&&&&&&&&&&&apdu[0] = %d apdu[1] = %d",apdu[0],apdu[1]);
+			getType = apdu[1];
+			if(getType == ActionResponseNormal)
+			{
+				*resultCount = 1;
+				startIndex += 3;
+				*dataLen = *dataLen - (3+3);
+			}
+			if(getType == ActionResponseNormalList)
+			{
+				*resultCount = apdu[3];
+				startIndex += 4;
+				*dataLen = *dataLen - (4+3);
+			}
+			if(getType == ACTIONTHENGET_REQUEST_NORMAL_LIST)
+			{
+				*resultCount = apdu[3];
+				startIndex += 4;
+				*dataLen = *dataLen - (4+3);
+			}
+			*apduDataStartIndex = startIndex;
 		}
 		else
 		{

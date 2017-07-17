@@ -171,7 +171,6 @@ INT8U Get_Vacs(RESULT_NORMAL *response,ProgramInfo* prginfo_acs)
 INT8U Get_Voltagehegelv(INT8U *buf,INT8U *len,TSA tsa,OAD oad){
 	StatisticsPointProp StatisticsPoint[MAXNUM_IMPORTANTUSR];
 	INT8U i=0;
-
 	*len=0;
 	for(i=0;i<MAXNUM_IMPORTANTUSR;i++){
 	   if(readVariData(oad.OI,i,&StatisticsPoint[i],sizeof(StatisticsPointProp))) {

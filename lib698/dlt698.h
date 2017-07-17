@@ -15,7 +15,7 @@ extern int StateProcess(CommBlock* nst, int delay_num);
 extern int ProcessData(CommBlock* com);
 extern int Link_Request(LINK_Request request, INT8U* addr, INT8U* buf);
 extern void testframe(INT8U* apdu, int len);
-extern INT8U Report_Event(CommBlock* com, INT8U *oiarr, INT8U report_type,INT8U *com_flag);
+extern INT8U Report_Event(CommBlock* com, INT8U *oiarr, INT8U report_type);
 extern INT16U composeAutoReport(INT8U* SendApdu, INT16U length);
 extern INT16U composeAutoTask(AutoTaskStrap* list);
 extern int callAutoReport(char *filename,INT8U reportChoice,CommBlock* com, INT8U ifecho);
@@ -30,11 +30,14 @@ extern int FrameTimeTag(TimeTag *tag,INT8U *buf);
 extern INT8S (*pSendfun)(int fd, INT8U *sndbuf, INT16U sndlen);
 extern void Get698_event(OAD oad, ProgramInfo *prginfo_event);
 extern INT16S composeSecurityResponse(INT8U* SendApdu,INT16U Length);
-
+extern int CheckHead(unsigned char* buf ,CSINFO *csinfo);
+extern int CheckTail(unsigned char * buf,INT16U length);
 /*----------------------抄表相关*************************/
 extern INT16S composeProtocol698_GetRequest(INT8U*, CLASS_6015, TSA);
 extern INT16S composeProtocol698_SetRequest(INT8U* ,RESULT_NORMAL,TSA);
 extern INT16U composeProtocol698_GetRequestRecord(PROXY_GETLIST *getlist,INT8U *sendbuf);//代理record
+extern INT16S composeProtocol698_SetActionRequest(INT8U* sendBuf,INT8U type,ACTION_SET_OBJ setOBJ);
+extern INT16S composeProtocol698_SetActionThenGetRequest(INT8U* sendBuf,INT8U type,DO_Then_GET dogetOBJ);
 extern TS mylookback(time_t times,TI ti,INT8U n);
 extern time_t calcnexttime(TI ti, DateTimeBCD datetime,TI ti_delay);
 // OAD转换为报文

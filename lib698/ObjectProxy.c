@@ -60,6 +60,7 @@ int getProxylist(INT8U *data,PROXY_GETLIST *getlist)
 	INT8U num=0,oadnum=0;
 	INT16U timeout=0;
 	OAD oadtmp;
+
 	getlist->num = data[iindex++];// sequence of 代理
 	fprintf(stderr,"\n---%d",getlist->num);
 	for(i=0;i<getlist->num;i++)
@@ -191,7 +192,8 @@ int getProxyDO_Then_Get_list(INT8U *data,DO_Then_GET *doget)
 			getOAD(0,&data[iindex],&oadtmp,NULL);
 			memcpy(&doget[i].setoads[k].oad_set,&oadtmp,sizeof(oadtmp));
 			iindex = iindex + 4;
-			iindex += get_Data(&data[iindex],doget[i].setoads[k].data);
+			doget[i].setoads[k].len = get_Data(&data[iindex],doget[i].setoads[k].data);
+			iindex += doget[i].setoads[k].len;
 			getOAD(0,&data[iindex],&oadtmp,NULL);
 			memcpy(&doget[i].setoads[k],&oadtmp,sizeof(oadtmp));
 			iindex = iindex + 4;
@@ -232,18 +234,18 @@ int Proxy_DoRequestList(INT8U *data,CSINFO *csinfo,INT8U *sendbuf,INT8U piid,INT
 	OAD oadtmp;
 	INT8S	ret=0;
 	int iindex=0;
-	timeout = data[0] ;
-	timeout = timeout <<8 | data[1];
 
+	timeout = data[iindex] ;
+	timeout = (timeout <<8) | data[iindex+1];
+	iindex = iindex + 2;
 	getlist.timeout = timeout;
 	getlist.piid = piid;
 	getlist.proxytype = type;
 	getlist.num = data[iindex++];// sequence of 代理
-	fprintf(stderr,"\n---%d",getlist.num);
 	for(i=0;i<getlist.num;i++)//TSA 个数
 	{
 		num = data[iindex];
-		if (num>sizeof(getlist.proxy_obj.doTsaList[i].tsa))
+		if (num > sizeof(getlist.proxy_obj.doTsaList[i].tsa))
 			num = sizeof(getlist.proxy_obj.doTsaList[i].tsa);
 		memcpy(&getlist.proxy_obj.doTsaList[i].tsa,&data[iindex],num+1);
 		iindex = iindex + num +1;
@@ -254,12 +256,15 @@ int Proxy_DoRequestList(INT8U *data,CSINFO *csinfo,INT8U *sendbuf,INT8U piid,INT
 		getlist.proxy_obj.doTsaList[i].num = num;
 		for(j=0; j<num; j++)
 		{
-			getOAD(0,&data[iindex],&oadtmp,NULL);
+			iindex += getOAD(0,&data[iindex],&oadtmp,NULL);
 			memcpy(&getlist.proxy_obj.doTsaList[i].setobjs[j],&oadtmp,sizeof(oadtmp));
-			iindex = iindex + 4;
-			iindex += get_Data(&data[iindex],getlist.proxy_obj.doTsaList[i].setobjs[j].data);
+			getlist.proxy_obj.doTsaList[i].setobjs[j].len = get_Data(&data[iindex],getlist.proxy_obj.doTsaList[i].setobjs[j].data);
+			iindex += getlist.proxy_obj.doTsaList[i].setobjs[j].len;
 		}
 	}
+	getlist.timeold = time(NULL);
+	memcpy(&getlist.csinfo,csinfo,sizeof(CSINFO));
+
 	ret= mqs_send((INT8S *)PROXY_485_MQ_NAME,1,type,(INT8U *)&getlist,sizeof(PROXY_GETLIST));
 	fprintf(stderr,"\n代理消息已经发出,ret=%d\n\n",ret);
 	return 1;
@@ -286,6 +291,7 @@ int Proxy_TransCommandRequest(INT8U *data,CSINFO *csinfo,INT8U *sendbuf,INT8U pi
 	INT8U	DAR=success;
 	getlist.piid = piid;
 	getlist.proxytype = ProxyTransCommandRequest;
+	getlist.proxy_obj.transcmd.dar = other_err1;
 	index += getOAD(0,&data[index],&getlist.proxy_obj.transcmd.oad,NULL);
 	index += getCOMDCB(0,&data[index],&getlist.proxy_obj.transcmd.comdcb,&DAR);
 	getlist.proxy_obj.transcmd.revtimeout = (data[index]<<8) | data[index+1];
