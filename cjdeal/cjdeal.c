@@ -887,23 +887,23 @@ int proxy_dar_fill(PROXY_GETLIST *dest_list,PROXY_GETLIST get_list)
 		if(dest_list->proxy_obj.record.dar != success) {
 			proxy_index = 0;
 			//TSA
-			addrlen = get_list.proxy_obj.buf[proxy_index]+1;
+			addrlen = dest_list->proxy_obj.buf[proxy_index]+1;
 			fprintf(stderr,"addrlen=%d\n ",addrlen);
-			memcpy(&dest_list->data[index],&get_list.proxy_obj.buf[proxy_index],addrlen);
+			memcpy(&dest_list->data[index],&dest_list->proxy_obj.buf[proxy_index],addrlen);
 			proxy_index += addrlen;
 			index += addrlen;
 			fprintf(stderr,"proxy_index=%d,index=%d\n",proxy_index,index);
 			//A-ResultRecord   OAD--RCSD--CHOICE
 			//OAD
-			memcpy(&dest_list->data[index],&get_list.proxy_obj.buf[proxy_index],4);
+			memcpy(&dest_list->data[index],&dest_list->proxy_obj.buf[proxy_index],4);
 			index += 4;
 			proxy_index += 4;
-			rsd_len = get_BasicRSD(0,&get_list.proxy_obj.buf[proxy_index],tmpBuf,&RSD_type);
+			rsd_len = get_BasicRSD(0,&dest_list->proxy_obj.buf[proxy_index],tmpBuf,&RSD_type);
 			proxy_index += rsd_len;
-			fprintf(stderr,"proxylen=%d,rsd_len=%d,addrlen=%d,proxy_index=%d\n",get_list.proxylen,rsd_len,sizeof(oadtmp),proxy_index);
-			rcsd_len = get_list.proxylen-addrlen-rsd_len-sizeof(oadtmp);
+			fprintf(stderr,"proxylen=%d,rsd_len=%d,addrlen=%d,proxy_index=%d\n",dest_list->proxylen,rsd_len,sizeof(oadtmp),proxy_index);
+			rcsd_len = dest_list->proxylen-addrlen-rsd_len-sizeof(oadtmp);
 			//RCSD
-			memcpy(&dest_list->data[index],&get_list.proxy_obj.buf[proxy_index],rcsd_len);
+			memcpy(&dest_list->data[index],&dest_list->proxy_obj.buf[proxy_index],rcsd_len);
 			index += rcsd_len;
 			//CHOICE
 			dest_list->data[index++] = 0x00; 	//DAR
@@ -1043,8 +1043,8 @@ void Pre_ProxyGetRequestRecord(CJCOMM_PROXY proxy)
 {
 	CLASS_6001 obj6001 = {};
 	int dataindex=0;
-	memset(&proxyList_manager.proxy_obj.record,0,sizeof(GETRECORD));
 
+//	memset(&proxyList_manager.proxy_obj.record,0,sizeof(GETRECORD));	//无TSA满足要求时要进行组帧，此处不能清0
 	if(get6001ObjByTSA(proxy.strProxyList.proxy_obj.record.tsa,&obj6001) != 1 )
 	{
 		proxyList_manager.proxy_obj.record.dar = other_err1;
@@ -1209,7 +1209,7 @@ void divProxy(CJCOMM_PROXY proxy)
 
 	int	i=0,len=0;
 	len = proxyList_manager.proxylen;
-	fprintf(stderr,"proxy len=%d\n",len);
+	fprintf(stderr,"divProxy proxy len=%d\n",len);
 	for(i=0;i<len;i++) {
 		fprintf(stderr,"%02x ",proxyList_manager.proxy_obj.buf[i]);
 	}
@@ -1261,7 +1261,7 @@ INT8S dealMsgProcess()
 			proxyInUse.devUse.proxyIdle = 1;
 			DEBUG_TIME_LINE("\n收到代理召测\n");
 			memcpy(&cjcommProxy_Tmp.strProxyList,rev_485_buf,sizeof(PROXY_GETLIST));
-			fprintf(stderr,"proxy.strProxyList.num=%d  len=%d\n",cjcommProxy_Tmp.strProxyList.num,cjcommProxy_Tmp.strProxyList.datalen);
+			fprintf(stderr,"proxy.strProxyList.num=%d  len=%d\n",cjcommProxy_Tmp.strProxyList.num,cjcommProxy_Tmp.strProxyList.proxylen);
 
 			//Proxy_GetRequestRecord 使用datalen 来置位发送的报文长度，因此此处不能清零
 //			cjcommProxy_Tmp.strProxyList.datalen=0;		//清除代理返回数据
@@ -1347,6 +1347,15 @@ INT8U dealProxyAnswer()
 	time_t nowtime = time(NULL);
 	int index=0;
 	int	i=0;
+
+	int	len=0;
+	len = proxyList_manager.proxylen;
+	fprintf(stderr,"dealProxyAnswer proxy len=%d\n",len);
+	for(i=0;i<len;i++) {
+		fprintf(stderr,"%02x ",proxyList_manager.proxy_obj.buf[i]);
+	}
+	fprintf(stderr,"\n");
+
 	if (timecount==0)
 	{
 		begintime = nowtime;
