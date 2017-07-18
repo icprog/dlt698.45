@@ -30,11 +30,14 @@ extern int FrameTimeTag(TimeTag *tag,INT8U *buf);
 extern INT8S (*pSendfun)(int fd, INT8U *sndbuf, INT16U sndlen);
 extern void Get698_event(OAD oad, ProgramInfo *prginfo_event);
 extern INT16S composeSecurityResponse(INT8U* SendApdu,INT16U Length);
-
+extern int CheckHead(unsigned char* buf ,CSINFO *csinfo);
+extern int CheckTail(unsigned char * buf,INT16U length);
 /*----------------------抄表相关*************************/
 extern INT16S composeProtocol698_GetRequest(INT8U*, CLASS_6015, TSA);
 extern INT16S composeProtocol698_SetRequest(INT8U* ,RESULT_NORMAL,TSA);
+extern INT16U composeProtocol698_GetRequestRecord(PROXY_GETLIST *getlist,INT8U *sendbuf);//代理record
 extern INT16S composeProtocol698_SetActionRequest(INT8U* sendBuf,INT8U type,ACTION_SET_OBJ setOBJ);
+extern INT16S composeProtocol698_SetActionThenGetRequest(INT8U* sendBuf,INT8U type,DO_Then_GET dogetOBJ);
 extern TS mylookback(time_t times,TI ti,INT8U n);
 extern time_t calcnexttime(TI ti, DateTimeBCD datetime,TI ti_delay);
 // OAD转换为报文
@@ -46,6 +49,7 @@ int appendFile(int shift, int length, unsigned char* buf);
 
 /*规约类型打印
  * */
+extern void printProxyDoThenGet(int tsa_num,DO_Then_GET *doget);
 extern void printDataTimeS(char *pro,DateTimeBCD datetimes);
 extern void printTI(char *pro,TI ti);
 extern void printMS(MY_MS ms);

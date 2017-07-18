@@ -66,6 +66,7 @@ void ClientForNetRead(struct aeEventLoop *eventLoop, int fd, void *clientData,
 	}
 
 	if (revcount > 0) {
+		TSGet(&nst->final_frame);
 		for (int j = 0; j < revcount; j++) {
 			read(fd, &nst->RecBuf[nst->RHead], 1);
 			nst->RHead = (nst->RHead + 1) % BUFLEN;

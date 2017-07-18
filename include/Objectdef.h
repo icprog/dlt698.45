@@ -603,10 +603,11 @@ typedef struct{
 	INT8U buf[255];
 }RSDBUF;
 typedef struct {
-    TSA tsa;           //目标地址
+    TSA tsa;          	 	//目标地址
     OAD oad;
     RSDBUF selectbuf;       //选择方法实例
     RCSD rcsd;
+	INT8U	dar;			//数据状态值,位置放在最后，消息报文直接送联合体，防止读取错误
 }GETRECORD;
 typedef struct{
 	OAD   oad_set;
@@ -623,19 +624,21 @@ typedef struct{
 	INT8U data[50];
 }SETOBJ;
 typedef struct{
+	INT8U	dar;		//数据状态值
 	TSA tsa;
 	INT16U num;
 	INT16U timeout;
 	SETATTRIB setoads[5];
 }DO_Then_GET;
 typedef struct{
+	INT8U	dar;		//数据状态值
 	TSA tsa;
 	INT16U num;
 	INT16U timeout;
 	SETOBJ setobjs[5];
 }ACTION_SET_OBJ;
 typedef union {
-	INT8U buf[2048];
+	INT8U buf[1024];
 	GETOBJS objs[10];  				//代理请求列表		ProxyGetRequestList
     GETRECORD record;				//代理请求记录		ProxyGetRequestRecord
     TRANSCMD transcmd;   		 	//代理操作透明转发	ProxyTransCommandRequest
@@ -651,6 +654,7 @@ typedef struct {
     INT8U piid;        //本次代理请求PIID
     INT16U timeout;    //代理超时时间
     INT16U num;        //TSA个数
+    INT16U	proxylen;	//代理接收长度
     PROXYOBJ proxy_obj;//代理内容
     INT8U data[512];   //请求结果
     INT16U datalen;    //数据长度
@@ -863,7 +867,7 @@ typedef struct
 	int sucessflg;		//0:没抄读	n:抄读n次
 	OAD oad1;			//非关联 oad1.OI=0
 	OAD oad2;			//数据项
-	INT8U item07[4];	//07规约
+	INT8U item07[4];	//07规约  15753578781
 	DateTimeBCD savetime;//存储时标
 }DATA_ITEM;
 typedef struct
@@ -885,8 +889,9 @@ typedef struct
 	time_t endTime;						//结束时间
 	DateTimeBCD begin;
 	DateTimeBCD end;
-	TI ti;		  //任务执行频率
+	TI ti;		  						//任务执行频率
 	INT8U leve;							//优先级别
+	INT8U tryAgain;						//需要补抄
 	CJ_FANGAN fangan;					//采集方案
 }TASK_UNIT;
 

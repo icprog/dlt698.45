@@ -816,33 +816,26 @@ extern INT8U get6001ObjByTSA(TSA addr,CLASS_6001* targetMeter);
 #define PORT_485  	0xF201
 #define PORT_JC		0xF208
 PROXY_GETLIST proxyList_manager;
-int proxy_one_fill_record(GETRECORD record,int len,INT8U *source,INT8U DARtype,INT8U *desbuf)
-{
-	int index =0;
-	if (DARtype>0 ||source==NULL || len==0)
-	{
-		int addrlen = record.tsa.addr[0]+1;
-		memcpy(&desbuf[index],&record.tsa.addr[0],addrlen);
-		index += addrlen;
-		desbuf[index++] = 0x00;
-		desbuf[index++] = DARtype;
-	}else{
-		desbuf[index++] = 0x01;
-		memcpy(&desbuf[index],source, len);
-	}
-	return index;
-}
-
-
-//			dataindex += proxy_one_fill(proxy.strProxyList.proxy_obj.objs[i], 0, NULL,request_overtime, &proxyList_manager.data[dataindex]);
-//A-ResultNormal∷=SEQUENCE
+//int proxy_one_fill_record(GETRECORD record,int len,INT8U *source,INT8U DARtype,INT8U *desbuf)
 //{
-//  对象属性描述符  OAD，
-//  及其结果        Get-Result
+//	int index =0;
+//	if (DARtype>0 ||source==NULL || len==0)
+//	{
+//		int addrlen = record.tsa.addr[0]+1;
+//		memcpy(&desbuf[index],&record.tsa.addr[0],addrlen);
+//		index += addrlen;
+//		desbuf[index++] = 0x00;
+//		desbuf[index++] = DARtype;
+//	}else{
+//		desbuf[index++] = 0x01;
+//		memcpy(&desbuf[index],source, len);
+//	}
+//	return index;
 //}
-//proxy_dar_fill(proxyList_manager.proxytype,proxyList_manager.num,proxyList_manager.proxy_obj,&proxyList_manager.datalen,&proxyList_manager.data[index]);
 
-//int proxy_dar_fill(INT8U proxytype,INT8U seqofNum,PROXYOBJ proxy_obj,INT16U *destindex,INT8U *desbuf)
+/*
+ * 根据get_list的抄表结果DAR，填充未抄读成功的A-ResultNormal的内容，写入dest_list
+ * */
 int proxy_dar_fill(PROXY_GETLIST *dest_list,PROXY_GETLIST get_list)
 {
 	INT16U index = 0,i=0,j=0;
@@ -853,13 +846,12 @@ int proxy_dar_fill(PROXY_GETLIST *dest_list,PROXY_GETLIST get_list)
 	fprintf(stderr,"proxy_dar_fill  proxytype=%d index=%d\n",dest_list->proxytype,index);
 	switch(dest_list->proxytype) {
 	case ProxyGetRequestList:
-		fprintf(stderr,"seqofNum = %d\n",dest_list->num);
 		for(i=0; i<dest_list->num; i++) {
-			fprintf(stderr,"dar[%d] source=%d,dest=%d \n",i,get_list.proxy_obj.objs[i].dar,dest_list->proxy_obj.objs[i].dar);
 			if(get_list.proxy_obj.objs[i].dar == proxy_success) {
 				dest_list->proxy_obj.objs[i].dar = success;
+			}else if(get_list.proxy_obj.objs[i].dar == request_overtime) {
+				dest_list->proxy_obj.objs[i].dar = request_overtime;
 			}
-			fprintf(stderr,"dar[%d] source=%d,dest=%d \n",i,get_list.proxy_obj.objs[i].dar,dest_list->proxy_obj.objs[i].dar);
 			if(dest_list->proxy_obj.objs[i].dar != success) {
 				printTSA(dest_list->proxy_obj.objs[i].tsa);
 				addrlen = dest_list->proxy_obj.objs[i].tsa.addr[0]+1;
@@ -872,13 +864,99 @@ int proxy_dar_fill(PROXY_GETLIST *dest_list,PROXY_GETLIST get_list)
 					result_num++;
 					index += create_OAD(0,&dest_list->data[index],dest_list->proxy_obj.objs[i].oads[j]);
 					dest_list->data[index++] = 0x00;
-					dest_list->data[index++] = request_overtime;
+					dest_list->data[index++] = dest_list->proxy_obj.objs[i].dar;
 				}
 				dest_list->data[result_index] = result_num; //SEQUENCE of A-ResultNormal
-				fprintf(stderr,"datelen=%d,index=%d\n",dest_list->datalen,index);
-				for(j=dest_list->datalen;j<index;j++) {
-					fprintf(stderr,"%02x ",dest_list->data[j]);
+			}
+		}
+		break;
+	case ProxyGetRequestRecord:
+		if(get_list.proxy_obj.record.dar == proxy_success) {
+			dest_list->proxy_obj.record.dar = success;
+		}else if(get_list.proxy_obj.record.dar == request_overtime) {
+			dest_list->proxy_obj.record.dar = request_overtime;
+		}
+		if(dest_list->proxy_obj.record.dar != success) {
+			addrlen = dest_list->proxy_obj.record.tsa.addr[0]+1;
+			memcpy(&dest_list->data[index],&dest_list->proxy_obj.record.tsa.addr[0],addrlen);
+			index += addrlen;
+			result_index = index;	//记录SEQUENCE of A-ResultNormal的位置
+			index++;
+			result_num=0;
+			for(j=0;j<dest_list->proxy_obj.record.rcsd.csds.num;j++) {
+				result_num++;
+				//TODO： RCSD如何配置 OAD
+				index += create_OAD(0,&dest_list->data[index],dest_list->proxy_obj.record.rcsd.csds.csd[j].csd.oad);
+				dest_list->data[index++] = 0x00;
+				dest_list->data[index++] = dest_list->proxy_obj.record.dar;
+			}
+			dest_list->data[result_index] = result_num; //SEQUENCE of A-ResultNormal
+		}
+		break;
+	case ProxySetRequestList:
+	case ProxyActionRequestList:
+		for(i=0; i<dest_list->num; i++) {
+			if(get_list.proxy_obj.doTsaList[i].dar == proxy_success) {
+				dest_list->proxy_obj.doTsaList[i].dar = success;
+			}else if(get_list.proxy_obj.doTsaList[i].dar == request_overtime) {
+				dest_list->proxy_obj.doTsaList[i].dar = request_overtime;
+			}
+			if(dest_list->proxy_obj.doTsaList[i].dar != success) {
+				printTSA(dest_list->proxy_obj.doTsaList[i].tsa);
+				addrlen = dest_list->proxy_obj.doTsaList[i].tsa.addr[0]+1;
+				memcpy(&dest_list->data[index],&dest_list->proxy_obj.doTsaList[i].tsa.addr[0],addrlen);
+				index += addrlen;
+				result_index = index;	//记录SEQUENCE of 对象属性描述符及结果
+				index++;
+				result_num=0;
+				fprintf(stderr,"dest_list->proxy_obj.doTsaList[i].num=%d\n",dest_list->proxy_obj.doTsaList[i].num);
+				for(j=0;j<dest_list->proxy_obj.doTsaList[i].num;j++) {
+					result_num++;
+					index += create_OAD(0,&dest_list->data[index],dest_list->proxy_obj.doTsaList[i].setobjs[j].oad);
+					dest_list->data[index++] = dest_list->proxy_obj.doTsaList[i].dar;
+					if(dest_list->proxytype == ProxyActionRequestList) {
+						dest_list->data[index++] = 0;		//Data Optional NULL
+					}
 				}
+				dest_list->data[result_index] = result_num; //SEQUENCE of A-ResultNormal
+			}
+		}
+		break;
+	case ProxySetThenGetRequestList:
+	case ProxyActionThenGetRequestList:
+		fprintf(stderr,"dest_list->num=%d\n",dest_list->num);
+		for(i=0; i<dest_list->num; i++) {
+			fprintf(stderr,"dest_list->dar=%d\n",get_list.proxy_obj.doTsaThenGet[i].dar);
+			if(get_list.proxy_obj.doTsaThenGet[i].dar == proxy_success) {
+				dest_list->proxy_obj.doTsaThenGet[i].dar = success;
+			}else if(get_list.proxy_obj.doTsaThenGet[i].dar == request_overtime) {
+				dest_list->proxy_obj.doTsaThenGet[i].dar = request_overtime;
+			}
+			if(dest_list->proxy_obj.doTsaThenGet[i].dar != success) {
+				printTSA(dest_list->proxy_obj.doTsaThenGet[i].tsa);
+				addrlen = dest_list->proxy_obj.doTsaThenGet[i].tsa.addr[0]+1;
+				memcpy(&dest_list->data[index],&dest_list->proxy_obj.doTsaThenGet[i].tsa.addr[0],addrlen);
+				index += addrlen;
+				result_index = index;	//记录SEQUENCE of 对象属性描述符及结果
+				index++;
+				result_num=0;
+				fprintf(stderr,"dest_list->proxy_obj.doTsaThenGet[i].num=%d\n",dest_list->proxy_obj.doTsaThenGet[i].num);
+				for(j=0;j<dest_list->proxy_obj.doTsaThenGet[i].num;j++) {
+					result_num++;
+					//设置的对象属性描述符
+					index += create_OAD(0,&dest_list->data[index],dest_list->proxy_obj.doTsaThenGet[i].setoads[j].oad_set);
+					//及其设置结果
+					dest_list->data[index++] = dest_list->proxy_obj.doTsaThenGet[i].dar;
+					if(dest_list->proxytype == ProxyActionThenGetRequestList) {
+						dest_list->data[index++] = 0; 		//Data OPTIONAL: 数据为NULL
+					}
+					//A-ResultNormal:设置的对象属性描述符
+					index += create_OAD(0,&dest_list->data[index],dest_list->proxy_obj.doTsaThenGet[i].setoads[j].oad_get);
+					//及其设置结果
+					dest_list->data[index++] = 0;	//错误信息【0】 DAR
+					dest_list->data[index++] = dest_list->proxy_obj.doTsaThenGet[i].dar;
+				}
+				dest_list->data[result_index] = result_num; //SEQUENCE of A-ResultNormal
 			}
 		}
 		break;
@@ -889,8 +967,11 @@ int proxy_dar_fill(PROXY_GETLIST *dest_list,PROXY_GETLIST get_list)
 		}
 		break;
 	}
+	fprintf(stderr,"datelen=%d,index=%d\n",dest_list->datalen,index);
+	for(j=dest_list->datalen;j<index;j++) {
+		fprintf(stderr,"%02x ",dest_list->data[j]);
+	}
 	dest_list->datalen = index;
-	fprintf(stderr,"proxy_dar_fill  return ...........datelen=%d\n",dest_list->datalen);
 	return index;
 }
 extern void set_port_active(INT8U port485,INT8U value);
@@ -906,6 +987,7 @@ void Pre_ProxyGetRequestList(CJCOMM_PROXY proxy)
 		if(get6001ObjByTSA(proxy.strProxyList.proxy_obj.objs[i].tsa,&obj6001) != 1 )
 		{//TSA未找到
 			proxyList_manager.proxy_obj.objs[i].dar = other_err1;
+//			fprintf(stderr,"i=%d,dar=%d\n",i,proxyList_manager.proxy_obj.objs[i].dar);
 //			dataindex += proxy_one_fill(proxy.strProxyList.proxy_obj.objs[i], 0, NULL,request_overtime, &proxyList_manager.data[dataindex]);
 		}else
 //		if(get6001ObjByTSA(proxy.strProxyList.proxy_obj.objs[i].tsa,&obj6001) == 1 )
@@ -921,8 +1003,8 @@ void Pre_ProxyGetRequestList(CJCOMM_PROXY proxy)
 			}
 		}
 	}
-	fprintf(stderr,"\n&&&&&&&&&&proxyList_manager.num=%d  dar=%d_%d",proxyList_manager.num,
-			proxy.strProxyList.proxy_obj.objs[0].dar,proxy.strProxyList.proxy_obj.objs[1].dar);
+//	fprintf(stderr,"\n&&&&&&&&&&proxyList_manager.num=%d  dar=%d_%d",proxyList_manager.num,
+//			proxy.strProxyList.proxy_obj.objs[0].dar,proxy.strProxyList.proxy_obj.objs[1].dar);
 	proxyList_manager.datalen = dataindex;
 	fprintf(stderr,"\n代理任务分配   num=%d",cjcommProxy.strProxyList.num);
 	if (num_485 > 0)
@@ -948,7 +1030,8 @@ void Pre_ProxyGetRequestRecord(CJCOMM_PROXY proxy)
 
 	if(get6001ObjByTSA(proxy.strProxyList.proxy_obj.record.tsa,&obj6001) != 1 )
 	{
-		dataindex += proxy_one_fill_record(proxy.strProxyList.proxy_obj.record, 0, NULL,0x21, &proxyList_manager.data[dataindex]);
+		proxyList_manager.proxy_obj.record.dar = other_err1;
+//		dataindex += proxy_one_fill_record(proxy.strProxyList.proxy_obj.record, 0, NULL,0x21, &proxyList_manager.data[dataindex]);
 	}else
 	{
 		if (obj6001.basicinfo.port.OI==PORT_485)
@@ -957,12 +1040,14 @@ void Pre_ProxyGetRequestRecord(CJCOMM_PROXY proxy)
 			set_port_active(2,1);
 			memcpy(&cjcommProxy.strProxyList.proxy_obj.record, &proxy.strProxyList.proxy_obj.record, sizeof(GETRECORD));
 			cjcommProxy.strProxyList.proxytype = proxy.strProxyList.proxytype;
+			cjcommProxy.strProxyList.proxylen = proxy.strProxyList.proxylen;
 			cjcommProxy.isInUse = 3;
 			proxyInUse.devUse.rs485Need = 1;
 		}else if(obj6001.basicinfo.port.OI==PORT_ZB)
 		{
-			cjcommProxy_plc.strProxyList.proxytype = proxy.strProxyList.proxytype;
 			memcpy(&cjcommProxy_plc.strProxyList.proxy_obj.record, &proxy.strProxyList.proxy_obj.record, sizeof(GETRECORD));
+			cjcommProxy_plc.strProxyList.proxytype = proxy.strProxyList.proxytype;
+			cjcommProxy_plc.strProxyList.proxylen = proxy.strProxyList.proxylen;
 			cjcommProxy_plc.isInUse = 1;
 			proxyInUse.devUse.plcNeed = 1;
 		}
@@ -975,10 +1060,13 @@ void  Pre_ProxyDoThenGetRequestList(CJCOMM_PROXY proxy)
 	CLASS_6001 obj6001 = {};
 
 	proxyList_manager.data[dataindex++] = num;
+	fprintf(stderr,"num = %d\n",num);
 	for(i=0;i<num;i++)
 	{
 		if(get6001ObjByTSA(proxy.strProxyList.proxy_obj.doTsaThenGet[i].tsa,&obj6001) != 1 )
 		{//TSA未找到
+			proxyList_manager.proxy_obj.doTsaThenGet[i].dar = other_err1;
+			fprintf(stderr,"==========dar=%d\n",proxyList_manager.proxy_obj.doTsaThenGet[i].dar);
 //			dataindex += proxy_one_fill(proxy.strProxyList.proxy_obj.doTsaThenGet[i], 0, NULL,0x21, &proxyList_manager.data[dataindex]);
 		}else
 		{
@@ -986,6 +1074,7 @@ void  Pre_ProxyDoThenGetRequestList(CJCOMM_PROXY proxy)
 			{
 				memcpy(&cjcommProxy.strProxyList.proxy_obj.doTsaThenGet[num_485++], &proxy.strProxyList.proxy_obj.doTsaThenGet[i], sizeof(DO_Then_GET));
 				cjcommProxy.strProxyList.num = num_485;
+
 			}else if(obj6001.basicinfo.port.OI==PORT_ZB)
 			{
 				memcpy(&cjcommProxy_plc.strProxyList.proxy_obj.doTsaThenGet[num_zb++], &proxy.strProxyList.proxy_obj.doTsaThenGet[i], sizeof(DO_Then_GET));
@@ -993,6 +1082,8 @@ void  Pre_ProxyDoThenGetRequestList(CJCOMM_PROXY proxy)
 			}
 		}
 	}
+	fprintf(stderr,"\n&&&&&&&&&&&&&&&&&&&&&&&&&&&");
+	printProxyDoThenGet(cjcommProxy.strProxyList.num,cjcommProxy.strProxyList.proxy_obj.doTsaThenGet);
 	proxyList_manager.datalen = dataindex;
 	fprintf(stderr,"\n代理任务分配");
 	if (num_485 > 0)
@@ -1021,6 +1112,7 @@ void Pre_ProxyDoRequestList(CJCOMM_PROXY proxy)//Proxy  Action / Set- List
 	{
 		if(get6001ObjByTSA(proxy.strProxyList.proxy_obj.doTsaList[i].tsa,&obj6001) != 1 )
 		{//TSA未找到
+			proxyList_manager.proxy_obj.doTsaList[i].dar = other_err1;
 //			dataindex += proxy_one_fill(proxy.strProxyList.proxy_obj.doTsaList[i], 0, NULL,0x21, &proxyList_manager.data[dataindex]);
 		}else
 		{
@@ -1096,7 +1188,15 @@ void divProxy(CJCOMM_PROXY proxy)
 	memset(&cjcommProxy_plc,0,sizeof(cjcommProxy_plc));
 	memcpy(&proxyList_manager,&proxy.strProxyList,sizeof(PROXY_GETLIST));
 	memset(&proxyList_manager.data,0,sizeof(proxyList_manager.data));
-	proxyList_manager.datalen = 0;
+	proxyList_manager.datalen = 0;	//此处清除，防止后面处理时，数据未组织好，将返回一个随机值。
+
+	int	i=0,len=0;
+	len = proxy.strProxyList.proxylen;
+	fprintf(stderr,"proxy len=%d\n",len);
+	for(i=0;i<len;i++) {
+		fprintf(stderr,"%02x ",proxy.strProxyList.proxy_obj.buf[i]);
+	}
+	fprintf(stderr,"\n");
 
 	if (proxyList_manager.timeout == 0)
 		proxyList_manager.timeout = 60;
@@ -1114,6 +1214,7 @@ void divProxy(CJCOMM_PROXY proxy)
 			break;
 		case ProxySetThenGetRequestList:	//SetThenGetRequestList	ActionThenGetRequestList
 		case ProxyActionThenGetRequestList:
+			printProxyDoThenGet(proxyList_manager.num,proxyList_manager.proxy_obj.doTsaThenGet);
 			Pre_ProxyDoThenGetRequestList(proxy);
 		break;
 		case ProxyTransCommandRequest:
@@ -1143,10 +1244,11 @@ INT8S dealMsgProcess()
 			proxyInUse.devUse.proxyIdle = 1;
 			DEBUG_TIME_LINE("\n收到代理召测\n");
 			memcpy(&cjcommProxy_Tmp.strProxyList,rev_485_buf,sizeof(PROXY_GETLIST));
-			fprintf(stderr,"proxy.strProxyList.num=%d\n",cjcommProxy_Tmp.strProxyList.num);
-			cjcommProxy_Tmp.strProxyList.datalen=0;		//清除代理返回数据
+			fprintf(stderr,"proxy.strProxyList.num=%d  len=%d\n",cjcommProxy_Tmp.strProxyList.num,cjcommProxy_Tmp.strProxyList.datalen);
+
+			//Proxy_GetRequestRecord 使用datalen 来置位发送的报文长度，因此此处不能清零
+//			cjcommProxy_Tmp.strProxyList.datalen=0;		//清除代理返回数据
 			memset(&cjcommProxy_Tmp.strProxyList.data,0,sizeof(cjcommProxy_Tmp.strProxyList.data));
-			fprintf(stderr,"11111111111111111dar=%d-------------%d\n ",cjcommProxy_Tmp.strProxyList.proxy_obj.objs[0].dar,cjcommProxy_Tmp.strProxyList.proxy_obj.objs[1].dar);
 			divProxy(cjcommProxy_Tmp);
 		}
 		if(mq_h.pid == cjgui)
@@ -1274,13 +1376,13 @@ INT8U dealProxyAnswer()
 			}
 			fprintf(stderr,"\n\n\n");
 			index = proxyList_manager.datalen;
-			fprintf(stderr,"........11111proxyList_manager.datalen = %d\n",proxyList_manager.datalen);
 			memcpy(&proxyList_manager.data[index],cjcommProxy.strProxyList.data,cjcommProxy.strProxyList.datalen);
 			proxyList_manager.datalen += cjcommProxy.strProxyList.datalen;
 //			if(timecount > proxyList_manager.timeout) {		//TODO：超时，发送超时的错误，ProxyTransCommandRequest支持，其他类型是否需要？？？
 			proxy_dar_fill(&proxyList_manager,cjcommProxy.strProxyList);
 //			}
-			fprintf(stderr,"........proxyList_manager.datalen = %d\n",proxyList_manager.datalen);
+			fprintf(stderr,"\n代理消息内容.........datalen=%d\n",proxyList_manager.datalen);
+			fprintf(stderr,"proxyList_manager piid=%02x  ca=%02x \n",proxyList_manager.piid,proxyList_manager.csinfo.ca);
 			for(i = 0; i < proxyList_manager.datalen;i++)
 			{
 				fprintf(stderr,"%02x ",proxyList_manager.data[i]);
@@ -1303,6 +1405,10 @@ INT8U dealProxyAnswer()
 																		//才认为这个设备上的代理操作已完毕.
 																		//当代理所使用的所有设备操作完毕后,
 																		//将代理标记清零, 处理下一个代理操作.
+		//处理非载波及485表的TSA的透传应答帧处理
+		if(proxyInUse.devUse.plcNeed==0 && proxyInUse.devUse.rs485Need==0) {
+			proxy_dar_fill(&proxyList_manager,cjcommProxy.strProxyList);
+		}
 		mqs_send((INT8S *)PROXY_NET_MQ_NAME,1,TERMINALPROXY_RESPONSE,(INT8U *)&proxyList_manager,sizeof(PROXY_GETLIST));
 		fprintf(stderr,"\n全部代理操作完成，发消息 ！！");
 		timecount = 0;
