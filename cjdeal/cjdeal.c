@@ -428,11 +428,11 @@ INT8S saveClass6035(CLASS_6035* class6035)
 {
 	INT8U isFind = 0;
 	INT8S ret = -1;
-	int recordNum = getFileRecordNum(0x6035);
+
 	CLASS_6035 file6035;
 	memset(&file6035,0,sizeof(CLASS_6035));
 	INT16U i;
-	for(i=0;i<=recordNum;i++)
+	for(i=0;i<=255;i++)
 	{
 		if(readCoverClass(0x6035,i,&file6035,sizeof(CLASS_6035),coll_para_save)== 1)
 		{
