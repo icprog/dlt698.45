@@ -747,7 +747,7 @@ int getOAD(INT8U type,INT8U *source,OAD *oad,INT8U *DAR)		//0x51
 		oad->attrindex = source[type+3];
 		return (4+type);
 	}else{
-		*DAR=type_mismatch;
+		if(DAR!=NULL)	*DAR=type_mismatch;
 		return 0;
 	}
 	return 0;

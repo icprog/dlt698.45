@@ -428,11 +428,10 @@ INT8S saveClass6035(CLASS_6035* class6035)
 {
 	INT8U isFind = 0;
 	INT8S ret = -1;
-	int recordNum = getFileRecordNum(0x6035);
 	CLASS_6035 file6035;
 	memset(&file6035,0,sizeof(CLASS_6035));
 	INT16U i;
-	for(i=0;i<=recordNum;i++)
+	for(i=0;i<=255;i++)
 	{
 		if(readCoverClass(0x6035,i,&file6035,sizeof(CLASS_6035),coll_para_save)== 1)
 		{
@@ -838,9 +837,11 @@ PROXY_GETLIST proxyList_manager;
  * */
 int proxy_dar_fill(PROXY_GETLIST *dest_list,PROXY_GETLIST get_list)
 {
-	INT16U index = 0,i=0,j=0;
-	int addrlen = 0;
+	INT16U index = 0,proxy_index=0,i=0,j=0;
+	int addrlen = 0,rsd_len=0,rcsd_len=0;
 	int	result_index = 0, result_num=0;
+	OAD	oadtmp={};
+	INT8U	tmpBuf[512]={},RSD_type=0;
 
 	index = dest_list->datalen;
 	fprintf(stderr,"proxy_dar_fill  proxytype=%d index=%d\n",dest_list->proxytype,index);
@@ -871,26 +872,42 @@ int proxy_dar_fill(PROXY_GETLIST *dest_list,PROXY_GETLIST get_list)
 		}
 		break;
 	case ProxyGetRequestRecord:
+
+		fprintf(stderr,"getlist.datalen=%d\n",get_list.proxylen);
+		for(i=0;i<get_list.proxylen;i++) {
+			fprintf(stderr,"%02x ",get_list.proxy_obj.buf[i]);
+		}
+		fprintf(stderr,"\n");
+
 		if(get_list.proxy_obj.record.dar == proxy_success) {
 			dest_list->proxy_obj.record.dar = success;
 		}else if(get_list.proxy_obj.record.dar == request_overtime) {
 			dest_list->proxy_obj.record.dar = request_overtime;
 		}
 		if(dest_list->proxy_obj.record.dar != success) {
-			addrlen = dest_list->proxy_obj.record.tsa.addr[0]+1;
-			memcpy(&dest_list->data[index],&dest_list->proxy_obj.record.tsa.addr[0],addrlen);
+			proxy_index = 0;
+			//TSA
+			addrlen = get_list.proxy_obj.buf[proxy_index]+1;
+			fprintf(stderr,"addrlen=%d\n ",addrlen);
+			memcpy(&dest_list->data[index],&get_list.proxy_obj.buf[proxy_index],addrlen);
+			proxy_index += addrlen;
 			index += addrlen;
-			result_index = index;	//记录SEQUENCE of A-ResultNormal的位置
-			index++;
-			result_num=0;
-			for(j=0;j<dest_list->proxy_obj.record.rcsd.csds.num;j++) {
-				result_num++;
-				//TODO： RCSD如何配置 OAD
-				index += create_OAD(0,&dest_list->data[index],dest_list->proxy_obj.record.rcsd.csds.csd[j].csd.oad);
-				dest_list->data[index++] = 0x00;
-				dest_list->data[index++] = dest_list->proxy_obj.record.dar;
-			}
-			dest_list->data[result_index] = result_num; //SEQUENCE of A-ResultNormal
+			fprintf(stderr,"proxy_index=%d,index=%d\n",proxy_index,index);
+			//A-ResultRecord   OAD--RCSD--CHOICE
+			//OAD
+			memcpy(&dest_list->data[index],&get_list.proxy_obj.buf[proxy_index],4);
+			index += 4;
+			proxy_index += 4;
+			rsd_len = get_BasicRSD(0,&get_list.proxy_obj.buf[proxy_index],tmpBuf,&RSD_type);
+			proxy_index += rsd_len;
+			fprintf(stderr,"proxylen=%d,rsd_len=%d,addrlen=%d,proxy_index=%d\n",get_list.proxylen,rsd_len,sizeof(oadtmp),proxy_index);
+			rcsd_len = get_list.proxylen-addrlen-rsd_len-sizeof(oadtmp);
+			//RCSD
+			memcpy(&dest_list->data[index],&get_list.proxy_obj.buf[proxy_index],rcsd_len);
+			index += rcsd_len;
+			//CHOICE
+			dest_list->data[index++] = 0x00; 	//DAR
+			dest_list->data[index++] = dest_list->proxy_obj.record.dar;
 		}
 		break;
 	case ProxySetRequestList:
@@ -1191,10 +1208,10 @@ void divProxy(CJCOMM_PROXY proxy)
 	proxyList_manager.datalen = 0;	//此处清除，防止后面处理时，数据未组织好，将返回一个随机值。
 
 	int	i=0,len=0;
-	len = proxy.strProxyList.proxylen;
+	len = proxyList_manager.proxylen;
 	fprintf(stderr,"proxy len=%d\n",len);
 	for(i=0;i<len;i++) {
-		fprintf(stderr,"%02x ",proxy.strProxyList.proxy_obj.buf[i]);
+		fprintf(stderr,"%02x ",proxyList_manager.proxy_obj.buf[i]);
 	}
 	fprintf(stderr,"\n");
 
