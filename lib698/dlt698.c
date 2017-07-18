@@ -51,108 +51,69 @@ INT8U broadcast=0;
 /**************************************
  * 函数功能：DL/T698.45 状态机
  * 参数含义：
+ * 返回含义：0代表还需要获取报文
+ * 		   1代表还需要再循环一轮
  **************************************/
-int StateProcess(CommBlock* nst, int delay_num)
-{
-	int length=0,i=0;
-	int ret = 1;
-	switch(nst->deal_step)
-	{
-		case 0:		 // 找到第一个 0x68
-			while(nst->RHead!=nst->RTail)
-			{
-				if (nst->RecBuf[nst->RTail]== 0x68)
-				{
-					nst->deal_step = 1;
-					fprintf(stderr,"\n找到 68");
-					ret = 0;//需要继续
-					break;
-				}else {
-					nst->RTail = (nst->RTail + 1)% FRAMELEN;
-				}
-			}
-			break;
-		case 1:	   //从rev_tail2开始 跨长度字节找 0x16
-			if(((nst->RHead-nst->RTail+FRAMELEN)%FRAMELEN) >= 3)
-			{
-//				fprintf(stderr,"\nNetRevBuf[*rev_tail] = %02x  %02x\n ",NetRevBuf[(*rev_tail+ 2)%FRAMELEN],NetRevBuf[(*rev_tail+ 1)%FRAMELEN]);
-//				fprintf(stderr,"\nRevBuf[%d]=%02x  %02x  %02x",
-//						nst->RTail,
-//						nst->RecBuf[(nst->RTail+ 1 + FRAMELEN )%FRAMELEN],
-//						nst->RecBuf[(nst->RTail+ 2 + FRAMELEN )%FRAMELEN]);
+int StateProcess(CommBlock* nst, int delay_num) {
+	TS now;
 
-				length = (nst->RecBuf[(nst->RTail+ 2 + FRAMELEN )%FRAMELEN] << 8) + nst->RecBuf[(nst->RTail+ 1 + FRAMELEN)%FRAMELEN];
-				fprintf(stderr,"\n---length =%d  ",length);
-
-				length = (length) & 0x03FFF;//bit15 bit14 保留
-				fprintf(stderr,"\nlength = %d \n",length);
-				if (length <= 0)//长度异常
-				{
-					nst->RTail = (nst->RTail + 1)% FRAMELEN;
-					nst->deal_step = 0;
-					ret = 0;//需要继续
-					break;
-				}else {
-//					fprintf(stderr,"*rev_head = %d *rev_tail = %d ",*rev_head,*rev_tail);
-					if((nst->RHead-nst->RTail+FRAMELEN)%FRAMELEN >= (length+2))//长度length为除 68和16 以外的字节数
-					{
-						fprintf(stderr,"\n找16");
-						if(nst->RecBuf[ (nst->RTail + length + 1 + FRAMELEN)% FRAMELEN ]== 0x16)
-						{
-							fprintf(stderr,"\n找到16!!!!!!!");
-							nst->rev_delay = 0;
-//							fprintf(stderr,"RRR=[%d]\n",length+2);
-							for(i=0;i<(length+2);i++)
-							{
-								nst->DealBuf[i] = nst->RecBuf[nst->RTail];
-//								fprintf(stderr,"%02x ",dealbuf[i]);
-								nst->RTail = (nst->RTail + 1) % FRAMELEN;
-							}
-							nst->deal_step = 0;//进入下一步
-							return (length+2);
-						}
-						else
-						{
-							fprintf(stderr,"\n1、 delay =%d  ",nst->rev_delay);
-							if (nst->rev_delay < delay_num)
-							{
-								(nst->rev_delay)++;
-								ret = 0;//需要继续
-								break;
-							}else
-							{
-								fprintf(stderr,"\n1、超时  Tail 移动 ！！");
-								nst->rev_delay = 0;
-								nst->RTail = (nst->RTail +1 )% FRAMELEN;
-								nst->deal_step = 0;//返回第一步
-								ret = 0;//需要继续
-							}
-						}
-					}else
-					{
-						ret = -1;
-//							fprintf(stderr,"\n2、 delay =%d  ",nst->rev_delay);
-//							if (nst->rev_delay < delay_num)
-//							{
-//								(nst->rev_delay)++;
-//								ret = 0;//需要继续
-//								break;
-//							}else
-//							{
-//								fprintf(stderr,"\n2、超时  Tail 移动 ！！");
-//								nst->rev_delay = 0;
-//								nst->RTail = (nst->RTail +1 )% FRAMELEN;
-//								nst->deal_step = 0;
-//								ret = 0;//需要继续
-//							}
-					}
-				}
-			}
-			break;
-		default :
-			break;
+	nst->deal_step = 0;
+	// 找到第一个 0x68
+	while (nst->RHead != nst->RTail && nst->RecBuf[nst->RTail] != 0x68) {
+		nst->RTail = (nst->RTail + 1) % FRAMELEN;
 	}
-	return ret;
+
+	if(nst->RecBuf[nst->RTail] != 0x68){
+		return 0;
+	}
+
+	//检查报文长度
+	if (((nst->RHead - nst->RTail + FRAMELEN) % FRAMELEN) < 3) {
+		return 0;
+	}
+	fprintf(stderr, "==========cp1\n\n\n\n\n");
+
+	int length = (nst->RecBuf[(nst->RTail + 2 + FRAMELEN) % FRAMELEN] << 8)
+			+ nst->RecBuf[(nst->RTail + 1 + FRAMELEN) % FRAMELEN];
+	length = (length) & 0x03FFF;
+
+	fprintf(stderr, "\nlength = %d \n", length);
+	if (length <= 0 || length >= FRAMELEN) {
+		nst->RTail = (nst->RTail + 1) % FRAMELEN;
+		return 1;
+	}
+	TSGet(&now);
+	tminc(&nst->final_frame, 0, 6);
+	if(TScompare(now, nst->final_frame) == 1){
+		nst->RTail = (nst->RTail + 1) % FRAMELEN;
+				return 1;
+	}
+
+	//长度length为除 68和16 以外的字节数
+	if ((nst->RHead - nst->RTail + FRAMELEN) % FRAMELEN < (length + 2)) {
+		return 0;
+	}
+
+	fprintf(stderr, "==========cp2\n\n\n\n\n");
+
+	if (nst->RecBuf[(nst->RTail + length + 1 + FRAMELEN) % FRAMELEN] == 0x16) {
+		for (int i = 0; i < (length + 2); i++) {
+			nst->DealBuf[i] = nst->RecBuf[nst->RTail];
+			nst->RTail = (nst->RTail + 1) % FRAMELEN;
+			fprintf(stderr, "%02x\n", nst->DealBuf[i]);
+			nst->deal_step ++;
+		}
+		if (((nst->RHead - nst->RTail + FRAMELEN) % FRAMELEN) >= 3) {
+			return 1;
+		} else {
+			return 0;
+		}
+	} else {
+		nst->RTail = (nst->RTail + 1) % FRAMELEN;
+		return 1;
+	}
+
+	return 0;
 }
 /**********************************************************
  * 检测下行帧服务器地址是否与本终端匹配

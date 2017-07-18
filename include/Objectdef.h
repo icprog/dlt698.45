@@ -855,6 +855,7 @@ typedef struct {
     INT8U SendBuf[BUFLEN];      //发送数据
     INT8U DealBuf[FRAMELEN];    //保存接口函数处理长度
     INT8U RecBuf[BUFLEN];       //接收数
+    TS final_frame;				//最后一次收到报文的时间
 } CommBlock;
 ////////////////////////////////////////////////////////////////////
 typedef struct
