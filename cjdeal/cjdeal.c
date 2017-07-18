@@ -428,11 +428,11 @@ INT8S saveClass6035(CLASS_6035* class6035)
 {
 	INT8U isFind = 0;
 	INT8S ret = -1;
-	int recordNum = getFileRecordNum(0x6035);
+
 	CLASS_6035 file6035;
 	memset(&file6035,0,sizeof(CLASS_6035));
 	INT16U i;
-	for(i=0;i<=recordNum;i++)
+	for(i=0;i<=255;i++)
 	{
 		if(readCoverClass(0x6035,i,&file6035,sizeof(CLASS_6035),coll_para_save)== 1)
 		{
@@ -445,7 +445,7 @@ INT8S saveClass6035(CLASS_6035* class6035)
 	}
 	if(isFind)
 	{
-		memcpy(&class6035->starttime,&file6035.starttime,sizeof(DateTimeBCD));
+		//memcpy(&class6035->starttime,&file6035.starttime,sizeof(DateTimeBCD));
 		class6035->totalMSNum += file6035.totalMSNum;
 		class6035->successMSNum += file6035.successMSNum;
 		class6035->sendMsgNum += file6035.sendMsgNum;
@@ -539,7 +539,7 @@ INT8U init6013ListFrom6012File() {
 					}
 				}
 #if 1
-				if((timeCmp < 2)&&(list6013[total_tasknum].basicInfo.interval.units<= day_units))
+				if(timeCmp < 2)
 				{
 					list6013[total_tasknum].ts_next  = tmtotime_t(ts_now);
 				}
@@ -559,6 +559,7 @@ INT8U init6013ListFrom6012File() {
 				result6035.taskState = BEFORE_OPR;
 				result6035.taskID = class6013.taskID;
 				saveClass6035(&result6035);
+				fprintf(stderr,"\n\n****result6035.taskID = %d******\n",result6035.taskID);
 
 			}
 		}
@@ -838,9 +839,11 @@ PROXY_GETLIST proxyList_manager;
  * */
 int proxy_dar_fill(PROXY_GETLIST *dest_list,PROXY_GETLIST get_list)
 {
-	INT16U index = 0,i=0,j=0;
-	int addrlen = 0;
+	INT16U index = 0,proxy_index=0,i=0,j=0;
+	int addrlen = 0,rsd_len=0,rcsd_len=0;
 	int	result_index = 0, result_num=0;
+	OAD	oadtmp={};
+	INT8U	tmpBuf[512]={},RSD_type=0;
 
 	index = dest_list->datalen;
 	fprintf(stderr,"proxy_dar_fill  proxytype=%d index=%d\n",dest_list->proxytype,index);
@@ -871,26 +874,42 @@ int proxy_dar_fill(PROXY_GETLIST *dest_list,PROXY_GETLIST get_list)
 		}
 		break;
 	case ProxyGetRequestRecord:
+
+		fprintf(stderr,"getlist.datalen=%d\n",get_list.proxylen);
+		for(i=0;i<get_list.proxylen;i++) {
+			fprintf(stderr,"%02x ",get_list.proxy_obj.buf[i]);
+		}
+		fprintf(stderr,"\n");
+
 		if(get_list.proxy_obj.record.dar == proxy_success) {
 			dest_list->proxy_obj.record.dar = success;
 		}else if(get_list.proxy_obj.record.dar == request_overtime) {
 			dest_list->proxy_obj.record.dar = request_overtime;
 		}
 		if(dest_list->proxy_obj.record.dar != success) {
-			addrlen = dest_list->proxy_obj.record.tsa.addr[0]+1;
-			memcpy(&dest_list->data[index],&dest_list->proxy_obj.record.tsa.addr[0],addrlen);
+			proxy_index = 0;
+			//TSA
+			addrlen = dest_list->proxy_obj.buf[proxy_index]+1;
+			fprintf(stderr,"addrlen=%d\n ",addrlen);
+			memcpy(&dest_list->data[index],&dest_list->proxy_obj.buf[proxy_index],addrlen);
+			proxy_index += addrlen;
 			index += addrlen;
-			result_index = index;	//记录SEQUENCE of A-ResultNormal的位置
-			index++;
-			result_num=0;
-			for(j=0;j<dest_list->proxy_obj.record.rcsd.csds.num;j++) {
-				result_num++;
-				//TODO： RCSD如何配置 OAD
-				index += create_OAD(0,&dest_list->data[index],dest_list->proxy_obj.record.rcsd.csds.csd[j].csd.oad);
-				dest_list->data[index++] = 0x00;
-				dest_list->data[index++] = dest_list->proxy_obj.record.dar;
-			}
-			dest_list->data[result_index] = result_num; //SEQUENCE of A-ResultNormal
+			fprintf(stderr,"proxy_index=%d,index=%d\n",proxy_index,index);
+			//A-ResultRecord   OAD--RCSD--CHOICE
+			//OAD
+			memcpy(&dest_list->data[index],&dest_list->proxy_obj.buf[proxy_index],4);
+			index += 4;
+			proxy_index += 4;
+			rsd_len = get_BasicRSD(0,&dest_list->proxy_obj.buf[proxy_index],tmpBuf,&RSD_type);
+			proxy_index += rsd_len;
+			fprintf(stderr,"proxylen=%d,rsd_len=%d,addrlen=%d,proxy_index=%d\n",dest_list->proxylen,rsd_len,sizeof(oadtmp),proxy_index);
+			rcsd_len = dest_list->proxylen-addrlen-rsd_len-sizeof(oadtmp);
+			//RCSD
+			memcpy(&dest_list->data[index],&dest_list->proxy_obj.buf[proxy_index],rcsd_len);
+			index += rcsd_len;
+			//CHOICE
+			dest_list->data[index++] = 0x00; 	//DAR
+			dest_list->data[index++] = dest_list->proxy_obj.record.dar;
 		}
 		break;
 	case ProxySetRequestList:
@@ -1026,8 +1045,8 @@ void Pre_ProxyGetRequestRecord(CJCOMM_PROXY proxy)
 {
 	CLASS_6001 obj6001 = {};
 	int dataindex=0;
-	memset(&proxyList_manager.proxy_obj.record,0,sizeof(GETRECORD));
 
+//	memset(&proxyList_manager.proxy_obj.record,0,sizeof(GETRECORD));	//无TSA满足要求时要进行组帧，此处不能清0
 	if(get6001ObjByTSA(proxy.strProxyList.proxy_obj.record.tsa,&obj6001) != 1 )
 	{
 		proxyList_manager.proxy_obj.record.dar = other_err1;
@@ -1191,10 +1210,10 @@ void divProxy(CJCOMM_PROXY proxy)
 	proxyList_manager.datalen = 0;	//此处清除，防止后面处理时，数据未组织好，将返回一个随机值。
 
 	int	i=0,len=0;
-	len = proxy.strProxyList.proxylen;
-	fprintf(stderr,"proxy len=%d\n",len);
+	len = proxyList_manager.proxylen;
+	fprintf(stderr,"divProxy proxy len=%d\n",len);
 	for(i=0;i<len;i++) {
-		fprintf(stderr,"%02x ",proxy.strProxyList.proxy_obj.buf[i]);
+		fprintf(stderr,"%02x ",proxyList_manager.proxy_obj.buf[i]);
 	}
 	fprintf(stderr,"\n");
 
@@ -1244,7 +1263,7 @@ INT8S dealMsgProcess()
 			proxyInUse.devUse.proxyIdle = 1;
 			DEBUG_TIME_LINE("\n收到代理召测\n");
 			memcpy(&cjcommProxy_Tmp.strProxyList,rev_485_buf,sizeof(PROXY_GETLIST));
-			fprintf(stderr,"proxy.strProxyList.num=%d  len=%d\n",cjcommProxy_Tmp.strProxyList.num,cjcommProxy_Tmp.strProxyList.datalen);
+			fprintf(stderr,"proxy.strProxyList.num=%d  len=%d\n",cjcommProxy_Tmp.strProxyList.num,cjcommProxy_Tmp.strProxyList.proxylen);
 
 			//Proxy_GetRequestRecord 使用datalen 来置位发送的报文长度，因此此处不能清零
 //			cjcommProxy_Tmp.strProxyList.datalen=0;		//清除代理返回数据
@@ -1330,6 +1349,15 @@ INT8U dealProxyAnswer()
 	time_t nowtime = time(NULL);
 	int index=0;
 	int	i=0;
+
+	int	len=0;
+	len = proxyList_manager.proxylen;
+	fprintf(stderr,"dealProxyAnswer proxy len=%d\n",len);
+	for(i=0;i<len;i++) {
+		fprintf(stderr,"%02x ",proxyList_manager.proxy_obj.buf[i]);
+	}
+	fprintf(stderr,"\n");
+
 	if (timecount==0)
 	{
 		begintime = nowtime;
@@ -1460,11 +1488,12 @@ void dispatch_thread()
 		{
 			para_change485[0] = 1;
 			para_change485[1] = 1;
+			system("rm -rf /nand/para/6035");
 			init6013ListFrom6012File();
 #if 1
 			filewrite(REPLENISHFILEPATH,&infoReplenish,sizeof(Replenish_TaskInfo));
 #endif
-			system("rm -rf /nand/para/6035");
+
 		}
 		if(para_ChangeType&para_4204_chg)
 		{
