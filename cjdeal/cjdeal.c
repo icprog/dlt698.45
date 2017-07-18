@@ -445,7 +445,7 @@ INT8S saveClass6035(CLASS_6035* class6035)
 	}
 	if(isFind)
 	{
-		memcpy(&class6035->starttime,&file6035.starttime,sizeof(DateTimeBCD));
+		//memcpy(&class6035->starttime,&file6035.starttime,sizeof(DateTimeBCD));
 		class6035->totalMSNum += file6035.totalMSNum;
 		class6035->successMSNum += file6035.successMSNum;
 		class6035->sendMsgNum += file6035.sendMsgNum;
@@ -539,7 +539,7 @@ INT8U init6013ListFrom6012File() {
 					}
 				}
 #if 1
-				if((timeCmp < 2)&&(list6013[total_tasknum].basicInfo.interval.units<= day_units))
+				if(timeCmp < 2)
 				{
 					list6013[total_tasknum].ts_next  = tmtotime_t(ts_now);
 				}
@@ -559,6 +559,7 @@ INT8U init6013ListFrom6012File() {
 				result6035.taskState = BEFORE_OPR;
 				result6035.taskID = class6013.taskID;
 				saveClass6035(&result6035);
+				fprintf(stderr,"\n\n****result6035.taskID = %d******\n",result6035.taskID);
 
 			}
 		}
@@ -1423,11 +1424,12 @@ void dispatch_thread()
 		{
 			para_change485[0] = 1;
 			para_change485[1] = 1;
+			system("rm -rf /nand/para/6035");
 			init6013ListFrom6012File();
 #if 1
 			filewrite(REPLENISHFILEPATH,&infoReplenish,sizeof(Replenish_TaskInfo));
 #endif
-			system("rm -rf /nand/para/6035");
+
 		}
 		if(para_ChangeType&para_4204_chg)
 		{
