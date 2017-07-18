@@ -840,7 +840,7 @@ PROXY_GETLIST proxyList_manager;
 int proxy_dar_fill(PROXY_GETLIST *dest_list,PROXY_GETLIST get_list)
 {
 	INT16U index = 0,proxy_index=0,i=0,j=0;
-	int addrlen = 0,rsd_len=0,rcsd_len=0;
+	INT16U addrlen = 0,rsd_len=0,rcsd_len=0;
 	int	result_index = 0, result_num=0;
 	OAD	oadtmp={};
 	INT8U	tmpBuf[512]={},RSD_type=0;
