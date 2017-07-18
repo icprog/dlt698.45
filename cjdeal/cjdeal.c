@@ -1220,6 +1220,7 @@ int main(int argc, char *argv[])
 	//485、四表合一
 	read485_proccess();
 	//统计计算 电压合格率 停电事件等
+
 	calc_proccess();
 	if(JProgramInfo->cfg_para.device == CCTT1)
 	{
@@ -1237,6 +1238,7 @@ int main(int argc, char *argv[])
 	while(1)
    	{
 		gettimeofday(&start, NULL);
+
 		TSGet(&ts);
 		if (ts.Hour==15 && ts.Minute==5 && del_day != ts.Day && del_min != ts.Minute)
 		{
@@ -1250,6 +1252,7 @@ int main(int argc, char *argv[])
 		interval = 1000000*(end.tv_sec - start.tv_sec) + (end.tv_usec - start.tv_usec);
 	    if(interval>=1000000)
 	    	fprintf(stderr,"deal main interval = %f(ms)\n", interval/1000.0);
+
 		usleep(10 * 1000);
 		clearcount(ProIndex);
 
@@ -1294,11 +1297,13 @@ int getTaskDataTsaNum(INT8U taskID)
 		if (fread(&tmp,1,1,fp)<=0)
 		{
 			fprintf(stderr,"1111111");
+			fclose(fp);
 			return tsaNum;
 		}
 		if(tmp!=0X55)
 		{
 			fprintf(stderr,"2222222");
+			fclose(fp);
 			return tsaNum;
 		}
 		fread(&tmp,1,1,fp);
@@ -1308,7 +1313,7 @@ int getTaskDataTsaNum(INT8U taskID)
 		fseek(fp,begitoffset+A_TSAblock,0);
 
 	}
-
+	fclose(fp);
 	return tsaNum;
 
 }

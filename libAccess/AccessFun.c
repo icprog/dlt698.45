@@ -1735,6 +1735,7 @@ int readfile_int(FILE *fp)
 			//value = (value<<8) + buf[1];
 			value = buf_int(buf);
 		}
+		close(fp);
 	}
 	return value;
 }
