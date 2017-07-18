@@ -1492,19 +1492,23 @@ INT16U composeProtocol698_GetRequestRecord(PROXY_GETLIST *getlist,INT8U *sendbuf
 
 	iindex = 0;
 	datalen  = data[iindex];
+	fprintf(stderr,"\n\n\n $$$$$$$$$$$datalen = %d",datalen);
 	if (datalen>sizeof(TSA))
 		datalen = sizeof(TSA);
 	memcpy(&tsa,&data[iindex],datalen+1);
+	printTSA(tsa);
 	csinfo.sa_length = (tsa.addr[1]&0x0f) + 1;//sizeof(addr)-1;//服务器地址长度
+	fprintf(stderr,"\ncsinfo.sa_length = %d",csinfo.sa_length);
 	reversebuff(&tsa.addr[2],csinfo.sa_length,reverseAddr);
+	memcpy(csinfo.sa,reverseAddr,csinfo.sa_length);//服务器地址
 	sendLen = FrameHead(&csinfo,sendbuf) ; //	2：hcs  hcs
 	hcsi = sendLen;
 	sendLen = sendLen + 2;
 	sendbuf[sendLen++] = GET_REQUEST;
 	sendbuf[sendLen++] = GET_REQUEST_RECORD;
 	sendbuf[sendLen++] = PIID;
-	memcpy(&sendbuf[sendLen],&getlist->proxy_obj.buf[datalen+1],getlist->datalen);
-	sendLen += getlist->datalen;
+	memcpy(&sendbuf[sendLen],&getlist->proxy_obj.buf[datalen+1],getlist->proxylen-datalen-1);
+	sendLen += getlist->proxylen-datalen-1;
 	sendbuf[sendLen++] = 0; //没有时间标签
 	FrameTail(sendbuf,sendLen,hcsi);
 	return (sendLen + 3);			//3: cs cs 16

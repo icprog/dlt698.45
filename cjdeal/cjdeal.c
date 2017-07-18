@@ -816,22 +816,22 @@ extern INT8U get6001ObjByTSA(TSA addr,CLASS_6001* targetMeter);
 #define PORT_485  	0xF201
 #define PORT_JC		0xF208
 PROXY_GETLIST proxyList_manager;
-int proxy_one_fill_record(GETRECORD record,int len,INT8U *source,INT8U DARtype,INT8U *desbuf)
-{
-	int index =0;
-	if (DARtype>0 ||source==NULL || len==0)
-	{
-		int addrlen = record.tsa.addr[0]+1;
-		memcpy(&desbuf[index],&record.tsa.addr[0],addrlen);
-		index += addrlen;
-		desbuf[index++] = 0x00;
-		desbuf[index++] = DARtype;
-	}else{
-		desbuf[index++] = 0x01;
-		memcpy(&desbuf[index],source, len);
-	}
-	return index;
-}
+//int proxy_one_fill_record(GETRECORD record,int len,INT8U *source,INT8U DARtype,INT8U *desbuf)
+//{
+//	int index =0;
+//	if (DARtype>0 ||source==NULL || len==0)
+//	{
+//		int addrlen = record.tsa.addr[0]+1;
+//		memcpy(&desbuf[index],&record.tsa.addr[0],addrlen);
+//		index += addrlen;
+//		desbuf[index++] = 0x00;
+//		desbuf[index++] = DARtype;
+//	}else{
+//		desbuf[index++] = 0x01;
+//		memcpy(&desbuf[index],source, len);
+//	}
+//	return index;
+//}
 
 /*
  * 根据get_list的抄表结果DAR，填充未抄读成功的A-ResultNormal的内容，写入dest_list
@@ -868,6 +868,29 @@ int proxy_dar_fill(PROXY_GETLIST *dest_list,PROXY_GETLIST get_list)
 				}
 				dest_list->data[result_index] = result_num; //SEQUENCE of A-ResultNormal
 			}
+		}
+		break;
+	case ProxyGetRequestRecord:
+		if(get_list.proxy_obj.record.dar == proxy_success) {
+			dest_list->proxy_obj.record.dar = success;
+		}else if(get_list.proxy_obj.record.dar == request_overtime) {
+			dest_list->proxy_obj.record.dar = request_overtime;
+		}
+		if(dest_list->proxy_obj.record.dar != success) {
+			addrlen = dest_list->proxy_obj.record.tsa.addr[0]+1;
+			memcpy(&dest_list->data[index],&dest_list->proxy_obj.record.tsa.addr[0],addrlen);
+			index += addrlen;
+			result_index = index;	//记录SEQUENCE of A-ResultNormal的位置
+			index++;
+			result_num=0;
+			for(j=0;j<dest_list->proxy_obj.record.rcsd.csds.num;j++) {
+				result_num++;
+				//TODO： RCSD如何配置 OAD
+				index += create_OAD(0,&dest_list->data[index],dest_list->proxy_obj.record.rcsd.csds.csd[j].csd.oad);
+				dest_list->data[index++] = 0x00;
+				dest_list->data[index++] = dest_list->proxy_obj.record.dar;
+			}
+			dest_list->data[result_index] = result_num; //SEQUENCE of A-ResultNormal
 		}
 		break;
 	case ProxySetRequestList:
@@ -1007,7 +1030,8 @@ void Pre_ProxyGetRequestRecord(CJCOMM_PROXY proxy)
 
 	if(get6001ObjByTSA(proxy.strProxyList.proxy_obj.record.tsa,&obj6001) != 1 )
 	{
-		dataindex += proxy_one_fill_record(proxy.strProxyList.proxy_obj.record, 0, NULL,0x21, &proxyList_manager.data[dataindex]);
+		proxyList_manager.proxy_obj.record.dar = other_err1;
+//		dataindex += proxy_one_fill_record(proxy.strProxyList.proxy_obj.record, 0, NULL,0x21, &proxyList_manager.data[dataindex]);
 	}else
 	{
 		if (obj6001.basicinfo.port.OI==PORT_485)
@@ -1016,12 +1040,14 @@ void Pre_ProxyGetRequestRecord(CJCOMM_PROXY proxy)
 			set_port_active(2,1);
 			memcpy(&cjcommProxy.strProxyList.proxy_obj.record, &proxy.strProxyList.proxy_obj.record, sizeof(GETRECORD));
 			cjcommProxy.strProxyList.proxytype = proxy.strProxyList.proxytype;
+			cjcommProxy.strProxyList.proxylen = proxy.strProxyList.proxylen;
 			cjcommProxy.isInUse = 3;
 			proxyInUse.devUse.rs485Need = 1;
 		}else if(obj6001.basicinfo.port.OI==PORT_ZB)
 		{
-			cjcommProxy_plc.strProxyList.proxytype = proxy.strProxyList.proxytype;
 			memcpy(&cjcommProxy_plc.strProxyList.proxy_obj.record, &proxy.strProxyList.proxy_obj.record, sizeof(GETRECORD));
+			cjcommProxy_plc.strProxyList.proxytype = proxy.strProxyList.proxytype;
+			cjcommProxy_plc.strProxyList.proxylen = proxy.strProxyList.proxylen;
 			cjcommProxy_plc.isInUse = 1;
 			proxyInUse.devUse.plcNeed = 1;
 		}
@@ -1162,7 +1188,16 @@ void divProxy(CJCOMM_PROXY proxy)
 	memset(&cjcommProxy_plc,0,sizeof(cjcommProxy_plc));
 	memcpy(&proxyList_manager,&proxy.strProxyList,sizeof(PROXY_GETLIST));
 	memset(&proxyList_manager.data,0,sizeof(proxyList_manager.data));
-	proxyList_manager.datalen = 0;
+	proxyList_manager.datalen = 0;	//此处清除，防止后面处理时，数据未组织好，将返回一个随机值。
+
+	int	i=0,len=0;
+	len = proxy.strProxyList.proxylen;
+	fprintf(stderr,"proxy len=%d\n",len);
+	for(i=0;i<len;i++) {
+		fprintf(stderr,"%02x ",proxy.strProxyList.proxy_obj.buf[i]);
+	}
+	fprintf(stderr,"\n");
+
 	if (proxyList_manager.timeout == 0)
 		proxyList_manager.timeout = 60;
 	switch(proxy.strProxyList.proxytype)
@@ -1209,8 +1244,10 @@ INT8S dealMsgProcess()
 			proxyInUse.devUse.proxyIdle = 1;
 			DEBUG_TIME_LINE("\n收到代理召测\n");
 			memcpy(&cjcommProxy_Tmp.strProxyList,rev_485_buf,sizeof(PROXY_GETLIST));
-			fprintf(stderr,"proxy.strProxyList.num=%d\n",cjcommProxy_Tmp.strProxyList.num);
-			cjcommProxy_Tmp.strProxyList.datalen=0;		//清除代理返回数据
+			fprintf(stderr,"proxy.strProxyList.num=%d  len=%d\n",cjcommProxy_Tmp.strProxyList.num,cjcommProxy_Tmp.strProxyList.datalen);
+
+			//Proxy_GetRequestRecord 使用datalen 来置位发送的报文长度，因此此处不能清零
+//			cjcommProxy_Tmp.strProxyList.datalen=0;		//清除代理返回数据
 			memset(&cjcommProxy_Tmp.strProxyList.data,0,sizeof(cjcommProxy_Tmp.strProxyList.data));
 			divProxy(cjcommProxy_Tmp);
 		}

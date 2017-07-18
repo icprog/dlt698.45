@@ -2298,6 +2298,7 @@ INT16U dealProxy_Record_698(PROXY_GETLIST *getlist,INT8U* dataContent,INT8U port
 	 * 			|__RSD
 	 * 			|__RCSD
 	 */
+	INT16U retdataLen = 0;
 	time_t timenow;
 	RSD rsd={};
 	INT16U TxLen=0;
@@ -2321,7 +2322,8 @@ INT16U dealProxy_Record_698(PROXY_GETLIST *getlist,INT8U* dataContent,INT8U port
 			INT8U getResponseType = analyzeProtocol698(recvbuff,&csdNum,dataLen,&apduDataStartIndex,&dataLen);
 			if (getResponseType == GET_REQUEST_RECORD)
 			{
-
+				memcpy(dataContent,&recvbuff[apduDataStartIndex],dataLen);
+				retdataLen = dataLen -2;
 			}
 		}
 		if (abs(timenow - getlist->timeold)>=getlist->timeout)
@@ -2330,7 +2332,8 @@ INT16U dealProxy_Record_698(PROXY_GETLIST *getlist,INT8U* dataContent,INT8U port
 			break;
 		}
 	}
-	return 0;
+	fprintf(stderr,"retdataLen=%d\n",retdataLen);
+	return retdataLen;
 }
 INT16U dealProxy_SET_ACTION_698(INT8U type,ACTION_SET_OBJ setOBJ,INT8U* dataContent,INT8U port485)
 {
@@ -2556,7 +2559,6 @@ INT8S dealProxyType2(PROXY_GETLIST *getlist,INT8U port485)
 	INT8U addrlen=0;
 	int dataindex=0;
 	INT8S result = -1;
-	INT8U index=0;
 	INT16U singleLen = 0;
 	INT8U tmpbuf[256]={};
 	CLASS_6001 obj6001 = {};
@@ -2567,6 +2569,13 @@ INT8S dealProxyType2(PROXY_GETLIST *getlist,INT8U port485)
 	{
 		set_port_active(port485,0);
 		return -1;
+	}
+	fprintf(stderr,"\n *************getlist->data[%d]: ",getlist->proxylen);
+	INT8U prtIndex = 0;
+
+	for(prtIndex = 0;prtIndex<getlist->proxylen;prtIndex++)
+	{
+		fprintf(stderr,"%02x ",getlist->proxy_obj.buf[prtIndex]);
 	}
 	INT8U portUse = obj6001.basicinfo.port.attrindex;
 	switch(obj6001.basicinfo.protocol)
@@ -2586,7 +2595,9 @@ INT8S dealProxyType2(PROXY_GETLIST *getlist,INT8U port485)
 	memcpy(&getlist->data[dataindex],&getlist->proxy_obj.record.tsa.addr[0],addrlen);
 	dataindex += addrlen;
 	fprintf(stderr,"\nTSA buf 指针 dataindex=%d\n",dataindex);
-
+	for(prtIndex=0;prtIndex<dataindex;prtIndex++) {
+		fprintf(stderr,"%02x ",getlist->data[prtIndex]);
+	}
 	if(singleLen > 0)
 	{
 		memcpy(&getlist->data[dataindex],tmpbuf,singleLen);
@@ -2594,11 +2605,11 @@ INT8S dealProxyType2(PROXY_GETLIST *getlist,INT8U port485)
 		getlist->datalen += dataindex;
 	}else
 	{
-		getlist->data[dataindex++] = 0;
-		getlist->datalen += dataindex;
+		getlist->proxy_obj.record.dar = request_overtime;
+//		getlist->data[dataindex++] = 0;
+//		getlist->datalen += dataindex;
 	}
 	pthread_mutex_unlock(&mutex);
-
 	set_port_active(port485,0);
 	return result;
 }
@@ -2941,7 +2952,7 @@ INT8S dealProxyType3(PROXY_GETLIST *getlist,INT8U port485)
 INT8S dealProxy(PROXY_GETLIST *getlist,INT8U port485)
 {
 	INT8S result = -1;
-	fprintf(stderr,"\nRS485 代理类型 =%d  datalen=%d",getlist->proxytype,getlist->datalen);
+	fprintf(stderr,"\nRS485 代理类型 =%d  datalen=%d",getlist->proxytype,getlist->proxylen);
 	switch(getlist->proxytype) {
 	case ProxyGetRequestList:
 		result = dealProxyType1(getlist,port485);

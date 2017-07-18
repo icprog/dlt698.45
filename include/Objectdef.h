@@ -603,10 +603,11 @@ typedef struct{
 	INT8U buf[255];
 }RSDBUF;
 typedef struct {
-    TSA tsa;           //目标地址
+    TSA tsa;          	 	//目标地址
     OAD oad;
     RSDBUF selectbuf;       //选择方法实例
     RCSD rcsd;
+	INT8U	dar;			//数据状态值,位置放在最后，消息报文直接送联合体，防止读取错误
 }GETRECORD;
 typedef struct{
 	OAD   oad_set;
@@ -653,6 +654,7 @@ typedef struct {
     INT8U piid;        //本次代理请求PIID
     INT16U timeout;    //代理超时时间
     INT16U num;        //TSA个数
+    INT16U	proxylen;	//代理接收长度
     PROXYOBJ proxy_obj;//代理内容
     INT8U data[512];   //请求结果
     INT16U datalen;    //数据长度

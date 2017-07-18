@@ -124,57 +124,36 @@ int Proxy_GetRequestRecord(INT8U *data,CSINFO *csinfo,INT8U *sendbuf,INT8U piid)
 	PROXY_GETLIST getlist;
 	INT8S	ret=0;
 	OAD oadtmp;
+	INT8U	dar = success;
 	RESULT_RECORD record={};
-	INT8U	dar = 0;
+
 
 	memset(getlist.proxy_obj.buf,0,1024);
 	timeout = data[iindex] ;
 	timeout = timeout <<8 | data[iindex+1];
 	iindex += 2;
-	beginPlace = iindex;
 	getlist.timeout = timeout;
 	getlist.piid = piid;
 	getlist.proxytype = ProxyGetRequestRecord;
-//	num = data[iindex];
-//	if (num>sizeof(TSA))
-//		num = sizeof(TSA);
-//	memcpy(&getlist.proxy_obj.record.tsa,&data[iindex],num+1);
-//	iindex = iindex + num +1;
+
 	iindex += getOctetstring(0,&data[iindex],(INT8U *)&getlist.proxy_obj.record.tsa,&dar);
-	fprintf(stderr,"tsa_index=%d\n",iindex);
+	printTSA(getlist.proxy_obj.record.tsa);
 	iindex += getOAD(0,&data[iindex],&oadtmp,NULL);
 	memcpy(&getlist.proxy_obj.record.oad,&oadtmp,sizeof(oadtmp));
-	fprintf(stderr,"oad_index=%d\n",iindex);
 	rsdlen = get_BasicRSD(0,&data[iindex],(INT8U *)&record.select,&record.selectType);
-	fprintf(stderr,"rsd_index=%d\n",rsdlen);
 	getlist.proxy_obj.record.selectbuf.len  = rsdlen;
 	getlist.proxy_obj.record.selectbuf.type = record.selectType;
-	if (rsdlen<=512)
+	if (rsdlen<=255)
 		memcpy(getlist.proxy_obj.record.selectbuf.buf,&record.select,rsdlen);
 	iindex  += rsdlen;
 	iindex  += get_BasicRCSD(0,&data[iindex],&getlist.proxy_obj.record.rcsd.csds);
-	fprintf(stderr,"rcsd_index=%d\n",iindex);
-	datalen = iindex-2;		//去除前两个字节的内容
-	fprintf(stderr,"datalen=%d\n",datalen);
-	if (datalen >0 && datalen<1024)
-	{
-		memcpy(getlist.proxy_obj.buf,&data[beginPlace], datalen);
-		getlist.proxylen = datalen;
-		fprintf(stderr,"getlist.datalen=%d\n",getlist.datalen);
-		int i=0;
-		for(i=0;i<datalen;i++) {
-			fprintf(stderr,"%02x ",getlist.proxy_obj.buf[i]);
-		}
-		fprintf(stderr,"\n");
-		getlist.timeold = time(NULL);
-		memcpy(&getlist.csinfo,csinfo,sizeof(CSINFO));
-
-		ret= mqs_send((INT8S *)PROXY_485_MQ_NAME,1,ProxyGetResponseRecord,(INT8U *)&getlist,sizeof(PROXY_GETLIST));
-		fprintf(stderr,"\n代理消息已经发出,ret=%d\n\n",ret);
-	}
-
+	getlist.timeold = time(NULL);
+	memcpy(&getlist.csinfo,csinfo,sizeof(CSINFO));
+	ret= mqs_send((INT8S *)PROXY_485_MQ_NAME,1,ProxyGetResponseRecord,(INT8U *)&getlist,sizeof(PROXY_GETLIST));
+	fprintf(stderr,"\n代理消息已经发出,ret=%d\n\n",ret);
 	return 1;
 }
+
 int getProxyDO_Then_Get_list(INT8U *data,DO_Then_GET *doget)
 {
 	int i=0,k=0, iindex=0;
