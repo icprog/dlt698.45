@@ -74,47 +74,6 @@ static void ClientForGprsRead(struct aeEventLoop *eventLoop, int fd, void *clien
         }
         bufsyslog(nst->RecBuf, "客户端[GPRS]接收:", nst->RHead, nst->RTail, BUFLEN);
         gpofun("gpoREMOTE_RED", 0);
-
-        for (int k = 0; k < 50; k++) {
-        	int exist=0;
-            int len = 0;
-            fprintf(stderr,"\n-----------第 %d 次",k+1);
-            for (int i = 0; i < 5; i++) {
-            	fprintf(stderr,"\n--i=%d",i);
-                len = StateProcess(nst, 10);
-                if (len==0)
-                	i = 0;		//需要继续
-                if (len ==1)
-                	break;		//不需要继续，并且无有效报文
-                if (len > 1) {
-                	exist = 1;	//存在有效报文需要立即处理
-                    break;
-                }
-            }
-            if (exist  == 0) {
-            	fprintf(stderr,"\n取消多帧判断");
-                break;
-            }
-
-            if (exist == 1) {
-            	len = 0;
-                int apduType = ProcessData(nst);
-                fprintf(stderr, "apduType=%d\n", apduType);
-                ConformAutoTask(eventLoop, nst, apduType);
-                switch (apduType) {
-                    case LINK_RESPONSE:
-                        First_VerifiTime(nst->linkResponse, nst->shmem); //简单对时
-                        if (GetTimeOffsetFlag() == 1) {
-                            Getk_curr(nst->linkResponse, nst->shmem);
-                        }
-                        nst->linkstate = build_connection;
-                        nst->testcounter = 0;
-                        break;
-                    default:
-                        break;
-                }
-            }
-        }
     }
 }
 
@@ -204,6 +163,8 @@ static int RegularClientForGprs(struct aeEventLoop *ep, long long id, void *clie
                 gpofun("/dev/gpoONLINE_LED", 1);
                 SetOnlineType(1);
             }
+        }else{
+        	return 1000;
         }
     } else {
         if (Comm_task(nst) == -1) {
@@ -215,13 +176,35 @@ static int RegularClientForGprs(struct aeEventLoop *ep, long long id, void *clie
             SetOnlineType(0);
         }
 
+		int res = 0;
+		do {
+			res = StateProcess(nst, 5);
+			if (nst->deal_step >= 3) {
+				int apduType = ProcessData(nst);
+				ConformAutoTask(ep, nst, apduType);
+				switch (apduType) {
+				case LINK_RESPONSE:
+					First_VerifiTime(nst->linkResponse, nst->shmem); //简单对时
+					if (GetTimeOffsetFlag() == 1) {
+						Getk_curr(nst->linkResponse, nst->shmem);
+					}
+					nst->linkstate = build_connection;
+					nst->testcounter = 0;
+					break;
+				default:
+					break;
+				}
+			}
+		} while (res == 1);
+
+
         check_F101_changed_Gprs(nst);
         CalculateTransFlow(nst->shmem);
         //暂时忽略函数返回
         RegularAutoTask(ep, nst);
     }
 
-    return 1000;
+    return 100;
 }
 
 static int RegularMixForGprs(struct aeEventLoop *ep, long long id, void *clientData) {
