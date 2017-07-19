@@ -68,6 +68,7 @@ static void ClientForGprsRead(struct aeEventLoop *eventLoop, int fd, void *clien
 
     if (revcount > 0) {
         gpofun("gpoREMOTE_RED", 1);
+        TSGet(&nst->final_frame);
         for (int j = 0; j < revcount; j++) {
             read(fd, &nst->RecBuf[nst->RHead], 1);
             nst->RHead = (nst->RHead + 1) % BUFLEN;
