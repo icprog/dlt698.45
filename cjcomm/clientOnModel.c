@@ -599,6 +599,72 @@ void CreateOnModel(void *clientdata) {
     pthread_create(&temp_key, &attr, ModelWorker, clientdata);
 }
 
+
+void CalculateTransFlowModel(ProgramInfo *prginfo_event) {
+    //统计临时变量
+    static int rtx_bytes = 0;
+    static int rx_bytes = 0;
+    static int tx_bytes = 0;
+    static int localMin = 0;
+    static int localDay = 0;
+    static int localMonth = 0;
+    static int localSec = 0;
+
+    static int first_flag = 1;
+
+    TS ts = {};
+    TSGet(&ts);
+
+    if (first_flag == 1) {
+        first_flag = 0;
+        memset(&prginfo_event->dev_info.realTimeC2200, 0x00, sizeof(Flow_tj));
+        readVariData(0x2200, 0, &prginfo_event->dev_info.realTimeC2200, sizeof(Flow_tj));
+        asyslog(LOG_INFO, "初始化月流量统计(%d)", prginfo_event->dev_info.realTimeC2200.flow.month_tj);
+
+        localMin = ts.Minute;
+        localDay = ts.Day;
+        localMonth = ts.Month;
+        localSec = ts.Sec;
+    }
+
+
+    if (localSec != ts.Sec) {
+        localSec = ts.Sec;
+    } else {
+        return;
+    }
+
+    pthread_mutex_lock(&locker);
+    prginfo_event->dev_info.realTimeC2200.flow.day_tj += MonthTJ;
+    prginfo_event->dev_info.realTimeC2200.flow.month_tj += MonthTJ;
+    MonthTJ = 0;
+    pthread_mutex_unlock(&locker);
+
+    Event_3110(prginfo_event->dev_info.realTimeC2200.flow.month_tj, sizeof(prginfo_event->dev_info.realTimeC2200.flow),
+               prginfo_event);
+
+    if (localMin != ts.Minute && ts.Minute % 2 == 0) {
+        localMin = ts.Minute;
+//        asyslog(LOG_INFO, "2分钟月流量统计，未统计流量%d", (rx_bytes + tx_bytes) - rtx_bytes);//一直是0,上面已经赋值rtx_bytes
+        //跨日月流量分别清零
+        if (localDay != ts.Day) {
+            asyslog(LOG_INFO, "检测到夸日，流量统计清零，清零前数据(%d)", prginfo_event->dev_info.realTimeC2200.flow.day_tj);
+            Save_TJ_Freeze(0x2200,0x0200,0,ts,sizeof(Flow_tj),(INT8U *)&prginfo_event->dev_info.realTimeC2200);
+            prginfo_event->dev_info.realTimeC2200.flow.day_tj = 0;
+            localDay = ts.Day;
+        }
+        if (localMonth != ts.Month) {
+            asyslog(LOG_INFO, "检测到夸月，流量统计清零，清零前数据(%d)", prginfo_event->dev_info.realTimeC2200.flow.month_tj);
+            Save_TJ_Freeze(0x2200,0x0200,1,ts,sizeof(Flow_tj),(INT8U *)&prginfo_event->dev_info.realTimeC2200);
+            prginfo_event->dev_info.realTimeC2200.flow.month_tj = 0;
+            localMonth = ts.Month;
+        }
+        saveVariData(0x2200, 0, &prginfo_event->dev_info.realTimeC2200, sizeof(Flow_tj));
+    }
+
+    return;
+}
+
 static int RegularClientOnModel(struct aeEventLoop *ep, long long id, void *clientData) {
     CommBlock *nst = (CommBlock *) clientData;
     ProgramInfo* prginfo_event = (ProgramInfo*)nst->shmem;
@@ -614,6 +680,7 @@ static int RegularClientOnModel(struct aeEventLoop *ep, long long id, void *clie
 //    showTime();
     int revcount = NetRecv(recvBuf);
     if (revcount > 0) {
+    	TSGet(&nst->final_frame);
         for (int j = 0; j < revcount; j++) {
             nst->RecBuf[nst->RHead] = recvBuf[j];
             nst->RHead = (nst->RHead + 1) % BUFLEN;
@@ -651,14 +718,14 @@ static int RegularClientOnModel(struct aeEventLoop *ep, long long id, void *clie
 
 
     //判断流量越限事件
-    prginfo_event->dev_info.realTimeC2200.flow.month_tj += MonthTJ;
-    fprintf(stderr, "流量越限事件 %d-%d\n", MonthTJ, prginfo_event->dev_info.realTimeC2200.flow.month_tj);
-    MonthTJ = 0;
-    Event_3110(prginfo_event->dev_info.realTimeC2200.flow.month_tj, sizeof(prginfo_event->dev_info.realTimeC2200.flow),
-                   prginfo_event);
+//    prginfo_event->dev_info.realTimeC2200.flow.month_tj += MonthTJ;
+//    fprintf(stderr, "流量越限事件 %d-%d\n", MonthTJ, prginfo_event->dev_info.realTimeC2200.flow.month_tj);
+//    MonthTJ = 0;
+//    Event_3110(prginfo_event->dev_info.realTimeC2200.flow.month_tj, sizeof(prginfo_event->dev_info.realTimeC2200.flow),
+//                   prginfo_event);
 
     check_F101_changed_Gprs(nst);
-    CalculateTransFlow(nst->shmem);
+    CalculateTransFlowModel(nst->shmem);
     //暂时忽略函数返回
     RegularAutoTask(ep, nst);
 
