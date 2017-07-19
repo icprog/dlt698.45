@@ -452,10 +452,11 @@ INT8S saveClass6035(CLASS_6035* class6035)
 		DbgPrintToFile1(1,"    6035.totol=%d,success=%d,send=%d,rev=%d",class6035->totalMSNum,class6035->successMSNum,class6035->sendMsgNum,class6035->rcvMsgNum);
 		DbgPrintToFile1(1,"    file.totol=%d,success=%d,send=%d,rev=%d",file6035.totalMSNum,file6035.successMSNum,file6035.sendMsgNum,file6035.rcvMsgNum);
 		//memcpy(&class6035->starttime,&file6035.starttime,sizeof(DateTimeBCD));
-		class6035->totalMSNum += file6035.totalMSNum;
-		class6035->successMSNum += file6035.successMSNum;
-		class6035->sendMsgNum += file6035.sendMsgNum;
-		class6035->rcvMsgNum += file6035.rcvMsgNum;
+		//TODO： 确认：注释下面四句，不应该找到之后存储saveCoverClass
+//		class6035->totalMSNum += file6035.totalMSNum;
+//		class6035->successMSNum += file6035.successMSNum;
+//		class6035->sendMsgNum += file6035.sendMsgNum;
+//		class6035->rcvMsgNum += file6035.rcvMsgNum;
 	}
 
 	saveCoverClass(0x6035, class6035->taskID, class6035,
