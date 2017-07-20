@@ -96,6 +96,8 @@ void SetUsrPwd(int argc, char *argv[]) {
     if (argc == 5) {
         write_userpwd(argv[2], argv[3], argv[4]);
         readCoverClass(0x4500, 0, &class4500, sizeof(CLASS25), para_vari_save);
+        memset(class4500.commconfig.userName,0,VISIBLE_STRING_LEN);
+        memset(class4500.commconfig.passWord,0,VISIBLE_STRING_LEN);
         class4500.commconfig.userName[0] = strlen(argv[2]);
         memcpy(&class4500.commconfig.userName[1], argv[2], strlen(argv[2]));
         class4500.commconfig.passWord[0] = strlen(argv[3]);
