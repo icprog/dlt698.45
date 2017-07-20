@@ -679,7 +679,7 @@ int  readVariData(OI_698 oi,int coll_seqnum,void *blockdata,int len)
 			memset(rbuf,0,blklen);
 			readlen=fread(rbuf,blklen,1,fp);	//读一个块数据
 			if(readlen==1) {
-				fprintf(stderr,"rbuf[0]=%d\n",rbuf[0]);
+//				fprintf(stderr,"rbuf[0]=%d\n",rbuf[0]);
 				if(rbuf[0]==0) {
 					retlen = 0;
 				}else {
@@ -688,7 +688,7 @@ int  readVariData(OI_698 oi,int coll_seqnum,void *blockdata,int len)
 				}
 			}
 			if(rbuf!=NULL) {
-				fprintf(stderr,"free rbuf\n");
+//				fprintf(stderr,"free rbuf\n");
 				free(rbuf);
 			}
 		}
