@@ -319,6 +319,8 @@ int modelSendExactly(int fd, int retry, int len, int buf) {
     char recbuf[2048];
     char cmdBuf[2048];
 
+    bufsyslog(buf, "客户端[内部协议栈]发送:", len, 0, BUFLEN);
+
     for (int timeout = 0; timeout < retry; timeout++) {
         memset(recbuf, 0x00, sizeof(recbuf));
         memset(cmdBuf, 0x00, sizeof(cmdBuf));
