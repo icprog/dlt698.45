@@ -160,19 +160,20 @@ int SendCommandGetOK(int fd, int retry, const char *fmt, ...) {
 
 void resetModel() {
     asyslog(LOG_INFO, "重置模块状态...");
+
     gpofun("/dev/gpoGPRS_POWER", 0);
     sleep(8);
     gpofun("/dev/gpoGPRS_POWER", 1);
     gpofun("/dev/gpoGPRS_RST", 1);
     gpofun("/dev/gpoGPRS_SWITCH", 1);
-    sleep(2);
-    gpofun("/dev/gpoGPRS_RST", 0);
-    sleep(1);
-    gpofun("/dev/gpoGPRS_RST", 1);
     sleep(5);
     gpofun("/dev/gpoGPRS_SWITCH", 0);
     sleep(1);
     gpofun("/dev/gpoGPRS_SWITCH", 1);
+    sleep(1);
+    gpofun("/dev/gpoGPRS_RST", 0);
+    sleep(1);
+    gpofun("/dev/gpoGPRS_RST", 1);
     sleep(10);
 }
 

@@ -35,26 +35,3 @@ typedef struct {
 } NetObject;
 
 
-#define AT_FRAME_LEN 4096
-
-typedef struct {
-	INT32U fd;
-	INT32U state;	//作为AT流程的流转标识
-	INT32U RecvHead;
-	INT32U RecvTail;
-	INT32U SendHead;
-	INT32U SendTail;
-
-	INT8U recv[AT_FRAME_LEN];
-	INT8U deal[AT_FRAME_LEN];
-	INT8U send[AT_FRAME_LEN];
-	INT32U NeedGet;	//需要读取数据
-	INT32U CanSend;	//可以发送数据,数字为发送的字节数
-} ATOBJ;
-
-int AtInitObjBlock(ATOBJ *ao);
-int AtProcessRecv(ATOBJ *ao);
-int AtDealData(ATOBJ *ao);
-int AtNeedRead(ATOBJ *ao);
-int AtNeedSend(ATOBJ *ao);
-
