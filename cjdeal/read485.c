@@ -1065,7 +1065,11 @@ INT16S dealEventRecord(CLASS_6001 meter,FORMAT07 resultData07,INT16U taskID,INT8
 //根据07 DI 返回数据类型dataType 数组大小size 信息
 INT8U getASNInfo(FORMAT07* DI07,Base_DataType* dataType)
 {
+	INT8U flagnegative[10] = {0};
 	fprintf(stderr, "\n getASNInfo DI07 = %02x%02x%02x%02x",DI07->DI[3],DI07->DI[2],DI07->DI[1],DI07->DI[0]);
+	fprintf(stderr,"\n数据　%02x %02x %02x %02x %02x %02x %02x %02x %02x\n",
+			DI07->Data[0],DI07->Data[1],DI07->Data[2],
+			DI07->Data[3],DI07->Data[4],DI07->Data[5],DI07->Data[6],DI07->Data[7],DI07->Data[8]);
 	INT8U unitNum = 1;
 	INT8U index;
 
@@ -1133,6 +1137,7 @@ INT8U getASNInfo(FORMAT07* DI07,Base_DataType* dataType)
 	//电压　电流 功率 特殊处理  07回来的是3个字节  6984个字节
 	if(memcmp(flag07_0CF25_1,DI07->DI,4) == 0)
 	{
+
 		if((DI07->Data[2] == 0xff)&&(DI07->Data[3] == 0xff))
 		{
 			memset(&DI07->Data[2],0,2);
@@ -1143,19 +1148,23 @@ INT8U getASNInfo(FORMAT07* DI07,Base_DataType* dataType)
 		}
 	}
 	//功率因数
-	if(memcmp(flag07_0CF25_9,DI07->DI,4) == 0)
+	if((DI07->DI[2]==0x06)&&(DI07->DI[3]==0x02))
 	{
-		if((DI07->Data[2] == 0xff)&&(DI07->Data[3] == 0xff))
+		INT8U tmpIndex = 0;
+		for(tmpIndex = 0;tmpIndex < unitNum;tmpIndex++)
 		{
-			memset(&DI07->Data[2],0,2);
-		}
-		if((DI07->Data[4] == 0xff)&&(DI07->Data[5] == 0xff))
-		{
-			memset(&DI07->Data[4],0,2);
-		}
-		if((DI07->Data[6] == 0xff)&&(DI07->Data[7] == 0xff))
-		{
-			memset(&DI07->Data[6],0,2);
+			if((DI07->Data[tmpIndex*2] == 0xff)&&(DI07->Data[tmpIndex*2+1] == 0xff))
+			{
+				memset(&DI07->Data[2],0,2);
+			}
+			else
+			{
+				if((DI07->Data[tmpIndex*2+1]&0x80) == 0x80)
+				{
+					DI07->Data[tmpIndex*2+1] = DI07->Data[tmpIndex*2+1]&0x7f;
+					flagnegative[tmpIndex] = 1;
+				}
+			}
 		}
 	}
 	if((DI07->DI[2] == 0x02)&&(DI07->DI[3] == 0x02))
@@ -1172,9 +1181,10 @@ INT8U getASNInfo(FORMAT07* DI07,Base_DataType* dataType)
 			}
 			else
 			{
-				if((DI07->Data[tmpIndex*3]&0xb0) == 0xb0)
+				if((DI07->Data[tmpIndex*3+2]&0x80) == 0x80)
 				{
-					DI07->Data[tmpIndex*3] = DI07->Data[tmpIndex*3]&0x7f;
+					DI07->Data[tmpIndex*3+2] = DI07->Data[tmpIndex*3+2]&0x7f;
+					flagnegative[tmpIndex] = 1;
 				}
 				memcpy(&f25_2_buff[(tmpIndex*4)],&DI07->Data[tmpIndex*3],3);
 			//	fprintf(stderr,"\n tmpIndex = %d DI07->Data =  %02x%02x%02x f25_2_buff = %02x%02x%02x%02x\n ",tmpIndex,
@@ -1263,12 +1273,24 @@ INT8U getASNInfo(FORMAT07* DI07,Base_DataType* dataType)
 			{
 				INT8U tmpBuff[4] = {0};
 				INT8U reverBuff[4] = {0};
+				if((DI07->Data[tmpIndex*8+2]&0x80) == 0x80)
+				{
+					DI07->Data[tmpIndex*8+2] = DI07->Data[tmpIndex*8+2]&0x7f;
+					flagnegative[tmpIndex] = 1;
+				}
+
 				memcpy(&tmpBuff[0],&DI07->Data[tmpIndex*8],3);
 				INT32U value = 0;
-
 				bcd2int32u(tmpBuff,4,inverted,&value);
 				fprintf(stderr,"\n value = %d",value);
 				memcpy(tmpBuff,&value,4);
+
+				//负数值处理
+				if(flagnegative[tmpIndex]==1)
+				{
+					INT32S svalue = value*(-1);
+					memcpy(tmpBuff,&svalue,4);
+				}
 
 				reversebuff(tmpBuff, 4, reverBuff);
 				memcpy(&xuliangdata[tmpIndex*15+3],reverBuff,4);
@@ -1310,6 +1332,11 @@ INT8U getASNInfo(FORMAT07* DI07,Base_DataType* dataType)
 			}
 			else
 			{
+				if((DI07->Data[tmpIndex*3+2]&0x80) == 0x80)
+				{
+					DI07->Data[tmpIndex*3+2] = DI07->Data[tmpIndex*3+2]&0x7f;
+					flagnegative[tmpIndex] = 1;
+				}
 				memcpy(&f25_3_buff[tmpIndex*4],&DI07->Data[tmpIndex*3],3);
 			}
 		}
@@ -1345,7 +1372,12 @@ INT8U getASNInfo(FORMAT07* DI07,Base_DataType* dataType)
 			bcd2int32u(&DI07->Data[dataIndex],unitSize,inverted,&value);
 			fprintf(stderr,"\n value = %d",value);
 			memcpy(&DI07->Data[dataIndex],&value,unitSize);
-
+			//负数值处理
+			if(flagnegative[unitIndex]==1)
+			{
+				INT32S svalue = value*(-1);
+				memcpy(&DI07->Data[dataIndex],&svalue,unitSize);
+			}
 			if(unitSize == 2)
 			{
 				fprintf(stderr,"\n 123123  DI07->Data[%d] = %d  DI07->Data[%d+1] = %d",dataIndex,dataIndex,DI07->Data[dataIndex],DI07->Data[dataIndex+1]);
