@@ -15,6 +15,7 @@
 #include "StdDataType.h"
 #include "dlt698def.h"
 #include "dlt698.h"
+#include "OIfunc.h"
 #include "Objectdef.h"
 #include "event.h"
 #include "secure.h"
@@ -1366,11 +1367,7 @@ int doObjectAction(OAD oad, INT8U *data, Action_result *act_ret) {
 				return act_ret->datalen;
 			}
 		}
-    switch (oihead) {
-        case 3:            //事件类对象方法操作
-            EventMothod(oad, data);
-            break;
-    }
+
     switch (oi) {
     	case 0x4000:	//广播校时
      		if (attr_act == 127) {  //方法 127 广播校时
@@ -1478,6 +1475,13 @@ int doObjectAction(OAD oad, INT8U *data, Action_result *act_ret) {
         	act_ret->datalen = get_Data(data,NULL);
         	act_ret->DAR = obj_undefine;
         	break;
+    }
+    switch (oihead) {
+        case 3:            //事件类对象方法操作
+            EventMothod(oad, data);
+        	act_ret->DAR = success;
+        	act_ret->datalen = 0;
+            break;
     }
     if(act_ret->DAR == success) {
 		if (oi == 0x4300 && attr_act == 3) {        //数据区初始化
