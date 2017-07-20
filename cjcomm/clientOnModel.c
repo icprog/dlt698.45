@@ -161,7 +161,7 @@ int SendCommandGetOK(int fd, int retry, const char *fmt, ...) {
 void resetModel() {
     asyslog(LOG_INFO, "重置模块状态...");
 
-    gpofun("/dev/gpoGPRS_POWER", 0);
+//    gpofun("/dev/gpoGPRS_POWER", 0);
     sleep(8);
     gpofun("/dev/gpoGPRS_POWER", 1);
     gpofun("/dev/gpoGPRS_RST", 1);
@@ -412,6 +412,7 @@ int checkRecv(int fd, int retry) {
 
 void *ModelWorker(void *args) {
     CLASS25 *class25 = (CLASS25 *) args;
+    static int poweroff_count = 0;
     int sMux0 = -1;
     int com = 0;    //I型\III型GPRS打开串口0,II型打开串口5
 
@@ -429,12 +430,17 @@ void *ModelWorker(void *args) {
         SetWireLessType(0);
         SetPPPDStatus(0);
 
+        if(poweroff_count > 5){
+        	gpofun("/dev/gpoGPRS_POWER", 0);
+        	poweroff_count = 0;
+        	sleep(20);
+        }
         resetModel();
 
         if (GetOnlineType() != 0) { goto wait; }
 
         if ((sMux0 = OpenCom(com, 115200, (unsigned char *) "none", 1, 8)) < 0) { goto err; }
-        if (SendCommandGetOK(sMux0, 5, "\rat\r") == 0) { goto err; }
+        if (SendCommandGetOK(sMux0, 5, "\rat\r") == 0) { poweroff_count ++; goto err; }
         SetGprsStatus(1);
 
         ////////////////////获取信息////////////////////
