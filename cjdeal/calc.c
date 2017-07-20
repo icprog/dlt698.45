@@ -133,6 +133,9 @@ void Calc_Tj()
 		nexttime = time(NULL);
 		memset(&gongdian_tj,0,sizeof(Gongdian_tj));
 		readVariData(0x2203,0,&gongdian_tj,sizeof(Gongdian_tj));
+
+		syslog(LOG_NOTICE,"firset read day_tj=%d,mon_tj=%d\n",gongdian_tj.gongdian.day_tj,gongdian_tj.gongdian.month_tj);
+
 		lastchgoi4030 = JProgramInfo->oi_changed.oi4030;
 	    readCoverClass(0x4030,0,&obj_offset,sizeof(obj_offset),para_vari_save);
         memset(passu_d,0,sizeof(passu_d));
@@ -154,7 +157,9 @@ void Calc_Tj()
 	gongdian_tj.gongdian.day_tj +=1;
 	gongdian_tj.gongdian.month_tj +=1;
 
+//	syslog(LOG_NOTICE,"day_tj=%d,mon_tj=%d\n",gongdian_tj.gongdian.day_tj,gongdian_tj.gongdian.month_tj);
 	if(addnum >= 5 || lastreset!=JProgramInfo->oi_changed.reset) {
+//		syslog(LOG_NOTICE,"addnum=%d lastreset=%d reset=%d day_tj=%d,mon_tj=%d\n",addnum,lastreset,JProgramInfo->oi_changed.reset,gongdian_tj.gongdian.day_tj,gongdian_tj.gongdian.month_tj);
 		addnum=0;
 		lastreset=JProgramInfo->oi_changed.reset;
 		saveVariData(0x2203,0,&gongdian_tj,sizeof(Gongdian_tj));	//TODO：

@@ -166,6 +166,12 @@ INT8U state_check(BOOLEAN changed,INT8U devicetype)
 			}
 		}
 	}
+	//国网送检功能性测试时，II型集中器方案，状态量采集台体改变四路遥信状态，此处设置其他三路遥信状态与第一路相同
+	if(devicetype == CCTT2) {
+		for(i=1;i<4;i++) {
+			bit_state[i]=bit_state[0];
+		}
+	}
 	for(i=0; i < STATE_MAXNUM; i++)
 	{
 		if((changed == FALSE) && (bit_state[i] != oif203.statearri.stateunit[i].ST)) {
@@ -184,8 +190,11 @@ void getStateEvent(ProgramInfo* prginfo)
 {
 	INT8U	data[STATE_MAXNUM]={};
 	INT8U	i=0;
-
-	for(i=0; i < STATE_MAXNUM/2; i++){
+	INT8U	state = STATE_MAXNUM/2;
+//	if(prginfo->cfg_para.device == CCTT2) {
+//		state = 1;
+//	}
+	for(i=0; i < state; i++){
 		data[i*2+0]=oif203.statearri.stateunit[i].ST;
 		data[i*2+1]=oif203.statearri.stateunit[i].CD;
 	}

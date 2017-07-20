@@ -867,6 +867,7 @@ INT8U Event_3104(INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 		Save_buf[index++]=dtunsigned;
 		Save_buf[index++]=data[7];
 		Save_buf[STANDARD_NUM_INDEX]+=5;
+		fprintf(stderr,"yx event %02x_%02x_%02x_%02x_%02x_%02x_%02x_%02x \n",data[0],data[1],data[2],data[3],data[4],data[5],data[6],data[7]);
 		//存储更改后得参数
 		saveCoverClass(0x3104,(INT16U)crrentnum,(void *)&prginfo_event->event_obj.Event3104_obj,sizeof(Class7_Object),event_para_save);
 		//存储记录集
