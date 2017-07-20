@@ -25,8 +25,8 @@ ParaCheck()
     if [ $2 != "ZheJiang" ] && [ $2 != "HuNan" ] && [ $2 != "ShanDong" ] && [ $2 != "GW" ]  && [ $2 != "GWFILE" ]; then
          Usage
     fi
-    
-#    echo $1 $2 $3  
+
+#    echo $1 $2 $3
     echo "创建必要条件..."
     if [ ! -d app ]; then
         mkdir app

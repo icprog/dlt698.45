@@ -5036,6 +5036,10 @@ void read485_thread(void* i485port) {
 					if(ret == 1)
 					{
 						ret = deal6015or6017(list6013[taskIndex].basicInfo,to6015,port,&result6035);
+						DbgPrintToFile1(port,"    deal6015or6017 ret = %d totol=%d,success=%d,send=%d,rev=%d",
+								ret,
+								result6035.totalMSNum,result6035.successMSNum,result6035.sendMsgNum,result6035.rcvMsgNum);
+
 					}
 					else
 					{

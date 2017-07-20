@@ -432,6 +432,9 @@ INT8S saveClass6035(CLASS_6035* class6035)
 	CLASS_6035 file6035;
 	memset(&file6035,0,sizeof(CLASS_6035));
 	INT16U i;
+
+	DbgPrintToFile1(1,"&&&&&&saveClass6035 taskID=%d,status=%d",class6035->taskID,class6035->taskState);
+
 	for(i=0;i<=255;i++)
 	{
 		if(readCoverClass(0x6035,i,&file6035,sizeof(CLASS_6035),coll_para_save)== 1)
@@ -445,11 +448,15 @@ INT8S saveClass6035(CLASS_6035* class6035)
 	}
 	if(isFind)
 	{
+		DbgPrintToFile1(1,"    find file6035.taskID=%d,status=%d",file6035.taskID,class6035->taskState);
+		DbgPrintToFile1(1,"    6035.totol=%d,success=%d,send=%d,rev=%d",class6035->totalMSNum,class6035->successMSNum,class6035->sendMsgNum,class6035->rcvMsgNum);
+		DbgPrintToFile1(1,"    file.totol=%d,success=%d,send=%d,rev=%d",file6035.totalMSNum,file6035.successMSNum,file6035.sendMsgNum,file6035.rcvMsgNum);
 		//memcpy(&class6035->starttime,&file6035.starttime,sizeof(DateTimeBCD));
-		class6035->totalMSNum += file6035.totalMSNum;
-		class6035->successMSNum += file6035.successMSNum;
-		class6035->sendMsgNum += file6035.sendMsgNum;
-		class6035->rcvMsgNum += file6035.rcvMsgNum;
+		//TODO： 确认：注释下面四句，不应该找到之后存储saveCoverClass
+//		class6035->totalMSNum += file6035.totalMSNum;
+//		class6035->successMSNum += file6035.successMSNum;
+//		class6035->sendMsgNum += file6035.sendMsgNum;
+//		class6035->rcvMsgNum += file6035.rcvMsgNum;
 	}
 
 	saveCoverClass(0x6035, class6035->taskID, class6035,
@@ -840,7 +847,7 @@ PROXY_GETLIST proxyList_manager;
 int proxy_dar_fill(PROXY_GETLIST *dest_list,PROXY_GETLIST get_list)
 {
 	INT16U index = 0,proxy_index=0,i=0,j=0;
-	int addrlen = 0,rsd_len=0,rcsd_len=0;
+	INT16U addrlen = 0,rsd_len=0,rcsd_len=0;
 	int	result_index = 0, result_num=0;
 	OAD	oadtmp={};
 	INT8U	tmpBuf[512]={},RSD_type=0;

@@ -160,19 +160,20 @@ int SendCommandGetOK(int fd, int retry, const char *fmt, ...) {
 
 void resetModel() {
     asyslog(LOG_INFO, "重置模块状态...");
-    gpofun("/dev/gpoGPRS_POWER", 0);
+
+//    gpofun("/dev/gpoGPRS_POWER", 0);
     sleep(8);
     gpofun("/dev/gpoGPRS_POWER", 1);
     gpofun("/dev/gpoGPRS_RST", 1);
     gpofun("/dev/gpoGPRS_SWITCH", 1);
-    sleep(2);
-    gpofun("/dev/gpoGPRS_RST", 0);
-    sleep(1);
-    gpofun("/dev/gpoGPRS_RST", 1);
     sleep(5);
     gpofun("/dev/gpoGPRS_SWITCH", 0);
     sleep(1);
     gpofun("/dev/gpoGPRS_SWITCH", 1);
+    sleep(1);
+    gpofun("/dev/gpoGPRS_RST", 0);
+    sleep(1);
+    gpofun("/dev/gpoGPRS_RST", 1);
     sleep(10);
 }
 
@@ -319,6 +320,8 @@ int modelSendExactly(int fd, int retry, int len, int buf) {
     char recbuf[2048];
     char cmdBuf[2048];
 
+    bufsyslog(buf, "客户端[内部协议栈]发送:", len, 0, BUFLEN);
+
     for (int timeout = 0; timeout < retry; timeout++) {
         memset(recbuf, 0x00, sizeof(recbuf));
         memset(cmdBuf, 0x00, sizeof(cmdBuf));
@@ -409,6 +412,7 @@ int checkRecv(int fd, int retry) {
 
 void *ModelWorker(void *args) {
     CLASS25 *class25 = (CLASS25 *) args;
+    static int poweroff_count = 0;
     int sMux0 = -1;
     int com = 0;    //I型\III型GPRS打开串口0,II型打开串口5
 
@@ -426,12 +430,17 @@ void *ModelWorker(void *args) {
         SetWireLessType(0);
         SetPPPDStatus(0);
 
+        if(poweroff_count > 5){
+        	gpofun("/dev/gpoGPRS_POWER", 0);
+        	poweroff_count = 0;
+        	sleep(20);
+        }
         resetModel();
 
         if (GetOnlineType() != 0) { goto wait; }
 
         if ((sMux0 = OpenCom(com, 115200, (unsigned char *) "none", 1, 8)) < 0) { goto err; }
-        if (SendCommandGetOK(sMux0, 5, "\rat\r") == 0) { goto err; }
+        if (SendCommandGetOK(sMux0, 5, "\rat\r") == 0) { poweroff_count ++; goto err; }
         SetGprsStatus(1);
 
         ////////////////////获取信息////////////////////
@@ -599,6 +608,72 @@ void CreateOnModel(void *clientdata) {
     pthread_create(&temp_key, &attr, ModelWorker, clientdata);
 }
 
+
+void CalculateTransFlowModel(ProgramInfo *prginfo_event) {
+    //统计临时变量
+    static int rtx_bytes = 0;
+    static int rx_bytes = 0;
+    static int tx_bytes = 0;
+    static int localMin = 0;
+    static int localDay = 0;
+    static int localMonth = 0;
+    static int localSec = 0;
+
+    static int first_flag = 1;
+
+    TS ts = {};
+    TSGet(&ts);
+
+    if (first_flag == 1) {
+        first_flag = 0;
+        memset(&prginfo_event->dev_info.realTimeC2200, 0x00, sizeof(Flow_tj));
+        readVariData(0x2200, 0, &prginfo_event->dev_info.realTimeC2200, sizeof(Flow_tj));
+        asyslog(LOG_INFO, "初始化月流量统计(%d)", prginfo_event->dev_info.realTimeC2200.flow.month_tj);
+
+        localMin = ts.Minute;
+        localDay = ts.Day;
+        localMonth = ts.Month;
+        localSec = ts.Sec;
+    }
+
+
+    if (localSec != ts.Sec) {
+        localSec = ts.Sec;
+    } else {
+        return;
+    }
+
+    pthread_mutex_lock(&locker);
+    prginfo_event->dev_info.realTimeC2200.flow.day_tj += MonthTJ;
+    prginfo_event->dev_info.realTimeC2200.flow.month_tj += MonthTJ;
+    MonthTJ = 0;
+    pthread_mutex_unlock(&locker);
+
+    Event_3110(prginfo_event->dev_info.realTimeC2200.flow.month_tj, sizeof(prginfo_event->dev_info.realTimeC2200.flow),
+               prginfo_event);
+
+    if (localMin != ts.Minute && ts.Minute % 2 == 0) {
+        localMin = ts.Minute;
+//        asyslog(LOG_INFO, "2分钟月流量统计，未统计流量%d", (rx_bytes + tx_bytes) - rtx_bytes);//一直是0,上面已经赋值rtx_bytes
+        //跨日月流量分别清零
+        if (localDay != ts.Day) {
+            asyslog(LOG_INFO, "检测到夸日，流量统计清零，清零前数据(%d)", prginfo_event->dev_info.realTimeC2200.flow.day_tj);
+            Save_TJ_Freeze(0x2200,0x0200,0,ts,sizeof(Flow_tj),(INT8U *)&prginfo_event->dev_info.realTimeC2200);
+            prginfo_event->dev_info.realTimeC2200.flow.day_tj = 0;
+            localDay = ts.Day;
+        }
+        if (localMonth != ts.Month) {
+            asyslog(LOG_INFO, "检测到夸月，流量统计清零，清零前数据(%d)", prginfo_event->dev_info.realTimeC2200.flow.month_tj);
+            Save_TJ_Freeze(0x2200,0x0200,1,ts,sizeof(Flow_tj),(INT8U *)&prginfo_event->dev_info.realTimeC2200);
+            prginfo_event->dev_info.realTimeC2200.flow.month_tj = 0;
+            localMonth = ts.Month;
+        }
+        saveVariData(0x2200, 0, &prginfo_event->dev_info.realTimeC2200, sizeof(Flow_tj));
+    }
+
+    return;
+}
+
 static int RegularClientOnModel(struct aeEventLoop *ep, long long id, void *clientData) {
     CommBlock *nst = (CommBlock *) clientData;
     ProgramInfo* prginfo_event = (ProgramInfo*)nst->shmem;
@@ -614,78 +689,56 @@ static int RegularClientOnModel(struct aeEventLoop *ep, long long id, void *clie
 //    showTime();
     int revcount = NetRecv(recvBuf);
     if (revcount > 0) {
+    	TSGet(&nst->final_frame);
         for (int j = 0; j < revcount; j++) {
             nst->RecBuf[nst->RHead] = recvBuf[j];
             nst->RHead = (nst->RHead + 1) % BUFLEN;
         }
 
         bufsyslog(nst->RecBuf, "客户端[GPRS]接收:", nst->RHead, nst->RTail, BUFLEN);
-
-        for (int k = 0; k < 5; k++) {
-        	int exist=0;
-            int len = 0;
-            fprintf(stderr,"\n-----------第 %d 次",k+1);
-            for (int i = 0; i < 5; i++) {
-            	fprintf(stderr,"\n--i=%d",i);
-//            	showTime();
-                len = StateProcess(nst, 10);
-                if (len==-1)
-                	break;
-                if (len==0)
-					i = 0;		//需要继续
-				if (len ==1)
-					break;		//不需要继续，并且无有效报文
-				if (len > 1) {
-					exist = 1;	//存在有效报文需要立即处理
-					break;
-				}
-            }
-            if (exist  == 0) {
-				fprintf(stderr,"\n取消多帧判断");
-				break;
-			}
-
-            if (exist == 1) {
-//            	showTime();
-                int apduType = ProcessData(nst);
-//                showTime();
-                fprintf(stderr, "apduType=%d\n", apduType);
-                ConformAutoTask(ep, nst, apduType);
-                switch (apduType) {
-                    case LINK_RESPONSE:
-                        First_VerifiTime(nst->linkResponse, nst->shmem); //简单对时
-                        if (GetTimeOffsetFlag() == 1) {
-                            Getk_curr(nst->linkResponse, nst->shmem);
-                        }
-                        nst->linkstate = build_connection;
-                        nst->testcounter = 0;
-                        break;
-                    default:
-                        break;
-                }
-            }
-        }
     }
-//    showTime();
+
     if (Comm_task(nst) == -1) {
         asyslog(LOG_WARNING, "内部协议栈[GPRS]链接心跳超时，关闭端口");
         SetOnlineType(0);
     }
 
+	int res = 0;
+	do {
+		res = StateProcess(nst, 5);
+		if (nst->deal_step >= 3) {
+			int apduType = ProcessData(nst);
+			ConformAutoTask(ep, nst, apduType);
+			switch (apduType) {
+			case LINK_RESPONSE:
+				First_VerifiTime(nst->linkResponse, nst->shmem); //简单对时
+				if (GetTimeOffsetFlag() == 1) {
+					Getk_curr(nst->linkResponse, nst->shmem);
+				}
+				nst->linkstate = build_connection;
+				nst->testcounter = 0;
+				break;
+			default:
+				break;
+			}
+		}
+	} while (res == 1);
+
+
 
     //判断流量越限事件
-    prginfo_event->dev_info.realTimeC2200.flow.month_tj += MonthTJ;
-    fprintf(stderr, "流量越限事件 %d-%d\n", MonthTJ, prginfo_event->dev_info.realTimeC2200.flow.month_tj);
-    MonthTJ = 0;
-    Event_3110(prginfo_event->dev_info.realTimeC2200.flow.month_tj, sizeof(prginfo_event->dev_info.realTimeC2200.flow),
-                   prginfo_event);
+//    prginfo_event->dev_info.realTimeC2200.flow.month_tj += MonthTJ;
+//    fprintf(stderr, "流量越限事件 %d-%d\n", MonthTJ, prginfo_event->dev_info.realTimeC2200.flow.month_tj);
+//    MonthTJ = 0;
+//    Event_3110(prginfo_event->dev_info.realTimeC2200.flow.month_tj, sizeof(prginfo_event->dev_info.realTimeC2200.flow),
+//                   prginfo_event);
 
     check_F101_changed_Gprs(nst);
-    CalculateTransFlow(nst->shmem);
+    CalculateTransFlowModel(nst->shmem);
     //暂时忽略函数返回
     RegularAutoTask(ep, nst);
 
-    return 600;
+    return 100;
 }
 
 /*

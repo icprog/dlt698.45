@@ -197,6 +197,7 @@ int RecieveFromComm(char *buf, int mlen, int com) {
         asyslog(LOG_INFO, "[AT]recv:\n");
 
         for (int i = 0; i < len; i++) {
+        	fprintf(stderr, "%02x ", buf[i]);
             if (buf[i] >= 0x20 && buf[i] <= 0x7E) {
                 atbuf[atbufindex++] = buf[i];
             }
@@ -757,7 +758,7 @@ void *ATWorker(void *args) {
         for (int timeout = 0; timeout < 5; timeout++) {
             char Mrecvbuf[128];
 
-            SendATCommand("\rAT+QNWINFO\r", 12, sMux0);
+            SendATCommand("\rat$mynetact?\r", 14, sMux0);
             delay(1000);
             memset(Mrecvbuf, 0, 128);
             RecieveFromComm(Mrecvbuf, 128, sMux0);

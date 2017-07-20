@@ -160,6 +160,8 @@ def checkSoftVersion(config):
     lNet.write("cd /nand/bin/ ;md5sum *" + "\r\n")
     lNet.write("cd /nor/lib/ ;md5sum *" + "\r\n")
     lNet.write("cd /nor/config/ ;md5sum *" + "\r\n")
+    lNet.write("cd /nor/ppp/ ;md5sum cdma2000-connect-chat" + "\r\n")
+    lNet.write("cd /nor/ppp/peers/ ;md5sum cdma2000" + "\r\n")
     lNet.write("exit" + "\r\n")
     msg = lNet.read_all()
 
