@@ -41,6 +41,7 @@ INT8U flag07_0CF25_2[4] = {0x00,0xff,0x02,0x02};//当前电流
 INT8U flag07_0CF25_2_A[4] = {0x00,0x01,0x02,0x02};//当前A相电流
 INT8U flag07_0CF25_2_B[4] = {0x00,0x02,0x02,0x02};//当前B相电流
 INT8U flag07_0CF25_2_C[4] = {0x00,0x03,0x02,0x02};//当前C相电流
+INT8U flag07_0CF25_2_O[4] = {0x01,0x00,0x08,0x02};//当前零序电流
 INT8U flag07_0CF25_3[4] = {0x00,0xff,0x03,0x02};//当前有功功率
 INT8U flag07_0CF25_4[4] = {0x00,0xff,0x04,0x02};//当前无功功率
 INT8U flag07_0CF25_5[4] = {0x00,0xff,0x05,0x02};//视在功率
@@ -1045,7 +1046,11 @@ INT16S dealEventRecord(CLASS_6001 meter,FORMAT07 resultData07,INT16U taskID,INT8
 //根据07 DI 返回数据类型dataType 数组大小size 信息
 INT8U getASNInfo(FORMAT07* DI07,Base_DataType* dataType)
 {
+	INT8U flagnegative[10] = {0};
 	fprintf(stderr, "\n getASNInfo DI07 = %02x%02x%02x%02x",DI07->DI[3],DI07->DI[2],DI07->DI[1],DI07->DI[0]);
+	fprintf(stderr,"\n数据　%02x %02x %02x %02x %02x %02x %02x %02x %02x\n",
+			DI07->Data[0],DI07->Data[1],DI07->Data[2],
+			DI07->Data[3],DI07->Data[4],DI07->Data[5],DI07->Data[6],DI07->Data[7],DI07->Data[8]);
 	INT8U unitNum = 1;
 	INT8U index;
 
@@ -1113,36 +1118,46 @@ INT8U getASNInfo(FORMAT07* DI07,Base_DataType* dataType)
 	//电压　电流 功率 特殊处理  07回来的是3个字节  6984个字节
 	if(memcmp(flag07_0CF25_1,DI07->DI,4) == 0)
 	{
-		if((DI07->Data[2] = 0xff)&&(DI07->Data[3] = 0xff))
+
+		if((DI07->Data[2] == 0xff)&&(DI07->Data[3] == 0xff))
 		{
 			memset(&DI07->Data[2],0,2);
 		}
-		if((DI07->Data[4] = 0xff)&&(DI07->Data[5] = 0xff))
+		if((DI07->Data[4] == 0xff)&&(DI07->Data[5] == 0xff))
 		{
 			memset(&DI07->Data[4],0,2);
 		}
 	}
 	//功率因数
-	if(memcmp(flag07_0CF25_9,DI07->DI,4) == 0)
+	if((DI07->DI[2]==0x06)&&(DI07->DI[3]==0x02))
 	{
-		if((DI07->Data[2] = 0xff)&&(DI07->Data[3] = 0xff))
+		INT8U tmpIndex = 0;
+		for(tmpIndex = 0;tmpIndex < unitNum;tmpIndex++)
 		{
-			memset(&DI07->Data[2],0,2);
-		}
-		if((DI07->Data[4] = 0xff)&&(DI07->Data[5] = 0xff))
-		{
-			memset(&DI07->Data[4],0,2);
-		}
-		if((DI07->Data[6] = 0xff)&&(DI07->Data[7] = 0xff))
-		{
-			memset(&DI07->Data[6],0,2);
+			if((DI07->Data[tmpIndex*2] == 0xff)&&(DI07->Data[tmpIndex*2+1] == 0xff))
+			{
+				memset(&DI07->Data[2],0,2);
+			}
+			else
+			{
+				if((DI07->Data[tmpIndex*2+1]&0x80) == 0x80)
+				{
+					DI07->Data[tmpIndex*2+1] = DI07->Data[tmpIndex*2+1]&0x7f;
+					flagnegative[tmpIndex] = 1;
+				}
+			}
 		}
 	}
-	if((DI07->DI[2] == 0x02)&&(DI07->DI[3] == 0x02))
+	if(((DI07->DI[2] == 0x02)&&(DI07->DI[3] == 0x02))
+		||(memcmp(flag07_0CF25_2_O,DI07->DI,4) == 0))
 	{
 		*dataType = dtdoublelong;
 		INT8U f25_2_buff[16] = {0};
 
+		if(memcmp(flag07_0CF25_2_O,DI07->DI,4) == 0)
+		{
+			unitNum = 1;
+		}
 		INT8U tmpIndex = 0;
 		for(tmpIndex = 0;tmpIndex < unitNum;tmpIndex++)
 		{
@@ -1152,9 +1167,10 @@ INT8U getASNInfo(FORMAT07* DI07,Base_DataType* dataType)
 			}
 			else
 			{
-				if((DI07->Data[tmpIndex*3]&0xb0) == 0xb0)
+				if((DI07->Data[tmpIndex*3+2]&0x80) == 0x80)
 				{
-					DI07->Data[tmpIndex*3] = DI07->Data[tmpIndex*3]&0x7f;
+					DI07->Data[tmpIndex*3+2] = DI07->Data[tmpIndex*3+2]&0x7f;
+					flagnegative[tmpIndex] = 1;
 				}
 				memcpy(&f25_2_buff[(tmpIndex*4)],&DI07->Data[tmpIndex*3],3);
 			//	fprintf(stderr,"\n tmpIndex = %d DI07->Data =  %02x%02x%02x f25_2_buff = %02x%02x%02x%02x\n ",tmpIndex,
@@ -1231,6 +1247,9 @@ INT8U getASNInfo(FORMAT07* DI07,Base_DataType* dataType)
 		INT8U tmpIndex = 0;
 		for(tmpIndex = 0;tmpIndex < unitNum;tmpIndex++)
 		{
+			xuliangdata[tmpIndex*15] = 0x02;
+			xuliangdata[tmpIndex*15+1] = 0x02;
+			xuliangdata[tmpIndex*15+2] = 0x06;
 			//最大需量
 			if((DI07->Data[tmpIndex*8]==0xff)&&(DI07->Data[tmpIndex*8+1]==0xff)&&(DI07->Data[tmpIndex*8+2]==0xff))
 			{
@@ -1240,12 +1259,24 @@ INT8U getASNInfo(FORMAT07* DI07,Base_DataType* dataType)
 			{
 				INT8U tmpBuff[4] = {0};
 				INT8U reverBuff[4] = {0};
-				memcpy(&tmpBuff[1],&DI07->Data[tmpIndex*8],3);
-				INT32U value = 0;
+				if((DI07->Data[tmpIndex*8+2]&0x80) == 0x80)
+				{
+					DI07->Data[tmpIndex*8+2] = DI07->Data[tmpIndex*8+2]&0x7f;
+					flagnegative[tmpIndex] = 1;
+				}
 
+				memcpy(&tmpBuff[0],&DI07->Data[tmpIndex*8],3);
+				INT32U value = 0;
 				bcd2int32u(tmpBuff,4,inverted,&value);
 				fprintf(stderr,"\n value = %d",value);
 				memcpy(tmpBuff,&value,4);
+
+				//负数值处理
+				if(flagnegative[tmpIndex]==1)
+				{
+					INT32S svalue = value*(-1);
+					memcpy(tmpBuff,&svalue,4);
+				}
 
 				reversebuff(tmpBuff, 4, reverBuff);
 				memcpy(&xuliangdata[tmpIndex*15+3],reverBuff,4);
@@ -1267,8 +1298,9 @@ INT8U getASNInfo(FORMAT07* DI07,Base_DataType* dataType)
 			xuliangdata[tmpIndex*15+13] = minute;
 			xuliangdata[tmpIndex*15+14] = 0;
 			DI07->Length += 15;
-			memcpy(&DI07->Data[tmpIndex*15],&xuliangdata[tmpIndex*15],15);
+
 		}
+		memcpy(&DI07->Data[0],xuliangdata,15*unitNum);
 		fprintf(stderr,"需量 DI07->Length = %d",DI07->Length);
 		return unitNum;
 	}
@@ -1286,6 +1318,11 @@ INT8U getASNInfo(FORMAT07* DI07,Base_DataType* dataType)
 			}
 			else
 			{
+				if((DI07->Data[tmpIndex*3+2]&0x80) == 0x80)
+				{
+					DI07->Data[tmpIndex*3+2] = DI07->Data[tmpIndex*3+2]&0x7f;
+					flagnegative[tmpIndex] = 1;
+				}
 				memcpy(&f25_3_buff[tmpIndex*4],&DI07->Data[tmpIndex*3],3);
 			}
 		}
@@ -1321,7 +1358,12 @@ INT8U getASNInfo(FORMAT07* DI07,Base_DataType* dataType)
 			bcd2int32u(&DI07->Data[dataIndex],unitSize,inverted,&value);
 			fprintf(stderr,"\n value = %d",value);
 			memcpy(&DI07->Data[dataIndex],&value,unitSize);
-
+			//负数值处理
+			if(flagnegative[unitIndex]==1)
+			{
+				INT32S svalue = value*(-1);
+				memcpy(&DI07->Data[dataIndex],&svalue,unitSize);
+			}
 			if(unitSize == 2)
 			{
 				fprintf(stderr,"\n 123123  DI07->Data[%d] = %d  DI07->Data[%d+1] = %d",dataIndex,dataIndex,DI07->Data[dataIndex],DI07->Data[dataIndex+1]);
@@ -1919,6 +1961,13 @@ INT8S OADMap07DI(OI_698 roadOI,OAD sourceOAD, C601F_645* flag645) {
 					if((sourceOAD.OI==0x2000)||(sourceOAD.OI==0x2001))
 					{
 						flag645->DI._07.DI_1[0][1] = sourceOAD.attrindex;
+						//零序电流 02 80 00 01
+						if((sourceOAD.OI==0x2001)&&((sourceOAD.attrindex==4)))
+						{
+							flag645->DI._07.DI_1[0][0] = 0x01;
+							flag645->DI._07.DI_1[0][1] = 0x00;
+							flag645->DI._07.DI_1[0][2] = 0x80;
+						}
 					}
 					else
 					{
