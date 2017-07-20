@@ -2747,7 +2747,7 @@ void intToBuf(int value,INT8U *buf)
 }
 int collectData(INT8U *databuf,INT8U *srcbuf,OAD_INDEX *oad_offset,ROAD_ITEM item_road)
 {
-	int i=0,j=0;
+	int i=0,j=0,mm=0;
 	INT8U tmpbuf[256];
 	int pindex = 0,retlen=0;
 
@@ -2772,48 +2772,24 @@ int collectData(INT8U *databuf,INT8U *srcbuf,OAD_INDEX *oad_offset,ROAD_ITEM ite
 			else
 			{
 				memcpy(tmpbuf,&srcbuf[oad_offset[j].offset],oad_offset[j].len);
-				if(getZone("HuNan")==0 && tmpbuf[0] == 0)
-					continue;
-
 //				fprintf(stderr,"tmpbuf[0]=%02x\n",tmpbuf[0]);
 				switch(tmpbuf[0])
 				{
 				case 0:
 					fprintf(stderr,"\n---------------tmpbuf[0]=%d\n",tmpbuf[0]);
-//					if(getZone("HuNan")==0)
-//					{
-//						fprintf(stderr,"\n地区：湖南\n");
-//						OI_INFO oi_info;
-//						GetOIinfo(oad_offset[j].oad_r.OI,4,&oi_info);
-//						if(oi_info.oinum != 0 && oad_offset[j].oad_r.attrindex == 0)
-//						{
-//							switch(oi_info.io_unit)
-//							{
-//							case 1://array
-//								databuf[pindex++] = 1;
-//								databuf[pindex++] = oi_info.oinum;
-//								memset(&databuf[pindex],0x00,oi_info.oinum);
-//								pindex += oi_info.oinum;
-//								break;
-//							case 2://struct
-//								databuf[pindex++] = 2;
-//								databuf[pindex++] = oi_info.oinum;
-//								memset(&databuf[pindex],0x00,oi_info.oinum);
-//								pindex += oi_info.oinum;
-//								break;
-//							default:
-//								databuf[pindex++] = 0;
-//								break;
-//							}
-//						}
-//						else
-//							databuf[pindex++] = 0;
-//					}
-//					else
+					if(getZone("HuNan")==0 && tmpbuf[0] == 0 && item_road.oad[j].oad_r.attrindex == 0)
 					{
-						fprintf(stderr,"地区：非湖南");
-						databuf[pindex++] = 0;
+						OI_INFO oi_info;
+						GetOIinfo(item_road.oad[i].oad_r.OI,4,&oi_info);
+						if(oi_info.mem_num>1)
+						{
+							databuf[pindex++] = oi_info.mem_num;
+							for(mm=0;mm<oi_info.mem_num;mm++)
+								databuf[pindex++] = 0;
+						}
+							break;
 					}
+					databuf[pindex++] = 0;
 					fprintf(stderr,"000 pindex=%d\n",pindex);
 					break;
 				case 1://array
