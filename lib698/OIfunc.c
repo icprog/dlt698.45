@@ -140,7 +140,14 @@ int Get_4000(OAD oad,INT8U *data)
 		case 2://安全模式选择
 			system((const char*)"hwclock -s");
 			DataTimeGet(&time);
-			tminc(&time, 0, 7);
+			//注意：测试项（时钟招测与对时）：要求时钟下发与招测误差在5秒内。当内部协议栈时，收发速度比较慢。因此将此处主站招测时钟是人为增加7秒再上送，防止通信延时引起误差
+			//	   测试项（状态量变位）：测试先招测时钟，然后改变遥信状态，10秒后招测3104事件，此时上送时间不应早于招测时钟返回的时间。
+			//			 在此处如果加7秒，在Get_StandardUnit（）产生3104事件时候，将事件发生时间也重新增加7秒。
+		    if(getZone("GW")==0) {
+		    	TS	add_ts;
+		    	TimeBCDToTs(time,&add_ts);
+		    	tminc(&add_ts, 0, 7);
+		    }
 			fprintf(stderr, "============================================\n\n\n\n\n\nadd10min\n");
 			index += fill_date_time_s(&data[index],&time);
 			break;

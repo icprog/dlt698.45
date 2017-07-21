@@ -100,7 +100,7 @@ int StateProcess(CommBlock* nst, int delay_num) {
 		for (int i = 0; i < (length + 2); i++) {
 			nst->DealBuf[i] = nst->RecBuf[nst->RTail];
 			nst->RTail = (nst->RTail + 1) % FRAMELEN;
-			fprintf(stderr, "%02x\n", nst->DealBuf[i]);
+			fprintf(stderr, "%02x ", nst->DealBuf[i]);
 			nst->deal_step ++;
 		}
 		if (((nst->RHead - nst->RTail + FRAMELEN) % FRAMELEN) >= 3) {
