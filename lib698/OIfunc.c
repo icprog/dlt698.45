@@ -74,8 +74,10 @@ INT8U Get_2200(INT8U getflg,INT8U *sourcebuf,INT8U *buf,int *len)
 	}
 	*len=0;
 	*len += create_struct(&buf[*len],2);
-	*len += fill_double_long_unsigned(&buf[*len],flow_tj.flow.day_tj);
-	*len += fill_double_long_unsigned(&buf[*len],flow_tj.flow.month_tj);
+//	*len += fill_double_long_unsigned(&buf[*len],flow_tj.flow.day_tj);
+//	*len += fill_double_long_unsigned(&buf[*len],flow_tj.flow.month_tj);
+		*len += fill_double_long_unsigned(&buf[*len],0x00);
+		*len += fill_double_long_unsigned(&buf[*len],0x00);
 	return 1;
 }
 /*
