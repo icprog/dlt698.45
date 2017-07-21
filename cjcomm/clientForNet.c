@@ -161,6 +161,7 @@ int RegularClientForNet(struct aeEventLoop *ep, long long id, void *clientData) 
                 SetOnlineType(2);
             }
         }
+        return 2000;
     } else {
         if (Comm_task(nst) == -1) {
             asyslog(LOG_WARNING, "客户端[以太网]链接心跳超时，关闭端口");
