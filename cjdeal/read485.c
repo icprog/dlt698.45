@@ -100,8 +100,8 @@ void DbgPrintToFile1(INT8U comport,const char *format,...)
 
 	struct stat fileInfo;
 	stat(fname, &fileInfo);
-//	if (fileInfo.st_size>3000*1000)//超过300K
-	if (fileInfo.st_size>4096*1000)//超过300K
+//	if (fileInfo.st_size>4096*1000)//超过300K
+	if (fileInfo.st_size>2048*1000)//超过300K
 	{
 		memset(tmpcmd,0,sizeof(tmpcmd));
 		sprintf(tmpcmd,"cp %s %s.0",fname,fname);
@@ -834,9 +834,10 @@ INT16S ReceDataFrom485(METER_PROTOCOL meterPro,INT8U port485, INT16U delayms, IN
 						if (str[rec_tail + 9 + DataLen + 2] == 0x16) {
 							DbPrt1(port485,"R:",(char *)str, rec_head, NULL);
 
-							if(getZone("GW")==0) {
-								sprintf(title,"[485_%d_07]R:",port485);
-								bufsyslog(TmprevBuf, title, rec_head, 0, BUFFSIZE2048);
+							if((getZone("GW")==0) && (port485==1)) {
+//								sprintf(title,"[485_%d_07]R:",port485);
+//								bufsyslog(TmprevBuf, title, rec_head, 0, BUFFSIZE2048);
+								PacketBufToFile("[485_07]R:",(char *)str, rec_head, NULL);
 							}
 							return (rec_tail + 9 + DataLen + 3);
 						}
@@ -850,9 +851,10 @@ INT16S ReceDataFrom485(METER_PROTOCOL meterPro,INT8U port485, INT16U delayms, IN
 					{
 							if (str[rec_tail + DataLen +1] == 0x16) {
 								DbPrt1(port485,"R:",(char *)str, rec_head, NULL);
-								if(getZone("GW")==0) {
-									sprintf(title,"[485_%d_698]R:",port485);
-									bufsyslog(TmprevBuf, title, rec_head, 0, BUFFSIZE2048);
+								if((getZone("GW")==0) && (port485==1)) {
+//									sprintf(title,"[485_%d_698]R:",port485);
+//									bufsyslog(TmprevBuf, title, rec_head, 0, BUFFSIZE2048);
+									PacketBufToFile("[485_698]R:",(char *)str, rec_head, NULL);
 								}
 								return rec_head;
 							}
@@ -891,11 +893,11 @@ void SendDataTo485(INT8U port485, INT8U *sendbuf, INT16U sendlen) {
 	if (slen < 0)
 		fprintf(stderr, "slen=%d,send err!\n", slen);
 	DbPrt1(port485,"S:", (char *) sendbuf, sendlen, NULL);
-
-	if(getZone("GW")==0) {
-		char title[20];
-		sprintf(title,"[485_%d]S:",port485);
-		bufsyslog(sendbuf, title, sendlen, 0, BUFLEN);
+	if((getZone("GW")==0) && (port485==1)) {
+//		char title[20];
+//		sprintf(title,"[485_%d]S:",port485);
+//		bufsyslog(sendbuf, title, sendlen, 0, BUFLEN);
+		PacketBufToFile("[485]S:",(char *) sendbuf, sendlen, NULL);
 	}
 }
 

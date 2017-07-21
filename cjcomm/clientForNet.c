@@ -38,6 +38,9 @@ int ClientForNetWrite(int fd, INT8U *buf, INT16U len) {
         asyslog(LOG_WARNING, "客户端[以太网]报文发送失败(长度:%d,错误:%d-%d)", len, errno, fd);
     }
     bufsyslog(buf, "客户端[以太网]发送:", len, 0, BUFLEN);
+    if(getZone("GW")==0) {
+    	PacketBufToFile("[NET]S:",(char *)buf, len, NULL);
+    }
     return ret;
 }
 
@@ -72,6 +75,12 @@ void ClientForNetRead(struct aeEventLoop *eventLoop, int fd, void *clientData,
 			nst->RHead = (nst->RHead + 1) % BUFLEN;
 		}
 		bufsyslog(nst->RecBuf, "客户端[以太网]接收:", nst->RHead, nst->RTail, BUFLEN);
+	    if(getZone("GW")==0) {
+	    	int buflen=0;
+	    	buflen = (nst->RTail-nst->RHead+BUFLEN)%BUFLEN;
+	    	if(buflen!=0)
+	    		PacketBufToFile("[NET]R:",(char *)&nst->RecBuf[nst->RTail], buflen, NULL);
+	    }
 	}
 }
 

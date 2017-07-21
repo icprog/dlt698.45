@@ -321,7 +321,9 @@ int modelSendExactly(int fd, int retry, int len, int buf) {
     char cmdBuf[2048];
 
     bufsyslog(buf, "客户端[内部协议栈]发送:", len, 0, BUFLEN);
-
+    if(getZone("GW")==0) {
+    	PacketBufToFile("[GPRS]S:",(char *) buf, len, NULL);
+    }
     for (int timeout = 0; timeout < retry; timeout++) {
         memset(recbuf, 0x00, sizeof(recbuf));
         memset(cmdBuf, 0x00, sizeof(cmdBuf));
@@ -659,7 +661,7 @@ void CalculateTransFlowModel(ProgramInfo *prginfo_event) {
         if (localDay != ts.Day) {
             asyslog(LOG_INFO, "检测到夸日，流量统计清零，清零前数据(%d)", prginfo_event->dev_info.realTimeC2200.flow.day_tj);
             Save_TJ_Freeze(0x2200,0x0200,0,ts,sizeof(Flow_tj),(INT8U *)&prginfo_event->dev_info.realTimeC2200);
-            prginfo_event->dev_info.realTimeC2200.flow.day_tj = 0;
+//            prginfo_event->dev_info.realTimeC2200.flow.day_tj = 0;
             localDay = ts.Day;
         }
         if (localMonth != ts.Month) {
@@ -696,6 +698,11 @@ static int RegularClientOnModel(struct aeEventLoop *ep, long long id, void *clie
         }
 
         bufsyslog(nst->RecBuf, "客户端[GPRS]接收:", nst->RHead, nst->RTail, BUFLEN);
+	    if(getZone("GW")==0) {
+	    	int buflen=0;
+	    	buflen = (nst->RTail-nst->RHead+BUFLEN)%BUFLEN;
+	    	PacketBufToFile("[GPRS]R:",(char *)&nst->RecBuf[nst->RTail], buflen, NULL);
+	    }
     }
 
     if (Comm_task(nst) == -1) {
