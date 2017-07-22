@@ -30,7 +30,7 @@ typedef struct {
 
 #define  IP_LEN		4		//参数ip类长度
 									//厂商代码　　软件版本　软件日期　　硬件版本　硬件日期  扩展信息
-static VERINFO verinfo          = { "QDGK", "V1.2", "170719", "1.10", "160328", "00000000" }; // 4300 版本信息
+static VERINFO verinfo          = { "QDGK", "V1.1", "170719", "1.10", "160328", "00000000" }; // 4300 版本信息
 static DateTimeBCD product_date = { { 2016 }, { 04 }, { 6 }, { 0 }, { 0 }, { 0 } };   // 4300 生产日期
 static char protcol[]           = "DL/T 698.45";                                      // 4300 支持规约类型
 
@@ -91,7 +91,7 @@ void InitClass4500(INT16U heartBeat,MASTER_STATION_INFO master_info,MASTER_STATI
 	            class4500.master.master[1].ip[2], class4500.master.master[1].ip[3],
 	            class4500.master.master[1].ip[4], class4500.master.master[1].port);
     }
-    fprintf(stderr, "\n主IP %d.%d.%d.%d:%d  ", class4500.master.master[0].ip[1],
+    syslog(LOG_NOTICE, "\nInitClass4500主IP %d.%d.%d.%d:%d  ", class4500.master.master[0].ip[1],
             class4500.master.master[0].ip[2], class4500.master.master[0].ip[3],
             class4500.master.master[0].ip[4], class4500.master.master[0].port);
     fprintf(stderr, "备IP %d.%d.%d.%d:%d\n", class4500.master.master[1].ip[1],

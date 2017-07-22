@@ -172,6 +172,15 @@ INT8U state_check(BOOLEAN changed,INT8U devicetype)
 			bit_state[i]=bit_state[0];
 		}
 	}
+
+	////test
+	if(devicetype == CCTT1) {
+		for(i=1;i<4;i++) {
+			bit_state[i]=bit_state[0];
+		}
+	}
+
+
 	for(i=0; i < STATE_MAXNUM; i++)
 	{
 		if((changed == FALSE) && (bit_state[i] != oif203.statearri.stateunit[i].ST)) {

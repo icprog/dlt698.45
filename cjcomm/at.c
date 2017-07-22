@@ -803,6 +803,8 @@ void *ATWorker(void *args) {
                 memcpy(class25_temp.ccid, class25->ccid, sizeof(32));
                 class25_temp.signalStrength = class25->signalStrength;
                 SetPPPDStatus(1);
+                syslog(LOG_NOTICE, "\nat.c 主IP %d.%d.%d.%d:%d\n", class25_temp.master.master[0].ip[1], class25_temp.master.master[0].ip[2],
+                		class25_temp.master.master[0].ip[3],class25_temp.master.master[0].ip[4], class25_temp.master.master[0].port);
                 saveCoverClass(0x4500, 0, &class25_temp, sizeof(CLASS25), para_vari_save);
                 break;
             }

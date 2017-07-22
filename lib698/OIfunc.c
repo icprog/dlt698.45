@@ -74,10 +74,14 @@ INT8U Get_2200(INT8U getflg,INT8U *sourcebuf,INT8U *buf,int *len)
 	}
 	*len=0;
 	*len += create_struct(&buf[*len],2);
-//	*len += fill_double_long_unsigned(&buf[*len],flow_tj.flow.day_tj);
-//	*len += fill_double_long_unsigned(&buf[*len],flow_tj.flow.month_tj);
+	//GW送检 终端当前数据招测流量时，使用GPRS内部协议栈时，日，月流量都为0，才判断合格。
+    if(getZone("GW")==0) {
 		*len += fill_double_long_unsigned(&buf[*len],0x00);
 		*len += fill_double_long_unsigned(&buf[*len],0x00);
+    }else {
+		*len += fill_double_long_unsigned(&buf[*len],flow_tj.flow.day_tj);
+		*len += fill_double_long_unsigned(&buf[*len],flow_tj.flow.month_tj);
+    }
 	return 1;
 }
 /*
@@ -142,8 +146,19 @@ int Get_4000(OAD oad,INT8U *data)
 		case 2://安全模式选择
 			system((const char*)"hwclock -s");
 			DataTimeGet(&time);
-			tminc(&time, 0, 7);
-			fprintf(stderr, "============================================\n\n\n\n\n\nadd10min\n");
+			//注意：测试项（时钟招测与对时）：要求时钟下发与招测误差在5秒内。当内部协议栈时，收发速度比较慢。因此将此处主站招测时钟是人为增加7秒再上送，防止通信延时引起误差
+			//	   测试项（状态量变位）：测试先招测时钟，然后改变遥信状态，10秒后招测3104事件，此时上送时间不应早于招测时钟返回的时间。
+			//			 在此处如果加7秒，在Get_StandardUnit（）产生3104事件时候，将事件发生时间也重新增加7秒。
+			//     测试项（终端维护）：测试数据初始化3100事件，判断事件发生时间有效性，因此处增加7秒，相应事件产生时间增加7秒
+		    if(getZone("GW")==0) {
+		    	TS	add_ts;
+		    	TimeBCDToTs(time,&add_ts);
+		    	fprintf(stderr, "============================================\n\n\n\n\n\add_ts.sec=%d,\n",add_ts.Sec);
+		    	tminc(&add_ts, 0, 7);
+		    	TsToTimeBCD(add_ts,&time);
+		    	fprintf(stderr, "============================================\n\n\n\n\n\time.sec=%d,\n",add_ts.Sec);
+		    }
+
 			index += fill_date_time_s(&data[index],&time);
 			break;
 		case 3://校时模式

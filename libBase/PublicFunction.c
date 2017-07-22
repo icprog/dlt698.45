@@ -21,7 +21,7 @@
 #include <dirent.h>
 #include <syslog.h>
 #include <stdarg.h>
-
+#include <sys/stat.h>
 /* BCD码转int32u
  *参数：bcd为bcd码头指针，len为bcd码长度，order为positive正序/inverted反序，dint转换结果
  * 返回:0：成功；-1：asc为空；-2：en为0；-3：order有误
@@ -1153,4 +1153,136 @@ final:
 	*bufSize = destLen;
 }
 
+void PacketToFile(const char *format,...)
+{
+	char str[50];
+	char fname[100];
+	char tmpcmd[256];
+	time_t cur_time;
+	struct tm cur_tm;
+	FILE *fp = NULL;
+
+	memset(fname,0,sizeof(fname));
+	sprintf(fname,"/nand/packet.log");
+	memset(str,0,50);
+	cur_time=time(NULL);
+	localtime_r(&cur_time,&cur_tm);
+	sprintf(str, "\n[%04d-%02d-%02d %02d:%02d:%02d]",
+			cur_tm.tm_year+1900, cur_tm.tm_mon+1, cur_tm.tm_mday,
+			cur_tm.tm_hour, cur_tm.tm_min, cur_tm.tm_sec);
+
+	fp = fopen(fname, "a+");//内容存入文件
+	if (fp != NULL)
+	{
+		va_list ap;
+	    va_start(ap,format);
+		vfprintf(fp,str,ap);
+	    if(fp)
+			vfprintf(fp,format,ap);
+	    va_end(ap);
+	    fflush(fp);
+		fclose(fp);
+	}
+
+	struct stat fileInfo;
+	stat(fname, &fileInfo);
+	if (fileInfo.st_size>4096*1000)//超过300K
+	{
+		memset(tmpcmd,0,sizeof(tmpcmd));
+		sprintf(tmpcmd,"cp %s %s.0",fname,fname);
+		system(tmpcmd);
+		sleep(3);
+		memset(tmpcmd,0,sizeof(tmpcmd));
+		sprintf(tmpcmd,"rm %s",fname);
+		system(tmpcmd);
+	}
+}
+
+void myBCDtoASC1(char val, char dest[2])
+{
+	int i=0;
+	char c[2];
+	c[0]=0; c[1]=0;
+	c[0] = (val>>4) & 0x0f;
+	c[1] = val & 0x0f;
+	for(i=0; i<2; i++)
+	{
+		//if(c[i]>=0 && c[i]<=9)
+		if(c[i]<=9)
+			dest[i] = c[i] + '0';
+		if(c[i]==10)
+			dest[i] = 'a';
+		if(c[i]==11)
+			dest[i] = 'b';
+		if(c[i]==12)
+			dest[i] = 'c';
+		if(c[i]==13)
+			dest[i] = 'd';
+		if(c[i]==14)
+			dest[i] = 'e';
+		if(c[i]==15)
+			dest[i] = 'f';
+	}
+}
+
+
+void PacketBufToFile(char *prefix, char *buf, int len, char *suffix)
+{
+//	return ;
+
+
+	char str[50], tmpbuf[2048], c[2], c1[2], c2[2];
+	int i=0;
+	memset(c, 0, 2);
+	memset(str, 0, 50);
+	memset(tmpbuf, 0, 2048);
+
+	int count= 0;
+	int prtlen=0;
+	int k=0;
+	while(1)
+	{
+		memset(c, 0, 2);
+		memset(str, 0, 50);
+		memset(tmpbuf, 0, 2048);
+		if(len<=512)
+		{
+			prtlen = len;
+		}else
+		{
+			if(k<len/512)
+			{
+				k++;
+				prtlen = 512;
+			}else
+			{
+				prtlen = len%512;
+			}
+		}
+		if(prefix!=NULL)
+		{
+			sprintf(str, "%s[%d] ", prefix,prtlen);
+			strcat(tmpbuf, str);
+		}
+		for(i=0; i<prtlen; i++)
+		{
+			memset(c, 0, 2);
+			memset(c1, 0, 2);
+			memset(c2, 0, 2);
+			myBCDtoASC1(buf[i+count], c);
+
+			c1[0] = c[0];
+			c2[0] = c[1];
+			strcat(tmpbuf, c1);
+			strcat(tmpbuf, c2);
+			strcat(tmpbuf, " ");
+		}
+		if(suffix!=NULL)
+			strcat(tmpbuf, suffix);
+		PacketToFile(tmpbuf);
+		count += prtlen;
+		if(count>=len)
+			break;
+	}
+}
 #endif /*JPublicFunctionH*/

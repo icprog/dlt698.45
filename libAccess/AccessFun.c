@@ -679,7 +679,7 @@ int  readVariData(OI_698 oi,int coll_seqnum,void *blockdata,int len)
 			memset(rbuf,0,blklen);
 			readlen=fread(rbuf,blklen,1,fp);	//读一个块数据
 			if(readlen==1) {
-				fprintf(stderr,"rbuf[0]=%d\n",rbuf[0]);
+//				fprintf(stderr,"rbuf[0]=%d\n",rbuf[0]);
 				if(rbuf[0]==0) {
 					retlen = 0;
 				}else {
@@ -688,7 +688,7 @@ int  readVariData(OI_698 oi,int coll_seqnum,void *blockdata,int len)
 				}
 			}
 			if(rbuf!=NULL) {
-				fprintf(stderr,"free rbuf\n");
+//				fprintf(stderr,"free rbuf\n");
 				free(rbuf);
 			}
 		}
@@ -4373,6 +4373,8 @@ INT8U get_protocol_3761_tx_para()
 			memset(class4500.commconfig.passWord,0,sizeof(class4500.commconfig.passWord));
 			memcpy(&class4500.commconfig.passWord[1],trans_data.Pwd,sizeof(trans_data.Pwd));
 			class4500.commconfig.passWord[0] = strlen((char*)&class4500.commconfig.passWord[1]);
+	        syslog(LOG_NOTICE, "\nget_protocol_3761_tx_para 主IP %d.%d.%d.%d:%d\n", class4500.master.master[0].ip[1], class4500.master.master[0].ip[2],
+	        		class4500.master.master[0].ip[3],class4500.master.master[0].ip[4], class4500.master.master[0].port);
 			saveCoverClass(0x4500, 0, &class4500, sizeof(CLASS25), para_vari_save);
 			usleep(100*1000);
 
