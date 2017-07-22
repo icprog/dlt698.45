@@ -57,32 +57,12 @@ void SerialRead(struct aeEventLoop *eventLoop, int fd, void *clientData, int mas
     }
 
     if (revcount > 0) {
+    	TSGet(&nst->final_frame);
         for (int j = 0; j < revcount; j++) {
             read(nst->phy_connect_fd, &nst->RecBuf[nst->RHead], 1);
             nst->RHead = (nst->RHead + 1) % BUFLEN;
         }
         bufsyslog(nst->RecBuf, "维护接收:", nst->RHead, nst->RTail, BUFLEN);
-        for (int k = 0; k < 3; k++) {
-            int len = 0;
-            for (int i = 0; i < 5; i++) {
-                len = StateProcess(nst, 10);
-                if (len > 0) {
-                    break;
-                }
-            }
-
-            if (len > 0) {
-                int apduType = ProcessData(nst);
-                switch (apduType) {
-                    case LINK_RESPONSE:
-                        nst->linkstate = build_connection;
-                        nst->testcounter = 0;
-                        break;
-                    default:
-                        break;
-                }
-            }
-        }
     }
 }
 
@@ -104,20 +84,41 @@ int RegularSerial(struct aeEventLoop *ep, long long id, void *clientData) {
                             GlobData[oif201.devpara.databits]);
         } else {
             nst->phy_connect_fd = OpenCom(4, 9600, (unsigned char *) "even", 1, 8);
-        }
-
-        if (nst->phy_connect_fd <= 0) {
-            asyslog(LOG_ERR, "维护串口打开失败");
-        } else {
-            if (aeCreateFileEvent(ep, nst->phy_connect_fd, AE_READABLE, SerialRead, nst) < 0) {
-                asyslog(LOG_ERR, "维护串口监听失败");
-                close(nst->phy_connect_fd);
-                nst->phy_connect_fd = -1;
-                return 10 * 1000;
-            }
+            if (nst->phy_connect_fd <= 0) {
+                        asyslog(LOG_ERR, "维护串口打开失败");
+             }
         }
     }
-    return 1000;
+	else {
+		if (aeCreateFileEvent(ep, nst->phy_connect_fd, AE_READABLE, SerialRead, nst) < 0) {
+			asyslog(LOG_ERR, "维护串口监听失败");
+			close(nst->phy_connect_fd);
+			nst->phy_connect_fd = -1;
+			return 10 * 1000;
+		}
+
+		int res = 0;
+		do {
+			res = StateProcess(nst, 5);
+			if (nst->deal_step >= 3) {
+				int apduType = ProcessData(nst);
+				ConformAutoTask(ep, nst, apduType);
+				switch (apduType) {
+				case LINK_RESPONSE:
+					First_VerifiTime(nst->linkResponse, nst->shmem); //简单对时
+					if (GetTimeOffsetFlag() == 1) {
+						Getk_curr(nst->linkResponse, nst->shmem);
+					}
+					nst->linkstate = build_connection;
+					nst->testcounter = 0;
+					break;
+				default:
+					break;
+				}
+			}
+		} while (res == 1);
+	}
+    return 500;
 }
 
 /*
