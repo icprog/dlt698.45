@@ -97,6 +97,7 @@ static void IfrReadLoop(struct aeEventLoop *eventLoop, int fd, void *clientData,
     ioctl(nst->phy_connect_fd, FIONREAD, &revcount);
 
     if (revcount > 0) {
+    	TSGet(&nst->final_frame);
         for (int j = 0; j < revcount; j++) {
             read(nst->phy_connect_fd, &nst->RecBuf[nst->RHead], 1);
             nst->RHead = (nst->RHead + 1) % BUFLEN;
@@ -107,18 +108,26 @@ static void IfrReadLoop(struct aeEventLoop *eventLoop, int fd, void *clientData,
         bufsyslog(nst->RecBuf, "红外接收():", nst->RHead, nst->RTail, BUFLEN);
     }
 
-    int len = StateProcess(nst, 10);
-    if (len > 0) {
-        int apduType = ProcessData(nst);
-        switch (apduType) {
-            case LINK_RESPONSE:
-                nst->linkstate = build_connection;
-                nst->testcounter = 0;
-                break;
-            default:
-                break;
-        }
-    }
+	int res = 0;
+	do {
+		res = StateProcess(nst, 5);
+		if (nst->deal_step >= 3) {
+			int apduType = ProcessData(nst);
+			ConformAutoTask(eventLoop, nst, apduType);
+			switch (apduType) {
+			case LINK_RESPONSE:
+				First_VerifiTime(nst->linkResponse, nst->shmem); //简单对时
+				if (GetTimeOffsetFlag() == 1) {
+					Getk_curr(nst->linkResponse, nst->shmem);
+				}
+				nst->linkstate = build_connection;
+				nst->testcounter = 0;
+				break;
+			default:
+				break;
+			}
+		}
+	} while (res == 1);
 }
 
 /*
@@ -156,7 +165,7 @@ static int RegularIfr(struct aeEventLoop *ep, long long id, void *clientData) {
         // 为I型集中器的特殊处理
         IfrReadLoop(ep, 0, nst, 0);
     }
-    return 1000;
+    return 500;
 }
 
 /*
