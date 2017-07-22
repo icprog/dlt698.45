@@ -31,8 +31,28 @@ const static mmq_attribute mmq_register[] = {{cjcomm, PROXY_485_MQ_NAME,    MAXS
                                              {cjdeal, TASKID_485_2_MQ_NAME, MAXSIZ_TASKID_QUEUE, MAXNUM_TASKID_QUEUE},
                                              {cjdeal, TASKID_plc_MQ_NAME,   MAXSIZ_TASKID_QUEUE, MAXNUM_TASKID_QUEUE}};
 
-void Runled(int state) {
-    gpio_writebyte((char *) DEV_LED_RUN, state);
+/*
+ * 国网要求：
+ * 运行灯：红色，灯常亮表示终端主CPU正常运行，但未和主站建立连接，灯亮1s灭1s交替闪烁表示终端正常运行且和主站建立连接；
+ *
+ * 浙江要求：
+ * 运行灯：一直常亮
+ * */
+void Runled(int state)
+{
+	static  INT8S	run_staus=0;
+	if(getZone("GW")==0) {
+		if(JProgramInfo->dev_info.connect_ok==1) {
+			gpio_writebyte((char *) DEV_LED_RUN, run_staus);
+			if(run_staus == 1)	run_staus = 0;
+			else run_staus = 1;
+		}else {
+			gpio_writebyte((char *) DEV_LED_RUN, state);
+		}
+	}else {
+		//浙江要求运行灯常亮
+		gpio_writebyte((char *) DEV_LED_RUN, state);
+	}
 }
 
 void SyncRtc(void) {

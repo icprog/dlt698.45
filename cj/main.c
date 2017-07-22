@@ -234,17 +234,27 @@ int main(int argc, char *argv[]) {
     	if(argc==3) {
     		port = atoi(argv[2]);
     	}
+
     	fprintf(stderr,"port=%d\n",port);
-		comfd1 = OpenCom(port, 9600, (INT8U *) "even", 1, 8);
-		write(comfd1, getversion, sizeof(getversion));
-		usleep(500 * 1000);
-		ret = read(comfd1, buf, 256);
-		for(i=0;i<10;i++) {
-			sleep(1);
-			fprintf(stderr,"R[%d]=",ret);
-			for(i=0;i<ret;i++) {
-				fprintf(stderr,"%02x ",buf[i]);
+
+    	comfd1 = OpenCom(port, 1200, (INT8U *) "even", 1, 8);
+//		write(comfd1, getversion, sizeof(getversion));
+//		usleep(500 * 1000);
+		for(;;) {
+
+    	ret = read(comfd1, buf, 256);
+    	if(ret > 0) {
+			for(i=0;i<10;i++) {
+				sleep(1);
+				fprintf(stderr,"\nR[%d]=",ret);
+				for(i=0;i<ret;i++) {
+					fprintf(stderr,"%02x ",buf[i]);
+				}
 			}
+//			write(comfd1, getversion, sizeof(getversion));
+
+    	}
+		sleep(1);
 		}
     	close(comfd1);
         return EXIT_SUCCESS;

@@ -94,9 +94,9 @@ int getZone(char *zone)
 		fprintf(stderr,"上电第一次读出地区: cfg_zone=%s\n",cfg_para.zone);
 	}
 	ret = strncmp(cfg_para.zone,zone,strlen(zone));
-	if(ret==0) {
-		fprintf(stderr,"cfg_zone=%s 满足地区\n",cfg_para.zone,ret);
-	}
+//	if(ret==0) {
+//		fprintf(stderr,"cfg_zone=%s 满足地区\n",cfg_para.zone,ret);
+//	}
 	return ret;
 }
 
