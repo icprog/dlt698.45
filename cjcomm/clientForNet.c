@@ -77,9 +77,8 @@ void ClientForNetRead(struct aeEventLoop *eventLoop, int fd, void *clientData,
 		bufsyslog(nst->RecBuf, "客户端[以太网]接收:", nst->RHead, nst->RTail, BUFLEN);
 	    if(getZone("GW")==0) {
 	    	int buflen=0;
-	    	buflen = (nst->RTail-nst->RHead+BUFLEN)%BUFLEN;
-	    	if(buflen!=0)
-	    		PacketBufToFile("[NET]R:",(char *)&nst->RecBuf[nst->RTail], buflen, NULL);
+	    	buflen = (nst->RHead-nst->RTail+BUFLEN)%BUFLEN;
+	    	PacketBufToFile("[NET]R:",(char *)&nst->RecBuf[nst->RTail], buflen, NULL);
 	    }
 	}
 }

@@ -1228,7 +1228,9 @@ void myBCDtoASC1(char val, char dest[2])
 
 void PacketBufToFile(char *prefix, char *buf, int len, char *suffix)
 {
-	//return ;
+//	return ;
+
+
 	char str[50], tmpbuf[2048], c[2], c1[2], c2[2];
 	int i=0;
 	memset(c, 0, 2);

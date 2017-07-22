@@ -101,7 +101,8 @@ extern INT8U getarryb2s(INT32S* arr, INT8U len);
  */
 void asyslog(int priority, const char* fmt, ...);
 void bufsyslog(const INT8U* buf, const char* title, int head, int tail, int len);
-
+//国网送检时，增加了packet.log打印gprs和485_1的报文
+void PacketBufToFile(char *prefix, char *buf, int len, char *suffix);
 
 /*
  * 数据处理

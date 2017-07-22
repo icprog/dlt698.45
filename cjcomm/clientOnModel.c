@@ -510,6 +510,8 @@ void *ModelWorker(void *args) {
         memcpy(class25_temp.ccid, class25->ccid, sizeof(32));
         class25_temp.signalStrength = class25->signalStrength;
         SetGprsStatus(2);
+        syslog(LOG_NOTICE, "\nonModel.c 主IP %d.%d.%d.%d:%d\n", class25_temp.master.master[0].ip[1], class25_temp.master.master[0].ip[2],
+        		class25_temp.master.master[0].ip[3],class25_temp.master.master[0].ip[4], class25_temp.master.master[0].port);
         saveCoverClass(0x4500, 0, &class25_temp, sizeof(CLASS25), para_vari_save);
         ////////////////////获取信息////////////////////
 
@@ -700,7 +702,7 @@ static int RegularClientOnModel(struct aeEventLoop *ep, long long id, void *clie
         bufsyslog(nst->RecBuf, "客户端[GPRS]接收:", nst->RHead, nst->RTail, BUFLEN);
 	    if(getZone("GW")==0) {
 	    	int buflen=0;
-	    	buflen = (nst->RTail-nst->RHead+BUFLEN)%BUFLEN;
+	    	buflen = (nst->RHead-nst->RTail+BUFLEN)%BUFLEN;
 	    	PacketBufToFile("[GPRS]R:",(char *)&nst->RecBuf[nst->RTail], buflen, NULL);
 	    }
     }
