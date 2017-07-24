@@ -516,7 +516,8 @@ int task_Refresh(TASK_UNIT *taskunit)
 		if (list6013[i].basicInfo.taskID == id)
 		{
 			DbgPrintToFile1(31,"找到");
-			taskunit->beginTime = calcnexttime(list6013[i].basicInfo.interval,list6013[i].basicInfo.startime,list6013[i].basicInfo.delay);
+			taskunit->beginTime = calcnexttime(list6013[i].basicInfo.interval,\
+					list6013[i].basicInfo.startime,list6013[i].basicInfo.delay);
 			ts =  timet_bcd(taskunit->beginTime);
 			taskunit->begin = ts;
 			for(t=0;t<taskunit->fangan.item_n;t++)
@@ -1269,6 +1270,12 @@ DATA_ITEM checkMeterData(TASK_INFO *meterinfo,int *taski,int *itemi,INT8U usrtyp
 			meterinfo->tsa.addr[3],meterinfo->tsa.addr[4],meterinfo->tsa.addr[5],
 			meterinfo->tsa.addr[6],meterinfo->tsa.addr[7],
 			meterinfo->tsa_index,meterinfo->task_n,meterinfo->task_list[i].fangan.item_n);
+
+	DEBUG_TIME_LINE("检查  %02x%02x%02x%02x%02x%02x%02x%02x  index=%d 任务数 %d   数据相个数 %d",
+			meterinfo->tsa.addr[0],meterinfo->tsa.addr[1],meterinfo->tsa.addr[2],
+			meterinfo->tsa.addr[3],meterinfo->tsa.addr[4],meterinfo->tsa.addr[5],
+			meterinfo->tsa.addr[6],meterinfo->tsa.addr[7],
+			meterinfo->tsa_index,meterinfo->task_n,meterinfo->task_list[i].fangan.item_n);
 	//正常任务判断
 	for(i=0; i< meterinfo->task_n; i++)
 	{
@@ -1282,8 +1289,10 @@ DATA_ITEM checkMeterData(TASK_INFO *meterinfo,int *taski,int *itemi,INT8U usrtyp
 			}
 			if (needflg == 1)
 			{
+				 DEBUG_TIME_LINE("meterinfo->task_list[i].fangan.items[j].sucessflg: %d", meterinfo->task_list[i].fangan.items[j].sucessflg);
 				 for(j = 0; j<meterinfo->task_list[i].fangan.item_n; j++)
 				 {
+					 DEBUG_TIME_LINE("meterinfo->task_list[i].fangan.items[j].sucessflg: %d", meterinfo->task_list[i].fangan.items[j].sucessflg);
 					 if ( meterinfo->task_list[i].fangan.items[j].sucessflg==0)
 					 {
 						 item.oad1 = meterinfo->task_list[i].fangan.items[j].oad1;
@@ -1294,6 +1303,7 @@ DATA_ITEM checkMeterData(TASK_INFO *meterinfo,int *taski,int *itemi,INT8U usrtyp
 						 return item;	//存在常规任务，满足抄读条件数据项
 					 }
 				 }
+				 DEBUG_TIME_LINE("current has no item to read");
 			}
 		}
 	}
@@ -1323,11 +1333,13 @@ DATA_ITEM checkMeterData(TASK_INFO *meterinfo,int *taski,int *itemi,INT8U usrtyp
 						 return item;
 					 }
 				 }
+				 DEBUG_TIME_LINE("no item need reRead");
 				 meterinfo->task_list[i].tryAgain = 0;//已经无补抄数据，清除补抄标识
 				 task_Refresh(&taskinfo.task_list[i] );
 			}
 		}
 	}
+
 	return item;
 }
 
@@ -1516,50 +1528,99 @@ int do_other_type( int taski, int itemi ,INT8U *buf, struct Tsa_Node *desnode, D
 	taskinfo.now_itemi = itemi;
 	taskinfo.task_list[taski].fangan.items[itemi].sucessflg = 1;
 	taskinfo.task_list[taski].fangan.item_i = itemi;
-	PrintTaskInfo(&taskinfo,taski);
-	DEBUG_TIME_LINE("PrintTaskInfo2 start");
-	if (itemi == taskinfo.task_list[taski].fangan.item_n-1)//最后一个
-	{
-		DbgPrintToFile1(31,"重新初始化 任务%d 开始时间",taskinfo.task_list[taski].taskId);
-		task_Refresh(&taskinfo.task_list[taski] );
-	}
-
+	PrintTaskInfo2(&taskinfo);
+	DEBUG_TIME_LINE("itemi: %d, total: %d", itemi, \
+			taskinfo.task_list[taski].fangan.item_n-1);
+//	if (itemi == taskinfo.task_list[taski].fangan.item_n-1)//最后一个
+//	{
+//		DEBUG_TIME_LINE("");
+//		DbgPrintToFile1(31,"重新初始化 任务%d 开始时间",taskinfo.task_list[taski].taskId);
+//		task_Refresh(&taskinfo.task_list[taski]);
+//	}
 	return sendlen;
 }
 
-void look5004Task(TASK_INFO *meterinfo)
+
+/*
+ * 假如载波模块请求的测量点TSA与
+ * 内存中的TSA不同, 则需要更新数据
+ * 项的抄读状态.
+ * 如果当前TSA的某个任务的所有数据
+ * 的状态全不为0, 则表示这个任务的
+ * 所有数据项都被操作完毕, 除日冻结
+ * 任务需要补抄外, 其他任务暂时不做
+ * 补抄处理, 更新下一次任务执行时间,
+ * 并将各抄读项状态置0.
+ */
+void chkTsaTask(TASK_INFO *meterinfo)
 {
-	int itemcount=0,needRetry=0;
+	int opt5004Count=0;//日冻结已抄读数据项数目
+	int	needRetry=0;//日冻结需要补抄标志
+
+	int flgZeroCnt = 0;//除日冻结任务的其他任务, 抄读状态为0的数据项数目
+
 	int tasknum = meterinfo->task_n;
 	int i=0,j=0,flg5004Task=-1;
 	time_t nowt = time(NULL);
 	for(i=0;i<tasknum;i++)
 	{
+		 opt5004Count = 0;
+		 needRetry = 0;
+		 flg5004Task = 0;
+		 flgZeroCnt = 0;
+
 		if ( nowt >= meterinfo->task_list[i].beginTime)//此任务时间已经到了
 		{
-			 itemcount = 0;
-			 needRetry = 0;
 			 for(j = 0; j<meterinfo->task_list[i].fangan.item_n; j++)
 			 {
 				 if (meterinfo->task_list[i].fangan.items[j].oad1.OI == 0x5004)
-				 {
+				 {//如果是日冻结任务, 检查已抄读的数据项数目
+
 					 flg5004Task = i;
-					 if ( meterinfo->task_list[i].fangan.items[j].sucessflg == 2)
-						 itemcount++;
-					 if ( meterinfo->task_list[i].fangan.items[j].sucessflg == 1)//有未抄读成功项
-					 {
-						 itemcount++;
+					 switch (meterinfo->task_list[i].fangan.items[j].sucessflg) {
+					 case 2:
+						 opt5004Count++;
+						 break;
+					 case 1://有未抄读成功项
+						 opt5004Count++;
 						 needRetry = 1;//存在抄读过但未成功数据
 						 meterinfo->task_list[i].fangan.items[j].sucessflg = 0;
+						 break;
+					 case 0:
+						 break;
+					 default:
+						 break;
+					 }
+				 }
+				 else
+				 {//如果不是日冻结任务, 则检查未操作的数据项数目, 如果没有未操作数据项,
+				  //则清零数据项的状态标志, 更新下一次执行时间
+					 switch (meterinfo->task_list[i].fangan.items[j].sucessflg) {
+					 case 0:
+						 flgZeroCnt++;
+						 break;
+					 default:
+						 break;
 					 }
 				 }
 			 }
-			 if (itemcount == meterinfo->task_list[i].fangan.item_n && needRetry==1)  //全部数据项都抄过，但是存在抄读失败的数据
-			 {
+
+			 if (opt5004Count == meterinfo->task_list[i].fangan.item_n && needRetry==1)
+			 {//日冻结的全部数据项都抄过，但是存在抄读失败的数据
 				 meterinfo->task_list[i].tryAgain = 0x55;
 				 DbgPrintToFile1(31,"TSA:%02x%02x%02x%02x%02x%02x%02x%02x 此日冻结任务 %d 需要补抄",
-						 meterinfo->tsa.addr[0],meterinfo->tsa.addr[1],meterinfo->tsa.addr[2],meterinfo->tsa.addr[3],
-						 meterinfo->tsa.addr[4],meterinfo->tsa.addr[5],meterinfo->tsa.addr[6],meterinfo->tsa.addr[7],meterinfo->task_list[i].taskId);
+						 meterinfo->tsa.addr[0],meterinfo->tsa.addr[1],
+						 meterinfo->tsa.addr[2],meterinfo->tsa.addr[3],
+						 meterinfo->tsa.addr[4],meterinfo->tsa.addr[5],
+						 meterinfo->tsa.addr[6],meterinfo->tsa.addr[7],
+						 meterinfo->task_list[i].taskId);
+			 }
+
+			 if(flgZeroCnt == 0 && flg5004Task==0) {//flg5004Task==0, 说明当前任务不是日冻结任务
+				task_Refresh(&taskinfo.task_list[i]);
+				for(j = 0; j<meterinfo->task_list[i].fangan.item_n; j++) {
+					meterinfo->task_list[i].fangan.items[j].sucessflg = 0;
+				}
 			 }
 		}//end if 此任务时间已经到了
 	}
@@ -1583,7 +1644,7 @@ int ProcessMeter(INT8U *buf,struct Tsa_Node *desnode)
 			//1、日冻结任务全部数据项都抄成功需要更新任务下次执行时间，将成功标识置 0
 			//2、部分未成功，标识置 0 ，下次执行时间不变
 			//再次请求该表时，如果存在部分未成功数据时，任务可以再次执行，并重新抄读标识为 0的
-			look5004Task(&taskinfo);
+			chkTsaTask(&taskinfo);
 			saveParaClass(0x8888, &taskinfo,taskinfo.tsa_index);
 		}
 
