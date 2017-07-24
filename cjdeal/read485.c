@@ -494,6 +494,7 @@ INT8S use6013find6015or6017(INT8U cjType,INT16U fanganID,TI interval6013,CLASS_6
 		if (readCoverClass(oi, fanganID, st6015, sizeof(CLASS_6015), coll_para_save)== 1)
 		{
 			print6015(*st6015);
+
 #if 1
 			//调整6015采集方案　过滤掉不需要抄表的内容
 			if((st6015->cjtype == TYPE_LAST)||(st6015->cjtype == TYPE_FREEZE))
@@ -1067,7 +1068,11 @@ INT16S dealEventRecord(CLASS_6001 meter,FORMAT07 resultData07,INT16U taskID,INT8
 //根据07 DI 返回数据类型dataType 数组大小size 信息
 INT8U getASNInfo(FORMAT07* DI07,Base_DataType* dataType)
 {
+	INT8U flagnegative[10] = {0};
 	fprintf(stderr, "\n getASNInfo DI07 = %02x%02x%02x%02x",DI07->DI[3],DI07->DI[2],DI07->DI[1],DI07->DI[0]);
+	fprintf(stderr,"\n数据　%02x %02x %02x %02x %02x %02x %02x %02x %02x\n",
+			DI07->Data[0],DI07->Data[1],DI07->Data[2],
+			DI07->Data[3],DI07->Data[4],DI07->Data[5],DI07->Data[6],DI07->Data[7],DI07->Data[8]);
 	INT8U unitNum = 1;
 	INT8U index;
 
@@ -1135,29 +1140,34 @@ INT8U getASNInfo(FORMAT07* DI07,Base_DataType* dataType)
 	//电压　电流 功率 特殊处理  07回来的是3个字节  6984个字节
 	if(memcmp(flag07_0CF25_1,DI07->DI,4) == 0)
 	{
-		if((DI07->Data[2] = 0xff)&&(DI07->Data[3] = 0xff))
+
+		if((DI07->Data[2] == 0xff)&&(DI07->Data[3] == 0xff))
 		{
 			memset(&DI07->Data[2],0,2);
 		}
-		if((DI07->Data[4] = 0xff)&&(DI07->Data[5] = 0xff))
+		if((DI07->Data[4] == 0xff)&&(DI07->Data[5] == 0xff))
 		{
 			memset(&DI07->Data[4],0,2);
 		}
 	}
 	//功率因数
-	if(memcmp(flag07_0CF25_9,DI07->DI,4) == 0)
+	if((DI07->DI[2]==0x06)&&(DI07->DI[3]==0x02))
 	{
-		if((DI07->Data[2] = 0xff)&&(DI07->Data[3] = 0xff))
+		INT8U tmpIndex = 0;
+		for(tmpIndex = 0;tmpIndex < unitNum;tmpIndex++)
 		{
-			memset(&DI07->Data[2],0,2);
-		}
-		if((DI07->Data[4] = 0xff)&&(DI07->Data[5] = 0xff))
-		{
-			memset(&DI07->Data[4],0,2);
-		}
-		if((DI07->Data[6] = 0xff)&&(DI07->Data[7] = 0xff))
-		{
-			memset(&DI07->Data[6],0,2);
+			if((DI07->Data[tmpIndex*2] == 0xff)&&(DI07->Data[tmpIndex*2+1] == 0xff))
+			{
+				memset(&DI07->Data[2],0,2);
+			}
+			else
+			{
+				if((DI07->Data[tmpIndex*2+1]&0x80) == 0x80)
+				{
+					DI07->Data[tmpIndex*2+1] = DI07->Data[tmpIndex*2+1]&0x7f;
+					flagnegative[tmpIndex] = 1;
+				}
+			}
 		}
 	}
 	if((DI07->DI[2] == 0x02)&&(DI07->DI[3] == 0x02))
@@ -1174,9 +1184,10 @@ INT8U getASNInfo(FORMAT07* DI07,Base_DataType* dataType)
 			}
 			else
 			{
-				if((DI07->Data[tmpIndex*3]&0xb0) == 0xb0)
+				if((DI07->Data[tmpIndex*3+2]&0x80) == 0x80)
 				{
-					DI07->Data[tmpIndex*3] = DI07->Data[tmpIndex*3]&0x7f;
+					DI07->Data[tmpIndex*3+2] = DI07->Data[tmpIndex*3+2]&0x7f;
+					flagnegative[tmpIndex] = 1;
 				}
 				memcpy(&f25_2_buff[(tmpIndex*4)],&DI07->Data[tmpIndex*3],3);
 			//	fprintf(stderr,"\n tmpIndex = %d DI07->Data =  %02x%02x%02x f25_2_buff = %02x%02x%02x%02x\n ",tmpIndex,
@@ -1265,12 +1276,25 @@ INT8U getASNInfo(FORMAT07* DI07,Base_DataType* dataType)
 			{
 				INT8U tmpBuff[4] = {0};
 				INT8U reverBuff[4] = {0};
+
+				if((DI07->Data[tmpIndex*8+2]&0x80) == 0x80)
+				{
+					DI07->Data[tmpIndex*8+2] = DI07->Data[tmpIndex*8+2]&0x7f;
+					flagnegative[tmpIndex] = 1;
+				}
+
 				memcpy(&tmpBuff[0],&DI07->Data[tmpIndex*8],3);
 				INT32U value = 0;
-
 				bcd2int32u(tmpBuff,4,inverted,&value);
 				fprintf(stderr,"\n value = %d",value);
 				memcpy(tmpBuff,&value,4);
+
+				//负数值处理
+				if(flagnegative[tmpIndex]==1)
+				{
+					INT32S svalue = value*(-1);
+					memcpy(tmpBuff,&svalue,4);
+				}
 
 				reversebuff(tmpBuff, 4, reverBuff);
 				memcpy(&xuliangdata[tmpIndex*15+3],reverBuff,4);
@@ -1294,6 +1318,7 @@ INT8U getASNInfo(FORMAT07* DI07,Base_DataType* dataType)
 			DI07->Length += 15;
 		}
 		memcpy(&DI07->Data[0],xuliangdata,unitNum*15);
+
 		fprintf(stderr,"需量 DI07->Length = %d",DI07->Length);
 		return unitNum;
 	}
@@ -1311,6 +1336,11 @@ INT8U getASNInfo(FORMAT07* DI07,Base_DataType* dataType)
 			}
 			else
 			{
+				if((DI07->Data[tmpIndex*3+2]&0x80) == 0x80)
+				{
+					DI07->Data[tmpIndex*3+2] = DI07->Data[tmpIndex*3+2]&0x7f;
+					flagnegative[tmpIndex] = 1;
+				}
 				memcpy(&f25_3_buff[tmpIndex*4],&DI07->Data[tmpIndex*3],3);
 			}
 		}
@@ -1346,7 +1376,12 @@ INT8U getASNInfo(FORMAT07* DI07,Base_DataType* dataType)
 			bcd2int32u(&DI07->Data[dataIndex],unitSize,inverted,&value);
 			fprintf(stderr,"\n value = %d",value);
 			memcpy(&DI07->Data[dataIndex],&value,unitSize);
-
+			//负数值处理
+			if(flagnegative[unitIndex]==1)
+			{
+				INT32S svalue = value*(-1);
+				memcpy(&DI07->Data[dataIndex],&svalue,unitSize);
+			}
 			if(unitSize == 2)
 			{
 				fprintf(stderr,"\n 123123  DI07->Data[%d] = %d  DI07->Data[%d+1] = %d",dataIndex,dataIndex,DI07->Data[dataIndex],DI07->Data[dataIndex+1]);
@@ -2673,6 +2708,7 @@ INT8S dealProxyType1(PROXY_GETLIST *getlist,INT8U port485)
 		pthread_mutex_unlock(&mutex);
 	}
 	set_port_active(port485,0);
+
 	return result;
 }
 INT8S dealProxyType7(PROXY_GETLIST *getlist,INT8U port485)
@@ -2972,6 +3008,7 @@ INT8S dealProxy(PROXY_GETLIST *getlist,INT8U port485)
 		result = dealProxyType3(getlist,port485);		//new
 		break;
 	}
+
 	return result;
 }
 
@@ -3540,7 +3577,6 @@ INT8S checkBroadCast(INT8U port485)
 			INT16U meterIndex = 0;
 			CLASS_6001 meter = { };
 
-			//07表广播对时
 			sleep(5);
 			INT8U isHas07Meter = 0;
 			for (meterIndex = 0; meterIndex < info6000[port].meterSum; meterIndex++)
@@ -3704,11 +3740,7 @@ INT16S deal6015_698(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8
 		}
 		subindex++;
 	}
-	if(isSuccess == 1)
-	{
-		st6035->successMSNum++;
-	}
-	else
+	if(isSuccess != 1)
 	{
 		fprintf(stderr,"\n 抄表失败　　Event_310F \n");
 		Event_310F(to6001.basicinfo.addr,NULL,0,JProgramInfo);
@@ -3741,13 +3773,9 @@ INT16S request698_07DataList(C601F_07Flag obj601F_07Flag, CLASS_6001 meter,INT8U
 		}
 
 	}
-	if(isSuccess ==1)
+	if(isSuccess !=1)
 	{
-		st6035->successMSNum++;
-	}
-
-	else //485抄表失败
-	{
+		//485抄表失败
 		//Event_310F()
 	}
 	return DataLen;
@@ -3777,12 +3805,7 @@ INT16S request698_97DataList(C601F_97Flag obj601F_97Flag, CLASS_6001 meter,INT8U
 		}
 
 	}
-	if(isSuccess ==1)
-	{
-		st6035->successMSNum++;
-	}
-
-	else //485抄表失败
+	if(isSuccess !=1)
 	{
 		//Event_310F()
 	}
@@ -4758,7 +4781,6 @@ INT8S deal6015or6017(CLASS_6013 st6013,CLASS_6015 st6015, INT8U port485,CLASS_60
 						DbgPrintToFile1(port485,"任务ID:%d deal6015 测量点 = %d　已经抄读成功,不用再抄了",st6013.taskID,info6000[port].list6001[meterIndex]);
 						continue;
 					}
-					st6035->totalMSNum++;
 #if 0
 					fprintf(stderr,"\n\n 任务号:%d  方案号:%d deal6015 测量点 = %d-----",st6035->taskID,st6015.sernum,meter.sernum);
 					DbgPrintToFile1(port485,"任务号:%d  方案号:%d deal6015 测量点 = %d-----",st6035->taskID,st6015.sernum,meter.sernum);
@@ -4774,7 +4796,6 @@ INT8S deal6015or6017(CLASS_6013 st6013,CLASS_6015 st6015, INT8U port485,CLASS_60
 						DbgPrintToFile1(port485,"参数变更 重新抄表");
 						return PARA_CHANGE_RETVALUE;
 					}
-
 					if((dataLen > 0)&&(st6013.cjtype == norm)&&(st6015.cjtype != TYPE_INTERVAL))
 					{
 						TS ts_cc;
@@ -4930,29 +4951,6 @@ INT8S cleanTaskIDmmq(INT8U port485)
 	return ret;
 }
 
-INT8S get6035ByTaskID(INT16U taskID,CLASS_6035* class6035)
-{
-	memset(class6035,0,sizeof(CLASS_6035));
-	class6035->taskID = taskID;
-
-//	int recordNum = getFileRecordNum(0x6035);
-	CLASS_6035 tmp6035;
-	memset(&tmp6035,0,sizeof(CLASS_6035));
-	INT16U i;
-//	for(i=0;i<=recordNum;i++)
-	for(i=0;i<=255;i++)
-	{
-		if(readCoverClass(0x6035,i,&tmp6035,sizeof(CLASS_6035),coll_para_save)== 1)
-		{
-			if(tmp6035.taskID == taskID)
-			{
-				memcpy(class6035,&tmp6035,sizeof(CLASS_6035));
-				return 1;
-			}
-		}
-	}
-	return -1;
-}
 
 void read485_thread(void* i485port) {
 	INT8U port = *(INT8U*) i485port;
@@ -5026,6 +5024,7 @@ void read485_thread(void* i485port) {
 			result6035.taskState = IN_OPR;
 			DataTimeGet(&result6035.starttime);
 			saveClass6035(&result6035);
+
 			CLASS_6015 to6015;	//采集方案集
 			memset(&to6015, 0, sizeof(CLASS_6015));
 
@@ -5061,14 +5060,17 @@ void read485_thread(void* i485port) {
 				}
 					break;
 			}
-			DataTimeGet(&result6035.endtime);
-			result6035.taskState = AFTER_OPR;
 
 			fprintf(stderr,"\n发送报文数量：%d  接受报文数量：%d",result6035.sendMsgNum,result6035.rcvMsgNum);
 			DbgPrintToFile1(port,"****************taskIndex = %d 任务结束 发送报文数量：%d  接受报文数量：%d*******************************",
 					taskIndex,result6035.sendMsgNum,result6035.rcvMsgNum);
+
+			DataTimeGet(&result6035.endtime);
+			result6035.taskState = AFTER_OPR;
+			result6035.successMSNum = getTaskDataTsaNum(result6035.taskID);
 			saveClass6035(&result6035);
 #if 1//抄完日冻结任务需要把infoReplenish　保存到文件里　保证重启后补抄不用全部都抄
+
 			//日冻结任务
 			if(to6015.csds.csd[0].csd.road.oad.OI == 0x5004)
 			{

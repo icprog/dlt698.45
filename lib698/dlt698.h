@@ -9,6 +9,8 @@
 
 extern CONNECT_Response *AppVar_p;
 
+extern ProgramInfo *getShareAddr(void);//获取共享内存的地址
+
 extern unsigned short tryfcs16(unsigned char *cp, int  len);
 extern int doObjectAction(OAD oad, INT8U* data, Action_result* result);
 extern int StateProcess(CommBlock* nst, int delay_num);
@@ -73,6 +75,7 @@ extern int fill_integer(INT8U* data, INT8U value);					//0x0f
 extern int fill_long(INT8U *data,INT16U value);						//0x10
 extern int fill_unsigned(INT8U* data, INT8U value);					//0x11
 extern int fill_long_unsigned(INT8U* data, INT16U value);			//0x12
+extern int fill_double_long64(INT8U *data,INT64U value);			//0x14
 extern int fill_enum(INT8U* data, INT8U value);						//0x16
 extern int fill_time(INT8U* data, INT8U* value);					//0x1b
 extern int fill_date_time_s(INT8U* data, DateTimeBCD* time);		//0x1c

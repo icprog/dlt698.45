@@ -660,6 +660,8 @@ void *ATWorker(void *args) {
         for (int timeout = 0; timeout < 10; timeout++) {
             char Mrecvbuf[128];
 
+            break;
+            //暂时不检查CCID
             SendATCommand("\rAT$MYCCID\r", 11, sMux0);
             delay(1000);
             memset(Mrecvbuf, 0, 128);
@@ -792,6 +794,7 @@ void *ATWorker(void *args) {
 //            SetWireLessType(2);
             system("pppd call cdma2000 &");
         }
+//        SetWireLessType(3); 测试4G图标，强制4G在线
 
         for (int i = 0; i < 50; i++) {
             sleep(1);

@@ -21,6 +21,7 @@
 #include "secure.h"
 #include "basedef.h"
 #include "class8.h"
+#include "class12.h"
 #include "class23.h"
 
 extern int comfd;
@@ -1367,8 +1368,7 @@ int doObjectAction(OAD oad, INT8U *data, Action_result *act_ret) {
 				return act_ret->datalen;
 			}
 		}
-
-    switch (oi) {
+		switch (oi) {
     	case 0x4000:	//广播校时
      		if (attr_act == 127) {  //方法 127 广播校时
     			act_ret->datalen = Set_4000(data,&act_ret->DAR);
@@ -1426,6 +1426,9 @@ int doObjectAction(OAD oad, INT8U *data, Action_result *act_ret) {
         		act_ret->datalen = Set_F202(0xf202,data,&act_ret->DAR);
         	}
         	break;
+        case 0x2401:
+        	class12_router(1, attr_act, data, act_ret);
+			break;
         case 0x2301:
             class23_selector(1, attr_act, data, act_ret);
             break;

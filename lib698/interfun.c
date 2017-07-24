@@ -236,6 +236,21 @@ int fill_double_long_unsigned(INT8U *data,INT32U value)		//0x06
 	return 5;
 }
 
+int fill_double_long64(INT8U *data,INT64U value)		//0x14
+{
+	data[0] = dtlong64;
+	data[1] = (value & 0xFF00000000000000) >> 56;
+	data[2] = (value & 0x00FF000000000000) >> 48;
+	data[3] = (value & 0x0000FF0000000000) >> 40;
+	data[4] = (value & 0x000000FF00000000 )>> 32;
+	data[1] = (value & 0x00000000FF000000) >> 24;
+	data[2] = (value & 0x00FF000000FF0000) >> 16;
+	data[3] = (value & 0x0000FF000000FF00) >> 8;
+	data[4] = value & 0x00000000000000FF;
+	return 9;
+}
+
+
 int fill_octet_string(INT8U *data,char *value,INT8U len)	//0x09
 {
 //	if(len==0) {
@@ -398,9 +413,7 @@ int fill_CSD(INT8U type,INT8U *data,MY_CSD csd)		//0x5b
 		data[index++] = dtcsd;
 	}
 	data[index++] = csd.type;
-
 	fprintf(stderr,"csd.type = %d\n",csd.type);
-
 	if(csd.type == 0) {	//oad
 		index += create_OAD(0,&data[index],csd.csd.oad);
 	}else if(csd.type == 1) {	//road
@@ -503,7 +516,7 @@ int fill_RCSD(INT8U type,INT8U *data,CSD_ARRAYTYPE csds)		//0x60
 		data[index++] = dtrcsd;
 	}
 	num = csds.num;
-	fprintf(stderr,"csds.num=%d\n",csds.num);
+	DEBUG_TIME_LINE("csds.num=%d\n",csds.num);
 	if(num==0) {		//OAD  RCSD=0,即sequence of数据个数=0，表示不选择，国网台体测试终端编程事件时，读取上1次编程事件记录，RCSD=0，应答帧oad不应在此处填写
 //		index += create_OAD(0,&data[index],csds.csd[0].csd.oad);
 	}else {				//RCSD		SEQUENCE OF CSD

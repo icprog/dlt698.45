@@ -439,6 +439,7 @@ INT8S saveClass6035(CLASS_6035* class6035)
 	{
 		if(readCoverClass(0x6035,i,&file6035,sizeof(CLASS_6035),coll_para_save)== 1)
 		{
+			asyslog(LOG_INFO,"saveClass6035 file6035.taskID= %d  class6035->taskID = %d",file6035.taskID,class6035->taskID);
 			if(file6035.taskID == class6035->taskID)
 			{
 				isFind = 1;
@@ -446,6 +447,7 @@ INT8S saveClass6035(CLASS_6035* class6035)
 			}
 		}
 	}
+
 	if(isFind)
 	{
 		DbgPrintToFile1(1,"    find file6035.taskID=%d,status=%d",file6035.taskID,class6035->taskState);
@@ -457,6 +459,7 @@ INT8S saveClass6035(CLASS_6035* class6035)
 //		class6035->successMSNum += file6035.successMSNum;
 //		class6035->sendMsgNum += file6035.sendMsgNum;
 //		class6035->rcvMsgNum += file6035.rcvMsgNum;
+
 	}
 
 	saveCoverClass(0x6035, class6035->taskID, class6035,
@@ -544,6 +547,7 @@ INT8U init6013ListFrom6012File() {
 					{
 						infoReplenish.unitReplenish[infoReplenish.tasknum++].taskID = list6013[total_tasknum].basicInfo.taskID;
 					}
+
 				}
 #if 1
 				if(timeCmp < 2)
@@ -556,17 +560,15 @@ INT8U init6013ListFrom6012File() {
 					list6013[total_tasknum].ts_next  =
 									calcnexttime(list6013[total_tasknum].basicInfo.interval,list6013[total_tasknum].basicInfo.startime,list6013[total_tasknum].basicInfo.delay);
 				}
-
 				//TODO
 				total_tasknum++;
-
 				//任务初始化新建6035
 				CLASS_6035 result6035;	//采集任务监控单元
 				memset(&result6035,0,sizeof(CLASS_6035));
 				result6035.taskState = BEFORE_OPR;
 				result6035.taskID = class6013.taskID;
-				saveClass6035(&result6035);
-				fprintf(stderr,"\n\n****result6035.taskID = %d******\n",result6035.taskID);
+
+				saveCoverClass(0x6035, result6035.taskID, &result6035,sizeof(CLASS_6035), coll_para_save);
 
 			}
 		}
@@ -804,9 +806,83 @@ void timeProcess()
 			filewrite(REPLENISHFILEPATH,&infoReplenish,sizeof(Replenish_TaskInfo));
 			printinfoReplenish(2);
 			createFakeTaskFileHead();
+			  //跨天的时候要初始化任务^M
+			CLASS_6035 file6035;
+			INT16U i;
+			for(i=0;i<=255;i++)
+			{
+				memset(&file6035,0,sizeof(CLASS_6035));
+				if(readCoverClass(0x6035,i,&file6035,sizeof(CLASS_6035),coll_para_save)== 1)
+				{
+					file6035.successMSNum = 0;
+					file6035.sendMsgNum = 0;
+					file6035.rcvMsgNum = 0;
+					saveCoverClass(0x6035, file6035.taskID, &file6035,sizeof(CLASS_6035), coll_para_save);
+				}
+			}
 		}
 	}
 }
+
+
+/*
+ * 判断两个TSA是否相等
+ * @pT1: 第1个TSA
+ * @pT2: 第2个TSA
+ * $return: 相等返回1, 不相等返回0
+ */
+INT8U tsaEqual(TSA* pT1, TSA* pT2)
+{
+	int i=0;
+
+	for(i=0;i<TSA_LEN;i++)
+		if(pT1->addr[i] != pT2->addr[i])
+			return 0;
+	return 1;
+}
+
+/*
+ * 根据给定的测量点TSA, 得到这个测量点的抄表端口信息
+ * @pTsa: 给定的测量点的TSA
+ * @pOI: 端口的标识
+ * @pPort: 端口内部索引, 如485-1或485-2
+ * $return: 找到返回1, 没找到返回0
+ */
+INT8U getOADPortByTSA(TSA* pTsa, OAD* pOAD)
+{
+	if(NULL == pTsa || NULL == pOAD)
+		return 0;
+	CLASS_6001 meter = { };
+	int i = 0;
+	OI_698 oi = (OI_698)0x6000;
+	int recordnum = getFileRecordNum(oi);
+
+	for(i=0; i < recordnum; i++) {
+		readParaClass(oi, &meter,i);
+		if(tsaEqual(pTsa, &(meter.basicinfo.addr))) {
+			memcpy(pOAD, &(meter.basicinfo.port), sizeof(OAD));
+			return 1;
+		}
+	}
+	return 0;
+}
+
+/*
+ * 根据给定的tsa判断这个测量点
+ * 是否挂载于载波端口
+ * @pTsa: 给定的测量点的TSA
+ * $return: 0-测量点不挂载在载波端口
+ * 			1-测量点挂载在载波端口
+ */
+INT8U isPlcMeterByTsa(TSA* pTsa)
+{
+	OAD oad = {};
+	getOADPortByTSA(pTsa, &oad);
+	if(oad.OI == PORT_ZB)
+		return 1;
+	return 0;
+}
+
 
 /*
  * 	dealMsgProcess() 只负责统一将TSA集中的
@@ -881,13 +957,11 @@ int proxy_dar_fill(PROXY_GETLIST *dest_list,PROXY_GETLIST get_list)
 		}
 		break;
 	case ProxyGetRequestRecord:
-
 		fprintf(stderr,"getlist.datalen=%d\n",get_list.proxylen);
 		for(i=0;i<get_list.proxylen;i++) {
 			fprintf(stderr,"%02x ",get_list.proxy_obj.buf[i]);
 		}
 		fprintf(stderr,"\n");
-
 		if(get_list.proxy_obj.record.dar == proxy_success) {
 			dest_list->proxy_obj.record.dar = success;
 		}else if(get_list.proxy_obj.record.dar == request_overtime) {
@@ -1658,6 +1732,7 @@ int main(int argc, char *argv[])
 	//485、四表合一
 	read485_proccess();
 	//统计计算 电压合格率 停电事件等
+
 	calc_proccess();
 	if(JProgramInfo->cfg_para.device == CCTT1)
 	{
@@ -1675,6 +1750,7 @@ int main(int argc, char *argv[])
 	while(1)
    	{
 		gettimeofday(&start, NULL);
+
 		TSGet(&ts);
 		if (ts.Hour==15 && ts.Minute==5 && del_day != ts.Day && del_min != ts.Minute)
 		{
@@ -1688,6 +1764,7 @@ int main(int argc, char *argv[])
 		interval = 1000000*(end.tv_sec - start.tv_sec) + (end.tv_usec - start.tv_usec);
 	    if(interval>=1000000)
 	    	fprintf(stderr,"deal main interval = %f(ms)\n", interval/1000.0);
+
 		usleep(10 * 1000);
 		clearcount(ProIndex);
 
@@ -1695,4 +1772,61 @@ int main(int argc, char *argv[])
 	pthread_mutex_destroy(&mutex); //销毁互斥锁
 	close_named_sem(SEMNAME_SPI0_0);
 	return EXIT_SUCCESS;//退出
+}
+int getTaskDataTsaNum(INT8U taskID)
+{
+	TS ts_tmp;
+	TSGet(&ts_tmp);
+	char	fname[128]={};
+	getTaskFileName(taskID,ts_tmp,fname);//得到要抄读的文件名称
+	fprintf(stderr,"\n打开文件名%s\n",fname);
+	INT8U tmp=0,buf[20]={};
+	int begitoffset =0 ;
+
+	int indexn=0,A_record=0,A_TSAblock=0;
+	HEAD_UNIT0 length[20];
+	int tsaNum =0 , head_len=0,unitnum=0;
+
+
+	FILE *fp=NULL;
+	fp = fopen(fname,"r");
+	if(fp==NULL)
+		return 0;
+	fprintf(stderr,"\n\n\n--------------------------------------------------------");
+	head_len = readfile_int(fp);
+	fprintf(stderr,"\n文件头长度 %d (字节)",head_len);
+
+	A_TSAblock = readfile_int(fp);
+	memset(&length,0,sizeof(length));
+	unitnum = (head_len )/sizeof(HEAD_UNIT0);
+
+	//打印文件头结构
+	A_record = head_prt(unitnum,length,&indexn,fp);
+
+	fprintf(stderr,"\nA_TSAblock = %d\n",A_TSAblock);
+	for(;;)
+	{
+		begitoffset = ftell(fp);
+		if (fread(&tmp,1,1,fp)<=0)
+		{
+			fprintf(stderr,"1111111");
+			fclose(fp);
+			return tsaNum;
+		}
+		if(tmp!=0X55)
+		{
+			fprintf(stderr,"2222222");
+			fclose(fp);
+			return tsaNum;
+		}
+		fread(&tmp,1,1,fp);
+		fread(&buf,tmp,1,fp);
+
+		tsaNum++;
+		fseek(fp,begitoffset+A_TSAblock,0);
+
+	}
+	fclose(fp);
+	return tsaNum;
+
 }

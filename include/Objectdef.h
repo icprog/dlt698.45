@@ -691,6 +691,34 @@ typedef struct {
 } ALSTATE;
 
 typedef struct {
+	OAD no;//脉冲输入端口号
+	INT8U conf;//脉冲属性{0正向有功 1正向无功 2反向有功 3反向无功}
+	INT64U k;//脉冲常数
+} PULSEUNIT;
+
+typedef struct {
+	INT8U addr[OCTET_STRING_LEN];//通信地址
+	INT64U pt;//互感器倍率
+	INT64U ct;//互感器倍率
+	PULSEUNIT unit[12];//脉冲配置
+	INT64U p;//有功功率
+	INT64U q;//无功功率
+	INT64U day_pos_p;//当日正向有功功率
+	INT64U mon_pos_p;//当月正向有功功率
+	INT64U day_nag_p;//当日反向有功功率
+	INT64U mon_nag_p;//当月反向有功功率
+	INT64U day_pos_q;//当日正向无功功率
+	INT64U mon_pos_q;//当月正向无功功率
+	INT64U day_nag_q;//当日反向无功功率
+	INT64U mon_nag_q;//当月反向无功功率
+	INT64U val_pos_p;//正向有功电能示值
+	INT64U val_pos_q;//正向无功电能示值
+	INT64U val_nag_p;//反向有功电能示值
+	INT64U val_nag_q;//反向无功电能示值
+	Scaler_Unit su[14];//属性5-18换算单位
+} CLASS12;
+
+typedef struct {
     AL_UNIT allist[MAX_AL_UNIT]; //总加配置表
     INT64U p;   //有功
     INT64U q;   //无功
@@ -716,6 +744,14 @@ typedef struct {
     ALSTATE output[MAX_AL_UNIT];
     ALSTATE overflow[MAX_AL_UNIT];
 } CLASS13;
+
+typedef struct {
+    INT8U state; //保电状态 0解除 1保电 2自动保电
+    INT32U noCommTime; //最大与主站无通信时长(分钟)，超过此时间自动保电，0表示不自动保电
+    INT32U autoTime; //上电自动保电时长,0表示不自动保电
+    INT16U autoTimeStart; //自动保电时段开始
+    INT16U autoTimeEnd; //自动保电时段结束
+} CLASS_8001;
 
 typedef struct {
     INT64U v; //终端保安定值
@@ -752,9 +788,11 @@ typedef struct {
 
 typedef struct {
     TIME_CTRL list[MAX_AL_UNIT];
-    INT8U OnSign;
-    INT8U no;
-    OI_698 index;
+    ALSTATE enable[MAX_AL_UNIT];
+    ALSTATE output[MAX_AL_UNIT];
+    ALSTATE overflow[MAX_AL_UNIT];
+    INT8U sign;
+    INT8U numb;
 } CLASS_8103;
 
 typedef struct {
@@ -767,7 +805,9 @@ typedef struct {
 
 typedef struct {
     FACT_CTRL list[MAX_AL_UNIT];
-    OI_698 index;
+    ALSTATE enable[MAX_AL_UNIT];
+    ALSTATE output[MAX_AL_UNIT];
+    ALSTATE overflow[MAX_AL_UNIT];
 } CLASS_8104;
 
 typedef struct {
@@ -779,7 +819,9 @@ typedef struct {
 
 typedef struct {
     STOP_CTRL list[MAX_AL_UNIT];
-    OI_698 index;
+    ALSTATE enable[MAX_AL_UNIT];
+    ALSTATE output[MAX_AL_UNIT];
+    ALSTATE overflow[MAX_AL_UNIT];
 } CLASS_8105;
 
 typedef struct {
@@ -794,7 +836,10 @@ typedef struct {
 } DOWN_CTRL;
 
 typedef struct {
-    OI_698 index;
+	DOWN_CTRL list[MAX_AL_UNIT];
+    ALSTATE enable[MAX_AL_UNIT];
+    ALSTATE output[MAX_AL_UNIT];
+    ALSTATE overflow[MAX_AL_UNIT];
 } CLASS_8106;
 
 typedef struct {
@@ -810,7 +855,9 @@ typedef struct {
 
 typedef struct {
     BUY_CTRL list[MAX_AL_UNIT];
-    OI_698 index;
+    ALSTATE enable[MAX_AL_UNIT];
+    ALSTATE output[MAX_AL_UNIT];
+    ALSTATE overflow[MAX_AL_UNIT];
 } CLASS_8107;
 
 typedef struct {
@@ -822,7 +869,9 @@ typedef struct {
 
 typedef struct {
     MONTH_CTRL list[MAX_AL_UNIT];
-    OI_698 index;
+    ALSTATE enable[MAX_AL_UNIT];
+    ALSTATE output[MAX_AL_UNIT];
+    ALSTATE overflow[MAX_AL_UNIT];
 } CLASS_8108;
 
 /*

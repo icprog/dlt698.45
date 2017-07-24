@@ -130,53 +130,8 @@ void ReadFileHeadLen(FILE *fp,INT16U *headlen,INT16U *blocklen)
 //		ReadNorData(ts_now,taskid,tsa);
 //	}
 //}
-int buf_int(INT8U  *buf)
-{
-	int value=0;
-	value = buf[0];
-	value = (value<<8) + buf[1];
-	return value;
-}
-int buf_int2(INT8U  *buf)
-{
-	int value=0;
-	value = buf[1];
-	value = (value<<8) + buf[0];
-	return value;
-}
-int readfile_int(FILE *fp)
-{
-	INT8U buf[2]={};
-	int value=0;
-	if (fp!=NULL)
-	{
-		if(fread(buf,2,1,fp)>0)
-		{
-			//value = buf[0];
-			//value = (value<<8) + buf[1];
-			value = buf_int(buf);
-		}
-	}
-	return value;
-}
 
-int getOADf(INT8U type,INT8U *source,OAD *oad)		//0x51
-{
-	if((type == 1) || (type == 0)) {
-		oad->OI = source[type+1];
-		oad->OI = (oad->OI <<8) | source[type];
-		oad->attflg = source[type+2];
-		oad->attrindex = source[type+3];
-		return (4+type);
-	}
-	return 0;
-}
 
-typedef struct{
-	OAD   oad_m;
-	OAD   oad_r;
-	INT16U len;
-}HEAD_UNIT0;
 int findtsa(FILE *fp,int *TSA_D,int A_TSAblock)
 {
 	INT8U tmp=0,buf[20]={};
@@ -439,33 +394,7 @@ void recordoadinfo_prt(int recordnum,int unitnum,int recordsize,HEAD_UNIT0 *leng
 	if(blockbuf != NULL)
 		free(blockbuf);
 }
-int head_prt(int unitnum,HEAD_UNIT0 *length,int *indexn,FILE *fp)
-{
-	INT8U buf[50]={};
-	int A_record=0,i=0,j=0;
-	OAD oad;
 
-	for(i=0;i<unitnum  ;i++)
-	{
-		memset(buf,0,50);
-		fread(buf,10,1,fp);
-		getOADf(0,&buf[0],&oad);
-		memcpy(&length[i].oad_m,&oad,sizeof(oad));
-		fprintf(stderr,"\n【%02d】  %04x-%02x-%02x   ",i,oad.OI,oad.attflg,oad.attrindex);
-		getOADf(0,&buf[4],&oad);
-		memcpy(&length[i].oad_r,&oad,sizeof(oad));
-		fprintf(stderr,  "%04x-%02x-%02x   ",oad.OI,oad.attflg,oad.attrindex);
-		length[i].len = buf_int2(&buf[8]);
-		fprintf(stderr," %02d 字节        |   ",length[i].len);
-		(*indexn)++;
-		for(j=0;j<10;j++)
-			fprintf(stderr,"%02x ",buf[j]);
-		if (i==3)
-			fprintf(stderr,"\n");
-		A_record += length[i].len;
-	}
-	return A_record ;
-}
 
 void analyTaskData(int argc, char* argv[])
 {
@@ -521,7 +450,61 @@ void analyTaskData(int argc, char* argv[])
 	}
 	return ;
 }
+INT16U getTaskDataTsaNum(INT8U taskID)
+{
+	TS ts_tmp;
+	TSGet(&ts_tmp);
+	char	fname[128]={};
+	getTaskFileName(taskID,ts_tmp,fname);//得到要抄读的文件名称
+	fprintf(stderr,"\n打开文件名%s\n",fname);
+	INT8U tmp=0,buf[20]={};
+	int begitoffset =0 ;
 
+	int indexn=0,A_record=0,A_TSAblock=0;
+	HEAD_UNIT0 length[20];
+	int tsaNum =0 , head_len=0,unitnum=0;
+
+
+	FILE *fp=NULL;
+	fp = fopen(fname,"r");
+	if(fp==NULL)
+		return 0;
+	fprintf(stderr,"\n\n\n--------------------------------------------------------");
+	head_len = readfile_int(fp);
+	fprintf(stderr,"\n文件头长度 %d (字节)",head_len);
+
+	A_TSAblock = readfile_int(fp);
+	memset(&length,0,sizeof(length));
+	unitnum = (head_len )/sizeof(HEAD_UNIT0);
+
+	//打印文件头结构
+	A_record = head_prt(unitnum,length,&indexn,fp);
+
+	fprintf(stderr,"\nA_TSAblock = %d\n",A_TSAblock);
+	for(;;)
+	{
+		begitoffset = ftell(fp);
+		if (fread(&tmp,1,1,fp)<=0)
+		{
+			fprintf(stderr,"1111111");
+			return tsaNum;
+		}
+		if(tmp!=0X55)
+		{
+			fprintf(stderr,"2222222");
+			return tsaNum;
+		}
+		fread(&tmp,1,1,fp);
+		fread(&buf,tmp,1,fp);
+
+		tsaNum++;
+		fseek(fp,begitoffset+A_TSAblock,0);
+
+	}
+
+	return tsaNum;
+
+}
 void analyTaskInfo(int argc, char* argv[])
 {
 	char *filename= argv[2];

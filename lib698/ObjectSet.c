@@ -19,6 +19,7 @@
 #include "dlt698def.h"
 #include "OIfunc.h"
 #include "class8.h"
+#include "class12.h"
 #include "class23.h"
 
 extern int doReponse(int server,int reponse,CSINFO *csinfo,int datalen,INT8U *data,INT8U *buf);
@@ -1174,14 +1175,17 @@ INT16U ALSetAttrib(OAD oad, INT8U *data, INT8U *DAR) {
 		case 0x2308:
 			data_index = class23_set(8, oad, data, DAR);
 			break;
+		case 0x2401:
+			data_index = class2401_set(9, oad, data, DAR);
+			break;
 		case 0x8100:
-			data_index = class8100_set(8, oad, data, DAR);
+			data_index = class8100_set(10, oad, data, DAR);
 			break;
         case 0x8101:
-            data_index = class8101_set(8, oad, data, DAR);
+            data_index = class8101_set(11, oad, data, DAR);
             break;
         case 0x8102:
-            data_index = class8102_set(8, oad, data, DAR);
+            data_index = class8102_set(12, oad, data, DAR);
             break;
 	}
 	return data_index;

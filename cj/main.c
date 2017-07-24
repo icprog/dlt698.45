@@ -388,6 +388,17 @@ int main(int argc, char *argv[]) {
         analyTaskOADInfo(argc, argv);
         return EXIT_SUCCESS;
     }
+    if (strcmp("tasktsanum", argv[1]) == 0) {
+			if(argc==3)
+			{
+				int 	method=0;
+				sscanf(argv[2],"%d",&method);
+				INT16U result = getTaskDataTsaNum(method);
+				fprintf(stderr,"任务ID = %d 抄读成功TSA数量 = %d",method,result);
+			}
+			fprintf(stderr,"\n----------------\n");
+	        return EXIT_SUCCESS;
+       }
     if (strcmp("freezedata", argv[1]) == 0) {
         analyFreezeData(argc, argv);
         return EXIT_SUCCESS;

@@ -30,6 +30,7 @@
 
 #define	FILE_LINE		__FILE__,__FUNCTION__,__LINE__
 #define	DEBUG_TIME_LINE(format, ...)	debug(FILE_LINE, format, ##__VA_ARGS__)
+#define DEBUG_BUFF(data, dataSize)		debugBuf(FILE_LINE, data, dataSize)
 
 
 extern void Setsig(struct sigaction* psa, void (*pfun)(ProjectInfo* proinfo));
@@ -111,6 +112,8 @@ extern INT8U getBase_DataTypeLen(Base_DataType dataType,INT8U data);
 extern INT8S reversebuff(INT8U* buff,INT32U len,INT8U* invbuff);
 
 extern void debug(const char* file, const char* func, INT32U line, const char *fmt, ...);
+extern void debugBuf(const char* file, const char* func, INT32U line, INT8U* buf, INT32U bufSize);
+extern void debugToPlcFile(const char* file, const char* func, INT32U line, const char *fmt, ...);
 extern void readFrm(char* str,  INT8U* buf, INT32U* bufSize);
 
 //读取设备配置信息

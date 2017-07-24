@@ -430,7 +430,7 @@ int SaveOADData(INT8U taskid,OAD oad_m,OAD oad_r,INT8U *databuf,int datalen,TS t
 		FILE *fp;
 		CSD_ARRAYTYPE csds;
 		char	fname[FILENAMELEN]={};
-		INT8U *databuf_tmp=NULL,eveflg=0, firOIflg=0;
+		INT8U *databuf_tmp=NULL,eveflg=0;
 		int savepos=0, currpos=0, i=0, oadoffset=0, oadlen=0, taskinfoflg=0;
 		INT16U headlen=0,unitlen=0,unitnum=0,unitseq=0,runtime=0;//runtime执行次数
 		TASKSET_INFO tasknor_info;
@@ -540,10 +540,10 @@ int SaveOADData(INT8U taskid,OAD oad_m,OAD oad_r,INT8U *databuf,int datalen,TS t
 				,sizeof(DateTimeBCD),
 				databuf_tmp[18],databuf_tmp[19],databuf_tmp[20],databuf_tmp[21],
 				databuf_tmp[22],databuf_tmp[23],databuf_tmp[24],databuf_tmp[25]);
-		if(memcmp(&databuf_tmp[18],&datetime,sizeof(DateTimeBCD))==0)//开始时间为空
-		{
-			firOIflg = 1;
-		}
+//		if(memcmp(&databuf_tmp[18],&datetime,sizeof(DateTimeBCD))==0)//开始时间为空
+//		{
+//			firOIflg = 1;
+//		}
 		datetime.year.data = ((ts_now.Year&0xff00)>>8) + ((ts_now.Year&0x00ff)<<8);
 		datetime.month.data = ts_now.Month;
 		datetime.day.data = ts_now.Day;
@@ -554,7 +554,7 @@ int SaveOADData(INT8U taskid,OAD oad_m,OAD oad_r,INT8U *databuf,int datalen,TS t
 				,sizeof(DateTimeBCD),
 				datetime.year.data,datetime.month.data,datetime.day.data,datetime.hour.data,
 				datetime.min.data,datetime.sec.data);
-		if(firOIflg == 1)
+		if(databuf_tmp[unitlen*(unitseq-1)/runtime+18] != 0x1c)
 		{
 			databuf_tmp[unitlen*(unitseq-1)/runtime+18] = 0x1c;
 			memcpy(&databuf_tmp[unitlen*(unitseq-1)/runtime+19],&datetime,7);//赋值抄表开始时间
@@ -651,6 +651,56 @@ int SaveOADData(INT8U taskid,OAD oad_m,OAD oad_r,INT8U *databuf,int datalen,TS t
 		if(databuf_tmp != NULL)
 			free(databuf_tmp);
 		return eveflg;
+}
+INT8S get6035ByTaskID(INT16U taskID,CLASS_6035* class6035)
+{
+	memset(class6035,0,sizeof(CLASS_6035));
+	class6035->taskID = taskID;
+	CLASS_6035 tmp6035;
+	memset(&tmp6035,0,sizeof(CLASS_6035));
+	INT16U i;
+	for(i=0;i<=255;i++)
+	{
+		if(readCoverClass(0x6035,i,&tmp6035,sizeof(CLASS_6035),coll_para_save)== 1)
+		{
+			if(tmp6035.taskID == taskID)
+			{
+				memcpy(class6035,&tmp6035,sizeof(CLASS_6035));
+				return 1;
+			}
+		}
+	}
+
+#if 0
+	//任务初始化新建6035
+	CLASS_6035 result6035;	//采集任务监控单元
+	memset(&result6035,0,sizeof(CLASS_6035));
+	result6035.taskState = BEFORE_OPR;
+	result6035.taskID = taskID;
+
+	CLASS_6001	 meter={};
+	int	blknum=0;
+	blknum = getFileRecordNum(0x6000);
+	int meterIndex = 0;
+	for(meterIndex=0;meterIndex<blknum;meterIndex++)
+	{
+		if(readParaClass(oi,&meter,meterIndex)==1)
+		{
+			if(meter.sernum!=0 && meter.sernum!=0xffff)
+			{
+				if (checkMeterType(st6015.mst, meter.basicinfo.usrtype,meter.basicinfo.addr))
+				{
+					result6035.totalMSNum++;
+				}
+
+			}
+		}
+	}
+#endif
+
+	class6035->taskState = BEFORE_OPR;
+	saveCoverClass(0x6035, class6035->taskID, class6035,sizeof(CLASS_6035), coll_para_save);
+	return -1;
 }
 
 

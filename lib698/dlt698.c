@@ -48,6 +48,12 @@ static INT8U	client_addr=0;
 PIID piid_g={};
 TimeTag		Response_timetag;		//响应的时间标签值
 INT8U broadcast=0;
+
+ProgramInfo *getShareAddr(void)
+{
+	return memp;
+}
+
 /**************************************
  * 函数功能：DL/T698.45 状态机
  * 参数含义：
@@ -88,7 +94,6 @@ int StateProcess(CommBlock* nst, int delay_num) {
 		nst->RTail = (nst->RTail + 1) % FRAMELEN;
 				return 1;
 	}
-
 	//长度length为除 68和16 以外的字节数
 	if ((nst->RHead - nst->RTail + FRAMELEN) % FRAMELEN < (length + 2)) {
 		return 0;
@@ -298,8 +303,8 @@ INT8U CtrlWord(CSINFO* csinfo)
 		return 0;
 
 	ctl.u8b = 0;
-	ctl.ctl.dir = csinfo->dir;//如果接收报文来自客户机, 则应给出服务器的应答
-	ctl.ctl.prm = csinfo->prm;//直接使用接收报文的启动标志
+	ctl.ctl.dir = csinfo->dir;//调用方会决定终端作为服务器还是客户端
+	ctl.ctl.prm = csinfo->prm;//直接使用csinfo的启动标志
 	ctl.ctl.divS = csinfo->gframeflg;
 	ctl.ctl.func = csinfo->funcode;
 	fprintf(stderr,"ctl.u8b=%02x",ctl.u8b);
