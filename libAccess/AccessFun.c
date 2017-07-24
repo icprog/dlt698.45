@@ -4125,9 +4125,12 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds,INT16U fr
 				fread(recordbuf,recordlen,1,fp);
 				printRecordBytes(recordbuf,recordlen);
 			}
-			DEBUG_TIME_LINE("");
-			if(autoflg == 1 && tasknor_info.runtime > 1 && recinfo.recordno_num == 1) {//主动上报曲线并且只上报一个点
-				for(k=0;k<5;k++) {//TsToTimeBCD(TS inTs,DateTimeBCD* outTimeBCD)
+			if(autoflg == 1 && tasknor_info.runtime > 1 && recinfo.recordno_num == 1)//主动上报曲线并且只上报一个点
+			{
+				DEBUG_TIME_LINE("");
+				for(k=0;k<5;k++)//TsToTimeBCD(TS inTs,DateTimeBCD* outTimeBCD)
+				{
+					DEBUG_TIME_LINE("");
 					memset(tmpnull,0x00,8);
 					if(memcmp(&recordbuf[18],tmpnull,8)==0 || offsetTsa == 0) {//本条记录为空或者没有这个tsa
 						fprintf(stderr,"\n---曲线主动上报k=%d\n",k);
@@ -4163,7 +4166,7 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds,INT16U fr
 						}
 						else
 						{
-							fprintf(stderr,"\n更改时标\n");
+							DEBUG_TIME_LINE("\n更改时标\n");
 							TSGet(&ts_curr);
 							TsToTimeBCD(ts_curr,&CHTimeBCD[0]);
 							ts_curr.Minute = ts_curr.Minute/15;
@@ -4178,7 +4181,7 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds,INT16U fr
 					}
 					else//有数据跳出
 					{
-						fprintf(stderr,"\n更改时标\n");
+						DEBUG_TIME_LINE("\n更改时标\n");
 						TSGet(&ts_curr);
 						TsToTimeBCD(ts_curr,&CHTimeBCD[0]);
 						ts_curr.Minute = ts_curr.Minute/15;

@@ -1315,4 +1315,5 @@ void PacketBufToFile(char *prefix, char *buf, int len, char *suffix)
 			break;
 	}
 }
+
 #endif /*JPublicFunctionH*/
