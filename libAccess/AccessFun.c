@@ -126,6 +126,8 @@ void clearData()
 	system("rm -rf /nand/data");
 	//全事件数据清除
 	system("rm -rf /nand/allevent");
+	//删除6035
+	system("rm -rf /nand/para/6035");
 }
 
 void clearEvent()

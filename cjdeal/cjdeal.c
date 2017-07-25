@@ -426,42 +426,12 @@ INT8S init6000InfoFrom6000FIle()
 }
 INT8S saveClass6035(CLASS_6035* class6035)
 {
-	INT8U isFind = 0;
 	INT8S ret = -1;
 
-	CLASS_6035 file6035;
-	memset(&file6035,0,sizeof(CLASS_6035));
-	INT16U i;
-
-	DbgPrintToFile1(1,"&&&&&&saveClass6035 taskID=%d,status=%d",class6035->taskID,class6035->taskState);
-
-	for(i=0;i<=255;i++)
+	if(class6035->totalMSNum < class6035->successMSNum)
 	{
-		if(readCoverClass(0x6035,i,&file6035,sizeof(CLASS_6035),coll_para_save)== 1)
-		{
-			asyslog(LOG_INFO,"saveClass6035 file6035.taskID= %d  class6035->taskID = %d",file6035.taskID,class6035->taskID);
-			if(file6035.taskID == class6035->taskID)
-			{
-				isFind = 1;
-				break;
-			}
-		}
+		class6035->totalMSNum = class6035->successMSNum;
 	}
-
-	if(isFind)
-	{
-		DbgPrintToFile1(1,"    find file6035.taskID=%d,status=%d",file6035.taskID,class6035->taskState);
-		DbgPrintToFile1(1,"    6035.totol=%d,success=%d,send=%d,rev=%d",class6035->totalMSNum,class6035->successMSNum,class6035->sendMsgNum,class6035->rcvMsgNum);
-		DbgPrintToFile1(1,"    file.totol=%d,success=%d,send=%d,rev=%d",file6035.totalMSNum,file6035.successMSNum,file6035.sendMsgNum,file6035.rcvMsgNum);
-		//memcpy(&class6035->starttime,&file6035.starttime,sizeof(DateTimeBCD));
-		//TODO： 确认：注释下面四句，不应该找到之后存储saveCoverClass
-//		class6035->totalMSNum += file6035.totalMSNum;
-//		class6035->successMSNum += file6035.successMSNum;
-//		class6035->sendMsgNum += file6035.sendMsgNum;
-//		class6035->rcvMsgNum += file6035.rcvMsgNum;
-
-	}
-
 	saveCoverClass(0x6035, class6035->taskID, class6035,
 			sizeof(CLASS_6035), coll_para_save);
 
