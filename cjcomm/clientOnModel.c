@@ -43,25 +43,27 @@ void showTime()
 }
 
 CommBlock *getComBlockForModel() {
-    return &ClientForModelObject;
+	return &ClientForModelObject;
 }
 
 static int NetSend(int fd, INT8U *buf, INT16U len) {
-    if (len > 2048) {
-        asyslog(LOG_WARNING, "发送报文太长[2048-%d]", len);
-        return 0;
-    }
-    pthread_mutex_lock(&locker);
-    if (netObject.tail + 1 != netObject.head) {
-        memcpy(netObject.send[netObject.tail].buf, buf, len);
-        netObject.send[netObject.tail].len = len;
-        asyslog(LOG_WARNING, "内部协议栈发送(长度:%d,头尾:%d-%d)", len, netObject.head, netObject.tail);
-        netObject.tail++;
-        netObject.tail %= 16;
-    } else {
-        asyslog(LOG_WARNING, "内部协议栈发送[缓冲区满](长度:%d,头尾:%d-%d)", len, netObject.head, netObject.tail);
-    }
-    pthread_mutex_unlock(&locker);
+	if (len > 2048) {
+		asyslog(LOG_WARNING, "发送报文太长[2048-%d]", len);
+		return 0;
+	}
+	pthread_mutex_lock(&locker);
+	if (netObject.tail + 1 != netObject.head) {
+		memcpy(netObject.send[netObject.tail].buf, buf, len);
+		netObject.send[netObject.tail].len = len;
+		asyslog(LOG_WARNING, "内部协议栈发送(长度:%d,头尾:%d-%d)", len, netObject.head,
+				netObject.tail);
+		netObject.tail++;
+		netObject.tail %= 16;
+	} else {
+		asyslog(LOG_WARNING, "内部协议栈发送[缓冲区满](长度:%d,头尾:%d-%d)", len,
+				netObject.head, netObject.tail);
+	}
+	pthread_mutex_unlock(&locker);
 }
 
 static int NetRecv(INT8U *buf) {
@@ -114,51 +116,55 @@ static int putNext(INT8U *buf, INT16U len) {
 }
 
 static MASTER_STATION_INFO getNextGprsIpPort(CommBlock *commBlock) {
-    static int index = 0;
-    static int ChangeFlag = -1;
-    //检查主站参数是否有变化
-    if (ChangeFlag != ((ProgramInfo *) commBlock->shmem)->oi_changed.oi4500) {
-        readCoverClass(0x4500, 0, (void *) &Class25, sizeof(CLASS25), para_vari_save);
-        memcpy(&NetIps, &Class25.master.master, sizeof(NetIps));
-        asyslog(LOG_WARNING, "检测到通信参数变化！刷新主站参数！");
-        ChangeFlag = ((ProgramInfo *) commBlock->shmem)->oi_changed.oi4500;
-        commBlock->Heartbeat = Class25.commconfig.heartBeat;
-        readCoverClass(0xf101, 0, (void *) &ClientForModelObject.f101, sizeof(CLASS_F101), para_vari_save);
-    }
+	static int index = 0;
+	static int ChangeFlag = -1;
+	//检查主站参数是否有变化
+	if (ChangeFlag != ((ProgramInfo *) commBlock->shmem)->oi_changed.oi4500) {
+		readCoverClass(0x4500, 0, (void *) &Class25, sizeof(CLASS25),
+				para_vari_save);
+		memcpy(&NetIps, &Class25.master.master, sizeof(NetIps));
+		asyslog(LOG_WARNING, "检测到通信参数变化！刷新主站参数！");
+		ChangeFlag = ((ProgramInfo *) commBlock->shmem)->oi_changed.oi4500;
+		commBlock->Heartbeat = Class25.commconfig.heartBeat;
+		readCoverClass(0xf101, 0, (void *) &ClientForModelObject.f101,
+				sizeof(CLASS_F101), para_vari_save);
+	}
 
-    MASTER_STATION_INFO res;
-    memset(&res, 0x00, sizeof(MASTER_STATION_INFO));
-    snprintf((char *) res.ip, sizeof(res.ip), "%d.%d.%d.%d", NetIps[index].ip[1], NetIps[index].ip[2],
-             NetIps[index].ip[3], NetIps[index].ip[4]);
-    res.port = NetIps[index].port;
-    index++;
-    index %= 2;
-    asyslog(LOG_INFO, "客户端[GPRS]尝试链接的IP地址：%s:%d", res.ip, res.port);
-    return res;
+	MASTER_STATION_INFO res;
+	memset(&res, 0x00, sizeof(MASTER_STATION_INFO));
+	snprintf((char *) res.ip, sizeof(res.ip), "%d.%d.%d.%d",
+			NetIps[index].ip[1], NetIps[index].ip[2], NetIps[index].ip[3],
+			NetIps[index].ip[4]);
+	res.port = NetIps[index].port;
+	index++;
+	index %= 2;
+	asyslog(LOG_INFO, "客户端[GPRS]尝试链接的IP地址：%s:%d", res.ip, res.port);
+	return res;
 }
 
 int SendCommandGetOK(int fd, int retry, const char *fmt, ...) {
-    va_list argp;
-    va_start(argp, fmt);
-    char cmd[128];
-    memset(cmd, 0x00, sizeof(cmd));
-    vsprintf(cmd, fmt, argp);
-    va_end(argp);
+	va_list argp;
+	va_start(argp, fmt);
+	char cmd[128];
+	memset(cmd, 0x00, sizeof(cmd));
+	vsprintf(cmd, fmt, argp);
+	va_end(argp);
 
-    for (int timeout = 0; timeout < retry; timeout++) {
-        char Mrecvbuf[128];
-        SendATCommand(cmd, strlen(cmd), fd);
-        delay(800);
-        memset(Mrecvbuf, 0, 128);
-        RecieveFromComm(Mrecvbuf, 128, fd);
-        if (strstr(Mrecvbuf, "OK") != 0) {
-            return 1;
-        }
-    }
-    return 0;
+	for (int timeout = 0; timeout < retry; timeout++) {
+		char Mrecvbuf[128];
+		SendATCommand(cmd, strlen(cmd), fd);
+		delay(800);
+		memset(Mrecvbuf, 0, 128);
+		RecieveFromComm(Mrecvbuf, 128, fd);
+		if (strstr(Mrecvbuf, "OK") != 0) {
+			return 1;
+		}
+	}
+	return 0;
 }
 
 void resetModel() {
+
     asyslog(LOG_INFO, "重置模块状态...");
 
 //    gpofun("/dev/gpoGPRS_POWER", 0);
@@ -178,141 +184,137 @@ void resetModel() {
 }
 
 int getNetType(int fd) {
-    char Mrecvbuf[128];
-    for (int timeout = 0; timeout < 10; timeout++) {
-        SendATCommand("\rAT$MYTYPE?\r", 12, fd);
-        delay(1000);
-        memset(Mrecvbuf, 0, 128);
-        RecieveFromComm(Mrecvbuf, 128, fd);
+	char Mrecvbuf[128];
+	for (int timeout = 0; timeout < 10; timeout++) {
+		SendATCommand("\rAT$MYTYPE?\r", 12, fd);
+		delay(1000);
+		memset(Mrecvbuf, 0, 128);
+		RecieveFromComm(Mrecvbuf, 128, fd);
 
-        int k, l, m;
-        if (sscanf(Mrecvbuf, "%*[^:]: %d,%d,%d", &k, &l, &m) == 3) {
-            if ((l & 0x01) == 1) {
-                asyslog(LOG_INFO, "远程通信单元类型为GPRS。\n");
-                break;
-            }
-            if ((l & 0x08) == 8) {
-                asyslog(LOG_INFO, "远程通信单元类型为CDMA2000。\n");
-                break;
-            }
-        }
-    }
+		int k, l, m;
+		if (sscanf(Mrecvbuf, "%*[^:]: %d,%d,%d", &k, &l, &m) == 3) {
+			if ((l & 0x01) == 1) {
+				asyslog(LOG_INFO, "远程通信单元类型为GPRS。\n");
+				break;
+			}
+			if ((l & 0x08) == 8) {
+				asyslog(LOG_INFO, "远程通信单元类型为CDMA2000。\n");
+				break;
+			}
+		}
+	}
 }
 
 int getCIMIType(int fd) {
-    char *cimiType[] = {
-            "46003", "46011",
-    };
+	char *cimiType[] = { "46003", "46011", };
 
-    char Mrecvbuf[128];
-    for (int timeout = 0; timeout < 5; timeout++) {
-        SendATCommand("\rAT+CIMI\r", 9, fd);
-        delay(1000);
-        memset(Mrecvbuf, 0, 128);
-        RecieveFromComm(Mrecvbuf, 128, fd);
+	char Mrecvbuf[128];
+	for (int timeout = 0; timeout < 5; timeout++) {
+		SendATCommand("\rAT+CIMI\r", 9, fd);
+		delay(1000);
+		memset(Mrecvbuf, 0, 128);
+		RecieveFromComm(Mrecvbuf, 128, fd);
 
-        char cimi[64];
-        memset(cimi, 0x00, sizeof(cimi));
-        if (sscanf((char *) &Mrecvbuf[0], "%*[^0-9]%[0-9]", cimi) == 1) {
-            asyslog(LOG_INFO, "CIMI = %s\n", cimi);
-            for (int i = 0; i < 2; i++) {
-                if (strncmp(cimiType[i], cimi, 5) == 0) {
-                    return 3;
-                }
-            }
-            return 1;
-        }
-    }
-    return 0;
+		char cimi[64];
+		memset(cimi, 0x00, sizeof(cimi));
+		if (sscanf((char *) &Mrecvbuf[0], "%*[^0-9]%[0-9]", cimi) == 1) {
+			asyslog(LOG_INFO, "CIMI = %s\n", cimi);
+			for (int i = 0; i < 2; i++) {
+				if (strncmp(cimiType[i], cimi, 5) == 0) {
+					return 3;
+				}
+			}
+			return 1;
+		}
+	}
+	return 0;
 }
 
 int getNetworkType(int fd) {
-    for (int timeout = 0; timeout < 5; timeout++) {
-        char Mrecvbuf[128];
+	for (int timeout = 0; timeout < 5; timeout++) {
+		char Mrecvbuf[128];
 
-        SendATCommand("\rAT+QNWINFO\r", 12, fd);
-        delay(1000);
-        memset(Mrecvbuf, 0, 128);
-        RecieveFromComm(Mrecvbuf, 128, fd);
-        if (strstr(Mrecvbuf, "TDD LTE") != NULL) {
-            asyslog(LOG_INFO, "TDD LTE模式在线");
-            SetWireLessType(2);
-            break;
-        }
-        if (strstr(Mrecvbuf, "FDD LTE") != NULL) {
-            asyslog(LOG_INFO, "FDD LTE模式在线");
-            SetWireLessType(3);
-            break;
-        }
-    }
+		SendATCommand("\rAT+QNWINFO\r", 12, fd);
+		delay(1000);
+		memset(Mrecvbuf, 0, 128);
+		RecieveFromComm(Mrecvbuf, 128, fd);
+		if (strstr(Mrecvbuf, "TDD LTE") != NULL) {
+			asyslog(LOG_INFO, "TDD LTE模式在线");
+			SetWireLessType(2);
+			break;
+		}
+		if (strstr(Mrecvbuf, "FDD LTE") != NULL) {
+			asyslog(LOG_INFO, "FDD LTE模式在线");
+			SetWireLessType(3);
+			break;
+		}
+	}
 
 }
 
 int regIntoNet(int fd) {
-    char Mrecvbuf[128];
-    for (int timeout = 0; timeout < 80; timeout++) {
-        SendATCommand("\rAT+CREG?\r", 10, fd);
-        delay(1000);
-        memset(Mrecvbuf, 0, 128);
-        RecieveFromComm(Mrecvbuf, 128, fd);
+	char Mrecvbuf[128];
+	for (int timeout = 0; timeout < 80; timeout++) {
+		SendATCommand("\rAT+CREG?\r", 10, fd);
+		delay(1000);
+		memset(Mrecvbuf, 0, 128);
+		RecieveFromComm(Mrecvbuf, 128, fd);
 
-        int k, l;
-        if (sscanf(Mrecvbuf, "%*[^:]: %d,%d", &k, &l) == 2) {
-            asyslog(LOG_INFO, "GprsCREG = %d,%d\n", k, l);
-            if (l == 1 || l == 5) {
-                return 1;
-            }
-        }
-    }
-    return 0;
+		int k, l;
+		if (sscanf(Mrecvbuf, "%*[^:]: %d,%d", &k, &l) == 2) {
+			asyslog(LOG_INFO, "GprsCREG = %d,%d\n", k, l);
+			if (l == 1 || l == 5) {
+				return 1;
+			}
+		}
+	}
+	return 0;
 }
 
 int myStrnstr(char *buf, int len) {
-    for (int i = 0; i < len - 1; ++i) {
-        if (buf[i] == 'O' && buf[i + 1] == 'K') {
-            return i;
-        }
-    }
-    return 0;
+	for (int i = 0; i < len - 1; ++i) {
+		if (buf[i] == 'O' && buf[i + 1] == 'K') {
+			return i;
+		}
+	}
+	return 0;
 }
 
 int checkModelStatus(char *buf, int len) {
-    static int status = 0;
-    static int merror = 0;
+	static int status = 0;
+	static int merror = 0;
 
-    if (len < 0) {
-        int res = status;
-        status = 0;
-        return res;
-    }
+	if (len < 0) {
+		int res = status;
+		status = 0;
+		return res;
+	}
 
-    for (int i = 0; i < len - 8; ++i) {
-        if (buf[i] == 'U'
-            && buf[i + 1] == 'R' && buf[i + 2] == 'C'
-            && buf[i + 3] == 'R' && buf[i + 4] == 'E'
-            && buf[i + 5] == 'A' && buf[i + 6] == 'D') {
-            status = 1; //有数据读入
-            return 0;
-        }
-    }
+	for (int i = 0; i < len - 8; ++i) {
+		if (buf[i] == 'U' && buf[i + 1] == 'R' && buf[i + 2] == 'C'
+				&& buf[i + 3] == 'R' && buf[i + 4] == 'E' && buf[i + 5] == 'A'
+				&& buf[i + 6] == 'D') {
+			status = 1; //有数据读入
+			return 0;
+		}
+	}
 
-    for (int i = 0; i < len - 5; ++i) {
-        if (buf[i] == 'E'
-            && buf[i + 1] == 'R' && buf[i + 2] == 'R'
-            && buf[i + 3] == 'O' && buf[i + 4] == 'R') {
-            if (sscanf(buf, "%*[^:]: %d", &merror) == 1) {
-                status = 99;//有错误
-                return 0;
-            }
-            status = 99;
-            merror = 99;
-            return 0;
-        }
-    }
+	for (int i = 0; i < len - 5; ++i) {
+		if (buf[i] == 'E' && buf[i + 1] == 'R' && buf[i + 2] == 'R'
+				&& buf[i + 3] == 'O' && buf[i + 4] == 'R') {
+			if (sscanf(buf, "%*[^:]: %d", &merror) == 1) {
+				status = 99; //有错误
+				return 0;
+			}
+			status = 99;
+			merror = 99;
+			return 0;
+		}
+	}
 }
 
-
 int modelSendExactly(int fd, int retry, int len, int buf) {
+
     int chl = 0;
     int sum = 0;
     int length = len;
@@ -356,16 +358,16 @@ int modelSendExactly(int fd, int retry, int len, int buf) {
 }
 
 int readPositionGet(int length) {
-    int pos = 1;
-    int tmp = length;
-    for (int i = 0; i < 5; ++i) {
-        tmp /= 10;
-        if (tmp == 0) {
-            break;
-        }
-        pos++;
-    }
-    return pos;
+	int pos = 1;
+	int tmp = length;
+	for (int i = 0; i < 5; ++i) {
+		tmp /= 10;
+		if (tmp == 0) {
+			break;
+		}
+		pos++;
+	}
+	return pos;
 }
 
 int modelReadExactly(int fd, int retry) {
@@ -401,15 +403,15 @@ int modelReadExactly(int fd, int retry) {
 }
 
 int checkRecv(int fd, int retry) {
-    char Mrecvbuf[128];
-    for (int timeout = 0; timeout < retry; timeout++) {
-        memset(Mrecvbuf, 0, 128);
-        RecieveFromComm(Mrecvbuf, 128, fd);
-        if (strstr(Mrecvbuf, "MYURCREAD") != 0) {
-            return 1;
-        }
-    }
-    return 0;
+	char Mrecvbuf[128];
+	for (int timeout = 0; timeout < retry; timeout++) {
+		memset(Mrecvbuf, 0, 128);
+		RecieveFromComm(Mrecvbuf, 128, fd);
+		if (strstr(Mrecvbuf, "MYURCREAD") != 0) {
+			return 1;
+		}
+	}
+	return 0;
 }
 
 void *ModelWorker(void *args) {
@@ -603,15 +605,14 @@ void *ModelWorker(void *args) {
 }
 
 void CreateOnModel(void *clientdata) {
-    pthread_attr_t attr;
-    pthread_attr_init(&attr);
-    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
-    pthread_mutex_init(&locker, NULL);
+	pthread_attr_t attr;
+	pthread_attr_init(&attr);
+	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+	pthread_mutex_init(&locker, NULL);
 
-    pthread_t temp_key;
-    pthread_create(&temp_key, &attr, ModelWorker, clientdata);
+	pthread_t temp_key;
+	pthread_create(&temp_key, &attr, ModelWorker, clientdata);
 }
-
 
 void CalculateTransFlowModel(ProgramInfo *prginfo_event) {
     //统计临时变量
@@ -733,15 +734,6 @@ static int RegularClientOnModel(struct aeEventLoop *ep, long long id, void *clie
 		}
 	} while (res == 1);
 
-
-
-    //判断流量越限事件
-//    prginfo_event->dev_info.realTimeC2200.flow.month_tj += MonthTJ;
-//    fprintf(stderr, "流量越限事件 %d-%d\n", MonthTJ, prginfo_event->dev_info.realTimeC2200.flow.month_tj);
-//    MonthTJ = 0;
-//    Event_3110(prginfo_event->dev_info.realTimeC2200.flow.month_tj, sizeof(prginfo_event->dev_info.realTimeC2200.flow),
-//                   prginfo_event);
-
     check_F101_changed_Gprs(nst);
     CalculateTransFlowModel(nst->shmem);
     //暂时忽略函数返回
@@ -754,32 +746,35 @@ static int RegularClientOnModel(struct aeEventLoop *ep, long long id, void *clie
  * 模块*内部*使用的初始化参数
  */
 static void ClientOnModelInit(void) {
-    asyslog(LOG_INFO, "\n\n>>>======初始化（内部协议栈[GPRS]模式）模块======<<<");
+	asyslog(LOG_INFO, "\n\n>>>======初始化（内部协议栈[GPRS]模式）模块======<<<");
 
-    //读取设备参数
-    readCoverClass(0x4500, 0, (void *) &Class25, sizeof(CLASS25), para_vari_save);
-    asyslog(LOG_INFO, "工作模式 enum{混合模式(0),客户机模式(1),服务器模式(2)}：%d", Class25.commconfig.workModel);
-    asyslog(LOG_INFO, "在线方式 enum{永久在线(0),被动激活(1)}：%d", Class25.commconfig.onlineType);
-    asyslog(LOG_INFO, "连接方式 enum{TCP(0),UDP(1)}：%d", Class25.commconfig.connectType);
-    asyslog(LOG_INFO, "连接应用方式 enum{主备模式(0),多连接模式(1)}：%d", Class25.commconfig.appConnectType);
-    asyslog(LOG_INFO, "侦听端口列表：%d", Class25.commconfig.listenPort[0]);
-    asyslog(LOG_INFO, "超时时间，重发次数：%02x", Class25.commconfig.timeoutRtry);
-    asyslog(LOG_INFO, "心跳周期秒：%d", Class25.commconfig.heartBeat);
-    memcpy(&NetIps, &Class25.master.master, sizeof(NetIps));
-    asyslog(LOG_INFO, "主站通信地址(1)为：%d.%d.%d.%d:%d", NetIps[0].ip[1], NetIps[0].ip[2], NetIps[0].ip[3],
-            NetIps[0].ip[4],
-            NetIps[0].port);
-    asyslog(LOG_INFO, "主站通信地址(2)为：%d.%d.%d.%d:%d", NetIps[1].ip[1], NetIps[1].ip[2], NetIps[1].ip[3],
-            NetIps[1].ip[4],
-            NetIps[1].port);
+	//读取设备参数
+	readCoverClass(0x4500, 0, (void *) &Class25, sizeof(CLASS25),
+			para_vari_save);
+	asyslog(LOG_INFO, "工作模式 enum{混合模式(0),客户机模式(1),服务器模式(2)}：%d",
+			Class25.commconfig.workModel);
+	asyslog(LOG_INFO, "在线方式 enum{永久在线(0),被动激活(1)}：%d",
+			Class25.commconfig.onlineType);
+	asyslog(LOG_INFO, "连接方式 enum{TCP(0),UDP(1)}：%d",
+			Class25.commconfig.connectType);
+	asyslog(LOG_INFO, "连接应用方式 enum{主备模式(0),多连接模式(1)}：%d",
+			Class25.commconfig.appConnectType);
+	asyslog(LOG_INFO, "侦听端口列表：%d", Class25.commconfig.listenPort[0]);
+	asyslog(LOG_INFO, "超时时间，重发次数：%02x", Class25.commconfig.timeoutRtry);
+	asyslog(LOG_INFO, "心跳周期秒：%d", Class25.commconfig.heartBeat);
+	memcpy(&NetIps, &Class25.master.master, sizeof(NetIps));
+	asyslog(LOG_INFO, "主站通信地址(1)为：%d.%d.%d.%d:%d", NetIps[0].ip[1],
+			NetIps[0].ip[2], NetIps[0].ip[3], NetIps[0].ip[4], NetIps[0].port);
+	asyslog(LOG_INFO, "主站通信地址(2)为：%d.%d.%d.%d:%d", NetIps[1].ip[1],
+			NetIps[1].ip[2], NetIps[1].ip[3], NetIps[1].ip[4], NetIps[1].port);
 
-    initComPara(&ClientForModelObject, NetSend);
-    ClientForModelObject.Heartbeat = Class25.commconfig.heartBeat;
-    readCoverClass(0xf101, 0, (void *) &ClientForModelObject.f101, sizeof(CLASS_F101), para_vari_save);
+	initComPara(&ClientForModelObject, NetSend);
+	ClientForModelObject.Heartbeat = Class25.commconfig.heartBeat;
+	readCoverClass(0xf101, 0, (void *) &ClientForModelObject.f101,
+			sizeof(CLASS_F101), para_vari_save);
 
-    asyslog(LOG_INFO, ">>>======初始化（内部协议栈[GPRS]模式）结束======<<<");
+	asyslog(LOG_INFO, ">>>======初始化（内部协议栈[GPRS]模式）结束======<<<");
 }
-
 
 /*
  * 供外部使用的初始化函数，并开启维护循环
@@ -790,15 +785,15 @@ int StartClientOnModel(struct aeEventLoop *ep, long long id, void *clientData) {
     ClientOnModel_Task_Id = aeCreateTimeEvent(ep, 1000, RegularClientOnModel, &ClientForModelObject, NULL);
     asyslog(LOG_INFO, "内部协议栈[GPRS]时间事件注册完成(%lld)", ClientOnModel_Task_Id);
     MonthTJ = 0;
-
-    return 1;
+	return 1;
 }
 
 /*
  * 用于程序退出时调用
  */
 void ClientOnModelDestory(void) {
-    asyslog(LOG_INFO, "开始关闭内部协议栈[GPRS]接口(%d)", ClientForModelObject.phy_connect_fd);
-    close(ClientForModelObject.phy_connect_fd);
-    ClientForModelObject.phy_connect_fd = -1;
+	asyslog(LOG_INFO, "开始关闭内部协议栈[GPRS]接口(%d)",
+			ClientForModelObject.phy_connect_fd);
+	close(ClientForModelObject.phy_connect_fd);
+	ClientForModelObject.phy_connect_fd = -1;
 }

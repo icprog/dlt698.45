@@ -102,3 +102,23 @@ int class2401_set(int index, OAD oad, INT8U *data, INT8U *DAR) {
 
 	return 0;
 }
+
+int class12_get_5(OI_698 oi, INT8U *sourcebuf, INT8U *buf, int *len) {
+	ProgramInfo *shareAddr = getShareAddr();
+
+	*len = 0;
+	*len += fill_double_long(&buf[*len], shareAddr->class12.p);
+
+	return 1;
+}
+
+int class12_get(OAD oad, INT8U *sourcebuf, INT8U *buf, int *len){
+
+	asyslog(LOG_WARNING, "召唤脉冲属性(%d)", oad.attflg);
+
+	switch (oad.attflg) {
+	case 5:
+		return class12_get_5(oad.OI, sourcebuf, buf, len);
+
+	}
+}

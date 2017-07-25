@@ -1692,11 +1692,15 @@ int ProcessMeter(INT8U *buf,struct Tsa_Node *desnode)
 
 	}else
 	{
-		//更新6035抄读成功数量
-		CLASS_6035 result6035;	//采集任务监控单元
-		get6035ByTaskID(taskinfo.task_list[taski].taskId,&result6035);
-		result6035.successMSNum = getTaskDataTsaNum(result6035.taskID);
-		saveClass6035(&result6035);
+	    if(getZone("GW")==1)
+	    {
+			//更新6035抄读成功数量
+			CLASS_6035 result6035;	//采集任务监控单元
+			get6035ByTaskID(taskinfo.task_list[taski].taskId,&result6035);
+			INT16U tsaNum = getTaskDataTsaNum(result6035.taskID);
+			result6035.successMSNum = result6035.successMSNum > tsaNum?result6035.successMSNum:tsaNum;
+			saveClass6035(&result6035);
+	    }
 
 		DbgPrintToFile1(31,"切表");
 		sendlen = 1;
@@ -1985,11 +1989,14 @@ int doTask(RUNTIME_PLC *runtime_p)
 				if( nodetmp != NULL )
 				{
 					sendlen = ProcessMeter(buf645,nodetmp);
-					//6035发送报文数量+1
-					CLASS_6035 result6035;	//采集任务监控单元
-					get6035ByTaskID(taskinfo.task_list[taskinfo.now_taski].taskId,&result6035);
-					result6035.sendMsgNum++;
-					saveClass6035(&result6035);
+				    if(getZone("GW")==1)
+				    {
+						//6035发送报文数量+1
+						CLASS_6035 result6035;	//采集任务监控单元
+						get6035ByTaskID(taskinfo.task_list[taskinfo.now_taski].taskId,&result6035);
+						result6035.sendMsgNum++;
+						saveClass6035(&result6035);
+				    }
 				}
 				DbgPrintToFile1(31,"up channel = %02x",runtime_p->format_Up.info_up.ChannelFlag);
 				flag= Echo_Frame( runtime_p,buf645,sendlen);//内部根据sendlen判断抄表 / 切表
@@ -2010,11 +2017,15 @@ int doTask(RUNTIME_PLC *runtime_p)
 				clearvar(runtime_p);
 				DbgPrintToFile1(31,"afn=%02x  fn=%02x",runtime_p->format_Up.afn,runtime_p->format_Up.fn );
 				runtime_p->send_start_time = nowtime;
-				//6035发送报文数量+1
-				CLASS_6035 result6035;	//采集任务监控单元
-				get6035ByTaskID(taskinfo.task_list[taskinfo.now_taski].taskId,&result6035);
-				result6035.rcvMsgNum++;
-				saveClass6035(&result6035);
+			    if(getZone("GW")==1)
+			    {
+					//6035发送报文数量+1
+					CLASS_6035 result6035;	//采集任务监控单元
+					get6035ByTaskID(taskinfo.task_list[taskinfo.now_taski].taskId,&result6035);
+					result6035.rcvMsgNum++;
+					saveClass6035(&result6035);
+			    }
+
 
 			}else if( (nowtime - runtime_p->send_start_time > 10)  && inWaitFlag== 1)//等待超时,忽略超时过程中的请求抄读
 			{

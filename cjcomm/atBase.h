@@ -19,6 +19,7 @@
 #define ATBASE_H_
 
 #define AT_FRAME_LEN 4096
+#define AT_FINISH_PREPARE 99
 
 typedef struct {
 	INT32U fd;
@@ -33,6 +34,10 @@ typedef struct {
 	INT8U send[AT_FRAME_LEN];
 	INT32U NeedRead;	//需要读取数据
 	INT32U NeedSend;	//可以发送数据,数字为发送的字节数
+	INT8S INFO[6][32];	//模块的厂家信息
+	INT8U TYPE;			//在线类型
+	INT8U CSQ;			//信号强度
+
 } ATOBJ;
 
 int AtInitObjBlock(ATOBJ *ao);
@@ -46,7 +51,7 @@ int ATSendData(ATOBJ *ao);
 int AtInPrepare(ATOBJ *ao);
 void AtPrepareFinish(ATOBJ *ao);
 
-void AtPrepare(ATOBJ *ao);
+int AtPrepare(ATOBJ *ao);
 void AtDealer(ATOBJ *ao);
 
 int AtSendCmd(ATOBJ *ao, INT8U * buf, INT32U len);
