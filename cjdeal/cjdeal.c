@@ -71,6 +71,7 @@ int InitPro(ProgramInfo** prginfo, int argc, char *argv[])
 		*prginfo = OpenShMem("ProgramInfo",sizeof(ProgramInfo),NULL);
 		ProIndex = atoi(argv[1]);
 		if(*prginfo!=NULL) {
+			fprintf(stderr,"打开地址JProgramInfo =%p",JProgramInfo);
 			fprintf(stderr,"\n%s start",(*prginfo)->Projects[ProIndex].ProjectName);
 			(*prginfo)->Projects[ProIndex].ProjectID=getpid();//保存当前进程的进程号
 			fprintf(stderr,"ProjectID[%d]=%d\n",ProIndex,(*prginfo)->Projects[ProIndex].ProjectID);
@@ -1290,14 +1291,6 @@ void divProxy(CJCOMM_PROXY proxy)
 	memset(&proxyList_manager.data,0,sizeof(proxyList_manager.data));
 	proxyList_manager.datalen = 0;	//此处清除，防止后面处理时，数据未组织好，将返回一个随机值。
 
-	int	i=0,len=0;
-	len = proxyList_manager.proxylen;
-	fprintf(stderr,"divProxy proxy len=%d\n",len);
-	for(i=0;i<len;i++) {
-		fprintf(stderr,"%02x ",proxyList_manager.proxy_obj.buf[i]);
-	}
-	fprintf(stderr,"\n");
-
 	if (proxyList_manager.timeout == 0)
 		proxyList_manager.timeout = 60;
 	switch(proxy.strProxyList.proxytype)
@@ -1430,14 +1423,6 @@ INT8U dealProxyAnswer()
 	time_t nowtime = time(NULL);
 	int index=0;
 	int	i=0;
-
-	int	len=0;
-	len = proxyList_manager.proxylen;
-	fprintf(stderr,"dealProxyAnswer proxy len=%d\n",len);
-	for(i=0;i<len;i++) {
-		fprintf(stderr,"%02x ",proxyList_manager.proxy_obj.buf[i]);
-	}
-	fprintf(stderr,"\n");
 
 	if (timecount==0)
 	{

@@ -61,9 +61,6 @@ extern int PressKey; //全局变量 按键值
 
 #define _USERDIR_ 	"/nand/bin"
 
-#define LED_RUN 	"/dev/gpoRUN_LED"
-#define LED_ALARM 	"/dev/gpoALARM"
-
 #define LED_ON 	1
 #define LED_OFF 0
 

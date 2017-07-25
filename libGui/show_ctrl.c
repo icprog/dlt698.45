@@ -9,7 +9,8 @@
 #include "comm.h"
 #include "gui.h"
 #include "show_ctrl.h"
-#include "../include/basedef.h"
+#include "ParaDef.h"
+
 #define MAX_INTERVAL 1//显示开关切换最大间隔时间 单位s
 #define LED_EC_COUNT 10 //告警灯闪烁时长
 volatile static time_t curts,oldts;
@@ -155,7 +156,7 @@ void lcd_showstatus()
 		if(alarmled_count>=LED_EC_COUNT){
 			alarmled_count = LED_EC_COUNT;
 //				erc_flg = 0;
-			gpio_writebyte((char*)LED_ALARM, 0);
+			gpio_writebyte((char*)DEV_LED_ALARM, 0);
 		}
 			//TODO:运行灯处理
 		if(p_JProgramInfo!=NULL)
@@ -163,9 +164,9 @@ void lcd_showstatus()
 			if(p_JProgramInfo->dev_info.jzq_login==GPRS_COM||
 					p_JProgramInfo->dev_info.jzq_login==NET_COM ||p_JProgramInfo->dev_info.jzq_login == 3 ){  //3 内部协议栈上线
 				led_run_state = (~led_run_state)&0x01;
-				gpio_writebyte((char*)LED_RUN, led_run_state);
+				gpio_writebyte((char*)DEV_LED_RUN, led_run_state);
 			}else
-				gpio_writebyte((char*)LED_RUN, 1);
+				gpio_writebyte((char*)DEV_LED_RUN, 1);
 		}
 //上状态条显示
 		lcd_showTopStatus();

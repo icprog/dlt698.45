@@ -583,7 +583,7 @@ INT8U Get_StandardUnit(ProgramInfo* prginfo_event,OI_698 oi,INT8U *Rbuf,INT8U *I
 	//单元数量
 	Rbuf[(*Index)++] = STANDARD_NUM;//1
 	//事件记录序号
-	Rbuf[(*Index)++] = dtdoublelongunsigned;//2
+	Rbuf[(*Index)++] = dtdoublelongunsigned;//2d
 	INT32U En=(INT32U)Eventno;
 	Rbuf[(*Index)++] = ((En>>24)&0x000000ff);//3
 	Rbuf[(*Index)++] = ((En>>16)&0x000000ff);//4

@@ -119,6 +119,9 @@ void SendDataToCom(int fd, INT8U *sendbuf, INT16U sendlen)
 	fprintf(stderr,"\nsend(%d)",slen);
 	for(i=0;i<slen;i++)
 		fprintf(stderr," %02x",sendbuf[i]);
+	if(getZone("GW")==0) {
+		PacketBufToFile("[ZB]S:",(char *) sendbuf, slen, NULL);
+	}
 }
 int RecvDataFromCom(int fd,INT8U* buf,int* head)
 {
@@ -193,6 +196,9 @@ int StateProcessZb(unsigned char *str,INT8U* Buf )
 				}
 				rec_step = 0;
 				DbPrt1(31,"R:", (char *) str, DataLen, NULL);
+				if(getZone("GW")==0) {
+					PacketBufToFile("[ZB]R:",(char *) str, DataLen, NULL);
+				}
 				return DataLen;
 			}else {
 				RecvTail = (RecvTail+1)%ZBBUFSIZE;
@@ -1193,6 +1199,9 @@ int buildProxyFrame(RUNTIME_PLC *runtime_p,struct Tsa_Node *desnode,Proxy_Msg pM
 			sendlen = composeProtocol07(&Data07, buf645);
 			DbgPrintToFile1(31,"sendlen=%d",sendlen);
 			DbPrt1(31,"645:", (char *) buf645, sendlen, NULL);
+			if(getZone("GW")==0) {
+				PacketBufToFile("[ZB_PROXY]S:",(char *) buf645, sendlen, NULL);
+			}
 			if (sendlen>0)
 			{
 				memcpy(runtime_p->format_Down.addr.SourceAddr,runtime_p->masteraddr,6);
