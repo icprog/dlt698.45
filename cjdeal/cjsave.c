@@ -665,38 +665,42 @@ INT8S get6035ByTaskID(INT16U taskID,CLASS_6035* class6035)
 		{
 			if(tmp6035.taskID == taskID)
 			{
+#if 0
+				if(class6035->totalMSNum < class6035->successMSNum)
+				{
+					//任务初始化新建6035
+					CLASS_6035 result6035;	//采集任务监控单元
+					memset(&result6035,0,sizeof(CLASS_6035));
+					result6035.taskState = BEFORE_OPR;
+					result6035.taskID = taskID;
+
+					CLASS_6001	 meter={};
+					int	blknum=0;
+					blknum = getFileRecordNum(0x6000);
+					int meterIndex = 0;
+					for(meterIndex=0;meterIndex<blknum;meterIndex++)
+					{
+						if(readParaClass(oi,&meter,meterIndex)==1)
+						{
+							if(meter.sernum!=0 && meter.sernum!=0xffff)
+							{
+								if (checkMeterType(st6015.mst, meter.basicinfo.usrtype,meter.basicinfo.addr))
+								{
+									result6035.totalMSNum++;
+								}
+
+							}
+						}
+					}
+				}
+#endif
 				memcpy(class6035,&tmp6035,sizeof(CLASS_6035));
 				return 1;
 			}
 		}
 	}
 
-#if 0
-	//任务初始化新建6035
-	CLASS_6035 result6035;	//采集任务监控单元
-	memset(&result6035,0,sizeof(CLASS_6035));
-	result6035.taskState = BEFORE_OPR;
-	result6035.taskID = taskID;
 
-	CLASS_6001	 meter={};
-	int	blknum=0;
-	blknum = getFileRecordNum(0x6000);
-	int meterIndex = 0;
-	for(meterIndex=0;meterIndex<blknum;meterIndex++)
-	{
-		if(readParaClass(oi,&meter,meterIndex)==1)
-		{
-			if(meter.sernum!=0 && meter.sernum!=0xffff)
-			{
-				if (checkMeterType(st6015.mst, meter.basicinfo.usrtype,meter.basicinfo.addr))
-				{
-					result6035.totalMSNum++;
-				}
-
-			}
-		}
-	}
-#endif
 
 	class6035->taskState = BEFORE_OPR;
 	saveCoverClass(0x6035, class6035->taskID, class6035,sizeof(CLASS_6035), coll_para_save);

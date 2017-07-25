@@ -4784,6 +4784,7 @@ INT8S deal6015or6017(CLASS_6013 st6013,CLASS_6015 st6015, INT8U port485,CLASS_60
 				}
 				if (checkMeterType(st6015.mst, meter.basicinfo.usrtype,meter.basicinfo.addr))
 				{
+					st6035->totalMSNum++;
 					//判断冻结数据是否已经抄读成功了
 					if((st6015.csds.csd[0].csd.road.oad.OI == 0x5004)
 						&&(GetOrSetFreezeDataSuccess(0,st6013.taskID,port,info6000[port].list6001[meterIndex])==1))
@@ -4805,6 +4806,10 @@ INT8S deal6015or6017(CLASS_6013 st6013,CLASS_6015 st6015, INT8U port485,CLASS_60
 					{
 						DbgPrintToFile1(port485,"参数变更 重新抄表");
 						return PARA_CHANGE_RETVALUE;
+					}
+					if(dataLen > 0)
+					{
+						st6035->successMSNum++;
 					}
 					if((dataLen > 0)&&(st6013.cjtype == norm)&&(st6015.cjtype != TYPE_INTERVAL))
 					{
@@ -5077,7 +5082,8 @@ void read485_thread(void* i485port) {
 
 			DataTimeGet(&result6035.endtime);
 			result6035.taskState = AFTER_OPR;
-			result6035.successMSNum = getTaskDataTsaNum(result6035.taskID);
+			INT16U tsaNum = getTaskDataTsaNum(result6035.taskID);
+			result6035.successMSNum = result6035.successMSNum > tsaNum?result6035.successMSNum:tsaNum;
 			saveClass6035(&result6035);
 #if 1//抄完日冻结任务需要把infoReplenish　保存到文件里　保证重启后补抄不用全部都抄
 
