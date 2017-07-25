@@ -59,7 +59,7 @@ typedef enum {
 }Base_DataType;
 
 typedef enum {
-	bps300,bps600,bps1200,bps2400,bps4800,bps7200,bps9600,bps19200,bps38400,bps57600,bps115200,autoa
+	bps300,bps600,bps1200,bps2400,bps4800,bps7200,bps9600,bps19200,bps38400,bps57600,bps115200,autoa=255
 }Baud_Rate;	/*波特率*/
 typedef enum {
 	none,odd,even
@@ -104,6 +104,7 @@ typedef enum {
 	addr_exception/*27地址异常*/,				symmetric_decryption_err/*28对称解密错误*/,	unsymmetric_decryption_err/*29非对称解密错误*/,
 	signature_err1/*30签名错误*/,				meter_suspend/*31电表挂起*/,					timetag_invalid/*32时间标签无效*/,
 	request_overtime/*33请求超时*/,			esam_p1p2_err/*34 ESAM的P1P2不正确*/,			esam_lc_err/*ESAM的LC错误*/,
+	proxy_success=100,	/*代理抄读数据成功*/
 	other_err1=255/*其他*/
 }DAR;	/*数据访问结果*/
 
@@ -133,6 +134,12 @@ typedef enum {
 }RUN_PRIO;//执行优先级
 
 typedef enum {
+	E_S=0/*东、南*/,
+	W_N=1/*西、北*/,
+	OTHERSTATUS=255
+}LNG_LAT;//经纬度方位
+
+typedef enum {
 	 task_valid=1/*正常*/,
 	 task_novalid=2/*停用*/
 }TASK_VALID;//任务状态
@@ -144,13 +151,18 @@ typedef enum {
 	K_K=3/*前开后开*/
 }RUN_TIME_TYPE;//运行时段类型
 
-
 typedef enum {
 	BEFORE_OPR=0/*未执行*/,
 	IN_OPR=1/*执行中*/,
 	AFTER_OPR=2/*已执行*/,
 }TASK_STATE;//任务执行状态
 
+typedef enum {
+	MAIN=0,/*主站授时*/
+	TERMINAL=1,/*终端精确校时*/
+	GPS=2,/*北斗/GPS*/
+	OTHER=255/*其它*/
+}OI4000_TYPE;//校时模式
 
 typedef enum {
 	TYPE_NULL=0/*采集当前数据*/,
@@ -333,6 +345,8 @@ typedef struct
 }TI;					/*时间间隔数据类型*/
 typedef struct
 {
+	INT8U		effect;		//有效
+	INT8U		flag;		//时间标签标记
 	DateTimeBCD sendTimeTag;
 	TI ti;
 }TimeTag;				/*时间标签*/
@@ -400,7 +414,8 @@ typedef struct
 }Selector2;
 typedef struct
 {
-	Selector2 selectors[10];
+	INT8U	sel2_num;
+	Selector2 selectors[SELECTOR3_NUM];
 }Selector3;
 typedef struct
 {

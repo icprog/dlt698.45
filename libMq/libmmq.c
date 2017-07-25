@@ -76,7 +76,7 @@ INT32S mmq_get(mqd_t fd, INT32U time_out,mmq_head* msg_head, void* buff)
 		memcpy(buff,&pmsg[sizeof(mmq_head)],msg_head->bufsiz);
 
 		fprintf(stderr,"\n\n***********cnt = %d",cnt);
-		fprintf(stderr,"\n[libmmq]:pid:%d,cmd=%ld,bufsize = %ld  curmsgs=%d,maxmsg=%ld ",
+		fprintf(stderr,"\n[libmmq]:pid:%d,cmd=%d,bufsize = %d  curmsgs=%d,maxmsg=%d ",
 									msg_head->pid,msg_head->cmd,msg_head->bufsiz,attr_mq.mq_curmsgs,attr_mq.mq_maxmsg);
 
 	}
@@ -109,9 +109,9 @@ INT32S mmq_put(mqd_t fd,INT32U time_out,mmq_head msg_head, void * buff, INT8U pr
 						msg_head.pid,msg_head.cmd,attr_mq.mq_curmsgs,attr_mq.mq_maxmsg);
 		return -5;
 	}
-	//fprintf(stderr,"\n bufsiz=%d + sizeof(mmq_head)=%d         mq_msgsize=%d",msg_head.bufsiz,sizeof(mmq_head),attr_mq.mq_msgsize);
 	if (msg_head.bufsiz+sizeof(mmq_head) >= (INT32U)attr_mq.mq_msgsize)
 	{
+		fprintf(stderr,"\n bufsiz=%d + sizeof(mmq_head)=%d         mq_msgsize=%d",msg_head.bufsiz,sizeof(mmq_head),attr_mq.mq_msgsize);
 		fprintf(stderr,"\n[libmmq]:pid:%d,cmd=%d,msg_head.bufsiz+sizeof(mmq_head) >= (INT32U)attr_mq.mq_msgsize",
 				msg_head.pid,msg_head.cmd);
 		return -4;
@@ -163,7 +163,7 @@ INT8S mqs_send(INT8S* mqname,INT16U pid,INT32U cmd,INT8U* buf,INT32U bufsiz)
 	struct mq_attr attr;
 	mqd = mmq_open((INT8S*)mqname , &attr, O_WRONLY);
 
-	fprintf(stderr,"\nmax =%ld   curr =%ld   flags=%ld",attr.mq_maxmsg,attr.mq_curmsgs,attr.mq_flags);
+	fprintf(stderr,"\n max =%ld   curr =%ld   flags=%ld",attr.mq_maxmsg,attr.mq_curmsgs,attr.mq_flags);
 
 	if(mqd <0)
 	{
@@ -179,7 +179,7 @@ INT8S mqs_send(INT8S* mqname,INT16U pid,INT32U cmd,INT8U* buf,INT32U bufsiz)
 		mmq_close(mqd);
 		return -2;
 	}
-	fprintf(stderr,"\nmq(%s)=%d,mq_curmsgs=%ld,mq_maxmsg=%ld",mqname,mqd,attr.mq_curmsgs,attr.mq_maxmsg);
+	fprintf(stderr,"\nmq(%s)=%d,cmd=%d,mq_curmsgs=%ld,mq_maxmsg=%ld",mqname,cmd,mqd,attr.mq_curmsgs,attr.mq_maxmsg);
 	mmq_close(mqd);
 	return 0;
 }

@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <fcntl.h>
+#include <string.h>
 #include <unistd.h>
 
 #include "cjcomm.h"
@@ -154,7 +155,8 @@ void MmqSend(struct aeEventLoop *eventLoop, int fd, void *clientData, int mask) 
             ProxyListResponse((PROXY_GETLIST *) getBuf, nst);
             break;
         case TERMINALEVENT_REPORT:
-            Report_Event(nst, getBuf, 2, 1);
+//            Report_Event(nst, getBuf, 2, 1);
+        	Report_Event(nst, getBuf, 2);
             break;
         case METEREVENT_REPORT:
             callEventAutoReport(nst, getBuf, headBuf.bufsiz);

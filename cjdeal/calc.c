@@ -16,6 +16,8 @@
 #include <errno.h>
 #include <string.h>
 #include <time.h>
+#include <stdarg.h>
+#include <sys/stat.h>
 #include "calc.h"
 #include "cjdeal.h"
 #include "ParaDef.h"
@@ -34,42 +36,43 @@ extern ProgramInfo* JProgramInfo;
 extern INT8U poweroffon_state;
 extern MeterPower MeterPowerInfo[POWEROFFON_NUM];
 
+/*
+ * flag 0:日 1：月
+ * sign 0:清零 1 增加
+ */
 void Vol_Rate_Tj(PassRate_U *passu_d_tmp,PassRate_U *passu_m_tmp,INT32U voltage,int per_min)
 {
 	if(JProgramInfo->ACSRealData.Available){
 		//日
-		passu_d_tmp->monitorTime +=per_min;
-		if(voltage>=obj_offset.uUp && obj_offset.uUp>0){
-			passu_d_tmp->upLimitTime +=per_min;
-			passu_m_tmp->upLimitTime +=per_min;
-		}
-		if(voltage<=obj_offset.uDown && obj_offset.uDown>0){
-			passu_d_tmp->downLimitTime +=per_min;
-			passu_m_tmp->downLimitTime +=per_min;
-		}
-		INT32U d_over=passu_d_tmp->upLimitTime+passu_d_tmp->downLimitTime;
-		FP32 d_over_per=(FP32)d_over/(FP32)passu_d_tmp->monitorTime;
-		FP32 d_hege_per=1-d_over_per;
-		passu_d_tmp->overRate=d_over_per*100*100;
-		passu_d_tmp->passRate=d_hege_per*100*100;
-//		fprintf(stderr,"passu_d_tmp:monitorTime:%d downLimitTime:%d overRate:%d passRate:%d upLimitTime:%d\n",
-//				passu_d_tmp->monitorTime,
-//				passu_d_tmp->downLimitTime,passu_d_tmp->overRate,
-//				passu_d_tmp->passRate,passu_d_tmp->upLimitTime);
+			passu_d_tmp->monitorTime +=per_min;
+			if(voltage>=obj_offset.uUp && obj_offset.uUp>0){
+				passu_d_tmp->upLimitTime +=per_min;
+				passu_m_tmp->upLimitTime +=per_min;
+			}
+			if(voltage<=obj_offset.uDown && obj_offset.uDown>0){
+				passu_d_tmp->downLimitTime +=per_min;
+				passu_m_tmp->downLimitTime +=per_min;
+			}
+			INT32U d_over=passu_d_tmp->upLimitTime+passu_d_tmp->downLimitTime;
+			FP32 d_over_per=(FP32)d_over/(FP32)passu_d_tmp->monitorTime;
+			FP32 d_hege_per=1-d_over_per;
+			passu_d_tmp->overRate=d_over_per*100*100;
+			passu_d_tmp->passRate=d_hege_per*100*100;
+
 
         //月
-		passu_m_tmp->monitorTime +=per_min;
-		INT32U m_over=passu_m_tmp->upLimitTime+passu_m_tmp->downLimitTime;
-		FP32 m_over_per=(FP32)m_over/(FP32)passu_d_tmp->monitorTime;
-		FP32 m_hege_per=1-m_over_per;
-		passu_m_tmp->overRate=m_over_per*100*100;
-		passu_m_tmp->passRate=m_hege_per*100*100;
-//		fprintf(stderr,"passu_m_tmp:monitorTime:%d downLimitTime:%d overRate:%d passRate:%d upLimitTime:%d\n",passu_m_tmp->monitorTime,
-//						passu_m_tmp->downLimitTime,passu_m_tmp->overRate,
-//						passu_m_tmp->passRate,passu_m_tmp->upLimitTime);
+			passu_m_tmp->monitorTime +=per_min;
+			INT32U m_over=passu_m_tmp->upLimitTime+passu_m_tmp->downLimitTime;
+			FP32 m_over_per=(FP32)m_over/(FP32)passu_d_tmp->monitorTime;
+			FP32 m_hege_per=1-m_over_per;
+			passu_m_tmp->overRate=m_over_per*100*100;
+			passu_m_tmp->passRate=m_hege_per*100*100;
+
 	}
 }
 
+
+#if 0
 void Save_Vol_Rate(INT8U flag,DateTimeBCD datetime)
 {
    if(flag == 0){
@@ -112,71 +115,75 @@ void Save_Vol_Rate(INT8U flag,DateTimeBCD datetime)
 		 }
    }
 }
+#endif
+
 void Calc_Tj()
 {
 	static time_t	currtime=0,nexttime=0;
 	static INT8U 	first=1;
-	TS newts;
-	static INT8U lastchgoi4030=0;
+	static INT8U lastchgoi4030=0,addnum=0,lastreset=0;
+	int	j=0;
+	static TS newts,oldts;
+	addnum++;
 	TSGet(&newts);
-	DateTimeBCD datetime={};
-	datetime.year.data=newts.Year;
-	datetime.month.data=newts.Month;
-	datetime.day.data=newts.Day;
-	datetime.hour.data=0;
-	datetime.min.data=0;
-	datetime.sec.data=0;
 	if(first==1) {
 		first = 0;
+		TSGet(&oldts);
 		currtime = time(NULL);
 		nexttime = time(NULL);
 		memset(&gongdian_tj,0,sizeof(Gongdian_tj));
 		readVariData(0x2203,0,&gongdian_tj,sizeof(Gongdian_tj));
-//		fprintf(stderr,"初始化: 2203:时间: %d-%d-%d %d:%d:%d\n",gongdian_tj.ts.Year,gongdian_tj.ts.Month,gongdian_tj.ts.Day,gongdian_tj.ts.Hour,gongdian_tj.ts.Minute,gongdian_tj.ts.Sec);
-//		fprintf(stderr,"初始化: 日供电时间=%d   月供电时间=%d\n",gongdian_tj.gongdian.day_tj,gongdian_tj.gongdian.month_tj);
+
+		syslog(LOG_NOTICE,"firset read day_tj=%d,mon_tj=%d\n",gongdian_tj.gongdian.day_tj,gongdian_tj.gongdian.month_tj);
+
 		lastchgoi4030 = JProgramInfo->oi_changed.oi4030;
 	    readCoverClass(0x4030,0,&obj_offset,sizeof(obj_offset),para_vari_save);
-//	    fprintf(stderr,"4030参数初始化:udown=%d udownkaohe=%d up=%d upkaohe=%d \n",obj_offset.uDown,obj_offset.uDown_Kaohe,obj_offset.uUp,obj_offset.uUp_Kaohe);
         memset(passu_d,0,sizeof(passu_d));
         memset(passu_m,0,sizeof(passu_m));
 	}
 	if(lastchgoi4030!=JProgramInfo->oi_changed.oi4030){
 		readCoverClass(0x4030,0,&obj_offset,sizeof(obj_offset),para_vari_save);
 			lastchgoi4030=JProgramInfo->oi_changed.oi4030;
-//			fprintf(stderr,"4030参数变更:udown=%d udownkaohe=%d up=%d upkaohe=%d \n",obj_offset.uDown,obj_offset.uDown_Kaohe,obj_offset.uUp,obj_offset.uUp_Kaohe);
 	}
 	currtime = time(NULL);
 	int tcha=abs(currtime - nexttime);
 	if(tcha >= 60) {
 		int per_min=tcha/60;
 		nexttime = currtime;
-		gongdian_tj.gongdian.day_tj +=1;
-		gongdian_tj.gongdian.month_tj +=1;
 		Vol_Rate_Tj(&passu_d[0],&passu_m[0],JProgramInfo->ACSRealData.Ua,per_min);
 		Vol_Rate_Tj(&passu_d[1],&passu_m[1],JProgramInfo->ACSRealData.Ub,per_min);
 		Vol_Rate_Tj(&passu_d[2],&passu_m[2],JProgramInfo->ACSRealData.Uc,per_min);
-		//存储供电时间
-//		fprintf(stderr,"2203:时间: %d-%d-%d %d:%d:%d\n",gongdian_tj.ts.Year,gongdian_tj.ts.Month,gongdian_tj.ts.Day,gongdian_tj.ts.Hour,gongdian_tj.ts.Minute,gongdian_tj.ts.Sec);
-//		fprintf(stderr," 日供电时间=%d\n 月供电时间=%d\n",gongdian_tj.gongdian.day_tj,gongdian_tj.gongdian.month_tj);
-		saveVariData(0x2203,0,&gongdian_tj,sizeof(Gongdian_tj));	//TODO：现场运行 是否需要 1分钟保存一次
 	}
+	gongdian_tj.gongdian.day_tj +=1;
+	gongdian_tj.gongdian.month_tj +=1;
 
-	if(newts.Day != gongdian_tj.ts.Day) {
-//		fprintf(stderr,"2203:newts: %d-%d-%d %d:%d:%d\n",newts.Year,newts.Month,newts.Day,newts.Hour,newts.Minute,newts.Sec);
-//		fprintf(stderr,"跨日	:时间: %d-%d-%d %d:%d:%d\n",gongdian_tj.ts.Year,gongdian_tj.ts.Month,gongdian_tj.ts.Day,gongdian_tj.ts.Hour,gongdian_tj.ts.Minute,gongdian_tj.ts.Sec);
+//	syslog(LOG_NOTICE,"day_tj=%d,mon_tj=%d\n",gongdian_tj.gongdian.day_tj,gongdian_tj.gongdian.month_tj);
+	if(addnum >= 5 || lastreset!=JProgramInfo->oi_changed.reset) {
+//		syslog(LOG_NOTICE,"addnum=%d lastreset=%d reset=%d day_tj=%d,mon_tj=%d\n",addnum,lastreset,JProgramInfo->oi_changed.reset,gongdian_tj.gongdian.day_tj,gongdian_tj.gongdian.month_tj);
+		addnum=0;
+		lastreset=JProgramInfo->oi_changed.reset;
+		saveVariData(0x2203,0,&gongdian_tj,sizeof(Gongdian_tj));	//TODO：
+	}
+	if(newts.Day !=oldts.Day) {
+		Save_TJ_Freeze(0,0x2203,0x0200,newts,sizeof(gongdian_tj.gongdian),(INT8U *)&gongdian_tj.gongdian);
 		gongdian_tj.gongdian.day_tj = 0;
-		//TSGet(&gongdian_tj.ts);
-		Save_Vol_Rate(0,datetime);
-		if(newts.Month != gongdian_tj.ts.Month && newts.Hour == 0) {
-//			gongdian_tj.gongdian.month_tj = 0;
-			datetime.day.data= 1;
-			fprintf(stderr,"跨月");
-			Save_Vol_Rate(1,datetime);
+		for(j=0;j<3;j++) {
+			Save_TJ_Freeze(0,(0x2131+j),0x0201,newts,sizeof(PassRate_U),(INT8U *)&passu_d[j]);
+			memset(&passu_d[j],0,sizeof(PassRate_U));
 		}
-		TSGet(&gongdian_tj.ts);
+		gongdian_tj.gongdian.day_tj = 0;
+		if(newts.Month !=oldts.Month && newts.Hour == 0) {
+			Save_TJ_Freeze(1,0x2203,0x0200,newts,sizeof(gongdian_tj.gongdian),(INT8U *)&gongdian_tj.gongdian);
+			for(j=0;j<3;j++) {
+				Save_TJ_Freeze(1,(0x2131+j),0x0202,newts,sizeof(PassRate_U),(INT8U *)&passu_m[j]);
+				memset(&passu_m[j],0,sizeof(PassRate_U));
+			}
+			gongdian_tj.gongdian.month_tj = 0;
+		}else{
+			gongdian_tj.gongdian.month_tj +=1;
+		}
+		TSGet(&oldts);
 	}
-
-
 }
 /*
  * 统计主线程

@@ -38,6 +38,9 @@ int ClientForNetWrite(int fd, INT8U *buf, INT16U len) {
         asyslog(LOG_WARNING, "客户端[以太网]报文发送失败(长度:%d,错误:%d-%d)", len, errno, fd);
     }
     bufsyslog(buf, "客户端[以太网]发送:", len, 0, BUFLEN);
+    if(getZone("GW")==0) {
+    	PacketBufToFile("[NET]S:",(char *)buf, len, NULL);
+    }
     return ret;
 }
 
@@ -48,72 +51,48 @@ int MixForNetWrite(int fd, INT8U *buf, INT16U len) {
     return SendBufWrite(buf, len);
 }
 
-void ClientForNetRead(struct aeEventLoop *eventLoop, int fd, void *clientData, int mask) {
-    CommBlock *nst = (CommBlock *) clientData;
+void ClientForNetRead(struct aeEventLoop *eventLoop, int fd, void *clientData,
+		int mask) {
+	CommBlock *nst = (CommBlock *) clientData;
 
-    //判断fd中有多少需要接收的数据
-    int revcount = 0;
-    ioctl(fd, FIONREAD, &revcount);
+	//判断fd中有多少需要接收的数据
+	int revcount = 0;
 
-    //关闭异常端口
-    if (revcount == 0) {
-        asyslog(LOG_WARNING, "客户端[以太网]链接出现异常[%d]，关闭端口", errno);
-        aeDeleteFileEvent(eventLoop, fd, AE_READABLE);
-        close(fd);
-        nst->phy_connect_fd = -1;
-        SetOnlineType(0);
-    }
+	ioctl(fd, FIONREAD, &revcount);
+	//关闭异常端口
+	if (revcount == 0) {
+		asyslog(LOG_WARNING, "客户端[以太网]链接出现异常[%d]，关闭端口", errno);
+		aeDeleteFileEvent(eventLoop, fd, AE_READABLE);
+		close(fd);
+		nst->phy_connect_fd = -1;
+		SetOnlineType(0);
+	}
 
-    if (revcount > 0) {
-        for (int j = 0; j < revcount; j++) {
-            read(fd, &nst->RecBuf[nst->RHead], 1);
-            nst->RHead = (nst->RHead + 1) % BUFLEN;
-        }
-        bufsyslog(nst->RecBuf, "客户端[以太网]接收:", nst->RHead, nst->RTail, BUFLEN);
-
-        for (int k = 0; k < 50; k++) {
-            int len = 0;
-            for (int i = 0; i < 5; i++) {
-                len = StateProcess(nst, 10);
-                if (len > 0) {
-                    break;
-                }
-            }
-            if (len <= 0) {
-                break;
-            }
-
-            if (len > 0) {
-                int apduType = ProcessData(nst);
-                fprintf(stderr, "apduType=%d\n", apduType);
-                ConformAutoTask(eventLoop, nst, apduType);
-                switch (apduType) {
-                    case LINK_RESPONSE:
-                        First_VerifiTime(nst->linkResponse, nst->shmem); //简单对时
-                        if (GetTimeOffsetFlag() == 1) {
-                            Getk_curr(nst->linkResponse, nst->shmem);
-                        }
-                        nst->linkstate = build_connection;
-                        nst->testcounter = 0;
-                        break;
-                    default:
-                        break;
-                }
-            }
-        }
-    }
+	if (revcount > 0) {
+		TSGet(&nst->final_frame);
+		for (int j = 0; j < revcount; j++) {
+			read(fd, &nst->RecBuf[nst->RHead], 1);
+			nst->RHead = (nst->RHead + 1) % BUFLEN;
+		}
+		bufsyslog(nst->RecBuf, "客户端[以太网]接收:", nst->RHead, nst->RTail, BUFLEN);
+	    if(getZone("GW")==0) {
+	    	int buflen=0;
+	    	buflen = (nst->RHead-nst->RTail+BUFLEN)%BUFLEN;
+	    	PacketBufToFile("[NET]R:",(char *)&nst->RecBuf[nst->RTail], buflen, NULL);
+	    }
+	}
 }
 
 MASTER_STATION_INFO getNextNetIpPort(CommBlock *commBlock) {
     static int index = 0;
     static int ChangeFlag = 0;
     //检查主站参数是否有变化
-    if (ChangeFlag != ((ProgramInfo *) commBlock->shmem)->oi_changed.oi4500) {
+    if (ChangeFlag != ((ProgramInfo *) commBlock->shmem)->oi_changed.oi4510) {
         memset(&Class26, 0, sizeof(CLASS26));
         readCoverClass(0x4510, 0, (void *) &Class26, sizeof(CLASS26), para_vari_save);
         memcpy(&IpPool, &Class26.master.master, sizeof(IpPool));
-        asyslog(LOG_WARNING, "检测到通信参数变化！刷新主站参数！");
-        ChangeFlag = ((ProgramInfo *) commBlock->shmem)->oi_changed.oi4500;
+        asyslog(LOG_WARNING, "检测到以太网通信参数变化！刷新主站参数！");
+        ChangeFlag = ((ProgramInfo *) commBlock->shmem)->oi_changed.oi4510;
         commBlock->Heartbeat = Class26.commconfig.heartBeat;
     }
     MASTER_STATION_INFO res;
@@ -190,6 +169,7 @@ int RegularClientForNet(struct aeEventLoop *ep, long long id, void *clientData) 
                 SetOnlineType(2);
             }
         }
+        return 2000;
     } else {
         if (Comm_task(nst) == -1) {
             asyslog(LOG_WARNING, "客户端[以太网]链接心跳超时，关闭端口");
@@ -199,13 +179,35 @@ int RegularClientForNet(struct aeEventLoop *ep, long long id, void *clientData) 
             SetOnlineType(0);
         }
 
+
+		int res = 0;
+		do {
+			res = StateProcess(nst, 5);
+			if (nst->deal_step >= 3) {
+				int apduType = ProcessData(nst);
+				ConformAutoTask(ep, nst, apduType);
+				switch (apduType) {
+				case LINK_RESPONSE:
+					First_VerifiTime(nst->linkResponse, nst->shmem); //简单对时
+					if (GetTimeOffsetFlag() == 1) {
+						Getk_curr(nst->linkResponse, nst->shmem);
+					}
+					nst->linkstate = build_connection;
+					nst->testcounter = 0;
+					break;
+				default:
+					break;
+				}
+			}
+		} while (res == 1);
+
         check_F101_changed_Net(nst);
         CalculateTransFlow(nst->shmem);
         //暂时忽略函数返回
         RegularAutoTask(ep, nst);
     }
 
-    return 1000;
+    return 100;
 }
 
 static int RegularMixForNet(struct aeEventLoop *ep, long long id, void *clientData) {

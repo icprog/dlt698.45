@@ -190,23 +190,24 @@ int SendATCommand(char *buf, int len, int com) {
 }
 
 int RecieveFromComm(char *buf, int mlen, int com) {
-	int len = read(com, buf, mlen);
+    int len = read(com, buf, mlen);
 
-	if (len > 0) {
-		INT8U atbuf[1024];
-		memset(atbuf, 0x00, sizeof(atbuf));
-		int atbufindex = 0;
+    if (len > 0) {
+        INT8U atbuf[1024];
+        memset(atbuf, 0x00, sizeof(atbuf));
+        int atbufindex = 0;
 
-		asyslog(LOG_INFO, "[AT]recv:\n");
+        asyslog(LOG_INFO, "[AT]recv:\n");
 
-		for (int i = 0; i < len; i++) {
-			if (buf[i] >= 0x20 && buf[i] <= 0x7E) {
-				atbuf[atbufindex++] = buf[i];
-			}
-		}
-		asyslog(LOG_INFO, "%s", atbuf);
-	}
-	return (len < 0) ? 0 : len;
+        for (int i = 0; i < len; i++) {
+        	fprintf(stderr, "%02x ", buf[i]);
+            if (buf[i] >= 0x20 && buf[i] <= 0x7E) {
+                atbuf[atbufindex++] = buf[i];
+            }
+        }
+        asyslog(LOG_INFO, "%s", atbuf);
+    }
+    return (len < 0) ? 0 : len;
 }
 
 //查看拨号程序是否获取到ip地址
@@ -730,15 +731,6 @@ void *ATWorker(void *args) {
 			}
 		}
 
-		for (int timeout = 0; timeout < 5; timeout++) {
-			char Mrecvbuf[128];
-
-			SendATCommand("\rAT+CGREG?\r", 11, sMux0);
-			delay(1000);
-			memset(Mrecvbuf, 0, 128);
-			RecieveFromComm(Mrecvbuf, 128, sMux0);
-		}
-
 		if (reg_ok == 0) {
 			asyslog(LOG_INFO, "注册网络失败");
 			goto err;
@@ -772,7 +764,7 @@ void *ATWorker(void *args) {
 			}
 		}
 
-		for (int timeout = 0; timeout < 5; timeout++) {
+		for (int timeout = 0; timeout < 3; timeout++) {
 			char Mrecvbuf[128];
 
 			SendATCommand("\rAT+QNWINFO\r", 12, sMux0);
@@ -801,59 +793,63 @@ void *ATWorker(void *args) {
 		 * 运行拨号脚本
 		 */
 		if (callType == 1) {
-			asyslog(LOG_INFO, "拨号类型：GPRS\n");
-//            SetWireLessType(1);
-			system("pppd call gprs &");
-		} else {
-			asyslog(LOG_INFO, "拨号类型：CDMA2000\n");
-//            SetWireLessType(2);
-			system("pppd call cdma2000 &");
-		}
-//        SetWireLessType(3); 测试4G图标，强制4G在线
+                if ((l & 0x01) == 1) {
+                	system("pppd call gprs &");
+                    asyslog(LOG_INFO, "远程通信单元类型为GPRS。\n");
+                    break;
+                }
+                if ((l & 0x08) == 8) {
+                	system("pppd call cdma2000 &");
+                    asyslog(LOG_INFO, "远程通信单元类型为CDMA2000。\n");
+                    break;
+                }
+        }
+        SetGprsStatus(2);
 
-		for (int i = 0; i < 50; i++) {
-			sleep(1);
-			if (tryifconfig(class25) == 1) {
-				//拨号成功，存储参数，以备召唤
-				CLASS25 class25_temp;
-				readCoverClass(0x4500, 0, &class25_temp, sizeof(CLASS25),
-						para_vari_save);
-				fprintf(stderr, "刷新4500数据（2）");
-				memcpy(class25_temp.ccid, class25->ccid, sizeof(32));
-				class25_temp.signalStrength = class25->signalStrength;
-				SetPPPDStatus(1);
-				saveCoverClass(0x4500, 0, &class25_temp, sizeof(CLASS25),
-						para_vari_save);
-				break;
-			}
-		}
-		sleep(30);
+        for (int i = 0; i < 50; i++) {
+            sleep(1);
+            if (tryifconfig(class25) == 1) {
+                //拨号成功，存储参数，以备召唤
+                CLASS25 class25_temp;
+                readCoverClass(0x4500, 0, &class25_temp, sizeof(CLASS25), para_vari_save);
+                fprintf(stderr, "刷新4500数据（2）");
+                memcpy(class25_temp.ccid, class25->ccid, sizeof(32));
+                class25_temp.signalStrength = class25->signalStrength;
+                SetPPPDStatus(1);
+                syslog(LOG_NOTICE, "\nat.c 主IP %d.%d.%d.%d:%d\n", class25_temp.master.master[0].ip[1], class25_temp.master.master[0].ip[2],
+                		class25_temp.master.master[0].ip[3],class25_temp.master.master[0].ip[4], class25_temp.master.master[0].port);
+                saveCoverClass(0x4500, 0, &class25_temp, sizeof(CLASS25), para_vari_save);
+                break;
+            }
+        }
+        sleep(30);
 
-		wait:
-		//等待在线状态为“否”，重新拨号
-		while (1) {
-			if (GetOnlineType() == 0) {
-				goto err;
-			}
+        wait:
+        //等待在线状态为“否”，重新拨号
+        while (1) {
+            if (GetOnlineType() == 0) {
+                goto err;
+            }
 
-			atCounts = 0;
-			static int step = 0;
-			if (step % 60 == 0) {
-				checkSms(sMux1);
-				step = 0;
-			}
-			step++;
-			sleep(1);
-		}
+            atCounts = 0;
+            static int step = 0;
+            if (step % 60 == 0) {
+                checkSms(sMux1);
+                step = 0;
+            }
+            step++;
+            sleep(1);
+        }
 
-		err: sleep(1);
-		close(sMux0);
-		close(sMux1);
-		atCounts++;
-		continue;
-	}
+        err:
+        sleep(1);
+        close(sMux0);
+        close(sMux1);
+        atCounts++;
+        continue;
+    }
 
-	return NULL;
+    return NULL;
 }
 
 void CreateATWorker(void *clientdata) {

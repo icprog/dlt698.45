@@ -26,7 +26,10 @@ extern INT16U setRequestNormal(INT8U *data,OAD oad,INT8U *DAR,CSINFO *csinfo,INT
 extern int setRequestNormalList(INT8U *Object,CSINFO *csinfo,INT8U *buf);
 extern int setThenGetRequestNormalList(INT8U *data,CSINFO *csinfo,INT8U *buf);
 extern int Proxy_GetRequestlist(INT8U *data,CSINFO *csinfo,INT8U *sendbuf,INT8U piid);
+extern int Proxy_GetRequestRecord(INT8U *data,CSINFO *csinfo,INT8U *sendbuf,INT8U piid);
 extern int Proxy_TransCommandRequest(INT8U *data,CSINFO *csinfo,INT8U *sendbuf,INT8U piid);
+extern int Proxy_DoRequestList(INT8U *data,CSINFO *csinfo,INT8U *sendbuf,INT8U piid,INT8U type);
+extern int Proxy_DoThenGetRequestList(INT8U *data,CSINFO *csinfo,INT8U *sendbuf,INT8U piid,INT8U type);
 extern unsigned short tryfcs16(unsigned char *cp, int  len);
 extern INT32S secureConnectRequest(SignatureSecurity* securityInfo ,SecurityData* RetInfo);
 INT8S (*pSendfun)(int fd,INT8U* sndbuf,INT16U sndlen);
@@ -43,99 +46,174 @@ INT8U securetype;  //安全等级类型  01明文，02明文+MAC 03密文  04密
 INT8U secureRN[20];//安全认证随机数，主站下发，终端回复时需用到，esam计算使用
 static INT8U	client_addr=0;
 PIID piid_g={};
+TimeTag		Response_timetag;		//响应的时间标签值
 INT8U broadcast=0;
-/**************************************
- * 函数功能：DL/T698.45 状态机
- * 参数含义：
- **************************************/
 
 ProgramInfo *getShareAddr(void)
 {
 	return memp;
 }
 
-int StateProcess(CommBlock* nst, int delay_num)
-{
-	int length=0,i=0;
+/**************************************
+ * 函数功能：DL/T698.45 状态机
+ * 参数含义：
+ * 返回含义：0代表还需要获取报文
+ * 		   1代表还需要再循环一轮
+ **************************************/
+int StateProcess(CommBlock* nst, int delay_num) {
+	TS now;
 
-	switch(nst->deal_step)
-	{
-		case 0:		 // 找到第一个 0x68
-			while(nst->RHead!=nst->RTail)
-			{
-				if (nst->RecBuf[nst->RTail]== 0x68)
-				{
-					nst->deal_step = 1;
-					break;
-				}else {
-					nst->RTail = (nst->RTail + 1)% FRAMELEN;
-				}
-			}
-			break;
-		case 1:	   //从rev_tail2开始 跨长度字节找 0x16
-			if(((nst->RHead-nst->RTail+FRAMELEN)%FRAMELEN) >= 3)
-			{
-//				fprintf(stderr,"\nNetRevBuf[*rev_tail] = %02x  %02x\n ",NetRevBuf[(*rev_tail+ 2)%FRAMELEN],NetRevBuf[(*rev_tail+ 1)%FRAMELEN]);
-				length = (nst->RecBuf[(nst->RTail+ 2 + FRAMELEN )%FRAMELEN] << 8) + nst->RecBuf[(nst->RTail+ 1 + FRAMELEN)%FRAMELEN];
-				length = (length) & 0x03FFF;//bit15 bit14 保留
-//				fprintf(stderr,"\nlength = %d \n",length);
-				if (length <= 0)//长度异常
-				{
-					nst->RTail = (nst->RTail + 1)% FRAMELEN;
-					nst->deal_step = 0;
-					break;
-				}else {
-//					fprintf(stderr,"*rev_head = %d *rev_tail = %d ",*rev_head,*rev_tail);
-					if((nst->RHead-nst->RTail+FRAMELEN)%FRAMELEN >= (length+2))//长度length为除 68和16 以外的字节数
-					{
-						if(nst->RecBuf[ (nst->RTail + length + 1 + FRAMELEN)% FRAMELEN ]== 0x16)
-						{
-							nst->rev_delay = 0;
-//							fprintf(stderr,"RRR=[%d]\n",length+2);
-							for(i=0;i<(length+2);i++)
-							{
-								nst->DealBuf[i] = nst->RecBuf[nst->RTail];
-//								fprintf(stderr,"%02x ",dealbuf[i]);
-								nst->RTail = (nst->RTail + 1) % FRAMELEN;
-							}
-							nst->deal_step = 0;//进入下一步
-							return (length+2);
-						}
-						else
-						{
-							if (nst->rev_delay < delay_num)
-							{
-								(nst->rev_delay)++;
-								break;
-							}else
-							{
-								nst->rev_delay = 0;
-								nst->RTail = (nst->RTail +1 )% FRAMELEN;
-								nst->deal_step = 0;//返回第一步
-							}
-						}
-					}else
-					{
-							if (nst->rev_delay < delay_num)
-							{
-								(nst->rev_delay)++;
-								break;
-							}else
-							{
-								nst->rev_delay = 0;
-								nst->RTail = (nst->RTail +1 )% FRAMELEN;
-								nst->deal_step = 0;
-							}
-					}
-				}
-			}
-			break;
-		default :
-			break;
+	nst->deal_step = 0;
+	// 找到第一个 0x68
+	while (nst->RHead != nst->RTail && nst->RecBuf[nst->RTail] != 0x68) {
+		nst->RTail = (nst->RTail + 1) % FRAMELEN;
 	}
+
+	if(nst->RecBuf[nst->RTail] != 0x68){
+		return 0;
+	}
+
+	//检查报文长度
+	if (((nst->RHead - nst->RTail + FRAMELEN) % FRAMELEN) < 3) {
+		return 0;
+	}
+	fprintf(stderr, "==========cp1\n\n\n\n\n");
+
+	int length = (nst->RecBuf[(nst->RTail + 2 + FRAMELEN) % FRAMELEN] << 8)
+			+ nst->RecBuf[(nst->RTail + 1 + FRAMELEN) % FRAMELEN];
+	length = (length) & 0x03FFF;
+
+	fprintf(stderr, "\nlength = %d \n", length);
+	if (length <= 0 || length >= FRAMELEN) {
+		nst->RTail = (nst->RTail + 1) % FRAMELEN;
+		return 1;
+	}
+	TSGet(&now);
+	tminc(&nst->final_frame, 0, 6);
+	if(TScompare(now, nst->final_frame) == 1){
+		nst->RTail = (nst->RTail + 1) % FRAMELEN;
+				return 1;
+	}
+	//长度length为除 68和16 以外的字节数
+	if ((nst->RHead - nst->RTail + FRAMELEN) % FRAMELEN < (length + 2)) {
+		return 0;
+	}
+
+	fprintf(stderr, "==========cp2\n\n\n\n\n");
+
+	if (nst->RecBuf[(nst->RTail + length + 1 + FRAMELEN) % FRAMELEN] == 0x16) {
+		for (int i = 0; i < (length + 2); i++) {
+			nst->DealBuf[i] = nst->RecBuf[nst->RTail];
+			nst->RTail = (nst->RTail + 1) % FRAMELEN;
+			fprintf(stderr, "%02x ", nst->DealBuf[i]);
+			nst->deal_step ++;
+		}
+		if (((nst->RHead - nst->RTail + FRAMELEN) % FRAMELEN) >= 3) {
+			return 1;
+		} else {
+			return 0;
+		}
+	} else {
+		nst->RTail = (nst->RTail + 1) % FRAMELEN;
+		return 1;
+	}
+
 	return 0;
 }
+/**********************************************************
+ * 检测下行帧服务器地址是否与本终端匹配
+ */
+int CheckSerAddr(unsigned char* buf ,INT8U *addr)
+{
+	INT8U checkByte=0;
+	INT8U Check_Hb=0,Check_Lb=0,My_Hb=0,My_Lb=0;
+	INT8U sa_length=0,mycslen=0;
+	INT8U logicID=0;
+	INT8U tmp[OCTET_STRING_LEN];
+	int i=0;
+	INT8U cstype = 0;
+	if(buf[0]==0x68 )
+	{
+		sa_length 	= (buf[4]& 0x0f) + 1; 		/*服务器地址长度 0,1,，，15 表示 1,2,，，16*/
+		logicID = (buf[4]& 0x30)>>4;			/*逻辑地址*/
+		cstype = (buf[4]& 0xc0) >> 6;
+		mycslen = addr[0];
+		if(mycslen > OCTET_STRING_LEN)
+			mycslen = OCTET_STRING_LEN;
 
+		fprintf(stderr,"\n下行报文逻辑地址 %d",logicID);\
+		if (logicID!=0 && logicID!=1)
+		{
+			fprintf(stderr,"\n逻辑地址非0并且非1 ");
+			return 0;
+		}
+		fprintf(stderr,"\n本终端地址(%d字节): ",mycslen);
+		for(i=0;i<mycslen;i++)
+		{
+			tmp[i] = addr[mycslen-i];
+			fprintf(stderr,"%02x ",tmp[i]);
+		}
+
+		fprintf(stderr,"\n本帧 地址(%d字节)： ",sa_length);
+		for(i=0;i<sa_length;i++)
+			fprintf(stderr,"%02x ",buf[5+i]);
+
+		switch (cstype)
+		{
+			case 0://单地址类型，需要判断是否与本服务器地址匹配
+				fprintf(stderr,"\n单地址，地址字节数 %d",sa_length);
+				if (mycslen!=sa_length)
+				{
+					fprintf(stderr,"\n单地址，长度不符合 ");
+					return 0;
+				}else
+				{
+					for(i=0;i<mycslen;i++)
+					{
+						fprintf(stderr,"\n本终端 addr[%d]=%02x buf[%d]=%02x",i,tmp[i],5+i,buf[5+i]);
+						if (tmp[i]!=buf[5+i])
+						{
+							fprintf(stderr,"\n单地址招测报文与本终端不符合!!");
+							return 0;
+						}
+					}
+				}
+				break;
+			case 1:
+				fprintf(stderr,"\n通配地址，地址字节数 %d",sa_length);
+				for(i=0;i<mycslen;i++)
+				{
+					fprintf(stderr,"\n本终端 addr[%d]=%02x buf[%d]=%02x",i,tmp[i],5+i,buf[5+i]);
+					if (tmp[i]!= buf[5+i])
+					{
+						Check_Hb = buf[5+i] & 0xF0;
+						Check_Lb = buf[5+i] & 0x0F;
+						My_Hb = tmp[i] & 0xF0;
+						My_Lb = tmp[i] & 0x0F;
+						if (Check_Hb != 0xA0  &&  Check_Hb != My_Hb)//低4位不是通配符  而且还不相等
+						{
+							fprintf(stderr,"\n不符合");
+							return 0;
+						}
+						if (Check_Lb != 0x0A  &&  Check_Lb != My_Lb)//低4位不是通配符  而且还不相等
+						{
+							fprintf(stderr,"\n不符合");
+							return 0;
+						}
+						continue;
+					}
+				}
+				break;
+			case 2:
+				fprintf(stderr,"\n组地址，地址字节数 %d",sa_length);
+				break;
+			case 3:
+				fprintf(stderr,"\n广播地址，地址字节数 %d",sa_length);
+				break;
+		}
+	}
+	return 1;
+}
 /**********************************************************
  * 处理帧头
  * 	获取：1、帧长度       2、控制码      3、服务器地址    4、客户机地址
@@ -181,7 +259,6 @@ int CheckHead(unsigned char* buf ,CSINFO *csinfo)
 			fprintf(stderr,"功能码未定义\n");
 			break;
 		}
-
 		csinfo->frame_length = frameLen.length.len;//帧长度
 		csinfo->funcode		= ctl.ctl.func;//功能码
 		csinfo->dir			= ctl.ctl.dir;
@@ -189,8 +266,9 @@ int CheckHead(unsigned char* buf ,CSINFO *csinfo)
 		csinfo->gframeflg	= ctl.ctl.divS;
 		csinfo->sa_type		= (buf[4]& 0xc0) >> 6;	/*0:单地址   1：通配地址   2：组地址   3：广播地址*/
 		memcpy(csinfo->sa, &buf[5], sa_length);		/*服务器地址*/
-		csinfo->ca			= buf[5+ sa_length]; 			/*客户机地址*/
+		csinfo->ca			= buf[5+ sa_length]; 	/*客户机地址*/
 		csinfo->sa_length	= sa_length;
+		fprintf(stderr,"\n地址类型 %d",csinfo->sa_type);
 		return 1;
 	}
 	return 0;
@@ -204,6 +282,7 @@ int CheckTail(unsigned char * buf,INT16U length)
 	INT16U cs16=0;
 	INT16U fcs16=0;
 
+	if(length<2) return 0;
 	if( buf[0]==0x68 ) {
 		cs16 = tryfcs16(&buf[1], length-2);
 		memcpy(&fcs16, &buf[length - 1], 2);
@@ -219,16 +298,16 @@ INT8U CtrlWord(CSINFO* csinfo)
 {
 	ctlUN ctl;
 
+	fprintf(stderr,"csinfo.dir=%d,prm=%d",csinfo->dir,csinfo->prm);
 	if(csinfo == NULL)
 		return 0;
 
 	ctl.u8b = 0;
-
 	ctl.ctl.dir = csinfo->dir;//调用方会决定终端作为服务器还是客户端
 	ctl.ctl.prm = csinfo->prm;//直接使用csinfo的启动标志
 	ctl.ctl.divS = csinfo->gframeflg;
 	ctl.ctl.func = csinfo->funcode;
-
+	fprintf(stderr,"ctl.u8b=%02x",ctl.u8b);
 	return ctl.u8b;
 }
 void FrameTail(INT8U *buf,int index,int hcsi)
@@ -305,6 +384,24 @@ int FrameHead(CSINFO *csinfo,INT8U *buf)
 	return i;
 }
 
+int FrameTimeTag(TimeTag *tag,INT8U *buf)
+{
+	int	i=0;
+	buf[i++] = tag->flag;
+	if(tag->flag==1) {		//时间标签有效
+		buf[i++] = (tag->sendTimeTag.year.data >> 8) & 0xff;
+		buf[i++] = tag->sendTimeTag.year.data & 0xff;
+		buf[i++] = tag->sendTimeTag.month.data & 0xff;
+		buf[i++] = tag->sendTimeTag.day.data & 0xff;
+		buf[i++] = tag->sendTimeTag.hour.data & 0xff;
+		buf[i++] = tag->sendTimeTag.min.data & 0xff;
+		buf[i++] = tag->sendTimeTag.sec.data & 0xff;
+		buf[i++] = tag->ti.units;
+		buf[i++] = (tag->ti.interval >> 8) & 0xff;
+		buf[i++] = tag->ti.interval & 0xff;
+	}
+	return i;
+}
 /**********************************************************************
  *	服务器向远方客户机提出
  *	1.登录
@@ -607,7 +704,7 @@ int appConnectResponse(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 
 	FrameTail(buf,index,hcsi);
 
-	if(pSendfun!=NULL)
+	if(pSendfun!=NULL && csinfo->sa_type!=2 && csinfo->sa_type!=3)//组地址或广播地址不需要应答
 		pSendfun(comfd,buf,index+3);
 	return (index+3);
 }
@@ -620,19 +717,25 @@ int doSetAttribute(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 	OAD oad={};
 	INT8U *data=NULL;
 	piid_g.data = apdu[2];
-
+	if (csinfo->sa_type == 2 || csinfo->sa_type == 3)
+	{
+		fprintf(stderr,"\n组地址或广播地址，不响应设置服务");
+		return 0;
+	}
 	switch(setType)
 	{
 		case SET_REQUEST_NORMAL:
 			memset(TmpDataBuf,0,sizeof(TmpDataBuf));
-			getOAD(0,&apdu[3],&oad);
+			getOAD(0,&apdu[3],&oad,NULL);
 			data = &apdu[7];					//Data
 			setRequestNormal(data,oad,&DAR,NULL,buf);
 			fprintf(stderr,"setRequestNormal dar = %d\n",DAR);
 			index += create_OAD(0,&TmpDataBuf[index],oad);
 			TmpDataBuf[index++] = (INT8U)DAR;
 			doReponse(SET_RESPONSE,SET_REQUEST_NORMAL,csinfo,index,TmpDataBuf,buf);
-			Get698_event(oad,memp);
+			if(DAR==0) {	//sucess
+				Get698_event(oad,memp);
+			}
 			break;
 		case SET_REQUEST_NORMAL_LIST:
 			setRequestNormalList(&apdu[3],csinfo,buf);
@@ -654,11 +757,10 @@ int doGetAttribute(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
 	piid_g.data = apdu[2];
 	fprintf(stderr,"\n- get type = %d PIID=%02x",getType,piid_g.data);
 
-
 	switch(getType)
 	{
 		case GET_REQUEST_NORMAL:
-			getOAD(0,&apdu[3],&oad);
+			getOAD(0,&apdu[3],&oad,NULL);
 			data = &apdu[7];					//*重新定位数据指针地址*/
 			getRequestNormal(oad,data,csinfo,sendbuf);
 			break;
@@ -667,7 +769,7 @@ int doGetAttribute(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
 			getRequestNormalList(data,csinfo,sendbuf);
 			break;
 		case GET_REQUEST_RECORD:
-			getOAD(0,&apdu[3],&oad);
+			getOAD(0,&apdu[3],&oad,NULL);
 			data = &apdu[7];
 			getRequestRecord(oad,data,csinfo,sendbuf);
 			break;
@@ -686,14 +788,22 @@ int doGetAttribute(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
 
 int doProxyRequest(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
 {
-	PIID piid={};
+//	PIID piid={};
 	INT8U getType = apdu[1];
 	INT8U *data=NULL;
 
+	fprintf(stderr,"doProxyRequest....getType=%d\n",getType);
+	for(int i=0;i<8;i++) {
+		fprintf(stderr,"%02x ",apdu[i]);
+	}
+	getType = apdu[1];
+	fprintf(stderr,"apdu[2]=%02x\n",apdu[2]);
 	piid_g.data = apdu[2];
+	fprintf(stderr,"\n代理 PIID %02x   ",piid_g.data);
 	data = &apdu[3];
-	fprintf(stderr,"\n代理 PIID %02x   ",piid.data);
-
+	for(int i=0;i<8;i++) {
+		fprintf(stderr,"%02x ",apdu[i]);
+	}
 	switch(getType)
 	{
 		case ProxyGetRequestList:
@@ -701,21 +811,27 @@ int doProxyRequest(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
 			Proxy_GetRequestlist(data,csinfo,sendbuf,piid_g.data);
 			break;
 		case ProxyGetRequestRecord:
-
+			fprintf(stderr,"\n====ProxyGetRequestRecord======\n");
+			Proxy_GetRequestRecord(data,csinfo,sendbuf,piid_g.data);
 			break;
 		case ProxySetRequestList:
-
+			fprintf(stderr,"\n====ProxySetRequestList======\n");
+			Proxy_DoRequestList(data,csinfo,sendbuf,piid_g.data,ProxySetRequestList);
 			break;
 		case ProxySetThenGetRequestList:
-
+			fprintf(stderr,"\n====ProxySetThenGetRequestList======\n");
+			Proxy_DoThenGetRequestList(data,csinfo,sendbuf,piid_g.data,ProxySetThenGetRequestList);
 			break;
 		case ProxyActionRequestList:
-
+			fprintf(stderr,"\n====ProxyActionRequestList======\n");
+			Proxy_DoRequestList(data,csinfo,sendbuf,piid_g.data,ProxyActionRequestList);
 			break;
 		case ProxyActionThenGetRequestList:
-
+			fprintf(stderr,"\n====ProxyActionThenGetRequestList======\n");
+			Proxy_DoThenGetRequestList(data,csinfo,sendbuf,piid_g.data,ProxyActionThenGetRequestList);
 			break;
 		case ProxyTransCommandRequest:
+			fprintf(stderr,"\n====ProxyTransCommandRequest======\n");
 			Proxy_TransCommandRequest(data,csinfo,sendbuf,piid_g.data);
 			break;
 	}
@@ -724,14 +840,16 @@ int doProxyRequest(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
 
 int doActionRequest(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 {
-	int  DAR=success;
 	int	 seqnum = 0,i=0;
 	int	 index = 0,apdu_index=0;
+	int	 choice_index = 0;
 	OAD  oad={};
 	INT8U *data=NULL;
 	INT8U request_choice = apdu[apdu_index+1];		//ACTION-Request
 	piid_g.data = apdu[apdu_index+2];				//PIID
 	Action_result	act_ret={};
+	INT8U get_delay = 0;		//延时读取时间
+	RESULT_NORMAL response={};
 
 	fprintf(stderr,"\n-------- request choice = %d",request_choice);
 	switch(request_choice)
@@ -743,11 +861,18 @@ int doActionRequest(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 			oad.attflg = apdu[apdu_index+5];
 			oad.attrindex = apdu[apdu_index+6];
 			data = &apdu[apdu_index+7];					//Data
-			DAR = doObjectAction(oad,data,&act_ret);
+			doObjectAction(oad,data,&act_ret);
 			index += create_OAD(0,&TmpDataBuf[index],oad);
-			TmpDataBuf[index++] = DAR;// DAR;
-			TmpDataBuf[index++] = 0;
+			TmpDataBuf[index++] = act_ret.DAR;
+//			if(act_ret.DAR == success) {
+				TmpDataBuf[index++] = 0;	//数据为空
+//			}
 			doReponse(ACTION_RESPONSE,ActionResponseNormal,csinfo,index,TmpDataBuf,buf);
+			//在应答帧接收到之后再发送复位参数
+			if (oad.OI == 0x4300 && oad.attflg == 1 && act_ret.DAR == success) {        //设备复位 ,TODO:只考虑ACTIONREQUEST的
+				syslog(LOG_NOTICE,"接收到硬件复位命令");
+				memp->oi_changed.reset++;
+			}
 			Get698_event(oad,memp);
 			break;
 		case ACTIONREQUEST_LIST:
@@ -758,6 +883,7 @@ int doActionRequest(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 			fprintf(stderr,"seqnum = %d\n",seqnum);
 			TmpDataBuf[index++] = seqnum;
 			for(i=0;i<seqnum;i++) {
+				act_ret.DAR = success;	//每个OAD先默认成功
 				oad.OI= (apdu[apdu_index]<<8) | apdu[apdu_index+1];
 				apdu_index+=2;
 				oad.attflg = apdu[apdu_index++];
@@ -765,14 +891,65 @@ int doActionRequest(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
 				index += create_OAD(0,&TmpDataBuf[index],oad);
 				doObjectAction(oad,&apdu[apdu_index],&act_ret);
 				TmpDataBuf[index++] = act_ret.DAR;
-				if(act_ret.DAR == 0) {
+//				if(act_ret.DAR == success) {
 					TmpDataBuf[index++] = 0;		//数据为空
-				}
+//				}
 				apdu_index += act_ret.datalen;
 			}
 			doReponse(ACTION_RESPONSE,ActionResponseNormalList,csinfo,index,TmpDataBuf,buf);
 			break;
 		case ACTIONTHENGET_REQUEST_NORMAL_LIST:
+			index = 0;
+			apdu_index = 3;
+			data = &apdu[apdu_index];					//Data
+			seqnum = apdu[apdu_index++];				//3
+			fprintf(stderr,"ACTIONTHENGET_REQUEST_NORMAL_LIST  seqnum = %d\n",seqnum);
+			TmpDataBuf[index++] = seqnum;
+			for(i=0;i<seqnum;i++) {
+				act_ret.DAR = success;	//每个OAD先默认成功
+				oad.OI= (apdu[apdu_index]<<8) | apdu[apdu_index+1];
+				apdu_index+=2;
+				oad.attflg = apdu[apdu_index++];
+				oad.attrindex = apdu[apdu_index++];
+				index += create_OAD(0,&TmpDataBuf[index],oad);
+				doObjectAction(oad,&apdu[apdu_index],&act_ret);
+				TmpDataBuf[index++] = act_ret.DAR;
+//				if(act_ret.DAR == success) {
+					TmpDataBuf[index++] = 0;		//数据为空
+//				}
+				apdu_index += act_ret.datalen;
+				//read
+				oad.OI= (apdu[apdu_index]<<8) | apdu[apdu_index+1];
+				apdu_index+=2;
+				oad.attflg = apdu[apdu_index++];
+				oad.attrindex = apdu[apdu_index++];
+				get_delay = apdu[apdu_index++];						//延时读取时间
+				if(get_delay>=0 && get_delay<=5) 	sleep(get_delay);
+				fprintf(stderr,"read oad=%04x_%02x%02x,get_delay=%d\n",oad.OI,oad.attflg,oad.attrindex,get_delay);
+				//A-ReusltNormal.OAD
+				index += create_OAD(0,&TmpDataBuf[index],oad);
+				memcpy(&response.oad,&oad,sizeof(response.oad));
+				choice_index = index;
+				index += 1;		//空出Get-Result::CHOICE的 DAR，Data的位置
+				response.datalen = 0;
+				response.data = &TmpDataBuf[index];	//将reposnse获取的data指向Data数据
+				doGetnormal(0,&response);
+				int j=0;
+				fprintf(stderr,"datalen=%d\n",response.datalen);
+				for(j=0;j<response.datalen;j++) {
+					fprintf(stderr,"%02x ",response.data[j]);
+				}
+				if(response.datalen>0) {
+					//A-ReusltNormal.Get-Result
+					TmpDataBuf[choice_index] = 1;		//Get-Result::Data
+					index = index + response.datalen;
+				}else {
+					TmpDataBuf[choice_index++] = 0;//错误
+					TmpDataBuf[choice_index++] = response.dar;
+					index = choice_index;
+				}
+			}
+			doReponse(ACTION_RESPONSE,ActionThenGetResponseNormalList,csinfo,index,TmpDataBuf,buf);
 			break;
 	}
 	return 1;
@@ -786,6 +963,7 @@ int doActionRequest(INT8U *apdu,CSINFO *csinfo,INT8U *buf)
  **********************************************************************/
 INT16S doSecurityRequest(INT8U* apdu,CSINFO *csinfo)//
 {
+	fprintf(stderr,"apdu=%02x %02x \n",apdu[0],apdu[1]);
 	if(apdu[0]!=0x10) return -1;//非安全传输，不处理
 	if(apdu[1] !=0x00 && apdu[1] != 0x01) return -2 ;   //明文应用数据单元
 	 INT16S retLen=0;
@@ -899,15 +1077,15 @@ INT16S parseSecurityResponse(INT8U* RN,INT8U* apdu)//apdu负责传入和传出�
 }
 
 
-//OAD转换为报文
-INT8U OADtoBuff(OAD fromOAD,INT8U* buff)
-{
-	memcpy(&buff[0],&fromOAD,sizeof(OAD));
-	INT8U tmp = buff[0];
-	buff[0] = buff[1];
-	buff[1] = tmp;
-	return sizeof(OAD);
-}
+////OAD转换为报文
+//INT8U OADtoBuff(OAD fromOAD,INT8U* buff)
+//{
+//	memcpy(&buff[0],&fromOAD,sizeof(OAD));
+//	INT8U tmp = buff[0];
+//	buff[0] = buff[1];
+//	buff[1] = tmp;
+//	return sizeof(OAD);
+//}
 
 INT16S fillGetRequestAPDU(INT8U* sendBuf,CLASS_6015 obj6015,INT8U requestType)
 {
@@ -926,7 +1104,8 @@ INT16S fillGetRequestAPDU(INT8U* sendBuf,CLASS_6015 obj6015,INT8U requestType)
 			/*采集当前数据*/
 			if(obj6015.csds.csd[csdIndex].type == 0)//OAD
 			{
-				len = OADtoBuff(obj6015.csds.csd[csdIndex].csd.oad,&sendBuf[length]);
+//				len = OADtoBuff(obj6015.csds.csd[csdIndex].csd.oad,&sendBuf[length]);
+				len = create_OAD(0,&sendBuf[length],obj6015.csds.csd[csdIndex].csd.oad);
 				length +=len;
 			}
 			else
@@ -944,7 +1123,8 @@ INT16S fillGetRequestAPDU(INT8U* sendBuf,CLASS_6015 obj6015,INT8U requestType)
 
 			if(obj6015.csds.csd[csdIndex].type == 1)//ROAD
 			{
-				len = OADtoBuff(obj6015.csds.csd[csdIndex].csd.road.oad,&sendBuf[length]);
+//				len = OADtoBuff(obj6015.csds.csd[csdIndex].csd.road.oad,&sendBuf[length]);
+				len = create_OAD(0,&sendBuf[length],obj6015.csds.csd[csdIndex].csd.road.oad);
 				length +=len;
 				/*采集上N次数据*/
 				if(obj6015.cjtype == TYPE_LAST)
@@ -1006,7 +1186,8 @@ INT16S fillGetRequestAPDU(INT8U* sendBuf,CLASS_6015 obj6015,INT8U requestType)
 				{
 
 					sendBuf[length++] = 0;//OAD
-					len = OADtoBuff(obj6015.csds.csd[csdIndex].csd.road.oads[oadsIndex],&sendBuf[length]);
+//					len = OADtoBuff(obj6015.csds.csd[csdIndex].csd.road.oads[oadsIndex],&sendBuf[length]);
+					len = create_OAD(0,&sendBuf[length],obj6015.csds.csd[csdIndex].csd.road.oads[oadsIndex]);
 					length +=len;
 				}
 
@@ -1072,12 +1253,12 @@ INT8S getRequestType(INT8U cjtype,INT8U csdcount)
 
 	return requestType;
 }
-INT16S composeProtocol698_SetRequest(INT8U* sendBuf,RESULT_NORMAL setData,TSA meterAddr)
+INT16S composeProtocol698_SetActionThenGetRequest(INT8U* sendBuf,INT8U type,DO_Then_GET dogetOBJ)
 {
 
 	INT8U PIID = 0x02;
-	int sendLen = 0, hcsi = 0,apdulen = 0;
-
+	int sendLen = 0, hcsi = 0;
+	INT8U oadIndex = 0;
 	CSINFO csinfo={};
 
 	csinfo.dir = 0;		//服务器发出
@@ -1088,12 +1269,12 @@ INT16S composeProtocol698_SetRequest(INT8U* sendBuf,RESULT_NORMAL setData,TSA me
 
 	INT8U reverseAddr[OCTET_STRING_LEN]= {0};
 	fprintf(stderr," \n\n composeProtocol698_GetRequest  meterAddr : %02x  %02x  %02x%02x%02x%02x%02x%02x%02x\n\n",
-			meterAddr.addr[0],meterAddr.addr[1],meterAddr.addr[2],meterAddr.addr[3],meterAddr.addr[4],
-			meterAddr.addr[5],meterAddr.addr[6],meterAddr.addr[7],meterAddr.addr[8]);
-	csinfo.sa_length = (meterAddr.addr[1]&0x0f) + 1;//sizeof(addr)-1;//服务器地址长度
+			dogetOBJ.tsa.addr[0],dogetOBJ.tsa.addr[1],dogetOBJ.tsa.addr[2],dogetOBJ.tsa.addr[3],dogetOBJ.tsa.addr[4],
+			dogetOBJ.tsa.addr[5],dogetOBJ.tsa.addr[6],dogetOBJ.tsa.addr[7],dogetOBJ.tsa.addr[8]);
+	csinfo.sa_length = (dogetOBJ.tsa.addr[1]&0x0f) + 1;//sizeof(addr)-1;//服务器地址长度
 	///当广播地址时，地址类型=3：广播地址，增加下面的赋值
-	csinfo.sa_type = (meterAddr.addr[1] >> 6) & 0x03;		//服务器地址类型
-	reversebuff(&meterAddr.addr[2],csinfo.sa_length,reverseAddr);
+	csinfo.sa_type = (dogetOBJ.tsa.addr[1] >> 6) & 0x03;		//服务器地址类型
+	reversebuff(&dogetOBJ.tsa.addr[2],csinfo.sa_length,reverseAddr);
 
 	fprintf(stderr," \n reverseAddr[%d] = ",csinfo.sa_length);
 	INT8U prtIndex=0;
@@ -1110,22 +1291,100 @@ INT16S composeProtocol698_SetRequest(INT8U* sendBuf,RESULT_NORMAL setData,TSA me
 	hcsi = sendLen;
 	sendLen = sendLen + 2;
 
-	sendBuf[sendLen++] = SET_REQUEST;
-	sendBuf[sendLen++] = SET_REQUEST_NORMAL;
+	sendBuf[sendLen++] = type;
+
+	sendBuf[sendLen++] = SET_THENGET_REQUEST_NORMAL_LIST;
+
+
 	sendBuf[sendLen++] = PIID;
-	OADtoBuff(setData.oad,&sendBuf[sendLen]);
-	sendLen += 4;
-	INT16U dataIndex = 0;
-	for(dataIndex = 0;dataIndex < setData.datalen;dataIndex++)
+//	OADtoBuff(setData.oad,&sendBuf[sendLen]);
+//	sendLen += 4;
+	sendBuf[sendLen++] = dogetOBJ.num;
+	for(oadIndex = 0;oadIndex < dogetOBJ.num;oadIndex++)
 	{
-		sendBuf[sendLen++] = setData.data[dataIndex];
+		sendLen += create_OAD(0,&sendBuf[sendLen],dogetOBJ.setoads[oadIndex].oad_set);
+		INT16U dataIndex = 0;
+		for(dataIndex = 0;dataIndex < dogetOBJ.setoads[oadIndex].len;dataIndex++)
+		{
+			sendBuf[sendLen++] =  dogetOBJ.setoads[oadIndex].data[dataIndex];
+		}
+		sendLen += create_OAD(0,&sendBuf[sendLen],dogetOBJ.setoads[oadIndex].oad_get);
+		sendBuf[sendLen++] = dogetOBJ.setoads[oadIndex].dealy;
 	}
+
 	sendBuf[sendLen++] = 0x00;//没有时间标签
 
 	FrameTail(sendBuf,sendLen,hcsi);
 	return (sendLen + 3);			//3: cs cs 16
 
 
+
+}
+INT16S composeProtocol698_SetActionRequest(INT8U* sendBuf,INT8U type,ACTION_SET_OBJ setOBJ)
+{
+	INT8U PIID = 0x02;
+	int sendLen = 0, hcsi = 0;
+	INT8U oadIndex = 0;
+	CSINFO csinfo={};
+
+	csinfo.dir = 0;		//服务器发出
+	csinfo.prm = 1; 	//服务器发出
+	csinfo.funcode = 3; //链路管理
+	csinfo.sa_type = 0 ;//单地址
+
+
+	INT8U reverseAddr[OCTET_STRING_LEN]= {0};
+	fprintf(stderr," \n\n composeProtocol698_GetRequest  meterAddr : %02x  %02x  %02x%02x%02x%02x%02x%02x%02x\n\n",
+			setOBJ.tsa.addr[0],setOBJ.tsa.addr[1],setOBJ.tsa.addr[2],setOBJ.tsa.addr[3],setOBJ.tsa.addr[4],
+			setOBJ.tsa.addr[5],setOBJ.tsa.addr[6],setOBJ.tsa.addr[7],setOBJ.tsa.addr[8]);
+	csinfo.sa_length = (setOBJ.tsa.addr[1]&0x0f) + 1;//sizeof(addr)-1;//服务器地址长度
+	///当广播地址时，地址类型=3：广播地址，增加下面的赋值
+	csinfo.sa_type = (setOBJ.tsa.addr[1] >> 6) & 0x03;		//服务器地址类型
+	reversebuff(&setOBJ.tsa.addr[2],csinfo.sa_length,reverseAddr);
+
+	fprintf(stderr," \n reverseAddr[%d] = ",csinfo.sa_length);
+	INT8U prtIndex=0;
+	for(prtIndex = 0;prtIndex < csinfo.sa_length;prtIndex++)
+	{
+		fprintf(stderr," %02x",reverseAddr[prtIndex]);
+	}
+
+	memcpy(csinfo.sa,reverseAddr,csinfo.sa_length);//服务器地址
+	csinfo.ca = 0x02;
+
+	fprintf(stderr,"sa_length = %d \n",csinfo.sa_length);
+	sendLen = FrameHead(&csinfo,sendBuf) ; //	2：hcs  hcs
+	hcsi = sendLen;
+	sendLen = sendLen + 2;
+
+	sendBuf[sendLen++] = type;
+	if(setOBJ.num > 1)
+	{
+		sendBuf[sendLen++] = SET_REQUEST_NORMAL_LIST;
+		sendBuf[sendLen++] = setOBJ.num;
+	}
+	else
+	{
+		sendBuf[sendLen++] = SET_REQUEST_NORMAL;
+	}
+
+	sendBuf[sendLen++] = PIID;
+//	OADtoBuff(setData.oad,&sendBuf[sendLen]);
+//	sendLen += 4;
+	for(oadIndex = 0;oadIndex < setOBJ.num;oadIndex++)
+	{
+		sendLen += create_OAD(0,&sendBuf[sendLen],setOBJ.setobjs[oadIndex].oad);
+		INT16U dataIndex = 0;
+		for(dataIndex = 0;dataIndex < setOBJ.setobjs[oadIndex].len;dataIndex++)
+		{
+			sendBuf[sendLen++] =  setOBJ.setobjs[oadIndex].data[dataIndex];
+		}
+	}
+
+	sendBuf[sendLen++] = 0x00;//没有时间标签
+
+	FrameTail(sendBuf,sendLen,hcsi);
+	return (sendLen + 3);			//3: cs cs 16
 }
 INT16S composeProtocol698_GetRequest(INT8U* sendBuf,CLASS_6015 obj6015,TSA meterAddr)
 {
@@ -1182,6 +1441,43 @@ INT16S composeProtocol698_GetRequest(INT8U* sendBuf,CLASS_6015 obj6015,TSA meter
 	FrameTail(sendBuf,sendLen,hcsi);
 	return (sendLen + 3);			//3: cs cs 16
 
+}
+INT16U composeProtocol698_GetRequestRecord(PROXY_GETLIST *getlist,INT8U *sendbuf)
+{
+	INT8U PIID = 0x02;
+	int sendLen = 0, hcsi = 0, datalen = 0, iindex=0;
+	CSINFO csinfo={};
+	INT8U *data = getlist->proxy_obj.buf;
+	INT8U reverseAddr[OCTET_STRING_LEN]= {0};
+	TSA tsa;
+
+	csinfo.dir = 0;		//服务器发出
+	csinfo.prm = 1; 	//服务器发出
+	csinfo.funcode = 3; //链路管理
+	csinfo.sa_type = 0 ;//单地址
+
+	iindex = 0;
+	datalen  = data[iindex];
+	fprintf(stderr,"\n\n\n $$$$$$$$$$$datalen = %d",datalen);
+	if (datalen>sizeof(TSA))
+		datalen = sizeof(TSA);
+	memcpy(&tsa,&data[iindex],datalen+1);
+	printTSA(tsa);
+	csinfo.sa_length = (tsa.addr[1]&0x0f) + 1;//sizeof(addr)-1;//服务器地址长度
+	fprintf(stderr,"\ncsinfo.sa_length = %d",csinfo.sa_length);
+	reversebuff(&tsa.addr[2],csinfo.sa_length,reverseAddr);
+	memcpy(csinfo.sa,reverseAddr,csinfo.sa_length);//服务器地址
+	sendLen = FrameHead(&csinfo,sendbuf) ; //	2：hcs  hcs
+	hcsi = sendLen;
+	sendLen = sendLen + 2;
+	sendbuf[sendLen++] = GET_REQUEST;
+	sendbuf[sendLen++] = GET_REQUEST_RECORD;
+	sendbuf[sendLen++] = PIID;
+	memcpy(&sendbuf[sendLen],&getlist->proxy_obj.buf[datalen+1],getlist->proxylen-datalen-1);
+	sendLen += getlist->proxylen-datalen-1;
+	sendbuf[sendLen++] = 0; //没有时间标签
+	FrameTail(sendbuf,sendLen,hcsi);
+	return (sendLen + 3);			//3: cs cs 16
 }
 INT16U getFECount(INT8U* recvBuf, const INT16U recvLen)//得到待解析报文中前导符FE的个数
 {
@@ -1265,6 +1561,53 @@ INT8U analyzeProtocol698(INT8U* Rcvbuf,INT8U* resultCount,INT16S recvLen,INT8U* 
 			}
 #endif
 		}
+		else if(apdu[0] == SET_RESPONSE)
+		{
+			getType = apdu[1];
+			if(getType == SET_REQUEST_NORMAL)
+			{
+				*resultCount = 1;
+				startIndex += 3;
+				*dataLen = *dataLen - (3+3);
+			}
+			if(getType == SET_REQUEST_NORMAL_LIST)
+			{
+				*resultCount = apdu[3];
+				startIndex += 4;
+				*dataLen = *dataLen - (4+3);
+			}
+			if(getType == SET_THENGET_REQUEST_NORMAL_LIST)
+			{
+				*resultCount = apdu[3];
+				startIndex += 4;
+				*dataLen = *dataLen - (4+3);
+			}
+			*apduDataStartIndex = startIndex;
+		}
+		else if(apdu[0] == ACTION_RESPONSE)
+		{
+			fprintf(stderr,"\n&&&&&&&&&&&apdu[0] = %d apdu[1] = %d",apdu[0],apdu[1]);
+			getType = apdu[1];
+			if(getType == ActionResponseNormal)
+			{
+				*resultCount = 1;
+				startIndex += 3;
+				*dataLen = *dataLen - (3+3);
+			}
+			if(getType == ActionResponseNormalList)
+			{
+				*resultCount = apdu[3];
+				startIndex += 4;
+				*dataLen = *dataLen - (4+3);
+			}
+			if(getType == ACTIONTHENGET_REQUEST_NORMAL_LIST)
+			{
+				*resultCount = apdu[3];
+				startIndex += 4;
+				*dataLen = *dataLen - (4+3);
+			}
+			*apduDataStartIndex = startIndex;
+		}
 		else
 		{
 			fprintf(stderr,"\nanalyzeProtocol698 校验错误");
@@ -1300,14 +1643,32 @@ int doReleaseConnect(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
 	return 1;
 }
 
+/*
+ * 获取TimeTag
+ * */
+void getTimeTag(INT8U *buf,TimeTag *tag)
+{
+	memset(tag,0,sizeof(TimeTag));
+	tag->flag = buf[0];
+	tag->sendTimeTag.year.data = (buf[1]<<8) | buf[2];
+	tag->sendTimeTag.month.data = buf[3];
+	tag->sendTimeTag.day.data = buf[4];
+	tag->sendTimeTag.hour.data = buf[5];
+	tag->sendTimeTag.min.data = buf[6];
+	tag->sendTimeTag.sec.data = buf[7];
+	tag->ti.units = buf[8];
+	tag->ti.interval = (buf[9]<<8) | buf[10];
+}
+
 /**********************************************************************
  * 1.	CONNECT.request 服务,本服务由客户机应用进程调用,用于向远方服务器的应用进程提出建立应用连接请求。
  * 						主站（客户机）请求集中器（客户机）建立应用连接
  */
-INT8U dealClientRequest(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
+INT8U dealClientRequest(INT8U *apdu,CSINFO *csinfo,TimeTag timetag,INT8U *sendbuf)
 {
-	INT16S SecurityRe =0;
-	INT8U apduType = apdu[0];//0x10  [16]
+	INT16S 	SecurityRe =0;
+	INT8U 	apduType = apdu[0];//0x10  [16]
+
 	fprintf(stderr,"\n-------- apduType = %d ",apduType);
 
 	if (apduType == SECURITY_REQUEST)//安全请求的数据类型
@@ -1315,7 +1676,7 @@ INT8U dealClientRequest(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
 		SecurityRe = doSecurityRequest(apdu,csinfo);
 		if (SecurityRe <= 0)
 		{
-			fprintf(stderr,"\n安全请求计算错误!!!");
+			fprintf(stderr,"\n安全请求计算错误!!! SecurityRe=%d \n",SecurityRe);
 			return 0;
 		}
 //		else
@@ -1327,7 +1688,12 @@ INT8U dealClientRequest(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
 //			fprintf(stderr,"\n");
 //		}
 		apduType = apdu[0];
+		if(SecurityRe > sizeof(TimeTag)) {
+			getTimeTag(&apdu[SecurityRe-11],&timetag);	//1:0x68,-2:cs cs(帧校验),-11:时间标签数据
+		}
 	}
+	//判断时间标签是否有效
+	isTimeTagEffect(timetag,&Response_timetag);
 	switch(apduType)
 	{
 		case CONNECT_REQUEST:
@@ -1353,6 +1719,7 @@ INT8U dealClientRequest(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
 	}
 	return(apduType);
 }
+
 void testframe(INT8U *apdu,int len)
 {
 	int hcsi=0;
@@ -1381,8 +1748,10 @@ void testframe(INT8U *apdu,int len)
 		fprintf(stderr,"%02x ",buf[k]);
 	fprintf(stderr,"\n----------------------------------------\n");
 }
+
 int ProcessData(CommBlock *com)
 {
+	TimeTag		timetag={};
 	CSINFO csinfo={};
 	int hcsok = 0 ,fcsok = 0;
 	INT8U *apdu= NULL;
@@ -1394,10 +1763,15 @@ int ProcessData(CommBlock *com)
 	memp = (ProgramInfo*)com->shmem;
 	pSendfun = com->p_send;
 	comfd = com->phy_connect_fd;
+	if (CheckSerAddr(Rcvbuf ,com->serveraddr)==0)
+		return 0;
 	hcsok = CheckHead( Rcvbuf ,&csinfo);
 	com->taskaddr = csinfo.ca;
 	broadcast = csinfo.sa_type;
 	fcsok = CheckTail( Rcvbuf ,csinfo.frame_length);
+	if(csinfo.frame_length > (sizeof(TimeTag)+2)) {
+		getTimeTag(&Rcvbuf[1+csinfo.frame_length-2-11],&timetag);	//1:0x68,-2:cs cs(帧校验),-11:时间标签数据
+	}
 	securetype = 0x00;
 	if ((hcsok==1) && (fcsok==1))
 	{
@@ -1409,7 +1783,7 @@ int ProcessData(CommBlock *com)
 		}else if (csinfo.dir==0 && csinfo.prm == 1)	/*客户机发起的请求			（主站对集中器发起的请求）*/
 		{
 			fprintf(stderr,"\n-------- 客户机发起请求 ");
-			return(dealClientRequest(apdu,&csinfo,SendBuf));
+			return(dealClientRequest(apdu,&csinfo,timetag,SendBuf));
 		}else if (csinfo.dir==1 && csinfo.prm == 0)	/*服务器发起的上报			（电表主动上报）*/
 		{
 			fprintf(stderr,"\n服务器发起的上报			（电表主动上报）");

@@ -68,44 +68,13 @@ static void ClientForGprsRead(struct aeEventLoop *eventLoop, int fd, void *clien
 
     if (revcount > 0) {
         gpofun("gpoREMOTE_RED", 1);
+        TSGet(&nst->final_frame);
         for (int j = 0; j < revcount; j++) {
             read(fd, &nst->RecBuf[nst->RHead], 1);
             nst->RHead = (nst->RHead + 1) % BUFLEN;
         }
         bufsyslog(nst->RecBuf, "客户端[GPRS]接收:", nst->RHead, nst->RTail, BUFLEN);
         gpofun("gpoREMOTE_RED", 0);
-
-        for (int k = 0; k < 50; k++) {
-            int len = 0;
-            for (int i = 0; i < 5; i++) {
-                len = StateProcess(nst, 10);
-                if (len > 0) {
-                    break;
-                }
-            }
-            if (len <= 0) {
-                break;
-            }
-
-            if (len > 0) {
-            	len = 0;
-                int apduType = ProcessData(nst);
-                fprintf(stderr, "apduType=%d\n", apduType);
-                ConformAutoTask(eventLoop, nst, apduType);
-                switch (apduType) {
-                    case LINK_RESPONSE:
-                        First_VerifiTime(nst->linkResponse, nst->shmem); //简单对时
-                        if (GetTimeOffsetFlag() == 1) {
-                            Getk_curr(nst->linkResponse, nst->shmem);
-                        }
-                        nst->linkstate = build_connection;
-                        nst->testcounter = 0;
-                        break;
-                    default:
-                        break;
-                }
-            }
-        }
     }
 }
 
@@ -116,7 +85,7 @@ static MASTER_STATION_INFO getNextGprsIpPort(CommBlock *commBlock) {
     if (ChangeFlag != ((ProgramInfo *) commBlock->shmem)->oi_changed.oi4500) {
         readCoverClass(0x4500, 0, (void *) &Class25, sizeof(CLASS25), para_vari_save);
         memcpy(&NetIps, &Class25.master.master, sizeof(NetIps));
-        asyslog(LOG_WARNING, "检测到通信参数变化！刷新主站参数！");
+        asyslog(LOG_WARNING, "检测到GPRS通信参数变化！刷新主站参数！");
         ChangeFlag = ((ProgramInfo *) commBlock->shmem)->oi_changed.oi4500;
         commBlock->Heartbeat = Class25.commconfig.heartBeat;
         readCoverClass(0xf101, 0, (void *) &ClientForGprsObject.f101, sizeof(CLASS_F101), para_vari_save);
@@ -195,6 +164,8 @@ static int RegularClientForGprs(struct aeEventLoop *ep, long long id, void *clie
                 gpofun("/dev/gpoONLINE_LED", 1);
                 SetOnlineType(1);
             }
+        }else{
+        	return 1000;
         }
     } else {
         if (Comm_task(nst) == -1) {
@@ -206,13 +177,35 @@ static int RegularClientForGprs(struct aeEventLoop *ep, long long id, void *clie
             SetOnlineType(0);
         }
 
+		int res = 0;
+		do {
+			res = StateProcess(nst, 5);
+			if (nst->deal_step >= 3) {
+				int apduType = ProcessData(nst);
+				ConformAutoTask(ep, nst, apduType);
+				switch (apduType) {
+				case LINK_RESPONSE:
+					First_VerifiTime(nst->linkResponse, nst->shmem); //简单对时
+					if (GetTimeOffsetFlag() == 1) {
+						Getk_curr(nst->linkResponse, nst->shmem);
+					}
+					nst->linkstate = build_connection;
+					nst->testcounter = 0;
+					break;
+				default:
+					break;
+				}
+			}
+		} while (res == 1);
+
+
         check_F101_changed_Gprs(nst);
         CalculateTransFlow(nst->shmem);
         //暂时忽略函数返回
         RegularAutoTask(ep, nst);
     }
 
-    return 1000;
+    return 100;
 }
 
 static int RegularMixForGprs(struct aeEventLoop *ep, long long id, void *clientData) {

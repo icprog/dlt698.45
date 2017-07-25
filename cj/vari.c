@@ -21,11 +21,20 @@ void print2203()
 {
 	Gongdian_tj gongdian_tj={};
 	int	  	len=0;
+	INT32U day_tj=0,month_tj=0;
 
 	memset(&gongdian_tj,0,sizeof(Gongdian_tj));
 	len = readVariData(0x2203,0,&gongdian_tj,sizeof(Gongdian_tj));	//TODO: 是否需要 1分钟保存一次
 	fprintf(stderr,"2203: len=%d 时间: %d-%d-%d %d:%d:%d\n",len,gongdian_tj.ts.Year,gongdian_tj.ts.Month,gongdian_tj.ts.Day,gongdian_tj.ts.Hour,gongdian_tj.ts.Minute,gongdian_tj.ts.Sec);
-	fprintf(stderr," 日供电时间=%d\n 月供电时间=%d\n",gongdian_tj.gongdian.day_tj,gongdian_tj.gongdian.month_tj);
+	if(gongdian_tj.gongdian.day_tj%60==0)
+		day_tj = gongdian_tj.gongdian.day_tj/60;
+	else
+		day_tj = gongdian_tj.gongdian.day_tj/60+1;
+	if(gongdian_tj.gongdian.month_tj%60==0)
+		month_tj = gongdian_tj.gongdian.month_tj/60;
+	else
+		month_tj = gongdian_tj.gongdian.month_tj/60+1;
+	fprintf(stderr," 日供电时间=%d（分）\n 月供电时间=%d（分）\n",day_tj,month_tj);
 }
 
 void print2204()

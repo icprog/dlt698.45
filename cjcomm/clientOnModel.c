@@ -32,6 +32,15 @@ static long long ClientOnModel_Task_Id;
 static MASTER_STATION_INFO NetIps[4];
 static pthread_mutex_t locker;
 static NetObject netObject;
+//月流量统计
+static int MonthTJ;
+
+void showTime()
+{
+	TS ts;
+	TSGet(&ts);
+	fprintf(stderr, "时间%d-%d\n", ts.Minute, ts.Sec);
+}
 
 CommBlock *getComBlockForModel() {
 	return &ClientForModelObject;
@@ -58,49 +67,52 @@ static int NetSend(int fd, INT8U *buf, INT16U len) {
 }
 
 static int NetRecv(INT8U *buf) {
-	pthread_mutex_lock(&locker);
-	int len = netObject.recv.len;
-	if (len < 1) {
-		pthread_mutex_unlock(&locker);
-		return 0;
-	}
-	netObject.recv.len = 0;
-	for (int i = 0; i < len; ++i) {
-		buf[i] = netObject.recv.buf[i];
-	}
-	pthread_mutex_unlock(&locker);
-	return len;
+    pthread_mutex_lock(&locker);
+    int len = netObject.recv.len;
+    if (len < 1) {
+        pthread_mutex_unlock(&locker);
+        return 0;
+    }
+    MonthTJ += len;
+    netObject.recv.len = 0;
+    for (int i = 0; i < len; ++i) {
+        buf[i] = netObject.recv.buf[i];
+    }
+    pthread_mutex_unlock(&locker);
+    return len;
 }
 
 static int getNext(INT8U *buf) {
-	if (netObject.head == netObject.tail) {
-		return -1;
-	}
-	pthread_mutex_lock(&locker);
-	int res = netObject.head;
-	int len = netObject.send[res].len;
-	for (int i = 0; i < netObject.send[res].len; ++i) {
-		buf[i] = netObject.send[res].buf[i];
-	}
-	netObject.head++;
-	netObject.head %= 16;
-	pthread_mutex_unlock(&locker);
-	return len;
+    if (netObject.head == netObject.tail) {
+        return -1;
+    }
+    pthread_mutex_lock(&locker);
+    int res = netObject.head;
+    int len = netObject.send[res].len;
+
+    for (int i = 0; i < netObject.send[res].len; ++i) {
+        buf[i] = netObject.send[res].buf[i];
+    }
+    netObject.head++;
+    netObject.head %= 16;
+    pthread_mutex_unlock(&locker);
+    return len;
 }
 
 static int putNext(INT8U *buf, INT16U len) {
-	pthread_mutex_lock(&locker);
-	if (netObject.recv.len + len > 2048) {
-		pthread_mutex_unlock(&locker);
-		return -1;
-	}
+    pthread_mutex_lock(&locker);
+    MonthTJ += len;
+    if (netObject.recv.len + len > 2048) {
+        pthread_mutex_unlock(&locker);
+        return -1;
+    }
 
-	for (int i = 0; i < len; ++i) {
-		netObject.recv.buf[netObject.recv.len + i] = buf[i];
-	}
-	netObject.recv.len += len;
-	pthread_mutex_unlock(&locker);
-	return len;
+    for (int i = 0; i < len; ++i) {
+        netObject.recv.buf[netObject.recv.len + i] = buf[i];
+    }
+    netObject.recv.len += len;
+    pthread_mutex_unlock(&locker);
+    return len;
 }
 
 static MASTER_STATION_INFO getNextGprsIpPort(CommBlock *commBlock) {
@@ -152,21 +164,23 @@ int SendCommandGetOK(int fd, int retry, const char *fmt, ...) {
 }
 
 void resetModel() {
-	asyslog(LOG_INFO, "重置模块状态...");
-	gpofun("/dev/gpoGPRS_POWER", 0);
-	sleep(8);
-	gpofun("/dev/gpoGPRS_POWER", 1);
-	gpofun("/dev/gpoGPRS_RST", 1);
-	gpofun("/dev/gpoGPRS_SWITCH", 1);
-	sleep(2);
-	gpofun("/dev/gpoGPRS_RST", 0);
-	sleep(1);
-	gpofun("/dev/gpoGPRS_RST", 1);
-	sleep(5);
-	gpofun("/dev/gpoGPRS_SWITCH", 0);
-	sleep(1);
-	gpofun("/dev/gpoGPRS_SWITCH", 1);
-	sleep(10);
+
+    asyslog(LOG_INFO, "重置模块状态...");
+
+//    gpofun("/dev/gpoGPRS_POWER", 0);
+    sleep(8);
+    gpofun("/dev/gpoGPRS_POWER", 1);
+    gpofun("/dev/gpoGPRS_RST", 1);
+    gpofun("/dev/gpoGPRS_SWITCH", 1);
+    sleep(5);
+    gpofun("/dev/gpoGPRS_SWITCH", 0);
+    sleep(1);
+    gpofun("/dev/gpoGPRS_SWITCH", 1);
+    sleep(1);
+    gpofun("/dev/gpoGPRS_RST", 0);
+    sleep(1);
+    gpofun("/dev/gpoGPRS_RST", 1);
+    sleep(10);
 }
 
 int getNetType(int fd) {
@@ -300,42 +314,47 @@ int checkModelStatus(char *buf, int len) {
 }
 
 int modelSendExactly(int fd, int retry, int len, int buf) {
-	int chl = 0;
-	int sum = 0;
-	int length = len;
 
-	char recbuf[2048];
-	char cmdBuf[2048];
+    int chl = 0;
+    int sum = 0;
+    int length = len;
 
-	for (int timeout = 0; timeout < retry; timeout++) {
-		memset(recbuf, 0x00, sizeof(recbuf));
-		memset(cmdBuf, 0x00, sizeof(cmdBuf));
+    char recbuf[2048];
+    char cmdBuf[2048];
 
-		sprintf(cmdBuf, "\rAT$MYNETWRITE=1,%d\r", length);
-		SendATCommand(cmdBuf, strlen(cmdBuf), fd);
+    bufsyslog(buf, "客户端[内部协议栈]发送:", len, 0, BUFLEN);
+    if(getZone("GW")==0) {
+    	PacketBufToFile("[GPRS]S:",(char *) buf, len, NULL);
+    }
+    for (int timeout = 0; timeout < retry; timeout++) {
+        memset(recbuf, 0x00, sizeof(recbuf));
+        memset(cmdBuf, 0x00, sizeof(cmdBuf));
 
-		delay(1000);
-		int recLen = RecieveFromComm(recbuf, sizeof(recbuf), fd);
-		checkModelStatus(recbuf, recLen);
+        sprintf(cmdBuf, "\rAT$MYNETWRITE=1,%d\r", length);
+        SendATCommand(cmdBuf, strlen(cmdBuf), fd);
 
-		if (sscanf(recbuf, "%*[^:]: %d,%d", &chl, &sum) == 2) {
-			write(fd, buf, sum);
-			for (int j = 0; j < 3; ++j) {
-				delay(1000);
-				memset(recbuf, 0, sizeof(recbuf));
-				int position = RecieveFromComm(recbuf, sizeof(recbuf), fd);
-				checkModelStatus(recbuf, position);
-				if (myStrnstr(recbuf, position) != 0) {
-					printf("~~~~~~~~~~~~~%d-%d-%d", length, sum, position);
-					length -= sum;
-					if (length == 0) {
-						return len;
-					}
-				}
-			}
-		}
-	}
-	return 0;
+        delay(800);
+        int recLen = RecieveFromComm(recbuf, sizeof(recbuf), fd);
+        checkModelStatus(recbuf, recLen);
+
+        if (sscanf(recbuf, "%*[^:]: %d,%d", &chl, &sum) == 2) {
+            write(fd, buf, sum);
+            for (int j = 0; j < 3; ++j) {
+                delay(800);
+                memset(recbuf, 0, sizeof(recbuf));
+                int position = RecieveFromComm(recbuf, sizeof(recbuf), fd);
+                checkModelStatus(recbuf, position);
+                if (myStrnstr(recbuf, position) != 0) {
+                    printf("~~~~~~~~~~~~~%d-%d-%d", length, sum, position);
+                    length -= sum;
+                    if (length == 0) {
+                        return len;
+                    }
+                }
+            }
+        }
+    }
+    return 0;
 }
 
 int readPositionGet(int length) {
@@ -352,39 +371,35 @@ int readPositionGet(int length) {
 }
 
 int modelReadExactly(int fd, int retry) {
-	int chl = 0;
-	int sum = 0;
+    int chl = 0;
+    int sum = 0;
 
-	char Mrecvbuf[2048];
-	for (int timeout = 0; timeout < retry; timeout++) {
-		memset(Mrecvbuf, 0, 2048);
-		SendATCommand("\rAT$MYNETREAD=1,1024\r",
-				strlen("\rAT$MYNETREAD=1,1024\r"), fd);
-		delay(1000);
-		int resLen = RecieveFromComm(Mrecvbuf, 2048, fd);
-		checkModelStatus(Mrecvbuf, resLen);
+    char Mrecvbuf[2048];
+    for (int timeout = 0; timeout < retry; timeout++) {
+        memset(Mrecvbuf, 0, 2048);
+        SendATCommand("\rAT$MYNETREAD=1,1024\r", strlen("\rAT$MYNETREAD=1,1024\r"), fd);
+        delay(800);
+        int resLen = RecieveFromComm(Mrecvbuf, 2048, fd);
+        checkModelStatus(Mrecvbuf, resLen);
 
-		char *netReadPos = strstr(Mrecvbuf, "MYNETREAD:");
-		if (netReadPos == NULL) {
-			printf("找不到MYNETREAD\n");
-			continue;
-		}
+        char *netReadPos = strstr(Mrecvbuf, "MYNETREAD:");
+        if (netReadPos == NULL) {
+            printf("找不到MYNETREAD\n");
+            continue;
+        }
 
-		if (sscanf(netReadPos, "%*[^:]: %d,%d", &chl, &sum) == 2) {
-			printf("报文通道：长度(%d-%d)\n", chl, sum);
-			if (sum == 0) {
-				break;
-			}
-			int pos = readPositionGet(sum);
-			printf("============recv %d, at %d has %d [bytes] (%c %c %c)\n",
-					resLen, 15 + pos, sum, netReadPos + 12 + pos,
-					netReadPos + 13 + pos, netReadPos + 14 + pos);
-			putNext(netReadPos + 15 + pos, sum);
-			break;
-		} else {
-			printf("没有解析到报文\n");
-		}
-	}
+        if (sscanf(netReadPos, "%*[^:]: %d,%d", &chl, &sum) == 2) {
+            printf("报文通道：长度(%d-%d)\n", chl, sum);
+            if (sum == 0) { break; }
+            int pos = readPositionGet(sum);
+            printf("============recv %d, at %d has %d [bytes] (%c %c %c)\n", resLen, 15 + pos, sum,
+                   netReadPos + 12 + pos, netReadPos + 13 + pos, netReadPos + 14 + pos);
+            putNext(netReadPos + 15 + pos, sum);
+            break;
+        } else {
+            printf("没有解析到报文\n");
+        }
+    }
 }
 
 int checkRecv(int fd, int retry) {
@@ -400,226 +415,193 @@ int checkRecv(int fd, int retry) {
 }
 
 void *ModelWorker(void *args) {
-	CLASS25 *class25 = (CLASS25 *) args;
-	int sMux0 = -1;
-	int com = 0; //I型\III型GPRS打开串口0,II型打开串口5
+    CLASS25 *class25 = (CLASS25 *) args;
+    static int poweroff_count = 0;
+    int sMux0 = -1;
+    int com = 0;    //I型\III型GPRS打开串口0,II型打开串口5
 
-	ProgramInfo *memp = ClientForModelObject.shmem;
-	if (memp->cfg_para.device == CCTT2)
-		com = 5;
+    ProgramInfo *memp = ClientForModelObject.shmem;
+    if (memp->cfg_para.device == CCTT2)
+        com = 5;
 
-	while (1) {
-		gpofun("/dev/gpoCSQ_GREEN", 0);
-		gpofun("/dev/gpoCSQ_RED", 0);
-		gpofun("/dev/gpoONLINE_LED", 0);
+    while (1) {
+        gpofun("/dev/gpoCSQ_GREEN", 0);
+        gpofun("/dev/gpoCSQ_RED", 0);
+        gpofun("/dev/gpoONLINE_LED", 0);
 
-		SetGprsStatus(0);
-		SetGprsCSQ(0);
-		SetWireLessType(0);
-		SetPPPDStatus(0);
+        SetGprsStatus(0);
+        SetGprsCSQ(0);
+        SetWireLessType(0);
+        SetPPPDStatus(0);
 
-		resetModel();
+        if(poweroff_count > 5){
+        	gpofun("/dev/gpoGPRS_POWER", 0);
+        	poweroff_count = 0;
+        	sleep(20);
+        }
+        resetModel();
 
-		if (GetOnlineType() != 0) {
-			goto wait;
-		}
+        if (GetOnlineType() != 0) { goto wait; }
 
-		if ((sMux0 = OpenCom(com, 115200, (unsigned char *) "none", 1, 8))
-				< 0) {
-			goto err;
-		}
-		if (SendCommandGetOK(sMux0, 5, "\rat\r") == 0) {
-			goto err;
-		}
-		SetGprsStatus(1);
+        if ((sMux0 = OpenCom(com, 115200, (unsigned char *) "none", 1, 8)) < 0) { goto err; }
+        if (SendCommandGetOK(sMux0, 5, "\rat\r") == 0) { poweroff_count ++; goto err; }
+        SetGprsStatus(1);
 
-		////////////////////获取信息////////////////////
-		for (int timeout = 0; timeout < 10; timeout++) {
-			char Mrecvbuf[128];
+        ////////////////////获取信息////////////////////
+        for (int timeout = 0; timeout < 10; timeout++) {
+            char Mrecvbuf[128];
 
-			SendATCommand("\rAT$MYGMR\r", 10, sMux0);
-			delay(1000);
-			memset(Mrecvbuf, 0, 128);
-			RecieveFromComm(Mrecvbuf, 128, sMux0);
+            SendATCommand("\rAT$MYGMR\r", 10, sMux0);
+            delay(1000);
+            memset(Mrecvbuf, 0, 128);
+            RecieveFromComm(Mrecvbuf, 128, sMux0);
 
-			char INFO[6][32];
-			if (sscanf(Mrecvbuf,
-					"%*[^\n]\n%[^\n]\n%[^\n]\n%[^\n]\n%[^\n]\n%[^\n]\n%[^\n]",
-					INFO[0], INFO[1], INFO[2], INFO[3], INFO[4], INFO[5])
-					== 6) {
-				break;
-			}
-		}
+            char INFO[6][32];
+            if (sscanf(Mrecvbuf, "%*[^\n]\n%[^\n]\n%[^\n]\n%[^\n]\n%[^\n]\n%[^\n]\n%[^\n]", INFO[0], INFO[1], INFO[2],
+                       INFO[3], INFO[4], INFO[5]) == 6) {
+                break;
+            }
+        }
 
-		for (int timeout = 0; timeout < 10; timeout++) {
-			char Mrecvbuf[128];
+        for (int timeout = 0; timeout < 10; timeout++) {
+            char Mrecvbuf[128];
 
-			SendATCommand("\rAT$MYCCID\r", 11, sMux0);
-			delay(1000);
-			memset(Mrecvbuf, 0, 128);
-			RecieveFromComm(Mrecvbuf, 128, sMux0);
-			char CCID[32];
-			memset(CCID, 0, 32);
-			if (sscanf(Mrecvbuf, "%*[^\"]\"%[0-9|A-Z|a-z]", CCID) == 1) {
-				asyslog(LOG_INFO, "CCID: %s\n", CCID);
-				memcpy(class25->ccid, CCID, sizeof(32));
-				break;
-			}
-		}
+            SendATCommand("\rAT$MYCCID\r", 11, sMux0);
+            delay(1000);
+            memset(Mrecvbuf, 0, 128);
+            RecieveFromComm(Mrecvbuf, 128, sMux0);
+            char CCID[32];
+            memset(CCID, 0, 32);
+            if (sscanf(Mrecvbuf, "%*[^\"]\"%[0-9|A-Z|a-z]", CCID) == 1) {
+                asyslog(LOG_INFO, "CCID: %s\n", CCID);
+                memcpy(class25->ccid, CCID, sizeof(32));
+                break;
+            }
+        }
 
-		for (int timeout = 0; timeout < 50; timeout++) {
-			char Mrecvbuf[128];
+        for (int timeout = 0; timeout < 50; timeout++) {
+            char Mrecvbuf[128];
 
-			SendATCommand("\rAT+CSQ\r", 8, sMux0);
-			delay(1000);
-			memset(Mrecvbuf, 0, 128);
-			RecieveFromComm(Mrecvbuf, 128, sMux0);
+            SendATCommand("\rAT+CSQ\r", 8, sMux0);
+            delay(1000);
+            memset(Mrecvbuf, 0, 128);
+            RecieveFromComm(Mrecvbuf, 128, sMux0);
 
-			int k, l;
-			if (sscanf(Mrecvbuf, "%*[^:]: %d,%d", &k, &l) == 2) {
-				asyslog(LOG_INFO, "GprsCSQ = %d,%d\n", k, l);
-				if (k != 99) {
-					class25->signalStrength = k;
-					SetGprsCSQ(k);
-					if (k > 20) {
-						gpofun("/dev/gpoCSQ_GREEN", 1);
-					} else if (k > 10) {
-						gpofun("/dev/gpoCSQ_GREEN", 1);
-						gpofun("/dev/gpoCSQ_RED", 1);
-					} else {
-						gpofun("/dev/gpoCSQ_RED", 1);
-					}
-					break;
-				}
-			}
-		}
+            int k, l;
+            if (sscanf(Mrecvbuf, "%*[^:]: %d,%d", &k, &l) == 2) {
+                asyslog(LOG_INFO, "GprsCSQ = %d,%d\n", k, l);
+                if (k != 99) {
+                    class25->signalStrength = k;
+                    SetGprsCSQ(k);
+                    if (k > 20) {
+                        gpofun("/dev/gpoCSQ_GREEN", 1);
+                    } else if (k > 10) {
+                        gpofun("/dev/gpoCSQ_GREEN", 1);
+                        gpofun("/dev/gpoCSQ_RED", 1);
+                    } else {
+                        gpofun("/dev/gpoCSQ_RED", 1);
+                    }
+                    break;
+                }
+            }
+        }
 
-		CLASS25 class25_temp;
-		readCoverClass(0x4500, 0, &class25_temp, sizeof(CLASS25),
-				para_vari_save);
-		fprintf(stderr, "刷新4500数据（1）");
-		memcpy(class25_temp.ccid, class25->ccid, sizeof(32));
-		class25_temp.signalStrength = class25->signalStrength;
-		SetGprsStatus(2);
-		saveCoverClass(0x4500, 0, &class25_temp, sizeof(CLASS25),
-				para_vari_save);
-		////////////////////获取信息////////////////////
+        CLASS25 class25_temp;
+        readCoverClass(0x4500, 0, &class25_temp, sizeof(CLASS25), para_vari_save);
+        fprintf(stderr, "刷新4500数据（1）");
+        memcpy(class25_temp.ccid, class25->ccid, sizeof(32));
+        class25_temp.signalStrength = class25->signalStrength;
+        SetGprsStatus(2);
+        syslog(LOG_NOTICE, "\nonModel.c 主IP %d.%d.%d.%d:%d\n", class25_temp.master.master[0].ip[1], class25_temp.master.master[0].ip[2],
+        		class25_temp.master.master[0].ip[3],class25_temp.master.master[0].ip[4], class25_temp.master.master[0].port);
+        saveCoverClass(0x4500, 0, &class25_temp, sizeof(CLASS25), para_vari_save);
+        ////////////////////获取信息////////////////////
 
-		if (GetOnlineType() != 0) {
-			goto wait;
-		}
-		if (regIntoNet(sMux0) == 0) {
-			goto err;
-		}
 
-		SetGprsStatus(3);
+        if (GetOnlineType() != 0) { goto wait; }
+        if (regIntoNet(sMux0) == 0) { goto err; }
 
-		MASTER_STATION_INFO m = getNextGprsIpPort(&ClientForModelObject);
-		switch (getCIMIType(sMux0)) {
-		case 1:
-			SendCommandGetOK(sMux0, 5, "\rAT$MYNETACT=1,0\r");
-			if (SendCommandGetOK(sMux0, 5, "\rAT$MYNETCON=1,\"APN\",\"%s\"\r",
-					&class25->commconfig.apn[1]) == 0) {
-				goto err;
-			}
-			if (SendCommandGetOK(sMux0, 5,
-					"\rAT$MYNETCON=1,\"USERPWD\",\"%s,%s\"\r",
-					&class25->commconfig.userName[1],
-					&class25->commconfig.passWord[1]) == 0) {
-				goto err;
-			}
-			if (SendCommandGetOK(sMux0, 5, "\rAT$MYNETURC=1\r") == 0) {
-				goto err;
-			}
+        SetGprsStatus(3);
 
-			if (SendCommandGetOK(sMux0, 5, "\rAT$MYNETSRV=1,1,0,0,\"%s:%d\"\r",
-					m.ip, m.port) == 0) {
-				goto err;
-			}
-			if (SendCommandGetOK(sMux0, 8, "\rAT$MYNETACT=1,1\r") == 0) {
-				goto err;
-			}
-			if (SendCommandGetOK(sMux0, 20, "\rAT$MYNETOPEN=1\r") == 0) {
-				goto err;
-			}
-			SetOnlineType(3);
-			SetGprsStatus(4);
-			SetWireLessType(1);
-			SetPPPDStatus(1);
-			getNetworkType(sMux0);
-			gpofun("/dev/gpoONLINE_LED", 1);
-			break;
-		case 3:
-			SendCommandGetOK(sMux0, 5, "\rAT$MYNETACT=1,0\r");
-			if (SendCommandGetOK(sMux0, 5, "\rAT$MYNETCON=1,\"APN\",\"%s\"\r",
-					&class25->commconfig.apn[1]) == 0) {
-				goto err;
-			}
-			if (SendCommandGetOK(sMux0, 5,
-					"\rAT$MYNETCON=1,\"USERPWD\",\"%s,%s\"\r",
-					&class25->commconfig.userName[1],
-					&class25->commconfig.passWord[1]) == 0) {
-				goto err;
-			}
-			if (SendCommandGetOK(sMux0, 5, "\rAT$MYNETURC=1\r") == 0) {
-				goto err;
-			}
+        MASTER_STATION_INFO m = getNextGprsIpPort(&ClientForModelObject);
+        switch (getCIMIType(sMux0)) {
+            case 1:
+                SendCommandGetOK(sMux0, 5, "\rAT$MYNETACT=1,0\r");
+                if (SendCommandGetOK(sMux0, 5, "\rAT$MYNETCON=1,\"APN\",\"%s\"\r",
+                                     &class25->commconfig.apn[1]) == 0) { goto err; }
+                if (SendCommandGetOK(sMux0, 5, "\rAT$MYNETCON=1,\"USERPWD\",\"%s,%s\"\r",
+                                     &class25->commconfig.userName[1],
+                                     &class25->commconfig.passWord[1]) == 0) { goto err; }
+                if (SendCommandGetOK(sMux0, 5, "\rAT$MYNETURC=1\r") == 0) { goto err; }
 
-			if (SendCommandGetOK(sMux0, 5, "\rAT$MYNETSRV=1,1,0,0,\"%s:%d\"\r",
-					m.ip, m.port) == 0) {
-				goto err;
-			}
-			if (SendCommandGetOK(sMux0, 8, "\rAT$MYNETACT=1,1\r") == 0) {
-				goto err;
-			}
-			if (SendCommandGetOK(sMux0, 20, "\rAT$MYNETOPEN=1\r") == 0) {
-				goto err;
-			}
-			SetOnlineType(3);
-			SetGprsStatus(4);
-			SetWireLessType(1);
-			SetPPPDStatus(1);
-			getNetworkType(sMux0);
-			gpofun("/dev/gpoONLINE_LED", 1);
-			break;
-		default:
-			goto err;
-		}
+                if (SendCommandGetOK(sMux0, 5, "\rAT$MYNETSRV=1,1,0,0,\"%s:%d\"\r", m.ip, m.port) == 0) { goto err; }
+                if (SendCommandGetOK(sMux0, 8, "\rAT$MYNETACT=1,1\r") == 0) { goto err; }
+                if (SendCommandGetOK(sMux0, 20, "\rAT$MYNETOPEN=1\r") == 0) { goto err; }
+                SetOnlineType(3);
+                SetGprsStatus(4);
+                SetWireLessType(1);
+                SetPPPDStatus(1);
+                getNetworkType(sMux0);
+                gpofun("/dev/gpoONLINE_LED", 1);
+                break;
+            case 3:
+                SendCommandGetOK(sMux0, 5, "\rAT$MYNETACT=1,0\r");
+                if (SendCommandGetOK(sMux0, 5, "\rAT$MYNETCON=1,\"APN\",\"%s\"\r",
+                                     &class25->commconfig.apn[1]) == 0) { goto err; }
+                if (SendCommandGetOK(sMux0, 5, "\rAT$MYNETCON=1,\"USERPWD\",\"%s,%s\"\r",
+                                     &class25->commconfig.userName[1],
+                                     &class25->commconfig.passWord[1]) == 0) { goto err; }
+                if (SendCommandGetOK(sMux0, 5, "\rAT$MYNETURC=1\r") == 0) { goto err; }
 
-		wait: while (1) {
-			sleep(2);
-			if (GetOnlineType() == 0) {
-				goto err;
-			}
+                if (SendCommandGetOK(sMux0, 5, "\rAT$MYNETSRV=1,1,0,0,\"%s:%d\"\r", m.ip, m.port) == 0) { goto err; }
+                if (SendCommandGetOK(sMux0, 8, "\rAT$MYNETACT=1,1\r") == 0) { goto err; }
+                if (SendCommandGetOK(sMux0, 20, "\rAT$MYNETOPEN=1\r") == 0) { goto err; }
+                SetOnlineType(3);
+                SetGprsStatus(4);
+                SetWireLessType(1);
+                SetPPPDStatus(1);
+                getNetworkType(sMux0);
+                gpofun("/dev/gpoONLINE_LED", 1);
+                break;
+            default:
+                goto err;
+        }
 
-			INT8U sendBuf[2048];
-			memset(sendBuf, 0x00, sizeof(sendBuf));
-			int readySendLen = getNext(sendBuf);
+        wait:
+        while (1) {
+            sleep(1);
+            if (GetOnlineType() == 0) { goto err; }
 
-			if (readySendLen != -1) {
-				modelSendExactly(sMux0, 5, readySendLen, sendBuf);
-			}
+            INT8U sendBuf[2048];
+            memset(sendBuf, 0x00, sizeof(sendBuf));
+            int readySendLen = getNext(sendBuf);
 
-			modelReadExactly(sMux0, 3);
+            if (readySendLen != -1) {
+//            	showTime();
+                modelSendExactly(sMux0, 5, readySendLen, sendBuf);
+            }
 
-			switch (checkModelStatus(NULL, -1)) {
-			case 1:
-				sleep(1);
-				modelReadExactly(sMux0, 3);
-				break;
-			case 99:
-				asyslog(LOG_ERR, "内部协议栈连接出错!");
-				goto err;
-				break;
+            modelReadExactly(sMux0, 3);
 
-			}
-		}
+            switch (checkModelStatus(NULL, -1)) {
+                case 1:
+                    sleep(1);
+                    modelReadExactly(sMux0, 3);
+                    break;
+                case 99:
+                    asyslog(LOG_ERR, "内部协议栈连接出错!");
+                    goto err;
+                    break;
 
-		err: sleep(1);
-		close(sMux0);
-		SetOnlineType(0);
-		continue;
-	}
+            }
+        }
+
+        err:
+        sleep(1);
+        close(sMux0);
+        SetOnlineType(0);
+        continue;
+    }
 }
 
 void CreateOnModel(void *clientdata) {
@@ -632,70 +614,132 @@ void CreateOnModel(void *clientdata) {
 	pthread_create(&temp_key, &attr, ModelWorker, clientdata);
 }
 
-static int RegularClientOnModel(struct aeEventLoop *ep, long long id,
-		void *clientData) {
-	CommBlock *nst = (CommBlock *) clientData;
+void CalculateTransFlowModel(ProgramInfo *prginfo_event) {
+    //统计临时变量
+    static int rtx_bytes = 0;
+    static int rx_bytes = 0;
+    static int tx_bytes = 0;
+    static int localMin = 0;
+    static int localDay = 0;
+    static int localMonth = 0;
+    static int localSec = 0;
 
-	if (GetOnlineType() != 3) {
-		refreshComPara(nst);
-		return 1000;
-	}
+    static int first_flag = 1;
 
-	INT8U recvBuf[2048];
-	memset(recvBuf, 0x00, sizeof(recvBuf));
+    TS ts = {};
+    TSGet(&ts);
 
-	int revcount = NetRecv(recvBuf);
-	if (revcount > 0) {
-		for (int j = 0; j < revcount; j++) {
-			nst->RecBuf[nst->RHead] = recvBuf[j];
-			nst->RHead = (nst->RHead + 1) % BUFLEN;
-		}
+    if (first_flag == 1) {
+        first_flag = 0;
+        memset(&prginfo_event->dev_info.realTimeC2200, 0x00, sizeof(Flow_tj));
+        readVariData(0x2200, 0, &prginfo_event->dev_info.realTimeC2200, sizeof(Flow_tj));
+        asyslog(LOG_INFO, "初始化月流量统计(%d)", prginfo_event->dev_info.realTimeC2200.flow.month_tj);
 
-		bufsyslog(nst->RecBuf, "客户端[GPRS]接收:", nst->RHead, nst->RTail, BUFLEN);
+        localMin = ts.Minute;
+        localDay = ts.Day;
+        localMonth = ts.Month;
+        localSec = ts.Sec;
+    }
 
-		for (int k = 0; k < 5; k++) {
-			int len = 0;
-			for (int i = 0; i < 5; i++) {
-				len = StateProcess(nst, 10);
-				if (len > 0) {
-					break;
+
+    if (localSec != ts.Sec) {
+        localSec = ts.Sec;
+    } else {
+        return;
+    }
+
+    pthread_mutex_lock(&locker);
+    prginfo_event->dev_info.realTimeC2200.flow.day_tj += MonthTJ;
+    prginfo_event->dev_info.realTimeC2200.flow.month_tj += MonthTJ;
+    MonthTJ = 0;
+    pthread_mutex_unlock(&locker);
+
+    Event_3110(prginfo_event->dev_info.realTimeC2200.flow.month_tj, sizeof(prginfo_event->dev_info.realTimeC2200.flow),
+               prginfo_event);
+
+    if (localMin != ts.Minute && ts.Minute % 2 == 0) {
+        localMin = ts.Minute;
+//        asyslog(LOG_INFO, "2分钟月流量统计，未统计流量%d", (rx_bytes + tx_bytes) - rtx_bytes);//一直是0,上面已经赋值rtx_bytes
+        //跨日月流量分别清零
+        if (localDay != ts.Day) {
+            asyslog(LOG_INFO, "检测到夸日，流量统计清零，清零前数据(%d)", prginfo_event->dev_info.realTimeC2200.flow.day_tj);
+            Save_TJ_Freeze(0x2200,0x0200,0,ts,sizeof(Flow_tj),(INT8U *)&prginfo_event->dev_info.realTimeC2200);
+//            prginfo_event->dev_info.realTimeC2200.flow.day_tj = 0;
+            localDay = ts.Day;
+        }
+        if (localMonth != ts.Month) {
+            asyslog(LOG_INFO, "检测到夸月，流量统计清零，清零前数据(%d)", prginfo_event->dev_info.realTimeC2200.flow.month_tj);
+            Save_TJ_Freeze(0x2200,0x0200,1,ts,sizeof(Flow_tj),(INT8U *)&prginfo_event->dev_info.realTimeC2200);
+            prginfo_event->dev_info.realTimeC2200.flow.month_tj = 0;
+            localMonth = ts.Month;
+        }
+        saveVariData(0x2200, 0, &prginfo_event->dev_info.realTimeC2200, sizeof(Flow_tj));
+    }
+
+    return;
+}
+
+static int RegularClientOnModel(struct aeEventLoop *ep, long long id, void *clientData) {
+    CommBlock *nst = (CommBlock *) clientData;
+    ProgramInfo* prginfo_event = (ProgramInfo*)nst->shmem;
+
+    if (GetOnlineType() != 3) {
+        refreshComPara(nst);
+        return 1000;
+    }
+
+
+    INT8U recvBuf[2048];
+    memset(recvBuf, 0x00, sizeof(recvBuf));
+//    showTime();
+    int revcount = NetRecv(recvBuf);
+    if (revcount > 0) {
+    	TSGet(&nst->final_frame);
+        for (int j = 0; j < revcount; j++) {
+            nst->RecBuf[nst->RHead] = recvBuf[j];
+            nst->RHead = (nst->RHead + 1) % BUFLEN;
+        }
+
+        bufsyslog(nst->RecBuf, "客户端[GPRS]接收:", nst->RHead, nst->RTail, BUFLEN);
+	    if(getZone("GW")==0) {
+	    	int buflen=0;
+	    	buflen = (nst->RHead-nst->RTail+BUFLEN)%BUFLEN;
+	    	PacketBufToFile("[GPRS]R:",(char *)&nst->RecBuf[nst->RTail], buflen, NULL);
+	    }
+    }
+
+    if (Comm_task(nst) == -1) {
+        asyslog(LOG_WARNING, "内部协议栈[GPRS]链接心跳超时，关闭端口");
+        SetOnlineType(0);
+    }
+
+	int res = 0;
+	do {
+		res = StateProcess(nst, 5);
+		if (nst->deal_step >= 3) {
+			int apduType = ProcessData(nst);
+			ConformAutoTask(ep, nst, apduType);
+			switch (apduType) {
+			case LINK_RESPONSE:
+				First_VerifiTime(nst->linkResponse, nst->shmem); //简单对时
+				if (GetTimeOffsetFlag() == 1) {
+					Getk_curr(nst->linkResponse, nst->shmem);
 				}
-			}
-			if (len <= 0) {
+				nst->linkstate = build_connection;
+				nst->testcounter = 0;
+				break;
+			default:
 				break;
 			}
-
-			if (len > 0) {
-				int apduType = ProcessData(nst);
-				fprintf(stderr, "apduType=%d\n", apduType);
-				ConformAutoTask(ep, nst, apduType);
-				switch (apduType) {
-				case LINK_RESPONSE:
-					First_VerifiTime(nst->linkResponse, nst->shmem); //简单对时
-					if (GetTimeOffsetFlag() == 1) {
-						Getk_curr(nst->linkResponse, nst->shmem);
-					}
-					nst->linkstate = build_connection;
-					nst->testcounter = 0;
-					break;
-				default:
-					break;
-				}
-			}
 		}
-	}
+	} while (res == 1);
 
-	if (Comm_task(nst) == -1) {
-		asyslog(LOG_WARNING, "内部协议栈[GPRS]链接心跳超时，关闭端口");
-		SetOnlineType(0);
-	}
+    check_F101_changed_Gprs(nst);
+    CalculateTransFlowModel(nst->shmem);
+    //暂时忽略函数返回
+    RegularAutoTask(ep, nst);
 
-	check_F101_changed_Gprs(nst);
-	CalculateTransFlow(nst->shmem);
-	//暂时忽略函数返回
-	RegularAutoTask(ep, nst);
-
-	return 1000;
+    return 100;
 }
 
 /*
@@ -736,12 +780,11 @@ static void ClientOnModelInit(void) {
  * 供外部使用的初始化函数，并开启维护循环
  */
 int StartClientOnModel(struct aeEventLoop *ep, long long id, void *clientData) {
-	ClientOnModelInit();
-	CreateOnModel(&Class25);
-	ClientOnModel_Task_Id = aeCreateTimeEvent(ep, 1000, RegularClientOnModel,
-			&ClientForModelObject, NULL);
-	asyslog(LOG_INFO, "内部协议栈[GPRS]时间事件注册完成(%lld)", ClientOnModel_Task_Id);
-
+    ClientOnModelInit();
+    CreateOnModel(&Class25);
+    ClientOnModel_Task_Id = aeCreateTimeEvent(ep, 1000, RegularClientOnModel, &ClientForModelObject, NULL);
+    asyslog(LOG_INFO, "内部协议栈[GPRS]时间事件注册完成(%lld)", ClientOnModel_Task_Id);
+    MonthTJ = 0;
 	return 1;
 }
 

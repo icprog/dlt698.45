@@ -22,7 +22,7 @@ extern INT8U Get_Event(OAD oad,INT8U eventno,INT8U** Getbuf,int *Getlen,ProgramI
 INT8S (*pSendfun_report)(int fd,INT8U* sndbuf,INT16U sndlen);
 
 
-INT8U Report_Event(CommBlock *com,INT8U *oiarr,INT8U report_type,INT8U *com_flag){
+INT8U Report_Event(CommBlock *com,INT8U *oiarr,INT8U report_type){
 
 	if(oiarr == NULL)
 		return 0;
@@ -128,12 +128,6 @@ INT8U Report_Event(CommBlock *com,INT8U *oiarr,INT8U report_type,INT8U *com_flag
 	FrameTail(sendbuf_report,index,hcsi);
 	if(pSendfun_report!=NULL)
 		pSendfun_report(com->phy_connect_fd,sendbuf_report,index+3);
-
-    if(getZone("ShanDong")==0 && oi == 0x3106){
-    	if(data[16]==s_enum && data[17]==0){
-    		*com_flag = 0;
-    	}
-    }
 	if (data!=NULL)
 		free(data);
 

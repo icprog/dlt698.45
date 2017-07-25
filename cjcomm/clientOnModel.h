@@ -23,7 +23,7 @@
 #include "../include/Shmem.h"
 
 typedef struct {
-    INT8U buf[2048];
+    INT8U buf[4096];
     INT16U len;
 } Block;
 
@@ -33,3 +33,5 @@ typedef struct {
     INT16U head;
     INT16U tail;
 } NetObject;
+
+

@@ -56,6 +56,7 @@ typedef struct {
     INT8U follow_report;              //是否允许跟随上报
     INT8U active_report;              //是否允许主动上报
     INT8U talk_master;                //是否允许与主站通话
+    OAD oads[10];                     //上报通道
 } CLASS19;                            //设备管理接口类
 
 typedef struct {
@@ -118,6 +119,7 @@ typedef struct {
     INT8U ccid[VISIBLE_STRING_LEN];        // SIM卡CCID
     INT8U imsi[VISIBLE_STRING_LEN];        // SIM卡IMSI
     INT16U signalStrength;                 //信号强度
+    INT8U simkard[VISIBLE_STRING_LEN];      // SIM卡号码
     INT8U pppip[OCTET_STRING_LEN];         //拨号IP
 } CLASS25;                                 // 4500、4501公网通信模块1，2
 
@@ -200,6 +202,10 @@ typedef struct {
     INT32U heigh;
 } CLASS_4004;
 
+typedef struct{
+	INT8U num; //组地址数量
+	INT8U addr[20][17];//最多20个 每个最大长度16个字节，第一个字节为长度
+} CLASS_4005;
 typedef struct {
     INT8U clocksource;
     INT8U state;
@@ -237,6 +243,18 @@ typedef struct {
     char assetcode[40]; // 0：代表有效长度
 } CLASS_4103;           //资产管理编码
 
+typedef struct{
+	INT8U flag;//级联标志            bool
+	OAD oad;//级联通信端口号      OAD
+	INT16U total_timeout;//总等待超时（10ms）  long-unsigned
+	INT16U byte_timeout;//字节超时（10ms）    long-unsigned
+	INT8U resendnum;//重发次数            unsigned
+	INT8U cycle;//巡测周期（min）     unsigned
+	INT8U portnum;//级联（被）端口数    unsigned
+	INT8U tsanum;//
+	INT8U tsa[20][17];//级联（被）终端地址  array TSA
+}CLASS_4202;
+
 typedef struct {
     INT8U startime[3];  //广播校时启动时间 time类型 octet-string(SIZE(3))
     INT8U enable;       //终端广播校时是否启用
@@ -244,6 +262,38 @@ typedef struct {
     INT8U startime1[3]; //终端单地址广播校时启动时间
     INT8U enable1;      //终端单地址广播校时是否启用
 } CLASS_4204;           //终端广播校时
+
+typedef struct{
+	INT8U id;
+	INT8U visit_authority;
+}ONE_METHOD;
+typedef struct{
+	INT8U pro_num;
+	ONE_METHOD property[50];//属性访问权限
+	INT8U met_num;
+	ONE_METHOD method[50];  //方法访问权限
+}AUTHORITY;
+typedef struct{
+	OI_698 OI;
+   AUTHORITY one_authority;
+}AUTHORITY_ARR;
+typedef struct{
+	INT16U xieyi_banben;
+	INT16U max_rev_num;
+	INT16U max_send_num;
+	INT16U al_num;
+	INT8U xieyi[8];
+	INT8U power[16];
+	INT32U static_outtime;
+}USE_LAN_INFO;
+typedef struct{
+	INT8U login_name[OCTET_STRING_LEN];//属性1 逻辑名
+	INT8U num; //对象数量
+	AUTHORITY_ARR authority[50];//属性2
+	USE_LAN_INFO use_lan_info;//属性3
+   INT8U custom;//当前客户机地址
+   INT8U renzheng;//当前认证机制
+}CLASS_4400;
 
 /********************************************************
  *				A.6　冻结类对象
@@ -499,7 +549,7 @@ typedef struct {
     char devdesc[VISIBLE_STRING_LEN]; //设备描述
     COMDCB devpara;                   //设备参数
     INT8U devfunc;                    //端口功能
-} CLASS_f201;                         // RS485维护口
+} CLASS_f201;                         //RS232\ RS485维护口
 
 typedef struct {
     CLASS22 class22;                  //接口类IC
@@ -531,6 +581,7 @@ typedef struct {
 } RESULT_RECORD;
 
 typedef struct {
+	INT8U	dar;		//数据状态值
     TSA tsa;           //目标地址
     INT16U onetimeout; //一个服务器的超时时间
     INT16U num;        // oad的个数
@@ -538,14 +589,62 @@ typedef struct {
 } GETOBJS;
 
 typedef struct {
-    OAD oad;           //数据转发OAD
+	INT8U	dar;		//数据状态值
+	OAD oad;           //数据转发OAD
     COMDCB comdcb;       //端口通信控制块
     INT16U revtimeout;    // 接收等待报文超时时间（秒）
     INT16U bytetimeout;    // 接收等待字节超时时间（毫秒）
     INT8U cmdlen;            //透明转发命令 长度
     INT8U cmdbuf[255];    //透明转发内容
 } TRANSCMD;
-
+typedef struct{
+	INT8U type;
+	INT8U len;
+	INT8U buf[255];
+}RSDBUF;
+typedef struct {
+    TSA tsa;          	 	//目标地址
+    OAD oad;
+    RSDBUF selectbuf;       //选择方法实例
+    RCSD rcsd;
+	INT8U	dar;			//数据状态值,位置放在最后，消息报文直接送联合体，防止读取错误
+}GETRECORD;
+typedef struct{
+	OAD   oad_set;
+	INT8U datatype;
+	INT8U len;
+	INT8U data[50];
+	OAD   oad_get;
+	INT16U dealy;
+}SETATTRIB ;
+typedef struct{
+	OAD oad;
+	INT8U datatype;
+	INT8U len;
+	INT8U data[50];
+}SETOBJ;
+typedef struct{
+	INT8U	dar;		//数据状态值
+	TSA tsa;
+	INT16U num;
+	INT16U timeout;
+	SETATTRIB setoads[5];
+}DO_Then_GET;
+typedef struct{
+	INT8U	dar;		//数据状态值
+	TSA tsa;
+	INT16U num;
+	INT16U timeout;
+	SETOBJ setobjs[5];
+}ACTION_SET_OBJ;
+typedef union {
+	INT8U buf[1024];
+	GETOBJS objs[10];  				//代理请求列表		ProxyGetRequestList
+    GETRECORD record;				//代理请求记录		ProxyGetRequestRecord
+    TRANSCMD transcmd;   		 	//代理操作透明转发	ProxyTransCommandRequest
+    DO_Then_GET doTsaThenGet[5];	//TSA[n]	ProxySetThenGetRequestList	ProxyActionThenGetRequestList
+    ACTION_SET_OBJ doTsaList[5];	//TSA[n]	Proxy  Action\Set- tList
+}PROXYOBJ;
 typedef struct {
     INT8U status;      //代理传输状态		0 表示就绪     1 已经表示返回数据  2 已经响应主站   3 超时
     long int position; //记录文件中的位置
@@ -555,8 +654,8 @@ typedef struct {
     INT8U piid;        //本次代理请求PIID
     INT16U timeout;    //代理超时时间
     INT16U num;        //TSA个数
-    GETOBJS objs[10];  //代理请求列表
-    TRANSCMD transcmd;    //代理操作透明转发
+    INT16U	proxylen;	//代理接收长度
+    PROXYOBJ proxy_obj;//代理内容
     INT8U data[512];   //请求结果
     INT16U datalen;    //数据长度
 } PROXY_GETLIST;
@@ -809,6 +908,7 @@ typedef struct {
     INT8U SendBuf[BUFLEN];      //发送数据
     INT8U DealBuf[FRAMELEN];    //保存接口函数处理长度
     INT8U RecBuf[BUFLEN];       //接收数
+    TS final_frame;				//最后一次收到报文的时间
 } CommBlock;
 ////////////////////////////////////////////////////////////////////
 typedef struct
@@ -816,7 +916,7 @@ typedef struct
 	int sucessflg;		//0:没抄读	n:抄读n次
 	OAD oad1;			//非关联 oad1.OI=0
 	OAD oad2;			//数据项
-	INT8U item07[4];	//07规约
+	INT8U item07[4];	//07规约  15753578781
 	DateTimeBCD savetime;//存储时标
 }DATA_ITEM;
 typedef struct
@@ -838,8 +938,9 @@ typedef struct
 	time_t endTime;						//结束时间
 	DateTimeBCD begin;
 	DateTimeBCD end;
-	TI ti;		  //任务执行频率
+	TI ti;		  						//任务执行频率
 	INT8U leve;							//优先级别
+	INT8U tryAgain;						//需要补抄
 	CJ_FANGAN fangan;					//采集方案
 }TASK_UNIT;
 

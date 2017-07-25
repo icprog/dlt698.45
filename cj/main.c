@@ -186,7 +186,22 @@ static INT8U checkbuf[]={0x68,0x1e,0x00,0x43,0x05,0x05,0x00,0x00,0x00,0x00,0x00,
 static INT8U getversion[]={0x68,0x17,0x00,0x43,0x05,0x01,0x00,0x00,0x00,0x00,0x00,0x10,0x26,0xf6,0x05,0x01,0x00,
 						0x43,0x00,0x03,0x00,0x00,0x46,0x58,0x16};
 
+void set_4400()
+{
+  CLASS_4400 class={};
+  class.num=1;
+  class.authority[0].OI=0x4000;
+  class.authority[0].one_authority.met_num=1;
+  class.authority[0].one_authority.method[0].id=1;
+  class.authority[0].one_authority.method[0].visit_authority=1;
+  class.authority[0].one_authority.pro_num=1;
+  class.authority[0].one_authority.property[0].id=1;
+  class.authority[0].one_authority.property[0].visit_authority=1;
+  saveCoverClass(0x4400,0,&class,sizeof(CLASS_4400),para_vari_save);
+}
 int main(int argc, char *argv[]) {
+	// set_4400();
+	 //return 0;
     if (argc < 2) {
         prthelp();
         return EXIT_SUCCESS;
@@ -219,17 +234,27 @@ int main(int argc, char *argv[]) {
     	if(argc==3) {
     		port = atoi(argv[2]);
     	}
+
     	fprintf(stderr,"port=%d\n",port);
-		comfd1 = OpenCom(port, 9600, (INT8U *) "even", 1, 8);
-		write(comfd1, getversion, sizeof(getversion));
-		usleep(500 * 1000);
-		ret = read(comfd1, buf, 256);
-		for(i=0;i<10;i++) {
-			sleep(1);
-			fprintf(stderr,"R[%d]=",ret);
-			for(i=0;i<ret;i++) {
-				fprintf(stderr,"%02x ",buf[i]);
+
+    	comfd1 = OpenCom(port, 1200, (INT8U *) "even", 1, 8);
+//		write(comfd1, getversion, sizeof(getversion));
+//		usleep(500 * 1000);
+		for(;;) {
+
+    	ret = read(comfd1, buf, 256);
+    	if(ret > 0) {
+			for(i=0;i<10;i++) {
+				sleep(1);
+				fprintf(stderr,"\nR[%d]=",ret);
+				for(i=0;i<ret;i++) {
+					fprintf(stderr,"%02x ",buf[i]);
+				}
 			}
+//			write(comfd1, getversion, sizeof(getversion));
+
+    	}
+		sleep(1);
 		}
     	close(comfd1);
         return EXIT_SUCCESS;
@@ -274,6 +299,7 @@ int main(int argc, char *argv[]) {
         dog_feed(argv[1]);
         return EXIT_SUCCESS;
     }
+
     if (strcmp("help", argv[1]) == 0) {
         prthelp();
         return EXIT_SUCCESS;
@@ -362,6 +388,17 @@ int main(int argc, char *argv[]) {
         analyTaskOADInfo(argc, argv);
         return EXIT_SUCCESS;
     }
+    if (strcmp("tasktsanum", argv[1]) == 0) {
+			if(argc==3)
+			{
+				int 	method=0;
+				sscanf(argv[2],"%d",&method);
+				INT16U result = getTaskDataTsaNum(method);
+				fprintf(stderr,"任务ID = %d 抄读成功TSA数量 = %d",method,result);
+			}
+			fprintf(stderr,"\n----------------\n");
+	        return EXIT_SUCCESS;
+       }
     if (strcmp("freezedata", argv[1]) == 0) {
         analyFreezeData(argc, argv);
         return EXIT_SUCCESS;
@@ -437,7 +474,6 @@ int main(int argc, char *argv[]) {
         fprintf(stderr,"\n%d-%d-%d %d:%d:%d\n",bcdtime.year.data,bcdtime.month.data,bcdtime.day.data,bcdtime.hour.data,bcdtime.min.data,bcdtime.sec.data);
     	return EXIT_SUCCESS;
     }
-
 
     if (strcmp("yx", argv[1]) == 0) {
         for(;;){

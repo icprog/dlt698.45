@@ -118,6 +118,14 @@ typedef struct{
 	INT8U mem_num;//成员个数
 	OI_MEM oi_mem[10];//最多10个
 }OI_INFO;
+
+
+typedef struct{
+	OAD   oad_m;
+	OAD   oad_r;
+	INT16U len;
+}HEAD_UNIT0;
+
 /*
  * 更改拨号脚本
  * */
@@ -276,6 +284,16 @@ extern int readFreezeRecordByNum(OI_698 freezeOI,OAD oad,int RecordNum,DateTimeB
  * */
 extern int	readFreezeRecordByTime(OI_698 freezeOI,OAD oad,DateTimeBCD datetime,int *datalen,INT8U *data);
 
+/*
+ * 按照冻结关联属性，进行数据存储
+ * flag 	0：日冻结，1：月冻结
+ * oi，attr		存储的OI及属性
+ * datetime		存储时标
+ * savelen		需要存储数据长度
+ * data			数据内容
+ * */
+extern void Save_TJ_Freeze(INT8U flag,OI_698 oi,INT16U attr,TS savets,int savelen,INT8U *data);
+
 //////////////////////////////////////////////////////////////////////////////////////
 
 
@@ -323,8 +341,13 @@ extern void GetOADPosofUnit(ROAD_ITEM item_road,HEAD_UNIT *head_unit,INT8U unitn
 extern int collectData(INT8U *databuf,INT8U *srcbuf,OAD_INDEX *oad_offset,ROAD_ITEM item_road);
 extern int fillTsaNullData(INT8U *databuf,TSA tsa,ROAD_ITEM item_road);
 extern void intToBuf(int value,INT8U *buf);
+
 extern INT8U GetTaskidFromCSDs(CSD_ARRAYTYPE csds,ROAD_ITEM *item_road,INT8U findmethod,CLASS_6001 *tsa);
+extern INT8U GetTaskidFromCSDs_Sle0(CSD_ARRAYTYPE csds,ROAD_ITEM *item_road,INT8U findmethod,CLASS_6001 *tsa);
 
 extern void deloutofdatafile();//删除过期任务数据文件;
 
+int readfile_int(FILE *fp);
+int getOADf(INT8U type,INT8U *source,OAD *oad);
+int head_prt(int unitnum,HEAD_UNIT0 *length,int *indexn,FILE *fp);
 #endif /* ACCESS_H_ */
