@@ -2452,11 +2452,12 @@ void initlist(struct Tsa_Node *head)
 	return;
 }
 
-int stateJuge(int nowdstate,INT8U* my6000_p,RUNTIME_PLC *runtime_p)
+int stateJuge(int nowdstate,INT8U* my6000_p,INT8U* my6012_p,RUNTIME_PLC *runtime_p)
 {
 	int state = nowdstate;
 
-	if ( dateJudge(&runtime_p->oldts,&runtime_p->nowts) == 1 || JProgramInfo->oi_changed.oi6000 != *my6000_p)
+	if ( dateJudge(&runtime_p->oldts,&runtime_p->nowts) == 1 ||
+		 JProgramInfo->oi_changed.oi6000 != *my6000_p )
 	{
 		DbgPrintToFile1(31,"\n状态切换到初始化");
 		runtime_p->initflag = 1;
@@ -2467,7 +2468,14 @@ int stateJuge(int nowdstate,INT8U* my6000_p,RUNTIME_PLC *runtime_p)
 		*my6000_p = JProgramInfo->oi_changed.oi6000;
 		return state;
 	}
-
+	if (JProgramInfo->oi_changed.oi6012 != *my6012_p)
+	{
+		//任务变更
+		initTaskData(&taskinfo);
+		system("rm /nand/para/plcrecord.par  /nand/para/plcrecord.bak");
+		DbgPrintToFile1(31,"任务重新初始化");
+		PrintTaskInfo2(&taskinfo);
+	}
 	if ((runtime_p->nowts.Hour==23 && runtime_p->nowts.Minute==59) || (runtime_p->nowts.Hour==0 && runtime_p->nowts.Minute==0))
 		return state;  //23点59分--0点0分之间不进行任务判断（准备跨日初始化）
 
@@ -2507,7 +2515,7 @@ int stateJuge(int nowdstate,INT8U* my6000_p,RUNTIME_PLC *runtime_p)
 		runtime_p->redo = 2;	//点抄后需要恢复抄读
 		return DATA_REAL;
 	}
-	if (state == NONE_PROCE && taskinfo.task_n>0)
+	if (state == NONE_PROCE && taskinfo.task_n>0 && tsa_count > 0)
 	{
 		state = TASK_PROCESS;
 		runtime_p->state = TASK_PROCESS;
@@ -2517,11 +2525,13 @@ int stateJuge(int nowdstate,INT8U* my6000_p,RUNTIME_PLC *runtime_p)
 }
 void readplc_thread()
 {
-	INT8U my6000=0;
+	INT8U my6000=0 ,my6012=0;
 	int state = DATE_CHANGE;
 	RUNTIME_PLC runtimevar;
 	memset(&runtimevar,0,sizeof(RUNTIME_PLC));
 	my6000 = JProgramInfo->oi_changed.oi6000 ;
+	my6012 = JProgramInfo->oi_changed.oi6012 ;
+
 	RecvHead = 0;
 	RecvTail = 0;
 
@@ -2545,7 +2555,7 @@ void readplc_thread()
 		 * 	   状态判断
 		********************************/
 		TSGet(&runtimevar.nowts);
-		state = stateJuge(state, &my6000,&runtimevar);
+		state = stateJuge(state, &my6000,&my6012,&runtimevar);
 
 		/********************************
 		 * 	   状态流程处理
