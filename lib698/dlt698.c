@@ -792,10 +792,10 @@ int doProxyRequest(INT8U *apdu,CSINFO *csinfo,INT8U *sendbuf)
 	INT8U getType = apdu[1];
 	INT8U *data=NULL;
 
-	fprintf(stderr,"doProxyRequest....getType=%d\n",getType);
-	for(int i=0;i<8;i++) {
-		fprintf(stderr,"%02x ",apdu[i]);
-	}
+//	fprintf(stderr,"doProxyRequest....getType=%d\n",getType);
+//	for(int i=0;i<8;i++) {
+//		fprintf(stderr,"%02x ",apdu[i]);
+//	}
 	getType = apdu[1];
 	fprintf(stderr,"apdu[2]=%02x\n",apdu[2]);
 	piid_g.data = apdu[2];
@@ -1691,6 +1691,9 @@ INT8U dealClientRequest(INT8U *apdu,CSINFO *csinfo,TimeTag timetag,INT8U *sendbu
 		if(SecurityRe > sizeof(TimeTag)) {
 			getTimeTag(&apdu[SecurityRe-11],&timetag);	//1:0x68,-2:cs cs(帧校验),-11:时间标签数据
 		}
+	    if(getZone("GW")==0) {
+	    	PacketBufToFile("APDU:",(char *)apdu, SecurityRe, NULL);
+	    }
 	}
 	//判断时间标签是否有效
 	isTimeTagEffect(timetag,&Response_timetag);

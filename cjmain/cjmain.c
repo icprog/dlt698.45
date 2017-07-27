@@ -315,7 +315,7 @@ void CreateSem() {
  * */
 void InitSharedMem(int argc, char *argv[]) {
     JProgramInfo = (ProgramInfo *) CreateShMem("ProgramInfo", sizeof(ProgramInfo), NULL);
-    asyslog(LOG_NOTICE, "打开共享内存，地址[%d]，大小[%d]", JProgramInfo, sizeof(ProgramInfo));
+    asyslog(LOG_NOTICE, "打开共享内存，地址[%p]，大小[%d]", JProgramInfo, sizeof(ProgramInfo));
 
     InitClass4016();        //当前套日时段表
     InitClass4300();        //电气设备信息

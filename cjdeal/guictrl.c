@@ -91,8 +91,8 @@ extern void initlunxian();
  * */
 void gui_thread_quit_deal()
 {
-	gpio_writebyte((char*)LED_RUN, LED_OFF);
-	gpio_writebyte((char*)LED_ALARM, LED_OFF);
+	gpio_writebyte((char*)DEV_LED_RUN, LED_OFF);
+	gpio_writebyte((char*)DEV_LED_ALARM, LED_OFF);
 }
 //液晶屏在非轮显状态下，需要按照lcd_ctl（）函数内while循环实时写入。轮显状态，则一秒一次
 void deal_lcm_write(time_t nowtime)

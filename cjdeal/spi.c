@@ -109,7 +109,6 @@ int spi_read(int fd, INT8U *cbuf, int16_t clen, INT8U *rbuf, int rlen)
 	xfer[1].rx_buf = (int) rx;
 	xfer[1].len = rlen;
 
-//	gpio_writebyte(DEV_ESAM_CS,1);
 	gpio_writebyte(DEV_ATT_CS, 1);
 	gpio_writebyte(DEV_ATT_CS, 0);
 	ioctl(fd, SPI_IOC_MESSAGE(2), xfer);
@@ -140,7 +139,6 @@ int spi_write(int fd, INT8U *buf, int len)
 	xfer[1].len = 0;
 	//xfer[1].delay_usecs=10;
 
-//	gpio_writebyte(DEV_ESAM_CS,1);
 	gpio_writebyte(DEV_ATT_CS, 1);
 	gpio_writebyte(DEV_ATT_CS, 0);
 	ioctl(fd, SPI_IOC_MESSAGE(2), xfer);
