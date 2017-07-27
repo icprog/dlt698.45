@@ -57,11 +57,6 @@ int32_t SPI_Init(int32_t fd) {
 	if (fd != -1) {
 		SPI_Close(fd);
 	}
-//#ifdef CCTT_II
-//		strcpy(spipath,ESAM_SPI_DEV_II);
-//#else
-//		strcpy(spipath,ESAM_SPI_DEV);
-//#endif
 	strcpy(spipath,ESAM_SPI_DEV);
 	fd = open((char*)spipath, O_RDWR);
 	if (fd < 0)

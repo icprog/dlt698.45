@@ -2475,6 +2475,7 @@ int stateJuge(int nowdstate,INT8U* my6000_p,INT8U* my6012_p,RUNTIME_PLC *runtime
 		system("rm /nand/para/plcrecord.par  /nand/para/plcrecord.bak");
 		DbgPrintToFile1(31,"任务重新初始化");
 		PrintTaskInfo2(&taskinfo);
+		*my6012_p = JProgramInfo->oi_changed.oi6012 ;
 	}
 	if ((runtime_p->nowts.Hour==23 && runtime_p->nowts.Minute==59) || (runtime_p->nowts.Hour==0 && runtime_p->nowts.Minute==0))
 		return state;  //23点59分--0点0分之间不进行任务判断（准备跨日初始化）
