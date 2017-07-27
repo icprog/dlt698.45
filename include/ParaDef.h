@@ -29,7 +29,7 @@
 #define FRAMELEN 			2048
 #define BUFLEN  			2048						//上行通道发送接收数组长度
 #define REALDATA_LIST_LENGTH 	10				//实时数据请求缓存
-#define PRO_WAIT_COUNT     		60
+#define PRO_WAIT_COUNT     		180
 
 
 #define MMQNAMEMAXLEN    	32		//消息队列名称长度
