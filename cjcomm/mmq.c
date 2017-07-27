@@ -3,10 +3,12 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "cjcomm.h"
+#include "db.h"
 #include "mmq.h"
-#include "../libMq/libmmq.h"
-#include "../include/StdDataType.h"
+#include "cjcomm.h"
+
+#include "libmmq.h"
+#include "StdDataType.h"
 
 //建立消息监听服务
 static long long Mmq_Task_Id;
@@ -138,15 +140,15 @@ void MmqSend(struct aeEventLoop *eventLoop, int fd, void *clientData, int mask) 
         return;
     }
 
-    switch (GetOnlineType()) {
+    switch ((int)dbGet("online.type")) {
         case 1:
-            nst = GetComBlockForGprs();
+            nst = dbGet("block.gprs");
             break;
         case 2:
-            nst = GetComBlockForNet();
+            nst = dbGet("block.net");
             break;
         case 3:
-            nst = getComBlockForModel();
+            nst = dbGet("block.gprs");
             break;
     }
     asyslog(LOG_INFO, "发送代理消息，返回(%d)，类型(%d)", 0, headBuf.cmd);
@@ -169,7 +171,7 @@ void MmqSend(struct aeEventLoop *eventLoop, int fd, void *clientData, int mask) 
  */
 int RegularMmq(struct aeEventLoop *ep, long long id, void *clientData) {
     //获取当前的上线通道
-    if (GetOnlineType() == 0) {
+    if (dbGet("online.type") == 0) {
         asyslog(LOG_WARNING, "当前无通道在线, 不开启消息监听");
         close(mmqd);
         mmqd = -1;

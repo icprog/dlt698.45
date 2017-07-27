@@ -18,7 +18,6 @@
 #include "PublicFunction.h"
 #include "dlt698def.h"
 #include "cjcomm.h"
-#include "at.h"
 #include "ae.h"
 #include "../include/Shmem.h"
 

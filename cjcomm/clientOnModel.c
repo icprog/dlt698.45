@@ -35,12 +35,14 @@ static NetObject netObject;
 //月流量统计
 static int MonthTJ;
 
+#if 0
 void showTime()
 {
 	TS ts;
 	TSGet(&ts);
 	fprintf(stderr, "时间%d-%d\n", ts.Minute, ts.Sec);
 }
+
 
 CommBlock *getComBlockForModel() {
 	return &ClientForModelObject;
@@ -797,3 +799,4 @@ void ClientOnModelDestory(void) {
 	close(ClientForModelObject.phy_connect_fd);
 	ClientForModelObject.phy_connect_fd = -1;
 }
+#endif
