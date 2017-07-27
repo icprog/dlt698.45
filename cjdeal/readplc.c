@@ -2471,10 +2471,12 @@ int stateJuge(int nowdstate,INT8U* my6000_p,INT8U* my6012_p,RUNTIME_PLC *runtime
 	if (JProgramInfo->oi_changed.oi6012 != *my6012_p)
 	{
 		//任务变更
+		sleep(10);//需要与全局任务数组保持同步更新
 		initTaskData(&taskinfo);
 		system("rm /nand/para/plcrecord.par  /nand/para/plcrecord.bak");
 		DbgPrintToFile1(31,"任务重新初始化");
 		PrintTaskInfo2(&taskinfo);
+		runtime_p->redo = 1;  //初始化之后需要重启抄读
 		*my6012_p = JProgramInfo->oi_changed.oi6012 ;
 	}
 	if ((runtime_p->nowts.Hour==23 && runtime_p->nowts.Minute==59) || (runtime_p->nowts.Hour==0 && runtime_p->nowts.Minute==0))
