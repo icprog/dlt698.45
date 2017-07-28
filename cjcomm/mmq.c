@@ -161,6 +161,8 @@ void MmqSend(struct aeEventLoop *eventLoop, int fd, void *clientData, int mask) 
         case METEREVENT_REPORT:
             callEventAutoReport(nst, getBuf, headBuf.bufsiz);
             break;
+        case NOTIFICATIONTRANS_PEPORT:
+        	break;
     }
 }
 

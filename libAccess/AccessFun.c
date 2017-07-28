@@ -3470,30 +3470,30 @@ INT8U initrecinfo(OAD getOAD,CURR_RECINFO *recinfo,TASKSET_INFO tasknor_info,INT
 		break;
 	case 10://主动上报类
 		//一致性测试GET_25 sel10 OAD=6012_0300,应能正确查找数据
-		if(getOAD.OI==0x6012 && getOAD.attflg==03 && getOAD.attrindex==00) {
-			//只处理了日冻结处理
-			recinfo->recordno_num = select.selec10.recordn;
-			time(&time_s);
-			tm_p = localtime(&time_s);
-			tm_p->tm_hour = 0;
-			tm_p->tm_min = 0;
-			tm_p->tm_sec = 0;
-			fprintf(stderr,"start:%d-%d-%d %d:%d:%d\n",tm_p->tm_year,tm_p->tm_mon,tm_p->tm_mday,tm_p->tm_hour,tm_p->tm_min,tm_p->tm_sec);
-			if(tasknor_info.save_timetype == 2) {//相对当日0点0分
-				recinfo->rec_start = mktime(tm_p);
-				recinfo->rec_end = recinfo->rec_start+tasknor_info.freq;
-			}else {	//未测试
-				recinfo->rec_start = mktime(tm_p)-tasknor_info.freq;
-				recinfo->rec_end = mktime(tm_p);
-			}
-			fprintf(stderr,"end(%ld):%d-%d-%d %d:%d:%d\n",recinfo->rec_end,tm_p->tm_year,tm_p->tm_mon,tm_p->tm_mday,tm_p->tm_hour,tm_p->tm_min,tm_p->tm_sec);
-			fprintf(stderr,"start(%ld) freq=%d\n",recinfo->rec_start,tasknor_info.freq);
-		}else {
+//		if(getOAD.OI==0x6012 && getOAD.attflg==03 && getOAD.attrindex==00) {
+//			//只处理了日冻结处理
+//			recinfo->recordno_num = select.selec10.recordn;
+//			time(&time_s);
+//			tm_p = localtime(&time_s);
+//			tm_p->tm_hour = 0;
+//			tm_p->tm_min = 0;
+//			tm_p->tm_sec = 0;
+//			fprintf(stderr,"start:%d-%d-%d %d:%d:%d\n",tm_p->tm_year,tm_p->tm_mon,tm_p->tm_mday,tm_p->tm_hour,tm_p->tm_min,tm_p->tm_sec);
+//			if(tasknor_info.save_timetype == 2) {//相对当日0点0分
+//				recinfo->rec_start = mktime(tm_p);
+//				recinfo->rec_end = recinfo->rec_start+tasknor_info.freq;
+//			}else {	//未测试
+//				recinfo->rec_start = mktime(tm_p)-tasknor_info.freq;
+//				recinfo->rec_end = mktime(tm_p);
+//			}
+//			fprintf(stderr,"end(%ld):%d-%d-%d %d:%d:%d\n",recinfo->rec_end,tm_p->tm_year,tm_p->tm_mon,tm_p->tm_mday,tm_p->tm_hour,tm_p->tm_min,tm_p->tm_sec);
+//			fprintf(stderr,"start(%ld) freq=%d\n",recinfo->rec_start,tasknor_info.freq);
+//		}else {
 			recinfo->recordno_num = select.selec10.recordn;
 			fprintf(stderr,"\nselect.selec10.recordn=%d\n",select.selec10.recordn);
 			recinfo->rec_start = time(NULL);
 			recinfo->rec_end = recinfo->rec_start-recinfo->recordno_num*tasknor_info.freq;
-		}
+//		}
 		break;
 	default:
 		memset(recinfo,0x00,sizeof(CURR_RECINFO));
