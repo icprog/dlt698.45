@@ -305,6 +305,7 @@ int callAutoReport(char *filename,INT8U reportChoice,CommBlock* com, INT8U ifech
 	if (com==NULL || filename == NULL)
 		return 0;
 	INT8U *sendbuf = com->SendBuf;
+	static INT8U piid=0;
 	static int nowoffset = 0;
 	static int nextoffset = 0;
 	static int sendcounter =0;
@@ -338,7 +339,8 @@ int callAutoReport(char *filename,INT8U reportChoice,CommBlock* com, INT8U ifech
 		sendcounter = 0;
 		return 0;
 	}
-
+	piid++;
+	com->report_piid[0] = piid;		//处理无应答重复上报判断报文帧，目前未考虑多通道在线情况
 	index = 0;
 	if (fillcsinfo(&csinfo,com->serveraddr,com->taskaddr)==0)
 		return 0;
@@ -348,7 +350,7 @@ int callAutoReport(char *filename,INT8U reportChoice,CommBlock* com, INT8U ifech
 //	apduplace = index;		//记录APDU 起始位置
 	apdu_buf[apdu_index++] = REPORT_NOTIFICATION;
 	apdu_buf[apdu_index++] = reportChoice;//	REPROTNOTIFICATIONRECORDLIST;
-	apdu_buf[apdu_index++] = 0x00;	//PIID
+	apdu_buf[apdu_index++] = piid;	//PIID
 
 	memcpy(&apdu_buf[apdu_index],TmpDataBuf,datalen);//将读出的数据拷贝
 	apdu_index +=datalen;
@@ -382,7 +384,7 @@ int callAutoReport(char *filename,INT8U reportChoice,CommBlock* com, INT8U ifech
 int callEventAutoReport(CommBlock* com,INT8U *eventbuf,int datalen)
 {
 	INT8U *sendbuf = com->SendBuf;
-	int		piid=0;
+	static INT8U piid=0;
 	int 	index=0,hcsi=0,apduplace=0;
 	CSINFO csinfo={};
 
@@ -390,6 +392,8 @@ int callEventAutoReport(CommBlock* com,INT8U *eventbuf,int datalen)
 		return -1;
 	if (fillcsinfo(&csinfo,com->serveraddr,com->taskaddr)==0)
 		return 0;
+	piid++;
+	com->report_piid[0] = piid;		//处理无应答重复上报判断报文帧，目前未考虑多通道在线情况
 	index = 0;		
 	index = FrameHead(&csinfo,sendbuf);
 	hcsi = index;

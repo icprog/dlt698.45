@@ -425,10 +425,14 @@ void *ModelWorker(void *args) {
         com = 5;
 
     while (1) {
+    	if (GetOnlineType() != 0) {
+    		goto err;
+    	}
         gpofun("/dev/gpoCSQ_GREEN", 0);
         gpofun("/dev/gpoCSQ_RED", 0);
         gpofun("/dev/gpoONLINE_LED", 0);
 
+        SetOnlineType(0);
         SetGprsStatus(0);
         SetGprsCSQ(0);
         SetWireLessType(0);
@@ -599,7 +603,6 @@ void *ModelWorker(void *args) {
         err:
         sleep(1);
         close(sMux0);
-        SetOnlineType(0);
         continue;
     }
 }

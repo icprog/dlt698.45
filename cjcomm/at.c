@@ -793,16 +793,13 @@ void *ATWorker(void *args) {
 		 * 运行拨号脚本
 		 */
 		if (callType == 1) {
-                if ((l & 0x01) == 1) {
                 	system("pppd call gprs &");
                     asyslog(LOG_INFO, "远程通信单元类型为GPRS。\n");
                     break;
-                }
-                if ((l & 0x08) == 8) {
+		}else{
                 	system("pppd call cdma2000 &");
                     asyslog(LOG_INFO, "远程通信单元类型为CDMA2000。\n");
                     break;
-                }
         }
         SetGprsStatus(2);
 
