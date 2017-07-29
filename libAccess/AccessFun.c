@@ -3134,14 +3134,16 @@ int collectData(INT8U *databuf,INT8U *srcbuf,OAD_INDEX *oad_offset,ROAD_ITEM ite
 					if(getZone("HuNan")==0 && tmpbuf[0] == 0 && item_road.oad[j].oad_r.attrindex == 0)
 					{
 						OI_INFO oi_info;
-						GetOIinfo(item_road.oad[i].oad_r.OI,4,&oi_info);
-						if(oi_info.mem_num>1)
+						GetOIinfo(item_road.oad[j].oad_r.OI,4,&oi_info);
+						fprintf(stderr,"\n地区：湖南  %d\n",oi_info.oinum);
+						if(oi_info.oinum>1)//array类型
 						{
-							databuf[pindex++] = oi_info.mem_num;
-							for(mm=0;mm<oi_info.mem_num;mm++)
+							databuf[pindex++] = 1;
+							databuf[pindex++] = oi_info.oinum;
+							for(mm=0;mm<oi_info.oinum;mm++)
 								databuf[pindex++] = 0;
-						}
 							break;
+						}
 					}
 					databuf[pindex++] = 0;
 					fprintf(stderr,"000 pindex=%d\n",pindex);
@@ -3154,6 +3156,8 @@ int collectData(INT8U *databuf,INT8U *srcbuf,OAD_INDEX *oad_offset,ROAD_ITEM ite
 					memcpy(&databuf[pindex],tmpbuf,retlen);
 					pindex += retlen;
 					fprintf(stderr,"111 pindex=%d\n",pindex);
+					break;
+				case 2://struct 暂时不处理
 					break;
 				case 0x55:	//TSA
 					memcpy(&databuf[pindex],tmpbuf,(tmpbuf[1]+2));
