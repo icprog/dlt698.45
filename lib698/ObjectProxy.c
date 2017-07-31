@@ -17,6 +17,7 @@
 #include "dlt698def.h"
 #include "../libMq/libmmq.h"
 
+OAD	mq_com_oad={};
 extern ProgramInfo *memp;
 extern void getoad(INT8U *data,OAD *oad);
 extern int FrameHead(CSINFO *csinfo,INT8U *buf);
@@ -112,7 +113,7 @@ int Proxy_GetRequestlist(INT8U *data,CSINFO *csinfo,INT8U *sendbuf,INT8U piid)
 	getlist.timeold = time(NULL);
 	memcpy(&getlist.csinfo,csinfo,sizeof(CSINFO));
 
-	ret= mqs_send((INT8S *)PROXY_485_MQ_NAME,1,ProxyGetResponseList,(INT8U *)&getlist,sizeof(PROXY_GETLIST));
+	ret= mqs_send((INT8S *)PROXY_485_MQ_NAME,1,ProxyGetResponseList,mq_com_oad,(INT8U *)&getlist,sizeof(PROXY_GETLIST));
 	fprintf(stderr,"\n代理消息已经发出,ret=%d ,getlist_len=%d\n\n",ret,sizeof(PROXY_GETLIST));
 	return 1;
 }
@@ -169,7 +170,7 @@ int Proxy_GetRequestRecord(INT8U *data,CSINFO *csinfo,INT8U *sendbuf,INT8U piid)
 		getlist.timeold = time(NULL);
 		memcpy(&getlist.csinfo,csinfo,sizeof(CSINFO));
 
-		ret= mqs_send((INT8S *)PROXY_485_MQ_NAME,1,ProxyGetResponseRecord,(INT8U *)&getlist,sizeof(PROXY_GETLIST));
+		ret= mqs_send((INT8S *)PROXY_485_MQ_NAME,1,ProxyGetResponseRecord,mq_com_oad,(INT8U *)&getlist,sizeof(PROXY_GETLIST));
 		fprintf(stderr,"\n代理消息已经发出,ret=%d\n\n",ret);
 	}
 
@@ -229,7 +230,7 @@ int Proxy_DoThenGetRequestList(INT8U *data,CSINFO *csinfo,INT8U *sendbuf,INT8U p
 
 	memcpy(&getlist.csinfo,csinfo,sizeof(CSINFO));
 
-	ret= mqs_send((INT8S *)PROXY_485_MQ_NAME,1,type ,(INT8U *)&getlist,sizeof(PROXY_GETLIST));
+	ret= mqs_send((INT8S *)PROXY_485_MQ_NAME,1,type ,mq_com_oad,(INT8U *)&getlist,sizeof(PROXY_GETLIST));
 	fprintf(stderr,"\n代理消息已经发出,ret=%d ,getlist_len=%d\n\n",ret,sizeof(PROXY_GETLIST));
 
 	return 0;
@@ -274,7 +275,7 @@ int Proxy_DoRequestList(INT8U *data,CSINFO *csinfo,INT8U *sendbuf,INT8U piid,INT
 	getlist.timeold = time(NULL);
 	memcpy(&getlist.csinfo,csinfo,sizeof(CSINFO));
 
-	ret= mqs_send((INT8S *)PROXY_485_MQ_NAME,1,type,(INT8U *)&getlist,sizeof(PROXY_GETLIST));
+	ret= mqs_send((INT8S *)PROXY_485_MQ_NAME,1,type,mq_com_oad,(INT8U *)&getlist,sizeof(PROXY_GETLIST));
 	fprintf(stderr,"\n代理消息已经发出,ret=%d\n\n",ret);
 	return 1;
 }
@@ -318,7 +319,7 @@ int Proxy_TransCommandRequest(INT8U *data,CSINFO *csinfo,INT8U *sendbuf,INT8U pi
 
 	printcmd(getlist);
 	fprintf(stderr,"代理内容：sizeof(getlist)=%d\n",sizeof(PROXY_GETLIST));
-	ret= mqs_send((INT8S *)PROXY_485_MQ_NAME,1,ProxyGetResponseList,(INT8U *)&getlist,sizeof(PROXY_GETLIST));
+	ret= mqs_send((INT8S *)PROXY_485_MQ_NAME,1,ProxyGetResponseList,mq_com_oad,(INT8U *)&getlist,sizeof(PROXY_GETLIST));
 	fprintf(stderr,"\n代理消息已经发出,ret=%d\n\n",ret);
 	return 1;
 }

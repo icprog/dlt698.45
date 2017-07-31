@@ -26,6 +26,14 @@
 #include "basedef.h"
 #include "ctrl.h"
 
+#define PORT_ZB  	0xF209
+#define PORT_485  	0xF201
+#define PORT_JC		0xF208
+
+static OAD	OAD_PORT_485_1={0xF201,0x02,0x01};
+static OAD	OAD_PORT_485_2={0xF201,0x02,0x02};
+static OAD	OAD_PORT_ZB={0xF209,0x02,0x01};
+
 extern INT32S 			spifp_rn8209;
 extern INT32S 			spifp;
 
@@ -867,9 +875,8 @@ INT8U isPlcMeterByTsa(TSA* pTsa)
  *	组织应答报文的工作, 交给各端口线程来做.
  */
 extern INT8U get6001ObjByTSA(TSA addr,CLASS_6001* targetMeter);
-#define PORT_ZB  	0xF209
-#define PORT_485  	0xF201
-#define PORT_JC		0xF208
+
+
 PROXY_GETLIST proxyList_manager;
 //int proxy_one_fill_record(GETRECORD record,int len,INT8U *source,INT8U DARtype,INT8U *desbuf)
 //{
@@ -1355,8 +1362,8 @@ void replenish_tmp()
 					if (list6013[findIndex].basicInfo.taskID == infoReplenish.unitReplenish[tIndex].taskID)
 					{
 						asyslog(LOG_WARNING,"发送补抄任务ID tIndex = %d　",tIndex);
-						INT8S ret = mqs_send((INT8S *)TASKID_485_2_MQ_NAME,cjdeal,1,(INT8U *)&findIndex,sizeof(INT16S));
-						ret = mqs_send((INT8S *)TASKID_485_1_MQ_NAME,cjdeal,1,(INT8U *)&findIndex,sizeof(INT16S));
+						INT8S ret = mqs_send((INT8S *)TASKID_485_2_MQ_NAME,cjdeal,1,OAD_PORT_485_2,(INT8U *)&findIndex,sizeof(INT16S));
+						ret = mqs_send((INT8S *)TASKID_485_1_MQ_NAME,cjdeal,1,OAD_PORT_485_1,(INT8U *)&findIndex,sizeof(INT16S));
 					}
 				}
 			}
@@ -1473,7 +1480,8 @@ INT8U dealProxyAnswer()
 		if(proxyInUse.devUse.plcNeed==0 && proxyInUse.devUse.rs485Need==0) {
 			proxy_dar_fill(&proxyList_manager,cjcommProxy.strProxyList);
 		}
-		mqs_send((INT8S *)PROXY_NET_MQ_NAME,1,TERMINALPROXY_RESPONSE,(INT8U *)&proxyList_manager,sizeof(PROXY_GETLIST));
+		OAD	oad={};
+		mqs_send((INT8S *)PROXY_NET_MQ_NAME,1,TERMINALPROXY_RESPONSE,oad,(INT8U *)&proxyList_manager,sizeof(PROXY_GETLIST));
 		fprintf(stderr,"\n全部代理操作完成，发消息 ！！");
 		timecount = 0;
 		proxyInUse.u8b = 0;
@@ -1552,11 +1560,11 @@ void dispatch_thread()
 			//计算下一次抄读此任务的时间;
 			list6013[tastIndex].ts_next = calcnexttime(list6013[tastIndex].basicInfo.interval,list6013[tastIndex].basicInfo.startime,list6013[tastIndex].basicInfo.delay);
 
-			INT8S ret = mqs_send((INT8S *)TASKID_485_2_MQ_NAME,cjdeal,1,(INT8U *)&tastIndex,sizeof(INT16S));
+			INT8S ret = mqs_send((INT8S *)TASKID_485_2_MQ_NAME,cjdeal,1,OAD_PORT_485_2,(INT8U *)&tastIndex,sizeof(INT16S));
 			fprintf(stderr,"\n 向485 2线程发送任务ID = %d \n",ret);
-			ret = mqs_send((INT8S *)TASKID_485_1_MQ_NAME,cjdeal,1,(INT8U *)&tastIndex,sizeof(INT16S));
+			ret = mqs_send((INT8S *)TASKID_485_1_MQ_NAME,cjdeal,1,OAD_PORT_485_1,(INT8U *)&tastIndex,sizeof(INT16S));
 			fprintf(stderr,"\n 向485 1线程发送任务ID = %d \n",ret);
-			ret = mqs_send((INT8S *)TASKID_plc_MQ_NAME,cjdeal,1,(INT8U *)&tastIndex,sizeof(INT16S));
+			ret = mqs_send((INT8S *)TASKID_plc_MQ_NAME,cjdeal,1,OAD_PORT_ZB,(INT8U *)&tastIndex,sizeof(INT16S));
 			//TODO
 			list6013[tastIndex].run_flg = 0;
 

@@ -28,6 +28,7 @@ INT8U Report_Event(CommBlock *com,INT8U *oiarr,INT8U report_type){
 		return 0;
 	int apduplace =0;
 	int index=0, hcsi=0,temindex=0,i=0;
+	static INT8U	piid=0;
 	pSendfun_report = com->p_send;
 	OI_698 oi=((oiarr[1]<<8)+oiarr[0]);
 	CSINFO csinfo;
@@ -51,10 +52,12 @@ INT8U Report_Event(CommBlock *com,INT8U *oiarr,INT8U report_type){
 	oad.OI=oi;
 	oad.attflg=2;
 	oad.attrindex=0;
+	piid++;
+	com->report_piid[0] = piid;		//处理无应答重复上报判断报文帧，目前未考虑多通道在线情况
 	if(report_type == 1){
 		tem_buf[temindex++] = REPORT_NOTIFICATION;
 		tem_buf[temindex++] = REPORTNOTIFICATIONLIST;
-		tem_buf[temindex++] = 0B10000000;	//	piid
+		tem_buf[temindex++] = piid;//0B10000000;	//	piid
 		tem_buf[temindex++] = 1; //个数
 		tem_buf[temindex++] = dtoad;//OAD数据
 
@@ -65,7 +68,7 @@ INT8U Report_Event(CommBlock *com,INT8U *oiarr,INT8U report_type){
 	}else{
 		tem_buf[temindex++] = REPORT_NOTIFICATION;
 	    tem_buf[temindex++] = REPROTNOTIFICATIONRECORDLIST;
-	    tem_buf[temindex++] = 0x02;
+	    tem_buf[temindex++] = piid;//0x02;
 	    tem_buf[temindex++] = 0x01;
 	    tem_buf[temindex++] = ((oad.OI>>8)&0x00ff);
 	    tem_buf[temindex++] = oad.OI&0x00ff;
@@ -133,13 +136,13 @@ INT8U Report_Event(CommBlock *com,INT8U *oiarr,INT8U report_type){
 
 	return (index+3);
 }
-#if 0
+
 /*
  * 国网要求：采集终端互换性测试说明：转发主站直接对电能表的批量抄读数据命令接口
  *
  *  返回 : piid   =-1，错误
  */
-int callEventAutoReport(CommBlock* com,INT8U *eventbuf,int datalen)
+int callNotificationReport(CommBlock* com,INT8U *plcbuf,int datalen)
 {
 	INT8U *sendbuf = com->SendBuf;
 	int		piid=0;
@@ -156,10 +159,9 @@ int callEventAutoReport(CommBlock* com,INT8U *eventbuf,int datalen)
 	index = index + 2;
 	apduplace = index;		//记录APDU 起始位置
 	sendbuf[index++] = REPORT_NOTIFICATION;
-	sendbuf[index++] = REPROTNOTIFICATIONRECORDLIST;
+	sendbuf[index++] = REPORTNOTIFICATIONTRANSDATA;
 	sendbuf[index++] = piid;	//PIID
-	sendbuf[index++] = 1;	//sequence of A-RecordRow ,事件上送默认每次只上送一个事件记录
-	memcpy(&sendbuf[index],eventbuf,datalen);//将读出的数据拷贝
+	memcpy(&sendbuf[index],plcbuf,datalen);//将读出的数据拷贝
 	index +=datalen;
 	sendbuf[index++] = 0;
 	sendbuf[index++] = 0;
@@ -168,4 +170,4 @@ int callEventAutoReport(CommBlock* com,INT8U *eventbuf,int datalen)
 		com->p_send(com->phy_connect_fd,sendbuf,index+3);  //+3:crc1,crc2,0x16
 	return piid;
 }
-#endif
+
