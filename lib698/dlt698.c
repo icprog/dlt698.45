@@ -1780,6 +1780,7 @@ int ProcessData(CommBlock *com)
 	{
 		fprintf(stderr,"\nsa_length=%d\n",csinfo.sa_length);
 		apdu = &Rcvbuf[csinfo.sa_length+8];
+
 		if (csinfo.dir == 0 && csinfo.prm == 0)		/*客户机对服务器上报的响应	（主站对集中器上报的响应）*/
 		{
 			return(dealClientResponse(apdu,&csinfo));

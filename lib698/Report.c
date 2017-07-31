@@ -133,3 +133,39 @@ INT8U Report_Event(CommBlock *com,INT8U *oiarr,INT8U report_type){
 
 	return (index+3);
 }
+#if 0
+/*
+ * 国网要求：采集终端互换性测试说明：转发主站直接对电能表的批量抄读数据命令接口
+ *
+ *  返回 : piid   =-1，错误
+ */
+int callEventAutoReport(CommBlock* com,INT8U *eventbuf,int datalen)
+{
+	INT8U *sendbuf = com->SendBuf;
+	int		piid=0;
+	int 	index=0,hcsi=0,apduplace=0;
+	CSINFO csinfo={};
+
+	if ((com==NULL) || (datalen==0))
+		return -1;
+	if (fillcsinfo(&csinfo,com->serveraddr,com->taskaddr)==0)
+		return 0;
+	index = 0;
+	index = FrameHead(&csinfo,sendbuf);
+	hcsi = index;
+	index = index + 2;
+	apduplace = index;		//记录APDU 起始位置
+	sendbuf[index++] = REPORT_NOTIFICATION;
+	sendbuf[index++] = REPROTNOTIFICATIONRECORDLIST;
+	sendbuf[index++] = piid;	//PIID
+	sendbuf[index++] = 1;	//sequence of A-RecordRow ,事件上送默认每次只上送一个事件记录
+	memcpy(&sendbuf[index],eventbuf,datalen);//将读出的数据拷贝
+	index +=datalen;
+	sendbuf[index++] = 0;
+	sendbuf[index++] = 0;
+	FrameTail(sendbuf,index,hcsi);
+	if(com->p_send!=NULL)
+		com->p_send(com->phy_connect_fd,sendbuf,index+3);  //+3:crc1,crc2,0x16
+	return piid;
+}
+#endif
