@@ -1117,7 +1117,8 @@ int getOI6001(MY_MS ms,INT8U **tsas)
 						}
 //						tsa_num += getUserTSA(ms.ms.userAddr[j+1],meter.basicinfo.addr,tsa_num,tsas);
 					}
-					break;
+					fprintf(stderr,"\nms.mstype = %d,tsa_num = %d",ms.mstype,tsa_num);
+					return tsa_num;
 				case 4:	//一组配置序号
 					fprintf(stderr,"\n招测序号集(%d)",ms.ms.configSerial[0]);
 					for(j=0;j<ms.ms.configSerial[0];j++) {
@@ -1889,7 +1890,6 @@ void GetOADPosofUnit(ROAD_ITEM item_road,HEAD_UNIT *head_unit,INT8U unitnum,OAD_
 {
 	int i=0,j=0,datapos=0;
 //	asyslog(LOG_INFO,"-------oadmr_num=%d,unitnum=%d\n",item_road.oadmr_num,unitnum);
-	DEBUG_TIME_LINE("");
 	for(i=0;i<item_road.oadmr_num;i++)//找不到呢
 	{
 		datapos=0;
@@ -1927,7 +1927,6 @@ void GetOADPosofUnit(ROAD_ITEM item_road,HEAD_UNIT *head_unit,INT8U unitnum,OAD_
 			}
 		}
 	}
-	DEBUG_TIME_LINE("");
 }
 INT16U CalcMinFromZero(INT8U hour,INT8U min)
 {
@@ -3048,7 +3047,7 @@ int findrecord(int offsetTsa,int recordlen,int recordno)
 {
 	int recordoffset=0;
 	recordoffset = offsetTsa+recordno*recordlen;
-	fprintf(stderr,"\ntsa偏移：%d 查找序号%d：偏移%d\n",offsetTsa,recordno,recordoffset);
+//	fprintf(stderr,"\ntsa偏移：%d 查找序号%d：偏移%d\n",offsetTsa,recordno,recordoffset);
 	return recordoffset;
 }
 int getrecordno(INT8U starthour,INT8U startmin,int interval,CURR_RECINFO recinfo)
@@ -3108,19 +3107,18 @@ int collectData(INT8U *databuf,INT8U *srcbuf,OAD_INDEX *oad_offset,ROAD_ITEM ite
 //	fprintf(stderr,"oadmr_num=%d  unitnum=%d \n",item_road.oadmr_num,unitnum);
 //	for(i=0;i<item_road.oadmr_num;i++)
 	{
-		DEBUG_TIME_LINE("");
 		memset(tmpbuf,0x00,256);
-		fprintf(stderr,"item_road.oadmr_num = %d\n",item_road.oadmr_num);
+//		fprintf(stderr,"item_road.oadmr_num = %d\n",item_road.oadmr_num);
 		for(j=0;j<item_road.oadmr_num;j++)
 		{
-			fprintf(stderr,"\n%04x-%04x--%d\n",item_road.oad[j].oad_m.OI,item_road.oad[j].oad_r.OI,item_road.oad[j].oad_num);
+//			fprintf(stderr,"\n%04x-%04x--%d\n",item_road.oad[j].oad_m.OI,item_road.oad[j].oad_r.OI,item_road.oad[j].oad_num);
 			if(item_road.oad[j].oad_num != 0)
 			{
 				databuf[pindex++] = 0x01;
 				databuf[pindex++] = item_road.oad[j].oad_num;
 			}
-			fprintf(stderr,"j=%d, len = %d, offset=%d\n",j,oad_offset[j].len,oad_offset[j].offset);
-			fprintf(stderr,"oad_m=%04x,oad_r=%04x\n",oad_offset[j].oad_m.OI,oad_offset[j].oad_r.OI);
+//			fprintf(stderr,"j=%d, len = %d, offset=%d\n",j,oad_offset[j].len,oad_offset[j].offset);
+//			fprintf(stderr,"oad_m=%04x,oad_r=%04x\n",oad_offset[j].oad_m.OI,oad_offset[j].oad_r.OI);
 			if(oad_offset[j].len == 0)//没找到
 				databuf[pindex++] = 0;
 			else
@@ -3130,7 +3128,7 @@ int collectData(INT8U *databuf,INT8U *srcbuf,OAD_INDEX *oad_offset,ROAD_ITEM ite
 				switch(tmpbuf[0])
 				{
 				case 0:
-					fprintf(stderr,"\n---------------tmpbuf[0]=%d\n",tmpbuf[0]);
+//					fprintf(stderr,"\n---------------tmpbuf[0]=%d\n",tmpbuf[0]);
 					if(getZone("HuNan")==0 && tmpbuf[0] == 0 && item_road.oad[j].oad_r.attrindex == 0)
 					{
 						OI_INFO oi_info;
@@ -3146,35 +3144,30 @@ int collectData(INT8U *databuf,INT8U *srcbuf,OAD_INDEX *oad_offset,ROAD_ITEM ite
 						}
 					}
 					databuf[pindex++] = 0;
-					fprintf(stderr,"000 pindex=%d\n",pindex);
+//					fprintf(stderr,"000 pindex=%d\n",pindex);
 					break;
 				case 1://array
 					retlen = CalcOIDataLen(oad_offset[j].oad_r.OI,1);
-					fprintf(stderr,"\nretlen=%d--%02x\n",retlen,oad_offset[j].oad_r.OI);
 					retlen = retlen*tmpbuf[1]+2;//2代表一个array类型加一个个数
-					fprintf(stderr,"\nretlen=%d--%d\n",retlen,tmpbuf[1]);
 					memcpy(&databuf[pindex],tmpbuf,retlen);
 					pindex += retlen;
-					fprintf(stderr,"111 pindex=%d\n",pindex);
 					break;
 				case 2://struct 暂时不处理
 					break;
 				case 0x55:	//TSA
 					memcpy(&databuf[pindex],tmpbuf,(tmpbuf[1]+2));
 					pindex += (tmpbuf[1]+2);
-					fprintf(stderr,"TSA pindex=%d\n",pindex);
 					break;
 				default:
 					memcpy(&databuf[pindex],tmpbuf,oad_offset[j].len);
 					pindex += oad_offset[j].len;
-					fprintf(stderr,"pindex=%d\n",pindex);
 					break;
 				}
 				int k=0;
-				for(k=0;k<pindex;k++) {
-					fprintf(stderr,"%02x ",databuf[k]);
-				}
-				fprintf(stderr,"\n\n");
+//				for(k=0;k<pindex;k++) {
+//					fprintf(stderr,"%02x ",databuf[k]);
+//				}
+//				fprintf(stderr,"\n\n");
 //				break;		//从unitnum 找到 退出
 			}
 		}
@@ -3187,7 +3180,6 @@ int fillTsaNullData(INT8U *databuf,TSA tsa,ROAD_ITEM item_road)
 	int pindex = 0;
 	int i=0;
 
-	DEBUG_TIME_LINE("item_road.oadmr_num = %d",item_road.oadmr_num);
 	for(i=0;i<item_road.oadmr_num;i++) {
 		fprintf(stderr,"\nitem_road.oad[i].oad_m.OI = %04x  item_road.oad[i].oad_num = %d\n",item_road.oad[i].oad_m.OI,
 				item_road.oad[i].oad_num);
@@ -3234,7 +3226,6 @@ int fillTsaNullData(INT8U *databuf,TSA tsa,ROAD_ITEM item_road)
 //				}
 //				else {
 					databuf[pindex++] = 0;
-					DEBUG_TIME_LINE("");
 //				}
 				fprintf(stderr,"\npindex = %d\n",pindex);
 			}
@@ -3263,20 +3254,15 @@ INT16S GetTaskHead(FILE *fp,INT16U *head_len,INT16U *tsa_len,HEAD_UNIT **head_un
 	fread(headl,2,1,fp);
 	*head_len = headl[0];
 	*head_len = (headl[0]<<8) + headl[1];
-	DEBUG_TIME_LINE("\n----headlen=%d\n",*head_len);
 	if(*head_len<=4)
 		return -1;
 	fread(&blockl,2,1,fp);
 	*tsa_len = blockl[0];
 	*tsa_len = (blockl[0]<<8) + blockl[1];
-	DEBUG_TIME_LINE("\n----blocklen=%d\n",*tsa_len);
 	unitnum = (*head_len-4)/sizeof(HEAD_UNIT);
-	DEBUG_TIME_LINE("\n----blocklen=%d unitnum=%d\n",*tsa_len,unitnum);
 	if(*head_unit==NULL)
 		*head_unit = malloc(*head_len);
-	DEBUG_TIME_LINE("get  %p",*head_unit);
 	fread(*head_unit,*head_len-4,1,fp);
-	DEBUG_TIME_LINE("\nhead_unit:len(%d):\n",unitnum);
 	return unitnum;
 }
 /*
@@ -3923,7 +3909,6 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds,INT16U fr
 	MY_MS meters_null;
 	int		findmethod = 0,mm=0;
 
-	DEBUG_TIME_LINE("");
 #ifdef SYS_INFO
 	asyslog(LOG_INFO,"－1－selectype = %d\n",selectype);
 #endif
@@ -4016,7 +4001,6 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds,INT16U fr
 		fprintf(stderr,"\n----------1\n");
 		fp = opendatafile(taskid,recinfo,taskinfoflg);
 	}
-	DEBUG_TIME_LINE("");
 	myfp = openFramefile(TASK_FRAME_DATA);
 	if (fp==NULL || myfp==NULL)
 	{
@@ -4059,8 +4043,6 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds,INT16U fr
 	fprintf(stderr,"\n----------4\n");
 	if(tasknor_info.runtime!=0) 	//异常处理
 		recordlen = blocksize/tasknor_info.runtime;//计算每条记录的字节数
-	DEBUG_TIME_LINE("\nrecordlen = %d,freq=%d\n",recordlen,tasknor_info.freq);
-	DEBUG_TIME_LINE("get 需要上报的：tsa_num=%d,tsa_group=%p\n",tsa_num,tsa_group);
 	for(i=0;i<tsa_num;i++) {
 		fprintf(stderr,"\nTSA%d: %d-",i,tsa_group[i].basicinfo.addr.addr[0]);
 		for(j=0;j<tsa_group[i].basicinfo.addr.addr[0];j++) {
@@ -4086,37 +4068,28 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds,INT16U fr
 		return 0;
 	}
 	//3\定位TSA , 返回offset
-	DEBUG_TIME_LINE("tsa_num=%d\n",tsa_num);
 	for(i =0; i< tsa_num; i++) {//遍历tsa_group
 		currecord = firecord;//每次切换表地址，当前记录序号赋值第一次的数值
 		offsetTsa = findTsa(tsa_group[i].basicinfo.addr,fp,headsize,blocksize);
-		DEBUG_TIME_LINE("-----offsetTsa = %d\n",offsetTsa);
 
 		for(j=1; j<=recinfo.recordno_num;j++) {//test
 			if(eveflg != 1 && taskinfoflg == 0) {//事件和日月冻结不更新数据流
 				if(updatedatafp(fp,j,selectype,tasknor_info.freq,recinfo,taskid)==2)
 					offsetTsa = findTsa(tsa_group[i].basicinfo.addr,fp,headsize,blocksize);
 			}
-			DEBUG_TIME_LINE("");
 			if(offsetTsa == 0) {
 				asyslog(LOG_INFO,"task未找到数据,i=%d\n",i);
-				DEBUG_TIME_LINE("");
 				if(autoflg == 1 && tasknor_info.runtime > 1 && recinfo.recordno_num == 1) {//主动上报曲线并且只上报一个点
 					fprintf(stderr,"\n曲线没TSA记录,查找上一日的数据\n");
 				} else {
 					if(getZone("HuNan")==0) {//湖南的，没有数据直接跳过
-						DEBUG_TIME_LINE("");
 						continue;
 					}
-					DEBUG_TIME_LINE("");
 					indexn += fillTsaNullData(&onefrmbuf[indexn],tsa_group[i].basicinfo.addr,item_road);
-					DEBUG_TIME_LINE("");
 					recordnum++;
 					continue;
 				}
-				DEBUG_TIME_LINE("");
 			}
-			DEBUG_TIME_LINE("");
 			//5\定位指定的点（行）, 返回offset
 			if(selectype == 7 || selectype == 5 || selectype == 4)
 				rec_tmp = j-1;
@@ -4134,10 +4107,9 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds,INT16U fr
 						fprintf(stderr,"\n---非曲线主动上报\n");
 				}
 #ifdef SYS_INFO
-			asyslog(LOG_INFO,"\n计算出来的currecord=%d\n",currecord+rec_tmp);
+//			asyslog(LOG_INFO,"\n计算出来的currecord=%d\n",currecord+rec_tmp);
 #endif
 			recordoffset = findrecord(offsetTsa,recordlen,currecord+rec_tmp);
-			DEBUG_TIME_LINE("");
 			memset(recordbuf,0x00,sizeof(recordbuf));
 			//6\读出一行数据到临时缓存
 			if(offsetTsa == 0)
@@ -4145,14 +4117,12 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds,INT16U fr
 			else {
 				fseek(fp,recordoffset,SEEK_SET);
 				fread(recordbuf,recordlen,1,fp);
-				printRecordBytes(recordbuf,recordlen);
+//				printRecordBytes(recordbuf,recordlen);
 			}
 			if(autoflg == 1 && tasknor_info.runtime > 1 && recinfo.recordno_num == 1)//主动上报曲线并且只上报一个点
 			{
-				DEBUG_TIME_LINE("");
 				for(k=0;k<5;k++)//TsToTimeBCD(TS inTs,DateTimeBCD* outTimeBCD)
 				{
-					DEBUG_TIME_LINE("");
 					memset(tmpnull,0x00,8);
 					if(memcmp(&recordbuf[18],tmpnull,8)==0 || offsetTsa == 0) {//本条记录为空或者没有这个tsa
 						fprintf(stderr,"\n---曲线主动上报k=%d\n",k);
@@ -4188,7 +4158,6 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds,INT16U fr
 						}
 						else
 						{
-							DEBUG_TIME_LINE("\n更改时标\n");
 							TSGet(&ts_curr);
 							TsToTimeBCD(ts_curr,&CHTimeBCD[0]);
 							ts_curr.Minute = ts_curr.Minute/15;
@@ -4203,7 +4172,6 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds,INT16U fr
 					}
 					else//有数据跳出
 					{
-						DEBUG_TIME_LINE("\n更改时标\n");
 						TSGet(&ts_curr);
 						TsToTimeBCD(ts_curr,&CHTimeBCD[0]);
 						ts_curr.Minute = ts_curr.Minute/15;
@@ -4218,28 +4186,25 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds,INT16U fr
 				}
 			}
 			memset(tmpnull,0x00,8);
-			printRecordBytes(recordbuf,recordlen);
+//			printRecordBytes(recordbuf,recordlen);
 			if(memcmp(&recordbuf[18],tmpnull,8)==0 && memcmp(&recordbuf[26],tmpnull,8)==0 &&
 					memcmp(&recordbuf[34],tmpnull,8)==0)
 				continue;
 
-			DEBUG_TIME_LINE("");
-			printRecordBytes(recordbuf,recordlen);
+//			printRecordBytes(recordbuf,recordlen);
 			//7\根据csds挑选数据，组织存储缓存
 			memcpy(oad_offset_can,oad_offset,sizeof(oad_offset));
-			DEBUG_TIME_LINE("");
 			indexn += collectData(&onefrmbuf[indexn],recordbuf,oad_offset_can,item_road);
-			DEBUG_TIME_LINE("");
 			recordnum++;
 #ifdef SYS_INFO
-			asyslog(LOG_INFO,"recordnum=%d  seqnumindex=%d\n",recordnum,seqnumindex);
+//			asyslog(LOG_INFO,"recordnum=%d  seqnumindex=%d\n",recordnum,seqnumindex);
 #endif
 			if(frmmaxsize <= 256+100)
 				frmmaxsize = 700;
 			if (indexn>=frmmaxsize-300) {
 				framesum++;
 				//8 存储1帧
-				fprintf(stderr,"indexn=%d  recordnum=%d\n",indexn,recordnum);
+//				fprintf(stderr,"indexn=%d  recordnum=%d\n",indexn,recordnum);
 				intToBuf((indexn-2),onefrmbuf);		//帧长度保存帧的数据长度
 				onefrmbuf[seqnumindex] = recordnum;
 				saveOneFrame(onefrmbuf,indexn,myfp);
@@ -4250,16 +4215,14 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds,INT16U fr
 		}
 	}
 #ifdef SYS_INFO
-	asyslog(LOG_INFO,"组帧：indexn=%d\n",indexn);
+//	asyslog(LOG_INFO,"组帧：indexn=%d\n",indexn);
 #endif
-	DEBUG_TIME_LINE("");
-	for(i=0;i<indexn;i++) {
-		fprintf(stderr,"%02x ",onefrmbuf[i]);
-	}
-	DEBUG_TIME_LINE("");
+//	for(i=0;i<indexn;i++) {
+//		fprintf(stderr,"%02x ",onefrmbuf[i]);
+//	}
 	if(framesum==0) {
 		framesum = 1; //一帧
-		fprintf(stderr,"\n indexn = %d saveOneFrame  seqnumindex=%d,  recordnum=%d!!!!!!!!!!!!!!!!\n",indexn,seqnumindex,recordnum);
+//		fprintf(stderr,"\n indexn = %d saveOneFrame  seqnumindex=%d,  recordnum=%d!!!!!!!!!!!!!!!!\n",indexn,seqnumindex,recordnum);
 //		asyslog(LOG_INFO,"任务数据文件组帧:indexn = %d , seqnumindex=%d,  recordnum=%d\n",indexn,seqnumindex,recordnum);
 		intToBuf((indexn-2),onefrmbuf);
 		onefrmbuf[seqnumindex] = recordnum;
@@ -4269,8 +4232,8 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds,INT16U fr
 		if(recordnum != 0)
 		{
 			framesum++;
-			fprintf(stderr,"\n last frm indexn = %d saveOneFrame  seqnumindex=%d,  recordnum=%d!!!!!!!!!!!!!!!!\n",indexn,seqnumindex,recordnum);
-			asyslog(LOG_INFO,"任务数据文件组帧:indexn = %d , seqnumindex=%d,  recordnum=%d\n",indexn,seqnumindex,recordnum);
+//			fprintf(stderr,"\n last frm indexn = %d saveOneFrame  seqnumindex=%d,  recordnum=%d!!!!!!!!!!!!!!!!\n",indexn,seqnumindex,recordnum);
+//			asyslog(LOG_INFO,"任务数据文件组帧:indexn = %d , seqnumindex=%d,  recordnum=%d\n",indexn,seqnumindex,recordnum);
 			intToBuf((indexn-2),onefrmbuf);
 			onefrmbuf[seqnumindex] = recordnum;
 			saveOneFrame(onefrmbuf,indexn,myfp);
@@ -4313,7 +4276,6 @@ int getSelector(OAD oad_h,RSD select, INT8U selectype, CSD_ARRAYTYPE csds, INT8U
 //		framesum = GetTaskData(oad_h,select,selectype,csds);//程序里面计算
 //		break;
 //	case 10:
-		DEBUG_TIME_LINE("");
 		framesum = GetTaskData(oad_h,select,selectype,csds,frmmaxsize);
 		fprintf(stderr,"framesum=%d\n",framesum);
 //		break;
