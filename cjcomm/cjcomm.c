@@ -17,7 +17,7 @@
 #include "special.h"
 
 int cWriteWithCalc(int fd, INT8U *buf, INT16U len) {
-	int old = (int)dbGet("calc.new") + len;
+	int old = (int) dbGet("calc.new") + len;
 	dbSet("calc.new", old);
 	cWrite(fd, buf, len);
 }
@@ -45,6 +45,7 @@ void cRead(struct aeEventLoop *ep, int fd, void *clientData, int mask) {
 		asyslog(LOG_WARNING, "链接[%d]异常，关闭端口", errno);
 		aeDeleteFileEvent(ep, fd, AE_READABLE);
 		close(fd);
+		dbSet("online.type", 0);
 		nst->phy_connect_fd = -1;
 	} else {
 		TSGet(&nst->final_frame);
@@ -72,7 +73,6 @@ void cProc(struct aeEventLoop *ep, CommBlock * nst) {
 			switch (apduType) {
 			case LINK_RESPONSE:
 				gpofun("/dev/gpoONLINE_LED", 1);
-				dbSet("oneline.type", 1);
 				First_VerifiTime(nst->linkResponse, nst->shmem); //简单对时
 				if (GetTimeOffsetFlag() == 1) {
 					Getk_curr(nst->linkResponse, nst->shmem);
@@ -87,9 +87,11 @@ void cProc(struct aeEventLoop *ep, CommBlock * nst) {
 	} while (res == 1);
 }
 
-
 void QuitProcess(int sig) {
 	asyslog(LOG_INFO, "通信模块退出,收到信号类型(%d)", sig);
+	if (helperKill("gsmMuxd", 18) == -1) {
+		asyslog(LOG_WARNING, "未能彻底结束gsmMuxd进程...");
+	}
 	shmm_unregister("ProgramInfo", sizeof(ProgramInfo));
 	exit(0);
 }
@@ -216,7 +218,7 @@ void commEnvCheck(int argc, char *argv[]) {
 
 int doAt(struct aeEventLoop *ep, long long id, void *clientData) {
 	ATOBJ *ao = (ATOBJ *) clientData;
-	if((int)dbGet("online.type") != 0) {
+	if ((int) dbGet("online.type") != 0) {
 		return 2000;
 	}
 	return AtPrepare(ao);

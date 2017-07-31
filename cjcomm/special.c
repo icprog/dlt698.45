@@ -20,6 +20,7 @@
 
 #include "db.h"
 #include "Shmem.h"
+#include "atBase.h"
 #include "cjcomm.h"
 #include "basedef.h"
 
@@ -164,6 +165,7 @@ int SpecialRegular(struct aeEventLoop *ep, long long id, void *clientData) {
 	specialCheck4500Change();
 	specialCheck4510Change();
 	specialTransFlow();
+	ATUpdateStatus(AtGet());
 	if (shandong == 1) {
 		specialCheckPow();
 	}

@@ -31,8 +31,8 @@ typedef struct {
 
 	INT32U Tmp;
 	INT8S INFO[6][32]; //模块的厂家信息
-	INT8U TYPE; //在线类型
-	INT8U CSQ; //信号强度
+	INT32S TYPE; //在线类型
+	INT32S CSQ; //信号强度
 	INT32S REG_STATE; //注网状态
 	INT8U CIMI[64];
 	INT8U PPPD; //pppd拨号成功

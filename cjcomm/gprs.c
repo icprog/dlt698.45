@@ -86,22 +86,22 @@ static int RegularModel(struct aeEventLoop *ep, long long id, void *clientData) 
 
 static int RegularGprs(struct aeEventLoop *ep, long long id, void *clientData) {
 	CommBlock *nst = (CommBlock *) clientData;
-	if (dbGet("oneline.type") != 0) {
-		return 2000;
-	}
 
 	if (!AtPrepareFinish(AtGet())) {
 		return 2000;
 	}
 
 	if (nst->phy_connect_fd <= 0) {
+		if (dbGet("oneline.type") != 0) {
+			return 2000;
+		}
 		refreshComPara(nst);
 		nst->phy_connect_fd = CertainConnectForGprs("ppp0", nst);
 		if (nst->phy_connect_fd > 0) {
 			aeCreateFileEvent(ep, nst->phy_connect_fd, AE_READABLE, cRead, nst);
 			helperPeerStat(nst->phy_connect_fd, "客户端[GPRS]与主站链路建立成功");
 			gpofun("/dev/gpoONLINE_LED", 1);
-			dbSet("oneline.type", 1);
+			dbSet("online.type", 1);
 		} else {
 			return 2000;
 		}

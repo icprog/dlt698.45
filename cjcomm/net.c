@@ -53,11 +53,10 @@ int CertainConnectForNet(char *interface, CommBlock *commBlock) {
 int RegularNet(struct aeEventLoop *ep, long long id, void *clientData) {
 	CommBlock *nst = (CommBlock *) clientData;
 
-	if (dbGet("oneline.type") != 0) {
-		return 2000;
-	}
-
 	if (nst->phy_connect_fd <= 0) {
+		if (dbGet("oneline.type") != 0) {
+			return 2000;
+		}
 		refreshComPara(nst);
 		nst->phy_connect_fd = CertainConnectForNet("eth0", nst);
 		if (nst->phy_connect_fd > 0) {
@@ -66,7 +65,6 @@ int RegularNet(struct aeEventLoop *ep, long long id, void *clientData) {
 			helperPeerStat(nst->phy_connect_fd, "客户端[以太网]与主站链路建立成功");
 			gpofun("/dev/gpoONLINE_LED", 1);
 			dbSet("online.type", 2);
-
 		} else {
 			return 2000;
 		}

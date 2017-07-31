@@ -506,6 +506,7 @@ int AtPrepare(ATOBJ *ao) {
 		}
 		if (helperCheckIp() == 1) {
 			retry = 0;
+			ao->PPPD = 1;
 			ao->state = AT_FINISH_PREPARE;
 		}
 		retry++;
@@ -596,6 +597,8 @@ int AtPrepare(ATOBJ *ao) {
 
 		if (SendCommandGetOK(ao, 1, "\rAT$MYNETOPEN=1\r") == 1) {
 			retry = 0;
+			dbSet("oneline.type", 3);
+			ao->PPPD = 1;
 			ao->state = AT_FINISH_PREPARE;
 			return 100;
 		}
@@ -725,12 +728,11 @@ int AtWriteToBuf(int fd, INT8U *buf, INT16U len) {
 int ATUpdateStatus(ATOBJ *ao) {
 	ProgramInfo *info = (ProgramInfo *) dbGet("program.info");
 	info->dev_info.Gprs_csq = ao->CSQ;
-	info->dev_info.wirelessType = ao->TYPE;
+	info->dev_info.gprs_status = ao->GPRS_STATE;
 	info->dev_info.wirelessType = ao->TYPE;
 	info->dev_info.pppd_status = ao->PPPD;
 	info->dev_info.connect_ok = (dbGet("online.type") != 0) ? 1 : 0;
-	info->dev_info.pppd_status = ao->PPPD;
-
+	info->dev_info.jzq_login = dbGet("online.type");
 }
 
 int AtGetSendLen(ATOBJ *ao) {
