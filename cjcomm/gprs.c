@@ -13,6 +13,7 @@
 
 #include "db.h"
 #include "Shmem.h"
+#include "atBase.h"
 #include "helper.h"
 #include "cjcomm.h"
 
@@ -56,29 +57,51 @@ int CertainConnectForGprs(char *interface, CommBlock *commBlock) {
 	}
 }
 
-static int RegularClientForGprs(struct aeEventLoop *ep, long long id,
-		void *clientData) {
+static int RegularModel(struct aeEventLoop *ep, long long id, void *clientData) {
+	CommBlock *nst = (CommBlock *) clientData;
+	nst->p_send = AtWriteToBuf;
+
+	if (!AtPrepareFinish(AtGet())) {
+		refreshComPara(nst);
+		return 2000;
+	}
+
+	int res = AtReadExactly(AtGet(), nst);
+
+	if (res == -1 || Comm_task(nst) == -1) {
+		dbSet("oneline.type", 0);
+	}
+
+	if (res > 0) {
+		TSGet(&nst->final_frame);
+	}
+
+	cProc(ep, nst);
+	while (AtSendExactly(AtGet()) > 0) {
+		continue;
+	}
+
+	return 500;
+}
+
+static int RegularGprs(struct aeEventLoop *ep, long long id, void *clientData) {
 	CommBlock *nst = (CommBlock *) clientData;
 	if (dbGet("oneline.type") != 0) {
 		return 2000;
 	}
 
-	if(!AtPrepareFinish(AtGet())){
-		printf("========1\n");
+	if (!AtPrepareFinish(AtGet())) {
 		return 2000;
 	}
 
-	printf("========2\n");
 	if (nst->phy_connect_fd <= 0) {
 		refreshComPara(nst);
 		nst->phy_connect_fd = CertainConnectForGprs("ppp0", nst);
 		if (nst->phy_connect_fd > 0) {
-			aeCreateFileEvent(ep, nst->phy_connect_fd, AE_READABLE, cRead,
-					nst);
-			dumpPeerStat(nst->phy_connect_fd, "客户端[GPRS]与主站链路建立成功");
+			aeCreateFileEvent(ep, nst->phy_connect_fd, AE_READABLE, cRead, nst);
+			helperPeerStat(nst->phy_connect_fd, "客户端[GPRS]与主站链路建立成功");
 			gpofun("/dev/gpoONLINE_LED", 1);
 			dbSet("oneline.type", 1);
-
 		} else {
 			return 2000;
 		}
@@ -101,7 +124,8 @@ static int RegularClientForGprs(struct aeEventLoop *ep, long long id,
  * 供外部使用的初始化函数，并开启维护循环
  */
 int StartClientForGprs(struct aeEventLoop *ep, long long id, void *clientData) {
-	int sid = aeCreateTimeEvent(ep, 1000, RegularClientForGprs,
+	int sid = aeCreateTimeEvent(ep, 1000,
+			dbGet("gprs.type") == 2 ? RegularModel : RegularGprs,
 			dbGet("block.gprs"), NULL);
 	asyslog(LOG_INFO, "客户端[GPRS]时间事件注册完成(%lld)", sid);
 	return 1;

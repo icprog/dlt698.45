@@ -18,6 +18,9 @@ int helperCheckConnect(char *interface, int fd);
 int helperComOpen(int port, int baud, unsigned char par, unsigned char stopb,
 		unsigned char bits);
 
+int helperReadPositionGet(int length);
+void helperPeerStat(int fd, char *info);
+
 MASTER_STATION_INFO helperGetNextNetIp();
 MASTER_STATION_INFO helperGetNextGPRSIp();
 #endif /* HELPER_H_ */

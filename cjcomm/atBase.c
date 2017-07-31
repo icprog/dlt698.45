@@ -5,6 +5,8 @@
  *      Author: zhoulihai
  */
 
+#include <stdarg.h>
+
 #include "db.h"
 #include "cjcomm.h"
 #include "atBase.h"
@@ -242,43 +244,29 @@ int AtInitObjBlock(ATOBJ *ao) {
 	memset(ao, 0x00, sizeof(ATOBJ));
 }
 
-int AtProcessRecv(ATOBJ *ao) {
-	if ((ao->RecvHead - ao->RecvTail + AT_FRAME_LEN) % AT_FRAME_LEN < 6) {
-		return 0;
-	}
-
-	for (int i = ao->RecvTail; i != ao->RecvHead; i = (i + 1) % AT_FRAME_LEN) {
-		if (ao->recv[i + 0] != '\r') {
-			continue;
-		}
-		if (ao->recv[i + 1] != '\n') {
-			continue;
-		}
-		if (ao->recv[i + 2] != 'O') {
-			continue;
-		}
-		if (ao->recv[i + 3] != 'K') {
-			continue;
-		}
-		if (ao->recv[i + 4] != '\r') {
-			continue;
-		}
-		if (ao->recv[i + 5] != '\n') {
-			continue;
-		}
-
-		int index = 0;
-		do {
-			ao->deal[index++] = ao->recv[ao->RecvTail];
-			ao->recv[ao->RecvTail] = 0x00;
-			ao->RecvTail = (ao->RecvTail + 1) % AT_FRAME_LEN;
-		} while (ao->RecvTail != (i + 5));
-		return 1;
-	}
+ATOBJ *AtGet(void) {
+	return &atObj;
 }
 
-int AtInPrepare(ATOBJ *ao) {
-	return ao->state != AT_FINISH_PREPARE;
+int SendCommandGetOK(ATOBJ *ao, int retry, const char *fmt, ...) {
+	va_list argp;
+	va_start(argp, fmt);
+	char cmd[128];
+	memset(cmd, 0x00, sizeof(cmd));
+	vsprintf(cmd, fmt, argp);
+	va_end(argp);
+
+	for (int timeout = 0; timeout < retry; timeout++) {
+		char Mrecvbuf[128];
+		AtSendCmd(ao, cmd, strlen(cmd));
+		delay(500);
+		memset(Mrecvbuf, 0, 128);
+		RecieveFromComm(Mrecvbuf, 128, ao->fd);
+		if (strstr(Mrecvbuf, "OK") != NULL) {
+			return 1;
+		}
+	}
+	return 0;
 }
 
 int AtPrepare(ATOBJ *ao) {
@@ -287,9 +275,14 @@ int AtPrepare(ATOBJ *ao) {
 
 	char Mrecvbuf[128];
 	memset(Mrecvbuf, 0, 128);
+	MASTER_STATION_INFO ip_port;
 
 	switch (ao->state) {
 	case 0:
+		system("ppp-off");
+		if (helperKill("gsmMuxd", 1) == -1) {
+			return 5000;
+		}
 		count = 0;
 		retry = 0;
 		gpofun("/dev/gpoCSQ_GREEN", 0);
@@ -490,7 +483,11 @@ int AtPrepare(ATOBJ *ao) {
 			ao->TYPE = 3;
 		}
 		retry = 0;
-		ao->state = 22;
+		if (((int) dbGet("gprs.type")) == 2) {
+			ao->state = 50;
+		} else {
+			ao->state = 22;
+		}
 		return 500;
 	case 22:
 		close(ao->fd);
@@ -513,6 +510,97 @@ int AtPrepare(ATOBJ *ao) {
 		}
 		retry++;
 		return 1000;
+	case 50:
+		retry = 0;
+		ao->state = 51;
+		return 100;
+	case 51:
+		if (retry > 8) {
+			ao->state = 0;
+			return 100;
+		}
+		if (SendCommandGetOK(ao, 1, "\rAT$MYNETACT=1,0\r") == 1) {
+			retry = 0;
+			ao->state = 52;
+			return 100;
+		}
+		return 500;
+	case 52:
+		if (retry > 8) {
+			ao->state = 0;
+			return 100;
+		}
+		if (SendCommandGetOK(ao, 1, "\rAT$MYNETCON=1,\"APN\",\"%s\"\r",
+				&(((CLASS25*) dbGet("class25"))->commconfig.apn[1])) == 1) {
+			retry = 0;
+			ao->state = 53;
+			return 100;
+		}
+		return 500;
+	case 53:
+		if (retry > 8) {
+			ao->state = 0;
+			return 100;
+		}
+		if (SendCommandGetOK(ao, 1, "\rAT$MYNETCON=1,\"USERPWD\",\"%s,%s\"\r",
+				&(((CLASS25*) dbGet("class25"))->commconfig.userName[1]),
+				&(((CLASS25*) dbGet("class25"))->commconfig.passWord[1]))
+				== 1) {
+			retry = 0;
+			ao->state = 54;
+			return 100;
+		}
+		return 500;
+	case 54:
+		if (retry > 8) {
+			ao->state = 0;
+			return 100;
+		}
+		if (SendCommandGetOK(ao, 1, "\rAT$MYNETURC=1\r") == 1) {
+			retry = 0;
+			ao->state = 55;
+			return 100;
+		}
+		return 500;
+
+	case 55:
+		if (retry > 8) {
+			ao->state = 0;
+			return 100;
+		}
+		ip_port = helperGetNextGPRSIp();
+		if (SendCommandGetOK(ao, 1, "\rAT$MYNETSRV=1,1,0,0,\"%s:%d\"\r",
+				ip_port.ip, ip_port.port) == 1) {
+			retry = 0;
+			ao->state = 56;
+			return 100;
+		}
+		return 500;
+	case 56:
+		if (retry > 10) {
+			ao->state = 0;
+			return 100;
+		}
+		if (SendCommandGetOK(ao, 1, "\rAT$MYNETACT=1,1\r") == 1) {
+			retry = 0;
+			ao->state = 57;
+			return 100;
+		}
+		return 500;
+
+	case 57:
+		if (retry > 30) {
+			ao->state = 0;
+			return 100;
+		}
+
+		if (SendCommandGetOK(ao, 1, "\rAT$MYNETOPEN=1\r") == 1) {
+			retry = 0;
+			ao->state = AT_FINISH_PREPARE;
+			return 100;
+		}
+		return 1500;
+
 	case AT_FINISH_PREPARE:
 		asyslog(LOG_INFO, "======+");
 		return 5 * 1000;
@@ -523,38 +611,115 @@ int AtPrepareFinish(ATOBJ *ao) {
 	return ao->state == AT_FINISH_PREPARE;
 }
 
-void AtDealer(ATOBJ *ao) {
-	ao->state = AT_FINISH_PREPARE;
-}
+int checkModelStatus(char *buf, int len) {
+	static int status = 0;
+	static int merror = 0;
 
-int AtDealData(ATOBJ *ao) {
-	if (AtInPrepare(ao)) {
-		AtPrepare(ao);
-	} else {
-		AtDealer(ao);
+	if (len < 0) {
+		return 0;
 	}
+
+	for (int i = 0; i < len - 5; ++i) {
+		if (buf[i] == 'E' && buf[i + 1] == 'R' && buf[i + 2] == 'R'
+				&& buf[i + 3] == 'O' && buf[i + 4] == 'R') {
+			return -1;
+		}
+	}
+	return 0;
 }
 
-ATOBJ *AtGet(void) {
-	return &atObj;
+int AtReadExactly(ATOBJ *ao, CommBlock *nst) {
+	int chl = 0;
+	int sum = 0;
+
+	memset(ao->recv, 0, AT_FRAME_LEN);
+	AtSendCmd(ao, "\rAT$MYNETREAD=1,1024\r", 21);
+	delay(300);
+	int resLen = RecieveFromComm(ao->recv, AT_FRAME_LEN, ao->fd);
+
+	char *netReadPos = strstr(ao->recv, "MYNETREAD:");
+	if (netReadPos == NULL) {
+		printf("找不到MYNETREAD\n");
+		return checkModelStatus(ao->recv, resLen);
+	}
+
+	if (sscanf(netReadPos, "%*[^:]: %d,%d", &chl, &sum) == 2) {
+		printf("报文通道：长度(%d-%d)\n", chl, sum);
+		if (sum == 0) {
+			return 0;
+		}
+		int pos = helperReadPositionGet(sum);
+		printf("==recv %d, at %d has %d [bytes]\n", resLen, 15 + pos, sum);
+		for (int i = 0; i < sum; i++) {
+			nst->RecBuf[nst->RHead] = netReadPos[pos + 15 + i];
+			nst->RHead = (nst->RHead + 1) % BUFLEN;
+			printf("%02x ", netReadPos[pos + 15 + i]);
+		}
+		return sum;
+	} else {
+		asyslog(LOG_INFO, "没有解析到报文\n");
+	}
+	return 0;
 }
 
-int AtNeedRead(ATOBJ *ao) {
-	return ao->NeedRead;
+int myStrnstr(char *buf, int len) {
+	for (int i = 0; i < len - 1; ++i) {
+		if (buf[i] == 'O' && buf[i + 1] == 'K') {
+			return i;
+		}
+	}
+	return 0;
 }
 
-int AtNeedSend(ATOBJ *ao) {
-	return 1;
+int AtSendExactly(ATOBJ *ao) {
+	if (ao->SendLen <= 0) {
+		return 0;
+	}
 
+	int chl = 0;
+	int sum = 0;
+
+	for (int timeout = 0; timeout < 3; timeout++) {
+		char cmdBuf[2048];
+		memset(cmdBuf, 0x00, sizeof(cmdBuf));
+		sprintf(cmdBuf, "\rAT$MYNETWRITE=1,%d\r", ao->SendLen);
+		AtSendCmd(ao, cmdBuf, strlen(cmdBuf));
+
+		delay(500);
+		int recLen = RecieveFromComm(ao->recv, sizeof(ao->recv), ao->fd);
+		if (sscanf(ao->recv, "%*[^:]: %d,%d", &chl, &sum) == 2) {
+			write(ao->fd, ao->send, sum);
+			for (int j = 0; j < 3; ++j) {
+				delay(500);
+				memset(ao->recv, 0, sizeof(ao->recv));
+				int position = RecieveFromComm(ao->recv, sizeof(ao->recv),
+						ao->fd);
+				if (myStrnstr(ao->recv, position) != 0) {
+					printf("~~~~~~~~~~~~~%d-%d-%d", ao->SendLen, sum, position);
+					for (int i = 0; i < ao->SendLen; i++) {
+						ao->send[i] = ao->send[sum + i];
+						printf("%02x ", ao->send[i]);
+					}
+					ao->SendLen -= sum;
+					printf("&&&&&&&&&%d\n", ao->SendLen);
+					if (ao->SendLen == 0) {
+						goto SEND_END;
+					}
+
+				}
+			}
+		}
+	}
+
+	SEND_END: printf("#####return len = %d\n", ao->SendLen);
+	return ao->SendLen;
 }
 
-int ATReadData(ATOBJ *ao) {
-	return 1;
-
-}
-
-int ATSendData(ATOBJ *ao) {
-	return 1;
+int AtWriteToBuf(int fd, INT8U *buf, INT16U len) {
+	for (int i = 0; i < len; i++) {
+		AtGet()->send[AtGet()->SendLen + i] = buf[i];
+	}
+	AtGet()->SendLen += len;
 }
 
 int ATUpdateStatus(ATOBJ *ao) {
@@ -566,4 +731,8 @@ int ATUpdateStatus(ATOBJ *ao) {
 	info->dev_info.connect_ok = (dbGet("online.type") != 0) ? 1 : 0;
 	info->dev_info.pppd_status = ao->PPPD;
 
+}
+
+int AtGetSendLen(ATOBJ *ao) {
+	return ao->SendLen;
 }

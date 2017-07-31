@@ -42,6 +42,17 @@ int helperCheckIp() {
 	return 0;
 }
 
+
+void helperPeerStat(int fd, char *info) {
+	int peerBuf[128];
+	int port = 0;
+
+	memset(peerBuf, 0x00, sizeof(peerBuf));
+	anetTcpKeepAlive(NULL, fd);
+	anetPeerToString(fd, peerBuf, sizeof(peerBuf), &port);
+	asyslog(LOG_INFO, "[%s%s]:%d\n", info, peerBuf, port);
+}
+
 int helperKill(char *name, int timeout) {
 	pid_t pids[128];
 	for (int i = 0; i < timeout; i++) {
@@ -161,4 +172,18 @@ MASTER_STATION_INFO helperGetNextNetIp(){
 	index %= 2;
 	asyslog(LOG_INFO, "客户端[NET]尝试链接的IP地址：%s:%d", res.ip, res.port);
 	return res;
+}
+
+
+int helperReadPositionGet(int length) {
+	int pos = 1;
+	int tmp = length;
+	for (int i = 0; i < 5; ++i) {
+		tmp /= 10;
+		if (tmp == 0) {
+			break;
+		}
+		pos++;
+	}
+	return pos;
 }

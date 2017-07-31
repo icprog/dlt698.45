@@ -91,6 +91,9 @@ void * dbGet(char * name) {
 	if (strcmp("calc.new", name) == 0) {
 		return DB.CalcNew;
 	}
+	if (strcmp("gprs.type", name) == 0) {
+		return DB.GprsType;
+	}
 
 	return (void *) 0;
 }
@@ -103,7 +106,7 @@ int dbSet(char * name, void* data) {
 		DB.CalcNew = (int) data;
 	}
 	if (strcmp("gprs.type", name) == 0) {
-			DB.GprsType = (int) data;
-		}
+		DB.GprsType = (int) data;
+	}
 	return 1;
 }

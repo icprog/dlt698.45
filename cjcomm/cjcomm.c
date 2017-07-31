@@ -71,6 +71,8 @@ void cProc(struct aeEventLoop *ep, CommBlock * nst) {
 			ConformAutoTask(ep, nst, apduType);
 			switch (apduType) {
 			case LINK_RESPONSE:
+				gpofun("/dev/gpoONLINE_LED", 1);
+				dbSet("oneline.type", 1);
 				First_VerifiTime(nst->linkResponse, nst->shmem); //简单对时
 				if (GetTimeOffsetFlag() == 1) {
 					Getk_curr(nst->linkResponse, nst->shmem);
@@ -110,8 +112,8 @@ void WriteLinkRequest(INT8U link_type, INT16U heartbeat, LINK_Request *link_req)
 }
 
 int Comm_task(CommBlock *compara) {
+	printf("in Comm_task\n");
 	INT16U heartbeat = (compara->Heartbeat == 0) ? 300 : compara->Heartbeat;
-
 	if (abs(time(NULL) - compara->lasttime) < heartbeat) {
 		return 0;
 	}
@@ -194,16 +196,6 @@ void initComPara(CommBlock *compara,
 			para_vari_save);
 }
 
-void dumpPeerStat(int fd, char *info) {
-	int peerBuf[128];
-	int port = 0;
-
-	memset(peerBuf, 0x00, sizeof(peerBuf));
-	anetTcpKeepAlive(NULL, fd);
-	anetPeerToString(fd, peerBuf, sizeof(peerBuf), &port);
-	asyslog(LOG_INFO, "[%s%s]:%d\n", info, peerBuf, port);
-}
-
 void commEnvCheck(int argc, char *argv[]) {
 	pid_t pids[32];
 
@@ -216,11 +208,6 @@ void commEnvCheck(int argc, char *argv[]) {
 		asyslog(LOG_ERR, "参数不足，程序退出...", pids[0]);
 		exit(0);
 	}
-
-	if (argc > 2 && atoi(argv[2]) == 2) {
-		dbSet("gprs.type", 2);
-	}
-
 
 	//绑定信号处理了函数
 	struct sigaction sa = { };
@@ -238,6 +225,10 @@ int doAt(struct aeEventLoop *ep, long long id, void *clientData) {
 int main(int argc, char *argv[]) {
 	commEnvCheck(argc, argv);
 	dbInit(atoi(argv[1]));
+
+	if (argc > 2 && atoi(argv[2]) == 2) {
+		dbSet("gprs.type", 2);
+	}
 
 	AtInitObjBlock(AtGet());
 

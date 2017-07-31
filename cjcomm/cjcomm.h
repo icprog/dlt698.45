@@ -11,7 +11,6 @@
 
 #include "ae.h"
 #include "anet.h"
-#include "SendBuf.h"
 #include "dlt698.h"
 #include "dlt698def.h"
 #include "event.h"
@@ -27,26 +26,16 @@ void cRead(struct aeEventLoop *ep, int fd, void *clientData, int mask);
 void cProc(struct aeEventLoop *ep, CommBlock * nst);
 
 int Comm_task(CommBlock *compara);
-
 void refreshComPara(CommBlock *compara);
-
 int StartVerifiTime(struct aeEventLoop *ep, long long id, void *clientData);
 
 void initComPara(CommBlock *compara,
 		INT32S (*p_send)(int fd, INT8U *buf, INT16U len));
 
-void CalculateTransFlow(ProgramInfo *prginfo_event);
-
-void dumpPeerStat(int fd, char *info);
-
 int StartClientForNet(struct aeEventLoop *ep, long long id, void *clientData);
-
 int StartClientForGprs(struct aeEventLoop *ep, long long id, void *clientData);
-
 int StartMmq(struct aeEventLoop *ep, long long id, void *clientData);
-
 int StartIfr(struct aeEventLoop *ep, long long id, void *clientData);
-
 int StartSerial(struct aeEventLoop *ep, long long id, void *clientData);
 
 //精确校时接口
