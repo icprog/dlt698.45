@@ -561,6 +561,20 @@ void checkRebootFile() {
     }
 }
 
+void CheckOnLineStatue(){
+	static int reboot_count = 0;
+	if(JProgramInfo->dev_info.jzq_login == 0){
+		reboot_count++;
+		if(reboot_count > 2 * 60){
+			asyslog(LOG_ERR, "<异常>检查到设备2小时不在线，重新启动设备...");
+			sleep(1);
+			system(reboot);
+		}
+	}
+}
+
+
+
 int main(int argc, char *argv[])
 {
     struct timeval start={}, end={};

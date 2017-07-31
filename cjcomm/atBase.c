@@ -283,6 +283,11 @@ int AtPrepare(ATOBJ *ao) {
 		if (helperKill("gsmMuxd", 1) == -1) {
 			return 5000;
 		}
+		if(ao->at_retry++ > 5){
+			asyslog(LOG_INFO, "<AT流程> 5次拨号失败，关断模块10分钟>>>>>>>>");
+			ao->at_retry = 0;
+			return 1000 * 60 * 5;
+		}
 		count = 0;
 		retry = 0;
 		gpofun("/dev/gpoCSQ_GREEN", 0);
@@ -597,7 +602,7 @@ int AtPrepare(ATOBJ *ao) {
 
 		if (SendCommandGetOK(ao, 1, "\rAT$MYNETOPEN=1\r") == 1) {
 			retry = 0;
-			dbSet("oneline.type", 3);
+			dbSet("online.type", 3);
 			ao->PPPD = 1;
 			ao->state = AT_FINISH_PREPARE;
 			return 100;
@@ -606,6 +611,7 @@ int AtPrepare(ATOBJ *ao) {
 
 	case AT_FINISH_PREPARE:
 		asyslog(LOG_INFO, "======+");
+		ao->at_retry = 0;
 		return 5 * 1000;
 	}
 }

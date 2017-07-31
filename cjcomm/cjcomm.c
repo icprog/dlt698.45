@@ -114,7 +114,6 @@ void WriteLinkRequest(INT8U link_type, INT16U heartbeat, LINK_Request *link_req)
 }
 
 int Comm_task(CommBlock *compara) {
-	printf("in Comm_task\n");
 	INT16U heartbeat = (compara->Heartbeat == 0) ? 300 : compara->Heartbeat;
 	if (abs(time(NULL) - compara->lasttime) < heartbeat) {
 		return 0;

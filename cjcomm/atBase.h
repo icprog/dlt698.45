@@ -25,6 +25,8 @@ typedef struct {
 	INT32U fd;
 	INT32U state; //作为AT流程的流转标识
 
+	INT8U at_retry;
+
 	INT8S recv[AT_FRAME_LEN];
 	INT8S send[AT_FRAME_LEN];
 	INT32U SendLen; //可以发送数据,数字为发送的字节数
