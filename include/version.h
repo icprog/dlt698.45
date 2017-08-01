@@ -1,2 +1,2 @@
 #define GL_VERSION \
-    1879
+    1880

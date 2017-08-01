@@ -581,6 +581,9 @@ void checkRebootFile() {
 
 void CheckOnLineStatue() {
 	static int reboot_count = 0;
+	if (getZone("GW") == 0) {
+		return;
+	}
 	if (JProgramInfo->dev_info.jzq_login == 0) {
 
 		reboot_count++;
