@@ -31,7 +31,7 @@ void dbInit(int index) {
 
 	initComPara(&DB.ifr, cWrite);
 	initComPara(&DB.serial, cWrite);
-	initComPara(&DB.net, cWriteWithCalc);
+	initComPara(&DB.net, cWrite);
 	initComPara(&DB.gprs, cWriteWithCalc);
 
 	DB.gprs.Heartbeat = DB.c25.commconfig.heartBeat;

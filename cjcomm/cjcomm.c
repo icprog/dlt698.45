@@ -34,6 +34,16 @@ int cWrite(int fd, INT8U *buf, INT16U len) {
 	return ret;
 }
 
+void cReadWithCalc(struct aeEventLoop *ep, int fd, void *clientData, int mask) {
+	int revcount = 0;
+	ioctl(fd, FIONREAD, &revcount);
+	if (revcount > 0) {
+		int old = (int) dbGet("calc.new") + revcount;
+		dbSet("calc.new", old);
+	}
+	cRead(ep, fd, clientData, mask);
+}
+
 void cRead(struct aeEventLoop *ep, int fd, void *clientData, int mask) {
 	CommBlock *nst = (CommBlock *) clientData;
 

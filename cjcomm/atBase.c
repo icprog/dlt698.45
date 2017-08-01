@@ -660,6 +660,8 @@ int AtReadExactly(ATOBJ *ao, CommBlock *nst) {
 		}
 		int pos = helperReadPositionGet(sum);
 		printf("==recv %d, at %d has %d [bytes]\n", resLen, 15 + pos, sum);
+		int old = (int) dbGet("calc.new") + sum;
+		dbSet("calc.new", old);
 		for (int i = 0; i < sum; i++) {
 			nst->RecBuf[nst->RHead] = netReadPos[pos + 15 + i];
 			nst->RHead = (nst->RHead + 1) % BUFLEN;
@@ -711,6 +713,8 @@ int AtSendExactly(ATOBJ *ao) {
 						printf("%02x ", ao->send[i]);
 					}
 					ao->SendLen -= sum;
+					int old = (int) dbGet("calc.new") + sum;
+					dbSet("calc.new", old);
 					printf("&&&&&&&&&%d\n", ao->SendLen);
 					if (ao->SendLen == 0) {
 						goto SEND_END;
