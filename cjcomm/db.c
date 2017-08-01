@@ -95,6 +95,16 @@ void * dbGet(char * name) {
 		return DB.GprsType;
 	}
 
+	if (strcmp("mmq.retry_buf", name) == 0) {
+		return DB.retry_buf;
+	}
+	if (strcmp("mmq.retry_head", name) == 0) {
+		return &DB.retry_head;
+	}
+	if (strcmp("mmq.retry_count", name) == 0) {
+		return DB.retry_count;
+	}
+
 	return (void *) 0;
 }
 
@@ -107,6 +117,9 @@ int dbSet(char * name, void* data) {
 	}
 	if (strcmp("gprs.type", name) == 0) {
 		DB.GprsType = (int) data;
+	}
+	if (strcmp("mmq.retry_count", name) == 0) {
+		DB.retry_count = (int) data;
 	}
 	return 1;
 }

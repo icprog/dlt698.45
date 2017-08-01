@@ -11,123 +11,49 @@
 
 //建立消息监听服务
 static mqd_t mmqd;
-static EventBuf autoEventBuf[AUTO_EVENT_BUF_SIZE];
 
-void initAutoEventBuf(EventBuf *eb) {
-	memset(autoEventBuf, 0x00, sizeof(autoEventBuf));
-	for (int i = 0; i < AUTO_EVENT_BUF_SIZE; ++i) {
-		eb[i].header.cmd = -1;
-	}
-}
-
-int putAutoEventBuf(EventBuf *eb, mmq_head *msg_head, void *buff) {
-	for (int i = 0; i < AUTO_EVENT_BUF_SIZE; ++i) {
-		if (eb[i].header.cmd == -1) {
-			memcpy(&eb[i].header, msg_head, sizeof(mmq_head));
-			memcpy(&eb[i].content, buff, MAXSIZ_PROXY_NET);
-			eb[i].repeat_timeout = -1;
-			saveCoverClass(0x4520, 0, autoEventBuf, sizeof(autoEventBuf),
-					para_vari_save);
-			return 1;
+void RetryTask(struct aeEventLoop *eventLoop, int fd, void *clientData,
+		int mask) {
+	int count = (int) dbGet("mmq.retry_count") + 1;
+	dbSet("mmq.retry_count", count);
+	if (count < 60) {
+		CommBlock *nst = NULL;
+		switch ((int) dbGet("online.type")) {
+		case 1:
+			nst = dbGet("block.gprs");
+			break;
+		case 2:
+			nst = dbGet("block.net");
+			break;
+		case 3:
+			nst = dbGet("block.gprs");
+			break;
+		}
+		if (nst == NULL) {
+			return 0;
+		}
+		if (nst->response_piid[0] != 0
+				&& nst->response_piid[0] == nst->report_piid[0]) {
+			return 0;
+		}else{
+			return 1000;
 		}
 	}
-	return -1;
+	callNotificationReport(nst, dbGet("mmq.retry_buf"),
+			((mmq_head*) dbGet("mmq.retry_head"))->dataOAD,
+			((mmq_head*) dbGet("mmq.retry_head"))->bufsiz);
+	return 0;
 }
 
-int getAutoEventBuf(EventBuf *eb, mmq_head *msg_head, void *buff) {
-	/*
-	 * 当前有需要发送的事件数据
-	 */
-//    for (int i = 0; i < AUTO_EVENT_BUF_SIZE; ++i) {
-//        if (eb[i].repeat_timeout > 0 && eb[i].header.cmd != -1) {
-//            return -1;
-//        }
-//    }
-	/*
-	 * 获取需要再次发送的事件
-	 */
-//    for (int i = 0; i < AUTO_EVENT_BUF_SIZE; ++i) {
-//        if (eb[i].repeat_timeout == 0 && eb[i].header.cmd != -1) {
-//            memcpy(msg_head, &eb[i].header, sizeof(mmq_head));
-//            memcpy(buff, &eb[i].content, MAXSIZ_PROXY_NET);
-//            eb[i].repeat_timeout = -1;
-//            eb[i].header.cmd = -1;
-//            return 1;
-//        }
-//    }
-	/*
-	 * 获取首次发送的事件
-	 */
-	for (int i = 0; i < AUTO_EVENT_BUF_SIZE; ++i) {
-		if (eb[i].header.cmd != -1) {
-			memcpy(msg_head, &eb[i].header, sizeof(mmq_head));
-			memcpy(buff, &eb[i].content, MAXSIZ_PROXY_NET);
-			eb[i].repeat_timeout = AUTO_EVENT_REPEAT_TIMEOUT;
-			eb[i].header.cmd = -1;
-			saveCoverClass(0x4520, 0, autoEventBuf, sizeof(autoEventBuf),
-					para_vari_save);
-			return 1;
-		}
-	}
-	return -1;
-}
-
-void refreshAutoEventBuf(EventBuf *eb) {
-	for (int i = 0; i < AUTO_EVENT_BUF_SIZE; ++i) {
-		if (eb[i].header.cmd != -1 && eb[i].repeat_timeout > 0) {
-			eb[i].repeat_timeout--;
-			return;
-		}
-	}
-	return;
-}
-
-void freeAutoEventBuf() {
-	for (int i = 0; i < AUTO_EVENT_BUF_SIZE; ++i) {
-		if (autoEventBuf[i].header.cmd != -1
-				&& autoEventBuf[i].repeat_timeout != -1) {
-			autoEventBuf[i].header.cmd = -1;
-			autoEventBuf[i].repeat_timeout = -1;
-			return;
-		}
-	}
-	return;
-}
-
-/*
- * 用于程序退出时调用
- */
-void MmqDestory(void) {
-	//关闭资源
-	asyslog(LOG_INFO, "关闭消息监听服务(%d)", mmqd);
-	mmq_close(mmqd);
-	mmqd = -1;
-}
-
-void MmqRead(struct aeEventLoop *eventLoop, int fd, void *clientData, int mask) {
+void MmqReadandSend(struct aeEventLoop *ep, int fd, void *clientData, int mask) {
 	INT8U getBuf[MAXSIZ_PROXY_NET];
 	mmq_head headBuf;
 	int res = mmq_get(fd, 1, &headBuf, getBuf);
 	if (res <= 0) {
 		return;
 	}
-	asyslog(LOG_INFO, "收到代理消息，返回(%d)，类型(%d)", res, headBuf.cmd);
-	if (putAutoEventBuf(autoEventBuf, &headBuf, getBuf) == -1) {
-		asyslog(LOG_ALERT, "警告：事件缓冲区已满,事件上送丢失！");
-	}
-	return;
-}
 
-void MmqSend(struct aeEventLoop *eventLoop, int fd, void *clientData, int mask) {
-	INT8U getBuf[MAXSIZ_PROXY_NET];
-	mmq_head headBuf;
 	CommBlock *nst = NULL;
-
-//    refreshAutoEventBuf(autoEventBuf);
-	if (getAutoEventBuf(autoEventBuf, &headBuf, getBuf) == -1) {
-		return;
-	}
-
 	switch ((int) dbGet("online.type")) {
 	case 1:
 		nst = dbGet("block.gprs");
@@ -139,6 +65,7 @@ void MmqSend(struct aeEventLoop *eventLoop, int fd, void *clientData, int mask) 
 		nst = dbGet("block.gprs");
 		break;
 	}
+
 	asyslog(LOG_INFO, "发送代理消息，返回(%d)，类型(%d)", 0, headBuf.cmd);
 	switch (headBuf.cmd) {
 	case TERMINALPROXY_RESPONSE:
@@ -151,9 +78,15 @@ void MmqSend(struct aeEventLoop *eventLoop, int fd, void *clientData, int mask) 
 		callEventAutoReport(nst, getBuf, headBuf.bufsiz);
 		break;
 	case NOTIFICATIONTRANS_PEPORT:
-	        	callNotificationReport(nst, getBuf, headBuf.dataOAD,headBuf.bufsiz);
-	        	break;
+		callNotificationReport(nst, getBuf, headBuf.dataOAD, headBuf.bufsiz);
+		dbSet("mmq.retry_count", 0);
+		memcpy(dbGet("mmq.retry_buf"), getBuf, sizeof(getBuf));
+		memcpy(dbGet("mmq.retry_head"), &headBuf, sizeof(headBuf));
+		int sid = aeCreateTimeEvent(ep, 1000, RetryTask, clientData, NULL);
+		asyslog(LOG_INFO, "建立重复上送监听，等待主站确认(%lld)", sid);
+		break;
 	}
+	return;
 }
 
 /*
@@ -166,7 +99,7 @@ int RegularMmq(struct aeEventLoop *ep, long long id, void *clientData) {
 		return 8000;
 	}
 
-	if (mmqd < 0) {
+	if (mmqd <= 0) {
 		struct mq_attr mmqAttr;
 		mmqAttr.mq_maxmsg = MAXNUM_PROXY_NET;
 		mmqAttr.mq_msgsize = MAXSIZ_PROXY_NET;
@@ -176,8 +109,7 @@ int RegularMmq(struct aeEventLoop *ep, long long id, void *clientData) {
 			return 60 * 1000;
 		}
 	} else {
-		MmqRead(ep, mmqd, NULL, 0);
-		MmqSend(ep, mmqd, NULL, 0);
+		MmqReadandSend(ep, mmqd, NULL, 0);
 	}
 	return 1000;
 }
@@ -187,9 +119,6 @@ int RegularMmq(struct aeEventLoop *ep, long long id, void *clientData) {
  */
 int StartMmq(struct aeEventLoop *ep, long long id, void *clientData) {
 	mmqd = -1;
-	initAutoEventBuf(autoEventBuf);
-	readCoverClass(0x4520, 0, autoEventBuf, sizeof(autoEventBuf),
-			para_vari_save);
 	int sid = aeCreateTimeEvent(ep, 1000, RegularMmq, clientData, NULL);
 	asyslog(LOG_INFO, "监听服务器时间事件注册完成(%lld)", sid);
 	return 1;

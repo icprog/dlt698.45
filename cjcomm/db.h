@@ -17,7 +17,6 @@
 #include <net/if.h>
 #include <netinet/in.h>
 
-
 #include "Shmem.h"
 #include "cjcomm.h"
 
@@ -38,14 +37,18 @@ typedef struct {
 
 	ProgramInfo *JProgramInfo;
 	int ProgIndex;
-	int OnlineType;
-	int CalcNew;
-	int GprsType;
+	int OnlineType;		//以太网、gprs
+	int CalcNew;		//流量统计
+	int GprsType;		//gprs、cmda、4G
+
+	//消息相关
+	INT8U retry_buf[MAXSIZ_PROXY_NET];
+	mmq_head retry_head;
+	int retry_count;
 } DBStruct;
 
 void * dbGet(char * name);
 int dbSet(char * name, void*);
 void dbInit(int index);
-
 
 #endif /* DB_H_ */
