@@ -78,7 +78,7 @@ int RegularNet(struct aeEventLoop *ep, long long id, void *clientData) {
 		}
 
 		cProc(ep, nst);
-//		RegularAutoTask(ep, nst);
+		RegularAutoTask(ep, nst);
 	}
 
 	return 500;
