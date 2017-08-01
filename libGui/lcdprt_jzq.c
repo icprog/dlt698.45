@@ -3653,6 +3653,7 @@ void menu_termip(){
 		sscanf(ip,"%d.%d.%d.%d",&iIP[0],&iIP[1],&iIP[2],&iIP[3]);
 		if(iIP[0]>255 || iIP[1]>255 || iIP[2]>255 || iIP[3]>255) {
 			syslog(LOG_ERR,"本地ip异常[%s]，重启驱动",ip);
+			msgbox_label((char *)"IP获取失败，重新获取", CTRL_BUTTON_OK);
 			system("rmmod /lib/macb.ko");
 			sleep(2);
 			system("insmod /lib/macb.ko");
@@ -3678,6 +3679,7 @@ void menu_termip(){
 		}
 	}else {
 		syslog(LOG_ERR,"获取本地ip异常[%s]，重启驱动",ip);
+		msgbox_label((char *)"IP失败，重新获取", CTRL_BUTTON_OK);
 		system("rmmod /lib/macb.ko");
 		sleep(2);
 		system("insmod /lib/macb.ko");
