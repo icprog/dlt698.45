@@ -68,6 +68,7 @@ Menu menu[]={//必须是一级菜单，然后二级菜单。。。。
 			{{level3,"2.数据初始化", 	menu_initjzqdata, 	MENU_ISPASSWD},		NULL},
 			{{level3,"3.事件初始化", 	menu_initjzqevent, 	MENU_ISPASSWD},		NULL},
 			{{level3,"4.需量初始化", 	menu_initjzqdemand, 	MENU_ISPASSWD},		NULL},
+			{{level3,"5.恢复出厂设置", 	menu_FactoryReset, 	MENU_ISPASSWD},		NULL},
 		{{level2,"3.现场调试", 	NULL, 				MENU_NOPASSWD},		NULL},
 		////三级菜单 现场调试子菜单
 			{{level3,"1.遥信状态", 	menu_yxstatus, 		MENU_NOPASSWD},		NULL},
@@ -1946,10 +1947,20 @@ void jzq_reset(int type_init){
 	case DEMAND_INIT:
 		system("rm -rf /nand/demand");
 		break;
+	case FACTORY_RESET:
+		system("rm -rf /nand/para");
+		system("rm -rf /nand/event/property");
+		InitClass4016();    //当前套日时段表
+		InitClass4300();    //电气设备信息
+		//InitClass6000();	//初始化交采采集档案
+	    InitClassf203();	//开关量输入
+		InitClassByZone(0);		//根据地区进行相应初始化	4500,4510参数
+		break;
 	default :
 		break;
 	}
 }
+
 //初始化集中器数据
 
 void menu_initjzqdata(){
@@ -1964,7 +1975,10 @@ void menu_initjzqevent(){
 void menu_initjzqdemand(){
 	jzq_reset(DEMAND_INIT);
 }
-
+void menu_FactoryReset()
+{
+	jzq_reset(FACTORY_RESET);
+}
 int pagesetup_showlabel(int item_no){
 	char str[100];
 	Point label_pos;

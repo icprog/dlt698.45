@@ -55,6 +55,7 @@ void menu_debug();
 void menu_initjzqdata();
 void menu_initjzqevent();
 void menu_initjzqdemand();
+void menu_FactoryReset();
 //void menu_initjzqpara();
 //void menu_initjzqpara();
 void menu_pagesetup();

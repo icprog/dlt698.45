@@ -52,8 +52,9 @@
 		#define	ActionResponseNormalList		2
 		#define	ActionThenGetResponseNormalList	3
 #define	REPORT_NOTIFICATION 136
-        #define REPORTNOTIFICATIONLIST 1
-        #define REPROTNOTIFICATIONRECORDLIST 2
+        #define REPORTNOTIFICATIONLIST 			1
+        #define REPROTNOTIFICATIONRECORDLIST 	2
+		#define REPORTNOTIFICATIONTRANSDATA		3
 #define	PROXY_RESPONSE 137
 		#define ProxyGetResponseList		1
 		#define ProxyGetResponseRecord	2
