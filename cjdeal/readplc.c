@@ -27,6 +27,8 @@
 #include "dlt698.h"
 #include "dlt698def.h"
 
+static OAD	OAD_PORT_ZB={0xF209,0x02,0x01};
+
 extern ProgramInfo* JProgramInfo;
 extern int SaveOADData(INT8U taskid,OAD oad_m,OAD oad_r,INT8U *databuf,int datalen,TS ts_res);
 extern INT16U data07Tobuff698(FORMAT07 Data07,INT8U* dataContent);
@@ -2132,7 +2134,7 @@ INT8U doClientProxyRequest(RUNTIME_PLC *runtime_p, int* beginwork, int* step_cj)
 				DEBUG_BUFF(runtime_p->format_Up.afn13_f1_up.MsgContent, datalen);
 				cjcommProxy_plc.strProxyList.datalen = datalen + 6;
 				mqs_send((INT8S *)PROXY_NET_MQ_NAME,1,TERMINALPROXY_RESPONSE,\
-						(INT8U *)&cjcommProxy_plc.strProxyList,sizeof(PROXY_GETLIST));
+						OAD_PORT_ZB,(INT8U *)&cjcommProxy_plc.strProxyList,sizeof(PROXY_GETLIST));
 			} else {
 //				OADtoBuff(cjcommProxy_plc.strProxyList.proxy_obj.transcmd.oad,cjcommProxy_plc.strProxyList.data);
 				create_OAD(0,cjcommProxy_plc.strProxyList.data,cjcommProxy_plc.strProxyList.proxy_obj.transcmd.oad);
@@ -2140,7 +2142,7 @@ INT8U doClientProxyRequest(RUNTIME_PLC *runtime_p, int* beginwork, int* step_cj)
 				cjcommProxy_plc.strProxyList.datalen = 5;
 				mqs_send((INT8S *)PROXY_NET_MQ_NAME,1,\
 						ProxySetResponseList,\
-						(INT8U *)&cjcommProxy_plc.strProxyList,\
+						OAD_PORT_ZB,(INT8U *)&cjcommProxy_plc.strProxyList,\
 						sizeof(PROXY_GETLIST));
 			}
 
@@ -2159,7 +2161,7 @@ INT8U doClientProxyRequest(RUNTIME_PLC *runtime_p, int* beginwork, int* step_cj)
 			cjcommProxy_plc.strProxyList.datalen = 5;
 			mqs_send((INT8S *)PROXY_NET_MQ_NAME,1,\
 					ProxySetResponseList,\
-					(INT8U *)&cjcommProxy_plc.strProxyList,\
+					OAD_PORT_ZB,(INT8U *)&cjcommProxy_plc.strProxyList,\
 					sizeof(PROXY_GETLIST));
 
 			proxyInUse.devUse.plcReady = 1;

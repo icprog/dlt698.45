@@ -6,7 +6,6 @@
 #include "db.h"
 #include "mmq.h"
 #include "cjcomm.h"
-
 #include "libmmq.h"
 #include "StdDataType.h"
 
@@ -151,6 +150,9 @@ void MmqSend(struct aeEventLoop *eventLoop, int fd, void *clientData, int mask) 
 	case METEREVENT_REPORT:
 		callEventAutoReport(nst, getBuf, headBuf.bufsiz);
 		break;
+	case NOTIFICATIONTRANS_PEPORT:
+	        	callNotificationReport(nst, getBuf, headBuf.dataOAD,headBuf.bufsiz);
+	        	break;
 	}
 }
 

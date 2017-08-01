@@ -723,6 +723,8 @@ int getDateTimeS(INT8U type,INT8U *source,INT8U *dest,INT8U *DAR)		//0x1C
 	int  data_len = 0;
 	if((type == 1 && source[0]==dtdatetimes) || (type == 0)) {
 		*DAR = check_date((source[type+0]<<8)+source[type+1],source[type+2],source[type+3],source[type+4],source[type+5],source[type+6]);
+//		fprintf(stderr,"DAR=%d getDateTimeS  %02x_%02x_%02x_%02x_%02x_%02x_%02x\n",*DAR,source[type+0],source[type+1],source[type+2],source[type+3],
+//		                                                                     source[type+4],source[type+5],source[type+6]);
 		dest[1] = source[type+0];//年
 		dest[0] = source[type+1];
 		dest[2] = source[type+2];//月

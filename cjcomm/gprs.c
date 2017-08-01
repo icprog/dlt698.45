@@ -77,6 +77,7 @@ static int RegularModel(struct aeEventLoop *ep, long long id, void *clientData) 
 	}
 
 	cProc(ep, nst);
+	RegularAutoTask(ep, nst);
 	while (AtSendExactly(AtGet()) > 0) {
 		continue;
 	}
@@ -115,7 +116,7 @@ static int RegularGprs(struct aeEventLoop *ep, long long id, void *clientData) {
 			dbSet("online.type", 0);
 		}
 		cProc(ep, nst);
-//		RegularAutoTask(ep, nst);
+		RegularAutoTask(ep, nst);
 	}
 
 	return 500;
