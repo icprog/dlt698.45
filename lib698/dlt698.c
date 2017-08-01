@@ -85,7 +85,6 @@ int StateProcess(CommBlock* nst, int delay_num) {
 	if (((nst->RHead - nst->RTail + FRAMELEN) % FRAMELEN) < 3) {
 		return 0;
 	}
-	fprintf(stderr, "==========cp1\n\n\n\n\n");
 
 	TSGet(&now);
 	tminc(&now, 0, -6);
