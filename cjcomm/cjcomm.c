@@ -92,6 +92,13 @@ void QuitProcess(int sig) {
 	if (helperKill("gsmMuxd", 18) == -1) {
 		asyslog(LOG_WARNING, "未能彻底结束gsmMuxd进程...");
 	}
+	ProgramInfo *info = (ProgramInfo *) dbGet("program.info");
+	info->dev_info.Gprs_csq = 0;
+	info->dev_info.gprs_status = 0;
+	info->dev_info.wirelessType = 0;
+	info->dev_info.pppd_status = 0;
+	info->dev_info.connect_ok = 0;
+	info->dev_info.jzq_login = 0;
 	shmm_unregister("ProgramInfo", sizeof(ProgramInfo));
 	exit(0);
 }
