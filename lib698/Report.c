@@ -142,7 +142,7 @@ INT8U Report_Event(CommBlock *com,INT8U *oiarr,INT8U report_type){
  *
  *  返回 : piid   =-1，错误
  */
-int callNotificationReport(CommBlock* com,INT8U *plcbuf,int datalen)
+int callNotificationReport(CommBlock* com,INT8U *plcbuf,OAD portOAD,int datalen)
 {
 	INT8U *sendbuf = com->SendBuf;
 	int		piid=0;
@@ -161,6 +161,10 @@ int callNotificationReport(CommBlock* com,INT8U *plcbuf,int datalen)
 	sendbuf[index++] = REPORT_NOTIFICATION;
 	sendbuf[index++] = REPORTNOTIFICATIONTRANSDATA;
 	sendbuf[index++] = piid;	//PIID
+	sendbuf[index++] = (portOAD.OI >> 8) & 0xff;	//数据来源端口号
+	sendbuf[index++] = portOAD.OI & 0xff;
+	sendbuf[index++] = portOAD.attflg;
+	sendbuf[index++] = portOAD.attrindex;
 	memcpy(&sendbuf[index],plcbuf,datalen);//将读出的数据拷贝
 	index +=datalen;
 	sendbuf[index++] = 0;

@@ -22,6 +22,7 @@ extern INT16U composeAutoReport(INT8U* SendApdu, INT16U length);
 extern INT16U composeAutoTask(AutoTaskStrap* list);
 extern int callAutoReport(char *filename,INT8U reportChoice,CommBlock* com, INT8U ifecho);
 extern int callEventAutoReport(CommBlock* com,INT8U *eventbuf,int datalen);
+extern int callNotificationReport(CommBlock* com,INT8U *plcbuf,OAD portOAD,int datalen);
 extern int GetReportData(CLASS_601D report);
 extern int doGetnormal(INT8U seqOfNum,RESULT_NORMAL *response);
 
