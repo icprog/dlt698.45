@@ -315,20 +315,21 @@ int AFN03_F10(FORMAT3762 *down,INT8U *sendBuf)
 	sendlen= composeProtocol3762(down, sendBuf);
 	return sendlen;
 }
-int AFN00_F01(FORMAT3762 *down,INT8U *sendBuf)
+int AFN00_F01(FORMAT3762 *up,INT8U *sendBuf)
 {
+	FORMAT3762 down;
 	int sendlen=0;
 	memset(&sendBuf[0], 0, 256);
 
-	down->afn = 0x00;
-	down->fn = 1;
-	down->ctrl.PRM = 0;//从动站
-	down->info_down.ChannelFlag = down->info_up.ChannelFlag;//信道标识
-	down->info_down.ModuleFlag = 0;//无地址域A
-	down->info_down.Seq = down->info_down.Seq++;//序列号
-	memset(&down->afn00_f1.CommandStatus, 0, 16);//从动站
-	down->ctrl.ComType = 1;//窄带载波通信
-	sendlen = composeProtocol3762(down, sendBuf);
+	down.afn = 0x00;
+	down.fn = 1;
+	down.ctrl.PRM = 0;//从动站
+	down.info_down.ChannelFlag = up->info_up.ChannelFlag;//信道标识
+	down.info_down.ModuleFlag = 0;//无地址域A
+	down.info_down.Seq = up->info_down.Seq;//序列号
+	memset(&down.afn00_f1.CommandStatus, 0, 16);//从动站
+	down.ctrl.ComType = 1;//窄带载波通信
+	sendlen = composeProtocol3762(&down, sendBuf);
 	return sendlen;
 }
 
