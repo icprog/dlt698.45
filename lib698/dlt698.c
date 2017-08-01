@@ -88,8 +88,8 @@ int StateProcess(CommBlock* nst, int delay_num) {
 	fprintf(stderr, "==========cp1\n\n\n\n\n");
 
 	TSGet(&now);
-	tminc(&nst->final_frame, 0, 6);
-	fprintf(stderr, "==========cp1 [%d]\n",nst->final_frame.Sec);
+	tminc(&now, 0, -6);
+	fprintf(stderr, "==========cp1 [%d]\n",now.Sec);
 	if (TScompare(now, nst->final_frame) == 1) {
 		nst->RTail = (nst->RTail + 1) % FRAMELEN;
 		return 1;
