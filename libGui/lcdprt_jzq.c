@@ -3653,31 +3653,36 @@ void menu_termip(){
 		sscanf(ip,"%d.%d.%d.%d",&iIP[0],&iIP[1],&iIP[2],&iIP[3]);
 		if(iIP[0]>255 || iIP[1]>255 || iIP[2]>255 || iIP[3]>255) {
 			syslog(LOG_ERR,"本地ip异常[%s]，重启驱动",ip);
-			system("rmmod /lib/macb.so");
+			system("rmmod /lib/macb.ko");
 			sleep(2);
-			system("insmod /lib/macb.so");
-		}
-		sprintf(no_point_ip,"%03d%03d%03d%03d",iIP[0],iIP[1],iIP[2],iIP[3]);
-		if(msgbox_jzqip(no_point_ip, 12)==ACK){
-			//设置ip
-			memset(s_ip, 0, 4*4);
-			memcpy(&s_ip[0][0], &no_point_ip[0], 3);
-			memcpy(&s_ip[1][0], &no_point_ip[3], 3);
-			memcpy(&s_ip[2][0], &no_point_ip[6], 3);
-			memcpy(&s_ip[3][0], &no_point_ip[9], 3);
-			memset(cmd, 0, 50);
-			sprintf(cmd, "ifconfig eth0 %d.%d.%d.%d up", atoi(&s_ip[0][0]),atoi(&s_ip[1][0]),
-					atoi(&s_ip[2][0]),atoi(&s_ip[3][0]));
-			system(cmd);
-			memset(cmd1, 0, 100);
-			sprintf(cmd1, "echo %s > /nor/rc.d/ip.sh", cmd);
-			system(cmd1);
+			system("insmod /lib/macb.ko");
+			sleep(1);
+			system("/etc/rc.d/ip.sh");
+		}else {
+			sprintf(no_point_ip,"%03d%03d%03d%03d",iIP[0],iIP[1],iIP[2],iIP[3]);
+			if(msgbox_jzqip(no_point_ip, 12)==ACK){
+				//设置ip
+				memset(s_ip, 0, 4*4);
+				memcpy(&s_ip[0][0], &no_point_ip[0], 3);
+				memcpy(&s_ip[1][0], &no_point_ip[3], 3);
+				memcpy(&s_ip[2][0], &no_point_ip[6], 3);
+				memcpy(&s_ip[3][0], &no_point_ip[9], 3);
+				memset(cmd, 0, 50);
+				sprintf(cmd, "ifconfig eth0 %d.%d.%d.%d up", atoi(&s_ip[0][0]),atoi(&s_ip[1][0]),
+						atoi(&s_ip[2][0]),atoi(&s_ip[3][0]));
+				system(cmd);
+				memset(cmd1, 0, 100);
+				sprintf(cmd1, "echo %s > /nor/rc.d/ip.sh", cmd);
+				system(cmd1);
+			}
 		}
 	}else {
 		syslog(LOG_ERR,"获取本地ip异常[%s]，重启驱动",ip);
-		system("rmmod /lib/macb.so");
+		system("rmmod /lib/macb.ko");
 		sleep(2);
-		system("insmod /lib/macb.so");
+		system("insmod /lib/macb.ko");
+		sleep(1);
+		system("/etc/rc.d/ip.sh");
 	}
 }
 
