@@ -60,7 +60,7 @@ void specialCheck4510Change() {
 void specialCheck4500Change() {
 	static int ChangeFlag = 0;
 	ProgramInfo *info = (ProgramInfo *) dbGet("program.info");
-	CLASS26* c25 = (CLASS25*) dbGet("class25");
+	CLASS25* c25 = (CLASS25*) dbGet("class25");
 
 	if (ChangeFlag != info->oi_changed.oi4500) {
 		asyslog(LOG_WARNING, "检测到GPRS通信参数变化！刷新主站参数！");

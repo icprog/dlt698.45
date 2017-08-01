@@ -54,7 +54,7 @@ int RegularNet(struct aeEventLoop *ep, long long id, void *clientData) {
 	CommBlock *nst = (CommBlock *) clientData;
 
 	if (nst->phy_connect_fd <= 0) {
-		if (dbGet("oneline.type") != 0) {
+		if (dbGet("online.type") != 0) {
 			return 2000;
 		}
 		refreshComPara(nst);

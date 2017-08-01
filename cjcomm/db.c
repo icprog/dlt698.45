@@ -36,7 +36,6 @@ void dbInit(int index) {
 
 	DB.gprs.Heartbeat = DB.c25.commconfig.heartBeat;
 	DB.net.Heartbeat = DB.c26.commconfig.heartBeat;
-	printf("###############%d+%d\n", DB.gprs.Heartbeat, DB.net.Heartbeat);
 	DB.JProgramInfo = OpenShMem("ProgramInfo", sizeof(ProgramInfo), NULL);
 	memcpy(DB.JProgramInfo->Projects[index].ProjectName, "cjcomm",
 			sizeof("cjcomm"));

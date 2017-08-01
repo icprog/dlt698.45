@@ -69,7 +69,7 @@ static int RegularModel(struct aeEventLoop *ep, long long id, void *clientData) 
 	int res = AtReadExactly(AtGet(), nst);
 
 	if (res == -1 || Comm_task(nst) == -1) {
-		dbSet("oneline.type", 0);
+		dbSet("online.type", 0);
 	}
 
 	if (res > 0) {
@@ -92,7 +92,7 @@ static int RegularGprs(struct aeEventLoop *ep, long long id, void *clientData) {
 	}
 
 	if (nst->phy_connect_fd <= 0) {
-		if (dbGet("oneline.type") != 0) {
+		if (dbGet("online.type") != 0) {
 			return 2000;
 		}
 		refreshComPara(nst);
@@ -111,7 +111,7 @@ static int RegularGprs(struct aeEventLoop *ep, long long id, void *clientData) {
 			aeDeleteFileEvent(ep, nst->phy_connect_fd, AE_READABLE);
 			close(nst->phy_connect_fd);
 			nst->phy_connect_fd = -1;
-			dbSet("oneline.type", 0);
+			dbSet("online.type", 0);
 		}
 		cProc(ep, nst);
 //		RegularAutoTask(ep, nst);
