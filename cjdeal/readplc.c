@@ -2569,6 +2569,7 @@ int stateJuge(int nowdstate,INT8U* my6000_p,INT8U* my6012_p,RUNTIME_PLC *runtime
 		runtime_p->state = state;
 		runtime_p->redo = 1;  //初始化之后需要重启抄读
 		*my6000_p = JProgramInfo->oi_changed.oi6000;
+		system("rm /nand/para/plcrecord.par  /nand/para/plcrecord.bak");//测量点变更删除记录
 		return state;
 	}
 	if (JProgramInfo->oi_changed.oi6012 != *my6012_p)
