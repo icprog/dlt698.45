@@ -15,8 +15,9 @@ static mqd_t mmqd;
 void RetryTask(struct aeEventLoop *eventLoop, int fd, void *clientData,int mask) {
 	int count = (int) dbGet("mmq.retry_count") + 1;
 	dbSet("mmq.retry_count", count);
+	CommBlock *nst = NULL;
 	if (count < 60) {
-		CommBlock *nst = NULL;
+
 		switch ((int) dbGet("online.type")) {
 		case 1:
 			nst = dbGet("block.gprs");
@@ -33,7 +34,7 @@ void RetryTask(struct aeEventLoop *eventLoop, int fd, void *clientData,int mask)
 		}
 		if (nst->response_piid[0] != 0
 				&& nst->response_piid[0] == nst->report_piid[0]) {
-			return 0;
+			return AE_NOMORE;
 		}else{
 			return 1000;
 		}

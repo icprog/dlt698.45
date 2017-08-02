@@ -3655,7 +3655,7 @@ INT8S dealRealTimeRequst(INT8U port485)
 	INT8S result = 0;
 	while(readState)
 	{
-		DbgPrintToFile1(port485,"\n 另一个线程正在处理消息 dealRealTimeRequst \n");
+		//DbgPrintToFile1(port485,"\n 另一个线程正在处理消息 dealRealTimeRequst \n");
 		sleep(1);
 	}
 	//处理代理
@@ -4428,8 +4428,8 @@ INT16S deal6015or6017_singlemeter(CLASS_6013 st6013,CLASS_6015 st6015,CLASS_6001
 								tminc(&ts_start,st6015.data.data[0],bactm);
 							}
 
-							DbgPrintToFile1(port485,"第[%d]次抄读曲线-----------------开始时标 %04d-%02d-%02d %02d:%02d:%02d \n",
-									readTimeIndex,ts_start.Year,ts_start.Month,ts_start.Day,ts_start.Hour,ts_start.Minute,ts_start.Sec);
+							//DbgPrintToFile1(port485,"第[%d]次抄读曲线-----------------开始时标 %04d-%02d-%02d %02d:%02d:%02d \n",
+							//		readTimeIndex,ts_start.Year,ts_start.Month,ts_start.Day,ts_start.Hour,ts_start.Minute,ts_start.Sec);
 							tmpTime = ts_start.Year;
 							st6015.data.data[CURVE_INFO_STARTINDEX] = 0x1c;
 							st6015.data.data[CURVE_INFO_STARTINDEX+1] = (tmpTime>>8)&0x00ff;
@@ -4444,7 +4444,7 @@ INT16S deal6015or6017_singlemeter(CLASS_6013 st6013,CLASS_6015 st6015,CLASS_6001
 							ret = deal6015_698(st6015,obj6001,st6035,curvedataContent,port485);
 
 
-							DbPrt1(port485,"曲线数据 :", (char *) curvedataContent, ret, NULL);
+							//DbPrt1(port485,"曲线数据 :", (char *) curvedataContent, ret, NULL);
 							if(roadDataLen > 0)
 							{
 								INT8U recordNum = ret/roadDataLen;
@@ -4474,8 +4474,8 @@ INT16S deal6015or6017_singlemeter(CLASS_6013 st6013,CLASS_6015 st6015,CLASS_6001
 											TSGet(&freezeTimeStamp);
 										}
 
-										DbgPrintToFile1(port485,"曲线数据时标[%d] %04d-%02d-%02d %02d:%02d:%02d",
-										recordIndex,freezeTimeStamp.Year,freezeTimeStamp.Month,freezeTimeStamp.Day,freezeTimeStamp.Hour,freezeTimeStamp.Minute,freezeTimeStamp.Sec);
+										//DbgPrintToFile1(port485,"曲线数据时标[%d] %04d-%02d-%02d %02d:%02d:%02d",
+										//recordIndex,freezeTimeStamp.Year,freezeTimeStamp.Month,freezeTimeStamp.Day,freezeTimeStamp.Hour,freezeTimeStamp.Minute,freezeTimeStamp.Sec);
 										memset(singleDatabuf,0,DATA_CONTENT_LEN);
 										memcpy(singleDatabuf,&curvedataContent[dataIndex],roadDataLen);
 										DateTimeBCD savetime;
@@ -4731,7 +4731,7 @@ INT16U compose6012Buff(DateTimeBCD startTime,DateTimeBCD saveTime,TSA meterAddr,
 	memset(dataContent,0,DATA_CONTENT_LEN);
 	memcpy(dataContent,buff6012,bufflen);
 	fprintf(stderr,"\n\n buff6012[%d]:",bufflen);
-	DbPrt1(port485,"存储数据  compose6012Buff:", (char *) dataContent, bufflen, NULL);
+	//DbPrt1(port485,"存储数据  compose6012Buff:", (char *) dataContent, bufflen, NULL);
 	return bufflen;
 }
 //GetOrSet 0 -get 1-set
@@ -4856,7 +4856,7 @@ INT8S deal6015or6017(CLASS_6013 st6013,CLASS_6015 st6015, INT8U port485,CLASS_60
 									dataIndex += CalcOIDataLen(st6015.csds.csd[0].csd.road.oads[tmpIndex].OI,st6015.csds.csd[0].csd.road.oads[tmpIndex].attrindex);
 								}
 							}
-#ifdef TESTDEF
+#if 0
 							DbgPrintToFile1(port485,"0010 data[%d]= %02x %02x %02x %02x %02x %02x %02x",data_0010_len,dataContent[dataIndex],
 									dataContent[dataIndex+1],dataContent[dataIndex+2],dataContent[dataIndex+3]
 								   ,dataContent[dataIndex+4],dataContent[dataIndex+5],dataContent[dataIndex+6]);
@@ -4870,6 +4870,14 @@ INT8S deal6015or6017(CLASS_6013 st6013,CLASS_6015 st6015, INT8U port485,CLASS_60
 
 						SaveNorData(st6035->taskID,NULL,dataContent,bufflen,ts_cc);
 					}
+#if 1
+					DataTimeGet(&st6035->endtime);
+					st6035->taskState = AFTER_OPR;
+					INT16U tsaNum = getTaskDataTsaNum(st6035->taskID);
+					//DbgPrintToFile1(port,"tsaNum = %d",tsaNum);
+					st6035->successMSNum = st6035->successMSNum > tsaNum?st6035->successMSNum:tsaNum;
+					saveClass6035(st6035);
+#endif
 				}
 				else
 				{
@@ -4886,6 +4894,7 @@ INT8S deal6015or6017(CLASS_6013 st6013,CLASS_6015 st6015, INT8U port485,CLASS_60
 		{
 			 asyslog(LOG_WARNING, "table6000 中不存在 序号=%d的测量点",info6000[port].list6001[meterIndex]);
 		}
+
 	}
 	return result;
 }
@@ -4965,7 +4974,7 @@ INT8S cleanTaskIDmmq(INT8U port485)
 	do
 	{
 		taskIndex = getTaskIndex(port485);
-		DbgPrintToFile1(port485,"清理485 %d消息队列中任务index = %d",port485,taskIndex);
+		//DbgPrintToFile1(port485,"清理485 %d消息队列中任务index = %d",port485,taskIndex);
 	}while(taskIndex > -1);
 	para_change485[port485-1] = 0;
 	return ret;
@@ -5084,12 +5093,14 @@ void read485_thread(void* i485port) {
 			fprintf(stderr,"\n发送报文数量：%d  接受报文数量：%d",result6035.sendMsgNum,result6035.rcvMsgNum);
 			DbgPrintToFile1(port,"****************taskIndex = %d 任务结束 发送报文数量：%d  接受报文数量：%d*******************************",
 					taskIndex,result6035.sendMsgNum,result6035.rcvMsgNum);
-
+#if 0
 			DataTimeGet(&result6035.endtime);
 			result6035.taskState = AFTER_OPR;
 			INT16U tsaNum = getTaskDataTsaNum(result6035.taskID);
+			//DbgPrintToFile1(port,"tsaNum = %d",tsaNum);
 			result6035.successMSNum = result6035.successMSNum > tsaNum?result6035.successMSNum:tsaNum;
 			saveClass6035(&result6035);
+#endif
 #if 1//抄完日冻结任务需要把infoReplenish　保存到文件里　保证重启后补抄不用全部都抄
 
 			//日冻结任务
@@ -5097,7 +5108,7 @@ void read485_thread(void* i485port) {
 			{
 				//保存需要补抄的数据到文件
 				filewrite(REPLENISHFILEPATH,&infoReplenish,sizeof(Replenish_TaskInfo));
-				printinfoReplenish(0);
+				//printinfoReplenish(0);
 			}
 #endif
 			//判断485故障事件
