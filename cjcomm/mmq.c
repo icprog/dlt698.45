@@ -12,8 +12,7 @@
 //建立消息监听服务
 static mqd_t mmqd;
 
-void RetryTask(struct aeEventLoop *eventLoop, int fd, void *clientData,
-		int mask) {
+int RetryTask(struct aeEventLoop* ep, long long id, void* clientData) {
 	int count = (int) dbGet("mmq.retry_count") + 1;
 	dbSet("mmq.retry_count", count);
 	CommBlock *nst = NULL;
@@ -31,7 +30,7 @@ void RetryTask(struct aeEventLoop *eventLoop, int fd, void *clientData,
 			break;
 		}
 		if (nst == NULL) {
-			return 0;
+			return AE_NOMORE;
 		}
 		if (nst->response_piid[0] != 0
 				&& nst->response_piid[0] == nst->report_piid[0]) {
