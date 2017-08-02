@@ -12,37 +12,37 @@
 //建立消息监听服务
 static mqd_t mmqd;
 
-void RetryTask(struct aeEventLoop *eventLoop, int fd, void *clientData,
-		int mask) {
-//	int count = (int) dbGet("mmq.retry_count") + 1;
-//	dbSet("mmq.retry_count", count);
-//	if (count < 60) {
-//		CommBlock *nst = NULL;
-//		switch ((int) dbGet("online.type")) {
-//		case 1:
-//			nst = dbGet("block.gprs");
-//			break;
-//		case 2:
-//			nst = dbGet("block.net");
-//			break;
-//		case 3:
-//			nst = dbGet("block.gprs");
-//			break;
-//		}
-//		if (nst == NULL) {
-//			return 0;
-//		}
-//		if (nst->response_piid[0] != 0
-//				&& nst->response_piid[0] == nst->report_piid[0]) {
-//			return 0;
-//		}else{
-//			return 1000;
-//		}
-//	}
-//	callNotificationReport(nst, dbGet("mmq.retry_buf"),
-//			((mmq_head*) dbGet("mmq.retry_head"))->dataOAD,
-//			((mmq_head*) dbGet("mmq.retry_head"))->bufsiz);
-//	return 0;
+int RetryTask(struct aeEventLoop *eventLoop, int fd, void *clientData,int mask) {
+	int count = (int) dbGet("mmq.retry_count") + 1;
+	dbSet("mmq.retry_count", count);
+	CommBlock *nst = NULL;
+	if (count < 60) {
+
+		switch ((int) dbGet("online.type")) {
+		case 1:
+			nst = dbGet("block.gprs");
+			break;
+		case 2:
+			nst = dbGet("block.net");
+			break;
+		case 3:
+			nst = dbGet("block.gprs");
+			break;
+		}
+		if (nst == NULL) {
+			return 0;
+		}
+		if (nst->response_piid[0] != 0
+				&& nst->response_piid[0] == nst->report_piid[0]) {
+			return AE_NOMORE;
+		}else{
+			return 1000;
+		}
+	}
+	callNotificationReport(nst, dbGet("mmq.retry_buf"),
+			((mmq_head*) dbGet("mmq.retry_head"))->dataOAD,
+			((mmq_head*) dbGet("mmq.retry_head"))->bufsiz);
+	return 0;
 }
 
 void MmqReadandSend(struct aeEventLoop *ep, int fd, void *clientData, int mask) {

@@ -19,11 +19,8 @@ static int RegularIfr(struct aeEventLoop *ep, long long id, void *clientData) {
 	if (nst->phy_connect_fd <= 0) {
 		nst->phy_connect_fd = helperComOpen(3, com->baud, com->verify,
 				com->stopbits, com->databits);
-		if (nst->phy_connect_fd > 0) {
-			aeCreateFileEvent(ep, nst->phy_connect_fd, AE_READABLE, cRead,
-					nst);
-		}
 	} else {
+		cReadWithoutCheck(ep, nst->phy_connect_fd, nst, 0);
 		cProc(ep, nst);
 	}
 	return 500;
