@@ -27,6 +27,8 @@
 #include "dlt698.h"
 #include "dlt698def.h"
 
+static OAD	OAD_PORT_ZB={0xF209,0x02,0x01};
+
 extern ProgramInfo* JProgramInfo;
 extern int SaveOADData(INT8U taskid,OAD oad_m,OAD oad_r,INT8U *databuf,int datalen,TS ts_res);
 extern INT16U data07Tobuff698(FORMAT07 Data07,INT8U* dataContent);
@@ -888,8 +890,9 @@ int doInit(RUNTIME_PLC *runtime_p)
 }
 int doSetMasterAddr(RUNTIME_PLC *runtime_p)
 {
-	INT8U masteraddr[6] = {0x01,0x02,0x03,0x04,0x05,0x06};
-	int sendlen=0;
+	  CLASS_4001_4002_4003 classtmp = {};
+	static INT8U masteraddr[6] = {0x00,0x00,0x00,0x00,0x00,0x00};
+	int sendlen=0, addrlen=0,i=0;
 	static int step_MasterAddr = 0;
 	time_t nowtime = time(NULL);
 	switch(step_MasterAddr )
@@ -905,14 +908,30 @@ int doSetMasterAddr(RUNTIME_PLC *runtime_p)
 				runtime_p->send_start_time = nowtime ;
 			}else if(runtime_p->format_Up.afn == 0x03 && runtime_p->format_Up.fn == 4)
 			{//返回从节点数量
-				DbgPrintToFile1(31,"载波模块主节点 ：%02x%02x%02x%02x%02x%02x ",\
-						runtime_p->format_Up.afn03_f4_up.MasterPointAddr[0],
-						runtime_p->format_Up.afn03_f4_up.MasterPointAddr[1],
-						runtime_p->format_Up.afn03_f4_up.MasterPointAddr[2],
-						runtime_p->format_Up.afn03_f4_up.MasterPointAddr[3],
-						runtime_p->format_Up.afn03_f4_up.MasterPointAddr[4],
-						runtime_p->format_Up.afn03_f4_up.MasterPointAddr[5]);
-				step_MasterAddr = 1;
+				readCoverClass(0x4001, 0, &classtmp, sizeof(CLASS_4001_4002_4003), para_vari_save);
+				memcpy(masteraddr,runtime_p->format_Up.afn03_f4_up.MasterPointAddr,6);
+				DbgPrintToFile1(31,"载波模块主节点 ：%02x%02x%02x%02x%02x%02x ",masteraddr[0],masteraddr[1],masteraddr[2],masteraddr[3],masteraddr[4],masteraddr[5]);
+				DbgPrintToFile1(31,"终端逻辑地址:   %02x%02x%02x%02x%02x%02x ",classtmp.curstom_num[1],classtmp.curstom_num[2],classtmp.curstom_num[3],
+																			 classtmp.curstom_num[4],classtmp.curstom_num[5],classtmp.curstom_num[6]);
+				addrlen = classtmp.curstom_num[0];
+				if(addrlen > 6){
+					addrlen = 6;
+				}
+				for(i=0;i<addrlen;i++)
+				{
+					if(masteraddr[i] != classtmp.curstom_num[i+1])
+					{
+						step_MasterAddr = 1;
+						memcpy(masteraddr,&classtmp.curstom_num[1],6);
+						DbgPrintToFile1(31,"需要设置主节点地址 : %02x%02x%02x%02x%02x%02x ",masteraddr[0],masteraddr[1],masteraddr[2],masteraddr[3],masteraddr[4],masteraddr[5]);
+						break;
+					}
+				}
+				if (step_MasterAddr == 0)
+				{
+					DbgPrintToFile1(31,"不需要设置主节点地址");
+					return SLAVE_COMP;
+				}
 				clearvar(runtime_p);//376.2上行内容容器清空，发送计时归零
 			}
 			break;
@@ -2156,7 +2175,6 @@ INT8U doClientProxyRequest(RUNTIME_PLC *runtime_p, int* beginwork, int* step_cj)
 	INT16U timeout = 20;
 
 	//TODO: 将状态机置于switch外层才符合逻辑, 否则外部的变量对状态机影响太大
-
 	switch(cjcommProxy_plc.strProxyList.proxytype) {
 	case ProxyGetRequestList:
 		break;
@@ -2171,11 +2189,9 @@ INT8U doClientProxyRequest(RUNTIME_PLC *runtime_p, int* beginwork, int* step_cj)
 	case ProxyActionThenGetRequestList:
 		break;
 	case ProxyTransCommandRequest:
+
 		timeout = (cjcommProxy_plc.strProxyList.proxy_obj.transcmd.revtimeout > 0) ?  \
 										cjcommProxy_plc.strProxyList.proxy_obj.transcmd.revtimeout : 20;
-
-		DEBUG_TIME_LINE("cjcommProxy_plc.strProxyList.transcmd.revtimeout: %d; timeout: %d",\
-						 cjcommProxy_plc.strProxyList.proxy_obj.transcmd.revtimeout, timeout);
 
 		if (*beginwork==0 && cjcommProxy_plc.isInUse==1) {//发送点抄
 			*beginwork = 1;
@@ -2187,74 +2203,63 @@ INT8U doClientProxyRequest(RUNTIME_PLC *runtime_p, int* beginwork, int* step_cj)
 			sendlen = AFN13_F1(&runtime_p->format_Down,runtime_p->sendbuf, addrtmp, 2, 0, \
 					cjcommProxy_plc.strProxyList.proxy_obj.transcmd.cmdbuf, cjcommProxy_plc.strProxyList.proxy_obj.transcmd.cmdlen);
 			SendDataToCom(runtime_p->comfd, runtime_p->sendbuf, sendlen );
+			DbgPrintToFile1(31,"发送 plc 代理 command ");
 			DEBUG_BUFF(runtime_p->sendbuf, sendlen);
 			runtime_p->send_start_time = nowtime;
 			DEBUG_TIME_LINE("");
-		} else if ((runtime_p->format_Up.afn == 0x13 && runtime_p->format_Up.fn == 1 ))	{//收到应答数据，或超时10秒，
-			DEBUG_TIME_LINE("");
-			cjcommProxy_plc.isInUse = 0;
-			*beginwork = 0;
-
+		} else if ((runtime_p->format_Up.afn == 0x13 && runtime_p->format_Up.fn == 1 ) && *beginwork==1) {
+			//收到应答数据，或超时10秒，
+			pthread_mutex_lock(&mutex);
 			if(runtime_p->format_Up.afn13_f1_up.MsgLength > 0) {
 				INT16U tIndex = 0;
 				INT16U starttIndex = 0;
 				for(tIndex = 0;tIndex < runtime_p->format_Up.afn13_f1_up.MsgLength;tIndex++) {//去掉前导符
-					if(runtime_p->format_Up.afn13_f1_up.MsgContent[tIndex]!=0x68) {
+					if(runtime_p->format_Up.afn13_f1_up.MsgContent[tIndex]!=0x68 &&
+					   runtime_p->format_Up.afn13_f1_up.MsgContent[tIndex + 7]!=0x68 ) {
 						continue;
 					} else {
 						starttIndex = tIndex;
 						break;
 					}
 				}
-
 				INT8U datalen = runtime_p->format_Up.afn13_f1_up.MsgLength - starttIndex;
-
-//				OADtoBuff(cjcommProxy_plc.strProxyList.proxy_obj.transcmd.oad,cjcommProxy_plc.strProxyList.data);
-				create_OAD(0,cjcommProxy_plc.strProxyList.data,cjcommProxy_plc.strProxyList.proxy_obj.transcmd.oad);
-
-				cjcommProxy_plc.strProxyList.data[4] = 1;
-				cjcommProxy_plc.strProxyList.data[5] = datalen;
-
-				memcpy(&cjcommProxy_plc.strProxyList.data[6],\
-						&runtime_p->format_Up.afn13_f1_up.MsgContent[starttIndex],\
-						datalen);
+				cjcommProxy_plc.strProxyList.proxy_obj.transcmd.dar = success;
+				cjcommProxy_plc.strProxyList.data[0] = 1;
+				cjcommProxy_plc.strProxyList.data[1] = datalen;
+				memcpy(&cjcommProxy_plc.strProxyList.data[2],&runtime_p->format_Up.afn13_f1_up.MsgContent[starttIndex],datalen);
 				DEBUG_BUFF(runtime_p->format_Up.afn13_f1_up.MsgContent, datalen);
-				cjcommProxy_plc.strProxyList.datalen = datalen + 6;
-				mqs_send((INT8S *)PROXY_NET_MQ_NAME,1,TERMINALPROXY_RESPONSE,\
-						(INT8U *)&cjcommProxy_plc.strProxyList,sizeof(PROXY_GETLIST));
-			} else {
-//				OADtoBuff(cjcommProxy_plc.strProxyList.proxy_obj.transcmd.oad,cjcommProxy_plc.strProxyList.data);
-				create_OAD(0,cjcommProxy_plc.strProxyList.data,cjcommProxy_plc.strProxyList.proxy_obj.transcmd.oad);
-				cjcommProxy_plc.strProxyList.data[4] = 0;
-				cjcommProxy_plc.strProxyList.datalen = 5;
-				mqs_send((INT8S *)PROXY_NET_MQ_NAME,1,\
-						ProxySetResponseList,\
-						(INT8U *)&cjcommProxy_plc.strProxyList,\
-						sizeof(PROXY_GETLIST));
-			}
+				cjcommProxy_plc.strProxyList.datalen = datalen + 2;
 
+			} else {
+				cjcommProxy_plc.strProxyList.proxy_obj.transcmd.dar = request_overtime;
+				cjcommProxy_plc.strProxyList.datalen = 0;
+			}
+			runtime_p->send_start_time = nowtime;
 			memset(&runtime_p->format_Up, 0, sizeof(runtime_p->format_Up));
 			proxyInUse.devUse.plcReady = 1;
-			DbgPrintToFile1(31,"收到点抄数据");
-		} else if (((nowtime - runtime_p->send_start_time) > timeout) \
-				&& *beginwork==1) {//代理超时后, 放弃本次操作, 上报超时应答
-
-			DbgPrintToFile1(31,"单次点抄超时");
 			cjcommProxy_plc.isInUse = 0;
+			*beginwork = 0;
+			pthread_mutex_unlock(&mutex);
+			DbgPrintToFile1(31,"收到点抄数据");
 
-//			OADtoBuff(cjcommProxy_plc.strProxyList.proxy_obj.transcmd.oad,cjcommProxy_plc.strProxyList.data);
-			create_OAD(0,cjcommProxy_plc.strProxyList.data,cjcommProxy_plc.strProxyList.proxy_obj.transcmd.oad);
-			cjcommProxy_plc.strProxyList.data[4] = 0;
-			cjcommProxy_plc.strProxyList.datalen = 5;
-			mqs_send((INT8S *)PROXY_NET_MQ_NAME,1,\
-					ProxySetResponseList,\
-					(INT8U *)&cjcommProxy_plc.strProxyList,\
-					sizeof(PROXY_GETLIST));
-
+		} else if (((nowtime - runtime_p->send_start_time) > timeout) && *beginwork==1) {
+			//代理超时后, 放弃本次操作, 上报超时应答
+			pthread_mutex_lock(&mutex);
+			cjcommProxy_plc.strProxyList.proxy_obj.transcmd.dar = request_overtime;
+			cjcommProxy_plc.strProxyList.datalen = 0;
+			*beginwork = 0;
 			proxyInUse.devUse.plcReady = 1;
-			clearvar(runtime_p);
-			DEBUG_TIME_LINE("");
-		} else if( nowtime - runtime_p->send_start_time > 100  ) {//最后一次代理操作后100秒, 才恢复抄读
+			cjcommProxy_plc.isInUse = 0;
+			pthread_mutex_unlock(&mutex);
+			DbgPrintToFile1(31,"单次点抄超时");
+
+		}else if(proxyInUse.devUse.plcNeed == 0 && *beginwork == 1)
+		{
+			*beginwork = 0;
+			DbgPrintToFile1(31,"总超时判断取消等待");
+			break;
+		}else if( nowtime - runtime_p->send_start_time > 100  ) {
+			//最后一次代理操作后100秒, 才恢复抄读
 			DbgPrintToFile1(31,"100秒超时");
 			clearvar(runtime_p);
 			*beginwork = 0;
@@ -2300,7 +2305,6 @@ int doProxy(RUNTIME_PLC *runtime_p)
 					DEBUG_TIME_LINE("进入液晶点抄");
 					step_cj = 1;
 				}
-
 				beginwork = 0;
 			}
 			break;
@@ -2545,15 +2549,15 @@ int stateJuge(int nowdstate,INT8U* my6000_p,INT8U* my6012_p,RUNTIME_PLC *runtime
 {
 	int state = nowdstate;
 
-	if ((runtime_p->format_Up.afn==0x06) && (runtime_p->format_Up.fn==5))//AFN= 06 FN= F5  路由上报从节点事件
-	{
-		DbgPrintToFile1(31,"载波主动上报");
-		state = AUTO_REPORT;
-		runtime_p->state_bak = runtime_p->state;
-		runtime_p->state = state;
-		clearvar(runtime_p);
-		return state;
-	}
+//	if ((runtime_p->format_Up.afn==0x06) && (runtime_p->format_Up.fn==5))//AFN= 06 FN= F5  路由上报从节点事件
+//	{
+//		DbgPrintToFile1(31,"载波主动上报");
+//		state = AUTO_REPORT;
+//		runtime_p->state_bak = runtime_p->state;
+//		runtime_p->state = state;
+//		clearvar(runtime_p);
+//		return state;
+//	}
 
 	if ( dateJudge(&runtime_p->oldts,&runtime_p->nowts) == 1 ||
 		 JProgramInfo->oi_changed.oi6000 != *my6000_p )

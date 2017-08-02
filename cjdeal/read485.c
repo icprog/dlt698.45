@@ -2653,6 +2653,7 @@ INT8S dealProxyType2(PROXY_GETLIST *getlist,INT8U port485)
 	}else
 	{
 		getlist->proxy_obj.record.dar = request_overtime;
+		getlist->datalen = 0;
 //		getlist->data[dataindex++] = 0;
 //		getlist->datalen += dataindex;
 	}
@@ -2793,9 +2794,10 @@ INT8S dealProxyType7(PROXY_GETLIST *getlist,INT8U port485)
 		getlist->datalen = RecvLen + 2;
 	}else {
 		getlist->proxy_obj.transcmd.dar = request_overtime;
-		getlist->data[0] = 0;
-		getlist->data[1] = request_overtime;//DAR
-		getlist->datalen = 2;
+		//dealanswer tongyichuli
+//		getlist->data[0] = 0;
+//		getlist->data[1] = request_overtime;//DAR
+//		getlist->datalen = 2;
 		fprintf(stderr,"\nproxy request overtime.....getlist->datalen=%d\n",getlist->datalen);
 	}
 	proxyInUse.devUse.rs485Ready  = 1;
@@ -3640,10 +3642,11 @@ INT8S checkBroadCast(INT8U port485)
 }
 void sendProxyFault(PROXY_GETLIST getlist)
 {
+	OAD	oad={};
 	getlist.status = 3;
 	getlist.datalen = 1;
 	memset(getlist.data,0,BUFFSIZE512);
-	mqs_send((INT8S *)PROXY_NET_MQ_NAME,1,TERMINALPROXY_RESPONSE,(INT8U *)&getlist,sizeof(PROXY_GETLIST));
+	mqs_send((INT8S *)PROXY_NET_MQ_NAME,1,TERMINALPROXY_RESPONSE,oad,(INT8U *)&getlist,sizeof(PROXY_GETLIST));
 	fprintf(stderr,"\n代理消息已经发出\n\n");
 }
 //处理代理抄读停上实时请求-
@@ -4087,7 +4090,8 @@ INT8S sendEventReportBuff698(ROAD eventRoad,INT8U saveContentHead[SAVE_EVENT_BUF
 	}
 	DbPrt1(port485,"698 上报事件 buff:", (char *) reportEventBuf, eventBufLen, NULL);
 	//TODO 发送消息
-	mqs_send((INT8S *)PROXY_NET_MQ_NAME,1,METEREVENT_REPORT,reportEventBuf,eventBufLen);
+	OAD	oad={};
+	mqs_send((INT8S *)PROXY_NET_MQ_NAME,1,METEREVENT_REPORT,oad,reportEventBuf,eventBufLen);
 	return ret;
 }
 INT16S deal6017_698(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8U* dataContent,INT8U port485)
@@ -4246,7 +4250,8 @@ INT8S sendEventReportBuff07(INT8U port485,ROAD roadBody,INT8U saveContentHead[SA
 	}
 	DbPrt1(port485,"上报事件 buff:", (char *) reportEventBuf, eventBufLen, NULL);
 	//TODO 发送消息
-	mqs_send((INT8S *)PROXY_NET_MQ_NAME,1,METEREVENT_REPORT,reportEventBuf,eventBufLen);
+	OAD	oad={};
+	mqs_send((INT8S *)PROXY_NET_MQ_NAME,1,METEREVENT_REPORT,oad,reportEventBuf,eventBufLen);
 	return ret;
 }
 INT16S deal6017_07(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8U* dataContent,INT8U port485)

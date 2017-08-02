@@ -26,6 +26,14 @@
 #include "basedef.h"
 #include "ctrl.h"
 
+#define PORT_ZB  	0xF209
+#define PORT_485  	0xF201
+#define PORT_JC		0xF208
+
+static OAD	OAD_PORT_485_1={0xF201,0x02,0x01};
+static OAD	OAD_PORT_485_2={0xF201,0x02,0x02};
+static OAD	OAD_PORT_ZB={0xF209,0x02,0x01};
+
 extern INT32S 			spifp_rn8209;
 extern INT32S 			spifp;
 
@@ -867,9 +875,8 @@ INT8U isPlcMeterByTsa(TSA* pTsa)
  *	组织应答报文的工作, 交给各端口线程来做.
  */
 extern INT8U get6001ObjByTSA(TSA addr,CLASS_6001* targetMeter);
-#define PORT_ZB  	0xF209
-#define PORT_485  	0xF201
-#define PORT_JC		0xF208
+
+
 PROXY_GETLIST proxyList_manager;
 //int proxy_one_fill_record(GETRECORD record,int len,INT8U *source,INT8U DARtype,INT8U *desbuf)
 //{
@@ -1355,8 +1362,8 @@ void replenish_tmp()
 					if (list6013[findIndex].basicInfo.taskID == infoReplenish.unitReplenish[tIndex].taskID)
 					{
 						asyslog(LOG_WARNING,"发送补抄任务ID tIndex = %d　",tIndex);
-						INT8S ret = mqs_send((INT8S *)TASKID_485_2_MQ_NAME,cjdeal,1,(INT8U *)&findIndex,sizeof(INT16S));
-						ret = mqs_send((INT8S *)TASKID_485_1_MQ_NAME,cjdeal,1,(INT8U *)&findIndex,sizeof(INT16S));
+						INT8S ret = mqs_send((INT8S *)TASKID_485_2_MQ_NAME,cjdeal,1,OAD_PORT_485_2,(INT8U *)&findIndex,sizeof(INT16S));
+						ret = mqs_send((INT8S *)TASKID_485_1_MQ_NAME,cjdeal,1,OAD_PORT_485_1,(INT8U *)&findIndex,sizeof(INT16S));
 					}
 				}
 			}
@@ -1412,11 +1419,27 @@ INT8U dealProxyAnswer()
 	{
 		if ( proxyInUse.devUse.plcReady == 1 || timecount > proxyList_manager.timeout)
 		{//收集数据
+
+			fprintf(stderr,"\n---------------------------------------datalen = %d",cjcommProxy_plc.strProxyList.datalen);
 			pthread_mutex_lock(&mutex); //上锁
 			index = proxyList_manager.datalen;
-			memcpy(&proxyList_manager.data[index],cjcommProxy_plc.strProxyList.data,cjcommProxy_plc.strProxyList.datalen);
-			proxyList_manager.datalen += cjcommProxy_plc.strProxyList.datalen;
-			proxyInUse.devUse.plcReady = 1;
+			if(cjcommProxy_plc.strProxyList.datalen<512) {
+				memcpy(&proxyList_manager.data[index],cjcommProxy_plc.strProxyList.data,cjcommProxy_plc.strProxyList.datalen);
+				proxyList_manager.datalen += cjcommProxy_plc.strProxyList.datalen;
+				proxy_dar_fill(&proxyList_manager,cjcommProxy_plc.strProxyList);
+				proxyInUse.devUse.plcReady = 1;
+				fprintf(stderr,"\n代理消息内容.........datalen=%d\n",proxyList_manager.datalen);
+				fprintf(stderr,"proxyList_manager piid=%02x  ca=%02x \n",proxyList_manager.piid,proxyList_manager.csinfo.ca);
+				for(i = 0; i < proxyList_manager.datalen;i++)
+				{
+					fprintf(stderr,"%02x ",proxyList_manager.data[i]);
+					if((i+1)%20 ==0)
+					{
+						fprintf(stderr,"\n");
+					}
+				}
+				fprintf(stderr,"\n\n\n");
+			}
 			pthread_mutex_unlock(&mutex);
 		}
 	}
@@ -1441,21 +1464,23 @@ INT8U dealProxyAnswer()
 			fprintf(stderr,"\n\n\n");
 			index = proxyList_manager.datalen;
 			memcpy(&proxyList_manager.data[index],cjcommProxy.strProxyList.data,cjcommProxy.strProxyList.datalen);
-			proxyList_manager.datalen += cjcommProxy.strProxyList.datalen;
-//			if(timecount > proxyList_manager.timeout) {		//TODO：超时，发送超时的错误，ProxyTransCommandRequest支持，其他类型是否需要？？？
-			proxy_dar_fill(&proxyList_manager,cjcommProxy.strProxyList);
-//			}
-			fprintf(stderr,"\n代理消息内容.........datalen=%d\n",proxyList_manager.datalen);
-			fprintf(stderr,"proxyList_manager piid=%02x  ca=%02x \n",proxyList_manager.piid,proxyList_manager.csinfo.ca);
-			for(i = 0; i < proxyList_manager.datalen;i++)
-			{
-				fprintf(stderr,"%02x ",proxyList_manager.data[i]);
-				if((i+1)%20 ==0)
+			if(cjcommProxy.strProxyList.datalen<512) {
+				proxyList_manager.datalen += cjcommProxy.strProxyList.datalen;
+	//			if(timecount > proxyList_manager.timeout) {		//TODO：超时，发送超时的错误，ProxyTransCommandRequest支持，其他类型是否需要？？？
+				proxy_dar_fill(&proxyList_manager,cjcommProxy.strProxyList);
+	//			}
+				fprintf(stderr,"\n代理消息内容.........datalen=%d\n",proxyList_manager.datalen);
+				fprintf(stderr,"proxyList_manager piid=%02x  ca=%02x \n",proxyList_manager.piid,proxyList_manager.csinfo.ca);
+				for(i = 0; i < proxyList_manager.datalen;i++)
 				{
-					fprintf(stderr,"\n");
+					fprintf(stderr,"%02x ",proxyList_manager.data[i]);
+					if((i+1)%20 ==0)
+					{
+						fprintf(stderr,"\n");
+					}
 				}
+				fprintf(stderr,"\n\n\n");
 			}
-			fprintf(stderr,"\n\n\n");
 			proxyInUse.devUse.rs485Ready = 1;		//移到上面超时判断
 			pthread_mutex_unlock(&mutex);
 		}
@@ -1469,14 +1494,17 @@ INT8U dealProxyAnswer()
 																		//才认为这个设备上的代理操作已完毕.
 																		//当代理所使用的所有设备操作完毕后,
 																		//将代理标记清零, 处理下一个代理操作.
+		pthread_mutex_lock(&mutex); //上锁
 		//处理非载波及485表的TSA的透传应答帧处理
 		if(proxyInUse.devUse.plcNeed==0 && proxyInUse.devUse.rs485Need==0) {
 			proxy_dar_fill(&proxyList_manager,cjcommProxy.strProxyList);
 		}
-		mqs_send((INT8S *)PROXY_NET_MQ_NAME,1,TERMINALPROXY_RESPONSE,(INT8U *)&proxyList_manager,sizeof(PROXY_GETLIST));
+		OAD	oad={};
+		mqs_send((INT8S *)PROXY_NET_MQ_NAME,1,TERMINALPROXY_RESPONSE,oad,(INT8U *)&proxyList_manager,sizeof(PROXY_GETLIST));
 		fprintf(stderr,"\n全部代理操作完成，发消息 ！！");
 		timecount = 0;
 		proxyInUse.u8b = 0;
+		pthread_mutex_unlock(&mutex);
 	}
 	return 1;
 }
@@ -1552,11 +1580,11 @@ void dispatch_thread()
 			//计算下一次抄读此任务的时间;
 			list6013[tastIndex].ts_next = calcnexttime(list6013[tastIndex].basicInfo.interval,list6013[tastIndex].basicInfo.startime,list6013[tastIndex].basicInfo.delay);
 
-			INT8S ret = mqs_send((INT8S *)TASKID_485_2_MQ_NAME,cjdeal,1,(INT8U *)&tastIndex,sizeof(INT16S));
+			INT8S ret = mqs_send((INT8S *)TASKID_485_2_MQ_NAME,cjdeal,1,OAD_PORT_485_2,(INT8U *)&tastIndex,sizeof(INT16S));
 			fprintf(stderr,"\n 向485 2线程发送任务ID = %d \n",ret);
-			ret = mqs_send((INT8S *)TASKID_485_1_MQ_NAME,cjdeal,1,(INT8U *)&tastIndex,sizeof(INT16S));
+			ret = mqs_send((INT8S *)TASKID_485_1_MQ_NAME,cjdeal,1,OAD_PORT_485_1,(INT8U *)&tastIndex,sizeof(INT16S));
 			fprintf(stderr,"\n 向485 1线程发送任务ID = %d \n",ret);
-			ret = mqs_send((INT8S *)TASKID_plc_MQ_NAME,cjdeal,1,(INT8U *)&tastIndex,sizeof(INT16S));
+			ret = mqs_send((INT8S *)TASKID_plc_MQ_NAME,cjdeal,1,OAD_PORT_ZB,(INT8U *)&tastIndex,sizeof(INT16S));
 			//TODO
 			list6013[tastIndex].run_flg = 0;
 
