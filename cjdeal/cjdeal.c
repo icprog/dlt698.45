@@ -31,7 +31,7 @@ extern INT32S 			spifp;
 
 extern INT8S use6013find6015or6017(INT8U cjType,INT16U fanganID,TI interval6013,CLASS_6015* st6015);
 extern INT8U checkMeterType(MY_MS mst,INT8U usrType,TSA usrAddr);
-
+extern void DbgPrintToFile1(INT8U comport,const char *format,...);
 ProgramInfo* JProgramInfo=NULL;
 int ProIndex=0;
 INT8U poweroffon_state = 0; //停上电抄读标志 0无效，1抄读，2抄读完毕
