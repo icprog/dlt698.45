@@ -174,11 +174,11 @@ INT8U state_check(BOOLEAN changed,INT8U devicetype)
 	}
 
 	////test
-	if(devicetype == CCTT1) {
-		for(i=1;i<4;i++) {
-			bit_state[i]=bit_state[0];
-		}
-	}
+//	if(devicetype == CCTT1) {
+//		for(i=1;i<4;i++) {
+//			bit_state[i]=bit_state[0];
+//		}
+//	}
 
 
 	for(i=0; i < STATE_MAXNUM; i++)

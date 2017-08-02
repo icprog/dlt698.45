@@ -264,10 +264,11 @@ void InitClassByZone(INT8U type)
 	}else ret = 0;
     if (ret != 1) {
     	if(getZone("ZheJiang")==0) {
-    		heartBeat = 300;
+    		heartBeat = 300;	//5分钟
 			InitClass4500(heartBeat,master_info_ZheJiang,bak_info_ZheJiang_4510,gprs_para_ZheJiang);
 			InitClass4510(heartBeat,master_info_ZheJiang_4510,IP_ZheJiang);    //以太网通信模块1
 		}else if(getZone("HuNan")==0) {
+			heartBeat = 300;	//5分钟
 			InitClass4500(heartBeat,master_info_HuNan,null_info,gprs_para_HuNan);
 			InitClass4510(heartBeat,master_info_HuNan_4510,IP_HuNan);    //以太网通信模块1
 		}else if(getZone("GW")==0) {

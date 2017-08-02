@@ -125,6 +125,7 @@ void lcd_ctl()
 	}
 	while(1)
 	{
+		usleep(50*1000);
 		if(thread_run == PTHREAD_STOP)
 			break;
 		deal_lcm_write(curtime);
@@ -193,7 +194,7 @@ void lcd_ctl()
 			g_LcdPoll_Flag = LCD_INPOLL;
 			gpio_writebyte((char*)"/dev/gpoLCD_LIGHT", 0);
 		}
-		usleep(50*1000);
+
 	}
 }
 //非轮显显示函数接口
@@ -235,6 +236,7 @@ void* guishow_thread()
 	gui_show_init();
 	while(PTHREAD_RUN == thread_run)
 	{
+		usleep(100*1000);
 		if((LCD_INPOLL==g_LcdPoll_Flag))//开始轮显
 		{
 			lcd_poll();
@@ -243,7 +245,7 @@ void* guishow_thread()
 		{
 			lcd_not_poll();
 		}
-		usleep(100*1000);
+
 	}
 	pthread_exit(&thread_guictrl);
 }
