@@ -62,25 +62,26 @@ Menu menu[]={//必须是一级菜单，然后二级菜单。。。。
 		{{level2,"1.终端版本", 	menu_jzqstatus, 	MENU_NOPASSWD},		NULL},//11
 //		{{level2,"2.终端数据", 	NULL, 				MENU_NOPASSWD},		NULL},
 //			////三级菜单 集中器数据子菜单
-//			{{level3,"1.遥信状态", 	menu_yxstatus, 		MENU_NOPASSWD},		NULL},
 		{{level2,"2.终端管理", 	NULL, 				MENU_NOPASSWD},		NULL},
 			////三级菜单 终端管理子菜单
 			{{level3,"1.终端重启", 	menu_jzqreboot, 	MENU_ISPASSWD},		NULL},//111
 			{{level3,"2.数据初始化", 	menu_initjzqdata, 	MENU_ISPASSWD},		NULL},
 			{{level3,"3.事件初始化", 	menu_initjzqevent, 	MENU_ISPASSWD},		NULL},
 			{{level3,"4.需量初始化", 	menu_initjzqdemand, 	MENU_ISPASSWD},		NULL},
+			{{level3,"5.恢复出厂设置", 	menu_FactoryReset, 	MENU_ISPASSWD},		NULL},
 		{{level2,"3.现场调试", 	NULL, 				MENU_NOPASSWD},		NULL},
 		////三级菜单 现场调试子菜单
-			{{level3,"1.本地IP设置",	menu_termip, 		MENU_NOPASSWD},		NULL},//111
-			{{level3,"2.GPRSIP查看",	menu_gprsip, 		MENU_NOPASSWD},		NULL},//111
+			{{level3,"1.遥信状态", 	menu_yxstatus, 		MENU_NOPASSWD},		NULL},
+			{{level3,"2.本地IP设置",	menu_termip, 		MENU_NOPASSWD},		NULL},//111
+			{{level3,"3.GPRSIP查看",	menu_gprsip, 		MENU_NOPASSWD},		NULL},//111
 //			{{level3,"3.抄表结果查看",menu_readmeter_info,		MENU_NOPASSWD},		NULL},
-			{{level3,"3.液晶对比度", 	menu_lcdcontrast, 	MENU_NOPASSWD},		NULL},
+			{{level3,"4.液晶对比度", 	menu_lcdcontrast, 	MENU_NOPASSWD},		NULL},
 //			{{level3,"5.485-2设置",menu_485func_change,		MENU_NOPASSWD},		NULL},
 //			{{level3,"6.时钟电池", 	menu_rtcpower, 		MENU_NOPASSWD},		NULL},//0
 //			{{level3,"7.载波模块信息",	menu_zb_info,		MENU_NOPASSWD},		NULL},//0
 //			{{level3,"8.GPRS模块信息",menu_gprs_info,		MENU_NOPASSWD},		NULL},//0
-			{{level3,"4.交采芯片信息",menu_ac_info,		MENU_NOPASSWD},		NULL},
-			{{level3,"5.规约切换",menu_ProtocolChange,		MENU_NOPASSWD},NULL},
+			{{level3,"5.交采芯片信息",menu_ac_info,		MENU_NOPASSWD},		NULL},
+			{{level3,"6.规约切换",menu_ProtocolChange,		MENU_NOPASSWD},NULL},
 //		{{level2,"5.页面设置", 	menu_pagesetup, 	MENU_NOPASSWD},		NULL},
 //		{{level2,"6.手动抄表", 	NULL, 				MENU_NOPASSWD},		NULL},
 //			//////三级菜单 手动抄表子菜单
@@ -576,7 +577,7 @@ int requestdata_485_ZB_Block(CLASS_6001* cldno, INT8U *mq_name, int msg_num, Lcd
 	int mq_cnt=5;
 	memset(msgbuf,0,sizeof(msgbuf));
 //	bzero(&msg_real,sizeof(Proxy_Msg));
-	result = requestDataBlock(cldno,(INT8S*)mq_name,PROXY,msg_num,60,msgbuf);
+	result = requestDataBlock(cldno,(INT8S*)mq_name,PROXY,msg_num,40,msgbuf);
 //	DEBUG_TIME_LINE("\ngui: -------------cur rev msg from 485 result = %d\n",result);
 	if(result > 0)
 	{
@@ -647,7 +648,7 @@ void show_realdatabycld(void * pindex){
 	if(cur_pindex == NULL)
 		return;
 	memset(item, 0, 10*sizeof(LcdDataItem));
-	if(cur_pindex->basicinfo.port.OI == PORT_485 ||cur_pindex->basicinfo.port.OI == PORT_ZB){
+	if(cur_pindex->basicinfo.port.OI == PORT_485 ||cur_pindex->basicinfo.port.OI ==  PORT_ZB){
 		mqcount = requestdata_485_ZB_Block(cur_pindex,(INT8U*)PROXY_485_MQ_NAME,5, item);
 	}
 	show_realdata(cur_pindex->sernum, item, mqcount);
@@ -1946,10 +1947,20 @@ void jzq_reset(int type_init){
 	case DEMAND_INIT:
 		system("rm -rf /nand/demand");
 		break;
+	case FACTORY_RESET:
+		system("rm -rf /nand/para");
+		system("rm -rf /nand/event/property");
+		InitClass4016();    //当前套日时段表
+		InitClass4300();    //电气设备信息
+		//InitClass6000();	//初始化交采采集档案
+	    InitClassf203();	//开关量输入
+		InitClassByZone(0);		//根据地区进行相应初始化	4500,4510参数
+		break;
 	default :
 		break;
 	}
 }
+
 //初始化集中器数据
 
 void menu_initjzqdata(){
@@ -1964,7 +1975,10 @@ void menu_initjzqevent(){
 void menu_initjzqdemand(){
 	jzq_reset(DEMAND_INIT);
 }
-
+void menu_FactoryReset()
+{
+	jzq_reset(FACTORY_RESET);
+}
 int pagesetup_showlabel(int item_no){
 	char str[100];
 	Point label_pos;
@@ -3632,23 +3646,38 @@ void menu_termip(){
 	char no_point_ip[20];
 	char cmd[50], cmd1[100], s_ip[4][4];
 	int iIP[4];
-	get_inet_ip(ETH,ip);
-	sscanf(ip,"%d.%d.%d.%d",&iIP[0],&iIP[1],&iIP[2],&iIP[3]);
-	sprintf(no_point_ip,"%03d%03d%03d%03d",iIP[0],iIP[1],iIP[2],iIP[3]);
-	if(msgbox_jzqip(no_point_ip, 12)==ACK){
-		//设置ip
-		memset(s_ip, 0, 4*4);
-		memcpy(&s_ip[0][0], &no_point_ip[0], 3);
-		memcpy(&s_ip[1][0], &no_point_ip[3], 3);
-		memcpy(&s_ip[2][0], &no_point_ip[6], 3);
-		memcpy(&s_ip[3][0], &no_point_ip[9], 3);
-		memset(cmd, 0, 50);
-		sprintf(cmd, "ifconfig eth0 %d.%d.%d.%d up", atoi(&s_ip[0][0]),atoi(&s_ip[1][0]),
-				atoi(&s_ip[2][0]),atoi(&s_ip[3][0]));
-		system(cmd);
-		memset(cmd1, 0, 100);
-		sprintf(cmd1, "echo %s > /nor/rc.d/ip.sh", cmd);
-		system(cmd1);
+
+	memset(iIP,0,sizeof(iIP));
+	memset(ip,0,sizeof(ip));
+	if(get_inet_ip(ETH,ip)==1) {
+		sscanf(ip,"%d.%d.%d.%d",&iIP[0],&iIP[1],&iIP[2],&iIP[3]);
+		if(iIP[0]>255 || iIP[1]>255 || iIP[2]>255 || iIP[3]>255) {
+			syslog(LOG_ERR,"本地ip异常[%s]，重启驱动",ip);
+			system("rmmod /lib/macb.so");
+			sleep(2);
+			system("insmod /lib/macb.so");
+		}
+		sprintf(no_point_ip,"%03d%03d%03d%03d",iIP[0],iIP[1],iIP[2],iIP[3]);
+		if(msgbox_jzqip(no_point_ip, 12)==ACK){
+			//设置ip
+			memset(s_ip, 0, 4*4);
+			memcpy(&s_ip[0][0], &no_point_ip[0], 3);
+			memcpy(&s_ip[1][0], &no_point_ip[3], 3);
+			memcpy(&s_ip[2][0], &no_point_ip[6], 3);
+			memcpy(&s_ip[3][0], &no_point_ip[9], 3);
+			memset(cmd, 0, 50);
+			sprintf(cmd, "ifconfig eth0 %d.%d.%d.%d up", atoi(&s_ip[0][0]),atoi(&s_ip[1][0]),
+					atoi(&s_ip[2][0]),atoi(&s_ip[3][0]));
+			system(cmd);
+			memset(cmd1, 0, 100);
+			sprintf(cmd1, "echo %s > /nor/rc.d/ip.sh", cmd);
+			system(cmd1);
+		}
+	}else {
+		syslog(LOG_ERR,"获取本地ip异常[%s]，重启驱动",ip);
+		system("rmmod /lib/macb.so");
+		sleep(2);
+		system("insmod /lib/macb.so");
 	}
 }
 
@@ -4271,105 +4300,39 @@ void menu_ProtocolChange()
 }
 
 void menu_yxstatus(){
-//	Point pos;
-//	INT8U str[100];
-//	INT8U yx1_attrib,yx2_attrib;
-//#ifdef CCTT_I
-//	INT8U yx3_attrib,yx4_attrib,yx5_attrib;//集中器3、4路遥信和第5路门节点
-//#endif
-//
-//#ifdef SPTF_III
-//	INT8U yx3_attrib;//专变门节点
-//#endif
-//
-//	while(g_LcdPoll_Flag==LCD_NOTPOLL){
-//		if(PressKey==ESC){
-//			break;
-//		}
-//		delay(100);
-//
-//#ifdef SPTF_III
-//		yx3_attrib = (ParaAll->f12.StatePropFlag & 0x04)>>2;//专变门节点属性
-//#endif
-//		DEBUG_TIME_LINE("shuxing = %d\n",ParaAll->f12.StatePropFlag);
-//		DEBUG_TIME_LINE("jieru = %d\n",shmm_getdevstat()->YxStat);
-//		yx1_attrib = ParaAll->f12.StatePropFlag & 0x01;//遥信属性
-//		yx2_attrib = (ParaAll->f12.StatePropFlag & 0x02)>>1;//遥信属性
-//#ifdef CCTT_I
-//		//集中器四路遥信
-//		yx3_attrib = (ParaAll->f12.StatePropFlag & 0x04)>>2;//遥信属性
-//		//DEBUG_TIME_LINE("%c \n",yx3_attrib);
-//		yx4_attrib = (ParaAll->f12.StatePropFlag & 0x08)>>3;//遥信属性
-//
-//		yx5_attrib = (ParaAll->f12.StatePropFlag & 0x10)>>4;//遥信属性
-//#endif
-//		gui_clrrect(rect_Client);
-//		gui_setpos(&pos, rect_Client.left+6*FONTSIZE, rect_Client.top+FONTSIZE);
-//		gui_textshow((char*)"当前开关量状态", pos, LCD_NOREV);
-//		memset(str, 0, 100);
-//		pos.x = rect_Client.left + FONTSIZE*9;
-//		pos.y += FONTSIZE*3;
-//		gui_textshow((char*)"状态  变位  属性", pos, LCD_NOREV);
-//		pos.x = rect_Client.left + FONTSIZE;
-//		pos.y += FONTSIZE*3-2;
-//		memset(str, 0, 100);
-//		sprintf((char*)str, "开关量1: %s    %s   %s",
-//				shmm_getdevstat()->YxStat&0x01?"合":"分",
-//				shmm_getdevstat()->YxChange&0x01?"是":"否",
-//				yx1_attrib?"动合":"动断");
-//		gui_textshow((char*)str, pos, LCD_NOREV);
-//		pos.y += FONTSIZE*3-2;
-//		memset(str, 0, 100);
-//		sprintf((char*)str, "开关量2: %s    %s   %s",
-//				shmm_getdevstat()->YxStat&0x02?"合":"分",
-//				shmm_getdevstat()->YxChange&0x02?"是":"否",
-//				yx2_attrib?"动合":"动断");
-//		gui_textshow((char*)str, pos, LCD_NOREV);
-//#ifdef CCTT_I
-//		pos.x = rect_Client.left + FONTSIZE;
-//		pos.y += FONTSIZE*3-2;
-//		memset(str, 0, 100);
-//		sprintf((char*)str, "开关量3: %s    %s   %s",
-//				shmm_getdevstat()->YxStat&0x04?"合":"分",
-//				shmm_getdevstat()->YxChange&0x04?"是":"否",
-//				yx3_attrib?"动合":"动断");
-//		gui_textshow((char*)str, pos, LCD_NOREV);
-//		pos.y += FONTSIZE*3-2;
-//		memset(str, 0, 100);
-//		sprintf((char*)str, "开关量4: %s    %s   %s",
-//				shmm_getdevstat()->YxStat&0x08?"合":"分",
-//				shmm_getdevstat()->YxChange&0x08?"是":"否",
-//				yx4_attrib?"动合":"动断");
-//		gui_textshow((char*)str, pos, LCD_NOREV);
-//		pos.y += FONTSIZE*3-2;
-//		memset(str, 0, 100);
-//		sprintf((char*)str, "门节点1: %s    %s   %s",
-//				shmm_getdevstat()->YxStat&0x10?"合":"分",
-//				shmm_getdevstat()->YxChange&0x10?"是":"否",
-//				yx5_attrib?"动合":"动断");
-//		gui_textshow((char*)str, pos, LCD_NOREV);
-//#endif
-//#ifdef SPTF_III
-//		pos.y += FONTSIZE*3-2;
-//		memset(str, 0, 100);
-//		sprintf((char*)str, "门节点1: %s    %s   %s",
-//			shmm_getdevstat()->YxStat&0x04?"合":"分",
-//			shmm_getdevstat()->YxChange&0x04?"是":"否",
-//			yx3_attrib?"动合":"动断");
-//		gui_textshow((char*)str, pos, LCD_NOREV);
-//		pos.y += FONTSIZE*3-2;
-//		memset(str, 0, 100);
-//		sprintf((char*)str, "脉冲1计数：	%d",shmm_getpubdata()->pulse_calc_by_vstate.collects[0].count);
-//		gui_textshow((char*)str, pos, LCD_NOREV);
-//		pos.y += FONTSIZE*3-2;
-//		memset(str, 0, 100);
-//		sprintf((char*)str, "脉冲2计数：	%d",shmm_getpubdata()->pulse_calc_by_vstate.collects[1].count);
-//		gui_textshow((char*)str, pos, LCD_NOREV);
-//#endif
-//		PressKey = NOKEY;
-//		delay(300);
-//	}
-//	return;
+	Point pos;
+	INT8U str[100];
+    CLASS_f203 oif203 = {};
+    int i=0;
+	while(g_LcdPoll_Flag==LCD_NOTPOLL){
+		if(PressKey==ESC){
+			break;
+		}
+		readCoverClass(0xf203, 0, &oif203, sizeof(CLASS_f203), para_vari_save);
+		gui_clrrect(rect_Client);
+		gui_setpos(&pos, rect_Client.left+6*FONTSIZE, rect_Client.top+FONTSIZE);
+		gui_textshow((char*)"当前开关量状态", pos, LCD_NOREV);
+		memset(str, 0, 100);
+		pos.x = rect_Client.left + FONTSIZE;
+		pos.y += FONTSIZE*3;
+		gui_textshow((char*)"  状态  变位  接入  属性", pos, LCD_NOREV);
+		for(i=0;i<4;i++)
+		{
+			pos.y += FONTSIZE*3-2;
+			memset(str, 0, 100);
+			sprintf((char*)str, "%d: %s   %s    %s    %s",i+1,
+					oif203.statearri.stateunit[i].ST?"合":"分",
+					oif203.statearri.stateunit[i].CD?"是":"否",
+					((oif203.state4.StateAcessFlag>>i)&0x01)?"是":"否",
+					((oif203.state4.StatePropFlag>>i)&0x01)?"动合":"动断");
+			gui_textshow((char*)str, pos, LCD_NOREV);
+			fprintf(stderr,"状态 = %d 变位= %d  接入 = %d 属性 = %d \n",oif203.statearri.stateunit[i].ST,oif203.statearri.stateunit[i].CD,oif203.state4.StateAcessFlag,
+					oif203.state4.StatePropFlag>>i);
+		}
+		PressKey = NOKEY;
+		delay(1000);
+	}
+	return;
 }
 
 void menu_manualsearch(){

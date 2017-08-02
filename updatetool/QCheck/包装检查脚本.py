@@ -2,6 +2,62 @@
 
 from __future__ import division
 import sys, time, datetime, telnetlib, ConfigParser, fileinput, os, re, exceptions, hashlib
+import ctypes
+
+
+STD_INPUT_HANDLE = -10
+STD_OUTPUT_HANDLE= -11
+STD_ERROR_HANDLE = -12
+
+FOREGROUND_BLACK = 0x0
+FOREGROUND_BLUE = 0x01 # text color contains blue.
+FOREGROUND_GREEN= 0x02 # text color contains green.
+FOREGROUND_RED = 0x04 # text color contains red.
+FOREGROUND_INTENSITY = 0x08 # text color is intensified.
+
+BACKGROUND_BLUE = 0x10 # background color contains blue.
+BACKGROUND_GREEN= 0x20 # background color contains green.
+BACKGROUND_RED = 0x40 # background color contains red.
+BACKGROUND_INTENSITY = 0x80 # background color is intensified.
+
+
+#Color class, to print colored chars
+class Color:
+    ''''' See http://msdn.microsoft.com/library/default.asp?url=/library/en-us/winprog/winprog/windows_api_reference.asp
+    for information on Windows APIs.'''
+    std_out_handle = ctypes.windll.kernel32.GetStdHandle(STD_OUTPUT_HANDLE)
+
+    def set_cmd_color(self, color, handle=std_out_handle):
+        """(color) -> bit
+        Example: set_cmd_color(FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE | FOREGROUND_INTENSITY)
+        """
+        bool = ctypes.windll.kernel32.SetConsoleTextAttribute(handle, color)
+        return bool
+
+    def reset_color(self):
+        self.set_cmd_color(FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE)
+
+    def print_red_text(self, print_text):
+        self.set_cmd_color(FOREGROUND_RED | FOREGROUND_INTENSITY)
+        print print_text.decode('utf-8')
+        self.reset_color()
+
+    def print_green_text(self, print_text):
+        self.set_cmd_color(FOREGROUND_GREEN | FOREGROUND_INTENSITY)
+        print print_text.decode('utf-8')
+        self.reset_color()
+
+    def print_blue_text(self, print_text):
+        self.set_cmd_color(FOREGROUND_BLUE | FOREGROUND_INTENSITY)
+        print print_text.decode('utf-8')
+        self.reset_color()
+
+    def print_red_text_with_blue_bg(self, print_text):
+        self.set_cmd_color(FOREGROUND_RED | FOREGROUND_INTENSITY| BACKGROUND_BLUE | BACKGROUND_INTENSITY)
+        print print_text.decode('utf-8')
+        self.reset_color()
+
+g_clr = Color()
 
 
 # 根据文件名，计算md5
@@ -24,7 +80,8 @@ def readConfig(name):
             config.readfp(cfgFile)
             return config
     except IOError, e:
-        print '程序没有找到配置文件，程序当前目录需要config.ini文件。'.decode('utf-8')
+        #print '程序没有找到配置文件，程序当前目录需要config.ini文件。'.decode('utf-8')
+        g_clr.print_red_text("对时\t错误\t时间差距%d秒" % cas)
         sys.exit()
 
 
@@ -36,7 +93,8 @@ def checkConfig(config):
     items = config.options('items')
     for item in items:
         if not config.has_option('target', item):
-            print '配置文件参数数量不匹配'.decode('utf-8')
+            #print '配置文件参数数量不匹配'.decode('utf-8')
+            g_clr.print_red_text("配置文件参数数量不匹配")
             sys.exit()
 
     return config
@@ -68,7 +126,8 @@ def getInputGiveInfo():
         print "<按［回车］键，开始检查>".decode('utf-8')
         return str(input('>>>'))
     except IOError, e:
-        print '请输入正确格式的信息。'.decode('utf-8')
+        #print '请输入正确格式的信息。'.decode('utf-8')
+        g_clr.print_red_text("请输入正确格式的信息!")
     except SyntaxError, e:
         return ''
 
@@ -93,7 +152,8 @@ def checkDevice(config):
         lNet.write("exit" + "\r\n")
         msg = lNet.read_all()
         if CheckMsg(msg, config.get('target', item)) == -1:
-            print str(config.get('name', item) + "\t错误\t" + config.get('target', item)).decode('utf-8')
+            #print str(config.get('name', item) + "\t错误\t" + config.get('target', item)).decode('utf-8')
+            g_clr.print_red_text(config.get('name', item) + "\t错误\t" + config.get('target', item))
             ok = 0
         else:
             print str(config.get('name', item) + "\t正确\t" + config.get('target', item)).decode('utf-8')
@@ -120,7 +180,8 @@ def checkProgs(config):
             print str(p + "\t错误\t").decode('utf-8')
             ok = 0
     if ok == 0:
-        print "进程运行情况 <<<<<<<<错误>>>>>>>>\n".decode('utf-8')
+        #print "进程运行情况 <<<<<<<<错误>>>>>>>>\n".decode('utf-8')
+        g_clr.print_red_text("进程运行情况 <<<<<<<<错误>>>>>>>>\n")
     else:
         print "进程运行情况-正确！\n".decode('utf-8')
 
@@ -143,7 +204,8 @@ def checkDateTime(config):
     devation = deviceDate - datetime.datetime.now()
     cas = (devation.days * 24 * 3600 + devation.seconds)
     if abs(cas) > 5:
-        print "对时\t错误\t时间差距%d秒".decode('utf-8') % cas
+        #print "对时\t错误\t时间差距%d秒".decode('utf-8') % cas
+        g_clr.print_red_text("对时\t错误\t时间差距%d秒"% cas)
         ok = 0
     else:
         print "对时\t正确\t时间差距%d秒".decode('utf-8') % cas
@@ -160,6 +222,8 @@ def checkSoftVersion(config):
     lNet.write("cd /nand/bin/ ;md5sum *" + "\r\n")
     lNet.write("cd /nor/lib/ ;md5sum *" + "\r\n")
     lNet.write("cd /nor/config/ ;md5sum *" + "\r\n")
+    lNet.write("cd /nor/ppp/ ;md5sum cdma2000-connect-chat" + "\r\n")
+    lNet.write("cd /nor/ppp/peers/ ;md5sum cdma2000" + "\r\n")
     lNet.write("exit" + "\r\n")
     msg = lNet.read_all()
 
@@ -174,7 +238,8 @@ def checkSoftVersion(config):
     f.close()
 
     if ok == 0:
-        print "程序版本检查 <<<<<<<<错误>>>>>>>>\n".decode('utf-8')
+        #print "程序版本检查 <<<<<<<<错误>>>>>>>>\n".decode('utf-8')
+        g_clr.print_red_text("程序版本检查 <<<<<<<<错误>>>>>>>>\n")
     else:
         print "程序版本检查-正确！\n".decode('utf-8')
 
@@ -214,7 +279,8 @@ if __name__ == '__main__':
             if ok == 1:
                 print "\n\n>>>>>>>>>>>>>>>>>\n全部正确\n>>>>>>>>>>>>>>>>>\n\n".decode('utf-8')
             else:
-                print "\n\n>>>>>>>>>>>>>>>>>\n设备异常!!!!!\n>>>>>>>>>>>>>>>>>\n\n".decode('utf-8')
+                #print "\n\n>>>>>>>>>>>>>>>>>\n设备异常!!!!!\n>>>>>>>>>>>>>>>>>\n\n".decode('utf-8')
+                g_clr.print_red_text("\n\n>>>>>>>>>>>>>>>>>\n设备异常!!!!!\n>>>>>>>>>>>>>>>>>\n\n")
 
         except IOError, e:
             print '网络连接错误，检查网线连接状态。'.decode('utf-8')

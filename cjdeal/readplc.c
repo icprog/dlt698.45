@@ -22,8 +22,13 @@
 #include "lib3762.h"
 #include "readplc.h"
 #include "cjdeal.h"
+#include "cjsave.h"
 #include "dlt645.h"
 #include "dlt698.h"
+#include "dlt698def.h"
+
+static OAD	OAD_PORT_ZB={0xF209,0x02,0x01};
+
 extern ProgramInfo* JProgramInfo;
 extern int SaveOADData(INT8U taskid,OAD oad_m,OAD oad_r,INT8U *databuf,int datalen,TS ts_res);
 extern INT16U data07Tobuff698(FORMAT07 Data07,INT8U* dataContent);
@@ -35,7 +40,7 @@ extern  INT16U data07Tobuff698(FORMAT07 Data07,INT8U* dataContent);
 extern INT8U checkMeterType(MY_MS mst,INT8U usrType,TSA usrAddr);
 extern mqd_t mqd_zb_task;
 extern CJCOMM_PROXY cjcommProxy;
-extern GUI_PROXY cjguiProxy_plc;
+extern GUI_PROXY cjGuiProxy_plc;
 extern Proxy_Msg* p_Proxy_Msg_Data;//液晶给抄表发送代理处理结构体，指向由guictrl.c配置的全局变量
 extern TASK_CFG list6013[TASK6012_MAX];
 //-----------------------------------------------------------------------------------------------------------------------------------------------------
@@ -116,6 +121,9 @@ void SendDataToCom(int fd, INT8U *sendbuf, INT16U sendlen)
 	fprintf(stderr,"\nsend(%d)",slen);
 	for(i=0;i<slen;i++)
 		fprintf(stderr," %02x",sendbuf[i]);
+	if(getZone("GW")==0) {
+		PacketBufToFile("[ZB]S:",(char *) sendbuf, slen, NULL);
+	}
 }
 int RecvDataFromCom(int fd,INT8U* buf,int* head)
 {
@@ -190,6 +198,9 @@ int StateProcessZb(unsigned char *str,INT8U* Buf )
 				}
 				rec_step = 0;
 				DbPrt1(31,"R:", (char *) str, DataLen, NULL);
+				if(getZone("GW")==0) {
+					PacketBufToFile("[ZB]R:",(char *) str, DataLen, NULL);
+				}
 				return DataLen;
 			}else {
 				RecvTail = (RecvTail+1)%ZBBUFSIZE;
@@ -244,6 +255,104 @@ void PrintTaskInfo2(TASK_INFO *task)
 	int i=0,j=0,numindex=0;
 	for(i=0;i<task->task_n;i++)
 	{
+		for(j=0;j<task->task_list[i].fangan.item_n;j++)
+		{
+			numindex++;
+			switch(task->task_list[i].fangan.cjtype)
+			{
+			case 0:
+				DbgPrintToFile1(31,"%02d| %04x-%02x%02x - %04x-%02x%02x .%02d任务 执行频率%d[%d] %d级 方案%d ，类型%d  采集当前数据 | %d-%d-%d %d:%d:%d OK=%d cov %02x%02x%02x%02x",
+						numindex,
+						task->task_list[i].fangan.items[j].oad1.OI,task->task_list[i].fangan.items[j].oad1.attflg,task->task_list[i].fangan.items[j].oad1.attrindex,
+						task->task_list[i].fangan.items[j].oad2.OI,task->task_list[i].fangan.items[j].oad2.attflg,task->task_list[i].fangan.items[j].oad2.attrindex,
+						task->task_list[i].taskId,
+						task->task_list[i].ti.interval,task->task_list[i].ti.units,
+						task->task_list[i].leve,
+						task->task_list[i].fangan.No,
+						task->task_list[i].fangan.type,
+						task->task_list[i].begin.year.data,task->task_list[i].begin.month.data,task->task_list[i].begin.day.data,
+						task->task_list[i].begin.hour.data,task->task_list[i].begin.min.data,task->task_list[i].begin.sec.data,
+						task->task_list[i].fangan.items[j].sucessflg,
+						task->task_list[i].fangan.items[j].item07[3],task->task_list[i].fangan.items[j].item07[2],
+						task->task_list[i].fangan.items[j].item07[1],task->task_list[i].fangan.items[j].item07[0]
+						);
+				break;
+			case 1:
+				DbgPrintToFile1(31,"%02d| %04x-%02x%02x - %04x-%02x%02x .%02d任务 执行频率%d[%d] %d级 方案%d ，类型%d  采集上%d次 | %d-%d-%d %d:%d:%d OK=%d cov %02x%02x%02x%02x",
+						numindex,
+						task->task_list[i].fangan.items[j].oad1.OI,task->task_list[i].fangan.items[j].oad1.attflg,task->task_list[i].fangan.items[j].oad1.attrindex,
+						task->task_list[i].fangan.items[j].oad2.OI,task->task_list[i].fangan.items[j].oad2.attflg,task->task_list[i].fangan.items[j].oad2.attrindex,
+						task->task_list[i].taskId,
+						task->task_list[i].ti.interval,task->task_list[i].ti.units,
+						task->task_list[i].leve,
+						task->task_list[i].fangan.No,task->task_list[i].fangan.type,
+						task->task_list[i].fangan.N,
+						task->task_list[i].begin.year.data,task->task_list[i].begin.month.data,task->task_list[i].begin.day.data,
+						task->task_list[i].begin.hour.data,task->task_list[i].begin.min.data,task->task_list[i].begin.sec.data,
+						task->task_list[i].fangan.items[j].sucessflg,
+						task->task_list[i].fangan.items[j].item07[3],task->task_list[i].fangan.items[j].item07[2],
+						task->task_list[i].fangan.items[j].item07[1],task->task_list[i].fangan.items[j].item07[0]
+						);
+				break;
+			case 2:
+				DbgPrintToFile1(31,"%02d| %04x-%02x%02x - %04x-%02x%02x .%02d任务 执行频率%d[%d] %d级 方案%d ，类型%d  按冻结时标采集 | %d-%d-%d %d:%d:%d OK=%d cov %02x%02x%02x%02x",
+						numindex,
+						task->task_list[i].fangan.items[j].oad1.OI,task->task_list[i].fangan.items[j].oad1.attflg,task->task_list[i].fangan.items[j].oad1.attrindex,
+						task->task_list[i].fangan.items[j].oad2.OI,task->task_list[i].fangan.items[j].oad2.attflg,task->task_list[i].fangan.items[j].oad2.attrindex,
+						task->task_list[i].taskId,
+						task->task_list[i].ti.interval,task->task_list[i].ti.units,
+						task->task_list[i].leve,
+						task->task_list[i].fangan.No,task->task_list[i].fangan.type,
+						task->task_list[i].begin.year.data,task->task_list[i].begin.month.data,task->task_list[i].begin.day.data,
+						task->task_list[i].begin.hour.data,task->task_list[i].begin.min.data,task->task_list[i].begin.sec.data,
+						task->task_list[i].fangan.items[j].sucessflg,
+						task->task_list[i].fangan.items[j].item07[3],task->task_list[i].fangan.items[j].item07[2],
+						task->task_list[i].fangan.items[j].item07[1],task->task_list[i].fangan.items[j].item07[0]
+						);
+				break;
+			case 3:
+				DbgPrintToFile1(31,"%02d| %04x-%02x%02x - %04x-%02x%02x .%02d任务 执行频率%d[%d] %d级 方案%d ，类型%d  间隔%d (%d) | %d-%d-%d %d:%d:%d OK=%d cov %02x%02x%02x%02x",
+						numindex,
+						task->task_list[i].fangan.items[j].oad1.OI,task->task_list[i].fangan.items[j].oad1.attflg,task->task_list[i].fangan.items[j].oad1.attrindex,
+						task->task_list[i].fangan.items[j].oad2.OI,task->task_list[i].fangan.items[j].oad2.attflg,task->task_list[i].fangan.items[j].oad2.attrindex,
+						task->task_list[i].taskId,
+						task->task_list[i].ti.interval,task->task_list[i].ti.units,
+						task->task_list[i].leve,
+						task->task_list[i].fangan.No,task->task_list[i].fangan.type,
+						task->task_list[i].fangan.ti.interval,
+						task->task_list[i].fangan.ti.units,
+						task->task_list[i].begin.year.data,task->task_list[i].begin.month.data,task->task_list[i].begin.day.data,
+						task->task_list[i].begin.hour.data,task->task_list[i].begin.min.data,task->task_list[i].begin.sec.data,
+						task->task_list[i].fangan.items[j].sucessflg,
+						task->task_list[i].fangan.items[j].item07[3],task->task_list[i].fangan.items[j].item07[2],
+						task->task_list[i].fangan.items[j].item07[1],task->task_list[i].fangan.items[j].item07[0]
+						);
+				break;
+			default:
+				DbgPrintToFile1(31,"%02d| %04x-%02x%02x - %04x-%02x%02x .%02d任务 执行频率%d[%d] %d级 方案%d ，类型%d 未知采集类型 | %d-%d-%d %d:%d:%d OK=%d cov %02x%02x%02x%02x",
+						numindex,
+						task->task_list[i].fangan.items[j].oad1.OI,task->task_list[i].fangan.items[j].oad1.attflg,task->task_list[i].fangan.items[j].oad1.attrindex,
+						task->task_list[i].fangan.items[j].oad2.OI,task->task_list[i].fangan.items[j].oad2.attflg,task->task_list[i].fangan.items[j].oad2.attrindex,
+						task->task_list[i].taskId,
+						task->task_list[i].ti.interval,task->task_list[i].ti.units,
+						task->task_list[i].leve,
+						task->task_list[i].fangan.No,task->task_list[i].fangan.type,
+						task->task_list[i].begin.year.data,task->task_list[i].begin.month.data,task->task_list[i].begin.day.data,
+						task->task_list[i].begin.hour.data,task->task_list[i].begin.min.data,task->task_list[i].begin.sec.data,
+						task->task_list[i].fangan.items[j].sucessflg,
+						task->task_list[i].fangan.items[j].item07[3],task->task_list[i].fangan.items[j].item07[2],
+						task->task_list[i].fangan.items[j].item07[1],task->task_list[i].fangan.items[j].item07[0]
+						);
+			}
+		}
+	}
+}
+void PrintTaskInfo(TASK_INFO *task,int taski)
+{
+	int i=0,j=0,numindex=0;
+//	for(i=0;i<task->task_n;i++)
+	{
+		i = taski;
 		for(j=0;j<task->task_list[i].fangan.item_n;j++)
 		{
 			numindex++;
@@ -415,7 +524,8 @@ int task_Refresh(TASK_UNIT *taskunit)
 		if (list6013[i].basicInfo.taskID == id)
 		{
 			DbgPrintToFile1(31,"找到");
-			taskunit->beginTime = calcnexttime(list6013[i].basicInfo.interval,list6013[i].basicInfo.startime,list6013[i].basicInfo.delay);
+			taskunit->beginTime = calcnexttime(list6013[i].basicInfo.interval,\
+					list6013[i].basicInfo.startime,list6013[i].basicInfo.delay);
 			ts =  timet_bcd(taskunit->beginTime);
 			taskunit->begin = ts;
 			for(t=0;t<taskunit->fangan.item_n;t++)
@@ -714,7 +824,6 @@ int doInit(RUNTIME_PLC *runtime_p)
 			tsa_zb_head = NULL;
 			tsa_count = initTsaList(&tsa_head);
 			tsa_print(tsa_head,tsa_count);
-			system("rm /nand/para/plcrecord.par  /nand/para/plcrecord.bak");
 
 			if (runtime_p->comfd >0)
 				CloseCom( runtime_p->comfd );
@@ -790,12 +899,13 @@ int doSetMasterAddr(RUNTIME_PLC *runtime_p)
 				runtime_p->send_start_time = nowtime ;
 			}else if(runtime_p->format_Up.afn == 0x03 && runtime_p->format_Up.fn == 4)
 			{//返回从节点数量
-				DbgPrintToFile1(31,"载波模块主节点 ：%02x%02x%02x%02x%02x%02x ",runtime_p->format_Up.afn03_f4_up.MasterPointAddr[0],
-																			 runtime_p->format_Up.afn03_f4_up.MasterPointAddr[1],
-																			 runtime_p->format_Up.afn03_f4_up.MasterPointAddr[2],
-																			 runtime_p->format_Up.afn03_f4_up.MasterPointAddr[3],
-																			 runtime_p->format_Up.afn03_f4_up.MasterPointAddr[4],
-																			 runtime_p->format_Up.afn03_f4_up.MasterPointAddr[5]);
+				DbgPrintToFile1(31,"载波模块主节点 ：%02x%02x%02x%02x%02x%02x ",\
+						runtime_p->format_Up.afn03_f4_up.MasterPointAddr[0],
+						runtime_p->format_Up.afn03_f4_up.MasterPointAddr[1],
+						runtime_p->format_Up.afn03_f4_up.MasterPointAddr[2],
+						runtime_p->format_Up.afn03_f4_up.MasterPointAddr[3],
+						runtime_p->format_Up.afn03_f4_up.MasterPointAddr[4],
+						runtime_p->format_Up.afn03_f4_up.MasterPointAddr[5]);
 				step_MasterAddr = 1;
 				clearvar(runtime_p);//376.2上行内容容器清空，发送计时归零
 			}
@@ -994,20 +1104,26 @@ int Echo_Frame(RUNTIME_PLC *runtime_p,INT8U *framebuf,int len)
 	if ( len > 1 )
 	{
 		flag = 2;
-		fprintf(stderr,"\n可以抄读！");
+		DEBUG_TIME_LINE("\n可以抄读！");
 	}
 	else if ( len == 1)
 	{
 		flag = 0;
-		fprintf(stderr,"\n失败切表！");//失败切表
+		DEBUG_TIME_LINE("\n失败切表！");//失败切表
 		sleep(2);
 	}else
 	{
 		flag = 1;
-		fprintf(stderr,"\n抄读成功！");//成功切表
+		DEBUG_TIME_LINE("\n抄读成功！");//成功切表
 	}
 	memcpy(runtime_p->format_Down.addr.SourceAddr,runtime_p->masteraddr,6);
-	sendlen = AFN14_F1(&runtime_p->format_Down,runtime_p->sendbuf,runtime_p->format_Up.afn14_f1_up.SlavePointAddr, flag, 0, len, framebuf);
+#if 0
+	sendlen = AFN14_F1(&runtime_p->format_Down,&runtime_p->format_Up,runtime_p->sendbuf,runtime_p->format_Up.afn14_f1_up.SlavePointAddr, flag, 0, len, framebuf);
+#else
+	sendlen = AFN14_F1(&runtime_p->format_Down,&runtime_p->format_Up,runtime_p->sendbuf,\
+			          runtime_p->format_Up.afn14_f1_up.SlavePointAddr, \
+			          flag, 0, len, framebuf);
+#endif
 	SendDataToCom(runtime_p->comfd, runtime_p->sendbuf,sendlen );
 	clearvar(runtime_p);
 	return flag;
@@ -1085,6 +1201,9 @@ int buildProxyFrame(RUNTIME_PLC *runtime_p,struct Tsa_Node *desnode,Proxy_Msg pM
 			sendlen = composeProtocol07(&Data07, buf645);
 			DbgPrintToFile1(31,"sendlen=%d",sendlen);
 			DbPrt1(31,"645:", (char *) buf645, sendlen, NULL);
+			if(getZone("GW")==0) {
+				PacketBufToFile("[ZB_PROXY]S:",(char *) buf645, sendlen, NULL);
+			}
 			if (sendlen>0)
 			{
 				memcpy(runtime_p->format_Down.addr.SourceAddr,runtime_p->masteraddr,6);
@@ -1148,6 +1267,8 @@ int findFangAnIndex(int code)
 	}
 	return -1;
 }
+
+
 DATA_ITEM checkMeterData(TASK_INFO *meterinfo,int *taski,int *itemi,INT8U usrtype)
 {
 	int i=0,j=0,needflg=0;
@@ -1155,15 +1276,21 @@ DATA_ITEM checkMeterData(TASK_INFO *meterinfo,int *taski,int *itemi,INT8U usrtyp
 	DATA_ITEM item;
 	int fangAnIndex = 0;
 	memset(&item,0,sizeof(DATA_ITEM));
-	DbgPrintToFile1(31,"检查  %02x%02x%02x%02x%02x%02x%02x%02x%02x  index=%d 任务数 %d   数据相个数 %d",
+	DbgPrintToFile1(31,"检查  %02x%02x%02x%02x%02x%02x%02x%02x  index=%d 任务数 %d   数据相个数 %d",
 			meterinfo->tsa.addr[0],meterinfo->tsa.addr[1],meterinfo->tsa.addr[2],
 			meterinfo->tsa.addr[3],meterinfo->tsa.addr[4],meterinfo->tsa.addr[5],
-			meterinfo->tsa.addr[6],meterinfo->tsa.addr[7],meterinfo->tsa.addr[8],
+			meterinfo->tsa.addr[6],meterinfo->tsa.addr[7],
 			meterinfo->tsa_index,meterinfo->task_n,meterinfo->task_list[i].fangan.item_n);
 
+	DEBUG_TIME_LINE("检查  %02x%02x%02x%02x%02x%02x%02x%02x  index=%d 任务数 %d   数据相个数 %d",
+			meterinfo->tsa.addr[0],meterinfo->tsa.addr[1],meterinfo->tsa.addr[2],
+			meterinfo->tsa.addr[3],meterinfo->tsa.addr[4],meterinfo->tsa.addr[5],
+			meterinfo->tsa.addr[6],meterinfo->tsa.addr[7],
+			meterinfo->tsa_index,meterinfo->task_n,meterinfo->task_list[i].fangan.item_n);
+	//正常任务判断
 	for(i=0; i< meterinfo->task_n; i++)
 	{
-		if (nowt >= meterinfo->task_list[i].beginTime )
+		if (nowt >= meterinfo->task_list[i].beginTime && meterinfo->task_list[i].tryAgain != 0x55 )
 		{
 			//判断是否需要抄读
 			fangAnIndex = findFangAnIndex(meterinfo->task_list[i].fangan.No);//查被抄电表当前任务的采集方案编号，在6015中的索引
@@ -1173,7 +1300,38 @@ DATA_ITEM checkMeterData(TASK_INFO *meterinfo,int *taski,int *itemi,INT8U usrtyp
 			}
 			if (needflg == 1)
 			{
-				DbgPrintToFile1(31,"itemn = %d",meterinfo->task_list[i].fangan.item_n);
+				 DEBUG_TIME_LINE("meterinfo->task_list[i].fangan.items[j].sucessflg: %d", meterinfo->task_list[i].fangan.items[j].sucessflg);
+				 for(j = 0; j<meterinfo->task_list[i].fangan.item_n; j++)
+				 {
+					 DEBUG_TIME_LINE("meterinfo->task_list[i].fangan.items[j].sucessflg: %d", meterinfo->task_list[i].fangan.items[j].sucessflg);
+					 if ( meterinfo->task_list[i].fangan.items[j].sucessflg==0)
+					 {
+						 item.oad1 = meterinfo->task_list[i].fangan.items[j].oad1;
+						 item.oad2 = meterinfo->task_list[i].fangan.items[j].oad2;
+						 *taski = i;
+						 *itemi = j;
+						 DbgPrintToFile1(31,"常规任务,满足抄读条件数据项");
+						 return item;	//存在常规任务，满足抄读条件数据项
+					 }
+				 }
+				 DEBUG_TIME_LINE("current has no item to read");
+			}
+		}
+	}
+	//需要补抄的任务
+	//-----------------------------------------------------------
+	for(i=0; i< meterinfo->task_n; i++)
+	{
+		if (nowt >= meterinfo->task_list[i].beginTime && meterinfo->task_list[i].tryAgain == 0x55 )
+		{
+			//判断是否需要抄读
+			fangAnIndex = findFangAnIndex(meterinfo->task_list[i].fangan.No);//查被抄电表当前任务的采集方案编号，在6015中的索引
+			if (fangAnIndex >=0 )
+			{
+				needflg = checkMeterType(fangAn6015[fangAnIndex].mst, usrtype ,meterinfo->tsa);//查被抄电表的用户类型 是否满足6015中的用户类型条件
+			}
+			if (needflg == 1)
+			{
 				 for(j = 0; j<meterinfo->task_list[i].fangan.item_n; j++)
 				 {
 					 if ( meterinfo->task_list[i].fangan.items[j].sucessflg==0)
@@ -1182,17 +1340,20 @@ DATA_ITEM checkMeterData(TASK_INFO *meterinfo,int *taski,int *itemi,INT8U usrtyp
 						 item.oad2 = meterinfo->task_list[i].fangan.items[j].oad2;
 						 *taski = i;
 						 *itemi = j;
+						 DbgPrintToFile1(31,"补抄数据,满足抄读条件");
 						 return item;
 					 }
 				 }
+				 DEBUG_TIME_LINE("no item need reRead");
+				 meterinfo->task_list[i].tryAgain = 0;//已经无补抄数据，清除补抄标识
+				 task_Refresh(&taskinfo.task_list[i] );
 			}
-		}else
-		{
-			DbgPrintToFile1(31,"任务%d 未到 %ld  （当前 %ld）",meterinfo->task_list[i].taskId,meterinfo->task_list[i].beginTime,nowt);
 		}
 	}
+
 	return item;
 }
+
 int createMeterFrame(struct Tsa_Node *desnode,DATA_ITEM item,INT8U *buf,INT8U *item07)
 {
 	INT8U type = 0;
@@ -1287,11 +1448,198 @@ void zeroitemflag(TASK_INFO *task)
 		}
 	}
 }
-int ProcessMeter(INT8U *buf,struct Tsa_Node *desnode)
+
+int do_5004_type( int taski, int itemi ,INT8U *buf, struct Tsa_Node *desnode, DATA_ITEM  tmpitem)
 {
-	DATA_ITEM  tmpitem;
-	int sendlen=0,taski=0, itemi=0;//返回 tmpitem指示的具体任务索引 ，itemi指示的具体数据项索引
+	time_t getTheTime;
+	DateTimeBCD timebcd;
 	INT8U item07[4]={0,0,0,0};
+	int i=0,sendlen = 0;
+
+	getTheTime = taskinfo.task_list[taski].beginTime ;
+	timebcd =   timet_bcd(getTheTime);
+	timebcd.hour.data = 0;
+	timebcd.min.data = 0;
+	sendlen = createMeterFrame(desnode, tmpitem, buf, item07);
+	taskinfo.task_list[taski].fangan.items[itemi].item07[0] = item07[0];
+	taskinfo.task_list[taski].fangan.items[itemi].item07[1] = item07[1];
+	taskinfo.task_list[taski].fangan.items[itemi].item07[2] = item07[2];
+	taskinfo.task_list[taski].fangan.items[itemi].item07[3] = item07[3];
+	taskinfo.task_list[taski].fangan.items[itemi].savetime = timebcd;
+
+	taskinfo.now_taski = taski;
+	taskinfo.now_itemi = itemi;
+	taskinfo.task_list[taski].fangan.items[itemi].sucessflg = 1;
+	taskinfo.task_list[taski].fangan.item_i = itemi;
+	PrintTaskInfo(&taskinfo,taski);
+
+//	if (itemi == taskinfo.task_list[taski].fangan.item_n-1)//最后一个
+//	{
+//		DbgPrintToFile1(31,"重新初始化 任务%d 开始时间",taskinfo.task_list[taski].taskId);
+//		task_Refresh(&taskinfo.task_list[taski] );
+//	}
+
+	return sendlen;
+}
+int do_5002_type( int taski, int itemi ,INT8U *buf, struct Tsa_Node *desnode, DATA_ITEM  tmpitem)
+{
+	time_t getTheTime;
+	DateTimeBCD timebcd;
+	INT8U item07[4]={0,0,0,0};
+	int i=0,sendlen = 0;
+
+	switch(taskinfo.task_list[taski].fangan.cjtype)
+	{
+		case 3://按时间间隔抄表
+			getTheTime = taskinfo.task_list[taski].beginTime - (taskinfo.task_list[taski].fangan.ti.interval * 60);
+			timebcd =   timet_bcd(getTheTime);
+			break;
+		default:
+			getTheTime = taskinfo.task_list[taski].beginTime ;
+			timebcd =   timet_bcd(getTheTime);
+			break;
+	}
+	DbgPrintToFile1(31,"begin=%ld   get=%ld   曲线时标%d-%d-%d %d:%d ",taskinfo.task_list[taski].beginTime ,getTheTime,timebcd.year.data,timebcd.month.data,timebcd.day.data,timebcd.hour.data,timebcd.min.data);
+	sendlen = createMeterFrame_Curve(desnode, tmpitem, buf, item07, timebcd);
+	for(i=0;i<taskinfo.task_list[taski].fangan.item_n;i++)
+	{
+		taskinfo.task_list[taski].fangan.items[i].sucessflg = 1;
+		taskinfo.task_list[taski].fangan.items[i].item07[0] = item07[0];
+		taskinfo.task_list[taski].fangan.items[i].item07[1] = item07[1];
+		taskinfo.task_list[taski].fangan.items[i].item07[2] = item07[2];
+		taskinfo.task_list[taski].fangan.items[i].item07[3] = item07[3];
+		taskinfo.task_list[taski].fangan.items[i].savetime = timebcd;
+	}
+	taskinfo.now_taski = taski;
+	taskinfo.now_itemi = itemi;
+	PrintTaskInfo(&taskinfo,taski);
+//	DbgPrintToFile1(31,"重新初始化 任务%d 开始时间",taskinfo.task_list[taski].taskId);
+	task_Refresh(&taskinfo.task_list[taski] );
+
+	return sendlen;
+}
+int do_other_type( int taski, int itemi ,INT8U *buf, struct Tsa_Node *desnode, DATA_ITEM  tmpitem)
+{
+	time_t getTheTime;
+	DateTimeBCD timebcd;
+	INT8U item07[4]={0,0,0,0};
+	int i=0,sendlen = 0;
+
+	DEBUG_TIME_LINE("createMeterFrame start");
+	sendlen = createMeterFrame(desnode, tmpitem, buf, item07);
+	DEBUG_TIME_LINE("createMeterFrame end");
+
+	DEBUG_TIME_LINE("PrintTaskInfo2 start");
+	taskinfo.task_list[taski].fangan.items[itemi].item07[0] = item07[0];
+	taskinfo.task_list[taski].fangan.items[itemi].item07[1] = item07[1];
+	taskinfo.task_list[taski].fangan.items[itemi].item07[2] = item07[2];
+	taskinfo.task_list[taski].fangan.items[itemi].item07[3] = item07[3];
+	taskinfo.task_list[taski].fangan.items[itemi].savetime = taskinfo.task_list[taski].begin;
+	taskinfo.now_taski = taski;
+	taskinfo.now_itemi = itemi;
+	taskinfo.task_list[taski].fangan.items[itemi].sucessflg = 1;
+	taskinfo.task_list[taski].fangan.item_i = itemi;
+	PrintTaskInfo2(&taskinfo);
+	DEBUG_TIME_LINE("itemi: %d, total: %d", itemi, \
+			taskinfo.task_list[taski].fangan.item_n-1);
+//	if (itemi == taskinfo.task_list[taski].fangan.item_n-1)//最后一个
+//	{
+//		DEBUG_TIME_LINE("");
+//		DbgPrintToFile1(31,"重新初始化 任务%d 开始时间",taskinfo.task_list[taski].taskId);
+//		task_Refresh(&taskinfo.task_list[taski]);
+//	}
+	return sendlen;
+}
+
+
+/*
+ * 假如载波模块请求的测量点TSA与
+ * 内存中的TSA不同, 则需要更新数据
+ * 项的抄读状态.
+ * 如果当前TSA的某个任务的所有数据
+ * 的状态全不为0, 则表示这个任务的
+ * 所有数据项都被操作完毕, 除日冻结
+ * 任务需要补抄外, 其他任务暂时不做
+ * 补抄处理, 更新下一次任务执行时间,
+ * 并将各抄读项状态置0.
+ */
+void chkTsaTask(TASK_INFO *meterinfo)
+{
+	int opt5004Count=0;//日冻结已抄读数据项数目
+	int	needRetry=0;//日冻结需要补抄标志
+
+	int flgZeroCnt = 0;//除日冻结任务的其他任务, 抄读状态为0的数据项数目
+
+	int tasknum = meterinfo->task_n;
+	int i=0,j=0,flg5004Task=-1;
+	time_t nowt = time(NULL);
+	for(i=0;i<tasknum;i++)
+	{
+		 opt5004Count = 0;
+		 needRetry = 0;
+		 flg5004Task = 0;
+		 flgZeroCnt = 0;
+
+		if ( nowt >= meterinfo->task_list[i].beginTime)//此任务时间已经到了
+		{
+			 for(j = 0; j<meterinfo->task_list[i].fangan.item_n; j++)
+			 {
+				 if (meterinfo->task_list[i].fangan.items[j].oad1.OI == 0x5004)
+				 {//如果是日冻结任务, 检查已抄读的数据项数目
+
+					 flg5004Task = i;
+					 switch (meterinfo->task_list[i].fangan.items[j].sucessflg) {
+					 case 2:
+						 opt5004Count++;
+						 break;
+					 case 1://有未抄读成功项
+						 opt5004Count++;
+						 needRetry = 1;//存在抄读过但未成功数据
+						 meterinfo->task_list[i].fangan.items[j].sucessflg = 0;
+						 break;
+					 case 0:
+						 break;
+					 default:
+						 break;
+					 }
+				 }
+				 else
+				 {//如果不是日冻结任务, 则检查未操作的数据项数目, 如果没有未操作数据项,
+				  //则清零数据项的状态标志, 更新下一次执行时间
+					 switch (meterinfo->task_list[i].fangan.items[j].sucessflg) {
+					 case 0:
+						 flgZeroCnt++;
+						 break;
+					 default:
+						 break;
+					 }
+				 }
+			 }
+
+			 if (opt5004Count == meterinfo->task_list[i].fangan.item_n && needRetry==1)
+			 {//日冻结的全部数据项都抄过，但是存在抄读失败的数据
+				 meterinfo->task_list[i].tryAgain = 0x55;
+				 DbgPrintToFile1(31,"TSA:%02x%02x%02x%02x%02x%02x%02x%02x 此日冻结任务 %d 需要补抄",
+						 meterinfo->tsa.addr[0],meterinfo->tsa.addr[1],
+						 meterinfo->tsa.addr[2],meterinfo->tsa.addr[3],
+						 meterinfo->tsa.addr[4],meterinfo->tsa.addr[5],
+						 meterinfo->tsa.addr[6],meterinfo->tsa.addr[7],
+						 meterinfo->task_list[i].taskId);
+			 }
+
+			 if(flgZeroCnt == 0 && flg5004Task==0) {//flg5004Task==0, 说明当前任务不是日冻结任务
+				task_Refresh(&taskinfo.task_list[i]);
+				for(j = 0; j<meterinfo->task_list[i].fangan.item_n; j++) {
+					meterinfo->task_list[i].fangan.items[j].sucessflg = 0;
+				}
+			 }
+		}//end if 此任务时间已经到了
+	}
+}
+
+int ProcessMeter(INT8U *buf,struct Tsa_Node *desnode)
+{	DATA_ITEM  tmpitem;
+	int sendlen=0,taski=0, itemi=0;//返回 tmpitem指示的具体任务索引 ，itemi指示的具体数据项索引
 
 	//记录单元信息是不是这次要抄的电表的  Y：继续，N：读取本表记录信息到内存，继续
 	DbgPrintToFile1(31,"内存   【%02x-%02x-%02x%02x%02x%02x%02x%02x】 index=%d",
@@ -1299,114 +1647,66 @@ int ProcessMeter(INT8U *buf,struct Tsa_Node *desnode)
 			taskinfo.tsa.addr[3],taskinfo.tsa.addr[4],taskinfo.tsa.addr[5],
 			taskinfo.tsa.addr[6],taskinfo.tsa.addr[7],taskinfo.tsa_index);
 
-	if (memcmp(taskinfo.tsa.addr,desnode->tsa.addr,TSA_LEN)!=0 )
-	{	//内存的TSA 和请求的TSA 比对失败
+	if (memcmp(taskinfo.tsa.addr,desnode->tsa.addr,TSA_LEN)!=0 )//内存的TSA 和请求的TSA 比对失败
+	{
 		if (ifTsaValid(taskinfo.tsa)==1)//判断为有效TSA
 		{
-			DbgPrintToFile1(31,"保存");
+			//相关信息存储前，日冻结任务特殊判断，
+			//1、日冻结任务全部数据项都抄成功需要更新任务下次执行时间，将成功标识置 0
+			//2、部分未成功，标识置 0 ，下次执行时间不变
+			//再次请求该表时，如果存在部分未成功数据时，任务可以再次执行，并重新抄读标识为 0的
+			chkTsaTask(&taskinfo);
 			saveParaClass(0x8888, &taskinfo,taskinfo.tsa_index);
 		}
+
 		int ret = readParaClass(0x8888, &taskinfo, desnode->tsa_index) ;//读取序号为 tsa_index 的任务记录到内存变量 taskinfo
-		DbgPrintToFile1(31,"读序号=%d TSA",desnode->tsa_index);
-		if (ret != 1 )
-		{// 返回 1 成功   0 失败
+		if (ret != 1 )// 返回 1 成功   0 失败
+		{
 			taskinfo.tsa = desnode->tsa;
 			taskinfo.tsa_index = desnode->tsa_index;
-			zeroitemflag(&taskinfo);
-			DbgPrintToFile1(31,"读失败");
-//			初始化任务数据项
-//			initTaskData( &taskinfo);
-		}else
-		{
-			DbgPrintToFile1(31,"读成功  %02x-%02x-%02x%02x%02x%02x%02x%02x  index=%d",
-						taskinfo.tsa.addr[0],taskinfo.tsa.addr[1],taskinfo.tsa.addr[2],
-						taskinfo.tsa.addr[3],taskinfo.tsa.addr[4],taskinfo.tsa.addr[5],
-						taskinfo.tsa.addr[6],taskinfo.tsa.addr[7],taskinfo.tsa_index);
+			zeroitemflag(&taskinfo);;
 		}
 	}
 	tmpitem = checkMeterData(&taskinfo,&taski,&itemi,desnode->usrtype);	//根据任务的时间计划，查找一个适合抄读的数据项
-	time_t getTheTime;
-	DateTimeBCD timebcd;
-	int i=0;
+	DEBUG_TIME_LINE("tmpitem.oad1.OI %04X, tmpitem.oad2.OI  %04X", tmpitem.oad1.OI, tmpitem.oad2.OI);
 	if (tmpitem.oad1.OI !=0 || tmpitem.oad2.OI !=0 )
 	{	//组织抄读报文
 		if (tmpitem.oad1.OI == 0x5002)
-		{//负荷记录
-			switch(taskinfo.task_list[taski].fangan.cjtype)
-			{
-				case 3://按时间间隔抄表
-					getTheTime = taskinfo.task_list[taski].beginTime - (taskinfo.task_list[taski].fangan.ti.interval * 60);
-					timebcd =   timet_bcd(getTheTime);
-					break;
-				default:
-					getTheTime = taskinfo.task_list[taski].beginTime ;
-					timebcd =   timet_bcd(getTheTime);
-					break;
-			}
-			DbgPrintToFile1(31,"begin=%ld   get=%ld   曲线时标%d-%d-%d %d:%d ",taskinfo.task_list[taski].beginTime ,getTheTime,timebcd.year.data,timebcd.month.data,timebcd.day.data,timebcd.hour.data,timebcd.min.data);
-			sendlen = createMeterFrame_Curve(desnode, tmpitem, buf, item07, timebcd);
-			for(i=0;i<taskinfo.task_list[taski].fangan.item_n;i++)
-			{
-				taskinfo.task_list[taski].fangan.items[i].sucessflg = 1;
-				taskinfo.task_list[taski].fangan.items[i].item07[0] = item07[0];
-				taskinfo.task_list[taski].fangan.items[i].item07[1] = item07[1];
-				taskinfo.task_list[taski].fangan.items[i].item07[2] = item07[2];
-				taskinfo.task_list[taski].fangan.items[i].item07[3] = item07[3];
-				taskinfo.task_list[taski].fangan.items[i].savetime = timebcd;
-			}
-			taskinfo.now_taski = taski;
-			taskinfo.now_itemi = itemi;
-			PrintTaskInfo2(&taskinfo);
-			DbgPrintToFile1(31,"重新初始化 任务%d 开始时间",taskinfo.task_list[taski].taskId);
-			task_Refresh(&taskinfo.task_list[taski]);
+		{
+//			sendlen = do_5002_type( taski, itemi , buf, desnode, tmpitem);//负荷记录
+
+			DEBUG_TIME_LINE("0x5002 start");
+			tmpitem.oad1.OI = 0;
+			DEBUG_TIME_LINE("tmpitem.oad1.OI %04X, tmpitem.oad2.OI  %04X", tmpitem.oad1.OI, tmpitem.oad2.OI);
+			sendlen = do_other_type( taski, itemi , buf, desnode, tmpitem);//其它数据
+			DEBUG_TIME_LINE("0x5002 end");
+
 		}else if (tmpitem.oad1.OI == 0x5004)
 		{
-			getTheTime = taskinfo.task_list[taski].beginTime ;
-			timebcd =   timet_bcd(getTheTime);
-			timebcd.hour.data = 0;
-			timebcd.min.data = 0;
-			sendlen = createMeterFrame(desnode, tmpitem, buf, item07);
-			taskinfo.task_list[taski].fangan.items[itemi].item07[0] = item07[0];
-			taskinfo.task_list[taski].fangan.items[itemi].item07[1] = item07[1];
-			taskinfo.task_list[taski].fangan.items[itemi].item07[2] = item07[2];
-			taskinfo.task_list[taski].fangan.items[itemi].item07[3] = item07[3];
-			taskinfo.task_list[taski].fangan.items[itemi].savetime = timebcd;
-
-			taskinfo.now_taski = taski;
-			taskinfo.now_itemi = itemi;
-			taskinfo.task_list[taski].fangan.items[itemi].sucessflg = 1;
-			taskinfo.task_list[taski].fangan.item_i = itemi;
-			PrintTaskInfo2(&taskinfo);
-			if (itemi == taskinfo.task_list[taski].fangan.item_n-1)//最后一个
-			{
-				DbgPrintToFile1(31,"重新初始化 任务%d 开始时间",taskinfo.task_list[taski].taskId);
-				task_Refresh(&taskinfo.task_list[taski]);
-			}
-
+			DEBUG_TIME_LINE("");
+			sendlen = do_5004_type( taski, itemi , buf, desnode, tmpitem);//日冻结
 		}
 		else
 		{
-			sendlen = createMeterFrame(desnode, tmpitem, buf, item07);
-			taskinfo.task_list[taski].fangan.items[itemi].item07[0] = item07[0];
-			taskinfo.task_list[taski].fangan.items[itemi].item07[1] = item07[1];
-			taskinfo.task_list[taski].fangan.items[itemi].item07[2] = item07[2];
-			taskinfo.task_list[taski].fangan.items[itemi].item07[3] = item07[3];
-			taskinfo.task_list[taski].fangan.items[itemi].savetime = taskinfo.task_list[taski].begin;
-			taskinfo.now_taski = taski;
-			taskinfo.now_itemi = itemi;
-			taskinfo.task_list[taski].fangan.items[itemi].sucessflg = 1;
-			taskinfo.task_list[taski].fangan.item_i = itemi;
-			PrintTaskInfo2(&taskinfo);
-			if (itemi == taskinfo.task_list[taski].fangan.item_n-1)//最后一个
-			{
-				DbgPrintToFile1(31,"重新初始化 任务%d 开始时间",taskinfo.task_list[taski].taskId);
-				task_Refresh(&taskinfo.task_list[taski]);
-			}
+			sendlen = do_other_type( taski, itemi , buf, desnode, tmpitem);//其它数据
+			DEBUG_TIME_LINE("");
 		}
+
 	}else
 	{
+	    if(getZone("GW")==1)
+	    {
+			//更新6035抄读成功数量
+			CLASS_6035 result6035;	//采集任务监控单元
+			get6035ByTaskID(taskinfo.task_list[taski].taskId,&result6035);
+			INT16U tsaNum = getTaskDataTsaNum(result6035.taskID);
+			result6035.successMSNum = result6035.successMSNum > tsaNum?result6035.successMSNum:tsaNum;
+			saveClass6035(&result6035);
+	    }
+
 		DbgPrintToFile1(31,"切表");
 		sendlen = 1;
+		DEBUG_TIME_LINE("");
 	}
 	return sendlen;
 }
@@ -1573,6 +1873,7 @@ int SaveTaskData(FORMAT3762 format_3762_Up,INT8U taskid)
 				DbgPrintToFile1(31,"存储时间 %d -%d -%d  %d:%d:%d",ts.Year,ts.Month,ts.Day,ts.Hour,ts.Minute,ts.Sec);
 				if (memcmp(taskFlag,frame07.DI,4) == 0) //抄读项 与 回码数据项相同
 				{
+					taskinfo.task_list[taski].fangan.items[itemi].sucessflg = 2;
 					if(memcmp(CurveFlg,taskFlag,4) == 0)//负荷曲线数据项
 					{
 						saveTaskData_MeterCurve(&taskinfo,&frame07,ts);
@@ -1634,7 +1935,7 @@ int doTask(RUNTIME_PLC *runtime_p)
 		case 0://重启抄表
 			if ( nowtime - runtime_p->send_start_time > 20)
 			{
-				fprintf(stderr,"\n--------do 重启抄表");
+				DEBUG_TIME_LINE("\n--------do 重启抄表");
 				DbgPrintToFile1(31,"\n重启抄表");
 				clearvar(runtime_p);
 				runtime_p->redo = 0;
@@ -1643,6 +1944,7 @@ int doTask(RUNTIME_PLC *runtime_p)
 				SendDataToCom(runtime_p->comfd, runtime_p->sendbuf,sendlen );
 			}else if(runtime_p->format_Up.afn == 0x00 && runtime_p->format_Up.fn == 1)
 			{//确认
+				DEBUG_TIME_LINE("\n-------- 确认--------");
 				clearvar(runtime_p);
 				runtime_p->send_start_time = nowtime ;
 				step_cj = 2;
@@ -1652,7 +1954,7 @@ int doTask(RUNTIME_PLC *runtime_p)
 		case 1://恢复抄读
 			if ( nowtime - runtime_p->send_start_time > 20)
 			{
-				fprintf(stderr,"\n--------do 恢复抄表");
+				DEBUG_TIME_LINE("\n--------do 恢复抄表");
 				DbgPrintToFile1(31,"\n恢复抄表");
 				runtime_p->redo = 0;
 				clearvar(runtime_p);
@@ -1661,6 +1963,7 @@ int doTask(RUNTIME_PLC *runtime_p)
 				SendDataToCom(runtime_p->comfd, runtime_p->sendbuf,sendlen );
 			}else if(runtime_p->format_Up.afn == 0x00 && runtime_p->format_Up.fn == 1)
 			{//确认
+				DEBUG_TIME_LINE("\n--------恢复抄表确认");
 				clearvar(runtime_p);
 				runtime_p->send_start_time = nowtime ;
 				step_cj = 2;
@@ -1673,15 +1976,31 @@ int doTask(RUNTIME_PLC *runtime_p)
 				inWaitFlag = 1;
 				beginwork = 1;//收到第一个请求抄读开始
 				Addr_TSA(runtime_p->format_Up.afn14_f1_up.SlavePointAddr,&tsatmp);
-				DbgPrintToFile1(31,"\n ");
-				DbgPrintToFile1(31,"请求地址【%02x-%02x-%02x%02x%02x%02x%02x%02x】",tsatmp.addr[0],tsatmp.addr[1],tsatmp.addr[2],tsatmp.addr[3],tsatmp.addr[4],tsatmp.addr[5],tsatmp.addr[6],tsatmp.addr[7]);//TODO 抄表组织报文
+				DbgPrintToFile1(31,"\n 请求地址 [ %02x-%02x-%02x%02x%02x%02x%02x%02x ] ",\
+						tsatmp.addr[0],tsatmp.addr[1],tsatmp.addr[2],tsatmp.addr[3],\
+						tsatmp.addr[4],tsatmp.addr[5],tsatmp.addr[6],tsatmp.addr[7]);//TODO 抄表组织报文
+
+				DEBUG_TIME_LINE("请求地址 [ %02x-%02x-%02x %02x %02x %02x %02x %02x ] ",\
+						tsatmp.addr[0],tsatmp.addr[1],tsatmp.addr[2],tsatmp.addr[3],\
+						tsatmp.addr[4],tsatmp.addr[5],tsatmp.addr[6],tsatmp.addr[7]);
+
 				sendlen = 0;
 				nodetmp = NULL;
 				nodetmp = getNodeByTSA(tsa_head,tsatmp);
+				DEBUG_TIME_LINE("nodetmp: %p", nodetmp);
 				if( nodetmp != NULL )
 				{
 					sendlen = ProcessMeter(buf645,nodetmp);
+				    if(getZone("GW")==1)
+				    {
+						//6035发送报文数量+1
+						CLASS_6035 result6035;	//采集任务监控单元
+						get6035ByTaskID(taskinfo.task_list[taskinfo.now_taski].taskId,&result6035);
+						result6035.sendMsgNum++;
+						saveClass6035(&result6035);
+				    }
 				}
+				DbgPrintToFile1(31,"up channel = %02x",runtime_p->format_Up.info_up.ChannelFlag);
 				flag= Echo_Frame( runtime_p,buf645,sendlen);//内部根据sendlen判断抄表 / 切表
 				if (flag==0 || flag == 1)
 					inWaitFlag = 0;
@@ -1689,15 +2008,30 @@ int doTask(RUNTIME_PLC *runtime_p)
 			}else if ( runtime_p->format_Up.afn == 0x06 && runtime_p->format_Up.fn == 2 )//收到返回抄表数据
 			{
 				DbgPrintToFile1(31,"收数据");
+				DEBUG_TIME_LINE("\n--------收数据");
 				inWaitFlag = 0;
 				sendlen = AFN00_F01( &runtime_p->format_Down,runtime_p->sendbuf );//确认
 				SendDataToCom(runtime_p->comfd, runtime_p->sendbuf,sendlen );
+
+				DEBUG_TIME_LINE("SaveTaskData-------start------------>");
 				SaveTaskData(runtime_p->format_Up, runtime_p->taskno);
+				DEBUG_TIME_LINE("<------------SaveTaskData-------end");
 				clearvar(runtime_p);
 				DbgPrintToFile1(31,"afn=%02x  fn=%02x",runtime_p->format_Up.afn,runtime_p->format_Up.fn );
 				runtime_p->send_start_time = nowtime;
+			    if(getZone("GW")==1)
+			    {
+					//6035发送报文数量+1
+					CLASS_6035 result6035;	//采集任务监控单元
+					get6035ByTaskID(taskinfo.task_list[taskinfo.now_taski].taskId,&result6035);
+					result6035.rcvMsgNum++;
+					saveClass6035(&result6035);
+			    }
+
+
 			}else if( (nowtime - runtime_p->send_start_time > 10)  && inWaitFlag== 1)//等待超时,忽略超时过程中的请求抄读
 			{
+				DEBUG_TIME_LINE("超时");
 				DbgPrintToFile1(31,"超时");
 				inWaitFlag = 0;
 				clearvar(runtime_p);
@@ -1705,18 +2039,155 @@ int doTask(RUNTIME_PLC *runtime_p)
 			}else if( nowtime - runtime_p->send_start_time > 90)
 			{
 				DbgPrintToFile1(31,"抄表过程，通讯超时,重启抄表");
+				DEBUG_TIME_LINE("抄表过程，通讯超时,重启抄表");
 				step_cj = 0;
 			}
 			break;
 	}
 	return TASK_PROCESS;
 }
+
+INT8U getTransCmdAddrProto(INT8U* cmdbuf, INT8U* addrtmp, INT8U* proto)
+{
+	if(NULL == cmdbuf || NULL == addrtmp || NULL == proto) {
+		return 0;
+	}
+
+	memcpy(addrtmp, cmdbuf+1, 6);
+	*proto = 2;//dlt645-07
+
+	return 1;
+}
+
+//响应主站代理操作
+INT8U doClientProxyRequest(RUNTIME_PLC *runtime_p, int* beginwork, int* step_cj){
+	int sendlen=0;
+	struct Tsa_Node *nodetmp = NULL;
+	INT8U addrtmp[10] = {0};//645报文中的目标地址
+	INT8U proto = 0;
+	time_t nowtime = time(NULL);
+	INT16U timeout = 20;
+
+	//TODO: 将状态机置于switch外层才符合逻辑, 否则外部的变量对状态机影响太大
+
+	switch(cjcommProxy_plc.strProxyList.proxytype) {
+	case ProxyGetRequestList:
+		break;
+	case ProxyGetRequestRecord:
+		break;
+	case ProxySetRequestList:
+		break;
+	case ProxySetThenGetRequestList:
+		break;
+	case ProxyActionRequestList:
+		break;
+	case ProxyActionThenGetRequestList:
+		break;
+	case ProxyTransCommandRequest:
+		timeout = (cjcommProxy_plc.strProxyList.proxy_obj.transcmd.revtimeout > 0) ?  \
+										cjcommProxy_plc.strProxyList.proxy_obj.transcmd.revtimeout : 20;
+
+		DEBUG_TIME_LINE("cjcommProxy_plc.strProxyList.transcmd.revtimeout: %d; timeout: %d",\
+						 cjcommProxy_plc.strProxyList.proxy_obj.transcmd.revtimeout, timeout);
+
+		if (*beginwork==0 && cjcommProxy_plc.isInUse==1) {//发送点抄
+			*beginwork = 1;
+			clearvar(runtime_p);
+
+			getTransCmdAddrProto(cjcommProxy_plc.strProxyList.proxy_obj.transcmd.cmdbuf, addrtmp, &proto);
+			memcpy(runtime_p->format_Down.addr.SourceAddr, runtime_p->masteraddr, 6);
+
+			sendlen = AFN13_F1(&runtime_p->format_Down,runtime_p->sendbuf, addrtmp, 2, 0, \
+					cjcommProxy_plc.strProxyList.proxy_obj.transcmd.cmdbuf, cjcommProxy_plc.strProxyList.proxy_obj.transcmd.cmdlen);
+			SendDataToCom(runtime_p->comfd, runtime_p->sendbuf, sendlen );
+			DEBUG_BUFF(runtime_p->sendbuf, sendlen);
+			runtime_p->send_start_time = nowtime;
+			DEBUG_TIME_LINE("");
+		} else if ((runtime_p->format_Up.afn == 0x13 && runtime_p->format_Up.fn == 1 ))	{//收到应答数据，或超时10秒，
+			DEBUG_TIME_LINE("");
+			cjcommProxy_plc.isInUse = 0;
+			*beginwork = 0;
+
+			if(runtime_p->format_Up.afn13_f1_up.MsgLength > 0) {
+				INT16U tIndex = 0;
+				INT16U starttIndex = 0;
+				for(tIndex = 0;tIndex < runtime_p->format_Up.afn13_f1_up.MsgLength;tIndex++) {//去掉前导符
+					if(runtime_p->format_Up.afn13_f1_up.MsgContent[tIndex]!=0x68) {
+						continue;
+					} else {
+						starttIndex = tIndex;
+						break;
+					}
+				}
+
+				INT8U datalen = runtime_p->format_Up.afn13_f1_up.MsgLength - starttIndex;
+
+//				OADtoBuff(cjcommProxy_plc.strProxyList.proxy_obj.transcmd.oad,cjcommProxy_plc.strProxyList.data);
+				create_OAD(0,cjcommProxy_plc.strProxyList.data,cjcommProxy_plc.strProxyList.proxy_obj.transcmd.oad);
+
+				cjcommProxy_plc.strProxyList.data[4] = 1;
+				cjcommProxy_plc.strProxyList.data[5] = datalen;
+
+				memcpy(&cjcommProxy_plc.strProxyList.data[6],\
+						&runtime_p->format_Up.afn13_f1_up.MsgContent[starttIndex],\
+						datalen);
+				DEBUG_BUFF(runtime_p->format_Up.afn13_f1_up.MsgContent, datalen);
+				cjcommProxy_plc.strProxyList.datalen = datalen + 6;
+				mqs_send((INT8S *)PROXY_NET_MQ_NAME,1,TERMINALPROXY_RESPONSE,\
+						OAD_PORT_ZB,(INT8U *)&cjcommProxy_plc.strProxyList,sizeof(PROXY_GETLIST));
+			} else {
+//				OADtoBuff(cjcommProxy_plc.strProxyList.proxy_obj.transcmd.oad,cjcommProxy_plc.strProxyList.data);
+				create_OAD(0,cjcommProxy_plc.strProxyList.data,cjcommProxy_plc.strProxyList.proxy_obj.transcmd.oad);
+				cjcommProxy_plc.strProxyList.data[4] = 0;
+				cjcommProxy_plc.strProxyList.datalen = 5;
+				mqs_send((INT8S *)PROXY_NET_MQ_NAME,1,\
+						ProxySetResponseList,\
+						OAD_PORT_ZB,(INT8U *)&cjcommProxy_plc.strProxyList,\
+						sizeof(PROXY_GETLIST));
+			}
+
+			memset(&runtime_p->format_Up, 0, sizeof(runtime_p->format_Up));
+			proxyInUse.devUse.plcReady = 1;
+			DbgPrintToFile1(31,"收到点抄数据");
+		} else if (((nowtime - runtime_p->send_start_time) > timeout) \
+				&& *beginwork==1) {//代理超时后, 放弃本次操作, 上报超时应答
+
+			DbgPrintToFile1(31,"单次点抄超时");
+			cjcommProxy_plc.isInUse = 0;
+
+//			OADtoBuff(cjcommProxy_plc.strProxyList.proxy_obj.transcmd.oad,cjcommProxy_plc.strProxyList.data);
+			create_OAD(0,cjcommProxy_plc.strProxyList.data,cjcommProxy_plc.strProxyList.proxy_obj.transcmd.oad);
+			cjcommProxy_plc.strProxyList.data[4] = 0;
+			cjcommProxy_plc.strProxyList.datalen = 5;
+			mqs_send((INT8S *)PROXY_NET_MQ_NAME,1,\
+					ProxySetResponseList,\
+					OAD_PORT_ZB,(INT8U *)&cjcommProxy_plc.strProxyList,\
+					sizeof(PROXY_GETLIST));
+
+			proxyInUse.devUse.plcReady = 1;
+			clearvar(runtime_p);
+			DEBUG_TIME_LINE("");
+		} else if( nowtime - runtime_p->send_start_time > 100  ) {//最后一次代理操作后100秒, 才恢复抄读
+			DbgPrintToFile1(31,"100秒超时");
+			clearvar(runtime_p);
+			*beginwork = 0;
+			*step_cj = 3;
+			clearvar(runtime_p);
+			DEBUG_TIME_LINE("");
+		}
+		break;
+	default:
+		break;
+	}
+
+	return 1;
+}
+
 int doProxy(RUNTIME_PLC *runtime_p)
 {
 	static int step_cj = 0, beginwork=0;
 	static struct Tsa_Node *currtsa;
 	struct Tsa_Node *nodetmp;
-	TSA tsatmp;
 	int sendlen=0;
 
 	time_t nowtime = time(NULL);
@@ -1726,6 +2197,7 @@ int doProxy(RUNTIME_PLC *runtime_p)
 			if ( nowtime - runtime_p->send_start_time > 20)
 			{
 				DbgPrintToFile1(31,"暂停抄表");
+				DEBUG_TIME_LINE("暂停抄表");
 				clearvar(runtime_p);
 				runtime_p->send_start_time = nowtime ;
 				sendlen = AFN12_F2(&runtime_p->format_Down,runtime_p->sendbuf);
@@ -1733,35 +2205,42 @@ int doProxy(RUNTIME_PLC *runtime_p)
 			}else if(runtime_p->format_Up.afn == 0x00 && runtime_p->format_Up.fn == 1)
 			{//确认
 				clearvar(runtime_p);
-				step_cj = 1;
+				DEBUG_TIME_LINE("暂停抄表已确认");
+				if(cjcommProxy_plc.isInUse == 1) {
+					DEBUG_TIME_LINE("进入主站代理");
+					step_cj = 2;
+				} else if (cjGuiProxy_plc.isInUse == 1) {
+					DEBUG_TIME_LINE("进入液晶点抄");
+					step_cj = 1;
+				}
+
 				beginwork = 0;
 			}
 			break;
-
 		case 1://开始监控载波从节点
-			if (beginwork==0  && cjguiProxy_plc.strProxyMsg.port.OI == 0xf209 && cjguiProxy_plc.isInUse==1 )
+			if (beginwork==0  && cjGuiProxy_plc.strProxyMsg.port.OI == 0xf209 && cjGuiProxy_plc.isInUse==1 )
 			{//发送点抄
 				DbgPrintToFile1(31,"dealGuiRead 处理液晶点抄 :%02x%02x%02x%02x%02x%02x%02x%02x 波特率=%d protocol=%d 端口号=%04x%02x%02x 规约类型=%d 数据标识=%04x"
-						,cjguiProxy_plc.strProxyMsg.addr.addr[0],cjguiProxy_plc.strProxyMsg.addr.addr[1],cjguiProxy_plc.strProxyMsg.addr.addr[2],cjguiProxy_plc.strProxyMsg.addr.addr[3]
-						,cjguiProxy_plc.strProxyMsg.addr.addr[4],cjguiProxy_plc.strProxyMsg.addr.addr[5],cjguiProxy_plc.strProxyMsg.addr.addr[6],cjguiProxy_plc.strProxyMsg.addr.addr[7]
-						,cjguiProxy_plc.strProxyMsg.baud,cjguiProxy_plc.strProxyMsg.protocol,cjguiProxy_plc.strProxyMsg.port.OI,cjguiProxy_plc.strProxyMsg.port.attflg,cjguiProxy_plc.strProxyMsg.port.attrindex
-						,cjguiProxy_plc.strProxyMsg.protocol,cjguiProxy_plc.strProxyMsg.oi);
+						,cjGuiProxy_plc.strProxyMsg.addr.addr[0],cjGuiProxy_plc.strProxyMsg.addr.addr[1],cjGuiProxy_plc.strProxyMsg.addr.addr[2],cjGuiProxy_plc.strProxyMsg.addr.addr[3]
+						,cjGuiProxy_plc.strProxyMsg.addr.addr[4],cjGuiProxy_plc.strProxyMsg.addr.addr[5],cjGuiProxy_plc.strProxyMsg.addr.addr[6],cjGuiProxy_plc.strProxyMsg.addr.addr[7]
+						,cjGuiProxy_plc.strProxyMsg.baud,cjGuiProxy_plc.strProxyMsg.protocol,cjGuiProxy_plc.strProxyMsg.port.OI,cjGuiProxy_plc.strProxyMsg.port.attflg,cjGuiProxy_plc.strProxyMsg.port.attrindex
+						,cjGuiProxy_plc.strProxyMsg.protocol,cjGuiProxy_plc.strProxyMsg.oi);
 				beginwork = 1;
 				nodetmp = NULL;
-				nodetmp = getNodeByTSA(tsa_head,cjguiProxy_plc.strProxyMsg.addr) ;
+				nodetmp = getNodeByTSA(tsa_head,cjGuiProxy_plc.strProxyMsg.addr) ;
 				clearvar(runtime_p);
 				if( nodetmp != NULL )
 				{
 					DbgPrintToFile1(31,"发送点抄报文");
 					memcpy(runtime_p->format_Down.addr.SourceAddr,runtime_p->masteraddr,6);
-					sendlen = buildProxyFrame(runtime_p,nodetmp,cjguiProxy_plc.strProxyMsg);
+					sendlen = buildProxyFrame(runtime_p,nodetmp,cjGuiProxy_plc.strProxyMsg);
 					SendDataToCom(runtime_p->comfd, runtime_p->sendbuf,sendlen );
 				}
 				runtime_p->send_start_time = nowtime;
 			}
 			else if ((runtime_p->format_Up.afn == 0x13 && runtime_p->format_Up.fn == 1 ))
 			{//收到应答数据，或超时10秒，
-				cjguiProxy_plc.isInUse = 0;
+				cjGuiProxy_plc.isInUse = 0;
 				beginwork = 0;
 				saveProxyData(runtime_p->format_Up);
 				memset(&runtime_p->format_Up,0,sizeof(runtime_p->format_Up));
@@ -1769,7 +2248,7 @@ int doProxy(RUNTIME_PLC *runtime_p)
 			}else if ((nowtime - runtime_p->send_start_time > 20  ) && beginwork==1)
 			{
 				DbgPrintToFile1(31,"单次点抄超时");
-				cjguiProxy_plc.isInUse = 0;
+				cjGuiProxy_plc.isInUse = 0;
 				beginwork = 0;
 			}
 			else if( nowtime - runtime_p->send_start_time > 100  )
@@ -1777,10 +2256,13 @@ int doProxy(RUNTIME_PLC *runtime_p)
 				DbgPrintToFile1(31,"100秒超时");
 				clearvar(runtime_p);
 				beginwork = 0;
-				step_cj = 2;
+				step_cj = 3;
 			}
 			break;
-		case 2:
+		case 2://处理主站代理
+			doClientProxyRequest(runtime_p, &beginwork, &step_cj);
+			break;
+		case 3://恢复抄表
 			if (runtime_p->state_bak == TASK_PROCESS )
 			{
 				if ( nowtime - runtime_p->send_start_time > 20)
@@ -1870,11 +2352,11 @@ int doSerch(RUNTIME_PLC *runtime_p)
 			{
 				DbgPrintToFile1(31,"收到确认");
 				runtime_p->send_start_time = nowtime ;
-				fprintf(stderr,"\nruntime_p->send_start_time = %ld",runtime_p->send_start_time);
+				DEBUG_TIME_LINE("\nruntime_p->send_start_time = %ld",runtime_p->send_start_time);
 				beginwork = 1;
 			}else if (beginwork == 1)
 			{
-				fprintf(stderr,"\nruntime_p->send_start_time = %ld   nowtime=%ld",runtime_p->send_start_time,nowtime);
+				DEBUG_TIME_LINE("\nruntime_p->send_start_time = %ld   nowtime=%ld",runtime_p->send_start_time,nowtime);
 				if (nowtime - runtime_p->send_start_time >120 )
 				{
 					DbgPrintToFile1(31,"等待到时间");
@@ -1972,12 +2454,12 @@ void initlist(struct Tsa_Node *head)
 	return;
 }
 
-int stateJuge(int nowdstate,INT8U my6000,RUNTIME_PLC *runtime_p)
+int stateJuge(int nowdstate,INT8U* my6000_p,INT8U* my6012_p,RUNTIME_PLC *runtime_p)
 {
 	int state = nowdstate;
-	int taskindex = 0;
 
-	if ( dateJudge(&runtime_p->oldts,&runtime_p->nowts) == 1 || JProgramInfo->oi_changed.oi6000 != my6000)
+	if ( dateJudge(&runtime_p->oldts,&runtime_p->nowts) == 1 ||
+		 JProgramInfo->oi_changed.oi6000 != *my6000_p )
 	{
 		DbgPrintToFile1(31,"\n状态切换到初始化");
 		runtime_p->initflag = 1;
@@ -1985,9 +2467,18 @@ int stateJuge(int nowdstate,INT8U my6000,RUNTIME_PLC *runtime_p)
 		state = DATE_CHANGE;
 		runtime_p->state = state;
 		runtime_p->redo = 1;  //初始化之后需要重启抄读
+		*my6000_p = JProgramInfo->oi_changed.oi6000;
 		return state;
 	}
-
+	if (JProgramInfo->oi_changed.oi6012 != *my6012_p)
+	{
+		//任务变更
+		initTaskData(&taskinfo);
+		system("rm /nand/para/plcrecord.par  /nand/para/plcrecord.bak");
+		DbgPrintToFile1(31,"任务重新初始化");
+		PrintTaskInfo2(&taskinfo);
+		*my6012_p = JProgramInfo->oi_changed.oi6012 ;
+	}
 	if ((runtime_p->nowts.Hour==23 && runtime_p->nowts.Minute==59) || (runtime_p->nowts.Hour==0 && runtime_p->nowts.Minute==0))
 		return state;  //23点59分--0点0分之间不进行任务判断（准备跨日初始化）
 
@@ -2004,7 +2495,7 @@ int stateJuge(int nowdstate,INT8U my6000,RUNTIME_PLC *runtime_p)
 	//-------------------------------------------------------------------------------------------------------------------------
 	//if ( judgebit(cjguiProxy.isInUse ,2) && cjguiProxy.strProxyMsg.port.OI == 0xf209 &&
 	//	 state!=DATE_CHANGE && state!=DATA_REAL)
-	if (cjguiProxy_plc.isInUse ==1 && cjguiProxy_plc.strProxyMsg.port.OI == 0xf209 && state!=DATE_CHANGE && state!=DATA_REAL)
+	if (cjGuiProxy_plc.isInUse ==1 && cjGuiProxy_plc.strProxyMsg.port.OI == 0xf209 && state!=DATE_CHANGE && state!=DATA_REAL)
 	{	//出现液晶点抄载波表标识，并且不在初始化和点抄状态
 		DbgPrintToFile1(31,"\n载波收到点抄消息 需要处理 %04x ",cjguiProxy.strProxyMsg.port.OI);
 		runtime_p->state_bak = runtime_p->state;
@@ -2014,7 +2505,20 @@ int stateJuge(int nowdstate,INT8U my6000,RUNTIME_PLC *runtime_p)
 		return DATA_REAL;
 	}
 
-	if (state == NONE_PROCE && taskinfo.task_n>0)
+	if (proxyInUse.devUse.plcNeed == 1 && \
+			cjcommProxy_plc.isInUse ==1 && \
+			state!=DATE_CHANGE && \
+			state!=DATA_REAL)
+	{	//出现代理标识，并且不在初始化和点抄状态
+		DbgPrintToFile1(31,"\n载波收到点代理请求, plcNeed: %d, plcReady: %d",\
+				proxyInUse.devUse.plcNeed, proxyInUse.devUse.plcReady);
+		runtime_p->state_bak = runtime_p->state;
+		runtime_p->state = DATA_REAL;
+		clearvar(runtime_p);
+		runtime_p->redo = 2;	//点抄后需要恢复抄读
+		return DATA_REAL;
+	}
+	if (state == NONE_PROCE && taskinfo.task_n>0 && tsa_count > 0)
 	{
 		state = TASK_PROCESS;
 		runtime_p->state = TASK_PROCESS;
@@ -2024,18 +2528,22 @@ int stateJuge(int nowdstate,INT8U my6000,RUNTIME_PLC *runtime_p)
 }
 void readplc_thread()
 {
-	INT8U my6000=0;
+	INT8U my6000=0 ,my6012=0;
 	int state = DATE_CHANGE;
 	RUNTIME_PLC runtimevar;
 	memset(&runtimevar,0,sizeof(RUNTIME_PLC));
 	my6000 = JProgramInfo->oi_changed.oi6000 ;
+	my6012 = JProgramInfo->oi_changed.oi6012 ;
+
 	RecvHead = 0;
 	RecvTail = 0;
+
 	initTaskData(&taskinfo);
 
+
+	system("rm /nand/para/plcrecord.par  /nand/para/plcrecord.bak");
 	DbgPrintToFile1(31,"2-fangAn6015[%d].sernum = %d  fangAn6015[%d].mst.mstype = %d ",
 			0,fangAn6015[0].sernum,0,fangAn6015[0].mst.mstype);
-
 	PrintTaskInfo2(&taskinfo);
 	DbgPrintToFile1(31,"载波线程开始");
 	runtimevar.format_Down.info_down.ReplyBytes = 0x28;
@@ -2050,7 +2558,7 @@ void readplc_thread()
 		 * 	   状态判断
 		********************************/
 		TSGet(&runtimevar.nowts);
-		state = stateJuge(state,my6000,&runtimevar);
+		state = stateJuge(state, &my6000,&my6012,&runtimevar);
 
 		/********************************
 		 * 	   状态流程处理

@@ -13,6 +13,12 @@
 #include <time.h>
 #include <sys/stat.h>
 #include "cjsave.h"
+
+static INT8U head_oad[4][4]={{0x20,0x2a,0x02,0x00},{0x60,0x40,0x02,0x00},{0x60,0x41,0x02,0x00},{0x60,0x42,0x02,0x00}};
+static INT8U head_oad_len[4]={0x0012,0x0008,0x0008,0x0008};
+static INT8U headeve_oad[4][4]={{0x20,0x2a,0x02,0x00},{0x20,0x22,0x02,0x00},{0x20,0x1e,0x02,0x00},{0x20,0x20,0x02,0x00}};
+static INT8U headeve_oad_len[4]={0x0012,0x0005,0x0008,0x0008};
+
 /*
  * 计算总共有几个oad，来确定给文件头流出多少空间
  * Task文件头格式：
@@ -27,10 +33,6 @@
  */
 INT16U FixHeadUnit(INT8U *headbuf,INT8U *fixlen,ROAD *road_eve)
 {
-	static INT8U head_oad[4][4]={{0x20,0x2a,0x02,0x00},{0x60,0x40,0x02,0x00},{0x60,0x41,0x02,0x00},{0x60,0x42,0x02,0x00}};
-	static INT8U head_oad_len[4]={0x0012,0x0008,0x0008,0x0008};
-	static INT8U headeve_oad[4][4]={{0x20,0x2a,0x02,0x00},{0x20,0x22,0x02,0x00},{0x20,0x1e,0x02,0x00},{0x20,0x20,0x02,0x00}};
-	static INT8U headeve_oad_len[4]={0x0012,0x0005,0x0008,0x0008};
 	int	  i=0,index=0;
 	HEAD_UNIT	unit[4]={};
 	*fixlen = 0;
@@ -67,6 +69,22 @@ INT16U FixHeadUnit(INT8U *headbuf,INT8U *fixlen,ROAD *road_eve)
 }
 
 /*
+ * 判断下发的CSD是否包含固定帧头格式
+ * 返回 = 1，CSD为固定帧
+ *   否则  = 0，
+ * */
+INT8U isHeadOAD(OAD oad)
+{
+	INT8U i = 0;
+	for(i=0;i<4;i++) {
+		if((head_oad[i][0] == ((oad.OI>>8) & 0xff)) && (head_oad[i][1] == (oad.OI & 0xff))
+			&& (head_oad[i][2] == oad.attflg) && (head_oad[i][3] == oad.attrindex)) {
+			return 1;
+		}
+	}
+	return 0;
+}
+/*
  * 根据招测的RCSD计算招测的OI个数
  * */
 INT16U CalcHeadRcsdUnitNum(CSD_ARRAYTYPE csds)
@@ -81,8 +99,11 @@ INT16U CalcHeadRcsdUnitNum(CSD_ARRAYTYPE csds)
 	{
 		if(csds.csd[i].type != 0 && csds.csd[i].type != 1)
 			continue;
-		if(csds.csd[i].type == 0)
+		if(csds.csd[i].type == 0) {
+			if(isHeadOAD(csds.csd[i].csd.oad) == 1)
+				continue;
 			headunit_num++;
+		}
 		if(csds.csd[i].type == 1)
 			headunit_num += csds.csd[i].csd.road.num;
 	}
@@ -141,6 +162,10 @@ void CreateSaveHead(char *fname,ROAD *road_eve,CSD_ARRAYTYPE csds,INT16U *headle
 			continue;
 		if(csds.csd[i].type == 0)	//OAD
 		{
+			if(isHeadOAD(csds.csd[i].csd.oad)==1) {
+				fprintf(stderr,"OAD=%04x_%02x%02x 存在固定头，不计算长度\n",csds.csd[i].csd.oad.OI,csds.csd[i].csd.oad.attflg,csds.csd[i].csd.oad.attrindex);
+				continue;
+			}
 			len_tmp = CalcOIDataLen(csds.csd[i].csd.oad.OI,csds.csd[i].csd.oad.attrindex);//多一个数据类型
 			memset(&oad_m,0,sizeof(OAD));
 			pindex += getOneUnit(&headbuf[pindex],oad_m,csds.csd[i].csd.oad,len_tmp);
@@ -405,7 +430,7 @@ int SaveOADData(INT8U taskid,OAD oad_m,OAD oad_r,INT8U *databuf,int datalen,TS t
 		FILE *fp;
 		CSD_ARRAYTYPE csds;
 		char	fname[FILENAMELEN]={};
-		INT8U *databuf_tmp=NULL,eveflg=0, firOIflg=0;
+		INT8U *databuf_tmp=NULL,eveflg=0;
 		int savepos=0, currpos=0, i=0, oadoffset=0, oadlen=0, taskinfoflg=0;
 		INT16U headlen=0,unitlen=0,unitnum=0,unitseq=0,runtime=0;//runtime执行次数
 		TASKSET_INFO tasknor_info;
@@ -515,10 +540,10 @@ int SaveOADData(INT8U taskid,OAD oad_m,OAD oad_r,INT8U *databuf,int datalen,TS t
 				,sizeof(DateTimeBCD),
 				databuf_tmp[18],databuf_tmp[19],databuf_tmp[20],databuf_tmp[21],
 				databuf_tmp[22],databuf_tmp[23],databuf_tmp[24],databuf_tmp[25]);
-		if(memcmp(&databuf_tmp[18],&datetime,sizeof(DateTimeBCD))==0)//开始时间为空
-		{
-			firOIflg = 1;
-		}
+//		if(memcmp(&databuf_tmp[18],&datetime,sizeof(DateTimeBCD))==0)//开始时间为空
+//		{
+//			firOIflg = 1;
+//		}
 		datetime.year.data = ((ts_now.Year&0xff00)>>8) + ((ts_now.Year&0x00ff)<<8);
 		datetime.month.data = ts_now.Month;
 		datetime.day.data = ts_now.Day;
@@ -529,7 +554,7 @@ int SaveOADData(INT8U taskid,OAD oad_m,OAD oad_r,INT8U *databuf,int datalen,TS t
 				,sizeof(DateTimeBCD),
 				datetime.year.data,datetime.month.data,datetime.day.data,datetime.hour.data,
 				datetime.min.data,datetime.sec.data);
-		if(firOIflg == 1)
+		if(databuf_tmp[unitlen*(unitseq-1)/runtime+18] != 0x1c)
 		{
 			databuf_tmp[unitlen*(unitseq-1)/runtime+18] = 0x1c;
 			memcpy(&databuf_tmp[unitlen*(unitseq-1)/runtime+19],&datetime,7);//赋值抄表开始时间
@@ -626,6 +651,60 @@ int SaveOADData(INT8U taskid,OAD oad_m,OAD oad_r,INT8U *databuf,int datalen,TS t
 		if(databuf_tmp != NULL)
 			free(databuf_tmp);
 		return eveflg;
+}
+INT8S get6035ByTaskID(INT16U taskID,CLASS_6035* class6035)
+{
+	memset(class6035,0,sizeof(CLASS_6035));
+	class6035->taskID = taskID;
+	CLASS_6035 tmp6035;
+	memset(&tmp6035,0,sizeof(CLASS_6035));
+	INT16U i;
+	for(i=0;i<=255;i++)
+	{
+		if(readCoverClass(0x6035,i,&tmp6035,sizeof(CLASS_6035),coll_para_save)== 1)
+		{
+			if(tmp6035.taskID == taskID)
+			{
+#if 0
+				if(class6035->totalMSNum < class6035->successMSNum)
+				{
+					//任务初始化新建6035
+					CLASS_6035 result6035;	//采集任务监控单元
+					memset(&result6035,0,sizeof(CLASS_6035));
+					result6035.taskState = BEFORE_OPR;
+					result6035.taskID = taskID;
+
+					CLASS_6001	 meter={};
+					int	blknum=0;
+					blknum = getFileRecordNum(0x6000);
+					int meterIndex = 0;
+					for(meterIndex=0;meterIndex<blknum;meterIndex++)
+					{
+						if(readParaClass(oi,&meter,meterIndex)==1)
+						{
+							if(meter.sernum!=0 && meter.sernum!=0xffff)
+							{
+								if (checkMeterType(st6015.mst, meter.basicinfo.usrtype,meter.basicinfo.addr))
+								{
+									result6035.totalMSNum++;
+								}
+
+							}
+						}
+					}
+				}
+#endif
+				memcpy(class6035,&tmp6035,sizeof(CLASS_6035));
+				return 1;
+			}
+		}
+	}
+
+
+
+	class6035->taskState = BEFORE_OPR;
+	saveCoverClass(0x6035, class6035->taskID, class6035,sizeof(CLASS_6035), coll_para_save);
+	return -1;
 }
 
 

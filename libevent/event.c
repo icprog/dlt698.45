@@ -256,7 +256,7 @@ INT8U Get_Event(OAD oad,INT8U eventno,INT8U** Getbuf,int *Getlen,ProgramInfo* pr
 		maxno=15;
 	if(_currno<=0 || _currno>maxno)
 		_currno = 1;
-	//fprintf(stderr,"currno=%d,maxno=%d pno=%d\n",currno,maxno,prginfo_event->event_obj.Event310E_obj.event_obj.crrentnum);
+	fprintf(stderr,"_currno=%d currno=%d,maxno=%d pno=%d\n",_currno,currno,maxno,prginfo_event->event_obj.Event310E_obj.event_obj.crrentnum);
 	SaveFile_type savefiletype = event_record_save;
 	switch(oad.attflg){
 	     case 2:
@@ -414,6 +414,7 @@ INT8U Getevent_Record_Selector(RESULT_RECORD *record_para,ProgramInfo* prginfo_e
 		 oi_array[oi_index++]=0x2020;
 		 oi_array[oi_index++]=0x2024;
 	 }
+	 fprintf(stderr,"oi_index= %d\n",oi_index);
 	 int j=0;
 	 for(j=0;j<oi_index;j++)
 		 fprintf(stderr,"j:%04x \n",oi_array[j]);
@@ -458,19 +459,24 @@ INT8U Getevent_Record_Selector(RESULT_RECORD *record_para,ProgramInfo* prginfo_e
 				break;
 			 }
 		 }
-			INT8U *data=NULL;
-			int datalen=0;
-			if(Get_Event(record_para->oad,1,&data,&datalen,prginfo_event) == 1){
-				if(data!=NULL && datalen>0 && datalen<256){
-					record_para->data[real_index++] = 1; //data
-					record_para->data[real_index++] = 1; //1个
-					memcpy(&record_para->data[real_index],&data[STANDARD_NO_INDEX],datalen-2);//事件序号以后得数据
-					real_index +=datalen-2;
-				}else
-					record_para->data[real_index++] = 0;
+		INT8U *data=NULL;
+		int datalen=0;
+		if(Get_Event(record_para->oad,1,&data,&datalen,prginfo_event) == 1){
+			if(data!=NULL && datalen>0 && datalen<256){
+				record_para->data[real_index++] = 1; //data
+				record_para->data[real_index++] = 1; //1个
+				memcpy(&record_para->data[real_index],&data[STANDARD_NO_INDEX],datalen-2);//事件序号以后得数据
+				real_index +=datalen-2;
 			}else
 				record_para->data[real_index++] = 0;
-			record_para->datalen =real_index;//最终长度
+		}else {
+			fprintf(stderr,"GET_26:未定义对象属性，上送数据NULL\n");
+			record_para->data[0] = 1;	//A-ResultRecord CHOICE=1
+			record_para->data[1] = 1;	//Sequence of A-RecordRow
+			record_para->data[2] = 0;	//Data = NULL
+			real_index = 3;
+		}
+		record_para->datalen =real_index;//最终长度
 	 }
 	return 1;
 }
@@ -497,7 +503,9 @@ INT8U Need_Report(OI_698 oi,INT8U eventno,ProgramInfo* prginfo_event){
 	}
 	fprintf(stderr,"libevent:active_report=%d talk_master=%d \n",class19.active_report,class19.talk_master);
 	if(class19.active_report == 1){
-		mqs_send((INT8S *)PROXY_NET_MQ_NAME,1,TERMINALEVENT_REPORT,(INT8U *)&oi,sizeof(OI_698));
+		fprintf(stderr,"事件上报.... \n");
+		OAD	oad={};
+		mqs_send((INT8S *)PROXY_NET_MQ_NAME,1,TERMINALEVENT_REPORT,oad,(INT8U *)&oi,sizeof(OI_698));
 	}
 	return 1;
 }
@@ -576,7 +584,7 @@ INT8U Get_StandardUnit(ProgramInfo* prginfo_event,OI_698 oi,INT8U *Rbuf,INT8U *I
 	//单元数量
 	Rbuf[(*Index)++] = STANDARD_NUM;//1
 	//事件记录序号
-	Rbuf[(*Index)++] = dtdoublelongunsigned;//2
+	Rbuf[(*Index)++] = dtdoublelongunsigned;//2d
 	INT32U En=(INT32U)Eventno;
 	Rbuf[(*Index)++] = ((En>>24)&0x000000ff);//3
 	Rbuf[(*Index)++] = ((En>>16)&0x000000ff);//4
@@ -584,6 +592,16 @@ INT8U Get_StandardUnit(ProgramInfo* prginfo_event,OI_698 oi,INT8U *Rbuf,INT8U *I
 	Rbuf[(*Index)++] = En&0x000000ff;//6
 	DateTimeBCD ntime;
 	DataTimeGet(&ntime);
+	//注意：测试项（时钟招测与对时）：要求时钟下发与招测误差在5秒内。当内部协议栈时，收发速度比较慢。因此将此处主站招测时钟是人为增加7秒再上送，防止通信延时引起误差
+	//	   测试项（状态量变位）：测试先招测时钟，然后改变遥信状态，10秒后招测3104事件，此时上送时间不应早于招测时钟返回的时间。
+	//			 在此处如果加7秒，在Get_StandardUnit（）产生3104事件时候，将事件发生时间也重新增加7秒。
+	//     测试项（终端维护）：测试数据初始化3100事件，判断事件发生时间有效性，因此处增加7秒，相应事件产生时间增加7秒
+	if((oi==0x3104 || oi==0x3100) && (getZone("GW")==0)) {
+    	TS	add_ts;
+    	TimeBCDToTs(ntime,&add_ts);
+    	tminc(&add_ts, 0, 7);
+    	TsToTimeBCD(add_ts,&ntime);
+	}
 
 	//事件发生时间
 	if(oi == 0x3106)
@@ -801,6 +819,7 @@ INT8U Event_3101(INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
  */
 INT8U Event_3104(INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 	if(oi_chg.oi3104 != prginfo_event->oi_changed.oi3104){
+		memset(&prginfo_event->event_obj.Event3104_obj,0,sizeof(prginfo_event->event_obj.Event3104_obj));
 		readCoverClass(0x3104,0,&prginfo_event->event_obj.Event3104_obj,sizeof(prginfo_event->event_obj.Event3104_obj),event_para_save);
 		oi_chg.oi3104 = prginfo_event->oi_changed.oi3104;
 	}
@@ -812,11 +831,13 @@ INT8U Event_3104(INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
     if(1){
     	INT8U Save_buf[256];
 		bzero(Save_buf, sizeof(Save_buf));
-		prginfo_event->event_obj.Event3104_obj.crrentnum++;
+		fprintf(stderr,"currentnum = %d\n",prginfo_event->event_obj.Event3104_obj.crrentnum);
 		prginfo_event->event_obj.Event3104_obj.crrentnum=Getcurrno(prginfo_event->event_obj.Event3104_obj.crrentnum,prginfo_event->event_obj.Event3104_obj.maxnum);
+		prginfo_event->event_obj.Event3104_obj.crrentnum++;
 		INT32U crrentnum = prginfo_event->event_obj.Event3104_obj.crrentnum;
 		INT8U index=0;
 		//标准数据单元
+//		fprintf(stderr,"*********************3104:currentnum = %d\n",crrentnum);
 		Get_StandardUnit(prginfo_event,0x3104,Save_buf,&index,crrentnum,NULL,s_null);
 		//事件发生时间
 		DateTimeBCD ntime;
@@ -860,6 +881,7 @@ INT8U Event_3104(INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 		Save_buf[index++]=dtunsigned;
 		Save_buf[index++]=data[7];
 		Save_buf[STANDARD_NUM_INDEX]+=5;
+		fprintf(stderr,"yx event %02x_%02x_%02x_%02x_%02x_%02x_%02x_%02x \n",data[0],data[1],data[2],data[3],data[4],data[5],data[6],data[7]);
 		//存储更改后得参数
 		saveCoverClass(0x3104,(INT16U)crrentnum,(void *)&prginfo_event->event_obj.Event3104_obj,sizeof(Class7_Object),event_para_save);
 		//存储记录集
@@ -1925,13 +1947,13 @@ INT8U Event_3110(INT32U data,INT8U len,ProgramInfo* prginfo_event) {
 		readCoverClass(0x3110,0,&prginfo_event->event_obj.Event3110_obj,sizeof(prginfo_event->event_obj.Event3110_obj),event_para_save);
 		oi_chg.oi3110 = prginfo_event->oi_changed.oi3110;
 	}
-	fprintf(stderr,"[Event3110]enableflag=%d \n",prginfo_event->event_obj.Event3110_obj.event_obj.enableflag);
+	//fprintf(stderr,"[Event3110]enableflag=%d \n",prginfo_event->event_obj.Event3110_obj.event_obj.enableflag);
     if (prginfo_event->event_obj.Event3110_obj.event_obj.enableflag == 0) {
         return 0;
     }
     static INT8U flag=0;
     INT32U offset=prginfo_event->event_obj.Event3110_obj.Monthtrans_obj.month_offset;
-    fprintf(stderr,"Event3110:data=%d offset=%d \n",data,offset);
+    //fprintf(stderr,"Event3110:data=%d offset=%d \n",data,offset);
     //通信处判断还是这里判断 TODO
     if(data>offset){
     	if(flag==0){

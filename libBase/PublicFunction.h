@@ -30,6 +30,7 @@
 
 #define	FILE_LINE		__FILE__,__FUNCTION__,__LINE__
 #define	DEBUG_TIME_LINE(format, ...)	debug(FILE_LINE, format, ##__VA_ARGS__)
+#define DEBUG_BUFF(data, dataSize)		debugBuf(FILE_LINE, data, dataSize)
 
 
 extern void Setsig(struct sigaction* psa, void (*pfun)(ProjectInfo* proinfo));
@@ -49,8 +50,10 @@ extern void CloseCom(int ComPort);
 /*
  * 时间转换函数
  * */
+extern int TItoSec(TI ti);
 extern void TSGet(TS* ts);
 extern time_t tmtotime_t(TS ptm);
+extern time_t TimeBCDTotime_t(DateTimeBCD timeBCD);
 extern void TimeBCDToTs(DateTimeBCD timeBCD,TS* outTs);
 extern void TsToTimeBCD(TS inTs,DateTimeBCD* outTimeBCD);
 extern DateTimeBCD timet_bcd(time_t t);
@@ -99,7 +102,8 @@ extern INT8U getarryb2s(INT32S* arr, INT8U len);
  */
 void asyslog(int priority, const char* fmt, ...);
 void bufsyslog(const INT8U* buf, const char* title, int head, int tail, int len);
-
+//国网送检时，增加了packet.log打印gprs和485_1的报文
+void PacketBufToFile(char *prefix, char *buf, int len, char *suffix);
 
 /*
  * 数据处理
@@ -108,6 +112,8 @@ extern INT8U getBase_DataTypeLen(Base_DataType dataType,INT8U data);
 extern INT8S reversebuff(INT8U* buff,INT32U len,INT8U* invbuff);
 
 extern void debug(const char* file, const char* func, INT32U line, const char *fmt, ...);
+extern void debugBuf(const char* file, const char* func, INT32U line, INT8U* buf, INT32U bufSize);
+extern void debugToPlcFile(const char* file, const char* func, INT32U line, const char *fmt, ...);
 extern void readFrm(char* str,  INT8U* buf, INT32U* bufSize);
 
 //读取设备配置信息

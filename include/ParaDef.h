@@ -29,13 +29,13 @@
 #define FRAMELEN 			2048
 #define BUFLEN  			2048						//上行通道发送接收数组长度
 #define REALDATA_LIST_LENGTH 	10				//实时数据请求缓存
-#define PRO_WAIT_COUNT     		60
+#define PRO_WAIT_COUNT     		180//	60		//进程清除死亡计数时间为3分钟。国网测试曲线招测时，组帧速度慢，会影响cjcomm的计数，导致cjcomm退出
 
 
 #define MMQNAMEMAXLEN    	32		//消息队列名称长度
-#define MAXSIZ_PROXY_485    2048
+#define MAXSIZ_PROXY_485    4096
 #define MAXNUM_PROXY_485    25
-#define MAXSIZ_PROXY_NET    2048
+#define MAXSIZ_PROXY_NET    4096
 #define MAXNUM_PROXY_NET    25
 #define MAXSIZ_TASKID_QUEUE    256
 #define MAXNUM_TASKID_QUEUE    25
@@ -71,6 +71,7 @@
 #define MY_CSD_NUM				20			//my_csd数组最大各数
 #define ROAD_OADS_NUM           20          //ROAD结构体里oads的最大个数
 #define ARRAY_ROAD_NUM			20			//raod数组的最大个数
+#define SELECTOR3_NUM			10			//selector3 包含的sel2的最大个数
 #define CLASS7_OAD_NUM			10			//关联对象属性表
 #define CLASS6019_PLAN_NUM		20			//透明内容集的个数
 #define	REGION_NUM				20			//MS类型数据区间长度
@@ -183,6 +184,7 @@
 #define S4851   1
 #define S4852   2
 #define S4853   3
+
 //  I型集中器串口定义
 //　　　GPRS  [ /dev/ttyS0 ]
 //　　　485I  [ /dev/ttyS1 ]

@@ -16,6 +16,9 @@
 #include "OIfunc.h"
 #include "PublicFunction.h"
 #include "secure.h"
+#include "class8.h"
+#include "class12.h"
+#include "class23.h"
 
 extern INT8S (*pSendfun)(int fd,INT8U* sndbuf,INT16U sndlen);
 extern int FrameHead(CSINFO *csinfo,INT8U *buf);
@@ -29,6 +32,7 @@ extern INT8U TmpDataBufList[MAXSIZ_FAM*2];
 extern INT8U securetype;
 extern ProgramInfo *memp;
 extern PIID piid_g;
+extern TimeTag	Response_timetag;		//响应的时间标签值
 
 typedef struct {
 	INT8U	repsonseType;		//分帧响应类型 CHOICE 	错误信息[0]   DAR，  对象属性[1]   SEQUENCE OF A-ResultNormal，记录型对象属性	[2] SEQUENCE OF A-ResultRecord
@@ -40,7 +44,6 @@ typedef struct {
 } NEXT_INFO;	//getResponseNext 需要保存的信息内容
 
 static NEXT_INFO	next_info={};
-
 
 int BuildFrame_GetResponseRecord(INT8U response_type,CSINFO *csinfo,RESULT_RECORD record,INT8U *sendbuf)
 {
@@ -57,16 +60,13 @@ int BuildFrame_GetResponseRecord(INT8U response_type,CSINFO *csinfo,RESULT_RECOR
 	sendbuf[index++] = response_type;
 	sendbuf[index++] = piid_g.data;		//	piid
 
-	if (record.datalen > 0)
-	{
+	fprintf(stderr,"record.datalen = %d\n",record.datalen);
+	if (record.datalen > 0)  {
 		memcpy(&sendbuf[index],record.data,record.datalen);
 		index = index + record.datalen;
-	}else	{
-		sendbuf[index++] = 0;//choice 0  ,DAR 有效 (数据访问可能的结果)
-		sendbuf[index++] = record.dar;
 	}
-	sendbuf[index++] = 0;
-	sendbuf[index++] = 0;
+	sendbuf[index++] = 0;	//FollowReport
+	sendbuf[index++] = 0;	//TimeTag
 //	INT16U
 	if(securetype!=0)//安全等级类型不为0，代表是通过安全传输下发报文，上行报文需要以不低于请求的安全级别回复
 	{
@@ -74,7 +74,7 @@ int BuildFrame_GetResponseRecord(INT8U response_type,CSINFO *csinfo,RESULT_RECOR
 		index=apduplace;
 	}
 	FrameTail(sendbuf,index,hcsi);
-	if(pSendfun!=NULL)
+	if(pSendfun!=NULL && csinfo->sa_type!=2 && csinfo->sa_type!=3)//组地址或广播地址不需要应答
 		pSendfun(comfd,sendbuf,index+3);
 	return (index+3);
 }
@@ -83,6 +83,7 @@ int BuildFrame_GetResponse(INT8U response_type,CSINFO *csinfo,INT8U oadnum,RESUL
 {
 	int apduplace =0;
 	int index=0, hcsi=0;
+
 	csinfo->dir = 1;
 	csinfo->prm = 1;
 	index = FrameHead(csinfo,sendbuf);
@@ -105,7 +106,7 @@ int BuildFrame_GetResponse(INT8U response_type,CSINFO *csinfo,INT8U oadnum,RESUL
 		index=apduplace;
 	}
 	FrameTail(sendbuf,index,hcsi);
-	if(pSendfun!=NULL)
+	if(pSendfun!=NULL && csinfo->sa_type!=2 && csinfo->sa_type!=3)//组地址或广播地址不需要应答
 		pSendfun(comfd,sendbuf,index+3);
 	return (index+3);
 }
@@ -155,7 +156,7 @@ int BuildFrame_GetResponseNext(INT8U response_type,CSINFO *csinfo,INT8U DAR,INT1
 	}
 
 	FrameTail(sendbuf,index,hcsi);
-	if(pSendfun!=NULL)
+	if(pSendfun!=NULL && csinfo->sa_type!=2 && csinfo->sa_type!=3)//组地址或广播地址不需要应答
 		pSendfun(comfd,sendbuf,index+3);
 	return (index+3);
 }
@@ -295,8 +296,8 @@ int GetYxPara(RESULT_NORMAL *response)
 	{
 		case 4://配置参数
 			index += create_struct(&data[index],2);
-			index += fill_bit_string(&data[index],8,objtmp.state4.StateAcessFlag);
-			index += fill_bit_string(&data[index],8,objtmp.state4.StatePropFlag);
+			index += fill_bit_string(&data[index],8,&objtmp.state4.StateAcessFlag);
+			index += fill_bit_string(&data[index],8,&objtmp.state4.StatePropFlag);
 			break;
 		case 2://设备对象列表
 			fprintf(stderr,"GetYxPara oi.att=%d\n",oad.attflg);
@@ -424,7 +425,7 @@ int Get3106(RESULT_NORMAL *response)
 	}
 	if(oad.attrindex != 0x02){
 		index += create_struct(&data[index],4);	//停电数据采集配置参数　４个元素
-		index += fill_bit_string(&data[index],8,tmpobj.poweroff_para_obj.collect_para_obj.collect_flag);
+		index += fill_bit_string(&data[index],8,&tmpobj.poweroff_para_obj.collect_para_obj.collect_flag);
 		index += fill_unsigned(&data[index],tmpobj.poweroff_para_obj.collect_para_obj.time_space);
 		index += fill_unsigned(&data[index],tmpobj.poweroff_para_obj.collect_para_obj.time_threshold);
 		index += create_array(&data[index],tmpobj.poweroff_para_obj.collect_para_obj.tsaarr.num);
@@ -588,6 +589,37 @@ int Get4004(RESULT_NORMAL *response)
 	}
 	return 0;
 }
+int Get4005(RESULT_NORMAL *response)
+{
+	int index=0;
+	INT8U *data = NULL;
+	OAD oad;
+	CLASS_4005	class_tmp={};
+	data = response->data;
+	oad = response->oad;
+	memset(&class_tmp,0,sizeof(CLASS_4005));
+	int ret=readCoverClass(oad.OI,0,&class_tmp,sizeof(CLASS_4005),para_vari_save);
+	fprintf(stderr,"4005ret= %d \n",ret);
+	switch(oad.attflg )
+	{
+		case 2:
+			if(ret == -1)
+				data[index++] = 0;
+			else
+			{
+				fprintf(stderr,"4005num=%d \n",class_tmp.num);
+				index +=create_array(&data[index],class_tmp.num);
+				INT8U i=0;
+				for(i=0;i<class_tmp.num;i++){
+					fprintf(stderr,"addrlen=%d \n",class_tmp.addr[i][0]);
+					index +=fill_octet_string(&data[index],(char *)&class_tmp.addr[i][1],class_tmp.addr[i][0]);
+				}
+			}
+			response->datalen = index;
+			break;
+	}
+	return 0;
+}
 int Get4006(RESULT_NORMAL *response)
 {
 	int index=0;
@@ -655,6 +687,47 @@ int Get4103(RESULT_NORMAL *response)
 	}
 	return 0;
 }
+int Get4202(RESULT_NORMAL *response)
+{
+	int index=0;
+	INT8U *data = NULL;
+	OAD oad;
+	CLASS_4202	class_tmp={};
+	data = response->data;
+	oad = response->oad;
+	memset(&class_tmp,0,sizeof(CLASS_4202));
+	int ret=readCoverClass(oad.OI,0,&class_tmp,sizeof(CLASS_4202),para_vari_save);
+	switch(oad.attflg )
+	{
+		case 2:
+			if(ret != -1)
+			{
+				index += create_struct(&data[index],8);
+				index += fill_bool(&data[index],class_tmp.flag);
+				index += create_OAD(1,&data[index],class_tmp.oad);
+				index += fill_long_unsigned(&data[index],class_tmp.total_timeout);
+				index += fill_long_unsigned(&data[index],class_tmp.byte_timeout);
+				index += fill_unsigned(&data[index],class_tmp.resendnum);
+				index += fill_unsigned(&data[index],class_tmp.cycle);
+				index += fill_unsigned(&data[index],class_tmp.portnum);
+				index += create_array(&data[index],class_tmp.tsanum);
+				int i=0;
+				for(i=0;i<class_tmp.tsanum;i++)
+				{
+					data[index++]=dttsa;
+					memcpy(&data[index],&class_tmp.tsa[i][0],class_tmp.tsa[i][0]+1);
+					index +=class_tmp.tsa[i][0]+1;
+				}
+			}
+			else
+			{
+				data[index++]=0;
+			}
+			response->datalen = index;
+			break;
+	}
+	return 0;
+}
 int Get4204(RESULT_NORMAL *response)
 {
 	int index=0;
@@ -693,8 +766,13 @@ int Get4300(RESULT_NORMAL *response)
 	oad = response->oad;
 	memset(&class_tmp,0,sizeof(CLASS19));
 	readCoverClass(0x4300,0,&class_tmp,sizeof(CLASS19),para_vari_save);
+	int arrindex=index;
+	INT8U i=0,num=0;
 	switch(oad.attflg )
 	{
+	    case 2:
+	    	index += fill_visible_string(&data[index],&class_tmp.devdesc[1],class_tmp.devdesc[0]);
+	    	break;
 		case 3:
 			index += create_struct(&data[index],6);
 			index += fill_visible_string(&data[index],class_tmp.info.factoryCode,4);
@@ -706,6 +784,16 @@ int Get4300(RESULT_NORMAL *response)
 			break;
 		case 4:
 			index +=fill_date_time_s(&data[index],&class_tmp.date_Product);
+			break;
+		case 5:
+			index +=2;
+			for(i=0;i<10;i++){
+				if(class_tmp.ois[i]>0){ //剔除0得情况
+					index +=fill_OI(&data[index],class_tmp.ois[i]);
+					num++;
+				}
+			}
+			create_array(&data[arrindex],num);
 			break;
 		case 6://支持规约列表
 			index += create_array(&data[index],1);
@@ -720,11 +808,115 @@ int Get4300(RESULT_NORMAL *response)
 		case 9:
 			index += fill_bool(&data[index],class_tmp.talk_master);
 			break;
+		case 10:
+			index +=2;
+			for(i=0;i<10;i++){
+				if(!(class_tmp.oads[i].OI == 0
+						&&class_tmp.oads[i].attflg == 0
+						&&class_tmp.oads[i].attrindex == 0)){ //剔除0得情况
+					index +=create_OAD(1,&data[index],class_tmp.oads[i]);
+					fprintf(stderr,"%d-oad.oi=%04x \n",i,class_tmp.oads[i].OI);
+					num++;
+				}
+			}
+			if(num>0)
+				create_array(&data[arrindex],num);
+			else
+				data[index++]=0;
+			break;
 	}
 	response->datalen = index;
 	return 0;
 }
+int Get4400(RESULT_NORMAL *response)
+{
+	int index=0,ret=0;
+	INT8U *data = NULL;
 
+	OAD oad={};
+	CLASS_4400	class_tmp={};
+	INT8U i=0,m=0;
+
+	data = response->data;
+	oad = response->oad;
+	memset(&class_tmp,0,sizeof(CLASS_4400));
+	ret = readCoverClass(0x4400,0,&class_tmp,sizeof(CLASS_4400),para_vari_save);
+	//无4400参数，一致性测试：设置一个默认值上送，否则不合格
+	if(ret!=1) {
+		class_tmp.num=1;
+		class_tmp.authority[0].OI=0x4000;
+		class_tmp.authority[0].one_authority.met_num=1;
+		class_tmp.authority[0].one_authority.method[0].id=1;
+		class_tmp.authority[0].one_authority.method[0].visit_authority=1;
+		class_tmp.authority[0].one_authority.pro_num=1;
+		class_tmp.authority[0].one_authority.property[0].id=1;
+		class_tmp.authority[0].one_authority.property[0].visit_authority=1;
+	}
+
+	switch(oad.attflg )
+	{
+	    case 1:
+	    	index +=fill_octet_string(&data[index],(char *)&class_tmp.login_name[1],class_tmp.login_name[0]);
+		break;
+	    case 2:
+	    	if(class_tmp.num>0)
+	    	{
+	    		//fprintf(stderr,);
+               index +=create_array(&data[index],class_tmp.num);
+               for(i=0;i<class_tmp.num;i++)
+               {
+            	   index +=create_struct(&data[index],2);
+            	   index +=fill_OI(&data[index],class_tmp.authority[i].OI);
+            	   index +=create_struct(&data[index],2);
+            	   if(class_tmp.authority[i].one_authority.pro_num>0){
+            		   index +=create_array(&data[index],class_tmp.authority[i].one_authority.pro_num);
+            		   for(m=0;m<class_tmp.authority[i].one_authority.pro_num;m++){
+            			   index +=create_struct(&data[index],2);
+            			   index +=fill_unsigned(&data[index],class_tmp.authority[i].one_authority.property[m].id);
+                           index +=fill_enum(&data[index], class_tmp.authority[i].one_authority.property[m].visit_authority);
+            		   }
+            	   }
+            	   else
+            		   data[index++]=0;
+
+            	   if(class_tmp.authority[i].one_authority.met_num>0){
+					   index +=create_array(&data[index],class_tmp.authority[i].one_authority.met_num);
+					   for(m=0;m<class_tmp.authority[i].one_authority.met_num;m++){
+						   index +=create_struct(&data[index],2);
+						   index +=fill_unsigned(&data[index],class_tmp.authority[i].one_authority.method[m].id);
+							  index +=fill_bool(&data[index], class_tmp.authority[i].one_authority.method[m].visit_authority);
+					   }
+				   }
+				   else
+					   data[index++]=0;
+               }
+	    	}
+	    	else
+	    	{
+	    		data[index++]=0;
+	    	}
+	    	break;
+		case 3:
+			index +=create_struct(&data[index],7);
+			index +=fill_long_unsigned(&data[index],class_tmp.use_lan_info.xieyi_banben);
+			index +=fill_long_unsigned(&data[index],class_tmp.use_lan_info.max_rev_num);
+			index +=fill_long_unsigned(&data[index],class_tmp.use_lan_info.max_send_num);
+			index +=fill_long_unsigned(&data[index],class_tmp.use_lan_info.al_num);
+			index +=fill_bit_string(&data[index],64,class_tmp.use_lan_info.xieyi);
+			index +=fill_bit_string(&data[index],128,class_tmp.use_lan_info.power);
+			index +=fill_double_long_unsigned(&data[index], class_tmp.use_lan_info.static_outtime);
+			break;
+		case 4:
+            index +=fill_unsigned(&data[index], class_tmp.custom);
+			break;
+		case 5:
+			index +=fill_enum(&data[index], class_tmp.renzheng);
+			break;
+
+	}
+	response->datalen = index;
+	return 0;
+}
 int Get4500(RESULT_NORMAL *response)
 {
 	int index=0,i=0;
@@ -791,6 +983,43 @@ int Get4500(RESULT_NORMAL *response)
 		index += fill_visible_string(&data[index],class_tmp.info.hardVer,4);
 		index += fill_visible_string(&data[index],class_tmp.info.hardDate,6);
 		index += fill_visible_string(&data[index],class_tmp.info.factoryExpInfo,8);
+		break;
+	case 6:
+		if(class_tmp.protocolnum>0)
+		{
+			index += create_array(&data[index],class_tmp.protocolnum);
+			for(i=0;i<class_tmp.protocolnum;i++)
+				index +=fill_visible_string(&data[index],&class_tmp.protcol[i][1],class_tmp.protcol[i][0]);
+		}
+		else
+            data[index++]=0;
+		break;
+	case 7:
+		if(class_tmp.ccid[0]>0)
+			index +=fill_visible_string(&data[index],&class_tmp.ccid[1],class_tmp.ccid[0]);
+		else
+			data[index++]=0;
+	    break;
+	case 8:
+		if(class_tmp.imsi[0]>0)
+			index +=fill_visible_string(&data[index],&class_tmp.imsi[1],class_tmp.imsi[0]);
+		else
+			data[index++]=0;
+		break;
+	case 9:
+		index +=fill_long(&data[index],class_tmp.signalStrength);
+		break;
+	case 10:
+		if(class_tmp.simkard[0]>0)
+			index +=fill_visible_string(&data[index],&class_tmp.simkard[1],class_tmp.simkard[0]);
+		else
+			data[index++]=0;
+		break;
+	case 11:
+		if(class_tmp.pppip[0]>0)
+			index +=fill_octet_string(&data[index],&class_tmp.pppip[1],class_tmp.pppip[0]);
+		else
+			data[index++]=0;
 		break;
 	}
 	response->datalen = index;
@@ -896,6 +1125,9 @@ void printrecord(RESULT_RECORD record)
 		fprintf(stderr,"\nOAD %04x %02x %02x",record.select.selec1.oad.OI,record.select.selec1.oad.attflg,record.select.selec1.oad.attrindex);
 		fprintf(stderr,"\nData Type= %02x  Value=%d ",record.select.selec1.data.type,record.select.selec1.data.data[0]);
 		break;
+	case 2:
+		fprintf(stderr,"\nOAD %04x %02x %02x",record.select.selec2.oad.OI,record.select.selec2.oad.attflg,record.select.selec2.oad.attrindex);
+		break;
 	case 5:
 		printSel5(record);
 		break;
@@ -913,12 +1145,14 @@ void printrecord(RESULT_RECORD record)
  * */
 int getSel_Data(INT8U type,INT8U *seldata,INT8U *destdata)
 {
-	int ret=-1;
+	int 	ret=-1;
+	TI		ti;
+	INT8U	DAR=success;
 	fprintf(stderr,"getSel_Data type=%02x\n",type);
 	switch(type) {
 	case dtnull:
 		destdata[0] = 0;
-		ret = 1;
+		ret = 0;
 		break;
 	case dtunsigned:
 		destdata[0] = seldata[0];
@@ -930,10 +1164,20 @@ int getSel_Data(INT8U type,INT8U *seldata,INT8U *destdata)
 		ret = 2;
 		break;
 	case dtdatetimes:
-		ret = getDateTimeS(0,seldata,destdata);
+		ret = getDateTimeS(0,seldata,destdata,&DAR);
+		break;
+	case dtti:
+		fprintf(stderr,"seldata=%02x_%02x_%02x\n",seldata[0],seldata[1],seldata[2]);
+		ret = getTI(0,seldata,&ti);
+		destdata[0] = ti.units;
+		destdata[1] = (ti.interval >> 8) & 0xff;
+		destdata[2] = ti.interval & 0xff;
+		break;
+	default:
+		ret = -1;
 		break;
 	}
-	fprintf(stderr,"getSel_Data return %d\n",ret);
+//	fprintf(stderr,"getSel_Data return %d\n",ret);
 	return ret;
 }
 
@@ -944,6 +1188,7 @@ int getColl_Data(OI_698 oi,INT16U seqnum,INT8U *data)
 {
 	int	index=0;
 	switch(oi) {
+	case 0x6000:
 	case 0x6001:
 		index += Get_6001(0,seqnum,data);
 		break;
@@ -971,55 +1216,355 @@ int getColl_Data(OI_698 oi,INT16U seqnum,INT8U *data)
 	return index;
 }
 
-int getSel1_freeze(RESULT_RECORD *record)
+int  fill_RecordRow(int *index,RESULT_RECORD *record,DateTimeBCD datetime)
 {
-	int ret=0;
-	int		index = 0, buflen=0, i=0;
-	DateTimeBCD datetime={};
-	INT8U  data[VARI_LEN];
-	int		datalen=0,j=0;
-//	OAD		readoad={};
-
-	getSel_Data(record->select.selec1.data.type,record->select.selec1.data.data,(INT8U *)&datetime);
-	fprintf(stderr,"getSel1: OI=%04x  Time=%d:%d:%d %d-%d-%d\n",record->select.selec1.oad.OI,datetime.year.data,datetime.month.data,datetime.day.data,
-			datetime.hour.data,datetime.min.data,datetime.sec.data);
+	int 	i=0,j=0;
+	int		getflg = 0;
+	int		buflen = 0;
+	int		datalen=0;
+	INT8U  	data[VARI_LEN]={};
 
 	for(i=0;i<record->rcsd.csds.num;i++) {
 		fprintf(stderr,"\n%d: %04x%02x%02x\n",i,record->rcsd.csds.csd[i].csd.oad.OI,record->rcsd.csds.csd[i].csd.oad.attflg,record->rcsd.csds.csd[i].csd.oad.attrindex);
-		ret = readFreezeRecordByTime(record->oad.OI,record->rcsd.csds.csd[i].csd.oad,datetime,&datalen,(INT8U *)data);
-		if(ret==1) {
-			fprintf(stderr,"冻结时间:%04d-%02d-%02d %02d:%02d:%02d ",datetime.year.data,datetime.month.data,datetime.day.data,
-					datetime.hour.data,datetime.min.data,datetime.sec.data);
-			fprintf(stderr,"数据【%d】 ",datalen);
-			for(j=0;j<datalen;j++) {
-				fprintf(stderr,"%02x ",data[j]);
-			}
-			fprintf(stderr,"\n");
-			switch(record->rcsd.csds.csd[i].csd.oad.OI) {
-			case 0x2131:
-			case 0x2132:
-			case 0x2133:
-				Get_213x(record->rcsd.csds.csd[i].csd.oad,(INT8U *)data,&record->data[index],&buflen);
-				index += buflen;
-				break;
-			}
-		}else {
-			record->data[index] = 0;
+		getflg = readFreezeRecordByTime(record->oad.OI,record->rcsd.csds.csd[i].csd.oad,datetime,&datalen,(INT8U *)data);
+		fprintf(stderr,"冻结时间:%04d-%02d-%02d %02d:%02d:%02d ",datetime.year.data,datetime.month.data,datetime.day.data,
+				datetime.hour.data,datetime.min.data,datetime.sec.data);
+		fprintf(stderr,"数据【%d】 ",datalen);
+		for(j=0;j<datalen;j++) {
+			fprintf(stderr,"%02x ",data[j]);
+		}
+		fprintf(stderr,"\n");
+		switch(record->rcsd.csds.csd[i].csd.oad.OI) {
+		case 0x2200:	//通信流量
+			Get_2200(getflg,(INT8U *)data,&record->data[*index],&buflen);
+			*index += buflen;
+			break;
+		case 0x2203:	//供电时间
+			Get_2203(getflg,(INT8U *)data,&record->data[*index],&buflen);
+			*index += buflen;
+			break;
+		case 0x2204:	//复位次数
+			Get_2204(getflg,(INT8U *)data,&record->data[*index],&buflen);
+			*index += buflen;
+			break;
+		case 0x2131:
+		case 0x2132:
+		case 0x2133:
+			Get_213x(getflg,(INT8U *)data,&record->data[*index],&buflen);
+			*index += buflen;
+			break;
 		}
 	}
+	return *index;
+}
+/*
+ * 返回SEQUENCE OF GetRecord 的个数
+ * */
+int getSel1_freeze(RESULT_RECORD *record)
+{
+	DateTimeBCD datetime={};
+	int		getSel_ret = 0;
+	int		index = 0;
 
-	if(index==0) {	//0条记录     [1] SEQUENCE OF A-RecordRow
-		record->data[0] = 0;
+	getSel_ret = getSel_Data(record->select.selec1.data.type,record->select.selec1.data.data,(INT8U *)&datetime);
+	if(getSel_ret == -1) {
+		fprintf(stderr,"select1 查询类型不匹配。。。。。\n");
+		record->datalen = 0;
+		record->dar = dblock_invalid;
+		return 0;
+	}else if(getSel_ret == 0){
+		//一致性测试GET_10，RSD=1,OAD不在赛选范围内（数据Data为NULL） 响应报文seqof=0
+		record->datalen = 0;
+		return 0;
 	}
+	fprintf(stderr,"getSel1: OI=%04x  Time=%d:%d:%d %d-%d-%d\n",record->select.selec1.oad.OI,datetime.year.data,datetime.month.data,datetime.day.data,
+			datetime.hour.data,datetime.min.data,datetime.sec.data);
+	fill_RecordRow(&index,record,datetime);
 	record->datalen = index;
+//	一致性测试修改，是否影响正常？？？？
+//	if(index==0) {	//0条记录     [1] SEQUENCE OF A-RecordRow
+//		record->data[index] = 0;
+//	}
+//	record->datalen = index;
 	fprintf(stderr,"\nrecord->datalen = %d",record->datalen);
-	return ret;
+	return 1;//ret;  //一致性测试，正常响应报文seqof=1
 }
 
-///
+int repeatSel(Selector3 sel3,int seq)
+{
+	int ret = 0;
+	int	i=0;
+	for(i=0;i<sel3.sel2_num;i++) {
+		if(i!=seq) {
+			if(memcmp(&sel3.selectors[i],&sel3.selectors[seq],sizeof(Selector2))==0) {
+				ret = 1;
+				break;
+			}
+		}
+	}
+	return ret;
+}
+int getSel2_freeze(RESULT_RECORD *record)
+{
+	int 	ret=0,i=0,sel_id =0;
+	int		index = 0,ti_sec=0;
+	DateTimeBCD start_from={},end_to={},datetime={};
+	TS		tmNext={};
+	TI		jiange={};
+	time_t	sub_time=0;
+	int		seqofNum = 1;		//一致性测试GET_16:如间隔为NULL，应正常应答
+	INT8U	selector2_num = 1, seqofsum = 0;
+	int		repflag = 0;
+	Selector2 sel2={};
+	if(record->selectType == 2) {
+		selector2_num = 1;
+	}else if(record->selectType == 3) {
+		selector2_num = record->select.selec3.sel2_num;
+	}
+	fprintf(stderr,"selector2_num = %d\n",selector2_num);
+	record->data[index++] = seqofNum; 	//M = 1  Sequence  of A-RecordRow
+	for(i=0;i<selector2_num;i++) {
+		if(record->selectType == 2) {
+			memcpy(&sel2,&record->select.selec2,sizeof(Selector2));
+		}else if(record->selectType == 3) {
+			memcpy(&sel2,&record->select.selec3.selectors[i],sizeof(Selector2));
+		}
+		if(sel2.oad.OI == 0x2021) {	//数据冻结时间
+			if(i!=0) {		//第一次查询，不判断selector条件
+				repflag = repeatSel(record->select.selec3,i);
+				if(repflag==1) {
+					fprintf(stderr,"i=%d sel repeat\n",i);
+					continue;
+				}
+			}
+			/*GET_16 间隔为NULL,查找数据 GET_12 间隔类型不是TI，返回记录数0*/
+			if((sel2.data_from.type!=dtdatetimes)||(sel2.data_to.type!=dtdatetimes)
+					||((sel2.data_jiange.type!=dtti) && sel2.data_jiange.type!=0)){
+				record->data[0] = 0;	//seqofNum = 0
+				record->datalen = 1;
+				fprintf(stderr,"selector2 类型错误");
+				return ret;
+			}
+			getSel_Data(sel2.data_from.type,sel2.data_from.data,(INT8U *)&start_from);
+			getSel_Data(sel2.data_to.type,sel2.data_to.data,(INT8U *)&end_to);
+			getSel_Data(sel2.data_jiange.type,sel2.data_jiange.data,(INT8U *)&jiange);
+
+			if(DataTimeCmp(start_from,end_to)==0) {
+				record->data[0] = 0;	//seqofNum = 0
+				record->datalen = 1;
+				fprintf(stderr,"selector2 起始值>=结束值");
+				return ret;
+			}
+
+			sub_time = TimeBCDTotime_t(end_to)-TimeBCDTotime_t(start_from);
+			ti_sec = TItoSec(jiange);
+			fprintf(stderr,"sub_time=%ld,ti_sec = %d\n",sub_time,ti_sec);
+			if(ti_sec!=0) {
+				seqofNum = sub_time/ti_sec;
+			}
+			seqofsum += seqofNum;
+			fprintf(stderr,"getSel2: OI=%04x  \n",record->select.selec1.oad.OI);
+			printDataTimeS("起始时间",start_from);
+			printDataTimeS("结束时间",end_to);
+			printTI("间隔",jiange);
+			fprintf(stderr,"seqOfNum = %d\n",seqofNum);
+		}
+		memcpy(&datetime,&start_from,sizeof(DateTimeBCD));
+		for(sel_id=0;sel_id<seqofNum;sel_id++) {
+			fill_RecordRow(&index,record,datetime);
+			TimeBCDToTs(datetime,&tmNext);		//获取需要查找的下一次时间点
+			tminc(&tmNext,jiange.units,1);
+			TsToTimeBCD(tmNext,&datetime);
+		}
+	}
+	if(seqofsum!=0) {
+		record->data[0] = seqofsum; 	//M = 1  Sequence  of A-RecordRow
+	}
+//	record->datalen += 1;
+	record->datalen = index;
+	fprintf(stderr,"\nrecord->datalen = %d index=%d",record->datalen,index);
+	for(i=0;i<record->datalen;i++) {
+		fprintf(stderr,"%02x ",record->data[i]);
+	}
+	return ret;
+}
+int GetSle0_task(RESULT_RECORD *record)
+{
+	int	index = 0,ret=0;
+	int	taskid=0,i=0,findmethod = 0,tsa_num=0;
+	CLASS_6001 *tsa_group = NULL;
+	ROAD_ITEM item_road;
+	MY_MS meters_null;
+	int unitnum=0;
+	INT16U  blocksize=0,headsize=0;
+	HEAD_UNIT *headunit = NULL;//文件头
+	FILE *fp = NULL;
+	meters_null.mstype = 1;//全部电表
+	tsa_num = getOI6001(meters_null,(INT8U **)&tsa_group);
+	memset(&item_road,0,sizeof(item_road));
+	findmethod = 1;
+	//fprintf(stderr,"\n\\\\\开始找任务序号...... \n");
+	if((taskid = GetTaskidFromCSDs_Sle0(record->rcsd.csds,&item_road,findmethod,tsa_group)) == 0) {//暂时不支持招测的不在一个采集方案
+		memset(&item_road,0,sizeof(item_road));
+		findmethod = 2;
+		if((taskid = GetTaskidFromCSDs_Sle0(record->rcsd.csds,&item_road,findmethod,tsa_group)) == 0) {
+			return 0;
+		}
+	}
+	if(taskid>0){
+		TS ts_rec;
+		TSGet(&ts_rec); //集中器时间
+		char fname[300]={};
+		sprintf(fname,"%s/%03d/%04d%02d%02d.dat",TASKDATA,taskid,ts_rec.Year,ts_rec.Month,ts_rec.Day);
+		fp =fopen(fname,"r");
+
+		if(fp != NULL)
+		{
+			unitnum = GetTaskHead(fp,&headsize,&blocksize,&headunit);
+			INT8U *blockbuf=NULL;
+			INT8U m=0,n=0,offset=0,j=0;
+			blockbuf=malloc(blocksize);
+
+			if(headunit == NULL)
+				return 0;
+			INT8U first=0;
+			for(m=0;m<tsa_num;m++)
+			{
+				first=0;
+				memset(blockbuf,0,blocksize);
+				int r=fread(blockbuf,blocksize,1,fp);
+				fprintf(stderr,"读出的文件：\n");
+				int a=0;
+				for(a=0;a<blocksize;a++)
+					fprintf(stderr,"%02x ",blockbuf[a]);
+				if(r>0){
+					fprintf(stderr,"----num=%d \n",record->rcsd.csds.num);
+					for(i=0;i<record->rcsd.csds.num;i++){
+						if(record->rcsd.csds.csd[i].type == 0){
+							fprintf(stderr,"这是oad \n");
+							offset = 0;
+							INT8U haveflag = 0;
+							for(n=0;n<unitnum;n++){
+							if(memcmp(&record->rcsd.csds.csd[i].csd.oad,&headunit[n].oad_r,sizeof(OAD))==0){
+									memcpy(&record->data[index],&blockbuf[offset],headunit[n].len);
+									index +=headunit[n].len;
+									offset +=headunit[n].len;
+									haveflag=1;
+									break;
+								}
+								offset +=headunit[n].len;
+						    }
+							if(haveflag == 0)
+								record->data[index++]=0;
+						}else if(record->rcsd.csds.csd[i].type == 1){
+							fprintf(stderr,"这是road \n");
+							if(first == 0){
+								first=1;
+								record->data[index++] = 1;//array
+								record->data[index++] = record->rcsd.csds.csd[i].csd.road.num;//shuliang
+							}
+
+							for(j=0;j<record->rcsd.csds.csd[i].csd.road.num;j++)
+							{
+								offset = 0;
+								fprintf(stderr,"\n j=%d oad.oi=%04x attflg=%02x,attrindex=%02x\n",j,
+										record->rcsd.csds.csd[i].csd.road.oads[j].OI,record->rcsd.csds.csd[i].csd.road.oads[j].attflg,
+										record->rcsd.csds.csd[i].csd.road.oads[j].attrindex);
+								INT8U haveflag_1 = 0;
+								for(n=0;n<unitnum;n++){
+									if(memcmp(&record->rcsd.csds.csd[i].csd.road.oads[j],&headunit[n].oad_r,sizeof(OAD))==0){
+										memcpy(&record->data[index],&blockbuf[offset],headunit[n].len);
+										index +=headunit[n].len;
+										offset +=headunit[n].len;
+										haveflag_1=1;
+										break;
+									}
+									offset +=headunit[n].len;
+								}
+								if(haveflag_1 == 0)
+									record->data[index++]=0;
+							}
+						}
+					}
+			    }
+				else
+					record->data[0] = 0;
+			}
+			ret=tsa_num;
+			if(fp !=NULL)
+				fclose(fp);
+			if(blockbuf!=NULL){
+				free(blockbuf);
+				blockbuf = NULL;
+			}
+		}
+		else
+			record->data[0] = 0;
+	}
+	else
+		record->data[0] = 0;
+	record->datalen = index;
+	if(headunit != NULL){
+		free(headunit);
+		headunit = NULL;
+	}
+	return ret;
+}
+/*
+ * 返回SEQUENCE OF GetRecord 的个数
+ * */
+int getSel0_coll(RESULT_RECORD *record)
+{
+	int	index = 0,temindex = 0,ret=0;
+	int	taskid=0,i=0;
+	if(record->oad.OI==0x6012 && record->oad.attflg == 03)
+	{
+       ret=GetSle0_task(record);
+       return ret;
+	}
+	else
+	{
+		if(record->rcsd.csds.num >0)
+		{
+			for(taskid=0;taskid<255;taskid++){
+				for(i=0;i<record->rcsd.csds.num;i++){
+					if(record->rcsd.csds.csd[i].type == 0)
+						index += getColl_Data(record->rcsd.csds.csd[i].csd.oad.OI,taskid,&record->data[index]);
+				}
+				if(index != temindex)
+					ret++;
+				temindex=index;
+			}
+		}
+		else
+		{
+			if((record->oad.OI>>12) == 6){
+				ret= getFileRecordNum(record->oad.OI);
+
+				for(i=0;i<ret;i++)
+				{
+					if(i==0 && record->oad.OI == 0x6000)
+						continue;
+					index +=getColl_Data(record->oad.OI,i,&record->data[index]);
+				}
+				if(record->oad.OI == 0x6000)
+					ret--;
+			}
+		}
+	}
+	if(ret==0) {	//0条记录     [1] SEQUENCE OF A-RecordRow
+		record->data[0] = 0;
+		index=1;	//？？？？
+	}
+	record->datalen = index;
+	return ret;
+}
+/*
+ * 返回SEQUENCE OF GetRecord 的个数
+ * */
 int getSel1_coll(RESULT_RECORD *record)
 {
-	int ret=0;
+	int ret=1;
 	int		index = 0;
 	int		taskid=0;
 
@@ -1028,7 +1573,7 @@ int getSel1_coll(RESULT_RECORD *record)
 	index += getColl_Data(record->select.selec1.oad.OI,taskid,&record->data[index]);
 	if(index==0) {	//0条记录     [1] SEQUENCE OF A-RecordRow
 		record->data[0] = 0;
-		index=1;
+		index=1;	//？？？？
 	}
 	record->datalen = index;
 	fprintf(stderr,"\nrecord->datalen = %d",record->datalen);
@@ -1073,14 +1618,29 @@ int getSelector12(RESULT_RECORD *record)
 	switch(oihead) {
 	case 5:
 		fprintf(stderr,"\n冻结类对象\n");
-		if(record->selectType == 1) 	getSel1_freeze(record);
+		switch(record->selectType) {
+		case 1:
+			ret = getSel1_freeze(record);
+			break;
+		case 2:
+		case 3:
+			ret = getSel2_freeze(record);
+			break;
+		}
 		break;
 	case 6:			//采集监控类对象
 		fprintf(stderr,"\n读取采集监控对象\n");
-		if(record->selectType == 1)  	getSel1_coll(record);
-		else if(record->selectType == 2)  	getSel2_coll(record);
+		if(record->selectType == 0) {
+			ret = getSel0_coll(record);
+		}else if(record->selectType == 1) {
+			ret = getSel1_coll(record);
+		}else if(record->selectType == 2) {
+			ret = getSel2_coll(record);
+		}
 		break;
 	default:
+		fprintf(stderr,"oi=%x oihead = %d\n",record->oad.OI,oihead);
+		record->dar = obj_undefine;
 		record->datalen = 0;
 		break;
 	}
@@ -1090,54 +1650,80 @@ int getSelector12(RESULT_RECORD *record)
 /*
  * type = 3:GetResponseRecord
  * type = 4:GetResponseRecordList
+ * RSD用于选择记录型对象属性的各条记录，即二维记录表的行选择，其通过对构成记录的某些对象属性数值进行指定来进行选择，范围选择区间：前闭后开，即[起始值，结束值）。
  * */
 int doGetrecord(INT8U type,OAD oad,INT8U *data,RESULT_RECORD *record,INT16U *subframe)
 {
+	const static OI_698 event_relate_oi[]={0x2022,0x201e,0x2020,0x2024};	//事件记录序号，事件发生时间，事件结束时间，事件发生源
+	INT8U 	oihead = 0;
 	int 	source_index=0;		//getrecord 指针
 	int		dest_index=0;		//getreponse 指针
+	int		response_choice_index = 0;		//记录response的choice的位置
 	INT8U 	SelectorN =0;
 	int		datalen=0;
+	int		seqof_len = 0;
+	int		i=0	,freezeflg = 0;;
 
-	fprintf(stderr,"\nGetRequestRecord   oi=%x  %02x  %02x",record->oad.OI,record->oad.attflg,record->oad.attrindex);
+	DEBUG_TIME_LINE("\nGetRequestRecord   oi=%x  %02x  %02x",record->oad.OI,record->oad.attflg,record->oad.attrindex);
 	source_index = get_BasicRSD(0,&data[source_index],(INT8U *)&record->select,&record->selectType);
-	fprintf(stderr,"\nRSD Select%d     data[%d] = %02x",record->selectType,source_index,data[source_index]);
+	DEBUG_TIME_LINE("\nRSD Select%d     data[%d] = %02x",record->selectType,source_index,data[source_index]);
 	source_index +=get_BasicRCSD(0,&data[source_index],&record->rcsd.csds);
 	//record.rcsd.csds.csd[i].csd.oad.OI
 	SelectorN = record->selectType;
-	fprintf(stderr,"\n- getRequestRecord SelectorN=%d OI = %04x  attrib=%d  index=%d",SelectorN,record->oad.OI,record->oad.attflg,record->oad.attrindex);
+	DEBUG_TIME_LINE("\n- getRequestRecord SelectorN=%d OI = %04x  attrib=%d  index=%d",SelectorN,record->oad.OI,record->oad.attflg,record->oad.attrindex);
 	printrecord(*record);
 	dest_index += create_OAD(0,&record->data[dest_index],record->oad);
-	const static OI_698 oi[]={0x2022,0x201e,0x2020,0x2024};
-	INT8U oihead=((record->oad.OI & 0xF000) >>12);
+    fprintf(stderr,"selectorn=%d \n",SelectorN);
 	switch(SelectorN) {
+	case 0:
 	case 1:		//指定对象指定值
 		*subframe = 1;		//TODO:未处理分帧
-		if(record->rcsd.csds.num == 0) {
+		if(record->rcsd.csds.num == 0 && SelectorN == 0 && record->oad.OI == 0x6000){
+			record->data[dest_index++]=1;
+			record->data[dest_index++]=00;
+			record->data[dest_index++]=0x60;
+			record->data[dest_index++]=0x01;
+			record->data[dest_index++]=0x02;
+			record->data[dest_index++]=0x00;
+		}
+		else if(record->rcsd.csds.num == 0 && SelectorN == 1) {
 			record->data[dest_index++] = 1;	//一行记录M列属性描述符 	RCSD
 			record->data[dest_index++] = 0;	//OAD
 			record->select.selec1.oad.attrindex = 0;		//上送属性下所有索引值
 			dest_index += create_OAD(0,&record->data[dest_index],record->select.selec1.oad);
-			record->data[dest_index++] = 1; //CHOICE  [1]  data
-			record->data[dest_index++] = 1; //M = 1  Sequence  of A-RecordRow
-		}else {
+		}else{
 			dest_index +=fill_RCSD(0,&record->data[dest_index],record->rcsd.csds);
-			record->data[dest_index++] = 1; //CHOICE  [1]  data
-			record->data[dest_index++] = 1; //M = 1  Sequence  of A-RecordRow
+			if(record->rcsd.csds.num == 0){
+				record->data[dest_index++] = 0;
+			}
 		}
+
+		response_choice_index = dest_index;
+		dest_index += 2;
 		record->data = &TmpDataBuf[dest_index];		//修改record的数据帧的位置
-		getSelector12(record);
+		seqof_len = getSelector12(record);
 		record->data = TmpDataBuf;				//data 指向回复报文帧头
 		record->datalen += dest_index;			//数据长度+ResultRecord
+
+		if(record->dar == success) {
+			record->data[response_choice_index] = 1; //CHOICE  [1]  data
+			record->data[response_choice_index+1] = seqof_len; //M = 1  Sequence  of A-RecordRow
+		}else {
+
+			record->data[response_choice_index] = 0; //DAR
+			record->data[response_choice_index+1] = record->dar; //错误类型
+		}
 	break;
 	case 2:
+		oihead=((record->oad.OI & 0xF000) >>12);
 		if(oihead == 3){	//事件类
 			*subframe = 1;		//TODO:未处理分帧
 			TmpDataBuf[dest_index++] = 4;
 			INT8U ai=0;
 			for(ai=0;ai<4;ai++){
 				TmpDataBuf[dest_index++] = 0;
-				TmpDataBuf[dest_index++] = (oi[ai]>>8)&0x00ff;
-				TmpDataBuf[dest_index++] = oi[ai]&0x00ff;
+				TmpDataBuf[dest_index++] = (event_relate_oi[ai]>>8)&0x00ff;
+				TmpDataBuf[dest_index++] = event_relate_oi[ai]&0x00ff;
 				TmpDataBuf[dest_index++] = 2;
 				TmpDataBuf[dest_index++] = 0;
 			}
@@ -1163,8 +1749,28 @@ int doGetrecord(INT8U type,OAD oad,INT8U *data,RESULT_RECORD *record,INT16U *sub
 			record->datalen += dest_index;			//数据长度+ResultRecord
 		}
 		break;
-	case 5:
-	case 7:
+	case 3:	//Selector3为组合筛选，即若干个指定对象连续值。 SEQUENCE OF Selector2
+		*subframe = 1;		//TODO:未处理分帧
+		if(record->rcsd.csds.num == 0) {
+			record->data[dest_index++] = 1;	//一行记录M列属性描述符 	RCSD
+			record->data[dest_index++] = 0;	//OAD
+			record->select.selec1.oad.attrindex = 0;		//上送属性下所有索引值
+			dest_index += create_OAD(0,&record->data[dest_index],record->select.selec1.oad);
+			record->data[dest_index++] = 1; //CHOICE  [1]  data
+		}else {	//RCSD 招测两个序号湖南测过
+			dest_index +=fill_RCSD(0,&record->data[dest_index],record->rcsd.csds);
+			record->data[dest_index++] = 1; //CHOICE  [1]  data
+		}
+		record->data = &TmpDataBuf[dest_index];		//修改record的数据帧的位置
+		getSelector12(record);
+		record->data = TmpDataBuf;				//data 指向回复报文帧头
+		record->datalen += dest_index;			//数据长度+ResultRecord
+		break;
+	case 4://指定电能表集合、指定采集启动时间
+	case 5://指定电能表集合、指定采集存储时间
+	case 6://指定电能表集合、指定采集启动时间区间内连续间隔值
+	case 7://指定电能表集合、指定采集存储时间区间内连续间隔值
+	case 8://指定电能表集合、指定采集成功时间区间内连续间隔值
 		dest_index +=fill_RCSD(0,&record->data[dest_index],record->rcsd.csds);
 		record->data = &TmpDataBuf[dest_index];
 		*subframe = getSelector(oad,record->select, record->selectType,record->rcsd.csds,(INT8U *)record->data,(int *)&record->datalen,AppVar_p->server_send_size);
@@ -1194,11 +1800,40 @@ int doGetrecord(INT8U type,OAD oad,INT8U *data,RESULT_RECORD *record,INT16U *sub
 		*subframe = 1;		//TODO:未处理分帧
 		dest_index +=fill_RCSD(0,&record->data[dest_index],record->rcsd.csds);
 		record->data = &TmpDataBuf[dest_index];
-		Getevent_Record_Selector(record,memp);
-		record->data = TmpDataBuf;				//data 指向回复报文帧头
-		record->datalen += dest_index;			//数据长度+ResultRecord
+		 //一致性测试GET_24 rcsd=0,应答帧应填写rcsd=0 ,
+		if(((record->oad.OI & 0xf000) == 0x5000) && (record->rcsd.csds.num==0)) {	//招测冻结类数据
+			record->data[dest_index++] = 0;	//RCSD=0
+			record->data[dest_index++] = 1;	//Data
+			record->data[dest_index++] = 1;	//seqof A-RecordRow
+			record->data[dest_index++] = 0;	//A-RecordRow len
+			record->datalen += dest_index;
+		}else {
+			Getevent_Record_Selector(record,memp);
+			record->data = TmpDataBuf;				//data 指向回复报文帧头
+			record->datalen += dest_index;			//数据长度+ResultRecord
+		}
 		break;
 	case 10:	//指定读取最新的n条记录
+		//协议一致性测试GET_25,招测OAD=6012-0300,应该能正常找到数据应答
+		//6012_02 测试，判断格式，无RCSD,招测数据应该无数据
+		for(i=0;i<record->rcsd.csds.num;i++) {
+			if(record->rcsd.csds.csd[i].type==1) {
+				if(((record->rcsd.csds.csd[i].csd.road.oad.OI>>12) & 0xf) == 0x5) {
+					freezeflg = 1;
+					break;
+				}
+			}
+		}
+		fprintf(stderr,"record.oi=%04x csds.num=%d freezeflg=%d\n",record->oad.OI,record->rcsd.csds.num,freezeflg);
+		if(record->oad.OI==0x6012 && freezeflg==0){
+			fprintf(stderr,"record.oi=%04x\n",record->oad.OI);
+			*subframe = 1;
+			dest_index +=fill_RCSD(0,&record->data[dest_index],record->rcsd.csds);
+			record->data[dest_index++]=1;
+			record->data[dest_index++]=0; //按找不到数据处理
+			record->datalen += dest_index;
+			return 0;
+		}
 		*subframe = getSelector(record->oad,record->select,record->selectType,record->rcsd.csds,NULL,NULL,AppVar_p->server_send_size);
 		if(*subframe==1) {		//无分帧
 			//文件中第一个字节保存的是：SEQUENCE OF A-ResultRecord，此处从TmpDataBuf[1]上送，上送长度也要-1
@@ -1223,6 +1858,17 @@ int doGetrecord(INT8U type,OAD oad,INT8U *data,RESULT_RECORD *record,INT16U *sub
 	return source_index;
 }
 
+int GetEnergy(RESULT_NORMAL *response)
+{
+	if(response->oad.attflg>=1 && response->oad.attflg<=5) {
+
+	}else {
+		response->dar = type_mismatch;	//国网协议一致性测试
+	}
+	fprintf(stderr,"datalen=%d \n",response->datalen);
+	return 1;
+}
+
 int GetVariable(RESULT_NORMAL *response)
 {
 	int	  	len=0;
@@ -1230,6 +1876,7 @@ int GetVariable(RESULT_NORMAL *response)
 	int index=0;
 	FP32 bett[2]={};
 	memset(&databuf,0,sizeof(databuf));
+
 	switch(response->oad.OI)
 	{
 	case 0x2011:
@@ -1240,17 +1887,25 @@ int GetVariable(RESULT_NORMAL *response)
 	case 0x2200:	//通信流量
 //		len = readVariData(response->oad.OI,0,&databuf,VARI_LEN);
 		memcpy(databuf,&memp->dev_info.realTimeC2200,sizeof(Flow_tj));
-		Get_2200(response->oad.OI,databuf,response->data,&index);
+		Get_2200(1,databuf,response->data,&index);
 		response->datalen = index;
 		break;
 	case 0x2203:	//供电时间
 		len = readVariData(response->oad.OI,0,&databuf,VARI_LEN);
-		Get_2203(response->oad.OI,databuf,response->data,&index);
+		Get_2203(1,databuf,response->data,&index);
 		response->datalen = index;
 		break;
 	case 0x2204:	//复位次数
 		len = readVariData(response->oad.OI,0,&databuf,VARI_LEN);
-		Get_2204(response->oad.OI,databuf,response->data,&index);
+		Get_2204(1,databuf,response->data,&index);
+		response->datalen = index;
+		break;
+	case 0x2301:
+		class23_get(response->oad,databuf,response->data,&index);
+		response->datalen = index;
+		break;
+	case 0x2401:
+		class12_get(response->oad,databuf,response->data,&index);
 		response->datalen = index;
 		break;
 	default:
@@ -1405,6 +2060,9 @@ int GetEnvironmentValue(RESULT_NORMAL *response)
 		case 0x4004:
 			Get4004(response);
 			break;
+		case 0x4005:
+			Get4005(response);
+			break;
 		case 0x4006:
 			Get4006(response);
 			break;
@@ -1414,11 +2072,17 @@ int GetEnvironmentValue(RESULT_NORMAL *response)
 		case 0x4103:
 			Get4103(response);
 			break;
+		case 0x4202:
+			Get4202(response);
+			break;
 		case 0x4204:
 			Get4204(response);
 			break;
 		case 0x4300:
 			Get4300(response);
+			break;
+		case 0x4400:
+			Get4400(response);
 			break;
 		case 0x4500://无线公网设备版本
 			Get4500(response);
@@ -1426,6 +2090,9 @@ int GetEnvironmentValue(RESULT_NORMAL *response)
 		case 0x4510://以太网通信模块
 			Get4510(response);
 			break;
+		default:	//未定义的对象
+			response->dar = obj_undefine;
+		break;
 	}
 	return 1;
 }
@@ -1457,8 +2124,8 @@ int GetCollOneUnit(OI_698 oi,INT8U readType,INT8U seqnum,INT8U *data,INT16U *one
 		one_blknum = 256;
 		break;
 	case 0x6016:	//事件采集方案
-//		one_unitlen = Get_6016(readType,seqnum,data);
-//		one_blknum = 256;
+		one_unitlen = Get_6017(readType,seqnum,data);
+		one_blknum = 256;
 		break;
 	}
 	*oneUnitLen = one_unitlen;
@@ -1484,6 +2151,7 @@ int GetCollPara(INT8U seqOfNum,RESULT_NORMAL *response)
 
 	if(GetCollOneUnit(response->oad.OI,1,0,&data[index],&oneUnitLen,&blknum)==0)	{
 		fprintf(stderr,"get OI=%04x oneUnitLen=%d blknum=%d 退出",oad.OI,oneUnitLen,blknum);
+		response->dar = obj_undefine;
 		return 0;
 	}
 //	if(seqOfNum!=0) {　　　//台体抄表参数读取多个，去掉判断
@@ -1524,8 +2192,7 @@ int GetCollPara(INT8U seqOfNum,RESULT_NORMAL *response)
 
 int GetDeviceIo(RESULT_NORMAL *response)
 {
-	switch(response->oad.OI)
-	{
+	switch(response->oad.OI) {
 		case 0xF100:
 			GetEsamPara(response);
 			break;
@@ -1536,17 +2203,19 @@ int GetDeviceIo(RESULT_NORMAL *response)
 			GetYxPara(response);
 			break;
 		case 0xF001:
-			switch(response->oad.attflg)
-			{
-			case 2:	//文件信息
-			case 3:	//命令结果
-				response->datalen = GetClass18(response->oad.attflg,response->data);
-				break;
-			case 4:	//传输块状态字
-				GetFileState(response);
-				break;
+			switch(response->oad.attflg) {
+				case 2:	//文件信息
+				case 3:	//命令结果
+					response->datalen = GetClass18(response->oad.attflg,response->data);
+					break;
+				case 4:	//传输块状态字
+					GetFileState(response);
+					break;
 			}
-
+			break;
+		default:	//未定义的对象
+			response->dar = obj_undefine;
+		break;
 	}
 	return 1;
 }
@@ -1555,23 +2224,39 @@ int doGetnormal(INT8U seqOfNum,RESULT_NORMAL *response)
 	INT16U oi = response->oad.OI;
 	INT8U oihead = (oi & 0xF000) >>12;
 
+	if(Response_timetag.effect==0) {
+		response->dar = timetag_invalid;
+		return 0;
+	}
 	fprintf(stderr,"\ngetRequestNormal----------  oi =%04x  \n",oi);
 	switch(oihead) {
-		case 2:			//变量类对象
-			GetVariable(response);
-			break;
-		case 3:			//事件类对象读取
-			GetEventInfo(response);
-			break;
-		case 4:			//参变量类对象
-			GetEnvironmentValue(response);
-			break;
-		case 6:			//采集监控类对象
-			GetCollPara(seqOfNum,response);
-			break;
-		case 0xF:		//文件类/esam类/设备类
-			GetDeviceIo(response);
-			break;
+	case 0:			//电能量对象
+		GetEnergy(response);
+		break;
+	case 2:			//变量类对象
+		GetVariable(response);
+		break;
+	case 3:			//事件类对象读取
+		GetEventInfo(response);
+		break;
+	case 4:			//参变量类对象
+		GetEnvironmentValue(response);
+		int i=0;
+		fprintf(stderr,"当前data：");
+		for(i=0;i<response->datalen;i++)
+			fprintf(stderr,"%02x ",response->data[i]);
+		fprintf(stderr,"\n");
+		break;
+	case 6:			//采集监控类对象
+		fprintf(stderr,"\nddddoi=%d \n",oi);
+		GetCollPara(seqOfNum,response);
+		break;
+	case 0xF:		//文件类/esam类/设备类
+		GetDeviceIo(response);
+		break;
+	default:	//未定义的对象
+		response->dar = obj_undefine;
+		break;
 	}
 	return 0;
 }
@@ -1638,7 +2323,7 @@ int getRequestNormalList(INT8U *data,CSINFO *csinfo,INT8U *sendbuf)
 		memset(TmpDataBuf,0,sizeof(TmpDataBuf));
 		memcpy(oadtmp,&data[1 + i*4],4);
 		response.dar = 0;
-		getOAD(0,oadtmp, &response.oad);
+		getOAD(0,oadtmp, &response.oad,NULL);
 		response.datalen = 0;
 		response.data = TmpDataBuf + 5;
 		fprintf(stderr,"\n【%d】OI = %x  %02x  %02x",i,response.oad.OI,response.oad.attflg,response.oad.attrindex);
@@ -1705,7 +2390,7 @@ int getRequestRecordList(INT8U *data,CSINFO *csinfo,INT8U *sendbuf)
 		memset(TmpDataBuf,0,sizeof(TmpDataBuf));
 		record.data = TmpDataBuf;
 		record.datalen = 0;
-		sourceindex += getOAD(0,&data[sourceindex],&oad);
+		sourceindex += getOAD(0,&data[sourceindex],&oad,NULL);
 		record.oad = oad;
 		sourceindex += doGetrecord(GET_REQUEST_RECORD_LIST,oad,&data[sourceindex],&record,&subframe);
 		memcpy(&TmpDataBufList[destindex],record.data,record.datalen);

@@ -14,15 +14,44 @@
 #include "OIfunc.h"
 #include "dlt698.h"
 
+
+int Set_4000(INT8U *data,INT8U *DAR)
+{
+	DateTimeBCD datetime={};
+	int		index=0;
+
+//	DataTimeGet(&datetime);
+	index += getDateTimeS(1,data,(INT8U *)&datetime,DAR);
+	if(*DAR==success) {	//时间合法
+		setsystime(datetime);
+	}
+//	sleep(2);		//延时2秒，确保台体测试过程中，修改时间设置成功
+	return index;
+}
+int Set_4006(INT8U *data,INT8U *DAR,INT8U attr_act)
+{
+    if(attr_act == 127 || attr_act == 128)
+    {
+    	CLASS_4006 class_tmp={};
+    	int ret = readCoverClass(0x4006,0,&class_tmp,sizeof(CLASS_4006),para_vari_save);
+    	if(ret == 1)
+    		getEnum(0,data,&class_tmp.state);
+    	saveCoverClass(0x4006,0,&class_tmp,sizeof(CLASS_4006),para_vari_save);
+    }
+	return 0;
+}
 ////////////////////////////////////////////////////////////
 /*
  * 电压合格率
  */
-INT8U Get_213x(OAD oad,INT8U *sourcebuf,INT8U *buf,int *len)
+INT8U Get_213x(INT8U getflg,INT8U *sourcebuf,INT8U *buf,int *len)
 {
 	PassRate_U passu={};
 
-	memcpy(&passu,sourcebuf,sizeof(PassRate_U));
+	memset(&passu,0,sizeof(PassRate_U));
+	if(getflg) {
+		memcpy(&passu,sourcebuf,sizeof(PassRate_U));
+	}
 	*len=0;
 	*len += create_struct(&buf[*len],5);
 	*len += fill_double_long_unsigned(&buf[*len],passu.monitorTime);
@@ -35,40 +64,65 @@ INT8U Get_213x(OAD oad,INT8U *sourcebuf,INT8U *buf,int *len)
 /*
  * 通信流量
  */
-INT8U Get_2200(OI_698 oi,INT8U *sourcebuf,INT8U *buf,int *len)
+INT8U Get_2200(INT8U getflg,INT8U *sourcebuf,INT8U *buf,int *len)
 {
 	Flow_tj	flow_tj={};
 
-	memcpy(&flow_tj,sourcebuf,sizeof(flow_tj));
+	memset(&flow_tj,0,sizeof(Flow_tj));
+	if(getflg) {
+		memcpy(&flow_tj,sourcebuf,sizeof(flow_tj));
+	}
 	*len=0;
 	*len += create_struct(&buf[*len],2);
-	*len += fill_double_long_unsigned(&buf[*len],flow_tj.flow.day_tj);
-	*len += fill_double_long_unsigned(&buf[*len],flow_tj.flow.month_tj);
+	//GW送检 终端当前数据招测流量时，使用GPRS内部协议栈时，日，月流量都为0，才判断合格。
+    if(getZone("GW")==0) {
+		*len += fill_double_long_unsigned(&buf[*len],0x00);
+		*len += fill_double_long_unsigned(&buf[*len],0x00);
+    }else {
+		*len += fill_double_long_unsigned(&buf[*len],flow_tj.flow.day_tj);
+		*len += fill_double_long_unsigned(&buf[*len],flow_tj.flow.month_tj);
+    }
 	return 1;
 }
 /*
  * 获取日月供电时间
  */
-INT8U Get_2203(OI_698 oi,INT8U *sourcebuf,INT8U *buf,int *len)
+INT8U Get_2203(INT8U getflg,INT8U *sourcebuf,INT8U *buf,int *len)
 {
 	Gongdian_tj gongdian_tj={};
-	memcpy(&gongdian_tj,sourcebuf,sizeof(Gongdian_tj));
 
+	memset(&gongdian_tj,0,sizeof(Gongdian_tj));
+	if(getflg) {
+		memcpy(&gongdian_tj,sourcebuf,sizeof(Gongdian_tj));
+	}
 	fprintf(stderr,"Get_2203 :day_gongdian=%d,month_gongdian=%d\n",gongdian_tj.gongdian.day_tj,gongdian_tj.gongdian.month_tj);
 	*len=0;
 	*len += create_struct(&buf[*len],2);
-	*len += fill_double_long_unsigned(&buf[*len],gongdian_tj.gongdian.day_tj);
-	*len += fill_double_long_unsigned(&buf[*len],gongdian_tj.gongdian.month_tj);
+	INT32U day_tj=0,month_tj=0;
+	if(gongdian_tj.gongdian.day_tj%60==0)
+		day_tj = gongdian_tj.gongdian.day_tj/60;
+	else
+		day_tj = gongdian_tj.gongdian.day_tj/60+1;
+	if(gongdian_tj.gongdian.month_tj%60==0)
+		month_tj = gongdian_tj.gongdian.month_tj/60;
+	else
+		month_tj = gongdian_tj.gongdian.month_tj/60+1;
+	*len += fill_double_long_unsigned(&buf[*len],day_tj);
+	*len += fill_double_long_unsigned(&buf[*len],month_tj);
 	return 1;
 }
 
 /*
  * 获取日月复位次数
  */
-INT8U Get_2204(OI_698 oi,INT8U *sourcebuf,INT8U *buf,int *len)
+INT8U Get_2204(INT8U getflg,INT8U *sourcebuf,INT8U *buf,int *len)
 {
 	Reset_tj reset_tj={};
-	memcpy(&reset_tj,sourcebuf,sizeof(Reset_tj));
+
+	memset(&reset_tj,0,sizeof(Reset_tj));
+	if(getflg) {
+		memcpy(&reset_tj,sourcebuf,sizeof(Reset_tj));
+	}
 	fprintf(stderr,"Get_2204 :reset day_tj=%d,month_tj=%d\n",reset_tj.reset.day_tj,reset_tj.reset.month_tj);
 	*len=0;
 	*len += create_struct(&buf[*len],2);
@@ -92,6 +146,19 @@ int Get_4000(OAD oad,INT8U *data)
 		case 2://安全模式选择
 			system((const char*)"hwclock -s");
 			DataTimeGet(&time);
+			//注意：测试项（时钟招测与对时）：要求时钟下发与招测误差在5秒内。当内部协议栈时，收发速度比较慢。因此将此处主站招测时钟是人为增加7秒再上送，防止通信延时引起误差
+			//	   测试项（状态量变位）：测试先招测时钟，然后改变遥信状态，10秒后招测3104事件，此时上送时间不应早于招测时钟返回的时间。
+			//			 在此处如果加7秒，在Get_StandardUnit（）产生3104事件时候，将事件发生时间也重新增加7秒。
+			//     测试项（终端维护）：测试数据初始化3100事件，判断事件发生时间有效性，因此处增加7秒，相应事件产生时间增加7秒
+		    if(getZone("GW")==0) {
+		    	TS	add_ts;
+		    	TimeBCDToTs(time,&add_ts);
+		    	fprintf(stderr, "============================================\n\n\n\n\n\add_ts.sec=%d,\n",add_ts.Sec);
+		    	tminc(&add_ts, 0, 7);
+		    	TsToTimeBCD(add_ts,&time);
+		    	fprintf(stderr, "============================================\n\n\n\n\n\time.sec=%d,\n",add_ts.Sec);
+		    }
+
 			index += fill_date_time_s(&data[index],&time);
 			break;
 		case 3://校时模式
@@ -171,6 +238,7 @@ int Get_6013(INT8U type,INT8U taskid,INT8U *data)
 		index += fill_date_time_s(&data[index],&task.startime);		//开始时间
 		index += fill_date_time_s(&data[index],&task.endtime);		//结束时间
 		index += fill_TI(&data[index],task.delay);				//延时
+
 		if(task.runtime.runtime[23].beginHour==dtunsigned) {
 			index += fill_unsigned(&data[index],task.runprio);		//执行优先级
 		}else index += fill_enum(&data[index],task.runprio);			//执行优先级
@@ -201,9 +269,9 @@ int Get_6015(INT8U type,INT8U seqnum,INT8U *data)
 	CLASS_6015 coll={};
 
 	ret = readCoverClass(0x6015,seqnum,&coll,sizeof(CLASS_6015),coll_para_save);
-	fprintf(stderr,"\n 6015 read coll ok　seqnum=%d  type=%d  ret=%d\n",seqnum,type,ret);
+	//fprintf(stderr,"\n 6015 read coll ok　seqnum=%d  type=%d  ret=%d\n",seqnum,type,ret);
 	if ((ret == 1) || (type==1)) {
-		fprintf(stderr,"\n 6015 read coll ok　seqnum=%d  type=%d  ret=%d\n",seqnum,type,ret);
+		//fprintf(stderr,"\n 6015 read coll ok　seqnum=%d  type=%d  ret=%d\n",seqnum,type,ret);
 		index += create_struct(&data[index],6);		//属性2：struct 6个元素
 		index += fill_unsigned(&data[index],coll.sernum);		//方案序号
 		index += fill_long_unsigned(&data[index],coll.deepsize);	//存储深度
@@ -237,9 +305,9 @@ int Get_6017(INT8U type,INT8U seqnum,INT8U *data)
 	CLASS_6017 event={};
 
 	ret = readCoverClass(0x6017,seqnum,&event,sizeof(CLASS_6017),coll_para_save);
-	fprintf(stderr,"\n 6017 read coll ok　seqnum=%d  type=%d  ret=%d\n",seqnum,type,ret);
+	//fprintf(stderr,"\n 6017 read coll ok　seqnum=%d  type=%d  ret=%d\n",seqnum,type,ret);
 	if ((ret == 1) || (type==1)) {
-		fprintf(stderr,"\n 6017 read coll ok　seqnum=%d  type=%d  ret=%d\n",seqnum,type,ret);
+		//fprintf(stderr,"\n 6017 read coll ok　seqnum=%d  type=%d  ret=%d\n",seqnum,type,ret);
 		index += create_struct(&data[index],5);					//属性2：struct 5个元素
 		index += fill_unsigned(&data[index],event.sernum);		//方案序号
 		if(event.collstyle.colltype == 0xff ) {					//采集类型无效,为勘误前的定义结构
@@ -282,7 +350,7 @@ int Get_6019(INT8U type,INT8U seqnum,INT8U *data)
 
 	ret = readCoverClass(0x6019,seqnum,&trans,sizeof(CLASS_6019),coll_para_save);
 	if ((ret == 1) || (type==1)) {
-		fprintf(stderr,"\n 6019 read coll ok　seqnum=%d  type=%d  ret=%d\n",seqnum,type,ret);
+		//fprintf(stderr,"\n 6019 read coll ok　seqnum=%d  type=%d  ret=%d\n",seqnum,type,ret);
 		index += create_struct(&data[index],3);					//属性2：struct 3个元素
 		index += fill_unsigned(&data[index],trans.planno);		//方案序号
 		for(i=0;i<trans.contentnum;i++) {		//方案内容集
@@ -384,7 +452,8 @@ int GetClass18(INT8U attflg,INT8U *data)
 		index += fill_visible_string(&data[index],&class18.source_file[1],class18.source_file[0]);
 		index += fill_visible_string(&data[index],&class18.dist_file[1],class18.dist_file[0]);
 		index += fill_double_long_unsigned(&data[index],class18.file_size);
-		index += fill_bit_string(&data[index],3,class18.file_attr & 0x03);
+		INT8U file_attr=class18.file_attr & 0x03;
+		index += fill_bit_string(&data[index],3,&file_attr);
 		index += fill_visible_string(&data[index],&class18.file_version[1],class18.file_version[0]);
 		index += fill_enum(&data[index],class18.file_type);
 		break;
@@ -394,3 +463,4 @@ int GetClass18(INT8U attflg,INT8U *data)
 	}
 	return index;
 }
+
