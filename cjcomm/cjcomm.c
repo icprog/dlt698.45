@@ -44,6 +44,31 @@ void cReadWithCalc(struct aeEventLoop *ep, int fd, void *clientData, int mask) {
 	cRead(ep, fd, clientData, mask);
 }
 
+
+void cReadWithoutCheck(struct aeEventLoop *ep, int fd, void *clientData, int mask) {
+	CommBlock *nst = (CommBlock *) clientData;
+
+	int revcount = 0;
+	ioctl(fd, FIONREAD, &revcount);
+
+	if(revcount <= 0){
+		return;
+	}
+
+	TSGet(&nst->final_frame);
+	for (int j = 0; j < revcount; j++) {
+		read(fd, &nst->RecBuf[nst->RHead], 1);
+		nst->RHead = (nst->RHead + 1) % BUFLEN;
+	}
+	bufsyslog(nst->RecBuf, "接收:", nst->RHead, nst->RTail, BUFLEN);
+	if (getZone("GW") == 0) {
+		int buflen = 0;
+		buflen = (nst->RHead - nst->RTail + BUFLEN) % BUFLEN;
+		PacketBufToFile("[NET]R:", (char *) &nst->RecBuf[nst->RTail],
+				buflen, NULL);
+	}
+}
+
 void cRead(struct aeEventLoop *ep, int fd, void *clientData, int mask) {
 	CommBlock *nst = (CommBlock *) clientData;
 
