@@ -789,6 +789,8 @@ typedef enum {
 	TERMINALEVENT_REPORT = 0,   //0
 	METEREVENT_REPORT = 1,   //0
 	TERMINALPROXY_RESPONSE = 3,//3
+	NOTIFICATIONTRANS_PEPORT = 5,	//国网载波互换性测试上报透明数据服务
+
 }gdm_type;
 
 #endif

@@ -27,6 +27,8 @@
 #include "dlt698.h"
 #include "dlt698def.h"
 
+static OAD	OAD_PORT_ZB={0xF209,0x02,0x01};
+
 extern ProgramInfo* JProgramInfo;
 extern int SaveOADData(INT8U taskid,OAD oad_m,OAD oad_r,INT8U *databuf,int datalen,TS ts_res);
 extern INT16U data07Tobuff698(FORMAT07 Data07,INT8U* dataContent);
@@ -119,6 +121,9 @@ void SendDataToCom(int fd, INT8U *sendbuf, INT16U sendlen)
 	fprintf(stderr,"\nsend(%d)",slen);
 	for(i=0;i<slen;i++)
 		fprintf(stderr," %02x",sendbuf[i]);
+	if(getZone("GW")==0) {
+		PacketBufToFile("[ZB]S:",(char *) sendbuf, slen, NULL);
+	}
 }
 int RecvDataFromCom(int fd,INT8U* buf,int* head)
 {
@@ -193,6 +198,9 @@ int StateProcessZb(unsigned char *str,INT8U* Buf )
 				}
 				rec_step = 0;
 				DbPrt1(31,"R:", (char *) str, DataLen, NULL);
+				if(getZone("GW")==0) {
+					PacketBufToFile("[ZB]R:",(char *) str, DataLen, NULL);
+				}
 				return DataLen;
 			}else {
 				RecvTail = (RecvTail+1)%ZBBUFSIZE;
@@ -1193,6 +1201,9 @@ int buildProxyFrame(RUNTIME_PLC *runtime_p,struct Tsa_Node *desnode,Proxy_Msg pM
 			sendlen = composeProtocol07(&Data07, buf645);
 			DbgPrintToFile1(31,"sendlen=%d",sendlen);
 			DbPrt1(31,"645:", (char *) buf645, sendlen, NULL);
+			if(getZone("GW")==0) {
+				PacketBufToFile("[ZB_PROXY]S:",(char *) buf645, sendlen, NULL);
+			}
 			if (sendlen>0)
 			{
 				memcpy(runtime_p->format_Down.addr.SourceAddr,runtime_p->masteraddr,6);
@@ -2123,7 +2134,7 @@ INT8U doClientProxyRequest(RUNTIME_PLC *runtime_p, int* beginwork, int* step_cj)
 				DEBUG_BUFF(runtime_p->format_Up.afn13_f1_up.MsgContent, datalen);
 				cjcommProxy_plc.strProxyList.datalen = datalen + 6;
 				mqs_send((INT8S *)PROXY_NET_MQ_NAME,1,TERMINALPROXY_RESPONSE,\
-						(INT8U *)&cjcommProxy_plc.strProxyList,sizeof(PROXY_GETLIST));
+						OAD_PORT_ZB,(INT8U *)&cjcommProxy_plc.strProxyList,sizeof(PROXY_GETLIST));
 			} else {
 //				OADtoBuff(cjcommProxy_plc.strProxyList.proxy_obj.transcmd.oad,cjcommProxy_plc.strProxyList.data);
 				create_OAD(0,cjcommProxy_plc.strProxyList.data,cjcommProxy_plc.strProxyList.proxy_obj.transcmd.oad);
@@ -2131,7 +2142,7 @@ INT8U doClientProxyRequest(RUNTIME_PLC *runtime_p, int* beginwork, int* step_cj)
 				cjcommProxy_plc.strProxyList.datalen = 5;
 				mqs_send((INT8S *)PROXY_NET_MQ_NAME,1,\
 						ProxySetResponseList,\
-						(INT8U *)&cjcommProxy_plc.strProxyList,\
+						OAD_PORT_ZB,(INT8U *)&cjcommProxy_plc.strProxyList,\
 						sizeof(PROXY_GETLIST));
 			}
 
@@ -2150,7 +2161,7 @@ INT8U doClientProxyRequest(RUNTIME_PLC *runtime_p, int* beginwork, int* step_cj)
 			cjcommProxy_plc.strProxyList.datalen = 5;
 			mqs_send((INT8S *)PROXY_NET_MQ_NAME,1,\
 					ProxySetResponseList,\
-					(INT8U *)&cjcommProxy_plc.strProxyList,\
+					OAD_PORT_ZB,(INT8U *)&cjcommProxy_plc.strProxyList,\
 					sizeof(PROXY_GETLIST));
 
 			proxyInUse.devUse.plcReady = 1;
@@ -2443,11 +2454,12 @@ void initlist(struct Tsa_Node *head)
 	return;
 }
 
-int stateJuge(int nowdstate,INT8U* my6000_p,RUNTIME_PLC *runtime_p)
+int stateJuge(int nowdstate,INT8U* my6000_p,INT8U* my6012_p,RUNTIME_PLC *runtime_p)
 {
 	int state = nowdstate;
 
-	if ( dateJudge(&runtime_p->oldts,&runtime_p->nowts) == 1 || JProgramInfo->oi_changed.oi6000 != *my6000_p)
+	if ( dateJudge(&runtime_p->oldts,&runtime_p->nowts) == 1 ||
+		 JProgramInfo->oi_changed.oi6000 != *my6000_p )
 	{
 		DbgPrintToFile1(31,"\n状态切换到初始化");
 		runtime_p->initflag = 1;
@@ -2458,7 +2470,15 @@ int stateJuge(int nowdstate,INT8U* my6000_p,RUNTIME_PLC *runtime_p)
 		*my6000_p = JProgramInfo->oi_changed.oi6000;
 		return state;
 	}
-
+	if (JProgramInfo->oi_changed.oi6012 != *my6012_p)
+	{
+		//任务变更
+		initTaskData(&taskinfo);
+		system("rm /nand/para/plcrecord.par  /nand/para/plcrecord.bak");
+		DbgPrintToFile1(31,"任务重新初始化");
+		PrintTaskInfo2(&taskinfo);
+		*my6012_p = JProgramInfo->oi_changed.oi6012 ;
+	}
 	if ((runtime_p->nowts.Hour==23 && runtime_p->nowts.Minute==59) || (runtime_p->nowts.Hour==0 && runtime_p->nowts.Minute==0))
 		return state;  //23点59分--0点0分之间不进行任务判断（准备跨日初始化）
 
@@ -2498,7 +2518,7 @@ int stateJuge(int nowdstate,INT8U* my6000_p,RUNTIME_PLC *runtime_p)
 		runtime_p->redo = 2;	//点抄后需要恢复抄读
 		return DATA_REAL;
 	}
-	if (state == NONE_PROCE && taskinfo.task_n>0)
+	if (state == NONE_PROCE && taskinfo.task_n>0 && tsa_count > 0)
 	{
 		state = TASK_PROCESS;
 		runtime_p->state = TASK_PROCESS;
@@ -2508,11 +2528,13 @@ int stateJuge(int nowdstate,INT8U* my6000_p,RUNTIME_PLC *runtime_p)
 }
 void readplc_thread()
 {
-	INT8U my6000=0;
+	INT8U my6000=0 ,my6012=0;
 	int state = DATE_CHANGE;
 	RUNTIME_PLC runtimevar;
 	memset(&runtimevar,0,sizeof(RUNTIME_PLC));
 	my6000 = JProgramInfo->oi_changed.oi6000 ;
+	my6012 = JProgramInfo->oi_changed.oi6012 ;
+
 	RecvHead = 0;
 	RecvTail = 0;
 
@@ -2536,7 +2558,7 @@ void readplc_thread()
 		 * 	   状态判断
 		********************************/
 		TSGet(&runtimevar.nowts);
-		state = stateJuge(state, &my6000,&runtimevar);
+		state = stateJuge(state, &my6000,&my6012,&runtimevar);
 
 		/********************************
 		 * 	   状态流程处理

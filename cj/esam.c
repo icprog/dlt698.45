@@ -434,7 +434,7 @@ void EsamTest(int argc, char* argv[])
 		testnum = atoi(argv[4]);
 	}
 	JProgramInfo = OpenShMem("ProgramInfo", sizeof(ProgramInfo), NULL);
-
+	fprintf(stderr,"JProgramInfo =%p",JProgramInfo);
 	for(i=speed;i<=maxspeed;i++) {
 		for(j=0;j<testnum;j++){
 			test2 = TermiInfo_Test(i);

@@ -9,7 +9,9 @@
 #include "comm.h"
 #include "gui.h"
 #include "show_ctrl.h"
-#include "../include/basedef.h"
+#include "ParaDef.h"
+#include "basedef.h"
+
 #define MAX_INTERVAL 1//显示开关切换最大间隔时间 单位s
 #define LED_EC_COUNT 10 //告警灯闪烁时长
 volatile static time_t curts,oldts;
@@ -155,7 +157,7 @@ void lcd_showstatus()
 		if(alarmled_count>=LED_EC_COUNT){
 			alarmled_count = LED_EC_COUNT;
 //				erc_flg = 0;
-			gpio_writebyte((char*)LED_ALARM, 0);
+			gpio_writebyte((char*)DEV_LED_ALARM, 0);
 		}
 			//TODO:运行灯处理
 		if(p_JProgramInfo!=NULL)
@@ -163,9 +165,9 @@ void lcd_showstatus()
 			if(p_JProgramInfo->dev_info.jzq_login==GPRS_COM||
 					p_JProgramInfo->dev_info.jzq_login==NET_COM ||p_JProgramInfo->dev_info.jzq_login == 3 ){  //3 内部协议栈上线
 				led_run_state = (~led_run_state)&0x01;
-				gpio_writebyte((char*)LED_RUN, led_run_state);
+				gpio_writebyte((char*)DEV_LED_RUN, led_run_state);
 			}else
-				gpio_writebyte((char*)LED_RUN, 1);
+				gpio_writebyte((char*)DEV_LED_RUN, 1);
 		}
 //上状态条显示
 		lcd_showTopStatus();
@@ -210,11 +212,12 @@ void showmain()
 	memset(str, 0, 50);
 	int fontsize=getFontSize();
 	setFontSize(16);
-#ifdef CCTT_I
-	sprintf((char*)str, "低压集抄集中器");
-#else
-sprintf((char*)str, "专变III型终端");
-#endif
+
+	if(p_JProgramInfo->cfg_para.device  == CCTT1) {
+		sprintf((char*)str, "低压集抄集中器");
+	}else if(p_JProgramInfo->cfg_para.device  == SPTF3) {
+		sprintf((char*)str, "专变III型终端");
+	}
 	gui_textshow((char*)str, pos, LCD_NOREV);
 	gui_setpos(&pos, rect_Client.left+7*FONTSIZE, rect_Client.top+8*FONTSIZE);
 	ts = time(NULL);

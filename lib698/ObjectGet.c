@@ -16,6 +16,9 @@
 #include "OIfunc.h"
 #include "PublicFunction.h"
 #include "secure.h"
+#include "class8.h"
+#include "class12.h"
+#include "class23.h"
 
 extern INT8S (*pSendfun)(int fd,INT8U* sndbuf,INT16U sndlen);
 extern int FrameHead(CSINFO *csinfo,INT8U *buf);
@@ -827,16 +830,29 @@ int Get4300(RESULT_NORMAL *response)
 }
 int Get4400(RESULT_NORMAL *response)
 {
-	int index=0;
+	int index=0,ret=0;
 	INT8U *data = NULL;
 
 	OAD oad={};
 	CLASS_4400	class_tmp={};
+	INT8U i=0,m=0;
+
 	data = response->data;
 	oad = response->oad;
 	memset(&class_tmp,0,sizeof(CLASS_4400));
-	readCoverClass(0x4400,0,&class_tmp,sizeof(CLASS_4400),para_vari_save);
-	INT8U i=0,m=0;
+	ret = readCoverClass(0x4400,0,&class_tmp,sizeof(CLASS_4400),para_vari_save);
+	//无4400参数，一致性测试：设置一个默认值上送，否则不合格
+	if(ret!=1) {
+		class_tmp.num=1;
+		class_tmp.authority[0].OI=0x4000;
+		class_tmp.authority[0].one_authority.met_num=1;
+		class_tmp.authority[0].one_authority.method[0].id=1;
+		class_tmp.authority[0].one_authority.method[0].visit_authority=1;
+		class_tmp.authority[0].one_authority.pro_num=1;
+		class_tmp.authority[0].one_authority.property[0].id=1;
+		class_tmp.authority[0].one_authority.property[0].visit_authority=1;
+	}
+
 	switch(oad.attflg )
 	{
 	    case 1:
@@ -1886,6 +1902,10 @@ int GetVariable(RESULT_NORMAL *response)
 		break;
 	case 0x2301:
 		class23_get(response->oad,databuf,response->data,&index);
+		response->datalen = index;
+		break;
+	case 0x2401:
+		class12_get(response->oad,databuf,response->data,&index);
 		response->datalen = index;
 		break;
 	default:

@@ -504,7 +504,8 @@ INT8U Need_Report(OI_698 oi,INT8U eventno,ProgramInfo* prginfo_event){
 	fprintf(stderr,"libevent:active_report=%d talk_master=%d \n",class19.active_report,class19.talk_master);
 	if(class19.active_report == 1){
 		fprintf(stderr,"事件上报.... \n");
-		mqs_send((INT8S *)PROXY_NET_MQ_NAME,1,TERMINALEVENT_REPORT,(INT8U *)&oi,sizeof(OI_698));
+		OAD	oad={};
+		mqs_send((INT8S *)PROXY_NET_MQ_NAME,1,TERMINALEVENT_REPORT,oad,(INT8U *)&oi,sizeof(OI_698));
 	}
 	return 1;
 }
@@ -583,7 +584,7 @@ INT8U Get_StandardUnit(ProgramInfo* prginfo_event,OI_698 oi,INT8U *Rbuf,INT8U *I
 	//单元数量
 	Rbuf[(*Index)++] = STANDARD_NUM;//1
 	//事件记录序号
-	Rbuf[(*Index)++] = dtdoublelongunsigned;//2
+	Rbuf[(*Index)++] = dtdoublelongunsigned;//2d
 	INT32U En=(INT32U)Eventno;
 	Rbuf[(*Index)++] = ((En>>24)&0x000000ff);//3
 	Rbuf[(*Index)++] = ((En>>16)&0x000000ff);//4

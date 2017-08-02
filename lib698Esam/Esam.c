@@ -82,9 +82,6 @@ INT32S Esam_Init(INT32S fd) {
 //    gpio_writebyte(DEV_ATT_RST, 1);
 //    usleep(2);
   //  gpio_writebyte(DEV_ESAM_CS, 1);
-//#ifndef CCTT_II
-//    	sem_spi0_0 = open_named_sem(SEMNAME_SPI0_0);
-//#endif
    	return SPI_Init(fd);
 }
 
