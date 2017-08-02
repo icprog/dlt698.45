@@ -1419,11 +1419,27 @@ INT8U dealProxyAnswer()
 	{
 		if ( proxyInUse.devUse.plcReady == 1 || timecount > proxyList_manager.timeout)
 		{//收集数据
+
+			fprintf(stderr,"\n---------------------------------------datalen = %d",cjcommProxy_plc.strProxyList.datalen);
 			pthread_mutex_lock(&mutex); //上锁
 			index = proxyList_manager.datalen;
-			memcpy(&proxyList_manager.data[index],cjcommProxy_plc.strProxyList.data,cjcommProxy_plc.strProxyList.datalen);
-			proxyList_manager.datalen += cjcommProxy_plc.strProxyList.datalen;
-			proxyInUse.devUse.plcReady = 1;
+			if(cjcommProxy_plc.strProxyList.datalen<512) {
+				memcpy(&proxyList_manager.data[index],cjcommProxy_plc.strProxyList.data,cjcommProxy_plc.strProxyList.datalen);
+				proxyList_manager.datalen += cjcommProxy_plc.strProxyList.datalen;
+				proxy_dar_fill(&proxyList_manager,cjcommProxy_plc.strProxyList);
+				proxyInUse.devUse.plcReady = 1;
+				fprintf(stderr,"\n代理消息内容.........datalen=%d\n",proxyList_manager.datalen);
+				fprintf(stderr,"proxyList_manager piid=%02x  ca=%02x \n",proxyList_manager.piid,proxyList_manager.csinfo.ca);
+				for(i = 0; i < proxyList_manager.datalen;i++)
+				{
+					fprintf(stderr,"%02x ",proxyList_manager.data[i]);
+					if((i+1)%20 ==0)
+					{
+						fprintf(stderr,"\n");
+					}
+				}
+				fprintf(stderr,"\n\n\n");
+			}
 			pthread_mutex_unlock(&mutex);
 		}
 	}
@@ -1448,21 +1464,23 @@ INT8U dealProxyAnswer()
 			fprintf(stderr,"\n\n\n");
 			index = proxyList_manager.datalen;
 			memcpy(&proxyList_manager.data[index],cjcommProxy.strProxyList.data,cjcommProxy.strProxyList.datalen);
-			proxyList_manager.datalen += cjcommProxy.strProxyList.datalen;
-//			if(timecount > proxyList_manager.timeout) {		//TODO：超时，发送超时的错误，ProxyTransCommandRequest支持，其他类型是否需要？？？
-			proxy_dar_fill(&proxyList_manager,cjcommProxy.strProxyList);
-//			}
-			fprintf(stderr,"\n代理消息内容.........datalen=%d\n",proxyList_manager.datalen);
-			fprintf(stderr,"proxyList_manager piid=%02x  ca=%02x \n",proxyList_manager.piid,proxyList_manager.csinfo.ca);
-			for(i = 0; i < proxyList_manager.datalen;i++)
-			{
-				fprintf(stderr,"%02x ",proxyList_manager.data[i]);
-				if((i+1)%20 ==0)
+			if(cjcommProxy.strProxyList.datalen<512) {
+				proxyList_manager.datalen += cjcommProxy.strProxyList.datalen;
+	//			if(timecount > proxyList_manager.timeout) {		//TODO：超时，发送超时的错误，ProxyTransCommandRequest支持，其他类型是否需要？？？
+				proxy_dar_fill(&proxyList_manager,cjcommProxy.strProxyList);
+	//			}
+				fprintf(stderr,"\n代理消息内容.........datalen=%d\n",proxyList_manager.datalen);
+				fprintf(stderr,"proxyList_manager piid=%02x  ca=%02x \n",proxyList_manager.piid,proxyList_manager.csinfo.ca);
+				for(i = 0; i < proxyList_manager.datalen;i++)
 				{
-					fprintf(stderr,"\n");
+					fprintf(stderr,"%02x ",proxyList_manager.data[i]);
+					if((i+1)%20 ==0)
+					{
+						fprintf(stderr,"\n");
+					}
 				}
+				fprintf(stderr,"\n\n\n");
 			}
-			fprintf(stderr,"\n\n\n");
 			proxyInUse.devUse.rs485Ready = 1;		//移到上面超时判断
 			pthread_mutex_unlock(&mutex);
 		}
@@ -1476,6 +1494,7 @@ INT8U dealProxyAnswer()
 																		//才认为这个设备上的代理操作已完毕.
 																		//当代理所使用的所有设备操作完毕后,
 																		//将代理标记清零, 处理下一个代理操作.
+		pthread_mutex_lock(&mutex); //上锁
 		//处理非载波及485表的TSA的透传应答帧处理
 		if(proxyInUse.devUse.plcNeed==0 && proxyInUse.devUse.rs485Need==0) {
 			proxy_dar_fill(&proxyList_manager,cjcommProxy.strProxyList);
@@ -1485,6 +1504,7 @@ INT8U dealProxyAnswer()
 		fprintf(stderr,"\n全部代理操作完成，发消息 ！！");
 		timecount = 0;
 		proxyInUse.u8b = 0;
+		pthread_mutex_unlock(&mutex);
 	}
 	return 1;
 }
