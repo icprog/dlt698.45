@@ -783,7 +783,7 @@ void timeProcess()
 				memset(infoReplenish.unitReplenish[taskIndex].isSuccess,0,2*MAX_METER_NUM_1_PORT);
 			}
 			filewrite(REPLENISHFILEPATH,&infoReplenish,sizeof(Replenish_TaskInfo));
-			printinfoReplenish(2);
+			//printinfoReplenish(2);
 			createFakeTaskFileHead();
 			  //跨天的时候要初始化任务^M
 			CLASS_6035 file6035;
@@ -1361,7 +1361,7 @@ void replenish_tmp()
 #endif
 					if (list6013[findIndex].basicInfo.taskID == infoReplenish.unitReplenish[tIndex].taskID)
 					{
-						asyslog(LOG_WARNING,"发送补抄任务ID tIndex = %d　",tIndex);
+						//asyslog(LOG_WARNING,"发送补抄任务ID tIndex = %d　",tIndex);
 						INT8S ret = mqs_send((INT8S *)TASKID_485_2_MQ_NAME,cjdeal,1,OAD_PORT_485_2,(INT8U *)&findIndex,sizeof(INT16S));
 						ret = mqs_send((INT8S *)TASKID_485_1_MQ_NAME,cjdeal,1,OAD_PORT_485_1,(INT8U *)&findIndex,sizeof(INT16S));
 					}
@@ -1582,6 +1582,7 @@ void dispatch_thread()
 }
 void printinfoReplenish(INT8U flag)
 {
+
 	if(flag == 2)
 	DbgPrintToFile1(3,"\n跨天清理后还需要补抄任务数量 = %d－－－－－－－－－－\n",infoReplenish.tasknum);
 	if(flag == 1)
@@ -1616,7 +1617,7 @@ void dispatchTask_proccess()
 	init6000InfoFrom6000FIle();
 #if 1
 	fileread(REPLENISHFILEPATH,&infoReplenish,sizeof(Replenish_TaskInfo));
-	printinfoReplenish(1);
+	//printinfoReplenish(1);
 #endif
 	init4204Info();
 #ifdef TESTDEF
