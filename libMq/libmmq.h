@@ -12,8 +12,9 @@
 #include "../include/StdDataType.h"
 #include "../include/ParaDef.h"
 typedef struct{
-	INT16U 	pid;			   //发送方进程id
-	INT32U  cmd;               //命令字
+	INT16U 	pid;			   	//发送方进程id
+	INT32U  cmd;               	//命令字
+	OAD		dataOAD;			//数据来源端口号
 	INT32U  bufsiz;				//buf的有效长度
 }mmq_head;
 
@@ -65,5 +66,5 @@ extern INT32S mmq_put(mqd_t fd,INT32U time_out,mmq_head msg_head, void * buff, I
 */
 extern INT32S mmq_close(mqd_t fd);
 
-extern INT8S mqs_send(INT8S* mqname,INT16U pid,INT32U cmd,INT8U* buf,INT32U bufsiz);
+extern INT8S mqs_send(INT8S* mqname,INT16U pid,INT32U cmd,OAD oad,INT8U* buf,INT32U bufsiz);
 #endif /* MQ_COMM_H_ */

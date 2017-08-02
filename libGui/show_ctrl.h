@@ -22,6 +22,7 @@
 #define DATA_INIT 1
 #define EVENT_INIT 2
 #define DEMAND_INIT 3
+#define FACTORY_RESET 4
 
 #define GUI_FIRST_RUN	1
 #define GUI_NOT_FIRST_RUN	0

@@ -76,8 +76,9 @@ INT32S mmq_get(mqd_t fd, INT32U time_out,mmq_head* msg_head, void* buff)
 		memcpy(buff,&pmsg[sizeof(mmq_head)],msg_head->bufsiz);
 
 		fprintf(stderr,"\n\n***********cnt = %d",cnt);
-		fprintf(stderr,"\n[libmmq]:pid:%d,cmd=%d,bufsize = %d  curmsgs=%d,maxmsg=%d ",
-									msg_head->pid,msg_head->cmd,msg_head->bufsiz,attr_mq.mq_curmsgs,attr_mq.mq_maxmsg);
+		fprintf(stderr,"\n[libmmq]:pid:%d,cmd=%d,dataOAD=%04x_%02x_%02x,bufsize = %d  curmsgs=%d,maxmsg=%d ",
+									msg_head->pid,msg_head->cmd,msg_head->dataOAD.OI,msg_head->dataOAD.attflg,msg_head->dataOAD.attrindex,
+									msg_head->bufsiz,attr_mq.mq_curmsgs,attr_mq.mq_maxmsg);
 
 	}
 	if(pmsg != NULL)
@@ -156,7 +157,7 @@ INT32S mmq_close(mqd_t fd)
 	return mq_close(fd);
 }
 
-INT8S mqs_send(INT8S* mqname,INT16U pid,INT32U cmd,INT8U* buf,INT32U bufsiz)
+INT8S mqs_send(INT8S* mqname,INT16U pid,INT32U cmd,OAD oad,INT8U* buf,INT32U bufsiz)
 {
 	mmq_head head;
 	mqd_t mqd;
@@ -172,6 +173,10 @@ INT8S mqs_send(INT8S* mqname,INT16U pid,INT32U cmd,INT8U* buf,INT32U bufsiz)
 	}
 	head.pid = pid;
 	head.cmd = cmd;
+	//数据来源端口号
+	head.dataOAD.OI = oad.OI;
+	head.dataOAD.attflg = oad.attflg;
+	head.dataOAD.attrindex = oad.attrindex;
 	head.bufsiz = bufsiz;
 	if(mmq_put(mqd,3,head,buf,0) <0)
 	{
