@@ -17,7 +17,6 @@ int RetryTask(struct aeEventLoop* ep, long long id, void* clientData) {
 	dbSet("mmq.retry_count", count);
 	CommBlock *nst = NULL;
 	if (count < 60) {
-
 		switch ((int) dbGet("online.type")) {
 		case 1:
 			nst = dbGet("block.gprs");
