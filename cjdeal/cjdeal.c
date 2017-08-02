@@ -1423,6 +1423,19 @@ INT8U dealProxyAnswer()
 			index = proxyList_manager.datalen;
 			memcpy(&proxyList_manager.data[index],cjcommProxy_plc.strProxyList.data,cjcommProxy_plc.strProxyList.datalen);
 			proxyList_manager.datalen += cjcommProxy_plc.strProxyList.datalen;
+//			proxy_dar_fill(&proxyList_manager,cjcommProxy_plc.strProxyList);
+			fprintf(stderr,"\n代理消息内容.........datalen=%d\n",proxyList_manager.datalen);
+			fprintf(stderr,"proxyList_manager piid=%02x  ca=%02x \n",proxyList_manager.piid,proxyList_manager.csinfo.ca);
+			for(i = 0; i < proxyList_manager.datalen;i++)
+			{
+				fprintf(stderr,"%02x ",proxyList_manager.data[i]);
+				if((i+1)%20 ==0)
+				{
+					fprintf(stderr,"\n");
+				}
+			}
+			fprintf(stderr,"\n\n\n");
+
 			proxyInUse.devUse.plcReady = 1;
 			pthread_mutex_unlock(&mutex);
 		}

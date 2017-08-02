@@ -1816,14 +1816,12 @@ int doGetrecord(INT8U type,OAD oad,INT8U *data,RESULT_RECORD *record,INT16U *sub
 	case 10:	//指定读取最新的n条记录
 		//协议一致性测试GET_25,招测OAD=6012-0300,应该能正常找到数据应答
 		//6012_02 测试，判断格式，无RCSD,招测数据应该无数据
-		for(i=0;i<record->rcsd.csds.num;i++) {
-			if(record->rcsd.csds.csd[i].type==1) {
-				if(((record->rcsd.csds.csd[i].csd.road.oad.OI>>12) & 0xf) == 0x5) {
-					freezeflg = 1;
-					break;
-				}
-			}
-		}
+//		for(i=0;i<record->rcsd.csds.num;i++) {
+//			if(record->rcsd.csds.csd[i].csd.road.oad.OI) {
+//				freezeflg = 1;
+//				break;
+//			}
+//		}
 		fprintf(stderr,"record.oi=%04x csds.num=%d freezeflg=%d\n",record->oad.OI,record->rcsd.csds.num,freezeflg);
 		if(record->oad.OI==0x6012 && freezeflg==0){
 			fprintf(stderr,"record.oi=%04x\n",record->oad.OI);
