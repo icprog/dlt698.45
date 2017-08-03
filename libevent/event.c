@@ -596,12 +596,12 @@ INT8U Get_StandardUnit(ProgramInfo* prginfo_event,OI_698 oi,INT8U *Rbuf,INT8U *I
 	//	   测试项（状态量变位）：测试先招测时钟，然后改变遥信状态，10秒后招测3104事件，此时上送时间不应早于招测时钟返回的时间。
 	//			 在此处如果加7秒，在Get_StandardUnit（）产生3104事件时候，将事件发生时间也重新增加7秒。
 	//     测试项（终端维护）：测试数据初始化3100事件，判断事件发生时间有效性，因此处增加7秒，相应事件产生时间增加7秒
-	if((oi==0x3104 || oi==0x3100) && (getZone("GW")==0)) {
-    	TS	add_ts;
-    	TimeBCDToTs(ntime,&add_ts);
-    	tminc(&add_ts, 0, 7);
-    	TsToTimeBCD(add_ts,&ntime);
-	}
+//	if((oi==0x3104 || oi==0x3100) && (getZone("GW")==0)) {
+//    	TS	add_ts;
+//    	TimeBCDToTs(ntime,&add_ts);
+//    	tminc(&add_ts, 0, 7);
+//    	TsToTimeBCD(add_ts,&ntime);
+//	}
 
 	//事件发生时间
 	if(oi == 0x3106)

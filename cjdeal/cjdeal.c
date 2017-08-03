@@ -1420,7 +1420,7 @@ INT8U dealProxyAnswer()
 		if ( proxyInUse.devUse.plcReady == 1 || timecount > proxyList_manager.timeout)
 		{//收集数据
 
-			fprintf(stderr,"\n---------------------------------------datalen = %d",cjcommProxy_plc.strProxyList.datalen);
+//			fprintf(stderr,"\n---------------------------------------datalen = %d",cjcommProxy_plc.strProxyList.datalen);
 			pthread_mutex_lock(&mutex); //上锁
 			index = proxyList_manager.datalen;
 			if(cjcommProxy_plc.strProxyList.datalen<512) {
@@ -1716,7 +1716,6 @@ int main(int argc, char *argv[])
 	//485、四表合一
 	read485_proccess();
 	//统计计算 电压合格率 停电事件等
-
 	calc_proccess();
 	if(JProgramInfo->cfg_para.device == CCTT1)
 	{
