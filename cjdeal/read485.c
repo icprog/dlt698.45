@@ -2794,6 +2794,7 @@ INT8S dealProxyType7(PROXY_GETLIST *getlist,INT8U port485)
 		getlist->datalen = RecvLen + 2;
 	}else {
 		getlist->proxy_obj.transcmd.dar = request_overtime;
+		getlist->datalen = 0;
 		//dealAnswer 统一处理
 //		getlist->data[0] = 0;
 //		getlist->data[1] = request_overtime;//DAR
