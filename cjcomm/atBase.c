@@ -618,12 +618,12 @@ int AtPrepare(ATOBJ *ao) {
 		return 1500;
 
 	case AT_FINISH_PREPARE:
-		if (retry > 80) {
+		if (retry > 20) {
 			ao->state = 0;
-			return 100;
+			return 1000;
 		}
 		retry++;
-		asyslog(LOG_INFO, "======+");
+		asyslog(LOG_INFO, "======%d", retry);
 		ao->at_retry = 0;
 		return 5 * 1000;
 	}
