@@ -756,6 +756,7 @@ int ATUpdateStatus(ATOBJ *ao) {
 	info->dev_info.pppd_status = ao->PPPD;
 	info->dev_info.connect_ok = (dbGet("online.type") != 0) ? 1 : 0;
 	info->dev_info.jzq_login = dbGet("online.type");
+	gpofun("/dev/gpoONLINE_LED", (dbGet("online.type") != 0) ? 1 : 0);
 }
 
 int AtGetSendLen(ATOBJ *ao) {
