@@ -1347,7 +1347,7 @@ void replenish_tmp()
 	{
 		if((isReplenishOver[tmpIndex] == 1)&&(nowMin >= replenishTime[tmpIndex]))
 		{
-			asyslog(LOG_WARNING,"第%d次补抄　时间%d分 补抄任务数量=%d",tmpIndex,replenishTime[tmpIndex],infoReplenish.tasknum);
+			//asyslog(LOG_WARNING,"第%d次补抄　时间%d分 补抄任务数量=%d",tmpIndex,replenishTime[tmpIndex],infoReplenish.tasknum);
 			INT8U tIndex = 0;
 			for(tIndex = 0;tIndex < infoReplenish.tasknum;tIndex++)
 			{
@@ -1368,7 +1368,7 @@ void replenish_tmp()
 				}
 			}
 			INT8U tmpIndex1 = 0;
-			for(tmpIndex1 = 0;tmpIndex1 < tmpIndex;tmpIndex1++)
+			for(tmpIndex1 = 0;tmpIndex1 <= tmpIndex;tmpIndex1++)
 			{
 				isReplenishOver[tmpIndex1] = 0;
 			}

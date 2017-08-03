@@ -61,7 +61,7 @@ int RegularNet(struct aeEventLoop *ep, long long id, void *clientData) {
 		nst->phy_connect_fd = CertainConnectForNet("eth0", nst);
 		if (nst->phy_connect_fd > 0) {
 			aeCreateFileEvent(ep, nst->phy_connect_fd, AE_READABLE,
-					cReadWithCalc, nst);
+					cRead, nst);
 			helperPeerStat(nst->phy_connect_fd, "客户端[以太网]与主站链路建立成功");
 			gpofun("/dev/gpoONLINE_LED", 1);
 			dbSet("online.type", 2);
