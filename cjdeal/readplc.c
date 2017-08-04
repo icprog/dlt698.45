@@ -2889,12 +2889,11 @@ int doAutoReport(RUNTIME_PLC *runtime_p)
 			}else{
 				step_cj = 2;
 			}
-			clearvar(runtime_p);
-			runtime_p->send_start_time = nowtime ;
 			sendlen = AFN00_F01( &runtime_p->format_Up,runtime_p->sendbuf );//确认
 			SendDataToCom(runtime_p->comfd, runtime_p->sendbuf,sendlen );
-			beginwork = 0;
 			clearvar(runtime_p);
+			runtime_p->send_start_time = nowtime ;
+			beginwork = 0;
 			break;
 		case 1://抄读指定事件
 			if ( nowtime - runtime_p->send_start_time > 20 && beginwork==0)
