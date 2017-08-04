@@ -283,7 +283,7 @@ int AtPrepare(ATOBJ *ao) {
 		if (helperKill("gsmMuxd", 1) == -1) {
 			return 5000;
 		}
-		if(ao->at_retry++ > 5){
+		if (ao->at_retry++ > 5) {
 			asyslog(LOG_INFO, "<AT流程> 5次拨号失败，关断模块10分钟>>>>>>>>");
 			gpofun("/dev/gpoGPRS_POWER", 0);
 			ao->at_retry = 0;
@@ -531,6 +531,7 @@ int AtPrepare(ATOBJ *ao) {
 			ao->state = 52;
 			return 100;
 		}
+		retry++;
 		return 500;
 	case 52:
 		if (retry > 8) {
@@ -543,6 +544,7 @@ int AtPrepare(ATOBJ *ao) {
 			ao->state = 53;
 			return 100;
 		}
+		retry++;
 		return 500;
 	case 53:
 		if (retry > 8) {
@@ -557,6 +559,7 @@ int AtPrepare(ATOBJ *ao) {
 			ao->state = 54;
 			return 100;
 		}
+		retry++;
 		return 500;
 	case 54:
 		if (retry > 8) {
@@ -568,6 +571,7 @@ int AtPrepare(ATOBJ *ao) {
 			ao->state = 55;
 			return 100;
 		}
+		retry++;
 		return 500;
 
 	case 55:
@@ -582,6 +586,7 @@ int AtPrepare(ATOBJ *ao) {
 			ao->state = 56;
 			return 100;
 		}
+		retry++;
 		return 500;
 	case 56:
 		if (retry > 10) {
@@ -593,6 +598,7 @@ int AtPrepare(ATOBJ *ao) {
 			ao->state = 57;
 			return 100;
 		}
+		retry++;
 		return 500;
 
 	case 57:
@@ -608,10 +614,16 @@ int AtPrepare(ATOBJ *ao) {
 			ao->state = AT_FINISH_PREPARE;
 			return 100;
 		}
+		retry++;
 		return 1500;
 
 	case AT_FINISH_PREPARE:
-		asyslog(LOG_INFO, "======+");
+		if (retry > 20) {
+			ao->state = 0;
+			return 1000;
+		}
+		retry++;
+		asyslog(LOG_INFO, "======%d", retry);
 		ao->at_retry = 0;
 		return 5 * 1000;
 	}
@@ -744,6 +756,7 @@ int ATUpdateStatus(ATOBJ *ao) {
 	info->dev_info.pppd_status = ao->PPPD;
 	info->dev_info.connect_ok = (dbGet("online.type") != 0) ? 1 : 0;
 	info->dev_info.jzq_login = dbGet("online.type");
+	gpofun("/dev/gpoONLINE_LED", (dbGet("online.type") != 0) ? 1 : 0);
 }
 
 int AtGetSendLen(ATOBJ *ao) {

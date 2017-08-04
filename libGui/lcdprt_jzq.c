@@ -3675,6 +3675,7 @@ void menu_termip(){
 				memset(cmd1, 0, 100);
 				sprintf(cmd1, "echo %s > /nor/rc.d/ip.sh", cmd);
 				system(cmd1);
+				//修改4510的参数配置
 			}
 		}
 	}else {

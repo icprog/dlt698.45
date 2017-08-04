@@ -700,9 +700,9 @@ INT8S get6035ByTaskID(INT16U taskID,CLASS_6035* class6035)
 		}
 	}
 
-
-
 	class6035->taskState = BEFORE_OPR;
+	DataTimeGet(&class6035->starttime);
+	class6035->totalMSNum = getFileRecordNum(0x6000);
 	saveCoverClass(0x6035, class6035->taskID, class6035,sizeof(CLASS_6035), coll_para_save);
 	return -1;
 }
