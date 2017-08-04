@@ -827,8 +827,8 @@ int doInit(RUNTIME_PLC *runtime_p)
 
 			if (runtime_p->comfd >0)
 				CloseCom( runtime_p->comfd );
-
-			runtime_p->comfd = OpenCom(5, 9600,(unsigned char*)"even",1,8);// 5 载波路由串口 ttyS5     // 维护串口 2 ttyS2
+			//改为ttyS2测试载波模块互换性功能：注意注释read485_proccess();进程，防止抄表口占用
+			runtime_p->comfd = OpenCom(2, 9600,(unsigned char*)"even",1,8);// 5 载波路由串口 ttyS5     // 维护串口 2 ttyS2
 			DbgPrintToFile1(31,"comfd=%d",runtime_p->comfd);
 			runtime_p->initflag = 0;
 			clearvar(runtime_p);//376.2上行内容容器清空，发送计时归零
@@ -2873,6 +2873,8 @@ int doAutoReport(RUNTIME_PLC *runtime_p)
 	static int step_cj = 0, beginwork=0,msg_index=0;
 	int sendlen=0 ,i=0, ret=0;
 	time_t nowtime = time(NULL);
+	INT8U	transData[512];
+	int		transLen=0;
 
 	switch( step_cj )
 	{
@@ -2981,8 +2983,21 @@ int doAutoReport(RUNTIME_PLC *runtime_p)
 		case 3://发消息到cjcomm
 			DbgPrintToFile1(31,"");
 			DbgPrintToFile1(31,"给主站发消息, 事件缓存数组 元素个数 【 %d 】",msg_index);
+			transLen = 0;
+			transData[transLen++] = msg_index;		//sequence of octet-string
 			for(i=0;i<msg_index;i++)
 			{
+				if(autoEvent_Save[i].len>0 && autoEvent_Save[i].len<=0x7f) {
+					transData[transLen++] = autoEvent_Save[i].len;
+					memcpy(&transData[transLen],autoEvent_Save[i].data,autoEvent_Save[i].len);
+					transLen += autoEvent_Save[i].len;
+				}else {	//octet-string 长度超过127，长度字节最多两个字节表示（因为类型决定长度不会超过255）
+					transData[transLen++] = 0x82;	//0x80:表示长度为多个字节，0x02:表示长度为2个字节
+					transData[transLen++] = (autoEvent_Save[i].len >>8) & 0xff;
+					transData[transLen++] = autoEvent_Save[i].len & 0xff;
+					memcpy(&transData[transLen],autoEvent_Save[i].data,autoEvent_Save[i].len);
+					transLen += autoEvent_Save[i].len;
+				}
 				DbgPrintToFile1(31,"【 %02d 】 |  datalen=%02d  【 %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x 】",
 						i,autoEvent_Save[i].len,
 						autoEvent_Save[i].data[0],autoEvent_Save[i].data[1],autoEvent_Save[i].data[2],
@@ -2995,6 +3010,7 @@ int doAutoReport(RUNTIME_PLC *runtime_p)
 						autoEvent_Save[i].data[21],autoEvent_Save[i].data[22],autoEvent_Save[i].data[23],
 						autoEvent_Save[i].data[24],autoEvent_Save[i].data[25],autoEvent_Save[i].data[26]);
 			}
+			ret = mqs_send((INT8S *)PROXY_NET_MQ_NAME,cjcomm,NOTIFICATIONTRANS_PEPORT,OAD_PORT_ZB,(INT8U *)&transData,transLen);
 			memset(autoEvent_Save,0,sizeof(autoEvent_Save));//暂存的事件
 			memset(autoReportWordInfo,0,sizeof(autoReportWordInfo));//12字节主动上报状态字对应的每个事件是否发生及次数
 			memset(autoReportWords,0,sizeof(autoReportWords));//电表主动上报状态字
