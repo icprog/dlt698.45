@@ -330,6 +330,9 @@ int AtPrepare(ATOBJ *ao) {
 		ao->state = 7;
 		return 10 * 1000;
 	case 7:
+		if(ao->fd > 0){
+			close(ao->fd);
+		}
 		ao->fd = OpenMuxCom(0, 115200, (unsigned char *) "none", 1, 8); // 0
 		if (ao->fd < 0) {
 			close(ao->fd);
