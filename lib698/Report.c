@@ -144,6 +144,7 @@ INT8U Report_Event(CommBlock *com,INT8U *oiarr,INT8U report_type){
  */
 int callNotificationReport(CommBlock* com,INT8U *plcbuf,OAD portOAD,int datalen)
 {
+	fprintf(stderr, "callNotificationReport\n");
 	INT8U *sendbuf = com->SendBuf;
 	static INT8U  piid=0;
 	int 	index=0,hcsi=0,apduplace=0;
