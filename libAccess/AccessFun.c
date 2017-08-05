@@ -29,7 +29,7 @@
 #define 	LIB_ACCESS_VER 			0x0001
 
 //syslog_info 信息记录标记
-//#define		SYS_INFO		0//1
+//#define		SYS_INFO		1
 
 CLASS_INFO	info={};
 void write_apn(char* apn) {
@@ -228,9 +228,9 @@ int dataInit(INT16U attr)
 	gettimeofday(&end, NULL);
 	interval = 1000000*(end.tv_sec - start.tv_sec) + (end.tv_usec - start.tv_usec);
     fprintf(stderr,"dataInit interval = %f(ms)\n", interval/1000.0);
-    if(interval>60*1000) {
-    	syslog(LOG_ERR,"初始化时间过长=%f(ms)\n", interval/1000.0);
-    }
+//    if(interval>60*1000*1000) {
+    	syslog(LOG_ERR,"初始化时间=%f(ms)\n", interval/1000.0);
+//    }
  	return 0;
 }
 

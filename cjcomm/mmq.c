@@ -81,6 +81,7 @@ void MmqReadandSend(struct aeEventLoop *ep, int fd, void *clientData, int mask) 
 		break;
 	case NOTIFICATIONTRANS_PEPORT:
 		callNotificationReport(nst, getBuf, headBuf.dataOAD, headBuf.bufsiz);
+//		bufsyslog(getBuf, "接收NOTIFICATIONTRANS_PEPORT消息:", headBuf.bufsiz, 0, BUFLEN);
 		dbSet("mmq.retry_count", 0);
 		memcpy(dbGet("mmq.retry_buf"), getBuf, sizeof(getBuf));
 		memcpy(dbGet("mmq.retry_head"), &headBuf, sizeof(headBuf));

@@ -1347,7 +1347,7 @@ void replenish_tmp()
 	{
 		if((isReplenishOver[tmpIndex] == 1)&&(nowMin >= replenishTime[tmpIndex]))
 		{
-			asyslog(LOG_WARNING,"第%d次补抄　时间%d分 补抄任务数量=%d",tmpIndex,replenishTime[tmpIndex],infoReplenish.tasknum);
+			//asyslog(LOG_WARNING,"第%d次补抄　时间%d分 补抄任务数量=%d",tmpIndex,replenishTime[tmpIndex],infoReplenish.tasknum);
 			INT8U tIndex = 0;
 			for(tIndex = 0;tIndex < infoReplenish.tasknum;tIndex++)
 			{
@@ -1368,7 +1368,7 @@ void replenish_tmp()
 				}
 			}
 			INT8U tmpIndex1 = 0;
-			for(tmpIndex1 = 0;tmpIndex1 < tmpIndex;tmpIndex1++)
+			for(tmpIndex1 = 0;tmpIndex1 <= tmpIndex;tmpIndex1++)
 			{
 				isReplenishOver[tmpIndex1] = 0;
 			}
@@ -1565,7 +1565,7 @@ void dispatch_thread()
 		}
 		if(para_change485[0]||para_change485[1])
 		{
-			fprintf(stderr,"参数变更等待 485线程处理无效线程");
+//			fprintf(stderr,"参数变更等待 485线程处理无效线程");
 			sleep(1);
 			continue;
 		}
@@ -1714,7 +1714,7 @@ int main(int argc, char *argv[])
 	//任务调度进程
 	dispatchTask_proccess();
 	//485、四表合一
-	read485_proccess();
+//	read485_proccess();
 	//统计计算 电压合格率 停电事件等
 	calc_proccess();
 	if(JProgramInfo->cfg_para.device == CCTT1)

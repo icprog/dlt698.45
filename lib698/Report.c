@@ -145,7 +145,7 @@ INT8U Report_Event(CommBlock *com,INT8U *oiarr,INT8U report_type){
 int callNotificationReport(CommBlock* com,INT8U *plcbuf,OAD portOAD,int datalen)
 {
 	INT8U *sendbuf = com->SendBuf;
-	int		piid=0;
+	static INT8U  piid=0;
 	int 	index=0,hcsi=0,apduplace=0;
 	CSINFO csinfo={};
 
@@ -153,6 +153,8 @@ int callNotificationReport(CommBlock* com,INT8U *plcbuf,OAD portOAD,int datalen)
 		return -1;
 	if (fillcsinfo(&csinfo,com->serveraddr,com->taskaddr)==0)
 		return 0;
+	piid++;
+	com->report_piid[0] = piid;		//处理无应答重复上报判断报文帧，目前未考虑多通道在线情况
 	index = 0;
 	index = FrameHead(&csinfo,sendbuf);
 	hcsi = index;

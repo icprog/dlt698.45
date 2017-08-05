@@ -61,8 +61,10 @@ void printClass3106()
 	int 	saveflg=0,i=0,j=0;
 
 	saveflg = readCoverClass(0x3106,0,&tmpobj,sizeof(Event3106_Object),event_para_save);
+
 	fprintf(stderr,"\n[3106]终端停上电事件 \n");
-	fprintf(stderr,"currn=%d \n",tmpobj.event_obj.crrentnum);
+	printClass7(tmpobj.event_obj);
+//	fprintf(stderr,"currn=%d \n",tmpobj.event_obj.crrentnum);
 	fprintf(stderr,"\n采集配置参数：采集标志:%02x 抄读间隔(小时):%d　抄读限值(分钟):%d",tmpobj.poweroff_para_obj.collect_para_obj.collect_flag,
 			tmpobj.poweroff_para_obj.collect_para_obj.time_space,tmpobj.poweroff_para_obj.collect_para_obj.time_threshold);
 	fprintf(stderr,"\n电能表TSA:");

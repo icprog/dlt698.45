@@ -762,10 +762,14 @@ INT16S dealAFN06_F5(FORMAT3762* format3762, INT8U dir, INT8U* data)
 	}
 	else
 	{
+		int len=0;
 		format3762->afn06_f5_up.DeviceType = data[0];
 		format3762->afn06_f5_up.Protocol = data[1];
 		format3762->afn06_f5_up.MsgLength = data[2];
-		memcpy(&format3762->afn06_f5_up.MsgContent, &data[3], data[2]);
+		len = data[2];
+		if (len > 256)
+			len = 256;
+		memcpy(&format3762->afn06_f5_up.MsgContent, &data[3], len);
 		return (3+data[2]);
 	}
 	return -1;

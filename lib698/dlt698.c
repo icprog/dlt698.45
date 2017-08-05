@@ -485,6 +485,7 @@ int dealClientResponse(INT8U *apdu, CSINFO *csinfo) {
 		Link_Response(apdu); //预连接响应
 		break;
 	case REPORT_RESPONSE:
+
 		break;
 	}
 	return apduType;
@@ -1746,7 +1747,9 @@ int ProcessData(CommBlock *com) {
 	if ((hcsok == 1) && (fcsok == 1)) {
 		fprintf(stderr, "\nsa_length=%d\n", csinfo.sa_length);
 		apdu = &Rcvbuf[csinfo.sa_length + 8];
-
+		if(apdu[0] == REPORT_RESPONSE) {		//主动上报置reponse_piid和report_piid
+			com->response_piid[0] = apdu[2];	//处理无应答重复上报判断报文帧，目前未考虑多通道在线情况
+		}
 		if (csinfo.dir == 0 && csinfo.prm == 0) /*客户机对服务器上报的响应	（主站对集中器上报的响应）*/
 		{
 			return (dealClientResponse(apdu, &csinfo));
