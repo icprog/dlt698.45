@@ -1396,19 +1396,15 @@ int createMeterFrame(struct Tsa_Node *desnode,DATA_ITEM item,INT8U *buf,INT8U *i
 			DbgPrintToFile1(31,"当前抄读 【OAD1 %04x-%02x %02x    OAD2 %04x-%02x %02x】%02x%02x%02x%02x ",
 						item.oad1.OI,item.oad1.attflg,item.oad1.attrindex,item.oad2.OI,item.oad2.attflg,item.oad2.attrindex,
 						Data07.DI[3],Data07.DI[2],Data07.DI[1],Data07.DI[0]);
-
 			sendlen = composeProtocol07(&Data07, buf);
 			if (sendlen>0)
-			{
 				memcpy(item07,Data07.DI,4);// 保存07规约数据项
-//					DbPrt1(31,"645:", (char *) buf, sendlen, NULL);
-				return sendlen;
-			}
 			break;
 		case DLT698:
-			return 20;
+
+			sendlen = 20;
 	}
-	return 0;
+	return sendlen;
 }
 int createMeterFrame_Curve(struct Tsa_Node *desnode,DATA_ITEM item,INT8U *buf,INT8U *item07,DateTimeBCD timebcd)
 {
@@ -1545,10 +1541,8 @@ int do_5002_type( int taski, int itemi ,INT8U *buf, struct Tsa_Node *desnode, DA
 }
 int do_other_type( int taski, int itemi ,INT8U *buf, struct Tsa_Node *desnode, DATA_ITEM  tmpitem)
 {
-	time_t getTheTime;
-	DateTimeBCD timebcd;
 	INT8U item07[4]={0,0,0,0};
-	int i=0,sendlen = 0;
+	int sendlen = 0;
 
 	DEBUG_TIME_LINE("createMeterFrame start");
 	sendlen = createMeterFrame(desnode, tmpitem, buf, item07);
