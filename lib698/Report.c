@@ -173,6 +173,7 @@ int callNotificationReport(CommBlock* com,INT8U *plcbuf,OAD portOAD,int datalen)
 	sendbuf[index++] = 0;
 	sendbuf[index++] = 0;
 	FrameTail(sendbuf,index,hcsi);
+	fprintf(stderr, "callNotificationReport before send %d\n", com->p_send);
 	if(com->p_send!=NULL)
 		com->p_send(com->phy_connect_fd,sendbuf,index+3);  //+3:crc1,crc2,0x16
 	return piid;
