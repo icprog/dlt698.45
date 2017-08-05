@@ -16,9 +16,9 @@ int RetryTask(struct aeEventLoop* ep, long long id, void* clientData) {
 	int count = (int) dbGet("mmq.retry_count") + 1;
 	dbSet("mmq.retry_count", count);
 	CommBlock *nst = NULL;
-	fprintf("重复上送%d\n", count);
+	fprintf(stderr, "重复上送%d\n", count);
 	if (count < 60) {
-		fprintf("重复上送IN %d\n", count);
+		fprintf(stderr, "重复上送IN %d\n", count);
 		switch ((int) dbGet("online.type")) {
 		case 1:
 			nst = dbGet("block.gprs");
@@ -40,7 +40,7 @@ int RetryTask(struct aeEventLoop* ep, long long id, void* clientData) {
 			return 1000;
 		}
 	}
-	fprintf("重复上送OUT %d\n", count);
+	fprintf(stderr, "重复上送OUT %d\n", count);
 	callNotificationReport(nst, dbGet("mmq.retry_buf"),
 			((mmq_head*) dbGet("mmq.retry_head"))->dataOAD,
 			((mmq_head*) dbGet("mmq.retry_head"))->bufsiz);
