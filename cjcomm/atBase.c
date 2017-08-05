@@ -354,7 +354,6 @@ int AtPrepare(ATOBJ *ao) {
 		if (RecieveFromComm(Mrecvbuf, 128, ao->fd) > 0) {
 			if (strstr(Mrecvbuf, "OK") != NULL) {
 				retry = 0;
-
 				ao->state = 10;
 				return 500;
 			}
