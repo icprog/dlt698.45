@@ -16,23 +16,23 @@ int RetryTask(struct aeEventLoop* ep, long long id, void* clientData) {
 	int count = (int) dbGet("mmq.retry_count") + 1;
 	dbSet("mmq.retry_count", count);
 	CommBlock *nst = NULL;
-	fprintf(stderr, "重复上送%d\n", count);
+	fprintf(stderr, "重复上送IN %d\n", count);
+	switch ((int) dbGet("online.type")) {
+	case 1:
+		nst = dbGet("block.gprs");
+		break;
+	case 2:
+		nst = dbGet("block.net");
+		break;
+	case 3:
+		nst = dbGet("block.gprs");
+		break;
+	}
+	if (nst == NULL) {
+		return AE_NOMORE;
+	}
+	fprintf(stderr, "重复上送 MIDDLE%d\n", count);
 	if (count < 60) {
-		fprintf(stderr, "重复上送IN %d\n", count);
-		switch ((int) dbGet("online.type")) {
-		case 1:
-			nst = dbGet("block.gprs");
-			break;
-		case 2:
-			nst = dbGet("block.net");
-			break;
-		case 3:
-			nst = dbGet("block.gprs");
-			break;
-		}
-		if (nst == NULL) {
-			return AE_NOMORE;
-		}
 		if (nst->response_piid[0] != 0
 				&& nst->response_piid[0] == nst->report_piid[0]) {
 			return AE_NOMORE;
