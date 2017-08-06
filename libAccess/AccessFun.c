@@ -995,118 +995,6 @@ void getTsaRegion(Region_Type type,int *StartNo,int *EndNo)
 	}
 }
 
-
-//int getTsas(MY_MS ms,INT8U **tsas)
-//{
-//	int  tsa_num = 0;
-//	int	 record_num = 0;
-//	int	 tsa_len = 0;
-//	int	 i=0,j=0,k=0;
-//	CLASS_6001	 meter={};
-//	INT8U 	TypeStart[3],TypeEnd[3];
-//	int		StartNo=0,EndNo=0;
-//
-//	if(ms.mstype == 0) { //无电能表
-//		tsa_num = 0;
-//		return tsa_num;
-//	}
-//	record_num = getFileRecordNum(0x6000);
-//	*tsas = malloc(record_num*sizeof(TSA));
-//	fprintf(stderr," tsas  p=%p record_num=%d",*tsas,record_num);
-//	tsa_num = 0;
-//	for(i=0;i<record_num;i++) {
-//		if(readParaClass(0x6000,&meter,i)==1) {
-//			if(meter.sernum!=0 && meter.sernum!=0xffff) {
-//				switch(ms.mstype) {
-//				case 1:	//全部用户地址
-//					fprintf(stderr,"\nTSA: %d-",meter.basicinfo.addr.addr[0]);
-//					for(j=0;j<meter.basicinfo.addr.addr[0];j++) {
-//						fprintf(stderr,"-%02x",meter.basicinfo.addr.addr[j+1]);
-//					}
-//					memcpy(*tsas+(tsa_num*sizeof(TSA)),&meter.basicinfo.addr,sizeof(TSA));
-//					tsa_num++;
-//					break;
-//				case 2:	//一组用户类型
-//					tsa_len = (ms.ms.userType[0]<<8) | ms.ms.userType[1];
-//					fprintf(stderr,"\n一组用户类型(%d)",tsa_len);
-//					for(j=0;j<tsa_len;j++) {
-//						if(ms.ms.userType[j+2]==meter.basicinfo.usrtype) {
-//							memcpy(*tsas+(tsa_num*sizeof(TSA)),&meter.basicinfo.addr,sizeof(TSA));
-//							tsa_num++;
-//						}
-////						tsa_num += getUserType(ms.ms.userType[j+2],meter.basicinfo.usrtype,meter.basicinfo.addr,tsa_num,tsas);
-//					}
-//					break;
-//				case 3:	//一组用户地址
-//					tsa_len = (ms.ms.userAddr[0].addr[0]<<8) | ms.ms.userAddr[0].addr[1];
-//					fprintf(stderr,"\n一组用户地址(%d)\n\n",tsa_len);
-//					for(j=0;j<tsa_len;j++) {
-//						if(memcmp(&ms.ms.userAddr[j+1],&meter.basicinfo.addr,sizeof(TSA))==0) {  //TODO:TSA下发的地址是否按照00：长度，01：TSA长度格式
-//							memcpy(*tsas+(tsa_num*sizeof(TSA)),&meter.basicinfo.addr,sizeof(TSA));
-//							tsa_num++;
-//						}
-////						tsa_num += getUserTSA(ms.ms.userAddr[j+1],meter.basicinfo.addr,tsa_num,tsas);
-//					}
-//					break;
-//				case 4:	//一组配置序号
-//					fprintf(stderr,"\n招测序号集(%d)",ms.ms.configSerial[0]);
-//					for(j=0;j<ms.ms.configSerial[0];j++) {
-//						fprintf(stderr," %d",ms.ms.configSerial[j+1]);
-//						if(meter.sernum == ms.ms.configSerial[j+1]) {
-//							memcpy(*tsas+(tsa_num*sizeof(TSA)),&meter.basicinfo.addr,sizeof(TSA));
-//							tsa_num++;
-//							break;
-//						}
-//					}
-//					break;
-//				case 5://一组用户类型区间  无报文,暂时未实现
-//					for(j=0;j<COLLCLASS_MAXNUM;j++) {
-//						if(ms.ms.type[j].type!=interface) {	//有效类型
-//
-//						}
-//					}
-//					break;
-//				case 6://一组用户地址区间
-//					for(j=0;j<COLLCLASS_MAXNUM;j++) {
-//						if(ms.ms.addr[j].type!=interface) {	//有效类型
-//							getTsaRegion(ms.ms.serial[j].type,&StartNo,&EndNo);
-//							fprintf(stderr,"Start-serial=%d  End-serial=%d\n",StartNo,EndNo);
-//							for(k=StartNo;k<EndNo;k++) {
-//								if(memcmp(&ms.ms.addr[j].begin[1],&meter.basicinfo.addr,sizeof(TSA))==0) {  //TODO:TSA下发的地址是否按照00：长度，01：TSA长度格式
-//									memcpy(*tsas+(tsa_num*sizeof(TSA)),&meter.basicinfo.addr,sizeof(TSA));
-//									tsa_num++;
-//								}
-//							}
-//						}
-//					}
-//					break;
-//				case 7://一组配置序号区间
-//					for(j=0;j<COLLCLASS_MAXNUM;j++) {
-//						if(ms.ms.serial[j].type!=interface) {	//有效类型
-//							fill_Data(ms.ms.serial[j].begin[0],(INT8U *)TypeStart,&ms.ms.serial[j].begin[1]);
-//							fill_Data(ms.ms.serial[j].end[0],(INT8U *)TypeEnd,&ms.ms.serial[j].end[1]);
-//							StartNo = (TypeStart[1]<<8) | TypeStart[2];
-//							EndNo = (TypeEnd[1]<<8) | TypeEnd[2];
-//							getTsaRegion(ms.ms.serial[j].type,&StartNo,&EndNo);
-//							fprintf(stderr,"Start-serial=%d  End-serial=%d\n",StartNo,EndNo);
-//							for(k=StartNo;k<EndNo;k++) {
-//								if(meter.sernum == k) {
-//									memcpy(*tsas+(tsa_num*sizeof(TSA)),&meter.basicinfo.addr,sizeof(TSA));
-//									tsa_num++;
-//									break;
-//								}
-//							}
-//						}
-//					}
-//					break;
-//				}
-//			}
-//		}
-//	}
-//	fprintf(stderr,"\nms.mstype = %d,tsa_num = %d",ms.mstype,tsa_num);
-//	return tsa_num;
-//}
-
 /*
  * 根据ms.type填充tsas ; 返回TS 的数量
  * 注意调用后，释放**tsas的内存
@@ -1126,6 +1014,7 @@ int getTsas(MY_MS ms,INT8U **tsas)
 		return tsa_num;
 	}
 	record_num = getFileRecordNum(0x6000);
+	DEBUG_TIME_LINE("ms.mstype: %d", ms.mstype);
 	switch(ms.mstype) {
 	case 3:	//一组用户地址
 		tsa_len = (ms.ms.userAddr[0].addr[0]<<8) | ms.ms.userAddr[0].addr[1];
@@ -1135,48 +1024,48 @@ int getTsas(MY_MS ms,INT8U **tsas)
 		*tsas = malloc(record_num*sizeof(CLASS_6001));
 		break;
 	}
-	fprintf(stderr," tsas  p=%p record_num=%d tsa_len=%d",*tsas,record_num,tsa_len);
+	DEBUG_TIME_LINE(" tsas  p=%p record_num=%d tsa_len=%d",*tsas,record_num,tsa_len);
 	tsa_num = 0;
 	for(i=0;i<record_num;i++) {
 		if(readParaClass(0x6000,&meter,i)==1) {
 			if(meter.sernum!=0 && meter.sernum!=0xffff) {
 				switch(ms.mstype) {
 				case 1:	//全部用户地址
-					fprintf(stderr,"\nTSA: %d-",meter.basicinfo.addr.addr[0]);
+					DEBUG_TIME_LINE("\nTSA: %d-",meter.basicinfo.addr.addr[0]);
 					for(j=0;j<meter.basicinfo.addr.addr[0];j++) {
 						fprintf(stderr,"-%02x",meter.basicinfo.addr.addr[j+1]);
 					}
-					memcpy(*tsas+(tsa_num*sizeof(CLASS_6001)),&meter,sizeof(CLASS_6001));
+					memcpy(*tsas+(tsa_num*sizeof(TSA)),&meter.basicinfo.addr,sizeof(TSA));
 					tsa_num++;
 					break;
 				case 2:	//一组用户类型
 					tsa_len = (ms.ms.userType[0]<<8) | ms.ms.userType[1];
-					fprintf(stderr,"\n一组用户类型(%d)",tsa_len);
+					DEBUG_TIME_LINE("\n一组用户类型(%d)",tsa_len);
 					for(j=0;j<tsa_len;j++) {
+						DEBUG_TIME_LINE("ms.ms.userType[j+2]: %d, meter.basicinfo.usrtype: %d",\
+								ms.ms.userType[j+2], meter.basicinfo.usrtype);
 						if(ms.ms.userType[j+2]==meter.basicinfo.usrtype) {
-							memcpy(*tsas+(tsa_num*sizeof(CLASS_6001)),&meter,sizeof(CLASS_6001));
+							memcpy(*tsas+(tsa_num*sizeof(TSA)),&meter.basicinfo.addr,sizeof(TSA));
 							tsa_num++;
 						}
-//						tsa_num += getUserType(ms.ms.userType[j+2],meter.basicinfo.usrtype,meter.basicinfo.addr,tsa_num,tsas);
 					}
 					break;
 				case 3:	//一组用户地址
 					tsa_len = (ms.ms.userAddr[0].addr[0]<<8) | ms.ms.userAddr[0].addr[1];
-//					fprintf(stderr,"\n一组用户地址(%d)\n\n",tsa_len);
+					DEBUG_TIME_LINE("一组用户地址(%d)*******15:44",tsa_len);
 					for(j=0;j<tsa_len;j++) {
 						if(memcmp(&ms.ms.userAddr[j+1],&meter.basicinfo.addr,sizeof(TSA))==0) {  //TODO:TSA下发的地址是否按照00：长度，01：TSA长度格式
-							memcpy(*tsas+(tsa_num*sizeof(CLASS_6001)),&meter,sizeof(CLASS_6001));
+							memcpy(*tsas+(tsa_num*sizeof(TSA)),&meter.basicinfo.addr,sizeof(TSA));
 							tsa_num++;
 						}
-//						tsa_num += getUserTSA(ms.ms.userAddr[j+1],meter.basicinfo.addr,tsa_num,tsas);
 					}
 					break;
 				case 4:	//一组配置序号
-					fprintf(stderr,"\n招测序号集(%d)",ms.ms.configSerial[0]);
+					DEBUG_TIME_LINE("\n招测序号集(%d)",ms.ms.configSerial[0]);
 					for(j=0;j<ms.ms.configSerial[0];j++) {
 						fprintf(stderr," %d",ms.ms.configSerial[j+1]);
 						if(meter.sernum == ms.ms.configSerial[j+1]) {
-							memcpy(*tsas+(tsa_num*sizeof(CLASS_6001)),&meter,sizeof(CLASS_6001));
+							memcpy(*tsas+(tsa_num*sizeof(TSA)),&meter.basicinfo.addr,sizeof(TSA));
 							tsa_num++;
 							break;
 						}
@@ -1196,7 +1085,7 @@ int getTsas(MY_MS ms,INT8U **tsas)
 							fprintf(stderr,"Start-serial=%d  End-serial=%d\n",StartNo,EndNo);
 							for(k=StartNo;k<EndNo;k++) {
 								if(memcmp(&ms.ms.addr[j].begin[1],&meter.basicinfo.addr,sizeof(TSA))==0) {  //TODO:TSA下发的地址是否按照00：长度，01：TSA长度格式
-									memcpy(*tsas+(tsa_num*sizeof(CLASS_6001)),&meter,sizeof(CLASS_6001));
+									memcpy(*tsas+(tsa_num*sizeof(TSA)),&meter.basicinfo.addr,sizeof(TSA));
 									tsa_num++;
 								}
 							}
@@ -1214,7 +1103,7 @@ int getTsas(MY_MS ms,INT8U **tsas)
 							fprintf(stderr,"Start-serial=%d  End-serial=%d\n",StartNo,EndNo);
 							for(k=StartNo;k<EndNo;k++) {
 								if(meter.sernum == k) {
-									memcpy(*tsas+(tsa_num*sizeof(CLASS_6001)),&meter,sizeof(CLASS_6001));
+									memcpy(*tsas+(tsa_num*sizeof(TSA)),&meter.basicinfo.addr,sizeof(TSA));
 									tsa_num++;
 									break;
 								}
@@ -1226,7 +1115,8 @@ int getTsas(MY_MS ms,INT8U **tsas)
 			}
 		}
 	}
-	fprintf(stderr,"\nms.mstype = %d,tsa_num = %d",ms.mstype,tsa_num);
+	DEBUG_TIME_LINE("\nms.mstype = %d,tsa_num = %d",ms.mstype,tsa_num);
+
 	return tsa_num;
 }
 
@@ -3042,9 +2932,9 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds,INT16U fr
 		tsa_num = getTsas(select.selec10.meters,(INT8U **)&tsa_group);
 	}
 
-	fprintf(stderr,"get 需要上报的：tsa_num=%d,tsa_group=%p\n",tsa_num,tsa_group);
+	DEBUG_TIME_LINE("get 需要上报的：tsa_num=%d,tsa_group=%p\n",tsa_num,tsa_group);
 	for(i=0;i<tsa_num;i++) {
-		fprintf(stderr,"\nTSA%d: %d-",i,tsa_group[i].addr[0]);
+		DEBUG_TIME_LINE("\nTSA%d: %d-",i,tsa_group[i].addr[0]);
 		for(j=0;j<tsa_group[i].addr[0];j++) {
 			fprintf(stderr,"-%02x",tsa_group[i].addr[j+1]);
 		}
