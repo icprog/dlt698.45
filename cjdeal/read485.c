@@ -41,7 +41,7 @@ INT8U flag07_0CF25_2[4] = {0x00,0xff,0x02,0x02};//当前电流
 INT8U flag07_0CF25_2_A[4] = {0x00,0x01,0x02,0x02};//当前A相电流
 INT8U flag07_0CF25_2_B[4] = {0x00,0x02,0x02,0x02};//当前B相电流
 INT8U flag07_0CF25_2_C[4] = {0x00,0x03,0x02,0x02};//当前C相电流
-INT8U flag07_0CF25_2_O[4] = {0x01,0x00,0x08,0x02};//当前零序电流
+INT8U flag07_0CF25_2_O[4] = {0x01,0x00,0x80,0x02};//当前零序电流
 INT8U flag07_0CF25_3[4] = {0x00,0xff,0x03,0x02};//当前有功功率
 INT8U flag07_0CF25_4[4] = {0x00,0xff,0x04,0x02};//当前无功功率
 INT8U flag07_0CF25_5[4] = {0x00,0xff,0x05,0x02};//视在功率
@@ -1157,6 +1157,9 @@ INT8U getASNInfo(FORMAT07* DI07,Base_DataType* dataType)
 		if(memcmp(flag07_0CF25_2_O,DI07->DI,4) == 0)
 		{
 			unitNum = 1;
+			DI07->Data[0] = 0x95;
+			DI07->Data[1] = 0x03;
+			DI07->Data[2] = 0x00;
 		}
 		INT8U tmpIndex = 0;
 		for(tmpIndex = 0;tmpIndex < unitNum;tmpIndex++)
