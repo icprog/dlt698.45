@@ -1157,9 +1157,6 @@ INT8U getASNInfo(FORMAT07* DI07,Base_DataType* dataType)
 		if(memcmp(flag07_0CF25_2_O,DI07->DI,4) == 0)
 		{
 			unitNum = 1;
-			DI07->Data[0] = 0x95;
-			DI07->Data[1] = 0x03;
-			DI07->Data[2] = 0x00;
 		}
 		INT8U tmpIndex = 0;
 		for(tmpIndex = 0;tmpIndex < unitNum;tmpIndex++)
