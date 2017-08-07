@@ -1952,11 +1952,14 @@ INT8S OADMap07DI(OI_698 roadOI,OAD sourceOAD, C601F_645* flag645) {
 
 	INT8S result = 0;
 	INT8U index = 0;
+	fprintf(stderr,"\nmap07DI_698OAD_NUM = %d",map07DI_698OAD_NUM);
 	for (index = 0; index < map07DI_698OAD_NUM; index++)
 	{
 //		DEBUG_TIME_LINE("\n map07DI_698OAD[%d].roadOI = %04x OAD = %04x%02x%02x", index, map07DI_698OAD[index].roadOI
 //				,map07DI_698OAD[index].flag698.OI,map07DI_698OAD[index].flag698.attflg,map07DI_698OAD[index].flag698.attrindex);
-
+		fprintf(stderr,"\nOI_1 =%04x OI_2 =%04x   ----------->  0I_11=%04x  0I_22=%04x",
+				roadOI,							sourceOAD.OI,
+				map07DI_698OAD[index].roadOI,	map07DI_698OAD[index].flag698.OI);
 		if((memcmp(&roadOI,&map07DI_698OAD[index].roadOI,sizeof(OI_698))==0)
 				&&(memcmp(&sourceOAD.OI,&map07DI_698OAD[index].flag698.OI,sizeof(OI_698))==0))
 		{
@@ -1973,9 +1976,9 @@ INT8S OADMap07DI(OI_698 roadOI,OAD sourceOAD, C601F_645* flag645) {
 			}
 			if(flag645->protocol == DLT_645_07)
 			{
-//				DEBUG_TIME_LINE("\n 找到了对应07数据项　%02x%02x%02x%02x \n",
-//						map07DI_698OAD[index].flag07.DI_1[0][0],map07DI_698OAD[index].flag07.DI_1[0][1],
-//						map07DI_698OAD[index].flag07.DI_1[0][2],map07DI_698OAD[index].flag07.DI_1[0][3]);
+				DEBUG_TIME_LINE("\n 找到了对应07数据项　%02x%02x%02x%02x \n",
+						map07DI_698OAD[index].flag07.DI_1[0][0],map07DI_698OAD[index].flag07.DI_1[0][1],
+						map07DI_698OAD[index].flag07.DI_1[0][2],map07DI_698OAD[index].flag07.DI_1[0][3]);
 				memcpy(&flag645->DI._07, &map07DI_698OAD[index].flag07, sizeof(C601F_07Flag));
 				if(sourceOAD.attrindex != 0x00)
 				{
@@ -5283,7 +5286,6 @@ INT8U initMap07DI_698OAD()
 }
 
 void read485_proccess() {
-
 	/*
 	 * 初始化698-07-97数据对应关系结构体map07DI_698OAD
 	 * */

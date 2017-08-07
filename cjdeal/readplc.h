@@ -32,6 +32,7 @@ extern INT16S getTaskIndex(INT8U port);
 #define BUFSIZE645 256
 #define TASK6012_MAX 256
 #define FANGAN_ITEM_MAX 64
+#define FANGAN6015_MAX 20
 #define DLT645_07  2
 #define DLT698  3
 #define CJT188  4
@@ -288,7 +289,7 @@ INT8U autoEventCounter;//96个事件中，发生的事件个数
 INT16U autoEventTimes;//事件发生的总次数
 
 
-CLASS_6015 fangAn6015[20];
+CLASS_6015 fangAn6015[FANGAN6015_MAX];
 TASK_INFO taskinfo;
 typedef struct
 {
