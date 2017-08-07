@@ -163,9 +163,9 @@ extern int g_curcldno;
 #define PTHREAD_RUN 	1
 #define PTHREAD_STOP 	2
 
-#define PORT_ZB  	0xF209
-#define PORT_485  	0xF201
-#define PORT_JC		0xF208
+//#define PORT_ZB  	0xF209
+//#define PORT_485  	0xF201
+//#define PORT_JC		0xF208
 
 #define PROTOCOL_97 1
 #define PROTOCOL_07 30

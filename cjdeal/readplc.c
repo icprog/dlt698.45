@@ -827,8 +827,8 @@ int doInit(RUNTIME_PLC *runtime_p)
 
 			if (runtime_p->comfd >0)
 				CloseCom( runtime_p->comfd );
-			//改为ttyS2测试载波模块互换性功能：注意注释read485_proccess();进程，防止抄表口占用
-			runtime_p->comfd = OpenCom(2, 9600,(unsigned char*)"even",1,8);// 5 载波路由串口 ttyS5     // 维护串口 2 ttyS2
+
+			runtime_p->comfd = OpenCom(SER_ZB, 9600,(unsigned char*)"even",1,8);// 5 载波路由串口 ttyS5
 			DbgPrintToFile1(31,"comfd=%d",runtime_p->comfd);
 			runtime_p->initflag = 0;
 			clearvar(runtime_p);//376.2上行内容容器清空，发送计时归零
@@ -2518,7 +2518,7 @@ void dealData(int state,RUNTIME_PLC *runtime_p)
 	{
 		tcflush(runtime_p->comfd,TCIOFLUSH);
 		analyzeProtocol3762(&runtime_p->format_Up,runtime_p->dealbuf,datalen);
-//		fprintf(stderr,"\nafn=%02x   fn=%d 返回",runtime_p->format_Up.afn ,runtime_p->format_Up.fn);
+		fprintf(stderr,"\nafn=%02x   fn=%d 返回",runtime_p->format_Up.afn ,runtime_p->format_Up.fn);
 	}
 	return;
 }
@@ -2870,6 +2870,7 @@ int doAutoReport(RUNTIME_PLC *runtime_p)
 	INT8U	transData[512];
 	int		transLen=0;
 
+	fprintf(stderr,"step_cj=%d,beginwork=%d\n",step_cj,beginwork);
 	switch( step_cj )
 	{
 		case 0://确认主动上报
@@ -2888,7 +2889,7 @@ int doAutoReport(RUNTIME_PLC *runtime_p)
 			sendlen = AFN00_F01( &runtime_p->format_Up,runtime_p->sendbuf );//确认
 			SendDataToCom(runtime_p->comfd, runtime_p->sendbuf,sendlen );
 			clearvar(runtime_p);
-			runtime_p->send_start_time = nowtime ;
+//			runtime_p->send_start_time = nowtime ;
 			beginwork = 0;
 			break;
 		case 1://抄读指定事件
@@ -3047,7 +3048,7 @@ void readplc_thread()
 		********************************/
 		TSGet(&runtimevar.nowts);
 		state = stateJuge(state, &my6000,&my6012,&runtimevar);
-
+		fprintf(stderr,"state=%d\n",state);
 		/********************************
 		 * 	   状态流程处理
 		********************************/

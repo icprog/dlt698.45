@@ -451,10 +451,10 @@ INT32S open_com_para_chg(INT8U port, INT32U baud, INT32S oldcomfd, unsigned char
 	//fprintf(stderr,"\n JProgramInfo->cfg_para.device = %d",JProgramInfo->cfg_para.device);
 	if(JProgramInfo->cfg_para.device == CCTT2)
 	{
-		if (port==1)
-			port = 2;
-		else if (port==2)
-			port = 1;
+		if (port==S4851)
+			port = S4852;
+		else if (port==S4852)
+			port = S4851;
 	}
 
 
@@ -5284,13 +5284,8 @@ INT8U initMap07DI_698OAD()
 
 void read485_proccess() {
 
-	/*
-	 * 初始化698-07-97数据对应关系结构体map07DI_698OAD
-	 * */
-	map07DI_698OAD_NUM = initMap07DI_698OAD();
-
-	i485port1 = 1;
-	i485port2 = 2;
+	i485port1 = S4851;
+	i485port2 = S4852;
 	//comfd-存放打开串口fd
 	comfd485[0] = -1;
 	comfd485[1] = -1;
