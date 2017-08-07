@@ -94,9 +94,8 @@ void * dbGet(char * name) {
 	if (strcmp("gprs.type", name) == 0) {
 		return DB.GprsType;
 	}
-
 	if (strcmp("mmq.retry_buf", name) == 0) {
-		return DB.retry_buf;
+		return &DB.retry_buf;
 	}
 	if (strcmp("mmq.retry_head", name) == 0) {
 		return &DB.retry_head;

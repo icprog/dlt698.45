@@ -144,6 +144,7 @@ INT8U Report_Event(CommBlock *com,INT8U *oiarr,INT8U report_type){
  */
 int callNotificationReport(CommBlock* com,INT8U *plcbuf,OAD portOAD,int datalen)
 {
+	fprintf(stderr, "callNotificationReport\n");
 	INT8U *sendbuf = com->SendBuf;
 	static INT8U  piid=0;
 	int 	index=0,hcsi=0,apduplace=0;
@@ -172,6 +173,7 @@ int callNotificationReport(CommBlock* com,INT8U *plcbuf,OAD portOAD,int datalen)
 	sendbuf[index++] = 0;
 	sendbuf[index++] = 0;
 	FrameTail(sendbuf,index,hcsi);
+	fprintf(stderr, "callNotificationReport before send %d\n", com->p_send);
 	if(com->p_send!=NULL)
 		com->p_send(com->phy_connect_fd,sendbuf,index+3);  //+3:crc1,crc2,0x16
 	return piid;

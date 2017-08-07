@@ -330,6 +330,9 @@ int AtPrepare(ATOBJ *ao) {
 		ao->state = 7;
 		return 10 * 1000;
 	case 7:
+		if(ao->fd > 0){
+			close(ao->fd);
+		}
 		ao->fd = OpenMuxCom(0, 115200, (unsigned char *) "none", 1, 8); // 0
 		if (ao->fd < 0) {
 			close(ao->fd);
@@ -351,7 +354,6 @@ int AtPrepare(ATOBJ *ao) {
 		if (RecieveFromComm(Mrecvbuf, 128, ao->fd) > 0) {
 			if (strstr(Mrecvbuf, "OK") != NULL) {
 				retry = 0;
-
 				ao->state = 10;
 				return 500;
 			}
