@@ -3078,6 +3078,8 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds,INT16U fr
 					}
 					else//有数据跳出
 					{
+						if(k==0)// 本条记录不为空, 且k==0, 不更改时标
+							break;
 						DEBUG_TIME_LINE("\n更改时标\n");
 						TSGet(&ts_curr);
 						TsToTimeBCD(ts_curr,&CHTimeBCD[0]);
