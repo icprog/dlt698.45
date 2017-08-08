@@ -266,6 +266,8 @@ def showDeviceId(config):
     lNet.write("cj id 00 00 00 00 00 01" + "\r\n")
     lNet.write("cj heart 60" + "\r\n")
     lNet.write("cj checkled &" + "\r\n")
+    lNet.write("cd /nor/ppp/ ;md5sum cdma2000-connect-chat" + "\r\n")
+    lNet.write("cd /nor/ppp/peers/ ;md5sum cdma2000" + "\r\n")
     lNet.write("exit" + "\r\n")
     msg = lNet.read_all()
 

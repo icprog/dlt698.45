@@ -245,7 +245,7 @@ def checkSoftVersion(config):
 
     for i in f:
         if msg.find(i[:24]) == -1:
-            print "版本\t错误\t".decode('utf-8') + i.split('  ')[1].decode('utf-8')
+            g_clr.print_red_text("版本\t错误\t" + i.split('  ')[1])
             ok = 0
     f.close()
 
@@ -298,7 +298,7 @@ if __name__ == '__main__':
             #os.system('arp -d')
             propertyCode = getInputGiveInfo()
             ok = 1
-            
+
             ok &= checkDevice(config)
             ok &= checkProgs(config)
             ok &= checkSoftVersion(config)
