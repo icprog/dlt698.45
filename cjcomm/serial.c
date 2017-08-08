@@ -17,7 +17,7 @@ int RegularSerial(struct aeEventLoop *ep, long long id, void *clientData) {
 	CommBlock *nst = (CommBlock *) clientData;
 
 	if (nst->phy_connect_fd <= 0) {
-		nst->phy_connect_fd = helperComOpen(4, com->baud, com->verify,
+		nst->phy_connect_fd = helperComOpen9600(4, com->baud, com->verify,
 				com->stopbits, com->databits);
 		if (nst->phy_connect_fd > 0) {
 			aeCreateFileEvent(ep, nst->phy_connect_fd, AE_READABLE, cRead,
