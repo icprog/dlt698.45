@@ -194,7 +194,6 @@ def checkProgs(config):
             print str(p + "\t错误\t").decode('utf-8')
             ok = 0
     if ok == 0:
-        #print "进程运行情况 <<<<<<<<错误>>>>>>>>\n".decode('utf-8')
         g_clr.print_red_text("进程运行情况 <<<<<<<<错误>>>>>>>>\n")
     else:
         print "进程运行情况-正确！\n".decode('utf-8')
@@ -218,7 +217,6 @@ def checkDateTime(config):
     devation = deviceDate - datetime.datetime.now()
     cas = (devation.days * 24 * 3600 + devation.seconds)
     if abs(cas) > 5:
-        #print "对时\t错误\t时间差距%d秒".decode('utf-8') % cas
         g_clr.print_red_text("对时\t错误\t时间差距%d秒"% cas)
         ok = 0
     else:
@@ -252,7 +250,6 @@ def checkSoftVersion(config):
     f.close()
 
     if ok == 0:
-        #print "程序版本检查 <<<<<<<<错误>>>>>>>>\n".decode('utf-8')
         g_clr.print_red_text("程序版本检查 <<<<<<<<错误>>>>>>>>\n")
     else:
         print "程序版本检查-正确！\n".decode('utf-8')
@@ -284,7 +281,7 @@ def checkClockNum(code,config):
         print "条码比对正确".decode("utf-8")
         return 1
     else:
-        print "条码比对错误！！".decode("utf-8")
+        g_clr.print_red_text("条码比对错误！！")
         return 0
 #设置字体颜色
 def set_cmd_text_color(color):
