@@ -17,7 +17,7 @@ static int RegularIfr(struct aeEventLoop *ep, long long id, void *clientData) {
 	CommBlock *nst = (CommBlock *) clientData;
 
 	if (nst->phy_connect_fd <= 0) {
-		nst->phy_connect_fd = helperComOpen(3, com->baud, com->verify,
+		nst->phy_connect_fd = helperComOpen1200(3, com->baud, com->verify,
 				com->stopbits, com->databits);
 	} else {
 		cReadWithoutCheck(ep, nst->phy_connect_fd, nst, 0);

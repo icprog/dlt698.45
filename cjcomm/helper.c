@@ -42,7 +42,6 @@ int helperCheckIp() {
 	return 0;
 }
 
-
 void helperPeerStat(int fd, char *info) {
 	int peerBuf[128];
 	int port = 0;
@@ -127,18 +126,41 @@ int helperCheckConnect(char *interface, int fd) {
 	return -1;
 }
 
-int helperComOpen(int port, int baud, unsigned char par, unsigned char stopb,
-		unsigned char bits) {
+int helperComOpen1200(int port, int baud, unsigned char par,
+		unsigned char stopb, unsigned char bits) {
 	static int GlobBand[] = { 300, 600, 1200, 2400, 4800, 7200, 9600, 19200,
 			38400, 57600, 115200 };
 	static char *GlobCrc[] = { "none", "odd", "even" };
 	static int GlobData[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8 };
 	static int GlobStop[] = { 0, 1, 2 };
+
+	if (baud == 0 && par == 0 && stopb == 0 && bits == 0) {
+		asyslog(LOG_INFO, "红外口使用默认参数1200");
+		return OpenCom(port, 1200, "none", 1, 8);
+	}
+
 	return OpenCom(port, GlobBand[baud], GlobCrc[par], GlobStop[stopb],
 			GlobData[bits]);
 }
 
-MASTER_STATION_INFO helperGetNextGPRSIp(){
+int helperComOpen9600(int port, int baud, unsigned char par,
+		unsigned char stopb, unsigned char bits) {
+	static int GlobBand[] = { 300, 600, 1200, 2400, 4800, 7200, 9600, 19200,
+			38400, 57600, 115200 };
+	static char *GlobCrc[] = { "none", "odd", "even" };
+	static int GlobData[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8 };
+	static int GlobStop[] = { 0, 1, 2 };
+
+	if (baud == 0 && par == 0 && stopb == 0 && bits == 0) {
+		asyslog(LOG_INFO, "维护口使用默认参数9600");
+		return OpenCom(port, 1200, "none", 1, 8);
+	}
+
+	return OpenCom(port, GlobBand[baud], GlobCrc[par], GlobStop[stopb],
+			GlobData[bits]);
+}
+
+MASTER_STATION_INFO helperGetNextGPRSIp() {
 	static int index = 0;
 
 	CLASS25 *c25 = dbGet("class25");
@@ -156,7 +178,7 @@ MASTER_STATION_INFO helperGetNextGPRSIp(){
 	return res;
 }
 
-MASTER_STATION_INFO helperGetNextNetIp(){
+MASTER_STATION_INFO helperGetNextNetIp() {
 	static int index = 0;
 
 	CLASS26 *c26 = dbGet("class26");
@@ -173,7 +195,6 @@ MASTER_STATION_INFO helperGetNextNetIp(){
 	asyslog(LOG_INFO, "客户端[NET]尝试链接的IP地址：%s:%d", res.ip, res.port);
 	return res;
 }
-
 
 int helperReadPositionGet(int length) {
 	int pos = 1;
