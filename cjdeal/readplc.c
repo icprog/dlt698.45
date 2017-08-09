@@ -2253,16 +2253,17 @@ INT8U Proxy_TransCommandRequest(RUNTIME_PLC *runtime_p,CJCOMM_PROXY *proxy,int* 
 	if (*beginwork==0 && cjcommProxy_plc.isInUse==1) {//发送点抄
 		*beginwork = 1;
 		clearvar(runtime_p);
-/*
-		getTransCmdAddrProto(cjcommProxy_plc.strProxyList.proxy_obj.transcmd.cmdbuf, addrtmp, &proto);
-		memcpy(runtime_p->format_Down.addr.SourceAddr, runtime_p->masteraddr, 6);
+		if(getZone("GW")==0) {
+			SendDataToCom(runtime_p->comfd, cjcommProxy_plc.strProxyList.proxy_obj.transcmd.cmdbuf, cjcommProxy_plc.strProxyList.proxy_obj.transcmd.cmdlen);
+		}else
+		{
+			getTransCmdAddrProto(cjcommProxy_plc.strProxyList.proxy_obj.transcmd.cmdbuf, addrtmp, &proto);
+			memcpy(runtime_p->format_Down.addr.SourceAddr, runtime_p->masteraddr, 6);
 
-		sendlen = AFN13_F1(&runtime_p->format_Down,runtime_p->sendbuf, addrtmp, 2, 0, \
-				cjcommProxy_plc.strProxyList.proxy_obj.transcmd.cmdbuf, cjcommProxy_plc.strProxyList.proxy_obj.transcmd.cmdlen);
-		SendDataToCom(runtime_p->comfd, runtime_p->sendbuf, sendlen );
-*/
-		SendDataToCom(runtime_p->comfd, cjcommProxy_plc.strProxyList.proxy_obj.transcmd.cmdbuf, cjcommProxy_plc.strProxyList.proxy_obj.transcmd.cmdlen);
-
+			sendlen = AFN13_F1(&runtime_p->format_Down,runtime_p->sendbuf, addrtmp, 2, 0, \
+					cjcommProxy_plc.strProxyList.proxy_obj.transcmd.cmdbuf, cjcommProxy_plc.strProxyList.proxy_obj.transcmd.cmdlen);
+			SendDataToCom(runtime_p->comfd, runtime_p->sendbuf, sendlen );
+		}
 		DbgPrintToFile1(31,"发送 plc 代理 command ");
 		runtime_p->send_start_time = nowtime;
 	} else if ((runtime_p->format_Up.afn == 0x13 && runtime_p->format_Up.fn == 1 ) && *beginwork==1) {
@@ -2285,14 +2286,17 @@ INT8U Proxy_TransCommandRequest(RUNTIME_PLC *runtime_p,CJCOMM_PROXY *proxy,int* 
 			cjcommProxy_plc.strProxyList.proxy_obj.transcmd.dar = success;
 			cjcommProxy_plc.strProxyList.data[0] = 1;
 
-//			datalen = runtime_p->format_Up.afn13_f1_up.MsgLength - starttIndex;
-//			cjcommProxy_plc.strProxyList.data[1] = datalen;
-//			memcpy(&cjcommProxy_plc.strProxyList.data[2],&runtime_p->format_Up.afn13_f1_up.MsgContent[starttIndex],datalen);
-//			DEBUG_BUFF(runtime_p->format_Up.afn13_f1_up.MsgContent, datalen);
-
-			datalen = runtime_p->format_Up.length;
-			cjcommProxy_plc.strProxyList.data[1] = datalen;
-			memcpy(&cjcommProxy_plc.strProxyList.data[2],&runtime_p->dealbuf,datalen);
+			if(getZone("GW")==0) {
+				datalen = runtime_p->format_Up.length;
+				cjcommProxy_plc.strProxyList.data[1] = datalen;
+				memcpy(&cjcommProxy_plc.strProxyList.data[2],&runtime_p->dealbuf,datalen);
+			}else
+			{
+				datalen = runtime_p->format_Up.afn13_f1_up.MsgLength - starttIndex;
+				cjcommProxy_plc.strProxyList.data[1] = datalen;
+				memcpy(&cjcommProxy_plc.strProxyList.data[2],&runtime_p->format_Up.afn13_f1_up.MsgContent[starttIndex],datalen);
+				DEBUG_BUFF(runtime_p->format_Up.afn13_f1_up.MsgContent, datalen);
+			}
 
 			cjcommProxy_plc.strProxyList.datalen = datalen + 2;
 
