@@ -117,7 +117,7 @@ void SendDataToCom(int fd, INT8U *sendbuf, INT16U sendlen)
 	int i=0;
 	ssize_t slen;
 	slen = write(fd, sendbuf, sendlen);
-	DbPrt1(32,"S:", (char *) sendbuf, slen, NULL);
+	DbPrt1(31,"S:", (char *) sendbuf, slen, NULL);
 	fprintf(stderr,"\nsend(%d)",slen);
 	for(i=0;i<slen;i++)
 		fprintf(stderr," %02x",sendbuf[i]);
@@ -197,7 +197,7 @@ int StateProcessZb(unsigned char *str,INT8U* Buf )
 					RecvTail = (RecvTail+1)%ZBBUFSIZE;
 				}
 				rec_step = 0;
-				DbPrt1(32,"R:", (char *) str, DataLen, NULL);
+				DbPrt1(31,"R:", (char *) str, DataLen, NULL);
 				if(getZone("GW")==0) {
 					PacketBufToFile("[ZB]R:",(char *) str, DataLen, NULL);
 				}
