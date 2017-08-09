@@ -87,7 +87,25 @@ int AFN11_F5(FORMAT3762 *down,INT8U *sendBuf,INT8U minute)
 
 	return sendLen ;
 }
+int AFN03_F9(FORMAT3762 *down,INT8U *sendBuf,INT8U protocol,INT8U msgLen,INT8U *msgContent)
+{
+	//查询通信延时相关广播通信时长
+	INT8U sendLen = 0;
+	memset(&sendBuf[0], 0, 256);
 
+	down->afn = 0x03;
+	down->fn = 9;
+	down->ctrl.PRM = 1;//启动站
+	down->info_down.ChannelFlag = 0;//信道标识
+	down->info_down.ModuleFlag = 0;//无地址域A
+	down->info_down.Seq = down->info_down.Seq++;//序列号
+	down->afn03_f9_down.Protocol = protocol;
+	down->afn03_f9_down.MsgLength = msgLen;
+	memcpy(down->afn03_f9_down.MsgContent, msgContent, msgLen);
+	sendLen = composeProtocol3762(down, sendBuf);
+
+	return sendLen;
+}
 int AFN12_F2(FORMAT3762 *down,INT8U *sendBuf)
 {
 	//暂停
@@ -342,7 +360,6 @@ INT8S analyzeProtocol3762(FORMAT3762* format3762, INT8U* recvBuf, const INT16U r
 	if (isValid3762(&recvBuf[0], recvLen) == 0)	//校验通过
 	{
 		format3762->length = (recvBuf[2]<<8) + recvBuf[1];
-
 		format3762->ctrl.ComType = recvBuf[3] & 0x3f;
 		format3762->ctrl.PRM = (recvBuf[3]>>6) & 0x01;
 		format3762->ctrl.DIR = (recvBuf[3]>>7) & 0x01;

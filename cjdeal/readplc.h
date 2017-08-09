@@ -26,6 +26,7 @@ extern INT16S getTaskIndex(INT8U port);
 #define SLAVE_COMP    		4
 #define INIT_MASTERADDR    	5
 #define AUTO_REPORT    		6
+#define BROADCAST			7
 
 #define ALLOK 2
 #define ZBBUFSIZE 512
@@ -312,6 +313,7 @@ typedef struct
 	INT8U dealbuf[ZBBUFSIZE];		//待处理数据缓存
 	FORMAT3762 format_Down;
 	FORMAT3762 format_Up;
+	INT8U deallen;
 }RUNTIME_PLC;
 AFN03_F10_UP module_info;
 struct Tsa_Node

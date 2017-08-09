@@ -185,17 +185,11 @@
 #define PORT_485  	0xF201
 #define PORT_JC		0xF208
 
+#define S4851   		1
+#define S4852   		2
+#define S4853   		3
+#define SER_ZB		5
 
-//#define S4851   		1
-//#define S4852   		2
-//#define S4853   		3
-//#define SER_ZB		5
-
-//国网送检：测试载波模块互换性，将载波口换做4851,来测试载波模块互换性功能
-#define S4851   	1
-#define S4852   	5
-#define S4853   	3
-#define SER_ZB		2//5
 
 //  I型集中器串口定义
 //　　　GPRS  [ /dev/ttyS0 ]

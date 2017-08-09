@@ -827,7 +827,7 @@ int doInit(RUNTIME_PLC *runtime_p)
 
 			if (runtime_p->comfd >0)
 				CloseCom( runtime_p->comfd );
-			runtime_p->comfd = OpenCom(SER_ZB, 9600,(unsigned char*)"even",1,8);// 5 载波路由串口 ttyS5   SER_ZB
+			runtime_p->comfd = OpenCom(5, 9600,(unsigned char*)"even",1,8);// 5 载波路由串口 ttyS5   SER_ZB
 			DbgPrintToFile1(31,"comfd=%d",runtime_p->comfd);
 			runtime_p->initflag = 0;
 			clearvar(runtime_p);//376.2上行内容容器清空，发送计时归零
@@ -846,13 +846,10 @@ int doInit(RUNTIME_PLC *runtime_p)
 			break;
 
 		case 1://读取载波信息
-			fprintf(stderr,"\n读取信息状态 nowtime = %ld  runtime_p->send_start_time =%ld",nowtime,runtime_p->send_start_time );
-			fprintf(stderr,"\nruntime_p->format_Up.afn= %02x  runtime_p->format_Up.fn=%d",runtime_p->format_Up.afn,runtime_p->format_Up.fn);
-			DbgPrintToFile1(31,"读取载波信息");
 			if ((nowtime  - runtime_p->send_start_time > 60) &&
 				runtime_p->format_Up.afn != 0x03 && runtime_p->format_Up.fn!= 10)
 			{
-				fprintf(stderr,"\n读取载波信息");
+				DbgPrintToFile1(31,"读取载波信息");
 				clearvar(runtime_p);//376.2上行内容容器清空，发送计时归零
 				runtime_p->send_start_time = nowtime ;
 				sendlen = AFN03_F10(&runtime_p->format_Down,runtime_p->sendbuf);//查询载波模块信息
@@ -957,7 +954,7 @@ int doSetMasterAddr(RUNTIME_PLC *runtime_p)
 }
 int doCompSlaveMeter(RUNTIME_PLC *runtime_p)
 {
-	static int step_cmpslave = 0;
+	static int step_cmpslave = 0, workflg=0;
 	static unsigned int slavenum = 0;
 	static int index=0;
 	static struct Tsa_Node *currtsa;//=tsa_zb_head;
@@ -968,27 +965,36 @@ int doCompSlaveMeter(RUNTIME_PLC *runtime_p)
 	switch(step_cmpslave)
 	{
 		case 0://读取载波从节点数量
-			if ((nowtime  - runtime_p->send_start_time > 20) &&
-				runtime_p->format_Up.afn != 0x10 && runtime_p->format_Up.fn!= 1)
+			if (nowtime  - runtime_p->send_start_time > 20 && workflg==0)
 			{
+				DbgPrintToFile1(31,"暂停抄表");
+				workflg = 1;
 				sendlen = AFN12_F2(&runtime_p->format_Down,runtime_p->sendbuf);
 				SendDataToCom(runtime_p->comfd, runtime_p->sendbuf,sendlen );
-				sleep(2);
-				DbgPrintToFile1(31,"读从节点数量");
 				clearvar(runtime_p);//376.2上行内容容器清空，发送计时归零
 				runtime_p->send_start_time = nowtime ;
+			}else if(runtime_p->format_Up.afn == 0x00 && runtime_p->format_Up.fn == 1 && workflg==1)
+			{//确认
+				DbgPrintToFile1(31,"收到确认");
 				sendlen = AFN10_F1(&runtime_p->format_Down,runtime_p->sendbuf);
 				SendDataToCom(runtime_p->comfd, runtime_p->sendbuf,sendlen );
-			}else if(runtime_p->format_Up.afn == 0x10 && runtime_p->format_Up.fn == 1)
-			{//返回从节点数量
+				DbgPrintToFile1(31,"读取节点数量");
+				clearvar(runtime_p);
+				runtime_p->send_start_time = nowtime ;
+			}else if(runtime_p->format_Up.afn == 0x10 && runtime_p->format_Up.fn == 1 && workflg==1)
+			{
 				slavenum = runtime_p->format_Up.afn10_f1_up.Num ;
 				DbgPrintToFile1(31,"载波模块中从节点 %d 个",slavenum);
 				clearvar(runtime_p);//376.2上行内容容器清空，发送计时归零
 				step_cmpslave = 1;
 				index = 1;
+				workflg = 0;
+			}else if(nowtime  - runtime_p->send_start_time > 100 && workflg==1)
+			{
+				DbgPrintToFile1(31,"读取载波从节点超时");
+				workflg = 0;
 			}
 			break;
-
 		case 1://读取全部载波从节点
 			if ((nowtime  - runtime_p->send_start_time > 20) &&
 				runtime_p->format_Up.afn != 0x10 && runtime_p->format_Up.fn!= 2)
@@ -1008,7 +1014,6 @@ int doCompSlaveMeter(RUNTIME_PLC *runtime_p)
 					currtsa = tsa_head;	//删除完成 ,开始第 3 步
 					break;
 				}
-
 				SendDataToCom(runtime_p->comfd, runtime_p->sendbuf,sendlen );
 				clearvar(runtime_p);
 				runtime_p->send_start_time = nowtime;
@@ -1032,7 +1037,6 @@ int doCompSlaveMeter(RUNTIME_PLC *runtime_p)
 				}
 			}
 			break;
-
 		case 2://删除多余节点
 			if (nowtime  - runtime_p->send_start_time > 10)
 			{
@@ -2249,13 +2253,16 @@ INT8U Proxy_TransCommandRequest(RUNTIME_PLC *runtime_p,CJCOMM_PROXY *proxy,int* 
 	if (*beginwork==0 && cjcommProxy_plc.isInUse==1) {//发送点抄
 		*beginwork = 1;
 		clearvar(runtime_p);
-
+/*
 		getTransCmdAddrProto(cjcommProxy_plc.strProxyList.proxy_obj.transcmd.cmdbuf, addrtmp, &proto);
 		memcpy(runtime_p->format_Down.addr.SourceAddr, runtime_p->masteraddr, 6);
 
 		sendlen = AFN13_F1(&runtime_p->format_Down,runtime_p->sendbuf, addrtmp, 2, 0, \
 				cjcommProxy_plc.strProxyList.proxy_obj.transcmd.cmdbuf, cjcommProxy_plc.strProxyList.proxy_obj.transcmd.cmdlen);
 		SendDataToCom(runtime_p->comfd, runtime_p->sendbuf, sendlen );
+*/
+		SendDataToCom(runtime_p->comfd, cjcommProxy_plc.strProxyList.proxy_obj.transcmd.cmdbuf, cjcommProxy_plc.strProxyList.proxy_obj.transcmd.cmdlen);
+
 		DbgPrintToFile1(31,"发送 plc 代理 command ");
 		runtime_p->send_start_time = nowtime;
 	} else if ((runtime_p->format_Up.afn == 0x13 && runtime_p->format_Up.fn == 1 ) && *beginwork==1) {
@@ -2273,13 +2280,22 @@ INT8U Proxy_TransCommandRequest(RUNTIME_PLC *runtime_p,CJCOMM_PROXY *proxy,int* 
 					break;
 				}
 			}
-			INT8U datalen = runtime_p->format_Up.afn13_f1_up.MsgLength - starttIndex;
+			INT8U datalen =0;
+
 			cjcommProxy_plc.strProxyList.proxy_obj.transcmd.dar = success;
 			cjcommProxy_plc.strProxyList.data[0] = 1;
+
+//			datalen = runtime_p->format_Up.afn13_f1_up.MsgLength - starttIndex;
+//			cjcommProxy_plc.strProxyList.data[1] = datalen;
+//			memcpy(&cjcommProxy_plc.strProxyList.data[2],&runtime_p->format_Up.afn13_f1_up.MsgContent[starttIndex],datalen);
+//			DEBUG_BUFF(runtime_p->format_Up.afn13_f1_up.MsgContent, datalen);
+
+			datalen = runtime_p->format_Up.length;
 			cjcommProxy_plc.strProxyList.data[1] = datalen;
-			memcpy(&cjcommProxy_plc.strProxyList.data[2],&runtime_p->format_Up.afn13_f1_up.MsgContent[starttIndex],datalen);
-			DEBUG_BUFF(runtime_p->format_Up.afn13_f1_up.MsgContent, datalen);
+			memcpy(&cjcommProxy_plc.strProxyList.data[2],&runtime_p->dealbuf,datalen);
+
 			cjcommProxy_plc.strProxyList.datalen = datalen + 2;
+
 
 		} else {
 			cjcommProxy_plc.strProxyList.proxy_obj.transcmd.dar = request_overtime;
@@ -2405,7 +2421,7 @@ int doProxy(RUNTIME_PLC *runtime_p)
 			step_cj = Proxy_Gui(runtime_p, &cjGuiProxy_plc, &beginwork, nowtime);
 			break;
 		case 2://处理主站代理
-			DbgPrintToFile1(31,"处理主站代理");
+			DbgPrintToFile1(31,"处理主站代理 类型=%d",cjcommProxy_plc.strProxyList.proxytype);
 			switch(cjcommProxy_plc.strProxyList.proxytype) {
 				case ProxyGetRequestList:
 					step_cj = Proxy_GetRequestList(runtime_p, &cjcommProxy_plc, &beginwork, nowtime);
@@ -2597,6 +2613,7 @@ void dealData(int state,RUNTIME_PLC *runtime_p)
 	if (datalen>0)
 	{
 		tcflush(runtime_p->comfd,TCIOFLUSH);
+		runtime_p->deallen = datalen;
 		analyzeProtocol3762(&runtime_p->format_Up,runtime_p->dealbuf,datalen);
 		fprintf(stderr,"\nafn=%02x   fn=%d 返回",runtime_p->format_Up.afn ,runtime_p->format_Up.fn);
 	}
@@ -2969,7 +2986,6 @@ int doAutoReport(RUNTIME_PLC *runtime_p)
 			sendlen = AFN00_F01( &runtime_p->format_Up,runtime_p->sendbuf );//确认
 			SendDataToCom(runtime_p->comfd, runtime_p->sendbuf,sendlen );
 			clearvar(runtime_p);
-//			runtime_p->send_start_time = nowtime ;
 			beginwork = 0;
 			break;
 		case 1://抄读指定事件
@@ -3098,6 +3114,99 @@ int doAutoReport(RUNTIME_PLC *runtime_p)
 	}
 	return AUTO_REPORT;
 }
+int doBroadCast(RUNTIME_PLC *runtime_p)
+{
+//	static int step_cj = 0, beginwork=0;
+//	int sendlen=0;
+//	time_t nowtime = time(NULL);
+//
+//	switch( step_cj )
+//	{
+//		case 0://暂停抄表
+//			if ( nowtime - runtime_p->send_start_time > 20)
+//			{
+//				DbgPrintToFile1(31,"暂停抄表");
+//				clearvar(runtime_p);
+//				runtime_p->send_start_time = nowtime ;
+//				sendlen = AFN12_F2(&runtime_p->format_Down,runtime_p->sendbuf);
+//				SendDataToCom(runtime_p->comfd, runtime_p->sendbuf,sendlen );
+//			}else if(runtime_p->format_Up.afn == 0x00 && runtime_p->format_Up.fn == 1)
+//			{//确认
+//				clearvar(runtime_p);
+//				step_cj = 1;
+//			}
+//			break;
+//		case 1://查询通信延时相关广播通信时长
+//			if ( nowtime - runtime_p->send_start_time > 20)
+//			{
+//				DbgPrintToFile1(31,"查询通信延时相关广播通信时长");
+//				sendlen = AFN03_F9(&runtime_p->format_Down,runtime_p->sendbuf,0,20,buf645);
+//				SendDataToCom(runtime_p->comfd, runtime_p->sendbuf,sendlen );
+//				clearvar(runtime_p);
+//				runtime_p->send_start_time = nowtime ;
+//			}else if (runtime_p->format_Up.afn == 0x03 && runtime_p->format_Up.fn == 9)
+//			{
+//				FORMAT07 frame07;
+//				analyzeProtocol07(&frame07, runtime_p->format_Up, Trans_deal->len, &nextFlag);
+//
+//			}
+//
+//			break;
+//		case 2://处理主站代理
+//			DbgPrintToFile1(31,"处理主站代理");
+//			switch(cjcommProxy_plc.strProxyList.proxytype) {
+//				case ProxyGetRequestList:
+//					step_cj = Proxy_GetRequestList(runtime_p, &cjcommProxy_plc, &beginwork, nowtime);
+//					break;
+//				case ProxyGetRequestRecord:
+//					break;
+//				case ProxySetRequestList:
+//					break;
+//				case ProxySetThenGetRequestList:
+//					break;
+//				case ProxyActionRequestList:
+//					break;
+//				case ProxyActionThenGetRequestList:
+//					break;
+//				case ProxyTransCommandRequest:
+//					step_cj = Proxy_TransCommandRequest(runtime_p, &cjcommProxy_plc, &beginwork, nowtime);
+//					break;
+//				default:
+//					step_cj = 3;
+//			}
+//			break;
+//		case 3://恢复抄表
+//			if (runtime_p->state_bak == TASK_PROCESS )
+//			{
+//				if ( nowtime - runtime_p->send_start_time > 20)
+//				{
+//					DbgPrintToFile1(31,"恢复抄表");
+//					clearvar(runtime_p);
+//					runtime_p->send_start_time = nowtime ;
+//					sendlen = AFN12_F3(&runtime_p->format_Down,runtime_p->sendbuf);
+//					SendDataToCom(runtime_p->comfd, runtime_p->sendbuf,sendlen );
+//					memset(&runtime_p->format_Up,0,sizeof(runtime_p->format_Up));
+//				}else if(runtime_p->format_Up.afn == 0x00 && runtime_p->format_Up.fn == 1)
+//				{
+//					clearvar(runtime_p);
+//					step_cj = 0;
+//					beginwork = 0;
+//					DbgPrintToFile1(31,"返回到状态%d",runtime_p->state_bak);
+//					return(runtime_p->state_bak);
+//				}
+//			}else
+//			{
+//				clearvar(runtime_p);
+//				step_cj = 0;
+//				beginwork = 0;
+//				DbgPrintToFile1(31,"返回到状态%d",runtime_p->state_bak);
+//				return(runtime_p->state_bak);
+//			}
+//			break;
+//	}
+
+	return BROADCAST;
+}
 void readplc_thread()
 {
 	INT8U my6000=0 ,my6012=0;
@@ -3160,6 +3269,9 @@ void readplc_thread()
 				break;
 			case AUTO_REPORT:
 				state = doAutoReport(&runtimevar);
+				break;
+			case BROADCAST:
+				state = doBroadCast(&runtimevar);
 				break;
 			default :
 				runtimevar.state = NONE_PROCE;
