@@ -15,7 +15,9 @@ int helperKill(char *name, int timeout);
 int helperGetInterFaceIp(char *interface, char *ips);
 int helperConnect(char *interface, MASTER_STATION_INFO *info);
 int helperCheckConnect(char *interface, int fd);
-int helperComOpen(int port, int baud, unsigned char par, unsigned char stopb,
+int helperComOpen1200(int port, int baud, unsigned char par, unsigned char stopb,
+		unsigned char bits);
+int helperComOpen9600(int port, int baud, unsigned char par, unsigned char stopb,
 		unsigned char bits);
 
 int helperReadPositionGet(int length);
