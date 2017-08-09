@@ -29,6 +29,8 @@ void dbInit(int index) {
 	readCoverClass(0xf201, 0, &DB.cf201, sizeof(DB.cf201), para_vari_save);
 	readCoverClass(0xf202, 0, &DB.cf202, sizeof(DB.cf202), para_vari_save);
 
+	DB.JProgramInfo = OpenShMem("ProgramInfo", sizeof(ProgramInfo), NULL);
+
 	initComPara(&DB.ifr, cWrite);
 	initComPara(&DB.serial, cWrite);
 	initComPara(&DB.net, cWrite);
@@ -36,7 +38,6 @@ void dbInit(int index) {
 
 	DB.gprs.Heartbeat = DB.c25.commconfig.heartBeat;
 	DB.net.Heartbeat = DB.c26.commconfig.heartBeat;
-	DB.JProgramInfo = OpenShMem("ProgramInfo", sizeof(ProgramInfo), NULL);
 	memcpy(DB.JProgramInfo->Projects[index].ProjectName, "cjcomm",
 			sizeof("cjcomm"));
 

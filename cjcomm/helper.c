@@ -136,7 +136,7 @@ int helperComOpen1200(int port, int baud, unsigned char par,
 
 	if (baud == 0 && par == 0 && stopb == 0 && bits == 0) {
 		asyslog(LOG_INFO, "红外口使用默认参数1200");
-		return OpenCom(port, 1200, "none", 1, 8);
+		return OpenCom(port, 1200, "even", 1, 8);
 	}
 
 	return OpenCom(port, GlobBand[baud], GlobCrc[par], GlobStop[stopb],
@@ -153,7 +153,7 @@ int helperComOpen9600(int port, int baud, unsigned char par,
 
 	if (baud == 0 && par == 0 && stopb == 0 && bits == 0) {
 		asyslog(LOG_INFO, "维护口使用默认参数9600");
-		return OpenCom(port, 9600, "none", 1, 8);
+		return OpenCom(port, 9600, "even", 1, 8);
 	}
 
 	return OpenCom(port, GlobBand[baud], GlobCrc[par], GlobStop[stopb],
