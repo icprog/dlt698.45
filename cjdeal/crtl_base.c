@@ -92,7 +92,7 @@ int CheckModelState() {
 
 /*打开控制模块串口*/
 int OpenSerialPort() {
-    int serial_fd = OpenCom(5, 19200, "even", 1, 8);
+    int serial_fd = OpenCom(5, 19200, (unsigned char*)"even", 1, 8);
     if (serial_fd <= 0) {
         fprintf(stderr, "Open Serial Port Failed-%d!\r\n", serial_fd);
     }

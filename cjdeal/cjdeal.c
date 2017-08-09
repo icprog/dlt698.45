@@ -26,9 +26,7 @@
 #include "basedef.h"
 #include "ctrl.h"
 
-#define PORT_ZB  	0xF209
-#define PORT_485  	0xF201
-#define PORT_JC		0xF208
+
 
 static OAD	OAD_PORT_485_1={0xF201,0x02,0x01};
 static OAD	OAD_PORT_485_2={0xF201,0x02,0x02};
@@ -95,6 +93,11 @@ int InitPro(ProgramInfo** prginfo, int argc, char *argv[])
 int InitPara()
 {
 	InitACSPara();
+	/*
+	 * 初始化698-07-97数据对应关系结构体map07DI_698OAD
+	 * */
+	map07DI_698OAD_NUM = initMap07DI_698OAD();
+
 	return 0;
 }
 
@@ -1714,7 +1717,7 @@ int main(int argc, char *argv[])
 	//任务调度进程
 	dispatchTask_proccess();
 	//485、四表合一
-	read485_proccess();
+	read485_proccess();			//注意里面串口
 	//统计计算 电压合格率 停电事件等
 	calc_proccess();
 	if(JProgramInfo->cfg_para.device == CCTT1)
