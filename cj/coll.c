@@ -344,6 +344,65 @@ void Collect6000(int argc, char *argv[])
 	}
 }
 
+void print6002(CLASS_6002 class6002)
+{
+	int	i=0,j=0;
+	fprintf(stderr,"属性10:(空闲(0),搜表中(1))  %d\n",class6002.searchSta);
+	fprintf(stderr,"属性6:(所有搜表结果记录数)  %d\n",class6002.searchNum);
+	fprintf(stderr,"属性7:(跨台区搜表结果记录数)  %d\n",class6002.crosszoneNum);
+	fprintf(stderr,"属性8:\n");
+	fprintf(stderr,"	是否启用每天周期搜表: %d\n",class6002.attr8.enablePeriodFlg);
+	fprintf(stderr,"	自动更新采集档案: %d\n",class6002.attr8.autoUpdateFlg);
+	fprintf(stderr,"	是否产生搜表相关事件: %d\n",class6002.attr8.eventFlg);
+	fprintf(stderr,"	清空搜表结果选项[不清空(0)，每天周期搜表前清空(1),每次搜表前清空(2)]: %d\n",class6002.attr8.clearChoice);
+	fprintf(stderr,"属性9(每天周期搜表参数配置): 个数  %d\n",class6002.attr9_num);
+	for(i=0;i<class6002.attr9_num;i++) {
+		fprintf(stderr,"	开始时间  %d:%d:%d\n",class6002.attr9[i].startTime[0],class6002.attr9[i].startTime[1],class6002.attr9[i].startTime[2]);
+		fprintf(stderr,"	搜表时长（min）  %d\n",class6002.attr9[i].searchLen);
+	}
+	fprintf(stderr,"属性2(所有搜表结果)\n");
+	for(i=0;i<class6002.searchNum;i++) {
+		fprintf(stderr,"	通信地址");
+		printTSA(class6002.searchResult[i].CommAddr);
+		fprintf(stderr,"	所属采集器地址");
+		printTSA(class6002.searchResult[i].CJQAddr);
+		fprintf(stderr,"	规约类型 %d\n",class6002.searchResult[i].protocol);
+		fprintf(stderr,"	相位 %d\n",class6002.searchResult[i].phase);
+		fprintf(stderr,"	信号品质 %d\n",class6002.searchResult[i].signal);
+		printDataTimeS("	搜到时间",class6002.searchResult[i].searchTime);
+		fprintf(stderr,"	搜到附加信息 %d\n",class6002.searchResult[i].annexNum);
+		for(j=0;j<class6002.searchResult[i].annexNum;j++) {
+			fprintf(stderr,"	对象描述 %04x-%02x%02x\n",class6002.searchResult[i].annexInfo[j].oad.OI,
+					class6002.searchResult[i].annexInfo[j].oad.attflg,class6002.searchResult[i].annexInfo[j].oad.attrindex);
+			fprintf(stderr,"	属性值 类型[%d]\n",class6002.searchResult[i].annexInfo[j].data.type);
+		}
+	}
+	fprintf(stderr,"属性5(跨台区搜表结果)\n");
+	for(i=0;i<class6002.crosszoneNum;i++) {
+		fprintf(stderr,"	通信地址");
+		printTSA(class6002.crosszoneResult[i].CommAddr);
+		fprintf(stderr,"	所属采集器地址");
+		printTSA(class6002.crosszoneResult[i].mainPointAddr);
+		printDataTimeS("	变更时间",class6002.crosszoneResult[i].changeTime);
+	}
+}
+
+//搜表方案
+void Search6002(int argc, char *argv[])
+{
+	CLASS_6002	class6002={};
+
+	if(strcmp("pro",argv[2])==0) {
+		if(argc<5) {
+			if(readCoverClass(0x6002,0,&class6002,sizeof(CLASS_6002),para_vari_save)==1) {
+				print6002(class6002);
+			}else {
+				fprintf(stderr,"搜表参数文件不存在\n");
+			}
+		}
+	}
+}
+
 void print6013(CLASS_6013 class6013)
 {
 	INT8U	i=0;
@@ -888,6 +947,9 @@ void coll_process(int argc, char *argv[])
 			switch(oi) {
 			case 0x6000:
 				Collect6000(argc,argv);
+				break;
+			case 0x6002:
+				Search6002(argc,argv);
 				break;
 			case 0x6013:
 				Task6013(argc,argv);

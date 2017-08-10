@@ -691,7 +691,7 @@ INT8U file_write(char *FileName, void *source, int size, int offset)
 INT8U block_file_sync(char *fname,void *blockdata,int size,int headsize,int index)
 {
 	INT8U	ret1=0,ret2=0;
-	INT16U  sizenew=0;
+	int		sizenew=0;
 	long	offset=0;
 	void 	*blockdata1=NULL;
 	void  	*blockdata2=NULL;

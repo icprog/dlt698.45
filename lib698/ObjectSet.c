@@ -824,6 +824,7 @@ INT16U set6002(OAD oad,INT8U *data,INT8U *DAR)
 	readCoverClass(0x6002,0,&class6002,sizeof(CLASS_6002),para_vari_save);
 	switch(oad.attflg) {
 	case 2:	//搜表结果
+
 		break;
 	case 5://跨台区结果
 		break;
@@ -840,19 +841,25 @@ INT16U set6002(OAD oad,INT8U *data,INT8U *DAR)
 		*DAR = saveCoverClass(0x6002,0,&class6002,sizeof(CLASS_6002),para_vari_save);
 		break;
 	case 9:	//每天周期搜表参数配置
-		index += getStructure(&data[index],NULL,DAR);
 		index += getArray(&data[index],(INT8U *)&class6002.attr9_num,DAR);
+		if(*DAR == type_mismatch) {
+			fprintf(stderr,"无Array类型\n");
+			class6002.attr9_num = 1;
+		}
 		if(class6002.attr9_num>SERACH_PARA_NUM) {
 			class6002.attr9_num = SERACH_PARA_NUM;
 			syslog(LOG_ERR,"搜表配置数量%d大于限值%d\n",class6002.attr9_num,SERACH_PARA_NUM);
 		}
 		for(i=0;i<class6002.attr9_num;i++) {
+			index += getStructure(&data[index],NULL,DAR);
 			index += getTime(1,&data[index],(INT8U *)&class6002.attr9[i].startTime,DAR);
+			fprintf(stderr,"	开始时间  %d:%d:%d\n",class6002.attr9[i].startTime[0],class6002.attr9[i].startTime[1],class6002.attr9[i].startTime[2]);
 			index += getLongUnsigned(&data[index],(INT8U *)&class6002.attr9[i].searchLen);
 		}
 		*DAR = saveCoverClass(0x6002,0,&class6002,sizeof(CLASS_6002),para_vari_save);
 		break;
 	case 10://搜表状态
+
 		break;
 	}
 	return index;

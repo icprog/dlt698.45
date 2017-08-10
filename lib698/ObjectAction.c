@@ -931,15 +931,17 @@ void ReportInfo(INT16U attr_act, INT8U *data, Action_result *act_ret) {
 void SearchMeterInfo(INT16U attr_act, INT8U *data, Action_result *act_ret)
 {
 	CLASS_6002	class6002={};
+	int index=0;
 
 	memset(&class6002,0,sizeof(CLASS_6002));
 	readCoverClass(0x6002,0,&class6002,sizeof(CLASS_6002),para_vari_save);
 	fprintf(stderr,"搜表方法:[%d]",attr_act);
 	switch(attr_act) {
 	case 127://实时启动搜表
-		class6002.startSearchLen = (data[0]<<8) | data[1];
+		index += getLongUnsigned(&data[index],(INT8U *)&class6002.startSearchLen);
 		fprintf(stderr,"搜表时长:[%d]",class6002.startSearchLen);
         act_ret->DAR = saveCoverClass(0x6002,0,&class6002,sizeof(CLASS_6002),para_vari_save);
+        fprintf(stderr,"act_ret->DAR = %d\n",act_ret->DAR);
 		break;
 	case 128://清空搜表结果
 		memset(&class6002.searchResult,0,sizeof(SearchResult)*SERACH_NUM);
@@ -952,6 +954,7 @@ void SearchMeterInfo(INT16U attr_act, INT8U *data, Action_result *act_ret)
 		act_ret->DAR = saveCoverClass(0x6002,0,&class6002,sizeof(CLASS_6002),para_vari_save);
 		break;
 	}
+	act_ret->datalen = index;
 }
 
 void TaskInfo(INT16U attr_act, INT8U *data, Action_result *act_ret)
