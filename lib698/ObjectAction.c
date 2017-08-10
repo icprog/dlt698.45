@@ -925,8 +925,40 @@ void ReportInfo(INT16U attr_act, INT8U *data, Action_result *act_ret) {
     }
 }
 
-void TaskInfo(INT16U attr_act, INT8U *data, Action_result *act_ret) {
+/*
+ * 6002 搜表
+ * */
+void SearchMeterInfo(INT16U attr_act, INT8U *data, Action_result *act_ret)
+{
+	CLASS_6002	class6002={};
+	int index=0;
 
+	memset(&class6002,0,sizeof(CLASS_6002));
+	readCoverClass(0x6002,0,&class6002,sizeof(CLASS_6002),para_vari_save);
+	fprintf(stderr,"搜表方法:[%d]",attr_act);
+	switch(attr_act) {
+	case 127://实时启动搜表
+		index += getLongUnsigned(&data[index],(INT8U *)&class6002.startSearchLen);
+		fprintf(stderr,"搜表时长:[%d]",class6002.startSearchLen);
+        act_ret->DAR = saveCoverClass(0x6002,0,&class6002,sizeof(CLASS_6002),para_vari_save);
+        fprintf(stderr,"act_ret->DAR = %d\n",act_ret->DAR);
+		break;
+	case 128://清空搜表结果
+		memset(&class6002.searchResult,0,sizeof(SearchResult)*SERACH_NUM);
+		class6002.searchNum = 0;
+		act_ret->DAR = saveCoverClass(0x6002,0,&class6002,sizeof(CLASS_6002),para_vari_save);
+		break;
+	case 129://清空跨台区搜表结果
+		memset(&class6002.crosszoneResult,0,sizeof(CrossZoneResult)*SERACH_NUM);
+		class6002.crosszoneNum = 0;
+		act_ret->DAR = saveCoverClass(0x6002,0,&class6002,sizeof(CLASS_6002),para_vari_save);
+		break;
+	}
+	act_ret->datalen = index;
+}
+
+void TaskInfo(INT16U attr_act, INT8U *data, Action_result *act_ret)
+{
     switch (attr_act) {
         case 127://方法 127:Add (任务配置单元)
             AddTaskInfo(data, act_ret);
@@ -944,7 +976,8 @@ void TaskInfo(INT16U attr_act, INT8U *data, Action_result *act_ret) {
     }
 }
 
-void TerminalInfo(INT16U attr_act, INT8U *data, Action_result *act_ret) {
+void TerminalInfo(INT16U attr_act, INT8U *data, Action_result *act_ret)
+{
 	int   index = 0;
 	int	  oadnum = 0,i=0;
 	OAD	  oad[10]={};
@@ -967,6 +1000,8 @@ void TerminalInfo(INT16U attr_act, INT8U *data, Action_result *act_ret) {
         		}
         	}
         	paraInit(oadnum,oad);
+        	//清除总表计量电量
+        	clearEnergy();
         	//参数初始化将相应的变位标志置位
         	memp->oi_changed.oi4016++;
         	memp->oi_changed.oiF203++;
@@ -1388,6 +1423,7 @@ int doObjectAction(OAD oad, INT8U *data, Action_result *act_ret) {
             MeterInfo(attr_act, data, act_ret);
             break;
         case 0x6002:    //搜表
+        	SearchMeterInfo(attr_act, data, act_ret);
             break;
         case 0x6012:    //任务配置表
             TaskInfo(attr_act, data, act_ret);

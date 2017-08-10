@@ -165,6 +165,17 @@ typedef enum {
 }OI4000_TYPE;//校时模式
 
 typedef enum {
+	NO_CLEAR=0,		/*不清空*/
+	PERIOD_CLEAR=1, /*每天周期搜表前清空*/
+	SEARCH_CLEAN=2  /*每次搜表前清空*/
+}SearchMeterResult;
+
+typedef enum {
+	IDLE=0,			/*空闲*/
+	SERCHRUN=1		/*搜表中*/
+}SearchStatus;
+
+typedef enum {
 	TYPE_NULL=0/*采集当前数据*/,
 	TYPE_LAST=1/*采集上N次*/,
 	TYPE_FREEZE=2/*按冻结时标*/,

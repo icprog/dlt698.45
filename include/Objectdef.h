@@ -341,8 +341,55 @@ typedef struct {
     INT16U sernum;                //配置序号
     BASIC_OBJECT basicinfo;       //基本信息
     EXTEND_OBJECT extinfo;        //扩展信息
-    ANNEX_OBJECT aninfo;          //附属信息
+    ANNEX_OBJECT aninfo;         //附属信息
 } CLASS_6001;                     //采集档案配置表对象
+
+	typedef	struct {
+		OAD			oad;
+		DATA_TYPE	data;
+	}AnnexInfo;
+
+	typedef struct {
+		TSA		CommAddr;		//通信地址
+		TSA		CJQAddr;		//采集器地址
+		INT8U	protocol;		//规约类型
+		INT8U	phase;			//相位
+		INT8U	signal;			//信号品质
+		DateTimeBCD		searchTime;	//搜到的时间
+		INT8U	annexNum;			//搜到的附加信息个数
+		AnnexInfo		annexInfo[SERACH_PARA_NUM];	//搜到的附件信息
+	}SearchResult;
+
+	typedef struct{
+		TSA		CommAddr;			//通信地址
+		TSA		mainPointAddr;		//主节点地址
+		DateTimeBCD		changeTime;	//变更时间
+	}CrossZoneResult;
+
+	typedef struct{
+		INT8U	enablePeriodFlg;		//是否启用每天周期搜表
+		INT8U	autoUpdateFlg;			//自动更新采集档案
+		INT8U	eventFlg;				//是否产生搜表相关事件
+		SearchMeterResult	clearChoice;	//清空搜表结果选项
+	}searchAttr8;
+
+	typedef struct{
+		INT8U	startTime[3];		//定时搜表开始时间
+		INT32U	searchLen;		//搜表时长（min）
+	}searchAttr9;
+
+typedef struct {
+	SearchResult		searchResult[SERACH_NUM];			//搜表结果
+	CrossZoneResult		crosszoneResult[SERACH_NUM];		//跨台区结果
+	INT32U			searchNum;			//搜表结果记录数
+	INT32U			crosszoneNum;		//跨台区搜表结果记录数
+	searchAttr8		attr8;				//属性8
+	INT8U			attr9_num;			//定时搜表参数个数
+	searchAttr9		attr9[SERACH_PARA_NUM];			//每天周期搜表参数配置
+	SearchStatus	searchSta;			//属性10：搜表状态
+	INT32U			startSearchLen;		//搜表时长，单位：分钟，方法127：实时启动搜表参数
+} CLASS_6002;	//搜表结果
+
 
 	typedef struct {
 		INT8U beginHour;
