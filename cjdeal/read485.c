@@ -2745,7 +2745,14 @@ INT8S dealProxyType7(PROXY_GETLIST *getlist,INT8U port485)
 		fprintf(stderr, "dealProxyType7 打开S485%d串口失败\n",port485);
 		return result;
 	}
-
+#if 0
+	fprintf(stderr,"代理7:内容长度[%d]=",getlist->proxy_obj.transcmd.cmdlen);
+	INT8U prtIndex =0;
+	for(prtIndex=0;prtIndex<getlist->proxy_obj.transcmd.cmdlen;prtIndex++)
+	{
+		fprintf(stderr,"%02x ",getlist->proxy_obj.transcmd.cmdbuf[prtIndex]);
+	}
+#endif
 	INT8U RecvBuff[BUFFSIZE1024];
 	INT8U TmprevBuf[BUFFSIZE1024];
 	INT16S RecvLen = 0;
@@ -2754,7 +2761,8 @@ INT8S dealProxyType7(PROXY_GETLIST *getlist,INT8U port485)
 	memset(&csinfo,0,sizeof(CSINFO));
 	hcsok = CheckHead(getlist->proxy_obj.transcmd.cmdbuf ,&csinfo);
 	fcsok = CheckTail(getlist->proxy_obj.transcmd.cmdbuf ,csinfo.frame_length);
-	if ((hcsok==1) && (fcsok==1)) {	//TODO:一致性测试PROXY_36透传一个错误报文，导致台体模拟表软件停抄，故简单判断合法性进行报文透传
+	//if ((hcsok==1) && (fcsok==1))
+	{	//TODO:一致性测试PROXY_36透传一个错误报文，导致台体模拟表软件停抄，故简单判断合法性进行报文透传
 		SendDataTo485(port485, getlist->proxy_obj.transcmd.cmdbuf, getlist->proxy_obj.transcmd.cmdlen);
 		INT32S fd = comfd485[port485-1];
 		usleep(20000);	//20ms
@@ -3121,21 +3129,23 @@ INT8S readMeterPowerInfo()
 
 	for(meterIndex = 0; meterIndex < POWEROFFON_NUM; meterIndex++)
 	{
+#if 0
 		fprintf(stderr,"\nMeterPowerInfo[%d] ARRD = %02x%02x%02x%02x%02x%02x%02x%02x  ERC3106State = %d \n",meterIndex,
 				MeterPowerInfo[meterIndex].tsa.addr[0],MeterPowerInfo[meterIndex].tsa.addr[1],MeterPowerInfo[meterIndex].tsa.addr[2],
 				MeterPowerInfo[meterIndex].tsa.addr[3],MeterPowerInfo[meterIndex].tsa.addr[4],MeterPowerInfo[meterIndex].tsa.addr[5],
 				MeterPowerInfo[meterIndex].tsa.addr[6],MeterPowerInfo[meterIndex].tsa.addr[7],
 				MeterPowerInfo[meterIndex].ERC3106State);
-
+#endif
 
 		if(MeterPowerInfo[meterIndex].ERC3106State==1)
 		{
+#if 0
 			DbgPrintToFile1(1,"\nMeterPowerInfo[%d] ARRD = %02x%02x%02x%02x%02x%02x%02x%02x  ERC3106State = %d \n",meterIndex,
 					MeterPowerInfo[meterIndex].tsa.addr[0],MeterPowerInfo[meterIndex].tsa.addr[1],MeterPowerInfo[meterIndex].tsa.addr[2],
 					MeterPowerInfo[meterIndex].tsa.addr[3],MeterPowerInfo[meterIndex].tsa.addr[4],MeterPowerInfo[meterIndex].tsa.addr[5],
 					MeterPowerInfo[meterIndex].tsa.addr[6],MeterPowerInfo[meterIndex].tsa.addr[7],
 					MeterPowerInfo[meterIndex].ERC3106State);
-
+#endif
 			CLASS_6001 obj6001;
 			//通过表地址找 6001
 			if(get6001ObjByTSA(MeterPowerInfo[meterIndex].tsa,&obj6001) != 1 )
