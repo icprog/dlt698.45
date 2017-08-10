@@ -317,6 +317,22 @@ int AFN05_F3(FORMAT3762 *down,INT8U moduleFlag, INT8U ctrl, INT8U* sendBuf645, I
 	return sendLen;
 }
 
+INT8S AFN01_F2(FORMAT3762 *down,INT8U *sendBuf)
+{//参数区初始化
+	INT8U sendLen ;
+
+	memset(&sendBuf[0], 0, 256);
+
+	down->afn = 0x01;
+	down->fn = 2;
+	down->ctrl.PRM = 1;//启动站
+	down->info_down.ChannelFlag = 0;//信道标识
+	down->info_down.ModuleFlag = 0;//无地址域A
+	down->info_down.Seq = down->info_down.Seq++;//序列号
+
+	sendLen = composeProtocol3762(down, sendBuf);
+	return sendLen;
+}
 
 int AFN03_F10(FORMAT3762 *down,INT8U *sendBuf)
 {

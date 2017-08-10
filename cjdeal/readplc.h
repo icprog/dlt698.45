@@ -288,8 +288,7 @@ AutoReportWordsInfo autoReportWordInfo[96];//12字节主动上报状态字对应
 INT8U autoReportWords[256];//电表主动上报状态字
 INT8U autoEventCounter;//96个事件中，发生的事件个数
 INT16U autoEventTimes;//事件发生的总次数
-
-
+TS broadFlag_ts;
 CLASS_6015 fangAn6015[FANGAN6015_MAX];
 TASK_INFO taskinfo;
 typedef struct
