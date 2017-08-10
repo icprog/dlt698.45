@@ -148,6 +148,10 @@ extern int clearClass(OI_698 oi);
 extern int deleteClass(OI_698 oi,INT8U id);
 
 /*
+ * 总表(交采)计量电量数据清除
+ * */
+extern void clearEnergy();
+/*
  * 数据区初始化接口函数
  * 返回值 =0: 删除成功
  * =-1：删除失败

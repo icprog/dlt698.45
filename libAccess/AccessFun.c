@@ -117,6 +117,17 @@ void write_userpwd(unsigned char* user, unsigned char* pwd, unsigned char* apn) 
     fclose(fp);
 }
 
+/*
+ * 总表(交采)计量电量数据清除
+ * */
+void clearEnergy()
+{
+	syslog(LOG_NOTICE,"__%s__",__func__);
+	//总表计量电量数据清除
+	system("rm -rf /nor/acs/energy.par");
+	system("rm -rf /nor/acs/energy.bak");
+}
+
 void clearData()
 {
 	syslog(LOG_NOTICE,"__%s__",__func__);

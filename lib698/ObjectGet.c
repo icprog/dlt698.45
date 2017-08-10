@@ -2116,14 +2116,14 @@ int GetEnvironmentValue(RESULT_NORMAL *response)
  * readType: =1:不判断数据有效性，只读取一个单元的数据长度，用于判断分帧及数据单元的个数
  *           =0：获取一个数据单元的内容
  * */
-int GetCollOneUnit(OI_698 oi,INT8U readType,INT8U seqnum,INT8U *data,INT16U *oneUnitLen,INT16U *blknum)
+int GetCollOneUnit(OAD oad,INT8U readType,INT8U seqnum,INT8U *data,INT16U *oneUnitLen,INT16U *blknum)
 {
 	int  one_unitlen = 0, one_blknum = 0;
-	switch(oi)
+	switch(oad.OI)
 	{
 	case 0x6000:	//采集档案配置表
 		one_unitlen = Get_6001(readType,seqnum,data);
-		one_blknum = getFileRecordNum(oi);
+		one_blknum = getFileRecordNum(oad.OI);
 		if(one_blknum<=1)	return 0;
 		break;
 	case 0x6002:	//搜表
@@ -2144,7 +2144,7 @@ int GetCollOneUnit(OI_698 oi,INT8U readType,INT8U seqnum,INT8U *data,INT16U *one
 	}
 	*oneUnitLen = one_unitlen;
 	*blknum = one_blknum;
-	if(one_unitlen!=0)	fprintf(stderr,"GetCollOneUnitLen oad.oi=%04x one_unitlen=%d one_blknum=%d\n",oi,one_unitlen,one_blknum);
+	if(one_unitlen!=0)	fprintf(stderr,"GetCollOneUnitLen oad.oi=%04x one_unitlen=%d one_blknum=%d\n",oad.OI,one_unitlen,one_blknum);
 	return 1;
 }
 /*
@@ -2163,7 +2163,7 @@ int GetCollPara(INT8U seqOfNum,RESULT_NORMAL *response)
 	oad = response->oad;
 	data = response->data;
 
-	if(GetCollOneUnit(response->oad.OI,1,0,&data[index],&oneUnitLen,&blknum)==0)	{
+	if(GetCollOneUnit(response->oad,1,0,&data[index],&oneUnitLen,&blknum)==0)	{
 		fprintf(stderr,"get OI=%04x oneUnitLen=%d blknum=%d 退出",oad.OI,oneUnitLen,blknum);
 		response->dar = obj_undefine;
 		return 0;
@@ -2185,7 +2185,7 @@ int GetCollPara(INT8U seqOfNum,RESULT_NORMAL *response)
 			meternum = 0;
 //			fprintf(stderr,"\n get subFrame lastframenum=%d,subframeSum=%d index=%d\n",lastframenum,next_info.subframeSum,index);
 		}
-		GetCollOneUnit(response->oad.OI,0,i,&data[index],&retlen,&tmpblk);
+		GetCollOneUnit(response->oad,0,i,&data[index],&retlen,&tmpblk);
 		if(retlen!=0) {
 			meternum++;
 		}

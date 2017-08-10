@@ -78,7 +78,8 @@
 #define MAX_PERIOD_RATE   		48      	//支持的最到终端费率时段数
 #define MAX_FREEZE_OBJ			255			//冻结最大关联冻结对象个数
 #define	STATE_MAXNUM			8			//开关量单元最大个数
-
+#define SERACH_NUM				100			//搜表结果记录最大个数
+#define SERACH_PARA_NUM			24			//搜表配置参数个数
 #define EVENT_OI_MAXNUM			30			//终端需要判断事件
 
 #define	VARI_LEN				64			//变量类对象每个oi占用的位置空间
@@ -191,11 +192,6 @@
 #define S4853   		3
 #define SER_ZB			5
 
-//国网送检：测试载波模块互换性，将载波口换做4851,来测试载波模块互换性功能
-//#define S4851   	1
-//#define S4852   	5//2
-//#define S4853   	3
-//#define SER_ZB		2//5
 
 //  I型集中器串口定义
 //　　　GPRS  [ /dev/ttyS0 ]

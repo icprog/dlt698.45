@@ -220,6 +220,89 @@ int Get_6001(INT8U type,INT16U seqnum,INT8U *data)
 }
 
 /*
+ * 搜表结果
+ * */
+int Get_6002(OAD oad,INT8U type,INT8U *data)
+{
+	int 	index=0,i=0,j=0,ret=0;
+	CLASS_6002 class6002={};
+
+	ret = readCoverClass(0x6002,0,&class6002,sizeof(CLASS_6002),para_vari_save);
+	if ((ret == 1) || (type==1)) {
+		switch(oad.attflg) {
+		case 2:	//搜表结果
+			if(class6002.searchNum > SERACH_NUM) {
+				syslog(LOG_ERR,"搜表结果记录数[%d],大于限值[%d]",class6002.searchNum,SERACH_NUM);
+				class6002.searchNum = SERACH_NUM;
+			}
+			index += create_array(&data[index],class6002.searchNum);
+			for(i=0;i<class6002.searchNum;i++) {
+				index += create_struct(&data[index],7);		//属性2：struct 7个元素
+				index += fill_TSA(&data[index],&class6002.searchResult[i].CommAddr.addr[1],class6002.searchResult[i].CommAddr.addr[0]);
+				index += fill_TSA(&data[index],&class6002.searchResult[i].CJQAddr.addr[1],class6002.searchResult[i].CJQAddr.addr[0]);
+				index += fill_enum(&data[index],class6002.searchResult[i].protocol);
+				index += fill_enum(&data[index],class6002.searchResult[i].phase);
+				index += fill_unsigned(&data[index],class6002.searchResult[i].signal);
+				index += fill_date_time_s(&data[index],&class6002.searchResult[i].searchTime);
+				index += create_array(&data[index],class6002.searchResult[i].annexNum);
+				if(class6002.searchResult[i].annexNum > SERACH_PARA_NUM) {
+					syslog(LOG_ERR,"搜表结果记录数[%d],大于限值[%d]",class6002.crosszoneNum,SERACH_PARA_NUM);
+					class6002.searchResult[i].annexNum = SERACH_PARA_NUM;
+				}
+				for(j=0;j<class6002.searchResult[i].annexNum;j++) {
+					index += create_struct(&data[index],2);		//属性2：struct 2个元素
+					index += create_OAD(1,&data[index],class6002.searchResult[i].annexInfo[j].oad);
+					index += fill_Data(class6002.searchResult[i].annexInfo[j].data.type,&data[index],class6002.searchResult[i].annexInfo[j].data.data);
+				}
+			}
+			break;
+		case 5://跨台区结果
+			if(class6002.crosszoneNum > SERACH_NUM) {
+				syslog(LOG_ERR,"搜表结果记录数[%d],大于限值[%d]",class6002.crosszoneNum,SERACH_NUM);
+				class6002.crosszoneNum = SERACH_NUM;
+			}
+			index += create_array(&data[index],class6002.crosszoneNum);
+			for(i=0;i<class6002.crosszoneNum;i++) {
+				index += create_struct(&data[index],3);		//属性2：struct 3个元素
+				index += fill_TSA(&data[index],&class6002.crosszoneResult[i].CommAddr.addr[1],class6002.crosszoneResult[i].CommAddr.addr[0]);
+				index += fill_TSA(&data[index],&class6002.crosszoneResult[i].mainPointAddr.addr[1],class6002.crosszoneResult[i].mainPointAddr.addr[0]);
+				index += fill_date_time_s(&data[index],&class6002.crosszoneResult[i].changeTime);
+			}
+			break;
+		case 6:	//搜表结果记录数
+			index += fill_long_unsigned(&data[index],class6002.searchNum);
+			break;
+		case 7:	//跨台区搜表结果记录数
+			index += fill_long_unsigned(&data[index],class6002.crosszoneNum);
+			break;
+		case 8:	//搜表
+			index += create_struct(&data[index],4);
+			index += fill_bool(&data[index],class6002.attr8.enablePeriodFlg);
+			index += fill_bool(&data[index],class6002.attr8.autoUpdateFlg);
+			index += fill_bool(&data[index],class6002.attr8.eventFlg);
+			index += fill_enum(&data[index],class6002.attr8.clearChoice);
+			break;
+		case 9:	//每天周期搜表参数配置
+			if(class6002.attr9_num > SERACH_PARA_NUM) {
+				syslog(LOG_ERR,"搜表结果记录数[%d],大于限值[%d]",class6002.attr9_num,SERACH_PARA_NUM);
+				class6002.attr9_num = SERACH_PARA_NUM;
+			}
+			index += create_array(&data[index],class6002.attr9_num);
+			for(i=0;i<class6002.attr9_num;i++) {
+				index += create_struct(&data[index],2);
+				index += fill_time(&data[index],class6002.attr9[i].startTime);
+				index += fill_long_unsigned(&data[index],class6002.attr9[i].searchLen);
+			}
+			break;
+		case 10://搜表状态
+			index += fill_enum(&data[index],class6002.searchSta);
+			break;
+		}
+	}
+	return index;
+}
+
+/*
  * 任务配置单元
  * */
 int Get_6013(INT8U type,INT8U taskid,INT8U *data)
