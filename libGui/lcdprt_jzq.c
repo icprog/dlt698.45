@@ -49,7 +49,6 @@ Menu menu[]={//必须是一级菜单，然后二级菜单。。。。
 				{{level4,"1.以太网通信参数",	menu_netmaster,		MENU_NOPASSWD}},//1111
 				{{level4,"2.无线通信参数",		menu_wlanmaster,	MENU_NOPASSWD}},//1111
 			{{level3,"4.本地以太网配置", 	menu_eth0para, 		MENU_NOPASSWD},		NULL},//11
-//			{{level3,"5.虚拟专网参数", 	menu_Virpara, 		MENU_NOPASSWD},		NULL},//-1
 		{{level2,"2.电表参数设置", 	NULL, 	MENU_ISPASSWD_EDITMODE},	NULL},
 			{{level3,"1.修改测量点", 		menu_jzqsetmeter,	MENU_ISPASSWD},	NULL},//11
 			{{level3,"2.添加测量点", 		menu_jzqaddmeter,	MENU_ISPASSWD},	NULL},//11
@@ -60,41 +59,33 @@ Menu menu[]={//必须是一级菜单，然后二级菜单。。。。
 	{{level1,"终端管理与维护", 	NULL, 				MENU_NOPASSWD},		NULL},
 		//二级菜单 终端管理与维护子菜单
 		{{level2,"1.终端版本", 	menu_jzqstatus, 	MENU_NOPASSWD},		NULL},//11
-//		{{level2,"2.终端数据", 	NULL, 				MENU_NOPASSWD},		NULL},
+		{{level2,"2.终端数据", 	NULL, 				MENU_NOPASSWD},		NULL},
+			{{level3,"1.遥信状态", 	menu_yxstatus, 		MENU_NOPASSWD},		NULL},
+			{{level3,"2.时钟电池", 	menu_rtcpower, 		MENU_NOPASSWD},		NULL},//0
 //			////三级菜单 集中器数据子菜单
-		{{level2,"2.终端管理", 	NULL, 				MENU_NOPASSWD},		NULL},
+		{{level2,"3.终端管理", 	NULL, 				MENU_NOPASSWD},		NULL},
 			////三级菜单 终端管理子菜单
 			{{level3,"1.终端重启", 	menu_jzqreboot, 	MENU_ISPASSWD},		NULL},//111
 			{{level3,"2.数据初始化", 	menu_initjzqdata, 	MENU_ISPASSWD},		NULL},
 			{{level3,"3.事件初始化", 	menu_initjzqevent, 	MENU_ISPASSWD},		NULL},
 			{{level3,"4.需量初始化", 	menu_initjzqdemand, 	MENU_ISPASSWD},		NULL},
 			{{level3,"5.恢复出厂设置", 	menu_FactoryReset, 	MENU_ISPASSWD},		NULL},
-		{{level2,"3.现场调试", 	NULL, 				MENU_NOPASSWD},		NULL},
+		{{level2,"4.现场调试", 	NULL, 				MENU_NOPASSWD},		NULL},
 		////三级菜单 现场调试子菜单
-			{{level3,"1.遥信状态", 	menu_yxstatus, 		MENU_NOPASSWD},		NULL},
-			{{level3,"2.本地IP设置",	menu_termip, 		MENU_NOPASSWD},		NULL},//111
-			{{level3,"3.GPRSIP查看",	menu_gprsip, 		MENU_NOPASSWD},		NULL},//111
-//			{{level3,"3.抄表结果查看",menu_readmeter_info,		MENU_NOPASSWD},		NULL},
-			{{level3,"4.液晶对比度", 	menu_lcdcontrast, 	MENU_NOPASSWD},		NULL},
-//			{{level3,"5.485-2设置",menu_485func_change,		MENU_NOPASSWD},		NULL},
-//			{{level3,"6.时钟电池", 	menu_rtcpower, 		MENU_NOPASSWD},		NULL},//0
-//			{{level3,"7.载波模块信息",	menu_zb_info,		MENU_NOPASSWD},		NULL},//0
-//			{{level3,"8.GPRS模块信息",menu_gprs_info,		MENU_NOPASSWD},		NULL},//0
-			{{level3,"5.交采芯片信息",menu_ac_info,		MENU_NOPASSWD},		NULL},
-			{{level3,"6.规约切换",menu_ProtocolChange,		MENU_NOPASSWD},NULL},
-//		{{level2,"5.页面设置", 	menu_pagesetup, 	MENU_NOPASSWD},		NULL},
-//		{{level2,"6.手动抄表", 	NULL, 				MENU_NOPASSWD},		NULL},
-//			//////三级菜单 手动抄表子菜单
-//			{{level3,"1.根据表号抄表", menu_readmeterbycldno, 	MENU_NOPASSWD},	NULL},
-//			{{level3,"2.根据表地址抄表",menu_readmeterbycldaddr,MENU_NOPASSWD},	NULL},
-//		{{level2,"7.载波管理",	NULL, 				MENU_NOPASSWD},		NULL},
+			{{level3,"1.本地IP设置",	menu_termip, 		MENU_NOPASSWD},		NULL},//111
+			{{level3,"2.GPRSIP查看",	menu_gprsip, 		MENU_NOPASSWD},		NULL},//111
+			{{level3,"3.液晶对比度", 	menu_lcdcontrast, 	MENU_NOPASSWD},		NULL},
+			{{level3,"4.交采芯片信息",menu_ac_info,		MENU_NOPASSWD},		NULL},
+			{{level3,"5.规约切换",menu_ProtocolChange,		MENU_NOPASSWD},NULL},
+		{{level2,"5.页面设置", 	menu_pagesetup, 				MENU_NOPASSWD},		NULL},
+		{{level2,"6.手动抄表", 	NULL, 				MENU_NOPASSWD},		NULL},
+			{{level3,"1.根据表序号抄表", menu_readmeterbycldno, 	MENU_NOPASSWD},	NULL},
+			{{level3,"2.根据表地址抄表",menu_readmeterbycldaddr,MENU_NOPASSWD},	NULL},
+		{{level2,"7.载波管理",	NULL, 				MENU_NOPASSWD},		NULL},
 //		/////三级菜单 载波抄表子菜单
-//			{{level3,"1.重新抄表", 	menu_zb_begin, 		MENU_NOPASSWD},		NULL},
-//			{{level3,"2.暂停抄表",	menu_zb_stop,		MENU_NOPASSWD},		NULL},
-//			{{level3,"3.恢复抄表",	menu_zb_resume,		MENU_NOPASSWD},		NULL},
-//		{{level2,"8.波特率设置",	NULL, 				MENU_NOPASSWD},		NULL},
-//			{{level3,"1.红外口波特率", 	menu_vifr_set, 		MENU_NOPASSWD},		NULL},
-//			{{level3,"2.RS232波特率", 	menu_rs232_set, 		MENU_NOPASSWD},		NULL},
+			{{level3,"1.重新抄表", 	menu_zb_begin, 		MENU_NOPASSWD},		NULL},
+			{{level3,"2.暂停抄表",	menu_zb_stop,		MENU_NOPASSWD},		NULL},
+			{{level3,"3.恢复抄表",	menu_zb_resume,		MENU_NOPASSWD},		NULL},
 };//测量点数据显示
 
 #define GUI_MSG_MAXLEN 4096
@@ -1781,85 +1772,95 @@ void menu_setpasswd()
 	}
 }
 
-INT16U Search_Index(INT16U pn)
-{
-//	INT16U Index = 0;
-//	INT16U i = 0;
-//	for(i=0;i<MP_MAXNUM;i++)
-//	{
-//		if(pn == shmm_getpara()->f10.para_mp[i].MPNo)
-//		{
-//			Index = shmm_getpara()->f10.para_mp[i].Index;
-//			return Index;
-//		}
-//	}
-	return 0;
-}
-
 void menu_readmeterbycldno(){
-//	int mqcount=0;
-//	LcdDataItem item[100];//存储的所有数据项
-//	memset(item, 0, 100*sizeof(LcdDataItem));
-//	int cldno=0;
-//	cldno = msgbox_inputcldno();
-//	int pindex = Search_Index(cldno);
-//	DEBUG_TIME_LINE("pindex = %d\n",pindex);
-//	if(pindex>1 && gui_isValidCld(pindex)>0){
-//		DEBUG_TIME_LINE("\n gui_isValidCld(cldno)=%d",gui_isValidCld(pindex));
-//	}
-//	else
-//	{
-//		if(cldno != -1)
-//			msgbox_label((char*)"无此测量点", CTRL_BUTTON_OK);
-//		return;
-//	}
-//	dbg_prt( "\n cldno=%d", cldno);
-//	if(cldno>0){
-//		if(memcmp(ParaAll->f10.para_mp[pindex-1].addr, "000000000000", 12)!=0)//判断表地址的有效性
-//		{
-//			if(ParaAll->f10.para_mp[pindex-1].Port==PORT_ZB)
-//				mqcount = requestdata_485_ZB_Block(ParaAll->f10.para_mp[pindex-1].MPNo, (INT8U*)PLC_REV_GUI_MQ,5, 3117, item);
-//			else if(ParaAll->f10.para_mp[pindex-1].Port == PORT_485I)
-//				mqcount = requestdata_485_ZB_Block(ParaAll->f10.para_mp[pindex-1].MPNo, (INT8U*)S485_1_REV_GUI_MQ,5, 3117, item);
-//			else if(ParaAll->f10.para_mp[pindex-1].Port == PORT_485II)
-//				mqcount = requestdata_485_ZB_Block(ParaAll->f10.para_mp[pindex-1].MPNo, (INT8U*)S485_2_REV_GUI_MQ,5, 3117, item);
-//		}
-//		show_realdata(pindex, item,mqcount);
-//	}
+	int i,flag= 0,cld_num=0,cldno=0,mqcount=0;
+	CLASS_6001	 meter={};
+	CLASS11		coll={};
+	if(readInterClass(0x6000,&coll)==0){
+		msgbox_label("档案异常",2);
+		return ;
+	}
+	cldno = msgbox_inputcldno();//获取用户输入表序号
+	if(cldno<=0)
+	{
+		msgbox_label("表序号输入错误",2);
+		return;
+	}
+	cld_num = getFileRecordNum(0x6000);//获取文件测量点单元个数
+	if(cld_num<=0)
+	{
+		msgbox_label("无表档案",2);
+		return;
+	}
+	for(i=0;i<cld_num;i++)//循环查询有效测量点个数
+	{
+		if(readParaClass(0x6000,&meter,i))
+			if(meter.sernum == cldno)
+			{
+				flag=1;
+				break;
+			}
+	}
+	if(flag == 0 )
+	{
+		msgbox_label("未找到对应表序号",2);
+		return;
+	}
+	LcdDataItem item[10];//存储的所有数据项
+	memset(item, 0, 10*sizeof(LcdDataItem));
+		if(meter.basicinfo.port.OI == PORT_485 ||meter.basicinfo.port.OI ==  PORT_ZB){
+			mqcount = requestdata_485_ZB_Block(&meter,(INT8U*)PROXY_485_MQ_NAME,5, item);
+		}
+		show_realdata(meter.sernum, item, mqcount);
+		memset(p_Proxy_Msg_Data,0,sizeof(Proxy_Msg));
 }
-
+//目前只支持6字节，12位电表
 void menu_readmeterbycldaddr()
 {
-//	int mqcount=0, ret=0;
-//	LcdDataItem item[100];//存储的所有数据项
-//	memset(item, 0, 100*sizeof(LcdDataItem));
-//	int pindex=0;
-//	INT8U cldaddr[12];
-//	memset(cldaddr, 0, 12);
-//#ifdef SHANGHAI
-//	ret = msgbox_inputcldaddr((char*)cldaddr,6);
-//#else
-//	ret = msgbox_inputcldaddr((char*)cldaddr,12);//返回按键值
-//#endif
-//	DEBUG_TIME_LINE("ret = %d\n",ret);
-//	if(ret!=0)
-//		pindex =  gui_isValidCldAddr(cldaddr);
-//	DEBUG_TIME_LINE("pindex = %d\n",pindex);
-//	if(pindex>0&&ret!=0){
-//		if(ParaAll->f10.para_mp[pindex-1].Port==PORT_ZB)
-//			//mqcount = requestdata_485_ZB(ParaAll->f10.para_mp[pindex-1].MPNo, (INT8U*)PLC_REV_GUI_MQ, arr_did, 1, item);
-//			mqcount = requestdata_485_ZB_Block(ParaAll->f10.para_mp[pindex-1].MPNo, (INT8U*)PLC_REV_GUI_MQ,5, 3117, item);
-//		else if(ParaAll->f10.para_mp[pindex-1].Port == PORT_485I)
-//			mqcount = requestdata_485_ZB_Block(ParaAll->f10.para_mp[pindex-1].MPNo, (INT8U*)S485_1_REV_GUI_MQ,5, 3117, item);
-//			//mqcount = requestdata_485_ZB(ParaAll->f10.para_mp[pindex-1].MPNo, (INT8U*)S485_1_REV_GUI_MQ, arr_did, 1, item);
-//		else if(ParaAll->f10.para_mp[pindex-1].Port == PORT_485II)
-//			mqcount = requestdata_485_ZB_Block(ParaAll->f10.para_mp[pindex-1].MPNo, (INT8U*)S485_2_REV_GUI_MQ,5, 3117, item);
-//			//mqcount = requestdata_485_ZB(ParaAll->f10.para_mp[pindex-1].MPNo, (INT8U*)S485_2_REV_GUI_MQ, arr_did, 1, item);
-//		if(mqcount!=0)
-//			show_realdata(pindex, item,mqcount);
-//	}
-//	else if((pindex==0&&ret!=0) && ret != CAN)
-//		msgbox_label((char*)"无此测量点", CTRL_BUTTON_OK);
+	int i,mqcount=0, ret=0,cld_num=0,flag=0;
+	LcdDataItem item[10];//存储的所有数据项
+	memset(item, 0, 10*sizeof(LcdDataItem));
+	CLASS_6001	 meter={};
+		CLASS11		coll={};
+		if(readInterClass(0x6000,&coll)==0){
+			msgbox_label("档案异常",2);
+			return ;
+		}
+		cld_num = getFileRecordNum(0x6000);//获取文件测量点单元个数
+		if(cld_num<=0)
+		{
+			msgbox_label("无表档案",2);
+			return;
+		}
+	INT8U cldaddr[12];
+	memset(cldaddr, 0, 12);
+	ret = msgbox_inputcldaddr((char*)cldaddr,12);//返回按键值
+	if(ret<=0)
+	{
+		msgbox_label("表地址输入错误",2);
+		return;
+	}
+	for(i=0;i<cld_num;i++)//循环查询有效测量点个数
+	{
+		if(readParaClass(0x6000,&meter,i))
+		{
+			if(memcmp(cldaddr, &meter.basicinfo.addr.addr[2], 6)==0)
+			{
+				flag=1;
+				break;
+			}
+		}
+	}
+	if(flag == 0 )
+	{
+		msgbox_label("未找到对应表地址",2);
+		return;
+	}
+	if(meter.basicinfo.port.OI == PORT_485 ||meter.basicinfo.port.OI ==  PORT_ZB){
+		mqcount = requestdata_485_ZB_Block(&meter,(INT8U*)PROXY_485_MQ_NAME,5, item);
+		}
+		show_realdata(meter.sernum, item, mqcount);
+		memset(p_Proxy_Msg_Data,0,sizeof(Proxy_Msg));
 }
 //获得本地IP
 void getlocalip(char *ip){
@@ -3726,11 +3727,12 @@ void menu_lcdcontrast(){
 }
 
 void menu_rtcpower(){
-//	char str[100];
-//	memset(str, 0, 100);
-//	sprintf(str, "时钟电池:%2.1fV", shmm_getdevstat()->Clock_Batt_Voltage);
-//	msgbox_label((char*)str, CTRL_BUTTON_OK);
-//	return;
+    float v1=0,v2=0;
+	bettery_getV(&v1,&v2);
+	char str[15];
+	sprintf(str,"时钟:%.1fV",v1);
+	msgbox_label((char*)str, CTRL_BUTTON_OK);
+	return;
 }
 
 void menu_impsoe(){
@@ -3960,27 +3962,12 @@ void menu_norsoe(){
 //	return;
 }
 
-void ZB_Manage(int cmd){
-//	mqd_t mqd;
-//	INT8U sendBuf[2];
-//	memset(sendBuf, 0, 2);
-//	sendBuf[0] = cmd;
-//	mqd =  createMsg((INT8S*)PLC_REV_GUI_MQ, O_WRONLY);
-//	if(mqd<0)
-//		return;
-//	if(sendMsg(mqd, CTRLCMD, (INT8S*)sendBuf, 1)<0){
-//		colseMsg(mqd);
-//		dbg_prt( "\n PLC_REV_GUI_MQ:mq_open_ret=%d  error!!!",mqd);
-//		return;
-//	}
-//	colseMsg(mqd);
-}
 void menu_zb_begin(){
 	int ret;
 	ret = msgbox_label((char*)"重启载波抄表?", CTRL_BUTTON_OK);
 	if(ret==ACK){
 		DEBUG_TIME_LINE( "\n 液晶重启载波抄表");
-		ZB_Manage(3);
+		 p_JProgramInfo->PLC_Ctrl = 0xAA;
 	}
 }
 void menu_zb_stop(){
@@ -3988,7 +3975,7 @@ void menu_zb_stop(){
 	ret = msgbox_label((char*)"暂停载波抄表?", CTRL_BUTTON_OK);
 	if(ret==ACK){
 		DEBUG_TIME_LINE( "\n 液晶暂停载波抄表");
-		ZB_Manage(1);
+		 p_JProgramInfo->PLC_Ctrl = 0x55;
 	}
 }
 void menu_zb_resume(){
@@ -3996,7 +3983,7 @@ void menu_zb_resume(){
 	ret = msgbox_label((char*)"恢复载波抄表?", CTRL_BUTTON_OK);
 	if(ret==ACK){
 		DEBUG_TIME_LINE( "\n 液晶恢复载波抄表");
-		ZB_Manage(2);
+		 p_JProgramInfo->PLC_Ctrl = 0x44;
 	}
 }
 int msgbox_pro(int type)

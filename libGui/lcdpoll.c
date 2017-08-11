@@ -342,8 +342,382 @@ void LunXunShowPage2(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT8
 	}
 	return;
 }
-
 void LunXunShowPage3(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT8U show_flg){
+	Point pos = {0};
+	TS curts = {0};
+	INT8U str[100] = {0};
+	INT8U chg_str[50] = {0};
+
+	gui_setpos(&pos, rect_Client.left+3*FONTSIZE, rect_Client.top+FONTSIZE);
+	gui_textshow((char *)"当前反向有功电能示值", pos, LCD_NOREV);
+
+	sprintf((char*)str,"反向有功总% 10.2f kWh",jprograminfo->ACSEnergy.NegPt_All*1.0/(ENERGY_CONST*ENERGY_COEF));
+	pos.x = rect_Client.left + FONTSIZE/2;
+	pos.y = rect_Client.top + 5*FONTSIZE;
+	gui_textshow((char*)str, pos, LCD_NOREV);
+	sprintf((char*)str,"反向有功尖% 10.2f kWh",jprograminfo->ACSEnergy.NegPt_Rate[0]*1.0/(ENERGY_CONST*ENERGY_COEF));
+	pos.y += 2*FONTSIZE+OFFSET_Y;
+	gui_textshow((char*)str, pos, LCD_NOREV);
+	sprintf((char*)str,"反向有功峰% 10.2f kWh",jprograminfo->ACSEnergy.NegPt_Rate[1]*1.0/(ENERGY_CONST*ENERGY_COEF));
+	pos.y += 2*FONTSIZE+OFFSET_Y;
+	gui_textshow((char*)str, pos, LCD_NOREV);
+	sprintf((char*)str,"反向有功平% 10.2f kWh",jprograminfo->ACSEnergy.NegPt_Rate[2]*1.0/(ENERGY_CONST*ENERGY_COEF));
+	pos.y += 2*FONTSIZE+OFFSET_Y;
+	gui_textshow((char*)str, pos, LCD_NOREV);
+	sprintf((char*)str,"反向有功谷% 10.2f kWh",jprograminfo->ACSEnergy.NegPt_Rate[3]*1.0/(ENERGY_CONST*ENERGY_COEF));
+	pos.y += 2*FONTSIZE+OFFSET_Y;
+	gui_textshow((char*)str, pos, LCD_NOREV);
+	if(show_flg==1){
+		//地址类型、逻辑地址、终端地址
+		if (p_JProgramInfo->oi_changed.oi4001 != g_chgOI4001) {
+			g_chgOI4001 = p_JProgramInfo->oi_changed.oi4001;
+			readCoverClass(0x4001, 0, (void*)&g_Class4001_4002_4003,sizeof(CLASS_4001_4002_4003), para_vari_save);
+		}
+
+		bcd2str(&g_Class4001_4002_4003.curstom_num[1],(INT8U*)chg_str,g_Class4001_4002_4003.curstom_num[0],sizeof(str),positive);
+		sprintf((char*)str,"终端地址 %s",chg_str);
+		gui_setpos(&pos, rect_Client.left+3*FONTSIZE, rect_Client.top+18*FONTSIZE);
+		gui_textshow((char*)str, pos, LCD_NOREV);
+	}
+	else if(show_flg==2){
+		TSGet(&curts);
+
+		if(curts.Year==0|| curts.Month==0||curts.Day==0)
+			sprintf((char*)str,"抄表时间 00/00/00 00:00");
+		else
+		sprintf((char*)str,"抄表时间 %02d/%02d/%02d %02d:%02d",
+				curts.Year-2000, curts.Month, curts.Day, curts.Hour, curts.Minute);
+		gui_setpos(&pos, rect_Client.left+2*FONTSIZE, rect_Client.top+18*FONTSIZE);
+		gui_textshow((char*)str, pos, LCD_NOREV);
+	}
+	return;
+}
+void LunXunShowPage4(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT8U show_flg){
+	Point pos = {0};
+	TS curts = {0};
+	INT8U str[100] = {0};
+	INT8U chg_str[50] = {0};
+
+	gui_setpos(&pos, rect_Client.left+3*FONTSIZE, rect_Client.top+FONTSIZE);
+	gui_textshow((char *)"当前反向无功电能示值", pos, LCD_NOREV);
+
+	sprintf((char*)str,"反向无功总% 10.2f kVArh",jprograminfo->ACSEnergy.NegQt_All*1.0/(ENERGY_CONST*ENERGY_COEF));
+	pos.x = rect_Client.left + FONTSIZE/2;
+	pos.y = rect_Client.top + 5*FONTSIZE;
+	gui_textshow((char*)str, pos, LCD_NOREV);
+	sprintf((char*)str,"反向无功尖% 10.2f kVArh",jprograminfo->ACSEnergy.NegQt_Rate[0]*1.0/(ENERGY_CONST*ENERGY_COEF));
+	pos.y += 2*FONTSIZE+OFFSET_Y;
+	gui_textshow((char*)str, pos, LCD_NOREV);
+	sprintf((char*)str,"反向无功峰% 10.2f kVArh",jprograminfo->ACSEnergy.NegQt_Rate[1]*1.0/(ENERGY_CONST*ENERGY_COEF));
+	pos.y += 2*FONTSIZE+OFFSET_Y;
+	gui_textshow((char*)str, pos, LCD_NOREV);
+	sprintf((char*)str,"反向无功平% 10.2f kVArh",jprograminfo->ACSEnergy.NegQt_Rate[2]*1.0/(ENERGY_CONST*ENERGY_COEF));
+	pos.y += 2*FONTSIZE+OFFSET_Y;
+	gui_textshow((char*)str, pos, LCD_NOREV);
+	sprintf((char*)str,"反向无功谷% 10.2f kVArh",jprograminfo->ACSEnergy.NegQt_Rate[3]*1.0/(ENERGY_CONST*ENERGY_COEF));
+	pos.y += 2*FONTSIZE+OFFSET_Y;
+	gui_textshow((char*)str, pos, LCD_NOREV);
+	if(show_flg==1){
+		//地址类型、逻辑地址、终端地址
+		if (p_JProgramInfo->oi_changed.oi4001 != g_chgOI4001) {
+			g_chgOI4001 = p_JProgramInfo->oi_changed.oi4001;
+			readCoverClass(0x4001, 0, (void*)&g_Class4001_4002_4003,sizeof(CLASS_4001_4002_4003), para_vari_save);
+		}
+
+		bcd2str(&g_Class4001_4002_4003.curstom_num[1],(INT8U*)chg_str,g_Class4001_4002_4003.curstom_num[0],sizeof(str),positive);
+		sprintf((char*)str,"终端地址 %s",chg_str);
+		gui_setpos(&pos, rect_Client.left+3*FONTSIZE, rect_Client.top+18*FONTSIZE);
+		gui_textshow((char*)str, pos, LCD_NOREV);
+	}
+	else if(show_flg==2){
+		TSGet(&curts);
+
+		if(curts.Year==0|| curts.Month==0||curts.Day==0)
+			sprintf((char*)str,"抄表时间 00/00/00 00:00");
+		else
+		sprintf((char*)str,"抄表时间 %02d/%02d/%02d %02d:%02d",
+				curts.Year-2000, curts.Month, curts.Day, curts.Hour, curts.Minute);
+		gui_setpos(&pos, rect_Client.left+2*FONTSIZE, rect_Client.top+18*FONTSIZE);
+		gui_textshow((char*)str, pos, LCD_NOREV);
+	}
+	return;
+}
+void LunXunShowPage_X1_Q_All(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT8U show_flg){
+		Point pos = {0};
+		TS curts = {0};
+		INT8U str[100] = {0};
+		INT8U chg_str[50] = {0};
+
+		gui_setpos(&pos, rect_Client.left+3*FONTSIZE, rect_Client.top+FONTSIZE);
+		gui_textshow((char *)"一象限无功电能示值", pos, LCD_NOREV);
+		memset(str, 0, 100);
+
+		sprintf((char*)str,"总% 14.2f kVArh",jprograminfo->ACSEnergy.Q1_Qt_All*1.0/(ENERGY_CONST*ENERGY_COEF));
+		pos.x = rect_Client.left + FONTSIZE/2;
+		pos.y = rect_Client.top + 5*FONTSIZE;
+		gui_textshow((char*)str, pos, LCD_NOREV);
+		sprintf((char*)str,"尖% 14.2f kVArh",jprograminfo->ACSEnergy.Q1_Qt_Rate[0]*1.0/(ENERGY_CONST*ENERGY_COEF));
+		pos.y += 2*FONTSIZE+OFFSET_Y;
+		gui_textshow((char*)str, pos, LCD_NOREV);
+		sprintf((char*)str,"峰% 14.2f kVArh",jprograminfo->ACSEnergy.Q1_Qt_Rate[1]*1.0/(ENERGY_CONST*ENERGY_COEF));
+		pos.y += 2*FONTSIZE+OFFSET_Y;
+		gui_textshow((char*)str, pos, LCD_NOREV);
+		sprintf((char*)str,"平% 14.2f kVArh",jprograminfo->ACSEnergy.Q1_Qt_Rate[2]*1.0/(ENERGY_CONST*ENERGY_COEF));
+		pos.y += 2*FONTSIZE+OFFSET_Y;
+		gui_textshow((char*)str, pos, LCD_NOREV);
+		sprintf((char*)str,"谷% 14.2f kVArh",jprograminfo->ACSEnergy.Q1_Qt_Rate[3]*1.0/(ENERGY_CONST*ENERGY_COEF));
+		pos.y += 2*FONTSIZE+OFFSET_Y;
+		gui_textshow((char*)str, pos, LCD_NOREV);
+		if(show_flg==1){
+			//地址类型、逻辑地址、终端地址
+			if (p_JProgramInfo->oi_changed.oi4001 != g_chgOI4001) {
+				g_chgOI4001 = p_JProgramInfo->oi_changed.oi4001;
+				readCoverClass(0x4001, 0, (void*)&g_Class4001_4002_4003,sizeof(CLASS_4001_4002_4003), para_vari_save);
+			}
+
+			bcd2str(&g_Class4001_4002_4003.curstom_num[1],(INT8U*)chg_str,g_Class4001_4002_4003.curstom_num[0],sizeof(str),positive);
+			sprintf((char*)str,"终端地址 %s",chg_str);
+			gui_setpos(&pos, rect_Client.left+3*FONTSIZE, rect_Client.top+18*FONTSIZE);
+			gui_textshow((char*)str, pos, LCD_NOREV);
+		}
+		else if(show_flg==2){
+			TSGet(&curts);
+
+			if(curts.Year==0|| curts.Month==0||curts.Day==0)
+				sprintf((char*)str,"抄表时间 00/00/00 00:00");
+			else
+			sprintf((char*)str,"抄表时间 %02d/%02d/%02d %02d:%02d",
+					curts.Year-2000, curts.Month, curts.Day, curts.Hour, curts.Minute);
+			gui_setpos(&pos, rect_Client.left+2*FONTSIZE, rect_Client.top+18*FONTSIZE);
+			gui_textshow((char*)str, pos, LCD_NOREV);
+		}
+		return;
+}
+void LunXunShowPage_X2_Q_All(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT8U show_flg){
+			Point pos = {0};
+			TS curts = {0};
+			INT8U str[100] = {0};
+			INT8U chg_str[50] = {0};
+
+			gui_setpos(&pos, rect_Client.left+3*FONTSIZE, rect_Client.top+FONTSIZE);
+			gui_textshow((char *)"二象限无功电能示值", pos, LCD_NOREV);
+			memset(str, 0, 100);
+
+			sprintf((char*)str,"总% 14.2f kVArh",jprograminfo->ACSEnergy.Q2_Qt_All*1.0/(ENERGY_CONST*ENERGY_COEF));
+			pos.x = rect_Client.left + FONTSIZE/2;
+			pos.y = rect_Client.top + 5*FONTSIZE;
+			gui_textshow((char*)str, pos, LCD_NOREV);
+			sprintf((char*)str,"尖% 14.2f kVArh",jprograminfo->ACSEnergy.Q2_Qt_Rate[0]*1.0/(ENERGY_CONST*ENERGY_COEF));
+			pos.y += 2*FONTSIZE+OFFSET_Y;
+			gui_textshow((char*)str, pos, LCD_NOREV);
+			sprintf((char*)str,"峰% 14.2f kVArh",jprograminfo->ACSEnergy.Q2_Qt_Rate[1]*1.0/(ENERGY_CONST*ENERGY_COEF));
+			pos.y += 2*FONTSIZE+OFFSET_Y;
+			gui_textshow((char*)str, pos, LCD_NOREV);
+			sprintf((char*)str,"平% 14.2f kVArh",jprograminfo->ACSEnergy.Q2_Qt_Rate[2]*1.0/(ENERGY_CONST*ENERGY_COEF));
+			pos.y += 2*FONTSIZE+OFFSET_Y;
+			gui_textshow((char*)str, pos, LCD_NOREV);
+			sprintf((char*)str,"谷% 14.2f kVArh",jprograminfo->ACSEnergy.Q2_Qt_Rate[3]*1.0/(ENERGY_CONST*ENERGY_COEF));
+			pos.y += 2*FONTSIZE+OFFSET_Y;
+			gui_textshow((char*)str, pos, LCD_NOREV);
+			if(show_flg==1){
+				//地址类型、逻辑地址、终端地址
+				if (p_JProgramInfo->oi_changed.oi4001 != g_chgOI4001) {
+					g_chgOI4001 = p_JProgramInfo->oi_changed.oi4001;
+					readCoverClass(0x4001, 0, (void*)&g_Class4001_4002_4003,sizeof(CLASS_4001_4002_4003), para_vari_save);
+				}
+
+				bcd2str(&g_Class4001_4002_4003.curstom_num[1],(INT8U*)chg_str,g_Class4001_4002_4003.curstom_num[0],sizeof(str),positive);
+				sprintf((char*)str,"终端地址 %s",chg_str);
+				gui_setpos(&pos, rect_Client.left+3*FONTSIZE, rect_Client.top+18*FONTSIZE);
+				gui_textshow((char*)str, pos, LCD_NOREV);
+			}
+			else if(show_flg==2){
+				TSGet(&curts);
+
+				if(curts.Year==0|| curts.Month==0||curts.Day==0)
+					sprintf((char*)str,"抄表时间 00/00/00 00:00");
+				else
+				sprintf((char*)str,"抄表时间 %02d/%02d/%02d %02d:%02d",
+						curts.Year-2000, curts.Month, curts.Day, curts.Hour, curts.Minute);
+				gui_setpos(&pos, rect_Client.left+2*FONTSIZE, rect_Client.top+18*FONTSIZE);
+				gui_textshow((char*)str, pos, LCD_NOREV);
+			}
+			return;
+}
+void LunXunShowPage_X3_Q_All(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT8U show_flg){
+	Point pos = {0};
+		TS curts = {0};
+		INT8U str[100] = {0};
+		INT8U chg_str[50] = {0};
+
+		gui_setpos(&pos, rect_Client.left+3*FONTSIZE, rect_Client.top+FONTSIZE);
+		gui_textshow((char *)"三象限无功电能示值", pos, LCD_NOREV);
+		memset(str, 0, 100);
+
+		sprintf((char*)str,"总% 14.2f kVArh",jprograminfo->ACSEnergy.Q3_Qt_All*1.0/(ENERGY_CONST*ENERGY_COEF));
+		pos.x = rect_Client.left + FONTSIZE/2;
+		pos.y = rect_Client.top + 5*FONTSIZE;
+		gui_textshow((char*)str, pos, LCD_NOREV);
+		sprintf((char*)str,"尖% 14.2f kVArh",jprograminfo->ACSEnergy.Q3_Qt_Rate[0]*1.0/(ENERGY_CONST*ENERGY_COEF));
+		pos.y += 2*FONTSIZE+OFFSET_Y;
+		gui_textshow((char*)str, pos, LCD_NOREV);
+		sprintf((char*)str,"峰% 14.2f kVArh",jprograminfo->ACSEnergy.Q3_Qt_Rate[1]*1.0/(ENERGY_CONST*ENERGY_COEF));
+		pos.y += 2*FONTSIZE+OFFSET_Y;
+		gui_textshow((char*)str, pos, LCD_NOREV);
+		sprintf((char*)str,"平% 14.2f kVArh",jprograminfo->ACSEnergy.Q3_Qt_Rate[2]*1.0/(ENERGY_CONST*ENERGY_COEF));
+		pos.y += 2*FONTSIZE+OFFSET_Y;
+		gui_textshow((char*)str, pos, LCD_NOREV);
+		sprintf((char*)str,"谷% 14.2f kVArh",jprograminfo->ACSEnergy.Q3_Qt_Rate[3]*1.0/(ENERGY_CONST*ENERGY_COEF));
+		pos.y += 2*FONTSIZE+OFFSET_Y;
+		gui_textshow((char*)str, pos, LCD_NOREV);
+		if(show_flg==1){
+			//地址类型、逻辑地址、终端地址
+			if (p_JProgramInfo->oi_changed.oi4001 != g_chgOI4001) {
+				g_chgOI4001 = p_JProgramInfo->oi_changed.oi4001;
+				readCoverClass(0x4001, 0, (void*)&g_Class4001_4002_4003,sizeof(CLASS_4001_4002_4003), para_vari_save);
+			}
+
+			bcd2str(&g_Class4001_4002_4003.curstom_num[1],(INT8U*)chg_str,g_Class4001_4002_4003.curstom_num[0],sizeof(str),positive);
+			sprintf((char*)str,"终端地址 %s",chg_str);
+			gui_setpos(&pos, rect_Client.left+3*FONTSIZE, rect_Client.top+18*FONTSIZE);
+			gui_textshow((char*)str, pos, LCD_NOREV);
+		}
+		else if(show_flg==2){
+			TSGet(&curts);
+
+			if(curts.Year==0|| curts.Month==0||curts.Day==0)
+				sprintf((char*)str,"抄表时间 00/00/00 00:00");
+			else
+			sprintf((char*)str,"抄表时间 %02d/%02d/%02d %02d:%02d",
+					curts.Year-2000, curts.Month, curts.Day, curts.Hour, curts.Minute);
+			gui_setpos(&pos, rect_Client.left+2*FONTSIZE, rect_Client.top+18*FONTSIZE);
+			gui_textshow((char*)str, pos, LCD_NOREV);
+		}
+		return;
+}
+void LunXunShowPage_X4_Q_All(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT8U show_flg){
+	Point pos = {0};
+				TS curts = {0};
+				INT8U str[100] = {0};
+				INT8U chg_str[50] = {0};
+
+				gui_setpos(&pos, rect_Client.left+3*FONTSIZE, rect_Client.top+FONTSIZE);
+				gui_textshow((char *)"四象限无功电能示值", pos, LCD_NOREV);
+				memset(str, 0, 100);
+
+				sprintf((char*)str,"总% 14.2f kVArh",jprograminfo->ACSEnergy.Q4_Qt_All*1.0/(ENERGY_CONST*ENERGY_COEF));
+				pos.x = rect_Client.left + FONTSIZE/2;
+				pos.y = rect_Client.top + 5*FONTSIZE;
+				gui_textshow((char*)str, pos, LCD_NOREV);
+				sprintf((char*)str,"尖% 14.2f kVArh",jprograminfo->ACSEnergy.Q4_Qt_Rate[0]*1.0/(ENERGY_CONST*ENERGY_COEF));
+				pos.y += 2*FONTSIZE+OFFSET_Y;
+				gui_textshow((char*)str, pos, LCD_NOREV);
+				sprintf((char*)str,"峰% 14.2f kVArh",jprograminfo->ACSEnergy.Q4_Qt_Rate[1]*1.0/(ENERGY_CONST*ENERGY_COEF));
+				pos.y += 2*FONTSIZE+OFFSET_Y;
+				gui_textshow((char*)str, pos, LCD_NOREV);
+				sprintf((char*)str,"平% 14.2f kVArh",jprograminfo->ACSEnergy.Q4_Qt_Rate[2]*1.0/(ENERGY_CONST*ENERGY_COEF));
+				pos.y += 2*FONTSIZE+OFFSET_Y;
+				gui_textshow((char*)str, pos, LCD_NOREV);
+				sprintf((char*)str,"谷% 14.2f kVArh",jprograminfo->ACSEnergy.Q4_Qt_Rate[3]*1.0/(ENERGY_CONST*ENERGY_COEF));
+				pos.y += 2*FONTSIZE+OFFSET_Y;
+				gui_textshow((char*)str, pos, LCD_NOREV);
+				if(show_flg==1){
+					//地址类型、逻辑地址、终端地址
+					if (p_JProgramInfo->oi_changed.oi4001 != g_chgOI4001) {
+						g_chgOI4001 = p_JProgramInfo->oi_changed.oi4001;
+						readCoverClass(0x4001, 0, (void*)&g_Class4001_4002_4003,sizeof(CLASS_4001_4002_4003), para_vari_save);
+					}
+
+					bcd2str(&g_Class4001_4002_4003.curstom_num[1],(INT8U*)chg_str,g_Class4001_4002_4003.curstom_num[0],sizeof(str),positive);
+					sprintf((char*)str,"终端地址 %s",chg_str);
+					gui_setpos(&pos, rect_Client.left+3*FONTSIZE, rect_Client.top+18*FONTSIZE);
+					gui_textshow((char*)str, pos, LCD_NOREV);
+				}
+				else if(show_flg==2){
+					TSGet(&curts);
+
+					if(curts.Year==0|| curts.Month==0||curts.Day==0)
+						sprintf((char*)str,"抄表时间 00/00/00 00:00");
+					else
+					sprintf((char*)str,"抄表时间 %02d/%02d/%02d %02d:%02d",
+							curts.Year-2000, curts.Month, curts.Day, curts.Hour, curts.Minute);
+					gui_setpos(&pos, rect_Client.left+2*FONTSIZE, rect_Client.top+18*FONTSIZE);
+					gui_textshow((char*)str, pos, LCD_NOREV);
+				}
+				return;
+}
+void LunXunShowPage_S(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT8U show_flg)
+{
+		Point pos;
+		TS curts = {0};
+		INT8U str[100];
+		INT8U chg_str[50] = {0};
+
+		gui_setpos(&pos, rect_Client.left+8*FONTSIZE, rect_Client.top+FONTSIZE);
+		gui_textshow((char *)"当前视在功率", pos, LCD_NOREV);
+		pos.x = rect_Client.left + 4*FONTSIZE;
+		pos.y += 2*FONTSIZE+OFFSET_Y;
+		memset(str, 0, 100);
+
+		sprintf((char*)str,"总 % 12.4f kVA",jprograminfo->ACSRealData.St*1.0/(S_COEF*ENERGY_COEF*10));
+		pos.y += 2*FONTSIZE+OFFSET_Y;
+		gui_textshow((char*)str, pos, LCD_NOREV);
+		memset(str, 0, 100);
+		if(jprograminfo->dev_info.WireType != 0x1200 && jprograminfo->dev_info.WireType != 0x0600)//0x1200 三相三线接法 0x0600 三相四线接法
+		{
+			bzero(str,100);
+			sprintf((char*)str,"未知的接线方式");
+			gui_setpos(&pos, rect_Client.left+4*FONTSIZE, rect_Client.top+5*FONTSIZE);
+			gui_textshow((char*)str, pos, LCD_NOREV);
+			return;
+		}
+		bzero(str,100);
+
+		sprintf((char*)str,"A相% 12.4f kVA",jprograminfo->ACSRealData.Sa*1.0/(S_COEF*ENERGY_COEF*10));
+		pos.y += 2*FONTSIZE+OFFSET_Y;
+		gui_textshow((char*)str, pos, LCD_NOREV);
+		memset(str, 0, 100);
+		if(jprograminfo->dev_info.WireType == 0x0600)
+		{
+			sprintf((char*)str,"B相% 12.4f kVA",jprograminfo->ACSRealData.Sb*1.0/(S_COEF*ENERGY_COEF*10));
+			pos.y += 2*FONTSIZE+OFFSET_Y;
+			gui_textshow((char*)str, pos, LCD_NOREV);
+			memset(str, 0, 100);
+		}
+		sprintf((char*)str,"C相% 12.4f kVA",jprograminfo->ACSRealData.Sc*1.0/(S_COEF*ENERGY_COEF*10));
+		pos.y += 2*FONTSIZE+OFFSET_Y;
+		gui_textshow((char*)str, pos, LCD_NOREV);
+
+		if(show_flg==1){
+			//地址类型、逻辑地址、终端地址
+			if (p_JProgramInfo->oi_changed.oi4001 != g_chgOI4001) {
+				g_chgOI4001 = p_JProgramInfo->oi_changed.oi4001;
+				readCoverClass(0x4001, 0, (void*)&g_Class4001_4002_4003,sizeof(CLASS_4001_4002_4003), para_vari_save);
+			}
+
+			bcd2str(&g_Class4001_4002_4003.curstom_num[1],(INT8U*)chg_str,g_Class4001_4002_4003.curstom_num[0],sizeof(str),positive);
+			sprintf((char*)str,"终端地址 %s",chg_str);
+			gui_setpos(&pos, rect_Client.left+3*FONTSIZE, rect_Client.top+18*FONTSIZE);
+			gui_textshow((char*)str, pos, LCD_NOREV);
+		}
+		else if(show_flg==2){
+			TSGet(&curts);
+
+			if(curts.Year==0|| curts.Month==0||curts.Day==0)
+				sprintf((char*)str,"抄表时间 00/00/00 00:00");
+			else
+			sprintf((char*)str,"抄表时间 %02d/%02d/%02d %02d:%02d",
+					curts.Year-2000, curts.Month, curts.Day, curts.Hour, curts.Minute);
+			gui_setpos(&pos, rect_Client.left+2*FONTSIZE, rect_Client.top+18*FONTSIZE);
+			gui_textshow((char*)str, pos, LCD_NOREV);
+		}
+		return;
+}
+//void LunXunShowPage5(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT8U show_flg){
+//{
+//
+//}
+void LunXunShowPage7(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT8U show_flg){
 
 	Point pos = {0};
 	TS curts = {0};
@@ -368,73 +742,23 @@ void LunXunShowPage3(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT8
 		sprintf((char*)str,"A相电压% 9.3f V",jprograminfo->ACSRealData.Ua*1.0/U_COEF);
 		gui_setpos(&pos, rect_Client.left+4*FONTSIZE, rect_Client.top+5*FONTSIZE);
 		gui_textshow((char*)str, pos, LCD_NOREV);
+		sprintf((char*)str,"B相电压% 9.3f V",jprograminfo->ACSRealData.Ub*1.0/U_COEF);
+		pos.y += 2*FONTSIZE+OFFSET_Y;
+		gui_textshow((char*)str, pos, LCD_NOREV);
+		sprintf((char*)str,"C相电压% 9.3f V",jprograminfo->ACSRealData.Uc*1.0/U_COEF);
+		pos.y += 2*FONTSIZE+OFFSET_Y;
+		gui_textshow((char*)str, pos, LCD_NOREV);
 	}
 	else if(jprograminfo->dev_info.WireType == 0x1200)
 	{
 		sprintf((char*)str,"    Uab% 9.3f V",jprograminfo->ACSRealData.Ua*1.0/U_COEF);
 		gui_setpos(&pos, rect_Client.left+4*FONTSIZE, rect_Client.top+5*FONTSIZE);
 		gui_textshow((char*)str, pos, LCD_NOREV);
-	}
-
-	if(show_flg==1){
-		//地址类型、逻辑地址、终端地址
-
-		if (p_JProgramInfo->oi_changed.oi4001 != g_chgOI4001) {
-			g_chgOI4001 = p_JProgramInfo->oi_changed.oi4001;
-			readCoverClass(0x4001, 0, (void*)&g_Class4001_4002_4003, sizeof(CLASS_4001_4002_4003), para_vari_save);
-		}
-
-		bcd2str(&g_Class4001_4002_4003.curstom_num[1],(INT8U*)chg_str,g_Class4001_4002_4003.curstom_num[0],sizeof(str),positive);
-		sprintf((char*)str,"终端地址 %s",chg_str);
-		gui_setpos(&pos, rect_Client.left+3*FONTSIZE, rect_Client.top+18*FONTSIZE);
-		gui_textshow((char*)str, pos, LCD_NOREV);
-	}else if(show_flg==2){
-		TSGet(&curts);
-
-		if(curts.Year==0|| curts.Month==0||curts.Day==0)
-			sprintf((char*)str,"抄表时间 00/00/00 00:00");
-		else
-		sprintf((char*)str,"抄表时间 %02d/%02d/%02d %02d:%02d",
-				curts.Year-2000, curts.Month, curts.Day, curts.Hour, curts.Minute);
-		gui_setpos(&pos, rect_Client.left+2*FONTSIZE, rect_Client.top+18*FONTSIZE);
-		gui_textshow((char*)str, pos, LCD_NOREV);
-	}
-	return;
-}
-
-void LunXunShowPage4(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT8U show_flg){
-
-	Point pos = {0};
-	TS curts = {0};
-	INT8U str[100] = {0};
-	INT8U chg_str[50] = {0};
-
-	bzero(str,100);
-	gui_setpos(&pos, rect_Client.left+10*FONTSIZE, rect_Client.top+FONTSIZE);
-	gui_textshow((char *)"当前电压", pos, LCD_NOREV);
-
-	//fprintf(stderr,"接线方式：%02x",shmm_getdevstat()->WireType);
-	if(jprograminfo->dev_info.WireType != 0x1200 && jprograminfo->dev_info.WireType != 0x0600)
-	{
-		bzero(str,100);
-		sprintf((char*)str,"未知的接线方式");
-		gui_setpos(&pos, rect_Client.left+4*FONTSIZE, rect_Client.top+5*FONTSIZE);
-		gui_textshow((char*)str, pos, LCD_NOREV);
-		return;
-	}
-
-	if(jprograminfo->dev_info.WireType == 0x0600)
-	{
-		sprintf((char*)str,"B相电压% 9.3f V",jprograminfo->ACSRealData.Ub*1.0/U_COEF);
-		gui_setpos(&pos, rect_Client.left+4*FONTSIZE, rect_Client.top+5*FONTSIZE);
-		gui_textshow((char*)str, pos, LCD_NOREV);
-	}
-	else if(jprograminfo->dev_info.WireType == 0x1200)
-	{
 		sprintf((char*)str,"    Ubc% 9.3f V",jprograminfo->ACSRealData.Uc*1.0/U_COEF);
 		pos.y += 2*FONTSIZE+OFFSET_Y;
 		gui_textshow((char*)str, pos, LCD_NOREV);
 	}
+
 	if(show_flg==1){
 		//地址类型、逻辑地址、终端地址
 
@@ -459,156 +783,7 @@ void LunXunShowPage4(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT8
 	}
 	return;
 }
-void LunXunShowPage5(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT8U show_flg){
 
-	Point pos = {0};
-	TS curts = {0};
-	INT8U str[100] = {0};
-	INT8U chg_str[50] = {0};
-
-	bzero(str,100);
-	gui_setpos(&pos, rect_Client.left+10*FONTSIZE, rect_Client.top+FONTSIZE);
-	gui_textshow((char *)"当前电压", pos, LCD_NOREV);
-
-	//fprintf(stderr,"接线方式：%02x",shmm_getdevstat()->WireType);
-	if(jprograminfo->dev_info.WireType != 0x1200 && jprograminfo->dev_info.WireType != 0x0600)
-	{
-		bzero(str,100);
-		sprintf((char*)str,"未知的接线方式");
-		gui_setpos(&pos, rect_Client.left+4*FONTSIZE, rect_Client.top+5*FONTSIZE);
-		gui_textshow((char*)str, pos, LCD_NOREV);
-		return;
-	}
-
-	if(jprograminfo->dev_info.WireType == 0x0600)
-	{
-		sprintf((char*)str,"C相电压% 9.3f V",jprograminfo->ACSRealData.Uc*1.0/U_COEF);
-		gui_setpos(&pos, rect_Client.left+4*FONTSIZE, rect_Client.top+5*FONTSIZE);
-		gui_textshow((char*)str, pos, LCD_NOREV);
-	}
-	if(show_flg==1){
-		//地址类型、逻辑地址、终端地址
-
-
-		if (p_JProgramInfo->oi_changed.oi4001 != g_chgOI4001) {
-			g_chgOI4001 = p_JProgramInfo->oi_changed.oi4001;
-			readCoverClass(0x4001, 0, (void*)&g_Class4001_4002_4003, sizeof(CLASS_4001_4002_4003), para_vari_save);
-		}
-		bcd2str(&g_Class4001_4002_4003.curstom_num[1],(INT8U*)chg_str,g_Class4001_4002_4003.curstom_num[0],sizeof(str),positive);
-		sprintf((char*)str,"终端地址 %s",chg_str);
-		gui_setpos(&pos, rect_Client.left+3*FONTSIZE, rect_Client.top+18*FONTSIZE);
-		gui_textshow((char*)str, pos, LCD_NOREV);
-	}else if(show_flg==2){
-		TSGet(&curts);
-
-		if(curts.Year==0|| curts.Month==0||curts.Day==0)
-			sprintf((char*)str,"抄表时间 00/00/00 00:00");
-		else
-		sprintf((char*)str,"抄表时间 %02d/%02d/%02d %02d:%02d",
-				curts.Year-2000, curts.Month, curts.Day, curts.Hour, curts.Minute);
-		gui_setpos(&pos, rect_Client.left+2*FONTSIZE, rect_Client.top+18*FONTSIZE);
-		gui_textshow((char*)str, pos, LCD_NOREV);
-	}
-	return;
-}
-void LunXunShowPage6(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT8U show_flg){
-
-	Point pos = {0};
-	TS curts = {0};
-	INT8U str[100] = {0};
-	INT8U chg_str[50] = {0};
-
-	gui_setpos(&pos, rect_Client.left+10*FONTSIZE, rect_Client.top+FONTSIZE);
-	gui_textshow((char *)"当前电流", pos, LCD_NOREV);
-	bzero(str,100);
-	//fprintf(stderr,"接线方式：%02x",shmm_getdevstat()->WireType);
-	if(jprograminfo->dev_info.WireType != 0x1200 && jprograminfo->dev_info.WireType != 0x0600)
-	{
-		bzero(str,100);
-		sprintf((char*)str,"未知的接线方式");
-		gui_setpos(&pos, rect_Client.left+4*FONTSIZE, rect_Client.top+5*FONTSIZE);
-		gui_textshow((char*)str, pos, LCD_NOREV);
-		return;
-	}
-	bzero(str,100);
-
-	sprintf((char*)str,"A相电流% 9.3f A",jprograminfo->ACSRealData.Ia*1.0/I_COEF);
-	gui_setpos(&pos, rect_Client.left+4*FONTSIZE, rect_Client.top+5*FONTSIZE);
-	gui_textshow((char*)str, pos, LCD_NOREV);
-	if(show_flg==1){
-		//地址类型、逻辑地址、终端地址
-
-		if (p_JProgramInfo->oi_changed.oi4001 != g_chgOI4001) {
-			g_chgOI4001 = p_JProgramInfo->oi_changed.oi4001;
-			readCoverClass(0x4001, 0, (void*)&g_Class4001_4002_4003,sizeof(CLASS_4001_4002_4003), para_vari_save);
-		}
-		bcd2str(&g_Class4001_4002_4003.curstom_num[1],(INT8U*)chg_str,g_Class4001_4002_4003.curstom_num[0],sizeof(str),positive);
-		sprintf((char*)str,"终端地址 %s",chg_str);
-		gui_setpos(&pos, rect_Client.left+3*FONTSIZE, rect_Client.top+18*FONTSIZE);
-		gui_textshow((char*)str, pos, LCD_NOREV);
-	}else if(show_flg==2){
-		TSGet(&curts);
-
-		if(curts.Year==0|| curts.Month==0||curts.Day==0)
-			sprintf((char*)str,"抄表时间 00/00/00 00:00");
-		else
-		sprintf((char*)str,"抄表时间 %02d/%02d/%02d %02d:%02d",
-				curts.Year-2000, curts.Month, curts.Day, curts.Hour, curts.Minute);
-		gui_setpos(&pos, rect_Client.left+2*FONTSIZE, rect_Client.top+18*FONTSIZE);
-		gui_textshow((char*)str, pos, LCD_NOREV);
-	}
-	return;
-}
-void LunXunShowPage7(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT8U show_flg){
-
-	Point pos = {0};
-	TS curts = {0};
-	INT8U str[100] = {0};
-	INT8U chg_str[50] = {0};
-
-	gui_setpos(&pos, rect_Client.left+10*FONTSIZE, rect_Client.top+FONTSIZE);
-	gui_textshow((char *)"当前电流", pos, LCD_NOREV);
-	bzero(str,100);
-	//fprintf(stderr,"接线方式：%02x",shmm_getdevstat()->WireType);
-	if(jprograminfo->dev_info.WireType != 0x1200 && jprograminfo->dev_info.WireType != 0x0600)
-	{
-		bzero(str,100);
-		sprintf((char*)str,"未知的接线方式");
-		gui_setpos(&pos, rect_Client.left+4*FONTSIZE, rect_Client.top+5*FONTSIZE);
-		gui_textshow((char*)str, pos, LCD_NOREV);
-		return;
-	}
-	bzero(str,100);
-	if(jprograminfo->dev_info.WireType == 0x0600)
-	{
-		sprintf((char*)str,"B相电流% 9.3f A",jprograminfo->ACSRealData.Ib*1.0/I_COEF);
-		gui_setpos(&pos, rect_Client.left+4*FONTSIZE, rect_Client.top+5*FONTSIZE);
-		gui_textshow((char*)str, pos, LCD_NOREV);
-	}
-	if(show_flg==1){
-		//地址类型、逻辑地址、终端地址
-
-		if (p_JProgramInfo->oi_changed.oi4001 != g_chgOI4001) {
-			g_chgOI4001 = p_JProgramInfo->oi_changed.oi4001;
-			readCoverClass(0x4001, 0, (void*)&g_Class4001_4002_4003, sizeof(CLASS_4001_4002_4003), para_vari_save);
-		}
-		bcd2str(&g_Class4001_4002_4003.curstom_num[1],(INT8U*)chg_str,g_Class4001_4002_4003.curstom_num[0],sizeof(str),positive);
-		sprintf((char*)str,"终端地址 %s",chg_str);
-		gui_setpos(&pos, rect_Client.left+3*FONTSIZE, rect_Client.top+18*FONTSIZE);
-		gui_textshow((char*)str, pos, LCD_NOREV);
-	}else if(show_flg==2){
-		TSGet(&curts);
-
-		if(curts.Year==0|| curts.Month==0||curts.Day==0)
-			sprintf((char*)str,"抄表时间 00/00/00 00:00");
-		else
-		sprintf((char*)str,"抄表时间 %02d/%02d/%02d %02d:%02d",
-				curts.Year-2000, curts.Month, curts.Day, curts.Hour, curts.Minute);
-		gui_setpos(&pos, rect_Client.left+2*FONTSIZE, rect_Client.top+18*FONTSIZE);
-		gui_textshow((char*)str, pos, LCD_NOREV);
-	}
-	return;
-}
 void LunXunShowPage8(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT8U show_flg){
 
 	Point pos = {0};
@@ -628,9 +803,17 @@ void LunXunShowPage8(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT8
 		gui_textshow((char*)str, pos, LCD_NOREV);
 		return;
 	}
+	bzero(str,100);
+	sprintf((char*)str,"A相电流% 9.3f A",jprograminfo->ACSRealData.Ia*1.0/I_COEF);
+	gui_setpos(&pos, rect_Client.left+4*FONTSIZE, rect_Client.top+5*FONTSIZE);
+	gui_textshow((char*)str, pos, LCD_NOREV);
+
+	sprintf((char*)str,"B相电流% 9.3f A",jprograminfo->ACSRealData.Ib*1.0/I_COEF);
+	pos.y += 2*FONTSIZE+OFFSET_Y;
+	gui_textshow((char*)str, pos, LCD_NOREV);
 
 	sprintf((char*)str,"C相电流% 9.3f A",jprograminfo->ACSRealData.Ic*1.0/I_COEF);
-	gui_setpos(&pos, rect_Client.left+4*FONTSIZE, rect_Client.top+5*FONTSIZE);;
+	pos.y += 2*FONTSIZE+OFFSET_Y;
 	gui_textshow((char*)str, pos, LCD_NOREV);
 	if(show_flg==1){
 		//地址类型、逻辑地址、终端地址
@@ -656,6 +839,7 @@ void LunXunShowPage8(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT8
 	}
 	return;
 }
+
 void LunXunShowPage9(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT8U show_flg){
 
 	Point pos = {0};
@@ -683,6 +867,15 @@ void LunXunShowPage9(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT8
 	sprintf((char*)str,"A相%15.4f kW",jprograminfo->ACSRealData.Pa*1.0/(P_COEF*1000));
 	pos.y += 2*FONTSIZE+OFFSET_Y;
 	gui_textshow((char*)str, pos, LCD_NOREV);
+	if(jprograminfo->dev_info.WireType == 0x0600)
+		{
+			sprintf((char*)str,"B相%15.4f kW",jprograminfo->ACSRealData.Pb*1.0/(P_COEF*1000));
+			pos.y += 2*FONTSIZE+OFFSET_Y;
+			gui_textshow((char*)str, pos, LCD_NOREV);
+		}
+		sprintf((char*)str,"C相%15.4f kW",jprograminfo->ACSRealData.Pc*1.0/(P_COEF*1000));
+		pos.y += 2*FONTSIZE+OFFSET_Y;
+		gui_textshow((char*)str, pos, LCD_NOREV);
 	if(show_flg==1){
 		//地址类型、逻辑地址、终端地址
 
@@ -708,7 +901,6 @@ void LunXunShowPage9(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT8
 	return;
 }
 void LunXunShowPage10(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT8U show_flg){
-
 	Point pos = {0};
 	TS curts = {0};
 	INT8U str[100] = {0};
@@ -716,9 +908,9 @@ void LunXunShowPage10(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT
 
 	bzero(str,100);
 	gui_setpos(&pos, rect_Client.left+7*FONTSIZE, rect_Client.top+FONTSIZE);
-	gui_textshow((char *)"当前有功功率", pos, LCD_NOREV);
+	gui_textshow((char *)"当前无功功率", pos, LCD_NOREV);
 
-	sprintf((char*)str,"总 % 15.4f kW",jprograminfo->ACSRealData.Pt*1.0/(P_COEF*1000));
+	sprintf((char*)str,"总 % 12.4f kVar",jprograminfo->ACSRealData.Qt*1.0/(Q_COEF*1000));
 	gui_setpos(&pos, rect_Client.left+3*FONTSIZE, rect_Client.top+5*FONTSIZE);
 	gui_textshow((char*)str, pos, LCD_NOREV);
 	//fprintf(stderr,"接线方式：%02x",shmm_getdevstat()->WireType);
@@ -730,13 +922,19 @@ void LunXunShowPage10(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT
 		gui_textshow((char*)str, pos, LCD_NOREV);
 		return;
 	}
-
+	bzero(str,100);
+	sprintf((char*)str,"A相%12.4f kVar",jprograminfo->ACSRealData.Qt*1.0/(Q_COEF*1000));
+	pos.y += 2*FONTSIZE+OFFSET_Y;
+	gui_textshow((char*)str, pos, LCD_NOREV);
 	if(jprograminfo->dev_info.WireType == 0x0600)
-	{
-		sprintf((char*)str,"B相%15.4f kW",jprograminfo->ACSRealData.Pb*1.0/(P_COEF*1000));
+		{
+			sprintf((char*)str,"B相%12.4f kVar",jprograminfo->ACSRealData.Qt*1.0/(Q_COEF*1000));
+			pos.y += 2*FONTSIZE+OFFSET_Y;
+			gui_textshow((char*)str, pos, LCD_NOREV);
+		}
+		sprintf((char*)str,"C相%12.4f kVar",jprograminfo->ACSRealData.Qt*1.0/(Q_COEF*1000));
 		pos.y += 2*FONTSIZE+OFFSET_Y;
-		gui_textshow((char*)str, pos, LCD_NOREV);;
-	}
+		gui_textshow((char*)str, pos, LCD_NOREV);
 	if(show_flg==1){
 		//地址类型、逻辑地址、终端地址
 
@@ -763,60 +961,68 @@ void LunXunShowPage10(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT
 }
 
 void LunXunShowPage11(ProgramInfo* jprograminfo,LcdDataItem *item, int size, INT8U show_flg){
+		Point pos = {0};
+		TS curts = {0};
+		INT8U str[100] = {0};
+		INT8U chg_str[50] = {0};
 
-	Point pos = {0};
-	TS curts = {0};
-	INT8U str[100] = {0};
-	INT8U chg_str[50] = {0};
-
-	bzero(str,100);
-	gui_setpos(&pos, rect_Client.left+7*FONTSIZE, rect_Client.top+FONTSIZE);
-	gui_textshow((char *)"当前有功功率", pos, LCD_NOREV);
-
-	sprintf((char*)str,"总 % 15.4f kW",jprograminfo->ACSRealData.Pt*1.0/(P_COEF*1000));
-	gui_setpos(&pos, rect_Client.left+3*FONTSIZE, rect_Client.top+5*FONTSIZE);
-	gui_textshow((char*)str, pos, LCD_NOREV);
-	//fprintf(stderr,"接线方式：%02x",shmm_getdevstat()->WireType);
-	if(jprograminfo->dev_info.WireType != 0x1200 && jprograminfo->dev_info.WireType != 0x0600)
-	{
 		bzero(str,100);
-		sprintf((char*)str,"未知的接线方式");
-		gui_setpos(&pos, rect_Client.left+4*FONTSIZE, rect_Client.top+5*FONTSIZE);
+		gui_setpos(&pos, rect_Client.left+7*FONTSIZE, rect_Client.top+FONTSIZE);
+		gui_textshow((char *)"当前功率因数", pos, LCD_NOREV);
+
+		sprintf((char*)str,"总功率因数 % 9.4f ",jprograminfo->ACSRealData.Cos*1.0/COS_COEF);
+		gui_setpos(&pos, rect_Client.left+3*FONTSIZE, rect_Client.top+5*FONTSIZE);
 		gui_textshow((char*)str, pos, LCD_NOREV);
-		return;
-	}
-
-	sprintf((char*)str,"C相%15.4f kW",jprograminfo->ACSRealData.Pc*1.0/(P_COEF*1000));
-	pos.y += 2*FONTSIZE+OFFSET_Y;
-	gui_textshow((char*)str, pos, LCD_NOREV);
-	if(show_flg==1){
-		//地址类型、逻辑地址、终端地址
-
-		if (p_JProgramInfo->oi_changed.oi4001 != g_chgOI4001) {
-			g_chgOI4001 = p_JProgramInfo->oi_changed.oi4001;
-			readCoverClass(0x4001, 0, (void*)&g_Class4001_4002_4003, sizeof(CLASS_4001_4002_4003), para_vari_save);
+		//fprintf(stderr,"接线方式：%02x",shmm_getdevstat()->WireType);
+		if(jprograminfo->dev_info.WireType != 0x1200 && jprograminfo->dev_info.WireType != 0x0600)
+		{
+			bzero(str,100);
+			sprintf((char*)str,"未知的接线方式");
+			gui_setpos(&pos, rect_Client.left+4*FONTSIZE, rect_Client.top+5*FONTSIZE);
+			gui_textshow((char*)str, pos, LCD_NOREV);
+			return;
 		}
-		bcd2str(&g_Class4001_4002_4003.curstom_num[1],(INT8U*)chg_str,g_Class4001_4002_4003.curstom_num[0],sizeof(str),positive);
-		sprintf((char*)str,"终端地址 %s",chg_str);
-		gui_setpos(&pos, rect_Client.left+3*FONTSIZE, rect_Client.top+18*FONTSIZE);
+		bzero(str,100);
+		sprintf((char*)str,"A相功率因数%9.4f ",jprograminfo->ACSRealData.CosA*1.0/COS_COEF);
+		pos.y += 2*FONTSIZE+OFFSET_Y;
 		gui_textshow((char*)str, pos, LCD_NOREV);
-	}else if(show_flg==2){
-		TSGet(&curts);
+		if(jprograminfo->dev_info.WireType == 0x0600)
+			{
+				sprintf((char*)str,"B相功率因数%9.4f ",jprograminfo->ACSRealData.CosB*1.0/COS_COEF);
+				pos.y += 2*FONTSIZE+OFFSET_Y;
+				gui_textshow((char*)str, pos, LCD_NOREV);
+			}
+			sprintf((char*)str,"C相功率因数%9.4f ",jprograminfo->ACSRealData.CosC*1.0/COS_COEF);
+			pos.y += 2*FONTSIZE+OFFSET_Y;
+			gui_textshow((char*)str, pos, LCD_NOREV);
+		if(show_flg==1){
+			//地址类型、逻辑地址、终端地址
 
-		if(curts.Year==0|| curts.Month==0||curts.Day==0)
-			sprintf((char*)str,"抄表时间 00/00/00 00:00");
-		else
-		sprintf((char*)str,"抄表时间 %02d/%02d/%02d %02d:%02d",
-				curts.Year-2000, curts.Month, curts.Day, curts.Hour, curts.Minute);
-		gui_setpos(&pos, rect_Client.left+2*FONTSIZE, rect_Client.top+18*FONTSIZE);
-		gui_textshow((char*)str, pos, LCD_NOREV);
-	}
-	return;
+			if (p_JProgramInfo->oi_changed.oi4001 != g_chgOI4001) {
+				g_chgOI4001 = p_JProgramInfo->oi_changed.oi4001;
+				readCoverClass(0x4001, 0, (void*)&g_Class4001_4002_4003, sizeof(CLASS_4001_4002_4003), para_vari_save);
+			}
+			bcd2str(&g_Class4001_4002_4003.curstom_num[1],(INT8U*)chg_str,g_Class4001_4002_4003.curstom_num[0],sizeof(str),positive);
+			sprintf((char*)str,"终端地址 %s",chg_str);
+			gui_setpos(&pos, rect_Client.left+3*FONTSIZE, rect_Client.top+18*FONTSIZE);
+			gui_textshow((char*)str, pos, LCD_NOREV);
+		}else if(show_flg==2){
+			TSGet(&curts);
+
+			if(curts.Year==0|| curts.Month==0||curts.Day==0)
+				sprintf((char*)str,"抄表时间 00/00/00 00:00");
+			else
+			sprintf((char*)str,"抄表时间 %02d/%02d/%02d %02d:%02d",
+					curts.Year-2000, curts.Month, curts.Day, curts.Hour, curts.Minute);
+			gui_setpos(&pos, rect_Client.left+2*FONTSIZE, rect_Client.top+18*FONTSIZE);
+			gui_textshow((char*)str, pos, LCD_NOREV);
+		}
+		return;
+
 }
 
 void ShowJCData(ProgramInfo* p_JProgramInfo,int PageNo, LcdDataItem *item, int size, int show_flg)
 {
-	fprintf(stderr,"\n^^^^gui:JCpage==%d^^^^^\n",PageNo);
 	switch(PageNo)
 	{
 	case 0:
@@ -826,49 +1032,66 @@ void ShowJCData(ProgramInfo* p_JProgramInfo,int PageNo, LcdDataItem *item, int s
 		LunXunShowPage2(p_JProgramInfo,item, size, show_flg);//当前正向无功电能示值
 		break;
 	case 2:
-		LunXunShowPage3(p_JProgramInfo,item, size, show_flg);//A相电压
+		LunXunShowPage3(p_JProgramInfo,item, size, show_flg);//当前反向有功电能示值
 		break;
 	case 3:
-		LunXunShowPage4(p_JProgramInfo,item, size, show_flg);//B相电压
+		LunXunShowPage4(p_JProgramInfo,item, size, show_flg);//当前反向无功电能示值
 		break;
 	case 4:
-		LunXunShowPage5(p_JProgramInfo,item, size, show_flg);//C相电压
+		LunXunShowPage_X1_Q_All(p_JProgramInfo,item, size, show_flg);//一象限无功电能示值
 		break;
 	case 5:
-		LunXunShowPage6(p_JProgramInfo,item, size, show_flg);//A相电流
+		LunXunShowPage_X2_Q_All(p_JProgramInfo,item, size, show_flg);//二象限无功电能示值
 		break;
 	case 6:
-		LunXunShowPage7(p_JProgramInfo,item, size, show_flg);//B相电流
+		LunXunShowPage_X3_Q_All(p_JProgramInfo,item, size, show_flg);//三象限无功电能示值
 		break;
 	case 7:
-		LunXunShowPage8(p_JProgramInfo,item, size, show_flg);//C相电流
+		LunXunShowPage_X4_Q_All(p_JProgramInfo,item, size, show_flg);//四象限无功电能示值
 		break;
 	case 8:
-		LunXunShowPage9(p_JProgramInfo,item, size, show_flg);//A相有功功率
+		LunXunShowPage_S(p_JProgramInfo,item, size, show_flg);//视在功率
 		break;
 	case 9:
-		LunXunShowPage10(p_JProgramInfo,item, size, show_flg);//B相有功功率
+		LunXunShowPage7(p_JProgramInfo,item, size, show_flg);//当前电压
 		break;
 	case 10:
-		LunXunShowPage11(p_JProgramInfo,item, size, show_flg);//C相有功功率
+		LunXunShowPage8(p_JProgramInfo,item, size, show_flg);//当前电流
 		break;
+	case 11:
+		LunXunShowPage9(p_JProgramInfo,item, size, show_flg);//当前有功功率
+		break;
+	case 12:
+		LunXunShowPage10(p_JProgramInfo,item, size, show_flg);//当前无功功率
+		break;
+	case 13:
+		LunXunShowPage11(p_JProgramInfo,item, size, show_flg);//当前功率因数
+		break;
+//	case 14:
+//		LunXunShowPage5(item, size, show_flg);//当前有功最大需量
+//		break;
 	default:
 		break;
 	}
 }
 
 LunXian_t LunXian[LunPageNum]={
-		{"当前有功总电能量示值", 	LunXunShowPage1, 			1},//0
-		{"当前无功总电能量示值", 	LunXunShowPage2, 			1},//1
-		{"A相电压",	LunXunShowPage3, 			1},//2
-		{"B相电压", 	LunXunShowPage4, 			1},//3
-		{"C相电压", 	LunXunShowPage5, 	1},//4
-		{"A相电流", 	LunXunShowPage6, 	1},//5
-		{"B相电流", 	LunXunShowPage7, 	1},//6
-		{"C相电流", 	LunXunShowPage8, 	1},//7
-		{"A相有功功率", 		LunXunShowPage9, 			1},//8
-		{"B相有功功率", 		LunXunShowPage10, 			1},//9
-		{"C相有功功率", 		LunXunShowPage11, 			1},//10
+		{"当前正向有功", 	LunXunShowPage1, 			1},//0
+		{"当前反向有功", 	LunXunShowPage3, 			1},//1
+		{"当前正向无功",	LunXunShowPage2, 			1},//2
+		{"当前反向无功", 	LunXunShowPage4, 			1},//3
+		{"一象限无功", 	LunXunShowPage_X1_Q_All, 	1},//4
+		{"二象限无功", 	LunXunShowPage_X2_Q_All, 	1},//5
+		{"三象限无功", 	LunXunShowPage_X3_Q_All, 	1},//6
+		{"四象限无功", 	LunXunShowPage_X4_Q_All, 	1},//7
+		{"视在功率", 		LunXunShowPage_S, 			1},//8
+		{"当前电压", 		LunXunShowPage7, 			1},//9
+		{"当前电流", 		LunXunShowPage8, 			1},//10
+		{"当前有功功率", 	LunXunShowPage9, 			1},//11
+		{"当前无功功率",	LunXunShowPage10, 			1},//12
+		{"当前功率因数", 	LunXunShowPage11, 			1},//13
+		//{"当前有功最大需量",LunXunShowPage5, 			1},//14//目前烟台关于需量代码没完成20170810
+		//{"通信参数",		lcdpoll_showidapnip, 		1}//15
 };
 
 

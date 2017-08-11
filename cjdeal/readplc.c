@@ -36,7 +36,6 @@ extern INT8S analyzeProtocol07(FORMAT07* format07, INT8U* recvBuf, const INT16U 
 extern INT8S OADMap07DI(OI_698 roadOI,OAD sourceOAD, C601F_645* flag645);
 extern void DbgPrintToFile1(INT8U comport,const char *format,...);
 extern void DbPrt1(INT8U comport,char *prefix, char *buf, int len, char *suffix);
-extern INT8U TScompare(TS ts1, TS ts2);
 extern INT8U checkMeterType(MY_MS mst,INT8U usrType,TSA usrAddr);
 extern INT16S composeProtocol698_GetRequest(INT8U* sendBuf, CLASS_6015 obj6015,TSA meterAddr);
 extern mqd_t mqd_zb_task;
@@ -582,6 +581,16 @@ void task_init6015(CLASS_6015 *fangAn6015p)
 				break;
 		}
 	}
+}
+int initSearchMeter(CLASS_6002 *class6002)
+{
+	if(readCoverClass(0x6002,0,class6002,sizeof(CLASS_6002),para_vari_save)==1)
+	{
+		fprintf(stderr,"搜表参数读取成功\n");
+	}else {
+		fprintf(stderr,"搜表参数文件不存在\n");
+	}
+	return 1;
 }
 int initTaskData(TASK_INFO *task)
 {
@@ -2510,7 +2519,7 @@ int startSearch(FORMAT3762 *down,INT8U *sendbuf)
 int doSerch(RUNTIME_PLC *runtime_p)
 {
 	static int step_cj = 0, beginwork=0;
-	int sendlen=0;
+	int sendlen=0, searchlen=0;
 
 	time_t nowtime = time(NULL);
 	if (runtime_p->nowts.Hour==23)
@@ -2591,7 +2600,11 @@ int doSerch(RUNTIME_PLC *runtime_p)
 			}
 			break;
 		case 3://等待注册
-			if ( nowtime - runtime_p->send_start_time < 5 *60)
+			if (search_i < 24)
+				searchlen = search6002.attr9[search_i].searchLen ;
+			else
+				searchlen = search6002.startSearchLen;
+			if ( (nowtime - runtime_p->send_start_time) < (searchlen *60) )
 			{
 				if (runtime_p->format_Up.afn == 0x06 && runtime_p->format_Up.fn == 4)
 				{
@@ -2616,19 +2629,30 @@ int doSerch(RUNTIME_PLC *runtime_p)
 	}
 	return METER_SEARCH;
 }
-int broadCastTimeJuge(TS nowts,INT8U *timestr)
+
+int MyTimeJuge(INT8U *timestr)
 {
 	TS broadcastTime;
-	broadcastTime.Year = nowts.Year;
-	broadcastTime.Month = nowts.Month;
-	broadcastTime.Day = nowts.Day;
-	broadcastTime.Hour = broadcase4204.startime1[0];
-	broadcastTime.Minute = broadcase4204.startime1[1];
-	broadcastTime.Sec = broadcase4204.startime1[2];
+	TS nowts1;
 
-	INT8U timeCmp = TScompare(nowts,broadcastTime);
-	if(timeCmp < 2)
+	TSGet(&nowts1);
+	TSGet(&broadcastTime);
+	broadcastTime.Year = nowts1.Year;
+	broadcastTime.Month = nowts1.Month;
+	broadcastTime.Day = nowts1.Day;
+	broadcastTime.Hour = timestr[0];
+	broadcastTime.Minute = timestr[1];
+	broadcastTime.Sec = timestr[2];
+
+	time_t time1 = tmtotime_t(broadcastTime);
+	time_t time2 = tmtotime_t(nowts1);
+	time_t time3 = time2 - time1;
+
+	if (abs(time3) < 2)
+	{
+		DbgPrintToFile1(31,"time3=%d",time3);
 		return 1;
+	}
 	return 0;
 }
 int dateJudge(TS *old ,TS *new)
@@ -2669,9 +2693,10 @@ void initlist(struct Tsa_Node *head)
 	return;
 }
 
-int stateJuge(int nowdstate,INT8U* my6000_p,INT8U* my6012_p,RUNTIME_PLC *runtime_p)
+int stateJuge(int nowdstate,INT8U* my6000_p,INT8U* my6012_p,INT8U* my6002_p,RUNTIME_PLC *runtime_p)
 {
 	int state = nowdstate;
+	int i=0;
 
 	if ((runtime_p->format_Up.afn==0x06) && (runtime_p->format_Up.fn==5))//AFN= 06 FN= F5  路由上报从节点事件
 	{
@@ -2689,6 +2714,7 @@ int stateJuge(int nowdstate,INT8U* my6000_p,INT8U* my6012_p,RUNTIME_PLC *runtime
 		runtime_p->initflag = 1;
 		runtime_p->state_bak = runtime_p->state;
 		state = DATE_CHANGE;
+		broadFlag_ts.Day  = 0;
 		runtime_p->state = state;
 		runtime_p->redo = 1;  //初始化之后需要重启抄读
 		*my6000_p = JProgramInfo->oi_changed.oi6000;
@@ -2709,16 +2735,33 @@ int stateJuge(int nowdstate,INT8U* my6000_p,INT8U* my6012_p,RUNTIME_PLC *runtime
 	if ((runtime_p->nowts.Hour==23 && runtime_p->nowts.Minute==59) || (runtime_p->nowts.Hour==0 && runtime_p->nowts.Minute==0))
 		return state;  //23点59分--0点0分之间不进行任务判断（准备跨日初始化）
 
-	if ((runtime_p->nowts.Hour==20 && runtime_p->nowts.Minute==0) &&
-		 state!=METER_SEARCH && state!=DATE_CHANGE && state!=SLAVE_COMP  && state!=INIT_MASTERADDR )
-	{
-		DbgPrintToFile1(31,"20点启动搜表");
-		runtime_p->state_bak = runtime_p->state;
-		clearvar(runtime_p);
-		runtime_p->redo = 2;  //搜表后需要恢复抄读
-		return METER_SEARCH;
-	}
 
+	//---------------------------------------------------------------------------------------------------------------------------
+	if (JProgramInfo->oi_changed.oi6002 != *my6002_p)
+	{
+		initSearchMeter(&search6002);//重新读取搜表参数
+		if(search6002.startSearchFlg == 1)
+		{
+			search6002.startSearchFlg = 0;			//启动立即搜表
+			search_i = 0xff;
+			saveCoverClass(0x6002,0,&search6002,sizeof(CLASS_6002),para_vari_save);
+			return METER_SEARCH;
+		}
+		*my6002_p = JProgramInfo->oi_changed.oi6002 ;
+	}
+	for(i=0; i<search6002.attr9_num;i++)
+	{
+		if (search6002.attr8.enablePeriodFlg==1 && MyTimeJuge(search6002.attr9[i].startTime)==1 )
+		{
+			DbgPrintToFile1(31,"%d-%d-%d 点启动搜表",search6002.attr9[i].startTime[0],search6002.attr9[i].startTime[1],search6002.attr9[i].startTime[2]);
+			sleep(3);
+			runtime_p->state_bak = runtime_p->state;
+			clearvar(runtime_p);
+			search_i = i;
+			runtime_p->redo = 2;  //搜表后需要恢复抄读
+			return METER_SEARCH;
+		}
+	}
 	//-------------------------------------------------------------------------------------------------------------------------
 	if (cjGuiProxy_plc.isInUse ==1 && cjGuiProxy_plc.strProxyMsg.port.OI == 0xf209 && state!=DATE_CHANGE && state!=DATA_REAL)
 	{	//出现液晶点抄载波表标识，并且不在初始化和点抄状态
@@ -2745,7 +2788,7 @@ int stateJuge(int nowdstate,INT8U* my6000_p,INT8U* my6012_p,RUNTIME_PLC *runtime
 	}
 
 	if (broadcase4204.enable==1 &&
-		broadCastTimeJuge(runtime_p->nowts,broadcase4204.startime)==1 &&
+		MyTimeJuge(broadcase4204.startime)==1 &&
 		broadFlag_ts.Day != runtime_p->nowts.Day )/*广播对时开始的条件 1：4204开启有效  2：到广播对时时间  3：当日未进行过对时 */
 	{
 		runtime_p->state_bak = runtime_p->state;
@@ -3162,7 +3205,7 @@ int doAutoReport(RUNTIME_PLC *runtime_p)
 	}
 	return AUTO_REPORT;
 }
-int broadcast_07(INT8U *buf,int delays)
+int broadcast_07(INT8U *buf,int delays,INT8U adr)
 {
 	DateTimeBCD  ts;
 	FORMAT07 frame07;
@@ -3172,7 +3215,7 @@ int broadcast_07(INT8U *buf,int delays)
 	ts =   timet_bcd(nowtime);
 
 	frame07.Ctrl = 0x08;//广播校时
-	memset(&frame07.Addr, 0x98, 6);//地址
+	memset(&frame07.Addr, adr, 6);//地址
 	frame07.Time[0] = ts.sec.data;
 	frame07.Time[1] = ts.min.data;
 	frame07.Time[2] = ts.hour.data;
@@ -3208,7 +3251,7 @@ int doBroadCast(RUNTIME_PLC *runtime_p)
 			if ( nowtime - runtime_p->send_start_time > 20)
 			{
 				memset(buf645,0,BUFSIZE645);
-				sendlen = broadcast_07(buf645,0);
+				sendlen = broadcast_07(buf645,0,0x98);
 				sendlen = AFN03_F9(&runtime_p->format_Down,runtime_p->sendbuf,0,sendlen,buf645);
 				SendDataToCom(runtime_p->comfd, runtime_p->sendbuf,sendlen );
 				DbgPrintToFile1(31,"广播对时_查询广播通信时长");
@@ -3233,15 +3276,28 @@ int doBroadCast(RUNTIME_PLC *runtime_p)
 			{
 				workflg = 1;
 				memset(buf645,0,BUFSIZE645);
-				sendlen = broadcast_07(buf645,runtime_p->format_Up.afn03_f9_up.DelayTime);
-				AFN05_F3(&runtime_p->format_Down,0,0x02,buf645,sendlen,runtime_p->sendbuf);
+				sendlen = broadcast_07(buf645,runtime_p->format_Up.afn03_f9_up.DelayTime,0x99);
+				sendlen = AFN05_F3(&runtime_p->format_Down,0,0x02,buf645,sendlen,runtime_p->sendbuf);
+				SendDataToCom(runtime_p->comfd, runtime_p->sendbuf,sendlen );
 				clearvar(runtime_p);
 				runtime_p->send_start_time = nowtime ;
 				DbgPrintToFile1(31,"广播对时_下发广播对时");
-			}else if((runtime_p->format_Up.afn == 0x00 && runtime_p->format_Up.fn == 1) ||
-					 ((nowtime - runtime_p->send_start_time > 20) && workflg==1) )
+			}else if((runtime_p->format_Up.afn == 0x00 && runtime_p->format_Up.fn == 1))
 			{//确认
-				DbgPrintToFile1(31,"收到广播确认");
+				DbgPrintToFile1(31,"收到广播确认 延时 %d s",runtime_p->format_Up.afn00_f1.WaitingTime);
+				if (runtime_p->format_Up.afn00_f1.WaitingTime < 100 )
+				{
+					DbgPrintToFile1(31,"延时 %d s",runtime_p->format_Up.afn00_f1.WaitingTime);
+					sleep(runtime_p->format_Up.afn00_f1.WaitingTime );
+					DbgPrintToFile1(31,"延时时间到");
+				}
+				clearvar(runtime_p);
+				step_cj = 0;
+				runtime_p->redo = 2;  //广播后恢复抄表
+				return(runtime_p->state_bak);
+			}else if(((nowtime - runtime_p->send_start_time > 20) && workflg==1) )
+			{
+				DbgPrintToFile1(31,"广播超时");
 				clearvar(runtime_p);
 				step_cj = 0;
 				runtime_p->redo = 2;  //广播后恢复抄表
@@ -3254,15 +3310,17 @@ int doBroadCast(RUNTIME_PLC *runtime_p)
 
 void readplc_thread()
 {
-	INT8U my6000=0 ,my6012=0;
+	INT8U my6000=0 ,my6012=0 ,my6002=0;
 	int state = DATE_CHANGE;
 	RUNTIME_PLC runtimevar;
 	memset(&runtimevar,0,sizeof(RUNTIME_PLC));
 	my6000 = JProgramInfo->oi_changed.oi6000 ;
 	my6012 = JProgramInfo->oi_changed.oi6012 ;
+	my6002 = JProgramInfo->oi_changed.oi6002 ;
 	RecvHead = 0;
 	RecvTail = 0;
-
+	search_i = 0;
+	initSearchMeter(&search6002);
 	initTaskData(&taskinfo);
 	system("rm /nand/para/plcrecord.par  /nand/para/plcrecord.bak");
 	DbgPrintToFile1(31,"2-fangAn6015[%d].sernum = %d  fangAn6015[%d].mst.mstype = %d ",
@@ -3281,7 +3339,7 @@ void readplc_thread()
 		 * 	   状态判断
 		********************************/
 		TSGet(&runtimevar.nowts);
-		state = stateJuge(state, &my6000,&my6012,&runtimevar);
+		state = stateJuge(state, &my6000,&my6012,&my6002,&runtimevar);
 		fprintf(stderr,"state=%d\n",state);
 		/********************************
 		 * 	   状态流程处理

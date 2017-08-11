@@ -306,7 +306,6 @@ int AFN05_F3(FORMAT3762 *down,INT8U moduleFlag, INT8U ctrl, INT8U* sendBuf645, I
 
 	if (moduleFlag == 1)//有地址域
 	{
-//		getMasterPointAddr(down->addr.SourceAddr);
 		memset(down->addr.DestAddr, 0x99, 6);//目的地址
 	}
 	down->afn05_f3_down.ctrl = ctrl;

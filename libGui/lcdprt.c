@@ -189,20 +189,6 @@ int bcd2int(char *bcd){
 	else
 		return 0;
 }
-//是否有效的测量点
-//TODO:判断有效测量点
-int gui_isValidCldAddr(INT8U *addr){
-	int i, index=0;
-//	for(i=0; i<MP_MAXNUM;i++){
-//		if(gui_isValidCld(i+1)==0)
-//			continue;
-//		if(memcmp(addr, ParaAll->f10.para_mp[i].addr, 12)==0){
-//			index = ParaAll->f10.para_mp[i].Index;
-//			break;
-//		}
-//	}
-	return index;//0:无效
-}
 //int gui_isValidCldAddr(INT8U *addr){
 //	int i, iindex=0, mpno=0;
 //	for(i=0; i<MP_MAXNUM;i++){

@@ -388,6 +388,7 @@ typedef struct {
 	searchAttr9		attr9[SERACH_PARA_NUM];			//每天周期搜表参数配置
 	SearchStatus	searchSta;			//属性10：搜表状态
 	INT32U			startSearchLen;		//搜表时长，单位：分钟，方法127：实时启动搜表参数
+	INT8U           startSearchFlg;		//启动实时搜表标识   action 127置 1      载波线程负责清零
 } CLASS_6002;	//搜表结果
 
 

@@ -940,6 +940,7 @@ void SearchMeterInfo(INT16U attr_act, INT8U *data, Action_result *act_ret)
 	case 127://实时启动搜表
 		index += getLongUnsigned(&data[index],(INT8U *)&class6002.startSearchLen);
 		fprintf(stderr,"搜表时长:[%d]",class6002.startSearchLen);
+		class6002.startSearchFlg = 1;
         act_ret->DAR = saveCoverClass(0x6002,0,&class6002,sizeof(CLASS_6002),para_vari_save);
         fprintf(stderr,"act_ret->DAR = %d\n",act_ret->DAR);
 		break;
