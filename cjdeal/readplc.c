@@ -865,14 +865,25 @@ int doInit(RUNTIME_PLC *runtime_p)
 				memcpy(&module_info,&runtime_p->format_Up.afn03_f10_up,sizeof(module_info));
 				printModelinfo(module_info);
 				step_init = 0;
-				if (module_info.ReadMode ==1)
-				{
-					runtime_p->modeFlag = 1;
-					DbgPrintToFile1(31,"集中器主导");
-				}else
-				{
-					runtime_p->modeFlag = 0;
-					DbgPrintToFile1(31,"路由主导");
+				if(getZone("GW")==0) {	//国网送检模拟测试，将来可取消
+					if(JProgramInfo->dev_info.PLC_ModeTest==1) {
+						runtime_p->modeFlag = 1;
+						DbgPrintToFile1(31,"测试修改集中器主导");
+					}else  if(JProgramInfo->dev_info.PLC_ModeTest==2) {
+						runtime_p->modeFlag = 0;
+						DbgPrintToFile1(31,"测试修改路由主导");
+					}else JProgramInfo->dev_info.PLC_ModeTest = 0;
+				}
+				if(JProgramInfo->dev_info.PLC_ModeTest==0) {
+					if (module_info.ReadMode ==1)
+					{
+						runtime_p->modeFlag = 1;
+						DbgPrintToFile1(31,"集中器主导");
+					}else
+					{
+						runtime_p->modeFlag = 0;
+						DbgPrintToFile1(31,"路由主导");
+					}
 				}
 				clearvar(runtime_p);//376.2上行内容容器清空，发送计时归零
 				sleep(1);

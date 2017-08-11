@@ -257,6 +257,19 @@ void bu_report(TS ts1,TS ts2,INT8U retaskid,INT8U *saveflg)
 }
 void Test(int argc, char *argv[])
 {
+	if (strcmp("plcmode", argv[1]) == 0) {
+        JProgramInfo = OpenShMem("ProgramInfo", sizeof(ProgramInfo), NULL);
+        JProgramInfo->dev_info.PLC_ModeTest = atoi(argv[2]);
+        if( JProgramInfo->dev_info.PLC_ModeTest == 1) {
+        	fprintf(stderr,"模拟设置集中器主导\n");
+        }else  if( JProgramInfo->dev_info.PLC_ModeTest == 2) {
+        	fprintf(stderr,"模拟设置路由主导\n");
+        }else  {
+        	JProgramInfo->dev_info.PLC_ModeTest = 0;
+        	fprintf(stderr,"设置载波工作主导无效\n");
+        }
+        shmm_unregister("ProgramInfo", sizeof(ProgramInfo));
+	}
     if (strcmp("trydel", argv[1]) == 0) {
     	deloutofdatafile();
     }

@@ -262,7 +262,8 @@ int main(int argc, char *argv[]) {
     }
 
     if ((strcmp("savetest", argv[1]) == 0) || (strcmp("report", argv[1]) == 0)
-    		|| (strcmp("ms", argv[1]) == 0) || (strcmp("gettsas", argv[1]) == 0) || (strcmp("trydel", argv[1]) == 0)) {
+    		|| (strcmp("ms", argv[1]) == 0) || (strcmp("gettsas", argv[1]) == 0)
+    		|| (strcmp("trydel", argv[1]) == 0) || (strcmp("plcmode", argv[1]) == 0)) {
     	Test(argc, argv);
     	return EXIT_SUCCESS;
     }
