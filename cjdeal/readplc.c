@@ -836,7 +836,7 @@ int doInit(RUNTIME_PLC *runtime_p)
 
 			if (runtime_p->comfd >0)
 				CloseCom( runtime_p->comfd );
-			runtime_p->comfd = OpenCom(5, 9600,(unsigned char*)"even",1,8);// 5 载波路由串口 ttyS5   SER_ZB
+			runtime_p->comfd = OpenCom(2, 9600,(unsigned char*)"even",1,8);// 5 载波路由串口 ttyS5   SER_ZB   //test2
 			DbgPrintToFile1(31,"comfd=%d",runtime_p->comfd);
 			runtime_p->initflag = 0;
 			clearvar(runtime_p);//376.2上行内容容器清空，发送计时归零
@@ -2552,10 +2552,11 @@ int doSerch(RUNTIME_PLC *runtime_p)
 	time_t nowtime = time(NULL);
 	if (runtime_p->nowts.Hour==23)
 	{
+		if(step_cj==0)
+			DbgPrintToFile1(31,"23点结束搜表，返回状态 %d",runtime_p->state_bak);
 		step_cj = 0;
 		beginwork = 0;
 		clearvar(runtime_p);
-		DbgPrintToFile1(31,"23点结束搜表，返回状态 %d",runtime_p->state_bak);
 		return(runtime_p->state_bak);
 	}
 
@@ -2646,6 +2647,7 @@ int doSerch(RUNTIME_PLC *runtime_p)
 					saveSerchMeter(runtime_p->format_Up);
 					sendlen = AFN00_F01( &runtime_p->format_Up,runtime_p->sendbuf );//确认
 					SendDataToCom(runtime_p->comfd, runtime_p->sendbuf,sendlen );
+					clearvar(runtime_p);
 					runtime_p->send_start_time = nowtime;
 				}
 				if ((nowtime-runtime_p->send_start_time) % 10 == 0)
