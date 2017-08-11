@@ -2284,6 +2284,8 @@ INT8U Proxy_TransCommandRequest(RUNTIME_PLC *runtime_p,CJCOMM_PROXY *proxy,int* 
 	int sendlen = 0;
 	INT8U proto = 0;
 	INT16U timeout = 20;
+	INT8U datalen =0;
+
 	timeout = (proxy->strProxyList.proxy_obj.transcmd.revtimeout > 0) ?  \
 			proxy->strProxyList.proxy_obj.transcmd.revtimeout: 20;
 
@@ -2318,7 +2320,6 @@ INT8U Proxy_TransCommandRequest(RUNTIME_PLC *runtime_p,CJCOMM_PROXY *proxy,int* 
 					break;
 				}
 			}
-			INT8U datalen =0;
 
 			cjcommProxy_plc.strProxyList.proxy_obj.transcmd.dar = success;
 			cjcommProxy_plc.strProxyList.data[0] = 1;
@@ -2334,9 +2335,7 @@ INT8U Proxy_TransCommandRequest(RUNTIME_PLC *runtime_p,CJCOMM_PROXY *proxy,int* 
 				memcpy(&cjcommProxy_plc.strProxyList.data[2],&runtime_p->format_Up.afn13_f1_up.MsgContent[starttIndex],datalen);
 				DEBUG_BUFF(runtime_p->format_Up.afn13_f1_up.MsgContent, datalen);
 			}
-
 			cjcommProxy_plc.strProxyList.datalen = datalen + 2;
-
 
 		} else {
 			cjcommProxy_plc.strProxyList.proxy_obj.transcmd.dar = request_overtime;
@@ -2350,7 +2349,25 @@ INT8U Proxy_TransCommandRequest(RUNTIME_PLC *runtime_p,CJCOMM_PROXY *proxy,int* 
 		pthread_mutex_unlock(&mutex);
 		DbgPrintToFile1(31,"收到点抄数据");
 
-	} else if (((nowtime - runtime_p->send_start_time) > timeout) && *beginwork==1) {
+	}else if ( runtime_p->format_Up.afn!=0 && runtime_p->format_Up.fn!=0 &&  *beginwork==1)//国网需要将收到报文直接返回主站
+	{
+		pthread_mutex_lock(&mutex);
+			cjcommProxy_plc.strProxyList.proxy_obj.transcmd.dar = success;
+			cjcommProxy_plc.strProxyList.data[0] = 1;
+			datalen = runtime_p->format_Up.length;
+			cjcommProxy_plc.strProxyList.data[1] = datalen;
+			memcpy(&cjcommProxy_plc.strProxyList.data[2],&runtime_p->dealbuf,datalen);
+			cjcommProxy_plc.strProxyList.datalen = datalen + 2;
+			proxyInUse.devUse.plcReady = 1;
+			cjcommProxy_plc.isInUse = 0;
+		pthread_mutex_unlock(&mutex);
+
+		*beginwork = 0;
+		runtime_p->send_start_time = nowtime;
+		memset(&runtime_p->format_Up, 0, sizeof(runtime_p->format_Up));
+		DbgPrintToFile1(31,"收到点抄数据");
+	}
+	else if (((nowtime - runtime_p->send_start_time) > timeout) && *beginwork==1) {
 		//代理超时后, 放弃本次操作, 上报超时应答
 		pthread_mutex_lock(&mutex);
 		cjcommProxy_plc.strProxyList.proxy_obj.transcmd.dar = request_overtime;
@@ -2568,16 +2585,19 @@ int doSerch(RUNTIME_PLC *runtime_p)
 				DbgPrintToFile1(31," sendlen=%d",sendlen);
 				SendDataToCom(runtime_p->comfd, runtime_p->sendbuf,sendlen );
 				runtime_p->send_start_time = nowtime ;
-			}else if (runtime_p->format_Up.afn == 0x00 && runtime_p->format_Up.fn == 1 && beginwork==0)//收到确认
-			{
-				DbgPrintToFile1(31,"收到确认");
-				runtime_p->send_start_time = nowtime ;
-				DEBUG_TIME_LINE("\nruntime_p->send_start_time = %ld",runtime_p->send_start_time);
 				beginwork = 1;
-			}else if (beginwork == 1)
+			}
+//			else if (runtime_p->format_Up.afn == 0x00 && runtime_p->format_Up.fn == 1 && beginwork ==0)//收到确认
+//			{
+//				DbgPrintToFile1(31,"收到确认");
+//				runtime_p->send_start_time = nowtime ;
+//				DEBUG_TIME_LINE("\nruntime_p->send_start_time = %ld",runtime_p->send_start_time);
+//				beginwork = 1;
+//			}
+			else if (beginwork == 1)
 			{
 				DEBUG_TIME_LINE("\nruntime_p->send_start_time = %ld   nowtime=%ld",runtime_p->send_start_time,nowtime);
-				if (nowtime - runtime_p->send_start_time >120 )
+				if (nowtime - runtime_p->send_start_time > 30 )
 				{
 					DbgPrintToFile1(31,"等待到时间");
 					clearvar(runtime_p);
@@ -2611,17 +2631,22 @@ int doSerch(RUNTIME_PLC *runtime_p)
 			}
 			break;
 		case 3://等待注册
-			if (search_i < 24)
+			if (search_i < SERACH_PARA_NUM)
 				searchlen = search6002.attr9[search_i].searchLen ;
 			else
 				searchlen = search6002.startSearchLen;
+			if(searchlen ==0)
+				searchlen = 10;
+
 			if ( (nowtime - runtime_p->send_start_time) < (searchlen *60) )
 			{
-				if (runtime_p->format_Up.afn == 0x06 && runtime_p->format_Up.fn == 4)
+				if ((runtime_p->format_Up.afn == 0x06 && runtime_p->format_Up.fn == 4)||
+					(runtime_p->format_Up.afn == 0x06 && runtime_p->format_Up.fn == 1))
 				{
 					saveSerchMeter(runtime_p->format_Up);
 					sendlen = AFN00_F01( &runtime_p->format_Up,runtime_p->sendbuf );//确认
 					SendDataToCom(runtime_p->comfd, runtime_p->sendbuf,sendlen );
+					runtime_p->send_start_time = nowtime;
 				}
 				if ((nowtime-runtime_p->send_start_time) % 10 == 0)
 				{
