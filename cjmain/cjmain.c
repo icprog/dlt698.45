@@ -53,6 +53,14 @@ void setRunLED(INT8S state)
 	Runled(swch);
 }
 
+void shutAllLed()
+{
+	gpio_writebyte((char *) DEV_LED_RUN, (INT8S)0);
+	gpio_writebyte((char *) DEV_LED_ONLINE, (INT8S)0);
+	gpio_writebyte((char *) DEV_LED_CSQ_RED, (INT8S)0);
+	gpio_writebyte((char *) DEV_LED_CSQ_GREEN, (INT8S)0);
+}
+
 void SyncRtc(void) {
     static int MinOld = 0;
     TS ts;
@@ -121,6 +129,13 @@ void rebootWhenPwrDown(INT8U delay) {
     if (off_flag == 1) {
     	DEBUG_TO_FILE("/nand/pwr.log", "底板电源已关闭，设备关闭倒计时：%d s.....\n", delay-cnt_pwroff);
         cnt_pwroff++;
+        if (cnt_pwroff == 30) {
+        	DEBUG_TO_FILE("/nand/pwr.log", "关闭所有led.....");
+        	for (i=0;i<5;i++) {
+				shutAllLed();
+				usleep(100);
+        	}
+        }
         if (cnt_pwroff == delay) {
         	system("cj stop");
         	g_powerState = PWR_DOWN;
