@@ -1237,6 +1237,11 @@ int Format07(FORMAT07 *Data07,OAD oad1,OAD oad2,TSA tsa)
 	if (find_07item == 1)
 	{
 		Data07->Ctrl = 0x11;
+		if(tsa.addr[1] > 5)
+		{
+			tsa.addr[1] = 5;
+			fprintf(stderr,"request698_07Data 电表地址长度大于6");
+		}
 		startIndex = 5 - tsa.addr[1];
 		memcpy(&Data07->Addr[startIndex], &tsa.addr[2], (tsa.addr[1]+1));
 //		memcpy(Data07->DI, &obj601F_07Flag.DI_1[0], 4);
@@ -1347,12 +1352,6 @@ DATA_ITEM checkMeterData(TASK_INFO *meterinfo,int *taski,int *itemi,INT8U usrtyp
 			meterinfo->tsa.addr[3],meterinfo->tsa.addr[4],meterinfo->tsa.addr[5],
 			meterinfo->tsa.addr[6],meterinfo->tsa.addr[7],
 			meterinfo->tsa_index,meterinfo->task_n,meterinfo->task_list[i].fangan.item_n);
-
-	DEBUG_TIME_LINE("检查  %02x%02x%02x%02x%02x%02x%02x%02x  index=%d 任务数 %d   数据相个数 %d",
-			meterinfo->tsa.addr[0],meterinfo->tsa.addr[1],meterinfo->tsa.addr[2],
-			meterinfo->tsa.addr[3],meterinfo->tsa.addr[4],meterinfo->tsa.addr[5],
-			meterinfo->tsa.addr[6],meterinfo->tsa.addr[7],
-			meterinfo->tsa_index,meterinfo->task_n,meterinfo->task_list[i].fangan.item_n);
 	//正常任务判断
 	for(i=0; i< meterinfo->task_n; i++)
 	{
@@ -1366,10 +1365,8 @@ DATA_ITEM checkMeterData(TASK_INFO *meterinfo,int *taski,int *itemi,INT8U usrtyp
 			}
 			if (needflg == 1)
 			{
-				 DEBUG_TIME_LINE("meterinfo->task_list[i].fangan.items[j].sucessflg: %d", meterinfo->task_list[i].fangan.items[j].sucessflg);
 				 for(j = 0; j<meterinfo->task_list[i].fangan.item_n; j++)
 				 {
-					 DEBUG_TIME_LINE("meterinfo->task_list[i].fangan.items[j].sucessflg: %d", meterinfo->task_list[i].fangan.items[j].sucessflg);
 					 if ( meterinfo->task_list[i].fangan.items[j].sucessflg==0)
 					 {
 						 item.oad1 = meterinfo->task_list[i].fangan.items[j].oad1;
@@ -1380,10 +1377,14 @@ DATA_ITEM checkMeterData(TASK_INFO *meterinfo,int *taski,int *itemi,INT8U usrtyp
 						 return item;	//存在常规任务，满足抄读条件数据项
 					 }
 				 }
-				 DEBUG_TIME_LINE("current has no item to read");
+				 if(getZone("GW")==0)
+				 {
+					 task_Refresh(&meterinfo->task_list[i]);
+				 }
 			}
 		}
 	}
+
 	//需要补抄的任务
 	//-----------------------------------------------------------
 	for(i=0; i< meterinfo->task_n; i++)
@@ -1796,7 +1797,7 @@ int ProcessMeter(INT8U *buf,struct Tsa_Node *desnode)
 	}
 	return sendlen;
 }
-int ProcessMeter_byJzq(INT8U *buf)
+int ProcessMeter_byJzq(INT8U *buf,INT8U *addrtmp)
 {
 	//jzqjzq
 	struct Tsa_Node *nodetmp;
@@ -1833,6 +1834,16 @@ int ProcessMeter_byJzq(INT8U *buf)
 				sendlen = do_5004_type( taski, itemi , buf, nodetmp, tmpitem);//日冻结
 			else
 				sendlen = do_other_type( taski, itemi , buf, nodetmp, tmpitem);//其它数据
+
+			if(nodetmp->tsa.addr[1] > 5)
+			{
+				nodetmp->tsa.addr[1] = 5;
+				fprintf(stderr,"request698_07Data 电表地址长度大于6");
+			}
+
+			int startIndex = 5 - nodetmp->tsa.addr[1];
+			memcpy(&addrtmp[startIndex], &nodetmp->tsa.addr[2], (nodetmp->tsa.addr[1]+1));
+
 			DbgPrintToFile1(31,"TSA[ %02x-%02x-%02x%02x%02x%02x%02x%02x ] ",\
 					nodetmp->tsa.addr[0],nodetmp->tsa.addr[1],nodetmp->tsa.addr[2],nodetmp->tsa.addr[3],\
 					nodetmp->tsa.addr[4],nodetmp->tsa.addr[5],nodetmp->tsa.addr[6],nodetmp->tsa.addr[7]);//TODO 抄表组织报文
@@ -2645,6 +2656,7 @@ int doSerch(RUNTIME_PLC *runtime_p)
 				{
 					saveSerchMeter(runtime_p->format_Up);
 					sendlen = AFN00_F01( &runtime_p->format_Up,runtime_p->sendbuf );//确认
+					clearvar(runtime_p);
 					SendDataToCom(runtime_p->comfd, runtime_p->sendbuf,sendlen );
 					runtime_p->send_start_time = nowtime;
 				}
@@ -2655,11 +2667,39 @@ int doSerch(RUNTIME_PLC *runtime_p)
 				}
 			}else
 			{
-				DbgPrintToFile1(31,"搜表结束");
+				DbgPrintToFile1(31,"搜表等待延时结束");
 				beginwork =0;
-				step_cj = 0;
+				step_cj = 4;
 				clearvar(runtime_p);
-				return(runtime_p->state_bak);
+//				return(runtime_p->state_bak);
+			}
+			break;
+		case 4://判断是否结束
+			if ( nowtime - runtime_p->send_start_time > 20 && beginwork==0)
+			{
+				sendlen = AFN10_F4(&runtime_p->format_Down,runtime_p->sendbuf);
+				SendDataToCom(runtime_p->comfd, runtime_p->sendbuf,sendlen );
+				beginwork = 1;
+			}else if ( runtime_p->format_Up.afn == 0x10 && runtime_p->format_Up.fn == 4 &&  beginwork ==1)
+			{
+				if ((runtime_p->format_Up.afn10_f4_up.FinishFlag==1) && (runtime_p->format_Up.afn10_f4_up.WorkFlag==0))
+				{
+					DbgPrintToFile1(31,"搜表完成!!");
+					beginwork =0;
+					step_cj = 4;
+					return(runtime_p->state_bak);
+				}
+				DbgPrintToFile1(31,"搜表未完成，继续等待");
+				step_cj = 3;
+				clearvar(runtime_p);
+				runtime_p->send_start_time = nowtime;
+			}else if (nowtime - runtime_p->send_start_time > 20 && beginwork==1)
+			{
+				beginwork =0;
+				DbgPrintToFile1(31,"超时");
+				step_cj = 3;
+				clearvar(runtime_p);
+				runtime_p->send_start_time = nowtime;
 			}
 			break;
 	}
@@ -2884,6 +2924,7 @@ int doTask_by_jzq(RUNTIME_PLC *runtime_p)
 	static int step_cj = 0, beginwork=0;
 	static int inWaitFlag = 0;
 	int sendlen=0;
+	INT8U addrtmp[6]={};
 	time_t nowtime = time(NULL);
 
 	switch( step_cj )
@@ -2909,12 +2950,15 @@ int doTask_by_jzq(RUNTIME_PLC *runtime_p)
 		case 1://开始抄表
 			if ( inWaitFlag==0)
 			{
-				inWaitFlag = 1;
-				sendlen = ProcessMeter_byJzq(buf645);//下发 AFN_13_F1 找到一块需要抄读的表，抄读
-				if(sendlen >0)
+				sendlen = ProcessMeter_byJzq(buf645,addrtmp);//下发 AFN_13_F1 找到一块需要抄读的表，抄读
+				if (sendlen>0)
+				{
+					sendlen = AFN13_F1(&runtime_p->format_Down,runtime_p->sendbuf,addrtmp, 2, 0, buf645, sendlen);
 					SendDataToCom(runtime_p->comfd, runtime_p->sendbuf,sendlen );
-				runtime_p->send_start_time = nowtime;
-			}else if( runtime_p->format_Up.afn == 0x13 && runtime_p->format_Up.fn == 1 )
+					runtime_p->send_start_time = nowtime;
+					inWaitFlag = 1;
+				}
+			}else if( runtime_p->format_Up.afn == 0x13 && runtime_p->format_Up.fn == 1 && inWaitFlag==1 )
 			{
 				DbgPrintToFile1(31,"收数据");
 				saveF13_F1Data(runtime_p->format_Up);
@@ -2922,7 +2966,7 @@ int doTask_by_jzq(RUNTIME_PLC *runtime_p)
 				clearvar(runtime_p);
 				runtime_p->send_start_time = nowtime;
 				inWaitFlag = 0;
-			}else if ((nowtime - runtime_p->send_start_time > 20 ) && inWaitFlag==1 )
+			}else if ((nowtime - runtime_p->send_start_time > 30 ) && inWaitFlag==1 )
 			{
 				DbgPrintToFile1(31,"超时");
 				inWaitFlag = 0;
@@ -3248,8 +3292,9 @@ int broadcast_07(INT8U *buf,int delays,INT8U adr)
 	FORMAT07 frame07;
 	int sendlen = 0;
 
-	time_t nowtime = time(NULL) - delays;
-	ts =   timet_bcd(nowtime);
+	time_t nowtime = time(NULL) ;
+	nowtime += delays;
+	ts = timet_bcd(nowtime);
 
 	frame07.Ctrl = 0x08;//广播校时
 	memset(&frame07.Addr, adr, 6);//地址
@@ -3264,7 +3309,7 @@ int broadcast_07(INT8U *buf,int delays,INT8U adr)
 }
 int doBroadCast(RUNTIME_PLC *runtime_p)
 {
-	static int step_cj = 0, workflg=0;
+	static int step_cj = 0, workflg=0  ,dealytime=0;
 	int sendlen=0;
 	time_t nowtime = time(NULL);
 
@@ -3287,6 +3332,7 @@ int doBroadCast(RUNTIME_PLC *runtime_p)
 		case 1://查询通信延时相关广播通信时长
 			if ( nowtime - runtime_p->send_start_time > 20)
 			{
+				dealytime = 0;
 				memset(buf645,0,BUFSIZE645);
 				sendlen = broadcast_07(buf645,0,0x98);
 				sendlen = AFN03_F9(&runtime_p->format_Down,runtime_p->sendbuf,0,sendlen,buf645);
@@ -3305,6 +3351,7 @@ int doBroadCast(RUNTIME_PLC *runtime_p)
 			{
 				DbgPrintToFile1(31,"收到广播对时_查询通信时长回复");
 				step_cj = 2;
+				dealytime = runtime_p->format_Up.afn03_f9_up.DelayTime;
 				clearvar(runtime_p);
 			}
 			break;
@@ -3313,7 +3360,7 @@ int doBroadCast(RUNTIME_PLC *runtime_p)
 			{
 				workflg = 1;
 				memset(buf645,0,BUFSIZE645);
-				sendlen = broadcast_07(buf645,runtime_p->format_Up.afn03_f9_up.DelayTime,0x99);
+				sendlen = broadcast_07(buf645,dealytime ,0x99);
 				sendlen = AFN05_F3(&runtime_p->format_Down,0,0x02,buf645,sendlen,runtime_p->sendbuf);
 				SendDataToCom(runtime_p->comfd, runtime_p->sendbuf,sendlen );
 				clearvar(runtime_p);
