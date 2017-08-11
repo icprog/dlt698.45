@@ -610,6 +610,37 @@ typedef struct {
     StateAtti4 state4;        //开关量属性
 } CLASS_f203;                 //开关量输
 
+	typedef struct{
+	    char factoryCode[2];    //厂商代码
+	    char chipCode[2];        //软件版本号
+	    char softDate[3];       //软件版本日期
+	    INT32U	softVer;		//软件版本
+	}VersionInfo;
+	typedef struct{
+		TSA		commAddr;		//通信地址
+		INT32U	overTime;		//接收等待报文超时时间（秒）
+		INT8U	transBuf[255];	//透明转发命令
+	}TransPara;//透明转发（参数）
+	typedef struct{
+		INT32U	pointNo;		//从节点序号
+		INT8U	pointAddr[VISIBLE_STRING_LEN];		//从节点通信地址
+		INT8U	pointDesc[VISIBLE_STRING_LEN];		//从节点描述符
+	}SlaveUnit;	//从节点单元
+
+	typedef struct{
+	    CLASS22 class22;                  			//接口类IC
+	    char devdesc[VISIBLE_STRING_LEN]; 			//设备描述
+	    COMDCB devpara;                  			 //设备参数
+	    VersionInfo		version;					//版本信息
+	    SlaveUnit		att5_slave[SERACH_NUM];		//属性5（从节点对象列表）
+	    TI				updatePeriod;				//属性6(从节点对象列表更新周期)
+	}CLASS_F209_PARA;
+typedef struct {
+	CLASS_F209_PARA	para;			//参数
+    TransPara		trans;			//透明转发（参数）
+    INT8U			transFlg;		//透明转发标志，主站下发：置1，载波抄表：置0
+} CLASS_f209;                       //载波/微功率无线接口
+
 /////////////////////////////////////////////////////////////////////
 typedef struct {
     OAD oad;

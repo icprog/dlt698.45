@@ -2327,7 +2327,7 @@ int doProxy(RUNTIME_PLC *runtime_p)
 				saveProxyData(runtime_p->format_Up);
 				memset(&runtime_p->format_Up,0,sizeof(runtime_p->format_Up));
 				DbgPrintToFile1(31,"收到点抄数据");
-			}else if ((nowtime - runtime_p->send_start_time > 20  ) && beginwork==1)
+			}else if ((nowtime - runtime_p->send_start_time > 60  ) && beginwork==1)
 			{
 				DbgPrintToFile1(31,"单次点抄超时");
 				cjGuiProxy_plc.isInUse = 0;
@@ -3048,7 +3048,7 @@ void readplc_thread()
 		********************************/
 		TSGet(&runtimevar.nowts);
 		state = stateJuge(state, &my6000,&my6012,&runtimevar);
-		fprintf(stderr,"state=%d\n",state);
+//		fprintf(stderr,"state=%d\n",state);
 		/********************************
 		 * 	   状态流程处理
 		********************************/

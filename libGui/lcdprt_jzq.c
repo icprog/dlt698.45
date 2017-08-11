@@ -472,12 +472,16 @@ int requestDataBlock(CLASS_6001* cldno, INT8S *req_mq_name, INT32U cmd, int msg_
 	}
 	memset(msgbuf_tmp, 0, sizeof(msgbuf_tmp));
 	PressKey = NOKEY;
+	time_t nowtime = time(NULL);
+	time_t waittime = time(NULL);
 	while(1)
 	{
 		if(PressKey!=NOKEY)
 			g_PressKey_old = PressKey;
 		delay(600);
-		time_count++;
+		nowtime = time(NULL);
+		time_count = nowtime-waittime;
+//		time_count++;
 		if(timeout > 2)
 		{
 			if(time_count>timeout || msgNum >= msg_num){//60秒超时
@@ -577,7 +581,7 @@ int requestdata_485_ZB_Block(CLASS_6001* cldno, INT8U *mq_name, int msg_num, Lcd
 	int mq_cnt=5;
 	memset(msgbuf,0,sizeof(msgbuf));
 //	bzero(&msg_real,sizeof(Proxy_Msg));
-	result = requestDataBlock(cldno,(INT8S*)mq_name,PROXY,msg_num,40,msgbuf);
+	result = requestDataBlock(cldno,(INT8S*)mq_name,PROXY,msg_num,60,msgbuf);
 //	DEBUG_TIME_LINE("\ngui: -------------cur rev msg from 485 result = %d\n",result);
 	if(result > 0)
 	{

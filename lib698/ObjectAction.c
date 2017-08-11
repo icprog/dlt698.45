@@ -317,10 +317,10 @@ void get_BasicUnit(INT8U *source, INT16U *sourceindex, INT8U *dest, INT16U *dest
 
 int class4000_act(INT16U attr_act, INT8U *data, Action_result *act_ret)
 {
-	DateTimeBCD datetime={};
+//	DateTimeBCD datetime={};
 	int index=0;
 	if (attr_act == 127) {  //方法 127 广播校时
-		index += Set_4000(&data,&act_ret->DAR);
+		index += Set_4000(data,&act_ret->DAR);
 	}
 	return 0;
 }
@@ -1240,6 +1240,28 @@ void FileTransMothod(INT16U attr_act, INT8U *data) {
     return;
 }
 
+/*
+ * 载波/微功率无线接口
+ * */
+void PlcInfo(INT16U attr_act, INT8U *data, Action_result *act_ret)
+{
+	int   index = 0;
+	CLASS_f209		class_f209={};
+    switch (attr_act) {
+        case 127://透明转发
+            index += getStructure(&data[index], NULL,&act_ret->DAR);
+            index += getOctetstring(1,&data[index],(INT8U *) &class_f209.trans.commAddr,&act_ret->DAR);
+            index += getOctetstring(1,&data[index],(INT8U *) &class_f209.trans.transBuf,&act_ret->DAR);
+            class_f209.transFlg = 1;
+        	break;
+        case 128://配置端口参数（端口号，通信参数）
+        	index += Set_F209(0xf209,data,&act_ret->DAR);
+        	break;
+    }
+    act_ret->datalen = index;
+    act_ret->DAR = success;
+}
+
 void FreezeAtti(OAD oad, Relate_Object one_obj) {
     int i = 0, j = 0;
     FreezeObject FreeObj = {};
@@ -1461,6 +1483,9 @@ int doObjectAction(OAD oad, INT8U *data, Action_result *act_ret) {
         	if (attr_act == 127) {  //方法 127 配置端口
         		act_ret->datalen = Set_F202(0xf202,data,&act_ret->DAR);
         	}
+        	break;
+        case 0xF209:
+        	PlcInfo(attr_act, data, act_ret);
         	break;
         case 0x2401:
         	class12_router(1, attr_act, data, act_ret);

@@ -347,6 +347,7 @@ void Collect6000(int argc, char *argv[])
 void print6002(CLASS_6002 class6002)
 {
 	int	i=0,j=0;
+	fprintf(stderr,"方法127：实时启动搜表（搜表时长:单位：分钟）  %d\n",class6002.startSearchLen);
 	fprintf(stderr,"属性10:(空闲(0),搜表中(1))  %d\n",class6002.searchSta);
 	fprintf(stderr,"属性6:(所有搜表结果记录数)  %d\n",class6002.searchNum);
 	fprintf(stderr,"属性7:(跨台区搜表结果记录数)  %d\n",class6002.crosszoneNum);
@@ -396,6 +397,16 @@ void Search6002(int argc, char *argv[])
 		if(argc<5) {
 			if(readCoverClass(0x6002,0,&class6002,sizeof(CLASS_6002),para_vari_save)==1) {
 				print6002(class6002);
+			}else {
+				fprintf(stderr,"搜表参数文件不存在\n");
+			}
+		}
+	}
+	if(strcmp("enable",argv[2])==0) {
+		if(argc==5) {
+			if(readCoverClass(0x6002,0,&class6002,sizeof(CLASS_6002),para_vari_save)==1) {
+
+//				print6002(class6002);
 			}else {
 				fprintf(stderr,"搜表参数文件不存在\n");
 			}
