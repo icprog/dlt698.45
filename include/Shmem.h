@@ -402,6 +402,7 @@ typedef struct{
 	INT8U   pppd_status;			//拨号成功
 	INT8U   connect_ok;				//连接主站是否成功
 	INT8U  	PLC_status;				//0、空闲 1、载波初始化 2、载波正在抄表中 	3、正在同步档案 4、正在搜表中
+	INT8U	PLC_ModeTest;			//国网送检测试，路由工作模式设置，0：无效，1：集中器主导，2：路由主导，
 	INT32U 	ac_chip_type; 			//==0x820900:	RN8029芯片，II型集中器	//==1： ATT7022D-E芯片 	//==0x7022E0:	ATT7022E-D芯片
 	INT32U	WireType;				//接线方式，0x1200：三相三，0x0600：三相四
 	Flow_tj realTimeC2200;			//事实通信流量
