@@ -348,6 +348,19 @@ int AFN03_F10(FORMAT3762 *down,INT8U *sendBuf)
 	sendlen= composeProtocol3762(down, sendBuf);
 	return sendlen;
 }
+int AFN10_F4(FORMAT3762 *down,INT8U *sendBuf)
+{
+	int sendlen = 0;
+	memset(&sendBuf[0], 0, 256);
+	down->afn = 0x10;
+	down->fn = 4;
+	down->ctrl.PRM = 1;//启动站
+	down->info_down.ChannelFlag = 0;//信道标识
+	down->info_down.ModuleFlag = 0;//无地址域A
+	down->info_down.Seq = down->info_down.Seq++;//序列号
+	sendlen = composeProtocol3762(down, sendBuf);
+	return sendlen;
+}
 int AFN00_F01(FORMAT3762 *up,INT8U *sendBuf)
 {
 	FORMAT3762 down;
