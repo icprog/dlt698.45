@@ -881,7 +881,7 @@ int doInit(RUNTIME_PLC *runtime_p)
 						runtime_p->modeFlag = 0;
 						DbgPrintToFile1(31,"测试修改路由主导");
 					}else JProgramInfo->dev_info.PLC_ModeTest = 0;
-				}
+				}else JProgramInfo->dev_info.PLC_ModeTest = 0;
 				if(JProgramInfo->dev_info.PLC_ModeTest==0) {
 					if (module_info.ReadMode ==1)
 					{
@@ -2459,9 +2459,6 @@ int doProxy(RUNTIME_PLC *runtime_p)
 			}
 			break;
 		case 1://开始监控载波从节点
-<<<<<<< HEAD
-			step_cj = Proxy_Gui(runtime_p, &cjGuiProxy_plc, &beginwork, nowtime);
-=======
 			if (beginwork==0  && cjGuiProxy_plc.strProxyMsg.port.OI == 0xf209 && cjGuiProxy_plc.isInUse==1 )
 			{//发送点抄
 				DbgPrintToFile1(31,"dealGuiRead 处理液晶点抄 :%02x%02x%02x%02x%02x%02x%02x%02x 波特率=%d protocol=%d 端口号=%04x%02x%02x 规约类型=%d 数据标识=%04x"
@@ -2502,7 +2499,6 @@ int doProxy(RUNTIME_PLC *runtime_p)
 				beginwork = 0;
 				step_cj = 3;
 			}
->>>>>>> 0e2cb67f6b36e1d2525900022d4cbdd409fe59b3
 			break;
 		case 2://处理主站代理
 			DbgPrintToFile1(31,"处理主站代理 类型=%d",cjcommProxy_plc.strProxyList.proxytype);
@@ -3393,13 +3389,7 @@ void readplc_thread()
 		 * 	   状态判断
 		********************************/
 		TSGet(&runtimevar.nowts);
-<<<<<<< HEAD
-		state = stateJuge(state, &my6000,&my6012,&my6002,&runtimevar);
-		fprintf(stderr,"state=%d\n",state);
-=======
 		state = stateJuge(state, &my6000,&my6012,&runtimevar);
-//		fprintf(stderr,"state=%d\n",state);
->>>>>>> 0e2cb67f6b36e1d2525900022d4cbdd409fe59b3
 		/********************************
 		 * 	   状态流程处理
 		********************************/
