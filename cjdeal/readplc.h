@@ -341,5 +341,6 @@ INT8U ZBMasterAddr[6];
 int rec_step;
 time_t oldtime1;
 time_t newtime1;
+time_t beginSearchTime;
 INT8U buf645[BUFSIZE645];
 #endif /* EVENTCALC_H_ */

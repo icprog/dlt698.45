@@ -5239,8 +5239,6 @@ INT8U initMap07DI_698OAD()
 		reversebuff(buf07, 4, dataflag07);
 
 
-
-
 		fprintf(stderr,"\n linenum = %d  oadOI=%04x  datatype = %d unitnum= %d	dataflag97 = %02x%02x dataflag07 = %02x-%02x-%02x-%02x dataInfo = %s\n"
 						,linenum,oadOI,dataType,unitnum,dataflag97[0],dataflag97[1],dataflag07[0],dataflag07[1],dataflag07[2],dataflag07[3],dataInfo);
 

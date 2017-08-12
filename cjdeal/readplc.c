@@ -1251,6 +1251,13 @@ int Format07(FORMAT07 *Data07,OAD oad1,OAD oad2,TSA tsa)
 	}
 	return 0;
 }
+int compose6015_698(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8U *sendbuff)
+{
+	int sendLen = 0;
+	sendLen = composeProtocol698_GetRequest(sendbuff, st6015,to6001.basicinfo.addr);
+
+	return sendLen;
+}
 int buildProxyFrame(RUNTIME_PLC *runtime_p,struct Tsa_Node *desnode,OAD oad1,OAD oad2)//Proxy_Msg pMsg)
 {
 	int sendlen = 0;
@@ -1288,12 +1295,35 @@ int buildProxyFrame(RUNTIME_PLC *runtime_p,struct Tsa_Node *desnode,OAD oad1,OAD
 			}
 			break;
 		case DLT698:
-			return 20;
+			CLASS_6035 st6035 = {};
+			CLASS_6015 st6015;
+			CLASS_6001 meter = {};
+			memcpy(meter.basicinfo.addr,desnode->tsa,sizeof(TSA));
+			memset(&st6015,0,sizeof(CLASS_6015));
+			st6015.cjtype = TYPE_NULL;
+			st6015.csds.num = 1;
+			st6015.csds.csd[0].type = 0;
+			st6015.csds.csd[0].csd.oad.OI = oad2.OI;
+			st6015.csds.csd[0].csd.oad.attflg = 0x02;
+			st6015.csds.csd[0].csd.oad.attrindex = 0x00;
+			sendlen = compose6015_698(st6015,meter,&st6035,buf645);
+			if (sendlen>0)
+			{
+				memcpy(runtime_p->format_Down.addr.SourceAddr,runtime_p->masteraddr,6);
+				addrtmp[5] = desnode->tsa.addr[2];
+				addrtmp[4] = desnode->tsa.addr[3];
+				addrtmp[3] = desnode->tsa.addr[4];
+				addrtmp[2] = desnode->tsa.addr[5];
+				addrtmp[1] = desnode->tsa.addr[6];
+				addrtmp[0] = desnode->tsa.addr[7];
+				return (AFN13_F1(&runtime_p->format_Down,runtime_p->sendbuf,addrtmp, 0, 0, buf645, sendlen));
+			}
+			break;
 	}
 
 	return 0;
 }
-int saveProxyData(FORMAT3762 format_3762_Up)
+int saveProxyData(FORMAT3762 format_3762_Up,INT8U protocol)
 {
 	INT8U buf645[255];
 	int len645=0;
@@ -1306,22 +1336,28 @@ int saveProxyData(FORMAT3762 format_3762_Up)
 	{
 		len645 = format_3762_Up.afn13_f1_up.MsgLength;
 		memcpy(buf645, format_3762_Up.afn13_f1_up.MsgContent, len645);
-		if (analyzeProtocol07(&frame07, buf645, len645, &nextFlag) == 0)
+		if (DLT645_07 == protocol)
 		{
-			if(data07Tobuff698(frame07,dataContent) > 0)
+			if (analyzeProtocol07(&frame07, buf645, len645, &nextFlag) == 0)
 			{
-				TSGet(&p_Proxy_Msg_Data->realdata.tm_collect);
-				memcpy(p_Proxy_Msg_Data->realdata.data_All,&dataContent[3],4);
-				memcpy(p_Proxy_Msg_Data->realdata.Rate1_Data,&dataContent[8],4);
-				memcpy(p_Proxy_Msg_Data->realdata.Rate2_Data,&dataContent[13],4);
-				memcpy(p_Proxy_Msg_Data->realdata.Rate3_Data,&dataContent[18],4);
-				memcpy(p_Proxy_Msg_Data->realdata.Rate4_Data,&dataContent[23],4);
+				if(data07Tobuff698(frame07,dataContent) > 0)
+				{
+					TSGet(&p_Proxy_Msg_Data->realdata.tm_collect);
+					memcpy(p_Proxy_Msg_Data->realdata.data_All,&dataContent[3],4);
+					memcpy(p_Proxy_Msg_Data->realdata.Rate1_Data,&dataContent[8],4);
+					memcpy(p_Proxy_Msg_Data->realdata.Rate2_Data,&dataContent[13],4);
+					memcpy(p_Proxy_Msg_Data->realdata.Rate3_Data,&dataContent[18],4);
+					memcpy(p_Proxy_Msg_Data->realdata.Rate4_Data,&dataContent[23],4);
+				}
+				else
+				{
+					memset(&p_Proxy_Msg_Data->realdata,0xee,sizeof(RealDataInfo));
+				}
+				p_Proxy_Msg_Data->done_flag = 1;
 			}
-			else
-			{
-				memset(&p_Proxy_Msg_Data->realdata,0xee,sizeof(RealDataInfo));
-			}
-			p_Proxy_Msg_Data->done_flag = 1;
+		}else
+		{
+
 		}
 	}
 	return 0;
@@ -2405,7 +2441,7 @@ INT8U Proxy_TransCommandRequest(RUNTIME_PLC *runtime_p,CJCOMM_PROXY *proxy,int* 
 }
 INT8U Proxy_Gui(RUNTIME_PLC *runtime_p,GUI_PROXY *proxy,int* beginwork,time_t nowtime)
 {
-	struct Tsa_Node *nodetmp;
+	static struct Tsa_Node *nodetmp=NULL;
 	int sendlen=0;
 	if (*beginwork==0  && proxy->strProxyMsg.port.OI == 0xf209 && proxy->isInUse ==1 )
 	{//发送点抄
@@ -2436,7 +2472,7 @@ INT8U Proxy_Gui(RUNTIME_PLC *runtime_p,GUI_PROXY *proxy,int* beginwork,time_t no
 	{//收到应答数据，或超时10秒，
 		proxy->isInUse = 0;
 		*beginwork = 0;
-		saveProxyData(runtime_p->format_Up);
+		saveProxyData(runtime_p->format_Up,nodetmp->protocol);
 		memset(&runtime_p->format_Up,0,sizeof(runtime_p->format_Up));
 		DbgPrintToFile1(31,"收到点抄数据");
 	}else if ((nowtime - runtime_p->send_start_time > 20  ) && *beginwork==1)
@@ -2561,7 +2597,7 @@ int doSerch(RUNTIME_PLC *runtime_p)
 	int sendlen=0, searchlen=0;
 
 	time_t nowtime = time(NULL);
-	if (runtime_p->nowts.Hour==23)
+	if (runtime_p->nowts.Hour==23 || (nowtime-beginSearchTime)>10800)
 	{
 		step_cj = 0;
 		beginwork = 0;
@@ -2815,27 +2851,31 @@ int stateJuge(int nowdstate,INT8U* my6000_p,INT8U* my6012_p,INT8U* my6002_p,RUNT
 	//---------------------------------------------------------------------------------------------------------------------------
 	if (JProgramInfo->oi_changed.oi6002 != *my6002_p)
 	{
+		*my6002_p = JProgramInfo->oi_changed.oi6002 ;
 		initSearchMeter(&search6002);//重新读取搜表参数
 		if(search6002.startSearchFlg == 1)
 		{
+			runtime_p->state_bak = runtime_p->state;
 			search6002.startSearchFlg = 0;			//启动立即搜表
 			search_i = 0xff;
 			saveCoverClass(0x6002,0,&search6002,sizeof(CLASS_6002),para_vari_save);
+			runtime_p->redo = 2;  //搜表后需要恢复抄读
+			beginSearchTime = time(NULL);
 			DbgPrintToFile1(31,"立即启动搜表 时长=%d 分钟",search6002.startSearchLen);
 			return METER_SEARCH;
 		}
-		*my6002_p = JProgramInfo->oi_changed.oi6002 ;
 	}
 	for(i=0; i<search6002.attr9_num;i++)
 	{
 		if (search6002.attr8.enablePeriodFlg==1 && MyTimeJuge(search6002.attr9[i].startTime)==1 )
 		{
-			DbgPrintToFile1(31,"%d-%d-%d 点启动搜表",search6002.attr9[i].startTime[0],search6002.attr9[i].startTime[1],search6002.attr9[i].startTime[2]);
 			sleep(3);
 			runtime_p->state_bak = runtime_p->state;
 			clearvar(runtime_p);
 			search_i = i;
 			runtime_p->redo = 2;  //搜表后需要恢复抄读
+			beginSearchTime = time(NULL);
+			DbgPrintToFile1(31,"%d-%d-%d 点启动搜表",search6002.attr9[i].startTime[0],search6002.attr9[i].startTime[1],search6002.attr9[i].startTime[2]);
 			return METER_SEARCH;
 		}
 	}
@@ -3420,7 +3460,7 @@ void readplc_thread()
 	{
 		usleep(50000);
 		/********************************
-		 * 	   状态判断
+		 * 	   状态实时判断
 		********************************/
 		TSGet(&runtimevar.nowts);
 		state = stateJuge(state, &my6000,&my6012,&my6002,&runtimevar);
@@ -3455,10 +3495,10 @@ void readplc_thread()
 				}
 				break;
 			case AUTO_REPORT:
-				state = doAutoReport(&runtimevar);
+				state = doAutoReport(&runtimevar);				//载波主动上报处理
 				break;
 			case BROADCAST:
-				state = doBroadCast(&runtimevar);
+				state = doBroadCast(&runtimevar);				//广播对时
 				break;
 			default :
 				runtimevar.state = NONE_PROCE;

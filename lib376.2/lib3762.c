@@ -154,7 +154,7 @@ int AFN13_F1(FORMAT3762 *down,INT8U *sendBuf3762,INT8U* destAddr, INT8U protocol
 	down->ctrl.ComType = 1;//窄带载波通信
 //	getMasterPointAddr(down->addr.SourceAddr);
 	memcpy(down->addr.DestAddr, destAddr, 6);//目的地址
-	down->afn13_f1_down.Protocol = 2;
+	down->afn13_f1_down.Protocol = protocol;
 	down->afn13_f1_down.DelayFlag = delayFlag;
 	down->afn13_f1_down.SubPointNum = 0;
 	down->afn13_f1_down.MsgLength = sendLen645;
