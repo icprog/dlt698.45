@@ -836,7 +836,7 @@ int doInit(RUNTIME_PLC *runtime_p)
 
 			if (runtime_p->comfd >0)
 				CloseCom( runtime_p->comfd );
-			runtime_p->comfd = OpenCom(5, 9600,(unsigned char*)"even",1,8);// 5 载波路由串口 ttyS5   SER_ZB
+			runtime_p->comfd = OpenCom(5, 9600,(unsigned char*)"even",1,8);// 5 载波路由串口 ttyS5   SER_ZB   //test  2
 			DbgPrintToFile1(31,"comfd=%d",runtime_p->comfd);
 			runtime_p->initflag = 0;
 			clearvar(runtime_p);//376.2上行内容容器清空，发送计时归零
@@ -881,7 +881,7 @@ int doInit(RUNTIME_PLC *runtime_p)
 						runtime_p->modeFlag = 0;
 						DbgPrintToFile1(31,"测试修改路由主导");
 					}else JProgramInfo->dev_info.PLC_ModeTest = 0;
-				}
+				}else JProgramInfo->dev_info.PLC_ModeTest = 0;
 				if(JProgramInfo->dev_info.PLC_ModeTest==0) {
 					if (module_info.ReadMode ==1)
 					{
@@ -2673,10 +2673,11 @@ int doSerch(RUNTIME_PLC *runtime_p)
 	time_t nowtime = time(NULL);
 	if (runtime_p->nowts.Hour==23 || (nowtime-beginSearchTime)>10800)
 	{
+		if(step_cj==0)
+			DbgPrintToFile1(31,"23点结束搜表，返回状态 %d",runtime_p->state_bak);
 		step_cj = 0;
 		beginwork = 0;
 		clearvar(runtime_p);
-		DbgPrintToFile1(31,"23点结束搜表，返回状态 %d",runtime_p->state_bak);
 		return(runtime_p->state_bak);
 	}
 
@@ -2768,6 +2769,7 @@ int doSerch(RUNTIME_PLC *runtime_p)
 					sendlen = AFN00_F01( &runtime_p->format_Up,runtime_p->sendbuf );//确认
 					clearvar(runtime_p);
 					SendDataToCom(runtime_p->comfd, runtime_p->sendbuf,sendlen );
+					clearvar(runtime_p);
 					runtime_p->send_start_time = nowtime;
 				}
 				if ((nowtime-runtime_p->send_start_time) % 10 == 0)
@@ -2789,6 +2791,7 @@ int doSerch(RUNTIME_PLC *runtime_p)
 			{
 				sendlen = AFN10_F4(&runtime_p->format_Down,runtime_p->sendbuf);
 				SendDataToCom(runtime_p->comfd, runtime_p->sendbuf,sendlen );
+				runtime_p->send_start_time = nowtime;
 				beginwork = 1;
 			}else if ( runtime_p->format_Up.afn == 0x10 && runtime_p->format_Up.fn == 4 &&  beginwork ==1)
 			{
@@ -2927,9 +2930,11 @@ int stateJuge(int nowdstate,INT8U* my6000_p,INT8U* my6012_p,INT8U* my6002_p,RUNT
 	{
 		*my6002_p = JProgramInfo->oi_changed.oi6002 ;
 		initSearchMeter(&search6002);//重新读取搜表参数
+		*my6002_p = JProgramInfo->oi_changed.oi6002 ;
 		if(search6002.startSearchFlg == 1)
 		{
 			runtime_p->state_bak = runtime_p->state;
+			runtime_p->redo = 2;  //搜表后需要恢复抄读
 			search6002.startSearchFlg = 0;			//启动立即搜表
 			search_i = 0xff;
 			saveCoverClass(0x6002,0,&search6002,sizeof(CLASS_6002),para_vari_save);
@@ -3564,7 +3569,6 @@ void readplc_thread()
 		********************************/
 		TSGet(&runtimevar.nowts);
 		state = stateJuge(state, &my6000,&my6012,&my6002,&runtimevar);
-
 		/********************************
 		 * 	   状态流程处理
 		********************************/
