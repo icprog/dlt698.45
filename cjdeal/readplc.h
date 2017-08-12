@@ -343,4 +343,15 @@ time_t oldtime1;
 time_t newtime1;
 time_t beginSearchTime;
 INT8U buf645[BUFSIZE645];
+
+typedef struct
+{
+	INT8U is;
+	TS broadCastTime;
+	INT8U buf[30];
+	INT8U len;
+}BroadCastTime;
+
+BroadCastTime broadtime;
+
 #endif /* EVENTCALC_H_ */
