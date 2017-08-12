@@ -931,7 +931,10 @@ int	Set_F200(OI_698 oi,INT8U *data,INT8U *DAR)
 	index += getOAD(1,&data[index],&oad,DAR);
 	index += getCOMDCB(1,&data[index],&f201.devpara,DAR);
 	index += getEnum(1,&data[index],&f201.devfunc);
-	*DAR = saveCoverClass(oi,0,&f201,sizeof(CLASS_f201),para_vari_save);
+	fprintf(stderr,"DAR=%d  return %d\n",*DAR,index);
+	if(*DAR==success) {
+		*DAR = saveCoverClass(oi,0,&f201,sizeof(CLASS_f201),para_vari_save);
+	}
 	return index;
 }
 
@@ -945,7 +948,9 @@ int	Set_F202(OI_698 oi,INT8U *data,INT8U *DAR)
 	index += getStructure(&data[index],NULL,DAR);
 	index += getOAD(1,&data[index],&oad,DAR);
 	index += getCOMDCB(1,&data[index],&f202.devpara,DAR);
-	*DAR = saveCoverClass(oi,0,&f202,sizeof(CLASS_f202),para_vari_save);
+	if(*DAR==success) {
+		*DAR = saveCoverClass(oi,0,&f202,sizeof(CLASS_f202),para_vari_save);
+	}
 	return index;
 }
 
