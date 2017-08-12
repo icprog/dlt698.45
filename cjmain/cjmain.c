@@ -105,6 +105,13 @@ void PowerOffToClose(INT8U pwrdelay) {
 
 /*
  * 检测交采掉电后，delay个计数后, 重启集中器
+ * 这个需求是浙江现场的工程人员提出的
+ * 假如集中器程序因为某种原因, 某些进程异常
+ * 退出, 现场维护人员需要对集中器重启.
+ * 目前发现的问题:
+ * 1. 上电时间很短, 电容充电不充分, 电量不足以
+ * 支撑ARM芯片工作到90个计数, 那么此时的LED灯
+ * 还是亮着的, 但是主芯片已经停止工作了.
  */
 void rebootWhenPwrDown(INT8U delay) {
     static INT8U cnt_pwroff = 0;
