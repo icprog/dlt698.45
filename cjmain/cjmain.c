@@ -31,8 +31,26 @@ const static mmq_attribute mmq_register[] = {{cjcomm, PROXY_485_MQ_NAME,    MAXS
                                              {cjdeal, TASKID_485_2_MQ_NAME, MAXSIZ_TASKID_QUEUE, MAXNUM_TASKID_QUEUE},
                                              {cjdeal, TASKID_plc_MQ_NAME,   MAXSIZ_TASKID_QUEUE, MAXNUM_TASKID_QUEUE}};
 
-void Runled(int state) {
-    gpio_writebyte((char *) DEV_LED_RUN, state);
+
+#define	LED_LIGHT	1//点亮led
+#define	LED_CLOSE	0//关闭led
+
+#define	PWR_ON		1//上电状态
+#define	PWR_DOWN	0//断电状态
+
+#define	VOL_LIMIT	1300//集中器欠压阈值, 低于这个阈值,就认为已经断电了
+
+#define	PWR_SHUT_CNT	90//集中器连续断电的计数值, 超过这个计数值就认为是彻底断电了
+
+INT8U	g_powerState = 0;//交流电是否断电, 1-上电状态; 0-断电状态
+void Runled(INT8S state) {
+    gpio_writebyte((char *) DEV_LED_RUN, (INT8S)state);
+}
+
+void setRunLED(INT8S state)
+{
+	INT8S swch = ((PWR_ON == g_powerState) ? state : LED_CLOSE);
+	Runled(swch);
 }
 
 void SyncRtc(void) {
@@ -83,6 +101,34 @@ void PowerOffToClose(INT8U pwrdelay) {
         }
     } else
         cnt_pwroff = 0;
+}
+
+/*
+ * 检测交采掉电后，delay个计数后, 重启集中器
+ */
+void rebootWhenPwrDown(INT8U delay) {
+    static INT8U cnt_pwroff = 0;
+    int i = 0;
+
+    int off_flag = pwr_has_byVolt(JProgramInfo->ACSRealData.Available, JProgramInfo->ACSRealData.Ua, VOL_LIMIT);
+    if (off_flag == 1) {
+    	DEBUG_TO_FILE("/nand/pwr.log", "底板电源已关闭，设备关闭倒计时：%d s.....\n", delay-cnt_pwroff);
+        cnt_pwroff++;
+        if (cnt_pwroff == delay) {
+        	system("cj stop");
+        	g_powerState = PWR_DOWN;
+        	for (i=0;i<5;i++) {
+        		setRunLED(0);
+        		usleep(100);
+        	}
+        	sleep(3);
+        	DEBUG_TO_FILE("/nand/pwr.log", "重启集中器.....");
+        	system("reboot");
+        }
+    } else {
+        cnt_pwroff = 0;
+        g_powerState = PWR_ON;
+    }
 }
 
 //读取系统配置文件
@@ -574,7 +620,8 @@ int main(int argc, char *argv[])
     get_protocol_3761_tx_para();//湖南获取3761切换通信参数，在初始化其他操作之后进行
 
     //点亮运行灯
-    Runled(1);
+    g_powerState = 0;
+    setRunLED(1);
     while (1) {
         sleep(1);
 		gettimeofday(&start, NULL);
@@ -588,10 +635,12 @@ int main(int argc, char *argv[])
         if (JProgramInfo->cfg_para.device == CCTT1 || JProgramInfo->cfg_para.device == SPTF3) { //I型集中器，III型专变
             //电池检测掉电关闭设备
             PowerOffToClose(90);
+        } else if(JProgramInfo->cfg_para.device == CCTT2) {
+        	rebootWhenPwrDown(PWR_SHUT_CNT);
         }
 
         //点亮运行灯 循环前点亮一次
-        Runled(1);
+        setRunLED(1);
 
         //每20分钟校时
         SyncRtc();

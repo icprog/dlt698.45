@@ -1009,41 +1009,36 @@ void get_local_time(char* buf, INT32U bufSize)
 			timeinfo.Hour,	timeinfo.Minute, timeinfo.Sec);
 }
 
-void debugToFp(FILE *fp, const char* file, const char* func, INT32U line, const char *fmt, ...)
+void debugToStderr(const char* file, const char* func, INT32U line, const char *fmt, ...)
 {
 	va_list ap;
 	char bufTime[20] = { 0 };
 
-	if (NULL == fp)
-		return;
-
 	get_local_time(bufTime, sizeof(bufTime));
-	fprintf(fp, "\n[%s][%s][%s()][%d]: ", bufTime, file, func, line);
+	fprintf(stderr, "\n[%s][%s][%s()][%d]: ", bufTime, file, func, line);
 	va_start(ap, fmt);
-	vfprintf(fp, fmt, ap);
+	vfprintf(stderr, fmt, ap);
 	va_end(ap);
-	fprintf(fp, "\n");
-}
-
-void debugToStderr(const char* file, const char* func, INT32U line, const char *fmt, ...)
-{
-	va_list ap;
-
-	va_start(ap, fmt);
-	debugToFp(stderr, file, func, line, fmt, ap);
-	va_end(ap);
+	fprintf(stderr, "\n");
 }
 
 void debugToFile(const char* fname, const char* file, const char* func, INT32U line, const char *fmt,...)
 {
 	va_list ap;
+	char bufTime[20] = { 0 };
 	FILE *fp = NULL;
+
+	if(NULL == fname)
+		return;
 
 	fp = fopen(fname, "a+");
 	if (fp != NULL) {
+		get_local_time(bufTime, sizeof(bufTime));
+		fprintf(fp, "\n[%s][%s][%s()][%d]: ", bufTime, file, func, line);
 		va_start(ap, fmt);
-		debugToFp(fp, file, func, line, fmt, ap);
+		vfprintf(fp, fmt, ap);
 		va_end(ap);
+		fprintf(fp, "\n");
 	    fflush(fp);
 		fclose(fp);
 	}
