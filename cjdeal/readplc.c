@@ -836,7 +836,7 @@ int doInit(RUNTIME_PLC *runtime_p)
 
 			if (runtime_p->comfd >0)
 				CloseCom( runtime_p->comfd );
-			runtime_p->comfd = OpenCom(2, 9600,(unsigned char*)"even",1,8);// 5 载波路由串口 ttyS5   SER_ZB   //test2
+			runtime_p->comfd = OpenCom(5, 9600,(unsigned char*)"even",1,8);// 5 载波路由串口 ttyS5   SER_ZB   //test  2
 			DbgPrintToFile1(31,"comfd=%d",runtime_p->comfd);
 			runtime_p->initflag = 0;
 			clearvar(runtime_p);//376.2上行内容容器清空，发送计时归零
@@ -2681,6 +2681,7 @@ int doSerch(RUNTIME_PLC *runtime_p)
 			{
 				sendlen = AFN10_F4(&runtime_p->format_Down,runtime_p->sendbuf);
 				SendDataToCom(runtime_p->comfd, runtime_p->sendbuf,sendlen );
+				runtime_p->send_start_time = nowtime;
 				beginwork = 1;
 			}else if ( runtime_p->format_Up.afn == 0x10 && runtime_p->format_Up.fn == 4 &&  beginwork ==1)
 			{
@@ -2818,15 +2819,17 @@ int stateJuge(int nowdstate,INT8U* my6000_p,INT8U* my6012_p,INT8U* my6002_p,RUNT
 	if (JProgramInfo->oi_changed.oi6002 != *my6002_p)
 	{
 		initSearchMeter(&search6002);//重新读取搜表参数
+		*my6002_p = JProgramInfo->oi_changed.oi6002 ;
 		if(search6002.startSearchFlg == 1)
 		{
+			runtime_p->state_bak = runtime_p->state;
+			runtime_p->redo = 2;  //搜表后需要恢复抄读
 			search6002.startSearchFlg = 0;			//启动立即搜表
 			search_i = 0xff;
 			saveCoverClass(0x6002,0,&search6002,sizeof(CLASS_6002),para_vari_save);
 			DbgPrintToFile1(31,"立即启动搜表 时长=%d 分钟",search6002.startSearchLen);
 			return METER_SEARCH;
 		}
-		*my6002_p = JProgramInfo->oi_changed.oi6002 ;
 	}
 	for(i=0; i<search6002.attr9_num;i++)
 	{
