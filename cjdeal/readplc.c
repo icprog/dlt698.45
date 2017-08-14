@@ -1324,42 +1324,69 @@ int buildProxyFrame(RUNTIME_PLC *runtime_p,struct Tsa_Node *desnode,OAD oad1,OAD
 
 	return 0;
 }
-int saveProxyData(FORMAT3762 format_3762_Up,INT8U protocol)
+int saveProxyData(FORMAT3762 format_3762_Up,struct Tsa_Node *nodetmp)
 {
 	INT8U buf645[255];
 	int len645=0;
+	int datalen=0;
+	INT8U apduDataStartIndex = 0;
+	INT8U csdNum = 0;
 	INT8U nextFlag=0;
+	INT8U getResponseType = 0;
 	FORMAT07 frame07;
 	INT8U dataContent[50];
 	memset(dataContent,0,sizeof(dataContent));
+	CLASS_6001 meter = {};
+	CSD_ARRAYTYPE csds;
+	memcpy(&meter.basicinfo.addr,&nodetmp->tsa,sizeof(TSA));
 
 	if (format_3762_Up.afn13_f1_up.MsgLength > 0)
 	{
 		len645 = format_3762_Up.afn13_f1_up.MsgLength;
 		memcpy(buf645, format_3762_Up.afn13_f1_up.MsgContent, len645);
-		if (DLT645_07 == protocol)
+		switch (nodetmp->protocol )
 		{
-			if (analyzeProtocol07(&frame07, buf645, len645, &nextFlag) == 0)
-			{
-				if(data07Tobuff698(frame07,dataContent) > 0)
+			case DLT645_07:
+				if (analyzeProtocol07(&frame07, buf645, len645, &nextFlag) == 0)
 				{
-					TSGet(&p_Proxy_Msg_Data->realdata.tm_collect);
-					memcpy(p_Proxy_Msg_Data->realdata.data_All,&dataContent[3],4);
-					memcpy(p_Proxy_Msg_Data->realdata.Rate1_Data,&dataContent[8],4);
-					memcpy(p_Proxy_Msg_Data->realdata.Rate2_Data,&dataContent[13],4);
-					memcpy(p_Proxy_Msg_Data->realdata.Rate3_Data,&dataContent[18],4);
-					memcpy(p_Proxy_Msg_Data->realdata.Rate4_Data,&dataContent[23],4);
+					len645 = data07Tobuff698(frame07,dataContent) ;
+//					if(data07Tobuff698(frame07,dataContent) > 0)
+//					{
+//						TSGet(&p_Proxy_Msg_Data->realdata.tm_collect);
+//						memcpy(p_Proxy_Msg_Data->realdata.data_All,&dataContent[3],4);
+//						memcpy(p_Proxy_Msg_Data->realdata.Rate1_Data,&dataContent[8],4);
+//						memcpy(p_Proxy_Msg_Data->realdata.Rate2_Data,&dataContent[13],4);
+//						memcpy(p_Proxy_Msg_Data->realdata.Rate3_Data,&dataContent[18],4);
+//						memcpy(p_Proxy_Msg_Data->realdata.Rate4_Data,&dataContent[23],4);
+//					}
+//					else
+//					{
+//						memset(&p_Proxy_Msg_Data->realdata,0xee,sizeof(RealDataInfo));
+//					}
+//					p_Proxy_Msg_Data->done_flag = 1;
 				}
-				else
+				break;
+			case DLT698:
+				datalen = len645;
+				getResponseType = analyzeProtocol698(buf645,&csdNum,len645,&apduDataStartIndex,&datalen);
+				if (getResponseType >0 )
 				{
-					memset(&p_Proxy_Msg_Data->realdata,0xee,sizeof(RealDataInfo));
+					len645  = deal698RequestResponse(0,getResponseType,csdNum,&buf645[apduDataStartIndex],dataContent,csds,meter, 0,0);
 				}
-				p_Proxy_Msg_Data->done_flag = 1;
-			}
-		}else
-		{
-
+				break;
 		}
+		if (len645>0)
+		{
+			TSGet(&p_Proxy_Msg_Data->realdata.tm_collect);
+			memcpy(p_Proxy_Msg_Data->realdata.data_All,&dataContent[3],4);
+			memcpy(p_Proxy_Msg_Data->realdata.Rate1_Data,&dataContent[8],4);
+			memcpy(p_Proxy_Msg_Data->realdata.Rate2_Data,&dataContent[13],4);
+			memcpy(p_Proxy_Msg_Data->realdata.Rate3_Data,&dataContent[18],4);
+			memcpy(p_Proxy_Msg_Data->realdata.Rate4_Data,&dataContent[23],4);
+		}else
+			memset(&p_Proxy_Msg_Data->realdata,0xee,sizeof(RealDataInfo));
+		p_Proxy_Msg_Data->done_flag = 1;
+
 	}
 	return 0;
 }
@@ -1834,10 +1861,9 @@ int ProcessMeter(INT8U *buf,struct Tsa_Node *desnode)
 	}
 	return sendlen;
 }
-int ProcessMeter_byJzq(INT8U *buf,INT8U *addrtmp)
+int ProcessMeter_byJzq(INT8U *buf,INT8U *addrtmp,struct Tsa_Node *nodetmp)
 {
-	//jzqjzq
-	struct Tsa_Node *nodetmp;
+//	struct Tsa_Node *nodetmp;
 	DATA_ITEM  tmpitem;
 	int ret=0, sendlen=0,taski=0, itemi=0;//返回 tmpitem指示的具体任务索引 ，itemi指示的具体数据项索引
 	//检查内存表信息是否合法
@@ -2204,7 +2230,7 @@ int doTask(RUNTIME_PLC *runtime_p)
 				runtime_p->send_start_time = nowtime;
 			}else if ( runtime_p->format_Up.afn == 0x06 && runtime_p->format_Up.fn == 2 )//收到返回抄表数据
 			{
-				DbgPrintToFile1(31,"收数据");
+				DbgPrintToFile1(31,"路由主导流程_收数据");
 				inWaitFlag = 0;
 				sendlen = AFN00_F01( &runtime_p->format_Up,runtime_p->sendbuf );//确认
 				SendDataToCom(runtime_p->comfd, runtime_p->sendbuf,sendlen );
@@ -2541,7 +2567,7 @@ INT8U Proxy_Gui(RUNTIME_PLC *runtime_p,GUI_PROXY *proxy,int* beginwork,time_t no
 	{//收到应答数据，或超时10秒，
 		proxy->isInUse = 0;
 		*beginwork = 0;
-		saveProxyData(runtime_p->format_Up,nodetmp->protocol);
+		saveProxyData(runtime_p->format_Up,nodetmp);
 		memset(&runtime_p->format_Up,0,sizeof(runtime_p->format_Up));
 		DbgPrintToFile1(31,"收到点抄数据");
 	}else if ((nowtime - runtime_p->send_start_time > 20  ) && *beginwork==1)
@@ -3043,6 +3069,7 @@ int doTask_by_jzq(RUNTIME_PLC *runtime_p)
 	static int step_cj = 0, beginwork=0;
 	static int inWaitFlag = 0;
 	int sendlen=0;
+	struct Tsa_Node *nodetmp=NULL;
 	INT8U addrtmp[6]={};
 	time_t nowtime = time(NULL);
 
@@ -3069,17 +3096,17 @@ int doTask_by_jzq(RUNTIME_PLC *runtime_p)
 		case 1://开始抄表
 			if ( inWaitFlag==0)
 			{
-				sendlen = ProcessMeter_byJzq(buf645,addrtmp);//下发 AFN_13_F1 找到一块需要抄读的表，抄读
-				if (sendlen>0)
+				sendlen = ProcessMeter_byJzq(buf645,addrtmp,nodetmp);//下发 AFN_13_F1 找到一块需要抄读的表，抄读
+				if (sendlen>0 && nodetmp!=NULL)
 				{
-					sendlen = AFN13_F1(&runtime_p->format_Down,runtime_p->sendbuf,addrtmp, 2, 0, buf645, sendlen);
+					sendlen = AFN13_F1(&runtime_p->format_Down,runtime_p->sendbuf,addrtmp, nodetmp->protocol, 0, buf645, sendlen);
 					SendDataToCom(runtime_p->comfd, runtime_p->sendbuf,sendlen );
 					runtime_p->send_start_time = nowtime;
 					inWaitFlag = 1;
 				}
 			}else if( runtime_p->format_Up.afn == 0x13 && runtime_p->format_Up.fn == 1 && inWaitFlag==1 )
 			{
-				DbgPrintToFile1(31,"收数据");
+				DbgPrintToFile1(31,"集中器主导流程_收数据");
 				saveF13_F1Data(runtime_p->format_Up);
 				SaveTaskData(runtime_p->format_Up, runtime_p->taskno);
 				clearvar(runtime_p);
