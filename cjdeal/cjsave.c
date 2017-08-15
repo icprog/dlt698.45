@@ -13,6 +13,7 @@
 #include <time.h>
 #include <sys/stat.h>
 #include "cjsave.h"
+#include "cjdeal.h"
 
 static INT8U head_oad[4][4]={{0x20,0x2a,0x02,0x00},{0x60,0x40,0x02,0x00},{0x60,0x41,0x02,0x00},{0x60,0x42,0x02,0x00}};
 static INT8U head_oad_len[4]={0x0012,0x0008,0x0008,0x0008};
@@ -665,35 +666,6 @@ INT8S get6035ByTaskID(INT16U taskID,CLASS_6035* class6035)
 		{
 			if(tmp6035.taskID == taskID)
 			{
-#if 0
-				if(class6035->totalMSNum < class6035->successMSNum)
-				{
-					//任务初始化新建6035
-					CLASS_6035 result6035;	//采集任务监控单元
-					memset(&result6035,0,sizeof(CLASS_6035));
-					result6035.taskState = BEFORE_OPR;
-					result6035.taskID = taskID;
-
-					CLASS_6001	 meter={};
-					int	blknum=0;
-					blknum = getFileRecordNum(0x6000);
-					int meterIndex = 0;
-					for(meterIndex=0;meterIndex<blknum;meterIndex++)
-					{
-						if(readParaClass(oi,&meter,meterIndex)==1)
-						{
-							if(meter.sernum!=0 && meter.sernum!=0xffff)
-							{
-								if (checkMeterType(st6015.mst, meter.basicinfo.usrtype,meter.basicinfo.addr))
-								{
-									result6035.totalMSNum++;
-								}
-
-							}
-						}
-					}
-				}
-#endif
 				memcpy(class6035,&tmp6035,sizeof(CLASS_6035));
 				return 1;
 			}
@@ -701,8 +673,15 @@ INT8S get6035ByTaskID(INT16U taskID,CLASS_6035* class6035)
 	}
 
 	class6035->taskState = BEFORE_OPR;
-	DataTimeGet(&class6035->starttime);
-	class6035->totalMSNum = getFileRecordNum(0x6000);
+	INT8U findIndex;
+	for (findIndex = 0; findIndex < total_tasknum; findIndex++)
+	{
+		if(list6013[findIndex].basicInfo.taskID == class6035->taskID)
+		{
+			memcpy(&class6035->starttime,&list6013[findIndex].basicInfo.startime,sizeof(DateTimeBCD));
+			memcpy(&class6035->endtime,&list6013[findIndex].basicInfo.endtime,sizeof(DateTimeBCD));
+		}
+	}
 	saveCoverClass(0x6035, class6035->taskID, class6035,sizeof(CLASS_6035), coll_para_save);
 	return -1;
 }

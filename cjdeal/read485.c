@@ -4885,8 +4885,6 @@ INT8S deal6015or6017(CLASS_6013 st6013,CLASS_6015 st6015, INT8U port485,CLASS_60
 						SaveNorData(st6035->taskID,NULL,dataContent,bufflen,ts_cc);
 					}
 #if 1
-					DataTimeGet(&st6035->endtime);
-					st6035->taskState = AFTER_OPR;
 					INT16U tsaNum = getTaskDataTsaNum(st6035->taskID);
 					//DbgPrintToFile1(port,"tsaNum = %d",tsaNum);
 					st6035->successMSNum = st6035->successMSNum > tsaNum?st6035->successMSNum:tsaNum;
@@ -5065,7 +5063,6 @@ void read485_thread(void* i485port) {
 			CLASS_6035 result6035;	//采集任务监控单元
 			get6035ByTaskID(list6013[taskIndex].basicInfo.taskID,&result6035);
 			result6035.taskState = IN_OPR;
-			DataTimeGet(&result6035.starttime);
 			saveClass6035(&result6035);
 
 			CLASS_6015 to6015;	//采集方案集
@@ -5107,11 +5104,9 @@ void read485_thread(void* i485port) {
 			fprintf(stderr,"\n发送报文数量：%d  接受报文数量：%d",result6035.sendMsgNum,result6035.rcvMsgNum);
 			DbgPrintToFile1(port,"****************taskIndex = %d 任务结束 发送报文数量：%d  接受报文数量：%d*******************************",
 					taskIndex,result6035.sendMsgNum,result6035.rcvMsgNum);
-#if 0
-			DataTimeGet(&result6035.endtime);
+#if 1
 			result6035.taskState = AFTER_OPR;
 			INT16U tsaNum = getTaskDataTsaNum(result6035.taskID);
-			//DbgPrintToFile1(port,"tsaNum = %d",tsaNum);
 			result6035.successMSNum = result6035.successMSNum > tsaNum?result6035.successMSNum:tsaNum;
 			saveClass6035(&result6035);
 #endif
