@@ -4634,3 +4634,65 @@ void deloutofdatafile()//删除过期任务数据文件
 		if (dir!=NULL) 	closedir(dir);
 	}
 }
+//得到抄表成功的TSA个数
+INT16U getCBsuctsanum(INT8U taskid,TS ts)
+{
+	char fname[FILENAMELEN]={};
+	INT8U taskinfoflg=0,recordbuf[2048];
+	INT16U tsa_sucnum=0,seqno=0,recordnum=0;
+	int i=0,headlen=0,unitlen=0,reclen=0;
+	long int file_endpos= 0,file_idnexpos=0;
+	FILE *fp = NULL;
+	TS ts_rec;
+	TASKSET_INFO tasknor_info;
+	memset(&tasknor_info,0x00,sizeof(TASKSET_INFO));
+
+	if((taskinfoflg = ReadTaskInfo(taskid,&tasknor_info))==0)//得到任务信息
+	{
+		asyslog(LOG_INFO,"得到任务信息失败\n");
+		fprintf(stderr,"\n得到任务信息失败\n");
+		return 0;
+	}
+	ts_rec = ts;
+	ts_rec.Hour = 0;
+	ts_rec.Minute = 0;
+	ts_rec.Sec = 0;
+
+	if(taskinfoflg == 2)
+	{
+		asyslog(LOG_INFO,"n月冻结招测\n");
+		ts_rec.Day = 0;
+	}
+	getTaskFileName(taskid,ts_rec,fname);//得到要抄读的文件名称
+	fprintf(stderr,"fname=%s\n",fname);
+	seqno = (ts.Hour*60 + ts.Minute) - (tasknor_info.starthour*60 + tasknor_info.startmin);
+	if(tasknor_info.freq!=0) {
+		seqno = seqno/(tasknor_info.freq/60);
+	}else seqno = 0;		//冻结抄读
+	fprintf(stderr,"seqno=%d\n",seqno);
+
+	fp = fopen(fname,"r");
+	if(fp!=NULL)
+	{
+		fseek(fp,0,SEEK_END);
+		file_endpos = ftell(fp);
+		rewind(fp);
+		ReadFileHeadLen(fp,&headlen,&unitlen);
+		reclen = unitlen/tasknor_info.runtime;
+		recordnum = (file_endpos-headlen)/unitlen;
+		file_idnexpos = headlen+reclen*seqno;
+		for(i=0;i<recordnum;i++)
+		{
+			fseek(fp,file_idnexpos,SEEK_SET);
+			if(fread(recordbuf,unitlen,1,fp)==0)
+			{
+				break;
+			}
+			//地址和三个时标不为0，则认为此条记录不为空
+			if(recordbuf[0] != 0 && recordbuf[18] != 0 && recordbuf[26] != 0 && recordbuf[34] != 0)
+				tsa_sucnum++;
+			file_idnexpos += unitlen;
+		}
+	}
+	return tsa_sucnum;
+}
