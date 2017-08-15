@@ -2590,7 +2590,7 @@ int doProxy(RUNTIME_PLC *runtime_p)
 	static int step_cj = 0, beginwork=0;
 
 	int sendlen=0;
-
+	fprintf(stderr,"\n进入点抄");
 	time_t nowtime = time(NULL);
 	switch( step_cj )
 	{
@@ -2640,10 +2640,13 @@ int doProxy(RUNTIME_PLC *runtime_p)
 					step_cj = Proxy_TransCommandRequest(runtime_p, &cjcommProxy_plc, &beginwork, nowtime);
 					break;
 				default:
-					step_cj = 3;
+					step_cj = 4;
 			}
 			break;
-		case 3://恢复抄表
+		case 3://F209——127 载波端口数据转发
+
+			break;
+		case 4://恢复抄表
 			if (runtime_p->state_bak == TASK_PROCESS )
 			{
 				if ( nowtime - runtime_p->send_start_time > 20)
@@ -2908,7 +2911,7 @@ void initlist(struct Tsa_Node *head)
 	return;
 }
 
-int stateJuge(int nowdstate,INT8U* my6000_p,INT8U* my6012_p,INT8U* my6002_p,RUNTIME_PLC *runtime_p)
+int stateJuge(int nowdstate,MY_PARA_COUNTER *mypara_p,RUNTIME_PLC *runtime_p)
 {
 	int state = nowdstate;
 	int i=0;
@@ -2923,7 +2926,7 @@ int stateJuge(int nowdstate,INT8U* my6000_p,INT8U* my6012_p,INT8U* my6002_p,RUNT
 	}
 
 	if ( dateJudge(&runtime_p->oldts,&runtime_p->nowts) == 1 ||
-		 JProgramInfo->oi_changed.oi6000 != *my6000_p )
+		 JProgramInfo->oi_changed.oi6000 != mypara_p->my6000 )
 	{
 		DbgPrintToFile1(31,"状态切换到初始化");
 		runtime_p->initflag = 1;
@@ -2932,11 +2935,11 @@ int stateJuge(int nowdstate,INT8U* my6000_p,INT8U* my6012_p,INT8U* my6002_p,RUNT
 		broadFlag_ts.Day  = 0;
 		runtime_p->state = state;
 		runtime_p->redo = 1;  //初始化之后需要重启抄读
-		*my6000_p = JProgramInfo->oi_changed.oi6000;
+		mypara_p->my6000  = JProgramInfo->oi_changed.oi6000;
 		system("rm /nand/para/plcrecord.par  /nand/para/plcrecord.bak");//测量点变更删除记录
 		return state;
 	}
-	if (JProgramInfo->oi_changed.oi6012 != *my6012_p)
+	if (JProgramInfo->oi_changed.oi6012 != mypara.my6012)
 	{
 		//任务变更
 		sleep(10);//需要与全局任务数组保持同步更新
@@ -2945,18 +2948,17 @@ int stateJuge(int nowdstate,INT8U* my6000_p,INT8U* my6012_p,INT8U* my6002_p,RUNT
 		DbgPrintToFile1(31,"任务重新初始化");
 		PrintTaskInfo2(&taskinfo);
 		runtime_p->redo = 1;  //初始化之后需要重启抄读
-		*my6012_p = JProgramInfo->oi_changed.oi6012 ;
+		mypara.my6012 = JProgramInfo->oi_changed.oi6012 ;
 	}
 	if ((runtime_p->nowts.Hour==23 && runtime_p->nowts.Minute==59) || (runtime_p->nowts.Hour==0 && runtime_p->nowts.Minute==0))
 		return state;  //23点59分--0点0分之间不进行任务判断（准备跨日初始化）
 
 
 	//---------------------------------------------------------------------------------------------------------------------------
-	if (JProgramInfo->oi_changed.oi6002 != *my6002_p)
+	if (JProgramInfo->oi_changed.oi6002 != mypara.my6002 )
 	{
-		*my6002_p = JProgramInfo->oi_changed.oi6002 ;
+		mypara.my6002 = JProgramInfo->oi_changed.oi6002 ;
 		initSearchMeter(&search6002);//重新读取搜表参数
-		*my6002_p = JProgramInfo->oi_changed.oi6002 ;
 		if(search6002.startSearchFlg == 1)
 		{
 			runtime_p->state_bak = runtime_p->state;
@@ -3566,13 +3568,13 @@ int doBroadCast(RUNTIME_PLC *runtime_p)
 
 void readplc_thread()
 {
-	INT8U my6000=0 ,my6012=0 ,my6002=0;
 	int state = DATE_CHANGE;
 	RUNTIME_PLC runtimevar;
 	memset(&runtimevar,0,sizeof(RUNTIME_PLC));
-	my6000 = JProgramInfo->oi_changed.oi6000 ;
-	my6012 = JProgramInfo->oi_changed.oi6012 ;
-	my6002 = JProgramInfo->oi_changed.oi6002 ;
+	mypara.my6000 = JProgramInfo->oi_changed.oi6000 ;
+	mypara.my6012 = JProgramInfo->oi_changed.oi6012 ;
+	mypara.my6002 = JProgramInfo->oi_changed.oi6002 ;
+	mypara.myf209 = JProgramInfo->oi_changed.oiF209 ;
 	RecvHead = 0;
 	RecvTail = 0;
 	search_i = 0;
@@ -3595,7 +3597,8 @@ void readplc_thread()
 		 * 	   状态实时判断
 		********************************/
 		TSGet(&runtimevar.nowts);
-		state = stateJuge(state, &my6000,&my6012,&my6002,&runtimevar);
+		state = stateJuge(state, &mypara,&runtimevar);
+		fprintf(stderr,"\n state  = %d",state);
 		/********************************
 		 * 	   状态流程处理
 		********************************/
@@ -3618,12 +3621,9 @@ void readplc_thread()
 				break;
 			case TASK_PROCESS :
 				if (runtimevar.modeFlag==1)
-				{
 					state = doTask_by_jzq(&runtimevar);			//按任务抄表	  (集中器主导 1、根据方案类型和编号号确定抄表报文  )
-				}else
-				{
+				else
 					state = doTask(&runtimevar);				//按任务抄表	  ( 1、根据方案类型和编号号确定抄表报文  )
-				}
 				break;
 			case AUTO_REPORT:
 				state = doAutoReport(&runtimevar);				//载波主动上报处理
