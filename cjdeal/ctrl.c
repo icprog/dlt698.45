@@ -49,93 +49,114 @@ void getNewPulseVal(unsigned int *pulse) {
 	close(fd);
 }
 
-//根据脉冲计算电量
-void cacl_DD(unsigned int *pulse) {
-	int con = JProgramInfo->class12.unit[0].k;
+int getNowZone(){
+	TS ts;
+	TSGet(&ts);
+	if(ts.Hour <= 6) {return 1;}
+	if(ts.Hour > 6 && ts.Hour <= 12) {return 2;}
+	if(ts.Hour > 12 && ts.Hour <= 18) {return 3;}
+	return 4;
+}
 
-	switch (JProgramInfo->class12.unit[0].conf) {
+//根据脉冲计算电量
+void cacl_DD(unsigned int pulse, int index) {
+	int con = JProgramInfo->class12[index].unit[0].k;
+	if (con == 0) {
+		return;
+	}
+
+	int time_zone = getNowZone();
+	switch (JProgramInfo->class12[index].unit[0].conf) {
 
 	//正向有功 = 脉冲总数 * 1000/con;
 	case 0:
-		JProgramInfo->class12.day_pos_p = pulse[0] * 1000 / con;
+		JProgramInfo->class12[index].day_pos_p[0] += pulse * 10;
+		JProgramInfo->class12[index].day_pos_p[time_zone] += pulse * 10;
+		fprintf(stderr, "正向有功计算 %d\n", JProgramInfo->class12[index].day_pos_p[time_zone]);
 		break;
 
 		//反向有功 = 脉冲总数 * 100/con;
 	case 2:
-		JProgramInfo->class12.day_nag_p = pulse[0] * 100 / con;
+		JProgramInfo->class12[index].day_nag_p[time_zone] = pulse * 1;
 		break;
 
 		//正向无功 = 脉冲总数 * 100/con + 脉冲总数%10;
 	case 1:
-		JProgramInfo->class12.day_pos_q = pulse[0] * 100 / con + pulse[0] % 10;
+		JProgramInfo->class12[index].day_pos_q[time_zone] = pulse * 100 / con + pulse % 10;
 		break;
 
 		//反向无功 = 脉冲总数 * 100/con + 脉冲总数%10;
 	case 3:
-		JProgramInfo->class12.day_nag_q = pulse[0] * 100 / con + pulse[0] % 10;
+		JProgramInfo->class12[index].day_nag_q[time_zone] = pulse * 100 / con + pulse % 10;
 		break;
 	}
 }
 
 //计算周期内实时功率
-void cacl_PQ(unsigned int *pulse) {
-	int con = JProgramInfo->class12.unit[0].k;
+void cacl_PQ(unsigned int pulse, int index) {
+	int con = JProgramInfo->class12[index].unit[0].k;
+	if (con == 0) {
+		return;
+	}
 
-	switch (JProgramInfo->class12.unit[0].conf) {
+	int k = (JProgramInfo->class12[index].ct * JProgramInfo->class12[index].pt) / con;
+
+	switch (JProgramInfo->class12[index].unit[0].conf) {
 	//瞬时有功功率 = 实时脉冲*3600*变比/60/con
 	case 0:
 	case 2:
-		JProgramInfo->class12.p = pulse[0] * 3600.0 *JProgramInfo->class12.ct / (60 * con);
+		JProgramInfo->class12[index].p = pulse * 600 * k;
+		fprintf(stderr, "实时功率 %d\n", JProgramInfo->class12[index].p);
 		break;
 		//瞬时无功功率 = 实时脉冲*3600*变比/60/con
 	case 1:
 	case 3:
-		JProgramInfo->class12.q = pulse[0] * 3600.0 *JProgramInfo->class12.ct / (60 * con);
+		JProgramInfo->class12[index].p = pulse * 600 * k;
 		break;
 	}
 }
 
 //刷新脉冲
-void refreshPulse() {
+void refreshPulse(int sec) {
 	//用于统计脉冲数
 	static int pulseCount[2] = { 0, 0 };
+	static int pulseCountPeriod[2] = { 0, 0 };
+	static int first = 1;
+
 	//用于存储增量
 	int pulseCountPlus[2] = { 0, 0 };
-	//用于统计周期内的脉冲计数
-	int pulseCountPeriod[2] = { 0, 0 };
-	//用于计算时间
-	int pulseCountTime[2] = { 0, 0 };
-	//获取寄存器的值
-	unsigned int pulse[2];
-	getNewPulseVal(pulse);
+	unsigned int pulse[2] = { 0, 0 };
 
-	for (int i = 0; i < 2; i++) {
+	getNewPulseVal(pulse);
+	fprintf(stderr, "刷新脉冲 %d-%d\n", pulse[0], pulse[1]);
+
+	if (first == 1) {
+		fprintf(stderr, "第一次刷新脉冲计数\n");
+		for (int i = 0; i < 2; i++) {
+			pulseCount[i] = pulse[i];
+			pulseCountPeriod[i] = pulse[i];
+		}
+		first = 0;
+	}
+
+	for (int i = 0; i < 1; i++) {
 		if (pulse[i] > pulseCount[i]) {
 			pulseCountPlus[i] = pulse[i] - pulseCount[i];
 			pulseCount[i] = pulse[i];
 		}
 
-		pulseCountPeriod[i] = pulseCountPlus[i];
-		if (pulseCountPeriod[i] > 0) {
-			pulseCountTime[i]++;
-		} else {
-			pulseCountTime[i] = 0;
-		}
-
 		//计算周期内的电量
-		cacl_DD(pulseCount);
-
-		if (pulseCountTime[i] >= 60) {
-			//计算周期内实时功率
-			cacl_PQ(pulseCountPeriod);
+		fprintf(stderr, "电量 %d\n", pulseCountPlus[i] * 10);
+		cacl_DD(pulseCountPlus[i], i);
+		//计算周期内实时功率
+		if (sec == 15) {
+			pulseCountPlus[i] = pulse[i] - pulseCountPeriod[i];
+			fprintf(stderr, "电量[2] %d\n", pulseCountPlus[i] * 60);
+			cacl_PQ(pulseCountPlus[i], i);
 			//周期内脉冲计数清零
-			pulseCountPeriod[i] = 0;
-			//周期重新计数
-			pulseCountTime[i] = 0;
+			pulseCountPeriod[i] = pulse[i];
 		}
-
 	}
-
 }
 
 //刷新总加组
@@ -607,7 +628,7 @@ void dealCtrl() {
 
 }
 
-int ctrlMain() {
+int ctrlMain(void * arg) {
 
 	int secOld = 0;
 	//初始化参数,搭建8个总加组数据，读取功控、电控参数
@@ -619,7 +640,8 @@ int ctrlMain() {
 
 		//一秒钟刷新一次脉冲数据
 		if (secOld != now.Sec) {
-			refreshPulse();
+			refreshPulse(secOld);
+			secOld = now.Sec;
 		}
 
 		//一分钟计算一次控制逻辑
@@ -636,5 +658,6 @@ int ctrlMain() {
 		}
 
 		secOld = now.Sec;
+		usleep(200 * 1000);
 	}
 }

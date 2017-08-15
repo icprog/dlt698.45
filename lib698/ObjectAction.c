@@ -980,6 +980,7 @@ void TerminalInfo(INT16U attr_act, INT8U *data, Action_result *act_ret) {
             dataInit(attr_act);
         	//共享内存实际流量清零
         	memset(&memp->dev_info.realTimeC2200,0,sizeof(Flow_tj));
+        	memset(&memp->dev_info.realTimeC2200,0,sizeof(Flow_tj));
             //Event_3100(NULL,0,memp);//初始化，产生事件,移到复位应答帧之后再进行事件的上报
             Reset_add();            //国网台体测试,数据初始化认为是复位操作
             fprintf(stderr, "\n终端数据初始化！");
@@ -1427,7 +1428,7 @@ int doObjectAction(OAD oad, INT8U *data, Action_result *act_ret) {
         	}
         	break;
         case 0x2401:
-        	class12_router(1, attr_act, data, act_ret);
+        	class12_router(0, attr_act, data, act_ret);
 			break;
         case 0x2301:
             class23_selector(1, attr_act, data, act_ret);

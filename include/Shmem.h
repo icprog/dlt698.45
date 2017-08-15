@@ -421,7 +421,7 @@ typedef struct {
 	ACCoe_SAVE 		Accoepara;
 	_RealData		ACSRealData;		//计量芯片实时数据
 	ACEnergy_Sum	ACSEnergy;			//计量芯片电能量数据
-	CLASS12			class12;			//脉冲计量
+	CLASS12			class12[2];			//脉冲计量
 	CLASS23			class23[8];			//总加组
 	ProjectInfo		Projects[PROJECTCOUNT];	//子程序信息
 	RealdataReq		RealDatareq;			//实时数据请求缓存
