@@ -207,17 +207,17 @@ INT8U time_in_task(CLASS_6013 from6012_curr) {
 INT8U filterInvalidTask(INT16U taskIndex) {
 
 	if (list6013[taskIndex].basicInfo.taskID == 0) {
-		fprintf(stderr, "\n filterInvalidTask - 1");
+		//fprintf(stderr, "\n filterInvalidTask - 1");
 		return 0;
 	}
 	if (list6013[taskIndex].basicInfo.state == task_novalid)	//任务无效
 			{
-		fprintf(stderr, "\n filterInvalidTask - 2");
+		//fprintf(stderr, "\n filterInvalidTask - 2");
 		return 0;
 	}
 	if (time_in_task(list6013[taskIndex].basicInfo) == 1)	//不在任务执行时段内
 	{
-		fprintf(stderr, "\n filterInvalidTask - 3");
+		//fprintf(stderr, "\n filterInvalidTask - 3");
 		return 0;
 	}
 	if (time_in_shiduan(list6013[taskIndex].basicInfo.runtime,list6013[taskIndex].basicInfo.interval) == 1)	//在抄表时段内
@@ -1828,61 +1828,4 @@ int main(int argc, char *argv[])
 	pthread_mutex_destroy(&mutex); //销毁互斥锁
 	close_named_sem(SEMNAME_SPI0_0);
 	return EXIT_SUCCESS;//退出
-}
-int getTaskDataTsaNum(INT8U taskID)
-{
-	TS ts_tmp;
-	TSGet(&ts_tmp);
-	char	fname[128]={};
-	getTaskFileName(taskID,ts_tmp,fname);//得到要抄读的文件名称
-	fprintf(stderr,"\n打开文件名%s\n",fname);
-	INT8U tmp=0,buf[20]={};
-	int begitoffset =0 ;
-
-	int indexn=0,A_record=0,A_TSAblock=0;
-	HEAD_UNIT0 length[20];
-	int tsaNum =0 , head_len=0,unitnum=0;
-
-
-	FILE *fp=NULL;
-	fp = fopen(fname,"r");
-	if(fp==NULL)
-		return 0;
-	fprintf(stderr,"\n\n\n--------------------------------------------------------");
-	head_len = readfile_int(fp);
-	fprintf(stderr,"\n文件头长度 %d (字节)",head_len);
-
-	A_TSAblock = readfile_int(fp);
-	memset(&length,0,sizeof(length));
-	unitnum = (head_len )/sizeof(HEAD_UNIT0);
-
-	//打印文件头结构
-	A_record = head_prt(unitnum,length,&indexn,fp);
-
-	fprintf(stderr,"\nA_TSAblock = %d\n",A_TSAblock);
-	for(;;)
-	{
-		begitoffset = ftell(fp);
-		if (fread(&tmp,1,1,fp)<=0)
-		{
-			fprintf(stderr,"1111111");
-			fclose(fp);
-			return tsaNum;
-		}
-		if(tmp!=0X55)
-		{
-			fprintf(stderr,"2222222");
-			fclose(fp);
-			return tsaNum;
-		}
-		fread(&tmp,1,1,fp);
-		fread(&buf,tmp,1,fp);
-
-		tsaNum++;
-		fseek(fp,begitoffset+A_TSAblock,0);
-
-	}
-	fclose(fp);
-	return tsaNum;
-
 }

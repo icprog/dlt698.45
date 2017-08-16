@@ -210,6 +210,17 @@ int main(int argc, char *argv[]) {
 
     //生产检测本地状态灯，使用485_II口发送报文，台体485_II与485_III短接，cjcomm的维护口485III会返回请求的数据
     //在台体检测的python脚本运行时候会调用cj checkled命令,来实现维护口通信,收到报文本地灯会闪烁
+    if (strcmp("getCB", argv[1]) == 0)
+    {
+    	if(argc==3)
+    	{
+    		INT8U taskid  = atoi(argv[2]);
+    		TS tsNow;
+    		TSGet(&tsNow);
+        	fprintf(stderr,"getCBsuctsanum = %d",getCBsuctsanum(taskid,tsNow));
+    	}
+    	return EXIT_SUCCESS;
+    }
     if (strcmp("checkled", argv[1]) == 0) {
     	int port = 1;
     	if(argc==3) {

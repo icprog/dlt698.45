@@ -4885,7 +4885,9 @@ INT8S deal6015or6017(CLASS_6013 st6013,CLASS_6015 st6015, INT8U port485,CLASS_60
 						SaveNorData(st6035->taskID,NULL,dataContent,bufflen,ts_cc);
 					}
 #if 1
-					INT16U tsaNum = getTaskDataTsaNum(st6035->taskID);
+					TS tsNow;
+					TSGet(&tsNow);
+					INT16U tsaNum = getCBsuctsanum(st6035->taskID,tsNow);
 					//DbgPrintToFile1(port,"tsaNum = %d",tsaNum);
 					st6035->successMSNum = st6035->successMSNum > tsaNum?st6035->successMSNum:tsaNum;
 					saveClass6035(st6035);
@@ -5106,7 +5108,9 @@ void read485_thread(void* i485port) {
 					taskIndex,result6035.sendMsgNum,result6035.rcvMsgNum);
 #if 1
 			result6035.taskState = AFTER_OPR;
-			INT16U tsaNum = getTaskDataTsaNum(result6035.taskID);
+			TS tsNow;
+			TSGet(&tsNow);
+			INT16U tsaNum = getCBsuctsanum(result6035.taskID,tsNow);
 			result6035.successMSNum = result6035.successMSNum > tsaNum?result6035.successMSNum:tsaNum;
 			saveClass6035(&result6035);
 #endif

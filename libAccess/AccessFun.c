@@ -4681,18 +4681,23 @@ INT16U getCBsuctsanum(INT8U taskid,TS ts)
 		reclen = unitlen/tasknor_info.runtime;
 		recordnum = (file_endpos-headlen)/unitlen;
 		file_idnexpos = headlen+reclen*seqno;
+		fprintf(stderr,"\nrecordnum=%d,reclen=%d\n",recordnum,reclen);
 		for(i=0;i<recordnum;i++)
 		{
 			fseek(fp,file_idnexpos,SEEK_SET);
-			if(fread(recordbuf,unitlen,1,fp)==0)
+			if(fread(recordbuf,reclen,1,fp)==0)
 			{
+				//fprintf(stderr,"\n ## i= %d",i);
 				break;
 			}
 			//地址和三个时标不为0，则认为此条记录不为空
+			//fprintf(stderr,"\n ** recordbuf= %02x %02x %02x %02x",recordbuf[0],recordbuf[18],recordbuf[26],recordbuf[34]);
 			if(recordbuf[0] != 0 && recordbuf[18] != 0 && recordbuf[26] != 0 && recordbuf[34] != 0)
 				tsa_sucnum++;
 			file_idnexpos += unitlen;
 		}
 	}
+	if(fp != NULL)
+		fclose(fp);
 	return tsa_sucnum;
 }

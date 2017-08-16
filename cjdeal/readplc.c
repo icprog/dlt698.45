@@ -1851,7 +1851,9 @@ int ProcessMeter(INT8U *buf,struct Tsa_Node *desnode)
 			CLASS_6035 result6035;	//采集任务监控单元
 			get6035ByTaskID(taskinfo.task_list[taski].taskId,&result6035);
 			result6035.taskState = AFTER_OPR;
-			INT16U tsaNum = getTaskDataTsaNum(result6035.taskID);
+			TS tsNow;
+			TSGet(&tsNow);
+			INT16U tsaNum = getCBsuctsanum(result6035.taskID,tsNow);
 			result6035.successMSNum = result6035.successMSNum > tsaNum?result6035.successMSNum:tsaNum;
 			saveClass6035(&result6035);
 	    }
