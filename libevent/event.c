@@ -1222,19 +1222,27 @@ INT8U Event_3106(ProgramInfo* prginfo_event,MeterPower *MeterPowerInfo,INT8U *st
 	INT16U recover_voltage_limit=prginfo_event->event_obj.Event3106_obj.poweroff_para_obj.screen_para_obj.recover_voltage_limit;
 	INT16U mintime_space=prginfo_event->event_obj.Event3106_obj.poweroff_para_obj.screen_para_obj.mintime_space;
 	INT16U maxtime_space=prginfo_event->event_obj.Event3106_obj.poweroff_para_obj.screen_para_obj.maxtime_space;
+
+	DEBUG_TIME_LINE("poweroff_happen_vlim: %d, recover_voltage_limit: %d", poweroff_happen_vlim, recover_voltage_limit);
+	DEBUG_TIME_LINE("Available: %d, Ua: %d", prginfo_event->ACSRealData.Available,prginfo_event->ACSRealData.Ua);
 	if(*state == 2){
 		MeterDiff(prginfo_event,MeterPowerInfo,state);
 		*state=0;
 	}
 	INT8U off_flag=0,on_flag=0;
 	//判断下电
-	if(TermialPowerInfo.ERC3106State == POWER_START){
+	if(TermialPowerInfo.ERC3106State == POWER_START){//TODO: 应该在5~10个查看周期内,
+													 //检测到电压值呈下降趋势,
+		                                             //且最终低于掉电电压阈值时, 报停电事件.
+													 //检测到电压值呈上升趋势,
+													 //且最终高于上电电压阈值时, 报上电事件.
 		if(prginfo_event->cfg_para.device == CCTT2){//II型
 //			if(((prginfo_event->ACSRealData.Available==TRUE)
 //							&&(prginfo_event->ACSRealData.Ua>100
 //									&& prginfo_event->ACSRealData.Ua<poweroff_happen_vlim)) ||
 //					(prginfo_event->ACSRealData.Ua <=100))
-			off_flag=pwr_has_byVolt(prginfo_event->ACSRealData.Available,prginfo_event->ACSRealData.Ua,poweroff_happen_vlim);
+//						off_flag = 1;
+			off_flag=pwr_down_byVolt(prginfo_event->ACSRealData.Available,prginfo_event->ACSRealData.Ua,poweroff_happen_vlim);
 		}else{
 			BOOLEAN gpio_5V=pwr_has();
 			if((((prginfo_event->ACSRealData.Ua<poweroff_happen_vlim)&&(prginfo_event->ACSRealData.Ub<poweroff_happen_vlim)
@@ -1261,9 +1269,10 @@ INT8U Event_3106(ProgramInfo* prginfo_event,MeterPower *MeterPowerInfo,INT8U *st
 		}
 	}else if(TermialPowerInfo.ERC3106State == POWER_OFF){
 		if(prginfo_event->cfg_para.device == CCTT2){//II型
-			if((prginfo_event->ACSRealData.Available && prginfo_event->ACSRealData.Ua>recover_voltage_limit && recover_voltage_limit>0)
-					||(prginfo_event->ACSRealData.Available && prginfo_event->ACSRealData.Ua>180))
-				on_flag=1;
+//			if((prginfo_event->ACSRealData.Available && prginfo_event->ACSRealData.Ua>recover_voltage_limit && recover_voltage_limit>0)
+//					||(prginfo_event->ACSRealData.Available && prginfo_event->ACSRealData.Ua>1800))
+//				on_flag=1;
+			on_flag=pwr_on_byVolt(prginfo_event->ACSRealData.Available,prginfo_event->ACSRealData.Ua,recover_voltage_limit);
 		}else{
 			if((prginfo_event->ACSRealData.Available&&prginfo_event->ACSRealData.Ua>recover_voltage_limit)
 			        			||(prginfo_event->ACSRealData.Available&&prginfo_event->ACSRealData.Ua>recover_voltage_limit)

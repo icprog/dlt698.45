@@ -18,6 +18,7 @@
 #include "ParaDef.h"
 #include "event.h"
 #include "Shmem.h"
+#include "EventObject.h"
 #include "main.h"
 //property
 
@@ -78,6 +79,11 @@ void printClass3106()
 			tmpobj.poweroff_para_obj.screen_para_obj.happen_voltage_limit,tmpobj.poweroff_para_obj.screen_para_obj.recover_voltage_limit);
 
 
+}
+
+void setClass3106(int argc, char* argv[])
+{
+	Event3106_Object e3106Obj = {0};
 }
 
 void printClass310d()
@@ -669,6 +675,47 @@ void event_process(int argc, char *argv[])
 					}
 				}
 				fprintf(stderr,"设置%04x成功!\n",oi);
+		}
+
+		if(strcmp("set",argv[2])==0){
+			switch(oi) {
+			case 0x3106:
+				DEBUG_TIME_LINE("class3106:设置停上电事件参数");
+				setClass3106(argc, argv);
+				break;
+			case 0x310d:
+				break;
+			case 0x3100:
+				break;
+			case 0x3104:
+				break;
+			case 0x3109:
+				break;
+			case 0x310A:
+				break;
+			case 0x3111:
+				break;
+			case 0x3112:
+				break;
+			case 0x3114:
+				break;
+			case 0x3115:
+				break;
+			case 0x3117:
+				break;
+			case 0x3118:
+				break;
+			case 0x3119:
+				break;
+			case 0x3200:
+				break;
+			case 0x3201:
+				break;
+			case 0x3202:
+				break;
+			default:
+				break;
+			}
 		}
 	}
 }

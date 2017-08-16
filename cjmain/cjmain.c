@@ -38,7 +38,7 @@ const static mmq_attribute mmq_register[] = {{cjcomm, PROXY_485_MQ_NAME,    MAXS
 #define	PWR_ON		1//上电状态
 #define	PWR_DOWN	0//断电状态
 
-#define	VOL_LIMIT	1300//集中器欠压阈值, 低于这个阈值,就认为已经断电了
+#define	VOL_LIMIT	130//集中器欠压阈值, 低于这个阈值,就认为已经断电了
 
 #define	PWR_SHUT_CNT	90//集中器连续断电的计数值, 超过这个计数值就认为是彻底断电了
 
@@ -120,17 +120,20 @@ void PowerOffToClose(INT8U pwrdelay) {
  * 1. 上电时间很短, 电容充电不充分, 电量不足以
  * 支撑ARM芯片工作到90个计数, 那么此时的LED灯
  * 还是亮着的, 但是主芯片已经停止工作了.
+ * 为了解决这个问题, 在检测到掉电30个计数后,
+ * 关闭所有LED, 但是程序还在运行(如果电容还有电的话)
  */
 void rebootWhenPwrDown(INT8U delay) {
     static INT8U cnt_pwroff = 0;
     int i = 0;
 
-    int off_flag = pwr_has_byVolt(JProgramInfo->ACSRealData.Available, JProgramInfo->ACSRealData.Ua, VOL_LIMIT);
+    int off_flag = pwr_down_byVolt(JProgramInfo->ACSRealData.Available, JProgramInfo->ACSRealData.Ua, VOL_LIMIT);
     if (off_flag == 1) {
-    	DEBUG_TO_FILE("/nand/pwr.log", "底板电源已关闭，设备关闭倒计时：%d s.....\n", delay-cnt_pwroff);
+//    	DEBUG_TO_FILE("/nand/pwr.log", "底板电源已关闭，设备关闭倒计时：%d s.....\n", delay-cnt_pwroff);
         cnt_pwroff++;
         if (cnt_pwroff == 30) {
-        	DEBUG_TO_FILE("/nand/pwr.log", "关闭所有led.....");
+//        	DEBUG_TO_FILE("/nand/pwr.log", "关闭所有led.....");
+        	g_powerState = PWR_DOWN;
         	for (i=0;i<5;i++) {
 				shutAllLed();
 				usleep(100);
@@ -144,7 +147,7 @@ void rebootWhenPwrDown(INT8U delay) {
         		usleep(100);
         	}
         	sleep(3);
-        	DEBUG_TO_FILE("/nand/pwr.log", "重启集中器.....");
+//        	DEBUG_TO_FILE("/nand/pwr.log", "重启集中器.....");
         	system("reboot");
         }
     } else {
