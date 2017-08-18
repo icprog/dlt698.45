@@ -21,15 +21,15 @@ int class12_act3(int index, INT8U* data) {
 
 	ProgramInfo *shareAddr = getShareAddr();
 	for (int i = 0; i < 12; i++) {
-		if (shareAddr->class12.unit[i].no.OI == 0x00) {
-			shareAddr->class12.unit[i].no.OI = data[3] * 256 + data[4];
+		if (shareAddr->class12[index].unit[i].no.OI == 0x00) {
+			shareAddr->class12[index].unit[i].no.OI = data[3] * 256 + data[4];
 			asyslog(LOG_INFO, "添加脉冲计量配置单元 %04x",
-					shareAddr->class12.unit[i].no.OI);
-			shareAddr->class12.unit[i].no.attflg = data[5];
-			shareAddr->class12.unit[i].no.attrindex = data[6];
+					shareAddr->class12[index].unit[i].no.OI);
+			shareAddr->class12[index].unit[i].no.attflg = data[5];
+			shareAddr->class12[index].unit[i].no.attrindex = data[6];
 
-			shareAddr->class12.unit[i].conf = data[8];
-			shareAddr->class12.unit[i].k = data[10] * 256 + data[11];
+			shareAddr->class12[index].unit[i].conf = data[8];
+			shareAddr->class12[index].unit[i].k = data[10] * 256 + data[11];
 			break;
 		}
 	}
@@ -63,7 +63,7 @@ int class2401_set_attr_2(int index, OAD oad, INT8U *data, INT8U *DAR) {
 	}
 
 	for (int i = 0; i < data[1]; i++) {
-		shareAddr->class12.addr[i] = data[2 + i];
+		shareAddr->class12[index].addr[i] = data[2 + i];
 	}
 
 	return 0;
@@ -84,8 +84,8 @@ int class2401_set_attr_3(int index, OAD oad, INT8U *data, INT8U *DAR) {
 	int ct = data[6] * 255 + data[7];
 	asyslog(LOG_WARNING, "修改互感器倍率%d-%d", pt, ct);
 	ProgramInfo *shareAddr = getShareAddr();
-	shareAddr->class12.pt = pt;
-	shareAddr->class12.ct = ct;
+	shareAddr->class12[index].pt = pt;
+	shareAddr->class12[index].ct = ct;
 	return 0;
 }
 
@@ -107,8 +107,28 @@ int class12_get_5(OI_698 oi, INT8U *sourcebuf, INT8U *buf, int *len) {
 	ProgramInfo *shareAddr = getShareAddr();
 
 	*len = 0;
-	*len += fill_double_long(&buf[*len], shareAddr->class12.p);
+	*len += fill_double_long(&buf[*len], shareAddr->class12[0].p);
 
+	return 1;
+}
+
+int class12_get_7(OI_698 oi, INT8U *sourcebuf, INT8U *buf, int *len) {
+	ProgramInfo *shareAddr = getShareAddr();
+
+	int total = 0;
+	for (int i = 0; i < 4; i++){
+		total += shareAddr->class12[0].day_pos_p[i];
+	}
+
+	*len = 0;
+	*len += create_array(&buf[*len], 5);
+	*len += fill_double_long_unsigned(&buf[*len], total);
+	*len += fill_double_long_unsigned(&buf[*len], shareAddr->class12[0].day_pos_p[0]);
+	*len += fill_double_long_unsigned(&buf[*len], shareAddr->class12[0].day_pos_p[1]);
+	*len += fill_double_long_unsigned(&buf[*len], shareAddr->class12[0].day_pos_p[2]);
+	*len += fill_double_long_unsigned(&buf[*len], shareAddr->class12[0].day_pos_p[3]);
+	fprintf(stderr, "class12_get_7\n");
+;
 	return 1;
 }
 
@@ -119,6 +139,8 @@ int class12_get(OAD oad, INT8U *sourcebuf, INT8U *buf, int *len){
 	switch (oad.attflg) {
 	case 5:
 		return class12_get_5(oad.OI, sourcebuf, buf, len);
+	case 7:
+		return class12_get_7(oad.OI, sourcebuf, buf, len);
 
 	}
 }

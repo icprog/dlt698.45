@@ -1784,6 +1784,20 @@ void dispatchTask_proccess()
 	}
 }
 
+
+void ctrl_proccess()
+{
+	fprintf(stderr, "\n CJGUI compile time:%s %s", __DATE__,__TIME__);
+
+	pthread_attr_init(&guictrl_attr_t);
+	pthread_attr_setstacksize(&guictrl_attr_t,2048*1024);
+	pthread_attr_setdetachstate(&guictrl_attr_t,PTHREAD_CREATE_DETACHED);
+	while ((thread_guictrl_id=pthread_create(&thread_guictrl, &guictrl_attr_t, (void*)ctrlMain, NULL)) != 0)
+	{
+		sleep(1);
+	}
+}
+
 /*********************************************************
  * 主进程
  *********************************************************/
@@ -1829,6 +1843,11 @@ int main(int argc, char *argv[])
 	{
 		//液晶、控制
 		guictrl_proccess();
+	}
+	if(JProgramInfo->cfg_para.device == SPTF3)
+	{
+		//负控
+		ctrl_proccess();
 	}
 	//交采
 	acs_process();
