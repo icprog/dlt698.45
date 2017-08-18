@@ -361,33 +361,6 @@ INT8U isPlcOAD(OAD portOAD)
 	return 0;
 }
 
-
-INT8U FindAndFillGroupIndex(TSA meter,INT16U sernum)
-{
-	INT8U ret = 0;
-
-	INT8U groupIndex = 0;
-	INT8U meterIndex = 0;
-	for(groupIndex = 0;groupIndex < 8;groupIndex++)
-	{
-		for(meterIndex = 0;meterIndex < MAX_AL_UNIT;meterIndex++)
-		{
-			if(memcmp(&meter,&JProgramInfo->class23[groupIndex].allist[meterIndex].tsa,sizeof(TSA))==0)
-			{
-				groupmeterIndexMap.units[groupmeterIndexMap.meterNum].sernum = sernum;
-				groupmeterIndexMap.units[groupmeterIndexMap.meterNum].groupIndex = groupIndex;
-				groupmeterIndexMap.units[groupmeterIndexMap.meterNum].meterIndex = meterIndex;
-				groupmeterIndexMap.meterNum++;
-				return 1;
-			}
-
-		}
-
-	}
-
-
-	return ret;
-}
 /*
  * 读取table6000 填充info6000  此结构体保存了每一个485口上有那些测量点
  * 抄表是根据此结构体读取测量点信息
@@ -427,11 +400,6 @@ INT8S init6000InfoFrom6000FIle()
 		{
 			if(meter.sernum!=0 && meter.sernum!=0xffff)
 			{
-				if(JProgramInfo->cfg_para.device == SPTF3)
-				{
-					FindAndFillGroupIndex(meter.basicinfo.addr,meter.sernum);
-				}
-
 				if(is485OAD(meter.basicinfo.port,1) == 1)
 				{
 					meterIndex = info6000[0].meterSum;

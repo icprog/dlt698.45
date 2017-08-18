@@ -2038,23 +2038,21 @@ INT8U getSinglegOADDataUnit(INT8U* oadData)
 	}
 	return length;
 }
-
-INT8U fillclass23data(OAD rcvOAD,INT16U sernum,INT8U* data)
+INT8U fillclass23data(OAD rcvOAD,TSA meter,INT8U* data)
 {
 	fprintf(stderr,"\n\n ---------------fillclass23data");
 	INT8U ret = 0;
-	INT8U findindex = 0;
+	INT8U meterIndex = 0;
+	INT8U groupIndex = 0;
 
-	for(findindex = 0;findindex < groupmeterIndexMap.meterNum;findindex++)
+	for(groupIndex = 0;groupIndex < 8;groupIndex++)
 	{
-		if(groupmeterIndexMap.units[groupmeterIndexMap.meterNum].sernum==sernum)
+		for(meterIndex = 0;meterIndex < MAX_AL_UNIT;meterIndex++)
 		{
-			INT8U groupIndex = groupmeterIndexMap.units[groupmeterIndexMap.meterNum].groupIndex;
-			INT8U meterIndex = groupmeterIndexMap.units[groupmeterIndexMap.meterNum].meterIndex;
+			if(JProgramInfo->class23[groupIndex].allist[meterIndex].tsa.addr[0]==0)
+				break;
 
-			fprintf(stderr,"\nfind!!!! sernum = %d groupIndex = %d meterIndex = %d",sernum,groupIndex,meterIndex);
-
-			if(groupIndex<8&&meterIndex<MAX_AL_UNIT)
+			if(memcmp(&meter,&JProgramInfo->class23[groupIndex].allist[meterIndex].tsa,sizeof(TSA))==0)
 			{
 				if(rcvOAD.OI == 0x0010)
 				{
@@ -2076,10 +2074,11 @@ INT8U fillclass23data(OAD rcvOAD,INT16U sernum,INT8U* data)
 								(data[1]<<24)+(data[2]<<16)+(data[3]<<8)+data[4];
 					}
 				}
-
+				return 1;
 			}
 
 		}
+
 	}
 
 	return ret;
@@ -2102,7 +2101,7 @@ INT8S checkEvent698(OAD rcvOAD,INT8U* data,INT8U dataLen,CLASS_6001 obj6001,INT1
 		//更新总加组电量
 		if(JProgramInfo->cfg_para.device == SPTF3)
 		{
-			fillclass23data(rcvOAD,obj6001.sernum,data);
+			fillclass23data(rcvOAD,obj6001.basicinfo.addr,data);
 		}
 
 		ret = Event_310B(obj6001.basicinfo.addr,taskID,&data[3],dataLen,JProgramInfo);
