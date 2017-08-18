@@ -1451,11 +1451,12 @@ int doObjectAction(OAD oad, INT8U *data, Action_result *act_ret) {
 	    INT16U oi = oad.OI;
 	    INT8U attr_act = oad.attflg;
 	    INT8U oihead = (oi & 0xF000) >> 12;
-	    fprintf(stderr, "\n----------  oi =%04x   ", oi);
+	    fprintf(stderr, "\nOI----------  oi =%04x   ", oi);
 
 		if(Response_timetag.effect==0) {
 			act_ret->DAR = timetag_invalid;
 			act_ret->datalen = 0;
+			fprintf(stderr, "进入oi判断1\n");
 			return act_ret->datalen;
 		}else if(oi==0x8000 || oi==0x8001){		//国网一致性测试：遥控与保电，必须带时间标签，否则认为无效
 			if(Response_timetag.flag == 0) {		//无时间标签
@@ -1465,6 +1466,7 @@ int doObjectAction(OAD oad, INT8U *data, Action_result *act_ret) {
 				return act_ret->datalen;
 			}
 		}
+		fprintf(stderr, "进入oi判断\n");
 		switch (oi) {
     	case 0x4000:	//广播校时
      		if (attr_act == 127) {  //方法 127 广播校时

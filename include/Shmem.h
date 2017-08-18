@@ -433,6 +433,8 @@ typedef struct {
 	CLASS_F205 cf205; //继电器输出状态
 	INT8U c4024;	//剔除状态
 
+	INT32U control[3]; //遥控命令 0xEEFFEFEF为分闸 0xCCAACACA为合闸， 必须三个位置同时相同才认为命令有效
+
 } CtrlState;
 
 typedef struct {
@@ -442,7 +444,7 @@ typedef struct {
 	ACEnergy_Sum	ACSEnergy;			//计量芯片电能量数据
 	CLASS12			class12[2];			//脉冲计量
 	CLASS23			class23[8];			//总加组
-	CtrlState		ctrls;				//转变参数-为液晶共享数据
+	CtrlState		ctrls;				//专变参数-为液晶共享数据
 	ProjectInfo		Projects[PROJECTCOUNT];	//子程序信息
 	RealdataReq		RealDatareq;			//实时数据请求缓存
 	OI_CHANGE		oi_changed;				//相应的OI参数修改变化值，结构体相应的OI值从1-255设置参数后循环累加

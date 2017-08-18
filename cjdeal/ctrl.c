@@ -18,7 +18,6 @@
 extern ProgramInfo* JProgramInfo;
 CtrlState * CtrlC;
 
-
 int ctrl_base_test() {
 	printf("%d", CheckModelState());
 	InitCtrlModel();
@@ -28,9 +27,6 @@ int ctrl_base_test() {
 
 	return 0;
 }
-
-
-
 
 //刷新总加组
 void refreshSumUp() {
@@ -49,32 +45,47 @@ void refreshSumUp() {
 	JProgramInfo->class23[0].p = JProgramInfo->class12[0].p;
 	JProgramInfo->class23[0].q = JProgramInfo->class12[0].q;
 
-	for (int i = 0; i < 4; i++){
-		fprintf(stderr, "分项%d\n",JProgramInfo->class12[0].day_pos_p[i]);
-		JProgramInfo->class23[0].DayP[i] = JProgramInfo->class12[0].day_pos_p[i];
-		JProgramInfo->class23[0].DayQ[i] = JProgramInfo->class12[0].day_pos_q[i];
-		JProgramInfo->class23[0].MonthP[i] = JProgramInfo->class12[0].mon_pos_p[i];
-		JProgramInfo->class23[0].MonthQ[i] = JProgramInfo->class12[0].mon_pos_q[i];
+	for (int i = 0; i < 4; i++) {
+		fprintf(stderr, "分项%d\n", JProgramInfo->class12[0].day_pos_p[i]);
+		JProgramInfo->class23[0].DayP[i] =
+				JProgramInfo->class12[0].day_pos_p[i];
+		JProgramInfo->class23[0].DayQ[i] =
+				JProgramInfo->class12[0].day_pos_q[i];
+		JProgramInfo->class23[0].MonthP[i] =
+				JProgramInfo->class12[0].mon_pos_p[i];
+		JProgramInfo->class23[0].MonthQ[i] =
+				JProgramInfo->class12[0].mon_pos_q[i];
 	}
 
-	fprintf(stderr, "总加组 功率%d 电量%lld %lld %lld %lld\n", JProgramInfo->class23[0].p, JProgramInfo->class23[0].DayP[0], JProgramInfo->class23[0].DayP[1], JProgramInfo->class23[0].DayP[2], JProgramInfo->class23[0].DayP[3]);
+	fprintf(stderr, "总加组 功率%d 电量%lld %lld %lld %lld\n",
+			JProgramInfo->class23[0].p, JProgramInfo->class23[0].DayP[0],
+			JProgramInfo->class23[0].DayP[1], JProgramInfo->class23[0].DayP[2],
+			JProgramInfo->class23[0].DayP[3]);
 
 	if (ts.Hour == 0 && ts.Minute == 0 && ts.Sec == 0) {
-		for(int i = 0; i < 2; i ++) {
-			memset(&JProgramInfo->class12[i].day_nag_p[0], 0x00, sizeof(JProgramInfo->class12[i].day_nag_p));
-			memset(&JProgramInfo->class12[i].day_nag_q[0], 0x00, sizeof(JProgramInfo->class12[i].day_nag_q));
-			memset(&JProgramInfo->class12[i].day_pos_p[0], 0x00, sizeof(JProgramInfo->class12[i].day_pos_p));
-			memset(&JProgramInfo->class12[i].day_pos_q[0], 0x00, sizeof(JProgramInfo->class12[i].day_pos_q));
+		for (int i = 0; i < 2; i++) {
+			memset(&JProgramInfo->class12[i].day_nag_p[0], 0x00,
+					sizeof(JProgramInfo->class12[i].day_nag_p));
+			memset(&JProgramInfo->class12[i].day_nag_q[0], 0x00,
+					sizeof(JProgramInfo->class12[i].day_nag_q));
+			memset(&JProgramInfo->class12[i].day_pos_p[0], 0x00,
+					sizeof(JProgramInfo->class12[i].day_pos_p));
+			memset(&JProgramInfo->class12[i].day_pos_q[0], 0x00,
+					sizeof(JProgramInfo->class12[i].day_pos_q));
 		}
 	}
 
 	if (old_month != ts.Month) {
 		old_month = ts.Month;
-		for(int i = 0; i < 2; i ++) {
-			memset(&JProgramInfo->class12[i].mon_nag_p[0], 0x00, sizeof(JProgramInfo->class12[i].mon_nag_p));
-			memset(&JProgramInfo->class12[i].mon_nag_q[0], 0x00, sizeof(JProgramInfo->class12[i].mon_nag_q));
-			memset(&JProgramInfo->class12[i].mon_pos_p[0], 0x00, sizeof(JProgramInfo->class12[i].mon_pos_p));
-			memset(&JProgramInfo->class12[i].mon_pos_q[0], 0x00, sizeof(JProgramInfo->class12[i].mon_pos_q));
+		for (int i = 0; i < 2; i++) {
+			memset(&JProgramInfo->class12[i].mon_nag_p[0], 0x00,
+					sizeof(JProgramInfo->class12[i].mon_nag_p));
+			memset(&JProgramInfo->class12[i].mon_nag_q[0], 0x00,
+					sizeof(JProgramInfo->class12[i].mon_nag_q));
+			memset(&JProgramInfo->class12[i].mon_pos_p[0], 0x00,
+					sizeof(JProgramInfo->class12[i].mon_pos_p));
+			memset(&JProgramInfo->class12[i].mon_pos_q[0], 0x00,
+					sizeof(JProgramInfo->class12[i].mon_pos_q));
 		}
 	}
 
@@ -94,15 +105,24 @@ int initAll() {
 				sizeof(CLASS23), para_vari_save);
 	}
 
-	readCoverClass(0x8100, 0, &CtrlC->c8100, sizeof(CLASS_8100), para_vari_save);
-	readCoverClass(0x8101, 0, &CtrlC->c8101, sizeof(CLASS_8101), para_vari_save);
-	readCoverClass(0x8102, 0, &CtrlC->c8102, sizeof(CLASS_8102), para_vari_save);
-	readCoverClass(0x8103, 0, &CtrlC->c8103, sizeof(CLASS_8103), para_vari_save);
-	readCoverClass(0x8104, 0, &CtrlC->c8104, sizeof(CLASS_8104), para_vari_save);
-	readCoverClass(0x8105, 0, &CtrlC->c8105, sizeof(CLASS_8105), para_vari_save);
-	readCoverClass(0x8106, 0, &CtrlC->c8106, sizeof(CLASS_8106), para_vari_save);
-	readCoverClass(0x8107, 0, &CtrlC->c8107, sizeof(CLASS_8107), para_vari_save);
-	readCoverClass(0x8108, 0, &CtrlC->c8108, sizeof(CLASS_8108), para_vari_save);
+	readCoverClass(0x8100, 0, &CtrlC->c8100, sizeof(CLASS_8100),
+			para_vari_save);
+	readCoverClass(0x8101, 0, &CtrlC->c8101, sizeof(CLASS_8101),
+			para_vari_save);
+	readCoverClass(0x8102, 0, &CtrlC->c8102, sizeof(CLASS_8102),
+			para_vari_save);
+	readCoverClass(0x8103, 0, &CtrlC->c8103, sizeof(CLASS_8103),
+			para_vari_save);
+	readCoverClass(0x8104, 0, &CtrlC->c8104, sizeof(CLASS_8104),
+			para_vari_save);
+	readCoverClass(0x8105, 0, &CtrlC->c8105, sizeof(CLASS_8105),
+			para_vari_save);
+	readCoverClass(0x8106, 0, &CtrlC->c8106, sizeof(CLASS_8106),
+			para_vari_save);
+	readCoverClass(0x8107, 0, &CtrlC->c8107, sizeof(CLASS_8107),
+			para_vari_save);
+	readCoverClass(0x8108, 0, &CtrlC->c8108, sizeof(CLASS_8108),
+			para_vari_save);
 
 	return 0;
 }
@@ -522,27 +542,26 @@ void getFinalCtrl() {
 }
 
 void dealCtrl() {
-	//直接跳闸，必须检测
-	deal8107();
-	deal8108();
-
-	//检测控制有优先级，当高优先级条件产生时，忽略低优先级的配置
-
-	if (deal8106() != 0) {
-		;
-	} else if (deal8105() != 0) {
-		;
-	} else if (deal8104() != 0) {
-		;
-	} else if (deal8103() != 0) {
-		;
-	}
-	//统计输出与告警状态
-	sumUpCtrl();
-
-	//汇总所有总加组的状态
-	getFinalCtrl();
-
+//	//直接跳闸，必须检测
+//	deal8107();
+//	deal8108();
+//
+//	//检测控制有优先级，当高优先级条件产生时，忽略低优先级的配置
+//
+//	if (deal8106() != 0) {
+//		;
+//	} else if (deal8105() != 0) {
+//		;
+//	} else if (deal8104() != 0) {
+//		;
+//	} else if (deal8103() != 0) {
+//		;
+//	}
+//	//统计输出与告警状态
+//	sumUpCtrl();
+//
+//	//汇总所有总加组的状态
+//	getFinalCtrl();
 }
 
 int ctrlMain(void * arg) {
@@ -567,12 +586,34 @@ int ctrlMain(void * arg) {
 		if (secOld == 0) {
 //			refreshSumUp();
 
-			//检查参数更新
+//检查参数更新
 //			CheckParaUpdate();
 
-			//处理控制逻辑
-//			dealCtrl();
+//处理控制逻辑
+			dealCtrl();
 		}
+
+		if (JProgramInfo->ctrls.control[0] == 0xEEFFEFEF
+				&& JProgramInfo->ctrls.control[1] == 0xEEFFEFEF
+				&& JProgramInfo->ctrls.control[2] == 0xEEFFEFEF) {
+			JProgramInfo->ctrls.control[0] = 0x00;
+			printf("%d", CheckModelState());
+			InitCtrlModel();
+			int fd = OpenSerialPort();
+
+			SetCtrl_CMD(fd, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+			close(fd);
+		} else if (JProgramInfo->ctrls.control[0] == 0xCCAACACA
+				&& JProgramInfo->ctrls.control[1] == 0xCCAACACA
+				&& JProgramInfo->ctrls.control[2] == 0xCCAACACA) {
+			JProgramInfo->ctrls.control[0] = 0x00;
+			printf("%d", CheckModelState());
+			InitCtrlModel();
+			int fd = OpenSerialPort();
+			SetCtrl_CMD(fd, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+			close(fd);
+		}
+
 
 		secOld = now.Sec;
 		usleep(200 * 1000);

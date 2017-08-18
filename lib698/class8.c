@@ -64,6 +64,8 @@ int class8001_act_route(int index, int attr_act, INT8U *data,
 int class8000_act129(int index, int attr_act, INT8U *data,
 		Action_result *act_ret) {
 
+	ProgramInfo *shareAddr = getShareAddr();
+
 	if(data[0] != 0x01 || data[1] != 0x01){
 		return -1;
 	}
@@ -78,11 +80,17 @@ int class8000_act129(int index, int attr_act, INT8U *data,
 
 	asyslog(LOG_WARNING, "遥控跳闸 %d - %d - %d\n", delay, limit_time, auto_act);
 
+	shareAddr->ctrls.control[0] = 0xEEFFEFEF;
+	shareAddr->ctrls.control[1] = 0xEEFFEFEF;
+	shareAddr->ctrls.control[2] = 0xEEFFEFEF;
+
 	return 0;
 }
 
 int class8000_act130(int index, int attr_act, INT8U *data,
 		Action_result *act_ret) {
+
+	ProgramInfo *shareAddr = getShareAddr();
 
 	if(data[0] != 0x01 || data[1] != 0x01){
 		return -1;
@@ -95,6 +103,10 @@ int class8000_act130(int index, int attr_act, INT8U *data,
 	int allow_or_auto = data[10];
 
 	asyslog(LOG_WARNING, "遥控合闸 %d\n", allow_or_auto);
+
+	shareAddr->ctrls.control[0] = 0xCCAACACA;
+	shareAddr->ctrls.control[1] = 0xCCAACACA;
+	shareAddr->ctrls.control[2] = 0xCCAACACA;
 
 	return 0;
 }
