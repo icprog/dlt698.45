@@ -50,9 +50,9 @@ extern Rect rect_TopStatus, rect_BottomStatus, rect_Client;//液晶划分的3个
 #ifdef SPTF_III
 #define LunPageNum 	11  //轮寻页数
 #else
-#define LunPageNum 	11  //轮寻页数
+#define LunPageNum 	14  //轮寻页数
 #endif
-#define JCPageNum 	11  //轮寻交采页数
+#define JCPageNum 	14  //轮寻交采页数
 
 #define ROW_INTERVAL 3
 #define CMD_GUI_GETREAlDATA 	1 //TODO

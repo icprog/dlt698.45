@@ -183,6 +183,8 @@ void InIt_Process(int argc, char *argv[])
 			dataInit(method);
 			break;
 		case 4:		//恢复出厂参数
+        	//清除总表计量电量
+        	clearEnergy();
 			paraInit(0,NULL);
 			break;
 		}
@@ -211,6 +213,7 @@ void para_process(int argc, char *argv[])
 						dataInit(method);
 						break;
 					case 4:		//恢复出厂参数
+						clearEnergy();
 						paraInit(0,NULL);
 						break;
 					}

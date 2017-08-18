@@ -148,6 +148,10 @@ extern int clearClass(OI_698 oi);
 extern int deleteClass(OI_698 oi,INT8U id);
 
 /*
+ * 总表(交采)计量电量数据清除
+ * */
+extern void clearEnergy();
+/*
  * 数据区初始化接口函数
  * 返回值 =0: 删除成功
  * =-1：删除失败
@@ -346,8 +350,11 @@ extern INT8U GetTaskidFromCSDs(CSD_ARRAYTYPE csds,ROAD_ITEM *item_road,INT8U fin
 extern INT8U GetTaskidFromCSDs_Sle0(CSD_ARRAYTYPE csds,ROAD_ITEM *item_road,INT8U findmethod,CLASS_6001 *tsa);
 
 extern void deloutofdatafile();//删除过期任务数据文件;
+extern INT16U getCBsuctsanum(INT8U taskid,TS ts);//删除过期任务数据文件;
 
 int readfile_int(FILE *fp);
 int getOADf(INT8U type,INT8U *source,OAD *oad);
 int head_prt(int unitnum,HEAD_UNIT0 *length,int *indexn,FILE *fp);
+
+
 #endif /* ACCESS_H_ */

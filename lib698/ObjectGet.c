@@ -2156,18 +2156,19 @@ int GetEnvironmentValue(RESULT_NORMAL *response)
  * readType: =1:不判断数据有效性，只读取一个单元的数据长度，用于判断分帧及数据单元的个数
  *           =0：获取一个数据单元的内容
  * */
-int GetCollOneUnit(OI_698 oi,INT8U readType,INT8U seqnum,INT8U *data,INT16U *oneUnitLen,INT16U *blknum)
+int GetCollOneUnit(OAD oad,INT8U readType,INT8U seqnum,INT8U *data,INT16U *oneUnitLen,INT16U *blknum)
 {
 	int  one_unitlen = 0, one_blknum = 0;
-	switch(oi)
+	switch(oad.OI)
 	{
 	case 0x6000:	//采集档案配置表
 		one_unitlen = Get_6001(readType,seqnum,data);
-		one_blknum = getFileRecordNum(oi);
+		one_blknum = getFileRecordNum(oad.OI);
 		if(one_blknum<=1)	return 0;
 		break;
 	case 0x6002:	//搜表
-
+		one_unitlen = Get_6002(oad,readType,data);
+		one_blknum = 1;
 		break;
 	case 0x6012:	//任务配置表
 		one_unitlen = Get_6013(readType,seqnum,data);
@@ -2184,7 +2185,7 @@ int GetCollOneUnit(OI_698 oi,INT8U readType,INT8U seqnum,INT8U *data,INT16U *one
 	}
 	*oneUnitLen = one_unitlen;
 	*blknum = one_blknum;
-	if(one_unitlen!=0)	fprintf(stderr,"GetCollOneUnitLen oad.oi=%04x one_unitlen=%d one_blknum=%d\n",oi,one_unitlen,one_blknum);
+	if(one_unitlen!=0)	fprintf(stderr,"GetCollOneUnitLen oad.oi=%04x one_unitlen=%d one_blknum=%d\n",oad.OI,one_unitlen,one_blknum);
 	return 1;
 }
 /*
@@ -2192,11 +2193,64 @@ int GetCollOneUnit(OI_698 oi,INT8U readType,INT8U seqnum,INT8U *data,INT16U *one
  * */
 int GetCtrl(RESULT_NORMAL *response)
 {
+
 	switch(response->oad.OI)
 	{
 		case 0x8100:
 			response->datalen = Get_8100(response);
 			break;
+	}
+}
+
+int GetCollPara(INT8U seqOfNum,RESULT_NORMAL *response){
+	int 	index=0;
+	INT8U 	*data = NULL;
+	OAD 	oad={};
+	INT16U	i=0,blknum=0,meternum=0,tmpblk=0;
+	INT16U	retlen=0;
+	INT16U	oneUnitLen=0;	//计算一个配置单元的长度，统计是否需要分帧操作
+	int		lastframenum = 0; //记录分帧的数量
+
+	oad = response->oad;
+	data = response->data;
+
+	if(GetCollOneUnit(response->oad,1,0,&data[index],&oneUnitLen,&blknum)==0)	{
+		fprintf(stderr,"get OI=%04x oneUnitLen=%d blknum=%d 退出",oad.OI,oneUnitLen,blknum);
+		response->dar = obj_undefine;
+		return 0;
+	}
+//	if(seqOfNum!=0) {　　　//台体抄表参数读取多个，去掉判断
+		index = 2;			//空出 array,结束后填入
+//	}
+	for(i=0;i<blknum;i++)
+	{
+//		if(seqOfNum!=0) {							//getRequestNormal请求时不需要SEQUENCE OF
+			create_array(&data[0],meternum);		//每次循环填充配置单元array个数，为了组帧分帧
+//		}
+		response->datalen = index;
+		///在读取数据组帧前判断是否需要进行分帧
+		Build_subFrame(0,(index+oneUnitLen),seqOfNum,response);
+		if(lastframenum != next_info.subframeSum) {		//数据已分帧重新开始
+			lastframenum = next_info.subframeSum;
+			index = 2;
+			meternum = 0;
+//			fprintf(stderr,"\n get subFrame lastframenum=%d,subframeSum=%d index=%d\n",lastframenum,next_info.subframeSum,index);
+		}
+		GetCollOneUnit(response->oad,0,i,&data[index],&retlen,&tmpblk);
+		if(retlen!=0) {
+			meternum++;
+		}
+		index += retlen;
+//		if(seqOfNum==0 && meternum==1)  {	//getReponseNormal只返回一个A-ResultNormal结果数据
+//			break;
+//		}
+	}
+//	if(seqOfNum!=0) {
+		create_array(&data[0],meternum);		//配置单元个数
+//	}
+	response->datalen = index;
+	if(next_info.subframeSum!=0) {		//已经存在分帧情况
+		Build_subFrame(1,index,seqOfNum,response);		//后续帧组帧, TODO:RequestNormalList 方法此处调用是否合适
 	}
 	return 1;
 }
@@ -2262,7 +2316,7 @@ int doGetnormal(INT8U seqOfNum,RESULT_NORMAL *response)
 		fprintf(stderr,"\n");
 		break;
 	case 6:			//采集监控类对象
-		fprintf(stderr,"\nddddoi=%d \n",oi);
+		fprintf(stderr,"\n读取采集监控对象oi=%04x \n",oi);
 		GetCollPara(seqOfNum,response);
 		break;
 	case 8:

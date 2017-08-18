@@ -424,11 +424,7 @@ int msgbox_inputcldaddr(char *cldaddr,int num){
 	if(head!=NULL)
 		free(head);
 	if(msgbox_ret.btn_ret==ACK){
-//		asc2bcd((INT8U*)msgbox_ret.s_ret, 12, (INT8U*)cldaddr, inverted);
-//		dbg_prt("\n s_cldnoaddr=[%02x%02x%02x%02x%02x%02x] ",
-//				cldaddr[5],cldaddr[4],cldaddr[3],cldaddr[2],cldaddr[1],cldaddr[0]);
-		memcpy(cldaddr, msgbox_ret.s_ret, 12);
-//		dbg_prt("\n input addr = %s",cldaddr);
+		asc2bcd((INT8U*)msgbox_ret.s_ret, 12, (INT8U*)cldaddr, positive);
 	}
 	return msgbox_ret.btn_ret;
 }

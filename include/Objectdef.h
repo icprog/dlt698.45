@@ -341,8 +341,56 @@ typedef struct {
     INT16U sernum;                //配置序号
     BASIC_OBJECT basicinfo;       //基本信息
     EXTEND_OBJECT extinfo;        //扩展信息
-    ANNEX_OBJECT aninfo;          //附属信息
+    ANNEX_OBJECT aninfo;         //附属信息
 } CLASS_6001;                     //采集档案配置表对象
+
+	typedef	struct {
+		OAD			oad;
+		DATA_TYPE	data;
+	}AnnexInfo;
+
+	typedef struct {
+		TSA		CommAddr;		//通信地址
+		TSA		CJQAddr;		//采集器地址
+		INT8U	protocol;		//规约类型
+		INT8U	phase;			//相位
+		INT8U	signal;			//信号品质
+		DateTimeBCD		searchTime;	//搜到的时间
+		INT8U	annexNum;			//搜到的附加信息个数
+		AnnexInfo		annexInfo[SERACH_PARA_NUM];	//搜到的附件信息
+	}SearchResult;
+
+	typedef struct{
+		TSA		CommAddr;			//通信地址
+		TSA		mainPointAddr;		//主节点地址
+		DateTimeBCD		changeTime;	//变更时间
+	}CrossZoneResult;
+
+	typedef struct{
+		INT8U	enablePeriodFlg;		//是否启用每天周期搜表
+		INT8U	autoUpdateFlg;			//自动更新采集档案
+		INT8U	eventFlg;				//是否产生搜表相关事件
+		SearchMeterResult	clearChoice;	//清空搜表结果选项
+	}searchAttr8;
+
+	typedef struct{
+		INT8U	startTime[3];		//定时搜表开始时间
+		INT32U	searchLen;		//搜表时长（min）
+	}searchAttr9;
+
+typedef struct {
+	SearchResult		searchResult[SERACH_NUM];			//搜表结果
+	CrossZoneResult		crosszoneResult[SERACH_NUM];		//跨台区结果
+	INT32U			searchNum;			//搜表结果记录数
+	INT32U			crosszoneNum;		//跨台区搜表结果记录数
+	searchAttr8		attr8;				//属性8
+	INT8U			attr9_num;			//定时搜表参数个数
+	searchAttr9		attr9[SERACH_PARA_NUM];			//每天周期搜表参数配置
+	SearchStatus	searchSta;			//属性10：搜表状态
+	INT32U			startSearchLen;		//搜表时长，单位：分钟，方法127：实时启动搜表参数
+	INT8U           startSearchFlg;		//启动实时搜表标识   action 127置 1      载波线程负责清零
+} CLASS_6002;	//搜表结果
+
 
 	typedef struct {
 		INT8U beginHour;
@@ -562,6 +610,37 @@ typedef struct {
     StateUnitArray statearri; //开关量单元属性2
     StateAtti4 state4;        //开关量属性
 } CLASS_f203;                 //开关量输
+
+	typedef struct{
+	    char factoryCode[2];    //厂商代码
+	    char chipCode[2];        //软件版本号
+	    char softDate[3];       //软件版本日期
+	    INT32U	softVer;		//软件版本
+	}VersionInfo;
+	typedef struct{
+		TSA		commAddr;		//通信地址
+		INT32U	overTime;		//接收等待报文超时时间（秒）
+		INT8U	transBuf[255];	//透明转发命令
+	}TransPara;//透明转发（参数）
+	typedef struct{
+		INT32U	pointNo;		//从节点序号
+		INT8U	pointAddr[VISIBLE_STRING_LEN];		//从节点通信地址
+		INT8U	pointDesc[VISIBLE_STRING_LEN];		//从节点描述符
+	}SlaveUnit;	//从节点单元
+
+	typedef struct{
+	    CLASS22 class22;                  			//接口类IC
+	    char devdesc[VISIBLE_STRING_LEN]; 			//设备描述
+	    COMDCB devpara;                  			 //设备参数
+	    VersionInfo		version;					//版本信息
+	    SlaveUnit		att5_slave[SERACH_NUM];		//属性5（从节点对象列表）
+	    TI				updatePeriod;				//属性6(从节点对象列表更新周期)
+	}CLASS_F209_PARA;
+typedef struct {
+	CLASS_F209_PARA	para;			//参数
+    TransPara		trans;			//透明转发（参数）
+    INT8U			transFlg;		//透明转发标志，主站下发：置1，载波抄表：置0
+} CLASS_f209;                       //载波/微功率无线接口
 
 /////////////////////////////////////////////////////////////////////
 typedef struct {

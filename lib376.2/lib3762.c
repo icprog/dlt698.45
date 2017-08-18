@@ -87,7 +87,25 @@ int AFN11_F5(FORMAT3762 *down,INT8U *sendBuf,INT8U minute)
 
 	return sendLen ;
 }
+int AFN03_F9(FORMAT3762 *down,INT8U *sendBuf,INT8U protocol,INT8U msgLen,INT8U *msgContent)
+{
+	//查询通信延时相关广播通信时长
+	INT8U sendLen = 0;
+	memset(&sendBuf[0], 0, 256);
 
+	down->afn = 0x03;
+	down->fn = 9;
+	down->ctrl.PRM = 1;//启动站
+	down->info_down.ChannelFlag = 0;//信道标识
+	down->info_down.ModuleFlag = 0;//无地址域A
+	down->info_down.Seq = down->info_down.Seq++;//序列号
+	down->afn03_f9_down.Protocol = protocol;
+	down->afn03_f9_down.MsgLength = msgLen;
+	memcpy(down->afn03_f9_down.MsgContent, msgContent, msgLen);
+	sendLen = composeProtocol3762(down, sendBuf);
+
+	return sendLen;
+}
 int AFN12_F2(FORMAT3762 *down,INT8U *sendBuf)
 {
 	//暂停
@@ -136,7 +154,7 @@ int AFN13_F1(FORMAT3762 *down,INT8U *sendBuf3762,INT8U* destAddr, INT8U protocol
 	down->ctrl.ComType = 1;//窄带载波通信
 //	getMasterPointAddr(down->addr.SourceAddr);
 	memcpy(down->addr.DestAddr, destAddr, 6);//目的地址
-	down->afn13_f1_down.Protocol = 2;
+	down->afn13_f1_down.Protocol = protocol;
 	down->afn13_f1_down.DelayFlag = delayFlag;
 	down->afn13_f1_down.SubPointNum = 0;
 	down->afn13_f1_down.MsgLength = sendLen645;
@@ -288,7 +306,6 @@ int AFN05_F3(FORMAT3762 *down,INT8U moduleFlag, INT8U ctrl, INT8U* sendBuf645, I
 
 	if (moduleFlag == 1)//有地址域
 	{
-//		getMasterPointAddr(down->addr.SourceAddr);
 		memset(down->addr.DestAddr, 0x99, 6);//目的地址
 	}
 	down->afn05_f3_down.ctrl = ctrl;
@@ -299,6 +316,22 @@ int AFN05_F3(FORMAT3762 *down,INT8U moduleFlag, INT8U ctrl, INT8U* sendBuf645, I
 	return sendLen;
 }
 
+INT8S AFN01_F2(FORMAT3762 *down,INT8U *sendBuf)
+{//参数区初始化
+	INT8U sendLen ;
+
+	memset(&sendBuf[0], 0, 256);
+
+	down->afn = 0x01;
+	down->fn = 2;
+	down->ctrl.PRM = 1;//启动站
+	down->info_down.ChannelFlag = 0;//信道标识
+	down->info_down.ModuleFlag = 0;//无地址域A
+	down->info_down.Seq = down->info_down.Seq++;//序列号
+
+	sendLen = composeProtocol3762(down, sendBuf);
+	return sendLen;
+}
 
 int AFN03_F10(FORMAT3762 *down,INT8U *sendBuf)
 {
@@ -313,6 +346,19 @@ int AFN03_F10(FORMAT3762 *down,INT8U *sendBuf)
 	down->info_down.Seq = down->info_down.Seq++;//序列号
 	down->ctrl.ComType = 1;//窄带载波通信
 	sendlen= composeProtocol3762(down, sendBuf);
+	return sendlen;
+}
+int AFN10_F4(FORMAT3762 *down,INT8U *sendBuf)
+{
+	int sendlen = 0;
+	memset(&sendBuf[0], 0, 256);
+	down->afn = 0x10;
+	down->fn = 4;
+	down->ctrl.PRM = 1;//启动站
+	down->info_down.ChannelFlag = 0;//信道标识
+	down->info_down.ModuleFlag = 0;//无地址域A
+	down->info_down.Seq = down->info_down.Seq++;//序列号
+	sendlen = composeProtocol3762(down, sendBuf);
 	return sendlen;
 }
 int AFN00_F01(FORMAT3762 *up,INT8U *sendBuf)
@@ -342,7 +388,6 @@ INT8S analyzeProtocol3762(FORMAT3762* format3762, INT8U* recvBuf, const INT16U r
 	if (isValid3762(&recvBuf[0], recvLen) == 0)	//校验通过
 	{
 		format3762->length = (recvBuf[2]<<8) + recvBuf[1];
-
 		format3762->ctrl.ComType = recvBuf[3] & 0x3f;
 		format3762->ctrl.PRM = (recvBuf[3]>>6) & 0x01;
 		format3762->ctrl.DIR = (recvBuf[3]>>7) & 0x01;

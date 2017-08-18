@@ -829,6 +829,57 @@ INT16U set4510(OAD oad,INT8U *data,INT8U *DAR)
 	return index;
 }
 
+INT16U set6002(OAD oad,INT8U *data,INT8U *DAR)
+{
+	INT16U index=0;
+	CLASS_6002		class6002={};
+	int		i=0;
+	memset(&class6002,0,sizeof(CLASS_6002));
+	readCoverClass(0x6002,0,&class6002,sizeof(CLASS_6002),para_vari_save);
+	switch(oad.attflg) {
+	case 2:	//搜表结果
+
+		break;
+	case 5://跨台区结果
+		break;
+	case 6:	//搜表结果记录数
+		break;
+	case 7:	//跨台区搜表结果记录数
+		break;
+	case 8:	//搜表
+		index += getStructure(&data[index],NULL,DAR);
+		index += getBool(&data[index],(INT8U *)&class6002.attr8.enablePeriodFlg,DAR);
+		index += getBool(&data[index],(INT8U *)&class6002.attr8.autoUpdateFlg,DAR);
+		index += getBool(&data[index],(INT8U *)&class6002.attr8.eventFlg,DAR);
+		index += getEnum(1,&data[index],(INT8U *)&class6002.attr8.clearChoice);
+		*DAR = saveCoverClass(0x6002,0,&class6002,sizeof(CLASS_6002),para_vari_save);
+		break;
+	case 9:	//每天周期搜表参数配置
+		index += getArray(&data[index],(INT8U *)&class6002.attr9_num,DAR);
+		if(*DAR == type_mismatch) {
+			fprintf(stderr,"无Array类型\n");
+			class6002.attr9_num = 1;
+		}
+		if(class6002.attr9_num>SERACH_PARA_NUM) {
+			class6002.attr9_num = SERACH_PARA_NUM;
+			syslog(LOG_ERR,"搜表配置数量%d大于限值%d\n",class6002.attr9_num,SERACH_PARA_NUM);
+		}
+		for(i=0;i<class6002.attr9_num;i++) {
+			index += getStructure(&data[index],NULL,DAR);
+			index += getTime(1,&data[index],(INT8U *)&class6002.attr9[i].startTime,DAR);
+			if(*DAR!=success)	return 0;	//无效时间，返回
+			fprintf(stderr," 开始时间  %d:%d:%d\n",class6002.attr9[i].startTime[0],class6002.attr9[i].startTime[1],class6002.attr9[i].startTime[2]);
+			index += getLongUnsigned(&data[index],(INT8U *)&class6002.attr9[i].searchLen);
+		}
+		*DAR = saveCoverClass(0x6002,0,&class6002,sizeof(CLASS_6002),para_vari_save);
+		break;
+	case 10://搜表状态
+
+		break;
+	}
+	return index;
+}
+
 INT16U setclass18(OAD oad,INT8U *data,INT8U *DAR)
 {
 	INT16U index=0;
@@ -894,6 +945,10 @@ int	Set_F200(OI_698 oi,INT8U *data,INT8U *DAR)
 	index += getOAD(1,&data[index],&oad,DAR);
 	index += getCOMDCB(1,&data[index],&f201.devpara,DAR);
 	index += getEnum(1,&data[index],&f201.devfunc);
+	fprintf(stderr,"DAR=%d  return %d\n",*DAR,index);
+	if(*DAR==success) {
+		*DAR = saveCoverClass(oi,0,&f201,sizeof(CLASS_f201),para_vari_save);
+	}
 	return index;
 }
 
@@ -907,6 +962,9 @@ int	Set_F202(OI_698 oi,INT8U *data,INT8U *DAR)
 	index += getStructure(&data[index],NULL,DAR);
 	index += getOAD(1,&data[index],&oad,DAR);
 	index += getCOMDCB(1,&data[index],&f202.devpara,DAR);
+	if(*DAR==success) {
+		*DAR = saveCoverClass(oi,0,&f202,sizeof(CLASS_f202),para_vari_save);
+	}
 	return index;
 }
 
@@ -923,6 +981,29 @@ INT16U setf203(OAD oad,INT8U *data,INT8U *DAR)
 		index += getBitString(1,&data[index],(INT8U *)&f203.state4.StatePropFlag);
 		*DAR = saveCoverClass(0xf203,0,&f203,sizeof(CLASS_f203),para_vari_save);
 		fprintf(stderr,"\n状态量配置参数 : 接入标志 %02x  属性标志 %02x \n",f203.state4.StateAcessFlag,f203.state4.StatePropFlag);
+	}
+	return index;
+}
+
+int	Set_F209(OAD setoad,INT8U *data,INT8U *DAR)
+{
+	int	 index=0;
+	CLASS_f209	f209={};
+	OAD		oad={};
+
+	switch(setoad.attflg) {
+	case 2:
+		readCoverClass(setoad.OI,0,&f209,sizeof(CLASS_f209),para_vari_save);
+		index += getStructure(&data[index],NULL,DAR);
+		index += getOAD(1,&data[index],&oad,DAR);
+		index += getCOMDCB(1,&data[index],&f209.para.devpara,DAR);
+		//VerisonInfo版本信息是否下发
+		*DAR = saveCoverClass(setoad.OI,0,&f209,sizeof(CLASS_f209),para_vari_save);
+		break;
+	case 5:
+		break;
+	case 6:
+		break;
 	}
 	return index;
 }
@@ -1133,6 +1214,7 @@ INT16U CollParaSet(OAD oad,INT8U *data,INT8U *DAR)
 		case 0x6000:	//采集档案配置表
 			break;
 		case 0x6002:	//搜表
+			set6002(oad,data,DAR);
 			break;
 		case 0x6012:	//任务配置表
 			break;

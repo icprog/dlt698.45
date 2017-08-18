@@ -26,12 +26,14 @@ extern INT16S getTaskIndex(INT8U port);
 #define SLAVE_COMP    		4
 #define INIT_MASTERADDR    	5
 #define AUTO_REPORT    		6
+#define BROADCAST			7
 
 #define ALLOK 2
 #define ZBBUFSIZE 512
 #define BUFSIZE645 256
 #define TASK6012_MAX 256
 #define FANGAN_ITEM_MAX 64
+#define FANGAN6015_MAX 20
 #define DLT645_07  2
 #define DLT698  3
 #define CJT188  4
@@ -286,9 +288,10 @@ AutoReportWordsInfo autoReportWordInfo[96];//12字节主动上报状态字对应
 INT8U autoReportWords[256];//电表主动上报状态字
 INT8U autoEventCounter;//96个事件中，发生的事件个数
 INT16U autoEventTimes;//事件发生的总次数
-
-
-CLASS_6015 fangAn6015[20];
+TS broadFlag_ts;
+CLASS_6002 search6002;//搜表
+int search_i;
+CLASS_6015 fangAn6015[FANGAN6015_MAX];
 TASK_INFO taskinfo;
 typedef struct
 {
@@ -311,6 +314,7 @@ typedef struct
 	INT8U dealbuf[ZBBUFSIZE];		//待处理数据缓存
 	FORMAT3762 format_Down;
 	FORMAT3762 format_Up;
+	INT8U deallen;
 }RUNTIME_PLC;
 AFN03_F10_UP module_info;
 struct Tsa_Node
@@ -337,5 +341,17 @@ INT8U ZBMasterAddr[6];
 int rec_step;
 time_t oldtime1;
 time_t newtime1;
+time_t beginSearchTime;
 INT8U buf645[BUFSIZE645];
+
+typedef struct
+{
+	INT8U is;
+	TS broadCastTime;
+	INT8U buf[30];
+	INT8U len;
+}BroadCastTime;
+
+BroadCastTime broadtime;
+
 #endif /* EVENTCALC_H_ */

@@ -92,6 +92,7 @@ static char *usage_coll =
                 "[删除一个配置单元]cj coll delete <oi> <id>  	id=【1..255】	\n"
                 "[采集档案配置表读取]cj coll pro 6000	\n"
                 "[增加一个采集档案配置表 ]查看帮助：cj coll add 6000	\n"
+				"[搜表] cj coll pro 6002 \n"
         		"[增加任务配置单元]cj coll pro 6013 任务ID 执行频率 方案类型 方案编号 开始时间 结束时间 延时 执行优先级 状态 运行时段 起始小时:起始分钟 结束小时:结束分钟\n"
         		"             cj coll pro 6013 1 1-5 1 1 2016-11-11 0:0:0 2099-9-9 9:9:9 1-2 2 1 0 0:0-23:59\n"
                 "[任务配置单元] cj coll pro 6013 <任务号> [读取任务配置单元]\n"
@@ -209,6 +210,17 @@ int main(int argc, char *argv[]) {
 
     //生产检测本地状态灯，使用485_II口发送报文，台体485_II与485_III短接，cjcomm的维护口485III会返回请求的数据
     //在台体检测的python脚本运行时候会调用cj checkled命令,来实现维护口通信,收到报文本地灯会闪烁
+    if (strcmp("getCB", argv[1]) == 0)
+    {
+    	if(argc==3)
+    	{
+    		INT8U taskid  = atoi(argv[2]);
+    		TS tsNow;
+    		TSGet(&tsNow);
+        	fprintf(stderr,"getCBsuctsanum = %d",getCBsuctsanum(taskid,tsNow));
+    	}
+    	return EXIT_SUCCESS;
+    }
     if (strcmp("checkled", argv[1]) == 0) {
     	int port = 1;
     	if(argc==3) {
@@ -261,7 +273,8 @@ int main(int argc, char *argv[]) {
     }
 
     if ((strcmp("savetest", argv[1]) == 0) || (strcmp("report", argv[1]) == 0)
-    		|| (strcmp("ms", argv[1]) == 0) || (strcmp("gettsas", argv[1]) == 0) || (strcmp("trydel", argv[1]) == 0)) {
+    		|| (strcmp("ms", argv[1]) == 0) || (strcmp("gettsas", argv[1]) == 0)
+    		|| (strcmp("trydel", argv[1]) == 0) || (strcmp("plcmode", argv[1]) == 0)) {
     	Test(argc, argv);
     	return EXIT_SUCCESS;
     }

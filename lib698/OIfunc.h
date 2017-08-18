@@ -15,6 +15,7 @@ extern int Set_4000(INT8U *data,INT8U *DAR);
 extern int Set_4006(INT8U *data,INT8U *DAR,INT8U attr_act);
 extern int	Set_F200(OI_698 oi,INT8U *data,INT8U *DAR);
 extern int	Set_F202(OI_698 oi,INT8U *data,INT8U *DAR);
+extern int	Set_F209(OAD setoad,INT8U *data,INT8U *DAR);
 /*----------------------变量类----------------------*/
 extern INT8U Get_213x(INT8U getflg, INT8U *sourcebuf, INT8U *buf, int *len);
 extern INT8U Get_2200(INT8U getflg, INT8U* sourcebuf, INT8U* buf, int* len);
@@ -26,6 +27,7 @@ extern int Get_4000(OAD oad,INT8U *data);
 
 /*----------------------采集监控类----------------------*/
 extern int Get_6001(INT8U type,INT16U seqnum, INT8U* data);
+extern int Get_6002(OAD oad,INT8U type,INT8U* data);
 extern int Get_6013(INT8U type,INT8U taskid,INT8U *data);
 extern int Get_6015(INT8U type,INT8U seqnum, INT8U* data);
 extern int Get_6017(INT8U type,INT8U seqnum,INT8U *data);

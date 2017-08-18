@@ -36,10 +36,10 @@ extern INT8S analyzeProtocol07(FORMAT07* format07, INT8U* recvBuf, const INT16U 
 extern INT8S OADMap07DI(OI_698 roadOI,OAD sourceOAD, C601F_645* flag645);
 extern void DbgPrintToFile1(INT8U comport,const char *format,...);
 extern void DbPrt1(INT8U comport,char *prefix, char *buf, int len, char *suffix);
-extern  INT16U data07Tobuff698(FORMAT07 Data07,INT8U* dataContent);
 extern INT8U checkMeterType(MY_MS mst,INT8U usrType,TSA usrAddr);
+extern INT16S composeProtocol698_GetRequest(INT8U* sendBuf, CLASS_6015 obj6015,TSA meterAddr);
 extern mqd_t mqd_zb_task;
-extern CJCOMM_PROXY cjcommProxy;
+extern CLASS_4204	broadcase4204;
 extern GUI_PROXY cjGuiProxy_plc;
 extern Proxy_Msg* p_Proxy_Msg_Data;//液晶给抄表发送代理处理结构体，指向由guictrl.c配置的全局变量
 extern TASK_CFG list6013[TASK6012_MAX];
@@ -117,7 +117,7 @@ void SendDataToCom(int fd, INT8U *sendbuf, INT16U sendlen)
 	int i=0;
 	ssize_t slen;
 	slen = write(fd, sendbuf, sendlen);
-	DbPrt1(32,"S:", (char *) sendbuf, slen, NULL);
+	DbPrt1(31,"S:", (char *) sendbuf, slen, NULL);
 	fprintf(stderr,"\nsend(%d)",slen);
 	for(i=0;i<slen;i++)
 		fprintf(stderr," %02x",sendbuf[i]);
@@ -197,7 +197,7 @@ int StateProcessZb(unsigned char *str,INT8U* Buf )
 					RecvTail = (RecvTail+1)%ZBBUFSIZE;
 				}
 				rec_step = 0;
-				DbPrt1(32,"R:", (char *) str, DataLen, NULL);
+				DbPrt1(31,"R:", (char *) str, DataLen, NULL);
 				if(getZone("GW")==0) {
 					PacketBufToFile("[ZB]R:",(char *) str, DataLen, NULL);
 				}
@@ -573,7 +573,6 @@ void task_init6015(CLASS_6015 *fangAn6015p)
 	{
 		if (list6013[i].basicInfo.cjtype == norm)//普通采集任务
 		{
-
 			readCoverClass(0x6015, list6013[i].basicInfo.sernum, (void *)&fangAn6015p[j], sizeof(CLASS_6015), coll_para_save);
 			DbgPrintToFile1(31,"fangAn6015p[%d].sernum = %d  fangAn6015p[%d].mst = %d ",
 					j,fangAn6015p[j].sernum,j,fangAn6015p[j].mst.mstype);
@@ -582,6 +581,16 @@ void task_init6015(CLASS_6015 *fangAn6015p)
 				break;
 		}
 	}
+}
+int initSearchMeter(CLASS_6002 *class6002)
+{
+	if(readCoverClass(0x6002,0,class6002,sizeof(CLASS_6002),para_vari_save)==1)
+	{
+		fprintf(stderr,"搜表参数读取成功\n");
+	}else {
+		fprintf(stderr,"搜表参数文件不存在\n");
+	}
+	return 1;
 }
 int initTaskData(TASK_INFO *task)
 {
@@ -827,8 +836,7 @@ int doInit(RUNTIME_PLC *runtime_p)
 
 			if (runtime_p->comfd >0)
 				CloseCom( runtime_p->comfd );
-
-			runtime_p->comfd = OpenCom(SER_ZB, 9600,(unsigned char*)"even",1,8);// 5 载波路由串口 ttyS5
+			runtime_p->comfd = OpenCom(5, 9600,(unsigned char*)"even",1,8);// 5 载波路由串口 ttyS5   SER_ZB   //test  2
 			DbgPrintToFile1(31,"comfd=%d",runtime_p->comfd);
 			runtime_p->initflag = 0;
 			clearvar(runtime_p);//376.2上行内容容器清空，发送计时归零
@@ -837,8 +845,11 @@ int doInit(RUNTIME_PLC *runtime_p)
 			fprintf(stderr,"\n-----------tsacount=%d",tsa_count);
 			if (tsa_count <= 0)
 			{
-				DbgPrintToFile1(31,"无载波测量点");
+				DbgPrintToFile1(31,"无载波测量点,路由参数初始化");
 				step_init = 0;
+//				sendlen = AFN01_F2(&runtime_p->format_Down,runtime_p->sendbuf);
+//				SendDataToCom(runtime_p->comfd, runtime_p->sendbuf,sendlen );
+				sleep(5);
 				return NONE_PROCE;
 			}
 			runtime_p->send_start_time = nowtime ;
@@ -847,13 +858,10 @@ int doInit(RUNTIME_PLC *runtime_p)
 			break;
 
 		case 1://读取载波信息
-			fprintf(stderr,"\n读取信息状态 nowtime = %ld  runtime_p->send_start_time =%ld",nowtime,runtime_p->send_start_time );
-			fprintf(stderr,"\nruntime_p->format_Up.afn= %02x  runtime_p->format_Up.fn=%d",runtime_p->format_Up.afn,runtime_p->format_Up.fn);
-			DbgPrintToFile1(31,"读取载波信息");
 			if ((nowtime  - runtime_p->send_start_time > 60) &&
 				runtime_p->format_Up.afn != 0x03 && runtime_p->format_Up.fn!= 10)
 			{
-				fprintf(stderr,"\n读取载波信息");
+				DbgPrintToFile1(31,"读取载波信息");
 				clearvar(runtime_p);//376.2上行内容容器清空，发送计时归零
 				runtime_p->send_start_time = nowtime ;
 				sendlen = AFN03_F10(&runtime_p->format_Down,runtime_p->sendbuf);//查询载波模块信息
@@ -865,14 +873,25 @@ int doInit(RUNTIME_PLC *runtime_p)
 				memcpy(&module_info,&runtime_p->format_Up.afn03_f10_up,sizeof(module_info));
 				printModelinfo(module_info);
 				step_init = 0;
-				if (module_info.ReadMode ==1)
-				{
-					runtime_p->modeFlag = 1;
-					DbgPrintToFile1(31,"集中器主导");
-				}else
-				{
-					runtime_p->modeFlag = 0;
-					DbgPrintToFile1(31,"路由主导");
+				if(getZone("GW")==0) {	//国网送检模拟测试，将来可取消
+					if(JProgramInfo->dev_info.PLC_ModeTest==1) {
+						runtime_p->modeFlag = 1;
+						DbgPrintToFile1(31,"测试修改集中器主导");
+					}else  if(JProgramInfo->dev_info.PLC_ModeTest==2) {
+						runtime_p->modeFlag = 0;
+						DbgPrintToFile1(31,"测试修改路由主导");
+					}else JProgramInfo->dev_info.PLC_ModeTest = 0;
+				}else JProgramInfo->dev_info.PLC_ModeTest = 0;
+				if(JProgramInfo->dev_info.PLC_ModeTest==0) {
+					if (module_info.ReadMode ==1)
+					{
+						runtime_p->modeFlag = 1;
+						DbgPrintToFile1(31,"集中器主导");
+					}else
+					{
+						runtime_p->modeFlag = 0;
+						DbgPrintToFile1(31,"路由主导");
+					}
 				}
 				clearvar(runtime_p);//376.2上行内容容器清空，发送计时归零
 				sleep(1);
@@ -930,6 +949,7 @@ int doSetMasterAddr(RUNTIME_PLC *runtime_p)
 				if (step_MasterAddr == 0)
 				{
 					DbgPrintToFile1(31,"不需要设置主节点地址");
+					clearvar(runtime_p);
 					return SLAVE_COMP;
 				}
 				clearvar(runtime_p);//376.2上行内容容器清空，发送计时归零
@@ -957,7 +977,7 @@ int doSetMasterAddr(RUNTIME_PLC *runtime_p)
 }
 int doCompSlaveMeter(RUNTIME_PLC *runtime_p)
 {
-	static int step_cmpslave = 0;
+	static int step_cmpslave = 0, workflg=0, retryflag=0;
 	static unsigned int slavenum = 0;
 	static int index=0;
 	static struct Tsa_Node *currtsa;//=tsa_zb_head;
@@ -968,32 +988,42 @@ int doCompSlaveMeter(RUNTIME_PLC *runtime_p)
 	switch(step_cmpslave)
 	{
 		case 0://读取载波从节点数量
-			if ((nowtime  - runtime_p->send_start_time > 20) &&
-				runtime_p->format_Up.afn != 0x10 && runtime_p->format_Up.fn!= 1)
+			if (nowtime  - runtime_p->send_start_time > 20 && workflg==0)
 			{
+				DbgPrintToFile1(31,"暂停抄表");
+				workflg = 1;
+				retryflag = 0;
 				sendlen = AFN12_F2(&runtime_p->format_Down,runtime_p->sendbuf);
 				SendDataToCom(runtime_p->comfd, runtime_p->sendbuf,sendlen );
-				sleep(2);
-				DbgPrintToFile1(31,"读从节点数量");
 				clearvar(runtime_p);//376.2上行内容容器清空，发送计时归零
 				runtime_p->send_start_time = nowtime ;
+			}else if(runtime_p->format_Up.afn == 0x00 && runtime_p->format_Up.fn == 1 && workflg==1)
+			{//确认
+				DbgPrintToFile1(31,"收到确认");
 				sendlen = AFN10_F1(&runtime_p->format_Down,runtime_p->sendbuf);
 				SendDataToCom(runtime_p->comfd, runtime_p->sendbuf,sendlen );
-			}else if(runtime_p->format_Up.afn == 0x10 && runtime_p->format_Up.fn == 1)
-			{//返回从节点数量
+				DbgPrintToFile1(31,"读取节点数量");
+				clearvar(runtime_p);
+				runtime_p->send_start_time = nowtime ;
+			}else if(runtime_p->format_Up.afn == 0x10 && runtime_p->format_Up.fn == 1 && workflg==1)
+			{
 				slavenum = runtime_p->format_Up.afn10_f1_up.Num ;
 				DbgPrintToFile1(31,"载波模块中从节点 %d 个",slavenum);
 				clearvar(runtime_p);//376.2上行内容容器清空，发送计时归零
 				step_cmpslave = 1;
 				index = 1;
+				workflg = 0;
+			}else if(nowtime  - runtime_p->send_start_time > 100 && workflg==1)
+			{
+				DbgPrintToFile1(31,"读取载波从节点超时");
+				workflg = 0;
 			}
 			break;
-
 		case 1://读取全部载波从节点
 			if ((nowtime  - runtime_p->send_start_time > 20) &&
 				runtime_p->format_Up.afn != 0x10 && runtime_p->format_Up.fn!= 2)
 			{
-				DbgPrintToFile1(31,"读从节点信息 %d ",index);
+				DbgPrintToFile1(31,"读从节点信息 index =%d ",index);
 				if (slavenum > 10)
 				{
 					sendlen = AFN10_F2(&runtime_p->format_Down,runtime_p->sendbuf,index,10);
@@ -1008,7 +1038,6 @@ int doCompSlaveMeter(RUNTIME_PLC *runtime_p)
 					currtsa = tsa_head;	//删除完成 ,开始第 3 步
 					break;
 				}
-
 				SendDataToCom(runtime_p->comfd, runtime_p->sendbuf,sendlen );
 				clearvar(runtime_p);
 				runtime_p->send_start_time = nowtime;
@@ -1032,7 +1061,6 @@ int doCompSlaveMeter(RUNTIME_PLC *runtime_p)
 				}
 			}
 			break;
-
 		case 2://删除多余节点
 			if (nowtime  - runtime_p->send_start_time > 10)
 			{
@@ -1070,7 +1098,6 @@ int doCompSlaveMeter(RUNTIME_PLC *runtime_p)
 				clearvar(runtime_p);
 			}
 			break;
-
 		case 3://添加节点
 			if (nowtime  - runtime_p->send_start_time > 10)
 			{
@@ -1079,9 +1106,23 @@ int doCompSlaveMeter(RUNTIME_PLC *runtime_p)
 					if (currtsa == NULL)
 					{
 						DbgPrintToFile1(31,"添加判断完成");
-						step_cmpslave = 0;
-						clearvar(runtime_p);
-						return TASK_PROCESS;
+						if(retryflag==0)
+						{
+							retryflag = 1;
+							step_cmpslave = 1;
+							index = 1;
+							slavenum = tsa_count;
+							freeList(tsa_zb_head);
+							tsa_zb_head = NULL;
+							clearvar(runtime_p);
+							DbgPrintToFile1(31,"重读一次从节点信息");
+							break;
+						}
+						else{
+							step_cmpslave = 0;
+							clearvar(runtime_p);
+							return TASK_PROCESS;
+						}
 					}else
 					{
 						nodetmp.tsa = getNextTsa(&currtsa);	//从档案中取一个tsa
@@ -1189,12 +1230,18 @@ int Format07(FORMAT07 *Data07,OAD oad1,OAD oad2,TSA tsa)
 
 	memset(Data07, 0, sizeof(FORMAT07));
 	obj601F_07Flag.protocol = 2;
+
 	find_07item = OADMap07DI(oad1.OI,oad2,&obj601F_07Flag) ;
 	DbgPrintToFile1(31,"find_07item=%d   %04x %04x    07Flg %02x%02x%02x%02x",find_07item,oad1.OI,oad2.OI,
 			obj601F_07Flag.DI._07.DI_1[0][3],obj601F_07Flag.DI._07.DI_1[0][2],obj601F_07Flag.DI._07.DI_1[0][1],obj601F_07Flag.DI._07.DI_1[0][0]);
 	if (find_07item == 1)
 	{
 		Data07->Ctrl = 0x11;
+		if(tsa.addr[1] > 5)
+		{
+			tsa.addr[1] = 5;
+			fprintf(stderr,"request698_07Data 电表地址长度大于6");
+		}
 		startIndex = 5 - tsa.addr[1];
 		memcpy(&Data07->Addr[startIndex], &tsa.addr[2], (tsa.addr[1]+1));
 //		memcpy(Data07->DI, &obj601F_07Flag.DI_1[0], 4);
@@ -1204,8 +1251,19 @@ int Format07(FORMAT07 *Data07,OAD oad1,OAD oad2,TSA tsa)
 	}
 	return 0;
 }
-int buildProxyFrame(RUNTIME_PLC *runtime_p,struct Tsa_Node *desnode,Proxy_Msg pMsg)
+int compose6015_698(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8U *sendbuff)
 {
+	int sendLen = 0;
+	sendLen = composeProtocol698_GetRequest(sendbuff, st6015,to6001.basicinfo.addr);
+
+	return sendLen;
+}
+int buildProxyFrame(RUNTIME_PLC *runtime_p,struct Tsa_Node *desnode,OAD oad1,OAD oad2)//Proxy_Msg pMsg)
+{
+	CLASS_6035 st6035 = {};
+	CLASS_6015 st6015;
+	CLASS_6001 meter = {};
+
 	int sendlen = 0;
 	INT8U type = 0;
 	FORMAT07 Data07;
@@ -1216,11 +1274,10 @@ int buildProxyFrame(RUNTIME_PLC *runtime_p,struct Tsa_Node *desnode,Proxy_Msg pM
 	switch (type)
 	{
 		case DLT645_07:
-			requestOAD1.OI = 0;
-			requestOAD2.OI = pMsg.oi;
-			requestOAD2.attflg = 0x02;
-			requestOAD2.attrindex = 0x00;
-
+			requestOAD1.OI = oad1.OI;//0
+			requestOAD2.OI = oad2.OI;//pMsg.oi
+			requestOAD2.attflg = oad2.attflg;//0x02
+			requestOAD2.attrindex = oad2.attrindex;//0x00
 			Format07(&Data07,requestOAD1,requestOAD2,desnode->tsa);
 			memset(buf645,0,BUFSIZE645);
 			sendlen = composeProtocol07(&Data07, buf645);
@@ -1242,41 +1299,94 @@ int buildProxyFrame(RUNTIME_PLC *runtime_p,struct Tsa_Node *desnode,Proxy_Msg pM
 			}
 			break;
 		case DLT698:
-			return 20;
+			memcpy(&meter.basicinfo.addr,&desnode->tsa,sizeof(TSA));
+			memset(&st6015,0,sizeof(CLASS_6015));
+			st6015.cjtype = TYPE_NULL;
+			st6015.csds.num = 1;
+			st6015.csds.csd[0].type = 0;
+			st6015.csds.csd[0].csd.oad.OI = oad2.OI;
+			st6015.csds.csd[0].csd.oad.attflg = 0x02;
+			st6015.csds.csd[0].csd.oad.attrindex = 0x00;
+			sendlen = compose6015_698(st6015,meter,&st6035,buf645);
+			if (sendlen>0)
+			{
+				memcpy(runtime_p->format_Down.addr.SourceAddr,runtime_p->masteraddr,6);
+				addrtmp[5] = desnode->tsa.addr[2];
+				addrtmp[4] = desnode->tsa.addr[3];
+				addrtmp[3] = desnode->tsa.addr[4];
+				addrtmp[2] = desnode->tsa.addr[5];
+				addrtmp[1] = desnode->tsa.addr[6];
+				addrtmp[0] = desnode->tsa.addr[7];
+				return (AFN13_F1(&runtime_p->format_Down,runtime_p->sendbuf,addrtmp, 0, 0, buf645, sendlen));
+			}
+			break;
 	}
 
 	return 0;
 }
-int saveProxyData(FORMAT3762 format_3762_Up)
+int saveProxyData(FORMAT3762 format_3762_Up,struct Tsa_Node *nodetmp)
 {
 	INT8U buf645[255];
 	int len645=0;
+	int datalen=0;
+	INT8U apduDataStartIndex = 0;
+	INT8U csdNum = 0;
 	INT8U nextFlag=0;
+	INT8U getResponseType = 0;
 	FORMAT07 frame07;
 	INT8U dataContent[50];
 	memset(dataContent,0,sizeof(dataContent));
+	CLASS_6001 meter = {};
+	CSD_ARRAYTYPE csds;
+	memcpy(&meter.basicinfo.addr,&nodetmp->tsa,sizeof(TSA));
 
 	if (format_3762_Up.afn13_f1_up.MsgLength > 0)
 	{
 		len645 = format_3762_Up.afn13_f1_up.MsgLength;
 		memcpy(buf645, format_3762_Up.afn13_f1_up.MsgContent, len645);
-		if (analyzeProtocol07(&frame07, buf645, len645, &nextFlag) == 0)
+		switch (nodetmp->protocol )
 		{
-			if(data07Tobuff698(frame07,dataContent) > 0)
-			{
-				TSGet(&p_Proxy_Msg_Data->realdata.tm_collect);
-				memcpy(p_Proxy_Msg_Data->realdata.data_All,&dataContent[3],4);
-				memcpy(p_Proxy_Msg_Data->realdata.Rate1_Data,&dataContent[8],4);
-				memcpy(p_Proxy_Msg_Data->realdata.Rate2_Data,&dataContent[13],4);
-				memcpy(p_Proxy_Msg_Data->realdata.Rate3_Data,&dataContent[18],4);
-				memcpy(p_Proxy_Msg_Data->realdata.Rate4_Data,&dataContent[23],4);
-			}
-			else
-			{
-				memset(&p_Proxy_Msg_Data->realdata,0xee,sizeof(RealDataInfo));
-			}
-			p_Proxy_Msg_Data->done_flag = 1;
+			case DLT645_07:
+				if (analyzeProtocol07(&frame07, buf645, len645, &nextFlag) == 0)
+				{
+					len645 = data07Tobuff698(frame07,dataContent) ;
+//					if(data07Tobuff698(frame07,dataContent) > 0)
+//					{
+//						TSGet(&p_Proxy_Msg_Data->realdata.tm_collect);
+//						memcpy(p_Proxy_Msg_Data->realdata.data_All,&dataContent[3],4);
+//						memcpy(p_Proxy_Msg_Data->realdata.Rate1_Data,&dataContent[8],4);
+//						memcpy(p_Proxy_Msg_Data->realdata.Rate2_Data,&dataContent[13],4);
+//						memcpy(p_Proxy_Msg_Data->realdata.Rate3_Data,&dataContent[18],4);
+//						memcpy(p_Proxy_Msg_Data->realdata.Rate4_Data,&dataContent[23],4);
+//					}
+//					else
+//					{
+//						memset(&p_Proxy_Msg_Data->realdata,0xee,sizeof(RealDataInfo));
+//					}
+//					p_Proxy_Msg_Data->done_flag = 1;
+				}
+				break;
+			case DLT698:
+				datalen = len645;
+				getResponseType = analyzeProtocol698(buf645,&csdNum,len645,&apduDataStartIndex,&datalen);
+				if (getResponseType >0 )
+				{
+					len645  = deal698RequestResponse(0,getResponseType,csdNum,&buf645[apduDataStartIndex],dataContent,csds,meter, 0,0);
+				}
+				break;
 		}
+		if (len645>0)
+		{
+			TSGet(&p_Proxy_Msg_Data->realdata.tm_collect);
+			memcpy(p_Proxy_Msg_Data->realdata.data_All,&dataContent[3],4);
+			memcpy(p_Proxy_Msg_Data->realdata.Rate1_Data,&dataContent[8],4);
+			memcpy(p_Proxy_Msg_Data->realdata.Rate2_Data,&dataContent[13],4);
+			memcpy(p_Proxy_Msg_Data->realdata.Rate3_Data,&dataContent[18],4);
+			memcpy(p_Proxy_Msg_Data->realdata.Rate4_Data,&dataContent[23],4);
+		}else
+			memset(&p_Proxy_Msg_Data->realdata,0xee,sizeof(RealDataInfo));
+		p_Proxy_Msg_Data->done_flag = 1;
+
 	}
 	return 0;
 }
@@ -1306,12 +1416,6 @@ DATA_ITEM checkMeterData(TASK_INFO *meterinfo,int *taski,int *itemi,INT8U usrtyp
 			meterinfo->tsa.addr[3],meterinfo->tsa.addr[4],meterinfo->tsa.addr[5],
 			meterinfo->tsa.addr[6],meterinfo->tsa.addr[7],
 			meterinfo->tsa_index,meterinfo->task_n,meterinfo->task_list[i].fangan.item_n);
-
-	DEBUG_TIME_LINE("检查  %02x%02x%02x%02x%02x%02x%02x%02x  index=%d 任务数 %d   数据相个数 %d",
-			meterinfo->tsa.addr[0],meterinfo->tsa.addr[1],meterinfo->tsa.addr[2],
-			meterinfo->tsa.addr[3],meterinfo->tsa.addr[4],meterinfo->tsa.addr[5],
-			meterinfo->tsa.addr[6],meterinfo->tsa.addr[7],
-			meterinfo->tsa_index,meterinfo->task_n,meterinfo->task_list[i].fangan.item_n);
 	//正常任务判断
 	for(i=0; i< meterinfo->task_n; i++)
 	{
@@ -1325,10 +1429,8 @@ DATA_ITEM checkMeterData(TASK_INFO *meterinfo,int *taski,int *itemi,INT8U usrtyp
 			}
 			if (needflg == 1)
 			{
-				 DEBUG_TIME_LINE("meterinfo->task_list[i].fangan.items[j].sucessflg: %d", meterinfo->task_list[i].fangan.items[j].sucessflg);
 				 for(j = 0; j<meterinfo->task_list[i].fangan.item_n; j++)
 				 {
-					 DEBUG_TIME_LINE("meterinfo->task_list[i].fangan.items[j].sucessflg: %d", meterinfo->task_list[i].fangan.items[j].sucessflg);
 					 if ( meterinfo->task_list[i].fangan.items[j].sucessflg==0)
 					 {
 						 item.oad1 = meterinfo->task_list[i].fangan.items[j].oad1;
@@ -1339,10 +1441,14 @@ DATA_ITEM checkMeterData(TASK_INFO *meterinfo,int *taski,int *itemi,INT8U usrtyp
 						 return item;	//存在常规任务，满足抄读条件数据项
 					 }
 				 }
-				 DEBUG_TIME_LINE("current has no item to read");
+				 if(getZone("GW")==0)
+				 {
+					 task_Refresh(&meterinfo->task_list[i]);
+				 }
 			}
 		}
 	}
+
 	//需要补抄的任务
 	//-----------------------------------------------------------
 	for(i=0; i< meterinfo->task_n; i++)
@@ -1401,8 +1507,8 @@ int createMeterFrame(struct Tsa_Node *desnode,DATA_ITEM item,INT8U *buf,INT8U *i
 				memcpy(item07,Data07.DI,4);// 保存07规约数据项
 			break;
 		case DLT698:
-
-			sendlen = 20;
+//			sendlen = composeProtocol698_GetRequest(buf, st6015, desnode->tsa);
+			break;
 	}
 	return sendlen;
 }
@@ -1469,36 +1575,66 @@ void zeroitemflag(TASK_INFO *task)
 		}
 	}
 }
-
+int Seek_6015(CLASS_6015 *st6015,CJ_FANGAN fangAn)
+{
+	int i=0;
+	for(i=0; i<FANGAN6015_MAX ;i++)
+	{
+		if (fangAn6015[i].sernum == fangAn.No)
+		{
+			memcpy(st6015, &fangAn6015[i], sizeof(CLASS_6015 ));
+			return 1;
+		}
+	}
+	return 0;
+}
 int do_5004_type( int taski, int itemi ,INT8U *buf, struct Tsa_Node *desnode, DATA_ITEM  tmpitem)
 {
+	INT8U item07[4]={0,0,0,0} ,type = 0;
 	time_t getTheTime;
 	DateTimeBCD timebcd;
-	INT8U item07[4]={0,0,0,0};
-	int i=0,sendlen = 0;
+	int sendlen = 0;
+	CLASS_6015 st6015;
+	FORMAT07 Data07;
+
+	if (desnode == NULL)
+		return 0;
 
 	getTheTime = taskinfo.task_list[taski].beginTime ;
 	timebcd =   timet_bcd(getTheTime);
 	timebcd.hour.data = 0;
 	timebcd.min.data = 0;
-	sendlen = createMeterFrame(desnode, tmpitem, buf, item07);
+
+	type = desnode->protocol;
+	switch(type)
+	{
+		case DLT645_07:
+			Format07(&Data07,tmpitem.oad1,tmpitem.oad2,desnode->tsa);
+			DbgPrintToFile1(31,"当前抄读 【OAD1 %04x-%02x %02x    OAD2 %04x-%02x %02x】%02x%02x%02x%02x ",
+					tmpitem.oad1.OI,tmpitem.oad1.attflg,tmpitem.oad1.attrindex,tmpitem.oad2.OI,tmpitem.oad2.attflg,tmpitem.oad2.attrindex,
+						Data07.DI[3],Data07.DI[2],Data07.DI[1],Data07.DI[0]);
+			sendlen = composeProtocol07(&Data07, buf);
+			if (sendlen>0)
+				memcpy(item07,Data07.DI,4);// 保存07规约数据项
+			break;
+		case DLT698:
+			memset(&st6015,0,sizeof(CLASS_6015));
+			Seek_6015(&st6015,taskinfo.task_list[taski].fangan);
+			sendlen = composeProtocol698_GetRequest(buf, st6015, desnode->tsa);
+			break;
+	}
+//	sendlen = createMeterFrame(desnode, tmpitem, buf, item07);
+
 	taskinfo.task_list[taski].fangan.items[itemi].item07[0] = item07[0];
 	taskinfo.task_list[taski].fangan.items[itemi].item07[1] = item07[1];
 	taskinfo.task_list[taski].fangan.items[itemi].item07[2] = item07[2];
 	taskinfo.task_list[taski].fangan.items[itemi].item07[3] = item07[3];
 	taskinfo.task_list[taski].fangan.items[itemi].savetime = timebcd;
-
 	taskinfo.now_taski = taski;
 	taskinfo.now_itemi = itemi;
 	taskinfo.task_list[taski].fangan.items[itemi].sucessflg = 1;
 	taskinfo.task_list[taski].fangan.item_i = itemi;
 	PrintTaskInfo(&taskinfo,taski);
-
-//	if (itemi == taskinfo.task_list[taski].fangan.item_n-1)//最后一个
-//	{
-//		DbgPrintToFile1(31,"重新初始化 任务%d 开始时间",taskinfo.task_list[taski].taskId);
-//		task_Refresh(&taskinfo.task_list[taski] );
-//	}
 
 	return sendlen;
 }
@@ -1541,32 +1677,41 @@ int do_5002_type( int taski, int itemi ,INT8U *buf, struct Tsa_Node *desnode, DA
 }
 int do_other_type( int taski, int itemi ,INT8U *buf, struct Tsa_Node *desnode, DATA_ITEM  tmpitem)
 {
-	INT8U item07[4]={0,0,0,0};
+	INT8U item07[4]={0,0,0,0} ,type = 0;
 	int sendlen = 0;
+	CLASS_6015 st6015;
+	FORMAT07 Data07;
 
-	DEBUG_TIME_LINE("createMeterFrame start");
-	sendlen = createMeterFrame(desnode, tmpitem, buf, item07);
-	DEBUG_TIME_LINE("createMeterFrame end");
+	if (desnode == NULL)
+		return 0;
 
-	DEBUG_TIME_LINE("PrintTaskInfo2 start");
-	taskinfo.task_list[taski].fangan.items[itemi].item07[0] = item07[0];
-	taskinfo.task_list[taski].fangan.items[itemi].item07[1] = item07[1];
-	taskinfo.task_list[taski].fangan.items[itemi].item07[2] = item07[2];
-	taskinfo.task_list[taski].fangan.items[itemi].item07[3] = item07[3];
+	type = desnode->protocol;
+	switch(type)
+	{
+		case DLT645_07:
+			Format07(&Data07,tmpitem.oad1,tmpitem.oad2,desnode->tsa);
+			DbgPrintToFile1(31,"当前抄读 【OAD1 %04x-%02x %02x    OAD2 %04x-%02x %02x】%02x%02x%02x%02x ",
+					tmpitem.oad1.OI,tmpitem.oad1.attflg,tmpitem.oad1.attrindex,tmpitem.oad2.OI,tmpitem.oad2.attflg,tmpitem.oad2.attrindex,Data07.DI[3],Data07.DI[2],Data07.DI[1],Data07.DI[0]);
+			sendlen = composeProtocol07(&Data07, buf);
+			if (sendlen>0)
+				memcpy(item07,Data07.DI,4);// 保存07规约数据项
+			break;
+		case DLT698:
+			memset(&st6015,0,sizeof(CLASS_6015));
+			if (Seek_6015(&st6015,taskinfo.task_list[taski].fangan)==1)
+				sendlen = composeProtocol698_GetRequest(buf, st6015, desnode->tsa);
+			break;
+	}
+//	sendlen = createMeterFrame(desnode, tmpitem, buf, item07);
+
+//	updateFlags();
+	memcpy(taskinfo.task_list[taski].fangan.items[itemi].item07,item07,4);
 	taskinfo.task_list[taski].fangan.items[itemi].savetime = taskinfo.task_list[taski].begin;
 	taskinfo.now_taski = taski;
 	taskinfo.now_itemi = itemi;
 	taskinfo.task_list[taski].fangan.items[itemi].sucessflg = 1;
 	taskinfo.task_list[taski].fangan.item_i = itemi;
 	PrintTaskInfo2(&taskinfo);
-	DEBUG_TIME_LINE("itemi: %d, total: %d", itemi, \
-			taskinfo.task_list[taski].fangan.item_n-1);
-//	if (itemi == taskinfo.task_list[taski].fangan.item_n-1)//最后一个
-//	{
-//		DEBUG_TIME_LINE("");
-//		DbgPrintToFile1(31,"重新初始化 任务%d 开始时间",taskinfo.task_list[taski].taskId);
-//		task_Refresh(&taskinfo.task_list[taski]);
-//	}
 	return sendlen;
 }
 
@@ -1605,7 +1750,6 @@ void chkTsaTask(TASK_INFO *meterinfo)
 			 {
 				 if (meterinfo->task_list[i].fangan.items[j].oad1.OI == 0x5004)
 				 {//如果是日冻结任务, 检查已抄读的数据项数目
-
 					 flg5004Task = i;
 					 switch (meterinfo->task_list[i].fangan.items[j].sucessflg) {
 					 case 2:
@@ -1613,7 +1757,7 @@ void chkTsaTask(TASK_INFO *meterinfo)
 						 break;
 					 case 1://有未抄读成功项
 						 opt5004Count++;
-						 needRetry = 1;//存在抄读过但未成功数据
+						 needRetry = 1;
 						 meterinfo->task_list[i].fangan.items[j].sucessflg = 0;
 						 break;
 					 case 0:
@@ -1655,10 +1799,9 @@ void chkTsaTask(TASK_INFO *meterinfo)
 		}//end if 此任务时间已经到了
 	}
 }
-//plcplc
 int ProcessMeter(INT8U *buf,struct Tsa_Node *desnode)
 {	DATA_ITEM  tmpitem;
-	int sendlen=0,taski=0, itemi=0;//返回 tmpitem指示的具体任务索引 ，itemi指示的具体数据项索引
+	int sendlen=0,taski=0, itemi=0 ;//返回 tmpitem指示的具体任务索引 ，itemi指示的具体数据项索引
 
 	//记录单元信息是不是这次要抄的电表的  Y：继续，N：读取本表记录信息到内存，继续
 	DbgPrintToFile1(31,"内存   【%02x-%02x-%02x%02x%02x%02x%02x%02x】 index=%d",
@@ -1677,9 +1820,7 @@ int ProcessMeter(INT8U *buf,struct Tsa_Node *desnode)
 			chkTsaTask(&taskinfo);
 			saveParaClass(0x8888, &taskinfo,taskinfo.tsa_index);
 		}
-
-		int ret = readParaClass(0x8888, &taskinfo, desnode->tsa_index) ;//读取序号为 tsa_index 的任务记录到内存变量 taskinfo
-		if (ret != 1 )// 返回 1 成功   0 失败
+		if (readParaClass(0x8888, &taskinfo, desnode->tsa_index) != 1 )////读取序号为 tsa_index 的任务记录到内存变量 taskinfo 返回 1 成功   0 失败
 		{
 			taskinfo.tsa = desnode->tsa;
 			taskinfo.tsa_index = desnode->tsa_index;
@@ -1687,30 +1828,21 @@ int ProcessMeter(INT8U *buf,struct Tsa_Node *desnode)
 		}
 	}
 	tmpitem = checkMeterData(&taskinfo,&taski,&itemi,desnode->usrtype);	//根据任务的时间计划，查找一个适合抄读的数据项
-	DEBUG_TIME_LINE("tmpitem.oad1.OI %04X, tmpitem.oad2.OI  %04X", tmpitem.oad1.OI, tmpitem.oad2.OI);
 	if (tmpitem.oad1.OI !=0 || tmpitem.oad2.OI !=0 )
 	{	//组织抄读报文
 		if (tmpitem.oad1.OI == 0x5002)
 		{
 //			sendlen = do_5002_type( taski, itemi , buf, desnode, tmpitem);//负荷记录
-
-			DEBUG_TIME_LINE("0x5002 start");
 			tmpitem.oad1.OI = 0;
-			DEBUG_TIME_LINE("tmpitem.oad1.OI %04X, tmpitem.oad2.OI  %04X", tmpitem.oad1.OI, tmpitem.oad2.OI);
 			sendlen = do_other_type( taski, itemi , buf, desnode, tmpitem);//其它数据
-			DEBUG_TIME_LINE("0x5002 end");
-
 		}else if (tmpitem.oad1.OI == 0x5004)
 		{
-			DEBUG_TIME_LINE("");
 			sendlen = do_5004_type( taski, itemi , buf, desnode, tmpitem);//日冻结
 		}
 		else
 		{
 			sendlen = do_other_type( taski, itemi , buf, desnode, tmpitem);//其它数据
-			DEBUG_TIME_LINE("");
 		}
-
 	}else
 	{
 	    if(getZone("GW")==1)
@@ -1718,7 +1850,10 @@ int ProcessMeter(INT8U *buf,struct Tsa_Node *desnode)
 			//更新6035抄读成功数量
 			CLASS_6035 result6035;	//采集任务监控单元
 			get6035ByTaskID(taskinfo.task_list[taski].taskId,&result6035);
-			INT16U tsaNum = getTaskDataTsaNum(result6035.taskID);
+			result6035.taskState = AFTER_OPR;
+			TS tsNow;
+			TSGet(&tsNow);
+			INT16U tsaNum = getCBsuctsanum(result6035.taskID,tsNow);
 			result6035.successMSNum = result6035.successMSNum > tsaNum?result6035.successMSNum:tsaNum;
 			saveClass6035(&result6035);
 	    }
@@ -1729,10 +1864,9 @@ int ProcessMeter(INT8U *buf,struct Tsa_Node *desnode)
 	}
 	return sendlen;
 }
-int ProcessMeter_byJzq(INT8U *buf)
+int ProcessMeter_byJzq(INT8U *buf,INT8U *addrtmp,struct Tsa_Node *nodetmp)
 {
-	//jzqjzq
-	struct Tsa_Node *nodetmp;
+//	struct Tsa_Node *nodetmp;
 	DATA_ITEM  tmpitem;
 	int ret=0, sendlen=0,taski=0, itemi=0;//返回 tmpitem指示的具体任务索引 ，itemi指示的具体数据项索引
 	//检查内存表信息是否合法
@@ -1766,6 +1900,16 @@ int ProcessMeter_byJzq(INT8U *buf)
 				sendlen = do_5004_type( taski, itemi , buf, nodetmp, tmpitem);//日冻结
 			else
 				sendlen = do_other_type( taski, itemi , buf, nodetmp, tmpitem);//其它数据
+
+			if(nodetmp->tsa.addr[1] > 5)
+			{
+				nodetmp->tsa.addr[1] = 5;
+				fprintf(stderr,"request698_07Data 电表地址长度大于6");
+			}
+
+			int startIndex = 5 - nodetmp->tsa.addr[1];
+			memcpy(&addrtmp[startIndex], &nodetmp->tsa.addr[2], (nodetmp->tsa.addr[1]+1));
+
 			DbgPrintToFile1(31,"TSA[ %02x-%02x-%02x%02x%02x%02x%02x%02x ] ",\
 					nodetmp->tsa.addr[0],nodetmp->tsa.addr[1],nodetmp->tsa.addr[2],nodetmp->tsa.addr[3],\
 					nodetmp->tsa.addr[4],nodetmp->tsa.addr[5],nodetmp->tsa.addr[6],nodetmp->tsa.addr[7]);//TODO 抄表组织报文
@@ -1922,8 +2066,8 @@ void saveTaskData_MeterCurve(TASK_INFO *tskinfo,FORMAT07 *frame07,TS ts)
 void doSave(FORMAT07 frame07)
 {
 	TSA tsatmp;
-	INT8U nextFlag=0, dataContent[50]={}, buf645[255]={} ,taskFlag[4]={0,0,0,0} ,CurveFlg[4]={0x01, 0x00, 0x00, 0x06};
-	int len645=0, taski=0 ,itemi=0 ;
+	INT8U taskFlag[4]={0,0,0,0} ,CurveFlg[4]={0x01, 0x00, 0x00, 0x06};
+	int taski=0 ,itemi=0 ;
 	TS ts;
 
 	Addr_TSA(frame07.Addr,&tsatmp);
@@ -1961,11 +2105,9 @@ void doSave(FORMAT07 frame07)
 }
 int SaveTaskData(FORMAT3762 format_3762_Up,INT8U taskid)
 {
-	int len645=0, taski=0 ,itemi=0 ;
-	INT8U nextFlag=0, dataContent[50]={}, buf645[255]={} ,taskFlag[4]={0,0,0,0} ,CurveFlg[4]={0x01, 0x00, 0x00, 0x06};
-	TSA tsatmp;
+	int len645=0;
+	INT8U nextFlag=0, dataContent[50]={}, buf645[255]={};
 	FORMAT07 frame07;
-	TS ts;
 
 	memset(dataContent,0,sizeof(dataContent));
 	if (format_3762_Up.afn06_f2_up.MsgLength > 0)
@@ -2002,10 +2144,6 @@ int saveSerchMeter(FORMAT3762 format_3762_Up)
 	return 1;
 }
 
-int checkAllData(struct Tsa_Node* head,struct Tsa_Node desnode)
-{
-	return 1;
-}
 int doTask(RUNTIME_PLC *runtime_p)
 {
 	static int step_cj = 0, beginwork=0;
@@ -2032,7 +2170,6 @@ int doTask(RUNTIME_PLC *runtime_p)
 		case 0://重启抄表
 			if ( nowtime - runtime_p->send_start_time > 20)
 			{
-				DEBUG_TIME_LINE("\n--------do 重启抄表");
 				DbgPrintToFile1(31,"\n重启抄表");
 				clearvar(runtime_p);
 				runtime_p->redo = 0;
@@ -2041,7 +2178,6 @@ int doTask(RUNTIME_PLC *runtime_p)
 				SendDataToCom(runtime_p->comfd, runtime_p->sendbuf,sendlen );
 			}else if(runtime_p->format_Up.afn == 0x00 && runtime_p->format_Up.fn == 1)
 			{//确认
-				DEBUG_TIME_LINE("\n-------- 确认--------");
 				clearvar(runtime_p);
 				runtime_p->send_start_time = nowtime ;
 				step_cj = 2;
@@ -2051,7 +2187,6 @@ int doTask(RUNTIME_PLC *runtime_p)
 		case 1://恢复抄读
 			if ( nowtime - runtime_p->send_start_time > 20)
 			{
-				DEBUG_TIME_LINE("\n--------do 恢复抄表");
 				DbgPrintToFile1(31,"\n恢复抄表");
 				runtime_p->redo = 0;
 				clearvar(runtime_p);
@@ -2060,7 +2195,6 @@ int doTask(RUNTIME_PLC *runtime_p)
 				SendDataToCom(runtime_p->comfd, runtime_p->sendbuf,sendlen );
 			}else if(runtime_p->format_Up.afn == 0x00 && runtime_p->format_Up.fn == 1)
 			{//确认
-				DEBUG_TIME_LINE("\n--------恢复抄表确认");
 				clearvar(runtime_p);
 				runtime_p->send_start_time = nowtime ;
 				step_cj = 2;
@@ -2075,16 +2209,11 @@ int doTask(RUNTIME_PLC *runtime_p)
 				Addr_TSA(runtime_p->format_Up.afn14_f1_up.SlavePointAddr,&tsatmp);
 				DbgPrintToFile1(31,"\n 请求地址 [ %02x-%02x-%02x%02x%02x%02x%02x%02x ] ",\
 						tsatmp.addr[0],tsatmp.addr[1],tsatmp.addr[2],tsatmp.addr[3],\
-						tsatmp.addr[4],tsatmp.addr[5],tsatmp.addr[6],tsatmp.addr[7]);//TODO 抄表组织报文
-
-				DEBUG_TIME_LINE("请求地址 [ %02x-%02x-%02x %02x %02x %02x %02x %02x ] ",\
-						tsatmp.addr[0],tsatmp.addr[1],tsatmp.addr[2],tsatmp.addr[3],\
 						tsatmp.addr[4],tsatmp.addr[5],tsatmp.addr[6],tsatmp.addr[7]);
 
 				sendlen = 0;
 				nodetmp = NULL;
 				nodetmp = getNodeByTSA(tsa_head,tsatmp);
-				DEBUG_TIME_LINE("nodetmp: %p", nodetmp);
 				if( nodetmp != NULL )
 				{
 					sendlen = ProcessMeter(buf645,nodetmp);
@@ -2093,6 +2222,7 @@ int doTask(RUNTIME_PLC *runtime_p)
 						//6035发送报文数量+1
 						CLASS_6035 result6035;	//采集任务监控单元
 						get6035ByTaskID(taskinfo.task_list[taskinfo.now_taski].taskId,&result6035);
+						result6035.taskState = IN_OPR;
 						result6035.sendMsgNum++;
 						saveClass6035(&result6035);
 				    }
@@ -2104,15 +2234,11 @@ int doTask(RUNTIME_PLC *runtime_p)
 				runtime_p->send_start_time = nowtime;
 			}else if ( runtime_p->format_Up.afn == 0x06 && runtime_p->format_Up.fn == 2 )//收到返回抄表数据
 			{
-				DbgPrintToFile1(31,"收数据");
-				DEBUG_TIME_LINE("\n--------收数据");
+				DbgPrintToFile1(31,"路由主导流程_收数据");
 				inWaitFlag = 0;
 				sendlen = AFN00_F01( &runtime_p->format_Up,runtime_p->sendbuf );//确认
 				SendDataToCom(runtime_p->comfd, runtime_p->sendbuf,sendlen );
-
-				DEBUG_TIME_LINE("SaveTaskData-------start------------>");
 				SaveTaskData(runtime_p->format_Up, runtime_p->taskno);
-				DEBUG_TIME_LINE("<------------SaveTaskData-------end");
 				clearvar(runtime_p);
 				DbgPrintToFile1(31,"afn=%02x  fn=%02x",runtime_p->format_Up.afn,runtime_p->format_Up.fn );
 				runtime_p->send_start_time = nowtime;
@@ -2124,11 +2250,8 @@ int doTask(RUNTIME_PLC *runtime_p)
 					result6035.rcvMsgNum++;
 					saveClass6035(&result6035);
 			    }
-
-
 			}else if( (nowtime - runtime_p->send_start_time > 10)  && inWaitFlag== 1)//等待超时,忽略超时过程中的请求抄读
 			{
-				DEBUG_TIME_LINE("超时");
 				DbgPrintToFile1(31,"超时");
 				inWaitFlag = 0;
 				clearvar(runtime_p);
@@ -2136,7 +2259,6 @@ int doTask(RUNTIME_PLC *runtime_p)
 			}else if( nowtime - runtime_p->send_start_time > 90)
 			{
 				DbgPrintToFile1(31,"抄表过程，通讯超时,重启抄表");
-				DEBUG_TIME_LINE("抄表过程，通讯超时,重启抄表");
 				step_cj = 0;
 			}
 			break;
@@ -2156,121 +2278,321 @@ INT8U getTransCmdAddrProto(INT8U* cmdbuf, INT8U* addrtmp, INT8U* proto)
 	return 1;
 }
 
-//响应主站代理操作
-INT8U doClientProxyRequest(RUNTIME_PLC *runtime_p, int* beginwork, int* step_cj){
-	int sendlen=0;
-	struct Tsa_Node *nodetmp = NULL;
-	INT8U addrtmp[10] = {0};//645报文中的目标地址
-	INT8U proto = 0;
-	time_t nowtime = time(NULL);
-	INT16U timeout = 20;
+INT8U Proxy_GetRequestList(RUNTIME_PLC *runtime_p,CJCOMM_PROXY *proxy,int* beginwork,time_t nowtime)
+{
+	static int obj_index = 0;
+	int len645 =0,sendlen = 0 ;
+	INT16U singleLen = 0 ,timeout = 20;
+	INT8U tmpbuf[256]={} , nextFlag=0;
+	struct Tsa_Node *nodetmp=NULL;
+	FORMAT07 frame07;
+	OAD oad1,oad2;
 
-	//TODO: 将状态机置于switch外层才符合逻辑, 否则外部的变量对状态机影响太大
-	switch(cjcommProxy_plc.strProxyList.proxytype) {
-	case ProxyGetRequestList:
-		break;
-	case ProxyGetRequestRecord:
-		break;
-	case ProxySetRequestList:
-		break;
-	case ProxySetThenGetRequestList:
-		break;
-	case ProxyActionRequestList:
-		break;
-	case ProxyActionThenGetRequestList:
-		break;
-	case ProxyTransCommandRequest:
+	timeout = (proxy->strProxyList.proxy_obj.objs[obj_index].onetimeout  > 0) ?  \
+			proxy->strProxyList.proxy_obj.objs[obj_index].onetimeout: 20;
 
-		timeout = (cjcommProxy_plc.strProxyList.proxy_obj.transcmd.revtimeout > 0) ?  \
-										cjcommProxy_plc.strProxyList.proxy_obj.transcmd.revtimeout : 20;
-
-		if (*beginwork==0 && cjcommProxy_plc.isInUse==1) {//发送点抄
-			*beginwork = 1;
+	if (*beginwork==0 && proxy->isInUse==1)
+	{
+		DbgPrintToFile1(31,"Proxy_GetRequestList obj_index【 %d 】",obj_index);
+		if(obj_index != proxy->strProxyList.num)
+		{
 			clearvar(runtime_p);
+			nodetmp = getNodeByTSA(tsa_head,proxy->strProxyList.proxy_obj.objs[obj_index].tsa);
+			if (nodetmp != NULL)
+			{
+				*beginwork = 1;
+				oad1.OI = 0;
+				oad2 = proxy->strProxyList.proxy_obj.objs[obj_index].oads[0];
+				sendlen = buildProxyFrame(runtime_p,nodetmp,oad1,oad2);
+				SendDataToCom(runtime_p->comfd, runtime_p->sendbuf,sendlen );
+				runtime_p->send_start_time = nowtime;
+				DbgPrintToFile1(31,"发送代理 %d",obj_index);
+			}
+			obj_index++;
+		}else
+			*beginwork = 1;
+	}else if ((runtime_p->format_Up.afn == 0x13 && runtime_p->format_Up.fn == 1 ) && *beginwork==1)
+	{
+		singleLen = 0;
+		if (runtime_p->format_Up.afn13_f1_up.MsgLength > 0)
+		{
+			len645 = runtime_p->format_Up.afn13_f1_up.MsgLength;
+			memcpy(buf645, runtime_p->format_Up.afn13_f1_up.MsgContent, len645);
+			if (analyzeProtocol07(&frame07, buf645, len645, &nextFlag) == 0)
+			{
+				pthread_mutex_lock(&mutex);
+				memset(tmpbuf,0,sizeof(tmpbuf));
+				singleLen = data07Tobuff698(frame07,tmpbuf);
+				if(singleLen > 0)
+				{
+					int dataindex = proxy->strProxyList.datalen;
+					int addrlen = proxy->strProxyList.proxy_obj.objs[obj_index].tsa.addr[0]+1;
+					memcpy(&proxy->strProxyList.data[dataindex],&proxy->strProxyList.proxy_obj.objs[obj_index].tsa.addr[0],addrlen);
+					dataindex += addrlen;
+					proxy->strProxyList.data[dataindex++] = proxy->strProxyList.proxy_obj.objs[obj_index].num;
+					proxy->strProxyList.proxy_obj.objs[obj_index].dar = proxy_success;
+					memcpy(&proxy->strProxyList.data[dataindex],tmpbuf,singleLen);
+					dataindex += singleLen;
+					proxy->strProxyList.datalen += dataindex;
+				}
+				pthread_mutex_unlock(&mutex);
+			}
+		}
+		if(singleLen==0)
+			proxy->strProxyList.proxy_obj.objs[obj_index].dar = request_overtime;
+		*beginwork = 0;
+	} else if (((nowtime - runtime_p->send_start_time) > timeout) && *beginwork==1) {
+		*beginwork = 0;
+		DbgPrintToFile1(31,"单次超时");
+	}else if(proxyInUse.devUse.plcNeed == 0 && *beginwork == 1) {
+		*beginwork = 0;
+		DbgPrintToFile1(31,"总超时判断取消等待");
+	}else if( nowtime - runtime_p->send_start_time > 100  ) {
+		clearvar(runtime_p);
+		*beginwork = 0;
+		obj_index = 0;
+		DbgPrintToFile1(31,"100秒超时");
+		return 3;
+	}
+	return 2;
+}
+int JugebroadTime(INT8U *buf,INT8U len)
+{
+	FORMAT3762 formatup;
+	FORMAT07 frame07;
+	BOOLEAN NEXTflag;
+	int len07=0;
+	INT8U tmp3762[256];
 
+	memset(tmp3762,0,256);
+	memset(&broadtime,0,sizeof(broadtime));
+	memset(buf645,0,BUFSIZE645);
+
+	memcpy(tmp3762,buf,len);
+	DbPrt1(31,"3762:", (char *) tmp3762, len, NULL);
+
+	analyzeProtocol3762(&formatup,tmp3762,len);
+
+	DbgPrintToFile1(31,"分析广播对时报文 afn=%02x   fn=%d ",formatup.afn,formatup.fn);
+
+	if ( (formatup.afn==0x05 && formatup.fn==3 ))
+	{
+		len07 = buf[14];
+		memcpy(buf645,&buf[15],len07);
+		broadtime.len = len07;
+		memcpy(broadtime.buf,buf645,len07);
+		DbPrt1(31,"645dd:", (char *) buf645, len07, NULL);
+
+		DbPrt1(31,"645:", (char *) &buf[14], 19, NULL);
+		int ret = analyzeProtocol07(&frame07, buf645, len07, &NEXTflag);
+
+		DbgPrintToFile1(31,"ret = %d   frame07.Ctrl=%02x    buf[23]   str.len=%d",ret,frame07.Ctrl,buf[23],broadtime.len);
+
+		if ( ret == 1)
+		{
+			if (frame07.Ctrl==0x08)
+			{
+				broadtime.is = 1;
+				broadtime.broadCastTime.Year = frame07.Time[5]+2000;
+				broadtime.broadCastTime.Month = frame07.Time[4];
+				broadtime.broadCastTime.Day = frame07.Time[3];
+				broadtime.broadCastTime.Hour = frame07.Time[2];
+				broadtime.broadCastTime.Minute = frame07.Time[1];
+				broadtime.broadCastTime.Sec = frame07.Time[0];
+				DbgPrintToFile1(31,"广播对时时间  %d-%d-%d %d:%d:%d ",broadtime.broadCastTime.Year,broadtime.broadCastTime.Month,
+						broadtime.broadCastTime.Day,broadtime.broadCastTime.Hour,broadtime.broadCastTime.Minute,broadtime.broadCastTime.Sec);
+				DbPrt1(31,"645sss:", (char *) &broadtime.buf, broadtime.len, NULL);
+
+
+				return 1;
+			}
+		}
+	}
+	return 0;
+}
+INT8U Proxy_TransCommandRequest(RUNTIME_PLC *runtime_p,CJCOMM_PROXY *proxy,int* beginwork,time_t nowtime)
+{
+	INT8U addrtmp[10] = {0};//645报文中的目标地址
+	int sendlen = 0;
+	INT8U proto = 0;
+	INT16U timeout = 20;
+	INT8U datalen =0;
+
+	timeout = (proxy->strProxyList.proxy_obj.transcmd.revtimeout > 0) ?  \
+			proxy->strProxyList.proxy_obj.transcmd.revtimeout: 20;
+
+	if (*beginwork==0 && cjcommProxy_plc.isInUse==1) {//发送点抄
+		*beginwork = 1;
+		clearvar(runtime_p);
+
+		if (JugebroadTime(cjcommProxy_plc.strProxyList.proxy_obj.transcmd.cmdbuf,cjcommProxy_plc.strProxyList.proxy_obj.transcmd.cmdlen)==1)
+		{
+			DbgPrintToFile1(31,"判断代理内容如果是广播对时，需要切换到对时流程");
+			//判断代理内容如果是广播对时，需要切换到对时流程
+			cjcommProxy_plc.strProxyList.proxy_obj.transcmd.dar = success;
+			cjcommProxy_plc.strProxyList.data[0] = 1;
+			cjcommProxy_plc.strProxyList.data[1] = 0;
+			proxyInUse.devUse.plcReady = 1;
+			cjcommProxy_plc.isInUse = 0;
+			clearvar(runtime_p);
+			*beginwork = 0;
+			return BROADCAST;
+		}
+		if(getZone("GW")==0) {
+			SendDataToCom(runtime_p->comfd, cjcommProxy_plc.strProxyList.proxy_obj.transcmd.cmdbuf, cjcommProxy_plc.strProxyList.proxy_obj.transcmd.cmdlen);
+		}else
+		{
 			getTransCmdAddrProto(cjcommProxy_plc.strProxyList.proxy_obj.transcmd.cmdbuf, addrtmp, &proto);
 			memcpy(runtime_p->format_Down.addr.SourceAddr, runtime_p->masteraddr, 6);
 
 			sendlen = AFN13_F1(&runtime_p->format_Down,runtime_p->sendbuf, addrtmp, 2, 0, \
 					cjcommProxy_plc.strProxyList.proxy_obj.transcmd.cmdbuf, cjcommProxy_plc.strProxyList.proxy_obj.transcmd.cmdlen);
 			SendDataToCom(runtime_p->comfd, runtime_p->sendbuf, sendlen );
-			DbgPrintToFile1(31,"发送 plc 代理 command ");
-			DEBUG_BUFF(runtime_p->sendbuf, sendlen);
-			runtime_p->send_start_time = nowtime;
-			DEBUG_TIME_LINE("");
-		} else if ((runtime_p->format_Up.afn == 0x13 && runtime_p->format_Up.fn == 1 ) && *beginwork==1) {
-			//收到应答数据，或超时10秒，
-			pthread_mutex_lock(&mutex);
-			if(runtime_p->format_Up.afn13_f1_up.MsgLength > 0) {
-				INT16U tIndex = 0;
-				INT16U starttIndex = 0;
-				for(tIndex = 0;tIndex < runtime_p->format_Up.afn13_f1_up.MsgLength;tIndex++) {//去掉前导符
-					if(runtime_p->format_Up.afn13_f1_up.MsgContent[tIndex]!=0x68 &&
-					   runtime_p->format_Up.afn13_f1_up.MsgContent[tIndex + 7]!=0x68 ) {
-						continue;
-					} else {
-						starttIndex = tIndex;
-						break;
-					}
+		}
+		DbgPrintToFile1(31,"发送 plc 代理 command ");
+		runtime_p->send_start_time = nowtime;
+	} else if ((runtime_p->format_Up.afn == 0x13 && runtime_p->format_Up.fn == 1 ) && *beginwork==1) {
+		//收到应答数据，或超时10秒，
+		pthread_mutex_lock(&mutex);
+		if(runtime_p->format_Up.afn13_f1_up.MsgLength > 0) {
+			INT16U tIndex = 0;
+			INT16U starttIndex = 0;
+			for(tIndex = 0;tIndex < runtime_p->format_Up.afn13_f1_up.MsgLength;tIndex++) {//去掉前导符
+				if(runtime_p->format_Up.afn13_f1_up.MsgContent[tIndex]!=0x68 &&
+				   runtime_p->format_Up.afn13_f1_up.MsgContent[tIndex + 7]!=0x68 ) {
+					continue;
+				} else {
+					starttIndex = tIndex;
+					break;
 				}
-				INT8U datalen = runtime_p->format_Up.afn13_f1_up.MsgLength - starttIndex;
-				cjcommProxy_plc.strProxyList.proxy_obj.transcmd.dar = success;
-				cjcommProxy_plc.strProxyList.data[0] = 1;
+			}
+
+			cjcommProxy_plc.strProxyList.proxy_obj.transcmd.dar = success;
+			cjcommProxy_plc.strProxyList.data[0] = 1;
+
+			if(getZone("GW")==0) {
+				datalen = runtime_p->format_Up.length;
+				cjcommProxy_plc.strProxyList.data[1] = datalen;
+				memcpy(&cjcommProxy_plc.strProxyList.data[2],&runtime_p->dealbuf,datalen);
+			}else
+			{
+				datalen = runtime_p->format_Up.afn13_f1_up.MsgLength - starttIndex;
 				cjcommProxy_plc.strProxyList.data[1] = datalen;
 				memcpy(&cjcommProxy_plc.strProxyList.data[2],&runtime_p->format_Up.afn13_f1_up.MsgContent[starttIndex],datalen);
 				DEBUG_BUFF(runtime_p->format_Up.afn13_f1_up.MsgContent, datalen);
-				cjcommProxy_plc.strProxyList.datalen = datalen + 2;
-
-			} else {
-				cjcommProxy_plc.strProxyList.proxy_obj.transcmd.dar = request_overtime;
-				cjcommProxy_plc.strProxyList.datalen = 0;
 			}
-			runtime_p->send_start_time = nowtime;
-			memset(&runtime_p->format_Up, 0, sizeof(runtime_p->format_Up));
-			proxyInUse.devUse.plcReady = 1;
-			cjcommProxy_plc.isInUse = 0;
-			*beginwork = 0;
-			pthread_mutex_unlock(&mutex);
-			DbgPrintToFile1(31,"收到点抄数据");
+			cjcommProxy_plc.strProxyList.datalen = datalen + 2;
 
-		} else if (((nowtime - runtime_p->send_start_time) > timeout) && *beginwork==1) {
-			//代理超时后, 放弃本次操作, 上报超时应答
-			pthread_mutex_lock(&mutex);
+		} else {
 			cjcommProxy_plc.strProxyList.proxy_obj.transcmd.dar = request_overtime;
 			cjcommProxy_plc.strProxyList.datalen = 0;
-			*beginwork = 0;
+		}
+		runtime_p->send_start_time = nowtime;
+		memset(&runtime_p->format_Up, 0, sizeof(runtime_p->format_Up));
+		proxyInUse.devUse.plcReady = 1;
+		cjcommProxy_plc.isInUse = 0;
+		*beginwork = 0;
+		pthread_mutex_unlock(&mutex);
+		DbgPrintToFile1(31,"收到点抄数据");
+
+	}else if ( runtime_p->format_Up.afn!=0 && runtime_p->format_Up.fn!=0 &&  *beginwork==1)//国网需要将收到报文直接返回主站
+	{
+		pthread_mutex_lock(&mutex);
+			cjcommProxy_plc.strProxyList.proxy_obj.transcmd.dar = success;
+			cjcommProxy_plc.strProxyList.data[0] = 1;
+			datalen = runtime_p->format_Up.length;
+			cjcommProxy_plc.strProxyList.data[1] = datalen;
+			memcpy(&cjcommProxy_plc.strProxyList.data[2],&runtime_p->dealbuf,datalen);
+			cjcommProxy_plc.strProxyList.datalen = datalen + 2;
 			proxyInUse.devUse.plcReady = 1;
 			cjcommProxy_plc.isInUse = 0;
-			pthread_mutex_unlock(&mutex);
-			DbgPrintToFile1(31,"单次点抄超时");
+		pthread_mutex_unlock(&mutex);
 
-		}else if(proxyInUse.devUse.plcNeed == 0 && *beginwork == 1)
-		{
-			*beginwork = 0;
-			DbgPrintToFile1(31,"总超时判断取消等待");
-			break;
-		}else if( nowtime - runtime_p->send_start_time > 100  ) {
-			//最后一次代理操作后100秒, 才恢复抄读
-			DbgPrintToFile1(31,"100秒超时");
-			clearvar(runtime_p);
-			*beginwork = 0;
-			*step_cj = 3;
-			clearvar(runtime_p);
-			DEBUG_TIME_LINE("");
-		}
-		break;
-	default:
-		break;
+		*beginwork = 0;
+		runtime_p->send_start_time = nowtime;
+		memset(&runtime_p->format_Up, 0, sizeof(runtime_p->format_Up));
+		DbgPrintToFile1(31,"收到点抄数据");
 	}
+	else if (((nowtime - runtime_p->send_start_time) > timeout) && *beginwork==1) {
+		//代理超时后, 放弃本次操作, 上报超时应答
+		pthread_mutex_lock(&mutex);
+		cjcommProxy_plc.strProxyList.proxy_obj.transcmd.dar = request_overtime;
+		cjcommProxy_plc.strProxyList.datalen = 0;
+		*beginwork = 0;
+		proxyInUse.devUse.plcReady = 1;
+		cjcommProxy_plc.isInUse = 0;
+		pthread_mutex_unlock(&mutex);
+		DbgPrintToFile1(31,"单次点抄超时");
 
+	}else if(proxyInUse.devUse.plcNeed == 0 && *beginwork == 1)
+	{
+		*beginwork = 0;
+		DbgPrintToFile1(31,"总超时判断取消等待");
+	}else if( nowtime - runtime_p->send_start_time > 100  ) {
+		//最后一次代理操作后100秒, 才恢复抄读
+		DbgPrintToFile1(31,"100秒超时");
+		clearvar(runtime_p);
+		*beginwork = 0;
+		return 3;
+		clearvar(runtime_p);
+	}
+	return 2;
+}
+INT8U Proxy_Gui(RUNTIME_PLC *runtime_p,GUI_PROXY *proxy,int* beginwork,time_t nowtime)
+{
+	static struct Tsa_Node *nodetmp=NULL;
+	int sendlen=0;
+	if (*beginwork==0  && proxy->strProxyMsg.port.OI == 0xf209 && proxy->isInUse ==1 )
+	{//发送点抄
+		DbgPrintToFile1(31,"dealGuiRead 处理液晶点抄 :%02x%02x%02x%02x%02x%02x%02x%02x 波特率=%d protocol=%d 端口号=%04x%02x%02x 规约类型=%d 数据标识=%04x"
+				,proxy->strProxyMsg.addr.addr[0],proxy->strProxyMsg.addr.addr[1],proxy->strProxyMsg.addr.addr[2],proxy->strProxyMsg.addr.addr[3]
+				,proxy->strProxyMsg.addr.addr[4],proxy->strProxyMsg.addr.addr[5],proxy->strProxyMsg.addr.addr[6],proxy->strProxyMsg.addr.addr[7]
+				,proxy->strProxyMsg.baud,proxy->strProxyMsg.protocol,proxy->strProxyMsg.port.OI,proxy->strProxyMsg.port.attflg,proxy->strProxyMsg.port.attrindex
+				,proxy->strProxyMsg.protocol,proxy->strProxyMsg.oi);
+		*beginwork = 1;
+		nodetmp = NULL;
+		nodetmp = getNodeByTSA(tsa_head,proxy->strProxyMsg.addr) ;
+		clearvar(runtime_p);
+		if( nodetmp != NULL )
+		{
+			DbgPrintToFile1(31,"发送点抄报文");
+			memcpy(runtime_p->format_Down.addr.SourceAddr,runtime_p->masteraddr,6);
+			OAD oad1,oad2;
+			oad1.OI = 0;
+			oad2.OI = proxy->strProxyMsg.oi;
+			oad2.attflg = 0x02;
+			oad2.attrindex = 0;
+			sendlen = buildProxyFrame(runtime_p,nodetmp,oad1,oad2);
+			SendDataToCom(runtime_p->comfd, runtime_p->sendbuf,sendlen );
+		}
+		runtime_p->send_start_time = nowtime;
+	}
+	else if ((runtime_p->format_Up.afn == 0x13 && runtime_p->format_Up.fn == 1 ))
+	{//收到应答数据，或超时10秒，
+		proxy->isInUse = 0;
+		*beginwork = 0;
+		saveProxyData(runtime_p->format_Up,nodetmp);
+		memset(&runtime_p->format_Up,0,sizeof(runtime_p->format_Up));
+		DbgPrintToFile1(31,"收到点抄数据");
+	}else if ((nowtime - runtime_p->send_start_time > 20  ) && *beginwork==1)
+	{
+		DbgPrintToFile1(31,"单次点抄超时");
+		proxy->isInUse = 0;
+		*beginwork = 0;
+	}
+	else if( nowtime - runtime_p->send_start_time > 100  )
+	{//100秒等待
+		DbgPrintToFile1(31,"100秒超时");
+		clearvar(runtime_p);
+		*beginwork = 0;
+		return 3;
+	}
 	return 1;
 }
-
 int doProxy(RUNTIME_PLC *runtime_p)
 {
 	static int step_cj = 0, beginwork=0;
-	static struct Tsa_Node *currtsa;
-	struct Tsa_Node *nodetmp;
+
 	int sendlen=0;
 
 	time_t nowtime = time(NULL);
@@ -2300,49 +2622,30 @@ int doProxy(RUNTIME_PLC *runtime_p)
 			}
 			break;
 		case 1://开始监控载波从节点
-			if (beginwork==0  && cjGuiProxy_plc.strProxyMsg.port.OI == 0xf209 && cjGuiProxy_plc.isInUse==1 )
-			{//发送点抄
-				DbgPrintToFile1(31,"dealGuiRead 处理液晶点抄 :%02x%02x%02x%02x%02x%02x%02x%02x 波特率=%d protocol=%d 端口号=%04x%02x%02x 规约类型=%d 数据标识=%04x"
-						,cjGuiProxy_plc.strProxyMsg.addr.addr[0],cjGuiProxy_plc.strProxyMsg.addr.addr[1],cjGuiProxy_plc.strProxyMsg.addr.addr[2],cjGuiProxy_plc.strProxyMsg.addr.addr[3]
-						,cjGuiProxy_plc.strProxyMsg.addr.addr[4],cjGuiProxy_plc.strProxyMsg.addr.addr[5],cjGuiProxy_plc.strProxyMsg.addr.addr[6],cjGuiProxy_plc.strProxyMsg.addr.addr[7]
-						,cjGuiProxy_plc.strProxyMsg.baud,cjGuiProxy_plc.strProxyMsg.protocol,cjGuiProxy_plc.strProxyMsg.port.OI,cjGuiProxy_plc.strProxyMsg.port.attflg,cjGuiProxy_plc.strProxyMsg.port.attrindex
-						,cjGuiProxy_plc.strProxyMsg.protocol,cjGuiProxy_plc.strProxyMsg.oi);
-				beginwork = 1;
-				nodetmp = NULL;
-				nodetmp = getNodeByTSA(tsa_head,cjGuiProxy_plc.strProxyMsg.addr) ;
-				clearvar(runtime_p);
-				if( nodetmp != NULL )
-				{
-					DbgPrintToFile1(31,"发送点抄报文");
-					memcpy(runtime_p->format_Down.addr.SourceAddr,runtime_p->masteraddr,6);
-					sendlen = buildProxyFrame(runtime_p,nodetmp,cjGuiProxy_plc.strProxyMsg);
-					SendDataToCom(runtime_p->comfd, runtime_p->sendbuf,sendlen );
-				}
-				runtime_p->send_start_time = nowtime;
-			}
-			else if ((runtime_p->format_Up.afn == 0x13 && runtime_p->format_Up.fn == 1 ))
-			{//收到应答数据，或超时10秒，
-				cjGuiProxy_plc.isInUse = 0;
-				beginwork = 0;
-				saveProxyData(runtime_p->format_Up);
-				memset(&runtime_p->format_Up,0,sizeof(runtime_p->format_Up));
-				DbgPrintToFile1(31,"收到点抄数据");
-			}else if ((nowtime - runtime_p->send_start_time > 20  ) && beginwork==1)
-			{
-				DbgPrintToFile1(31,"单次点抄超时");
-				cjGuiProxy_plc.isInUse = 0;
-				beginwork = 0;
-			}
-			else if( nowtime - runtime_p->send_start_time > 100  )
-			{//100秒等待
-				DbgPrintToFile1(31,"100秒超时");
-				clearvar(runtime_p);
-				beginwork = 0;
-				step_cj = 3;
-			}
+			step_cj = Proxy_Gui(runtime_p, &cjGuiProxy_plc, &beginwork, nowtime);
 			break;
 		case 2://处理主站代理
-			doClientProxyRequest(runtime_p, &beginwork, &step_cj);
+			DbgPrintToFile1(31,"处理主站代理 类型=%d",cjcommProxy_plc.strProxyList.proxytype);
+			switch(cjcommProxy_plc.strProxyList.proxytype) {
+				case ProxyGetRequestList:
+					step_cj = Proxy_GetRequestList(runtime_p, &cjcommProxy_plc, &beginwork, nowtime);
+					break;
+				case ProxyGetRequestRecord:
+					break;
+				case ProxySetRequestList:
+					break;
+				case ProxySetThenGetRequestList:
+					break;
+				case ProxyActionRequestList:
+					break;
+				case ProxyActionThenGetRequestList:
+					break;
+				case ProxyTransCommandRequest:
+					step_cj = Proxy_TransCommandRequest(runtime_p, &cjcommProxy_plc, &beginwork, nowtime);
+					break;
+				default:
+					step_cj = 3;
+			}
 			break;
 		case 3://恢复抄表
 			if (runtime_p->state_bak == TASK_PROCESS )
@@ -2372,6 +2675,11 @@ int doProxy(RUNTIME_PLC *runtime_p)
 				return(runtime_p->state_bak);
 			}
 			break;
+		default :
+			clearvar(runtime_p);
+			step_cj = 0;
+			beginwork = 0;
+			return BROADCAST;
 	}
 	return DATA_REAL;
 }
@@ -2390,18 +2698,17 @@ int startSearch(FORMAT3762 *down,INT8U *sendbuf)
 int doSerch(RUNTIME_PLC *runtime_p)
 {
 	static int step_cj = 0, beginwork=0;
-	static struct Tsa_Node *currtsa;
-	struct Tsa_Node *nodetmp;
-	TSA tsatmp;
-	int sendlen=0;
+	int sendlen=0, searchlen=0;
 
 	time_t nowtime = time(NULL);
-	if (runtime_p->nowts.Hour==23)
+	if (runtime_p->nowts.Hour==23 || (nowtime-beginSearchTime)>10800)
 	{
+		if(step_cj==0)
+			DbgPrintToFile1(31,"23点结束搜表，返回状态 %d",runtime_p->state_bak);
 		step_cj = 0;
 		beginwork = 0;
 		clearvar(runtime_p);
-		DbgPrintToFile1(31,"23点结束搜表，返回状态 %d",runtime_p->state_bak);
+		return(runtime_p->state_bak);
 	}
 
 	switch( step_cj )
@@ -2430,16 +2737,19 @@ int doSerch(RUNTIME_PLC *runtime_p)
 				DbgPrintToFile1(31," sendlen=%d",sendlen);
 				SendDataToCom(runtime_p->comfd, runtime_p->sendbuf,sendlen );
 				runtime_p->send_start_time = nowtime ;
-			}else if (runtime_p->format_Up.afn == 0x00 && runtime_p->format_Up.fn == 1 && beginwork==0)//收到确认
-			{
-				DbgPrintToFile1(31,"收到确认");
-				runtime_p->send_start_time = nowtime ;
-				DEBUG_TIME_LINE("\nruntime_p->send_start_time = %ld",runtime_p->send_start_time);
 				beginwork = 1;
-			}else if (beginwork == 1)
+			}
+//			else if (runtime_p->format_Up.afn == 0x00 && runtime_p->format_Up.fn == 1 && beginwork ==0)//收到确认
+//			{
+//				DbgPrintToFile1(31,"收到确认");
+//				runtime_p->send_start_time = nowtime ;
+//				DEBUG_TIME_LINE("\nruntime_p->send_start_time = %ld",runtime_p->send_start_time);
+//				beginwork = 1;
+//			}
+			else if (beginwork == 1)
 			{
 				DEBUG_TIME_LINE("\nruntime_p->send_start_time = %ld   nowtime=%ld",runtime_p->send_start_time,nowtime);
-				if (nowtime - runtime_p->send_start_time >120 )
+				if (nowtime - runtime_p->send_start_time > 30 )
 				{
 					DbgPrintToFile1(31,"等待到时间");
 					clearvar(runtime_p);
@@ -2473,32 +2783,97 @@ int doSerch(RUNTIME_PLC *runtime_p)
 			}
 			break;
 		case 3://等待注册
-			if ( nowtime - runtime_p->send_start_time < 5 *60)
+			if (search_i < SERACH_PARA_NUM)
+				searchlen = search6002.attr9[search_i].searchLen ;
+			else
+				searchlen = search6002.startSearchLen;
+			if(searchlen ==0)
+				searchlen = 10;
+
+			if ( (nowtime - runtime_p->send_start_time) < (searchlen *60) )
 			{
-				if (runtime_p->format_Up.afn == 0x06 && runtime_p->format_Up.fn == 4)
+				if ((runtime_p->format_Up.afn == 0x06 && runtime_p->format_Up.fn == 4)||
+					(runtime_p->format_Up.afn == 0x06 && runtime_p->format_Up.fn == 1))
 				{
 					saveSerchMeter(runtime_p->format_Up);
 					sendlen = AFN00_F01( &runtime_p->format_Up,runtime_p->sendbuf );//确认
+					clearvar(runtime_p);
 					SendDataToCom(runtime_p->comfd, runtime_p->sendbuf,sendlen );
+					clearvar(runtime_p);
+					runtime_p->send_start_time = nowtime;
 				}
-				if ((nowtime-runtime_p->send_start_time) % 100 == 0)
+				if ((nowtime-runtime_p->send_start_time) % 10 == 0)
 				{
-					DbgPrintToFile1(31,"等待1200秒... (%ld)",nowtime-runtime_p->send_start_time);
+					DbgPrintToFile1(31,"等待 %d 秒... (%ld)",searchlen*60,nowtime-runtime_p->send_start_time);
 					sleep(1);
 				}
 			}else
 			{
-				DbgPrintToFile1(31,"搜表结束");
+				DbgPrintToFile1(31,"搜表等待延时结束");
 				beginwork =0;
-				step_cj = 0;
+				step_cj = 4;
 				clearvar(runtime_p);
-				return(runtime_p->state_bak);
+//				return(runtime_p->state_bak);
+			}
+			break;
+		case 4://判断是否结束
+			if ( nowtime - runtime_p->send_start_time > 20 && beginwork==0)
+			{
+				sendlen = AFN10_F4(&runtime_p->format_Down,runtime_p->sendbuf);
+				SendDataToCom(runtime_p->comfd, runtime_p->sendbuf,sendlen );
+				runtime_p->send_start_time = nowtime;
+				beginwork = 1;
+			}else if ( runtime_p->format_Up.afn == 0x10 && runtime_p->format_Up.fn == 4 &&  beginwork ==1)
+			{
+				if ((runtime_p->format_Up.afn10_f4_up.FinishFlag==1) && (runtime_p->format_Up.afn10_f4_up.WorkFlag==0))
+				{
+					DbgPrintToFile1(31,"搜表完成!!");
+					beginwork =0;
+					step_cj = 4;
+					return(runtime_p->state_bak);
+				}
+				DbgPrintToFile1(31,"搜表未完成，继续等待");
+				step_cj = 3;
+				clearvar(runtime_p);
+				runtime_p->send_start_time = nowtime;
+			}else if (nowtime - runtime_p->send_start_time > 20 && beginwork==1)
+			{
+				beginwork =0;
+				DbgPrintToFile1(31,"超时");
+				step_cj = 3;
+				clearvar(runtime_p);
+				runtime_p->send_start_time = nowtime;
 			}
 			break;
 	}
 	return METER_SEARCH;
 }
 
+int MyTimeJuge(INT8U *timestr)
+{
+	TS broadcastTime;
+	TS nowts1;
+
+	TSGet(&nowts1);
+	TSGet(&broadcastTime);
+	broadcastTime.Year = nowts1.Year;
+	broadcastTime.Month = nowts1.Month;
+	broadcastTime.Day = nowts1.Day;
+	broadcastTime.Hour = timestr[0];
+	broadcastTime.Minute = timestr[1];
+	broadcastTime.Sec = timestr[2];
+
+	time_t time1 = tmtotime_t(broadcastTime);
+	time_t time2 = tmtotime_t(nowts1);
+	time_t time3 = time2 - time1;
+
+	if (abs(time3) < 2)
+	{
+		DbgPrintToFile1(31,"time3=%d",time3);
+		return 1;
+	}
+	return 0;
+}
 int dateJudge(TS *old ,TS *new)
 {
 	if(old->Day!=new->Day || old->Year!=new->Year || old->Month!=new->Month)
@@ -2517,6 +2892,7 @@ void dealData(int state,RUNTIME_PLC *runtime_p)
 	if (datalen>0)
 	{
 		tcflush(runtime_p->comfd,TCIOFLUSH);
+		runtime_p->deallen = datalen;
 		analyzeProtocol3762(&runtime_p->format_Up,runtime_p->dealbuf,datalen);
 		fprintf(stderr,"\nafn=%02x   fn=%d 返回",runtime_p->format_Up.afn ,runtime_p->format_Up.fn);
 	}
@@ -2536,9 +2912,10 @@ void initlist(struct Tsa_Node *head)
 	return;
 }
 
-int stateJuge(int nowdstate,INT8U* my6000_p,INT8U* my6012_p,RUNTIME_PLC *runtime_p)
+int stateJuge(int nowdstate,INT8U* my6000_p,INT8U* my6012_p,INT8U* my6002_p,RUNTIME_PLC *runtime_p)
 {
 	int state = nowdstate;
+	int i=0;
 
 	if ((runtime_p->format_Up.afn==0x06) && (runtime_p->format_Up.fn==5))//AFN= 06 FN= F5  路由上报从节点事件
 	{
@@ -2556,6 +2933,7 @@ int stateJuge(int nowdstate,INT8U* my6000_p,INT8U* my6012_p,RUNTIME_PLC *runtime
 		runtime_p->initflag = 1;
 		runtime_p->state_bak = runtime_p->state;
 		state = DATE_CHANGE;
+		broadFlag_ts.Day  = 0;
 		runtime_p->state = state;
 		runtime_p->redo = 1;  //初始化之后需要重启抄读
 		*my6000_p = JProgramInfo->oi_changed.oi6000;
@@ -2576,16 +2954,40 @@ int stateJuge(int nowdstate,INT8U* my6000_p,INT8U* my6012_p,RUNTIME_PLC *runtime
 	if ((runtime_p->nowts.Hour==23 && runtime_p->nowts.Minute==59) || (runtime_p->nowts.Hour==0 && runtime_p->nowts.Minute==0))
 		return state;  //23点59分--0点0分之间不进行任务判断（准备跨日初始化）
 
-	if ((runtime_p->nowts.Hour==20 && runtime_p->nowts.Minute==0) &&
-		 state!=METER_SEARCH && state!=DATE_CHANGE && state!=SLAVE_COMP  && state!=INIT_MASTERADDR )
-	{
-		DbgPrintToFile1(31,"20点启动搜表");
-		runtime_p->state_bak = runtime_p->state;
-		clearvar(runtime_p);
-		runtime_p->redo = 2;  //搜表后需要恢复抄读
-		return METER_SEARCH;
-	}
 
+	//---------------------------------------------------------------------------------------------------------------------------
+	if (JProgramInfo->oi_changed.oi6002 != *my6002_p)
+	{
+		*my6002_p = JProgramInfo->oi_changed.oi6002 ;
+		initSearchMeter(&search6002);//重新读取搜表参数
+		*my6002_p = JProgramInfo->oi_changed.oi6002 ;
+		if(search6002.startSearchFlg == 1)
+		{
+			runtime_p->state_bak = runtime_p->state;
+			runtime_p->redo = 2;  //搜表后需要恢复抄读
+			search6002.startSearchFlg = 0;			//启动立即搜表
+			search_i = 0xff;
+			saveCoverClass(0x6002,0,&search6002,sizeof(CLASS_6002),para_vari_save);
+			runtime_p->redo = 2;  //搜表后需要恢复抄读
+			beginSearchTime = time(NULL);
+			DbgPrintToFile1(31,"立即启动搜表 时长=%d 分钟",search6002.startSearchLen);
+			return METER_SEARCH;
+		}
+	}
+	for(i=0; i<search6002.attr9_num;i++)
+	{
+		if (search6002.attr8.enablePeriodFlg==1 && MyTimeJuge(search6002.attr9[i].startTime)==1 )
+		{
+			sleep(3);
+			runtime_p->state_bak = runtime_p->state;
+			clearvar(runtime_p);
+			search_i = i;
+			runtime_p->redo = 2;  //搜表后需要恢复抄读
+			beginSearchTime = time(NULL);
+			DbgPrintToFile1(31,"%d-%d-%d 点启动搜表",search6002.attr9[i].startTime[0],search6002.attr9[i].startTime[1],search6002.attr9[i].startTime[2]);
+			return METER_SEARCH;
+		}
+	}
 	//-------------------------------------------------------------------------------------------------------------------------
 	if (cjGuiProxy_plc.isInUse ==1 && cjGuiProxy_plc.strProxyMsg.port.OI == 0xf209 && state!=DATE_CHANGE && state!=DATA_REAL)
 	{	//出现液晶点抄载波表标识，并且不在初始化和点抄状态
@@ -2610,6 +3012,18 @@ int stateJuge(int nowdstate,INT8U* my6000_p,INT8U* my6012_p,RUNTIME_PLC *runtime
 		runtime_p->redo = 2;	//点抄后需要恢复抄读
 		return DATA_REAL;
 	}
+
+	if (broadcase4204.enable==1 &&
+		MyTimeJuge(broadcase4204.startime)==1 &&
+		broadFlag_ts.Day != runtime_p->nowts.Day )/*广播对时开始的条件 1：4204开启有效  2：到广播对时时间  3：当日未进行过对时 */
+	{
+		runtime_p->state_bak = runtime_p->state;
+		runtime_p->redo = 2;	//广播后需要恢复抄读
+		clearvar(runtime_p);
+		broadFlag_ts.Day  = runtime_p->nowts.Day;
+		return BROADCAST;
+	}
+
 	if (state == NONE_PROCE && taskinfo.task_n>0 && tsa_count > 0)
 	{
 		state = TASK_PROCESS;
@@ -2659,6 +3073,8 @@ int doTask_by_jzq(RUNTIME_PLC *runtime_p)
 	static int step_cj = 0, beginwork=0;
 	static int inWaitFlag = 0;
 	int sendlen=0;
+	struct Tsa_Node *nodetmp=NULL;
+	INT8U addrtmp[6]={};
 	time_t nowtime = time(NULL);
 
 	switch( step_cj )
@@ -2666,7 +3082,7 @@ int doTask_by_jzq(RUNTIME_PLC *runtime_p)
 		case 0://暂停抄表
 			if ( nowtime - runtime_p->send_start_time > 20)
 			{
-				DbgPrintToFile1(31,"\n重启抄表");
+				DbgPrintToFile1(31,"\n暂停抄表");
 				clearvar(runtime_p);
 				runtime_p->redo = 0;
 				runtime_p->send_start_time = nowtime ;
@@ -2684,20 +3100,23 @@ int doTask_by_jzq(RUNTIME_PLC *runtime_p)
 		case 1://开始抄表
 			if ( inWaitFlag==0)
 			{
-				inWaitFlag = 1;
-				sendlen = ProcessMeter_byJzq(buf645);//下发 AFN_13_F1 找到一块需要抄读的表，抄读
-				if(sendlen >0)
+				sendlen = ProcessMeter_byJzq(buf645,addrtmp,nodetmp);//下发 AFN_13_F1 找到一块需要抄读的表，抄读
+				if (sendlen>0 && nodetmp!=NULL)
+				{
+					sendlen = AFN13_F1(&runtime_p->format_Down,runtime_p->sendbuf,addrtmp, nodetmp->protocol, 0, buf645, sendlen);
 					SendDataToCom(runtime_p->comfd, runtime_p->sendbuf,sendlen );
-				runtime_p->send_start_time = nowtime;
-			}else if( runtime_p->format_Up.afn == 0x13 && runtime_p->format_Up.fn == 1 )
+					runtime_p->send_start_time = nowtime;
+					inWaitFlag = 1;
+				}
+			}else if( runtime_p->format_Up.afn == 0x13 && runtime_p->format_Up.fn == 1 && inWaitFlag==1 )
 			{
-				DbgPrintToFile1(31,"收数据");
+				DbgPrintToFile1(31,"集中器主导流程_收数据");
 				saveF13_F1Data(runtime_p->format_Up);
 				SaveTaskData(runtime_p->format_Up, runtime_p->taskno);
 				clearvar(runtime_p);
 				runtime_p->send_start_time = nowtime;
 				inWaitFlag = 0;
-			}else if ((nowtime - runtime_p->send_start_time > 20 ) && inWaitFlag==1 )
+			}else if ((nowtime - runtime_p->send_start_time > 30 ) && inWaitFlag==1 )
 			{
 				DbgPrintToFile1(31,"超时");
 				inWaitFlag = 0;
@@ -2889,7 +3308,6 @@ int doAutoReport(RUNTIME_PLC *runtime_p)
 			sendlen = AFN00_F01( &runtime_p->format_Up,runtime_p->sendbuf );//确认
 			SendDataToCom(runtime_p->comfd, runtime_p->sendbuf,sendlen );
 			clearvar(runtime_p);
-//			runtime_p->send_start_time = nowtime ;
 			beginwork = 0;
 			break;
 		case 1://抄读指定事件
@@ -3018,17 +3436,151 @@ int doAutoReport(RUNTIME_PLC *runtime_p)
 	}
 	return AUTO_REPORT;
 }
+int broadcast_07(INT8U *buf,int delays,INT8U adr)
+{
+	DateTimeBCD  ts;
+	FORMAT07 frame07;
+	time_t nowtime ;
+	int sendlen = 0;
+	if (broadtime.is !=1)
+	{
+		nowtime = time(NULL) ;
+		nowtime += delays;
+		ts = timet_bcd(nowtime);
+		frame07.Ctrl = 0x08;//广播校时
+		memset(&frame07.Addr, adr, 6);//地址
+		frame07.Time[0] = ts.sec.data;
+		frame07.Time[1] = ts.min.data;
+		frame07.Time[2] = ts.hour.data;
+		frame07.Time[3] = ts.day.data;
+		frame07.Time[4] = ts.month.data;
+		frame07.Time[5] = ts.year.data%100;
+		sendlen = composeProtocol07(&frame07, buf);
+	}else
+	{
+		nowtime = tmtotime_t(broadtime.broadCastTime);
+		nowtime = nowtime + delays;
+		ts = timet_bcd(nowtime);
+		frame07.Ctrl = 0x08;//广播校时
+		memset(&frame07.Addr, adr, 6);//地址
+		frame07.Time[0] = ts.sec.data;
+		frame07.Time[1] = ts.min.data;
+		frame07.Time[2] = ts.hour.data;
+		frame07.Time[3] = ts.day.data;
+		frame07.Time[4] = ts.month.data;
+		frame07.Time[5] = ts.year.data%100;
+		sendlen = composeProtocol07(&frame07, buf);
+
+	}
+	return sendlen;
+}
+int doBroadCast(RUNTIME_PLC *runtime_p)
+{
+	static int step_cj = 0, workflg=0  ,dealytime=0;
+	int sendlen=0;
+	time_t nowtime = time(NULL);
+
+	switch( step_cj )
+	{
+		case 0://暂停抄表
+			if (broadtime.is==1)
+			{
+				step_cj = 1;
+				clearvar(runtime_p);
+				break;
+			}
+			if ( nowtime - runtime_p->send_start_time > 20)
+			{
+				DbgPrintToFile1(31,"广播对时_暂停抄表");
+				clearvar(runtime_p);
+				runtime_p->send_start_time = nowtime ;
+				sendlen = AFN12_F2(&runtime_p->format_Down,runtime_p->sendbuf);
+				SendDataToCom(runtime_p->comfd, runtime_p->sendbuf,sendlen );
+			}else if(runtime_p->format_Up.afn == 0x00 && runtime_p->format_Up.fn == 1)
+			{//确认
+				clearvar(runtime_p);
+				step_cj = 1;
+			}
+			break;
+		case 1://查询通信延时相关广播通信时长
+			if ( nowtime - runtime_p->send_start_time > 20)
+			{
+				dealytime = 0;
+				memset(buf645,0,BUFSIZE645);
+				sendlen = broadcast_07(buf645,0,0x98);
+				if (broadtime.is==1)
+					sendlen = AFN03_F9(&runtime_p->format_Down,runtime_p->sendbuf,0,broadtime.len,broadtime.buf);
+				else
+					sendlen = AFN03_F9(&runtime_p->format_Down,runtime_p->sendbuf,0,sendlen,buf645);
+				SendDataToCom(runtime_p->comfd, runtime_p->sendbuf,sendlen );
+				DbgPrintToFile1(31,"广播对时_查询广播通信时长");
+				clearvar(runtime_p);
+				runtime_p->send_start_time = nowtime ;
+			}else if (runtime_p->format_Up.afn == 0x12 )
+			{
+				sendlen = AFN00_F01( &runtime_p->format_Up,runtime_p->sendbuf );//确认
+				SendDataToCom(runtime_p->comfd, runtime_p->sendbuf,sendlen );
+				clearvar(runtime_p);
+				DbgPrintToFile1(31,"广播对时_收到AFN=12类报文，进行确认");
+				runtime_p->send_start_time = nowtime ;
+			}else if (runtime_p->format_Up.afn == 0x03 && runtime_p->format_Up.fn==9 )
+			{
+				DbgPrintToFile1(31,"收到广播对时_查询通信时长回复");
+				step_cj = 2;
+				dealytime = runtime_p->format_Up.afn03_f9_up.DelayTime;
+				clearvar(runtime_p);
+			}
+			break;
+		case 2://
+			if ( nowtime - runtime_p->send_start_time > 20 && workflg==0)
+			{
+				workflg = 1;
+				memset(buf645,0,BUFSIZE645);
+				sendlen = broadcast_07(buf645,dealytime ,0x99);
+				sendlen = AFN05_F3(&runtime_p->format_Down,0,0x02,buf645,sendlen,runtime_p->sendbuf);
+				SendDataToCom(runtime_p->comfd, runtime_p->sendbuf,sendlen );
+				clearvar(runtime_p);
+				runtime_p->send_start_time = nowtime ;
+				DbgPrintToFile1(31,"广播对时_下发广播对时");
+			}else if((runtime_p->format_Up.afn == 0x00 && runtime_p->format_Up.fn == 1))
+			{//确认
+				DbgPrintToFile1(31,"收到广播确认 延时 %d s",runtime_p->format_Up.afn00_f1.WaitingTime);
+				if (runtime_p->format_Up.afn00_f1.WaitingTime < 100 )
+				{
+					DbgPrintToFile1(31,"延时 %d s",runtime_p->format_Up.afn00_f1.WaitingTime);
+					sleep(runtime_p->format_Up.afn00_f1.WaitingTime );
+					DbgPrintToFile1(31,"延时时间到");
+				}
+				clearvar(runtime_p);
+				step_cj = 0;
+				runtime_p->redo = 2;  //广播后恢复抄表
+				return(runtime_p->state_bak);
+			}else if(((nowtime - runtime_p->send_start_time > 20) && workflg==1) )
+			{
+				DbgPrintToFile1(31,"广播超时");
+				clearvar(runtime_p);
+				step_cj = 0;
+				runtime_p->redo = 2;  //广播后恢复抄表
+				return(runtime_p->state_bak);
+			}
+			break;
+	}
+	return BROADCAST;
+}
+
 void readplc_thread()
 {
-	INT8U my6000=0 ,my6012=0;
+	INT8U my6000=0 ,my6012=0 ,my6002=0;
 	int state = DATE_CHANGE;
 	RUNTIME_PLC runtimevar;
 	memset(&runtimevar,0,sizeof(RUNTIME_PLC));
 	my6000 = JProgramInfo->oi_changed.oi6000 ;
 	my6012 = JProgramInfo->oi_changed.oi6012 ;
+	my6002 = JProgramInfo->oi_changed.oi6002 ;
 	RecvHead = 0;
 	RecvTail = 0;
-
+	search_i = 0;
+	initSearchMeter(&search6002);
 	initTaskData(&taskinfo);
 	system("rm /nand/para/plcrecord.par  /nand/para/plcrecord.bak");
 	DbgPrintToFile1(31,"2-fangAn6015[%d].sernum = %d  fangAn6015[%d].mst.mstype = %d ",
@@ -3044,11 +3596,10 @@ void readplc_thread()
 	{
 		usleep(50000);
 		/********************************
-		 * 	   状态判断
+		 * 	   状态实时判断
 		********************************/
 		TSGet(&runtimevar.nowts);
-		state = stateJuge(state, &my6000,&my6012,&runtimevar);
-		fprintf(stderr,"state=%d\n",state);
+		state = stateJuge(state, &my6000,&my6012,&my6002,&runtimevar);
 		/********************************
 		 * 	   状态流程处理
 		********************************/
@@ -3079,7 +3630,10 @@ void readplc_thread()
 				}
 				break;
 			case AUTO_REPORT:
-				state = doAutoReport(&runtimevar);
+				state = doAutoReport(&runtimevar);				//载波主动上报处理
+				break;
+			case BROADCAST:
+				state = doBroadCast(&runtimevar);				//广播对时
 				break;
 			default :
 				runtimevar.state = NONE_PROCE;
