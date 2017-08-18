@@ -112,6 +112,22 @@ typedef struct
 }GUI_PROXY;
 GUI_PROXY cjguiProxy;
 GUI_PROXY cjGuiProxy_plc;
+
+typedef struct
+{
+	INT8U groupIndex;
+	INT8U meterIndex;
+	INT16U sernum;
+}Group_Meter_Index_Unit;
+
+typedef struct
+{
+	INT8U meterNum;
+	Group_Meter_Index_Unit units[8*MAX_AL_UNIT];
+}Group_Meter_Index_Map;
+Group_Meter_Index_Map groupmeterIndexMap;
+
+
 INT8S saveClass6035(CLASS_6035* class6035);
 
 void printinfoReplenish(INT8U);

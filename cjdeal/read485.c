@@ -2039,6 +2039,52 @@ INT8U getSinglegOADDataUnit(INT8U* oadData)
 	return length;
 }
 
+INT8U fillclass23data(OAD rcvOAD,INT16U sernum,INT8U* data)
+{
+	fprintf(stderr,"\n\n ---------------fillclass23data");
+	INT8U ret = 0;
+	INT8U findindex = 0;
+
+	for(findindex = 0;findindex < groupmeterIndexMap.meterNum;findindex++)
+	{
+		if(groupmeterIndexMap.units[groupmeterIndexMap.meterNum].sernum==sernum)
+		{
+			INT8U groupIndex = groupmeterIndexMap.units[groupmeterIndexMap.meterNum].groupIndex;
+			INT8U meterIndex = groupmeterIndexMap.units[groupmeterIndexMap.meterNum].meterIndex;
+
+			fprintf(stderr,"\nfind!!!! sernum = %d groupIndex = %d meterIndex = %d",sernum,groupIndex,meterIndex);
+
+			if(groupIndex<8&&meterIndex<MAX_AL_UNIT)
+			{
+				if(rcvOAD.OI == 0x0010)
+				{
+					if(rcvOAD.attrindex == 0)
+					{
+						data = &data[2];
+						INT8U rateIndex = 0;
+						for(rateIndex = 0;rateIndex < MAXVAL_RATENUM+1;rateIndex++)
+						{
+							INT32U dianliang = (data[rateIndex*5+1]<<24)+(data[rateIndex*5+2]<<16)+(data[rateIndex*5+3]<<8)+data[rateIndex*5+4];
+							fprintf(stderr,"\n dianliang = %d data = %02x %02x %02x %02x",dianliang,data[rateIndex*5+1],data[rateIndex*5+2],data[rateIndex*5+3],data[rateIndex*5+4]);
+							JProgramInfo->class23[groupIndex].allist[meterIndex].curP[rateIndex] = dianliang;
+
+						}
+					}
+					else if(rcvOAD.attrindex == 1)
+					{
+						JProgramInfo->class23[groupIndex].allist[meterIndex].curP[0] =
+								(data[1]<<24)+(data[2]<<16)+(data[3]<<8)+data[4];
+					}
+				}
+
+			}
+
+		}
+	}
+
+	return ret;
+}
+
 INT8S checkEvent698(OAD rcvOAD,INT8U* data,INT8U dataLen,CLASS_6001 obj6001,INT16U taskID)
 {
 	 asyslog(LOG_INFO,"taskID = %d event_obj.task_no　= %d checkEvent698 测量点 = %02x%02x%02x%02x%02x%02x%02x%02x  rcvOI= %04x dataLen = %d data = %02x%02x%02x%02x%02x%02x%02x%02x\n",
@@ -2053,6 +2099,12 @@ INT8S checkEvent698(OAD rcvOAD,INT8U* data,INT8U dataLen,CLASS_6001 obj6001,INT1
 	}
 	if(rcvOAD.OI == 0x0010)
 	{
+		//更新总加组电量
+		if(JProgramInfo->cfg_para.device == SPTF3)
+		{
+			fillclass23data(rcvOAD,obj6001.sernum,data);
+		}
+
 		ret = Event_310B(obj6001.basicinfo.addr,taskID,&data[3],dataLen,JProgramInfo);
 
 		ret = Event_310C(obj6001.basicinfo.addr,taskID,&data[3],dataLen,JProgramInfo,obj6001);

@@ -743,6 +743,8 @@ typedef struct {
     TSA tsa;
     INT8U al_flag;
     INT8U cal_flag;
+    INT64U curP[MAXVAL_RATENUM+1];    //当前有功-总尖峰平谷
+    INT64U curQ[MAXVAL_RATENUM+1];    //当前无功-总尖峰平谷
 } AL_UNIT;
 
 typedef struct {
