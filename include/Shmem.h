@@ -417,12 +417,31 @@ typedef struct {
 }ConfigPara;
 
 typedef struct {
+	CLASS_8100 c8100; //终端保安定值
+	CLASS_8101 c8101; //终端功控时段
+	CLASS_8102 c8102; //功控告警时间
+
+	CLASS_8103 c8103; //时段功控
+	CLASS_8104 c8104; //厂休控
+	CLASS_8105 c8105; //营业报停控
+	CLASS_8106 c8106; //功率下浮控
+
+	CLASS_8107 c8107; //购电控
+	CLASS_8108 c8108; //月电控
+
+	CLASS_F205 cf205; //继电器输出状态
+	INT8U c4024;	//剔除状态
+
+} CtrlState;
+
+typedef struct {
 	ConfigPara		cfg_para;				//配置参数
 	ACCoe_SAVE 		Accoepara;
 	_RealData		ACSRealData;		//计量芯片实时数据
 	ACEnergy_Sum	ACSEnergy;			//计量芯片电能量数据
 	CLASS12			class12[2];			//脉冲计量
 	CLASS23			class23[8];			//总加组
+	CtrlState		ctrls;				//转变参数-为液晶共享数据
 	ProjectInfo		Projects[PROJECTCOUNT];	//子程序信息
 	RealdataReq		RealDatareq;			//实时数据请求缓存
 	OI_CHANGE		oi_changed;				//相应的OI参数修改变化值，结构体相应的OI值从1-255设置参数后循环累加

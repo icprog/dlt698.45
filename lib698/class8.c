@@ -61,6 +61,63 @@ int class8001_act_route(int index, int attr_act, INT8U *data,
 	}
 }
 
+int class8000_act129(int index, int attr_act, INT8U *data,
+		Action_result *act_ret) {
+
+	if(data[0] != 0x01 || data[1] != 0x01){
+		return -1;
+	}
+	if(data[2] != 0x02 || data[3] != 0x04){
+		return -1;
+	}
+
+	OI_698 oi = data[5] * 256 + data[6];
+	int delay = data[10];
+	int limit_time = data[12] * 256 + data[13];
+	int auto_act = data[15];
+
+	asyslog(LOG_WARNING, "遥控跳闸 %d - %d - %d\n", delay, limit_time, auto_act);
+
+	return 0;
+}
+
+int class8000_act130(int index, int attr_act, INT8U *data,
+		Action_result *act_ret) {
+
+	if(data[0] != 0x01 || data[1] != 0x01){
+		return -1;
+	}
+	if(data[2] != 0x02 || data[3] != 0x04){
+		return -1;
+	}
+
+	OI_698 oi = data[5] * 256 + data[6];
+	int allow_or_auto = data[10];
+
+	asyslog(LOG_WARNING, "遥控合闸 %d\n", allow_or_auto);
+
+	return 0;
+}
+
+
+int class8000_act_route(int index, int attr_act, INT8U *data,
+		Action_result *act_ret) {
+	switch (attr_act) {
+	case 127:
+//		class8000_act127(1, attr_act, data, act_ret);
+		break;
+	case 128:
+//		class8000_act128(1, attr_act, data, act_ret);
+		break;
+	case 129:
+		class8000_act129(1, attr_act, data, act_ret);
+		break;
+	case 130:
+		class8000_act130(1, attr_act, data, act_ret);
+		break;
+	}
+}
+
 INT64U getLongValue(INT8U *data) {
 	INT64U v = 0x00;
 	for (int i = 0; i < 8; ++i) {
@@ -545,6 +602,39 @@ int class8107_act3(int index, int attr_act, INT8U *data, Action_result *act_ret)
 	mode = data[42];
 
 	asyslog(LOG_WARNING, "购电-添加控制单元[%04x-%d-%d-%d-%lld-%lld-%lld-%d]", oi, id,
+			sign, type, val, war_thr, ctl_thr, mode);
+	return 0;
+}
+
+
+int class8107_act5(int index, int attr_act, INT8U *data, Action_result *act_ret) {
+	int oi = 0x00;
+	int id = 0x00;
+	INT8U sign = 0x00;
+	INT8U type = 0x00;
+	INT64U val = 0x00;
+	INT64U war_thr = 0x00;
+	INT64U ctl_thr = 0x00;
+	INT8U mode = 0x00;
+
+	if (data[0] != 0x02 || data[1] != 0x08) {
+		return 0;
+	}
+
+	oi = data[3] * 256 + data[4];
+	id = data[6] * 256 * 256 * 256 + data[7] * 256 * 256 + data[8] * 256
+			+ data[9];
+
+	sign = data[11];
+	type = data[13];
+
+	val = getLongValue(&data[15]);
+	war_thr = getLongValue(&data[24]);
+	ctl_thr = getLongValue(&data[33]);
+
+	mode = data[42];
+
+	asyslog(LOG_WARNING, "购电-更新控制单元[%04x-%d-%d-%d-%lld-%lld-%lld-%d]", oi, id,
 			sign, type, val, war_thr, ctl_thr, mode);
 	return 0;
 }

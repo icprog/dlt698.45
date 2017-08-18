@@ -754,6 +754,12 @@ typedef struct {
 } CLASS_8001;
 
 typedef struct {
+	INT8U currentState; //当前状态 0输出 1未输出
+	INT8U switchAttr;	//开关属性 0脉冲 1保持式
+	INT8U wiredState;	//接线状态 0接入 1未接入
+} CLASS_F205;
+
+typedef struct {
     INT64U v; //终端保安定值
 } CLASS_8100;
 

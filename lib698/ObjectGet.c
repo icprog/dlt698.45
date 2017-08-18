@@ -322,6 +322,33 @@ int GetYxPara(RESULT_NORMAL *response)
 	response->datalen = index;
 	return 0;
 }
+
+
+int Get_f205_attr2(RESULT_NORMAL *response)
+{
+	int index=0;
+	INT8U *data = NULL;
+	OAD oad;
+	CLASS_F205 objtmp;
+	int	 chgflag=0;
+	oad = response->oad;
+	data = response->data;
+	memset(&objtmp,0,sizeof(objtmp));
+	switch(oad.attflg )
+	{
+		case 2://设备对象列表
+			fprintf(stderr,"Get_f205_attr2 oi.att=%d\n",oad.attflg);
+
+			index += create_struct(&data[index], 4);
+			index += fill_visible_string(&data[index], "Relay-1", strlen("Relay-1"));
+			index += fill_enum(&data[index],memp->ctrls.cf205.currentState);
+			index += fill_enum(&data[index],memp->ctrls.cf205.switchAttr);
+			index += fill_enum(&data[index],memp->ctrls.cf205.wiredState);
+			break;
+	}
+	response->datalen = index;
+	return 0;
+}
 int GetEsamPara(RESULT_NORMAL *response)
 {
 	INT8U *data=NULL;
@@ -333,6 +360,19 @@ int GetEsamPara(RESULT_NORMAL *response)
 		response->dar = 0x16;//esam验证失败
 	return 0;
 }
+
+int Get_8100(RESULT_NORMAL *response)
+{
+	INT8U *data=NULL;
+	OAD oad;
+	oad = response->oad;
+	data = response->data;
+	response->datalen = getEsamAttribute(oad,data);
+	if(response->datalen == 0)
+		response->dar = 0x16;//esam验证失败
+	return 0;
+}
+
 int GetSecurePara(RESULT_NORMAL *response)
 {
 	INT8U *data=NULL;
@@ -2150,56 +2190,13 @@ int GetCollOneUnit(OI_698 oi,INT8U readType,INT8U seqnum,INT8U *data,INT16U *one
 /*
  * 采集监控类对象读取
  * */
-int GetCollPara(INT8U seqOfNum,RESULT_NORMAL *response)
+int GetCtrl(RESULT_NORMAL *response)
 {
-	int 	index=0;
-	INT8U 	*data = NULL;
-	OAD 	oad={};
-	INT16U	i=0,blknum=0,meternum=0,tmpblk=0;
-	INT16U	retlen=0;
-	INT16U	oneUnitLen=0;	//计算一个配置单元的长度，统计是否需要分帧操作
-	int		lastframenum = 0; //记录分帧的数量
-
-	oad = response->oad;
-	data = response->data;
-
-	if(GetCollOneUnit(response->oad.OI,1,0,&data[index],&oneUnitLen,&blknum)==0)	{
-		fprintf(stderr,"get OI=%04x oneUnitLen=%d blknum=%d 退出",oad.OI,oneUnitLen,blknum);
-		response->dar = obj_undefine;
-		return 0;
-	}
-//	if(seqOfNum!=0) {　　　//台体抄表参数读取多个，去掉判断
-		index = 2;			//空出 array,结束后填入
-//	}
-	for(i=0;i<blknum;i++)
+	switch(response->oad.OI)
 	{
-//		if(seqOfNum!=0) {							//getRequestNormal请求时不需要SEQUENCE OF
-			create_array(&data[0],meternum);		//每次循环填充配置单元array个数，为了组帧分帧
-//		}
-		response->datalen = index;
-		///在读取数据组帧前判断是否需要进行分帧
-		Build_subFrame(0,(index+oneUnitLen),seqOfNum,response);
-		if(lastframenum != next_info.subframeSum) {		//数据已分帧重新开始
-			lastframenum = next_info.subframeSum;
-			index = 2;
-			meternum = 0;
-//			fprintf(stderr,"\n get subFrame lastframenum=%d,subframeSum=%d index=%d\n",lastframenum,next_info.subframeSum,index);
-		}
-		GetCollOneUnit(response->oad.OI,0,i,&data[index],&retlen,&tmpblk);
-		if(retlen!=0) {
-			meternum++;
-		}
-		index += retlen;
-//		if(seqOfNum==0 && meternum==1)  {	//getReponseNormal只返回一个A-ResultNormal结果数据
-//			break;
-//		}
-	}
-//	if(seqOfNum!=0) {
-		create_array(&data[0],meternum);		//配置单元个数
-//	}
-	response->datalen = index;
-	if(next_info.subframeSum!=0) {		//已经存在分帧情况
-		Build_subFrame(1,index,seqOfNum,response);		//后续帧组帧, TODO:RequestNormalList 方法此处调用是否合适
+		case 0x8100:
+			response->datalen = Get_8100(response);
+			break;
 	}
 	return 1;
 }
@@ -2226,6 +2223,9 @@ int GetDeviceIo(RESULT_NORMAL *response)
 					GetFileState(response);
 					break;
 			}
+			break;
+		case 0xF205:
+			Get_f205_attr2(response);
 			break;
 		default:	//未定义的对象
 			response->dar = obj_undefine;
@@ -2264,6 +2264,9 @@ int doGetnormal(INT8U seqOfNum,RESULT_NORMAL *response)
 	case 6:			//采集监控类对象
 		fprintf(stderr,"\nddddoi=%d \n",oi);
 		GetCollPara(seqOfNum,response);
+		break;
+	case 8:
+		GetCtrl(response);
 		break;
 	case 0xF:		//文件类/esam类/设备类
 		GetDeviceIo(response);

@@ -115,13 +115,18 @@ int class12_get_5(OI_698 oi, INT8U *sourcebuf, INT8U *buf, int *len) {
 int class12_get_7(OI_698 oi, INT8U *sourcebuf, INT8U *buf, int *len) {
 	ProgramInfo *shareAddr = getShareAddr();
 
+	int total = 0;
+	for (int i = 0; i < 4; i++){
+		total += shareAddr->class12[0].day_pos_p[i];
+	}
+
 	*len = 0;
 	*len += create_array(&buf[*len], 5);
+	*len += fill_double_long_unsigned(&buf[*len], total);
 	*len += fill_double_long_unsigned(&buf[*len], shareAddr->class12[0].day_pos_p[0]);
 	*len += fill_double_long_unsigned(&buf[*len], shareAddr->class12[0].day_pos_p[1]);
 	*len += fill_double_long_unsigned(&buf[*len], shareAddr->class12[0].day_pos_p[2]);
 	*len += fill_double_long_unsigned(&buf[*len], shareAddr->class12[0].day_pos_p[3]);
-	*len += fill_double_long_unsigned(&buf[*len], shareAddr->class12[0].day_pos_p[4]);
 	fprintf(stderr, "class12_get_7\n");
 ;
 	return 1;
