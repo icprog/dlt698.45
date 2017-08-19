@@ -460,13 +460,16 @@ int AtPrepare(ATOBJ *ao) {
 		memset(ao->CIMI, 0x00, sizeof(ao->CIMI));
 		if (sscanf((char *) &Mrecvbuf[0], "%*[^0-9]%[0-9]", ao->CIMI) == 1) {
 			if (strncmp("46003", ao->CIMI, 5) == 0
-					|| strncmp("46011", ao->CIMI, 5)) {
+					|| strncmp("46011", ao->CIMI, 5)
+					|| strncmp("46005", ao->CIMI, 5)) {
 				ao->TYPE = 1;
+				ao->script = 1;
 				retry = 0;
 				ao->state = 20;
 				return 500;
 			}
 			ao->TYPE = 0;
+			ao->script = 0;
 		}
 		retry++;
 		ao->state = 18;
@@ -499,10 +502,10 @@ int AtPrepare(ATOBJ *ao) {
 		return 500;
 	case 22:
 		close(ao->fd);
-		if (ao->TYPE == 1) {
-			system("pppd call gprs &");
-		} else {
+		if (ao->script == 1) {
 			system("pppd call cdma2000 &");
+		} else {
+			system("pppd call gprs &");
 		}
 		retry = 0;
 		ao->state = 23;

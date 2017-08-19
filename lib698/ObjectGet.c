@@ -367,9 +367,7 @@ int Get_8100(RESULT_NORMAL *response)
 	OAD oad;
 	oad = response->oad;
 	data = response->data;
-	response->datalen = getEsamAttribute(oad,data);
-	if(response->datalen == 0)
-		response->dar = 0x16;//esam验证失败
+//	response->datalen = fill_double_long64(,);
 	return 0;
 }
 
