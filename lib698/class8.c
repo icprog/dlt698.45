@@ -66,6 +66,10 @@ int class8000_act129(int index, int attr_act, INT8U *data,
 
 	ProgramInfo *shareAddr = getShareAddr();
 
+	if(shareAddr->ctrls.cf205.currentState == 0){
+		return 0;
+	}
+
 	if(data[0] != 0x01 || data[1] != 0x01){
 		return -1;
 	}
@@ -84,6 +88,8 @@ int class8000_act129(int index, int attr_act, INT8U *data,
 	shareAddr->ctrls.control[1] = 0xEEFFEFEF;
 	shareAddr->ctrls.control[2] = 0xEEFFEFEF;
 
+	Event_3115(NULL, 0, getShareAddr());
+
 	return 0;
 }
 
@@ -91,6 +97,10 @@ int class8000_act130(int index, int attr_act, INT8U *data,
 		Action_result *act_ret) {
 
 	ProgramInfo *shareAddr = getShareAddr();
+
+	if(shareAddr->ctrls.cf205.currentState == 0){
+		return 0;
+	}
 
 	if(data[0] != 0x01 || data[1] != 0x01){
 		return -1;
@@ -107,6 +117,8 @@ int class8000_act130(int index, int attr_act, INT8U *data,
 	shareAddr->ctrls.control[0] = 0xCCAACACA;
 	shareAddr->ctrls.control[1] = 0xCCAACACA;
 	shareAddr->ctrls.control[2] = 0xCCAACACA;
+
+	Event_3115(NULL, 0, getShareAddr());
 
 	return 0;
 }
@@ -615,6 +627,7 @@ int class8107_act3(int index, int attr_act, INT8U *data, Action_result *act_ret)
 
 	asyslog(LOG_WARNING, "购电-添加控制单元[%04x-%d-%d-%d-%lld-%lld-%lld-%d]", oi, id,
 			sign, type, val, war_thr, ctl_thr, mode);
+	Event_3202(NULL,0, getShareAddr());
 	return 0;
 }
 
@@ -648,6 +661,7 @@ int class8107_act5(int index, int attr_act, INT8U *data, Action_result *act_ret)
 
 	asyslog(LOG_WARNING, "购电-更新控制单元[%04x-%d-%d-%d-%lld-%lld-%lld-%d]", oi, id,
 			sign, type, val, war_thr, ctl_thr, mode);
+	Event_3202(NULL,0, getShareAddr());
 	return 0;
 }
 
@@ -704,6 +718,9 @@ int class8107_act_route(int index, int attr_act, INT8U *data,
 	switch (attr_act) {
 	case 3:
 		class8107_act3(1, attr_act, data, act_ret);
+		break;
+	case 5:
+		class8107_act5(1, attr_act, data, act_ret);
 		break;
 	case 6:
 		class8107_act6(1, attr_act, data, act_ret);

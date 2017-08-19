@@ -39,6 +39,7 @@ typedef struct {
 	INT8U CIMI[64];
 	INT8U PPPD; //pppd拨号成功
 	INT8U GPRS_STATE; //拨号状态
+	INT8U script;	//使用的拨号脚本
 } ATOBJ;
 
 ATOBJ *AtGet(void);
