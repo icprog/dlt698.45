@@ -18,6 +18,7 @@
 #include "Shmem.h"
 #include "PublicFunction.h"
 #include "CalcObject.h"
+#include "basedef.h"
 /*
  * 硬件复位43000100 调用
  */
@@ -112,6 +113,10 @@ INT8U Get_Vacs(RESULT_NORMAL *response,ProgramInfo* prginfo_acs)
 	case 0x2000:	//电压
 		if(response->oad.attrindex==0)		structnum = 3;
 		else structnum = 1;
+		if(prginfo_acs->cfg_para.device == CCTT2)
+		{
+			structnum = 1;
+		}
 		index += fillVacsData(structnum,response->oad.attrindex,dtlongunsigned,
 				prginfo_acs->ACSRealData.Ua,prginfo_acs->ACSRealData.Ub,prginfo_acs->ACSRealData.Uc,0,response->data);
 		break;

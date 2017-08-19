@@ -4854,7 +4854,6 @@ INT8S deal6015or6017(CLASS_6013 st6013,CLASS_6015 st6015, INT8U port485,CLASS_60
 				}
 				if (checkMeterType(st6015.mst, meter.basicinfo.usrtype,meter.basicinfo.addr))
 				{
-					st6035->totalMSNum++;
 					//判断冻结数据是否已经抄读成功了
 					if((st6015.csds.csd[0].csd.road.oad.OI == 0x5004)
 						&&(GetOrSetFreezeDataSuccess(0,st6013.taskID,port,info6000[port].list6001[meterIndex])==1))
@@ -5116,6 +5115,7 @@ void read485_thread(void* i485port) {
 			CLASS_6035 result6035;	//采集任务监控单元
 			get6035ByTaskID(list6013[taskIndex].basicInfo.taskID,&result6035);
 			result6035.taskState = IN_OPR;
+			DataTimeGet(&result6035.starttime);
 			saveClass6035(&result6035);
 
 			CLASS_6015 to6015;	//采集方案集
@@ -5162,6 +5162,7 @@ void read485_thread(void* i485port) {
 			TS tsNow;
 			TSGet(&tsNow);
 			INT16U tsaNum = getCBsuctsanum(result6035.taskID,tsNow);
+			DataTimeGet(&result6035.endtime);
 			result6035.successMSNum = result6035.successMSNum > tsaNum?result6035.successMSNum:tsaNum;
 			saveClass6035(&result6035);
 #endif
