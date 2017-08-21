@@ -367,7 +367,6 @@ INT8U isPlcOAD(OAD portOAD)
  * */
 INT8S init6000InfoFrom6000FIle()
 {
-
 	memset(&info6000,0,2*sizeof(INFO_6001_LIST));
 	INT8U tIndex = 0;
 	for(tIndex = 0;tIndex < infoReplenish.tasknum;tIndex++)
@@ -401,7 +400,6 @@ INT8S init6000InfoFrom6000FIle()
 		{
 			if(meter.sernum!=0 && meter.sernum!=0xffff)
 			{
-
 				if(is485OAD(meter.basicinfo.port,1) == 1)
 				{
 					meterIndex = info6000[0].meterSum;
@@ -1391,7 +1389,6 @@ INT8S dealMsgProcess()
 		}
 		if(mq_h.pid == cjgui)
 		{
-			fprintf(stderr, "\n收到液晶点抄-----------------------------------23232323\n");
 			memcpy(&cjguiProxy_Tmp.strProxyMsg,rev_485_buf,sizeof(Proxy_Msg));
 			if (cjguiProxy_Tmp.strProxyMsg.port.OI== PORT_ZB) {
 				memcpy(&cjGuiProxy_plc,&cjguiProxy_Tmp,sizeof(cjGuiProxy_plc));//如果点抄的是载波测量点，消息变量转存

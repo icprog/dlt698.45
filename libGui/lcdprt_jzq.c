@@ -441,13 +441,17 @@ int requestDataBlock(CLASS_6001* cldno, INT8S *req_mq_name, INT32U cmd, int msg_
 	memset(&mq_h, 0, sizeof(mmq_head));
 	memset(&msg_real, 0,sizeof(Proxy_Msg));
 	bzero(msgbuf_tmp,sizeof(msgbuf_tmp));
+	fprintf(stderr,"\n----------addr0=%d-----------req_mq_name =%p   msgbuf=%p\n",cldno->basicinfo.addr.addr[0],req_mq_name ,msgbuf);
 	if(cldno->basicinfo.addr.addr[0] <= 0 || req_mq_name == NULL || msgbuf == NULL)
 	{
+		fprintf(stderr,"\n-----------return ");
 		return 0;
 	}
 
+
 	if((mqd =  createMsg(req_mq_name, O_WRONLY)) <0)
 	{
+		fprintf(stderr,"\nreqmqname = %s",req_mq_name);
 		return 0;
 	}
 	memset(&mq_h, 0, sizeof(mmq_head));
@@ -456,11 +460,15 @@ int requestDataBlock(CLASS_6001* cldno, INT8S *req_mq_name, INT32U cmd, int msg_
 	msg_real.baud = cldno->basicinfo.baud;
 	msg_real.protocol = cldno->basicinfo.protocol;
 	msg_real.oi = 0x0010;//TODO:698正向有功电能示值标识
+
+
 	if(sendMsg(mqd,PROXY,(INT8S*)&msg_real,sizeof(msg_real)) < 0)//TODO:发送消息pid
 	{
+		fprintf(stderr,"\n液晶消息发送失败");
 		colseMsg(mqd);
 		return 0;
 	}
+	fprintf(stderr,"\n00000000000000000000000000\n");
 	memset(msgbuf_tmp, 0, sizeof(msgbuf_tmp));
 	PressKey = NOKEY;
 	time_t nowtime = time(NULL);
@@ -572,6 +580,7 @@ int requestdata_485_ZB_Block(CLASS_6001* cldno, INT8U *mq_name, int msg_num, Lcd
 	int mq_cnt=5;
 	memset(msgbuf,0,sizeof(msgbuf));
 //	bzero(&msg_real,sizeof(Proxy_Msg));
+	fprintf(stderr,"\n==================================\n");
 	result = requestDataBlock(cldno,(INT8S*)mq_name,PROXY,msg_num,60,msgbuf);
 //	DEBUG_TIME_LINE("\ngui: -------------cur rev msg from 485 result = %d\n",result);
 	if(result > 0)

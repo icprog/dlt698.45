@@ -1282,14 +1282,17 @@ void FileTransMothod(INT16U attr_act, INT8U *data) {
 void PlcInfo(INT16U attr_act, INT8U *data, Action_result *act_ret)
 {
 	int   index = 0;
-	CLASS_f209		class_f209={};
+	CLASS_f209	class_f209={};
 	OAD		oad={};
     switch (attr_act) {
         case 127://透明转发
+    		readCoverClass(0xf209 ,0 , &class_f209,sizeof(CLASS_f209),para_vari_save);
             index += getStructure(&data[index], NULL,&act_ret->DAR);
             index += getOctetstring(1,&data[index],(INT8U *) &class_f209.trans.commAddr,&act_ret->DAR);
             index += getOctetstring(1,&data[index],(INT8U *) &class_f209.trans.transBuf,&act_ret->DAR);
             class_f209.transFlg = 1;
+    		saveCoverClass(0xf209,0,&class_f209,sizeof(CLASS_f209),para_vari_save);
+    		setOIChange(0xf209);
         	break;
         case 128://配置端口参数（端口号，通信参数）
         	oad.OI = 0xf209;

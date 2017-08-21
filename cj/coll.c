@@ -1143,6 +1143,7 @@ void showPlcMeterstatus(int argc, char *argv[])
 		}
 	}else
 	{
+		int counter = 1;
 		for(i=0;i<record_num;i++)
 		{
 			if(readParaClass(0x6000,&meter,i)==1)
@@ -1150,14 +1151,13 @@ void showPlcMeterstatus(int argc, char *argv[])
 				if (meter.sernum!=0 && meter.sernum!=0xffff && meter.basicinfo.port.OI==0xf209)
 				{
 					ret = readParaClass(0x8888, &taskinfo, meter.sernum);
-					//fprintf(stderr,"\n---------------------[ %d ]- sernum=%d   OI=%02x   ret=%d\n",i,meter.sernum,meter.basicinfo.port.OI,ret);
 					if (ret == 1 )
 					{
-						fprintf(stderr,"\nTSA: %02x%02x%02x%02x%02x%02x%02x%02x    index=%d    任务数=%d",
+						fprintf(stderr,"\n【 %d 】TSA: %02x%02x%02x%02x%02x%02x%02x%02x",counter++,
 								taskinfo.tsa.addr[0],taskinfo.tsa.addr[1],taskinfo.tsa.addr[2],taskinfo.tsa.addr[3],
-								taskinfo.tsa.addr[4],taskinfo.tsa.addr[5],taskinfo.tsa.addr[6],taskinfo.tsa.addr[7],taskinfo.tsa_index,taskinfo.task_n);
-
-						//PrintTaskInfo2(&taskinfo);
+								taskinfo.tsa.addr[4],taskinfo.tsa.addr[5],taskinfo.tsa.addr[6],taskinfo.tsa.addr[7]);
+						PrintTaskInfo2(&taskinfo);
+						fprintf(stderr,"\n");
 					}
 				}
 			}
