@@ -638,7 +638,9 @@ typedef struct {
 	}CLASS_F209_PARA;
 typedef struct {
 	CLASS_F209_PARA	para;			//参数
-    TransPara		trans;			//透明转发（参数）
+    TSA 			tsa;			//通讯地址
+    int				timeout;		//超时时间
+	TransPara		trans;			//透明转发（参数）
     INT8U			transFlg;		//透明转发标志，主站下发：置1，载波抄表：置0
 } CLASS_f209;                       //载波/微功率无线接口
 
