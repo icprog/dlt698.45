@@ -460,8 +460,8 @@ int AtPrepare(ATOBJ *ao) {
 		memset(ao->CIMI, 0x00, sizeof(ao->CIMI));
 		if (sscanf((char *) &Mrecvbuf[0], "%*[^0-9]%[0-9]", ao->CIMI) == 1) {
 			if (strncmp("46003", ao->CIMI, 5) == 0
-					|| strncmp("46011", ao->CIMI, 5)
-					|| strncmp("46005", ao->CIMI, 5)) {
+					|| strncmp("46011", ao->CIMI, 5) == 0
+					|| strncmp("46005", ao->CIMI, 5) == 0) {
 				ao->TYPE = 1;
 				ao->script = 1;
 				retry = 0;
@@ -470,6 +470,9 @@ int AtPrepare(ATOBJ *ao) {
 			}
 			ao->TYPE = 0;
 			ao->script = 0;
+			retry = 0;
+			ao->state = 20;
+			return 500;
 		}
 		retry++;
 		ao->state = 18;
