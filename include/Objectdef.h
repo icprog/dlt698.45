@@ -745,6 +745,8 @@ typedef struct {
     TSA tsa;
     INT8U al_flag;
     INT8U cal_flag;
+    INT64U curP[MAXVAL_RATENUM+1];    //当前有功-总尖峰平谷
+    INT64U curQ[MAXVAL_RATENUM+1];    //当前无功-总尖峰平谷
 } AL_UNIT;
 
 typedef struct {
@@ -784,18 +786,18 @@ typedef struct {
 	PULSEUNIT unit[12];//脉冲配置
 	INT64U p;//有功功率
 	INT64U q;//无功功率
-	INT64U day_pos_p;//当日正向有功功率
-	INT64U mon_pos_p;//当月正向有功功率
-	INT64U day_nag_p;//当日反向有功功率
-	INT64U mon_nag_p;//当月反向有功功率
-	INT64U day_pos_q;//当日正向无功功率
-	INT64U mon_pos_q;//当月正向无功功率
-	INT64U day_nag_q;//当日反向无功功率
-	INT64U mon_nag_q;//当月反向无功功率
-	INT64U val_pos_p;//正向有功电能示值
-	INT64U val_pos_q;//正向无功电能示值
-	INT64U val_nag_p;//反向有功电能示值
-	INT64U val_nag_q;//反向无功电能示值
+	INT64U day_pos_p[MAXVAL_RATENUM];//当日正向有功功率
+	INT64U mon_pos_p[MAXVAL_RATENUM];//当月正向有功功率
+	INT64U day_nag_p[MAXVAL_RATENUM];//当日反向有功功率
+	INT64U mon_nag_p[MAXVAL_RATENUM];//当月反向有功功率
+	INT64U day_pos_q[MAXVAL_RATENUM];//当日正向无功功率
+	INT64U mon_pos_q[MAXVAL_RATENUM];//当月正向无功功率
+	INT64U day_nag_q[MAXVAL_RATENUM];//当日反向无功功率
+	INT64U mon_nag_q[MAXVAL_RATENUM];//当月反向无功功率
+	INT64U val_pos_p[MAXVAL_RATENUM];//正向有功电能示值
+	INT64U val_pos_q[MAXVAL_RATENUM];//正向无功电能示值
+	INT64U val_nag_p[MAXVAL_RATENUM];//反向有功电能示值
+	INT64U val_nag_q[MAXVAL_RATENUM];//反向无功电能示值
 	Scaler_Unit su[14];//属性5-18换算单位
 } CLASS12;
 
@@ -833,6 +835,12 @@ typedef struct {
     INT16U autoTimeStart; //自动保电时段开始
     INT16U autoTimeEnd; //自动保电时段结束
 } CLASS_8001;
+
+typedef struct {
+	INT8U currentState; //当前状态 0输出 1未输出
+	INT8U switchAttr;	//开关属性 0脉冲 1保持式
+	INT8U wiredState;	//接线状态 0接入 1未接入
+} CLASS_F205;
 
 typedef struct {
     INT64U v; //终端保安定值

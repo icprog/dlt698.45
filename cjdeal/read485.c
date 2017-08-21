@@ -2038,6 +2038,51 @@ INT8U getSinglegOADDataUnit(INT8U* oadData)
 	}
 	return length;
 }
+INT8U fillclass23data(OAD rcvOAD,TSA meter,INT8U* data)
+{
+	fprintf(stderr,"\n\n ---------------fillclass23data");
+	INT8U ret = 0;
+	INT8U meterIndex = 0;
+	INT8U groupIndex = 0;
+
+	for(groupIndex = 0;groupIndex < 8;groupIndex++)
+	{
+		for(meterIndex = 0;meterIndex < MAX_AL_UNIT;meterIndex++)
+		{
+			if(JProgramInfo->class23[groupIndex].allist[meterIndex].tsa.addr[0]==0)
+				break;
+
+			if(memcmp(&meter,&JProgramInfo->class23[groupIndex].allist[meterIndex].tsa,sizeof(TSA))==0)
+			{
+				if(rcvOAD.OI == 0x0010)
+				{
+					if(rcvOAD.attrindex == 0)
+					{
+						data = &data[2];
+						INT8U rateIndex = 0;
+						for(rateIndex = 0;rateIndex < MAXVAL_RATENUM+1;rateIndex++)
+						{
+							INT32U dianliang = (data[rateIndex*5+1]<<24)+(data[rateIndex*5+2]<<16)+(data[rateIndex*5+3]<<8)+data[rateIndex*5+4];
+							fprintf(stderr,"\n dianliang = %d data = %02x %02x %02x %02x",dianliang,data[rateIndex*5+1],data[rateIndex*5+2],data[rateIndex*5+3],data[rateIndex*5+4]);
+							JProgramInfo->class23[groupIndex].allist[meterIndex].curP[rateIndex] = dianliang;
+
+						}
+					}
+					else if(rcvOAD.attrindex == 1)
+					{
+						JProgramInfo->class23[groupIndex].allist[meterIndex].curP[0] =
+								(data[1]<<24)+(data[2]<<16)+(data[3]<<8)+data[4];
+					}
+				}
+				return 1;
+			}
+
+		}
+
+	}
+
+	return ret;
+}
 
 INT8S checkEvent698(OAD rcvOAD,INT8U* data,INT8U dataLen,CLASS_6001 obj6001,INT16U taskID)
 {
@@ -2053,6 +2098,12 @@ INT8S checkEvent698(OAD rcvOAD,INT8U* data,INT8U dataLen,CLASS_6001 obj6001,INT1
 	}
 	if(rcvOAD.OI == 0x0010)
 	{
+		//更新总加组电量
+		if(JProgramInfo->cfg_para.device == SPTF3)
+		{
+			fillclass23data(rcvOAD,obj6001.basicinfo.addr,data);
+		}
+
 		ret = Event_310B(obj6001.basicinfo.addr,taskID,&data[3],dataLen,JProgramInfo);
 
 		ret = Event_310C(obj6001.basicinfo.addr,taskID,&data[3],dataLen,JProgramInfo,obj6001);
@@ -4803,7 +4854,6 @@ INT8S deal6015or6017(CLASS_6013 st6013,CLASS_6015 st6015, INT8U port485,CLASS_60
 				}
 				if (checkMeterType(st6015.mst, meter.basicinfo.usrtype,meter.basicinfo.addr))
 				{
-					st6035->totalMSNum++;
 					//判断冻结数据是否已经抄读成功了
 					if((st6015.csds.csd[0].csd.road.oad.OI == 0x5004)
 						&&(GetOrSetFreezeDataSuccess(0,st6013.taskID,port,info6000[port].list6001[meterIndex])==1))
@@ -4885,9 +4935,9 @@ INT8S deal6015or6017(CLASS_6013 st6013,CLASS_6015 st6015, INT8U port485,CLASS_60
 						SaveNorData(st6035->taskID,NULL,dataContent,bufflen,ts_cc);
 					}
 #if 1
-					DataTimeGet(&st6035->endtime);
-					st6035->taskState = AFTER_OPR;
-					INT16U tsaNum = getTaskDataTsaNum(st6035->taskID);
+					TS tsNow;
+					TSGet(&tsNow);
+					INT16U tsaNum = getCBsuctsanum(st6035->taskID,tsNow);
 					//DbgPrintToFile1(port,"tsaNum = %d",tsaNum);
 					st6035->successMSNum = st6035->successMSNum > tsaNum?st6035->successMSNum:tsaNum;
 					saveClass6035(st6035);
@@ -5107,11 +5157,12 @@ void read485_thread(void* i485port) {
 			fprintf(stderr,"\n发送报文数量：%d  接受报文数量：%d",result6035.sendMsgNum,result6035.rcvMsgNum);
 			DbgPrintToFile1(port,"****************taskIndex = %d 任务结束 发送报文数量：%d  接受报文数量：%d*******************************",
 					taskIndex,result6035.sendMsgNum,result6035.rcvMsgNum);
-#if 0
-			DataTimeGet(&result6035.endtime);
+#if 1
 			result6035.taskState = AFTER_OPR;
-			INT16U tsaNum = getTaskDataTsaNum(result6035.taskID);
-			//DbgPrintToFile1(port,"tsaNum = %d",tsaNum);
+			TS tsNow;
+			TSGet(&tsNow);
+			INT16U tsaNum = getCBsuctsanum(result6035.taskID,tsNow);
+			DataTimeGet(&result6035.endtime);
 			result6035.successMSNum = result6035.successMSNum > tsaNum?result6035.successMSNum:tsaNum;
 			saveClass6035(&result6035);
 #endif

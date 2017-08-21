@@ -95,6 +95,36 @@ int class23_set(int index, OAD oad, INT8U *data, INT8U *DAR) {
 	return 0;
 }
 
+int class23_get_7(OI_698 oi, int index, INT8U *sourcebuf, INT8U *buf, int *len){
+	ProgramInfo *shareAddr = getShareAddr();
+	INT64U total_Day_p = 0;
+	for (int i = 0; i < 4; i++){
+		total_Day_p += shareAddr->class23[0].DayP[i];
+	}
+
+	fprintf(stderr, "class23_get_7 %d\n", total_Day_p);
+
+	if (index = 1) {
+		*len = 0;
+		*len += fill_double_long64(&buf[*len], total_Day_p);
+		return 1;
+	}
+}
+
+int class23_get_9(OI_698 oi, int index, INT8U *sourcebuf, INT8U *buf, int *len){
+	ProgramInfo *shareAddr = getShareAddr();
+	INT64U total_Mon_p = 0;
+	for (int i = 0; i < 4; i++){
+		total_Mon_p += shareAddr->class23[0].MonthP[i];
+	}
+
+	if (index = 1) {
+		*len = 0;
+		*len += fill_double_long64(&buf[*len], total_Mon_p);
+		return 1;
+	}
+}
+
 int class23_get_17(OI_698 oi, INT8U *sourcebuf, INT8U *buf, int *len) {
 	ProgramInfo *shareAddr = getShareAddr();
 	int index = -1;
@@ -118,7 +148,6 @@ int class23_get_17(OI_698 oi, INT8U *sourcebuf, INT8U *buf, int *len) {
 	*len += fill_bit_string(&buf[*len],8,shareAddr->class23[index].alCtlState.PCAlarmState);
 	*len += fill_bit_string(&buf[*len],8,shareAddr->class23[index].alCtlState.ECAlarmState);
 
-	return 1;
 }
 
 int class23_get(OAD oad, INT8U *sourcebuf, INT8U *buf, int *len) {
@@ -126,6 +155,10 @@ int class23_get(OAD oad, INT8U *sourcebuf, INT8U *buf, int *len) {
 	asyslog(LOG_WARNING, "召唤总加组属性(%d)", oad.attflg);
 
 	switch (oad.attflg) {
+	case 7:
+		return class23_get_7(oad.OI, oad.attrindex, sourcebuf, buf, len);
+	case 9:
+		return class23_get_9(oad.OI, oad.attrindex, sourcebuf, buf, len);
 	case 17:
 		return class23_get_17(oad.OI, sourcebuf, buf, len);
 

@@ -1857,7 +1857,10 @@ int ProcessMeter(INT8U *buf,struct Tsa_Node *desnode)
 			//更新6035抄读成功数量
 			CLASS_6035 result6035;	//采集任务监控单元
 			get6035ByTaskID(taskinfo.task_list[taski].taskId,&result6035);
-			INT16U tsaNum = getTaskDataTsaNum(result6035.taskID);
+			result6035.taskState = AFTER_OPR;
+			TS tsNow;
+			TSGet(&tsNow);
+			INT16U tsaNum = getCBsuctsanum(result6035.taskID,tsNow);
 			result6035.successMSNum = result6035.successMSNum > tsaNum?result6035.successMSNum:tsaNum;
 			saveClass6035(&result6035);
 	    }
@@ -2244,6 +2247,7 @@ int doTask(RUNTIME_PLC *runtime_p)
 						//6035发送报文数量+1
 						CLASS_6035 result6035;	//采集任务监控单元
 						get6035ByTaskID(taskinfo.task_list[taskinfo.now_taski].taskId,&result6035);
+						result6035.taskState = IN_OPR;
 						result6035.sendMsgNum++;
 						saveClass6035(&result6035);
 				    }

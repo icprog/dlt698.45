@@ -322,6 +322,33 @@ int GetYxPara(RESULT_NORMAL *response)
 	response->datalen = index;
 	return 0;
 }
+
+
+int Get_f205_attr2(RESULT_NORMAL *response)
+{
+	int index=0;
+	INT8U *data = NULL;
+	OAD oad;
+	CLASS_F205 objtmp;
+	int	 chgflag=0;
+	oad = response->oad;
+	data = response->data;
+	memset(&objtmp,0,sizeof(objtmp));
+	switch(oad.attflg )
+	{
+		case 2://设备对象列表
+			fprintf(stderr,"Get_f205_attr2 oi.att=%d\n",oad.attflg);
+
+			index += create_struct(&data[index], 4);
+			index += fill_visible_string(&data[index], "Relay-1", strlen("Relay-1"));
+			index += fill_enum(&data[index],memp->ctrls.cf205.currentState);
+			index += fill_enum(&data[index],memp->ctrls.cf205.switchAttr);
+			index += fill_enum(&data[index],memp->ctrls.cf205.wiredState);
+			break;
+	}
+	response->datalen = index;
+	return 0;
+}
 int GetEsamPara(RESULT_NORMAL *response)
 {
 	INT8U *data=NULL;
@@ -333,6 +360,17 @@ int GetEsamPara(RESULT_NORMAL *response)
 		response->dar = 0x16;//esam验证失败
 	return 0;
 }
+
+int Get_8100(RESULT_NORMAL *response)
+{
+	INT8U *data=NULL;
+	OAD oad;
+	oad = response->oad;
+	data = response->data;
+//	response->datalen = fill_double_long64(,);
+	return 0;
+}
+
 int GetSecurePara(RESULT_NORMAL *response)
 {
 	INT8U *data=NULL;
@@ -2151,8 +2189,18 @@ int GetCollOneUnit(OAD oad,INT8U readType,INT8U seqnum,INT8U *data,INT16U *oneUn
 /*
  * 采集监控类对象读取
  * */
-int GetCollPara(INT8U seqOfNum,RESULT_NORMAL *response)
+int GetCtrl(RESULT_NORMAL *response)
 {
+
+	switch(response->oad.OI)
+	{
+		case 0x8100:
+			response->datalen = Get_8100(response);
+			break;
+	}
+}
+
+int GetCollPara(INT8U seqOfNum,RESULT_NORMAL *response){
 	int 	index=0;
 	INT8U 	*data = NULL;
 	OAD 	oad={};
@@ -2228,6 +2276,9 @@ int GetDeviceIo(RESULT_NORMAL *response)
 					break;
 			}
 			break;
+		case 0xF205:
+			Get_f205_attr2(response);
+			break;
 		default:	//未定义的对象
 			response->dar = obj_undefine;
 		break;
@@ -2265,6 +2316,9 @@ int doGetnormal(INT8U seqOfNum,RESULT_NORMAL *response)
 	case 6:			//采集监控类对象
 		fprintf(stderr,"\n读取采集监控对象oi=%04x \n",oi);
 		GetCollPara(seqOfNum,response);
+		break;
+	case 8:
+		GetCtrl(response);
 		break;
 	case 0xF:		//文件类/esam类/设备类
 		GetDeviceIo(response);

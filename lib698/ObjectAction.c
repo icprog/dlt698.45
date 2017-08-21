@@ -1016,6 +1016,41 @@ void TerminalInfo(INT16U attr_act, INT8U *data, Action_result *act_ret)
             dataInit(attr_act);
         	//共享内存实际流量清零
         	memset(&memp->dev_info.realTimeC2200,0,sizeof(Flow_tj));
+
+        	for(int i = 0; i < 2; i++) {
+        		memset(&memp->class12[i].p, 0, sizeof(memp->class12[i].p));
+        		memset(&memp->class12[i].q, 0, sizeof(memp->class12[i].q));
+
+        		memset(&memp->class12[i].day_nag_p, 0, sizeof(memp->class12[i].day_nag_p));
+        		memset(&memp->class12[i].day_nag_q, 0, sizeof(memp->class12[i].day_nag_q));
+
+        		memset(&memp->class12[i].day_pos_p, 0, sizeof(memp->class12[i].day_pos_p));
+        		memset(&memp->class12[i].day_pos_q, 0, sizeof(memp->class12[i].day_pos_q));
+
+        		memset(&memp->class12[i].mon_nag_p, 0, sizeof(memp->class12[i].mon_nag_p));
+        		memset(&memp->class12[i].mon_nag_q, 0, sizeof(memp->class12[i].mon_nag_q));
+
+        		memset(&memp->class12[i].mon_pos_p, 0, sizeof(memp->class12[i].mon_pos_p));
+        		memset(&memp->class12[i].mon_pos_q, 0, sizeof(memp->class12[i].mon_pos_q));
+
+        		memset(&memp->class12[i].val_nag_p, 0, sizeof(memp->class12[i].val_nag_p));
+        		memset(&memp->class12[i].val_nag_q, 0, sizeof(memp->class12[i].val_nag_q));
+
+        		memset(&memp->class12[i].val_pos_p, 0, sizeof(memp->class12[i].val_pos_p));
+        		memset(&memp->class12[i].val_pos_q, 0, sizeof(memp->class12[i].val_pos_q));
+        	}
+
+        	for (int i = 0; i < 8; i++) {
+        		memset(&memp->class23[i].p, 0, sizeof(INT64U));
+        		memset(&memp->class23[i].q, 0, sizeof(INT64U));
+        		memset(&memp->class23[i].DayQ, 0, sizeof(memp->class23[i].DayQ));
+        		memset(&memp->class23[i].DayP, 0, sizeof(memp->class23[i].DayP));
+        		memset(&memp->class23[i].MonthP, 0, sizeof(memp->class23[i].MonthP));
+        		memset(&memp->class23[i].MonthQ, 0, sizeof(memp->class23[i].MonthQ));
+        		memset(&memp->class23[i].TaveP, 0, sizeof(memp->class23[i].TaveP));
+        		memset(&memp->class23[i].TaveQ, 0, sizeof(memp->class23[i].TaveQ));
+        		memset(&memp->class23[i].remains, 0, sizeof(INT64U));
+        	}
             //Event_3100(NULL,0,memp);//初始化，产生事件,移到复位应答帧之后再进行事件的上报
             Reset_add();            //国网台体测试,数据初始化认为是复位操作
             fprintf(stderr, "\n终端数据初始化！");
@@ -1419,11 +1454,12 @@ int doObjectAction(OAD oad, INT8U *data, Action_result *act_ret) {
 	    INT16U oi = oad.OI;
 	    INT8U attr_act = oad.attflg;
 	    INT8U oihead = (oi & 0xF000) >> 12;
-	    fprintf(stderr, "\n----------  oi =%04x   ", oi);
+	    fprintf(stderr, "\nOI----------  oi =%04x   ", oi);
 
 		if(Response_timetag.effect==0) {
 			act_ret->DAR = timetag_invalid;
 			act_ret->datalen = 0;
+			fprintf(stderr, "进入oi判断1\n");
 			return act_ret->datalen;
 		}else if(oi==0x8000 || oi==0x8001){		//国网一致性测试：遥控与保电，必须带时间标签，否则认为无效
 			if(Response_timetag.flag == 0) {		//无时间标签
@@ -1433,6 +1469,7 @@ int doObjectAction(OAD oad, INT8U *data, Action_result *act_ret) {
 				return act_ret->datalen;
 			}
 		}
+		fprintf(stderr, "进入oi判断\n");
 		switch (oi) {
     	case 0x4000:	//广播校时
      		if (attr_act == 127) {  //方法 127 广播校时
@@ -1496,7 +1533,7 @@ int doObjectAction(OAD oad, INT8U *data, Action_result *act_ret) {
         	PlcInfo(attr_act, data, act_ret);
         	break;
         case 0x2401:
-        	class12_router(1, attr_act, data, act_ret);
+        	class12_router(0, attr_act, data, act_ret);
 			break;
         case 0x2301:
             class23_selector(1, attr_act, data, act_ret);
@@ -1522,6 +1559,8 @@ int doObjectAction(OAD oad, INT8U *data, Action_result *act_ret) {
         case 0x2308:
             class23_selector(8, attr_act, data, act_ret);
             break;
+        case 0x8000:
+            class8000_act_route(1, attr_act, data, act_ret);
         case 0x8001:
             class8001_act_route(1, attr_act, data, act_ret);
             break;
