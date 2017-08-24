@@ -940,7 +940,6 @@ INT8U isPlcMeterByTsa(TSA* pTsa)
  *	代理操作, 即不读取代理队列中的数据.
  *	组织应答报文的工作, 交给各端口线程来做.
  */
-extern INT8U get6001ObjByTSA(TSA addr,CLASS_6001* targetMeter);
 
 
 PROXY_GETLIST proxyList_manager;

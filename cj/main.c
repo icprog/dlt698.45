@@ -221,6 +221,60 @@ int main(int argc, char *argv[]) {
     	}
     	return EXIT_SUCCESS;
     }
+    if (strcmp("getoaddata", argv[1]) == 0)
+    {
+    	if(argc==3)
+    	{
+    		OAD oad_day;
+    		oad_day.OI = 0x5004;
+    		oad_day.attflg = 0;
+    		oad_day.attrindex = 0;
+    		OAD oad_month;
+    		oad_month.OI = 0x5006;
+    		oad_month.attflg = 0;
+    		oad_month.attrindex = 0;
+    		OAD oad_p;
+    		oad_p.OI = 0x0010;
+    		oad_p.attflg = 0x02;
+    		oad_p.attrindex = 0;
+    		OAD oad_q;
+    		oad_q.OI = 0x0020;
+    		oad_q.attflg = 0x02;
+    		oad_q.attrindex = 0;
+
+    		INT8U mpno  = atoi(argv[2]);
+    		TS tsNow;
+    		TSGet(&tsNow);
+    		CLASS_6001	 meter={};
+			INT8U resultbuf[256];
+			memset(resultbuf,0,256);
+    		if(readParaClass(0x6000,&meter,mpno)==1)
+    		{
+				INT16U datalen = GetOADData(oad_day,oad_p,tsNow,meter,resultbuf);
+				if(datalen > 0)
+				{
+					fprintf(stderr,"\n 日冻0010结数据:");
+					INT8U prtIndex = 0;
+					for( prtIndex = 0; prtIndex < datalen; prtIndex++)
+					{
+						fprintf(stderr,"%02x ",resultbuf[prtIndex]);
+					}
+				}
+				memset(resultbuf,0,256);
+				datalen = GetOADData(oad_day,oad_q,tsNow,meter,resultbuf);
+				if(datalen > 0)
+				{
+					fprintf(stderr,"\n 日冻0020结数据:");
+					INT8U prtIndex = 0;
+					for( prtIndex = 0; prtIndex < datalen; prtIndex++)
+					{
+						fprintf(stderr,"%02x ",resultbuf[prtIndex]);
+					}
+				}
+    		}
+    	}
+    	return EXIT_SUCCESS;
+    }
     if (strcmp("checkled", argv[1]) == 0) {
     	int port = 1;
     	if(argc==3) {

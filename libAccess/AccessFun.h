@@ -350,6 +350,7 @@ extern INT8U GetTaskidFromCSDs(CSD_ARRAYTYPE csds,ROAD_ITEM *item_road,INT8U fin
 extern INT8U GetTaskidFromCSDs_Sle0(CSD_ARRAYTYPE csds,ROAD_ITEM *item_road,INT8U findmethod,CLASS_6001 *tsa);
 
 extern void deloutofdatafile();//删除过期任务数据文件;
+extern INT16U GetOADData(OAD oad_m,OAD oad_r,TS ts_zc,CLASS_6001 tsa_6001,INT8U *databuf);
 extern INT16U getCBsuctsanum(INT8U taskid,TS ts);//删除过期任务数据文件;
 
 int readfile_int(FILE *fp);

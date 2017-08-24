@@ -686,5 +686,46 @@ INT8S get6035ByTaskID(INT16U taskID,CLASS_6035* class6035)
 	return -1;
 }
 
+//根据TSA从文件中找出6001
+INT8U get6001ObjByTSA(TSA addr,CLASS_6001* targetMeter)
+{
+	INT8U ret = 0;
+
+	int fileIndex = 0;
+	int recordnum = 0;
+	INT16U oi = 0x6000;
+	recordnum = getFileRecordNum(oi);
+	if (recordnum == -1) {
+		fprintf(stderr, "未找到OI=%04x的相关信息配置内容！！！\n", 6000);
+		return ret;
+	} else if (recordnum == -2) {
+		fprintf(stderr, "采集档案表不是整数，检查文件完整性！！！\n");
+		return ret;
+	}
+	INT8U isMeterExist = 0;
+	for(fileIndex = 0;fileIndex < recordnum;fileIndex++)
+	{
+		if(readParaClass(oi,targetMeter,fileIndex)==1)
+		{
+			if(targetMeter->sernum!=0 && targetMeter->sernum!=0xffff)
+			{
+				fprintf(stderr,"\n addr.addr = %02x%02x%02x%02x%02x%02x%02x%02x",
+						addr.addr[0],addr.addr[1],addr.addr[2],addr.addr[3],addr.addr[4],addr.addr[5],addr.addr[6],addr.addr[7]);
+				fprintf(stderr,"\ntargetMeter.addr = %02x%02x%02x%02x%02x%02x%02x%02x",
+						targetMeter->basicinfo.addr.addr[0],targetMeter->basicinfo.addr.addr[1],targetMeter->basicinfo.addr.addr[2],
+						targetMeter->basicinfo.addr.addr[3],targetMeter->basicinfo.addr.addr[4],targetMeter->basicinfo.addr.addr[5],
+						targetMeter->basicinfo.addr.addr[6],targetMeter->basicinfo.addr.addr[7]);
+				if(memcmp(addr.addr,targetMeter->basicinfo.addr.addr,(addr.addr[0]+1))==0)	//一致性测试PROXY_02
+				{
+					isMeterExist = 1;
+					ret = 1;
+					break;
+				}
+			}
+		}
+	}
+	fprintf(stderr,"get6001ObjByTSA ret=%d\n",ret);
+	return ret;
+}
 
 

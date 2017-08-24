@@ -95,7 +95,53 @@ void refreshSumUp() {
 void CheckParaUpdate() {
 
 }
+INT8U initFreezeDataFormFile()
+{
+	INT8U ret = 0;
+#if 0
 
+	INT8U meterIndex = 0;
+	INT8U groupIndex = 0;
+	OAD oad_day;
+	oad_day.OI = 0x5004;
+	oad_day.attflg = 0;
+	oad_day.attrindex = 0;
+	OAD oad_month;
+	oad_month.OI = 0x5006;
+	oad_month.attflg = 0;
+	oad_month.attrindex = 0;
+	OAD oad_p;
+	oad_p.OI = 0x0010;
+	oad_p.attflg = 0x02;
+	oad_p.attrindex = 0;
+	OAD oad_q;
+	oad_q.OI = 0x0020;
+	oad_q.attflg = 0x02;
+	oad_q.attrindex = 0;
+
+	for(groupIndex = 0;groupIndex < 8;groupIndex++)
+	{
+		for(meterIndex = 0;meterIndex < MAX_AL_UNIT;meterIndex++)
+		{
+			if(JProgramInfo->class23[groupIndex].allist[meterIndex].tsa.addr[0]==0)
+				break;
+			CLASS_6001 meter;
+			INT8U ret = get6001ObjByTSA(JProgramInfo->class23[groupIndex].allist[meterIndex].tsa,&meter);
+			if(ret == 1)
+			{
+				INT8U resultbuf[256];
+				TS tsnow;
+				TSGet(&tsnow);
+
+				memset(resultbuf,0,resultbuf);
+				INT16U datalen = GetOADData(oad_day,oad_p,tsnow,meter,resultbuf);
+			}
+
+		}
+	}
+#endif
+	return ret;
+}
 int initAll() {
 	//读取总加组数据
 	CtrlC = &JProgramInfo->ctrls;
@@ -569,7 +615,7 @@ int ctrlMain(void * arg) {
 	int secOld = 0;
 	//初始化参数,搭建8个总加组数据，读取功控、电控参数
 	initAll();
-
+	initFreezeDataFormFile();
 	while (1) {
 		TS now;
 		TSGet(&now);
