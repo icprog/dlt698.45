@@ -3651,7 +3651,7 @@ INT8S checkBroadCast(INT8U port485)
 				return ret;
 			}
 			//07表广播对时
-//			sendBroadCastTime07(port485);
+			sendBroadCastTime07(port485);
 			sleep(5);
 
 			for (meterIndex = 0; meterIndex < info6000[port].meterSum; meterIndex++)
