@@ -310,6 +310,10 @@ char *getenum(int type, int val) {
 }
 INT32U getMeterBaud(INT8U bps)
 {
+	if (bps == bps300)
+		return 300;
+	if (bps == bps600)
+		return 600;
 	if (bps == bps1200)
 		return 1200;
 	if (bps == bps4800)
@@ -317,6 +321,12 @@ INT32U getMeterBaud(INT8U bps)
 	if (bps == bps7200)
 		return 7200;
 	if (bps == bps9600)
+		return 9600;
+	if (bps == bps19200)
+		return 9600;
+	if (bps == bps38400)
+		return 9600;
+	if (bps == bps57600)
 		return 9600;
 	if (bps == bps115200)
 		return 115200;
