@@ -227,11 +227,11 @@ int main(int argc, char *argv[]) {
     	{
     		OAD oad_day;
     		oad_day.OI = 0x5004;
-    		oad_day.attflg = 0;
+    		oad_day.attflg = 2;
     		oad_day.attrindex = 0;
     		OAD oad_month;
     		oad_month.OI = 0x5006;
-    		oad_month.attflg = 0;
+    		oad_month.attflg = 2;
     		oad_month.attrindex = 0;
     		OAD oad_p;
     		oad_p.OI = 0x0010;
