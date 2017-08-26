@@ -4360,6 +4360,10 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds,INT16U fr
 //	fseek(fp,headlen+unitlen*unitno_index,SEEK_SET);
 //
 //}
+int GetTerminal5004(RESULT_RECORD *record_para)
+{
+return 1;
+}
 int getSelector(OAD oad_h,RSD select, INT8U selectype, CSD_ARRAYTYPE csds, INT8U *data, int *datalen,INT16U frmmaxsize)
 {
 	int  framesum=0;		//分帧

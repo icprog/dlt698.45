@@ -78,10 +78,17 @@ int BuildFrame_GetResponseRecord(INT8U response_type,CSINFO *csinfo,RESULT_RECOR
 		pSendfun(comfd,sendbuf,index+3);
 	return (index+3);
 }
-
+void addScodeProcess(INT8U *buf,int len)
+{
+	int i=0;
+	for(i=0;i<len;i++)
+	{
+		buf[i] = (INT8U)(buf[i] + 0x33);
+	}
+}
 int BuildFrame_GetResponse(INT8U response_type,CSINFO *csinfo,INT8U oadnum,RESULT_NORMAL response,INT8U *sendbuf)
 {
-	int apduplace =0;
+	int apduplace =0 , scPlace=0;
 	int index=0, hcsi=0;
 
 	csinfo->dir = 1;
@@ -89,7 +96,7 @@ int BuildFrame_GetResponse(INT8U response_type,CSINFO *csinfo,INT8U oadnum,RESUL
 	index = FrameHead(csinfo,sendbuf);
 	hcsi = index;
 	index = index + 2;
-
+	scPlace = index;
 	apduplace = index;		//记录APDU 起始位置
 	sendbuf[index++] = GET_RESPONSE;
 	sendbuf[index++] = response_type;
@@ -104,6 +111,10 @@ int BuildFrame_GetResponse(INT8U response_type,CSINFO *csinfo,INT8U oadnum,RESUL
 	{
 		apduplace += composeSecurityResponse(&sendbuf[apduplace],index-apduplace);
 		index=apduplace;
+	}
+	if (csinfo->sc == 1)
+	{
+		addScodeProcess(&sendbuf[scPlace],index-scPlace);
 	}
 	FrameTail(sendbuf,index,hcsi);
 	if(pSendfun!=NULL && csinfo->sa_type!=2 && csinfo->sa_type!=3)//组地址或广播地址不需要应答
@@ -1839,12 +1850,30 @@ int doGetrecord(INT8U type,OAD oad,INT8U *data,RESULT_RECORD *record,INT16U *sub
 		dest_index +=fill_RCSD(0,&record->data[dest_index],record->rcsd.csds);
 		record->data = &TmpDataBuf[dest_index];
 		 //一致性测试GET_24 rcsd=0,应答帧应填写rcsd=0 ,
-		if(((record->oad.OI & 0xf000) == 0x5000) && (record->rcsd.csds.num==0)) {	//招测冻结类数据
-			record->data[dest_index++] = 0;	//RCSD=0
-			record->data[dest_index++] = 1;	//Data
-			record->data[dest_index++] = 1;	//seqof A-RecordRow
-			record->data[dest_index++] = 0;	//A-RecordRow len
-			record->datalen += dest_index;
+//		if(((record->oad.OI & 0xf000) == 0x5000) && (record->rcsd.csds.num==0)) {	//招测冻结类数据
+//			record->data[dest_index++] = 0;	//RCSD=0
+//			record->data[dest_index++] = 1;	//Data
+//			record->data[dest_index++] = 1;	//seqof A-RecordRow
+//			record->data[dest_index++] = 0;	//A-RecordRow len
+//			record->datalen += dest_index;
+//		}else {
+//			Getevent_Record_Selector(record,memp);
+//			record->data = TmpDataBuf;				//data 指向回复报文帧头
+//			record->datalen += dest_index;			//数据长度+ResultRecord
+//		}
+		if((record->oad.OI & 0xf000) == 0x5000) {	//招测冻结类数据
+			if (record->rcsd.csds.num==0)
+			{
+				record->data[dest_index++] = 0;	//RCSD=0
+				record->data[dest_index++] = 1;	//Data
+				record->data[dest_index++] = 1;	//seqof A-RecordRow
+				record->data[dest_index++] = 0;	//A-RecordRow len
+				record->datalen += dest_index;
+			}else
+			{
+				//上N次日冻结
+				GetTerminal5004(record,memp);
+			}
 		}else {
 			Getevent_Record_Selector(record,memp);
 			record->data = TmpDataBuf;				//data 指向回复报文帧头

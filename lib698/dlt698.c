@@ -184,8 +184,7 @@ int CheckSerAddr(unsigned char* buf, INT8U *addr) {
 		case 1:
 			fprintf(stderr, "\n通配地址，地址字节数 %d", sa_length);
 			for (i = 0; i < mycslen; i++) {
-				fprintf(stderr, "\n本终端 addr[%d]=%02x buf[%d]=%02x", i, tmp[i],
-						5 + i, buf[5 + i]);
+				fprintf(stderr, "\n本终端 addr[%d]=%02x buf[%d]=%02x", i, tmp[i],5 + i, buf[5 + i]);
 				if (tmp[i] != buf[5 + i]) {
 					Check_Hb = buf[5 + i] & 0xF0;
 					Check_Lb = buf[5 + i] & 0x0F;
@@ -260,8 +259,11 @@ int CheckHead(unsigned char* buf, CSINFO *csinfo) {
 			fprintf(stderr, "功能码未定义\n");
 			break;
 		}
+		if (ctl.ctl.sc == 1)
+			fprintf(stderr,"\n扰码标志为 1 ！！");
 		csinfo->frame_length = frameLen.length.len; //帧长度
 		csinfo->funcode = ctl.ctl.func; //功能码
+		csinfo->sc = ctl.ctl.sc;
 		csinfo->dir = ctl.ctl.dir;
 		csinfo->prm = ctl.ctl.prm;
 		csinfo->gframeflg = ctl.ctl.divS;
@@ -306,6 +308,7 @@ INT8U CtrlWord(CSINFO* csinfo) {
 	ctl.ctl.dir = csinfo->dir; //调用方会决定终端作为服务器还是客户端
 	ctl.ctl.prm = csinfo->prm; //直接使用csinfo的启动标志
 	ctl.ctl.divS = csinfo->gframeflg;
+	ctl.ctl.sc = csinfo->sc;
 	ctl.ctl.func = csinfo->funcode;
 	fprintf(stderr, "ctl.u8b=%02x", ctl.u8b);
 	return ctl.u8b;
@@ -354,14 +357,14 @@ int FrameHead(CSINFO *csinfo, INT8U *buf) {
 	buf[i++] = 0; //长度
 	buf[i++] = 0;
 	buf[i++] = CtrlWord(csinfo);
-	buf[i++] = (csinfo->sa_type << 6) | (0 << 4)
-			| ((csinfo->sa_length - 1) & 0xf);
+	buf[i++] = (csinfo->sa_type << 6) | (0 << 4) | ((csinfo->sa_length - 1) & 0xf);
 
 	//集中器与浙江汉普台体测试，台体下发广播地址,应答终端的通信地址上报，
 	//其他情况如电表下发广播对时命令时，是不能进行修改服务器端地址的
 	//只有客户机启动的下行广播报文才响应
-	if (broadServerAddr(csinfo->sa, csinfo->sa_length) == 1 && csinfo->dir == 0
-			&& csinfo->prm == 1) {
+	if ((broadServerAddr(csinfo->sa, csinfo->sa_length) == 1 && csinfo->dir == 0 && csinfo->prm == 1) ||
+		(csinfo->sa_type==1 && csinfo->dir == 1))
+	{
 		memset(&sa, 0, sizeof(CLASS_4001_4002_4003));
 		readCoverClass(0x4001, 0, &sa, sizeof(CLASS_4001_4002_4003),
 				para_vari_save);
@@ -373,7 +376,7 @@ int FrameHead(CSINFO *csinfo, INT8U *buf) {
 		for (j = 0; j < sa.curstom_num[0]; j++) {
 			buf[i++] = sa.curstom_num[sa.curstom_num[0] - j];
 		}
-	} else {
+	}else {
 		memcpy(&buf[i], csinfo->sa, csinfo->sa_length);
 		i = i + csinfo->sa_length;
 	}
@@ -405,6 +408,17 @@ int FrameTimeTag(TimeTag *tag, INT8U *buf) {
  *	2.心跳
  *	3.退出登录
  */
+int fill_long_unsigned_noflag(INT8U *data,INT16U value)		//0x12
+{
+	data[0] = (value & 0xFF00)>>8;
+	data[1] = value & 0x00FF;
+	return 2;
+}
+int fill_unsigned_noflag(INT8U *data,INT8U value)		//0x11
+{
+	data[0] = value;
+	return 1;
+}
 int Link_Request(LINK_Request request, INT8U *addr, INT8U *buf) {
 	int index = 0, hcsi = 0, i = 0;
 	CSINFO csinfo = { };
@@ -429,13 +443,25 @@ int Link_Request(LINK_Request request, INT8U *addr, INT8U *buf) {
 	index = FrameHead(&csinfo, buf); //	2：hcs  hcs
 	hcsi = index;
 	index = index + 2;
-//	fprintf(stderr,"\n link request type i=%d",index);
 	buf[index++] = 1; //LINK_Request
 
-	memcpy(&buf[index], &request, sizeof(LINK_Request));
-	index = index + sizeof(LINK_Request);
-//	fprintf(stderr,"\n add link request  i=%d",index);
-//	fprintf(stderr,"\n  LINK_Request = %d",sizeof(LINK_Request));
+//	memcpy(&buf[index], &request, sizeof(LINK_Request));
+	buf[index++] = request.piid_acd.data;
+	buf[index++] = request.type;
+	index += fill_long_unsigned_noflag(&buf[index],request.heartbeat);
+	index += fill_long_unsigned_noflag(&buf[index],request.time.year);
+	index += fill_unsigned_noflag(&buf[index],request.time.month);
+	index += fill_unsigned_noflag(&buf[index],request.time.day_of_month);
+	index += fill_unsigned_noflag(&buf[index],request.time.day_of_week);
+	index += fill_unsigned_noflag(&buf[index],request.time.hour);
+	index += fill_unsigned_noflag(&buf[index],request.time.minute);
+	index += fill_unsigned_noflag(&buf[index],request.time.second);
+	index += fill_long_unsigned_noflag(&buf[index],request.time.milliseconds);
+	fprintf(stderr,"\n%d年 %d月 %d日 %d(周日) %d时 %d分 %d秒 %d毫秒   周期=%d",
+			request.time.year,request.time.month,request.time.day_of_month,
+			request.time.day_of_week,request.time.hour,request.time.minute,
+			request.time.second,request.time.milliseconds,request.heartbeat);
+//	index = index + sizeof(LINK_Request);
 	FrameTail(buf, index, hcsi);
 	return (index + 3); //3: cs cs 16
 }
@@ -710,8 +736,10 @@ int appConnectResponse(INT8U *apdu, CSINFO *csinfo, INT8U *buf) {
 			buf[index++] = 0;
 		}
 	} else {
-		buf[index++] = 0;
-		buf[index++] = 0;
+		buf[index++] = 0;//连接响应对象 ， 允许建立应用连接（0）
+		buf[index++] = 0;//认证附加信息 ， OPTIONAL = 0 表示没有
+		buf[index++] = 0;//FollowReport OPTIONAL = 0表示没有上报信息
+		buf[index++] = 0;//没有时间标签
 	}
 
 	FrameTail(buf, index, hcsi);
@@ -1720,7 +1748,27 @@ void testframe(INT8U *apdu, int len) {
 		fprintf(stderr, "%02x ", buf[k]);
 	fprintf(stderr, "\n----------------------------------------\n");
 }
+void scodeProcess(INT8U *buf,int len)
+{
+	int i=0;
+	for(i=0;i<len;i++)
+	{
+		buf[i] = buf[i] - 0x33;
+	}
+}
+int calApduLen(CSINFO csinfo)
+{
+	int head_68_len = 1;
+	int tail_16_len = 1;
+	int lenWord_len = 2;
+	int crt_len = 1;
+	int sa_len = 1 + csinfo.sa_length;
+	int ca_len = 1;
+	int headCrc_word = 2;
+	int tailCrc_word = 2;
 
+	return (csinfo.frame_length - head_68_len - tail_16_len - lenWord_len - crt_len - sa_len - ca_len - headCrc_word - tailCrc_word);
+}
 int ProcessData(CommBlock *com) {
 	TimeTag timetag = { };
 	CSINFO csinfo = { };
@@ -1747,6 +1795,10 @@ int ProcessData(CommBlock *com) {
 	if ((hcsok == 1) && (fcsok == 1)) {
 		fprintf(stderr, "\nsa_length=%d\n", csinfo.sa_length);
 		apdu = &Rcvbuf[csinfo.sa_length + 8];
+
+		if (csinfo.sc==1)
+			scodeProcess(apdu,calApduLen(csinfo));
+
 		if(apdu[0] == REPORT_RESPONSE) {		//主动上报置reponse_piid和report_piid
 			com->response_piid[0] = apdu[2];	//处理无应答重复上报判断报文帧，目前未考虑多通道在线情况
 		}

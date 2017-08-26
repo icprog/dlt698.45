@@ -592,6 +592,7 @@ int initSearchMeter(CLASS_6002 *class6002)
 	}
 	return 1;
 }
+
 int initTaskData(TASK_INFO *task)
 {
 	int num =0;
@@ -607,6 +608,7 @@ int initTaskData(TASK_INFO *task)
 	num += task_leve(3,&task->task_list[num]);
 	num += task_leve(4,&task->task_list[num]);
 	task->task_n = num;
+	memcpy(&taskinfo_bak,task,sizeof(TASK_INFO));//初始化一个备份
 	return 1;
 }
 int initTsaList(struct Tsa_Node **head)
@@ -894,8 +896,12 @@ int doInit(RUNTIME_PLC *runtime_p)
 					}
 				}
 				clearvar(runtime_p);//376.2上行内容容器清空，发送计时归零
+
+				//在这发东软报文
+				runtime_p->send_start_time = nowtime ;//加上时间
+
 				sleep(1);
-				return INIT_MASTERADDR;
+//				return INIT_MASTERADDR;
 			}
 			//else if  (runtime_p->send_start_time !=0 && (nowtime  - runtime_p->send_start_time)>10)
 			else if (read_num>=3)
@@ -946,6 +952,7 @@ int doSetMasterAddr(RUNTIME_PLC *runtime_p)
 						break;
 					}
 				}
+				memcpy(runtime_p->masteraddr,masteraddr,6);//不管需要还是不需要设置主节点，都要用正确的地址给runtime_p->masteraddr赋值
 				if (step_MasterAddr == 0)
 				{
 					DbgPrintToFile1(31,"不需要设置主节点地址");
@@ -1043,7 +1050,7 @@ int doCompSlaveMeter(RUNTIME_PLC *runtime_p)
 				{
 					step_cmpslave = 3;
 					clearvar(runtime_p);
-					currtsa = tsa_head;	//删除完成 ,开始第 3 步
+					currtsa = tsa_head;	//读取完成 ,开始第 3 步
 					break;
 				}
 				SendDataToCom(runtime_p->comfd, runtime_p->sendbuf,sendlen );
@@ -1060,7 +1067,7 @@ int doCompSlaveMeter(RUNTIME_PLC *runtime_p)
 					addTsaList(&tsa_zb_head,runtime_p->format_Up.afn10_f2_up.SlavePoint[i].Addr);
 				}
 				clearvar(runtime_p);//376.2上行内容容器清空，发送计时归零
-				if (slavenum==0)
+				if (slavenum<=0  || replyn==0)
 				{
 					DbgPrintToFile1(31,"读取结束 读%d 个  实际 %d 个",index,slavenum);
 					tsa_print(tsa_zb_head,slavenum);
@@ -1829,9 +1836,11 @@ int ProcessMeter(INT8U *buf,struct Tsa_Node *desnode)
 		}
 		if (readParaClass(0x8888, &taskinfo, desnode->tsa_index) != 1 )////读取序号为 tsa_index 的任务记录到内存变量 taskinfo 返回 1 成功   0 失败
 		{
+			memcpy(&taskinfo,&taskinfo_bak,sizeof(taskinfo));
 			taskinfo.tsa = desnode->tsa;
 			taskinfo.tsa_index = desnode->tsa_index;
-			zeroitemflag(&taskinfo);
+			DbgPrintToFile1(31,"第一次请求，用备份结构体初始化该表抄读状态");
+//			zeroitemflag(&taskinfo);
 		}
 	}
 	tmpitem = checkMeterData(&taskinfo,&taski,&itemi,desnode->usrtype);	//根据任务的时间计划，查找一个适合抄读的数据项
@@ -2954,10 +2963,12 @@ void initlist(struct Tsa_Node *head)
 	return;
 }
 
-int stateJuge(int nowdstate,MY_PARA_COUNTER *mypara_p,RUNTIME_PLC *runtime_p)
+int stateJuge(int nowdstate,MY_PARA_COUNTER *mypara_p,RUNTIME_PLC *runtime_p,int *startFlg)
 {
 	int state = nowdstate;
 	int i=0;
+	int dateChg = 0;
+	int pointChg = 0;
 
 	if ((runtime_p->format_Up.afn==0x06) && (runtime_p->format_Up.fn==5))//AFN= 06 FN= F5  路由上报从节点事件
 	{
@@ -2967,19 +2978,32 @@ int stateJuge(int nowdstate,MY_PARA_COUNTER *mypara_p,RUNTIME_PLC *runtime_p)
 		runtime_p->state = state;
 		return state;
 	}
-
-	if ( dateJudge(&runtime_p->oldts,&runtime_p->nowts) == 1 ||
-		 JProgramInfo->oi_changed.oi6000 != mypara_p->my6000 )
+	//-----------------------------------------------------------------------------------
+	dateChg = dateJudge(&runtime_p->oldts,&runtime_p->nowts);
+	if (JProgramInfo->oi_changed.oi6000 != mypara_p->my6000 )
 	{
-		DbgPrintToFile1(31,"状态切换到初始化");
+		mypara_p->my6000  = JProgramInfo->oi_changed.oi6000;
+		pointChg = 1;
+	}
+
+	if ( dateChg == 1 ||  *startFlg == 1 || pointChg ==1 )
+	{
+		DbgPrintToFile1(31,"初始化路由");
+		*startFlg = 0;
 		runtime_p->initflag = 1;
 		runtime_p->state_bak = runtime_p->state;
 		state = DATE_CHANGE;
 		broadFlag_ts.Day  = 0;
 		runtime_p->state = state;
 		runtime_p->redo = 1;  //初始化之后需要重启抄读
-		mypara_p->my6000  = JProgramInfo->oi_changed.oi6000;
-		system("rm /nand/para/plcrecord.par  /nand/para/plcrecord.bak");//测量点变更删除记录
+
+		if(pointChg==1 || dateChg == 1 || access("/nand/para/plcrecord.par",F_OK) != 0)
+		{//测量点参数变更  或 记录文件不存在  或   日期变更需要重新初始化任务
+			DbgPrintToFile1(31,"初始化默认任务参数，清除抄表记录");
+			initTaskData(&taskinfo);
+			system("rm /nand/para/plcrecord.par  /nand/para/plcrecord.bak");
+			PrintTaskInfo2(&taskinfo);
+		}
 		return state;
 	}
 	if (JProgramInfo->oi_changed.oi6012 != mypara.my6012)
@@ -3001,7 +3025,6 @@ int stateJuge(int nowdstate,MY_PARA_COUNTER *mypara_p,RUNTIME_PLC *runtime_p)
 		if(class_f209.transFlg == 1)
 		{
             class_f209.transFlg = 0;
-//            class_f209.trans.transBuf
             saveCoverClass(0xf209,0,&class_f209,sizeof(CLASS_f209),para_vari_save);
 		}
 	}
@@ -3625,6 +3648,7 @@ int doBroadCast(RUNTIME_PLC *runtime_p)
 
 void readplc_thread()
 {
+	int startFlg = 1;
 	int state = DATE_CHANGE;
 	RUNTIME_PLC runtimevar;
 	memset(&runtimevar,0,sizeof(RUNTIME_PLC));
@@ -3635,18 +3659,17 @@ void readplc_thread()
 	RecvHead = 0;
 	RecvTail = 0;
 	search_i = 0;
+
 	initSearchMeter(&search6002);
 	initTaskData(&taskinfo);
-	system("rm /nand/para/plcrecord.par  /nand/para/plcrecord.bak");
-	DbgPrintToFile1(31,"2-fangAn6015[%d].sernum = %d  fangAn6015[%d].mst.mstype = %d ",
-			0,fangAn6015[0].sernum,0,fangAn6015[0].mst.mstype);
 	PrintTaskInfo2(&taskinfo);
 	DbgPrintToFile1(31,"载波线程开始");
 	runtimevar.format_Down.info_down.ReplyBytes = 0x28;
 
 	DbgPrintToFile1(31,"1-fangAn6015[%d].sernum = %d  fangAn6015[%d].mst.mstype = %d ",
 			0,fangAn6015[0].sernum,0,fangAn6015[0].mst.mstype);
-
+	TSGet(&runtimevar.nowts);
+	TSGet(&runtimevar.oldts);
 	while(1)
 	{
 		usleep(50000);
@@ -3654,7 +3677,7 @@ void readplc_thread()
 		 * 	   状态实时判断
 		********************************/
 		TSGet(&runtimevar.nowts);
-		state = stateJuge(state, &mypara,&runtimevar);
+		state = stateJuge(state, &mypara,&runtimevar,&startFlg);
 		fprintf(stderr,"\n state  = %d",state);
 		/********************************
 		 * 	   状态流程处理
