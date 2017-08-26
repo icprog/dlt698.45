@@ -2067,7 +2067,7 @@ INT8S checkEvent698(OAD rcvOAD,INT8U* data,INT8U dataLen,CLASS_6001 obj6001,INT1
 	{
 		ret = Event_3105(obj6001.basicinfo.addr,taskID,&data[1],dataLen,JProgramInfo);
 	}
-	if(rcvOAD.OI == 0x0010)
+	if((rcvOAD.OI == 0x0010)||(rcvOAD.OI == 0x0020))
 	{
 		//更新总加组电量
 		if(JProgramInfo->cfg_para.device == SPTF3)

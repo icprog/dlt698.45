@@ -747,10 +747,7 @@ typedef struct {
     INT8U cal_flag;
     INT64U curP[MAXVAL_RATENUM+1];    //当前有功-总尖峰平谷
     INT64U curQ[MAXVAL_RATENUM+1];    //当前无功-总尖峰平谷
-    INT64U DayP[MAXVAL_RATENUM+1];    //上一日有功-总尖峰平谷
-    INT64U DayQ[MAXVAL_RATENUM+1];    //上一日无功-总尖峰平谷
-    INT64U MonP[MAXVAL_RATENUM+1];    //上一月有功-总尖峰平谷
-    INT64U MonQ[MAXVAL_RATENUM+1];    //上一月无功-总尖峰平谷
+    INT64U freeze[4][MAXVAL_RATENUM+1];    //[0-上一日有功;1-上一日无功;2-上一月有功;3-上一月无功][总尖峰平谷]
 } AL_UNIT;
 
 typedef struct {
