@@ -727,7 +727,7 @@ void Set_CSD(INT8U *data,Action_result *act_ret) {
 	INT8U taskid=0;
 	//index = index + 2;//array
 	index = index + 2;//structure
-	index +=getUnsigned(&data[index],&taskid,&act_ret->DAR);
+	index += getUnsigned(&data[index],&taskid,&act_ret->DAR);
 	int ret = 1;//readCoverClass(0x6013,taskid,&task,sizeof(CLASS_6013),coll_para_save);
 	if(ret == 1)
 	{
