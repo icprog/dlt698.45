@@ -1057,10 +1057,11 @@ void get_local_time(char* buf, INT32U bufSize)
 			timeinfo.Hour,	timeinfo.Minute, timeinfo.Sec);
 }
 
-void debug(const char* file, const char* func, INT32U line, const char *fmt, ...)
+void debugToStderr(const char* file, const char* func, INT32U line, const char *fmt, ...)
 {
 	va_list ap;
 	char bufTime[20] = { 0 };
+
 	get_local_time(bufTime, sizeof(bufTime));
 	fprintf(stderr, "\n[%s][%s][%s()][%d]: ", bufTime, file, func, line);
 	va_start(ap, fmt);
@@ -1097,6 +1098,28 @@ void debugToPlcFile(const char* file, const char* func, INT32U line, const char 
 	vfprintf(fp, fmt, ap);
 	va_end(ap);
 	fprintf(fp, "\n");
+}
+
+void debugToFile(const char* fname, const char* file, const char* func, INT32U line, const char *fmt,...)
+{
+	va_list ap;
+	char bufTime[20] = { 0 };
+	FILE *fp = NULL;
+
+	if(NULL == fname)
+		return;
+
+	fp = fopen(fname, "a+");
+	if (fp != NULL) {
+		get_local_time(bufTime, sizeof(bufTime));
+		fprintf(fp, "\n[%s][%s][%s()][%d]: ", bufTime, file, func, line);
+		va_start(ap, fmt);
+		vfprintf(fp, fmt, ap);
+		va_end(ap);
+		fprintf(fp, "\n");
+	    fflush(fp);
+		fclose(fp);
+	}
 }
 
 /*

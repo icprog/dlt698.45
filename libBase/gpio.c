@@ -76,13 +76,22 @@ INT32S gpio_writebytes(char* devpath, INT8S* vals, INT32S valnum) {
 /*
  * 二型集中器没有电池只有电容，所以不能够读出底板是否有电，且二型集中器只有一相电压，停上电事件在硬件复位时不能产生，
  * 所以判断时，需要判断当前电压大于一个定值且小时参数时，产生事件(大于的定时暂定为100v交采已经将实时电压值乘以１０).
+ * 正常的顺序: 0< VOL_DOWN_THR < limit < VOL_ON_THR
  */
-INT8U pwr_has_byVolt(INT8U valid, INT32U volt, INT16U limit)
+INT8U pwr_down_byVolt(INT8U valid, INT32U volt, INT16U limit)
 {
-    if ((valid == TRUE) && ((volt > 100*U_COEF && volt < limit) || (volt <= 100*U_COEF))) {
-        return 1;
+    if ((valid == TRUE) && ((volt > VOL_DOWN_THR*U_COEF && volt < limit*U_COEF) || (volt <= VOL_DOWN_THR*U_COEF))) {
+        return 1;//断电
     }
-    return 0; //上电
+    return 0; //未断电
+}
+
+INT8U pwr_on_byVolt(INT8U valid, INT32U volt, INT16U limit)
+{
+	if((valid == TRUE) &&((volt>limit*U_COEF && limit>0) || (volt>VOL_ON_THR*U_COEF)))
+		return 1;//上电
+
+    return 0; //未上电
 }
 
 /*

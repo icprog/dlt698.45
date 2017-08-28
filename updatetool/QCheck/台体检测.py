@@ -39,22 +39,22 @@ class Color:
 
     def print_red_text(self, print_text):
         self.set_cmd_color(FOREGROUND_RED | FOREGROUND_INTENSITY)
-        print print_text
+        print print_text.decode('utf-8')
         self.reset_color()
 
     def print_green_text(self, print_text):
         self.set_cmd_color(FOREGROUND_GREEN | FOREGROUND_INTENSITY)
-        print print_text
+        print print_text.decode('utf-8')
         self.reset_color()
 
     def print_blue_text(self, print_text):
         self.set_cmd_color(FOREGROUND_BLUE | FOREGROUND_INTENSITY)
-        print print_text
+        print print_text.decode('utf-8')
         self.reset_color()
 
     def print_red_text_with_blue_bg(self, print_text):
         self.set_cmd_color(FOREGROUND_RED | FOREGROUND_INTENSITY| BACKGROUND_BLUE | BACKGROUND_INTENSITY)
-        print print_text
+        print print_text.decode('utf-8')
         self.reset_color()
 
 g_clr = Color()
@@ -173,7 +173,7 @@ def checkDateTime(config):
     cas = (devation.days * 24 * 3600 + devation.seconds)
     if abs(cas) > 5:
         #print "对时\t错误\t时间差距%d秒".decode('utf-8') % cas
-        g_clr.print_red_text("对时\t错误\t时间差距%d秒".decode('utf-8') % cas)
+        g_clr.print_red_text("对时\t错误\t时间差距%d秒" % cas)
         ok = 0
     else:
         print "对时\t正确\t时间差距%d秒".decode('utf-8') % cas
@@ -201,12 +201,12 @@ def checkSoftVersion(config):
 
     for i in f:
         if msg.find(i[:24]) == -1:
-            print "版本\t错误\t".decode('utf-8') + i.split('  ')[1].decode('utf-8')
+            g_clr.print_red_text("版本\t错误\t" + i.split('  ')[1])
             ok = 0
     f.close()
 
     if ok == 0:
-        print "程序版本检查 <<<<<<<<错误>>>>>>>>\n\n".decode('utf-8')
+        g_clr.print_red_text("程序版本检查 <<<<<<<<错误>>>>>>>>\n\n")
     else:
         print "程序版本检查-正确！\n\n".decode('utf-8')
 
@@ -232,29 +232,25 @@ def checkNormal(config):
     if msg.find("485OK") > 0:
         print "485\t正确".decode('utf-8')
     else:
-        #print "485\t错误".decode('utf-8')
-        g_clr.print_red_text("485\t错误".decode('utf-8'))
+        g_clr.print_red_text("485\t错误")
         ok = 0
 
     if msg.find("主站证书 OK") > 0:
         print "ESAM\t正确".decode('utf-8')
     else:
-        #print "ESAM\t错误".decode('utf-8')
-        g_clr.print_red_text("ESAM\t错误".decode('utf-8'))
+        g_clr.print_red_text("ESAM\t错误")
         ok = 0
 
     if msg.find(config.get('target', 'kernal')) > 0:
         print "内核\t正确".decode('utf-8')
     else:
-        #print "内核\t错误".decode('utf-8')
-        g_clr.print_red_text("内核\t错误".decode('utf-8'))
+        g_clr.print_red_text("内核\t错误")
         ok = 0
 
     if msg.find("电池电压正常") > 0:
         print "电池\t正确".decode('utf-8')
     else:
-        #print "电池\t错误".decode('utf-8')
-        g_clr.print_red_text("电池\t错误".decode('utf-8'))
+        g_clr.print_red_text("电池\t错误")
         ok = 0
     lNet.close()
     return ok
@@ -270,6 +266,8 @@ def showDeviceId(config):
     lNet.write("cj id 00 00 00 00 00 01" + "\r\n")
     lNet.write("cj heart 60" + "\r\n")
     lNet.write("cj checkled &" + "\r\n")
+    lNet.write("cd /nor/ppp/ ;md5sum cdma2000-connect-chat" + "\r\n")
+    lNet.write("cd /nor/ppp/peers/ ;md5sum cdma2000" + "\r\n")
     lNet.write("exit" + "\r\n")
     msg = lNet.read_all()
 
@@ -295,8 +293,7 @@ if __name__ == '__main__':
             if ok == 1:
                 print "\n\n\n>>>>>>>>>>>>>>>>>全部正确\n\n\n".decode('utf-8')
             else:
-                #print "\n\n\n>>>>>>>>>>>>>>>>>设备异常!!!!!\n\n\n".decode('utf-8')
-                g_clr.print_red_text("\n\n\n>>>>>>>>>>>>>>>>>设备异常!!!!!\n\n\n".decode('utf-8'))
+                g_clr.print_red_text("\n\n\n>>>>>>>>>>>>>>>>>设备异常!!!!!\n\n\n")
         except IOError, e:
             print '网络连接错误，检查网线连接状态。'.decode('utf-8')
             continue
