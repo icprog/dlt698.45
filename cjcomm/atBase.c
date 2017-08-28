@@ -284,7 +284,7 @@ int AtPrepare(ATOBJ *ao) {
 			return 5000;
 		}
 		if (ao->at_retry++ > 5) {
-			asyslog(LOG_INFO, "<AT流程> 5次拨号失败，关断模块10分钟>>>>>>>>");
+			asyslog(LOG_INFO, "<AT流程> 5次拨号失败，关断模块5分钟>>>>>>>>");
 			gpofun("/dev/gpoGPRS_POWER", 0);
 			ao->at_retry = 0;
 			return 1000 * 60 * 5;
