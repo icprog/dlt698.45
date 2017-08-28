@@ -276,6 +276,7 @@ int AtPrepare(ATOBJ *ao) {
 	char Mrecvbuf[128];
 	memset(Mrecvbuf, 0, 128);
 	MASTER_STATION_INFO ip_port;
+	CLASS25* c25 = (CLASS25*) dbGet("class25");
 
 	switch (ao->state) {
 	case 0:
@@ -512,7 +513,7 @@ int AtPrepare(ATOBJ *ao) {
 			ao->state = 0;
 			return 100;
 		}
-		if (helperCheckIp() == 1) {
+		if (helperCheckIp(&ao->PPP_IP[0]) == 1) {
 			retry = 0;
 			ao->PPPD = 1;
 			ao->state = AT_FINISH_PREPARE;
@@ -627,8 +628,17 @@ int AtPrepare(ATOBJ *ao) {
 		retry++;
 		asyslog(LOG_INFO, "======%d", retry);
 		ao->at_retry = 0;
+		readCoverClass(0x4500, 0, c25, sizeof(CLASS25), para_vari_save);
+		c25->signalStrength = ao->CSQ;
+		//TODO:SIM卡号码simkard, CCID未有AT获取
+		memcpy(&c25->imsi,ao->CIMI,sizeof(c25->imsi));
+		memcpy(&c25->ccid,ao->ccid,sizeof(c25->ccid));
+		memcpy(&c25->simkard,ao->imsi,sizeof(c25->simkard));
+		memcpy(&c25->pppip,ao->PPP_IP,sizeof(c25->pppip));
+		saveCoverClass(0x4500, 0, c25, sizeof(CLASS25), para_vari_save);
 		return 5 * 1000;
 	}
+	return 0;
 }
 
 int AtPrepareFinish(ATOBJ *ao) {

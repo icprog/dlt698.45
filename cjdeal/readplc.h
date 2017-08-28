@@ -27,6 +27,7 @@ extern INT16S getTaskIndex(INT8U port);
 #define INIT_MASTERADDR    	5
 #define AUTO_REPORT    		6
 #define BROADCAST			7
+#define F209_127			8
 
 #define ALLOK 2
 #define ZBBUFSIZE 512
@@ -39,6 +40,14 @@ extern INT16S getTaskIndex(INT8U port);
 #define CJT188  4
 #define NUM_07DI_698OAD 100
 //---------------------------------------------------------------
+typedef struct
+{
+	INT8U  my6000 ;
+	INT8U  my6012 ;
+	INT8U  my6002 ;
+	INT8U  myf209 ;
+}MY_PARA_COUNTER;
+MY_PARA_COUNTER mypara;
 typedef struct
 {
 	INT8U index;
@@ -292,6 +301,7 @@ TS broadFlag_ts;
 CLASS_6002 search6002;//搜表
 int search_i;
 CLASS_6015 fangAn6015[FANGAN6015_MAX];
+TASK_INFO taskinfo_bak;
 TASK_INFO taskinfo;
 typedef struct
 {

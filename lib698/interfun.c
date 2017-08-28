@@ -1332,5 +1332,6 @@ void setOIChange(OI_698 oi)
 		fprintf(stderr,"memp->oi_changed.oiF203=%d\n",memp->oi_changed.oiF203);
 		break;
 	case 0xf101:	memp->oi_changed.oiF101++;  break;
+	case 0xf209:	memp->oi_changed.oiF209++;	break;
 	}
 }

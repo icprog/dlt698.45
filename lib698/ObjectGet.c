@@ -989,20 +989,20 @@ int Get4500(RESULT_NORMAL *response)
 		{
 			index += create_array(&data[index],class_tmp.protocolnum);
 			for(i=0;i<class_tmp.protocolnum;i++)
-				index +=fill_visible_string(&data[index],&class_tmp.protcol[i][1],class_tmp.protcol[i][0]);
+				index +=fill_visible_string(&data[index],(char *)&class_tmp.protcol[i][1],class_tmp.protcol[i][0]);
 		}
 		else
             data[index++]=0;
 		break;
 	case 7:
-		if(class_tmp.ccid[0]>0)
-			index +=fill_visible_string(&data[index],&class_tmp.ccid[1],class_tmp.ccid[0]);
+		if((strlen((char *)class_tmp.ccid))>0)
+			index +=fill_visible_string(&data[index],(char *)&class_tmp.ccid,strlen((char *)class_tmp.ccid));
 		else
 			data[index++]=0;
 	    break;
 	case 8:
-		if(class_tmp.imsi[0]>0)
-			index +=fill_visible_string(&data[index],&class_tmp.imsi[1],class_tmp.imsi[0]);
+		if((strlen((char *)class_tmp.imsi))>0)
+			index +=fill_visible_string(&data[index],(char *)&class_tmp.imsi,strlen((char *)class_tmp.imsi));
 		else
 			data[index++]=0;
 		break;
@@ -1010,14 +1010,14 @@ int Get4500(RESULT_NORMAL *response)
 		index +=fill_long(&data[index],class_tmp.signalStrength);
 		break;
 	case 10:
-		if(class_tmp.simkard[0]>0)
-			index +=fill_visible_string(&data[index],&class_tmp.simkard[1],class_tmp.simkard[0]);
+		if((strlen((char *)class_tmp.simkard))>0)
+			index +=fill_visible_string(&data[index],(char *)&class_tmp.simkard,strlen((char *)class_tmp.simkard));
 		else
 			data[index++]=0;
 		break;
 	case 11:
 		if(class_tmp.pppip[0]>0)
-			index +=fill_octet_string(&data[index],&class_tmp.pppip[1],class_tmp.pppip[0]);
+			index +=fill_octet_string(&data[index],(char *)&class_tmp.pppip[1],class_tmp.pppip[0]);
 		else
 			data[index++]=0;
 		break;
@@ -2001,7 +2001,7 @@ int GetClass7attr(RESULT_NORMAL *response)
 		index += fill_long_unsigned(&data[0],class7.maxnum);
 		break;
 	case 8: //上报标识
-		index += fill_bool(&data[0],class7.reportflag);
+		index += fill_enum(&data[0],class7.reportflag);
 		break;
 	case 9: //有效标识
 		index += fill_bool(&data[0],class7.enableflag);
