@@ -207,17 +207,17 @@ INT8U time_in_task(CLASS_6013 from6012_curr) {
 INT8U filterInvalidTask(INT16U taskIndex) {
 
 	if (list6013[taskIndex].basicInfo.taskID == 0) {
-		fprintf(stderr, "\n filterInvalidTask - 1");
+		//fprintf(stderr, "\n filterInvalidTask - 1");
 		return 0;
 	}
 	if (list6013[taskIndex].basicInfo.state == task_novalid)	//任务无效
 			{
-		fprintf(stderr, "\n filterInvalidTask - 2");
+		//fprintf(stderr, "\n filterInvalidTask - 2");
 		return 0;
 	}
 	if (time_in_task(list6013[taskIndex].basicInfo) == 1)	//不在任务执行时段内
 	{
-		fprintf(stderr, "\n filterInvalidTask - 3");
+		//fprintf(stderr, "\n filterInvalidTask - 3");
 		return 0;
 	}
 	if (time_in_shiduan(list6013[taskIndex].basicInfo.runtime,list6013[taskIndex].basicInfo.interval) == 1)	//在抄表时段内
@@ -367,7 +367,6 @@ INT8U isPlcOAD(OAD portOAD)
  * */
 INT8S init6000InfoFrom6000FIle()
 {
-
 	memset(&info6000,0,2*sizeof(INFO_6001_LIST));
 	INT8U tIndex = 0;
 	for(tIndex = 0;tIndex < infoReplenish.tasknum;tIndex++)
@@ -401,7 +400,6 @@ INT8S init6000InfoFrom6000FIle()
 		{
 			if(meter.sernum!=0 && meter.sernum!=0xffff)
 			{
-
 				if(is485OAD(meter.basicinfo.port,1) == 1)
 				{
 					meterIndex = info6000[0].meterSum;
@@ -544,19 +542,84 @@ INT8U init6013ListFrom6012File() {
 				}
 				//TODO
 				total_tasknum++;
-				//任务初始化新建6035
-				CLASS_6035 result6035;	//采集任务监控单元
-				memset(&result6035,0,sizeof(CLASS_6035));
-				result6035.taskState = BEFORE_OPR;
-				result6035.taskID = class6013.taskID;
-
-				saveCoverClass(0x6035, result6035.taskID, &result6035,sizeof(CLASS_6035), coll_para_save);
 
 			}
 		}
 	}
 	fprintf(stderr, "\n \n-------------init6013ListFrom6012File---------------start\n");
 	return result;
+}
+
+INT8U init6035TotalNum()
+{
+	INT8U ret = 0;
+	CLASS_6001	 meter={};
+	int	blknum=0;
+	int meterIndex = 0;
+	INT8U tIndex = 0;
+	INT16U totalNum = 0;
+
+	blknum = getFileRecordNum(0x6000);
+	if(blknum <= 0)
+	{
+		return 0;
+	}
+	typedef struct
+	{
+		INT8U usrtype;
+		TSA meter;
+	}MeterInfo;
+
+
+	MeterInfo* allMeter = NULL;
+	allMeter = malloc(blknum*sizeof(MeterInfo));
+	if(allMeter ==NULL)
+	{
+		return 0;
+	}
+
+	for(meterIndex=0;meterIndex<blknum;meterIndex++)
+	{
+		if(readParaClass(0x6000,&meter,meterIndex)==1)
+		{
+			if(meter.sernum!=0 && meter.sernum!=0xffff)
+			{
+				allMeter[totalNum].usrtype = meter.basicinfo.usrtype;
+				memcpy(&allMeter[totalNum].meter,&meter.basicinfo.addr,sizeof(TSA));
+				totalNum++;
+			}
+		}
+	}
+
+	for (tIndex = 0; tIndex < total_tasknum; tIndex++)
+	{
+		CLASS_6035 result6035;
+		memset(&result6035,0,sizeof(CLASS_6035));
+		get6035ByTaskID(list6013[tIndex].basicInfo.taskID,&result6035);
+
+		CLASS_6015 to6015;	//采集方案集
+		memset(&to6015, 0, sizeof(CLASS_6015));
+
+		ret = use6013find6015or6017(list6013[tIndex].basicInfo.cjtype,list6013[tIndex].basicInfo.sernum,list6013[tIndex].basicInfo.interval,&to6015);
+		if(ret == 1)
+		{
+			for(meterIndex=0;meterIndex<totalNum;meterIndex++)
+			{
+				if (checkMeterType(to6015.mst,allMeter[meterIndex].usrtype,allMeter[meterIndex].meter))
+				{
+					result6035.totalMSNum++;
+				}
+			}
+			saveClass6035(&result6035);
+		}
+
+	}
+
+	free(allMeter);
+	allMeter = NULL;
+
+
+	return ret;
 }
 INT8U getParaChangeType()
 {
@@ -877,7 +940,6 @@ INT8U isPlcMeterByTsa(TSA* pTsa)
  *	代理操作, 即不读取代理队列中的数据.
  *	组织应答报文的工作, 交给各端口线程来做.
  */
-extern INT8U get6001ObjByTSA(TSA addr,CLASS_6001* targetMeter);
 
 
 PROXY_GETLIST proxyList_manager;
@@ -1326,7 +1388,6 @@ INT8S dealMsgProcess()
 		}
 		if(mq_h.pid == cjgui)
 		{
-			fprintf(stderr, "\n收到液晶点抄-----------------------------------23232323\n");
 			memcpy(&cjguiProxy_Tmp.strProxyMsg,rev_485_buf,sizeof(Proxy_Msg));
 			if (cjguiProxy_Tmp.strProxyMsg.port.OI== PORT_ZB) {
 				memcpy(&cjGuiProxy_plc,&cjguiProxy_Tmp,sizeof(cjGuiProxy_plc));//如果点抄的是载波测量点，消息变量转存
@@ -1562,6 +1623,10 @@ void dispatch_thread()
 #endif
 
 		}
+		if((para_ChangeType&para_6000_chg)||(para_ChangeType&para_6012_chg))
+		{
+			init6035TotalNum();
+		}
 		if(para_ChangeType&para_4204_chg)
 		{
 			init4204Info();
@@ -1638,12 +1703,13 @@ void dispatchTask_proccess()
 	//读取所有任务文件		TODO：参数下发后需要更新内存值
 	init6013ListFrom6012File();
 	init6000InfoFrom6000FIle();
+	init6035TotalNum();
 #if 1
 	fileread(REPLENISHFILEPATH,&infoReplenish,sizeof(Replenish_TaskInfo));
 	//printinfoReplenish(1);
 #endif
 	init4204Info();
-#ifdef TESTDEF
+#ifdef TESTDEF1
 	fprintf(stderr,"\n补抄内容:\n");
 	INT8U tIndex = 0;
 	for(tIndex = 0;tIndex < infoReplenish.tasknum;tIndex++)
@@ -1679,6 +1745,20 @@ void dispatchTask_proccess()
 	pthread_attr_setdetachstate(&dispatchTask_attr_t, PTHREAD_CREATE_DETACHED);
 
 	while ((thread_dispatchTask_id = pthread_create(&thread_dispatchTask,&dispatchTask_attr_t, (void*) dispatch_thread,NULL)) != 0)
+	{
+		sleep(1);
+	}
+}
+
+
+void ctrl_proccess()
+{
+	fprintf(stderr, "\n CJGUI compile time:%s %s", __DATE__,__TIME__);
+
+	pthread_attr_init(&guictrl_attr_t);
+	pthread_attr_setstacksize(&guictrl_attr_t,2048*1024);
+	pthread_attr_setdetachstate(&guictrl_attr_t,PTHREAD_CREATE_DETACHED);
+	while ((thread_guictrl_id=pthread_create(&thread_guictrl, &guictrl_attr_t, (void*)ctrlMain, NULL)) != 0)
 	{
 		sleep(1);
 	}
@@ -1730,6 +1810,11 @@ int main(int argc, char *argv[])
 		//液晶、控制
 		guictrl_proccess();
 	}
+	if(JProgramInfo->cfg_para.device == SPTF3)
+	{
+		//负控
+		ctrl_proccess();
+	}
 	//交采
 	acs_process();
 
@@ -1758,61 +1843,4 @@ int main(int argc, char *argv[])
 	pthread_mutex_destroy(&mutex); //销毁互斥锁
 	close_named_sem(SEMNAME_SPI0_0);
 	return EXIT_SUCCESS;//退出
-}
-int getTaskDataTsaNum(INT8U taskID)
-{
-	TS ts_tmp;
-	TSGet(&ts_tmp);
-	char	fname[128]={};
-	getTaskFileName(taskID,ts_tmp,fname);//得到要抄读的文件名称
-	fprintf(stderr,"\n打开文件名%s\n",fname);
-	INT8U tmp=0,buf[20]={};
-	int begitoffset =0 ;
-
-	int indexn=0,A_record=0,A_TSAblock=0;
-	HEAD_UNIT0 length[20];
-	int tsaNum =0 , head_len=0,unitnum=0;
-
-
-	FILE *fp=NULL;
-	fp = fopen(fname,"r");
-	if(fp==NULL)
-		return 0;
-	fprintf(stderr,"\n\n\n--------------------------------------------------------");
-	head_len = readfile_int(fp);
-	fprintf(stderr,"\n文件头长度 %d (字节)",head_len);
-
-	A_TSAblock = readfile_int(fp);
-	memset(&length,0,sizeof(length));
-	unitnum = (head_len )/sizeof(HEAD_UNIT0);
-
-	//打印文件头结构
-	A_record = head_prt(unitnum,length,&indexn,fp);
-
-	fprintf(stderr,"\nA_TSAblock = %d\n",A_TSAblock);
-	for(;;)
-	{
-		begitoffset = ftell(fp);
-		if (fread(&tmp,1,1,fp)<=0)
-		{
-			fprintf(stderr,"1111111");
-			fclose(fp);
-			return tsaNum;
-		}
-		if(tmp!=0X55)
-		{
-			fprintf(stderr,"2222222");
-			fclose(fp);
-			return tsaNum;
-		}
-		fread(&tmp,1,1,fp);
-		fread(&buf,tmp,1,fp);
-
-		tsaNum++;
-		fseek(fp,begitoffset+A_TSAblock,0);
-
-	}
-	fclose(fp);
-	return tsaNum;
-
 }

@@ -8,6 +8,6 @@
 
 int ctrl_base_test();
 
-int ctrlMain();
+int ctrlMain(void * arg);
 
 #endif //INC_698_CTRL_H

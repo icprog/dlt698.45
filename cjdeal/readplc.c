@@ -896,8 +896,12 @@ int doInit(RUNTIME_PLC *runtime_p)
 					}
 				}
 				clearvar(runtime_p);//376.2上行内容容器清空，发送计时归零
+
+				//在这发东软报文
+				runtime_p->send_start_time = nowtime ;//加上时间
+
 				sleep(1);
-				return INIT_MASTERADDR;
+//				return INIT_MASTERADDR;
 			}
 			//else if  (runtime_p->send_start_time !=0 && (nowtime  - runtime_p->send_start_time)>10)
 			else if (read_num>=3)
@@ -1046,7 +1050,7 @@ int doCompSlaveMeter(RUNTIME_PLC *runtime_p)
 				{
 					step_cmpslave = 3;
 					clearvar(runtime_p);
-					currtsa = tsa_head;	//删除完成 ,开始第 3 步
+					currtsa = tsa_head;	//读取完成 ,开始第 3 步
 					break;
 				}
 				SendDataToCom(runtime_p->comfd, runtime_p->sendbuf,sendlen );
@@ -1063,7 +1067,7 @@ int doCompSlaveMeter(RUNTIME_PLC *runtime_p)
 					addTsaList(&tsa_zb_head,runtime_p->format_Up.afn10_f2_up.SlavePoint[i].Addr);
 				}
 				clearvar(runtime_p);//376.2上行内容容器清空，发送计时归零
-				if (slavenum<=0 || replyn==0)
+				if (slavenum<=0  || replyn==0)
 				{
 					DbgPrintToFile1(31,"读取结束 读%d 个  实际 %d 个",index,slavenum);
 					tsa_print(tsa_zb_head,slavenum);
@@ -1939,10 +1943,8 @@ void* ProcessMeter_byJzq(INT8U *buf,INT8U *addrtmp,int *len)//struct Tsa_Node *n
 					tmpitem.oad1.OI,tmpitem.oad1.attflg,tmpitem.oad1.attrindex,
 					tmpitem.oad2.OI,tmpitem.oad2.attflg,tmpitem.oad2.attrindex,sendlen,nodetmp);
 			*len = sendlen;
-
 			DbgPrintToFile1(31,"有数据抄读，刷新任务内存状态");
 			chkTsaTask(&taskinfo);
-
 			return nodetmp;
 		}else
 		{
@@ -3641,13 +3643,12 @@ int doBroadCast(RUNTIME_PLC *runtime_p)
 	}
 	return BROADCAST;
 }
-
-INT8U  searchMode[15]={0x68,0x0f,0x00,0x47,0x00,0x00,0xFF,0x00,0x00,0x0b,0x02,0x40,0x01,0x94,0x16};
-INT8U  setMode[16]={0x68,0x10,0x00,0x47,0x00,0x00,0xFF,0x00,0x00,0x0d,0x01,0x40,0x01,0x66,0xFb,0x16};
+//载波查询模块工作模式和修改工作模式报文
+//INT8U  searchMode[15]={0x68,0x0f,0x00,0x47,0x00,0x00,0xFF,0x00,0x00,0x0b,0x02,0x40,0x01,0x94,0x16};
+//INT8U  setMode[16]={0x68,0x10,0x00,0x47,0x00,0x00,0xFF,0x00,0x00,0x0d,0x01,0x40,0x01,0x66,0xFb,0x16};
 
 void readplc_thread()
 {
-	int	testnum = 0;
 	int startFlg = 1;
 	int state = DATE_CHANGE;
 	RUNTIME_PLC runtimevar;
@@ -3659,11 +3660,9 @@ void readplc_thread()
 	RecvHead = 0;
 	RecvTail = 0;
 	search_i = 0;
+
 	initSearchMeter(&search6002);
 	initTaskData(&taskinfo);
-//	system("rm /nand/para/plcrecord.par  /nand/para/plcrecord.bak");
-//	DbgPrintToFile1(31,"2-fangAn6015[%d].sernum = %d  fangAn6015[%d].mst.mstype = %d ",
-//			0,fangAn6015[0].sernum,0,fangAn6015[0].mst.mstype);
 	PrintTaskInfo2(&taskinfo);
 	DbgPrintToFile1(31,"载波线程开始...");
 	runtimevar.format_Down.info_down.ReplyBytes = 0x28;
@@ -3688,29 +3687,6 @@ void readplc_thread()
 		{
 			case DATE_CHANGE :
 				state = doInit(&runtimevar);					//初始化 		 （ 1、硬件复位 2、模块版本信息查询  ）
-
-//				///test		读载波运行模式
-//				if(state == INIT_MASTERADDR)
-//					state = 0xfe;
-				break;
-			case 0xff:
-				SendDataToCom(runtimevar.comfd, searchMode,15 );
-				sleep(1);
-				testnum++;
-				if(testnum==5) {
-					testnum = 0;
-					state = INIT_MASTERADDR;
-					state = 0xfe;
-				}
-				break;
-			case 0xfe:
-				SendDataToCom(runtimevar.comfd, setMode,16 );
-				sleep(1);
-				testnum++;
-				if(testnum==5) {
-					testnum = 0;
-					state = INIT_MASTERADDR;
-				}
 				break;
 			case INIT_MASTERADDR :
 				state = doSetMasterAddr(&runtimevar);			//设置主节点地址 ( 1、主节点地址设置  )

@@ -32,7 +32,6 @@ typedef struct {
 									//厂商代码　　软件版本　软件日期　　硬件版本　硬件日期  扩展信息
 static VERINFO verinfo          = { "QDGK", "SXY8", "170823", "1.10", "160328", "00000000" }; // 4300 版本信息
 								    //湖南需要双协议,软件版本要求为SXY8（双协议8） ，1376.1（软件版本为SXY1）
-
 static DateTimeBCD product_date = { { 2016 }, { 04 }, { 6 }, { 0 }, { 0 }, { 0 } };   // 4300 生产日期
 static char protcol[]           = "DL/T 698.45";                                      // 4300 支持规约类型
 

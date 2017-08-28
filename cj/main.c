@@ -61,6 +61,7 @@ static char *usage_data = "\n--------------------数据维护命令-------------
 static char *usage_vari = "\n--------------------变量类对象----------------------------\n"
         "		 【供电时间】cj vari 2203		\n"
         "		 【复位次数】cj vari 2204		\n"
+		"        【流量统计】cj vari 2200		\n"
         "-------------------------------------------------------\n\n";
 static char *usage_event = "--------------------事件类对象----------------------------\n"
         "[初始化事件参数]  cj event init <oi> :例如：初始化采集终端初始化事件  cj event init 0x3100/0全部 	\n"
@@ -211,6 +212,71 @@ int main(int argc, char *argv[]) {
 
     //生产检测本地状态灯，使用485_II口发送报文，台体485_II与485_III短接，cjcomm的维护口485III会返回请求的数据
     //在台体检测的python脚本运行时候会调用cj checkled命令,来实现维护口通信,收到报文本地灯会闪烁
+    if (strcmp("getCB", argv[1]) == 0)
+    {
+    	if(argc==3)
+    	{
+    		INT8U taskid  = atoi(argv[2]);
+    		TS tsNow;
+    		TSGet(&tsNow);
+        	fprintf(stderr,"getCBsuctsanum = %d",getCBsuctsanum(taskid,tsNow));
+    	}
+    	return EXIT_SUCCESS;
+    }
+    if (strcmp("getoaddata", argv[1]) == 0)
+    {
+    	if(argc==3)
+    	{
+    		OAD oad_day;
+    		oad_day.OI = 0x5004;
+    		oad_day.attflg = 2;
+    		oad_day.attrindex = 0;
+    		OAD oad_month;
+    		oad_month.OI = 0x5006;
+    		oad_month.attflg = 2;
+    		oad_month.attrindex = 0;
+    		OAD oad_p;
+    		oad_p.OI = 0x0010;
+    		oad_p.attflg = 0x02;
+    		oad_p.attrindex = 0;
+    		OAD oad_q;
+    		oad_q.OI = 0x0020;
+    		oad_q.attflg = 0x02;
+    		oad_q.attrindex = 0;
+
+    		INT8U mpno  = atoi(argv[2]);
+    		TS tsNow;
+    		TSGet(&tsNow);
+    		CLASS_6001	 meter={};
+			INT8U resultbuf[256];
+			memset(resultbuf,0,256);
+    		if(readParaClass(0x6000,&meter,mpno)==1)
+    		{
+				INT16U datalen = GetOADData(oad_day,oad_p,tsNow,meter,resultbuf);
+				if(datalen > 0)
+				{
+					fprintf(stderr,"\n 日冻0010结数据:");
+					INT8U prtIndex = 0;
+					for( prtIndex = 0; prtIndex < datalen; prtIndex++)
+					{
+						fprintf(stderr,"%02x ",resultbuf[prtIndex]);
+					}
+				}
+				memset(resultbuf,0,256);
+				datalen = GetOADData(oad_day,oad_q,tsNow,meter,resultbuf);
+				if(datalen > 0)
+				{
+					fprintf(stderr,"\n 日冻0020结数据:");
+					INT8U prtIndex = 0;
+					for( prtIndex = 0; prtIndex < datalen; prtIndex++)
+					{
+						fprintf(stderr,"%02x ",resultbuf[prtIndex]);
+					}
+				}
+    		}
+    	}
+    	return EXIT_SUCCESS;
+    }
     if (strcmp("checkled", argv[1]) == 0) {
     	int port = 1;
     	if(argc==3) {
@@ -468,6 +534,34 @@ int main(int argc, char *argv[]) {
     	showPlcMeterstatus(argc, argv);
     	return EXIT_SUCCESS;
     }
+
+    if(strcmp("ctrl",argv[1])==0)
+	{
+    	JProgramInfo = OpenShMem("ProgramInfo", sizeof(ProgramInfo), NULL);
+		if(argc < 3){
+			fprintf(stderr, "参数不足\n");
+			return 0;
+		}
+		int cmd = atoi(argv[1]);
+
+		if(cmd == 0) {
+			fprintf(stderr, "遥控分闸\n");
+			JProgramInfo->ctrls.control[0] = 0xEEFFEFEF;
+			JProgramInfo->ctrls.control[1] = 0xEEFFEFEF;
+			JProgramInfo->ctrls.control[2] = 0xEEFFEFEF;
+		}
+		else if(cmd == 0) {
+			fprintf(stderr, "遥控合闸\n");
+			JProgramInfo->ctrls.control[0] = 0xCCAACACA;
+			JProgramInfo->ctrls.control[1] = 0xCCAACACA;
+			JProgramInfo->ctrls.control[2] = 0xCCAACACA;
+		}
+		else{
+			fprintf(stderr, "非法参数\n");
+		}
+		return EXIT_SUCCESS;
+	}
+
     if(strcmp("time",argv[1])==0  && argc==3)
     {
     	DateTimeBCD bcdtime;

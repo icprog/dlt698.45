@@ -10,28 +10,15 @@
 
 #include "ctrl.h"
 #include "crtl_base.h"
-#include "../include/Shmem.h"
-#include "../include/Objectdef.h"
-#include "../libAccess/AccessFun.h"
+#include "pluse.h"
+#include "Shmem.h"
+#include "Objectdef.h"
+#include "AccessFun.h"
 
 extern ProgramInfo* JProgramInfo;
+CtrlState * CtrlC;
 
-static struct {
-	CLASS23 class23[8];
-
-	CLASS_8100 c8100; //终端保安定值
-	CLASS_8101 c8101; //终端功控时段
-	CLASS_8102 c8102; //功控告警时间
-
-	CLASS_8103 c8103; //时段功控
-	CLASS_8104 c8104; //厂休控
-	CLASS_8105 c8105; //营业报停控
-	CLASS_8106 c8106; //功率下浮控
-
-	CLASS_8107 c8107; //购电控
-	CLASS_8108 c8108; //月电控
-
-} CtrlC;
+extern INT8U get6001ObjByTSA(TSA addr,CLASS_6001* targetMeter);
 
 int ctrl_base_test() {
 	printf("%d", CheckModelState());
@@ -43,103 +30,66 @@ int ctrl_base_test() {
 	return 0;
 }
 
-void getNewPulseVal(unsigned int *pulse) {
-	int fd = open("/dev/pulse", O_RDWR);
-	read(fd, pulse, sizeof(unsigned int) * 2);
-	close(fd);
-}
-
-//根据脉冲计算电量
-void cacl_DD(unsigned int *pulse) {
-	int con = JProgramInfo->class12.unit[0].k;
-
-	switch (JProgramInfo->class12.unit[0].conf) {
-
-	//正向有功 = 脉冲总数 * 1000/con;
-	case 0:
-		JProgramInfo->class12.day_pos_p = pulse[0] * 1000 / con;
-		break;
-
-		//反向有功 = 脉冲总数 * 100/con;
-	case 2:
-		JProgramInfo->class12.day_nag_p = pulse[0] * 100 / con;
-		break;
-
-		//正向无功 = 脉冲总数 * 100/con + 脉冲总数%10;
-	case 1:
-		JProgramInfo->class12.day_pos_q = pulse[0] * 100 / con + pulse[0] % 10;
-		break;
-
-		//反向无功 = 脉冲总数 * 100/con + 脉冲总数%10;
-	case 3:
-		JProgramInfo->class12.day_nag_q = pulse[0] * 100 / con + pulse[0] % 10;
-		break;
-	}
-}
-
-//计算周期内实时功率
-void cacl_PQ(unsigned int *pulse) {
-	int con = JProgramInfo->class12.unit[0].k;
-
-	switch (JProgramInfo->class12.unit[0].conf) {
-	//瞬时有功功率 = 实时脉冲*3600*变比/60/con
-	case 0:
-	case 2:
-		JProgramInfo->class12.p = pulse[0] * 3600.0 *JProgramInfo->class12.ct / (60 * con);
-		break;
-		//瞬时无功功率 = 实时脉冲*3600*变比/60/con
-	case 1:
-	case 3:
-		JProgramInfo->class12.q = pulse[0] * 3600.0 *JProgramInfo->class12.ct / (60 * con);
-		break;
-	}
-}
-
-//刷新脉冲
-void refreshPulse() {
-	//用于统计脉冲数
-	static int pulseCount[2] = { 0, 0 };
-	//用于存储增量
-	int pulseCountPlus[2] = { 0, 0 };
-	//用于统计周期内的脉冲计数
-	int pulseCountPeriod[2] = { 0, 0 };
-	//用于计算时间
-	int pulseCountTime[2] = { 0, 0 };
-	//获取寄存器的值
-	unsigned int pulse[2];
-	getNewPulseVal(pulse);
-
-	for (int i = 0; i < 2; i++) {
-		if (pulse[i] > pulseCount[i]) {
-			pulseCountPlus[i] = pulse[i] - pulseCount[i];
-			pulseCount[i] = pulse[i];
-		}
-
-		pulseCountPeriod[i] = pulseCountPlus[i];
-		if (pulseCountPeriod[i] > 0) {
-			pulseCountTime[i]++;
-		} else {
-			pulseCountTime[i] = 0;
-		}
-
-		//计算周期内的电量
-		cacl_DD(pulseCount);
-
-		if (pulseCountTime[i] >= 60) {
-			//计算周期内实时功率
-			cacl_PQ(pulseCountPeriod);
-			//周期内脉冲计数清零
-			pulseCountPeriod[i] = 0;
-			//周期重新计数
-			pulseCountTime[i] = 0;
-		}
-
-	}
-
-}
-
 //刷新总加组
 void refreshSumUp() {
+	static int old_month;
+
+	TS ts;
+	TSGet(&ts);
+	int total = 0;
+
+	for (int i = 0; i < 4; i++) {
+		total += JProgramInfo->class23[0].DayP[i];
+	}
+
+	fprintf(stderr, "total = %d\n", total);
+
+	JProgramInfo->class23[0].p = JProgramInfo->class12[0].p;
+	JProgramInfo->class23[0].q = JProgramInfo->class12[0].q;
+
+	for (int i = 0; i < 4; i++) {
+		fprintf(stderr, "分项%d\n", JProgramInfo->class12[0].day_pos_p[i]);
+		JProgramInfo->class23[0].DayP[i] =
+				JProgramInfo->class12[0].day_pos_p[i];
+		JProgramInfo->class23[0].DayQ[i] =
+				JProgramInfo->class12[0].day_pos_q[i];
+		JProgramInfo->class23[0].MonthP[i] =
+				JProgramInfo->class12[0].mon_pos_p[i];
+		JProgramInfo->class23[0].MonthQ[i] =
+				JProgramInfo->class12[0].mon_pos_q[i];
+	}
+
+	fprintf(stderr, "总加组 功率%d 电量%lld %lld %lld %lld\n",
+			JProgramInfo->class23[0].p, JProgramInfo->class23[0].DayP[0],
+			JProgramInfo->class23[0].DayP[1], JProgramInfo->class23[0].DayP[2],
+			JProgramInfo->class23[0].DayP[3]);
+
+	if (ts.Hour == 0 && ts.Minute == 0 && ts.Sec == 0) {
+		for (int i = 0; i < 2; i++) {
+			memset(&JProgramInfo->class12[i].day_nag_p[0], 0x00,
+					sizeof(JProgramInfo->class12[i].day_nag_p));
+			memset(&JProgramInfo->class12[i].day_nag_q[0], 0x00,
+					sizeof(JProgramInfo->class12[i].day_nag_q));
+			memset(&JProgramInfo->class12[i].day_pos_p[0], 0x00,
+					sizeof(JProgramInfo->class12[i].day_pos_p));
+			memset(&JProgramInfo->class12[i].day_pos_q[0], 0x00,
+					sizeof(JProgramInfo->class12[i].day_pos_q));
+		}
+	}
+
+	if (old_month != ts.Month) {
+		old_month = ts.Month;
+		for (int i = 0; i < 2; i++) {
+			memset(&JProgramInfo->class12[i].mon_nag_p[0], 0x00,
+					sizeof(JProgramInfo->class12[i].mon_nag_p));
+			memset(&JProgramInfo->class12[i].mon_nag_q[0], 0x00,
+					sizeof(JProgramInfo->class12[i].mon_nag_q));
+			memset(&JProgramInfo->class12[i].mon_pos_p[0], 0x00,
+					sizeof(JProgramInfo->class12[i].mon_pos_p));
+			memset(&JProgramInfo->class12[i].mon_pos_q[0], 0x00,
+					sizeof(JProgramInfo->class12[i].mon_pos_q));
+		}
+	}
 
 }
 
@@ -147,24 +97,106 @@ void refreshSumUp() {
 void CheckParaUpdate() {
 
 }
+INT8U initFreezeDataFormFile()
+{
+	fprintf(stderr,"\n\n\ninitFreezeDataFormFileinitFreezeDataFormFileinitFreezeDataFormFileinitFreezeDataFormFile");
+	INT8U ret = 0;
 
+	INT8U meterIndex = 0;
+	INT8U groupIndex = 0;
+	OAD oad_m[2];
+	oad_m[0].OI = 0x5004;
+	oad_m[0].attflg = 2;
+	oad_m[0].attrindex = 0;
+	oad_m[1].OI = 0x5006;
+	oad_m[1].attflg = 2;
+	oad_m[1].attrindex = 0;
+	OAD oad_r[2];
+	oad_r[0].OI = 0x0010;
+	oad_r[0].attflg = 0x02;
+	oad_r[0].attrindex = 0;
+	oad_r[1].OI = 0x0020;
+	oad_r[1].attflg = 0x02;
+	oad_r[1].attrindex = 0;
+
+	for(groupIndex = 0;groupIndex < 8;groupIndex++)
+	{
+		for(meterIndex = 0;meterIndex < MAX_AL_UNIT;meterIndex++)
+		{
+			if(JProgramInfo->class23[groupIndex].allist[meterIndex].tsa.addr[0]==0)
+				break;
+			CLASS_6001 meter;
+			INT8U ret = get6001ObjByTSA(JProgramInfo->class23[groupIndex].allist[meterIndex].tsa,&meter);
+			if(ret == 1)
+			{
+				INT8U resultbuf[256];
+				TS tsnow;
+				TSGet(&tsnow);
+				INT8U dataIndex = 0;
+				for(dataIndex = 0;dataIndex < 4;dataIndex++)
+				{
+					memset(resultbuf,0,256);
+					INT16U datalen = GetOADData(oad_m[dataIndex/2],oad_r[dataIndex%2],tsnow,meter,resultbuf);
+					if(datalen > 3)
+					{
+						if(resultbuf[3] == (MAXVAL_RATENUM+1))
+						{
+							INT8U databuf[25];
+							memcpy(databuf,&resultbuf[4],25);
+							INT8U rateIndex = 0;
+							for(rateIndex = 0;rateIndex < MAXVAL_RATENUM+1;rateIndex++)
+							{
+								if(rateIndex*5==0x06)
+								{
+									INT32U dianliang = (databuf[rateIndex*5+1]<<24)+(databuf[rateIndex*5+2]<<16)+(databuf[rateIndex*5+3]<<8)+databuf[rateIndex*5+4];
+									JProgramInfo->class23[groupIndex].allist[meterIndex].freeze[dataIndex][rateIndex] = dianliang;
+									fprintf(stderr,"\n dataIndex = %d rateIndex = %d value = %d",dataIndex,rateIndex,dianliang);
+								}
+								else
+								{
+									break;
+								}
+
+							}
+						}
+					}
+				}
+
+
+			}
+
+		}
+	}
+
+	return ret;
+}
 int initAll() {
 	//读取总加组数据
-	memset(&CtrlC, 0x00, sizeof(CtrlC));
+	CtrlC = &JProgramInfo->ctrls;
+	memset(CtrlC, 0x00, sizeof(CtrlState));
 	for (int i = 0; i < 8; ++i) {
 		readCoverClass(0x2301 + i, 0, &JProgramInfo->class23[0],
 				sizeof(CLASS23), para_vari_save);
 	}
 
-	readCoverClass(0x8100, 0, &CtrlC.c8100, sizeof(CLASS_8100), para_vari_save);
-	readCoverClass(0x8101, 0, &CtrlC.c8101, sizeof(CLASS_8101), para_vari_save);
-	readCoverClass(0x8102, 0, &CtrlC.c8102, sizeof(CLASS_8102), para_vari_save);
-	readCoverClass(0x8103, 0, &CtrlC.c8103, sizeof(CLASS_8103), para_vari_save);
-	readCoverClass(0x8104, 0, &CtrlC.c8104, sizeof(CLASS_8104), para_vari_save);
-	readCoverClass(0x8105, 0, &CtrlC.c8105, sizeof(CLASS_8105), para_vari_save);
-	readCoverClass(0x8106, 0, &CtrlC.c8106, sizeof(CLASS_8106), para_vari_save);
-	readCoverClass(0x8107, 0, &CtrlC.c8107, sizeof(CLASS_8107), para_vari_save);
-	readCoverClass(0x8108, 0, &CtrlC.c8108, sizeof(CLASS_8108), para_vari_save);
+	readCoverClass(0x8100, 0, &CtrlC->c8100, sizeof(CLASS_8100),
+			para_vari_save);
+	readCoverClass(0x8101, 0, &CtrlC->c8101, sizeof(CLASS_8101),
+			para_vari_save);
+	readCoverClass(0x8102, 0, &CtrlC->c8102, sizeof(CLASS_8102),
+			para_vari_save);
+	readCoverClass(0x8103, 0, &CtrlC->c8103, sizeof(CLASS_8103),
+			para_vari_save);
+	readCoverClass(0x8104, 0, &CtrlC->c8104, sizeof(CLASS_8104),
+			para_vari_save);
+	readCoverClass(0x8105, 0, &CtrlC->c8105, sizeof(CLASS_8105),
+			para_vari_save);
+	readCoverClass(0x8106, 0, &CtrlC->c8106, sizeof(CLASS_8106),
+			para_vari_save);
+	readCoverClass(0x8107, 0, &CtrlC->c8107, sizeof(CLASS_8107),
+			para_vari_save);
+	readCoverClass(0x8108, 0, &CtrlC->c8108, sizeof(CLASS_8108),
+			para_vari_save);
 
 	return 0;
 }
@@ -192,8 +224,8 @@ int CheckAllUnitEmpty(AL_UNIT au[]) {
 int getCurrTimeValue(OI_698 oi, TS ts) {
 	//检查当前总加组的开关是否打开
 	for (int i = 0; i < MAX_AL_UNIT; i++) {
-		if (CtrlC.c8103.enable[i].name == oi
-				&& CtrlC.c8103.enable[i].state == 0) {
+		if (CtrlC->c8103.enable[i].name == oi
+				&& CtrlC->c8103.enable[i].state == 0) {
 			return -1;
 		}
 	}
@@ -203,19 +235,19 @@ int getCurrTimeValue(OI_698 oi, TS ts) {
 
 	//获取当前总加组，在当前时段下的配置参数
 	for (int i = 0; i < MAX_AL_UNIT; i++) {
-		if (CtrlC.c8103.list[i].index == oi) {
+		if (CtrlC->c8103.list[i].index == oi) {
 			//判断当前时段的开关是否打开
-			if (getBit(CtrlC.c8103.sign, offtime) == 0x00) {
+			if (getBit(CtrlC->c8103.sign, offtime) == 0x00) {
 				return -1;
 			}
-			int index = CtrlC.c8103.numb;
+			int index = CtrlC->c8103.numb;
 			switch (index) {
 			case 0:
-				return CtrlC.c8103.list[i].v1.t1;
+				return CtrlC->c8103.list[i].v1.t1;
 			case 1:
-				return CtrlC.c8103.list[i].v2.t1;
+				return CtrlC->c8103.list[i].v2.t1;
 			case 2:
-				return CtrlC.c8103.list[i].v3.t1;
+				return CtrlC->c8103.list[i].v3.t1;
 			default:
 				return -1;
 			}
@@ -274,7 +306,7 @@ int deal8103() {
 			if (getCurrTimeValue(0x2301 + i, ts) != -1) {
 				if (JProgramInfo->class23[i].DayP[0] > val) {
 					//产生约负荷越限
-					updateState(CtrlC.c8103.overflow, CtrlC.c8103.output,
+					updateState(CtrlC->c8103.overflow, CtrlC->c8103.output,
 							0x2301 + i);
 					return 1;
 				} else {
@@ -291,8 +323,8 @@ int getIsInTime(OI_698 oi, TS ts) {
 
 	//检查当前总加组的开关是否打开
 	for (int i = 0; i < MAX_AL_UNIT; i++) {
-		if (CtrlC.c8104.enable[i].name == oi
-				&& CtrlC.c8104.enable[i].state == 0) {
+		if (CtrlC->c8104.enable[i].name == oi
+				&& CtrlC->c8104.enable[i].state == 0) {
 			return -1;
 		}
 	}
@@ -302,18 +334,18 @@ int getIsInTime(OI_698 oi, TS ts) {
 	TSGet(&start);
 
 	for (int i = 0; i < MAX_AL_UNIT; i++) {
-		if (CtrlC.c8104.list[i].index == oi) {
+		if (CtrlC->c8104.list[i].index == oi) {
 			//判断是否是限电日
-			if (getBit(CtrlC.c8104.list[i].noDay, ts.Week) == 0) {
+			if (getBit(CtrlC->c8104.list[i].noDay, ts.Week) == 0) {
 				return -1;
 			}
 
 			//判断是否在厂休时间内，并返回定值
-			if (CtrlC.c8104.list[i].start.year.data != 0xFFFF) {
-				TimeBCDToTs(CtrlC.c8104.list[i].start, &start);
-				tminc(&start, 1, CtrlC.c8104.list[i].sustain);
+			if (CtrlC->c8104.list[i].start.year.data != 0xFFFF) {
+				TimeBCDToTs(CtrlC->c8104.list[i].start, &start);
+				tminc(&start, 1, CtrlC->c8104.list[i].sustain);
 				if (TScompare(start, ts) == 1) {
-					return CtrlC.c8104.list[i].v;
+					return CtrlC->c8104.list[i].v;
 				} else {
 					return -1;
 				}
@@ -334,7 +366,7 @@ int deal8104() {
 		if (val != -1) {
 			if (JProgramInfo->class23[i].DayP[0] > val) {
 				//产生约负荷越限
-				updateState(CtrlC.c8104.overflow, CtrlC.c8103.output,
+				updateState(CtrlC->c8104.overflow, CtrlC->c8103.output,
 						0x2301 + i);
 				return 1;
 			} else {
@@ -350,21 +382,21 @@ int getIsInStop(OI_698 oi, TS ts) {
 
 	//检查当前总加组的开关是否打开
 	for (int i = 0; i < MAX_AL_UNIT; i++) {
-		if (CtrlC.c8104.enable[i].name == oi
-				&& CtrlC.c8105.enable[i].state == 0) {
+		if (CtrlC->c8104.enable[i].name == oi
+				&& CtrlC->c8105.enable[i].state == 0) {
 			return -1;
 		}
 	}
 
 	TS start, end;
 	for (int i = 0; i < MAX_AL_UNIT; i++) {
-		if (CtrlC.c8105.list[i].index == oi) {
+		if (CtrlC->c8105.list[i].index == oi) {
 			//判断当前时间是否在营业报停配置时段内
-			TimeBCDToTs(CtrlC.c8105.list[i].start, &start);
-			TimeBCDToTs(CtrlC.c8105.list[i].end, &end);
+			TimeBCDToTs(CtrlC->c8105.list[i].start, &start);
+			TimeBCDToTs(CtrlC->c8105.list[i].end, &end);
 
 			if (TScompare(ts, start) == 1 && TScompare(end, ts) == 1) {
-				return CtrlC.c8105.list[i].v;
+				return CtrlC->c8105.list[i].v;
 			} else {
 				return -1;
 			}
@@ -384,7 +416,7 @@ int deal8105() {
 		if (val != -1) {
 			if (JProgramInfo->class23[i].DayP[0] > val) {
 				//产生约负荷越限
-				updateState(CtrlC.c8105.overflow, CtrlC.c8103.output,
+				updateState(CtrlC->c8105.overflow, CtrlC->c8103.output,
 						0x2301 + i);
 				return 1;
 			} else {
@@ -413,8 +445,8 @@ int deal8107() {
 
 int getMonthValue(OI_698 oi) {
 	for (int i = 0; i < MAX_AL_UNIT; i++) {
-		if (CtrlC.c8108.list[i].index == oi) {
-			return CtrlC.c8108.list[i].v;
+		if (CtrlC->c8108.list[i].index == oi) {
+			return CtrlC->c8108.list[i].v;
 		}
 	}
 	return -1;
@@ -441,83 +473,83 @@ void sumUpCtrl() {
 	for (int i = 0; i < 8; i++) {
 		//时段功控状态汇总
 		for (int i = 0; i < MAX_AL_UNIT; i++) {
-			if (CtrlC.c8103.overflow[i].name == 0x2301 + i) {
+			if (CtrlC->c8103.overflow[i].name == 0x2301 + i) {
 				JProgramInfo->class23[i].alCtlState.PCAlarmState |=
-						CtrlC.c8103.overflow[i].state;
+						CtrlC->c8103.overflow[i].state;
 			}
 
-			if (CtrlC.c8103.output[i].name == 0x2301 + i) {
+			if (CtrlC->c8103.output[i].name == 0x2301 + i) {
 				JProgramInfo->class23[i].alCtlState.OutputState |=
-						CtrlC.c8103.output[i].state;
+						CtrlC->c8103.output[i].state;
 			}
 		}
 
 		//厂休控状态汇总
 		for (int i = 0; i < MAX_AL_UNIT; i++) {
-			if (CtrlC.c8104.overflow[i].name == 0x2301 + i) {
+			if (CtrlC->c8104.overflow[i].name == 0x2301 + i) {
 				JProgramInfo->class23[i].alCtlState.PCAlarmState |=
-						CtrlC.c8104.overflow[i].state;
+						CtrlC->c8104.overflow[i].state;
 			}
 
-			if (CtrlC.c8104.output[i].name == 0x2301 + i) {
+			if (CtrlC->c8104.output[i].name == 0x2301 + i) {
 				JProgramInfo->class23[i].alCtlState.OutputState |=
-						CtrlC.c8104.output[i].state;
+						CtrlC->c8104.output[i].state;
 			}
 		}
 
 		//营业报停控状态汇总
 		for (int i = 0; i < MAX_AL_UNIT; i++) {
-			if (CtrlC.c8105.overflow[i].name == 0x2301 + i) {
+			if (CtrlC->c8105.overflow[i].name == 0x2301 + i) {
 				JProgramInfo->class23[i].alCtlState.PCAlarmState |=
-						CtrlC.c8105.overflow[i].state;
+						CtrlC->c8105.overflow[i].state;
 			}
 
-			if (CtrlC.c8105.output[i].name == 0x2301 + i) {
+			if (CtrlC->c8105.output[i].name == 0x2301 + i) {
 				JProgramInfo->class23[i].alCtlState.OutputState |=
-						CtrlC.c8105.output[i].state;
+						CtrlC->c8105.output[i].state;
 			}
 		}
 
 		//功率下浮控状态汇总
 		for (int i = 0; i < MAX_AL_UNIT; i++) {
-			if (CtrlC.c8106.overflow[i].name == 0x2301 + i) {
+			if (CtrlC->c8106.overflow[i].name == 0x2301 + i) {
 				JProgramInfo->class23[i].alCtlState.PCAlarmState |=
-						CtrlC.c8106.overflow[i].state;
+						CtrlC->c8106.overflow[i].state;
 			}
 
-			if (CtrlC.c8106.output[i].name == 0x2301 + i) {
+			if (CtrlC->c8106.output[i].name == 0x2301 + i) {
 				JProgramInfo->class23[i].alCtlState.OutputState |=
-						CtrlC.c8106.output[i].state;
+						CtrlC->c8106.output[i].state;
 			}
 		}
 
 		//购电控状态汇总
 		for (int i = 0; i < MAX_AL_UNIT; i++) {
-			if (CtrlC.c8107.overflow[i].name == 0x2301 + i) {
+			if (CtrlC->c8107.overflow[i].name == 0x2301 + i) {
 				JProgramInfo->class23[i].alCtlState.ECAlarmState |=
-						CtrlC.c8107.overflow[i].state;
+						CtrlC->c8107.overflow[i].state;
 			}
 
-			if (CtrlC.c8107.output[i].name == 0x2301 + i) {
+			if (CtrlC->c8107.output[i].name == 0x2301 + i) {
 				JProgramInfo->class23[i].alCtlState.BuyOutputState |=
-						CtrlC.c8107.output[i].state;
+						CtrlC->c8107.output[i].state;
 				JProgramInfo->class23[i].alCtlState.OutputState |=
-						CtrlC.c8107.output[i].state;
+						CtrlC->c8107.output[i].state;
 			}
 		}
 
 		//月电控状态汇总
 		for (int i = 0; i < MAX_AL_UNIT; i++) {
-			if (CtrlC.c8108.overflow[i].name == 0x2301 + i) {
+			if (CtrlC->c8108.overflow[i].name == 0x2301 + i) {
 				JProgramInfo->class23[i].alCtlState.ECAlarmState |=
-						CtrlC.c8108.overflow[i].state;
+						CtrlC->c8108.overflow[i].state;
 			}
 
-			if (CtrlC.c8108.output[i].name == 0x2301 + i) {
+			if (CtrlC->c8108.output[i].name == 0x2301 + i) {
 				JProgramInfo->class23[i].alCtlState.MonthOutputState |=
-						CtrlC.c8108.output[i].state;
+						CtrlC->c8108.output[i].state;
 				JProgramInfo->class23[i].alCtlState.OutputState |=
-						CtrlC.c8108.output[i].state;
+						CtrlC->c8108.output[i].state;
 			}
 		}
 	}
@@ -584,57 +616,80 @@ void getFinalCtrl() {
 }
 
 void dealCtrl() {
-	//直接跳闸，必须检测
-	deal8107();
-	deal8108();
-
-	//检测控制有优先级，当高优先级条件产生时，忽略低优先级的配置
-
-	if (deal8106() != 0) {
-		;
-	} else if (deal8105() != 0) {
-		;
-	} else if (deal8104() != 0) {
-		;
-	} else if (deal8103() != 0) {
-		;
-	}
-	//统计输出与告警状态
-	sumUpCtrl();
-
-	//汇总所有总加组的状态
-	getFinalCtrl();
-
+//	//直接跳闸，必须检测
+//	deal8107();
+//	deal8108();
+//
+//	//检测控制有优先级，当高优先级条件产生时，忽略低优先级的配置
+//
+//	if (deal8106() != 0) {
+//		;
+//	} else if (deal8105() != 0) {
+//		;
+//	} else if (deal8104() != 0) {
+//		;
+//	} else if (deal8103() != 0) {
+//		;
+//	}
+//	//统计输出与告警状态
+//	sumUpCtrl();
+//
+//	//汇总所有总加组的状态
+//	getFinalCtrl();
 }
 
-int ctrlMain() {
+int ctrlMain(void * arg) {
 
 	int secOld = 0;
 	//初始化参数,搭建8个总加组数据，读取功控、电控参数
 	initAll();
-
+	initFreezeDataFormFile();
 	while (1) {
 		TS now;
 		TSGet(&now);
 
 		//一秒钟刷新一次脉冲数据
 		if (secOld != now.Sec) {
-			refreshPulse();
+			refreshPluse(secOld);
+			//更新总加组数据
+			refreshSumUp();
+			secOld = now.Sec;
 		}
 
 		//一分钟计算一次控制逻辑
 		if (secOld == 0) {
-
-			//更新总加组数据
 //			refreshSumUp();
 
-			//检查参数更新
+//检查参数更新
 //			CheckParaUpdate();
 
-			//处理控制逻辑
-//			dealCtrl();
+//处理控制逻辑
+			dealCtrl();
 		}
 
+		if (JProgramInfo->ctrls.control[0] == 0xEEFFEFEF
+				&& JProgramInfo->ctrls.control[1] == 0xEEFFEFEF
+				&& JProgramInfo->ctrls.control[2] == 0xEEFFEFEF) {
+			JProgramInfo->ctrls.control[0] = 0x00;
+			printf("%d", CheckModelState());
+			InitCtrlModel();
+			int fd = OpenSerialPort();
+
+			SetCtrl_CMD(fd, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+			close(fd);
+		} else if (JProgramInfo->ctrls.control[0] == 0xCCAACACA
+				&& JProgramInfo->ctrls.control[1] == 0xCCAACACA
+				&& JProgramInfo->ctrls.control[2] == 0xCCAACACA) {
+			JProgramInfo->ctrls.control[0] = 0x00;
+			printf("%d", CheckModelState());
+			InitCtrlModel();
+			int fd = OpenSerialPort();
+			SetCtrl_CMD(fd, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+			close(fd);
+		}
+
+
 		secOld = now.Sec;
+		usleep(200 * 1000);
 	}
 }

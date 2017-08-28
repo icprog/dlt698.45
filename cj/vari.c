@@ -39,6 +39,7 @@ void print2203()
 
 void print2204()
 {
+
 	Reset_tj reset_tj={};
 	int	  	len=0;
 
@@ -48,6 +49,15 @@ void print2204()
 	fprintf(stderr,"日复位累计次数=%d,月复位累计次数=%d\n",reset_tj.reset.day_tj,reset_tj.reset.month_tj);
 }
 
+void print2200()
+{
+	Flow_tj realTimeC2200;
+	int	  	len=0;
+
+	memset(&realTimeC2200,0,sizeof(Flow_tj));
+	len = readVariData(0x2200,0,&realTimeC2200,sizeof(Flow_tj));
+	fprintf(stderr,"当日通信流量=%d,当月通信流量=%d\n",realTimeC2200.flow.day_tj,realTimeC2200.flow.month_tj);
+}
 void vari_process(int argc, char *argv[])
 {
 	int 	tmp=0;
@@ -62,6 +72,9 @@ void vari_process(int argc, char *argv[])
 			break;
 		case 0x2204:
 			print2204();
+			break;
+		case 0x2200:
+       		print2200();
 			break;
 		}
 	}

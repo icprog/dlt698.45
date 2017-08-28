@@ -383,6 +383,20 @@ INT16U set4007(OAD oad,INT8U *data,INT8U *DAR)
 	return index;
 }
 
+INT16U set4024(OAD oad,INT8U *data,INT8U *DAR)
+{
+	int index=0;
+	if (oad.attflg == 2 )
+	{
+		int state = data[1];
+		fprintf(stderr, "剔除状态变更 %d\n", state);
+		memp->ctrls.c4024 = state;
+		//测试要求，不知是为什么
+		memp->ctrls.c8100.v = 5000;
+	}
+	return index;
+}
+
 INT16U set4030(OAD oad,INT8U *data,INT8U *DAR)
 {
 	int index=0;
@@ -1156,6 +1170,9 @@ INT16U EnvironmentValue(OAD oad,INT8U *data,INT8U *DAR)
 			break;
 		case 0x4007://LCD参数
 			data_index = set4007(oad,data,DAR);
+			break;
+		case 0x4024://剔除
+			data_index = set4024(oad,data,DAR);
 			break;
 		case 0x4030://电压合格率参数
 			data_index = set4030(oad,data,DAR);

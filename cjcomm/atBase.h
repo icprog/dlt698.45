@@ -42,6 +42,7 @@ typedef struct {
 	INT8U PPPD; //pppd拨号成功
 	INT8U GPRS_STATE; //拨号状态
 	INT8U PPP_IP[OCTET_STRING_LEN];//拨号IP
+	INT8U script;	//使用的拨号脚本
 } ATOBJ;
 
 ATOBJ *AtGet(void);

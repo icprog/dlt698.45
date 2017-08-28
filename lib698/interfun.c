@@ -209,11 +209,33 @@ int fill_bit_string(INT8U *data,INT8U size,INT8U *bits)		//0x04
 		size = 8;
 		syslog(LOG_ERR,"fill_bit_string size=%d, error",size);
 	}
-	data[0] = dtbitstring;
-	data[1] = size;
+//	data[0] = dtbitstring;
+//	data[1] = size;
+//	INT8U num=size/8;
+//	memcpy(&data[2],bits,num);
+//	return 2+num;
+
 	INT8U num=size/8;
-	memcpy(&data[2],bits,num);
+	int len_arc = 0;
+	int bit_start = 2;//默认bit区从第3字节开始
+	int len_start = 1;//默认长度区从第2字节开始
+	data[0] = dtbitstring;
+	if(size > 127)//长度区最高位1表示多字节编码, size为bit数
+	{
+		len_arc = 0x81;
+		data[len_start++] = len_arc;
+		data[len_start++] = size;
+		bit_start = len_start;
+		memcpy(&data[bit_start],bits,num);
+		return 2+num+1;
+	}else
+	{
+		data[1] = size;
+		memcpy(&data[2],bits,num);
+	}
+
 	return 2+num;
+
 }
 
 int fill_double_long(INT8U *data,INT32S value)		//0x05
@@ -1332,6 +1354,6 @@ void setOIChange(OI_698 oi)
 		fprintf(stderr,"memp->oi_changed.oiF203=%d\n",memp->oi_changed.oiF203);
 		break;
 	case 0xf101:	memp->oi_changed.oiF101++;  break;
-	case 0xf209:	memp->oi_changed.oiF209++;	break;
+	case 0xf209:	memp->oi_changed.oiF209++; break;
 	}
 }
