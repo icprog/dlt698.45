@@ -1,13 +1,9 @@
 # coding:utf-8
 
 from __future__ import division
-<<<<<<< HEAD
-import sys, time, datetime, telnetlib, ConfigParser, fileinput, os, re, exceptions, hashlib
-=======
-import sys, time, datetime, telnetlib, ConfigParser, fileinput, os, re, exceptions, hashlib,msvcrt
->>>>>>> origin/zhejiang698
-import ctypes
 
+import sys, time, datetime, telnetlib, ConfigParser, fileinput, os, re, exceptions, hashlib
+import ctypes, msvcrt
 
 STD_INPUT_HANDLE = -10
 STD_OUTPUT_HANDLE= -11
@@ -199,10 +195,6 @@ def checkProgs(config):
             print str(p + "\t错误\t").decode('utf-8')
             ok = 0
     if ok == 0:
-<<<<<<< HEAD
-        #print "进程运行情况 <<<<<<<<错误>>>>>>>>\n".decode('utf-8')
-=======
->>>>>>> origin/zhejiang698
         g_clr.print_red_text("进程运行情况 <<<<<<<<错误>>>>>>>>\n")
     else:
         print "进程运行情况-正确！\n".decode('utf-8')
@@ -226,10 +218,6 @@ def checkDateTime(config):
     devation = deviceDate - datetime.datetime.now()
     cas = (devation.days * 24 * 3600 + devation.seconds)
     if abs(cas) > 5:
-<<<<<<< HEAD
-        #print "对时\t错误\t时间差距%d秒".decode('utf-8') % cas
-=======
->>>>>>> origin/zhejiang698
         g_clr.print_red_text("对时\t错误\t时间差距%d秒"% cas)
         ok = 0
     else:
@@ -263,10 +251,6 @@ def checkSoftVersion(config):
     f.close()
 
     if ok == 0:
-<<<<<<< HEAD
-        #print "程序版本检查 <<<<<<<<错误>>>>>>>>\n".decode('utf-8')
-=======
->>>>>>> origin/zhejiang698
         g_clr.print_red_text("程序版本检查 <<<<<<<<错误>>>>>>>>\n")
     else:
         print "程序版本检查-正确！\n".decode('utf-8')
@@ -325,15 +309,9 @@ if __name__ == '__main__':
             if ok == 1:
                 print "\n\n>>>>>>>>>>>>>>>>>\n全部正确\n>>>>>>>>>>>>>>>>>\n\n".decode('utf-8')
             else:
-<<<<<<< HEAD
-                #print "\n\n>>>>>>>>>>>>>>>>>\n设备异常!!!!!\n>>>>>>>>>>>>>>>>>\n\n".decode('utf-8')
-                g_clr.print_red_text("\n\n>>>>>>>>>>>>>>>>>\n设备异常!!!!!\n>>>>>>>>>>>>>>>>>\n\n")
-=======
                 set_cmd_text_color(0x4e)
                 print "\n\n>>>>>>>>>>>>>>>>>\n设备异常!!!!!\n>>>>>>>>>>>>>>>>>\n\n".decode('utf-8')
                 set_cmd_text_color(0x07)
->>>>>>> origin/zhejiang698
-
         except IOError, e:
             set_cmd_text_color(0x4e)
             print '网络连接错误，检查网线连接状态。'.decode('utf-8')

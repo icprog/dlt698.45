@@ -39,38 +39,22 @@ class Color:
 
     def print_red_text(self, print_text):
         self.set_cmd_color(FOREGROUND_RED | FOREGROUND_INTENSITY)
-<<<<<<< HEAD
-        print print_text
-=======
         print print_text.decode('utf-8')
->>>>>>> origin/zhejiang698
         self.reset_color()
 
     def print_green_text(self, print_text):
         self.set_cmd_color(FOREGROUND_GREEN | FOREGROUND_INTENSITY)
-<<<<<<< HEAD
-        print print_text
-=======
         print print_text.decode('utf-8')
->>>>>>> origin/zhejiang698
         self.reset_color()
 
     def print_blue_text(self, print_text):
         self.set_cmd_color(FOREGROUND_BLUE | FOREGROUND_INTENSITY)
-<<<<<<< HEAD
-        print print_text
-=======
         print print_text.decode('utf-8')
->>>>>>> origin/zhejiang698
         self.reset_color()
 
     def print_red_text_with_blue_bg(self, print_text):
         self.set_cmd_color(FOREGROUND_RED | FOREGROUND_INTENSITY| BACKGROUND_BLUE | BACKGROUND_INTENSITY)
-<<<<<<< HEAD
-        print print_text
-=======
         print print_text.decode('utf-8')
->>>>>>> origin/zhejiang698
         self.reset_color()
 
 g_clr = Color()
