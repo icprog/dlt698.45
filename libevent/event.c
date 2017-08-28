@@ -1245,18 +1245,23 @@ INT8U Event_3106(ProgramInfo* prginfo_event,MeterPower *MeterPowerInfo,INT8U *st
 	INT16U recover_voltage_limit=prginfo_event->event_obj.Event3106_obj.poweroff_para_obj.screen_para_obj.recover_voltage_limit;
 	INT16U mintime_space=prginfo_event->event_obj.Event3106_obj.poweroff_para_obj.screen_para_obj.mintime_space;
 	INT16U maxtime_space=prginfo_event->event_obj.Event3106_obj.poweroff_para_obj.screen_para_obj.maxtime_space;
+
+	DEBUG_TIME_LINE("poweroff_happen_vlim: %d, recover_voltage_limit: %d", poweroff_happen_vlim, recover_voltage_limit);
+	DEBUG_TIME_LINE("Available: %d, Ua: %d", prginfo_event->ACSRealData.Available,prginfo_event->ACSRealData.Ua);
 	if(*state == 2){
 		MeterDiff(prginfo_event,MeterPowerInfo,state);
 		*state=0;
 	}
 	INT8U off_flag=0,on_flag=0;
 	//判断下电
-	DEBUG_TIME_LINE("poweroffThresh: %d, recoverThresh: %d, Ua: %d", poweroff_happen_vlim, recover_voltage_limit, prginfo_event->ACSRealData.Ua);
 	if(TermialPowerInfo.ERC3106State == POWER_START){
 		if(prginfo_event->cfg_para.device == CCTT2){//II型
 			if(prginfo_event->ACSRealData.Available==TRUE &&
 			   prginfo_event->ACSRealData.Ua<poweroff_happen_vlim) {
-				DEBUG_TIME_LINE("power off!");
+				DEBUG_TIME_LINE("poweroffThresh: %d, recoverThresh: %d, Ua: %d",
+						poweroff_happen_vlim,
+						recover_voltage_limit,
+						prginfo_event->ACSRealData.Ua);
 				off_flag=1;
 			}
 		}else{
@@ -1288,7 +1293,10 @@ INT8U Event_3106(ProgramInfo* prginfo_event,MeterPower *MeterPowerInfo,INT8U *st
 			if(prginfo_event->ACSRealData.Available &&
 			   prginfo_event->ACSRealData.Ua>recover_voltage_limit &&
 			   recover_voltage_limit>0) {
-				DEBUG_TIME_LINE("power on!");
+				DEBUG_TIME_LINE("poweronThresh: %d, recoverThresh: %d, Ua: %d",
+						poweroff_happen_vlim,
+						recover_voltage_limit,
+						prginfo_event->ACSRealData.Ua);
 				on_flag=1;
 			}
 		}else{

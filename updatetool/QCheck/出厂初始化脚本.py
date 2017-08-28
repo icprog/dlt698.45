@@ -1,7 +1,7 @@
 # coding:utf-8
 
 from __future__ import division
-import sys, time, telnetlib, ConfigParser, os, exceptions
+import sys, time, telnetlib, ConfigParser, os, exceptions,msvcrt
 
 
 #
@@ -40,11 +40,24 @@ def ReadyNet(host, user, passwd):
 #
 # 获取用户输入产品号，附带输入信息；
 #
-def getInputGiveInfo(info):
+def getInputGiveInfo():
     try:
-        return str(input(info))
+        print "请用扫码器扫描22位资产管理编号".decode('utf-8')
+        info = ""
+        sys.stdout.write("Input ID >>>")
+        info = ""
+        while len(info) < 22:
+            ch = msvcrt.getch()
+            if str.isdigit(ch):
+                info += ch
+            elif ch <> '\r':
+                print "输入格式不合格，请重新输入".decode('utf-8')
+                sys.stdout.write("Input ID >>>")
+                info = ""
+        print info
+        return info
     except IOError, e:
-        print '请输入正确格式的信息。'
+        print '请输入正确格式的信息。'.decode('utf-8')
     except SyntaxError, e:
         return ''
 
@@ -104,14 +117,15 @@ def doSetDevice(config):
 if __name__ == '__main__':
     config = checkConfig("./config.ini")
 
-    deviceId = getInputGiveInfo("Input Begin ID >>>")
+
 
     while True:
         try:
-            os.system('cls;clear')
-            os.system('arp -d')
+            #os.system('cls;clear')
+            #os.system('arp -d')
 
-            newDeviceId = getInputGiveInfo("Please Confirm ID:(or you can input a new ID):" + formatId(config, deviceId) + "#")
+            newDeviceId = getInputGiveInfo()[13:-1]
+            print newDeviceId
             if newDeviceId is not "":
                 deviceId = newDeviceId
             config.set('parameter', 'id', formatId(config, deviceId))

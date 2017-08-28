@@ -1,7 +1,11 @@
 # coding:utf-8
 
 from __future__ import division
+<<<<<<< HEAD
 import sys, time, datetime, telnetlib, ConfigParser, fileinput, os, re, exceptions, hashlib
+=======
+import sys, time, datetime, telnetlib, ConfigParser, fileinput, os, re, exceptions, hashlib,msvcrt
+>>>>>>> origin/zhejiang698
 import ctypes
 
 
@@ -121,10 +125,25 @@ def ReadyNet(host, user, passwd):
 #
 # 获取用户输入产品号，附带输入信息；
 #
+#
+# 获取用户输入产品号，附带输入信息；
+#
 def getInputGiveInfo():
     try:
-        print "<按［回车］键，开始检查>".decode('utf-8')
-        return str(input('>>>'))
+        print "请用扫码器扫描22位资产管理编号".decode('utf-8')
+        info = ""
+        sys.stdout.write('>>>')
+        info = ""
+        while len(info) < 22:
+            ch = msvcrt.getch()
+            if str.isdigit(ch):
+                info += ch
+            elif ch <> '\r':
+                print "输入格式不合格，请重新输入".decode('utf-8')
+                sys.stdout.write('>>>')
+                info = ""
+        print info
+        return info
     except IOError, e:
         #print '请输入正确格式的信息。'.decode('utf-8')
         g_clr.print_red_text("请输入正确格式的信息!")
@@ -180,7 +199,10 @@ def checkProgs(config):
             print str(p + "\t错误\t").decode('utf-8')
             ok = 0
     if ok == 0:
+<<<<<<< HEAD
         #print "进程运行情况 <<<<<<<<错误>>>>>>>>\n".decode('utf-8')
+=======
+>>>>>>> origin/zhejiang698
         g_clr.print_red_text("进程运行情况 <<<<<<<<错误>>>>>>>>\n")
     else:
         print "进程运行情况-正确！\n".decode('utf-8')
@@ -204,7 +226,10 @@ def checkDateTime(config):
     devation = deviceDate - datetime.datetime.now()
     cas = (devation.days * 24 * 3600 + devation.seconds)
     if abs(cas) > 5:
+<<<<<<< HEAD
         #print "对时\t错误\t时间差距%d秒".decode('utf-8') % cas
+=======
+>>>>>>> origin/zhejiang698
         g_clr.print_red_text("对时\t错误\t时间差距%d秒"% cas)
         ok = 0
     else:
@@ -233,18 +258,22 @@ def checkSoftVersion(config):
 
     for i in f:
         if msg.find(i[:24]) == -1:
-            print "版本\t错误\t".decode('utf-8') + i.split('  ')[1].decode('utf-8')
+            g_clr.print_red_text("版本\t错误\t" + i.split('  ')[1])
             ok = 0
     f.close()
 
     if ok == 0:
+<<<<<<< HEAD
         #print "程序版本检查 <<<<<<<<错误>>>>>>>>\n".decode('utf-8')
+=======
+>>>>>>> origin/zhejiang698
         g_clr.print_red_text("程序版本检查 <<<<<<<<错误>>>>>>>>\n")
     else:
         print "程序版本检查-正确！\n".decode('utf-8')
 
     lNet.close()
     return ok
+
 
 
 #
@@ -255,33 +284,58 @@ def showDeviceId(config):
     lNet.write("cj id" + "\r\n")
     lNet.write("exit" + "\r\n")
     msg = lNet.read_all()
-
-    print msg[142:-6]
-
     lNet.close()
+    return msg[155:-8].replace(' ','')
+
+#
+# 检查表号
+#
+def checkClockNum(code,config):
+    cmpcode = showDeviceId(config)
+    print "集中器返回条码：".decode("utf-8") + cmpcode.decode("utf-8")
+    print "比对条码:".decode("utf-8") + code[13:-1].decode("utf-8")
+    if code[13:-1] == showDeviceId(config):
+        print "条码比对正确".decode("utf-8")
+        return 1
+    else:
+        g_clr.print_red_text("条码比对错误！！")
+        return 0
+#设置字体颜色
+def set_cmd_text_color(color):
+    std_out_handle = ctypes.windll.kernel32.GetStdHandle(-11)
+    Bool = ctypes.windll.kernel32.SetConsoleTextAttribute(std_out_handle, color)
+    return Bool
 
 
 if __name__ == '__main__':
     config = checkConfig("./check.ini")
     while True:
         try:
-            getInputGiveInfo()
-
+            #os.system('cls;clear')
+            #os.system('arp -d')
+            propertyCode = getInputGiveInfo()
             ok = 1
-            os.system('cls;clear')
-            os.system('arp -d')
+
             ok &= checkDevice(config)
             ok &= checkProgs(config)
             ok &= checkSoftVersion(config)
             ok &= checkDateTime(config)
-            showDeviceId(config)
+            ok &= checkClockNum(propertyCode,config)
 
             if ok == 1:
                 print "\n\n>>>>>>>>>>>>>>>>>\n全部正确\n>>>>>>>>>>>>>>>>>\n\n".decode('utf-8')
             else:
+<<<<<<< HEAD
                 #print "\n\n>>>>>>>>>>>>>>>>>\n设备异常!!!!!\n>>>>>>>>>>>>>>>>>\n\n".decode('utf-8')
                 g_clr.print_red_text("\n\n>>>>>>>>>>>>>>>>>\n设备异常!!!!!\n>>>>>>>>>>>>>>>>>\n\n")
+=======
+                set_cmd_text_color(0x4e)
+                print "\n\n>>>>>>>>>>>>>>>>>\n设备异常!!!!!\n>>>>>>>>>>>>>>>>>\n\n".decode('utf-8')
+                set_cmd_text_color(0x07)
+>>>>>>> origin/zhejiang698
 
         except IOError, e:
+            set_cmd_text_color(0x4e)
             print '网络连接错误，检查网线连接状态。'.decode('utf-8')
+            set_cmd_text_color(0x07)
             continue
