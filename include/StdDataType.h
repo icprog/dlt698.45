@@ -235,7 +235,8 @@ typedef union {//control code
 	INT8U u8b;//convenient to set value to 0
 	struct {//only for little endian mathine!
 		INT8U func		: 3;//function code
-		INT8U rev		: 2;//reserve
+		INT8U sc		: 1;//扰码标志
+		INT8U rev		: 1;//保留
 		INT8U divS		: 1;//dived frame flag
 		INT8U prm		: 1;//promote flag
 		INT8U dir		: 1;//direction flag
@@ -258,6 +259,7 @@ typedef struct
 	INT8U funcode;		//功能码标识		1：链路管理 3：用户数据
 	INT8U dir;			//方向指示		0：客户机发出  1：服务器发出
 	INT8U prm;			//启动标识		1：客户机发起  0：服务器发起
+	INT8U sc;			//国网新增加扰码编码格式    1:扰码格式（+33）
 	INT8U gframeflg;	//分帧			1：表示APDU片段  0：完整APDU
 	INT8U sa[OCTET_STRING_LEN];		//服务器地址		服务器地址
 	INT8U ca;			//客户机地址		0:不关注客户机地址

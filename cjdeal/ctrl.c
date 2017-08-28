@@ -18,6 +18,8 @@
 extern ProgramInfo* JProgramInfo;
 CtrlState * CtrlC;
 
+extern INT8U get6001ObjByTSA(TSA addr,CLASS_6001* targetMeter);
+
 int ctrl_base_test() {
 	printf("%d", CheckModelState());
 	InitCtrlModel();
@@ -95,7 +97,79 @@ void refreshSumUp() {
 void CheckParaUpdate() {
 
 }
+INT8U initFreezeDataFormFile()
+{
+	fprintf(stderr,"\n\n\ninitFreezeDataFormFileinitFreezeDataFormFileinitFreezeDataFormFileinitFreezeDataFormFile");
+	INT8U ret = 0;
 
+	INT8U meterIndex = 0;
+	INT8U groupIndex = 0;
+	OAD oad_m[2];
+	oad_m[0].OI = 0x5004;
+	oad_m[0].attflg = 2;
+	oad_m[0].attrindex = 0;
+	oad_m[1].OI = 0x5006;
+	oad_m[1].attflg = 2;
+	oad_m[1].attrindex = 0;
+	OAD oad_r[2];
+	oad_r[0].OI = 0x0010;
+	oad_r[0].attflg = 0x02;
+	oad_r[0].attrindex = 0;
+	oad_r[1].OI = 0x0020;
+	oad_r[1].attflg = 0x02;
+	oad_r[1].attrindex = 0;
+
+	for(groupIndex = 0;groupIndex < 8;groupIndex++)
+	{
+		for(meterIndex = 0;meterIndex < MAX_AL_UNIT;meterIndex++)
+		{
+			if(JProgramInfo->class23[groupIndex].allist[meterIndex].tsa.addr[0]==0)
+				break;
+			CLASS_6001 meter;
+			INT8U ret = get6001ObjByTSA(JProgramInfo->class23[groupIndex].allist[meterIndex].tsa,&meter);
+			if(ret == 1)
+			{
+				INT8U resultbuf[256];
+				TS tsnow;
+				TSGet(&tsnow);
+				INT8U dataIndex = 0;
+				for(dataIndex = 0;dataIndex < 4;dataIndex++)
+				{
+					memset(resultbuf,0,256);
+					INT16U datalen = GetOADData(oad_m[dataIndex/2],oad_r[dataIndex%2],tsnow,meter,resultbuf);
+					if(datalen > 3)
+					{
+						if(resultbuf[3] == (MAXVAL_RATENUM+1))
+						{
+							INT8U databuf[25];
+							memcpy(databuf,&resultbuf[4],25);
+							INT8U rateIndex = 0;
+							for(rateIndex = 0;rateIndex < MAXVAL_RATENUM+1;rateIndex++)
+							{
+								if(rateIndex*5==0x06)
+								{
+									INT32U dianliang = (databuf[rateIndex*5+1]<<24)+(databuf[rateIndex*5+2]<<16)+(databuf[rateIndex*5+3]<<8)+databuf[rateIndex*5+4];
+									JProgramInfo->class23[groupIndex].allist[meterIndex].freeze[dataIndex][rateIndex] = dianliang;
+									fprintf(stderr,"\n dataIndex = %d rateIndex = %d value = %d",dataIndex,rateIndex,dianliang);
+								}
+								else
+								{
+									break;
+								}
+
+							}
+						}
+					}
+				}
+
+
+			}
+
+		}
+	}
+
+	return ret;
+}
 int initAll() {
 	//读取总加组数据
 	CtrlC = &JProgramInfo->ctrls;
@@ -569,7 +643,7 @@ int ctrlMain(void * arg) {
 	int secOld = 0;
 	//初始化参数,搭建8个总加组数据，读取功控、电控参数
 	initAll();
-
+	initFreezeDataFormFile();
 	while (1) {
 		TS now;
 		TSGet(&now);

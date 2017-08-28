@@ -3128,14 +3128,17 @@ int collectData(INT8U *databuf,INT8U *srcbuf,OAD_INDEX *oad_offset,ROAD_ITEM ite
 				databuf[pindex++] = 0x01;
 				databuf[pindex++] = item_road.oad[j].oad_num;
 			}
-//			fprintf(stderr,"j=%d, len = %d, offset=%d\n",j,oad_offset[j].len,oad_offset[j].offset);
-//			fprintf(stderr,"oad_m=%04x,oad_r=%04x\n",oad_offset[j].oad_m.OI,oad_offset[j].oad_r.OI);
+			fprintf(stderr,"j=%d, len = %d, offset=%d\n",j,oad_offset[j].len,oad_offset[j].offset);
+			fprintf(stderr,"oad_m=%04x,oad_r=%04x\n",oad_offset[j].oad_m.OI,oad_offset[j].oad_r.OI);
 			if(oad_offset[j].len == 0)//没找到
 				databuf[pindex++] = 0;
 			else
 			{
 				memcpy(tmpbuf,&srcbuf[oad_offset[j].offset],oad_offset[j].len);
-//				fprintf(stderr,"tmpbuf[0]=%02x\n",tmpbuf[0]);
+				int kk = 0;
+				fprintf(stderr,"\ntmpbuf(%d):",oad_offset[j].len);
+				for(kk=0;kk<oad_offset[j].len;kk++)
+					fprintf(stderr,"tmpbuf[%d]=%02x\n",kk,tmpbuf[kk]);
 				switch(tmpbuf[0])
 				{
 				case 0:
@@ -3739,10 +3742,11 @@ INT16U GetOADFileData(OAD oad_m,OAD oad_r,INT8U taskid,TSA tsa,TS ts_zc,INT8U *d
 {
 	int unitnum=0, offsetTsa=0, recordoffset=0, recordlen=0, currecord=0;
 	INT16U  blocksize=0,headsize=0;
-	INT8U recordbuf[1000];
+	INT8U recordbuf[1000],frztype=0;
 	HEAD_UNIT *headunit = NULL;//文件头
 	ROAD_ITEM item_road;
 	OAD_INDEX oad_offset;//oad索引
+	TASKSET_INFO tasknor_info;
 	FILE *fp = NULL;
 	char fname[FILENAMELEN]={};
 	memset(&item_road,0x00,sizeof(ROAD_ITEM));
@@ -3751,6 +3755,12 @@ INT16U GetOADFileData(OAD oad_m,OAD oad_r,INT8U taskid,TSA tsa,TS ts_zc,INT8U *d
 	memcpy(&item_road.oad[0].oad_m,&oad_m,sizeof(OAD));
 	memcpy(&item_road.oad[0].oad_r,&oad_r,sizeof(OAD));
 
+	if((frztype = ReadTaskInfo(taskid,&tasknor_info))==0)//得到任务信息
+	{
+		asyslog(LOG_INFO,"得到任务信息失败\n");
+		fprintf(stderr,"\n得到任务信息失败\n");
+		return 0;
+	}
 	getTaskFileName(taskid,ts_zc,fname);//得到要抄读的文件名称
 	fp =fopen(fname,"r");
 	if(fp == NULL)
@@ -3763,6 +3773,11 @@ INT16U GetOADFileData(OAD oad_m,OAD oad_r,INT8U taskid,TSA tsa,TS ts_zc,INT8U *d
 
 	offsetTsa = findTsa(tsa,fp,headsize,blocksize);
 
+	recordlen = blocksize/tasknor_info.runtime;
+	currecord = (ts_zc.Hour*60 + ts_zc.Minute) - (tasknor_info.starthour*60 + tasknor_info.startmin);
+	if(tasknor_info.freq!=0) {
+		currecord = currecord/(tasknor_info.freq/60);
+	}else currecord = 0;		//冻结抄读
 	recordoffset = findrecord(offsetTsa,recordlen,currecord);
 
 	fseek(fp,recordoffset,SEEK_SET);
@@ -4360,6 +4375,10 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds,INT16U fr
 //	fseek(fp,headlen+unitlen*unitno_index,SEEK_SET);
 //
 //}
+int GetTerminal5004(RESULT_RECORD *record_para)
+{
+return 1;
+}
 int getSelector(OAD oad_h,RSD select, INT8U selectype, CSD_ARRAYTYPE csds, INT8U *data, int *datalen,INT16U frmmaxsize)
 {
 	int  framesum=0;		//分帧

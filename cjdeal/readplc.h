@@ -301,6 +301,7 @@ TS broadFlag_ts;
 CLASS_6002 search6002;//搜表
 int search_i;
 CLASS_6015 fangAn6015[FANGAN6015_MAX];
+TASK_INFO taskinfo_bak;
 TASK_INFO taskinfo;
 typedef struct
 {

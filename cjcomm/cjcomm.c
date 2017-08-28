@@ -139,20 +139,26 @@ void QuitProcess(int sig) {
 }
 
 void WriteLinkRequest(INT8U link_type, INT16U heartbeat, LINK_Request *link_req) {
+
+	struct timeval tpnow;
+	gettimeofday(&tpnow, NULL);
+
+	int msec = (float)tpnow.tv_usec/1000;//毫秒
+
 	TS ts = { };
 	TSGet(&ts);
 	link_req->type = link_type;
 	link_req->piid_acd.data = 0;
-	link_req->time.year = ((ts.Year << 8) & 0xff00) | ((ts.Year >> 8) & 0xff); // apdu 先高后低
+	link_req->time.year = ts.Year;//((ts.Year << 8) & 0xff00) | ((ts.Year >> 8) & 0xff); // apdu 先高后低
 	link_req->time.month = ts.Month;
 	link_req->time.day_of_month = ts.Day;
 	link_req->time.day_of_week = ts.Week;
 	link_req->time.hour = ts.Hour;
 	link_req->time.minute = ts.Minute;
 	link_req->time.second = ts.Sec;
-	link_req->time.milliseconds = 0;
-	link_req->heartbeat = ((heartbeat << 8) & 0xff00)
-			| ((heartbeat >> 8) & 0xff);
+	link_req->time.milliseconds = msec;
+	link_req->heartbeat = heartbeat;//((heartbeat << 8) & 0xff00)| ((heartbeat >> 8) & 0xff);
+
 }
 
 int Comm_task(CommBlock *compara) {

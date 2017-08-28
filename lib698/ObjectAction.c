@@ -725,10 +725,10 @@ void Set_CSD(INT8U *data,Action_result *act_ret) {
 	int index=0;
 	memset(&task, 0, sizeof(task));
 	INT8U taskid=0;
-	index = index + 2;//array
+	//index = index + 2;//array
 	index = index + 2;//structure
-	index +=getUnsigned(&data[index],&taskid,NULL);
-	int ret=readCoverClass(0x6013,taskid,&task,sizeof(CLASS_6013),coll_para_save);
+	index += getUnsigned(&data[index],&taskid,&act_ret->DAR);
+	int ret = 1;//readCoverClass(0x6013,taskid,&task,sizeof(CLASS_6013),coll_para_save);
 	if(ret == 1)
 	{
 		INT8U arraysize = 0;

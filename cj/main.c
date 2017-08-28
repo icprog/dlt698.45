@@ -60,6 +60,7 @@ static char *usage_data = "\n--------------------数据维护命令-------------
 static char *usage_vari = "\n--------------------变量类对象----------------------------\n"
         "		 【供电时间】cj vari 2203		\n"
         "		 【复位次数】cj vari 2204		\n"
+		"        【流量统计】cj vari 2200		\n"
         "-------------------------------------------------------\n\n";
 static char *usage_event = "--------------------事件类对象----------------------------\n"
         "[初始化事件参数]  cj event init <oi> :例如：初始化采集终端初始化事件  cj event init 0x3100/0全部 	\n"
@@ -218,6 +219,60 @@ int main(int argc, char *argv[]) {
     		TS tsNow;
     		TSGet(&tsNow);
         	fprintf(stderr,"getCBsuctsanum = %d",getCBsuctsanum(taskid,tsNow));
+    	}
+    	return EXIT_SUCCESS;
+    }
+    if (strcmp("getoaddata", argv[1]) == 0)
+    {
+    	if(argc==3)
+    	{
+    		OAD oad_day;
+    		oad_day.OI = 0x5004;
+    		oad_day.attflg = 2;
+    		oad_day.attrindex = 0;
+    		OAD oad_month;
+    		oad_month.OI = 0x5006;
+    		oad_month.attflg = 2;
+    		oad_month.attrindex = 0;
+    		OAD oad_p;
+    		oad_p.OI = 0x0010;
+    		oad_p.attflg = 0x02;
+    		oad_p.attrindex = 0;
+    		OAD oad_q;
+    		oad_q.OI = 0x0020;
+    		oad_q.attflg = 0x02;
+    		oad_q.attrindex = 0;
+
+    		INT8U mpno  = atoi(argv[2]);
+    		TS tsNow;
+    		TSGet(&tsNow);
+    		CLASS_6001	 meter={};
+			INT8U resultbuf[256];
+			memset(resultbuf,0,256);
+    		if(readParaClass(0x6000,&meter,mpno)==1)
+    		{
+				INT16U datalen = GetOADData(oad_day,oad_p,tsNow,meter,resultbuf);
+				if(datalen > 0)
+				{
+					fprintf(stderr,"\n 日冻0010结数据:");
+					INT8U prtIndex = 0;
+					for( prtIndex = 0; prtIndex < datalen; prtIndex++)
+					{
+						fprintf(stderr,"%02x ",resultbuf[prtIndex]);
+					}
+				}
+				memset(resultbuf,0,256);
+				datalen = GetOADData(oad_day,oad_q,tsNow,meter,resultbuf);
+				if(datalen > 0)
+				{
+					fprintf(stderr,"\n 日冻0020结数据:");
+					INT8U prtIndex = 0;
+					for( prtIndex = 0; prtIndex < datalen; prtIndex++)
+					{
+						fprintf(stderr,"%02x ",resultbuf[prtIndex]);
+					}
+				}
+    		}
     	}
     	return EXIT_SUCCESS;
     }

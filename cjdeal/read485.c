@@ -310,6 +310,10 @@ char *getenum(int type, int val) {
 }
 INT32U getMeterBaud(INT8U bps)
 {
+	if (bps == bps300)
+		return 300;
+	if (bps == bps600)
+		return 600;
 	if (bps == bps1200)
 		return 1200;
 	if (bps == bps4800)
@@ -317,6 +321,12 @@ INT32U getMeterBaud(INT8U bps)
 	if (bps == bps7200)
 		return 7200;
 	if (bps == bps9600)
+		return 9600;
+	if (bps == bps19200)
+		return 9600;
+	if (bps == bps38400)
+		return 9600;
+	if (bps == bps57600)
 		return 9600;
 	if (bps == bps115200)
 		return 115200;
@@ -752,7 +762,7 @@ INT16S ReceDataFrom485(METER_PROTOCOL meterPro,INT8U port485, INT16U delayms, IN
 	INT8U prtstr[50];
 	INT16U len_Total = 0, len, rec_step, rec_head, rec_tail, DataLen, i, j;
 	INT32S fd = comfd485[port485-1];
-	char title[20];
+	//char title[20];
 
 	if (fd <= 2)
 		return -1;
@@ -903,47 +913,6 @@ void SendDataTo485(INT8U port485, INT8U *sendbuf, INT16U sendlen) {
 	}
 }
 
-//根据TSA从文件中找出6001
-INT8U get6001ObjByTSA(TSA addr,CLASS_6001* targetMeter)
-{
-	INT8U ret = 0;
-
-	int fileIndex = 0;
-	int recordnum = 0;
-	INT16U oi = 0x6000;
-	recordnum = getFileRecordNum(oi);
-	if (recordnum == -1) {
-		fprintf(stderr, "未找到OI=%04x的相关信息配置内容！！！\n", 6000);
-		return ret;
-	} else if (recordnum == -2) {
-		fprintf(stderr, "采集档案表不是整数，检查文件完整性！！！\n");
-		return ret;
-	}
-	INT8U isMeterExist = 0;
-	for(fileIndex = 0;fileIndex < recordnum;fileIndex++)
-	{
-		if(readParaClass(oi,targetMeter,fileIndex)==1)
-		{
-			if(targetMeter->sernum!=0 && targetMeter->sernum!=0xffff)
-			{
-				fprintf(stderr,"\n addr.addr = %02x%02x%02x%02x%02x%02x%02x%02x",
-						addr.addr[0],addr.addr[1],addr.addr[2],addr.addr[3],addr.addr[4],addr.addr[5],addr.addr[6],addr.addr[7]);
-				fprintf(stderr,"\ntargetMeter.addr = %02x%02x%02x%02x%02x%02x%02x%02x",
-						targetMeter->basicinfo.addr.addr[0],targetMeter->basicinfo.addr.addr[1],targetMeter->basicinfo.addr.addr[2],
-						targetMeter->basicinfo.addr.addr[3],targetMeter->basicinfo.addr.addr[4],targetMeter->basicinfo.addr.addr[5],
-						targetMeter->basicinfo.addr.addr[6],targetMeter->basicinfo.addr.addr[7]);
-				if(memcmp(addr.addr,targetMeter->basicinfo.addr.addr,(addr.addr[0]+1))==0)	//一致性测试PROXY_02
-				{
-					isMeterExist = 1;
-					ret = 1;
-					break;
-				}
-			}
-		}
-	}
-	fprintf(stderr,"get6001ObjByTSA ret=%d\n",ret);
-	return ret;
-}
 //07数据YYMMDDHHMMSS 转换为698时间
 INT8U time07totime698(INT8U* time07,INT8U* time698)
 {
@@ -986,6 +955,7 @@ INT8U checkEvent(CLASS_6001 meter,FORMAT07 resultData07,INT16U taskID)
 	}
 	return ret;
 }
+
 INT16S dealEventRecord(CLASS_6001 meter,FORMAT07 resultData07,INT16U taskID,INT8U* dataContent)
 {
 
@@ -2038,6 +2008,7 @@ INT8U getSinglegOADDataUnit(INT8U* oadData)
 	}
 	return length;
 }
+
 INT8U fillclass23data(OAD rcvOAD,TSA meter,INT8U* data)
 {
 	fprintf(stderr,"\n\n ---------------fillclass23data");
@@ -2096,7 +2067,7 @@ INT8S checkEvent698(OAD rcvOAD,INT8U* data,INT8U dataLen,CLASS_6001 obj6001,INT1
 	{
 		ret = Event_3105(obj6001.basicinfo.addr,taskID,&data[1],dataLen,JProgramInfo);
 	}
-	if(rcvOAD.OI == 0x0010)
+	if((rcvOAD.OI == 0x0010)||(rcvOAD.OI == 0x0020))
 	{
 		//更新总加组电量
 		if(JProgramInfo->cfg_para.device == SPTF3)
@@ -2212,7 +2183,7 @@ INT16U parseSingleROADData(ROAD road,INT8U* oadData,INT8U* dataContent,INT16U* d
 	INT16U length = 0;
 	INT16U dataLen = 0;
 	INT16U startIndex = 0;
-	INT8U prtIndex = 0;
+
 	INT8U oadbuff[4];
 	memset(oadListContent,0,ROAD_OADS_NUM*sizeof(OAD_DATA));
 
@@ -2531,7 +2502,6 @@ INT16U dealProxy_698(CLASS_6001 obj6001,GETOBJS obj07,INT8U* dataContent,INT8U p
 		DbgPrintToFile1(port485," OAD[%d] = %04x%02x%02x",csdIndex,st6015.csds.csd[csdIndex].csd.oad.OI,
 				st6015.csds.csd[csdIndex].csd.oad.attflg,st6015.csds.csd[csdIndex].csd.oad.attrindex);
 	}
-	INT16U dataLen = 0;
 	INT16S sendLen = 0;
 	INT16S recvLen = 0;
 	INT16U retdataLen = 0;
@@ -3681,7 +3651,7 @@ INT8S checkBroadCast(INT8U port485)
 				return ret;
 			}
 			//07表广播对时
-//			sendBroadCastTime07(port485);
+			sendBroadCastTime07(port485);
 			sleep(5);
 
 			for (meterIndex = 0; meterIndex < info6000[port].meterSum; meterIndex++)
