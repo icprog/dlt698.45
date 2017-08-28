@@ -127,6 +127,29 @@ void print4500()
 		fprintf(stderr,"	端口:%d",oi4500.master.master[i].port);
 	}
 	fprintf(stderr,"\n");
+	fprintf(stderr,"\n属性7.SIM卡的ICCID");
+	fprintf(stderr,"\n(%d)%s",strlen((char *)oi4500.ccid),oi4500.ccid);
+	fprintf(stderr,"\n");
+
+	fprintf(stderr,"\n");
+	fprintf(stderr,"\n属性8.IMSI");
+	fprintf(stderr,"\n(%d)%s",strlen((char *)oi4500.imsi),oi4500.imsi);
+	fprintf(stderr,"\n");
+
+	fprintf(stderr,"\n");
+	fprintf(stderr,"\n属性9.信号强度");
+	fprintf(stderr,"\n%d",oi4500.signalStrength);
+	fprintf(stderr,"\n");
+
+	fprintf(stderr,"\n");
+	fprintf(stderr,"\n属性10.SIM卡号码");
+	fprintf(stderr,"\n%s",oi4500.imsi);
+	fprintf(stderr,"\n");
+
+	fprintf(stderr,"\n");
+	fprintf(stderr,"\n属性11.拨号IP");
+	fprintf(stderr,"\n%d.%d.%d.%d",oi4500.pppip[1],oi4500.pppip[2],oi4500.pppip[3],oi4500.pppip[4]);
+	fprintf(stderr,"\n");
 }
 
 void print4510()

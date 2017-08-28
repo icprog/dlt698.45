@@ -1073,7 +1073,7 @@ INT16U setClass7attr(OAD oad,INT8U *data,INT8U *DAR)
 		fprintf(stderr,"\n设置:class7.最大记录数 = %d",class7.maxnum);
 		break;
 	case 8: //上报标识
-		index += getBool(&data[index],(INT8U *)&class7.reportflag,DAR);
+		index += getEnum(1,&data[index],(INT8U *)&class7.reportflag);
 		fprintf(stderr,"\n设置:class7.上报标识 = %d",class7.reportflag);
 		break;
 	case 9: //有效标识
@@ -1108,7 +1108,7 @@ INT16U EventSetAttrib(OAD oad,INT8U *data,INT8U *DAR)
 	case 5:	//最大记录数
 	case 8: //上报标识
 	case 9: //有效标识
-		setClass7attr(oad,data,DAR);
+		data_index = setClass7attr(oad,data,DAR);
 		break;
 	case 6:	//配置参数
 		switch(oi) {

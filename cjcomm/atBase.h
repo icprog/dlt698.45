@@ -37,8 +37,11 @@ typedef struct {
 	INT32S CSQ; //信号强度
 	INT32S REG_STATE; //注网状态
 	INT8U CIMI[64];
+    INT8U ccid[VISIBLE_STRING_LEN];        // SIM卡CCID
+    INT8U imsi[VISIBLE_STRING_LEN];        // SIM卡IMSI
 	INT8U PPPD; //pppd拨号成功
 	INT8U GPRS_STATE; //拨号状态
+	INT8U PPP_IP[OCTET_STRING_LEN];//拨号IP
 	INT8U script;	//使用的拨号脚本
 } ATOBJ;
 

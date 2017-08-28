@@ -139,6 +139,9 @@ void clearData()
 	system("rm -rf /nand/allevent");
 	//删除6035
 	system("rm -rf /nand/para/6035");
+	//删除抄表记录状态
+	system("rm -rf /nand/para/plcrecord.par");
+	system("rm -rf /nand/para/plcrecord.bak");
 }
 
 void clearEvent()

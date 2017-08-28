@@ -1231,6 +1231,7 @@ INT8U Event_3106(ProgramInfo* prginfo_event,MeterPower *MeterPowerInfo,INT8U *st
 	    readCoverClass(0x3106,0,&prginfo_event->event_obj.Event3106_obj,sizeof(prginfo_event->event_obj.Event3106_obj),event_para_save);
 		oi_chg.oi3106 = prginfo_event->oi_changed.oi3106;
 	}
+
 	if (prginfo_event->event_obj.Event3106_obj.event_obj.enableflag == 0) {
 		return 0;
 	}

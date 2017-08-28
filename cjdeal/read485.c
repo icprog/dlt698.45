@@ -75,6 +75,7 @@ void DbgPrintToFile1(INT8U comport,const char *format,...)
 	char tmpcmd[256];
 	time_t cur_time;
 	struct tm cur_tm;
+	long  int  logsize=0;
 	FILE *fp = NULL;
 
 	memset(fname,0,sizeof(fname));
@@ -101,8 +102,12 @@ void DbgPrintToFile1(INT8U comport,const char *format,...)
 
 	struct stat fileInfo;
 	stat(fname, &fileInfo);
-//	if (fileInfo.st_size>4096*1000)//超过300K
-	if (fileInfo.st_size>2048*1000)//超过300K
+	if(comport==31) {	//载波口log
+		logsize = 8192*1000;	//8M
+	}else
+		logsize = 2048*1000;	//2M	防止II型集中器log过大，nand空间不足
+	//	if (fileInfo.st_size>4096*1000)//超过300K
+	if (fileInfo.st_size>logsize)//超过300K
 	{
 		memset(tmpcmd,0,sizeof(tmpcmd));
 		sprintf(tmpcmd,"cp %s %s.0",fname,fname);

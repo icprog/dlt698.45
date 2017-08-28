@@ -19,7 +19,9 @@
 #include "PublicFunction.h"
 #include "helper.h"
 
-int helperCheckIp() {
+int helperCheckIp(INT8U *pppip) {
+	char ip[16];
+	int	 ipnum[4];
 	int sock;
 	struct sockaddr_in sin;
 	struct ifreq ifr;
@@ -35,6 +37,15 @@ int helperCheckIp() {
 	}
 	memcpy(&sin, &ifr.ifr_addr, sizeof(sin));
 	if (sin.sin_addr.s_addr > 0) {
+		memset(&ip,0,sizeof(ip));
+		sprintf((char *)ip,"%s",inet_ntoa(sin.sin_addr));
+		sscanf((char *)ip, "%d.%d.%d.%d", &ipnum[0], &ipnum[1], &ipnum[2], &ipnum[3]);
+		asyslog(LOG_INFO,"\n\nget ppp_ip=%s (%d.%d.%d.%d)\n",ip,ipnum[0],ipnum[1],ipnum[2],ipnum[3]);
+		pppip[0] = 4; //长度
+		pppip[1] = ipnum[0];
+		pppip[2] = ipnum[1];
+		pppip[3] = ipnum[2];
+		pppip[4] = ipnum[3];
 		close(sock);
 		return 1;
 	}
