@@ -8,6 +8,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include "basedef.h"
 #include "AccessFun.h"
 #include "StdDataType.h"
 #include "Objectdef.h"
@@ -312,7 +313,10 @@ int GetYxPara(RESULT_NORMAL *response)
 			break;
 		case 2://设备对象列表
 			fprintf(stderr,"GetYxPara oi.att=%d\n",oad.attflg);
-			objtmp.statearri.num = 4;
+			if(memp->cfg_para.device == CCTT2) {
+				objtmp.statearri.num = 1;
+			}else
+				objtmp.statearri.num = 4;
 			index += create_array(&data[index],objtmp.statearri.num);
 			for(int i=0;i<objtmp.statearri.num;i++)
 			{
