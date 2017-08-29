@@ -611,7 +611,7 @@ INT8U file_read(char *FileName, void *source, int size,int offset,INT16U *retcrc
 	} else
 	{
 		ret = 0;
-		syslog(LOG_ERR,"__%s__,文件打开失败,ret=%d",__func__,ret);
+		syslog(LOG_ERR,"__%s__,文件打开失败【%s】,ret=%d",__func__,FileName,ret);
 //		fprintf(stderr, "%s read error\n\r", FileName);
 	}
 	return ret;

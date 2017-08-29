@@ -743,10 +743,10 @@ INT16U set4500(OAD oad,INT8U *data,INT8U *DAR)
 		if(*DAR!=success) return 0;
 		break;
 	case 5:
-		case 6:
-		case 7:
-		case 8:
-		case 9:
+	case 6:
+	case 7:
+	case 8:
+	case 9:
 	case 11:
 		*DAR=type_mismatch;
 		return 0;
