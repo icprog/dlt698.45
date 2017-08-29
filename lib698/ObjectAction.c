@@ -725,6 +725,7 @@ void AddOI6019(INT8U *data, Action_result *act_ret) {
 void Set_CSD(INT8U *data,Action_result *act_ret) {
 	CLASS_6015 task = {};
 	int index=0;
+
 	memset(&task, 0, sizeof(task));
 	INT8U taskid=0;
 	index += getStructure(&data[index],NULL,&act_ret->DAR);
@@ -736,7 +737,8 @@ void Set_CSD(INT8U *data,Action_result *act_ret) {
 		index += getArray(&data[index], &arraysize,&act_ret->DAR);
 		task.csds.num = arraysize;
 		int w = 0;
-		if(arraysize>MY_CSD_NUM)  arraysize = MY_CSD_NUM;
+		fprintf(stderr,"arraysize1 = %d\n",arraysize);
+		arraysize = limitJudge("获取CSD值",MY_CSD_NUM,arraysize);
 		for (w = 0; w < arraysize; w++) {
 			index += getCSD(1, &data[index], (MY_CSD *) &task.csds.csd[w]);
 		}

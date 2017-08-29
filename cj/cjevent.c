@@ -18,6 +18,7 @@
 #include "ParaDef.h"
 #include "event.h"
 #include "Shmem.h"
+#include "EventObject.h"
 #include "main.h"
 //property
 
@@ -80,6 +81,113 @@ void printClass3106()
 			tmpobj.poweroff_para_obj.screen_para_obj.happen_voltage_limit,tmpobj.poweroff_para_obj.screen_para_obj.recover_voltage_limit);
 
 
+}
+
+void printSet3106Usage()
+{
+	fprintf(stderr, "usage: cj event set 3106 06 01 {1,2,3,4,130,180}\n");
+}
+
+int getIntegers(char* s, int* v, INT16U* cnt)
+{
+	INT16U len = strlen(s);
+	INT16U i=0;
+	char* p = s;
+	char** pDec = malloc((*cnt)*sizeof(char*));
+	INT8U state = 0;//0-初始状态; 1-数字状态; 2-非数字状态
+	int j=0;
+
+	memcpy(p, s, len+1);
+
+	while(*p != '\0') {
+		switch(state){
+		case 0:
+			if(isDigit(*p)) {
+				pDec[i++] = p;
+				state = 1;
+			} else {
+				*p = '\0';
+				state = 2;
+			}
+			break;
+		case 1:
+			if(!isDigit(*p)) {
+				*p = '\0';
+				state = 2;
+			}
+			break;
+		case 2:
+			if(isDigit(*p)) {
+				pDec[i++] = p;
+				state = 1;
+			} else {
+				*p = '\0';
+				state = 2;
+			}
+			break;
+		default:
+			break;
+		}
+		p++;
+	}
+
+	if(i> *cnt)
+		i = *cnt;
+
+	for(*cnt=0; *cnt < i; *cnt += 1) {
+		v[*cnt] = atoi(pDec[*cnt]);
+	}
+	free(pDec);
+	return 1;
+}
+
+/*
+ * 设置3106的属性2或者属性6内的值
+ * 用法: cj event set 3106 06 01 {1, 2, 3, 4, 130, 180}
+ * 解释: 设置3106类的属性06, 内的第01个成员
+ * 的第04个成员的值为130
+ * 注: 属性内成员索引从00开始
+ */
+void setClass3106(int argc, char* argv[])
+{
+	Event3106_Object e3106Obj;
+	int value[] = {0,0,0,0,0,0};
+	INT16U	vCnt = 6;
+
+	if (argc != 7) {
+		printSet3106Usage();
+		return;
+	}
+
+	if(strcmp(argv[4], "06")==0 || strcmp(argv[4], "6")==0) {//第6个属性
+		if(strcmp(argv[5], "00")==0) {
+			return;
+		} else if (strcmp(argv[5], "01")==0) {//第6个属性的第1个成员
+			int len = strlen(argv[6]);
+			if (strncmp(argv[6], "{", 1) == 0 && strncmp(&argv[6][len-1], "}", 1) == 0) {
+					argv[6][len-1] = '\0';
+					readCoverClass(0x3106,0,&e3106Obj,sizeof(Event3106_Object),event_para_save);
+					value[0] = e3106Obj.poweroff_para_obj.screen_para_obj.mintime_space;
+					value[1] = e3106Obj.poweroff_para_obj.screen_para_obj.maxtime_space;
+					value[2] = e3106Obj.poweroff_para_obj.screen_para_obj.startstoptime_offset;
+					value[3] = e3106Obj.poweroff_para_obj.screen_para_obj.sectortime_offset;
+					value[4] = e3106Obj.poweroff_para_obj.screen_para_obj.happen_voltage_limit;
+					value[5] = e3106Obj.poweroff_para_obj.screen_para_obj.recover_voltage_limit;
+					getIntegers(argv[6], value, &vCnt);
+					e3106Obj.poweroff_para_obj.screen_para_obj.mintime_space 			= value[0];
+					e3106Obj.poweroff_para_obj.screen_para_obj.maxtime_space 			= value[1];
+					e3106Obj.poweroff_para_obj.screen_para_obj.startstoptime_offset 	= value[2];
+					e3106Obj.poweroff_para_obj.screen_para_obj.sectortime_offset 		= value[3];
+					e3106Obj.poweroff_para_obj.screen_para_obj.happen_voltage_limit 	= value[4];
+					e3106Obj.poweroff_para_obj.screen_para_obj.recover_voltage_limit 	= value[5];
+					saveCoverClass(0x3106,0,(void *)&e3106Obj,sizeof(Event3106_Object),event_para_save);
+			} else {
+				printSet3106Usage();
+			}
+		}
+	} else if (strcmp(argv[4], "02")==0 || strcmp(argv[4], "2")==0) {
+		return;
+	}
 }
 
 void printClass310d()
@@ -671,6 +779,47 @@ void event_process(int argc, char *argv[])
 					}
 				}
 				fprintf(stderr,"设置%04x成功!\n",oi);
+		}
+
+		if(strcmp("set",argv[2])==0){
+			switch(oi) {
+			case 0x3106:
+				DEBUG_TIME_LINE("class3106:设置停上电事件参数");
+				setClass3106(argc, argv);
+				break;
+			case 0x310d:
+				break;
+			case 0x3100:
+				break;
+			case 0x3104:
+				break;
+			case 0x3109:
+				break;
+			case 0x310A:
+				break;
+			case 0x3111:
+				break;
+			case 0x3112:
+				break;
+			case 0x3114:
+				break;
+			case 0x3115:
+				break;
+			case 0x3117:
+				break;
+			case 0x3118:
+				break;
+			case 0x3119:
+				break;
+			case 0x3200:
+				break;
+			case 0x3201:
+				break;
+			case 0x3202:
+				break;
+			default:
+				break;
+			}
 		}
 	}
 }

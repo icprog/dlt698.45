@@ -32,6 +32,7 @@
 #define PRO_WAIT_COUNT     		180//	60		//进程清除死亡计数时间为3分钟。国网测试曲线招测时，组帧速度慢，会影响cjcomm的计数，导致cjcomm退出
 
 
+
 #define MMQNAMEMAXLEN    	32		//消息队列名称长度
 #define MAXSIZ_PROXY_485    4096
 #define MAXNUM_PROXY_485    25

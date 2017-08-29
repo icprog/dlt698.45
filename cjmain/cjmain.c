@@ -32,6 +32,17 @@ const static mmq_attribute mmq_register[] = { { cjcomm, PROXY_485_MQ_NAME,
 		TASKID_485_2_MQ_NAME, MAXSIZ_TASKID_QUEUE, MAXNUM_TASKID_QUEUE }, {
 		cjdeal, TASKID_plc_MQ_NAME, MAXSIZ_TASKID_QUEUE, MAXNUM_TASKID_QUEUE } };
 
+#define	LED_LIGHT	1//点亮led
+#define	LED_CLOSE	0//关闭led
+
+#define	PWR_ON		1//上电状态
+#define	PWR_DOWN	0//断电状态
+
+#define	VOL_LIMIT	130//集中器欠压阈值, 低于这个阈值,就认为已经断电了
+
+#define	PWR_SHUT_CNT	90//集中器连续断电的计数值, 超过这个计数值就认为是彻底断电了
+
+INT8U	g_powerState = 0;//交流电是否断电, 1-上电状态; 0-断电状态
 /*
  * 国网要求：
  * 运行灯：红色，灯常亮表示终端主CPU正常运行，但未和主站建立连接，灯亮1s灭1s交替闪烁表示终端正常运行且和主站建立连接；
@@ -55,6 +66,20 @@ void Runled(int state) {
 		//浙江要求运行灯常亮
 		gpio_writebyte((char *) DEV_LED_RUN, state);
 	}
+}
+
+void setRunLED(INT8S state)
+{
+	INT8S swch = ((PWR_ON == g_powerState) ? state : LED_CLOSE);
+	Runled(swch);
+}
+
+void shutAllLed()
+{
+	gpio_writebyte((char *) DEV_LED_RUN, (INT8S)0);
+	gpio_writebyte((char *) DEV_LED_ONLINE, (INT8S)0);
+	gpio_writebyte((char *) DEV_LED_CSQ_RED, (INT8S)0);
+	gpio_writebyte((char *) DEV_LED_CSQ_GREEN, (INT8S)0);
 }
 
 void SyncRtc(void) {
@@ -105,6 +130,51 @@ void PowerOffToClose(INT8U pwrdelay) {
 		}
 	} else
 		cnt_pwroff = 0;
+}
+
+/*
+ * 检测交采掉电后，delay个计数后, 重启集中器
+ * 这个需求是浙江现场的工程人员提出的
+ * 假如集中器程序因为某种原因, 某些进程异常
+ * 退出, 现场维护人员需要对集中器重启.
+ * 目前发现的问题:
+ * 1. 上电时间很短, 电容充电不充分, 电量不足以
+ * 支撑ARM芯片工作到90个计数, 那么此时的LED灯
+ * 还是亮着的, 但是主芯片已经停止工作了.
+ * 为了解决这个问题, 在检测到掉电30个计数后,
+ * 关闭所有LED, 但是程序还在运行(如果电容还有电的话)
+ */
+void rebootWhenPwrDown(INT8U delay) {
+    static INT8U cnt_pwroff = 0;
+    int i = 0;
+
+    int off_flag = pwr_down_byVolt(JProgramInfo->ACSRealData.Available, JProgramInfo->ACSRealData.Ua, VOL_LIMIT);
+    if (off_flag == 1) {
+//    	DEBUG_TO_FILE("/nand/pwr.log", "底板电源已关闭，设备关闭倒计时：%d s.....\n", delay-cnt_pwroff);
+        cnt_pwroff++;
+        if (cnt_pwroff == 30) {
+//        	DEBUG_TO_FILE("/nand/pwr.log", "关闭所有led.....");
+        	g_powerState = PWR_DOWN;
+        	for (i=0;i<5;i++) {
+				shutAllLed();
+				usleep(100);
+        	}
+        }
+        if (cnt_pwroff == delay) {
+        	system("cj stop");
+        	g_powerState = PWR_DOWN;
+        	for (i=0;i<5;i++) {
+        		setRunLED(0);
+        		usleep(100);
+        	}
+        	sleep(3);
+//        	DEBUG_TO_FILE("/nand/pwr.log", "重启集中器.....");
+        	system("reboot");
+        }
+    } else {
+        cnt_pwroff = 0;
+        g_powerState = PWR_ON;
+    }
 }
 
 //读取系统配置文件
@@ -597,39 +667,43 @@ void CheckOnLineStatue() {
 	}
 }
 
-int main(int argc, char *argv[]) {
-	struct timeval start = { }, end = { };
-	long interval = 0;
+int main(int argc, char *argv[])
+{
+    struct timeval start={}, end={};
+    long  interval=0;
 
-	printf("==================version==================\n");
-	asyslog(LOG_INFO, "VERSION : %d\n", GL_VERSION);
-	printf("==================version==================\n");
+    printf("==================version==================\n");
+//    printf("VERSION : %d\n", GL_VERSION);
+    asyslog(LOG_INFO, "VERSION : %d\n", GL_VERSION);
+    printf("==================version==================\n\n\n\n");
 
-	int ProgsNum = 0;
+    int ProgsNum = 0;
 
-	//检查是否已经有程序在运行
-	pid_t pids[128] = { 0 };
-	if (prog_find_pid_by_name((INT8S *) argv[0], pids) > 1) {
-		asyslog(LOG_ERR, "CJMAIN进程仍在运行,进程号[%d]，程序退出...", pids[0]);
-		return EXIT_SUCCESS;
-	}
+    //检查是否已经有程序在运行
+    pid_t pids[128] = {0};
+    if (prog_find_pid_by_name((INT8S *) argv[0], pids) > 1) {
+        asyslog(LOG_ERR, "CJMAIN进程仍在运行,进程号[%d]，程序退出...", pids[0]);
+        return EXIT_SUCCESS;
+    }
 
-	Createmq();
-	CreateSem();
-	InitSharedMem(argc, argv);
-	ReadDeviceConfig(&JProgramInfo->cfg_para);
-	asyslog(LOG_NOTICE, "\n当前运行类型：%d 型终端\n", JProgramInfo->cfg_para.device);
-	asyslog(LOG_NOTICE, "\n当前运行地区：%s\n", JProgramInfo->cfg_para.zone);
+    Createmq();
+    CreateSem();
+    InitSharedMem(argc, argv);
+    ReadDeviceConfig(&JProgramInfo->cfg_para);
+    asyslog(LOG_NOTICE, "\n当前运行类型：%d 型终端\n", JProgramInfo->cfg_para.device);
+    asyslog(LOG_NOTICE, "\n当前运行地区：%s\n", JProgramInfo->cfg_para.zone);
 
-	if (argc >= 2 && strncmp("all", argv[1], 3) == 0) {
-		ProgsNum = ReadSystemInfo();
-	}
-	get_protocol_3761_tx_para(); //湖南获取3761切换通信参数，在初始化其他操作之后进行
 
-	//点亮运行灯
-	Runled(1);
-	while (1) {
-		sleep(1);
+    if (argc >= 2 && strncmp("all", argv[1], 3) == 0) {
+        ProgsNum = ReadSystemInfo();
+    }
+    get_protocol_3761_tx_para();//湖南获取3761切换通信参数，在初始化其他操作之后进行
+
+    //点亮运行灯
+    g_powerState = 0;
+    setRunLED(1);
+    while (1) {
+        sleep(1);
 		gettimeofday(&start, NULL);
 
 		//喂狗
@@ -645,11 +719,18 @@ int main(int argc, char *argv[]) {
 			PowerOffToClose(90);
 		}
 
-		//点亮运行灯 循环前点亮一次
-		Runled(1);
 
 		//每20分钟校时
 		SyncRtc();
+        if (JProgramInfo->cfg_para.device == CCTT1 || JProgramInfo->cfg_para.device == SPTF3) { //I型集中器，III型专变
+            //电池检测掉电关闭设备
+            PowerOffToClose(90);
+        } else if(JProgramInfo->cfg_para.device == CCTT2) {
+        	rebootWhenPwrDown(PWR_SHUT_CNT);
+        }
+
+        //点亮运行灯 循环前点亮一次
+        setRunLED(1);
 
 		//检车程序运行状态
 		checkProgsState(ProgsNum);

@@ -29,9 +29,10 @@
 #define	NELEM(array)	(sizeof(array)/sizeof(array[0]))
 
 #define	FILE_LINE		__FILE__,__FUNCTION__,__LINE__
-#define	DEBUG_TIME_LINE(format, ...)	debug(FILE_LINE, format, ##__VA_ARGS__)
-#define DEBUG_BUFF(data, dataSize)		debugBuf(FILE_LINE, data, dataSize)
 
+#define	DEBUG_BUFF(data, dataSize)		debugBuf(FILE_LINE, data, dataSize)
+#define	DEBUG_TIME_LINE(format, ...)	debugToStderr(FILE_LINE, format, ##__VA_ARGS__)
+#define 	DEBUG_TO_FILE(fname, format, ...)	debugToFile(fname, FILE_LINE, format, ##__VA_ARGS__)
 
 extern void Setsig(struct sigaction* psa, void (*pfun)(ProjectInfo* proinfo));
 /*
@@ -79,7 +80,8 @@ extern INT32S gpio_writebyte(char* devpath, INT8S data);
 extern INT32S gpio_writebytes(char* devpath, INT8S* vals, INT32S valnum);
 
 extern BOOLEAN pwr_has();
-extern INT8U pwr_has_byVolt(INT8U valid, INT32U volt, INT16U limit);
+extern INT8U pwr_down_byVolt(INT8U valid, INT32U volt, INT16U limit);
+extern INT8U pwr_on_byVolt(INT8U valid, INT32U volt, INT16U limit);
 extern BOOLEAN bettery_getV(FP32* clock_bt, FP32* tmnl_bt);
 extern BOOLEAN bettery_getV_II(FP32* clock_bt);
 
@@ -111,9 +113,12 @@ void PacketBufToFile(char *prefix, char *buf, int len, char *suffix);
 extern INT8U getBase_DataTypeLen(Base_DataType dataType,INT8U data);
 extern INT8S reversebuff(INT8U* buff,INT32U len,INT8U* invbuff);
 
+
 extern void debug(const char* file, const char* func, INT32U line, const char *fmt, ...);
 extern void debugBuf(const char* file, const char* func, INT32U line, INT8U* buf, INT32U bufSize);
 extern void debugToPlcFile(const char* file, const char* func, INT32U line, const char *fmt, ...);
+extern void debugToStderr(const char* file, const char* func, INT32U line, const char *fmt, ...);
+extern void debugToFile(const char* fname, const char* file, const char* func, INT32U line, const char *fmt,...);
 extern void readFrm(char* str,  INT8U* buf, INT32U* bufSize);
 
 //读取设备配置信息
