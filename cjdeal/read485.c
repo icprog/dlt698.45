@@ -2014,7 +2014,7 @@ INT8U getSinglegOADDataUnit(INT8U* oadData)
 	return length;
 }
 
-INT8U fillclass23data(OAD rcvOAD,TSA meter,INT8U* data)
+INT8U fillclass23data(OAD oad_m,OAD oad_r,TSA meter,INT8U* data)
 {
 	fprintf(stderr,"\n\n ---------------fillclass23data");
 	INT8U ret = 0;
@@ -2030,26 +2030,58 @@ INT8U fillclass23data(OAD rcvOAD,TSA meter,INT8U* data)
 
 			if(memcmp(&meter,&JProgramInfo->class23[groupIndex].allist[meterIndex].tsa,sizeof(TSA))==0)
 			{
-				if(rcvOAD.OI == 0x0010)
+				if(oad_r.attrindex == 0)
 				{
-					if(rcvOAD.attrindex == 0)
+					data = &data[2];
+					INT8U rateIndex = 0;
+					for(rateIndex = 0;rateIndex < MAXVAL_RATENUM+1;rateIndex++)
 					{
-						data = &data[2];
-						INT8U rateIndex = 0;
-						for(rateIndex = 0;rateIndex < MAXVAL_RATENUM+1;rateIndex++)
+						INT32U dianliang = (data[rateIndex*5+1]<<24)+(data[rateIndex*5+2]<<16)+(data[rateIndex*5+3]<<8)+data[rateIndex*5+4];
+						fprintf(stderr,"\n dianliang = %d data = %02x %02x %02x %02x",dianliang,data[rateIndex*5+1],data[rateIndex*5+2],data[rateIndex*5+3],data[rateIndex*5+4]);
+						switch(oad_m.OI)
 						{
-							INT32U dianliang = (data[rateIndex*5+1]<<24)+(data[rateIndex*5+2]<<16)+(data[rateIndex*5+3]<<8)+data[rateIndex*5+4];
-							fprintf(stderr,"\n dianliang = %d data = %02x %02x %02x %02x",dianliang,data[rateIndex*5+1],data[rateIndex*5+2],data[rateIndex*5+3],data[rateIndex*5+4]);
-							JProgramInfo->class23[groupIndex].allist[meterIndex].curP[rateIndex] = dianliang;
-
+							//日冻结
+							case 0x5004:
+								if(oad_r.OI == 0x0010)
+								{
+									JProgramInfo->class23[groupIndex].allist[meterIndex].freeze[0][rateIndex] = dianliang;
+								}
+								if(oad_r.OI == 0x0020)
+								{
+									JProgramInfo->class23[groupIndex].allist[meterIndex].freeze[1][rateIndex] = dianliang;
+								}
+								break;
+							//月冻结
+							case 0x5006:
+								if(oad_r.OI == 0x0010)
+								{
+									JProgramInfo->class23[groupIndex].allist[meterIndex].freeze[2][rateIndex] = dianliang;
+								}
+								if(oad_r.OI == 0x0020)
+								{
+									JProgramInfo->class23[groupIndex].allist[meterIndex].freeze[3][rateIndex] = dianliang;
+								}
+								break;
+							default:
+								if(oad_r.OI == 0x0010)
+								{
+									JProgramInfo->class23[groupIndex].allist[meterIndex].curP[rateIndex] = dianliang;
+								}
+								if(oad_r.OI == 0x0020)
+								{
+									JProgramInfo->class23[groupIndex].allist[meterIndex].curQ[rateIndex] = dianliang;
+								}
 						}
-					}
-					else if(rcvOAD.attrindex == 1)
-					{
-						JProgramInfo->class23[groupIndex].allist[meterIndex].curP[0] =
-								(data[1]<<24)+(data[2]<<16)+(data[3]<<8)+data[4];
+
+
 					}
 				}
+				else if(oad_r.attrindex == 1)
+				{
+					JProgramInfo->class23[groupIndex].allist[meterIndex].curP[0] =
+							(data[1]<<24)+(data[2]<<16)+(data[3]<<8)+data[4];
+				}
+
 				return 1;
 			}
 
@@ -2072,14 +2104,14 @@ INT8S checkEvent698(OAD rcvOAD,INT8U* data,INT8U dataLen,CLASS_6001 obj6001,INT1
 	{
 		ret = Event_3105(obj6001.basicinfo.addr,taskID,&data[1],dataLen,JProgramInfo);
 	}
-	if((rcvOAD.OI == 0x0010)||(rcvOAD.OI == 0x0020))
+	if((JProgramInfo->cfg_para.device == SPTF3)&&((rcvOAD.OI == 0x0010)||(rcvOAD.OI == 0x0020)))
 	{
 		//更新总加组电量
-		if(JProgramInfo->cfg_para.device == SPTF3)
-		{
-			fillclass23data(rcvOAD,obj6001.basicinfo.addr,data);
-		}
-
+		OAD oadCur = {0};
+		fillclass23data(oadCur,rcvOAD,obj6001.basicinfo.addr,data);
+	}
+	if(rcvOAD.OI == 0x0010)
+	{
 		ret = Event_310B(obj6001.basicinfo.addr,taskID,&data[3],dataLen,JProgramInfo);
 
 		ret = Event_310C(obj6001.basicinfo.addr,taskID,&data[3],dataLen,JProgramInfo,obj6001);
@@ -2212,7 +2244,9 @@ INT16U parseSingleROADData(ROAD road,INT8U* oadData,INT8U* dataContent,INT16U* d
 	for(csdIndex = 0;csdIndex < rcvCSDnum;csdIndex++)
 	{
 		length ++;
-		memcpy(oadListContent[csdIndex].oad,&oadData[length],4);
+		oadListContent[csdIndex].oad.OI = (oadData[length]<<8) + oadData[length+1];
+		oadListContent[csdIndex].oad.attflg = oadData[length+2];
+		oadListContent[csdIndex].oad.attrindex = oadData[length+3];
 		//fprintf(stderr," /%d-%02x%02x%02x%02x ",csdIndex,oadData[length],oadData[length+1],oadData[length+2],oadData[length+3]);
 		length += 4;
 	}
@@ -2256,15 +2290,14 @@ INT16U parseSingleROADData(ROAD road,INT8U* oadData,INT8U* dataContent,INT16U* d
 			INT16U oiDataLen = CalcOIDataLen(road.oads[csdIndex].OI,road.oads[csdIndex].attrindex);
 			//fprintf(stderr,"\n OI = %04x len = %d \n",road.oads[csdIndex].OI,oiDataLen);
 			memset(&dataContent[dataLen],0,oiDataLen);
-			memset(oadbuff,0,4);
-//			OADtoBuff(road.oads[csdIndex],oadbuff);
-			create_OAD(0,oadbuff,road.oads[csdIndex]);
+
 			INT8U subIndex=0;
 			for(subIndex=0;subIndex<rcvCSDnum;subIndex++)
 			{
-				if(memcmp(oadbuff,oadListContent[subIndex].oad,4)==0)
+				if(memcmp(&road.oads[csdIndex],&oadListContent[subIndex].oad,sizeof(OAD))==0)
 				{
 					memcpy(&dataContent[dataLen],oadListContent[subIndex].data,oadListContent[subIndex].datalen);
+					//零序电流
 					if((road.oads[csdIndex].OI == 0x2001)&&(road.oads[csdIndex].attrindex == 0))
 					{
 						dataContent[dataLen+1] = 4;
@@ -2288,10 +2321,14 @@ INT8U checkTimeStamp698(OAD_DATA oadListContent[ROAD_OADS_NUM])
 {
 	INT8U ret = 1;
 	INT8U oadIndex = 0;
-	INT8U oadTimeStamp[4] = {0x20,0x21,0x02,0x00};
+	OAD oadTimeStamp;
+	oadTimeStamp.OI = 0x2021;
+	oadTimeStamp.attflg = 0x02;
+	oadTimeStamp.attrindex = 0x00;
+
 	for(oadIndex = 0;oadIndex < ROAD_OADS_NUM;oadIndex++)
 	{
-		if(memcmp(oadListContent[oadIndex].oad,oadTimeStamp,4)==0)
+		if(memcmp(&oadListContent[oadIndex].oad,&oadTimeStamp,sizeof(OAD))==0)
 		{
 			DbPrt1(2,"checkTimeStamp698 buff:", (char *) oadListContent[oadIndex].data, 10, NULL);
 			return isTimerSame(0,oadListContent[oadIndex].data);
@@ -2357,8 +2394,35 @@ INT16S deal698RequestResponse(INT8U isProxyResponse,INT8U getResponseType,INT8U 
 					asyslog(LOG_NOTICE,"698冻结时标不正确 dataContentIndex = %d csds.csd[0].csd.road.num = %d",dataContentIndex,csds.csd[0].csd.road.num);
 					memset(dataContent,0,dataContentIndex);
 				}
-			}
+				else
+				{
+					if(JProgramInfo->cfg_para.device == SPTF3)
+					{
+						INT8U oadIndex = 0;
+						for(oadIndex = 0;oadIndex < csds.csd[0].csd.road.num;oadIndex++)
+						{
+							if((oadListContent[oadIndex].oad.OI == 0x0010)||(oadListContent[oadIndex].oad.OI == 0x0020))
+							{
+								fillclass23data(csds.csd[0].csd.road.oad,oadListContent[oadIndex].oad,obj6001.basicinfo.addr,oadListContent[oadIndex].data);
+							}
+						}
+					}
 
+				}
+			}if(JProgramInfo->cfg_para.device == SPTF3)
+			{
+				if((cjType==TYPE_FREEZE)&&(csds.csd[0].csd.road.oad.OI == 0x5006))
+				{
+					INT8U oadIndex = 0;
+					for(oadIndex = 0;oadIndex < csds.csd[0].csd.road.num;oadIndex++)
+					{
+						if((oadListContent[oadIndex].oad.OI == 0x0010)||(oadListContent[oadIndex].oad.OI == 0x0020))
+						{
+							fillclass23data(csds.csd[0].csd.road.oad,oadListContent[oadIndex].oad,obj6001.basicinfo.addr,oadListContent[oadIndex].data);
+						}
+					}
+				}
+			}
 		}
 
 		break;
@@ -4112,10 +4176,7 @@ INT8S sendEventReportBuff698(ROAD eventRoad,INT8U saveContentHead[SAVE_EVENT_BUF
 		INT8U subIndex = 0;
 		for(subIndex =0;subIndex<ROAD_OADS_NUM;subIndex++)
 		{
-			INT8U findOADBuf[4] = {0,0,0,0};
-//			OADtoBuff(eventRoad.oads[oadIndex],findOADBuf);
-			create_OAD(0,findOADBuf,eventRoad.oads[oadIndex]);
-			if(memcmp(findOADBuf,oadListContent[subIndex].oad,4)==0)
+			if(memcmp(&eventRoad.oads[oadIndex],&oadListContent[subIndex].oad,sizeof(OAD))==0)
 			{
 				memcpy(&reportEventBuf[eventBufLen],oadListContent[subIndex].data,oadListContent[subIndex].datalen);
 				eventBufLen += oadListContent[subIndex].datalen;
