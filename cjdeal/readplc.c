@@ -896,12 +896,7 @@ int doInit(RUNTIME_PLC *runtime_p)
 					}
 				}
 				clearvar(runtime_p);//376.2上行内容容器清空，发送计时归零
-
-				//在这发东软报文
-				runtime_p->send_start_time = nowtime ;//加上时间
-
-				sleep(1);
-//				return INIT_MASTERADDR;
+				return INIT_MASTERADDR;
 			}
 			//else if  (runtime_p->send_start_time !=0 && (nowtime  - runtime_p->send_start_time)>10)
 			else if (read_num>=3)
