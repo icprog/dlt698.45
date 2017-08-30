@@ -54,5 +54,6 @@ void showCheckPara();
 
 extern void Test(int argc, char *argv[]);
 extern void showPlcMeterstatus(int argc, char *argv[]);
+extern void setm2g(int argc, char* argv[]);
 #endif /* MAIN_H_ */
 

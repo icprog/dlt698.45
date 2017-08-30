@@ -396,6 +396,21 @@ void recordoadinfo_prt(int recordnum,int unitnum,int recordsize,HEAD_UNIT0 *leng
 }
 
 
+void setm2g(int argc, char* argv[])
+{
+	int m2g = 0;
+	readCoverClass(0x4521, 0, &m2g, sizeof(int), para_vari_save);
+	if(m2g == 666){
+		m2g = 0;
+		saveCoverClass(0x4521, 0, &m2g, sizeof(int), para_vari_save);
+		fprintf(stderr, "设置为4G优先模式\n");
+	}else{
+		m2g = 666;
+		saveCoverClass(0x4521, 0, &m2g, sizeof(int), para_vari_save);
+		fprintf(stderr, "设置为2G锁定模式\n");
+	}
+}
+
 void analyTaskData(int argc, char* argv[])
 {
 	int TSA_D[20]={};
