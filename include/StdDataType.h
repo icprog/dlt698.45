@@ -806,4 +806,13 @@ typedef enum {
 
 }gdm_type;
 
+
+typedef enum{
+	PROTOCOL_UNKNOWN = 0,
+	DLT_645_97 = 1,
+	DLT_645_07 = 2,
+	DLT_698 = 3,
+	CJT_188 = 4,
+}METER_PROTOCOL;
+
 #endif

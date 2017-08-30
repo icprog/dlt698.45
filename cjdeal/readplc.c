@@ -577,7 +577,7 @@ void task_init6015(CLASS_6015 *fangAn6015p)
 			DbgPrintToFile1(31,"fangAn6015p[%d].sernum = %d  fangAn6015p[%d].mst = %d ",
 					j,fangAn6015p[j].sernum,j,fangAn6015p[j].mst.mstype);
 			j++;
-			if(j>=20)
+			if(j>=FANGAN6015_MAX)
 				break;
 		}
 	}
@@ -1235,7 +1235,35 @@ int findFirstZeroFlg(struct Tsa_Node *desnode,int itemnum)
 	}while(index!=itemnum-1);
 	return -1;
 }
+int Format97(FORMAT97 *Data97,OAD oad1,OAD oad2,TSA tsa)
+{
+	INT8U startIndex =0;
+	int find_07item = 0;
+	C601F_645 obj601F_97Flag;
 
+	memset(Data97, 0, sizeof(FORMAT97));
+	obj601F_97Flag.protocol = DLT_645_97;
+
+	find_07item = OADMap07DI(oad1.OI,oad2,&obj601F_97Flag) ;
+//	DbgPrintToFile1(31,"find_07item=%d   %04x %04x    07Flg %02x%02x%02x%02x",find_07item,oad1.OI,oad2.OI,
+//			obj601F_07Flag.DI._07.DI_1[0][3],obj601F_07Flag.DI._07.DI_1[0][2],obj601F_07Flag.DI._07.DI_1[0][1],obj601F_07Flag.DI._07.DI_1[0][0]);
+	if (find_07item == 1)
+	{
+		Data97->Ctrl = 0x11;
+		if(tsa.addr[1] > 5)
+		{
+			tsa.addr[1] = 5;
+			fprintf(stderr,"request698_07Data 电表地址长度大于6");
+		}
+		startIndex = 5 - tsa.addr[1];
+		memcpy(&Data97->Addr[startIndex], &tsa.addr[2], (tsa.addr[1]+1));
+//		memcpy(Data07->DI, &obj601F_07Flag.DI_1[0], 4);
+		memcpy(Data97->DI, &obj601F_97Flag.DI._07.DI_1[0], 2);
+
+		return 1;
+	}
+	return 0;
+}
 int Format07(FORMAT07 *Data07,OAD oad1,OAD oad2,TSA tsa)
 {
 	INT8U startIndex =0;
@@ -1243,7 +1271,7 @@ int Format07(FORMAT07 *Data07,OAD oad1,OAD oad2,TSA tsa)
 	C601F_645 obj601F_07Flag;
 
 	memset(Data07, 0, sizeof(FORMAT07));
-	obj601F_07Flag.protocol = 2;
+	obj601F_07Flag.protocol = DLT_645_07;
 
 	find_07item = OADMap07DI(oad1.OI,oad2,&obj601F_07Flag) ;
 //	DbgPrintToFile1(31,"find_07item=%d   %04x %04x    07Flg %02x%02x%02x%02x",find_07item,oad1.OI,oad2.OI,
@@ -1287,7 +1315,7 @@ int buildProxyFrame(RUNTIME_PLC *runtime_p,struct Tsa_Node *desnode,OAD oad1,OAD
 	type = desnode->protocol;
 	switch (type)
 	{
-		case DLT645_07:
+		case DLT_645_07:
 			requestOAD1.OI = oad1.OI;//0
 			requestOAD2.OI = oad2.OI;//pMsg.oi
 			requestOAD2.attflg = oad2.attflg;//0x02
@@ -1312,7 +1340,7 @@ int buildProxyFrame(RUNTIME_PLC *runtime_p,struct Tsa_Node *desnode,OAD oad1,OAD
 				return (AFN13_F1(&runtime_p->format_Down,runtime_p->sendbuf,addrtmp, 2, 0, buf645, sendlen));
 			}
 			break;
-		case DLT698:
+		case DLT_698:
 			memcpy(&meter.basicinfo.addr,&desnode->tsa,sizeof(TSA));
 			memset(&st6015,0,sizeof(CLASS_6015));
 			st6015.cjtype = TYPE_NULL;
@@ -1360,7 +1388,7 @@ int saveProxyData(FORMAT3762 format_3762_Up,struct Tsa_Node *nodetmp)
 		memcpy(buf645, format_3762_Up.afn13_f1_up.MsgContent, len645);
 		switch (nodetmp->protocol )
 		{
-			case DLT645_07:
+			case DLT_645_07:
 				if (analyzeProtocol07(&frame07, buf645, len645, &nextFlag) == 0)
 				{
 					len645 = data07Tobuff698(frame07,dataContent) ;
@@ -1380,7 +1408,7 @@ int saveProxyData(FORMAT3762 format_3762_Up,struct Tsa_Node *nodetmp)
 //					p_Proxy_Msg_Data->done_flag = 1;
 				}
 				break;
-			case DLT698:
+			case DLT_698:
 				datalen = len645;
 				getResponseType = analyzeProtocol698(buf645,&csdNum,len645,&apduDataStartIndex,&datalen);
 				if (getResponseType >0 )
@@ -1511,7 +1539,7 @@ int createMeterFrame(struct Tsa_Node *desnode,DATA_ITEM item,INT8U *buf,INT8U *i
 	memset(buf,0,BUFSIZE645);
 	switch (type)
 	{
-		case DLT645_07:
+		case DLT_645_07:
 			Format07(&Data07,item.oad1,item.oad2,desnode->tsa);
 			DbgPrintToFile1(31,"当前抄读 【OAD1 %04x-%02x %02x    OAD2 %04x-%02x %02x】%02x%02x%02x%02x ",
 						item.oad1.OI,item.oad1.attflg,item.oad1.attrindex,item.oad2.OI,item.oad2.attflg,item.oad2.attrindex,
@@ -1520,7 +1548,7 @@ int createMeterFrame(struct Tsa_Node *desnode,DATA_ITEM item,INT8U *buf,INT8U *i
 			if (sendlen>0)
 				memcpy(item07,Data07.DI,4);// 保存07规约数据项
 			break;
-		case DLT698:
+		case DLT_698:
 //			sendlen = composeProtocol698_GetRequest(buf, st6015, desnode->tsa);
 			break;
 	}
@@ -1539,7 +1567,7 @@ int createMeterFrame_Curve(struct Tsa_Node *desnode,DATA_ITEM item,INT8U *buf,IN
 	memset(buf,0,BUFSIZE645);
 	switch (type)
 	{
-		case DLT645_07:
+		case DLT_645_07:
 			Data07.Ctrl = 0xff;
 			startIndex = 5 - desnode->tsa.addr[1];
 			memcpy(&Data07.Addr[startIndex], &desnode->tsa.addr[2], (desnode->tsa.addr[1]+1));
@@ -1562,7 +1590,7 @@ int createMeterFrame_Curve(struct Tsa_Node *desnode,DATA_ITEM item,INT8U *buf,IN
 				return sendlen;
 			}
 			break;
-		case DLT698:
+		case DLT_698:
 			return 20;
 	}
 	return 0;
@@ -1604,11 +1632,12 @@ int Seek_6015(CLASS_6015 *st6015,CJ_FANGAN fangAn)
 }
 int do_5004_type( int taski, int itemi ,INT8U *buf, struct Tsa_Node *desnode, DATA_ITEM  tmpitem)
 {
-	INT8U item07[4]={0,0,0,0} ,type = 0;
+	INT8U item97[2]={0,0} ,item07[4]={0,0,0,0} ,type = 0;
 	time_t getTheTime;
 	DateTimeBCD timebcd;
 	int sendlen = 0;
 	CLASS_6015 st6015;
+	FORMAT97 Data97;
 	FORMAT07 Data07;
 
 	if (desnode == NULL)
@@ -1622,7 +1651,18 @@ int do_5004_type( int taski, int itemi ,INT8U *buf, struct Tsa_Node *desnode, DA
 	type = desnode->protocol;
 	switch(type)
 	{
-		case DLT645_07:
+	case DLT_645_97:
+
+		Format97(&Data97,tmpitem.oad1,tmpitem.oad2,desnode->tsa);
+		DbgPrintToFile1(31,"当前抄读 【OAD1 %04x-%02x %02x    OAD2 %04x-%02x %02x】%02x%02x%02x%02x ",
+				tmpitem.oad1.OI,tmpitem.oad1.attflg,tmpitem.oad1.attrindex,tmpitem.oad2.OI,tmpitem.oad2.attflg,tmpitem.oad2.attrindex,
+							Data97.DI[1],Data97.DI[0]);
+		sendlen = composeProtocol97(&Data97, buf);
+		if (sendlen>0)
+			memcpy(item97,Data97.DI,2);// 保存07规约数据项
+		break;
+		case DLT_645_07:
+
 			Format07(&Data07,tmpitem.oad1,tmpitem.oad2,desnode->tsa);
 			DbgPrintToFile1(31,"当前抄读 【OAD1 %04x-%02x %02x    OAD2 %04x-%02x %02x】%02x%02x%02x%02x ",
 					tmpitem.oad1.OI,tmpitem.oad1.attflg,tmpitem.oad1.attrindex,tmpitem.oad2.OI,tmpitem.oad2.attflg,tmpitem.oad2.attrindex,
@@ -1631,13 +1671,15 @@ int do_5004_type( int taski, int itemi ,INT8U *buf, struct Tsa_Node *desnode, DA
 			if (sendlen>0)
 				memcpy(item07,Data07.DI,4);// 保存07规约数据项
 			break;
-		case DLT698:
+		case DLT_698:
 			memset(&st6015,0,sizeof(CLASS_6015));
 			Seek_6015(&st6015,taskinfo.task_list[taski].fangan);
 			sendlen = composeProtocol698_GetRequest(buf, st6015, desnode->tsa);
 			break;
 	}
 //	sendlen = createMeterFrame(desnode, tmpitem, buf, item07);
+	taskinfo.task_list[taski].fangan.items[itemi].item97[0] = item97[0];
+	taskinfo.task_list[taski].fangan.items[itemi].item97[1] = item97[1];
 
 	taskinfo.task_list[taski].fangan.items[itemi].item07[0] = item07[0];
 	taskinfo.task_list[taski].fangan.items[itemi].item07[1] = item07[1];
@@ -1702,7 +1744,7 @@ int do_other_type( int taski, int itemi ,INT8U *buf, struct Tsa_Node *desnode, D
 	type = desnode->protocol;
 	switch(type)
 	{
-		case DLT645_07:
+		case DLT_645_07:
 			Format07(&Data07,tmpitem.oad1,tmpitem.oad2,desnode->tsa);
 			DbgPrintToFile1(31,"当前抄读 【OAD1 %04x-%02x %02x    OAD2 %04x-%02x %02x】%02x%02x%02x%02x ",
 					tmpitem.oad1.OI,tmpitem.oad1.attflg,tmpitem.oad1.attrindex,tmpitem.oad2.OI,tmpitem.oad2.attflg,tmpitem.oad2.attrindex,Data07.DI[3],Data07.DI[2],Data07.DI[1],Data07.DI[0]);
@@ -1710,7 +1752,7 @@ int do_other_type( int taski, int itemi ,INT8U *buf, struct Tsa_Node *desnode, D
 			if (sendlen>0)
 				memcpy(item07,Data07.DI,4);// 保存07规约数据项
 			break;
-		case DLT698:
+		case DLT_698:
 			memset(&st6015,0,sizeof(CLASS_6015));
 			if (Seek_6015(&st6015,taskinfo.task_list[taski].fangan)==1)
 				sendlen = composeProtocol698_GetRequest(buf, st6015, desnode->tsa);
@@ -1987,7 +2029,7 @@ int buildMeterFrame(INT8U *buf,struct Tsa_Node *desnode,CJ_FANGAN fangAn)
 				fangAn.items[itemindex].oad2.OI,fangAn.items[itemindex].oad2.attflg,fangAn.items[itemindex].oad2.attrindex,desnode->readnum+1);
 		switch (type)
 		{
-			case DLT645_07:
+			case DLT_645_07:
 				Format07(&Data07,fangAn.items[itemindex].oad1,fangAn.items[itemindex].oad2,desnode->tsa);
 				sendlen = composeProtocol07(&Data07, buf);
 				if (sendlen>0)
@@ -1996,7 +2038,7 @@ int buildMeterFrame(INT8U *buf,struct Tsa_Node *desnode,CJ_FANGAN fangAn)
 					return sendlen;
 				}
 				break;
-			case DLT698:
+			case DLT_698:
 				return 20;
 		}
 	}

@@ -35,9 +35,6 @@ extern INT16S getTaskIndex(INT8U port);
 #define TASK6012_MAX 256
 #define FANGAN_ITEM_MAX 64
 #define FANGAN6015_MAX 20
-#define DLT645_07  2
-#define DLT698  3
-#define CJT188  4
 #define NUM_07DI_698OAD 100
 //---------------------------------------------------------------
 typedef struct

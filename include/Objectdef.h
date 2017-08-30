@@ -1006,6 +1006,7 @@ typedef struct
 	int sucessflg;		//0:没抄读	n:抄读n次
 	OAD oad1;			//非关联 oad1.OI=0
 	OAD oad2;			//数据项
+	INT8U item97[4];	//97规约  15753578781
 	INT8U item07[4];	//07规约  15753578781
 	DateTimeBCD savetime;//存储时标
 }DATA_ITEM;
