@@ -60,7 +60,7 @@ typedef struct
 //OAD+数据
 typedef struct
 {
-	INT8U oad[4];
+	OAD oad;
 	INT8U datalen;
 	INT8U data[50];
 }OAD_DATA;
