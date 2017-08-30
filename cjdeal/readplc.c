@@ -873,6 +873,7 @@ int doInit(RUNTIME_PLC *runtime_p)
 			{//返回载波信息
 				fprintf(stderr,"\n返回载波信息");
 				memcpy(&module_info,&runtime_p->format_Up.afn03_f10_up,sizeof(module_info));
+				DbgPrintToFile1(31,"SlavePointMode = %02x ",runtime_p->format_Up.afn03_f10_up.SlavePointMode);
 				printModelinfo(module_info);
 				step_init = 0;
 				if(getZone("GW")==0) {	//国网送检模拟测试，将来可取消
@@ -896,12 +897,7 @@ int doInit(RUNTIME_PLC *runtime_p)
 					}
 				}
 				clearvar(runtime_p);//376.2上行内容容器清空，发送计时归零
-
-				//在这发东软报文
-				runtime_p->send_start_time = nowtime ;//加上时间
-
-				sleep(1);
-//				return INIT_MASTERADDR;
+				return INIT_MASTERADDR;
 			}
 			//else if  (runtime_p->send_start_time !=0 && (nowtime  - runtime_p->send_start_time)>10)
 			else if (read_num>=3)
@@ -1276,6 +1272,10 @@ int Format07(FORMAT07 *Data07,OAD oad1,OAD oad2,TSA tsa)
 	find_07item = OADMap07DI(oad1.OI,oad2,&obj601F_07Flag) ;
 //	DbgPrintToFile1(31,"find_07item=%d   %04x %04x    07Flg %02x%02x%02x%02x",find_07item,oad1.OI,oad2.OI,
 //			obj601F_07Flag.DI._07.DI_1[0][3],obj601F_07Flag.DI._07.DI_1[0][2],obj601F_07Flag.DI._07.DI_1[0][1],obj601F_07Flag.DI._07.DI_1[0][0]);
+
+
+	fprintf(stderr,"\n-------    1         find_07item=%d",find_07item);
+
 	if (find_07item == 1)
 	{
 		Data07->Ctrl = 0x11;
@@ -1288,7 +1288,7 @@ int Format07(FORMAT07 *Data07,OAD oad1,OAD oad2,TSA tsa)
 		memcpy(&Data07->Addr[startIndex], &tsa.addr[2], (tsa.addr[1]+1));
 //		memcpy(Data07->DI, &obj601F_07Flag.DI_1[0], 4);
 		memcpy(Data07->DI, &obj601F_07Flag.DI._07.DI_1[0], 4);
-
+		fprintf(stderr,"\n-------    2         DI %02x %02x %02x %02x",Data07->DI[0],Data07->DI[1],Data07->DI[2],Data07->DI[3]);
 		return 1;
 	}
 	return 0;
@@ -1934,17 +1934,14 @@ void* ProcessMeter_byJzq(INT8U *buf,INT8U *addrtmp,int *len)//struct Tsa_Node *n
 		ret = readParaClass(0x8888, &taskinfo, tsa_head->tsa_index) ;//读取序号为 tsa_index 的任务记录到内存变量 taskinfo
 		if (ret != 1 )// 返回 1 成功   0 失败
 		{
-//			DbgPrintToFile1(31,"读取失败，用TSA链表第一个 TSA=%02x%02x%02x%02x%02x%02x%02x%02x  index=%d ",
-//					tsa_head->tsa.addr[0],tsa_head->tsa.addr[1],tsa_head->tsa.addr[2],tsa_head->tsa.addr[3],tsa_head->tsa.addr[4],tsa_head->tsa.addr[5],
-//					tsa_head->tsa.addr[6],tsa_head->tsa.addr[7],tsa_head->tsa_index);
-			taskinfo.tsa = tsa_head->tsa;
+//			taskinfo.tsa = tsa_head->tsa;
+//			taskinfo.tsa_index = tsa_head->tsa_index;
+//			zeroitemflag(&taskinfo);;
+
+			memcpy(&taskinfo,&taskinfo_bak,sizeof(taskinfo));
+			taskinfo.tsa =  tsa_head->tsa;
 			taskinfo.tsa_index = tsa_head->tsa_index;
-
-//			DbgPrintToFile1(31,"内存taskinfo TSA=%02x%02x%02x%02x%02x%02x%02x%02x  index=%d ",
-//					taskinfo.tsa.addr[0],taskinfo.tsa.addr[1],taskinfo.tsa.addr[2],taskinfo.tsa.addr[3],taskinfo.tsa.addr[4],taskinfo.tsa.addr[5],
-//					taskinfo.tsa.addr[6],taskinfo.tsa.addr[7],taskinfo.tsa_index);
-
-			zeroitemflag(&taskinfo);;
+			DbgPrintToFile1(31,"第一次请求，用备份结构体初始化该表抄读状态");
 		}
 	}
 	nodetmp = NULL;
@@ -1996,9 +1993,10 @@ void* ProcessMeter_byJzq(INT8U *buf,INT8U *addrtmp,int *len)//struct Tsa_Node *n
 				ret = readParaClass(0x8888, &taskinfo, nodetmp->tsa_index) ;//读取序号为 tsa_index 的任务记录到内存变量 taskinfo
 				if (ret != 1 )// 返回 1 成功   0 失败
 				{
+					memcpy(&taskinfo,&taskinfo_bak,sizeof(taskinfo));
 					taskinfo.tsa = nodetmp->tsa;
 					taskinfo.tsa_index = nodetmp->tsa_index;
-					zeroitemflag(&taskinfo);;
+//					zeroitemflag(&taskinfo);;
 				}
 			}
 		}

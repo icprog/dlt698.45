@@ -838,6 +838,12 @@ typedef struct {
 } CLASS_8001;
 
 typedef struct {
+    INT8U 	state; //催费告警状态，0未告警，1告警
+    INT8U	alarmTime[4];		//告警时段
+    INT8U	alarmInfo[201];		//告警信息
+} CLASS_8002;
+
+typedef struct {
 	INT8U currentState; //当前状态 0输出 1未输出
 	INT8U switchAttr;	//开关属性 0脉冲 1保持式
 	INT8U wiredState;	//接线状态 0接入 1未接入

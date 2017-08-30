@@ -550,7 +550,7 @@ int main(int argc, char *argv[]) {
 			JProgramInfo->ctrls.control[1] = 0xEEFFEFEF;
 			JProgramInfo->ctrls.control[2] = 0xEEFFEFEF;
 		}
-		else if(cmd == 0) {
+		else if(cmd == 1) {
 			fprintf(stderr, "遥控合闸\n");
 			JProgramInfo->ctrls.control[0] = 0xCCAACACA;
 			JProgramInfo->ctrls.control[1] = 0xCCAACACA;

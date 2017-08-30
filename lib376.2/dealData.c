@@ -356,12 +356,13 @@ INT16S dealAFN03_F10(FORMAT3762* format3762, INT8U dir, INT8U* data)
 	{
 		INT8U i;
 		INT32U year,month,day,version[2];
-
+		fprintf(stderr,"\n-----------  data[0]=%02x %02x %02x %02x",data[0],data[1],data[2],data[3]);
 		format3762->afn03_f10_up.CommType = data[0] & 0x0f;
 		format3762->afn03_f10_up.RouterManagement = (data[0]>>4) & 0x01;
 		format3762->afn03_f10_up.SlavePointMode = (data[0]>>5) & 0x01;
 		format3762->afn03_f10_up.ReadMode = (data[0]>>6) & 0x03;
-
+		fprintf(stderr,"\n----------- CommType=%02x   RouterManagement=%02x",format3762->afn03_f10_up.CommType,format3762->afn03_f10_up.RouterManagement);
+		fprintf(stderr,"\n----------- SlavePointMode=%02x   ReadMode=%02x",format3762->afn03_f10_up.SlavePointMode,format3762->afn03_f10_up.ReadMode);
 		format3762->afn03_f10_up.TransParam = data[1] & 0x07;
 		format3762->afn03_f10_up.ChangeMode = (data[1]>>3) & 0x03;
 		format3762->afn03_f10_up.ConfirmMode = (data[1]>>5) & 0x01;
