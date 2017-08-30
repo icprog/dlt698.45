@@ -466,13 +466,13 @@ int AtPrepare(ATOBJ *ao) {
 				ao->TYPE = 1;
 				ao->script = 1;
 				retry = 0;
-				ao->state = 20;
+				ao->state = 30;
 				return 500;
 			}
 			ao->TYPE = 0;
 			ao->script = 0;
 			retry = 0;
-			ao->state = 20;
+			ao->state = 30;
 			return 500;
 		}
 		retry++;
@@ -525,6 +525,26 @@ int AtPrepare(ATOBJ *ao) {
 			ao->state = AT_FINISH_PREPARE;
 		}
 		retry++;
+		return 1000;
+	case 30:
+		ao->GPRS_STATE = 4;
+		if (retry > 5) {
+			ao->state = 0;
+			return 100;
+		}
+		AtSendCmd(ao, "\rAT$MYCCID\r", 11);
+		ao->state = 31;
+		return 500;
+	case 31:
+		RecieveFromComm(Mrecvbuf, 128, ao->fd);
+		memset(ao->ccid, 0x00, sizeof(ao->ccid));
+		if (sscanf((char *) &Mrecvbuf[0], "%*[^0-9]%[0-9]", ao->ccid) == 1) {
+			retry = 0;
+			ao->state = 20;
+			return 500;
+		}
+		retry++;
+		ao->state = 30;
 		return 1000;
 	case 50:
 		retry = 0;
