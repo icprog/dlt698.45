@@ -595,7 +595,7 @@ int getArray(INT8U *source,INT8U *dest,INT8U *DAR)		//1
 		dest[0] = source[1];
 		return 2;//source[0] 0x1 (array type)   source[1] =num
 	}else{
-		*DAR = type_mismatch;
+		if(DAR!=NULL)	*DAR = type_mismatch;
 		return 0;
 	}
 }
@@ -609,7 +609,7 @@ int getStructure(INT8U *source,INT8U *dest,INT8U *DAR)		//2
 	}else {
 		int	data_len=0;
 		data_len = get_Data(source,NULL);		//错误类型，为了setnormalList查找到下一个oad位置
-		*DAR=type_mismatch;
+		if(DAR!=NULL)	*DAR = type_mismatch;
 		return data_len;
 	}
 }
@@ -620,7 +620,7 @@ int getBool(INT8U *source,INT8U *dest,INT8U *DAR)		//3
 		dest[0] = source[1];
 		return 2;//source[0] 0x3 (bool type)   source[1] =value
 	}else {
-		*DAR=type_mismatch;
+		if(DAR!=NULL)	*DAR = type_mismatch;
 		return 0;
 	}
 }
@@ -667,7 +667,7 @@ int getOctetstring(INT8U type,INT8U *source,INT8U *tsa,INT8U *DAR)   //9  and  0
 		memcpy(tsa, &source[type],num+1);
 		return (num + type + 1);	// 1:长度字节
 	}else{
-		*DAR = type_mismatch;
+		if(DAR!=NULL)	*DAR = type_mismatch;
 		return 0;
 	}
 	return 0;
@@ -685,7 +685,7 @@ int getVisibleString(INT8U *source,INT8U *dest,INT8U *DAR)	//0x0A
 		memcpy(&dest[0],&source[1],len);
 		return (len+1);			//+1:类型
 	}else{
-		*DAR=type_mismatch;
+		if(DAR!=NULL)	*DAR = type_mismatch;
 		return 0;
 	}
 }
@@ -761,7 +761,7 @@ int getDateTimeS(INT8U type,INT8U *source,INT8U *dest,INT8U *DAR)		//0x1C
 	if(type == 1 && source[0]!=dtdatetimes) {
 		data_len = get_Data(source,dest);		//错误类型，为了setnormalList查找到下一个oad位置
 		fprintf(stderr,"data_len = %d\n",data_len);
-		*DAR = type_mismatch;
+		if(DAR!=NULL)	*DAR = type_mismatch;
 		return data_len;
 	}
 	return 0;
@@ -1094,7 +1094,9 @@ int getCOMDCB(INT8U type, INT8U* source, COMDCB* comdcb,INT8U *DAR)		//0x5F
 		comdcb->stopbits = source[type+3];
 		comdcb->flow = source[type+4];
 		tmpDAR = getCOMDCBValid(*comdcb);
-		if(tmpDAR != success) *DAR = tmpDAR;
+		if(tmpDAR != success) {
+			if(DAR!=NULL)	*DAR = tmpDAR;
+		}
 		return (5+type);
 	}
 	if(type == 1 && source[0]!=dtcomdcb) {
@@ -1102,7 +1104,7 @@ int getCOMDCB(INT8U type, INT8U* source, COMDCB* comdcb,INT8U *DAR)		//0x5F
 		fprintf(stderr,"source=%02x\n",source[0]);
 		data_len = get_Data(source,NULL);		//错误类型，为了setnormalList查找到下一个oad位置
 		fprintf(stderr,"error data_len = %d\n",data_len);
-		*DAR = type_mismatch;
+		if(DAR!=NULL)	*DAR=type_mismatch;
 		return data_len;
 	}
 	return 0;
