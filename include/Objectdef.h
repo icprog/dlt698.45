@@ -838,6 +838,12 @@ typedef struct {
 } CLASS_8001;
 
 typedef struct {
+    INT8U 	state; //催费告警状态，0未告警，1告警
+    INT8U	alarmTime[4];		//告警时段
+    INT8U	alarmInfo[201];		//告警信息
+} CLASS_8002;
+
+typedef struct {
 	INT8U currentState; //当前状态 0输出 1未输出
 	INT8U switchAttr;	//开关属性 0脉冲 1保持式
 	INT8U wiredState;	//接线状态 0接入 1未接入
@@ -1006,6 +1012,7 @@ typedef struct
 	int sucessflg;		//0:没抄读	n:抄读n次
 	OAD oad1;			//非关联 oad1.OI=0
 	OAD oad2;			//数据项
+	INT8U item97[4];	//97规约  15753578781
 	INT8U item07[4];	//07规约  15753578781
 	DateTimeBCD savetime;//存储时标
 }DATA_ITEM;
@@ -1036,6 +1043,7 @@ typedef struct
 
 typedef struct
 {
+	INT8U protocol;
 	TASK_UNIT task_list[20];			//任务数组
 	int task_n;							//任务个数  < TASK_MAXNUM
 	TSA tsa;							//表地址

@@ -40,15 +40,6 @@ pthread_attr_t read485_attr_t;
 int thread_read4851_id,thread_read4852_id;           //485、四表合一（I型、II型、专变）
 pthread_t thread_read4851,thread_read4852;
 
-
-typedef enum{
-	PROTOCOL_UNKNOWN = 0,
-	DLT_645_97 = 1,
-	DLT_645_07 = 2,
-	DLT_698 = 3,
-	CJT_188 = 4,
-}METER_PROTOCOL;
-
 typedef struct
 {
 	INT16U sernum;
