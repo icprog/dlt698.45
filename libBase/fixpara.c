@@ -30,8 +30,12 @@ typedef struct {
 
 #define  IP_LEN		4			//参数ip类长度
 									//厂商代码　　软件版本　软件日期　　硬件版本　硬件日期  扩展信息
-static VERINFO verinfo          = { "QDGK", "SXY8", "170823", "1.10", "160328", "00000000" }; // 4300 版本信息
+
+static VERINFO verinfo          = { "QDGK", "V1.1", "170828", "1.10", "160328", "00000000" }; // 4300 版本信息
 								    //湖南需要双协议,软件版本要求为SXY8（双协议8） ，1376.1（软件版本为SXY1）
+static VERINFO verinfo_HuNan    = { "QDGK", "SXY8", "170828", "1.10", "160328", "00000000" }; // 4300 版本信息
+
+
 static DateTimeBCD product_date = { { 2016 }, { 04 }, { 6 }, { 0 }, { 0 }, { 0 } };   // 4300 生产日期
 static char protcol[]           = "DL/T 698.45";                                      // 4300 支持规约类型
 
@@ -162,14 +166,21 @@ void InitClass4300() //电气设备信息
 {
     CLASS19 oi4300 = {};
     int ret        = 0;
+    VERINFO		run_version;
+
+	if(getZone("HuNan")==0) {
+		memcpy(&run_version,&verinfo_HuNan,sizeof(VERINFO));
+	}else if(getZone("GW")==0) {
+		memcpy(&run_version,&verinfo,sizeof(VERINFO));
+	}
 
     memset(&oi4300, 0, sizeof(CLASS19));
     ret = readCoverClass(0x4300, 0, &oi4300, sizeof(CLASS19), para_vari_save);
-    if ((ret != 1) || (memcmp(&oi4300.info, &verinfo, sizeof(VERINFO)) != 0)
+    if ((ret != 1) || (memcmp(&oi4300.info, &run_version, sizeof(VERINFO)) != 0)
     				|| memcmp(&oi4300.date_Product, &product_date, sizeof(DateTimeBCD)) != 0
     				|| memcmp(&oi4300.protcol, protcol, sizeof(protcol)) != 0) {
         fprintf(stderr, "\n初始化电气设备信息：4300\n");
-        memcpy(&oi4300.info, &verinfo, sizeof(VERINFO));
+        memcpy(&oi4300.info, &run_version, sizeof(VERINFO));
         memcpy(&oi4300.date_Product, &product_date, sizeof(DateTimeBCD));
         memcpy(&oi4300.protcol, protcol, sizeof(oi4300.protcol));
         saveCoverClass(0x4300, 0, &oi4300, sizeof(CLASS19), para_vari_save);

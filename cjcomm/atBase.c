@@ -637,9 +637,13 @@ int AtPrepare(ATOBJ *ao) {
 		readCoverClass(0x4500, 0, c25, sizeof(CLASS25), para_vari_save);
 		c25->signalStrength = ao->CSQ;
 		//TODO:SIM卡号码simkard, CCID未有AT获取
-		memcpy(&c25->imsi,ao->CIMI,sizeof(c25->imsi));
-		memcpy(&c25->ccid,ao->ccid,sizeof(c25->ccid));
-		memcpy(&c25->simkard,ao->imsi,sizeof(c25->simkard));
+		//一致性测试4500-10,ccid的第一个字节为长度
+		memcpy(&c25->imsi[1],ao->imsi,sizeof(c25->imsi));
+		c25->imsi[0] = strlen(ao->imsi);
+		memcpy(&c25->ccid[1],ao->ccid,sizeof(c25->ccid));
+		c25->ccid[0] = strlen(ao->ccid);
+		memcpy(&c25->simkard[1],ao->CIMI,sizeof(c25->simkard));
+		c25->simkard[0] = strlen(ao->CIMI);
 		memcpy(&c25->pppip,ao->PPP_IP,sizeof(c25->pppip));
 		saveCoverClass(0x4500, 0, c25, sizeof(CLASS25), para_vari_save);
 		return 5 * 1000;

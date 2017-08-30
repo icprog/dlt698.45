@@ -8,6 +8,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include "basedef.h"
 #include "AccessFun.h"
 #include "StdDataType.h"
 #include "Objectdef.h"
@@ -312,7 +313,10 @@ int GetYxPara(RESULT_NORMAL *response)
 			break;
 		case 2://设备对象列表
 			fprintf(stderr,"GetYxPara oi.att=%d\n",oad.attflg);
-			objtmp.statearri.num = 4;
+			if(memp->cfg_para.device == CCTT2) {
+				objtmp.statearri.num = 1;
+			}else
+				objtmp.statearri.num = 4;
 			index += create_array(&data[index],objtmp.statearri.num);
 			for(int i=0;i<objtmp.statearri.num;i++)
 			{
@@ -1044,14 +1048,14 @@ int Get4500(RESULT_NORMAL *response)
             data[index++]=0;
 		break;
 	case 7:
-		if((strlen((char *)class_tmp.ccid))>0)
-			index +=fill_visible_string(&data[index],(char *)&class_tmp.ccid,strlen((char *)class_tmp.ccid));
+		if(class_tmp.ccid[0]>0)
+			index +=fill_visible_string(&data[index],(char *)&class_tmp.ccid[1],class_tmp.ccid[0]);
 		else
 			data[index++]=0;
 	    break;
 	case 8:
-		if((strlen((char *)class_tmp.imsi))>0)
-			index +=fill_visible_string(&data[index],(char *)&class_tmp.imsi,strlen((char *)class_tmp.imsi));
+		if(class_tmp.imsi[0]>0)
+			index +=fill_visible_string(&data[index],(char *)&class_tmp.imsi[1],class_tmp.imsi[0]);
 		else
 			data[index++]=0;
 		break;
@@ -1059,8 +1063,12 @@ int Get4500(RESULT_NORMAL *response)
 		index +=fill_long(&data[index],class_tmp.signalStrength);
 		break;
 	case 10:
-		if((strlen((char *)class_tmp.simkard))>0)
-			index +=fill_visible_string(&data[index],(char *)&class_tmp.simkard,strlen((char *)class_tmp.simkard));
+//		if((strlen((char *)class_tmp.simkard))>0)
+//			index +=fill_visible_string(&data[index],(char *)&class_tmp.simkard,strlen((char *)class_tmp.simkard));
+//		else
+//			data[index++]=0;
+		if(class_tmp.simkard[0]>0)
+			index +=fill_visible_string(&data[index],(char *)&class_tmp.simkard[1],class_tmp.simkard[0]);
 		else
 			data[index++]=0;
 		break;
@@ -1265,6 +1273,34 @@ int getColl_Data(OI_698 oi,INT16U seqnum,INT8U *data)
 	return index;
 }
 
+int  fill_variClass(OI_698 oi,INT8U getflg,INT8U *sourcebuf,INT8U *destbuf,int *len)
+{
+	int  buflen = 0;
+	switch(oi) {
+	case 0x2200:	//通信流量
+		Get_2200(getflg,(INT8U *)sourcebuf,destbuf,&buflen);
+		break;
+	case 0x2203:	//供电时间
+		Get_2203(getflg,(INT8U *)sourcebuf,destbuf,&buflen);
+		break;
+	case 0x2204:	//复位次数
+		Get_2204(getflg,(INT8U *)sourcebuf,destbuf,&buflen);
+		break;
+	case 0x2131:
+	case 0x2132:
+	case 0x2133:
+		Get_213x(getflg,(INT8U *)sourcebuf,destbuf,&buflen);
+		break;
+	default:
+		//fprintf(stderr,"GET_26:未定义对象属性，上送数据NULL\n");
+		destbuf[0] = 0;		//data = NULL
+		buflen = 1;
+		break;
+	}
+	*len = buflen;
+	return 1;
+}
+
 int  fill_RecordRow(int *index,RESULT_RECORD *record,DateTimeBCD datetime)
 {
 	int 	i=0,j=0;
@@ -1283,7 +1319,9 @@ int  fill_RecordRow(int *index,RESULT_RECORD *record,DateTimeBCD datetime)
 			fprintf(stderr,"%02x ",data[j]);
 		}
 		fprintf(stderr,"\n");
-		switch(record->rcsd.csds.csd[i].csd.oad.OI) {
+		fill_variClass(record->rcsd.csds.csd[i].csd.oad.OI,getflg,(INT8U *)data,&record->data[*index],&buflen);
+		*index += buflen;
+/*		switch(record->rcsd.csds.csd[i].csd.oad.OI) {
 		case 0x2200:	//通信流量
 			Get_2200(getflg,(INT8U *)data,&record->data[*index],&buflen);
 			*index += buflen;
@@ -1302,9 +1340,56 @@ int  fill_RecordRow(int *index,RESULT_RECORD *record,DateTimeBCD datetime)
 			Get_213x(getflg,(INT8U *)data,&record->data[*index],&buflen);
 			*index += buflen;
 			break;
-		}
+		}*/
 	}
 	return *index;
+}
+
+int fill_RecordRowByNum(RESULT_RECORD *record_para)
+{
+	int 	i=0,j=0;
+	INT8U	csds_num=0,road_num=0,recordn=0;
+	OI_698 	freezeOI,relateOI;
+	OAD		relateOAD;
+	int	 	currRecordNum=0,maxRecordNum=0,datalen=0;
+	INT8U 	data[VARI_LEN];
+	DateTimeBCD datetime;
+	int		getflg = -1;
+	int		index = 0,buflen = 0;
+
+	freezeOI = record_para->oad.OI;
+	csds_num = record_para->rcsd.csds.num;
+	recordn = record_para->select.selec9.recordn;
+	fprintf(stderr,"freezeOI = %x  csds_num=%d recordn=%d\n",freezeOI,csds_num,recordn);
+
+	fprintf(stderr,"datalen = %d\n",index);
+	for(i=0;i<index;i++) {
+		fprintf(stderr,"%02x ",record_para->data[i]);
+	}
+	record_para->data[index++] = 1;				//A-ResultRecord CHOICE=1
+	record_para->data[index++] = 1;		//seqof A-RecordRow
+	for(i=0;i<csds_num;i++) {
+		if(record_para->rcsd.csds.csd[i].type == 0) {
+			memset(data,0,sizeof(data));
+			relateOI = record_para->rcsd.csds.csd[i].csd.oad.OI;
+			readFreezeRecordNum(freezeOI,relateOI,&currRecordNum,&maxRecordNum);
+			fprintf(stderr,"File=%s/%04x-%04x.dat  currRecord=%d,maxRecord=%d\n",VARI_DIR,freezeOI,relateOI,currRecordNum,maxRecordNum);
+			relateOAD.OI = relateOI;
+			relateOAD.attflg = 0;
+			relateOAD.attrindex = 0;
+			getflg = readFreezeRecordByNum(freezeOI,relateOAD,(currRecordNum-recordn),&datetime,&datalen,(INT8U *)data);
+			fill_variClass(relateOI,getflg,(INT8U *)data,&record_para->data[index],&buflen);
+			index += buflen;
+//			fprintf(stderr,"getflg = %d   index = %d  buflen = %d\n",getflg,index, buflen);
+//			int i=0;
+//			for(i=0;i<index;i++) {
+//				fprintf(stderr,"%02x ",record_para->data[i]);
+//			}
+
+		}
+	}
+	record_para->datalen += index;
+	return record_para->datalen;
 }
 /*
  * 返回SEQUENCE OF GetRecord 的个数
@@ -1353,6 +1438,7 @@ int repeatSel(Selector3 sel3,int seq)
 	}
 	return ret;
 }
+
 int getSel2_freeze(RESULT_RECORD *record)
 {
 	int 	ret=0,i=0,sel_id =0;
@@ -1711,7 +1797,7 @@ int doGetrecord(INT8U type,OAD oad,INT8U *data,RESULT_RECORD *record,INT16U *sub
 	INT8U 	SelectorN =0;
 	int		datalen=0;
 	int		seqof_len = 0;
-	int		i=0	,freezeflg = 0;;
+	int		i=0	,freezeflg = 0 ,ret = 0;
 
 	DEBUG_TIME_LINE("\nGetRequestRecord   oi=%x  %02x  %02x",record->oad.OI,record->oad.attflg,record->oad.attrindex);
 	source_index = get_BasicRSD(0,&data[source_index],(INT8U *)&record->select,&record->selectType);
@@ -1848,31 +1934,21 @@ int doGetrecord(INT8U type,OAD oad,INT8U *data,RESULT_RECORD *record,INT16U *sub
 	case 9:		//指定读取上第n次记录
 		*subframe = 1;		//TODO:未处理分帧
 		dest_index +=fill_RCSD(0,&record->data[dest_index],record->rcsd.csds);
+		fprintf(stderr,"dest_index = %d  record->rcsd.csds.num=%d\n",dest_index,record->rcsd.csds.num);
 		record->data = &TmpDataBuf[dest_index];
 		 //一致性测试GET_24 rcsd=0,应答帧应填写rcsd=0 ,
-//		if(((record->oad.OI & 0xf000) == 0x5000) && (record->rcsd.csds.num==0)) {	//招测冻结类数据
-//			record->data[dest_index++] = 0;	//RCSD=0
-//			record->data[dest_index++] = 1;	//Data
-//			record->data[dest_index++] = 1;	//seqof A-RecordRow
-//			record->data[dest_index++] = 0;	//A-RecordRow len
-//			record->datalen += dest_index;
-//		}else {
-//			Getevent_Record_Selector(record,memp);
-//			record->data = TmpDataBuf;				//data 指向回复报文帧头
-//			record->datalen += dest_index;			//数据长度+ResultRecord
-//		}
 		if((record->oad.OI & 0xf000) == 0x5000) {	//招测冻结类数据
-			if (record->rcsd.csds.num==0)
-			{
+			if (record->rcsd.csds.num==0) 	{
 				record->data[dest_index++] = 0;	//RCSD=0
 				record->data[dest_index++] = 1;	//Data
 				record->data[dest_index++] = 1;	//seqof A-RecordRow
 				record->data[dest_index++] = 0;	//A-RecordRow len
 				record->datalen += dest_index;
-			}else
-			{
-				//上N次日冻结
-				GetTerminal5004(record,memp);
+			}else 	{
+				//终端类冻结数据
+				fill_RecordRowByNum(record);
+				record->data = TmpDataBuf;				//data 指向回复报文帧头
+				record->datalen += dest_index;			//数据长度+ResultRecord
 			}
 		}else {
 			Getevent_Record_Selector(record,memp);

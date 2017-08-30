@@ -151,3 +151,17 @@ INT8U DataTimeCmp(DateTimeBCD startdt,DateTimeBCD enddt)
 	if(t1>=t2)  return 0;
 	else return 1;
 }
+
+/*
+ *  限值判断 ,注意限值为int型，不能超过0xffffffff
+ *  超过限值 返回设定限值
+ *  否则    返回实际值
+ * */
+int limitJudge(char *desc,int limit,int val)
+{
+	if(val>limit) {
+		syslog(LOG_ERR,"%s[%d] ,大于设定值[%d],异常！！",desc,val,limit);
+		return limit;
+	}else
+		return val;
+}
