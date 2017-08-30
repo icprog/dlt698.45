@@ -1940,10 +1940,8 @@ void* ProcessMeter_byJzq(INT8U *buf,INT8U *addrtmp,int *len)//struct Tsa_Node *n
 					tmpitem.oad1.OI,tmpitem.oad1.attflg,tmpitem.oad1.attrindex,
 					tmpitem.oad2.OI,tmpitem.oad2.attflg,tmpitem.oad2.attrindex,sendlen,nodetmp);
 			*len = sendlen;
-
 			DbgPrintToFile1(31,"有数据抄读，刷新任务内存状态");
 			chkTsaTask(&taskinfo);
-
 			return nodetmp;
 		}else
 		{
@@ -3643,6 +3641,9 @@ int doBroadCast(RUNTIME_PLC *runtime_p)
 	}
 	return BROADCAST;
 }
+//载波查询模块工作模式和修改工作模式报文
+//INT8U  searchMode[15]={0x68,0x0f,0x00,0x47,0x00,0x00,0xFF,0x00,0x00,0x0b,0x02,0x40,0x01,0x94,0x16};
+//INT8U  setMode[16]={0x68,0x10,0x00,0x47,0x00,0x00,0xFF,0x00,0x00,0x0d,0x01,0x40,0x01,0x66,0xFb,0x16};
 
 void readplc_thread()
 {
@@ -3661,7 +3662,7 @@ void readplc_thread()
 	initSearchMeter(&search6002);
 	initTaskData(&taskinfo);
 	PrintTaskInfo2(&taskinfo);
-	DbgPrintToFile1(31,"载波线程开始");
+	DbgPrintToFile1(31,"载波线程开始...");
 	runtimevar.format_Down.info_down.ReplyBytes = 0x28;
 
 	DbgPrintToFile1(31,"1-fangAn6015[%d].sernum = %d  fangAn6015[%d].mst.mstype = %d ",

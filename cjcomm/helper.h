@@ -10,7 +10,7 @@
 #ifndef HELPER_H_
 #define HELPER_H_
 
-int helperCheckIp();
+int helperCheckIp(INT8U *pppip);
 int helperKill(char *name, int timeout);
 int helperGetInterFaceIp(char *interface, char *ips);
 int helperConnect(char *interface, MASTER_STATION_INFO *info);

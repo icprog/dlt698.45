@@ -55,6 +55,7 @@ static char *usage_data = "\n--------------------数据维护命令-------------
 		"		 【曲线数据点采集率显示】cj taskinfo <文件名>		\n"
 		"		 【曲线OAD采集率显示】cj oadinfo <文件名>		\n"
         "		 【冻结数据读取】cj freezedata 冻结OI 关联OI	\n"
+		"		 【读取载波抄表状态】cj plc  如读某一块电表 cj plc 0705000005657657 \n"
 		"		 【曲线数据补送】cj report 64 2017 6 6 10 30 11 30 **上报任务17-6-6 10:30到11:30这个点的数据上报	\n"
         "-------------------------------------------------------\n\n";
 static char *usage_vari = "\n--------------------变量类对象----------------------------\n"
@@ -549,7 +550,7 @@ int main(int argc, char *argv[]) {
 			JProgramInfo->ctrls.control[1] = 0xEEFFEFEF;
 			JProgramInfo->ctrls.control[2] = 0xEEFFEFEF;
 		}
-		else if(cmd == 0) {
+		else if(cmd == 1) {
 			fprintf(stderr, "遥控合闸\n");
 			JProgramInfo->ctrls.control[0] = 0xCCAACACA;
 			JProgramInfo->ctrls.control[1] = 0xCCAACACA;

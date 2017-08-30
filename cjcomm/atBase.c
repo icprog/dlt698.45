@@ -276,6 +276,7 @@ int AtPrepare(ATOBJ *ao) {
 	char Mrecvbuf[128];
 	memset(Mrecvbuf, 0, 128);
 	MASTER_STATION_INFO ip_port;
+	CLASS25* c25 = (CLASS25*) dbGet("class25");
 
 	switch (ao->state) {
 	case 0:
@@ -284,7 +285,7 @@ int AtPrepare(ATOBJ *ao) {
 			return 5000;
 		}
 		if (ao->at_retry++ > 5) {
-			asyslog(LOG_INFO, "<AT流程> 5次拨号失败，关断模块10分钟>>>>>>>>");
+			asyslog(LOG_INFO, "<AT流程> 5次拨号失败，关断模块5分钟>>>>>>>>");
 			gpofun("/dev/gpoGPRS_POWER", 0);
 			ao->at_retry = 0;
 			return 1000 * 60 * 5;
@@ -465,13 +466,13 @@ int AtPrepare(ATOBJ *ao) {
 				ao->TYPE = 1;
 				ao->script = 1;
 				retry = 0;
-				ao->state = 20;
+				ao->state = 30;
 				return 500;
 			}
 			ao->TYPE = 0;
 			ao->script = 0;
 			retry = 0;
-			ao->state = 20;
+			ao->state = 30;
 			return 500;
 		}
 		retry++;
@@ -518,12 +519,32 @@ int AtPrepare(ATOBJ *ao) {
 			ao->state = 0;
 			return 100;
 		}
-		if (helperCheckIp() == 1) {
+		if (helperCheckIp(&ao->PPP_IP[0]) == 1) {
 			retry = 0;
 			ao->PPPD = 1;
 			ao->state = AT_FINISH_PREPARE;
 		}
 		retry++;
+		return 1000;
+	case 30:
+		ao->GPRS_STATE = 4;
+		if (retry > 5) {
+			ao->state = 0;
+			return 100;
+		}
+		AtSendCmd(ao, "\rAT$MYCCID\r", 11);
+		ao->state = 31;
+		return 500;
+	case 31:
+		RecieveFromComm(Mrecvbuf, 128, ao->fd);
+		memset(ao->ccid, 0x00, sizeof(ao->ccid));
+		if (sscanf((char *) &Mrecvbuf[0], "%*[^0-9]%[0-9]", ao->ccid) == 1) {
+			retry = 0;
+			ao->state = 20;
+			return 500;
+		}
+		retry++;
+		ao->state = 30;
 		return 1000;
 	case 50:
 		retry = 0;
@@ -633,8 +654,21 @@ int AtPrepare(ATOBJ *ao) {
 		retry++;
 		asyslog(LOG_INFO, "======%d", retry);
 		ao->at_retry = 0;
+		readCoverClass(0x4500, 0, c25, sizeof(CLASS25), para_vari_save);
+		c25->signalStrength = ao->CSQ;
+		//TODO:SIM卡号码simkard, CCID未有AT获取
+		//一致性测试4500-10,ccid的第一个字节为长度
+		memcpy(&c25->imsi[1],ao->imsi,sizeof(c25->imsi));
+		c25->imsi[0] = strlen(ao->imsi);
+		memcpy(&c25->ccid[1],ao->ccid,sizeof(c25->ccid));
+		c25->ccid[0] = strlen(ao->ccid);
+		memcpy(&c25->simkard[1],ao->CIMI,sizeof(c25->simkard));
+		c25->simkard[0] = strlen(ao->CIMI);
+		memcpy(&c25->pppip,ao->PPP_IP,sizeof(c25->pppip));
+		saveCoverClass(0x4500, 0, c25, sizeof(CLASS25), para_vari_save);
 		return 5 * 1000;
 	}
+	return 0;
 }
 
 int AtPrepareFinish(ATOBJ *ao) {

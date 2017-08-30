@@ -4289,7 +4289,7 @@ void menu_ac_info(){
 void menu_ProtocolChange()
 {
 	if(getZone("HuNan")!=0) return ;//非湖南地区不使用该功能
-	if(msgbox_label((char*)"切换到376.1?", CTRL_BUTTON_OK) != ACK) return ;
+	if(msgbox_label((char*)"切换到1376.1?", CTRL_BUTTON_OK) != ACK) return ;
 
 	 system((const char *) "mv /nor/rc.d/rc.local /nor/rc.d/698_rc.local");
 	usleep(100);

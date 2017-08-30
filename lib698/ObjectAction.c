@@ -720,25 +720,29 @@ void AddOI6019(INT8U *data, Action_result *act_ret) {
     act_ret->datalen = index;
 }
 
+//湖南测试报文 6014-130
+//68 34 00 43 05 05 00 00 00 00 00 01 61 84 07 01 12 60 14 82 00 02 02 11 07 01 01 5b 01 50 02 02 00 04 00 10 02 01 00 20 02 01 20 00 02 00 20 01 02 00 00 c3 32 16
 void Set_CSD(INT8U *data,Action_result *act_ret) {
 	CLASS_6015 task = {};
 	int index=0;
+
 	memset(&task, 0, sizeof(task));
 	INT8U taskid=0;
-	//index = index + 2;//array
-	index = index + 2;//structure
-	index += getUnsigned(&data[index],&taskid,&act_ret->DAR);
-	int ret = 1;//readCoverClass(0x6013,taskid,&task,sizeof(CLASS_6013),coll_para_save);
+	index += getStructure(&data[index],NULL,&act_ret->DAR);
+	index += getUnsigned(&data[index],&taskid,NULL);
+	int ret=readCoverClass(0x6015,taskid,&task,sizeof(CLASS_6015),coll_para_save);
 	if(ret == 1)
 	{
 		INT8U arraysize = 0;
 		index += getArray(&data[index], &arraysize,&act_ret->DAR);
 		task.csds.num = arraysize;
 		int w = 0;
+		fprintf(stderr,"arraysize1 = %d\n",arraysize);
+		arraysize = limitJudge("获取CSD值",MY_CSD_NUM,arraysize);
 		for (w = 0; w < arraysize; w++) {
 			index += getCSD(1, &data[index], (MY_CSD *) &task.csds.csd[w]);
 		}
-		saveCoverClass(0x6015, task.sernum, &task, sizeof(task), coll_para_save);
+		saveCoverClass(0x6015,taskid, &task, sizeof(CLASS_6015), coll_para_save);
 	}else
 		act_ret->DAR=type_mismatch;
 }
@@ -1056,13 +1060,33 @@ void TerminalInfo(INT16U attr_act, INT8U *data, Action_result *act_ret)
             fprintf(stderr, "\n终端数据初始化！");
             syslog(LOG_NOTICE, "终端数据初始化!（act=%d）",attr_act);
             break;
+            //68 1a 00 c3 05 05 00 00 00 00 00 01 e1 eb 87 01 0e 43 00 4c 00 00 00 00 00 e0 d6 16  报文Data：NULL
+        case 76:	//0x4C  湖南主站切换到3761下发报文
+        	syslog(LOG_NOTICE, "\n湖南协议从698切换到3761【4C】\n");
+            system((const char *) "cp /nor/rc.d/rc.local /nor/rc.d/698_rc.local");
+            sleep(1);
+            system((const char *) "cp /nor/rc.d/3761_rc.local /nor/rc.d/rc.local");
+            sleep(1);
+            system((const char *) "chmod 777 /nor/rc.d/rc.local");
+            sleep(2);
+            if (access("/nor/rc.d/rc.local", F_OK) != 0 || access("/nor/rc.d/rc.local", X_OK) != 0) {
+                if (write_3761_rc_local()) {
+                    sleep(1);
+                    system((const char *) "chmod 777 /nor/rc.d/rc.local");
+                    sleep(1);
+                }
+            }
+            system("fsync -d /nor/rc.d/rc.local");
+            sleep(1);
+            system((const char *) "reboot");                    //TODO:写文件成功切换rc.local
+        	break;
         case 151://湖南切换到3761规约程序转换主站通信参数
-            fprintf(stderr, "\nhunan change 3761 protocol f151\n");
+            syslog(LOG_NOTICE, "\n湖南协议从698切换到3761【151】\n");
             if (save_protocol_3761_tx_para(data))//写文件成功
             {
-                system((const char *) "mv /nor/rc.d/rc.local /nor/rc.d/698_rc.local");
+                system((const char *) "cp /nor/rc.d/rc.local /nor/rc.d/698_rc.local");
                 sleep(1);
-                system((const char *) "mv /nor/rc.d/3761_rc.local /nor/rc.d/rc.local");
+                system((const char *) "cp /nor/rc.d/3761_rc.local /nor/rc.d/rc.local");
                 sleep(1);
                 system((const char *) "chmod 777 /nor/rc.d/rc.local");
                 sleep(1);

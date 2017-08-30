@@ -139,6 +139,9 @@ void clearData()
 	system("rm -rf /nand/allevent");
 	//删除6035
 	system("rm -rf /nand/para/6035");
+	//删除抄表记录状态
+	system("rm -rf /nand/para/plcrecord.par");
+	system("rm -rf /nand/para/plcrecord.bak");
 }
 
 void clearEvent()
@@ -878,7 +881,12 @@ int readFreezeRecordByNum(OI_698 freezeOI,OAD oad,int RecordNum,DateTimeBCD *dat
 	//		fprintf(stderr,"%04d-%02d-%02d %02d:%02d:%02d \n",datetime->year.data,datetime->month.data,datetime->day.data,
 	//				datetime->hour.data,datetime->min.data,datetime->sec.data);
 			fread(datalen,2,1,fp);
-			ret = fread(data,*datalen,1,fp);
+			if(*datalen > VARI_LEN) {
+				ret = 0;
+				syslog(LOG_ERR,"读取数据长度%d 大于限值 %d,失败！！！\n",*datalen,VARI_LEN);
+			}else {
+ 				ret = fread(data,*datalen,1,fp);
+			}
 //			fprintf(stderr,"datalen=%d ret=%d\n",*datalen,ret);
 //			for(i=0;i<*datalen;i++) {
 //				fprintf(stderr,"%02x ",data[i]);
@@ -932,7 +940,12 @@ int	readFreezeRecordByTime(OI_698 freezeOI,OAD oad,DateTimeBCD datetime,int *dat
 			if(RecordTime.year.data==datetime.year.data && RecordTime.month.data==datetime.month.data && RecordTime.day.data==datetime.day.data
 					&& RecordTime.hour.data==datetime.hour.data && RecordTime.min.data==datetime.min.data && RecordTime.sec.data==datetime.sec.data) {
 				fread(datalen,2,1,fp);
-				ret = fread(data,(*datalen),1,fp);
+				if(*datalen > VARI_LEN) {
+					ret = 0;
+					syslog(LOG_ERR,"读取数据长度%d 大于限值 %d,失败！！！\n",*datalen,VARI_LEN);
+				}else {
+					ret = fread(data,(*datalen),1,fp);
+				}
 //				fprintf(stderr,"datalen=%d\n",*datalen);
 //				for(i=0;i<*datalen;i++) {
 //					fprintf(stderr,"%02x ",data[i]);
@@ -4375,10 +4388,7 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds,INT16U fr
 //	fseek(fp,headlen+unitlen*unitno_index,SEEK_SET);
 //
 //}
-int GetTerminal5004(RESULT_RECORD *record_para)
-{
-	return 1;
-}
+
 int getSelector(OAD oad_h,RSD select, INT8U selectype, CSD_ARRAYTYPE csds, INT8U *data, int *datalen,INT16U frmmaxsize)
 {
 	int  framesum=0;		//分帧
