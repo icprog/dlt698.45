@@ -30,6 +30,7 @@ extern PIID piid_g;
 extern TimeTag	Response_timetag;		//响应的时间标签值
 extern INT8U securetype;
 extern INT8U broadcast;
+extern TimeTag Response_timetag; //响应的时间标签值
 
 INT16U getMytypeSize(INT8U first) {
     if (first == 0xAA) {
@@ -79,8 +80,7 @@ int doReponse(int server, int reponse, CSINFO *csinfo, int datalen, INT8U *data,
     index = index + datalen;
     //buf[index++] = 0;	//操作返回数据
     buf[index++] = 0;    //跟随上报信息域 	FollowReport
-    buf[index++] = 0;    //时间标签		TimeTag
-//    index += FrameTimeTag(&Response_timetag,&buf[index]);
+    index += fill_timetag(&buf[index],Response_timetag);//时间标签		TimeTag
     fprintf(stderr,"securetype = %d\n",securetype);
     int ret=0;
     if (securetype != 0)//安全等级类型不为0，代表是通过安全传输下发报文，上行报文需要以不低于请求的安全级别回复

@@ -29,7 +29,6 @@ extern int doGetnormal(INT8U seqOfNum,RESULT_NORMAL *response);
 extern INT8U Reset_add();
 extern void FrameTail(INT8U *buf, int index, int hcsi);
 extern int FrameHead(CSINFO *csinfo, INT8U *buf);
-extern int FrameTimeTag(TimeTag *tag,INT8U *buf);
 extern INT8S (*pSendfun)(int fd, INT8U *sndbuf, INT16U sndlen);
 extern void Get698_event(OAD oad, ProgramInfo *prginfo_event);
 extern INT16S composeSecurityResponse(INT8U* SendApdu,INT16U Length);
@@ -64,7 +63,7 @@ extern void print_rsd(INT8U choice, RSD rsd);
 /**/
 extern void setOIChange(OI_698 oi);
 /*----------------------接口类及对象实例的基本数据类型组帧----------------------*/
-
+extern int fill_timetag(INT8U *data,TimeTag timetag);
 extern int create_array(INT8U* data, INT8U numm);			//0x01
 extern int create_struct(INT8U* data, INT8U numm);			//0x02
 extern int fill_bool(INT8U* data, INT8U value);				//0x03
@@ -122,7 +121,7 @@ extern int getDataTypeLen(int dt);
 /*----------------------具体OI类组帧函数----------------------*/
 /*----------------------统计相关数据----------------------*/
 extern INT8U Get_Vacs(RESULT_NORMAL *response,ProgramInfo* prginfo_acs);
-
+extern int  fill_variClass(OI_698 oi,INT8U getflg,INT8U *sourcebuf,INT8U *destbuf,int *len);
 extern int GetFileState(RESULT_NORMAL* response);
 
 /*----------------------规约一致性 数据有效性判断接口----------------------*/

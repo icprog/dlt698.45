@@ -80,7 +80,10 @@ INT32S gpio_writebytes(char* devpath, INT8S* vals, INT32S valnum) {
  */
 INT8U pwr_down_byVolt(INT8U valid, INT32U volt, INT16U limit)
 {
-    if ((valid == TRUE) && ((volt > VOL_DOWN_THR*U_COEF && volt < limit*U_COEF) || (volt <= VOL_DOWN_THR*U_COEF))) {
+	if (0 == limit)
+		limit = VOL_DOWN_THR;
+
+    if ((TRUE == valid) && (volt < limit)) {
         return 1;//断电
     }
     return 0; //未断电
@@ -88,7 +91,10 @@ INT8U pwr_down_byVolt(INT8U valid, INT32U volt, INT16U limit)
 
 INT8U pwr_on_byVolt(INT8U valid, INT32U volt, INT16U limit)
 {
-	if((valid == TRUE) &&((volt>limit*U_COEF && limit>0) || (volt>VOL_ON_THR*U_COEF)))
+	if (0 == limit)
+		limit = VOL_ON_THR;
+
+	if((valid == TRUE) && (volt > limit))
 		return 1;//上电
 
     return 0; //未上电

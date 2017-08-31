@@ -107,7 +107,7 @@ int BuildFrame_GetResponse(INT8U response_type,CSINFO *csinfo,INT8U oadnum,RESUL
 	memcpy(&sendbuf[index],response.data,response.datalen);
 	index = index + response.datalen;
 	sendbuf[index++] = 0;	//跟随上报信息域 	FollowReport
-	sendbuf[index++] = 0;	//时间标签		TimeTag
+	index += fill_timetag(&sendbuf[index],Response_timetag);//时间标签		TimeTag
 	if(securetype!=0)//安全等级类型不为0，代表是通过安全传输下发报文，上行报文需要以不低于请求的安全级别回复
 	{
 		apduplace += composeSecurityResponse(&sendbuf[apduplace],index-apduplace);
@@ -160,7 +160,7 @@ int BuildFrame_GetResponseNext(INT8U response_type,CSINFO *csinfo,INT8U DAR,INT1
 		sendbuf[index++] = DAR;
 	}
 	sendbuf[index++] = 0;	//跟随上报信息域 	FollowReport
-	sendbuf[index++] = 0;	//时间标签		TimeTag
+	index += fill_timetag(&sendbuf[index],Response_timetag);//时间标签		TimeTag
 	if(securetype!=0)//安全等级类型不为0，代表是通过安全传输下发报文，上行报文需要以不低于请求的安全级别回复
 	{
 		apduplace += composeSecurityResponse(&sendbuf[apduplace],index-apduplace);
@@ -1277,6 +1277,9 @@ int getColl_Data(OI_698 oi,INT16U seqnum,INT8U *data)
 	return index;
 }
 
+/*
+ * getflg:是否有关联属性
+ * */
 int  fill_variClass(OI_698 oi,INT8U getflg,INT8U *sourcebuf,INT8U *destbuf,int *len)
 {
 	int  buflen = 0;
@@ -1646,6 +1649,10 @@ int GetSle0_task(RESULT_RECORD *record)
 	if(headunit != NULL){
 		free(headunit);
 		headunit = NULL;
+	}
+	if(tsa_group != NULL){
+		free(tsa_group);
+		tsa_group = NULL;
 	}
 	return ret;
 }
@@ -2061,7 +2068,7 @@ int GetVariable(RESULT_NORMAL *response)
 		Get_2204(1,databuf,response->data,&index);
 		response->datalen = index;
 		break;
-	case 0x2301:
+	case 0x2301:	//总加组
 		class23_get(response->oad,databuf,response->data,&index);
 		response->datalen = index;
 		break;

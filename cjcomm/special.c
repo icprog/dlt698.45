@@ -125,7 +125,8 @@ int specialPowState(ProgramInfo *JProgramInfo) {
 	//II型
 	if (JProgramInfo->cfg_para.device == CCTT2) {
 		off_flag = pwr_down_byVolt(JProgramInfo->ACSRealData.Available,
-				JProgramInfo->ACSRealData.Ua, 1320);
+				JProgramInfo->ACSRealData.Ua,
+				JProgramInfo->event_obj.Event3106_obj.poweroff_para_obj.screen_para_obj.happen_voltage_limit);
 	} else {
 		BOOLEAN gpio_5V = pwr_has();
 		if ((JProgramInfo->ACSRealData.Ua < 100)
