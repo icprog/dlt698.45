@@ -379,7 +379,7 @@ int deal8104() {
 	return 0;
 }
 
-int getIsInStop(OI_698 oi, TS ts) {
+long long getIsInStop(OI_698 oi, TS ts) {
 
 	//检查当前总加组的开关是否打开
 	for (int i = 0; i < MAX_AL_UNIT; i++) {
@@ -395,6 +395,7 @@ int getIsInStop(OI_698 oi, TS ts) {
 			//判断当前时间是否在营业报停配置时段内
 			TimeBCDToTs(CtrlC->c8105.list[i].start, &start);
 			TimeBCDToTs(CtrlC->c8105.list[i].end, &end);
+			fprintf(stderr, "营业报停找配置单元(%d)\n", i);
 
 			if (TScompare(ts, start) == 1 && TScompare(end, ts) == 1) {
 				return CtrlC->c8105.list[i].v;
@@ -409,12 +410,20 @@ int deal8105() {
 	TS ts;
 	TSGet(&ts);
 	for (int i = 0; i < 2; i++) {
-		int val = 0;
+		long long val = 0;
 		if (CheckAllUnitEmpty(JProgramInfo->class23[i].allist)) {
 			val = getIsInStop(0x2301 + i, ts);
 		}
 
+		fprintf(stderr, "营业报停限值(%lld)\n", val);
+
+		long long total;
+		for(int i = 0; i < MAXVAL_RATENUM; i ++){
+			total += JProgramInfo->class23[i].DayP[i];
+		}
+
 		if (val != -1) {
+			fprintf(stderr, "营业报日点量(%lld)\n", val);
 			if (JProgramInfo->class23[i].DayP[0] > val) {
 				//产生约负荷越限
 				updateState(CtrlC->c8105.overflow, CtrlC->c8103.output,
@@ -638,21 +647,21 @@ void getFinalCtrl() {
 void dealCtrl() {
 	//直接跳闸，必须检测
 //	deal8107();
-	int res8108 = deal8108();
-	fprintf(stderr,"购电控超出限额!\n");
+//	int res8108 = deal8108();
 //
 //	//检测控制有优先级，当高优先级条件产生时，忽略低优先级的配置
 //
-//	if (deal8106() != 0) {
-//		;
-//	} else if (deal8105() != 0) {
-//		;
-//	} else if (deal8104() != 0) {
-//		;
-//	} else if (deal8103() != 0) {
-//		;
-//	}
-//	//统计输出与告警状态
+	if (deal8106() != 0) {
+		;
+	}
+	} else if (deal8105() != 0) {
+		;
+	} else if (deal8104() != 0) {
+		;
+	} else if (deal8103() != 0) {
+		;
+	}
+	//统计输出与告警状态
 //	sumUpCtrl();
 //
 //	//汇总所有总加组的状态
