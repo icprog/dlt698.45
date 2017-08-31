@@ -58,9 +58,10 @@ int class23_act3(int index, INT8U* data) {
 	asyslog(LOG_WARNING, "添加一个配置单元(%d)", index);
 	ProgramInfo *shareAddr = getShareAddr();
 	for (int i = 0; i < MAX_AL_UNIT; i++) {
-		if (shareAddr->class23[index].allist[i].tsa.addr[0] != 0x00) {
+		if (shareAddr->class23[index].allist[i].tsa.addr[0] == 0x00) {
 			memcpy(&shareAddr->class23[index].allist[i], &al_unit,
 					sizeof(AL_UNIT));
+			asyslog(LOG_WARNING, "添加一个配置单元，地址(%d)", i);
 			break;
 		}
 	}

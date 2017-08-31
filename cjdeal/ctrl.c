@@ -453,14 +453,33 @@ int getMonthValue(OI_698 oi) {
 	return -1;
 }
 
+int getMonthWarn(OI_698 oi) {
+	for (int i = 0; i < MAX_AL_UNIT; i++) {
+		if (CtrlC->c8108.list[i].index == oi) {
+			return CtrlC->c8108.list[i].para;
+		}
+	}
+	return -1;
+}
+
 int deal8108() {
 	for (int i = 0; i < 2; i++) {
-		int val = 0;
-		if (CheckAllUnitEmpty(JProgramInfo->class23[i].allist)) {
-			val = getMonthValue(0x2301 + i);
+		if (!CheckAllUnitEmpty(JProgramInfo->class23[i].allist)) {
+			continue;
+		}
+
+		long long val = getMonthValue(0x2301 + i);
+		long long warn = getMonthWarn(0x2301 + i);
+		fprintf(stderr, "月电控限制%lld\n", val);
+
+		long long total = 0;
+		for(int i = 0; i < MAXVAL_RATENUM; i ++)
+		{
+			total += JProgramInfo->class23[i].MonthP[i];
 		}
 
 		if (val != -1) {
+			fprintf(stderr, "月电控值%lld\n", total);
 			if (JProgramInfo->class23[i].MonthP[0] > val) {
 				return 1;
 			}
@@ -617,9 +636,10 @@ void getFinalCtrl() {
 }
 
 void dealCtrl() {
-//	//直接跳闸，必须检测
+	//直接跳闸，必须检测
 //	deal8107();
-//	deal8108();
+	int res8108 = deal8108();
+	fprintf(stderr,"购电控超出限额!\n");
 //
 //	//检测控制有优先级，当高优先级条件产生时，忽略低优先级的配置
 //
@@ -659,7 +679,6 @@ int ctrlMain(void * arg) {
 
 		//一分钟计算一次控制逻辑
 		if (secOld == 0) {
-//			refreshSumUp();
 
 //检查参数更新
 //			CheckParaUpdate();
