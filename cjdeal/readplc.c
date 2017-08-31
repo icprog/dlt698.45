@@ -1147,7 +1147,7 @@ int doCompSlaveMeter(RUNTIME_PLC *runtime_p)
 							addrtmp[2] = nodetmp.tsa.addr[5];
 							addrtmp[1] = nodetmp.tsa.addr[6];
 							addrtmp[0] = nodetmp.tsa.addr[7];
-							sendlen = AFN11_F1(&runtime_p->format_Down,runtime_p->sendbuf, addrtmp);//&nodetmp.tsa.addr[2]);//在载波模块中添加一个TSA
+							sendlen = AFN11_F1(&runtime_p->format_Down,runtime_p->sendbuf, addrtmp,nodetmp.protocol);//&nodetmp.tsa.addr[2]);//在载波模块中添加一个TSA
 							SendDataToCom(runtime_p->comfd, runtime_p->sendbuf,sendlen );
 							runtime_p->send_start_time = nowtime;
 							break;
@@ -1425,11 +1425,11 @@ DATA_ITEM checkMeterData(TASK_INFO *meterinfo,int *taski,int *itemi,INT8U usrtyp
 	DATA_ITEM item;
 	int fangAnIndex = 0;
 	memset(&item,0,sizeof(DATA_ITEM));
-	DbgPrintToFile1(31,"检查  %02x%02x%02x%02x%02x%02x%02x%02x  index=%d 任务数 %d   数据相个数 %d",
-			meterinfo->tsa.addr[0],meterinfo->tsa.addr[1],meterinfo->tsa.addr[2],
-			meterinfo->tsa.addr[3],meterinfo->tsa.addr[4],meterinfo->tsa.addr[5],
-			meterinfo->tsa.addr[6],meterinfo->tsa.addr[7],
-			meterinfo->tsa_index,meterinfo->task_n,meterinfo->task_list[i].fangan.item_n);
+//	DbgPrintToFile1(31,"检查  %02x%02x%02x%02x%02x%02x%02x%02x  index=%d 任务数 %d   数据相个数 %d",
+//			meterinfo->tsa.addr[0],meterinfo->tsa.addr[1],meterinfo->tsa.addr[2],
+//			meterinfo->tsa.addr[3],meterinfo->tsa.addr[4],meterinfo->tsa.addr[5],
+//			meterinfo->tsa.addr[6],meterinfo->tsa.addr[7],
+//			meterinfo->tsa_index,meterinfo->task_n,meterinfo->task_list[i].fangan.item_n);
 	//正常任务判断
 	for(i=0; i< meterinfo->task_n; i++)
 	{
@@ -1892,10 +1892,6 @@ void* ProcessMeter_byJzq(INT8U *buf,INT8U *addrtmp,int *len)//struct Tsa_Node *n
 		ret = readParaClass(0x8888, &taskinfo, tsa_head->tsa_index) ;//读取序号为 tsa_index 的任务记录到内存变量 taskinfo
 		if (ret != 1 )// 返回 1 成功   0 失败
 		{
-//			taskinfo.tsa = tsa_head->tsa;
-//			taskinfo.tsa_index = tsa_head->tsa_index;
-//			zeroitemflag(&taskinfo);;
-
 			memcpy(&taskinfo,&taskinfo_bak,sizeof(taskinfo));
 			taskinfo.tsa =  tsa_head->tsa;
 			taskinfo.tsa_index = tsa_head->tsa_index;
@@ -1904,9 +1900,6 @@ void* ProcessMeter_byJzq(INT8U *buf,INT8U *addrtmp,int *len)//struct Tsa_Node *n
 	}
 	nodetmp = NULL;
 	nodetmp = getNodeByTSA(tsa_head,taskinfo.tsa);
-//	DbgPrintToFile1(31,"nodetmp TSA=%02x%02x%02x%02x%02x%02x%02x%02x  index=%d ",
-//			nodetmp->tsa.addr[0],nodetmp->tsa.addr[1],nodetmp->tsa.addr[2],nodetmp->tsa.addr[3],nodetmp->tsa.addr[4],nodetmp->tsa.addr[5],
-//			nodetmp->tsa.addr[6],nodetmp->tsa.addr[7],nodetmp->tsa_index);
 
 	while(nodetmp != NULL)
 	{
@@ -1941,10 +1934,13 @@ void* ProcessMeter_byJzq(INT8U *buf,INT8U *addrtmp,int *len)//struct Tsa_Node *n
 					tmpitem.oad2.OI,tmpitem.oad2.attflg,tmpitem.oad2.attrindex,sendlen,nodetmp);
 			*len = sendlen;
 			DbgPrintToFile1(31,"有数据抄读，刷新任务内存状态");
-			chkTsaTask(&taskinfo);
+//			chkTsaTask(&taskinfo);
 			return nodetmp;
 		}else
 		{
+			chkTsaTask(&taskinfo);
+			saveParaClass(0x8888, &taskinfo,taskinfo.tsa_index);
+
 			nodetmp = nodetmp->next;
 			if (nodetmp!=NULL)
 			{
@@ -2129,8 +2125,8 @@ void doSave(FORMAT07 frame07)
 			}
 		}
 		DbgPrintToFile1(31,"有数据上来，刷新任务内存状态并保存");
-		chkTsaTask(&taskinfo);
-		saveParaClass(0x8888, &taskinfo,taskinfo.tsa_index);
+//		chkTsaTask(&taskinfo);
+//		saveParaClass(0x8888, &taskinfo,taskinfo.tsa_index);
 	}
 }
 int SaveTaskData(FORMAT3762 format_3762_Up,INT8U taskid)
@@ -3142,7 +3138,7 @@ int saveF13_F1Data(FORMAT3762 format_3762_Up)
 int doTask_by_jzq(RUNTIME_PLC *runtime_p)
 {
 	static int step_cj = 0, beginwork=0;
-	static int inWaitFlag = 0;
+	static int inWaitFlag = 0 ;
 	int sendlen=0;
 	struct Tsa_Node *nodetmp=NULL;
 	INT8U addrtmp[6]={};
@@ -3172,7 +3168,7 @@ int doTask_by_jzq(RUNTIME_PLC *runtime_p)
 			if ( inWaitFlag==0)
 			{
 				nodetmp = (struct Tsa_Node *)ProcessMeter_byJzq(buf645,addrtmp,&sendlen );//下发 AFN_13_F1 找到一块需要抄读的表，抄读
-				DbgPrintToFile1(31,"sendlen=%d  nodetmp=%p",sendlen,nodetmp);
+//				DbgPrintToFile1(31,"sendlen=%d  nodetmp=%p",sendlen,nodetmp);
 				if (sendlen>0 && nodetmp!=NULL)
 				{
 					DbPrt1(31,"TS:", (char *) buf645, sendlen, NULL);
@@ -3662,7 +3658,7 @@ void readplc_thread()
 	initSearchMeter(&search6002);
 	initTaskData(&taskinfo);
 	PrintTaskInfo2(&taskinfo);
-	DbgPrintToFile1(31,"载波线程开始...");
+	DbgPrintToFile1(31,"载波线程开始...111");
 	runtimevar.format_Down.info_down.ReplyBytes = 0x28;
 
 	DbgPrintToFile1(31,"1-fangAn6015[%d].sernum = %d  fangAn6015[%d].mst.mstype = %d ",
