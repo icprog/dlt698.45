@@ -1043,6 +1043,7 @@ typedef struct
 
 typedef struct
 {
+	INT8U protocol;
 	TASK_UNIT task_list[20];			//任务数组
 	int task_n;							//任务个数  < TASK_MAXNUM
 	TSA tsa;							//表地址
