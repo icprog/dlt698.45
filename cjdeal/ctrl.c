@@ -644,10 +644,7 @@ int ctrlMain(void * arg) {
 	int secOld = 0;
 	//初始化参数,搭建8个总加组数据，读取功控、电控参数
 	initAll();
-	if(JProgramInfo->cfg_para.device == SPTF3)
-	{
-		initFreezeDataFormFile();
-	}
+	initFreezeDataFormFile();
 	while (1) {
 		TS now;
 		TSGet(&now);

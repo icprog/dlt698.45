@@ -229,7 +229,7 @@ int fill_bit_string(INT8U *data,INT8U size,INT8U *bits)		//0x04
 	//TODO : 默认8bit ，不符合A-XDR规范
 	if(size>=0 && size<=8){
 		size = 8;
-		syslog(LOG_ERR,"fill_bit_string size=%d, error",size);
+		asyslog(LOG_ERR,"fill_bit_string size=%d, error",size);
 	}
 //	data[0] = dtbitstring;
 //	data[1] = size;
@@ -287,10 +287,10 @@ int fill_double_long64(INT8U *data,INT64U value)		//0x14
 	data[2] = (value & 0x00FF000000000000) >> 48;
 	data[3] = (value & 0x0000FF0000000000) >> 40;
 	data[4] = (value & 0x000000FF00000000 )>> 32;
-	data[1] = (value & 0x00000000FF000000) >> 24;
-	data[2] = (value & 0x00FF000000FF0000) >> 16;
-	data[3] = (value & 0x0000FF000000FF00) >> 8;
-	data[4] = value & 0x00000000000000FF;
+	data[5] = (value & 0x00000000FF000000) >> 24;
+	data[6] = (value & 0x00FF000000FF0000) >> 16;
+	data[7] = (value & 0x0000FF000000FF00) >> 8;
+	data[8] = value & 0x00000000000000FF;
 	return 9;
 }
 

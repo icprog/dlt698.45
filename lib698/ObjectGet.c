@@ -390,6 +390,34 @@ int Get_8100(RESULT_NORMAL *response)
 	return response->datalen;
 }
 
+int Get_8001(RESULT_NORMAL *response)
+{
+	CLASS_8001 c8001;
+	INT8U *data=NULL;
+	OAD oad;
+	oad = response->oad;
+	data = response->data;
+	readCoverClass(0x8001, 0, (void *) &c8001, sizeof(CLASS_8001),
+			para_vari_save);
+	response->datalen = fill_enum(data, c8001.state);
+	fprintf(stderr,"C8001 datalen = %d\n",response->datalen);
+	return response->datalen;
+}
+
+int Get_8002(RESULT_NORMAL *response)
+{
+	CLASS_8002 c8002;
+	INT8U *data=NULL;
+	OAD oad;
+	oad = response->oad;
+	data = response->data;
+	readCoverClass(0x8002, 0, (void *) &c8002, sizeof(CLASS_8002),
+			para_vari_save);
+	response->datalen = fill_enum(data, c8002.state);
+	fprintf(stderr,"C8002 datalen = %d\n",response->datalen);
+	return response->datalen;
+}
+
 int GetSecurePara(RESULT_NORMAL *response)
 {
 	INT8U *data=NULL;
@@ -2312,6 +2340,11 @@ int GetCtrl(RESULT_NORMAL *response)
 	{
 		case 0x8100:
 			response->datalen = Get_8100(response);
+			break;
+		case 0x8001:
+			response->datalen = Get_8001(response);
+		case 0x8002:
+			response->datalen = Get_8002(response);
 			break;
 	}
 }
