@@ -455,32 +455,30 @@ int deal8107() {
 	return 0;
 }
 
-int getMonthValue(OI_698 oi) {
-	for (int i = 0; i < MAX_AL_UNIT; i++) {
-		if (CtrlC->c8108.list[i].index == oi) {
-			return CtrlC->c8108.list[i].v;
-		}
-	}
-	return -1;
+INT64U getMonthValue(int i) {
+	return CtrlC->c8108.list[i].v;
 }
 
-int getMonthWarn(OI_698 oi) {
-	for (int i = 0; i < MAX_AL_UNIT; i++) {
-		if (CtrlC->c8108.list[i].index == oi) {
-			return CtrlC->c8108.list[i].para;
-		}
-	}
-	return -1;
+INT8U getMonthWarn(int i) {
+	return CtrlC->c8108.list[i].para;
 }
 
 int deal8108() {
-	for (int i = 0; i < 2; i++) {
+	fprintf(stderr, "deal8108(%lld)\n", CtrlC->c8108.list[0].v);
+	for (int i = 0; i < 1; i++) {
 		if (!CheckAllUnitEmpty(JProgramInfo->class23[i].allist)) {
 			continue;
 		}
+		fprintf(stderr, "8108 index = %d\n", i);
 
-		long long val = getMonthValue(0x2301 + i);
-		long long warn = getMonthWarn(0x2301 + i);
+		if(JProgramInfo->ctrls.c8108.enable[i].state == 0){
+			JProgramInfo->class23[i].alCtlState.OutputState = 0;
+			JProgramInfo->class23[i].alCtlState.MonthOutputState = 0;
+			return 0;
+		}
+
+		INT64U val = getMonthValue(i);
+		INT8U warn = getMonthWarn(i);
 		fprintf(stderr, "月电控限制%lld\n", val);
 
 		long long total = 0;
@@ -490,8 +488,23 @@ int deal8108() {
 		}
 
 		if (val != -1) {
-			fprintf(stderr, "月电控值%lld\n", total);
-			if (JProgramInfo->class23[i].MonthP[0] > val) {
+			float e = warn / 100.0;
+
+			fprintf(stderr, "月电控值%lld [%f]\n", JProgramInfo->class23[i].MonthPALL * 100, e * val);
+
+			if (JProgramInfo->class23[i].MonthPALL * 100 > val) {
+				fprintf(stderr, "月电控跳闸！！！！！！！！！！！！！！！！！！\n", val);
+				JProgramInfo->class23[i].alCtlState.OutputState = 192;
+				JProgramInfo->class23[i].alCtlState.MonthOutputState = 192;
+				JProgramInfo->class23[i].alCtlState.ECAlarmState = 0;
+				return 2;
+			}
+
+			if (JProgramInfo->class23[i].MonthPALL * 100 > e * val) {
+				fprintf(stderr, "月电控告警！！！！！！！！！！！！！！！！！！\n", val);
+				JProgramInfo->class23[i].alCtlState.ECAlarmState = 128;
+				JProgramInfo->class23[i].alCtlState.OutputState = 0;
+				JProgramInfo->class23[i].alCtlState.MonthOutputState = 0;
 				return 1;
 			}
 		}
@@ -653,15 +666,15 @@ void dealCtrl() {
 //
 //	//检测控制有优先级，当高优先级条件产生时，忽略低优先级的配置
 //
-	if (deal8106() != 0) {
-		;
-	} else if (deal8105() != 0) {
-		;
-	} else if (deal8104() != 0) {
-		;
-	} else if (deal8103() != 0) {
-		;
-	}
+//	if (deal8106() != 0) {
+//		;
+//	} else if (deal8105() != 0) {
+//		;
+//	} else if (deal8104() != 0) {
+//		;
+//	} else if (deal8103() != 0) {
+//		;
+//	}
 	//统计输出与告警状态
 //	sumUpCtrl();
 //
@@ -688,7 +701,7 @@ int ctrlMain(void * arg) {
 		}
 
 		//一分钟计算一次控制逻辑
-		if (secOld == 0) {
+		if (secOld % 5 == 0) {
 
 //检查参数更新
 //			CheckParaUpdate();

@@ -123,7 +123,6 @@ void cProc(struct aeEventLoop *ep, CommBlock * nst) {
 }
 
 void QuitProcess(int sig) {
-	asyslog(LOG_INFO, "通信模块退出,收到信号类型(%d)", sig);
 	if (helperKill("gsmMuxd", 18) == -1) {
 		asyslog(LOG_WARNING, "未能彻底结束gsmMuxd进程...");
 	}
@@ -134,6 +133,7 @@ void QuitProcess(int sig) {
 	info->dev_info.pppd_status = 0;
 	info->dev_info.connect_ok = 0;
 	info->dev_info.jzq_login = 0;
+	asyslog(LOG_INFO, "通信模块退出,收到信号类型(%d),在线状态", sig, info->dev_info.jzq_login);
 	shmm_unregister("ProgramInfo", sizeof(ProgramInfo));
 	exit(0);
 }

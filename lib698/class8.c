@@ -775,13 +775,19 @@ int class8108_act3(int index, int attr_act, INT8U *data, Action_result *act_ret)
 	INT8U th = 0x00;
 	INT8U fl = 0x00;
 
+	ProgramInfo *shareAddr = getShareAddr();
+
 	if (data[0] != 0x02 || data[1] != 0x04) {
 		return 0;
 	}
 
 	oi = data[3] * 256 + data[4];
+	index = oi - 0x2301;
+	shareAddr->ctrls.c8108.list[index].v = getLongValue(&data[5]);
 	v = getLongValue(&data[5]);
+	shareAddr->ctrls.c8108.list[index].para = data[15];
 	th = data[15];
+	shareAddr->ctrls.c8108.list[index].flex = data[17];
 	fl = data[17];
 
 	asyslog(LOG_WARNING, "月电-添加控制单元[%04x-%lld-%d-%d]", oi, v, th, fl);
@@ -794,19 +800,17 @@ int class8108_act6(int index, int attr_act, INT8U *data, Action_result *act_ret)
 		return 0;
 	}
 
+	ProgramInfo *shareAddr = getShareAddr();
+
 	oi = data[1] * 256 + data[2];
+	int sindex = oi - 0x2301;
 	asyslog(LOG_WARNING, "月电-控制投入[%04x]", oi);
 
 	CLASS_8108 c8108;
 	readCoverClass(0x8108, 0, (void *) &c8108, sizeof(CLASS_8108),
 			para_vari_save);
-
-	for (int i = 0; i < MAX_AL_UNIT; i++) {
-		if (c8108.enable[i].name == oi) {
-			c8108.enable[i].state = 0x01;
-		}
-	}
-
+	shareAddr->ctrls.c8108.enable[sindex].state = 0x01;
+	c8108.enable[sindex].state = 0x01;
 	saveCoverClass(0x8108, 0, (void *) &c8108, sizeof(CLASS_8108),
 			para_vari_save);
 
@@ -819,20 +823,23 @@ int class8108_act7(int index, int attr_act, INT8U *data, Action_result *act_ret)
 		return 0;
 	}
 
+	ProgramInfo *shareAddr = getShareAddr();
+
 	oi = data[1] * 256 + data[2];
+	int sindex = oi - 0x2301;
 	asyslog(LOG_WARNING, "月电-控制解除[%04x]", oi);
 
-	CLASS_8107 c8107;
-	readCoverClass(0x8107, 0, (void *) &c8107, sizeof(CLASS_8107),
+	CLASS_8108 c8108;
+	readCoverClass(0x8108, 0, (void *) &c8108, sizeof(CLASS_8108),
 			para_vari_save);
 
-	for (int i = 0; i < MAX_AL_UNIT; i++) {
-		if (c8107.enable[i].name == oi) {
-			c8107.enable[i].state = 0x00;
-		}
-	}
+	c8108.enable[sindex].state = 0x00;
+	shareAddr->ctrls.c8108.enable[sindex].state = 0x00;
+	shareAddr->class23[sindex].alCtlState.OutputState = 0x00;
+	shareAddr->class23[sindex].alCtlState.MonthOutputState = 0x00;
+	shareAddr->class23[sindex].alCtlState.ECAlarmState = 0x00;
 
-	saveCoverClass(0x8107, 0, (void *) &c8107, sizeof(CLASS_8107),
+	saveCoverClass(0x8108, 0, (void *) &c8108, sizeof(CLASS_8108),
 			para_vari_save);
 
 	return 0;
