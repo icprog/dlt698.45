@@ -378,12 +378,16 @@ int GetEsamPara(RESULT_NORMAL *response)
 
 int Get_8100(RESULT_NORMAL *response)
 {
+	CLASS_8100 c8100;
 	INT8U *data=NULL;
 	OAD oad;
 	oad = response->oad;
 	data = response->data;
-//	response->datalen = fill_double_long64(,);
-	return 0;
+	readCoverClass(0x8100, 0, (void *) &c8100, sizeof(CLASS_8100),
+				para_vari_save);
+	response->datalen = fill_double_long64(data, c8100.v);
+	fprintf(stderr,"C8100 datalen = %d\n",response->datalen);
+	return response->datalen;
 }
 
 int GetSecurePara(RESULT_NORMAL *response)
