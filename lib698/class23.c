@@ -41,10 +41,9 @@ int class23_act3(int index, INT8U* data) {
 		return 0;
 	}
 	al_unit.tsa.addr[0] = data[3];
-	al_unit.tsa.addr[1] = data[4];
 
 	for (int i = 0; i < tsa_len; ++i) {
-		al_unit.tsa.addr[2 + i] = data[data_index];
+		al_unit.tsa.addr[1 + i] = data[data_index];
 		data_index++;
 	}
 

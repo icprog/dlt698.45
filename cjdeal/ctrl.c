@@ -299,6 +299,7 @@ void updateState(ALSTATE *warn, ALSTATE* op, OI_698 name) {
 }
 
 int deal8103() {
+	return 0;
 	TS ts;
 	TSGet(&ts);
 	for (int i = 0; i < 2; i++) {
@@ -356,6 +357,7 @@ int getIsInTime(OI_698 oi, TS ts) {
 }
 
 int deal8104() {
+	return 0;
 	TS ts;
 	TSGet(&ts);
 	for (int i = 0; i < 2; i++) {
@@ -647,13 +649,12 @@ void getFinalCtrl() {
 void dealCtrl() {
 	//直接跳闸，必须检测
 //	deal8107();
-//	int res8108 = deal8108();
+	int res8108 = deal8108();
 //
 //	//检测控制有优先级，当高优先级条件产生时，忽略低优先级的配置
 //
 	if (deal8106() != 0) {
 		;
-	}
 	} else if (deal8105() != 0) {
 		;
 	} else if (deal8104() != 0) {
