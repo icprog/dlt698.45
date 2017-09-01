@@ -287,7 +287,7 @@ typedef struct
 	INT8U data3;
 	INT8U data4;
 }ComBCD8;//053283069933
-typedef struct//12：30       1：30    //  18305356699  /     85     // 128
+typedef struct//12：30       1：30    85     // 128
 {
 	ComBCD4 year;
 	ComBCD2 month;

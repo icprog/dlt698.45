@@ -1135,7 +1135,7 @@ int doCompSlaveMeter(RUNTIME_PLC *runtime_p)
 						}
 					}else
 					{
-						nodetmp.protocol = currtsa->protocol;
+						nodetmp.protocol = 2;//currtsa->protocol;
 						nodetmp.tsa = getNextTsa(&currtsa);	//从档案中取一个tsa
 						findflg = findTsaInList(tsa_zb_head,&nodetmp);
 						if (findflg == 0)
@@ -1339,7 +1339,7 @@ int buildProxyFrame(RUNTIME_PLC *runtime_p,struct Tsa_Node *desnode,OAD oad1,OAD
 				addrtmp[2] = desnode->tsa.addr[5];
 				addrtmp[1] = desnode->tsa.addr[6];
 				addrtmp[0] = desnode->tsa.addr[7];
-				return (AFN13_F1(&runtime_p->format_Down,runtime_p->sendbuf,addrtmp, 2, 0, buf645, sendlen));
+				return (AFN13_F1(&runtime_p->format_Down,runtime_p->sendbuf,addrtmp, DLT_645_97, 0, buf645, sendlen));
 			}
 			break;
 		case DLT_645_07:
@@ -1364,7 +1364,7 @@ int buildProxyFrame(RUNTIME_PLC *runtime_p,struct Tsa_Node *desnode,OAD oad1,OAD
 				addrtmp[2] = desnode->tsa.addr[5];
 				addrtmp[1] = desnode->tsa.addr[6];
 				addrtmp[0] = desnode->tsa.addr[7];
-				return (AFN13_F1(&runtime_p->format_Down,runtime_p->sendbuf,addrtmp, 2, 0, buf645, sendlen));
+				return (AFN13_F1(&runtime_p->format_Down,runtime_p->sendbuf,addrtmp, DLT_645_07, 0, buf645, sendlen));
 			}
 			break;
 		case DLT_698:
@@ -3065,7 +3065,12 @@ int MyTimeJuge(INT8U *timestr)
 }
 int dateJudge(TS *old ,TS *new)
 {
-	if(old->Day!=new->Day || old->Year!=new->Year || old->Month!=new->Month)
+//	if(old->Day!=new->Day || old->Year!=new->Year || old->Month!=new->Month)
+//	{
+//		memcpy(old,new,sizeof(TS));
+//		return 1;
+//	}
+	if (new->Hour==23 && new->Minute>=55     && old->Minute!=new->Minute)
 	{
 		memcpy(old,new,sizeof(TS));
 		return 1;

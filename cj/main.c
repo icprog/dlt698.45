@@ -53,6 +53,7 @@ static char *usage_set = "\n--------------------参数设置及基本维护命�
 		"		  [基本信息配置查询] cj check\n"
 		"		 【蜂鸣器】蜂鸣投入 cj buzzer 1 <蜂鸣投入>  cj buzzer 0 <蜂鸣解除>		\n"
 		"		 【电池电压读取】 cj bettery 	\n"
+		"		  [电池断电/上电] vd batt 0:电池断电	 vd batt 1:电池上电\n"   \
         "[读取心跳] cj heart       "
         "[设置心跳] cj heart 60 s\n"
 		"【初始化】cj InIt 3 [数据区初始化]	\n　　　　　　cj InIt 5 [事件初始化]\n　　　　　　cj InIt 6 [需量初始化]\n　　　　　　cj InIt 4 [恢复出厂参数]\n"
@@ -561,6 +562,22 @@ int main(int argc, char *argv[]) {
         }
         return EXIT_SUCCESS;
     }
+
+	/*电池命令*/
+	if(strcmp("batt",argv[1])==0) {
+		if(argc > 2) {
+			if(strcmp("0",argv[2]) == 0) {
+				fprintf(stderr,"\n 电池断电...");
+				gpio_writebyte((char *)DEV_BAT_SWITCH,(INT8S)0);
+			}else if(strcmp("1",argv[2]) == 0)	{
+				fprintf(stderr,"\n 电池上电...");
+				gpio_writebyte((char *)DEV_BAT_SWITCH,(INT8S)1);
+			}else {
+				fprintf(stderr,"\n 参数错误！");
+			}
+		}
+		return EXIT_SUCCESS;
+	}
 
     if (strcmp("bt", argv[1]) == 0) {
         float v1=0,v2=0;

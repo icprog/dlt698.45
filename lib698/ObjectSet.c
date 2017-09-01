@@ -924,7 +924,7 @@ INT16U setf101(OAD oad,INT8U *data,INT8U *DAR)
 		index += getArray(&data[index],(INT8U*)&f101.modelnum,DAR);
 		index += getStructure(&data[index],NULL,DAR);
 		for(i=0;i<f101.modelnum;i++) {
-			index += getOI(1,&data[index],f101.modelpara[i].oi);
+			index += getOI(1,&data[index],&f101.modelpara[i].oi);
 			index += getLongUnsigned(&data[index],(INT8U *)&f101.modelpara[i].model);
 		}
 	}
