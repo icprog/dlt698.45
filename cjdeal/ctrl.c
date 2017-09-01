@@ -463,24 +463,24 @@ int deal8107() {
 		}
 
 		INT64U val = CtrlC->c8107.list[0].ctrl;
-		INT8U warn = CtrlC->c8107.list[0].alarm;
+		INT64U warn = CtrlC->c8107.list[0].alarm;
 		fprintf(stderr, "购电控限制[%lld] [%lld]\n", val, warn);
 
 		if (val >= 0) {
 			fprintf(stderr, "购电判断值[%lld]\n",
-					JProgramInfo->class23[i].remains * 100);
+					JProgramInfo->class23[i].remains);
 
-			if (JProgramInfo->class23[i].remains * 100 < val) {
+			if (JProgramInfo->class23[i].remains <= val) {
 				fprintf(stderr, "购电控跳闸！！！！！！！！！！！！！！！！！！\n", val);
 				JProgramInfo->class23[i].alCtlState.OutputState = 192;
-				JProgramInfo->class23[i].alCtlState.ECAlarmState = 192;
-				JProgramInfo->class23[i].alCtlState.BuyOutputState = 0;
+				JProgramInfo->class23[i].alCtlState.ECAlarmState = 0;
+				JProgramInfo->class23[i].alCtlState.BuyOutputState = 192;
 				return 2;
 			}
 
-			if (JProgramInfo->class23[i].remains * 100 < warn) {
+			if (JProgramInfo->class23[i].remains <= warn) {
 				fprintf(stderr, "购电控告警！！！！！！！！！！！！！！！！！！\n", val);
-				JProgramInfo->class23[i].alCtlState.ECAlarmState = 128;
+				JProgramInfo->class23[i].alCtlState.ECAlarmState = 64;
 				JProgramInfo->class23[i].alCtlState.OutputState = 0;
 				JProgramInfo->class23[i].alCtlState.BuyOutputState = 0;
 				return 1;

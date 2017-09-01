@@ -99,7 +99,7 @@ TS Tcurr_tm_his;
 int g_PressKey_old;//用于液晶点抄 半途退出
 
 
-int getMenuSize(){
+int getMenuSize_jzq(){
 	return sizeof(menu)/sizeof(Menu);
 }
 

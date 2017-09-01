@@ -17,7 +17,7 @@ pthread_attr_t calc_attr_t;
 int thread_calc_id;        //统计
 pthread_t thread_calc;
 extern void calc_proccess();
-
+extern void terminalTaskFreeze(INT8U taskid,INT8U fanganid);
 
 
 #endif /* CALC_H_ */

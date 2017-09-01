@@ -265,7 +265,7 @@ int OpenCom(int port, int baud, unsigned char* par, unsigned char stopb, unsigne
     new_termi.c_cflag |= (CLOCAL | CREAD);         /*忽略调制解调器状态行，接收使能*/
     new_termi.c_lflag &= ~(ICANON | ECHO | ECHOE); /*选择为原始输入模式*/
     new_termi.c_oflag &= ~OPOST;                   /*选择为原始输出模式*/
-    new_termi.c_cc[VTIME] = 5;                     /*设置超时时间为0.5 s*/
+    new_termi.c_cc[VTIME] = 1;                     /*设置超时时间为0.5 s*/
     new_termi.c_cc[VMIN]  = 0;                     /*最少返回的字节数是 7*/
     new_termi.c_cflag &= ~CSIZE;
     new_termi.c_iflag &= ~ISTRIP;

@@ -11,9 +11,9 @@
 static DBStruct DB;
 
 void dbInit(int index) {
-	readCoverClass(0x4521, 0, (void *) &DB.model_2g, sizeof(DB.model_2g), para_vari_save);
-	if(DB.model_2g == 666)
-	{
+	readCoverClass(0x4521, 0, (void *) &DB.model_2g, sizeof(DB.model_2g),
+			para_vari_save);
+	if (DB.model_2g == 666) {
 		asyslog(LOG_INFO, "警告，现在是强制2G上线模式....");
 	}
 	readCoverClass(0x4500, 0, (void *) &DB.c25, sizeof(DB.c25), para_vari_save);
@@ -36,18 +36,17 @@ void dbInit(int index) {
 
 	DB.JProgramInfo = OpenShMem("ProgramInfo", sizeof(ProgramInfo), NULL);
 
-	if(DB.JProgramInfo->cfg_para.device == CCTT1 || DB.JProgramInfo->cfg_para.device == SPTF3)
-	{
+	if (DB.JProgramInfo->cfg_para.device == CCTT1
+			|| DB.JProgramInfo->cfg_para.device == SPTF3) {
 		CLASS_f201 f201[3];
 		readCoverClass(0xf201, 0, &f201, sizeof(f201), para_vari_save);
-		DB.RS485IIOPEN = f201[1].devfunc;
+		DB.RS485IIOPEN = (f201[1].devfunc == 0) ? 1 : 0;
 		memcpy(&DB.cf200, &f201[1], sizeof(DB.cf200));
 
 		//这里没错！这里是为了让默认维护口的参数都存在DB.cf201里
 		readCoverClass(0xf200, 0, &DB.cf201, sizeof(DB.cf201), para_vari_save);
 	}
-	if(DB.JProgramInfo->cfg_para.device != CCTT2)
-	{
+	if (DB.JProgramInfo->cfg_para.device != CCTT2) {
 		CLASS_f201 f201[3];
 		readCoverClass(0xf201, 0, &f201, sizeof(f201), para_vari_save);
 		memcpy(&DB.cf201, &f201[2], sizeof(DB.cf201));
@@ -64,8 +63,6 @@ void dbInit(int index) {
 	DB.net.Heartbeat = DB.c26.commconfig.heartBeat;
 	memcpy(DB.JProgramInfo->Projects[index].ProjectName, "cjcomm",
 			sizeof("cjcomm"));
-
-
 
 	memset(&DB.JProgramInfo->dev_info.realTimeC2200, 0x00, sizeof(Flow_tj));
 	readVariData(0x2200, 0, &DB.JProgramInfo->dev_info.realTimeC2200,
@@ -95,7 +92,7 @@ void * dbGet(char * name) {
 		return &DB.serial;
 	}
 	if (strcmp("block.serial_hn", name) == 0) {
-			return &DB.serial_hn;
+		return &DB.serial_hn;
 	}
 	if (strcmp("class25", name) == 0) {
 		return &DB.c25;
@@ -137,10 +134,10 @@ void * dbGet(char * name) {
 		return DB.model_2g;
 	}
 	if (strcmp("4852open", name) == 0) {
-			return DB.RS485IIOPEN;
+		return DB.RS485IIOPEN;
 	}
 	if (strcmp("f200", name) == 0) {
-			return &DB.cf200;
+		return &DB.cf200;
 	}
 	return (void *) 0;
 }

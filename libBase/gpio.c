@@ -84,6 +84,7 @@ INT8U pwr_down_byVolt(INT8U valid, INT32U volt, INT16U limit)
 		limit = VOL_DOWN_THR;
 
     if ((TRUE == valid) && (volt < limit)) {
+    	syslog(LOG_NOTICE,"volt=%d valid=%d limit=%d\n",volt,valid,limit);
         return 1;//断电
     }
     return 0; //未断电

@@ -516,8 +516,9 @@ int LAPI_Fork2(void) {
 
 int ProjectKill(ProjectInfo proinfo) {
 	if (proinfo.ProjectID > 0) {
-		asyslog(LOG_WARNING, "停止进程，ID(%d)", proinfo.ProjectID);
 		kill(proinfo.ProjectID, SIGTERM);
+		//cjcomm出现异常，进程无法彻底杀死
+		asyslog(LOG_WARNING, "停止进程，ID(%d) ", proinfo.ProjectID);
 		return 1;
 	}
 
@@ -575,6 +576,10 @@ void checkProgsState(int ProgsNum) {
 		case NeedKill:
 			asyslog(LOG_WARNING, "检测到程序异常，名称[%s] PID[%d-%d]",
 					pis[i].ProjectName, pis[i].ProjectID, i);
+			if(strncmp(pis[i].ProjectName,"cjcomm",6)==0) {
+				JProgramInfo->dev_info.jzq_login = 0;
+				asyslog(LOG_WARNING, "cjcomm退出，清除登陆类型[%d]\n",JProgramInfo->dev_info.jzq_login);
+			}
 			if (ProjectKill(JProgramInfo->Projects[i]) == 1) {
 				asyslog(LOG_WARNING, "程序已经关闭，正在重启...");
 				JProgramInfo->Projects[i].ProjectState = NeedStart;
@@ -664,8 +669,13 @@ void CheckOnLineStatue() {
 		return;
 	}
 	if (JProgramInfo->dev_info.jzq_login == 0) {
-
 		reboot_count++;
+		if(reboot_count == 1800) {
+			asyslog(LOG_ERR, "<异常>检查到设备30分钟不在线...");
+		}
+		if(reboot_count == 3600) {
+			asyslog(LOG_ERR, "<异常>检查到设备1小时不在线...");
+		}
 		if (reboot_count > 2 * 3600) {
 			asyslog(LOG_ERR, "<异常>检查到设备2小时不在线，重新启动设备...");
 			sleep(1);

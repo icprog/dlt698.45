@@ -1548,6 +1548,9 @@ int doObjectAction(OAD oad, INT8U *data, Action_result *act_ret) {
      			act_ret->datalen = Set_F200(0xf200,data,&act_ret->DAR);
      		}
         	break;
+        case 0xF201:	//RS485
+        	//TODO:存储长度 CLASS_f201×3（485-1,485-2,485-3）
+        	break;
         case 0xF202:	//红外
         	if (attr_act == 127) {  //方法 127 配置端口
         		act_ret->datalen = Set_F202(0xf202,data,&act_ret->DAR);

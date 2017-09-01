@@ -386,7 +386,7 @@ int Get_8100(RESULT_NORMAL *response)
 	readCoverClass(0x8100, 0, (void *) &c8100, sizeof(CLASS_8100),
 				para_vari_save);
 	response->datalen = fill_double_long64(data, c8100.v);
-	fprintf(stderr,"C8100 datalen = %d\n",response->datalen);
+	fprintf(stderr,"datalen = %d\n",response->datalen);
 	return response->datalen;
 }
 
@@ -1305,29 +1305,150 @@ int getColl_Data(OI_698 oi,INT16U seqnum,INT8U *data)
 	return index;
 }
 
-/*
- * getflg:是否有关联属性
- * */
-int  fill_variClass(OI_698 oi,INT8U getflg,INT8U *sourcebuf,INT8U *destbuf,int *len)
+INT8U fillVacsData(INT8U structnum,INT8U attindex,INT8U datatype,INT32U data1,INT32U data2,INT32U data3,INT32U data4,INT8U *responseData)
 {
-	int  buflen = 0;
-	switch(oi) {
-	case 0x2200:	//通信流量
-		Get_2200(getflg,(INT8U *)sourcebuf,destbuf,&buflen);
+	INT32U 	data[4]={};
+	INT8U	index=0,i=0;
+
+	fprintf(stderr,"11111structnum=%d   responseData=%p\n",structnum,responseData);
+	if(structnum>4) {
+		fprintf(stderr,"填充数据结构【%d】大于有效限定值【4】!!!",structnum);
+		structnum = 4;
+	}
+	if (attindex>4) {
+		fprintf(stderr,"属性索引值【%d】大于有效限定值【4】!!!",attindex);
+		attindex = 4;
+	}
+	fprintf(stderr,"structnum=%d   responseData=%p\n",structnum,responseData);
+	if(structnum>=1) {
+		index += create_array(&responseData[index],structnum);
+	}
+	fprintf(stderr,"index=%d\n",index);
+	memset(data,0,sizeof(data));
+	switch(attindex) {
+	case 0:		//全部属性
+		data[0] = data1;
+		data[1] = data2;
+		data[2] = data3;
+		data[3] = data4;
+	break;
+	case 1:	data[0] = data1;	break;
+	case 2:	data[0] = data2;	break;
+	case 3:	data[0] = data3;	break;
+	case 4:	data[0] = data4;	break;
+	}
+	for(i=0;i<structnum;i++) {
+		switch(datatype){
+		case dtlongunsigned:
+			index += fill_long_unsigned(&responseData[index],data[i]);
+			break;
+		case dtdoublelong:
+			index += fill_double_long(&responseData[index],data[i]);
+			break;
+		case dtlong:
+			index += fill_long(&responseData[index],data[i]);
+			break;
+		}
+	}
+	return index;
+}
+
+/*
+ * getflg:是否有数据源。=1，读取sourcebuf内容，=0，数据上送0
+ * */
+int  fill_variClass(OAD oad,INT8U getflg,INT8U *sourcebuf,INT8U *destbuf,int *len,ProgramInfo* proginfo)
+{
+	int  	buflen = 0;
+	INT8U	structnum = 0;
+	FP32 bett[2]={};
+	INT8U	databuf[VARI_LEN]={};
+
+	memset(&databuf,0,sizeof(databuf));
+
+	fprintf(stderr,"oad.OI=%x\n",oad.OI);
+	switch(oad.OI) {
+	case 0x2000:	//电压
+		if(oad.attrindex==0)		structnum = 3;
+		else structnum = 1;
+		buflen = fillVacsData(structnum,oad.attrindex,dtlongunsigned,
+				proginfo->ACSRealData.Ua,proginfo->ACSRealData.Ub,proginfo->ACSRealData.Uc,0,destbuf);
 		break;
-	case 0x2203:	//供电时间
-		Get_2203(getflg,(INT8U *)sourcebuf,destbuf,&buflen);
+	case 0x2001:	//电流
+		if(oad.attrindex==0)		structnum = 4;
+		else structnum = 1;
+		buflen = fillVacsData(structnum,oad.attrindex,dtdoublelong,
+				proginfo->ACSRealData.Ia,proginfo->ACSRealData.Ib,proginfo->ACSRealData.Ic,proginfo->ACSRealData.I0,destbuf);
 		break;
-	case 0x2204:	//复位次数
-		Get_2204(getflg,(INT8U *)sourcebuf,destbuf,&buflen);
+	case 0x2002:	//电压相角
+		if(oad.attrindex==0)		structnum = 3;
+		else structnum = 1;
+		buflen = fillVacsData(structnum,oad.attrindex,dtlongunsigned,
+				proginfo->ACSRealData.YUaUb,proginfo->ACSRealData.YUaUc,proginfo->ACSRealData.YUbUc,0,destbuf);
+		break;
+	case 0x2003:	//电压电流相角
+		if(oad.attrindex==0)		structnum = 3;
+		else structnum = 1;
+		buflen = fillVacsData(structnum,oad.attrindex,dtlongunsigned,
+				proginfo->ACSRealData.Pga,proginfo->ACSRealData.Pgb,proginfo->ACSRealData.Pgc,0,destbuf);
+		break;
+	case 0x2004:	//有功功率
+		if(oad.attrindex==0)		structnum = 4;
+		else structnum = 1;
+		buflen = fillVacsData(structnum,oad.attrindex,dtdoublelong,
+				proginfo->ACSRealData.Pt,proginfo->ACSRealData.Pa,proginfo->ACSRealData.Pb,proginfo->ACSRealData.Pc,destbuf);
+		break;
+	case 0x2005:	//无功功率
+		if(oad.attrindex==0)		structnum = 4;
+		else structnum = 1;
+		buflen = fillVacsData(structnum,oad.attrindex,dtdoublelong,
+				proginfo->ACSRealData.Qt,proginfo->ACSRealData.Qa,proginfo->ACSRealData.Qb,proginfo->ACSRealData.Qc,destbuf);
+		break;
+	case 0x2006:	//视在功率
+		if(oad.attrindex==0)		structnum = 4;
+		else structnum = 1;
+		buflen = fillVacsData(structnum,oad.attrindex,dtdoublelong,
+				proginfo->ACSRealData.St,proginfo->ACSRealData.Sa,proginfo->ACSRealData.Sb,proginfo->ACSRealData.Sc,destbuf);
+		break;
+	case 0x200A:	//功率因数
+		if(oad.attrindex==0)		structnum = 4;
+		else structnum = 1;
+		buflen = fillVacsData(structnum,oad.attrindex,dtlong,
+				proginfo->ACSRealData.Cos,proginfo->ACSRealData.CosA,proginfo->ACSRealData.CosB,proginfo->ACSRealData.CosC,destbuf);
+		break;
+	case 0x200D:	//电压谐波含有量
+
+		break;
+
+	case 0x2011:	//时钟电池电压
+		if(bettery_getV(&bett[0],&bett[1]) == TRUE) {
+			buflen = fill_long_unsigned(destbuf,(INT16U)bett[0]*100);
+		}
 		break;
 	case 0x2131:
 	case 0x2132:
 	case 0x2133:
 		Get_213x(getflg,(INT8U *)sourcebuf,destbuf,&buflen);
 		break;
+	case 0x2200:	//通信流量
+		memcpy(sourcebuf,&memp->dev_info.realTimeC2200,sizeof(Flow_tj));
+		Get_2200(getflg,(INT8U *)sourcebuf,destbuf,&buflen);
+		break;
+	case 0x2203:	//供电时间
+		readVariData(oad.OI,0,&databuf,VARI_LEN);
+		Get_2203(getflg,(INT8U *)databuf,destbuf,&buflen);
+		break;
+	case 0x2204:	//复位次数
+		readVariData(oad.OI,0,&databuf,VARI_LEN);
+		Get_2204(getflg,(INT8U *)sourcebuf,destbuf,&buflen);
+		break;
+	case 0x2301:	//总加组
+		class23_get(oad,sourcebuf,destbuf,&buflen);
+		break;
+	case 0x2401:
+		class12_get(oad,sourcebuf,destbuf,&buflen);
+		break;
 	default:
-		//fprintf(stderr,"GET_26:未定义对象属性，上送数据NULL\n");
+//		//fprintf(stderr,"GET_26:未定义对象属性，上送数据NULL\n");
 		destbuf[0] = 0;		//data = NULL
 		buflen = 1;
 		break;
@@ -1335,6 +1456,76 @@ int  fill_variClass(OI_698 oi,INT8U getflg,INT8U *sourcebuf,INT8U *destbuf,int *
 	*len = buflen;
 	return 1;
 }
+
+//INT8U Get_Vacs(RESULT_NORMAL *response,ProgramInfo* prginfo_acs)
+//{
+//	int		buflen = 0;
+//	if(response->oad.attflg!=2) {
+//		response->dar = interface_uncomp;
+//		response->datalen = 0;
+//		return 0;
+//	}
+//	if(response->oad.OI != 0x2000 && prginfo_acs->cfg_para.device == CCTT2) {	//国网送检基本功能测试，II型招测电压，电流，有功，无功参数，其他无效数据应回越限
+//		response->dar = boundry_over;
+//		response->datalen = 0;
+//		return 0;
+//	}
+//	fill_variClass(response->oad,1,NULL,response->data,&buflen,prginfo_acs);
+//	response->datalen = buflen;
+//	return 1;
+//}
+
+//int GetVariable(RESULT_NORMAL *response)
+//{
+//	int	  	len=0;
+//	INT8U	databuf[VARI_LEN]={};
+//	int index=0;
+//	FP32 bett[2]={};
+//	memset(&databuf,0,sizeof(databuf));
+//
+//	if(response->oad.OI>=0x2000 && response->oad.OI<=0x2010) {
+//		Get_Vacs(response,memp);
+//	}else {
+//		fill_variClass(response->oad,1,NULL,response->data,&response->datalen,memp);
+//	}
+//	switch(response->oad.OI)
+//	{
+//	case 0x2011:	//时钟电池电压
+//		if(bettery_getV(&bett[0],&bett[1]) == TRUE) {
+//			response->datalen = fill_long_unsigned(response->data,(INT16U)bett[0]*100);
+//		}
+//		break;
+//	case 0x2200:	//通信流量
+////		len = readVariData(response->oad.OI,0,&databuf,VARI_LEN);
+//		memcpy(databuf,&memp->dev_info.realTimeC2200,sizeof(Flow_tj));
+//		Get_2200(1,databuf,response->data,&index);
+//		response->datalen = index;
+//		break;
+//	case 0x2203:	//供电时间
+//		len = readVariData(response->oad.OI,0,&databuf,VARI_LEN);
+//		Get_2203(1,databuf,response->data,&index);
+//		response->datalen = index;
+//		break;
+//	case 0x2204:	//复位次数
+//		len = readVariData(response->oad.OI,0,&databuf,VARI_LEN);
+//		Get_2204(1,databuf,response->data,&index);
+//		response->datalen = index;
+//		break;
+////	case 0x2301:	//总加组
+////		class23_get(response->oad,databuf,response->data,&index);
+////		response->datalen = index;
+////		break;
+////	case 0x2401:
+////		class12_get(response->oad,databuf,response->data,&index);
+////		response->datalen = index;
+////		break;
+//	default:
+//		Get_Vacs(response,memp);
+//		break;
+//	}
+//	fprintf(stderr,"datalen=%d \n",response->datalen);
+//	return 1;
+//}
 
 int  fill_RecordRow(int *index,RESULT_RECORD *record,DateTimeBCD datetime)
 {
@@ -1354,28 +1545,8 @@ int  fill_RecordRow(int *index,RESULT_RECORD *record,DateTimeBCD datetime)
 			fprintf(stderr,"%02x ",data[j]);
 		}
 		fprintf(stderr,"\n");
-		fill_variClass(record->rcsd.csds.csd[i].csd.oad.OI,getflg,(INT8U *)data,&record->data[*index],&buflen);
+		fill_variClass(record->rcsd.csds.csd[i].csd.oad,getflg,(INT8U *)data,&record->data[*index],&buflen,memp);
 		*index += buflen;
-/*		switch(record->rcsd.csds.csd[i].csd.oad.OI) {
-		case 0x2200:	//通信流量
-			Get_2200(getflg,(INT8U *)data,&record->data[*index],&buflen);
-			*index += buflen;
-			break;
-		case 0x2203:	//供电时间
-			Get_2203(getflg,(INT8U *)data,&record->data[*index],&buflen);
-			*index += buflen;
-			break;
-		case 0x2204:	//复位次数
-			Get_2204(getflg,(INT8U *)data,&record->data[*index],&buflen);
-			*index += buflen;
-			break;
-		case 0x2131:
-		case 0x2132:
-		case 0x2133:
-			Get_213x(getflg,(INT8U *)data,&record->data[*index],&buflen);
-			*index += buflen;
-			break;
-		}*/
 	}
 	return *index;
 }
@@ -1402,7 +1573,7 @@ int fill_RecordRowByNum(RESULT_RECORD *record_para)
 		fprintf(stderr,"%02x ",record_para->data[i]);
 	}
 	record_para->data[index++] = 1;				//A-ResultRecord CHOICE=1
-	record_para->data[index++] = 1;		//seqof A-RecordRow
+	record_para->data[index++] = 1;				//seqof A-RecordRow
 	for(i=0;i<csds_num;i++) {
 		if(record_para->rcsd.csds.csd[i].type == 0) {
 			memset(data,0,sizeof(data));
@@ -1413,7 +1584,7 @@ int fill_RecordRowByNum(RESULT_RECORD *record_para)
 			relateOAD.attflg = 0;
 			relateOAD.attrindex = 0;
 			getflg = readFreezeRecordByNum(freezeOI,relateOAD,(currRecordNum-recordn),&datetime,&datalen,(INT8U *)data);
-			fill_variClass(relateOI,getflg,(INT8U *)data,&record_para->data[index],&buflen);
+			fill_variClass(relateOAD,getflg,(INT8U *)data,&record_para->data[index],&buflen,memp);
 			index += buflen;
 //			fprintf(stderr,"getflg = %d   index = %d  buflen = %d\n",getflg,index, buflen);
 //			int i=0;
@@ -2065,53 +2236,6 @@ int GetEnergy(RESULT_NORMAL *response)
 	return 1;
 }
 
-int GetVariable(RESULT_NORMAL *response)
-{
-	int	  	len=0;
-	INT8U	databuf[VARI_LEN]={};
-	int index=0;
-	FP32 bett[2]={};
-	memset(&databuf,0,sizeof(databuf));
-
-	switch(response->oad.OI)
-	{
-	case 0x2011:
-		if(bettery_getV(&bett[0],&bett[1]) == TRUE) {
-			response->datalen = fill_long_unsigned(response->data,(INT16U)bett[0]*100);
-		}
-		break;
-	case 0x2200:	//通信流量
-//		len = readVariData(response->oad.OI,0,&databuf,VARI_LEN);
-		memcpy(databuf,&memp->dev_info.realTimeC2200,sizeof(Flow_tj));
-		Get_2200(1,databuf,response->data,&index);
-		response->datalen = index;
-		break;
-	case 0x2203:	//供电时间
-		len = readVariData(response->oad.OI,0,&databuf,VARI_LEN);
-		Get_2203(1,databuf,response->data,&index);
-		response->datalen = index;
-		break;
-	case 0x2204:	//复位次数
-		len = readVariData(response->oad.OI,0,&databuf,VARI_LEN);
-		Get_2204(1,databuf,response->data,&index);
-		response->datalen = index;
-		break;
-	case 0x2301:	//总加组
-		class23_get(response->oad,databuf,response->data,&index);
-		response->datalen = index;
-		break;
-	case 0x2401:
-		class12_get(response->oad,databuf,response->data,&index);
-		response->datalen = index;
-		break;
-	default:
-		Get_Vacs(response,memp);
-		break;
-	}
-	fprintf(stderr,"datalen=%d \n",response->datalen);
-	return 1;
-}
-
 int GetEventRecord(RESULT_NORMAL *response)
 {
 	INT8U *data=NULL;
@@ -2449,7 +2573,19 @@ int doGetnormal(INT8U seqOfNum,RESULT_NORMAL *response)
 		GetEnergy(response);
 		break;
 	case 2:			//变量类对象
-		GetVariable(response);
+//		if(response->oad.attflg!=2) {
+//			response->dar = interface_uncomp;
+//			response->datalen = 0;
+//
+//			return 0;
+//		}
+		if(response->oad.OI != 0x2000 && memp->cfg_para.device == CCTT2) {	//国网送检基本功能测试，II型招测电压，电流，有功，无功参数，其他无效数据应回越限
+			response->dar = boundry_over;
+			response->datalen = 0;
+			return 0;
+		}
+		fill_variClass(response->oad,1,NULL,response->data,&response->datalen,memp);
+		//		GetVariable(response);
 		break;
 	case 3:			//事件类对象读取
 		GetEventInfo(response);

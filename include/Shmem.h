@@ -405,8 +405,8 @@ typedef struct{
 	INT8U	PLC_ModeTest;			//国网送检测试，路由工作模式设置，0：无效，1：集中器主导，2：路由主导，
 	INT32U 	ac_chip_type; 			//==0x820900:	RN8029芯片，II型集中器	//==1： ATT7022D-E芯片 	//==0x7022E0:	ATT7022E-D芯片
 	INT32U	WireType;				//接线方式，0x1200：三相三，0x0600：三相四
-	Flow_tj realTimeC2200;			//事实通信流量
 	INT8U Esam_VersionStatus;		//ESAM芯片对称密钥版本状态=0，测试版本。=1正式版本
+	Flow_tj realTimeC2200;			//事实通信流量
 }Terminal_Dev_Info;
 
 typedef struct {
@@ -434,8 +434,14 @@ typedef struct {
 	INT8U c4024;	//剔除状态
 
 	INT32U control[3]; //遥控命令 0xEEFFEFEF为分闸 0xCCAACACA为合闸， 必须三个位置同时相同才认为命令有效
-
 } CtrlState;
+
+//typedef struct {
+//	PassRate_U  passu_d[3],passu_m[3];
+//	Gongdian_tj gongdian_tj;
+//	Max_ptongji max_ptongji[MAXNUM_IMPORTANTUSR_CALC];
+//	Flow_tj realTimeC2200;			//事实通信流量
+//}TerminalTj;
 
 typedef struct {
 	ConfigPara		cfg_para;				//配置参数
@@ -445,6 +451,7 @@ typedef struct {
 	CLASS12			class12[2];			//脉冲计量
 	CLASS23			class23[8];			//总加组
 	CtrlState		ctrls;				//专变参数-为液晶共享数据
+//	TerminalTj		TjData;				//终端统计数据
 	ProjectInfo		Projects[PROJECTCOUNT];	//子程序信息
 	RealdataReq		RealDatareq;			//实时数据请求缓存
 	OI_CHANGE		oi_changed;				//相应的OI参数修改变化值，结构体相应的OI值从1-255设置参数后循环累加

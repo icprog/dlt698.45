@@ -665,13 +665,15 @@ int class8107_act3(int index, int attr_act, INT8U *data, Action_result *act_ret)
 	shareAddr->ctrls.c8107.list[sindex].type = type;
 
 	val = getLongValue(&data[14]);
-	shareAddr->ctrls.c8107.list[sindex].v = val;
+	shareAddr->ctrls.c8107.list[sindex].v = val/100;
 	war_thr = getLongValue(&data[23]);
-	shareAddr->ctrls.c8107.list[sindex].alarm = war_thr;
+	shareAddr->ctrls.c8107.list[sindex].alarm = war_thr/100;
 	ctl_thr = getLongValue(&data[32]);
-	shareAddr->ctrls.c8107.list[sindex].ctrl = ctl_thr;
+	shareAddr->ctrls.c8107.list[sindex].ctrl = ctl_thr/100;
 	mode = data[42];
 	shareAddr->ctrls.c8107.list[sindex].mode = mode;
+
+	shareAddr->class23[sindex].remains += shareAddr->ctrls.c8107.list[sindex].v;
 
 	asyslog(LOG_WARNING, "购电-添加控制单元[%04x-%d-%d-%d-%lld-%lld-%lld-%d]", oi, id,
 			sign, type, val, war_thr, ctl_thr, mode);

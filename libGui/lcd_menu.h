@@ -56,7 +56,8 @@ extern void showmain();
 extern int my_min(int a, int b);
 extern void deletemenu(MenuList *pmenulist_head);
 
-extern int getMenuSize();
+extern int getMenuSize_jzq();
+extern int getMenuSize_fk();
 #endif
 
 //------------------------------------function-----------------------
