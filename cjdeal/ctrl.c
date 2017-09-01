@@ -7,6 +7,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <string.h>
+#include <syslog.h>
 
 #include "ctrl.h"
 #include "crtl_base.h"
@@ -16,10 +17,28 @@
 #include "AccessFun.h"
 #include "basedef.h"
 
+extern INT8U get6001ObjByTSA(TSA addr,CLASS_6001* targetMeter);
 extern ProgramInfo* JProgramInfo;
 CtrlState * CtrlC;
 
-extern INT8U get6001ObjByTSA(TSA addr, CLASS_6001* targetMeter);
+typedef union {//control code
+	INT16U u16b;//convenient to set value to 0
+	struct {//only for little endian mathine!
+		INT8U bak	: 6;	//备用
+		INT8U lun1_state: 1;//轮次1-状态
+		INT8U lun1_red	: 1;//轮次1-红灯
+		INT8U lun1_green: 1;//轮次1-绿灯
+		INT8U lun2_state: 1;//轮次2-状态
+		INT8U lun2_red	: 1;//轮次2-红灯
+		INT8U lun2_green: 1;//轮次2-绿灯
+		INT8U gongk_led		: 1;//功控灯
+		INT8U diank_led		: 1;//电控灯
+		INT8U alm_state		: 1;//告警状态
+		INT8U baodian_led	: 1;//报警灯
+	} ctrl;
+} ctrlUN;
+
+static ctrlUN	ctrlunit,ctrlunit_old;
 
 int ctrl_base_test() {
 	printf("%d", CheckModelState());
@@ -173,6 +192,10 @@ INT8U initFreezeDataFormFile() {
 	return ret;
 }
 int initAll() {
+
+	//控制状态初始化
+	ctrlunit.u16b = 0;
+	ctrlunit_old.u16b = 0;
 	//读取总加组数据
 	CtrlC = &JProgramInfo->ctrls;
 	memset(CtrlC, 0x00, sizeof(CtrlState));
@@ -720,6 +743,7 @@ void dealCtrl() {
 int ctrlMain(void * arg) {
 
 	int secOld = 0;
+	int ctrlflg = 0;
 	//初始化参数,搭建8个总加组数据，读取功控、电控参数
 	initAll();
 	initFreezeDataFormFile();
@@ -747,25 +771,47 @@ int ctrlMain(void * arg) {
 
 		if (JProgramInfo->ctrls.control[0] == 0xEEFFEFEF
 				&& JProgramInfo->ctrls.control[1] == 0xEEFFEFEF
-				&& JProgramInfo->ctrls.control[2] == 0xEEFFEFEF) {
-			JProgramInfo->ctrls.control[0] = 0x00;
-			printf("%d", CheckModelState());
-			InitCtrlModel();
-			int fd = OpenSerialPort();
-
-			SetCtrl_CMD(fd, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
-			close(fd);
+				&& JProgramInfo->ctrls.control[2] == 0xEEFFEFEF) {//分闸
+			ctrlunit.ctrl.lun1_state = 0;
+			ctrlunit.ctrl.lun1_red = 1;
+			ctrlunit.ctrl.lun1_green = 0;
+			ctrlflg = 1;
 		} else if (JProgramInfo->ctrls.control[0] == 0xCCAACACA
 				&& JProgramInfo->ctrls.control[1] == 0xCCAACACA
-				&& JProgramInfo->ctrls.control[2] == 0xCCAACACA) {
-			JProgramInfo->ctrls.control[0] = 0x00;
-			printf("%d", CheckModelState());
-			InitCtrlModel();
-			int fd = OpenSerialPort();
-			SetCtrl_CMD(fd, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0);
-			close(fd);
+				&& JProgramInfo->ctrls.control[2] == 0xCCAACACA) {//合闸
+			ctrlunit.ctrl.lun1_state = 1;
+			ctrlunit.ctrl.lun1_red = 0;
+			ctrlunit.ctrl.lun1_green = 1;
+			ctrlflg = 1;
+		}else if (JProgramInfo->ctrls.control[0] == 0x55552525
+				&& JProgramInfo->ctrls.control[1] == 0x55552525
+				&& JProgramInfo->ctrls.control[2] == 0x55552525) {	//分闸
+			ctrlunit.ctrl.lun2_state = 0;
+			ctrlunit.ctrl.lun2_red = 1;
+			ctrlunit.ctrl.lun2_green = 0;
+			ctrlflg = 1;
+		}else if (JProgramInfo->ctrls.control[0] == 0xCCCC2C2C
+				&& JProgramInfo->ctrls.control[1] == 0xCCCC2C2C
+				&& JProgramInfo->ctrls.control[2] == 0xCCCC2C2C) {	//合闸
+			ctrlunit.ctrl.lun2_state = 1;
+			ctrlunit.ctrl.lun2_red = 0;
+			ctrlunit.ctrl.lun2_green = 1;
+			ctrlflg = 1;
+		}else ctrlflg = 0;
+		if(ctrlflg==1) {
+			memset(&JProgramInfo->ctrls.control,0,sizeof(JProgramInfo->ctrls.control));
+			asyslog(LOG_NOTICE,"接收到控制命令：控制状态【%04x】 原状态【%04x】",ctrlunit.u16b,ctrlunit_old.u16b);
+			if((ctrlunit.u16b & 0x3ff)^(ctrlunit_old.u16b & 0x3ff)) {
+				ctrlunit_old.u16b = ctrlunit.u16b;
+				printf("%d", CheckModelState());
+				InitCtrlModel();
+				int fd = OpenSerialPort();
+				SetCtrl_CMD(fd, ctrlunit.ctrl.lun1_state, ctrlunit.ctrl.lun1_red, ctrlunit.ctrl.lun1_green,
+								ctrlunit.ctrl.lun2_state, ctrlunit.ctrl.lun2_red, ctrlunit.ctrl.lun2_green,
+								ctrlunit.ctrl.gongk_led, ctrlunit.ctrl.diank_led, ctrlunit.ctrl.alm_state, ctrlunit.ctrl.baodian_led);
+				close(fd);
+			}
 		}
-
 		secOld = now.Sec;
 		usleep(200 * 1000);
 	}

@@ -125,6 +125,8 @@
 #define DEV_MAINPOWER  "/dev/gpiV5FROUNT_TST"  //底板电源：1上电0失电
 #define DEV_ADC_SWITCH "/dev/gpioADC_SWITCH"   //=0（终端工作放电模式）=1（终端工作充电模式）
 
+#define DEV_ALARM_BUZZER  "/dev/gpoBUZZER"		//专变终端蜂鸣设备
+
 //I型集中器并转串模拟输出: GPRS_ID状态 与 1路门节点
 #define DEV_SPI_CS		"/dev/gpoSPI_CS"		//并转串(74HC165)芯片选择
 #define	DEV_SPI_CLK		"/dev/gpoSPI_CLK"		//并转串(74HC165)时钟输出
