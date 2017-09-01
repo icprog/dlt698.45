@@ -46,7 +46,7 @@ void dbInit(int index) {
 		//这里没错！这里是为了让默认维护口的参数都存在DB.cf201里
 		readCoverClass(0xf200, 0, &DB.cf201, sizeof(DB.cf201), para_vari_save);
 	}
-	if (DB.JProgramInfo->cfg_para.device != CCTT2) {
+	if (DB.JProgramInfo->cfg_para.device == CCTT2) {
 		CLASS_f201 f201[3];
 		readCoverClass(0xf201, 0, &f201, sizeof(f201), para_vari_save);
 		memcpy(&DB.cf201, &f201[2], sizeof(DB.cf201));
