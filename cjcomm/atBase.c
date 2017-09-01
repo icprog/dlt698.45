@@ -667,17 +667,18 @@ int AtPrepare(ATOBJ *ao) {
 		return 1500;
 
 	case AT_FINISH_PREPARE:
-		if (retry > 20) {
+		if (retry > 10) {
 			ao->state = 0;
 			return 1000;
 		}
 		retry++;
 		asyslog(LOG_INFO, "======%d", retry);
+		if(getZone("HuNan") == 0){
+			checkSms(ao);
+		}
 		ao->at_retry = 0;
 		readCoverClass(0x4500, 0, c25, sizeof(CLASS25), para_vari_save);
 		c25->signalStrength = ao->CSQ;
-		//TODO:SIM卡号码simkard, CCID未有AT获取
-		//一致性测试4500-10,ccid的第一个字节为长度
 		memcpy(&c25->imsi[1],ao->imsi,sizeof(c25->imsi));
 		c25->imsi[0] = strlen(ao->imsi);
 		memcpy(&c25->ccid[1],ao->ccid,sizeof(c25->ccid));
@@ -686,7 +687,8 @@ int AtPrepare(ATOBJ *ao) {
 		c25->simkard[0] = strlen(ao->CIMI);
 		memcpy(&c25->pppip,ao->PPP_IP,sizeof(c25->pppip));
 		saveCoverClass(0x4500, 0, c25, sizeof(CLASS25), para_vari_save);
-		return 5 * 1000;
+
+		return 10 * 1000;
 	}
 	return 0;
 }
