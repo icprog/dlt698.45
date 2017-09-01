@@ -1893,6 +1893,7 @@ int ProcessMeter(INT8U *buf,struct Tsa_Node *desnode)
 			memcpy(&taskinfo,&taskinfo_bak,sizeof(taskinfo));
 			taskinfo.tsa = desnode->tsa;
 			taskinfo.tsa_index = desnode->tsa_index;
+			taskinfo.protocol = desnode->protocol;
 			DbgPrintToFile1(31,"第一次请求，用备份结构体初始化该表抄读状态");
 //			zeroitemflag(&taskinfo);
 		}
@@ -2233,7 +2234,6 @@ int SaveTaskData(FORMAT3762 format_3762_Up,INT8U taskid)
 		memcpy(buf645, format_3762_Up.afn06_f2_up.MsgContent, len645);
 		if(taskinfo.protocol == DLT_645_97)
 		{
-
 			if (analyzeProtocol97(&frame97, buf645, len645, &nextFlag) == 0)
 			{
 				doSave(DLT_645_97,frame97,frame07);
@@ -2241,13 +2241,11 @@ int SaveTaskData(FORMAT3762 format_3762_Up,INT8U taskid)
 		}
 		else
 		{
-
 			if (analyzeProtocol07(&frame07, buf645, len645, &nextFlag) == 0)
 			{
 				doSave(DLT_645_07,frame97,frame07);
 			}
 		}
-
 	}
 	if (format_3762_Up.afn13_f1_up.MsgLength > 0)
 	{
@@ -2367,14 +2365,12 @@ int doTask(RUNTIME_PLC *runtime_p)
 						saveClass6035(&result6035);
 				    }
 				}
-//				DbgPrintToFile1(31,"up channel = %02x",runtime_p->format_Up.info_up.ChannelFlag);
 				flag= Echo_Frame( runtime_p,buf645,sendlen);//内部根据sendlen判断抄表 / 切表
 				if (flag==0 || flag == 1)
 					inWaitFlag = 0;
 				runtime_p->send_start_time = nowtime;
 			}else if ( runtime_p->format_Up.afn == 0x06 && runtime_p->format_Up.fn == 2 )//收到返回抄表数据
 			{
-//				DbgPrintToFile1(31,"路由主导流程_收数据");
 				inWaitFlag = 0;
 				sendlen = AFN00_F01( &runtime_p->format_Up,runtime_p->sendbuf );//确认
 				SendDataToCom(runtime_p->comfd, runtime_p->sendbuf,sendlen );
