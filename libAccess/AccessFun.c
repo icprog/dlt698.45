@@ -1985,9 +1985,8 @@ INT16U CalcFreq(TI runti,CLASS_6015 class6015,INT16U startmin,INT16U endmin,INT3
 	int rate = 0;//倍率
 	INT16U sec_unit = 0;
 	INT8U  inval_flg = 0;
-#ifdef SYS_INFO
-	asyslog(LOG_INFO,"\n---@@@---class6015.cjtype = %d  data=%d-%d-%d\n",class6015.cjtype,class6015.data.data[0],class6015.data.data[1],class6015.data.data[2]);
-#endif
+	asyslog(LOG_INFO,"\n---@@@---class6015.cjtype = %d  data=%d-%d-%d,endmin=%d,startmin=%d\n"
+			,class6015.cjtype,class6015.data.data[0],class6015.data.data[1],class6015.data.data[2],endmin,startmin);
 	if(class6015.cjtype == 3 || class6015.cjtype == 0 || class6015.cjtype == 1)//按时标间隔采集
 	{
 		if(class6015.cjtype == 3)//按抄表间隔
@@ -2003,7 +2002,7 @@ INT16U CalcFreq(TI runti,CLASS_6015 class6015,INT16U startmin,INT16U endmin,INT3
 				return (endmin-startmin)/((class6015.data.data[1]<<8)+class6015.data.data[2])+1;
 			case 2:
 				*sec_freq = ((class6015.data.data[1]<<8)+class6015.data.data[2])*3600;
-				return ((endmin-startmin)*60)/(((class6015.data.data[1]<<8)+class6015.data.data[2])*60)+1;
+				return ((endmin-startmin)*60)/(((class6015.data.data[1]<<8)+class6015.data.data[2])*3600)+1;
 			default:
 				break;
 			}
