@@ -646,22 +646,32 @@ int class8107_act3(int index, int attr_act, INT8U *data, Action_result *act_ret)
 	INT64U ctl_thr = 0x00;
 	INT8U mode = 0x00;
 
+	ProgramInfo *shareAddr = getShareAddr();
+
 	if (data[0] != 0x02 || data[1] != 0x08) {
 		return 0;
 	}
 
 	oi = data[3] * 256 + data[4];
+	int sindex = oi - 0x2301;
 	id = data[6] * 256 * 256 * 256 + data[7] * 256 * 256 + data[8] * 256
 			+ data[9];
+	shareAddr->ctrls.c8107.list[sindex].no = id;
 
 	sign = data[11];
+	shareAddr->ctrls.c8107.list[sindex].add_refresh = sign;
+
 	type = data[13];
+	shareAddr->ctrls.c8107.list[sindex].type = type;
 
 	val = getLongValue(&data[14]);
+	shareAddr->ctrls.c8107.list[sindex].v = val;
 	war_thr = getLongValue(&data[23]);
+	shareAddr->ctrls.c8107.list[sindex].alarm = war_thr;
 	ctl_thr = getLongValue(&data[32]);
-
+	shareAddr->ctrls.c8107.list[sindex].ctrl = ctl_thr;
 	mode = data[42];
+	shareAddr->ctrls.c8107.list[sindex].mode = mode;
 
 	asyslog(LOG_WARNING, "购电-添加控制单元[%04x-%d-%d-%d-%lld-%lld-%lld-%d]", oi, id,
 			sign, type, val, war_thr, ctl_thr, mode);
@@ -680,25 +690,35 @@ int class8107_act5(int index, int attr_act, INT8U *data, Action_result *act_ret)
 	INT64U ctl_thr = 0x00;
 	INT8U mode = 0x00;
 
+	ProgramInfo *shareAddr = getShareAddr();
+
 	if (data[0] != 0x02 || data[1] != 0x08) {
 		return 0;
 	}
 
 	oi = data[3] * 256 + data[4];
+	int sindex = oi - 0x2301;
 	id = data[6] * 256 * 256 * 256 + data[7] * 256 * 256 + data[8] * 256
 			+ data[9];
+	shareAddr->ctrls.c8107.list[sindex].no = id;
 
 	sign = data[11];
+	shareAddr->ctrls.c8107.list[sindex].add_refresh = sign;
+
 	type = data[13];
+	shareAddr->ctrls.c8107.list[sindex].type = type;
 
-	val = getLongValue(&data[15]);
-	war_thr = getLongValue(&data[24]);
-	ctl_thr = getLongValue(&data[33]);
-
+	val = getLongValue(&data[14]);
+	shareAddr->ctrls.c8107.list[sindex].v = val;
+	war_thr = getLongValue(&data[23]);
+	shareAddr->ctrls.c8107.list[sindex].alarm = war_thr;
+	ctl_thr = getLongValue(&data[32]);
+	shareAddr->ctrls.c8107.list[sindex].ctrl = ctl_thr;
 	mode = data[42];
-
+	shareAddr->ctrls.c8107.list[sindex].mode = mode;
 	asyslog(LOG_WARNING, "购电-更新控制单元[%04x-%d-%d-%d-%lld-%lld-%lld-%d]", oi, id,
 			sign, type, val, war_thr, ctl_thr, mode);
+
 	Event_3202(NULL,0, getShareAddr());
 	return 0;
 }
@@ -709,18 +729,18 @@ int class8107_act6(int index, int attr_act, INT8U *data, Action_result *act_ret)
 		return 0;
 	}
 
+	ProgramInfo *shareAddr = getShareAddr();
+
 	oi = data[1] * 256 + data[2];
+	int sindex = oi - 0x2301;
 	asyslog(LOG_WARNING, "购电-控制投入[%04x]", oi);
 
 	CLASS_8107 c8107;
 	readCoverClass(0x8107, 0, (void *) &c8107, sizeof(CLASS_8107),
 			para_vari_save);
 
-	for (int i = 0; i < MAX_AL_UNIT; i++) {
-		if (c8107.enable[i].name == oi) {
-			c8107.enable[i].state = 0x01;
-		}
-	}
+	c8107.enable[sindex].state = 0x01;
+	shareAddr->ctrls.c8107.enable[sindex].state = 0x01;
 
 	saveCoverClass(0x8107, 0, (void *) &c8107, sizeof(CLASS_8107),
 			para_vari_save);
@@ -733,18 +753,22 @@ int class8107_act7(int index, int attr_act, INT8U *data, Action_result *act_ret)
 		return 0;
 	}
 
+	ProgramInfo *shareAddr = getShareAddr();
+
 	oi = data[1] * 256 + data[2];
+	int sindex = oi - 0x2301;
 	asyslog(LOG_WARNING, "购电-控制解除[%04x]", oi);
 
 	CLASS_8107 c8107;
 	readCoverClass(0x8107, 0, (void *) &c8107, sizeof(CLASS_8107),
 			para_vari_save);
 
-	for (int i = 0; i < MAX_AL_UNIT; i++) {
-		if (c8107.enable[i].name == oi) {
-			c8107.enable[i].state = 0x00;
-		}
-	}
+
+	c8107.enable[sindex].state = 0x00;
+	shareAddr->ctrls.c8107.enable[sindex].state = 0x00;
+	shareAddr->class23[sindex].alCtlState.OutputState = 0x00;
+	shareAddr->class23[sindex].alCtlState.BuyOutputState = 0x00;
+	shareAddr->class23[sindex].alCtlState.ECAlarmState = 0x00;
 
 	saveCoverClass(0x8107, 0, (void *) &c8107, sizeof(CLASS_8107),
 			para_vari_save);

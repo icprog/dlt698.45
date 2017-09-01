@@ -44,7 +44,6 @@ void cReadWithCalc(struct aeEventLoop *ep, int fd, void *clientData, int mask) {
 	cRead(ep, fd, clientData, mask);
 }
 
-
 void cReadWithoutCheck(struct aeEventLoop *ep, int fd, void *clientData, int mask) {
 	CommBlock *nst = (CommBlock *) clientData;
 
@@ -298,6 +297,10 @@ int main(int argc, char *argv[]) {
 	StartMmq(ep, 0, NULL);
 	StartIfr(ep, 0, NULL);
 	StartSerial(ep, 0, NULL);
+
+	if((int)dbGet("4852open") == 1) {
+		StartSerial_hn(ep, 0, NULL);
+	}
 
 	aeMain(ep);
 	return 0;
