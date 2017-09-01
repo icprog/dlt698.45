@@ -45,6 +45,8 @@ typedef struct {
 	INT8U retry_buf[MAXSIZ_PROXY_NET];
 	mmq_head retry_head;
 	int retry_count;
+
+	int model_2g;//强制2g上线
 } DBStruct;
 
 void * dbGet(char * name);

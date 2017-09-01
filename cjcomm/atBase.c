@@ -417,6 +417,14 @@ int AtPrepare(ATOBJ *ao) {
 		if (sscanf(Mrecvbuf, "%*[^:]: %d,%*[^]", &ao->CSQ) == 1) {
 			asyslog(LOG_INFO, "GprsCSQ = %d\n", ao->CSQ);
 			if (ao->CSQ != 99) {
+				if (ao->CSQ < 10) {
+					gpofun("/dev/gpoCSQ_RED", 1);
+				} else if (ao->CSQ < 20) {
+					gpofun("/dev/gpoCSQ_RED", 1);
+					gpofun("/dev/gpoCSQ_GREEN", 1);
+				} else {
+					gpofun("/dev/gpoCSQ_GREEN", 1);
+				}
 				retry = 0;
 				ao->state = 16;
 				return 500;
@@ -527,7 +535,6 @@ int AtPrepare(ATOBJ *ao) {
 		retry++;
 		return 1000;
 	case 30:
-		ao->GPRS_STATE = 4;
 		if (retry > 5) {
 			ao->state = 0;
 			return 100;
@@ -540,12 +547,25 @@ int AtPrepare(ATOBJ *ao) {
 		memset(ao->ccid, 0x00, sizeof(ao->ccid));
 		if (sscanf((char *) &Mrecvbuf[0], "%*[^0-9]%[0-9]", ao->ccid) == 1) {
 			retry = 0;
-			ao->state = 20;
+			ao->state = ((int)dbGet("model_2g") == 666) ? 32 : 20;
 			return 500;
 		}
 		retry++;
 		ao->state = 30;
 		return 1000;
+	case 32:
+		if (retry > 8) {
+			ao->state = 0;
+			return 100;
+		}
+		asyslog(LOG_INFO,"强制2G上线....");
+		if (SendCommandGetOK(ao, 1, "\rat+qcfg=\"nwscanmode\",1\r") == 1) {
+			retry = 0;
+			ao->state = 20;
+			return 100;
+		}
+		retry++;
+		return 500;
 	case 50:
 		retry = 0;
 		ao->state = 51;
