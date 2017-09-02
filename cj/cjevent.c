@@ -150,6 +150,7 @@ int getIntegers(char* s, int* v, INT16U* cnt)
  */
 void setClass3106(int argc, char* argv[])
 {
+	ProgramInfo *JProgramInfo = OpenShMem("ProgramInfo",sizeof(ProgramInfo),NULL);
 	Event3106_Object e3106Obj;
 	int value[] = {0,0,0,0,0,0};
 	INT16U	vCnt = 6;
@@ -181,6 +182,9 @@ void setClass3106(int argc, char* argv[])
 					e3106Obj.poweroff_para_obj.screen_para_obj.happen_voltage_limit 	= value[4];
 					e3106Obj.poweroff_para_obj.screen_para_obj.recover_voltage_limit 	= value[5];
 					saveCoverClass(0x3106,0,(void *)&e3106Obj,sizeof(Event3106_Object),event_para_save);
+					memset((void *)&JProgramInfo->event_obj.Event3106_obj,
+							(void *)&e3106Obj,
+							sizeof(Event3106_Object));
 			} else {
 				printSet3106Usage();
 			}
