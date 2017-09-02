@@ -385,23 +385,6 @@ int FrameHead(CSINFO *csinfo, INT8U *buf) {
 	return i;
 }
 
-int FrameTimeTag(TimeTag *tag, INT8U *buf) {
-	int i = 0;
-	buf[i++] = tag->flag;
-	if (tag->flag == 1) { //时间标签有效
-		buf[i++] = (tag->sendTimeTag.year.data >> 8) & 0xff;
-		buf[i++] = tag->sendTimeTag.year.data & 0xff;
-		buf[i++] = tag->sendTimeTag.month.data & 0xff;
-		buf[i++] = tag->sendTimeTag.day.data & 0xff;
-		buf[i++] = tag->sendTimeTag.hour.data & 0xff;
-		buf[i++] = tag->sendTimeTag.min.data & 0xff;
-		buf[i++] = tag->sendTimeTag.sec.data & 0xff;
-		buf[i++] = tag->ti.units;
-		buf[i++] = (tag->ti.interval >> 8) & 0xff;
-		buf[i++] = tag->ti.interval & 0xff;
-	}
-	return i;
-}
 /**********************************************************************
  *	服务器向远方客户机提出
  *	1.登录
@@ -1659,6 +1642,7 @@ void getTimeTag(INT8U *buf, TimeTag *tag) {
 	tag->ti.units = buf[8];
 	tag->ti.interval = (buf[9] << 8) | buf[10];
 }
+
 
 /**********************************************************************
  * 1.	CONNECT.request 服务,本服务由客户机应用进程调用,用于向远方服务器的应用进程提出建立应用连接请求。

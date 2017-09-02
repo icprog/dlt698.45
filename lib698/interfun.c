@@ -180,6 +180,28 @@ void print_rcsd(CSD_ARRAYTYPE csds)
 	}
 }
 
+int fill_timetag(INT8U *data,TimeTag timetag)
+{
+	int index = 0;
+
+	if(timetag.flag==1) {	//时间标签有效
+		data[index++] = timetag.flag;
+		data[index++] = (timetag.sendTimeTag.year.data>>8)&0xff;
+		data[index++] = timetag.sendTimeTag.year.data & 0xff;
+		data[index++] = timetag.sendTimeTag.month.data;
+		data[index++] = timetag.sendTimeTag.day.data;
+		data[index++] = timetag.sendTimeTag.hour.data;
+		data[index++] = timetag.sendTimeTag.min.data;
+		data[index++] = timetag.sendTimeTag.sec.data;
+		data[index++] = timetag.ti.units;
+		data[index++] = (timetag.ti.interval>>8)&0xff;
+		data[index++] = timetag.ti.interval&0xff;
+	}else {
+		data[index++] = 0;	//时间标签无效		TimeTag
+	}
+	return index;
+}
+
 int create_array(INT8U *data,INT8U numm)	//0x01
 {
 	//fprintf(stderr,"numm =%d \n",numm);

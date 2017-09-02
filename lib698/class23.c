@@ -147,7 +147,7 @@ int class23_get_17(OI_698 oi, INT8U *sourcebuf, INT8U *buf, int *len) {
 	*len += fill_bit_string(&buf[*len],8,shareAddr->class23[index].alCtlState.BuyOutputState);
 	*len += fill_bit_string(&buf[*len],8,shareAddr->class23[index].alCtlState.PCAlarmState);
 	*len += fill_bit_string(&buf[*len],8,shareAddr->class23[index].alCtlState.ECAlarmState);
-
+	return 1;
 }
 
 int class23_get(OAD oad, INT8U *sourcebuf, INT8U *buf, int *len) {

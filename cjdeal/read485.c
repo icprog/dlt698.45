@@ -4621,7 +4621,8 @@ INT16S deal6015or6017_singlemeter(CLASS_6013 st6013,CLASS_6015 st6015,CLASS_6001
  *根据6015中的MS 和电表地址 和端口好判断此电表是否需要抄读
  *0-不抄 1-抄
  */
-INT8U checkMeterType(MY_MS mst,INT8U usrType,TSA usrAddr) {
+INT8U checkMeterType(MY_MS mst,INT8U usrType,TSA usrAddr)
+{
 
 	INT16U ms_num=0;
 	INT16U collIndex = 0;
