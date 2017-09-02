@@ -464,8 +464,8 @@ int deal8105() {
 					JProgramInfo->class23[i].alCtlState.OutputState = 0;
 					JProgramInfo->class23[i].alCtlState.PCAlarmState = 32;
 					fprintf(stderr, "功控告警时间 %d\n",
-							(CtrlC->c8102.time >> 7) * 60);
-					if (count * 10 > (CtrlC->c8102.time >> 7) * 60) {
+							CtrlC->c8102.time[0]* 60);
+					if (count * 10 > (CtrlC->c8102.time[0]) * 60) {
 						JProgramInfo->class23[i].alCtlState.OutputState = 128;
 						JProgramInfo->class23[i].alCtlState.PCAlarmState = 0;
 						step = 1;
@@ -473,7 +473,7 @@ int deal8105() {
 					count += 1;
 					break;
 				case 1:
-					if (count * 10 > (CtrlC->c8102.time >> 7) * 60) {
+					if (count * 10 > (CtrlC->c8102.time[1]) * 60) {
 						JProgramInfo->class23[i].alCtlState.OutputState = 128;
 						JProgramInfo->class23[i].alCtlState.PCAlarmState = 0;
 						step = 1;
@@ -491,35 +491,6 @@ int deal8105() {
 			}
 		}
 
-	}
-
-	TS ts;
-	TSGet(&ts);
-	for (int i = 0; i < 2; i++) {
-		long long val = 0;
-		if (CheckAllUnitEmpty(JProgramInfo->class23[i].allist)) {
-			val = getIsInStop(0x2301 + i, ts);
-		}
-
-		fprintf(stderr, "营业报停限值(%lld)\n", val);
-
-		long long total;
-		for (int i = 0; i < MAXVAL_RATENUM; i++) {
-			total += JProgramInfo->class23[i].DayP[i];
-		}
-
-		if (val != -1) {
-			fprintf(stderr, "营业报日点量(%lld)\n", val);
-			if (JProgramInfo->class23[i].DayP[0] > val) {
-				//产生约负荷越限
-				updateState(CtrlC->c8105.overflow, CtrlC->c8103.output,
-						0x2301 + i);
-				return 1;
-			} else {
-				//清除告警状态
-				return 0;
-			}
-		}
 	}
 	return 0;
 }
