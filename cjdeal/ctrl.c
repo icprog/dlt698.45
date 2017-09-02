@@ -200,7 +200,8 @@ int initAll() {
 	CtrlC = &JProgramInfo->ctrls;
 	memset(CtrlC, 0x00, sizeof(CtrlState));
 	for (int i = 0; i < 8; ++i) {
-		readCoverClass(0x2301 + i, 0, &JProgramInfo->class23[0],
+		memset(&JProgramInfo->class23[i], 0x00, sizeof(CLASS23));
+		readCoverClass(0x2301 + i, i, &JProgramInfo->class23[i],
 				sizeof(CLASS23), para_vari_save);
 	}
 
@@ -532,9 +533,9 @@ int deal8105() {
 
 	fprintf(stderr, "deal8105(%lld)\n", CtrlC->c8105.list[0].v);
 	for (int i = 0; i < 1; i++) {
-//		if (!CheckAllUnitEmpty(JProgramInfo->class23[i].allist)) {
-//			continue;
-//		}
+		if (!CheckAllUnitEmpty(JProgramInfo->class23[i].allist)) {
+			continue;
+		}
 
 		fprintf(stderr, "8105 index = %d\n", i);
 
@@ -547,11 +548,11 @@ int deal8105() {
 		INT64U val = CtrlC->c8105.list[0].v;
 		fprintf(stderr, "营业报停限值(%lld)\n", val);
 
-//		if (TScompare(ts, CtrlC->c8105.list[0].start) == 1
-//				&& TScompare(ts, CtrlC->c8105.list[0].end) == 2) {
-		if (1) {
+		if (TScompare(ts, CtrlC->c8105.list[0].start) == 1
+				&& TScompare(ts, CtrlC->c8105.list[0].end) == 2) {
+//		if (1) {
 			fprintf(stderr, "进入营业报停时间，判断功率%lld\n", JProgramInfo->class23[i].p);
-			if (val < JProgramInfo->class23[i].p) {
+			if (val <= JProgramInfo->class23[i].p) {
 				switch (step) {
 				case 0:
 					JProgramInfo->class23[i].alCtlState.OutputState = 0;
@@ -562,25 +563,33 @@ int deal8105() {
 						JProgramInfo->class23[i].alCtlState.OutputState = 128;
 						JProgramInfo->class23[i].alCtlState.PCAlarmState = 0;
 						step = 1;
-						count = 0;
-						fprintf(stderr, "营业报停控，一轮跳闸！！！！！！！！！！！！！");
 					}
 					count += 1;
 					break;
 				case 1:
+					JProgramInfo->class23[i].alCtlState.OutputState = 128;
+					JProgramInfo->class23[i].alCtlState.PCAlarmState = 0;
+					count = 0;
+					fprintf(stderr, "营业报停控，一轮跳闸！！！！！！！！！！！！！");
+					step = 2;
+					break;
+				case 2:
 					JProgramInfo->class23[i].alCtlState.OutputState = 0;
 					JProgramInfo->class23[i].alCtlState.PCAlarmState = 16;
-
 					fprintf(stderr, "营业报停控，二轮告警！！！！！！！！！！！！！");
+					fprintf(stderr, "功控告警时间 %d\n", CtrlC->c8102.time[1] * 60);
 					if (count * 5 > (CtrlC->c8102.time[1]) * 60) {
 						JProgramInfo->class23[i].alCtlState.OutputState = 192;
 						JProgramInfo->class23[i].alCtlState.PCAlarmState = 0;
-						step = 2;
-						fprintf(stderr, "营业报停控，二轮跳闸！！！！！！！！！！！！！");
+						step = 3;
 					}
 					count += 1;
 					break;
-				case 2:
+				case 3:
+					JProgramInfo->class23[i].alCtlState.OutputState = 192;
+					JProgramInfo->class23[i].alCtlState.PCAlarmState = 0;
+					count = 0;
+					fprintf(stderr, "营业报停控，二轮跳闸！！！！！！！！！！！！！");
 					break;
 				}
 			} else {
@@ -863,15 +872,17 @@ void dealCtrl() {
 	deal8108();
 
 	//检测控制有优先级，当高优先级条件产生时，忽略低优先级的配置
-	JProgramInfo->class23[0].p = 100;
-	JProgramInfo->ctrls.c8105.enable[0].state = 1;
-	CtrlC->c8102.time[0] = 1;
-	CtrlC->c8102.time[1] = 1;
-	if (deal8106() != 0) {
-		;
-	} else if (deal8105() != 0) {
-		;
-	}
+//	JProgramInfo->class23[0].p = 100;
+//	JProgramInfo->ctrls.c8105.enable[0].state = 1;
+//	CtrlC->c8102.time[0] = 1;
+//	CtrlC->c8102.time[1] = 1;
+
+	deal8105();
+//	if (deal8106() != 0) {
+//		;
+//	} else if (deal8105() != 0) {
+//		;
+//	}
 //	} else if (deal8104() != 0) {
 //		;
 //	} else if (deal8103() != 0) {
@@ -897,6 +908,8 @@ int ctrlMain(void * arg) {
 
 		//一秒钟刷新一次脉冲数据
 		if (secOld != now.Sec) {
+			fprintf(stderr, "ctrlMain in!!!!++++%lld   %lld+++++++++\n", JProgramInfo->class12[0].ct, JProgramInfo->class12[0].pt);
+
 			refreshPluse(secOld);
 			//更新总加组数据
 			refreshSumUp();

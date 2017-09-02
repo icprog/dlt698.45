@@ -566,6 +566,8 @@ int class8105_act7(int index, int attr_act, INT8U *data, Action_result *act_ret)
 			para_vari_save);
 	c8105.enable[sindex].state = 0x00;
 	shareAddr->ctrls.c8105.enable[sindex].state = 0x00;
+	shareAddr->class23[0].alCtlState.OutputState = 0x00;
+	shareAddr->class23[0].alCtlState.PCAlarmState = 0x00;
 	saveCoverClass(0x8105, 0, (void *) &c8105, sizeof(CLASS_8105),
 			para_vari_save);
 	return 0;
