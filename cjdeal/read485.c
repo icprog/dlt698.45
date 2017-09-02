@@ -4833,7 +4833,7 @@ INT16U compose6012Buff(DateTimeBCD startTime,DateTimeBCD saveTime,TSA meterAddr,
 	memset(dataContent,0,DATA_CONTENT_LEN);
 	memcpy(dataContent,buff6012,bufflen);
 	fprintf(stderr,"\n\n buff6012[%d]:",bufflen);
-	//DbPrt1(port485,"存储数据  compose6012Buff:", (char *) dataContent, bufflen, NULL);
+	DbPrt1(port485,"存储数据  compose6012Buff:", (char *) dataContent, bufflen, NULL);
 	return bufflen;
 }
 //GetOrSet 0 -get 1-set
