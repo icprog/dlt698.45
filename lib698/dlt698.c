@@ -894,6 +894,10 @@ int doActionRequest(INT8U *apdu, CSINFO *csinfo, INT8U *buf) {
 			syslog(LOG_NOTICE, "接收到硬件复位命令");
 			memp->oi_changed.reset++;
 		}
+		if(oad.OI == 0xf201 && act_ret.DAR == success) {
+			//TODO:修改参数后重启系统，防止抄表口与维护口无法区分
+
+		}
 		Get698_event(oad, memp);
 		break;
 	case ACTIONREQUEST_LIST:

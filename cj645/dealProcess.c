@@ -24,6 +24,7 @@
 #include "Shmem.h"
 #include "PublicFunction.h"
 #include "basedef.h"
+#include "gui.h"
 
 extern void InitACSPara();
 #define MsgSendOverTime 3
@@ -732,6 +733,21 @@ void dealProcess()
     while (1) {
     	if (JProgramInfo->cfg_para.device == CCTT2) {    //II型集中器
     		checkProcess();			//指示灯控制功能检测
+    	}else {
+    		//显示时钟，方便生产校表过程中观察时钟
+    		time_t curr_time=time(NULL);
+    		struct tm curr_tm;
+    		char s_jzqtime[20];
+    		//int s_len=14;
+    		memset(s_jzqtime, 0, 20);
+    		localtime_r(&curr_time, &curr_tm);
+    		sprintf(s_jzqtime, "%04d-%02d-%02d %02d:%02d:%02d", curr_tm.tm_year+1900,curr_tm.tm_mon+1,
+    						curr_tm.tm_mday, curr_tm.tm_hour, curr_tm.tm_min, curr_tm.tm_sec);
+    		Point pos;
+    		pos.x = 5;
+    		pos.y = 80;
+    		gui_textshow(s_jzqtime, pos, LCD_NOREV);
+    		lcm_write();
     	}
         RecvLen = ReceDataFrom485(comfd, RecvBuf);
         if (RecvLen > 0) {

@@ -112,7 +112,6 @@ MeterCurveDataType meterCurveData[CURVENUM]=
 //	{97, 3, 2, 4, "当前无功需量曲线",	{0xFF,0xFF,0xFF,0xFF}},
 };
 
-
 void SendDataToCom(int fd, INT8U *sendbuf, INT16U sendlen)
 {
 	int i=0;
