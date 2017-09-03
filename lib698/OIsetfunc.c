@@ -786,10 +786,60 @@ INT16U set4510(OAD oad,INT8U *data,INT8U *DAR)
 	return index;
 }
 
+/////////////////////////////////////////////////////////////////////////////
+INT16U set6002(OAD oad,INT8U *data,INT8U *DAR)
+{
+	INT16U index=0;
+	CLASS_6002		class6002={};
+	int		i=0;
+	memset(&class6002,0,sizeof(CLASS_6002));
+	readCoverClass(0x6002,0,&class6002,sizeof(CLASS_6002),para_vari_save);
+	switch(oad.attflg) {
+	case 2:	//搜表结果
 
+		break;
+	case 5://跨台区结果
+		break;
+	case 6:	//搜表结果记录数
+		break;
+	case 7:	//跨台区搜表结果记录数
+		break;
+	case 8:	//搜表
+		index += getStructure(&data[index],NULL,DAR);
+		index += getBool(&data[index],(INT8U *)&class6002.attr8.enablePeriodFlg,DAR);
+		index += getBool(&data[index],(INT8U *)&class6002.attr8.autoUpdateFlg,DAR);
+		index += getBool(&data[index],(INT8U *)&class6002.attr8.eventFlg,DAR);
+		index += getEnum(1,&data[index],(INT8U *)&class6002.attr8.clearChoice);
+		*DAR = saveCoverClass(0x6002,0,&class6002,sizeof(CLASS_6002),para_vari_save);
+		break;
+	case 9:	//每天周期搜表参数配置
+		index += getArray(&data[index],(INT8U *)&class6002.attr9_num,DAR);
+		if(*DAR == type_mismatch) {
+			fprintf(stderr,"无Array类型\n");
+			class6002.attr9_num = 1;
+		}
+		if(class6002.attr9_num>SERACH_PARA_NUM) {
+			class6002.attr9_num = SERACH_PARA_NUM;
+			syslog(LOG_ERR,"搜表配置数量%d大于限值%d\n",class6002.attr9_num,SERACH_PARA_NUM);
+		}
+		for(i=0;i<class6002.attr9_num;i++) {
+			index += getStructure(&data[index],NULL,DAR);
+			index += getTime(1,&data[index],(INT8U *)&class6002.attr9[i].startTime,DAR);
+			if(*DAR!=success)	return 0;	//无效时间，返回
+			fprintf(stderr," 开始时间  %d:%d:%d\n",class6002.attr9[i].startTime[0],class6002.attr9[i].startTime[1],class6002.attr9[i].startTime[2]);
+			index += getLongUnsigned(&data[index],(INT8U *)&class6002.attr9[i].searchLen);
+		}
+		*DAR = saveCoverClass(0x6002,0,&class6002,sizeof(CLASS_6002),para_vari_save);
+		break;
+	case 10://搜表状态
+
+		break;
+	}
+	return index;
+}
 
 /////////////////////////////////////////////////////////////////////////////
-int Set_F101(OAD oad,INT8U *data,INT8U *DAR)
+int setf101(OAD oad,INT8U *data,INT8U *DAR)
 {
 	int		index = 0,i=0;
 	CLASS_F101	f101={};
@@ -815,7 +865,7 @@ int Set_F101(OAD oad,INT8U *data,INT8U *DAR)
 	return index;
 }
 
-int	Set_F200(OI_698 oi,INT8U *data,INT8U *DAR)
+int	setf200(OI_698 oi,INT8U *data,INT8U *DAR)
 {
 	int	 index=0;
 	CLASS_f201	f201={};
@@ -833,7 +883,7 @@ int	Set_F200(OI_698 oi,INT8U *data,INT8U *DAR)
 	return index;
 }
 
-int	Set_F201(OI_698 oi,INT8U *data,INT8U *DAR)
+int	setf201(OI_698 oi,INT8U *data,INT8U *DAR)
 {
 	INT8U	com = 0;
 	int	 index=0;
@@ -857,7 +907,7 @@ int	Set_F201(OI_698 oi,INT8U *data,INT8U *DAR)
 	return index;
 }
 
-int	Set_F202(OI_698 oi,INT8U *data,INT8U *DAR)
+int	setf202(OI_698 oi,INT8U *data,INT8U *DAR)
 {
 	int	 index=0;
 	CLASS_f202	f202={};
@@ -873,7 +923,7 @@ int	Set_F202(OI_698 oi,INT8U *data,INT8U *DAR)
 	return index;
 }
 
-int Set_F203(OAD oad,INT8U *data,INT8U *DAR)
+int setf203(OAD oad,INT8U *data,INT8U *DAR)
 {
 	INT16U index=0;
 	CLASS_f203	f203={};
@@ -890,7 +940,7 @@ int Set_F203(OAD oad,INT8U *data,INT8U *DAR)
 	return index;
 }
 
-int	Set_F209(OAD setoad,INT8U *data,INT8U *DAR)
+int	setf209(OAD setoad,INT8U *data,INT8U *DAR)
 {
 	int	 index=0;
 	CLASS_f209	f209={};
