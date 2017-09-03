@@ -436,6 +436,7 @@ typedef struct {
 	INT32U control[3]; //遥控命令 必须三个位置同时相同才认为命令有效
 					   //YK1：0xEEFFEFEF为分闸 0xCCAACACA为合闸，
 					   //YK2：0x55552525为分闸 0xCCCC2C2C为合闸，
+	INT8U control_event; //标识遥控跳闸事件开始计时
 } CtrlState;
 
 //typedef struct {

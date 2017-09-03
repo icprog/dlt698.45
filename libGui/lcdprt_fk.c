@@ -156,7 +156,7 @@ void menu_control(){
 		gui_reverserect(gui_changerect(rect, 2));//反显按钮
 
 		gui_setpos(&pos, rect_Client.left+1*FONTSIZE, rect_Client.top+10*FONTSIZE);//4
-		menu_control_showstate((char*)"下浮：",c8106.enable[0].state & 0x01, pos);			//当前功率下浮控	没有控制方案集数组，默认参数下发在原来结构体数组 0
+		menu_control_showstate((char*)"下浮：",c8106.enable.state & 0x01, pos);			//当前功率下浮控	没有控制方案集数组，默认参数下发在原来结构体数组 0
 		pos.y += FONTSIZE*3;
 		menu_control_showstate((char*)"报停：",c8105.enable[zj_index-1].state & 0x01, pos);//营业报停控
 		pos.y += FONTSIZE*3;

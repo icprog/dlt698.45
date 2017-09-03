@@ -1459,9 +1459,7 @@ int  fill_variClass(OAD oad,INT8U getflg,INT8U *sourcebuf,INT8U *destbuf,INT16U 
 		class23_get(oad,sourcebuf,destbuf,&buflen);
 		break;
 	case 0x2401:
-		if(sourcebuf!=NULL) {
-			class12_get(oad,sourcebuf,destbuf,&buflen);
-		}
+		class12_get(oad,sourcebuf,destbuf,&buflen);
 		break;
 	default:
 //		//fprintf(stderr,"GET_26:未定义对象属性，上送数据NULL\n");
