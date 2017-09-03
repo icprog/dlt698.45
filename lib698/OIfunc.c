@@ -520,6 +520,63 @@ int Get_6035(INT8U type,INT8U taskid,INT8U *data)
 	return index;
 }
 
+int GetF201(OAD oad,INT8U *data)
+{
+	INT8U	comindex = 0, i=0;
+	int 	index=0,ret=0;
+	CLASS_f201	f201[3]={};
+
+	if(oad.attflg != 2)  return index;
+	memset(&f201,0,sizeof(f201));
+	ret = readCoverClass(oad.OI,0,&f201,sizeof(f201),para_vari_save);
+
+	if(oad.attrindex == 0) {
+		index += create_array(&data[index],3);
+		for(i=0;i<3;i++) {
+			index += create_struct(&data[index],3);
+			index += fill_visible_string(&data[index],f201[i].devdesc,strlen(f201[i].devdesc));
+			index += fill_COMDCB(1,&data[index],f201[i].devpara);
+			index += fill_enum(&data[index],f201[i].devfunc);
+		}
+	}else {
+		if(oad.attrindex>=1 && oad.attrindex<=3) {
+			comindex = oad.attrindex - 1;
+			index += create_struct(&data[index],3);
+			index += fill_visible_string(&data[index],f201[comindex].devdesc,strlen(f201[comindex].devdesc));
+			index += fill_COMDCB(1,&data[index],f201[comindex].devpara);
+			index += fill_enum(&data[index],f201[comindex].devfunc);
+		}
+	}
+	return index;
+}
+
+int GetF209(OAD oad,INT8U *data)
+{
+	int 	index=0,ret=0;
+	CLASS_f209	f209={};
+
+	memset(&f209,0,sizeof(CLASS_f209));
+	ret = readCoverClass(oad.OI,0,&f209,sizeof(CLASS_f209),para_vari_save);
+	fprintf(stderr,"ret = %d  baud = %d\n",ret,f209.para.devpara.baud);
+	switch(oad.attflg) {
+	case 2:
+		index += create_struct(&data[index],3);
+		index += fill_visible_string(&data[index],f209.para.devdesc,strlen(f209.para.devdesc));
+		index += fill_COMDCB(1,&data[index],f209.para.devpara);
+		index += create_struct(&data[index],4);
+		index += fill_visible_string(&data[index],f209.para.version.factoryCode,2);
+		index += fill_visible_string(&data[index],f209.para.version.chipCode,2);
+		index += fill_visible_string(&data[index],f209.para.version.softDate,3);
+		index += fill_long_unsigned(&data[index],f209.para.version.softVer);
+		break;
+	case 5:
+		break;
+	case 6:
+		break;
+	}
+	return index;
+}
+
 /*
  *  文件传输接口类接口
  * */

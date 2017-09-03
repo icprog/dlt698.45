@@ -380,7 +380,7 @@ void SetF201(int argc, char *argv[])
 
         if (readCoverClass(0xf201, 0, oif201, sizeof(CLASS_f201)*3, para_vari_save) > 0) {
         	for(i=0;i<3;i++) {
-				fprintf(stderr,"\n\n读取485_[%d]参数如下:",i);
+				fprintf(stderr,"\n\n读取485_[%d]参数如下:",i+1);
 				fprintf(stderr, "\n当前描述符(%s)：波特率(%d)，校验方式(%d)，数据位(%d)，停止位(%d)，端口功能(%d)\n", oif201[i].devdesc,
 						oif201[i].devpara.baud,oif201[i].devpara.verify,oif201[i].devpara.databits,oif201[i].devpara.stopbits,
 						oif201[i].devfunc);

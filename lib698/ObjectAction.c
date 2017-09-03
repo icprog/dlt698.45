@@ -1278,6 +1278,7 @@ void PlcInfo(INT16U attr_act, INT8U *data, Action_result *act_ret)
 	int   index = 0;
 	CLASS_f209	class_f209={};
 	OAD		oad={};
+
     switch (attr_act) {
         case 127://透明转发
     		readCoverClass(0xf209 ,0 , &class_f209,sizeof(CLASS_f209),para_vari_save);
@@ -1289,10 +1290,9 @@ void PlcInfo(INT16U attr_act, INT8U *data, Action_result *act_ret)
     		setOIChange(0xf209);
         	break;
         case 128://配置端口参数（端口号，通信参数）
-        	oad.OI = 0xf209;
-        	oad.attflg = 0x02;
-        	oad.attrindex = 0x01;
-        	index += Set_F209(oad,data,&act_ret->DAR);
+    		index += getStructure(&data[index],NULL,&act_ret->DAR);
+    		index += getOAD(1,&data[index],&oad,&act_ret->DAR);
+        	index += Set_F209(oad,&data[index],&act_ret->DAR);
         	break;
     }
     act_ret->datalen = index;

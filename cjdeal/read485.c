@@ -50,7 +50,7 @@ void DbgPrintToFile1(INT8U comport,const char *format,...)
 	FILE *fp = NULL;
 
 	memset(fname,0,sizeof(fname));
-	sprintf(fname,"/nand/vs485_%d.log",comport);
+	sprintf(fname,"/nand/log_698/vs485_%d.log",comport);
 	memset(str,0,50);
 	cur_time=time(NULL);
 	localtime_r(&cur_time,&cur_tm);
@@ -501,10 +501,19 @@ INT16S ReceDataFrom485(METER_PROTOCOL meterPro,INT8U port485, INT16U delayms, IN
 	memset(TmprevBuf, 0, BUFFSIZE2048);
 	rec_head = rec_tail = rec_step = DataLen = 0;
 	//fprintf(stderr, "\n ReceDataFrom485 delayms=%d\n", delayms);
+	//zhejiangtest
+#if 0
+	usleep(delayms * 2000);
+#else
 	usleep(delayms * 1000);
-
+#endif
 	for (j = 0; j < 15; j++) {
-		usleep(20000);	//20ms
+	#if 0
+		usleep(200000);
+	#else
+		usleep(20000);
+	#endif
+
 		len = read(fd, TmprevBuf, BUFFSIZE2048);
 
 		if (len > 0) {
@@ -578,9 +587,7 @@ INT16S ReceDataFrom485(METER_PROTOCOL meterPro,INT8U port485, INT16U delayms, IN
 							DbPrt1(port485,"R:",(char *)str, rec_head, NULL);
 
 							if((getZone("GW")==0) && (port485==1)) {
-//								sprintf(title,"[485_%d_07]R:",port485);
-//								bufsyslog(TmprevBuf, title, rec_head, 0, BUFFSIZE2048);
-								PacketBufToFile("[485_07]R:",(char *)str, rec_head, NULL);
+								PacketBufToFile(0,"[485_07]R:",(char *)str, rec_head, NULL);
 							}
 							return (rec_tail + 9 + DataLen + 3);
 						}
@@ -595,9 +602,7 @@ INT16S ReceDataFrom485(METER_PROTOCOL meterPro,INT8U port485, INT16U delayms, IN
 							if (str[rec_tail + DataLen +1] == 0x16) {
 								DbPrt1(port485,"R:",(char *)str, rec_head, NULL);
 								if((getZone("GW")==0) && (port485==1)) {
-//									sprintf(title,"[485_%d_698]R:",port485);
-//									bufsyslog(TmprevBuf, title, rec_head, 0, BUFFSIZE2048);
-									PacketBufToFile("[485_698]R:",(char *)str, rec_head, NULL);
+									PacketBufToFile(0,"[485_698]R:",(char *)str, rec_head, NULL);
 								}
 								return rec_head;
 							}
@@ -649,10 +654,7 @@ void SendDataTo485(INT8U port485, INT8U *sendbuf, INT16U sendlen) {
 		fprintf(stderr, "slen=%d,send err!\n", slen);
 	DbPrt1(port485,"S:", (char *) sendbuf, sendlen, NULL);
 	if((getZone("GW")==0) && (port485==1)) {
-//		char title[20];
-//		sprintf(title,"[485_%d]S:",port485);
-//		bufsyslog(sendbuf, title, sendlen, 0, BUFLEN);
-		PacketBufToFile("[485]S:",(char *) sendbuf, sendlen, NULL);
+		PacketBufToFile(0,"[485]S:",(char *) sendbuf, sendlen, NULL);
 	}
 }
 
@@ -3582,7 +3584,7 @@ INT8S dealRealTimeRequst(INT8U port485)
 	{
 		checkBroadCast(port485);
 	}
-	fprintf(stderr,"port485 = %d para_change485 = %d",port485,para_change485[port485-1]);
+//	fprintf(stderr,"port485 = %d para_change485 = %d",port485,para_change485[port485-1]);
 	if(para_change485[port485-1] == 1)
 	{
 		result = PARA_CHANGE_RETVALUE;

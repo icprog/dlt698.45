@@ -2408,6 +2408,43 @@ INT8U Event_3115(INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
     if (prginfo_event->event_obj.Event3115_obj.enableflag == 0) {
         return 0;
     }
+    INT8U Save_buf[256];
+    		bzero(Save_buf, sizeof(Save_buf));
+    		prginfo_event->event_obj.Event3115_obj.crrentnum++;
+    		prginfo_event->event_obj.Event3115_obj.crrentnum=Getcurrno(prginfo_event->event_obj.Event3115_obj.crrentnum,prginfo_event->event_obj.Event3115_obj.maxnum);
+    		INT32U crrentnum = prginfo_event->event_obj.Event3115_obj.crrentnum;
+    		INT8U index=0;
+    		//标准数据单元
+    		Get_StandardUnit(prginfo_event,0x3115,Save_buf,&index,crrentnum,(INT8U*)data,s_oad);//data 0,1,2,3
+    		Save_buf[index++]=dtarray;
+    		Save_buf[index++]=8;
+    		int i=0;
+    		for(i=0;i<8;i++)
+    		{
+    			Save_buf[index++]=dtlong64;
+    			Save_buf[index++]=((prginfo_event->class23[i].p >> 56)&0x00000000000000ff);
+    			Save_buf[index++]=((prginfo_event->class23[i].p >> 48)&0x00000000000000ff);
+    			Save_buf[index++]=((prginfo_event->class23[i].p >> 40)&0x00000000000000ff);
+    			Save_buf[index++]=((prginfo_event->class23[i].p >> 32)&0x00000000000000ff);
+    			Save_buf[index++]=((prginfo_event->class23[i].p >> 24)&0x00000000000000ff);
+    			Save_buf[index++]=((prginfo_event->class23[i].p >> 16)&0x00000000000000ff);
+    			Save_buf[index++]=((prginfo_event->class23[i].p >> 8)&0x00000000000000ff);
+    			Save_buf[index++]=(prginfo_event->class23[i].p&0x00000000000000ff);
+    		}
+
+    		Save_buf[STANDARD_NUM_INDEX]+=2;
+    		//存储更改后得参数
+    		saveCoverClass(0x3115,(INT16U)crrentnum,(void *)&prginfo_event->event_obj.Event3115_obj,sizeof(Class7_Object),1);
+    		//存储记录集
+    		saveCoverClass(0x3115,(INT16U)crrentnum,(void *)Save_buf,(int)index,2);
+    		//存储当前记录值
+    		INT8U Currbuf[50]={};memset(Currbuf,0,50);
+    		INT8U Currindex=0;
+    		Get_CurrResult(Currbuf,&Currindex,(INT8U*)data,s_oad,crrentnum,0);
+    		saveCoverClass(0x3115,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,3);
+    		//判断是否要上报
+    		if(prginfo_event->event_obj.Event3115_obj.reportflag)
+    			Need_Report(0x3115,crrentnum,prginfo_event);
     return 1;
 }
 
@@ -2709,7 +2746,7 @@ INT8U Event_3202(INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 	}
 	//oi:8107 or 810c
 	if(1){
-		INT8U oi[2]={0x81,0x07};
+		//INT8U oi[2]={0x81,0x07};
 		INT8U Save_buf[256];
 		bzero(Save_buf, sizeof(Save_buf));
 		prginfo_event->event_obj.Event3202_obj.crrentnum++;
@@ -2717,7 +2754,7 @@ INT8U Event_3202(INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 		INT32U crrentnum = prginfo_event->event_obj.Event3202_obj.crrentnum;
 		INT8U index=0;
 		//标准数据单元
-		Get_StandardUnit(prginfo_event,0x3202,Save_buf,&index,crrentnum,(INT8U*)oi,s_oi);
+		Get_StandardUnit(prginfo_event,0x3202,Save_buf,&index,crrentnum,(INT8U*)data,s_oi);
 		//属性3无关联数据
 		Save_buf[STANDARD_NUM_INDEX]+=0;
 		//存储更改后得参数
@@ -2727,7 +2764,7 @@ INT8U Event_3202(INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 		//存储当前记录值
 		INT8U Currbuf[50]={};memset(Currbuf,0,50);
 		INT8U Currindex=0;
-		Get_CurrResult(Currbuf,&Currindex,(INT8U*)oi,s_oi,crrentnum,0);
+		Get_CurrResult(Currbuf,&Currindex,(INT8U*)data,s_oi,crrentnum,0);
 		saveCoverClass(0x3202,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,event_current_save);
 		//判断是否要上报
 		if(prginfo_event->event_obj.Event3202_obj.reportflag)

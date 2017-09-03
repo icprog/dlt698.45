@@ -54,9 +54,9 @@ static char *usage_set = "\n--------------------参数设置及基本维护命�
 		"		 【蜂鸣器】蜂鸣投入 cj buzzer 1 <蜂鸣投入>  cj buzzer 0 <蜂鸣解除>		\n"
 		"		 【电池电压读取】 cj bettery 	\n"
 		"		  [电池断电/上电] vd batt 0:电池断电	 vd batt 1:电池上电\n"   \
-        "[读取心跳] cj heart       "
-        "[设置心跳] cj heart 60 s\n"
-		"【初始化】cj InIt 3 [数据区初始化]	\n　　　　　　cj InIt 5 [事件初始化]\n　　　　　　cj InIt 6 [需量初始化]\n　　　　　　cj InIt 4 [恢复出厂参数]\n"
+        "		  [读取心跳] cj heart       "
+        "		  [设置心跳] cj heart 60 s\n"
+		"		【初始化】cj InIt 3 [数据区初始化]	\n　　　　　　cj InIt 5 [事件初始化]\n　　　　　　cj InIt 6 [需量初始化]\n　　　　　　cj InIt 4 [恢复出厂参数]\n"
         "[ESAM 测试，测试写到/nand/esam.log] 测试模式1[20M通信1次]：cj esam\n"
         "            测试模式2[speed M通信1次，speed范围可从1到25]：cj esam speed\n"
         "            测试模式3[speed M通信n次，speed范围可从1到25]：cj esam speed n\n"
@@ -83,7 +83,7 @@ static char *usage_event = "--------------------事件类对象-----------------
         "[设置Class7]  cj event pro <oi> 当前记录数 最大记录数 上报标识 有效标识 关联对象个数 关联对象OAD[1-10]	\n"
         "	[设置采集终端初始化事件] cj event pro 3100 1 16 1 1 0 \n"
         "	[设置终端状态量变位事件] cj event pro 3104 1 16 1 1 5 201E-4200 F203-4201 F203-4202 F203-4203 F203-4204 F203-4205\n"
-        "[读取事件记录] cj event record <oi> 0（所有）/n（记录n）:例如：读取采集终端初始化事件记录 cj event record 3100 0（所有）/1(记录1)"
+        "[读取事件记录] cj event record <oi> 0（所有）/n（记录n）:例如：读取采集终端初始化事件记录 cj event record 3100 0（所有）/1(记录1)\n"
         "[读取事件有效/无效] cj event enable\n"
         "[设置电能表开盖事件有效/无效] cj event enable 301B 1/0 1有效 0无效 \n"
         "[设置停上电事件有效/无效] cj event enable 3106 1/0 1有效 0无效 \n"
@@ -247,13 +247,13 @@ int main(int argc, char *argv[]) {
     	{
     		fprintf(stderr,"\n-----总加组:%d",groupIndex);
 
-    		fprintf(stderr,"\n日电量:%ld-%ld-%ld-%ld-%ld",
+    		fprintf(stderr,"\n日电量:%lld-%lld-%lld-%lld-%lld",
     				JProgramInfo->class23[groupIndex].DayPALL,
     				JProgramInfo->class23[groupIndex].DayP[0],
     				JProgramInfo->class23[groupIndex].DayP[1],
     				JProgramInfo->class23[groupIndex].DayP[2],
     				JProgramInfo->class23[groupIndex].DayP[3]);
-    		fprintf(stderr,"\n月电量:%ld-%ld-%ld-%ld-%ld",
+    		fprintf(stderr,"\n月电量:%lld-%lld-%lld-%lld-%lld",
     				JProgramInfo->class23[groupIndex].MonthPALL,
     				JProgramInfo->class23[groupIndex].MonthP[0],
     				JProgramInfo->class23[groupIndex].MonthP[1],
@@ -275,7 +275,7 @@ int main(int argc, char *argv[]) {
 						JProgramInfo->class23[groupIndex].allist[meterIndex].tsa.addr[5],
 						JProgramInfo->class23[groupIndex].allist[meterIndex].tsa.addr[6],
 						JProgramInfo->class23[groupIndex].allist[meterIndex].tsa.addr[7]);
-        		fprintf(stderr,"\n当前电量:%ld-%ld-%ld-%ld-%ld",
+        		fprintf(stderr,"\n当前电量:%lld-%lld-%lld-%lld-%lld",
         				JProgramInfo->class23[groupIndex].allist[meterIndex].curP[0],
         				JProgramInfo->class23[groupIndex].allist[meterIndex].curP[1],
         				JProgramInfo->class23[groupIndex].allist[meterIndex].curP[2],

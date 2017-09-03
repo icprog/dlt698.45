@@ -337,8 +337,8 @@ INT8U is485PortOAD(OAD portOAD)
  * */
 INT8U is485OAD(OAD portOAD,INT8U port485)
 {
-	fprintf(stderr,"\n portOAD.OI = %04x portOAD.attflg = %d  portOAD.attrindex = %d port485 = %d \ n"
-			,portOAD.OI,portOAD.attflg,portOAD.attrindex,port485);
+//	fprintf(stderr,"\n portOAD.OI = %04x portOAD.attflg = %d  portOAD.attrindex = %d port485 = %d \ n"
+//			,portOAD.OI,portOAD.attflg,portOAD.attrindex,port485);
 
 	if(!is485PortOAD(portOAD))
 		return 0;
@@ -1791,6 +1791,12 @@ int main(int argc, char *argv[])
 
 	asyslog(LOG_INFO,"进程 %s PID = %d",JProgramInfo->Projects[1].ProjectName,JProgramInfo->Projects[1].ProjectID);
 	asyslog(LOG_INFO,"进程 %s PID = %d",JProgramInfo->Projects[2].ProjectName,JProgramInfo->Projects[2].ProjectID);
+	///液晶提前运行，为了上电15秒内点亮液晶运行程序
+	if(JProgramInfo->cfg_para.device != CCTT2)
+	{
+		//液晶、控制
+		guictrl_proccess();
+	}
 	//载入档案、参数
 	InitPara();
 	//任务调度进程
@@ -1803,11 +1809,6 @@ int main(int argc, char *argv[])
 	{
 		//载波
 		readplc_proccess();
-	}
-	if(JProgramInfo->cfg_para.device != CCTT2)
-	{
-		//液晶、控制
-		guictrl_proccess();
 	}
 	if(JProgramInfo->cfg_para.device == SPTF3)
 	{

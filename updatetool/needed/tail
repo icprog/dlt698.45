@@ -32,6 +32,8 @@ install()
     gunzip install.tmp.$$/app.tar.gz
     tar -xvf install.tmp.$$/app.tar
     cp ./app/cj* /nand/bin/
+    #copy 3761 program
+    cp ./app/v* /nand/bin/
     cp ./app/lib* /nor/lib/
     cp ./app/*.cfg /nor/config/
 }

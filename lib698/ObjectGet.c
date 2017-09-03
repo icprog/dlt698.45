@@ -1320,7 +1320,7 @@ INT8U fillVacsData(INT8U structnum,INT8U attindex,INT8U datatype,INT32U data1,IN
 		attindex = 4;
 	}
 	fprintf(stderr,"structnum=%d   responseData=%p\n",structnum,responseData);
-	if(structnum>=1) {
+	if(attindex == 0) {		//请求全部属性
 		index += create_array(&responseData[index],structnum);
 	}
 	fprintf(stderr,"index=%d\n",index);
@@ -2483,6 +2483,7 @@ int GetCtrl(RESULT_NORMAL *response)
 			break;
 		case 0x8001:
 			response->datalen = Get_8001(response);
+			break;
 		case 0x8002:
 			response->datalen = Get_8002(response);
 			break;
@@ -2545,28 +2546,34 @@ int GetCollPara(INT8U seqOfNum,RESULT_NORMAL *response){
 int GetDeviceIo(RESULT_NORMAL *response)
 {
 	switch(response->oad.OI) {
+		case 0xF001:
+		switch(response->oad.attflg) {
+			case 2:	//文件信息
+			case 3:	//命令结果
+				response->datalen = GetClass18(response->oad.attflg,response->data);
+				break;
+			case 4:	//传输块状态字
+				GetFileState(response);
+				break;
+		}
+		break;
 		case 0xF100:
 			GetEsamPara(response);
 			break;
 		case 0xF101:
 			GetSecurePara(response);
 			break;
+		case 0xF201:	//RS485
+			response->datalen = GetF201(response->oad,response->data);
+			break;
 		case 0xF203:
 			GetYxPara(response);
 			break;
-		case 0xF001:
-			switch(response->oad.attflg) {
-				case 2:	//文件信息
-				case 3:	//命令结果
-					response->datalen = GetClass18(response->oad.attflg,response->data);
-					break;
-				case 4:	//传输块状态字
-					GetFileState(response);
-					break;
-			}
-			break;
 		case 0xF205:
 			Get_f205_attr2(response);
+			break;
+		case 0xF209:	//ZB
+			response->datalen = GetF209(response->oad,response->data);
 			break;
 		default:	//未定义的对象
 			response->dar = obj_undefine;
