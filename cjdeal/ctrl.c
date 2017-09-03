@@ -199,21 +199,21 @@ INT64U getCurrTimeValue(int line) {
 	switch (index) {
 	case 0:
 		switch (time_num) {
-		case 1:
+		case 0:
 			return CtrlC->c8103.list[line].v1.t1;
-		case 2:
+		case 1:
 			return CtrlC->c8103.list[line].v1.t2;
-		case 3:
+		case 2:
 			return CtrlC->c8103.list[line].v1.t3;
-		case 4:
+		case 3:
 			return CtrlC->c8103.list[line].v1.t4;
-		case 5:
+		case 4:
 			return CtrlC->c8103.list[line].v1.t5;
-		case 6:
+		case 5:
 			return CtrlC->c8103.list[line].v1.t6;
-		case 7:
+		case 6:
 			return CtrlC->c8103.list[line].v1.t7;
-		case 8:
+		case 7:
 			return CtrlC->c8103.list[line].v1.t8;
 		default:
 			return -1;
@@ -221,42 +221,42 @@ INT64U getCurrTimeValue(int line) {
 
 	case 1:
 		switch (time_num) {
-		case 1:
+		case 0:
 			return CtrlC->c8103.list[line].v2.t1;
-		case 2:
+		case 1:
 			return CtrlC->c8103.list[line].v2.t2;
-		case 3:
+		case 2:
 			return CtrlC->c8103.list[line].v2.t3;
-		case 4:
+		case 3:
 			return CtrlC->c8103.list[line].v2.t4;
-		case 5:
+		case 4:
 			return CtrlC->c8103.list[line].v2.t5;
-		case 6:
+		case 5:
 			return CtrlC->c8103.list[line].v2.t6;
-		case 7:
+		case 6:
 			return CtrlC->c8103.list[line].v2.t7;
-		case 8:
+		case 7:
 			return CtrlC->c8103.list[line].v2.t8;
 		default:
 			return -1;
 		}
 	case 2:
 		switch (time_num) {
-		case 1:
+		case 0:
 			return CtrlC->c8103.list[line].v3.t1;
-		case 2:
+		case 1:
 			return CtrlC->c8103.list[line].v3.t2;
-		case 3:
+		case 2:
 			return CtrlC->c8103.list[line].v3.t3;
-		case 4:
+		case 3:
 			return CtrlC->c8103.list[line].v3.t4;
-		case 5:
+		case 4:
 			return CtrlC->c8103.list[line].v3.t5;
-		case 6:
+		case 5:
 			return CtrlC->c8103.list[line].v3.t6;
-		case 7:
+		case 6:
 			return CtrlC->c8103.list[line].v3.t7;
-		case 8:
+		case 7:
 			return CtrlC->c8103.list[line].v3.t8;
 		default:
 			return -1;
