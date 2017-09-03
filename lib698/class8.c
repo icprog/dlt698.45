@@ -211,6 +211,7 @@ int class8101_set(int index, OAD oad, INT8U *data, INT8U *DAR) {
 	if (data[0] != 0x01 || data[1] != 0x0C) {
 		return 0;
 	}
+	memset(&c8101, 0x00, sizeof(CLASS_8101));
 	readCoverClass(0x8101, 0, (void *) &c8101, sizeof(CLASS_8101),
 			para_vari_save);
 	for (int i = 0; i < 12; ++i) {
@@ -227,6 +228,7 @@ int class8102_set(int index, OAD oad, INT8U *data, INT8U *DAR) {
 	if (data[0] != 0x01 || data[1] != 0x08) {
 		return 0;
 	}
+	memset(&c8102, 0x00, sizeof(CLASS_8102));
 	readCoverClass(0x8102, 0, (void *) &c8102, sizeof(CLASS_8102),
 			para_vari_save);
 	for (int i = 0; i < 8; ++i) {
@@ -316,6 +318,7 @@ int class8103_act6(int index, int attr_act, INT8U *data, Action_result *act_ret)
 	int sindex = oi - 0x2301;
 
 	CLASS_8103 c8103;
+	memset(&c8103, 0x00, sizeof(CLASS_8103));
 	readCoverClass(0x8103, 0, (void *) &c8103, sizeof(CLASS_8103),
 			para_vari_save);
 
@@ -340,6 +343,7 @@ int class8103_act7(int index, int attr_act, INT8U *data, Action_result *act_ret)
 	int sindex = oi - 0x2301;
 
 	CLASS_8103 c8103;
+	memset(&c8103, 0x00, sizeof(CLASS_8103));
 	readCoverClass(0x8103, 0, (void *) &c8103, sizeof(CLASS_8103),
 			para_vari_save);
 	c8103.enable[sindex].state = 0x00;
@@ -372,6 +376,7 @@ int class8103_act127(int index, int attr_act, INT8U *data,
 	asyslog(LOG_WARNING, "控制方案切换[8103-127],%04x-%02d-%02d", oi, sign, numb);
 
 	CLASS_8103 c8103;
+	memset(&c8103, 0x00, sizeof(CLASS_8103));
 		readCoverClass(0x8103, 0, (void *) &c8103, sizeof(CLASS_8103),
 				para_vari_save);
 	c8103.sign = sign;
@@ -411,6 +416,8 @@ int class8104_act3(int index, int attr_act, INT8U *data, Action_result *act_ret)
 	ii += getStructure(&data[ii],NULL,&DAR);
 	ii += getOI(1,&data[ii],&oi);
 
+	memset(&c8104, 0x00, sizeof(CLASS_8104));
+
 	asyslog(LOG_WARNING, "厂休功控-添加控制单元(OI=%04x)",oi);
 	if(oi>=0x2301 && oi<=0x2308) {
 		unit = oi-0x2301;
@@ -441,7 +448,7 @@ int class8104_act3(int index, int attr_act, INT8U *data, Action_result *act_ret)
 			para_vari_save);
 	readCoverClass(0x8104, 0, (void *) &shareAddr->ctrls.c8104.list[unit], sizeof(CLASS_8104),
 			para_vari_save);
-	fprintf(stderr, "刷新参数 %lld\n", shareAddr->ctrls.c8104.list[unit].v);
+	fprintf(stderr, "刷新参数 %lld %d %d\n", shareAddr->ctrls.c8104.list[unit].v, shareAddr->ctrls.c8104.list[unit].sustain, shareAddr->ctrls.c8104.list[unit].noDay);
 	return 0;
 }
 
@@ -458,6 +465,7 @@ int class8104_act6(int index, int attr_act, INT8U *data, Action_result *act_ret)
 	int sindex = oi - 0x2301;
 
 	CLASS_8104 c8104;
+	memset(&c8104, 0x00, sizeof(CLASS_8104));
 	readCoverClass(0x8104, 0, (void *) &c8104, sizeof(CLASS_8104),
 			para_vari_save);
 	c8104.enable[sindex].state = 0x01;
@@ -481,6 +489,7 @@ int class8104_act7(int index, int attr_act, INT8U *data, Action_result *act_ret)
 	int sindex = oi - 0x2301;
 
 	CLASS_8104 c8104;
+	memset(&c8104, 0x00, sizeof(CLASS_8104));
 	readCoverClass(0x8104, 0, (void *) &c8104, sizeof(CLASS_8104),
 			para_vari_save);
 	c8104.enable[sindex].state = 0x00;
@@ -524,6 +533,7 @@ int class8105_act3(int index, int attr_act, INT8U *data, Action_result *act_ret)
 		act_ret->DAR = obj_unexist;
 		return 0;
 	}
+	memset(&c8105, 0x00, sizeof(CLASS_8105));
 	readCoverClass(0x8105, 0, (void *) &c8105, sizeof(CLASS_8105),
 			para_vari_save);
 
@@ -551,6 +561,7 @@ int class8105_act6(int index, int attr_act, INT8U *data, Action_result *act_ret)
 	int sindex = oi - 0x2301;
 
 	CLASS_8105 c8105;
+	memset(&c8105, 0x00, sizeof(CLASS_8105));
 	readCoverClass(0x8105, 0, (void *) &c8105, sizeof(CLASS_8105),
 			para_vari_save);
 	c8105.enable[sindex].state = 0x01;
@@ -574,6 +585,7 @@ int class8105_act7(int index, int attr_act, INT8U *data, Action_result *act_ret)
 	int sindex = oi - 0x2301;
 
 	CLASS_8105 c8105;
+	memset(&c8105, 0x00, sizeof(CLASS_8105));
 	readCoverClass(0x8105, 0, (void *) &c8105, sizeof(CLASS_8105),
 			para_vari_save);
 	c8105.enable[sindex].state = 0x00;
@@ -641,6 +653,7 @@ int class8106_act127(int index, int attr_act, INT8U *data, Action_result *act_re
 	int sindex = oi - 0x2301;
 
 	CLASS_8106 c8106;
+	memset(&c8106, 0x00, sizeof(CLASS_8106));
 	readCoverClass(0x8106, 0, (void *) &c8106, sizeof(CLASS_8106),
 			para_vari_save);
 
@@ -663,6 +676,7 @@ int class8106_act7(int index, int attr_act, INT8U *data, Action_result *act_ret)
 	int sindex = oi - 0x2301;
 	asyslog(LOG_WARNING, "功率下浮-控制解除[%04x]", oi);
 	CLASS_8106 c8106;
+	memset(&c8106, 0x00, sizeof(CLASS_8106));
 	readCoverClass(0x8106, 0, (void *) &c8106, sizeof(CLASS_8106),
 			para_vari_save);
 
@@ -796,6 +810,7 @@ int class8107_act6(int index, int attr_act, INT8U *data, Action_result *act_ret)
 	asyslog(LOG_WARNING, "购电-控制投入[%04x]", oi);
 
 	CLASS_8107 c8107;
+	memset(&c8107, 0x00, sizeof(CLASS_8107));
 	readCoverClass(0x8107, 0, (void *) &c8107, sizeof(CLASS_8107),
 			para_vari_save);
 
@@ -820,9 +835,9 @@ int class8107_act7(int index, int attr_act, INT8U *data, Action_result *act_ret)
 	asyslog(LOG_WARNING, "购电-控制解除[%04x]", oi);
 
 	CLASS_8107 c8107;
+	memset(&c8107, 0x00, sizeof(CLASS_8107));
 	readCoverClass(0x8107, 0, (void *) &c8107, sizeof(CLASS_8107),
 			para_vari_save);
-
 
 	c8107.enable[sindex].state = 0x00;
 	shareAddr->ctrls.c8107.enable[sindex].state = 0x00;
@@ -891,6 +906,7 @@ int class8108_act6(int index, int attr_act, INT8U *data, Action_result *act_ret)
 	asyslog(LOG_WARNING, "月电-控制投入[%04x]", oi);
 
 	CLASS_8108 c8108;
+	memset(&c8108, 0x00, sizeof(CLASS_8108));
 	readCoverClass(0x8108, 0, (void *) &c8108, sizeof(CLASS_8108),
 			para_vari_save);
 	shareAddr->ctrls.c8108.enable[sindex].state = 0x01;
@@ -914,6 +930,7 @@ int class8108_act7(int index, int attr_act, INT8U *data, Action_result *act_ret)
 	asyslog(LOG_WARNING, "月电-控制解除[%04x]", oi);
 
 	CLASS_8108 c8108;
+	memset(&c8108, 0x00, sizeof(CLASS_8108));
 	readCoverClass(0x8108, 0, (void *) &c8108, sizeof(CLASS_8108),
 			para_vari_save);
 

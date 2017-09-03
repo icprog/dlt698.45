@@ -445,16 +445,40 @@ INT8U TScompare(TS ts1, TS ts2) {
     } else if (ts1.Day < ts2.Day) {
         return 2;
     } else if (ts1.Hour > ts2.Hour) {
+    	if(ts1.Hour == 255)
+    		return 2;
+    	if(ts2.Hour == 255)
+    	    return 1;
         return 1;
     } else if (ts1.Hour < ts2.Hour) {
+    	if(ts1.Hour == 255)
+			return 2;
+		if(ts2.Hour == 255)
+			return 1;
         return 2;
     } else if (ts1.Minute > ts2.Minute) {
+    	if(ts1.Hour == 255)
+			return 2;
+		if(ts2.Hour == 255)
+			return 1;
         return 1;
     } else if (ts1.Minute < ts2.Minute) {
+    	if(ts1.Hour == 255)
+			return 2;
+		if(ts2.Hour == 255)
+			return 1;
         return 2;
     } else if (ts1.Sec > ts2.Sec) {
+    	if(ts1.Hour == 255)
+			return 2;
+		if(ts2.Hour == 255)
+			return 1;
         return 1;
     } else if (ts1.Sec < ts2.Sec) {
+    	if(ts1.Hour == 255)
+			return 2;
+		if(ts2.Hour == 255)
+			return 1;
         return 2;
     }
     return 0;
