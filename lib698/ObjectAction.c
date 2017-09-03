@@ -1463,7 +1463,7 @@ int doObjectAction(OAD oad, INT8U *data, Action_result *act_ret) {
 				return act_ret->datalen;
 			}
 		}
-		fprintf(stderr, "进入oi判断\n");
+		fprintf(stderr, "进入oi判断(action)\n");
 		switch (oi) {
     	case 0x4000:	//广播校时
      		if (attr_act == 127) {  //方法 127 广播校时

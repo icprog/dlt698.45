@@ -940,10 +940,11 @@ typedef struct {
 } DOWN_CTRL;
 
 typedef struct {
-	DOWN_CTRL list[MAX_AL_UNIT];
-    ALSTATE enable[MAX_AL_UNIT];
-    ALSTATE output[MAX_AL_UNIT];
-    ALSTATE overflow[MAX_AL_UNIT];
+	OI_698 index;
+	DOWN_CTRL list;
+    ALSTATE enable;
+    ALSTATE output;
+    ALSTATE overflow;
 } CLASS_8106;
 
 typedef struct {

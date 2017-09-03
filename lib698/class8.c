@@ -630,14 +630,15 @@ int class8106_act3(int index, int attr_act, INT8U *data, Action_result *act_ret)
 	return 0;
 }
 
-int class8106_act6(int index, int attr_act, INT8U *data, Action_result *act_ret) {
+int class8106_act127(int index, int attr_act, INT8U *data, Action_result *act_ret) {
 	int oi = 0x00;
-	if (data[0] != 0x50) {
+	asyslog(LOG_WARNING, "功率下浮-控制投入[%04x]", data[0]);
+
+	if (data[2] != 0x50) {
 		return 0;
 	}
 
-
-	oi = data[1] * 256 + data[2];
+	oi = data[3] * 256 + data[4];
 	asyslog(LOG_WARNING, "功率下浮-控制投入[%04x]", oi);
 
 	ProgramInfo *shareAddr = getShareAddr();
@@ -647,8 +648,8 @@ int class8106_act6(int index, int attr_act, INT8U *data, Action_result *act_ret)
 	readCoverClass(0x8106, 0, (void *) &c8106, sizeof(CLASS_8106),
 			para_vari_save);
 
-	c8106.enable[sindex].state = 0x01;
-	shareAddr->ctrls.c8106.enable[sindex].state = 0x01;
+	c8106.enable.state = 0x01;
+	shareAddr->ctrls.c8106.enable.state = 0x01;
 	saveCoverClass(0x8106, 0, (void *) &c8106, sizeof(CLASS_8106),
 			para_vari_save);
 
@@ -669,8 +670,10 @@ int class8106_act7(int index, int attr_act, INT8U *data, Action_result *act_ret)
 	readCoverClass(0x8106, 0, (void *) &c8106, sizeof(CLASS_8106),
 			para_vari_save);
 
-	c8106.enable[sindex].state = 0x00;
-	shareAddr->ctrls.c8106.enable[sindex].state = 0x00;
+	c8106.enable.state = 0x00;
+	shareAddr->ctrls.c8106.enable.state = 0x00;
+	shareAddr->class23[0].alCtlState.OutputState = 0x00;
+	shareAddr->class23[0].alCtlState.PCAlarmState = 0x00;
 	saveCoverClass(0x8106, 0, (void *) &c8106, sizeof(CLASS_8106),
 			para_vari_save);
 	return 0;
@@ -678,15 +681,17 @@ int class8106_act7(int index, int attr_act, INT8U *data, Action_result *act_ret)
 
 int class8106_act_route(int index, int attr_act, INT8U *data,
 		Action_result *act_ret) {
+	fprintf(stderr, "class8106_act_route  class8106_act_route %d\n", attr_act);
 	switch (attr_act) {
 	case 3:
 		class8106_act3(1, attr_act, data, act_ret);
 		break;
-	case 6:
-		class8106_act6(1, attr_act, data, act_ret);
-		break;
 	case 7:
 		class8106_act7(1, attr_act, data, act_ret);
+		break;
+	case 127:
+		fprintf(stderr, "in %d\n", attr_act);
+		class8106_act127(1, attr_act, data, act_ret);
 		break;
 	}
 }
