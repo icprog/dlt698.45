@@ -845,11 +845,16 @@ typedef struct {
 } CLASS13;
 
 typedef struct {
+	INT8U autoTimeStart; //自动保电时段开始
+	INT8U autoTimeEnd; //自动保电时段结束
+} CLASS_8001_unit;
+
+typedef struct {
     INT8U state; //保电状态 0解除 1保电 2自动保电
     INT32U noCommTime; //最大与主站无通信时长(分钟)，超过此时间自动保电，0表示不自动保电
     INT32U autoTime; //上电自动保电时长,0表示不自动保电
-    INT16U autoTimeStart; //自动保电时段开始
-    INT16U autoTimeEnd; //自动保电时段结束
+    INT8U unit_count;//时段有效个数
+    CLASS_8001_unit unit[24];
 } CLASS_8001;
 
 typedef struct {
