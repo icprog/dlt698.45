@@ -4336,10 +4336,11 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds,INT16U fr
 						}
 						else
 						{
+							fprintf(stderr,"\n改时标1\n");
 							TSGet(&ts_curr);
 							TsToTimeBCD(ts_curr,&CHTimeBCD[0]);
-							ts_curr.Minute = ts_curr.Minute/15;
-							ts_curr.Minute = ts_curr.Minute*15;//取整
+							ts_curr.Minute = ts_curr.Minute/(tasknor_info.freq/15);
+							ts_curr.Minute = ts_curr.Minute*(tasknor_info.freq/15);//取整
 							ts_curr.Sec = 0;
 							TsToTimeBCD(ts_curr,&CHTimeBCD[1]);
 							fill_date_time_s(&recordbuf[18],&CHTimeBCD[0]);
@@ -4350,10 +4351,13 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds,INT16U fr
 					}
 					else//有数据跳出
 					{
+						if(k==0)//有这个数据,不更改时标
+							break;
+						fprintf(stderr,"\n改时标2\n");
 						TSGet(&ts_curr);
 						TsToTimeBCD(ts_curr,&CHTimeBCD[0]);
-						ts_curr.Minute = ts_curr.Minute/15;
-						ts_curr.Minute = ts_curr.Minute*15;//取整
+						ts_curr.Minute = ts_curr.Minute/(tasknor_info.freq/15);
+						ts_curr.Minute = ts_curr.Minute*(tasknor_info.freq/15);//取整
 						ts_curr.Sec = 0;
 						TsToTimeBCD(ts_curr,&CHTimeBCD[1]);
 						fill_date_time_s(&recordbuf[18],&CHTimeBCD[0]);

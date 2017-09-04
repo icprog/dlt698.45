@@ -543,8 +543,10 @@ int class8105_act3(int index, int attr_act, INT8U *data, Action_result *act_ret)
 	fprintf(stderr,"c8105.v = %lld\n",c8105.list[unit].v);
 	printDataTimeS("报停起始时间",c8105.list[unit].start);
 	printDataTimeS("报停结束时间",c8105.list[unit].end);
-	saveCoverClass(0x8105, 0, (void *) &c8105, sizeof(CLASS_8105),
+	if(DAR == success) {
+		saveCoverClass(0x8105, 0, (void *) &c8105, sizeof(CLASS_8105),
 			para_vari_save);
+	}else act_ret->DAR = DAR;
 	return 0;
 }
 
@@ -640,28 +642,36 @@ int class8106_act3(int index, int attr_act, INT8U *data, Action_result *act_ret)
 }
 
 int class8106_act127(int index, int attr_act, INT8U *data, Action_result *act_ret) {
-	int oi = 0x00;
-	asyslog(LOG_WARNING, "功率下浮-控制投入[%04x]", data[0]);
+	OI_698 oi = 0x00;
+	int	ii = 0;
 
-	if (data[2] != 0x50) {
+	ii += getStructure(&data[ii],NULL,&act_ret->DAR);
+	ii += getOI(1,&data[ii],&oi);
+	asyslog(LOG_WARNING, "功率下浮-控制投入[%04x]", oi);
+	if(oi != 0x2301) {
+		act_ret->DAR = obj_unexist;
 		return 0;
 	}
-	oi = data[3] * 256 + data[4];
-	asyslog(LOG_WARNING, "功率下浮-控制投入[%04x]", oi);
 
-	ProgramInfo *shareAddr = getShareAddr();
-	int sindex = oi - 0x2301;
-
-	CLASS_8106 c8106;
-	memset(&c8106, 0x00, sizeof(CLASS_8106));
+	CLASS_8106 c8106={};
 	readCoverClass(0x8106, 0, (void *) &c8106, sizeof(CLASS_8106),
 			para_vari_save);
-
 	c8106.enable.state = 0x01;
-	shareAddr->ctrls.c8106.enable.state = 0x01;
-	saveCoverClass(0x8106, 0, (void *) &c8106, sizeof(CLASS_8106),
-			para_vari_save);
-
+	ii += getStructure(&data[ii],NULL,&act_ret->DAR);
+	ii += getUnsigned(&data[ii],&c8106.list.down_huacha,&act_ret->DAR);
+	ii += getInteger(&data[ii],&c8106.list.down_xishu,&act_ret->DAR);
+	ii += getUnsigned(&data[ii],&c8106.list.down_freeze,&act_ret->DAR);
+	ii += getUnsigned(&data[ii],&c8106.list.down_ctrl_time,&act_ret->DAR);
+	ii += getUnsigned(&data[ii],&c8106.list.t1,&act_ret->DAR);
+	ii += getUnsigned(&data[ii],&c8106.list.t2,&act_ret->DAR);
+	ii += getUnsigned(&data[ii],&c8106.list.t3,&act_ret->DAR);
+	ii += getUnsigned(&data[ii],&c8106.list.t4,&act_ret->DAR);
+	if(act_ret->DAR==success) {
+		ProgramInfo *shareAddr = getShareAddr();
+		memcpy(&shareAddr->ctrls.c8106,&c8106,sizeof(CLASS_8106));
+		saveCoverClass(0x8106, 0, (void *) &c8106, sizeof(CLASS_8106),
+				para_vari_save);
+	}
 	return 0;
 }
 

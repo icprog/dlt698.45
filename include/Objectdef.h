@@ -930,7 +930,7 @@ typedef struct {
 
 typedef struct {
     INT8U down_huacha;
-    INT8U down_xishu;
+    INT8S down_xishu;
     INT8U down_freeze;
     INT8U down_ctrl_time;
     INT8U t1;

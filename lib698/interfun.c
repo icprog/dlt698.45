@@ -676,7 +676,7 @@ int getArray(INT8U *source,INT8U *dest,INT8U *DAR)		//1
 		dest[0] = source[1];
 		return 2;//source[0] 0x1 (array type)   source[1] =num
 	}else{
-		if(DAR!=NULL)	*DAR = type_mismatch;
+		if(DAR!=NULL && *DAR==success)	*DAR = type_mismatch;
 		return 0;
 	}
 }
@@ -690,7 +690,7 @@ int getStructure(INT8U *source,INT8U *dest,INT8U *DAR)		//2
 	}else {
 		int	data_len=0;
 		data_len = get_Data(source,NULL);		//错误类型，为了setnormalList查找到下一个oad位置
-		if(DAR!=NULL)	*DAR = type_mismatch;
+		if(DAR!=NULL && *DAR==success)	*DAR = type_mismatch;
 		return data_len;
 	}
 }
@@ -701,7 +701,7 @@ int getBool(INT8U *source,INT8U *dest,INT8U *DAR)		//3
 		dest[0] = source[1];
 		return 2;//source[0] 0x3 (bool type)   source[1] =value
 	}else {
-		if(DAR!=NULL)	*DAR = type_mismatch;
+		if(DAR!=NULL && *DAR==success)	*DAR = type_mismatch;
 		return 0;
 	}
 }
@@ -748,7 +748,7 @@ int getOctetstring(INT8U type,INT8U *source,INT8U *tsa,INT8U *DAR)   //9  and  0
 		memcpy(tsa, &source[type],num+1);
 		return (num + type + 1);	// 1:长度字节
 	}else{
-		if(DAR!=NULL)	*DAR = type_mismatch;
+		if(DAR!=NULL && *DAR==success)	*DAR = type_mismatch;
 		return 0;
 	}
 	return 0;
@@ -766,7 +766,20 @@ int getVisibleString(INT8U *source,INT8U *dest,INT8U *DAR)	//0x0A
 		memcpy(&dest[0],&source[1],len);
 		return (len+1);			//+1:类型
 	}else{
-		if(DAR!=NULL)	*DAR = type_mismatch;
+		if(DAR!=NULL && *DAR==success)	*DAR = type_mismatch;
+		return 0;
+	}
+}
+
+int getInteger(INT8U *source,INT8S *dest,INT8U *DAR)                     // 0x0F
+{
+	if(source[0] == dtinteger) {
+		dest[0] = source[1];
+		return 2;//source[0] 0x11(unsigned type)   source[1] =data
+	}else {
+		if(DAR!=NULL && *DAR==success) {
+			*DAR = type_mismatch;
+		}
 		return 0;
 	}
 }
@@ -777,7 +790,7 @@ int getUnsigned(INT8U *source,INT8U *dest,INT8U *DAR)	//0x11
 		dest[0] = source[1];
 		return 2;//source[0] 0x11(unsigned type)   source[1] =data
 	}else {
-		if(DAR != NULL) {
+		if(DAR!=NULL && *DAR==success) {
 			*DAR = type_mismatch;
 		}
 		return 0;
@@ -858,7 +871,7 @@ int getDateTimeS(INT8U type,INT8U *source,INT8U *dest,INT8U *DAR)		//0x1C
 	if(type == 1 && source[0]!=dtdatetimes) {
 		data_len = get_Data(source,dest);		//错误类型，为了setnormalList查找到下一个oad位置
 		fprintf(stderr,"data_len = %d\n",data_len);
-		if(DAR!=NULL)	*DAR = type_mismatch;
+		if(DAR!=NULL && *DAR==success)	*DAR = type_mismatch;
 		return data_len;
 	}
 	return 0;
@@ -883,7 +896,7 @@ int getOAD(INT8U type,INT8U *source,OAD *oad,INT8U *DAR)		//0x51
 		oad->attrindex = source[type+3];
 		return (4+type);
 	}else{
-		if(DAR!=NULL)	*DAR=type_mismatch;
+		if(DAR!=NULL && *DAR==success)	*DAR=type_mismatch;
 		return 0;
 	}
 	return 0;
@@ -1192,7 +1205,7 @@ int getCOMDCB(INT8U type, INT8U* source, COMDCB* comdcb,INT8U *DAR)		//0x5F
 		comdcb->flow = source[type+4];
 		tmpDAR = getCOMDCBValid(*comdcb);
 		if(tmpDAR != success) {
-			if(DAR!=NULL)	*DAR = tmpDAR;
+			if(DAR!=NULL && *DAR==success)	*DAR = tmpDAR;
 		}
 		return (5+type);
 	}
@@ -1201,7 +1214,7 @@ int getCOMDCB(INT8U type, INT8U* source, COMDCB* comdcb,INT8U *DAR)		//0x5F
 		fprintf(stderr,"source=%02x\n",source[0]);
 		data_len = get_Data(source,NULL);		//错误类型，为了setnormalList查找到下一个oad位置
 		fprintf(stderr,"error data_len = %d\n",data_len);
-		if(DAR!=NULL)	*DAR=type_mismatch;
+		if(DAR!=NULL && *DAR==success)	*DAR=type_mismatch;
 		return data_len;
 	}
 	return 0;
