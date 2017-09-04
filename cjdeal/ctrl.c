@@ -297,30 +297,33 @@ int deal8103() {
 				fprintf(stderr, "时段功控，告警！！！！！！！！！！！！！功控告警时间 %d %d\n",
 						CtrlC->c8102.time[0] * 60, count[i] * 5);
 				if (count[i] * 5 >= (CtrlC->c8102.time[0]) * 60) {
-					fprintf(stderr, "时段功控，一轮跳闸！！！！！！！！！！！！！");
 					JProgramInfo->class23[i].alCtlState.OutputState |= 128;
-					JProgramInfo->class23[i].alCtlState.PCAlarmState |= 0;
+					JProgramInfo->class23[i].alCtlState.PCAlarmState &= ~128;
 					count[i] = 0;
 					step[i] = 1;
+					fprintf(stderr, "时段功控，一轮跳闸[%d]！！！！！！！！！！！！！",
+							JProgramInfo->class23[i].alCtlState.OutputState);
 				}
 				count[i] += 1;
-				return 1;
+				break;
 			case 1:
-				fprintf(stderr, "时段功控，二轮告警！！！！！！！！！！！！！");
+				fprintf(stderr, "时段功控，二轮告警[%d]！！！！！！！！！！！！！",
+						JProgramInfo->class23[i].alCtlState.OutputState);
 				fprintf(stderr, "功控告警时间 %d\n", CtrlC->c8102.time[1] * 60);
-				if (count[i] * 5 > (CtrlC->c8102.time[1]) * 60) {
+				JProgramInfo->class23[i].alCtlState.OutputState |= 128;
+				JProgramInfo->class23[i].alCtlState.PCAlarmState &= ~128;
+				if (count[i] * 5 >= (CtrlC->c8102.time[1]) * 60) {
 					fprintf(stderr, "时段功控，二轮跳闸！！！！！！！！！！！！！");
 					JProgramInfo->class23[i].alCtlState.OutputState |= 192;
-					JProgramInfo->class23[i].alCtlState.PCAlarmState |= 0;
+					JProgramInfo->class23[i].alCtlState.PCAlarmState &= ~128;
 					step[i] = 2;
 				}
 				count[i] += 1;
-				return 1;
+				break;
 			case 2:
 				JProgramInfo->class23[i].alCtlState.OutputState |= 192;
-				JProgramInfo->class23[i].alCtlState.PCAlarmState |= 0;
-				count[i] = 0;
-				return 1;
+				JProgramInfo->class23[i].alCtlState.PCAlarmState &= ~128;
+				break;
 			}
 		} else {
 			step[i] = 0;
@@ -509,17 +512,19 @@ int deal8105() {
 INT64U getIsInDown(TS start, int line) {
 	TS ts;
 	TSGet(&ts);
-	fprintf(stderr, "@@@@ %d %d %d %d %d %d\n",start.Year, start.Month, start.Day, start.Hour, start.Minute, 0);
+	fprintf(stderr, "@@@@ %d %d %d %d %d %d\n", start.Year, start.Month,
+			start.Day, start.Hour, start.Minute, 0);
 	tminc(&start, 1, CtrlC->c8106.list.down_ctrl_time * 30);
 //		fprintf(stderr, "@@@@ %d %d %d %d %d %d\n",start.Year, start.Month, start.Day, start.Hour, start.Minute, 0);
 //		fprintf(stderr, "@@@@ %d %d %d %d %d %d\n", ts.Year, ts.Month, ts.Day, ts.Hour, ts.Minute, 0);
 
 //	fprintf(stderr, "控制时间内！！！！！！！！！！[%d][%d]～～～～～～～～～～～\n",TScompare(ts, start), CtrlC->c8106.list.down_ctrl_time);
 	if (TScompare(ts, start) == 2) {
-		fprintf(stderr, "控制时间内！！！！！！！！！！[%lld]～～～～～～～～～～～\n", JProgramInfo->class23[line].p
-				* ((CtrlC->c8106.list.down_xishu + 100) / 100.0));
+		fprintf(stderr, "控制时间内！！！！！！！！！！[%lld]～～～～～～～～～～～\n",
+				JProgramInfo->class23[line].p
+						* ((CtrlC->c8106.list.down_xishu + 100) / 100.0));
 		return JProgramInfo->class23[line].p
-						* ((CtrlC->c8106.list.down_xishu + 100) / 100.0);
+				* ((CtrlC->c8106.list.down_xishu + 100) / 100.0);
 	} else {
 		fprintf(stderr, "不在功率下浮控控制时间内！！！！！！！！！！～～～～～～～～～～～\n");
 		return -1;
@@ -545,9 +550,10 @@ int deal8106() {
 	}
 
 	//冻结时间
-	fprintf(stderr, "功率下浮控冻结时间(%d)\n", JProgramInfo->ctrls.c8106.list.down_freeze);
+	fprintf(stderr, "功率下浮控冻结时间(%d)\n",
+			JProgramInfo->ctrls.c8106.list.down_freeze);
 	if (freeze_count * 5 < JProgramInfo->ctrls.c8106.list.down_freeze * 60) {
-		freeze_count ++;
+		freeze_count++;
 		return 0;
 	}
 
@@ -558,7 +564,7 @@ int deal8106() {
 		i = 0;
 	}
 
-	if(val <= 0) {
+	if (val <= 0) {
 		val = getIsInDown(start, i);
 		fprintf(stderr, "更新功率下浮(%lld)\n", val);
 	}

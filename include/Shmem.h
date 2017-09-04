@@ -418,6 +418,8 @@ typedef struct {
 }ConfigPara;
 
 typedef struct {
+	CLASS_8001 c8001; //保电
+
 	CLASS_8100 c8100; //终端保安定值
 	CLASS_8101 c8101; //终端功控时段
 	CLASS_8102 c8102; //功控告警时间

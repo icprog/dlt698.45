@@ -15,9 +15,12 @@ int class8001_act127(int index, int attr_act, INT8U *data,
 		Action_result *act_ret) {
 	asyslog(LOG_WARNING, "投入保电\n");
 	CLASS_8001 c8001;
+	memset(&c8001, 0x00, sizeof(CLASS_8001));
 	readCoverClass(0x8001, 0, (void *) &c8001, sizeof(CLASS_8001),
 			para_vari_save);
+	ProgramInfo *shareAddr = getShareAddr();
 	c8001.state = 1;
+	shareAddr->ctrls.c8001.state = 1;
 	saveCoverClass(0x8001, 0, (void *) &c8001, sizeof(CLASS_8001),
 			para_vari_save);
 	return 0;
@@ -100,8 +103,14 @@ int class8000_act129(int index, int attr_act, INT8U *data,
 		Action_result *act_ret) {
 
 	ProgramInfo *shareAddr = getShareAddr();
+	if (shareAddr->ctrls.c8001.state == 1)
+	{
+		shareAddr->ctrls.cf205.currentState = 0;
+	}else
+	{
+		shareAddr->ctrls.cf205.currentState = 1;
+	}
 
-	shareAddr->ctrls.cf205.currentState = 1;
 
 	if(shareAddr->ctrls.cf205.currentState == 0){
 		return 0;
