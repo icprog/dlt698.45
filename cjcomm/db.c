@@ -50,6 +50,7 @@ void dbInit(int index) {
 	}
 	if (DB.JProgramInfo->cfg_para.device == CCTT2) {
 		CLASS_f201 f201[3];
+		memset(&f201,0,sizeof(f201));
 		readCoverClass(0xf201, 0, &f201, sizeof(f201), para_vari_save);
 		memcpy(&DB.cf201, &f201[2], sizeof(DB.cf201));
 		DB.RS485IIOPEN = 0;

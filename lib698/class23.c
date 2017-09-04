@@ -98,18 +98,30 @@ int class23_set(int index, OAD oad, INT8U *data, INT8U *DAR) {
 int class23_get_2(OAD oad, INT8U index, INT8U *buf, int *len)
 {
 	ProgramInfo *shareAddr = getShareAddr();
-	INT8U	unit = 1;	//总加组配置单元个数//TODO：总加组实际个数 取何值？？？
+	INT8U	unit = 0;
 	INT8U	i=0;
-
+	//总加组配置单元个数：有TSA认为有效
+	unit = 0;
+	for(i=0;i<MAX_AL_UNIT;i++) {
+		if(shareAddr->class23[index].allist[i].tsa.addr[0]!=0) {
+			unit++;
+		}else break;
+	}
+	fprintf(stderr,"总加组配置单元个数 = %d \n",unit);
 	*len = 0;
 	fprintf(stderr,"attrindex = %d \n",oad.attrindex);
 	if(oad.attrindex == 0) {
-		*len += create_array(&buf[*len],unit);
-		for(i=0;i<unit;i++) {
-			*len += create_struct(&buf[*len],3);
-			*len += fill_TSA(&buf[*len],&shareAddr->class23[index].allist[i].tsa.addr[1],shareAddr->class23[index].allist[i].tsa.addr[0]);
-			*len += fill_enum(&buf[*len],shareAddr->class23[index].allist[i].al_flag);
-			*len += fill_enum(&buf[*len],shareAddr->class23[index].allist[i].cal_flag);
+		if(unit) {
+			*len += create_array(&buf[*len],unit);
+			for(i=0;i<unit;i++) {
+				*len += create_struct(&buf[*len],3);
+				*len += fill_TSA(&buf[*len],&shareAddr->class23[index].allist[i].tsa.addr[1],shareAddr->class23[index].allist[i].tsa.addr[0]);
+				*len += fill_enum(&buf[*len],shareAddr->class23[index].allist[i].al_flag);
+				*len += fill_enum(&buf[*len],shareAddr->class23[index].allist[i].cal_flag);
+			}
+		}else {
+			buf[*len] = 0;		//无配置单元，上送0
+			*len = 1;
 		}
 	}
 	fprintf(stderr," len = %d\n",*len);
@@ -146,14 +158,16 @@ int class23_get_bitstring(OAD oad, INT8U val, INT8U *buf, int *len)
 int class23_get_7_8_9_10(OAD oad, INT64U energy_all,INT64U *energy,INT8U *buf, int *len){
 	INT64U total_energy[MAXVAL_RATENUM + 1];
 	INT8U	unit=0,i=0;
-	///TODO: 总电量分相累加？？？还是内存energy_all
+
 	*len = 0;
 	total_energy[0] = 0;
 	fprintf(stderr, "class23_get_7 %lld\n", total_energy[0]);
 
-	for (i = 0; i < MAXVAL_RATENUM; i++){
-		total_energy[0] += energy[i];
-	}
+//	for (i = 0; i < MAXVAL_RATENUM; i++){
+//		total_energy[0] += energy[i];
+//	}
+	///TODO: 总电量分相累加？？？还是内存energy_all
+	total_energy[0] = energy_all;
 	for (i = 0; i < MAXVAL_RATENUM; i++){
 		total_energy[i+1] = energy[i];
 	}
@@ -198,7 +212,7 @@ int class23_get(OAD oad, INT8U *sourcebuf, INT8U *buf, int *len) {
 	ProgramInfo *shareAddr = getShareAddr();
 	int index = oad.OI - 0x2301;
 
-	index = rangeJudge("总加组",index,0,7);
+	index = rangeJudge("总加组",index,0,(MAXNUM_SUMGROUP-1));
 	if(index == -1) return 0;
 
 	switch (oad.attflg) {
@@ -213,7 +227,6 @@ int class23_get(OAD oad, INT8U *sourcebuf, INT8U *buf, int *len) {
 	case 6:
 		return class23_get_long64(oad, shareAddr->class23[index].TaveQ, buf, len);
 	case 7:
-
 		return class23_get_7_8_9_10(oad, shareAddr->class23[index].DayPALL, shareAddr->class23[index].DayP, buf, len);
 	case 8:
 		return class23_get_7_8_9_10(oad, shareAddr->class23[index].DayQALL, shareAddr->class23[index].DayQ, buf, len);

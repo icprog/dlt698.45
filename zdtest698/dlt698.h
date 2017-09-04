@@ -128,7 +128,6 @@ extern int getDataTypeLen(int dt);
 /*----------------------统计相关数据----------------------*/
 extern INT8U Get_Vacs(RESULT_NORMAL *response,ProgramInfo* prginfo_acs);
 extern int  fill_variClass(OAD oad,INT8U getflg,INT8U *sourcebuf,INT8U *destbuf,INT16U *len,ProgramInfo* proginfo);
-extern int fill_pulseEnergy(INT8U devicetype,INT8U index,OAD oad,INT8U *destbuf,INT16U *len);
 extern int GetFileState(RESULT_NORMAL* response);
 
 /*----------------------规约一致性 数据有效性判断接口----------------------*/
