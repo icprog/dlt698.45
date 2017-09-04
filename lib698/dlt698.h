@@ -136,4 +136,5 @@ extern void isTimeTagEffect(TimeTag timetag,TimeTag *rec_timetag);
 extern INT8U getPortValid(OAD oad);
 extern INT8U DataTimeCmp(DateTimeBCD startdt,DateTimeBCD enddt);
 extern int limitJudge(char *desc,int limit,int val);
+extern int rangeJudge(char *desc,int max,int min,int val);
 #endif

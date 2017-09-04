@@ -156,8 +156,8 @@ INT8U DataTimeCmp(DateTimeBCD startdt,DateTimeBCD enddt)
 
 /*
  *  限值判断 ,注意限值为int型，不能超过0xffffffff
- *  超过限值 返回设定限值
- *  否则    返回实际值
+ *  		超过限值 返回设定限值
+ *  		否则    返回实际值
  * */
 int limitJudge(char *desc,int limit,int val)
 {
@@ -166,4 +166,19 @@ int limitJudge(char *desc,int limit,int val)
 		return limit;
 	}else
 		return val;
+}
+
+/*
+ *  范围值判断 注意：只比对int型数据
+ *  满足范围：返回实际值
+ *  否则：返回-1
+ * */
+int rangeJudge(char *desc,int val,int min,int max)
+{
+	if(val>=min && val<=max) {
+		return val;
+	}else {
+		syslog(LOG_ERR,"%s,值[%d] 超限[%d-%d],异常！！",desc,val,min,max);
+		return -1;
+	}
 }

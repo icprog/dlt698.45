@@ -215,11 +215,18 @@ INT16S getclassinfo(OI_698 oi,CLASS_INFO *classinfo)
 
 /*
  * 根据oi参数，查找相应的Variable_Class的结构体数据
+ * 返回值  =1：变量类文件
+ * 		  =2：变量类统计文件
+ * 		  =3: 脉冲类电量统计文件
  * */
 int getvarioffset(OI_698 oi,int coll_seqnum,int *offset,int *blklen)
 {
 	int i=0;
 
+	if(oi == 0xf20A) {	//脉冲输入设备
+		*blklen = VARI_LEN*8;
+		return 3;
+	}
 	for(i=0; i < sizeof(vari_data)/sizeof(Variable_Class);i++)
 	{
 		if(vari_data[i].oi == oi) {

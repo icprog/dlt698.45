@@ -568,6 +568,8 @@ int readCoverClass(OI_698 oi,INT16U seqno,void *blockdata,int datalen,int type)
 //	syslog(LOG_NOTICE,"readCoverClass ret=%d",ret);//////7
 	return ret;
 }
+
+
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 /*
  * 参变量数据存储及读取接口
@@ -613,6 +615,9 @@ int saveVariData(OI_698 oi,int coll_seqnum,void *blockdata,int datalen)
 		break;
 	case 2:
 		memcpy(filename,VARI_DATA_TJ,sizeof(VARI_DATA_TJ));
+		break;
+	case 3:
+		memcpy(filename,PLUSE_ENERGY_DATA,sizeof(PLUSE_ENERGY_DATA));
 		break;
 	}
 	if(access(filename,F_OK)!=0)

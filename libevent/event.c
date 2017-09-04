@@ -1264,7 +1264,7 @@ INT8U Event_3106(ProgramInfo* prginfo_event,MeterPower *MeterPowerInfo,INT8U *st
 	INT16U mintime_space=prginfo_event->event_obj.Event3106_obj.poweroff_para_obj.screen_para_obj.mintime_space;
 	INT16U maxtime_space=prginfo_event->event_obj.Event3106_obj.poweroff_para_obj.screen_para_obj.maxtime_space;
 
-	//DEBUG_TIME_LINE("poweroff_happen_vlim: %d, recover_voltage_limit: %d", poweroff_happen_vlim, recover_voltage_limit);
+//	DEBUG_TIME_LINE("poweroff_happen_vlim: %d, recover_voltage_limit: %d", poweroff_happen_vlim, recover_voltage_limit);
 	//DEBUG_TIME_LINE("Available: %d, Ua: %d", prginfo_event->ACSRealData.Available,prginfo_event->ACSRealData.Ua);
 
 	if(*state == 2){
@@ -1273,6 +1273,7 @@ INT8U Event_3106(ProgramInfo* prginfo_event,MeterPower *MeterPowerInfo,INT8U *st
 	}
 	INT8U off_flag=0,on_flag=0;
 	//判断下电
+//	fprintf(stderr,"TermialPowerInfo.ERC3106State=%d\n",TermialPowerInfo.ERC3106State);
 	if(TermialPowerInfo.ERC3106State == POWER_START){
 		if(prginfo_event->cfg_para.device == CCTT2){//II型
 			if(prginfo_event->ACSRealData.Available==TRUE &&
@@ -1286,6 +1287,7 @@ INT8U Event_3106(ProgramInfo* prginfo_event,MeterPower *MeterPowerInfo,INT8U *st
 			}
 		}else{
 			BOOLEAN gpio_5V=pwr_has();
+//			fprintf(stderr,"gpio_5V = %d  Available=%d poweroff_happen_vlim=%d\n",gpio_5V,prginfo_event->ACSRealData.Available,poweroff_happen_vlim);
 			if((((prginfo_event->ACSRealData.Ua<poweroff_happen_vlim)&&(prginfo_event->ACSRealData.Ub<poweroff_happen_vlim)
 									&&(prginfo_event->ACSRealData.Uc<poweroff_happen_vlim))&&((prginfo_event->ACSRealData.Ua|prginfo_event->ACSRealData.Ub|prginfo_event->ACSRealData.Uc)>0)&&gpio_5V)
 									||((prginfo_event->ACSRealData.Available == TRUE&&prginfo_event->ACSRealData.Ua==0&&prginfo_event->ACSRealData.Ua<poweroff_happen_vlim)
@@ -1322,8 +1324,8 @@ INT8U Event_3106(ProgramInfo* prginfo_event,MeterPower *MeterPowerInfo,INT8U *st
 			}
 		}else{
 			if((prginfo_event->ACSRealData.Available&&prginfo_event->ACSRealData.Ua>recover_voltage_limit)
-			        			||(prginfo_event->ACSRealData.Available&&prginfo_event->ACSRealData.Ua>recover_voltage_limit)
-			        				||(prginfo_event->ACSRealData.Available&&prginfo_event->ACSRealData.Ua>recover_voltage_limit))
+			        			||(prginfo_event->ACSRealData.Available&&prginfo_event->ACSRealData.Ub>recover_voltage_limit)
+			        				||(prginfo_event->ACSRealData.Available&&prginfo_event->ACSRealData.Uc>recover_voltage_limit))
 				on_flag=1;
 		}
 		if(on_flag == 1)

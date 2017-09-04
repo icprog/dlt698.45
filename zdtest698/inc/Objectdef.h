@@ -786,13 +786,6 @@ typedef struct {
 } PULSEUNIT;
 
 typedef struct {
-	INT64U val_pos_p[MAXVAL_RATENUM];//正向有功电能示值
-	INT64U val_pos_q[MAXVAL_RATENUM];//正向无功电能示值
-	INT64U val_nag_p[MAXVAL_RATENUM];//反向有功电能示值
-	INT64U val_nag_q[MAXVAL_RATENUM];//反向无功电能示值
-} CLASS12_ENERGY;
-
-typedef struct {
 	INT8U addr[OCTET_STRING_LEN];//通信地址
 	INT64U pt;//互感器倍率
 	INT64U ct;//互感器倍率
@@ -835,6 +828,7 @@ typedef struct {
     INT8U eConfig;  //电控轮次
     ALCONSTATE alConState;  //设置状态
     ALCTLSTATE alCtlState;  //控制状态
+    Scaler_Unit su[10];//属性3-12换算单位
 } CLASS23;
 
 typedef struct {
@@ -898,12 +892,12 @@ typedef struct {
 } TIME_CTRL;
 
 typedef struct {
-    INT8U sign;
-    INT8U numb;
     TIME_CTRL list[MAX_AL_UNIT];
     ALSTATE enable[MAX_AL_UNIT];
     ALSTATE output[MAX_AL_UNIT];
     ALSTATE overflow[MAX_AL_UNIT];
+    INT8U sign;
+    INT8U numb;
 } CLASS_8103;
 
 typedef struct {
@@ -923,8 +917,8 @@ typedef struct {
 
 typedef struct {
     OI_698 index;
-    DateTimeBCD start;
-    DateTimeBCD end;
+    DateTimeBCD_S start;
+    DateTimeBCD_S end;
     INT64U v;
 } STOP_CTRL;
 
@@ -937,7 +931,7 @@ typedef struct {
 
 typedef struct {
     INT8U down_huacha;
-    INT8S down_xishu;
+    INT8U down_xishu;
     INT8U down_freeze;
     INT8U down_ctrl_time;
     INT8U t1;
@@ -947,11 +941,10 @@ typedef struct {
 } DOWN_CTRL;
 
 typedef struct {
-	OI_698 index;
-	DOWN_CTRL list;
-    ALSTATE enable;
-    ALSTATE output;
-    ALSTATE overflow;
+	DOWN_CTRL list[MAX_AL_UNIT];
+    ALSTATE enable[MAX_AL_UNIT];
+    ALSTATE output[MAX_AL_UNIT];
+    ALSTATE overflow[MAX_AL_UNIT];
 } CLASS_8106;
 
 typedef struct {
