@@ -82,6 +82,8 @@ int saveTerminalTaskData(INT8U taskid,TS savets,TSA tsa,CSD_ARRAYTYPE csds)
 				memcpy(&saveBuf[index],&tsa,sizeof(TSA));
 				index += sizeof(TSA);
 				relateOAD = csds.csd[i].csd.road.oads[j];
+				asyslog(LOG_NOTICE,"freezeOAD =%04x relateOAD = %04x\n",freezeOAD.OI,relateOAD.OI);
+
 				switch(relateOAD.OI) {
 				case 0x2021:	//数据冻结时间
 					TsToTimeBCD(savets,&freezetime);
@@ -91,15 +93,20 @@ int saveTerminalTaskData(INT8U taskid,TS savets,TSA tsa,CSD_ARRAYTYPE csds)
 				case 0x2132:
 				case 0x2133:
 					kk = relateOAD.OI - 0x2131;
+					asyslog(LOG_NOTICE,"kk = %d\n",kk);
 					if(freezeOAD.OI==0x5004) {
-						fill_variClass(0x2031,1,(INT8U *)&passu_d[kk],&saveBuf[index],&buflen);
+						fill_variClass(relateOAD,1,(INT8U *)&passu_d[kk],&saveBuf[index],&buflen);
 						index += buflen;
 					}else if(freezeOAD.OI==0x5006) {
-						fill_variClass(0x2031,1,(INT8U *)&passu_m[kk],&saveBuf[index],&buflen);
+						fill_variClass(relateOAD,1,(INT8U *)&passu_m[kk],&saveBuf[index],&buflen);
 						index += buflen;
 					}
 					break;
+				default:
+					fill_variClass(relateOAD,1,NULL,&saveBuf[index],&buflen);
+					break;
 				}
+				asyslog(LOG_NOTICE,"saveOADData index = %d \n",index);
 				saveret = SaveOADData(taskid,freezeOAD,relateOAD,saveBuf,index,savets);
 			}
 		}
@@ -113,7 +120,7 @@ int saveTerminalTaskData(INT8U taskid,TS savets,TSA tsa,CSD_ARRAYTYPE csds)
  * savelen		需要存储数据长度
  * data			数据内容
  * */
-void Save_Task_Freeze(TS savets)
+void terminalTaskFreeze(TS savets)
 {
 	int tsa_num = 0;
 	int	tsaid=0;
@@ -124,12 +131,12 @@ void Save_Task_Freeze(TS savets)
 
 	for(fanganid=0;fanganid<255;fanganid++) {
 		if (readCoverClass(0x6015, fanganid, &class6015, sizeof(CLASS_6015), coll_para_save)== 1)	{
-			fprintf(stderr,"fanganid=%d\n",fanganid);
+			asyslog(LOG_NOTICE,"fanganid = %d\n",fanganid);
 			//任务中有相关的电压合格率csds的配置
 //			if(isOADByCSD(freezeOAD,relateOAD,class6015.csds)==1) {
 				//根据相关的方案的MS类型获取测量点信息
 				tsa_num = getOI6001(class6015.mst,(INT8U **)&tsa_group);
-				fprintf(stderr,"tsa_num = %d\n",tsa_num);
+				asyslog(LOG_NOTICE,"tsa_num = %d\n",tsa_num);
 				for(tsaid=0;tsaid<tsa_num;tsaid++) {
 					if(tsa_group[tsaid].basicinfo.port.OI == PORT_JC) {
 						//满足交采测量点的通过方案号来获取任务号

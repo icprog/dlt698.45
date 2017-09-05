@@ -237,7 +237,7 @@ typedef struct {
     INT16U uDown;
     INT16U uUp_Kaohe;
     INT16U uDown_Kaohe;
-} CLASS_4030;
+} CLASS_4030;		//电压合格率参数
 
 typedef struct {
     char assetcode[40]; // 0：代表有效长度

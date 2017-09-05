@@ -2243,6 +2243,12 @@ INT16U CalcOIDataLen(OI_698 oi,INT8U attr_flg)
 	{
 		return 18;
 	}
+	if(oi==0x2131 || oi==0x2132 || oi==0x2133) {	//电压合格率
+		if(attr_flg == 0)
+			return 23*2+2;
+		else
+			return 23;
+	}
 //	if(oi == 2140 || oi == 2141)//struct 类型要在原长度基础上+3
 //		return (11+3)*(MET_RATE+1)+1+1;
 	fp = fopen("/nor/config/OI_TYPE.cfg","r");
@@ -3178,8 +3184,8 @@ int collectData(INT8U *databuf,INT8U *srcbuf,OAD_INDEX *oad_offset,ROAD_ITEM ite
 					memcpy(&databuf[pindex],tmpbuf,retlen);
 					pindex += retlen;
 					break;
-				case 2://struct 暂时不处理
-					break;
+//				case 2://struct 暂时不处理
+//					break;
 				case 0x55:	//TSA
 					memcpy(&databuf[pindex],tmpbuf,(tmpbuf[1]+2));
 					pindex += (tmpbuf[1]+2);

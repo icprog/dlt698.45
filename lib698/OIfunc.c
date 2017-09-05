@@ -49,7 +49,7 @@ INT8U Get_213x(INT8U getflg,INT8U *sourcebuf,INT8U *buf,int *len)
 	PassRate_U passu={};
 
 	memset(&passu,0,sizeof(PassRate_U));
-	if(getflg) {
+	if(getflg && sourcebuf!=NULL) {
 		memcpy(&passu,sourcebuf,sizeof(PassRate_U));
 	}
 	*len=0;
@@ -69,7 +69,7 @@ INT8U Get_2200(INT8U getflg,INT8U *sourcebuf,INT8U *buf,int *len)
 	Flow_tj	flow_tj={};
 
 	memset(&flow_tj,0,sizeof(Flow_tj));
-	if(getflg) {
+	if(getflg && sourcebuf!=NULL) {
 		memcpy(&flow_tj,sourcebuf,sizeof(flow_tj));
 	}
 	*len=0;
@@ -92,7 +92,7 @@ INT8U Get_2203(INT8U getflg,INT8U *sourcebuf,INT8U *buf,int *len)
 	Gongdian_tj gongdian_tj={};
 
 	memset(&gongdian_tj,0,sizeof(Gongdian_tj));
-	if(getflg) {
+	if(getflg && sourcebuf!=NULL) {
 		memcpy(&gongdian_tj,sourcebuf,sizeof(Gongdian_tj));
 	}
 	fprintf(stderr,"Get_2203 :day_gongdian=%d,month_gongdian=%d\n",gongdian_tj.gongdian.day_tj,gongdian_tj.gongdian.month_tj);
@@ -120,7 +120,7 @@ INT8U Get_2204(INT8U getflg,INT8U *sourcebuf,INT8U *buf,int *len)
 	Reset_tj reset_tj={};
 
 	memset(&reset_tj,0,sizeof(Reset_tj));
-	if(getflg) {
+	if(getflg && sourcebuf!=NULL) {
 		memcpy(&reset_tj,sourcebuf,sizeof(Reset_tj));
 	}
 	fprintf(stderr,"Get_2204 :reset day_tj=%d,month_tj=%d\n",reset_tj.reset.day_tj,reset_tj.reset.month_tj);
