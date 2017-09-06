@@ -223,6 +223,28 @@ int main(int argc, char *argv[]) {
     	}
     	return EXIT_SUCCESS;
     }
+    if (strcmp("zjztsa", argv[1]) == 0)
+    {
+    	JProgramInfo = OpenShMem("ProgramInfo", sizeof(ProgramInfo), NULL);
+    	INT8U groupIndex = 0,meterIndex = 0;
+
+    	for(groupIndex = 0;groupIndex < 8;groupIndex++)
+    	{
+    		for(meterIndex = 0;meterIndex < MAX_AL_UNIT;meterIndex++)
+    		{
+    			fprintf(stderr,"\n [%d][%d] = %02x %02x %02x %02x %02x %02x %02x %02x",groupIndex,meterIndex,
+    					JProgramInfo->class23[groupIndex].allist[meterIndex].tsa.addr[0],
+    					JProgramInfo->class23[groupIndex].allist[meterIndex].tsa.addr[1],
+						JProgramInfo->class23[groupIndex].allist[meterIndex].tsa.addr[2],
+						JProgramInfo->class23[groupIndex].allist[meterIndex].tsa.addr[3],
+						JProgramInfo->class23[groupIndex].allist[meterIndex].tsa.addr[4],
+						JProgramInfo->class23[groupIndex].allist[meterIndex].tsa.addr[5],
+						JProgramInfo->class23[groupIndex].allist[meterIndex].tsa.addr[6],
+						JProgramInfo->class23[groupIndex].allist[meterIndex].tsa.addr[7]);
+    		}
+    	}
+    	return EXIT_SUCCESS;
+    }
     if (strcmp("getoaddata", argv[1]) == 0)
     {
     	if(argc==3)

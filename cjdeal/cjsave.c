@@ -168,6 +168,7 @@ void CreateSaveHead(char *fname,ROAD *road_eve,CSD_ARRAYTYPE csds,INT16U *headle
 				continue;
 			}
 			len_tmp = CalcOIDataLen(csds.csd[i].csd.oad.OI,csds.csd[i].csd.oad.attrindex);//多一个数据类型
+			asyslog(LOG_WARNING, "cjsave 0存储文件头 oi=%04x len=%d",csds.csd[i].csd.oad.OI,len_tmp);
 			memset(&oad_m,0,sizeof(OAD));
 			pindex += getOneUnit(&headbuf[pindex],oad_m,csds.csd[i].csd.oad,len_tmp);
 			*unitlen += len_tmp;
@@ -189,12 +190,14 @@ void CreateSaveHead(char *fname,ROAD *road_eve,CSD_ARRAYTYPE csds,INT16U *headle
 				if(csds.csd[i].csd.road.oads[j].OI == 0xeeee)
 					break;
 				len_tmp = CalcOIDataLen(csds.csd[i].csd.road.oads[j].OI,csds.csd[i].csd.road.oads[j].attrindex);//多一个数据类型
+				asyslog(LOG_WARNING, "cjsave 1存储文件头 oi=%04x len=%d",csds.csd[i].csd.road.oads[j].OI,len_tmp);
 				pindex += getOneUnit(&headbuf[pindex],csds.csd[i].csd.road.oad,csds.csd[i].csd.road.oads[j],len_tmp);
 				*unitlen += len_tmp;
 				(*unitnum)++;
 			}
 		}
 	}
+	asyslog(LOG_WARNING, "unitlen=%d,freq=%d",fixlen+*unitlen,freq);
 	*unitlen=freq*(fixlen+*unitlen);//一个单元存储TSA共用,在结构最前面，每个单元都有3个时标和数据，预留出合适大小，以能存下一个TSA所有数据
 	asyslog(LOG_WARNING, "cjsave 存储文件头 fixlen=%d,*unitlen=%d,freq=%d",fixlen,*unitlen,freq);
 	headbuf[2] = (*unitlen & 0xff00) >> 8;//数据单元长度

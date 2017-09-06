@@ -2065,10 +2065,26 @@ INT8U fillclass23data(OAD oad_m,OAD oad_r,TSA meter,INT8U* data)
 							default:
 								if(oad_r.OI == 0x0010)
 								{
+									if(rateIndex > 0)
+									{
+										JProgramInfo->class23[groupIndex].DayP[rateIndex-1] +=
+												dianliang - JProgramInfo->class23[groupIndex].allist[meterIndex].curP[rateIndex];
+										JProgramInfo->class23[groupIndex].MonthP[rateIndex-1] +=
+												dianliang - JProgramInfo->class23[groupIndex].allist[meterIndex].curP[rateIndex];
+										fprintf(stderr,"\n rate[%d]**************** DayP=%ld MonthQ=%ld",rateIndex-1,JProgramInfo->class23[groupIndex].DayP[rateIndex-1],JProgramInfo->class23[groupIndex].MonthP[rateIndex-1]);
+									}
 									JProgramInfo->class23[groupIndex].allist[meterIndex].curP[rateIndex] = dianliang;
 								}
 								if(oad_r.OI == 0x0020)
 								{
+									if(rateIndex > 0)
+									{
+										JProgramInfo->class23[groupIndex].DayQ[rateIndex-1] +=
+												dianliang - JProgramInfo->class23[groupIndex].allist[meterIndex].curQ[rateIndex];
+										JProgramInfo->class23[groupIndex].MonthQ[rateIndex-1] +=
+												dianliang - JProgramInfo->class23[groupIndex].allist[meterIndex].curQ[rateIndex];
+										fprintf(stderr,"\n rate[%d]**************** DayQ=%ld MonthQ= %ld",rateIndex-1,JProgramInfo->class23[groupIndex].DayQ[rateIndex-1],JProgramInfo->class23[groupIndex].MonthQ[rateIndex-1]);
+									}
 									JProgramInfo->class23[groupIndex].allist[meterIndex].curQ[rateIndex] = dianliang;
 								}
 						}
