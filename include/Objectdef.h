@@ -808,9 +808,13 @@ typedef struct {
     INT64U q;   //无功
     INT64U TaveP;   //滑差有功
     INT64U TaveQ;   //滑差无功
+    INT64U DayPALL;    //日有功
     INT64U DayP[MAXVAL_RATENUM];    //日有功
+    INT64U DayQALL;    //日无功
     INT64U DayQ[MAXVAL_RATENUM];    //日无功
+    INT64U MonthPALL;  //月有功
     INT64U MonthP[MAXVAL_RATENUM];  //月有功
+    INT64U MonthQALL;  //月有功
     INT64U MonthQ[MAXVAL_RATENUM];  //月无功
     INT64U remains; //剩余电量
     INT64U DownFreeze;  //下浮控后总加有功冻结

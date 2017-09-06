@@ -2025,11 +2025,13 @@ INT8U fillclass23data(OAD oad_m,OAD oad_r,TSA meter,INT8U* data)
 	{
 		for(meterIndex = 0;meterIndex < MAX_AL_UNIT;meterIndex++)
 		{
+
 			if(JProgramInfo->class23[groupIndex].allist[meterIndex].tsa.addr[0]==0)
 				break;
 
-			if(memcmp(&meter,&JProgramInfo->class23[groupIndex].allist[meterIndex].tsa,sizeof(TSA))==0)
+			if(memcmp(&meter,&JProgramInfo->class23[groupIndex].allist[meterIndex].tsa,(meter.addr[0]+1))==0)
 			{
+				DbgPrintToFile1(6,"find it %02x %02x %02x %02x %02x %02x %02x %02x",meter.addr[0],meter.addr[1],meter.addr[2],meter.addr[3],meter.addr[4],meter.addr[5],meter.addr[6],meter.addr[7]);
 				if(oad_r.attrindex == 0)
 				{
 					data = &data[2];
@@ -2037,7 +2039,7 @@ INT8U fillclass23data(OAD oad_m,OAD oad_r,TSA meter,INT8U* data)
 					for(rateIndex = 0;rateIndex < MAXVAL_RATENUM+1;rateIndex++)
 					{
 						INT32U dianliang = (data[rateIndex*5+1]<<24)+(data[rateIndex*5+2]<<16)+(data[rateIndex*5+3]<<8)+data[rateIndex*5+4];
-						fprintf(stderr,"\n dianliang = %d data = %02x %02x %02x %02x",dianliang,data[rateIndex*5+1],data[rateIndex*5+2],data[rateIndex*5+3],data[rateIndex*5+4]);
+						DbgPrintToFile1(6,"\n  oad_r = %04x dianliang = %d data = %02x %02x %02x %02x",oad_r.OI,dianliang,data[rateIndex*5+1],data[rateIndex*5+2],data[rateIndex*5+3],data[rateIndex*5+4]);
 						switch(oad_m.OI)
 						{
 							//日冻结
@@ -2065,25 +2067,50 @@ INT8U fillclass23data(OAD oad_m,OAD oad_r,TSA meter,INT8U* data)
 							default:
 								if(oad_r.OI == 0x0010)
 								{
+									if(rateIndex == 0)
+									{
+										JProgramInfo->class23[groupIndex].DayPALL +=
+												dianliang - JProgramInfo->class23[groupIndex].allist[meterIndex].curP[rateIndex];
+										JProgramInfo->class23[groupIndex].MonthPALL +=
+												dianliang - JProgramInfo->class23[groupIndex].allist[meterIndex].curP[rateIndex];
+
+										DbgPrintToFile1(6,"DayPALL=%ld MonthPALL=%ld",
+												JProgramInfo->class23[groupIndex].DayPALL,JProgramInfo->class23[groupIndex].MonthPALL);
+
+									}
 									if(rateIndex > 0)
 									{
 										JProgramInfo->class23[groupIndex].DayP[rateIndex-1] +=
 												dianliang - JProgramInfo->class23[groupIndex].allist[meterIndex].curP[rateIndex];
 										JProgramInfo->class23[groupIndex].MonthP[rateIndex-1] +=
 												dianliang - JProgramInfo->class23[groupIndex].allist[meterIndex].curP[rateIndex];
-										fprintf(stderr,"\n rate[%d]**************** DayP=%ld MonthQ=%ld",rateIndex-1,JProgramInfo->class23[groupIndex].DayP[rateIndex-1],JProgramInfo->class23[groupIndex].MonthP[rateIndex-1]);
+
+										DbgPrintToFile1(6,"rate[%d]**************** DayP=%ld MonthQ=%ld",rateIndex-1,JProgramInfo->class23[groupIndex].DayP[rateIndex-1],JProgramInfo->class23[groupIndex].MonthP[rateIndex-1]);
+
 									}
 									JProgramInfo->class23[groupIndex].allist[meterIndex].curP[rateIndex] = dianliang;
 								}
 								if(oad_r.OI == 0x0020)
 								{
-									if(rateIndex > 0)
+									if(rateIndex == 0)
+									{
+										JProgramInfo->class23[groupIndex].DayQALL +=
+												dianliang - JProgramInfo->class23[groupIndex].allist[meterIndex].curQ[rateIndex];
+										JProgramInfo->class23[groupIndex].MonthQALL +=
+												dianliang - JProgramInfo->class23[groupIndex].allist[meterIndex].curQ[rateIndex];
+
+										DbgPrintToFile1(6,"DayQALL=%ld MonthQALL=%ld",
+												JProgramInfo->class23[groupIndex].DayQALL,JProgramInfo->class23[groupIndex].MonthQALL);
+
+									}
+									else
 									{
 										JProgramInfo->class23[groupIndex].DayQ[rateIndex-1] +=
 												dianliang - JProgramInfo->class23[groupIndex].allist[meterIndex].curQ[rateIndex];
 										JProgramInfo->class23[groupIndex].MonthQ[rateIndex-1] +=
 												dianliang - JProgramInfo->class23[groupIndex].allist[meterIndex].curQ[rateIndex];
-										fprintf(stderr,"\n rate[%d]**************** DayQ=%ld MonthQ= %ld",rateIndex-1,JProgramInfo->class23[groupIndex].DayQ[rateIndex-1],JProgramInfo->class23[groupIndex].MonthQ[rateIndex-1]);
+										DbgPrintToFile1(6,"rate[%d]**************** DayQ=%ld MonthQ= %ld",rateIndex-1,JProgramInfo->class23[groupIndex].DayQ[rateIndex-1],JProgramInfo->class23[groupIndex].MonthQ[rateIndex-1]);
+
 									}
 									JProgramInfo->class23[groupIndex].allist[meterIndex].curQ[rateIndex] = dianliang;
 								}
