@@ -599,7 +599,7 @@ typedef struct {
 
 typedef struct {
     CLASS22 class22;                  //接口类IC
-    char devdesc[VISIBLE_STRING_LEN]; //设备描述
+    char devdesc[VISIBLE_STRING_LEN]; //设备描述， //湖南：485_II为维护口和485口切换，=485:用于抄表口，=698:用于维护口
     COMDCB devpara;                   //设备参数
     INT8U devfunc;                    //端口功能
 } CLASS_f201;                         //RS232\ RS485维护口

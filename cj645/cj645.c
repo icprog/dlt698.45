@@ -195,7 +195,61 @@ long check_cjcomm()
  * */
 int  vs485_test(int port1,int port2)
 {
+//	int Test_485_result = 1;
+//    INT8U msg[256];
+//    INT8U res[256];
+//    int lens =0, wlen=0;
+//
+//
+//    int comfd1 = OpenCom(port1, 9600, (INT8U *) "even", 1, 8);
+//    int comfd2 = OpenCom(port2, 9600, (INT8U *) "even", 1, 8);
+//
+//    for (int i = 0; i < 256; ++i) {
+//        msg[i] = i;
+//    }
+//    wlen = write(comfd1, msg, 178);//177
+//    sleep(1);
+//    lens = read(comfd2, res, 178);
+//    printf("write %d 收到数据[%d]字节\n", wlen,lens);
+//
+//    for (int j = 0; j < lens; ++j) {
+//        if (msg[j] != res[j]) {
+//            Test_485_result = 0;
+//            fprintf(stderr,"j=%d %02x_%02x\n",j,msg[j],res[j]);
+//            fprintf(stderr,"!!!!!!!!!!!!!!!!!!!!!!j=%d  error\n",j);
+//        }
+//    }
+//
+//    memset(msg, 0x00, sizeof(msg));
+//    memset(res, 0x00, sizeof(res));
+//    msg[0]	= 0x55;
+//    write(comfd1, msg,1);
+//    sleep(1);
+//    lens = read(comfd2, res, 1);
+//    fprintf(stderr,"write %02x, read %02x lens=%d\n",msg[0],res[0],lens);
+//
+//    memset(msg, 0x00, sizeof(msg));
+//    memset(res, 0x00, sizeof(res));
+//    msg[0]	= 0x22;
+//    write(comfd1, msg,1);
+//    sleep(1);
+//    lens = read(comfd2, res, 1);
+//    fprintf(stderr,"write %02x, read %02x lens=%d\n",msg[0],res[0],lens);
+//
+//
+//    sleep(5);
+//    memset(msg, 0x00, sizeof(msg));
+//    memset(res, 0x00, sizeof(res));
+//    msg[0]	= 0xaa;
+//    wlen = write(comfd2, msg,1);
+//    sleep(1);
+//    lens = read(comfd1, res, 2);
+//    fprintf(stderr,"com2->com1 write %02x, read %02x_%02x wlen=%d lens=%d\n",msg[0],res[0],res[1],wlen,lens);
+//
+//    return Test_485_result;
+
     int Test_485_result = 1;
+    int lens =0;
 
     INT8U msg[256];
     INT8U res[256];
@@ -209,51 +263,50 @@ int  vs485_test(int port1,int port2)
     for (int i = 0; i < 256; ++i) {
         msg[i] = i;
     }
+    fprintf(stderr,"msg_len = %d  res_len = %d\n",sizeof(msg),sizeof(res));
 
     write(comfd1, msg, sizeof(msg));
     sleep(1);
-    int lens = read(comfd2, res, sizeof(res));
+    lens = read(comfd2, res, sizeof(res));
     printf("收到数据[%d]字节\n", lens);
 
     for (int j = 0; j < 256; ++j) {
-    	fprintf(stderr,"j=%d %02x_%02x\n",j,msg[j],res[j]);
         if (msg[j] != res[j]) {
             Test_485_result = 0;
+            fprintf(stderr,"j=%d %02x_%02x\n",j,msg[j],res[j]);
             fprintf(stderr,"!!!!!!!!!!!!!!!!!!!!!!j=%d  error\n",j);
         }
     }
 
     fprintf(stderr,"comm2 to comm3 end!\n");
 
-    close(comfd1);
-    close(comfd2);
-
-    comfd1 = OpenCom(port1, 9600, (INT8U *) "even", 1, 8);
-    comfd2 = OpenCom(port2, 9600, (INT8U *) "even", 1, 8);
-
-    lens = read(comfd2, res, sizeof(res));
-    printf("1111收到数据[%d]字节\n", lens);
+//    close(comfd1);
+//    close(comfd2);
+//
+//    comfd1 = OpenCom(port1, 9600, (INT8U *) "even", 1, 8);
+//    comfd2 = OpenCom(port2, 9600, (INT8U *) "even", 1, 8);
 
     memset(msg, 0x00, sizeof(msg));
     memset(res, 0x00, sizeof(res));
 
+//    msg[0]	= 0x55;
+//    write(comfd1, msg,1);
+//    sleep(1);
+//    lens = read(comfd2, res, 2);
+//    fprintf(stderr,"write 0x55, read %02x lens=%d\n",res[0],lens);
+
     for (int i = 0; i < 256; ++i) {
         msg[i] = i;
     }
-    sleep(3);
-
-    lens = read(comfd2, res, sizeof(res));
-     printf("2222收到数据[%d]字节\n", lens);
-
-
     write(comfd2, msg, sizeof(msg));
     sleep(1);
     read(comfd1, res, sizeof(res));
 
     for (int j = 0; j < 256; ++j) {
-    	fprintf(stderr,"j=%d %02x_%02x\n",j,msg[j],res[j]);
+
         if (msg[j] != res[j]) {
             Test_485_result = 0;
+            fprintf(stderr,"j=%d %02x_%02x    ",j,msg[j],res[j]);
             fprintf(stderr,"!!!!!!!!!!!!!!!!!!!!!!j=%d  error\n",j);
         }
     }
