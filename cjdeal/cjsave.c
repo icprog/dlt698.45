@@ -357,7 +357,7 @@ int SaveNorData(INT8U taskid,ROAD *road_eve,INT8U *databuf,int datalen,TS ts_cc)
 				savepos=ftell(fp)-unitlen;
 				if(road_eve != NULL)//存储事件
 				{
-					if(memcmp(&databuf_tmp[18],&databuf[18],4)==0)//比对事件记录序号是否相同，相同事件未发生，不保存
+					if(memcmp(&databuf_tmp[18],&databuf[18],5)==0)//比对事件记录序号是否相同，相同事件未发生，不保存
 					{
 						if(fp != NULL)
 							fclose(fp);
