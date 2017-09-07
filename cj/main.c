@@ -449,6 +449,10 @@ int main(int argc, char *argv[]) {
         analyTaskData(argc, argv);
         return EXIT_SUCCESS;
     }
+    if (strcmp("m2g", argv[1]) == 0) {
+    	setm2g(argc, argv);
+		return EXIT_SUCCESS;
+    }
     if (strcmp("taskinfo", argv[1]) == 0) {
         analyTaskInfo(argc, argv);
         return EXIT_SUCCESS;

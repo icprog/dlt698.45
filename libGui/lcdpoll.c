@@ -76,7 +76,7 @@ void lcdpoll_showidapnip(LcdDataItem *item, int size, INT8U show_flg){
 }
 
 
-#ifdef SPTF_III
+
 void lcdpoll_showtotalDER(LcdDataItem *item, int size, INT8U show_flg)
 {
 
@@ -104,7 +104,7 @@ void lcdpoll_showtotalDER(LcdDataItem *item, int size, INT8U show_flg)
 	//TODO: 添加总加组剩余电量
 	for(groupIndex = 0;groupIndex < MAXNUM_SUMGROUP;groupIndex++)
 	{
-		totalRer += shmm_getpubdata()->data_calc_by1min[groupIndex-1].RER;
+//		totalRer += shmm_getpubdata()->data_calc_by1min[groupIndex-1].RER;	// FOR698
 	}
 
 	sprintf(str, "剩余电量:% 11.2lf kWh",totalRer);
@@ -119,7 +119,8 @@ void lcdpoll_showtotalDER(LcdDataItem *item, int size, INT8U show_flg)
 	}
 
 }
-#endif
+//#ifdef SPTF_III
+//#endif
 
 int finddataitem(LcdDataItem *item, int size, int did){
 	int ret_did=-1, i;

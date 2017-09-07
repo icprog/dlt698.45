@@ -990,8 +990,6 @@ int doCompSlaveMeter(RUNTIME_PLC *runtime_p)
 	INT8U addrtmp[6]={};
 	time_t nowtime = time(NULL);
 
-//	runtime_p->modeFlag = 1;
-//	module_info.SlavePointMode = 0;
 	if (module_info.SlavePointMode == 0)
 	{
 		DbgPrintToFile1(31,"不需要下发从节点信息，无路由管理");
@@ -1137,11 +1135,13 @@ int doCompSlaveMeter(RUNTIME_PLC *runtime_p)
 						}
 					}else
 					{
+						nodetmp.protocol = currtsa->protocol;
 						nodetmp.tsa = getNextTsa(&currtsa);	//从档案中取一个tsa
 						findflg = findTsaInList(tsa_zb_head,&nodetmp);
 						if (findflg == 0)
 						{
-							DbgPrintToFile1(31,"节点  tsatmp (%d): %02x %02x %02x %02x %02x %02x %02x %02x  添加",findflg,nodetmp.tsa.addr[0],nodetmp.tsa.addr[1],nodetmp.tsa.addr[2],nodetmp.tsa.addr[3],nodetmp.tsa.addr[4],nodetmp.tsa.addr[5],nodetmp.tsa.addr[6],nodetmp.tsa.addr[7]);
+							DbgPrintToFile1(31,"111nodetmp.protocol = %d 节点  tsatmp (%d): %02x %02x %02x %02x %02x %02x %02x %02x  添加",
+									nodetmp.protocol,findflg,nodetmp.tsa.addr[0],nodetmp.tsa.addr[1],nodetmp.tsa.addr[2],nodetmp.tsa.addr[3],nodetmp.tsa.addr[4],nodetmp.tsa.addr[5],nodetmp.tsa.addr[6],nodetmp.tsa.addr[7]);
 							addrtmp[5] = nodetmp.tsa.addr[2];
 							addrtmp[4] = nodetmp.tsa.addr[3];
 							addrtmp[3] = nodetmp.tsa.addr[4];
@@ -1246,7 +1246,7 @@ int Format97(FORMAT97 *Data97,OAD oad1,OAD oad2,TSA tsa)
 //			obj601F_07Flag.DI._07.DI_1[0][3],obj601F_07Flag.DI._07.DI_1[0][2],obj601F_07Flag.DI._07.DI_1[0][1],obj601F_07Flag.DI._07.DI_1[0][0]);
 	if (find_07item == 1)
 	{
-		Data97->Ctrl = 0x11;
+		Data97->Ctrl = CTRL_Read_97;
 		if(tsa.addr[1] > 5)
 		{
 			tsa.addr[1] = 5;
@@ -1279,7 +1279,7 @@ int Format07(FORMAT07 *Data07,OAD oad1,OAD oad2,TSA tsa)
 
 	if (find_07item == 1)
 	{
-		Data07->Ctrl = 0x11;
+		Data07->Ctrl = CTRL_Read_07;
 		if(tsa.addr[1] > 5)
 		{
 			tsa.addr[1] = 5;
@@ -1310,12 +1310,38 @@ int buildProxyFrame(RUNTIME_PLC *runtime_p,struct Tsa_Node *desnode,OAD oad1,OAD
 	int sendlen = 0;
 	INT8U type = 0;
 	FORMAT07 Data07;
+	FORMAT97 Data97;
 	OAD requestOAD1;
 	OAD requestOAD2;
 	INT8U addrtmp[6];
 	type = desnode->protocol;
 	switch (type)
 	{
+	case DLT_645_97:
+			requestOAD1.OI = oad1.OI;//0
+			requestOAD2.OI = oad2.OI;//pMsg.oi
+			requestOAD2.attflg = oad2.attflg;//0x02
+			requestOAD2.attrindex = oad2.attrindex;//0x00
+			Format97(&Data97,requestOAD1,requestOAD2,desnode->tsa);
+			memset(buf645,0,BUFSIZE645);
+			sendlen = composeProtocol97(&Data97, buf645);
+			DbgPrintToFile1(31,"sendlen=%d",sendlen);
+			DbPrt1(31,"645:", (char *) buf645, sendlen, NULL);
+			if(getZone("GW")==0) {
+				PacketBufToFile("[ZB_PROXY]S:",(char *) buf645, sendlen, NULL);
+			}
+			if (sendlen>0)
+			{
+				memcpy(runtime_p->format_Down.addr.SourceAddr,runtime_p->masteraddr,6);
+				addrtmp[5] = desnode->tsa.addr[2];
+				addrtmp[4] = desnode->tsa.addr[3];
+				addrtmp[3] = desnode->tsa.addr[4];
+				addrtmp[2] = desnode->tsa.addr[5];
+				addrtmp[1] = desnode->tsa.addr[6];
+				addrtmp[0] = desnode->tsa.addr[7];
+				return (AFN13_F1(&runtime_p->format_Down,runtime_p->sendbuf,addrtmp, 2, 0, buf645, sendlen));
+			}
+			break;
 		case DLT_645_07:
 			requestOAD1.OI = oad1.OI;//0
 			requestOAD2.OI = oad2.OI;//pMsg.oi
@@ -1377,6 +1403,7 @@ int saveProxyData(FORMAT3762 format_3762_Up,struct Tsa_Node *nodetmp)
 	INT8U nextFlag=0;
 	INT8U getResponseType = 0;
 	FORMAT07 frame07;
+	FORMAT97 frame97;
 	INT8U dataContent[50];
 	memset(dataContent,0,sizeof(dataContent));
 	CLASS_6001 meter = {};
@@ -1389,6 +1416,12 @@ int saveProxyData(FORMAT3762 format_3762_Up,struct Tsa_Node *nodetmp)
 		memcpy(buf645, format_3762_Up.afn13_f1_up.MsgContent, len645);
 		switch (nodetmp->protocol )
 		{
+		case DLT_645_97:
+			if (analyzeProtocol97(&frame97, buf645, len645, &nextFlag) == 0)
+			{
+				len645 = data97Tobuff698(frame97,dataContent) ;
+			}
+			break;
 			case DLT_645_07:
 				if (analyzeProtocol07(&frame07, buf645, len645, &nextFlag) == 0)
 				{
@@ -1655,7 +1688,7 @@ int do_5004_type( int taski, int itemi ,INT8U *buf, struct Tsa_Node *desnode, DA
 	case DLT_645_97:
 
 		Format97(&Data97,tmpitem.oad1,tmpitem.oad2,desnode->tsa);
-		DbgPrintToFile1(31,"当前抄读 【OAD1 %04x-%02x %02x    OAD2 %04x-%02x %02x】%02x%02x%02x%02x ",
+		DbgPrintToFile1(31,"当前抄读 【OAD1 %04x-%02x %02x    OAD2 %04x-%02x %02x】%02x%02x",
 				tmpitem.oad1.OI,tmpitem.oad1.attflg,tmpitem.oad1.attrindex,tmpitem.oad2.OI,tmpitem.oad2.attflg,tmpitem.oad2.attrindex,
 							Data97.DI[1],Data97.DI[0]);
 		sendlen = composeProtocol97(&Data97, buf);
@@ -1871,7 +1904,6 @@ int ProcessMeter(INT8U *buf,struct Tsa_Node *desnode)
 {	DATA_ITEM  tmpitem;
 	int sendlen=0,taski=0, itemi=0 ;//返回 tmpitem指示的具体任务索引 ，itemi指示的具体数据项索引
 
-	//记录单元信息是不是这次要抄的电表的  Y：继续，N：读取本表记录信息到内存，继续
 //	DbgPrintToFile1(31,"内存   【%02x-%02x-%02x%02x%02x%02x%02x%02x】 index=%d",
 //			taskinfo.tsa.addr[0],taskinfo.tsa.addr[1],taskinfo.tsa.addr[2],
 //			taskinfo.tsa.addr[3],taskinfo.tsa.addr[4],taskinfo.tsa.addr[5],
@@ -1893,9 +1925,9 @@ int ProcessMeter(INT8U *buf,struct Tsa_Node *desnode)
 			memcpy(&taskinfo,&taskinfo_bak,sizeof(taskinfo));
 			taskinfo.tsa = desnode->tsa;
 			taskinfo.tsa_index = desnode->tsa_index;
-			taskinfo.protocol = desnode->protocol;
+//			taskinfo.protocol = desnode->protocol;
+
 			DbgPrintToFile1(31,"第一次请求，用备份结构体初始化该表抄读状态");
-//			zeroitemflag(&taskinfo);
 		}
 	}
 	tmpitem = checkMeterData(&taskinfo,&taski,&itemi,desnode->usrtype);	//根据任务的时间计划，查找一个适合抄读的数据项
@@ -1914,7 +1946,6 @@ int ProcessMeter(INT8U *buf,struct Tsa_Node *desnode)
 		{
 			sendlen = do_other_type( taski, itemi , buf, desnode, tmpitem);//其它数据
 		}
-		taskinfo.protocol = desnode->protocol;
 	}else
 	{
 	    if(getZone("GW")==1)
@@ -2176,7 +2207,6 @@ void doSave(INT8U protocol,FORMAT97 frame97,FORMAT07 frame07)
 	{//是当前抄读TSA 数据
 		taski = taskinfo.now_taski;
 		itemi = taskinfo.now_itemi;
-//				TimeBCDToTs(taskinfo.task_list[taski].begin,&ts);
 		TimeBCDToTs(taskinfo.task_list[taski].fangan.items[itemi].savetime,&ts);//ts 为数据存储时间
 		if(protocol == DLT_645_97)
 		{
@@ -2190,7 +2220,6 @@ void doSave(INT8U protocol,FORMAT97 frame97,FORMAT07 frame07)
 			DbgPrintToFile1(31,"抄读数据项 %02x%02x%02x%02x",taskFlag07[0],taskFlag07[1],taskFlag07[2],taskFlag07[3]);
 			DbgPrintToFile1(31,"回码数据项 %02x%02x%02x%02x",frame07.DI[0],frame07.DI[1],frame07.DI[2],frame07.DI[3]);
 		}
-
 
 		DbgPrintToFile1(31,"存储时间 %d -%d -%d  %d:%d:%d",ts.Year,ts.Month,ts.Day,ts.Hour,ts.Minute,ts.Sec);
 		if(protocol == DLT_645_97)
@@ -2228,11 +2257,18 @@ int SaveTaskData(FORMAT3762 format_3762_Up,INT8U taskid)
 	FORMAT07 frame07 = {};
 	FORMAT97 frame97 = {};
 	memset(dataContent,0,sizeof(dataContent));
+	fprintf(stderr,"MsgLength = %d Protocol = %d \n",format_3762_Up.afn06_f2_up.MsgLength,format_3762_Up.afn06_f2_up.Protocol);
+
 	if (format_3762_Up.afn06_f2_up.MsgLength > 0)
 	{
 		len645 = format_3762_Up.afn06_f2_up.MsgLength;
 		memcpy(buf645, format_3762_Up.afn06_f2_up.MsgContent, len645);
-		if(taskinfo.protocol == DLT_645_97)
+		INT8U prtIndex = 0;
+		for(prtIndex = 0;prtIndex < len645;prtIndex++)
+		{
+			fprintf(stderr,"%02x ",buf645[prtIndex]);
+		}
+		if(format_3762_Up.afn06_f2_up.Protocol == DLT_645_97)
 		{
 			if (analyzeProtocol97(&frame97, buf645, len645, &nextFlag) == 0)
 			{
@@ -2251,7 +2287,7 @@ int SaveTaskData(FORMAT3762 format_3762_Up,INT8U taskid)
 	{
 		len645 = format_3762_Up.afn13_f1_up.MsgLength;
 		memcpy(buf645, format_3762_Up.afn13_f1_up.MsgContent, len645);
-		if(taskinfo.protocol == DLT_645_97)
+		if(format_3762_Up.afn13_f1_up.Protocol == DLT_645_97)
 		{
 			if (analyzeProtocol97(&frame97, buf645, len645, &nextFlag) == 0)
 			{
@@ -3826,7 +3862,6 @@ void readplc_thread()
 		 * 	   接收报文，并处理
 		********************************/
 		dealData(state,&runtimevar);
-
 	}
 	freeList(tsa_head);
 	freeList(tsa_zb_head);
