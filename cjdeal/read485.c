@@ -900,6 +900,18 @@ void SendDataTo485(INT8U port485, INT8U *sendbuf, INT16U sendlen) {
 
 	INT8U str[50];
 	memset(str, 0, 50);
+
+	if (getZone("ZheJiang") == 0)
+	{
+		INT8U tmpbuf[512];
+		tmpbuf[0] = 0xfe;
+		tmpbuf[1] = 0xfe;
+		tmpbuf[2] = 0xfe;
+		tmpbuf[3] = 0xfe;
+		memcpy(&tmpbuf[4],sendbuf,sendlen);
+		sendlen += 4;
+		memcpy(sendbuf,tmpbuf,sendlen);
+	}
 #if 1
 	sprintf((char *) str, "485(%d)_S(%d):", port485, sendlen);
 	printbuff((char *) str, sendbuf, sendlen, "%02x", " ", "\n");
