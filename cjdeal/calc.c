@@ -69,11 +69,22 @@ int saveTerminalTaskData(INT8U taskid,TS savets,TSA tsa,CSD_ARRAYTYPE csds)
 	int		index=0,buflen=0;
 	OAD 	freezeOAD={},relateOAD={};
 	DateTimeBCD		freezetime={};
-	INT8U	kk=0;
 	int 	i=0,j=0;
 	int		saveret=0;
+	Volt_PassRate_tj	volt_tj={};
 
 	for(i=0;i<csds.num;i++)	{
+		if(csds.csd[i].type == 0) {	//oad
+			index = 0;
+			saveBuf[index++] = dttsa;	//TSA标识
+			memcpy(&saveBuf[index],&tsa,sizeof(TSA));
+			index += sizeof(TSA);
+			fill_variClass(csds.csd[i].csd.oad,1,NULL,&saveBuf[index],&buflen,JProgramInfo);
+			index += buflen;
+			asyslog(LOG_NOTICE,"saveTerminalTaskData taskid = %d OAD=%04x \n",taskid,csds.csd[i].csd.oad.OI);
+			memset(&freezeOAD,0,sizeof(OAD));
+			saveret = SaveOADData(taskid,freezeOAD,csds.csd[i].csd.oad,saveBuf,index,savets);
+		}
 		if(csds.csd[i].type == 1) {	//ROAD
 			freezeOAD = csds.csd[i].csd.road.oad;
 			for(j=0;j<csds.csd[i].csd.road.num;j++)	{
@@ -82,8 +93,6 @@ int saveTerminalTaskData(INT8U taskid,TS savets,TSA tsa,CSD_ARRAYTYPE csds)
 				memcpy(&saveBuf[index],&tsa,sizeof(TSA));
 				index += sizeof(TSA);
 				relateOAD = csds.csd[i].csd.road.oads[j];
-				asyslog(LOG_NOTICE,"freezeOAD =%04x relateOAD = %04x\n",freezeOAD.OI,relateOAD.OI);
-
 				switch(relateOAD.OI) {
 				case 0x2021:	//数据冻结时间
 					TsToTimeBCD(savets,&freezetime);
@@ -92,21 +101,21 @@ int saveTerminalTaskData(INT8U taskid,TS savets,TSA tsa,CSD_ARRAYTYPE csds)
 				case 0x2131:
 				case 0x2132:
 				case 0x2133:
-					kk = relateOAD.OI - 0x2131;
-					asyslog(LOG_NOTICE,"kk = %d\n",kk);
+					readVariData(relateOAD.OI,0,&volt_tj,sizeof(Volt_PassRate_tj));
 					if(freezeOAD.OI==0x5004) {
-						fill_variClass(relateOAD,1,(INT8U *)&passu_d[kk],&saveBuf[index],&buflen);
+						fill_variClass(relateOAD,1,(INT8U *)&volt_tj.dayu_tj,&saveBuf[index],&buflen,JProgramInfo);
 						index += buflen;
 					}else if(freezeOAD.OI==0x5006) {
-						fill_variClass(relateOAD,1,(INT8U *)&passu_m[kk],&saveBuf[index],&buflen);
+						fill_variClass(relateOAD,1,(INT8U *)&volt_tj.monthu_tj,&saveBuf[index],&buflen,JProgramInfo);
 						index += buflen;
 					}
 					break;
 				default:
-					fill_variClass(relateOAD,1,NULL,&saveBuf[index],&buflen);
+					fill_variClass(relateOAD,1,NULL,&saveBuf[index],&buflen,JProgramInfo);
+					index += buflen;
 					break;
 				}
-				asyslog(LOG_NOTICE,"saveOADData index = %d \n",index);
+				asyslog(LOG_NOTICE,"saveTerminalTaskData taskid = %d freezeOAD=%04x relateOAD=%04x \n",taskid,freezeOAD.OI,relateOAD.OI);
 				saveret = SaveOADData(taskid,freezeOAD,relateOAD,saveBuf,index,savets);
 			}
 		}
@@ -120,37 +129,26 @@ int saveTerminalTaskData(INT8U taskid,TS savets,TSA tsa,CSD_ARRAYTYPE csds)
  * savelen		需要存储数据长度
  * data			数据内容
  * */
-void terminalTaskFreeze(TS savets)
+void terminalTaskFreeze(INT8U taskid,INT8U fanganid)
 {
+	TS	savets;
 	int tsa_num = 0;
-	int	tsaid=0;
-	INT8U	fanganid=0,taskid=0;
+	int	meterid=0;
 	CLASS_6015	class6015={};
-	CLASS_6013	class6013={};
+//	CLASS_6013	class6013={};
 	CLASS_6001 *tsa_group = NULL;
 
-	for(fanganid=0;fanganid<255;fanganid++) {
-		if (readCoverClass(0x6015, fanganid, &class6015, sizeof(CLASS_6015), coll_para_save)== 1)	{
-			asyslog(LOG_NOTICE,"fanganid = %d\n",fanganid);
-			//任务中有相关的电压合格率csds的配置
-//			if(isOADByCSD(freezeOAD,relateOAD,class6015.csds)==1) {
-				//根据相关的方案的MS类型获取测量点信息
-				tsa_num = getOI6001(class6015.mst,(INT8U **)&tsa_group);
-				asyslog(LOG_NOTICE,"tsa_num = %d\n",tsa_num);
-				for(tsaid=0;tsaid<tsa_num;tsaid++) {
-					if(tsa_group[tsaid].basicinfo.port.OI == PORT_JC) {
-						//满足交采测量点的通过方案号来获取任务号
-						for(taskid=0;taskid<255;taskid++) {
-							if (readCoverClass(0x6013, taskid, &class6013, sizeof(CLASS_6013), coll_para_save)== 1)	{
-								if(class6013.sernum == fanganid) {
-									//查找到满足CSD的数据任务，进行相关任务数据存储
-									saveTerminalTaskData(taskid,savets,tsa_group[tsaid].basicinfo.addr,class6015.csds);
-								}
-							}
-						}
-					}
-				}
-//			}
+	TSGet(&savets);
+	if (readCoverClass(0x6015, fanganid, &class6015, sizeof(CLASS_6015), coll_para_save)== 1)	{
+		asyslog(LOG_NOTICE,"fanganid = %d\n",fanganid);
+		//根据相关的方案的MS类型获取测量点信息
+		tsa_num = getOI6001(class6015.mst,(INT8U **)&tsa_group);
+		asyslog(LOG_NOTICE,"tsa_num = %d\n",tsa_num);
+		for(meterid=0;meterid<tsa_num;meterid++) {
+			if(tsa_group[meterid].basicinfo.port.OI == PORT_JC) {
+				//满足交采测量点,查找到满足CSD的数据任务，进行相关任务数据存储
+				saveTerminalTaskData(taskid,savets,tsa_group[meterid].basicinfo.addr,class6015.csds);
+			}
 		}
 	}
 	if(tsa_group != NULL) {
@@ -293,6 +291,7 @@ void TerminalFreeze()
 	static TS 		newts,oldts;
 	static INT8U 	first=1;
 	int	j=0;
+	Volt_PassRate_tj	volt_tj;
 
 	if(first==1) {
 		first = 0;
@@ -302,16 +301,28 @@ void TerminalFreeze()
 	if(newts.Day !=oldts.Day) {
 		Save_TJ_Freeze(0,0x2203,0x0200,newts,sizeof(gongdian_tj.gongdian),(INT8U *)&gongdian_tj.gongdian);
 		gongdian_tj.gongdian.day_tj = 0;
-		Save_Task_Freeze(newts);
 		for(j=0;j<3;j++) {
+			memset(&volt_tj,0,sizeof(Volt_PassRate_tj));
+			readVariData((0x2131+j),0,(INT8U *)&volt_tj,sizeof(Volt_PassRate_tj));
+			memcpy(&volt_tj.dayu_tj,&passu_d[j],sizeof(PassRate_U));
+			if(j==0) {
+				syslog(LOG_NOTICE,"存储：A相电压-监测时间（日）=%d，（月）=%d\n",volt_tj.dayu_tj.monitorTime,volt_tj.monthu_tj.monitorTime);
+			}
+			saveVariData((0x2131+j),0,(INT8U *)&volt_tj,sizeof(Volt_PassRate_tj));
 			Save_TJ_Freeze(0,(0x2131+j),0x0201,newts,sizeof(PassRate_U),(INT8U *)&passu_d[j]);
 			memset(&passu_d[j],0,sizeof(PassRate_U));
 		}
 		gongdian_tj.gongdian.day_tj = 0;
 		if(newts.Month !=oldts.Month && newts.Hour == 0) {
-			Save_Task_Freeze(newts);
 			Save_TJ_Freeze(1,0x2203,0x0200,newts,sizeof(gongdian_tj.gongdian),(INT8U *)&gongdian_tj.gongdian);
 			for(j=0;j<3;j++) {
+				memset(&volt_tj,0,sizeof(Volt_PassRate_tj));
+				readVariData((0x2131+j),0,(INT8U *)&volt_tj,sizeof(Volt_PassRate_tj));
+				memcpy(&volt_tj.monthu_tj,&passu_m[j],sizeof(PassRate_U));
+				if(j==0) {
+					syslog(LOG_NOTICE,"A相电压-监测时间（日）=%d，（月）=%d\n",volt_tj.dayu_tj.monitorTime,volt_tj.monthu_tj.monitorTime);
+				}
+				saveVariData((0x2131+j),0,(INT8U *)&volt_tj,sizeof(Volt_PassRate_tj));
 				Save_TJ_Freeze(1,(0x2131+j),0x0202,newts,sizeof(PassRate_U),(INT8U *)&passu_m[j]);
 				memset(&passu_m[j],0,sizeof(PassRate_U));
 			}

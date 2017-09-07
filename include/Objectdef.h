@@ -153,6 +153,11 @@ typedef struct {
 } PassRate_U;//电压统计结果
 
 typedef struct {
+	PassRate_U	dayu_tj;
+	PassRate_U	monthu_tj;
+}Volt_PassRate_tj;	//电压合格率统计
+
+typedef struct {
     INT32U day_tj;
     INT32U month_tj;
 } Day_Mon_TJ; //日月统计值

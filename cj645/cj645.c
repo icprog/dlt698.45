@@ -216,10 +216,23 @@ int  vs485_test(int port1,int port2)
     printf("收到数据[%d]字节\n", lens);
 
     for (int j = 0; j < 256; ++j) {
+    	fprintf(stderr,"j=%d %02x_%02x\n",j,msg[j],res[j]);
         if (msg[j] != res[j]) {
             Test_485_result = 0;
+            fprintf(stderr,"!!!!!!!!!!!!!!!!!!!!!!j=%d  error\n",j);
         }
     }
+
+    fprintf(stderr,"comm2 to comm3 end!\n");
+
+    close(comfd1);
+    close(comfd2);
+
+    comfd1 = OpenCom(port1, 9600, (INT8U *) "even", 1, 8);
+    comfd2 = OpenCom(port2, 9600, (INT8U *) "even", 1, 8);
+
+    lens = read(comfd2, res, sizeof(res));
+    printf("1111收到数据[%d]字节\n", lens);
 
     memset(msg, 0x00, sizeof(msg));
     memset(res, 0x00, sizeof(res));
@@ -227,17 +240,25 @@ int  vs485_test(int port1,int port2)
     for (int i = 0; i < 256; ++i) {
         msg[i] = i;
     }
+    sleep(3);
+
+    lens = read(comfd2, res, sizeof(res));
+     printf("2222收到数据[%d]字节\n", lens);
+
 
     write(comfd2, msg, sizeof(msg));
     sleep(1);
     read(comfd1, res, sizeof(res));
 
     for (int j = 0; j < 256; ++j) {
+    	fprintf(stderr,"j=%d %02x_%02x\n",j,msg[j],res[j]);
         if (msg[j] != res[j]) {
             Test_485_result = 0;
+            fprintf(stderr,"!!!!!!!!!!!!!!!!!!!!!!j=%d  error\n",j);
         }
     }
 
+    fprintf(stderr,"comm3 to comm2 end!\n");
     close(comfd1);
     close(comfd2);
 
@@ -286,7 +307,10 @@ int main(int argc, char *argv[])
     if (Test_485_result == 1) {
         system("echo 485OK >> /nand/check.log");
     }
-
+//    else {
+//    	 system("echo 485 ERROR!!!!!! >> /nand/check.log");
+//    	 fprintf(stderr,"485 ERROR!!!!!!\n");
+//    }
     fprintf(stderr,"\n===========================\nstep4:ESAM 功能测试\n===========================\n");
     system("cj esam 2>> /nand/check.log");
 

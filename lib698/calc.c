@@ -60,53 +60,6 @@ INT8U Reset_add()
 	return 1;
 }
 
-INT8U fillVacsData(INT8U structnum,INT8U attindex,INT8U datatype,INT32U data1,INT32U data2,INT32U data3,INT32U data4,INT8U *responseData)
-{
-	INT32U 	data[4]={};
-	INT8U	index=0,i=0;
-
-	if(structnum>4) {
-		fprintf(stderr,"填充数据结构【%d】大于有效限定值【4】!!!",structnum);
-		structnum = 4;
-	}
-	if (attindex>4) {
-		fprintf(stderr,"属性索引值【%d】大于有效限定值【4】!!!",attindex);
-		attindex = 4;
-	}
-	if(structnum>=1) {
-		index += create_array(&responseData[index],structnum);
-	}
-	memset(data,0,sizeof(data));
-	switch(attindex) {
-	case 0:		//全部属性
-		data[0] = data1;
-		data[1] = data2;
-		data[2] = data3;
-		data[3] = data4;
-	break;
-	case 1:	data[0] = data1;	break;
-	case 2:	data[0] = data2;	break;
-	case 3:	data[0] = data3;	break;
-	case 4:	data[0] = data4;	break;
-	}
-	for(i=0;i<structnum;i++) {
-		switch(datatype){
-		case dtlongunsigned:
-			index += fill_long_unsigned(&responseData[index],data[i]);
-			break;
-		case dtdoublelong:
-			index += fill_double_long(&responseData[index],data[i]);
-			break;
-		case dtlong:
-			index += fill_long(&responseData[index],data[i]);
-			break;
-		}
-	}
-	return index;
-}
-
-
-
 /*
  * 获取电压合格率 0x2131 2132 2133
  */

@@ -121,7 +121,7 @@ extern int getDataTypeLen(int dt);
 /*----------------------具体OI类组帧函数----------------------*/
 /*----------------------统计相关数据----------------------*/
 extern INT8U Get_Vacs(RESULT_NORMAL *response,ProgramInfo* prginfo_acs);
-extern int  fill_variClass(OAD oad,INT8U getflg,INT8U *sourcebuf,INT8U *destbuf,int *len);
+extern int  fill_variClass(OAD oad,INT8U getflg,INT8U *sourcebuf,INT8U *destbuf,int *len,ProgramInfo* proginfo);
 extern int GetFileState(RESULT_NORMAL* response);
 
 /*----------------------规约一致性 数据有效性判断接口----------------------*/
