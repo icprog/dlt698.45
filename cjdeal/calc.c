@@ -20,6 +20,7 @@
 #include <sys/stat.h>
 #include "calc.h"
 #include "cjdeal.h"
+#include "cjsave.h"
 #include "ParaDef.h"
 #include "AccessFun.h"
 #include "Objectdef.h"
@@ -27,6 +28,7 @@
 #include "event.h"
 #include "EventObject.h"
 #include "CalcObject.h"
+#include "dlt698.h"
 
 CLASS_4030 obj_offset={};
 PassRate_U  passu_d[3],passu_m[3];
@@ -36,6 +38,119 @@ extern ProgramInfo* JProgramInfo;
 extern INT8U poweroffon_state;
 extern MeterPower MeterPowerInfo[POWEROFFON_NUM];
 
+
+///*
+// * 根据任务的CSD来判断是否是该任务数据
+// * */
+//int isOADByCSD(OAD freezeOAD,OAD relateOAD,CSD_ARRAYTYPE csds)
+//{
+////	static OI_698 VoltTj_OI[3]={0x2131,0x2132,0x2133};	//A相、B相、C相电压合格率
+//	int i=0,j=0,k=0;
+//	for(i=0;i<csds.num;i++)	{
+//		if(csds.csd[i].type == 1) {	//ROAD
+//			if(memcmp(&csds.csd[i].csd.road.oad,&freezeOAD,sizeof(OAD))==0) {
+//				for(j=0;j<csds.csd[i].csd.road.num;j++)	{
+//					if(memcmp(&csds.csd[i].csd.road.oad,&relateOAD,sizeof(OAD))==0) {
+//						return 1;
+//					}
+//				}
+//			}
+//		}
+//	}
+//	return 0;
+//}
+
+/*
+ * 根据任务号及采集方案的array CSD存储相关数据
+ * */
+int saveTerminalTaskData(INT8U taskid,TS savets,TSA tsa,CSD_ARRAYTYPE csds)
+{
+	INT8U	saveBuf[255]={};
+	int		index=0,buflen=0;
+	OAD 	freezeOAD={},relateOAD={};
+	DateTimeBCD		freezetime={};
+	INT8U	kk=0;
+	int 	i=0,j=0;
+	int		saveret=0;
+
+	for(i=0;i<csds.num;i++)	{
+		if(csds.csd[i].type == 1) {	//ROAD
+			freezeOAD = csds.csd[i].csd.road.oad;
+			for(j=0;j<csds.csd[i].csd.road.num;j++)	{
+				index = 0;
+				saveBuf[index++] = dttsa;	//TSA标识
+				memcpy(&saveBuf[index],&tsa,sizeof(TSA));
+				index += sizeof(TSA);
+				relateOAD = csds.csd[i].csd.road.oads[j];
+				switch(relateOAD.OI) {
+				case 0x2021:	//数据冻结时间
+					TsToTimeBCD(savets,&freezetime);
+					index += fill_date_time_s(&saveBuf[index],&freezetime);
+					break;
+				case 0x2131:
+				case 0x2132:
+				case 0x2133:
+					kk = relateOAD.OI - 0x2131;
+					if(freezeOAD.OI==0x5004) {
+						fill_variClass(0x2031,1,(INT8U *)&passu_d[kk],&saveBuf[index],&buflen);
+						index += buflen;
+					}else if(freezeOAD.OI==0x5006) {
+						fill_variClass(0x2031,1,(INT8U *)&passu_m[kk],&saveBuf[index],&buflen);
+						index += buflen;
+					}
+					break;
+				}
+				saveret = SaveOADData(taskid,freezeOAD,relateOAD,saveBuf,index,savets);
+			}
+		}
+	}
+	return saveret;
+}
+/*
+ * 按照任务进行冻结数据的存储
+ * oi，attr		存储的OI及属性
+ * savets		存储时标
+ * savelen		需要存储数据长度
+ * data			数据内容
+ * */
+void Save_Task_Freeze(TS savets)
+{
+	int tsa_num = 0;
+	int	tsaid=0;
+	INT8U	fanganid=0,taskid=0;
+	CLASS_6015	class6015={};
+	CLASS_6013	class6013={};
+	CLASS_6001 *tsa_group = NULL;
+
+	for(fanganid=0;fanganid<255;fanganid++) {
+		if (readCoverClass(0x6015, fanganid, &class6015, sizeof(CLASS_6015), coll_para_save)== 1)	{
+			fprintf(stderr,"fanganid=%d\n",fanganid);
+			//任务中有相关的电压合格率csds的配置
+//			if(isOADByCSD(freezeOAD,relateOAD,class6015.csds)==1) {
+				//根据相关的方案的MS类型获取测量点信息
+				tsa_num = getOI6001(class6015.mst,(INT8U **)&tsa_group);
+				fprintf(stderr,"tsa_num = %d\n",tsa_num);
+				for(tsaid=0;tsaid<tsa_num;tsaid++) {
+					if(tsa_group[tsaid].basicinfo.port.OI == PORT_JC) {
+						//满足交采测量点的通过方案号来获取任务号
+						for(taskid=0;taskid<255;taskid++) {
+							if (readCoverClass(0x6013, taskid, &class6013, sizeof(CLASS_6013), coll_para_save)== 1)	{
+								if(class6013.sernum == fanganid) {
+									//查找到满足CSD的数据任务，进行相关任务数据存储
+									saveTerminalTaskData(taskid,savets,tsa_group[tsaid].basicinfo.addr,class6015.csds);
+								}
+							}
+						}
+					}
+				}
+//			}
+		}
+	}
+	if(tsa_group != NULL) {
+		tsa_group = NULL;
+		free(tsa_group);
+	}
+}
 /*
  * flag 0:日 1：月
  * sign 0:清零 1 增加
@@ -122,13 +237,11 @@ void Calc_Tj()
 	static time_t	currtime=0,nexttime=0;
 	static INT8U 	first=1;
 	static INT8U lastchgoi4030=0,addnum=0,lastreset=0;
-	int	j=0;
-	static TS newts,oldts;
+
 	addnum++;
-	TSGet(&newts);
+
 	if(first==1) {
 		first = 0;
-		TSGet(&oldts);
 		currtime = time(NULL);
 		nexttime = time(NULL);
 		memset(&gongdian_tj,0,sizeof(Gongdian_tj));
@@ -156,23 +269,40 @@ void Calc_Tj()
 	}
 	gongdian_tj.gongdian.day_tj +=1;
 	gongdian_tj.gongdian.month_tj +=1;
-
-//	syslog(LOG_NOTICE,"day_tj=%d,mon_tj=%d\n",gongdian_tj.gongdian.day_tj,gongdian_tj.gongdian.month_tj);
 	if(addnum >= 5 || lastreset!=JProgramInfo->oi_changed.reset) {
 //		syslog(LOG_NOTICE,"addnum=%d lastreset=%d reset=%d day_tj=%d,mon_tj=%d\n",addnum,lastreset,JProgramInfo->oi_changed.reset,gongdian_tj.gongdian.day_tj,gongdian_tj.gongdian.month_tj);
 		addnum=0;
 		lastreset=JProgramInfo->oi_changed.reset;
 		saveVariData(0x2203,0,&gongdian_tj,sizeof(Gongdian_tj));	//TODO：
 	}
+//	syslog(LOG_NOTICE,"day_tj=%d,mon_tj=%d\n",gongdian_tj.gongdian.day_tj,gongdian_tj.gongdian.month_tj);
+}
+
+/*
+ * 终端统计数据及计量数据冻结
+ * */
+void TerminalFreeze()
+{
+	static TS 		newts,oldts;
+	static INT8U 	first=1;
+	int	j=0;
+
+	if(first==1) {
+		first = 0;
+		TSGet(&oldts);
+	}
+	TSGet(&newts);
 	if(newts.Day !=oldts.Day) {
 		Save_TJ_Freeze(0,0x2203,0x0200,newts,sizeof(gongdian_tj.gongdian),(INT8U *)&gongdian_tj.gongdian);
 		gongdian_tj.gongdian.day_tj = 0;
+		Save_Task_Freeze(newts);
 		for(j=0;j<3;j++) {
 			Save_TJ_Freeze(0,(0x2131+j),0x0201,newts,sizeof(PassRate_U),(INT8U *)&passu_d[j]);
 			memset(&passu_d[j],0,sizeof(PassRate_U));
 		}
 		gongdian_tj.gongdian.day_tj = 0;
 		if(newts.Month !=oldts.Month && newts.Hour == 0) {
+			Save_Task_Freeze(newts);
 			Save_TJ_Freeze(1,0x2203,0x0200,newts,sizeof(gongdian_tj.gongdian),(INT8U *)&gongdian_tj.gongdian);
 			for(j=0;j<3;j++) {
 				Save_TJ_Freeze(1,(0x2131+j),0x0202,newts,sizeof(PassRate_U),(INT8U *)&passu_m[j]);
@@ -209,6 +339,8 @@ void calc_thread()
     	}
     	//供电时间、电压合格率统计
     	Calc_Tj();
+    	//计量数据及统计数据冻结存储
+    	TerminalFreeze();
     	valid++;
     	TSGet(&newts);
 		//判断停上电

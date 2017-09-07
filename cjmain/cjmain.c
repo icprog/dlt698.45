@@ -18,6 +18,7 @@
 #include "AccessFun.h"
 #include "cjmain.h"
 #include "basedef.h"
+#include "att7022e.h"
 #include "../lib698/dlt698.h"
 #include "../libMq/libmmq.h"
 #include "../include/version.h"
@@ -470,6 +471,14 @@ void InitSharedMem(int argc, char *argv[]) {
 			sizeof(JProgramInfo->event_obj.Event300F_obj), event_para_save);
 	readCoverClass(0x3010, 0, &JProgramInfo->event_obj.Event3010_obj,
 			sizeof(JProgramInfo->event_obj.Event3010_obj), event_para_save);
+
+	if (0 == JProgramInfo->event_obj.Event3106_obj.poweroff_para_obj.screen_para_obj.recover_voltage_limit) {
+		JProgramInfo->event_obj.Event3106_obj.poweroff_para_obj.screen_para_obj.recover_voltage_limit = VOL_ON_THR;
+	}
+
+	if (0 == JProgramInfo->event_obj.Event3106_obj.poweroff_para_obj.screen_para_obj.happen_voltage_limit) {
+		JProgramInfo->event_obj.Event3106_obj.poweroff_para_obj.screen_para_obj.happen_voltage_limit = VOL_DOWN_THR;
+	}
 }
 
 int LAPI_Fork2(void) {

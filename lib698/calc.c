@@ -73,7 +73,9 @@ INT8U fillVacsData(INT8U structnum,INT8U attindex,INT8U datatype,INT32U data1,IN
 		fprintf(stderr,"属性索引值【%d】大于有效限定值【4】!!!",attindex);
 		attindex = 4;
 	}
-	index += create_array(&responseData[index],structnum);
+	if(structnum>=1) {
+		index += create_array(&responseData[index],structnum);
+	}
 	memset(data,0,sizeof(data));
 	switch(attindex) {
 	case 0:		//全部属性
@@ -108,17 +110,27 @@ INT8U Get_Vacs(RESULT_NORMAL *response,ProgramInfo* prginfo_acs)
 	INT8U	index=0;
 	INT8U	structnum = 0;
 
-	if(response->oad.attflg!=2) 	return index;
+	if(response->oad.attflg!=2) {
+		response->dar = interface_uncomp;
+		return index;
+	}
+	if(response->oad.OI != 0x2000 && prginfo_acs->cfg_para.device == CCTT2) {
+		response->dar = boundry_over;
+		response->datalen = 0;
+		return index;
+	}
 	switch(response->oad.OI) {
 	case 0x2000:	//电压
-		if(response->oad.attrindex==0)		structnum = 3;
+		if(response->oad.attrindex==0 && (prginfo_acs->cfg_para.device != CCTT2))		structnum = 3;
 		else structnum = 1;
-		if(prginfo_acs->cfg_para.device == CCTT2)
+		if(prginfo_acs->cfg_para.device == CCTT2 && response->oad.attrindex > 1)
 		{
-			structnum = 1;
+			response->dar = boundry_over;
+			index = 0;
+		}else {
+			index += fillVacsData(structnum,response->oad.attrindex,dtlongunsigned,
+					prginfo_acs->ACSRealData.Ua,prginfo_acs->ACSRealData.Ub,prginfo_acs->ACSRealData.Uc,0,response->data);
 		}
-		index += fillVacsData(structnum,response->oad.attrindex,dtlongunsigned,
-				prginfo_acs->ACSRealData.Ua,prginfo_acs->ACSRealData.Ub,prginfo_acs->ACSRealData.Uc,0,response->data);
 		break;
 	case 0x2001:	//电流
 		if(response->oad.attrindex==0)		structnum = 4;

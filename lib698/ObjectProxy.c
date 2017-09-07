@@ -22,6 +22,7 @@ extern ProgramInfo *memp;
 extern void getoad(INT8U *data,OAD *oad);
 extern int FrameHead(CSINFO *csinfo,INT8U *buf);
 extern void FrameTail(INT8U *buf,int index,int hcsi);
+extern TimeTag Response_timetag; //响应的时间标签值
 
 void ProxyListResponse(PROXY_GETLIST *list,CommBlock *com)
 {
@@ -48,8 +49,8 @@ void ProxyListResponse(PROXY_GETLIST *list,CommBlock *com)
 		datalen =512;
 	memcpy(&sendbuf[index],list->data,datalen);
 	index = index + datalen;
-	sendbuf[index++] = 0;
-	sendbuf[index++] = 0;
+	sendbuf[index++] = 0;				//跟随上报信息域 	FollowReport
+	index += fill_timetag(&sendbuf[index],Response_timetag);//时间标签		TimeTag
 	FrameTail(sendbuf,index,hcsi);
 	if(com->p_send!=NULL)
 		com->p_send(com->phy_connect_fd,sendbuf,index+3);

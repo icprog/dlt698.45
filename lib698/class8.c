@@ -61,32 +61,46 @@ int class8001_act_route(int index, int attr_act, INT8U *data,
 	}
 }
 
-//int class8002_act127(int index, int attr_act, INT8U *data,
-//		Action_result *act_ret) {
-//	asyslog(LOG_WARNING, "催费告警投入\n");
-//	CLASS_8002 c8002;
-//	readCoverClass(0x8002, 0, (void *) &c8002, sizeof(CLASS_8002),
-//			para_vari_save);
-//	c8002.state = 2;
-//	saveCoverClass(0x8002, 0, (void *) &c8002, sizeof(CLASS_8002),
-//			para_vari_save);
-//	return 0;
-//}
+int class8002_act127(int index, int attr_act, INT8U *data,
+		Action_result *act_ret) {
+	asyslog(LOG_WARNING, "催费告警投入\n");
+	CLASS_8002 c8002;
+	readCoverClass(0x8002, 0, (void *) &c8002, sizeof(CLASS_8002),
+			para_vari_save);
+	c8002.state = 1;
+	saveCoverClass(0x8002, 0, (void *) &c8002, sizeof(CLASS_8002),
+			para_vari_save);
+	return 0;
+}
+
+int class8002_act128(int index, int attr_act, INT8U *data,
+		Action_result *act_ret) {
+	asyslog(LOG_WARNING, "催费告警退出\n");
+	CLASS_8002 c8002;
+	readCoverClass(0x8002, 0, (void *) &c8002, sizeof(CLASS_8002),
+			para_vari_save);
+	c8002.state = 0;
+	saveCoverClass(0x8002, 0, (void *) &c8002, sizeof(CLASS_8002),
+			para_vari_save);
+	return 0;
+}
 
 int class8002_act_route(int index, int attr_act, INT8U *data, Action_result *act_ret) {
-//	switch (attr_act) {
-//	case 127:
-//		class8002_act127(1, attr_act, data, act_ret);
-//		break;
-//	case 128:
-//		class8002_act128(1, attr_act, data, act_ret);
-//		break;
-//	}
+	switch (attr_act) {
+	case 127:
+		class8002_act127(1, attr_act, data, act_ret);
+		break;
+	case 128:
+		class8002_act128(1, attr_act, data, act_ret);
+		break;
+	}
 }
 int class8000_act129(int index, int attr_act, INT8U *data,
 		Action_result *act_ret) {
 
 	ProgramInfo *shareAddr = getShareAddr();
+
+	shareAddr->ctrls.cf205.currentState = 1;
 
 	if(shareAddr->ctrls.cf205.currentState == 0){
 		return 0;
@@ -119,6 +133,8 @@ int class8000_act130(int index, int attr_act, INT8U *data,
 		Action_result *act_ret) {
 
 	ProgramInfo *shareAddr = getShareAddr();
+
+	shareAddr->ctrls.cf205.currentState = 0;
 
 	if(shareAddr->ctrls.cf205.currentState == 0){
 		return 0;

@@ -169,7 +169,7 @@ void InitClass4300() //电气设备信息
 
 	if(getZone("HuNan")==0) {
 		memcpy(&run_version,&verinfo_HuNan,sizeof(VERINFO));
-	}else if(getZone("GW")==0) {
+	}else {
 		memcpy(&run_version,&verinfo,sizeof(VERINFO));
 	}
 
