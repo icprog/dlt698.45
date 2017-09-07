@@ -47,11 +47,11 @@ extern Rect rect_TopStatus, rect_BottomStatus, rect_Client;//液晶划分的3个
 #define DONGJIE_DATA 	2
 #define QUXIAN_DATA 	3
 
-#ifdef SPTF_III
+//#ifdef SPTF_III
 #define LunPageNum 	11  //轮寻页数
-#else
-#define LunPageNum 	14  //轮寻页数
-#endif
+//#else
+//#define LunPageNum 	14  //轮寻页数
+//#endif
 #define JCPageNum 	14  //轮寻交采页数
 
 #define ROW_INTERVAL 3

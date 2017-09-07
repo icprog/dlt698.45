@@ -29,20 +29,14 @@ void getPluseCount(unsigned int *pulse) {
 int getNowZone() {
 	TS ts;
 	TSGet(&ts);
-	fprintf(stderr, "getNowZone %d\n", ts.Hour);
-	if (ts.Hour < 7) {
-		fprintf(stderr, "getNowZone %d\n", ts.Hour);
+	fprintf(stderr, "VgetNowZone %d\n", ts.Hour);
+	if (ts.Hour < 6) {
 		return 0;
-	}
-	if (ts.Hour < 13) {
-		fprintf(stderr, "getNowZone %d\n", ts.Hour);
+	}else if (ts.Hour < 12) {
 		return 1;
-	}
-	if (ts.Hour < 19) {
-		fprintf(stderr, "getNowZone %d\n", ts.Hour);
+	}else if (ts.Hour < 18) {
 		return 2;
 	}
-	fprintf(stderr, "getNowZone %d\n", ts.Hour);
 	return 3;
 }
 
@@ -59,6 +53,7 @@ void cacl_DD(unsigned int pulse, int index) {
 	case 0:
 		//正向有功 = 脉冲总数 * 1000/con;
 		JProgramInfo->class12[index].day_pos_p[time_zone] += pulse * 10;
+		JProgramInfo->class12[index].mon_pos_p[time_zone] += pulse * 10;
 		fprintf(stderr, "实时功率 %d\n", JProgramInfo->class12[index].p);
 	case 2:
 		//反向有功 = 脉冲总数 * 100/con;

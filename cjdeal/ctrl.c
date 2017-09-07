@@ -299,6 +299,7 @@ void updateState(ALSTATE *warn, ALSTATE* op, OI_698 name) {
 }
 
 int deal8103() {
+	return 0;
 	TS ts;
 	TSGet(&ts);
 	for (int i = 0; i < 2; i++) {
@@ -356,6 +357,7 @@ int getIsInTime(OI_698 oi, TS ts) {
 }
 
 int deal8104() {
+	return 0;
 	TS ts;
 	TSGet(&ts);
 	for (int i = 0; i < 2; i++) {
@@ -379,7 +381,7 @@ int deal8104() {
 	return 0;
 }
 
-int getIsInStop(OI_698 oi, TS ts) {
+long long getIsInStop(OI_698 oi, TS ts) {
 
 	//检查当前总加组的开关是否打开
 	for (int i = 0; i < MAX_AL_UNIT; i++) {
@@ -395,6 +397,7 @@ int getIsInStop(OI_698 oi, TS ts) {
 			//判断当前时间是否在营业报停配置时段内
 			TimeBCDToTs(CtrlC->c8105.list[i].start, &start);
 			TimeBCDToTs(CtrlC->c8105.list[i].end, &end);
+			fprintf(stderr, "营业报停找配置单元(%d)\n", i);
 
 			if (TScompare(ts, start) == 1 && TScompare(end, ts) == 1) {
 				return CtrlC->c8105.list[i].v;
@@ -409,12 +412,20 @@ int deal8105() {
 	TS ts;
 	TSGet(&ts);
 	for (int i = 0; i < 2; i++) {
-		int val = 0;
+		long long val = 0;
 		if (CheckAllUnitEmpty(JProgramInfo->class23[i].allist)) {
 			val = getIsInStop(0x2301 + i, ts);
 		}
 
+		fprintf(stderr, "营业报停限值(%lld)\n", val);
+
+		long long total;
+		for(int i = 0; i < MAXVAL_RATENUM; i ++){
+			total += JProgramInfo->class23[i].DayP[i];
+		}
+
 		if (val != -1) {
+			fprintf(stderr, "营业报日点量(%lld)\n", val);
 			if (JProgramInfo->class23[i].DayP[0] > val) {
 				//产生约负荷越限
 				updateState(CtrlC->c8105.overflow, CtrlC->c8103.output,
@@ -453,14 +464,33 @@ int getMonthValue(OI_698 oi) {
 	return -1;
 }
 
+int getMonthWarn(OI_698 oi) {
+	for (int i = 0; i < MAX_AL_UNIT; i++) {
+		if (CtrlC->c8108.list[i].index == oi) {
+			return CtrlC->c8108.list[i].para;
+		}
+	}
+	return -1;
+}
+
 int deal8108() {
 	for (int i = 0; i < 2; i++) {
-		int val = 0;
-		if (CheckAllUnitEmpty(JProgramInfo->class23[i].allist)) {
-			val = getMonthValue(0x2301 + i);
+		if (!CheckAllUnitEmpty(JProgramInfo->class23[i].allist)) {
+			continue;
+		}
+
+		long long val = getMonthValue(0x2301 + i);
+		long long warn = getMonthWarn(0x2301 + i);
+		fprintf(stderr, "月电控限制%lld\n", val);
+
+		long long total = 0;
+		for(int i = 0; i < MAXVAL_RATENUM; i ++)
+		{
+			total += JProgramInfo->class23[i].MonthP[i];
 		}
 
 		if (val != -1) {
+			fprintf(stderr, "月电控值%lld\n", total);
 			if (JProgramInfo->class23[i].MonthP[0] > val) {
 				return 1;
 			}
@@ -617,22 +647,22 @@ void getFinalCtrl() {
 }
 
 void dealCtrl() {
-//	//直接跳闸，必须检测
+	//直接跳闸，必须检测
 //	deal8107();
-//	deal8108();
+	int res8108 = deal8108();
 //
 //	//检测控制有优先级，当高优先级条件产生时，忽略低优先级的配置
 //
-//	if (deal8106() != 0) {
-//		;
-//	} else if (deal8105() != 0) {
-//		;
-//	} else if (deal8104() != 0) {
-//		;
-//	} else if (deal8103() != 0) {
-//		;
-//	}
-//	//统计输出与告警状态
+	if (deal8106() != 0) {
+		;
+	} else if (deal8105() != 0) {
+		;
+	} else if (deal8104() != 0) {
+		;
+	} else if (deal8103() != 0) {
+		;
+	}
+	//统计输出与告警状态
 //	sumUpCtrl();
 //
 //	//汇总所有总加组的状态
@@ -644,10 +674,7 @@ int ctrlMain(void * arg) {
 	int secOld = 0;
 	//初始化参数,搭建8个总加组数据，读取功控、电控参数
 	initAll();
-	if(JProgramInfo->cfg_para.device == SPTF3)
-	{
-		initFreezeDataFormFile();
-	}
+	initFreezeDataFormFile();
 	while (1) {
 		TS now;
 		TSGet(&now);
@@ -662,7 +689,6 @@ int ctrlMain(void * arg) {
 
 		//一分钟计算一次控制逻辑
 		if (secOld == 0) {
-//			refreshSumUp();
 
 //检查参数更新
 //			CheckParaUpdate();
