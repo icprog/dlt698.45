@@ -33,6 +33,8 @@
 #define SdPrint(...) {fprintf(stderr, __VA_ARGS__);\
 	syslog(LOG_NOTICE,__VA_ARGS__);}while(0);
 
+#define CMD_CHK_MD5(str, file)		sprintf(str, "md5sum %s|awk '{print $1}'", (file))
+
 
 ProgramInfo* JProgramInfo;		//程序信息结构
 unsigned char ProjectNo;

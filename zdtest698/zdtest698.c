@@ -164,14 +164,17 @@ int main(int argc,char *argv[])
 {
 	int	succflag=0;
 	int func_size=0, i;
+
+	//先查找集中器现在有没有运行698程序
+
+	system("cj dog");
+	system("cj stop");
+	system("cjmain&");
 	memset(&Gui_Point, 0, sizeof(GUI_Point_t));
 	initmem();
 	SdPrint("\n\n");
 	SdPrint("\n======================开始测试======================");
 	find_jLcdTask_id();
-	system("cj dog");
-	system("cj stop");
-	system("cjmain&");
 	ReadHzkBuff_12();
 	openlight();
 	start_key();//启动按键线程

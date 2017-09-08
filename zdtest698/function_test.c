@@ -5,6 +5,7 @@
 #include <dirent.h>
 #include <sys/syslog.h>
 #include <sys/stat.h>
+#include <errno.h>
 #include "function_test.h"
 #include "zdtest698.h"
 
@@ -71,7 +72,7 @@ int readcfg(char *filename, char *name, char *ret)
 	while(!feof(fp))
 	{
 		row++;
-		if(row>50)//为了防止程序在while里死循环
+		if(row>500)//为了防止程序在while里死循环
 			break;
 		memset(stmp, 0, 500);
 		if(fgets(stmp, 500, fp) != NULL)//读取一行
@@ -134,6 +135,7 @@ void lcdprt_result(char *buf, char ok){
 	Gui_Point.y += ROWSIZE;
 	lcd_disp(str, Gui_Point.x, Gui_Point.y);
 }
+
 void Esam_test(){
 	int ret=0, count=0;
 	char port[2];
@@ -190,14 +192,12 @@ int ASCToBCD(unsigned char * ASC, int Len, unsigned char *Ret) {
 			}
 		}
 		if (Len % 2 == 0) {
-			//unsigned char *Ret=new char[Len/2+1];
 			memset(Ret, 0, Len / 2 + 1);
 			for (j = 0, k = 0; j < Len / 2; j++) {
 				*(Ret + j) = (ASC[k] << 4) | ASC[k + 1];
 				k++;
 				k++;
 			}
-			//return Ret;
 		}
 	}
 	return 0;
@@ -233,7 +233,6 @@ int readmeter(int meter, int port, int timeout){
 		Check=Check+sendbuf[j];
 	SdPrint("\n sendbuf check=%02x", Check);
 	sendbuf[14] = Check;
-//	if(JParamInfo3761->group2.f10[meter-1].port==2){
 	if(port==2){
 		port = 6;
 		if(readcfg(JZQTEST_PARA_NAME, "485I_port", s_port)==1)
@@ -281,7 +280,6 @@ int readmeter(int meter, int port, int timeout){
 		for(j=0;j<(load_len+10);j++)
 		{
 			Check=Check+recvbuf[i+j];
-//			SdPrint("%x ",recvbuf[i+j]);	//接收
 		}
 		if(Check!=recvbuf[i+load_len+10]){
 			SdPrint("\n check=%d recvbuf_check=%d",Check, recvbuf[i+load_len+10]);
@@ -295,10 +293,7 @@ int readmeter(int meter, int port, int timeout){
 
 //删除所有测量点 交采除外
 void delallmeter(){
-	int j=0;
-	for (j = 1; j < 6000; j++){
-		delay(300);
-	}
+	system("cj InIt 4");
 }
 
 void RS485I_test(){
@@ -325,6 +320,7 @@ void RS485I_test(){
 	delallmeter();
 	return;
 }
+
 void RS485II_test(){
 	PrtTestName("485II 测试开始");
 	int ret=0, cldno=3;
@@ -333,17 +329,10 @@ void RS485II_test(){
 	memset(s_cldno, 0, 5);
 	system("pkill jRead485");
 	delay(2000);
-	//system("jSet meter 3-1 3 3 30 2400 0 9 5 1 4");
-	//delay(2000);
+
 	if(readcfg(JZQTEST_PARA_NAME, "485II_cldno", s_cldno)==1)
 		cldno = atoi(s_cldno);
-//	SdPrint("\n cldno:%d addr:%02x%02x%02x%02x%02x%02x", cldno,
-//			JParamInfo3761->group2.f10[cldno-1].Address[5],
-//			JParamInfo3761->group2.f10[cldno-1].Address[4],
-//			JParamInfo3761->group2.f10[cldno-1].Address[3],
-//			JParamInfo3761->group2.f10[cldno-1].Address[2],
-//			JParamInfo3761->group2.f10[cldno-1].Address[1],
-//			JParamInfo3761->group2.f10[cldno-1].Address[0]);
+
 	ret = readmeter(cldno, 3, 7);
 	if(ret>0){
 		SdPrint("\n结论: RS485II   OK");
@@ -355,7 +344,7 @@ void RS485II_test(){
 	PrtTestName("485II 测试结束");
 	//测试完485后删除所有有效的测量点 质检要求
 	delallmeter();
-	//system("jSet meter 3-0");
+
 	return;
 }
 
@@ -363,20 +352,48 @@ void softver_test(){
 	int i;
 	int proj_ver=0;
 	char flag=1;
-	char kernelver_std[100], cmd[100],*kernelver=NULL;
+	char kernelver_std[100], *kernelver=NULL;
 	char softver[30] = {0};
+	char result[2048] = {0};
+	char cmd[100] = {0};
+	int  fileCnt = 0;//要检查md5码的文件数量
+	FILE *fp = NULL;
 
+	//---------------------------------
 	PrtTestName("SoftVer 测试开始");
+
+	//软件版本日期
 	memset(softver, 0, 30);
 	if(readcfg(JZQTEST_PARA_NAME, "softver", softver)==1){
+		sprintf(cmd, "cj para pro 4300 2 > &1");
+	    if(NULL==(fp=popen(cmd, "r"))) {
+	        fprintf(stderr, "execute command failed: %s", strerror(errno));
+	        flag = 0;
+	    }
+	    if(0 != fread(result, sizeof(char), sizeof(result), fp)) {
 
-	}else{
+	    } else {
+	    	lcdprt_result("softver", UNKNOWN);
+	    	flag = 0;
+	    }
+	} else {
 		SdPrint("\n softver UNKNOWN");
 		lcdprt_result("softver", UNKNOWN);
 		flag = 0;
 	}
 
-	for(i=0; i < PROJECTCOUNT; i++) {
+	//文件MD5校验码
+	memset(softver, 0, 30);
+	//读取要校验的文件数量
+	if(readcfg(JZQTEST_PARA_NAME, "filecount", softver)==1){
+		fileCnt = atoi(softver);
+	}
+
+	if ((fp=fopen(JZQTEST_PARA_NAME, "r")) == NULL) {
+
+	}
+
+	for(i=0; i < fileCnt; i++) {
 		if(JProgramInfo->Projects[i].ProjectID!=0) {
 			if(memcmp(JProgramInfo->Projects[i].ProjectName, "jLcdTask", strlen("jLcdTask"))==0)
 				continue;
@@ -388,10 +405,6 @@ void softver_test(){
 				if(proj_ver){
 					SdPrint("\n %s OK", JProgramInfo->Projects[i].ProjectName);
 				}else{
-//					SdPrint("\n %s ERROR ver=%d okver=%d",
-//							JProgramInfo->Projects[i].ProjectName,
-//							JProgramInfo->Projects[i].version,
-//							proj_ver);
 					lcdprt_result((char*)JProgramInfo->Projects[i].ProjectName, ERROR);
 					flag = 0;
 				}
@@ -403,6 +416,7 @@ void softver_test(){
 		}
 	}
 
+	//内核
 	memset(kernelver_std, 0, 100);
 	memset(cmd, 0, 100);
 	if(readcfg(JZQTEST_PARA_NAME, "Kernel_Ver", kernelver_std)==1){
@@ -412,7 +426,7 @@ void softver_test(){
 		SdPrint("\n kernelver=%s kernelver_std=%s", kernelver, kernelver_std);
 		if (kernelver!=NULL){
 			SdPrint("\n Kernel_Ver OK");
-//			lcdprt_result("Kernel_Ver", OK);
+			lcdprt_result("Kernel_Ver", OK);
 		}else{
 			SdPrint("\n Kernel_Ver ERROR");
 			lcdprt_result("Kernel_Ver", ERROR);
@@ -433,6 +447,7 @@ void softver_test(){
 	}
 	PrtTestName("SoftVer 测试结束");
 }
+
 /*
  * # ping 193.168.18.173 -q -c 3 -W 2 > ping.log
 # cat ping.log
