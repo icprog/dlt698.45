@@ -499,8 +499,23 @@ int class8104_act_route(int index, int attr_act, INT8U *data,
 }
 
 int class8105_act3(int index, int attr_act, INT8U *data, Action_result *act_ret) {
-	asyslog(LOG_WARNING, "营业报停-添加控制单元");
-
+//	int oi = 0x00;
+//	int	ii = 0;
+//	index += getOI(1,&data[ii],&oi);
+//	asyslog(LOG_WARNING, "营业报停-添加控制单元");
+//
+//	CLASS_8105 c8105;
+//	readCoverClass(0x8105, 0, (void *) &c8105, sizeof(CLASS_8105),
+//			para_vari_save);
+//
+//	for (int i = 0; i < MAX_AL_UNIT; i++) {
+//		if (c8105.enable[i].name == oi) {
+//			c8105.enable[i].state = 0x01;
+//		}
+//	}
+//
+//	saveCoverClass(0x8105, 0, (void *) &c8105, sizeof(CLASS_8105),
+//			para_vari_save);
 	return 0;
 }
 
