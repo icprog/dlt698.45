@@ -55,6 +55,8 @@ void showCheckPara();
 extern void Test(int argc, char *argv[]);
 extern void showPlcMeterstatus(int argc, char *argv[]);
 extern void setm2g(int argc, char* argv[]);
+extern void breezeTest(int argc, char *argv[]);
+extern void ctrl_process(int argc, char *argv[]);
 
 /*III型专变控制功能*/
 extern void ctrl_process(int argc, char *argv[]);

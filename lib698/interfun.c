@@ -280,21 +280,6 @@ int fill_double_long_unsigned(INT8U *data,INT32U value)		//0x06
 	return 5;
 }
 
-int fill_double_long64(INT8U *data,INT64U value)		//0x14
-{
-	data[0] = dtlong64;
-	data[1] = (value & 0xFF00000000000000) >> 56;
-	data[2] = (value & 0x00FF000000000000) >> 48;
-	data[3] = (value & 0x0000FF0000000000) >> 40;
-	data[4] = (value & 0x000000FF00000000) >> 32;
-	data[5] = (value & 0x00000000FF000000) >> 24;
-	data[6] = (value & 0x00FF000000FF0000) >> 16;
-	data[7] = (value & 0x0000FF000000FF00) >> 8;
-	data[8] = value & 0x00000000000000FF;
-	return 9;
-}
-
-
 int fill_octet_string(INT8U *data,char *value,INT8U len)	//0x09
 {
 //	if(len==0) {
@@ -348,6 +333,21 @@ int fill_long_unsigned(INT8U *data,INT16U value)		//0x12
 	data[2] = value & 0x00FF;
 	return 3;
 }
+
+int fill_double_long64(INT8U *data,INT64U value)		//0x14
+{
+	data[0] = dtlong64;
+	data[1] = (value & 0xFF00000000000000) >> 56;
+	data[2] = (value & 0x00FF000000000000) >> 48;
+	data[3] = (value & 0x0000FF0000000000) >> 40;
+	data[4] = (value & 0x000000FF00000000) >> 32;
+	data[5] = (value & 0x00000000FF000000) >> 24;
+	data[6] = (value & 0x00FF000000FF0000) >> 16;
+	data[7] = (value & 0x0000FF000000FF00) >> 8;
+	data[8] = value & 0x00000000000000FF;
+	return 9;
+}
+
 int fill_enum(INT8U *data,INT8U value)		//0x16
 {
 	data[0] = dtenum;
@@ -735,6 +735,22 @@ int getLongUnsigned(INT8U *source,INT8U *dest)	//0x12
 	return 0;
 }
 
+int getLong64(INT8U *source,INT64U *dest)	//0x14
+{
+	if(source[0] == dtlong64) {
+//		dest = source[1];
+//		dest = (dest<<8) | source[2];
+//		dest = (dest<<8) | source[3];
+//		dest = (dest<<8) | source[4];
+//		dest = (dest<<8) | source[5];
+//		dest = (dest<<8) | source[6];
+//		dest = (dest<<8) | source[7];
+//		dest = (dest<<8) | source[8];
+		return 9;
+	}
+	return 0;
+}
+
 int getEnum(INT8U type,INT8U *source,INT8U *enumvalue)	//0x16
 {
 	if ((type==1 && source[0]==dtenum) || (type==0))
@@ -789,11 +805,11 @@ int getDateTimeS(INT8U type,INT8U *source,INT8U *dest,INT8U *DAR)		//0x1C
 	return 0;
 }
 
-int getOI(INT8U type,INT8U *source,OI_698 oi)		//0x50
+int getOI(INT8U type,INT8U *source,OI_698 *oi)		//0x50
 {
 	if((type == 1 && source[0]==dtoi) || (type == 0)) {
-		oi = source[type];
-		oi = (oi<<8) + source[type+1];
+		*oi = source[type];
+		*oi = (*oi<<8) + source[type+1];
 		return (type+2);
 	}
 	return 0;
