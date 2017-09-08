@@ -159,16 +159,16 @@ void lcd_showstatus()
 //				erc_flg = 0;
 			gpio_writebyte((char*)DEV_LED_ALARM, 0);
 		}
-			//TODO:运行灯处理
-		if(p_JProgramInfo!=NULL)
-		{
-			if(p_JProgramInfo->dev_info.jzq_login==GPRS_COM||
-					p_JProgramInfo->dev_info.jzq_login==NET_COM ||p_JProgramInfo->dev_info.jzq_login == 3 ){  //3 内部协议栈上线
-				led_run_state = (~led_run_state)&0x01;
-				gpio_writebyte((char*)DEV_LED_RUN, led_run_state);
-			}else
-				gpio_writebyte((char*)DEV_LED_RUN, 1);
-		}
+//			//TODO:运行灯处理
+//		if(p_JProgramInfo!=NULL)
+//		{
+//			if(p_JProgramInfo->dev_info.jzq_login==GPRS_COM||
+//					p_JProgramInfo->dev_info.jzq_login==NET_COM ||p_JProgramInfo->dev_info.jzq_login == 3 ){  //3 内部协议栈上线
+//				led_run_state = (~led_run_state)&0x01;
+//				gpio_writebyte((char*)DEV_LED_RUN, led_run_state);
+//			}else
+//				gpio_writebyte((char*)DEV_LED_RUN, 1);
+//		}
 //上状态条显示
 		lcd_showTopStatus();
 }

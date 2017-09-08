@@ -2573,11 +2573,12 @@ int doGetnormal(INT8U seqOfNum,RESULT_NORMAL *response)
 		GetEnergy(response);
 		break;
 	case 2:			//变量类对象
-		if(response->oad.attflg!=2) {
-			response->dar = interface_uncomp;
-			response->datalen = 0;
-			return 0;
-		}
+//		if(response->oad.attflg!=2) {
+//			response->dar = interface_uncomp;
+//			response->datalen = 0;
+//
+//			return 0;
+//		}
 		if(response->oad.OI != 0x2000 && memp->cfg_para.device == CCTT2) {	//国网送检基本功能测试，II型招测电压，电流，有功，无功参数，其他无效数据应回越限
 			response->dar = boundry_over;
 			response->datalen = 0;

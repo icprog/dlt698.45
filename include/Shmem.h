@@ -433,7 +433,9 @@ typedef struct {
 	CLASS_F205 cf205; //继电器输出状态
 	INT8U c4024;	//剔除状态
 
-	INT32U control[3]; //遥控命令 0xEEFFEFEF为分闸 0xCCAACACA为合闸， 必须三个位置同时相同才认为命令有效
+	INT32U control[3]; //遥控命令 必须三个位置同时相同才认为命令有效
+					   //YK1：0xEEFFEFEF为分闸 0xCCAACACA为合闸，
+					   //YK2：0x55552525为分闸 0xCCCC2C2C为合闸，
 } CtrlState;
 
 //typedef struct {

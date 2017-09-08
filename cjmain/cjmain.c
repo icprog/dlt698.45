@@ -731,8 +731,8 @@ int main(int argc, char *argv[])
 		//每20分钟校时
 		SyncRtc();
         if (JProgramInfo->cfg_para.device == CCTT1 || JProgramInfo->cfg_para.device == SPTF3) { //I型集中器，III型专变
-            //电池检测掉电关闭设备
-            PowerOffToClose(90);
+            //电池检测掉电关闭设备，原写90s，湖南要求电池供电工作120s
+            PowerOffToClose(120);
         } else if(JProgramInfo->cfg_para.device == CCTT2) {
         	if (getZone("ZheJiang") == 0) {
         		rebootWhenPwrDown(PWR_SHUT_CNT_ZJ);
