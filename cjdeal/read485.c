@@ -5464,11 +5464,24 @@ void read485_proccess() {
 	comfd485[1] = -1;
 	readState = 0;
 
+	INT8U isNeed4852 = 1;
+    CLASS_f201 oif201[3] = {};
+	if(readCoverClass(0xf201, 0, oif201, sizeof(CLASS_f201)*3, para_vari_save)==1)
+	{
+		if(oif201[1].devfunc !=1)
+		{
+			isNeed4852 = 0;
+			asyslog(LOG_INFO,"485-2不运行");
+		}
+
+	}
+
 	struct mq_attr attr_485_1_task;
 	mqd_485_1_task = mmq_open((INT8S *)TASKID_485_1_MQ_NAME,&attr_485_1_task,O_RDONLY);
 
 	struct mq_attr attr_485_2_task;
 	mqd_485_2_task = mmq_open((INT8S *)TASKID_485_2_MQ_NAME,&attr_485_2_task,O_RDONLY);
+
 
 
 	pthread_attr_init(&read485_attr_t);
@@ -5480,10 +5493,14 @@ void read485_proccess() {
 		sleep(1);
 	}
 
-	while ((thread_read4852_id=pthread_create(&thread_read4852, &read485_attr_t, (void*)read485_thread, &i485port2)) != 0)
+	if(isNeed4852 == 1)
 	{
-		sleep(1);
+		while ((thread_read4852_id=pthread_create(&thread_read4852, &read485_attr_t, (void*)read485_thread, &i485port2)) != 0)
+		{
+			sleep(1);
+		}
 	}
+
 
 }
 void read485QuitProcess()
