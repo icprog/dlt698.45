@@ -7,6 +7,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <string.h>
+#include <syslog.h>
 
 #include "ctrl.h"
 #include "crtl_base.h"
@@ -16,10 +17,28 @@
 #include "AccessFun.h"
 #include "basedef.h"
 
+extern INT8U get6001ObjByTSA(TSA addr,CLASS_6001* targetMeter);
 extern ProgramInfo* JProgramInfo;
 CtrlState * CtrlC;
 
-extern INT8U get6001ObjByTSA(TSA addr,CLASS_6001* targetMeter);
+typedef union {//control code
+	INT16U u16b;//convenient to set value to 0
+	struct {//only for little endian mathine!
+		INT8U bak	: 6;	//备用
+		INT8U lun1_state: 1;//轮次1-状态
+		INT8U lun1_red	: 1;//轮次1-红灯
+		INT8U lun1_green: 1;//轮次1-绿灯
+		INT8U lun2_state: 1;//轮次2-状态
+		INT8U lun2_red	: 1;//轮次2-红灯
+		INT8U lun2_green: 1;//轮次2-绿灯
+		INT8U gongk_led		: 1;//功控灯
+		INT8U diank_led		: 1;//电控灯
+		INT8U alm_state		: 1;//告警状态
+		INT8U baodian_led	: 1;//报警灯
+	} ctrl;
+} ctrlUN;
+
+static ctrlUN	ctrlunit,ctrlunit_old;
 
 int ctrl_base_test() {
 	printf("%d", CheckModelState());
@@ -98,9 +117,9 @@ void refreshSumUp() {
 void CheckParaUpdate() {
 
 }
-INT8U initFreezeDataFormFile()
-{
-	fprintf(stderr,"\n\n\ninitFreezeDataFormFileinitFreezeDataFormFileinitFreezeDataFormFileinitFreezeDataFormFile");
+INT8U initFreezeDataFormFile() {
+	fprintf(stderr,
+			"\n\n\ninitFreezeDataFormFileinitFreezeDataFormFileinitFreezeDataFormFileinitFreezeDataFormFile");
 	INT8U ret = 0;
 
 	INT8U meterIndex = 0;
@@ -120,41 +139,43 @@ INT8U initFreezeDataFormFile()
 	oad_r[1].attflg = 0x02;
 	oad_r[1].attrindex = 0;
 
-	for(groupIndex = 0;groupIndex < 8;groupIndex++)
-	{
-		for(meterIndex = 0;meterIndex < MAX_AL_UNIT;meterIndex++)
-		{
-			if(JProgramInfo->class23[groupIndex].allist[meterIndex].tsa.addr[0]==0)
+	for (groupIndex = 0; groupIndex < 8; groupIndex++) {
+		for (meterIndex = 0; meterIndex < MAX_AL_UNIT; meterIndex++) {
+			if (JProgramInfo->class23[groupIndex].allist[meterIndex].tsa.addr[0]
+					== 0)
 				break;
 			CLASS_6001 meter;
-			INT8U ret = get6001ObjByTSA(JProgramInfo->class23[groupIndex].allist[meterIndex].tsa,&meter);
-			if(ret == 1)
-			{
+			INT8U ret = get6001ObjByTSA(
+					JProgramInfo->class23[groupIndex].allist[meterIndex].tsa,
+					&meter);
+			if (ret == 1) {
 				INT8U resultbuf[256];
 				TS tsnow;
 				TSGet(&tsnow);
 				INT8U dataIndex = 0;
-				for(dataIndex = 0;dataIndex < 4;dataIndex++)
-				{
-					memset(resultbuf,0,256);
-					INT16U datalen = GetOADData(oad_m[dataIndex/2],oad_r[dataIndex%2],tsnow,meter,resultbuf);
-					if(datalen > 3)
-					{
-						if(resultbuf[3] == (MAXVAL_RATENUM+1))
-						{
+				for (dataIndex = 0; dataIndex < 4; dataIndex++) {
+					memset(resultbuf, 0, 256);
+					INT16U datalen = GetOADData(oad_m[dataIndex / 2],
+							oad_r[dataIndex % 2], tsnow, meter, resultbuf);
+					if (datalen > 3) {
+						if (resultbuf[3] == (MAXVAL_RATENUM + 1)) {
 							INT8U databuf[25];
-							memcpy(databuf,&resultbuf[4],25);
+							memcpy(databuf, &resultbuf[4], 25);
 							INT8U rateIndex = 0;
-							for(rateIndex = 0;rateIndex < MAXVAL_RATENUM+1;rateIndex++)
-							{
-								if(rateIndex*5==0x06)
-								{
-									INT32U dianliang = (databuf[rateIndex*5+1]<<24)+(databuf[rateIndex*5+2]<<16)+(databuf[rateIndex*5+3]<<8)+databuf[rateIndex*5+4];
-									JProgramInfo->class23[groupIndex].allist[meterIndex].freeze[dataIndex][rateIndex] = dianliang;
-									fprintf(stderr,"\n dataIndex = %d rateIndex = %d value = %d",dataIndex,rateIndex,dianliang);
-								}
-								else
-								{
+							for (rateIndex = 0; rateIndex < MAXVAL_RATENUM + 1;
+									rateIndex++) {
+								if (rateIndex * 5 == 0x06) {
+									INT32U dianliang = (databuf[rateIndex * 5
+											+ 1] << 24)
+											+ (databuf[rateIndex * 5 + 2] << 16)
+											+ (databuf[rateIndex * 5 + 3] << 8)
+											+ databuf[rateIndex * 5 + 4];
+									JProgramInfo->class23[groupIndex].allist[meterIndex].freeze[dataIndex][rateIndex] =
+											dianliang;
+									fprintf(stderr,
+											"\n dataIndex = %d rateIndex = %d value = %d",
+											dataIndex, rateIndex, dianliang);
+								} else {
 									break;
 								}
 
@@ -162,7 +183,6 @@ INT8U initFreezeDataFormFile()
 						}
 					}
 				}
-
 
 			}
 
@@ -172,6 +192,10 @@ INT8U initFreezeDataFormFile()
 	return ret;
 }
 int initAll() {
+
+	//控制状态初始化
+	ctrlunit.u16b = 0;
+	ctrlunit_old.u16b = 0;
 	//读取总加组数据
 	CtrlC = &JProgramInfo->ctrls;
 	memset(CtrlC, 0x00, sizeof(CtrlState));
@@ -420,7 +444,7 @@ int deal8105() {
 		fprintf(stderr, "营业报停限值(%lld)\n", val);
 
 		long long total;
-		for(int i = 0; i < MAXVAL_RATENUM; i ++){
+		for (int i = 0; i < MAXVAL_RATENUM; i++) {
 			total += JProgramInfo->class23[i].DayP[i];
 		}
 
@@ -447,51 +471,98 @@ int deal8106() {
 int deal8107() {
 	//购电控不受购电配置单元的影响，购电配置单元作为总加组剩余电量刷新的依据
 
-	for (int i = 0; i < 2; i++) {
-		if (JProgramInfo->class23[i].remains <= 0) {
-			return 1;
+	fprintf(stderr, "deal8107(%lld)\n", CtrlC->c8107.list[0].ctrl);
+	for (int i = 0; i < 1; i++) {
+		if (!CheckAllUnitEmpty(JProgramInfo->class23[i].allist)) {
+			continue;
+		}
+		fprintf(stderr, "8107 index = %d\n", i);
+
+		if (JProgramInfo->ctrls.c8107.enable[i].state == 0) {
+			JProgramInfo->class23[i].alCtlState.OutputState = 0;
+			JProgramInfo->class23[i].alCtlState.ECAlarmState = 0;
+			JProgramInfo->class23[i].alCtlState.BuyOutputState = 0;
+			return 0;
+		}
+
+		INT64U val = CtrlC->c8107.list[0].ctrl;
+		INT64U warn = CtrlC->c8107.list[0].alarm;
+		fprintf(stderr, "购电控限制[%lld] [%lld]\n", val, warn);
+
+		if (val >= 0) {
+			fprintf(stderr, "购电判断值[%lld]\n",
+					JProgramInfo->class23[i].remains);
+
+			if (JProgramInfo->class23[i].remains <= val) {
+				fprintf(stderr, "购电控跳闸！！！！！！！！！！！！！！！！！！\n", val);
+				JProgramInfo->class23[i].alCtlState.OutputState = 192;
+				JProgramInfo->class23[i].alCtlState.ECAlarmState = 0;
+				JProgramInfo->class23[i].alCtlState.BuyOutputState = 192;
+				return 2;
+			}
+
+			if (JProgramInfo->class23[i].remains <= warn) {
+				fprintf(stderr, "购电控告警！！！！！！！！！！！！！！！！！！\n", val);
+				JProgramInfo->class23[i].alCtlState.ECAlarmState = 64;
+				JProgramInfo->class23[i].alCtlState.OutputState = 0;
+				JProgramInfo->class23[i].alCtlState.BuyOutputState = 0;
+				return 1;
+			}
 		}
 	}
 	return 0;
 }
 
-int getMonthValue(OI_698 oi) {
-	for (int i = 0; i < MAX_AL_UNIT; i++) {
-		if (CtrlC->c8108.list[i].index == oi) {
-			return CtrlC->c8108.list[i].v;
-		}
-	}
-	return -1;
+INT64U getMonthValue(int i) {
+	return CtrlC->c8108.list[i].v;
 }
 
-int getMonthWarn(OI_698 oi) {
-	for (int i = 0; i < MAX_AL_UNIT; i++) {
-		if (CtrlC->c8108.list[i].index == oi) {
-			return CtrlC->c8108.list[i].para;
-		}
-	}
-	return -1;
+INT8U getMonthWarn(int i) {
+	return CtrlC->c8108.list[i].para;
 }
 
 int deal8108() {
-	for (int i = 0; i < 2; i++) {
+	fprintf(stderr, "deal8108(%lld)\n", CtrlC->c8108.list[0].v);
+	for (int i = 0; i < 1; i++) {
 		if (!CheckAllUnitEmpty(JProgramInfo->class23[i].allist)) {
 			continue;
 		}
+		fprintf(stderr, "8108 index = %d\n", i);
 
-		long long val = getMonthValue(0x2301 + i);
-		long long warn = getMonthWarn(0x2301 + i);
+		if (JProgramInfo->ctrls.c8108.enable[i].state == 0) {
+			JProgramInfo->class23[i].alCtlState.OutputState = 0;
+			JProgramInfo->class23[i].alCtlState.MonthOutputState = 0;
+			return 0;
+		}
+
+		INT64U val = getMonthValue(i);
+		INT8U warn = getMonthWarn(i);
 		fprintf(stderr, "月电控限制%lld\n", val);
 
 		long long total = 0;
-		for(int i = 0; i < MAXVAL_RATENUM; i ++)
-		{
+		for (int i = 0; i < MAXVAL_RATENUM; i++) {
 			total += JProgramInfo->class23[i].MonthP[i];
 		}
 
 		if (val != -1) {
-			fprintf(stderr, "月电控值%lld\n", total);
-			if (JProgramInfo->class23[i].MonthP[0] > val) {
+			float e = warn / 100.0;
+
+			fprintf(stderr, "月电控值%lld [%f]\n",
+					JProgramInfo->class23[i].MonthPALL * 100, e * val);
+
+			if (JProgramInfo->class23[i].MonthPALL * 100 > val) {
+				fprintf(stderr, "月电控跳闸！！！！！！！！！！！！！！！！！！\n", val);
+				JProgramInfo->class23[i].alCtlState.OutputState = 192;
+				JProgramInfo->class23[i].alCtlState.MonthOutputState = 192;
+				JProgramInfo->class23[i].alCtlState.ECAlarmState = 0;
+				return 2;
+			}
+
+			if (JProgramInfo->class23[i].MonthPALL * 100 > e * val) {
+				fprintf(stderr, "月电控告警！！！！！！！！！！！！！！！！！！\n", val);
+				JProgramInfo->class23[i].alCtlState.ECAlarmState = 128;
+				JProgramInfo->class23[i].alCtlState.OutputState = 0;
+				JProgramInfo->class23[i].alCtlState.MonthOutputState = 0;
 				return 1;
 			}
 		}
@@ -648,20 +719,20 @@ void getFinalCtrl() {
 
 void dealCtrl() {
 	//直接跳闸，必须检测
-//	deal8107();
-	int res8108 = deal8108();
+	deal8107();
+	deal8108();
 //
 //	//检测控制有优先级，当高优先级条件产生时，忽略低优先级的配置
 //
-	if (deal8106() != 0) {
-		;
-	} else if (deal8105() != 0) {
-		;
-	} else if (deal8104() != 0) {
-		;
-	} else if (deal8103() != 0) {
-		;
-	}
+//	if (deal8106() != 0) {
+//		;
+//	} else if (deal8105() != 0) {
+//		;
+//	} else if (deal8104() != 0) {
+//		;
+//	} else if (deal8103() != 0) {
+//		;
+//	}
 	//统计输出与告警状态
 //	sumUpCtrl();
 //
@@ -672,6 +743,7 @@ void dealCtrl() {
 int ctrlMain(void * arg) {
 
 	int secOld = 0;
+	int ctrlflg = 0;
 	//初始化参数,搭建8个总加组数据，读取功控、电控参数
 	initAll();
 	initFreezeDataFormFile();
@@ -688,7 +760,7 @@ int ctrlMain(void * arg) {
 		}
 
 		//一分钟计算一次控制逻辑
-		if (secOld == 0) {
+		if (secOld % 5 == 0) {
 
 //检查参数更新
 //			CheckParaUpdate();
@@ -699,26 +771,47 @@ int ctrlMain(void * arg) {
 
 		if (JProgramInfo->ctrls.control[0] == 0xEEFFEFEF
 				&& JProgramInfo->ctrls.control[1] == 0xEEFFEFEF
-				&& JProgramInfo->ctrls.control[2] == 0xEEFFEFEF) {
-			JProgramInfo->ctrls.control[0] = 0x00;
-			printf("%d", CheckModelState());
-			InitCtrlModel();
-			int fd = OpenSerialPort();
-
-			SetCtrl_CMD(fd, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
-			close(fd);
+				&& JProgramInfo->ctrls.control[2] == 0xEEFFEFEF) {//分闸
+			ctrlunit.ctrl.lun1_state = 0;
+			ctrlunit.ctrl.lun1_red = 1;
+			ctrlunit.ctrl.lun1_green = 0;
+			ctrlflg = 1;
 		} else if (JProgramInfo->ctrls.control[0] == 0xCCAACACA
 				&& JProgramInfo->ctrls.control[1] == 0xCCAACACA
-				&& JProgramInfo->ctrls.control[2] == 0xCCAACACA) {
-			JProgramInfo->ctrls.control[0] = 0x00;
-			printf("%d", CheckModelState());
-			InitCtrlModel();
-			int fd = OpenSerialPort();
-			SetCtrl_CMD(fd, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0);
-			close(fd);
+				&& JProgramInfo->ctrls.control[2] == 0xCCAACACA) {//合闸
+			ctrlunit.ctrl.lun1_state = 1;
+			ctrlunit.ctrl.lun1_red = 0;
+			ctrlunit.ctrl.lun1_green = 1;
+			ctrlflg = 1;
+		}else if (JProgramInfo->ctrls.control[0] == 0x55552525
+				&& JProgramInfo->ctrls.control[1] == 0x55552525
+				&& JProgramInfo->ctrls.control[2] == 0x55552525) {	//分闸
+			ctrlunit.ctrl.lun2_state = 0;
+			ctrlunit.ctrl.lun2_red = 1;
+			ctrlunit.ctrl.lun2_green = 0;
+			ctrlflg = 1;
+		}else if (JProgramInfo->ctrls.control[0] == 0xCCCC2C2C
+				&& JProgramInfo->ctrls.control[1] == 0xCCCC2C2C
+				&& JProgramInfo->ctrls.control[2] == 0xCCCC2C2C) {	//合闸
+			ctrlunit.ctrl.lun2_state = 1;
+			ctrlunit.ctrl.lun2_red = 0;
+			ctrlunit.ctrl.lun2_green = 1;
+			ctrlflg = 1;
+		}else ctrlflg = 0;
+		if(ctrlflg==1) {
+			memset(&JProgramInfo->ctrls.control,0,sizeof(JProgramInfo->ctrls.control));
+			asyslog(LOG_NOTICE,"接收到控制命令：控制状态【%04x】 原状态【%04x】",ctrlunit.u16b,ctrlunit_old.u16b);
+			if((ctrlunit.u16b & 0x3ff)^(ctrlunit_old.u16b & 0x3ff)) {
+				ctrlunit_old.u16b = ctrlunit.u16b;
+				printf("%d", CheckModelState());
+				InitCtrlModel();
+				int fd = OpenSerialPort();
+				SetCtrl_CMD(fd, ctrlunit.ctrl.lun1_state, ctrlunit.ctrl.lun1_red, ctrlunit.ctrl.lun1_green,
+								ctrlunit.ctrl.lun2_state, ctrlunit.ctrl.lun2_red, ctrlunit.ctrl.lun2_green,
+								ctrlunit.ctrl.gongk_led, ctrlunit.ctrl.diank_led, ctrlunit.ctrl.alm_state, ctrlunit.ctrl.baodian_led);
+				close(fd);
+			}
 		}
-
-
 		secOld = now.Sec;
 		usleep(200 * 1000);
 	}
