@@ -190,7 +190,7 @@
 #define S4851   		1
 #define S4852   		2
 #define S4853   		3
-#define SER_ZB		5
+#define SER_ZB			5
 
 
 //  I型集中器串口定义

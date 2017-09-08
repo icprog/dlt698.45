@@ -17,6 +17,27 @@
 #include "dlt645.h"
 #include "PublicFunction.h"
 
+void print213x(OI_698  oi)
+{
+	int	  	len=0;
+	Volt_PassRate_tj	volt_tj={};
+	memset(&volt_tj,0,sizeof(Volt_PassRate_tj));
+	len = readVariData(oi,0,&volt_tj,sizeof(Volt_PassRate_tj));
+	fprintf(stderr," OI=%04x\n",oi);
+	fprintf(stderr," 当日电压合格率\n");
+	fprintf(stderr," 	电压监测时间（分钟）：%d\n",volt_tj.dayu_tj.monitorTime);
+	fprintf(stderr," 	电压合格率：%d\n",volt_tj.dayu_tj.passRate);
+	fprintf(stderr," 	电压超限率：%d\n",volt_tj.dayu_tj.overRate);
+	fprintf(stderr," 	电压超上限时间（分钟）：%d\n",volt_tj.dayu_tj.upLimitTime);
+	fprintf(stderr," 	电压超下限时间（分钟）：%d\n",volt_tj.dayu_tj.downLimitTime);
+	fprintf(stderr," 当月电压合格率\n");
+	fprintf(stderr," 	电压监测时间（分钟）：%d\n",volt_tj.monthu_tj.monitorTime);
+	fprintf(stderr," 	电压合格率：%d\n",volt_tj.monthu_tj.passRate);
+	fprintf(stderr," 	电压超限率：%d\n",volt_tj.monthu_tj.overRate);
+	fprintf(stderr," 	电压超上限时间（分钟）：%d\n",volt_tj.monthu_tj.upLimitTime);
+	fprintf(stderr," 	电压超下限时间（分钟）：%d\n",volt_tj.monthu_tj.downLimitTime);
+}
+
 void print2203()
 {
 	Gongdian_tj gongdian_tj={};
@@ -67,6 +88,11 @@ void vari_process(int argc, char *argv[])
 		sscanf(argv[2],"%04x",&tmp);
 		oi = tmp;
 		switch(oi) {
+		case 0x2131:
+		case 0x2132:
+		case 0x2133:
+			print213x(oi);
+			break;
 		case 0x2203:
 			print2203();
 			break;

@@ -13,6 +13,7 @@ extern void jzq_id_edit();
 extern void menu_set_nettx();
 extern void menu_set_wlantx();
 extern void menu_FactoryReset();
+extern void menu_showclddata();
 Menu menu_fk[]={
 	//level,    name,   		fun, 				ispasswd			pthis,
 {{level0,"  主菜单 ",		NULL, 				MENU_NOPASSWD},		NULL},
@@ -57,7 +58,7 @@ Menu menu_fk[]={
 													{{level4,"5.GPRS模块信息",menu_gprs_info,		MENU_NOPASSWD},		NULL},
 													{{level4,"6.交采芯片信息",menu_ac_info,		MENU_NOPASSWD},		NULL},
 	{{level1,"3.控制状态", 	menu_control, 				MENU_NOPASSWD},		NULL},
-	{{level1,"4.电能表示数", 	menu_realdata, 				MENU_NOPASSWD},		NULL},
+	{{level1,"4.电能表示数", 	menu_showclddata, 				MENU_NOPASSWD},		NULL},
 	{{level1,"5.中文信息", 	menu_zhongwen, 				MENU_NOPASSWD},		NULL},
 	{{level1,"6.购电信息", 	menu_goudian, 				MENU_NOPASSWD},		NULL},
 	{{level1,"7.终端信息", 	menu_jzqstatus, 			MENU_NOPASSWD},		NULL},
