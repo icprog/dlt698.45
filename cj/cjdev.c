@@ -356,25 +356,29 @@ void inoutdev_process(int argc, char *argv[]) {
 }
 
 
-void SetF201(int argc, char *argv[]) {
+void SetF201(int argc, char *argv[])
+{
     CLASS_f201 oif201[3] = {};
-
-    if (argc != 7 || (atoi(argv[2]) < 0 && atoi(argv[2]) > 255) || (atoi(argv[3]) < 0 && atoi(argv[3]) > 2) ||
-        (atoi(argv[4]) > 5 && atoi(argv[4]) > 8) ||
-        (atoi(argv[5]) < 0 && atoi(argv[5]) > 2) ||
-        (atoi(argv[6]) < 0 && atoi(argv[6]) > 3)) {
+    int serno = 0;
+    if (argc != 8 || (atoi(argv[2])<0 && atoi(argv[2])>2) ||
+    	(atoi(argv[3]) < 0 && atoi(argv[3]) > 255) || (atoi(argv[4]) < 0 && atoi(argv[4]) > 2) ||
+        (atoi(argv[5]) > 5 && atoi(argv[5]) > 8) ||  (atoi(argv[6]) < 0 && atoi(argv[6]) > 2) ||
+        (atoi(argv[7]) < 0 && atoi(argv[7]) > 3)) {
         fprintf(stderr, "使用方法，括号内的数字是需要设置的参数\n");
 
         fprintf(stderr,"参数配置说明\n");
+        fprintf(stderr,"参数1:485_I(0),485_II(1),485_III(2)\n");
         fprintf(stderr,
-                "参数1：波特率：bps300(0),bps600(1),bps1200(2),bps2400(3),bps4800(4),bps7200(5),\nbps9600(6),bps19200(7),bps38400(8),bps57600(9),bps115200(10)"
+                "参数2：波特率：bps300(0),bps600(1),bps1200(2),bps2400(3),bps4800(4),bps7200(5),\n"\
+                "             bps9600(6),bps19200(7),bps38400(8),bps57600(9),bps115200(10)"\
                         ",auto(255)\n");
-        fprintf(stderr, "参数2：校验方式：none(0), odd(1), even(2)\n");
-        fprintf(stderr, "参数3：数据位：d5(5), d6(6), d7(7),d8(8)\n");
-        fprintf(stderr, "参数4：停止位：stop0(0), stop1(1), stop2(2)\n");
-        fprintf(stderr, "参数5：端口功能：上行通信(0), 抄表(1), 级联(2)，停用(3)\n");
+        fprintf(stderr, "参数3：校验方式：none(0), odd(1), even(2)\n");
+        fprintf(stderr, "参数4：数据位：d5(5), d6(6), d7(7),d8(8)\n");
+        fprintf(stderr, "参数5：停止位：stop0(0), stop1(1), stop2(2)\n");
+        fprintf(stderr, "参数6：端口功能：上行通信(0), 抄表(1), 级联(2)，停用(3)\n");
 
         if (readCoverClass(0xf201, 0, oif201, sizeof(CLASS_f201)*3, para_vari_save) > 0) {
+            fprintf(stderr,"\n\n读取485_II参数如下:");
             fprintf(stderr, "\n\n当前描述符(%s)：波特率(%d)，校验方式(%d)，数据位(%d)，停止位(%d)，端口功能(%d)\n", oif201[1].devdesc,
             		oif201[1].devpara.baud,oif201[1].devpara.verify,oif201[1].devpara.databits,oif201[1].devpara.stopbits,
             		oif201[1].devfunc);
@@ -382,16 +386,19 @@ void SetF201(int argc, char *argv[]) {
         return;
     }
     readCoverClass(0xf201, 0, oif201, sizeof(CLASS_f201)*3, para_vari_save);
-    oif201[1].devpara.baud = atoi(argv[2]);
-    oif201[1].devpara.verify = atoi(argv[3]);
-    oif201[1].devpara.databits = atoi(argv[4]);
-    oif201[1].devpara.stopbits = atoi(argv[5]);
-    oif201[1].devfunc = atoi(argv[6]);
-    switch(oif201[1].devfunc) {
-    case 0:memcpy(oif201[1].devdesc,"698",3);break;
-    case 1:memcpy(oif201[1].devdesc,"645",3);break;
-    case 2:memcpy(oif201[1].devdesc,"uplink",6);break;
-    case 3:memcpy(oif201[1].devdesc,"stop",4);break;
+    serno = atoi(argv[2]);
+    fprintf(stderr,"当前设置485_(%d)口设置\n",(serno+1));
+    if(serno>2) return;
+    oif201[serno].devpara.baud = atoi(argv[3]);
+    oif201[serno].devpara.verify = atoi(argv[4]);
+    oif201[serno].devpara.databits = atoi(argv[5]);
+    oif201[serno].devpara.stopbits = atoi(argv[6]);
+    oif201[serno].devfunc = atoi(argv[7]);
+    switch(oif201[serno].devfunc) {
+    case 0:memcpy(oif201[serno].devdesc,"698",3);break;
+    case 1:memcpy(oif201[serno].devdesc,"645",3);break;
+    case 2:memcpy(oif201[serno].devdesc,"uplink",6);break;
+    case 3:memcpy(oif201[serno].devdesc,"stop",4);break;
     }
     saveCoverClass(0xf201, 0, &oif201, sizeof(CLASS_f201)*3, para_vari_save);
     setOIChange_CJ(0xf201);
