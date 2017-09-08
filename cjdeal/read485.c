@@ -2079,23 +2079,28 @@ INT8U fillclass23data(OAD oad_m,OAD oad_r,TSA meter,INT8U* data)
 							default:
 								if(oad_r.OI == 0x0010)
 								{
+									INT32U yongdianliang = dianliang - JProgramInfo->class23[groupIndex].allist[meterIndex].curP[rateIndex];
 									if(rateIndex == 0)
 									{
-										JProgramInfo->class23[groupIndex].DayPALL +=
-												dianliang - JProgramInfo->class23[groupIndex].allist[meterIndex].curP[rateIndex];
-										JProgramInfo->class23[groupIndex].MonthPALL +=
-												dianliang - JProgramInfo->class23[groupIndex].allist[meterIndex].curP[rateIndex];
-
+										JProgramInfo->class23[groupIndex].DayPALL += yongdianliang;
+										JProgramInfo->class23[groupIndex].MonthPALL += yongdianliang;
+										if(yongdianliang >= JProgramInfo->class23[groupIndex].remains)
+										{
+											JProgramInfo->class23[groupIndex].remains = 0;
+										}
+										else
+										{
+											JProgramInfo->class23[groupIndex].remains -= yongdianliang;
+										}
+										DbgPrintToFile1(6,"groupIndex = %d yongdianliang = %ld remains = %ld",groupIndex,yongdianliang,JProgramInfo->class23[groupIndex].remains);
 										DbgPrintToFile1(6,"DayPALL=%ld MonthPALL=%ld",
-												JProgramInfo->class23[groupIndex].DayPALL,JProgramInfo->class23[groupIndex].MonthPALL);
+										JProgramInfo->class23[groupIndex].DayPALL,JProgramInfo->class23[groupIndex].MonthPALL);
 
 									}
 									if(rateIndex > 0)
 									{
-										JProgramInfo->class23[groupIndex].DayP[rateIndex-1] +=
-												dianliang - JProgramInfo->class23[groupIndex].allist[meterIndex].curP[rateIndex];
-										JProgramInfo->class23[groupIndex].MonthP[rateIndex-1] +=
-												dianliang - JProgramInfo->class23[groupIndex].allist[meterIndex].curP[rateIndex];
+										JProgramInfo->class23[groupIndex].DayP[rateIndex-1] += yongdianliang;
+										JProgramInfo->class23[groupIndex].MonthP[rateIndex-1] += yongdianliang;
 
 										DbgPrintToFile1(6,"rate[%d]**************** DayP=%ld MonthQ=%ld",rateIndex-1,JProgramInfo->class23[groupIndex].DayP[rateIndex-1],JProgramInfo->class23[groupIndex].MonthP[rateIndex-1]);
 
@@ -2133,8 +2138,22 @@ INT8U fillclass23data(OAD oad_m,OAD oad_r,TSA meter,INT8U* data)
 				}
 				else if(oad_r.attrindex == 1)
 				{
-					JProgramInfo->class23[groupIndex].allist[meterIndex].curP[0] =
-							(data[1]<<24)+(data[2]<<16)+(data[3]<<8)+data[4];
+					if(oad_r.OI == 0x0010)
+					{
+						INT32U dianliang = (data[1]<<24)+(data[2]<<16)+(data[3]<<8)+data[4];
+						INT32U yongdianliang = dianliang - JProgramInfo->class23[groupIndex].allist[meterIndex].curP[0];
+						JProgramInfo->class23[groupIndex].DayPALL += yongdianliang;
+						JProgramInfo->class23[groupIndex].MonthPALL += yongdianliang;
+						if(yongdianliang >= JProgramInfo->class23[groupIndex].remains)
+						{
+							JProgramInfo->class23[groupIndex].remains = 0;
+						}
+						else
+						{
+							JProgramInfo->class23[groupIndex].remains -= yongdianliang;
+						}
+						JProgramInfo->class23[groupIndex].allist[meterIndex].curP[0] = dianliang;
+					}
 				}
 
 				return 1;
