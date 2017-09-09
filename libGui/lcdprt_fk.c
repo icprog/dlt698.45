@@ -14,6 +14,9 @@ extern void menu_set_nettx();
 extern void menu_set_wlantx();
 extern void menu_FactoryReset();
 extern void menu_showclddata();
+extern void menu_jzqsetmeter();
+extern void menu_jzqaddmeter();
+extern void menu_jzqdelmeter();
 Menu menu_fk[]={
 	//level,    name,   		fun, 				ispasswd			pthis,
 {{level0,"  主菜单 ",		NULL, 				MENU_NOPASSWD},		NULL},
@@ -35,9 +38,9 @@ Menu menu_fk[]={
 					{{level2,"5.月电控参数", 		menu_yuedianpara, 	MENU_NOPASSWD},		NULL},
 					{{level2,"6.KvKiKp", 		menu_kvkikp, 		MENU_NOPASSWD},		NULL},
 					{{level2,"7.电能表参数", 		NULL, 	MENU_NOPASSWD},		NULL},
-									{{level3,"1.修改测量点", 		menu_fksetmeter,	MENU_ISPASSWD},	NULL},
-									{{level3,"2.添加测量点", 		menu_fkaddmeter,	MENU_ISPASSWD},	NULL},
-									{{level3,"3.删除测量点", 		menu_fkdelmeter,	MENU_ISPASSWD},	NULL},
+									{{level3,"1.修改测量点", 		menu_jzqsetmeter,	MENU_ISPASSWD},	NULL},
+									{{level3,"2.添加测量点", 		menu_jzqaddmeter,	MENU_ISPASSWD},	NULL},
+									{{level3,"3.删除测量点", 		menu_jzqdelmeter,	MENU_ISPASSWD},	NULL},
 					{{level2,"8.配置参数", 		NULL, 				MENU_NOPASSWD},		NULL},
 									{{level3,"1.终端编号", 	jzq_id_edit, 					MENU_ISPASSWD_EDITMODE},		NULL},
 									{{level3,"2.通信通道", 	NULL, 	MENU_ISPASSWD_EDITMODE},		NULL},
@@ -58,7 +61,7 @@ Menu menu_fk[]={
 													{{level4,"5.GPRS模块信息",menu_gprs_info,		MENU_NOPASSWD},		NULL},
 													{{level4,"6.交采芯片信息",menu_ac_info,		MENU_NOPASSWD},		NULL},
 	{{level1,"3.控制状态", 	menu_control, 				MENU_NOPASSWD},		NULL},
-	{{level1,"4.电能表示数", 	menu_showclddata, 				MENU_NOPASSWD},		NULL},
+	{{level1,"4.电能表示数", 	menu_showclddata, 			MENU_NOPASSWD},		NULL},
 	{{level1,"5.中文信息", 	menu_zhongwen, 				MENU_NOPASSWD},		NULL},
 	{{level1,"6.购电信息", 	menu_goudian, 				MENU_NOPASSWD},		NULL},
 	{{level1,"7.终端信息", 	menu_jzqstatus, 			MENU_NOPASSWD},		NULL},
