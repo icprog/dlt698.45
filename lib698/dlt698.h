@@ -100,11 +100,12 @@ extern int getOctetstring(INT8U type, INT8U* source, INT8U* tsa,INT8U *DAR);    
 extern int getVisibleString(INT8U *source,INT8U *dest,INT8U *DAR);                          // 0x0A
 extern int getUnsigned(INT8U *source,INT8U *dest,INT8U *DAR);                     // 0x11
 extern int getLongUnsigned(INT8U* source, INT8U* dest);                           // 0x12
+extern int getLong64(INT8U *source,INT64U *dest);									//0x14
 extern int getEnum(INT8U type, INT8U* source, INT8U* enumvalue);                  // 0x16
-extern int getTime(INT8U type,INT8U *source,INT8U *dest,INT8U *DAR);                  // 0x1B
-extern int getDateTimeS(INT8U type,INT8U *source,INT8U *dest,INT8U *DAR);                 // 0x1C
+extern int getTime(INT8U type,INT8U *source,INT8U *dest,INT8U *DAR);              // 0x1B
+extern int getDateTimeS(INT8U type,INT8U *source,INT8U *dest,INT8U *DAR);         // 0x1C
 extern int getOI(INT8U type, INT8U* source, OI_698 *oi);                           // 0x50
-extern int getOAD(INT8U type,INT8U *source,OAD *oad,INT8U *DAR);                           // 0x51
+extern int getOAD(INT8U type,INT8U *source,OAD *oad,INT8U *DAR);                   // 0x51
 extern int getROAD(INT8U* source, ROAD* dest);                                    // 0x52
 extern int getTI(INT8U type, INT8U* source, TI* ti);                              // 0x54
 extern int get_BasicRSD(INT8U type, INT8U* source, INT8U* dest, INT8U* seletype); // 0x5A

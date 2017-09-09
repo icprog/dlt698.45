@@ -737,15 +737,15 @@ int getLongUnsigned(INT8U *source,INT8U *dest)	//0x12
 
 int getLong64(INT8U *source,INT64U *dest)	//0x14
 {
+	INT64U v = 0x00;
 	if(source[0] == dtlong64) {
-//		dest = source[1];
-//		dest = (dest<<8) | source[2];
-//		dest = (dest<<8) | source[3];
-//		dest = (dest<<8) | source[4];
-//		dest = (dest<<8) | source[5];
-//		dest = (dest<<8) | source[6];
-//		dest = (dest<<8) | source[7];
-//		dest = (dest<<8) | source[8];
+		for (int i = 0; i < 8; ++i) {
+			v += source[i + 1];
+			if (i + 1 == 8) {
+				break;
+			}
+			v = v << 8;
+		}
 		return 9;
 	}
 	return 0;

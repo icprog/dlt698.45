@@ -917,8 +917,8 @@ typedef struct {
 
 typedef struct {
     OI_698 index;
-    DateTimeBCD_S start;
-    DateTimeBCD_S end;
+    DateTimeBCD start;
+    DateTimeBCD end;
     INT64U v;
 } STOP_CTRL;
 

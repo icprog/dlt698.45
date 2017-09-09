@@ -280,20 +280,20 @@ int  vs485_test(int port1,int port2)
 
     fprintf(stderr,"comm2 to comm3 end!\n");
 
-//    close(comfd1);
-//    close(comfd2);
-//
-//    comfd1 = OpenCom(port1, 9600, (INT8U *) "even", 1, 8);
-//    comfd2 = OpenCom(port2, 9600, (INT8U *) "even", 1, 8);
+    close(comfd1);
+    close(comfd2);
+
+    comfd1 = OpenCom(port1, 9600, (INT8U *) "even", 1, 8);
+    comfd2 = OpenCom(port2, 9600, (INT8U *) "even", 1, 8);
 
     memset(msg, 0x00, sizeof(msg));
     memset(res, 0x00, sizeof(res));
 
-//    msg[0]	= 0x55;
-//    write(comfd1, msg,1);
-//    sleep(1);
-//    lens = read(comfd2, res, 2);
-//    fprintf(stderr,"write 0x55, read %02x lens=%d\n",res[0],lens);
+    msg[0]	= 0x55;
+    write(comfd1, msg,1);
+    sleep(1);
+    lens = read(comfd2, res, 2);
+    fprintf(stderr,"write 0x55, read %02x lens=%d\n",res[0],lens);
 
     for (int i = 0; i < 256; ++i) {
         msg[i] = i;
