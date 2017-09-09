@@ -17,6 +17,7 @@ typedef struct{
 
 extern int g_curcldno;
 extern INT8U g_JZQ_TimeSetUp_flg;
+void menu_set485II();
 void addmeter();
 void menu_showclddata();
 void menu_showdaydata();

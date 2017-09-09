@@ -462,6 +462,8 @@ typedef struct {
 	INT8U PLC_Ctrl;							//载波控制  0x55暂停抄表		0xAA重新抄表     0x44  恢复抄表
     AutoTaskStrap	autotask[MAXNUM_AUTOTASK];
     Terminal_Dev_Info dev_info;
+    INT8U			powerState;			//集中器停上电状态, PWR_ON - 上电状态; PWR_DOWN - 断电状态.
+    									//宏在"include/att7022e."定义. 程序初始化的时候, 默认停电状态.
 }ProgramInfo; //程序信息结构
 
 #endif /* GTYPE_H_ */

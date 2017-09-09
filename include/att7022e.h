@@ -197,6 +197,9 @@
 #define Reg_Enable		0xC9		//校表数据写使能
 #define Reg_Reset		0xD3		//软件复位
 
+#define	PWR_ON		1//上电状态
+#define	PWR_DOWN	0//断电状态
+
 #define VOL_DOWN_THR	1320	//用于判断掉电事件发生时的默认电压阈值, 当集中器阈值为0时, 使用它
 #define VOL_ON_THR		1760	//用于判断上电事件发生时的默认电压阈值, 当集中器阈值为0时, 使用它
 
