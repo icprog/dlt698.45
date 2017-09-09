@@ -2079,23 +2079,28 @@ INT8U fillclass23data(OAD oad_m,OAD oad_r,TSA meter,INT8U* data)
 							default:
 								if(oad_r.OI == 0x0010)
 								{
+									INT32U yongdianliang = dianliang - JProgramInfo->class23[groupIndex].allist[meterIndex].curP[rateIndex];
 									if(rateIndex == 0)
 									{
-										JProgramInfo->class23[groupIndex].DayPALL +=
-												dianliang - JProgramInfo->class23[groupIndex].allist[meterIndex].curP[rateIndex];
-										JProgramInfo->class23[groupIndex].MonthPALL +=
-												dianliang - JProgramInfo->class23[groupIndex].allist[meterIndex].curP[rateIndex];
-
+										JProgramInfo->class23[groupIndex].DayPALL += yongdianliang;
+										JProgramInfo->class23[groupIndex].MonthPALL += yongdianliang;
+										if(yongdianliang >= JProgramInfo->class23[groupIndex].remains)
+										{
+											JProgramInfo->class23[groupIndex].remains = 0;
+										}
+										else
+										{
+											JProgramInfo->class23[groupIndex].remains -= yongdianliang;
+										}
+										DbgPrintToFile1(6,"groupIndex = %d yongdianliang = %ld remains = %ld",groupIndex,yongdianliang,JProgramInfo->class23[groupIndex].remains);
 										DbgPrintToFile1(6,"DayPALL=%ld MonthPALL=%ld",
-												JProgramInfo->class23[groupIndex].DayPALL,JProgramInfo->class23[groupIndex].MonthPALL);
+										JProgramInfo->class23[groupIndex].DayPALL,JProgramInfo->class23[groupIndex].MonthPALL);
 
 									}
 									if(rateIndex > 0)
 									{
-										JProgramInfo->class23[groupIndex].DayP[rateIndex-1] +=
-												dianliang - JProgramInfo->class23[groupIndex].allist[meterIndex].curP[rateIndex];
-										JProgramInfo->class23[groupIndex].MonthP[rateIndex-1] +=
-												dianliang - JProgramInfo->class23[groupIndex].allist[meterIndex].curP[rateIndex];
+										JProgramInfo->class23[groupIndex].DayP[rateIndex-1] += yongdianliang;
+										JProgramInfo->class23[groupIndex].MonthP[rateIndex-1] += yongdianliang;
 
 										DbgPrintToFile1(6,"rate[%d]**************** DayP=%ld MonthQ=%ld",rateIndex-1,JProgramInfo->class23[groupIndex].DayP[rateIndex-1],JProgramInfo->class23[groupIndex].MonthP[rateIndex-1]);
 
@@ -2133,8 +2138,22 @@ INT8U fillclass23data(OAD oad_m,OAD oad_r,TSA meter,INT8U* data)
 				}
 				else if(oad_r.attrindex == 1)
 				{
-					JProgramInfo->class23[groupIndex].allist[meterIndex].curP[0] =
-							(data[1]<<24)+(data[2]<<16)+(data[3]<<8)+data[4];
+					if(oad_r.OI == 0x0010)
+					{
+						INT32U dianliang = (data[1]<<24)+(data[2]<<16)+(data[3]<<8)+data[4];
+						INT32U yongdianliang = dianliang - JProgramInfo->class23[groupIndex].allist[meterIndex].curP[0];
+						JProgramInfo->class23[groupIndex].DayPALL += yongdianliang;
+						JProgramInfo->class23[groupIndex].MonthPALL += yongdianliang;
+						if(yongdianliang >= JProgramInfo->class23[groupIndex].remains)
+						{
+							JProgramInfo->class23[groupIndex].remains = 0;
+						}
+						else
+						{
+							JProgramInfo->class23[groupIndex].remains -= yongdianliang;
+						}
+						JProgramInfo->class23[groupIndex].allist[meterIndex].curP[0] = dianliang;
+					}
 				}
 
 				return 1;
@@ -5445,11 +5464,24 @@ void read485_proccess() {
 	comfd485[1] = -1;
 	readState = 0;
 
+	INT8U isNeed4852 = 1;
+    CLASS_f201 oif201[3] = {};
+	if(readCoverClass(0xf201, 0, oif201, sizeof(CLASS_f201)*3, para_vari_save)==1)
+	{
+		if(oif201[1].devfunc !=1)
+		{
+			isNeed4852 = 0;
+			asyslog(LOG_INFO,"485-2不运行");
+		}
+
+	}
+
 	struct mq_attr attr_485_1_task;
 	mqd_485_1_task = mmq_open((INT8S *)TASKID_485_1_MQ_NAME,&attr_485_1_task,O_RDONLY);
 
 	struct mq_attr attr_485_2_task;
 	mqd_485_2_task = mmq_open((INT8S *)TASKID_485_2_MQ_NAME,&attr_485_2_task,O_RDONLY);
+
 
 
 	pthread_attr_init(&read485_attr_t);
@@ -5461,10 +5493,14 @@ void read485_proccess() {
 		sleep(1);
 	}
 
-	while ((thread_read4852_id=pthread_create(&thread_read4852, &read485_attr_t, (void*)read485_thread, &i485port2)) != 0)
+	if(isNeed4852 == 1)
 	{
-		sleep(1);
+		while ((thread_read4852_id=pthread_create(&thread_read4852, &read485_attr_t, (void*)read485_thread, &i485port2)) != 0)
+		{
+			sleep(1);
+		}
 	}
+
 
 }
 void read485QuitProcess()

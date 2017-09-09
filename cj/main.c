@@ -28,6 +28,14 @@
 
 ProgramInfo *JProgramInfo = NULL;
 
+static char *usage_yk = "\n--------------------III型专变命令----------------------------\n"
+        "		 【遥控】cj ctrl round 1 1 <轮次1 合闸>  cj ctrl round 1 0 <轮次1 分闸>  cj ctrl round 2 1 <轮次2 合闸>  cj ctrl round 2 0 <轮次2 分闸>	\n"\
+		"		 【控制类型】cj ctrl type 1 <功控>  cj ctrl type 2 <电控> \n"   \
+		"		 【告警】 cj ctrl alarm 1 <投入告警>  cj ctrl alarm 0<解除告警>\n]"   \
+		"		 【保电】 cj ctrl keepelec 1<投入保电> cj ctrl keepelec 0<0解除保电>\n"   \
+		"		 【清除控制状态】 cj ctrl clear\n"   \
+        "-------------------------------------------------------\n\n";
+
 static char *usage_set = "\n--------------------参数设置及基本维护命令----------------------------\n"
         "		 【公网通信模块：主站IP端口设置】cj ip XXX.XXX.XXX.XXX:port XXX.XXX.XXX.XXX:port 	\n"
         "		 【以太网通信参数：主站IP端口设置】cj net-ip XXX.XXX.XXX.XXX:port XXX.XXX.XXX.XXX:port 	\n"
@@ -35,6 +43,7 @@ static char *usage_set = "\n--------------------参数设置及基本维护命�
         "		 【主站apn设置】cj apn cmnet		\n"
         "		 【cdma电信用户名密码设置】cj usr-pwd 　user  password	apn	\n"
 		"		 【主站通信状态查询】cj cm	\n"
+		"		 【4G/2G模式切换】cj m2g\n"
         "		 【通信地址】cj id <addr>	如：地址为123456  :cj id 12 34 56	\n"
         "		 【停程序】cj dog[停程序并且清狗] 或者 cj stop[清狗]		\n"
 		"		  [设置维护485端口参数] cj rs485	\n"
@@ -42,6 +51,8 @@ static char *usage_set = "\n--------------------参数设置及基本维护命�
 		"		  [显示遥信状态值] cj yx\n"
 		"		  [查询软件版本和软件日期，方便远程查询集中器版本信息] cj ver\n"
 		"		  [基本信息配置查询] cj check\n"
+		"		 【蜂鸣器】蜂鸣投入 cj buzzer 1 <蜂鸣投入>  cj buzzer 0 <蜂鸣解除>		\n"
+		"		 【电池电压读取】 cj bettery 	\n"
         "[读取心跳] cj heart       "
         "[设置心跳] cj heart 60 s\n"
 		"【初始化】cj InIt 3 [数据区初始化]	\n　　　　　　cj InIt 5 [事件初始化]\n　　　　　　cj InIt 6 [需量初始化]\n　　　　　　cj InIt 4 [恢复出厂参数]\n"
@@ -59,7 +70,8 @@ static char *usage_data = "\n--------------------数据维护命令-------------
 		"		 【曲线数据补送】cj report 64 2017 6 6 10 30 11 30 **上报任务17-6-6 10:30到11:30这个点的数据上报	\n"
         "-------------------------------------------------------\n\n";
 static char *usage_vari = "\n--------------------变量类对象----------------------------\n"
-        "		 【供电时间】cj vari 2203		\n"
+		"		 【A-B-C相电压合格率】cj vari 2131 	cj vari 2132 	cj vari 2133		\n"
+		"		 【供电时间】cj vari 2203		\n"
         "		 【复位次数】cj vari 2204		\n"
 		"        【流量统计】cj vari 2200		\n"
         "-------------------------------------------------------\n\n";
@@ -147,6 +159,7 @@ static char *usage_acs = "--------------------终端交采计量校表及维护�
 void prthelp() {
     fprintf(stderr, "Usage: ./cj (维护功能)  ");
     fprintf(stderr, "help	 [help] ");
+    fprintf(stderr, "%s", usage_yk);
     fprintf(stderr, "%s", usage_acs);
     fprintf(stderr, "%s", usage_set);
     fprintf(stderr, "%s", usage_data);
@@ -268,6 +281,7 @@ int main(int argc, char *argv[]) {
         				JProgramInfo->class23[groupIndex].allist[meterIndex].curP[4]);
     		}
     	}
+    	shmm_unregister("ProgramInfo", sizeof(ProgramInfo));
     	return EXIT_SUCCESS;
     }
     if (strcmp("getoaddata", argv[1]) == 0)
@@ -588,28 +602,14 @@ int main(int argc, char *argv[]) {
 
     if(strcmp("ctrl",argv[1])==0)
 	{
-    	JProgramInfo = OpenShMem("ProgramInfo", sizeof(ProgramInfo), NULL);
-		if(argc < 3){
-			fprintf(stderr, "参数不足\n");
-			return 0;
-		}
-		int cmd = atoi(argv[1]);
+    	fprintf(stderr, "%s", usage_yk);
+    	ctrl_process(argc,argv);
+		return EXIT_SUCCESS;
+	}
 
-		if(cmd == 0) {
-			fprintf(stderr, "遥控分闸\n");
-			JProgramInfo->ctrls.control[0] = 0xEEFFEFEF;
-			JProgramInfo->ctrls.control[1] = 0xEEFFEFEF;
-			JProgramInfo->ctrls.control[2] = 0xEEFFEFEF;
-		}
-		else if(cmd == 1) {
-			fprintf(stderr, "遥控合闸\n");
-			JProgramInfo->ctrls.control[0] = 0xCCAACACA;
-			JProgramInfo->ctrls.control[1] = 0xCCAACACA;
-			JProgramInfo->ctrls.control[2] = 0xCCAACACA;
-		}
-		else{
-			fprintf(stderr, "非法参数\n");
-		}
+    if(strcmp("breeze",argv[1])==0)
+	{
+    	breezeTest(argc,argv);
 		return EXIT_SUCCESS;
 	}
 

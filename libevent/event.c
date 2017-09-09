@@ -15,6 +15,7 @@
 #include "ParaDef.h"
 #include "../libMq/libmmq.h"
 #include "basedef.h"
+#include "att7022e.h"//II型集中器使用7022芯片
 
 
 static TSA TSA_LIST[MAX_POINT_NUM];
@@ -1280,6 +1281,7 @@ INT8U Event_3106(ProgramInfo* prginfo_event,MeterPower *MeterPowerInfo,INT8U *st
 						recover_voltage_limit,
 						prginfo_event->ACSRealData.Ua);
 				off_flag=1;
+				prginfo_event->powerState = PWR_DOWN;
 			}
 		}else{
 			BOOLEAN gpio_5V=pwr_has();
@@ -1315,6 +1317,7 @@ INT8U Event_3106(ProgramInfo* prginfo_event,MeterPower *MeterPowerInfo,INT8U *st
 						recover_voltage_limit,
 						prginfo_event->ACSRealData.Ua);
 				on_flag=1;
+				prginfo_event->powerState = PWR_ON;
 			}
 		}else{
 			if((prginfo_event->ACSRealData.Available&&prginfo_event->ACSRealData.Ua>recover_voltage_limit)

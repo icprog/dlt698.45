@@ -36,12 +36,8 @@ const static mmq_attribute mmq_register[] = { { cjcomm, PROXY_485_MQ_NAME,
 #define	LED_LIGHT	1//点亮led
 #define	LED_CLOSE	0//关闭led
 
-#define	PWR_ON		1//上电状态
-#define	PWR_DOWN	0//断电状态
-
-#define	VOL_LIMIT	130//集中器欠压阈值, 低于这个阈值,就认为已经断电了
-
-#define	PWR_SHUT_CNT	90//集中器连续断电的计数值, 超过这个计数值就认为是彻底断电了
+#define	PWR_SHUT_CNT_ZJ		90//集中器连续断电的计数值, 超过这个计数值就认为是彻底断电了
+#define	PWR_SHUT_CNT_SD			60//山东省计量要求1分钟后必须灭掉全部灯
 
 INT8U	g_powerState = 0;//交流电是否断电, 1-上电状态; 0-断电状态
 /*
@@ -149,27 +145,20 @@ void rebootWhenPwrDown(INT8U delay) {
     static INT8U cnt_pwroff = 0;
     int i = 0;
 
-    int off_flag = pwr_down_byVolt(JProgramInfo->ACSRealData.Available, JProgramInfo->ACSRealData.Ua, VOL_LIMIT);
-    if (off_flag == 1) {
-//    	DEBUG_TO_FILE("/nand/pwr.log", "底板电源已关闭，设备关闭倒计时：%d s.....\n", delay-cnt_pwroff);
+    if (PWR_DOWN == JProgramInfo->powerState) {
         cnt_pwroff++;
-        if (cnt_pwroff == 30) {
-//        	DEBUG_TO_FILE("/nand/pwr.log", "关闭所有led.....");
+        if (cnt_pwroff == delay) {
+        	system("cj stop");
         	g_powerState = PWR_DOWN;
         	for (i=0;i<5;i++) {
 				shutAllLed();
 				usleep(100);
         	}
-        }
-        if (cnt_pwroff == delay) {
-        	system("cj stop");
-        	g_powerState = PWR_DOWN;
         	for (i=0;i<5;i++) {
-        		setRunLED(0);
+        		setRunLED(LED_CLOSE);
         		usleep(100);
         	}
         	sleep(3);
-//        	DEBUG_TO_FILE("/nand/pwr.log", "重启集中器.....");
         	system("reboot");
         }
     } else {
@@ -516,8 +505,9 @@ int LAPI_Fork2(void) {
 
 int ProjectKill(ProjectInfo proinfo) {
 	if (proinfo.ProjectID > 0) {
-		asyslog(LOG_WARNING, "停止进程，ID(%d)", proinfo.ProjectID);
 		kill(proinfo.ProjectID, SIGTERM);
+		//cjcomm出现异常，进程无法彻底杀死
+		asyslog(LOG_WARNING, "停止进程，ID(%d) ", proinfo.ProjectID);
 		return 1;
 	}
 
@@ -575,6 +565,10 @@ void checkProgsState(int ProgsNum) {
 		case NeedKill:
 			asyslog(LOG_WARNING, "检测到程序异常，名称[%s] PID[%d-%d]",
 					pis[i].ProjectName, pis[i].ProjectID, i);
+			if(strncmp(pis[i].ProjectName,"cjcomm",6)==0) {
+				JProgramInfo->dev_info.jzq_login = 0;
+				asyslog(LOG_WARNING, "cjcomm退出，清除登陆类型[%d]\n",JProgramInfo->dev_info.jzq_login);
+			}
 			if (ProjectKill(JProgramInfo->Projects[i]) == 1) {
 				asyslog(LOG_WARNING, "程序已经关闭，正在重启...");
 				JProgramInfo->Projects[i].ProjectState = NeedStart;
@@ -664,8 +658,13 @@ void CheckOnLineStatue() {
 		return;
 	}
 	if (JProgramInfo->dev_info.jzq_login == 0) {
-
 		reboot_count++;
+		if(reboot_count == 1800) {
+			asyslog(LOG_ERR, "<异常>检查到设备30分钟不在线...");
+		}
+		if(reboot_count == 3600) {
+			asyslog(LOG_ERR, "<异常>检查到设备1小时不在线...");
+		}
 		if (reboot_count > 2 * 3600) {
 			asyslog(LOG_ERR, "<异常>检查到设备2小时不在线，重新启动设备...");
 			sleep(1);
@@ -732,10 +731,14 @@ int main(int argc, char *argv[])
 		//每20分钟校时
 		SyncRtc();
         if (JProgramInfo->cfg_para.device == CCTT1 || JProgramInfo->cfg_para.device == SPTF3) { //I型集中器，III型专变
-            //电池检测掉电关闭设备
-            PowerOffToClose(90);
+            //电池检测掉电关闭设备，原写90s，湖南要求电池供电工作120s
+            PowerOffToClose(120);
         } else if(JProgramInfo->cfg_para.device == CCTT2) {
-        	rebootWhenPwrDown(PWR_SHUT_CNT);
+        	if (getZone("ZheJiang") == 0) {
+        		rebootWhenPwrDown(PWR_SHUT_CNT_ZJ);
+        	} else if (getZone("ShanDong") == 0) {
+        		rebootWhenPwrDown(PWR_SHUT_CNT_SD);
+        	}
         }
 
         //点亮运行灯 循环前点亮一次
