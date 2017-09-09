@@ -301,7 +301,6 @@ void RS485I_test(){
 	int ret=0, cldno=2;
 	char s_cldno[5];
 	memset(s_cldno, 0, 5);
-	system("pkill jRead485");
 	delay(2000);
 
 	if(readcfg(JZQTEST_PARA_NAME, "485I_cldno", s_cldno)==1)
@@ -350,99 +349,135 @@ void RS485II_test(){
 
 void softver_test(){
 	int i;
-	int proj_ver=0;
+	int rowCnt = 0, strsize = 0;
 	char flag=1;
-	char kernelver_std[100], *kernelver=NULL;
-	char softver[30] = {0};
-	char result[2048] = {0};
+	char kernelver_std[100] = {0}, kernelver[100] = {0};
+	char softver[500] = {0};
+	char md5Res[50] = {0};
 	char cmd[100] = {0};
+	char fileToChk[200] = {0};
+	char stmp[500] = {0};
+	char* pstr = NULL;
 	int  fileCnt = 0;//要检查md5码的文件数量
-	FILE *fp = NULL;
+	FILE *fp = NULL;//用于打开配置文件
+	FILE *pfp = NULL;//用于打开管道
 
 	//---------------------------------
-	PrtTestName("SoftVer 测试开始");
-
-	//软件版本日期
-	memset(softver, 0, 30);
-	if(readcfg(JZQTEST_PARA_NAME, "softver", softver)==1){
-		sprintf(cmd, "cj para pro 4300 2 > &1");
-	    if(NULL==(fp=popen(cmd, "r"))) {
-	        fprintf(stderr, "execute command failed: %s", strerror(errno));
-	        flag = 0;
-	    }
-	    if(0 != fread(result, sizeof(char), sizeof(result), fp)) {
-
-	    } else {
-	    	lcdprt_result("softver", UNKNOWN);
-	    	flag = 0;
-	    }
-	} else {
-		SdPrint("\n softver UNKNOWN");
-		lcdprt_result("softver", UNKNOWN);
-		flag = 0;
-	}
-
+	DEBUG_TIME_LINE("SoftVer 测试开始");
 	//文件MD5校验码
-	memset(softver, 0, 30);
+	memset(stmp, 0, 30);
 	//读取要校验的文件数量
-	if(readcfg(JZQTEST_PARA_NAME, "filecount", softver)==1){
-		fileCnt = atoi(softver);
+	if(readcfg(JZQTEST_PARA_NAME, "filecount", stmp)==1){
+		fileCnt = atoi(stmp);
+		DEBUG_TIME_LINE("fileCnt: %d", fileCnt);
 	}
 
+	memset(softver, 0, 30);
 	if ((fp=fopen(JZQTEST_PARA_NAME, "r")) == NULL) {
+		lcdprt_result("md5 config", UNKNOWN);
+		flag = 0;
+	} else {
+		fseek(fp, 0, SEEK_SET);
+		rowCnt = 0;
+		while(!feof(fp)) {//定位filecount标签
+			if(rowCnt == 500)
+				break;
 
-	}
+			if(fgets(stmp, 500, fp) != NULL) {
+				strsize=strlen(stmp);
+				if(stmp[strsize-1] == 0x0A){//如果最后一个字符是(\n)
+					stmp[strsize-1]='\0';   //将最后一个字符改为(\0)
+				}
+				pstr = NULL;
+				pstr = strtok(stmp,"=");
+				if(pstr==NULL)
+					continue;
+				rltrim(pstr);//去除字符串首尾的空格
+				if(strcmp(pstr, "filecount") == 0){//找到了该检测项
+					break;
+				}
+			}
+			rowCnt++;
+		}
 
-	for(i=0; i < fileCnt; i++) {
-		if(JProgramInfo->Projects[i].ProjectID!=0) {
-			if(memcmp(JProgramInfo->Projects[i].ProjectName, "jLcdTask", strlen("jLcdTask"))==0)
-				continue;
-			memset(softver, 0, 30);
-			proj_ver = 0;
-			if(readcfg(JZQTEST_PARA_NAME, (char*)JProgramInfo->Projects[i].ProjectName, softver)==1){
-				proj_ver = atoi(softver);
+		for(i=0; i < fileCnt; i++) {
+			memset(md5Res, 0, sizeof(md5Res));
+			if(fgets(stmp, 500, fp) != NULL) {
+				pstr = strtok(stmp,"=");//获取文件名
+				rltrim(pstr);
+				strcpy(fileToChk, pstr);
 
-				if(proj_ver){
-					SdPrint("\n %s OK", JProgramInfo->Projects[i].ProjectName);
-				}else{
-					lcdprt_result((char*)JProgramInfo->Projects[i].ProjectName, ERROR);
+				CMD_CHK_MD5(cmd, fileToChk);//计算文件的校验码
+				pfp = popen(cmd,"r");
+				if(fread(md5Res, sizeof(char), sizeof(md5Res), pfp) == 0) {
+					sprintf(stmp, "%s 校验错误", fileToChk);
+					lcdprt_result(stmp, ERROR);
+					flag = 0;
+					continue;
+				}
+				DEBUG_TIME_LINE("%s md5Res: %s", fileToChk, md5Res);
+				pstr = strtok(NULL,"=");//获取正确的校验码
+				rltrim(pstr);
+				strsize=strlen(pstr);
+				if(pstr[strsize-1] == 0x0A){//如果最后一个字符是(\n)
+					pstr[strsize-1]='\0';   //将最后一个字符改为(\0)
+				}
+				DEBUG_TIME_LINE("md5STD: %s", pstr);
+				if(strcmp(pstr, md5Res) == 0) {
+					sprintf(stmp, "%s 校验正确", fileToChk);
+					DEBUG_TIME_LINE("%s", stmp);
+					lcdprt_result(stmp, OK);
+				} else {
+					sprintf(stmp, "%s 校验错误", fileToChk);
+					DEBUG_TIME_LINE("%s", stmp);
+					lcdprt_result(stmp, ERROR);
 					flag = 0;
 				}
-			}else{
-				lcdprt_result((char*)JProgramInfo->Projects[i].ProjectName, UNKNOWN);
-				SdPrint("%s UNKNOWN", JProgramInfo->Projects[i].ProjectName);
-				flag = 0;
 			}
+			pclose(pfp);
 		}
 	}
-
+	fclose(fp);
 	//内核
+	DEBUG_TIME_LINE("内核校验开始");
 	memset(kernelver_std, 0, 100);
 	memset(cmd, 0, 100);
 	if(readcfg(JZQTEST_PARA_NAME, "Kernel_Ver", kernelver_std)==1){
-		setenv("Kernel_Ver", kernelver_std, 0);
-		system("chmod +x $PWD/kernel_check.sh && $PWD/kernel_check.sh");
-		kernelver = getenv("Kernel_Ver");
-		SdPrint("\n kernelver=%s kernelver_std=%s", kernelver, kernelver_std);
-		if (kernelver!=NULL){
-			SdPrint("\n Kernel_Ver OK");
-			lcdprt_result("Kernel_Ver", OK);
-		}else{
-			SdPrint("\n Kernel_Ver ERROR");
-			lcdprt_result("Kernel_Ver", ERROR);
+		sprintf(cmd, "cat /proc/version | awk '{print $16,$17,$18}'");
+		pfp = popen(cmd, 'r');
+		if (NULL == pfp) {
+			lcdprt_result("内核校验错误", ERROR);
 			flag = 0;
+		} else {
+			bzero(kernelver, sizeof(stmp));
+			if(fread(kernelver, sizeof(char), sizeof(kernelver), pfp) == 0) {
+				lcdprt_result("内核校验错误", ERROR);
+				DEBUG_TIME_LINE("内核校验错误");
+				flag = 0;
+			} else {
+				if (strcmp(kernelver_std, kernelver) == 0) {
+					lcdprt_result("内核校验正确", OK);
+					DEBUG_TIME_LINE("内核校验正确");
+				} else {
+					lcdprt_result("内核校验错误", ERROR);
+					DEBUG_TIME_LINE("内核校验错误");
+					flag = 0;
+				}
+			}
 		}
+		pclose(pfp);
 	}else{
-		SdPrint("\n Kernel_Ver UNKNOWN");
+		DEBUG_TIME_LINE("Kernel_Ver UNKNOWN");
 		lcdprt_result("Kernel_Ver", UNKNOWN);
 		flag = 0;
 	}
+	DEBUG_TIME_LINE("内核校验结束");
 	//---------------------------------
 	if(flag==1){
-		SdPrint("\n结论: 软件版本 OK");
+		DEBUG_TIME_LINE("\n结论: 软件版本 OK");
 		lcdprt_result("软件版本",  OK);
 	}else{
-		SdPrint("\n结论: 软件版本 ERROR");
+		DEBUG_TIME_LINE("\n结论: 软件版本 ERROR");
 		lcdprt_result("软件版本", ERROR);
 	}
 	PrtTestName("SoftVer 测试结束");
@@ -470,7 +505,7 @@ void RJ45_test(){
 	int trans_count=0, receive_count=0;
 	char tmpstr[10][50];
 
-	char remote_ip[50]={"192.168.0.173"};
+	char remote_ip[50]={"192.168.0.224"};
 	char local_ip[50]={"192.168.0.10"};
 	char cmd[100];
 

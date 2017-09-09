@@ -19,8 +19,7 @@
 #include "StdDataType.h"
 #include "ParaDef.h"
 
-#define JZQTEST_CFG_NAME 	"/dos/gprsgw/zdtest.cfg"
-#define JZQTEST_PARA_NAME 	"/dos/other/zdtest698_para.cfg"
+#define JZQTEST_PARA_NAME 	"zdtest698_para.cfg"
 
 extern int esam_main(int argc, char *argv[]);
 extern void Esam_test();

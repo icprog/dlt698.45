@@ -43,26 +43,18 @@ int func_config(){
 	int enable=0, i, func_size;
 	memset(buf, 0, 10);
 	system("pwd");
-	if(access(JZQTEST_CFG_NAME,0)!=0){
-		SdPrint("%s no file!!!", JZQTEST_CFG_NAME);
-		return 0;
-	}
+
 	if(access(JZQTEST_PARA_NAME,0)!=0){
 		SdPrint("%s no file!!!", JZQTEST_PARA_NAME);
 		return 0;
 	}
 	func_size = sizeof(func)/sizeof(Func_t);
-	for(i=0; i<func_size; i++){
-		if(readcfg(JZQTEST_CFG_NAME, func[i].name, buf)==1){
-			enable = atoi(buf);
-			 func[i].enable = enable;
-		}
-	}
+
 	return 1;
 }
 
 void initmem(){
-	JProgramInfo = OpenShMem("ProgramInfo",sizeof(ProgramInfo),NULL);
+//	JProgramInfo = OpenShMem("ProgramInfo",sizeof(ProgramInfo),NULL);
 }
 
 INT8U is_find_jLcdTask;
@@ -167,14 +159,14 @@ int main(int argc,char *argv[])
 
 	//先查找集中器现在有没有运行698程序
 
-	system("cj dog");
-	system("cj stop");
-	system("cjmain&");
+//	system("cj dog");
+//	system("cj stop");
+//	system("cjmain&");
 	memset(&Gui_Point, 0, sizeof(GUI_Point_t));
 	initmem();
 	SdPrint("\n\n");
 	SdPrint("\n======================开始测试======================");
-	find_jLcdTask_id();
+//	find_jLcdTask_id();
 	ReadHzkBuff_12();
 	openlight();
 	start_key();//启动按键线程
@@ -192,7 +184,7 @@ int main(int argc,char *argv[])
 
 	SdPrint("\n======================测试结束======================");
 	SdPrint("\n\n");
-	system("cjmain all&");
+//	system("cjmain all 2> /dev/shm/null &");
 	QuitProcess(0);
 	return succflag;
 }
