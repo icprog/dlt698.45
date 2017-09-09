@@ -298,7 +298,7 @@ int main(int argc, char *argv[]) {
 	StartIfr(ep, 0, NULL);
 	StartSerial(ep, 0, NULL);
 
-	if((int)dbGet("4852open") == 1) {
+	if((int)dbGet("4852open") == 1 && getZone("HuNan") == 0) {
 		StartSerial_hn(ep, 0, NULL);
 	}
 

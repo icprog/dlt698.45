@@ -249,7 +249,6 @@ void checkSms(ATOBJ *ao) {
                 		for (int i = len - 1; i >= 0; i--) {
                 			if(smpara.TP_UD[i] == ':'){
                 				smpara.TP_UD[i] = 0x00;
-                				fprintf(stderr, "????????????????%d\n", i);
                 				if(pos1 == 0)
                 				{
                 					pos1 = i + 1;
@@ -271,7 +270,6 @@ void checkSms(ATOBJ *ao) {
                 		for (int i = len - 1; i >= 0; i--) {
 							if(smpara.TP_UD[i] == ':'){
 								smpara.TP_UD[i] = 0x00;
-								fprintf(stderr, "????????????????%d\n", i);
 								if(pos1 == 0)
 								{
 									pos1 = i + 1;
