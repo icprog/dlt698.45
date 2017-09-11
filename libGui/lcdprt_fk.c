@@ -14,6 +14,9 @@ extern void menu_set_nettx();
 extern void menu_set_wlantx();
 extern void menu_FactoryReset();
 extern void menu_showclddata();
+extern void menu_jzqsetmeter();
+extern void menu_jzqaddmeter();
+extern void menu_jzqdelmeter();
 Menu menu_fk[]={
 	//level,    name,   		fun, 				ispasswd			pthis,
 {{level0,"  主菜单 ",		NULL, 				MENU_NOPASSWD},		NULL},
@@ -35,9 +38,9 @@ Menu menu_fk[]={
 					{{level2,"5.月电控参数", 		menu_yuedianpara, 	MENU_NOPASSWD},		NULL},
 					{{level2,"6.KvKiKp", 		menu_kvkikp, 		MENU_NOPASSWD},		NULL},
 					{{level2,"7.电能表参数", 		NULL, 	MENU_NOPASSWD},		NULL},
-									{{level3,"1.修改测量点", 		menu_fksetmeter,	MENU_ISPASSWD},	NULL},
-									{{level3,"2.添加测量点", 		menu_fkaddmeter,	MENU_ISPASSWD},	NULL},
-									{{level3,"3.删除测量点", 		menu_fkdelmeter,	MENU_ISPASSWD},	NULL},
+									{{level3,"1.修改测量点", 		menu_jzqsetmeter,	MENU_ISPASSWD},	NULL},
+									{{level3,"2.添加测量点", 		menu_jzqaddmeter,	MENU_ISPASSWD},	NULL},
+									{{level3,"3.删除测量点", 		menu_jzqdelmeter,	MENU_ISPASSWD},	NULL},
 					{{level2,"8.配置参数", 		NULL, 				MENU_NOPASSWD},		NULL},
 									{{level3,"1.终端编号", 	jzq_id_edit, 					MENU_ISPASSWD_EDITMODE},		NULL},
 									{{level3,"2.通信通道", 	NULL, 	MENU_ISPASSWD_EDITMODE},		NULL},
@@ -58,7 +61,7 @@ Menu menu_fk[]={
 													{{level4,"5.GPRS模块信息",menu_gprs_info,		MENU_NOPASSWD},		NULL},
 													{{level4,"6.交采芯片信息",menu_ac_info,		MENU_NOPASSWD},		NULL},
 	{{level1,"3.控制状态", 	menu_control, 				MENU_NOPASSWD},		NULL},
-	{{level1,"4.电能表示数", 	menu_showclddata, 				MENU_NOPASSWD},		NULL},
+	{{level1,"4.电能表示数", 	menu_showclddata, 			MENU_NOPASSWD},		NULL},
 	{{level1,"5.中文信息", 	menu_zhongwen, 				MENU_NOPASSWD},		NULL},
 	{{level1,"6.购电信息", 	menu_goudian, 				MENU_NOPASSWD},		NULL},
 	{{level1,"7.终端信息", 	menu_jzqstatus, 			MENU_NOPASSWD},		NULL},
@@ -90,6 +93,34 @@ void menu_control_showstate(char *ctlname, INT8U state, Point pos){
 }
 
 void menu_control(){
+	CLASS23			class23[8];			//总加组
+	CLASS_8001 c8001; //保电
+	CLASS_8100 c8100; //终端保安定值
+	CLASS_8101 c8101; //终端功控时段
+	CLASS_8102 c8102; //功控告警时间
+	CLASS_8103 c8103; //时段功控
+	CLASS_8104 c8104; //厂休控
+	CLASS_8105 c8105; //营业报停控
+	CLASS_8106 c8106; //功率下浮控
+	CLASS_8107 c8107; //购电控
+	CLASS_8108 c8108; //月电控
+
+//	for (int i = 0; i < 8; ++i) {
+//		readCoverClass(0x2301 + i, 0, &class23[0],sizeof(CLASS23), para_vari_save);
+//	}
+
+	readCoverClass(0x8001, 0, (void *) &c8001, sizeof(CLASS_8001),para_vari_save);
+	readCoverClass(0x8100, 0, (void *) &c8100, sizeof(CLASS_8100),para_vari_save);
+	readCoverClass(0x8101, 0, (void *) &c8101, sizeof(CLASS_8101),para_vari_save);
+	readCoverClass(0x8102, 0, (void *) &c8102, sizeof(CLASS_8102),para_vari_save);
+	readCoverClass(0x8103, 0, (void *) &c8103, sizeof(CLASS_8103),para_vari_save);
+	readCoverClass(0x8104, 0, (void *) &c8104, sizeof(CLASS_8104),para_vari_save);
+
+	readCoverClass(0x8105, 0, (void *) &c8105, sizeof(CLASS_8105),para_vari_save);
+	readCoverClass(0x8106, 0, (void *) &c8106, sizeof(CLASS_8106),para_vari_save);
+	readCoverClass(0x8107, 0, (void *) &c8107, sizeof(CLASS_8107),para_vari_save);
+	readCoverClass(0x8108, 0, (void *) &c8108, sizeof(CLASS_8108),para_vari_save);
+
 	char str[100], first_flg=0;
 	Point pos;
 	int zj_index=1;
@@ -119,14 +150,16 @@ void menu_control(){
 		gui_clrrect(rect_Client);
 		gui_setpos(&pos, rect_Client.left+10*FONTSIZE, rect_Client.top+2*FONTSIZE);
 		memset(str, 0, 100);
-		sprintf(str, "总加组%02d", zj_index);
+		sprintf(str, "总加组%d [OI:%04x]", zj_index, 0x2300 + zj_index);
 		gui_textshow(str, pos, LCD_NOREV);
 		gui_setpos(&pos, rect_Client.left+3*FONTSIZE, rect_Client.top+6*FONTSIZE);
-//		menu_control_showstate((char*)"保电", shmm_getdevstat()->ctrpar.Baodian.Valid&0x01, pos);		//FOR698
+		menu_control_showstate((char*)"保电", c8001.state & 0x01 , pos);		//FOR698
 		pos.y += FONTSIZE*3;
-//		menu_control_showstate((char*)"下浮", shmm_getdevstat()->ctrpar.Xiafukong[zj_index-1].Valid&0x01, pos);
+
+//		menu_control_showstate((char*)"下浮",c8106.enable, pos);
 		pos.y += FONTSIZE*3;
-//		menu_control_showstate((char*)"报停", shmm_getdevstat()->ctrpar.Yingyekong[zj_index-1].Valid&0x01, pos);
+
+//		menu_control_showstate((char*)"报停", c8105.enable[zj_index-1], pos);
 		pos.y += FONTSIZE*3;
 //		menu_control_showstate((char*)"厂休", shmm_getdevstat()->ctrpar.Changxiukong[zj_index-1].Valid&0x01, pos);
 		gui_setpos(&pos, rect_Client.left+13*FONTSIZE+FONTSIZE/2, rect_Client.top+6*FONTSIZE);

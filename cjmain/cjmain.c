@@ -708,7 +708,7 @@ int main(int argc, char *argv[])
     get_protocol_3761_tx_para();//湖南获取3761切换通信参数，在初始化其他操作之后进行
 
     //点亮运行灯
-    g_powerState = 0;
+    g_powerState = PWR_ON;
     setRunLED(1);
     while (1) {
         sleep(1);
