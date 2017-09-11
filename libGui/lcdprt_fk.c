@@ -105,9 +105,9 @@ void menu_control(){
 	CLASS_8107 c8107; //购电控
 	CLASS_8108 c8108; //月电控
 
-	for (int i = 0; i < 8; ++i) {
-		readCoverClass(0x2301 + i, 0, &class23[0],sizeof(CLASS23), para_vari_save);
-	}
+//	for (int i = 0; i < 8; ++i) {
+//		readCoverClass(0x2301 + i, 0, &class23[0],sizeof(CLASS23), para_vari_save);
+//	}
 
 	readCoverClass(0x8001, 0, (void *) &c8001, sizeof(CLASS_8001),para_vari_save);
 	readCoverClass(0x8100, 0, (void *) &c8100, sizeof(CLASS_8100),para_vari_save);
@@ -156,10 +156,10 @@ void menu_control(){
 		menu_control_showstate((char*)"保电", c8001.state & 0x01 , pos);		//FOR698
 		pos.y += FONTSIZE*3;
 
-		menu_control_showstate((char*)"下浮",c8106.enable, pos);
+//		menu_control_showstate((char*)"下浮",c8106.enable, pos);
 		pos.y += FONTSIZE*3;
 
-		menu_control_showstate((char*)"报停", c8105.enable[zj_index-1], pos);
+//		menu_control_showstate((char*)"报停", c8105.enable[zj_index-1], pos);
 		pos.y += FONTSIZE*3;
 //		menu_control_showstate((char*)"厂休", shmm_getdevstat()->ctrpar.Changxiukong[zj_index-1].Valid&0x01, pos);
 		gui_setpos(&pos, rect_Client.left+13*FONTSIZE+FONTSIZE/2, rect_Client.top+6*FONTSIZE);
