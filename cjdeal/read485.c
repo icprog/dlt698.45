@@ -900,6 +900,18 @@ void SendDataTo485(INT8U port485, INT8U *sendbuf, INT16U sendlen) {
 
 	INT8U str[50];
 	memset(str, 0, 50);
+
+	if (getZone("ZheJiang") == 0)
+	{
+		INT8U tmpbuf[512];
+		tmpbuf[0] = 0xfe;
+		tmpbuf[1] = 0xfe;
+		tmpbuf[2] = 0xfe;
+		tmpbuf[3] = 0xfe;
+		memcpy(&tmpbuf[4],sendbuf,sendlen);
+		sendlen += 4;
+		memcpy(sendbuf,tmpbuf,sendlen);
+	}
 #if 1
 	sprintf((char *) str, "485(%d)_S(%d):", port485, sendlen);
 	printbuff((char *) str, sendbuf, sendlen, "%02x", " ", "\n");
@@ -2025,11 +2037,13 @@ INT8U fillclass23data(OAD oad_m,OAD oad_r,TSA meter,INT8U* data)
 	{
 		for(meterIndex = 0;meterIndex < MAX_AL_UNIT;meterIndex++)
 		{
+
 			if(JProgramInfo->class23[groupIndex].allist[meterIndex].tsa.addr[0]==0)
 				break;
 
-			if(memcmp(&meter,&JProgramInfo->class23[groupIndex].allist[meterIndex].tsa,sizeof(TSA))==0)
+			if(memcmp(&meter,&JProgramInfo->class23[groupIndex].allist[meterIndex].tsa,(meter.addr[0]+1))==0)
 			{
+				DbgPrintToFile1(6,"find it %02x %02x %02x %02x %02x %02x %02x %02x",meter.addr[0],meter.addr[1],meter.addr[2],meter.addr[3],meter.addr[4],meter.addr[5],meter.addr[6],meter.addr[7]);
 				if(oad_r.attrindex == 0)
 				{
 					data = &data[2];
@@ -2037,7 +2051,7 @@ INT8U fillclass23data(OAD oad_m,OAD oad_r,TSA meter,INT8U* data)
 					for(rateIndex = 0;rateIndex < MAXVAL_RATENUM+1;rateIndex++)
 					{
 						INT32U dianliang = (data[rateIndex*5+1]<<24)+(data[rateIndex*5+2]<<16)+(data[rateIndex*5+3]<<8)+data[rateIndex*5+4];
-						fprintf(stderr,"\n dianliang = %d data = %02x %02x %02x %02x",dianliang,data[rateIndex*5+1],data[rateIndex*5+2],data[rateIndex*5+3],data[rateIndex*5+4]);
+						DbgPrintToFile1(6,"\n  oad_r = %04x dianliang = %d data = %02x %02x %02x %02x",oad_r.OI,dianliang,data[rateIndex*5+1],data[rateIndex*5+2],data[rateIndex*5+3],data[rateIndex*5+4]);
 						switch(oad_m.OI)
 						{
 							//日冻结
@@ -2065,10 +2079,56 @@ INT8U fillclass23data(OAD oad_m,OAD oad_r,TSA meter,INT8U* data)
 							default:
 								if(oad_r.OI == 0x0010)
 								{
+									INT32U yongdianliang = dianliang - JProgramInfo->class23[groupIndex].allist[meterIndex].curP[rateIndex];
+									if(rateIndex == 0)
+									{
+										JProgramInfo->class23[groupIndex].DayPALL += yongdianliang;
+										JProgramInfo->class23[groupIndex].MonthPALL += yongdianliang;
+										if(yongdianliang >= JProgramInfo->class23[groupIndex].remains)
+										{
+											JProgramInfo->class23[groupIndex].remains = 0;
+										}
+										else
+										{
+											JProgramInfo->class23[groupIndex].remains -= yongdianliang;
+										}
+										DbgPrintToFile1(6,"groupIndex = %d yongdianliang = %ld remains = %ld",groupIndex,yongdianliang,JProgramInfo->class23[groupIndex].remains);
+										DbgPrintToFile1(6,"DayPALL=%ld MonthPALL=%ld",
+										JProgramInfo->class23[groupIndex].DayPALL,JProgramInfo->class23[groupIndex].MonthPALL);
+
+									}
+									if(rateIndex > 0)
+									{
+										JProgramInfo->class23[groupIndex].DayP[rateIndex-1] += yongdianliang;
+										JProgramInfo->class23[groupIndex].MonthP[rateIndex-1] += yongdianliang;
+
+										DbgPrintToFile1(6,"rate[%d]**************** DayP=%ld MonthQ=%ld",rateIndex-1,JProgramInfo->class23[groupIndex].DayP[rateIndex-1],JProgramInfo->class23[groupIndex].MonthP[rateIndex-1]);
+
+									}
 									JProgramInfo->class23[groupIndex].allist[meterIndex].curP[rateIndex] = dianliang;
 								}
 								if(oad_r.OI == 0x0020)
 								{
+									if(rateIndex == 0)
+									{
+										JProgramInfo->class23[groupIndex].DayQALL +=
+												dianliang - JProgramInfo->class23[groupIndex].allist[meterIndex].curQ[rateIndex];
+										JProgramInfo->class23[groupIndex].MonthQALL +=
+												dianliang - JProgramInfo->class23[groupIndex].allist[meterIndex].curQ[rateIndex];
+
+										DbgPrintToFile1(6,"DayQALL=%ld MonthQALL=%ld",
+												JProgramInfo->class23[groupIndex].DayQALL,JProgramInfo->class23[groupIndex].MonthQALL);
+
+									}
+									else
+									{
+										JProgramInfo->class23[groupIndex].DayQ[rateIndex-1] +=
+												dianliang - JProgramInfo->class23[groupIndex].allist[meterIndex].curQ[rateIndex];
+										JProgramInfo->class23[groupIndex].MonthQ[rateIndex-1] +=
+												dianliang - JProgramInfo->class23[groupIndex].allist[meterIndex].curQ[rateIndex];
+										DbgPrintToFile1(6,"rate[%d]**************** DayQ=%ld MonthQ= %ld",rateIndex-1,JProgramInfo->class23[groupIndex].DayQ[rateIndex-1],JProgramInfo->class23[groupIndex].MonthQ[rateIndex-1]);
+
+									}
 									JProgramInfo->class23[groupIndex].allist[meterIndex].curQ[rateIndex] = dianliang;
 								}
 						}
@@ -2078,8 +2138,22 @@ INT8U fillclass23data(OAD oad_m,OAD oad_r,TSA meter,INT8U* data)
 				}
 				else if(oad_r.attrindex == 1)
 				{
-					JProgramInfo->class23[groupIndex].allist[meterIndex].curP[0] =
-							(data[1]<<24)+(data[2]<<16)+(data[3]<<8)+data[4];
+					if(oad_r.OI == 0x0010)
+					{
+						INT32U dianliang = (data[1]<<24)+(data[2]<<16)+(data[3]<<8)+data[4];
+						INT32U yongdianliang = dianliang - JProgramInfo->class23[groupIndex].allist[meterIndex].curP[0];
+						JProgramInfo->class23[groupIndex].DayPALL += yongdianliang;
+						JProgramInfo->class23[groupIndex].MonthPALL += yongdianliang;
+						if(yongdianliang >= JProgramInfo->class23[groupIndex].remains)
+						{
+							JProgramInfo->class23[groupIndex].remains = 0;
+						}
+						else
+						{
+							JProgramInfo->class23[groupIndex].remains -= yongdianliang;
+						}
+						JProgramInfo->class23[groupIndex].allist[meterIndex].curP[0] = dianliang;
+					}
 				}
 
 				return 1;
@@ -3756,6 +3830,9 @@ void sendProxyFault(PROXY_GETLIST getlist)
 //处理代理抄读停上实时请求-
 INT8S dealRealTimeRequst(INT8U port485)
 {
+	if(isNeed4852 ==0)
+		return 0;
+
 	INT8S result = 0;
 	while(readState)
 	{
@@ -4621,7 +4698,8 @@ INT16S deal6015or6017_singlemeter(CLASS_6013 st6013,CLASS_6015 st6015,CLASS_6001
  *根据6015中的MS 和电表地址 和端口好判断此电表是否需要抄读
  *0-不抄 1-抄
  */
-INT8U checkMeterType(MY_MS mst,INT8U usrType,TSA usrAddr) {
+INT8U checkMeterType(MY_MS mst,INT8U usrType,TSA usrAddr)
+{
 
 	INT16U ms_num=0;
 	INT16U collIndex = 0;
@@ -5388,12 +5466,28 @@ void read485_proccess() {
 	comfd485[0] = -1;
 	comfd485[1] = -1;
 	readState = 0;
+	isNeed4852 = 1;
+	if((getZone("HuNan") == 0)&&((JProgramInfo->cfg_para.device == CCTT1)||(JProgramInfo->cfg_para.device == SPTF3)))
+	{
+		isNeed4852 = 0;
+		CLASS_f201 oif201[3] = {};
+		if(readCoverClass(0xf201, 0, oif201, sizeof(CLASS_f201)*3, para_vari_save)==1)
+		{
+			if(oif201[1].devfunc ==1)
+			{
+				isNeed4852 = 1;
+				asyslog(LOG_INFO,"485-2抄表");
+			}
+		}
+	}
+
 
 	struct mq_attr attr_485_1_task;
 	mqd_485_1_task = mmq_open((INT8S *)TASKID_485_1_MQ_NAME,&attr_485_1_task,O_RDONLY);
 
 	struct mq_attr attr_485_2_task;
 	mqd_485_2_task = mmq_open((INT8S *)TASKID_485_2_MQ_NAME,&attr_485_2_task,O_RDONLY);
+
 
 
 	pthread_attr_init(&read485_attr_t);
@@ -5405,10 +5499,14 @@ void read485_proccess() {
 		sleep(1);
 	}
 
-	while ((thread_read4852_id=pthread_create(&thread_read4852, &read485_attr_t, (void*)read485_thread, &i485port2)) != 0)
+	if(isNeed4852 == 1)
 	{
-		sleep(1);
+		while ((thread_read4852_id=pthread_create(&thread_read4852, &read485_attr_t, (void*)read485_thread, &i485port2)) != 0)
+		{
+			sleep(1);
+		}
 	}
+
 
 }
 void read485QuitProcess()

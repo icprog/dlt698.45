@@ -153,6 +153,11 @@ typedef struct {
 } PassRate_U;//电压统计结果
 
 typedef struct {
+	PassRate_U	dayu_tj;
+	PassRate_U	monthu_tj;
+}Volt_PassRate_tj;	//电压合格率统计
+
+typedef struct {
     INT32U day_tj;
     INT32U month_tj;
 } Day_Mon_TJ; //日月统计值
@@ -237,7 +242,7 @@ typedef struct {
     INT16U uDown;
     INT16U uUp_Kaohe;
     INT16U uDown_Kaohe;
-} CLASS_4030;
+} CLASS_4030;		//电压合格率参数
 
 typedef struct {
     char assetcode[40]; // 0：代表有效长度
@@ -594,7 +599,7 @@ typedef struct {
 
 typedef struct {
     CLASS22 class22;                  //接口类IC
-    char devdesc[VISIBLE_STRING_LEN]; //设备描述
+    char devdesc[VISIBLE_STRING_LEN]; //设备描述， //湖南：485_II为维护口和485口切换，=485:用于抄表口，=698:用于维护口
     COMDCB devpara;                   //设备参数
     INT8U devfunc;                    //端口功能
 } CLASS_f201;                         //RS232\ RS485维护口
@@ -808,9 +813,13 @@ typedef struct {
     INT64U q;   //无功
     INT64U TaveP;   //滑差有功
     INT64U TaveQ;   //滑差无功
+    INT64U DayPALL;    //日有功
     INT64U DayP[MAXVAL_RATENUM];    //日有功
+    INT64U DayQALL;    //日无功
     INT64U DayQ[MAXVAL_RATENUM];    //日无功
+    INT64U MonthPALL;  //月有功
     INT64U MonthP[MAXVAL_RATENUM];  //月有功
+    INT64U MonthQALL;  //月有功
     INT64U MonthQ[MAXVAL_RATENUM];  //月无功
     INT64U remains; //剩余电量
     INT64U DownFreeze;  //下浮控后总加有功冻结
@@ -908,8 +917,8 @@ typedef struct {
 
 typedef struct {
     OI_698 index;
-    DateTimeBCD_S start;
-    DateTimeBCD_S end;
+    DateTimeBCD start;
+    DateTimeBCD end;
     INT64U v;
 } STOP_CTRL;
 

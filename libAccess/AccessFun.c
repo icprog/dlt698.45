@@ -1097,16 +1097,19 @@ int getOI6001(MY_MS ms,INT8U **tsas)
 		return tsa_num;
 	}
 	record_num = getFileRecordNum(0x6000);
-	switch(ms.mstype) {
-	case 3:	//一组用户地址	浙江主站招测报文含有两个相同的测量点，例如，集中器共2个测量点，主站招测4个测量点，其中2个是重复的，导致申请内存空间不足（申请两个，放置了4个测量点信息）
-		tsa_len = (ms.ms.userAddr[0].addr[0]<<8) | ms.ms.userAddr[0].addr[1];
-		*tsas = malloc(tsa_len*sizeof(CLASS_6001));
-		break;
-	default:
-		*tsas = malloc(record_num*sizeof(CLASS_6001));
-		break;
-	}
-	fprintf(stderr," tsas  p=%p record_num=%d tsa_len=%d",*tsas,record_num,tsa_len);
+	*tsas = malloc(record_num*sizeof(CLASS_6001));
+//	浙江主站招测报文含有两个相同的测量点，例如，集中器共2个测量点，主站招测4个测量点，其中2个是重复的，导致申请内存空间不足（申请两个，放置了4个测量点信息）
+//	当配置两个测量点地址相同情况下，招测一组用户地址，查找到两条记录会申请内存不足，所以改为申请最大的测量点数量内存空间
+//	switch(ms.mstype) {
+//	case 3:	//一组用户地址
+//		tsa_len = (ms.ms.userAddr[0].addr[0]<<8) | ms.ms.userAddr[0].addr[1];
+//		*tsas = malloc(tsa_len*sizeof(CLASS_6001));
+//		break;
+//	default:
+//		*tsas = malloc(record_num*sizeof(CLASS_6001));
+//		break;
+//	}
+//	fprintf(stderr," tsas  p=%p record_num=%d tsa_len=%d",*tsas,record_num,tsa_len);
 	tsa_num = 0;
 	for(i=0;i<record_num;i++) {
 		if(readParaClass(0x6000,&meter,i)==1) {
@@ -1133,7 +1136,7 @@ int getOI6001(MY_MS ms,INT8U **tsas)
 					break;
 				case 3:	//一组用户地址
 					tsa_len = (ms.ms.userAddr[0].addr[0]<<8) | ms.ms.userAddr[0].addr[1];
-//					fprintf(stderr,"\n一组用户地址(%d)\n\n",tsa_len);
+					fprintf(stderr,"\n一组用户地址(%d)\n\n",tsa_len);
 					for(j=0;j<tsa_len;j++) {
 						if(memcmp(&ms.ms.userAddr[j+1],&meter.basicinfo.addr,sizeof(TSA))==0) {  //TODO:TSA下发的地址是否按照00：长度，01：TSA长度格式
 							memcpy(*tsas+(tsa_num*sizeof(CLASS_6001)),&meter,sizeof(CLASS_6001));
@@ -1141,7 +1144,7 @@ int getOI6001(MY_MS ms,INT8U **tsas)
 						}
 //						tsa_num += getUserTSA(ms.ms.userAddr[j+1],meter.basicinfo.addr,tsa_num,tsas);
 					}
-//					fprintf(stderr,"\nms.mstype = %d,tsa_num = %d",ms.mstype,tsa_num);
+					fprintf(stderr,"\nms.mstype = %d,tsa_num = %d",ms.mstype,tsa_num);
 					break;
 				case 4:	//一组配置序号
 					fprintf(stderr,"\n招测序号集(%d)",ms.ms.configSerial[0]);
@@ -2242,6 +2245,12 @@ INT16U CalcOIDataLen(OI_698 oi,INT8U attr_flg)
 	if(oi ==0x202a)
 	{
 		return 18;
+	}
+	if(oi==0x2131 || oi==0x2132 || oi==0x2133) {	//电压合格率
+		if(attr_flg == 0)
+			return 23*2+2;
+		else
+			return 23;
 	}
 //	if(oi == 2140 || oi == 2141)//struct 类型要在原长度基础上+3
 //		return (11+3)*(MET_RATE+1)+1+1;
@@ -4120,6 +4129,8 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds,INT16U fr
 		break;
 	default:
 		tsa_num = getOI6001(select.selec10.meters,(INT8U **)&tsa_group);
+		fprintf(stderr,"tsa_num = %d\n",tsa_num);
+		break;
 	}
 	if(eveflg == 1)
 	{

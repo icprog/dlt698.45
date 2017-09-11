@@ -30,6 +30,7 @@ extern PIID piid_g;
 extern TimeTag	Response_timetag;		//响应的时间标签值
 extern INT8U securetype;
 extern INT8U broadcast;
+extern TimeTag Response_timetag; //响应的时间标签值
 
 INT16U getMytypeSize(INT8U first) {
     if (first == 0xAA) {
@@ -79,8 +80,7 @@ int doReponse(int server, int reponse, CSINFO *csinfo, int datalen, INT8U *data,
     index = index + datalen;
     //buf[index++] = 0;	//操作返回数据
     buf[index++] = 0;    //跟随上报信息域 	FollowReport
-    buf[index++] = 0;    //时间标签		TimeTag
-//    index += FrameTimeTag(&Response_timetag,&buf[index]);
+    index += fill_timetag(&buf[index],Response_timetag);//时间标签		TimeTag
     fprintf(stderr,"securetype = %d\n",securetype);
     int ret=0;
     if (securetype != 0)//安全等级类型不为0，代表是通过安全传输下发报文，上行报文需要以不低于请求的安全级别回复
@@ -1548,6 +1548,9 @@ int doObjectAction(OAD oad, INT8U *data, Action_result *act_ret) {
      			act_ret->datalen = Set_F200(0xf200,data,&act_ret->DAR);
      		}
         	break;
+        case 0xF201:	//RS485
+        	//TODO:存储长度 CLASS_f201×3（485-1,485-2,485-3），修改参数后重启系统，防止抄表口与维护口无法区分
+        	break;
         case 0xF202:	//红外
         	if (attr_act == 127) {  //方法 127 配置端口
         		act_ret->datalen = Set_F202(0xf202,data,&act_ret->DAR);
@@ -1560,28 +1563,28 @@ int doObjectAction(OAD oad, INT8U *data, Action_result *act_ret) {
         	class12_router(0, attr_act, data, act_ret);
 			break;
         case 0x2301:
-            class23_selector(1, attr_act, data, act_ret);
+            class23_selector(0, attr_act, data, act_ret);
             break;
         case 0x2302:
-            class23_selector(2, attr_act, data, act_ret);
+            class23_selector(1, attr_act, data, act_ret);
             break;
         case 0x2303:
-            class23_selector(3, attr_act, data, act_ret);
+            class23_selector(2, attr_act, data, act_ret);
             break;
         case 0x2304:
-            class23_selector(4, attr_act, data, act_ret);
+            class23_selector(3, attr_act, data, act_ret);
             break;
         case 0x2305:
-            class23_selector(5, attr_act, data, act_ret);
+            class23_selector(4, attr_act, data, act_ret);
             break;
         case 0x2306:
-            class23_selector(6, attr_act, data, act_ret);
+            class23_selector(5, attr_act, data, act_ret);
             break;
         case 0x2307:
-            class23_selector(7, attr_act, data, act_ret);
+            class23_selector(6, attr_act, data, act_ret);
             break;
         case 0x2308:
-            class23_selector(8, attr_act, data, act_ret);
+            class23_selector(7, attr_act, data, act_ret);
             break;
         case 0x8000:
             class8000_act_route(1, attr_act, data, act_ret);

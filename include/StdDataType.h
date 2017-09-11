@@ -287,7 +287,7 @@ typedef struct
 	INT8U data3;
 	INT8U data4;
 }ComBCD8;//053283069933
-typedef struct//12：30       1：30    //  18305356699  /     85     // 128
+typedef struct//12：30       1：30    85     // 128
 {
 	ComBCD4 year;
 	ComBCD2 month;
@@ -380,7 +380,7 @@ typedef union
 {
 	INT8U nometer_null;						//0
 	INT8U allmeter_null;					//1
-	INT8U userType[COLLCLASS_MAXNUM];		//2：userType[0][1]:表示后面有效的序列个数,[0]:长度高字节,[1]:长度低字节
+	INT8U userType[COLLCLASS_MAXNUM];		//2：userType[0]，userType[1]:表示后面有效的序列个数,[0]:长度高字节,[1]:长度低字节
 	TSA	userAddr[COLLCLASS_MAXNUM];			//3：userAddr[0].addr[0][1]:表示后面的有效TSA个数,同上先高后低
 	INT16U configSerial[COLLCLASS_MAXNUM];	//4：configSerial[0]:表示后面有效的序列个数
 	Region type[COLLCLASS_MAXNUM];			//5：一组用户类型区间

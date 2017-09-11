@@ -990,8 +990,6 @@ int doCompSlaveMeter(RUNTIME_PLC *runtime_p)
 	INT8U addrtmp[6]={};
 	time_t nowtime = time(NULL);
 
-//	runtime_p->modeFlag = 1;
-//	module_info.SlavePointMode = 0;
 	if (module_info.SlavePointMode == 0)
 	{
 		DbgPrintToFile1(31,"不需要下发从节点信息，无路由管理");
@@ -1137,7 +1135,7 @@ int doCompSlaveMeter(RUNTIME_PLC *runtime_p)
 						}
 					}else
 					{
-						nodetmp.protocol = currtsa->protocol;
+						nodetmp.protocol = 2;//currtsa->protocol;
 						nodetmp.tsa = getNextTsa(&currtsa);	//从档案中取一个tsa
 						findflg = findTsaInList(tsa_zb_head,&nodetmp);
 						if (findflg == 0)
@@ -1341,7 +1339,7 @@ int buildProxyFrame(RUNTIME_PLC *runtime_p,struct Tsa_Node *desnode,OAD oad1,OAD
 				addrtmp[2] = desnode->tsa.addr[5];
 				addrtmp[1] = desnode->tsa.addr[6];
 				addrtmp[0] = desnode->tsa.addr[7];
-				return (AFN13_F1(&runtime_p->format_Down,runtime_p->sendbuf,addrtmp, 2, 0, buf645, sendlen));
+				return (AFN13_F1(&runtime_p->format_Down,runtime_p->sendbuf,addrtmp, DLT_645_97, 0, buf645, sendlen));
 			}
 			break;
 		case DLT_645_07:
@@ -1366,7 +1364,7 @@ int buildProxyFrame(RUNTIME_PLC *runtime_p,struct Tsa_Node *desnode,OAD oad1,OAD
 				addrtmp[2] = desnode->tsa.addr[5];
 				addrtmp[1] = desnode->tsa.addr[6];
 				addrtmp[0] = desnode->tsa.addr[7];
-				return (AFN13_F1(&runtime_p->format_Down,runtime_p->sendbuf,addrtmp, 2, 0, buf645, sendlen));
+				return (AFN13_F1(&runtime_p->format_Down,runtime_p->sendbuf,addrtmp, DLT_645_07, 0, buf645, sendlen));
 			}
 			break;
 		case DLT_698:
@@ -1906,7 +1904,6 @@ int ProcessMeter(INT8U *buf,struct Tsa_Node *desnode)
 {	DATA_ITEM  tmpitem;
 	int sendlen=0,taski=0, itemi=0 ;//返回 tmpitem指示的具体任务索引 ，itemi指示的具体数据项索引
 
-	//记录单元信息是不是这次要抄的电表的  Y：继续，N：读取本表记录信息到内存，继续
 //	DbgPrintToFile1(31,"内存   【%02x-%02x-%02x%02x%02x%02x%02x%02x】 index=%d",
 //			taskinfo.tsa.addr[0],taskinfo.tsa.addr[1],taskinfo.tsa.addr[2],
 //			taskinfo.tsa.addr[3],taskinfo.tsa.addr[4],taskinfo.tsa.addr[5],
@@ -1928,8 +1925,9 @@ int ProcessMeter(INT8U *buf,struct Tsa_Node *desnode)
 			memcpy(&taskinfo,&taskinfo_bak,sizeof(taskinfo));
 			taskinfo.tsa = desnode->tsa;
 			taskinfo.tsa_index = desnode->tsa_index;
+//			taskinfo.protocol = desnode->protocol;
+
 			DbgPrintToFile1(31,"第一次请求，用备份结构体初始化该表抄读状态");
-//			zeroitemflag(&taskinfo);
 		}
 	}
 	tmpitem = checkMeterData(&taskinfo,&taski,&itemi,desnode->usrtype);	//根据任务的时间计划，查找一个适合抄读的数据项
@@ -2209,7 +2207,6 @@ void doSave(INT8U protocol,FORMAT97 frame97,FORMAT07 frame07)
 	{//是当前抄读TSA 数据
 		taski = taskinfo.now_taski;
 		itemi = taskinfo.now_itemi;
-//				TimeBCDToTs(taskinfo.task_list[taski].begin,&ts);
 		TimeBCDToTs(taskinfo.task_list[taski].fangan.items[itemi].savetime,&ts);//ts 为数据存储时间
 		if(protocol == DLT_645_97)
 		{
@@ -2223,7 +2220,6 @@ void doSave(INT8U protocol,FORMAT97 frame97,FORMAT07 frame07)
 			DbgPrintToFile1(31,"抄读数据项 %02x%02x%02x%02x",taskFlag07[0],taskFlag07[1],taskFlag07[2],taskFlag07[3]);
 			DbgPrintToFile1(31,"回码数据项 %02x%02x%02x%02x",frame07.DI[0],frame07.DI[1],frame07.DI[2],frame07.DI[3]);
 		}
-
 
 		DbgPrintToFile1(31,"存储时间 %d -%d -%d  %d:%d:%d",ts.Year,ts.Month,ts.Day,ts.Hour,ts.Minute,ts.Sec);
 		if(protocol == DLT_645_97)
@@ -2281,13 +2277,11 @@ int SaveTaskData(FORMAT3762 format_3762_Up,INT8U taskid)
 		}
 		else
 		{
-
 			if (analyzeProtocol07(&frame07, buf645, len645, &nextFlag) == 0)
 			{
 				doSave(DLT_645_07,frame97,frame07);
 			}
 		}
-
 	}
 	if (format_3762_Up.afn13_f1_up.MsgLength > 0)
 	{
@@ -2407,14 +2401,12 @@ int doTask(RUNTIME_PLC *runtime_p)
 						saveClass6035(&result6035);
 				    }
 				}
-//				DbgPrintToFile1(31,"up channel = %02x",runtime_p->format_Up.info_up.ChannelFlag);
 				flag= Echo_Frame( runtime_p,buf645,sendlen);//内部根据sendlen判断抄表 / 切表
 				if (flag==0 || flag == 1)
 					inWaitFlag = 0;
 				runtime_p->send_start_time = nowtime;
 			}else if ( runtime_p->format_Up.afn == 0x06 && runtime_p->format_Up.fn == 2 )//收到返回抄表数据
 			{
-				DbgPrintToFile1(31,"路由主导流程_收数据");
 				inWaitFlag = 0;
 				sendlen = AFN00_F01( &runtime_p->format_Up,runtime_p->sendbuf );//确认
 				SendDataToCom(runtime_p->comfd, runtime_p->sendbuf,sendlen );
@@ -3073,7 +3065,12 @@ int MyTimeJuge(INT8U *timestr)
 }
 int dateJudge(TS *old ,TS *new)
 {
-	if(old->Day!=new->Day || old->Year!=new->Year || old->Month!=new->Month)
+//	if(old->Day!=new->Day || old->Year!=new->Year || old->Month!=new->Month)
+//	{
+//		memcpy(old,new,sizeof(TS));
+//		return 1;
+//	}
+	if ((new->Hour==23 && new->Minute>=55 )  &&  (old->Hour!=new->Hour)  && (old->Day!=new->Day))
 	{
 		memcpy(old,new,sizeof(TS));
 		return 1;
@@ -3870,7 +3867,6 @@ void readplc_thread()
 		 * 	   接收报文，并处理
 		********************************/
 		dealData(state,&runtimevar);
-
 	}
 	freeList(tsa_head);
 	freeList(tsa_zb_head);

@@ -15,6 +15,7 @@
 #include "ParaDef.h"
 #include "../libMq/libmmq.h"
 #include "basedef.h"
+#include "att7022e.h"//II型集中器使用7022芯片
 
 
 static TSA TSA_LIST[MAX_POINT_NUM];
@@ -649,7 +650,18 @@ INT8U Get_StandardUnit(ProgramInfo* prginfo_event,OI_698 oi,INT8U *Rbuf,INT8U *I
 		Rbuf[(*Index)++] = 0;//15无结束时间
 	}else if(oi==0x3106){
 		if(*Source==0){
-			Rbuf[(*Index)++] = 0;//15无结束时间
+			if(getZone("ZheJiang")==0) {
+				Rbuf[(*Index)++] = 0;//15无结束时间
+			}else {			//TODO:山东要求停电事件时，报上一次的上电时间
+				Rbuf[(*Index)++] = dtdatetimes;//15
+				Rbuf[(*Index)++] = (((TermialPowerInfo.PoweronTime.tm_year+1900)>>8)&0x00ff);//16
+				Rbuf[(*Index)++] = ((TermialPowerInfo.PoweronTime.tm_year+1900)&0x00ff);//17
+				Rbuf[(*Index)++] = TermialPowerInfo.PoweronTime.tm_mon+1;//18
+				Rbuf[(*Index)++] = TermialPowerInfo.PoweronTime.tm_mday;//19
+				Rbuf[(*Index)++] = TermialPowerInfo.PoweronTime.tm_hour;//20
+				Rbuf[(*Index)++] = TermialPowerInfo.PoweronTime.tm_min;//21
+				Rbuf[(*Index)++] = TermialPowerInfo.PoweronTime.tm_sec;//22
+			}
 		}
 		else{
 			Rbuf[(*Index)++] = dtdatetimes;//15
@@ -1241,7 +1253,12 @@ INT8U Event_3106(ProgramInfo* prginfo_event,MeterPower *MeterPowerInfo,INT8U *st
 	time_of_now = time(NULL);
 	INT8U flag = 0;
 	static INT8U off_time = 0;
-	fileread(ERC3106PATH,&TermialPowerInfo,sizeof(TermialPowerInfo));
+	static INT8U first = 0;
+
+	if(first==0) {
+		fileread(ERC3106PATH,&TermialPowerInfo,sizeof(TermialPowerInfo));
+		first = 1;
+	}
 	INT16U poweroff_happen_vlim=prginfo_event->event_obj.Event3106_obj.poweroff_para_obj.screen_para_obj.happen_voltage_limit;
 	INT16U recover_voltage_limit=prginfo_event->event_obj.Event3106_obj.poweroff_para_obj.screen_para_obj.recover_voltage_limit;
 	INT16U mintime_space=prginfo_event->event_obj.Event3106_obj.poweroff_para_obj.screen_para_obj.mintime_space;
@@ -1264,6 +1281,7 @@ INT8U Event_3106(ProgramInfo* prginfo_event,MeterPower *MeterPowerInfo,INT8U *st
 						recover_voltage_limit,
 						prginfo_event->ACSRealData.Ua);
 				off_flag=1;
+				prginfo_event->powerState = PWR_DOWN;
 			}
 		}else{
 			BOOLEAN gpio_5V=pwr_has();
@@ -1299,6 +1317,7 @@ INT8U Event_3106(ProgramInfo* prginfo_event,MeterPower *MeterPowerInfo,INT8U *st
 						recover_voltage_limit,
 						prginfo_event->ACSRealData.Ua);
 				on_flag=1;
+				prginfo_event->powerState = PWR_ON;
 			}
 		}else{
 			if((prginfo_event->ACSRealData.Available&&prginfo_event->ACSRealData.Ua>recover_voltage_limit)

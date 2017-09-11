@@ -81,7 +81,8 @@ Menu menu[]={//必须是一级菜单，然后二级菜单。。。。
 		{{level2,"6.手动抄表", 	NULL, 				MENU_NOPASSWD},		NULL},
 			{{level3,"1.根据表序号抄表", menu_readmeterbycldno, 	MENU_NOPASSWD},	NULL},
 			{{level3,"2.根据表地址抄表",menu_readmeterbycldaddr,MENU_NOPASSWD},	NULL},
-		{{level2,"7.载波管理",	NULL, 				MENU_NOPASSWD},		NULL},
+		{{level2,"7.485II设置", 	 menu_set485II , MENU_NOPASSWD},		NULL},
+		{{level2,"8.载波管理",	NULL, 				MENU_NOPASSWD},		NULL},
 //		/////三级菜单 载波抄表子菜单
 			{{level3,"1.重新抄表", 	menu_zb_begin, 		MENU_NOPASSWD},		NULL},
 			{{level3,"2.暂停抄表",	menu_zb_stop,		MENU_NOPASSWD},		NULL},
@@ -99,7 +100,7 @@ TS Tcurr_tm_his;
 int g_PressKey_old;//用于液晶点抄 半途退出
 
 
-int getMenuSize(){
+int getMenuSize_jzq(){
 	return sizeof(menu)/sizeof(Menu);
 }
 
@@ -1064,6 +1065,38 @@ int port2index(OAD oad){
 	}
 	return index;
 }
+static void setmp_cbtext_jiaoyan(char cb_text[][TEXTLEN_Y]){
+	memset(cb_text, 0, TEXTLEN_X*TEXTLEN_Y);
+	memcpy(cb_text[0], "无校验", strlen("无校验"));
+	memcpy(cb_text[1], "奇校验", strlen("奇校验"));
+	memcpy(cb_text[2], "偶校验", strlen("偶校验"));
+}
+static void setmp_cbtext_databit(char cb_text[][TEXTLEN_Y]){
+	memset(cb_text, 0, TEXTLEN_X*TEXTLEN_Y);
+	memcpy(cb_text[0], "5位", strlen("5位"));
+	memcpy(cb_text[1], "6位", strlen("6位"));
+	memcpy(cb_text[2], "7位", strlen("7位"));
+	memcpy(cb_text[3], "8位", strlen("8位"));
+}
+static void setmp_cbtext_stopbit(char cb_text[][TEXTLEN_Y]){
+	memset(cb_text, 0, TEXTLEN_X*TEXTLEN_Y);
+	memcpy(cb_text[0], "1位", strlen("1位"));
+	memcpy(cb_text[1], "2位", strlen("2位"));
+}
+static void setmp_cbtext_flowctrl(char cb_text[][TEXTLEN_Y]){
+	memset(cb_text, 0, TEXTLEN_X*TEXTLEN_Y);
+	memcpy(cb_text[0], "无流控", strlen("无流控"));
+	memcpy(cb_text[1], "硬件", strlen("硬件"));
+	memcpy(cb_text[2], "软件", strlen("软件"));
+}
+
+static void setmp_cbtext_func(char cb_text[][TEXTLEN_Y]){
+	memset(cb_text, 0, TEXTLEN_X*TEXTLEN_Y);
+	memcpy(cb_text[0], "上行通信", strlen("上行通信"));
+	memcpy(cb_text[1], "抄表", strlen("抄表"));
+	memcpy(cb_text[2], "级联", strlen("级联"));
+	memcpy(cb_text[3], "停用", strlen("停用"));
+}
 
 static void setmp_cbtext_port(char cb_text[][TEXTLEN_Y]){
 	memset(cb_text, 0, TEXTLEN_X*TEXTLEN_Y);
@@ -1142,6 +1175,28 @@ static int addmp_showlabel(struct list *head, struct list *node){
 	return ret;
 }
 
+static int setf201_showlabel(){
+	int ret=0;
+	Point label_pos;
+	label_pos.x = rect_Client.left;
+	label_pos.y = rect_Client.top;
+	label_pos.y += ROW_INTERVAL;
+	gui_textshow((char *)"波特率:", label_pos, LCD_NOREV);
+	label_pos.x = rect_Client.left;
+	label_pos.y += FONTSIZE*2 + ROW_INTERVAL;
+	gui_textshow((char *)"校验位:", label_pos, LCD_NOREV);
+	label_pos.y += FONTSIZE*2 + ROW_INTERVAL;
+	gui_textshow((char *)"数据位:", label_pos, LCD_NOREV);
+	label_pos.y += FONTSIZE*2 + ROW_INTERVAL;
+	gui_textshow((char *)"停止位:", label_pos, LCD_NOREV);
+	label_pos.y += FONTSIZE*2 + ROW_INTERVAL;
+	gui_textshow((char *)"流  控:", label_pos, LCD_NOREV);
+	label_pos.y += FONTSIZE*2 + ROW_INTERVAL;
+	gui_textshow((char *)"功  能:", label_pos, LCD_NOREV);
+	label_pos.y += FONTSIZE*2 + ROW_INTERVAL;
+	return ret;
+}
+
 static int setmp_showlabel(struct list *head, struct list *node){
 	int ret=0;
 	Point label_pos;
@@ -1196,6 +1251,170 @@ INT8U which_protocol(char protocol)
 		break;
 	}
 	return result;
+}
+int getindexdataindex(int datanum)
+{
+	if(datanum>=5 && datanum<=8)
+		return (datanum-5);
+	return(8-5);
+}
+int getindexstopindex(int datanum)
+{
+	if(datanum==1 || datanum==2)
+	{
+		return (datanum-1);
+	}
+	return(0);
+}
+void menu_set485II()
+{
+	CLASS_f201 f201[3];
+	int tmp=0;
+	char first_flg=0;
+	readCoverClass(0xf201,0,f201,sizeof(CLASS_f201)*3,para_vari_save);
+	Combox baudctl; //波特率
+	Combox flowctl;	//流控 			无0，硬件1，软件2
+	Combox checkbit;//校验位 			无0，奇1 ，偶2
+	Combox databit;	//数据位 			5 ，6 ，7 ，8
+	Combox stopbit;	//停止位			1 ，2
+	Combox funcode;	//功能配置		上行通信0 ，抄表1 ， 系联2 ，停用3
+	struct list *cur_node=NULL, *tmpnode=NULL;
+	Rect rect;
+	Form *cur_form=NULL, client;//client 液晶显示客户区
+	char cb_text[TEXTLEN_X][TEXTLEN_Y];//用于存放combox的元素
+	char str[INPUTKEYNUM]={};
+	fprintf(stderr,"\n----------------------------------1");
+	memset(&baudctl, 0, sizeof(Edit));
+	memset(&flowctl, 0, sizeof(Edit));
+	memset(&checkbit, 0, sizeof(Edit));
+	memset(&databit, 0, sizeof(Edit));
+	memset(&stopbit, 0, sizeof(Edit));
+	memset(&funcode, 0, sizeof(Edit));
+	memset(&client, 0, sizeof(Form));
+	client.node.child = (struct list*)malloc(sizeof(struct list));
+	if(client.node.child==NULL){
+		g_curcldno = 1;//上状态栏显示
+		return;
+	}
+	fprintf(stderr,"\n----------------------------------2");
+	memset(client.node.child, 0, sizeof(struct list));
+	gui_clrrect(rect_Client);
+	Point pos,pos_index;
+	pos.x = rect_Client.left+FONTSIZE*7.5;
+	pos.y = rect_Client.top;
+	memcpy(&pos_index,&pos,sizeof(Point));
+	//------------------------------------------------------------
+	setmp_cbtext_baud(cb_text);
+//	pos.y += FONTSIZE*2 + ROW_INTERVAL;
+	pos.y +=  ROW_INTERVAL;
+	combox_init(&baudctl, f201[1].devpara.baud, cb_text, pos, 0,client.node.child);		//通信速率   F201
+	//------------------------------------------
+	setmp_cbtext_jiaoyan(cb_text);
+	pos.y += FONTSIZE*2 + ROW_INTERVAL;
+	if (f201[1].devpara.verify < 0 || f201[1].devpara.verify > 2)
+		f201[1].devpara.verify = 2;
+	combox_init(&checkbit, f201[1].devpara.verify, cb_text, pos, 0,client.node.child);	//校验位    F201
+	//------------------------------------------
+	setmp_cbtext_databit(cb_text);
+	pos.y += FONTSIZE*2 + ROW_INTERVAL;
+	if (f201[1].devpara.databits < 5 || f201[1].devpara.databits > 8)
+		f201[1].devpara.databits = 8;
+	combox_init(&databit, getindexdataindex(f201[1].devpara.databits), cb_text, pos, 0,client.node.child);		//数据位    F201
+	//------------------------------------------
+	setmp_cbtext_stopbit(cb_text);
+	pos.y += FONTSIZE*2 + ROW_INTERVAL;
+	if (f201[1].devpara.stopbits < 1 || f201[1].devpara.stopbits > 2)
+		f201[1].devpara.stopbits = 1;
+	combox_init(&stopbit,getindexstopindex(f201[1].devpara.stopbits), cb_text, pos, 0,client.node.child);		//停止位    F201
+	//------------------------------------------
+	setmp_cbtext_flowctrl(cb_text);
+	pos.y += FONTSIZE*2 + ROW_INTERVAL;
+	if (f201[1].devpara.flow < 0 || f201[1].devpara.flow > 2)
+		f201[1].devpara.flow = 0;
+	combox_init(&flowctl, f201[1].devpara.flow, cb_text, pos, 0,client.node.child);		//流控    F201
+	//------------------------------------------
+	setmp_cbtext_func(cb_text);
+	pos.y += FONTSIZE*2 + ROW_INTERVAL;
+	if (f201[1].devfunc < 0 || f201[1].devfunc > 3)
+		f201[1].devfunc = 1;
+	combox_init(&funcode, f201[1].devfunc, cb_text, pos, 0,client.node.child);		//端口功能   F201
+	//------------------------------------------
+	setf201_showlabel();//显示各个控件的标签
+	cur_node = &baudctl.form.node;
+	cur_form = &baudctl.form;
+	PressKey = NOKEY;
+	while(g_LcdPoll_Flag==LCD_NOTPOLL){
+		switch(PressKey)
+		{
+		case LEFT:
+		case UP:
+			cur_form->focus = NOFOCUS;
+			cur_node=list_getprev(cur_node);
+			if(cur_node==client.node.child)
+				cur_node = list_getlast(client.node.child);
+			break;
+		case RIGHT:
+		case DOWN:
+			cur_form->focus = NOFOCUS;
+			if(list_getnext(cur_node)==NULL){
+				cur_node = list_getfirst(cur_node);
+				cur_node = cur_node->next;
+			}else
+				cur_node = list_getnext(cur_node);
+			break;
+		case OK:
+			cur_form->pfun_process(cur_form);
+			if(cur_form->pfun_process_ret==OK){
+				if(msgbox_label((char *)"保存参数?", CTRL_BUTTON_OK)==ACK){
+					fprintf(stderr,"\n保存");
+					f201[1].devpara.baud = baudctl.cur_index;			//波特率
+					f201[1].devpara.flow = flowctl.cur_index;			//流控 			无0，硬件1，软件2
+					f201[1].devpara.verify = checkbit.cur_index;		//校验位 			无0，奇1 ，偶2
+					f201[1].devpara.databits = databit.cur_index + 5;	//数据位 			5 ，6 ，7 ，8
+					f201[1].devpara.stopbits = stopbit.cur_index + 1;	//停止位			1 ，2
+					f201[1].devfunc = funcode.cur_index;				//功能配置		上行通信0 ，抄表1 ， 系联2 ，停用3
+					 saveCoverClass(0xf201, 0, &f201, sizeof(CLASS_f201)*3, para_vari_save);
+				}
+				g_curcldno = 1;
+			}
+			break;
+		case ESC:
+			if(client.node.child!=NULL)
+				free(client.node.child);
+			return;
+		}
+		if(PressKey!=NOKEY||first_flg==0){
+			memcpy(&rect, &rect_Client, sizeof(Rect));
+			rect.left = rect_Client.left + FONTSIZE*8 - 8;
+			gui_clrrect(rect);
+			tmpnode = client.node.child;
+			tmp = setf201_showlabel();
+			memset(str, 0, INPUTKEYNUM);
+			sprintf(str,"%04d", g_curcldno);
+			gui_textshow(str,pos_index,LCD_NOREV);
+			while(tmpnode->next!=NULL){
+				tmpnode = tmpnode->next;
+				cur_form = list_entry(tmpnode, Form, node);
+				if(tmp==1){
+					if(list_getListIndex(client.node.child, tmpnode)>=list_getListIndex(client.node.child, cur_node))
+						cur_form->pfun_show(cur_form);
+				}else
+					cur_form->pfun_show(cur_form);
+			}
+			cur_form = list_entry(cur_node, Form, node);//根据链表节点找到控件指针
+			cur_form->focus = FOCUS;
+			memcpy(&rect, &cur_form->rect, sizeof(Rect));
+			rect.left += 2;
+			rect.right -= 3;
+			rect.top -= 1;
+			gui_rectangle(gui_changerect(gui_moverect(rect, DOWN, 4), 4));
+			first_flg = 1;
+		}
+		PressKey = NOKEY;
+		delay(100);
+	}
+	if(client.node.child!=NULL)
+		free(client.node.child);
 }
 
 void setmeterpara(void *pindex)
@@ -1374,7 +1593,6 @@ void setmeterpara(void *pindex)
 							rate_num_o = 255;
 						}
 						meter.basicinfo.ratenum = rate_num_o;
-
 						meter.basicinfo.connectype = cb_con_method.cur_index;
 //#ifdef CCTT_I
 						memset(str,0,sizeof(str));
@@ -1703,7 +1921,7 @@ void deletemeter(void* pindex)
 }
 //菜单 电表档案设置  160-32=128/12=10
 void menu_jzqsetmeter(){
-	showallmeter(setmeterpara);
+	showallmeter(setmeterpara);	//485-II设置
 }
 void menu_jzqaddmeter(){
 	addmeter();
