@@ -145,7 +145,9 @@ void rebootWhenPwrDown(INT8U delay) {
     static INT8U cnt_pwroff = 0;
     int i = 0;
 
-    if (PWR_DOWN == JProgramInfo->powerState) {
+    if (pwr_down_byVolt(JProgramInfo->ACSRealData.Available,
+			JProgramInfo->ACSRealData.Ua,
+			JProgramInfo->event_obj.Event3106_obj.poweroff_para_obj.screen_para_obj.happen_voltage_limit) == 1) {
         cnt_pwroff++;
         if (cnt_pwroff == delay) {
         	system("cj stop");
