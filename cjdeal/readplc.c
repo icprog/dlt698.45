@@ -3070,7 +3070,7 @@ int dateJudge(TS *old ,TS *new)
 //		memcpy(old,new,sizeof(TS));
 //		return 1;
 //	}
-	if (new->Hour==23 && new->Minute>=55     && old->Minute!=new->Minute)
+	if ((new->Hour==23 && new->Minute>=55 )  &&  (old->Hour!=new->Hour)  && (old->Day!=new->Day))
 	{
 		memcpy(old,new,sizeof(TS));
 		return 1;
