@@ -1271,7 +1271,16 @@ void menu_set485II()
 	CLASS_f201 f201[3];
 	int tmp=0;
 	char first_flg=0;
-	readCoverClass(0xf201,0,f201,sizeof(CLASS_f201)*3,para_vari_save);
+
+	if(readCoverClass(0xf201,0,f201,sizeof(CLASS_f201)*3,para_vari_save)==-1) {
+	//无参数文件，默认初始化上行通道  9600-even-8-1
+		f201[1].devpara.baud = 6;
+		f201[1].devpara.databits = 8;
+		f201[1].devpara.stopbits = 1;
+		f201[1].devpara.flow = 0;
+		f201[1].devpara.verify = 2;
+		f201[1].devfunc = 0;	//上行通道
+	}
 	Combox baudctl; //波特率
 	Combox flowctl;	//流控 			无0，硬件1，软件2
 	Combox checkbit;//校验位 			无0，奇1 ，偶2
