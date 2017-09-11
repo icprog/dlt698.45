@@ -70,7 +70,7 @@ INT32S comfd485[2];
 INT8U i485port1;
 INT8U readState;//是否正抄停上电事件－抄停上电事件的时候需要暂停正常抄表流程
 INT8U i485port2;
-
+INT8U isNeed4852;//0-4852维护口　1-4852抄表口
 //698 OAD 和 645 07规约 数据标识对应关系
 INT8U map07DI_698OAD_NUM;
 CLASS_601F map07DI_698OAD[NUM_07DI_698OAD];

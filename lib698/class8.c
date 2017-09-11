@@ -9,6 +9,7 @@
 #include "AccessFun.h"
 #include "class8.h"
 #include "PublicFunction.h"
+#include "dlt698.h"
 
 int class8001_act127(int index, int attr_act, INT8U *data,
 		Action_result *act_ret) {
@@ -499,8 +500,33 @@ int class8104_act_route(int index, int attr_act, INT8U *data,
 }
 
 int class8105_act3(int index, int attr_act, INT8U *data, Action_result *act_ret) {
-	asyslog(LOG_WARNING, "营业报停-添加控制单元");
+	OI_698 oi = 0x00;
+	int unit = 0;
+	int	ii = 0;
+	INT8U  DAR = 0;
+	CLASS_8105 c8105={};
 
+	ii += getStructure(&data[ii],NULL,&DAR);
+	ii += getOI(1,&data[ii],&oi);
+	asyslog(LOG_WARNING, "营业报停-添加控制单元(OI=%04x)",oi);
+
+	if(oi>=0x2301 && oi<=0x2308) {
+		unit = oi-0x2301;
+	}else {
+		act_ret->DAR = obj_unexist;
+		return 0;
+	}
+	readCoverClass(0x8105, 0, (void *) &c8105, sizeof(CLASS_8105),
+			para_vari_save);
+
+	ii += getDateTimeS(1,&data[ii],(INT8U *)&c8105.list[unit].start,&DAR);
+	ii += getDateTimeS(1,&data[ii],(INT8U *)&c8105.list[unit].end,&DAR);
+	ii += getLong64(&data[ii],&c8105.list[unit].v);
+	fprintf(stderr,"c8105.v = %lld\n",c8105.list[unit].v);
+	printDataTimeS("报停起始时间",c8105.list[unit].start);
+	printDataTimeS("报停结束时间",c8105.list[unit].end);
+	saveCoverClass(0x8105, 0, (void *) &c8105, sizeof(CLASS_8105),
+			para_vari_save);
 	return 0;
 }
 
@@ -568,7 +594,29 @@ int class8105_act_route(int index, int attr_act, INT8U *data,
 }
 
 int class8106_act3(int index, int attr_act, INT8U *data, Action_result *act_ret) {
-	asyslog(LOG_WARNING, "功率下浮-添加控制单元");
+//	OI_698 oi = 0x00;
+//	int unit = 0;
+//	int	ii = 0;
+//	INT8U  DAR = 0;
+//	CLASS_8106 c8106={};
+//
+//	ii += getStructure(&data[ii],NULL,&DAR);
+//	ii += getOI(1,&data[ii],&oi);
+//	asyslog(LOG_WARNING, "营业报停-添加控制单元(OI=%04x)",oi);
+//
+//	if(oi>=0x2301 && oi<=0x2308) {
+//		unit = oi-0x2301;
+//	}else {
+//		act_ret->DAR = obj_unexist;
+//		return 0;
+//	}
+//	readCoverClass(0x8106, 0, (void *) &c8106, sizeof(CLASS_8106),
+//			para_vari_save);
+//
+//	saveCoverClass(0x8106, 0, (void *) &c8106, sizeof(CLASS_8106),
+//			para_vari_save);
+//
+
 	return 0;
 }
 

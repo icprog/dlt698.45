@@ -3830,6 +3830,9 @@ void sendProxyFault(PROXY_GETLIST getlist)
 //处理代理抄读停上实时请求-
 INT8S dealRealTimeRequst(INT8U port485)
 {
+	if(isNeed4852 ==0)
+		return 0;
+
 	INT8S result = 0;
 	while(readState)
 	{
@@ -5463,18 +5466,21 @@ void read485_proccess() {
 	comfd485[0] = -1;
 	comfd485[1] = -1;
 	readState = 0;
-
-	INT8U isNeed4852 = 1;
-    CLASS_f201 oif201[3] = {};
-	if(readCoverClass(0xf201, 0, oif201, sizeof(CLASS_f201)*3, para_vari_save)==1)
+	isNeed4852 = 1;
+	if((getZone("HuNan") == 0)&&((JProgramInfo->cfg_para.device == CCTT1)||(JProgramInfo->cfg_para.device == SPTF3)))
 	{
-		if(oif201[1].devfunc !=1)
+		isNeed4852 = 0;
+		CLASS_f201 oif201[3] = {};
+		if(readCoverClass(0xf201, 0, oif201, sizeof(CLASS_f201)*3, para_vari_save)==1)
 		{
-			isNeed4852 = 0;
-			asyslog(LOG_INFO,"485-2不运行");
+			if(oif201[1].devfunc ==1)
+			{
+				isNeed4852 = 1;
+				asyslog(LOG_INFO,"485-2抄表");
+			}
 		}
-
 	}
+
 
 	struct mq_attr attr_485_1_task;
 	mqd_485_1_task = mmq_open((INT8S *)TASKID_485_1_MQ_NAME,&attr_485_1_task,O_RDONLY);

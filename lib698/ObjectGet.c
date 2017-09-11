@@ -1374,8 +1374,11 @@ int  fill_variClass(OAD oad,INT8U getflg,INT8U *sourcebuf,INT8U *destbuf,int *le
 				proginfo->ACSRealData.Ua,proginfo->ACSRealData.Ub,proginfo->ACSRealData.Uc,0,destbuf);
 		break;
 	case 0x2001:	//电流
-		if(oad.attrindex==0)		structnum = 4;
+		//国网台体测试常温基本误差，送I0提示元素错误
+		if(oad.attrindex==0)		structnum = 3;
 		else structnum = 1;
+//		if(oad.attrindex==0)		structnum = 4;
+//		else structnum = 1;
 		buflen = fillVacsData(structnum,oad.attrindex,dtdoublelong,
 				proginfo->ACSRealData.Ia,proginfo->ACSRealData.Ib,proginfo->ACSRealData.Ic,proginfo->ACSRealData.I0,destbuf);
 		break;

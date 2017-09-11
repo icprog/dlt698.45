@@ -39,7 +39,9 @@ void dbInit(int index) {
 	if (DB.JProgramInfo->cfg_para.device == CCTT1
 			|| DB.JProgramInfo->cfg_para.device == SPTF3) {
 		CLASS_f201 f201[3];
+		memset(&f201,0,sizeof(f201));
 		readCoverClass(0xf201, 0, &f201, sizeof(f201), para_vari_save);
+
 		DB.RS485IIOPEN = (f201[1].devfunc == 0) ? 1 : 0;
 		memcpy(&DB.cf200, &f201[1], sizeof(DB.cf200));
 
