@@ -337,23 +337,23 @@ int main(int argc, char *argv[])
     fprintf(stderr,"\n===========================\nstep1:停止进程cjdeal(为了U盘功能检测)\n===========================\n");
     system("pkill cjdeal");
     fprintf(stderr,"\n===========================\nstep2:停止进程cjcomm(为了检测485口)\n===========================\n");
-//    for(;;) {
-//		cjcomm_pid = check_cjcomm();
-//		if(cjcomm_pid>0) {
-//			syslog(LOG_NOTICE,"cj645检测到cjcomm运行,pid=%ld,正在停止程序!!!!!!!!!!!!\n ",cjcomm_pid);
-//			memset(&cmd,0,sizeof(cmd));
-//			sprintf(cmd,"kill -9 %ld",cjcomm_pid);
-//			fprintf(stderr,"cmd=%s\n",cmd);
-//			system(cmd);
-//			sleep(1);
-//			system("pkill cjdeal");
-//	    	if(pgpl_isExist(cjcomm_pid)==FALSE) {
-//	    		fprintf(stderr,"cjcomm 已退出\n");
-//	    		break;
-//	    	}
-//		}
-//    	usleep(50000);
-//    }
+    for(;;) {
+		cjcomm_pid = check_cjcomm();
+		if(cjcomm_pid>0) {
+			syslog(LOG_NOTICE,"cj645检测到cjcomm运行,pid=%ld,正在停止程序!!!!!!!!!!!!\n ",cjcomm_pid);
+			memset(&cmd,0,sizeof(cmd));
+			sprintf(cmd,"kill -9 %ld",cjcomm_pid);
+			fprintf(stderr,"cmd=%s\n",cmd);
+			system(cmd);
+			sleep(1);
+			system("pkill cjdeal");
+	    	if(pgpl_isExist(cjcomm_pid)==FALSE) {
+	    		fprintf(stderr,"cjcomm 已退出\n");
+	    		break;
+	    	}
+		}
+    	usleep(50000);
+    }
     sleep(1);
     fprintf(stderr,"\n===========================\nstep3:485 串口互发测试\n===========================\n");
     Test_485_result = vs485_test(1,4);
