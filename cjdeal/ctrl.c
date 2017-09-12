@@ -17,28 +17,28 @@
 #include "AccessFun.h"
 #include "basedef.h"
 
-extern INT8U get6001ObjByTSA(TSA addr,CLASS_6001* targetMeter);
+extern INT8U get6001ObjByTSA(TSA addr, CLASS_6001* targetMeter);
 extern ProgramInfo* JProgramInfo;
 CtrlState * CtrlC;
 
-typedef union {//control code
-	INT16U u16b;//convenient to set value to 0
-	struct {//only for little endian mathine!
-		INT8U bak	: 6;	//备用
-		INT8U lun1_state: 1;//轮次1-状态
-		INT8U lun1_red	: 1;//轮次1-红灯
-		INT8U lun1_green: 1;//轮次1-绿灯
-		INT8U lun2_state: 1;//轮次2-状态
-		INT8U lun2_red	: 1;//轮次2-红灯
-		INT8U lun2_green: 1;//轮次2-绿灯
-		INT8U gongk_led		: 1;//功控灯
-		INT8U diank_led		: 1;//电控灯
-		INT8U alm_state		: 1;//告警状态
-		INT8U baodian_led	: 1;//报警灯
+typedef union { //control code
+	INT16U u16b; //convenient to set value to 0
+	struct { //only for little endian mathine!
+		INT8U bak :6; //备用
+		INT8U lun1_state :1; //轮次1-状态
+		INT8U lun1_red :1; //轮次1-红灯
+		INT8U lun1_green :1; //轮次1-绿灯
+		INT8U lun2_state :1; //轮次2-状态
+		INT8U lun2_red :1; //轮次2-红灯
+		INT8U lun2_green :1; //轮次2-绿灯
+		INT8U gongk_led :1; //功控灯
+		INT8U diank_led :1; //电控灯
+		INT8U alm_state :1; //告警状态
+		INT8U baodian_led :1; //报警灯
 	} ctrl;
 } ctrlUN;
 
-static ctrlUN	ctrlunit,ctrlunit_old;
+static ctrlUN ctrlunit, ctrlunit_old;
 
 int ctrl_base_test() {
 	printf("%d", CheckModelState());
@@ -435,37 +435,80 @@ long long getIsInStop(OI_698 oi, TS ts) {
 int deal8105() {
 	TS ts;
 	TSGet(&ts);
-	for (int i = 0; i < 2; i++) {
-		long long val = 0;
-		if (CheckAllUnitEmpty(JProgramInfo->class23[i].allist)) {
-			val = getIsInStop(0x2301 + i, ts);
+	static int step = 0;
+	static int count = 0;
+
+	fprintf(stderr, "deal8105(%lld)\n", CtrlC->c8105.list[0].v);
+	for (int i = 0; i < 1; i++) {
+		if (!CheckAllUnitEmpty(JProgramInfo->class23[i].allist)) {
+			continue;
 		}
 
+		fprintf(stderr, "8105 index = %d\n", i);
+
+		if (JProgramInfo->ctrls.c8105.enable[i].state == 0) {
+			step = 0;
+			count = 0;
+			return 0;
+		}
+
+		INT64U val = CtrlC->c8105.list[0].v;
 		fprintf(stderr, "营业报停限值(%lld)\n", val);
 
-		long long total;
-		for (int i = 0; i < MAXVAL_RATENUM; i++) {
-			total += JProgramInfo->class23[i].DayP[i];
-		}
-
-		if (val != -1) {
-			fprintf(stderr, "营业报日点量(%lld)\n", val);
-			if (JProgramInfo->class23[i].DayP[0] > val) {
-				//产生约负荷越限
-				updateState(CtrlC->c8105.overflow, CtrlC->c8103.output,
-						0x2301 + i);
-				return 1;
+		if (TScompare(ts, CtrlC->c8105.list[0].start) == 1
+				&& TScompare(ts, CtrlC->c8105.list[0].end) == 2) {
+			fprintf(stderr, "进入营业报停时间，判断功率");
+			if (val < JProgramInfo->class23[i].p) {
+				switch (step) {
+				case 0:
+					JProgramInfo->class23[i].alCtlState.OutputState = 0;
+					JProgramInfo->class23[i].alCtlState.PCAlarmState = 32;
+					fprintf(stderr, "功控告警时间 %d\n",
+							CtrlC->c8102.time[0]* 60);
+					if (count * 10 > (CtrlC->c8102.time[0]) * 60) {
+						JProgramInfo->class23[i].alCtlState.OutputState = 128;
+						JProgramInfo->class23[i].alCtlState.PCAlarmState = 0;
+						step = 1;
+					}
+					count += 1;
+					break;
+				case 1:
+					if (count * 10 > (CtrlC->c8102.time[1]) * 60) {
+						JProgramInfo->class23[i].alCtlState.OutputState = 128;
+						JProgramInfo->class23[i].alCtlState.PCAlarmState = 0;
+						step = 1;
+					}
+					count += 1;
+					break;
+				case 2:
+					break;
+				case 3:
+					break;
+				}
 			} else {
-				//清除告警状态
-				return 0;
+				step = 0;
+				count = 0;
 			}
 		}
+
 	}
 	return 0;
 }
 
 int deal8106() {
-	return 0;
+
+	//购电控不受购电配置单元的影响，购电配置单元作为总加组剩余电量刷新的依据
+	fprintf(stderr, "deal8106(%d)\n", CtrlC->c8106.list[0].down_freeze);
+	for (int i = 0; i < 1; i++) {
+		if (!CheckAllUnitEmpty(JProgramInfo->class23[i].allist)) {
+			continue;
+		}
+		fprintf(stderr, "8106 index = %d\n", i);
+
+		if (JProgramInfo->ctrls.c8106.enable[i].state == 0) {
+			return 0;
+		}
+	}
 }
 
 int deal8107() {
@@ -490,8 +533,7 @@ int deal8107() {
 		fprintf(stderr, "购电控限制[%lld] [%lld]\n", val, warn);
 
 		if (val >= 0) {
-			fprintf(stderr, "购电判断值[%lld]\n",
-					JProgramInfo->class23[i].remains);
+			fprintf(stderr, "购电判断值[%lld]\n", JProgramInfo->class23[i].remains);
 
 			if (JProgramInfo->class23[i].remains <= val) {
 				fprintf(stderr, "购电控跳闸！！！！！！！！！！！！！！！！！！\n", val);
@@ -771,44 +813,50 @@ int ctrlMain(void * arg) {
 
 		if (JProgramInfo->ctrls.control[0] == 0xEEFFEFEF
 				&& JProgramInfo->ctrls.control[1] == 0xEEFFEFEF
-				&& JProgramInfo->ctrls.control[2] == 0xEEFFEFEF) {//分闸
+				&& JProgramInfo->ctrls.control[2] == 0xEEFFEFEF) { //分闸
 			ctrlunit.ctrl.lun1_state = 0;
 			ctrlunit.ctrl.lun1_red = 1;
 			ctrlunit.ctrl.lun1_green = 0;
 			ctrlflg = 1;
 		} else if (JProgramInfo->ctrls.control[0] == 0xCCAACACA
 				&& JProgramInfo->ctrls.control[1] == 0xCCAACACA
-				&& JProgramInfo->ctrls.control[2] == 0xCCAACACA) {//合闸
+				&& JProgramInfo->ctrls.control[2] == 0xCCAACACA) { //合闸
 			ctrlunit.ctrl.lun1_state = 1;
 			ctrlunit.ctrl.lun1_red = 0;
 			ctrlunit.ctrl.lun1_green = 1;
 			ctrlflg = 1;
-		}else if (JProgramInfo->ctrls.control[0] == 0x55552525
+		} else if (JProgramInfo->ctrls.control[0] == 0x55552525
 				&& JProgramInfo->ctrls.control[1] == 0x55552525
-				&& JProgramInfo->ctrls.control[2] == 0x55552525) {	//分闸
+				&& JProgramInfo->ctrls.control[2] == 0x55552525) { //分闸
 			ctrlunit.ctrl.lun2_state = 0;
 			ctrlunit.ctrl.lun2_red = 1;
 			ctrlunit.ctrl.lun2_green = 0;
 			ctrlflg = 1;
-		}else if (JProgramInfo->ctrls.control[0] == 0xCCCC2C2C
+		} else if (JProgramInfo->ctrls.control[0] == 0xCCCC2C2C
 				&& JProgramInfo->ctrls.control[1] == 0xCCCC2C2C
-				&& JProgramInfo->ctrls.control[2] == 0xCCCC2C2C) {	//合闸
+				&& JProgramInfo->ctrls.control[2] == 0xCCCC2C2C) { //合闸
 			ctrlunit.ctrl.lun2_state = 1;
 			ctrlunit.ctrl.lun2_red = 0;
 			ctrlunit.ctrl.lun2_green = 1;
 			ctrlflg = 1;
-		}else ctrlflg = 0;
-		if(ctrlflg==1) {
-			memset(&JProgramInfo->ctrls.control,0,sizeof(JProgramInfo->ctrls.control));
-			asyslog(LOG_NOTICE,"接收到控制命令：控制状态【%04x】 原状态【%04x】",ctrlunit.u16b,ctrlunit_old.u16b);
-			if((ctrlunit.u16b & 0x3ff)^(ctrlunit_old.u16b & 0x3ff)) {
+		} else
+			ctrlflg = 0;
+		if (ctrlflg == 1) {
+			memset(&JProgramInfo->ctrls.control, 0,
+					sizeof(JProgramInfo->ctrls.control));
+			asyslog(LOG_NOTICE, "接收到控制命令：控制状态【%04x】 原状态【%04x】", ctrlunit.u16b,
+					ctrlunit_old.u16b);
+			if ((ctrlunit.u16b & 0x3ff) ^ (ctrlunit_old.u16b & 0x3ff)) {
 				ctrlunit_old.u16b = ctrlunit.u16b;
 				printf("%d", CheckModelState());
 				InitCtrlModel();
 				int fd = OpenSerialPort();
-				SetCtrl_CMD(fd, ctrlunit.ctrl.lun1_state, ctrlunit.ctrl.lun1_red, ctrlunit.ctrl.lun1_green,
-								ctrlunit.ctrl.lun2_state, ctrlunit.ctrl.lun2_red, ctrlunit.ctrl.lun2_green,
-								ctrlunit.ctrl.gongk_led, ctrlunit.ctrl.diank_led, ctrlunit.ctrl.alm_state, ctrlunit.ctrl.baodian_led);
+				SetCtrl_CMD(fd, ctrlunit.ctrl.lun1_state,
+						ctrlunit.ctrl.lun1_red, ctrlunit.ctrl.lun1_green,
+						ctrlunit.ctrl.lun2_state, ctrlunit.ctrl.lun2_red,
+						ctrlunit.ctrl.lun2_green, ctrlunit.ctrl.gongk_led,
+						ctrlunit.ctrl.diank_led, ctrlunit.ctrl.alm_state,
+						ctrlunit.ctrl.baodian_led);
 				close(fd);
 			}
 		}

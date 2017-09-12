@@ -360,6 +360,7 @@ void SetF201(int argc, char *argv[])
 {
     CLASS_f201 oif201[3] = {};
     int serno = 0;
+    INT8U	i=0;
     if (argc != 8 || (atoi(argv[2])<0 && atoi(argv[2])>2) ||
     	(atoi(argv[3]) < 0 && atoi(argv[3]) > 255) || (atoi(argv[4]) < 0 && atoi(argv[4]) > 2) ||
         (atoi(argv[5]) > 5 && atoi(argv[5]) > 8) ||  (atoi(argv[6]) < 0 && atoi(argv[6]) > 2) ||
@@ -378,10 +379,12 @@ void SetF201(int argc, char *argv[])
         fprintf(stderr, "参数6：端口功能：上行通信(0), 抄表(1), 级联(2)，停用(3)\n");
 
         if (readCoverClass(0xf201, 0, oif201, sizeof(CLASS_f201)*3, para_vari_save) > 0) {
-            fprintf(stderr,"\n\n读取485_II参数如下:");
-            fprintf(stderr, "\n\n当前描述符(%s)：波特率(%d)，校验方式(%d)，数据位(%d)，停止位(%d)，端口功能(%d)\n", oif201[1].devdesc,
-            		oif201[1].devpara.baud,oif201[1].devpara.verify,oif201[1].devpara.databits,oif201[1].devpara.stopbits,
-            		oif201[1].devfunc);
+        	for(i=0;i<3;i++) {
+				fprintf(stderr,"\n\n读取485_[%d]参数如下:",i);
+				fprintf(stderr, "\n当前描述符(%s)：波特率(%d)，校验方式(%d)，数据位(%d)，停止位(%d)，端口功能(%d)\n", oif201[i].devdesc,
+						oif201[i].devpara.baud,oif201[i].devpara.verify,oif201[i].devpara.databits,oif201[i].devpara.stopbits,
+						oif201[i].devfunc);
+        	}
         }
         return;
     }

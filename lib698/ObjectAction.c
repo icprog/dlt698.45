@@ -1520,6 +1520,9 @@ int doObjectAction(OAD oad, INT8U *data, Action_result *act_ret) {
         	break;
         case 0xF201:	//RS485
         	//TODO:存储长度 CLASS_f201×3（485-1,485-2,485-3），修改参数后重启系统，防止抄表口与维护口无法区分
+        	if (attr_act == 127) { //
+        		act_ret->datalen = Set_F201(0xf201,data,&act_ret->DAR);
+        	}
         	break;
         case 0xF202:	//红外
         	if (attr_act == 127) {  //方法 127 配置端口
