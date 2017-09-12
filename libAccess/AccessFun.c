@@ -2370,6 +2370,7 @@ INT8U GetTaskidFromCSDs(CSD_ARRAYTYPE csds,ROAD_ITEM *item_road,INT8U findmethod
 	CLASS_6013	class6013={};
 	int i=0,j=0,mm=0,nn=0,kk=0;
 	INT8U taskno=0,tsa_equ=0;
+	INT16U num_tmp=0;
 
 	print_rcsd(csds);
 	if(csds.num > MY_CSD_NUM)//超了
@@ -2440,11 +2441,13 @@ INT8U GetTaskidFromCSDs(CSD_ARRAYTYPE csds,ROAD_ITEM *item_road,INT8U findmethod
 						tsa_equ = 1;
 						break;
 					case 2:
-						for(kk=0;kk<COLLCLASS_MAXNUM;kk++)
-						{
-							if(class6015.mst.ms.userType[kk] == tsa[0].basicinfo.usrtype)
-								tsa_equ = 1;
-						}
+					num_tmp = (class6015.mst.ms.userType[0]<<8) | class6015.mst.ms.userType[1];
+					fprintf(stderr,"\n类型个数%d\n",num_tmp);
+					for(kk=0;kk<num_tmp;kk++)
+					{
+						if(class6015.mst.ms.userType[kk+2] == tsa[0].basicinfo.usrtype)
+							tsa_equ = 1;
+					}
 						break;
 					case 3:
 						for(kk=0;kk<COLLCLASS_MAXNUM;kk++)
@@ -3185,10 +3188,24 @@ int collectData(INT8U *databuf,INT8U *srcbuf,OAD_INDEX *oad_offset,ROAD_ITEM ite
 //					fprintf(stderr,"000 pindex=%d\n",pindex);
 					break;
 				case 1://array
+					memcpy(&databuf[pindex],tmpbuf,2);
+					pindex += 2;
 					retlen = CalcOIDataLen(oad_offset[j].oad_r.OI,1);
-					retlen = retlen*tmpbuf[1]+2;//2代表一个array类型加一个个数
-					memcpy(&databuf[pindex],tmpbuf,retlen);
-					pindex += retlen;
+//					fprintf(stderr,"\n元素个数%d\n",tmpbuf[1]);
+					for(i=0;i<tmpbuf[1];i++)
+					{
+//						fprintf(stderr,"\n类型(%d)-%d  长度%d\n",retlen*i+2,tmpbuf[retlen*i+2],retlen);
+						if(tmpbuf[retlen*i+2] == 0)
+							databuf[pindex++] = 0;
+						else
+						{
+							memcpy(&databuf[pindex],&tmpbuf[i*retlen+2],retlen);
+							pindex += retlen;
+						}
+					}
+//					retlen = retlen*tmpbuf[1]+2;//2代表一个array类型加一个个数
+//					memcpy(&databuf[pindex],tmpbuf,retlen);
+//					pindex += retlen;
 					break;
 //				case 2://struct 暂时不处理
 //					break;
@@ -3480,16 +3497,36 @@ INT8U initrecinfo(OAD getOAD,CURR_RECINFO *recinfo,TASKSET_INFO tasknor_info,INT
 			tm_p->tm_min = select.selec7.collect_save_finish.min.data;
 			tm_p->tm_sec = select.selec7.collect_save_finish.sec.data;
 			recinfo->rec_end = mktime(tm_p);
-			if(time_tmp <= recinfo->rec_end && time_tmp >= recinfo->rec_start)
+//			if(time_tmp <= recinfo->rec_end && time_tmp >= recinfo->rec_start)
+			if(abs(recinfo->rec_end-recinfo->rec_start) >= 3*24*60*60)//招测跨度大于三天只上报上一次数据
 			{
-				asyslog(LOG_INFO,"--------%d---%d",time_tmp,recinfo->rec_end);
-				recinfo->rec_end = time_tmp;
-			}
-			//一致性测试GET_21:Selector6招测选择区间应该是前闭后开【起始值，结束值），查询记录数不应该+1
-			if((recinfo->rec_end - recinfo->rec_start)%tasknor_info.freq ==0) {//测试负荷曲线改得
+				tm_p = localtime(&time_s);
+				asyslog(LOG_INFO,"时标跨度大，招测时间默认");//距离0点0分整数倍任务执行频率倍秒数
+				sec_tmp = ((tm_p->tm_hour*3600+tm_p->tm_min*60+tm_p->tm_sec)/tasknor_info.taskfreq)*tasknor_info.taskfreq;
+				tm_p->tm_hour = 0;
+				tm_p->tm_min = 0;
+				tm_p->tm_sec = 0;
+				recinfo->rec_end = mktime(tm_p) + sec_tmp - tasknor_info.taskfreq;//上报上一次
+				recinfo->rec_start = recinfo->rec_end - tasknor_info.taskfreq;
+				recinfo->recordno_num = tasknor_info.taskfreq/tasknor_info.freq;
+			} else {
+				if(time_tmp <= recinfo->rec_end && time_tmp >= recinfo->rec_start)
+				{
+					asyslog(LOG_INFO,"--------%d---%d",time_tmp,recinfo->rec_end);
+					recinfo->rec_end = time_tmp;
+				}
+				//一致性测试GET_21:Selector6招测选择区间应该是前闭后开【起始值，结束值），查询记录数不应该+1
+				if((recinfo->rec_end - recinfo->rec_start)%tasknor_info.freq ==0) {//测试负荷曲线改得
 				recinfo->recordno_num = (recinfo->rec_end - recinfo->rec_start)/tasknor_info.freq;
-			}else {
+				}else {
 				recinfo->recordno_num = (recinfo->rec_end - recinfo->rec_start)/tasknor_info.freq + 1;
+				}
+				//一致性测试GET_21:Selector6招测选择区间应该是前闭后开【起始值，结束值），查询记录数不应该+1
+				if((recinfo->rec_end - recinfo->rec_start)%tasknor_info.freq ==0) {//测试负荷曲线改得
+					recinfo->recordno_num = (recinfo->rec_end - recinfo->rec_start)/tasknor_info.freq;
+				}else {
+					recinfo->recordno_num = (recinfo->rec_end - recinfo->rec_start)/tasknor_info.freq + 1;
+				}
 			}
 		}
 		asyslog(LOG_INFO,"n-----recinfo->recordno_num=%d,recinfo->rec_end=%d,recinfo->rec_start=%d,tasknor_info.freq=%d\n"
