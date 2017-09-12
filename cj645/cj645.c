@@ -354,7 +354,7 @@ int main(int argc, char *argv[])
 		lcm_open();
 		Point pos;
 		pos.x = 5;
-		pos.y = 60;
+		pos.y = 20;
 		gui_textshow((char *)"等待终端校表...", pos, LCD_NOREV);
 		gui_clrrect(rect_TopStatus);
 		gui_clrrect(rect_BottomStatus);
