@@ -80,11 +80,11 @@ time_t calcnexttime(TI ti,DateTimeBCD datetime,TI ti_delay)
 			timetmp = timenow - timestart;
 			int intpart = timetmp / jiange;
 			int rempart = timetmp % jiange;
-			fprintf(stderr,"\n任务开始时间(%ld)  早于当前时间(%ld)  %d个间隔 余%d 秒",timestart,timenow,intpart,rempart);
+//			fprintf(stderr,"\n任务开始时间(%ld)  早于当前时间(%ld)  %d个间隔 余%d 秒",timestart,timenow,intpart,rempart);
 //			if (rempart>0)	//修改去掉else的判断条件,当余数=0时,原代码进入else返回当前时间,重新发送曲线数据
 //			{
 				timeret = (intpart + 1) * jiange  + timestart ;
-				fprintf(stderr,"\n计算下次开始时间 %ld ",timeret);
+//				fprintf(stderr,"\n计算下次开始时间 %ld ",timeret);
 				return timeret ;
 //			}else
 //			{
@@ -96,7 +96,7 @@ time_t calcnexttime(TI ti,DateTimeBCD datetime,TI ti_delay)
 		{
 			TS tmNext;
 			TSGet(&tmNext);
-			fprintf(stderr,"\n\n ti.interval = %d",ti.interval);
+//			fprintf(stderr,"\n\n ti.interval = %d",ti.interval);
 
 			tminc(&tmNext, ti.units,1);
 
@@ -115,7 +115,7 @@ time_t calcnexttime(TI ti,DateTimeBCD datetime,TI ti_delay)
 			}
 
 			timeret = tmtotime_t(tmNext);//开始时间
-			asyslog(LOG_NOTICE,"\n\n********下次开始时间--------1 %d-%d-%d %d:%d:%d",tmNext.Year,tmNext.Month,tmNext.Day,tmNext.Hour,tmNext.Minute,tmNext.Sec);
+//			asyslog(LOG_NOTICE,"\n\n********下次开始时间--------1 %d-%d-%d %d:%d:%d",tmNext.Year,tmNext.Month,tmNext.Day,tmNext.Hour,tmNext.Minute,tmNext.Sec);
 			return timeret;
 		}
 

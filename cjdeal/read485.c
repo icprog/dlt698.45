@@ -3556,13 +3556,13 @@ void sendProxyFault(PROXY_GETLIST getlist)
 //处理代理抄读停上实时请求-
 INT8S dealRealTimeRequst(INT8U port485)
 {
-	if(isNeed4852 ==0)
+	if((port485==S4852)&&(isNeed4852 ==0))
 		return 0;
 
 	INT8S result = 0;
 	while(readState)
 	{
-		//DbgPrintToFile1(port485,"\n 另一个线程正在处理消息 dealRealTimeRequst \n");
+		DbgPrintToFile1(port485,"\n 另一个线程正在处理消息 dealRealTimeRequst \n");
 		sleep(1);
 	}
 	//处理代理
@@ -3582,6 +3582,7 @@ INT8S dealRealTimeRequst(INT8U port485)
 	{
 		checkBroadCast(port485);
 	}
+	fprintf(stderr,"port485 = %d para_change485 = %d",port485,para_change485[port485-1]);
 	if(para_change485[port485-1] == 1)
 	{
 		result = PARA_CHANGE_RETVALUE;

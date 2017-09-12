@@ -281,25 +281,24 @@ INT16S getNextTastIndexIndex() {
 		if (list6013[tIndex].basicInfo.taskID == 0) {
 			continue;
 		}
-	//	fprintf(stderr, "\n ---------list6013[%d].basicInfo.taskID = %d ",
-	//			tIndex, list6013[tIndex].basicInfo.taskID);
+	//	fprintf(stderr, "\n ---------list6013[%d].basicInfo.taskID = %d ",tIndex, list6013[tIndex].basicInfo.taskID);
 		//run_flg > 0说明应该抄读还没有抄
 		if (list6013[tIndex].run_flg > 0) {
-	//		fprintf(stderr, "\n  getNextTastIndexIndex-2222");
+//			fprintf(stderr, "\n  getNextTastIndexIndex-2222");
 			list6013[tIndex].run_flg++;
 		} else {
 			//过滤任务无效或者不再抄表时段内的
 			if (filterInvalidTask(tIndex) == 0) {
-	//			fprintf(stderr, "\n  getNextTastIndexIndex-3333");
+				fprintf(stderr, "\n  getNextTastIndexIndex-3333");
 				continue;
 			}
 
 			time_t timenow = time(NULL);
-	//		fprintf(stderr, "\n timenow = %d ts_next = %d",timenow, list6013[tIndex].ts_next);
+//			fprintf(stderr, "\n timenow = %d ts_next = %d",timenow, list6013[tIndex].ts_next);
 			if(timenow >= list6013[tIndex].ts_next)
 			{
 				list6013[tIndex].run_flg = 1;
-	//		fprintf(stderr, "\n  getNextTastIndexIndex-4444");
+//			fprintf(stderr, "\n  getNextTastIndexIndex-4444");
 			}
 			else
 			{
@@ -311,14 +310,14 @@ INT16S getNextTastIndexIndex() {
 		{
 			if(list6013[tIndex].run_flg > 0)
 			{
-			//	fprintf(stderr, "\n  getNextTastIndexIndex-5555");
+	//			fprintf(stderr, "\n  getNextTastIndexIndex-5555");
 				taskIndex = tIndex;
 			}
 			continue;
 		}
 
 		if (cmpTaskPrio(taskIndex, tIndex) == 2) {
-		//	fprintf(stderr, "\n  getNextTastIndexIndex-6666");
+//			fprintf(stderr, "\n  getNextTastIndexIndex-6666");
 			taskIndex = tIndex;
 			continue;
 		}
@@ -509,8 +508,8 @@ INT8U init6013ListFrom6012File() {
 				TS taskStartTime;
 				TimeBCDToTs(list6013[total_tasknum].basicInfo.startime,&taskStartTime);
 				INT8U timeCmp = TScompare(ts_now,taskStartTime);
-#if 0
-				asyslog(LOG_NOTICE,"当前时间 %04d-%02d-%02d %02d:%02d:%02d\n",
+#if 1
+				asyslog(LOG_NOTICE,"timeCmp = %d 当前时间 %04d-%02d-%02d %02d:%02d:%02d\n",timeCmp,
 						ts_now.Year,ts_now.Month,ts_now.Day,ts_now.Hour,
 						ts_now.Minute,ts_now.Sec);
 
@@ -529,13 +528,12 @@ INT8U init6013ListFrom6012File() {
 					}
 
 				}
-#if 1
+
 				if(timeCmp < 2)
 				{
 					list6013[total_tasknum].ts_next  = tmtotime_t(ts_now);
 				}
 				else
-#endif
 				{
 					list6013[total_tasknum].ts_next  =
 									calcnexttime(list6013[total_tasknum].basicInfo.interval,list6013[total_tasknum].basicInfo.startime,list6013[total_tasknum].basicInfo.delay);
@@ -546,7 +544,7 @@ INT8U init6013ListFrom6012File() {
 			}
 		}
 	}
-	fprintf(stderr, "\n \n-------------init6013ListFrom6012File---------------start\n");
+	fprintf(stderr, "\n \n-------------init6013ListFrom6012File---------------end\n");
 	return result;
 }
 
@@ -1631,9 +1629,10 @@ void dispatch_thread()
 		{
 			init4204Info();
 		}
-		if(para_change485[0]||para_change485[1])
+		if(para_change485[0]||(para_change485[1]&&isNeed4852))
 		{
-//			fprintf(stderr,"参数变更等待 485线程处理无效线程");
+			fprintf(stderr,"para_change485[0] = %d para_change485[1] = %d isNeed4852=%d 参数变更等待 485线程处理无效线程"
+					,para_change485[0],para_change485[1],isNeed4852);
 			sleep(1);
 			continue;
 		}
@@ -1642,9 +1641,8 @@ void dispatch_thread()
 		sleep(2);
 		if (tastIndex > -1)
 		{
-#if 0
-			DbgPrintToFile1(port,"dispatch_thread　taskIndex = %d 任务开始",taskIndex);
-#endif
+			fprintf(stderr,"dispatch_thread　taskIndex = %d 任务开始",tastIndex);
+
 			//计算下一次抄读此任务的时间;
 			list6013[tastIndex].ts_next = calcnexttime(list6013[tastIndex].basicInfo.interval,list6013[tastIndex].basicInfo.startime,list6013[tastIndex].basicInfo.delay);
 
