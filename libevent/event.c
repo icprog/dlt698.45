@@ -1264,8 +1264,8 @@ INT8U Event_3106(ProgramInfo* prginfo_event,MeterPower *MeterPowerInfo,INT8U *st
 	INT16U mintime_space=prginfo_event->event_obj.Event3106_obj.poweroff_para_obj.screen_para_obj.mintime_space;
 	INT16U maxtime_space=prginfo_event->event_obj.Event3106_obj.poweroff_para_obj.screen_para_obj.maxtime_space;
 
-	DEBUG_TIME_LINE("poweroff_happen_vlim: %d, recover_voltage_limit: %d", poweroff_happen_vlim, recover_voltage_limit);
-	DEBUG_TIME_LINE("Available: %d, Ua: %d", prginfo_event->ACSRealData.Available,prginfo_event->ACSRealData.Ua);
+//	DEBUG_TIME_LINE("poweroff_happen_vlim: %d, recover_voltage_limit: %d", poweroff_happen_vlim, recover_voltage_limit);
+//	DEBUG_TIME_LINE("Available: %d, Ua: %d", prginfo_event->ACSRealData.Available,prginfo_event->ACSRealData.Ua);
 	if(*state == 2){
 		MeterDiff(prginfo_event,MeterPowerInfo,state);
 		*state=0;
