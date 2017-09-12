@@ -63,6 +63,12 @@ void printClass3106()
 
 	saveflg = readCoverClass(0x3106,0,&tmpobj,sizeof(Event3106_Object),event_para_save);
 
+	fprintf(stderr,"\n[3106_para]=%d %d %d %d %d %d %d %d %d %d %d\n",tmpobj.event_obj.enableflag,tmpobj.event_obj.reportflag,
+			tmpobj.poweroff_para_obj.collect_para_obj.collect_flag,
+			tmpobj.poweroff_para_obj.collect_para_obj.time_space,tmpobj.poweroff_para_obj.collect_para_obj.time_threshold,
+			tmpobj.poweroff_para_obj.screen_para_obj.mintime_space,tmpobj.poweroff_para_obj.screen_para_obj.maxtime_space,
+			tmpobj.poweroff_para_obj.screen_para_obj.startstoptime_offset,tmpobj.poweroff_para_obj.screen_para_obj.sectortime_offset,
+			tmpobj.poweroff_para_obj.screen_para_obj.happen_voltage_limit,tmpobj.poweroff_para_obj.screen_para_obj.recover_voltage_limit);
 	fprintf(stderr,"\n[3106]终端停上电事件 saveflg=%d\n",saveflg);
 	printClass7(tmpobj.event_obj);
 //	fprintf(stderr,"currn=%d \n",tmpobj.event_obj.crrentnum);
