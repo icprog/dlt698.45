@@ -1374,7 +1374,7 @@ void menu_set485II()
 		case OK:
 			cur_form->pfun_process(cur_form);
 			if(cur_form->pfun_process_ret==OK){
-				if(msgbox_label((char *)"保存参数?", CTRL_BUTTON_OK)==ACK){
+				if(msgbox_label((char *)"保存参数?终端重启", CTRL_BUTTON_OK)==ACK){
 					fprintf(stderr,"\n保存");
 					f201[1].devpara.baud = baudctl.cur_index;			//波特率
 					f201[1].devpara.flow = flowctl.cur_index;			//流控 			无0，硬件1，软件2
@@ -1382,7 +1382,10 @@ void menu_set485II()
 					f201[1].devpara.databits = databit.cur_index + 5;	//数据位 			5 ，6 ，7 ，8
 					f201[1].devpara.stopbits = stopbit.cur_index + 1;	//停止位			1 ，2
 					f201[1].devfunc = funcode.cur_index;				//功能配置		上行通信0 ，抄表1 ， 系联2 ，停用3
-					 saveCoverClass(0xf201, 0, &f201, sizeof(CLASS_f201)*3, para_vari_save);
+					syslog(LOG_NOTICE,"485_II para change,reboot");
+					saveCoverClass(0xf201, 0, &f201, sizeof(CLASS_f201)*3, para_vari_save);
+					sleep(2);
+					system((const char *) "reboot");
 				}
 				g_curcldno = 1;
 			}
@@ -3689,7 +3692,12 @@ void jzq_id_edit()
 			else{
 				g_Class4001_4002_4003.curstom_num[0] = addr_len/2;
 			}
+			syslog(LOG_NOTICE,"chg 4001_addr[(%02x)%02x_%02x_%02x_%02x_%02x_%02x]",g_Class4001_4002_4003.curstom_num[0],
+					g_Class4001_4002_4003.curstom_num[1],g_Class4001_4002_4003.curstom_num[2],g_Class4001_4002_4003.curstom_num[3],
+					g_Class4001_4002_4003.curstom_num[4],g_Class4001_4002_4003.curstom_num[5],g_Class4001_4002_4003.curstom_num[6]);
 			saveCoverClass(0x4001, 0, (void*)&g_Class4001_4002_4003, sizeof(CLASS_4001_4002_4003), para_vari_save);
+			saveCoverClass(0x4001, 0, (void*)&g_Class4001_4002_4003, sizeof(CLASS_4001_4002_4003), para_init_save);
+			p_JProgramInfo->oi_changed.oi4001++;
 			msgbox_label((char *)"设置成功！", CTRL_BUTTON_OK);
 		}else
 			msgbox_label((char *)"设置失败！", CTRL_BUTTON_OK);
@@ -3893,7 +3901,7 @@ void menu_termip(){
 	if(get_inet_ip(ETH,ip)==1) {
 		sscanf(ip,"%d.%d.%d.%d",&iIP[0],&iIP[1],&iIP[2],&iIP[3]);
 		if(iIP[0]>255 || iIP[1]>255 || iIP[2]>255 || iIP[3]>255) {
-			syslog(LOG_ERR,"本地ip异常[%s]，重启驱动",ip);
+			syslog(LOG_ERR,"ip error[%s],insmod macb.ko",ip);
 			msgbox_label((char *)"IP获取失败，重新获取", CTRL_BUTTON_OK);
 			system("rmmod /lib/macb.ko");
 			sleep(2);
@@ -3920,7 +3928,7 @@ void menu_termip(){
 			}
 		}
 	}else {
-		syslog(LOG_ERR,"获取本地ip异常[%s]，重启驱动",ip);
+		syslog(LOG_ERR,"get ip error[%s],insmod macb.ko and run ip.sh",ip);
 		msgbox_label((char *)"IP失败，重新获取", CTRL_BUTTON_OK);
 		system("rmmod /lib/macb.ko");
 		sleep(2);
@@ -4517,21 +4525,7 @@ void menu_ProtocolChange()
 {
 	if(getZone("HuNan")!=0) return ;//非湖南地区不使用该功能
 	if(msgbox_label((char*)"切换到1376.1?", CTRL_BUTTON_OK) != ACK) return ;
-
-	 system((const char *) "mv /nor/rc.d/rc.local /nor/rc.d/698_rc.local");
-	usleep(100);
-	system((const char *) "mv /nor/rc.d/3761_rc.local /nor/rc.d/rc.local");
-	usleep(100);
-	system((const char *) "chmod 777 /nor/rc.d/rc.local");
-	usleep(100);
-    if (access("/nor/rc.d/rc.local", F_OK) != 0 || access("/nor/rc.d/rc.local", X_OK) != 0) {
-        if (write_3761_rc_local()) {
-            usleep(100);
-            system((const char *) "chmod 777 /nor/rc.d/rc.local");
-            usleep(100);
-        }
-    }
-    system((const char *) "reboot");
+	chg_rc_local_3761();
 }
 
 void menu_yxstatus(){

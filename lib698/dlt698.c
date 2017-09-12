@@ -268,10 +268,11 @@ int CheckHead(unsigned char* buf, CSINFO *csinfo) {
 		csinfo->prm = ctl.ctl.prm;
 		csinfo->gframeflg = ctl.ctl.divS;
 		csinfo->sa_type = (buf[4] & 0xc0) >> 6; /*0:单地址   1：通配地址   2：组地址   3：广播地址*/
+		csinfo->logic_addr = (buf[4] & 0x30) >> 4;		//逻辑地址
 		memcpy(csinfo->sa, &buf[5], sa_length); /*服务器地址*/
 		csinfo->ca = buf[5 + sa_length]; /*客户机地址*/
 		csinfo->sa_length = sa_length;
-		fprintf(stderr, "\n地址类型 %d", csinfo->sa_type);
+		fprintf(stderr, "\n地址类型 %d 逻辑地址 %d", csinfo->sa_type,csinfo->logic_addr);
 		return 1;
 	}
 	return 0;
@@ -357,7 +358,7 @@ int FrameHead(CSINFO *csinfo, INT8U *buf) {
 	buf[i++] = 0; //长度
 	buf[i++] = 0;
 	buf[i++] = CtrlWord(csinfo);
-	buf[i++] = (csinfo->sa_type << 6) | (0 << 4) | ((csinfo->sa_length - 1) & 0xf);
+	buf[i++] = (csinfo->sa_type << 6) | (csinfo->logic_addr << 4) | ((csinfo->sa_length - 1) & 0xf);
 
 	//集中器与浙江汉普台体测试，台体下发广播地址,应答终端的通信地址上报，
 	//其他情况如电表下发广播对时命令时，是不能进行修改服务器端地址的
