@@ -19,6 +19,8 @@
 #include "Shmem.h"
 #include "PublicFunction.h"
 #include "def645.h"
+#include "basedef.h"
+#include "gui.h"
 
 #define READ_BUF_SIZE 256
 extern INT32S comfd;
@@ -27,7 +29,8 @@ extern void dealProcess();
 extern void acs_process();
 
 ProgramInfo *JProgramInfo = NULL;
-
+INT8U g_JZQ_TimeSetUp_flg;//是否设置时间，1,设置时间  0，没有设置时间。问题现象：如果设置时间，则进入轮显
+char g_LcdPoll_Keypress;
 int ProIndex = 0;
 
 //处理现场
@@ -280,20 +283,20 @@ int  vs485_test(int port1,int port2)
 
     fprintf(stderr,"comm2 to comm3 end!\n");
 
-    close(comfd1);
-    close(comfd2);
-
-    comfd1 = OpenCom(port1, 9600, (INT8U *) "even", 1, 8);
-    comfd2 = OpenCom(port2, 9600, (INT8U *) "even", 1, 8);
+//    close(comfd1);
+//    close(comfd2);
+//
+//    comfd1 = OpenCom(port1, 9600, (INT8U *) "even", 1, 8);
+//    comfd2 = OpenCom(port2, 9600, (INT8U *) "even", 1, 8);
 
     memset(msg, 0x00, sizeof(msg));
     memset(res, 0x00, sizeof(res));
 
-    msg[0]	= 0x55;
-    write(comfd1, msg,1);
-    sleep(1);
-    lens = read(comfd2, res, 2);
-    fprintf(stderr,"write 0x55, read %02x lens=%d\n",res[0],lens);
+//    msg[0]	= 0x55;
+//    write(comfd1, msg,1);
+//    sleep(1);
+//    lens = read(comfd2, res, 2);
+//    fprintf(stderr,"write 0x55, read %02x lens=%d\n",res[0],lens);
 
     for (int i = 0; i < 256; ++i) {
         msg[i] = i;
@@ -331,12 +334,35 @@ int main(int argc, char *argv[])
     system("rm /nand/check.log");
     sleep(1);
 
+    JProgramInfo = OpenShMem("ProgramInfo", sizeof(ProgramInfo), NULL);
+    for (int j = 0; j < 5; ++j) {
+        JProgramInfo->Projects[j].WaitTimes = 0;
+    }
+
     system("echo  出厂功能检测时间 > /nand/check.log");
     system("date >> /nand/check.log");
     fprintf(stderr, "\ncj645 start Checking....\n\r");
-    fprintf(stderr,"\n===========================\nstep1:停止进程cjdeal(为了U盘功能检测)\n===========================\n");
-    system("pkill cjdeal");
-    fprintf(stderr,"\n===========================\nstep2:停止进程cjcomm(为了检测485口)\n===========================\n");
+	fprintf(stderr,"\n===========================\nstep1:停止进程cjdeal(为了U盘功能检测)\n===========================\n");
+	system("pkill cjdeal");
+
+	if (JProgramInfo->cfg_para.device != CCTT2) {    //II型集中器
+		fprintf(stderr,"\n===========================\nstep2:I型集中器，III型专变液晶显示校表中\n===========================\n");
+		ReadHzkBuff_16();//读字库16*16
+		ReadHzkBuff_12();//12*12
+		setFontSize(16);//设置字体
+		gpio_writebyte((char*)"/dev/gpoLCD_LIGHT", 1);//背光
+		lcm_open();
+		Point pos;
+		pos.x = 5;
+		pos.y = 60;
+		gui_textshow((char *)"等待终端校表...", pos, LCD_NOREV);
+		gui_clrrect(rect_TopStatus);
+		gui_clrrect(rect_BottomStatus);
+		gui_clrrect(rect_Client);
+		lcm_write();
+	}
+
+	fprintf(stderr,"\n===========================\nstep2:停止进程cjcomm(为了检测485口)\n===========================\n");
     for(;;) {
 		cjcomm_pid = check_cjcomm();
 		if(cjcomm_pid>0) {
@@ -355,46 +381,37 @@ int main(int argc, char *argv[])
     	usleep(50000);
     }
     sleep(1);
-    fprintf(stderr,"\n===========================\nstep3:485 串口互发测试\n===========================\n");
-    Test_485_result = vs485_test(1,4);
-    if (Test_485_result == 1) {
-        system("echo 485OK >> /nand/check.log");
-    }
-//    else {
-//    	 system("echo 485 ERROR!!!!!! >> /nand/check.log");
-//    	 fprintf(stderr,"485 ERROR!!!!!!\n");
-//    }
-    fprintf(stderr,"\n===========================\nstep4:ESAM 功能测试\n===========================\n");
-    system("cj esam 2>> /nand/check.log");
 
-    ///////
-    JProgramInfo = OpenShMem("ProgramInfo", sizeof(ProgramInfo), NULL);
-    for (int j = 0; j < 5; ++j) {
-        JProgramInfo->Projects[j].WaitTimes = 0;
+    fprintf(stderr,"JProgramInfo->cfg_para.device=%d\n",JProgramInfo->cfg_para.device);
+    if (JProgramInfo->cfg_para.device == CCTT2) {    //II型集中器
+		fprintf(stderr,"\n===========================\nstep3:485 串口互发测试\n===========================\n");
+		Test_485_result = vs485_test(1,4);
+		if (Test_485_result == 1) {
+			system("echo 485OK >> /nand/check.log");
+		}
+		fprintf(stderr,"\n===========================\nstep4:ESAM 功能测试\n===========================\n");
+		system("cj esam 2>> /nand/check.log");
     }
 
-    if (JProgramInfo->cfg_para.device == 2) {    //II型集中器
-        comport = 2;
-    } else {
-        comport = 4;
-    }
-
-    fprintf(stderr,"\n===========================\nstep5:645脚本通信打开串口 open /dev/ttyS%d\n===========================\n",comport);
-    if ((comfd = OpenCom(comport, 2400, (INT8U *) "even", 1, 8)) < 1) {
-        fprintf(stderr, "OpenCom645 ERR!!! ........................\n");
-    }
+    comport = 2;		//校表口
+    fprintf(stderr,"\n===========================\nstep5:645脚本通信打开串口 open /dev/ttyS%d 2400-1-8-even\n===========================\n",comport);
+	if ((comfd = OpenCom(comport, 2400, (INT8U *) "even", 1, 8)) < 1) {
+		fprintf(stderr, "OpenCom645 ERR!!! ........................\n");
+	}
 
     fprintf(stderr,"\n===========================\nstep6:运行cjcomm(为了1.红外测试通信 2.cj checkled发送报文来控制本地灯指示功能)\n===========================\n");
     JProgramInfo->Projects[CjDealIndex].WaitTimes = 0;
-    system("cjcomm 2 &");
-    for(i=0;i<60;i++) {
-    	JProgramInfo->Projects[CjDealIndex].WaitTimes = 0;
-		cjcomm_pid = check_cjcomm();
-		if(cjcomm_pid>0) {
-			syslog(LOG_NOTICE,"cj645调用cjcomm成功运行................,pid=%ld\n ",cjcomm_pid);
-			break;
+    if (JProgramInfo->cfg_para.device == CCTT2) {    //II型集中器
+    	system("cjcomm 2 &");
+		for(i=0;i<60;i++) {
+			JProgramInfo->Projects[CjDealIndex].WaitTimes = 0;
+			cjcomm_pid = check_cjcomm();
+			if(cjcomm_pid>0) {
+				syslog(LOG_NOTICE,"cj645调用cjcomm成功运行................,pid=%ld\n ",cjcomm_pid);
+				break;
+			}
+			sleep(1);
 		}
-		sleep(1);
     }
     acs_process();		//交采线程,实时计量数据,为了精度检测
     dealProcess();

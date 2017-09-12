@@ -1356,7 +1356,7 @@ INT8U fillVacsData(INT8U structnum,INT8U attindex,INT8U datatype,INT32U data1,IN
 /*
  * getflg:是否有数据源。=1，读取sourcebuf内容，=0，数据上送0
  * */
-int  fill_variClass(OAD oad,INT8U getflg,INT8U *sourcebuf,INT8U *destbuf,int *len,ProgramInfo* proginfo)
+int  fill_variClass(OAD oad,INT8U getflg,INT8U *sourcebuf,INT8U *destbuf,INT16U *len,ProgramInfo* proginfo)
 {
 	int  	buflen = 0;
 	INT8U	structnum = 0;
@@ -1430,25 +1430,40 @@ int  fill_variClass(OAD oad,INT8U getflg,INT8U *sourcebuf,INT8U *destbuf,int *le
 	case 0x2131:
 	case 0x2132:
 	case 0x2133:
-		Get_213x(getflg,(INT8U *)sourcebuf,destbuf,&buflen);
+		if(sourcebuf!=NULL) {
+			Get_213x(getflg,(INT8U *)sourcebuf,destbuf,&buflen);
+		}
 		break;
 	case 0x2200:	//通信流量
-		memcpy(sourcebuf,&memp->dev_info.realTimeC2200,sizeof(Flow_tj));
-		Get_2200(getflg,(INT8U *)sourcebuf,destbuf,&buflen);
+		fprintf(stderr,"proginfo = %p \n",proginfo);
+		memcpy(databuf,&proginfo->dev_info.realTimeC2200,sizeof(Flow_tj));
+		Get_2200(getflg,(INT8U *)databuf,destbuf,&buflen);
 		break;
 	case 0x2203:	//供电时间
-		readVariData(oad.OI,0,&databuf,VARI_LEN);
-		Get_2203(getflg,(INT8U *)databuf,destbuf,&buflen);
+		if(sourcebuf==NULL) {
+			readVariData(oad.OI,0,&databuf,VARI_LEN);
+			Get_2203(getflg,(INT8U *)databuf,destbuf,&buflen);
+		}else {
+			Get_2203(getflg,(INT8U *)sourcebuf,destbuf,&buflen);
+		}
 		break;
 	case 0x2204:	//复位次数
-		readVariData(oad.OI,0,&databuf,VARI_LEN);
-		Get_2204(getflg,(INT8U *)sourcebuf,destbuf,&buflen);
+		if(sourcebuf==NULL) {
+			readVariData(oad.OI,0,&databuf,VARI_LEN);
+			Get_2204(getflg,(INT8U *)databuf,destbuf,&buflen);
+		}else {
+			Get_2204(getflg,(INT8U *)sourcebuf,destbuf,&buflen);
+		}
 		break;
 	case 0x2301:	//总加组
-		class23_get(oad,sourcebuf,destbuf,&buflen);
+		if(sourcebuf!=NULL) {
+			class23_get(oad,sourcebuf,destbuf,&buflen);
+		}
 		break;
 	case 0x2401:
-		class12_get(oad,sourcebuf,destbuf,&buflen);
+		if(sourcebuf!=NULL) {
+			class12_get(oad,sourcebuf,destbuf,&buflen);
+		}
 		break;
 	default:
 //		//fprintf(stderr,"GET_26:未定义对象属性，上送数据NULL\n");

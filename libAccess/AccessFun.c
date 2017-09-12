@@ -466,6 +466,9 @@ int saveCoverClass(OI_698 oi,INT16U seqno,void *blockdata,int savelen,int type)
 		break;
 	case acs_coef_save:
 		file_write_accoef(fname,blockdata,savelen);
+		//将校表系数文件再测写入/nor/config/accoe.par,防止运行3761程序找不到校表系数文件
+		sprintf(fname,"%s/accoe.par",_CFGDIR_);
+		file_write_accoef(fname,blockdata,savelen);
 		break;
 	case event_record_save:
 	case event_current_save:
@@ -518,17 +521,17 @@ int readCoverClass(OI_698 oi,INT16U seqno,void *blockdata,int datalen,int type)
 	switch(type) {
 	case event_para_save:
 //		ret = readFileName(oi,seqno,type,fname);
-		if(ret==0) {		//文件存在
-			ret = block_file_sync(fname,blockdata,datalen,0,0);
-		}else  {		//无配置文件，读取系统初始化参数
-			memset(fname,0,sizeof(fname));
-			ret = readFileName(oi,seqno,para_init_save,fname);
-//			fprintf(stderr,"read /nor/init的参数文件：  Class %s filelen=%d\n",fname,datalen);
-			if(ret==0) {	//文件存在
-				ret = block_file_sync(fname,blockdata,datalen,0,0);
-			}
-		}
-		break;
+//		if(ret==0) {		//文件存在
+//			ret = block_file_sync(fname,blockdata,datalen,0,0);
+//		}else  {		//无配置文件，读取系统初始化参数
+//			memset(fname,0,sizeof(fname));
+//			ret = readFileName(oi,seqno,para_init_save,fname);
+////			fprintf(stderr,"read /nor/init的参数文件：  Class %s filelen=%d\n",fname,datalen);
+//			if(ret==0) {	//文件存在
+//				ret = block_file_sync(fname,blockdata,datalen,0,0);
+//			}
+//		}
+//		break;
 	case para_vari_save:
 	case coll_para_save:
 	case acs_energy_save:
@@ -4687,11 +4690,42 @@ int save_protocol_3761_tx_para(INT8U* dealdata)
 	return ret;
 }
 
+void chg_rc_local_3761()
+{
+	syslog(LOG_NOTICE,"进行协议切换过程，修改rc.local启动文件...");
+	system((const char *) "cp /nor/rc.d/rc.local /nor/rc.d/698_rc.local");
+	sleep(1);
+	if(access("/nor/rc.d/3761_rc.local",F_OK)==0) {
+		system((const char *) "cp /nor/rc.d/3761_rc.local /nor/rc.d/rc.local");
+		sleep(1);
+		system((const char *) "chmod 777 /nor/rc.d/rc.local");
+		sleep(1);
+	}else {
+		syslog(LOG_NOTICE,"系统无3761_rc.local备份文件，将重新生成rc.local");
+		if (write_3761_rc_local()) {
+			sleep(1);
+			system((const char *) "chmod 777 /nor/rc.d/rc.local");
+			sleep(1);
+		}
+	}
+    if (access("/nor/rc.d/rc.local", F_OK) != 0 || access("/nor/rc.d/rc.local", X_OK) != 0) {
+        if (write_3761_rc_local()) {
+            sleep(1);
+            system((const char *) "chmod 777 /nor/rc.d/rc.local");
+            sleep(1);
+        }
+    }
+    system("fsync -d /nor/rc.d/rc.local");
+    sleep(1);
+    system((const char *) "reboot");		//TODO:写文件成功切换rc.local
+}
+
 INT8U write_3761_rc_local()
 {
 	INT8U ret = 0;
 	int fd;
 	FILE* fp;
+	syslog(LOG_NOTICE,"系统调用协议切换，重新生成rc.local文件");
 	fp = fopen("/nor/rc.d/rc.local","w+");
 	if(fp == NULL)
 	{
@@ -4707,7 +4741,7 @@ INT8U write_3761_rc_local()
 	fprintf(fp,"vinit &\n");
 	fprintf(fp,"vupdate &\n");
 	fprintf(fp,"sleep 1\n");
-	fprintf(fp,"vmain > /dev/shm/null &\n");
+	fprintf(fp,"vmain 2> /dev/shm/null &\n");
 	fflush(fp);
 	fd = fileno(fp);
 	fsync(fd);

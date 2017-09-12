@@ -160,8 +160,9 @@ void rebootWhenPwrDown(INT8U delay) {
         		setRunLED(LED_CLOSE);
         		usleep(100);
         	}
+           	syslog(LOG_NOTICE,"检测到II型掉电(%d)，系统重启\n",delay);
         	sleep(3);
-        	system("reboot");
+         	system("reboot");
         }
     } else {
         cnt_pwroff = 0;
@@ -709,8 +710,9 @@ int main(int argc, char *argv[])
     }
     get_protocol_3761_tx_para();//湖南获取3761切换通信参数，在初始化其他操作之后进行
 
-    //点亮运行灯
+    //点亮运行灯，初始化运行状态
     g_powerState = PWR_ON;
+    JProgramInfo->powerState = PWR_ON;
     setRunLED(1);
     while (1) {
         sleep(1);
@@ -722,13 +724,6 @@ int main(int argc, char *argv[])
 			Watchdog(60);
 		} else
 			Watchdog(5);
-
-		if (JProgramInfo->cfg_para.device == CCTT1
-				|| JProgramInfo->cfg_para.device == SPTF3) { //I型集中器，III型专变
-			//电池检测掉电关闭设备
-			PowerOffToClose(90);
-		}
-
 
 		//每20分钟校时
 		SyncRtc();

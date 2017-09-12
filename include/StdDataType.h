@@ -255,6 +255,7 @@ typedef union {//server address's length word
 typedef struct
 {
 	INT8U sa_type;		//服务器地址类型	0:单地址   1:通配地址   2：组地址   3：广播地址
+	INT8U logic_addr;	//逻辑地址
 	INT8U sa_length;	//服务器地址长度   0～15 表示 1～16
 	INT8U funcode;		//功能码标识		1：链路管理 3：用户数据
 	INT8U dir;			//方向指示		0：客户机发出  1：服务器发出
