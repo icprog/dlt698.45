@@ -4612,6 +4612,11 @@ void menu_yxstatus(){
 			fprintf(stderr,"状态 = %d 变位= %d  接入 = %d 属性 = %d \n",oif203.statearri.stateunit[i].ST,oif203.statearri.stateunit[i].CD,oif203.state4.StateAcessFlag,
 					oif203.state4.StatePropFlag>>i);
 		}
+		memset(str, 0, 100);
+		pos.y += FONTSIZE*3 ;
+		sprintf((char*)str, "门接点 :%s",oif203.statearri.stateunit[4].ST?"合":"分");
+		gui_textshow((char*)str, pos, LCD_NOREV);
+
 		PressKey = NOKEY;
 		delay(1000);
 	}

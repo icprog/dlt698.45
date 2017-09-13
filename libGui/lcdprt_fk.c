@@ -149,7 +149,7 @@ void menu_control(){
 		}
 
 		gui_clrrect(rect_Client);
-		gui_setpos(&pos, rect_Client.left+10*FONTSIZE, rect_Client.top+2*FONTSIZE);
+		gui_setpos(&pos, rect_Client.left+4*FONTSIZE, rect_Client.top+2*FONTSIZE);
 		memset(str, 0, 100);
 		sprintf(str, "总加组%d [OI:%04x]", zj_index, 0x2300 + zj_index);
 		gui_textshow(str, pos, LCD_NOREV);
