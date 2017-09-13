@@ -4527,7 +4527,61 @@ void menu_ProtocolChange()
 	if(msgbox_label((char*)"切换到1376.1?", CTRL_BUTTON_OK) != ACK) return ;
 	chg_rc_local_3761();
 }
+void getPluseCount(unsigned int *pulse) {
+	int fd = open("/dev/pulse", O_RDWR);
+	read(fd, pulse, sizeof(unsigned int) * 2);
+	close(fd);
+	fprintf(stderr, "刷新脉冲 %d-%d\n", pulse[0], pulse[1]);
+}
+void menu_yxstatus_fk(){
+	Point pos;
+	INT8U str[100];
+    CLASS_f203 oif203 = {};
+    int i=0;
+	unsigned int pluse[2] = { 0, 0 };
 
+	while(g_LcdPoll_Flag==LCD_NOTPOLL){
+		if(PressKey==ESC){
+			break;
+		}
+		readCoverClass(0xf203, 0, &oif203, sizeof(CLASS_f203), para_vari_save);
+		gui_clrrect(rect_Client);
+		gui_setpos(&pos, rect_Client.left+6*FONTSIZE, rect_Client.top+FONTSIZE);
+//		gui_textshow((char*)"当前开关量状态", pos, LCD_NOREV);
+		memset(str, 0, 100);
+		pos.x = rect_Client.left + FONTSIZE;
+//		pos.y += FONTSIZE*3;
+		gui_textshow((char*)"  状态  变位  接入  属性", pos, LCD_NOREV);
+		for(i=0;i<4;i++)
+		{
+			pos.y += FONTSIZE*3-2;
+			memset(str, 0, 100);
+			sprintf((char*)str, "%d: %s   %s    %s    %s",i+1,
+					oif203.statearri.stateunit[i].ST?"合":"分",
+					oif203.statearri.stateunit[i].CD?"是":"否",
+					((oif203.state4.StateAcessFlag>>i)&0x01)?"是":"否",
+					((oif203.state4.StatePropFlag>>i)&0x01)?"动合":"动断");
+			gui_textshow((char*)str, pos, LCD_NOREV);
+			fprintf(stderr,"状态 = %d 变位= %d  接入 = %d 属性 = %d \n",oif203.statearri.stateunit[i].ST,oif203.statearri.stateunit[i].CD,oif203.state4.StateAcessFlag,
+					oif203.state4.StatePropFlag>>i);
+		}
+
+		memset(str, 0, 100);
+		pos.y += FONTSIZE*3 ;
+		sprintf((char*)str, "门接点 :%s",oif203.statearri.stateunit[4].ST?"合":"分");
+		gui_textshow((char*)str, pos, LCD_NOREV);
+
+		getPluseCount(pluse);
+		memset(str, 0, 100);
+		pos.y += FONTSIZE*3-2;
+		sprintf((char*)str, "脉冲_1:%d   脉冲_2:%d",pluse[0],pluse[1]);
+		gui_textshow((char*)str, pos, LCD_NOREV);
+
+		PressKey = NOKEY;
+		delay(1000);
+	}
+	return;
+}
 void menu_yxstatus(){
 	Point pos;
 	INT8U str[100];
@@ -4558,6 +4612,11 @@ void menu_yxstatus(){
 			fprintf(stderr,"状态 = %d 变位= %d  接入 = %d 属性 = %d \n",oif203.statearri.stateunit[i].ST,oif203.statearri.stateunit[i].CD,oif203.state4.StateAcessFlag,
 					oif203.state4.StatePropFlag>>i);
 		}
+		memset(str, 0, 100);
+		pos.y += FONTSIZE*3 ;
+		sprintf((char*)str, "门接点 :%s",oif203.statearri.stateunit[4].ST?"合":"分");
+		gui_textshow((char*)str, pos, LCD_NOREV);
+
 		PressKey = NOKEY;
 		delay(1000);
 	}

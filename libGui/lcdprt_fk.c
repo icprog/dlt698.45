@@ -24,7 +24,7 @@ Menu menu_fk[]={
 					{{level2,"1.当前功率",	menu_realP, 		MENU_NOPASSWD},		NULL},
 					{{level2,"2.当前电量", 	menu_realE, 		MENU_NOPASSWD},		NULL},
 					{{level2,"3.负荷曲线", 	menu_loadcurve, 	MENU_NOPASSWD},		NULL},
-					{{level2,"4.开关状态", 	menu_yxstatus, 		MENU_NOPASSWD},		NULL},
+					{{level2,"4.开关状态", 	menu_yxstatus_fk, 	MENU_NOPASSWD},		NULL},
 					{{level2,"5.功控记录", 	menu_gongctlrec, 	MENU_NOPASSWD},		NULL},
 					{{level2,"6.电控记录", 	menu_dianctlrec, 	MENU_NOPASSWD},		NULL},
 					{{level2,"7.遥控记录", 	menu_yaoctlrec, 	MENU_NOPASSWD},		NULL},
@@ -105,9 +105,10 @@ void menu_control(){
 	CLASS_8107 c8107; //购电控
 	CLASS_8108 c8108; //月电控
 
-//	for (int i = 0; i < 8; ++i) {
-//		readCoverClass(0x2301 + i, 0, &class23[0],sizeof(CLASS23), para_vari_save);
-//	}
+	int i = 0;
+	for (i = 0; i < 8; ++i) {
+		readCoverClass(0x2301 + i, 0, &class23[0],sizeof(CLASS23), para_vari_save);
+	}
 
 	readCoverClass(0x8001, 0, (void *) &c8001, sizeof(CLASS_8001),para_vari_save);
 	readCoverClass(0x8100, 0, (void *) &c8100, sizeof(CLASS_8100),para_vari_save);
@@ -148,7 +149,7 @@ void menu_control(){
 		}
 
 		gui_clrrect(rect_Client);
-		gui_setpos(&pos, rect_Client.left+10*FONTSIZE, rect_Client.top+2*FONTSIZE);
+		gui_setpos(&pos, rect_Client.left+4*FONTSIZE, rect_Client.top+2*FONTSIZE);
 		memset(str, 0, 100);
 		sprintf(str, "总加组%d [OI:%04x]", zj_index, 0x2300 + zj_index);
 		gui_textshow(str, pos, LCD_NOREV);
