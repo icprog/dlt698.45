@@ -70,9 +70,15 @@ INT32S comfd485[2];
 INT8U i485port1;
 INT8U readState;//是否正抄停上电事件－抄停上电事件的时候需要暂停正常抄表流程
 INT8U i485port2;
-INT8U isNeed4852;//0-4852维护口　1-4852抄表口
+
 //698 OAD 和 645 07规约 数据标识对应关系
 INT8U map07DI_698OAD_NUM;
 CLASS_601F map07DI_698OAD[NUM_07DI_698OAD];
+
+
+INT16S request9707_singleOAD(INT8U protocol,OI_698 roadOI,OAD soureOAD,CLASS_6001 to6001,CLASS_6035* st6035,INT8U* dataContent,INT8U port485);
+INT16S deal6015_698(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8U* dataContent,INT8U port485);
+INT16U compose6012Buff(DateTimeBCD startTime,DateTimeBCD saveTime,TSA meterAddr,INT16U dataLen,INT8U* dataContent, INT8U port485);
+INT8U getSaveTime(DateTimeBCD* saveTime,INT8U cjType,INT8U saveTimeFlag,DATA_TYPE curvedata);
 
 #endif /* READ485_H_ */

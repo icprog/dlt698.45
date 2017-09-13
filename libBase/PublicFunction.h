@@ -71,6 +71,7 @@ extern INT8S tminc(TS* tmi, Time_Units unit, INT32S val);
 extern INT8S bcd2int32u(INT8U* bcd, INT8U len, ORDER order, INT32U* dint);
 extern INT32S int32u2bcd(INT32U dint32, INT8U* bcd, ORDER order);
 INT32S asc2bcd(INT8U* asc, INT32U len, INT8U* bcd,ORDER order);
+extern void myBCDtoASC1(char val, char dest[2]);
 /*
  * gpio操作函数
  */

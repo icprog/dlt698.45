@@ -952,6 +952,30 @@ int	Set_F200(OI_698 oi,INT8U *data,INT8U *DAR)
 	return index;
 }
 
+int	Set_F201(OI_698 oi,INT8U *data,INT8U *DAR)
+{
+	INT8U	com = 0;
+	int	 index=0;
+	CLASS_f201	f201[3]={};
+	OAD		oad={};
+
+	readCoverClass(oi,0,&f201,sizeof(f201),para_vari_save);
+	index += getStructure(&data[index],NULL,DAR);
+	index += getOAD(1,&data[index],&oad,DAR);
+	if(oad.attrindex>=1 && oad.attrindex<=3) {
+		com = oad.attrindex-1;
+	}else {
+		*DAR = boundry_over;
+	}
+	index += getCOMDCB(1,&data[index],&f201[com].devpara,DAR);
+	index += getEnum(1,&data[index],&f201[com].devfunc);
+	fprintf(stderr,"com=%d DAR=%d  return %d\n",com,*DAR,index);
+	if(*DAR==success) {
+		*DAR = saveCoverClass(oi,0,&f201,sizeof(f201),para_vari_save);
+	}
+	return index;
+}
+
 int	Set_F202(OI_698 oi,INT8U *data,INT8U *DAR)
 {
 	int	 index=0;

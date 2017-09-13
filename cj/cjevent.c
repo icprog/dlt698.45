@@ -63,7 +63,13 @@ void printClass3106()
 
 	saveflg = readCoverClass(0x3106,0,&tmpobj,sizeof(Event3106_Object),event_para_save);
 
-	fprintf(stderr,"\n[3106]终端停上电事件 \n");
+	fprintf(stderr,"\n[3106_para]=%d %d %d %d %d %d %d %d %d %d %d\n",tmpobj.event_obj.enableflag,tmpobj.event_obj.reportflag,
+			tmpobj.poweroff_para_obj.collect_para_obj.collect_flag,
+			tmpobj.poweroff_para_obj.collect_para_obj.time_space,tmpobj.poweroff_para_obj.collect_para_obj.time_threshold,
+			tmpobj.poweroff_para_obj.screen_para_obj.mintime_space,tmpobj.poweroff_para_obj.screen_para_obj.maxtime_space,
+			tmpobj.poweroff_para_obj.screen_para_obj.startstoptime_offset,tmpobj.poweroff_para_obj.screen_para_obj.sectortime_offset,
+			tmpobj.poweroff_para_obj.screen_para_obj.happen_voltage_limit,tmpobj.poweroff_para_obj.screen_para_obj.recover_voltage_limit);
+	fprintf(stderr,"\n[3106]终端停上电事件 saveflg=%d\n",saveflg);
 	printClass7(tmpobj.event_obj);
 //	fprintf(stderr,"currn=%d \n",tmpobj.event_obj.crrentnum);
 	fprintf(stderr,"\n采集配置参数：采集标志:%02x 抄读间隔(小时):%d　抄读限值(分钟):%d",tmpobj.poweroff_para_obj.collect_para_obj.collect_flag,
@@ -221,20 +227,20 @@ void printClass310d()
 /*
  *赋值class7-base
  */
-void Class7_BaseInit(OI_698 oi,Class7_Object *obj){
+void Class7_BaseInit(OI_698 oi,Class7_Object *obj,BOOLEAN enableflag,BOOLEAN reportflag){
 	memset(&obj->logic_name,0,sizeof(obj->logic_name));
 	obj->crrentnum=0;
 	obj->maxnum=15;
-	obj->enableflag=0;
-	obj->reportflag=0;
+	obj->enableflag=enableflag;
+	obj->reportflag=reportflag;
 }
 /*
  *赋值class7
  */
-void Class7_Init(OI_698 oi){
+void Class7_Init(OI_698 oi,BOOLEAN enableflag,BOOLEAN reportflag){
 	Class7_Object obj;
 	memset(&obj,0,sizeof(obj));
-	Class7_BaseInit(oi,&obj);
+	Class7_BaseInit(oi,&obj,enableflag,reportflag);
 	saveCoverClass(oi,0,(void *)&obj,sizeof(Class7_Object),para_init_save);
     setOIChange_CJ(oi);
 }
@@ -244,7 +250,7 @@ void Class7_Init(OI_698 oi){
 void Init_3105(){
 	Event3105_Object obj;
 	memset(&obj,0,sizeof(obj));
-	Class7_BaseInit(0x3105,&obj.event_obj);
+	Class7_BaseInit(0x3105,&obj.event_obj,1,1);
 	obj.mto_obj.over_threshold=240;
 	saveCoverClass(0x3105,0,(void *)&obj,sizeof(Event3105_Object),para_init_save);
     setOIChange_CJ(0x3105);
@@ -255,8 +261,17 @@ void Init_3105(){
 void Init_3106(){
 	Event3106_Object obj;
 	memset(&obj,0,sizeof(obj));
-	Class7_BaseInit(0x3106,&obj.event_obj);
-	//
+	Class7_BaseInit(0x3106,&obj.event_obj,1,1);
+	//湖南参数
+	obj.poweroff_para_obj.collect_para_obj.collect_flag = 3;
+	obj.poweroff_para_obj.collect_para_obj.time_space = 0;
+	obj.poweroff_para_obj.collect_para_obj.time_threshold = 5;
+	obj.poweroff_para_obj.screen_para_obj.mintime_space = 1;
+	obj.poweroff_para_obj.screen_para_obj.maxtime_space = 4320;
+	obj.poweroff_para_obj.screen_para_obj.startstoptime_offset = 10;
+	obj.poweroff_para_obj.screen_para_obj.sectortime_offset = 5;
+	obj.poweroff_para_obj.screen_para_obj.happen_voltage_limit = 1320;
+	obj.poweroff_para_obj.screen_para_obj.recover_voltage_limit = 1760;
 	saveCoverClass(0x3106,0,(void *)&obj,sizeof(Event3106_Object),para_init_save);
     setOIChange_CJ(0x3106);
 }
@@ -266,7 +281,7 @@ void Init_3106(){
 void Init_3107(){
 	Event3107_Object obj;
 	memset(&obj,0,sizeof(obj));
-	Class7_BaseInit(0x3107,&obj.event_obj);
+	Class7_BaseInit(0x3107,&obj.event_obj,1,1);
 	//
 	saveCoverClass(0x3107,0,(void *)&obj,sizeof(Event3107_Object),para_init_save);
     setOIChange_CJ(0x3107);
@@ -277,7 +292,7 @@ void Init_3107(){
 void Init_3108(){
 	Event3108_Object obj;
 	memset(&obj,0,sizeof(obj));
-	Class7_BaseInit(0x3108,&obj.event_obj);
+	Class7_BaseInit(0x3108,&obj.event_obj,1,1);
 	//
 	saveCoverClass(0x3108,0,(void *)&obj,sizeof(Event3108_Object),para_init_save);
     setOIChange_CJ(0x3108);
@@ -288,7 +303,7 @@ void Init_3108(){
 void Init_310B(){
 	Event310B_Object obj;
 	memset(&obj,0,sizeof(obj));
-	Class7_BaseInit(0x310B,&obj.event_obj);
+	Class7_BaseInit(0x310B,&obj.event_obj,1,1);
 	//
 	saveCoverClass(0x310B,0,(void *)&obj,sizeof(Event310B_Object),para_init_save);
     setOIChange_CJ(0x310b);
@@ -299,7 +314,7 @@ void Init_310B(){
 void Init_310C(){
 	Event310C_Object obj;
 	memset(&obj,0,sizeof(obj));
-	Class7_BaseInit(0x310C,&obj.event_obj);
+	Class7_BaseInit(0x310C,&obj.event_obj,1,1);
 	//
 	saveCoverClass(0x310C,0,(void *)&obj,sizeof(Event310C_Object),para_init_save);
     setOIChange_CJ(0x310C);
@@ -310,7 +325,7 @@ void Init_310C(){
 void Init_310D(){
 	Event310D_Object obj;
 	memset(&obj,0,sizeof(obj));
-	Class7_BaseInit(0x310D,&obj.event_obj);
+	Class7_BaseInit(0x310D,&obj.event_obj,1,1);
 	//
 	saveCoverClass(0x310D,0,(void *)&obj,sizeof(Event310D_Object),para_init_save);
     setOIChange_CJ(0x310D);
@@ -321,7 +336,7 @@ void Init_310D(){
 void Init_310E(){
 	Event310E_Object obj;
 	memset(&obj,0,sizeof(obj));
-	Class7_BaseInit(0x310E,&obj.event_obj);
+	Class7_BaseInit(0x310E,&obj.event_obj,1,1);
 	//
 	saveCoverClass(0x310E,0,(void *)&obj,sizeof(Event310E_Object),para_init_save);
     setOIChange_CJ(0x310E);
@@ -332,7 +347,7 @@ void Init_310E(){
 void Init_310F(){
 	Event310F_Object obj;
 	memset(&obj,0,sizeof(obj));
-	Class7_BaseInit(0x310F,&obj.event_obj);
+	Class7_BaseInit(0x310F,&obj.event_obj,1,1);
 	//
 	saveCoverClass(0x310F,0,(void *)&obj,sizeof(Event310F_Object),para_init_save);
     setOIChange_CJ(0x310F);
@@ -343,7 +358,7 @@ void Init_310F(){
 void Init_3110(){
 	Event3110_Object obj;
 	memset(&obj,0,sizeof(obj));
-	Class7_BaseInit(0x3110,&obj.event_obj);
+	Class7_BaseInit(0x3110,&obj.event_obj,1,1);
 	//
 	saveCoverClass(0x3110,0,(void *)&obj,sizeof(Event3110_Object),para_init_save);
     setOIChange_CJ(0x3110);
@@ -354,7 +369,7 @@ void Init_3110(){
 void Init_3116(){
 	Event3116_Object obj;
 	memset(&obj,0,sizeof(obj));
-	Class7_BaseInit(0x3116,&obj.event_obj);
+	Class7_BaseInit(0x3116,&obj.event_obj,1,1);
 	//
 	saveCoverClass(0x3116,0,(void *)&obj,sizeof(Event3116_Object),para_init_save);
     setOIChange_CJ(0x3116);
@@ -365,7 +380,7 @@ void Init_3116(){
 void Init_311A(){
 	Event311A_Object obj;
 	memset(&obj,0,sizeof(obj));
-	Class7_BaseInit(0x311A,&obj.event_obj);
+	Class7_BaseInit(0x311A,&obj.event_obj,1,1);
 	//
 	saveCoverClass(0x311A,0,(void *)&obj,sizeof(Event311A_Object),para_init_save);
     setOIChange_CJ(0x311A);
@@ -376,7 +391,7 @@ void Init_311A(){
 void Init_311C(){
 	Event311C_Object obj;
 	memset(&obj,0,sizeof(obj));
-	Class7_BaseInit(0x311C,&obj.event_obj);
+	Class7_BaseInit(0x311C,&obj.event_obj,1,1);
 	//
 	saveCoverClass(0x311C,0,(void *)&obj,sizeof(Event311C_Object),para_init_save);
     setOIChange_CJ(0x311C);
@@ -568,23 +583,23 @@ void event_process(int argc, char *argv[])
 		}
 		if(strcmp("init",argv[2])==0) {
 			if(oi == 0){
-				Class7_Init(0x3100);
-				Class7_Init(0x3101);
-				Class7_Init(0x3104);
-				Class7_Init(0x3109);
-				Class7_Init(0x310A);
-				Class7_Init(0x3111);
-				Class7_Init(0x3112);
-				Class7_Init(0x3114);
-				Class7_Init(0x3115);
-				Class7_Init(0x3117);
-				Class7_Init(0x3118);
-				Class7_Init(0x3119);
-				Class7_Init(0x311B);
-				Class7_Init(0x3200);
-				Class7_Init(0x3201);
-				Class7_Init(0x3202);
-				Class7_Init(0x3203);
+				Class7_Init(0x3100,1,1);
+				Class7_Init(0x3101,1,1);
+				Class7_Init(0x3104,1,1);
+				Class7_Init(0x3109,1,1);
+				Class7_Init(0x310A,1,1);
+				Class7_Init(0x3111,1,1);
+				Class7_Init(0x3112,1,1);
+				Class7_Init(0x3114,1,1);
+				Class7_Init(0x3115,1,1);
+				Class7_Init(0x3117,1,1);
+				Class7_Init(0x3118,1,1);
+				Class7_Init(0x3119,1,1);
+				Class7_Init(0x311B,1,1);
+				Class7_Init(0x3200,1,1);
+				Class7_Init(0x3201,1,1);
+				Class7_Init(0x3202,1,1);
+				Class7_Init(0x3203,1,1);
 				Init_3105();
 				Init_3106();
 				Init_3107();
@@ -617,7 +632,7 @@ void event_process(int argc, char *argv[])
 			   case 0x3201:
 			   case 0x3202:
 			   case 0x3203:
-				   Class7_Init(oi);
+				   Class7_Init(oi,1,1);
 				   break;
 			   case 0x3105:
 				   Init_3105();

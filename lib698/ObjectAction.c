@@ -1063,43 +1063,13 @@ void TerminalInfo(INT16U attr_act, INT8U *data, Action_result *act_ret)
             //68 1a 00 c3 05 05 00 00 00 00 00 01 e1 eb 87 01 0e 43 00 4c 00 00 00 00 00 e0 d6 16  报文Data：NULL
         case 76:	//0x4C  湖南主站切换到3761下发报文
         	syslog(LOG_NOTICE, "\n湖南协议从698切换到3761【4C】\n");
-            system((const char *) "cp /nor/rc.d/rc.local /nor/rc.d/698_rc.local");
-            sleep(1);
-            system((const char *) "cp /nor/rc.d/3761_rc.local /nor/rc.d/rc.local");
-            sleep(1);
-            system((const char *) "chmod 777 /nor/rc.d/rc.local");
-            sleep(2);
-            if (access("/nor/rc.d/rc.local", F_OK) != 0 || access("/nor/rc.d/rc.local", X_OK) != 0) {
-                if (write_3761_rc_local()) {
-                    sleep(1);
-                    system((const char *) "chmod 777 /nor/rc.d/rc.local");
-                    sleep(1);
-                }
-            }
-            system("fsync -d /nor/rc.d/rc.local");
-            sleep(1);
-            system((const char *) "reboot");                    //TODO:写文件成功切换rc.local
+        	chg_rc_local_3761();
         	break;
         case 151://湖南切换到3761规约程序转换主站通信参数
             syslog(LOG_NOTICE, "\n湖南协议从698切换到3761【151】\n");
             if (save_protocol_3761_tx_para(data))//写文件成功
             {
-                system((const char *) "cp /nor/rc.d/rc.local /nor/rc.d/698_rc.local");
-                sleep(1);
-                system((const char *) "cp /nor/rc.d/3761_rc.local /nor/rc.d/rc.local");
-                sleep(1);
-                system((const char *) "chmod 777 /nor/rc.d/rc.local");
-                sleep(1);
-                if (access("/nor/rc.d/rc.local", F_OK) != 0 || access("/nor/rc.d/rc.local", X_OK) != 0) {
-                    if (write_3761_rc_local()) {
-                        sleep(1);
-                        system((const char *) "chmod 777 /nor/rc.d/rc.local");
-                        sleep(1);
-                    }
-                    system((const char *) "reboot");                    //TODO:写文件成功切换rc.local
-                } else {
-                    system((const char *) "reboot");                    //TODO:写文件成功切换rc.local
-                }
+            	chg_rc_local_3761();
             }
             break;
     }
@@ -1550,6 +1520,9 @@ int doObjectAction(OAD oad, INT8U *data, Action_result *act_ret) {
         	break;
         case 0xF201:	//RS485
         	//TODO:存储长度 CLASS_f201×3（485-1,485-2,485-3），修改参数后重启系统，防止抄表口与维护口无法区分
+        	if (attr_act == 127) { //
+        		act_ret->datalen = Set_F201(0xf201,data,&act_ret->DAR);
+        	}
         	break;
         case 0xF202:	//红外
         	if (attr_act == 127) {  //方法 127 配置端口
