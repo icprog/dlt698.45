@@ -154,8 +154,9 @@ INT8U state_check(BOOLEAN changed,INT8U devicetype)
 					bit_state[i] = bit_state[0];			//II型无设备，台体测试测试1-4路状态
 				}
 			}else if(i==4) {		//门节点
-				if(devicetype==CCTT1) {		//I型集中器
+				if(devicetype==CCTT1 || devicetype==SPTF3) {		//I型集中器
 					readstate[i] = getSpiAnalogState();
+					fprintf(stderr,"\n---------- readstate[%d] = %d",i,readstate[i]);
 					if(readstate[i]!=-1) {
 						bit_state[i] = ((~(readstate[i]>>5))&0x01);
 					}

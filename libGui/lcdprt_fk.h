@@ -58,6 +58,7 @@ extern void showallmeter(void (*pfun)(int cldno));
 extern void show_realdatabycld(int cldno);
 extern void show_realdata(int cldno, LcdDataItem *item, int itemcount);
 extern void menu_yxstatus();
+extern void menu_yxstatus_fk();
 extern void jzq_addr_edit();
 extern void menu_jzqzddr10();
 extern void menu_jzqzddr16();
