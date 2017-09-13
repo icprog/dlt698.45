@@ -50,7 +50,7 @@ void DbgPrintToFile1(INT8U comport,const char *format,...)
 	FILE *fp = NULL;
 
 	memset(fname,0,sizeof(fname));
-	sprintf(fname,"/nand/vs485_%d.log",comport);
+	sprintf(fname,"/nand/log_698/vs485_%d.log",comport);
 	memset(str,0,50);
 	cur_time=time(NULL);
 	localtime_r(&cur_time,&cur_tm);
