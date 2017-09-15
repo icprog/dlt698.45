@@ -5,7 +5,7 @@
 #include "lcd_ctrl.h"
 #include "lcdprt_fk.h"
 #include "lcdprt_jzq.h"
-
+#include "show_ctrl.h"
 #define OFFSET_Y 3
 #define TIMEOUT_SHORT 2
 #pragma message("\n\n************************************\n SPTF_III__Compiling............\n************************************\n")
@@ -93,27 +93,20 @@ void menu_control_showstate(char *ctlname, INT8U state, Point pos){
 }
 
 void menu_control(){
+	Rect rect;
 	CLASS23			class23[8];			//总加组
-	CLASS_8001 c8001; //保电
-	CLASS_8100 c8100; //终端保安定值
-	CLASS_8101 c8101; //终端功控时段
-	CLASS_8102 c8102; //功控告警时间
-	CLASS_8103 c8103; //时段功控
-	CLASS_8104 c8104; //厂休控
-	CLASS_8105 c8105; //营业报停控
-	CLASS_8106 c8106; //功率下浮控
-	CLASS_8107 c8107; //购电控
-	CLASS_8108 c8108; //月电控
+	CLASS_8103 c8103; 					//时段功控
+	CLASS_8104 c8104; 					//厂休控
+	CLASS_8105 c8105; 					//营业报停控
+	CLASS_8106 c8106; 					//功率下浮控
+	CLASS_8107 c8107; 					//购电控
+	CLASS_8108 c8108; 					//月电控
 
 	int i = 0;
 	for (i = 0; i < 8; ++i) {
 		readCoverClass(0x2301 + i, 0, &class23[0],sizeof(CLASS23), para_vari_save);
 	}
 
-	readCoverClass(0x8001, 0, (void *) &c8001, sizeof(CLASS_8001),para_vari_save);
-	readCoverClass(0x8100, 0, (void *) &c8100, sizeof(CLASS_8100),para_vari_save);
-	readCoverClass(0x8101, 0, (void *) &c8101, sizeof(CLASS_8101),para_vari_save);
-	readCoverClass(0x8102, 0, (void *) &c8102, sizeof(CLASS_8102),para_vari_save);
 	readCoverClass(0x8103, 0, (void *) &c8103, sizeof(CLASS_8103),para_vari_save);
 	readCoverClass(0x8104, 0, (void *) &c8104, sizeof(CLASS_8104),para_vari_save);
 
@@ -149,28 +142,34 @@ void menu_control(){
 		}
 
 		gui_clrrect(rect_Client);
-		gui_setpos(&pos, rect_Client.left+4*FONTSIZE, rect_Client.top+2*FONTSIZE);
+		gui_setpos(&pos, rect_Client.left+6*FONTSIZE, rect_Client.top+3*FONTSIZE);
 		memset(str, 0, 100);
-		sprintf(str, "总加组%d [OI:%04x]", zj_index, 0x2300 + zj_index);
+
+		sprintf(str, "总加组%d ", zj_index);
 		gui_textshow(str, pos, LCD_NOREV);
-		gui_setpos(&pos, rect_Client.left+3*FONTSIZE, rect_Client.top+6*FONTSIZE);
-		menu_control_showstate((char*)"保电", c8001.state & 0x01 , pos);		//FOR698
+		gui_setpos(&pos, rect_Client.left+6*FONTSIZE, rect_Client.top+6*FONTSIZE);
+		memset(str, 0, 100);
+		sprintf(str, "[OI:%04x]", 0x2300 + zj_index);
+		gui_textshow(str, pos, LCD_NOREV);
+		memcpy(&rect, &rect_Client, sizeof(Rect));
+		rect = gui_getstrrect((unsigned char*)str, pos);//获得字符串区域
+		gui_reverserect(gui_changerect(rect, 2));//反显按钮
+
+		gui_setpos(&pos, rect_Client.left+1*FONTSIZE, rect_Client.top+10*FONTSIZE);//4
+		menu_control_showstate((char*)"下浮：",c8106.enable[0].state & 0x01, pos);			//当前功率下浮控	没有控制方案集数组，默认参数下发在原来结构体数组 0
+		pos.y += FONTSIZE*3;
+		menu_control_showstate((char*)"报停：",c8105.enable[zj_index-1].state & 0x01, pos);//营业报停控
+		pos.y += FONTSIZE*3;
+		menu_control_showstate((char*)"厂休：",c8104.enable[zj_index-1].state & 0x01, pos);//营业报停控
 		pos.y += FONTSIZE*3;
 
-//		menu_control_showstate((char*)"下浮",c8106.enable, pos);
+		gui_setpos(&pos, rect_Client.left+15*FONTSIZE, rect_Client.top+10*FONTSIZE);//4
+		menu_control_showstate((char*)"时段：",c8103.enable[zj_index-1].state & 0x01, pos);	//时段功控
 		pos.y += FONTSIZE*3;
-
-//		menu_control_showstate((char*)"报停", c8105.enable[zj_index-1], pos);
+		menu_control_showstate((char*)"购电：",c8107.enable[zj_index-1].state & 0x01 , pos);//购电控
 		pos.y += FONTSIZE*3;
-//		menu_control_showstate((char*)"厂休", shmm_getdevstat()->ctrpar.Changxiukong[zj_index-1].Valid&0x01, pos);
-		gui_setpos(&pos, rect_Client.left+13*FONTSIZE+FONTSIZE/2, rect_Client.top+6*FONTSIZE);
-//		menu_control_showstate((char*)"时段", shmm_getdevstat()->ctrpar.ShiDuankong[zj_index-1].Valid&0x01, pos);
+		menu_control_showstate((char*)"月电：",c8108.enable[zj_index-1].state & 0x01 , pos);//月电控
 		pos.y += FONTSIZE*3;
-//		menu_control_showstate((char*)"月电", shmm_getdevstat()->ctrpar.Yuediankong[zj_index-1].Valid&0x01, pos);
-		pos.y += FONTSIZE*3;
-//		menu_control_showstate((char*)"购电", shmm_getdevstat()->ctrpar.Goudiankong[zj_index-1].Valid&0x01, pos);
-		pos.y += FONTSIZE*3;
-//		menu_control_showstate((char*)"催费", shmm_getdevstat()->ctrpar.Cuifei.Valid&0x01, pos);
 
 		if(PressKey!=NOKEY || first_flg==0){
 			first_flg = 1;
@@ -1044,11 +1043,11 @@ void menu_teminfo_showused(char* name, int used, Point pos){
 	gui_textshow(str, pos, LCD_NOREV);
 }
 
-#define MCNUM 2
 void menu_realP(){
-	int mpno=0;
+	Rect rect;
 	char str[100], first_flg=0;
 	Point pos;
+	int mc_index=1;
 	int zj_index=1;
 	memset(str, 0, 100);
 	PressKey = NOKEY;
@@ -1059,12 +1058,12 @@ void menu_realP(){
 		case UP:
 			zj_index--;
 			if(zj_index<=0)
-				zj_index = MAXNUM_SUMGROUP+MCNUM;
+				zj_index = MAXNUM_SUMGROUP;
 			break;
 		case RIGHT:
 		case DOWN:
 			zj_index++;
-			if(zj_index>MAXNUM_SUMGROUP+MCNUM)
+			if(zj_index>MAXNUM_SUMGROUP)
 				zj_index = 1;
 			break;
 		case ESC:
@@ -1073,40 +1072,60 @@ void menu_realP(){
 		if(PressKey!=NOKEY || first_flg==0){
 			first_flg = 1;
 			gui_clrrect(rect_Client);
-			gui_setpos(&pos, rect_Client.left+10*FONTSIZE, rect_Client.top+3*FONTSIZE);
+			gui_setpos(&pos, rect_Client.left+4*FONTSIZE, rect_Client.top+2*FONTSIZE);
 			memset(str, 0, 100);
-			if(zj_index<=MAXNUM_SUMGROUP)
-				sprintf(str, "总加组%d", zj_index);
-			else{
-				sprintf(str, "第%d路脉冲", zj_index-MAXNUM_SUMGROUP);
-//				mpno = ParaAll->f11.f11[zj_index-MAXNUM_SUMGROUP].MPNo;		//FOR698
-				if(mpno>MAXNUM_SUMGROUP){
-					mpno = 1;
-				}
-			}
+			sprintf(str, "总加组%d [OI:%04x]", zj_index,0x2300 + zj_index);
 			gui_textshow(str, pos, LCD_NOREV);
-			memset(str, 0, 100);
 
-//			if(mpno!=0)
-//				sprintf((char*)str,"有功功率:% 10d kW",shmm_getpubdata()->pulse_calc_by_vstate.dd_realdata[mpno].P);	//FOR698
-//			else
-				sprintf((char*)str,"有功功率:       0.00 kW");
+			memcpy(&rect, &rect_Client, sizeof(Rect));
+			rect = gui_getstrrect((unsigned char*)str, pos);//获得字符串区域
+			gui_reverserect(gui_changerect(rect, 2));//反显按钮
 
-			pos.x = rect_Client.left + 1*FONTSIZE;
-			pos.y += FONTSIZE*4;
-			gui_textshow(str, pos, LCD_NOREV);
 			memset(str, 0, 100);
-//			if(zj_index<=MAXNUM_SUMGROUP)
-//				sprintf((char*)str,"无功功率:% 10.2f kVar",shmm_getpubdata()->data_calc_by1min[zj_index-1].PQS);		//FOR698
-//			else{
-//				if(mpno!=0)
-//					sprintf((char*)str,"无功功率:% 10d kVar",
-//						shmm_getpubdata()->pulse_calc_by_vstate.dd_realdata[mpno].Q);
-//				else
-					sprintf((char*)str,"无功功率:       0.00 kVar");
-//			}
+			if (p_JProgramInfo->class23[0].p<1000)
+				sprintf((char*)str,"有功功率:%d  W",(int)p_JProgramInfo->class23[zj_index-1].p);	//FOR698
+			else
+				sprintf((char*)str,"有功功率:%.2f kW",p_JProgramInfo->class23[zj_index-1].p*1.0/1000);	//FOR698
+			pos.x = rect_Client.left + 4*FONTSIZE;
 			pos.y += FONTSIZE*3;
 			gui_textshow(str, pos, LCD_NOREV);
+
+			memset(str, 0, 100);
+			if (p_JProgramInfo->class23[0].q<1000)
+				sprintf((char*)str,"无功功率:%d  Var",(int)p_JProgramInfo->class23[zj_index-1].q);
+			else
+				sprintf((char*)str,"无功功率:%.2f kVar",p_JProgramInfo->class23[zj_index-1].p*1.0/1000);	//FOR698
+			pos.y += FONTSIZE*3;
+			gui_textshow(str, pos, LCD_NOREV);
+
+			//------------------------------------------------------------------
+			pos.x = rect_Client.left+3*FONTSIZE;
+			pos.y += FONTSIZE*4;
+			mc_index = zj_index%2+1;
+			sprintf(str, "脉冲计量%d [OI:%04x]", mc_index,0x2400 + mc_index);
+			gui_textshow(str, pos, LCD_NOREV);
+
+			memcpy(&rect, &rect_Client, sizeof(Rect));
+			rect = gui_getstrrect((unsigned char*)str, pos);//获得字符串区域
+			gui_reverserect(gui_changerect(rect, 2));//反显按钮
+
+			pos.x = rect_Client.left + 4*FONTSIZE;
+			memset(str, 0, 100);
+			if (p_JProgramInfo->class12[mc_index].p<1000)
+				sprintf((char*)str,"有功功率:%d  w",(int)p_JProgramInfo->class12[mc_index].p);
+			else
+				sprintf((char*)str,"有功功率:%.2f kVar",p_JProgramInfo->class12[mc_index].p*1.0/1000);	//FOR698
+			pos.y += FONTSIZE*3;
+			gui_textshow(str, pos, LCD_NOREV);
+
+			if (p_JProgramInfo->class12[mc_index].q<1000)
+				sprintf((char*)str,"无功功率:%d  Var",(int)p_JProgramInfo->class12[mc_index].q);
+			else
+				sprintf((char*)str,"无功功率:%.2f kVar",p_JProgramInfo->class12[mc_index].q*1.0/1000);	//FOR698
+			pos.y += FONTSIZE*3;
+			gui_textshow(str, pos, LCD_NOREV);
+
+
 		}
 		PressKey = NOKEY;
 		delay(300);
