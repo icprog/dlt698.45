@@ -1456,9 +1456,7 @@ int  fill_variClass(OAD oad,INT8U getflg,INT8U *sourcebuf,INT8U *destbuf,INT16U 
 		}
 		break;
 	case 0x2301:	//总加组
-		if(sourcebuf!=NULL) {
-			class23_get(oad,sourcebuf,destbuf,&buflen);
-		}
+		class23_get(oad,sourcebuf,destbuf,&buflen);
 		break;
 	case 0x2401:
 		if(sourcebuf!=NULL) {

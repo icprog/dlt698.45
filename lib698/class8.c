@@ -244,6 +244,8 @@ int class8102_set(int index, OAD oad, INT8U *data, INT8U *DAR) {
 int class8103_act3(int index, int attr_act, INT8U *data, Action_result *act_ret) {
 	CLASS_8103 c8103;
 
+	ProgramInfo *shareAddr = getShareAddr();
+
 	if (data[0] != 0x02 || data[1] != 0x06) {
 		return 0;
 	}
@@ -298,6 +300,8 @@ int class8103_act3(int index, int attr_act, INT8U *data, Action_result *act_ret)
 	c8103.list[0].v2.t8 = getLongValue(&data[238]);
 
 	c8103.list[0].para = data[248];
+
+	memcpy(&shareAddr->ctrls.c8103.list[0], &c8103.list[0], sizeof(c8103.list[0]));
 	printf("c8103 act 3\n");
 	return 0;
 }
@@ -402,36 +406,45 @@ int class8103_act_route(int index, int attr_act, INT8U *data,
 int class8104_act3(int index, int attr_act, INT8U *data, Action_result *act_ret) {
 	asyslog(LOG_WARNING, "厂休功控-添加控制单元");
 	CLASS_8104 c8104;
+	int ii = 0;
+	OI_698 oi = 0x00;
+	int unit = 0;
+	INT8U  DAR = 0;
 
-	if (data[0] != 0x02 || data[1] != 0x05) {
+	ii += getStructure(&data[ii],NULL,&DAR);
+	ii += getOI(1,&data[ii],&oi);
+
+	asyslog(LOG_WARNING, "厂休功控-添加控制单元(OI=%04x)",oi);
+	if(oi>=0x2301 && oi<=0x2308) {
+		unit = oi-0x2301;
+	}else {
+		act_ret->DAR = obj_unexist;
 		return 0;
 	}
-
-	if (data[2] != 0x80 || data[5] != 0x14 || data[14] != 0x1C
-			|| data[22] != 0x12) {
-		return 0;
-	}
+	fprintf(stderr, "unit = %d\n", unit);
 	readCoverClass(0x8104, 0, (void *) &c8104, sizeof(CLASS_8104),
-			para_vari_save);
-	for (int i = 0; i < MAX_AL_UNIT; i++) {
-		if (c8104.list[i].index == 0x00) {
-			c8104.list[i].index = data[3] * 256 + data[4];
-			INT64U v = 0x00;
-			for (int j = 0; j < 8; j++) {
-				v += data[6 + j] * powl(256, 7 - j);
-			}
-			c8104.list[i].v = v;
-			c8104.list[i].start.year.data = data[15] * 256 + data[16];
-			c8104.list[i].start.month.data = data[17];
-			c8104.list[i].start.day.data = data[18];
-			c8104.list[i].start.hour.data = data[19];
-			c8104.list[i].start.min.data = data[20];
+		para_vari_save);
 
-			c8104.list[i].sustain = data[23] * 256 + data[24];
-			c8104.list[i].noDay = data[27];
-		}
+	ProgramInfo *shareAddr = getShareAddr();
+	c8104.list[unit].index = data[3] * 256 + data[4];
+	INT64U v = 0x00;
+	for (int j = 0; j < 8; j++) {
+		v += data[6 + j] * powl(256, 7 - j);
 	}
+	c8104.list[unit].v = v;
+	c8104.list[unit].start.year.data = data[15] * 256 + data[16];
+	c8104.list[unit].start.month.data = data[17];
+	c8104.list[unit].start.day.data = data[18];
+	c8104.list[unit].start.hour.data = data[19];
+	c8104.list[unit].start.min.data = data[20];
 
+	c8104.list[unit].sustain = data[23] * 256 + data[24];
+	c8104.list[unit].noDay = data[27];
+	saveCoverClass(0x8104, 0, (void *) &c8104, sizeof(CLASS_8104),
+			para_vari_save);
+	readCoverClass(0x8104, 0, (void *) &shareAddr->ctrls.c8104.list[unit], sizeof(CLASS_8104),
+			para_vari_save);
+	fprintf(stderr, "刷新参数 %lld\n", shareAddr->ctrls.c8104.list[unit].v);
 	return 0;
 }
 
@@ -475,6 +488,8 @@ int class8104_act7(int index, int attr_act, INT8U *data, Action_result *act_ret)
 			para_vari_save);
 	c8104.enable[sindex].state = 0x00;
 	shareAddr->ctrls.c8104.enable[sindex].state = 0x00;
+	shareAddr->class23[0].alCtlState.OutputState = 0x00;
+	shareAddr->class23[0].alCtlState.PCAlarmState = 0x00;
 	saveCoverClass(0x8104, 0, (void *) &c8104, sizeof(CLASS_8104),
 			para_vari_save);
 	return 0;
@@ -566,6 +581,8 @@ int class8105_act7(int index, int attr_act, INT8U *data, Action_result *act_ret)
 			para_vari_save);
 	c8105.enable[sindex].state = 0x00;
 	shareAddr->ctrls.c8105.enable[sindex].state = 0x00;
+	shareAddr->class23[0].alCtlState.OutputState = 0x00;
+	shareAddr->class23[0].alCtlState.PCAlarmState = 0x00;
 	saveCoverClass(0x8105, 0, (void *) &c8105, sizeof(CLASS_8105),
 			para_vari_save);
 	return 0;
