@@ -247,13 +247,13 @@ int main(int argc, char *argv[]) {
     	{
     		fprintf(stderr,"\n-----总加组:%d",groupIndex);
 
-    		fprintf(stderr,"\n日电量:%ld-%ld-%ld-%ld-%ld",
+    		fprintf(stderr,"\n日电量:%lld-%lld-%lld-%lld-%lld",
     				JProgramInfo->class23[groupIndex].DayPALL,
     				JProgramInfo->class23[groupIndex].DayP[0],
     				JProgramInfo->class23[groupIndex].DayP[1],
     				JProgramInfo->class23[groupIndex].DayP[2],
     				JProgramInfo->class23[groupIndex].DayP[3]);
-    		fprintf(stderr,"\n月电量:%ld-%ld-%ld-%ld-%ld",
+    		fprintf(stderr,"\n月电量:%lld-%lld-%lld-%lld-%lld",
     				JProgramInfo->class23[groupIndex].MonthPALL,
     				JProgramInfo->class23[groupIndex].MonthP[0],
     				JProgramInfo->class23[groupIndex].MonthP[1],
@@ -275,7 +275,7 @@ int main(int argc, char *argv[]) {
 						JProgramInfo->class23[groupIndex].allist[meterIndex].tsa.addr[5],
 						JProgramInfo->class23[groupIndex].allist[meterIndex].tsa.addr[6],
 						JProgramInfo->class23[groupIndex].allist[meterIndex].tsa.addr[7]);
-        		fprintf(stderr,"\n当前电量:%ld-%ld-%ld-%ld-%ld",
+        		fprintf(stderr,"\n当前电量:%lld-%lld-%lld-%lld-%lld",
         				JProgramInfo->class23[groupIndex].allist[meterIndex].curP[0],
         				JProgramInfo->class23[groupIndex].allist[meterIndex].curP[1],
         				JProgramInfo->class23[groupIndex].allist[meterIndex].curP[2],

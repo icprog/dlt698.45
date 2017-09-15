@@ -324,7 +324,8 @@ void showCheckPara()
 	system("md5sum /nor/config/OI_TYPE.cfg");
 	system("md5sum /nor/config/device.cfg");
 	system("md5sum /nor/config/systema.cfg");
-
+	system("md5sum /nor/bin/mux.sh");
+	system("md5sum /nor/bin/gsmMuxd");
 	fprintf(stderr,"------------------------------------------------------\n");
 	fprintf(stderr,"\n======================================================\n");
 

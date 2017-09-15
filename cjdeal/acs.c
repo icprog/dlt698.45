@@ -533,7 +533,7 @@ INT32S	trans_regist(INT8U	type,INT8U para,INT32S reg,INT32S temp)
 	case I:					//电流
 //		fprintf(stderr,"Ireg=%d\n",reg);
 		tmpval = (float)reg * I_COEF /8192/N;
-		tread = Round(0,tmpval);
+		tread = (INT32S)tmpval;//tread = Round(1,tmpval);使用Round当没加电流时，有一个0.001的值
 //		fprintf(stderr,"Ival= %f %d\n",tmpval,tread);
 //		val = tread * (1.0*(1+(temp-15)*0.00005));
 		break;
@@ -542,7 +542,7 @@ INT32S	trans_regist(INT8U	type,INT8U para,INT32S reg,INT32S temp)
 			tread = reg -16777216;	//2^24=16777216
 		else tread = reg;
 		tmpval = (float)tread*P_COEF/PQCoef;
-		tread = Round(0,tmpval*para);
+		tread =  tmpval*para;//tread = Round(0,tmpval*para);
 //		val = tread *(1.0*(1+(temp-15)*0.0001));
 		break;
 	case Q:					//无功
