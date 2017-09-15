@@ -32,7 +32,7 @@ typedef struct {
 									//厂商代码　　软件版本　软件日期　　硬件版本　硬件日期  扩展信息
 static VERINFO verinfo          = { "QDGK", "V1.1", "170911", "1.10", "160328", "00000000" }; // 4300 版本信息
 								    //湖南需要双协议,软件版本要求为SXY8（双协议8） ，1376.1（软件版本为SXY1）
-static VERINFO verinfo_HuNan    = { "QDGK", "SXY8", "170911", "1.10", "160328", "00000000" }; // 4300 版本信息
+static VERINFO verinfo_HuNan    = { "QDGK", "SXY8", "170914", "1.10", "160328", "00000000" }; // 4300 版本信息
 
 
 static DateTimeBCD product_date = { { 2016 }, { 04 }, { 6 }, { 0 }, { 0 }, { 0 } };   // 4300 生产日期
@@ -182,6 +182,7 @@ void InitClass4300() //电气设备信息
         memcpy(&oi4300.info, &run_version, sizeof(VERINFO));
         memcpy(&oi4300.date_Product, &product_date, sizeof(DateTimeBCD));
         memcpy(&oi4300.protcol, protcol, sizeof(oi4300.protcol));
+        oi4300.active_report = 1;	//运行主动上报
         saveCoverClass(0x4300, 0, &oi4300, sizeof(CLASS19), para_vari_save);
     }
     fprintf(stderr, "\n厂商代码 %c%c%c%c", oi4300.info.factoryCode[0], oi4300.info.factoryCode[1], oi4300.info.factoryCode[2], oi4300.info.factoryCode[3]);
@@ -193,6 +194,7 @@ void InitClass4300() //电气设备信息
             oi4300.info.hardDate[4], oi4300.info.hardDate[5]);
     fprintf(stderr, "\n规约列表 %s", oi4300.protcol);
     fprintf(stderr, "\n生产日期 %d-%d-%d\n", oi4300.date_Product.year.data, oi4300.date_Product.month.data, oi4300.date_Product.day.data);
+    fprintf(stderr, "\n主动上报 %d\n",oi4300.active_report);
 }
 
 /*

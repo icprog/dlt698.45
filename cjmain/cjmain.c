@@ -12,6 +12,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <dirent.h>
 
 #include "ParaDef.h"
 #include "PublicFunction.h"
@@ -371,8 +372,6 @@ void CreateSem() {
 	int val;
 	sem_t *sem;
 
-	//此设置决定集中器电池工作，并保证在下电情况下，长按向下按键唤醒功能
-	gpio_writebyte(DEV_BAT_SWITCH, (INT8S) 1);
 
 	//信号量建立
 	sem = create_named_sem(SEMNAME_SPI0_0, 1);
@@ -682,13 +681,21 @@ int main(int argc, char *argv[])
 {
     struct timeval start={}, end={};
     long  interval=0;
+    int ProgsNum = 0;
 
-    printf("==================version==================\n");
+	//此设置决定集中器电池工作，并保证在下电情况下，长按向下按键唤醒功能
+	gpio_writebyte(DEV_BAT_SWITCH, (INT8S) 1);
+	//将程序log记录到/nand/log_698目录下，防止nand下文件太多，导致程序启动较慢
+	DIR *dir=NULL;
+	dir = opendir("/nand/log_698");
+	if(dir==NULL) {
+		mkdir("/nand/log_698",0777);
+	}
+
+	printf("==================version==================\n");
 //    printf("VERSION : %d\n", GL_VERSION);
     asyslog(LOG_INFO, "VERSION : %d\n", GL_VERSION);
     printf("==================version==================\n\n\n\n");
-
-    int ProgsNum = 0;
 
     //检查是否已经有程序在运行
     pid_t pids[128] = {0};
@@ -708,8 +715,9 @@ int main(int argc, char *argv[])
     if (argc >= 2 && strncmp("all", argv[1], 3) == 0) {
         ProgsNum = ReadSystemInfo();
     }
-    get_protocol_3761_tx_para();//湖南获取3761切换通信参数，在初始化其他操作之后进行
-
+    if(getZone("HuNan")==0) {
+    	get_protocol_3761_tx_para();//湖南获取3761切换通信参数，在初始化其他操作之后进行
+    }
     //点亮运行灯，初始化运行状态
     g_powerState = PWR_ON;
     JProgramInfo->powerState = PWR_ON;

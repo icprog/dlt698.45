@@ -262,6 +262,7 @@ void* guishow_thread()
 
 void guictrl_proccess()
 {
+	syslog(LOG_NOTICE,"guictrl_proccess\n");
 	fprintf(stderr, "\n CJGUI compile time:%s %s", __DATE__,__TIME__);
 	if(lcm_open()<0){
 		fprintf(stderr,"\n\n open fb0 fail!!!!! return");
@@ -273,6 +274,7 @@ void guictrl_proccess()
 	ReadHzkBuff_16();//读字库16*16
 	ReadHzkBuff_12();//12*12
 	initliangdu();//初始化液晶亮度
+	syslog(LOG_NOTICE,"lcd_light = 1\n");
 	initlunxian();//读配置文件
 
 	setFontSize(12);//设置字体

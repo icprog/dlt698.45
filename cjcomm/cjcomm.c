@@ -29,7 +29,9 @@ int cWrite(int fd, INT8U *buf, INT16U len) {
 	}
 	bufsyslog(buf, "发送:", len, 0, BUFLEN);
 	if (getZone("GW") == 0) {
-		PacketBufToFile("[NET]S:", (char *) buf, len, NULL);
+		char prtpara[16];
+		sprintf(prtpara,"[NET_%d]S:",fd);
+		PacketBufToFile(1,prtpara, (char *) buf, len, NULL);
 	}
 	return ret;
 }
@@ -63,7 +65,9 @@ void cReadWithoutCheck(struct aeEventLoop *ep, int fd, void *clientData, int mas
 	if (getZone("GW") == 0) {
 		int buflen = 0;
 		buflen = (nst->RHead - nst->RTail + BUFLEN) % BUFLEN;
-		PacketBufToFile("[NET]R:", (char *) &nst->RecBuf[nst->RTail],
+		char prtpara[16];
+		sprintf(prtpara,"[NET_%d]R:",fd);
+		PacketBufToFile(1,prtpara, (char *) &nst->RecBuf[nst->RTail],
 				buflen, NULL);
 	}
 }
@@ -91,7 +95,9 @@ void cRead(struct aeEventLoop *ep, int fd, void *clientData, int mask) {
 		if (getZone("GW") == 0) {
 			int buflen = 0;
 			buflen = (nst->RHead - nst->RTail + BUFLEN) % BUFLEN;
-			PacketBufToFile("[NET]R:", (char *) &nst->RecBuf[nst->RTail],
+			char prtpara[16];
+			sprintf(prtpara,"[NET_%d]R:",fd);
+			PacketBufToFile(1,prtpara, (char *) &nst->RecBuf[nst->RTail],
 					buflen, NULL);
 		}
 	}

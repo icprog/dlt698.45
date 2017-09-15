@@ -1320,7 +1320,7 @@ INT8U fillVacsData(INT8U structnum,INT8U attindex,INT8U datatype,INT32U data1,IN
 		attindex = 4;
 	}
 	fprintf(stderr,"structnum=%d   responseData=%p\n",structnum,responseData);
-	if(structnum>=1) {
+	if(attindex == 0) {		//请求全部属性
 		index += create_array(&responseData[index],structnum);
 	}
 	fprintf(stderr,"index=%d\n",index);
@@ -1456,9 +1456,7 @@ int  fill_variClass(OAD oad,INT8U getflg,INT8U *sourcebuf,INT8U *destbuf,INT16U 
 		}
 		break;
 	case 0x2301:	//总加组
-		if(sourcebuf!=NULL) {
-			class23_get(oad,sourcebuf,destbuf,&buflen);
-		}
+		class23_get(oad,sourcebuf,destbuf,&buflen);
 		break;
 	case 0x2401:
 		if(sourcebuf!=NULL) {
