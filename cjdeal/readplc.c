@@ -3823,7 +3823,9 @@ void readplc_thread()
 		********************************/
 		TSGet(&runtimevar.nowts);
 		state = stateJuge(state, &mypara,&runtimevar,&startFlg);
-		fprintf(stderr,"\n state  = %d",state);
+		if(state != 0) {
+			fprintf(stderr,"\n state  = %d",state);
+		}
 		/********************************
 		 * 	   状态流程处理
 		********************************/
