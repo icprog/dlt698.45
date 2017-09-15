@@ -80,6 +80,7 @@ void ctrl_comm(ctrlUN 	ctrlunit)
 	CheckModelState();
 	InitCtrlModel();
 	int fd = OpenSerialPort();
+	fprintf(stderr,"ctrlunit = %d",ctrlunit.u16b);
 	SetCtrl_CMD(fd, ctrlunit.ctrl.lun1_state, ctrlunit.ctrl.lun1_red, ctrlunit.ctrl.lun1_green,
 				ctrlunit.ctrl.lun2_state, ctrlunit.ctrl.lun2_red, ctrlunit.ctrl.lun2_green,
 				ctrlunit.ctrl.gongk_led, ctrlunit.ctrl.diank_led, ctrlunit.ctrl.alm_state, ctrlunit.ctrl.baodian_led);
@@ -148,7 +149,7 @@ void ctrlAlarm(int argc, char *argv[])
 			ctrlunit.ctrl.gongk_led = 0;
 			ctrlunit.ctrl.diank_led = 0;
 			ctrlunit.ctrl.baodian_led = 0;
-			ctrlunit.ctrl.alm_state = 1;
+			ctrlunit.ctrl.alm_state = 0;
 		}
 		if(type==1 || type==0) {
 			ctrl_comm(ctrlunit);

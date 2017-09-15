@@ -1680,7 +1680,7 @@ INT8U dealClientRequest(INT8U *apdu, CSINFO *csinfo, TimeTag timetag,
 			getTimeTag(&apdu[SecurityRe - 11], &timetag); //1:0x68,-2:cs cs(帧校验),-11:时间标签数据
 		}
 		if (getZone("GW") == 0) {
-			PacketBufToFile("APDU:", (char *) apdu, SecurityRe, NULL);
+			PacketBufToFile(1,"APDU:", (char *) apdu, SecurityRe, NULL);
 		}
 	}
 	//判断时间标签是否有效

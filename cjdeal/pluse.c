@@ -76,13 +76,15 @@ void cacl_DD(unsigned int pulse, int index) {
 
 //计算周期内实时功率
 void cacl_PQ(unsigned int pulse, int index) {
-	int con = JProgramInfo->class12[index].unit[0].k;
+	INT64U con = JProgramInfo->class12[index].unit[0].k;
 	if (con == 0) {
 		return;
 	}
+//	double k = (JProgramInfo->class12[index].ct * JProgramInfo->class12[index].pt)
+	double k = (1000)
+			/ (double)(con*1.0);
 
-	int k = (JProgramInfo->class12[index].ct * JProgramInfo->class12[index].pt)
-			/ con;
+	fprintf(stderr, "cacl_PQ in k = %f! index= %d!!!!++++%lld   %lld+++++++++\n", k, index, JProgramInfo->class12[index].ct, JProgramInfo->class12[index].pt);
 
 	switch (JProgramInfo->class12[index].unit[0].conf) {
 	case 0:
@@ -127,8 +129,10 @@ void refreshPluse(int sec) {
 
 	if (sec == 15) {
 		for (int i = 0; i < 2; i++) {
+			fprintf(stderr, "pluseCountPeriod!!!!!!!!!!!! %d\n", pluseCountPeriod[i]);
 			if (pluse[i] > pluseCountPeriod[i]) {
 				int val = pluse[i] - pluseCountPeriod[i];
+				fprintf(stderr, "val!!!!!!!!!!!! %d\n", val);
 				cacl_PQ(val, i);
 				pluseCountPeriod[i] = pluse[i];
 			}

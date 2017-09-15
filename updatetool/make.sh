@@ -47,6 +47,7 @@ CopyNew()
         cp ../bin_arm/cjmain ./app/
         cp ../bin_arm/libBase.so ./app/
     else
+        cp ../bin_arm/v* ./app/
         cp ../bin_arm/cj* ./app/
         cp ../bin_arm/*.so ./app/
         cp ../config/* ./app/
