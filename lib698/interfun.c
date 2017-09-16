@@ -354,6 +354,7 @@ int fill_enum(INT8U *data,INT8U value)		//0x16
 	data[1] = value;
 	return 2;
 }
+
 int fill_time(INT8U *data,INT8U *value)			//0x1b
 {
 	data[0] = dttime;
@@ -548,6 +549,21 @@ int fill_MS(INT8U type,INT8U *data,MY_MS myms)		//0x5C
 			data[seqof_index] = seqof_len;
 			break;
 	}
+	return index;
+}
+
+int fill_COMDCB(INT8U type,INT8U *data,COMDCB comdcb)							//0x5F
+{
+	int	index = 0;
+
+	if(type==1) {
+		data[index++] = dtcomdcb;
+	}
+	data[index++] = comdcb.baud;
+	data[index++] = comdcb.verify;
+	data[index++] = comdcb.databits;
+	data[index++] = comdcb.stopbits;
+	data[index++] = comdcb.flow;
 	return index;
 }
 
@@ -1390,7 +1406,6 @@ void setOIChange(OI_698 oi)
 	case 0x601C:	memp->oi_changed.oi601C++;  break;
 	case 0x601E:	memp->oi_changed.oi601E++;  break;
 	case 0x6051:	memp->oi_changed.oi6051++;  break;
-
 	case 0xf203:
 		memp->oi_changed.oiF203++;
 		fprintf(stderr,"memp->oi_changed.oiF203=%d\n",memp->oi_changed.oiF203);

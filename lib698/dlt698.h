@@ -88,6 +88,7 @@ extern int fill_TSA(INT8U* data, INT8U* value, INT8U len);			//0x55
 extern int fill_RSD(INT8U choice,INT8U *data,RSD rsd);				//0x5A
 extern int fill_CSD(INT8U type, INT8U* data, MY_CSD csd);			//0x5b
 extern int fill_MS(INT8U type,INT8U *data,MY_MS myms);				//0x5C
+extern int fill_COMDCB(INT8U type,INT8U *data,COMDCB comdcb);		//0x5F
 extern int fill_RCSD(INT8U type, INT8U* data, CSD_ARRAYTYPE csds);	//0x60
 extern int fill_Data(INT8U type,INT8U *data,INT8U *value);
 /*----------------------接口类及对象实例的数据类型解析----------------------*/
