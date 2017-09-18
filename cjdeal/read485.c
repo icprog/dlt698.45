@@ -3584,7 +3584,7 @@ INT8S dealRealTimeRequst(INT8U port485)
 	{
 		checkBroadCast(port485);
 	}
-	fprintf(stderr,"port485 = %d para_change485 = %d",port485,para_change485[port485-1]);
+//	fprintf(stderr,"port485 = %d para_change485 = %d",port485,para_change485[port485-1]);
 	if(para_change485[port485-1] == 1)
 	{
 		result = PARA_CHANGE_RETVALUE;

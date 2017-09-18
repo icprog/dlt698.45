@@ -69,7 +69,7 @@ Menu menu[]={//必须是一级菜单，然后二级菜单。。。。
 			{{level3,"2.数据初始化", 	menu_initjzqdata, 	MENU_ISPASSWD},		NULL},
 			{{level3,"3.事件初始化", 	menu_initjzqevent, 	MENU_ISPASSWD},		NULL},
 			{{level3,"4.需量初始化", 	menu_initjzqdemand, 	MENU_ISPASSWD},		NULL},
-			{{level3,"5.恢复出厂设置", 	menu_FactoryReset, 	MENU_ISPASSWD},		NULL},
+			{{level3,"5.恢复出厂设置",menu_FactoryReset, 	MENU_ISPASSWD},		NULL},
 		{{level2,"4.现场调试", 	NULL, 				MENU_NOPASSWD},		NULL},
 		////三级菜单 现场调试子菜单
 			{{level3,"1.本地IP设置",	menu_termip, 		MENU_NOPASSWD},		NULL},//111
@@ -4534,6 +4534,7 @@ void getPluseCount(unsigned int *pulse) {
 	fprintf(stderr, "刷新脉冲 %d-%d\n", pulse[0], pulse[1]);
 }
 void menu_yxstatus_fk(){
+	Rect rect;
 	Point pos;
 	INT8U str[100];
     CLASS_f203 oif203 = {};
@@ -4547,11 +4548,16 @@ void menu_yxstatus_fk(){
 		readCoverClass(0xf203, 0, &oif203, sizeof(CLASS_f203), para_vari_save);
 		gui_clrrect(rect_Client);
 		gui_setpos(&pos, rect_Client.left+6*FONTSIZE, rect_Client.top+FONTSIZE);
-//		gui_textshow((char*)"当前开关量状态", pos, LCD_NOREV);
 		memset(str, 0, 100);
 		pos.x = rect_Client.left + FONTSIZE;
-//		pos.y += FONTSIZE*3;
 		gui_textshow((char*)"  状态  变位  接入  属性", pos, LCD_NOREV);
+
+		memcpy(&rect, &rect_Client, sizeof(Rect));
+		memset(str,0,sizeof(str));
+		sprintf((char*)str,"%s","  状态  变位  接入  属性");
+		rect = gui_getstrrect(str, pos);//获得字符串区域
+		gui_reverserect(gui_changerect(rect, 2));//反显按钮
+
 		for(i=0;i<4;i++)
 		{
 			pos.y += FONTSIZE*3-2;

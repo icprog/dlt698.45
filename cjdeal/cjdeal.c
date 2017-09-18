@@ -337,8 +337,8 @@ INT8U is485PortOAD(OAD portOAD)
  * */
 INT8U is485OAD(OAD portOAD,INT8U port485)
 {
-	fprintf(stderr,"\n portOAD.OI = %04x portOAD.attflg = %d  portOAD.attrindex = %d port485 = %d \ n"
-			,portOAD.OI,portOAD.attflg,portOAD.attrindex,port485);
+//	fprintf(stderr,"\n portOAD.OI = %04x portOAD.attflg = %d  portOAD.attrindex = %d port485 = %d \ n"
+//			,portOAD.OI,portOAD.attflg,portOAD.attrindex,port485);
 
 	if(!is485PortOAD(portOAD))
 		return 0;

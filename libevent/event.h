@@ -154,7 +154,7 @@ extern INT8U Event_311C(TSA tsa, INT8U taskno,OAD oad,INT8U* data,INT8U len,Prog
  */
 extern INT8U Event_3114(DateTimeBCD data,ProgramInfo* prginfo_event);
 /*
- * 遥控跳闸记录 prginfo_event共享内存
+ * 遥控跳闸记录 prginfo_event共享内存 data前4个字节为OAD
  */
 extern INT8U Event_3115(INT8U* data,INT8U len,ProgramInfo* prginfo_event);
 /*
@@ -188,7 +188,7 @@ extern INT8U Event_3200(INT8U* data,INT8U len,ProgramInfo* prginfo_event);
  */
 extern INT8U Event_3201(INT8U* data,INT8U len,ProgramInfo* prginfo_event);
 /*
- * 购电参数设置记录29  prginfo_event共享内存
+ * 购电参数设置记录29  prginfo_event共享内存 data 前两个字节为OI
  */
 extern INT8U Event_3202(INT8U* data,INT8U len,ProgramInfo* prginfo_event);
 /*

@@ -969,7 +969,7 @@ int	Set_F201(OI_698 oi,INT8U *data,INT8U *DAR)
 	}
 	index += getCOMDCB(1,&data[index],&f201[com].devpara,DAR);
 	index += getEnum(1,&data[index],&f201[com].devfunc);
-	fprintf(stderr,"com=%d DAR=%d  return %d\n",com,*DAR,index);
+//	fprintf(stderr,"com=%d DAR=%d  return %d\n",com,*DAR,index);
 	if(*DAR==success) {
 		*DAR = saveCoverClass(oi,0,&f201,sizeof(f201),para_vari_save);
 	}
@@ -1013,15 +1013,12 @@ int	Set_F209(OAD setoad,INT8U *data,INT8U *DAR)
 {
 	int	 index=0;
 	CLASS_f209	f209={};
-	OAD		oad={};
 
 	switch(setoad.attflg) {
 	case 2:
 		readCoverClass(setoad.OI,0,&f209,sizeof(CLASS_f209),para_vari_save);
-		index += getStructure(&data[index],NULL,DAR);
-		index += getOAD(1,&data[index],&oad,DAR);
 		index += getCOMDCB(1,&data[index],&f209.para.devpara,DAR);
-		//VerisonInfo版本信息是否下发
+		fprintf(stderr,"set baud=%d\n",f209.para.devpara.baud);
 		*DAR = saveCoverClass(setoad.OI,0,&f209,sizeof(CLASS_f209),para_vari_save);
 		break;
 	case 5:
