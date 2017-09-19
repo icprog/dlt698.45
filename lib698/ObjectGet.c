@@ -1320,7 +1320,7 @@ INT8U fillVacsData(INT8U structnum,INT8U attindex,INT8U datatype,INT32U data1,IN
 		attindex = 4;
 	}
 	fprintf(stderr,"structnum=%d   responseData=%p\n",structnum,responseData);
-	if(attindex == 0) {		//请求全部属性
+	if(attindex == 0 && structnum!=1) {		//请求全部属性 ,二型集中器只送一路电压
 		index += create_array(&responseData[index],structnum);
 	}
 	fprintf(stderr,"index=%d\n",index);
@@ -1368,7 +1368,7 @@ int  fill_variClass(OAD oad,INT8U getflg,INT8U *sourcebuf,INT8U *destbuf,INT16U 
 	fprintf(stderr,"oad.OI=%x\n",oad.OI);
 	switch(oad.OI) {
 	case 0x2000:	//电压
-		if(oad.attrindex==0)		structnum = 3;
+		if(oad.attrindex==0 && proginfo->cfg_para.device != CCTT2)		structnum = 3;
 		else structnum = 1;
 		buflen = fillVacsData(structnum,oad.attrindex,dtlongunsigned,
 				proginfo->ACSRealData.Ua,proginfo->ACSRealData.Ub,proginfo->ACSRealData.Uc,0,destbuf);

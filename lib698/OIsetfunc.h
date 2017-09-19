@@ -44,7 +44,7 @@ extern int Set_F101(OAD oad,INT8U *data,INT8U *DAR);
 extern int Set_F200(OI_698 oi,INT8U *data,INT8U *DAR);
 extern int Set_F201(OI_698 oi,INT8U *data,INT8U *DAR);
 extern int Set_F202(OI_698 oi,INT8U *data,INT8U *DAR);
-extern int Set_F203(OAD oad,INT8U *data,INT8U *DAR);
+extern int setf203(OAD oad,INT8U *data,INT8U *DAR);
 extern int Set_F209(OAD setoad,INT8U *data,INT8U *DAR);
 
 

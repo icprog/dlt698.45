@@ -789,7 +789,7 @@ INT16U set4510(OAD oad,INT8U *data,INT8U *DAR)
 
 
 /////////////////////////////////////////////////////////////////////////////
-int Set_F101(OAD oad,INT8U *data,INT8U *DAR)
+int setf101(OAD oad,INT8U *data,INT8U *DAR)
 {
 	int		index = 0,i=0;
 	CLASS_F101	f101={};
@@ -873,7 +873,7 @@ int	Set_F202(OI_698 oi,INT8U *data,INT8U *DAR)
 	return index;
 }
 
-int Set_F203(OAD oad,INT8U *data,INT8U *DAR)
+int setf203(OAD oad,INT8U *data,INT8U *DAR)
 {
 	INT16U index=0;
 	CLASS_f203	f203={};
