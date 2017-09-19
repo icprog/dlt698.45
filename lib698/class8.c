@@ -637,7 +637,6 @@ int class8106_act127(int index, int attr_act, INT8U *data, Action_result *act_re
 	if (data[2] != 0x50) {
 		return 0;
 	}
-
 	oi = data[3] * 256 + data[4];
 	asyslog(LOG_WARNING, "功率下浮-控制投入[%04x]", oi);
 

@@ -60,6 +60,7 @@ extern void printTSA(TSA tsa);
 extern void print_road(ROAD road);
 extern void print_rcsd(CSD_ARRAYTYPE csds);
 extern void print_rsd(INT8U choice, RSD rsd);
+extern void print4500(CLASS25 class4500);
 /**/
 extern void setOIChange(OI_698 oi);
 /*----------------------接口类及对象实例的基本数据类型组帧----------------------*/

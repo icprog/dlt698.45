@@ -1310,7 +1310,7 @@ INT8U fillVacsData(INT8U structnum,INT8U attindex,INT8U datatype,INT32U data1,IN
 	INT32U 	data[4]={};
 	INT8U	index=0,i=0;
 
-	fprintf(stderr,"11111structnum=%d   responseData=%p\n",structnum,responseData);
+//	fprintf(stderr,"11111structnum=%d   responseData=%p\n",structnum,responseData);
 	if(structnum>4) {
 		fprintf(stderr,"填充数据结构【%d】大于有效限定值【4】!!!",structnum);
 		structnum = 4;
@@ -1320,7 +1320,7 @@ INT8U fillVacsData(INT8U structnum,INT8U attindex,INT8U datatype,INT32U data1,IN
 		attindex = 4;
 	}
 	fprintf(stderr,"structnum=%d   responseData=%p\n",structnum,responseData);
-	if(attindex == 0 && structnum!=1) {		//请求全部属性 ,二型集中器只送一路电压
+	if(attindex == 0) {		//请求全部属性
 		index += create_array(&responseData[index],structnum);
 	}
 	fprintf(stderr,"index=%d\n",index);
