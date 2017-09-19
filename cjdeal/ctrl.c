@@ -120,6 +120,7 @@ int initAll() {
 
 	//读取总加组数据
 	CtrlC = &JProgramInfo->ctrls;
+	CtrlC->control_event = 0;
 	memset(CtrlC, 0x00, sizeof(CtrlState));
 	for (int i = 0; i < 8; ++i) {
 		memset(&JProgramInfo->class23[i], 0x00, sizeof(CLASS23));
@@ -193,7 +194,7 @@ INT64U getCurrTimeValue(int line) {
 		}
 	}
 	int index = CtrlC->c8103.numb;
-	fprintf("时段功控计算时段 index1 %d index2 %d last %d index %d\n", time_index1,
+	fprintf(stderr, "时段功控计算时段 index1 %d index2 %d last %d index %d\n", time_index1,
 			time_index2, time_num, index);
 	switch (index) {
 	case 0:
@@ -672,6 +673,7 @@ int ctrlMain(void * arg) {
 
 	int secOld = 0;
 	int ctrlflg = 0;
+	int count = 0;
 //初始化参数,搭建8个总加组数据，读取功控、电控参数
 	initAll();
 
@@ -694,6 +696,16 @@ int ctrlMain(void * arg) {
 
 				//处理控制逻辑
 				dealCtrl();
+			}
+
+			if(CtrlC->control_event == 1){
+				fprintf(stderr,"遥控跳闸事件");
+				if(count ++ > 120){
+					INT16U oi = 0x052f;
+					Event_3115(&oi, 2, JProgramInfo);
+					count = 0;
+					CtrlC->control_event = 0;
+				}
 			}
 		}
 
