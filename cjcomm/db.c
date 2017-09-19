@@ -6,10 +6,16 @@
  */
 
 #include "db.h"
+#include "basedef.h"
 
 static DBStruct DB;
 
 void dbInit(int index) {
+	readCoverClass(0x4521, 0, (void *) &DB.model_2g, sizeof(DB.model_2g),
+			para_vari_save);
+	if (DB.model_2g == 666) {
+		asyslog(LOG_INFO, "警告，现在是强制2G上线模式....");
+	}
 	readCoverClass(0x4500, 0, (void *) &DB.c25, sizeof(DB.c25), para_vari_save);
 	asyslog(LOG_INFO, "连接应用方式 enum{主备模式(0),多连接模式(1)}：%d",
 			DB.c25.commconfig.appConnectType);
@@ -26,13 +32,32 @@ void dbInit(int index) {
 	readCoverClass(0xf101, 0, (void *) &DB.net.f101, sizeof(CLASS_F101),
 			para_vari_save);
 
-	readCoverClass(0xf201, 0, &DB.cf201, sizeof(DB.cf201), para_vari_save);
 	readCoverClass(0xf202, 0, &DB.cf202, sizeof(DB.cf202), para_vari_save);
 
 	DB.JProgramInfo = OpenShMem("ProgramInfo", sizeof(ProgramInfo), NULL);
 
+	if (DB.JProgramInfo->cfg_para.device == CCTT1
+			|| DB.JProgramInfo->cfg_para.device == SPTF3) {
+		CLASS_f201 f201[3];
+		memset(&f201,0,sizeof(f201));
+		readCoverClass(0xf201, 0, &f201, sizeof(f201), para_vari_save);
+
+		DB.RS485IIOPEN = (f201[1].devfunc == 0) ? 1 : 0;
+		memcpy(&DB.cf200, &f201[1], sizeof(DB.cf200));
+
+		//这里没错！这里是为了让默认维护口的参数都存在DB.cf201里
+		readCoverClass(0xf200, 0, &DB.cf201, sizeof(DB.cf201), para_vari_save);
+	}
+	if (DB.JProgramInfo->cfg_para.device == CCTT2) {
+		CLASS_f201 f201[3];
+		readCoverClass(0xf201, 0, &f201, sizeof(f201), para_vari_save);
+		memcpy(&DB.cf201, &f201[2], sizeof(DB.cf201));
+		DB.RS485IIOPEN = 0;
+	}
+
 	initComPara(&DB.ifr, cWrite);
 	initComPara(&DB.serial, cWrite);
+	initComPara(&DB.serial_hn, cWrite);
 	initComPara(&DB.net, cWrite);
 	initComPara(&DB.gprs, cWriteWithCalc);
 
@@ -67,6 +92,9 @@ void * dbGet(char * name) {
 	}
 	if (strcmp("block.serial", name) == 0) {
 		return &DB.serial;
+	}
+	if (strcmp("block.serial_hn", name) == 0) {
+		return &DB.serial_hn;
 	}
 	if (strcmp("class25", name) == 0) {
 		return &DB.c25;
@@ -104,7 +132,15 @@ void * dbGet(char * name) {
 	if (strcmp("mmq.retry_count", name) == 0) {
 		return DB.retry_count;
 	}
-
+	if (strcmp("model_2g", name) == 0) {
+		return DB.model_2g;
+	}
+	if (strcmp("4852open", name) == 0) {
+		return DB.RS485IIOPEN;
+	}
+	if (strcmp("f200", name) == 0) {
+		return &DB.cf200;
+	}
 	return (void *) 0;
 }
 

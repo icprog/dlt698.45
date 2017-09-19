@@ -19,36 +19,15 @@
 #include "basedef.h"
 
 extern Proxy_Msg* p_Proxy_Msg_Data;//液晶给抄表发送代理处理结构体，指向由guictrl.c配置的全局变量
-
 extern ProgramInfo* JProgramInfo;
 extern INT8U poweroffon_state;
 extern MeterPower MeterPowerInfo[POWEROFFON_NUM];
-#ifdef TESTDEF
-INT8U flag07_0CF177[4] =  {0x00,0xff,0x00,0x00};//当前组合有功总电能示值
+
+
 INT8U flag07_0CF33[4] =   {0x00,0xff,0x01,0x00};//当前正向有功总电能示值
-INT8U flag07_0CF33_1[4] =   {0x01,0xff,0x01,0x00};//当前正向有功总电能示值1
-INT8U flag07_0CF34[4] =   {0x00,0xff,0x02,0x00};//当前反向有功总电能示值
-INT8U flag07_0CF34_1[4] =   {0x01,0xff,0x02,0x00};//当前反向有功总电能示值1
-INT8U flag07_0CZHWG1[4] =  {0x00,0x01,0x30,0x00};//当前组合无功1
-INT8U flag07_0CZHWG2[4] =  {0x00,0x01,0x40,0x00};//当前组合无功2
-INT8U flag07_0C1XXWG[4] =  {0x00,0xff,0x50,0x00};//第一象限无功
-INT8U flag07_0C2XXWG[4] =  {0x00,0xff,0x60,0x00};//第二象限无功
-INT8U flag07_0C3XXWG[4] =  {0x00,0xff,0x70,0x00};//第三象限无功
-INT8U flag07_0C4XXWG[4] =  {0x00,0xff,0x80,0x00};//第四象限无功
 INT8U flag07_0CF25_1[4] = {0x00,0xff,0x01,0x02};//当前电压
-INT8U flag07_0CF25_1_A[4] = {0x00,0x01,0x01,0x02};//当前A相电压
-INT8U flag07_0CF25_2[4] = {0x00,0xff,0x02,0x02};//当前电流
-INT8U flag07_0CF25_2_A[4] = {0x00,0x01,0x02,0x02};//当前A相电流
-INT8U flag07_0CF25_2_B[4] = {0x00,0x02,0x02,0x02};//当前B相电流
-INT8U flag07_0CF25_2_C[4] = {0x00,0x03,0x02,0x02};//当前C相电流
 INT8U flag07_0CF25_2_O[4] = {0x01,0x00,0x80,0x02};//当前零序电流
-INT8U flag07_0CF25_3[4] = {0x00,0xff,0x03,0x02};//当前有功功率
-INT8U flag07_0CF25_4[4] = {0x00,0xff,0x04,0x02};//当前无功功率
-INT8U flag07_0CF25_5[4] = {0x00,0xff,0x05,0x02};//视在功率
-INT8U flag07_0CF25_9[4] = {0x00,0xff,0x06,0x02};//功率因数
 INT8U freezeflag07_1[4] = {0x01,0x00,0x06,0x05};//上一次日冻结时标
-INT8U freezeflag07_2[4] = {0x01,0x01,0x06,0x05};//上一次日冻结正向有功总电能示值
-INT8U freezeflag07_3[4] = {0x01,0x02,0x06,0x05};//上一次日冻结反向有功总电能示值
 INT8U flag07_date[4] 	= {0x01,0x01,0x00,0x04};//电能表日历时钟-日期
 INT8U flag07_time[4]	= {0x02,0x01,0x00,0x04};//电能表日历时钟-时间
 INT8U flag07_tingshangdian[4] = {0x01,0x00,0x11,0x03};//上一次停上电记录
@@ -56,18 +35,10 @@ INT8U flag07_diaodian[4] =  {0x01,0x00,0x11,0x03};//电能表掉电事件
 INT8U flag07_qingling[4] =   {0x01,0x01,0x30,0x03};//电能清零电事件
 INT8U flag07_jiaoshi[4] =   {0x01,0x04,0x30,0x03};//电能校时电事件
 INT8U flag07_kaibiaogai[4] =   {0x01,0x0d,0x30,0x03};//电能表开盖事件
-
 INT8U flag07_kaibiaogaicishu[4] =   {0x00,0x0d,0x30,0x03};//电能表开盖事件次数
 INT8U flag07_diaodiancishu[4] =  {0x00,0x00,0x11,0x03};//电能表掉电次数
-INT8U flag07_xuliang_1[4] =  {0x00,0xff,0x01,0x01};//当前正向有功最大需量
-INT8U flag07_xuliang_2[4] =  {0x00,0xff,0x02,0x01};//当前反向有功最大需量
-#endif
-
 INT8U zeroBuff[4] = {0x00,0x00,0x00,0x00};
-INT16S request9707_singleOAD(INT8U protocol,OI_698 roadOI,OAD soureOAD,CLASS_6001 to6001,CLASS_6035* st6035,INT8U* dataContent,INT8U port485);
-INT16S deal6015_698(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8U* dataContent,INT8U port485);
-INT16U compose6012Buff(DateTimeBCD startTime,DateTimeBCD saveTime,TSA meterAddr,INT16U dataLen,INT8U* dataContent, INT8U port485);
-INT8U getSaveTime(DateTimeBCD* saveTime,INT8U cjType,INT8U saveTimeFlag,DATA_TYPE curvedata);
+
 void DbgPrintToFile1(INT8U comport,const char *format,...)
 {
 	char str[50];
@@ -79,7 +50,7 @@ void DbgPrintToFile1(INT8U comport,const char *format,...)
 	FILE *fp = NULL;
 
 	memset(fname,0,sizeof(fname));
-	sprintf(fname,"/nand/vs485_%d.log",comport);
+	sprintf(fname,"/nand/log_698/vs485_%d.log",comport);
 	memset(str,0,50);
 	cur_time=time(NULL);
 	localtime_r(&cur_time,&cur_tm);
@@ -118,34 +89,6 @@ void DbgPrintToFile1(INT8U comport,const char *format,...)
 		system(tmpcmd);
 	}
 }
-
-void myBCDtoASC1(char val, char dest[2])
-{
-	int i=0;
-	char c[2];
-	c[0]=0; c[1]=0;
-	c[0] = (val>>4) & 0x0f;
-	c[1] = val & 0x0f;
-	for(i=0; i<2; i++)
-	{
-		//if(c[i]>=0 && c[i]<=9)
-		if(c[i]<=9)
-			dest[i] = c[i] + '0';
-		if(c[i]==10)
-			dest[i] = 'a';
-		if(c[i]==11)
-			dest[i] = 'b';
-		if(c[i]==12)
-			dest[i] = 'c';
-		if(c[i]==13)
-			dest[i] = 'd';
-		if(c[i]==14)
-			dest[i] = 'e';
-		if(c[i]==15)
-			dest[i] = 'f';
-	}
-}
-
 
 void DbPrt1(INT8U comport,char *prefix, char *buf, int len, char *suffix)
 {
@@ -205,114 +148,6 @@ void DbPrt1(INT8U comport,char *prefix, char *buf, int len, char *suffix)
 	}
 }
 
-char name1[128]={};
-typedef enum{
-	coll_bps=1,
-	coll_protocol,
-	coll_wiretype,
-	task_ti,
-	task_cjtype,
-	task_prio,
-	task_status,
-	task_runtime,
-	coll_mode,
-	ms_type,
-	savetime_sel,
-}OBJ_ENUM;
-
-char *getenum(int type, int val) {
-	char *name=NULL;
-	name = name1;
-	memset(name1,0,sizeof(name1));
-//	fprintf(stderr,"val=%d ,type=%d\n",val,type);
-	switch(type) {
-	case coll_bps:
-		if(val==bps300)	strcpy(name,"300");
-		if(val==bps600)	strcpy(name,"600");
-		if(val==bps1200)	strcpy(name,"1200");
-		if(val==bps2400)	strcpy(name,"2400");
-		if(val==bps4800)	strcpy(name,"4800");
-		if(val==bps7200)	strcpy(name,"7200");
-		if(val==bps9600)	strcpy(name,"9600");
-		if(val==bps19200)	strcpy(name,"19200");
-		if(val==bps38400)	strcpy(name,"38400");
-		if(val==bps57600)	strcpy(name,"57600");
-		if(val==bps115200)	strcpy(name,"115200");
-		if(val==autoa)		strcpy(name,"自适应");
-		break;
-	case coll_protocol:
-		if(val==0)	strcpy(name,"未知");
-		if(val==1)	strcpy(name,"DL/T645-1997");
-		if(val==2)	strcpy(name,"DL/T645-2007");
-		if(val==3)	strcpy(name,"DL/T698.45");
-		if(val==4)	strcpy(name,"CJ/T18802004");
-		break;
-	case coll_wiretype:
-		if(val==0)	strcpy(name,"未知");
-		if(val==1)	strcpy(name,"单相");
-		if(val==2)	strcpy(name,"三相三线");
-		if(val==3)	strcpy(name,"三相四线");
-		break;
-	case task_ti:
-		if(val==0)	strcpy(name,"秒");
-		if(val==1)	strcpy(name,"分");
-		if(val==2)	strcpy(name,"时");
-		if(val==3)	strcpy(name,"日");
-		if(val==4)	strcpy(name,"月");
-		if(val==5)	strcpy(name,"年");
-		break;
-	case task_cjtype:
-		if(val==1)	strcpy(name,"普通采集方案");
-		if(val==2)	strcpy(name,"事件采集方案");
-		if(val==3)	strcpy(name,"透明方案");
-		if(val==4)	strcpy(name,"上报方案");
-		if(val==5)	strcpy(name,"脚本方案");
-		break;
-	case task_prio:
-		if(val==1)	strcpy(name,"首要");
-		if(val==2)	strcpy(name,"必要");
-		if(val==3)	strcpy(name,"需要");
-		if(val==4)	strcpy(name,"可能");
-		break;
-	case task_status:
-		if(val==1)	strcpy(name,"正常");
-		if(val==2)	strcpy(name,"停用");
-		break;
-	case task_runtime:
-		if(val==0)	strcpy(name,"前闭后开");
-		if(val==1)	strcpy(name,"前开后闭");
-		if(val==2)	strcpy(name,"前闭后闭");
-		if(val==3)	strcpy(name,"前开后开");
-		break;
-	case coll_mode:
-		if(val==0)	strcpy(name,"采集当前数据");
-		if(val==1)	strcpy(name,"采集上第N次");
-		if(val==2)	strcpy(name,"按冻结时标采集");
-		if(val==3)	strcpy(name,"按时间间隔采集");
-		if(val==4)	strcpy(name,"补抄");
-		break;
-	case ms_type:
-		if(val==0)	strcpy(name,"无电能表");
-		if(val==1)	strcpy(name,"全部用户地址");
-		if(val==2)	strcpy(name,"一组用户类型");
-		if(val==3)	strcpy(name,"一组用户地址");
-		if(val==4)	strcpy(name,"一组配置序号");
-		if(val==5)	strcpy(name,"一组用户类型区间");
-		if(val==6)	strcpy(name,"一组用户地址区间");
-		if(val==7)	strcpy(name,"一组配置序号区间");
-		break;
-	case savetime_sel:
-		if(val==0)	strcpy(name,"未定义");
-		if(val==1)	strcpy(name,"任务开始时间");
-		if(val==2)	strcpy(name,"相对当日0点0分");
-		if(val==3)	strcpy(name,"相对上日23点59分");
-		if(val==4)	strcpy(name,"相对上日0点0分");
-		if(val==5)	strcpy(name,"相对当月1日0点0分");
-		if(val==6)	strcpy(name,"数据冻结时标");
-		break;
-	}
-	return name;
-}
 INT32U getMeterBaud(INT8U bps)
 {
 	if (bps == bps300)
@@ -328,123 +163,17 @@ INT32U getMeterBaud(INT8U bps)
 	if (bps == bps9600)
 		return 9600;
 	if (bps == bps19200)
-		return 9600;
+		return 19200;
 	if (bps == bps38400)
-		return 9600;
+		return 38400;
 	if (bps == bps57600)
-		return 9600;
+		return 57600;
 	if (bps == bps115200)
 		return 115200;
 
 	return 2400;
 }
-void print6013(CLASS_6013 class6013) {
-	fprintf(stderr, "\n----------------------------------");
-	fprintf(stderr, "【6013】任务配置单元: 任务ID--%04x\n", class6013.taskID);
-	fprintf(stderr,
-			"[1]执行频率 [2]方案类型 [3]方案编号 [4]开始时间 [5]结束时间 [6]延时 [7]执行优先级 [8]状态 [9]开始前脚本id [10]开始后脚本id [11]运行时段【起始HH:MM 结束HH:MM】\n");
-	fprintf(stderr, "[1]%s-%d ", getenum(task_ti, class6013.interval.units),
-			class6013.interval.interval);
-	fprintf(stderr, "[2]%s  [3]%d   ", getenum(task_cjtype, class6013.cjtype),
-			class6013.sernum);
-	fprintf(stderr, "[4]%d-%d-%d %d:%d:%d ", class6013.startime.year.data,
-			class6013.startime.month.data, class6013.startime.day.data,
-			class6013.startime.hour.data, class6013.startime.min.data,
-			class6013.startime.sec.data);
-	fprintf(stderr, "[5]%d-%d-%d %d:%d:%d ", class6013.endtime.year.data,
-			class6013.endtime.month.data, class6013.endtime.day.data,
-			class6013.endtime.hour.data, class6013.endtime.min.data,
-			class6013.endtime.sec.data);
-	fprintf(stderr, "[6]%s-%d ", getenum(task_ti, class6013.delay.units),
-			class6013.delay.interval);
-	fprintf(stderr, "[7]%s  ", getenum(task_prio, class6013.runprio));
-	fprintf(stderr, "[8]%s  [9]%d  [10]%d ",
-			getenum(task_status, class6013.state), class6013.befscript,
-			class6013.aftscript);
 
-	fprintf(stderr, "\n");
-}
-void printMY_CSD(MY_CSD prtMyCSD) {
-	fprintf(stderr, "\n printMY_CSD---------start-------\n");
-	INT8U type, w = 0;
-	type = prtMyCSD.type;
-	if (type == 0) {
-		fprintf(stderr, "OAD%04x-%02x%02x ", prtMyCSD.csd.oad.OI,
-				prtMyCSD.csd.oad.attflg, prtMyCSD.csd.oad.attrindex);
-	} else if (type == 1) {
-		fprintf(stderr, "ROAD%04x-%02x%02x ", prtMyCSD.csd.road.oad.OI,
-				prtMyCSD.csd.road.oad.attflg, prtMyCSD.csd.road.oad.attrindex);
-		if (prtMyCSD.csd.road.num >= 16) {
-			fprintf(stderr, "csd overvalue 16 error\n");
-			return;
-		}
-//			fprintf(stderr,"csds.num=%d\n",class6015.csds.num);
-		for (w = 0; w < prtMyCSD.csd.road.num; w++) {
-			fprintf(stderr, "<..%d>%04x-%02x%02x ", w,
-					prtMyCSD.csd.road.oads[w].OI,
-					prtMyCSD.csd.road.oads[w].attflg,
-					prtMyCSD.csd.road.oads[w].attrindex);
-		}
-
-	}
-	fprintf(stderr, "\n printMY_CSD---------end-------\n");
-}
-void print6015(CLASS_6015 class6015) {
-	INT8U type=0,w=0,i=0;
-
-	fprintf(stderr,"[1]方案编号 [2]存储深度 [3]采集类型 [4]采集内容 [5]OAD-ROAD [6]MS [7]存储时标\n");
-	fprintf(stderr,"[6015]普通采集方案:[1]方案号: %d  \n",class6015.sernum);
-	fprintf(stderr,"     [2]%d  [3]%s ",class6015.deepsize,getenum(coll_mode,class6015.cjtype));
-	switch(class6015.cjtype) {
-	case 0: // NULL
-		fprintf(stderr,"[4]%02x ",class6015.data.data[0]);
-		break;
-	case 1:	//unsigned
-		fprintf(stderr,"[4]%02x ",class6015.data.data[0]);
-		break;
-	case 2:// NULL
-		fprintf(stderr,"[4]%02x ",class6015.data.data[0]);
-		break;
-	case 3://TI
-		fprintf(stderr,"[4]%s-%d ",getenum(task_ti,class6015.data.data[0]),((class6015.data.data[1]<<8)|class6015.data.data[2]));
-		break;
-	case 4://RetryMetering
-		fprintf(stderr,"[4]%s-%d %d\n",getenum(task_ti,class6015.data.data[0]),((class6015.data.data[1]<<8)|class6015.data.data[2]),
-									((class6015.data.data[3]<<8)|class6015.data.data[4]));
-		break;
-	}
-	if(class6015.csds.num >= MY_CSD_NUM) {
-		fprintf(stderr,"csd overvalue MY_CSD_NUM error\n");
-		return;
-	}
-	fprintf(stderr,"[5]");
-	for(i=0; i<class6015.csds.num;i++)
-	{
-		type = class6015.csds.csd[i].type;
-		if (type==0)
-		{
-			fprintf(stderr,"<%d>OAD%04x-%02x%02x ",i,class6015.csds.csd[i].csd.oad.OI,class6015.csds.csd[i].csd.oad.attflg,class6015.csds.csd[i].csd.oad.attrindex);
-		}else if (type==1)
-		{
-			fprintf(stderr,"<%d>ROAD%04x-%02x%02x ",i,
-					class6015.csds.csd[i].csd.road.oad.OI,class6015.csds.csd[i].csd.road.oad.attflg,class6015.csds.csd[i].csd.road.oad.attrindex);
-			if(class6015.csds.csd[i].csd.road.num >= 16) {
-				fprintf(stderr,"csd overvalue 16 error\n");
-				return;
-			}
-//			fprintf(stderr,"csds.num=%d\n",class6015.csds.num);
-			for(w=0;w<class6015.csds.csd[i].csd.road.num;w++)
-			{
-				fprintf(stderr,"<..%d>%04x-%02x%02x ",w,
-						class6015.csds.csd[i].csd.road.oads[w].OI,class6015.csds.csd[i].csd.road.oads[w].attflg,class6015.csds.csd[i].csd.road.oads[w].attrindex);
-			}
-		}
-	}
-	fprintf(stderr,"[6]%s ",getenum(ms_type,class6015.mst.mstype));
-	fprintf(stderr,"[7]%s ",getenum(savetime_sel,class6015.savetimeflag));
-	fprintf(stderr,"\n");
-
-}
 /*
  * 根据测量点串口参数是否改变
  * 返回值：<=0：串口打开失败
@@ -509,8 +238,6 @@ INT8S use6013find6015or6017(INT8U cjType,INT16U fanganID,TI interval6013,CLASS_6
 		OI_698 oi = 0x6015;
 		if (readCoverClass(oi, fanganID, st6015, sizeof(CLASS_6015), coll_para_save)== 1)
 		{
-			print6015(*st6015);
-
 #if 1
 			//调整6015采集方案　过滤掉不需要抄表的内容
 			if((st6015->cjtype == TYPE_LAST)||(st6015->cjtype == TYPE_FREEZE))
@@ -541,18 +268,18 @@ INT8S use6013find6015or6017(INT8U cjType,INT16U fanganID,TI interval6013,CLASS_6
 				{
 					asyslog(LOG_NOTICE,"参数错误,执行频率小于冻结间隔");
 				}
-				if(interval6013.units == day_units)
+				switch (interval6013.units)
 				{
-					minSpan = interval6013.interval*60*24;
+					case day_units:
+						minSpan = interval6013.interval*60*24;
+						break;
+					case hour_units:
+						minSpan = interval6013.interval*60;
+						break;
+					default:
+						minSpan = interval6013.interval;
 				}
-				if(interval6013.units == hour_units)
-				{
-					minSpan = interval6013.interval*60;
-				}
-				if(interval6013.units == minute_units)
-				{
-					minSpan = interval6013.interval;
-				}
+
 				if(st6015->data.data[0] == minute_units)
 				{
 					minInterVal = (st6015->data.data[1]<<8)+st6015->data.data[2];
@@ -730,8 +457,7 @@ INT8S use6013find6015or6017(INT8U cjType,INT16U fanganID,TI interval6013,CLASS_6
 					}
 				}
 			}
-			fprintf(stderr,"\n\n\n---------------------事件采集方案---------------------------\n");
-			print6015(*st6015);
+
 
 			return 1;
 		}
@@ -775,10 +501,19 @@ INT16S ReceDataFrom485(METER_PROTOCOL meterPro,INT8U port485, INT16U delayms, IN
 	memset(TmprevBuf, 0, BUFFSIZE2048);
 	rec_head = rec_tail = rec_step = DataLen = 0;
 	//fprintf(stderr, "\n ReceDataFrom485 delayms=%d\n", delayms);
+	//zhejiangtest
+#if 0
+	usleep(delayms * 2000);
+#else
 	usleep(delayms * 1000);
-
+#endif
 	for (j = 0; j < 15; j++) {
-		usleep(20000);	//20ms
+	#if 0
+		usleep(200000);
+	#else
+		usleep(20000);
+	#endif
+
 		len = read(fd, TmprevBuf, BUFFSIZE2048);
 
 		if (len > 0) {
@@ -852,9 +587,7 @@ INT16S ReceDataFrom485(METER_PROTOCOL meterPro,INT8U port485, INT16U delayms, IN
 							DbPrt1(port485,"R:",(char *)str, rec_head, NULL);
 
 							if((getZone("GW")==0) && (port485==1)) {
-//								sprintf(title,"[485_%d_07]R:",port485);
-//								bufsyslog(TmprevBuf, title, rec_head, 0, BUFFSIZE2048);
-								PacketBufToFile("[485_07]R:",(char *)str, rec_head, NULL);
+								PacketBufToFile(0,"[485_07]R:",(char *)str, rec_head, NULL);
 							}
 							return (rec_tail + 9 + DataLen + 3);
 						}
@@ -869,9 +602,7 @@ INT16S ReceDataFrom485(METER_PROTOCOL meterPro,INT8U port485, INT16U delayms, IN
 							if (str[rec_tail + DataLen +1] == 0x16) {
 								DbPrt1(port485,"R:",(char *)str, rec_head, NULL);
 								if((getZone("GW")==0) && (port485==1)) {
-//									sprintf(title,"[485_%d_698]R:",port485);
-//									bufsyslog(TmprevBuf, title, rec_head, 0, BUFFSIZE2048);
-									PacketBufToFile("[485_698]R:",(char *)str, rec_head, NULL);
+									PacketBufToFile(0,"[485_698]R:",(char *)str, rec_head, NULL);
 								}
 								return rec_head;
 							}
@@ -900,6 +631,18 @@ void SendDataTo485(INT8U port485, INT8U *sendbuf, INT16U sendlen) {
 
 	INT8U str[50];
 	memset(str, 0, 50);
+
+	if (getZone("ZheJiang") == 0)
+	{
+		INT8U tmpbuf[512];
+		tmpbuf[0] = 0xfe;
+		tmpbuf[1] = 0xfe;
+		tmpbuf[2] = 0xfe;
+		tmpbuf[3] = 0xfe;
+		memcpy(&tmpbuf[4],sendbuf,sendlen);
+		sendlen += 4;
+		memcpy(sendbuf,tmpbuf,sendlen);
+	}
 #if 1
 	sprintf((char *) str, "485(%d)_S(%d):", port485, sendlen);
 	printbuff((char *) str, sendbuf, sendlen, "%02x", " ", "\n");
@@ -911,10 +654,7 @@ void SendDataTo485(INT8U port485, INT8U *sendbuf, INT16U sendlen) {
 		fprintf(stderr, "slen=%d,send err!\n", slen);
 	DbPrt1(port485,"S:", (char *) sendbuf, sendlen, NULL);
 	if((getZone("GW")==0) && (port485==1)) {
-//		char title[20];
-//		sprintf(title,"[485_%d]S:",port485);
-//		bufsyslog(sendbuf, title, sendlen, 0, BUFLEN);
-		PacketBufToFile("[485]S:",(char *) sendbuf, sendlen, NULL);
+		PacketBufToFile(0,"[485]S:",(char *) sendbuf, sendlen, NULL);
 	}
 }
 
@@ -2014,7 +1754,7 @@ INT8U getSinglegOADDataUnit(INT8U* oadData)
 	return length;
 }
 
-INT8U fillclass23data(OAD rcvOAD,TSA meter,INT8U* data)
+INT8U fillclass23data(OAD oad_m,OAD oad_r,TSA meter,INT8U* data)
 {
 	fprintf(stderr,"\n\n ---------------fillclass23data");
 	INT8U ret = 0;
@@ -2025,31 +1765,125 @@ INT8U fillclass23data(OAD rcvOAD,TSA meter,INT8U* data)
 	{
 		for(meterIndex = 0;meterIndex < MAX_AL_UNIT;meterIndex++)
 		{
+
 			if(JProgramInfo->class23[groupIndex].allist[meterIndex].tsa.addr[0]==0)
 				break;
 
-			if(memcmp(&meter,&JProgramInfo->class23[groupIndex].allist[meterIndex].tsa,sizeof(TSA))==0)
+			if(memcmp(&meter,&JProgramInfo->class23[groupIndex].allist[meterIndex].tsa,(meter.addr[0]+1))==0)
 			{
-				if(rcvOAD.OI == 0x0010)
+				DbgPrintToFile1(6,"find it %02x %02x %02x %02x %02x %02x %02x %02x",meter.addr[0],meter.addr[1],meter.addr[2],meter.addr[3],meter.addr[4],meter.addr[5],meter.addr[6],meter.addr[7]);
+				if(oad_r.attrindex == 0)
 				{
-					if(rcvOAD.attrindex == 0)
+					data = &data[2];
+					INT8U rateIndex = 0;
+					for(rateIndex = 0;rateIndex < MAXVAL_RATENUM+1;rateIndex++)
 					{
-						data = &data[2];
-						INT8U rateIndex = 0;
-						for(rateIndex = 0;rateIndex < MAXVAL_RATENUM+1;rateIndex++)
+						INT32U dianliang = (data[rateIndex*5+1]<<24)+(data[rateIndex*5+2]<<16)+(data[rateIndex*5+3]<<8)+data[rateIndex*5+4];
+						DbgPrintToFile1(6,"\n  oad_r = %04x dianliang = %d data = %02x %02x %02x %02x",oad_r.OI,dianliang,data[rateIndex*5+1],data[rateIndex*5+2],data[rateIndex*5+3],data[rateIndex*5+4]);
+						switch(oad_m.OI)
 						{
-							INT32U dianliang = (data[rateIndex*5+1]<<24)+(data[rateIndex*5+2]<<16)+(data[rateIndex*5+3]<<8)+data[rateIndex*5+4];
-							fprintf(stderr,"\n dianliang = %d data = %02x %02x %02x %02x",dianliang,data[rateIndex*5+1],data[rateIndex*5+2],data[rateIndex*5+3],data[rateIndex*5+4]);
-							JProgramInfo->class23[groupIndex].allist[meterIndex].curP[rateIndex] = dianliang;
+							//日冻结
+							case 0x5004:
+								if(oad_r.OI == 0x0010)
+								{
+									JProgramInfo->class23[groupIndex].allist[meterIndex].freeze[0][rateIndex] = dianliang;
+								}
+								if(oad_r.OI == 0x0020)
+								{
+									JProgramInfo->class23[groupIndex].allist[meterIndex].freeze[1][rateIndex] = dianliang;
+								}
+								break;
+							//月冻结
+							case 0x5006:
+								if(oad_r.OI == 0x0010)
+								{
+									JProgramInfo->class23[groupIndex].allist[meterIndex].freeze[2][rateIndex] = dianliang;
+								}
+								if(oad_r.OI == 0x0020)
+								{
+									JProgramInfo->class23[groupIndex].allist[meterIndex].freeze[3][rateIndex] = dianliang;
+								}
+								break;
+							default:
+								if(oad_r.OI == 0x0010)
+								{
+									INT32U yongdianliang = dianliang - JProgramInfo->class23[groupIndex].allist[meterIndex].curP[rateIndex];
+									if(rateIndex == 0)
+									{
+										JProgramInfo->class23[groupIndex].DayPALL += yongdianliang;
+										JProgramInfo->class23[groupIndex].MonthPALL += yongdianliang;
+										if(yongdianliang >= JProgramInfo->class23[groupIndex].remains)
+										{
+											JProgramInfo->class23[groupIndex].remains = 0;
+										}
+										else
+										{
+											JProgramInfo->class23[groupIndex].remains -= yongdianliang;
+										}
+										DbgPrintToFile1(6,"groupIndex = %d yongdianliang = %ld remains = %ld",groupIndex,yongdianliang,JProgramInfo->class23[groupIndex].remains);
+										DbgPrintToFile1(6,"DayPALL=%ld MonthPALL=%ld",
+										JProgramInfo->class23[groupIndex].DayPALL,JProgramInfo->class23[groupIndex].MonthPALL);
 
+									}
+									if(rateIndex > 0)
+									{
+										JProgramInfo->class23[groupIndex].DayP[rateIndex-1] += yongdianliang;
+										JProgramInfo->class23[groupIndex].MonthP[rateIndex-1] += yongdianliang;
+
+										DbgPrintToFile1(6,"rate[%d]**************** DayP=%ld MonthQ=%ld",rateIndex-1,JProgramInfo->class23[groupIndex].DayP[rateIndex-1],JProgramInfo->class23[groupIndex].MonthP[rateIndex-1]);
+
+									}
+									JProgramInfo->class23[groupIndex].allist[meterIndex].curP[rateIndex] = dianliang;
+								}
+								if(oad_r.OI == 0x0020)
+								{
+									if(rateIndex == 0)
+									{
+										JProgramInfo->class23[groupIndex].DayQALL +=
+												dianliang - JProgramInfo->class23[groupIndex].allist[meterIndex].curQ[rateIndex];
+										JProgramInfo->class23[groupIndex].MonthQALL +=
+												dianliang - JProgramInfo->class23[groupIndex].allist[meterIndex].curQ[rateIndex];
+
+										DbgPrintToFile1(6,"DayQALL=%ld MonthQALL=%ld",
+												JProgramInfo->class23[groupIndex].DayQALL,JProgramInfo->class23[groupIndex].MonthQALL);
+
+									}
+									else
+									{
+										JProgramInfo->class23[groupIndex].DayQ[rateIndex-1] +=
+												dianliang - JProgramInfo->class23[groupIndex].allist[meterIndex].curQ[rateIndex];
+										JProgramInfo->class23[groupIndex].MonthQ[rateIndex-1] +=
+												dianliang - JProgramInfo->class23[groupIndex].allist[meterIndex].curQ[rateIndex];
+										DbgPrintToFile1(6,"rate[%d]**************** DayQ=%ld MonthQ= %ld",rateIndex-1,JProgramInfo->class23[groupIndex].DayQ[rateIndex-1],JProgramInfo->class23[groupIndex].MonthQ[rateIndex-1]);
+
+									}
+									JProgramInfo->class23[groupIndex].allist[meterIndex].curQ[rateIndex] = dianliang;
+								}
 						}
-					}
-					else if(rcvOAD.attrindex == 1)
-					{
-						JProgramInfo->class23[groupIndex].allist[meterIndex].curP[0] =
-								(data[1]<<24)+(data[2]<<16)+(data[3]<<8)+data[4];
+
+
 					}
 				}
+				else if(oad_r.attrindex == 1)
+				{
+					if(oad_r.OI == 0x0010)
+					{
+						INT32U dianliang = (data[1]<<24)+(data[2]<<16)+(data[3]<<8)+data[4];
+						INT32U yongdianliang = dianliang - JProgramInfo->class23[groupIndex].allist[meterIndex].curP[0];
+						JProgramInfo->class23[groupIndex].DayPALL += yongdianliang;
+						JProgramInfo->class23[groupIndex].MonthPALL += yongdianliang;
+						if(yongdianliang >= JProgramInfo->class23[groupIndex].remains)
+						{
+							JProgramInfo->class23[groupIndex].remains = 0;
+						}
+						else
+						{
+							JProgramInfo->class23[groupIndex].remains -= yongdianliang;
+						}
+						JProgramInfo->class23[groupIndex].allist[meterIndex].curP[0] = dianliang;
+					}
+				}
+
 				return 1;
 			}
 
@@ -2072,14 +1906,14 @@ INT8S checkEvent698(OAD rcvOAD,INT8U* data,INT8U dataLen,CLASS_6001 obj6001,INT1
 	{
 		ret = Event_3105(obj6001.basicinfo.addr,taskID,&data[1],dataLen,JProgramInfo);
 	}
-	if((rcvOAD.OI == 0x0010)||(rcvOAD.OI == 0x0020))
+	if((JProgramInfo->cfg_para.device == SPTF3)&&((rcvOAD.OI == 0x0010)||(rcvOAD.OI == 0x0020)))
 	{
 		//更新总加组电量
-		if(JProgramInfo->cfg_para.device == SPTF3)
-		{
-			fillclass23data(rcvOAD,obj6001.basicinfo.addr,data);
-		}
-
+		OAD oadCur = {0};
+		fillclass23data(oadCur,rcvOAD,obj6001.basicinfo.addr,data);
+	}
+	if(rcvOAD.OI == 0x0010)
+	{
 		ret = Event_310B(obj6001.basicinfo.addr,taskID,&data[3],dataLen,JProgramInfo);
 
 		ret = Event_310C(obj6001.basicinfo.addr,taskID,&data[3],dataLen,JProgramInfo,obj6001);
@@ -2212,7 +2046,9 @@ INT16U parseSingleROADData(ROAD road,INT8U* oadData,INT8U* dataContent,INT16U* d
 	for(csdIndex = 0;csdIndex < rcvCSDnum;csdIndex++)
 	{
 		length ++;
-		memcpy(oadListContent[csdIndex].oad,&oadData[length],4);
+		oadListContent[csdIndex].oad.OI = (oadData[length]<<8) + oadData[length+1];
+		oadListContent[csdIndex].oad.attflg = oadData[length+2];
+		oadListContent[csdIndex].oad.attrindex = oadData[length+3];
 		//fprintf(stderr," /%d-%02x%02x%02x%02x ",csdIndex,oadData[length],oadData[length+1],oadData[length+2],oadData[length+3]);
 		length += 4;
 	}
@@ -2256,15 +2092,14 @@ INT16U parseSingleROADData(ROAD road,INT8U* oadData,INT8U* dataContent,INT16U* d
 			INT16U oiDataLen = CalcOIDataLen(road.oads[csdIndex].OI,road.oads[csdIndex].attrindex);
 			//fprintf(stderr,"\n OI = %04x len = %d \n",road.oads[csdIndex].OI,oiDataLen);
 			memset(&dataContent[dataLen],0,oiDataLen);
-			memset(oadbuff,0,4);
-//			OADtoBuff(road.oads[csdIndex],oadbuff);
-			create_OAD(0,oadbuff,road.oads[csdIndex]);
+
 			INT8U subIndex=0;
 			for(subIndex=0;subIndex<rcvCSDnum;subIndex++)
 			{
-				if(memcmp(oadbuff,oadListContent[subIndex].oad,4)==0)
+				if(memcmp(&road.oads[csdIndex],&oadListContent[subIndex].oad,sizeof(OAD))==0)
 				{
 					memcpy(&dataContent[dataLen],oadListContent[subIndex].data,oadListContent[subIndex].datalen);
+					//零序电流
 					if((road.oads[csdIndex].OI == 0x2001)&&(road.oads[csdIndex].attrindex == 0))
 					{
 						dataContent[dataLen+1] = 4;
@@ -2288,10 +2123,14 @@ INT8U checkTimeStamp698(OAD_DATA oadListContent[ROAD_OADS_NUM])
 {
 	INT8U ret = 1;
 	INT8U oadIndex = 0;
-	INT8U oadTimeStamp[4] = {0x20,0x21,0x02,0x00};
+	OAD oadTimeStamp;
+	oadTimeStamp.OI = 0x2021;
+	oadTimeStamp.attflg = 0x02;
+	oadTimeStamp.attrindex = 0x00;
+
 	for(oadIndex = 0;oadIndex < ROAD_OADS_NUM;oadIndex++)
 	{
-		if(memcmp(oadListContent[oadIndex].oad,oadTimeStamp,4)==0)
+		if(memcmp(&oadListContent[oadIndex].oad,&oadTimeStamp,sizeof(OAD))==0)
 		{
 			DbPrt1(2,"checkTimeStamp698 buff:", (char *) oadListContent[oadIndex].data, 10, NULL);
 			return isTimerSame(0,oadListContent[oadIndex].data);
@@ -2357,8 +2196,35 @@ INT16S deal698RequestResponse(INT8U isProxyResponse,INT8U getResponseType,INT8U 
 					asyslog(LOG_NOTICE,"698冻结时标不正确 dataContentIndex = %d csds.csd[0].csd.road.num = %d",dataContentIndex,csds.csd[0].csd.road.num);
 					memset(dataContent,0,dataContentIndex);
 				}
-			}
+				else
+				{
+					if(JProgramInfo->cfg_para.device == SPTF3)
+					{
+						INT8U oadIndex = 0;
+						for(oadIndex = 0;oadIndex < csds.csd[0].csd.road.num;oadIndex++)
+						{
+							if((oadListContent[oadIndex].oad.OI == 0x0010)||(oadListContent[oadIndex].oad.OI == 0x0020))
+							{
+								fillclass23data(csds.csd[0].csd.road.oad,oadListContent[oadIndex].oad,obj6001.basicinfo.addr,oadListContent[oadIndex].data);
+							}
+						}
+					}
 
+				}
+			}if(JProgramInfo->cfg_para.device == SPTF3)
+			{
+				if((cjType==TYPE_FREEZE)&&(csds.csd[0].csd.road.oad.OI == 0x5006))
+				{
+					INT8U oadIndex = 0;
+					for(oadIndex = 0;oadIndex < csds.csd[0].csd.road.num;oadIndex++)
+					{
+						if((oadListContent[oadIndex].oad.OI == 0x0010)||(oadListContent[oadIndex].oad.OI == 0x0020))
+						{
+							fillclass23data(csds.csd[0].csd.road.oad,oadListContent[oadIndex].oad,obj6001.basicinfo.addr,oadListContent[oadIndex].data);
+						}
+					}
+				}
+			}
 		}
 
 		break;
@@ -3692,10 +3558,13 @@ void sendProxyFault(PROXY_GETLIST getlist)
 //处理代理抄读停上实时请求-
 INT8S dealRealTimeRequst(INT8U port485)
 {
+	if((port485==S4852)&&(isNeed4852 ==0))
+		return 0;
+
 	INT8S result = 0;
 	while(readState)
 	{
-		//DbgPrintToFile1(port485,"\n 另一个线程正在处理消息 dealRealTimeRequst \n");
+		DbgPrintToFile1(port485,"\n 另一个线程正在处理消息 dealRealTimeRequst \n");
 		sleep(1);
 	}
 	//处理代理
@@ -3715,6 +3584,7 @@ INT8S dealRealTimeRequst(INT8U port485)
 	{
 		checkBroadCast(port485);
 	}
+//	fprintf(stderr,"port485 = %d para_change485 = %d",port485,para_change485[port485-1]);
 	if(para_change485[port485-1] == 1)
 	{
 		result = PARA_CHANGE_RETVALUE;
@@ -4112,10 +3982,7 @@ INT8S sendEventReportBuff698(ROAD eventRoad,INT8U saveContentHead[SAVE_EVENT_BUF
 		INT8U subIndex = 0;
 		for(subIndex =0;subIndex<ROAD_OADS_NUM;subIndex++)
 		{
-			INT8U findOADBuf[4] = {0,0,0,0};
-//			OADtoBuff(eventRoad.oads[oadIndex],findOADBuf);
-			create_OAD(0,findOADBuf,eventRoad.oads[oadIndex]);
-			if(memcmp(findOADBuf,oadListContent[subIndex].oad,4)==0)
+			if(memcmp(&eventRoad.oads[oadIndex],&oadListContent[subIndex].oad,sizeof(OAD))==0)
 			{
 				memcpy(&reportEventBuf[eventBufLen],oadListContent[subIndex].data,oadListContent[subIndex].datalen);
 				eventBufLen += oadListContent[subIndex].datalen;
@@ -4560,7 +4427,8 @@ INT16S deal6015or6017_singlemeter(CLASS_6013 st6013,CLASS_6015 st6015,CLASS_6001
  *根据6015中的MS 和电表地址 和端口好判断此电表是否需要抄读
  *0-不抄 1-抄
  */
-INT8U checkMeterType(MY_MS mst,INT8U usrType,TSA usrAddr) {
+INT8U checkMeterType(MY_MS mst,INT8U usrType,TSA usrAddr)
+{
 
 	INT16U ms_num=0;
 	INT16U collIndex = 0;
@@ -4771,7 +4639,7 @@ INT16U compose6012Buff(DateTimeBCD startTime,DateTimeBCD saveTime,TSA meterAddr,
 	memset(dataContent,0,DATA_CONTENT_LEN);
 	memcpy(dataContent,buff6012,bufflen);
 	fprintf(stderr,"\n\n buff6012[%d]:",bufflen);
-	//DbPrt1(port485,"存储数据  compose6012Buff:", (char *) dataContent, bufflen, NULL);
+	DbPrt1(port485,"存储数据  compose6012Buff:", (char *) dataContent, bufflen, NULL);
 	return bufflen;
 }
 //GetOrSet 0 -get 1-set
@@ -5327,12 +5195,28 @@ void read485_proccess() {
 	comfd485[0] = -1;
 	comfd485[1] = -1;
 	readState = 0;
+	isNeed4852 = 1;
+	if((getZone("HuNan") == 0)&&((JProgramInfo->cfg_para.device == CCTT1)||(JProgramInfo->cfg_para.device == SPTF3)))
+	{
+		isNeed4852 = 0;
+		CLASS_f201 oif201[3] = {};
+		if(readCoverClass(0xf201, 0, oif201, sizeof(CLASS_f201)*3, para_vari_save)==1)
+		{
+			if(oif201[1].devfunc ==1)
+			{
+				isNeed4852 = 1;
+				asyslog(LOG_INFO,"485-2抄表");
+			}
+		}
+	}
+
 
 	struct mq_attr attr_485_1_task;
 	mqd_485_1_task = mmq_open((INT8S *)TASKID_485_1_MQ_NAME,&attr_485_1_task,O_RDONLY);
 
 	struct mq_attr attr_485_2_task;
 	mqd_485_2_task = mmq_open((INT8S *)TASKID_485_2_MQ_NAME,&attr_485_2_task,O_RDONLY);
+
 
 
 	pthread_attr_init(&read485_attr_t);
@@ -5344,10 +5228,14 @@ void read485_proccess() {
 		sleep(1);
 	}
 
-	while ((thread_read4852_id=pthread_create(&thread_read4852, &read485_attr_t, (void*)read485_thread, &i485port2)) != 0)
+	if(isNeed4852 == 1)
 	{
-		sleep(1);
+		while ((thread_read4852_id=pthread_create(&thread_read4852, &read485_attr_t, (void*)read485_thread, &i485port2)) != 0)
+		{
+			sleep(1);
+		}
 	}
+
 
 }
 void read485QuitProcess()

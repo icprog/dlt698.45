@@ -124,8 +124,10 @@ int specialPowState(ProgramInfo *JProgramInfo) {
 
 	//II型
 	if (JProgramInfo->cfg_para.device == CCTT2) {
-		off_flag = pwr_down_byVolt(JProgramInfo->ACSRealData.Available,
-				JProgramInfo->ACSRealData.Ua, 1320);
+		off_flag =
+				pwr_down_byVolt(JProgramInfo->ACSRealData.Available,
+						JProgramInfo->ACSRealData.Ua,
+						JProgramInfo->event_obj.Event3106_obj.poweroff_para_obj.screen_para_obj.happen_voltage_limit);
 	} else {
 		BOOLEAN gpio_5V = pwr_has();
 		if ((JProgramInfo->ACSRealData.Ua < 100)
@@ -157,10 +159,39 @@ int specialCheckPow() {
 	}
 }
 
+void SpecialCheck4001Change() {
+	static int change_flag = 0;
+
+	ProgramInfo *info = (ProgramInfo *) dbGet("program.info");
+	if (change_flag != info->oi_changed.oi4001) {
+		asyslog(LOG_INFO, "检测到4001参数变化，更新commblock...");
+		change_flag = info->oi_changed.oi4001;
+		CommBlock * tmp = 0;
+		CLASS_4001_4002_4003 c4001;
+
+		memset(&c4001, 0x00, sizeof(c4001));
+		readCoverClass(0x4001, 0, &c4001, sizeof(c4001), para_vari_save);
+
+		tmp = (CommBlock *) dbGet("block.ifr");
+		memcpy(tmp->serveraddr, c4001.curstom_num, 16);
+
+		tmp = (CommBlock *) dbGet("block.net");
+		memcpy(tmp->serveraddr, c4001.curstom_num, 16);
+
+		tmp = (CommBlock *) dbGet("block.gprs");
+		memcpy(tmp->serveraddr, c4001.curstom_num, 16);
+
+		tmp = (CommBlock *) dbGet("block.serial");
+		memcpy(tmp->serveraddr, c4001.curstom_num, 16);
+		asyslog(LOG_INFO, "更新commblock完毕...");
+	}
+}
+
 int SpecialRegular(struct aeEventLoop *ep, long long id, void *clientData) {
 	int shandong = (int) clientData;
 
 	specialClear();
+	SpecialCheck4001Change();
 	specialCheckF101Change();
 	specialCheck4500Change();
 	specialCheck4510Change();

@@ -23,6 +23,8 @@
 #include "def645.h"
 #include "Shmem.h"
 #include "PublicFunction.h"
+#include "basedef.h"
+#include "gui.h"
 
 extern void InitACSPara();
 #define MsgSendOverTime 3
@@ -729,8 +731,24 @@ void dealProcess()
     BOOLEAN nextFlag;
 
     while (1) {
-    	checkProcess();			//指示灯控制功能检测
-
+    	if (JProgramInfo->cfg_para.device == CCTT2) {    //II型集中器
+    		checkProcess();			//指示灯控制功能检测
+    	}else {
+    		//显示时钟，方便生产校表过程中观察时钟
+    		time_t curr_time=time(NULL);
+    		struct tm curr_tm;
+    		char s_jzqtime[20];
+    		//int s_len=14;
+    		memset(s_jzqtime, 0, 20);
+    		localtime_r(&curr_time, &curr_tm);
+    		sprintf(s_jzqtime, "%04d-%02d-%02d %02d:%02d:%02d", curr_tm.tm_year+1900,curr_tm.tm_mon+1,
+    						curr_tm.tm_mday, curr_tm.tm_hour, curr_tm.tm_min, curr_tm.tm_sec);
+    		Point pos;
+    		pos.x = 5;
+    		pos.y = 80;
+    		gui_textshow(s_jzqtime, pos, LCD_NOREV);
+    		lcm_write();
+    	}
         RecvLen = ReceDataFrom485(comfd, RecvBuf);
         if (RecvLen > 0) {
             fprintf(stderr, "v645 RECV: ");
@@ -768,15 +786,23 @@ void dealProcess()
                            (format07_down.DI[1] == 0x01) && (format07_down.DI[0] == 0x02))//对时-时间
                 {
                     setTime(2, format07_down);
-                } else if ((format07_down.DI[3] == 0x05) && (format07_down.DI[2] == 0x00) &&
-                           (format07_down.DI[1] == 0x00) && (format07_down.DI[0] == 0x07))//电压校正
-                {
-                    setACS(format07_down);
-                } else if ((format07_down.DI[3] == 0x05) && (format07_down.DI[2] == 0x00) &&
-                           (format07_down.DI[1] == 0x00) && (format07_down.DI[0] == 0x08))//电压校正
-                {
-                    setACS(format07_down);
-                }
+                }else if ((format07_down.DI[3] == 0x05) && (format07_down.DI[2] == 0x00))//校表
+				{
+					setACS(format07_down);
+				}
+//                else if ((format07_down.DI[3] == 0x05) && (format07_down.DI[2] == 0x00) &&
+//                           (format07_down.DI[1] == 0x00) && (format07_down.DI[0] == 0x07))//电压校正
+//                {
+//                    setACS(format07_down);
+//                } else if ((format07_down.DI[3] == 0x05) && (format07_down.DI[2] == 0x00) &&
+//                           (format07_down.DI[1] == 0x00) && (format07_down.DI[0] == 0x08))//电压校正
+//                {
+//                    setACS(format07_down);
+//                }else if ((format07_down.DI[3] == 0x05) && (format07_down.DI[2] == 0x00) &&
+//                        (format07_down.DI[1] == 0x01) && (format07_down.DI[0] == 0x02))//I型校表
+//				 {
+//					 setACS(format07_down);
+//				 }
             } else if (ret == -4)//校验错误
             {
                 fprintf(stderr, "校验错误!!!\n");

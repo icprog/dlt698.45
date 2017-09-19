@@ -14,7 +14,7 @@
 extern INT8S analyzeProtocol3762(FORMAT3762* format3762, INT8U* recvBuf, const INT16U recvLen);
 extern INT8S composeProtocol3762(FORMAT3762* format3762, INT8U* sendBuf);
 extern int AFN13_F1(FORMAT3762 *down,INT8U *sendBuf3762,INT8U* destAddr, INT8U protocol, INT8U delayFlag, INT8U* sendBuf645, INT8U sendLen645);
-extern int AFN11_F1(FORMAT3762 *down,INT8U *sendBuf,INT8U *SlavePointAddr);
+extern int AFN11_F1(FORMAT3762 *down,INT8U *sendBuf,INT8U *SlavePointAddr,INT8U Protocol);
 extern int AFN11_F2(FORMAT3762 *down,INT8U *sendBuf,INT8U *SlavePointAddr);
 extern int AFN10_F1(FORMAT3762 *down,INT8U *sendBuf);
 extern int AFN10_F2(FORMAT3762 *down,INT8U *sendBuf,INT16U index, INT8U num);

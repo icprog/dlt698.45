@@ -30,6 +30,7 @@ extern PIID piid_g;
 extern TimeTag	Response_timetag;		//响应的时间标签值
 extern INT8U securetype;
 extern INT8U broadcast;
+extern TimeTag Response_timetag; //响应的时间标签值
 
 INT16U getMytypeSize(INT8U first) {
     if (first == 0xAA) {
@@ -79,8 +80,7 @@ int doReponse(int server, int reponse, CSINFO *csinfo, int datalen, INT8U *data,
     index = index + datalen;
     //buf[index++] = 0;	//操作返回数据
     buf[index++] = 0;    //跟随上报信息域 	FollowReport
-    buf[index++] = 0;    //时间标签		TimeTag
-//    index += FrameTimeTag(&Response_timetag,&buf[index]);
+    index += fill_timetag(&buf[index],Response_timetag);//时间标签		TimeTag
     fprintf(stderr,"securetype = %d\n",securetype);
     int ret=0;
     if (securetype != 0)//安全等级类型不为0，代表是通过安全传输下发报文，上行报文需要以不低于请求的安全级别回复
@@ -1063,43 +1063,13 @@ void TerminalInfo(INT16U attr_act, INT8U *data, Action_result *act_ret)
             //68 1a 00 c3 05 05 00 00 00 00 00 01 e1 eb 87 01 0e 43 00 4c 00 00 00 00 00 e0 d6 16  报文Data：NULL
         case 76:	//0x4C  湖南主站切换到3761下发报文
         	syslog(LOG_NOTICE, "\n湖南协议从698切换到3761【4C】\n");
-            system((const char *) "cp /nor/rc.d/rc.local /nor/rc.d/698_rc.local");
-            sleep(1);
-            system((const char *) "cp /nor/rc.d/3761_rc.local /nor/rc.d/rc.local");
-            sleep(1);
-            system((const char *) "chmod 777 /nor/rc.d/rc.local");
-            sleep(2);
-            if (access("/nor/rc.d/rc.local", F_OK) != 0 || access("/nor/rc.d/rc.local", X_OK) != 0) {
-                if (write_3761_rc_local()) {
-                    sleep(1);
-                    system((const char *) "chmod 777 /nor/rc.d/rc.local");
-                    sleep(1);
-                }
-            }
-            system("fsync -d /nor/rc.d/rc.local");
-            sleep(1);
-            system((const char *) "reboot");                    //TODO:写文件成功切换rc.local
+        	chg_rc_local_3761();
         	break;
         case 151://湖南切换到3761规约程序转换主站通信参数
             syslog(LOG_NOTICE, "\n湖南协议从698切换到3761【151】\n");
             if (save_protocol_3761_tx_para(data))//写文件成功
             {
-                system((const char *) "cp /nor/rc.d/rc.local /nor/rc.d/698_rc.local");
-                sleep(1);
-                system((const char *) "cp /nor/rc.d/3761_rc.local /nor/rc.d/rc.local");
-                sleep(1);
-                system((const char *) "chmod 777 /nor/rc.d/rc.local");
-                sleep(1);
-                if (access("/nor/rc.d/rc.local", F_OK) != 0 || access("/nor/rc.d/rc.local", X_OK) != 0) {
-                    if (write_3761_rc_local()) {
-                        sleep(1);
-                        system((const char *) "chmod 777 /nor/rc.d/rc.local");
-                        sleep(1);
-                    }
-                    system((const char *) "reboot");                    //TODO:写文件成功切换rc.local
-                } else {
-                    system((const char *) "reboot");                    //TODO:写文件成功切换rc.local
-                }
+            	chg_rc_local_3761();
             }
             break;
     }
@@ -1308,6 +1278,7 @@ void PlcInfo(INT16U attr_act, INT8U *data, Action_result *act_ret)
 	int   index = 0;
 	CLASS_f209	class_f209={};
 	OAD		oad={};
+
     switch (attr_act) {
         case 127://透明转发
     		readCoverClass(0xf209 ,0 , &class_f209,sizeof(CLASS_f209),para_vari_save);
@@ -1319,10 +1290,9 @@ void PlcInfo(INT16U attr_act, INT8U *data, Action_result *act_ret)
     		setOIChange(0xf209);
         	break;
         case 128://配置端口参数（端口号，通信参数）
-        	oad.OI = 0xf209;
-        	oad.attflg = 0x02;
-        	oad.attrindex = 0x01;
-        	index += Set_F209(oad,data,&act_ret->DAR);
+    		index += getStructure(&data[index],NULL,&act_ret->DAR);
+    		index += getOAD(1,&data[index],&oad,&act_ret->DAR);
+        	index += Set_F209(oad,&data[index],&act_ret->DAR);
         	break;
     }
     act_ret->datalen = index;
@@ -1493,7 +1463,7 @@ int doObjectAction(OAD oad, INT8U *data, Action_result *act_ret) {
 				return act_ret->datalen;
 			}
 		}
-		fprintf(stderr, "进入oi判断\n");
+		fprintf(stderr, "进入oi判断(action)\n");
 		switch (oi) {
     	case 0x4000:	//广播校时
      		if (attr_act == 127) {  //方法 127 广播校时
@@ -1548,6 +1518,12 @@ int doObjectAction(OAD oad, INT8U *data, Action_result *act_ret) {
      			act_ret->datalen = Set_F200(0xf200,data,&act_ret->DAR);
      		}
         	break;
+        case 0xF201:	//RS485
+        	//TODO:存储长度 CLASS_f201×3（485-1,485-2,485-3），修改参数后重启系统，防止抄表口与维护口无法区分
+        	if (attr_act == 127) { //
+        		act_ret->datalen = Set_F201(0xf201,data,&act_ret->DAR);
+        	}
+        	break;
         case 0xF202:	//红外
         	if (attr_act == 127) {  //方法 127 配置端口
         		act_ret->datalen = Set_F202(0xf202,data,&act_ret->DAR);
@@ -1560,33 +1536,37 @@ int doObjectAction(OAD oad, INT8U *data, Action_result *act_ret) {
         	class12_router(0, attr_act, data, act_ret);
 			break;
         case 0x2301:
-            class23_selector(1, attr_act, data, act_ret);
+            class23_selector(0, attr_act, data, act_ret);
             break;
         case 0x2302:
-            class23_selector(2, attr_act, data, act_ret);
+            class23_selector(1, attr_act, data, act_ret);
             break;
         case 0x2303:
-            class23_selector(3, attr_act, data, act_ret);
+            class23_selector(2, attr_act, data, act_ret);
             break;
         case 0x2304:
-            class23_selector(4, attr_act, data, act_ret);
+            class23_selector(3, attr_act, data, act_ret);
             break;
         case 0x2305:
-            class23_selector(5, attr_act, data, act_ret);
+            class23_selector(4, attr_act, data, act_ret);
             break;
         case 0x2306:
-            class23_selector(6, attr_act, data, act_ret);
+            class23_selector(5, attr_act, data, act_ret);
             break;
         case 0x2307:
-            class23_selector(7, attr_act, data, act_ret);
+            class23_selector(6, attr_act, data, act_ret);
             break;
         case 0x2308:
-            class23_selector(8, attr_act, data, act_ret);
+            class23_selector(7, attr_act, data, act_ret);
             break;
         case 0x8000:
             class8000_act_route(1, attr_act, data, act_ret);
+            break;
         case 0x8001:
             class8001_act_route(1, attr_act, data, act_ret);
+            break;
+        case 0x8002:
+            class8002_act_route(1, attr_act, data, act_ret);
             break;
         case 0x8103:
             class8103_act_route(1, attr_act, data, act_ret);

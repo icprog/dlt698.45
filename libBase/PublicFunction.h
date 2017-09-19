@@ -71,6 +71,7 @@ extern INT8S tminc(TS* tmi, Time_Units unit, INT32S val);
 extern INT8S bcd2int32u(INT8U* bcd, INT8U len, ORDER order, INT32U* dint);
 extern INT32S int32u2bcd(INT32U dint32, INT8U* bcd, ORDER order);
 INT32S asc2bcd(INT8U* asc, INT32U len, INT8U* bcd,ORDER order);
+extern void myBCDtoASC1(char val, char dest[2]);
 /*
  * gpio操作函数
  */
@@ -105,7 +106,7 @@ extern INT8U getarryb2s(INT32S* arr, INT8U len);
 void asyslog(int priority, const char* fmt, ...);
 void bufsyslog(const INT8U* buf, const char* title, int head, int tail, int len);
 //国网送检时，增加了packet.log打印gprs和485_1的报文
-void PacketBufToFile(char *prefix, char *buf, int len, char *suffix);
+void PacketBufToFile(INT8U type,char *prefix, char *buf, int len, char *suffix);
 
 /*
  * 数据处理

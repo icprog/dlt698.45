@@ -281,25 +281,24 @@ INT16S getNextTastIndexIndex() {
 		if (list6013[tIndex].basicInfo.taskID == 0) {
 			continue;
 		}
-	//	fprintf(stderr, "\n ---------list6013[%d].basicInfo.taskID = %d ",
-	//			tIndex, list6013[tIndex].basicInfo.taskID);
+	//	fprintf(stderr, "\n ---------list6013[%d].basicInfo.taskID = %d ",tIndex, list6013[tIndex].basicInfo.taskID);
 		//run_flg > 0说明应该抄读还没有抄
 		if (list6013[tIndex].run_flg > 0) {
-	//		fprintf(stderr, "\n  getNextTastIndexIndex-2222");
+//			fprintf(stderr, "\n  getNextTastIndexIndex-2222");
 			list6013[tIndex].run_flg++;
 		} else {
 			//过滤任务无效或者不再抄表时段内的
 			if (filterInvalidTask(tIndex) == 0) {
-	//			fprintf(stderr, "\n  getNextTastIndexIndex-3333");
+				fprintf(stderr, "\n  getNextTastIndexIndex-3333");
 				continue;
 			}
 
 			time_t timenow = time(NULL);
-	//		fprintf(stderr, "\n timenow = %d ts_next = %d",timenow, list6013[tIndex].ts_next);
+//			fprintf(stderr, "\n timenow = %d ts_next = %d",timenow, list6013[tIndex].ts_next);
 			if(timenow >= list6013[tIndex].ts_next)
 			{
 				list6013[tIndex].run_flg = 1;
-	//		fprintf(stderr, "\n  getNextTastIndexIndex-4444");
+//			fprintf(stderr, "\n  getNextTastIndexIndex-4444");
 			}
 			else
 			{
@@ -311,14 +310,14 @@ INT16S getNextTastIndexIndex() {
 		{
 			if(list6013[tIndex].run_flg > 0)
 			{
-			//	fprintf(stderr, "\n  getNextTastIndexIndex-5555");
+	//			fprintf(stderr, "\n  getNextTastIndexIndex-5555");
 				taskIndex = tIndex;
 			}
 			continue;
 		}
 
 		if (cmpTaskPrio(taskIndex, tIndex) == 2) {
-		//	fprintf(stderr, "\n  getNextTastIndexIndex-6666");
+//			fprintf(stderr, "\n  getNextTastIndexIndex-6666");
 			taskIndex = tIndex;
 			continue;
 		}
@@ -338,8 +337,8 @@ INT8U is485PortOAD(OAD portOAD)
  * */
 INT8U is485OAD(OAD portOAD,INT8U port485)
 {
-	fprintf(stderr,"\n portOAD.OI = %04x portOAD.attflg = %d  portOAD.attrindex = %d port485 = %d \ n"
-			,portOAD.OI,portOAD.attflg,portOAD.attrindex,port485);
+//	fprintf(stderr,"\n portOAD.OI = %04x portOAD.attflg = %d  portOAD.attrindex = %d port485 = %d \ n"
+//			,portOAD.OI,portOAD.attflg,portOAD.attrindex,port485);
 
 	if(!is485PortOAD(portOAD))
 		return 0;
@@ -509,8 +508,8 @@ INT8U init6013ListFrom6012File() {
 				TS taskStartTime;
 				TimeBCDToTs(list6013[total_tasknum].basicInfo.startime,&taskStartTime);
 				INT8U timeCmp = TScompare(ts_now,taskStartTime);
-#if 0
-				asyslog(LOG_NOTICE,"当前时间 %04d-%02d-%02d %02d:%02d:%02d\n",
+#if 1
+				asyslog(LOG_NOTICE,"timeCmp = %d 当前时间 %04d-%02d-%02d %02d:%02d:%02d\n",timeCmp,
 						ts_now.Year,ts_now.Month,ts_now.Day,ts_now.Hour,
 						ts_now.Minute,ts_now.Sec);
 
@@ -529,13 +528,12 @@ INT8U init6013ListFrom6012File() {
 					}
 
 				}
-#if 1
+
 				if(timeCmp < 2)
 				{
 					list6013[total_tasknum].ts_next  = tmtotime_t(ts_now);
 				}
 				else
-#endif
 				{
 					list6013[total_tasknum].ts_next  =
 									calcnexttime(list6013[total_tasknum].basicInfo.interval,list6013[total_tasknum].basicInfo.startime,list6013[total_tasknum].basicInfo.delay);
@@ -546,7 +544,7 @@ INT8U init6013ListFrom6012File() {
 			}
 		}
 	}
-	fprintf(stderr, "\n \n-------------init6013ListFrom6012File---------------start\n");
+	fprintf(stderr, "\n \n-------------init6013ListFrom6012File---------------end\n");
 	return result;
 }
 
@@ -1631,9 +1629,10 @@ void dispatch_thread()
 		{
 			init4204Info();
 		}
-		if(para_change485[0]||para_change485[1])
+		if(para_change485[0]||(para_change485[1]&&isNeed4852))
 		{
-//			fprintf(stderr,"参数变更等待 485线程处理无效线程");
+			fprintf(stderr,"para_change485[0] = %d para_change485[1] = %d isNeed4852=%d 参数变更等待 485线程处理无效线程"
+					,para_change485[0],para_change485[1],isNeed4852);
 			sleep(1);
 			continue;
 		}
@@ -1642,9 +1641,8 @@ void dispatch_thread()
 		sleep(2);
 		if (tastIndex > -1)
 		{
-#if 0
-			DbgPrintToFile1(port,"dispatch_thread　taskIndex = %d 任务开始",taskIndex);
-#endif
+			fprintf(stderr,"dispatch_thread　taskIndex = %d 任务开始",tastIndex);
+
 			//计算下一次抄读此任务的时间;
 			list6013[tastIndex].ts_next = calcnexttime(list6013[tastIndex].basicInfo.interval,list6013[tastIndex].basicInfo.startime,list6013[tastIndex].basicInfo.delay);
 
@@ -1653,9 +1651,10 @@ void dispatch_thread()
 			ret = mqs_send((INT8S *)TASKID_485_1_MQ_NAME,cjdeal,1,OAD_PORT_485_1,(INT8U *)&tastIndex,sizeof(INT16S));
 			fprintf(stderr,"\n 向485 1线程发送任务ID = %d \n",ret);
 			ret = mqs_send((INT8S *)TASKID_plc_MQ_NAME,cjdeal,1,OAD_PORT_ZB,(INT8U *)&tastIndex,sizeof(INT16S));
+			//任务时间到，判断是否为交采和统计数据需要冻结
+			terminalTaskFreeze(list6013[tastIndex].basicInfo.taskID,list6013[tastIndex].basicInfo.sernum);
 			//TODO
 			list6013[tastIndex].run_flg = 0;
-
 		}
 		else
 		{
@@ -1792,6 +1791,12 @@ int main(int argc, char *argv[])
 
 	asyslog(LOG_INFO,"进程 %s PID = %d",JProgramInfo->Projects[1].ProjectName,JProgramInfo->Projects[1].ProjectID);
 	asyslog(LOG_INFO,"进程 %s PID = %d",JProgramInfo->Projects[2].ProjectName,JProgramInfo->Projects[2].ProjectID);
+	///液晶提前运行，为了上电15秒内点亮液晶运行程序
+	if(JProgramInfo->cfg_para.device != CCTT2)
+	{
+		//液晶、控制
+		guictrl_proccess();
+	}
 	//载入档案、参数
 	InitPara();
 	//任务调度进程
@@ -1804,11 +1809,6 @@ int main(int argc, char *argv[])
 	{
 		//载波
 		readplc_proccess();
-	}
-	if(JProgramInfo->cfg_para.device != CCTT2)
-	{
-		//液晶、控制
-		guictrl_proccess();
 	}
 	if(JProgramInfo->cfg_para.device == SPTF3)
 	{

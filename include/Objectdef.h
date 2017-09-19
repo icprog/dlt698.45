@@ -153,6 +153,11 @@ typedef struct {
 } PassRate_U;//电压统计结果
 
 typedef struct {
+	PassRate_U	dayu_tj;
+	PassRate_U	monthu_tj;
+}Volt_PassRate_tj;	//电压合格率统计
+
+typedef struct {
     INT32U day_tj;
     INT32U month_tj;
 } Day_Mon_TJ; //日月统计值
@@ -237,7 +242,7 @@ typedef struct {
     INT16U uDown;
     INT16U uUp_Kaohe;
     INT16U uDown_Kaohe;
-} CLASS_4030;
+} CLASS_4030;		//电压合格率参数
 
 typedef struct {
     char assetcode[40]; // 0：代表有效长度
@@ -594,7 +599,7 @@ typedef struct {
 
 typedef struct {
     CLASS22 class22;                  //接口类IC
-    char devdesc[VISIBLE_STRING_LEN]; //设备描述
+    char devdesc[VISIBLE_STRING_LEN]; //设备描述， //湖南：485_II为维护口和485口切换，=485:用于抄表口，=698:用于维护口
     COMDCB devpara;                   //设备参数
     INT8U devfunc;                    //端口功能
 } CLASS_f201;                         //RS232\ RS485维护口
@@ -808,9 +813,13 @@ typedef struct {
     INT64U q;   //无功
     INT64U TaveP;   //滑差有功
     INT64U TaveQ;   //滑差无功
+    INT64U DayPALL;    //日有功
     INT64U DayP[MAXVAL_RATENUM];    //日有功
+    INT64U DayQALL;    //日无功
     INT64U DayQ[MAXVAL_RATENUM];    //日无功
+    INT64U MonthPALL;  //月有功
     INT64U MonthP[MAXVAL_RATENUM];  //月有功
+    INT64U MonthQALL;  //月有功
     INT64U MonthQ[MAXVAL_RATENUM];  //月无功
     INT64U remains; //剩余电量
     INT64U DownFreeze;  //下浮控后总加有功冻结
@@ -819,7 +828,6 @@ typedef struct {
     INT8U eConfig;  //电控轮次
     ALCONSTATE alConState;  //设置状态
     ALCTLSTATE alCtlState;  //控制状态
-    Scaler_Unit su[10];//属性3-12换算单位
 } CLASS23;
 
 typedef struct {
@@ -836,6 +844,12 @@ typedef struct {
     INT16U autoTimeStart; //自动保电时段开始
     INT16U autoTimeEnd; //自动保电时段结束
 } CLASS_8001;
+
+typedef struct {
+    INT8U 	state; //催费告警状态，0未告警，1告警
+    INT8U	alarmTime[4];		//告警时段
+    INT8U	alarmInfo[201];		//告警信息
+} CLASS_8002;
 
 typedef struct {
 	INT8U currentState; //当前状态 0输出 1未输出
@@ -877,12 +891,12 @@ typedef struct {
 } TIME_CTRL;
 
 typedef struct {
+    INT8U sign;
+    INT8U numb;
     TIME_CTRL list[MAX_AL_UNIT];
     ALSTATE enable[MAX_AL_UNIT];
     ALSTATE output[MAX_AL_UNIT];
     ALSTATE overflow[MAX_AL_UNIT];
-    INT8U sign;
-    INT8U numb;
 } CLASS_8103;
 
 typedef struct {
@@ -902,8 +916,8 @@ typedef struct {
 
 typedef struct {
     OI_698 index;
-    DateTimeBCD_S start;
-    DateTimeBCD_S end;
+    DateTimeBCD start;
+    DateTimeBCD end;
     INT64U v;
 } STOP_CTRL;
 
@@ -926,10 +940,11 @@ typedef struct {
 } DOWN_CTRL;
 
 typedef struct {
-	DOWN_CTRL list[MAX_AL_UNIT];
-    ALSTATE enable[MAX_AL_UNIT];
-    ALSTATE output[MAX_AL_UNIT];
-    ALSTATE overflow[MAX_AL_UNIT];
+	OI_698 index;
+	DOWN_CTRL list;
+    ALSTATE enable;
+    ALSTATE output;
+    ALSTATE overflow;
 } CLASS_8106;
 
 typedef struct {
@@ -1006,6 +1021,7 @@ typedef struct
 	int sucessflg;		//0:没抄读	n:抄读n次
 	OAD oad1;			//非关联 oad1.OI=0
 	OAD oad2;			//数据项
+	INT8U item97[4];	//97规约  15753578781
 	INT8U item07[4];	//07规约  15753578781
 	DateTimeBCD savetime;//存储时标
 }DATA_ITEM;

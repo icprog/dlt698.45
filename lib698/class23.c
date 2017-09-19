@@ -40,11 +40,10 @@ int class23_act3(int index, INT8U* data) {
 	if (tsa_len > 17) {
 		return 0;
 	}
-	al_unit.tsa.addr[0] = tsa_len + 1;
-	al_unit.tsa.addr[1] = tsa_len - 1;
+	al_unit.tsa.addr[0] = data[3];
 
 	for (int i = 0; i < tsa_len; ++i) {
-		al_unit.tsa.addr[2 + i] = data[data_index];
+		al_unit.tsa.addr[1 + i] = data[data_index];
 		data_index++;
 	}
 
@@ -58,9 +57,10 @@ int class23_act3(int index, INT8U* data) {
 	asyslog(LOG_WARNING, "添加一个配置单元(%d)", index);
 	ProgramInfo *shareAddr = getShareAddr();
 	for (int i = 0; i < MAX_AL_UNIT; i++) {
-		if (shareAddr->class23[index].allist[i].tsa.addr[0] != 0x00) {
+		if (shareAddr->class23[index].allist[i].tsa.addr[0] == 0x00) {
 			memcpy(&shareAddr->class23[index].allist[i], &al_unit,
 					sizeof(AL_UNIT));
+			asyslog(LOG_WARNING, "添加一个配置单元，地址(%d)", i);
 			break;
 		}
 	}
@@ -127,13 +127,9 @@ int class23_get_9(OI_698 oi, int index, INT8U *sourcebuf, INT8U *buf, int *len){
 
 int class23_get_17(OI_698 oi, INT8U *sourcebuf, INT8U *buf, int *len) {
 	ProgramInfo *shareAddr = getShareAddr();
-	int index = -1;
-	for (int i = 0; i < 8; i++) {
-		if (oi == 0x2301 + i) {
-			index = i;
-		}
-	}
-	if (index == -1) {
+	int index = oi - 0x2301;
+
+	if(index < 0 || index > 7){
 		return 0;
 	}
 
@@ -141,13 +137,12 @@ int class23_get_17(OI_698 oi, INT8U *sourcebuf, INT8U *buf, int *len) {
 	*len += create_struct(&buf[*len],7);
 	*len += fill_double_long64(&buf[*len],shareAddr->class23[index].alCtlState.v);
 	*len += fill_integer(&buf[*len],shareAddr->class23[index].alCtlState.Downc);
-	*len += fill_bit_string(&buf[*len],8,shareAddr->class23[index].alCtlState.Downc);
-	*len += fill_bit_string(&buf[*len],8,shareAddr->class23[index].alCtlState.OutputState);
-	*len += fill_bit_string(&buf[*len],8,shareAddr->class23[index].alCtlState.MonthOutputState);
-	*len += fill_bit_string(&buf[*len],8,shareAddr->class23[index].alCtlState.BuyOutputState);
-	*len += fill_bit_string(&buf[*len],8,shareAddr->class23[index].alCtlState.PCAlarmState);
-	*len += fill_bit_string(&buf[*len],8,shareAddr->class23[index].alCtlState.ECAlarmState);
-
+	*len += fill_bit_string(&buf[*len],8,&shareAddr->class23[index].alCtlState.OutputState);
+	*len += fill_bit_string(&buf[*len],8,&shareAddr->class23[index].alCtlState.MonthOutputState);
+	*len += fill_bit_string(&buf[*len],8,&shareAddr->class23[index].alCtlState.BuyOutputState);
+	*len += fill_bit_string(&buf[*len],8,&shareAddr->class23[index].alCtlState.PCAlarmState);
+	*len += fill_bit_string(&buf[*len],8,&shareAddr->class23[index].alCtlState.ECAlarmState);
+	return 1;
 }
 
 int class23_get(OAD oad, INT8U *sourcebuf, INT8U *buf, int *len) {

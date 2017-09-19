@@ -59,21 +59,21 @@ void isTimeTagEffect(TimeTag timetag,TimeTag *rec_timetag)
 	memset(rec_timetag,0,sizeof(TimeTag));
 	rec_timetag->effect = 1;	//默认时间标签合法
 
-//	fprintf(stderr,"\ntimeTag:flag=%d\n",timetag.flag);
-//	printDataTimeS("time",timetag.sendTimeTag);
-//	printTI("tag",timetag.ti);
+	fprintf(stderr,"\ntimeTag:flag=%d\n",timetag.flag);
+	printDataTimeS("time",timetag.sendTimeTag);
+	printTI("tag",timetag.ti);
 	if(timetag.flag==1) {	//时间标签有效
 		ret = check_date(timetag.sendTimeTag.year.data,timetag.sendTimeTag.month.data,timetag.sendTimeTag.day.data,
 				timetag.sendTimeTag.hour.data,timetag.sendTimeTag.min.data,timetag.sendTimeTag.sec.data);
 		if(ret == success) {
 			if(timetag.ti.units >=0 && timetag.ti.units <=5) {		//TI 间隔时间单位满足条件
 				interval_s = TItoSec(timetag.ti);
-//				fprintf(stderr,"interval_s = %d\n",interval_s);
+				fprintf(stderr,"interval_s = %d\n",interval_s);
 				nowtime_t = time(NULL);
 //				TimeBCDToTs(timetag.sendTimeTag,&tmpts);
 //				tagtime_t = tmtotime_t(tmpts);
 				tagtime_t = TimeBCDTotime_t(timetag.sendTimeTag);
-//				fprintf(stderr,"nowtime=%ld, rece_tag=%ld, sub=%d interval_s=%d\n",nowtime_t,tagtime_t,(int)(nowtime_t-tagtime_t),interval_s);
+				fprintf(stderr,"nowtime=%ld, rece_tag=%ld, sub=%d interval_s=%d\n",nowtime_t,tagtime_t,(int)(nowtime_t-tagtime_t),interval_s);
 				//国网台体测试，下发时间后，再设置参数的timetag比集中器时间慢1秒.此处用绝对值进行比较,防止判断时间标签无效
 				//一致性测试：延时时间=0，应正确响应
 				if((abs(nowtime_t-tagtime_t)<= interval_s) || (interval_s==0)) {
@@ -83,14 +83,16 @@ void isTimeTagEffect(TimeTag timetag,TimeTag *rec_timetag)
 				}
 				rec_timetag->flag = 1;
 				memcpy(&rec_timetag->ti,&timetag.ti,sizeof(timetag.ti));
-				rec_timetag->sendTimeTag = timet_bcd(nowtime_t);
+				//时间标签不进行更新，响应帧上送客户端的时间标签
+				//rec_timetag->sendTimeTag = timet_bcd(nowtime_t);
+				memcpy(&rec_timetag->sendTimeTag,&timetag.sendTimeTag,sizeof(DateTimeBCD));
 			}
-		}
+		}else rec_timetag->flag = 0;
 	}
-//	fprintf(stderr,"Response:时间标签有效性：%d\n",rec_timetag->effect);
-//	fprintf(stderr,"rec_timetag:flag=%d\n",rec_timetag->flag);
-//	printDataTimeS("time",rec_timetag->sendTimeTag);
-//	printTI("tag",rec_timetag->ti);
+	fprintf(stderr,"Response:时间标签有效性：%d\n",rec_timetag->effect);
+	fprintf(stderr,"rec_timetag:flag=%d\n",rec_timetag->flag);
+	printDataTimeS("time",rec_timetag->sendTimeTag);
+	printTI("tag",rec_timetag->ti);
 }
 
 /*

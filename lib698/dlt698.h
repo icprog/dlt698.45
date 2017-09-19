@@ -29,7 +29,6 @@ extern int doGetnormal(INT8U seqOfNum,RESULT_NORMAL *response);
 extern INT8U Reset_add();
 extern void FrameTail(INT8U *buf, int index, int hcsi);
 extern int FrameHead(CSINFO *csinfo, INT8U *buf);
-extern int FrameTimeTag(TimeTag *tag,INT8U *buf);
 extern INT8S (*pSendfun)(int fd, INT8U *sndbuf, INT16U sndlen);
 extern void Get698_event(OAD oad, ProgramInfo *prginfo_event);
 extern INT16S composeSecurityResponse(INT8U* SendApdu,INT16U Length);
@@ -64,7 +63,7 @@ extern void print_rsd(INT8U choice, RSD rsd);
 /**/
 extern void setOIChange(OI_698 oi);
 /*----------------------接口类及对象实例的基本数据类型组帧----------------------*/
-
+extern int fill_timetag(INT8U *data,TimeTag timetag);
 extern int create_array(INT8U* data, INT8U numm);			//0x01
 extern int create_struct(INT8U* data, INT8U numm);			//0x02
 extern int fill_bool(INT8U* data, INT8U value);				//0x03
@@ -89,6 +88,7 @@ extern int fill_TSA(INT8U* data, INT8U* value, INT8U len);			//0x55
 extern int fill_RSD(INT8U choice,INT8U *data,RSD rsd);				//0x5A
 extern int fill_CSD(INT8U type, INT8U* data, MY_CSD csd);			//0x5b
 extern int fill_MS(INT8U type,INT8U *data,MY_MS myms);				//0x5C
+extern int fill_COMDCB(INT8U type,INT8U *data,COMDCB comdcb);		//0x5F
 extern int fill_RCSD(INT8U type, INT8U* data, CSD_ARRAYTYPE csds);	//0x60
 extern int fill_Data(INT8U type,INT8U *data,INT8U *value);
 /*----------------------接口类及对象实例的数据类型解析----------------------*/
@@ -101,11 +101,12 @@ extern int getOctetstring(INT8U type, INT8U* source, INT8U* tsa,INT8U *DAR);    
 extern int getVisibleString(INT8U *source,INT8U *dest,INT8U *DAR);                          // 0x0A
 extern int getUnsigned(INT8U *source,INT8U *dest,INT8U *DAR);                     // 0x11
 extern int getLongUnsigned(INT8U* source, INT8U* dest);                           // 0x12
+extern int getLong64(INT8U *source,INT64U *dest);									//0x14
 extern int getEnum(INT8U type, INT8U* source, INT8U* enumvalue);                  // 0x16
-extern int getTime(INT8U type,INT8U *source,INT8U *dest,INT8U *DAR);                  // 0x1B
-extern int getDateTimeS(INT8U type,INT8U *source,INT8U *dest,INT8U *DAR);                 // 0x1C
-extern int getOI(INT8U type, INT8U* source, OI_698 oi);                           // 0x50
-extern int getOAD(INT8U type,INT8U *source,OAD *oad,INT8U *DAR);                           // 0x51
+extern int getTime(INT8U type,INT8U *source,INT8U *dest,INT8U *DAR);              // 0x1B
+extern int getDateTimeS(INT8U type,INT8U *source,INT8U *dest,INT8U *DAR);         // 0x1C
+extern int getOI(INT8U type, INT8U* source, OI_698 *oi);                           // 0x50
+extern int getOAD(INT8U type,INT8U *source,OAD *oad,INT8U *DAR);                   // 0x51
 extern int getROAD(INT8U* source, ROAD* dest);                                    // 0x52
 extern int getTI(INT8U type, INT8U* source, TI* ti);                              // 0x54
 extern int get_BasicRSD(INT8U type, INT8U* source, INT8U* dest, INT8U* seletype); // 0x5A
@@ -122,7 +123,7 @@ extern int getDataTypeLen(int dt);
 /*----------------------具体OI类组帧函数----------------------*/
 /*----------------------统计相关数据----------------------*/
 extern INT8U Get_Vacs(RESULT_NORMAL *response,ProgramInfo* prginfo_acs);
-
+extern int  fill_variClass(OAD oad,INT8U getflg,INT8U *sourcebuf,INT8U *destbuf,INT16U *len,ProgramInfo* proginfo);
 extern int GetFileState(RESULT_NORMAL* response);
 
 /*----------------------规约一致性 数据有效性判断接口----------------------*/

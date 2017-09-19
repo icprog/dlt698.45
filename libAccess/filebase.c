@@ -431,11 +431,21 @@ int readFileName(OI_698 oi,INT16U seqno,INT16U type,char *fname)
 		break;
 	}
 	ret = access(fname,F_OK);
-	if(ret!=0 && oi==0x4001){	 //通信地址，数据区初始化恢复通信地址
+	if(ret!=0) {
 		memset(fname,0,FILENAMELEN);
 		sprintf(fname,"%s/%04x.par",INITDIR,oi);
 		ret = access(fname,F_OK);
 	}
+//	if(ret!=0 && oi==0x4001){	 //通信地址，数据区初始化恢复通信地址
+//		memset(fname,0,FILENAMELEN);
+//		sprintf(fname,"%s/%04x.par",INITDIR,oi);
+//		ret = access(fname,F_OK);
+//	}
+//	if(ret!=0 && ((oi&0xf000)==0x3000)){	 //事件类参数
+//		memset(fname,0,FILENAMELEN);
+//		sprintf(fname,"%s/%04x.par",INITDIR,oi);
+//		ret = access(fname,F_OK);
+//	}
 	return ret;
 }
 

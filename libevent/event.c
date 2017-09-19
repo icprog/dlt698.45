@@ -15,6 +15,7 @@
 #include "ParaDef.h"
 #include "../libMq/libmmq.h"
 #include "basedef.h"
+#include "att7022e.h"//II型集中器使用7022芯片
 
 
 static TSA TSA_LIST[MAX_POINT_NUM];
@@ -649,7 +650,18 @@ INT8U Get_StandardUnit(ProgramInfo* prginfo_event,OI_698 oi,INT8U *Rbuf,INT8U *I
 		Rbuf[(*Index)++] = 0;//15无结束时间
 	}else if(oi==0x3106){
 		if(*Source==0){
-			Rbuf[(*Index)++] = 0;//15无结束时间
+			if(getZone("ZheJiang")==0) {
+				Rbuf[(*Index)++] = 0;//15无结束时间
+			}else {			//TODO:山东要求停电事件时，报上一次的上电时间
+				Rbuf[(*Index)++] = dtdatetimes;//15
+				Rbuf[(*Index)++] = (((TermialPowerInfo.PoweronTime.tm_year+1900)>>8)&0x00ff);//16
+				Rbuf[(*Index)++] = ((TermialPowerInfo.PoweronTime.tm_year+1900)&0x00ff);//17
+				Rbuf[(*Index)++] = TermialPowerInfo.PoweronTime.tm_mon+1;//18
+				Rbuf[(*Index)++] = TermialPowerInfo.PoweronTime.tm_mday;//19
+				Rbuf[(*Index)++] = TermialPowerInfo.PoweronTime.tm_hour;//20
+				Rbuf[(*Index)++] = TermialPowerInfo.PoweronTime.tm_min;//21
+				Rbuf[(*Index)++] = TermialPowerInfo.PoweronTime.tm_sec;//22
+			}
 		}
 		else{
 			Rbuf[(*Index)++] = dtdatetimes;//15
@@ -1241,14 +1253,20 @@ INT8U Event_3106(ProgramInfo* prginfo_event,MeterPower *MeterPowerInfo,INT8U *st
 	time_of_now = time(NULL);
 	INT8U flag = 0;
 	static INT8U off_time = 0;
-	fileread(ERC3106PATH,&TermialPowerInfo,sizeof(TermialPowerInfo));
+	static INT8U first = 0;
+
+	if(first==0) {
+		fileread(ERC3106PATH,&TermialPowerInfo,sizeof(TermialPowerInfo));
+		first = 1;
+	}
 	INT16U poweroff_happen_vlim=prginfo_event->event_obj.Event3106_obj.poweroff_para_obj.screen_para_obj.happen_voltage_limit;
 	INT16U recover_voltage_limit=prginfo_event->event_obj.Event3106_obj.poweroff_para_obj.screen_para_obj.recover_voltage_limit;
 	INT16U mintime_space=prginfo_event->event_obj.Event3106_obj.poweroff_para_obj.screen_para_obj.mintime_space;
 	INT16U maxtime_space=prginfo_event->event_obj.Event3106_obj.poweroff_para_obj.screen_para_obj.maxtime_space;
 
-	DEBUG_TIME_LINE("poweroff_happen_vlim: %d, recover_voltage_limit: %d", poweroff_happen_vlim, recover_voltage_limit);
-	DEBUG_TIME_LINE("Available: %d, Ua: %d", prginfo_event->ACSRealData.Available,prginfo_event->ACSRealData.Ua);
+	//DEBUG_TIME_LINE("poweroff_happen_vlim: %d, recover_voltage_limit: %d", poweroff_happen_vlim, recover_voltage_limit);
+	//DEBUG_TIME_LINE("Available: %d, Ua: %d", prginfo_event->ACSRealData.Available,prginfo_event->ACSRealData.Ua);
+
 	if(*state == 2){
 		MeterDiff(prginfo_event,MeterPowerInfo,state);
 		*state=0;
@@ -1264,6 +1282,7 @@ INT8U Event_3106(ProgramInfo* prginfo_event,MeterPower *MeterPowerInfo,INT8U *st
 						recover_voltage_limit,
 						prginfo_event->ACSRealData.Ua);
 				off_flag=1;
+				prginfo_event->powerState = PWR_DOWN;
 			}
 		}else{
 			BOOLEAN gpio_5V=pwr_has();
@@ -1299,6 +1318,7 @@ INT8U Event_3106(ProgramInfo* prginfo_event,MeterPower *MeterPowerInfo,INT8U *st
 						recover_voltage_limit,
 						prginfo_event->ACSRealData.Ua);
 				on_flag=1;
+				prginfo_event->powerState = PWR_ON;
 			}
 		}else{
 			if((prginfo_event->ACSRealData.Available&&prginfo_event->ACSRealData.Ua>recover_voltage_limit)
@@ -2388,6 +2408,43 @@ INT8U Event_3115(INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
     if (prginfo_event->event_obj.Event3115_obj.enableflag == 0) {
         return 0;
     }
+    INT8U Save_buf[256];
+    		bzero(Save_buf, sizeof(Save_buf));
+    		prginfo_event->event_obj.Event3115_obj.crrentnum++;
+    		prginfo_event->event_obj.Event3115_obj.crrentnum=Getcurrno(prginfo_event->event_obj.Event3115_obj.crrentnum,prginfo_event->event_obj.Event3115_obj.maxnum);
+    		INT32U crrentnum = prginfo_event->event_obj.Event3115_obj.crrentnum;
+    		INT8U index=0;
+    		//标准数据单元
+    		Get_StandardUnit(prginfo_event,0x3115,Save_buf,&index,crrentnum,(INT8U*)data,s_oad);//data 0,1,2,3
+    		Save_buf[index++]=dtarray;
+    		Save_buf[index++]=8;
+    		int i=0;
+    		for(i=0;i<8;i++)
+    		{
+    			Save_buf[index++]=dtlong64;
+    			Save_buf[index++]=((prginfo_event->class23[i].p >> 56)&0x00000000000000ff);
+    			Save_buf[index++]=((prginfo_event->class23[i].p >> 48)&0x00000000000000ff);
+    			Save_buf[index++]=((prginfo_event->class23[i].p >> 40)&0x00000000000000ff);
+    			Save_buf[index++]=((prginfo_event->class23[i].p >> 32)&0x00000000000000ff);
+    			Save_buf[index++]=((prginfo_event->class23[i].p >> 24)&0x00000000000000ff);
+    			Save_buf[index++]=((prginfo_event->class23[i].p >> 16)&0x00000000000000ff);
+    			Save_buf[index++]=((prginfo_event->class23[i].p >> 8)&0x00000000000000ff);
+    			Save_buf[index++]=(prginfo_event->class23[i].p&0x00000000000000ff);
+    		}
+
+    		Save_buf[STANDARD_NUM_INDEX]+=2;
+    		//存储更改后得参数
+    		saveCoverClass(0x3115,(INT16U)crrentnum,(void *)&prginfo_event->event_obj.Event3115_obj,sizeof(Class7_Object),1);
+    		//存储记录集
+    		saveCoverClass(0x3115,(INT16U)crrentnum,(void *)Save_buf,(int)index,2);
+    		//存储当前记录值
+    		INT8U Currbuf[50]={};memset(Currbuf,0,50);
+    		INT8U Currindex=0;
+    		Get_CurrResult(Currbuf,&Currindex,(INT8U*)data,s_oad,crrentnum,0);
+    		saveCoverClass(0x3115,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,3);
+    		//判断是否要上报
+    		if(prginfo_event->event_obj.Event3115_obj.reportflag)
+    			Need_Report(0x3115,crrentnum,prginfo_event);
     return 1;
 }
 
@@ -2689,7 +2746,7 @@ INT8U Event_3202(INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 	}
 	//oi:8107 or 810c
 	if(1){
-		INT8U oi[2]={0x81,0x07};
+		//INT8U oi[2]={0x81,0x07};
 		INT8U Save_buf[256];
 		bzero(Save_buf, sizeof(Save_buf));
 		prginfo_event->event_obj.Event3202_obj.crrentnum++;
@@ -2697,7 +2754,7 @@ INT8U Event_3202(INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 		INT32U crrentnum = prginfo_event->event_obj.Event3202_obj.crrentnum;
 		INT8U index=0;
 		//标准数据单元
-		Get_StandardUnit(prginfo_event,0x3202,Save_buf,&index,crrentnum,(INT8U*)oi,s_oi);
+		Get_StandardUnit(prginfo_event,0x3202,Save_buf,&index,crrentnum,(INT8U*)data,s_oi);
 		//属性3无关联数据
 		Save_buf[STANDARD_NUM_INDEX]+=0;
 		//存储更改后得参数
@@ -2707,7 +2764,7 @@ INT8U Event_3202(INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 		//存储当前记录值
 		INT8U Currbuf[50]={};memset(Currbuf,0,50);
 		INT8U Currindex=0;
-		Get_CurrResult(Currbuf,&Currindex,(INT8U*)oi,s_oi,crrentnum,0);
+		Get_CurrResult(Currbuf,&Currindex,(INT8U*)data,s_oi,crrentnum,0);
 		saveCoverClass(0x3202,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,event_current_save);
 		//判断是否要上报
 		if(prginfo_event->event_obj.Event3202_obj.reportflag)

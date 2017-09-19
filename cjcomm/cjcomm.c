@@ -29,7 +29,9 @@ int cWrite(int fd, INT8U *buf, INT16U len) {
 	}
 	bufsyslog(buf, "发送:", len, 0, BUFLEN);
 	if (getZone("GW") == 0) {
-		PacketBufToFile("[NET]S:", (char *) buf, len, NULL);
+		char prtpara[16];
+		sprintf(prtpara,"[NET_%d]S:",fd);
+		PacketBufToFile(1,prtpara, (char *) buf, len, NULL);
 	}
 	return ret;
 }
@@ -43,7 +45,6 @@ void cReadWithCalc(struct aeEventLoop *ep, int fd, void *clientData, int mask) {
 	}
 	cRead(ep, fd, clientData, mask);
 }
-
 
 void cReadWithoutCheck(struct aeEventLoop *ep, int fd, void *clientData, int mask) {
 	CommBlock *nst = (CommBlock *) clientData;
@@ -64,7 +65,9 @@ void cReadWithoutCheck(struct aeEventLoop *ep, int fd, void *clientData, int mas
 	if (getZone("GW") == 0) {
 		int buflen = 0;
 		buflen = (nst->RHead - nst->RTail + BUFLEN) % BUFLEN;
-		PacketBufToFile("[NET]R:", (char *) &nst->RecBuf[nst->RTail],
+		char prtpara[16];
+		sprintf(prtpara,"[NET_%d]R:",fd);
+		PacketBufToFile(1,prtpara, (char *) &nst->RecBuf[nst->RTail],
 				buflen, NULL);
 	}
 }
@@ -92,7 +95,9 @@ void cRead(struct aeEventLoop *ep, int fd, void *clientData, int mask) {
 		if (getZone("GW") == 0) {
 			int buflen = 0;
 			buflen = (nst->RHead - nst->RTail + BUFLEN) % BUFLEN;
-			PacketBufToFile("[NET]R:", (char *) &nst->RecBuf[nst->RTail],
+			char prtpara[16];
+			sprintf(prtpara,"[NET_%d]R:",fd);
+			PacketBufToFile(1,prtpara, (char *) &nst->RecBuf[nst->RTail],
 					buflen, NULL);
 		}
 	}
@@ -123,7 +128,6 @@ void cProc(struct aeEventLoop *ep, CommBlock * nst) {
 }
 
 void QuitProcess(int sig) {
-	asyslog(LOG_INFO, "通信模块退出,收到信号类型(%d)", sig);
 	if (helperKill("gsmMuxd", 18) == -1) {
 		asyslog(LOG_WARNING, "未能彻底结束gsmMuxd进程...");
 	}
@@ -134,6 +138,7 @@ void QuitProcess(int sig) {
 	info->dev_info.pppd_status = 0;
 	info->dev_info.connect_ok = 0;
 	info->dev_info.jzq_login = 0;
+	asyslog(LOG_INFO, "通信模块退出,收到信号类型(%d),在线状态", sig, info->dev_info.jzq_login);
 	shmm_unregister("ProgramInfo", sizeof(ProgramInfo));
 	exit(0);
 }
@@ -298,6 +303,10 @@ int main(int argc, char *argv[]) {
 	StartMmq(ep, 0, NULL);
 	StartIfr(ep, 0, NULL);
 	StartSerial(ep, 0, NULL);
+
+	if((int)dbGet("4852open") == 1 && getZone("HuNan") == 0) {
+		StartSerial_hn(ep, 0, NULL);
+	}
 
 	aeMain(ep);
 	return 0;

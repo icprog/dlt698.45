@@ -89,7 +89,7 @@
 #define DI97_NUM_601F 			10
 
 #define POWEROFFON_NUM          10          //停上电事件需要抄读得测量点最大数
-#define MAX_AL_UNIT             16          //总价组最大数组限制
+#define MAX_AL_UNIT             8           //总价组最大数组限制
 
 ////////////////////////////////////////////////////////////////
 
@@ -124,6 +124,8 @@
 #define DEV_BAT_SWITCH "/dev/gpoBAT_SWITCH"		//=1，电池工作
 #define DEV_MAINPOWER  "/dev/gpiV5FROUNT_TST"  //底板电源：1上电0失电
 #define DEV_ADC_SWITCH "/dev/gpioADC_SWITCH"   //=0（终端工作放电模式）=1（终端工作充电模式）
+
+#define DEV_ALARM_BUZZER  "/dev/gpoBUZZER"		//专变终端蜂鸣设备
 
 //I型集中器并转串模拟输出: GPRS_ID状态 与 1路门节点
 #define DEV_SPI_CS		"/dev/gpoSPI_CS"		//并转串(74HC165)芯片选择
@@ -190,7 +192,7 @@
 #define S4851   		1
 #define S4852   		2
 #define S4853   		3
-#define SER_ZB		5
+#define SER_ZB			5
 
 
 //  I型集中器串口定义

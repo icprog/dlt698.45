@@ -75,21 +75,21 @@ void topstatus_showcommtype(INT8U online_type)
 		case GPRS_COM://外部协议栈上线
 		case 3:  //内部协议栈上线
 			if(getZone("GW")==0) {
-				if(p_JProgramInfo->dev_info.wirelessType>=1 && p_JProgramInfo->dev_info.wirelessType<=4) {
+				if(p_JProgramInfo->dev_info.wirelessType>=0 && p_JProgramInfo->dev_info.wirelessType<=3) {
 					str[0] = 0x34;//4G
 					str[1] = 0x47;
 				}
 			}else {
-				if (p_JProgramInfo->dev_info.wirelessType==2)
+				if (p_JProgramInfo->dev_info.wirelessType==1)
 				{
 					str[0] = 0x05;//C
 					str[1] = 0x06;
-				}else if(p_JProgramInfo->dev_info.wirelessType==1)
+				}else if(p_JProgramInfo->dev_info.wirelessType==0)
 				{
 					str[0] = 0x01;//G
 					str[1] = 0x02;
 				}
-				else if(p_JProgramInfo->dev_info.wirelessType==3 || p_JProgramInfo->dev_info.wirelessType==4)
+				else if(p_JProgramInfo->dev_info.wirelessType==2 || p_JProgramInfo->dev_info.wirelessType==3)
 				{
 					str[0] = 0x34;//4G
 					str[1] = 0x47;

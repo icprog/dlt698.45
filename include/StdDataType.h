@@ -255,6 +255,7 @@ typedef union {//server address's length word
 typedef struct
 {
 	INT8U sa_type;		//服务器地址类型	0:单地址   1:通配地址   2：组地址   3：广播地址
+	INT8U logic_addr;	//逻辑地址
 	INT8U sa_length;	//服务器地址长度   0～15 表示 1～16
 	INT8U funcode;		//功能码标识		1：链路管理 3：用户数据
 	INT8U dir;			//方向指示		0：客户机发出  1：服务器发出
@@ -287,7 +288,7 @@ typedef struct
 	INT8U data3;
 	INT8U data4;
 }ComBCD8;//053283069933
-typedef struct//12：30       1：30    //  18305356699  /     85     // 128
+typedef struct//12：30       1：30    85     // 128
 {
 	ComBCD4 year;
 	ComBCD2 month;
@@ -380,7 +381,7 @@ typedef union
 {
 	INT8U nometer_null;						//0
 	INT8U allmeter_null;					//1
-	INT8U userType[COLLCLASS_MAXNUM];		//2：userType[0][1]:表示后面有效的序列个数,[0]:长度高字节,[1]:长度低字节
+	INT8U userType[COLLCLASS_MAXNUM];		//2：userType[0]，userType[1]:表示后面有效的序列个数,[0]:长度高字节,[1]:长度低字节
 	TSA	userAddr[COLLCLASS_MAXNUM];			//3：userAddr[0].addr[0][1]:表示后面的有效TSA个数,同上先高后低
 	INT16U configSerial[COLLCLASS_MAXNUM];	//4：configSerial[0]:表示后面有效的序列个数
 	Region type[COLLCLASS_MAXNUM];			//5：一组用户类型区间
@@ -805,5 +806,14 @@ typedef enum {
 	NOTIFICATIONTRANS_PEPORT = 5,	//国网载波互换性测试上报透明数据服务
 
 }gdm_type;
+
+
+typedef enum{
+	PROTOCOL_UNKNOWN = 0,
+	DLT_645_97 = 1,
+	DLT_645_07 = 2,
+	DLT_698 = 3,
+	CJT_188 = 4,
+}METER_PROTOCOL;
 
 #endif

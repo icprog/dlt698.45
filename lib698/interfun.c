@@ -180,6 +180,28 @@ void print_rcsd(CSD_ARRAYTYPE csds)
 	}
 }
 
+int fill_timetag(INT8U *data,TimeTag timetag)
+{
+	int index = 0;
+
+	if(timetag.flag==1) {	//时间标签有效
+		data[index++] = timetag.flag;
+		data[index++] = (timetag.sendTimeTag.year.data>>8)&0xff;
+		data[index++] = timetag.sendTimeTag.year.data & 0xff;
+		data[index++] = timetag.sendTimeTag.month.data;
+		data[index++] = timetag.sendTimeTag.day.data;
+		data[index++] = timetag.sendTimeTag.hour.data;
+		data[index++] = timetag.sendTimeTag.min.data;
+		data[index++] = timetag.sendTimeTag.sec.data;
+		data[index++] = timetag.ti.units;
+		data[index++] = (timetag.ti.interval>>8)&0xff;
+		data[index++] = timetag.ti.interval&0xff;
+	}else {
+		data[index++] = 0;	//时间标签无效		TimeTag
+	}
+	return index;
+}
+
 int create_array(INT8U *data,INT8U numm)	//0x01
 {
 	//fprintf(stderr,"numm =%d \n",numm);
@@ -207,7 +229,7 @@ int fill_bit_string(INT8U *data,INT8U size,INT8U *bits)		//0x04
 	//TODO : 默认8bit ，不符合A-XDR规范
 	if(size>=0 && size<=8){
 		size = 8;
-		syslog(LOG_ERR,"fill_bit_string size=%d, error",size);
+		asyslog(LOG_ERR,"fill_bit_string size=%d, error",size);
 	}
 //	data[0] = dtbitstring;
 //	data[1] = size;
@@ -257,21 +279,6 @@ int fill_double_long_unsigned(INT8U *data,INT32U value)		//0x06
 	data[4] =  value & 0x000000FF;
 	return 5;
 }
-
-int fill_double_long64(INT8U *data,INT64U value)		//0x14
-{
-	data[0] = dtlong64;
-	data[1] = (value & 0xFF00000000000000) >> 56;
-	data[2] = (value & 0x00FF000000000000) >> 48;
-	data[3] = (value & 0x0000FF0000000000) >> 40;
-	data[4] = (value & 0x000000FF00000000 )>> 32;
-	data[1] = (value & 0x00000000FF000000) >> 24;
-	data[2] = (value & 0x00FF000000FF0000) >> 16;
-	data[3] = (value & 0x0000FF000000FF00) >> 8;
-	data[4] = value & 0x00000000000000FF;
-	return 9;
-}
-
 
 int fill_octet_string(INT8U *data,char *value,INT8U len)	//0x09
 {
@@ -326,12 +333,28 @@ int fill_long_unsigned(INT8U *data,INT16U value)		//0x12
 	data[2] = value & 0x00FF;
 	return 3;
 }
+
+int fill_double_long64(INT8U *data,INT64U value)		//0x14
+{
+	data[0] = dtlong64;
+	data[1] = (value & 0xFF00000000000000) >> 56;
+	data[2] = (value & 0x00FF000000000000) >> 48;
+	data[3] = (value & 0x0000FF0000000000) >> 40;
+	data[4] = (value & 0x000000FF00000000) >> 32;
+	data[5] = (value & 0x00000000FF000000) >> 24;
+	data[6] = (value & 0x00FF000000FF0000) >> 16;
+	data[7] = (value & 0x0000FF000000FF00) >> 8;
+	data[8] = value & 0x00000000000000FF;
+	return 9;
+}
+
 int fill_enum(INT8U *data,INT8U value)		//0x16
 {
 	data[0] = dtenum;
 	data[1] = value;
 	return 2;
 }
+
 int fill_time(INT8U *data,INT8U *value)			//0x1b
 {
 	data[0] = dttime;
@@ -529,6 +552,21 @@ int fill_MS(INT8U type,INT8U *data,MY_MS myms)		//0x5C
 	return index;
 }
 
+int fill_COMDCB(INT8U type,INT8U *data,COMDCB comdcb)							//0x5F
+{
+	int	index = 0;
+
+	if(type==1) {
+		data[index++] = dtcomdcb;
+	}
+	data[index++] = comdcb.baud;
+	data[index++] = comdcb.verify;
+	data[index++] = comdcb.databits;
+	data[index++] = comdcb.stopbits;
+	data[index++] = comdcb.flow;
+	return index;
+}
+
 int fill_RCSD(INT8U type,INT8U *data,CSD_ARRAYTYPE csds)		//0x60
 {
 	int 	num=0,i=0;//,k=0;
@@ -595,7 +633,7 @@ int getArray(INT8U *source,INT8U *dest,INT8U *DAR)		//1
 		dest[0] = source[1];
 		return 2;//source[0] 0x1 (array type)   source[1] =num
 	}else{
-		*DAR = type_mismatch;
+		if(DAR!=NULL)	*DAR = type_mismatch;
 		return 0;
 	}
 }
@@ -609,7 +647,7 @@ int getStructure(INT8U *source,INT8U *dest,INT8U *DAR)		//2
 	}else {
 		int	data_len=0;
 		data_len = get_Data(source,NULL);		//错误类型，为了setnormalList查找到下一个oad位置
-		*DAR=type_mismatch;
+		if(DAR!=NULL)	*DAR = type_mismatch;
 		return data_len;
 	}
 }
@@ -620,7 +658,7 @@ int getBool(INT8U *source,INT8U *dest,INT8U *DAR)		//3
 		dest[0] = source[1];
 		return 2;//source[0] 0x3 (bool type)   source[1] =value
 	}else {
-		*DAR=type_mismatch;
+		if(DAR!=NULL)	*DAR = type_mismatch;
 		return 0;
 	}
 }
@@ -667,7 +705,7 @@ int getOctetstring(INT8U type,INT8U *source,INT8U *tsa,INT8U *DAR)   //9  and  0
 		memcpy(tsa, &source[type],num+1);
 		return (num + type + 1);	// 1:长度字节
 	}else{
-		*DAR = type_mismatch;
+		if(DAR!=NULL)	*DAR = type_mismatch;
 		return 0;
 	}
 	return 0;
@@ -685,7 +723,7 @@ int getVisibleString(INT8U *source,INT8U *dest,INT8U *DAR)	//0x0A
 		memcpy(&dest[0],&source[1],len);
 		return (len+1);			//+1:类型
 	}else{
-		*DAR=type_mismatch;
+		if(DAR!=NULL)	*DAR = type_mismatch;
 		return 0;
 	}
 }
@@ -709,6 +747,22 @@ int getLongUnsigned(INT8U *source,INT8U *dest)	//0x12
 		dest[1] = source[1];
 		dest[0] = source[2];
 		return 3;
+	}
+	return 0;
+}
+
+int getLong64(INT8U *source,INT64U *dest)	//0x14
+{
+	INT64U v = 0x00;
+	if(source[0] == dtlong64) {
+		for (int i = 0; i < 8; ++i) {
+			v += source[i + 1];
+			if (i + 1 == 8) {
+				break;
+			}
+			v = v << 8;
+		}
+		return 9;
 	}
 	return 0;
 }
@@ -761,17 +815,17 @@ int getDateTimeS(INT8U type,INT8U *source,INT8U *dest,INT8U *DAR)		//0x1C
 	if(type == 1 && source[0]!=dtdatetimes) {
 		data_len = get_Data(source,dest);		//错误类型，为了setnormalList查找到下一个oad位置
 		fprintf(stderr,"data_len = %d\n",data_len);
-		*DAR = type_mismatch;
+		if(DAR!=NULL)	*DAR = type_mismatch;
 		return data_len;
 	}
 	return 0;
 }
 
-int getOI(INT8U type,INT8U *source,OI_698 oi)		//0x50
+int getOI(INT8U type,INT8U *source,OI_698 *oi)		//0x50
 {
 	if((type == 1 && source[0]==dtoi) || (type == 0)) {
-		oi = source[type];
-		oi = (oi<<8) + source[type+1];
+		*oi = source[type];
+		*oi = (*oi<<8) + source[type+1];
 		return (type+2);
 	}
 	return 0;
@@ -1094,7 +1148,9 @@ int getCOMDCB(INT8U type, INT8U* source, COMDCB* comdcb,INT8U *DAR)		//0x5F
 		comdcb->stopbits = source[type+3];
 		comdcb->flow = source[type+4];
 		tmpDAR = getCOMDCBValid(*comdcb);
-		if(tmpDAR != success) *DAR = tmpDAR;
+		if(tmpDAR != success) {
+			if(DAR!=NULL)	*DAR = tmpDAR;
+		}
 		return (5+type);
 	}
 	if(type == 1 && source[0]!=dtcomdcb) {
@@ -1102,7 +1158,7 @@ int getCOMDCB(INT8U type, INT8U* source, COMDCB* comdcb,INT8U *DAR)		//0x5F
 		fprintf(stderr,"source=%02x\n",source[0]);
 		data_len = get_Data(source,NULL);		//错误类型，为了setnormalList查找到下一个oad位置
 		fprintf(stderr,"error data_len = %d\n",data_len);
-		*DAR = type_mismatch;
+		if(DAR!=NULL)	*DAR=type_mismatch;
 		return data_len;
 	}
 	return 0;
@@ -1350,7 +1406,6 @@ void setOIChange(OI_698 oi)
 	case 0x601C:	memp->oi_changed.oi601C++;  break;
 	case 0x601E:	memp->oi_changed.oi601E++;  break;
 	case 0x6051:	memp->oi_changed.oi6051++;  break;
-
 	case 0xf203:
 		memp->oi_changed.oiF203++;
 		fprintf(stderr,"memp->oi_changed.oiF203=%d\n",memp->oi_changed.oiF203);

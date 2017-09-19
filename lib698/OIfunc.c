@@ -49,7 +49,7 @@ INT8U Get_213x(INT8U getflg,INT8U *sourcebuf,INT8U *buf,int *len)
 	PassRate_U passu={};
 
 	memset(&passu,0,sizeof(PassRate_U));
-	if(getflg) {
+	if(getflg && sourcebuf!=NULL) {
 		memcpy(&passu,sourcebuf,sizeof(PassRate_U));
 	}
 	*len=0;
@@ -69,7 +69,7 @@ INT8U Get_2200(INT8U getflg,INT8U *sourcebuf,INT8U *buf,int *len)
 	Flow_tj	flow_tj={};
 
 	memset(&flow_tj,0,sizeof(Flow_tj));
-	if(getflg) {
+	if(getflg && sourcebuf!=NULL) {
 		memcpy(&flow_tj,sourcebuf,sizeof(flow_tj));
 	}
 	*len=0;
@@ -92,7 +92,7 @@ INT8U Get_2203(INT8U getflg,INT8U *sourcebuf,INT8U *buf,int *len)
 	Gongdian_tj gongdian_tj={};
 
 	memset(&gongdian_tj,0,sizeof(Gongdian_tj));
-	if(getflg) {
+	if(getflg && sourcebuf!=NULL) {
 		memcpy(&gongdian_tj,sourcebuf,sizeof(Gongdian_tj));
 	}
 	fprintf(stderr,"Get_2203 :day_gongdian=%d,month_gongdian=%d\n",gongdian_tj.gongdian.day_tj,gongdian_tj.gongdian.month_tj);
@@ -120,7 +120,7 @@ INT8U Get_2204(INT8U getflg,INT8U *sourcebuf,INT8U *buf,int *len)
 	Reset_tj reset_tj={};
 
 	memset(&reset_tj,0,sizeof(Reset_tj));
-	if(getflg) {
+	if(getflg && sourcebuf!=NULL) {
 		memcpy(&reset_tj,sourcebuf,sizeof(Reset_tj));
 	}
 	fprintf(stderr,"Get_2204 :reset day_tj=%d,month_tj=%d\n",reset_tj.reset.day_tj,reset_tj.reset.month_tj);
@@ -516,6 +516,63 @@ int Get_6035(INT8U type,INT8U taskid,INT8U *data)
 		index += fill_long_unsigned(&data[index],classoi.successMSNum);
 		index += fill_long_unsigned(&data[index],classoi.sendMsgNum);
 		index += fill_long_unsigned(&data[index],classoi.rcvMsgNum);
+	}
+	return index;
+}
+
+int GetF201(OAD oad,INT8U *data)
+{
+	INT8U	comindex = 0, i=0;
+	int 	index=0,ret=0;
+	CLASS_f201	f201[3]={};
+
+	if(oad.attflg != 2)  return index;
+	memset(&f201,0,sizeof(f201));
+	ret = readCoverClass(oad.OI,0,&f201,sizeof(f201),para_vari_save);
+
+	if(oad.attrindex == 0) {
+		index += create_array(&data[index],3);
+		for(i=0;i<3;i++) {
+			index += create_struct(&data[index],3);
+			index += fill_visible_string(&data[index],f201[i].devdesc,strlen(f201[i].devdesc));
+			index += fill_COMDCB(1,&data[index],f201[i].devpara);
+			index += fill_enum(&data[index],f201[i].devfunc);
+		}
+	}else {
+		if(oad.attrindex>=1 && oad.attrindex<=3) {
+			comindex = oad.attrindex - 1;
+			index += create_struct(&data[index],3);
+			index += fill_visible_string(&data[index],f201[comindex].devdesc,strlen(f201[comindex].devdesc));
+			index += fill_COMDCB(1,&data[index],f201[comindex].devpara);
+			index += fill_enum(&data[index],f201[comindex].devfunc);
+		}
+	}
+	return index;
+}
+
+int GetF209(OAD oad,INT8U *data)
+{
+	int 	index=0,ret=0;
+	CLASS_f209	f209={};
+
+	memset(&f209,0,sizeof(CLASS_f209));
+	ret = readCoverClass(oad.OI,0,&f209,sizeof(CLASS_f209),para_vari_save);
+	fprintf(stderr,"ret = %d  baud = %d\n",ret,f209.para.devpara.baud);
+	switch(oad.attflg) {
+	case 2:
+		index += create_struct(&data[index],3);
+		index += fill_visible_string(&data[index],f209.para.devdesc,strlen(f209.para.devdesc));
+		index += fill_COMDCB(1,&data[index],f209.para.devpara);
+		index += create_struct(&data[index],4);
+		index += fill_visible_string(&data[index],f209.para.version.factoryCode,2);
+		index += fill_visible_string(&data[index],f209.para.version.chipCode,2);
+		index += fill_visible_string(&data[index],f209.para.version.softDate,3);
+		index += fill_long_unsigned(&data[index],f209.para.version.softVer);
+		break;
+	case 5:
+		break;
+	case 6:
+		break;
 	}
 	return index;
 }

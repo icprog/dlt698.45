@@ -204,7 +204,7 @@ int AFN12_F1(FORMAT3762 *down,INT8U *sendBuf)
 	return sendlen ;
 }
 
-int AFN11_F1(FORMAT3762 *down,INT8U *sendBuf,INT8U *SlavePointAddr)
+int AFN11_F1(FORMAT3762 *down,INT8U *sendBuf,INT8U *SlavePointAddr,INT8U Protocol)
 {
 	int sendlen=0;
 	memset(&sendBuf[0], 0, 256);
@@ -217,7 +217,7 @@ int AFN11_F1(FORMAT3762 *down,INT8U *sendBuf,INT8U *SlavePointAddr)
 	down->info_down.Seq = down->info_down.Seq++;//序列号
 	down->afn11_f1_down.Num = 1;
 	memcpy(&down->afn11_f1_down.SlavePoint[0].Addr[0], SlavePointAddr, 6);
-	down->afn11_f1_down.SlavePoint[0].Protocol = 2;//07表
+	down->afn11_f1_down.SlavePoint[0].Protocol = Protocol;
 	down->ctrl.ComType = 1;//窄带载波通信
 	sendlen = composeProtocol3762(down, sendBuf);
 	return sendlen;

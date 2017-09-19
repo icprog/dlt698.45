@@ -40,15 +40,6 @@ pthread_attr_t read485_attr_t;
 int thread_read4851_id,thread_read4852_id;           //485、四表合一（I型、II型、专变）
 pthread_t thread_read4851,thread_read4852;
 
-
-typedef enum{
-	PROTOCOL_UNKNOWN = 0,
-	DLT_645_97 = 1,
-	DLT_645_07 = 2,
-	DLT_698 = 3,
-	CJT_188 = 4,
-}METER_PROTOCOL;
-
 typedef struct
 {
 	INT16U sernum;
@@ -60,7 +51,7 @@ typedef struct
 //OAD+数据
 typedef struct
 {
-	INT8U oad[4];
+	OAD oad;
 	INT8U datalen;
 	INT8U data[50];
 }OAD_DATA;
@@ -83,5 +74,11 @@ INT8U i485port2;
 //698 OAD 和 645 07规约 数据标识对应关系
 INT8U map07DI_698OAD_NUM;
 CLASS_601F map07DI_698OAD[NUM_07DI_698OAD];
+
+
+INT16S request9707_singleOAD(INT8U protocol,OI_698 roadOI,OAD soureOAD,CLASS_6001 to6001,CLASS_6035* st6035,INT8U* dataContent,INT8U port485);
+INT16S deal6015_698(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8U* dataContent,INT8U port485);
+INT16U compose6012Buff(DateTimeBCD startTime,DateTimeBCD saveTime,TSA meterAddr,INT16U dataLen,INT8U* dataContent, INT8U port485);
+INT8U getSaveTime(DateTimeBCD* saveTime,INT8U cjType,INT8U saveTimeFlag,DATA_TYPE curvedata);
 
 #endif /* READ485_H_ */

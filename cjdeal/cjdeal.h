@@ -49,6 +49,7 @@ typedef struct
 }INFO_6001_LIST;
 
 INFO_6001_LIST info6000[2];//两路485
+INT8U isNeed4852;//0-4852维护口　1-4852抄表口
 
 /*补抄相关结构体*/
 INT16U replenishTime[4];

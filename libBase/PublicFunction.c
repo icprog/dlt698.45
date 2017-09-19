@@ -265,7 +265,7 @@ int OpenCom(int port, int baud, unsigned char* par, unsigned char stopb, unsigne
     new_termi.c_cflag |= (CLOCAL | CREAD);         /*忽略调制解调器状态行，接收使能*/
     new_termi.c_lflag &= ~(ICANON | ECHO | ECHOE); /*选择为原始输入模式*/
     new_termi.c_oflag &= ~OPOST;                   /*选择为原始输出模式*/
-    new_termi.c_cc[VTIME] = 5;                     /*设置超时时间为0.5 s*/
+    new_termi.c_cc[VTIME] = 1;                     /*设置超时时间为0.5 s*/
     new_termi.c_cc[VMIN]  = 0;                     /*最少返回的字节数是 7*/
     new_termi.c_cflag &= ~CSIZE;
     new_termi.c_iflag &= ~ISTRIP;
@@ -1206,17 +1206,18 @@ final:
 	*bufSize = destLen;
 }
 
-void PacketToFile(const char *format,...)
+void PacketToFile(char *fname,const char *format,...)
 {
 	char str[50];
-	char fname[100];
+//	char fname[100];
 	char tmpcmd[256];
 	time_t cur_time;
 	struct tm cur_tm;
 	FILE *fp = NULL;
 
-	memset(fname,0,sizeof(fname));
-	sprintf(fname,"/nand/packet.log");
+//	memset(fname,0,sizeof(fname));
+//	sprintf(fname,"/nand/log_698/packet.log");
+	if(fname==NULL)		return;
 	memset(str,0,50);
 	cur_time=time(NULL);
 	localtime_r(&cur_time,&cur_tm);
@@ -1279,7 +1280,7 @@ void myBCDtoASC1(char val, char dest[2])
 }
 
 
-void PacketBufToFile(char *prefix, char *buf, int len, char *suffix)
+void PacketBufToFile(INT8U type,char *prefix, char *buf, int len, char *suffix)
 {
 //	return ;
 
@@ -1314,7 +1315,7 @@ void PacketBufToFile(char *prefix, char *buf, int len, char *suffix)
 		}
 		if(prefix!=NULL)
 		{
-			sprintf(str, "%s[%d] ", prefix,prtlen);
+			sprintf(str, "%s[%04d] ", prefix,prtlen);
 			strcat(tmpbuf, str);
 		}
 		for(i=0; i<prtlen; i++)
@@ -1332,7 +1333,10 @@ void PacketBufToFile(char *prefix, char *buf, int len, char *suffix)
 		}
 		if(suffix!=NULL)
 			strcat(tmpbuf, suffix);
-		PacketToFile(tmpbuf);
+		if(type==1) {
+			PacketToFile("/nand/log_698/packet.log",tmpbuf);
+		}
+		PacketToFile("/nand/log_698/chg.log",tmpbuf);
 		count += prtlen;
 		if(count>=len)
 			break;

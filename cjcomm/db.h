@@ -28,7 +28,9 @@ typedef struct {
 	CommBlock net;
 	CommBlock gprs;
 	CommBlock serial;
+	CommBlock serial_hn;
 
+	CLASS_f201 cf200;
 	CLASS_f201 cf201;
 	CLASS_f202 cf202;
 
@@ -45,6 +47,9 @@ typedef struct {
 	INT8U retry_buf[MAXSIZ_PROXY_NET];
 	mmq_head retry_head;
 	int retry_count;
+
+	int model_2g;//强制2g上线
+	int RS485IIOPEN;//湖南I型集中器，485II可做为维护口
 } DBStruct;
 
 void * dbGet(char * name);

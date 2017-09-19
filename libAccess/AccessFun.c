@@ -466,6 +466,9 @@ int saveCoverClass(OI_698 oi,INT16U seqno,void *blockdata,int savelen,int type)
 		break;
 	case acs_coef_save:
 		file_write_accoef(fname,blockdata,savelen);
+		//将校表系数文件再测写入/nor/config/accoe.par,防止运行3761程序找不到校表系数文件
+		sprintf(fname,"%s/accoe.par",_CFGDIR_);
+		file_write_accoef(fname,blockdata,savelen);
 		break;
 	case event_record_save:
 	case event_current_save:
@@ -518,17 +521,17 @@ int readCoverClass(OI_698 oi,INT16U seqno,void *blockdata,int datalen,int type)
 	switch(type) {
 	case event_para_save:
 //		ret = readFileName(oi,seqno,type,fname);
-		if(ret==0) {		//文件存在
-			ret = block_file_sync(fname,blockdata,datalen,0,0);
-		}else  {		//无配置文件，读取系统初始化参数
-			memset(fname,0,sizeof(fname));
-			ret = readFileName(oi,seqno,para_init_save,fname);
-//			fprintf(stderr,"read /nor/init的参数文件：  Class %s filelen=%d\n",fname,datalen);
-			if(ret==0) {	//文件存在
-				ret = block_file_sync(fname,blockdata,datalen,0,0);
-			}
-		}
-		break;
+//		if(ret==0) {		//文件存在
+//			ret = block_file_sync(fname,blockdata,datalen,0,0);
+//		}else  {		//无配置文件，读取系统初始化参数
+//			memset(fname,0,sizeof(fname));
+//			ret = readFileName(oi,seqno,para_init_save,fname);
+////			fprintf(stderr,"read /nor/init的参数文件：  Class %s filelen=%d\n",fname,datalen);
+//			if(ret==0) {	//文件存在
+//				ret = block_file_sync(fname,blockdata,datalen,0,0);
+//			}
+//		}
+//		break;
 	case para_vari_save:
 	case coll_para_save:
 	case acs_energy_save:
@@ -1097,16 +1100,19 @@ int getOI6001(MY_MS ms,INT8U **tsas)
 		return tsa_num;
 	}
 	record_num = getFileRecordNum(0x6000);
-	switch(ms.mstype) {
-	case 3:	//一组用户地址	浙江主站招测报文含有两个相同的测量点，例如，集中器共2个测量点，主站招测4个测量点，其中2个是重复的，导致申请内存空间不足（申请两个，放置了4个测量点信息）
-		tsa_len = (ms.ms.userAddr[0].addr[0]<<8) | ms.ms.userAddr[0].addr[1];
-		*tsas = malloc(tsa_len*sizeof(CLASS_6001));
-		break;
-	default:
-		*tsas = malloc(record_num*sizeof(CLASS_6001));
-		break;
-	}
-	fprintf(stderr," tsas  p=%p record_num=%d tsa_len=%d",*tsas,record_num,tsa_len);
+	*tsas = malloc(record_num*sizeof(CLASS_6001));
+//	浙江主站招测报文含有两个相同的测量点，例如，集中器共2个测量点，主站招测4个测量点，其中2个是重复的，导致申请内存空间不足（申请两个，放置了4个测量点信息）
+//	当配置两个测量点地址相同情况下，招测一组用户地址，查找到两条记录会申请内存不足，所以改为申请最大的测量点数量内存空间
+//	switch(ms.mstype) {
+//	case 3:	//一组用户地址
+//		tsa_len = (ms.ms.userAddr[0].addr[0]<<8) | ms.ms.userAddr[0].addr[1];
+//		*tsas = malloc(tsa_len*sizeof(CLASS_6001));
+//		break;
+//	default:
+//		*tsas = malloc(record_num*sizeof(CLASS_6001));
+//		break;
+//	}
+//	fprintf(stderr," tsas  p=%p record_num=%d tsa_len=%d",*tsas,record_num,tsa_len);
 	tsa_num = 0;
 	for(i=0;i<record_num;i++) {
 		if(readParaClass(0x6000,&meter,i)==1) {
@@ -1133,7 +1139,7 @@ int getOI6001(MY_MS ms,INT8U **tsas)
 					break;
 				case 3:	//一组用户地址
 					tsa_len = (ms.ms.userAddr[0].addr[0]<<8) | ms.ms.userAddr[0].addr[1];
-//					fprintf(stderr,"\n一组用户地址(%d)\n\n",tsa_len);
+					fprintf(stderr,"\n一组用户地址(%d)\n\n",tsa_len);
 					for(j=0;j<tsa_len;j++) {
 						if(memcmp(&ms.ms.userAddr[j+1],&meter.basicinfo.addr,sizeof(TSA))==0) {  //TODO:TSA下发的地址是否按照00：长度，01：TSA长度格式
 							memcpy(*tsas+(tsa_num*sizeof(CLASS_6001)),&meter,sizeof(CLASS_6001));
@@ -1141,7 +1147,7 @@ int getOI6001(MY_MS ms,INT8U **tsas)
 						}
 //						tsa_num += getUserTSA(ms.ms.userAddr[j+1],meter.basicinfo.addr,tsa_num,tsas);
 					}
-//					fprintf(stderr,"\nms.mstype = %d,tsa_num = %d",ms.mstype,tsa_num);
+					fprintf(stderr,"\nms.mstype = %d,tsa_num = %d",ms.mstype,tsa_num);
 					break;
 				case 4:	//一组配置序号
 					fprintf(stderr,"\n招测序号集(%d)",ms.ms.configSerial[0]);
@@ -1985,9 +1991,8 @@ INT16U CalcFreq(TI runti,CLASS_6015 class6015,INT16U startmin,INT16U endmin,INT3
 	int rate = 0;//倍率
 	INT16U sec_unit = 0;
 	INT8U  inval_flg = 0;
-#ifdef SYS_INFO
-	asyslog(LOG_INFO,"\n---@@@---class6015.cjtype = %d  data=%d-%d-%d\n",class6015.cjtype,class6015.data.data[0],class6015.data.data[1],class6015.data.data[2]);
-#endif
+	asyslog(LOG_INFO,"\n---@@@---class6015.cjtype = %d  data=%d-%d-%d,endmin=%d,startmin=%d\n"
+			,class6015.cjtype,class6015.data.data[0],class6015.data.data[1],class6015.data.data[2],endmin,startmin);
 	if(class6015.cjtype == 3 || class6015.cjtype == 0 || class6015.cjtype == 1)//按时标间隔采集
 	{
 		if(class6015.cjtype == 3)//按抄表间隔
@@ -2003,7 +2008,7 @@ INT16U CalcFreq(TI runti,CLASS_6015 class6015,INT16U startmin,INT16U endmin,INT3
 				return (endmin-startmin)/((class6015.data.data[1]<<8)+class6015.data.data[2])+1;
 			case 2:
 				*sec_freq = ((class6015.data.data[1]<<8)+class6015.data.data[2])*3600;
-				return ((endmin-startmin)*60)/(((class6015.data.data[1]<<8)+class6015.data.data[2])*60)+1;
+				return ((endmin-startmin)*60)/(((class6015.data.data[1]<<8)+class6015.data.data[2])*3600)+1;
 			default:
 				break;
 			}
@@ -2244,6 +2249,12 @@ INT16U CalcOIDataLen(OI_698 oi,INT8U attr_flg)
 	{
 		return 18;
 	}
+	if(oi==0x2131 || oi==0x2132 || oi==0x2133) {	//电压合格率
+		if(attr_flg == 0)
+			return 23*2+2;
+		else
+			return 23;
+	}
 //	if(oi == 2140 || oi == 2141)//struct 类型要在原长度基础上+3
 //		return (11+3)*(MET_RATE+1)+1+1;
 	fp = fopen("/nor/config/OI_TYPE.cfg","r");
@@ -2359,6 +2370,7 @@ INT8U GetTaskidFromCSDs(CSD_ARRAYTYPE csds,ROAD_ITEM *item_road,INT8U findmethod
 	CLASS_6013	class6013={};
 	int i=0,j=0,mm=0,nn=0,kk=0;
 	INT8U taskno=0,tsa_equ=0;
+	INT16U num_tmp=0;
 
 	print_rcsd(csds);
 	if(csds.num > MY_CSD_NUM)//超了
@@ -2429,11 +2441,13 @@ INT8U GetTaskidFromCSDs(CSD_ARRAYTYPE csds,ROAD_ITEM *item_road,INT8U findmethod
 						tsa_equ = 1;
 						break;
 					case 2:
-						for(kk=0;kk<COLLCLASS_MAXNUM;kk++)
-						{
-							if(class6015.mst.ms.userType[kk] == tsa[0].basicinfo.usrtype)
-								tsa_equ = 1;
-						}
+					num_tmp = (class6015.mst.ms.userType[0]<<8) | class6015.mst.ms.userType[1];
+					fprintf(stderr,"\n类型个数%d\n",num_tmp);
+					for(kk=0;kk<num_tmp;kk++)
+					{
+						if(class6015.mst.ms.userType[kk+2] == tsa[0].basicinfo.usrtype)
+							tsa_equ = 1;
+					}
 						break;
 					case 3:
 						for(kk=0;kk<COLLCLASS_MAXNUM;kk++)
@@ -3174,13 +3188,27 @@ int collectData(INT8U *databuf,INT8U *srcbuf,OAD_INDEX *oad_offset,ROAD_ITEM ite
 //					fprintf(stderr,"000 pindex=%d\n",pindex);
 					break;
 				case 1://array
+					memcpy(&databuf[pindex],tmpbuf,2);
+					pindex += 2;
 					retlen = CalcOIDataLen(oad_offset[j].oad_r.OI,1);
-					retlen = retlen*tmpbuf[1]+2;//2代表一个array类型加一个个数
-					memcpy(&databuf[pindex],tmpbuf,retlen);
-					pindex += retlen;
+//					fprintf(stderr,"\n元素个数%d\n",tmpbuf[1]);
+					for(i=0;i<tmpbuf[1];i++)
+					{
+//						fprintf(stderr,"\n类型(%d)-%d  长度%d\n",retlen*i+2,tmpbuf[retlen*i+2],retlen);
+						if(tmpbuf[retlen*i+2] == 0)
+							databuf[pindex++] = 0;
+						else
+						{
+							memcpy(&databuf[pindex],&tmpbuf[i*retlen+2],retlen);
+							pindex += retlen;
+						}
+					}
+//					retlen = retlen*tmpbuf[1]+2;//2代表一个array类型加一个个数
+//					memcpy(&databuf[pindex],tmpbuf,retlen);
+//					pindex += retlen;
 					break;
-				case 2://struct 暂时不处理
-					break;
+//				case 2://struct 暂时不处理
+//					break;
 				case 0x55:	//TSA
 					memcpy(&databuf[pindex],tmpbuf,(tmpbuf[1]+2));
 					pindex += (tmpbuf[1]+2);
@@ -3469,16 +3497,36 @@ INT8U initrecinfo(OAD getOAD,CURR_RECINFO *recinfo,TASKSET_INFO tasknor_info,INT
 			tm_p->tm_min = select.selec7.collect_save_finish.min.data;
 			tm_p->tm_sec = select.selec7.collect_save_finish.sec.data;
 			recinfo->rec_end = mktime(tm_p);
-			if(time_tmp <= recinfo->rec_end && time_tmp >= recinfo->rec_start)
+//			if(time_tmp <= recinfo->rec_end && time_tmp >= recinfo->rec_start)
+			if(abs(recinfo->rec_end-recinfo->rec_start) >= 3*24*60*60)//招测跨度大于三天只上报上一次数据
 			{
-				asyslog(LOG_INFO,"--------%d---%d",time_tmp,recinfo->rec_end);
-				recinfo->rec_end = time_tmp;
-			}
-			//一致性测试GET_21:Selector6招测选择区间应该是前闭后开【起始值，结束值），查询记录数不应该+1
-			if((recinfo->rec_end - recinfo->rec_start)%tasknor_info.freq ==0) {//测试负荷曲线改得
+				tm_p = localtime(&time_s);
+				asyslog(LOG_INFO,"时标跨度大，招测时间默认");//距离0点0分整数倍任务执行频率倍秒数
+				sec_tmp = ((tm_p->tm_hour*3600+tm_p->tm_min*60+tm_p->tm_sec)/tasknor_info.taskfreq)*tasknor_info.taskfreq;
+				tm_p->tm_hour = 0;
+				tm_p->tm_min = 0;
+				tm_p->tm_sec = 0;
+				recinfo->rec_end = mktime(tm_p) + sec_tmp - tasknor_info.taskfreq;//上报上一次
+				recinfo->rec_start = recinfo->rec_end - tasknor_info.taskfreq;
+				recinfo->recordno_num = tasknor_info.taskfreq/tasknor_info.freq;
+			} else {
+				if(time_tmp <= recinfo->rec_end && time_tmp >= recinfo->rec_start)
+				{
+					asyslog(LOG_INFO,"--------%d---%d",time_tmp,recinfo->rec_end);
+					recinfo->rec_end = time_tmp;
+				}
+				//一致性测试GET_21:Selector6招测选择区间应该是前闭后开【起始值，结束值），查询记录数不应该+1
+				if((recinfo->rec_end - recinfo->rec_start)%tasknor_info.freq ==0) {//测试负荷曲线改得
 				recinfo->recordno_num = (recinfo->rec_end - recinfo->rec_start)/tasknor_info.freq;
-			}else {
+				}else {
 				recinfo->recordno_num = (recinfo->rec_end - recinfo->rec_start)/tasknor_info.freq + 1;
+				}
+				//一致性测试GET_21:Selector6招测选择区间应该是前闭后开【起始值，结束值），查询记录数不应该+1
+				if((recinfo->rec_end - recinfo->rec_start)%tasknor_info.freq ==0) {//测试负荷曲线改得
+					recinfo->recordno_num = (recinfo->rec_end - recinfo->rec_start)/tasknor_info.freq;
+				}else {
+					recinfo->recordno_num = (recinfo->rec_end - recinfo->rec_start)/tasknor_info.freq + 1;
+				}
 			}
 		}
 		asyslog(LOG_INFO,"n-----recinfo->recordno_num=%d,recinfo->rec_end=%d,recinfo->rec_start=%d,tasknor_info.freq=%d\n"
@@ -4084,6 +4132,8 @@ int GetTaskData(OAD oad,RSD select, INT8U selectype,CSD_ARRAYTYPE csds,INT16U fr
 		break;
 	default:
 		tsa_num = getOI6001(select.selec10.meters,(INT8U **)&tsa_group);
+		fprintf(stderr,"tsa_num = %d\n",tsa_num);
+		break;
 	}
 	if(eveflg == 1)
 	{
@@ -4640,11 +4690,42 @@ int save_protocol_3761_tx_para(INT8U* dealdata)
 	return ret;
 }
 
+void chg_rc_local_3761()
+{
+	syslog(LOG_NOTICE,"进行协议切换过程，修改rc.local启动文件...");
+	system((const char *) "cp /nor/rc.d/rc.local /nor/rc.d/698_rc.local");
+	sleep(1);
+	if(access("/nor/rc.d/3761_rc.local",F_OK)==0) {
+		system((const char *) "cp /nor/rc.d/3761_rc.local /nor/rc.d/rc.local");
+		sleep(1);
+		system((const char *) "chmod 777 /nor/rc.d/rc.local");
+		sleep(1);
+	}else {
+		syslog(LOG_NOTICE,"系统无3761_rc.local备份文件，将重新生成rc.local");
+		if (write_3761_rc_local()) {
+			sleep(1);
+			system((const char *) "chmod 777 /nor/rc.d/rc.local");
+			sleep(1);
+		}
+	}
+    if (access("/nor/rc.d/rc.local", F_OK) != 0 || access("/nor/rc.d/rc.local", X_OK) != 0) {
+        if (write_3761_rc_local()) {
+            sleep(1);
+            system((const char *) "chmod 777 /nor/rc.d/rc.local");
+            sleep(1);
+        }
+    }
+    system("fsync -d /nor/rc.d/rc.local");
+    sleep(1);
+    system((const char *) "reboot");		//TODO:写文件成功切换rc.local
+}
+
 INT8U write_3761_rc_local()
 {
 	INT8U ret = 0;
 	int fd;
 	FILE* fp;
+	syslog(LOG_NOTICE,"系统调用协议切换，重新生成rc.local文件");
 	fp = fopen("/nor/rc.d/rc.local","w+");
 	if(fp == NULL)
 	{
@@ -4660,7 +4741,7 @@ INT8U write_3761_rc_local()
 	fprintf(fp,"vinit &\n");
 	fprintf(fp,"vupdate &\n");
 	fprintf(fp,"sleep 1\n");
-	fprintf(fp,"vmain > /dev/shm/null &\n");
+	fprintf(fp,"vmain 2> /dev/shm/null &\n");
 	fflush(fp);
 	fd = fileno(fp);
 	fsync(fd);

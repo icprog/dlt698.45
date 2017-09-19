@@ -154,7 +154,7 @@ INT8U state_check(BOOLEAN changed,INT8U devicetype)
 					bit_state[i] = bit_state[0];			//II型无设备，台体测试测试1-4路状态
 				}
 			}else if(i==4) {		//门节点
-				if(devicetype==CCTT1) {		//I型集中器
+				if(devicetype==CCTT1 || devicetype==SPTF3) {		//I型集中器
 					readstate[i] = getSpiAnalogState();
 					if(readstate[i]!=-1) {
 						bit_state[i] = ((~(readstate[i]>>5))&0x01);
@@ -166,21 +166,12 @@ INT8U state_check(BOOLEAN changed,INT8U devicetype)
 			}
 		}
 	}
-	//国网送检功能性测试时，II型集中器方案，状态量采集台体改变四路遥信状态，此处设置其他三路遥信状态与第一路相同
-	if(devicetype == CCTT2) {
-		for(i=1;i<4;i++) {
-			bit_state[i]=bit_state[0];
-		}
-	}
-
-	////test
-//	if(devicetype == CCTT1) {
+//	//国网送检功能性测试时，II型集中器方案，状态量采集台体改变四路遥信状态，此处设置其他三路遥信状态与第一路相同
+//	if(devicetype == CCTT2) {
 //		for(i=1;i<4;i++) {
 //			bit_state[i]=bit_state[0];
 //		}
 //	}
-
-
 	for(i=0; i < STATE_MAXNUM; i++)
 	{
 		if((changed == FALSE) && (bit_state[i] != oif203.statearri.stateunit[i].ST)) {
@@ -200,9 +191,9 @@ void getStateEvent(ProgramInfo* prginfo)
 	INT8U	data[STATE_MAXNUM]={};
 	INT8U	i=0;
 	INT8U	state = STATE_MAXNUM/2;
-//	if(prginfo->cfg_para.device == CCTT2) {
-//		state = 1;
-//	}
+	if(prginfo->cfg_para.device == CCTT2) {
+		state = 1;
+	}
 	for(i=0; i < state; i++){
 		data[i*2+0]=oif203.statearri.stateunit[i].ST;
 		data[i*2+1]=oif203.statearri.stateunit[i].CD;

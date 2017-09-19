@@ -285,7 +285,7 @@ int AtPrepare(ATOBJ *ao) {
 			return 5000;
 		}
 		if (ao->at_retry++ > 5) {
-			asyslog(LOG_INFO, "<AT流程> 5次拨号失败，关断模块10分钟>>>>>>>>");
+			asyslog(LOG_INFO, "<AT流程> 5次拨号失败，关断模块5分钟>>>>>>>>");
 			gpofun("/dev/gpoGPRS_POWER", 0);
 			ao->at_retry = 0;
 			return 1000 * 60 * 5;
@@ -417,6 +417,14 @@ int AtPrepare(ATOBJ *ao) {
 		if (sscanf(Mrecvbuf, "%*[^:]: %d,%*[^]", &ao->CSQ) == 1) {
 			asyslog(LOG_INFO, "GprsCSQ = %d\n", ao->CSQ);
 			if (ao->CSQ != 99) {
+				if (ao->CSQ < 10) {
+					gpofun("/dev/gpoCSQ_RED", 1);
+				} else if (ao->CSQ < 20) {
+					gpofun("/dev/gpoCSQ_RED", 1);
+					gpofun("/dev/gpoCSQ_GREEN", 1);
+				} else {
+					gpofun("/dev/gpoCSQ_GREEN", 1);
+				}
 				retry = 0;
 				ao->state = 16;
 				return 500;
@@ -466,13 +474,13 @@ int AtPrepare(ATOBJ *ao) {
 				ao->TYPE = 1;
 				ao->script = 1;
 				retry = 0;
-				ao->state = 20;
+				ao->state = 30;
 				return 500;
 			}
 			ao->TYPE = 0;
 			ao->script = 0;
 			retry = 0;
-			ao->state = 20;
+			ao->state = 30;
 			return 500;
 		}
 		retry++;
@@ -526,6 +534,38 @@ int AtPrepare(ATOBJ *ao) {
 		}
 		retry++;
 		return 1000;
+	case 30:
+		if (retry > 5) {
+			ao->state = 0;
+			return 100;
+		}
+		AtSendCmd(ao, "\rAT$MYCCID\r", 11);
+		ao->state = 31;
+		return 500;
+	case 31:
+		RecieveFromComm(Mrecvbuf, 128, ao->fd);
+		memset(ao->ccid, 0x00, sizeof(ao->ccid));
+		if (sscanf((char *) &Mrecvbuf[0], "%*[^0-9]%[0-9]", ao->ccid) == 1) {
+			retry = 0;
+			ao->state = ((int)dbGet("model_2g") == 666) ? 32 : 20;
+			return 500;
+		}
+		retry++;
+		ao->state = 30;
+		return 1000;
+	case 32:
+		if (retry > 8) {
+			ao->state = 0;
+			return 100;
+		}
+		asyslog(LOG_INFO,"强制2G上线....");
+		if (SendCommandGetOK(ao, 1, "\rat+qcfg=\"nwscanmode\",1\r") == 1) {
+			retry = 0;
+			ao->state = 20;
+			return 100;
+		}
+		retry++;
+		return 500;
 	case 50:
 		retry = 0;
 		ao->state = 51;
@@ -627,17 +667,18 @@ int AtPrepare(ATOBJ *ao) {
 		return 1500;
 
 	case AT_FINISH_PREPARE:
-		if (retry > 20) {
+		if (retry > 10) {
 			ao->state = 0;
 			return 1000;
 		}
 		retry++;
 		asyslog(LOG_INFO, "======%d", retry);
+		if(getZone("HuNan") == 0){
+			checkSms(ao);
+		}
 		ao->at_retry = 0;
 		readCoverClass(0x4500, 0, c25, sizeof(CLASS25), para_vari_save);
 		c25->signalStrength = ao->CSQ;
-		//TODO:SIM卡号码simkard, CCID未有AT获取
-		//一致性测试4500-10,ccid的第一个字节为长度
 		memcpy(&c25->imsi[1],ao->imsi,sizeof(c25->imsi));
 		c25->imsi[0] = strlen(ao->imsi);
 		memcpy(&c25->ccid[1],ao->ccid,sizeof(c25->ccid));
@@ -646,7 +687,8 @@ int AtPrepare(ATOBJ *ao) {
 		c25->simkard[0] = strlen(ao->CIMI);
 		memcpy(&c25->pppip,ao->PPP_IP,sizeof(c25->pppip));
 		saveCoverClass(0x4500, 0, c25, sizeof(CLASS25), para_vari_save);
-		return 5 * 1000;
+
+		return 10 * 1000;
 	}
 	return 0;
 }

@@ -29,6 +29,7 @@ lcd_show接口延续之前376.1液晶显示处理逻辑，更新的是将三个�
 #include "guictrl.h"
 
 extern Menu menu[];
+extern Menu menu_fk[];
 MenuList *pmenulist_head;
 //pthread_t thread_key, thread_menu, thread_status, thread_lcm,thread_downstatus;//thread_send;
 int thread_run;
@@ -208,12 +209,21 @@ void lcd_not_poll()
  * 1.液晶主界面显示;
  * 2.初始化菜单项链表;
  * */
-void gui_show_init()
+void gui_show_init(int type)
 {
 	int menu_count=0;
 	showmain();
-	menu_count = getMenuSize();
-	pmenulist_head = ComposeDList(menu, menu_count);//构建菜单项链表，菜单项链表的构建和显示是分离的，这是一种设计思想
+	if(type==1)//I型集中器
+	{
+		menu_count = getMenuSize_jzq();
+		pmenulist_head = ComposeDList(menu, menu_count);//构建菜单项链表，菜单项链表的构建和显示是分离的，这是一种设计思想
+	}
+	else
+	{
+		menu_count = getMenuSize_fk();
+		pmenulist_head = ComposeDList(menu_fk, menu_count);//构建菜单项链表，菜单项链表的构建和显示是分离的，这是一种设计思想
+	}
+
 }
 
 /*
@@ -233,7 +243,7 @@ void* guictrl_thread()
  * */
 void* guishow_thread()
 {
-	gui_show_init();
+	gui_show_init(JProgramInfo->cfg_para.device);
 	while(PTHREAD_RUN == thread_run)
 	{
 		usleep(100*1000);
@@ -252,6 +262,7 @@ void* guishow_thread()
 
 void guictrl_proccess()
 {
+	syslog(LOG_NOTICE,"guictrl_proccess\n");
 	fprintf(stderr, "\n CJGUI compile time:%s %s", __DATE__,__TIME__);
 	if(lcm_open()<0){
 		fprintf(stderr,"\n\n open fb0 fail!!!!! return");
@@ -263,6 +274,7 @@ void guictrl_proccess()
 	ReadHzkBuff_16();//读字库16*16
 	ReadHzkBuff_12();//12*12
 	initliangdu();//初始化液晶亮度
+	syslog(LOG_NOTICE,"lcd_light = 1\n");
 	initlunxian();//读配置文件
 
 	setFontSize(12);//设置字体
