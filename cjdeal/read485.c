@@ -501,10 +501,19 @@ INT16S ReceDataFrom485(METER_PROTOCOL meterPro,INT8U port485, INT16U delayms, IN
 	memset(TmprevBuf, 0, BUFFSIZE2048);
 	rec_head = rec_tail = rec_step = DataLen = 0;
 	//fprintf(stderr, "\n ReceDataFrom485 delayms=%d\n", delayms);
+	//zhejiangtest
+#if 0
+	usleep(delayms * 2000);
+#else
 	usleep(delayms * 1000);
-
+#endif
 	for (j = 0; j < 15; j++) {
-		usleep(20000);	//20ms
+	#if 0
+		usleep(200000);
+	#else
+		usleep(20000);
+	#endif
+
 		len = read(fd, TmprevBuf, BUFFSIZE2048);
 
 		if (len > 0) {

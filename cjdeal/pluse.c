@@ -129,10 +129,8 @@ void refreshPluse(int sec) {
 
 	if (sec == 15) {
 		for (int i = 0; i < 2; i++) {
-			fprintf(stderr, "pluseCountPeriod!!!!!!!!!!!! %d\n", pluseCountPeriod[i]);
 			if (pluse[i] > pluseCountPeriod[i]) {
 				int val = pluse[i] - pluseCountPeriod[i];
-				fprintf(stderr, "val!!!!!!!!!!!! %d\n", val);
 				cacl_PQ(val, i);
 				pluseCountPeriod[i] = pluse[i];
 			}

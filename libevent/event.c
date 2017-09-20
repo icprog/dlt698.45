@@ -2401,13 +2401,17 @@ INT8U Event_3114(DateTimeBCD data,ProgramInfo* prginfo_event) {
  * 遥控跳闸记录
  */
 INT8U Event_3115(INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
+	fprintf(stderr,"step-0 %d\n",prginfo_event->ctrls.control_event);
+
 	if(oi_chg.oi3115 != prginfo_event->oi_changed.oi3115){
+		fprintf(stderr,"step-1\n");
 		readCoverClass(0x3115,0,&prginfo_event->event_obj.Event3115_obj,sizeof(prginfo_event->event_obj.Event3115_obj),event_para_save);
 		oi_chg.oi3115 = prginfo_event->oi_changed.oi3115;
 	}
     if (prginfo_event->event_obj.Event3115_obj.enableflag == 0) {
         return 0;
     }
+    fprintf(stderr,"step-2\n");
     INT8U Save_buf[256];
     		bzero(Save_buf, sizeof(Save_buf));
     		prginfo_event->event_obj.Event3115_obj.crrentnum++;
@@ -2415,6 +2419,7 @@ INT8U Event_3115(INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
     		INT32U crrentnum = prginfo_event->event_obj.Event3115_obj.crrentnum;
     		INT8U index=0;
     		//标准数据单元
+    		fprintf(stderr,"step-3\n");
     		Get_StandardUnit(prginfo_event,0x3115,Save_buf,&index,crrentnum,(INT8U*)data,s_oad);//data 0,1,2,3
     		Save_buf[index++]=dtarray;
     		Save_buf[index++]=8;
@@ -2440,7 +2445,9 @@ INT8U Event_3115(INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
     		//存储当前记录值
     		INT8U Currbuf[50]={};memset(Currbuf,0,50);
     		INT8U Currindex=0;
+    		fprintf(stderr,"step-4\n");
     		Get_CurrResult(Currbuf,&Currindex,(INT8U*)data,s_oad,crrentnum,0);
+    		fprintf(stderr,"step-5\n");
     		saveCoverClass(0x3115,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,3);
     		//判断是否要上报
     		if(prginfo_event->event_obj.Event3115_obj.reportflag)
@@ -2736,11 +2743,15 @@ INT8U Event_3201(INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
  * 购电参数设置记录29
  */
 INT8U Event_3202(INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
+	fprintf(stderr, "step0-0\n");
 	if(oi_chg.oi3202 != prginfo_event->oi_changed.oi3202){
+		fprintf(stderr, "step0-1\n");
 		readCoverClass(0x3202,0,&prginfo_event->event_obj.Event3202_obj,sizeof(prginfo_event->event_obj.Event3202_obj),event_para_save);
 		oi_chg.oi3202 = prginfo_event->oi_changed.oi3202;
+		fprintf(stderr, "step0-2\n");
 	}
     //暂时不使用
+	fprintf(stderr, "step0-3\n");
 	if (prginfo_event->event_obj.Event3202_obj.enableflag == 0) {
 		return 0;
 	}
@@ -2754,7 +2765,9 @@ INT8U Event_3202(INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 		INT32U crrentnum = prginfo_event->event_obj.Event3202_obj.crrentnum;
 		INT8U index=0;
 		//标准数据单元
+		fprintf(stderr, "step1\n");
 		Get_StandardUnit(prginfo_event,0x3202,Save_buf,&index,crrentnum,(INT8U*)data,s_oi);
+		fprintf(stderr, "step2\n");
 		//属性3无关联数据
 		Save_buf[STANDARD_NUM_INDEX]+=0;
 		//存储更改后得参数
@@ -2764,7 +2777,9 @@ INT8U Event_3202(INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
 		//存储当前记录值
 		INT8U Currbuf[50]={};memset(Currbuf,0,50);
 		INT8U Currindex=0;
+		fprintf(stderr, "step3\n");
 		Get_CurrResult(Currbuf,&Currindex,(INT8U*)data,s_oi,crrentnum,0);
+		fprintf(stderr, "step4\n");
 		saveCoverClass(0x3202,(INT16U)crrentnum,(void *)Currbuf,(int)Currindex,event_current_save);
 		//判断是否要上报
 		if(prginfo_event->event_obj.Event3202_obj.reportflag)

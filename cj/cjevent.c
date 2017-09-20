@@ -427,7 +427,6 @@ void event_process(int argc, char *argv[])
 	Class7_Object	class7={};
 	int		i = 0,ret = 0;
 	ProgramInfo* JProgramInfo=NULL;
-	JProgramInfo = OpenShMem("ProgramInfo",sizeof(ProgramInfo),NULL);
 
 	if((strcmp("enable",argv[2])==0) && (argc==3)){
 		printEventEnable();
@@ -579,6 +578,7 @@ void event_process(int argc, char *argv[])
                     if(Getbuf!=NULL)
                     	free(Getbuf);
 				}
+				shmm_unregister("ProgramInfo", sizeof(ProgramInfo));
 			}
 		}
 		if(strcmp("init",argv[2])==0) {
@@ -681,6 +681,7 @@ void event_process(int argc, char *argv[])
 				sscanf(argv[4],"%d",&flag);
 				CLASS19 class19;
 				memset(&class19,0,sizeof(CLASS19));
+				JProgramInfo = OpenShMem("ProgramInfo",sizeof(ProgramInfo),NULL);
 				if(oi == 0x301B){
 					if(flag == 1){
 						JProgramInfo->event_obj.Event301B_obj.enableflag=TRUE;
@@ -798,6 +799,7 @@ void event_process(int argc, char *argv[])
 					}
 				}
 				fprintf(stderr,"设置%04x成功!\n",oi);
+				shmm_unregister("ProgramInfo", sizeof(ProgramInfo));
 		}
 
 		if(strcmp("set",argv[2])==0){

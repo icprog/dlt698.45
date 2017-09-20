@@ -1278,6 +1278,7 @@ void PlcInfo(INT16U attr_act, INT8U *data, Action_result *act_ret)
 	int   index = 0;
 	CLASS_f209	class_f209={};
 	OAD		oad={};
+
     switch (attr_act) {
         case 127://透明转发
     		readCoverClass(0xf209 ,0 , &class_f209,sizeof(CLASS_f209),para_vari_save);
@@ -1289,10 +1290,9 @@ void PlcInfo(INT16U attr_act, INT8U *data, Action_result *act_ret)
     		setOIChange(0xf209);
         	break;
         case 128://配置端口参数（端口号，通信参数）
-        	oad.OI = 0xf209;
-        	oad.attflg = 0x02;
-        	oad.attrindex = 0x01;
-        	index += Set_F209(oad,data,&act_ret->DAR);
+    		index += getStructure(&data[index],NULL,&act_ret->DAR);
+    		index += getOAD(1,&data[index],&oad,&act_ret->DAR);
+        	index += setf209(oad,&data[index],&act_ret->DAR);
         	break;
     }
     act_ret->datalen = index;
@@ -1463,7 +1463,7 @@ int doObjectAction(OAD oad, INT8U *data, Action_result *act_ret) {
 				return act_ret->datalen;
 			}
 		}
-		fprintf(stderr, "进入oi判断\n");
+		fprintf(stderr, "进入oi判断(action)\n");
 		switch (oi) {
     	case 0x4000:	//广播校时
      		if (attr_act == 127) {  //方法 127 广播校时
@@ -1515,18 +1515,18 @@ int doObjectAction(OAD oad, INT8U *data, Action_result *act_ret) {
             break;
         case 0xF200:	//RS232
      		if (attr_act == 127) {  //方法 127 配置端口
-     			act_ret->datalen = Set_F200(0xf200,data,&act_ret->DAR);
+     			act_ret->datalen = setf200(0xf200,data,&act_ret->DAR);
      		}
         	break;
         case 0xF201:	//RS485
         	//TODO:存储长度 CLASS_f201×3（485-1,485-2,485-3），修改参数后重启系统，防止抄表口与维护口无法区分
         	if (attr_act == 127) { //
-        		act_ret->datalen = Set_F201(0xf201,data,&act_ret->DAR);
+        		act_ret->datalen = setf201(0xf201,data,&act_ret->DAR);
         	}
         	break;
         case 0xF202:	//红外
         	if (attr_act == 127) {  //方法 127 配置端口
-        		act_ret->datalen = Set_F202(0xf202,data,&act_ret->DAR);
+        		act_ret->datalen = setf202(0xf202,data,&act_ret->DAR);
         	}
         	break;
         case 0xF209:

@@ -180,6 +180,49 @@ void print_rcsd(CSD_ARRAYTYPE csds)
 	}
 }
 
+void print4500(CLASS25 class4500)
+{
+	int  i=0,j=0;
+	fprintf(stderr,"\n-------2:通信配置----------");
+	fprintf(stderr,"\n【工作模式】%d",class4500.commconfig.workModel);
+	fprintf(stderr,"\n【在线方式】%d",class4500.commconfig.onlineType);
+	fprintf(stderr,"\n【连接方式】%d",class4500.commconfig.connectType);
+	fprintf(stderr,"\n【连接应用方式】%d",class4500.commconfig.appConnectType);
+	fprintf(stderr,"\n【侦听端口1】%04x %d",class4500.commconfig.listenPort[0],class4500.commconfig.listenPort[0]);
+	fprintf(stderr,"\n【侦听端口2】%04x %d",class4500.commconfig.listenPort[1],class4500.commconfig.listenPort[1]);
+	fprintf(stderr,"\n【APN】 %s",&class4500.commconfig.apn[1]);
+	fprintf(stderr,"\n【用户名】 %s",&class4500.commconfig.userName[1]);
+	fprintf(stderr,"\n【密码】 %s",&class4500.commconfig.passWord[1]);
+	fprintf(stderr,"\n【代理服务器地址】 %d.%d.%d.%d ",class4500.commconfig.proxyIp[1],class4500.commconfig.proxyIp[2],class4500.commconfig.proxyIp[3],class4500.commconfig.proxyIp[4]);
+	fprintf(stderr,"\n【代理服务器端口】 %d",class4500.commconfig.proxyPort);
+	fprintf(stderr,"\n【超时时间和重发次数】 %02x",class4500.commconfig.timeoutRtry);
+	fprintf(stderr,"\n【心跳周期】 %d\n",class4500.commconfig.heartBeat);
+	fprintf(stderr,"\n-------3:主站通信参数表----------");
+	fprintf(stderr,"\n【主站IP】%d.%d.%d.%d",class4500.master.master[0].ip[1],class4500.master.master[0].ip[2],class4500.master.master[0].ip[3],class4500.master.master[0].ip[4]);
+	fprintf(stderr,"\n【端口号】 %d  \n",class4500.master.master[0].port);
+	fprintf(stderr,"\n存储前 主站IP %d.%d.%d.%d :%d\n",class4500.master.master[0].ip[1],class4500.master.master[0].ip[2],
+			class4500.master.master[0].ip[3],class4500.master.master[0].ip[4],class4500.master.master[0].port);
+	fprintf(stderr,"\n-------4:通信参数表----------");
+	fprintf(stderr,"\n【短信中心号码】 %s ",&class4500.sms.center[1]);
+	for(i=0;i<(class4500.sms.center[0]+1);i++) {
+		fprintf(stderr,"%02x ",class4500.sms.center[i]);
+	}
+	fprintf(stderr,"\n【主站号码】 %d ",class4500.sms.masternum);
+	for(i=0;i<class4500.sms.masternum;i++) {
+		fprintf(stderr," \n%s ",class4500.sms.master[i]);
+		for(j=0;j<(class4500.sms.masternum+1);j++) {
+			fprintf(stderr,"%02x ",class4500.sms.master[i][j]);
+		}
+	}
+	fprintf(stderr,"\n【短信通知号码】 %d ",class4500.sms.destnum);
+	for(i=0;i<class4500.sms.destnum;i++) {
+		fprintf(stderr," \n%s ",class4500.sms.dest[i]);
+		for(j=0;j<(class4500.sms.destnum+1);j++) {
+			fprintf(stderr,"%02x ",class4500.sms.dest[i][j]);
+		}
+	}
+}
+
 int fill_timetag(INT8U *data,TimeTag timetag)
 {
 	int index = 0;
@@ -354,6 +397,7 @@ int fill_enum(INT8U *data,INT8U value)		//0x16
 	data[1] = value;
 	return 2;
 }
+
 int fill_time(INT8U *data,INT8U *value)			//0x1b
 {
 	data[0] = dttime;
@@ -551,6 +595,21 @@ int fill_MS(INT8U type,INT8U *data,MY_MS myms)		//0x5C
 	return index;
 }
 
+int fill_COMDCB(INT8U type,INT8U *data,COMDCB comdcb)							//0x5F
+{
+	int	index = 0;
+
+	if(type==1) {
+		data[index++] = dtcomdcb;
+	}
+	data[index++] = comdcb.baud;
+	data[index++] = comdcb.verify;
+	data[index++] = comdcb.databits;
+	data[index++] = comdcb.stopbits;
+	data[index++] = comdcb.flow;
+	return index;
+}
+
 int fill_RCSD(INT8U type,INT8U *data,CSD_ARRAYTYPE csds)		//0x60
 {
 	int 	num=0,i=0;//,k=0;
@@ -617,7 +676,7 @@ int getArray(INT8U *source,INT8U *dest,INT8U *DAR)		//1
 		dest[0] = source[1];
 		return 2;//source[0] 0x1 (array type)   source[1] =num
 	}else{
-		if(DAR!=NULL)	*DAR = type_mismatch;
+		if(DAR!=NULL && *DAR==success)	*DAR = type_mismatch;
 		return 0;
 	}
 }
@@ -631,7 +690,7 @@ int getStructure(INT8U *source,INT8U *dest,INT8U *DAR)		//2
 	}else {
 		int	data_len=0;
 		data_len = get_Data(source,NULL);		//错误类型，为了setnormalList查找到下一个oad位置
-		if(DAR!=NULL)	*DAR = type_mismatch;
+		if(DAR!=NULL && *DAR==success)	*DAR = type_mismatch;
 		return data_len;
 	}
 }
@@ -642,7 +701,7 @@ int getBool(INT8U *source,INT8U *dest,INT8U *DAR)		//3
 		dest[0] = source[1];
 		return 2;//source[0] 0x3 (bool type)   source[1] =value
 	}else {
-		if(DAR!=NULL)	*DAR = type_mismatch;
+		if(DAR!=NULL && *DAR==success)	*DAR = type_mismatch;
 		return 0;
 	}
 }
@@ -689,7 +748,7 @@ int getOctetstring(INT8U type,INT8U *source,INT8U *tsa,INT8U *DAR)   //9  and  0
 		memcpy(tsa, &source[type],num+1);
 		return (num + type + 1);	// 1:长度字节
 	}else{
-		if(DAR!=NULL)	*DAR = type_mismatch;
+		if(DAR!=NULL && *DAR==success)	*DAR = type_mismatch;
 		return 0;
 	}
 	return 0;
@@ -707,7 +766,20 @@ int getVisibleString(INT8U *source,INT8U *dest,INT8U *DAR)	//0x0A
 		memcpy(&dest[0],&source[1],len);
 		return (len+1);			//+1:类型
 	}else{
-		if(DAR!=NULL)	*DAR = type_mismatch;
+		if(DAR!=NULL && *DAR==success)	*DAR = type_mismatch;
+		return 0;
+	}
+}
+
+int getInteger(INT8U *source,INT8S *dest,INT8U *DAR)                     // 0x0F
+{
+	if(source[0] == dtinteger) {
+		dest[0] = source[1];
+		return 2;//source[0] 0x11(unsigned type)   source[1] =data
+	}else {
+		if(DAR!=NULL && *DAR==success) {
+			*DAR = type_mismatch;
+		}
 		return 0;
 	}
 }
@@ -718,7 +790,7 @@ int getUnsigned(INT8U *source,INT8U *dest,INT8U *DAR)	//0x11
 		dest[0] = source[1];
 		return 2;//source[0] 0x11(unsigned type)   source[1] =data
 	}else {
-		if(DAR != NULL) {
+		if(DAR!=NULL && *DAR==success) {
 			*DAR = type_mismatch;
 		}
 		return 0;
@@ -799,7 +871,7 @@ int getDateTimeS(INT8U type,INT8U *source,INT8U *dest,INT8U *DAR)		//0x1C
 	if(type == 1 && source[0]!=dtdatetimes) {
 		data_len = get_Data(source,dest);		//错误类型，为了setnormalList查找到下一个oad位置
 		fprintf(stderr,"data_len = %d\n",data_len);
-		if(DAR!=NULL)	*DAR = type_mismatch;
+		if(DAR!=NULL && *DAR==success)	*DAR = type_mismatch;
 		return data_len;
 	}
 	return 0;
@@ -824,7 +896,7 @@ int getOAD(INT8U type,INT8U *source,OAD *oad,INT8U *DAR)		//0x51
 		oad->attrindex = source[type+3];
 		return (4+type);
 	}else{
-		if(DAR!=NULL)	*DAR=type_mismatch;
+		if(DAR!=NULL && *DAR==success)	*DAR=type_mismatch;
 		return 0;
 	}
 	return 0;
@@ -1133,7 +1205,7 @@ int getCOMDCB(INT8U type, INT8U* source, COMDCB* comdcb,INT8U *DAR)		//0x5F
 		comdcb->flow = source[type+4];
 		tmpDAR = getCOMDCBValid(*comdcb);
 		if(tmpDAR != success) {
-			if(DAR!=NULL)	*DAR = tmpDAR;
+			if(DAR!=NULL && *DAR==success)	*DAR = tmpDAR;
 		}
 		return (5+type);
 	}
@@ -1142,7 +1214,7 @@ int getCOMDCB(INT8U type, INT8U* source, COMDCB* comdcb,INT8U *DAR)		//0x5F
 		fprintf(stderr,"source=%02x\n",source[0]);
 		data_len = get_Data(source,NULL);		//错误类型，为了setnormalList查找到下一个oad位置
 		fprintf(stderr,"error data_len = %d\n",data_len);
-		if(DAR!=NULL)	*DAR=type_mismatch;
+		if(DAR!=NULL && *DAR==success)	*DAR=type_mismatch;
 		return data_len;
 	}
 	return 0;
@@ -1390,7 +1462,6 @@ void setOIChange(OI_698 oi)
 	case 0x601C:	memp->oi_changed.oi601C++;  break;
 	case 0x601E:	memp->oi_changed.oi601E++;  break;
 	case 0x6051:	memp->oi_changed.oi6051++;  break;
-
 	case 0xf203:
 		memp->oi_changed.oiF203++;
 		fprintf(stderr,"memp->oi_changed.oiF203=%d\n",memp->oi_changed.oiF203);

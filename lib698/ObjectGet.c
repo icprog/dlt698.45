@@ -1310,7 +1310,7 @@ INT8U fillVacsData(INT8U structnum,INT8U attindex,INT8U datatype,INT32U data1,IN
 	INT32U 	data[4]={};
 	INT8U	index=0,i=0;
 
-	fprintf(stderr,"11111structnum=%d   responseData=%p\n",structnum,responseData);
+//	fprintf(stderr,"11111structnum=%d   responseData=%p\n",structnum,responseData);
 	if(structnum>4) {
 		fprintf(stderr,"填充数据结构【%d】大于有效限定值【4】!!!",structnum);
 		structnum = 4;
@@ -1368,7 +1368,7 @@ int  fill_variClass(OAD oad,INT8U getflg,INT8U *sourcebuf,INT8U *destbuf,INT16U 
 	fprintf(stderr,"oad.OI=%x\n",oad.OI);
 	switch(oad.OI) {
 	case 0x2000:	//电压
-		if(oad.attrindex==0)		structnum = 3;
+		if(oad.attrindex==0 && proginfo->cfg_para.device != CCTT2)		structnum = 3;
 		else structnum = 1;
 		buflen = fillVacsData(structnum,oad.attrindex,dtlongunsigned,
 				proginfo->ACSRealData.Ua,proginfo->ACSRealData.Ub,proginfo->ACSRealData.Uc,0,destbuf);
@@ -1459,9 +1459,7 @@ int  fill_variClass(OAD oad,INT8U getflg,INT8U *sourcebuf,INT8U *destbuf,INT16U 
 		class23_get(oad,sourcebuf,destbuf,&buflen);
 		break;
 	case 0x2401:
-		if(sourcebuf!=NULL) {
-			class12_get(oad,sourcebuf,destbuf,&buflen);
-		}
+		class12_get(oad,sourcebuf,destbuf,&buflen);
 		break;
 	default:
 //		//fprintf(stderr,"GET_26:未定义对象属性，上送数据NULL\n");
@@ -2483,6 +2481,7 @@ int GetCtrl(RESULT_NORMAL *response)
 			break;
 		case 0x8001:
 			response->datalen = Get_8001(response);
+			break;
 		case 0x8002:
 			response->datalen = Get_8002(response);
 			break;
@@ -2545,28 +2544,34 @@ int GetCollPara(INT8U seqOfNum,RESULT_NORMAL *response){
 int GetDeviceIo(RESULT_NORMAL *response)
 {
 	switch(response->oad.OI) {
+		case 0xF001:
+		switch(response->oad.attflg) {
+			case 2:	//文件信息
+			case 3:	//命令结果
+				response->datalen = GetClass18(response->oad.attflg,response->data);
+				break;
+			case 4:	//传输块状态字
+				GetFileState(response);
+				break;
+		}
+		break;
 		case 0xF100:
 			GetEsamPara(response);
 			break;
 		case 0xF101:
 			GetSecurePara(response);
 			break;
+		case 0xF201:	//RS485
+			response->datalen = GetF201(response->oad,response->data);
+			break;
 		case 0xF203:
 			GetYxPara(response);
 			break;
-		case 0xF001:
-			switch(response->oad.attflg) {
-				case 2:	//文件信息
-				case 3:	//命令结果
-					response->datalen = GetClass18(response->oad.attflg,response->data);
-					break;
-				case 4:	//传输块状态字
-					GetFileState(response);
-					break;
-			}
-			break;
 		case 0xF205:
 			Get_f205_attr2(response);
+			break;
+		case 0xF209:	//ZB
+			response->datalen = GetF209(response->oad,response->data);
 			break;
 		default:	//未定义的对象
 			response->dar = obj_undefine;

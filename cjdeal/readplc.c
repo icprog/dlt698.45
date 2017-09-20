@@ -2497,10 +2497,18 @@ INT8U Proxy_GetRequestList(RUNTIME_PLC *runtime_p,CJCOMM_PROXY *proxy,int* begin
 				SendDataToCom(runtime_p->comfd, runtime_p->sendbuf,sendlen );
 				runtime_p->send_start_time = nowtime;
 				DbgPrintToFile1(31,"发送代理 %d",obj_index);
+			}else
+			{
+				obj_index++;
+				DbgPrintToFile1(31,"代理1 发现未知TSA ");
 			}
-			obj_index++;
 		}else
-			*beginwork = 1;
+		{
+			DbgPrintToFile1(31,"代理1  obj_index=%d  allnum=%d",obj_index,proxy->strProxyList.num);
+			*beginwork = 0;
+			proxy->isInUse = 0;
+			obj_index = 0;
+		}
 	}else if ((runtime_p->format_Up.afn == 0x13 && runtime_p->format_Up.fn == 1 ) && *beginwork==1)
 	{
 		singleLen = 0;
@@ -2531,11 +2539,15 @@ INT8U Proxy_GetRequestList(RUNTIME_PLC *runtime_p,CJCOMM_PROXY *proxy,int* begin
 		if(singleLen==0)
 			proxy->strProxyList.proxy_obj.objs[obj_index].dar = request_overtime;
 		*beginwork = 0;
+		obj_index++;
+		DbgPrintToFile1(31,"代理1 完成一次代理");
 	} else if (((nowtime - runtime_p->send_start_time) > timeout) && *beginwork==1) {
 		*beginwork = 0;
+		obj_index++;
 		DbgPrintToFile1(31,"单次超时");
 	}else if(proxyInUse.devUse.plcNeed == 0 && *beginwork == 1) {
 		*beginwork = 0;
+		proxy->isInUse = 0;
 		DbgPrintToFile1(31,"总超时判断取消等待");
 	}else if( nowtime - runtime_p->send_start_time > 100  ) {
 		clearvar(runtime_p);

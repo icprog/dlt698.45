@@ -60,6 +60,7 @@ extern void printTSA(TSA tsa);
 extern void print_road(ROAD road);
 extern void print_rcsd(CSD_ARRAYTYPE csds);
 extern void print_rsd(INT8U choice, RSD rsd);
+extern void print4500(CLASS25 class4500);
 /**/
 extern void setOIChange(OI_698 oi);
 /*----------------------接口类及对象实例的基本数据类型组帧----------------------*/
@@ -88,6 +89,7 @@ extern int fill_TSA(INT8U* data, INT8U* value, INT8U len);			//0x55
 extern int fill_RSD(INT8U choice,INT8U *data,RSD rsd);				//0x5A
 extern int fill_CSD(INT8U type, INT8U* data, MY_CSD csd);			//0x5b
 extern int fill_MS(INT8U type,INT8U *data,MY_MS myms);				//0x5C
+extern int fill_COMDCB(INT8U type,INT8U *data,COMDCB comdcb);		//0x5F
 extern int fill_RCSD(INT8U type, INT8U* data, CSD_ARRAYTYPE csds);	//0x60
 extern int fill_Data(INT8U type,INT8U *data,INT8U *value);
 /*----------------------接口类及对象实例的数据类型解析----------------------*/
@@ -98,6 +100,7 @@ extern int getBitString(INT8U type, INT8U* source, INT8U* dest);                
 extern int getDouble(INT8U* source, INT8U* dest);                                 // 5 6
 extern int getOctetstring(INT8U type, INT8U* source, INT8U* tsa,INT8U *DAR);                 // 9 and 0x55
 extern int getVisibleString(INT8U *source,INT8U *dest,INT8U *DAR);                          // 0x0A
+extern int getInteger(INT8U *source,INT8S *dest,INT8U *DAR);                     // 0x0F
 extern int getUnsigned(INT8U *source,INT8U *dest,INT8U *DAR);                     // 0x11
 extern int getLongUnsigned(INT8U* source, INT8U* dest);                           // 0x12
 extern int getLong64(INT8U *source,INT64U *dest);									//0x14

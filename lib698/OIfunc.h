@@ -11,11 +11,6 @@
 #include "Objectdef.h"
 #include "Shmem.h"
 
-extern int Set_4000(INT8U *data,INT8U *DAR);
-extern int Set_4006(INT8U *data,INT8U *DAR,INT8U attr_act);
-extern int	Set_F200(OI_698 oi,INT8U *data,INT8U *DAR);
-extern int	Set_F202(OI_698 oi,INT8U *data,INT8U *DAR);
-extern int	Set_F209(OAD setoad,INT8U *data,INT8U *DAR);
 /*----------------------变量类----------------------*/
 extern INT8U Get_213x(INT8U getflg, INT8U *sourcebuf, INT8U *buf, int *len);
 extern INT8U Get_2200(INT8U getflg, INT8U* sourcebuf, INT8U* buf, int* len);
@@ -34,5 +29,8 @@ extern int Get_6017(INT8U type,INT8U seqnum,INT8U *data);
 extern int Get_6019(INT8U type,INT8U seqnum,INT8U *data);
 extern int Get_6035(INT8U type,INT8U seqnum, INT8U* data);
 extern int Get_601D(INT8U type,INT8U seqnum,INT8U *data);
+
+/*----------------------输入输出设备类-----------------*/
+extern int GetF201(OAD oad,INT8U *data);
 
 #endif /* OIFUNC_H_ */

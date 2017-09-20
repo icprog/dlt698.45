@@ -828,7 +828,6 @@ typedef struct {
     INT8U eConfig;  //电控轮次
     ALCONSTATE alConState;  //设置状态
     ALCTLSTATE alCtlState;  //控制状态
-    Scaler_Unit su[10];//属性3-12换算单位
 } CLASS23;
 
 typedef struct {
@@ -892,12 +891,12 @@ typedef struct {
 } TIME_CTRL;
 
 typedef struct {
+    INT8U sign;
+    INT8U numb;
     TIME_CTRL list[MAX_AL_UNIT];
     ALSTATE enable[MAX_AL_UNIT];
     ALSTATE output[MAX_AL_UNIT];
     ALSTATE overflow[MAX_AL_UNIT];
-    INT8U sign;
-    INT8U numb;
 } CLASS_8103;
 
 typedef struct {
@@ -931,7 +930,7 @@ typedef struct {
 
 typedef struct {
     INT8U down_huacha;
-    INT8U down_xishu;
+    INT8S down_xishu;
     INT8U down_freeze;
     INT8U down_ctrl_time;
     INT8U t1;
@@ -941,10 +940,11 @@ typedef struct {
 } DOWN_CTRL;
 
 typedef struct {
-	DOWN_CTRL list[MAX_AL_UNIT];
-    ALSTATE enable[MAX_AL_UNIT];
-    ALSTATE output[MAX_AL_UNIT];
-    ALSTATE overflow[MAX_AL_UNIT];
+	OI_698 index;
+	DOWN_CTRL list;
+    ALSTATE enable;
+    ALSTATE output;
+    ALSTATE overflow;
 } CLASS_8106;
 
 typedef struct {
