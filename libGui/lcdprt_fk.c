@@ -20,7 +20,7 @@ extern void menu_jzqdelmeter();
 Menu menu_fk[]={
 	//level,    name,   		fun, 				ispasswd			pthis,
 {{level0,"  主菜单 ",		NULL, 				MENU_NOPASSWD},		NULL},
-	{{level1,"1.实时数据", 	NULL, 					MENU_NOPASSWD},		NULL},
+	{{level1,"1.实时数据", 	NULL, 				MENU_NOPASSWD},		NULL},
 					{{level2,"1.当前功率",	menu_realP, 		MENU_NOPASSWD},		NULL},
 					{{level2,"2.当前电量", 	menu_realE, 		MENU_NOPASSWD},		NULL},
 					{{level2,"3.负荷曲线", 	menu_loadcurve, 	MENU_NOPASSWD},		NULL},
@@ -37,7 +37,7 @@ Menu menu_fk[]={
 					{{level2,"4.下浮控参数",		menu_xiafupara, 	MENU_NOPASSWD},		NULL},
 					{{level2,"5.月电控参数", 		menu_yuedianpara, 	MENU_NOPASSWD},		NULL},
 					{{level2,"6.KvKiKp", 		menu_kvkikp, 		MENU_NOPASSWD},		NULL},
-					{{level2,"7.电能表参数", 		NULL, 	MENU_NOPASSWD},		NULL},
+					{{level2,"7.电能表参数", 		NULL, 				MENU_NOPASSWD},		NULL},
 									{{level3,"1.修改测量点", 		menu_jzqsetmeter,	MENU_ISPASSWD},	NULL},
 									{{level3,"2.添加测量点", 		menu_jzqaddmeter,	MENU_ISPASSWD},	NULL},
 									{{level3,"3.删除测量点", 		menu_jzqdelmeter,	MENU_ISPASSWD},	NULL},
@@ -1144,7 +1144,7 @@ void realE_showZJ(INT8U zj_index, int arr_data[], INT8U *surfix)
 	INT8U str[100];
 	memset(str, 0, 100);
 	sprintf((char*)str,"总% 12d %s",arr_data[0], surfix);
-	gui_setpos(&pos, rect_Client.left+4*FONTSIZE, rect_Client.top+5*FONTSIZE);
+	gui_setpos(&pos, rect_Client.left+4*FONTSIZE, rect_Client.top+7*FONTSIZE);
 	gui_textshow((char*)str, pos, LCD_NOREV);
 	memset(str, 0, 100);
 	sprintf((char*)str,"尖% 12d %s", arr_data[1], surfix);
@@ -1162,15 +1162,15 @@ void realE_showZJ(INT8U zj_index, int arr_data[], INT8U *surfix)
 	sprintf((char*)str,"谷% 12d %s",arr_data[4], surfix);
 	pos.y += 2*FONTSIZE+offset_y;
 	gui_textshow((char*)str, pos, LCD_NOREV);
-	TSGet(&curts);
-	memset(str, 0, 100);
-	if(curts.Year==0|| curts.Month==0||curts.Day==0)
-		sprintf((char*)str,"抄表时间 00/00/00 00:00");
-	else
-	sprintf((char*)str,"抄表时间 %02d/%02d/%02d %02d:%02d",
-			curts.Year-2000, curts.Month, curts.Day, curts.Hour, curts.Minute);
-	gui_setpos(&pos, rect_Client.left, rect_Client.top+18*FONTSIZE);
-	gui_textshow((char*)str, pos, LCD_NOREV);
+//	TSGet(&curts);
+//	memset(str, 0, 100);
+//	if(curts.Year==0|| curts.Month==0||curts.Day==0)
+//		sprintf((char*)str,"抄表时间 00/00/00 00:00");
+//	else
+//	sprintf((char*)str,"抄表时间 %02d/%02d/%02d %02d:%02d",
+//			curts.Year-2000, curts.Month, curts.Day, curts.Hour, curts.Minute);
+//	gui_setpos(&pos, rect_Client.left, rect_Client.top+18*FONTSIZE);
+//	gui_textshow((char*)str, pos, LCD_NOREV);
 	return;
 }
 
@@ -1214,48 +1214,47 @@ void menu_realE(){
 		if(PressKey!=NOKEY || first_flg==0){//如果有按键或者
 			first_flg = 1;
 			gui_clrrect(rect_Client);//清除客户显示区
-			gui_setpos(&pos, rect_Client.left+10*FONTSIZE, rect_Client.top);
+			gui_setpos(&pos, rect_Client.left+4*FONTSIZE, rect_Client.top+3);
 			memset(str, 0, 100);
-			sprintf(str, "总加组%d", zj_index);
+			sprintf(str, "总加组%d [OI:%04x]", zj_index,0x2300 + zj_index);
 			gui_textshow(str, pos, LCD_NOREV);
-			pos.x = rect_Client.left;
-			pos.y = rect_Client.top + 3*FONTSIZE-4;
+			pos.x = rect_Client.left+ 4*FONTSIZE;
+			pos.y = rect_Client.top + 4*FONTSIZE-4;
 			memset(str, 0, 100);
 			switch(zf_index){
 			case 1:
-//				fprintf(stderr,"总电能量 = %f\n",shmm_getpubdata()->data_calc_by1min[zj_index-1].DESP);		//FOR698
-//				arr_data[0] = shmm_getpubdata()->data_calc_by1min[zj_index-1].DESP;
-//				arr_data[1] = shmm_getpubdata()->data_calc_by1min[zj_index-1].DESP_m1;
-//				arr_data[2] = shmm_getpubdata()->data_calc_by1min[zj_index-1].DESP_m2;
-//				arr_data[3] = shmm_getpubdata()->data_calc_by1min[zj_index-1].DESP_m3;
-//				arr_data[4] = shmm_getpubdata()->data_calc_by1min[zj_index-1].DESP_m4;
+				arr_data[0] = (int)p_JProgramInfo->class23[zj_index-1].DayPALL;
+				arr_data[1] = (int)p_JProgramInfo->class23[zj_index-1].DayP[0];
+				arr_data[2] = (int)p_JProgramInfo->class23[zj_index-1].DayP[1];
+				arr_data[3] = (int)p_JProgramInfo->class23[zj_index-1].DayP[2];
+				arr_data[4] = (int)p_JProgramInfo->class23[zj_index-1].DayP[3];
 				gui_textshow((char*)"当日有功总电能量", pos, LCD_NOREV);
 				realE_showZJ(zj_index, arr_data, (INT8U*)"kWh");
 				break;
 			case 2:
-//				arr_data[0] = shmm_getpubdata()->data_calc_by1min[zj_index-1].DESQ;							//FOR698
-//				arr_data[1] = shmm_getpubdata()->data_calc_by1min[zj_index-1].DESQ_m1;
-//				arr_data[2] = shmm_getpubdata()->data_calc_by1min[zj_index-1].DESQ_m2;
-//				arr_data[3] = shmm_getpubdata()->data_calc_by1min[zj_index-1].DESQ_m3;
-//				arr_data[4] = shmm_getpubdata()->data_calc_by1min[zj_index-1].DESQ_m4;
+				arr_data[0] = (int)p_JProgramInfo->class23[zj_index-1].DayQALL;
+				arr_data[1] = (int)p_JProgramInfo->class23[zj_index-1].DayQ[0];
+				arr_data[2] = (int)p_JProgramInfo->class23[zj_index-1].DayQ[1];
+				arr_data[3] = (int)p_JProgramInfo->class23[zj_index-1].DayQ[2];
+				arr_data[4] = (int)p_JProgramInfo->class23[zj_index-1].DayQ[3];
 				gui_textshow((char*)"当日无功总电能量", pos, LCD_NOREV);
 				realE_showZJ(zj_index, arr_data, (INT8U*)"kVArh");
 				break;
 			case 3:
-//				arr_data[0] = shmm_getpubdata()->data_calc_by1min[zj_index-1].MESP;							FOR698
-//				arr_data[1] = shmm_getpubdata()->data_calc_by1min[zj_index-1].MESP_m1;
-//				arr_data[2] = shmm_getpubdata()->data_calc_by1min[zj_index-1].MESP_m2;
-//				arr_data[3] = shmm_getpubdata()->data_calc_by1min[zj_index-1].MESP_m3;
-//				arr_data[4] = shmm_getpubdata()->data_calc_by1min[zj_index-1].MESP_m4;
+				arr_data[0] = (int)p_JProgramInfo->class23[zj_index-1].MonthPALL;
+				arr_data[1] = (int)p_JProgramInfo->class23[zj_index-1].MonthP[0];
+				arr_data[2] = (int)p_JProgramInfo->class23[zj_index-1].MonthP[1];
+				arr_data[3] = (int)p_JProgramInfo->class23[zj_index-1].MonthP[2];
+				arr_data[4] = (int)p_JProgramInfo->class23[zj_index-1].MonthP[3];
 				gui_textshow((char*)"当月有功总电能量", pos, LCD_NOREV);
 				realE_showZJ(zj_index, arr_data, (INT8U*)"kWh");
 				break;
 			case 4:
-//				arr_data[0] = shmm_getpubdata()->data_calc_by1min[zj_index-1].MESQ;							FOR698
-//				arr_data[1] = shmm_getpubdata()->data_calc_by1min[zj_index-1].MESQ_m1;
-//				arr_data[2] = shmm_getpubdata()->data_calc_by1min[zj_index-1].MESQ_m2;
-//				arr_data[3] = shmm_getpubdata()->data_calc_by1min[zj_index-1].MESQ_m3;
-//				arr_data[4] = shmm_getpubdata()->data_calc_by1min[zj_index-1].MESQ_m4;
+				arr_data[0] = (int)p_JProgramInfo->class23[zj_index-1].MonthQALL;
+				arr_data[1] = (int)p_JProgramInfo->class23[zj_index-1].MonthQ[0];
+				arr_data[2] = (int)p_JProgramInfo->class23[zj_index-1].MonthQ[1];
+				arr_data[3] = (int)p_JProgramInfo->class23[zj_index-1].MonthQ[2];
+				arr_data[4] = (int)p_JProgramInfo->class23[zj_index-1].MonthQ[3];
 				gui_textshow((char*)"当月无功总电能量", pos, LCD_NOREV);
 				realE_showZJ(zj_index, arr_data, (INT8U*)"kVArh");
 			}
@@ -1657,47 +1656,48 @@ void menu_dianctlrec(){
 //}
 
 void menu_yaoctlrec(){
-/*
-	int erc_index=0, erc_count=0;
-	INT8U first_flg=0;
-	ERC erc[256];
-	memset(erc, 0, 256*sizeof(ERC));
-	erc_count = get_erc(5, erc, 256);
-	PressKey = NOKEY;
-	while(g_LcdPoll_Flag==LCD_NOTPOLL){//如果未处于轮显状态									//FOR698
-		switch(PressKey)
-		{
-		//一个总加组数据分4屏显示，由“左”“右”方向键控制
-		case UP:
-		case LEFT://
-			if(erc_count>0){
-				erc_index--;//显示前一屏内容
-				if(erc_index<0)
-					erc_index = erc_count-1;
-			}else
-				erc_index = 0;
-			break;
-		case DOWN:
-		case RIGHT:
-			if(erc_count>0){
-				erc_index++;//显示后一屏内容
-				if(erc_index>=erc_count)
-					erc_index = 0;
-			}else
-				erc_index = 0;
-			break;
-		case ESC:
-			return;
-		}
-		if(PressKey!=NOKEY || first_flg==0){
-			first_flg = 1;
-			gui_clrrect(rect_Client);
-			yaoctlrec(&erc[erc_index], erc_index,erc_count);
-		}
-		PressKey = NOKEY;
-		delay(300);
-	}
-*/
+	Class7_Object event3115;	//遥控跳闸记录
+
+//	int erc_index=0, erc_count=0;
+//	INT8U first_flg=0;
+//	ERC erc[256];
+//	memset(erc, 0, 256*sizeof(ERC));
+//	erc_count = get_erc(5, erc, 256);
+//	PressKey = NOKEY;
+//	while(g_LcdPoll_Flag==LCD_NOTPOLL){//如果未处于轮显状态									//FOR698
+//		switch(PressKey)
+//		{
+//		//一个总加组数据分4屏显示，由“左”“右”方向键控制
+//		case UP:
+//		case LEFT://
+//			if(erc_count>0){
+//				erc_index--;//显示前一屏内容
+//				if(erc_index<0)
+//					erc_index = erc_count-1;
+//			}else
+//				erc_index = 0;
+//			break;
+//		case DOWN:
+//		case RIGHT:
+//			if(erc_count>0){
+//				erc_index++;//显示后一屏内容
+//				if(erc_index>=erc_count)
+//					erc_index = 0;
+//			}else
+//				erc_index = 0;
+//			break;
+//		case ESC:
+//			return;
+//		}
+//		if(PressKey!=NOKEY || first_flg==0){
+//			first_flg = 1;
+//			gui_clrrect(rect_Client);
+//			yaoctlrec(&erc[erc_index], erc_index,erc_count);
+//		}
+//		PressKey = NOKEY;
+//		delay(300);
+//	}
+
 }
 
 /**********************************************************************end**********************************************************************************/

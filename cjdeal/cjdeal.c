@@ -34,7 +34,7 @@ static OAD	OAD_PORT_ZB={0xF209,0x02,0x01};
 
 extern INT32S 			spifp_rn8209;
 extern INT32S 			spifp;
-
+extern INT8U initMap07DI_698OAD();
 extern INT8S use6013find6015or6017(INT8U cjType,INT16U fanganID,TI interval6013,CLASS_6015* st6015);
 extern INT8U checkMeterType(MY_MS mst,INT8U usrType,TSA usrAddr);
 extern void DbgPrintToFile1(INT8U comport,const char *format,...);
