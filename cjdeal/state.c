@@ -44,7 +44,7 @@ INT32S state_get(DEV_STATE_PULSE road)
 	switch(road)
 	{
 	case STATE1:
-		staval = gpio_readbyte(DEV_STATE1,&staval);
+		staval = gpio_readbyte(DEV_STATE1);
 		break;
 	case STATE2:
 		staval = gpio_readbyte(DEV_STATE2);

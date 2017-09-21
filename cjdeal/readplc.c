@@ -2322,7 +2322,7 @@ int doTask(RUNTIME_PLC *runtime_p)
 	static int step_cj = 0, beginwork=0;
 	static int inWaitFlag = 0;
 	struct Tsa_Node *nodetmp;
-
+	INT8U seqtmp=0;
 	TSA tsatmp;
 	int sendlen=0, flag=0;
 
@@ -2383,7 +2383,7 @@ int doTask(RUNTIME_PLC *runtime_p)
 				DbgPrintToFile1(31,"\n 请求地址 [ %02x-%02x-%02x%02x%02x%02x%02x%02x ] ",\
 						tsatmp.addr[0],tsatmp.addr[1],tsatmp.addr[2],tsatmp.addr[3],\
 						tsatmp.addr[4],tsatmp.addr[5],tsatmp.addr[6],tsatmp.addr[7]);
-
+//				seqtmp = runtime_p->format_Up.info_up.Seq;//请求抄读帧SEQ
 				sendlen = 0;
 				nodetmp = NULL;
 				nodetmp = getNodeByTSA(tsa_head,tsatmp);

@@ -34,7 +34,7 @@ static OAD	OAD_PORT_ZB={0xF209,0x02,0x01};
 
 extern INT32S 			spifp_rn8209;
 extern INT32S 			spifp;
-
+extern INT8U initMap07DI_698OAD();
 extern INT8S use6013find6015or6017(INT8U cjType,INT16U fanganID,TI interval6013,CLASS_6015* st6015);
 extern INT8U checkMeterType(MY_MS mst,INT8U usrType,TSA usrAddr);
 extern void DbgPrintToFile1(INT8U comport,const char *format,...);
@@ -1118,7 +1118,7 @@ int proxy_dar_fill(PROXY_GETLIST *dest_list,PROXY_GETLIST get_list)
 extern void set_port_active(INT8U port485,INT8U value);
 void Pre_ProxyGetRequestList(CJCOMM_PROXY proxy)
 {
-	int num = proxy.strProxyList.num ,i=0,num_485=0,num_zb=0,dataindex=0;
+	int num = proxy.strProxyList.num ,i=0,num_485=0,num_zb=0,dataindex=0, rs485_1=0 , rs485_2 =0 ;
 	CLASS_6001 obj6001 = {};
 
 	proxyList_manager.num = num;	//一致性测试
@@ -1135,6 +1135,11 @@ void Pre_ProxyGetRequestList(CJCOMM_PROXY proxy)
 		{
 			if (obj6001.basicinfo.port.OI==PORT_485)
 			{
+				if (obj6001.basicinfo.port.attrindex==1)
+					rs485_1 = 1;
+				if (obj6001.basicinfo.port.attrindex==2)
+					rs485_2 = 1;
+
 				memcpy(&cjcommProxy.strProxyList.proxy_obj.objs[num_485++], &proxy.strProxyList.proxy_obj.objs[i], sizeof(GETOBJS));
 				cjcommProxy.strProxyList.num = num_485;
 			}else if(obj6001.basicinfo.port.OI==PORT_ZB)
@@ -1150,8 +1155,10 @@ void Pre_ProxyGetRequestList(CJCOMM_PROXY proxy)
 	fprintf(stderr,"\n代理任务分配   num=%d",cjcommProxy.strProxyList.num);
 	if (num_485 > 0)
 	{
-		set_port_active(1,1);
-		set_port_active(2,1);
+		if (rs485_1)
+			set_port_active(1,1);
+		if (rs485_2)
+			set_port_active(2,1);
 		cjcommProxy.strProxyList.proxytype = proxy.strProxyList.proxytype;
 		cjcommProxy.isInUse = 3;
 		proxyInUse.devUse.rs485Need = 1;
@@ -1509,6 +1516,8 @@ INT8U dealProxyAnswer()
 	{
 		if (proxyInUse.devUse.rs485_1_Active==0 && proxyInUse.devUse.rs485_2_Active==0)
 			proxyInUse.devUse.rs485Ready = 1;
+
+		fprintf(stderr,"\nrs485_1_Active = %d  rs485_2_Active = %d\n",proxyInUse.devUse.rs485_1_Active,proxyInUse.devUse.rs485_2_Active);
 		if ( proxyInUse.devUse.rs485Ready == 1 || timecount > proxyList_manager.timeout)
 		{//收集数据
 			fprintf(stderr,"proxyInUse.devUse.rs485Ready = %d timecount = %d proxyList_manager.timeout = %d",proxyInUse.devUse.rs485Ready,timecount,proxyList_manager.timeout);
