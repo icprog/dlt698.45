@@ -1855,13 +1855,15 @@ int initshiduan(const INT8U period_powerctrl[][4],struct shiduanpara_ts *sd_ts){
 ************************************************************************************************************************************************************/
 //时段控
 void menu_shiduanpara(){
+	CLASS_8103 c8103;
 	Point pos;
 	char str[100];
 	INT8U  first_flg=0;
-	int zj_index=1, shiduan=1,fangan_no=1;
+	int unite_index=1, shiduan=1,fangan_no=1;
 	struct shiduanpara_ts sd_ts[48];
 	memset(sd_ts, 0, 48*sizeof(struct shiduanpara_ts));
-//	initshiduan(ParaAll->f18.Period_PowerCtrl, sd_ts);						//FOR698
+
+	readCoverClass(0x8103, 0, &c8103, sizeof(CLASS_8103),para_vari_save);
 
 	PressKey = NOKEY;
 	while(g_LcdPoll_Flag==LCD_NOTPOLL){
@@ -1879,9 +1881,9 @@ void menu_shiduanpara(){
 			}
 			break;
 		case UP:
-			zj_index--;
-			if(zj_index<=0)
-				zj_index = MAXNUM_SUMGROUP;
+			unite_index--;
+			if(unite_index<=0)
+				unite_index = MAXNUM_SUMGROUP;
 			break;
 		case RIGHT:
 			shiduan = shiduan + 4;
@@ -1893,25 +1895,42 @@ void menu_shiduanpara(){
 			}
 			break;
 		case DOWN:
-			zj_index++;
-			if(zj_index>MAXNUM_SUMGROUP)
-				zj_index = 1;
+			unite_index++;
+			if(unite_index>MAXNUM_SUMGROUP)
+				unite_index = 1;
 			break;
 		case ESC:
 			return;
 		}
+		int enable_i=0,ifenable=0;
 		if(PressKey!=NOKEY || first_flg==0){
 			first_flg = 1;
 			gui_clrrect(rect_Client);
 			gui_setpos(&pos, rect_Client.left+6*FONTSIZE, rect_Client.top+FONTSIZE);
 			memset(str, 0, 100);
-			sprintf(str, "总加组%d 方案号%d", zj_index, fangan_no);
+			sprintf(str,"配置单元%d [总加组%04x]", unite_index, c8103.list[unite_index].index);
 			gui_textshow(str, pos, LCD_NOREV);
 			pos.x = rect_Client.left;
 			pos.y += 3*FONTSIZE;
 			memset(str, 0, 100);
+
+			for(enable_i=0;enable_i<8;enable_i++)
+			{
+				if (c8103.enable[enable_i].name == c8103.list[unite_index].index)
+				{
+					ifenable = c8103.enable[enable_i].state;
+				}
+			}
+			if (ifenable==0 )//该总加组没投入！
+			{
+				pos.y += 3*FONTSIZE;
+				memset(str, 0, 100);
+				sprintf(str,"总加 未投入");
+				gui_textshow(str, pos, LCD_NOREV);
+				continue;
+			}
+
 			sprintf(str, "时段控投入轮次:");
-//			getctrlround(ParaAll->f45[zj_index-1].Power_Round, str);				//FOR698
 			gui_textshow(str, pos, LCD_NOREV);
 			pos.y += 3*FONTSIZE;
 			memset(str, 0, 100);
