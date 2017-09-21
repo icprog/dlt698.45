@@ -18,6 +18,7 @@
 #include <time.h>
 #include <stdarg.h>
 #include <sys/stat.h>
+#include "basedef.h"
 #include "calc.h"
 #include "cjdeal.h"
 #include "cjsave.h"
@@ -38,6 +39,16 @@ extern ProgramInfo* JProgramInfo;
 extern INT8U poweroffon_state;
 extern MeterPower MeterPowerInfo[POWEROFFON_NUM];
 
+typedef struct {
+	INT64U day_pos_p[MAXVAL_RATENUM];//当日正向有功功率
+	INT64U mon_pos_p[MAXVAL_RATENUM];//当月正向有功功率
+	INT64U day_nag_p[MAXVAL_RATENUM];//当日反向有功功率
+	INT64U mon_nag_p[MAXVAL_RATENUM];//当月反向有功功率
+	INT64U day_pos_q[MAXVAL_RATENUM];//当日正向无功功率
+	INT64U mon_pos_q[MAXVAL_RATENUM];//当月正向无功功率
+	INT64U day_nag_q[MAXVAL_RATENUM];//当日反向无功功率
+	INT64U mon_nag_q[MAXVAL_RATENUM];//当月反向无功功率
+} CLASS12_PLUSE;
 
 ///*
 // * 根据任务的CSD来判断是否是该任务数据
@@ -66,7 +77,8 @@ extern MeterPower MeterPowerInfo[POWEROFFON_NUM];
 int saveTerminalTaskData(INT8U taskid,TS savets,TSA tsa,CSD_ARRAYTYPE csds)
 {
 	INT8U	saveBuf[255]={};
-	int		index=0,buflen=0;
+	int		index=0;
+	INT16U	buflen=0;
 	OAD 	freezeOAD={},relateOAD={};
 	DateTimeBCD		freezetime={};
 	int 	i=0,j=0;
@@ -99,8 +111,6 @@ int saveTerminalTaskData(INT8U taskid,TS savets,TSA tsa,CSD_ARRAYTYPE csds)
 					index += fill_date_time_s(&saveBuf[index],&freezetime);
 					break;
 				case 0x2131:
-				case 0x2132:
-				case 0x2133:
 					readVariData(relateOAD.OI,0,&volt_tj,sizeof(Volt_PassRate_tj));
 					if(freezeOAD.OI==0x5004) {
 						fill_variClass(relateOAD,1,(INT8U *)&volt_tj.dayu_tj,&saveBuf[index],&buflen,JProgramInfo);
@@ -108,6 +118,20 @@ int saveTerminalTaskData(INT8U taskid,TS savets,TSA tsa,CSD_ARRAYTYPE csds)
 					}else if(freezeOAD.OI==0x5006) {
 						fill_variClass(relateOAD,1,(INT8U *)&volt_tj.monthu_tj,&saveBuf[index],&buflen,JProgramInfo);
 						index += buflen;
+					}
+					break;
+				case 0x2132:
+				case 0x2133:
+					//山东II型集中器电压合格率要求B、C相上送NULL
+					if(JProgramInfo->cfg_para.device != CCTT2) {
+						readVariData(relateOAD.OI,0,&volt_tj,sizeof(Volt_PassRate_tj));
+						if(freezeOAD.OI==0x5004) {
+							fill_variClass(relateOAD,1,(INT8U *)&volt_tj.dayu_tj,&saveBuf[index],&buflen,JProgramInfo);
+							index += buflen;
+						}else if(freezeOAD.OI==0x5006) {
+							fill_variClass(relateOAD,1,(INT8U *)&volt_tj.monthu_tj,&saveBuf[index],&buflen,JProgramInfo);
+							index += buflen;
+						}
 					}
 					break;
 				default:
@@ -281,6 +305,26 @@ void Calc_Tj()
 		saveVariData(0x2203,0,&gongdian_tj,sizeof(Gongdian_tj));	//TODO：
 	}
 //	syslog(LOG_NOTICE,"day_tj=%d,mon_tj=%d\n",gongdian_tj.gongdian.day_tj,gongdian_tj.gongdian.month_tj);
+}
+
+/*
+ * 三型专变：脉冲计量数据冻结文件
+ * */
+void PluseFreeze(INT8U device_type,CLASS12 class12)
+{
+	if(device_type != SPTF3)	return;
+	CLASS12_PLUSE	pluse_energy={};
+
+	memcpy(&pluse_energy.day_pos_p,class12.day_pos_p,sizeof(pluse_energy.day_pos_p));
+	memcpy(&pluse_energy.day_nag_p,class12.day_nag_p,sizeof(pluse_energy.day_nag_p));
+	memcpy(&pluse_energy.day_pos_q,class12.day_pos_q,sizeof(pluse_energy.day_pos_q));
+	memcpy(&pluse_energy.day_nag_q,class12.day_nag_q,sizeof(pluse_energy.day_nag_q));
+
+	memcpy(&pluse_energy.mon_pos_p,class12.mon_pos_p,sizeof(pluse_energy.mon_pos_p));
+	memcpy(&pluse_energy.mon_nag_p,class12.mon_nag_p,sizeof(pluse_energy.mon_nag_p));
+	memcpy(&pluse_energy.mon_pos_q,class12.mon_pos_q,sizeof(pluse_energy.mon_pos_q));
+	memcpy(&pluse_energy.mon_nag_q,class12.mon_nag_q,sizeof(pluse_energy.mon_nag_q));
+
 }
 
 /*

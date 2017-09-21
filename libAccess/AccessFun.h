@@ -26,6 +26,8 @@
 #define	 VARI_DIR			"/nand/data"				//变量类数据文件目录
 #define	 VARI_DATA				"/nand/data/vari.dat"		//变量类-计量、采集子类数据存储
 #define	 VARI_DATA_TJ			"/nand/data/vari_tj.dat"		//变量类－统计子类数据存储
+#define	 PLUSE_ENERGY_DATA		"/nand/data/pluse_energy.dat"	//脉冲类电量存储
+
 #define	 PARADIR				"/nand/para"				//参变量文件（4000） 采集监控类文件（6000）
 //#define	 DEMANDDIR				"/nand/demand"				//需量类数据
 //#define	 FREEZEDIR				"/nand/freeze"				//冻结类数据存储

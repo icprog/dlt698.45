@@ -1421,7 +1421,6 @@ int  fill_variClass(OAD oad,INT8U getflg,INT8U *sourcebuf,INT8U *destbuf,INT16U 
 	case 0x200D:	//电压谐波含有量
 
 		break;
-
 	case 0x2011:	//时钟电池电压
 		if(bettery_getV(&bett[0],&bett[1]) == TRUE) {
 			buflen = fill_long_unsigned(destbuf,(INT16U)bett[0]*100);
