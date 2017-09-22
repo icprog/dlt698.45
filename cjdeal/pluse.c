@@ -80,6 +80,8 @@ void cacl_PQ(unsigned int pulse, int index) {
 	if (con == 0) {
 		return;
 	}
+
+
 //	double k = (JProgramInfo->class12[index].ct * JProgramInfo->class12[index].pt)
 	double k = (1000)
 			/ (double)(con*1.0);

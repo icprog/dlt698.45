@@ -2623,6 +2623,8 @@ INT8S dealProxyType7(PROXY_GETLIST *getlist,INT8U port485)
 	CSINFO csinfo={};
 	int hcsok = 0 ,fcsok = 0;
 
+	fprintf(stderr,"\n代理 7 !!!");
+
 	if(is485OAD(getlist->proxy_obj.transcmd.oad,port485) != 1)
 	{
 		return result;
@@ -2680,6 +2682,7 @@ INT8S dealProxyType7(PROXY_GETLIST *getlist,INT8U port485)
 				}
 			}
 		}
+		fprintf(stderr,"\n 代理7 串口返回 %d 字节",RecvLen);
 		DbPrt1(port485,"代理透传返回:", (char *) RecvBuff, RecvLen, NULL);
 		if(getZone("GW")==0) {
 			char title[20];

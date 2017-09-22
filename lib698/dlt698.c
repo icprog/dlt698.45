@@ -1446,6 +1446,59 @@ INT16S composeProtocol698_GetRequest(INT8U* sendBuf, CLASS_6015 obj6015,
 	return (sendLen + 3); //3: cs cs 16
 
 }
+/*
+ * 抄读电表数据，明文+RN
+ */
+INT16S composeProtocol698_GetRequest_RN(INT8U* sendBuf, CLASS_6015 obj6015,TSA meterAddr)
+{
+	INT8U PIID = 0x02;
+	int sendLen = 0, hcsi = 0, apdulen = 0 ,MWLenPlace = 0;
+	INT8U reverseAddr[OCTET_STRING_LEN] = { 0 };
+	int RnLen = 0;
+	CSINFO csinfo = { };
+
+	csinfo.dir = 0; //服务器发出
+	csinfo.prm = 1; //服务器发出
+	csinfo.funcode = 3; //链路管理
+	csinfo.sa_type = 0; //单地址
+	csinfo.sa_length = (meterAddr.addr[1] & 0x0f) + 1; //sizeof(addr)-1;//服务器地址长度
+
+	reversebuff(&meterAddr.addr[2], csinfo.sa_length, reverseAddr);
+	memcpy(csinfo.sa, reverseAddr, csinfo.sa_length); //服务器地址
+	csinfo.ca = 0x02;
+
+	sendLen = FrameHead(&csinfo, sendBuf); //	2：hcs  hcs
+	hcsi = sendLen;
+	sendLen = sendLen + 2;
+
+	sendBuf[sendLen++] = 0x10;	//SECURITY-Request
+	sendBuf[sendLen++] = 0x00;  //明文
+	MWLenPlace = sendLen;
+	sendBuf[sendLen++] = 0x00;	//明文的长度
+
+	sendBuf[sendLen++] = GET_REQUEST;
+
+	INT8S requestType = getRequestType(obj6015.cjtype, obj6015.csds.num);
+	if (requestType < 0) {
+		return -1;
+	}
+	sendBuf[sendLen++] = requestType;
+	sendBuf[sendLen++] = PIID;
+	apdulen = fillGetRequestAPDU(&sendBuf[sendLen], obj6015, requestType);
+	sendLen += apdulen;
+	sendBuf[sendLen++] = 0x00; //没有时间标签
+
+	sendBuf[MWLenPlace] = sendLen - MWLenPlace -1;//明文长度字节的内容
+	sendBuf[sendLen++] = 0x01;  //数据验证信息 （RN类型
+
+	RnLen = esamMeterGetRN(&sendBuf[sendLen]); //填充RN
+	sendLen += RnLen;
+
+	FrameTail(sendBuf, sendLen, hcsi);
+	return (sendLen + 3); //3: cs cs 16
+
+}
+
 INT16U composeProtocol698_GetRequestRecord(PROXY_GETLIST *getlist,
 		INT8U *sendbuf) {
 	INT8U PIID = 0x02;

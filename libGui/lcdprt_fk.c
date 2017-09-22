@@ -1859,7 +1859,7 @@ void menu_shiduanpara(){
 	Point pos;
 	char str[100];
 	INT8U  first_flg=0;
-	int unite_index=1, shiduan=1,fangan_no=1;
+	int unite_index=1, dingzhi=1,fangan_no=1;
 	struct shiduanpara_ts sd_ts[48];
 	memset(sd_ts, 0, 48*sizeof(struct shiduanpara_ts));
 
@@ -1872,13 +1872,11 @@ void menu_shiduanpara(){
 		switch(PressKey)
 		{
 		case LEFT:
-			shiduan = shiduan - 4;
-			if(shiduan<=0){
-				shiduan = 5;//每页显示4个时段 每个方案号8个时段 共3个方案号
-				fangan_no--;
-				if(fangan_no <= 0)
-					fangan_no = 3;
-			}
+			//3套定值
+			dingzhi++;
+			dingzhi = dingzhi % 3;
+			if (dingzhi==0)
+				dingzhi = 3;
 			break;
 		case UP:
 			unite_index--;
@@ -1886,13 +1884,11 @@ void menu_shiduanpara(){
 				unite_index = MAXNUM_SUMGROUP;
 			break;
 		case RIGHT:
-			shiduan = shiduan + 4;
-			if(shiduan>8){
-				shiduan = 1;
-				fangan_no++;
-				if(fangan_no > 3)
-					fangan_no = 1;
-			}
+			//3套定值
+			dingzhi--;
+			dingzhi = dingzhi % 3;
+			if (dingzhi==0)
+				dingzhi = 3;
 			break;
 		case DOWN:
 			unite_index++;
@@ -1905,69 +1901,75 @@ void menu_shiduanpara(){
 		int enable_i=0,ifenable=0;
 		if(PressKey!=NOKEY || first_flg==0){
 			first_flg = 1;
-			gui_clrrect(rect_Client);
-			gui_setpos(&pos, rect_Client.left+6*FONTSIZE, rect_Client.top+FONTSIZE);
-			memset(str, 0, 100);
-			sprintf(str,"配置单元%d [总加组%04x]", unite_index, c8103.list[unite_index].index);
-			gui_textshow(str, pos, LCD_NOREV);
-			pos.x = rect_Client.left;
-			pos.y += 3*FONTSIZE;
-			memset(str, 0, 100);
-
 			for(enable_i=0;enable_i<8;enable_i++)
 			{
 				if (c8103.enable[enable_i].name == c8103.list[unite_index].index)
 				{
 					ifenable = c8103.enable[enable_i].state;
+					break;
 				}
 			}
-			if (ifenable==0 )//该总加组没投入！
-			{
-				pos.y += 3*FONTSIZE;
-				memset(str, 0, 100);
-				sprintf(str,"总加 未投入");
-				gui_textshow(str, pos, LCD_NOREV);
-				continue;
-			}
-
-			sprintf(str, "时段控投入轮次:");
+			gui_clrrect(rect_Client);
+			gui_setpos(&pos, rect_Client.left+2*FONTSIZE, rect_Client.top+FONTSIZE);
+			memset(str, 0, 100);
+			sprintf(str,"配置单元%d [总加组%04x]", unite_index, c8103.list[unite_index].index);
 			gui_textshow(str, pos, LCD_NOREV);
+
+//			if (ifenable==0 )//该总加组没投入！
+//			{
+//				pos.x = rect_Client.left+5*FONTSIZE;
+//				pos.y += 5*FONTSIZE;
+//				memset(str, 0, 100);
+//				sprintf(str,"未投入");
+//				gui_textshow(str, pos, LCD_NOREV);
+//				PressKey = NOKEY;
+//				delay(300);
+//				continue;
+//			}
 			pos.y += 3*FONTSIZE;
 			memset(str, 0, 100);
-			sprintf(str," 时段(%d-%d)     定值(kW)",shiduan, shiduan+3);
+			sprintf(str,"方案标识 %02x  浮动系数 %d",c8103.list[unite_index].sign,c8103.list[unite_index].para);
 			gui_textshow(str, pos, LCD_NOREV);
+
+			pos.y += 3*FONTSIZE;
 			memset(str, 0, 100);
-			pos.y += 2*FONTSIZE+3;
-																					//FOR698
-//			sprintf(str, "%02d:%02d-%02d:%02d % 12.3f",sd_ts[shiduan-1].ts1.Hour,sd_ts[shiduan-1].ts1.Minute,
-//					sd_ts[shiduan-1].ts2.Hour,sd_ts[shiduan-1].ts2.Minute,
-//					lcd_A02toDouble_decbits(ParaAll->f41[zj_index-1].para_f41_conval[fangan_no-1].con_val_contro[shiduan-1].ConstVal_Secured,
-//											ParaAll->f41[zj_index-1].para_f41_conval[fangan_no-1].con_val_contro[shiduan-1].DecBits));
+			sprintf(str,"第%d套定值",dingzhi);
 			gui_textshow(str, pos, LCD_NOREV);
-			memset(str, 0, 100);
-			pos.y += 2*FONTSIZE+3;
-																					//FOR698
-//			sprintf(str, "%02d:%02d-%02d:%02d % 12.3f",sd_ts[shiduan].ts1.Hour,sd_ts[shiduan].ts1.Minute,
-//					sd_ts[shiduan].ts2.Hour,sd_ts[shiduan].ts2.Minute,
-//					lcd_A02toDouble_decbits(ParaAll->f41[zj_index-1].para_f41_conval[fangan_no-1].con_val_contro[shiduan].ConstVal_Secured,
-//											ParaAll->f41[zj_index-1].para_f41_conval[fangan_no-1].con_val_contro[shiduan].DecBits));
-			gui_textshow(str, pos, LCD_NOREV);
-			memset(str, 0, 100);
-			pos.y += 2*FONTSIZE+3;
-																					//FOR698
-//			sprintf(str, "%02d:%02d-%02d:%02d % 12.3f",sd_ts[shiduan+1].ts1.Hour,sd_ts[shiduan+1].ts1.Minute,
-//					sd_ts[shiduan+1].ts2.Hour,sd_ts[shiduan+1].ts2.Minute,
-//					lcd_A02toDouble_decbits(ParaAll->f41[zj_index-1].para_f41_conval[fangan_no-1].con_val_contro[shiduan+1].ConstVal_Secured,
-//							ParaAll->f41[zj_index-1].para_f41_conval[fangan_no-1].con_val_contro[shiduan+1].DecBits));
-			gui_textshow(str, pos, LCD_NOREV);
-			memset(str, 0, 100);
-			pos.y += 2*FONTSIZE+3;
-																					//FOR698
-//			sprintf(str, "%02d:%02d-%02d:%02d % 12.3f",sd_ts[shiduan+2].ts1.Hour,sd_ts[shiduan+2].ts1.Minute,
-//					sd_ts[shiduan+2].ts2.Hour,sd_ts[shiduan+2].ts2.Minute,
-//					lcd_A02toDouble_decbits(ParaAll->f41[zj_index-1].para_f41_conval[fangan_no-1].con_val_contro[shiduan+2].ConstVal_Secured,
-//							ParaAll->f41[zj_index-1].para_f41_conval[fangan_no-1].con_val_contro[shiduan+2].DecBits));
-			gui_textshow(str, pos, LCD_NOREV);
+
+			switch(dingzhi)
+			{
+				case 1://第一套定值
+					pos.y += 3*FONTSIZE;
+					memset(str, 0, 100);
+					sprintf(str,"时段1:%05d 时段2:%05d",(int)c8103.list[unite_index].v1.t1,(int)c8103.list[unite_index].v1.t2);
+					gui_textshow(str, pos, LCD_NOREV);
+					pos.y += 3*FONTSIZE;
+					memset(str, 0, 100);
+					sprintf(str,"时段3:%05d 时段4:%05d",(int)c8103.list[unite_index].v1.t3,(int)c8103.list[unite_index].v1.t4);
+					gui_textshow(str, pos, LCD_NOREV);
+					pos.y += 3*FONTSIZE;
+					memset(str, 0, 100);
+					sprintf(str,"时段5:%05d 时段6:%05d",(int)c8103.list[unite_index].v1.t5,(int)c8103.list[unite_index].v1.t6);
+					gui_textshow(str, pos, LCD_NOREV);
+					pos.y += 3*FONTSIZE;
+					memset(str, 0, 100);
+					sprintf(str,"时段7:%05d 时段8:%05d",(int)c8103.list[unite_index].v1.t7,(int)c8103.list[unite_index].v1.t8);
+					gui_textshow(str, pos, LCD_NOREV);
+					break;
+				case 2://第二套定值
+					break;
+				case 3://第三套定值
+					break;
+			}
+//			sprintf(str,"时段号",c8103.list[unite_index].shiduan, shiduan+3);
+//			gui_textshow(str, pos, LCD_NOREV);
+//
+//			pos.y += 3*FONTSIZE;
+//			memset(str, 0, 100);
+//			sprintf(str," 时段(%d-%d)     定值(kW)",shiduan, shiduan+3);
+//			gui_textshow(str, pos, LCD_NOREV);
+//			memset(str, 0, 100);
+//			pos.y += 2*FONTSIZE+3;
 		}
 		PressKey = NOKEY;
 		delay(300);

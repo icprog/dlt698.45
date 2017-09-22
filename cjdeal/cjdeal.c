@@ -1294,11 +1294,16 @@ void Pre_ProxyDoRequestList(CJCOMM_PROXY proxy)//Proxy  Action / Set- List
 }
 void Pre_ProxyTransCommandRequest(CJCOMM_PROXY proxy)
 {
+	int rs485_1=0,rs485_2=0;
 	OI_698 	oad;
 	INT8U	dar=success;
 	int		dataindex=0;
 
 	oad = (INT16U)proxy.strProxyList.proxy_obj.transcmd.oad.OI;
+	if (proxy.strProxyList.proxy_obj.transcmd.oad.attrindex==2)
+		rs485_2 = 1;
+	if (proxy.strProxyList.proxy_obj.transcmd.oad.attrindex==1)
+		rs485_1 = 1;
 //	OADtoBuff(proxy.strProxyList.transcmd.oad,proxyList_manager.data);
 	dataindex += create_OAD(0,proxyList_manager.data,proxy.strProxyList.proxy_obj.transcmd.oad);
 	proxyList_manager.datalen = dataindex;
@@ -1321,8 +1326,11 @@ void Pre_ProxyTransCommandRequest(CJCOMM_PROXY proxy)
 			proxyInUse.devUse.plcNeed = 1;
 		}else if(oad == PORT_485)
 		{
-			set_port_active(1,1);
-			set_port_active(2,1);
+			if (rs485_1)
+				set_port_active(1,1);
+			if (rs485_2)
+				set_port_active(2,1);
+
 			memcpy(&cjcommProxy.strProxyList,&proxy.strProxyList,sizeof(PROXY_GETLIST));
 			cjcommProxy.isInUse = 3;
 			proxyInUse.devUse.rs485Need = 1;
