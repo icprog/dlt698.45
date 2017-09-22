@@ -1668,8 +1668,10 @@ void dispatch_thread()
 			ret = mqs_send((INT8S *)TASKID_485_1_MQ_NAME,cjdeal,1,OAD_PORT_485_1,(INT8U *)&tastIndex,sizeof(INT16S));
 			fprintf(stderr,"\n 向485 1线程发送任务ID = %d \n",ret);
 			ret = mqs_send((INT8S *)TASKID_plc_MQ_NAME,cjdeal,1,OAD_PORT_ZB,(INT8U *)&tastIndex,sizeof(INT16S));
+
 			//任务时间到，判断是否为交采和统计数据需要冻结
 			terminalTaskFreeze(list6013[tastIndex].basicInfo.taskID,list6013[tastIndex].basicInfo.sernum);
+
 			//TODO
 			list6013[tastIndex].run_flg = 0;
 		}

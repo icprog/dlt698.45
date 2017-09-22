@@ -18,6 +18,7 @@
 #include <time.h>
 #include <stdarg.h>
 #include <sys/stat.h>
+#include "basedef.h"
 #include "calc.h"
 #include "cjdeal.h"
 #include "cjsave.h"
@@ -37,7 +38,6 @@ Max_ptongji max_ptongji[MAXNUM_IMPORTANTUSR_CALC];
 extern ProgramInfo* JProgramInfo;
 extern INT8U poweroffon_state;
 extern MeterPower MeterPowerInfo[POWEROFFON_NUM];
-
 
 ///*
 // * 根据任务的CSD来判断是否是该任务数据
@@ -60,13 +60,61 @@ extern MeterPower MeterPowerInfo[POWEROFFON_NUM];
 //	return 0;
 //}
 
+int savePulseTaskData(INT8U taskid,TS savets,TSA tsa,CSD_ARRAYTYPE csds)
+{
+	INT8U	saveBuf[255]={};
+	int		index=0;
+	INT16U	buflen=0;
+	OAD 	freezeOAD={},relateOAD={};
+	DateTimeBCD		freezetime={};
+	int 	i=0,j=0;
+	int		saveret=0;
+
+	for(i=0;i<csds.num;i++)	{
+		if(csds.csd[i].type == 0) {	//oad
+			index = 0;
+			saveBuf[index++] = dttsa;	//TSA标识
+			memcpy(&saveBuf[index],&tsa,sizeof(TSA));
+			index += sizeof(TSA);
+			fill_pulseEnergy(csds.csd[i].csd.oad,1,NULL,&saveBuf[index],&buflen);
+			index += buflen;
+			asyslog(LOG_NOTICE,"saveTerminalTaskData taskid = %d OAD=%04x \n",taskid,csds.csd[i].csd.oad.OI);
+			memset(&freezeOAD,0,sizeof(OAD));
+			saveret = SaveOADData(taskid,freezeOAD,csds.csd[i].csd.oad,saveBuf,index,savets);
+		}
+		if(csds.csd[i].type == 1) {	//ROAD
+			freezeOAD = csds.csd[i].csd.road.oad;
+			for(j=0;j<csds.csd[i].csd.road.num;j++)	{
+				index = 0;
+				saveBuf[index++] = dttsa;	//TSA标识
+				memcpy(&saveBuf[index],&tsa,sizeof(TSA));
+				index += sizeof(TSA);
+				relateOAD = csds.csd[i].csd.road.oads[j];
+				switch(relateOAD.OI) {
+				case 0x2021:	//数据冻结时间
+					TsToTimeBCD(savets,&freezetime);
+					index += fill_date_time_s(&saveBuf[index],&freezetime);
+					break;
+				default:
+					fill_pulseEnergy(relateOAD,1,NULL,&saveBuf[index],&buflen);
+					index += buflen;
+					break;
+				}
+				asyslog(LOG_NOTICE,"saveTerminalTaskData taskid = %d freezeOAD=%04x relateOAD=%04x \n",taskid,freezeOAD.OI,relateOAD.OI);
+				saveret = SaveOADData(taskid,freezeOAD,relateOAD,saveBuf,index,savets);
+			}
+		}
+	}
+	return saveret;
+}
 /*
  * 根据任务号及采集方案的array CSD存储相关数据
  * */
 int saveTerminalTaskData(INT8U taskid,TS savets,TSA tsa,CSD_ARRAYTYPE csds)
 {
 	INT8U	saveBuf[255]={};
-	int		index=0,buflen=0;
+	int		index=0;
+	INT16U	buflen=0;
 	OAD 	freezeOAD={},relateOAD={};
 	DateTimeBCD		freezetime={};
 	int 	i=0,j=0;
@@ -99,8 +147,6 @@ int saveTerminalTaskData(INT8U taskid,TS savets,TSA tsa,CSD_ARRAYTYPE csds)
 					index += fill_date_time_s(&saveBuf[index],&freezetime);
 					break;
 				case 0x2131:
-				case 0x2132:
-				case 0x2133:
 					readVariData(relateOAD.OI,0,&volt_tj,sizeof(Volt_PassRate_tj));
 					if(freezeOAD.OI==0x5004) {
 						fill_variClass(relateOAD,1,(INT8U *)&volt_tj.dayu_tj,&saveBuf[index],&buflen,JProgramInfo);
@@ -108,6 +154,20 @@ int saveTerminalTaskData(INT8U taskid,TS savets,TSA tsa,CSD_ARRAYTYPE csds)
 					}else if(freezeOAD.OI==0x5006) {
 						fill_variClass(relateOAD,1,(INT8U *)&volt_tj.monthu_tj,&saveBuf[index],&buflen,JProgramInfo);
 						index += buflen;
+					}
+					break;
+				case 0x2132:
+				case 0x2133:
+					//山东II型集中器电压合格率要求B、C相上送NULL
+					if(JProgramInfo->cfg_para.device != CCTT2) {
+						readVariData(relateOAD.OI,0,&volt_tj,sizeof(Volt_PassRate_tj));
+						if(freezeOAD.OI==0x5004) {
+							fill_variClass(relateOAD,1,(INT8U *)&volt_tj.dayu_tj,&saveBuf[index],&buflen,JProgramInfo);
+							index += buflen;
+						}else if(freezeOAD.OI==0x5006) {
+							fill_variClass(relateOAD,1,(INT8U *)&volt_tj.monthu_tj,&saveBuf[index],&buflen,JProgramInfo);
+							index += buflen;
+						}
 					}
 					break;
 				default:
@@ -148,6 +208,10 @@ void terminalTaskFreeze(INT8U taskid,INT8U fanganid)
 			if(tsa_group[meterid].basicinfo.port.OI == PORT_JC) {
 				//满足交采测量点,查找到满足CSD的数据任务，进行相关任务数据存储
 				saveTerminalTaskData(taskid,savets,tsa_group[meterid].basicinfo.addr,class6015.csds);
+			}
+			if(tsa_group[meterid].basicinfo.port.OI == PORT_PLUSE) {
+				//满足脉冲输入设备，进行相关任务数据存储
+				savePulseTaskData(taskid,savets,tsa_group[meterid].basicinfo.addr,class6015.csds);
 			}
 		}
 	}
@@ -284,6 +348,21 @@ void Calc_Tj()
 }
 
 /*
+ * 三型专变：脉冲计量数据冻结文件
+ * */
+void PluseFreeze(INT8U device_type,CLASS12 class12)
+{
+	if(device_type != SPTF3)	return;
+	CLASS12_ENERGY	pluse_energy={};
+
+	memcpy(&pluse_energy.val_pos_p,class12.val_pos_p,sizeof(pluse_energy.val_pos_p));
+	memcpy(&pluse_energy.val_pos_q,class12.val_pos_q,sizeof(pluse_energy.val_pos_q));
+	memcpy(&pluse_energy.val_nag_p,class12.val_nag_p,sizeof(pluse_energy.val_nag_p));
+	memcpy(&pluse_energy.val_nag_q,class12.val_nag_q,sizeof(pluse_energy.val_nag_q));
+	saveVariData(PORT_PLUSE,0,(INT8U *)&pluse_energy,sizeof(CLASS12_ENERGY));
+}
+
+/*
  * 终端统计数据及计量数据冻结
  * */
 void TerminalFreeze()
@@ -299,6 +378,7 @@ void TerminalFreeze()
 	}
 	TSGet(&newts);
 	if(newts.Day !=oldts.Day) {
+		PluseFreeze(JProgramInfo->cfg_para.device,JProgramInfo->class12);
 		Save_TJ_Freeze(0,0x2203,0x0200,newts,sizeof(gongdian_tj.gongdian),(INT8U *)&gongdian_tj.gongdian);
 		gongdian_tj.gongdian.day_tj = 0;
 		for(j=0;j<3;j++) {

@@ -2,7 +2,6 @@
 #define JPublicFunctionH
 #include "stdio.h"
 #include "stdlib.h"
-#include "zlib.h"
 #include "errno.h"
 #include "time.h"
 #include <unistd.h>
@@ -445,40 +444,16 @@ INT8U TScompare(TS ts1, TS ts2) {
     } else if (ts1.Day < ts2.Day) {
         return 2;
     } else if (ts1.Hour > ts2.Hour) {
-    	if(ts1.Hour == 255)
-    		return 2;
-    	if(ts2.Hour == 255)
-    	    return 1;
         return 1;
     } else if (ts1.Hour < ts2.Hour) {
-    	if(ts1.Hour == 255)
-			return 2;
-		if(ts2.Hour == 255)
-			return 1;
         return 2;
     } else if (ts1.Minute > ts2.Minute) {
-    	if(ts1.Hour == 255)
-			return 2;
-		if(ts2.Hour == 255)
-			return 1;
         return 1;
     } else if (ts1.Minute < ts2.Minute) {
-    	if(ts1.Hour == 255)
-			return 2;
-		if(ts2.Hour == 255)
-			return 1;
         return 2;
     } else if (ts1.Sec > ts2.Sec) {
-    	if(ts1.Hour == 255)
-			return 2;
-		if(ts2.Hour == 255)
-			return 1;
         return 1;
     } else if (ts1.Sec < ts2.Sec) {
-    	if(ts1.Hour == 255)
-			return 2;
-		if(ts2.Hour == 255)
-			return 1;
         return 2;
     }
     return 0;
@@ -831,48 +806,6 @@ void nsem_timedwait(sem_t* sem, int sec) {
     sem_timedwait(sem, &tsspec);
 }
 
-/////////////////////////////////////////////////////
-/*
- * 并转串时钟输出74HC165
- * 正常返回  模拟状态 ，低5位为GPRS_ID, 第6位门节点状态
- * =-1：		无此设备，为II型集中器
- * */
-INT8S getSpiAnalogState() {
-    unsigned char ret = 0;
-    int i = 0, tmpid[8] = {};
-
-    if (gpio_writebyte(DEV_SPI_CS, 1) == -1) {
-        return -1;
-    }
-    usleep(50);
-    gpio_writebyte(DEV_SPI_CS, 0);
-    usleep(50);
-    gpio_writebyte(DEV_SPI_CS, 1);
-    gpio_writebyte(DEV_SPI_CLK, 0);
-    for (i = 0; i < 8; i++) {
-        usleep(50);
-        gpio_writebyte(DEV_SPI_CLK, 1);
-        usleep(50);
-        tmpid[i] = gpio_readbyte(DEV_SPI_MISO);
-        usleep(50);
-        gpio_writebyte(DEV_SPI_CLK, 0);
-    }
-    if (tmpid[6] == 1) // GPRS_STAT0
-        ret |= 1 << 0;
-    if (tmpid[4] == 1) // GPRS_STAT1
-        ret |= 1 << 1;
-    if (tmpid[5] == 1) // GPRS_STAT2
-        ret |= 1 << 2;
-    if (tmpid[1] == 1) // GPRS_STAT3
-        ret |= 1 << 3;
-    if (tmpid[3] == 1) // GPRS_STAT4
-        ret |= 1 << 4;
-
-    if (tmpid[2] == 1) // MEN node  门节点
-        ret |= 1 << 5;
-    return ret;
-}
-
 /*
  * 数据从大到小排序 arr数组 len长度
  */
@@ -1124,7 +1057,7 @@ void debugToPlcFile(const char* file, const char* func, INT32U line, const char 
 	fprintf(fp, "\n");
 }
 
-void debugToFile(const char* fname, const char* file, const char* func, INT32U line, const char *fmt,...)
+void debugToFile(char addTmLine, const char* fname, const char* file, const char* func, INT32U line, const char *fmt,...)
 {
 	va_list ap;
 	char bufTime[20] = { 0 };
@@ -1136,13 +1069,21 @@ void debugToFile(const char* fname, const char* file, const char* func, INT32U l
 	fp = fopen(fname, "a+");
 	if (fp != NULL) {
 		get_local_time(bufTime, sizeof(bufTime));
-		fprintf(fp, "\n[%s][%s][%s()][%d]: ", bufTime, file, func, line);
+
+		if (addTmLine == 1)
+			fprintf(fp, "\n[%s][%s][%s()][%d]: ", bufTime, file, func, line);
+
 		va_start(ap, fmt);
 		vfprintf(fp, fmt, ap);
 		va_end(ap);
-		fprintf(fp, "\n");
+
+		if (addTmLine == 1)
+			fprintf(fp, "\n");
+
 	    fflush(fp);
 		fclose(fp);
+	} else {
+		fprintf(stderr, "\n[%s][%s][%s()][%d]: open %s failed ", bufTime, file, func, line, fname);
 	}
 }
 
@@ -1230,18 +1171,17 @@ final:
 	*bufSize = destLen;
 }
 
-void PacketToFile(char *fname,const char *format,...)
+void PacketToFile(const char *format,...)
 {
 	char str[50];
-//	char fname[100];
+	char fname[100];
 	char tmpcmd[256];
 	time_t cur_time;
 	struct tm cur_tm;
 	FILE *fp = NULL;
 
-//	memset(fname,0,sizeof(fname));
-//	sprintf(fname,"/nand/log_698/packet.log");
-	if(fname==NULL)		return;
+	memset(fname,0,sizeof(fname));
+	sprintf(fname,"/nand/packet.log");
 	memset(str,0,50);
 	cur_time=time(NULL);
 	localtime_r(&cur_time,&cur_tm);
@@ -1304,7 +1244,7 @@ void myBCDtoASC1(char val, char dest[2])
 }
 
 
-void PacketBufToFile(INT8U type,char *prefix, char *buf, int len, char *suffix)
+void PacketBufToFile(char *prefix, char *buf, int len, char *suffix)
 {
 //	return ;
 
@@ -1339,7 +1279,7 @@ void PacketBufToFile(INT8U type,char *prefix, char *buf, int len, char *suffix)
 		}
 		if(prefix!=NULL)
 		{
-			sprintf(str, "%s[%04d] ", prefix,prtlen);
+			sprintf(str, "%s[%d] ", prefix,prtlen);
 			strcat(tmpbuf, str);
 		}
 		for(i=0; i<prtlen; i++)
@@ -1357,10 +1297,7 @@ void PacketBufToFile(INT8U type,char *prefix, char *buf, int len, char *suffix)
 		}
 		if(suffix!=NULL)
 			strcat(tmpbuf, suffix);
-		if(type==1) {
-			PacketToFile("/nand/log_698/packet.log",tmpbuf);
-		}
-		PacketToFile("/nand/log_698/chg.log",tmpbuf);
+		PacketToFile(tmpbuf);
 		count += prtlen;
 		if(count>=len)
 			break;

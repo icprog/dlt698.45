@@ -418,8 +418,6 @@ typedef struct {
 }ConfigPara;
 
 typedef struct {
-	CLASS_8001 c8001; //保电
-
 	CLASS_8100 c8100; //终端保安定值
 	CLASS_8101 c8101; //终端功控时段
 	CLASS_8102 c8102; //功控告警时间
@@ -438,7 +436,6 @@ typedef struct {
 	INT32U control[3]; //遥控命令 必须三个位置同时相同才认为命令有效
 					   //YK1：0xEEFFEFEF为分闸 0xCCAACACA为合闸，
 					   //YK2：0x55552525为分闸 0xCCCC2C2C为合闸，
-	INT8U control_event; //标识遥控跳闸事件开始计时
 } CtrlState;
 
 //typedef struct {

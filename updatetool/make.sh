@@ -47,7 +47,11 @@ CopyNew()
         cp ../bin_arm/cjmain ./app/
         cp ../bin_arm/libBase.so ./app/
     else
-        cp ../bin_arm/v* ./app/
+        if [ $1 = "HuNan" ]; then
+                cp ../bin_arm/3761/v* ./app/
+                cp ../bin_arm/3761/*.so ./app/
+                cp ../bin_arm/3761/*.cfg ./app/
+        fi
         cp ../bin_arm/cj* ./app/
         cp ../bin_arm/*.so ./app/
         cp ../config/* ./app/

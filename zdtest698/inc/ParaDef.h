@@ -89,7 +89,7 @@
 #define DI97_NUM_601F 			10
 
 #define POWEROFFON_NUM          10          //停上电事件需要抄读得测量点最大数
-#define MAX_AL_UNIT             8           //总价组最大数组限制
+#define MAX_AL_UNIT             16          //总价组最大数组限制
 
 ////////////////////////////////////////////////////////////////
 
@@ -185,11 +185,9 @@
 /*
  * 	串口定义
  * */
-
+#define PORT_ZB  	0xF209
 #define PORT_485  	0xF201
 #define PORT_JC		0xF208
-#define PORT_ZB  	0xF209
-#define PORT_PLUSE	0xF20A
 
 #define S4851   		1
 #define S4852   		2

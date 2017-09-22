@@ -95,43 +95,91 @@ int class23_set(int index, OAD oad, INT8U *data, INT8U *DAR) {
 	return 0;
 }
 
-int class23_get_7(OI_698 oi, int index, INT8U *sourcebuf, INT8U *buf, int *len){
+int class23_get_2(OAD oad, INT8U index, INT8U *buf, int *len)
+{
 	ProgramInfo *shareAddr = getShareAddr();
-	INT64U total_Day_p = 0;
-	for (int i = 0; i < 4; i++){
-		total_Day_p += shareAddr->class23[0].DayP[i];
-	}
+	INT8U	unit = 1;	//总加组配置单元个数//TODO：总加组实际个数 取何值？？？
+	INT8U	i=0;
 
-	fprintf(stderr, "class23_get_7 %d\n", total_Day_p);
-
-	if (index = 1) {
-		*len = 0;
-		*len += fill_double_long64(&buf[*len], total_Day_p);
-		return 1;
+	*len = 0;
+	fprintf(stderr,"attrindex = %d \n",oad.attrindex);
+	if(oad.attrindex == 0) {
+		*len += create_array(&buf[*len],unit);
+		for(i=0;i<unit;i++) {
+			*len += create_struct(&buf[*len],3);
+			*len += fill_TSA(&buf[*len],&shareAddr->class23[index].allist[i].tsa.addr[1],shareAddr->class23[index].allist[i].tsa.addr[0]);
+			*len += fill_enum(&buf[*len],shareAddr->class23[index].allist[i].al_flag);
+			*len += fill_enum(&buf[*len],shareAddr->class23[index].allist[i].cal_flag);
+		}
 	}
+	fprintf(stderr," len = %d\n",*len);
+	return 1;
 }
 
-int class23_get_9(OI_698 oi, int index, INT8U *sourcebuf, INT8U *buf, int *len){
-	ProgramInfo *shareAddr = getShareAddr();
-	INT64U total_Mon_p = 0;
-	for (int i = 0; i < 4; i++){
-		total_Mon_p += shareAddr->class23[0].MonthP[i];
+int class23_get_long64(OAD oad, INT64U val, INT8U *buf, int *len)
+{
+	*len = 0;
+	if(oad.attrindex == 0) {
+		*len += fill_double_long64(&buf[*len], val);
 	}
-
-	if (index = 1) {
-		*len = 0;
-		*len += fill_double_long64(&buf[*len], total_Mon_p);
-		return 1;
-	}
+	return 1;
 }
 
-int class23_get_17(OI_698 oi, INT8U *sourcebuf, INT8U *buf, int *len) {
-	ProgramInfo *shareAddr = getShareAddr();
-	int index = oi - 0x2301;
-
-	if(index < 0 || index > 7){
-		return 0;
+int class23_get_unsigned(OAD oad, INT8U val, INT8U *buf, int *len)
+{
+	*len = 0;
+	if(oad.attrindex == 0) {
+		*len += fill_unsigned(&buf[*len], val);
 	}
+	return 1;
+}
+
+int class23_get_bitstring(OAD oad, INT8U val, INT8U *buf, int *len)
+{
+	*len = 0;
+	if(oad.attrindex == 0) {
+		*len += fill_bit_string(&buf[*len],1,&val);
+	}
+	return 1;
+}
+
+int class23_get_7_8_9_10(OAD oad, INT64U energy_all,INT64U *energy,INT8U *buf, int *len){
+	INT64U total_energy[MAXVAL_RATENUM + 1];
+	INT8U	unit=0,i=0;
+	///TODO: 总电量分相累加？？？还是内存energy_all
+	*len = 0;
+	total_energy[0] = 0;
+	fprintf(stderr, "class23_get_7 %lld\n", total_energy[0]);
+
+	for (i = 0; i < MAXVAL_RATENUM; i++){
+		total_energy[0] += energy[i];
+	}
+	for (i = 0; i < MAXVAL_RATENUM; i++){
+		total_energy[i+1] = energy[i];
+	}
+	fprintf(stderr, "class23_get_7 %lld\n", total_energy[0]);
+
+	if (oad.attrindex == 0) {
+		unit = MAXVAL_RATENUM + 1;	//总及n个费率
+		*len = 0;
+		*len += create_array(&buf[*len],unit);
+		for(i=0;i<unit;i++) {
+			*len += fill_double_long64(&buf[*len], total_energy[i]);
+		}
+	}else {
+		unit = oad.attrindex - 1;
+		unit = rangeJudge("电能量",unit,1,MAXVAL_RATENUM + 1);
+		if(unit != -1) {
+			*len = 0;
+			*len += fill_double_long64(&buf[*len], total_energy[unit]);
+		}
+		return 1;
+	}
+	return 0;
+}
+
+int class23_get_17(OAD oad, INT8U index, INT8U *buf, int *len) {
+	ProgramInfo *shareAddr = getShareAddr();
 
 	*len = 0;
 	*len += create_struct(&buf[*len],7);
@@ -146,18 +194,47 @@ int class23_get_17(OI_698 oi, INT8U *sourcebuf, INT8U *buf, int *len) {
 }
 
 int class23_get(OAD oad, INT8U *sourcebuf, INT8U *buf, int *len) {
-	ProgramInfo *shareAddr = getShareAddr();
 	asyslog(LOG_WARNING, "召唤总加组属性(%d)", oad.attflg);
+	ProgramInfo *shareAddr = getShareAddr();
+	int index = oad.OI - 0x2301;
+
+	index = rangeJudge("总加组",index,0,7);
+	if(index == -1) return 0;
 
 	switch (oad.attflg) {
+	case 2:
+		return class23_get_2(oad, index, buf, len);
+	case 3:
+		return class23_get_long64(oad, shareAddr->class23[index].p, buf, len);
+	case 4:
+		return class23_get_long64(oad, shareAddr->class23[index].q, buf, len);
+	case 5:
+		return class23_get_long64(oad, shareAddr->class23[index].TaveP, buf, len);
+	case 6:
+		return class23_get_long64(oad, shareAddr->class23[index].TaveQ, buf, len);
 	case 7:
-		return class23_get_7(oad.OI, oad.attrindex, sourcebuf, buf, len);
+
+		return class23_get_7_8_9_10(oad, shareAddr->class23[index].DayPALL, shareAddr->class23[index].DayP, buf, len);
+	case 8:
+		return class23_get_7_8_9_10(oad, shareAddr->class23[index].DayQALL, shareAddr->class23[index].DayQ, buf, len);
 	case 9:
-		return class23_get_9(oad.OI, oad.attrindex, sourcebuf, buf, len);
+		return class23_get_7_8_9_10(oad, shareAddr->class23[index].MonthPALL, shareAddr->class23[index].MonthP, buf, len);
+	case 10:
+		return class23_get_7_8_9_10(oad, shareAddr->class23[index].MonthQALL, shareAddr->class23[index].MonthQ, buf, len);
+	case 11:
+		return class23_get_long64(oad, shareAddr->class23[index].remains, buf, len);
+	case 12:
+		return class23_get_long64(oad, shareAddr->class23[index].DownFreeze, buf, len);
+	case 13:
+		return class23_get_unsigned(oad, shareAddr->class23[index].aveCircle, buf, len);
+	case 14:
+		return class23_get_bitstring(oad, shareAddr->class23[index].pConfig, buf, len);
+	case 15:
+		return class23_get_bitstring(oad, shareAddr->class23[index].eConfig, buf, len);
 	case 17:
-		return class23_get_17(oad.OI, sourcebuf, buf, len);
+		return class23_get_17(oad, index, buf, len);
 
 	}
-
+	return 1;
 }
 
