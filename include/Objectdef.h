@@ -786,6 +786,13 @@ typedef struct {
 } PULSEUNIT;
 
 typedef struct {
+	INT64U val_pos_p[MAXVAL_RATENUM];//正向有功电能示值
+	INT64U val_pos_q[MAXVAL_RATENUM];//正向无功电能示值
+	INT64U val_nag_p[MAXVAL_RATENUM];//反向有功电能示值
+	INT64U val_nag_q[MAXVAL_RATENUM];//反向无功电能示值
+} CLASS12_ENERGY;
+
+typedef struct {
 	INT8U addr[OCTET_STRING_LEN];//通信地址
 	INT64U pt;//互感器倍率
 	INT64U ct;//互感器倍率

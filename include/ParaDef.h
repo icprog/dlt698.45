@@ -185,9 +185,11 @@
 /*
  * 	串口定义
  * */
-#define PORT_ZB  	0xF209
+
 #define PORT_485  	0xF201
 #define PORT_JC		0xF208
+#define PORT_ZB  	0xF209
+#define PORT_PLUSE	0xF20A
 
 #define S4851   		1
 #define S4852   		2
