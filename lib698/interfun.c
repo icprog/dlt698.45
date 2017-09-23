@@ -267,6 +267,9 @@ int fill_bool(INT8U *data,INT8U value)		//0x03
 	return 2;
 }
 
+/*
+ * size = 位数 （SIZE(8), 输入参数size = 8）
+ * */
 int fill_bit_string(INT8U *data,INT8U size,INT8U *bits)		//0x04
 {
 	//TODO : 默认8bit ，不符合A-XDR规范
@@ -377,9 +380,23 @@ int fill_long_unsigned(INT8U *data,INT16U value)		//0x12
 	return 3;
 }
 
-int fill_double_long64(INT8U *data,INT64U value)		//0x14
+int fill_long64(INT8U *data,INT64S value)		//0x14
 {
 	data[0] = dtlong64;
+	data[1] = (value & 0xFF00000000000000) >> 56;
+	data[2] = (value & 0x00FF000000000000) >> 48;
+	data[3] = (value & 0x0000FF0000000000) >> 40;
+	data[4] = (value & 0x000000FF00000000) >> 32;
+	data[5] = (value & 0x00000000FF000000) >> 24;
+	data[6] = (value & 0x0000000000FF0000) >> 16;
+	data[7] = (value & 0x000000000000FF00) >> 8;
+	data[8] = value & 0x00000000000000FF;
+	return 9;
+}
+
+int fill_long64_unsigned(INT8U *data,INT64U value)		//0x15
+{
+	data[0] = dtlong64unsigned;
 	data[1] = (value & 0xFF00000000000000) >> 56;
 	data[2] = (value & 0x00FF000000000000) >> 48;
 	data[3] = (value & 0x0000FF0000000000) >> 40;

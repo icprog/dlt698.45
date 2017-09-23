@@ -128,11 +128,11 @@ int class23_get_2(OAD oad, INT8U index, INT8U *buf, int *len)
 	return 1;
 }
 
-int class23_get_long64(OAD oad, INT64U val, INT8U *buf, int *len)
+int class23_get_long64(OAD oad, INT64S val, INT8U *buf, int *len)
 {
 	*len = 0;
 	if(oad.attrindex == 0) {
-		*len += fill_double_long64(&buf[*len], val);
+		*len += fill_long64(&buf[*len], val);
 	}
 	return 1;
 }
@@ -150,13 +150,13 @@ int class23_get_bitstring(OAD oad, INT8U val, INT8U *buf, int *len)
 {
 	*len = 0;
 	if(oad.attrindex == 0) {
-		*len += fill_bit_string(&buf[*len],1,&val);
+		*len += fill_bit_string(&buf[*len],8,&val);
 	}
 	return 1;
 }
 
-int class23_get_7_8_9_10(OAD oad, INT64U energy_all,INT64U *energy,INT8U *buf, int *len){
-	INT64U total_energy[MAXVAL_RATENUM + 1];
+int class23_get_7_8_9_10(OAD oad, INT64S energy_all,INT64S *energy,INT8U *buf, int *len){
+	INT64S total_energy[MAXVAL_RATENUM + 1];
 	INT8U	unit=0,i=0;
 
 	*len = 0;
@@ -178,14 +178,14 @@ int class23_get_7_8_9_10(OAD oad, INT64U energy_all,INT64U *energy,INT8U *buf, i
 		*len = 0;
 		*len += create_array(&buf[*len],unit);
 		for(i=0;i<unit;i++) {
-			*len += fill_double_long64(&buf[*len], total_energy[i]);
+			*len += fill_long64(&buf[*len], total_energy[i]);
 		}
 	}else {
 		unit = oad.attrindex - 1;
 		unit = rangeJudge("电能量",unit,1,MAXVAL_RATENUM + 1);
 		if(unit != -1) {
 			*len = 0;
-			*len += fill_double_long64(&buf[*len], total_energy[unit]);
+			*len += fill_long64(&buf[*len], total_energy[unit]);
 		}
 		return 1;
 	}
@@ -197,7 +197,7 @@ int class23_get_17(OAD oad, INT8U index, INT8U *buf, int *len) {
 
 	*len = 0;
 	*len += create_struct(&buf[*len],7);
-	*len += fill_double_long64(&buf[*len],shareAddr->class23[index].alCtlState.v);
+	*len += fill_long64(&buf[*len],shareAddr->class23[index].alCtlState.v);
 	*len += fill_integer(&buf[*len],shareAddr->class23[index].alCtlState.Downc);
 	*len += fill_bit_string(&buf[*len],8,&shareAddr->class23[index].alCtlState.OutputState);
 	*len += fill_bit_string(&buf[*len],8,&shareAddr->class23[index].alCtlState.MonthOutputState);
