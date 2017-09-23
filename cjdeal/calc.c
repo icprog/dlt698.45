@@ -378,7 +378,7 @@ void TerminalFreeze()
 	}
 	TSGet(&newts);
 	if(newts.Day !=oldts.Day) {
-		PluseFreeze(JProgramInfo->cfg_para.device,JProgramInfo->class12);
+//		PluseFreeze(JProgramInfo->cfg_para.device,JProgramInfo->class12);
 		Save_TJ_Freeze(0,0x2203,0x0200,newts,sizeof(gongdian_tj.gongdian),(INT8U *)&gongdian_tj.gongdian);
 		gongdian_tj.gongdian.day_tj = 0;
 		for(j=0;j<3;j++) {
