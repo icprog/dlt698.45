@@ -60,7 +60,7 @@ extern MeterPower MeterPowerInfo[POWEROFFON_NUM];
 //	return 0;
 //}
 
-int savePulseTaskData(INT8U taskid,TS savets,TSA tsa,CSD_ARRAYTYPE csds)
+int savePulseTaskData(INT8U pluse_index,INT8U taskid,TS savets,TSA tsa,CSD_ARRAYTYPE csds)
 {
 	INT8U	saveBuf[255]={};
 	int		index=0;
@@ -76,9 +76,9 @@ int savePulseTaskData(INT8U taskid,TS savets,TSA tsa,CSD_ARRAYTYPE csds)
 			saveBuf[index++] = dttsa;	//TSA标识
 			memcpy(&saveBuf[index],&tsa,sizeof(TSA));
 			index += sizeof(TSA);
-			fill_pulseEnergy(csds.csd[i].csd.oad,1,NULL,&saveBuf[index],&buflen);
+			fill_pulseEnergy(JProgramInfo->cfg_para.device,pluse_index,csds.csd[i].csd.oad,&saveBuf[index],&buflen);
 			index += buflen;
-			asyslog(LOG_NOTICE,"saveTerminalTaskData taskid = %d OAD=%04x \n",taskid,csds.csd[i].csd.oad.OI);
+			asyslog(LOG_NOTICE,"savePulseTaskData taskid = %d OAD=%04x \n",taskid,csds.csd[i].csd.oad.OI);
 			memset(&freezeOAD,0,sizeof(OAD));
 			saveret = SaveOADData(taskid,freezeOAD,csds.csd[i].csd.oad,saveBuf,index,savets);
 		}
@@ -96,12 +96,12 @@ int savePulseTaskData(INT8U taskid,TS savets,TSA tsa,CSD_ARRAYTYPE csds)
 					index += fill_date_time_s(&saveBuf[index],&freezetime);
 					break;
 				default:
-					fill_pulseEnergy(relateOAD,1,NULL,&saveBuf[index],&buflen);
+					fill_pulseEnergy(JProgramInfo->cfg_para.device,pluse_index,relateOAD,&saveBuf[index],&buflen);
 					index += buflen;
 					break;
 				}
-				asyslog(LOG_NOTICE,"saveTerminalTaskData taskid = %d freezeOAD=%04x relateOAD=%04x \n",taskid,freezeOAD.OI,relateOAD.OI);
-				saveret = SaveOADData(taskid,freezeOAD,relateOAD,saveBuf,index,savets);
+				asyslog(LOG_NOTICE,"savePulseTaskData taskid = %d freezeOAD=%04x relateOAD=%04x index=%d\n",taskid,freezeOAD.OI,relateOAD.OI,index);
+//				saveret = SaveOADData(taskid,freezeOAD,relateOAD,saveBuf,index,savets);
 			}
 		}
 	}
@@ -194,6 +194,7 @@ void terminalTaskFreeze(INT8U taskid,INT8U fanganid)
 	TS	savets;
 	int tsa_num = 0;
 	int	meterid=0;
+	INT8S	pluseindex=0;
 	CLASS_6015	class6015={};
 //	CLASS_6013	class6013={};
 	CLASS_6001 *tsa_group = NULL;
@@ -211,7 +212,11 @@ void terminalTaskFreeze(INT8U taskid,INT8U fanganid)
 			}
 			if(tsa_group[meterid].basicinfo.port.OI == PORT_PLUSE) {
 				//满足脉冲输入设备，进行相关任务数据存储
-				savePulseTaskData(taskid,savets,tsa_group[meterid].basicinfo.addr,class6015.csds);
+				pluseindex = tsa_group[meterid].basicinfo.port.attrindex-1;
+				pluseindex = rangeJudge("脉冲",pluseindex,0,1);
+				if(pluseindex != -1) {
+					savePulseTaskData(pluseindex,taskid,savets,tsa_group[meterid].basicinfo.addr,class6015.csds);
+				}
 			}
 		}
 	}
@@ -350,16 +355,18 @@ void Calc_Tj()
 /*
  * 三型专变：脉冲计量数据冻结文件
  * */
-void PluseFreeze(INT8U device_type,CLASS12 class12)
+void PluseFreeze(INT8U device_type,CLASS12 *class12)
 {
 	if(device_type != SPTF3)	return;
-	CLASS12_ENERGY	pluse_energy={};
-
-	memcpy(&pluse_energy.val_pos_p,class12.val_pos_p,sizeof(pluse_energy.val_pos_p));
-	memcpy(&pluse_energy.val_pos_q,class12.val_pos_q,sizeof(pluse_energy.val_pos_q));
-	memcpy(&pluse_energy.val_nag_p,class12.val_nag_p,sizeof(pluse_energy.val_nag_p));
-	memcpy(&pluse_energy.val_nag_q,class12.val_nag_q,sizeof(pluse_energy.val_nag_q));
-	saveVariData(PORT_PLUSE,0,(INT8U *)&pluse_energy,sizeof(CLASS12_ENERGY));
+	CLASS12_ENERGY	pluse_energy[2]={};
+	INT8U	i=0;
+	for(i=0;i<2;i++) {
+		memcpy(&pluse_energy[i].val_pos_p,&class12[i].val_pos_p,sizeof(pluse_energy[i].val_pos_p));
+		memcpy(&pluse_energy[i].val_pos_q,&class12[i].val_pos_q,sizeof(pluse_energy[i].val_pos_q));
+		memcpy(&pluse_energy[i].val_nag_p,&class12[i].val_nag_p,sizeof(pluse_energy[i].val_nag_p));
+		memcpy(&pluse_energy[i].val_nag_q,&class12[i].val_nag_q,sizeof(pluse_energy[i].val_nag_q));
+	}
+	saveVariData(PORT_PLUSE,0,(INT8U *)&pluse_energy,sizeof(pluse_energy));
 }
 
 /*
@@ -378,7 +385,7 @@ void TerminalFreeze()
 	}
 	TSGet(&newts);
 	if(newts.Day !=oldts.Day) {
-		PluseFreeze(JProgramInfo->cfg_para.device,JProgramInfo->class12);
+//		PluseFreeze(JProgramInfo->cfg_para.device,JProgramInfo->class12);
 		Save_TJ_Freeze(0,0x2203,0x0200,newts,sizeof(gongdian_tj.gongdian),(INT8U *)&gongdian_tj.gongdian);
 		gongdian_tj.gongdian.day_tj = 0;
 		for(j=0;j<3;j++) {

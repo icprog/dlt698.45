@@ -36,6 +36,11 @@ static char *usage_yk = "\n--------------------III型专变命令---------------
 		"		 【清除控制状态】 cj ctrl clear\n"   \
         "-------------------------------------------------------\n\n";
 
+static char *usage_sumgroup = "\n--------------------总加组----------------------------\n"
+		"        【总加组1】cj sum pro 2301				\n"
+		"        【总加组2-8】cj sum pro 2302-2308		\n"
+        "-------------------------------------------------------\n\n";
+
 static char *usage_set = "\n--------------------参数设置及基本维护命令----------------------------\n"
         "		 【公网通信模块：主站IP端口设置】cj ip XXX.XXX.XXX.XXX:port XXX.XXX.XXX.XXX:port 	\n"
         "		 【以太网通信参数：主站IP端口设置】cj net-ip XXX.XXX.XXX.XXX:port XXX.XXX.XXX.XXX:port 	\n"
@@ -162,6 +167,7 @@ void prthelp() {
     fprintf(stderr, "Usage: ./cj (维护功能)  ");
     fprintf(stderr, "help	 [help] ");
     fprintf(stderr, "%s", usage_yk);
+    fprintf(stderr, "%s", usage_sumgroup);
     fprintf(stderr, "%s", usage_acs);
     fprintf(stderr, "%s", usage_set);
     fprintf(stderr, "%s", usage_data);
@@ -622,6 +628,13 @@ int main(int argc, char *argv[]) {
 	{
     	fprintf(stderr, "%s", usage_yk);
     	ctrl_process(argc,argv);
+		return EXIT_SUCCESS;
+	}
+
+    if(strcmp("sum",argv[1])==0)
+	{
+    	fprintf(stderr, "%s", usage_sumgroup);
+    	sum_process(argc,argv);
 		return EXIT_SUCCESS;
 	}
 

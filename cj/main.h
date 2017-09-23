@@ -60,5 +60,6 @@ extern void ctrl_process(int argc, char *argv[]);
 
 /*III型专变控制功能*/
 extern void ctrl_process(int argc, char *argv[]);
+extern void sum_process(int argc, char *argv[]);
 #endif /* MAIN_H_ */
 

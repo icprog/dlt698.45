@@ -671,8 +671,8 @@ int  readVariData(OI_698 oi,int coll_seqnum,void *blockdata,int len)
 #ifdef SYS_INFO
 	syslog(LOG_NOTICE,"__%s__,oi=%04x,coll_seqnum=%d",__func__,oi,coll_seqnum);
 #endif
-	if(len > VARI_LEN) {
-		fprintf(stderr,"读取数据长度[%d]大于申请返回数据空间[%d]，返回失败!!!\n",len,VARI_LEN);
+	if(len > VARI_LEN && oi!= PORT_PLUSE) {
+		fprintf(stderr,"读取【oi=%x】数据长度[%d]大于申请返回数据空间[%d]，返回失败!!!\n",oi,len,VARI_LEN);
 		return -1;
 	}
 	if(blockdata==NULL) {
@@ -693,6 +693,9 @@ int  readVariData(OI_698 oi,int coll_seqnum,void *blockdata,int len)
 		break;
 	case 2:
 		fp = fopen(VARI_DATA_TJ, "r");
+		break;
+	case 3:
+		fp = fopen(PLUSE_ENERGY_DATA, "r");
 		break;
 	}
 	if (fp != NULL) {
