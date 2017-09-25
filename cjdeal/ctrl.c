@@ -627,9 +627,6 @@ int deal8107() {
 		fprintf(stderr, "8107 index = %d\n", i);
 
 		if (JProgramInfo->ctrls.c8107.enable[i].state == 0) {
-			JProgramInfo->class23[i].alCtlState.OutputState = 0;
-			JProgramInfo->class23[i].alCtlState.ECAlarmState = 0;
-			JProgramInfo->class23[i].alCtlState.BuyOutputState = 0;
 			return 0;
 		}
 
@@ -669,8 +666,6 @@ int deal8108() {
 		fprintf(stderr, "8108 index = %d\n", i);
 
 		if (JProgramInfo->ctrls.c8108.enable[i].state == 0) {
-			JProgramInfo->class23[i].alCtlState.OutputState |= 0;
-			JProgramInfo->class23[i].alCtlState.MonthOutputState |= 0;
 			return 0;
 		}
 
