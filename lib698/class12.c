@@ -9,6 +9,7 @@
 #include "class12.h"
 #include "PublicFunction.h"
 #include "dlt698.h"
+#include "AccessFun.h"
 #include "../include/StdDataType.h"
 
 int class12_act3(int index, INT8U* data) {
@@ -32,6 +33,11 @@ int class12_act3(int index, INT8U* data) {
 			shareAddr->class12[index].unit[i].k = data[10] * 256 + data[11];
 			break;
 		}
+	}
+
+	for (int i = 0; i < 2; ++i) {
+		saveCoverClass(0x2401 + i, 0, &shareAddr->class12[i],
+				sizeof(CLASS12), para_vari_save);
 	}
 
 	return 0;
@@ -61,11 +67,13 @@ int class2401_set_attr_2(int index, OAD oad, INT8U *data, INT8U *DAR) {
 	if (data[1] > 255) {
 		return 0;
 	}
-
 	for (int i = 0; i < data[1]; i++) {
 		shareAddr->class12[index].addr[i] = data[2 + i];
 	}
-
+	for (int i = 0; i < 2; ++i) {
+		saveCoverClass(0x2401 + i, 0, &shareAddr->class12[i],
+				sizeof(CLASS12), para_vari_save);
+	}
 	return 0;
 }
 
@@ -86,6 +94,11 @@ int class2401_set_attr_3(int index, OAD oad, INT8U *data, INT8U *DAR) {
 	ProgramInfo *shareAddr = getShareAddr();
 	shareAddr->class12[index].pt = pt;
 	shareAddr->class12[index].ct = ct;
+
+	for (int i = 0; i < 2; ++i) {
+		saveCoverClass(0x2401 + i, 0, &shareAddr->class12[i],
+				sizeof(CLASS12), para_vari_save);
+	}
 	return 0;
 }
 

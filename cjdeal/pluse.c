@@ -56,6 +56,7 @@ void cacl_DD(unsigned int pulse, int index) {
 		JProgramInfo->class12[index].day_pos_p[time_zone] += pulse * 10;
 		JProgramInfo->class12[index].mon_pos_p[time_zone] += pulse * 10;
 		fprintf(stderr, "实时功率 %d\n", JProgramInfo->class12[index].p);
+		break;
 	case 2:
 		//反向有功 = 脉冲总数 * 100/con;
 		JProgramInfo->class12[index].day_nag_p[time_zone] = pulse * 1;
@@ -63,14 +64,12 @@ void cacl_DD(unsigned int pulse, int index) {
 
 	case 1:
 		//正向无功 = 脉冲总数 * 100/con + 脉冲总数%10;
-		JProgramInfo->class12[index].day_pos_q[time_zone] = pulse * 10;
-		+pulse % 10;
+		JProgramInfo->class12[index].day_pos_q[time_zone] = pulse * 10 +pulse % 10;
 		break;
 
 	case 3:
 		//反向无功 = 脉冲总数 * 100/con + 脉冲总数%10;
-		JProgramInfo->class12[index].day_nag_q[time_zone] = pulse * 1;
-		+pulse % 10;
+		JProgramInfo->class12[index].day_nag_q[time_zone] = pulse * 1 +pulse % 10;
 		break;
 	}
 }
