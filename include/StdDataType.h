@@ -82,12 +82,12 @@ typedef enum {
 	close_open, open_close, close_close, open_open,interface
 }Region_Type;	/*区间类型*/
 typedef enum {
-	null,a,mo,wk,d,h,min,s,o,C,huobi,m,ms,m3_0,m3_a,m3h1,m3h2,m3d1,m3d2,l,kg,N,Nm,
+	null,a,mo,wk,d,h,min,s,o,C,huobi,m,m_s,m3_0,m3_a,m3h1,m3h2,m3d1,m3d2,l,kg,N,Nm,
 	Unit_P,Unit_bar,Unit_J,Unit_Jh,Unit_W,Unit_kW,Unit_VA,Unit_kVA,Unit_var,
 	Unit_Kvar,Unit_kWh,Unit_kVAh,Unit_Kvarh,Unit_A,Unit_C,
 	Unit_V,Unit_Vm,Unit_F,Unit_O,Unit_Om2,Unit_Wb,Unit_T,Unit_Am,
 	Unit_H,Unit_Hz,Unit_lWh,Unit_impkWh,Unit_impvarh,
-	VAh,baifenbi,byte,dBm,yuankWh,Ah
+	VAh,baifenbi,byte,dBm,yuankWh,Ah,ms
 }Physical_Units;/*物理单位*/
 
 typedef enum {

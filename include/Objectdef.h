@@ -782,7 +782,7 @@ typedef struct {
 typedef struct {
 	OAD no;//脉冲输入端口号
 	INT8U conf;//脉冲属性{0正向有功 1正向无功 2反向有功 3反向无功}
-	INT64U k;//脉冲常数
+	INT32U k;//脉冲常数
 } PULSEUNIT;
 
 typedef struct {
@@ -794,23 +794,23 @@ typedef struct {
 
 typedef struct {
 	INT8U addr[OCTET_STRING_LEN];//通信地址
-	INT64U pt;//互感器倍率
-	INT64U ct;//互感器倍率
-	PULSEUNIT unit[12];//脉冲配置
-	INT64S p;//有功功率
-	INT64S q;//无功功率
-	INT64U day_pos_p[MAXVAL_RATENUM];//当日正向有功功率
-	INT64U mon_pos_p[MAXVAL_RATENUM];//当月正向有功功率
-	INT64U day_nag_p[MAXVAL_RATENUM];//当日反向有功功率
-	INT64U mon_nag_p[MAXVAL_RATENUM];//当月反向有功功率
-	INT64U day_pos_q[MAXVAL_RATENUM];//当日正向无功功率
-	INT64U mon_pos_q[MAXVAL_RATENUM];//当月正向无功功率
-	INT64U day_nag_q[MAXVAL_RATENUM];//当日反向无功功率
-	INT64U mon_nag_q[MAXVAL_RATENUM];//当月反向无功功率
-	INT64U val_pos_p[MAXVAL_RATENUM];//正向有功电能示值
-	INT64U val_pos_q[MAXVAL_RATENUM];//正向无功电能示值
-	INT64U val_nag_p[MAXVAL_RATENUM];//反向有功电能示值
-	INT64U val_nag_q[MAXVAL_RATENUM];//反向无功电能示值
+	INT32U pt;//互感器倍率
+	INT32U ct;//互感器倍率
+	PULSEUNIT unit[MAX_PULSE_UNIT];//脉冲配置
+	INT32S p;//有功功率
+	INT32S q;//无功功率
+	INT32U day_pos_p[MAXVAL_RATENUM];//当日正向有功功率
+	INT32U mon_pos_p[MAXVAL_RATENUM];//当月正向有功功率
+	INT32U day_nag_p[MAXVAL_RATENUM];//当日反向有功功率
+	INT32U mon_nag_p[MAXVAL_RATENUM];//当月反向有功功率
+	INT32U day_pos_q[MAXVAL_RATENUM];//当日正向无功功率
+	INT32U mon_pos_q[MAXVAL_RATENUM];//当月正向无功功率
+	INT32U day_nag_q[MAXVAL_RATENUM];//当日反向无功功率
+	INT32U mon_nag_q[MAXVAL_RATENUM];//当月反向无功功率
+	INT32U val_pos_p[MAXVAL_RATENUM];//正向有功电能示值
+	INT32U val_pos_q[MAXVAL_RATENUM];//正向无功电能示值
+	INT32U val_nag_p[MAXVAL_RATENUM];//反向有功电能示值
+	INT32U val_nag_q[MAXVAL_RATENUM];//反向无功电能示值
 	Scaler_Unit su[14];//属性5-18换算单位
 } CLASS12;
 

@@ -213,7 +213,7 @@ int class23_get(OAD oad, INT8U *sourcebuf, INT8U *buf, int *len) {
 	int index = oad.OI - 0x2301;
 
 	index = rangeJudge("总加组",index,0,(MAXNUM_SUMGROUP-1));
-	if(index == -1) return 0;
+	if(index == -1)  return 0;		//返回值len为？？
 
 	switch (oad.attflg) {
 	case 2:
