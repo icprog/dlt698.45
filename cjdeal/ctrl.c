@@ -752,6 +752,12 @@ int ctrlMain(void * arg) {
 							sizeof(CLASS23), para_vari_save);
 				}
 			}
+			if (secOld % 51 == 0) {
+				for (int i = 0; i < 8; ++i) {
+					saveCoverClass(0x2401 + i, 0, &JProgramInfo->class12[i],
+							sizeof(CLASS12), para_vari_save);
+				}
+			}
 
 			if (CtrlC->control_event == 1) {
 				fprintf(stderr, "遥控跳闸事件");
