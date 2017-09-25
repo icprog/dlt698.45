@@ -724,58 +724,12 @@ void battery_test()
 	}
 }
 
-BOOLEAN oi_f203_changed()
-{
-//	INT8U i = 0;
-
-	g_oif203.state4.StateAcessFlag = 0xff;
-	g_oif203.state4.StatePropFlag = 0xff;
-	memset(&g_oif203.statearri.stateunit,0,sizeof(g_oif203.statearri.stateunit));
-//	static INT8U changed = 0xff;
-//	if (changed != g_save_changed) {
-//		for (i = 0; i < STATE_MAXNUM; i++) {
-//			if (((g_oif203.state4.StateAcessFlag >> (STATE_MAXNUM - 1 - i)) & 0x01)	== 1) {
-//				if (((g_oif203.state4.StatePropFlag >> (STATE_MAXNUM - 1 - i))& 0x01) == 0)	//常闭节点
-//					g_oif203.statearri.stateunit[i].ST = 1;
-//				else
-//					g_oif203.statearri.stateunit[i].ST = 0;
-//			} else {
-//				g_oif203.statearri.stateunit[i].ST = 0;
-//			}
-//			g_oif203.statearri.stateunit[i].CD = 0;		//参数变化后，清除状态变位标志
-//		}
-//
-//		changed = g_save_changed;
-//		fprintf(stderr, "CD=%d-%d-%d-%d-%d-%d-%d-%d\n",
-//				g_oif203.statearri.stateunit[0].CD,
-//				g_oif203.statearri.stateunit[1].CD,
-//				g_oif203.statearri.stateunit[2].CD,
-//				g_oif203.statearri.stateunit[3].CD,
-//				g_oif203.statearri.stateunit[4].CD,
-//				g_oif203.statearri.stateunit[5].CD,
-//				g_oif203.statearri.stateunit[6].CD,
-//				g_oif203.statearri.stateunit[7].CD);
-//		fprintf(stderr, "ST=%d-%d-%d-%d-%d-%d-%d-%d\n",
-//				g_oif203.statearri.stateunit[0].ST,
-//				g_oif203.statearri.stateunit[1].ST,
-//				g_oif203.statearri.stateunit[2].ST,
-//				g_oif203.statearri.stateunit[3].ST,
-//				g_oif203.statearri.stateunit[4].ST,
-//				g_oif203.statearri.stateunit[5].ST,
-//				g_oif203.statearri.stateunit[6].ST,
-//				g_oif203.statearri.stateunit[7].ST);
-//		return TRUE;
-//	}
-	return FALSE;
-}
-
 char state_get(DEV_STATE_PULSE road)
 {
 	char staval = -1;
 	unsigned int pluse_tmp[2] = { };
 	int fd = 0;
 
-//	fprintf(stderr,"road=%d\n",road);
 	switch (road) {
 	case STATE1:
 		staval = gpio_readbyte(DEV_STATE1);
@@ -813,10 +767,9 @@ char state_get(DEV_STATE_PULSE road)
 	return staval;
 }
 
-INT8U state_check(BOOLEAN changed)
+void state_check(BOOLEAN changed)
 {
 	INT8U state_num = 1;
-	INT8U staret = 0;
 	INT8U i = 0;
 	INT8U bit_state[STATE_MAXNUM] = { };
 	INT8S readstate[STATE_MAXNUM] = { };	//读取开关量状态
@@ -827,7 +780,6 @@ INT8U state_check(BOOLEAN changed)
 	} else
 		state_num = STATE_MAXNUM;
 
-//	fprintf(stderr,"state_num = %d\n",state_num);
 	for (i = 0; i < state_num; i++) {
 		if (((g_oif203.state4.StateAcessFlag >> (STATE_MAXNUM - 1 - i)) & 0x01)
 				== 1) {
@@ -850,46 +802,51 @@ INT8U state_check(BOOLEAN changed)
 			}
 		}
 	}
+
 	for (i = 0; i < STATE_MAXNUM; i++) {
 		if ((changed == FALSE)
 				&& (bit_state[i] != g_oif203.statearri.stateunit[i].ST)) {
+
 			g_oif203.statearri.stateunit[i].ST = bit_state[i];
 			g_oif203.statearri.stateunit[i].CD = 1;
-			staret = 1;
-			fprintf(stderr, "RD=%d_%d_%d_%d %d_%d_%d_%d\n", bit_state[0],
-					bit_state[1], bit_state[2], bit_state[3], bit_state[4],
-					bit_state[5], bit_state[6], bit_state[7]);
-			fprintf(stderr, "ST=%d_%d_%d_%d %d_%d_%d_%d\n",
-					g_oif203.statearri.stateunit[0].ST,
-					g_oif203.statearri.stateunit[1].ST,
-					g_oif203.statearri.stateunit[2].ST,
-					g_oif203.statearri.stateunit[3].ST,
-					g_oif203.statearri.stateunit[4].ST,
-					g_oif203.statearri.stateunit[5].ST,
-					g_oif203.statearri.stateunit[6].ST,
-					g_oif203.statearri.stateunit[7].ST);
-			fprintf(stderr, "CD=%d_%d_%d_%d %d_%d_%d_%d\n\n",
-					g_oif203.statearri.stateunit[0].CD,
-					g_oif203.statearri.stateunit[1].CD,
-					g_oif203.statearri.stateunit[2].CD,
-					g_oif203.statearri.stateunit[3].CD,
-					g_oif203.statearri.stateunit[4].CD,
-					g_oif203.statearri.stateunit[5].CD,
-					g_oif203.statearri.stateunit[6].CD,
-					g_oif203.statearri.stateunit[7].CD);
 		}
 	}
-	return staret;
+
+
+	fprintf(stderr, "RD=%d_%d_%d_%d %d_%d_%d_%d\n", bit_state[0],
+			bit_state[1], bit_state[2], bit_state[3], bit_state[4],
+			bit_state[5], bit_state[6], bit_state[7]);
+	fprintf(stderr, "ST=%d_%d_%d_%d %d_%d_%d_%d\n",
+			g_oif203.statearri.stateunit[0].ST,
+			g_oif203.statearri.stateunit[1].ST,
+			g_oif203.statearri.stateunit[2].ST,
+			g_oif203.statearri.stateunit[3].ST,
+			g_oif203.statearri.stateunit[4].ST,
+			g_oif203.statearri.stateunit[5].ST,
+			g_oif203.statearri.stateunit[6].ST,
+			g_oif203.statearri.stateunit[7].ST);
+	fprintf(stderr, "CD=%d_%d_%d_%d %d_%d_%d_%d\n\n",
+			g_oif203.statearri.stateunit[0].CD,
+			g_oif203.statearri.stateunit[1].CD,
+			g_oif203.statearri.stateunit[2].CD,
+			g_oif203.statearri.stateunit[3].CD,
+			g_oif203.statearri.stateunit[4].CD,
+			g_oif203.statearri.stateunit[5].CD,
+			g_oif203.statearri.stateunit[6].CD,
+			g_oif203.statearri.stateunit[7].CD);
 }
 
-/*
- * 开关量状态处理
- * */
-void DealState_test()
+void dogFeed()
 {
-	BOOLEAN changed = FALSE;
-	INT8U stachg = 0;
-	stachg = state_check(FALSE);
+    INT32S fd = -1;
+    INT32S tm = 3600;
+
+    if ((fd = open(DEV_WATCHDOG, O_RDWR | O_NDELAY)) == -1) {
+        fprintf(stderr, "\n\r open /dev/watchdog error!!!");
+        return;
+    }
+    write(fd, &tm, sizeof(int));
+    close(fd);
 }
 
 void YX_test()
@@ -899,51 +856,92 @@ void YX_test()
 	int originX = Gui_Point.x;
 
 	DEBUG_TO_FILE(1, TEST_LOG_FILE, "遥信 测试开始");
-	system("cj stop");
 
-	oi_f203_changed();
+	g_oif203.state4.StateAcessFlag = 0xff;
+	g_oif203.state4.StatePropFlag = 0xff;
+	memset(&g_oif203.statearri.stateunit,0,sizeof(g_oif203.statearri.stateunit));
 
 	while (1) {
-//		fprintf(stderr,"PressKey = %d\n",PressKey);
+		dogFeed();
+
 		if (PressKey == KEY_ESC) {
 			break;
 		}
-		DealState_test();
+		state_check(FALSE);
+
 		memset(str, 0, 100);
 		Gui_Point.x = FONTSIZE;
 		Gui_Point.y = originY + FONTSIZE;
-		lcd_disp((char*) " 变位", Gui_Point.x, Gui_Point.y);
+		lcd_disp((char*) " 遥信", Gui_Point.x, Gui_Point.y);
 
 		Gui_Point.y += FONTSIZE;
 		memset(str, 0, 100);
 		sprintf((char*) str, "1: %s",
-				g_oif203.statearri.stateunit[0].ST ? "是" : "否");
+				g_oif203.statearri.stateunit[0].ST ? "合" : "开");
 		lcd_disp(str, Gui_Point.x, Gui_Point.y);
 
 		Gui_Point.x += FONTSIZE * 3;
 		memset(str, 0, 100);
 		sprintf((char*) str, "2: %s",
-				g_oif203.statearri.stateunit[1].ST ? "是" : "否");
+				g_oif203.statearri.stateunit[1].ST ? "合" : "开");
 		lcd_disp(str, Gui_Point.x, Gui_Point.y);
 
 		Gui_Point.x =  FONTSIZE;
 		Gui_Point.y += FONTSIZE;
 		memset(str, 0, 100);
 		sprintf((char*) str, "3: %s",
-				g_oif203.statearri.stateunit[2].ST ? "是" : "否");
+				g_oif203.statearri.stateunit[2].ST ? "合" : "开");
 		lcd_disp(str, Gui_Point.x, Gui_Point.y);
 
 		Gui_Point.x += FONTSIZE * 3;
 		memset(str, 0, 100);
 		sprintf((char*) str, "4: %s",
-				g_oif203.statearri.stateunit[3].ST ? "是" : "否");
+				g_oif203.statearri.stateunit[3].ST ? "合" : "开");
 		lcd_disp(str, Gui_Point.x, Gui_Point.y);
 
 		Gui_Point.x = FONTSIZE;
 		Gui_Point.y += FONTSIZE;
 		memset(str, 0, 100);
-		sprintf((char*) str, "门节点:  %s",
-				g_oif203.statearri.stateunit[4].ST ? "是" : "否");
+		sprintf((char*) str, "门节点: %s",
+				g_oif203.statearri.stateunit[4].ST ? "合" : "开");
+		lcd_disp(str, Gui_Point.x, Gui_Point.y);
+
+
+		memset(str, 0, 100);
+		Gui_Point.x = FONTSIZE*7;
+		Gui_Point.y = originY + FONTSIZE;
+		lcd_disp((char*) " 变位", Gui_Point.x, Gui_Point.y);
+
+		Gui_Point.y += FONTSIZE;
+		memset(str, 0, 100);
+		sprintf((char*) str, "1: %s",
+				g_oif203.statearri.stateunit[0].CD ? "是" : "否");
+		lcd_disp(str, Gui_Point.x, Gui_Point.y);
+
+		memset(str, 0, 100);
+		Gui_Point.x += FONTSIZE*3;
+		sprintf((char*) str, "2: %s",
+				g_oif203.statearri.stateunit[1].CD ? "是" : "否");
+		lcd_disp(str, Gui_Point.x, Gui_Point.y);
+
+		memset(str, 0, 100);
+		Gui_Point.x = FONTSIZE*7;
+		Gui_Point.y += FONTSIZE;
+		sprintf((char*) str, "3: %s",
+				g_oif203.statearri.stateunit[2].CD ? "是" : "否");
+		lcd_disp(str, Gui_Point.x, Gui_Point.y);
+
+		memset(str, 0, 100);
+		Gui_Point.x += FONTSIZE*3;
+		sprintf((char*) str, "4: %s",
+				g_oif203.statearri.stateunit[3].CD ? "是" : "否");
+		lcd_disp(str, Gui_Point.x, Gui_Point.y);
+
+		memset(str, 0, 100);
+		Gui_Point.x = FONTSIZE*7;
+		Gui_Point.y += FONTSIZE;
+		sprintf((char*) str, "门节点: %s",
+				g_oif203.statearri.stateunit[4].CD ? "是" : "否");
 		lcd_disp(str, Gui_Point.x, Gui_Point.y);
 
 		PressKey = NOKEY;
