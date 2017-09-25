@@ -338,6 +338,9 @@ INT16U ALSetAttrib(OAD oad, INT8U *data, INT8U *DAR) {
 		case 0x2401:
 			data_index = class2401_set(9, oad, data, DAR);
 			break;
+		case 0x8001:
+			data_index = class8001_set(10, oad, data, DAR);
+			break;
 		case 0x8100:
 			data_index = class8100_set(10, oad, data, DAR);
 			break;

@@ -380,25 +380,33 @@ int Get_8001(RESULT_NORMAL *response)
 {
 	CLASS_8001 c8001={};
 	INT8U *data=NULL;
+	INT8U	i=0,index=0;
 	OAD oad = response->oad;
 	data = response->data;
+
+	memset(&c8001,0,sizeof(CLASS_8001));
 	readCoverClass(0x8001, 0, (void *) &c8001, sizeof(CLASS_8001),para_vari_save);
+	fprintf(stderr,"c8001.noCommTime=%d autoTime=%d\n",c8001.noCommTime,c8001.autoTime);
 	switch(oad.attflg) {
 	case 2:
-		response->datalen = fill_enum(data, c8001.state);
+		index = fill_enum(data, c8001.state);
 		break;
 	case 3:
-		response->datalen = fill_long_unsigned(data, c8001.noCommTime);
+		index = fill_long_unsigned(data, c8001.noCommTime);
 		break;
 	case 4:
-		response->datalen = fill_long_unsigned(data, c8001.autoTime);
+		index = fill_long_unsigned(data, c8001.autoTime);
 		break;
 	case 5:
-		//response->datalen = fill_long_unsigned(data, c8001.autoTime);
+		index += create_array(&data[index],c8001.unit_count);
+		for(i=0;i<c8001.unit_count;i++) {
+			index += create_struct(&data[index],2);
+			index += fill_unsigned(&data[index],c8001.unit[i].autoTimeStart);
+			index += fill_unsigned(&data[index],c8001.unit[i].autoTimeEnd);
+		}
 		break;
 	}
-
-	response->datalen = fill_enum(data, c8001.state);
+	response->datalen = index;
 	fprintf(stderr,"C8001 datalen = %d\n",response->datalen);
 	return response->datalen;
 }

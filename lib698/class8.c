@@ -202,6 +202,45 @@ INT64U getLongValue(INT8U *data) {
 	return v;
 }
 
+/*
+ * 保电设置
+ * */
+int class8001_set(int bak, OAD oad, INT8U *data, INT8U *DAR) {
+	CLASS_8001 c8001={};
+	INT8U	i=0;
+	INT8U	index = 0;
+
+	memset(&c8001,0,sizeof(CLASS_8001));
+	readCoverClass(0x8001, 0, (void *) &c8001, sizeof(CLASS_8001),
+					para_vari_save);
+	switch(oad.attflg) {
+	case 2:	//保电状态，只读
+
+		break;
+	case 3:
+		index += getLongUnsigned(data,(INT8U *)&c8001.noCommTime);
+		asyslog(LOG_WARNING, "设置保电属性3(%d)", c8001.noCommTime);
+		break;
+	case 4:
+		index += getLongUnsigned(data,(INT8U *)&c8001.autoTime);
+		asyslog(LOG_WARNING, "设置保电属性4(%d)", c8001.autoTime);
+		break;
+	case 5:
+		index += getArray(&data[index],&c8001.unit_count,DAR);
+		fprintf(stderr,"unit_count = %d\n",c8001.unit_count);
+		for(i=0;i<c8001.unit_count;i++) {
+			index += getStructure(&data[index],NULL,DAR);
+			index += getUnsigned(&data[index],&c8001.unit[i].autoTimeStart,DAR);
+			index += getUnsigned(&data[index],&c8001.unit[i].autoTimeEnd,DAR);
+			fprintf(stderr,"autoTimeStart = %d  autoTimeEnd = %d\n",c8001.unit[i].autoTimeStart,c8001.unit[i].autoTimeEnd);
+		}
+		break;
+	}
+	*DAR = saveCoverClass(0x8001, 0, (void *) &c8001, sizeof(CLASS_8001),
+			para_vari_save);
+	return index;
+}
+
 int class8100_set(int index, OAD oad, INT8U *data, INT8U *DAR) {
 	CLASS_8100 c8100;
 	if (data[0] != 0x14) {

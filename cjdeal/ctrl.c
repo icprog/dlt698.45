@@ -710,22 +710,16 @@ int deal8108() {
 }
 
 void dealCtrl() {
-//直接跳闸，必须检测
+	//直接跳闸，必须检测
 	deal8107();
 	deal8108();
 
-//检测控制有优先级，当高优先级条件产生时，忽略低优先级的配置
+	//检测控制有优先级，当高优先级条件产生时，忽略低优先级的配置
 
 	deal8106();
 	deal8105();
 	deal8104();
 	deal8103();
-
-//统计输出与告警状态
-//	sumUpCtrl();
-//
-//	//汇总所有总加组的状态
-//	getFinalCtrl();
 }
 
 int ctrlMain(void * arg) {
@@ -756,6 +750,12 @@ int ctrlMain(void * arg) {
 
 				//处理控制逻辑
 				dealCtrl();
+			}
+			if (secOld % 57 == 0) {
+				for (int i = 0; i < 8; ++i) {
+					saveCoverClass(0x2301 + i, 0, &JProgramInfo->class23[i],
+							sizeof(CLASS23), para_vari_save);
+				}
 			}
 
 			if (CtrlC->control_event == 1) {
