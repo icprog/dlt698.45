@@ -101,7 +101,7 @@ int savePulseTaskData(INT8U pluse_index,INT8U taskid,TS savets,TSA tsa,CSD_ARRAY
 					break;
 				}
 				asyslog(LOG_NOTICE,"savePulseTaskData taskid = %d freezeOAD=%04x relateOAD=%04x index=%d\n",taskid,freezeOAD.OI,relateOAD.OI,index);
-//				saveret = SaveOADData(taskid,freezeOAD,relateOAD,saveBuf,index,savets);
+				saveret = SaveOADData(taskid,freezeOAD,relateOAD,saveBuf,index,savets);
 			}
 		}
 	}

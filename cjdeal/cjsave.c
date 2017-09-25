@@ -537,6 +537,11 @@ int SaveOADData(INT8U taskid,OAD oad_m,OAD oad_r,INT8U *databuf,int datalen,TS t
 		}
 
 		asyslog(LOG_NOTICE,"oadoffset=%d合理::%d",oadoffset,unitlen*(unitseq-1)/runtime+oadoffset);
+		int kk=0;
+		fprintf(stderr,"\ndatabuf[%d]:",datalen);
+		for(kk=0;kk<datalen;kk++)
+			fprintf(stderr," %02x",databuf[kk]);
+		fprintf(stderr,"\n");
 		memcpy(&databuf_tmp[unitlen*(unitseq-1)/runtime+oadoffset],&databuf[18],datalen-18);//赋值到应该赋值的oad位置
 
 		memset(&datetime,0x00,sizeof(DateTimeBCD));

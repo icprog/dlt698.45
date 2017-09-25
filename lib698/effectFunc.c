@@ -52,7 +52,7 @@ INT8U check_date(int year, int month, int day, int hour, int min, int sec)
 void isTimeTagEffect(TimeTag timetag,TimeTag *rec_timetag)
 {
 	time_t	nowtime_t = 0,tagtime_t = 0;
-	TS		tmpts;
+//	TS		tmpts;
 	INT32U	interval_s = 0;		//TI间隔转换到秒数
 	int		ret = 0;
 

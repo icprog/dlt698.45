@@ -41,7 +41,7 @@ int class8001_act128(int index, int attr_act, INT8U *data,
 int class8001_act129(int index, int attr_act, INT8U *data,
 		Action_result *act_ret) {
 	asyslog(LOG_WARNING, "解除自动保电\n");
-	CLASS_8001 c8001;
+	CLASS_8001 c8001={};
 	readCoverClass(0x8001, 0, (void *) &c8001, sizeof(CLASS_8001),
 			para_vari_save);
 	c8001.state = 2;
@@ -63,6 +63,7 @@ int class8001_act_route(int index, int attr_act, INT8U *data,
 		class8001_act129(1, attr_act, data, act_ret);
 		break;
 	}
+	return 1;
 }
 
 int class8002_act127(int index, int attr_act, INT8U *data,
@@ -98,7 +99,9 @@ int class8002_act_route(int index, int attr_act, INT8U *data, Action_result *act
 		class8002_act128(1, attr_act, data, act_ret);
 		break;
 	}
+	return 1;
 }
+
 int class8000_act129(int index, int attr_act, INT8U *data,
 		Action_result *act_ret) {
 
@@ -110,7 +113,6 @@ int class8000_act129(int index, int attr_act, INT8U *data,
 	{
 		shareAddr->ctrls.cf205.currentState = 1;
 	}
-
 
 	if(shareAddr->ctrls.cf205.currentState == 0){
 		return 0;
@@ -185,6 +187,7 @@ int class8000_act_route(int index, int attr_act, INT8U *data,
 		class8000_act130(1, attr_act, data, act_ret);
 		break;
 	}
+	return 1;
 }
 
 INT64U getLongValue(INT8U *data) {
@@ -197,6 +200,45 @@ INT64U getLongValue(INT8U *data) {
 		v = v << 8;
 	}
 	return v;
+}
+
+/*
+ * 保电设置
+ * */
+int class8001_set(int bak, OAD oad, INT8U *data, INT8U *DAR) {
+	CLASS_8001 c8001={};
+	INT8U	i=0;
+	INT8U	index = 0;
+
+	memset(&c8001,0,sizeof(CLASS_8001));
+	readCoverClass(0x8001, 0, (void *) &c8001, sizeof(CLASS_8001),
+					para_vari_save);
+	switch(oad.attflg) {
+	case 2:	//保电状态，只读
+
+		break;
+	case 3:
+		index += getLongUnsigned(data,(INT8U *)&c8001.noCommTime);
+		asyslog(LOG_WARNING, "设置保电属性3(%d)", c8001.noCommTime);
+		break;
+	case 4:
+		index += getLongUnsigned(data,(INT8U *)&c8001.autoTime);
+		asyslog(LOG_WARNING, "设置保电属性4(%d)", c8001.autoTime);
+		break;
+	case 5:
+		index += getArray(&data[index],&c8001.unit_count,DAR);
+		fprintf(stderr,"unit_count = %d\n",c8001.unit_count);
+		for(i=0;i<c8001.unit_count;i++) {
+			index += getStructure(&data[index],NULL,DAR);
+			index += getUnsigned(&data[index],&c8001.unit[i].autoTimeStart,DAR);
+			index += getUnsigned(&data[index],&c8001.unit[i].autoTimeEnd,DAR);
+			fprintf(stderr,"autoTimeStart = %d  autoTimeEnd = %d\n",c8001.unit[i].autoTimeStart,c8001.unit[i].autoTimeEnd);
+		}
+		break;
+	}
+	*DAR = saveCoverClass(0x8001, 0, (void *) &c8001, sizeof(CLASS_8001),
+			para_vari_save);
+	return index;
 }
 
 int class8100_set(int index, OAD oad, INT8U *data, INT8U *DAR) {
@@ -412,6 +454,7 @@ int class8103_act_route(int index, int attr_act, INT8U *data,
 		class8103_act127(1, attr_act, data, act_ret);
 		break;
 	}
+	return 1;
 }
 
 int class8104_act3(int index, int attr_act, INT8U *data, Action_result *act_ret) {
@@ -523,6 +566,7 @@ int class8104_act_route(int index, int attr_act, INT8U *data,
 		class8104_act7(1, attr_act, data, act_ret);
 		break;
 	}
+	return 1;
 }
 
 int class8105_act3(int index, int attr_act, INT8U *data, Action_result *act_ret) {
@@ -562,6 +606,8 @@ int class8105_act3(int index, int attr_act, INT8U *data, Action_result *act_ret)
 int class8105_act6(int index, int attr_act, INT8U *data, Action_result *act_ret) {
 	int oi = 0x00;
 	if (data[0] != 0x50) {
+		act_ret->DAR =type_mismatch;
+		act_ret->datalen = 0;
 		return 0;
 	}
 
@@ -570,8 +616,14 @@ int class8105_act6(int index, int attr_act, INT8U *data, Action_result *act_ret)
 
 	ProgramInfo *shareAddr = getShareAddr();
 	int sindex = oi - 0x2301;
+	sindex = rangeJudge("总加组",sindex,0,(MAXNUM_SUMGROUP-1));
+	if(sindex == -1) {
+		act_ret->DAR =boundry_over;
+		act_ret->datalen = 0;
+		return 0;
+	}
 
-	CLASS_8105 c8105;
+	CLASS_8105 c8105={};
 	memset(&c8105, 0x00, sizeof(CLASS_8105));
 	readCoverClass(0x8105, 0, (void *) &c8105, sizeof(CLASS_8105),
 			para_vari_save);
@@ -585,17 +637,23 @@ int class8105_act6(int index, int attr_act, INT8U *data, Action_result *act_ret)
 int class8105_act7(int index, int attr_act, INT8U *data, Action_result *act_ret) {
 	int oi = 0x00;
 	if (data[0] != 0x50) {
+		act_ret->DAR =type_mismatch;
+		act_ret->datalen = 0;
 		return 0;
 	}
-
 	oi = data[1] * 256 + data[2];
 	asyslog(LOG_WARNING, "营业报停-控制解除[%04x]", oi);
 
-
 	ProgramInfo *shareAddr = getShareAddr();
 	int sindex = oi - 0x2301;
+	sindex = rangeJudge("总加组",sindex,0,(MAXNUM_SUMGROUP-1));
+	if(sindex == -1) {
+		act_ret->DAR =boundry_over;
+		act_ret->datalen = 0;
+		return 0;
+	}
 
-	CLASS_8105 c8105;
+	CLASS_8105 c8105={};
 	memset(&c8105, 0x00, sizeof(CLASS_8105));
 	readCoverClass(0x8105, 0, (void *) &c8105, sizeof(CLASS_8105),
 			para_vari_save);
@@ -621,6 +679,7 @@ int class8105_act_route(int index, int attr_act, INT8U *data,
 		class8105_act7(1, attr_act, data, act_ret);
 		break;
 	}
+	return 1;
 }
 
 int class8106_act3(int index, int attr_act, INT8U *data, Action_result *act_ret) {
@@ -687,14 +746,16 @@ int class8106_act127(int index, int attr_act, INT8U *data, Action_result *act_re
 int class8106_act7(int index, int attr_act, INT8U *data, Action_result *act_ret) {
 	int oi = 0x00;
 	if (data[0] != 0x50) {
+		act_ret->DAR =type_mismatch;
+		act_ret->datalen = 0;
 		return 0;
 	}
 
 	ProgramInfo *shareAddr = getShareAddr();
 	oi = data[1] * 256 + data[2];
-	int sindex = oi - 0x2301;
+
 	asyslog(LOG_WARNING, "功率下浮-控制解除[%04x]", oi);
-	CLASS_8106 c8106;
+	CLASS_8106 c8106={};
 	memset(&c8106, 0x00, sizeof(CLASS_8106));
 	readCoverClass(0x8106, 0, (void *) &c8106, sizeof(CLASS_8106),
 			para_vari_save);
@@ -723,6 +784,7 @@ int class8106_act_route(int index, int attr_act, INT8U *data,
 		class8106_act127(1, attr_act, data, act_ret);
 		break;
 	}
+	return 1;
 }
 
 int class8107_act3(int index, int attr_act, INT8U *data, Action_result *act_ret) {
@@ -819,6 +881,8 @@ int class8107_act5(int index, int attr_act, INT8U *data, Action_result *act_ret)
 int class8107_act6(int index, int attr_act, INT8U *data, Action_result *act_ret) {
 	int oi = 0x00;
 	if (data[0] != 0x50) {
+		act_ret->DAR =type_mismatch;
+		act_ret->datalen = 0;
 		return 0;
 	}
 
@@ -828,7 +892,7 @@ int class8107_act6(int index, int attr_act, INT8U *data, Action_result *act_ret)
 	int sindex = oi - 0x2301;
 	asyslog(LOG_WARNING, "购电-控制投入[%04x]", oi);
 
-	CLASS_8107 c8107;
+	CLASS_8107 c8107={};
 	memset(&c8107, 0x00, sizeof(CLASS_8107));
 	readCoverClass(0x8107, 0, (void *) &c8107, sizeof(CLASS_8107),
 			para_vari_save);
@@ -844,6 +908,8 @@ int class8107_act6(int index, int attr_act, INT8U *data, Action_result *act_ret)
 int class8107_act7(int index, int attr_act, INT8U *data, Action_result *act_ret) {
 	int oi = 0x00;
 	if (data[0] != 0x50) {
+		act_ret->DAR =type_mismatch;
+		act_ret->datalen = 0;
 		return 0;
 	}
 
@@ -853,7 +919,7 @@ int class8107_act7(int index, int attr_act, INT8U *data, Action_result *act_ret)
 	int sindex = oi - 0x2301;
 	asyslog(LOG_WARNING, "购电-控制解除[%04x]", oi);
 
-	CLASS_8107 c8107;
+	CLASS_8107 c8107={};
 	memset(&c8107, 0x00, sizeof(CLASS_8107));
 	readCoverClass(0x8107, 0, (void *) &c8107, sizeof(CLASS_8107),
 			para_vari_save);
@@ -915,6 +981,8 @@ int class8108_act3(int index, int attr_act, INT8U *data, Action_result *act_ret)
 int class8108_act6(int index, int attr_act, INT8U *data, Action_result *act_ret) {
 	int oi = 0x00;
 	if (data[0] != 0x50) {
+		act_ret->DAR =type_mismatch;
+		act_ret->datalen = 0;
 		return 0;
 	}
 
@@ -939,6 +1007,8 @@ int class8108_act6(int index, int attr_act, INT8U *data, Action_result *act_ret)
 int class8108_act7(int index, int attr_act, INT8U *data, Action_result *act_ret) {
 	int oi = 0x00;
 	if (data[0] != 0x50) {
+		act_ret->DAR =type_mismatch;
+		act_ret->datalen = 0;
 		return 0;
 	}
 
