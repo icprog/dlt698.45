@@ -315,7 +315,7 @@ extern void getTaskFileName(INT8U taskid,TS ts,char *fname);
 extern void getEveFileName(OI_698 eve_oi,char *fname);
 extern INT8U datafile_write(char *FileName, void *source, int size, int offset);
 extern INT8U datafile_read(char *FileName, void *source, int size, int offset);
-extern INT16U CalcOIDataLen(OI_698 oi,INT8U attr_flg);
+extern INT16U CalcOIDataLen(OAD oad);
 extern FILE* openFramefile(char *filename);
 extern void saveOneFrame(INT8U *buf,int len,FILE *fp);
 /*

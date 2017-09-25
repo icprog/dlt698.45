@@ -16,6 +16,7 @@
 #include "dlt698def.h"
 #include "dlt698.h"
 #include "OIfunc.h"
+#include "OIsetfunc.h"
 #include "Objectdef.h"
 #include "event.h"
 #include "secure.h"
@@ -330,6 +331,7 @@ void AddBatchMeterInfo(INT8U *data, INT8U type, Action_result *act_ret) {
     int k = 0, saveflg = 0, index = 0;
     INT8U *dealdata = NULL;
     INT8U addnum = 0;// = data[1];
+    INT8U	DAR = 0;
 
     if (type == 127) {
         dealdata = data;
@@ -344,28 +346,28 @@ void AddBatchMeterInfo(INT8U *data, INT8U type, Action_result *act_ret) {
     for (k = 0; k < addnum; k++) {
         memset(&meter, 0, sizeof(meter));
         index += getStructure(&dealdata[index],NULL,&act_ret->DAR);
-        if(act_ret->DAR!=success)
-        	return;
-       // index = index + 2;//struct
         index += getLongUnsigned(&dealdata[index], (INT8U *) &meter.sernum);
         index = index + 2;//struct
         index += getOctetstring(1, &dealdata[index], (INT8U *) &meter.basicinfo.addr,&act_ret->DAR);
         index += getEnum(1, &dealdata[index], &meter.basicinfo.baud);
-        act_ret->DAR=getEnumValid(meter.basicinfo.baud,0,10,255);
-        if(act_ret->DAR!=success)
-        	return;		//TODO: 是否退出？如果下发的ReponseNormalList是否会影响后续的帧解析？？？
+        DAR=getEnumValid(meter.basicinfo.baud,0,10,255);
+        if(DAR != success)  act_ret->DAR = DAR;
+//        if(act_ret->DAR!=success)
+//        	return;		//TODO: 是否退出？如果下发的ReponseNormalList是否会影响后续的帧解析？？？
         index += getEnum(1, &dealdata[index], &meter.basicinfo.protocol);
-        act_ret->DAR=getEnumValid(meter.basicinfo.protocol,0,4,255);
-		if(act_ret->DAR!=success)
-			return;
+        DAR=getEnumValid(meter.basicinfo.protocol,0,4,255);
+        if(DAR != success)  act_ret->DAR = DAR;
+//		if(act_ret->DAR!=success)
+//			return;
         index += getOAD(1, &dealdata[index], &meter.basicinfo.port,&act_ret->DAR);
         index += getOctetstring(1, &dealdata[index], (INT8U *) &meter.basicinfo.pwd,&act_ret->DAR);
         index += getUnsigned(&dealdata[index], &meter.basicinfo.ratenum,&act_ret->DAR);
         index += getUnsigned(&dealdata[index], &meter.basicinfo.usrtype,&act_ret->DAR);
         index += getEnum(1,&dealdata[index], &meter.basicinfo.connectype);
-        act_ret->DAR=getEnumValid(meter.basicinfo.connectype,0,3,255);
-		if(act_ret->DAR!=success)
-			return;
+        DAR=getEnumValid(meter.basicinfo.connectype,0,3,255);
+        if(DAR != success)  act_ret->DAR = DAR;
+ //		if(act_ret->DAR!=success)
+//			return;
         index += getLongUnsigned(&dealdata[index], (INT8U *) &meter.basicinfo.ratedU);
         index += getLongUnsigned(&dealdata[index], (INT8U *) &meter.basicinfo.ratedI);
         index = index + 2;//struct
@@ -380,7 +382,10 @@ void AddBatchMeterInfo(INT8U *data, INT8U type, Action_result *act_ret) {
             index = index + 2;//struct
             getOAD(1, &dealdata[index], &meter.aninfo.oad,&act_ret->DAR);
         }
-        saveflg = saveParaClass(0x6000, (unsigned char *) &meter, meter.sernum);
+        saveflg = -1;
+        if(act_ret->DAR==success) {
+        	saveflg = saveParaClass(0x6000, (unsigned char *) &meter, meter.sernum);
+        }
         if (saveflg != 0) {
             fprintf(stderr, "\n采集档案配置 %d 保存失败", meter.sernum);
             act_ret->DAR = refuse_rw;
@@ -406,7 +411,7 @@ void AddBatchMeterInfo(INT8U *data, INT8U type, Action_result *act_ret) {
                 meter.extinfo.asset_code[4], meter.extinfo.asset_code[5], meter.extinfo.pt, meter.extinfo.ct);
     }
     act_ret->datalen = index;
-    act_ret->DAR = success;
+//    act_ret->DAR = success;
 }
 void UpdateBatchMeterInfo(INT8U *data, INT8U type, Action_result *act_ret) {
     CLASS_6001 meter = {};

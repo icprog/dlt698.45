@@ -1950,7 +1950,7 @@ INT16U parseSingleOADData(INT8U isProxyResponse,INT8U* oadData,INT8U* dataConten
 	rcvOAD.OI = (oadData[length] << 8) + oadData[length+1];
 	rcvOAD.attflg = oadData[length+2];
 	rcvOAD.attrindex = oadData[length+3];
-	INT16U oiDataLen = CalcOIDataLen(rcvOAD.OI,rcvOAD.attrindex);
+	INT16U oiDataLen = CalcOIDataLen(rcvOAD);
 	length += 4;
 	fprintf(stderr,"\n rcvOI = %04x  len = %d\n",rcvOAD.OI,oiDataLen);
 	if(oiDataLen <= 0)
@@ -2089,7 +2089,7 @@ INT16U parseSingleROADData(ROAD road,INT8U* oadData,INT8U* dataContent,INT16U* d
 		//按存储格式填充ROAD数据
 		for(csdIndex = 0;csdIndex < road.num;csdIndex++)
 		{
-			INT16U oiDataLen = CalcOIDataLen(road.oads[csdIndex].OI,road.oads[csdIndex].attrindex);
+			INT16U oiDataLen = CalcOIDataLen(road.oads[csdIndex]);
 			//fprintf(stderr,"\n OI = %04x len = %d \n",road.oads[csdIndex].OI,oiDataLen);
 			memset(&dataContent[dataLen],0,oiDataLen);
 
@@ -2190,7 +2190,7 @@ INT16S deal698RequestResponse(INT8U isProxyResponse,INT8U getResponseType,INT8U 
 					INT8U tmpIndex = 0;
 					for(tmpIndex = 0;tmpIndex < csds.csd[0].csd.road.num;tmpIndex++)
 					{
-						dataContentIndex += CalcOIDataLen(csds.csd[0].csd.road.oads[tmpIndex].OI,csds.csd[0].csd.road.oads[tmpIndex].attrindex);
+						dataContentIndex += CalcOIDataLen(csds.csd[0].csd.road.oads[tmpIndex]);
 						asyslog(LOG_NOTICE,"tmpIndex = %d OI = %04x  len = %d",tmpIndex,csds.csd[0].csd.road.oads[tmpIndex].OI,dataContentIndex);
 					}
 					asyslog(LOG_NOTICE,"698冻结时标不正确 dataContentIndex = %d csds.csd[0].csd.road.num = %d",dataContentIndex,csds.csd[0].csd.road.num);
@@ -3609,7 +3609,8 @@ INT16S deal6015_698(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8
 
 	memset(sendbuff, 0, BUFFSIZE512);
 
-	sendLen = composeProtocol698_GetRequest_RN(sendbuff, st6015,to6001.basicinfo.addr);
+//	sendLen = composeProtocol698_GetRequest_RN(sendbuff, st6015,to6001.basicinfo.addr);
+	sendLen = composeProtocol698_GetRequest(sendbuff, st6015,to6001.basicinfo.addr);
 	if(sendLen < 0)
 	{
 		fprintf(stderr,"deal6015_698  sendLen < 0");
@@ -3633,7 +3634,8 @@ INT16S deal6015_698(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8
 			INT8U csdNum = 0;
 			INT16S dataLen = recvLen;
 			INT8U apduDataStartIndex = 0;
-			getResponseType = analyzeProtocol698_RN(recvbuff,&csdNum,recvLen,&apduDataStartIndex,&dataLen);
+//			getResponseType = analyzeProtocol698_RN(recvbuff,&csdNum,recvLen,&apduDataStartIndex,&dataLen);
+			getResponseType = analyzeProtocol698(recvbuff,&csdNum,recvLen,&apduDataStartIndex,&dataLen);
 			fprintf(stderr,"\n getResponseType = %d  csdNum = %d dataLen = %d \n",getResponseType,csdNum,dataLen);
 			if(getResponseType > 0)
 			{
@@ -3739,7 +3741,7 @@ INT16S request9707_singleOAD(INT8U protocol,OI_698 roadOI,OAD soureOAD,CLASS_600
 	INT16S datalen = 0;
 
 	//存储要求的固定长度 长度不够后面补0
-	INT16U formatLen = CalcOIDataLen(soureOAD.OI,soureOAD.attrindex);
+	INT16U formatLen = CalcOIDataLen(soureOAD);
 	fprintf(stderr,"\n formatLen = %d",formatLen);
 	memset(dataContent,0,formatLen);
 	C601F_645 Flag645;
@@ -4289,7 +4291,7 @@ INT16S deal6015or6017_singlemeter(CLASS_6013 st6013,CLASS_6015 st6015,CLASS_6001
 						INT8U oadIndex = 0;
 						for(oadIndex = 0;oadIndex < st6015.csds.csd[0].csd.road.num;oadIndex++)
 						{
-							roadDataLen += CalcOIDataLen(st6015.csds.csd[0].csd.road.oads[oadIndex].OI,st6015.csds.csd[0].csd.road.oads[oadIndex].attrindex);
+							roadDataLen += CalcOIDataLen(st6015.csds.csd[0].csd.road.oads[oadIndex]);
 						}
 
 						DbgPrintToFile1(port485,"6013任务执行频率%d-%d　6015 冻结间隔　%d-%d-%d　数据长度roadDataLen = %d",
@@ -4755,12 +4757,12 @@ INT8S deal6015or6017(CLASS_6013 st6013,CLASS_6015 st6015, INT8U port485,CLASS_60
 							{
 								if(st6015.csds.csd[0].csd.road.oads[tmpIndex].OI == 0x0010)
 								{
-									data_0010_len = CalcOIDataLen(st6015.csds.csd[0].csd.road.oads[tmpIndex].OI,st6015.csds.csd[0].csd.road.oads[tmpIndex].attrindex);
+									data_0010_len = CalcOIDataLen(st6015.csds.csd[0].csd.road.oads[tmpIndex]);
 									break;
 								}
 								else
 								{
-									dataIndex += CalcOIDataLen(st6015.csds.csd[0].csd.road.oads[tmpIndex].OI,st6015.csds.csd[0].csd.road.oads[tmpIndex].attrindex);
+									dataIndex += CalcOIDataLen(st6015.csds.csd[0].csd.road.oads[tmpIndex]);
 								}
 							}
 #if 0

@@ -1947,7 +1947,7 @@ void GetOADPosofUnit(ROAD_ITEM item_road,HEAD_UNIT *head_unit,INT8U unitnum,OAD_
 //						datapos);
 				if(item_road.oad[i].oad_r.attrindex != 0 && head_unit[j].oad_r.attrindex == 0)//招测某一项
 				{
-					INT16U oadlen = CalcOIDataLen(item_road.oad[i].oad_r.OI,item_road.oad[i].oad_r.attrindex);
+					INT16U oadlen = CalcOIDataLen(item_road.oad[i].oad_r);
 					oad_offset[i].offset = datapos + (item_road.oad[i].oad_r.attrindex-1)*oadlen +2;
 					oad_offset[i].len = oadlen;
 				}
@@ -2224,7 +2224,7 @@ void savefrm(INT16U unitlen,INT16U unitnum_file,INT8U lastflg,INT8U *databuf,int
  * 计算某个OI的数据长度，指针对抄表数据 todo 先写个简单的，以后完善 而且没有考虑费率
  * attr_flg:0 全部属性 非0 一个属性  例如20000200 则为全部属性 20000201则为一个属性
  */
-INT16U CalcOIDataLen(OI_698 oi,INT8U attr_flg)
+INT16U CalcOIDataLen(OAD oad)
 {
 	FILE *fp;
 	char ln[60];
@@ -2232,33 +2232,40 @@ INT16U CalcOIDataLen(OI_698 oi,INT8U attr_flg)
 	INT16U oi_len=0;
 	INT8U ic_type = 1;
 
-	if(oi>=0x0000 && oi<0x1000)
+	if(oad.OI>=0x0000 && oad.OI<0x1000)
 	{
-		if(attr_flg == 0)
-			return 27;//长度4+1个字节数据类型
-		else
-			return 5;
+		if(oad.attflg == 2) {
+			if(oad.attrindex == 0)
+				return 27;//长度4+1个字节数据类型  +2: array 01 + 长度
+			else
+				return 5;
+		}else if(oad.attflg == 4) {
+			if(oad.attrindex == 0)
+				return 47;//长度4+1个字节数据类型  +2: array 01 + 长度
+			else
+				return 9;
+		}
 	}
-	if(oi>=0x1000 && oi<0x2000)
+	if(oad.OI>=0x1000 && oad.OI<0x2000)
 	{
-		if(attr_flg == 0)
+		if(oad.attrindex == 0)
 			return 15*5+2;
 		else
 			return 15;
 	}
-	if(oi == 0x2014)
+	if(oad.OI == 0x2014)
 	{
-		if(attr_flg == 0)
+		if(oad.attrindex == 0)
 			return 4*7+2;
 		else
 			return 4;
 	}
-	if(oi ==0x202a)
+	if(oad.OI ==0x202a)
 	{
 		return 18;
 	}
-	if(oi==0x2131 || oi==0x2132 || oi==0x2133) {	//电压合格率
-		if(attr_flg == 0)
+	if(oad.OI==0x2131 || oad.OI==0x2132 || oad.OI==0x2133) {	//电压合格率
+		if(oad.attrindex == 0)
 			return 23*2+2;
 		else
 			return 23;
@@ -2282,7 +2289,7 @@ INT16U CalcOIDataLen(OI_698 oi,INT8U attr_flg)
 		memset(lnf,0x00,5);
 		memcpy(lnf,&ln[0],4);
 
-		if(strtoul(lnf,NULL,16) != oi)
+		if(strtoul(lnf,NULL,16) != oad.OI)
 			continue;
 
 		memset(lnf,0x00,5);
@@ -2302,15 +2309,15 @@ INT16U CalcOIDataLen(OI_698 oi,INT8U attr_flg)
 		{
 		case 1:
 		case 2:
-			if(attr_flg == 0)
+			if(oad.attrindex == 0)
 				oi_len = oi_len*(MET_RATE+1)+1+1;//+类型+个数
 			break;
 		case 3:
-			if(attr_flg == 0)
+			if(oad.attrindex == 0)
 				oi_len = oi_len*3+1+1;//三相
 			break;
 		case 4:
-			if(attr_flg == 0)
+			if(oad.attrindex == 0)
 				oi_len = oi_len*4+1+1;//总及分项
 			break;
 		default:
@@ -3147,8 +3154,8 @@ void intToBuf(int value,INT8U *buf)
 int collectData(INT8U *databuf,INT8U *srcbuf,OAD_INDEX *oad_offset,ROAD_ITEM item_road)
 {
 	int i=0,j=0,mm=0;
-	INT8U tmpbuf[256];
-	int pindex = 0,retlen=0;
+	INT8U tmpbuf[256],wrflg=0;//根据类型获得长度出错标志
+	int pindex = 0,retlen=0, onelen=0;
 
 //	fprintf(stderr,"oadmr_num=%d  unitnum=%d \n",item_road.oadmr_num,unitnum);
 //	for(i=0;i<item_road.oadmr_num;i++)
@@ -3198,19 +3205,30 @@ int collectData(INT8U *databuf,INT8U *srcbuf,OAD_INDEX *oad_offset,ROAD_ITEM ite
 				case 1://array
 					memcpy(&databuf[pindex],tmpbuf,2);
 					pindex += 2;
-					retlen = CalcOIDataLen(oad_offset[j].oad_r.OI,1);
+//					retlen = CalcOIDataLen(oad_offset[j].oad_r);
 //					fprintf(stderr,"\n元素个数%d\n",tmpbuf[1]);
+					retlen = 2;	//array 两个值
 					for(i=0;i<tmpbuf[1];i++)
 					{
 //						fprintf(stderr,"\n类型(%d)-%d  长度%d\n",retlen*i+2,tmpbuf[retlen*i+2],retlen);
-						if(tmpbuf[retlen*i+2] == 0)
+						if(tmpbuf[retlen] == 0 || wrflg == 1)
 							databuf[pindex++] = 0;
 						else
 						{
-							memcpy(&databuf[pindex],&tmpbuf[i*retlen+2],retlen);
-							pindex += retlen;
+							onelen = getDataTypeLen(tmpbuf[retlen]); //数据实际长度
+							if(onelen == -1)//出错了以后，为防止接下来的数据错乱，全都赋成空
+							{
+								databuf[pindex++] = 0;
+								wrflg = 1;
+								continue;
+							}
+							onelen += 1;	//+1:数据类型
+							memcpy(&databuf[pindex],&tmpbuf[retlen],onelen);
+							retlen += onelen;
+							pindex += onelen;
 						}
 					}
+					fprintf(stderr,"pindex=%d\n",pindex);
 //					retlen = retlen*tmpbuf[1]+2;//2代表一个array类型加一个个数
 //					memcpy(&databuf[pindex],tmpbuf,retlen);
 //					pindex += retlen;
@@ -3226,7 +3244,7 @@ int collectData(INT8U *databuf,INT8U *srcbuf,OAD_INDEX *oad_offset,ROAD_ITEM ite
 					pindex += oad_offset[j].len;
 					break;
 				}
-				int k=0;
+//				int k=0;
 //				for(k=0;k<pindex;k++) {
 //					fprintf(stderr,"%02x ",databuf[k]);
 //				}
@@ -4751,9 +4769,9 @@ INT8U write_3761_rc_local()
 	fprintf(fp,"mkfifo /dev/shm/null\n");
 	fprintf(fp,"tail -f /dev/shm/null>> /dev/null &\n");
 	fprintf(fp,"vinit &\n");
-	fprintf(fp,"vupdate &\n");
-	fprintf(fp,"sleep 1\n");
 	fprintf(fp,"vmain 2> /dev/shm/null &\n");
+	fprintf(fp,"sleep 1\n");
+	fprintf(fp,"vupdate &\n");
 	fflush(fp);
 	fd = fileno(fp);
 	fsync(fd);
