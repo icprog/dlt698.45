@@ -206,6 +206,22 @@ int ASCToBCD(unsigned char * ASC, int Len, unsigned char *Ret)
 	return 0;
 }
 
+
+int byteNCmp(char* s, char* t, int n)
+{
+	int i=0;
+
+	if(NULL == s || NULL == t)
+		return ERROR;
+
+	for(i=0;i<n;i++,s++,t++) {
+		if(s[i] != t[i])
+			return ERROR;
+	}
+
+	return OK;
+}
+
 int readFromCom(int port, int timeout)
 {
 	unsigned char sendbuf[] = { 0x68, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x68,
@@ -269,9 +285,41 @@ int readFromCom(int port, int timeout)
 				DEBUG_TO_FILE(1, TEST_LOG_FILE, " %02x", recvbuf[j]);
 			}
 			DEBUG_TO_FILE(1, TEST_LOG_FILE, "\n");
+
+			if(byteNCmp(sendbuf, recvbuf, len) != OK) {
+				close(fd4851);
+				close(fd4852);
+				return ERROR;
+			}
 			break;
 		}
-		delay(1000);
+		delay(200);
+	}
+
+	SendStrTo485(recvbuf, len, readFd);
+	while (1) {	//读到的数据再发回去
+		recv_count++;
+		if (recv_count > timeout)
+			break;
+		len = 0;
+		memset(recvbuf, 0, sizeof(recvbuf));
+		len = ReceiveFrom485_test(recvbuf, sendFd);
+		DEBUG_TO_FILE(1, TEST_LOG_FILE, "len: %d", len);
+		if (len == sizeof(sendbuf)) {
+			DEBUG_TO_FILE(1, TEST_LOG_FILE, "\nReceiveFrom485  recv=%d", len);
+			for (j = 0; j < len; j++) {
+				DEBUG_TO_FILE(1, TEST_LOG_FILE, " %02x", recvbuf[j]);
+			}
+			DEBUG_TO_FILE(1, TEST_LOG_FILE, "\n");
+
+			if(byteNCmp(sendbuf, recvbuf, len) != OK) {
+				close(fd4851);
+				close(fd4852);
+				return ERROR;
+			}
+			break;
+		}
+		delay(200);
 	}
 
 	close(fd4851);
@@ -352,6 +400,7 @@ int readmeter(int meter, int port, int timeout)
 			break;
 		}
 	}
+
 	if (flg == 1) {
 		for (i = 0; i < len; i++) {
 			if (recvbuf[i] == 0x68)
@@ -365,30 +414,42 @@ int readmeter(int meter, int port, int timeout)
 		if (Check != recvbuf[i + load_len + 10]) {
 			DEBUG_TO_FILE(1, TEST_LOG_FILE, "\n check=%d recvbuf_check=%d", Check,
 					recvbuf[i + load_len + 10]);
-			return 0;
+			close(ComPort);
+			return ERROR;
 		}
 	}
+
 	if (ComPort > 0)
 		close(ComPort);
-	return len;
+
+	return OK;
 }
 
 //测试完485后删除所有有效的测量点 质检要求
 //删除所有测量点 交采除外
 void delallmeter()
 {
-//	int i = 1;
-//	char jcMeterNo[5] = { 0 };			//交采测量点号
-//	int jcMeterNoInt = 0;
-//	char cmd[200] = { 0 };
-//
-//	if (readcfg(JZQTEST_PARA_NAME, "jcMeterNo", jcMeterNo) == 1)
-//		jcMeterNoInt = atoi(jcMeterNo);
-//
+	int i = 1;
+	char jcMeterNo[5] = { 0 };			//交采测量点号
+	int jcMeterNoInt = 0;
+
+	if (readcfg(JZQTEST_PARA_NAME, "jcMeterNo", jcMeterNo) == 1)
+		jcMeterNoInt = atoi(jcMeterNo);
+
 //	for (i = 1; i < 255; i++) {			//todo: 用cj 命令速度太慢, 需要重写
 //		if (i != jcMeterNoInt) {
 //			sprintf(cmd, "cj coll delete 6000  %d", i);
 //			system(cmd);
+//		}
+//	}
+
+//	if(readParaClass(0x6000,&meter,seqno)==1) {
+//		if(seqno == meter.sernum) {
+//			meter.sernum = 0;
+//			ret = saveParaClass(0x6000,&meter,seqno);
+//	        setOIChange_CJ(0x6000);
+//			if(ret==1)
+//				fprintf(stderr,"删除 序号 %d 成功, ret=%d\n",seqno,ret);
 //		}
 //	}
 }
@@ -413,7 +474,7 @@ void RS485I_test()
 	else if (readMeterInt == 1)
 		ret = readmeter(cldno, S4851, 3);
 
-	if (ret > 0) {
+	if (ret == OK) {
 		DEBUG_TO_FILE(1, TEST_LOG_FILE, "\n结论: RS485I   OK");
 		lcdprt_result("RS485I", OK);
 	} else {
@@ -445,7 +506,7 @@ void RS485II_test()
 	else if (readMeterInt == 1)
 		ret = readmeter(cldno, S4852, 3);
 
-	if (ret > 0) {
+	if (ret == OK) {
 		DEBUG_TO_FILE(1, TEST_LOG_FILE, "\n结论: RS485II   OK");
 		lcdprt_result("RS485II", OK);
 	} else {
