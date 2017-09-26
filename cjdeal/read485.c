@@ -3609,7 +3609,8 @@ INT16S deal6015_698(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8
 
 	memset(sendbuff, 0, BUFFSIZE512);
 
-	sendLen = composeProtocol698_GetRequest_RN(sendbuff, st6015,to6001.basicinfo.addr);
+//	sendLen = composeProtocol698_GetRequest_RN(sendbuff, st6015,to6001.basicinfo.addr);
+	sendLen = composeProtocol698_GetRequest(sendbuff, st6015,to6001.basicinfo.addr);
 	if(sendLen < 0)
 	{
 		fprintf(stderr,"deal6015_698  sendLen < 0");
@@ -3633,7 +3634,8 @@ INT16S deal6015_698(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8
 			INT8U csdNum = 0;
 			INT16S dataLen = recvLen;
 			INT8U apduDataStartIndex = 0;
-			getResponseType = analyzeProtocol698_RN(recvbuff,&csdNum,recvLen,&apduDataStartIndex,&dataLen);
+//			getResponseType = analyzeProtocol698_RN(recvbuff,&csdNum,recvLen,&apduDataStartIndex,&dataLen);
+			getResponseType = analyzeProtocol698(recvbuff,&csdNum,recvLen,&apduDataStartIndex,&dataLen);
 			fprintf(stderr,"\n getResponseType = %d  csdNum = %d dataLen = %d \n",getResponseType,csdNum,dataLen);
 			if(getResponseType > 0)
 			{
