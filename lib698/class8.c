@@ -384,7 +384,9 @@ int class8103_act6(int index, int attr_act, INT8U *data, Action_result *act_ret)
 			para_vari_save);
 
 	c8103.enable[sindex].state = 0x01;
+	c8103.enable[sindex].name = oi;
 	shareAddr->ctrls.c8103.enable[sindex].state = 0x01;
+	shareAddr->ctrls.c8103.enable[sindex].name = oi;
 	saveCoverClass(0x8103, 0, (void *) &c8103, sizeof(CLASS_8103),
 			para_vari_save);
 
@@ -408,7 +410,11 @@ int class8103_act7(int index, int attr_act, INT8U *data, Action_result *act_ret)
 	readCoverClass(0x8103, 0, (void *) &c8103, sizeof(CLASS_8103),
 			para_vari_save);
 	c8103.enable[sindex].state = 0x00;
+	c8103.enable[sindex].name = oi;
 	shareAddr->ctrls.c8103.enable[sindex].state = 0x00;
+	shareAddr->ctrls.c8103.enable[sindex].name = oi;
+	shareAddr->class23[0].alCtlState.OutputState = 0x00;
+	shareAddr->class23[0].alCtlState.PCAlarmState = 0x00;
 
 	saveCoverClass(0x8103, 0, (void *) &c8103, sizeof(CLASS_8103),
 			para_vari_save);
@@ -531,7 +537,9 @@ int class8104_act6(int index, int attr_act, INT8U *data, Action_result *act_ret)
 	readCoverClass(0x8104, 0, (void *) &c8104, sizeof(CLASS_8104),
 			para_vari_save);
 	c8104.enable[sindex].state = 0x01;
+	c8104.enable[sindex].name = oi;
 	shareAddr->ctrls.c8104.enable[sindex].state = 0x01;
+	shareAddr->ctrls.c8104.enable[sindex].name = oi;
 
 	saveCoverClass(0x8104, 0, (void *) &c8104, sizeof(CLASS_8104),
 			para_vari_save);
@@ -638,7 +646,9 @@ int class8105_act6(int index, int attr_act, INT8U *data, Action_result *act_ret)
 	readCoverClass(0x8105, 0, (void *) &c8105, sizeof(CLASS_8105),
 			para_vari_save);
 	c8105.enable[sindex].state = 0x01;
+	c8105.enable[sindex].name = 0x01;
 	shareAddr->ctrls.c8105.enable[sindex].state = 0x01;
+	shareAddr->ctrls.c8105.enable[sindex].name = 0x01;
 	saveCoverClass(0x8105, 0, (void *) &c8105, sizeof(CLASS_8105),
 			para_vari_save);
 	return 0;
@@ -908,7 +918,9 @@ int class8107_act6(int index, int attr_act, INT8U *data, Action_result *act_ret)
 			para_vari_save);
 
 	c8107.enable[sindex].state = 0x01;
+	c8107.enable[sindex].name = 0x01;
 	shareAddr->ctrls.c8107.enable[sindex].state = 0x01;
+	shareAddr->ctrls.c8107.enable[sindex].name = 0x01;
 
 	saveCoverClass(0x8107, 0, (void *) &c8107, sizeof(CLASS_8107),
 			para_vari_save);
@@ -935,7 +947,9 @@ int class8107_act7(int index, int attr_act, INT8U *data, Action_result *act_ret)
 			para_vari_save);
 
 	c8107.enable[sindex].state = 0x00;
+	c8107.enable[sindex].name = 0x00;
 	shareAddr->ctrls.c8107.enable[sindex].state = 0x00;
+	shareAddr->ctrls.c8107.enable[sindex].name = 0x00;
 	shareAddr->class23[sindex].alCtlState.OutputState = 0x00;
 	shareAddr->class23[sindex].alCtlState.BuyOutputState = 0x00;
 	shareAddr->class23[sindex].alCtlState.ECAlarmState = 0x00;
@@ -1007,7 +1021,9 @@ int class8108_act6(int index, int attr_act, INT8U *data, Action_result *act_ret)
 	readCoverClass(0x8108, 0, (void *) &c8108, sizeof(CLASS_8108),
 			para_vari_save);
 	shareAddr->ctrls.c8108.enable[sindex].state = 0x01;
+	shareAddr->ctrls.c8108.enable[sindex].name = 0x01;
 	c8108.enable[sindex].state = 0x01;
+	c8108.enable[sindex].name = 0x01;
 	saveCoverClass(0x8108, 0, (void *) &c8108, sizeof(CLASS_8108),
 			para_vari_save);
 
@@ -1035,6 +1051,8 @@ int class8108_act7(int index, int attr_act, INT8U *data, Action_result *act_ret)
 
 	c8108.enable[sindex].state = 0x00;
 	shareAddr->ctrls.c8108.enable[sindex].state = 0x00;
+	c8108.enable[sindex].name = 0x00;
+	shareAddr->ctrls.c8108.enable[sindex].name = 0x00;
 	shareAddr->class23[sindex].alCtlState.OutputState = 0x00;
 	shareAddr->class23[sindex].alCtlState.MonthOutputState = 0x00;
 	shareAddr->class23[sindex].alCtlState.ECAlarmState = 0x00;
