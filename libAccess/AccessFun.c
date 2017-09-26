@@ -3198,7 +3198,7 @@ int collectData(INT8U *databuf,INT8U *srcbuf,OAD_INDEX *oad_offset,ROAD_ITEM ite
 				case 1://array
 					memcpy(&databuf[pindex],tmpbuf,2);
 					pindex += 2;
-					retlen = CalcOIDataLen(oad_offset[j].oad_r.OI,1);
+//					retlen = CalcOIDataLen(oad_offset[j].oad_r.OI,1);
 //					fprintf(stderr,"\n元素个数%d\n",tmpbuf[1]);
 					for(i=0;i<tmpbuf[1];i++)
 					{
@@ -3207,8 +3207,9 @@ int collectData(INT8U *databuf,INT8U *srcbuf,OAD_INDEX *oad_offset,ROAD_ITEM ite
 							databuf[pindex++] = 0;
 						else
 						{
-							memcpy(&databuf[pindex],&tmpbuf[i*retlen+2],retlen);
-							pindex += retlen;
+							retlen = getDataTypeLen(tmpbuf[retlen*i+2]);
+							memcpy(&databuf[pindex],&tmpbuf[i*retlen+2],retlen+1);
+							pindex += retlen+1;
 						}
 					}
 //					retlen = retlen*tmpbuf[1]+2;//2代表一个array类型加一个个数
