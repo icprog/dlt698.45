@@ -982,7 +982,10 @@ void menu_goudian(){
 //读共享内存获取购电量
 	char str[100], first_flg=0;
 	Point pos;
-	int zj_index=1;
+	int zj_index=1,unite_index=1;
+	CLASS_8107 c8107; //购电控
+
+	readCoverClass(0x8107, 0, (void *) &c8107, sizeof(CLASS_8107),para_vari_save);
 	memset(str, 0, 100);
 	PressKey = NOKEY;
 	while(g_LcdPoll_Flag==LCD_NOTPOLL){
@@ -990,44 +993,82 @@ void menu_goudian(){
 		{
 		case LEFT:
 		case UP:
-			zj_index--;
-			if(zj_index<=0)
-				zj_index = MAXNUM_SUMGROUP;
+			unite_index--;
+			if(unite_index<=0)
+				unite_index = MAXNUM_SUMGROUP;
 			break;
 		case RIGHT:
 		case DOWN:
-			zj_index++;
-			if(zj_index>MAXNUM_SUMGROUP)
-				zj_index = 1;
+			unite_index++;
+			if(unite_index>MAXNUM_SUMGROUP)
+				unite_index = 1;
 			break;
 		case ESC:
 			return;
 		}
+		int enable_i=0,ifenable=0;
 		if(PressKey!=NOKEY || first_flg==0){
 			first_flg = 1;
+
+			for(enable_i=0;enable_i<8;enable_i++)
+			{
+				fprintf(stderr,"\nc8107[%d] index = %04x  ",enable_i,c8107.list[enable_i].index);
+				fprintf(stderr,"\nc8107[%d] alarm = %d  ",enable_i,c8107.list[enable_i].alarm);
+				fprintf(stderr,"\nc8107[%d] ctrl = %d  ",enable_i,c8107.list[enable_i].ctrl);
+				fprintf(stderr,"\nc8107[%d] v = %d  ",enable_i,c8107.list[enable_i].v);
+				fprintf(stderr,"\n\n\n");
+			}
+
+			for(enable_i=0;enable_i<8;enable_i++)
+			{
+				if (c8107.enable[enable_i].name == c8107.list[unite_index-1].index)
+				{
+					ifenable = c8107.enable[enable_i].state;
+					break;
+				}
+			}
 			gui_clrrect(rect_Client);
-			gui_setpos(&pos, rect_Client.left+10*FONTSIZE, rect_Client.top+2*FONTSIZE);
+			gui_setpos(&pos, rect_Client.left+3*FONTSIZE, rect_Client.top+2*FONTSIZE);
 			memset(str, 0, 100);
-			sprintf(str, "总加组%02d", zj_index);
+			sprintf(str,"配置单元%d [总加组%04x]", unite_index, c8107.list[unite_index-1].index);
 			gui_textshow(str, pos, LCD_NOREV);
+//			if (ifenable==0 )//该总加组没投入！
+//			{
+//				pos.x = rect_Client.left+5*FONTSIZE;
+//				pos.y += 5*FONTSIZE;
+//				memset(str, 0, 100);
+//				sprintf(str,"未投入");
+//				gui_textshow(str, pos, LCD_NOREV);
+//				PressKey = NOKEY;
+//				delay(300);
+//				continue;
+//			}
 			gui_setpos(&pos, rect_Client.left+FONTSIZE, rect_Client.top+5*FONTSIZE);
 			memset(str, 0, 100);
-//			sprintf(str, "购电单号:%d", ParaAll->f47[zj_index-1].Electricity_purchase_order_number);			//FOR698
+			sprintf(str, "购电单号:%d", c8107.list[unite_index-1].no);			//FOR698
 			gui_textshow(str, pos, LCD_NOREV);
 			memset(str, 0, 100);
-//			sprintf(str, "购前电量:% 11.2lf kWh", shmm_getpubdata()->data_calc_by1min[zj_index-1].RER_beforectrl);
+			sprintf(str, "方式: %s", c8107.list[unite_index-1].add_refresh==1?"追加":"刷新");
 			pos.y += FONTSIZE*2+3;
 			gui_textshow(str, pos, LCD_NOREV);
+
 			memset(str, 0, 100);
-//			sprintf(str, "剩余电量:% 11.2lf kWh", shmm_getpubdata()->data_calc_by1min[zj_index-1].RER);
+			sprintf(str, "购电量值: %d kWh", c8107.list[unite_index-1].v);
 			pos.y += FONTSIZE*2+3;
 			gui_textshow(str, pos, LCD_NOREV);
+
 			memset(str, 0, 100);
-//			sprintf(str, "报警门限:% 11.2d kWh", ParaAll->f47[zj_index-1].Alarm_Limit);
+			sprintf(str, "报警门限: %d kWh", c8107.list[unite_index-1].alarm);
 			pos.y += FONTSIZE*2+3;
 			gui_textshow(str, pos, LCD_NOREV);
+
 			memset(str, 0, 100);
-//			sprintf(str, "跳闸门限:% 11.2d kWh", ParaAll->f47[zj_index-1].Tripping_Limit);
+			sprintf(str, "跳闸门限: %d kWh", c8107.list[unite_index-1].ctrl);
+			pos.y += FONTSIZE*2+3;
+			gui_textshow(str, pos, LCD_NOREV);
+
+			memset(str, 0, 100);
+			sprintf(str, "购电控模式: %s", c8107.list[unite_index-1].type==1?"远程":"本地");
 			pos.y += FONTSIZE*2+3;
 			gui_textshow(str, pos, LCD_NOREV);
 		}
@@ -2000,7 +2041,7 @@ void menu_shiduanpara(){
 ************************************************************************************************************************************************************/
 //厂休控
 void menu_changxiupara(){
-	char week[8][3]={"0","一","二","三","四","五","六","日"};
+	char week[7][3]={"一","二","三","四","五","六","日"};
 	int unite_index=1, dingzhi=1;
 	Point pos;
 	CLASS_8104 c8104; //厂休控
@@ -2036,11 +2077,14 @@ void menu_changxiupara(){
 			first_flg = 1;
 			for(enable_i=0;enable_i<8;enable_i++)
 			{
+				fprintf(stderr,"\n  ------===== %d  ====-------- %04x ",enable_i,c8104.enable[enable_i].name );
 				if (c8104.enable[enable_i].name == c8104.list[unite_index-1].index)
 				{
+					fprintf(stderr,"\n  ------===== %d  ====--------state %d ",enable_i,c8104.enable[enable_i].state );
 					ifenable = c8104.enable[enable_i].state;
 					break;
 				}
+				fprintf(stderr,"\n\n");
 			}
 			gui_clrrect(rect_Client);
 			gui_setpos(&pos, rect_Client.left+2*FONTSIZE, rect_Client.top+FONTSIZE);
@@ -2073,12 +2117,20 @@ void menu_changxiupara(){
 
 			pos.y += 3*FONTSIZE;
 			memset(str, 0, 100);
-			sprintf(str, "%04d-%02d-%2d 02%d:02%d",
-					c8104.list[unite_index-1].start.year.data,
-					c8104.list[unite_index-1].start.month.data,
-					c8104.list[unite_index-1].start.day.data,
-					c8104.list[unite_index-1].start.hour.data,
-					c8104.list[unite_index-1].start.min.data);
+			if (c8104.list[unite_index-1].start.year.data==0xff || c8104.list[unite_index-1].start.month.data==0xff || c8104.list[unite_index-1].start.day.data==0xff )
+			{
+				sprintf(str, "日期无效 时间:%02d:%02d",
+						c8104.list[unite_index-1].start.hour.data,
+						c8104.list[unite_index-1].start.min.data);
+			}else
+			{
+				sprintf(str, "%04d-%02d-%2d %02d:%02d",
+						c8104.list[unite_index-1].start.year.data,
+						c8104.list[unite_index-1].start.month.data,
+						c8104.list[unite_index-1].start.day.data,
+						c8104.list[unite_index-1].start.hour.data,
+						c8104.list[unite_index-1].start.min.data);
+			}
 			gui_textshow(str, pos, LCD_NOREV);
 
 			pos.y += 3*FONTSIZE;

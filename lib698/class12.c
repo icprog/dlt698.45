@@ -120,7 +120,7 @@ int class12_act4(OI_698 oi,INT8U *data, INT8U *DAR, CLASS12 *memClass12)
 int class12_router(OAD oad, INT8U *data, int *datalen, INT8U *DAR)
 {
 	int index = oad.OI - 0x2401;
-	index = rangeJudge("脉冲",index,0,(MAXNUM_SUMGROUP-1));
+	index = rangeJudge("脉冲",index,0,(MAX_PULSE_NUM-1));
 	if(index == -1) {
 		*datalen = 0;
 		*DAR = obj_unexist;
@@ -203,7 +203,7 @@ int class12_set(OAD oad, INT8U *data, INT8U *DAR)
 {
 	asyslog(LOG_WARNING, "设置OI=%04x,属性 %02x ", oad.OI,oad.attflg);
 	int index = oad.OI - 0x2401;
-	index = rangeJudge("脉冲",index,0,1);//(MAXNUM_SUMGROUP-1));
+	index = rangeJudge("脉冲",index,0,(MAX_PULSE_NUM-1));
 	if(index == -1) {
 		*DAR = obj_unexist;
 		return 0;
@@ -322,7 +322,7 @@ int class12_get(OAD oad, INT8U *sourcebuf, INT8U *buf, int *len){
 	ProgramInfo *shareAddr = getShareAddr();
 	int index = oad.OI - 0x2401;
 
-	index = rangeJudge("脉冲",index,0,(MAXNUM_SUMGROUP-1));
+	index = rangeJudge("脉冲",index,0,(MAX_PULSE_NUM-1));
 	if(index == -1) return 0;
 
 	switch (oad.attflg) {
