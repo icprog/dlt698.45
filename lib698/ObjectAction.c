@@ -976,17 +976,26 @@ void TaskInfo(INT16U attr_act, INT8U *data, Action_result *act_ret)
     }
 }
 
-void memDataInit(ProgramInfo *memp)
+/*
+ * type = 1: 数据区初始化
+ * type = 0: 恢复出厂设置初始化设置
+ * */
+void memDataInit(INT8U type,ProgramInfo *memp)
 {
 	syslog(LOG_NOTICE,"__%s__",__func__);
    	//共享内存实际流量清零
 	memset(&memp->dev_info.realTimeC2200,0,sizeof(Flow_tj));
 
-	for(int i = 0; i < MAX_PULSE_NUM; i++) {
-		clearClass12Data(&memp->class12[i]);
-	}
-	for (int i = 0; i < MAX_AL_UNIT; i++) {
-		clearClass23Data(&memp->class23[i]);
+	if(type) {
+		for(int i = 0; i < MAX_PULSE_NUM; i++) {
+			clearClass12Data(&memp->class12[i]);
+		}
+		for (int i = 0; i < MAX_AL_UNIT; i++) {
+			clearClass23Data(&memp->class23[i]);
+		}
+	}else {
+		memset(&memp->class12,0,sizeof(memp->class12));
+		memset(&memp->class23,0,sizeof(memp->class23));
 	}
 }
 
@@ -1013,6 +1022,7 @@ void TerminalInfo(INT16U attr_act, INT8U *data, Action_result *act_ret)
         			index += getOAD(1,&data[index],&oad[i],&act_ret->DAR);
         		}
         	}
+        	memDataInit(0,memp);
         	paraInit(oadnum,oad);
         	//清除总表计量电量
         	clearEnergy();
@@ -1026,7 +1036,7 @@ void TerminalInfo(INT16U attr_act, INT8U *data, Action_result *act_ret)
         case 3://数据初始化
         case 5://事件初始化
         case 6://需量初始化
-            memDataInit(memp);		//共享内存中数据的初始化
+            memDataInit(1,memp);		//共享内存中数据的初始化
             dataInit(attr_act);
              //Event_3100(NULL,0,memp);//初始化，产生事件,移到复位应答帧之后再进行事件的上报
             Reset_add();            //国网台体测试,数据初始化认为是复位操作

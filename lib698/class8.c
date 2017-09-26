@@ -12,6 +12,29 @@
 #include "event.h"
 #include "dlt698.h"
 
+typedef union { //control code
+	INT16U u8b; //convenient to set value to 0
+	struct { //only for little endian mathine!
+		INT8U bak :4; //备用
+		INT8U power_ctl :1; //当前功率下浮控
+		INT8U business_ctl :1; //营业报停控
+		INT8U work_ctl :1; //厂休控
+		INT8U time_ctl :1; //时段控
+	} pcstate;
+} PCAlarmState;
+
+typedef union { //control code
+	INT16U u8b; //convenient to set value to 0
+	struct { //only for little endian mathine!
+		INT8U bak :6; //备用
+		INT8U buy_elec_ctl :1; 	//购电控
+		INT8U month_elec_ctl :1; //月电控
+	} ecstate;
+} ECAlarmState;
+
+ECAlarmState ecAlarm;
+PCAlarmState pcAlarm;
+
 int class8001_act127(int index, int attr_act, INT8U *data,
 		Action_result *act_ret) {
 	asyslog(LOG_WARNING, "投入保电\n");
@@ -295,9 +318,10 @@ int class8102_set(OAD oad, INT8U *data, INT8U *DAR) {
 			para_vari_save);
 	index += getArray(&data[index],&c8102.time_num,DAR);
 	c8102.time_num = limitJudge("功控告警时间",12,c8102.time_num);
+	fprintf(stderr,"c8102.time_num = %d\n",c8102.time_num);
 	for (int i = 0; i < c8102.time_num; i++) {
-		c8102.time[i] = getUnsigned(&data[index],&c8102.time[i],DAR);
-		printf("%02x\n", c8102.time[i]);
+		index += getUnsigned(&data[index],&c8102.time[i],DAR);
+		fprintf(stderr,"%02x\n", c8102.time[i]);
 	}
 	if(*DAR == success) {
 		saveCoverClass(0x8102, 0, (void *) &c8102, sizeof(CLASS_8102),
@@ -739,9 +763,8 @@ int class8105_act_route(int index, int attr_act, INT8U *data,
 /*
  * 修改购电控配置单元
  * */
-int set_class13_att3(INT8U service,INT8U *data,ALSTATE *alstate,INT8U *DAR)
+int set_class13_att3(INT8U service,INT8U *data,int *sum_index,ALSTATE *alstate,INT8U *DAR)
 {
-	int			sum_index = 0;
 	int 		index = 0;
 	OI_698		oi=0;
 	ALSTATE		tmp_alstate={};
@@ -752,31 +775,31 @@ int set_class13_att3(INT8U service,INT8U *data,ALSTATE *alstate,INT8U *DAR)
 		index += getOI(1,&data[index],&oi);
 		tmp_alstate.name = oi;
 		index += getEnum(1,&data[index],&tmp_alstate.state);
-		sum_index = oi - 0x2301;
-		sum_index = rangeJudge("总加组",sum_index,0,(MAXNUM_SUMGROUP-1));
-		if(sum_index == -1)  *DAR = obj_unexist;
+		*sum_index = oi - 0x2301;
+		*sum_index = rangeJudge("总加组",*sum_index,0,(MAXNUM_SUMGROUP-1));
+		if(*sum_index == -1)  *DAR = obj_unexist;
 		break;
 	case 6:	//投入
 		index += getOI(1,&data[index],&oi);
-		sum_index = oi - 0x2301;
-		sum_index = rangeJudge("总加组",sum_index,0,(MAXNUM_SUMGROUP-1));
-		if(sum_index == -1)  *DAR = obj_unexist;
+		*sum_index = oi - 0x2301;
+		*sum_index = rangeJudge("总加组",*sum_index,0,(MAXNUM_SUMGROUP-1));
+		if(*sum_index == -1)  *DAR = obj_unexist;
 		asyslog(LOG_WARNING, "购电-控制投入[%04x]", oi);
 		tmp_alstate.name = oi;
 		tmp_alstate.state = 1;
 		break;
 	case 7:	//解除
 		index += getOI(1,&data[index],&oi);
-		sum_index = oi - 0x2301;
-		sum_index = rangeJudge("总加组",sum_index,0,(MAXNUM_SUMGROUP-1));
-		if(sum_index == -1)  *DAR = obj_unexist;
+		*sum_index = oi - 0x2301;
+		*sum_index = rangeJudge("总加组",*sum_index,0,(MAXNUM_SUMGROUP-1));
+		if(*sum_index == -1)  *DAR = obj_unexist;
 		asyslog(LOG_WARNING, "购电-控制解除[%04x]", oi);
-		tmp_alstate.name = oi;
+		tmp_alstate.name = 0;
 		tmp_alstate.state = 0;
 		break;
 	}
 	if(*DAR == success) {
-		memcpy(&alstate[sum_index],&tmp_alstate,sizeof(ALSTATE));
+		memcpy(alstate,&tmp_alstate,sizeof(ALSTATE));
 	}
 	return index;
 }
@@ -820,6 +843,7 @@ int class8106_unit(int attr_act, INT8U *data, CLASS_8106 *shmc8106, INT8U *DAR)
 int class8106_act_route(OAD oad, INT8U *data, Action_result *act_ret)
 {
 	fprintf(stderr, "class8106_act_route  class8106_act_route %d\n", oad.attflg);
+	int sum_index = 0;
 	ProgramInfo *shareAddr = getShareAddr();
 	switch (oad.attflg) {
 	case 3://添加
@@ -829,11 +853,13 @@ int class8106_act_route(OAD oad, INT8U *data, Action_result *act_ret)
 		break;
 	case 6:	//控制投入
 	case 7: //控制解除
-		act_ret->datalen = set_class13_att3(oad.attflg,data,&shareAddr->ctrls.c8106.enable,&act_ret->DAR);
-		if(act_ret->DAR == success) {
-			int alno = shareAddr->ctrls.c8106.index - 0x2301;
-			shareAddr->class23[alno].alCtlState.OutputState = 0x00;
-			shareAddr->class23[alno].alCtlState.PCAlarmState = 0x00;
+		act_ret->datalen = set_class13_att3(oad.attflg,data,&sum_index,&shareAddr->ctrls.c8106.enable,&act_ret->DAR);
+		if(act_ret->DAR == success && (sum_index>=0 && sum_index<= MAX_AL_UNIT)) {
+			pcAlarm.u8b = shareAddr->class23[sum_index].alCtlState.PCAlarmState;
+			pcAlarm.pcstate.power_ctl = 0;
+			shareAddr->class23[sum_index].alCtlState.PCAlarmState = pcAlarm.u8b;
+			shareAddr->class23[sum_index].alCtlState.OutputState = 0x00;
+			shareAddr->class23[sum_index].alCtlState.PCAlarmState = 0x00;
 		}
 		break;
 	case 127://投入（总加组对象，控制方案）
@@ -1044,6 +1070,7 @@ int set_OI810c(INT8U service,INT8U *data,BUY_CTRL *oi810c,INT8U *DAR)
 }
 
 int class8107_act_route(OAD oad, INT8U *data,Action_result *act_ret) {
+	int sum_index = 0;
 	ProgramInfo *shareAddr = getShareAddr();
 	switch (oad.attflg) {
 	case 3:
@@ -1053,7 +1080,7 @@ int class8107_act_route(OAD oad, INT8U *data,Action_result *act_ret) {
 		break;
 	case 6:	//控制投入
 	case 7: //控制解除
-		act_ret->datalen = set_class13_att3(oad.attflg,data,shareAddr->ctrls.c8107.enable,&act_ret->DAR);
+		act_ret->datalen = set_class13_att3(oad.attflg,data,&sum_index,shareAddr->ctrls.c8107.enable,&act_ret->DAR);
 		break;
 	}
 	if(act_ret->DAR == success) {
@@ -1066,6 +1093,7 @@ int class8107_set(OAD oad, INT8U *data, INT8U *DAR)
 {
 	int		index=0;
 	INT8U	unit_num = 0 ,i = 0;
+	int		sum_index = 0;
 	ProgramInfo *shareAddr = getShareAddr();
 	switch(oad.attflg) {
 	case 2:		//增加
@@ -1079,7 +1107,7 @@ int class8107_set(OAD oad, INT8U *data, INT8U *DAR)
 		index += getArray(&data[index],&unit_num,DAR);
 		fprintf(stderr,"unit_num = %d\n",unit_num);
 		for(i=0;i<unit_num;i++) {
-			index += set_class13_att3(oad.attflg,&data[index],shareAddr->ctrls.c8107.enable,DAR);
+			index += set_class13_att3(oad.attflg,&data[index],&sum_index,shareAddr->ctrls.c8107.enable,DAR);
 		}
 		break;
 	}

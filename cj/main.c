@@ -229,7 +229,8 @@ void set_4400()
 int main(int argc, char *argv[]) {
 	// set_4400();
 	 //return 0;
-    if (argc < 2) {
+
+	if (argc < 2) {
         prthelp();
         return EXIT_SUCCESS;
     }

@@ -801,7 +801,6 @@ int doGetAttribute(INT8U *apdu, CSINFO *csinfo, INT8U *sendbuf) {
 		data = &apdu[3];
 		getRequestNext(data, csinfo, sendbuf);
 		break;
-
 	}
 	return 1;
 }

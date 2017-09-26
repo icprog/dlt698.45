@@ -204,12 +204,12 @@ void InIt_Process(int argc, char *argv[])
 		case 3:		//数据区初始化
 		case 5:		//事件初始化
 		case 6:		//需量初始化
-			memDataInit(JProgramInfo);		//共享内存中数据的初始化
+			memDataInit(1,JProgramInfo);		//共享内存中数据的初始化
 			dataInit(method);
 			break;
 		case 4:		//恢复出厂参数
         	//清除总表计量电量
-			memDataInit(JProgramInfo);		//共享内存中数据的初始化
+			memDataInit(0,JProgramInfo);		//共享内存中数据的初始化
         	clearEnergy();
 			paraInit(0,NULL);
 			break;
