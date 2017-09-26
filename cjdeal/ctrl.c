@@ -50,6 +50,19 @@ int ctrl_base_test() {
 	return 0;
 }
 
+int findPinSum(int sum_i, int p_i)
+{
+	for(int i = 0; i < 8; i++){
+		int n = JProgramInfo->class23[sum_i].allist[i].tsa.addr[0];
+		fprintf(stderr, "++++++++++++++++++++++查找电表表号 %d\n", n);
+		for(int a_i = 0; a_i < n; a_i++){
+			JProgramInfo->class23[sum_i].allist[i].tsa.addr[a_i] != JProgramInfo->class12[p_i].addr[a_i];
+			return 0;
+		}
+		return 1;
+	}
+}
+
 //刷新总加组
 void refreshSumUp() {
 	static int old_day;
@@ -65,18 +78,27 @@ void refreshSumUp() {
 		old_month = ts.Month;
 	}
 
-	JProgramInfo->class23[0].p = JProgramInfo->class12[0].p;
-	JProgramInfo->class23[0].q = JProgramInfo->class12[0].q;
+	for (int sum_i = 0; sum_i < 8; sum_i++)
+	{
+		for(int p_i = 0; p_i < 2; p_i++)
+		{
+			if(findPinSum(sum_i, p_i) == 0){
+				continue;
+			}
+			JProgramInfo->class23[sum_i].p = JProgramInfo->class12[p_i].p;
+			JProgramInfo->class23[sum_i].q = JProgramInfo->class12[p_i].q;
 
-	for (int i = 0; i < 4; i++) {
-		JProgramInfo->class23[0].DayP[i] =
-				JProgramInfo->class12[0].day_pos_p[i];
-		JProgramInfo->class23[0].DayQ[i] =
-				JProgramInfo->class12[0].day_pos_q[i];
-		JProgramInfo->class23[0].MonthP[i] =
-				JProgramInfo->class12[0].mon_pos_p[i];
-		JProgramInfo->class23[0].MonthQ[i] =
-				JProgramInfo->class12[0].mon_pos_q[i];
+			for (int i = 0; i < 4; i++) {
+				JProgramInfo->class23[sum_i].DayP[i] =
+						JProgramInfo->class12[p_i].day_pos_p[i];
+				JProgramInfo->class23[sum_i].DayQ[i] =
+						JProgramInfo->class12[p_i].day_pos_q[i];
+				JProgramInfo->class23[sum_i].MonthP[i] =
+						JProgramInfo->class12[p_i].mon_pos_p[i];
+				JProgramInfo->class23[sum_i].MonthQ[i] =
+						JProgramInfo->class12[p_i].mon_pos_q[i];
+			}
+		}
 	}
 
 	fprintf(stderr, "总加组功率%d 电量%lld %lld %lld %lld\n",
@@ -755,6 +777,8 @@ int ctrlMain(void * arg) {
 			//更新总加组数据
 			refreshSumUp();
 			secOld = now.Sec;
+
+			fprintf(stderr, "++++++++++++++++++++++查找电表表号 %d\n", JProgramInfo->ctrls.c8102.time[0]);
 
 			//一分钟计算一次控制逻辑
 			if (secOld % 5 == 0) {

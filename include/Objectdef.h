@@ -793,7 +793,7 @@ typedef struct {
 } CLASS12_ENERGY;
 
 typedef struct {
-	INT8U addr[OCTET_STRING_LEN];//通信地址
+	INT8U addr[17];//通信地址
 	INT32U pt;//互感器倍率
 	INT32U ct;//互感器倍率
 	PULSEUNIT unit[MAX_PULSE_UNIT];//脉冲配置
