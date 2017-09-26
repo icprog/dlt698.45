@@ -1859,10 +1859,10 @@ void menu_shiduanpara(){
 	Point pos;
 	char str[100];
 	INT8U  first_flg=0;
-	int unite_index=1, dingzhi=1,fangan_no=1;
+	int unite_index=1, dingzhi=1;
 	struct shiduanpara_ts sd_ts[48];
 	memset(sd_ts, 0, 48*sizeof(struct shiduanpara_ts));
-
+	memset(&c8103,0,sizeof(CLASS_8103));
 	readCoverClass(0x8103, 0, &c8103, sizeof(CLASS_8103),para_vari_save);
 
 	PressKey = NOKEY;
@@ -1903,7 +1903,7 @@ void menu_shiduanpara(){
 			first_flg = 1;
 			for(enable_i=0;enable_i<8;enable_i++)
 			{
-				if (c8103.enable[enable_i].name == c8103.list[unite_index].index)
+				if (c8103.enable[enable_i].name == c8103.list[unite_index-1].index)
 				{
 					ifenable = c8103.enable[enable_i].state;
 					break;
@@ -1912,7 +1912,7 @@ void menu_shiduanpara(){
 			gui_clrrect(rect_Client);
 			gui_setpos(&pos, rect_Client.left+2*FONTSIZE, rect_Client.top+FONTSIZE);
 			memset(str, 0, 100);
-			sprintf(str,"配置单元%d [总加组%04x]", unite_index, c8103.list[unite_index].index);
+			sprintf(str,"配置单元%d [总加组%04x]", unite_index, c8103.list[unite_index-1].index);
 			gui_textshow(str, pos, LCD_NOREV);
 
 //			if (ifenable==0 )//该总加组没投入！
@@ -1928,48 +1928,67 @@ void menu_shiduanpara(){
 //			}
 			pos.y += 3*FONTSIZE;
 			memset(str, 0, 100);
-			sprintf(str,"方案标识 %02x  浮动系数 %d",c8103.list[unite_index].sign,c8103.list[unite_index].para);
+			sprintf(str,"方案标识 %02x  浮动系数 %d",c8103.list[unite_index-1].sign,c8103.list[unite_index-1].para);
 			gui_textshow(str, pos, LCD_NOREV);
 
 			pos.y += 3*FONTSIZE;
 			memset(str, 0, 100);
 			sprintf(str,"第%d套定值",dingzhi);
 			gui_textshow(str, pos, LCD_NOREV);
+			pos.y += 3*FONTSIZE;
+			memset(str, 0, 100);
 
 			switch(dingzhi)
 			{
 				case 1://第一套定值
-					pos.y += 3*FONTSIZE;
-					memset(str, 0, 100);
-					sprintf(str,"时段1:%05d 时段2:%05d",(int)c8103.list[unite_index].v1.t1,(int)c8103.list[unite_index].v1.t2);
+					sprintf(str,"时段1:%05d 时段2:%05d",(int)c8103.list[unite_index-1].v1.t1,(int)c8103.list[unite_index-1].v1.t2);
 					gui_textshow(str, pos, LCD_NOREV);
 					pos.y += 3*FONTSIZE;
 					memset(str, 0, 100);
-					sprintf(str,"时段3:%05d 时段4:%05d",(int)c8103.list[unite_index].v1.t3,(int)c8103.list[unite_index].v1.t4);
+					sprintf(str,"时段3:%05d 时段4:%05d",(int)c8103.list[unite_index-1].v1.t3,(int)c8103.list[unite_index-1].v1.t4);
 					gui_textshow(str, pos, LCD_NOREV);
 					pos.y += 3*FONTSIZE;
 					memset(str, 0, 100);
-					sprintf(str,"时段5:%05d 时段6:%05d",(int)c8103.list[unite_index].v1.t5,(int)c8103.list[unite_index].v1.t6);
+					sprintf(str,"时段5:%05d 时段6:%05d",(int)c8103.list[unite_index-1].v1.t5,(int)c8103.list[unite_index-1].v1.t6);
 					gui_textshow(str, pos, LCD_NOREV);
 					pos.y += 3*FONTSIZE;
 					memset(str, 0, 100);
-					sprintf(str,"时段7:%05d 时段8:%05d",(int)c8103.list[unite_index].v1.t7,(int)c8103.list[unite_index].v1.t8);
+					sprintf(str,"时段7:%05d 时段8:%05d",(int)c8103.list[unite_index-1].v1.t7,(int)c8103.list[unite_index-1].v1.t8);
 					gui_textshow(str, pos, LCD_NOREV);
 					break;
 				case 2://第二套定值
+					sprintf(str,"时段1:%05d 时段2:%05d",(int)c8103.list[unite_index-1].v2.t1,(int)c8103.list[unite_index-1].v2.t2);
+					gui_textshow(str, pos, LCD_NOREV);
+					pos.y += 3*FONTSIZE;
+					memset(str, 0, 100);
+					sprintf(str,"时段3:%05d 时段4:%05d",(int)c8103.list[unite_index-1].v2.t3,(int)c8103.list[unite_index-1].v2.t4);
+					gui_textshow(str, pos, LCD_NOREV);
+					pos.y += 3*FONTSIZE;
+					memset(str, 0, 100);
+					sprintf(str,"时段5:%05d 时段6:%05d",(int)c8103.list[unite_index-1].v2.t5,(int)c8103.list[unite_index-1].v2.t6);
+					gui_textshow(str, pos, LCD_NOREV);
+					pos.y += 3*FONTSIZE;
+					memset(str, 0, 100);
+					sprintf(str,"时段7:%05d 时段8:%05d",(int)c8103.list[unite_index-1].v2.t7,(int)c8103.list[unite_index-1].v2.t8);
+					gui_textshow(str, pos, LCD_NOREV);
 					break;
 				case 3://第三套定值
+					sprintf(str,"时段1:%05d 时段2:%05d",(int)c8103.list[unite_index-1].v3.t1,(int)c8103.list[unite_index-1].v3.t2);
+					gui_textshow(str, pos, LCD_NOREV);
+					pos.y += 3*FONTSIZE;
+					memset(str, 0, 100);
+					sprintf(str,"时段3:%05d 时段4:%05d",(int)c8103.list[unite_index-1].v3.t3,(int)c8103.list[unite_index-1].v3.t4);
+					gui_textshow(str, pos, LCD_NOREV);
+					pos.y += 3*FONTSIZE;
+					memset(str, 0, 100);
+					sprintf(str,"时段5:%05d 时段6:%05d",(int)c8103.list[unite_index-1].v3.t5,(int)c8103.list[unite_index-1].v3.t6);
+					gui_textshow(str, pos, LCD_NOREV);
+					pos.y += 3*FONTSIZE;
+					memset(str, 0, 100);
+					sprintf(str,"时段7:%05d 时段8:%05d",(int)c8103.list[unite_index-1].v3.t7,(int)c8103.list[unite_index-1].v3.t8);
+					gui_textshow(str, pos, LCD_NOREV);
 					break;
 			}
-//			sprintf(str,"时段号",c8103.list[unite_index].shiduan, shiduan+3);
-//			gui_textshow(str, pos, LCD_NOREV);
-//
-//			pos.y += 3*FONTSIZE;
-//			memset(str, 0, 100);
-//			sprintf(str," 时段(%d-%d)     定值(kW)",shiduan, shiduan+3);
-//			gui_textshow(str, pos, LCD_NOREV);
-//			memset(str, 0, 100);
-//			pos.y += 2*FONTSIZE+3;
 		}
 		PressKey = NOKEY;
 		delay(300);
@@ -1982,8 +2001,11 @@ void menu_shiduanpara(){
 //厂休控
 void menu_changxiupara(){
 	char week[8][3]={"0","一","二","三","四","五","六","日"};
-	//char week[8][3] = {"0","1","2","3","4","5","6","7"};
+	int unite_index=1, dingzhi=1;
 	Point pos;
+	CLASS_8104 c8104; //厂休控
+	readCoverClass(0x8104, 0, (void *) &c8104, sizeof(CLASS_8104),para_vari_save);
+
 	char str[100], hour=0, minute=0;
 	INT8U first_flg=0;
 	int zj_index=1, i;
@@ -1995,20 +2017,67 @@ void menu_changxiupara(){
 		{
 		case LEFT:
 		case UP:
-			zj_index--;
-			if(zj_index<=0)
-				zj_index = MAXNUM_SUMGROUP;
+			unite_index--;
+			if(unite_index<=0)
+				unite_index = MAXNUM_SUMGROUP;
 			break;
 		case RIGHT:
 		case DOWN:
-			zj_index++;
-			if(zj_index>MAXNUM_SUMGROUP)
-				zj_index = 1;
+			unite_index++;
+			if(unite_index>MAXNUM_SUMGROUP)
+				unite_index = 1;
 			break;
 		case ESC:
 			return;
 		}
+
+		int enable_i=0,ifenable=0;
 		if(PressKey!=NOKEY || first_flg==0){
+			first_flg = 1;
+			for(enable_i=0;enable_i<8;enable_i++)
+			{
+				if (c8104.enable[enable_i].name == c8104.list[unite_index-1].index)
+				{
+					ifenable = c8104.enable[enable_i].state;
+					break;
+				}
+			}
+			gui_clrrect(rect_Client);
+			gui_setpos(&pos, rect_Client.left+2*FONTSIZE, rect_Client.top+FONTSIZE);
+			memset(str, 0, 100);
+			sprintf(str,"配置单元%d [总加组%04x]", unite_index, c8104.list[unite_index-1].index);
+			gui_textshow(str, pos, LCD_NOREV);
+			//			if (ifenable==0 )//该总加组没投入！
+			//			{
+			//				pos.x = rect_Client.left+5*FONTSIZE;
+			//				pos.y += 5*FONTSIZE;
+			//				memset(str, 0, 100);
+			//				sprintf(str,"未投入");
+			//				gui_textshow(str, pos, LCD_NOREV);
+			//				PressKey = NOKEY;
+			//				delay(300);
+			//				continue;
+			//			}
+
+
+			memset(str, 0, 100);
+			sprintf(str, "厂休控定值 %04d W", c8104.list[unite_index-1].v);
+			gui_textshow(str, pos, LCD_NOREV);
+			pos.x = rect_Client.left;
+			pos.y += 3*FONTSIZE;
+			memset(str, 0, 100);
+			sprintf(str, "厂休控投入轮次:");
+
+
+
+
+
+
+
+
+
+
+
 			first_flg = 1;
 			gui_clrrect(rect_Client);
 			gui_setpos(&pos, rect_Client.left+10*FONTSIZE, rect_Client.top+FONTSIZE);

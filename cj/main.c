@@ -25,7 +25,7 @@
 
 #include "dlt698.h"
 #include "filebase.h"
-
+extern void guiTest(int argc, char *argv[]);
 ProgramInfo *JProgramInfo = NULL;
 
 static char *usage_yk = "\n--------------------III型专变命令----------------------------\n"
@@ -628,6 +628,12 @@ int main(int argc, char *argv[]) {
     if(strcmp("breeze",argv[1])==0)
 	{
     	breezeTest(argc,argv);
+		return EXIT_SUCCESS;
+	}
+
+    if(strcmp("gui",argv[1])==0)
+	{
+    	guiTest(argc,argv);
 		return EXIT_SUCCESS;
 	}
 

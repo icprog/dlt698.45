@@ -81,7 +81,21 @@ void cacl_PQ(unsigned int pulse, int index) {
 		return;
 	}
 
+	switch (JProgramInfo->class12[index].unit[0].conf) {
+	case 0:
+	case 2:
+		//瞬时有功功率 = 实时脉冲*3600*变比/60/con
+		JProgramInfo->class12[index].p = (1000*pulse*60*10)/con;  //扩大10倍
+		fprintf(stderr, "实时功率 %d  -- [pulse=%d  脉冲常数=%d]\n", (int)JProgramInfo->class12[index].p,pulse,(int)con);
+		break;
+	case 1:
+	case 3:
+		//瞬时无功功率 = 实时脉冲*3600*变比/60/con
+		JProgramInfo->class12[index].q =  (1000*pulse*60*10)/con;
+		break;
+	}
 
+/*
 //	double k = (JProgramInfo->class12[index].ct * JProgramInfo->class12[index].pt)
 	double k = (1000)
 			/ (double)(con*1.0);
@@ -101,6 +115,7 @@ void cacl_PQ(unsigned int pulse, int index) {
 		JProgramInfo->class12[index].q = pulse * 600 * k;
 		break;
 	}
+*/
 }
 
 void refreshPluse(int sec) {

@@ -3119,6 +3119,7 @@ void initlist(struct Tsa_Node *head)
 
 int stateJuge(int nowdstate,MY_PARA_COUNTER *mypara_p,RUNTIME_PLC *runtime_p,int *startFlg)
 {
+
 	int state = nowdstate;
 	int i=0;
 	int dateChg = 0;
