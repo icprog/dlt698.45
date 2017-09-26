@@ -4751,9 +4751,9 @@ INT8U write_3761_rc_local()
 	fprintf(fp,"mkfifo /dev/shm/null\n");
 	fprintf(fp,"tail -f /dev/shm/null>> /dev/null &\n");
 	fprintf(fp,"vinit &\n");
-	fprintf(fp,"vupdate &\n");
-	fprintf(fp,"sleep 1\n");
 	fprintf(fp,"vmain 2> /dev/shm/null &\n");
+	fprintf(fp,"sleep 1\n");
+	fprintf(fp,"vupdate &\n");
 	fflush(fp);
 	fd = fileno(fp);
 	fsync(fd);

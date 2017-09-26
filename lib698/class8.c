@@ -215,15 +215,18 @@ int class8001_set(int bak, OAD oad, INT8U *data, INT8U *DAR) {
 					para_vari_save);
 	switch(oad.attflg) {
 	case 2:	//保电状态，只读
-
+		index += getEnum(1,data,&c8001.state);
+		if(index==0)  *DAR = type_mismatch;
 		break;
 	case 3:
 		index += getLongUnsigned(data,(INT8U *)&c8001.noCommTime);
-		asyslog(LOG_WARNING, "设置保电属性3(%d)", c8001.noCommTime);
+		if(index==0)  *DAR = type_mismatch;
+		else asyslog(LOG_WARNING, "设置保电属性3(%d)", c8001.noCommTime);
 		break;
 	case 4:
 		index += getLongUnsigned(data,(INT8U *)&c8001.autoTime);
-		asyslog(LOG_WARNING, "设置保电属性4(%d)", c8001.autoTime);
+		if(index==0)  *DAR = type_mismatch;
+		else asyslog(LOG_WARNING, "设置保电属性4(%d)", c8001.autoTime);
 		break;
 	case 5:
 		index += getArray(&data[index],&c8001.unit_count,DAR);
@@ -232,12 +235,17 @@ int class8001_set(int bak, OAD oad, INT8U *data, INT8U *DAR) {
 			index += getStructure(&data[index],NULL,DAR);
 			index += getUnsigned(&data[index],&c8001.unit[i].autoTimeStart,DAR);
 			index += getUnsigned(&data[index],&c8001.unit[i].autoTimeEnd,DAR);
+			if(c8001.unit[i].autoTimeStart > c8001.unit[i].autoTimeEnd) {
+				*DAR = type_mismatch;
+			}
 			fprintf(stderr,"autoTimeStart = %d  autoTimeEnd = %d\n",c8001.unit[i].autoTimeStart,c8001.unit[i].autoTimeEnd);
 		}
 		break;
 	}
-	*DAR = saveCoverClass(0x8001, 0, (void *) &c8001, sizeof(CLASS_8001),
-			para_vari_save);
+	if(*DAR == success) {
+		*DAR = saveCoverClass(0x8001, 0, (void *) &c8001, sizeof(CLASS_8001),
+				para_vari_save);
+	}
 	return index;
 }
 
