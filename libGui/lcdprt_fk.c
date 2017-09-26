@@ -17,6 +17,7 @@ extern void menu_showclddata();
 extern void menu_jzqsetmeter();
 extern void menu_jzqaddmeter();
 extern void menu_jzqdelmeter();
+extern ProgramInfo* p_JProgramInfo ;
 Menu menu_fk[]={
 	//level,    name,   		fun, 				ispasswd			pthis,
 {{level0,"  主菜单 ",		NULL, 				MENU_NOPASSWD},		NULL},
@@ -977,6 +978,7 @@ void menu_zhongwen(){
 }
 
 void menu_goudian(){
+	float tmpvalue=0;
 	LcdDataItem item[100];//存储的所有数据项
 	memset(item, 0, 100*sizeof(LcdDataItem));
 //读共享内存获取购电量
@@ -1019,58 +1021,71 @@ void menu_goudian(){
 				fprintf(stderr,"\n\n\n");
 			}
 
-			for(enable_i=0;enable_i<8;enable_i++)
-			{
-				if (c8107.enable[enable_i].name == c8107.list[unite_index-1].index)
-				{
-					ifenable = c8107.enable[enable_i].state;
-					break;
-				}
-			}
+//			for(enable_i=0;enable_i<8;enable_i++)
+//			{
+//				if (c8107.enable[enable_i].name == c8107.list[unite_index-1].index)
+//				{
+//					ifenable = c8107.enable[enable_i].state;
+//					break;
+//				}
+//			}
 			gui_clrrect(rect_Client);
-			gui_setpos(&pos, rect_Client.left+3*FONTSIZE, rect_Client.top+2*FONTSIZE);
+			gui_setpos(&pos, rect_Client.left+3*FONTSIZE, rect_Client.top+1*FONTSIZE);
 			memset(str, 0, 100);
 			sprintf(str,"配置单元%d [总加组%04x]", unite_index, c8107.list[unite_index-1].index);
 			gui_textshow(str, pos, LCD_NOREV);
-//			if (ifenable==0 )//该总加组没投入！
-//			{
-//				pos.x = rect_Client.left+5*FONTSIZE;
-//				pos.y += 5*FONTSIZE;
-//				memset(str, 0, 100);
-//				sprintf(str,"未投入");
-//				gui_textshow(str, pos, LCD_NOREV);
-//				PressKey = NOKEY;
-//				delay(300);
-//				continue;
-//			}
-			gui_setpos(&pos, rect_Client.left+FONTSIZE, rect_Client.top+5*FONTSIZE);
+			if (c8107.list[unite_index-1].index < 0x2301 ||  c8107.list[unite_index-1].index > 0x2308)//该总加组没投入！
+			{
+				pos.x = rect_Client.left+5*FONTSIZE;
+				pos.y += 5*FONTSIZE;
+				memset(str, 0, 100);
+				sprintf(str,"未投入");
+				gui_textshow(str, pos, LCD_NOREV);
+				PressKey = NOKEY;
+				delay(300);
+				continue;
+			}
+			gui_setpos(&pos, rect_Client.left+FONTSIZE, rect_Client.top+4*FONTSIZE);
 			memset(str, 0, 100);
-			sprintf(str, "购电单号:%d", c8107.list[unite_index-1].no);			//FOR698
+			sprintf(str, "购电单号: %d", c8107.list[unite_index-1].no);			//FOR698
 			gui_textshow(str, pos, LCD_NOREV);
 			memset(str, 0, 100);
-			sprintf(str, "方式: %s", c8107.list[unite_index-1].add_refresh==1?"追加":"刷新");
-			pos.y += FONTSIZE*2+3;
-			gui_textshow(str, pos, LCD_NOREV);
-
-			memset(str, 0, 100);
-			sprintf(str, "购电量值: %d kWh", c8107.list[unite_index-1].v);
-			pos.y += FONTSIZE*2+3;
+			sprintf(str, "购电方式: %s", c8107.list[unite_index-1].add_refresh==1?"刷新":"追加");
+			pos.y += FONTSIZE*2+2;
 			gui_textshow(str, pos, LCD_NOREV);
 
 			memset(str, 0, 100);
-			sprintf(str, "报警门限: %d kWh", c8107.list[unite_index-1].alarm);
-			pos.y += FONTSIZE*2+3;
+			tmpvalue = c8107.list[unite_index-1].v*(1.0)/10000;
+			sprintf(str, "购电量值: %.4f kWh", tmpvalue);//-4
+			pos.y += FONTSIZE*2+2;
 			gui_textshow(str, pos, LCD_NOREV);
 
 			memset(str, 0, 100);
-			sprintf(str, "跳闸门限: %d kWh", c8107.list[unite_index-1].ctrl);
-			pos.y += FONTSIZE*2+3;
+			tmpvalue = c8107.list[unite_index-1].alarm*(1.0)/10000;
+			sprintf(str, "报警门限: %.4f kWh", tmpvalue);//-4
+			pos.y += FONTSIZE*2+2;
 			gui_textshow(str, pos, LCD_NOREV);
 
 			memset(str, 0, 100);
-			sprintf(str, "购电控模式: %s", c8107.list[unite_index-1].type==1?"远程":"本地");
-			pos.y += FONTSIZE*2+3;
+			tmpvalue = c8107.list[unite_index-1].ctrl*(1.0)/10000;
+			sprintf(str, "跳闸门限: %.4f kWh", tmpvalue );//-4
+			pos.y += FONTSIZE*2+2;
 			gui_textshow(str, pos, LCD_NOREV);
+
+			memset(str, 0, 100);
+			sprintf(str, "控制模式: %s", c8107.list[unite_index-1].type==1?"远程":"本地");
+			pos.y += FONTSIZE*2+2;
+			gui_textshow(str, pos, LCD_NOREV);
+
+			if(c8107.list[unite_index-1].index>=0x2301 && c8107.list[unite_index-1].index<=0x2308 )
+				tmpvalue = p_JProgramInfo->class23[c8107.list[unite_index-1].index-0x2301].remains*(1.0)/10000;
+			memset(str, 0, 100);
+			sprintf(str, "剩余电量: %.4f kWh", tmpvalue);//-4
+			pos.y += FONTSIZE*2+2;
+			gui_textshow(str, pos, LCD_NOREV);
+
+
+
 		}
 		PressKey = NOKEY;
 		delay(300);
@@ -1956,7 +1971,8 @@ void menu_shiduanpara(){
 			sprintf(str,"配置单元%d [总加组%04x]", unite_index, c8103.list[unite_index-1].index);
 			gui_textshow(str, pos, LCD_NOREV);
 
-			if (ifenable==0 )//该总加组没投入！
+			//if (ifenable==0 )//该总加组没投入！
+			if (c8103.list[unite_index-1].index < 0x2301 ||  c8103.list[unite_index-1].index > 0x2308)//该总加组没投入！
 			{
 				pos.x = rect_Client.left+5*FONTSIZE;
 				pos.y += 5*FONTSIZE;
@@ -2091,7 +2107,8 @@ void menu_changxiupara(){
 			memset(str, 0, 100);
 			sprintf(str,"配置单元%d [总加组%04x]", unite_index, c8104.list[unite_index-1].index);
 			gui_textshow(str, pos, LCD_NOREV);
-			if (ifenable==0 )//该总加组没投入！
+//			if (ifenable==0 )//该总加组没投入！
+			if (c8104.list[unite_index-1].index < 0x2301 ||  c8104.list[unite_index-1].index > 0x2308)//该总加组没投入！
 			{
 				pos.x = rect_Client.left+5*FONTSIZE;
 				pos.y += 5*FONTSIZE;
@@ -2208,7 +2225,8 @@ void menu_baotingpara(){
 					break;
 				}
 			}
-			if (ifenable==0 )//该总加组没投入！
+//			if (ifenable==0 )//该总加组没投入！
+			if (c8105.list[unite_index-1].index < 0x2301 ||  c8105.list[unite_index-1].index > 0x2308)//该总加组没投入！
 			{
 				pos.x = rect_Client.left+5*FONTSIZE;
 				pos.y += 5*FONTSIZE;
@@ -2396,7 +2414,8 @@ void menu_yuedianpara(){
 					break;
 				}
 			}
-			if (ifenable==0 )//该总加组没投入！
+//			if (ifenable==0 )//该总加组没投入！
+
 			{
 				pos.x = rect_Client.left+5*FONTSIZE;
 				pos.y += 5*FONTSIZE;

@@ -978,14 +978,15 @@ void TaskInfo(INT16U attr_act, INT8U *data, Action_result *act_ret)
 
 void memDataInit(ProgramInfo *memp)
 {
+	syslog(LOG_NOTICE,"__%s__",__func__);
    	//共享内存实际流量清零
 	memset(&memp->dev_info.realTimeC2200,0,sizeof(Flow_tj));
 
-	for(int i = 0; i < 2; i++) {
-		clearClass12Data(memp->class12[i]);
+	for(int i = 0; i < MAX_PULSE_NUM; i++) {
+		clearClass12Data(&memp->class12[i]);
 	}
-	for (int i = 0; i < 8; i++) {
-		clearClass23Data(memp->class23[i]);
+	for (int i = 0; i < MAX_AL_UNIT; i++) {
+		clearClass23Data(&memp->class23[i]);
 	}
 }
 
@@ -1025,8 +1026,8 @@ void TerminalInfo(INT16U attr_act, INT8U *data, Action_result *act_ret)
         case 3://数据初始化
         case 5://事件初始化
         case 6://需量初始化
-            dataInit(attr_act);
             memDataInit(memp);		//共享内存中数据的初始化
+            dataInit(attr_act);
              //Event_3100(NULL,0,memp);//初始化，产生事件,移到复位应答帧之后再进行事件的上报
             Reset_add();            //国网台体测试,数据初始化认为是复位操作
             fprintf(stderr, "\n终端数据初始化！");
@@ -1543,10 +1544,10 @@ int doObjectAction(OAD oad, INT8U *data, Action_result *act_ret) {
             class8105_act_route(1, attr_act, data, act_ret);
             break;
         case 0x8106:
-            class8106_act_route(1, attr_act, data, act_ret);
+            class8106_act_route(oad, data, act_ret);
             break;
         case 0x8107:
-            class8107_act_route(1, attr_act, data, act_ret);
+            class8107_act_route(oad, data, act_ret);
             break;
         case 0x8108:
             class8108_act_route(1, attr_act, data, act_ret);

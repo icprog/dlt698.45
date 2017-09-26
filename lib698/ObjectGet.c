@@ -131,6 +131,7 @@ int BuildFrame_GetResponseNext(INT8U response_type,CSINFO *csinfo,INT8U DAR,INT1
 
 	csinfo->dir = 1;
 	csinfo->prm = 1;
+//	csinfo->gframeflg = 1;		//不能使用分帧标志，否则是一帧
 
 	index = FrameHead(csinfo,sendbuf);
 	hcsi = index;
@@ -414,13 +415,27 @@ int Get_8001(RESULT_NORMAL *response)
 int Get_8002(RESULT_NORMAL *response)
 {
 	CLASS_8002 c8002;
+	INT16U	index = 0;
 	INT8U *data=NULL;
 	OAD oad;
+
 	oad = response->oad;
 	data = response->data;
+	response->datalen = 0;
 	readCoverClass(0x8002, 0, (void *) &c8002, sizeof(CLASS_8002),
 			para_vari_save);
-	response->datalen = fill_enum(data, c8002.state);
+	switch(oad.attflg) {
+	case 2:
+		response->datalen = fill_enum(data, c8002.state);
+		break;
+	case 3:
+		index += create_struct(&data[index], 2);
+		index += fill_octet_string(&data[index],c8002.alarmTime,3);
+		index += fill_visible_string(&data[index],&c8002.alarmInfo[1],c8002.alarmInfo[0]);
+		response->datalen = index;
+		break;
+	}
+
 	fprintf(stderr,"C8002 datalen = %d\n",response->datalen);
 	return response->datalen;
 }
@@ -455,6 +470,7 @@ int fill_ALSTATE(INT8U *data,ALSTATE *alstate,INT8U datatype)
 	if(unitnum) {
 		index += create_array(&data[index],unitnum);
 		for(i=0;i<unitnum;i++) {
+			index += create_struct(&data[index],2);
 			index += fill_OI(&data[index],alstate[i].name);
 			switch(datatype) {
 			case dtenum:
@@ -488,6 +504,57 @@ int fill_PowerCtrlParam(INT8U *data,PowerCtrlParam para)
 	index += fill_long64(&data[index],para.t7);
 	index += fill_long64(&data[index],para.t8);
 	return index;
+}
+
+//终端功控时段
+int Get_8101(RESULT_NORMAL *response)
+{
+	CLASS_8103 c8103={};
+	INT8U *data=NULL;
+	INT8U	i=0,unitnum=0;
+	OAD 	oad={};
+	int 	index=0;
+
+	oad = response->oad;
+	data = response->data;
+	memset(&c8103,0,sizeof(CLASS_8103));
+	readCoverClass(0x8103, 0, (void *) &c8103, sizeof(CLASS_8103),para_vari_save);
+	switch(oad.attflg){
+	case 2:	//时段功控配置单元
+		unitnum=0;
+		for(i=0;i<MAX_AL_UNIT;i++) {
+			if(c8103.list[i].index !=0) {
+				unitnum++;
+			}else break;
+		}
+		if(unitnum) {
+			index += create_array(&data[index],unitnum);
+			for(i=0;i<unitnum;i++) {
+				index += create_struct(&data[index],6);
+				index += fill_OI(&data[index],c8103.list[i].index);
+				index += fill_bit_string(&data[index],8,&c8103.list[i].sign);
+				index += fill_PowerCtrlParam(&data[index],c8103.list[i].v1);
+				index += fill_PowerCtrlParam(&data[index],c8103.list[i].v2);
+				index += fill_PowerCtrlParam(&data[index],c8103.list[i].v3);
+				index += fill_integer(&data[index],c8103.list[i].para);
+			}
+		}else {
+			data[index++] = 0;	//NULL
+		}
+		break;
+	case 3:	//控制投入状态
+		index += fill_ALSTATE(&data[index],c8103.enable,dtenum);
+		break;
+	case 4:	//控制输出状态
+		index += fill_ALSTATE(&data[index],c8103.output,dtbitstring);
+		break;
+	case 5: //越限告警状态
+		index += fill_ALSTATE(&data[index],c8103.overflow,dtenum);
+		break;
+	}
+	response->datalen = index;
+	fprintf(stderr,"C8103 datalen = %d\n",response->datalen);
+	return response->datalen;
 }
 
 int Get_8103(RESULT_NORMAL *response)
@@ -526,13 +593,13 @@ int Get_8103(RESULT_NORMAL *response)
 		}
 		break;
 	case 3:	//控制投入状态
-		index += fill_ALSTATE(&data[index],c8103.output,dtenum);
+		index += fill_ALSTATE(&data[index],c8103.enable,dtenum);
 		break;
 	case 4:	//控制输出状态
 		index += fill_ALSTATE(&data[index],c8103.output,dtbitstring);
 		break;
 	case 5: //越限告警状态
-		index += fill_ALSTATE(&data[index],c8103.output,dtenum);
+		index += fill_ALSTATE(&data[index],c8103.overflow,dtenum);
 		break;
 	}
 	response->datalen = index;
@@ -579,13 +646,13 @@ int Get_8107(RESULT_NORMAL *response)
 		}
 		break;
 	case 3:	//控制投入状态
-		index += fill_ALSTATE(&data[index],c8107.output,dtenum);
+		index += fill_ALSTATE(&data[index],c8107.enable,dtenum);
 		break;
 	case 4:	//控制输出状态
 		index += fill_ALSTATE(&data[index],c8107.output,dtbitstring);
 		break;
 	case 5: //越限告警状态
-		index += fill_ALSTATE(&data[index],c8107.output,dtenum);
+		index += fill_ALSTATE(&data[index],c8107.overflow,dtenum);
 		break;
 	}
 	response->datalen = index;
@@ -2795,6 +2862,9 @@ int GetCtrl(RESULT_NORMAL *response)
 			break;
 		case 0x8100:
 			response->datalen = Get_8100(response);
+			break;
+		case 0x8101://终端功控时段
+			response->datalen = Get_8101(response);
 			break;
 		case 0x8103://时段功控
 			response->datalen = Get_8103(response);

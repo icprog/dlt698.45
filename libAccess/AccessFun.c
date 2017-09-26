@@ -131,45 +131,52 @@ void clearEnergy()
 /*
  * 脉冲计量接口数据清除
  * */
-void clearClass12Data(CLASS12 class12)
+void clearClass12Data(CLASS12 *class12)
 {
-	class12.p = 0;
-	class12.q = 0;
-	memset(&class12.day_pos_p, 0, sizeof(class12.day_pos_p));
-	memset(&class12.mon_pos_p, 0, sizeof(class12.mon_pos_p));
-	memset(&class12.day_nag_p, 0, sizeof(class12.day_nag_p));
-	memset(&class12.mon_nag_p, 0, sizeof(class12.mon_nag_p));
+	class12->p = 0;
+	class12->q = 0;
+	class12->pluse_count = 0;
+	memset(&class12->day_pos_p, 0, sizeof(class12->day_pos_p));
+	memset(&class12->mon_pos_p, 0, sizeof(class12->mon_pos_p));
+	memset(&class12->day_nag_p, 0, sizeof(class12->day_nag_p));
+	memset(&class12->mon_nag_p, 0, sizeof(class12->mon_nag_p));
 
-	memset(&class12.day_pos_q, 0, sizeof(class12.day_pos_p));
-	memset(&class12.mon_pos_q, 0, sizeof(class12.mon_pos_p));
-	memset(&class12.day_nag_q, 0, sizeof(class12.day_nag_p));
-	memset(&class12.mon_nag_q, 0, sizeof(class12.mon_nag_p));
+	memset(&class12->day_pos_q, 0, sizeof(class12->day_pos_p));
+	memset(&class12->mon_pos_q, 0, sizeof(class12->mon_pos_p));
+	memset(&class12->day_nag_q, 0, sizeof(class12->day_nag_p));
+	memset(&class12->mon_nag_q, 0, sizeof(class12->mon_nag_p));
 
-	memset(&class12.val_pos_p, 0, sizeof(class12.val_pos_p));
-	memset(&class12.val_nag_p, 0, sizeof(class12.val_nag_p));
-	memset(&class12.val_pos_q, 0, sizeof(class12.val_pos_q));
-	memset(&class12.val_nag_q, 0, sizeof(class12.val_nag_q));
+	memset(&class12->val_pos_p, 0, sizeof(class12->val_pos_p));
+	memset(&class12->val_nag_p, 0, sizeof(class12->val_nag_p));
+	memset(&class12->val_pos_q, 0, sizeof(class12->val_pos_q));
+	memset(&class12->val_nag_q, 0, sizeof(class12->val_nag_q));
 }
 
 /*
  * 总加组类数据清除
  * */
-void clearClass23Data(CLASS23 class23)
+void clearClass23Data(CLASS23 *class23)
 {
-	class23.p = 0;
-	class23.q = 0;
-	class23.TaveP = 0;
-	class23.TaveQ = 0;
-	class23.DayPALL = 0;
-	memset(&class23.DayP, 0, sizeof(class23.DayP));
-	class23.DayQALL = 0;
-	memset(&class23.DayQ, 0, sizeof(class23.DayQ));
-	class23.MonthPALL = 0;
-	memset(&class23.MonthP, 0, sizeof(class23.MonthP));
-	class23.MonthQALL = 0;
-	memset(&class23.MonthQ, 0, sizeof(class23.MonthQ));
-	class23.remains = 0;
-	class23.DownFreeze = 0;
+	INT8U i=0;
+	for(i=0;i<MAX_AL_UNIT;i++) {
+		memset(class23->allist[i].curP,0,sizeof(class23->allist[i].curP));
+		memset(class23->allist[i].curQ,0,sizeof(class23->allist[i].curQ));
+		memset(class23->allist[i].freeze,0,sizeof(class23->allist[i].freeze));
+	}
+	class23->p = 0;
+	class23->q = 0;
+	class23->TaveP = 0;
+	class23->TaveQ = 0;
+	class23->DayPALL = 0;
+	memset(&class23->DayP, 0, sizeof(class23->DayP));
+	class23->DayQALL = 0;
+	memset(&class23->DayQ, 0, sizeof(class23->DayQ));
+	class23->MonthPALL = 0;
+	memset(class23->MonthP, 0, sizeof(class23->MonthP));
+	class23->MonthQALL = 0;
+	memset(class23->MonthQ, 0, sizeof(class23->MonthQ));
+	class23->remains = 0;
+	class23->DownFreeze = 0;
 }
 
 /*
@@ -187,7 +194,7 @@ void clearControlData()
 	for(oi=0x2301;oi<=0x2308;oi++) {
 		ret = readCoverClass(oi, 0, &class23, sizeof(CLASS23), para_vari_save);
 		if(ret!=-1) {
-			clearClass23Data(class23);
+			clearClass23Data(&class23);
 			saveCoverClass(oi, 0, &class23, sizeof(CLASS23), para_vari_save);
 		}
 	}
@@ -195,7 +202,8 @@ void clearControlData()
 	for(oi=0x2401;oi<=0x2408;oi++) {
 		ret = readCoverClass(oi, 0, &class12, sizeof(CLASS12), para_vari_save);
 		if(ret!=-1) {
-			clearClass12Data(class12);
+			clearClass12Data(&class12);
+			fprintf(stderr,"class12 pulse = %d\n",class12.pluse_count);
 			saveCoverClass(oi, 0, &class12, sizeof(CLASS12), para_vari_save);
 		}
 	}
@@ -2196,6 +2204,11 @@ INT8U ReadTaskInfo(INT8U taskid,TASKSET_INFO *tasknor_info)//读取普通采集�
 //			tasknor_info->runtime = CalcFreq(class6013.interval,class6015,tasknor_info->starthour*60+tasknor_info->startmin,tasknor_info->endhour*60+tasknor_info->endmin,&tasknor_info->freq);
 			if(tasknor_info->runtime == 0)
 				return 0;
+			if(tasknor_info->runtime > 288)//存储太多，改为五分钟一个点
+			{
+				tasknor_info->runtime = 288;
+				tasknor_info->freq = 300;
+			}
 			fprintf(stderr,"\n---@@@---任务%d执行次数%d 设置的单位%d\n",taskid,tasknor_info->runtime,class6013.interval.units);
 			tasknor_info->KBtype = CalcKBType(class6013.runtime.type);
 			fprintf(stderr,"\n---@@@---开闭方式%d\n",tasknor_info->KBtype);
