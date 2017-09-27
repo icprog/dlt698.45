@@ -245,6 +245,19 @@ void ctrl_process(int argc, char *argv[])
 	}
 }
 
+void pluseTest(OI_698 oi,CLASS12	class12)
+{
+	INT8U	i=0;
+	fprintf(stderr,"att2:通信地址");
+	for(i=0;i<OCTET_STRING_LEN;i++) {
+		fprintf(stderr,"%02x ",class12.addr[i]);
+	}
+	fprintf(stderr,"\n");
+	fprintf(stderr,"att7 :当日正向有功电量=%d-%d-%d-%d\n",class12.day_pos_p[0],class12.day_pos_p[1],class12.day_pos_p[2],class12.day_pos_p[3]);
+	fprintf(stderr,"att9 :当日反向有功电量=%d-%d-%d-%d\n",class12.day_nag_p[0],class12.day_nag_p[1],class12.day_nag_p[2],class12.day_nag_p[3]);
+	fprintf(stderr,"att15:正向有功电能示值=%d-%d-%d-%d\n",class12.val_pos_p[0],class12.val_pos_p[1],class12.val_pos_p[2],class12.val_pos_p[3]);
+}
+
 void sumgroupTest(OI_698 oi,CLASS23	class23)
 {
 	INT8U	unit = 0;
@@ -267,6 +280,8 @@ void sumgroupTest(OI_698 oi,CLASS23	class23)
 		fprintf(stderr,"总加标志  %d {正向（0），反向（1）}\n",class23.allist[i].al_flag);
 		fprintf(stderr,"运算符标志  %d  {加（0），减（1）}\n",class23.allist[i].cal_flag);
 	}
+	fprintf(stderr,"att7:总加日有功电量=%lld-%lld-%lld-%lld-%lld\n",class23.DayPALL,
+			class23.DayP[0],class23.DayP[1],class23.DayP[2],class23.DayP[3]);
 }
 
 void sum_process(int argc, char *argv[])
@@ -287,9 +302,19 @@ void sum_process(int argc, char *argv[])
 					return;
 				}
 				sumgroupTest(oi,JProgramInfo->class23[index]);
-				fprintf(stderr,"att7:总加日有功电量=%lld-%lld-%lld-%lld-%lld\n",JProgramInfo->class23[index].DayPALL,
-						JProgramInfo->class23[index].DayP[0],JProgramInfo->class23[index].DayP[1],
-						JProgramInfo->class23[index].DayP[2],JProgramInfo->class23[index].DayP[3]);
+			}
+		}
+		if(strcmp(argv[1],"pulse")==0) {
+			if(strcmp(argv[2],"pro")==0) {
+				sscanf(argv[3],"%04x",&tmp);
+				oi = tmp;
+				index = oi-0x2401;
+				index = rangeJudge("脉冲",index,0,1);
+				if(index == -1) {
+					fprintf(stderr,"脉冲计量OI【%04x】输入错误\n",oi);
+					return;
+				}
+				pluseTest(oi,JProgramInfo->class12[index]);
 			}
 		}
 		shmm_unregister("ProgramInfo", sizeof(ProgramInfo));

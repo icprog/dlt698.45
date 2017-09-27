@@ -192,18 +192,28 @@ int class23_get_7_8_9_10(OAD oad, INT64S energy_all,INT64S *energy,INT8U *buf, i
 	return 0;
 }
 
-int class23_get_17(OAD oad, INT8U index, INT8U *buf, int *len) {
-	ProgramInfo *shareAddr = getShareAddr();
+int class23_get_16(OAD oad, ALCONSTATE alConState, INT8U *buf, int *len) {
+	*len = 0;
+	*len += create_struct(&buf[*len],6);
+	*len += fill_unsigned(&buf[*len],alConState.index);
+	*len += fill_bit_string(&buf[*len],8,&alConState.enable_flag);
+	*len += fill_bit_string(&buf[*len],8,&alConState.PCState);
+	*len += fill_bit_string(&buf[*len],8,&alConState.ECState);
+	*len += fill_bit_string(&buf[*len],8,&alConState.PTrunState);
+	*len += fill_bit_string(&buf[*len],8,&alConState.ETrunState);
+	return 1;
+}
 
+int class23_get_17(OAD oad, ALCTLSTATE alCtlState, INT8U *buf, int *len) {
 	*len = 0;
 	*len += create_struct(&buf[*len],7);
-	*len += fill_long64(&buf[*len],shareAddr->class23[index].alCtlState.v);
-	*len += fill_integer(&buf[*len],shareAddr->class23[index].alCtlState.Downc);
-	*len += fill_bit_string(&buf[*len],8,&shareAddr->class23[index].alCtlState.OutputState);
-	*len += fill_bit_string(&buf[*len],8,&shareAddr->class23[index].alCtlState.MonthOutputState);
-	*len += fill_bit_string(&buf[*len],8,&shareAddr->class23[index].alCtlState.BuyOutputState);
-	*len += fill_bit_string(&buf[*len],8,&shareAddr->class23[index].alCtlState.PCAlarmState);
-	*len += fill_bit_string(&buf[*len],8,&shareAddr->class23[index].alCtlState.ECAlarmState);
+	*len += fill_long64(&buf[*len],alCtlState.v);
+	*len += fill_integer(&buf[*len],alCtlState.Downc);
+	*len += fill_bit_string(&buf[*len],8,&alCtlState.OutputState);
+	*len += fill_bit_string(&buf[*len],8,&alCtlState.MonthOutputState);
+	*len += fill_bit_string(&buf[*len],8,&alCtlState.BuyOutputState);
+	*len += fill_bit_string(&buf[*len],8,&alCtlState.PCAlarmState);
+	*len += fill_bit_string(&buf[*len],8,&alCtlState.ECAlarmState);
 	return 1;
 }
 
@@ -244,9 +254,12 @@ int class23_get(OAD oad, INT8U *sourcebuf, INT8U *buf, int *len) {
 		return class23_get_bitstring(oad, shareAddr->class23[index].pConfig, buf, len);
 	case 15:
 		return class23_get_bitstring(oad, shareAddr->class23[index].eConfig, buf, len);
-	case 17:
-		return class23_get_17(oad, index, buf, len);
-
+	case 16:	//总加组控制设置状态
+		return class23_get_16(oad, shareAddr->class23[index].alConState, buf, len);
+	case 17:	//总加组当前控制状态
+		return class23_get_17(oad, shareAddr->class23[index].alCtlState, buf, len);
+	case 18:
+		return get_Scaler_Unit(oad, shareAddr->class23[index].su, buf, len);
 	}
 	return 1;
 }

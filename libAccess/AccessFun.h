@@ -140,7 +140,6 @@ extern void write_userpwd(unsigned char* user, unsigned char* pwd, unsigned char
  * =-1:  未查找到OI类数据
  */
 extern int clearClass(OI_698 oi);
-
 /*
  * 方法：Delete() 删除一个配置单元
  * 输入参数：oi对象标识，id:索引
@@ -148,7 +147,6 @@ extern int clearClass(OI_698 oi);
  * =-1:  删除错误
  */
 extern int deleteClass(OI_698 oi,INT8U id);
-
 /*
  * 总表(交采)计量电量数据清除
  * */
@@ -159,8 +157,18 @@ extern void clearEnergy();
  * =-1：删除失败
  * */
 extern int dataInit(INT16U attr);
-
+/*
+ * 参数初始化
+ * */
 extern void paraInit(INT8U oadnum,OAD *oad);
+/*
+ * 脉冲计量接口数据清除
+ * */
+extern void clearClass12Data(CLASS12 class12);
+/*
+ * 总加组类数据清除
+ * */
+extern void clearClass23Data(CLASS23 class23);
 
 ////////////////////////////////////////////////////////////////////////////////////////
 /*		第一类参数文件：文件包含接口类公用属性，配置单元按照配置序号在相应的位置存储，

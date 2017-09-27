@@ -1837,7 +1837,14 @@ int  fill_variClass(OAD oad,INT8U getflg,INT8U *sourcebuf,INT8U *destbuf,INT16U 
 	case 0x2308:	//总加组8
 		class23_get(oad,sourcebuf,destbuf,&buflen);
 		break;
-	case 0x2401:
+	case 0x2401:	//脉冲计量1
+	case 0x2402:
+	case 0x2403:
+	case 0x2404:
+	case 0x2405:
+	case 0x2406:
+	case 0x2407:
+	case 0x2408:	//脉冲计量8
 		class12_get(oad,sourcebuf,destbuf,&buflen);
 		break;
 	default:

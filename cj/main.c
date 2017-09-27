@@ -39,6 +39,8 @@ static char *usage_yk = "\n--------------------III型专变命令---------------
 static char *usage_sumgroup = "\n--------------------总加组----------------------------\n"
 		"        【总加组1】cj sum pro 2301				\n"
 		"        【总加组2-8】cj sum pro 2302-2308		\n"
+		"        【脉冲1】cj pulse pro 2401				\n"
+		"        【脉冲2-8】cj pulse pro 2402-2408		\n"
         "-------------------------------------------------------\n\n";
 
 static char *usage_set = "\n--------------------参数设置及基本维护命令----------------------------\n"
@@ -631,7 +633,7 @@ int main(int argc, char *argv[]) {
 		return EXIT_SUCCESS;
 	}
 
-    if(strcmp("sum",argv[1])==0)
+    if((strcmp("sum",argv[1])==0)||(strcmp("pulse",argv[1])==0))
 	{
     	fprintf(stderr, "%s", usage_sumgroup);
     	sum_process(argc,argv);

@@ -118,6 +118,8 @@ int initAll() {
 	ctrlunit.u16b = 0;
 	ctrlunit_old.u16b = 0;
 
+	fprintf(stderr, "==============================ctrl init============================\n");
+
 	//读取总加组数据
 	CtrlC = &JProgramInfo->ctrls;
 	CtrlC->control_event = 0;
@@ -133,6 +135,13 @@ int initAll() {
 		JProgramInfo->class23[i].alCtlState.MonthOutputState = 0;
 		JProgramInfo->class23[i].alCtlState.PCAlarmState = 0;
 		JProgramInfo->class23[i].alCtlState.ECAlarmState = 0;
+	}
+
+
+	for (int i = 0; i < 2; ++i) {
+		memset(&JProgramInfo->class12[i], 0x00, sizeof(CLASS12));
+		readCoverClass(0x2401 + i, 0, &JProgramInfo->class23[i],
+				sizeof(CLASS12), para_vari_save);
 	}
 
 	readCoverClass(0x8100, 0, &CtrlC->c8100, sizeof(CLASS_8100),
@@ -153,6 +162,9 @@ int initAll() {
 			para_vari_save);
 	readCoverClass(0x8108, 0, &CtrlC->c8108, sizeof(CLASS_8108),
 			para_vari_save);
+
+
+	fprintf(stderr, "==============================ctrl init end============================\n");
 
 	return 0;
 }
@@ -753,7 +765,7 @@ int ctrlMain(void * arg) {
 				}
 			}
 			if (secOld % 51 == 0) {
-				for (int i = 0; i < 8; ++i) {
+				for (int i = 0; i < 2; ++i) {
 					saveCoverClass(0x2401 + i, 0, &JProgramInfo->class12[i],
 							sizeof(CLASS12), para_vari_save);
 				}
