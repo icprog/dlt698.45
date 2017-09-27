@@ -788,6 +788,8 @@ INT8U createFakeTaskFileHead()
 
 			getTaskFileName(list6013[tIndex].basicInfo.taskID,ts_cc,fname);
 			CreateSaveHead(fname,NULL,csds,&headlen,&unitlen,&unitnum,runtime,1);//写文件头信息并返回
+			if(unitlen == 0)
+				return 0;
 			INT16U index = 0;
 			dataContent[index++] = dttsa;
 			memcpy(&dataContent[index],meter.basicinfo.addr.addr,sizeof(TSA));//采集通信地址
