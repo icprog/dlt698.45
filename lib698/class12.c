@@ -203,7 +203,7 @@ int class12_get(OAD oad, INT8U *sourcebuf, INT8U *buf, int *len){
 
 	switch (oad.attflg) {
 	case 2:
-		*len = fill_TSA(&buf[*len],shareAddr->class12[index].addr[1],shareAddr->class12[index].addr[0]);
+		*len = fill_TSA(&buf[*len],&shareAddr->class12[index].addr[1],shareAddr->class12[index].addr[0]);
 		return 1;
 	case 3:
 		return class12_get_3(oad.OI, shareAddr->class12[index].pt, shareAddr->class12[index].ct, buf, len);

@@ -835,6 +835,7 @@ typedef struct {
     INT8U eConfig;  //电控轮次
     ALCONSTATE alConState;  //设置状态
     ALCTLSTATE alCtlState;  //控制状态
+    Scaler_Unit su[10];		//属性3-12换算单位
 } CLASS23;
 
 typedef struct {

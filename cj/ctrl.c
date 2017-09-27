@@ -229,6 +229,12 @@ void ctrl_process(int argc, char *argv[])
 
 void pluseTest(OI_698 oi,CLASS12	class12)
 {
+	INT8U	i=0;
+	fprintf(stderr,"att2:通信地址");
+	for(i=0;i<OCTET_STRING_LEN;i++) {
+		fprintf(stderr,"%02x ",class12.addr[i]);
+	}
+	fprintf(stderr,"\n");
 	fprintf(stderr,"att7 :当日正向有功电量=%d-%d-%d-%d\n",class12.day_pos_p[0],class12.day_pos_p[1],class12.day_pos_p[2],class12.day_pos_p[3]);
 	fprintf(stderr,"att9 :当日反向有功电量=%d-%d-%d-%d\n",class12.day_nag_p[0],class12.day_nag_p[1],class12.day_nag_p[2],class12.day_nag_p[3]);
 	fprintf(stderr,"att15:正向有功电能示值=%d-%d-%d-%d\n",class12.val_pos_p[0],class12.val_pos_p[1],class12.val_pos_p[2],class12.val_pos_p[3]);
