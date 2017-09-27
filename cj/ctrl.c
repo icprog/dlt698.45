@@ -395,9 +395,21 @@ void sum_process(int argc, char *argv[])
 						fprintf(stderr,"OI = %04x\n",c8105.list[i].index);
 						printDataTimeS("报停起止时间",c8105.list[i].start);
 						printDataTimeS("报停结束时间",c8105.list[i].end);
-						fprintf(stderr,"功率定值 =lld\n",c8105.list[i].v);
+						fprintf(stderr,"功率定值 =%lld\n",c8105.list[i].v);
 
 					}
+				}
+				if(oi==0x8107) {
+//					CLASS_8107 [i]={};
+//					memset(&c8107, 0x00, sizeof(CLASS_8107));
+//					readCoverClass(oi, 0, (void *) &c8107, sizeof(CLASS_8107),para_vari_save);
+//					int i=0;
+//					for(i=0;i<MAX_AL_UNIT;i++) {
+//						fprintf(stderr, "购电-控制单元\n[对象%04x]\n [购电单号%d]\n [追加刷新标识%d]\n [购电类型%d]\n-[购电量%lld]\n-[报警门限%lld]\n-[跳闸门限%lld]\n-[购电控模式%d]\n",
+//								c8107.[i].index, c8107.no,
+//								c8107.add_refresh, c8107.type, c8107.v, c8107.alarm, c8107.ctrl, c8107.mode);
+//
+//					}
 				}
 			}
 		}

@@ -283,7 +283,7 @@ int GetOADPos(FILE *fp,INT16U headlen,OAD oadm,OAD oadr)
 int SaveNorData(INT8U taskid,ROAD *road_eve,INT8U *databuf,int datalen,TS ts_cc)//存储事件时指针road_eve定义为NULL
 {
 	FILE *fp;	CSD_ARRAYTYPE csds;
-	char	fname[FILENAMELEN]={};
+	char	fname[FILENAMELEN]={},cmd[FILENAMELEN]={};
 	char    cmdname[FILENAMELEN]={};
 	INT8U *databuf_tmp=NULL,eveflg=0,taskinfoflg=0;
 	int savepos=0,currpos=0,i=0;
@@ -347,6 +347,10 @@ int SaveNorData(INT8U taskid,ROAD *road_eve,INT8U *databuf,int datalen,TS ts_cc)
 		if(unitlen==0)
 		{
 			asyslog(LOG_WARNING, "cjsave 存储文件头%s headlen=%d unitlen=%d unitnum=%d runtime=%d",fname,headlen,unitlen,unitnum,runtime);
+			sprintf(cmd,"rm -rf %s",fname);
+			system(cmd);
+			if(fp != NULL)
+				fclose(fp);
 			return 0;
 		}
 		databuf_tmp = malloc(unitlen);

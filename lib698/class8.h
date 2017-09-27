@@ -7,13 +7,26 @@
 #ifndef INC_698_CLASS8_H
 #define INC_698_CLASS8_H
 
-int class8001_set(int bak, OAD oad, INT8U *data, INT8U *DAR);
+/*
+ * 遥控
+ * */
+int class8000_set(OAD oad, INT8U *data, INT8U *DAR);
+
+int class8001_set(OAD oad, INT8U *data, INT8U *DAR);
 
 int class8100_set(int index, OAD oad, INT8U *data, INT8U *DAR);
 
 int class8101_set(OAD oad, INT8U *data, INT8U *DAR);
 
 int class8102_set(OAD oad, INT8U *data, INT8U *DAR);
+
+int class8103_act3(int index, int attr_act, INT8U *data, INT8U *DAR);
+
+int class8104_act3(int index, int attr_act, INT8U *data, INT8U *DAR);
+
+int class8105_act3(int index, int attr_act, INT8U *data, INT8U *DAR);
+
+int class8108_act3(int index, int attr_act, INT8U *data, INT8U *DAR);
 
 int class8107_set(OAD oad, INT8U *data, INT8U *DAR);
 
