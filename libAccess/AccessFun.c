@@ -128,6 +128,14 @@ void clearEnergy()
 	system("rm -rf /nor/acs/energy.bak");
 }
 
+/*
+ * 清除总加组及脉冲计量
+ * */
+void clearControlData()
+{
+
+}
+
 void clearData()
 {
 	syslog(LOG_NOTICE,"__%s__",__func__);
@@ -142,6 +150,8 @@ void clearData()
 	//删除抄表记录状态
 	system("rm -rf /nand/para/plcrecord.par");
 	system("rm -rf /nand/para/plcrecord.bak");
+	//删除控制文件数据
+	clearControlData();
 }
 
 void clearEvent()

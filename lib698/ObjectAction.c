@@ -986,6 +986,46 @@ void TaskInfo(INT16U attr_act, INT8U *data, Action_result *act_ret)
     }
 }
 
+void memDataInit(ProgramInfo *memp)
+{
+   	//共享内存实际流量清零
+	memset(&memp->dev_info.realTimeC2200,0,sizeof(Flow_tj));
+
+	for(int i = 0; i < 2; i++) {
+		memset(&memp->class12[i].p, 0, sizeof(memp->class12[i].p));
+		memset(&memp->class12[i].q, 0, sizeof(memp->class12[i].q));
+
+		memset(&memp->class12[i].day_nag_p, 0, sizeof(memp->class12[i].day_nag_p));
+		memset(&memp->class12[i].day_nag_q, 0, sizeof(memp->class12[i].day_nag_q));
+
+		memset(&memp->class12[i].day_pos_p, 0, sizeof(memp->class12[i].day_pos_p));
+		memset(&memp->class12[i].day_pos_q, 0, sizeof(memp->class12[i].day_pos_q));
+
+		memset(&memp->class12[i].mon_nag_p, 0, sizeof(memp->class12[i].mon_nag_p));
+		memset(&memp->class12[i].mon_nag_q, 0, sizeof(memp->class12[i].mon_nag_q));
+
+		memset(&memp->class12[i].mon_pos_p, 0, sizeof(memp->class12[i].mon_pos_p));
+		memset(&memp->class12[i].mon_pos_q, 0, sizeof(memp->class12[i].mon_pos_q));
+
+		memset(&memp->class12[i].val_nag_p, 0, sizeof(memp->class12[i].val_nag_p));
+		memset(&memp->class12[i].val_nag_q, 0, sizeof(memp->class12[i].val_nag_q));
+
+		memset(&memp->class12[i].val_pos_p, 0, sizeof(memp->class12[i].val_pos_p));
+		memset(&memp->class12[i].val_pos_q, 0, sizeof(memp->class12[i].val_pos_q));
+	}
+	for (int i = 0; i < 8; i++) {
+		memset(&memp->class23[i].p, 0, sizeof(INT64U));
+		memset(&memp->class23[i].q, 0, sizeof(INT64U));
+		memset(&memp->class23[i].DayQ, 0, sizeof(memp->class23[i].DayQ));
+		memset(&memp->class23[i].DayP, 0, sizeof(memp->class23[i].DayP));
+		memset(&memp->class23[i].MonthP, 0, sizeof(memp->class23[i].MonthP));
+		memset(&memp->class23[i].MonthQ, 0, sizeof(memp->class23[i].MonthQ));
+		memset(&memp->class23[i].TaveP, 0, sizeof(memp->class23[i].TaveP));
+		memset(&memp->class23[i].TaveQ, 0, sizeof(memp->class23[i].TaveQ));
+		memset(&memp->class23[i].remains, 0, sizeof(INT64U));
+	}
+}
+
 void TerminalInfo(INT16U attr_act, INT8U *data, Action_result *act_ret)
 {
 	int   index = 0;
@@ -1023,44 +1063,8 @@ void TerminalInfo(INT16U attr_act, INT8U *data, Action_result *act_ret)
         case 5://事件初始化
         case 6://需量初始化
             dataInit(attr_act);
-        	//共享内存实际流量清零
-        	memset(&memp->dev_info.realTimeC2200,0,sizeof(Flow_tj));
-
-        	for(int i = 0; i < 2; i++) {
-        		memset(&memp->class12[i].p, 0, sizeof(memp->class12[i].p));
-        		memset(&memp->class12[i].q, 0, sizeof(memp->class12[i].q));
-
-        		memset(&memp->class12[i].day_nag_p, 0, sizeof(memp->class12[i].day_nag_p));
-        		memset(&memp->class12[i].day_nag_q, 0, sizeof(memp->class12[i].day_nag_q));
-
-        		memset(&memp->class12[i].day_pos_p, 0, sizeof(memp->class12[i].day_pos_p));
-        		memset(&memp->class12[i].day_pos_q, 0, sizeof(memp->class12[i].day_pos_q));
-
-        		memset(&memp->class12[i].mon_nag_p, 0, sizeof(memp->class12[i].mon_nag_p));
-        		memset(&memp->class12[i].mon_nag_q, 0, sizeof(memp->class12[i].mon_nag_q));
-
-        		memset(&memp->class12[i].mon_pos_p, 0, sizeof(memp->class12[i].mon_pos_p));
-        		memset(&memp->class12[i].mon_pos_q, 0, sizeof(memp->class12[i].mon_pos_q));
-
-        		memset(&memp->class12[i].val_nag_p, 0, sizeof(memp->class12[i].val_nag_p));
-        		memset(&memp->class12[i].val_nag_q, 0, sizeof(memp->class12[i].val_nag_q));
-
-        		memset(&memp->class12[i].val_pos_p, 0, sizeof(memp->class12[i].val_pos_p));
-        		memset(&memp->class12[i].val_pos_q, 0, sizeof(memp->class12[i].val_pos_q));
-        	}
-
-        	for (int i = 0; i < 8; i++) {
-        		memset(&memp->class23[i].p, 0, sizeof(INT64U));
-        		memset(&memp->class23[i].q, 0, sizeof(INT64U));
-        		memset(&memp->class23[i].DayQ, 0, sizeof(memp->class23[i].DayQ));
-        		memset(&memp->class23[i].DayP, 0, sizeof(memp->class23[i].DayP));
-        		memset(&memp->class23[i].MonthP, 0, sizeof(memp->class23[i].MonthP));
-        		memset(&memp->class23[i].MonthQ, 0, sizeof(memp->class23[i].MonthQ));
-        		memset(&memp->class23[i].TaveP, 0, sizeof(memp->class23[i].TaveP));
-        		memset(&memp->class23[i].TaveQ, 0, sizeof(memp->class23[i].TaveQ));
-        		memset(&memp->class23[i].remains, 0, sizeof(INT64U));
-        	}
-            //Event_3100(NULL,0,memp);//初始化，产生事件,移到复位应答帧之后再进行事件的上报
+            memDataInit(memp);
+             //Event_3100(NULL,0,memp);//初始化，产生事件,移到复位应答帧之后再进行事件的上报
             Reset_add();            //国网台体测试,数据初始化认为是复位操作
             fprintf(stderr, "\n终端数据初始化！");
             syslog(LOG_NOTICE, "终端数据初始化!（act=%d）",attr_act);
