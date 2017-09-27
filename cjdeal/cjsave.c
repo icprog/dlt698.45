@@ -135,6 +135,7 @@ void CreateSaveHead(char *fname,ROAD *road_eve,CSD_ARRAYTYPE csds,INT16U *headle
 	int i=0,j=0;
 	INT8U *headbuf=NULL,fixlen=0;
 	OAD	 oad_m={};
+	INT32U blklen=0;
 	*unitlen = 0;
 
 
@@ -198,7 +199,11 @@ void CreateSaveHead(char *fname,ROAD *road_eve,CSD_ARRAYTYPE csds,INT16U *headle
 		}
 	}
 	asyslog(LOG_WARNING, "unitlen=%d,freq=%d",fixlen+*unitlen,freq);
-	*unitlen=freq*(fixlen+*unitlen);//一个单元存储TSA共用,在结构最前面，每个单元都有3个时标和数据，预留出合适大小，以能存下一个TSA所有数据
+	blklen=freq*(fixlen+*unitlen);//一个单元存储TSA共用,在结构最前面，每个单元都有3个时标和数据，预留出合适大小，以能存下一个TSA所有数据
+	if(blklen > 65535)
+		*unitlen = 0;
+	else
+		*unitlen = blklen;
 	asyslog(LOG_WARNING, "cjsave 存储文件头 fixlen=%d,*unitlen=%d,freq=%d",fixlen,*unitlen,freq);
 	headbuf[2] = (*unitlen & 0xff00) >> 8;//数据单元长度
 	headbuf[3] = *unitlen & 0x00ff;
@@ -442,6 +447,9 @@ int SaveOADData(INT8U taskid,OAD oad_m,OAD oad_r,INT8U *databuf,int datalen,TS t
 		TS ts_now,ts_cc;
 		ts_cc = ts_res;
 		TSGet(&ts_now);
+
+
+
 		memset(&csds,0x00,sizeof(ROAD));
 	//	csds.num = 1;
 	//	csds.csd[0].type = 1;//road
@@ -453,6 +461,7 @@ int SaveOADData(INT8U taskid,OAD oad_m,OAD oad_r,INT8U *databuf,int datalen,TS t
 //		if(ReadTaskInfo(taskid,&tasknor_info)==0)
 //			return 0;
 		runtime = tasknor_info.runtime;
+
 		memcpy(&csds,&tasknor_info.csds,sizeof(CSD_ARRAYTYPE));//
 		if(taskinfoflg == 2)//月冻结
 		{
@@ -471,6 +480,8 @@ int SaveOADData(INT8U taskid,OAD oad_m,OAD oad_r,INT8U *databuf,int datalen,TS t
 		if(fp == NULL)//文件没内容 组文件头，如果文件已存在，提取文件头信息
 		{
 			CreateSaveHead(fname,NULL,csds,&headlen,&unitlen,&unitnum,runtime,1);//写文件头信息并返回
+			if(unitlen == 0)
+				return 0;
 			asyslog(LOG_WARNING, "cjsave 存储文件头%s headlen=%d unitlen=%d unitnum=%d runtime=%d datalen=%d",fname,headlen,unitlen,unitnum,runtime,datalen);
 			databuf_tmp = malloc(unitlen);
 			savepos=0;
@@ -499,6 +510,7 @@ int SaveOADData(INT8U taskid,OAD oad_m,OAD oad_r,INT8U *databuf,int datalen,TS t
 				}
 			}
 		}
+
 		if(fp != NULL)
 			currpos = ftell(fp);
 		if(savepos==0)//存储位置为0.说明文件中没找到，则应添加而不是覆盖
@@ -511,9 +523,11 @@ int SaveOADData(INT8U taskid,OAD oad_m,OAD oad_r,INT8U *databuf,int datalen,TS t
 			for(i=0;i<runtime;i++)
 				memcpy(&databuf_tmp[unitlen*i/runtime],databuf,18);//每个小单元地址附上
 		}
+		asyslog(LOG_INFO,"oadoffset");
 		unitseq = (ts_res.Hour*60*60+ts_res.Minute*60+ts_res.Sec)/((24*60*60)/runtime)+1;
 		asyslog(LOG_NOTICE,"ts: %d:%d:%d",ts_res.Hour,ts_res.Minute,ts_res.Sec);
 		asyslog(LOG_NOTICE,"存储序号: unitseq=%d unitlen=%d runtime=%d  %d--%d",unitseq,unitlen,runtime,(ts_res.Hour*60*60+ts_res.Minute*60+ts_res.Sec),((24*60*60)/runtime));
+
 		if(unitseq > runtime)
 		{
 			asyslog(LOG_NOTICE,"不符和unitseq=%d runtime=%d",unitseq, runtime);
@@ -523,7 +537,6 @@ int SaveOADData(INT8U taskid,OAD oad_m,OAD oad_r,INT8U *databuf,int datalen,TS t
 				free(databuf_tmp);
 			return 0;//出错了，序列号超过了总长度
 		}
-		asyslog(LOG_NOTICE,"计算oadoffset");
 
 		oadoffset = GetOADPos(fp,headlen,oad_m,oad_r);
 		asyslog(LOG_NOTICE,"计算oadoffset=%d::%d ts: %d:%d:%d",oadoffset,ts_res.Hour,ts_res.Minute,ts_res.Sec,unitlen/runtime);
@@ -535,7 +548,6 @@ int SaveOADData(INT8U taskid,OAD oad_m,OAD oad_r,INT8U *databuf,int datalen,TS t
 				free(databuf_tmp);
 			return 0;
 		}
-
 		asyslog(LOG_NOTICE,"oadoffset=%d合理::%d",oadoffset,unitlen*(unitseq-1)/runtime+oadoffset);
 		int kk=0;
 		fprintf(stderr,"\ndatabuf[%d]:",datalen);
