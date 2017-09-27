@@ -455,7 +455,7 @@ int  create_OAD(INT8U type,INT8U *data,OAD oad)		//0x51
 	data[index++] = oad.attrindex;
 	return index;
 }
-int fill_OI(INT8U *data,INT8U value)
+int fill_OI(INT8U *data,OI_698 value)
 {
 	data[0] = dtoi;
 	data[1] = ( value >> 8 ) & 0xff;
