@@ -769,7 +769,7 @@ int deal8107() {
 			}
 
 			JProgramInfo->class23[i].alCtlState.OutputState &= ~192;
-			JProgramInfo->class23[i].alCtlState.ECAlarmState &= ~0;
+			JProgramInfo->class23[i].alCtlState.ECAlarmState &= ~64;
 			JProgramInfo->class23[i].alCtlState.BuyOutputState &=~192;
 		}
 	}
