@@ -3154,7 +3154,7 @@ void intToBuf(int value,INT8U *buf)
 int collectData(INT8U *databuf,INT8U *srcbuf,OAD_INDEX *oad_offset,ROAD_ITEM item_road)
 {
 	int i=0,j=0,mm=0;
-	INT8U tmpbuf[256];
+	INT8U tmpbuf[256],wrflg=0;//根据类型获得长度出错标志
 	int pindex = 0,retlen=0, onelen=0;
 
 //	fprintf(stderr,"oadmr_num=%d  unitnum=%d \n",item_road.oadmr_num,unitnum);
@@ -3211,11 +3211,17 @@ int collectData(INT8U *databuf,INT8U *srcbuf,OAD_INDEX *oad_offset,ROAD_ITEM ite
 					for(i=0;i<tmpbuf[1];i++)
 					{
 //						fprintf(stderr,"\n类型(%d)-%d  长度%d\n",retlen*i+2,tmpbuf[retlen*i+2],retlen);
-						if(tmpbuf[retlen] == 0)
+						if(tmpbuf[retlen] == 0 || wrflg == 1)
 							databuf[pindex++] = 0;
 						else
 						{
 							onelen = getDataTypeLen(tmpbuf[retlen]); //数据实际长度
+							if(onelen == -1)//出错了以后，为防止接下来的数据错乱，全都赋成空
+							{
+								databuf[pindex++] = 0;
+								wrflg = 1;
+								continue;
+							}
 							onelen += 1;	//+1:数据类型
 							memcpy(&databuf[pindex],&tmpbuf[retlen],onelen);
 							retlen += onelen;
