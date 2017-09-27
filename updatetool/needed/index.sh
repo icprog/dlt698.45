@@ -1,4 +1,6 @@
 chmod +x /nand/bin/*
+rm /nand/Version.log.new
+rm /nand/Version.log
 cj stop
 sleep 1
 #cp /dos/cjgwn/rc.local /etc/rc.d/
