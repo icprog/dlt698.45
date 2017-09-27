@@ -244,3 +244,48 @@ void ctrl_process(int argc, char *argv[])
 		}
 	}
 }
+
+void sumgroupTest(OI_698 oi,CLASS23	class23)
+{
+	INT8U	unit = 0;
+	INT8U	i=0;
+	//总加组配置单元个数：有TSA认为有效
+	unit = 0;
+	for(i=0;i<MAX_AL_UNIT;i++) {
+		if(class23.allist[i].tsa.addr[0]!=0) {
+			unit++;
+		}else break;
+	}
+	fprintf(stderr,"总加组配置单元总个数 = %d \n",unit);
+	for(i=0;i<unit;i++) {
+		fprintf(stderr,"\n\n--------总加组配置单元  %d \n",i);
+		fprintf(stderr,"参与总加的分路通信地址");
+		printTSA(class23.allist[i].tsa);
+		fprintf(stderr,"总加标志  %d {正向（0），反向（1）}\n",class23.allist[i].al_flag);
+		fprintf(stderr,"运算符标志  %d  {加（0），减（1）}\n",class23.allist[i].cal_flag);
+	}
+}
+
+void sum_process(int argc, char *argv[])
+{
+	int 	tmp=0;
+	OI_698	oi=0;
+	INT8U	index=0;
+	if(argc>2) {
+	   	JProgramInfo = OpenShMem("ProgramInfo", sizeof(ProgramInfo), NULL);
+		if(strcmp(argv[1],"sum")==0) {
+			if(strcmp(argv[2],"pro")==0) {
+				sscanf(argv[3],"%04x",&tmp);
+				oi = tmp;
+				index = oi-0x2301;
+				index = rangeJudge("总加组",index,0,(MAXNUM_SUMGROUP-1));
+				if(index == -1) {
+					fprintf(stderr,"总加组OI【%04x】输入错误\n",oi);
+					return;
+				}
+				sumgroupTest(oi,JProgramInfo->class23[index]);
+			}
+		}
+		shmm_unregister("ProgramInfo", sizeof(ProgramInfo));
+	}
+}

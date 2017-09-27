@@ -39,6 +39,7 @@ extern int fillcsinfo(CSINFO *csinfo,INT8U *addr,INT8U clientaddr);
 extern INT16S composeProtocol698_GetRequest(INT8U*, CLASS_6015, TSA);
 extern INT16S composeProtocol698_SetRequest(INT8U* ,RESULT_NORMAL,TSA);
 extern INT16U composeProtocol698_GetRequestRecord(PROXY_GETLIST *getlist,INT8U *sendbuf);//代理record
+INT16S composeProtocol698_GetRequest_RN(INT8U* sendBuf, CLASS_6015 obj6015,TSA meterAddr);
 extern INT16S composeProtocol698_SetActionRequest(INT8U* sendBuf,INT8U type,ACTION_SET_OBJ setOBJ);
 extern INT16S composeProtocol698_SetActionThenGetRequest(INT8U* sendBuf,INT8U type,DO_Then_GET dogetOBJ);
 extern TS mylookback(time_t times,TI ti,INT8U n);
@@ -46,6 +47,7 @@ extern time_t calcnexttime(TI ti, DateTimeBCD datetime,TI ti_delay);
 // OAD转换为报文
 //extern INT8U OADtoBuff(OAD fromOAD, INT8U* buff);
 extern INT8U analyzeProtocol698(INT8U* Rcvbuf, INT8U* resultCount, INT16S recvLen, INT8U* apduDataStartIndex, INT16S* dataLen);
+INT8U analyzeProtocol698_RN(INT8U* Rcvbuf, INT8U* resultCount, INT16S recvLen,INT8U* apduDataStartIndex, INT16S* dataLen);
 extern void ProxyListResponse(PROXY_GETLIST* list, CommBlock* com);
 int createFile(const char* path, int length, unsigned char crc, unsigned short bs);
 int appendFile(int shift, int length, unsigned char* buf);
@@ -65,11 +67,11 @@ extern void print4500(CLASS25 class4500);
 extern void setOIChange(OI_698 oi);
 /*----------------------接口类及对象实例的基本数据类型组帧----------------------*/
 extern int fill_timetag(INT8U *data,TimeTag timetag);
-extern int create_array(INT8U* data, INT8U numm);			//0x01
-extern int create_struct(INT8U* data, INT8U numm);			//0x02
-extern int fill_bool(INT8U* data, INT8U value);				//0x03
+extern int create_array(INT8U* data, INT8U numm);					//0x01
+extern int create_struct(INT8U* data, INT8U numm);					//0x02
+extern int fill_bool(INT8U* data, INT8U value);						//0x03
 extern int fill_bit_string(INT8U *data,INT8U size,INT8U *bits);		//0x04
-extern int fill_double_long(INT8U *data,INT32S value);		//0x05
+extern int fill_double_long(INT8U *data,INT32S value);				//0x05
 extern int fill_double_long_unsigned(INT8U* data, INT32U value);	//0x06
 extern int fill_octet_string(INT8U* data, char* value, INT8U len);	//0x09
 extern int fill_visible_string(INT8U* data, char* value, INT8U len);//0x0a
@@ -77,14 +79,15 @@ extern int fill_integer(INT8U* data, INT8U value);					//0x0f
 extern int fill_long(INT8U *data,INT16U value);						//0x10
 extern int fill_unsigned(INT8U* data, INT8U value);					//0x11
 extern int fill_long_unsigned(INT8U* data, INT16U value);			//0x12
-extern int fill_double_long64(INT8U *data,INT64U value);			//0x14
+extern int fill_long64(INT8U *data,INT64S value);					//0x14
+extern int fill_long64_unsigned(INT8U *data,INT64U value);			//0x15
 extern int fill_enum(INT8U* data, INT8U value);						//0x16
 extern int fill_time(INT8U* data, INT8U* value);					//0x1b
 extern int fill_date_time_s(INT8U* data, DateTimeBCD* time);		//0x1c
+extern int fill_OI(INT8U *data,INT8U value);                        //0x50
 extern int create_OAD(INT8U type,INT8U* data, OAD oad);				//0x51
 extern int fill_ROAD(INT8U type,INT8U *data,ROAD road);				//0x52
 extern int fill_TI(INT8U* data, TI ti);								//0x54
-extern int fill_OI(INT8U *data,INT8U value);                        //
 extern int fill_TSA(INT8U* data, INT8U* value, INT8U len);			//0x55
 extern int fill_RSD(INT8U choice,INT8U *data,RSD rsd);				//0x5A
 extern int fill_CSD(INT8U type, INT8U* data, MY_CSD csd);			//0x5b
@@ -126,6 +129,7 @@ extern int getDataTypeLen(int dt);
 /*----------------------统计相关数据----------------------*/
 extern INT8U Get_Vacs(RESULT_NORMAL *response,ProgramInfo* prginfo_acs);
 extern int  fill_variClass(OAD oad,INT8U getflg,INT8U *sourcebuf,INT8U *destbuf,INT16U *len,ProgramInfo* proginfo);
+extern int fill_pulseEnergy(INT8U devicetype,INT8U index,OAD oad,INT8U *destbuf,INT16U *len);
 extern int GetFileState(RESULT_NORMAL* response);
 
 /*----------------------规约一致性 数据有效性判断接口----------------------*/
@@ -136,5 +140,5 @@ extern void isTimeTagEffect(TimeTag timetag,TimeTag *rec_timetag);
 extern INT8U getPortValid(OAD oad);
 extern INT8U DataTimeCmp(DateTimeBCD startdt,DateTimeBCD enddt);
 extern int limitJudge(char *desc,int limit,int val);
-extern int rangeJudge(char *desc,int max,int min,int val);
+extern int rangeJudge(char *desc,int val,int min,int max);
 #endif

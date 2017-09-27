@@ -78,6 +78,8 @@ void shutAllLed()
 	gpio_writebyte((char *) DEV_LED_ONLINE, (INT8S)0);
 	gpio_writebyte((char *) DEV_LED_CSQ_RED, (INT8S)0);
 	gpio_writebyte((char *) DEV_LED_CSQ_GREEN, (INT8S)0);
+	gpio_writebyte((char *) DEV_LED_RMT_RED, (INT8S)0);
+	gpio_writebyte((char *) DEV_LED_RMT_GRN, (INT8S)0);
 }
 
 void SyncRtc(void) {
@@ -135,12 +137,6 @@ void PowerOffToClose(INT8U pwrdelay) {
  * 这个需求是浙江现场的工程人员提出的
  * 假如集中器程序因为某种原因, 某些进程异常
  * 退出, 现场维护人员需要对集中器重启.
- * 目前发现的问题:
- * 1. 上电时间很短, 电容充电不充分, 电量不足以
- * 支撑ARM芯片工作到90个计数, 那么此时的LED灯
- * 还是亮着的, 但是主芯片已经停止工作了.
- * 为了解决这个问题, 在检测到掉电30个计数后,
- * 关闭所有LED, 但是程序还在运行(如果电容还有电的话)
  */
 void rebootWhenPwrDown(INT8U delay) {
     static INT8U cnt_pwroff = 0;
@@ -150,20 +146,19 @@ void rebootWhenPwrDown(INT8U delay) {
 			JProgramInfo->ACSRealData.Ua,
 			JProgramInfo->event_obj.Event3106_obj.poweroff_para_obj.screen_para_obj.happen_voltage_limit) == 1) {
         cnt_pwroff++;
-        if (cnt_pwroff == delay) {
-        	system("cj stop");
-        	g_powerState = PWR_DOWN;
-        	for (i=0;i<5;i++) {
-				shutAllLed();
-				usleep(100);
-        	}
-        	for (i=0;i<5;i++) {
-        		setRunLED(LED_CLOSE);
-        		usleep(100);
-        	}
-           	syslog(LOG_NOTICE,"检测到II型掉电(%d)，系统重启\n",delay);
-        	sleep(3);
-         	system("reboot");
+
+        if (cnt_pwroff > delay) {
+            if(PWR_ON == g_powerState) {
+    			system("cj stop");
+    			g_powerState = PWR_DOWN;
+    			for (i=0;i<5;i++) {
+    				shutAllLed();
+    				usleep(100);
+    			}
+            }
+           	syslog(LOG_NOTICE,"检测到II型掉电(%d)\n",delay);
+//        	sleep(3);
+//         	system("reboot");
         }
     } else {
         cnt_pwroff = 0;
@@ -719,9 +714,22 @@ int main(int argc, char *argv[])
     	get_protocol_3761_tx_para();//湖南获取3761切换通信参数，在初始化其他操作之后进行
     }
     //点亮运行灯，初始化运行状态
-    g_powerState = PWR_ON;
-    JProgramInfo->powerState = PWR_ON;
-    setRunLED(1);
+
+//    JProgramInfo->powerState = PWR_ON;
+
+    if(JProgramInfo->cfg_para.device == CCTT2) {
+    	if(getZone("ShanDong") == 0 || getZone("ZheJiang") == 0) {
+    		g_powerState = PWR_DOWN;
+    		setRunLED(LED_CLOSE);
+    	} else {
+    		g_powerState = PWR_ON;
+    		setRunLED(LED_LIGHT);
+    	}
+    } else {
+    	setRunLED(LED_LIGHT);
+    	g_powerState = PWR_ON;
+    }
+
     while (1) {
         sleep(1);
 		gettimeofday(&start, NULL);

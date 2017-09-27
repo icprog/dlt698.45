@@ -20,6 +20,11 @@
 INT8U check_date(int year, int month, int day, int hour, int min, int sec)
 {
 	struct tm tm_new;
+
+	//0xFF:表示时间无效，控制下发参数（0x8105）的起始、结束时间会有FF数据下发
+	if(year==0xFFFF || month==0xFF || day==0xFF || hour== 0xFF || min==0xFF || sec==0xFF) {
+		return success;
+	}
 	if (year < 1900 || month <= 0 || month > 12 || day <= 0 || day > 31
 			|| hour < 0 || hour > 23 || min < 0 || min>59 || sec < 0 || sec > 59)	{
 //		syslog(LOG_ERR,"时间不合法: %d-%d-%d %d:%d:%d",year,month,day,hour,min,sec);
@@ -52,7 +57,7 @@ INT8U check_date(int year, int month, int day, int hour, int min, int sec)
 void isTimeTagEffect(TimeTag timetag,TimeTag *rec_timetag)
 {
 	time_t	nowtime_t = 0,tagtime_t = 0;
-	TS		tmpts;
+//	TS		tmpts;
 	INT32U	interval_s = 0;		//TI间隔转换到秒数
 	int		ret = 0;
 
@@ -112,6 +117,7 @@ INT8U	getEnumValid(INT16U value,INT16U start,INT16U end,INT16U other)
   	if(value == other) {
   		return success;
   	}
+  	syslog(LOG_ERR,"枚举越限value=%d,start=%d,end=%d,other=%d",value,start,end,other);
 	return dblock_invalid;
 }
 

@@ -2026,7 +2026,7 @@ INT16U parseSingleROADData(ROAD road,INT8U* oadData,INT8U* dataContent,INT16U* d
 	INT8U oadbuff[4];
 	memset(oadListContent,0,ROAD_OADS_NUM*sizeof(OAD_DATA));
 
-	//fprintf(stderr,"\n receive ROAD %02x %02x %02x %02x\n",oadData[length],oadData[length+1],oadData[length+2],oadData[length+3]);
+	fprintf(stderr,"\n receive ROAD %02x %02x %02x %02x\n",oadData[length],oadData[length+1],oadData[length+2],oadData[length+3]);
 //	OADtoBuff(road.oad,oadbuff);
 	create_OAD(0,oadbuff,road.oad);
 	if(memcmp(oadbuff,oadData,4)!=0)
@@ -2036,20 +2036,20 @@ INT16U parseSingleROADData(ROAD road,INT8U* oadData,INT8U* dataContent,INT16U* d
 	}
 	length += 4;
 	INT8U rcvCSDnum = oadData[length++];//csd数量
-	//fprintf(stderr,"\n rcvCSDnum = %d",rcvCSDnum);
+	fprintf(stderr,"\n rcvCSDnum = %d",rcvCSDnum);
 	if((rcvCSDnum > ROAD_OADS_NUM)||(rcvCSDnum == 0))
 	{
 		return length;
 	}
 	INT8U csdIndex;
-	//fprintf(stderr,"\n 收到回复的OAD ：");
+	fprintf(stderr,"\n 收到回复的OAD ：");
 	for(csdIndex = 0;csdIndex < rcvCSDnum;csdIndex++)
 	{
 		length ++;
 		oadListContent[csdIndex].oad.OI = (oadData[length]<<8) + oadData[length+1];
 		oadListContent[csdIndex].oad.attflg = oadData[length+2];
 		oadListContent[csdIndex].oad.attrindex = oadData[length+3];
-		//fprintf(stderr," /%d-%02x%02x%02x%02x ",csdIndex,oadData[length],oadData[length+1],oadData[length+2],oadData[length+3]);
+		fprintf(stderr," /%d-%02x%02x%02x%02x ",csdIndex,oadData[length],oadData[length+1],oadData[length+2],oadData[length+3]);
 		length += 4;
 	}
 	if(oadData[length++] == 0)// 1-数据  0-错误
@@ -3612,7 +3612,8 @@ INT16S deal6015_698(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8
 
 	memset(sendbuff, 0, BUFFSIZE512);
 
-	sendLen = composeProtocol698_GetRequest(sendbuff, st6015,to6001.basicinfo.addr);
+	sendLen = composeProtocol698_GetRequest_RN(sendbuff, st6015,to6001.basicinfo.addr);
+	//sendLen = composeProtocol698_GetRequest(sendbuff, st6015,to6001.basicinfo.addr);
 	if(sendLen < 0)
 	{
 		fprintf(stderr,"deal6015_698  sendLen < 0");
@@ -3636,7 +3637,8 @@ INT16S deal6015_698(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8
 			INT8U csdNum = 0;
 			INT16S dataLen = recvLen;
 			INT8U apduDataStartIndex = 0;
-			getResponseType = analyzeProtocol698(recvbuff,&csdNum,recvLen,&apduDataStartIndex,&dataLen);
+			getResponseType = analyzeProtocol698_RN(recvbuff,&csdNum,recvLen,&apduDataStartIndex,&dataLen);
+			//getResponseType = analyzeProtocol698(recvbuff,&csdNum,recvLen,&apduDataStartIndex,&dataLen);
 			fprintf(stderr,"\n getResponseType = %d  csdNum = %d dataLen = %d \n",getResponseType,csdNum,dataLen);
 			if(getResponseType > 0)
 			{

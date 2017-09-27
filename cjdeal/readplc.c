@@ -39,8 +39,12 @@ extern void DbgPrintToFile1(INT8U comport,const char *format,...);
 extern void DbPrt1(INT8U comport,char *prefix, char *buf, int len, char *suffix);
 extern INT8U checkMeterType(MY_MS mst,INT8U usrType,TSA usrAddr);
 extern INT16S composeProtocol698_GetRequest(INT8U* sendBuf, CLASS_6015 obj6015,TSA meterAddr);
+
+extern INT8U getSaveTime(DateTimeBCD* saveTime,INT8U cjType,INT8U saveTimeFlag,DATA_TYPE curvedata);
+extern INT16U compose6012Buff(DateTimeBCD startTime,DateTimeBCD saveTime,TSA meterAddr,INT16U dataLen,INT8U* dataContent, INT8U port485);
 extern mqd_t mqd_zb_task;
 extern CLASS_4204	broadcase4204;
+
 extern GUI_PROXY cjGuiProxy_plc;
 extern Proxy_Msg* p_Proxy_Msg_Data;//液晶给抄表发送代理处理结构体，指向由guictrl.c配置的全局变量
 extern TASK_CFG list6013[TASK6012_MAX];
@@ -1134,7 +1138,8 @@ int doCompSlaveMeter(RUNTIME_PLC *runtime_p)
 						}
 					}else
 					{
-						nodetmp.protocol = 2;//currtsa->protocol;
+
+						nodetmp.protocol = currtsa->protocol;
 						nodetmp.tsa = getNextTsa(&currtsa);	//从档案中取一个tsa
 						findflg = findTsaInList(tsa_zb_head,&nodetmp);
 						if (findflg == 0)
@@ -1707,7 +1712,7 @@ int do_5004_type( int taski, int itemi ,INT8U *buf, struct Tsa_Node *desnode, DA
 		case DLT_698:
 			memset(&st6015,0,sizeof(CLASS_6015));
 			Seek_6015(&st6015,taskinfo.task_list[taski].fangan);
-			sendlen = composeProtocol698_GetRequest(buf, st6015, desnode->tsa);
+			sendlen = composeProtocol698_GetRequest_RN(buf, st6015, desnode->tsa);
 			break;
 	}
 //	sendlen = createMeterFrame(desnode, tmpitem, buf, item07);
@@ -1798,7 +1803,7 @@ int do_other_type( int taski, int itemi ,INT8U *buf, struct Tsa_Node *desnode, D
 		case DLT_698:
 			memset(&st6015,0,sizeof(CLASS_6015));
 			if (Seek_6015(&st6015,taskinfo.task_list[taski].fangan)==1)
-				sendlen = composeProtocol698_GetRequest(buf, st6015, desnode->tsa);
+				sendlen = composeProtocol698_GetRequest_RN(buf, st6015, desnode->tsa);
 			break;
 	}
 //	sendlen = createMeterFrame(desnode, tmpitem, buf, item07);
@@ -2249,7 +2254,7 @@ void doSave(INT8U protocol,FORMAT97 frame97,FORMAT07 frame07)
 //		saveParaClass(0x8888, &taskinfo,taskinfo.tsa_index);
 	}
 }
-int SaveTaskData(FORMAT3762 format_3762_Up,INT8U taskid)
+int SaveTaskData(FORMAT3762 format_3762_Up,INT8U taskid,INT8U fananNo)
 {
 	int len645=0;
 	INT8U nextFlag=0, dataContent[50]={}, buf645[255]={};
@@ -2272,6 +2277,87 @@ int SaveTaskData(FORMAT3762 format_3762_Up,INT8U taskid)
 			if (analyzeProtocol97(&frame97, buf645, len645, &nextFlag) == 0)
 			{
 				doSave(DLT_645_97,frame97,frame07);
+			}
+		}
+		else if((format_3762_Up.afn06_f2_up.Protocol == DLT_698)||(format_3762_Up.afn06_f2_up.Protocol == PROTOCOL_UNKNOWN))
+		{
+
+
+			INT8U csdNum = 0;
+			INT16S dataLen = len645;
+			INT8U apduDataStartIndex = 0;
+			INT8U getResponseType = analyzeProtocol698_RN(buf645,&csdNum,len645,&apduDataStartIndex,&dataLen);
+#ifdef TESTDEF
+			fprintf(stderr,"buf645 [%d] = \n",len645);
+			INT16U prtIndex =0;
+			for(prtIndex = 0;prtIndex < len645;prtIndex++)
+			{
+				fprintf(stderr,"%02x ",buf645[prtIndex]);
+				if((prtIndex+1)%20 ==0)
+				{
+					fprintf(stderr,"\n");
+				}
+			}
+#endif
+			if(getResponseType > 0)
+			{
+				INT16U count = getFECount(buf645, len645); //得到待解析报文中前导符FE的个数
+				TSA tsaMeter;
+				memset(&tsaMeter,0,sizeof(TSA));
+				Addr_TSA(&buf645[5+count],&tsaMeter);
+				fprintf(stderr,"\n fananNo = %d taskid = %d getResponseType = %d  csdNum = %d dataLen = %d \n",fananNo,taskid,getResponseType,csdNum,dataLen);
+				CLASS_6015 class6015;	//采集方案集
+				INT16U i = 0;
+				for(i=0;i<=255;i++)
+				{
+					memset(&class6015,0,sizeof(CLASS_6015));
+					if(readCoverClass(0x6015,i,&class6015,sizeof(CLASS_6015),coll_para_save)== 1)
+					{
+						if(class6015.sernum == fananNo)
+						{
+
+							CLASS_6001 to6001 ={};
+							INT16S retLen = deal698RequestResponse(0,getResponseType,csdNum,&buf645[apduDataStartIndex],dataContent,class6015.csds,to6001,taskid,class6015.cjtype);
+							fprintf(stderr,"\n deal698RequestResponse retLen = %d",retLen);
+#ifdef TESTDEF
+							fprintf(stderr,"deal698RequestResponse Buf[%d] = \n",dataLen);
+
+							for(prtIndex = 0;prtIndex < retLen;prtIndex++)
+							{
+								fprintf(stderr,"%02x ",dataContent[prtIndex]);
+								if((prtIndex+1)%20 ==0)
+								{
+									fprintf(stderr,"\n");
+								}
+							}
+#endif
+#if 1
+							if(retLen > 0)
+							{
+								TS ts_cc;
+								TSGet(&ts_cc);
+								DateTimeBCD startTime;
+								DataTimeGet(&startTime);
+								DateTimeBCD savetime;
+								getSaveTime(&savetime,class6015.cjtype,class6015.savetimeflag,class6015.data);
+								int bufflen = compose6012Buff(startTime,savetime,tsaMeter,retLen,dataContent,31);
+								if(class6015.cjtype == TYPE_INTERVAL)
+								{
+									ts_cc.Minute =0;
+									ts_cc.Sec = 0;
+								}
+								SaveNorData(taskid,NULL,dataContent,bufflen,ts_cc);
+							}
+#endif
+
+							break;
+						}
+					}
+
+				}
+
+
+
 			}
 		}
 		else
@@ -2390,6 +2476,9 @@ int doTask(RUNTIME_PLC *runtime_p)
 				if( nodetmp != NULL )
 				{
 					sendlen = ProcessMeter(buf645,nodetmp);
+					runtime_p->taskno = taskinfo.task_list[taskinfo.now_taski].taskId;
+					runtime_p->fangAn.No = taskinfo.task_list[taskinfo.now_taski].fangan.No;
+					fprintf(stderr,"抄读 runtime_p->taskno = %d runtime_p->fangAn.No = %d",runtime_p->taskno,runtime_p->fangAn.No);
 				    if(getZone("GW")==1)
 				    {
 						//6035发送报文数量+1
@@ -2409,7 +2498,8 @@ int doTask(RUNTIME_PLC *runtime_p)
 				inWaitFlag = 0;
 				sendlen = AFN00_F01( &runtime_p->format_Up,runtime_p->sendbuf );//确认
 				SendDataToCom(runtime_p->comfd, runtime_p->sendbuf,sendlen );
-				SaveTaskData(runtime_p->format_Up, runtime_p->taskno);
+				fprintf(stderr,"存储 runtime_p->taskno = %d runtime_p->fangAn.No = %d",runtime_p->taskno,runtime_p->fangAn.No);
+				SaveTaskData(runtime_p->format_Up, runtime_p->taskno, runtime_p->fangAn.No);
 				clearvar(runtime_p);
 				runtime_p->send_start_time = nowtime;
 			    if(getZone("GW")==1)
@@ -3345,7 +3435,7 @@ int doTask_by_jzq(RUNTIME_PLC *runtime_p)
 			{
 				DbgPrintToFile1(31,"集中器主导流程_收数据");
 				saveF13_F1Data(runtime_p->format_Up);
-				SaveTaskData(runtime_p->format_Up, runtime_p->taskno);
+				SaveTaskData(runtime_p->format_Up, runtime_p->taskno, runtime_p->fangAn.No);
 				clearvar(runtime_p);
 				runtime_p->send_start_time = nowtime;
 				inWaitFlag = 0;
@@ -3837,7 +3927,7 @@ void readplc_thread()
 		TSGet(&runtimevar.nowts);
 		state = stateJuge(state, &mypara,&runtimevar,&startFlg);
 		if(state != 0) {
-			fprintf(stderr,"\n state  = %d",state);
+			//fprintf(stderr,"\n state  = %d",state);
 		}
 		/********************************
 		 * 	   状态流程处理

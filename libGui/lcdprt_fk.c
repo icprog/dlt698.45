@@ -1915,17 +1915,17 @@ void menu_shiduanpara(){
 			sprintf(str,"配置单元%d [总加组%04x]", unite_index, c8103.list[unite_index-1].index);
 			gui_textshow(str, pos, LCD_NOREV);
 
-//			if (ifenable==0 )//该总加组没投入！
-//			{
-//				pos.x = rect_Client.left+5*FONTSIZE;
-//				pos.y += 5*FONTSIZE;
-//				memset(str, 0, 100);
-//				sprintf(str,"未投入");
-//				gui_textshow(str, pos, LCD_NOREV);
-//				PressKey = NOKEY;
-//				delay(300);
-//				continue;
-//			}
+			if (ifenable==0 )//该总加组没投入！
+			{
+				pos.x = rect_Client.left+5*FONTSIZE;
+				pos.y += 5*FONTSIZE;
+				memset(str, 0, 100);
+				sprintf(str,"未投入");
+				gui_textshow(str, pos, LCD_NOREV);
+				PressKey = NOKEY;
+				delay(300);
+				continue;
+			}
 			pos.y += 3*FONTSIZE;
 			memset(str, 0, 100);
 			sprintf(str,"方案标识 %02x  浮动系数 %d",c8103.list[unite_index-1].sign,c8103.list[unite_index-1].para);
@@ -2047,70 +2047,57 @@ void menu_changxiupara(){
 			memset(str, 0, 100);
 			sprintf(str,"配置单元%d [总加组%04x]", unite_index, c8104.list[unite_index-1].index);
 			gui_textshow(str, pos, LCD_NOREV);
-			//			if (ifenable==0 )//该总加组没投入！
-			//			{
-			//				pos.x = rect_Client.left+5*FONTSIZE;
-			//				pos.y += 5*FONTSIZE;
-			//				memset(str, 0, 100);
-			//				sprintf(str,"未投入");
-			//				gui_textshow(str, pos, LCD_NOREV);
-			//				PressKey = NOKEY;
-			//				delay(300);
-			//				continue;
-			//			}
+			if (ifenable==0 )//该总加组没投入！
+			{
+				pos.x = rect_Client.left+5*FONTSIZE;
+				pos.y += 5*FONTSIZE;
+				memset(str, 0, 100);
+				sprintf(str,"未投入");
+				gui_textshow(str, pos, LCD_NOREV);
+				PressKey = NOKEY;
+				delay(300);
+				continue;
+			}
 
-
-			memset(str, 0, 100);
-			sprintf(str, "厂休控定值 %04d W", c8104.list[unite_index-1].v);
-			gui_textshow(str, pos, LCD_NOREV);
-			pos.x = rect_Client.left;
 			pos.y += 3*FONTSIZE;
 			memset(str, 0, 100);
-			sprintf(str, "厂休控投入轮次:");
-
-
-
-
-
-
-
-
-
-
-
-			first_flg = 1;
-			gui_clrrect(rect_Client);
-			gui_setpos(&pos, rect_Client.left+10*FONTSIZE, rect_Client.top+FONTSIZE);
-			memset(str, 0, 100);
-			sprintf(str, "总加组%d", zj_index);
+			if (c8104.list[unite_index-1].v>0)
+				sprintf(str, "厂休控定值 %04d W", c8104.list[unite_index-1].v);
+			else
+				sprintf(str, "厂休控定值 错误 ");
 			gui_textshow(str, pos, LCD_NOREV);
-			pos.x = rect_Client.left;
 			pos.y += 3*FONTSIZE;
 			memset(str, 0, 100);
-			sprintf(str, "厂休控投入轮次:");
-//			getctrlround(ParaAll->f45[zj_index-1].Power_Round, str);					//FOR698
+			sprintf(str, "起始时间:");
 			gui_textshow(str, pos, LCD_NOREV);
+
+			pos.y += 3*FONTSIZE;
+			memset(str, 0, 100);
+			sprintf(str, "%04d-%02d-%2d 02%d:02%d",
+					c8104.list[unite_index-1].start.year.data,
+					c8104.list[unite_index-1].start.month.data,
+					c8104.list[unite_index-1].start.day.data,
+					c8104.list[unite_index-1].start.hour.data,
+					c8104.list[unite_index-1].start.min.data);
+			gui_textshow(str, pos, LCD_NOREV);
+
+			pos.y += 3*FONTSIZE;
+			memset(str, 0, 100);
+			sprintf(str, "延续时间: %d 分钟",c8104.list[unite_index-1].sustain);
+			gui_textshow(str, pos, LCD_NOREV);
+
+			pos.y += 3*FONTSIZE;
 			memset(str, 0, 100);
 			char week_str[30];
 			memset(week_str,0,30);
-//			for(i=0;i<8;i++){
-//				if(ParaAll->f42[zj_index-1].Week_INTLimited_power & (1<<i)){			//FOR698
-//					strcat(week_str,week[i]);
-//				}
-//			}
+			for(i=0;i<8;i++)
+			{
+				if(c8104.list[unite_index-1].noDay & (1<<i))
+				{
+					strcat(week_str,week[i]);
+				}
+			}
 			sprintf(str, "厂休日:%s",week_str);
-			pos.y += 3*FONTSIZE;
-			gui_textshow(str, pos, LCD_NOREV);
-			pos.x = rect_Client.left+2;
-			pos.y += 2*FONTSIZE+3;
-			gui_textshow((char*)"起始时间 持续时间 定值(kW)", pos, LCD_NOREV);
-			memset(str, 0, 100);
-			pos.x = rect_Client.left;
-			pos.y += 2*FONTSIZE+3;
-//			lcd_A19toDate((char*)ParaAll->f42[zj_index-1].Time,&hour,&minute);			FOR698
-//			sprintf(str, " %02d:%02d  %4.1fh  % 8.3f",hour,minute,ParaAll->f42[zj_index-1].INTLimited_power_duration*0.5,
-//					lcd_A02toDouble_decbits(ParaAll->f42[zj_index-1].Factory_power_control,
-//											ParaAll->f42[zj_index-1].DecBits));
 			gui_textshow(str, pos, LCD_NOREV);
 		}
 		PressKey = NOKEY;
@@ -2124,9 +2111,13 @@ void menu_changxiupara(){
 //报停控
 void menu_baotingpara(){
 	Point pos;
+	int unite_index=1;
 	char str[100], year[2], month[2], day[2];
 	INT8U  first_flg=0;
 	int zj_index=1;
+	CLASS_8105 c8105; //营业报停控
+	readCoverClass(0x8105, 0, (void *) &c8105, sizeof(CLASS_8105),para_vari_save);
+
 	PressKey = NOKEY;
 	while(g_LcdPoll_Flag==LCD_NOTPOLL){
 		if(PressKey==ESC)
@@ -2135,45 +2126,84 @@ void menu_baotingpara(){
 		{
 		case LEFT:
 		case UP:
-			zj_index--;
-			if(zj_index<=0)
-				zj_index = MAXNUM_SUMGROUP;
+			unite_index--;
+			if(unite_index<=0)
+				unite_index = MAXNUM_SUMGROUP;
 			break;
 		case RIGHT:
 		case DOWN:
-			zj_index++;
-			if(zj_index>MAXNUM_SUMGROUP)
-				zj_index = 1;
+			unite_index++;
+			if(unite_index>MAXNUM_SUMGROUP)
+				unite_index = 1;
 			break;
 		case ESC:
 			return;
 		}
 		if(PressKey!=NOKEY || first_flg==0){
+			int enable_i=0,ifenable=0;
 			first_flg = 1;
 			gui_clrrect(rect_Client);
-			gui_setpos(&pos, rect_Client.left+10*FONTSIZE, rect_Client.top+FONTSIZE);
+			gui_setpos(&pos, rect_Client.left+2*FONTSIZE, rect_Client.top+FONTSIZE);
 			memset(str, 0, 100);
-			sprintf(str, "总加组%d", zj_index);
+			sprintf(str,"配置单元%d [总加组%04x]", unite_index, c8105.list[unite_index-1].index);
 			gui_textshow(str, pos, LCD_NOREV);
-			pos.x = rect_Client.left;
+
+			for(enable_i=0;enable_i<8;enable_i++)
+			{
+				if (c8105.enable[enable_i].name == c8105.list[unite_index-1].index)
+				{
+					ifenable = c8105.enable[enable_i].state;
+					break;
+				}
+			}
+			if (ifenable==0 )//该总加组没投入！
+			{
+				pos.x = rect_Client.left+5*FONTSIZE;
+				pos.y += 5*FONTSIZE;
+				memset(str, 0, 100);
+				sprintf(str,"未投入");
+				gui_textshow(str, pos, LCD_NOREV);
+				PressKey = NOKEY;
+				delay(300);
+				continue;
+			}
 			pos.y += 3*FONTSIZE;
 			memset(str, 0, 100);
-			sprintf(str, "报停控投入轮次:");
-//			getctrlround(ParaAll->f45[zj_index-1].Power_Round, str);				//FOR698
+			sprintf(str, "起始时间:");
 			gui_textshow(str, pos, LCD_NOREV);
-			memset(str, 0, 100);
+
 			pos.y += 3*FONTSIZE;
-//			lcd_A20toDate((char*)ParaAll->f44[zj_index-1].Start_Time_Stop,&year[0],&month[0],&day[0]);	//FOR698
-			sprintf(str,"起始时间：%02d年%02d月%02d日", year[0],month[0],day[0]);
+			memset(str, 0, 100);
+			sprintf(str, "%04d-%02d-%2d 02%d:02%d",
+					c8105.list[unite_index-1].start.year.data,
+					c8105.list[unite_index-1].start.month.data,
+					c8105.list[unite_index-1].start.day.data,
+					c8105.list[unite_index-1].start.hour.data,
+					c8105.list[unite_index-1].start.min.data);
 			gui_textshow(str, pos, LCD_NOREV);
-			memset(str, 0, 100);
+
 			pos.y += 3*FONTSIZE;
-//			lcd_A20toDate((char*)ParaAll->f44[zj_index-1].Start_Time_Stop,&year[1],&month[1],&day[1]);	//FOR698
-			sprintf(str,"结束时间：%02d年%02d月%02d日", year[1],month[1],day[1]);
+			memset(str, 0, 100);
+			sprintf(str, "结束时间:");
 			gui_textshow(str, pos, LCD_NOREV);
-			memset(str, 0, 100);
+
 			pos.y += 3*FONTSIZE;
-//			sprintf(str,"定   值:% 8.3f kW", lcd_A02toDouble_decbits(ParaAll->f44[zj_index-1].Power_Stop,ParaAll->f44[zj_index-1].DecBits));   //FOR698
+			memset(str, 0, 100);
+			sprintf(str, "%04d-%02d-%2d 02%d:02%d",
+					c8105.list[unite_index-1].end.year.data,
+					c8105.list[unite_index-1].end.month.data,
+					c8105.list[unite_index-1].end.day.data,
+					c8105.list[unite_index-1].end.hour.data,
+					c8105.list[unite_index-1].end.min.data);
+			gui_textshow(str, pos, LCD_NOREV);
+
+
+			pos.y += 3*FONTSIZE;
+			memset(str, 0, 100);
+			if (c8105.list[unite_index-1].v>0)
+				sprintf(str, "定值 %04d kW", c8105.list[unite_index-1].v);
+			else
+				sprintf(str, "定值 错误 ");
 			gui_textshow(str, pos, LCD_NOREV);
 		}
 		PressKey = NOKEY;
@@ -2187,11 +2217,15 @@ void menu_baotingpara(){
 //下浮控
 void menu_xiafupara(){
 	//获取下浮控参数
+	CLASS_8106 c8106;
+
 	double fixvalue;
 	int ctrl_flg;
 	Point pos;
 	char str[100];
 	int zj_index=1, first_flg=0;
+	readCoverClass(0x8106, 0, (void *) &c8106, sizeof(CLASS_8106),para_vari_save);
+
 	PressKey = NOKEY;
 	while(g_LcdPoll_Flag==LCD_NOTPOLL){
 		if(PressKey==ESC)
@@ -2200,61 +2234,57 @@ void menu_xiafupara(){
 		{
 		case LEFT:
 		case UP:
-			zj_index--;
-			if(zj_index<=0)
-				zj_index = MAXNUM_SUMGROUP;
-			break;
 		case RIGHT:
 		case DOWN:
-			zj_index++;
-			if(zj_index>MAXNUM_SUMGROUP)
-				zj_index = 1;
 			break;
 		case ESC:
 			return;
 		}
 		if(PressKey!=NOKEY || first_flg==0){
 			first_flg = 1;
+
 			gui_clrrect(rect_Client);
 			gui_setpos(&pos, rect_Client.left+10*FONTSIZE, rect_Client.top+FONTSIZE);
 			memset(str, 0, 100);
-			sprintf(str, "总加组%d", zj_index);
+			sprintf(str, "总加组 [%04x]", c8106.index);
 			gui_textshow(str, pos, LCD_NOREV);
 			pos.x = rect_Client.left;
-			pos.y += 3*FONTSIZE;
+			pos.y += 2*FONTSIZE+3;
 			memset(str, 0, 100);
-			sprintf(str, "下浮控投入轮次:");
-//			getctrlround(ParaAll->f45[zj_index-1].Power_Round, str);							//FOR698
+			sprintf(str, "定值滑差时间: %d 分钟",c8106.list.down_huacha);
 			gui_textshow(str, pos, LCD_NOREV);
-			pos.x = rect_Client.left;
-			pos.y += 2*FONTSIZE+2;
+
+			pos.y += 2*FONTSIZE+1;
 			memset(str, 0, 100);
-//			sprintf(str, "第一轮告警时间: %02d min",
-//				shmm_getdevstat()->ctrpar.Xiafukong[zj_index-1].AlarmTime_1.para_time);			//FOR698
+			sprintf(str, "定值浮动系数: %d %",c8106.list.down_xishu);
 			gui_textshow(str, pos, LCD_NOREV);
-			pos.y += 2*FONTSIZE+2;
+
+			pos.y += 2*FONTSIZE+1;
 			memset(str, 0, 100);
-//			sprintf(str, "第二轮告警时间: %02d min",
-//					shmm_getdevstat()->ctrpar.Xiafukong[zj_index-1].AlarmTime_2.para_time);		//FOR698
+			sprintf(str, "控后冻结延时: %d 分钟",c8106.list.down_freeze);
 			gui_textshow(str, pos, LCD_NOREV);
-			pos.y += 2*FONTSIZE+2;
+
+			pos.y += 2*FONTSIZE+1;
 			memset(str, 0, 100);
-//			sprintf(str, "滑差时间: %02d min",
-//					shmm_getdevstat()->ctrpar.Xiafukong[zj_index-1].HuachaTime);				//FOR698
+			float khh = c8106.list.down_ctrl_time*0.5;
+			sprintf(str, "控制时间: %.2f 小时",khh);
 			gui_textshow(str, pos, LCD_NOREV);
-			pos.y += 2*FONTSIZE+2;
+
+			pos.y += 2*FONTSIZE+1;
 			memset(str, 0, 100);
-//			sprintf(str, "延时时间: %02d min",
-//					shmm_getdevstat()->ctrpar.Xiafukong[zj_index-1].DongjeDelaytime.para_time);	//FOR698
+			sprintf(str, "第一轮告警时间: %02d 分钟",c8106.list.t1);
 			gui_textshow(str, pos, LCD_NOREV);
-			pos.y += 2*FONTSIZE+2;
+			pos.y += 2*FONTSIZE+1;
 			memset(str, 0, 100);
-//			sprintf(str, "控制时间: %02d min",shmm_getdevstat()->ctrpar.Xiafukong[zj_index-1].DoDelaytime.para_time);//FOR698
+			sprintf(str, "第二轮告警时间: %02d 分钟",c8106.list.t2);
 			gui_textshow(str, pos, LCD_NOREV);
-			pos.y += 2*FONTSIZE+2;
+			pos.y += 2*FONTSIZE+1;
 			memset(str, 0, 100);
-//			fixvalue=lcd_A04tochar(shmm_getdevstat()->ctrpar.Xiafukong[zj_index-1].Xishu, &ctrl_flg);	//FOR698
-			sprintf(str, "浮动系数:  %s % 3.2f%%", ctrl_flg?"下浮":"上浮",fixvalue);
+			sprintf(str, "第三轮告警时间: %02d 分钟",c8106.list.t3);
+			gui_textshow(str, pos, LCD_NOREV);
+			pos.y += 2*FONTSIZE+1;
+			memset(str, 0, 100);
+			sprintf(str, "第四轮告警时间: %02d 分钟",c8106.list.t4);
 			gui_textshow(str, pos, LCD_NOREV);
 		}
 		PressKey = NOKEY;
@@ -2267,51 +2297,77 @@ void menu_xiafupara(){
 ************************************************************************************************************************************************************/
 //月电控
 void menu_yuedianpara(){
+	int unite_index=1;
+	CLASS_8108 c8108;
+
 	int suffix=0, fix_value=0;
 	Point pos;
 	char str[100];
 	int zj_index=1, first_flg=0;
+
+	readCoverClass(0x8108, 0, (void *) &c8108, sizeof(CLASS_8108),para_vari_save);
+
 	PressKey = NOKEY;
 	while(g_LcdPoll_Flag==LCD_NOTPOLL){
 		switch(PressKey)
 		{
 		case LEFT:
 		case UP:
-			zj_index--;
-			if(zj_index<=0)
-				zj_index = MAXNUM_SUMGROUP;
+			unite_index--;
+			if(unite_index<=0)
+				unite_index = MAXNUM_SUMGROUP;
 			break;
 		case RIGHT:
 		case DOWN:
-			zj_index++;
-			if(zj_index>MAXNUM_SUMGROUP)
-				zj_index = 1;
+			unite_index++;
+			if(unite_index>MAXNUM_SUMGROUP)
+				unite_index = 1;
 			break;
 		case ESC:
 			return;
 		}
 		if(PressKey!=NOKEY || first_flg==0){
+
+			int enable_i=0,ifenable=0;
 			first_flg = 1;
 			gui_clrrect(rect_Client);
-			gui_setpos(&pos, rect_Client.left+10*FONTSIZE, rect_Client.top+2*FONTSIZE);
+			gui_setpos(&pos, rect_Client.left+2*FONTSIZE, rect_Client.top+FONTSIZE);
 			memset(str, 0, 100);
-			sprintf(str, "总加组%d", zj_index);
+			sprintf(str,"配置单元%d [总加组%04x]", unite_index, c8108.list[unite_index-1].index);
 			gui_textshow(str, pos, LCD_NOREV);
-			pos.x = rect_Client.left;
-			pos.y += 4*FONTSIZE;
-			memset(str, 0, 100);
-			sprintf(str, "月电控投入轮次:");
-//			getctrlround(ParaAll->f48[zj_index-1].ElectricityCtrl_Round_Flag, str);			//FOR698
-			gui_textshow(str, pos, LCD_NOREV);
+
+			for(enable_i=0;enable_i<8;enable_i++)
+			{
+				if (c8108.enable[enable_i].name == c8108.list[unite_index-1].index)
+				{
+					ifenable = c8108.enable[enable_i].state;
+					break;
+				}
+			}
+			if (ifenable==0 )//该总加组没投入！
+			{
+				pos.x = rect_Client.left+5*FONTSIZE;
+				pos.y += 5*FONTSIZE;
+				memset(str, 0, 100);
+				sprintf(str,"未投入");
+				gui_textshow(str, pos, LCD_NOREV);
+				PressKey = NOKEY;
+				delay(300);
+				continue;
+			}
 			pos.y += 3*FONTSIZE;
 			memset(str, 0, 100);
-//			fix_value = ParaAll->f46[zj_index-1].Month_ElectricityCtrl;						//FOR698
-			sprintf(str, "电量定值: % 8d %s", fix_value, suffix?"MWh":"kWh");
+			sprintf(str, "电控定值: %d kW",c8108.list[unite_index-1].v);
 			gui_textshow(str, pos, LCD_NOREV);
+
 			pos.y += 3*FONTSIZE;
 			memset(str, 0, 100);
-//			sprintf(str, "浮动系数:  %s % 3.2d%%", ParaAll->f20.Float_Fall?"下浮":"上浮",
-//					ParaAll->f20.Ratio_MonEECtrl);											//FOR698
+			sprintf(str, "报警门限系数: %d",c8108.list[unite_index-1].para);
+			gui_textshow(str, pos, LCD_NOREV);
+
+			pos.y += 3*FONTSIZE;
+			memset(str, 0, 100);
+			sprintf(str, "定值浮动系数:%d",c8108.list[unite_index-1].flex);
 			gui_textshow(str, pos, LCD_NOREV);
 		}
 		PressKey = NOKEY;

@@ -1446,35 +1446,49 @@ INT16S composeProtocol698_GetRequest(INT8U* sendBuf, CLASS_6015 obj6015,
 	return (sendLen + 3); //3: cs cs 16
 
 }
-/*
- * 抄读电表数据，明文+RN
- */
-INT16S composeProtocol698_GetRequest_RN(INT8U* sendBuf, CLASS_6015 obj6015,TSA meterAddr)
-{
+
+INT16S composeProtocol698_GetRequest_RN(INT8U* sendBuf, CLASS_6015 obj6015,
+		TSA meterAddr) {
 	INT8U PIID = 0x02;
-	int sendLen = 0, hcsi = 0, apdulen = 0 ,MWLenPlace = 0;
-	INT8U reverseAddr[OCTET_STRING_LEN] = { 0 };
-	int RnLen = 0;
+	int sendLen = 0, hcsi = 0, apdulen = 0;
+
 	CSINFO csinfo = { };
 
 	csinfo.dir = 0; //服务器发出
 	csinfo.prm = 1; //服务器发出
 	csinfo.funcode = 3; //链路管理
 	csinfo.sa_type = 0; //单地址
+
+	INT8U reverseAddr[OCTET_STRING_LEN] = { 0 };
+#if 0
+	fprintf(stderr," \n\n composeProtocol698_GetRequest  meterAddr : %02x  %02x  %02x%02x%02x%02x%02x%02x%02x\n\n",
+			meterAddr.addr[0],meterAddr.addr[1],meterAddr.addr[2],meterAddr.addr[3],meterAddr.addr[4],
+			meterAddr.addr[5],meterAddr.addr[6],meterAddr.addr[7],meterAddr.addr[8]);
+#endif
 	csinfo.sa_length = (meterAddr.addr[1] & 0x0f) + 1; //sizeof(addr)-1;//服务器地址长度
 
 	reversebuff(&meterAddr.addr[2], csinfo.sa_length, reverseAddr);
+#if 0
+	fprintf(stderr," \n reverseAddr[%d] = ",csinfo.sa_length);
+	INT8U prtIndex;
+	for(prtIndex = 0;prtIndex < csinfo.sa_length;prtIndex++)
+	{
+		fprintf(stderr," %02x",reverseAddr[prtIndex]);
+	}
+#endif
 	memcpy(csinfo.sa, reverseAddr, csinfo.sa_length); //服务器地址
 	csinfo.ca = 0x02;
 
+	//fprintf(stderr,"sa_length = %d \n",csinfo.sa_length);
 	sendLen = FrameHead(&csinfo, sendBuf); //	2：hcs  hcs
 	hcsi = sendLen;
 	sendLen = sendLen + 2;
 
-	sendBuf[sendLen++] = 0x10;	//SECURITY-Request
-	sendBuf[sendLen++] = 0x00;  //明文
-	MWLenPlace = sendLen;
-	sendBuf[sendLen++] = 0x00;	//明文的长度
+	sendBuf[sendLen++] = 0x10;//安全请求
+	sendBuf[sendLen++] = 0x00;//明文
+	INT8U startIndex = sendLen;
+	sendLen++;
+
 
 	sendBuf[sendLen++] = GET_REQUEST;
 
@@ -1488,17 +1502,24 @@ INT16S composeProtocol698_GetRequest_RN(INT8U* sendBuf, CLASS_6015 obj6015,TSA m
 	sendLen += apdulen;
 	sendBuf[sendLen++] = 0x00; //没有时间标签
 
-	sendBuf[MWLenPlace] = sendLen - MWLenPlace -1;//明文长度字节的内容
-	sendBuf[sendLen++] = 0x01;  //数据验证信息 （RN类型
 
-	RnLen = esamMeterGetRN(&sendBuf[sendLen]); //填充RN
-	sendLen += RnLen;
+	sendBuf[startIndex] = sendLen-startIndex-1;
 
+	sendBuf[sendLen++] = 0x01; //RN
+
+	INT8U rnbuf[128] = {0};
+	INT32S rnlen = esamMeterGetRN(rnbuf);
+	if(rnlen<0)
+	{
+		return rnlen;
+	}
+	sendBuf[sendLen++] = rnlen; //RN
+	memcpy(&sendBuf[sendLen],rnbuf,rnlen);
+	sendLen += rnlen;
 	FrameTail(sendBuf, sendLen, hcsi);
 	return (sendLen + 3); //3: cs cs 16
 
 }
-
 INT16U composeProtocol698_GetRequestRecord(PROXY_GETLIST *getlist,
 		INT8U *sendbuf) {
 	INT8U PIID = 0x02;
@@ -1660,7 +1681,118 @@ INT8U analyzeProtocol698(INT8U* Rcvbuf, INT8U* resultCount, INT16S recvLen,
 	}
 	return getType;
 }
+/*
+ * 返回值 getType : GET_REQUEST_NORMAL   GET_REQUEST_NORMAL_LIST GET_REQUEST_RECORD GET_REQUEST_RECORD_LIST
+ * resultCount ： OAD  或者 ROAD数量
+ * recvLen：接受报文字节数 所有报文+ FEFE
+ * apduDataStartIndex： 返回数据开始位置
+ * dataLen： 数据部分长度
+ * */
+//解析抄表回复报文
+INT8U analyzeProtocol698_RN(INT8U* Rcvbuf, INT8U* resultCount, INT16S recvLen,
+		INT8U* apduDataStartIndex, INT16S* dataLen) {
+	fprintf(stderr, "\nanalyzeProtocol698---\n");
+	INT16U count = getFECount(Rcvbuf, recvLen); //得到待解析报文中前导符FE的个数
+	Rcvbuf += count;
+	INT8U startIndex = count;
+	*dataLen = recvLen - count;
+	INT8U getType = 0;
+	CSINFO csinfo = { };
+	int hcsok = 0, fcsok = 0;
+	INT8U *apdu = NULL;
 
+	hcsok = CheckHead(Rcvbuf, &csinfo);
+	fcsok = CheckTail(Rcvbuf, csinfo.frame_length);
+	fprintf(stderr, "\n hcsok = %d fcsok = %d\n", hcsok, fcsok);
+	if ((hcsok == 1) && (fcsok == 1)) {
+		fprintf(stderr, "\nsa_length=%d\n", csinfo.sa_length);
+		apdu = &Rcvbuf[csinfo.sa_length + 8];
+		startIndex += csinfo.sa_length + 8;
+		*dataLen = *dataLen - (csinfo.sa_length + 8);
+		fprintf(stderr, "\n apdu: %02x %02x %02x %02x %02x %02x", apdu[0],
+				apdu[1], apdu[2], apdu[3], apdu[4], apdu[5]);
+		if((apdu[0]==SECURITY_RESPONSE)&&(apdu[1]==0))
+		{
+			//octet-string 长度超过127，长度字节最多两个字节表示（因为类型决定长度不会超过255）
+			//0x82;	0x80:表示长度为多个字节，0x02:表示长度为2个字节
+
+			if((apdu[2]&0x80)==0x80)//这说明字节多位
+			{
+				apdu = &apdu[5];
+				*dataLen = *dataLen - 9;
+				startIndex += 5;
+			}
+			else
+			{
+				apdu = &apdu[3];
+				*dataLen = *dataLen - 7;
+				startIndex += 3;
+			}
+
+
+			if (apdu[0] == GET_REQUEST_RESPONSE) {
+				getType = apdu[1];
+				if ((getType == GET_REQUEST_NORMAL)
+						|| (getType == GET_REQUEST_RECORD)) {
+					*resultCount = 1;
+					startIndex += 3;
+					*dataLen = *dataLen - (3 + 3);
+				}
+				if ((getType == GET_REQUEST_NORMAL_LIST)
+						|| (getType == GET_REQUEST_RECORD_LIST)) {
+					*resultCount = apdu[3];
+					startIndex += 4;
+					*dataLen = *dataLen - (4 + 3);
+				}
+				*apduDataStartIndex = startIndex;
+
+			} else if (apdu[0] == SET_RESPONSE) {
+				getType = apdu[1];
+				if (getType == SET_REQUEST_NORMAL) {
+					*resultCount = 1;
+					startIndex += 3;
+					*dataLen = *dataLen - (3 + 3);
+				}
+				if (getType == SET_REQUEST_NORMAL_LIST) {
+					*resultCount = apdu[3];
+					startIndex += 4;
+					*dataLen = *dataLen - (4 + 3);
+				}
+				if (getType == SET_THENGET_REQUEST_NORMAL_LIST) {
+					*resultCount = apdu[3];
+					startIndex += 4;
+					*dataLen = *dataLen - (4 + 3);
+				}
+				*apduDataStartIndex = startIndex;
+			} else if (apdu[0] == ACTION_RESPONSE) {
+				fprintf(stderr, "\n&&&&&&&&&&&apdu[0] = %d apdu[1] = %d", apdu[0],
+						apdu[1]);
+				getType = apdu[1];
+				if (getType == ActionResponseNormal) {
+					*resultCount = 1;
+					startIndex += 3;
+					*dataLen = *dataLen - (3 + 3);
+				}
+				if (getType == ActionResponseNormalList) {
+					*resultCount = apdu[3];
+					startIndex += 4;
+					*dataLen = *dataLen - (4 + 3);
+				}
+				if (getType == ACTIONTHENGET_REQUEST_NORMAL_LIST) {
+					*resultCount = apdu[3];
+					startIndex += 4;
+					*dataLen = *dataLen - (4 + 3);
+				}
+				*apduDataStartIndex = startIndex;
+			} else {
+				fprintf(stderr, "\nanalyzeProtocol698 校验错误");
+			}
+
+		}
+
+	}
+	return getType;
+}
 int doReleaseConnect(INT8U *apdu, CSINFO *csinfo, INT8U *sendbuf) {
 	int apduplace = 0, index = 0, hcsi = 0;
 	ClientPiid = apdu[1];

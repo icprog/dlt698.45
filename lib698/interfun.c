@@ -267,6 +267,9 @@ int fill_bool(INT8U *data,INT8U value)		//0x03
 	return 2;
 }
 
+/*
+ * size = 位数 （SIZE(8), 输入参数size = 8）
+ * */
 int fill_bit_string(INT8U *data,INT8U size,INT8U *bits)		//0x04
 {
 	//TODO : 默认8bit ，不符合A-XDR规范
@@ -377,9 +380,23 @@ int fill_long_unsigned(INT8U *data,INT16U value)		//0x12
 	return 3;
 }
 
-int fill_double_long64(INT8U *data,INT64U value)		//0x14
+int fill_long64(INT8U *data,INT64S value)		//0x14
 {
 	data[0] = dtlong64;
+	data[1] = (value & 0xFF00000000000000) >> 56;
+	data[2] = (value & 0x00FF000000000000) >> 48;
+	data[3] = (value & 0x0000FF0000000000) >> 40;
+	data[4] = (value & 0x000000FF00000000) >> 32;
+	data[5] = (value & 0x00000000FF000000) >> 24;
+	data[6] = (value & 0x0000000000FF0000) >> 16;
+	data[7] = (value & 0x000000000000FF00) >> 8;
+	data[8] = value & 0x00000000000000FF;
+	return 9;
+}
+
+int fill_long64_unsigned(INT8U *data,INT64U value)		//0x15
+{
+	data[0] = dtlong64unsigned;
 	data[1] = (value & 0xFF00000000000000) >> 56;
 	data[2] = (value & 0x00FF000000000000) >> 48;
 	data[3] = (value & 0x0000FF0000000000) >> 40;
@@ -854,11 +871,13 @@ int getTime(INT8U type,INT8U *source,INT8U *dest,INT8U *DAR) 	//0x1B
  */
 int getDateTimeS(INT8U type,INT8U *source,INT8U *dest,INT8U *DAR)		//0x1C
 {
+	INT8U	checkret = 0;
 	int  data_len = 0;
 	if((type == 1 && source[0]==dtdatetimes) || (type == 0)) {
-		*DAR = check_date((source[type+0]<<8)+source[type+1],source[type+2],source[type+3],source[type+4],source[type+5],source[type+6]);
+		checkret = check_date((source[type+0]<<8)+source[type+1],source[type+2],source[type+3],source[type+4],source[type+5],source[type+6]);
 //		fprintf(stderr,"DAR=%d getDateTimeS  %02x_%02x_%02x_%02x_%02x_%02x_%02x\n",*DAR,source[type+0],source[type+1],source[type+2],source[type+3],
 //		                                                                     source[type+4],source[type+5],source[type+6]);
+		if(DAR!=NULL && *DAR==success)	*DAR = checkret;
 		dest[1] = source[type+0];//年
 		dest[0] = source[type+1];
 		dest[2] = source[type+2];//月

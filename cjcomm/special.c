@@ -152,6 +152,7 @@ int specialCheckPow() {
 	if (count > 120) {
 		while (specialPowState(info) == 1) {
 			sleep(2);
+			gpofun("/dev/gpoONLINE_LED", 0);
 			asyslog(LOG_INFO, "检测到设备掉电一分钟，停止所有通信...");
 		}
 		asyslog(LOG_INFO, "检测到复电，继续通信...");

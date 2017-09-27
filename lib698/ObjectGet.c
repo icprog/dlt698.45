@@ -376,30 +376,37 @@ int GetEsamPara(RESULT_NORMAL *response)
 	return 0;
 }
 
-int Get_8100(RESULT_NORMAL *response)
-{
-	CLASS_8100 c8100;
-	INT8U *data=NULL;
-	OAD oad;
-	oad = response->oad;
-	data = response->data;
-	readCoverClass(0x8100, 0, (void *) &c8100, sizeof(CLASS_8100),
-				para_vari_save);
-	response->datalen = fill_double_long64(data, c8100.v);
-	fprintf(stderr,"datalen = %d\n",response->datalen);
-	return response->datalen;
-}
-
 int Get_8001(RESULT_NORMAL *response)
 {
-	CLASS_8001 c8001;
+	CLASS_8001 c8001={};
 	INT8U *data=NULL;
-	OAD oad;
-	oad = response->oad;
+	INT8U	i=0,index=0;
+	OAD oad = response->oad;
 	data = response->data;
-	readCoverClass(0x8001, 0, (void *) &c8001, sizeof(CLASS_8001),
-			para_vari_save);
-	response->datalen = fill_enum(data, c8001.state);
+
+	memset(&c8001,0,sizeof(CLASS_8001));
+	readCoverClass(0x8001, 0, (void *) &c8001, sizeof(CLASS_8001),para_vari_save);
+	fprintf(stderr,"c8001.noCommTime=%d autoTime=%d\n",c8001.noCommTime,c8001.autoTime);
+	switch(oad.attflg) {
+	case 2:
+		index = fill_enum(data, c8001.state);
+		break;
+	case 3:
+		index = fill_long_unsigned(data, c8001.noCommTime);
+		break;
+	case 4:
+		index = fill_long_unsigned(data, c8001.autoTime);
+		break;
+	case 5:
+		index += create_array(&data[index],c8001.unit_count);
+		for(i=0;i<c8001.unit_count;i++) {
+			index += create_struct(&data[index],2);
+			index += fill_unsigned(&data[index],c8001.unit[i].autoTimeStart);
+			index += fill_unsigned(&data[index],c8001.unit[i].autoTimeEnd);
+		}
+		break;
+	}
+	response->datalen = index;
 	fprintf(stderr,"C8001 datalen = %d\n",response->datalen);
 	return response->datalen;
 }
@@ -417,6 +424,175 @@ int Get_8002(RESULT_NORMAL *response)
 	fprintf(stderr,"C8002 datalen = %d\n",response->datalen);
 	return response->datalen;
 }
+
+int Get_8100(RESULT_NORMAL *response)
+{
+	CLASS_8100 c8100;
+	INT8U *data=NULL;
+	OAD oad;
+	oad = response->oad;
+	data = response->data;
+	readCoverClass(0x8100, 0, (void *) &c8100, sizeof(CLASS_8100),
+				para_vari_save);
+	response->datalen = fill_long64(data, c8100.v);
+	fprintf(stderr,"datalen = %d\n",response->datalen);
+	return response->datalen;
+}
+
+/*
+ * 填充总加组状态结构 ALSTATE
+ * */
+int fill_ALSTATE(INT8U *data,ALSTATE *alstate,INT8U datatype)
+{
+	int 	index=0;
+	INT8U	i=0,unitnum=0;
+	unitnum=0;
+	for(i=0;i<MAX_AL_UNIT;i++) {
+		if(alstate[i].name !=0) {  //总加组对象不为0，有效
+			unitnum++;
+		}else break;
+	}
+	if(unitnum) {
+		index += create_array(&data[index],unitnum);
+		for(i=0;i<unitnum;i++) {
+			index += fill_OI(&data[index],alstate[i].name);
+			switch(datatype) {
+			case dtenum:
+				index += fill_enum(&data[index],alstate[i].state);
+				break;
+			case dtbitstring:
+				index += fill_bit_string(&data[index],8,&alstate[i].state);
+				break;
+			default:
+				data[index++] = 0;
+				break;
+			}
+		}
+	}else {
+		data[index++] = 0;		//NULL
+	}
+	return index;
+}
+
+int fill_PowerCtrlParam(INT8U *data,PowerCtrlParam para)
+{
+	int 	index=0;
+	index += create_struct(&data[index],9);
+	index += fill_bit_string(&data[index],8,&para.n);
+	index += fill_long64(&data[index],para.t1);
+	index += fill_long64(&data[index],para.t2);
+	index += fill_long64(&data[index],para.t3);
+	index += fill_long64(&data[index],para.t4);
+	index += fill_long64(&data[index],para.t5);
+	index += fill_long64(&data[index],para.t6);
+	index += fill_long64(&data[index],para.t7);
+	index += fill_long64(&data[index],para.t8);
+	return index;
+}
+
+int Get_8103(RESULT_NORMAL *response)
+{
+	CLASS_8103 c8103={};
+	INT8U *data=NULL;
+	INT8U	i=0,unitnum=0;
+	OAD 	oad={};
+	int 	index=0;
+
+	oad = response->oad;
+	data = response->data;
+	memset(&c8103,0,sizeof(CLASS_8103));
+	readCoverClass(0x8103, 0, (void *) &c8103, sizeof(CLASS_8103),para_vari_save);
+	switch(oad.attflg){
+	case 2:	//时段功控配置单元
+		unitnum=0;
+		for(i=0;i<MAX_AL_UNIT;i++) {
+			if(c8103.list[i].index !=0) {
+				unitnum++;
+			}else break;
+		}
+		if(unitnum) {
+			index += create_array(&data[index],unitnum);
+			for(i=0;i<unitnum;i++) {
+				index += create_struct(&data[index],6);
+				index += fill_OI(&data[index],c8103.list[i].index);
+				index += fill_bit_string(&data[index],8,&c8103.list[i].sign);
+				index += fill_PowerCtrlParam(&data[index],c8103.list[i].v1);
+				index += fill_PowerCtrlParam(&data[index],c8103.list[i].v2);
+				index += fill_PowerCtrlParam(&data[index],c8103.list[i].v3);
+				index += fill_integer(&data[index],c8103.list[i].para);
+			}
+		}else {
+			data[index++] = 0;	//NULL
+		}
+		break;
+	case 3:	//控制投入状态
+		index += fill_ALSTATE(&data[index],c8103.output,dtenum);
+		break;
+	case 4:	//控制输出状态
+		index += fill_ALSTATE(&data[index],c8103.output,dtbitstring);
+		break;
+	case 5: //越限告警状态
+		index += fill_ALSTATE(&data[index],c8103.output,dtenum);
+		break;
+	}
+	response->datalen = index;
+	fprintf(stderr,"C8103 datalen = %d\n",response->datalen);
+	return response->datalen;
+}
+
+//购电控
+int Get_8107(RESULT_NORMAL *response)
+{
+	CLASS_8107 c8107={};
+	INT8U *data=NULL;
+	INT8U	i=0,unitnum=0;
+	OAD 	oad={};
+	int 	index=0;
+
+	oad = response->oad;
+	data = response->data;
+	memset(&c8107,0,sizeof(CLASS_8107));
+	readCoverClass(0x8107, 0, (void *) &c8107, sizeof(CLASS_8107),para_vari_save);
+	switch(oad.attflg){
+	case 2:	//购电控配置单元
+		unitnum=0;
+		for(i=0;i<MAX_AL_UNIT;i++) {
+			if(c8107.list[i].index !=0) {
+				unitnum++;
+			}else break;
+		}
+		if(unitnum) {
+			index += create_array(&data[index],unitnum);
+			for(i=0;i<unitnum;i++) {
+				index += create_struct(&data[index],8);
+				index += fill_OI(&data[index],c8107.list[i].index);
+				index += fill_double_long_unsigned(&data[index],c8107.list[i].no);
+				index += fill_enum(&data[index],c8107.list[i].add_refresh);
+				index += fill_enum(&data[index],c8107.list[i].type);
+				index += fill_long64(&data[index],c8107.list[i].v);
+				index += fill_long64(&data[index],c8107.list[i].alarm);
+				index += fill_long64(&data[index],c8107.list[i].ctrl);
+				index += fill_enum(&data[index],c8107.list[i].mode);
+			}
+		}else {
+			data[index++] = 0;	//NULL
+		}
+		break;
+	case 3:	//控制投入状态
+		index += fill_ALSTATE(&data[index],c8107.output,dtenum);
+		break;
+	case 4:	//控制输出状态
+		index += fill_ALSTATE(&data[index],c8107.output,dtbitstring);
+		break;
+	case 5: //越限告警状态
+		index += fill_ALSTATE(&data[index],c8107.output,dtenum);
+		break;
+	}
+	response->datalen = index;
+	fprintf(stderr,"C8103 datalen = %d\n",response->datalen);
+	return response->datalen;
+}
+
 
 int GetSecurePara(RESULT_NORMAL *response)
 {
@@ -1305,37 +1481,82 @@ int getColl_Data(OI_698 oi,INT16U seqnum,INT8U *data)
 	return index;
 }
 
-INT8U fillVacsData(INT8U structnum,INT8U attindex,INT8U datatype,INT64U data1,INT64U data2,INT64U data3,INT64U data4,INT8U *responseData)
+INT8U fillVacsData(OAD oad,INT8U devicetype,INT8U datatype,INT64U dataz,INT64U data1,INT64U data2,INT64U data3,INT64U data4,INT8U *responseData)
 {
-	INT64U 	data[4]={};
+	INT64U 	data[5]={};
 	INT8U	index=0,i=0;
+	INT8U	oiA1 = 0;
+	INT8U	structnum = 0;
 
-//	fprintf(stderr,"11111structnum=%d   responseData=%p\n",structnum,responseData);
-	if(structnum>4) {
-		fprintf(stderr,"填充数据结构【%d】大于有效限定值【4】!!!",structnum);
-		structnum = 4;
-	}
-	if (attindex>4) {
-		fprintf(stderr,"属性索引值【%d】大于有效限定值【4】!!!",attindex);
-		attindex = 4;
-	}
-	fprintf(stderr,"structnum=%d   responseData=%p\n",structnum,responseData);
-	if(attindex == 0) {		//请求全部属性
-		index += create_array(&responseData[index],structnum);
-	}
-	fprintf(stderr,"index=%d\n",index);
+	oiA1 = (oad.OI & 0xF000) >> 12;
 	memset(data,0,sizeof(data));
-	switch(attindex) {
-	case 0:		//全部属性
-		data[0] = data1;
-		data[1] = data2;
-		data[2] = data3;
-		data[3] = data4;
-	break;
-	case 1:	data[0] = data1;	break;
-	case 2:	data[0] = data2;	break;
-	case 3:	data[0] = data3;	break;
-	case 4:	data[0] = data4;	break;
+	switch(oiA1) {
+	case 0:	//电能量
+	case 1: //最大需量类
+		if(oad.attrindex==0)		structnum = 5;
+		else structnum = 1;
+		switch(oad.attrindex)  {	//全部属性
+		case 0:
+			data[0] = dataz;
+			data[1] = data1;
+			data[2] = data2;
+			data[3] = data3;
+			data[4] = data4;
+			break;
+		case 1:	data[0] = dataz;	break;
+		case 2:	data[0] = data1;	break;
+		case 3:	data[0] = data2;	break;
+		case 4:	data[0] = data3;	break;
+		case 5:	data[0] = data4;	break;
+		}
+		break;
+	case 2://变量类
+		switch(oad.OI) {
+		case 0x2000:
+			if(oad.attrindex==0 && devicetype != CCTT2)		structnum = 3;
+			else structnum = 1;
+			break;
+		case 0x2001:	//电流,//国网台体测试常温基本误差，送I0提示元素错误,规约属性4为零序电流
+			if(oad.attflg == 02) {
+				if(oad.attrindex==0)		structnum = 3;
+				else structnum = 1;
+			}else if(oad.attflg == 04) {	//I0
+				structnum = 1;
+			}
+			break;
+		case 0x2002:	//电压相角
+		case 0x2003:	//电压电流相角
+			if(oad.attrindex==0)		structnum = 3;
+			else structnum = 1;
+			break;
+		case 0x2004:	//有功功率
+		case 0x2005:	//无功功率
+		case 0x2006:	//视在功率
+		case 0x200A:	//功率因数
+			if(oad.attrindex==0)		structnum = 4;
+			else structnum = 1;
+			break;
+		}
+		switch(oad.attrindex)  {	//全部属性
+		case 0:
+			if(oad.OI == 0x2001 && oad.attflg == 4) {	//零序电流
+				data[0] = data4;
+			}else {
+				data[0] = data1;
+				data[1] = data2;
+				data[2] = data3;
+				data[3] = data4;
+			}
+			break;
+		case 1:	data[0] = data1;	break;
+		case 2:	data[0] = data2;	break;
+		case 3:	data[0] = data3;	break;
+		case 4:	data[0] = data4;	break;
+		}
+		break;
+	}
+	if(oad.attflg == 2 && oad.attrindex == 0) {		//请求全部属性
+		index += create_array(&responseData[index],structnum);
 	}
 	for(i=0;i<structnum;i++) {
 		switch(datatype){
@@ -1349,39 +1570,111 @@ INT8U fillVacsData(INT8U structnum,INT8U attindex,INT8U datatype,INT64U data1,IN
 			index += fill_long(&responseData[index],data[i]);
 			break;
 		case dtlong64:
-			index += fill_double_long64(&responseData[index],data[i]);
+			index += fill_long64(&responseData[index],data[i]);
 			break;
 		}
 	}
 	return index;
 }
+//INT8U fillVacsData(INT8U structnum,INT8U attindex,INT8U datatype,INT64U dataz,INT64U data1,INT64U data2,INT64U data3,INT64U data4,INT8U *responseData)
+//{
+//	INT64U 	data[5]={};
+//	INT8U	index=0,i=0;
+//
+////	fprintf(stderr,"11111structnum=%d   responseData=%p\n",structnum,responseData);
+//	structnum = limitJudge("数据结构",5,structnum);
+//	attindex = limitJudge("属性索引值",5,attindex);
+//
+//	fprintf(stderr,"structnum=%d   responseData=%p\n",structnum,responseData);
+//	if(attindex == 0) {		//请求全部属性
+//		index += create_array(&responseData[index],structnum);
+//	}
+//	fprintf(stderr,"index=%d\n",index);
+//	memset(data,0,sizeof(data));
+//	switch(attindex) {
+//	case 0:		//全部属性
+//		if(structnum == 4) {
+//			data[0] = data1;
+//			data[1] = data2;
+//			data[2] = data3;
+//			data[3] = data4;
+//		}else if(structnum == 5) {
+//			data[0] = dataz;
+//			data[1] = data1;
+//			data[2] = data2;
+//			data[3] = data3;
+//			data[4] = data4;
+//		}
+//		break;
+//	case 1:	data[0] = dataz;	break;
+//	case 2:	data[0] = data1;	break;
+//	case 3:	data[0] = data2;	break;
+//	case 4:	data[0] = data3;	break;
+//	case 5:	data[0] = data4;	break;
+//	}
+//
+//	for(i=0;i<structnum;i++) {
+//		switch(datatype){
+//		case dtlongunsigned:
+//			index += fill_long_unsigned(&responseData[index],data[i]);
+//			break;
+//		case dtdoublelong:
+//			index += fill_double_long(&responseData[index],data[i]);
+//			break;
+//		case dtlong:
+//			index += fill_long(&responseData[index],data[i]);
+//			break;
+//		case dtlong64:
+//			index += fill_long64(&responseData[index],data[i]);
+//			break;
+//		}
+//	}
+//	return index;
+//}
 
-int fill_pulseEnergy(OAD oad,INT8U getflg,INT8U *destbuf,INT16U *len)
+INT64U  getTotalEnergy(INT64U *val)
 {
-	INT8U	structnum = 0;
+	INT64U  total_energy=0;
+	INT8U	i = 0;
+
+	total_energy = 0;
+	for(i=0;i<MAXVAL_RATENUM;i++) {
+		total_energy += val[i];
+	}
+	return total_energy;
+};
+
+int fill_pulseEnergy(INT8U devicetype,INT8U index,OAD oad,INT8U *destbuf,INT16U *len)
+{
 	int  	buflen = 0;
-	CLASS12_ENERGY	pluse_energy={};
+	CLASS12_ENERGY	pluse_energy[2]={};
+	INT64U  total_energy=0;
 
-	readVariData(PORT_PLUSE,0,(INT8U *)&pluse_energy,sizeof(CLASS12_ENERGY));
-	if(oad.attrindex==0)		structnum = 4;
-	else structnum = 1;
-
+	readVariData(PORT_PLUSE,0,(INT8U *)&pluse_energy,sizeof(pluse_energy));
 	switch(oad.OI) {
 	case 0x0010://正向有功电能
-		buflen = fillVacsData(structnum,oad.attrindex,dtlong64,
-							pluse_energy.val_pos_p[0],pluse_energy.val_pos_p[1],pluse_energy.val_pos_p[2],pluse_energy.val_pos_p[3],destbuf);
+		total_energy = getTotalEnergy(pluse_energy[index].val_pos_p);
+		buflen = fillVacsData(oad,devicetype,dtlong64,total_energy,
+							pluse_energy[index].val_pos_p[0],pluse_energy[index].val_pos_p[1],
+							pluse_energy[index].val_pos_p[2],pluse_energy[index].val_pos_p[3],destbuf);
 		break;
 	case 0x0020://反向有功电能
-		buflen = fillVacsData(structnum,oad.attrindex,dtlong64,
-							pluse_energy.val_nag_p[0],pluse_energy.val_nag_p[1],pluse_energy.val_nag_p[2],pluse_energy.val_nag_p[3],destbuf);
+		total_energy = getTotalEnergy(pluse_energy[index].val_nag_p);
+		buflen = fillVacsData(oad,devicetype,dtlong64,total_energy,
+							pluse_energy[index].val_nag_p[0],pluse_energy[index].val_nag_p[1],
+							pluse_energy[index].val_nag_p[2],pluse_energy[index].val_nag_p[3],destbuf);
 		break;
 	case 0x0030://正向无功电能/组合无功1电能
-		buflen = fillVacsData(structnum,oad.attrindex,dtlong64,
-							pluse_energy.val_pos_q[0],pluse_energy.val_pos_q[1],pluse_energy.val_pos_q[2],pluse_energy.val_pos_q[3],destbuf);
+		total_energy = getTotalEnergy(pluse_energy[index].val_pos_q);
+		buflen = fillVacsData(oad,devicetype,dtlong64,total_energy,
+							pluse_energy[index].val_pos_q[0],pluse_energy[index].val_pos_q[1],
+							pluse_energy[index].val_pos_q[2],pluse_energy[index].val_pos_q[3],destbuf);
 		break;
 	case 0x0040://反向无功电能/组合无功2电能
-		buflen = fillVacsData(structnum,oad.attrindex,dtlong64,
-							pluse_energy.val_nag_q[0],pluse_energy.val_nag_q[1],pluse_energy.val_nag_q[2],pluse_energy.val_nag_q[3],destbuf);
+		total_energy = getTotalEnergy(pluse_energy[index].val_nag_q);
+		buflen = fillVacsData(oad,devicetype,dtlong64,total_energy,
+							pluse_energy[index].val_nag_q[0],pluse_energy[index].val_nag_q[1],
+							pluse_energy[index].val_nag_q[2],pluse_energy[index].val_nag_q[3],destbuf);
 		break;
 	}
 	*len = buflen;
@@ -1394,8 +1687,7 @@ int fill_pulseEnergy(OAD oad,INT8U getflg,INT8U *destbuf,INT16U *len)
 int  fill_variClass(OAD oad,INT8U getflg,INT8U *sourcebuf,INT8U *destbuf,INT16U *len,ProgramInfo* proginfo)
 {
 	int  	buflen = 0;
-	INT8U	structnum = 0;
-	FP32 bett[2]={};
+	FP32 	bett[2]={};
 	INT8U	databuf[VARI_LEN]={};
 
 	memset(&databuf,0,sizeof(databuf));
@@ -1403,56 +1695,62 @@ int  fill_variClass(OAD oad,INT8U getflg,INT8U *sourcebuf,INT8U *destbuf,INT16U 
 	fprintf(stderr,"oad.OI=%x\n",oad.OI);
 	switch(oad.OI) {
 	case 0x2000:	//电压
-		if(oad.attrindex==0 && proginfo->cfg_para.device != CCTT2)		structnum = 3;
-		else structnum = 1;
-		buflen = fillVacsData(structnum,oad.attrindex,dtlongunsigned,
+		buflen = fillVacsData(oad,proginfo->cfg_para.device,dtlongunsigned,0,
 				proginfo->ACSRealData.Ua,proginfo->ACSRealData.Ub,proginfo->ACSRealData.Uc,0,destbuf);
 		break;
 	case 0x2001:	//电流
-		//国网台体测试常温基本误差，送I0提示元素错误,规约属性4为零序电流
-		if(oad.attrindex==0)		structnum = 3;
-		else structnum = 1;
-		buflen = fillVacsData(structnum,oad.attrindex,dtdoublelong,
+		if(proginfo->cfg_para.device == CCTT2) {//国网送检基本功能测试，II型招测电压，电流，有功，无功参数，其他无效数据应回越限
+			return 0;
+		}
+		buflen = fillVacsData(oad,proginfo->cfg_para.device,dtdoublelong,0,
 				proginfo->ACSRealData.Ia,proginfo->ACSRealData.Ib,proginfo->ACSRealData.Ic,proginfo->ACSRealData.I0,destbuf);
 		break;
 	case 0x2002:	//电压相角
-		if(oad.attrindex==0)		structnum = 3;
-		else structnum = 1;
-		buflen = fillVacsData(structnum,oad.attrindex,dtlongunsigned,
+		if(proginfo->cfg_para.device == CCTT2) {
+			return 0;
+		}
+		buflen = fillVacsData(oad,proginfo->cfg_para.device,dtlongunsigned,0,
 				proginfo->ACSRealData.YUaUb,proginfo->ACSRealData.YUaUc,proginfo->ACSRealData.YUbUc,0,destbuf);
 		break;
 	case 0x2003:	//电压电流相角
-		if(oad.attrindex==0)		structnum = 3;
-		else structnum = 1;
-		buflen = fillVacsData(structnum,oad.attrindex,dtlongunsigned,
+		if(proginfo->cfg_para.device == CCTT2) {
+			return 0;
+		}
+		buflen = fillVacsData(oad,proginfo->cfg_para.device,dtlongunsigned,0,
 				proginfo->ACSRealData.Pga,proginfo->ACSRealData.Pgb,proginfo->ACSRealData.Pgc,0,destbuf);
 		break;
 	case 0x2004:	//有功功率
-		if(oad.attrindex==0)		structnum = 4;
-		else structnum = 1;
-		buflen = fillVacsData(structnum,oad.attrindex,dtdoublelong,
+		if(proginfo->cfg_para.device == CCTT2) {
+			return 0;
+		}
+		buflen = fillVacsData(oad,proginfo->cfg_para.device,dtdoublelong,0,
 				proginfo->ACSRealData.Pt,proginfo->ACSRealData.Pa,proginfo->ACSRealData.Pb,proginfo->ACSRealData.Pc,destbuf);
 		break;
 	case 0x2005:	//无功功率
-		if(oad.attrindex==0)		structnum = 4;
-		else structnum = 1;
-		buflen = fillVacsData(structnum,oad.attrindex,dtdoublelong,
+		if(proginfo->cfg_para.device == CCTT2) {
+			return 0;
+		}
+		buflen = fillVacsData(oad,proginfo->cfg_para.device,dtdoublelong,0,
 				proginfo->ACSRealData.Qt,proginfo->ACSRealData.Qa,proginfo->ACSRealData.Qb,proginfo->ACSRealData.Qc,destbuf);
 		break;
 	case 0x2006:	//视在功率
-		if(oad.attrindex==0)		structnum = 4;
-		else structnum = 1;
-		buflen = fillVacsData(structnum,oad.attrindex,dtdoublelong,
+		if(proginfo->cfg_para.device == CCTT2) {
+			return 0;
+		}
+		buflen = fillVacsData(oad,proginfo->cfg_para.device,dtdoublelong,0,
 				proginfo->ACSRealData.St,proginfo->ACSRealData.Sa,proginfo->ACSRealData.Sb,proginfo->ACSRealData.Sc,destbuf);
 		break;
 	case 0x200A:	//功率因数
-		if(oad.attrindex==0)		structnum = 4;
-		else structnum = 1;
-		buflen = fillVacsData(structnum,oad.attrindex,dtlong,
+		if(proginfo->cfg_para.device == CCTT2) {
+			return 0;
+		}
+		buflen = fillVacsData(oad,proginfo->cfg_para.device,dtlong,0,
 				proginfo->ACSRealData.Cos,proginfo->ACSRealData.CosA,proginfo->ACSRealData.CosB,proginfo->ACSRealData.CosC,destbuf);
 		break;
 	case 0x200D:	//电压谐波含有量
-
+		if(proginfo->cfg_para.device == CCTT2) {
+			return 0;
+		}
 		break;
 	case 0x2011:	//时钟电池电压
 		if(bettery_getV(&bett[0],&bett[1]) == TRUE) {
@@ -2440,16 +2738,23 @@ int GetCtrl(RESULT_NORMAL *response)
 
 	switch(response->oad.OI)
 	{
-		case 0x8100:
-			response->datalen = Get_8100(response);
-			break;
 		case 0x8001:
 			response->datalen = Get_8001(response);
 			break;
 		case 0x8002:
 			response->datalen = Get_8002(response);
 			break;
+		case 0x8100:
+			response->datalen = Get_8100(response);
+			break;
+		case 0x8103://时段功控
+			response->datalen = Get_8103(response);
+			break;
+		case 0x8107://购电控
+			response->datalen = Get_8107(response);
+			break;
 	}
+	return 1;
 }
 
 int GetCollPara(INT8U seqOfNum,RESULT_NORMAL *response){
@@ -2558,12 +2863,16 @@ int doGetnormal(INT8U seqOfNum,RESULT_NORMAL *response)
 		GetEnergy(response);
 		break;
 	case 2:			//变量类对象
-		if(response->oad.OI != 0x2000 && memp->cfg_para.device == CCTT2) {	//国网送检基本功能测试，II型招测电压，电流，有功，无功参数，其他无效数据应回越限
+//		if(response->oad.OI != 0x2000 && memp->cfg_para.device == CCTT2) {
+//			response->dar = boundry_over;
+//			response->datalen = 0;
+//			return 0;
+//		}
+		if(fill_variClass(response->oad,1,NULL,response->data,&response->datalen,memp)==0) {
 			response->dar = boundry_over;
 			response->datalen = 0;
 			return 0;
 		}
-		fill_variClass(response->oad,1,NULL,response->data,&response->datalen,memp);
 		//		GetVariable(response);
 		break;
 	case 3:			//事件类对象读取

@@ -797,8 +797,8 @@ typedef struct {
 	INT64U pt;//互感器倍率
 	INT64U ct;//互感器倍率
 	PULSEUNIT unit[12];//脉冲配置
-	INT64U p;//有功功率
-	INT64U q;//无功功率
+	INT64S p;//有功功率
+	INT64S q;//无功功率
 	INT64U day_pos_p[MAXVAL_RATENUM];//当日正向有功功率
 	INT64U mon_pos_p[MAXVAL_RATENUM];//当月正向有功功率
 	INT64U day_nag_p[MAXVAL_RATENUM];//当日反向有功功率
@@ -816,20 +816,20 @@ typedef struct {
 
 typedef struct {
     AL_UNIT allist[MAX_AL_UNIT]; //总加配置表
-    INT64U p;   //有功
-    INT64U q;   //无功
-    INT64U TaveP;   //滑差有功
-    INT64U TaveQ;   //滑差无功
-    INT64U DayPALL;    //日有功
-    INT64U DayP[MAXVAL_RATENUM];    //日有功
-    INT64U DayQALL;    //日无功
-    INT64U DayQ[MAXVAL_RATENUM];    //日无功
-    INT64U MonthPALL;  //月有功
-    INT64U MonthP[MAXVAL_RATENUM];  //月有功
-    INT64U MonthQALL;  //月有功
-    INT64U MonthQ[MAXVAL_RATENUM];  //月无功
-    INT64U remains; //剩余电量
-    INT64U DownFreeze;  //下浮控后总加有功冻结
+    INT64S p;   //有功
+    INT64S q;   //无功
+    INT64S TaveP;   //滑差有功
+    INT64S TaveQ;   //滑差无功
+    INT64S DayPALL;    //日有功
+    INT64S DayP[MAXVAL_RATENUM];    //日有功
+    INT64S DayQALL;    //日无功
+    INT64S DayQ[MAXVAL_RATENUM];    //日无功
+    INT64S MonthPALL;  //月有功
+    INT64S MonthP[MAXVAL_RATENUM];  //月有功
+    INT64S MonthQALL;  //月有功
+    INT64S MonthQ[MAXVAL_RATENUM];  //月无功
+    INT64S remains; //剩余电量
+    INT64S DownFreeze;  //下浮控后总加有功冻结
     INT8U aveCircle;    //滑差周期
     INT8U pConfig;  //功控轮次
     INT8U eConfig;  //电控轮次
@@ -845,11 +845,16 @@ typedef struct {
 } CLASS13;
 
 typedef struct {
+	INT8U autoTimeStart; //自动保电时段开始
+	INT8U autoTimeEnd; //自动保电时段结束
+} CLASS_8001_unit;
+
+typedef struct {
     INT8U state; //保电状态 0解除 1保电 2自动保电
     INT32U noCommTime; //最大与主站无通信时长(分钟)，超过此时间自动保电，0表示不自动保电
     INT32U autoTime; //上电自动保电时长,0表示不自动保电
-    INT16U autoTimeStart; //自动保电时段开始
-    INT16U autoTimeEnd; //自动保电时段结束
+    INT8U unit_count;//时段有效个数
+    CLASS_8001_unit unit[24];
 } CLASS_8001;
 
 typedef struct {
@@ -955,14 +960,14 @@ typedef struct {
 } CLASS_8106;
 
 typedef struct {
-    OI_698 index;
-    INT32U no;
-    INT8U add_refresh;
-    INT8U type;
-    INT64U v;
-    INT64U alarm;
-    INT64U ctrl;
-    INT8U mode;
+    OI_698 index;	//总加组对象
+    INT32U no;		//购电单号
+    INT8U add_refresh;//追加/刷新标识
+    INT8U type;			//购电类型
+    INT64S v;			//购电量（费）值
+    INT64S alarm;		//报警门限值
+    INT64S ctrl;		//跳闸门限值
+    INT8U mode;			//购电控模式
 } BUY_CTRL;
 
 typedef struct {
