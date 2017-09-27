@@ -89,6 +89,7 @@ extern int create_OAD(INT8U type,INT8U* data, OAD oad);				//0x51
 extern int fill_ROAD(INT8U type,INT8U *data,ROAD road);				//0x52
 extern int fill_TI(INT8U* data, TI ti);								//0x54
 extern int fill_TSA(INT8U* data, INT8U* value, INT8U len);			//0x55
+extern int fill_Scaler_Unit(INT8U* data, Scaler_Unit su);			//0x59
 extern int fill_RSD(INT8U choice,INT8U *data,RSD rsd);				//0x5A
 extern int fill_CSD(INT8U type, INT8U* data, MY_CSD csd);			//0x5b
 extern int fill_MS(INT8U type,INT8U *data,MY_MS myms);				//0x5C

@@ -493,6 +493,14 @@ int fill_TSA(INT8U *data,INT8U *value,INT8U len) 	//0x55
 	return (len+2);
 }
 
+int fill_Scaler_Unit(INT8U* data, Scaler_Unit su)
+{
+	data[0] = dtscalerunit;
+	data[1] = su.conver;
+	data[2] = su.units;
+	return 3;
+}
+
 int fill_RSD(INT8U choice,INT8U *data,RSD rsd)			//0x5A
 {
 	int 	index=0;

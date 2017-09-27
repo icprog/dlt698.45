@@ -52,6 +52,7 @@ void cacl_DD(unsigned int pulse, int index) {
 
 	case 0:
 		//正向有功 = 脉冲总数 * 1000/con;
+		JProgramInfo->class12[index].val_pos_p[time_zone] += pulse * 10;
 		JProgramInfo->class12[index].day_pos_p[time_zone] += pulse * 10;
 		JProgramInfo->class12[index].mon_pos_p[time_zone] += pulse * 10;
 		fprintf(stderr, "实时功率 %d\n", JProgramInfo->class12[index].p);
@@ -147,7 +148,7 @@ void refreshPluse(int sec) {
 
 	if (sec == 15) {
 		for (int i = 0; i < 2; i++) {
-			if (pluse[i] > pluseCountPeriod[i]) {
+			if (pluse[i] >= pluseCountPeriod[i]) {
 				int val = pluse[i] - pluseCountPeriod[i];
 				cacl_PQ(val, i);
 				pluseCountPeriod[i] = pluse[i];

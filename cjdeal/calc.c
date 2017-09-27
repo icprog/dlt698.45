@@ -76,9 +76,12 @@ int savePulseTaskData(INT8U pluse_index,INT8U taskid,TS savets,TSA tsa,CSD_ARRAY
 			saveBuf[index++] = dttsa;	//TSA标识
 			memcpy(&saveBuf[index],&tsa,sizeof(TSA));
 			index += sizeof(TSA);
+//			asyslog(LOG_NOTICE,"save TSA_len=%d oad=%04x_%02x%02x\n",index,
+//					csds.csd[i].csd.oad.OI,csds.csd[i].csd.oad.attflg,csds.csd[i].csd.oad.attrindex);
 			fill_pulseEnergy(JProgramInfo->cfg_para.device,pluse_index,csds.csd[i].csd.oad,&saveBuf[index],&buflen);
 			index += buflen;
-			asyslog(LOG_NOTICE,"savePulseTaskData taskid = %d OAD=%04x \n",taskid,csds.csd[i].csd.oad.OI);
+			asyslog(LOG_NOTICE,"savePulseTaskData taskid = %d OAD=%04x_%02x%02x index=%d \n",taskid,csds.csd[i].csd.oad.OI,
+					csds.csd[i].csd.oad.attflg,csds.csd[i].csd.oad.attrindex,index);
 			memset(&freezeOAD,0,sizeof(OAD));
 			saveret = SaveOADData(taskid,freezeOAD,csds.csd[i].csd.oad,saveBuf,index,savets);
 		}
@@ -90,6 +93,8 @@ int savePulseTaskData(INT8U pluse_index,INT8U taskid,TS savets,TSA tsa,CSD_ARRAY
 				memcpy(&saveBuf[index],&tsa,sizeof(TSA));
 				index += sizeof(TSA);
 				relateOAD = csds.csd[i].csd.road.oads[j];
+				asyslog(LOG_NOTICE,"save TSA=%d freezeOAD=%04x_%02x%02x relateOAD=%04x_%02x%02x\n",index,
+						freezeOAD.OI,freezeOAD.attflg,freezeOAD.attrindex,relateOAD.OI,relateOAD.attflg,relateOAD.attrindex);
 				switch(relateOAD.OI) {
 				case 0x2021:	//数据冻结时间
 					TsToTimeBCD(savets,&freezetime);
@@ -129,7 +134,7 @@ int saveTerminalTaskData(INT8U taskid,TS savets,TSA tsa,CSD_ARRAYTYPE csds)
 			index += sizeof(TSA);
 			fill_variClass(csds.csd[i].csd.oad,1,NULL,&saveBuf[index],&buflen,JProgramInfo);
 			index += buflen;
-			asyslog(LOG_NOTICE,"saveTerminalTaskData taskid = %d OAD=%04x \n",taskid,csds.csd[i].csd.oad.OI);
+			asyslog(LOG_NOTICE,"saveTerminalTaskData taskid = %d OAD=%04x index=%d\n",taskid,csds.csd[i].csd.oad.OI,index);
 			memset(&freezeOAD,0,sizeof(OAD));
 			saveret = SaveOADData(taskid,freezeOAD,csds.csd[i].csd.oad,saveBuf,index,savets);
 		}
@@ -175,7 +180,7 @@ int saveTerminalTaskData(INT8U taskid,TS savets,TSA tsa,CSD_ARRAYTYPE csds)
 					index += buflen;
 					break;
 				}
-				asyslog(LOG_NOTICE,"saveTerminalTaskData taskid = %d freezeOAD=%04x relateOAD=%04x \n",taskid,freezeOAD.OI,relateOAD.OI);
+				asyslog(LOG_NOTICE,"saveTerminalTaskData taskid = %d freezeOAD=%04x relateOAD=%04x index=%d\n",taskid,freezeOAD.OI,relateOAD.OI,index);
 				saveret = SaveOADData(taskid,freezeOAD,relateOAD,saveBuf,index,savets);
 			}
 		}
@@ -206,10 +211,10 @@ void terminalTaskFreeze(INT8U taskid,INT8U fanganid)
 		tsa_num = getOI6001(class6015.mst,(INT8U **)&tsa_group);
 		asyslog(LOG_NOTICE,"tsa_num = %d\n",tsa_num);
 		for(meterid=0;meterid<tsa_num;meterid++) {
-			if(tsa_group[meterid].basicinfo.port.OI == PORT_JC) {
-				//满足交采测量点,查找到满足CSD的数据任务，进行相关任务数据存储
-				saveTerminalTaskData(taskid,savets,tsa_group[meterid].basicinfo.addr,class6015.csds);
-			}
+//			if(tsa_group[meterid].basicinfo.port.OI == PORT_JC) {
+//				//满足交采测量点,查找到满足CSD的数据任务，进行相关任务数据存储
+//				saveTerminalTaskData(taskid,savets,tsa_group[meterid].basicinfo.addr,class6015.csds);
+//			}
 			if(tsa_group[meterid].basicinfo.port.OI == PORT_PLUSE) {
 				//满足脉冲输入设备，进行相关任务数据存储
 				pluseindex = tsa_group[meterid].basicinfo.port.attrindex-1;

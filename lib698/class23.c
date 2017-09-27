@@ -157,21 +157,19 @@ int class23_get_bitstring(OAD oad, INT8U val, INT8U *buf, int *len)
 
 int class23_get_7_8_9_10(OAD oad, INT64S energy_all,INT64S *energy,INT8U *buf, int *len){
 	INT64S total_energy[MAXVAL_RATENUM + 1];
-	INT8U	unit=0,i=0;
+	INT8S	unit=0,i=0;
 
 	*len = 0;
 	total_energy[0] = 0;
-	fprintf(stderr, "class23_get_7 %lld\n", total_energy[0]);
-
-//	for (i = 0; i < MAXVAL_RATENUM; i++){
-//		total_energy[0] += energy[i];
-//	}
-	///TODO: 总电量分相累加？？？还是内存energy_all
-	total_energy[0] = energy_all;
+	///TODO: 总电量分相需要累加，不能使用内存energy_all
+	for (i = 0; i < MAXVAL_RATENUM; i++){
+		total_energy[0] += energy[i];
+	}
+//	total_energy[0] = energy_all;
 	for (i = 0; i < MAXVAL_RATENUM; i++){
 		total_energy[i+1] = energy[i];
 	}
-	fprintf(stderr, "class23_get_7 %lld\n", total_energy[0]);
+	fprintf(stderr, "class23_get_7 %lld oad=%04x_%02x_%02x \n", total_energy[0],oad.OI,oad.attflg,oad.attrindex);
 
 	if (oad.attrindex == 0) {
 		unit = MAXVAL_RATENUM + 1;	//总及n个费率
@@ -182,10 +180,12 @@ int class23_get_7_8_9_10(OAD oad, INT64S energy_all,INT64S *energy,INT8U *buf, i
 		}
 	}else {
 		unit = oad.attrindex - 1;
-		unit = rangeJudge("电能量",unit,1,MAXVAL_RATENUM + 1);
+		unit = rangeJudge("电能量",unit,0,MAXVAL_RATENUM);
 		if(unit != -1) {
 			*len = 0;
 			*len += fill_long64(&buf[*len], total_energy[unit]);
+		}else {
+			buf[*len++] = 0;		//NULL
 		}
 		return 1;
 	}
@@ -213,7 +213,7 @@ int class23_get(OAD oad, INT8U *sourcebuf, INT8U *buf, int *len) {
 	int index = oad.OI - 0x2301;
 
 	index = rangeJudge("总加组",index,0,(MAXNUM_SUMGROUP-1));
-	if(index == -1) return 0;
+	if(index == -1)  return 0;		//返回值len为？？
 
 	switch (oad.attflg) {
 	case 2:

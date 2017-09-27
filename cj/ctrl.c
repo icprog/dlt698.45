@@ -252,10 +252,13 @@ void sumgroupTest(OI_698 oi,CLASS23	class23)
 	//总加组配置单元个数：有TSA认为有效
 	unit = 0;
 	for(i=0;i<MAX_AL_UNIT;i++) {
+		printTSA(class23.allist[i].tsa);
 		if(class23.allist[i].tsa.addr[0]!=0) {
 			unit++;
-		}else break;
+		}
+//		else break;
 	}
+
 	fprintf(stderr,"总加组配置单元总个数 = %d \n",unit);
 	for(i=0;i<unit;i++) {
 		fprintf(stderr,"\n\n--------总加组配置单元  %d \n",i);
@@ -284,6 +287,9 @@ void sum_process(int argc, char *argv[])
 					return;
 				}
 				sumgroupTest(oi,JProgramInfo->class23[index]);
+				fprintf(stderr,"att7:总加日有功电量=%lld-%lld-%lld-%lld-%lld\n",JProgramInfo->class23[index].DayPALL,
+						JProgramInfo->class23[index].DayP[0],JProgramInfo->class23[index].DayP[1],
+						JProgramInfo->class23[index].DayP[2],JProgramInfo->class23[index].DayP[3]);
 			}
 		}
 		shmm_unregister("ProgramInfo", sizeof(ProgramInfo));

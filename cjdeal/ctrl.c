@@ -627,9 +627,6 @@ int deal8107() {
 		fprintf(stderr, "8107 index = %d\n", i);
 
 		if (JProgramInfo->ctrls.c8107.enable[i].state == 0) {
-			JProgramInfo->class23[i].alCtlState.OutputState = 0;
-			JProgramInfo->class23[i].alCtlState.ECAlarmState = 0;
-			JProgramInfo->class23[i].alCtlState.BuyOutputState = 0;
 			return 0;
 		}
 
@@ -669,8 +666,6 @@ int deal8108() {
 		fprintf(stderr, "8108 index = %d\n", i);
 
 		if (JProgramInfo->ctrls.c8108.enable[i].state == 0) {
-			JProgramInfo->class23[i].alCtlState.OutputState |= 0;
-			JProgramInfo->class23[i].alCtlState.MonthOutputState |= 0;
 			return 0;
 		}
 
@@ -755,6 +750,12 @@ int ctrlMain(void * arg) {
 				for (int i = 0; i < 8; ++i) {
 					saveCoverClass(0x2301 + i, 0, &JProgramInfo->class23[i],
 							sizeof(CLASS23), para_vari_save);
+				}
+			}
+			if (secOld % 51 == 0) {
+				for (int i = 0; i < 8; ++i) {
+					saveCoverClass(0x2401 + i, 0, &JProgramInfo->class12[i],
+							sizeof(CLASS12), para_vari_save);
 				}
 			}
 
