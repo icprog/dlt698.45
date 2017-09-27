@@ -167,7 +167,7 @@ void CreateSaveHead(char *fname,ROAD *road_eve,CSD_ARRAYTYPE csds,INT16U *headle
 				fprintf(stderr,"OAD=%04x_%02x%02x 存在固定头，不计算长度\n",csds.csd[i].csd.oad.OI,csds.csd[i].csd.oad.attflg,csds.csd[i].csd.oad.attrindex);
 				continue;
 			}
-			len_tmp = CalcOIDataLen(csds.csd[i].csd.oad.OI,csds.csd[i].csd.oad.attrindex);//多一个数据类型
+			len_tmp = CalcOIDataLen(csds.csd[i].csd.oad);//多一个数据类型
 			asyslog(LOG_WARNING, "cjsave 0存储文件头 oi=%04x len=%d",csds.csd[i].csd.oad.OI,len_tmp);
 			memset(&oad_m,0,sizeof(OAD));
 			pindex += getOneUnit(&headbuf[pindex],oad_m,csds.csd[i].csd.oad,len_tmp);
@@ -189,7 +189,7 @@ void CreateSaveHead(char *fname,ROAD *road_eve,CSD_ARRAYTYPE csds,INT16U *headle
 				}
 				if(csds.csd[i].csd.road.oads[j].OI == 0xeeee)
 					break;
-				len_tmp = CalcOIDataLen(csds.csd[i].csd.road.oads[j].OI,csds.csd[i].csd.road.oads[j].attrindex);//多一个数据类型
+				len_tmp = CalcOIDataLen(csds.csd[i].csd.road.oads[j]);//多一个数据类型
 				asyslog(LOG_WARNING, "cjsave 1存储文件头 oi=%04x len=%d",csds.csd[i].csd.road.oads[j].OI,len_tmp);
 				pindex += getOneUnit(&headbuf[pindex],csds.csd[i].csd.road.oad,csds.csd[i].csd.road.oads[j],len_tmp);
 				*unitlen += len_tmp;
@@ -642,7 +642,7 @@ int SaveOADData(INT8U taskid,OAD oad_m,OAD oad_r,INT8U *databuf,int datalen,TS t
 		memcpy(&databuf_tmp[unitlen*(unitseq-1)/runtime+19+16],&datetime,7);//赋值抄表存储时间
 
 		asyslog(LOG_NOTICE,"oadoffset=%d合理",oadoffset);
-		oadlen = CalcOIDataLen(oad_r.OI,oad_r.attrindex);
+		oadlen = CalcOIDataLen(oad_r);
 		asyslog(LOG_NOTICE,"计算长度%04x-%02x-%02x:len=%d",oad_r.OI,oad_r.attflg,oad_r.attrindex,oadlen);
 		if(datalen != oadlen+TSA_LEN+1)
 		{

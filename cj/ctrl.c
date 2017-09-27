@@ -266,6 +266,9 @@ void sum_process(int argc, char *argv[])
 					return;
 				}
 				sumgroupTest(oi,JProgramInfo->class23[index]);
+				fprintf(stderr,"att7:总加日有功电量=%lld-%lld-%lld-%lld-%lld\n",JProgramInfo->class23[index].DayPALL,
+						JProgramInfo->class23[index].DayP[0],JProgramInfo->class23[index].DayP[1],
+						JProgramInfo->class23[index].DayP[2],JProgramInfo->class23[index].DayP[3]);
 			}
 		}
 		shmm_unregister("ProgramInfo", sizeof(ProgramInfo));

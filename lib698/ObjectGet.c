@@ -1555,19 +1555,22 @@ INT8U fillVacsData(OAD oad,INT8U devicetype,INT8U datatype,INT64U dataz,INT64U d
 		}
 		break;
 	}
-	if(oad.attflg == 2 && oad.attrindex == 0) {		//请求全部属性
+	if((oad.attflg == 2 || oad.attflg == 4) && oad.attrindex == 0) {		//请求全部属性
 		index += create_array(&responseData[index],structnum);
 	}
 	for(i=0;i<structnum;i++) {
 		switch(datatype){
-		case dtlongunsigned:
-			index += fill_long_unsigned(&responseData[index],data[i]);
-			break;
 		case dtdoublelong:
 			index += fill_double_long(&responseData[index],data[i]);
 			break;
+		case dtdoublelongunsigned:
+			index += fill_double_long_unsigned(&responseData[index],data[i]);
+			break;
 		case dtlong:
 			index += fill_long(&responseData[index],data[i]);
+			break;
+		case dtlongunsigned:
+			index += fill_long_unsigned(&responseData[index],data[i]);
 			break;
 		case dtlong64:
 			index += fill_long64(&responseData[index],data[i]);
@@ -1664,12 +1667,13 @@ int fill_pulseEnergy(INT8U devicetype,INT8U index,OAD oad,INT8U *destbuf,INT16U 
 	CLASS12_ENERGY	pluse_energy[2]={};
 	INT64U  total_energy=0;
 
+//	fprintf(stderr,"\n\n\n&&&&&&&&&&&&&&&&&&&&&&&&oad=%04x_%02x%02x\n",oad.OI,oad.attflg,oad.attrindex);
 	readVariData(PORT_PLUSE,0,(INT8U *)&pluse_energy,sizeof(pluse_energy));
 	switch(oad.OI) {
 	case 0x0010://正向有功电能
 		total_energy = getTotalEnergy(pluse_energy[index].val_pos_p);
 		if(oad.attflg == 2) {
-			buflen = fillVacsData(oad,devicetype,dtdoublelong,int64toint32(total_energy),
+			buflen = fillVacsData(oad,devicetype,dtdoublelongunsigned,int64toint32(total_energy),
 					int64toint32(pluse_energy[index].val_pos_p[0]),int64toint32(pluse_energy[index].val_pos_p[1]),
 					int64toint32(pluse_energy[index].val_pos_p[2]),int64toint32(pluse_energy[index].val_pos_p[3]),destbuf);
 		}else 	if(oad.attflg == 4) {
@@ -1681,7 +1685,7 @@ int fill_pulseEnergy(INT8U devicetype,INT8U index,OAD oad,INT8U *destbuf,INT16U 
 	case 0x0020://反向有功电能
 		total_energy = getTotalEnergy(pluse_energy[index].val_nag_p);
 		if(oad.attflg == 2) {
-			buflen = fillVacsData(oad,devicetype,dtlong64unsigned,int64toint32(total_energy),
+			buflen = fillVacsData(oad,devicetype,dtdoublelongunsigned,int64toint32(total_energy),
 					int64toint32(pluse_energy[index].val_nag_p[0]),int64toint32(pluse_energy[index].val_nag_p[1]),
 					int64toint32(pluse_energy[index].val_nag_p[2]),int64toint32(pluse_energy[index].val_nag_p[3]),destbuf);
 		}else if(oad.attflg == 4) {
@@ -1693,7 +1697,7 @@ int fill_pulseEnergy(INT8U devicetype,INT8U index,OAD oad,INT8U *destbuf,INT16U 
 	case 0x0030://正向无功电能/组合无功1电能
 		total_energy = getTotalEnergy(pluse_energy[index].val_pos_q);
 		if(oad.attflg == 2) {
-			buflen = fillVacsData(oad,devicetype,dtlong64,int64toint32(total_energy),
+			buflen = fillVacsData(oad,devicetype,dtdoublelong,int64toint32(total_energy),
 					int64toint32(pluse_energy[index].val_pos_q[0]),int64toint32(pluse_energy[index].val_pos_q[1]),
 					int64toint32(pluse_energy[index].val_pos_q[2]),int64toint32(pluse_energy[index].val_pos_q[3]),destbuf);
 		}else if(oad.attflg == 4) {
@@ -1705,7 +1709,7 @@ int fill_pulseEnergy(INT8U devicetype,INT8U index,OAD oad,INT8U *destbuf,INT16U 
 	case 0x0040://反向无功电能/组合无功2电能
 		total_energy = getTotalEnergy(pluse_energy[index].val_nag_q);
 		if(oad.attflg == 2) {
-			buflen = fillVacsData(oad,devicetype,dtlong64,int64toint32(total_energy),
+			buflen = fillVacsData(oad,devicetype,dtdoublelong,int64toint32(total_energy),
 					int64toint32(pluse_energy[index].val_nag_q[0]),int64toint32(pluse_energy[index].val_nag_q[1]),
 					int64toint32(pluse_energy[index].val_nag_q[2]),int64toint32(pluse_energy[index].val_nag_q[3]),destbuf);
 		}else  if(oad.attflg == 4) {
