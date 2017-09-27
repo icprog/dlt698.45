@@ -56,6 +56,7 @@ int findPinSum(int sum_i, int p_i)
 	{
 		return 1;
 	}
+
 	for(int i = 0; i < 8; i++){
 		int n = JProgramInfo->class23[sum_i].allist[i].tsa.addr[0];
 		if (n == 0)
