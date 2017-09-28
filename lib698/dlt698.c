@@ -1493,7 +1493,6 @@ INT16S composeProtocol698_GetRequest_RN(INT8U* sendBuf, CLASS_6015 obj6015,
 	sendBuf[sendLen++] = GET_REQUEST;
 
 	INT8S requestType = getRequestType(obj6015.cjtype, obj6015.csds.num);
-	//fprintf(stderr,"\n composeProtocol698_GetRequest requestType = %d cjtype = %d obj6015.csds.num = %d",requestType,obj6015.cjtype,obj6015.csds.num);
 	if (requestType < 0) {
 		return -1;
 	}
@@ -1714,9 +1713,23 @@ INT8U analyzeProtocol698_RN(INT8U* Rcvbuf, INT8U* resultCount, INT16S recvLen,
 				apdu[1], apdu[2], apdu[3], apdu[4], apdu[5]);
 		if((apdu[0]==SECURITY_RESPONSE)&&(apdu[1]==0))
 		{
-			apdu = &apdu[3];
-			*dataLen = *dataLen - 7;
-			startIndex += 3;
+			//octet-string 长度超过127，长度字节最多两个字节表示（因为类型决定长度不会超过255）
+			//0x82;	0x80:表示长度为多个字节，0x02:表示长度为2个字节
+
+			if((apdu[2]&0x80)==0x80)//这说明字节多位
+			{
+				apdu = &apdu[5];
+				*dataLen = *dataLen - 9;
+				startIndex += 5;
+			}
+			else
+			{
+				apdu = &apdu[3];
+				*dataLen = *dataLen - 7;
+				startIndex += 3;
+			}
+
+
 			if (apdu[0] == GET_REQUEST_RESPONSE) {
 				getType = apdu[1];
 				if ((getType == GET_REQUEST_NORMAL)

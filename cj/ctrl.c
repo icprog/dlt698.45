@@ -193,6 +193,24 @@ void ctrlKeepelec(int argc, char *argv[])
 	}
 }
 
+void guiTest(int argc, char *argv[])
+{
+	int i;
+	fprintf(stderr,"\n guitest\n");
+	if(argc == 3)
+	{
+		 i = atoi(argv[2]);
+		 fprintf(stderr,"\n---------- i =%d  =\n",i);
+		 CLASS_8103 c8103;
+		 memset(&c8103,0,sizeof(CLASS_8103));
+		 readCoverClass(0x8103, 0, &c8103, sizeof(CLASS_8103),para_vari_save);
+		 fprintf(stderr,"\ntime1:%05d time2:%05d",(int)c8103.list[i].v1.t1,(int)c8103.list[i].v1.t2);
+		 fprintf(stderr,"\ntime3:%05d time4:%05d",(int)c8103.list[i].v1.t3,(int)c8103.list[i].v1.t4);
+		 fprintf(stderr,"\ntime5:%05d time6:%05d",(int)c8103.list[i].v1.t5,(int)c8103.list[i].v1.t6);
+		 fprintf(stderr,"\ntime7:%05d time8:%05d",(int)c8103.list[i].v1.t7,(int)c8103.list[i].v1.t8);
+
+	}
+}
 
 void breezeTest(int argc, char *argv[])
 {

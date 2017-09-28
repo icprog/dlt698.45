@@ -2623,6 +2623,8 @@ INT8S dealProxyType7(PROXY_GETLIST *getlist,INT8U port485)
 	CSINFO csinfo={};
 	int hcsok = 0 ,fcsok = 0;
 
+	fprintf(stderr,"\n代理 7 !!!");
+
 	if(is485OAD(getlist->proxy_obj.transcmd.oad,port485) != 1)
 	{
 		return result;
@@ -2680,6 +2682,7 @@ INT8S dealProxyType7(PROXY_GETLIST *getlist,INT8U port485)
 				}
 			}
 		}
+		fprintf(stderr,"\n 代理7 串口返回 %d 字节",RecvLen);
 		DbPrt1(port485,"代理透传返回:", (char *) RecvBuff, RecvLen, NULL);
 		if(getZone("GW")==0) {
 			char title[20];
@@ -3609,8 +3612,8 @@ INT16S deal6015_698(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8
 
 	memset(sendbuff, 0, BUFFSIZE512);
 
-//	sendLen = composeProtocol698_GetRequest_RN(sendbuff, st6015,to6001.basicinfo.addr);
-	sendLen = composeProtocol698_GetRequest(sendbuff, st6015,to6001.basicinfo.addr);
+	sendLen = composeProtocol698_GetRequest_RN(sendbuff, st6015,to6001.basicinfo.addr);
+	//sendLen = composeProtocol698_GetRequest(sendbuff, st6015,to6001.basicinfo.addr);
 	if(sendLen < 0)
 	{
 		fprintf(stderr,"deal6015_698  sendLen < 0");
@@ -3634,8 +3637,8 @@ INT16S deal6015_698(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8
 			INT8U csdNum = 0;
 			INT16S dataLen = recvLen;
 			INT8U apduDataStartIndex = 0;
-//			getResponseType = analyzeProtocol698_RN(recvbuff,&csdNum,recvLen,&apduDataStartIndex,&dataLen);
-			getResponseType = analyzeProtocol698(recvbuff,&csdNum,recvLen,&apduDataStartIndex,&dataLen);
+			getResponseType = analyzeProtocol698_RN(recvbuff,&csdNum,recvLen,&apduDataStartIndex,&dataLen);
+			//getResponseType = analyzeProtocol698(recvbuff,&csdNum,recvLen,&apduDataStartIndex,&dataLen);
 			fprintf(stderr,"\n getResponseType = %d  csdNum = %d dataLen = %d \n",getResponseType,csdNum,dataLen);
 			if(getResponseType > 0)
 			{
