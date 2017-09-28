@@ -367,7 +367,7 @@ int Get_f205_attr2(RESULT_NORMAL *response)
 int GetEsamPara(RESULT_NORMAL *response)
 {
 	INT8U *data=NULL;
-	OAD oad;
+	OAD oad={};
 	oad = response->oad;
 	data = response->data;
 	response->datalen = getEsamAttribute(oad,data);
