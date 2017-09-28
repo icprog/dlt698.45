@@ -2000,7 +2000,7 @@ void menu_shiduanpara(){
 ************************************************************************************************************************************************************/
 //厂休控
 void menu_changxiupara(){
-	char week[8][3]={"0","一","二","三","四","五","六","日"};
+	char week[7][3]={"一","二","三","四","五","六","日"};
 	int unite_index=1, dingzhi=1;
 	Point pos;
 	CLASS_8104 c8104; //厂休控
@@ -2036,11 +2036,14 @@ void menu_changxiupara(){
 			first_flg = 1;
 			for(enable_i=0;enable_i<8;enable_i++)
 			{
+				fprintf(stderr,"\n  ------===== %d  ====-------- %04x ",enable_i,c8104.enable[enable_i].name );
 				if (c8104.enable[enable_i].name == c8104.list[unite_index-1].index)
 				{
+					fprintf(stderr,"\n  ------===== %d  ====--------state %d ",enable_i,c8104.enable[enable_i].state );
 					ifenable = c8104.enable[enable_i].state;
 					break;
 				}
+				fprintf(stderr,"\n\n");
 			}
 			gui_clrrect(rect_Client);
 			gui_setpos(&pos, rect_Client.left+2*FONTSIZE, rect_Client.top+FONTSIZE);
@@ -2073,12 +2076,20 @@ void menu_changxiupara(){
 
 			pos.y += 3*FONTSIZE;
 			memset(str, 0, 100);
-			sprintf(str, "%04d-%02d-%2d 02%d:02%d",
-					c8104.list[unite_index-1].start.year.data,
-					c8104.list[unite_index-1].start.month.data,
-					c8104.list[unite_index-1].start.day.data,
-					c8104.list[unite_index-1].start.hour.data,
-					c8104.list[unite_index-1].start.min.data);
+			if (c8104.list[unite_index-1].start.year.data==0xff || c8104.list[unite_index-1].start.month.data==0xff || c8104.list[unite_index-1].start.day.data==0xff )
+			{
+				sprintf(str, "日期无效 时间:%02d:%02d",
+						c8104.list[unite_index-1].start.hour.data,
+						c8104.list[unite_index-1].start.min.data);
+			}else
+			{
+				sprintf(str, "%04d-%02d-%2d %02d:%02d",
+						c8104.list[unite_index-1].start.year.data,
+						c8104.list[unite_index-1].start.month.data,
+						c8104.list[unite_index-1].start.day.data,
+						c8104.list[unite_index-1].start.hour.data,
+						c8104.list[unite_index-1].start.min.data);
+			}
 			gui_textshow(str, pos, LCD_NOREV);
 
 			pos.y += 3*FONTSIZE;

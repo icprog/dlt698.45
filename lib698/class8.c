@@ -382,6 +382,7 @@ int class8103_act6(int index, int attr_act, INT8U *data, Action_result *act_ret)
 			para_vari_save);
 
 	c8103.enable[sindex].state = 0x01;
+	c8103.enable[sindex].name = oi;
 	shareAddr->ctrls.c8103.enable[sindex].state = 0x01;
 	saveCoverClass(0x8103, 0, (void *) &c8103, sizeof(CLASS_8103),
 			para_vari_save);
@@ -406,6 +407,7 @@ int class8103_act7(int index, int attr_act, INT8U *data, Action_result *act_ret)
 	readCoverClass(0x8103, 0, (void *) &c8103, sizeof(CLASS_8103),
 			para_vari_save);
 	c8103.enable[sindex].state = 0x00;
+	c8103.enable[sindex].name = oi;
 	shareAddr->ctrls.c8103.enable[sindex].state = 0x00;
 
 	saveCoverClass(0x8103, 0, (void *) &c8103, sizeof(CLASS_8103),
@@ -529,6 +531,7 @@ int class8104_act6(int index, int attr_act, INT8U *data, Action_result *act_ret)
 	readCoverClass(0x8104, 0, (void *) &c8104, sizeof(CLASS_8104),
 			para_vari_save);
 	c8104.enable[sindex].state = 0x01;
+	c8104.enable[sindex].name = oi;
 	shareAddr->ctrls.c8104.enable[sindex].state = 0x01;
 
 	saveCoverClass(0x8104, 0, (void *) &c8104, sizeof(CLASS_8104),
