@@ -812,6 +812,7 @@ typedef struct {
 	INT32U val_nag_p[MAXVAL_RATENUM];//反向有功电能示值
 	INT32U val_nag_q[MAXVAL_RATENUM];//反向无功电能示值
 	Scaler_Unit su[14];//属性5-18换算单位
+	INT32U pluse_count;
 } CLASS12;
 
 typedef struct {
