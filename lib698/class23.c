@@ -74,63 +74,67 @@ int class23_act3(int index, INT8U* data) {
 	return 0;
 }
 
-int class23_set_attr2(OI_698 oi,INT8U *data, INT8U *DAR, AL_UNIT *al_unit)
+int class23_set_attr2(OI_698 oi,INT8U *data, INT8U *DAR, CLASS23 *memClass23)
 {
 	int  index = 0;
-	CLASS23		class23={};
+	CLASS23		class23[MAX_AL_UNIT]={};
 	INT8U	unitnum = 0,i=0;
-	memset(&class23,0,sizeof(CLASS23));
-	readCoverClass(oi, 0, &class23, sizeof(CLASS23), para_vari_save);
+	int  no = oi - 0x2301;
+
+	memcpy(class23,memClass23,sizeof(class23));
+//	readCoverClass(oi, 0, &class23, sizeof(CLASS23), para_vari_save);
 	index += getArray(&data[index],&unitnum,DAR);
 	unitnum = limitJudge("总加组配置单元",MAX_AL_UNIT,unitnum);
 	for(i=0;i<unitnum;i++) {
 		index += getStructure(&data[index],NULL,DAR);
-		index += getOctetstring(1,&data[index],(INT8U *)&class23.allist[i].tsa,DAR);
-		index += getEnum(1,&data[index],&class23.allist[i].al_flag);
-		index += getEnum(1,&data[index],&class23.allist[i].cal_flag);
+		index += getOctetstring(1,&data[index],(INT8U *)&class23[no].allist[i].tsa,DAR);
+		index += getEnum(1,&data[index],&class23[no].allist[i].al_flag);
+		index += getEnum(1,&data[index],&class23[no].allist[i].cal_flag);
 	}
 	if(DAR==success) {
-		saveCoverClass(oi, 0, &class23, sizeof(CLASS23), para_vari_save);
-		memcpy(al_unit,&class23.allist,sizeof(class23.allist));
+		memcpy(memClass23,class23,sizeof(class23));
+		saveCoverClass(oi, 0, &class23[no], sizeof(CLASS23), para_vari_save);
 	}
 	return index;
 }
 
-int class23_set_attr13(OI_698 oi,INT8U *data, INT8U *DAR, INT8U *aveCircle)
+int class23_set_attr13(OI_698 oi,INT8U *data, INT8U *DAR, CLASS23 *memClass23)
 {
 	int  index = 0;
-	CLASS23		class23={};
+	CLASS23		class23[MAX_AL_UNIT]={};
+	int  no = oi - 0x2301;
 
-	memset(&class23,0,sizeof(CLASS23));
-	readCoverClass(oi, 0, &class23, sizeof(CLASS23), para_vari_save);
-	index += getUnsigned(&data[index],&class23.aveCircle,DAR);
+	memcpy(class23,memClass23,sizeof(class23));
+//	readCoverClass(oi, 0, &class23, sizeof(CLASS23), para_vari_save);
+	index += getUnsigned(&data[index],&class23[no].aveCircle,DAR);
 	if(DAR==success) {
-		saveCoverClass(oi, 0, &class23, sizeof(CLASS23), para_vari_save);
-		*aveCircle = class23.aveCircle;
+		memcpy(memClass23,class23,sizeof(class23));
+		saveCoverClass(oi, 0, &class23[no], sizeof(CLASS23), para_vari_save);
 	}
 	return index;
 }
 
-int class23_set_attr14_15(OAD oad,INT8U *data, INT8U *DAR, INT8U *config)
+int class23_set_attr14_15(OAD oad,INT8U *data, INT8U *DAR, CLASS23 *memClass23)
 {
 	int  index = 0;
-	CLASS23		class23={};
+	CLASS23		class23[MAX_AL_UNIT]={};
+	int  no = oad.OI - 0x2301;
 
-	memset(&class23,0,sizeof(CLASS23));
-	readCoverClass(oad.OI, 0, &class23, sizeof(CLASS23), para_vari_save);
+	memcpy(class23,memClass23,sizeof(class23));
+//	readCoverClass(oad.OI, 0, &class23, sizeof(CLASS23), para_vari_save);
 	switch(oad.attflg){
 	case 14:
-		index += getBitString(1,&data[index],&class23.pConfig);
+		index += getBitString(1,&data[index],&class23[no].pConfig);
 		if(DAR==success) {
-			saveCoverClass(oad.OI, 0, &class23, sizeof(CLASS23), para_vari_save);
-			*config = class23.pConfig;
+			memcpy(memClass23,class23,sizeof(class23));
+			saveCoverClass(oad.OI, 0, &class23[no], sizeof(CLASS23), para_vari_save);
 		}
 		break;
 	case 15:
-		index += getBitString(1,&data[index],&class23.eConfig);
+		index += getBitString(1,&data[index],&class23[no].eConfig);
 		if(DAR==success) {
-			saveCoverClass(oad.OI, 0, &class23, sizeof(CLASS23), para_vari_save);
-			*config = class23.eConfig;
+			memcpy(memClass23,class23,sizeof(class23));
+			saveCoverClass(oad.OI, 0, &class23[no], sizeof(CLASS23), para_vari_save);
 		}
 		break;
 	}
@@ -138,45 +142,47 @@ int class23_set_attr14_15(OAD oad,INT8U *data, INT8U *DAR, INT8U *config)
 }
 
 //TODO: 设置某一项属性的处理
-int class23_set_attr16(OAD oad,INT8U *data, INT8U *DAR, ALCONSTATE alConState)
+int class23_set_attr16(OAD oad,INT8U *data, INT8U *DAR, CLASS23 *memClass23)
 {
 	int  index = 0;
-	CLASS23		class23={};
+	CLASS23		class23[MAX_AL_UNIT]={};
+	int  no = oad.OI - 0x2301;
 
-	memset(&class23,0,sizeof(CLASS23));
-	readCoverClass(oad.OI, 0, &class23, sizeof(CLASS23), para_vari_save);
+	memcpy(class23,memClass23,sizeof(class23));
+//	readCoverClass(oad.OI, 0, &class23, sizeof(CLASS23), para_vari_save);
 	index += getStructure(&data[index],NULL,DAR);
-	index += getUnsigned(&data[index],&class23.alConState.index,DAR);
-	index += getBitString(1,&data[index],&class23.alConState.enable_flag);
-	index += getBitString(1,&data[index],&class23.alConState.PCState);
-	index += getBitString(1,&data[index],&class23.alConState.ECState);
-	index += getBitString(1,&data[index],&class23.alConState.PTrunState);
-	index += getBitString(1,&data[index],&class23.alConState.ETrunState);
+	index += getUnsigned(&data[index],&class23[no].alConState.index,DAR);
+	index += getBitString(1,&data[index],&class23[no].alConState.enable_flag);
+	index += getBitString(1,&data[index],&class23[no].alConState.PCState);
+	index += getBitString(1,&data[index],&class23[no].alConState.ECState);
+	index += getBitString(1,&data[index],&class23[no].alConState.PTrunState);
+	index += getBitString(1,&data[index],&class23[no].alConState.ETrunState);
 	if(DAR==success) {
-		saveCoverClass(oad.OI, 0, &class23, sizeof(CLASS23), para_vari_save);
-		memcpy(&alConState,&class23.alConState,sizeof(ALCONSTATE));
+		memcpy(memClass23,class23,sizeof(class23));
+		saveCoverClass(oad.OI, 0, &class23[no], sizeof(CLASS23), para_vari_save);
 	}
 	return index;
 }
 
-int class23_set_attr17(OAD oad,INT8U *data, INT8U *DAR, ALCTLSTATE alCtlState)
+int class23_set_attr17(OAD oad,INT8U *data, INT8U *DAR, CLASS23 *memClass23)
 {
 	int  index = 0;
-	CLASS23		class23={};
+	CLASS23		class23[MAX_AL_UNIT]={};
+	int  no = oad.OI - 0x2301;
 
-	memset(&class23,0,sizeof(CLASS23));
-	readCoverClass(oad.OI, 0, &class23, sizeof(CLASS23), para_vari_save);
+	memcpy(class23,memClass23,sizeof(class23));
+//	readCoverClass(oad.OI, 0, &class23, sizeof(CLASS23), para_vari_save);
 	index += getStructure(&data[index],NULL,DAR);
-	index += getLong64(&data[index],&class23.alCtlState.v);
-	index += getInteger(&data[index],&class23.alCtlState.Downc,DAR);
-	index += getBitString(1,&data[index],&class23.alCtlState.OutputState);
-	index += getBitString(1,&data[index],&class23.alCtlState.MonthOutputState);
-	index += getBitString(1,&data[index],&class23.alCtlState.BuyOutputState);
-	index += getBitString(1,&data[index],&class23.alCtlState.PCAlarmState);
-	index += getBitString(1,&data[index],&class23.alCtlState.ECAlarmState);
+	index += getLong64(&data[index],&class23[no].alCtlState.v);
+	index += getInteger(&data[index],&class23[no].alCtlState.Downc,DAR);
+	index += getBitString(1,&data[index],&class23[no].alCtlState.OutputState);
+	index += getBitString(1,&data[index],&class23[no].alCtlState.MonthOutputState);
+	index += getBitString(1,&data[index],&class23[no].alCtlState.BuyOutputState);
+	index += getBitString(1,&data[index],&class23[no].alCtlState.PCAlarmState);
+	index += getBitString(1,&data[index],&class23[no].alCtlState.ECAlarmState);
 	if(DAR==success) {
-		saveCoverClass(oad.OI, 0, &class23, sizeof(CLASS23), para_vari_save);
-		memcpy(&alCtlState,&class23.alCtlState,sizeof(ALCTLSTATE));
+		memcpy(memClass23,class23,sizeof(class23));
+		saveCoverClass(oad.OI, 0, &class23[no], sizeof(CLASS23), para_vari_save);
 	}
 	return index;
 }
@@ -194,22 +200,22 @@ int class23_set(OAD oad, INT8U *data, INT8U *DAR)
 
 	switch (oad.attflg) {
 	case 2:
-		return class23_set_attr2(oad.OI,data,DAR,shareAddr->class23[index].allist);
+		return class23_set_attr2(oad.OI,data,DAR,shareAddr->class23);
 	case 13:
-		return class23_set_attr13(oad.OI,data,DAR,&shareAddr->class23[index].aveCircle);
+		return class23_set_attr13(oad.OI,data,DAR,shareAddr->class23);
 //		if (data[0] != 0x17) {
 //			return 0;
 //		}
 //		shareAddr->class23[index].aveCircle = data[1];
 		break;
 	case 14:
-		return class23_set_attr14_15(oad,data,DAR,&shareAddr->class23[index].pConfig);
+		return class23_set_attr14_15(oad,data,DAR,shareAddr->class23);
 	case 15:
-		return class23_set_attr14_15(oad,data,DAR,&shareAddr->class23[index].eConfig);
+		return class23_set_attr14_15(oad,data,DAR,shareAddr->class23);
 	case 16:
-		return class23_set_attr16(oad,data,DAR,shareAddr->class23[index].alConState);
+		return class23_set_attr16(oad,data,DAR,shareAddr->class23);
 	case 17:
-		return class23_set_attr17(oad,data,DAR,shareAddr->class23[index].alCtlState);
+		return class23_set_attr17(oad,data,DAR,shareAddr->class23);
 	case 18://单位及换算
 		break;
 	}
