@@ -361,6 +361,8 @@ int class8103_act3(int index, int attr_act, INT8U *data, Action_result *act_ret)
 
 	memcpy(&shareAddr->ctrls.c8103.list[0], &c8103.list[0], sizeof(c8103.list[0]));
 	printf("c8103 act 3\n");
+	saveCoverClass(0x8103, 0, (void *) &c8103, sizeof(CLASS_8103),
+			para_vari_save);
 	return 0;
 }
 
