@@ -2,10 +2,16 @@
 // Created by 周立海 on 2017/4/21.
 //
 
+#include <string.h>
 #include <stdio.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <syslog.h>
 
+#include "class12.h"
 #include "class23.h"
 #include "dlt698.h"
+#include "AccessFun.h"
 #include "PublicFunction.h"
 
 int class23_selector(int index, int attr_act, INT8U *data,
@@ -68,28 +74,149 @@ int class23_act3(int index, INT8U* data) {
 	return 0;
 }
 
-int class23_set(int index, OAD oad, INT8U *data, INT8U *DAR) {
-	ProgramInfo *shareAddr = getShareAddr();
-	asyslog(LOG_WARNING, "修改总加组属性(%d)", oad.attflg);
+int class23_set_attr2(OI_698 oi,INT8U *data, INT8U *DAR, CLASS23 *memClass23)
+{
+	int  index = 0;
+	CLASS23		class23[MAX_AL_UNIT]={};
+	INT8U	unitnum = 0,i=0;
+	int  no = oi - 0x2301;
 
-	switch (oad.attflg) {
-	case 13:
-		if (data[0] != 0x17) {
-			return 0;
-		}
-		shareAddr->class23[index].aveCircle = data[1];
-		break;
+	memcpy(class23,memClass23,sizeof(class23));
+//	readCoverClass(oi, 0, &class23, sizeof(CLASS23), para_vari_save);
+	index += getArray(&data[index],&unitnum,DAR);
+	unitnum = limitJudge("总加组配置单元",MAX_AL_UNIT,unitnum);
+	for(i=0;i<unitnum;i++) {
+		index += getStructure(&data[index],NULL,DAR);
+		index += getOctetstring(1,&data[index],(INT8U *)&class23[no].allist[i].tsa,DAR);
+		index += getEnum(1,&data[index],&class23[no].allist[i].al_flag);
+		index += getEnum(1,&data[index],&class23[no].allist[i].cal_flag);
+	}
+	if(DAR==success) {
+		memcpy(memClass23,class23,sizeof(class23));
+		saveCoverClass(oi, 0, &class23[no], sizeof(CLASS23), para_vari_save);
+	}
+	return index;
+}
+
+int class23_set_attr13(OI_698 oi,INT8U *data, INT8U *DAR, CLASS23 *memClass23)
+{
+	int  index = 0;
+	CLASS23		class23[MAX_AL_UNIT]={};
+	int  no = oi - 0x2301;
+
+	memcpy(class23,memClass23,sizeof(class23));
+//	readCoverClass(oi, 0, &class23, sizeof(CLASS23), para_vari_save);
+	index += getUnsigned(&data[index],&class23[no].aveCircle,DAR);
+	if(DAR==success) {
+		memcpy(memClass23,class23,sizeof(class23));
+		saveCoverClass(oi, 0, &class23[no], sizeof(CLASS23), para_vari_save);
+	}
+	return index;
+}
+
+int class23_set_attr14_15(OAD oad,INT8U *data, INT8U *DAR, CLASS23 *memClass23)
+{
+	int  index = 0;
+	CLASS23		class23[MAX_AL_UNIT]={};
+	int  no = oad.OI - 0x2301;
+
+	memcpy(class23,memClass23,sizeof(class23));
+//	readCoverClass(oad.OI, 0, &class23, sizeof(CLASS23), para_vari_save);
+	switch(oad.attflg){
 	case 14:
-		if (data[0] != 0x04) {
-			return 0;
+		index += getBitString(1,&data[index],&class23[no].pConfig);
+		if(DAR==success) {
+			memcpy(memClass23,class23,sizeof(class23));
+			saveCoverClass(oad.OI, 0, &class23[no], sizeof(CLASS23), para_vari_save);
 		}
-		shareAddr->class23[index].pConfig = data[1];
 		break;
 	case 15:
-		if (data[0] != 0x04) {
-			return 0;
+		index += getBitString(1,&data[index],&class23[no].eConfig);
+		if(DAR==success) {
+			memcpy(memClass23,class23,sizeof(class23));
+			saveCoverClass(oad.OI, 0, &class23[no], sizeof(CLASS23), para_vari_save);
 		}
-		shareAddr->class23[index].eConfig = data[1];
+		break;
+	}
+	return index;
+}
+
+//TODO: 设置某一项属性的处理
+int class23_set_attr16(OAD oad,INT8U *data, INT8U *DAR, CLASS23 *memClass23)
+{
+	int  index = 0;
+	CLASS23		class23[MAX_AL_UNIT]={};
+	int  no = oad.OI - 0x2301;
+
+	memcpy(class23,memClass23,sizeof(class23));
+//	readCoverClass(oad.OI, 0, &class23, sizeof(CLASS23), para_vari_save);
+	index += getStructure(&data[index],NULL,DAR);
+	index += getUnsigned(&data[index],&class23[no].alConState.index,DAR);
+	index += getBitString(1,&data[index],&class23[no].alConState.enable_flag);
+	index += getBitString(1,&data[index],&class23[no].alConState.PCState);
+	index += getBitString(1,&data[index],&class23[no].alConState.ECState);
+	index += getBitString(1,&data[index],&class23[no].alConState.PTrunState);
+	index += getBitString(1,&data[index],&class23[no].alConState.ETrunState);
+	if(DAR==success) {
+		memcpy(memClass23,class23,sizeof(class23));
+		saveCoverClass(oad.OI, 0, &class23[no], sizeof(CLASS23), para_vari_save);
+	}
+	return index;
+}
+
+int class23_set_attr17(OAD oad,INT8U *data, INT8U *DAR, CLASS23 *memClass23)
+{
+	int  index = 0;
+	CLASS23		class23[MAX_AL_UNIT]={};
+	int  no = oad.OI - 0x2301;
+
+	memcpy(class23,memClass23,sizeof(class23));
+//	readCoverClass(oad.OI, 0, &class23, sizeof(CLASS23), para_vari_save);
+	index += getStructure(&data[index],NULL,DAR);
+	index += getLong64(&data[index],&class23[no].alCtlState.v);
+	index += getInteger(&data[index],&class23[no].alCtlState.Downc,DAR);
+	index += getBitString(1,&data[index],&class23[no].alCtlState.OutputState);
+	index += getBitString(1,&data[index],&class23[no].alCtlState.MonthOutputState);
+	index += getBitString(1,&data[index],&class23[no].alCtlState.BuyOutputState);
+	index += getBitString(1,&data[index],&class23[no].alCtlState.PCAlarmState);
+	index += getBitString(1,&data[index],&class23[no].alCtlState.ECAlarmState);
+	if(DAR==success) {
+		memcpy(memClass23,class23,sizeof(class23));
+		saveCoverClass(oad.OI, 0, &class23[no], sizeof(CLASS23), para_vari_save);
+	}
+	return index;
+}
+
+int class23_set(OAD oad, INT8U *data, INT8U *DAR)
+{
+	asyslog(LOG_WARNING, "修改总加组(%04x)属性(%d)", oad.OI,oad.attflg);
+	ProgramInfo *shareAddr = getShareAddr();
+	int index = oad.OI - 0x2301;
+	index = rangeJudge("总加组",index,0,(MAXNUM_SUMGROUP-1));
+	if(index == -1)  {
+		*DAR = obj_unexist;
+		return 0;		//返回值len为？？
+	}
+
+	switch (oad.attflg) {
+	case 2:
+		return class23_set_attr2(oad.OI,data,DAR,shareAddr->class23);
+	case 13:
+		return class23_set_attr13(oad.OI,data,DAR,shareAddr->class23);
+//		if (data[0] != 0x17) {
+//			return 0;
+//		}
+//		shareAddr->class23[index].aveCircle = data[1];
+		break;
+	case 14:
+		return class23_set_attr14_15(oad,data,DAR,shareAddr->class23);
+	case 15:
+		return class23_set_attr14_15(oad,data,DAR,shareAddr->class23);
+	case 16:
+		return class23_set_attr16(oad,data,DAR,shareAddr->class23);
+	case 17:
+		return class23_set_attr17(oad,data,DAR,shareAddr->class23);
+	case 18://单位及换算
 		break;
 	}
 	return 0;
@@ -180,7 +307,7 @@ int class23_get_7_8_9_10(OAD oad, INT64S energy_all,INT64S *energy,INT8U *buf, i
 		}
 	}else {
 		unit = oad.attrindex - 1;
-		unit = rangeJudge("电能量",unit,0,MAXVAL_RATENUM);
+		unit = rangeJudge("电能量",unit,0,(MAXVAL_RATENUM-1));
 		if(unit != -1) {
 			*len = 0;
 			*len += fill_long64(&buf[*len], total_energy[unit]);

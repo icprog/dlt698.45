@@ -3171,7 +3171,7 @@ int dateJudge(TS *old ,TS *new)
 //		memcpy(old,new,sizeof(TS));
 //		return 1;
 //	}
-	if ((new->Hour==23 && new->Minute>=55 )  &&  (old->Hour!=new->Hour)  && (old->Day!=new->Day))
+	if ((new->Hour==23 && new->Minute>=55 )   && (old->Day!=new->Day))
 	{
 		memcpy(old,new,sizeof(TS));
 		return 1;
@@ -3917,7 +3917,7 @@ void readplc_thread()
 	DbgPrintToFile1(31,"1-fangAn6015[%d].sernum = %d  fangAn6015[%d].mst.mstype = %d ",
 			0,fangAn6015[0].sernum,0,fangAn6015[0].mst.mstype);
 	TSGet(&runtimevar.nowts);
-	TSGet(&runtimevar.oldts);
+	memset(&runtimevar.oldts,0,sizeof(&runtimevar.oldts));
 	while(1)
 	{
 		usleep(50000);

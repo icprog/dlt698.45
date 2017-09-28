@@ -312,32 +312,24 @@ INT16U ALSetAttrib(OAD oad, INT8U *data, INT8U *DAR) {
 	INT16U data_index = 0;
 	switch (oad.OI) {
 		case 0x2301:
-			data_index = class23_set(1, oad, data, DAR);
-			break;
 		case 0x2302:
-			data_index = class23_set(2, oad, data, DAR);
-			break;
 		case 0x2303:
-			data_index = class23_set(3, oad, data, DAR);
-			break;
 		case 0x2304:
-			data_index = class23_set(4, oad, data, DAR);
-			break;
 		case 0x2305:
-			data_index = class23_set(5, oad, data, DAR);
-			break;
 		case 0x2306:
-			data_index = class23_set(6, oad, data, DAR);
-			break;
 		case 0x2307:
-			data_index = class23_set(7, oad, data, DAR);
-			break;
 		case 0x2308:
-			data_index = class23_set(8, oad, data, DAR);
+			data_index = class23_set(oad, data, DAR);
 			break;
 		case 0x2401:
 		case 0x2402:
-			data_index = class2401_set(9, oad, data, DAR);
+//		case 0x2403:
+//		case 0x2404:
+//		case 0x2405:
+//		case 0x2406:
+//		case 0x2407:
+//		case 0x2408:
+			data_index = class12_set(oad, data, DAR);
 			break;
 		case 0x8001:
 			data_index = class8001_set(10, oad, data, DAR);

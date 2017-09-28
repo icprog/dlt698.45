@@ -138,10 +138,10 @@ void refreshPluse(int sec) {
 	for (int i = 0; i < 2; i++) {
 		if (pluse[i] > pluseCountOld[i]) {
 			int val = pluse[i] - pluseCountOld[i];
+			JProgramInfo->class12[i].pluse_count += val;
 			cacl_DD(val, i);
 			pluseCountOld[i] = pluse[i];
 		}
-
 	}
 
 	if (sec == 15) {

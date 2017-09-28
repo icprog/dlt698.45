@@ -54,9 +54,16 @@ int ctrl_base_test() {
 void refreshSumUp() {
 	static int old_day;
 	static int old_month;
+	static int first_flag = 1;
 
 	TS ts;
 	TSGet(&ts);
+
+	if(first_flag == 1) {
+		first_flag = 0;
+		old_day = ts.Day;
+		old_month = ts.Month;
+	}
 
 	JProgramInfo->class23[0].p = JProgramInfo->class12[0].p;
 	JProgramInfo->class23[0].q = JProgramInfo->class12[0].q;
@@ -140,7 +147,7 @@ int initAll() {
 
 	for (int i = 0; i < 2; ++i) {
 		memset(&JProgramInfo->class12[i], 0x00, sizeof(CLASS12));
-		readCoverClass(0x2401 + i, 0, &JProgramInfo->class23[i],
+		readCoverClass(0x2401 + i, 0, &JProgramInfo->class12[i],
 				sizeof(CLASS12), para_vari_save);
 	}
 
