@@ -178,25 +178,25 @@ void clearClass23Data(CLASS23 class23)
 void clearControlData()
 {
 	syslog(LOG_NOTICE,"__%s__",__func__);
-	CLASS12			class12[2]={};			//脉冲计量
-	CLASS23			class23[8]={};			//总加组
+	CLASS12			class12={};			//脉冲计量
+	CLASS23			class23={};			//总加组
 	int		ret = 0;
 	OI_698	oi=0;
 
 	//清除总加组数据
 	for(oi=0x2301;oi<=0x2308;oi++) {
-		ret = readCoverClass(oi, 0, &class23[oi], sizeof(CLASS23), para_vari_save);
+		ret = readCoverClass(oi, 0, &class23, sizeof(CLASS23), para_vari_save);
 		if(ret!=-1) {
-			clearClass23Data(class23[oi]);
-			saveCoverClass(oi, 0, &class23[oi], sizeof(CLASS23), para_vari_save);
+			clearClass23Data(class23);
+			saveCoverClass(oi, 0, &class23, sizeof(CLASS23), para_vari_save);
 		}
 	}
 	//清除脉冲计量数据
 	for(oi=0x2401;oi<=0x2408;oi++) {
-		ret = readCoverClass(oi, 0, &class12[oi], sizeof(CLASS12), para_vari_save);
+		ret = readCoverClass(oi, 0, &class12, sizeof(CLASS12), para_vari_save);
 		if(ret!=-1) {
-			clearClass12Data(class12[oi]);
-			saveCoverClass(oi, 0, &class12[oi], sizeof(CLASS12), para_vari_save);
+			clearClass12Data(class12);
+			saveCoverClass(oi, 0, &class12, sizeof(CLASS12), para_vari_save);
 		}
 	}
 }

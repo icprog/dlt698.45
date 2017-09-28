@@ -15,32 +15,7 @@
 #include "dlt698.h"
 
 
-int Set_4000(INT8U *data,INT8U *DAR)
-{
-	DateTimeBCD datetime={};
-	int		index=0;
-
-//	DataTimeGet(&datetime);
-	index += getDateTimeS(1,data,(INT8U *)&datetime,DAR);
-	if(*DAR==success) {	//时间合法
-		setsystime(datetime);
-	}
-//	sleep(2);		//延时2秒，确保台体测试过程中，修改时间设置成功
-	return index;
-}
-int Set_4006(INT8U *data,INT8U *DAR,INT8U attr_act)
-{
-    if(attr_act == 127 || attr_act == 128)
-    {
-    	CLASS_4006 class_tmp={};
-    	int ret = readCoverClass(0x4006,0,&class_tmp,sizeof(CLASS_4006),para_vari_save);
-    	if(ret == 1)
-    		getEnum(0,data,&class_tmp.state);
-    	saveCoverClass(0x4006,0,&class_tmp,sizeof(CLASS_4006),para_vari_save);
-    }
-	return 0;
-}
-////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////
 /*
  * 电压合格率
  */

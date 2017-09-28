@@ -316,16 +316,6 @@ void get_BasicUnit(INT8U *source, INT16U *sourceindex, INT8U *dest, INT16U *dest
     *destindex = dest_sumindex;
 }
 
-int class4000_act(INT16U attr_act, INT8U *data, Action_result *act_ret)
-{
-//	DateTimeBCD datetime={};
-	int index=0;
-	if (attr_act == 127) {  //方法 127 广播校时
-		index += Set_4000(data,&act_ret->DAR);
-	}
-	return 0;
-}
-
 void AddBatchMeterInfo(INT8U *data, INT8U type, Action_result *act_ret) {
     CLASS_6001 meter = {};
     int k = 0, saveflg = 0, index = 0;
@@ -1449,11 +1439,11 @@ int doObjectAction(OAD oad, INT8U *data, Action_result *act_ret) {
 		switch (oi) {
     	case 0x4000:	//广播校时
      		if (attr_act == 127) {  //方法 127 广播校时
-    			act_ret->datalen = Set_4000(data,&act_ret->DAR);
+    			act_ret->datalen = Set_4000_att2(data,&act_ret->DAR);
     		}
     		break;
     	case 0x4006:
-    		Set_4006(data,&act_ret->DAR,attr_act);
+    		set4006(oad,data,&act_ret->DAR);
     		break;
         case 0x4300:    //终端对象
             TerminalInfo(attr_act, data, act_ret);
@@ -1515,7 +1505,14 @@ int doObjectAction(OAD oad, INT8U *data, Action_result *act_ret) {
         	PlcInfo(attr_act, data, act_ret);
         	break;
         case 0x2401:
-        	class12_router(0, attr_act, data, act_ret);
+        case 0x2402:
+        case 0x2403:
+        case 0x2404:
+        case 0x2405:
+        case 0x2406:
+        case 0x2407:
+        case 0x2408:
+        	class12_router(oad, data, &act_ret->datalen, &act_ret->DAR);
 			break;
         case 0x2301:
             class23_selector(0, attr_act, data, act_ret);

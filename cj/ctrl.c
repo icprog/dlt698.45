@@ -231,7 +231,7 @@ void pluseTest(OI_698 oi,CLASS12	class12)
 {
 	INT8U	i=0;
 	fprintf(stderr,"att2:通信地址");
-	for(i=0;i<OCTET_STRING_LEN;i++) {
+	for(i=0;i<(class12.addr[0]+1);i++) {
 		fprintf(stderr,"%02x ",class12.addr[i]);
 	}
 	fprintf(stderr,"\n");
@@ -291,7 +291,7 @@ void sum_process(int argc, char *argv[])
 				sscanf(argv[3],"%04x",&tmp);
 				oi = tmp;
 				index = oi-0x2401;
-				index = rangeJudge("脉冲",index,0,1);
+				index = rangeJudge("脉冲",index,0,(MAXNUM_SUMGROUP-1));
 				if(index == -1) {
 					fprintf(stderr,"脉冲计量OI【%04x】输入错误\n",oi);
 					return;
