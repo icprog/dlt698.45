@@ -218,7 +218,7 @@ void terminalTaskFreeze(INT8U taskid,INT8U fanganid)
 			if(tsa_group[meterid].basicinfo.port.OI == PORT_PLUSE) {
 				//满足脉冲输入设备，进行相关任务数据存储
 				pluseindex = tsa_group[meterid].basicinfo.port.attrindex-1;
-				pluseindex = rangeJudge("脉冲",pluseindex,0,1);
+				pluseindex = rangeJudge("脉冲",pluseindex,0,(MAX_PULSE_NUM-1));
 				if(pluseindex != -1) {
 					savePulseTaskData(pluseindex,taskid,savets,tsa_group[meterid].basicinfo.addr,class6015.csds);
 				}

@@ -1506,37 +1506,23 @@ int doObjectAction(OAD oad, INT8U *data, Action_result *act_ret) {
         	break;
         case 0x2401:
         case 0x2402:
-        case 0x2403:
-        case 0x2404:
-        case 0x2405:
-        case 0x2406:
-        case 0x2407:
-        case 0x2408:
+//        case 0x2403:
+//        case 0x2404:
+//        case 0x2405:
+//        case 0x2406:
+//        case 0x2407:
+//        case 0x2408:
         	class12_router(oad, data, &act_ret->datalen, &act_ret->DAR);
 			break;
         case 0x2301:
-            class23_selector(0, attr_act, data, act_ret);
-            break;
         case 0x2302:
-            class23_selector(1, attr_act, data, act_ret);
-            break;
         case 0x2303:
-            class23_selector(2, attr_act, data, act_ret);
-            break;
         case 0x2304:
-            class23_selector(3, attr_act, data, act_ret);
-            break;
         case 0x2305:
-            class23_selector(4, attr_act, data, act_ret);
-            break;
         case 0x2306:
-            class23_selector(5, attr_act, data, act_ret);
-            break;
         case 0x2307:
-            class23_selector(6, attr_act, data, act_ret);
-            break;
         case 0x2308:
-            class23_selector(7, attr_act, data, act_ret);
+        	class23_selector(oad, data, act_ret);
             break;
         case 0x8000:
             class8000_act_route(1, attr_act, data, act_ret);

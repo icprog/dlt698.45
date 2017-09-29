@@ -309,7 +309,7 @@ void sum_process(int argc, char *argv[])
 				sscanf(argv[3],"%04x",&tmp);
 				oi = tmp;
 				index = oi-0x2401;
-				index = rangeJudge("脉冲",index,0,(MAXNUM_SUMGROUP-1));
+				index = rangeJudge("脉冲",index,0,(MAX_PULSE_NUM-1));
 				if(index == -1) {
 					fprintf(stderr,"脉冲计量OI【%04x】输入错误\n",oi);
 					return;
