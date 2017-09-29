@@ -2196,6 +2196,11 @@ INT8U ReadTaskInfo(INT8U taskid,TASKSET_INFO *tasknor_info)//读取普通采集�
 //			tasknor_info->runtime = CalcFreq(class6013.interval,class6015,tasknor_info->starthour*60+tasknor_info->startmin,tasknor_info->endhour*60+tasknor_info->endmin,&tasknor_info->freq);
 			if(tasknor_info->runtime == 0)
 				return 0;
+			if(tasknor_info->runtime > 288)//存储太多，改为五分钟一个点
+			{
+				tasknor_info->runtime = 288;
+				tasknor_info->freq = 300;
+			}
 			fprintf(stderr,"\n---@@@---任务%d执行次数%d 设置的单位%d\n",taskid,tasknor_info->runtime,class6013.interval.units);
 			tasknor_info->KBtype = CalcKBType(class6013.runtime.type);
 			fprintf(stderr,"\n---@@@---开闭方式%d\n",tasknor_info->KBtype);
