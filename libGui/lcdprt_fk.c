@@ -1013,9 +1013,9 @@ void menu_goudian(){
 			for(enable_i=0;enable_i<8;enable_i++)
 			{
 				fprintf(stderr,"\nc8107[%d] index = %04x  ",enable_i,c8107.list[enable_i].index);
-				fprintf(stderr,"\nc8107[%d] alarm = %04x  ",enable_i,c8107.list[enable_i].alarm);
-				fprintf(stderr,"\nc8107[%d] ctrl = %04x  ",enable_i,c8107.list[enable_i].ctrl);
-				fprintf(stderr,"\nc8107[%d] v = %04x  ",enable_i,c8107.list[enable_i].v);
+				fprintf(stderr,"\nc8107[%d] alarm = %d  ",enable_i,c8107.list[enable_i].alarm);
+				fprintf(stderr,"\nc8107[%d] ctrl = %d  ",enable_i,c8107.list[enable_i].ctrl);
+				fprintf(stderr,"\nc8107[%d] v = %d  ",enable_i,c8107.list[enable_i].v);
 				fprintf(stderr,"\n\n\n");
 			}
 

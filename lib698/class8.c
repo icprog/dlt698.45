@@ -324,46 +324,67 @@ int class8103_act3(int index, int attr_act, INT8U *data, Action_result *act_ret)
 	if (data[8] != 0x02 || data[9] != 0x09) {
 		return 0;
 	}
-
-	c8103.list[unit].v1.n = data[12];
-	c8103.list[unit].v1.t1 = getLongValue(&data[13]);
-	c8103.list[unit].v1.t2 = getLongValue(&data[22]);
-	c8103.list[unit].v1.t3 = getLongValue(&data[31]);
-	c8103.list[unit].v1.t4 = getLongValue(&data[40]);
-	c8103.list[unit].v1.t5 = getLongValue(&data[49]);
-	c8103.list[unit].v1.t6 = getLongValue(&data[58]);
-	c8103.list[unit].v1.t7 = getLongValue(&data[67]);
-	c8103.list[unit].v1.t8 = getLongValue(&data[76]);
-
-	if (data[85] != 0x02 || data[86] != 0x09) {
+	int ind = 12;
+	c8103.list[unit].v1.n = data[ind++];
+	c8103.list[unit].v1.t1 = getLongValue(&data[ind]);
+	ind =ind + 9;
+	c8103.list[unit].v1.t2 = getLongValue(&data[ind]);
+	ind =ind + 9;
+	c8103.list[unit].v1.t3 = getLongValue(&data[ind]);
+	ind =ind + 9;
+	c8103.list[unit].v1.t4 = getLongValue(&data[ind]);
+	ind =ind + 9;
+	c8103.list[unit].v1.t5 = getLongValue(&data[ind]);
+	ind =ind + 9;
+	c8103.list[unit].v1.t6 = getLongValue(&data[ind]);
+	ind =ind + 9;
+	c8103.list[unit].v1.t7 = getLongValue(&data[ind]);
+	ind =ind + 9;
+	c8103.list[unit].v1.t8 = getLongValue(&data[ind]);
+	ind =ind + 9;
+	if (data[ind] != 0x02 || data[ind+1] != 0x09) {
 		return 0;
 	}
-
-	c8103.list[unit].v2.n = data[89];
-	c8103.list[unit].v2.t1 = getLongValue(&data[90]);
-	c8103.list[unit].v2.t2 = getLongValue(&data[99]);
-	c8103.list[unit].v2.t3 = getLongValue(&data[108]);
-	c8103.list[unit].v2.t4 = getLongValue(&data[117]);
-	c8103.list[unit].v2.t5 = getLongValue(&data[126]);
-	c8103.list[unit].v2.t6 = getLongValue(&data[135]);
-	c8103.list[unit].v2.t7 = getLongValue(&data[144]);
-	c8103.list[unit].v2.t8 = getLongValue(&data[153]);
-
-	if (data[162] != 0x02 || data[163] != 0x09) {
+	ind = ind + 2;
+	c8103.list[unit].v2.n = data[ind++];
+	c8103.list[unit].v2.t1 = getLongValue(&data[ind]);
+	ind = ind + 9;
+	c8103.list[unit].v2.t2 = getLongValue(&data[ind]);
+	ind = ind + 9;
+	c8103.list[unit].v2.t3 = getLongValue(&data[ind]);
+	ind = ind + 9;
+	c8103.list[unit].v2.t4 = getLongValue(&data[ind]);
+	ind = ind + 9;
+	c8103.list[unit].v2.t5 = getLongValue(&data[ind]);
+	ind = ind + 9;
+	c8103.list[unit].v2.t6 = getLongValue(&data[ind]);
+	ind = ind + 9;
+	c8103.list[unit].v2.t7 = getLongValue(&data[ind]);
+	ind = ind + 9;
+	c8103.list[unit].v2.t8 = getLongValue(&data[ind]);
+	ind = ind + 9;
+	if (data[ind] != 0x02 || data[ind+1] != 0x09) {
 		return 0;
 	}
-
-	c8103.list[unit].v2.n = data[166];
-	c8103.list[unit].v2.t1 = getLongValue(&data[175]);
-	c8103.list[unit].v2.t2 = getLongValue(&data[184]);
-	c8103.list[unit].v2.t3 = getLongValue(&data[193]);
-	c8103.list[unit].v2.t4 = getLongValue(&data[202]);
-	c8103.list[unit].v2.t5 = getLongValue(&data[211]);
-	c8103.list[unit].v2.t6 = getLongValue(&data[220]);
-	c8103.list[unit].v2.t7 = getLongValue(&data[229]);
-	c8103.list[unit].v2.t8 = getLongValue(&data[238]);
-
-	c8103.list[unit].para = data[248];
+	ind = ind +2;
+	c8103.list[unit].v2.n = data[ind++];
+	c8103.list[unit].v2.t1 = getLongValue(&data[ind]);
+	ind = ind + 9;
+	c8103.list[unit].v2.t2 = getLongValue(&data[ind]);
+	ind = ind + 9;
+	c8103.list[unit].v2.t3 = getLongValue(&data[ind]);
+	ind = ind + 9;
+	c8103.list[unit].v2.t4 = getLongValue(&data[ind]);
+	ind = ind + 9;
+	c8103.list[unit].v2.t5 = getLongValue(&data[ind]);
+	ind = ind + 9;
+	c8103.list[unit].v2.t6 = getLongValue(&data[ind]);
+	ind = ind + 9;
+	c8103.list[unit].v2.t7 = getLongValue(&data[ind]);
+	ind = ind + 9;
+	c8103.list[unit].v2.t8 = getLongValue(&data[ind]);
+	ind = ind + 10;
+	c8103.list[unit].para = data[ind];
 
 	memcpy(&shareAddr->ctrls.c8103.list[0], &c8103.list[0], sizeof(c8103.list[0]));
 	printf("c8103 act 3\n");
