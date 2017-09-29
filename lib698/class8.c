@@ -298,9 +298,11 @@ int class8102_set(int index, OAD oad, INT8U *data, INT8U *DAR) {
 			para_vari_save);
 	return 0;
 }
-
+extern int getLong64(INT8U *source,INT64U *dest);
 int class8103_act3(int index, int attr_act, INT8U *data, Action_result *act_ret) {
 	CLASS_8103 c8103;
+
+	readCoverClass(0x8103, 0, (void *) &c8103, sizeof(CLASS_8103),para_vari_save);
 
 	ProgramInfo *shareAddr = getShareAddr();
 
@@ -312,52 +314,56 @@ int class8103_act3(int index, int attr_act, INT8U *data, Action_result *act_ret)
 		return 0;
 	}
 
-	c8103.list[0].index = data[3] * 256 + data[4];
-	c8103.list[0].sign = data[7];
+	OI_698 oi = data[3] * 256 + data[4];
+	int unit  = oi - 0x2301;
+
+	c8103.list[unit].index = oi;//data[3] * 256 + data[4];
+	c8103.list[unit].sign = data[7];
+
 
 	if (data[8] != 0x02 || data[9] != 0x09) {
 		return 0;
 	}
 
-	c8103.list[0].v1.n = data[12];
-	c8103.list[0].v1.t1 = getLongValue(&data[13]);
-	c8103.list[0].v1.t2 = getLongValue(&data[22]);
-	c8103.list[0].v1.t3 = getLongValue(&data[31]);
-	c8103.list[0].v1.t4 = getLongValue(&data[40]);
-	c8103.list[0].v1.t5 = getLongValue(&data[49]);
-	c8103.list[0].v1.t6 = getLongValue(&data[58]);
-	c8103.list[0].v1.t7 = getLongValue(&data[67]);
-	c8103.list[0].v1.t8 = getLongValue(&data[76]);
+	c8103.list[unit].v1.n = data[12];
+	c8103.list[unit].v1.t1 = getLongValue(&data[13]);
+	c8103.list[unit].v1.t2 = getLongValue(&data[22]);
+	c8103.list[unit].v1.t3 = getLongValue(&data[31]);
+	c8103.list[unit].v1.t4 = getLongValue(&data[40]);
+	c8103.list[unit].v1.t5 = getLongValue(&data[49]);
+	c8103.list[unit].v1.t6 = getLongValue(&data[58]);
+	c8103.list[unit].v1.t7 = getLongValue(&data[67]);
+	c8103.list[unit].v1.t8 = getLongValue(&data[76]);
 
 	if (data[85] != 0x02 || data[86] != 0x09) {
 		return 0;
 	}
 
-	c8103.list[0].v2.n = data[89];
-	c8103.list[0].v2.t1 = getLongValue(&data[90]);
-	c8103.list[0].v2.t2 = getLongValue(&data[99]);
-	c8103.list[0].v2.t3 = getLongValue(&data[108]);
-	c8103.list[0].v2.t4 = getLongValue(&data[117]);
-	c8103.list[0].v2.t5 = getLongValue(&data[126]);
-	c8103.list[0].v2.t6 = getLongValue(&data[135]);
-	c8103.list[0].v2.t7 = getLongValue(&data[144]);
-	c8103.list[0].v2.t8 = getLongValue(&data[153]);
+	c8103.list[unit].v2.n = data[89];
+	c8103.list[unit].v2.t1 = getLongValue(&data[90]);
+	c8103.list[unit].v2.t2 = getLongValue(&data[99]);
+	c8103.list[unit].v2.t3 = getLongValue(&data[108]);
+	c8103.list[unit].v2.t4 = getLongValue(&data[117]);
+	c8103.list[unit].v2.t5 = getLongValue(&data[126]);
+	c8103.list[unit].v2.t6 = getLongValue(&data[135]);
+	c8103.list[unit].v2.t7 = getLongValue(&data[144]);
+	c8103.list[unit].v2.t8 = getLongValue(&data[153]);
 
 	if (data[162] != 0x02 || data[163] != 0x09) {
 		return 0;
 	}
 
-	c8103.list[0].v2.n = data[166];
-	c8103.list[0].v2.t1 = getLongValue(&data[175]);
-	c8103.list[0].v2.t2 = getLongValue(&data[184]);
-	c8103.list[0].v2.t3 = getLongValue(&data[193]);
-	c8103.list[0].v2.t4 = getLongValue(&data[202]);
-	c8103.list[0].v2.t5 = getLongValue(&data[211]);
-	c8103.list[0].v2.t6 = getLongValue(&data[220]);
-	c8103.list[0].v2.t7 = getLongValue(&data[229]);
-	c8103.list[0].v2.t8 = getLongValue(&data[238]);
+	c8103.list[unit].v2.n = data[166];
+	c8103.list[unit].v2.t1 = getLongValue(&data[175]);
+	c8103.list[unit].v2.t2 = getLongValue(&data[184]);
+	c8103.list[unit].v2.t3 = getLongValue(&data[193]);
+	c8103.list[unit].v2.t4 = getLongValue(&data[202]);
+	c8103.list[unit].v2.t5 = getLongValue(&data[211]);
+	c8103.list[unit].v2.t6 = getLongValue(&data[220]);
+	c8103.list[unit].v2.t7 = getLongValue(&data[229]);
+	c8103.list[unit].v2.t8 = getLongValue(&data[238]);
 
-	c8103.list[0].para = data[248];
+	c8103.list[unit].para = data[248];
 
 	memcpy(&shareAddr->ctrls.c8103.list[0], &c8103.list[0], sizeof(c8103.list[0]));
 	printf("c8103 act 3\n");
