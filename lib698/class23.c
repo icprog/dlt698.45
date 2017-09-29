@@ -121,6 +121,7 @@ int class23_set_attr2(OI_698 oi,INT8U *data, INT8U *DAR, CLASS23 *memClass23)
 	memcpy(class23,memClass23,sizeof(class23));
 //	readCoverClass(oi, 0, &class23, sizeof(CLASS23), para_vari_save);
 	index += getArray(&data[index],&unitnum,DAR);
+	fprintf(stderr,"unitnum = %d  DAR=%d\n",unitnum,*DAR);
 	unitnum = limitJudge("总加组配置单元",MAX_AL_UNIT,unitnum);
 	for(i=0;i<unitnum;i++) {
 		index += getStructure(&data[index],NULL,DAR);
@@ -128,7 +129,9 @@ int class23_set_attr2(OI_698 oi,INT8U *data, INT8U *DAR, CLASS23 *memClass23)
 		index += getEnum(1,&data[index],&class23[no].allist[i].al_flag);
 		index += getEnum(1,&data[index],&class23[no].allist[i].cal_flag);
 	}
-	if(DAR==success) {
+
+	fprintf(stderr,"1111unitnum = %d  DAR=%d oi=%04x\n",unitnum,*DAR,oi);
+	if(*DAR==success) {
 		memcpy(memClass23,class23,sizeof(class23));
 		saveCoverClass(oi, 0, &class23[no], sizeof(CLASS23), para_vari_save);
 	}
@@ -144,7 +147,7 @@ int class23_set_attr13(OI_698 oi,INT8U *data, INT8U *DAR, CLASS23 *memClass23)
 	memcpy(class23,memClass23,sizeof(class23));
 //	readCoverClass(oi, 0, &class23, sizeof(CLASS23), para_vari_save);
 	index += getUnsigned(&data[index],&class23[no].aveCircle,DAR);
-	if(DAR==success) {
+	if(*DAR==success) {
 		memcpy(memClass23,class23,sizeof(class23));
 		saveCoverClass(oi, 0, &class23[no], sizeof(CLASS23), para_vari_save);
 	}
@@ -162,14 +165,14 @@ int class23_set_attr14_15(OAD oad,INT8U *data, INT8U *DAR, CLASS23 *memClass23)
 	switch(oad.attflg){
 	case 14:
 		index += getBitString(1,&data[index],&class23[no].pConfig);
-		if(DAR==success) {
+		if(*DAR==success) {
 			memcpy(memClass23,class23,sizeof(class23));
 			saveCoverClass(oad.OI, 0, &class23[no], sizeof(CLASS23), para_vari_save);
 		}
 		break;
 	case 15:
 		index += getBitString(1,&data[index],&class23[no].eConfig);
-		if(DAR==success) {
+		if(*DAR==success) {
 			memcpy(memClass23,class23,sizeof(class23));
 			saveCoverClass(oad.OI, 0, &class23[no], sizeof(CLASS23), para_vari_save);
 		}
@@ -194,7 +197,7 @@ int class23_set_attr16(OAD oad,INT8U *data, INT8U *DAR, CLASS23 *memClass23)
 	index += getBitString(1,&data[index],&class23[no].alConState.ECState);
 	index += getBitString(1,&data[index],&class23[no].alConState.PTrunState);
 	index += getBitString(1,&data[index],&class23[no].alConState.ETrunState);
-	if(DAR==success) {
+	if(*DAR==success) {
 		memcpy(memClass23,class23,sizeof(class23));
 		saveCoverClass(oad.OI, 0, &class23[no], sizeof(CLASS23), para_vari_save);
 	}
@@ -217,7 +220,7 @@ int class23_set_attr17(OAD oad,INT8U *data, INT8U *DAR, CLASS23 *memClass23)
 	index += getBitString(1,&data[index],&class23[no].alCtlState.BuyOutputState);
 	index += getBitString(1,&data[index],&class23[no].alCtlState.PCAlarmState);
 	index += getBitString(1,&data[index],&class23[no].alCtlState.ECAlarmState);
-	if(DAR==success) {
+	if(*DAR==success) {
 		memcpy(memClass23,class23,sizeof(class23));
 		saveCoverClass(oad.OI, 0, &class23[no], sizeof(CLASS23), para_vari_save);
 	}
