@@ -178,6 +178,7 @@ void prthelp() {
     fprintf(stderr, "%s", usage_para);
     fprintf(stderr, "%s", usage_coll);
     fprintf(stderr, "%s", usage_inoutdev);
+
 }
 
 

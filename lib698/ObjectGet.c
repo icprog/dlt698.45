@@ -131,6 +131,7 @@ int BuildFrame_GetResponseNext(INT8U response_type,CSINFO *csinfo,INT8U DAR,INT1
 
 	csinfo->dir = 1;
 	csinfo->prm = 1;
+	csinfo->gframeflg = 1;		//分帧标志
 
 	index = FrameHead(csinfo,sendbuf);
 	hcsi = index;

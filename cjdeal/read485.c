@@ -1797,6 +1797,7 @@ INT8U fillclass23data(OAD oad_m,OAD oad_r,TSA meter,INT8U* data)
 	INT8U ret = 0;
 	INT8U meterIndex = 0;
 	INT8U groupIndex = 0;
+	static INT8U  first[MAXVAL_RATENUM+1]={1,1,1,1,1};
 
 	for(groupIndex = 0;groupIndex < 8;groupIndex++)
 	{
@@ -1842,6 +1843,10 @@ INT8U fillclass23data(OAD oad_m,OAD oad_r,TSA meter,INT8U* data)
 							default:
 								if(oad_r.OI == 0x0010)
 								{
+									if(first[rateIndex]) {		//第一次读取
+										JProgramInfo->class23[groupIndex].allist[meterIndex].curP[rateIndex] = dianliang;
+										first[rateIndex] = 0;
+									}
 									INT32U yongdianliang = dianliang - JProgramInfo->class23[groupIndex].allist[meterIndex].curP[rateIndex];
 									if(rateIndex == 0)
 									{

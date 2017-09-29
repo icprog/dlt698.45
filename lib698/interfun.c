@@ -843,6 +843,7 @@ int getLong64(INT8U *source,INT64S *dest)	//0x14
 			}
 			v = v << 8;
 		}
+		*dest = v;
 		return 9;
 	}
 	return 0;
