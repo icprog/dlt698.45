@@ -1009,6 +1009,9 @@ int class8108_act3(int index, int attr_act, INT8U *data, Action_result *act_ret)
 	INT64U v = 0x00;
 	INT8U th = 0x00;
 	INT8U fl = 0x00;
+	CLASS_8108 c8108;
+	readCoverClass(0x8108, 0, (void *) &c8108, sizeof(CLASS_8108),
+			para_vari_save);
 
 	ProgramInfo *shareAddr = getShareAddr();
 
@@ -1025,7 +1028,15 @@ int class8108_act3(int index, int attr_act, INT8U *data, Action_result *act_ret)
 	shareAddr->ctrls.c8108.list[index].flex = data[17];
 	fl = data[17];
 
+	c8108.list[index].flex = shareAddr->ctrls.c8108.list[index].flex ;
+	c8108.list[index].para = shareAddr->ctrls.c8108.list[index].para ;
+	c8108.list[index].v = shareAddr->ctrls.c8108.list[index].v ;
+	c8108.list[index].index = oi;
+
 	asyslog(LOG_WARNING, "月电-添加控制单元[%04x-%lld-%d-%d]", oi, v, th, fl);
+
+	saveCoverClass(0x8108, 0, (void *) &c8108, sizeof(CLASS_8108),
+			para_vari_save);
 	return 0;
 }
 
