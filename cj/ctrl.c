@@ -353,13 +353,13 @@ void sum_process(int argc, char *argv[])
 				pluseTest(oi,class12);
 			}
 		}
-		if(strcmp(argv[1],"pulse")==0) {
-			if(strcmp(argv[2],"pro")==0) {
-				sscanf(argv[3],"%04x",&tmp);
-				oi = tmp;
-				readCoverClass(oi, 0, &class12,	sizeof(CLASS12), para_vari_save);
-			}
-		}
+//		if(strcmp(argv[1],"pulse")==0) {
+//			if(strcmp(argv[2],"pro")==0) {
+//				sscanf(argv[3],"%04x",&tmp);
+//				oi = tmp;
+////				readCoverClass(oi, 0, &class12,	sizeof(CLASS12), para_vari_save);
+//			}
+//		}
 //		shmm_unregister("ProgramInfo", sizeof(ProgramInfo));
 	}
 }
