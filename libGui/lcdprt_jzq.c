@@ -22,6 +22,7 @@
 #include "../libBase/PublicFunction.h"
 
 #pragma message("\n\n************************************\n CCTT_I__Compiling............\n************************************\n")
+extern ProgramInfo* p_JProgramInfo ;
 
 /*
  * menu中的元素<!"必须"!>按照如下规则排列:
@@ -4580,7 +4581,7 @@ void menu_yxstatus_fk(){
 		getPluseCount(pluse);
 		memset(str, 0, 100);
 		pos.y += FONTSIZE*3-2;
-		sprintf((char*)str, "脉冲_1:%d   脉冲_2:%d",pluse[0],pluse[1]);
+		sprintf((char*)str, "脉冲_1:%d   脉冲_2:%d",p_JProgramInfo->class12[0].pluse_count  ,p_JProgramInfo->class12[1].pluse_count);
 		gui_textshow((char*)str, pos, LCD_NOREV);
 
 		PressKey = NOKEY;
