@@ -15,6 +15,7 @@
 #include "Shmem.h"
 #include "PublicFunction.h"
 
+extern ProgramInfo *JProgramInfo;
 //typedef struct
 //{
 //	char name[OCTET_STRING_LEN];		//逻辑名
@@ -195,7 +196,7 @@ void InIt_Process(int argc, char *argv[])
 {
 	int 	tmp=0;
 	int 	method=0;
-
+	JProgramInfo = OpenShMem("ProgramInfo", sizeof(ProgramInfo), NULL);
 	if(argc==3) {	//para
 		sscanf(argv[2],"%d",&tmp);
 		method = tmp;
@@ -203,15 +204,18 @@ void InIt_Process(int argc, char *argv[])
 		case 3:		//数据区初始化
 		case 5:		//事件初始化
 		case 6:		//需量初始化
+			memDataInit(JProgramInfo);		//共享内存中数据的初始化
 			dataInit(method);
 			break;
 		case 4:		//恢复出厂参数
         	//清除总表计量电量
+			memDataInit(JProgramInfo);		//共享内存中数据的初始化
         	clearEnergy();
 			paraInit(0,NULL);
 			break;
 		}
 	}
+	shmm_unregister("ProgramInfo", sizeof(ProgramInfo));
 }
 
 void para_process(int argc, char *argv[])
