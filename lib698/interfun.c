@@ -849,6 +849,23 @@ int getLong64(INT8U *source,INT64S *dest)	//0x14
 	return 0;
 }
 
+int getLong64Unsigned(INT8U *source,INT64U *dest)	//0x15
+{
+	INT64U v = 0x00;
+	if(source[0] == dtlong64unsigned) {
+		for (int i = 0; i < 8; ++i) {
+			v += source[i + 1];
+			if (i + 1 == 8) {
+				break;
+			}
+			v = v << 8;
+		}
+		*dest = v;
+		return 9;
+	}
+	return 0;
+}
+
 int getEnum(INT8U type,INT8U *source,INT8U *enumvalue)	//0x16
 {
 	if ((type==1 && source[0]==dtenum) || (type==0))

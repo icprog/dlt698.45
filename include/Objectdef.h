@@ -765,7 +765,7 @@ typedef struct {
 } ALCONSTATE;
 
 typedef struct {
-    INT64U v;
+    INT64S v;
     INT8S Downc;
     INT8U OutputState;
     INT8U MonthOutputState;
@@ -870,11 +870,13 @@ typedef struct {
 } CLASS_8100;
 
 typedef struct {
-    INT8U time[12]; //终端功控时段
+	INT8U	time_num;
+    INT8U 	time[12]; //终端功控时段
 } CLASS_8101;
 
 typedef struct {
-    INT8U time[8]; //终端告警时间
+	INT8U	time_num;
+    INT8U 	time[8]; //终端告警时间
 } CLASS_8102;
 
 typedef struct {
@@ -926,7 +928,7 @@ typedef struct {
     OI_698 index;
     DateTimeBCD start;
     DateTimeBCD end;
-    INT64U v;
+    INT64S v;
 } STOP_CTRL;
 
 typedef struct {

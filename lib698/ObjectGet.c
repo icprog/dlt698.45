@@ -131,7 +131,7 @@ int BuildFrame_GetResponseNext(INT8U response_type,CSINFO *csinfo,INT8U DAR,INT1
 
 	csinfo->dir = 1;
 	csinfo->prm = 1;
-	csinfo->gframeflg = 1;		//分帧标志
+//	csinfo->gframeflg = 1;		//分帧标志
 
 	index = FrameHead(csinfo,sendbuf);
 	hcsi = index;
@@ -470,6 +470,7 @@ int fill_ALSTATE(INT8U *data,ALSTATE *alstate,INT8U datatype)
 	if(unitnum) {
 		index += create_array(&data[index],unitnum);
 		for(i=0;i<unitnum;i++) {
+			index += create_struct(&data[index],2);
 			index += fill_OI(&data[index],alstate[i].name);
 			switch(datatype) {
 			case dtenum:
@@ -542,13 +543,13 @@ int Get_8101(RESULT_NORMAL *response)
 		}
 		break;
 	case 3:	//控制投入状态
-		index += fill_ALSTATE(&data[index],c8103.output,dtenum);
+		index += fill_ALSTATE(&data[index],c8103.enable,dtenum);
 		break;
 	case 4:	//控制输出状态
 		index += fill_ALSTATE(&data[index],c8103.output,dtbitstring);
 		break;
 	case 5: //越限告警状态
-		index += fill_ALSTATE(&data[index],c8103.output,dtenum);
+		index += fill_ALSTATE(&data[index],c8103.overflow,dtenum);
 		break;
 	}
 	response->datalen = index;
@@ -592,13 +593,13 @@ int Get_8103(RESULT_NORMAL *response)
 		}
 		break;
 	case 3:	//控制投入状态
-		index += fill_ALSTATE(&data[index],c8103.output,dtenum);
+		index += fill_ALSTATE(&data[index],c8103.enable,dtenum);
 		break;
 	case 4:	//控制输出状态
 		index += fill_ALSTATE(&data[index],c8103.output,dtbitstring);
 		break;
 	case 5: //越限告警状态
-		index += fill_ALSTATE(&data[index],c8103.output,dtenum);
+		index += fill_ALSTATE(&data[index],c8103.overflow,dtenum);
 		break;
 	}
 	response->datalen = index;
@@ -645,13 +646,13 @@ int Get_8107(RESULT_NORMAL *response)
 		}
 		break;
 	case 3:	//控制投入状态
-		index += fill_ALSTATE(&data[index],c8107.output,dtenum);
+		index += fill_ALSTATE(&data[index],c8107.enable,dtenum);
 		break;
 	case 4:	//控制输出状态
 		index += fill_ALSTATE(&data[index],c8107.output,dtbitstring);
 		break;
 	case 5: //越限告警状态
-		index += fill_ALSTATE(&data[index],c8107.output,dtenum);
+		index += fill_ALSTATE(&data[index],c8107.overflow,dtenum);
 		break;
 	}
 	response->datalen = index;
