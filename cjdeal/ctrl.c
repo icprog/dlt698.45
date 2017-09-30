@@ -657,7 +657,7 @@ int deal8107() {
 			fprintf(stderr, "购电判断值[%lld]\n", JProgramInfo->class23[i].remains);
 
 			if (JProgramInfo->class23[i].remains <= val) {
-				fprintf(stderr, "购电控跳闸！！！！！！！！！！！！！！！！！！\n", val);
+				fprintf(stderr, "购电控跳闸 ！！！！！！！！！！！！！！！！！！\n");
 				JProgramInfo->class23[i].alCtlState.OutputState |= 192;
 				JProgramInfo->class23[i].alCtlState.ECAlarmState |= 0;
 				JProgramInfo->class23[i].alCtlState.BuyOutputState |= 192;
@@ -665,7 +665,7 @@ int deal8107() {
 			}
 
 			if (JProgramInfo->class23[i].remains <= warn) {
-				fprintf(stderr, "购电控告警！！！！！！！！！！！！！！！！！！\n", val);
+				fprintf(stderr, "购电控告警！！！！！！！！！！！！！！！！！！\n");
 				JProgramInfo->class23[i].alCtlState.ECAlarmState |= 64;
 				JProgramInfo->class23[i].alCtlState.OutputState |= 0;
 				JProgramInfo->class23[i].alCtlState.BuyOutputState |= 0;

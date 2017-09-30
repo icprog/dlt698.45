@@ -1543,10 +1543,10 @@ int doObjectAction(OAD oad, INT8U *data, Action_result *act_ret) {
             class8105_act_route(1, attr_act, data, act_ret);
             break;
         case 0x8106:
-            class8106_act_route(1, attr_act, data, act_ret);
+            class8106_act_route(oad, data, act_ret);
             break;
         case 0x8107:
-            class8107_act_route(1, attr_act, data, act_ret);
+            class8107_act_route(oad, data, act_ret);
             break;
         case 0x8108:
             class8108_act_route(1, attr_act, data, act_ret);

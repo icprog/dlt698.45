@@ -279,9 +279,30 @@ void sumgroupTest(OI_698 oi,CLASS23	class23)
 		printTSA(class23.allist[i].tsa);
 		fprintf(stderr,"总加标志  %d {正向（0），反向（1）}\n",class23.allist[i].al_flag);
 		fprintf(stderr,"运算符标志  %d  {加（0），减（1）}\n",class23.allist[i].cal_flag);
+		fprintf(stderr,"当前有功=%lld-%lld-%lld-%lld-%lld\n",class23.allist[i].curP[0],
+				class23.allist[i].curP[1],class23.allist[i].curP[2],class23.allist[i].curP[3],class23.allist[i].curP[4]);
+		fprintf(stderr,"当前无功=%lld-%lld-%lld-%lld-%lld\n",class23.allist[i].curQ[0],
+				class23.allist[i].curQ[1],class23.allist[i].curQ[2],class23.allist[i].curQ[3],class23.allist[i].curQ[4]);
+		fprintf(stderr,"上一日有功=%lld-%lld-%lld-%lld-%lld\n",class23.allist[i].freeze[0][0],
+				class23.allist[i].freeze[0][1],class23.allist[i].freeze[0][2],class23.allist[i].freeze[0][3],class23.allist[i].freeze[0][4]);
+		fprintf(stderr,"上一日无功=%lld-%lld-%lld-%lld-%lld\n",class23.allist[i].freeze[1][0],
+				class23.allist[i].freeze[1][1],class23.allist[i].freeze[1][2],class23.allist[i].freeze[1][3],class23.allist[i].freeze[1][4]);
+		fprintf(stderr,"上一月有功=%lld-%lld-%lld-%lld-%lld\n",class23.allist[i].freeze[2][0],
+				class23.allist[i].freeze[2][1],class23.allist[i].freeze[2][2],class23.allist[i].freeze[2][3],class23.allist[i].freeze[2][4]);
+		fprintf(stderr,"上一月无功=%lld-%lld-%lld-%lld-%lld\n",class23.allist[i].freeze[3][0],
+				class23.allist[i].freeze[3][1],class23.allist[i].freeze[3][2],class23.allist[i].freeze[3][3],class23.allist[i].freeze[3][4]);
 	}
+
 	fprintf(stderr,"att7:总加日有功电量=%lld-%lld-%lld-%lld-%lld\n",class23.DayPALL,
 			class23.DayP[0],class23.DayP[1],class23.DayP[2],class23.DayP[3]);
+	fprintf(stderr,"att8:总加日无功电量=%lld-%lld-%lld-%lld-%lld\n",class23.DayQALL,
+			class23.DayQ[0],class23.DayQ[1],class23.DayQ[2],class23.DayQ[3]);
+	fprintf(stderr,"att9:总加月有功电量=%lld-%lld-%lld-%lld-%lld\n",class23.MonthPALL,
+			class23.MonthP[0],class23.MonthP[1],class23.MonthP[2],class23.MonthP[3]);
+	fprintf(stderr,"att10:总加月无功电量=%lld-%lld-%lld-%lld-%lld\n",class23.MonthQALL,
+			class23.MonthQ[0],class23.MonthQ[1],class23.MonthQ[2],class23.MonthQ[3]);
+	fprintf(stderr,"att11:总加剩余电量=%lld\n",class23.remains);
+	fprintf(stderr,"att12:当前功率下浮控后总加有功功率冻结值=%lld\n",class23.DownFreeze);
 }
 
 void sum_process(int argc, char *argv[])
@@ -289,8 +310,10 @@ void sum_process(int argc, char *argv[])
 	int 	tmp=0;
 	OI_698	oi=0;
 	INT8U	index=0;
+	CLASS23	class23={};
+	CLASS12	class12={};
 	if(argc>2) {
-	   	JProgramInfo = OpenShMem("ProgramInfo", sizeof(ProgramInfo), NULL);
+//	   	JProgramInfo = OpenShMem("ProgramInfo", sizeof(ProgramInfo), NULL);
 		if(strcmp(argv[1],"sum")==0) {
 			if(strcmp(argv[2],"pro")==0) {
 				sscanf(argv[3],"%04x",&tmp);
@@ -301,7 +324,8 @@ void sum_process(int argc, char *argv[])
 					fprintf(stderr,"总加组OI【%04x】输入错误\n",oi);
 					return;
 				}
-				sumgroupTest(oi,JProgramInfo->class23[index]);
+				readCoverClass(oi, 0, &class23,	sizeof(CLASS23), para_vari_save);
+				sumgroupTest(oi,class23);
 			}
 		}
 		if(strcmp(argv[1],"pulse")==0) {
@@ -314,9 +338,10 @@ void sum_process(int argc, char *argv[])
 					fprintf(stderr,"脉冲计量OI【%04x】输入错误\n",oi);
 					return;
 				}
-				pluseTest(oi,JProgramInfo->class12[index]);
+				readCoverClass(oi, 0, &class12,	sizeof(CLASS12), para_vari_save);
+				pluseTest(oi,class12);
 			}
 		}
-		shmm_unregister("ProgramInfo", sizeof(ProgramInfo));
+//		shmm_unregister("ProgramInfo", sizeof(ProgramInfo));
 	}
 }

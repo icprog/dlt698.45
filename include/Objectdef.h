@@ -765,7 +765,7 @@ typedef struct {
 } ALCONSTATE;
 
 typedef struct {
-    INT64U v;
+    INT64S v;
     INT8S Downc;
     INT8U OutputState;
     INT8U MonthOutputState;
@@ -861,26 +861,22 @@ typedef struct {
 
 typedef struct {
     INT8U 	state; //催费告警状态，0未告警，1告警
-    INT8U	alarmTime[4];		//告警时段
-    INT8U	alarmInfo[201];		//告警信息
+    char	alarmTime[4];		//告警时段
+    char	alarmInfo[201];		//告警信息  [0]:后面有效长度
 } CLASS_8002;
-
-typedef struct {
-	INT8U currentState; //当前状态 0输出 1未输出
-	INT8U switchAttr;	//开关属性 0脉冲 1保持式
-	INT8U wiredState;	//接线状态 0接入 1未接入
-} CLASS_F205;
 
 typedef struct {
     INT64U v; //终端保安定值
 } CLASS_8100;
 
 typedef struct {
-    INT8U time[12]; //终端功控时段
+	INT8U	time_num;
+    INT8U 	time[12]; //终端功控时段
 } CLASS_8101;
 
 typedef struct {
-    INT8U time[8]; //终端告警时间
+	INT8U	time_num;
+    INT8U 	time[8]; //终端告警时间
 } CLASS_8102;
 
 typedef struct {
@@ -932,7 +928,7 @@ typedef struct {
     OI_698 index;
     DateTimeBCD start;
     DateTimeBCD end;
-    INT64U v;
+    INT64S v;
 } STOP_CTRL;
 
 typedef struct {
@@ -992,6 +988,12 @@ typedef struct {
     ALSTATE output[MAX_AL_UNIT];
     ALSTATE overflow[MAX_AL_UNIT];
 } CLASS_8108;
+
+typedef struct {
+	INT8U currentState; //当前状态 0输出 1未输出
+	INT8U switchAttr;	//开关属性 0脉冲 1保持式
+	INT8U wiredState;	//接线状态 0接入 1未接入
+} CLASS_F205;
 
 /*
  * 任务启动识别信息

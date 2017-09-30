@@ -9,6 +9,7 @@
 #include "AccessFun.h"
 #include "class8.h"
 #include "PublicFunction.h"
+#include "event.h"
 #include "dlt698.h"
 
 int class8001_act127(int index, int attr_act, INT8U *data,
@@ -265,40 +266,46 @@ int class8100_set(int index, OAD oad, INT8U *data, INT8U *DAR) {
 	return 0;
 }
 
-int class8101_set(int index, OAD oad, INT8U *data, INT8U *DAR) {
-	CLASS_8101 c8101;
-	if (data[0] != 0x01 || data[1] != 0x0C) {
-		return 0;
-	}
+int class8101_set(OAD oad, INT8U *data, INT8U *DAR) {
+	CLASS_8101 c8101={};
+	int	index = 0;
+
 	memset(&c8101, 0x00, sizeof(CLASS_8101));
 	readCoverClass(0x8101, 0, (void *) &c8101, sizeof(CLASS_8101),
 			para_vari_save);
-	for (int i = 0; i < 12; ++i) {
-		c8101.time[i] = data[i * 2 + 3];
+	index += getArray(&data[index],&c8101.time_num,DAR);
+	c8101.time_num = limitJudge("功控时段",12,c8101.time_num);
+	for (int i = 0; i < c8101.time_num; i++) {
+		c8101.time[i] = getUnsigned(&data[index],&c8101.time[i],DAR);
 		printf("%02x\n", c8101.time[i]);
 	}
+	if(*DAR == success) {
 	saveCoverClass(0x8101, 0, (void *) &c8101, sizeof(CLASS_8101),
 			para_vari_save);
-	return 0;
+	}
+	return index;
 }
 
-int class8102_set(int index, OAD oad, INT8U *data, INT8U *DAR) {
-	CLASS_8102 c8102;
-	if (data[0] != 0x01 || data[1] != 0x08) {
-		return 0;
-	}
+int class8102_set(OAD oad, INT8U *data, INT8U *DAR) {
+	CLASS_8102 c8102={};
+	int index = 0;
+
 	memset(&c8102, 0x00, sizeof(CLASS_8102));
 	readCoverClass(0x8102, 0, (void *) &c8102, sizeof(CLASS_8102),
 			para_vari_save);
-	for (int i = 0; i < 8; ++i) {
-		c8102.time[i] = data[i * 2 + 3];
+	index += getArray(&data[index],&c8102.time_num,DAR);
+	c8102.time_num = limitJudge("功控告警时间",12,c8102.time_num);
+	for (int i = 0; i < c8102.time_num; i++) {
+		c8102.time[i] = getUnsigned(&data[index],&c8102.time[i],DAR);
 		printf("%02x\n", c8102.time[i]);
 	}
-	saveCoverClass(0x8102, 0, (void *) &c8102, sizeof(CLASS_8102),
+	if(*DAR == success) {
+		saveCoverClass(0x8102, 0, (void *) &c8102, sizeof(CLASS_8102),
 			para_vari_save);
-	return 0;
+	}
+	return index;
 }
-extern int getLong64(INT8U *source,INT64U *dest);
+
 int class8103_act3(int index, int attr_act, INT8U *data, Action_result *act_ret) {
 	CLASS_8103 c8103;
 
@@ -729,279 +736,355 @@ int class8105_act_route(int index, int attr_act, INT8U *data,
 	return 1;
 }
 
-int class8106_act3(int index, int attr_act, INT8U *data, Action_result *act_ret) {
-//	OI_698 oi = 0x00;
-//	int unit = 0;
-//	int	ii = 0;
-//	INT8U  DAR = 0;
-//	CLASS_8106 c8106={};
-//
-//	ii += getStructure(&data[ii],NULL,&DAR);
-//	ii += getOI(1,&data[ii],&oi);
-//	asyslog(LOG_WARNING, "营业报停-添加控制单元(OI=%04x)",oi);
-//
-//	if(oi>=0x2301 && oi<=0x2308) {
-//		unit = oi-0x2301;
-//	}else {
-//		act_ret->DAR = obj_unexist;
-//		return 0;
-//	}
-//	readCoverClass(0x8106, 0, (void *) &c8106, sizeof(CLASS_8106),
-//			para_vari_save);
-//
-//	saveCoverClass(0x8106, 0, (void *) &c8106, sizeof(CLASS_8106),
-//			para_vari_save);
-//
+/*
+ * 修改购电控配置单元
+ * */
+int set_class13_att3(INT8U service,INT8U *data,ALSTATE *alstate,INT8U *DAR)
+{
+	int			sum_index = 0;
+	int 		index = 0;
+	OI_698		oi=0;
+	ALSTATE		tmp_alstate={};
 
-	return 0;
+	switch(service) {
+	case 3: //set 属性3
+		index += getStructure(&data[index],NULL,DAR);
+		index += getOI(1,&data[index],&oi);
+		tmp_alstate.name = oi;
+		index += getEnum(1,&data[index],&tmp_alstate.state);
+		sum_index = oi - 0x2301;
+		sum_index = rangeJudge("总加组",sum_index,0,(MAXNUM_SUMGROUP-1));
+		if(sum_index == -1)  *DAR = obj_unexist;
+		break;
+	case 6:	//投入
+		index += getOI(1,&data[index],&oi);
+		sum_index = oi - 0x2301;
+		sum_index = rangeJudge("总加组",sum_index,0,(MAXNUM_SUMGROUP-1));
+		if(sum_index == -1)  *DAR = obj_unexist;
+		asyslog(LOG_WARNING, "购电-控制投入[%04x]", oi);
+		tmp_alstate.name = oi;
+		tmp_alstate.state = 1;
+		break;
+	case 7:	//解除
+		index += getOI(1,&data[index],&oi);
+		sum_index = oi - 0x2301;
+		sum_index = rangeJudge("总加组",sum_index,0,(MAXNUM_SUMGROUP-1));
+		if(sum_index == -1)  *DAR = obj_unexist;
+		asyslog(LOG_WARNING, "购电-控制解除[%04x]", oi);
+		tmp_alstate.name = oi;
+		tmp_alstate.state = 0;
+		break;
+	}
+	if(*DAR == success) {
+		memcpy(&alstate[sum_index],&tmp_alstate,sizeof(ALSTATE));
+	}
+	return index;
 }
 
-int class8106_act127(int index, int attr_act, INT8U *data, Action_result *act_ret) {
-	OI_698 oi = 0x00;
+int class8106_unit(int attr_act, INT8U *data, CLASS_8106 *shmc8106, INT8U *DAR)
+{
+	int	oi_tmp = 0;
 	int	ii = 0;
-
-	ii += getStructure(&data[ii],NULL,&act_ret->DAR);
-	ii += getOI(1,&data[ii],&oi);
-	asyslog(LOG_WARNING, "功率下浮-控制投入[%04x]", oi);
-	if(oi != 0x2301) {
-		act_ret->DAR = obj_unexist;
-		return 0;
-	}
-
 	CLASS_8106 c8106={};
-	readCoverClass(0x8106, 0, (void *) &c8106, sizeof(CLASS_8106),
-			para_vari_save);
-	c8106.enable.state = 0x01;
-	ii += getStructure(&data[ii],NULL,&act_ret->DAR);
-	ii += getUnsigned(&data[ii],&c8106.list.down_huacha,&act_ret->DAR);
-	ii += getInteger(&data[ii],&c8106.list.down_xishu,&act_ret->DAR);
-	ii += getUnsigned(&data[ii],&c8106.list.down_freeze,&act_ret->DAR);
-	ii += getUnsigned(&data[ii],&c8106.list.down_ctrl_time,&act_ret->DAR);
-	ii += getUnsigned(&data[ii],&c8106.list.t1,&act_ret->DAR);
-	ii += getUnsigned(&data[ii],&c8106.list.t2,&act_ret->DAR);
-	ii += getUnsigned(&data[ii],&c8106.list.t3,&act_ret->DAR);
-	ii += getUnsigned(&data[ii],&c8106.list.t4,&act_ret->DAR);
-	if(act_ret->DAR==success) {
-		ProgramInfo *shareAddr = getShareAddr();
-		memcpy(&shareAddr->ctrls.c8106,&c8106,sizeof(CLASS_8106));
-		saveCoverClass(0x8106, 0, (void *) &c8106, sizeof(CLASS_8106),
-				para_vari_save);
+
+	ii += getStructure(&data[ii],NULL,DAR);
+	ii += getOI(1,&data[ii],&c8106.index);
+	asyslog(LOG_WARNING, "功率下浮-控制投入[%04x]", c8106.index);
+	oi_tmp = rangeJudge("总加组",c8106.index,0,(MAXNUM_SUMGROUP-1));
+	if(oi_tmp == -1)  *DAR = obj_unexist;
+	switch(attr_act) {
+	case 3:	//添加
+	case 5: //更新
+	case 127: //
+		if(attr_act == 127) c8106.enable.state = 0x01;
+		ii += getStructure(&data[ii],NULL,DAR);
+		ii += getUnsigned(&data[ii],&c8106.list.down_huacha,DAR);
+		ii += getInteger(&data[ii],&c8106.list.down_xishu,DAR);
+		ii += getUnsigned(&data[ii],&c8106.list.down_freeze,DAR);
+		ii += getUnsigned(&data[ii],&c8106.list.down_ctrl_time,DAR);
+		ii += getUnsigned(&data[ii],&c8106.list.t1,DAR);
+		ii += getUnsigned(&data[ii],&c8106.list.t2,DAR);
+		ii += getUnsigned(&data[ii],&c8106.list.t3,DAR);
+		ii += getUnsigned(&data[ii],&c8106.list.t4,DAR);
+		break;
+	case 4:	//删除
+		memset(&c8106, 0x00, sizeof(CLASS_8106));
+		break;
 	}
-	return 0;
+	if(*DAR==success) {
+		memcpy(&shmc8106,&c8106,sizeof(CLASS_8106));
+	}
+	return ii;
 }
 
-int class8106_act7(int index, int attr_act, INT8U *data, Action_result *act_ret) {
-	int oi = 0x00;
-	if (data[0] != 0x50) {
-		act_ret->DAR =type_mismatch;
-		act_ret->datalen = 0;
-		return 0;
-	}
-
+int class8106_act_route(OAD oad, INT8U *data, Action_result *act_ret)
+{
+	fprintf(stderr, "class8106_act_route  class8106_act_route %d\n", oad.attflg);
 	ProgramInfo *shareAddr = getShareAddr();
-	oi = data[1] * 256 + data[2];
-
-	asyslog(LOG_WARNING, "功率下浮-控制解除[%04x]", oi);
-	CLASS_8106 c8106={};
-	memset(&c8106, 0x00, sizeof(CLASS_8106));
-	readCoverClass(0x8106, 0, (void *) &c8106, sizeof(CLASS_8106),
-			para_vari_save);
-
-	c8106.enable.state = 0x00;
-	shareAddr->ctrls.c8106.enable.state = 0x00;
-	shareAddr->class23[0].alCtlState.OutputState = 0x00;
-	shareAddr->class23[0].alCtlState.PCAlarmState = 0x00;
-	saveCoverClass(0x8106, 0, (void *) &c8106, sizeof(CLASS_8106),
-			para_vari_save);
-	return 0;
-}
-
-int class8106_act_route(int index, int attr_act, INT8U *data,
-		Action_result *act_ret) {
-	fprintf(stderr, "class8106_act_route  class8106_act_route %d\n", attr_act);
-	switch (attr_act) {
-	case 3:
-		class8106_act3(1, attr_act, data, act_ret);
+	switch (oad.attflg) {
+	case 3://添加
+	case 4://删除
+	case 5://更新
+		act_ret->datalen = class8106_unit(oad.attflg, data, &shareAddr->ctrls.c8106, &act_ret->DAR);
 		break;
-	case 7:
-		class8106_act7(1, attr_act, data, act_ret);
+	case 6:	//控制投入
+	case 7: //控制解除
+		act_ret->datalen = set_class13_att3(oad.attflg,data,&shareAddr->ctrls.c8106.enable,&act_ret->DAR);
+		if(act_ret->DAR == success) {
+			int alno = shareAddr->ctrls.c8106.index - 0x2301;
+			shareAddr->class23[alno].alCtlState.OutputState = 0x00;
+			shareAddr->class23[alno].alCtlState.PCAlarmState = 0x00;
+		}
 		break;
-	case 127:
-		fprintf(stderr, "in %d\n", attr_act);
-		class8106_act127(1, attr_act, data, act_ret);
+	case 127://投入（总加组对象，控制方案）
+		act_ret->datalen = class8106_unit(oad.attflg, data, &shareAddr->ctrls.c8106, &act_ret->DAR);
 		break;
+	}
+	if(act_ret->DAR == success) {
+		saveCoverClass(oad.OI, 0, (void *) &shareAddr->ctrls.c8106, sizeof(CLASS_8106),para_vari_save);
 	}
 	return 1;
 }
 
-int class8107_act3(int index, int attr_act, INT8U *data, Action_result *act_ret) {
-	INT16U oi = 0x00;
-	int id = 0x00;
-	INT8U sign = 0x00;
-	INT8U type = 0x00;
-	INT64U val = 0x00;
-	INT64U war_thr = 0x00;
-	INT64U ctl_thr = 0x00;
-	INT8U mode = 0x00;
+//int class8107_act3(int index, int attr_act, INT8U *data, Action_result *act_ret) {
+//	INT16U oi = 0x00;
+//	int id = 0x00;
+//	INT8U sign = 0x00;
+//	INT8U type = 0x00;
+//	INT64U val = 0x00;
+//	INT64U war_thr = 0x00;
+//	INT64U ctl_thr = 0x00;
+//	INT8U mode = 0x00;
+//
+//	ProgramInfo *shareAddr = getShareAddr();
+//
+//	if (data[0] != 0x02 || data[1] != 0x08) {
+//		return 0;
+//	}
+//
+//	oi = data[3] * 256 + data[4];
+//	INT16U oi_b = data[4] * 256 + data[3];
+//	int sindex = oi - 0x2301;
+//	id = data[6] * 256 * 256 * 256 + data[7] * 256 * 256 + data[8] * 256
+//			+ data[9];
+//	shareAddr->ctrls.c8107.list[sindex].no = id;
+//
+//	sign = data[11];
+//	shareAddr->ctrls.c8107.list[sindex].add_refresh = sign;
+//
+//	type = data[13];
+//	shareAddr->ctrls.c8107.list[sindex].type = type;
+//
+//	val = getLongValue(&data[14]);
+//	shareAddr->ctrls.c8107.list[sindex].v = val/100;
+//	war_thr = getLongValue(&data[23]);
+//	shareAddr->ctrls.c8107.list[sindex].alarm = war_thr/100;
+//	ctl_thr = getLongValue(&data[32]);
+//	shareAddr->ctrls.c8107.list[sindex].ctrl = ctl_thr/100;
+//	mode = data[42];
+//	shareAddr->ctrls.c8107.list[sindex].mode = mode;
+//
+//	shareAddr->class23[sindex].remains += shareAddr->ctrls.c8107.list[sindex].v;
+//
+//
+//	Event_3202(&oi_b,2, getShareAddr());
+//	return 0;
+//}
 
-	ProgramInfo *shareAddr = getShareAddr();
 
-	if (data[0] != 0x02 || data[1] != 0x08) {
-		return 0;
+//int class8107_act5(int index, int attr_act, INT8U *data, Action_result *act_ret) {
+//	INT16U oi = 0x00;
+//	int id = 0x00;
+//	INT8U sign = 0x00;
+//	INT8U type = 0x00;
+//	INT64U val = 0x00;
+//	INT64U war_thr = 0x00;
+//	INT64U ctl_thr = 0x00;
+//	INT8U mode = 0x00;
+//
+//	ProgramInfo *shareAddr = getShareAddr();
+//
+//	if (data[0] != 0x02 || data[1] != 0x08) {
+//		return 0;
+//	}
+//
+//	oi = data[3] * 256 + data[4];
+//	INT16U oi_b = data[4] * 256 + data[3];
+//	int sindex = oi - 0x2301;
+//	id = data[6] * 256 * 256 * 256 + data[7] * 256 * 256 + data[8] * 256
+//			+ data[9];
+//	shareAddr->ctrls.c8107.list[sindex].no = id;
+//
+//	sign = data[11];
+//	shareAddr->ctrls.c8107.list[sindex].add_refresh = sign;
+//
+//	type = data[13];
+//	shareAddr->ctrls.c8107.list[sindex].type = type;
+//
+//	val = getLongValue(&data[14]);
+//	shareAddr->ctrls.c8107.list[sindex].v = val;
+//	war_thr = getLongValue(&data[23]);
+//	shareAddr->ctrls.c8107.list[sindex].alarm = war_thr;
+//	ctl_thr = getLongValue(&data[32]);
+//	shareAddr->ctrls.c8107.list[sindex].ctrl = ctl_thr;
+//	mode = data[42];
+//	shareAddr->ctrls.c8107.list[sindex].mode = mode;
+//	asyslog(LOG_WARNING, "购电-更新控制单元[%04x-%d-%d-%d-%lld-%lld-%lld-%d]", oi, id,
+//			sign, type, val, war_thr, ctl_thr, mode);
+//
+//	Event_3202(&oi_b,2, getShareAddr());
+//	return 0;
+//}
+//
+//int class8107_act6(int index, int attr_act, INT8U *data, Action_result *act_ret) {
+//	int oi = 0x00;
+//	if (data[0] != 0x50) {
+//		act_ret->DAR =type_mismatch;
+//		act_ret->datalen = 0;
+//		return 0;
+//	}
+//
+//	ProgramInfo *shareAddr = getShareAddr();
+//
+//	oi = data[1] * 256 + data[2];
+//	int sindex = oi - 0x2301;
+//	asyslog(LOG_WARNING, "购电-控制投入[%04x]", oi);
+//
+//	CLASS_8107 c8107={};
+//	memset(&c8107, 0x00, sizeof(CLASS_8107));
+//	readCoverClass(0x8107, 0, (void *) &c8107, sizeof(CLASS_8107),
+//			para_vari_save);
+//
+//	c8107.enable[sindex].state = 0x01;
+//	c8107.enable[sindex].name = 0x01;
+//	shareAddr->ctrls.c8107.enable[sindex].state = 0x01;
+//	shareAddr->ctrls.c8107.enable[sindex].name = 0x01;
+//
+//	saveCoverClass(0x8107, 0, (void *) &c8107, sizeof(CLASS_8107),
+//			para_vari_save);
+//	return 0;
+//}
+
+//int class8107_act7(int index, int attr_act, INT8U *data, Action_result *act_ret) {
+//	int oi = 0x00;
+//	if (data[0] != 0x50) {
+//		act_ret->DAR =type_mismatch;
+//		act_ret->datalen = 0;
+//		return 0;
+//	}
+//
+//	ProgramInfo *shareAddr = getShareAddr();
+//
+//	oi = data[1] * 256 + data[2];
+//	int sindex = oi - 0x2301;
+//	asyslog(LOG_WARNING, "购电-控制解除[%04x]", oi);
+//
+//	CLASS_8107 c8107={};
+//	memset(&c8107, 0x00, sizeof(CLASS_8107));
+//	readCoverClass(0x8107, 0, (void *) &c8107, sizeof(CLASS_8107),
+//			para_vari_save);
+//
+//	c8107.enable[sindex].state = 0x00;
+//	c8107.enable[sindex].name = 0x00;
+//	shareAddr->ctrls.c8107.enable[sindex].state = 0x00;
+//	shareAddr->ctrls.c8107.enable[sindex].name = 0x00;
+//	shareAddr->class23[sindex].alCtlState.OutputState = 0x00;
+//	shareAddr->class23[sindex].alCtlState.BuyOutputState = 0x00;
+//	shareAddr->class23[sindex].alCtlState.ECAlarmState = 0x00;
+//
+//	saveCoverClass(0x8107, 0, (void *) &c8107, sizeof(CLASS_8107),
+//			para_vari_save);
+//	return 0;
+//}
+
+/*
+ * 修改购电控配置单元
+ * */
+int set_OI810c(INT8U service,INT8U *data,BUY_CTRL *oi810c,INT8U *DAR)
+{
+	int			sum_index = 0;
+	int 		index = 0;
+	INT8U		stru_num = 0;
+	BUY_CTRL	tmp_oi810c={};
+
+	index += getStructure(&data[index],&stru_num,DAR);
+	if(stru_num != 8)	*DAR = interface_uncomp;
+	index += getOI(1,&data[index],&tmp_oi810c.index);
+	INT16U oi_b = data[(index+1)] * 256 + data[index];
+	sum_index = tmp_oi810c.index - 0x2301;
+	sum_index = rangeJudge("总加组",sum_index,0,(MAXNUM_SUMGROUP-1));
+	if(sum_index == -1)  *DAR = obj_unexist;
+	switch(service) {
+	case 2:	//set 属性2
+	case 3:	//添加
+	case 5: //更新
+		index += getDouble(&data[index],(INT8U *)&tmp_oi810c.no);
+		index += getEnum(1,&data[index],&tmp_oi810c.add_refresh);
+		index += getEnum(1,&data[index],&tmp_oi810c.type);
+		index += getLong64(&data[index],&tmp_oi810c.v);
+		index += getLong64(&data[index],&tmp_oi810c.alarm);
+		index += getLong64(&data[index],&tmp_oi810c.ctrl);
+		index += getEnum(1,&data[index],&tmp_oi810c.mode);
+		break;
+	case 4:	//删除
+		memset(&tmp_oi810c, 0x00, sizeof(BUY_CTRL));
+		break;
 	}
-
-	oi = data[3] * 256 + data[4];
-	INT16U oi_b = data[4] * 256 + data[3];
-	int sindex = oi - 0x2301;
-	id = data[6] * 256 * 256 * 256 + data[7] * 256 * 256 + data[8] * 256
-			+ data[9];
-	shareAddr->ctrls.c8107.list[sindex].no = id;
-
-	sign = data[11];
-	shareAddr->ctrls.c8107.list[sindex].add_refresh = sign;
-
-	type = data[13];
-	shareAddr->ctrls.c8107.list[sindex].type = type;
-
-	val = getLongValue(&data[14]);
-	shareAddr->ctrls.c8107.list[sindex].v = val/100;
-	war_thr = getLongValue(&data[23]);
-	shareAddr->ctrls.c8107.list[sindex].alarm = war_thr/100;
-	ctl_thr = getLongValue(&data[32]);
-	shareAddr->ctrls.c8107.list[sindex].ctrl = ctl_thr/100;
-	mode = data[42];
-	shareAddr->ctrls.c8107.list[sindex].mode = mode;
-
-	shareAddr->class23[sindex].remains += shareAddr->ctrls.c8107.list[sindex].v;
-
-	asyslog(LOG_WARNING, "购电-添加控制单元[%04x-%d-%d-%d-%lld-%lld-%lld-%d]", oi, id,
-			sign, type, val, war_thr, ctl_thr, mode);
-	Event_3202(&oi_b,2, getShareAddr());
-	return 0;
+	if(*DAR == success) {
+		asyslog(LOG_WARNING, "购电-控制单元【act=%d】[%04x-%d-%d-%d-%lld-%lld-%lld-%d]",service, tmp_oi810c.index, tmp_oi810c.no,
+				tmp_oi810c.add_refresh, tmp_oi810c.type, tmp_oi810c.v, tmp_oi810c.alarm, tmp_oi810c.ctrl, tmp_oi810c.mode);
+		memcpy(&oi810c[sum_index],&tmp_oi810c,sizeof(BUY_CTRL));
+		if(service == 3 || service == 5) {
+			Event_3202((INT8U *)&oi_b,2, getShareAddr());
+		}
+	}
+	return index;
 }
 
-
-int class8107_act5(int index, int attr_act, INT8U *data, Action_result *act_ret) {
-	INT16U oi = 0x00;
-	int id = 0x00;
-	INT8U sign = 0x00;
-	INT8U type = 0x00;
-	INT64U val = 0x00;
-	INT64U war_thr = 0x00;
-	INT64U ctl_thr = 0x00;
-	INT8U mode = 0x00;
-
+int class8107_act_route(OAD oad, INT8U *data,Action_result *act_ret) {
 	ProgramInfo *shareAddr = getShareAddr();
-
-	if (data[0] != 0x02 || data[1] != 0x08) {
-		return 0;
-	}
-
-	oi = data[3] * 256 + data[4];
-	INT16U oi_b = data[4] * 256 + data[3];
-	int sindex = oi - 0x2301;
-	id = data[6] * 256 * 256 * 256 + data[7] * 256 * 256 + data[8] * 256
-			+ data[9];
-	shareAddr->ctrls.c8107.list[sindex].no = id;
-
-	sign = data[11];
-	shareAddr->ctrls.c8107.list[sindex].add_refresh = sign;
-
-	type = data[13];
-	shareAddr->ctrls.c8107.list[sindex].type = type;
-
-	val = getLongValue(&data[14]);
-	shareAddr->ctrls.c8107.list[sindex].v = val;
-	war_thr = getLongValue(&data[23]);
-	shareAddr->ctrls.c8107.list[sindex].alarm = war_thr;
-	ctl_thr = getLongValue(&data[32]);
-	shareAddr->ctrls.c8107.list[sindex].ctrl = ctl_thr;
-	mode = data[42];
-	shareAddr->ctrls.c8107.list[sindex].mode = mode;
-	asyslog(LOG_WARNING, "购电-更新控制单元[%04x-%d-%d-%d-%lld-%lld-%lld-%d]", oi, id,
-			sign, type, val, war_thr, ctl_thr, mode);
-
-	Event_3202(&oi_b,2, getShareAddr());
-	return 0;
-}
-
-int class8107_act6(int index, int attr_act, INT8U *data, Action_result *act_ret) {
-	int oi = 0x00;
-	if (data[0] != 0x50) {
-		act_ret->DAR =type_mismatch;
-		act_ret->datalen = 0;
-		return 0;
-	}
-
-	ProgramInfo *shareAddr = getShareAddr();
-
-	oi = data[1] * 256 + data[2];
-	int sindex = oi - 0x2301;
-	asyslog(LOG_WARNING, "购电-控制投入[%04x]", oi);
-
-	CLASS_8107 c8107={};
-	memset(&c8107, 0x00, sizeof(CLASS_8107));
-	readCoverClass(0x8107, 0, (void *) &c8107, sizeof(CLASS_8107),
-			para_vari_save);
-
-	c8107.enable[sindex].state = 0x01;
-	c8107.enable[sindex].name = 0x01;
-	shareAddr->ctrls.c8107.enable[sindex].state = 0x01;
-	shareAddr->ctrls.c8107.enable[sindex].name = 0x01;
-
-	saveCoverClass(0x8107, 0, (void *) &c8107, sizeof(CLASS_8107),
-			para_vari_save);
-	return 0;
-}
-
-int class8107_act7(int index, int attr_act, INT8U *data, Action_result *act_ret) {
-	int oi = 0x00;
-	if (data[0] != 0x50) {
-		act_ret->DAR =type_mismatch;
-		act_ret->datalen = 0;
-		return 0;
-	}
-
-	ProgramInfo *shareAddr = getShareAddr();
-
-	oi = data[1] * 256 + data[2];
-	int sindex = oi - 0x2301;
-	asyslog(LOG_WARNING, "购电-控制解除[%04x]", oi);
-
-	CLASS_8107 c8107={};
-	memset(&c8107, 0x00, sizeof(CLASS_8107));
-	readCoverClass(0x8107, 0, (void *) &c8107, sizeof(CLASS_8107),
-			para_vari_save);
-
-	c8107.enable[sindex].state = 0x00;
-	c8107.enable[sindex].name = 0x00;
-	shareAddr->ctrls.c8107.enable[sindex].state = 0x00;
-	shareAddr->ctrls.c8107.enable[sindex].name = 0x00;
-	shareAddr->class23[sindex].alCtlState.OutputState = 0x00;
-	shareAddr->class23[sindex].alCtlState.BuyOutputState = 0x00;
-	shareAddr->class23[sindex].alCtlState.ECAlarmState = 0x00;
-
-	saveCoverClass(0x8107, 0, (void *) &c8107, sizeof(CLASS_8107),
-			para_vari_save);
-	return 0;
-}
-
-int class8107_act_route(int index, int attr_act, INT8U *data,
-		Action_result *act_ret) {
-	switch (attr_act) {
+	switch (oad.attflg) {
 	case 3:
-		class8107_act3(1, attr_act, data, act_ret);
-		break;
+	case 4:
 	case 5:
-		class8107_act5(1, attr_act, data, act_ret);
+		act_ret->datalen = set_OI810c(oad.attflg,data,shareAddr->ctrls.c8107.list,&act_ret->DAR);
 		break;
-	case 6:
-		class8107_act6(1, attr_act, data, act_ret);
-		break;
-	case 7:
-		class8107_act7(1, attr_act, data, act_ret);
+	case 6:	//控制投入
+	case 7: //控制解除
+		act_ret->datalen = set_class13_att3(oad.attflg,data,shareAddr->ctrls.c8107.enable,&act_ret->DAR);
 		break;
 	}
+	if(act_ret->DAR == success) {
+		saveCoverClass(0x8107, 0, (void *) &shareAddr->ctrls.c8107, sizeof(CLASS_8107),para_vari_save);
+	}
+	return 1;
+}
+
+int class8107_set(OAD oad, INT8U *data, INT8U *DAR)
+{
+	int		index=0;
+	INT8U	unit_num = 0 ,i = 0;
+	ProgramInfo *shareAddr = getShareAddr();
+	switch(oad.attflg) {
+	case 2:		//增加
+		index += getArray(&data[index],&unit_num,DAR);
+		fprintf(stderr,"unit_num = %d\n",unit_num);
+		for(i=0;i<unit_num;i++) {
+			index += set_OI810c(oad.attflg,&data[index],shareAddr->ctrls.c8107.list,DAR);
+		}
+		break;
+	case 3:
+		index += getArray(&data[index],&unit_num,DAR);
+		fprintf(stderr,"unit_num = %d\n",unit_num);
+		for(i=0;i<unit_num;i++) {
+			index += set_8107_att3(oad.attflg,&data[index],shareAddr->ctrls.c8107.enable,DAR);
+		}
+		break;
+	}
+	if(*DAR == success) {
+		saveCoverClass(oad.OI, 0, (void *) &shareAddr->ctrls.c8107, sizeof(CLASS_8107),para_vari_save);
+	}
+	return index;
 }
 
 int class8108_act3(int index, int attr_act, INT8U *data, Action_result *act_ret) {
