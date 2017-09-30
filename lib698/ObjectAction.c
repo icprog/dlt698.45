@@ -986,11 +986,16 @@ void memDataInit(INT8U type,ProgramInfo *memp)
    	//共享内存实际流量清零
 	memset(&memp->dev_info.realTimeC2200,0,sizeof(Flow_tj));
 
-	for(int i = 0; i < MAX_PULSE_NUM; i++) {
-		clearClass12Data(&memp->class12[i]);
-	}
-	for (int i = 0; i < MAX_AL_UNIT; i++) {
-		clearClass23Data(&memp->class23[i]);
+	if(type) {
+		for(int i = 0; i < MAX_PULSE_NUM; i++) {
+			clearClass12Data(&memp->class12[i]);
+		}
+		for (int i = 0; i < MAX_AL_UNIT; i++) {
+			clearClass23Data(&memp->class23[i]);
+		}
+	}else {
+		memset(&memp->class12,0,sizeof(memp->class12));
+		memset(&memp->class23,0,sizeof(memp->class23));
 	}
 }
 
@@ -1017,6 +1022,7 @@ void TerminalInfo(INT16U attr_act, INT8U *data, Action_result *act_ret)
         			index += getOAD(1,&data[index],&oad[i],&act_ret->DAR);
         		}
         	}
+        	memDataInit(0,memp);
         	paraInit(oadnum,oad);
         	//清除总表计量电量
         	clearEnergy();
