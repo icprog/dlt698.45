@@ -1077,7 +1077,7 @@ int class8107_set(OAD oad, INT8U *data, INT8U *DAR)
 		index += getArray(&data[index],&unit_num,DAR);
 		fprintf(stderr,"unit_num = %d\n",unit_num);
 		for(i=0;i<unit_num;i++) {
-			index += set_8107_att3(oad.attflg,&data[index],shareAddr->ctrls.c8107.enable,DAR);
+			index += set_class13_att3(oad.attflg,&data[index],shareAddr->ctrls.c8107.enable,DAR);
 		}
 		break;
 	}
