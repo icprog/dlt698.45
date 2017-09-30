@@ -356,9 +356,9 @@ int class12_get(OAD oad, INT8U *sourcebuf, INT8U *buf, int *len){
 	case 15:
 		return class12_get_double_long_unsigned(oad, shareAddr->class12[index].val_pos_p, buf, len);
 	case 16:
-		return class12_get_double_long_unsigned(oad, shareAddr->class12[index].val_nag_p, buf, len);
-	case 17:
 		return class12_get_double_long_unsigned(oad, shareAddr->class12[index].val_pos_q, buf, len);
+	case 17:
+		return class12_get_double_long_unsigned(oad, shareAddr->class12[index].val_nag_p, buf, len);
 	case 18:
 		return class12_get_double_long_unsigned(oad, shareAddr->class12[index].val_nag_q, buf, len);
 	case 19:
