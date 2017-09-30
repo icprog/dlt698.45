@@ -790,7 +790,7 @@ int class8106_unit(int attr_act, INT8U *data, CLASS_8106 *shmc8106, INT8U *DAR)
 	ii += getStructure(&data[ii],NULL,DAR);
 	ii += getOI(1,&data[ii],&c8106.index);
 	asyslog(LOG_WARNING, "功率下浮-控制投入[%04x]", c8106.index);
-	oi_tmp = rangeJudge("总加组",c8106.index,0,(MAXNUM_SUMGROUP-1));
+	oi_tmp = rangeJudge("总加组",c8106.index,0x2301,0x2308);
 	if(oi_tmp == -1)  *DAR = obj_unexist;
 	switch(attr_act) {
 	case 3:	//添加
@@ -812,7 +812,7 @@ int class8106_unit(int attr_act, INT8U *data, CLASS_8106 *shmc8106, INT8U *DAR)
 		break;
 	}
 	if(*DAR==success) {
-		memcpy(&shmc8106,&c8106,sizeof(CLASS_8106));
+		memcpy(shmc8106,&c8106,sizeof(CLASS_8106));
 	}
 	return ii;
 }
@@ -840,7 +840,9 @@ int class8106_act_route(OAD oad, INT8U *data, Action_result *act_ret)
 		act_ret->datalen = class8106_unit(oad.attflg, data, &shareAddr->ctrls.c8106, &act_ret->DAR);
 		break;
 	}
+	asyslog(LOG_WARNING, "class8106 DAR=%d   index=%04x", act_ret->DAR ,shareAddr->ctrls.c8106.index);
 	if(act_ret->DAR == success) {
+		asyslog(LOG_WARNING, "class8106 index=%04x    OI=%04x",shareAddr->ctrls.c8106.index,oad.OI);
 		saveCoverClass(oad.OI, 0, (void *) &shareAddr->ctrls.c8106, sizeof(CLASS_8106),para_vari_save);
 	}
 	return 1;
