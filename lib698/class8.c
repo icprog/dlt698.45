@@ -54,9 +54,13 @@ int class8001_act128(int index, int attr_act, INT8U *data,
 		Action_result *act_ret) {
 	asyslog(LOG_WARNING, "解除保电\n");
 	CLASS_8001 c8001;
+	ProgramInfo *shareAddr = getShareAddr();
+
+	memset(&c8001, 0x00, sizeof(CLASS_8001));
 	readCoverClass(0x8001, 0, (void *) &c8001, sizeof(CLASS_8001),
 			para_vari_save);
 	c8001.state = 0;
+	shareAddr->ctrls.c8001.state = 1;
 	saveCoverClass(0x8001, 0, (void *) &c8001, sizeof(CLASS_8001),
 			para_vari_save);
 	return 0;
@@ -66,9 +70,13 @@ int class8001_act129(int index, int attr_act, INT8U *data,
 		Action_result *act_ret) {
 	asyslog(LOG_WARNING, "解除自动保电\n");
 	CLASS_8001 c8001={};
+	ProgramInfo *shareAddr = getShareAddr();
+
+	memset(&c8001, 0x00, sizeof(CLASS_8001));
 	readCoverClass(0x8001, 0, (void *) &c8001, sizeof(CLASS_8001),
 			para_vari_save);
 	c8001.state = 2;
+	shareAddr->ctrls.c8001.state = 1;
 	saveCoverClass(0x8001, 0, (void *) &c8001, sizeof(CLASS_8001),
 			para_vari_save);
 	return 0;
@@ -94,9 +102,12 @@ int class8002_act127(int index, int attr_act, INT8U *data,
 		Action_result *act_ret) {
 	asyslog(LOG_WARNING, "催费告警投入\n");
 	CLASS_8002 c8002;
+	ProgramInfo *shareAddr = getShareAddr();
+
 	readCoverClass(0x8002, 0, (void *) &c8002, sizeof(CLASS_8002),
 			para_vari_save);
 	c8002.state = 1;
+	shareAddr->ctrls.c8002.state = 1;
 	saveCoverClass(0x8002, 0, (void *) &c8002, sizeof(CLASS_8002),
 			para_vari_save);
 	return 0;
@@ -106,9 +117,11 @@ int class8002_act128(int index, int attr_act, INT8U *data,
 		Action_result *act_ret) {
 	asyslog(LOG_WARNING, "催费告警退出\n");
 	CLASS_8002 c8002;
+	ProgramInfo *shareAddr = getShareAddr();
 	readCoverClass(0x8002, 0, (void *) &c8002, sizeof(CLASS_8002),
 			para_vari_save);
 	c8002.state = 0;
+	shareAddr->ctrls.c8002.state = 1;
 	saveCoverClass(0x8002, 0, (void *) &c8002, sizeof(CLASS_8002),
 			para_vari_save);
 	return 0;
@@ -233,6 +246,7 @@ int class8001_set(int bak, OAD oad, INT8U *data, INT8U *DAR) {
 	CLASS_8001 c8001={};
 	INT8U	i=0;
 	INT8U	index = 0;
+	ProgramInfo *shareAddr = getShareAddr();
 
 	memset(&c8001,0,sizeof(CLASS_8001));
 	readCoverClass(0x8001, 0, (void *) &c8001, sizeof(CLASS_8001),
@@ -267,6 +281,7 @@ int class8001_set(int bak, OAD oad, INT8U *data, INT8U *DAR) {
 		break;
 	}
 	if(*DAR == success) {
+		memcpy(&shareAddr->ctrls.c8001,c8001,sizeof(CLASS_8001));
 		*DAR = saveCoverClass(0x8001, 0, (void *) &c8001, sizeof(CLASS_8001),
 				para_vari_save);
 	}
@@ -275,6 +290,8 @@ int class8001_set(int bak, OAD oad, INT8U *data, INT8U *DAR) {
 
 int class8100_set(int index, OAD oad, INT8U *data, INT8U *DAR) {
 	CLASS_8100 c8100;
+	ProgramInfo *shareAddr = getShareAddr();
+
 	if (data[0] != 0x14) {
 		return 0;
 	}
@@ -282,6 +299,7 @@ int class8100_set(int index, OAD oad, INT8U *data, INT8U *DAR) {
 	readCoverClass(0x8100, 0, (void *) &c8100, sizeof(CLASS_8100),
 			para_vari_save);
 	c8100.v = getLongValue(data);
+	shareAddr->ctrls.c8100.v = c8100.v;
 	saveCoverClass(0x8100, 0, (void *) &c8100, sizeof(CLASS_8100),
 			para_vari_save);
 	asyslog(LOG_WARNING, "设置终端安保定值(%lld)", c8100.v);
@@ -290,6 +308,7 @@ int class8100_set(int index, OAD oad, INT8U *data, INT8U *DAR) {
 }
 
 int class8101_set(OAD oad, INT8U *data, INT8U *DAR) {
+	ProgramInfo *shareAddr = getShareAddr();
 	CLASS_8101 c8101={};
 	int	index = 0;
 
@@ -303,7 +322,8 @@ int class8101_set(OAD oad, INT8U *data, INT8U *DAR) {
 		printf("%02x\n", c8101.time[i]);
 	}
 	if(*DAR == success) {
-	saveCoverClass(0x8101, 0, (void *) &c8101, sizeof(CLASS_8101),
+		memcpy(&shareAddr->ctrls.c8101,c8101,sizeof(CLASS_8101));
+		saveCoverClass(0x8101, 0, (void *) &c8101, sizeof(CLASS_8101),
 			para_vari_save);
 	}
 	return index;
@@ -312,6 +332,8 @@ int class8101_set(OAD oad, INT8U *data, INT8U *DAR) {
 int class8102_set(OAD oad, INT8U *data, INT8U *DAR) {
 	CLASS_8102 c8102={};
 	int index = 0;
+	int i = 0;
+	ProgramInfo *shareAddr = getShareAddr();
 
 	memset(&c8102, 0x00, sizeof(CLASS_8102));
 	readCoverClass(0x8102, 0, (void *) &c8102, sizeof(CLASS_8102),
@@ -319,11 +341,12 @@ int class8102_set(OAD oad, INT8U *data, INT8U *DAR) {
 	index += getArray(&data[index],&c8102.time_num,DAR);
 	c8102.time_num = limitJudge("功控告警时间",12,c8102.time_num);
 	fprintf(stderr,"c8102.time_num = %d\n",c8102.time_num);
-	for (int i = 0; i < c8102.time_num; i++) {
+	for (i = 0; i < c8102.time_num; i++) {
 		index += getUnsigned(&data[index],&c8102.time[i],DAR);
 		fprintf(stderr,"%02x\n", c8102.time[i]);
 	}
 	if(*DAR == success) {
+		memcpy(&shareAddr->ctrls.c8102,&c8102,sizeof(CLASS_8102));
 		saveCoverClass(0x8102, 0, (void *) &c8102, sizeof(CLASS_8102),
 			para_vari_save);
 	}
@@ -331,7 +354,7 @@ int class8102_set(OAD oad, INT8U *data, INT8U *DAR) {
 }
 
 int class8103_act3(int index, int attr_act, INT8U *data, Action_result *act_ret) {
-	CLASS_8103 c8103;
+	CLASS_8103 c8103={};
 
 	readCoverClass(0x8103, 0, (void *) &c8103, sizeof(CLASS_8103),para_vari_save);
 
@@ -417,7 +440,7 @@ int class8103_act3(int index, int attr_act, INT8U *data, Action_result *act_ret)
 	ind = ind + 10;
 	c8103.list[unit].para = data[ind];
 
-	memcpy(&shareAddr->ctrls.c8103.list[0], &c8103.list[0], sizeof(c8103.list[0]));
+	memcpy(shareAddr->ctrls.c8103.list, c8103.list, sizeof(c8103.list));
 	printf("c8103 act 3\n");
 	saveCoverClass(0x8103, 0, (void *) &c8103, sizeof(CLASS_8103),
 			para_vari_save);
