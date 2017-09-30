@@ -419,6 +419,7 @@ typedef struct {
 
 typedef struct {
 	CLASS_8001 c8001; //保电
+	CLASS_8002 c8002; //催费告警
 
 	CLASS_8100 c8100; //终端保安定值
 	CLASS_8101 c8101; //终端功控时段
