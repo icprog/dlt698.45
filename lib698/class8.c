@@ -33,6 +33,7 @@ typedef union { //control code
 } ECAlarmState;
 
 ECAlarmState ecAlarm;
+PCAlarmState pcAlarm;
 
 int class8001_act127(int index, int attr_act, INT8U *data,
 		Action_result *act_ret) {
@@ -317,9 +318,10 @@ int class8102_set(OAD oad, INT8U *data, INT8U *DAR) {
 			para_vari_save);
 	index += getArray(&data[index],&c8102.time_num,DAR);
 	c8102.time_num = limitJudge("功控告警时间",12,c8102.time_num);
+	fprintf(stderr,"c8102.time_num = %d\n",c8102.time_num);
 	for (int i = 0; i < c8102.time_num; i++) {
-		c8102.time[i] = getUnsigned(&data[index],&c8102.time[i],DAR);
-		printf("%02x\n", c8102.time[i]);
+		index += getUnsigned(&data[index],&c8102.time[i],DAR);
+		fprintf(stderr,"%02x\n", c8102.time[i]);
 	}
 	if(*DAR == success) {
 		saveCoverClass(0x8102, 0, (void *) &c8102, sizeof(CLASS_8102),
@@ -853,6 +855,9 @@ int class8106_act_route(OAD oad, INT8U *data, Action_result *act_ret)
 	case 7: //控制解除
 		act_ret->datalen = set_class13_att3(oad.attflg,data,&sum_index,&shareAddr->ctrls.c8106.enable,&act_ret->DAR);
 		if(act_ret->DAR == success && (sum_index>=0 && sum_index<= MAX_AL_UNIT)) {
+			pcAlarm.u8b = shareAddr->class23[sum_index].alCtlState.PCAlarmState;
+			pcAlarm.pcstate.power_ctl = 0;
+			shareAddr->class23[sum_index].alCtlState.PCAlarmState = pcAlarm.u8b;
 			shareAddr->class23[sum_index].alCtlState.OutputState = 0x00;
 			shareAddr->class23[sum_index].alCtlState.PCAlarmState = 0x00;
 		}
