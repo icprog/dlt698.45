@@ -253,9 +253,20 @@ void pluseTest(OI_698 oi,CLASS12	class12)
 		fprintf(stderr,"%02x ",class12.addr[i]);
 	}
 	fprintf(stderr,"\n");
-	fprintf(stderr,"att7 :当日正向有功电量=%d-%d-%d-%d\n",class12.day_pos_p[0],class12.day_pos_p[1],class12.day_pos_p[2],class12.day_pos_p[3]);
-	fprintf(stderr,"att9 :当日反向有功电量=%d-%d-%d-%d\n",class12.day_nag_p[0],class12.day_nag_p[1],class12.day_nag_p[2],class12.day_nag_p[3]);
-	fprintf(stderr,"att15:正向有功电能示值=%d-%d-%d-%d\n",class12.val_pos_p[0],class12.val_pos_p[1],class12.val_pos_p[2],class12.val_pos_p[3]);
+	fprintf(stderr,"att5  :有功功率=%d\n",class12.p);
+	fprintf(stderr,"att6  :无功功率=%d\n",class12.q);
+	fprintf(stderr,"att7  :当日正向有功电量=%d-%d-%d-%d\n",class12.day_pos_p[0],class12.day_pos_p[1],class12.day_pos_p[2],class12.day_pos_p[3]);
+	fprintf(stderr,"att8  :当月正向有功电量=%d-%d-%d-%d\n",class12.mon_pos_p[0],class12.mon_pos_p[1],class12.mon_pos_p[2],class12.mon_pos_p[3]);
+	fprintf(stderr,"att9  :当日反向有功电量=%d-%d-%d-%d\n",class12.day_nag_p[0],class12.day_nag_p[1],class12.day_nag_p[2],class12.day_nag_p[3]);
+	fprintf(stderr,"att10 :当月反向有功电量=%d-%d-%d-%d\n",class12.mon_nag_p[0],class12.mon_nag_p[1],class12.mon_nag_p[2],class12.mon_nag_p[3]);
+	fprintf(stderr,"att11 :当日正向无功电量=%d-%d-%d-%d\n",class12.day_pos_q[0],class12.day_pos_q[1],class12.day_pos_q[2],class12.day_pos_q[3]);
+	fprintf(stderr,"att12 :当月正向无功电量=%d-%d-%d-%d\n",class12.mon_pos_q[0],class12.mon_pos_q[1],class12.mon_pos_q[2],class12.mon_pos_q[3]);
+	fprintf(stderr,"att13 :当日反向无功电量=%d-%d-%d-%d\n",class12.day_nag_q[0],class12.day_nag_q[1],class12.day_nag_q[2],class12.day_nag_q[3]);
+	fprintf(stderr,"att14 :当月反向无功电量=%d-%d-%d-%d\n",class12.mon_nag_q[0],class12.mon_nag_q[1],class12.mon_nag_q[2],class12.mon_nag_q[3]);
+	fprintf(stderr,"att15 :正向有功电能示值=%d-%d-%d-%d\n",class12.val_pos_p[0],class12.val_pos_p[1],class12.val_pos_p[2],class12.val_pos_p[3]);
+	fprintf(stderr,"att16 :反向有功电能示值=%d-%d-%d-%d\n",class12.val_nag_p[0],class12.val_nag_p[1],class12.val_nag_p[2],class12.val_nag_p[3]);
+	fprintf(stderr,"att17 :正向无功电能示值=%d-%d-%d-%d\n",class12.val_pos_q[0],class12.val_pos_q[1],class12.val_pos_q[2],class12.val_pos_q[3]);
+	fprintf(stderr,"att18 :反向无功电能示值=%d-%d-%d-%d\n",class12.val_nag_q[0],class12.val_nag_q[1],class12.val_nag_q[2],class12.val_nag_q[3]);
 }
 
 void sumgroupTest(OI_698 oi,CLASS23	class23)
