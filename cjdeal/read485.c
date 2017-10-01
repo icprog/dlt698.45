@@ -1842,7 +1842,7 @@ INT8U fillclass23data(OAD oad_m,OAD oad_r,TSA meter,INT8U* data)
 							default:
 								if(oad_r.OI == 0x0010)
 								{
-									if(dianliang >= JProgramInfo->class23[groupIndex].allist[meterIndex].curP[rateIndex]) {
+									if(JProgramInfo->class23[groupIndex].allist[meterIndex].curP[rateIndex] == 0) {
 										JProgramInfo->class23[groupIndex].allist[meterIndex].curP[rateIndex] = dianliang;
 									}
 									INT32U yongdianliang = dianliang - JProgramInfo->class23[groupIndex].allist[meterIndex].curP[rateIndex];
@@ -1875,7 +1875,7 @@ INT8U fillclass23data(OAD oad_m,OAD oad_r,TSA meter,INT8U* data)
 								}
 								if(oad_r.OI == 0x0020)
 								{
-									if(dianliang >= JProgramInfo->class23[groupIndex].allist[meterIndex].curQ[rateIndex]) {
+									if(JProgramInfo->class23[groupIndex].allist[meterIndex].curQ[rateIndex]==0) {
 										JProgramInfo->class23[groupIndex].allist[meterIndex].curQ[rateIndex] = dianliang;
 									}
 

@@ -881,14 +881,14 @@ typedef struct {
 
 typedef struct {
     INT8U n;
-    INT64U t1;
-    INT64U t2;
-    INT64U t3;
-    INT64U t4;
-    INT64U t5;
-    INT64U t6;
-    INT64U t7;
-    INT64U t8;
+    INT64S t1;
+    INT64S t2;
+    INT64S t3;
+    INT64S t4;
+    INT64S t5;
+    INT64S t6;
+    INT64S t7;
+    INT64S t8;
 } PowerCtrlParam;
 
 typedef struct {

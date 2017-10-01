@@ -635,7 +635,7 @@ int main(int argc, char *argv[]) {
 		return EXIT_SUCCESS;
 	}
 
-    if((strcmp("sum",argv[1])==0)||(strcmp("pulse",argv[1])==0))
+    if((strcmp("sum",argv[1])==0)||(strcmp("pulse",argv[1])==0)||(strcmp("ctrlp",argv[1])==0))
 	{
     	fprintf(stderr, "%s", usage_sumgroup);
     	sum_process(argc,argv);
