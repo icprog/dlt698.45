@@ -253,9 +253,20 @@ void pluseTest(OI_698 oi,CLASS12	class12)
 		fprintf(stderr,"%02x ",class12.addr[i]);
 	}
 	fprintf(stderr,"\n");
-	fprintf(stderr,"att7 :当日正向有功电量=%d-%d-%d-%d\n",class12.day_pos_p[0],class12.day_pos_p[1],class12.day_pos_p[2],class12.day_pos_p[3]);
-	fprintf(stderr,"att9 :当日反向有功电量=%d-%d-%d-%d\n",class12.day_nag_p[0],class12.day_nag_p[1],class12.day_nag_p[2],class12.day_nag_p[3]);
-	fprintf(stderr,"att15:正向有功电能示值=%d-%d-%d-%d\n",class12.val_pos_p[0],class12.val_pos_p[1],class12.val_pos_p[2],class12.val_pos_p[3]);
+	fprintf(stderr,"att5  :有功功率=%d\n",class12.p);
+	fprintf(stderr,"att6  :无功功率=%d\n",class12.q);
+	fprintf(stderr,"att7  :当日正向有功电量=%d-%d-%d-%d\n",class12.day_pos_p[0],class12.day_pos_p[1],class12.day_pos_p[2],class12.day_pos_p[3]);
+	fprintf(stderr,"att8  :当月正向有功电量=%d-%d-%d-%d\n",class12.mon_pos_p[0],class12.mon_pos_p[1],class12.mon_pos_p[2],class12.mon_pos_p[3]);
+	fprintf(stderr,"att9  :当日反向有功电量=%d-%d-%d-%d\n",class12.day_nag_p[0],class12.day_nag_p[1],class12.day_nag_p[2],class12.day_nag_p[3]);
+	fprintf(stderr,"att10 :当月反向有功电量=%d-%d-%d-%d\n",class12.mon_nag_p[0],class12.mon_nag_p[1],class12.mon_nag_p[2],class12.mon_nag_p[3]);
+	fprintf(stderr,"att11 :当日正向无功电量=%d-%d-%d-%d\n",class12.day_pos_q[0],class12.day_pos_q[1],class12.day_pos_q[2],class12.day_pos_q[3]);
+	fprintf(stderr,"att12 :当月正向无功电量=%d-%d-%d-%d\n",class12.mon_pos_q[0],class12.mon_pos_q[1],class12.mon_pos_q[2],class12.mon_pos_q[3]);
+	fprintf(stderr,"att13 :当日反向无功电量=%d-%d-%d-%d\n",class12.day_nag_q[0],class12.day_nag_q[1],class12.day_nag_q[2],class12.day_nag_q[3]);
+	fprintf(stderr,"att14 :当月反向无功电量=%d-%d-%d-%d\n",class12.mon_nag_q[0],class12.mon_nag_q[1],class12.mon_nag_q[2],class12.mon_nag_q[3]);
+	fprintf(stderr,"att15 :正向有功电能示值=%d-%d-%d-%d\n",class12.val_pos_p[0],class12.val_pos_p[1],class12.val_pos_p[2],class12.val_pos_p[3]);
+	fprintf(stderr,"att16 :反向有功电能示值=%d-%d-%d-%d\n",class12.val_nag_p[0],class12.val_nag_p[1],class12.val_nag_p[2],class12.val_nag_p[3]);
+	fprintf(stderr,"att17 :正向无功电能示值=%d-%d-%d-%d\n",class12.val_pos_q[0],class12.val_pos_q[1],class12.val_pos_q[2],class12.val_pos_q[3]);
+	fprintf(stderr,"att18 :反向无功电能示值=%d-%d-%d-%d\n",class12.val_nag_q[0],class12.val_nag_q[1],class12.val_nag_q[2],class12.val_nag_q[3]);
 }
 
 void sumgroupTest(OI_698 oi,CLASS23	class23)
@@ -342,6 +353,62 @@ void sum_process(int argc, char *argv[])
 				pluseTest(oi,class12);
 			}
 		}
+		if(strcmp(argv[1],"ctrlp")==0) {
+			if(strcmp(argv[2],"pro")==0) {
+				sscanf(argv[3],"%04x",&tmp);
+				oi = tmp;
+				if(oi==0x8001) {
+					CLASS_8102 c8102={};
+					memset(&c8102, 0x00, sizeof(CLASS_8102));
+					readCoverClass(0x8102, 0, (void *) &c8102, sizeof(CLASS_8102),para_vari_save);
+					fprintf(stderr,"c8102.time_num = %d\n",c8102.time_num);
+					int i = 0;
+					for (i = 0; i < c8102.time_num; i++) {
+						fprintf(stderr,"%02x\n", c8102.time[i]);
+					}
+				}
+				if(oi==0x8103) {
+					CLASS_8103 c8103={};
+					memset(&c8103, 0x00, sizeof(CLASS_8103));
+					readCoverClass(oi, 0, (void *) &c8103, sizeof(CLASS_8103),para_vari_save);
+					int i=0;
+					for(i=0;i<MAX_AL_UNIT;i++) {
+						fprintf(stderr,"\n-------i=%d------------\n",i);
+						fprintf(stderr,"OI = %04x\n",c8103.list[i].index);
+						fprintf(stderr,"sign = %02x\n",c8103.list[i].sign);
+						fprintf(stderr,"V1 = %d %lld %lld %lld %lld %lld %lld %lld %lld \n",c8103.list[i].v1.n,c8103.list[i].v1.t1,c8103.list[i].v1.t2,
+								c8103.list[i].v1.t3,c8103.list[i].v1.t4,c8103.list[i].v1.t5,c8103.list[i].v1.t6,c8103.list[i].v1.t7,c8103.list[i].v1.t8);
+						fprintf(stderr,"V2 = %d %lld %lld %lld %lld %lld %lld %lld %lld \n",c8103.list[i].v2.n,c8103.list[i].v2.t1,c8103.list[i].v2.t2,
+								c8103.list[i].v2.t3,c8103.list[i].v2.t4,c8103.list[i].v2.t5,c8103.list[i].v2.t6,c8103.list[i].v2.t7,c8103.list[i].v2.t8);
+						fprintf(stderr,"V3 = %d %lld %lld %lld %lld %lld %lld %lld %lld \n",c8103.list[i].v3.n,c8103.list[i].v3.t1,c8103.list[i].v3.t2,
+								c8103.list[i].v3.t3,c8103.list[i].v3.t4,c8103.list[i].v3.t5,c8103.list[i].v3.t6,c8103.list[i].v3.t7,c8103.list[i].v3.t8);
+						fprintf(stderr,"para = %d\n",c8103.list[i].para);
+					}
+				}
+				if(oi==0x8105) {
+					CLASS_8105 c8105={};
+					memset(&c8105, 0x00, sizeof(CLASS_8105));
+					readCoverClass(oi, 0, (void *) &c8105, sizeof(CLASS_8103),para_vari_save);
+					int i=0;
+					for(i=0;i<MAX_AL_UNIT;i++) {
+						fprintf(stderr,"\n-------i=%d------------\n",i);
+						fprintf(stderr,"OI = %04x\n",c8105.list[i].index);
+						printDataTimeS("报停起止时间",c8105.list[i].start);
+						printDataTimeS("报停结束时间",c8105.list[i].end);
+						fprintf(stderr,"功率定值 =lld\n",c8105.list[i].v);
+
+					}
+				}
+			}
+		}
 //		shmm_unregister("ProgramInfo", sizeof(ProgramInfo));
 	}
 }
+//typedef struct {
+//    OI_698 index;
+//    INT8U sign;
+//    PowerCtrlParam v1;
+//    PowerCtrlParam v2;
+//    PowerCtrlParam v3;
+//    INT8S para;
+//} TIME_CTRL;

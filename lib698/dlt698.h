@@ -27,6 +27,7 @@ extern int GetReportData(CLASS_601D report);
 extern int doGetnormal(INT8U seqOfNum,RESULT_NORMAL *response);
 
 extern INT8U Reset_add();
+extern void memDataInit(INT8U type,ProgramInfo *memp);
 extern void FrameTail(INT8U *buf, int index, int hcsi);
 extern int FrameHead(CSINFO *csinfo, INT8U *buf);
 extern INT8S (*pSendfun)(int fd, INT8U *sndbuf, INT16U sndlen);

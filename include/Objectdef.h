@@ -793,7 +793,7 @@ typedef struct {
 } CLASS12_ENERGY;
 
 typedef struct {
-	INT8U addr[OCTET_STRING_LEN];//通信地址
+	INT8U addr[17];//通信地址
 	INT32U pt;//互感器倍率
 	INT32U ct;//互感器倍率
 	PULSEUNIT unit[MAX_PULSE_UNIT];//脉冲配置
@@ -881,14 +881,14 @@ typedef struct {
 
 typedef struct {
     INT8U n;
-    INT64U t1;
-    INT64U t2;
-    INT64U t3;
-    INT64U t4;
-    INT64U t5;
-    INT64U t6;
-    INT64U t7;
-    INT64U t8;
+    INT64S t1;
+    INT64S t2;
+    INT64S t3;
+    INT64S t4;
+    INT64S t5;
+    INT64S t6;
+    INT64S t7;
+    INT64S t8;
 } PowerCtrlParam;
 
 typedef struct {
