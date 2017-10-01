@@ -1246,6 +1246,44 @@ void realE_showZJ(INT8U zj_index, int arr_data[], INT8U *surfix)
 //	gui_textshow((char*)str, pos, LCD_NOREV);
 	return;
 }
+void realE_showZJ_float( int arr_data[], INT8U *surfix)
+{
+	float tmpfloat=0;
+	int offset_y = 3;
+	Point pos;
+	TS curts;
+	INT8U str[100];
+	memset(str, 0, 100);
+	tmpfloat = arr_data[0]*(1.0)/10000;
+	sprintf((char*)str,"总 %.4f %s",tmpfloat, surfix);
+	gui_setpos(&pos, rect_Client.left+4*FONTSIZE, rect_Client.top+7*FONTSIZE);
+	gui_textshow((char*)str, pos, LCD_NOREV);
+	memset(str, 0, 100);
+
+	tmpfloat = arr_data[1]*(1.0)/10000;
+	sprintf((char*)str,"尖 %.4f %s", tmpfloat , surfix);
+	pos.y += 2*FONTSIZE+offset_y;
+	gui_textshow((char*)str, pos, LCD_NOREV);
+	memset(str, 0, 100);
+
+	tmpfloat = arr_data[2]*(1.0)/10000;
+	sprintf((char*)str,"峰 %.4f %s",tmpfloat, surfix);
+	pos.y += 2*FONTSIZE+offset_y;
+	gui_textshow((char*)str, pos, LCD_NOREV);
+	memset(str, 0, 100);
+
+	tmpfloat = arr_data[3]*(1.0)/10000;
+	sprintf((char*)str,"平 %.4f %s",tmpfloat, surfix);
+	pos.y += 2*FONTSIZE+offset_y;
+	gui_textshow((char*)str, pos, LCD_NOREV);
+	memset(str, 0, 100);
+
+	tmpfloat = arr_data[4]*(1.0)/10000;
+	sprintf((char*)str,"谷 %.4f %s",tmpfloat, surfix);
+	pos.y += 2*FONTSIZE+offset_y;
+	gui_textshow((char*)str, pos, LCD_NOREV);
+	return;
+}
 
 void menu_realE(){
 	INT64S palltmp=0;
@@ -1304,7 +1342,8 @@ void menu_realE(){
 				arr_data[4] = (int)p_JProgramInfo->class23[zj_index-1].DayP[3];
 				arr_data[0] = arr_data[1] + arr_data[2] + arr_data[3] + arr_data[4];
 				gui_textshow((char*)"当日有功总电能量", pos, LCD_NOREV);
-				realE_showZJ(zj_index, arr_data, (INT8U*)"kWh");
+//				realE_showZJ(zj_index, arr_data, (INT8U*)"kWh");
+				realE_showZJ_float(arr_data, (INT8U*)"kWh");
 				break;
 			case 2:
 				arr_data[0] = (int)p_JProgramInfo->class23[zj_index-1].DayQALL;
@@ -1314,7 +1353,8 @@ void menu_realE(){
 				arr_data[4] = (int)p_JProgramInfo->class23[zj_index-1].DayQ[3];
 				arr_data[0] = arr_data[1] + arr_data[2] + arr_data[3] + arr_data[4];
 				gui_textshow((char*)"当日无功总电能量", pos, LCD_NOREV);
-				realE_showZJ(zj_index, arr_data, (INT8U*)"kVArh");
+//				realE_showZJ(zj_index, arr_data, (INT8U*)"kVArh");
+				realE_showZJ_float(arr_data, (INT8U*)"kVArh");
 				break;
 			case 3:
 				arr_data[0] = (int)p_JProgramInfo->class23[zj_index-1].MonthPALL;
@@ -1324,7 +1364,8 @@ void menu_realE(){
 				arr_data[4] = (int)p_JProgramInfo->class23[zj_index-1].MonthP[3];
 				arr_data[0] = arr_data[1] + arr_data[2] + arr_data[3] + arr_data[4];
 				gui_textshow((char*)"当月有功总电能量", pos, LCD_NOREV);
-				realE_showZJ(zj_index, arr_data, (INT8U*)"kWh");
+//				realE_showZJ(zj_index, arr_data, (INT8U*)"kWh");
+				realE_showZJ_float( arr_data, (INT8U*)"kWh");
 				break;
 			case 4:
 				arr_data[0] = (int)p_JProgramInfo->class23[zj_index-1].MonthQALL;
@@ -1334,7 +1375,8 @@ void menu_realE(){
 				arr_data[4] = (int)p_JProgramInfo->class23[zj_index-1].MonthQ[3];
 				arr_data[0] = arr_data[1] + arr_data[2] + arr_data[3] + arr_data[4];
 				gui_textshow((char*)"当月无功总电能量", pos, LCD_NOREV);
-				realE_showZJ(zj_index, arr_data, (INT8U*)"kVArh");
+//				realE_showZJ(zj_index, arr_data, (INT8U*)"kVArh");
+				realE_showZJ_float(arr_data, (INT8U*)"kVArh");
 			}
 		}
 		PressKey = NOKEY;
