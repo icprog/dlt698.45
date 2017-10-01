@@ -22,7 +22,7 @@ INT8U check_date(int year, int month, int day, int hour, int min, int sec)
 	struct tm tm_new;
 
 	//0xFF:表示时间无效，控制下发参数（0x8105）的起始、结束时间会有FF数据下发
-	if(year==0xFFFF || month==0xFF || day==0xFF || hour== 0xFF || min==0xFF || sec==0xFF) {
+	if(year==0xFFFF || month==0xFF || day==0xFF || hour==0xFF || min==0xFF || sec==0xFF) {
 		return success;
 	}
 	if (year < 1900 || month <= 0 || month > 12 || day <= 0 || day > 31

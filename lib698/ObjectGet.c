@@ -440,20 +440,6 @@ int Get_8002(RESULT_NORMAL *response)
 	return response->datalen;
 }
 
-int Get_8100(RESULT_NORMAL *response)
-{
-	CLASS_8100 c8100;
-	INT8U *data=NULL;
-	OAD oad;
-	oad = response->oad;
-	data = response->data;
-	readCoverClass(0x8100, 0, (void *) &c8100, sizeof(CLASS_8100),
-				para_vari_save);
-	response->datalen = fill_long64(data, c8100.v);
-	fprintf(stderr,"datalen = %d\n",response->datalen);
-	return response->datalen;
-}
-
 /*
  * 填充总加组状态结构 ALSTATE
  * */
@@ -506,8 +492,74 @@ int fill_PowerCtrlParam(INT8U *data,PowerCtrlParam para)
 	return index;
 }
 
+//终端保安定值
+int Get_8100(RESULT_NORMAL *response)
+{
+	CLASS_8100 c8100={};
+	INT8U *data=NULL;
+	OAD oad={};
+	oad = response->oad;
+	data = response->data;
+	readCoverClass(0x8100, 0, (void *) &c8100, sizeof(CLASS_8100),
+				para_vari_save);
+	response->datalen = fill_long64(data, c8100.v);
+	fprintf(stderr,"datalen = %d\n",response->datalen);
+	return response->datalen;
+}
 //终端功控时段
 int Get_8101(RESULT_NORMAL *response)
+{
+	CLASS_8101 c8101={};
+	INT8U *data=NULL;
+	INT8U	i=0;
+	OAD 	oad={};
+	int 	index=0;
+
+	oad = response->oad;
+	data = response->data;
+	memset(&c8101,0,sizeof(CLASS_8101));
+	readCoverClass(oad.OI, 0, (void *) &c8101, sizeof(CLASS_8101),para_vari_save);
+	switch(oad.attflg){
+	case 2:
+		index += create_array(&data[index],c8101.time_num);
+		for(i=0;i<c8101.time_num;i++) {
+			index += fill_unsigned(&data[index],c8101.time[i]);
+		}
+		break;
+	}
+	response->datalen = index;
+	fprintf(stderr,"C8101 datalen = %d\n",response->datalen);
+	return response->datalen;
+}
+
+//功控告警时间
+int Get_8102(RESULT_NORMAL *response)
+{
+	CLASS_8102 c8102={};
+	INT8U *data=NULL;
+	INT8U	i=0;
+	OAD 	oad={};
+	int 	index=0;
+
+	oad = response->oad;
+	data = response->data;
+	memset(&c8102,0,sizeof(CLASS_8102));
+	readCoverClass(oad.OI, 0, (void *) &c8102, sizeof(CLASS_8102),para_vari_save);
+	switch(oad.attflg){
+	case 2:
+		index += create_array(&data[index],c8102.time_num);
+		for(i=0;i<c8102.time_num;i++) {
+			index += fill_unsigned(&data[index],c8102.time[i]);
+		}
+		break;
+	}
+	response->datalen = index;
+	fprintf(stderr,"C8102 datalen = %d\n",response->datalen);
+	return response->datalen;
+}
+
+//时段功控
+int Get_8103(RESULT_NORMAL *response)
 {
 	CLASS_8103 c8103={};
 	INT8U *data=NULL;
@@ -557,54 +609,55 @@ int Get_8101(RESULT_NORMAL *response)
 	return response->datalen;
 }
 
-int Get_8103(RESULT_NORMAL *response)
+//厂休控
+int Get_8104(RESULT_NORMAL *response)
 {
-	CLASS_8103 c8103={};
-	INT8U *data=NULL;
-	INT8U	i=0,unitnum=0;
-	OAD 	oad={};
-	int 	index=0;
-
-	oad = response->oad;
-	data = response->data;
-	memset(&c8103,0,sizeof(CLASS_8103));
-	readCoverClass(0x8103, 0, (void *) &c8103, sizeof(CLASS_8103),para_vari_save);
-	switch(oad.attflg){
-	case 2:	//时段功控配置单元
-		unitnum=0;
-		for(i=0;i<MAX_AL_UNIT;i++) {
-			if(c8103.list[i].index !=0) {
-				unitnum++;
-			}else break;
-		}
-		if(unitnum) {
-			index += create_array(&data[index],unitnum);
-			for(i=0;i<unitnum;i++) {
-				index += create_struct(&data[index],6);
-				index += fill_OI(&data[index],c8103.list[i].index);
-				index += fill_bit_string(&data[index],8,&c8103.list[i].sign);
-				index += fill_PowerCtrlParam(&data[index],c8103.list[i].v1);
-				index += fill_PowerCtrlParam(&data[index],c8103.list[i].v2);
-				index += fill_PowerCtrlParam(&data[index],c8103.list[i].v3);
-				index += fill_integer(&data[index],c8103.list[i].para);
-			}
-		}else {
-			data[index++] = 0;	//NULL
-		}
-		break;
-	case 3:	//控制投入状态
-		index += fill_ALSTATE(&data[index],c8103.enable,dtenum);
-		break;
-	case 4:	//控制输出状态
-		index += fill_ALSTATE(&data[index],c8103.output,dtbitstring);
-		break;
-	case 5: //越限告警状态
-		index += fill_ALSTATE(&data[index],c8103.overflow,dtenum);
-		break;
-	}
-	response->datalen = index;
-	fprintf(stderr,"C8103 datalen = %d\n",response->datalen);
-	return response->datalen;
+//	CLASS_8104 c8104={};
+//	INT8U *data=NULL;
+//	INT8U	i=0,unitnum=0;
+//	OAD 	oad={};
+//	int 	index=0;
+//
+//	oad = response->oad;
+//	data = response->data;
+//	memset(&c8104,0,sizeof(CLASS_8104));
+//	readCoverClass(oad.OI, 0, (void *) &c8104, sizeof(CLASS_8104),para_vari_save);
+//	switch(oad.attflg){
+//	case 2:	//时段功控配置单元
+//		unitnum=0;
+//		for(i=0;i<MAX_AL_UNIT;i++) {
+//			if(c8104.list[i].index !=0) {
+//				unitnum++;
+//			}else break;
+//		}
+//		if(unitnum) {
+//			index += create_array(&data[index],unitnum);
+//			for(i=0;i<unitnum;i++) {
+//				index += create_struct(&data[index],6);
+//				index += fill_OI(&data[index],c8104.list[i].index);
+//				index += fill_bit_string(&data[index],8,&c8104.list[i].sign);
+//				index += fill_PowerCtrlParam(&data[index],c8104.list[i].v1);
+//				index += fill_PowerCtrlParam(&data[index],c8104.list[i].v2);
+//				index += fill_PowerCtrlParam(&data[index],c8104.list[i].v3);
+//				index += fill_integer(&data[index],c8104.list[i].para);
+//			}
+//		}else {
+//			data[index++] = 0;	//NULL
+//		}
+//		break;
+//	case 3:	//控制投入状态
+//		index += fill_ALSTATE(&data[index],c8103.enable,dtenum);
+//		break;
+//	case 4:	//控制输出状态
+//		index += fill_ALSTATE(&data[index],c8103.output,dtbitstring);
+//		break;
+//	case 5: //越限告警状态
+//		index += fill_ALSTATE(&data[index],c8103.overflow,dtenum);
+//		break;
+//	}
+//	response->datalen = index;
+//	fprintf(stderr,"C8103 datalen = %d\n",response->datalen);
+//	return response->datalen;
 }
 
 //购电控
@@ -2865,6 +2918,9 @@ int GetCtrl(RESULT_NORMAL *response)
 			break;
 		case 0x8101://终端功控时段
 			response->datalen = Get_8101(response);
+			break;
+		case 0x8102://功控告警时间
+			response->datalen = Get_8102(response);
 			break;
 		case 0x8103://时段功控
 			response->datalen = Get_8103(response);

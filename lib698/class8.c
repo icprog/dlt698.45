@@ -13,7 +13,7 @@
 #include "dlt698.h"
 
 typedef union { //control code
-	INT16U u8b; //convenient to set value to 0
+	INT8U u8b; //convenient to set value to 0
 	struct { //only for little endian mathine!
 		INT8U bak :4; //备用
 		INT8U power_ctl :1; //当前功率下浮控
@@ -24,7 +24,7 @@ typedef union { //control code
 } PCAlarmState;
 
 typedef union { //control code
-	INT16U u8b; //convenient to set value to 0
+	INT8U u8b; //convenient to set value to 0
 	struct { //only for little endian mathine!
 		INT8U bak :6; //备用
 		INT8U buy_elec_ctl :1; 	//购电控
@@ -944,14 +944,15 @@ int class8106_act_route(OAD oad, INT8U *data, Action_result *act_ret)
 		act_ret->datalen = class8106_unit(oad.attflg, data, &shareAddr->ctrls.c8106, &act_ret->DAR);
 		break;
 	case 6:	//控制投入
+		act_ret->datalen = set_class13_att3(oad.attflg,data,&sum_index,&shareAddr->ctrls.c8106.enable,&act_ret->DAR);
+		break;
 	case 7: //控制解除
 		act_ret->datalen = set_class13_att3(oad.attflg,data,&sum_index,&shareAddr->ctrls.c8106.enable,&act_ret->DAR);
 		if(act_ret->DAR == success && (sum_index>=0 && sum_index<= MAX_AL_UNIT)) {
 			pcAlarm.u8b = shareAddr->class23[sum_index].alCtlState.PCAlarmState;
 			pcAlarm.pcstate.power_ctl = 0;
 			shareAddr->class23[sum_index].alCtlState.PCAlarmState = pcAlarm.u8b;
-			shareAddr->class23[sum_index].alCtlState.OutputState = 0x00;
-			shareAddr->class23[sum_index].alCtlState.PCAlarmState = 0x00;
+			shareAddr->class23[sum_index].alCtlState.OutputState = 0;
 		}
 		break;
 	case 127://投入（总加组对象，控制方案）
@@ -1130,7 +1131,7 @@ int set_OI810c(INT8U service,INT8U *data,BUY_CTRL *oi810c,INT8U *DAR)
 	index += getStructure(&data[index],&stru_num,DAR);
 	if(stru_num != 8)	*DAR = interface_uncomp;
 	index += getOI(1,&data[index],&tmp_oi810c.index);
-	INT16U oi_b = data[(index+1)] * 256 + data[index];
+	INT16U oi_b = (tmp_oi810c.index<<8) | ((tmp_oi810c.index>>8));
 	sum_index = tmp_oi810c.index - 0x2301;
 	sum_index = rangeJudge("总加组",sum_index,0,(MAXNUM_SUMGROUP-1));
 	if(sum_index == -1)  *DAR = obj_unexist;
@@ -1155,6 +1156,7 @@ int set_OI810c(INT8U service,INT8U *data,BUY_CTRL *oi810c,INT8U *DAR)
 				tmp_oi810c.add_refresh, tmp_oi810c.type, tmp_oi810c.v, tmp_oi810c.alarm, tmp_oi810c.ctrl, tmp_oi810c.mode);
 		memcpy(&oi810c[sum_index],&tmp_oi810c,sizeof(BUY_CTRL));
 		if(service == 3 || service == 5) {
+			asyslog(LOG_WARNING,"Event_3202事件 oi_b=%04x\n",oi_b);
 			Event_3202((INT8U *)&oi_b,2, getShareAddr());
 		}
 	}
@@ -1171,8 +1173,16 @@ int class8107_act_route(OAD oad, INT8U *data,Action_result *act_ret) {
 		act_ret->datalen = set_OI810c(oad.attflg,data,shareAddr->ctrls.c8107.list,&act_ret->DAR);
 		break;
 	case 6:	//控制投入
+		act_ret->datalen = set_class13_att3(oad.attflg,data,&sum_index,shareAddr->ctrls.c8107.enable,&act_ret->DAR);
+		break;
 	case 7: //控制解除
 		act_ret->datalen = set_class13_att3(oad.attflg,data,&sum_index,shareAddr->ctrls.c8107.enable,&act_ret->DAR);
+		if(act_ret->DAR == success && (sum_index>=0 && sum_index<= MAX_AL_UNIT)) {	//购电控
+			ecAlarm.u8b = shareAddr->class23[sum_index].alCtlState.ECAlarmState;
+			ecAlarm.ecstate.month_elec_ctl = 0;
+			shareAddr->class23[sum_index].alCtlState.PCAlarmState = ecAlarm.u8b;
+			shareAddr->class23[sum_index].alCtlState.OutputState = 0;
+		}
 		break;
 	}
 	if(act_ret->DAR == success) {
@@ -1297,6 +1307,9 @@ int class8108_act7(int index, int attr_act, INT8U *data, Action_result *act_ret)
 	shareAddr->ctrls.c8108.enable[sindex].state = 0x00;
 	c8108.enable[sindex].name = 0x00;
 	shareAddr->ctrls.c8108.enable[sindex].name = 0x00;
+	//月电控
+//	ecAlarm.ecstate = shareAddr->class23[sindex].alCtlState.MonthOutputState;
+//	ecAlarm.ecstate.month_elec_ctl = 0;
 	shareAddr->class23[sindex].alCtlState.OutputState = 0x00;
 	shareAddr->class23[sindex].alCtlState.MonthOutputState = 0x00;
 	shareAddr->class23[sindex].alCtlState.ECAlarmState = 0x00;
