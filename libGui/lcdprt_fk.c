@@ -92,10 +92,15 @@ void menu_control_showstate(char *ctlname, INT8U state, Point pos){
 	sprintf(str, "%s:%s", ctlname, state?"投入":"解除");
 	gui_textshow(str, pos, LCD_NOREV);
 }
-
+int tourujuge(OI_698 oi ,INT8U state)
+{
+	if (oi >=0x2301  && oi<=0x2308  && state==1)
+		return 1;
+	return 0;
+}
 void menu_control(){
 	Rect rect;
-	CLASS23			class23[8];			//总加组
+	CLASS23	   class23[8];			//总加组
 	CLASS_8103 c8103; 					//时段功控
 	CLASS_8104 c8104; 					//厂休控
 	CLASS_8105 c8105; 					//营业报停控
@@ -119,6 +124,7 @@ void menu_control(){
 	char str[100], first_flg=0;
 	Point pos;
 	int zj_index=1;
+	int touru=0;
 	memset(str, 0, 100);
 	PressKey = NOKEY;
 	while(g_LcdPoll_Flag==LCD_NOTPOLL){
@@ -157,19 +163,30 @@ void menu_control(){
 		gui_reverserect(gui_changerect(rect, 2));//反显按钮
 
 		gui_setpos(&pos, rect_Client.left+1*FONTSIZE, rect_Client.top+10*FONTSIZE);//4
-		menu_control_showstate((char*)"下浮：",c8106.enable.state & 0x01, pos);			//当前功率下浮控	没有控制方案集数组，默认参数下发在原来结构体数组 0
-		pos.y += FONTSIZE*3;
-		menu_control_showstate((char*)"报停：",c8105.enable[zj_index-1].state & 0x01, pos);//营业报停控
-		pos.y += FONTSIZE*3;
-		menu_control_showstate((char*)"厂休：",c8104.enable[zj_index-1].state & 0x01, pos);//营业报停控
+
+		touru =tourujuge(c8106.enable.name, c8106.enable.state);
+		menu_control_showstate((char*)"下浮：",touru & 0x01, pos);			//当前功率下浮控	没有控制方案集数组，默认参数下发在原来结构体数组 0
 		pos.y += FONTSIZE*3;
 
+		touru =tourujuge(c8105.enable[zj_index-1].name, c8105.enable[zj_index-1].state);
+		menu_control_showstate((char*)"报停：",touru & 0x01, pos);//营业报停控
+		pos.y += FONTSIZE*3;
+
+		touru = tourujuge(c8104.enable[zj_index-1].name,c8104.enable[zj_index-1].state);
+		menu_control_showstate((char*)"厂休：",touru & 0x01, pos);//营业报停控
+		pos.y += FONTSIZE*3;
+
+		touru = tourujuge(c8103.enable[zj_index-1].name,c8103.enable[zj_index-1].state);
 		gui_setpos(&pos, rect_Client.left+15*FONTSIZE, rect_Client.top+10*FONTSIZE);//4
-		menu_control_showstate((char*)"时段：",c8103.enable[zj_index-1].state & 0x01, pos);	//时段功控
+		menu_control_showstate((char*)"时段：",touru & 0x01, pos);	//时段功控
 		pos.y += FONTSIZE*3;
-		menu_control_showstate((char*)"购电：",c8107.enable[zj_index-1].state & 0x01 , pos);//购电控
+
+		touru = tourujuge(c8107.enable[zj_index-1].name,c8107.enable[zj_index-1].state);
+		menu_control_showstate((char*)"购电：",touru & 0x01 , pos);//购电控
 		pos.y += FONTSIZE*3;
-		menu_control_showstate((char*)"月电：",c8108.enable[zj_index-1].state & 0x01 , pos);//月电控
+
+		touru = tourujuge(c8108.enable[zj_index-1].name,c8108.enable[zj_index-1].state);
+		menu_control_showstate((char*)"月电：",touru & 0x01 , pos);//月电控
 		pos.y += FONTSIZE*3;
 
 		if(PressKey!=NOKEY || first_flg==0){
