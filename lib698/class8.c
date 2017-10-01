@@ -641,7 +641,7 @@ int class8105_act3(int index, int attr_act, INT8U *data, Action_result *act_ret)
 	memset(&c8105, 0x00, sizeof(CLASS_8105));
 	readCoverClass(0x8105, 0, (void *) &c8105, sizeof(CLASS_8105),
 			para_vari_save);
-
+	c8105.list[unit].index = oi;
 	ii += getDateTimeS(1,&data[ii],(INT8U *)&c8105.list[unit].start,&DAR);
 	ii += getDateTimeS(1,&data[ii],(INT8U *)&c8105.list[unit].end,&DAR);
 	ii += getLong64(&data[ii],&c8105.list[unit].v);

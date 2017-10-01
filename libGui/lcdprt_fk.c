@@ -1231,6 +1231,7 @@ void realE_showZJ(INT8U zj_index, int arr_data[], INT8U *surfix)
 }
 
 void menu_realE(){
+	INT64S palltmp=0;
 	char str[100];
 	Point pos;
 	int zf_index=1, zj_index=1, arr_data[5];//
@@ -1284,6 +1285,7 @@ void menu_realE(){
 				arr_data[2] = (int)p_JProgramInfo->class23[zj_index-1].DayP[1];
 				arr_data[3] = (int)p_JProgramInfo->class23[zj_index-1].DayP[2];
 				arr_data[4] = (int)p_JProgramInfo->class23[zj_index-1].DayP[3];
+				arr_data[0] = arr_data[1] + arr_data[2] + arr_data[3] + arr_data[4];
 				gui_textshow((char*)"当日有功总电能量", pos, LCD_NOREV);
 				realE_showZJ(zj_index, arr_data, (INT8U*)"kWh");
 				break;
@@ -1293,6 +1295,7 @@ void menu_realE(){
 				arr_data[2] = (int)p_JProgramInfo->class23[zj_index-1].DayQ[1];
 				arr_data[3] = (int)p_JProgramInfo->class23[zj_index-1].DayQ[2];
 				arr_data[4] = (int)p_JProgramInfo->class23[zj_index-1].DayQ[3];
+				arr_data[0] = arr_data[1] + arr_data[2] + arr_data[3] + arr_data[4];
 				gui_textshow((char*)"当日无功总电能量", pos, LCD_NOREV);
 				realE_showZJ(zj_index, arr_data, (INT8U*)"kVArh");
 				break;
@@ -1302,6 +1305,7 @@ void menu_realE(){
 				arr_data[2] = (int)p_JProgramInfo->class23[zj_index-1].MonthP[1];
 				arr_data[3] = (int)p_JProgramInfo->class23[zj_index-1].MonthP[2];
 				arr_data[4] = (int)p_JProgramInfo->class23[zj_index-1].MonthP[3];
+				arr_data[0] = arr_data[1] + arr_data[2] + arr_data[3] + arr_data[4];
 				gui_textshow((char*)"当月有功总电能量", pos, LCD_NOREV);
 				realE_showZJ(zj_index, arr_data, (INT8U*)"kWh");
 				break;
@@ -1311,6 +1315,7 @@ void menu_realE(){
 				arr_data[2] = (int)p_JProgramInfo->class23[zj_index-1].MonthQ[1];
 				arr_data[3] = (int)p_JProgramInfo->class23[zj_index-1].MonthQ[2];
 				arr_data[4] = (int)p_JProgramInfo->class23[zj_index-1].MonthQ[3];
+				arr_data[0] = arr_data[1] + arr_data[2] + arr_data[3] + arr_data[4];
 				gui_textshow((char*)"当月无功总电能量", pos, LCD_NOREV);
 				realE_showZJ(zj_index, arr_data, (INT8U*)"kVArh");
 			}
@@ -2181,9 +2186,10 @@ void menu_changxiupara(){
 void menu_baotingpara(){
 	Point pos;
 	int unite_index=1;
+	float tmpfloat=0;
 	char str[100], year[2], month[2], day[2];
 	INT8U  first_flg=0;
-	int zj_index=1;
+
 	CLASS_8105 c8105; //营业报停控
 	readCoverClass(0x8105, 0, (void *) &c8105, sizeof(CLASS_8105),para_vari_save);
 
@@ -2244,7 +2250,7 @@ void menu_baotingpara(){
 
 			pos.y += 3*FONTSIZE;
 			memset(str, 0, 100);
-			sprintf(str, "%04d-%02d-%2d 02%d:02%d",
+			sprintf(str, "%04d-%02d-%2d %02d:%02d",
 					c8105.list[unite_index-1].start.year.data,
 					c8105.list[unite_index-1].start.month.data,
 					c8105.list[unite_index-1].start.day.data,
@@ -2259,7 +2265,7 @@ void menu_baotingpara(){
 
 			pos.y += 3*FONTSIZE;
 			memset(str, 0, 100);
-			sprintf(str, "%04d-%02d-%2d 02%d:02%d",
+			sprintf(str, "%04d-%02d-%2d %02d:%02d",
 					c8105.list[unite_index-1].end.year.data,
 					c8105.list[unite_index-1].end.month.data,
 					c8105.list[unite_index-1].end.day.data,
@@ -2267,11 +2273,11 @@ void menu_baotingpara(){
 					c8105.list[unite_index-1].end.min.data);
 			gui_textshow(str, pos, LCD_NOREV);
 
-
 			pos.y += 3*FONTSIZE;
 			memset(str, 0, 100);
+			tmpfloat = c8105.list[unite_index-1].v*(1.0)/10;
 			if (c8105.list[unite_index-1].v>0)
-				sprintf(str, "定值 %04d kW", c8105.list[unite_index-1].v);
+				sprintf(str, "定值 %.1f W", c8105.list[unite_index-1].v);
 			else
 				sprintf(str, "定值 错误 ");
 			gui_textshow(str, pos, LCD_NOREV);
@@ -2369,7 +2375,7 @@ void menu_xiafupara(){
 void menu_yuedianpara(){
 	int unite_index=1;
 	CLASS_8108 c8108;
-
+	float tmpvalue=0;
 	int suffix=0, fix_value=0;
 	Point pos;
 	char str[100];
@@ -2415,7 +2421,7 @@ void menu_yuedianpara(){
 				}
 			}
 //			if (ifenable==0 )//该总加组没投入！
-
+			if (c8108.list[unite_index-1].index < 0x2301 ||  c8108.list[unite_index-1].index > 0x2308)//该总加组没投入！
 			{
 				pos.x = rect_Client.left+5*FONTSIZE;
 				pos.y += 5*FONTSIZE;
@@ -2428,7 +2434,8 @@ void menu_yuedianpara(){
 			}
 			pos.y += 3*FONTSIZE;
 			memset(str, 0, 100);
-			sprintf(str, "电控定值: %d kW",c8108.list[unite_index-1].v);
+			tmpvalue = c8108.list[unite_index-1].v*(1.0)/10000;
+			sprintf(str, "电控定值: %.4f kW",tmpvalue);
 			gui_textshow(str, pos, LCD_NOREV);
 
 			pos.y += 3*FONTSIZE;
