@@ -1173,6 +1173,23 @@ int class8107_act_route(OAD oad, INT8U *data,Action_result *act_ret) {
 	case 6:	//控制投入
 	case 7: //控制解除
 		act_ret->datalen = set_class13_att3(oad.attflg,data,&sum_index,shareAddr->ctrls.c8107.enable,&act_ret->DAR);
+
+		fprintf(stderr,"\n *********  oi=%04x   sum_index=%d    dar=%d  ************* \n",oad.OI,sum_index,act_ret->DAR);
+
+		if(act_ret->DAR == success && (sum_index>=0 && sum_index<= MAX_AL_UNIT)) {
+			ecAlarm.u8b = shareAddr->class23[sum_index].alCtlState.ECAlarmState;
+			ecAlarm.ecstate.buy_elec_ctl = 0;
+			shareAddr->class23[sum_index].alCtlState.OutputState = 0x00;
+			shareAddr->class23[sum_index].alCtlState.ECAlarmState = 0x00;
+			shareAddr->class23[sum_index].alCtlState.BuyOutputState = 0x00;
+			fprintf(stderr,"\n ********** sum[%d] alarmstate=%02x   outstate=%02x butout=%03x",sum_index,
+					shareAddr->class23[sum_index].alCtlState.ECAlarmState,
+					shareAddr->class23[sum_index].alCtlState.OutputState,
+					shareAddr->class23[sum_index].alCtlState.BuyOutputState );
+
+
+
+		}
 		break;
 	}
 	if(act_ret->DAR == success) {
