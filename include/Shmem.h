@@ -418,6 +418,7 @@ typedef struct {
 }ConfigPara;
 
 typedef struct {
+	CLASS_8000 c8000; //遥控
 	CLASS_8001 c8001; //保电
 	CLASS_8002 c8002; //催费告警
 

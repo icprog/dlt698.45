@@ -245,9 +245,30 @@ INT64U getLongValue(INT8U *data) {
 }
 
 /*
+ * 遥控
+ * */
+int class8000_set(OAD oad, INT8U *data, INT8U *DAR)
+{
+	CLASS_8000 c8000={};
+	INT8U	index = 0;
+	ProgramInfo *shareAddr = getShareAddr();
+
+	memcpy(&c8000,&shareAddr->ctrls.c8000,sizeof(CLASS_8000));
+	if(oad.attflg == 2) {	//配置参数
+		index += getStructure(&data[index],NULL,DAR);
+		index += getDouble(&data[index],&c8000.limit);
+	}
+	if(*DAR == success) {
+		memcpy(&shareAddr->ctrls.c8000,&c8000,sizeof(CLASS_8000));
+		*DAR = saveCoverClass(oad.OI, 0, (void *) &c8000, sizeof(CLASS_8000),para_vari_save);
+	}
+	return index;
+}
+
+/*
  * 保电设置
  * */
-int class8001_set(int bak, OAD oad, INT8U *data, INT8U *DAR) {
+int class8001_set(OAD oad, INT8U *data, INT8U *DAR) {
 	CLASS_8001 c8001={};
 	INT8U	i=0;
 	INT8U	index = 0;
@@ -294,8 +315,10 @@ int class8001_set(int bak, OAD oad, INT8U *data, INT8U *DAR) {
 	return index;
 }
 
-int class8100_set(int index, OAD oad, INT8U *data, INT8U *DAR) {
-	CLASS_8100 c8100;
+//终端保安定值
+int class8100_set(int index, OAD oad, INT8U *data, INT8U *DAR)
+{
+	CLASS_8100 c8100={};
 	ProgramInfo *shareAddr = getShareAddr();
 
 	if (data[0] != 0x14) {

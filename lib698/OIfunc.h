@@ -32,5 +32,5 @@ extern int Get_601D(INT8U type,INT8U seqnum,INT8U *data);
 
 /*----------------------输入输出设备类-----------------*/
 extern int GetF201(OAD oad,INT8U *data);
-
+extern int GetF209(OAD oad,INT8U *data);
 #endif /* OIFUNC_H_ */
