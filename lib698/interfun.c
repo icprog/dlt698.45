@@ -811,7 +811,7 @@ int getInteger(INT8U *source,INT8S *dest,INT8U *DAR)                     // 0x0F
 
 int getUnsigned(INT8U *source,INT8U *dest,INT8U *DAR)	//0x11
 {
-	if(source[0] == dtunsigned || source[0] == dtinteger) {
+	if(source[0] == dtunsigned) {
 		dest[0] = source[1];
 		return 2;//source[0] 0x11(unsigned type)   source[1] =data
 	}else {

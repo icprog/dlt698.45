@@ -1862,7 +1862,7 @@ INT8U fillclass23data(OAD oad_m,OAD oad_r,TSA meter,INT8U* data)
 										}
 										else
 										{
-											JProgramInfo->class23[groupIndex].remains -= yongdianliang;
+											JProgramInfo->class23[groupIndex].remains -= (yongdianliang*100);
 										}
 										DbgPrintToFile1(6,"groupIndex = %d yongdianliang = %ld remains = %ld",groupIndex,yongdianliang,JProgramInfo->class23[groupIndex].remains);
 										DbgPrintToFile1(6,"DayPALL=%ld MonthPALL=%ld",
@@ -1929,7 +1929,7 @@ INT8U fillclass23data(OAD oad_m,OAD oad_r,TSA meter,INT8U* data)
 						}
 						else
 						{
-							JProgramInfo->class23[groupIndex].remains -= yongdianliang;
+							JProgramInfo->class23[groupIndex].remains -= (yongdianliang*100);
 						}
 						JProgramInfo->class23[groupIndex].allist[meterIndex].curP[0] = dianliang;
 					}

@@ -576,8 +576,11 @@ int Get_8102(RESULT_NORMAL *response)
 	readCoverClass(oad.OI, 0, (void *) &c8102, sizeof(CLASS_8102),para_vari_save);
 	switch(oad.attflg){
 	case 2:
+		c8102.time_num = limitJudge("功控告警时间",8,c8102.time_num);
+		fprintf(stderr,"c8102.time_num = %d\n",c8102.time_num);
 		index += create_array(&data[index],c8102.time_num);
 		for(i=0;i<c8102.time_num;i++) {
+			fprintf(stderr,"c8102.time[%d] = %d\n",i,c8102.time[i]);
 			index += fill_unsigned(&data[index],c8102.time[i]);
 		}
 		break;
