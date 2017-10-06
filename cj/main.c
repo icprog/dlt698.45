@@ -178,6 +178,7 @@ void prthelp() {
     fprintf(stderr, "%s", usage_para);
     fprintf(stderr, "%s", usage_coll);
     fprintf(stderr, "%s", usage_inoutdev);
+
 }
 
 
@@ -228,7 +229,8 @@ void set_4400()
 int main(int argc, char *argv[]) {
 	// set_4400();
 	 //return 0;
-    if (argc < 2) {
+
+	if (argc < 2) {
         prthelp();
         return EXIT_SUCCESS;
     }
@@ -633,7 +635,7 @@ int main(int argc, char *argv[]) {
 		return EXIT_SUCCESS;
 	}
 
-    if((strcmp("sum",argv[1])==0)||(strcmp("pulse",argv[1])==0))
+    if((strcmp("sum",argv[1])==0)||(strcmp("pulse",argv[1])==0)||(strcmp("ctrlp",argv[1])==0))
 	{
     	fprintf(stderr, "%s", usage_sumgroup);
     	sum_process(argc,argv);

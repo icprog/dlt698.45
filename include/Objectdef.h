@@ -765,7 +765,7 @@ typedef struct {
 } ALCONSTATE;
 
 typedef struct {
-    INT64U v;
+    INT64S v;
     INT8S Downc;
     INT8U OutputState;
     INT8U MonthOutputState;
@@ -793,7 +793,7 @@ typedef struct {
 } CLASS12_ENERGY;
 
 typedef struct {
-	INT8U addr[OCTET_STRING_LEN];//通信地址
+	INT8U addr[17];//通信地址
 	INT32U pt;//互感器倍率
 	INT32U ct;//互感器倍率
 	PULSEUNIT unit[MAX_PULSE_UNIT];//脉冲配置
@@ -870,23 +870,25 @@ typedef struct {
 } CLASS_8100;
 
 typedef struct {
-    INT8U time[12]; //终端功控时段
+	INT8U	time_num;
+    INT8U 	time[12]; //终端功控时段
 } CLASS_8101;
 
 typedef struct {
-    INT8U time[8]; //终端告警时间
+	INT8U	time_num;
+    INT8U 	time[8]; //终端告警时间
 } CLASS_8102;
 
 typedef struct {
     INT8U n;
-    INT64U t1;
-    INT64U t2;
-    INT64U t3;
-    INT64U t4;
-    INT64U t5;
-    INT64U t6;
-    INT64U t7;
-    INT64U t8;
+    INT64S t1;
+    INT64S t2;
+    INT64S t3;
+    INT64S t4;
+    INT64S t5;
+    INT64S t6;
+    INT64S t7;
+    INT64S t8;
 } PowerCtrlParam;
 
 typedef struct {
@@ -926,7 +928,7 @@ typedef struct {
     OI_698 index;
     DateTimeBCD start;
     DateTimeBCD end;
-    INT64U v;
+    INT64S v;
 } STOP_CTRL;
 
 typedef struct {

@@ -27,6 +27,7 @@ extern int GetReportData(CLASS_601D report);
 extern int doGetnormal(INT8U seqOfNum,RESULT_NORMAL *response);
 
 extern INT8U Reset_add();
+extern void memDataInit(INT8U type,ProgramInfo *memp);
 extern void FrameTail(INT8U *buf, int index, int hcsi);
 extern int FrameHead(CSINFO *csinfo, INT8U *buf);
 extern INT8S (*pSendfun)(int fd, INT8U *sndbuf, INT16U sndlen);
@@ -108,6 +109,7 @@ extern int getInteger(INT8U *source,INT8S *dest,INT8U *DAR);                    
 extern int getUnsigned(INT8U *source,INT8U *dest,INT8U *DAR);                     // 0x11
 extern int getLongUnsigned(INT8U* source, INT8U* dest);                           // 0x12
 extern int getLong64(INT8U *source,INT64S *dest);									//0x14
+extern int getLong64Unsigned(INT8U *source,INT64U *dest);							//0x15
 extern int getEnum(INT8U type, INT8U* source, INT8U* enumvalue);                  // 0x16
 extern int getTime(INT8U type,INT8U *source,INT8U *dest,INT8U *DAR);              // 0x1B
 extern int getDateTimeS(INT8U type,INT8U *source,INT8U *dest,INT8U *DAR);         // 0x1C

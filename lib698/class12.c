@@ -60,11 +60,22 @@ int class12_act3_attr4(INT8U type,OI_698 oi,INT8U *data, INT8U *DAR, CLASS12 *me
 	int  i = 0;
 	INT8U	unitnum=0;
 
+	INT8U conf=0;
+	OAD oad;
+	INT32U k=0;
+	int addflg=0;
+	int firstzero=-1;
+
+	fprintf(stderr,"\n=============  3   no=%d   oi=%04x",no,oi);
+
 	memcpy(class12,memClass12,sizeof(class12));
 //	readCoverClass(oi, 0, &class12, sizeof(CLASS12), para_vari_save);
 	if(type == SET_REQUEST) {	//set
+
 		index += getArray(&data[index],&unitnum,DAR);
+		fprintf(stderr,"\n=============  1   unitnum=%d",unitnum);
 		unitnum = limitJudge("脉冲配置单元",MAX_PULSE_UNIT,unitnum);
+		fprintf(stderr,"\n=============  2   unitnum=%d",unitnum);
 		for (i = 0; i < unitnum; i++) {
 			index += getStructure(&data[index],NULL,DAR);
 			index += getOAD(1,&data[index],&class12[no].unit[i].no,DAR);
@@ -72,18 +83,46 @@ int class12_act3_attr4(INT8U type,OI_698 oi,INT8U *data, INT8U *DAR, CLASS12 *me
 			index += getLongUnsigned(&data[index],(INT8U *)&class12[no].unit[i].k);
 		}
 	}else if(type == ACTION_REQUEST){ 	//action
-		for (i = 0; i < MAX_PULSE_UNIT; i++) {
-			if(class12[no].unit[i].no.OI == 0) {	//添加一个新的控制单元
-				index += getStructure(&data[index],NULL,DAR);
-				index += getOAD(1,&data[index],&class12[no].unit[i].no,DAR);
-				index += getEnum(1,&data[index],&class12[no].unit[i].conf);
-				index += getLongUnsigned(&data[index],(INT8U *)&class12[no].unit[i].k);
+
+		index += getStructure(&data[index],NULL,DAR);
+		index += getOAD(1,&data[index],&oad,DAR);
+		index += getEnum(1,&data[index],&conf);
+		index += getLongUnsigned(&data[index],(INT8U *)&k);
+		addflg = 0;
+		for (i = 0; i < MAX_PULSE_UNIT; i++)
+		{
+			fprintf(stderr,"\n===== 脉冲单元%d   oi=%04x-%02x%02x   k=%d\n",i,class12[no].unit[i].no.OI,class12[no].unit[i].no.attflg,class12[no].unit[i].no.attrindex,class12[no].unit[i].k);
+			if (class12[no].unit[i].no.OI ==0 && firstzero==-1)
+				firstzero = i;
+			if(class12[no].unit[i].no.OI == oad.OI  &&
+			   class12[no].unit[i].no.attflg == oad.attflg &&
+			   class12[no].unit[i].no.attrindex == oad.attrindex)
+			{	//添加一个新的控制单元
+				fprintf(stderr,"\n==== 添加到 i=%d",i);
+				class12[no].unit[i].conf = conf;
+				class12[no].unit[i].k = k;
+				class12[no].unit[i].no = oad;
+				addflg = 1;
+//				index += getStructure(&data[index],NULL,DAR);
+//				index += getOAD(1,&data[index],&class12[no].unit[i].no,DAR);
+//				index += getEnum(1,&data[index],&class12[no].unit[i].conf);
+//				index += getLongUnsigned(&data[index],(INT8U *)&class12[no].unit[i].k);
 				break;
 			}
 		}
+		if (addflg==0)
+		{
+			if (firstzero<0 || firstzero>=MAX_PULSE_UNIT)
+				firstzero = 0;
+			class12[no].unit[firstzero].conf = conf;
+			class12[no].unit[firstzero].k = k;
+			class12[no].unit[firstzero].no = oad;
+		}
 	}
 	if(*DAR == success) {
+
 		memcpy(memClass12,class12,sizeof(class12));		//更新内存
+		fprintf(stderr,"\n------------------==========------------ 脉冲1 （K）=%d  脉冲2（K）=%d ",memClass12->unit[0].k, memClass12->unit[1].k);
 		saveCoverClass(oi, 0, &class12[no], sizeof(CLASS12), para_vari_save);
 	}
 	return index;
@@ -356,9 +395,9 @@ int class12_get(OAD oad, INT8U *sourcebuf, INT8U *buf, int *len){
 	case 15:
 		return class12_get_double_long_unsigned(oad, shareAddr->class12[index].val_pos_p, buf, len);
 	case 16:
-		return class12_get_double_long_unsigned(oad, shareAddr->class12[index].val_nag_p, buf, len);
-	case 17:
 		return class12_get_double_long_unsigned(oad, shareAddr->class12[index].val_pos_q, buf, len);
+	case 17:
+		return class12_get_double_long_unsigned(oad, shareAddr->class12[index].val_nag_p, buf, len);
 	case 18:
 		return class12_get_double_long_unsigned(oad, shareAddr->class12[index].val_nag_q, buf, len);
 	case 19:

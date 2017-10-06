@@ -22,6 +22,7 @@
 #include "../libBase/PublicFunction.h"
 
 #pragma message("\n\n************************************\n CCTT_I__Compiling............\n************************************\n")
+extern ProgramInfo* p_JProgramInfo ;
 
 /*
  * menu中的元素<!"必须"!>按照如下规则排列:
@@ -103,7 +104,222 @@ int g_PressKey_old;//用于液晶点抄 半途退出
 int getMenuSize_jzq(){
 	return sizeof(menu)/sizeof(Menu);
 }
+void McPointData(INT8U ind)
+{
+	int first_flg =0;
+	float tmpfloat=0;
+	INT64U allvalue=0;
+	FP64 dval=0;
+	Point pos = {0};
+	INT8U str[100] = {0};
+	INT8U chg_str[50] = {0};
 
+	int pageno=0;
+	PressKey = NOKEY;
+	while(g_LcdPoll_Flag==LCD_NOTPOLL){
+		delay(200);
+		switch(PressKey)
+		{
+			case LEFT:
+			case UP:
+				pageno--;
+				if(pageno<0)
+					pageno = 3;
+				break;
+			case RIGHT:
+			case DOWN:
+				pageno++;
+				if(pageno>3)
+					pageno = 0;
+				break;
+			case ESC:
+				return;
+		}
+
+		if(PressKey!=NOKEY || first_flg==0){
+			first_flg = 1;
+			gui_clrrect(rect_Client);
+			if (ind < 1 || ind > 2)//属性内索引 只能是（1）或者是（2）
+			{
+				gui_setpos(&pos, rect_Client.left+3*FONTSIZE, rect_Client.top+FONTSIZE);
+				gui_textshow((char *)"属性内索引错误", pos, LCD_NOREV);
+				continue;
+			}
+
+			switch(pageno)
+			{
+				case 0:
+					allvalue = p_JProgramInfo->class12[ind-1].val_pos_p[0] + p_JProgramInfo->class12[ind-1].val_pos_p[1] +
+							   p_JProgramInfo->class12[ind-1].val_pos_p[2] + p_JProgramInfo->class12[ind-1].val_pos_p[3] ;
+
+					gui_setpos(&pos, rect_Client.left+3*FONTSIZE, rect_Client.top+FONTSIZE);
+					gui_textshow((char *)"当前正向有功电能示值", pos, LCD_NOREV);
+
+					gui_setpos(&pos, rect_Client.left+3*FONTSIZE, rect_Client.top+3*FONTSIZE);
+					memset(str,0,sizeof(str));
+					sprintf((char*)str,"脉冲端口 %d",ind);
+					gui_textshow((char *)str, pos, LCD_NOREV);
+
+					memset(str,0,sizeof(str));
+					tmpfloat = allvalue*(1.0)/100;
+					sprintf((char*)str,"正向有功总% .2f kWh",tmpfloat);
+					gui_setpos(&pos, rect_Client.left+FONTSIZE, rect_Client.top+6*FONTSIZE);
+					gui_textshow((char*)str, pos, LCD_NOREV);
+
+					memset(str,0,sizeof(str));
+					tmpfloat = p_JProgramInfo->class12[ind-1].val_pos_p[0]*(1.0)/100;
+					sprintf((char*)str,"正向有功尖% .2f kWh",tmpfloat);
+					pos.y += 2*FONTSIZE+3;
+					gui_textshow((char*)str, pos, LCD_NOREV);
+
+					memset(str,0,sizeof(str));
+					tmpfloat = p_JProgramInfo->class12[ind-1].val_pos_p[1]*(1.0)/100;
+					sprintf((char*)str,"正向有功峰% .2f kWh",tmpfloat);
+					pos.y += 2*FONTSIZE+3;
+					gui_textshow((char*)str, pos, LCD_NOREV);
+
+					memset(str,0,sizeof(str));
+					tmpfloat = p_JProgramInfo->class12[ind-1].val_pos_p[2]*(1.0)/100;
+					sprintf((char*)str,"正向有功平% .2f kWh",tmpfloat);
+					pos.y += 2*FONTSIZE+3;
+					gui_textshow((char*)str, pos, LCD_NOREV);
+
+					memset(str,0,sizeof(str));
+					tmpfloat = p_JProgramInfo->class12[ind-1].val_pos_p[3]*(1.0)/100;
+					sprintf((char*)str,"正向有功谷% .2f kWh",tmpfloat);
+					pos.y += 2*FONTSIZE+3;
+					gui_textshow((char*)str, pos, LCD_NOREV);
+					break;
+				case 1:
+					allvalue = p_JProgramInfo->class12[ind-1].val_pos_q[0] + p_JProgramInfo->class12[ind-1].val_pos_q[1] +
+							   p_JProgramInfo->class12[ind-1].val_pos_q[2] + p_JProgramInfo->class12[ind-1].val_pos_q[3] ;
+
+					memset(str,0,sizeof(str));
+					gui_setpos(&pos, rect_Client.left+3*FONTSIZE, rect_Client.top+FONTSIZE);
+					gui_textshow((char *)"当前正向无功电能示值", pos, LCD_NOREV);
+					tmpfloat = allvalue*(1.0)/100;
+					gui_setpos(&pos, rect_Client.left+3*FONTSIZE, rect_Client.top+3*FONTSIZE);
+					memset(str,0,sizeof(str));
+					sprintf((char*)str,"脉冲端口 %d",ind);
+					gui_textshow((char *)str, pos, LCD_NOREV);
+
+					memset(str,0,sizeof(str));
+					sprintf((char*)str,"正向无功总% .2f kWh",tmpfloat);
+					gui_setpos(&pos, rect_Client.left+FONTSIZE, rect_Client.top+6*FONTSIZE);
+					gui_textshow((char*)str, pos, LCD_NOREV);
+
+					tmpfloat = p_JProgramInfo->class12[ind-1].val_pos_q[0]*(1.0)/100;
+					memset(str,0,sizeof(str));
+					sprintf((char*)str,"正向无功尖% .2f kWh",tmpfloat);
+					pos.y += 2*FONTSIZE+3;
+					gui_textshow((char*)str, pos, LCD_NOREV);
+
+					tmpfloat = p_JProgramInfo->class12[ind-1].val_pos_q[1]*(1.0)/100;
+					memset(str,0,sizeof(str));
+					sprintf((char*)str,"正向无功峰% .2f kWh",tmpfloat);
+					pos.y += 2*FONTSIZE+3;
+					gui_textshow((char*)str, pos, LCD_NOREV);
+
+					tmpfloat = p_JProgramInfo->class12[ind-1].val_pos_q[2]*(1.0)/100;
+					memset(str,0,sizeof(str));
+					sprintf((char*)str,"正向无功平% .2f kWh",tmpfloat);
+					pos.y += 2*FONTSIZE+3;
+					gui_textshow((char*)str, pos, LCD_NOREV);
+
+					tmpfloat = p_JProgramInfo->class12[ind-1].val_pos_q[3]*(1.0)/100;
+					memset(str,0,sizeof(str));
+					sprintf((char*)str,"正向无功谷% .2f kWh",tmpfloat);
+					pos.y += 2*FONTSIZE+3;
+					gui_textshow((char*)str, pos, LCD_NOREV);
+					break;
+				case 2:
+					allvalue = p_JProgramInfo->class12[ind-1].val_nag_p[0] + p_JProgramInfo->class12[ind-1].val_nag_p[1] +
+							   p_JProgramInfo->class12[ind-1].val_nag_p[2] + p_JProgramInfo->class12[ind-1].val_nag_p[3] ;
+
+					gui_setpos(&pos, rect_Client.left+3*FONTSIZE, rect_Client.top+FONTSIZE);
+					gui_textshow((char *)"当前反向有功电能示值", pos, LCD_NOREV);
+					gui_setpos(&pos, rect_Client.left+3*FONTSIZE, rect_Client.top+3*FONTSIZE);
+					memset(str,0,sizeof(str));
+					sprintf((char*)str,"脉冲端口 %d",ind);
+					gui_textshow((char *)str, pos, LCD_NOREV);
+
+					tmpfloat = allvalue*(1.0)/100;
+					memset(str,0,sizeof(str));
+					sprintf((char*)str,"反向有功总% .2f kWh",tmpfloat);
+					gui_setpos(&pos, rect_Client.left+FONTSIZE, rect_Client.top+6*FONTSIZE);
+					gui_textshow((char*)str, pos, LCD_NOREV);
+
+					memset(str,0,sizeof(str));
+					tmpfloat = p_JProgramInfo->class12[ind-1].val_nag_p[0]*(1.0)/100;
+					sprintf((char*)str,"反向有功尖% .2f kWh",tmpfloat);
+					pos.y += 2*FONTSIZE+3;
+					gui_textshow((char*)str, pos, LCD_NOREV);
+
+					memset(str,0,sizeof(str));
+					tmpfloat = p_JProgramInfo->class12[ind-1].val_nag_p[1]*(1.0)/100;
+					sprintf((char*)str,"反向有功峰% .2f kWh",tmpfloat);
+					pos.y += 2*FONTSIZE+3;
+					gui_textshow((char*)str, pos, LCD_NOREV);
+
+					memset(str,0,sizeof(str));
+					tmpfloat = p_JProgramInfo->class12[ind-1].val_nag_p[2]*(1.0)/100;
+					sprintf((char*)str,"反向有功平% .2f kWh",tmpfloat);
+					pos.y += 2*FONTSIZE+3;
+					gui_textshow((char*)str, pos, LCD_NOREV);
+
+					memset(str,0,sizeof(str));
+					tmpfloat = p_JProgramInfo->class12[ind-1].val_nag_p[3]*(1.0)/100;
+					sprintf((char*)str,"反向有功谷% .2f kWh",tmpfloat);
+					pos.y += 2*FONTSIZE+3;
+					gui_textshow((char*)str, pos, LCD_NOREV);
+					break;
+				case 3:
+					allvalue = p_JProgramInfo->class12[ind-1].val_nag_q[0] + p_JProgramInfo->class12[ind-1].val_nag_q[1] +
+							   p_JProgramInfo->class12[ind-1].val_nag_q[2] + p_JProgramInfo->class12[ind-1].val_nag_q[3] ;
+
+					gui_setpos(&pos, rect_Client.left+3*FONTSIZE, rect_Client.top+FONTSIZE);
+					gui_textshow((char *)"当前反向无功电能示值", pos, LCD_NOREV);
+					gui_setpos(&pos, rect_Client.left+3*FONTSIZE, rect_Client.top+3*FONTSIZE);
+					memset(str,0,sizeof(str));
+					sprintf((char*)str,"脉冲端口 %d",ind);
+					gui_textshow((char *)str, pos, LCD_NOREV);
+
+					tmpfloat = allvalue*(1.0)/100;
+					memset(str,0,sizeof(str));
+					sprintf((char*)str,"反向无功总% .2f kWh",tmpfloat);
+					gui_setpos(&pos, rect_Client.left+FONTSIZE, rect_Client.top+6*FONTSIZE);
+					gui_textshow((char*)str, pos, LCD_NOREV);
+
+					memset(str,0,sizeof(str));
+					tmpfloat = p_JProgramInfo->class12[ind-1].val_nag_q[0]*(1.0)/100;
+					sprintf((char*)str,"反向无功尖% .2f kWh",tmpfloat);
+					pos.y += 2*FONTSIZE+3;
+					gui_textshow((char*)str, pos, LCD_NOREV);
+
+					memset(str,0,sizeof(str));
+					tmpfloat = p_JProgramInfo->class12[ind-1].val_nag_q[1]*(1.0)/100;
+					sprintf((char*)str,"反向无功峰% .2f kWh",tmpfloat);
+					pos.y += 2*FONTSIZE+3;
+					gui_textshow((char*)str, pos, LCD_NOREV);
+
+					memset(str,0,sizeof(str));
+					tmpfloat = p_JProgramInfo->class12[ind-1].val_nag_q[2]*(1.0)/100;
+					sprintf((char*)str,"反向无功平% .2f kWh",tmpfloat);
+					pos.y += 2*FONTSIZE+3;
+					gui_textshow((char*)str, pos, LCD_NOREV);
+
+					memset(str,0,sizeof(str));
+					tmpfloat = p_JProgramInfo->class12[ind-1].val_nag_q[3]*(1.0)/100;
+					sprintf((char*)str,"反向无功谷% .2f kWh",tmpfloat);
+					pos.y += 2*FONTSIZE+3;
+					gui_textshow((char*)str, pos, LCD_NOREV);
+					break;
+			}
+			PressKey = NOKEY;
+		}
+	}
+	return ;
+}
 void show_realdata(int pindex, LcdDataItem *item, int itemcount){
 	int pageno=0;
 	CLASS_6001 meter ;
@@ -111,6 +327,7 @@ void show_realdata(int pindex, LcdDataItem *item, int itemcount){
 	if(pindex <=0)
 		return;
 	readParaClass(0x6000,&meter,pindex);
+
 	if(meter.basicinfo.port.OI == PORT_JC){
 		PressKey = NOKEY;
 		while(g_LcdPoll_Flag==LCD_NOTPOLL){
@@ -136,8 +353,10 @@ void show_realdata(int pindex, LcdDataItem *item, int itemcount){
 			PressKey = NOKEY;
 			delay(200);
 		}
-	}
-	else
+	}else if (meter.basicinfo.port.OI == PORT_PLUSE)
+	{
+		McPointData(meter.basicinfo.port.attrindex);
+	}else
 	{
 		gui_clrrect(rect_Client);
 		ShowCLDDataPage(item, itemcount, 2);
@@ -4580,7 +4799,7 @@ void menu_yxstatus_fk(){
 		getPluseCount(pluse);
 		memset(str, 0, 100);
 		pos.y += FONTSIZE*3-2;
-		sprintf((char*)str, "脉冲_1:%d   脉冲_2:%d",pluse[0],pluse[1]);
+		sprintf((char*)str, "脉冲_1:%d   脉冲_2:%d",p_JProgramInfo->class12[0].pluse_count  ,p_JProgramInfo->class12[1].pluse_count);
 		gui_textshow((char*)str, pos, LCD_NOREV);
 
 		PressKey = NOKEY;

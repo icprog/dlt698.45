@@ -11,9 +11,11 @@ int class8001_set(int bak, OAD oad, INT8U *data, INT8U *DAR);
 
 int class8100_set(int index, OAD oad, INT8U *data, INT8U *DAR);
 
-int class8101_set(int index, OAD oad, INT8U *data, INT8U *DAR);
+int class8101_set(OAD oad, INT8U *data, INT8U *DAR);
 
-int class8102_set(int index, OAD oad, INT8U *data, INT8U *DAR);
+int class8102_set(OAD oad, INT8U *data, INT8U *DAR);
+
+int class8107_set(OAD oad, INT8U *data, INT8U *DAR);
 
 int class8001_act_route(int index, int attr_act, INT8U *data, Action_result *act_ret);
 
@@ -23,7 +25,7 @@ int class8104_act_route(int index, int attr_act, INT8U *data, Action_result *act
 
 int class8105_act_route(int index, int attr_act, INT8U *data, Action_result *act_ret);
 
-int class8106_act_route(int index, int attr_act, INT8U *data, Action_result *act_ret);
+int class8106_act_route(OAD oad, INT8U *data, Action_result *act_ret);
 
 int class8107_act_route(OAD oad, INT8U *data, Action_result *act_ret);
 
