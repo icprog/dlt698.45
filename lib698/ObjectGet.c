@@ -1674,7 +1674,7 @@ int Get4018(RESULT_NORMAL *response)
 
 			if(class4018.num) {
 				for(i=0;i<class4018.num;i++) {
-					index += fill_long_unsigned(&data[index],class4018.feilv_price[i]);
+					index += fill_double_long_unsigned(&data[index],class4018.feilv_price[i]);
 					fprintf(stderr,"\n%d  -  %ld",i,class4018.feilv_price[i]);
 				}
 			}
