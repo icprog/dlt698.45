@@ -1695,7 +1695,28 @@ int GetF206(RESULT_NORMAL *response)
 	oad = response->oad;
 	memset(&class_tmp,0,sizeof(CLASS26));
 	readCoverClass(oad.OI,0,&class_tmp,sizeof(CLASS26),para_vari_save);
+	switch(oad.attflg )
+	{
+		case 2:	//通信配置
 
+			index += create_array(&data[index],class_tmp.state_num);
+			for(i=0;i<class_tmp.state_num;i++)
+			{
+				index += create_struct(&data[index],1);
+				index += fill_enum(&data[index],class_tmp.alarm_state[i]);
+			}
+			break;
+		case 4:	//主站通信参数表
+			fprintf(stderr,"Getf206 Attrib 4 num=%d\n",class_tmp.time_num);
+			index += create_array(&data[index],class_tmp.time_num);
+			for(i=0;i<class_tmp.time_num;i++) {
+				index += create_struct(&data[index],2);
+				index += fill_time(&data[index],(INT8U*)class_tmp.timev[i].start);
+				index += fill_time(&data[index],(INT8U*)class_tmp.timev[i].end);
+			}
+			break;
+	}
+	response->datalen = index;
 	return 0;
 }
 //
@@ -3328,6 +3349,9 @@ int GetDeviceIo(RESULT_NORMAL *response)
 			break;
 		case 0xF205:
 			Get_f205_attr2(response);
+			break;
+		case 0xF206:
+			GetF206(response);
 			break;
 		case 0xF209:	//ZB
 			response->datalen = GetF209(response->oad,response->data);

@@ -639,8 +639,8 @@ typedef struct {
     StateAtti4 state4;        //开关量属性
 } CLASS_f203;                 //开关量输
 typedef struct{
-	TimeBCD start;
-	TimeBCD end;
+	INT8U start[3];
+	INT8U end[3];
 }ENABLE_TIME;
 typedef struct {
 	INT8U state_num;
