@@ -52,21 +52,36 @@ int ctrl_base_test() {
 
 int findPinSum(int sum_i, int p_i)
 {
-	if(sum_i == 0 && p_i == 0)
-	{
-		return 1;
-	}
+
+	fprintf(stderr, "==========!! %d==%d\n", sum_i, p_i);
+//	if(sum_i == 0 && p_i == 0)
+//	{
+//		return 1;
+//	}
+
+	int res = 0;
+
 	for(int i = 0; i < 8; i++){
 		int n = JProgramInfo->class23[sum_i].allist[i].tsa.addr[0];
+//		fprintf(stderr, "==========((((%d))))\n", n);
 		if (n == 0)
 			continue;
-		for(int a_i = 0; a_i < n; a_i++){
-			JProgramInfo->class23[sum_i].allist[i].tsa.addr[a_i] != JProgramInfo->class12[p_i].addr[a_i];
-			return 0;
+		for(int a_i = 0; a_i < n - 1; a_i++){
+			if(JProgramInfo->class23[sum_i].allist[i].tsa.addr[a_i+2] != JProgramInfo->class12[p_i].addr[a_i + 1])
+			{
+				fprintf(stderr, "++++++++++++++++++++++查找电表表号-- [%02x %02x %02x] %02x %d-%d\n", JProgramInfo->class23[sum_i].allist[i].tsa.addr[a_i], JProgramInfo->class23[sum_i].allist[i].tsa.addr[a_i+1], JProgramInfo->class23[sum_i].allist[i].tsa.addr[a_i+2], JProgramInfo->class12[p_i].addr[a_i+1], a_i, sum_i);
+				res = 0;
+				break;
+			}
+			res = 1;
 		}
-		fprintf(stderr, "++++++++++++++++++++++查找电表表号 %d\n", n);
-		return 1;
+		if(res == 1){
+			break;
+		}
 	}
+	if(res == 1)
+		fprintf(stderr, "查找电表表号 %d %d!!\n", sum_i, p_i);
+	return res;
 }
 
 //刷新总加组
