@@ -639,6 +639,14 @@ typedef struct {
     StateUnitArray statearri; //开关量单元属性2
     StateAtti4 state4;        //开关量属性
 } CLASS_f203;                 //开关量输
+typedef struct{
+	TimeBCD start;
+	TimeBCD end;
+}ENABLE_TIME;
+typedef struct {
+	INT8U alarm_state[10];
+	ENABLE_TIME timev[10];
+} CLASS_f206;                 //开关量输
 
 	typedef struct{
 	    char factoryCode[2];    //厂商代码

@@ -1687,6 +1687,12 @@ int Get4018(RESULT_NORMAL *response)
 	response->datalen = index;
 	return 0;
 }
+int GetF206(RESULT_NORMAL *response)
+{
+	CLASS_f206 classf206;
+
+}
+//
 int Get4510(RESULT_NORMAL *response)
 {
 	int index=0,i=0;
