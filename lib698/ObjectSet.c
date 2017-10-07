@@ -316,6 +316,9 @@ INT16U DeviceIoSetAttrib(OAD oad,INT8U *data,INT8U *DAR)
 		case 0xF203:	//开关量输入
 			data_index = setf203(oad,data,DAR);
 			break;
+//		case 0xF203:	//开关量输入
+//			data_index = setf203(oad,data,DAR);
+//			break;
 	}
 	return data_index;
 }

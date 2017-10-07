@@ -252,8 +252,9 @@ typedef struct {
 } Day_Period;
 
 typedef struct {
-    INT8U num;
-    Day_Period Period_Rate[MAX_PERIOD_RATE];
+    INT8U day_num;	//日时段表
+    INT8U zone_num;	//时段数
+    Day_Period Period_Rate[MAX_PERIOD_RATE][MAX_PERIOD_RATE];
 } CLASS_4016;
 typedef struct {
 	INT8U 	num; //费率电价个数

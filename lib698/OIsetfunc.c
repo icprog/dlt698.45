@@ -444,20 +444,26 @@ INT16U set4014(OAD oad,INT8U *data,INT8U *DAR)
 INT16U set4016(OAD oad,INT8U *data,INT8U *DAR)
 {
 	int index=0;
-	int i=0;
+	int i=0,j=0;
 	CLASS_4016 class4016={};
 
 	memset(&class4016,0,sizeof(CLASS_4016));
 	readCoverClass(oad.OI,0,&class4016,sizeof(CLASS_4016),para_vari_save);
 	if (oad.attflg == 2 )
 	{
-		index += getArray(&data[index],&class4016.num,DAR);
-		class4016.num = limitJudge("当前套时区数",MAX_PERIOD_RATE,class4016.num);
-		for(i=0;i<class4016.num;i++) {
-			index += getStructure(&data[index],NULL,DAR);
-			index += getUnsigned(&data[index],&class4016.Period_Rate[i].hour,DAR);
-			index += getUnsigned(&data[index],&class4016.Period_Rate[i].min,DAR);
-			index += getUnsigned(&data[index],&class4016.Period_Rate[i].rateno,DAR);
+		index += getArray(&data[index],&class4016.day_num,DAR);
+		class4016.day_num = limitJudge("日时段表",MAX_PERIOD_RATE,class4016.day_num);
+		fprintf(stderr,"day_num = %d\n",class4016.day_num);
+		for(i=0;i<class4016.day_num;i++) {
+			index += getArray(&data[index],&class4016.zone_num,DAR);
+			fprintf(stderr,"zone_num = %d\n",class4016.zone_num);
+			class4016.zone_num = limitJudge("时段",MAX_PERIOD_RATE,class4016.zone_num);
+			for(j=0;j<class4016.zone_num;j++) {
+				index += getStructure(&data[index],NULL,DAR);
+				index += getUnsigned(&data[index],&class4016.Period_Rate[i][j].hour,DAR);
+				index += getUnsigned(&data[index],&class4016.Period_Rate[i][j].min,DAR);
+				index += getUnsigned(&data[index],&class4016.Period_Rate[i][j].rateno,DAR);
+			}
 		}
 		if(*DAR == success) {
 			*DAR = saveCoverClass(oad.OI,0,&class4016,sizeof(CLASS_4016),para_vari_save);
