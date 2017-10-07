@@ -1217,6 +1217,84 @@ int Get4007(RESULT_NORMAL *response)
 	}
 	return 0;
 }
+
+int Get400C(RESULT_NORMAL *response)
+{
+	int index=0;
+	INT8U *data = NULL;
+	OAD oad={};
+	CLASS_400C	class_tmp={};
+	data = response->data;
+	oad = response->oad;
+	memset(&class_tmp,0,sizeof(CLASS_400C));
+	readCoverClass(oad.OI,0,&class_tmp,sizeof(CLASS_400C),para_vari_save);
+	switch(oad.attflg )
+	{
+		case 2:
+			index += create_struct(&data[index],5);
+			index += fill_unsigned(&data[index],class_tmp.year_zone);
+			index += fill_unsigned(&data[index],class_tmp.day_interval);
+			index += fill_unsigned(&data[index],class_tmp.day_change);
+			index += fill_unsigned(&data[index],class_tmp.rate);
+			index += fill_unsigned(&data[index],class_tmp.public_holiday);
+			response->datalen = index;
+			break;
+	}
+	return 0;
+}
+
+int Get4014(RESULT_NORMAL *response)
+{
+	int index=0, i=0;
+	INT8U *data = NULL;
+	OAD oad={};
+	CLASS_4014	class_tmp={};
+	data = response->data;
+	oad = response->oad;
+	memset(&class_tmp,0,sizeof(CLASS_4014));
+	readCoverClass(oad.OI,0,&class_tmp,sizeof(CLASS_4014),para_vari_save);
+	switch(oad.attflg )
+	{
+		case 2:
+			index += create_array(&data[index],class_tmp.zonenum);
+			for(i=0;i<class_tmp.zonenum;i++) {
+				index += create_struct(&data[index],3);
+				index += fill_unsigned(&data[index],class_tmp.time_zone[i].month);
+				index += fill_unsigned(&data[index],class_tmp.time_zone[i].day);
+				index += fill_unsigned(&data[index],class_tmp.time_zone[i].tableno);
+			}
+			response->datalen = index;
+			break;
+	}
+	return 0;
+}
+
+int Get4016(RESULT_NORMAL *response)
+{
+	int index=0, i=0;
+	INT8U *data = NULL;
+	OAD oad={};
+	CLASS_4016	class_tmp={};
+	data = response->data;
+	oad = response->oad;
+	memset(&class_tmp,0,sizeof(CLASS_4016));
+	readCoverClass(oad.OI,0,&class_tmp,sizeof(CLASS_4016),para_vari_save);
+	switch(oad.attflg )
+	{
+		case 2:
+			index += create_array(&data[index],class_tmp.num);
+			for(i=0;i<class_tmp.num;i++) {
+				index += create_struct(&data[index],3);
+				index += fill_unsigned(&data[index],class_tmp.Period_Rate[i].hour);
+				index += fill_unsigned(&data[index],class_tmp.Period_Rate[i].min);
+				index += fill_unsigned(&data[index],class_tmp.Period_Rate[i].rateno);
+			}
+			response->datalen = index;
+			break;
+	}
+	return 0;
+}
+
 int Get4103(RESULT_NORMAL *response)
 {
 	int index=0;
@@ -3001,6 +3079,15 @@ int GetEnvironmentValue(RESULT_NORMAL *response)
 			break;
 		case 0x4007:
 			Get4007(response);
+			break;
+		case 0x400C:
+			Get400C(response);
+			break;
+		case 0x4014:
+			Get4014(response);
+			break;
+		case 0x4016:
+			Get4016(response);
 			break;
 		case 0x4103:
 			Get4103(response);

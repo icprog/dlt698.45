@@ -232,6 +232,15 @@ INT16U EnvironmentValue(OAD oad,INT8U *data,INT8U *DAR)
 		case 0x4007://LCD参数
 			data_index = set4007(oad,data,DAR);
 			break;
+		case 0x400C://时区时段数
+			data_index = set400c(oad,data,DAR);
+			break;
+		case 0x4014://当前套时区表
+			data_index = set4014(oad,data,DAR);
+			break;
+		case 0x4016://当前套日时段表
+			data_index = set4016(oad,data,DAR);
+			break;
 		case 0x4024://剔除
 			data_index = set4024(oad,data,DAR);
 			break;

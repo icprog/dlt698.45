@@ -358,7 +358,7 @@ void sum_process(int argc, char *argv[])
 			if(strcmp(argv[2],"pro")==0) {
 				sscanf(argv[3],"%04x",&tmp);
 				oi = tmp;
-				if(oi==0x8001) {
+				if(oi==0x8102) {
 					CLASS_8102 c8102={};
 					memset(&c8102, 0x00, sizeof(CLASS_8102));
 					readCoverClass(0x8102, 0, (void *) &c8102, sizeof(CLASS_8102),para_vari_save);
@@ -406,7 +406,7 @@ void sum_process(int argc, char *argv[])
 					readCoverClass(oi, 0, (void *) &c8107, sizeof(CLASS_8107),para_vari_save);
 					int i=0;
 					for(i=0;i<MAX_AL_UNIT;i++) {
-						fprintf(stderr, "购电-控制单元[%d]\n\n[对象%04x]\n [购电单号%d]\n [追加刷新标识%d]\n [购电类型%d]\n-[购电量%lld]\n-[报警门限%lld]\n-[跳闸门限%lld]\n-[购电控模式%d]\n",
+						fprintf(stderr, "\n\n购电-控制单元[%d]\n[对象%04x]\n [购电单号%d]\n [追加刷新标识%d]\n [购电类型%d]\n-[购电量%lld]\n-[报警门限%lld]\n-[跳闸门限%lld]\n-[购电控模式%d]\n",
 								i,c8107.list[i].index, c8107.list[i].no,
 								c8107.list[i].add_refresh, c8107.list[i].type,
 								c8107.list[i].v, c8107.list[i].alarm, c8107.list[i].ctrl, c8107.list[i].mode);
@@ -418,11 +418,4 @@ void sum_process(int argc, char *argv[])
 //		shmm_unregister("ProgramInfo", sizeof(ProgramInfo));
 	}
 }
-//typedef struct {
-//    OI_698 index;
-//    INT8U sign;
-//    PowerCtrlParam v1;
-//    PowerCtrlParam v2;
-//    PowerCtrlParam v3;
-//    INT8S para;
-//} TIME_CTRL;
+

@@ -383,6 +383,89 @@ INT16U set4007(OAD oad,INT8U *data,INT8U *DAR)
 	return index;
 }
 
+INT16U set400c(OAD oad,INT8U *data,INT8U *DAR)
+{
+	int index=0;
+	int ret=0;
+	CLASS_400C class400c={};
+
+	memset(&class400c,0,sizeof(CLASS_400C));
+	readCoverClass(oad.OI,0,&class400c,sizeof(CLASS_400C),para_vari_save);
+	if (oad.attflg == 2 )
+	{
+		index += getStructure(&data[index],NULL,DAR);
+		index += getUnsigned(&data[index],&class400c.year_zone,DAR);
+		ret = rangeJudge("年时区数",class400c.year_zone,0,14);
+		if(ret == -1) *DAR = boundry_over;
+		index += getUnsigned(&data[index],&class400c.day_interval,DAR);
+		ret = rangeJudge("日时段表数",class400c.day_interval,0,8);
+		if(ret == -1) *DAR = boundry_over;
+		index += getUnsigned(&data[index],&class400c.day_change,DAR);
+		ret = rangeJudge("日时段数",class400c.day_change,0,14);
+		if(ret == -1) *DAR = boundry_over;
+		index += getUnsigned(&data[index],&class400c.rate,DAR);
+		ret = rangeJudge("费率数",class400c.rate,0,63);
+		if(ret == -1) *DAR = boundry_over;
+		index += getUnsigned(&data[index],&class400c.public_holiday,DAR);
+		ret = rangeJudge("公共假日数",class400c.public_holiday,0,254);
+		if(ret == -1) *DAR = boundry_over;
+		if(*DAR == success) {
+			*DAR = saveCoverClass(oad.OI,0,&class400c,sizeof(CLASS_400C),para_vari_save);
+		}
+	}
+	return index;
+}
+
+INT16U set4014(OAD oad,INT8U *data,INT8U *DAR)
+{
+	int index=0;
+	int i=0;
+	CLASS_4014 class4014={};
+
+	memset(&class4014,0,sizeof(CLASS_4014));
+	readCoverClass(oad.OI,0,&class4014,sizeof(CLASS_4014),para_vari_save);
+	if (oad.attflg == 2 )
+	{
+		index += getArray(&data[index],&class4014.zonenum,DAR);
+		class4014.zonenum = limitJudge("当前套时区数",MAX_PERIOD_RATE,class4014.zonenum);
+		for(i=0;i<class4014.zonenum;i++) {
+			index += getStructure(&data[index],NULL,DAR);
+			index += getUnsigned(&data[index],&class4014.time_zone[i].month,DAR);
+			index += getUnsigned(&data[index],&class4014.time_zone[i].day,DAR);
+			index += getUnsigned(&data[index],&class4014.time_zone[i].tableno,DAR);
+		}
+		if(*DAR == success) {
+			*DAR = saveCoverClass(oad.OI,0,&class4014,sizeof(CLASS_4014),para_vari_save);
+		}
+	}
+	return index;
+}
+
+INT16U set4016(OAD oad,INT8U *data,INT8U *DAR)
+{
+	int index=0;
+	int i=0;
+	CLASS_4016 class4016={};
+
+	memset(&class4016,0,sizeof(CLASS_4016));
+	readCoverClass(oad.OI,0,&class4016,sizeof(CLASS_4016),para_vari_save);
+	if (oad.attflg == 2 )
+	{
+		index += getArray(&data[index],&class4016.num,DAR);
+		class4016.num = limitJudge("当前套时区数",MAX_PERIOD_RATE,class4016.num);
+		for(i=0;i<class4016.num;i++) {
+			index += getStructure(&data[index],NULL,DAR);
+			index += getUnsigned(&data[index],&class4016.Period_Rate[i].hour,DAR);
+			index += getUnsigned(&data[index],&class4016.Period_Rate[i].min,DAR);
+			index += getUnsigned(&data[index],&class4016.Period_Rate[i].rateno,DAR);
+		}
+		if(*DAR == success) {
+			*DAR = saveCoverClass(oad.OI,0,&class4016,sizeof(CLASS_4016),para_vari_save);
+		}
+	}
+	return index;
+}
+
 INT16U set4024(OAD oad,INT8U *data,INT8U *DAR)
 {
 	int index=0;
@@ -506,19 +589,17 @@ INT16U set4204(OAD oad,INT8U *data,INT8U *DAR)
 	}else if(oad.attflg == 3)
 	{
 		index += getStructure(&data[index],NULL,DAR);
-		index += getUnsigned(&data[index],(INT8U *)&class4204.upleve,DAR);
-		if(*DAR!=success)
-			return 0;
+		index += getInteger(&data[index],&class4204.upleve,DAR);
 		index += getTime(1,&data[index],(INT8U *)&class4204.startime1,DAR);
-		if(*DAR!=success)
-			return 0;
 		index += getBool(&data[index],(INT8U *)&class4204.enable1,DAR);
 		fprintf(stderr,"\n【终端广播校时，属性3】:");
 		fprintf(stderr,"\ntime : %d %d %d ",class4204.startime1[0],class4204.startime1[1],class4204.startime1[2]);
 		fprintf(stderr,"\nenable: %d",class4204.enable1);
 		fprintf(stderr,"\n误差 = %d",class4204.upleve);
 		fprintf(stderr,"\n");
-		*DAR = saveCoverClass(oad.OI,0,&class4204,sizeof(CLASS_4204),para_vari_save);
+		if(*DAR == success) {
+			*DAR = saveCoverClass(oad.OI,0,&class4204,sizeof(CLASS_4204),para_vari_save);
+		}
 	}
 	return index;
 }

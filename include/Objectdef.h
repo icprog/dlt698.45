@@ -227,6 +227,25 @@ typedef struct {
 } CLASS_4007;
 
 typedef struct {
+    INT8U 	year_zone;   		//年时区数p<=14
+    INT8U 	day_interval;    	//日时段表数q<=8
+    INT8U   day_change;  	 	//日时段数（每日切换数）m<=14
+    INT8U 	rate;  				//费率数 k<=63
+    INT8U 	public_holiday;  	//公共假日数	n<=254
+} CLASS_400C;
+
+typedef struct {
+    INT8U month;   	//月
+    INT8U day;    	//日
+    INT8U tableno; 	//日时段表号
+} TIME_ZONE;
+
+typedef struct {
+	INT8U		zonenum;
+	TIME_ZONE	time_zone[MAX_PERIOD_RATE];
+} CLASS_4014;
+
+typedef struct {
     INT8U hour;   //时
     INT8U min;    //分
     INT8U rateno; //费率号
@@ -263,7 +282,7 @@ typedef struct{
 typedef struct {
     INT8U startime[3];  //广播校时启动时间 time类型 octet-string(SIZE(3))
     INT8U enable;       //终端广播校时是否启用
-    INT16S upleve;       //时钟误差阀值
+    INT8S upleve;       //时钟误差阀值
     INT8U startime1[3]; //终端单地址广播校时启动时间
     INT8U enable1;      //终端单地址广播校时是否启用
 } CLASS_4204;           //终端广播校时
