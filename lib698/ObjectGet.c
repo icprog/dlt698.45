@@ -1696,8 +1696,8 @@ int GetF206(RESULT_NORMAL *response)
 
 	data = response->data;
 	oad = response->oad;
-	memset(&class_tmp,0,sizeof(CLASS26));
-	readCoverClass(oad.OI,0,&class_tmp,sizeof(CLASS26),para_vari_save);
+	memset(&class_tmp,0,sizeof(CLASS_f206));
+	readCoverClass(oad.OI,0,&class_tmp,sizeof(CLASS_f206),para_vari_save);
 	switch(oad.attflg )
 	{
 		case 2:	//通信配置

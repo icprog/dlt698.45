@@ -1070,9 +1070,10 @@ int setf206(OAD oad,INT8U *data,INT8U *DAR)
 	{
 		index += getStructure(&data[index],NULL,DAR);
 		index += getArray(&data[index],&f206.state_num,DAR);
+		fprintf(stderr,"state_num = %d\n",f206.state_num);
 		f206.state_num = limitJudge("告警输出",10,f206.state_num);
 		for(i=0;i<f206.state_num;i++) {
-			index += getEnum(1,&data[index],f206.alarm_state[i]);
+			index += getEnum(1,&data[index],&f206.alarm_state[i]);
 		}
 		if(*DAR==success) {
 			*DAR = saveCoverClass(oad.OI,0,&f206,sizeof(CLASS_f206),para_vari_save);
@@ -1080,9 +1081,9 @@ int setf206(OAD oad,INT8U *data,INT8U *DAR)
 	}
 	if ( oad.attflg == 4 )//
 	{
-		index += getStructure(&data[index],NULL,DAR);
 		index += getArray(&data[index],&f206.time_num,DAR);
-		f206.state_num = limitJudge("告警输出",10,f206.time_num);
+		f206.time_num = limitJudge("告警输出",10,f206.time_num);
+		fprintf(stderr,"time_num = %d\n",f206.time_num);
 		for(i=0;i<f206.time_num;i++) {
 			index += getStructure(&data[index],NULL,DAR);
 			index += getTime(1,&data[index],(INT8U *)&f206.timev[i].start,DAR);
