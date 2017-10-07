@@ -236,6 +236,10 @@ typedef struct {
     INT8U num;
     Day_Period Period_Rate[MAX_PERIOD_RATE];
 } CLASS_4016;
+typedef struct {
+	INT8U 	num; //费率电价个数
+	INT64U feilv_price[32]; //费率电价   元/kWh 换算:-4
+} CLASS_4018;
 
 typedef struct {
     INT16U uUp;
