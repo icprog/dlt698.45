@@ -2884,6 +2884,7 @@ int GetEnvironmentValue(RESULT_NORMAL *response)
 			break;
 		case 0x4018://当前套费率电价
 			Get4018(response);
+			break;
 		default:	//未定义的对象
 			response->dar = obj_undefine;
 		break;
