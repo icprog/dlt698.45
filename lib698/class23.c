@@ -14,27 +14,6 @@
 #include "AccessFun.h"
 #include "PublicFunction.h"
 
-int class23_selector(OAD oad, INT8U *data, Action_result *act_ret)
-{
-	int index = oad.OI - 0x2301;
-	index = rangeJudge("总加组",index,0,(MAXNUM_SUMGROUP-1));
-	if(index == -1)  {
-		act_ret->DAR = obj_unexist;
-		return 0;
-	}
-	switch (oad.attflg) {
-	case 1:		//清空总加组
-		act_ret->datalen = class23_act1(oad.OI);
-		break;
-	case 3:		//添加一个总加配置单元
-		class23_act3_4(oad, data, act_ret);
-		break;
-	case 4:		//批量添加总加配置单元
-		class23_act3_4(oad, data, act_ret);
-		break;
-	}
-	return 0;
-}
 
 int class23_act1(OI_698 oi) {
 	int no = oi - 0x2301;
@@ -227,40 +206,7 @@ int class23_set_attr17(OAD oad,INT8U *data, INT8U *DAR, CLASS23 *memClass23)
 	return index;
 }
 
-int class23_set(OAD oad, INT8U *data, INT8U *DAR)
-{
-	asyslog(LOG_WARNING, "修改总加组(%04x)属性(%d)", oad.OI,oad.attflg);
-	ProgramInfo *shareAddr = getShareAddr();
-	int index = oad.OI - 0x2301;
-	index = rangeJudge("总加组",index,0,(MAXNUM_SUMGROUP-1));
-	if(index == -1)  {
-		*DAR = obj_unexist;
-		return 0;		//返回值len为？？
-	}
 
-	switch (oad.attflg) {
-	case 2:
-		return class23_set_attr2(oad.OI,data,DAR,shareAddr->class23);
-	case 13:
-		return class23_set_attr13(oad.OI,data,DAR,shareAddr->class23);
-//		if (data[0] != 0x17) {
-//			return 0;
-//		}
-//		shareAddr->class23[index].aveCircle = data[1];
-		break;
-	case 14:
-		return class23_set_attr14_15(oad,data,DAR,shareAddr->class23);
-	case 15:
-		return class23_set_attr14_15(oad,data,DAR,shareAddr->class23);
-	case 16:
-		return class23_set_attr16(oad,data,DAR,shareAddr->class23);
-	case 17:
-		return class23_set_attr17(oad,data,DAR,shareAddr->class23);
-	case 18://单位及换算
-		break;
-	}
-	return 0;
-}
 
 int class23_get_2(OAD oad, INT8U index, INT8U *buf, int *len)
 {
@@ -431,3 +377,59 @@ int class23_get(OAD oad, INT8U *sourcebuf, INT8U *buf, int *len) {
 	return 1;
 }
 
+int class23_set(OAD oad, INT8U *data, INT8U *DAR)
+{
+	asyslog(LOG_WARNING, "修改总加组(%04x)属性(%d)", oad.OI,oad.attflg);
+	ProgramInfo *shareAddr = getShareAddr();
+	int index = oad.OI - 0x2301;
+	index = rangeJudge("总加组",index,0,(MAXNUM_SUMGROUP-1));
+	if(index == -1)  {
+		*DAR = obj_unexist;
+		return 0;		//返回值len为？？
+	}
+
+	switch (oad.attflg) {
+	case 2:
+		return class23_set_attr2(oad.OI,data,DAR,shareAddr->class23);
+	case 13:
+		return class23_set_attr13(oad.OI,data,DAR,shareAddr->class23);
+//		if (data[0] != 0x17) {
+//			return 0;
+//		}
+//		shareAddr->class23[index].aveCircle = data[1];
+		break;
+	case 14:
+		return class23_set_attr14_15(oad,data,DAR,shareAddr->class23);
+	case 15:
+		return class23_set_attr14_15(oad,data,DAR,shareAddr->class23);
+	case 16:
+		return class23_set_attr16(oad,data,DAR,shareAddr->class23);
+	case 17:
+		return class23_set_attr17(oad,data,DAR,shareAddr->class23);
+	case 18://单位及换算
+		break;
+	}
+	return 0;
+}
+
+int class23_selector(OAD oad, INT8U *data, Action_result *act_ret)
+{
+	int index = oad.OI - 0x2301;
+	index = rangeJudge("总加组",index,0,(MAXNUM_SUMGROUP-1));
+	if(index == -1)  {
+		act_ret->DAR = obj_unexist;
+		return 0;
+	}
+	switch (oad.attflg) {
+	case 1:		//清空总加组
+		act_ret->datalen = class23_act1(oad.OI);
+		break;
+	case 3:		//添加一个总加配置单元
+		class23_act3_4(oad, data, act_ret);
+		break;
+	case 4:		//批量添加总加配置单元
+		class23_act3_4(oad, data, act_ret);
+		break;
+	}
+	return 0;
+}

@@ -286,9 +286,17 @@ void WriteRegInit(INT32S fp)
 	temp[2] = 0xfe;//bit0=0：关闭第7路ADC
 	att_spi_write(fp, w_ModeCfg, 3, temp); //模式配置
 
-	temp[0] = 0;
-	temp[1] = 0x3d;//XIEBO			开启基波/谐波计量
-	temp[2] = 0xC4;//配置能量寄存器读后清零，bit7置1//系统推荐写入F8 04 ,三相四线使用代数和累加方式
+	//w_EMUCfg bit06=1,三相四线制使用代数和累加方式,三相三线下使用绝对值和累加方式;
+			 //bit06=0,三相四线制使用绝对值和累加方式,三相三线下使用代数和累加方式。
+	if(attCoef.WireType == 0x1200) {		//三相三
+		temp[0] = 0;
+		temp[1] = 0x3d;//XIEBO			开启基波/谐波计量
+		temp[2] = 0x84;//配置能量寄存器读后清零，bit7置1
+	}else {
+		temp[0] = 0;
+		temp[1] = 0x3d;//XIEBO			开启基波/谐波计量
+		temp[2] = 0xC4;//配置能量寄存器读后清零，bit7置1//系统推荐写入F8 04
+	}
 	att_spi_write(fp, w_EMUCfg, 3, temp); //EMU单元配置
 
 //三相三启动功率  Pstartup=INT[0.6*Ub*Ib*HFconst*EC*k%. *2^23/(2.592*10^10)]

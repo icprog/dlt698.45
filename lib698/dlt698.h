@@ -85,7 +85,7 @@ extern int fill_long64_unsigned(INT8U *data,INT64U value);			//0x15
 extern int fill_enum(INT8U* data, INT8U value);						//0x16
 extern int fill_time(INT8U* data, INT8U* value);					//0x1b
 extern int fill_date_time_s(INT8U* data, DateTimeBCD* time);		//0x1c
-extern int fill_OI(INT8U *data,INT8U value);                        //0x50
+extern int fill_OI(INT8U *data,OI_698 value);                        //0x50
 extern int create_OAD(INT8U type,INT8U* data, OAD oad);				//0x51
 extern int fill_ROAD(INT8U type,INT8U *data,ROAD road);				//0x52
 extern int fill_TI(INT8U* data, TI ti);								//0x54

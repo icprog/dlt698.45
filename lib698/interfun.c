@@ -275,7 +275,7 @@ int fill_bit_string(INT8U *data,INT8U size,INT8U *bits)		//0x04
 	//TODO : 默认8bit ，不符合A-XDR规范
 	if(size>=0 && size<=8){
 		size = 8;
-		asyslog(LOG_ERR,"fill_bit_string size=%d, error",size);
+//		asyslog(LOG_ERR,"fill_bit_string size=%d, error",size);
 	}
 //	data[0] = dtbitstring;
 //	data[1] = size;
@@ -455,7 +455,7 @@ int  create_OAD(INT8U type,INT8U *data,OAD oad)		//0x51
 	data[index++] = oad.attrindex;
 	return index;
 }
-int fill_OI(INT8U *data,INT8U value)
+int fill_OI(INT8U *data,OI_698 value)
 {
 	data[0] = dtoi;
 	data[1] = ( value >> 8 ) & 0xff;
@@ -811,7 +811,7 @@ int getInteger(INT8U *source,INT8S *dest,INT8U *DAR)                     // 0x0F
 
 int getUnsigned(INT8U *source,INT8U *dest,INT8U *DAR)	//0x11
 {
-	if(source[0] == dtunsigned || source[0] == dtinteger) {
+	if(source[0] == dtunsigned) {
 		dest[0] = source[1];
 		return 2;//source[0] 0x11(unsigned type)   source[1] =data
 	}else {

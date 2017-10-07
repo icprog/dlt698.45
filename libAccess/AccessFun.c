@@ -4954,7 +4954,7 @@ void deloutofdatafile()//删除过期任务数据文件
 //得到抄表成功的TSA个数
 INT16U getCBsuctsanum(INT8U taskid,TS ts)
 {
-	char fname[FILENAMELEN]={};
+	char fname[FILENAMELEN]={},cmd[FILENAMELEN]={};
 	INT8U taskinfoflg=0,recordbuf[2048];
 	INT16U tsa_sucnum=0,seqno=0,recordnum=0;
 	int i=0,headlen=0,unitlen=0,reclen=0;
@@ -4995,6 +4995,15 @@ INT16U getCBsuctsanum(INT8U taskid,TS ts)
 		file_endpos = ftell(fp);
 		rewind(fp);
 		ReadFileHeadLen(fp,&headlen,&unitlen);
+		if(unitlen == 0)
+		{
+			sprintf(cmd,"rm -rf %s",fname);
+			system(cmd);
+			if(fp != NULL)
+				fclose(fp);
+			return 0;
+		}
+
 		reclen = unitlen/tasknor_info.runtime;
 		recordnum = (file_endpos-headlen)/unitlen;
 		file_idnexpos = headlen+reclen*seqno;

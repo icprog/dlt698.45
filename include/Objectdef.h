@@ -820,6 +820,13 @@ typedef struct {
 } CLASS12;
 
 typedef struct {
+    OI_698 lists;
+    ALSTATE enable[MAX_AL_UNIT];
+    ALSTATE output[MAX_AL_UNIT];
+    ALSTATE overflow[MAX_AL_UNIT];
+} CLASS13;
+
+typedef struct {
     AL_UNIT allist[MAX_AL_UNIT]; //总加配置表
     INT64S p;   //有功
     INT64S q;   //无功
@@ -844,11 +851,15 @@ typedef struct {
 } CLASS23;
 
 typedef struct {
-    OI_698 lists;
-    ALSTATE enable[MAX_AL_UNIT];
-    ALSTATE output[MAX_AL_UNIT];
-    ALSTATE overflow[MAX_AL_UNIT];
-} CLASS13;
+    INT32U 	limit; 		//继电器拉闸电流门限值
+    INT16U 	delaytime; 	//超电流门限保护延时时间
+    INT8U  	alarmstate;	//继电器告警状态
+    INT8U 	cmdstate;	//继电器命令状态
+    OAD		relay_oad;	//继电器号
+    INT8U	alarmdelay;	//告警延时
+    INT32U	powerouttime;	//限电时间
+    INT8U	autoclose;		//自动合闸
+} CLASS_8000;
 
 typedef struct {
 	INT8U autoTimeStart; //自动保电时段开始
@@ -916,7 +927,7 @@ typedef struct {
 typedef struct {
     OI_698 index;
     INT64U v;
-    DateTimeBCD_S start;
+    DateTimeBCD start;
     INT16U sustain;
     INT8U noDay;
 } FACT_CTRL;

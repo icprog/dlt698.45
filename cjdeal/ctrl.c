@@ -50,23 +50,40 @@ int ctrl_base_test() {
 	return 0;
 }
 
-int findPinSum(int sum_i, int p_i)
+int findPinSum(int sum_i, int p_i, int * mmm)
 {
-	if(sum_i == 0 && p_i == 0)
-	{
-		return 1;
-	}
+
+	fprintf(stderr, "==========!! %d==%d\n", sum_i, p_i);
+//	if(sum_i == 0 && p_i == 0)
+//	{
+//		return 1;
+//	}
+
+	int res = 0;
+
 	for(int i = 0; i < 8; i++){
 		int n = JProgramInfo->class23[sum_i].allist[i].tsa.addr[0];
+//		fprintf(stderr, "==========((((%d))))\n", n);
 		if (n == 0)
 			continue;
-		for(int a_i = 0; a_i < n; a_i++){
-			JProgramInfo->class23[sum_i].allist[i].tsa.addr[a_i] != JProgramInfo->class12[p_i].addr[a_i];
-			return 0;
+		for(int a_i = 0; a_i < n - 1; a_i++){
+
+			if(JProgramInfo->class23[sum_i].allist[i].tsa.addr[a_i+2] != JProgramInfo->class12[p_i].addr[a_i + 1])
+			{
+				fprintf(stderr, "++++++++++++++++++++++查找电表表号-- [%02x %02x %02x] %02x %d-%d\n", JProgramInfo->class23[sum_i].allist[i].tsa.addr[a_i], JProgramInfo->class23[sum_i].allist[i].tsa.addr[a_i+1], JProgramInfo->class23[sum_i].allist[i].tsa.addr[a_i+2], JProgramInfo->class12[p_i].addr[a_i+1], a_i, sum_i);
+				res = 0;
+				break;
+			}
+			res = 1;
 		}
-		fprintf(stderr, "++++++++++++++++++++++查找电表表号 %d\n", n);
-		return 1;
+		if(res == 1){
+			*mmm = i;
+			break;
+		}
 	}
+	if(res == 1)
+		fprintf(stderr, "查找电表表号 %d %d!!\n", sum_i, p_i);
+	return res;
 }
 
 //刷新总加组
@@ -74,6 +91,7 @@ void refreshSumUp() {
 	static int old_day;
 	static int old_month;
 	static int first_flag = 1;
+	static INT64S prev[8][4];
 
 	TS ts;
 	TSGet(&ts);
@@ -82,35 +100,79 @@ void refreshSumUp() {
 		first_flag = 0;
 		old_day = ts.Day;
 		old_month = ts.Month;
+
+		for (int ss = 0;ss < 8;ss++){
+			for (int i = 0; i < 4; i++) {
+				prev[ss][i] = JProgramInfo->class23[ss].DayP[i];
+			}
+		}
 	}
 
 	for (int sum_i = 0; sum_i < 8; sum_i++)
 	{
+		for (int i = 0; i < 4; i++) {
+			JProgramInfo->class23[sum_i].DayP[i] =0;
+			JProgramInfo->class23[sum_i].DayQ[i] =0;
+			JProgramInfo->class23[sum_i].MonthP[i] =0;
+			JProgramInfo->class23[sum_i].MonthQ[i] =0;
+		}
+
 		for(int p_i = 0; p_i < 2; p_i++)
 		{
-			if(findPinSum(sum_i, p_i) == 0){
+			int mmm = 0;
+			int k = findPinSum(sum_i, p_i, &mmm);
+			if( k == 0){
 				continue;
 			}
 			JProgramInfo->class23[sum_i].p = JProgramInfo->class12[p_i].p;
 			JProgramInfo->class23[sum_i].q = JProgramInfo->class12[p_i].q;
 
-			for (int i = 0; i < 4; i++) {
-				JProgramInfo->class23[sum_i].DayP[i] =
-						JProgramInfo->class12[p_i].day_pos_p[i];
-				JProgramInfo->class23[sum_i].DayQ[i] =
-						JProgramInfo->class12[p_i].day_pos_q[i];
-				JProgramInfo->class23[sum_i].MonthP[i] =
-						JProgramInfo->class12[p_i].mon_pos_p[i];
-				JProgramInfo->class23[sum_i].MonthQ[i] =
-						JProgramInfo->class12[p_i].mon_pos_q[i];
+
+
+			fprintf(stderr, "1^^^^^^%d %d %d\n", mmm, JProgramInfo->class12[p_i].day_pos_p[0], p_i);
+			fprintf(stderr, "2^^^^^^%d %d %d\n", mmm, JProgramInfo->class12[p_i].day_pos_p[1], p_i);
+			fprintf(stderr, "3^^^^^^%d %d %d\n", mmm, JProgramInfo->class12[p_i].day_pos_p[2], p_i);
+			fprintf(stderr, "4^^^^^^%d %d %d\n", mmm, JProgramInfo->class12[p_i].day_pos_p[3], p_i);
+
+			if(JProgramInfo->class23[sum_i].allist[mmm].cal_flag == 0){
+				for (int i = 0; i < 4; i++) {
+					JProgramInfo->class23[sum_i].DayP[i] +=
+							JProgramInfo->class12[p_i].day_pos_p[i];
+					JProgramInfo->class23[sum_i].DayQ[i] +=
+							JProgramInfo->class12[p_i].day_pos_q[i];
+					JProgramInfo->class23[sum_i].MonthP[i] +=
+							JProgramInfo->class12[p_i].mon_pos_p[i];
+					JProgramInfo->class23[sum_i].MonthQ[i] +=
+							JProgramInfo->class12[p_i].mon_pos_q[i];
+				}
+			}else{
+				for (int i = 0; i < 4; i++) {
+					JProgramInfo->class23[sum_i].DayP[i] -=
+							JProgramInfo->class12[p_i].day_pos_p[i];
+					JProgramInfo->class23[sum_i].DayQ[i] -=
+							JProgramInfo->class12[p_i].day_pos_q[i];
+					JProgramInfo->class23[sum_i].MonthP[i] -=
+							JProgramInfo->class12[p_i].mon_pos_p[i];
+					JProgramInfo->class23[sum_i].MonthQ[i] -=
+							JProgramInfo->class12[p_i].mon_pos_q[i];
+				}
 			}
+
+			fprintf(stderr, "5^^^^^^%d %d %d\n", mmm, JProgramInfo->class12[p_i].day_pos_p[0] * (JProgramInfo->class23[0].allist[mmm].cal_flag == 0?1:-1), JProgramInfo->class23[0].DayP[0]);
 		}
+		int sssum = 0;
+		for (int i = 0; i < 4; i++) {
+			sssum += (prev[sum_i][i] - JProgramInfo->class23[sum_i].DayP[i]);
+			prev[sum_i][i] = JProgramInfo->class23[sum_i].DayP[i];
+		}
+		fprintf(stderr, "剩余电量插值 %d\n", sssum);
+		JProgramInfo->class23[sum_i].remains += sssum;
 	}
 
-	fprintf(stderr, "总加组功率%d 电量%lld %lld %lld %lld\n",
+	fprintf(stderr, "总加组功率%d 电量%lld %lld %lld %lld [%lld]\n",
 			JProgramInfo->class23[0].p, JProgramInfo->class23[0].DayP[0],
 			JProgramInfo->class23[0].DayP[1], JProgramInfo->class23[0].DayP[2],
-			JProgramInfo->class23[0].DayP[3]);
+			JProgramInfo->class23[0].DayP[3], JProgramInfo->class23[0].remains);
 
 	if (old_day != ts.Day) {
 		old_day = ts.Day;
@@ -682,23 +744,33 @@ int deal8107() {
 		fprintf(stderr, "购电控限制[%lld] [%lld]\n", val, warn);
 
 		if (val >= 0) {
-			fprintf(stderr, "购电判断值[%lld]\n", JProgramInfo->class23[i].remains);
 
-			if (JProgramInfo->class23[i].remains <= val) {
+
+			int mmm = JProgramInfo->class23[i].remains;
+			if (mmm < 0){
+				mmm = 0;
+			}
+			fprintf(stderr, "购电判断值[%lld](%d)\n", JProgramInfo->class23[i].remains, mmm);
+
+			if (mmm <= val) {
 				fprintf(stderr, "购电控跳闸 ！！！！！！！！！！！！！！！！！！\n");
 				JProgramInfo->class23[i].alCtlState.OutputState |= 192;
-				JProgramInfo->class23[i].alCtlState.ECAlarmState |= 0;
+				JProgramInfo->class23[i].alCtlState.ECAlarmState &= ~64;
 				JProgramInfo->class23[i].alCtlState.BuyOutputState |= 192;
 				return 2;
 			}
 
-			if (JProgramInfo->class23[i].remains <= warn) {
+			if (mmm <= warn) {
 				fprintf(stderr, "购电控告警！！！！！！！！！！！！！！！！！！\n");
 				JProgramInfo->class23[i].alCtlState.ECAlarmState |= 64;
 				JProgramInfo->class23[i].alCtlState.OutputState |= 0;
 				JProgramInfo->class23[i].alCtlState.BuyOutputState |= 0;
 				return 1;
 			}
+
+			JProgramInfo->class23[i].alCtlState.OutputState &= ~192;
+			JProgramInfo->class23[i].alCtlState.ECAlarmState &= ~64;
+			JProgramInfo->class23[i].alCtlState.BuyOutputState &=~192;
 		}
 	}
 	return 0;
@@ -769,6 +841,13 @@ int ctrlMain(void * arg) {
 	int secOld = 0;
 	int ctrlflg = 0;
 	int count = 0;
+
+	INT8U out = 0;
+	INT8U outD = 0;
+	INT8U outG = 0;
+	INT8U pc = 0;
+	INT8U ec = 0;
+	INT8U al = 0;
 //初始化参数,搭建8个总加组数据，读取功控、电控参数
 	initAll();
 
@@ -817,6 +896,72 @@ int ctrlMain(void * arg) {
 					CtrlC->control_event = 0;
 				}
 			}
+
+			out = 0;
+			outD = 0;
+			outG = 0;
+			pc = 0;
+			ec = 0;
+			al = 0;
+
+			for (int i = 0; i < 8; ++i) {
+				out |= JProgramInfo->class23[i].alCtlState.OutputState;
+				out |= JProgramInfo->class23[i].alCtlState.BuyOutputState;
+				out |= JProgramInfo->class23[i].alCtlState.MonthOutputState;
+
+				outG |= JProgramInfo->class23[i].alCtlState.OutputState;
+
+				outD |= JProgramInfo->class23[i].alCtlState.BuyOutputState;
+				outD |= JProgramInfo->class23[i].alCtlState.MonthOutputState;
+
+				pc |= JProgramInfo->class23[i].alCtlState.PCAlarmState;
+				ec |= JProgramInfo->class23[i].alCtlState.ECAlarmState;
+			}
+
+//			INT8U lun1_state :1; //轮次1-状态
+//			INT8U lun1_red :1; //轮次1-红灯
+//			INT8U lun1_green :1; //轮次1-绿灯
+//			INT8U lun2_state :1; //轮次2-状态
+//			INT8U lun2_red :1; //轮次2-红灯
+//			INT8U lun2_green :1; //轮次2-绿灯
+//
+//			INT8U gongk_led :1; //功控灯
+//			INT8U diank_led :1; //电控灯
+//			INT8U alm_state :1; //告警状态
+//			INT8U baodian_led :1; //报警灯
+
+			if(pc != 0 || ec != 0)
+			{
+				al = 0;
+//				gpio_writebyte((INT8S *)DEV_ALARM_BUZZER,0x01);
+			}
+			else{
+				al = 1;
+//				gpio_writebyte((INT8S *)DEV_ALARM_BUZZER,0x00);
+			}
+
+
+			ctrlunit.ctrl.lun1_state = out>>7;
+			ctrlunit.ctrl.lun1_red = out>>7;
+			ctrlunit.ctrl.lun2_state = (out & ~128) >> 6;
+			ctrlunit.ctrl.lun2_red = (out & ~128) >> 6;
+
+			if(outD != outG){
+				ctrlunit.ctrl.diank_led = 1;
+			}else{
+				ctrlunit.ctrl.diank_led = 0;
+			}
+
+			if(outG != 0){
+				ctrlunit.ctrl.gongk_led = 1;
+			}else{
+				ctrlunit.ctrl.gongk_led = 0;
+			}
+
+			ctrlunit.ctrl.alm_state = al;
+
+			fprintf(stderr, "?????????????[%d %d %d] %d %d %d\n", out,out>>7, (out & ~128) >> 6, pc, ec, al);
+			ctrlflg = 1;
 		}
 
 		if (JProgramInfo->ctrls.control[0] == 0xEEFFEFEF
@@ -846,9 +991,9 @@ int ctrlMain(void * arg) {
 			ctrlunit.ctrl.lun2_state = 1;
 			ctrlunit.ctrl.lun2_red = 0;
 			ctrlunit.ctrl.lun2_green = 1;
-			ctrlflg = 1;
-		} else
-			ctrlflg = 0;
+			ctrlflg = 1;}
+//		} else
+//			ctrlflg = 0;
 		if (ctrlflg == 1) {
 			memset(&JProgramInfo->ctrls.control, 0,
 					sizeof(JProgramInfo->ctrls.control));
