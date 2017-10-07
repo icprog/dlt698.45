@@ -1062,15 +1062,35 @@ int setf203(OAD oad,INT8U *data,INT8U *DAR)
 int setf206(OAD oad,INT8U *data,INT8U *DAR)
 {
 	INT16U index=0;
+	int	i=0;
 	CLASS_f206	f206={};
 	memset(&f206,0,sizeof(CLASS_f206));
 	readCoverClass(oad.OI,0,&f206,sizeof(CLASS_f206),para_vari_save);
-	if ( oad.attflg == 4 )//配置参数
+	if ( oad.attflg == 2 )//配置参数
 	{
 		index += getStructure(&data[index],NULL,DAR);
-		index += getBitString(1,&data[index],(INT8U *)&f206.state4.StateAcessFlag);
-		index += getBitString(1,&data[index],(INT8U *)&f206.state4.StatePropFlag);
-		*DAR = saveCoverClass(oad.OI,0,&f206,sizeof(CLASS_f206),para_vari_save);
+		index += getArray(&data[index],&f206.state_num,DAR);
+		f206.state_num = limitJudge("告警输出",10,f206.state_num);
+		for(i=0;i<f206.state_num;i++) {
+			index += getEnum(1,&data[index],f206.alarm_state[i]);
+		}
+		if(*DAR==success) {
+			*DAR = saveCoverClass(oad.OI,0,&f206,sizeof(CLASS_f206),para_vari_save);
+		}
+	}
+	if ( oad.attflg == 4 )//
+	{
+		index += getStructure(&data[index],NULL,DAR);
+		index += getArray(&data[index],&f206.time_num,DAR);
+		f206.state_num = limitJudge("告警输出",10,f206.time_num);
+		for(i=0;i<f206.time_num;i++) {
+			index += getStructure(&data[index],NULL,DAR);
+			index += getTime(1,&data[index],(INT8U *)&f206.timev[i].start,DAR);
+			index += getTime(1,&data[index],(INT8U *)&f206.timev[i].end,DAR);
+		}
+		if(*DAR==success) {
+			*DAR = saveCoverClass(oad.OI,0,&f206,sizeof(CLASS_f206),para_vari_save);
+		}
 	}
 	return index;
 }
