@@ -796,6 +796,34 @@ INT16U set4500(OAD oad,INT8U *data,INT8U *DAR)
 	return index;
 }
 
+INT16U set4018(OAD oad,INT8U *data,INT8U *DAR)
+{
+	int arraynum=0,index=0,i=0;
+	CLASS_4018 class4018;
+	memset(&class4018,0,sizeof(CLASS_4018 ));
+
+	readCoverClass(0x4018,0,&class4018,sizeof(CLASS_4018 ),para_vari_save);
+	switch(oad.attflg) {
+		case 2:
+			index += getArray(&data[index],(INT8U *)&arraynum,DAR);
+			if (arraynum>32)
+				arraynum = 32;
+			fprintf(stderr,"\n\nset4018 当前套费率电价 属性2 下发个数 = %d",arraynum);
+			class4018.num = arraynum;
+			for(i=0; i<arraynum; i++) {
+				index += getLong64Unsigned(&data[index],(INT8U *)&class4018.feilv_price[i]);
+				fprintf(stderr,"\n i=%d  - %d",i,class4018.feilv_price[i]);
+			}
+			if(index>=sizeof(CLASS_4018 )) {
+				*DAR = refuse_rw;
+				return index;
+			}
+			break;
+	}
+	*DAR = saveCoverClass(0x4018,0,&class4018,sizeof(CLASS_4018),para_vari_save);
+
+	return index;
+}
 
 INT16U set4510(OAD oad,INT8U *data,INT8U *DAR)
 {

@@ -3246,7 +3246,13 @@ int stateJuge(int nowdstate,MY_PARA_COUNTER *mypara_p,RUNTIME_PLC *runtime_p,int
 		{//测量点参数变更  或 记录文件不存在  或   日期变更需要重新初始化任务
 			DbgPrintToFile1(31,"初始化默认任务参数，清除抄表记录");
 			initTaskData(&taskinfo);
-			system("rm /nand/para/plcrecord.par  /nand/para/plcrecord.bak");
+			sync();
+			system("rm -f /nand/para/plcrecord.par  /nand/para/plcrecord.bak");
+			sleep(5);
+			if(access("/nand/para/plcrecord.par",F_OK)==0)
+			{
+				system("rm -f /nand/para/plcrecord.par  /nand/para/plcrecord.bak");
+			}
 			PrintTaskInfo2(&taskinfo);
 		}
 		return state;

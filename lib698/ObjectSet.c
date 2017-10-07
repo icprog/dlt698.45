@@ -268,6 +268,9 @@ INT16U EnvironmentValue(OAD oad,INT8U *data,INT8U *DAR)
 		case 0x4510://以太网通信接口类
 			data_index = set4510(oad,data,DAR);
 			break;
+		case 0x4018://当前套费率电价
+			data_index = set4018(oad,data,DAR);
+			break;
 	}
 	return data_index;
 }

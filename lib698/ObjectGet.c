@@ -1656,7 +1656,34 @@ int Get4500(RESULT_NORMAL *response)
 	response->datalen = index;
 	return 0;
 }
+int Get4018(RESULT_NORMAL *response)
+{
+	int index=0,i=0;
+	CLASS_4018 class4018;
+	OAD oad={};
+	INT8U *data = NULL;
+	data = response->data;
+	oad = response->oad;
+	memset(&class4018,0,sizeof(CLASS_4018 ));
 
+	readCoverClass(0x4018,0,&class4018,sizeof(CLASS_4018 ),para_vari_save);
+	switch(oad.attflg) {
+		case 2:
+			fprintf(stderr,"\nGet4018 组织属性2，数组元素个数 %d ",class4018.num);
+			index += create_array(&data[index],class4018.num);
+
+			if(class4018.num) {
+				for(i=0;i<class4018.num;i++) {
+					index += fill_long_unsigned(&data[index],class4018.feilv_price[i]);
+					fprintf(stderr,"\n%d  -  %ld",i,class4018.feilv_price[i]);
+				}
+			}
+			break;
+	}
+	fprintf(stderr,"\ndatalen = %d",index);
+	response->datalen = index;
+	return 0;
+}
 int Get4510(RESULT_NORMAL *response)
 {
 	int index=0,i=0;
@@ -3109,6 +3136,9 @@ int GetEnvironmentValue(RESULT_NORMAL *response)
 			break;
 		case 0x4510://以太网通信模块
 			Get4510(response);
+			break;
+		case 0x4018://当前套费率电价
+			Get4018(response);
 			break;
 		default:	//未定义的对象
 			response->dar = obj_undefine;
