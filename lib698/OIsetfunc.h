@@ -32,6 +32,7 @@ extern INT16U set4007(OAD oad,INT8U *data,INT8U *DAR);
 extern INT16U set400c(OAD oad,INT8U *data,INT8U *DAR);
 extern INT16U set4014(OAD oad,INT8U *data,INT8U *DAR);
 extern INT16U set4016(OAD oad,INT8U *data,INT8U *DAR);
+extern INT16U set4018(OAD oad,INT8U *data,INT8U *DAR);
 extern INT16U set4024(OAD oad,INT8U *data,INT8U *DAR);
 extern INT16U set4030(OAD oad,INT8U *data,INT8U *DAR);
 extern INT16U set4103(OAD oad,INT8U *data,INT8U *DAR);

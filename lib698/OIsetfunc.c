@@ -1059,6 +1059,21 @@ int setf203(OAD oad,INT8U *data,INT8U *DAR)
 	return index;
 }
 
+int setf206(OAD oad,INT8U *data,INT8U *DAR)
+{
+	INT16U index=0;
+	CLASS_f206	f206={};
+	memset(&f206,0,sizeof(CLASS_f206));
+	readCoverClass(oad.OI,0,&f206,sizeof(CLASS_f206),para_vari_save);
+	if ( oad.attflg == 4 )//配置参数
+	{
+		index += getStructure(&data[index],NULL,DAR);
+		index += getBitString(1,&data[index],(INT8U *)&f206.state4.StateAcessFlag);
+		index += getBitString(1,&data[index],(INT8U *)&f206.state4.StatePropFlag);
+		*DAR = saveCoverClass(oad.OI,0,&f206,sizeof(CLASS_f206),para_vari_save);
+	}
+	return index;
+}
 int	setf209(OAD setoad,INT8U *data,INT8U *DAR)
 {
 	int	 index=0;
