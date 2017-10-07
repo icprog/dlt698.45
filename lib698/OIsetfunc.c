@@ -12,7 +12,7 @@
 #include "PublicFunction.h"
 #include "OIsetfunc.h"
 #include "dlt698.h"
-
+extern int getDouble(INT8U *source,INT8U *dest);
 extern ProgramInfo *memp;
 /////////////////////////////////////////////////////////////////////////////
 INT16U set300F(OAD oad,INT8U *data,INT8U *DAR)
@@ -804,6 +804,7 @@ INT16U set4500(OAD oad,INT8U *data,INT8U *DAR)
 
 INT16U set4018(OAD oad,INT8U *data,INT8U *DAR)
 {
+	int tmp = 0;
 	int arraynum=0,index=0,i=0;
 	CLASS_4018 class4018;
 	memset(&class4018,0,sizeof(CLASS_4018 ));
@@ -817,8 +818,10 @@ INT16U set4018(OAD oad,INT8U *data,INT8U *DAR)
 			fprintf(stderr,"\n\nset4018 当前套费率电价 属性2 下发个数 = %d",arraynum);
 			class4018.num = arraynum;
 			for(i=0; i<arraynum; i++) {
-				index += getLong64Unsigned(&data[index],(INT8U *)&class4018.feilv_price[i]);
-				fprintf(stderr,"\n i=%d  - %d",i,class4018.feilv_price[i]);
+//				fprintf(stderr,"\ndata[%d] = %02x %02x %02x %02x %02x ",index,data[index],data[index+1],data[index+2],data[index+3],data[index+4]);
+				index += getDouble(&data[index],(INT8U *)&class4018.feilv_price[i]);
+				tmp = class4018.feilv_price[i];
+				fprintf(stderr,"\n i=%d  - %d",i,tmp);
 			}
 			if(index>=sizeof(CLASS_4018 )) {
 				*DAR = refuse_rw;
