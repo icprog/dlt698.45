@@ -644,7 +644,9 @@ typedef struct{
 	TimeBCD end;
 }ENABLE_TIME;
 typedef struct {
+	INT8U state_num;
 	INT8U alarm_state[10];
+	INT8U time_num;
 	ENABLE_TIME timev[10];
 } CLASS_f206;                 //开关量输
 

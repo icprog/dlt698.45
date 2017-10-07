@@ -1689,8 +1689,17 @@ int Get4018(RESULT_NORMAL *response)
 }
 int GetF206(RESULT_NORMAL *response)
 {
-	CLASS_f206 classf206;
+	int index=0,i=0;
+	INT8U *data = NULL;
+	OAD oad={};
+	CLASS_f206	class_tmp={};
 
+	data = response->data;
+	oad = response->oad;
+	memset(&class_tmp,0,sizeof(CLASS26));
+	readCoverClass(oad.OI,0,&class_tmp,sizeof(CLASS26),para_vari_save);
+
+	return 0;
 }
 //
 int Get4510(RESULT_NORMAL *response)
