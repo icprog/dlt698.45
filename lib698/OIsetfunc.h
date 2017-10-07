@@ -29,9 +29,14 @@ extern INT16U set4004(OAD oad,INT8U *data,INT8U *DAR);
 extern INT16U set4005(OAD oad,INT8U *data,INT8U *DAR);
 extern INT16U set4006(OAD oad,INT8U *data,INT8U *DAR);
 extern INT16U set4007(OAD oad,INT8U *data,INT8U *DAR);
+extern INT16U set400c(OAD oad,INT8U *data,INT8U *DAR);
+extern INT16U set4014(OAD oad,INT8U *data,INT8U *DAR);
+extern INT16U set4016(OAD oad,INT8U *data,INT8U *DAR);
+extern INT16U set4018(OAD oad,INT8U *data,INT8U *DAR);
 extern INT16U set4024(OAD oad,INT8U *data,INT8U *DAR);
 extern INT16U set4030(OAD oad,INT8U *data,INT8U *DAR);
 extern INT16U set4103(OAD oad,INT8U *data,INT8U *DAR);
+
 extern INT16U set4202(OAD oad,INT8U *data,INT8U *DAR);
 extern INT16U set4204(OAD oad,INT8U *data,INT8U *DAR);
 extern INT16U set4300(OAD oad,INT8U *data,INT8U *DAR);
@@ -47,6 +52,7 @@ extern int setf200(OI_698 oi,INT8U *data,INT8U *DAR);
 extern int setf201(OI_698 oi,INT8U *data,INT8U *DAR);
 extern int setf202(OI_698 oi,INT8U *data,INT8U *DAR);
 extern int setf203(OAD oad,INT8U *data,INT8U *DAR);
+extern int setf206(OAD oad,INT8U *data,INT8U *DAR);
 extern int setf209(OAD setoad,INT8U *data,INT8U *DAR);
 
 

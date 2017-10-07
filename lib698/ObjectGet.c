@@ -1271,7 +1271,7 @@ int Get4014(RESULT_NORMAL *response)
 
 int Get4016(RESULT_NORMAL *response)
 {
-	int index=0, i=0;
+	int index=0, i=0 ,j=0;
 	INT8U *data = NULL;
 	OAD oad={};
 	CLASS_4016	class_tmp={};
@@ -1282,12 +1282,15 @@ int Get4016(RESULT_NORMAL *response)
 	switch(oad.attflg )
 	{
 		case 2:
-			index += create_array(&data[index],class_tmp.num);
-			for(i=0;i<class_tmp.num;i++) {
-				index += create_struct(&data[index],3);
-				index += fill_unsigned(&data[index],class_tmp.Period_Rate[i].hour);
-				index += fill_unsigned(&data[index],class_tmp.Period_Rate[i].min);
-				index += fill_unsigned(&data[index],class_tmp.Period_Rate[i].rateno);
+			index += create_array(&data[index],class_tmp.day_num);
+			for(i=0;i<class_tmp.day_num;i++) {
+				index += create_array(&data[index],class_tmp.zone_num);
+				for(j=0;j<class_tmp.zone_num;j++) {
+					index += create_struct(&data[index],3);
+					index += fill_unsigned(&data[index],class_tmp.Period_Rate[i][j].hour);
+					index += fill_unsigned(&data[index],class_tmp.Period_Rate[i][j].min);
+					index += fill_unsigned(&data[index],class_tmp.Period_Rate[i][j].rateno);
+				}
 			}
 			response->datalen = index;
 			break;

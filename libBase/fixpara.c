@@ -143,22 +143,22 @@ void InitClass4510(INT16U heartBeat,MASTER_STATION_INFO master_info,NETCONFIG ne
  * 初始化当前套日时段表
  * */
 void InitClass4016() {
-    CLASS_4016 class4016 = {}; //当前套日时段表
-    int readret          = 0;
-    INT8U i              = 0;
-
-    memset(&class4016, 0, sizeof(CLASS_4016));
-    readret = readCoverClass(0x4016, 0, &class4016, sizeof(CLASS_4016), para_vari_save);
-    if (readret != 1) {
-    	fprintf(stderr, "\n初始化当前套日时段表：4016\n");
-        class4016.num = MAX_PERIOD_RATE / 2;
-        for (i = 0; i < class4016.num; i++) {
-            class4016.Period_Rate[i].hour   = i;
-            class4016.Period_Rate[i].min    = 0;
-            class4016.Period_Rate[i].rateno = (i % 4) + 1;
-        }
-        saveCoverClass(0x4016, 0, &class4016, sizeof(CLASS_4016), para_vari_save);
-    }
+//    CLASS_4016 class4016 = {}; //当前套日时段表
+//    int readret          = 0;
+//    INT8U i              = 0;
+//
+//    memset(&class4016, 0, sizeof(CLASS_4016));
+//    readret = readCoverClass(0x4016, 0, &class4016, sizeof(CLASS_4016), para_vari_save);
+//    if (readret != 1) {
+//    	fprintf(stderr, "\n初始化当前套日时段表：4016\n");
+//        class4016.day_num = MAX_PERIOD_RATE / 2;
+//        for (i = 0; i < class4016.day_num; i++) {
+//            class4016.Period_Rate[i].hour   = i;
+//            class4016.Period_Rate[i].min    = 0;
+//            class4016.Period_Rate[i].rateno = (i % 4) + 1;
+//        }
+//        saveCoverClass(0x4016, 0, &class4016, sizeof(CLASS_4016), para_vari_save);
+//    }
 }
 
 void InitClass4300() //电气设备信息

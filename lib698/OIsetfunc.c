@@ -444,20 +444,26 @@ INT16U set4014(OAD oad,INT8U *data,INT8U *DAR)
 INT16U set4016(OAD oad,INT8U *data,INT8U *DAR)
 {
 	int index=0;
-	int i=0;
+	int i=0,j=0;
 	CLASS_4016 class4016={};
 
 	memset(&class4016,0,sizeof(CLASS_4016));
 	readCoverClass(oad.OI,0,&class4016,sizeof(CLASS_4016),para_vari_save);
 	if (oad.attflg == 2 )
 	{
-		index += getArray(&data[index],&class4016.num,DAR);
-		class4016.num = limitJudge("当前套时区数",MAX_PERIOD_RATE,class4016.num);
-		for(i=0;i<class4016.num;i++) {
-			index += getStructure(&data[index],NULL,DAR);
-			index += getUnsigned(&data[index],&class4016.Period_Rate[i].hour,DAR);
-			index += getUnsigned(&data[index],&class4016.Period_Rate[i].min,DAR);
-			index += getUnsigned(&data[index],&class4016.Period_Rate[i].rateno,DAR);
+		index += getArray(&data[index],&class4016.day_num,DAR);
+		class4016.day_num = limitJudge("日时段表",MAX_PERIOD_RATE,class4016.day_num);
+		fprintf(stderr,"day_num = %d\n",class4016.day_num);
+		for(i=0;i<class4016.day_num;i++) {
+			index += getArray(&data[index],&class4016.zone_num,DAR);
+			fprintf(stderr,"zone_num = %d\n",class4016.zone_num);
+			class4016.zone_num = limitJudge("时段",MAX_PERIOD_RATE,class4016.zone_num);
+			for(j=0;j<class4016.zone_num;j++) {
+				index += getStructure(&data[index],NULL,DAR);
+				index += getUnsigned(&data[index],&class4016.Period_Rate[i][j].hour,DAR);
+				index += getUnsigned(&data[index],&class4016.Period_Rate[i][j].min,DAR);
+				index += getUnsigned(&data[index],&class4016.Period_Rate[i][j].rateno,DAR);
+			}
 		}
 		if(*DAR == success) {
 			*DAR = saveCoverClass(oad.OI,0,&class4016,sizeof(CLASS_4016),para_vari_save);
@@ -1053,6 +1059,41 @@ int setf203(OAD oad,INT8U *data,INT8U *DAR)
 	return index;
 }
 
+int setf206(OAD oad,INT8U *data,INT8U *DAR)
+{
+	INT16U index=0;
+	int	i=0;
+	CLASS_f206	f206={};
+	memset(&f206,0,sizeof(CLASS_f206));
+	readCoverClass(oad.OI,0,&f206,sizeof(CLASS_f206),para_vari_save);
+	if ( oad.attflg == 2 )//配置参数
+	{
+		index += getStructure(&data[index],NULL,DAR);
+		index += getArray(&data[index],&f206.state_num,DAR);
+		f206.state_num = limitJudge("告警输出",10,f206.state_num);
+		for(i=0;i<f206.state_num;i++) {
+			index += getEnum(1,&data[index],f206.alarm_state[i]);
+		}
+		if(*DAR==success) {
+			*DAR = saveCoverClass(oad.OI,0,&f206,sizeof(CLASS_f206),para_vari_save);
+		}
+	}
+	if ( oad.attflg == 4 )//
+	{
+		index += getStructure(&data[index],NULL,DAR);
+		index += getArray(&data[index],&f206.time_num,DAR);
+		f206.state_num = limitJudge("告警输出",10,f206.time_num);
+		for(i=0;i<f206.time_num;i++) {
+			index += getStructure(&data[index],NULL,DAR);
+			index += getTime(1,&data[index],(INT8U *)&f206.timev[i].start,DAR);
+			index += getTime(1,&data[index],(INT8U *)&f206.timev[i].end,DAR);
+		}
+		if(*DAR==success) {
+			*DAR = saveCoverClass(oad.OI,0,&f206,sizeof(CLASS_f206),para_vari_save);
+		}
+	}
+	return index;
+}
 int	setf209(OAD setoad,INT8U *data,INT8U *DAR)
 {
 	int	 index=0;
