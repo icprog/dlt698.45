@@ -1217,6 +1217,87 @@ int Get4007(RESULT_NORMAL *response)
 	}
 	return 0;
 }
+
+int Get400C(RESULT_NORMAL *response)
+{
+	int index=0;
+	INT8U *data = NULL;
+	OAD oad={};
+	CLASS_400C	class_tmp={};
+	data = response->data;
+	oad = response->oad;
+	memset(&class_tmp,0,sizeof(CLASS_400C));
+	readCoverClass(oad.OI,0,&class_tmp,sizeof(CLASS_400C),para_vari_save);
+	switch(oad.attflg )
+	{
+		case 2:
+			index += create_struct(&data[index],5);
+			index += fill_unsigned(&data[index],class_tmp.year_zone);
+			index += fill_unsigned(&data[index],class_tmp.day_interval);
+			index += fill_unsigned(&data[index],class_tmp.day_change);
+			index += fill_unsigned(&data[index],class_tmp.rate);
+			index += fill_unsigned(&data[index],class_tmp.public_holiday);
+			response->datalen = index;
+			break;
+	}
+	return 0;
+}
+
+int Get4014(RESULT_NORMAL *response)
+{
+	int index=0, i=0;
+	INT8U *data = NULL;
+	OAD oad={};
+	CLASS_4014	class_tmp={};
+	data = response->data;
+	oad = response->oad;
+	memset(&class_tmp,0,sizeof(CLASS_4014));
+	readCoverClass(oad.OI,0,&class_tmp,sizeof(CLASS_4014),para_vari_save);
+	switch(oad.attflg )
+	{
+		case 2:
+			index += create_array(&data[index],class_tmp.zonenum);
+			for(i=0;i<class_tmp.zonenum;i++) {
+				index += create_struct(&data[index],3);
+				index += fill_unsigned(&data[index],class_tmp.time_zone[i].month);
+				index += fill_unsigned(&data[index],class_tmp.time_zone[i].day);
+				index += fill_unsigned(&data[index],class_tmp.time_zone[i].tableno);
+			}
+			response->datalen = index;
+			break;
+	}
+	return 0;
+}
+
+int Get4016(RESULT_NORMAL *response)
+{
+	int index=0, i=0 ,j=0;
+	INT8U *data = NULL;
+	OAD oad={};
+	CLASS_4016	class_tmp={};
+	data = response->data;
+	oad = response->oad;
+	memset(&class_tmp,0,sizeof(CLASS_4016));
+	readCoverClass(oad.OI,0,&class_tmp,sizeof(CLASS_4016),para_vari_save);
+	switch(oad.attflg )
+	{
+		case 2:
+			index += create_array(&data[index],class_tmp.day_num);
+			for(i=0;i<class_tmp.day_num;i++) {
+				index += create_array(&data[index],class_tmp.zone_num);
+				for(j=0;j<class_tmp.zone_num;j++) {
+					index += create_struct(&data[index],3);
+					index += fill_unsigned(&data[index],class_tmp.Period_Rate[i][j].hour);
+					index += fill_unsigned(&data[index],class_tmp.Period_Rate[i][j].min);
+					index += fill_unsigned(&data[index],class_tmp.Period_Rate[i][j].rateno);
+				}
+			}
+			response->datalen = index;
+			break;
+	}
+	return 0;
+}
+
 int Get4103(RESULT_NORMAL *response)
 {
 	int index=0;
@@ -1578,7 +1659,70 @@ int Get4500(RESULT_NORMAL *response)
 	response->datalen = index;
 	return 0;
 }
+int Get4018(RESULT_NORMAL *response)
+{
+	int index=0,i=0;
+	CLASS_4018 class4018;
+	OAD oad={};
+	INT8U *data = NULL;
+	data = response->data;
+	oad = response->oad;
+	memset(&class4018,0,sizeof(CLASS_4018 ));
 
+	readCoverClass(0x4018,0,&class4018,sizeof(CLASS_4018 ),para_vari_save);
+	switch(oad.attflg) {
+		case 2:
+			fprintf(stderr,"\nGet4018 组织属性2，数组元素个数 %d ",class4018.num);
+			index += create_array(&data[index],class4018.num);
+
+			if(class4018.num) {
+				for(i=0;i<class4018.num;i++) {
+					index += fill_double_long_unsigned(&data[index],class4018.feilv_price[i]);
+					fprintf(stderr,"\n%d  -  %ld",i,class4018.feilv_price[i]);
+				}
+			}
+			break;
+	}
+	fprintf(stderr,"\ndatalen = %d",index);
+	response->datalen = index;
+	return 0;
+}
+int GetF206(RESULT_NORMAL *response)
+{
+	int index=0,i=0;
+	INT8U *data = NULL;
+	OAD oad={};
+	CLASS_f206	class_tmp={};
+
+	data = response->data;
+	oad = response->oad;
+	memset(&class_tmp,0,sizeof(CLASS_f206));
+	readCoverClass(oad.OI,0,&class_tmp,sizeof(CLASS_f206),para_vari_save);
+	switch(oad.attflg )
+	{
+		case 2:	//通信配置
+
+			index += create_array(&data[index],class_tmp.state_num);
+			for(i=0;i<class_tmp.state_num;i++)
+			{
+				index += create_struct(&data[index],1);
+				index += fill_enum(&data[index],class_tmp.alarm_state[i]);
+			}
+			break;
+		case 4:	//主站通信参数表
+			fprintf(stderr,"Getf206 Attrib 4 num=%d\n",class_tmp.time_num);
+			index += create_array(&data[index],class_tmp.time_num);
+			for(i=0;i<class_tmp.time_num;i++) {
+				index += create_struct(&data[index],2);
+				index += fill_time(&data[index],(INT8U*)class_tmp.timev[i].start);
+				index += fill_time(&data[index],(INT8U*)class_tmp.timev[i].end);
+			}
+			break;
+	}
+	response->datalen = index;
+	return 0;
+}
+//
 int Get4510(RESULT_NORMAL *response)
 {
 	int index=0,i=0;
@@ -3002,6 +3146,15 @@ int GetEnvironmentValue(RESULT_NORMAL *response)
 		case 0x4007:
 			Get4007(response);
 			break;
+		case 0x400C:
+			Get400C(response);
+			break;
+		case 0x4014:
+			Get4014(response);
+			break;
+		case 0x4016:
+			Get4016(response);
+			break;
 		case 0x4103:
 			Get4103(response);
 			break;
@@ -3022,6 +3175,9 @@ int GetEnvironmentValue(RESULT_NORMAL *response)
 			break;
 		case 0x4510://以太网通信模块
 			Get4510(response);
+			break;
+		case 0x4018://当前套费率电价
+			Get4018(response);
 			break;
 		default:	//未定义的对象
 			response->dar = obj_undefine;
@@ -3196,6 +3352,9 @@ int GetDeviceIo(RESULT_NORMAL *response)
 			break;
 		case 0xF205:
 			Get_f205_attr2(response);
+			break;
+		case 0xF206:
+			GetF206(response);
 			break;
 		case 0xF209:	//ZB
 			response->datalen = GetF209(response->oad,response->data);

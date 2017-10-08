@@ -232,6 +232,15 @@ INT16U EnvironmentValue(OAD oad,INT8U *data,INT8U *DAR)
 		case 0x4007://LCD参数
 			data_index = set4007(oad,data,DAR);
 			break;
+		case 0x400C://时区时段数
+			data_index = set400c(oad,data,DAR);
+			break;
+		case 0x4014://当前套时区表
+			data_index = set4014(oad,data,DAR);
+			break;
+		case 0x4016://当前套日时段表
+			data_index = set4016(oad,data,DAR);
+			break;
 		case 0x4024://剔除
 			data_index = set4024(oad,data,DAR);
 			break;
@@ -258,6 +267,9 @@ INT16U EnvironmentValue(OAD oad,INT8U *data,INT8U *DAR)
 			break;
 		case 0x4510://以太网通信接口类
 			data_index = set4510(oad,data,DAR);
+			break;
+		case 0x4018://当前套费率电价
+			data_index = set4018(oad,data,DAR);
 			break;
 	}
 	return data_index;
@@ -303,6 +315,9 @@ INT16U DeviceIoSetAttrib(OAD oad,INT8U *data,INT8U *DAR)
 			break;
 		case 0xF203:	//开关量输入
 			data_index = setf203(oad,data,DAR);
+			break;
+		case 0xF206:	//告警输出
+			data_index = setf206(oad,data,DAR);
 			break;
 	}
 	return data_index;

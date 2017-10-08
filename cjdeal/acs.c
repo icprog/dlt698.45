@@ -912,7 +912,7 @@ void calc_energy(TS nowts,INT32U PFlag,_EnergyCurr *ed)
  */
 INT8U get_rates_no(TS ts_t,CLASS_4016 class4016)
 {
-	INT8U	i=0;
+	INT8U	i=0,j=0;
 	static INT8U oldmin=0xff;
 	static INT8U  rate=0;
 	static INT8U  changed=0;
@@ -924,13 +924,15 @@ INT8U get_rates_no(TS ts_t,CLASS_4016 class4016)
 	}
 	if(ts_t.Minute==oldmin && oldmin!=0xff) return rate;
 	oldmin = ts_t.Minute;
-	if(class4016.num>MAX_PERIOD_RATE)	return rate;
-	for(i=0;i<(class4016.num-1);i++) {
-		if(((ts_t.Hour*60 + ts_t.Minute)>= (class4016.Period_Rate[i].hour*60+class4016.Period_Rate[i].min))
-			&&((ts_t.Hour*60 + ts_t.Minute)< (class4016.Period_Rate[i+1].hour*60+class4016.Period_Rate[i+1].min))) {
-			rate = class4016.Period_Rate[i].rateno;
-//			fprintf(stderr,"rate=%d\n",rate);
-			break;
+	if(class4016.day_num>MAX_PERIOD_RATE)	return rate;
+	for(i=0;i<(class4016.day_num-1);i++) {
+		for(j=0;j<(class4016.zone_num-1);j++) {
+			if(((ts_t.Hour*60 + ts_t.Minute)>= (class4016.Period_Rate[i][j].hour*60+class4016.Period_Rate[i][j].min))
+				&&((ts_t.Hour*60 + ts_t.Minute)< (class4016.Period_Rate[i][j+1].hour*60+class4016.Period_Rate[i][j+1].min))) {
+				rate = class4016.Period_Rate[i][j].rateno;
+	//			fprintf(stderr,"rate=%d\n",rate);
+				break;
+			}
 		}
 	}
 	return rate;

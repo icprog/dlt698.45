@@ -12,7 +12,7 @@
 #include "PublicFunction.h"
 #include "OIsetfunc.h"
 #include "dlt698.h"
-
+extern int getDouble(INT8U *source,INT8U *dest);
 extern ProgramInfo *memp;
 /////////////////////////////////////////////////////////////////////////////
 INT16U set300F(OAD oad,INT8U *data,INT8U *DAR)
@@ -383,6 +383,95 @@ INT16U set4007(OAD oad,INT8U *data,INT8U *DAR)
 	return index;
 }
 
+INT16U set400c(OAD oad,INT8U *data,INT8U *DAR)
+{
+	int index=0;
+	int ret=0;
+	CLASS_400C class400c={};
+
+	memset(&class400c,0,sizeof(CLASS_400C));
+	readCoverClass(oad.OI,0,&class400c,sizeof(CLASS_400C),para_vari_save);
+	if (oad.attflg == 2 )
+	{
+		index += getStructure(&data[index],NULL,DAR);
+		index += getUnsigned(&data[index],&class400c.year_zone,DAR);
+		ret = rangeJudge("年时区数",class400c.year_zone,0,14);
+		if(ret == -1) *DAR = boundry_over;
+		index += getUnsigned(&data[index],&class400c.day_interval,DAR);
+		ret = rangeJudge("日时段表数",class400c.day_interval,0,8);
+		if(ret == -1) *DAR = boundry_over;
+		index += getUnsigned(&data[index],&class400c.day_change,DAR);
+		ret = rangeJudge("日时段数",class400c.day_change,0,14);
+		if(ret == -1) *DAR = boundry_over;
+		index += getUnsigned(&data[index],&class400c.rate,DAR);
+		ret = rangeJudge("费率数",class400c.rate,0,63);
+		if(ret == -1) *DAR = boundry_over;
+		index += getUnsigned(&data[index],&class400c.public_holiday,DAR);
+		ret = rangeJudge("公共假日数",class400c.public_holiday,0,254);
+		if(ret == -1) *DAR = boundry_over;
+		if(*DAR == success) {
+			*DAR = saveCoverClass(oad.OI,0,&class400c,sizeof(CLASS_400C),para_vari_save);
+		}
+	}
+	return index;
+}
+
+INT16U set4014(OAD oad,INT8U *data,INT8U *DAR)
+{
+	int index=0;
+	int i=0;
+	CLASS_4014 class4014={};
+
+	memset(&class4014,0,sizeof(CLASS_4014));
+	readCoverClass(oad.OI,0,&class4014,sizeof(CLASS_4014),para_vari_save);
+	if (oad.attflg == 2 )
+	{
+		index += getArray(&data[index],&class4014.zonenum,DAR);
+		class4014.zonenum = limitJudge("当前套时区数",MAX_PERIOD_RATE,class4014.zonenum);
+		for(i=0;i<class4014.zonenum;i++) {
+			index += getStructure(&data[index],NULL,DAR);
+			index += getUnsigned(&data[index],&class4014.time_zone[i].month,DAR);
+			index += getUnsigned(&data[index],&class4014.time_zone[i].day,DAR);
+			index += getUnsigned(&data[index],&class4014.time_zone[i].tableno,DAR);
+		}
+		if(*DAR == success) {
+			*DAR = saveCoverClass(oad.OI,0,&class4014,sizeof(CLASS_4014),para_vari_save);
+		}
+	}
+	return index;
+}
+
+INT16U set4016(OAD oad,INT8U *data,INT8U *DAR)
+{
+	int index=0;
+	int i=0,j=0;
+	CLASS_4016 class4016={};
+
+	memset(&class4016,0,sizeof(CLASS_4016));
+	readCoverClass(oad.OI,0,&class4016,sizeof(CLASS_4016),para_vari_save);
+	if (oad.attflg == 2 )
+	{
+		index += getArray(&data[index],&class4016.day_num,DAR);
+		class4016.day_num = limitJudge("日时段表",MAX_PERIOD_RATE,class4016.day_num);
+		fprintf(stderr,"day_num = %d\n",class4016.day_num);
+		for(i=0;i<class4016.day_num;i++) {
+			index += getArray(&data[index],&class4016.zone_num,DAR);
+			fprintf(stderr,"zone_num = %d\n",class4016.zone_num);
+			class4016.zone_num = limitJudge("时段",MAX_PERIOD_RATE,class4016.zone_num);
+			for(j=0;j<class4016.zone_num;j++) {
+				index += getStructure(&data[index],NULL,DAR);
+				index += getUnsigned(&data[index],&class4016.Period_Rate[i][j].hour,DAR);
+				index += getUnsigned(&data[index],&class4016.Period_Rate[i][j].min,DAR);
+				index += getUnsigned(&data[index],&class4016.Period_Rate[i][j].rateno,DAR);
+			}
+		}
+		if(*DAR == success) {
+			*DAR = saveCoverClass(oad.OI,0,&class4016,sizeof(CLASS_4016),para_vari_save);
+		}
+	}
+	return index;
+}
+
 INT16U set4024(OAD oad,INT8U *data,INT8U *DAR)
 {
 	int index=0;
@@ -506,19 +595,17 @@ INT16U set4204(OAD oad,INT8U *data,INT8U *DAR)
 	}else if(oad.attflg == 3)
 	{
 		index += getStructure(&data[index],NULL,DAR);
-		index += getUnsigned(&data[index],(INT8U *)&class4204.upleve,DAR);
-		if(*DAR!=success)
-			return 0;
+		index += getInteger(&data[index],&class4204.upleve,DAR);
 		index += getTime(1,&data[index],(INT8U *)&class4204.startime1,DAR);
-		if(*DAR!=success)
-			return 0;
 		index += getBool(&data[index],(INT8U *)&class4204.enable1,DAR);
 		fprintf(stderr,"\n【终端广播校时，属性3】:");
 		fprintf(stderr,"\ntime : %d %d %d ",class4204.startime1[0],class4204.startime1[1],class4204.startime1[2]);
 		fprintf(stderr,"\nenable: %d",class4204.enable1);
 		fprintf(stderr,"\n误差 = %d",class4204.upleve);
 		fprintf(stderr,"\n");
-		*DAR = saveCoverClass(oad.OI,0,&class4204,sizeof(CLASS_4204),para_vari_save);
+		if(*DAR == success) {
+			*DAR = saveCoverClass(oad.OI,0,&class4204,sizeof(CLASS_4204),para_vari_save);
+		}
 	}
 	return index;
 }
@@ -715,6 +802,37 @@ INT16U set4500(OAD oad,INT8U *data,INT8U *DAR)
 	return index;
 }
 
+INT16U set4018(OAD oad,INT8U *data,INT8U *DAR)
+{
+	int tmp = 0;
+	int arraynum=0,index=0,i=0;
+	CLASS_4018 class4018;
+	memset(&class4018,0,sizeof(CLASS_4018 ));
+
+	readCoverClass(0x4018,0,&class4018,sizeof(CLASS_4018 ),para_vari_save);
+	switch(oad.attflg) {
+		case 2:
+			index += getArray(&data[index],(INT8U *)&arraynum,DAR);
+			if (arraynum>32)
+				arraynum = 32;
+			fprintf(stderr,"\n\nset4018 当前套费率电价 属性2 下发个数 = %d",arraynum);
+			class4018.num = arraynum;
+			for(i=0; i<arraynum; i++) {
+//				fprintf(stderr,"\ndata[%d] = %02x %02x %02x %02x %02x ",index,data[index],data[index+1],data[index+2],data[index+3],data[index+4]);
+				index += getDouble(&data[index],(INT8U *)&class4018.feilv_price[i]);
+				tmp = class4018.feilv_price[i];
+				fprintf(stderr,"\n i=%d  - %d",i,tmp);
+			}
+			if(index>=sizeof(CLASS_4018 )) {
+				*DAR = refuse_rw;
+				return index;
+			}
+			break;
+	}
+	*DAR = saveCoverClass(0x4018,0,&class4018,sizeof(CLASS_4018),para_vari_save);
+
+	return index;
+}
 
 INT16U set4510(OAD oad,INT8U *data,INT8U *DAR)
 {
@@ -941,6 +1059,42 @@ int setf203(OAD oad,INT8U *data,INT8U *DAR)
 	return index;
 }
 
+int setf206(OAD oad,INT8U *data,INT8U *DAR)
+{
+	INT16U index=0;
+	int	i=0;
+	CLASS_f206	f206={};
+	memset(&f206,0,sizeof(CLASS_f206));
+	readCoverClass(oad.OI,0,&f206,sizeof(CLASS_f206),para_vari_save);
+	if ( oad.attflg == 2 )//配置参数
+	{
+		index += getStructure(&data[index],NULL,DAR);
+		index += getArray(&data[index],&f206.state_num,DAR);
+		fprintf(stderr,"state_num = %d\n",f206.state_num);
+		f206.state_num = limitJudge("告警输出",10,f206.state_num);
+		for(i=0;i<f206.state_num;i++) {
+			index += getEnum(1,&data[index],&f206.alarm_state[i]);
+		}
+		if(*DAR==success) {
+			*DAR = saveCoverClass(oad.OI,0,&f206,sizeof(CLASS_f206),para_vari_save);
+		}
+	}
+	if ( oad.attflg == 4 )//
+	{
+		index += getArray(&data[index],&f206.time_num,DAR);
+		f206.time_num = limitJudge("告警输出",10,f206.time_num);
+		fprintf(stderr,"time_num = %d\n",f206.time_num);
+		for(i=0;i<f206.time_num;i++) {
+			index += getStructure(&data[index],NULL,DAR);
+			index += getTime(1,&data[index],(INT8U *)&f206.timev[i].start,DAR);
+			index += getTime(1,&data[index],(INT8U *)&f206.timev[i].end,DAR);
+		}
+		if(*DAR==success) {
+			*DAR = saveCoverClass(oad.OI,0,&f206,sizeof(CLASS_f206),para_vari_save);
+		}
+	}
+	return index;
+}
 int	setf209(OAD setoad,INT8U *data,INT8U *DAR)
 {
 	int	 index=0;

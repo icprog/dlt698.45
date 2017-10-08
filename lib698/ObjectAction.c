@@ -1022,7 +1022,7 @@ void TerminalInfo(INT16U attr_act, INT8U *data, Action_result *act_ret)
         			index += getOAD(1,&data[index],&oad[i],&act_ret->DAR);
         		}
         	}
-        	memDataInit(0,memp);
+        	memDataInit(0,memp);	//数据初始化后将内存值清零，oichange.ctrlinit = 0x55,控制模块进行初始化参数为默认init参数值
         	paraInit(oadnum,oad);
         	//清除总表计量电量
         	clearEnergy();
@@ -1577,6 +1577,9 @@ int doObjectAction(OAD oad, INT8U *data, Action_result *act_ret) {
     if(act_ret->DAR == success) {
 		if (oi == 0x4300 && attr_act == 3) {        //数据区初始化
 			memp->oi_changed.init++;
+		}
+		if (oi == 0x4300 && attr_act == 4) {        //恢复出厂设置
+			memp->oi_changed.ctrlinit = 0x55;
 		}
 		setOIChange(oi);
     }

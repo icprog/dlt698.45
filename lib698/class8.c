@@ -503,6 +503,7 @@ int class8103_act3(int index, int attr_act, INT8U *data, INT8U *DAR) {
 	c8103.list[unit].index = oi;
 	asyslog(LOG_WARNING, "时段功控-添加控制单元[oi=%04x]",oi);
 	ii += getBitString(1,&data[ii],&c8103.list[unit].sign);
+	fprintf(stderr,"unit = %d,sign=%02x\n",unit,c8103.list[unit].sign);
 	ii += get_PowerCtrlParam(&data[ii],&c8103.list[unit].v1,DAR);
 	ii += get_PowerCtrlParam(&data[ii],&c8103.list[unit].v2,DAR);
 	ii += get_PowerCtrlParam(&data[ii],&c8103.list[unit].v3,DAR);

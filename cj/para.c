@@ -212,6 +212,7 @@ void InIt_Process(int argc, char *argv[])
 			memDataInit(0,JProgramInfo);		//共享内存中数据的初始化
         	clearEnergy();
 			paraInit(0,NULL);
+			JProgramInfo->oi_changed.ctrlinit = 0x55;
 			break;
 		}
 	}
