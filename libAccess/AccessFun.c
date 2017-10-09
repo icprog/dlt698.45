@@ -4995,7 +4995,8 @@ INT16U getCBsuctsanum(INT8U taskid,TS ts)
 		file_endpos = ftell(fp);
 		rewind(fp);
 		ReadFileHeadLen(fp,&headlen,&unitlen);
-		if(unitlen == 0)
+		reclen = unitlen/tasknor_info.runtime;
+		if(reclen == 0 || reclen > 2048)
 		{
 			sprintf(cmd,"rm -rf %s",fname);
 			system(cmd);
@@ -5003,8 +5004,6 @@ INT16U getCBsuctsanum(INT8U taskid,TS ts)
 				fclose(fp);
 			return 0;
 		}
-
-		reclen = unitlen/tasknor_info.runtime;
 		recordnum = (file_endpos-headlen)/unitlen;
 		file_idnexpos = headlen+reclen*seqno;
 		fprintf(stderr,"\nrecordnum=%d,reclen=%d\n",recordnum,reclen);

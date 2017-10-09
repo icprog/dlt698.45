@@ -334,7 +334,7 @@ INT64U getCurrTimeValue(int line) {
 		default:
 			return -1;
 		}
-
+		break;
 	case 1:
 		switch (time_num) {
 		case 0:
@@ -356,6 +356,7 @@ INT64U getCurrTimeValue(int line) {
 		default:
 			return -1;
 		}
+		break;
 	case 2:
 		switch (time_num) {
 		case 0:
@@ -377,6 +378,7 @@ INT64U getCurrTimeValue(int line) {
 		default:
 			return -1;
 		}
+		break;
 	default:
 		return CtrlC->c8103.list[line].v1.t1;
 	}
