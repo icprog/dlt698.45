@@ -1138,7 +1138,10 @@ int doCompSlaveMeter(RUNTIME_PLC *runtime_p)
 						}
 					}else
 					{
-
+						if(currtsa->protocol == 3)
+						{
+							currtsa->protocol = 0;
+						}
 						nodetmp.protocol = currtsa->protocol;
 						nodetmp.tsa = getNextTsa(&currtsa);	//从档案中取一个tsa
 						findflg = findTsaInList(tsa_zb_head,&nodetmp);
@@ -2257,7 +2260,7 @@ void doSave(INT8U protocol,FORMAT97 frame97,FORMAT07 frame07)
 int SaveTaskData(FORMAT3762 format_3762_Up,INT8U taskid,INT8U fananNo)
 {
 	int len645=0;
-	INT8U nextFlag=0, dataContent[50]={}, buf645[255]={};
+	INT8U nextFlag=0, dataContent[1024]={0}, buf645[1024]={0};
 	FORMAT07 frame07 = {};
 	FORMAT97 frame97 = {};
 	memset(dataContent,0,sizeof(dataContent));

@@ -726,7 +726,7 @@ INT8U  checkSumEnergy_07(CLASS_6001 meter,INT16U taskID,INT8U *DI,INT8U len,INT8
 		for(int i=0;i<len;i++) {
 			fprintf(stderr,"%02x ",data[i]);
 		}
-		ret = fillclass23data(oadCur,readoad,meter.basicinfo.addr,data);
+		ret = fillclass23data(oadCur,readoad,meter.basicinfo.addr,data,JProgramInfo);
 	}
 	return ret;
 }
@@ -1791,155 +1791,6 @@ INT8U getSinglegOADDataUnit(INT8U* oadData)
 	return length;
 }
 
-INT8U fillclass23data(OAD oad_m,OAD oad_r,TSA meter,INT8U* data)
-{
-	fprintf(stderr,"\n\n ---------------fillclass23data");
-	INT8U ret = 0;
-	INT8U meterIndex = 0;
-	INT8U groupIndex = 0;
-	static INT8U	first_zp[MAXVAL_RATENUM+1]={1,1,1,1,1};
-	static INT8U	first_np[MAXVAL_RATENUM+1]={1,1,1,1,1};
-
-	for(groupIndex = 0;groupIndex < 8;groupIndex++)
-	{
-		for(meterIndex = 0;meterIndex < MAX_AL_UNIT;meterIndex++)
-		{
-			if(JProgramInfo->class23[groupIndex].allist[meterIndex].tsa.addr[0]==0)
-				break;
-			if(memcmp(&meter,&JProgramInfo->class23[groupIndex].allist[meterIndex].tsa,(meter.addr[0]+1))==0)
-			{
-				DbgPrintToFile1(6,"find it %02x %02x %02x %02x %02x %02x %02x %02x",meter.addr[0],meter.addr[1],meter.addr[2],meter.addr[3],meter.addr[4],meter.addr[5],meter.addr[6],meter.addr[7]);
-				if(oad_r.attrindex == 0)
-				{
-					data = &data[2];
-					INT8U rateIndex = 0;
-					for(rateIndex = 0;rateIndex < MAXVAL_RATENUM+1;rateIndex++)
-					{
-						INT32U dianliang = (data[rateIndex*5+1]<<24)+(data[rateIndex*5+2]<<16)+(data[rateIndex*5+3]<<8)+data[rateIndex*5+4];
-						DbgPrintToFile1(6,"\n  oad_r = %04x dianliang = %d data = %02x %02x %02x %02x",oad_r.OI,dianliang,data[rateIndex*5+1],data[rateIndex*5+2],data[rateIndex*5+3],data[rateIndex*5+4]);
-						switch(oad_m.OI)
-						{
-							//日冻结
-							case 0x5004:
-								if(oad_r.OI == 0x0010)
-								{
-									JProgramInfo->class23[groupIndex].allist[meterIndex].freeze[0][rateIndex] = dianliang;
-								}
-								if(oad_r.OI == 0x0020)
-								{
-									JProgramInfo->class23[groupIndex].allist[meterIndex].freeze[1][rateIndex] = dianliang;
-								}
-								break;
-							//月冻结
-							case 0x5006:
-								if(oad_r.OI == 0x0010)
-								{
-									JProgramInfo->class23[groupIndex].allist[meterIndex].freeze[2][rateIndex] = dianliang;
-								}
-								if(oad_r.OI == 0x0020)
-								{
-									JProgramInfo->class23[groupIndex].allist[meterIndex].freeze[3][rateIndex] = dianliang;
-								}
-								break;
-							default:
-								if(oad_r.OI == 0x0010)
-								{
-									if(first_zp[rateIndex]) {
-										first_zp[rateIndex] = 0;
-										JProgramInfo->class23[groupIndex].allist[meterIndex].curP[rateIndex] = dianliang;
-									}
-//									if(JProgramInfo->class23[groupIndex].allist[meterIndex].curP[rateIndex] == 0) {
-//										JProgramInfo->class23[groupIndex].allist[meterIndex].curP[rateIndex] = dianliang;
-//									}
-									INT32U yongdianliang = dianliang - JProgramInfo->class23[groupIndex].allist[meterIndex].curP[rateIndex];
-									if(rateIndex == 0)
-									{
-										JProgramInfo->class23[groupIndex].DayPALL += yongdianliang;
-										JProgramInfo->class23[groupIndex].MonthPALL += yongdianliang;
-										if(yongdianliang >= JProgramInfo->class23[groupIndex].remains)
-										{
-											JProgramInfo->class23[groupIndex].remains = 0;
-										}
-										else
-										{
-											JProgramInfo->class23[groupIndex].remains -= (yongdianliang*100);
-										}
-										DbgPrintToFile1(6,"groupIndex = %d yongdianliang = %ld remains = %ld",groupIndex,yongdianliang,JProgramInfo->class23[groupIndex].remains);
-										DbgPrintToFile1(6,"DayPALL=%ld MonthPALL=%ld",
-										JProgramInfo->class23[groupIndex].DayPALL,JProgramInfo->class23[groupIndex].MonthPALL);
-										JProgramInfo->class23[groupIndex].allist[meterIndex].curP[rateIndex] = dianliang;
-									}
-									if(rateIndex > 0)
-									{
-										JProgramInfo->class23[groupIndex].DayP[rateIndex-1] += yongdianliang;
-										JProgramInfo->class23[groupIndex].MonthP[rateIndex-1] += yongdianliang;
-
-										DbgPrintToFile1(6,"groupIndex[%d]   rate[%d]**************** DayP=%ld MonthP=%ld",groupIndex,rateIndex-1,JProgramInfo->class23[groupIndex].DayP[rateIndex-1],JProgramInfo->class23[groupIndex].MonthP[rateIndex-1]);
-
-									}
-//									JProgramInfo->class23[groupIndex].allist[meterIndex].curP[rateIndex] = dianliang;
-								}
-								if(oad_r.OI == 0x0020)
-								{
-									if(first_np[rateIndex]) {
-										first_np[rateIndex] = 0;
-										JProgramInfo->class23[groupIndex].allist[meterIndex].curQ[rateIndex] = dianliang;
-									}
-									if(rateIndex == 0)
-									{
-										JProgramInfo->class23[groupIndex].DayQALL +=
-												dianliang - JProgramInfo->class23[groupIndex].allist[meterIndex].curQ[rateIndex];
-										JProgramInfo->class23[groupIndex].MonthQALL +=
-												dianliang - JProgramInfo->class23[groupIndex].allist[meterIndex].curQ[rateIndex];
-
-										DbgPrintToFile1(6,"DayQALL=%ld MonthQALL=%ld",
-												JProgramInfo->class23[groupIndex].DayQALL,JProgramInfo->class23[groupIndex].MonthQALL);
-
-									}
-									else
-									{
-										JProgramInfo->class23[groupIndex].DayQ[rateIndex-1] +=
-												dianliang - JProgramInfo->class23[groupIndex].allist[meterIndex].curQ[rateIndex];
-										JProgramInfo->class23[groupIndex].MonthQ[rateIndex-1] +=
-												dianliang - JProgramInfo->class23[groupIndex].allist[meterIndex].curQ[rateIndex];
-										DbgPrintToFile1(6,"groupIndex[%d]   rate[%d]**************** DayQ=%ld MonthQ= %ld",groupIndex,rateIndex-1,
-												JProgramInfo->class23[groupIndex].DayQ[rateIndex-1],JProgramInfo->class23[groupIndex].MonthQ[rateIndex-1]);
-
-									}
-									JProgramInfo->class23[groupIndex].allist[meterIndex].curQ[rateIndex] = dianliang;
-								}
-						}
-					}
-				}
-				else if(oad_r.attrindex == 1)
-				{
-					if(oad_r.OI == 0x0010)
-					{
- 						INT32U dianliang = (data[1]<<24)+(data[2]<<16)+(data[3]<<8)+data[4];
-						if(first_zp[0]) {
-							first_zp[0] = 0;
-							JProgramInfo->class23[groupIndex].allist[meterIndex].curP[0] = dianliang;
-						}
-						INT32U yongdianliang = dianliang - JProgramInfo->class23[groupIndex].allist[meterIndex].curP[0];
-						JProgramInfo->class23[groupIndex].DayPALL += yongdianliang;
-						JProgramInfo->class23[groupIndex].MonthPALL += yongdianliang;
-						if(yongdianliang >= JProgramInfo->class23[groupIndex].remains)
-						{
-							JProgramInfo->class23[groupIndex].remains = 0;
-						}
-						else
-						{
-							JProgramInfo->class23[groupIndex].remains -= (yongdianliang*100);
-						}
-						JProgramInfo->class23[groupIndex].allist[meterIndex].curP[0] = dianliang;
-					}
-				}
-				return 1;
-			}
-		}
-	}
-	return ret;
-}
 
 INT8S checkEvent698(OAD rcvOAD,INT8U* data,INT8U dataLen,CLASS_6001 obj6001,INT16U taskID)
 {
@@ -1957,7 +1808,7 @@ INT8S checkEvent698(OAD rcvOAD,INT8U* data,INT8U dataLen,CLASS_6001 obj6001,INT1
 	{
 		//更新总加组电量
 		OAD oadCur = {0};
-		fillclass23data(oadCur,rcvOAD,obj6001.basicinfo.addr,data);
+		fillclass23data(oadCur,rcvOAD,obj6001.basicinfo.addr,data,JProgramInfo);
 	}
 	if(rcvOAD.OI == 0x0010)
 	{
@@ -2251,7 +2102,7 @@ INT16S deal698RequestResponse(INT8U isProxyResponse,INT8U getResponseType,INT8U 
 						{
 							if((oadListContent[oadIndex].oad.OI == 0x0010)||(oadListContent[oadIndex].oad.OI == 0x0020))
 							{
-								fillclass23data(csds.csd[0].csd.road.oad,oadListContent[oadIndex].oad,obj6001.basicinfo.addr,oadListContent[oadIndex].data);
+								fillclass23data(csds.csd[0].csd.road.oad,oadListContent[oadIndex].oad,obj6001.basicinfo.addr,oadListContent[oadIndex].data,JProgramInfo);
 							}
 						}
 					}
@@ -2266,7 +2117,7 @@ INT16S deal698RequestResponse(INT8U isProxyResponse,INT8U getResponseType,INT8U 
 					{
 						if((oadListContent[oadIndex].oad.OI == 0x0010)||(oadListContent[oadIndex].oad.OI == 0x0020))
 						{
-							fillclass23data(csds.csd[0].csd.road.oad,oadListContent[oadIndex].oad,obj6001.basicinfo.addr,oadListContent[oadIndex].data);
+							fillclass23data(csds.csd[0].csd.road.oad,oadListContent[oadIndex].oad,obj6001.basicinfo.addr,oadListContent[oadIndex].data,JProgramInfo);
 						}
 					}
 				}
@@ -3652,14 +3503,19 @@ INT16S deal6015_698(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8
 	INT16S retLen = 0;
 	INT16S sendLen = 0;
 	INT16S recvLen = 0;
+	INT16U delayms = 500;
 	INT8U subindex = 0;
 	INT8U sendbuff[BUFFSIZE512];
 	INT8U recvbuff[BUFFSIZE2048];
 
 	memset(sendbuff, 0, BUFFSIZE512);
 
-//	sendLen = composeProtocol698_GetRequest_RN(sendbuff, st6015,to6001.basicinfo.addr);    //台体测试曲线数据抄读内容少了
-	sendLen = composeProtocol698_GetRequest(sendbuff, st6015,to6001.basicinfo.addr);
+	if(st6015.cjtype == TYPE_INTERVAL)
+	{
+		delayms = 2000;
+	}
+	sendLen = composeProtocol698_GetRequest_RN(sendbuff, st6015,to6001.basicinfo.addr);
+
 	if(sendLen < 0)
 	{
 		fprintf(stderr,"deal6015_698  sendLen < 0");
@@ -3674,7 +3530,7 @@ INT16S deal6015_698(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8
 		SendDataTo485(port485, sendbuff, sendLen);
 		st6035->sendMsgNum++;
 
-		recvLen = ReceDataFrom485(DLT_698,port485, 500, recvbuff);
+		recvLen = ReceDataFrom485(DLT_698,port485, delayms, recvbuff);
 
 		fprintf(stderr,"\n\n recvLen = %d \n",recvLen);
 		if(recvLen > 0)
@@ -3683,8 +3539,7 @@ INT16S deal6015_698(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8
 			INT8U csdNum = 0;
 			INT16S dataLen = recvLen;
 			INT8U apduDataStartIndex = 0;
-//			getResponseType = analyzeProtocol698_RN(recvbuff,&csdNum,recvLen,&apduDataStartIndex,&dataLen);
-			getResponseType = analyzeProtocol698(recvbuff,&csdNum,recvLen,&apduDataStartIndex,&dataLen);
+			getResponseType = analyzeProtocol698_RN(recvbuff,&csdNum,recvLen,&apduDataStartIndex,&dataLen);
 			fprintf(stderr,"\n getResponseType = %d  csdNum = %d dataLen = %d \n",getResponseType,csdNum,dataLen);
 			if(getResponseType > 0)
 			{

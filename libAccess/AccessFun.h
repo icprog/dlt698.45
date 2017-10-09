@@ -4,6 +4,8 @@
 
 #include "StdDataType.h"
 #include "Objectdef.h"
+#include "Shmem.h"
+
 /********************************************************
  * 存储结构：
  * 1、参数类
@@ -368,5 +370,5 @@ int readfile_int(FILE *fp);
 int getOADf(INT8U type,INT8U *source,OAD *oad);
 int head_prt(int unitnum,HEAD_UNIT0 *length,int *indexn,FILE *fp);
 
-
+INT8U fillclass23data(OAD oad_m,OAD oad_r,TSA meter,INT8U* data,ProgramInfo* JProgramInfo);
 #endif /* ACCESS_H_ */
