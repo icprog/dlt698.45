@@ -40,26 +40,10 @@ typedef union { //control code
 
 static ctrlUN ctrlunit, ctrlunit_old;
 
-int ctrl_base_test() {
-	printf("%d", CheckModelState());
-	InitCtrlModel();
-	int fd = OpenSerialPort();
-
-	SetCtrl_CMD(fd, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1);
-
-	return 0;
-}
-
 int findPinSum(int sum_i, int p_i, int * mmm) {
 
 	fprintf(stderr, "==========!! %d==%d\n", sum_i, p_i);
-//	if(sum_i == 0 && p_i == 0)
-//	{
-//		return 1;
-//	}
-
 	int res = 0;
-
 	for (int i = 0; i < 8; i++) {
 		int n = JProgramInfo->class23[sum_i].allist[i].tsa.addr[0];
 //		fprintf(stderr, "==========((((%d))))\n", n);
@@ -209,11 +193,6 @@ void refreshSumUp() {
 					sizeof(JProgramInfo->class12[i].mon_pos_q));
 		}
 	}
-
-}
-
-//检查参数更新
-void CheckParaUpdate() {
 
 }
 
@@ -858,7 +837,8 @@ int ctrlMain(void * arg) {
 	INT8U pc = 0;
 	INT8U ec = 0;
 	INT8U al = 0;
-//初始化参数,搭建8个总加组数据，读取功控、电控参数
+
+	//初始化参数,搭建8个总加组数据，读取功控、电控参数
 	initAll();
 
 	while (1) {
@@ -882,10 +862,6 @@ int ctrlMain(void * arg) {
 
 			//一分钟计算一次控制逻辑
 			if (secOld % 5 == 0) {
-
-				//检查参数更新
-				//			CheckParaUpdate();
-
 				//处理控制逻辑
 				dealCtrl();
 			}
@@ -932,19 +908,6 @@ int ctrlMain(void * arg) {
 				pc |= JProgramInfo->class23[i].alCtlState.PCAlarmState;
 				ec |= JProgramInfo->class23[i].alCtlState.ECAlarmState;
 			}
-
-//			INT8U lun1_state :1; //轮次1-状态
-//			INT8U lun1_red :1; //轮次1-红灯
-//			INT8U lun1_green :1; //轮次1-绿灯
-//			INT8U lun2_state :1; //轮次2-状态
-//			INT8U lun2_red :1; //轮次2-红灯
-//			INT8U lun2_green :1; //轮次2-绿灯
-//
-//			INT8U gongk_led :1; //功控灯
-//			INT8U diank_led :1; //电控灯
-//			INT8U alm_state :1; //告警状态
-//			INT8U baodian_led :1; //报警灯
-
 			if (pc != 0 || ec != 0) {
 				al = 0;
 //				gpio_writebyte((INT8S *)DEV_ALARM_BUZZER,0x01);
