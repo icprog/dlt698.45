@@ -11,8 +11,6 @@
 #include "ParaDef.h"
 #include "StdDataType.h"
 
-
-
 pthread_attr_t calc_attr_t;
 int thread_calc_id;        //统计
 pthread_t thread_calc;
