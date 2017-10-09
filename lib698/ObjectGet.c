@@ -477,15 +477,18 @@ int fill_ALSTATE(INT8U *data,ALSTATE *alstate,INT8U datatype)
 	int 	index=0;
 	INT8U	i=0,unitnum=0;
 	unitnum=0;
-	for(i=0;i<MAX_AL_UNIT;i++) {
-		if(alstate[i].name !=0) {  //总加组对象不为0，有效
+//	for(i=0;i<MAX_AL_UNIT;i++) {
+//		if(alstate[i].name !=0) {  //总加组对象不为0，有效
+//			unitnum++;
+//		};
+//	}
+//	if(unitnum) {
+		index += create_array(&data[index],unitnum);	//数组位置，后面计算实际值更新改位置
+		for(i=0;i<MAX_AL_UNIT;i++) {
+			if(alstate[i].name==0) continue;
 			unitnum++;
-		}else break;
-	}
-	if(unitnum) {
-		index += create_array(&data[index],unitnum);
-		for(i=0;i<unitnum;i++) {
 			index += create_struct(&data[index],2);
+//			fprintf(stderr,"name = %04x\n",alstate[i].name);
 			index += fill_OI(&data[index],alstate[i].name);
 			switch(datatype) {
 			case dtenum:
@@ -499,7 +502,43 @@ int fill_ALSTATE(INT8U *data,ALSTATE *alstate,INT8U datatype)
 				break;
 			}
 		}
-	}else {
+		if(unitnum) {
+			create_array(&data[0],unitnum);		//赋array的有效值
+		}else  {
+			index = 0;
+			data[index++] = 0;		//NULL
+		}
+//	}else {
+//		data[index++] = 0;		//NULL
+//	}
+	return index;
+}
+
+/*
+ * 填充总加组状态结构 ALSTATE
+ * */
+int fill_ALSTATE_8106(INT8U *data,ALSTATE alstate,INT8U datatype)
+{
+	int 	index=0;
+
+//	fprintf(stderr,"alstate.name = %04x\n",alstate.name);
+	if(alstate.name!=0) {
+		index += create_struct(&data[index],2);
+//		fprintf(stderr,"name = %04x\n",alstate.name);
+		index += fill_OI(&data[index],alstate.name);
+		switch(datatype) {
+		case dtenum:
+			index += fill_enum(&data[index],alstate.state);
+			break;
+		case dtbitstring:
+			index += fill_bit_string(&data[index],8,&alstate.state);
+			break;
+		default:
+			data[index++] = 0;
+			break;
+		}
+	}else  {
+		index = 0;
 		data[index++] = 0;		//NULL
 	}
 	return index;
@@ -665,7 +704,7 @@ int Get_8104(RESULT_NORMAL *response)
 		if(unitnum) {
 			index += create_array(&data[index],unitnum);
 			for(i=0;i<unitnum;i++) {
-				index += create_struct(&data[index],6);
+				index += create_struct(&data[index],5);
 				index += fill_OI(&data[index],c8104.list[i].index);
 				index += fill_long64(&data[index],c8104.list[i].v);
 				index += fill_date_time_s(&data[index],&c8104.list[i].start);
@@ -715,7 +754,7 @@ int Get_8105(RESULT_NORMAL *response)
 		if(unitnum) {
 			index += create_array(&data[index],unitnum);
 			for(i=0;i<unitnum;i++) {
-				index += create_struct(&data[index],6);
+				index += create_struct(&data[index],4);
 				index += fill_OI(&data[index],c8105.list[i].index);
 				index += fill_date_time_s(&data[index],&c8105.list[i].start);
 				index += fill_date_time_s(&data[index],&c8105.list[i].end);
@@ -755,7 +794,7 @@ int Get_8106(RESULT_NORMAL *response)
 	readCoverClass(oad.OI, 0, (void *) &c8106, sizeof(CLASS_8106),para_vari_save);
 	switch(oad.attflg){
 	case 2:	//营业报停控配置单元
-		index += create_struct(&data[index],6);
+		index += create_struct(&data[index],8);
 		index += fill_unsigned(&data[index],c8106.list.down_huacha);
 		index += fill_integer(&data[index],c8106.list.down_xishu);
 		index += fill_unsigned(&data[index],c8106.list.down_freeze);
@@ -766,13 +805,14 @@ int Get_8106(RESULT_NORMAL *response)
 		index += fill_unsigned(&data[index],c8106.list.t4);
 		break;
 	case 3:	//控制投入状态
-		index += fill_ALSTATE(&data[index],&c8106.enable,dtenum);
+		fprintf(stderr,"c8106.enable.name = %04x\n",c8106.enable.name);
+		index += fill_ALSTATE_8106(&data[index],c8106.enable,dtenum);
 		break;
 	case 4:	//控制输出状态
-		index += fill_ALSTATE(&data[index],&c8106.output,dtbitstring);
+		index += fill_ALSTATE_8106(&data[index],c8106.output,dtbitstring);
 		break;
 	case 5: //越限告警状态
-		index += fill_ALSTATE(&data[index],&c8106.overflow,dtenum);
+		index += fill_ALSTATE_8106(&data[index],c8106.overflow,dtenum);
 		break;
 	}
 	response->datalen = index;
@@ -857,7 +897,7 @@ int Get_8108(RESULT_NORMAL *response)
 		if(unitnum) {
 			index += create_array(&data[index],unitnum);
 			for(i=0;i<unitnum;i++) {
-				index += create_struct(&data[index],8);
+				index += create_struct(&data[index],4);
 				index += fill_OI(&data[index],c8108.list[i].index);
 				index += fill_long64(&data[index],c8108.list[i].v);
 				index += fill_unsigned(&data[index],c8108.list[i].flex);
@@ -2169,6 +2209,9 @@ int  fill_variClass(OAD oad,INT8U getflg,INT8U *sourcebuf,INT8U *destbuf,INT16U 
 	fprintf(stderr,"oad.OI=%x\n",oad.OI);
 	switch(oad.OI) {
 	case 0x2000:	//电压
+		if(proginfo->cfg_para.device == CCTT2 && oad.attrindex > 1) {
+			return 0;
+		}
 		buflen = fillVacsData(oad,proginfo->cfg_para.device,dtlongunsigned,0,
 				proginfo->ACSRealData.Ua,proginfo->ACSRealData.Ub,proginfo->ACSRealData.Uc,0,destbuf);
 		break;
@@ -3386,7 +3429,7 @@ int doGetnormal(INT8U seqOfNum,RESULT_NORMAL *response)
 //			return 0;
 //		}
 		if(fill_variClass(response->oad,1,NULL,response->data,&response->datalen,memp)==0) {
-			response->dar = boundry_over;
+			response->dar = obj_unexist;
 			response->datalen = 0;
 			return 0;
 		}

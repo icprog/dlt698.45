@@ -999,9 +999,9 @@ int ctrlMain(void * arg) {
 		if (ctrlflg == 1) {
 			memset(&JProgramInfo->ctrls.control, 0,
 					sizeof(JProgramInfo->ctrls.control));
-			asyslog(LOG_NOTICE, "接收到控制命令：控制状态【%04x】 原状态【%04x】", ctrlunit.u16b,
-					ctrlunit_old.u16b);
 			if ((ctrlunit.u16b & 0x3ff) ^ (ctrlunit_old.u16b & 0x3ff)) {
+				asyslog(LOG_NOTICE, "接收到控制命令：控制状态【%04x】 原状态【%04x】", ctrlunit.u16b,
+						ctrlunit_old.u16b);
 				ctrlunit_old.u16b = ctrlunit.u16b;
 				printf("%d", CheckModelState());
 				InitCtrlModel();
