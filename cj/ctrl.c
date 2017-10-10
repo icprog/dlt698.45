@@ -397,7 +397,9 @@ void sum_process(int argc, char *argv[])
 						printDataTimeS("报停起止时间",c8105.list[i].start);
 						printDataTimeS("报停结束时间",c8105.list[i].end);
 						fprintf(stderr,"功率定值 =%lld\n",c8105.list[i].v);
-
+						fprintf(stderr,"enable = %04x\n",c8105.enable[i].name);
+						fprintf(stderr,"output = %04x\n",c8105.output[i].name);
+						fprintf(stderr,"overflow = %04x\n",c8105.overflow[i].name);
 					}
 				}
 				if(oi==0x8107) {
