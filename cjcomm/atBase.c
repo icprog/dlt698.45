@@ -679,10 +679,14 @@ int AtPrepare(ATOBJ *ao) {
 		ao->at_retry = 0;
 		readCoverClass(0x4500, 0, c25, sizeof(CLASS25), para_vari_save);
 		c25->signalStrength = ao->CSQ;
-		memcpy(&c25->imsi[1],ao->ccid,sizeof(c25->ccid));
+
+		memcpy(&c25->imsi[1],ao->ccid,strlen(c25->ccid));
 		c25->imsi[0] = strlen(ao->ccid);
-		memcpy(&c25->ccid[1],ao->ccid,sizeof(c25->ccid));
+		fprintf(stderr, "=====================================%s(%d)", &c25->imsi[1], c25->imsi[0]);
+
+		memcpy(&c25->ccid[1],ao->ccid,strlen(c25->ccid));
 		c25->ccid[0] = strlen(ao->ccid);
+
 		memcpy(&c25->simkard[1],ao->CIMI,sizeof(c25->simkard));
 		c25->simkard[0] = strlen(ao->CIMI);
 		memcpy(&c25->pppip,ao->PPP_IP,sizeof(c25->pppip));
