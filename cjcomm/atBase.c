@@ -686,8 +686,14 @@ int AtPrepare(ATOBJ *ao) {
 		memcpy(&c25->simkard[1],ao->CIMI,sizeof(c25->simkard));
 		c25->simkard[0] = strlen(ao->CIMI);
 		memcpy(&c25->pppip,ao->PPP_IP,sizeof(c25->pppip));
-		saveCoverClass(0x4500, 0, c25, sizeof(CLASS25), para_vari_save);
+		memcpy(&c25->info.factoryCode,ao->INFO[0],4*sizeof(char));
+		memcpy(&c25->info.softVer,ao->INFO[1],4*sizeof(char));
+		memcpy(&c25->info.softDate,ao->INFO[2],6*sizeof(char));
+		memcpy(&c25->info.hardVer,ao->INFO[3],4*sizeof(char));
+		memcpy(&c25->info.hardDate,ao->INFO[4],6*sizeof(char));
+		memcpy(&c25->info.factoryExpInfo,ao->INFO[5],6*sizeof(char));
 
+		saveCoverClass(0x4500, 0, c25, sizeof(CLASS25), para_vari_save);
 		return 10 * 1000;
 	}
 	return 0;
