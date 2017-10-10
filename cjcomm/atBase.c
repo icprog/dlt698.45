@@ -679,8 +679,8 @@ int AtPrepare(ATOBJ *ao) {
 		ao->at_retry = 0;
 		readCoverClass(0x4500, 0, c25, sizeof(CLASS25), para_vari_save);
 		c25->signalStrength = ao->CSQ;
-		memcpy(&c25->imsi[1],ao->imsi,sizeof(c25->imsi));
-		c25->imsi[0] = strlen(ao->imsi);
+		memcpy(&c25->imsi[1],ao->ccid,sizeof(c25->ccid));
+		c25->imsi[0] = strlen(ao->ccid);
 		memcpy(&c25->ccid[1],ao->ccid,sizeof(c25->ccid));
 		c25->ccid[0] = strlen(ao->ccid);
 		memcpy(&c25->simkard[1],ao->CIMI,sizeof(c25->simkard));
@@ -692,6 +692,9 @@ int AtPrepare(ATOBJ *ao) {
 		memcpy(&c25->info.hardVer,ao->INFO[3],4*sizeof(char));
 		memcpy(&c25->info.hardDate,ao->INFO[4],6*sizeof(char));
 		memcpy(&c25->info.factoryExpInfo,ao->INFO[5],6*sizeof(char));
+		memcpy(&c25->protcol[0],"376.3",strlen("376.3"));
+		c25->protocolnum = 1;
+
 
 		saveCoverClass(0x4500, 0, c25, sizeof(CLASS25), para_vari_save);
 		return 10 * 1000;
