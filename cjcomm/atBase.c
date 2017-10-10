@@ -696,8 +696,8 @@ int AtPrepare(ATOBJ *ao) {
 		memcpy(&c25->info.hardVer,ao->INFO[3],4*sizeof(char));
 		memcpy(&c25->info.hardDate,ao->INFO[4],6*sizeof(char));
 		memcpy(&c25->info.factoryExpInfo,ao->INFO[5],6*sizeof(char));
-		memcpy(&c25->protcol[0][1],"376.3",strlen("376.3"));
-		c25->protcol[0][0] = strlen("376.3");
+		memcpy(&c25->protcol[0][1],"698",strlen("698"));
+		c25->protcol[0][0] = strlen("698");
 		c25->protocolnum = 1;
 
 

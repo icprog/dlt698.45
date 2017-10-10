@@ -143,12 +143,12 @@ void print4500()
 	}
 
 	fprintf(stderr,"\n属性7.SIM卡的ICCID");
-	fprintf(stderr,"\n(%d)%s",strlen((char *)oi4500.ccid),oi4500.ccid);
+	fprintf(stderr,"\n(%d)%s",oi4500.ccid[0],&oi4500.ccid[1]);
 	fprintf(stderr,"\n");
 
 	fprintf(stderr,"\n");
 	fprintf(stderr,"\n属性8.IMSI");
-	fprintf(stderr,"\n(%d)%s",strlen((char *)oi4500.imsi),oi4500.imsi);
+	fprintf(stderr,"\n(%d)%s",oi4500.imsi[0],&oi4500.imsi[1]);
 	fprintf(stderr,"\n");
 
 	fprintf(stderr,"\n");
@@ -158,7 +158,7 @@ void print4500()
 
 	fprintf(stderr,"\n");
 	fprintf(stderr,"\n属性10.SIM卡号码");
-	fprintf(stderr,"\n(%d)%s",strlen((char *)oi4500.simkard),oi4500.simkard);
+	fprintf(stderr,"\n(%d)%s",oi4500.simkard[0],&oi4500.simkard[1]);
 	fprintf(stderr,"\n");
 
 	fprintf(stderr,"\n");
