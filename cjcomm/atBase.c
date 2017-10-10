@@ -545,7 +545,7 @@ int AtPrepare(ATOBJ *ao) {
 	case 31:
 		RecieveFromComm(Mrecvbuf, 128, ao->fd);
 		memset(ao->ccid, 0x00, sizeof(ao->ccid));
-		if (sscanf((char *) &Mrecvbuf[0], "%*[^0-9]%[0-9]", ao->ccid) == 1) {
+		if (sscanf((char *) &Mrecvbuf[0], "%*[^0-9]%20[0-9|A-Z]", ao->ccid) == 1) {
 			retry = 0;
 			ao->state = ((int)dbGet("model_2g") == 666) ? 32 : 20;
 			return 500;
@@ -692,11 +692,23 @@ int AtPrepare(ATOBJ *ao) {
 		memcpy(&c25->simkard[1],ao->CIMI,16*sizeof(char));
 		c25->simkard[0] = 16;
 		memcpy(&c25->pppip,ao->PPP_IP,sizeof(c25->pppip));
+
+		memset(&c25->info.factoryCode,0x30,4*sizeof(char));
 		memcpy(&c25->info.factoryCode,ao->INFO[0],4*sizeof(char));
+
+		memset(&c25->info.softVer,0x30,4*sizeof(char));
 		memcpy(&c25->info.softVer,ao->INFO[1],4*sizeof(char));
+
+		memset(&c25->info.softDate,0x30,6*sizeof(char));
 		memcpy(&c25->info.softDate,ao->INFO[2],6*sizeof(char));
+
+		memset(&c25->info.hardVer,0x30,4*sizeof(char));
 		memcpy(&c25->info.hardVer,ao->INFO[3],4*sizeof(char));
+
+		memcpy(&c25->info.hardDate,0x30,6*sizeof(char));
 		memcpy(&c25->info.hardDate,ao->INFO[4],6*sizeof(char));
+
+		memset(&c25->info.factoryExpInfo,0x30,6*sizeof(char));
 		memcpy(&c25->info.factoryExpInfo,ao->INFO[5],6*sizeof(char));
 		memcpy(&c25->protcol[0][1],"698",strlen("698"));
 		c25->protcol[0][0] = strlen("698");
