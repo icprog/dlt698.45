@@ -682,7 +682,7 @@ int AtPrepare(ATOBJ *ao) {
 
 		memcpy(&c25->imsi[1],ao->ccid,strlen(c25->ccid));
 		c25->imsi[0] = strlen(ao->ccid);
-		fprintf(stderr, "=====================================%s(%d)", &c25->imsi[1], c25->imsi[0]);
+//		fprintf(stderr, "=====================================%s(%d)", &c25->imsi[1], c25->imsi[0]);
 
 		memcpy(&c25->ccid[1],ao->ccid,strlen(c25->ccid));
 		c25->ccid[0] = strlen(ao->ccid);
