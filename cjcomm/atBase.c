@@ -379,6 +379,9 @@ int AtPrepare(ATOBJ *ao) {
 				ao->INFO[5]) == 6) {
 			retry = 0;
 			ao->state = 12;
+			for(int kk=0;kk<6;kk++) {
+				fprintf(stderr,"%s\n",ao->INFO[kk]);
+			}
 			return 500;
 		}
 		retry++;
@@ -680,13 +683,13 @@ int AtPrepare(ATOBJ *ao) {
 		readCoverClass(0x4500, 0, c25, sizeof(CLASS25), para_vari_save);
 		c25->signalStrength = ao->CSQ;
 
-		memset(&c25->imsi[1],0x30,20*sizeof(char));
-		memcpy(&c25->imsi[1],ao->ccid,20*sizeof(char));
-		c25->imsi[0] = 20;
+		memset(&c25->imsi[1],0x30,15*sizeof(char));
+		memcpy(&c25->imsi[1],ao->ccid,15*sizeof(char));
+		c25->imsi[0] = 15;
 
-		memset(&c25->ccid[1],0x30,15*sizeof(char));
-		memcpy(&c25->ccid[1],ao->ccid,15*sizeof(char));
-		c25->ccid[0] = 15;
+		memset(&c25->ccid[1],0x30,20*sizeof(char));
+		memcpy(&c25->ccid[1],ao->ccid,20*sizeof(char));
+		c25->ccid[0] = 20;
 
 		memset(&c25->simkard[1],0x30,16*sizeof(char));
 		memcpy(&c25->simkard[1],ao->CIMI,16*sizeof(char));
@@ -697,19 +700,20 @@ int AtPrepare(ATOBJ *ao) {
 		memcpy(&c25->info.factoryCode,ao->INFO[0],4*sizeof(char));
 
 		memset(&c25->info.softVer,0x30,4*sizeof(char));
-		memcpy(&c25->info.softVer,ao->INFO[1],4*sizeof(char));
+		memcpy(&c25->info.softVer,ao->INFO[2],4*sizeof(char));
 
 		memset(&c25->info.softDate,0x30,6*sizeof(char));
-		memcpy(&c25->info.softDate,ao->INFO[2],6*sizeof(char));
+		memcpy(&c25->info.softDate,ao->INFO[3],6*sizeof(char));
 
 		memset(&c25->info.hardVer,0x30,4*sizeof(char));
-		memcpy(&c25->info.hardVer,ao->INFO[3],4*sizeof(char));
+		memcpy(&c25->info.hardVer,ao->INFO[4],4*sizeof(char));
 
-		memcpy(&c25->info.hardDate,0x30,6*sizeof(char));
-		memcpy(&c25->info.hardDate,ao->INFO[4],6*sizeof(char));
+		memset(&c25->info.hardDate,0x30,6*sizeof(char));
+		memcpy(&c25->info.hardDate,ao->INFO[5],6*sizeof(char));
 
-		memset(&c25->info.factoryExpInfo,0x30,6*sizeof(char));
-		memcpy(&c25->info.factoryExpInfo,ao->INFO[5],6*sizeof(char));
+		memset(&c25->info.factoryExpInfo,0x30,8*sizeof(char));
+		memcpy(&c25->info.factoryExpInfo,ao->INFO[1],8*sizeof(char));
+
 		memcpy(&c25->protcol[0][1],"698",strlen("698"));
 		c25->protcol[0][0] = strlen("698");
 		c25->protocolnum = 1;

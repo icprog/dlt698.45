@@ -134,11 +134,14 @@ void print4500()
 	fprintf(stderr,"\n	软件版本日期 %c%c%c%c%c%c",oi4500.info.softDate[0],oi4500.info.softDate[1],oi4500.info.softDate[2],oi4500.info.softDate[3],oi4500.info.softDate[4],oi4500.info.softDate[5]);
 	fprintf(stderr,"\n	硬件版本 %c%c%c%c",oi4500.info.hardVer[0],oi4500.info.hardVer[1],oi4500.info.hardVer[2],oi4500.info.hardVer[3]);
 	fprintf(stderr,"\n	硬件版本日期 %c%c%c%c%c%c",oi4500.info.hardDate[0],oi4500.info.hardDate[1],oi4500.info.hardDate[2],oi4500.info.hardDate[3],oi4500.info.hardDate[4],oi4500.info.hardDate[5]);
+	fprintf(stderr,"\n	厂家扩展信息 %c%c%c%c%c%c%c%c",oi4500.info.factoryExpInfo[0],oi4500.info.factoryExpInfo[1],oi4500.info.factoryExpInfo[2],
+													oi4500.info.factoryExpInfo[3],oi4500.info.factoryExpInfo[4],oi4500.info.factoryExpInfo[5],
+													oi4500.info.factoryExpInfo[6],oi4500.info.factoryExpInfo[7]);
 	fprintf(stderr,"\n");
 
 	fprintf(stderr,"\n属性6.支持规约列表");
 	for(i=0;i<oi4500.protocolnum;i++) {
-		fprintf(stderr,"\n%s",oi4500.protcol[i]);
+		fprintf(stderr,"\n[%d]%s",oi4500.protcol[i][0],&oi4500.protcol[i][1]);
 		fprintf(stderr,"\n");
 	}
 
