@@ -680,15 +680,17 @@ int AtPrepare(ATOBJ *ao) {
 		readCoverClass(0x4500, 0, c25, sizeof(CLASS25), para_vari_save);
 		c25->signalStrength = ao->CSQ;
 
-		memcpy(&c25->imsi[1],ao->ccid,strlen(c25->ccid));
-		c25->imsi[0] = strlen(ao->ccid);
-//		fprintf(stderr, "=====================================%s(%d)", &c25->imsi[1], c25->imsi[0]);
+		memset(&c25->imsi[1],0x30,20*sizeof(char));
+		memcpy(&c25->imsi[1],ao->ccid,20*sizeof(char));
+		c25->imsi[0] = 20;
 
-		memcpy(&c25->ccid[1],ao->ccid,strlen(c25->ccid));
-		c25->ccid[0] = strlen(ao->ccid);
+		memset(&c25->ccid[1],0x30,15*sizeof(char));
+		memcpy(&c25->ccid[1],ao->ccid,15*sizeof(char));
+		c25->ccid[0] = 15;
 
-		memcpy(&c25->simkard[1],ao->CIMI,sizeof(c25->simkard));
-		c25->simkard[0] = strlen(ao->CIMI);
+		memset(&c25->simkard[1],0x30,16*sizeof(char));
+		memcpy(&c25->simkard[1],ao->CIMI,16*sizeof(char));
+		c25->simkard[0] = 16;
 		memcpy(&c25->pppip,ao->PPP_IP,sizeof(c25->pppip));
 		memcpy(&c25->info.factoryCode,ao->INFO[0],4*sizeof(char));
 		memcpy(&c25->info.softVer,ao->INFO[1],4*sizeof(char));
