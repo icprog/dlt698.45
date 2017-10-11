@@ -683,8 +683,8 @@ int AtPrepare(ATOBJ *ao) {
 		readCoverClass(0x4500, 0, c25, sizeof(CLASS25), para_vari_save);
 		c25->signalStrength = ao->CSQ;
 
-		memset(&c25->imsi[1],0x30,15*sizeof(char));
-		memcpy(&c25->imsi[1],ao->ccid,15*sizeof(char));
+		memset(&c25->imsi[1],0x30,16*sizeof(char));
+		memcpy(&c25->imsi[1],ao->ccid,16*sizeof(char));
 		c25->imsi[0] = 15;
 
 		memset(&c25->ccid[1],0x30,20*sizeof(char));
@@ -692,7 +692,7 @@ int AtPrepare(ATOBJ *ao) {
 		c25->ccid[0] = 20;
 
 		memset(&c25->simkard[1],0x30,16*sizeof(char));
-		memcpy(&c25->simkard[1],ao->CIMI,16*sizeof(char));
+		memcpy(&c25->simkard[1],ao->CIMI,15*sizeof(char));
 		c25->simkard[0] = 16;
 		memcpy(&c25->pppip,ao->PPP_IP,sizeof(c25->pppip));
 
@@ -713,6 +713,12 @@ int AtPrepare(ATOBJ *ao) {
 
 		memset(&c25->info.factoryExpInfo,0x30,8*sizeof(char));
 		memcpy(&c25->info.factoryExpInfo,ao->INFO[1],8*sizeof(char));
+
+		memset(&c25->sms.center,0x30,40*sizeof(char));
+		memset(&c25->sms.dest[0][0],0x30,40*sizeof(char));
+		c25->sms.destnum = 1;
+		memset(&c25->sms.master[0][0],0x30,40*sizeof(char));
+		c25->sms.masternum = 1;
 
 		memcpy(&c25->protcol[0][1],"698",strlen("698"));
 		c25->protcol[0][0] = strlen("698");
