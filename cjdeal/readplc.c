@@ -1372,6 +1372,7 @@ int buildProxyFrame(RUNTIME_PLC *runtime_p,struct Tsa_Node *desnode,OAD oad1,OAD
 			}
 			break;
 		case DLT_698:
+//			DbgPrintToFile1(31,"组 698电表报文");
 			memcpy(&meter.basicinfo.addr,&desnode->tsa,sizeof(TSA));
 			memset(&st6015,0,sizeof(CLASS_6015));
 			st6015.cjtype = TYPE_NULL;
@@ -1381,6 +1382,7 @@ int buildProxyFrame(RUNTIME_PLC *runtime_p,struct Tsa_Node *desnode,OAD oad1,OAD
 			st6015.csds.csd[0].csd.oad.attflg = 0x02;
 			st6015.csds.csd[0].csd.oad.attrindex = 0x00;
 			sendlen = compose6015_698(st6015,meter,&st6035,buf645);
+//			DbgPrintToFile1(31,"698报文长度=%d   OI=%04x",sendlen,oad2.OI);
 			if (sendlen>0)
 			{
 				memcpy(runtime_p->format_Down.addr.SourceAddr,runtime_p->masteraddr,6);
@@ -1390,7 +1392,7 @@ int buildProxyFrame(RUNTIME_PLC *runtime_p,struct Tsa_Node *desnode,OAD oad1,OAD
 				addrtmp[2] = desnode->tsa.addr[5];
 				addrtmp[1] = desnode->tsa.addr[6];
 				addrtmp[0] = desnode->tsa.addr[7];
-				return (AFN13_F1(&runtime_p->format_Down,runtime_p->sendbuf,addrtmp, 0, 0, buf645, sendlen));
+				return (AFN13_F1(&runtime_p->format_Down,runtime_p->sendbuf,addrtmp, 3, 0, buf645, sendlen));
 			}
 			break;
 	}
@@ -1904,14 +1906,20 @@ void chkTsaTask(TASK_INFO *meterinfo)
 		}//end if 此任务时间已经到了
 	}
 }
+/**************************************************************************************
+ * 抄表处理过程
+ * desnode : 载波模块请求抄读的TSA节点指针
+ * buf : 抄表报文缓冲区
+ * 1\判断请求的TSA 与内存节点是否匹配，
+ * 			不匹配： 此时需要检查内存节点TSA合法性，并刷新内存节点状态，保存。
+ * 					按请求的TSA 读抄表记录 更新内存节点。 如果读取失败，用备份节点信息初始化内存节点给内存节点TSA赋值
+ * 2\
+ *
+ */
 int ProcessMeter(INT8U *buf,struct Tsa_Node *desnode)
-{	DATA_ITEM  tmpitem;
-	int sendlen=0,taski=0, itemi=0 ;//返回 tmpitem指示的具体任务索引 ，itemi指示的具体数据项索引
-
-//	DbgPrintToFile1(31,"内存   【%02x-%02x-%02x%02x%02x%02x%02x%02x】 index=%d",
-//			taskinfo.tsa.addr[0],taskinfo.tsa.addr[1],taskinfo.tsa.addr[2],
-//			taskinfo.tsa.addr[3],taskinfo.tsa.addr[4],taskinfo.tsa.addr[5],
-//			taskinfo.tsa.addr[6],taskinfo.tsa.addr[7],taskinfo.tsa_index);
+{
+	DATA_ITEM  tmpitem;
+	int sendlen=0,taski=0, itemi=0 ;
 
 	if (memcmp(taskinfo.tsa.addr,desnode->tsa.addr,TSA_LEN)!=0 )//内存的TSA 和请求的TSA 比对失败
 	{
@@ -3206,7 +3214,19 @@ void initlist(struct Tsa_Node *head)
 	}
 	return;
 }
-
+void delRecordLog()
+{
+	sync();
+	sleep(1);
+	unlink("/nand/para/plcrecord.par");
+	sleep(1);
+	unlink("/nand/para/plcrecord.bak");
+	sleep(5);
+	if(access("/nand/para/plcrecord.par",F_OK)==0 || access("/nand/para/plcrecord.bak",F_OK)==0)
+	{
+		system("rm -f /nand/para/plcrecord.par  /nand/para/plcrecord.bak");
+	}
+}
 int stateJuge(int nowdstate,MY_PARA_COUNTER *mypara_p,RUNTIME_PLC *runtime_p,int *startFlg)
 {
 
@@ -3245,14 +3265,8 @@ int stateJuge(int nowdstate,MY_PARA_COUNTER *mypara_p,RUNTIME_PLC *runtime_p,int
 		if(pointChg==1 || dateChg == 1 || access("/nand/para/plcrecord.par",F_OK) != 0)
 		{//测量点参数变更  或 记录文件不存在  或   日期变更需要重新初始化任务
 			DbgPrintToFile1(31,"初始化默认任务参数，清除抄表记录");
+			delRecordLog();
 			initTaskData(&taskinfo);
-			sync();
-			system("rm -f /nand/para/plcrecord.par  /nand/para/plcrecord.bak");
-			sleep(5);
-			if(access("/nand/para/plcrecord.par",F_OK)==0)
-			{
-				system("rm -f /nand/para/plcrecord.par  /nand/para/plcrecord.bak");
-			}
 			PrintTaskInfo2(&taskinfo);
 		}
 		return state;
@@ -3262,7 +3276,7 @@ int stateJuge(int nowdstate,MY_PARA_COUNTER *mypara_p,RUNTIME_PLC *runtime_p,int
 		//任务变更
 		sleep(10);//需要与全局任务数组保持同步更新
 		initTaskData(&taskinfo);
-		system("rm /nand/para/plcrecord.par  /nand/para/plcrecord.bak");
+		delRecordLog();
 		DbgPrintToFile1(31,"任务重新初始化");
 		PrintTaskInfo2(&taskinfo);
 		runtime_p->redo = 1;  //初始化之后需要重启抄读
