@@ -50,6 +50,8 @@ typedef struct {
 
 	int model_2g;//强制2g上线
 	int RS485IIOPEN;//湖南I型集中器，485II可做为维护口
+
+	int RS485IIIAutoReport;
 } DBStruct;
 
 void * dbGet(char * name);

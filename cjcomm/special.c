@@ -188,6 +188,19 @@ void SpecialCheck4001Change() {
 	}
 }
 
+void special485AutoReport() {
+	//倒计时通过维护口自动上送数据的时间
+	int remains_time = dbGet("485auto");
+	if(remains_time > 0){
+		if(remains_time % 20 == 0){
+			asyslog(LOG_INFO, "维护口自动上送数据的时间倒计时...%d||", remains_time);
+		}
+		remains_time --;
+		dbSet("485auto", remains_time);
+	}
+
+}
+
 int SpecialRegular(struct aeEventLoop *ep, long long id, void *clientData) {
 	int shandong = (int) clientData;
 
@@ -197,6 +210,7 @@ int SpecialRegular(struct aeEventLoop *ep, long long id, void *clientData) {
 	specialCheck4500Change();
 	specialCheck4510Change();
 	specialTransFlow();
+	special485AutoReport();
 	ATUpdateStatus(AtGet());
 	if (shandong == 1) {
 		specialCheckPow();
