@@ -52,6 +52,7 @@ typedef struct {
 	int RS485IIOPEN;//湖南I型集中器，485II可做为维护口
 
 	int RS485IIIAutoReport;
+	int StopCommunite;
 } DBStruct;
 
 void * dbGet(char * name);

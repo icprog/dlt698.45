@@ -128,6 +128,7 @@ int specialPowState(ProgramInfo *JProgramInfo) {
 				pwr_down_byVolt(JProgramInfo->ACSRealData.Available,
 						JProgramInfo->ACSRealData.Ua,
 						JProgramInfo->event_obj.Event3106_obj.poweroff_para_obj.screen_para_obj.happen_voltage_limit);
+//		fprintf(stderr, "##########%d %d %d %d\n",off_flag, JProgramInfo->ACSRealData.Available, JProgramInfo->ACSRealData.Ua, JProgramInfo->event_obj.Event3106_obj.poweroff_para_obj.screen_para_obj.happen_voltage_limit);
 	} else {
 		BOOLEAN gpio_5V = pwr_has();
 		if ((JProgramInfo->ACSRealData.Ua < 100)
@@ -143,19 +144,18 @@ int specialCheckPow() {
 	static int count = 0;
 	ProgramInfo *info = (ProgramInfo *) dbGet("program.info");
 
+//	fprintf(stderr, "----------------------%d\n", count);
 	if (specialPowState(info) == 1) {
+//		fprintf(stderr, "MMM------------------%d\n", count);
 		count++;
-	} else {
-		count = 0;
-	}
-
-	if (count > 120) {
-		while (specialPowState(info) == 1) {
-			sleep(2);
+		if (count > 20) {
+			dbSet("StopCommunite", 1);
 			gpofun("/dev/gpoONLINE_LED", 0);
 			asyslog(LOG_INFO, "检测到设备掉电一分钟，停止所有通信...");
 		}
-		asyslog(LOG_INFO, "检测到复电，继续通信...");
+	} else {
+//		fprintf(stderr, "KKK------------------%d\n", count);
+		dbSet("StopCommunite", 0);
 		count = 0;
 	}
 }
@@ -198,7 +198,6 @@ void special485AutoReport() {
 		remains_time --;
 		dbSet("485auto", remains_time);
 	}
-
 }
 
 int SpecialRegular(struct aeEventLoop *ep, long long id, void *clientData) {

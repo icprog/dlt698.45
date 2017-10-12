@@ -80,11 +80,15 @@ void dbInit(int index) {
 	DB.CalcNew = 0;
 	DB.GprsType = 1;
 	DB.RS485IIIAutoReport = 0;
+	DB.StopCommunite = 0;
 }
 
 void * dbGet(char * name) {
+	if (strcmp("StopCommunite", name) == 0) {
+		return DB.StopCommunite;
+	}
 	if (strcmp("485auto", name) == 0) {
-			return DB.RS485IIIAutoReport;
+		return DB.RS485IIIAutoReport;
 	}
 	if (strcmp("block.ifr", name) == 0) {
 		return &DB.ifr;
@@ -150,6 +154,10 @@ void * dbGet(char * name) {
 }
 
 int dbSet(char * name, void* data) {
+
+	if (strcmp("StopCommunite", name) == 0) {
+		DB.StopCommunite = (int) data;
+	}
 	if (strcmp("485auto", name) == 0) {
 		DB.RS485IIIAutoReport = (int) data;
 	}
