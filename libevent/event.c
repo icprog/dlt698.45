@@ -336,7 +336,7 @@ INT8U Getevent_Record(INT8U event_no,OI_698 *oi_array,INT8U oi_index,INT8U *real
 							len=0;
 							break;
 						case s_tsa:
-							len=Getbuf[T_index+1]+1;
+							len=Getbuf[T_index+1]+2;
 							break;
 						case s_oad:
 							len=5;
