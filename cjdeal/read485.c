@@ -3512,7 +3512,7 @@ INT16S deal6015_698(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8
 
 	if(st6015.cjtype == TYPE_INTERVAL)
 	{
-		delayms = 2000;
+		delayms = 5000;
 	}
 	sendLen = composeProtocol698_GetRequest_RN(sendbuff, st6015,to6001.basicinfo.addr);
 
