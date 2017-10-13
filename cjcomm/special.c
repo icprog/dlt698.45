@@ -148,7 +148,7 @@ int specialCheckPow() {
 	if (specialPowState(info) == 1) {
 //		fprintf(stderr, "MMM------------------%d\n", count);
 		count++;
-		if (count > 20) {
+		if (count > 120) {
 			dbSet("StopCommunite", 1);
 			gpofun("/dev/gpoONLINE_LED", 0);
 			asyslog(LOG_INFO, "检测到设备掉电一分钟，停止所有通信...");
@@ -210,7 +210,10 @@ int SpecialRegular(struct aeEventLoop *ep, long long id, void *clientData) {
 	specialCheck4510Change();
 	specialTransFlow();
 	special485AutoReport();
-	ATUpdateStatus(AtGet());
+	if(!(int)dbGet("StopCommunite")){
+		ATUpdateStatus(AtGet());
+	}
+
 	if (shandong == 1) {
 		specialCheckPow();
 	}
