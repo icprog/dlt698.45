@@ -368,11 +368,15 @@ INT8S init6000InfoFrom6000FIle()
 {
 	memset(&info6000,0,2*sizeof(INFO_6001_LIST));
 	INT8U tIndex = 0;
-	for(tIndex = 0;tIndex < infoReplenish.tasknum;tIndex++)
+	if(getZone("GW")!=0)
 	{
-		memset(infoReplenish.unitReplenish[tIndex].list6001,0,2*sizeof(INFO_6001_LIST));
-		memset(infoReplenish.unitReplenish[tIndex].isSuccess,0,2*MAX_REPLENISH_TASK_NUM);
+		for(tIndex = 0;tIndex < infoReplenish.tasknum;tIndex++)
+		{
+			memset(infoReplenish.unitReplenish[tIndex].list6001,0,2*sizeof(INFO_6001_LIST));
+			memset(infoReplenish.unitReplenish[tIndex].isSuccess,0,2*MAX_REPLENISH_TASK_NUM);
+		}
 	}
+
 	INT8S result = -1;
 	INT16U meterIndex = 0;
 	CLASS_6001 meter = { };
@@ -425,12 +429,15 @@ INT8S init6000InfoFrom6000FIle()
 		}
 	}
 //	fprintf(stderr,"485 1口测量点数量 = %d   485 2口测量点数量 = %d",info6000[0].meterSum,info6000[1].meterSum);
-
-	for(tIndex = 0;tIndex < infoReplenish.tasknum;tIndex++)
+	if(getZone("GW")!=0)
 	{
-		memcpy(&infoReplenish.unitReplenish[tIndex].list6001[0],&info6000[0],sizeof(INFO_6001_LIST));
-		memcpy(&infoReplenish.unitReplenish[tIndex].list6001[1],&info6000[1],sizeof(INFO_6001_LIST));
+		for(tIndex = 0;tIndex < infoReplenish.tasknum;tIndex++)
+		{
+			memcpy(&infoReplenish.unitReplenish[tIndex].list6001[0],&info6000[0],sizeof(INFO_6001_LIST));
+			memcpy(&infoReplenish.unitReplenish[tIndex].list6001[1],&info6000[1],sizeof(INFO_6001_LIST));
+		}
 	}
+
 	return result;
 }
 INT8S saveClass6035(CLASS_6035* class6035)
@@ -476,14 +483,15 @@ INT8U deal6013_onPara4000changed()
  * */
 INT8U init6013ListFrom6012File() {
 	INT16U tIndex = 0;
-
-	for(tIndex = 0;tIndex < infoReplenish.tasknum;tIndex++)
+	if(getZone("GW")!=0)
 	{
-		infoReplenish.unitReplenish[tIndex].taskID = 0;
-		memset(infoReplenish.unitReplenish[tIndex].isSuccess,0,2*MAX_REPLENISH_TASK_NUM);
+		for(tIndex = 0;tIndex < infoReplenish.tasknum;tIndex++)
+		{
+			infoReplenish.unitReplenish[tIndex].taskID = 0;
+			memset(infoReplenish.unitReplenish[tIndex].isSuccess,0,2*MAX_REPLENISH_TASK_NUM);
+		}
+		infoReplenish.tasknum = 0;
 	}
-	infoReplenish.tasknum = 0;
-
 	total_tasknum = 0;
 	//list6013  初始化下一次抄表时间
 	TS ts_now;
@@ -507,26 +515,32 @@ INT8U init6013ListFrom6012File() {
 
 				TS taskStartTime;
 				TimeBCDToTs(list6013[total_tasknum].basicInfo.startime,&taskStartTime);
+
+				//加上延时
+				if(list6013[total_tasknum].basicInfo.delay.interval > 0)
+				{
+					tminc(&taskStartTime, list6013[total_tasknum].basicInfo.delay.units,list6013[total_tasknum].basicInfo.delay.interval);
+				}
+
 				INT8U timeCmp = TScompare(ts_now,taskStartTime);
 #if 1
-				asyslog(LOG_NOTICE,"timeCmp = %d 当前时间 %04d-%02d-%02d %02d:%02d:%02d\n",timeCmp,
-						ts_now.Year,ts_now.Month,ts_now.Day,ts_now.Hour,
-						ts_now.Minute,ts_now.Sec);
-
-				asyslog(LOG_NOTICE,"任务开始时间 %04d-%02d-%02d %02d:%02d:%02d\n",
-						taskStartTime.Year,taskStartTime.Month,taskStartTime.Day,taskStartTime.Hour,
-						taskStartTime.Minute,taskStartTime.Sec);
+				asyslog(LOG_NOTICE,"timeCmp = %d 当前时间 %04d-%02d-%02d %02d:%02d:%02d 任务开始时间 %04d-%02d-%02d %02d:%02d:%02d",
+						timeCmp,ts_now.Year,ts_now.Month,ts_now.Day,ts_now.Hour,ts_now.Minute,ts_now.Sec,
+						taskStartTime.Year,taskStartTime.Month,taskStartTime.Day,taskStartTime.Hour,taskStartTime.Minute,taskStartTime.Sec);
 #endif
-				//把需要补抄的任务放进infoReplenish
-				CLASS_6015 st6015;
-				memset(&st6015,0,sizeof(CLASS_6015));
-				if (readCoverClass(0x6015, list6013[total_tasknum].basicInfo.sernum,&st6015, sizeof(CLASS_6015), coll_para_save)== 1)
+				if(getZone("GW")!=0)
 				{
-					if(st6015.csds.csd[0].csd.road.oad.OI == 0x5004)
+					//把需要补抄的任务放进infoReplenish
+					CLASS_6015 st6015;
+					memset(&st6015,0,sizeof(CLASS_6015));
+					if (readCoverClass(0x6015, list6013[total_tasknum].basicInfo.sernum,&st6015, sizeof(CLASS_6015), coll_para_save)== 1)
 					{
-						infoReplenish.unitReplenish[infoReplenish.tasknum++].taskID = list6013[total_tasknum].basicInfo.taskID;
-					}
+						if(st6015.csds.csd[0].csd.road.oad.OI == 0x5004)
+						{
+							infoReplenish.unitReplenish[infoReplenish.tasknum++].taskID = list6013[total_tasknum].basicInfo.taskID;
+						}
 
+					}
 				}
 
 				if(timeCmp < 2)
@@ -535,8 +549,8 @@ INT8U init6013ListFrom6012File() {
 				}
 				else
 				{
-					list6013[total_tasknum].ts_next  =
-									calcnexttime(list6013[total_tasknum].basicInfo.interval,list6013[total_tasknum].basicInfo.startime,list6013[total_tasknum].basicInfo.delay);
+					//list6013[total_tasknum].ts_next  = calcnexttime(list6013[total_tasknum].basicInfo.interval,list6013[total_tasknum].basicInfo.startime,list6013[total_tasknum].basicInfo.delay);
+					list6013[total_tasknum].ts_next  =  tmtotime_t(taskStartTime);
 				}
 				//TODO
 				total_tasknum++;
@@ -735,74 +749,7 @@ INT8U findfake6001(INT8U tIndex,CLASS_6001* meter)
 	}
 	return -1;
 }
-INT8U createFakeTaskFileHead()
-{
-	CSD_ARRAYTYPE csds;
-	char	fname[FILENAMELEN]={};
 
-	INT8U taskinfoflg=0;
-	TASKSET_INFO tasknor_info;
-	INT16U headlen=0,unitlen=0,unitnum=0,runtime=0;//runtime执行次数
-
-	INT8U dataContent[DATA_CONTENT_LEN];
-	memset(dataContent,0,DATA_CONTENT_LEN);
-	TS ts_cc;
-	TSGet(&ts_cc);
-	DateTimeBCD startTime;
-	DataTimeGet(&startTime);
-
-	CLASS_6001 meter;
-	memset(&meter,0,sizeof(CLASS_6001));
-	INT8U tIndex;
-	for (tIndex = 0; tIndex < total_tasknum; tIndex++)
-	{
-		if ((list6013[tIndex].basicInfo.cjtype == norm)&&(list6013[tIndex].basicInfo.interval.units < day_units))
-		{
-			if(findfake6001(tIndex,&meter)==-1)
-			{
-				continue;
-			}
-
-			if(meter.basicinfo.addr.addr[0]==0)
-				continue;
-			memset(dataContent,0,DATA_CONTENT_LEN);
-			taskinfoflg=0;
-			memset(&tasknor_info,0,sizeof(TASKSET_INFO));
-			memset(&csds,0x00,sizeof(ROAD));
-
-			if((taskinfoflg = ReadTaskInfo(list6013[tIndex].basicInfo.taskID,&tasknor_info))==0)
-			{
-				continue;
-			}
-			runtime = tasknor_info.runtime;
-			memcpy(&csds,&tasknor_info.csds,sizeof(CSD_ARRAYTYPE));
-
-			if(taskinfoflg == 2)//月冻结
-			{
-				ts_cc.Day = 0;
-				ts_cc.Hour = 0;
-				ts_cc.Minute = 0;
-				ts_cc.Sec = 0;
-				asyslog(LOG_WARNING, "月冻结存储:%d",ts_cc.Month);
-			}
-
-			getTaskFileName(list6013[tIndex].basicInfo.taskID,ts_cc,fname);
-			CreateSaveHead(fname,NULL,csds,&headlen,&unitlen,&unitnum,runtime,1);//写文件头信息并返回
-			if(unitlen == 0)
-				return 0;
-			INT16U index = 0;
-			dataContent[index++] = dttsa;
-			memcpy(&dataContent[index],meter.basicinfo.addr.addr,sizeof(TSA));//采集通信地址
-			index += sizeof(TSA);
-			index += fill_date_time_s(&dataContent[index],&startTime);
-			index += fill_date_time_s(&dataContent[index],&startTime);
-			index += fill_date_time_s(&dataContent[index],&startTime);
-
-			SaveNorData(list6013[tIndex].basicInfo.taskID,NULL,dataContent,unitlen/runtime,ts_cc);
-		}
-	}
-	return 1;
-}
 void timeProcess()
 {
 	static TS lastTime;
@@ -837,21 +784,23 @@ void timeProcess()
 			isReplenishOver[2] = 1;
 			isReplenishOver[3] = 1;
 
-
+			fprintf(stderr,"\n 集中器跨天 para_change485[0] = 1");
 			para_change485[0] = 1;
 			para_change485[1] = 1;
 
 
-
-			INT8U taskIndex = 0;
-			for(taskIndex = 0;taskIndex < infoReplenish.tasknum;taskIndex++)
+			if(getZone("GW")!=0)
 			{
-				memset(infoReplenish.unitReplenish[taskIndex].isSuccess,0,2*MAX_METER_NUM_1_PORT);
+				INT8U taskIndex = 0;
+				for(taskIndex = 0;taskIndex < infoReplenish.tasknum;taskIndex++)
+				{
+					memset(infoReplenish.unitReplenish[taskIndex].isSuccess,0,2*MAX_METER_NUM_1_PORT);
+				}
+				filewrite(REPLENISHFILEPATH,&infoReplenish,sizeof(Replenish_TaskInfo));
 			}
-			filewrite(REPLENISHFILEPATH,&infoReplenish,sizeof(Replenish_TaskInfo));
+
 			//printinfoReplenish(2);
-			createFakeTaskFileHead();
-			  //跨天的时候要初始化任务^M
+
 			CLASS_6035 file6035;
 			INT16U i;
 			for(i=0;i<=255;i++)
@@ -1418,11 +1367,12 @@ INT8S dealMsgProcess()
 }
 void replenish_tmp()
 {
+	INT16U replenishTime[4] = {30,60,120,360};
 	TS nowTime;
 	TSGet(&nowTime);
 	INT16U nowMin = nowTime.Hour*60 + nowTime.Minute;
-	INT8U tmpIndex = 0;
-	for(tmpIndex = 0;tmpIndex < 4;tmpIndex++)
+	INT8S tmpIndex = 0;
+	for(tmpIndex = 3;tmpIndex >=0;tmpIndex--)
 	{
 		if((isReplenishOver[tmpIndex] == 1)&&(nowMin >= replenishTime[tmpIndex]))
 		{
@@ -1446,8 +1396,8 @@ void replenish_tmp()
 					}
 				}
 			}
-			INT8U tmpIndex1 = 0;
-			for(tmpIndex1 = 0;tmpIndex1 <= tmpIndex;tmpIndex1++)
+			INT8S tmpIndex1 = 0;
+			for(tmpIndex1 = tmpIndex;tmpIndex1 >= 0;tmpIndex1--)
 			{
 				isReplenishOver[tmpIndex1] = 0;
 			}
@@ -1595,10 +1545,7 @@ void dispatch_thread()
 	//运行调度任务进程
 //	fprintf(stderr,"\ndispatch_thread start \n");
 	memset(isReplenishOver,0,4);
-	replenishTime[0] = 30;
-	replenishTime[1] = 60;
-	replenishTime[2] = 90;
-	replenishTime[3] = 120;
+
 	proxyTimeOut = 0;
 	proxyInUse.u8b = 0;//初始化代理操作标记
 	while(1)
@@ -1617,12 +1564,16 @@ void dispatch_thread()
 
 		if(para_ChangeType&para_6000_chg)
 		{
+			fprintf(stderr,"\n para_6000_chg para_change485[0] = 1");
 			para_change485[0] = 1;
 			para_change485[1] = 1;
 			init6000InfoFrom6000FIle();
-#if 1
-			filewrite(REPLENISHFILEPATH,&infoReplenish,sizeof(Replenish_TaskInfo));
-#endif
+
+			if(getZone("GW")!=0)
+			{
+				filewrite(REPLENISHFILEPATH,&infoReplenish,sizeof(Replenish_TaskInfo));
+			}
+
 		}
 		if(para_ChangeType&para_4000_chg)
 		{
@@ -1631,13 +1582,18 @@ void dispatch_thread()
 
 		if(para_ChangeType&para_6012_chg)
 		{
+			fprintf(stderr,"\n para_6012_chg para_change485[0] = 1");
 			para_change485[0] = 1;
 			para_change485[1] = 1;
 			system("rm -rf /nand/para/6035");
 			init6013ListFrom6012File();
-#if 1
-			filewrite(REPLENISHFILEPATH,&infoReplenish,sizeof(Replenish_TaskInfo));
-#endif
+
+			if(getZone("GW")!=0)
+			{
+				filewrite(REPLENISHFILEPATH,&infoReplenish,sizeof(Replenish_TaskInfo));
+			}
+
+
 
 		}
 		if((para_ChangeType&para_6000_chg)||(para_ChangeType&para_6012_chg))
@@ -1679,8 +1635,8 @@ void dispatch_thread()
 		}
 		else
 		{
-			//补抄
-			replenish_tmp();
+			if(getZone("GW")!=0)
+				replenish_tmp();
 		}
 
 		sleep(1);
@@ -1718,6 +1674,82 @@ void printinfoReplenish(INT8U flag)
 	}
 
 }
+
+INT8S get6035ByTaskID(INT16U taskID,CLASS_6035* class6035)
+{
+	memset(class6035,0,sizeof(CLASS_6035));
+	class6035->taskID = taskID;
+	CLASS_6035 tmp6035;
+	memset(&tmp6035,0,sizeof(CLASS_6035));
+	INT16U i;
+	for(i=0;i<=255;i++)
+	{
+		if(readCoverClass(0x6035,i,&tmp6035,sizeof(CLASS_6035),coll_para_save)== 1)
+		{
+			if(tmp6035.taskID == taskID)
+			{
+				memcpy(class6035,&tmp6035,sizeof(CLASS_6035));
+				return 1;
+			}
+		}
+	}
+
+	class6035->taskState = BEFORE_OPR;
+	INT8U findIndex;
+	for (findIndex = 0; findIndex < total_tasknum; findIndex++)
+	{
+		if(list6013[findIndex].basicInfo.taskID == class6035->taskID)
+		{
+			memcpy(&class6035->starttime,&list6013[findIndex].basicInfo.startime,sizeof(DateTimeBCD));
+			memcpy(&class6035->endtime,&list6013[findIndex].basicInfo.endtime,sizeof(DateTimeBCD));
+		}
+	}
+	saveCoverClass(0x6035, class6035->taskID, class6035,sizeof(CLASS_6035), coll_para_save);
+	return -1;
+}
+
+//根据TSA从文件中找出6001
+INT8U get6001ObjByTSA(TSA addr,CLASS_6001* targetMeter)
+{
+	INT8U ret = 0;
+
+	int fileIndex = 0;
+	int recordnum = 0;
+	INT16U oi = 0x6000;
+	recordnum = getFileRecordNum(oi);
+	if (recordnum == -1) {
+		fprintf(stderr, "未找到OI=%04x的相关信息配置内容！！！\n", 6000);
+		return ret;
+	} else if (recordnum == -2) {
+		fprintf(stderr, "采集档案表不是整数，检查文件完整性！！！\n");
+		return ret;
+	}
+	INT8U isMeterExist = 0;
+	for(fileIndex = 0;fileIndex < recordnum;fileIndex++)
+	{
+		if(readParaClass(oi,targetMeter,fileIndex)==1)
+		{
+			if(targetMeter->sernum!=0 && targetMeter->sernum!=0xffff)
+			{
+				fprintf(stderr,"\n addr.addr = %02x%02x%02x%02x%02x%02x%02x%02x",
+						addr.addr[0],addr.addr[1],addr.addr[2],addr.addr[3],addr.addr[4],addr.addr[5],addr.addr[6],addr.addr[7]);
+				fprintf(stderr,"\ntargetMeter.addr = %02x%02x%02x%02x%02x%02x%02x%02x",
+						targetMeter->basicinfo.addr.addr[0],targetMeter->basicinfo.addr.addr[1],targetMeter->basicinfo.addr.addr[2],
+						targetMeter->basicinfo.addr.addr[3],targetMeter->basicinfo.addr.addr[4],targetMeter->basicinfo.addr.addr[5],
+						targetMeter->basicinfo.addr.addr[6],targetMeter->basicinfo.addr.addr[7]);
+				if(memcmp(addr.addr,targetMeter->basicinfo.addr.addr,(addr.addr[0]+1))==0)	//一致性测试PROXY_02
+				{
+					isMeterExist = 1;
+					ret = 1;
+					break;
+				}
+			}
+		}
+	}
+	fprintf(stderr,"get6001ObjByTSA ret=%d\n",ret);
+	return ret;
+}
+
 void dispatchTask_proccess()
 {
 	//读取所有任务文件		TODO：参数下发后需要更新内存值

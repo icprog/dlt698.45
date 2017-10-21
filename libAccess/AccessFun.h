@@ -129,6 +129,31 @@ typedef struct{
 	OAD   oad_r;
 	INT16U len;
 }HEAD_UNIT0;
+//new
+#define FILEOADMAXNUM 100
+typedef struct {
+	INT32U reclen;//不包括tsa
+	INT32U seqnum;
+	INT32U seqsec;
+	INT8U  oadnum;
+}HEADFIXED_INFO;
+typedef struct{
+	time_t zc_start;//招测开始时间 秒数
+	INT16U zc_num;//招测的个数
+	INT16U zc_interval;//招测间隔 秒数
+}ZC_INFO;
+typedef struct{
+	OAD oad_m;
+	OAD oad_r;
+	INT8U data[100];
+	INT8U datalen;
+}OADDATA_SAVE;
+typedef struct {
+	INT8U time_start[8];//三个时标，第一个字节为类型，即0x1c
+	INT8U time_end[8];
+	INT8U time_save[8];
+	OADDATA_SAVE oaddata;
+}TASK_OADDATA;
 
 /*
  * 更改拨号脚本
@@ -316,7 +341,7 @@ extern void Save_TJ_Freeze(INT8U flag,OI_698 oi,INT16U attr,TS savets,int savele
 ///////////////数据文件存储
 extern int getOI6001(MY_MS ms,INT8U **tsas); //注!!!!!意:调用后，释放**tsas的内存
 extern int getTsas(MY_MS ms, INT8U** tsas); //注意：！！！！！函数调用需要外部释放内存
-extern int getSelector(OAD oad_h,RSD select, INT8U selectype, CSD_ARRAYTYPE csds, INT8U *data, int *datalen,INT16U frmmaxsize);
+extern INT16U getSelector(OAD oad_h,RSD select, INT8U selectype, CSD_ARRAYTYPE csds, INT8U *data, int *datalen,INT16U frmmaxsize);
 
 extern long int readFrameDataFile(char *filename,int offset,INT8U *buf,int *datalen);
 //extern void ReadFileHeadLen(FILE *fp,int *headlen,int *blocklen);
@@ -345,11 +370,13 @@ extern void chg_rc_local_3761();
 /*
  * 支持液晶部分查找日月冻结数据
  */
-extern INT16S GUI_GetFreezeData(CSD_ARRAYTYPE csds,TSA tsa,TS ts_zc,INT8U *databuf);
+extern INT16S GUI_GetFreezeData(INT8U dayormon,CLASS_6001 tsa,TS ts_zc,INT8U *databuf);
+
 
 extern void extendcsds(CSD_ARRAYTYPE csds,ROAD_ITEM *item_road);
 
-extern int initFrameHead(INT8U *buf,OAD oad,RSD select,INT8U selectype,CSD_ARRAYTYPE csds,INT8U *seqnumindex);
+extern int initFrameHead(INT8U *buf,OAD oad,CSD_ARRAYTYPE csds,INT8U *seqnumindex);
+
 extern int findTsa(TSA tsa,FILE *fp,int headsize,int blocksize);
 extern int findrecord(int offsetTsa,int recordlen,int recordno);
 extern void printRecordBytes(INT8U *data,int datalen);
@@ -359,12 +386,13 @@ extern int collectData(INT8U *databuf,INT8U *srcbuf,OAD_INDEX *oad_offset,ROAD_I
 extern int fillTsaNullData(INT8U *databuf,TSA tsa,ROAD_ITEM item_road);
 extern void intToBuf(int value,INT8U *buf);
 
-extern INT8U GetTaskidFromCSDs(CSD_ARRAYTYPE csds,ROAD_ITEM *item_road,INT8U findmethod,CLASS_6001 *tsa);
+extern INT8U GetTaskidFromCSDs(ROAD_ITEM item_road,CLASS_6001 *tsa);
 extern INT8U GetTaskidFromCSDs_Sle0(CSD_ARRAYTYPE csds,ROAD_ITEM *item_road,INT8U findmethod,CLASS_6001 *tsa);
 
 extern void deloutofdatafile();//删除过期任务数据文件;
-extern INT16U GetOADData(OAD oad_m,OAD oad_r,TS ts_zc,CLASS_6001 tsa_6001,INT8U *databuf);
+
 extern INT16U getCBsuctsanum(INT8U taskid,TS ts);//删除过期任务数据文件;
+extern void getFILEts(INT8U frz_type,TS *ts_file);
 
 int readfile_int(FILE *fp);
 int getOADf(INT8U type,INT8U *source,OAD *oad);

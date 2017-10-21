@@ -14,6 +14,7 @@ extern INT8U is485OAD(OAD portOAD,INT8U port485);
 
 #define TASK6012_MAX 256
 
+
 typedef struct {
 	INT8U run_flg;//累计需要抄读次数 抄读一次后置为0   到下一次抄读时间置为1
 	time_t ts_next;//下一次抄表时刻
@@ -51,8 +52,7 @@ INFO_6001_LIST info6000[2];//两路485
 INT8U isNeed4852;//0-4852维护口　1-4852抄表口
 
 /*补抄相关结构体*/
-INT16U replenishTime[4];
-INT8U isReplenishOver[4];//00:30 01:00 01:30 02:00
+INT8U isReplenishOver[4];//四个时间点补抄标志
 typedef struct
 {
 	INT8U taskID;
@@ -116,4 +116,7 @@ GUI_PROXY cjGuiProxy_plc;
 INT8S saveClass6035(CLASS_6035* class6035);
 
 void printinfoReplenish(INT8U);
+INT8S get6035ByTaskID(INT16U taskID,CLASS_6035* class6035);
+INT8U get6001ObjByTSA(TSA addr,CLASS_6001* targetMeter);
+
 #endif

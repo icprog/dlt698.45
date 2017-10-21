@@ -2284,8 +2284,6 @@ int SaveTaskData(FORMAT3762 format_3762_Up,INT8U taskid,INT8U fananNo)
 		}
 		else if((format_3762_Up.afn06_f2_up.Protocol == DLT_698)||(format_3762_Up.afn06_f2_up.Protocol == PROTOCOL_UNKNOWN))
 		{
-
-
 			INT8U csdNum = 0;
 			INT16S dataLen = len645;
 			INT8U apduDataStartIndex = 0;
@@ -2304,62 +2302,20 @@ int SaveTaskData(FORMAT3762 format_3762_Up,INT8U taskid,INT8U fananNo)
 #endif
 			if(getResponseType > 0)
 			{
-				INT16U count = getFECount(buf645, len645); //得到待解析报文中前导符FE的个数
+				INT16U fecount = getFECount(buf645, len645); //得到待解析报文中前导符FE的个数
 				TSA tsaMeter;
 				memset(&tsaMeter,0,sizeof(TSA));
-				Addr_TSA(&buf645[5+count],&tsaMeter);
-				fprintf(stderr,"\n fananNo = %d taskid = %d getResponseType = %d  csdNum = %d dataLen = %d \n",fananNo,taskid,getResponseType,csdNum,dataLen);
-				CLASS_6015 class6015;	//采集方案集
-				INT16U i = 0;
-				for(i=0;i<=255;i++)
-				{
-					memset(&class6015,0,sizeof(CLASS_6015));
-					if(readCoverClass(0x6015,i,&class6015,sizeof(CLASS_6015),coll_para_save)== 1)
-					{
-						if(class6015.sernum == fananNo)
-						{
+				Addr_TSA(&buf645[5+fecount],&tsaMeter);
 
-							CLASS_6001 to6001 ={};
-							INT16S retLen = deal698RequestResponse(0,getResponseType,csdNum,&buf645[apduDataStartIndex],dataContent,class6015.csds,to6001,taskid,class6015.cjtype);
-							fprintf(stderr,"\n deal698RequestResponse retLen = %d",retLen);
-#ifdef TESTDEF
-							fprintf(stderr,"deal698RequestResponse Buf[%d] = \n",dataLen);
+				OADDATA_SAVE oadListContent[ROAD_OADS_NUM];
+				memset(oadListContent,0,ROAD_OADS_NUM*sizeof(OADDATA_SAVE));
+				INT16U apdudatalen = 0;
+				INT8U dataCount = deal698RequestResponse(getResponseType,csdNum,&buf645[apduDataStartIndex],oadListContent,&apdudatalen);
 
-							for(prtIndex = 0;prtIndex < retLen;prtIndex++)
-							{
-								fprintf(stderr,"%02x ",dataContent[prtIndex]);
-								if((prtIndex+1)%20 ==0)
-								{
-									fprintf(stderr,"\n");
-								}
-							}
-#endif
-#if 1
-							if(retLen > 0)
-							{
-								TS ts_cc;
-								TSGet(&ts_cc);
-								DateTimeBCD startTime;
-								DataTimeGet(&startTime);
-								DateTimeBCD savetime;
-								getSaveTime(&savetime,class6015.cjtype,class6015.savetimeflag,class6015.data);
-								int bufflen = compose6012Buff(startTime,savetime,tsaMeter,retLen,dataContent,31);
-								if(class6015.cjtype == TYPE_INTERVAL)
-								{
-									ts_cc.Minute =0;
-									ts_cc.Sec = 0;
-								}
-								SaveNorData(taskid,NULL,dataContent,bufflen,ts_cc);
-							}
-#endif
-
-							break;
-						}
-					}
-
-				}
-
-
+				//存储数据
+				TS OADts;
+				TSGet(&OADts);
+				saveREADOADdata(taskid,tsaMeter,oadListContent,dataCount,OADts);
 
 			}
 		}

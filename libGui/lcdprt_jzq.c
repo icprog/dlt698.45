@@ -1100,8 +1100,9 @@ void MonthAndDayFillCsds(CSD_ARRAYTYPE *csds,INT8U flag)
 INT8S dealDateAndEnergy(INT8U *databuf,TS *cj_date,INT32U *element)
 {
 	INT8U ret = 1;
-	INT16U i=0,j=0;;
+	INT16U i=0,j=0,k=0;
 	INT16U index=0;
+	INT32U elemet_tmp=0;
 	for(i=0;i<2;i++)//处理2个项
 	{
 		if(databuf[index] == 8)//采集成功时间
@@ -1121,7 +1122,17 @@ INT8S dealDateAndEnergy(INT8U *databuf,TS *cj_date,INT32U *element)
 				index+=4;//略过double long unsign 标示
 				for(j=0;j<5;j++)
 				{
-					bcd2int32u(&databuf[index],4,positive,element+j);
+					elemet_tmp = 0;
+					PRTbuf(&databuf[index],4);
+//					bcd2int32u(&databuf[index],4,positive,element+j);
+					for(k=0;k<4;k++)
+					{
+						elemet_tmp = (elemet_tmp<<8);
+						elemet_tmp += databuf[index+k];
+						fprintf(stderr," %08x",elemet_tmp);
+					}
+					*(element+j) = elemet_tmp;
+					fprintf(stderr,"\n*(element+j)=%d\n",*(element+j));
 					index+=5;//多加一个直接是double long unsign标示
 				}
 			}
@@ -1151,22 +1162,25 @@ void ReadAndShow_DayMonthData(void *mp_info,INT8U dayOrMonth){
 	INT8U databuf[200];//读取文件后返回的数据，包括采集成功时间和正向有功电能
 	memset(databuf,0,200);
 	CLASS_6001 *mp_datainfo = (CLASS_6001 *)mp_info;
-	CSD_ARRAYTYPE csds;
-	memset(&csds,0,sizeof(CSD_ARRAYTYPE));
-	MonthAndDayFillCsds(&csds,dayOrMonth);
+//	CSD_ARRAYTYPE csds;
+//	memset(&csds,0,sizeof(CSD_ARRAYTYPE));
+//	MonthAndDayFillCsds(&csds,dayOrMonth);
 	//根据采集时间/测量点地址，获取冻结具体数据
-	retBuf = GUI_GetFreezeData(csds,mp_datainfo->basicinfo.addr,Tcurr_tm_his,databuf);
+	retBuf = GUI_GetFreezeData(dayOrMonth,*mp_datainfo,Tcurr_tm_his,databuf);
 	gui_clrrect(rect_Client);
 	gui_setpos(&pos, rect_Client.left+6*FONTSIZE, rect_Client.top+FONTSIZE);
 	gui_textshow((char*)"正向有功电能示值", pos, LCD_NOREV);
+	fprintf(stderr,"\n111retBuf=%d\n",retBuf);
 	if(retBuf>0 ) //注意，此处的retBuf 是GUI_GetFreezeData返回值，如果返回正确，再用dealDateAndEnergy处理数据
 		retBuf = dealDateAndEnergy(databuf,&cj_date,energyElement);
+	fprintf(stderr,"\n222retBuf=%d\n",retBuf);
 	if(retBuf>0 ) flag = 1;//为0时显示xx
-	dataitem_showvalue((char*)"正向有功总:", (float)(energyElement[0]/100),2,0, rect_Client.top + FONTSIZE*4,flag);
-	dataitem_showvalue( (char*)"正向有功尖:",  (float)(energyElement[1]/100),2, 0, rect_Client.top + FONTSIZE*6+3,flag);
-	dataitem_showvalue((char*)"正向有功峰:",  (float)(energyElement[2]/100), 2,0, rect_Client.top + FONTSIZE*8+6,flag);
-	dataitem_showvalue( (char*)"正向有功平:",  (float)(energyElement[3]/100),2, 0, rect_Client.top + FONTSIZE*10+9,flag);
-	dataitem_showvalue( (char*)"正向有功谷:",  (float)(energyElement[4]/100),2, 0, rect_Client.top + FONTSIZE*12+12,flag);
+	fprintf(stderr,"\nenergyElement[1]=%d,energyElement[1]/1000=%f\n",energyElement[1],((float)energyElement[1])/1000);
+	dataitem_showvalue((char*)"正向有功总:", ((float)energyElement[0]/1000),2,0, rect_Client.top + FONTSIZE*4,flag);
+	dataitem_showvalue( (char*)"正向有功尖:",  ((float)energyElement[1]/1000),2, 0, rect_Client.top + FONTSIZE*6+3,flag);
+	dataitem_showvalue((char*)"正向有功峰:",  ((float)energyElement[2]/1000), 2,0, rect_Client.top + FONTSIZE*8+6,flag);
+	dataitem_showvalue( (char*)"正向有功平:",  ((float)energyElement[3]/1000),2, 0, rect_Client.top + FONTSIZE*10+9,flag);
+	dataitem_showvalue( (char*)"正向有功谷:",  ((float)energyElement[4]/1000),2, 0, rect_Client.top + FONTSIZE*12+12,flag);
 
 	memset(str, 0, 100);
 	if(cj_date.Year==0|| cj_date.Month==0||cj_date.Day==0)

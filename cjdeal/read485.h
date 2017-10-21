@@ -48,13 +48,6 @@ typedef struct
 	METER_PROTOCOL protocol;		//规约类型
 	INT8U port;			//端口
 }BasicInfo6001;
-//OAD+数据
-typedef struct
-{
-	OAD oad;
-	INT8U datalen;
-	INT8U data[50];
-}OAD_DATA;
 
 
 extern void read485_proccess();
@@ -75,9 +68,4 @@ INT8U i485port2;
 INT8U map07DI_698OAD_NUM;
 CLASS_601F map07DI_698OAD[NUM_07DI_698OAD];
 
-
-INT16S request9707_singleOAD(INT8U protocol,OI_698 roadOI,OAD soureOAD,CLASS_6001 to6001,CLASS_6035* st6035,INT8U* dataContent,INT8U port485);
-INT16S deal6015_698(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8U* dataContent,INT8U port485);
-INT16U compose6012Buff(DateTimeBCD startTime,DateTimeBCD saveTime,TSA meterAddr,INT16U dataLen,INT8U* dataContent, INT8U port485);
-INT8U getSaveTime(DateTimeBCD* saveTime,INT8U cjType,INT8U saveTimeFlag,DATA_TYPE curvedata);
 #endif /* READ485_H_ */
