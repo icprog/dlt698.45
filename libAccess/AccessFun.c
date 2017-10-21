@@ -2554,18 +2554,20 @@ INT32U getTASKruntimes(CLASS_6013 class6013,CLASS_6015 class6015,INT32U *seqsec)
 	switch(class6015.cjtype)
 	{
 	case 0://当前数据 存储次数由任务执行频率决定
+	case 1:
+	case 2:
 		seqsecond = getTItoSec(class6013.interval);
 		if(seqsecond==0)
 			runtimes = 1;
 		else
 			runtimes = taskdaysec/seqsecond+1;
 		break;
-	case 1://采集上n次
-//		runtimes=class6015.data.data[1];//data[0]应该是类型？
+//	case 1://采集上n次
+////		runtimes=class6015.data.data[1];//data[0]应该是类型？
+////		break;
+////	case 2://按冻结时标采集
+//		runtimes = 1;
 //		break;
-//	case 2://按冻结时标采集
-		runtimes = 1;
-		break;
 	case 3://按时标间隔采集
 		ti_tmp.interval = (class6015.data.data[1]<<8) + class6015.data.data[2];
 		ti_tmp.units = class6015.data.data[0];
