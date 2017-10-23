@@ -754,7 +754,7 @@ void timeProcess()
 {
 	static TS lastTime;
 	static INT8U firstFlag = 1;
-
+	static INT8U resetFlag = 1;
 	TS nowTime;
 	TSGet(&nowTime);
 
@@ -784,10 +784,7 @@ void timeProcess()
 			isReplenishOver[2] = 1;
 			isReplenishOver[3] = 1;
 
-			fprintf(stderr,"\n 集中器跨天 para_change485[0] = 1");
-			para_change485[0] = 1;
-			para_change485[1] = 1;
-
+			resetFlag = 1;
 
 			if(getZone("GW")!=0)
 			{
@@ -814,6 +811,14 @@ void timeProcess()
 					saveCoverClass(0x6035, file6035.taskID, &file6035,sizeof(CLASS_6035), coll_para_save);
 				}
 			}
+		}
+
+		if((nowTime.Hour == 23)&&(nowTime.Minute >= 59)&&(resetFlag == 1))
+		{
+			fprintf(stderr,"\n 集中器跨天 para_change485[0] = 1");
+			resetFlag = 0;
+			para_change485[0] = 1;
+			para_change485[1] = 1;
 		}
 	}
 }

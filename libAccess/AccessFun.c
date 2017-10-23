@@ -1942,9 +1942,14 @@ INT16U GetOIinfo(OI_698 oi,INT8U rate,OI_INFO *oi_info)//得到oi的信息
 	case 1:
 		oi_info->ic = 2;
 		oi_info->oinum = rate+1;//总加rate个费率
-		oi_info->io_unit = 1;
+		oi_info->io_unit = 2;
+		oi_info->mem_num = 2;
 		oi_info->oi_mem[0].mem_len = 4;
 		oi_info->oi_mem[0].mem_chg = 14;//-4
+
+		oi_info->oi_mem[1].mem_unit = 30;
+		oi_info->oi_mem[1].mem_len = 6;
+		oi_info->oi_mem[1].mem_chg = 0;
 		switch(oi)
 		{
 		case 0x1030:

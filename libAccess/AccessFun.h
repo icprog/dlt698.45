@@ -393,6 +393,8 @@ extern void deloutofdatafile();//删除过期任务数据文件;
 
 extern INT16U getCBsuctsanum(INT8U taskid,TS ts);//删除过期任务数据文件;
 extern void getFILEts(INT8U frz_type,TS *ts_file);
+extern INT8U get60136015info(INT8U taskid,CLASS_6015 *class6015,CLASS_6013 *class6013);
+extern INT32U getTASKruntimes(CLASS_6013 class6013,CLASS_6015 class6015,INT32U *seqsec);
 
 int readfile_int(FILE *fp);
 int getOADf(INT8U type,INT8U *source,OAD *oad);

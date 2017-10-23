@@ -665,6 +665,7 @@ INT16U saveREADOADevent(ROAD eve_road,TSA tsa,OADDATA_SAVE *OADdata,INT8U OADnum
 
 	if(geteveno(OADdata,OADnum,eveno)==0)//得到事件序号
 	{
+		DbgPrintToFile1(1,"没有事件序号!!!!");
 		fprintf(stderr,"\n没有事件序号!!!!\n");
 		return 0;
 	}
@@ -673,11 +674,13 @@ INT16U saveREADOADevent(ROAD eve_road,TSA tsa,OADDATA_SAVE *OADdata,INT8U OADnum
 	if(fp == NULL)//文件没内容 组文件头，如果文件已存在，提取文件头信息
 	{
 		fprintf(stderr,"\n创建事件文件头\n");
+		DbgPrintToFile1(1,"创建事件文件头");
 		CreateSaveEventHead(fname,eve_road,&taskhead_info,headoad_unit);//写文件头信息并返回
 		evehappen = 1;//第一次存储，产生事件
 		savepos = sizeof(HEADFIXED_INFO)+taskhead_info.oadnum*sizeof(HEAD_UNIT);
 		fir_save = 1;
 		fprintf(stderr,"\n1第一次存储，产生事件  savepos=%d\n",savepos);
+		DbgPrintToFile1(1,"1第一次存储，产生事件  savepos=%d",savepos);
 	}
 	else
 	{
@@ -742,6 +745,9 @@ INT16U saveREADOADevent(ROAD eve_road,TSA tsa,OADDATA_SAVE *OADdata,INT8U OADnum
 		memcpy(&databuf[1],tsa.addr,TSA_LEN);
 		indexn += TSA_LEN+1;
 	}
+
+	DbgPrintToFile1(1,"存储事件  OADnum=%d 存储信息:长度%d oad个数%d 存储个数%d 存储间隔%d",OADnum,
+			taskhead_info.reclen,taskhead_info.oadnum,taskhead_info.seqnum,taskhead_info.seqsec);
 	fillEVEdata(OADdata,OADnum,&databuf[indexn],taskhead_info,headoad_unit);
 	indexn += taskhead_info.reclen;
 

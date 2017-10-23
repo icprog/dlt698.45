@@ -422,6 +422,8 @@ INT8S use6013find6015or6017(INT8U cjType,INT16U fanganID,TI interval6013,CLASS_6
 			st6015->csds.num = st6017.collstyle.roads.num;
 			st6015->deepsize = st6017.deepsize;
 			st6015->sernum = st6017.sernum;
+			st6015->savetimeflag = st6017.ifreport;
+
 			memcpy(&st6015->mst,&st6017.ms,sizeof(MY_MS));
 			INT8U csdIndex = 0;
 
@@ -4139,9 +4141,9 @@ INT16S deal6017_698(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8
 						TS OADts;
 						TSGet(&OADts);
 						INT16U isEventOccur = saveREADOADevent(singleRoadEvent.csds.csd[0].csd.road,to6001.basicinfo.addr,oadListContent,rcvCSDnum,OADts);
-						DbgPrintToFile1(port485,"isEventOccur　＝%d 事件序号= %02x %02x %02x %02x %02x", isEventOccur,
+						DbgPrintToFile1(port485,"isEventOccur　＝%d st6015.savetimeflag = %d 事件序号= %02x %02x %02x %02x %02x", isEventOccur,st6015.savetimeflag,
 								oadListContent[0].data[0],oadListContent[0].data[1],oadListContent[0].data[2],oadListContent[0].data[3],oadListContent[0].data[4]);
-						if((isEventOccur == 1)&&(isAllowReport==1))
+						if((isEventOccur == 1)&&(isAllowReport==1)&&(st6015.savetimeflag==1))//st6015->savetimeflag = st6017.ifreport;
 						{
 							INT8U saveContentHead[SAVE_EVENT_BUFF_HEAD_LEN];//TAS + 事件序号　+ 发生时间　＋　结束时间
 							memset(saveContentHead,0,SAVE_EVENT_BUFF_HEAD_LEN);
