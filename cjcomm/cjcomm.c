@@ -127,6 +127,32 @@ void cProc(struct aeEventLoop *ep, CommBlock * nst) {
 	} while (res == 1);
 }
 
+int cProcForShanDongAutoReport(struct aeEventLoop *ep, CommBlock * nst) {
+	int res = 0;
+	do {
+		res = StateProcess(nst, 5);
+		if (nst->deal_step >= 3) {
+			int apduType = ProcessData(nst);
+			//5分钟之内可以通过485自动上送数据
+			dbSet("485auto", 60 * 5);
+			ConformAutoTask(ep, nst, apduType);
+			switch (apduType) {
+			case LINK_RESPONSE:
+				gpofun("/dev/gpoONLINE_LED", 1);
+				First_VerifiTime(nst->linkResponse, nst->shmem); //简单对时
+				if (GetTimeOffsetFlag() == 1) {
+					Getk_curr(nst->linkResponse, nst->shmem);
+				}
+				nst->linkstate = build_connection;
+				nst->testcounter = 0;
+				break;
+			default:
+				break;
+			}
+		}
+	} while (res == 1);
+}
+
 void QuitProcess(int sig) {
 	if (helperKill("gsmMuxd", 18) == -1) {
 		asyslog(LOG_WARNING, "未能彻底结束gsmMuxd进程...");

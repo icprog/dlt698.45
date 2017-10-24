@@ -53,6 +53,11 @@ int CertainConnectForNet(char *interface, CommBlock *commBlock) {
 int RegularNet(struct aeEventLoop *ep, long long id, void *clientData) {
 	CommBlock *nst = (CommBlock *) clientData;
 
+	if((int)dbGet("StopCommunite")) {
+		asyslog(LOG_INFO, "GPRS检测到设备掉电一分钟，停止所有通信...");
+		return 2000;
+	}
+
 	if (nst->phy_connect_fd <= 0) {
 		if (dbGet("online.type") != 0) {
 			return 2000;

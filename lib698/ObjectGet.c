@@ -1635,14 +1635,14 @@ int Get4500(RESULT_NORMAL *response)
 		break;
 	case 4:	//短信通信参数
 		index += create_struct(&data[index],3);
-		index += fill_visible_string(&data[index],&class_tmp.sms.center[1],16);//class_tmp.sms.center[0]);
+		index += fill_visible_string(&data[index],&class_tmp.sms.center[1],class_tmp.sms.center[0]);//class_tmp.sms.center[0]);
 		index += create_array(&data[index],class_tmp.sms.masternum);
 		for(i=0;i<class_tmp.sms.masternum;i++) {
-			index += fill_visible_string(&data[index],&class_tmp.sms.master[i][1],16);//class_tmp.sms.master[i][0]);
+			index += fill_visible_string(&data[index],&class_tmp.sms.master[i][1],class_tmp.sms.master[i][0]);//class_tmp.sms.master[i][0]);
 		}
 		index += create_array(&data[index],class_tmp.sms.destnum);
 		for(i=0;i<class_tmp.sms.destnum;i++) {
-			index += fill_visible_string(&data[index],&class_tmp.sms.dest[i][1],16);//class_tmp.sms.dest[i][0]);
+			index += fill_visible_string(&data[index],&class_tmp.sms.dest[i][1],class_tmp.sms.dest[i][0]);//class_tmp.sms.dest[i][0]);
 		}
 		break;
 	case 5:
