@@ -128,13 +128,30 @@ void print4500()
 		fprintf(stderr,"	端口:%d",oi4500.master.master[i].port);
 	}
 	fprintf(stderr,"\n");
+	fprintf(stderr,"\n属性5.版本信息");
+	fprintf(stderr,"\n	厂商代码 %c%c%c%c",oi4500.info.factoryCode[0],oi4500.info.factoryCode[1],oi4500.info.factoryCode[2],oi4500.info.factoryCode[3]);
+	fprintf(stderr,"\n	软件版本 %c%c%c%c",oi4500.info.softVer[0],oi4500.info.softVer[1],oi4500.info.softVer[2],oi4500.info.softVer[3]);
+	fprintf(stderr,"\n	软件版本日期 %c%c%c%c%c%c",oi4500.info.softDate[0],oi4500.info.softDate[1],oi4500.info.softDate[2],oi4500.info.softDate[3],oi4500.info.softDate[4],oi4500.info.softDate[5]);
+	fprintf(stderr,"\n	硬件版本 %c%c%c%c",oi4500.info.hardVer[0],oi4500.info.hardVer[1],oi4500.info.hardVer[2],oi4500.info.hardVer[3]);
+	fprintf(stderr,"\n	硬件版本日期 %c%c%c%c%c%c",oi4500.info.hardDate[0],oi4500.info.hardDate[1],oi4500.info.hardDate[2],oi4500.info.hardDate[3],oi4500.info.hardDate[4],oi4500.info.hardDate[5]);
+	fprintf(stderr,"\n	厂家扩展信息 %c%c%c%c%c%c%c%c",oi4500.info.factoryExpInfo[0],oi4500.info.factoryExpInfo[1],oi4500.info.factoryExpInfo[2],
+													oi4500.info.factoryExpInfo[3],oi4500.info.factoryExpInfo[4],oi4500.info.factoryExpInfo[5],
+													oi4500.info.factoryExpInfo[6],oi4500.info.factoryExpInfo[7]);
+	fprintf(stderr,"\n");
+
+	fprintf(stderr,"\n属性6.支持规约列表");
+	for(i=0;i<oi4500.protocolnum;i++) {
+		fprintf(stderr,"\n[%d]%s",oi4500.protcol[i][0],&oi4500.protcol[i][1]);
+		fprintf(stderr,"\n");
+	}
+
 	fprintf(stderr,"\n属性7.SIM卡的ICCID");
-	fprintf(stderr,"\n(%d)%s",strlen((char *)oi4500.ccid),oi4500.ccid);
+	fprintf(stderr,"\n(%d)%s",oi4500.ccid[0],&oi4500.ccid[1]);
 	fprintf(stderr,"\n");
 
 	fprintf(stderr,"\n");
 	fprintf(stderr,"\n属性8.IMSI");
-	fprintf(stderr,"\n(%d)%s",strlen((char *)oi4500.imsi),oi4500.imsi);
+	fprintf(stderr,"\n(%d)%s",oi4500.imsi[0],&oi4500.imsi[1]);
 	fprintf(stderr,"\n");
 
 	fprintf(stderr,"\n");
@@ -144,7 +161,7 @@ void print4500()
 
 	fprintf(stderr,"\n");
 	fprintf(stderr,"\n属性10.SIM卡号码");
-	fprintf(stderr,"\n%s",oi4500.imsi);
+	fprintf(stderr,"\n(%d)%s",oi4500.simkard[0],&oi4500.simkard[1]);
 	fprintf(stderr,"\n");
 
 	fprintf(stderr,"\n");
@@ -212,6 +229,7 @@ void InIt_Process(int argc, char *argv[])
 			memDataInit(0,JProgramInfo);		//共享内存中数据的初始化
         	clearEnergy();
 			paraInit(0,NULL);
+			JProgramInfo->oi_changed.ctrlinit = 0x55;
 			break;
 		}
 	}

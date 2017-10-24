@@ -379,6 +379,9 @@ int AtPrepare(ATOBJ *ao) {
 				ao->INFO[5]) == 6) {
 			retry = 0;
 			ao->state = 12;
+			for(int kk=0;kk<6;kk++) {
+				fprintf(stderr,"%s\n",ao->INFO[kk]);
+			}
 			return 500;
 		}
 		retry++;
@@ -545,7 +548,7 @@ int AtPrepare(ATOBJ *ao) {
 	case 31:
 		RecieveFromComm(Mrecvbuf, 128, ao->fd);
 		memset(ao->ccid, 0x00, sizeof(ao->ccid));
-		if (sscanf((char *) &Mrecvbuf[0], "%*[^0-9]%[0-9]", ao->ccid) == 1) {
+		if (sscanf((char *) &Mrecvbuf[0], "%*[^0-9]%20[0-9|A-Z]", ao->ccid) == 1) {
 			retry = 0;
 			ao->state = ((int)dbGet("model_2g") == 666) ? 32 : 20;
 			return 500;
@@ -679,15 +682,50 @@ int AtPrepare(ATOBJ *ao) {
 		ao->at_retry = 0;
 		readCoverClass(0x4500, 0, c25, sizeof(CLASS25), para_vari_save);
 		c25->signalStrength = ao->CSQ;
-		memcpy(&c25->imsi[1],ao->imsi,sizeof(c25->imsi));
-		c25->imsi[0] = strlen(ao->imsi);
-		memcpy(&c25->ccid[1],ao->ccid,sizeof(c25->ccid));
-		c25->ccid[0] = strlen(ao->ccid);
-		memcpy(&c25->simkard[1],ao->CIMI,sizeof(c25->simkard));
-		c25->simkard[0] = strlen(ao->CIMI);
-		memcpy(&c25->pppip,ao->PPP_IP,sizeof(c25->pppip));
-		saveCoverClass(0x4500, 0, c25, sizeof(CLASS25), para_vari_save);
 
+		memset(&c25->imsi[1],0x30,16*sizeof(char));
+		memcpy(&c25->imsi[1],ao->ccid,16*sizeof(char));
+		c25->imsi[0] = 15;
+
+		memset(&c25->ccid[1],0x30,20*sizeof(char));
+		memcpy(&c25->ccid[1],ao->ccid,20*sizeof(char));
+		c25->ccid[0] = 20;
+
+		memset(&c25->simkard[1],0x30,16*sizeof(char));
+		memcpy(&c25->simkard[1],ao->CIMI,15*sizeof(char));
+		c25->simkard[0] = 16;
+		memcpy(&c25->pppip,ao->PPP_IP,sizeof(c25->pppip));
+
+		memset(&c25->info.factoryCode,0x30,4*sizeof(char));
+		memcpy(&c25->info.factoryCode,ao->INFO[0],4*sizeof(char));
+
+		memset(&c25->info.softVer,0x30,4*sizeof(char));
+		memcpy(&c25->info.softVer,ao->INFO[2],4*sizeof(char));
+
+		memset(&c25->info.softDate,0x30,6*sizeof(char));
+		memcpy(&c25->info.softDate,ao->INFO[3],6*sizeof(char));
+
+		memset(&c25->info.hardVer,0x30,4*sizeof(char));
+		memcpy(&c25->info.hardVer,ao->INFO[4],4*sizeof(char));
+
+		memset(&c25->info.hardDate,0x30,6*sizeof(char));
+		memcpy(&c25->info.hardDate,ao->INFO[5],6*sizeof(char));
+
+		memset(&c25->info.factoryExpInfo,0x30,8*sizeof(char));
+		memcpy(&c25->info.factoryExpInfo,ao->INFO[1],8*sizeof(char));
+
+		memset(&c25->sms.center,0x30,40*sizeof(char));
+		memset(&c25->sms.dest[0][0],0x30,40*sizeof(char));
+		c25->sms.destnum = 1;
+		memset(&c25->sms.master[0][0],0x30,40*sizeof(char));
+		c25->sms.masternum = 1;
+
+		memcpy(&c25->protcol[0][1],"698",strlen("698"));
+		c25->protcol[0][0] = strlen("698");
+		c25->protocolnum = 1;
+
+
+		saveCoverClass(0x4500, 0, c25, sizeof(CLASS25), para_vari_save);
 		return 10 * 1000;
 	}
 	return 0;

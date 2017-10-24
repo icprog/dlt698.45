@@ -1,0 +1,15 @@
+From,Name,NewName,Position
+../bin_arm/,cj,cj,/nand/bin/
+../bin_arm/,cjcomm,cjcomm,/nand/bin/
+../bin_arm/,cjmain,cjmain,/nand/bin/
+../bin_arm/,cjdeal,cjdeal,/nand/bin/
+../bin_arm/,lib376.2.so,lib376.2.so,/nor/lib/
+../bin_arm/,lib698Esam.so,lib698Esam.so,/nor/lib/
+../bin_arm/,lib698.so,lib698.so,/nor/lib/
+../bin_arm/,libAccess.so,libAccess.so,/nor/lib/
+../bin_arm/,libBase.so,libBase.so,/nor/lib/
+../bin_arm/,libDlt645.so,libDlt645.so,/nor/lib/
+../bin_arm/,libevent.so,libevent.so,/nor/lib/
+../bin_arm/,libGui.so,libGui.so,/nor/lib/
+../bin_arm/,libMq.so,libMq.so,/nor/lib/
+../bin_arm/,libzlib.so,libzlib.so,/nor/lib/

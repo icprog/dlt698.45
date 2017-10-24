@@ -512,6 +512,9 @@ int class8103_act3(int index, int attr_act, INT8U *data, INT8U *DAR) {
 		asyslog(LOG_WARNING, "时段功控-保存[unit=%d]",unit);
 //		fprintf(stderr,"c8103 act 3  v2.n=%d t1 = %lld\n",c8103.list[unit].v2.n,c8103.list[unit].v2.t1);
 		memcpy(shareAddr->ctrls.c8103.list, c8103.list, sizeof(c8103.list));
+		c8103.enable[unit].name = oi;
+		c8103.output[unit].name = oi;
+		c8103.overflow[unit].name = oi;
 		saveCoverClass(0x8103, 0, (void *) &c8103, sizeof(CLASS_8103),para_vari_save);
 	}
 	return ii;
@@ -760,6 +763,10 @@ int class8104_act3(int index, int attr_act, INT8U *data, INT8U *DAR) {
 
 	c8104.list[unit].sustain = data[23] * 256 + data[24];
 	c8104.list[unit].noDay = data[27];
+
+	c8104.enable[unit].name = oi;
+	c8104.output[unit].name = oi;
+	c8104.overflow[unit].name = oi;
 	memcpy(&shareAddr->ctrls.c8104,&c8104,sizeof(CLASS_8104));
 	saveCoverClass(0x8104, 0, (void *) &c8104, sizeof(CLASS_8104),
 			para_vari_save);
@@ -869,6 +876,10 @@ int class8105_act3(int index, int attr_act, INT8U *data, INT8U *DAR) {
 	printDataTimeS("报停结束时间",c8105.list[unit].end);
 
 	if(*DAR == success) {
+		c8105.enable[unit].name = oi;
+		c8105.output[unit].name = oi;
+		c8105.overflow[unit].name = oi;
+		fprintf(stderr,"enable[%d].name = %04x\n",unit,c8105.enable[unit].name);
 		memcpy(&shareAddr->ctrls.c8105,&c8105,sizeof(CLASS_8105));
 		saveCoverClass(0x8105, 0, (void *) &c8105, sizeof(CLASS_8105),
 			para_vari_save);
@@ -1034,6 +1045,10 @@ int class8106_unit(int attr_act, INT8U *data, CLASS_8106 *shmc8106, INT8U *DAR)
 		break;
 	}
 	if(*DAR==success) {
+		c8106.enable.name = c8106.index;
+		c8106.output.name = c8106.index;
+		c8106.overflow.name = c8106.index;
+		fprintf(stderr,"c8106.enable.name = %04x\n",c8106.enable.name);
 		memcpy(shmc8106,&c8106,sizeof(CLASS_8106));
 	}
 	return ii;
@@ -1262,6 +1277,11 @@ int set_OI810c(INT8U service,INT8U *data,BUY_CTRL *oi810c,INT8U *DAR)
 	if(*DAR == success) {
 		asyslog(LOG_WARNING, "购电-控制单元【act=%d】[%04x-%d-%d-%d-%lld-%lld-%lld-%d]",service, tmp_oi810c.index, tmp_oi810c.no,
 				tmp_oi810c.add_refresh, tmp_oi810c.type, tmp_oi810c.v, tmp_oi810c.alarm, tmp_oi810c.ctrl, tmp_oi810c.mode);
+		shareAddr->ctrls.c8107.enable[sum_index].name = tmp_oi810c.index;
+		shareAddr->ctrls.c8107.output[sum_index].name = tmp_oi810c.index;
+		shareAddr->ctrls.c8107.overflow[sum_index].name = tmp_oi810c.index;
+
+		fprintf(stderr,"enable[%d] = %04x\n",shareAddr->ctrls.c8107.enable[sum_index].name);
 		memcpy(&oi810c[sum_index],&tmp_oi810c,sizeof(BUY_CTRL));
 		if(service == 3 || service == 5) {
 			shareAddr->class23[sum_index].remains += shareAddr->ctrls.c8107.list[sum_index].v;
@@ -1364,6 +1384,9 @@ int class8108_act3(int index, int attr_act, INT8U *data, INT8U *DAR) {
 	c8108.list[index].v = shareAddr->ctrls.c8108.list[index].v ;
 	c8108.list[index].index = oi;
 
+	c8108.enable[index].name = oi;
+	c8108.output[index].name = oi;
+	c8108.overflow[index].name = oi;
 	asyslog(LOG_WARNING, "月电-添加控制单元[%04x-%lld-%d-%d]", oi, v, th, fl);
 
 	saveCoverClass(0x8108, 0, (void *) &c8108, sizeof(CLASS_8108),

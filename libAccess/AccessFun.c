@@ -4995,7 +4995,8 @@ INT16U getCBsuctsanum(INT8U taskid,TS ts)
 		file_endpos = ftell(fp);
 		rewind(fp);
 		ReadFileHeadLen(fp,&headlen,&unitlen);
-		if(unitlen == 0)
+		reclen = unitlen/tasknor_info.runtime;
+		if(reclen == 0 || reclen > 2048)
 		{
 			sprintf(cmd,"rm -rf %s",fname);
 			system(cmd);
@@ -5003,8 +5004,6 @@ INT16U getCBsuctsanum(INT8U taskid,TS ts)
 				fclose(fp);
 			return 0;
 		}
-
-		reclen = unitlen/tasknor_info.runtime;
 		recordnum = (file_endpos-headlen)/unitlen;
 		file_idnexpos = headlen+reclen*seqno;
 		fprintf(stderr,"\nrecordnum=%d,reclen=%d\n",recordnum,reclen);
@@ -5026,4 +5025,77 @@ INT16U getCBsuctsanum(INT8U taskid,TS ts)
 	if(fp != NULL)
 		fclose(fp);
 	return tsa_sucnum;
+}
+
+INT8U fillclass23data(OAD oad_m,OAD oad_r,TSA meter,INT8U* data,ProgramInfo* JProgramInfo)
+{
+	fprintf(stderr,"\n\n ---------------fillclass23data");
+	INT8U ret = 0;
+	INT8U meterIndex = 0;
+	INT8U groupIndex = 0;
+
+	for(groupIndex = 0;groupIndex < 8;groupIndex++)
+	{
+		for(meterIndex = 0;meterIndex < MAX_AL_UNIT;meterIndex++)
+		{
+			if(JProgramInfo->class23[groupIndex].allist[meterIndex].tsa.addr[0]==0)
+				break;
+			if(memcmp(&meter,&JProgramInfo->class23[groupIndex].allist[meterIndex].tsa,(meter.addr[0]+1))==0)
+			{
+				if(oad_r.attrindex == 0)
+				{
+					data = &data[2];
+					INT8U rateIndex = 0;
+					for(rateIndex = 0;rateIndex < MAXVAL_RATENUM+1;rateIndex++)
+					{
+						INT32U dianliang = (data[rateIndex*5+1]<<24)+(data[rateIndex*5+2]<<16)+(data[rateIndex*5+3]<<8)+data[rateIndex*5+4];
+						switch(oad_m.OI)
+						{
+							//日冻结
+							case 0x5004:
+								if(oad_r.OI == 0x0010)
+								{
+									JProgramInfo->class23[groupIndex].allist[meterIndex].freeze[0][rateIndex] = dianliang;
+								}
+								if(oad_r.OI == 0x0020)
+								{
+									JProgramInfo->class23[groupIndex].allist[meterIndex].freeze[1][rateIndex] = dianliang;
+								}
+								break;
+							//月冻结
+							case 0x5006:
+								if(oad_r.OI == 0x0010)
+								{
+									JProgramInfo->class23[groupIndex].allist[meterIndex].freeze[2][rateIndex] = dianliang;
+								}
+								if(oad_r.OI == 0x0020)
+								{
+									JProgramInfo->class23[groupIndex].allist[meterIndex].freeze[3][rateIndex] = dianliang;
+								}
+								break;
+							default:
+								if(oad_r.OI == 0x0010)
+								{
+									JProgramInfo->class23[groupIndex].allist[meterIndex].curP[rateIndex] = dianliang;
+								}
+								if(oad_r.OI == 0x0020)
+								{
+									JProgramInfo->class23[groupIndex].allist[meterIndex].curQ[rateIndex] = dianliang;
+								}
+						}
+					}
+				}
+				else if(oad_r.attrindex == 1)
+				{
+					if(oad_r.OI == 0x0010)
+					{
+ 						INT32U dianliang = (data[1]<<24)+(data[2]<<16)+(data[3]<<8)+data[4];
+						JProgramInfo->class23[groupIndex].allist[meterIndex].curP[0] = dianliang;
+					}
+				}
+				return 1;
+			}
+		}
+	}
+	return ret;
 }

@@ -387,6 +387,7 @@ void InitSharedMem(int argc, char *argv[]) {
 	asyslog(LOG_NOTICE, "打开共享内存，地址[%p]，大小[%d]", JProgramInfo,
 			sizeof(ProgramInfo));
 
+	memset(&JProgramInfo->oi_changed,0,sizeof(OI_CHANGE));
 	InitClass4016(); //当前套日时段表
 	InitClass4300(); //电气设备信息
 	InitClassf203(); //开关量输入

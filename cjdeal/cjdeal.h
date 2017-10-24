@@ -14,7 +14,6 @@ extern INT8U is485OAD(OAD portOAD,INT8U port485);
 
 #define TASK6012_MAX 256
 
-
 typedef struct {
 	INT8U run_flg;//累计需要抄读次数 抄读一次后置为0   到下一次抄读时间置为1
 	time_t ts_next;//下一次抄表时刻

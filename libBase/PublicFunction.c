@@ -1366,5 +1366,15 @@ void PacketBufToFile(INT8U type,char *prefix, char *buf, int len, char *suffix)
 			break;
 	}
 }
-
+void time_tToTS(time_t inTimet,TS *outts)
+{
+	struct tm ctm;
+    localtime_r(&inTimet, &ctm);
+    outts->Year = ctm.tm_year + 1900;
+    outts->Month = ctm.tm_mon + 1;
+    outts->Day = ctm.tm_mday;
+    outts->Hour = ctm.tm_hour;
+    outts->Minute = ctm.tm_min;
+    outts->Sec = ctm.tm_sec;
+}
 #endif /*JPublicFunctionH*/
