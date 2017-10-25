@@ -393,7 +393,21 @@ int clearClass(OI_698 oi)
 			break;
 		case 4:			//参变量类
 		case 6:			//采集监控类
-			sprintf(cmd,"rm -rf %s/%04x/",PARADIR,oi);
+			{
+				if(oi==0x6017)
+				{
+					sprintf(cmd,"rm -rf %s/%04x/　%s",PARADIR,oi,EVEDATA);
+				}
+				else if((oi==0x6015)||(oi==0x6013))
+				{
+					sprintf(cmd,"rm -rf %s/%04x/　%s",PARADIR,oi,TASKDATA);
+				}
+				else
+				{
+					sprintf(cmd,"rm -rf %s/%04x/",PARADIR,oi);
+				}
+			}
+
 			break;
 		}
 		system(cmd);
