@@ -148,6 +148,7 @@ int findtsa(FILE *fp,int *TSA_D,int A_TSAblock)
 			findok = 0;
 			break;
 		}
+		fprintf(stderr,"tmp = %x \n",tmp);
 		if(tmp!=0X55)
 		{
 			findok = 0;
@@ -400,14 +401,26 @@ void setm2g(int argc, char* argv[])
 {
 	int m2g = 0;
 	readCoverClass(0x4521, 0, &m2g, sizeof(int), para_vari_save);
-	if(m2g == 666){
-		m2g = 0;
-		saveCoverClass(0x4521, 0, &m2g, sizeof(int), para_vari_save);
-		fprintf(stderr, "设置为4G优先模式\n");
-	}else{
-		m2g = 666;
-		saveCoverClass(0x4521, 0, &m2g, sizeof(int), para_vari_save);
-		fprintf(stderr, "设置为2G锁定模式\n");
+	if(argc==2) {
+		if(m2g == 666){
+			fprintf(stderr, "当前模式为2G优先模式\n");
+		}else {
+			fprintf(stderr, "当前模式为自动模式\n");
+		}
+	}else {
+		int setm = 4;
+		setm = atoi(argv[2]);
+		fprintf(stderr,"修改当前模式为:%d[2:2G,4:4G]\n",setm);
+		if(setm == 4) {
+//		if(m2g == 666){
+			m2g = 0;
+			saveCoverClass(0x4521, 0, &m2g, sizeof(int), para_vari_save);
+			fprintf(stderr, "设置为4G优先模式\n");
+		}else if(setm == 2) {
+			m2g = 666;
+			saveCoverClass(0x4521, 0, &m2g, sizeof(int), para_vari_save);
+			fprintf(stderr, "设置为2G锁定模式\n");
+		}
 	}
 }
 
@@ -417,7 +430,7 @@ void analyTaskData(int argc, char* argv[])
 	char *filename= argv[2];
 	FILE *fp=NULL;
 	int i=0, indexn=0,A_record=0,A_TSAblock=0;
-	HEAD_UNIT0 length[20];
+	HEAD_UNIT0 length[50];
 	int tsanum=0 , head_len=0,recordnum =0,haveTsa =0 , unitnum=0;
 
 	if (filename!=NULL)
@@ -443,6 +456,8 @@ void analyTaskData(int argc, char* argv[])
 			fprintf(stderr,"\n文件头长度 %d (字节)",head_len);
 
 			A_TSAblock = readfile_int(fp);
+
+
 			memset(&length,0,sizeof(length));
 			unitnum = (head_len )/sizeof(HEAD_UNIT0);
 

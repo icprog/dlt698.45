@@ -550,6 +550,7 @@ int AtPrepare(ATOBJ *ao) {
 		memset(ao->ccid, 0x00, sizeof(ao->ccid));
 		if (sscanf((char *) &Mrecvbuf[0], "%*[^0-9]%20[0-9|A-Z]", ao->ccid) == 1) {
 			retry = 0;
+//			ao->state = ((int)dbGet("model_2g") == 666) ? 32 : 33;
 			ao->state = ((int)dbGet("model_2g") == 666) ? 32 : 20;
 			return 500;
 		}
@@ -562,13 +563,26 @@ int AtPrepare(ATOBJ *ao) {
 			return 100;
 		}
 		asyslog(LOG_INFO,"强制2G上线....");
-		if (SendCommandGetOK(ao, 1, "\rat+qcfg=\"nwscanmode\",1\r") == 1) {
+		if (SendCommandGetOK(ao, 1, "\rat+qcfg=\"nwscanmode\",1,1\r") == 1) {
 			retry = 0;
 			ao->state = 20;
 			return 100;
 		}
 		retry++;
 		return 500;
+//	case 33:
+//		if (retry > 8) {
+//			ao->state = 0;
+//			return 100;
+//		}
+//		asyslog(LOG_INFO,"4G优先....");
+//		if (SendCommandGetOK(ao, 1, "\rat+qcfg=\"nwscanmode\",0,1\r") == 1) {  //AUTO模式,立即生效
+//			retry = 0;
+//			ao->state = 20;
+//			return 100;
+//		}
+//		retry++;
+//		return 500;
 	case 50:
 		retry = 0;
 		ao->state = 51;

@@ -3,14 +3,14 @@
 	<name>cjmain</name>
 	<comment></comment>
 	<projects>
+		<project>include</project>
 		<project>lib698</project>
 		<project>libAccess</project>
 		<project>libBase</project>
 		<project>libCjt188</project>
 		<project>libDlt645</project>
+		<project>libevent</project>
 		<project>libMq</project>
-		<project>libTransmit</project>
-		<project>libzlib</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>

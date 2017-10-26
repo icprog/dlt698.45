@@ -56,6 +56,8 @@ INT16S dealAFN00_F2(FORMAT3762* format3762, INT8U dir, INT8U* data)
 INT16S dealAFN00(FORMAT3762* format3762, INT8U dir, INT8U fn, INT8U* data)
 {
 	INT16S len;
+
+	fprintf(stderr,"fn = %d\n",fn);
 	switch(fn)
 	{
 	case 1:
@@ -1423,6 +1425,8 @@ INT16S dealAFN15(FORMAT3762* format3762, INT8U dir, INT8U fn, INT8U* data)
 INT16S analyzeData(FORMAT3762* format3762, INT8U dir, INT8U afn, INT8U fn, INT8U* data)
 {
 	INT16S len;
+
+	fprintf(stderr,"afn = %02x\n",afn);
 	switch(afn)
 	{
 	case 0x00:

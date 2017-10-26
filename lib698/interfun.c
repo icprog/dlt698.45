@@ -347,6 +347,12 @@ int fill_visible_string(INT8U *data,char *value,INT8U len)	//0x0a
 	data[0] = dtvisiblestring;
 	data[1] = len;
 	memcpy(&data[2],value,len);
+	for(int i=0;i<len;i++) {
+		if(data[2+i]<33 || data[2+i]>126) {
+			syslog(LOG_ERR,"无效ASCII码值[%d]=%x\n",2+i,data[2+i]);
+			data[2+i] = 48;		//初始化为“0”，山东主站解析xml解析报文，当读取4500参数有值为0时，解析失败
+		}
+	}
 	return (len+2);
 }
 
@@ -1449,6 +1455,24 @@ int get_Data(INT8U *source,INT8U *dest)
 //	return 0;
 }
 
+/*
+ * 根据A-XDR编码,填充octet-string,bit-string的长度,未考虑长度超过3个字节
+ * 返回实际填充的个数
+ * buf:填充的数据
+ * */
+INT8U getStringLen(INT8U *buf,int strlen)
+{
+	if(strlen <=127) {
+		buf[0] = strlen;
+		return 1;
+	}else if(strlen > 127) {
+		buf[0] = 0x82;		//两个字节
+		buf[1] = (strlen >> 8) & 0xff;
+		buf[2] = strlen & 0xff;
+		return 3;
+	}
+	return 0;
+}
 
 /*参数文件修改，改变共享内存的标记值，通知相关进程，参数有改变
  * */

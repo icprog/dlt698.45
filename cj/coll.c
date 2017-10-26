@@ -294,7 +294,7 @@ void Collect6000(int argc, char *argv[])
 			meter.basicinfo.ratenum = tmp[po];
 			pi++;
 			po++;
-			sscanf(argv[pi],"%d",&tmp[po]);
+			sscanf(argv[pi],"%x",&tmp[po]);
 			meter.basicinfo.usrtype = tmp[po];
 			pi++;
 			po++;
@@ -1129,7 +1129,7 @@ void showPlcMeterstatus(int argc, char *argv[])
 			{
 				if (meter.sernum!=0 && meter.sernum!=0xffff && meter.basicinfo.port.OI==0xf209 && memcmp(tsa.addr,meter.basicinfo.addr.addr,TSA_LEN)==0)
 				{
-					fprintf(stderr,"\n电表序号 %d   ,规约 %d    ,用户类型 %d [%02x H]",meter.sernum,meter.basicinfo.connectype,meter.basicinfo.usrtype,meter.basicinfo.usrtype);
+					fprintf(stderr,"\n电表序号 %d   ,规约 %d    ,用户类型 %d [%02x H]",meter.sernum,meter.basicinfo.protocol,meter.basicinfo.usrtype,meter.basicinfo.usrtype);
 					ret = readParaClass(0x8888, &taskinfo, meter.sernum);
 					if (ret == 1 )
 					{

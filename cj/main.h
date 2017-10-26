@@ -33,7 +33,10 @@ extern void coll_process(int argc, char *argv[]);
 extern void cjframe(int argc, char *argv[]);
 extern void cjread(int argc, char *argv[]);
 extern void analyTaskData(int argc, char* argv[]);
+extern void analyTaskInfo(int argc, char* argv[]);
 extern void analyFreezeData(int argc, char* argv[]);
+extern void analyTaskOADInfo(int argc, char* argv[]);
+extern INT16U getTaskDataTsaNum(INT8U taskID);
 /*
  * 参变量类*/
 extern void para_process(int argc, char *argv[]);
