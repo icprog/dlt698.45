@@ -72,6 +72,7 @@ void MmqReadandSend(struct aeEventLoop *ep, int fd, void *clientData, int mask) 
 	asyslog(LOG_INFO, "发送代理消息，返回(%d)，类型(%d)", 0, headBuf.cmd);
 	switch (headBuf.cmd) {
 	case TERMINALPROXY_RESPONSE:
+		nst = (CommBlock *)dbGet("proxy");
 		ProxyListResponse((PROXY_GETLIST *) getBuf, nst);
 		break;
 	case TERMINALEVENT_REPORT:

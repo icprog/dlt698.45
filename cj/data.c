@@ -399,15 +399,25 @@ void recordoadinfo_prt(int recordnum,int unitnum,int recordsize,HEAD_UNIT0 *leng
 void setm2g(int argc, char* argv[])
 {
 	int m2g = 0;
-	readCoverClass(0x4521, 0, &m2g, sizeof(int), para_vari_save);
-	if(m2g == 666){
-		m2g = 0;
-		saveCoverClass(0x4521, 0, &m2g, sizeof(int), para_vari_save);
-		fprintf(stderr, "设置为4G优先模式\n");
-	}else{
-		m2g = 666;
-		saveCoverClass(0x4521, 0, &m2g, sizeof(int), para_vari_save);
-		fprintf(stderr, "设置为2G锁定模式\n");
+	if(argc == 2){
+		readCoverClass(0x4521, 0, &m2g, sizeof(int), para_vari_save);
+		if(m2g == 666){
+			fprintf(stderr, "当前模式为2G锁定模式\n");
+		}else{
+			fprintf(stderr, "当前模式为4G优先模式\n");
+		}
+	}else {
+		int setm = 4;
+		setm = atoi(argv[2]);
+		if(setm == 4){
+			m2g = 0;
+			saveCoverClass(0x4521, 0, &m2g, sizeof(int), para_vari_save);
+			fprintf(stderr, "设置为为4G优先模式\n");
+		}else if (setm == 2){
+			m2g = 666;
+			saveCoverClass(0x4521, 0, &m2g, sizeof(int), para_vari_save);
+			fprintf(stderr, "设置为为2G锁定模式\n");
+		}
 	}
 }
 
