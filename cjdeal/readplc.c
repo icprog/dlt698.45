@@ -1022,7 +1022,7 @@ int doCompSlaveMeter(RUNTIME_PLC *runtime_p)
 		case 0://读取载波从节点数量
 			if (nowtime  - runtime_p->send_start_time > 20 && workflg==0)
 			{
-				DbgPrintToFile1(31,"暂停抄表");
+				DbgPrintToFile1(31,"暂停抄表5");
 				workflg = 1;
 				retryflag = 0;
 				sendlen = AFN12_F2(&runtime_p->format_Down,runtime_p->sendbuf);
@@ -2782,9 +2782,8 @@ int JugeTransType(INT8U *buf,INT8U len)
 	memcpy(tmp3762,buf,len);
 
 	DbPrt1(31,"透传的报文:", (char *) tmp3762, len, NULL);
-	transType = analyzeProtocol3762(&formatup,tmp3762,len);
-
-	if (transType==0)/*透传的是376.2报文*/
+	transType = simpleAnaly3762(&formatup,tmp3762,len);
+	if (transType==1)/*透传的是376.2报文*/
 	{
 		DbgPrintToFile1(31,"376.2【 afn=%02x   fn=%d 】",formatup.afn,formatup.fn);
 		if ( (formatup.afn==0x05 && formatup.fn==3 ))
@@ -2793,10 +2792,9 @@ int JugeTransType(INT8U *buf,INT8U len)
 			memcpy(buf645,&buf[15],len07);
 			broadtime.len = len07;
 			memcpy(broadtime.buf,buf645,len07);
-			DbPrt1(31,"645dd:", (char *) buf645, len07, NULL);
+			DbPrt1(31,"645:", (char *) buf645, len07, NULL);
 			DbPrt1(31,"645:", (char *) &buf[14], 19, NULL);
 			ret = analyzeProtocol07(&frame07, buf645, len07, &NEXTflag);
-			DbgPrintToFile1(31,"ret = %d   frame07.Ctrl=%02x    buf[23]   str.len=%d",ret,frame07.Ctrl,buf[23],broadtime.len);
 			if ( ret == 1)
 			{
 				if (frame07.Ctrl==0x08)
@@ -2810,7 +2808,7 @@ int JugeTransType(INT8U *buf,INT8U len)
 					broadtime.broadCastTime.Sec = frame07.Time[0];
 					DbgPrintToFile1(31,"广播对时时间  %d-%d-%d %d:%d:%d ",broadtime.broadCastTime.Year,broadtime.broadCastTime.Month,
 							broadtime.broadCastTime.Day,broadtime.broadCastTime.Hour,broadtime.broadCastTime.Minute,broadtime.broadCastTime.Sec);
-					DbPrt1(31,"645sss:", (char *) &broadtime.buf, broadtime.len, NULL);
+					DbPrt1(31,"645对时报文:", (char *) &broadtime.buf, broadtime.len, NULL);
 					return 1; /*376.2 AFN=05 fn=f3 启动广播*/
 				}
 			}
@@ -2818,11 +2816,11 @@ int JugeTransType(INT8U *buf,INT8U len)
 		return 2;/*其它376.2报文*/
 	}else
 	{
-		DbgPrintToFile1(31,"透传的是645报文",formatup.afn,formatup.fn);
 		memcpy(buf645,tmp3762,len);
 		ret = analyzeProtocol07(&frame07, buf645, len, &NEXTflag);
 		if ( ret == 1)
 		{
+			DbgPrintToFile1(31,"透传的是645报文 控制码%02x",frame07.Ctrl);
 			if (frame07.Ctrl==0x08)
 			{
 				broadtime.is = 1;
@@ -2832,9 +2830,11 @@ int JugeTransType(INT8U *buf,INT8U len)
 				broadtime.broadCastTime.Hour = frame07.Time[2];
 				broadtime.broadCastTime.Minute = frame07.Time[1];
 				broadtime.broadCastTime.Sec = frame07.Time[0];
+				broadtime.len = len;
+				memcpy(broadtime.buf,tmp3762,len);
 				DbgPrintToFile1(31,"广播对时时间  %d-%d-%d %d:%d:%d ",broadtime.broadCastTime.Year,broadtime.broadCastTime.Month,
 						broadtime.broadCastTime.Day,broadtime.broadCastTime.Hour,broadtime.broadCastTime.Minute,broadtime.broadCastTime.Sec);
-				DbPrt1(31,"645sss:", (char *) &broadtime.buf, broadtime.len, NULL);
+				DbPrt1(31,"645对时报文:", (char *) &broadtime.buf, broadtime.len, NULL);
 				return 1; /*376.2 AFN=05 fn=f3 启动广播*/
 			}
 		}
@@ -3034,7 +3034,7 @@ int doProxy(RUNTIME_PLC *runtime_p)
 		case 0://暂停抄表
 			if ( nowtime - runtime_p->send_start_time > 20)
 			{
-				DbgPrintToFile1(31,"暂停抄表");
+				DbgPrintToFile1(31,"暂停抄表4");
 				DEBUG_TIME_LINE("暂停抄表");
 				clearvar(runtime_p);
 				runtime_p->send_start_time = nowtime ;
@@ -3152,7 +3152,7 @@ int doSerch(RUNTIME_PLC *runtime_p)
 		case 0://暂停抄读
 			if ( nowtime - runtime_p->send_start_time > 20)
 			{
-				DbgPrintToFile1(31,"暂停抄表");
+				DbgPrintToFile1(31,"暂停抄表1");
 				clearvar(runtime_p);
 				runtime_p->send_start_time = nowtime ;
 				sendlen = AFN12_F2(&runtime_p->format_Down,runtime_p->sendbuf);
@@ -3561,7 +3561,7 @@ int doTask_by_jzq(RUNTIME_PLC *runtime_p)
 		case 0://暂停抄表
 			if ( nowtime - runtime_p->send_start_time > 20)
 			{
-				DbgPrintToFile1(31,"\n暂停抄表");
+				DbgPrintToFile1(31,"\n暂停抄表2");
 				clearvar(runtime_p);
 				runtime_p->redo = 0;
 				runtime_p->send_start_time = nowtime ;
@@ -3795,7 +3795,7 @@ int doAutoReport(RUNTIME_PLC *runtime_p)
 		case 1://抄读指定事件
 			if ( nowtime - runtime_p->send_start_time > 20 && beginwork==0)
 			{
-				DbgPrintToFile1(31,"暂停抄表");
+				DbgPrintToFile1(31,"暂停抄表3");
 				clearvar(runtime_p);
 				runtime_p->send_start_time = nowtime ;
 				sendlen = AFN12_F2(&runtime_p->format_Down,runtime_p->sendbuf);
@@ -3981,6 +3981,7 @@ int doBroadCast(RUNTIME_PLC *runtime_p)
 			}else if(runtime_p->format_Up.afn == 0x00 && runtime_p->format_Up.fn == 1)
 			{//确认
 				clearvar(runtime_p);
+				workflg = 0;
 				step_cj = 1;
 			}
 			break;
@@ -4035,6 +4036,7 @@ int doBroadCast(RUNTIME_PLC *runtime_p)
 				}
 				clearvar(runtime_p);
 				step_cj = 0;
+				workflg = 0;
 				runtime_p->redo = 2;  //广播后恢复抄表
 				return(runtime_p->state_bak);
 			}else if(((nowtime - runtime_p->send_start_time > 20) && workflg==1) )
@@ -4042,6 +4044,7 @@ int doBroadCast(RUNTIME_PLC *runtime_p)
 				DbgPrintToFile1(31,"广播超时");
 				clearvar(runtime_p);
 				step_cj = 0;
+				workflg = 0;
 				runtime_p->redo = 2;  //广播后恢复抄表
 				return(runtime_p->state_bak);
 			}
