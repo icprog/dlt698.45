@@ -14,3 +14,4 @@ From,Name,NewName,Position
 ../bin_arm/,libGui.so,libGui.so,/nor/lib/
 ../bin_arm/,libMq.so,libMq.so,/nor/lib/
 ../bin_arm/,libzlib.so,libzlib.so,/nor/lib/
+../config/,698_rc.local,rc.local,/nor/rc.d/

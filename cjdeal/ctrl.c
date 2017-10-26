@@ -24,7 +24,7 @@ static ctrlUN ctrlunit, ctrlunit_old;
 
 int findPinSum(int sum_i, int p_i, int* mmm)
 {
-    fprintf(stderr, "==========!! %d==%d\n", sum_i, p_i);
+//    fprintf(stderr, "==========!! %d==%d\n", sum_i, p_i);
     int res = 0;
     for (int i = 0; i < 8; i++) {
         int n = JProgramInfo->class23[sum_i].allist[i].tsa.addr[0];
@@ -63,6 +63,7 @@ void refreshSumUp()
     static int old_month;
     static int first_flag = 1;
     static INT64S prev[8][4];
+    INT64U curP[8][8];
 
     TS ts;
     TSGet(&ts);
@@ -77,15 +78,33 @@ void refreshSumUp()
                 prev[ss][i] = JProgramInfo->class23[ss].DayP[i];
             }
         }
+
+        for (int i = 0; i < 8; i ++){
+        	for(int j = 0; j < 8; j ++){
+        		curP[i][j] = 0;
+        		JProgramInfo->class23[i].allist[j].curP[0] = 0;
+        	}
+        }
     }
 
-    for (int sum_i = 0; sum_i < 8; sum_i++) {
+    for (int sum_i = 0; sum_i < 4; sum_i++) {
         for (int i = 0; i < 4; i++) {
             JProgramInfo->class23[sum_i].DayP[i] = 0;
             JProgramInfo->class23[sum_i].DayQ[i] = 0;
             JProgramInfo->class23[sum_i].MonthP[i] = 0;
             JProgramInfo->class23[sum_i].MonthQ[i] = 0;
         }
+
+        int tmp_remains = 0;
+        for (int al_i = 0; al_i < 8; al_i++){
+			INT64U tmp = JProgramInfo->class23[sum_i].allist[al_i].curP[0] - curP[sum_i][al_i];
+			fprintf(stderr, "kk==========%lld, %lld, %lld\n", JProgramInfo->class23[sum_i].allist[al_i].curP[0], curP[sum_i][al_i], tmp);
+			tmp_remains -= (tmp <= 0) ? 0:tmp * 100;
+			curP[sum_i][al_i] = JProgramInfo->class23[sum_i].allist[al_i].curP[0];
+        }
+
+        JProgramInfo->class23[sum_i].remains += tmp_remains;
+
 
         for (int p_i = 0; p_i < 2; p_i++) {
             int mmm = 0;
@@ -96,14 +115,14 @@ void refreshSumUp()
             JProgramInfo->class23[sum_i].p = JProgramInfo->class12[p_i].p;
             JProgramInfo->class23[sum_i].q = JProgramInfo->class12[p_i].q;
 
-            fprintf(stderr, "1^^^^^^%d %d %d\n", mmm,
-                JProgramInfo->class12[p_i].day_pos_p[0], p_i);
-            fprintf(stderr, "2^^^^^^%d %d %d\n", mmm,
-                JProgramInfo->class12[p_i].day_pos_p[1], p_i);
-            fprintf(stderr, "3^^^^^^%d %d %d\n", mmm,
-                JProgramInfo->class12[p_i].day_pos_p[2], p_i);
-            fprintf(stderr, "4^^^^^^%d %d %d\n", mmm,
-                JProgramInfo->class12[p_i].day_pos_p[3], p_i);
+//            fprintf(stderr, "1^^^^^^%d %d %d\n", mmm,
+//                JProgramInfo->class12[p_i].day_pos_p[0], p_i);
+//            fprintf(stderr, "2^^^^^^%d %d %d\n", mmm,
+//                JProgramInfo->class12[p_i].day_pos_p[1], p_i);
+//            fprintf(stderr, "3^^^^^^%d %d %d\n", mmm,
+//                JProgramInfo->class12[p_i].day_pos_p[2], p_i);
+//            fprintf(stderr, "4^^^^^^%d %d %d\n", mmm,
+//                JProgramInfo->class12[p_i].day_pos_p[3], p_i);
 
             if (JProgramInfo->class23[sum_i].allist[mmm].cal_flag == 0) {
                 for (int i = 0; i < 4; i++) {
@@ -121,20 +140,20 @@ void refreshSumUp()
                 }
             }
 
-            fprintf(stderr, "5^^^^^^%d %d %d\n", mmm,
-                JProgramInfo->class12[p_i].day_pos_p[0]
-                    * (JProgramInfo->class23[0].allist[mmm].cal_flag
-                                  == 0
-                              ? 1
-                              : -1),
-                JProgramInfo->class23[0].DayP[0]);
+//            fprintf(stderr, "5^^^^^^%d %d %d\n", mmm,
+//                JProgramInfo->class12[p_i].day_pos_p[0]
+//                    * (JProgramInfo->class23[0].allist[mmm].cal_flag
+//                                  == 0
+//                              ? 1
+//                              : -1),
+//                JProgramInfo->class23[0].DayP[0]);
         }
         int sssum = 0;
         for (int i = 0; i < 4; i++) {
             sssum += (prev[sum_i][i] - JProgramInfo->class23[sum_i].DayP[i]);
             prev[sum_i][i] = JProgramInfo->class23[sum_i].DayP[i];
         }
-        fprintf(stderr, "剩余电量插值 %d\n", sssum);
+        fprintf(stderr, "剩余电量差值 %d\n", sssum);
         JProgramInfo->class23[sum_i].remains += sssum;
     }
 
@@ -379,7 +398,7 @@ int deal8103()
                 fprintf(stderr, "时段功控，告警！！！！！！！！！！！！！功控告警时间 %d %d\n",
                     CtrlC->c8102.time[0] * 60, count[i] * 5);
                 if (count[i] * 5 >= (CtrlC->c8102.time[0]) * 60) {
-                    JProgramInfo->ctrls.c8103.output[i].state = 1;
+                    JProgramInfo->ctrls.c8103.output[i].state = 128;
                     JProgramInfo->ctrls.c8103.overflow[i].state = 0;
                     count[i] = 0;
                     step[i] = 1;
@@ -392,18 +411,18 @@ int deal8103()
                 fprintf(stderr, "时段功控，二轮告警[%d]！！！！！！！！！！！！！",
                     JProgramInfo->class23[i].alCtlState.OutputState);
                 fprintf(stderr, "功控告警时间 %d\n", CtrlC->c8102.time[1] * 60);
-                JProgramInfo->ctrls.c8103.output[i].state = 1;
+                JProgramInfo->ctrls.c8103.output[i].state = 128;
                 JProgramInfo->ctrls.c8103.overflow[i].state = 0;
                 if (count[i] * 5 >= (CtrlC->c8102.time[1]) * 60) {
                     fprintf(stderr, "时段功控，二轮跳闸！！！！！！！！！！！！！");
-                    JProgramInfo->ctrls.c8103.output[i].state = 3;
+                    JProgramInfo->ctrls.c8103.output[i].state = 192;
                     JProgramInfo->ctrls.c8103.overflow[i].state = 0;
                     step[i] = 2;
                 }
                 count[i] += 1;
                 break;
             case 2:
-                JProgramInfo->ctrls.c8103.output[i].state = 3;
+                JProgramInfo->ctrls.c8103.output[i].state = 192;
                 JProgramInfo->ctrls.c8103.overflow[i].state = 0;
                 break;
             }
@@ -480,7 +499,7 @@ int deal8104()
                 fprintf(stderr, "厂休控，告警！！！！！！！！！！！！！功控告警时间 %d %d\n",
                     CtrlC->c8102.time[0] * 60, count[i] * 5);
                 if (count[i] * 5 >= (CtrlC->c8102.time[0]) * 60) {
-                    JProgramInfo->ctrls.c8104.output[i].state = 1;
+                    JProgramInfo->ctrls.c8104.output[i].state = 128;
                     JProgramInfo->ctrls.c8104.overflow[i].state = 0;
                     count[i] = 0;
                     step[i] = 1;
@@ -493,18 +512,18 @@ int deal8104()
                 fprintf(stderr, "厂休控，二轮告警[%d]！！！！！！！！！！！！！",
                     JProgramInfo->class23[i].alCtlState.OutputState);
                 fprintf(stderr, "功控告警时间 %d\n", CtrlC->c8102.time[1] * 60);
-                JProgramInfo->ctrls.c8104.output[i].state = 1;
+                JProgramInfo->ctrls.c8104.output[i].state = 128;
                 JProgramInfo->ctrls.c8104.overflow[i].state = 0;
                 if (count[i] * 5 >= (CtrlC->c8102.time[1]) * 60) {
                     fprintf(stderr, "厂休控，二轮跳闸！！！！！！！！！！！！！");
-                    JProgramInfo->ctrls.c8104.output[i].state = 3;
+                    JProgramInfo->ctrls.c8104.output[i].state = 192;
                     JProgramInfo->ctrls.c8104.overflow[i].state = 0;
                     step[i] = 2;
                 }
                 count[i] += 1;
                 break;
             case 2:
-                JProgramInfo->ctrls.c8104.output[i].state = 3;
+                JProgramInfo->ctrls.c8104.output[i].state = 192;
                 JProgramInfo->ctrls.c8104.overflow[i].state = 0;
                 break;
             }
@@ -565,7 +584,7 @@ int deal8105()
                 fprintf(stderr, "营业报停控，告警！！！！！！！！！！！！！功控告警时间 %d %d\n",
                     CtrlC->c8102.time[0] * 60, count[i] * 5);
                 if (count[i] * 5 >= (CtrlC->c8102.time[0]) * 60) {
-                    JProgramInfo->ctrls.c8105.output[i].state = 1;
+                    JProgramInfo->ctrls.c8105.output[i].state = 128;
                     JProgramInfo->ctrls.c8105.overflow[i].state = 0;
                     count[i] = 0;
                     step[i] = 1;
@@ -578,18 +597,18 @@ int deal8105()
                 fprintf(stderr, "营业报停控，二轮告警[%d]！！！！！！！！！！！！！",
                     JProgramInfo->class23[i].alCtlState.OutputState);
                 fprintf(stderr, "功控告警时间 %d\n", CtrlC->c8102.time[1] * 60);
-                JProgramInfo->ctrls.c8105.output[i].state = 1;
+                JProgramInfo->ctrls.c8105.output[i].state = 128;
                 JProgramInfo->ctrls.c8105.overflow[i].state = 0;
                 if (count[i] * 5 >= (CtrlC->c8102.time[1]) * 60) {
                     fprintf(stderr, "营业报停控，二轮跳闸！！！！！！！！！！！！！");
-                    JProgramInfo->ctrls.c8105.output[i].state = 3;
+                    JProgramInfo->ctrls.c8105.output[i].state = 192;
                     JProgramInfo->ctrls.c8105.overflow[i].state = 0;
                     step[i] = 2;
                 }
                 count[i] += 1;
                 break;
             case 2:
-                JProgramInfo->ctrls.c8105.output[i].state = 3;
+                JProgramInfo->ctrls.c8105.output[i].state = 192;
                 JProgramInfo->ctrls.c8105.overflow[i].state = 0;
                 break;
             }
@@ -679,7 +698,7 @@ int deal8106()
             fprintf(stderr, "功率下浮控，告警！！！！！！！！！！！！！功控告警时间 %d %d\n",
                 CtrlC->c8102.time[0] * 60, count * 5);
             if (count * 5 >= (CtrlC->c8102.time[0]) * 60) {
-                JProgramInfo->ctrls.c8106.output.state = 1;
+                JProgramInfo->ctrls.c8106.output.state = 128;
                 JProgramInfo->ctrls.c8106.overflow.state = 0;
                 count = 0;
                 step = 1;
@@ -692,18 +711,18 @@ int deal8106()
             fprintf(stderr, "功率下浮控，二轮告警[%d]！！！！！！！！！！！！！",
                 JProgramInfo->class23[i].alCtlState.OutputState);
             fprintf(stderr, "功控告警时间 %d\n", CtrlC->c8102.time[1] * 60);
-            JProgramInfo->ctrls.c8106.output.state = 1;
+            JProgramInfo->ctrls.c8106.output.state = 128;
             JProgramInfo->ctrls.c8106.overflow.state = 0;
             if (count * 5 >= (CtrlC->c8102.time[1]) * 60) {
                 fprintf(stderr, "功率下浮控，二轮跳闸！！！！！！！！！！！！！");
-                JProgramInfo->ctrls.c8106.output.state = 3;
+                JProgramInfo->ctrls.c8106.output.state = 192;
                 JProgramInfo->ctrls.c8106.overflow.state = 0;
                 step = 2;
             }
             count += 1;
             break;
         case 2:
-            JProgramInfo->ctrls.c8106.output.state = 3;
+            JProgramInfo->ctrls.c8106.output.state = 192;
             JProgramInfo->ctrls.c8106.overflow.state = 0;
             break;
         }
@@ -749,7 +768,7 @@ int deal8107()
 
             if (mmm <= val) {
                 fprintf(stderr, "购电控跳闸 ！！！！！！！！！！！！！！！！！！\n");
-                JProgramInfo->ctrls.c8107.output[i].state = 3;
+                JProgramInfo->ctrls.c8107.output[i].state = 192;
                 JProgramInfo->ctrls.c8107.overflow[i].state = 0;
                 return 2;
             }
@@ -797,7 +816,7 @@ int deal8108()
 
             if (JProgramInfo->class23[i].MonthPALL * 100 > val) {
                 fprintf(stderr, "月电控跳闸！！！！！！！！！！！！！！！！！！\n", val);
-                JProgramInfo->ctrls.c8108.output[i].state = 3;
+                JProgramInfo->ctrls.c8108.output[i].state = 192;
                 JProgramInfo->ctrls.c8108.overflow[i].state = 0;
                 return 2;
             }
@@ -972,23 +991,23 @@ void CtrlStateSumUp()
         JProgramInfo->class23[i].alCtlState.ECAlarmState = 0;
 
         if (JProgramInfo->ctrls.c8103.overflow[i].state == 1) {
-            setBit(&JProgramInfo->class23[i].alCtlState.PCAlarmState, 7);
+        	JProgramInfo->class23[i].alCtlState.PCAlarmState = setBit(&JProgramInfo->class23[i].alCtlState.PCAlarmState, 7);
         }
         if (JProgramInfo->ctrls.c8104.overflow[i].state == 1) {
-            setBit(&JProgramInfo->class23[i].alCtlState.PCAlarmState, 6);
+        	JProgramInfo->class23[i].alCtlState.PCAlarmState = setBit(&JProgramInfo->class23[i].alCtlState.PCAlarmState, 6);
         }
         if (JProgramInfo->ctrls.c8105.overflow[i].state == 1) {
-            setBit(&JProgramInfo->class23[i].alCtlState.PCAlarmState, 5);
+        	JProgramInfo->class23[i].alCtlState.PCAlarmState = setBit(&JProgramInfo->class23[i].alCtlState.PCAlarmState, 5);
         }
         if (JProgramInfo->ctrls.c8106.overflow.state == 1) {
-            setBit(&JProgramInfo->class23[i].alCtlState.PCAlarmState, 4);
+        	JProgramInfo->class23[i].alCtlState.PCAlarmState = setBit(&JProgramInfo->class23[i].alCtlState.PCAlarmState, 4);
         }
 
         if (JProgramInfo->ctrls.c8107.overflow[i].state == 1) {
-            setBit(&JProgramInfo->class23[i].alCtlState.ECAlarmState, 7);
+        	JProgramInfo->class23[i].alCtlState.PCAlarmState = setBit(&JProgramInfo->class23[i].alCtlState.ECAlarmState, 7);
         }
         if (JProgramInfo->ctrls.c8108.overflow[i].state == 1) {
-            setBit(&JProgramInfo->class23[i].alCtlState.ECAlarmState, 6);
+        	JProgramInfo->class23[i].alCtlState.PCAlarmState = setBit(&JProgramInfo->class23[i].alCtlState.ECAlarmState, 6);
         }
         JProgramInfo->class23[i].alCtlState.BuyOutputState = JProgramInfo->ctrls.c8107.output[i].state;
         JProgramInfo->class23[i].alCtlState.MonthOutputState = JProgramInfo->ctrls.c8108.output[i].state;
@@ -998,6 +1017,8 @@ void CtrlStateSumUp()
         JProgramInfo->class23[i].alCtlState.OutputState |= JProgramInfo->ctrls.c8105.output[i].state;
         JProgramInfo->class23[i].alCtlState.OutputState |= JProgramInfo->ctrls.c8106.output.state;
     }
+
+    fprintf(stderr, "=======================%d=%d==\n", JProgramInfo->ctrls.c8103.overflow[0].state, JProgramInfo->class23[0].alCtlState.PCAlarmState);
 }
 
 int ctrlMain(void* arg)
@@ -1021,6 +1042,7 @@ int ctrlMain(void* arg)
         }
 
         refreshPluse(secOld);
+        fprintf(stderr, "refreshSumUp\n");
         refreshSumUp();
 
         if (secOld % 5 == 0) {
@@ -1034,6 +1056,7 @@ int ctrlMain(void* arg)
         PackCtrlSituation();
         HandlerCtrl();
         DoActuallyCtrl();
+        CheckCtrlControl();
     }
 
 }
