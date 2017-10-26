@@ -53,6 +53,8 @@ typedef struct {
 
 	int RS485IIIAutoReport;
 	int StopCommunite;
+
+	CommBlock *last_proxy;//记录最后一次代理消息的端口
 } DBStruct;
 
 void * dbGet(char * name);
