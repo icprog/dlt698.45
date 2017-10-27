@@ -1,14 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <projectDescription>
-	<name>zdtest698</name>
+	<name>cjup</name>
 	<comment></comment>
 	<projects>
-		<project>include</project>
 		<project>lib698</project>
 		<project>libAccess</project>
 		<project>libBase</project>
 		<project>libCjt188</project>
 		<project>libDlt645</project>
+		<project>libMq</project>
+		<project>libTransmit</project>
 		<project>libzlib</project>
 	</projects>
 	<buildSpec>
@@ -38,7 +39,7 @@
 				</dictionary>
 				<dictionary>
 					<key>org.eclipse.cdt.make.core.buildLocation</key>
-					<value>${workspace_loc:/cj}/Release</value>
+					<value>${workspace_loc:/jmain}/Release</value>
 				</dictionary>
 				<dictionary>
 					<key>org.eclipse.cdt.make.core.cleanBuildTarget</key>
@@ -83,6 +84,7 @@
 	</buildSpec>
 	<natures>
 		<nature>org.eclipse.cdt.core.cnature</nature>
+		<nature>org.eclipse.cdt.core.ccnature</nature>
 		<nature>org.eclipse.cdt.managedbuilder.core.managedBuildNature</nature>
 		<nature>org.eclipse.cdt.managedbuilder.core.ScannerConfigNature</nature>
 	</natures>

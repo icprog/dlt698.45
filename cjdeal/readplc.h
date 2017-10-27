@@ -36,6 +36,9 @@ extern INT16S getTaskIndex(INT8U port);
 #define FANGAN_ITEM_MAX 64
 #define FANGAN6015_MAX 20
 #define NUM_07DI_698OAD 100
+typedef enum {
+	OTHER_factory,DX_factory
+}FACTORY_ENUM;	/*厂家*/
 //---------------------------------------------------------------
 typedef struct
 {
@@ -360,5 +363,5 @@ typedef struct
 }BroadCastTime;
 
 BroadCastTime broadtime;
-
+INT8U RouterFactory;
 #endif /* EVENTCALC_H_ */

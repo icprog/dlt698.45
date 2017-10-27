@@ -1007,9 +1007,11 @@ void cjframe(int argc, char *argv[])
 
 void PrintTaskInfo2(TASK_INFO *task)
 {
+	time_t nowt = time(NULL);
 	int i=0,j=0,numindex=0;
 	for(i=0;i<task->task_n;i++)
 	{
+		fprintf(stderr,"\n当前时间( %ld )   本任务下次执行时间  ( %ld )",nowt, task->task_list[i].beginTime  );
 		for(j=0;j<task->task_list[i].fangan.item_n;j++)
 		{
 			numindex++;

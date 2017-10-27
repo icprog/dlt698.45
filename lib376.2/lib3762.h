@@ -12,6 +12,7 @@
 #include "format3762.h"
 #include "PublicFunction.h"
 extern INT8S analyzeProtocol3762(FORMAT3762* format3762, INT8U* recvBuf, const INT16U recvLen);
+extern INT8S simpleAnaly3762(FORMAT3762* format3762, INT8U* recvBuf, const INT16U recvLen);
 extern INT8S composeProtocol3762(FORMAT3762* format3762, INT8U* sendBuf);
 extern int AFN13_F1(FORMAT3762 *down,INT8U *sendBuf3762,INT8U* destAddr, INT8U protocol, INT8U delayFlag, INT8U* sendBuf645, INT8U sendLen645);
 extern int AFN11_F1(FORMAT3762 *down,INT8U *sendBuf,INT8U *SlavePointAddr,INT8U Protocol);
