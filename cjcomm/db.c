@@ -62,6 +62,12 @@ void dbInit(int index) {
 	initComPara(&DB.net, cWrite);
 	initComPara(&DB.gprs, cWriteWithCalc);
 
+	DB.ifr.name = 1;
+	DB.serial.name = 2;
+	DB.serial_hn.name = 5;
+	DB.net.name = 3;
+	DB.gprs.name = 4;
+
 	DB.last_proxy = &DB.serial;
 
 	DB.gprs.Heartbeat = DB.c25.commconfig.heartBeat;
