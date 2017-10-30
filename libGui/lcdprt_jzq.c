@@ -3916,6 +3916,7 @@ void jzq_id_edit()
 					g_Class4001_4002_4003.curstom_num[4],g_Class4001_4002_4003.curstom_num[5],g_Class4001_4002_4003.curstom_num[6]);
 			saveCoverClass(0x4001, 0, (void*)&g_Class4001_4002_4003, sizeof(CLASS_4001_4002_4003), para_vari_save);
 			saveCoverClass(0x4001, 0, (void*)&g_Class4001_4002_4003, sizeof(CLASS_4001_4002_4003), para_init_save);
+			writeIdFile(g_Class4001_4002_4003);//写入ID备份文件
 			p_JProgramInfo->oi_changed.oi4001++;
 			msgbox_label((char *)"设置成功！", CTRL_BUTTON_OK);
 		}else

@@ -148,6 +148,7 @@ int findtsa(FILE *fp,int *TSA_D,int A_TSAblock)
 			findok = 0;
 			break;
 		}
+		fprintf(stderr,"tmp = %x \n",tmp);
 		if(tmp!=0X55)
 		{
 			findok = 0;
@@ -427,7 +428,7 @@ void analyTaskData(int argc, char* argv[])
 	char *filename= argv[2];
 	FILE *fp=NULL;
 	int i=0, indexn=0,A_record=0,A_TSAblock=0;
-	HEAD_UNIT0 length[20];
+	HEAD_UNIT0 length[50];
 	int tsanum=0 , head_len=0,recordnum =0,haveTsa =0 , unitnum=0;
 
 	if (filename!=NULL)
@@ -453,6 +454,8 @@ void analyTaskData(int argc, char* argv[])
 			fprintf(stderr,"\n文件头长度 %d (字节)",head_len);
 
 			A_TSAblock = readfile_int(fp);
+
+
 			memset(&length,0,sizeof(length));
 			unitnum = (head_len )/sizeof(HEAD_UNIT0);
 

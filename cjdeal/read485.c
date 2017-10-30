@@ -2550,6 +2550,8 @@ INT8S dealProxyType7(PROXY_GETLIST *getlist,INT8U port485)
 	INT8U RecvBuff[BUFFSIZE1024];
 	INT8U TmprevBuf[BUFFSIZE1024];
 	INT16S RecvLen = 0;
+	INT16U	dindex = 0;
+
 	memset(&RecvBuff[0], 0, BUFFSIZE1024);
 	memset(&TmprevBuf[0], 0, BUFFSIZE1024);
 	memset(&csinfo,0,sizeof(CSINFO));
@@ -2591,10 +2593,17 @@ INT8S dealProxyType7(PROXY_GETLIST *getlist,INT8U port485)
 	if(RecvLen > 0)	{
 		fprintf(stderr,"\n代理透传　RecvLen = %d\n",RecvLen);
 		getlist->proxy_obj.transcmd.dar = success;
-		getlist->data[0] = 1;
-		getlist->data[1] = RecvLen;
-		memcpy(&getlist->data[2],&RecvBuff,RecvLen);
-		getlist->datalen = RecvLen + 2;
+		dindex = 0;
+		getlist->data[dindex++] = 1;
+		//代理应答返回数据类型为octet-string
+		dindex += getStringLen(&getlist->data[dindex],RecvLen);
+		memcpy(&getlist->data[dindex],&RecvBuff,RecvLen);
+		dindex += RecvLen;
+		getlist->datalen = dindex;
+		DbgPrintToFile1(port485,"代理返回数据长度 = %d Data=%02X [%02x_%02x_%02x]",dindex,getlist->data[0],
+				getlist->data[1],getlist->data[2],getlist->data[3]);
+
+
 	}else {
 		getlist->proxy_obj.transcmd.dar = request_overtime;
 		getlist->datalen = 0;
@@ -3511,7 +3520,7 @@ INT16S deal6015_698(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8
 
 	if(st6015.cjtype == TYPE_INTERVAL)
 	{
-		delayms = 2000;
+		delayms = 5000;
 	}
 	sendLen = composeProtocol698_GetRequest_RN(sendbuff, st6015,to6001.basicinfo.addr);
 

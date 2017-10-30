@@ -1666,13 +1666,13 @@ int Get4500(RESULT_NORMAL *response)
 		break;
 	case 7:
 //		if(class_tmp.ccid[0]>0)
-			index +=fill_visible_string(&data[index],(char *)&class_tmp.ccid[1],20);//class_tmp.ccid[0]);
+			index +=fill_visible_string(&data[index],(char *)&class_tmp.ccid[1],class_tmp.ccid[0]);
 //		else
 //			data[index++]=0;
 	    break;
 	case 8:
 //		if(class_tmp.imsi[0]>0)
-			index +=fill_visible_string(&data[index],(char *)&class_tmp.imsi[1],15);//class_tmp.imsi[0]);
+			index +=fill_visible_string(&data[index],(char *)&class_tmp.imsi[1],class_tmp.imsi[0]);
 //		else
 //			data[index++]=0;
 		break;
@@ -1685,7 +1685,7 @@ int Get4500(RESULT_NORMAL *response)
 //		else
 //			data[index++]=0;
 //		if(class_tmp.simkard[0]>0)
-			index +=fill_visible_string(&data[index],(char *)&class_tmp.simkard[1],16);//class_tmp.simkard[0]);
+			index +=fill_visible_string(&data[index],(char *)&class_tmp.simkard[1],class_tmp.simkard[0]);
 //		else
 //			data[index++]=0;
 		break;

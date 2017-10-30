@@ -238,6 +238,7 @@ INT16U set4001_4002_4003(OAD oad,INT8U *data,INT8U *DAR)	//通信地址，表号
 			}
 			*DAR = saveCoverClass(oad.OI,0,&class_addr,sizeof(CLASS_4001_4002_4003),para_vari_save);
 			*DAR = saveCoverClass(oad.OI,0,&class_addr,sizeof(CLASS_4001_4002_4003), para_init_save);
+			writeIdFile(class_addr);//写入ID备份文件
 		}
 	}
 	return index;
@@ -732,6 +733,9 @@ INT16U set4500(OAD oad,INT8U *data,INT8U *DAR)
 			*DAR = refuse_rw;
 			return index;
 		}
+	    write_apn((char *) &class4500.commconfig.apn[1]);
+		usleep(100*1000);
+		write_userpwd(&class4500.commconfig.userName[1],&class4500.commconfig.passWord[1],&class4500.commconfig.apn[1]);
 		break;
 	case 3:		//主站通信参数表
 		index += getArray(&data[index],(INT8U *)&class4500.master.masternum,DAR);
