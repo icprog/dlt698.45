@@ -673,6 +673,38 @@ void CheckOnLineStatue() {
 	}
 }
 
+/**********************
+ * 从文件中同步 ID
+ * */
+void sync_Id_fromFile()
+{
+	int i=0;
+	CLASS_4001_4002_4003 id_public,id_698;
+	if (readIdFile(&id_public)==1)
+	{
+		fprintf(stderr,"\n同步ID  读取同步文件中 :");
+		for(i=0;i<OCTET_STRING_LEN;i++)
+			fprintf(stderr," %02x",id_public.curstom_num[i]);
+
+		readCoverClass(0x4001, 0, (void*)&id_698, 	sizeof(CLASS_4001_4002_4003), para_vari_save);
+		fprintf(stderr,"\n同步ID  698配置文件中 :");
+		for(i=0;i<OCTET_STRING_LEN;i++)
+			fprintf(stderr," %02x",id_698.curstom_num[i]);
+
+		if(memcmp(id_698.curstom_num,id_public.curstom_num,16)!=0)
+		{
+			fprintf(stderr,"\n不一样！需要同步到698中");
+			memcpy(id_698.curstom_num,id_public.curstom_num,16);
+			saveCoverClass(0x4001, 0, &id_698, sizeof(CLASS_4001_4002_4003), para_vari_save);
+			sync();
+			readCoverClass(0x4001, 0, (void*)&id_698, 	sizeof(CLASS_4001_4002_4003), para_vari_save);
+			fprintf(stderr,"\n同步ID  重新读取698配置文件中 :");
+			for(i=0;i<OCTET_STRING_LEN;i++)
+				fprintf(stderr," %02x",id_698.curstom_num[i]);
+		}
+	}
+}
+
 int main(int argc, char *argv[])
 {
     struct timeval start={}, end={};
@@ -713,6 +745,7 @@ int main(int argc, char *argv[])
     }
     if(getZone("HuNan")==0) {
     	get_protocol_3761_tx_para();//湖南获取3761切换通信参数，在初始化其他操作之后进行
+       	sync_Id_fromFile();//湖南要求3761和698两套程序设置的逻辑地址通用，因此程序运行起来后需要和公共ID文件同步
     }
     //点亮运行灯，初始化运行状态
 

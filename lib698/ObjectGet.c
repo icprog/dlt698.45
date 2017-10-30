@@ -1665,16 +1665,16 @@ int Get4500(RESULT_NORMAL *response)
             data[index++]=0;
 		break;
 	case 7:
-		if(class_tmp.ccid[0]>0)
+//		if(class_tmp.ccid[0]>0)
 			index +=fill_visible_string(&data[index],(char *)&class_tmp.ccid[1],class_tmp.ccid[0]);
-		else
-			data[index++]=0;
+//		else
+//			data[index++]=0;
 	    break;
 	case 8:
-		if(class_tmp.imsi[0]>0)
+//		if(class_tmp.imsi[0]>0)
 			index +=fill_visible_string(&data[index],(char *)&class_tmp.imsi[1],class_tmp.imsi[0]);
-		else
-			data[index++]=0;
+//		else
+//			data[index++]=0;
 		break;
 	case 9:
 		index +=fill_long(&data[index],class_tmp.signalStrength);
@@ -1684,10 +1684,10 @@ int Get4500(RESULT_NORMAL *response)
 //			index +=fill_visible_string(&data[index],(char *)&class_tmp.simkard,strlen((char *)class_tmp.simkard));
 //		else
 //			data[index++]=0;
-		if(class_tmp.simkard[0]>0)
+//		if(class_tmp.simkard[0]>0)
 			index +=fill_visible_string(&data[index],(char *)&class_tmp.simkard[1],class_tmp.simkard[0]);
-		else
-			data[index++]=0;
+//		else
+//			data[index++]=0;
 		break;
 	case 11:
 		if(class_tmp.pppip[0]>0)

@@ -1,5 +1,7 @@
 From,Name,NewName,Position
 ./needed/,cjup,cjup,/nand/bin/
+../config/,07DI_698OAD.cfg,07DI_698OAD.cfg,/nor/config/
+../config/,OI_TYPE.cfg,OI_TYPE.cfg,/nor/config/
 ../bin_arm/,cj,cj,/nand/bin/
 ../bin_arm/,cjcomm,cjcomm,/nand/bin/
 ../bin_arm/,cjmain,cjmain,/nand/bin/
@@ -13,5 +15,3 @@ From,Name,NewName,Position
 ../bin_arm/,libevent.so,libevent.so,/nor/lib/
 ../bin_arm/,libGui.so,libGui.so,/nor/lib/
 ../bin_arm/,libMq.so,libMq.so,/nor/lib/
-../bin_arm/,libzlib.so,libzlib.so,/nor/lib/
-../config/,698_rc.local,rc.local,/nor/rc.d/

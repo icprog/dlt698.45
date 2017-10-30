@@ -21,7 +21,8 @@ int class23_act1(OI_698 oi) {
 	asyslog(LOG_WARNING, "清除所有配置单元(%04x)", no);
 	memset(&shareAddr->class23[no], 0x00, sizeof(CLASS23));
 	saveCoverClass(oi, 0, &shareAddr->class23[no], sizeof(CLASS23), para_vari_save);
-	return 0;
+	//数据为NULL，占用1个字节   23 01 01 00 00（NULL）
+	return 1;
 }
 
 int class23_act3_4(OAD oad, INT8U* data, Action_result *act_ret)
