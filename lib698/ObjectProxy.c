@@ -53,7 +53,7 @@ void ProxyListResponse(PROXY_GETLIST *list,CommBlock *com)
 	index += fill_timetag(&sendbuf[index],Response_timetag);//时间标签		TimeTag
 	FrameTail(sendbuf,index,hcsi);
 	if(com->p_send!=NULL)
-		com->p_send(com->phy_connect_fd,sendbuf,index+3);
+		com->p_send(com->name, com->phy_connect_fd,sendbuf,index+3);
 }
 
 int getProxylist(INT8U *data,PROXY_GETLIST *getlist)

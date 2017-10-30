@@ -1070,11 +1070,12 @@ typedef struct {
     LINK_Response linkResponse; //心跳确认
     CONNECT_Response myAppVar;  //集中器支持的应用层会话参数
     CONNECT_Response AppVar;    //与主站协商后的应用层会话参数
-    INT8S (*p_send)(int fd, INT8U *buf, INT16U len);
+    INT8S (*p_send)(INT8U name, int fd, INT8U *buf, INT16U len);
     INT8U SendBuf[BUFLEN];      //发送数据
     INT8U DealBuf[FRAMELEN];    //保存接口函数处理长度
     INT8U RecBuf[BUFLEN];       //接收数
     TS final_frame;				//最后一次收到报文的时间
+    INT8U name;					//端口名称，用于区分各个端口
 } CommBlock;
 ////////////////////////////////////////////////////////////////////
 typedef struct
