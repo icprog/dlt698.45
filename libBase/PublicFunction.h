@@ -63,7 +63,7 @@ extern void setsystime(DateTimeBCD datetime);
 extern INT8U TScompare(TS ts1, TS ts2);
 extern void DataTimeGet(DateTimeBCD* ts);
 extern INT8S tminc(TS* tmi, Time_Units unit, INT32S val);
-
+extern void time_tToTS(time_t inTimet,TS *outts);
 /* BCD码转int32u
  *参数：bcd为bcd码头指针，len为bcd码长度，order为positive正序/inverted反序，dint转换结果
  * 返回:0：成功；-1：asc为空；-2：en为0；-3：order有误

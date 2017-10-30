@@ -24,7 +24,7 @@ int RegularSerial(struct aeEventLoop *ep, long long id, void *clientData) {
 					nst);
 		}
 	} else {
-		cProc(ep, nst);
+		cProcForShanDongAutoReport(ep, nst);
 	}
 	return 500;
 }

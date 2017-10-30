@@ -55,6 +55,9 @@ void MmqReadandSend(struct aeEventLoop *ep, int fd, void *clientData, int mask) 
 
 	CommBlock *nst = NULL;
 	switch ((int) dbGet("online.type")) {
+	case 0:
+		nst = dbGet("block.serial");
+		break;
 	case 1:
 		nst = dbGet("block.gprs");
 		break;
@@ -69,6 +72,7 @@ void MmqReadandSend(struct aeEventLoop *ep, int fd, void *clientData, int mask) 
 	asyslog(LOG_INFO, "发送代理消息，返回(%d)，类型(%d)", 0, headBuf.cmd);
 	switch (headBuf.cmd) {
 	case TERMINALPROXY_RESPONSE:
+		nst = (CommBlock *)dbGet("proxy");
 		ProxyListResponse((PROXY_GETLIST *) getBuf, nst);
 		break;
 	case TERMINALEVENT_REPORT:
@@ -95,7 +99,7 @@ void MmqReadandSend(struct aeEventLoop *ep, int fd, void *clientData, int mask) 
  */
 int RegularMmq(struct aeEventLoop *ep, long long id, void *clientData) {
 	//获取当前的上线通道
-	if (dbGet("online.type") == 0) {
+	if (dbGet("online.type") == 0 && dbGet("485auto") == 0) {
 		asyslog(LOG_WARNING, "<代理消息、事件主动上报>等待通道在线...");
 		return 8000;
 	}

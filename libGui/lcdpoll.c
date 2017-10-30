@@ -1095,8 +1095,6 @@ LunXian_t LunXian[LunPageNum]={
 		//{"通信参数",		lcdpoll_showidapnip, 		1}//15
 };
 
-
-
 void initlunxian(){//yd
 	int  i;
 	INT8U lcd_lunxian_flg[4];

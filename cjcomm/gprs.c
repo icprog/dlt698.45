@@ -88,6 +88,11 @@ static int RegularModel(struct aeEventLoop *ep, long long id, void *clientData) 
 static int RegularGprs(struct aeEventLoop *ep, long long id, void *clientData) {
 	CommBlock *nst = (CommBlock *) clientData;
 
+	if((int)dbGet("StopCommunite")) {
+		asyslog(LOG_INFO, "GPRS检测到设备掉电一分钟，停止所有通信...");
+		return 2000;
+	}
+
 	if (!AtPrepareFinish(AtGet())) {
 		return 2000;
 	}

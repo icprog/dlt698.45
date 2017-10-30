@@ -379,13 +379,48 @@ int AFN00_F01(FORMAT3762 *up,INT8U *sendBuf)
 	sendlen = composeProtocol3762(&down, sendBuf);
 	return sendlen;
 }
-
+INT8S simpleAnaly3762(FORMAT3762* format3762, INT8U* recvBuf, const INT16U recvLen)
+{
+	INT8U index=10;
+	if (isValid3762(&recvBuf[0], recvLen) == 0)	//校验通过
+	{
+		format3762->length = (recvBuf[2]<<8) + recvBuf[1];
+		if (format3762->length == recvLen)
+		{
+			format3762->ctrl.ComType = recvBuf[3] & 0x3f;
+			format3762->ctrl.PRM = (recvBuf[3]>>6) & 0x01;
+			format3762->ctrl.DIR = (recvBuf[3]>>7) & 0x01;
+			format3762->info_up.RouterFlag = recvBuf[4] & 0x01;
+			format3762->info_up.ModuleFlag = (recvBuf[4]>>2) & 0x01;
+			format3762->info_up.RepeaterLevel = (recvBuf[4]>>4) & 0x0f;
+			format3762->info_up.ChannelFlag = recvBuf[5] & 0x0f;
+			format3762->info_up.PhaseFlag = recvBuf[6] & 0x0f;
+			format3762->info_up.ChannelFeature = (recvBuf[6]>>4) & 0x0f;
+			format3762->info_up.CommandQuality = recvBuf[7] & 0x0f;
+			format3762->info_up.ReplyQuality = (recvBuf[7]>>4) & 0x0f;
+			format3762->info_up.EventFlag = recvBuf[8] & 0x01;
+			format3762->info_up.Seq = recvBuf[9];
+			if (format3762->info_up.ModuleFlag == 1)	//有地址域A
+			{
+				memcpy(&format3762->addr.SourceAddr[0], &recvBuf[index], 6);
+				index += 6;
+				memcpy(&format3762->addr.DestAddr[0], &recvBuf[index], 6);
+				index += 6;
+			}
+			format3762->afn = recvBuf[index++];
+			format3762->dt1 = recvBuf[index++];
+			format3762->dt2 = recvBuf[index++];
+			format3762->fn = getFN(format3762->dt1, format3762->dt2);
+			return 1;
+		}
+	}
+	return 0;
+}
 //解析报文入口函数
 INT8S analyzeProtocol3762(FORMAT3762* format3762, INT8U* recvBuf, const INT16U recvLen)
 {
 	INT8U index=10;
 	INT16S dataLen;
-
 	if (isValid3762(&recvBuf[0], recvLen) == 0)	//校验通过
 	{
 		format3762->length = (recvBuf[2]<<8) + recvBuf[1];
@@ -403,27 +438,18 @@ INT8S analyzeProtocol3762(FORMAT3762* format3762, INT8U* recvBuf, const INT16U r
 		format3762->info_up.ReplyQuality = (recvBuf[7]>>4) & 0x0f;
 		format3762->info_up.EventFlag = recvBuf[8] & 0x01;
 		format3762->info_up.Seq = recvBuf[9];
-
 		if (format3762->info_up.ModuleFlag == 1)	//有地址域A
 		{
 			memcpy(&format3762->addr.SourceAddr[0], &recvBuf[index], 6);
 			index += 6;
 
-//			for (i=0; i<format3762->info_up.RepeaterLevel; i++)
-//			{
-//				memcpy(&format3762->addr.RepeaterAddr[i][0], &recvBuf[index], 6);
-//				index += 6;
-//			}
-
 			memcpy(&format3762->addr.DestAddr[0], &recvBuf[index], 6);
 			index += 6;
 		}
-
 		format3762->afn = recvBuf[index++];
 		format3762->dt1 = recvBuf[index++];
 		format3762->dt2 = recvBuf[index++];
 		format3762->fn = getFN(format3762->dt1, format3762->dt2);
-
 		dataLen = analyzeData(format3762, format3762->ctrl.DIR, format3762->afn, format3762->fn, &recvBuf[index]);
 
 		if (dataLen==-1)

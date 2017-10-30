@@ -3504,7 +3504,6 @@ INT8S dealRealTimeRequst(INT8U port485)
 
 INT16S deal6015_698(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8U* dataContent,INT8U port485)
 {
-
 	fprintf(stderr, "\n deal6015_698-------------------  meter = %d\n", to6001.sernum);
 	DbgPrintToFile1(port485,"普通采集方案 698测量点   meter = %d 任务号 = %d 采集数据项个数 = %d---------",
 			to6001.sernum, st6015.sernum, st6015.csds.num);
