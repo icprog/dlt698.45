@@ -89,7 +89,7 @@ int ConformCheck(struct aeEventLoop* ep, long long id, void* clientData) {
  * 通过cj report命令进行曲线数据的补送,
  * 准备好的数据放在REPORT_FRAME_DATA文件中,上送结束后,自动删除文件
  * */
-void HandReportTask(CommBlock* nst,INT8U *saveover)
+int HandReportTask(CommBlock* nst,INT8U *saveover)
 {
 	int	callret = 0;
 	if((access(REPORT_FRAME_DATA,F_OK)==0) && (*saveover==1)){
@@ -105,6 +105,7 @@ void HandReportTask(CommBlock* nst,INT8U *saveover)
 			}
 		}
 	}
+	return 0;
 }
 
 void RegularAutoTask(struct aeEventLoop* ep, CommBlock* nst) {

@@ -4455,6 +4455,8 @@ INT16U getCBsuctsanum(INT8U taskid,TS ts)
 		}
 		fseek(fp,tsa_pos+blklen,SEEK_SET);//
 	}
+	if(fp != NULL)
+		fclose(fp);
 	return tsa_sucnum;
 }
 //INT8U GetOADData(TS ts,CLASS_6001 tsa_6001,TASK_OADDATA *oaddata)
