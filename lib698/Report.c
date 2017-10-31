@@ -19,7 +19,9 @@
 extern int FrameHead(CSINFO *csinfo,INT8U *buf);
 extern void FrameTail(INT8U *buf,int index,int hcsi);
 extern INT8U Get_Event(OAD oad,INT8U eventno,INT8U** Getbuf,int *Getlen,ProgramInfo* prginfo_event);
-INT8S (*pSendfun_report)(int fd,INT8U* sndbuf,INT16U sndlen);
+INT8S (*pSendfun_report)(int name, int fd,INT8U* sndbuf,INT16U sndlen);
+
+int Golobal_Name;
 
 
 INT8U Report_Event(CommBlock *com,INT8U *oiarr,INT8U report_type){
@@ -30,6 +32,7 @@ INT8U Report_Event(CommBlock *com,INT8U *oiarr,INT8U report_type){
 	int index=0, hcsi=0,temindex=0,i=0;
 	static INT8U	piid=0;
 	pSendfun_report = com->p_send;
+	Golobal_Name = com->name;
 	OI_698 oi=((oiarr[1]<<8)+oiarr[0]);
 	CSINFO csinfo;
 	csinfo.dir = 1;
@@ -130,7 +133,7 @@ INT8U Report_Event(CommBlock *com,INT8U *oiarr,INT8U report_type){
 	}
 	FrameTail(sendbuf_report,index,hcsi);
 	if(pSendfun_report!=NULL)
-		pSendfun_report(com->phy_connect_fd,sendbuf_report,index+3);
+		pSendfun_report(Golobal_Name, com->phy_connect_fd,sendbuf_report,index+3);
 	if (data!=NULL)
 		free(data);
 

@@ -41,7 +41,8 @@ extern int Proxy_DoThenGetRequestList(INT8U *data, CSINFO *csinfo,
 extern unsigned short tryfcs16(unsigned char *cp, int len);
 extern INT32S secureConnectRequest(SignatureSecurity* securityInfo,
 		SecurityData* RetInfo);
-INT8S (*pSendfun)(int fd, INT8U* sndbuf, INT16U sndlen);
+INT8S (*pSendfun)(int name, int fd, INT8U* sndbuf, INT16U sndlen);
+int Golobal_Name;
 extern void Get698_event(OAD oad, ProgramInfo* prginfo_event);
 int comfd = 0;
 INT8U ClientPiid = 0;
@@ -729,7 +730,7 @@ int appConnectResponse(INT8U *apdu, CSINFO *csinfo, INT8U *buf) {
 	FrameTail(buf, index, hcsi);
 
 	if (pSendfun != NULL && csinfo->sa_type != 2 && csinfo->sa_type != 3) //组地址或广播地址不需要应答
-		pSendfun(comfd, buf, index + 3);
+		pSendfun(Golobal_Name, comfd, buf, index + 3);
 	return (index + 3);
 }
 
@@ -1811,7 +1812,7 @@ int doReleaseConnect(INT8U *apdu, CSINFO *csinfo, INT8U *sendbuf) {
 
 	FrameTail(sendbuf, index, hcsi);
 	if (pSendfun != NULL)
-		pSendfun(comfd, sendbuf, index + 3);
+		pSendfun(Golobal_Name, comfd, sendbuf, index + 3);
 	fprintf(stderr, "\n			断开应用连接 PIID = %x", ClientPiid);
 	return 1;
 }
@@ -1954,6 +1955,7 @@ int ProcessData(CommBlock *com) {
 	AppVar_p = &com->AppVar;
 	memp = (ProgramInfo*) com->shmem;
 	pSendfun = com->p_send;
+	Golobal_Name = com->name;
 	comfd = com->phy_connect_fd;
 	if (CheckSerAddr(Rcvbuf, com->serveraddr) == 0)
 		return 0;

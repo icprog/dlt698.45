@@ -21,13 +21,14 @@
 #include "class12.h"
 #include "class23.h"
 
-extern INT8S (*pSendfun)(int fd,INT8U* sndbuf,INT16U sndlen);
+extern INT8S (*pSendfun)(int name, int fd,INT8U* sndbuf,INT16U sndlen);
 extern int FrameHead(CSINFO *csinfo,INT8U *buf);
 extern void FrameTail(INT8U *buf,int index,int hcsi);
 extern INT8U Get_Event(OAD oad,INT8U eventno,INT8U** Getbuf,int *Getlen,ProgramInfo* prginfo_event);
 extern INT8U Getevent_Record_Selector(RESULT_RECORD *record_para,ProgramInfo* prginfo_event);
 extern INT16S composeSecurityResponse(INT8U* SendApdu,INT16U Length);
 extern int comfd;
+extern int Golobal_Name;
 extern INT8U TmpDataBuf[MAXSIZ_FAM];
 extern INT8U TmpDataBufList[MAXSIZ_FAM*2];
 extern INT8U securetype;
@@ -76,7 +77,7 @@ int BuildFrame_GetResponseRecord(INT8U response_type,CSINFO *csinfo,RESULT_RECOR
 	}
 	FrameTail(sendbuf,index,hcsi);
 	if(pSendfun!=NULL && csinfo->sa_type!=2 && csinfo->sa_type!=3)//组地址或广播地址不需要应答
-		pSendfun(comfd,sendbuf,index+3);
+		pSendfun(Golobal_Name, comfd,sendbuf,index+3);
 	return (index+3);
 }
 void addScodeProcess(INT8U *buf,int len)
@@ -119,7 +120,7 @@ int BuildFrame_GetResponse(INT8U response_type,CSINFO *csinfo,INT8U oadnum,RESUL
 	}
 	FrameTail(sendbuf,index,hcsi);
 	if(pSendfun!=NULL && csinfo->sa_type!=2 && csinfo->sa_type!=3)//组地址或广播地址不需要应答
-		pSendfun(comfd,sendbuf,index+3);
+		pSendfun(Golobal_Name, comfd,sendbuf,index+3);
 	return (index+3);
 }
 
@@ -170,7 +171,7 @@ int BuildFrame_GetResponseNext(INT8U response_type,CSINFO *csinfo,INT8U DAR,INT1
 
 	FrameTail(sendbuf,index,hcsi);
 	if(pSendfun!=NULL && csinfo->sa_type!=2 && csinfo->sa_type!=3)//组地址或广播地址不需要应答
-		pSendfun(comfd,sendbuf,index+3);
+		pSendfun(Golobal_Name, comfd,sendbuf,index+3);
 	return (index+3);
 }
 

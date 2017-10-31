@@ -16,14 +16,15 @@
 #include "atBase.h"
 #include "special.h"
 
-int cWriteWithCalc(INT8U name, int fd, INT8U *buf, INT16U len) {
+int cWriteWithCalc(int name, int fd, INT8U *buf, INT16U len) {
 	int old = (int) dbGet("calc.new") + len;
 	dbSet("calc.new", old);
 	cWrite(name, fd, buf, len);
 }
 
-int cWrite(INT8U name, int fd, INT8U *buf, INT16U len) {
+int cWrite(int name, int fd, INT8U *buf, INT16U len) {
 	int ret = anetWrite(fd, buf, (int) len);
+	fprintf(stderr, "=============++++%d %d %d\n",name, fd, len);
 	if (ret != len) {
 		asyslog(LOG_WARNING, "报文发送失败(长度:%d,错误:%d,端口:%d)", len, errno, fd);
 	}
@@ -242,7 +243,7 @@ void refreshComPara(CommBlock *compara) {
 }
 
 void initComPara(CommBlock *compara,
-		INT32S (*p_send)(INT8U name, int fd, INT8U *buf, INT16U len)) {
+		INT32S (*p_send)(int name, int fd, INT8U *buf, INT16U len)) {
 	CLASS_4001_4002_4003 c4001;
 	memset(&c4001, 0x00, sizeof(c4001));
 	readCoverClass(0x4001, 0, &c4001, sizeof(c4001), para_vari_save);

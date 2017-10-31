@@ -19,8 +19,8 @@
 #include "StdDataType.h"
 #include "PublicFunction.h"
 
-int cWrite(INT8U name, int fd, INT8U *buf, INT16U len);
-int cWriteWithCalc(INT8U name, int fd, INT8U *buf, INT16U len);
+int cWrite(int name, int fd, INT8U *buf, INT16U len);
+int cWriteWithCalc(int name, int fd, INT8U *buf, INT16U len);
 
 void cRead(struct aeEventLoop *ep, int fd, void *clientData, int mask);
 void cReadWithCalc(struct aeEventLoop *ep, int fd, void *clientData, int mask);
@@ -32,7 +32,7 @@ void refreshComPara(CommBlock *compara);
 int StartVerifiTime(struct aeEventLoop *ep, long long id, void *clientData);
 
 void initComPara(CommBlock *compara,
-		INT32S (*p_send)(INT8U name, int fd, INT8U *buf, INT16U len));
+		INT32S (*p_send)(int name, int fd, INT8U *buf, INT16U len));
 
 int StartClientForNet(struct aeEventLoop *ep, long long id, void *clientData);
 int StartClientForGprs(struct aeEventLoop *ep, long long id, void *clientData);

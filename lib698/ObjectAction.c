@@ -26,6 +26,7 @@
 #include "class23.h"
 
 extern int comfd;
+extern int Golobal_Name;
 extern ProgramInfo *memp;
 extern PIID piid_g;
 extern TimeTag	Response_timetag;		//响应的时间标签值
@@ -97,7 +98,7 @@ int doReponse(int server, int reponse, CSINFO *csinfo, int datalen, INT8U *data,
     FrameTail(buf, index, hcsi);
 
     if (pSendfun != NULL)
-        pSendfun(comfd, buf, index + 3);
+        pSendfun(Golobal_Name, comfd, buf, index + 3);
     return (index + 3);
 }
 

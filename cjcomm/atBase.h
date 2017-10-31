@@ -54,7 +54,7 @@ int AtPrepare(ATOBJ *ao);
 int ATUpdateStatus(ATOBJ *ao);
 
 int AtSendCmd(ATOBJ *ao, INT8U * buf, INT32U len);
-int AtWriteToBuf(int fd, INT8U *buf, INT16U len);
+int AtWriteToBuf(int name, int fd, INT8U *buf, INT16U len);
 int AtReadExactly(ATOBJ *ao, CommBlock *nst);
 int AtSendExactly(ATOBJ *ao);
 int AtGetSendLen(ATOBJ *ao);

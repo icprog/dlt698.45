@@ -30,7 +30,7 @@ extern INT8U Reset_add();
 extern void memDataInit(INT8U type,ProgramInfo *memp);
 extern void FrameTail(INT8U *buf, int index, int hcsi);
 extern int FrameHead(CSINFO *csinfo, INT8U *buf);
-extern INT8S (*pSendfun)(int fd, INT8U *sndbuf, INT16U sndlen);
+extern INT8S (*pSendfun)(int name, int fd, INT8U *sndbuf, INT16U sndlen);
 extern void Get698_event(OAD oad, ProgramInfo *prginfo_event);
 extern INT16S composeSecurityResponse(INT8U* SendApdu,INT16U Length);
 extern int CheckHead(unsigned char* buf ,CSINFO *csinfo);

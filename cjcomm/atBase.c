@@ -853,7 +853,7 @@ int AtSendExactly(ATOBJ *ao) {
 	return ao->SendLen;
 }
 
-int AtWriteToBuf(int fd, INT8U *buf, INT16U len) {
+int AtWriteToBuf(int name, int fd, INT8U *buf, INT16U len) {
 	for (int i = 0; i < len; i++) {
 		AtGet()->send[AtGet()->SendLen + i] = buf[i];
 	}
