@@ -2767,7 +2767,7 @@ INT8U Proxy_GetRequestList(RUNTIME_PLC *runtime_p,CJCOMM_PROXY *proxy,int* begin
 	}
 	return 2;
 }
-int JugeTransType(INT8U *buf,INT8U len)
+int JugeTransType(INT8U *buf,INT8U len,int *len645)
 {
 	FORMAT3762 formatup;
 	FORMAT07 frame07;
@@ -2790,6 +2790,7 @@ int JugeTransType(INT8U *buf,INT8U len)
 		{
 			len07 = buf[14];
 			memcpy(buf645,&buf[15],len07);
+			*len645 = len07;
 			broadtime.len = len07;
 			memcpy(broadtime.buf,buf645,len07);
 			DbPrt1(31,"645:", (char *) buf645, len07, NULL);
@@ -2812,11 +2813,16 @@ int JugeTransType(INT8U *buf,INT8U len)
 					return 1; /*376.2 AFN=05 fn=f3 启动广播*/
 				}
 			}
+		}else if(formatup.afn==0x13 & formatup.fn==1)
+		{
+			*len645 = formatup.afn13_f1_down.MsgLength;
+			memcpy(buf645,formatup.afn13_f1_down.MsgContent,formatup.afn13_f1_down.MsgLength);//取出透传3762中的645报文
 		}
 		return 2;/*其它376.2报文*/
 	}else
 	{
 		memcpy(buf645,tmp3762,len);
+		*len645 = len;
 		ret = analyzeProtocol07(&frame07, buf645, len, &NEXTflag);
 		if ( ret == 1)
 		{
@@ -2841,13 +2847,14 @@ int JugeTransType(INT8U *buf,INT8U len)
 	}
 	return 0;/*透传的是645报文*/
 }
-INT8U Proxy_TransCommandRequest(RUNTIME_PLC *runtime_p,CJCOMM_PROXY *proxy,int* beginwork,time_t nowtime)
+INT8U F209_TransRequest(RUNTIME_PLC *runtime_p,CJCOMM_PROXY *proxy,int* beginwork,time_t nowtime)
 {
 	INT8U addrtmp[10] = {0};//645报文中的目标地址
 	int sendlen = 0;
 	INT8U proto = 0;
 	INT16U timeout = 20;
 	INT8U datalen =0;
+	INT16U	dindex = 0;
 	int transType = 0;
 
 	timeout = (proxy->strProxyList.proxy_obj.transcmd.revtimeout > 0) ?  \
@@ -2856,7 +2863,124 @@ INT8U Proxy_TransCommandRequest(RUNTIME_PLC *runtime_p,CJCOMM_PROXY *proxy,int* 
 	if (*beginwork==0 && cjcommProxy_plc.isInUse==1) {//发送点抄
 		*beginwork = 1;
 		clearvar(runtime_p);
-		transType = JugeTransType(cjcommProxy_plc.strProxyList.proxy_obj.transcmd.cmdbuf,cjcommProxy_plc.strProxyList.proxy_obj.transcmd.cmdlen);
+		datalen = cjcommProxy_plc.strProxyList.proxy_obj.f209Trans.buflen;
+		transType = JugeTransType(cjcommProxy_plc.strProxyList.proxy_obj.f209Trans.transBuf,datalen,buf645);
+		if (transType == 1)
+		{
+			DbgPrintToFile1(31,"代理内容为广播对时，需要切换到对时流程");
+			//判断代理内容如果是广播对时，需要切换到对时流程
+			cjcommProxy_plc.strProxyList.proxy_obj.f209Trans.dar = success;
+			cjcommProxy_plc.strProxyList.data[0] = 1;
+			cjcommProxy_plc.strProxyList.data[1] = 0;
+			proxyInUse.devUse.plcReady = 1;
+			cjcommProxy_plc.isInUse = 0;
+			clearvar(runtime_p);
+			*beginwork = 0;
+			return BROADCAST;
+		}else if (transType == 2)
+		{
+			DbgPrintToFile1(31,"透传的是其它376.2报文");
+			SendDataToCom(runtime_p->comfd, cjcommProxy_plc.strProxyList.proxy_obj.f209Trans.transBuf, datalen);
+		}else
+		{
+			DbgPrintToFile1(31,"透传的是645报文");
+			getTransCmdAddrProto(cjcommProxy_plc.strProxyList.proxy_obj.f209Trans.transBuf, addrtmp, &proto,datalen);
+			memcpy(runtime_p->format_Down.addr.SourceAddr, runtime_p->masteraddr, 6);
+			sendlen = AFN13_F1(&runtime_p->format_Down,runtime_p->sendbuf, addrtmp, 0, 0, \
+					cjcommProxy_plc.strProxyList.proxy_obj.f209Trans.transBuf, datalen);
+			SendDataToCom(runtime_p->comfd, runtime_p->sendbuf, sendlen );
+		}
+		DbgPrintToFile1(31,"发送 载波口 转发 （127方法)");
+		runtime_p->send_start_time = nowtime;
+	} else if ((runtime_p->format_Up.afn == 0x13 && runtime_p->format_Up.fn == 1 ) && *beginwork==1) {
+		//收到应答数据，或超时10秒，
+		pthread_mutex_lock(&mutex);
+		if(runtime_p->format_Up.afn13_f1_up.MsgLength > 0) {
+
+			datalen = (INT8U)runtime_p->format_Up.afn13_f1_up.MsgLength;
+			cjcommProxy_plc.strProxyList.proxy_obj.f209Trans.dar = success;
+			cjcommProxy_plc.strProxyList.data[0] = 0x09;	//octet-string
+			cjcommProxy_plc.strProxyList.data[1] = datalen;
+			memcpy(&cjcommProxy_plc.strProxyList.data[2],runtime_p->format_Up.afn13_f1_up.MsgContent,datalen);
+			cjcommProxy_plc.strProxyList.datalen = datalen+2;
+
+			DbgPrintToFile1(31,"返回数据长度 13-1 up.length=%d      [%02x  %02x  %02x  %02   ]",runtime_p->format_Up.length,
+					runtime_p->dealbuf[0],runtime_p->dealbuf[1],runtime_p->dealbuf[2],runtime_p->dealbuf[3]);
+
+		} else {
+			cjcommProxy_plc.strProxyList.proxy_obj.f209Trans.dar = request_overtime;
+			cjcommProxy_plc.strProxyList.datalen = 0;
+		}
+		runtime_p->send_start_time = nowtime;
+		memset(&runtime_p->format_Up, 0, sizeof(runtime_p->format_Up));
+		proxyInUse.devUse.plcReady = 1;
+		cjcommProxy_plc.isInUse = 0;
+		*beginwork = 0;
+		pthread_mutex_unlock(&mutex);
+		DbgPrintToFile1(31,"收到点抄数据 DAR=%d ",cjcommProxy_plc.strProxyList.proxy_obj.f209Trans.dar);
+
+	}else if ( runtime_p->format_Up.afn<=0x15 && runtime_p->format_Up.fn!=0 &&  *beginwork==1)//国网需要将收到报文直接返回主站
+	{
+		pthread_mutex_lock(&mutex);
+			cjcommProxy_plc.strProxyList.proxy_obj.f209Trans.dar = success;
+			cjcommProxy_plc.strProxyList.data[0] = 1;
+			datalen = runtime_p->format_Up.length;
+			cjcommProxy_plc.strProxyList.data[1] = datalen;
+			memcpy(&cjcommProxy_plc.strProxyList.data[2],&runtime_p->dealbuf,datalen);
+			cjcommProxy_plc.strProxyList.datalen = datalen + 2;
+			proxyInUse.devUse.plcReady = 1;
+			cjcommProxy_plc.isInUse = 0;
+		pthread_mutex_unlock(&mutex);
+
+		*beginwork = 0;
+		runtime_p->send_start_time = nowtime;
+		memset(&runtime_p->format_Up, 0, sizeof(runtime_p->format_Up));
+		DbgPrintToFile1(31,"收到点抄数据  datalen=%d",cjcommProxy_plc.strProxyList.datalen);
+	}
+	else if (((nowtime - runtime_p->send_start_time) > timeout) && *beginwork==1) {
+		//代理超时后, 放弃本次操作, 上报超时应答
+		pthread_mutex_lock(&mutex);
+		cjcommProxy_plc.strProxyList.proxy_obj.transcmd.dar = request_overtime;
+		cjcommProxy_plc.strProxyList.datalen = 0;
+		*beginwork = 0;
+		proxyInUse.devUse.plcReady = 1;
+		cjcommProxy_plc.isInUse = 0;
+		pthread_mutex_unlock(&mutex);
+		DbgPrintToFile1(31,"单次点抄超时");
+
+	}else if(proxyInUse.devUse.plcNeed == 0 && *beginwork == 1)
+	{
+		*beginwork = 0;
+		DbgPrintToFile1(31,"总超时判断取消等待");
+	}else if( nowtime - runtime_p->send_start_time > 100  ) {
+		//最后一次代理操作后100秒, 才恢复抄读
+		DbgPrintToFile1(31,"100秒超时");
+		clearvar(runtime_p);
+		*beginwork = 0;
+		return 4;
+		clearvar(runtime_p);
+	}
+	return 3;
+
+}
+
+INT8U Proxy_TransCommandRequest(RUNTIME_PLC *runtime_p,CJCOMM_PROXY *proxy,int* beginwork,time_t nowtime)
+{
+	INT8U addrtmp[10] = {0};//645报文中的目标地址
+	int sendlen = 0;
+	INT8U proto = 0;
+	INT16U timeout = 20;
+	INT8U datalen =0;
+	INT16U	dindex = 0;
+	int transType = 0;
+
+	timeout = (proxy->strProxyList.proxy_obj.transcmd.revtimeout > 0) ?  \
+			proxy->strProxyList.proxy_obj.transcmd.revtimeout: 20;
+
+	if (*beginwork==0 && cjcommProxy_plc.isInUse==1) {//发送点抄
+		*beginwork = 1;
+		clearvar(runtime_p);
+		transType = JugeTransType(cjcommProxy_plc.strProxyList.proxy_obj.transcmd.cmdbuf,cjcommProxy_plc.strProxyList.proxy_obj.transcmd.cmdlen,buf645);
 		if (transType == 1)
 		{
 			DbgPrintToFile1(31,"代理内容为广播对时，需要切换到对时流程");
@@ -2901,20 +3025,23 @@ INT8U Proxy_TransCommandRequest(RUNTIME_PLC *runtime_p,CJCOMM_PROXY *proxy,int* 
 			}
 
 			cjcommProxy_plc.strProxyList.proxy_obj.transcmd.dar = success;
-			cjcommProxy_plc.strProxyList.data[0] = 1;
+			dindex = 0;
+			cjcommProxy_plc.strProxyList.data[dindex++] = 1;
 
 			if(getZone("GW")==0) {
 				datalen = runtime_p->format_Up.length;
 				cjcommProxy_plc.strProxyList.data[1] = datalen;
 				memcpy(&cjcommProxy_plc.strProxyList.data[2],&runtime_p->dealbuf,datalen);
+				dindex = datalen;
 			}else
 			{
 				datalen = runtime_p->format_Up.afn13_f1_up.MsgLength - starttIndex;
-				cjcommProxy_plc.strProxyList.data[1] = datalen;
-				memcpy(&cjcommProxy_plc.strProxyList.data[2],&runtime_p->format_Up.afn13_f1_up.MsgContent[starttIndex],datalen);
+				dindex += fillStringLen(&cjcommProxy_plc.strProxyList.data[dindex],datalen);
+				memcpy(&cjcommProxy_plc.strProxyList.data[dindex],&runtime_p->format_Up.afn13_f1_up.MsgContent[starttIndex],datalen);
+				dindex = dindex + datalen;
 				DEBUG_BUFF(runtime_p->format_Up.afn13_f1_up.MsgContent, datalen);
 			}
-			cjcommProxy_plc.strProxyList.datalen = datalen + 2;
+			cjcommProxy_plc.strProxyList.datalen = dindex;
 
 		} else {
 			cjcommProxy_plc.strProxyList.proxy_obj.transcmd.dar = request_overtime;
@@ -2928,7 +3055,8 @@ INT8U Proxy_TransCommandRequest(RUNTIME_PLC *runtime_p,CJCOMM_PROXY *proxy,int* 
 		pthread_mutex_unlock(&mutex);
 		DbgPrintToFile1(31,"收到点抄数据");
 
-	}else if ( runtime_p->format_Up.afn!=0 && runtime_p->format_Up.fn!=0 &&  *beginwork==1)//国网需要将收到报文直接返回主站
+	}
+	else if ( runtime_p->format_Up.afn!=0 && runtime_p->format_Up.fn!=0 &&  *beginwork==1)//国网需要将收到报文直接返回主站
 	{
 		pthread_mutex_lock(&mutex);
 			cjcommProxy_plc.strProxyList.proxy_obj.transcmd.dar = success;
@@ -3045,8 +3173,15 @@ int doProxy(RUNTIME_PLC *runtime_p)
 				clearvar(runtime_p);
 				DEBUG_TIME_LINE("暂停抄表已确认");
 				if(cjcommProxy_plc.isInUse == 1) {
-					DEBUG_TIME_LINE("进入主站代理");
-					step_cj = 2;
+					if(cjcommProxy_plc.strProxyList.proxytype == F209TransCommandAction)
+					{
+						DEBUG_TIME_LINE("进入F209透传==>");
+						step_cj = 3;
+					}else
+					{
+						DEBUG_TIME_LINE("进入主站代理");
+						step_cj = 2;
+					}
 				} else if (cjGuiProxy_plc.isInUse == 1) {
 					DEBUG_TIME_LINE("进入液晶点抄");
 					step_cj = 1;
@@ -3077,11 +3212,13 @@ int doProxy(RUNTIME_PLC *runtime_p)
 					step_cj = Proxy_TransCommandRequest(runtime_p, &cjcommProxy_plc, &beginwork, nowtime);
 					break;
 				default:
+					proxyInUse.devUse.plcReady = 1;
+					cjcommProxy_plc.isInUse = 0;
 					step_cj = 4;
 			}
 			break;
 		case 3://F209——127 载波端口数据转发
-
+			step_cj = F209_TransRequest(runtime_p, &cjcommProxy_plc, &beginwork, nowtime);
 			break;
 		case 4://恢复抄表
 			if (runtime_p->state_bak == TASK_PROCESS )
@@ -3421,17 +3558,24 @@ int stateJuge(int nowdstate,MY_PARA_COUNTER *mypara_p,RUNTIME_PLC *runtime_p,int
 		runtime_p->redo = 1;  //初始化之后需要重启抄读
 		mypara.my6012 = JProgramInfo->oi_changed.oi6012 ;
 	}
-	if (JProgramInfo->oi_changed.oiF209 != mypara_p->myf209)
-	{
-		mypara_p->myf209 = JProgramInfo->oi_changed.oiF209;
-		CLASS_f209 class_f209;
-		readCoverClass(0xf209 ,0 , &class_f209,sizeof(CLASS_f209),para_vari_save);
-		if(class_f209.transFlg == 1)
-		{
-            class_f209.transFlg = 0;
-            saveCoverClass(0xf209,0,&class_f209,sizeof(CLASS_f209),para_vari_save);
-		}
-	}
+//	if (JProgramInfo->oi_changed.oiF209 != mypara_p->myf209)
+//	{
+//		mypara_p->myf209 = JProgramInfo->oi_changed.oiF209;
+//		CLASS_f209 class_f209;
+//		readCoverClass(0xf209 ,0 , &class_f209,sizeof(CLASS_f209),para_vari_save);
+//		if(class_f209.transFlg == 1)
+//		{
+//			memcpy(&myF209,&class_f209,sizeof(myF209));
+//			class_f209.transFlg = 0;
+//			saveCoverClass(0xf209,0,&class_f209,sizeof(CLASS_f209),para_vari_save);
+//			DbgPrintToFile1(31,"载波收到点抄消息 需要处理 %04x ",cjguiProxy.strProxyMsg.port.OI);
+//			runtime_p->state_bak = runtime_p->state;
+//			runtime_p->state = DATA_REAL;
+//			clearvar(runtime_p);
+//			runtime_p->redo = 2;	//点抄后需要恢复抄读
+//			return DATA_REAL;
+//		}
+//	}
 	if ((runtime_p->nowts.Hour==23 && runtime_p->nowts.Minute==59) || (runtime_p->nowts.Hour==0 && runtime_p->nowts.Minute==0))
 		return state;  //23点59分--0点0分之间不进行任务判断（准备跨日初始化）
 

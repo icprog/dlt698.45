@@ -410,6 +410,13 @@ INT8S simpleAnaly3762(FORMAT3762* format3762, INT8U* recvBuf, const INT16U recvL
 			format3762->dt1 = recvBuf[index++];
 			format3762->dt2 = recvBuf[index++];
 			format3762->fn = getFN(format3762->dt1, format3762->dt2);
+			if (format3762->afn ==0x13  && format3762->fn==1)
+			{
+				format3762->afn13_f1_up.Protocol = recvBuf[index++];
+				format3762->afn13_f1_up.TransTime = recvBuf[index++];
+				format3762->afn13_f1_up.MsgLength = recvBuf[index++];
+				memcpy(format3762->afn13_f1_up.MsgContent,&recvBuf[index],format3762->afn13_f1_up.MsgLength);
+			}
 			return 1;
 		}
 	}
