@@ -372,7 +372,7 @@ int callAutoReport(char *filename,INT8U reportChoice,CommBlock* com, INT8U ifech
 	FrameTail(sendbuf,index,hcsi);
 
 	if(com->p_send!=NULL)
-		com->p_send(com->phy_connect_fd,sendbuf,index+3);
+		com->p_send(com->name, com->phy_connect_fd,sendbuf,index+3);
 
 	return 1;
 }
@@ -409,6 +409,6 @@ int callEventAutoReport(CommBlock* com,INT8U *eventbuf,int datalen)
 	sendbuf[index++] = 0;
 	FrameTail(sendbuf,index,hcsi);
 	if(com->p_send!=NULL)
-		com->p_send(com->phy_connect_fd,sendbuf,index+3);  //+3:crc1,crc2,0x16
+		com->p_send(com->name, com->phy_connect_fd,sendbuf,index+3);  //+3:crc1,crc2,0x16
 	return piid;
 }

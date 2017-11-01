@@ -40,6 +40,7 @@
 		#define ProxyActionRequestList 5
 		#define ProxyActionThenGetRequestList 6
 		#define ProxyTransCommandRequest 7
+		#define F209TransCommandAction		8		//F209的方法127的透明转发
 
 #define CONNECT_RESPONSE 130
 #define RELEASE_RESPONSE 131
@@ -63,6 +64,7 @@
 		#define ProxyActionResponseList 5
 		#define ProxyActionThenGetResponseList 6
 		#define ProxyTransCommandResponse 7
+		#define F209TransCommandAnswer		8			//F209的方法127的返回结果
 
 #define SECURITY_REQUEST 16
 #define SECURITY_RESPONSE 144

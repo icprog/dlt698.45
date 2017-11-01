@@ -16,13 +16,13 @@
 #include "atBase.h"
 #include "special.h"
 
-int cWriteWithCalc(int fd, INT8U *buf, INT16U len) {
+int cWriteWithCalc(INT8U name, int fd, INT8U *buf, INT16U len) {
 	int old = (int) dbGet("calc.new") + len;
 	dbSet("calc.new", old);
-	cWrite(fd, buf, len);
+	cWrite(name, fd, buf, len);
 }
 
-int cWrite(int fd, INT8U *buf, INT16U len) {
+int cWrite(INT8U name, int fd, INT8U *buf, INT16U len) {
 	int ret = anetWrite(fd, buf, (int) len);
 	if (ret != len) {
 		asyslog(LOG_WARNING, "报文发送失败(长度:%d,错误:%d,端口:%d)", len, errno, fd);
@@ -30,7 +30,7 @@ int cWrite(int fd, INT8U *buf, INT16U len) {
 	bufsyslog(buf, "发送:", len, 0, BUFLEN);
 	if (getZone("GW") == 0) {
 		char prtpara[16];
-		sprintf(prtpara,"[NET_%d]S:",fd);
+		sprintf(prtpara,"[NET_%d]S:",name);
 		PacketBufToFile(1,prtpara, (char *) buf, len, NULL);
 	}
 	return ret;
@@ -66,7 +66,7 @@ void cReadWithoutCheck(struct aeEventLoop *ep, int fd, void *clientData, int mas
 		int buflen = 0;
 		buflen = (nst->RHead - nst->RTail + BUFLEN) % BUFLEN;
 		char prtpara[16];
-		sprintf(prtpara,"[NET_%d]R:",fd);
+		sprintf(prtpara,"[NET_%d]R:",nst->name);
 		PacketBufToFile(1,prtpara, (char *) &nst->RecBuf[nst->RTail],
 				buflen, NULL);
 	}
@@ -80,7 +80,7 @@ void cRead(struct aeEventLoop *ep, int fd, void *clientData, int mask) {
 
 	//关闭异常端口
 	if (revcount <= 0) {
-		asyslog(LOG_WARNING, "链接[%d]异常，关闭端口", errno);
+		asyslog(LOG_WARNING, "链接[%d-%s]异常，关闭端口", errno,strerror(errno));
 		aeDeleteFileEvent(ep, fd, AE_READABLE);
 		close(fd);
 		dbSet("online.type", 0);
@@ -96,7 +96,7 @@ void cRead(struct aeEventLoop *ep, int fd, void *clientData, int mask) {
 			int buflen = 0;
 			buflen = (nst->RHead - nst->RTail + BUFLEN) % BUFLEN;
 			char prtpara[16];
-			sprintf(prtpara,"[NET_%d]R:",fd);
+			sprintf(prtpara,"[NET_%d]R:",nst->name);
 			PacketBufToFile(1,prtpara, (char *) &nst->RecBuf[nst->RTail],
 					buflen, NULL);
 		}
@@ -120,7 +120,8 @@ void cProc(struct aeEventLoop *ep, CommBlock * nst) {
 				nst->linkstate = build_connection;
 				nst->testcounter = 0;
 				break;
-			case 9:
+			case ACTION_REQUEST:	//F209的127透传报文处理
+			case PROXY_REQUEST:   //国网送检发现以太网口收到代理消息，返回到串口错误,此处重新获取端口
 				dbSet("proxy", nst);
 				fprintf(stderr, "以太网收到代理消息，更新端口\n");
 				break;
@@ -215,12 +216,12 @@ int Comm_task(CommBlock *compara) {
 		WriteLinkRequest(build_connection, heartbeat, &compara->link_request);
 		int len = Link_Request(compara->link_request, compara->serveraddr,
 				compara->SendBuf);
-		compara->p_send(compara->phy_connect_fd, compara->SendBuf, len);
+		compara->p_send(compara->name, compara->phy_connect_fd, compara->SendBuf, len);
 	} else {
 		WriteLinkRequest(heart_beat, heartbeat, &compara->link_request);
 		int len = Link_Request(compara->link_request, compara->serveraddr,
 				compara->SendBuf);
-		compara->p_send(compara->phy_connect_fd, compara->SendBuf, len);
+		compara->p_send(compara->name, compara->phy_connect_fd, compara->SendBuf, len);
 	}
 	compara->testcounter++;
 	return 0;
@@ -242,7 +243,7 @@ void refreshComPara(CommBlock *compara) {
 }
 
 void initComPara(CommBlock *compara,
-		INT32S (*p_send)(int fd, INT8U *buf, INT16U len)) {
+	INT32S (*p_send)(int name, int fd, INT8U *buf, INT16U len)) {
 	CLASS_4001_4002_4003 c4001;
 	memset(&c4001, 0x00, sizeof(c4001));
 	readCoverClass(0x4001, 0, &c4001, sizeof(c4001), para_vari_save);

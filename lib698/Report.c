@@ -19,8 +19,8 @@
 extern int FrameHead(CSINFO *csinfo,INT8U *buf);
 extern void FrameTail(INT8U *buf,int index,int hcsi);
 extern INT8U Get_Event(OAD oad,INT8U eventno,INT8U** Getbuf,int *Getlen,ProgramInfo* prginfo_event);
-INT8S (*pSendfun_report)(int fd,INT8U* sndbuf,INT16U sndlen);
-
+INT8S (*pSendfun_report)(int name, int fd,INT8U* sndbuf,INT16U sndlen);
+extern int Global_name;
 
 INT8U Report_Event(CommBlock *com,INT8U *oiarr,INT8U report_type){
 
@@ -130,7 +130,7 @@ INT8U Report_Event(CommBlock *com,INT8U *oiarr,INT8U report_type){
 	}
 	FrameTail(sendbuf_report,index,hcsi);
 	if(pSendfun_report!=NULL)
-		pSendfun_report(com->phy_connect_fd,sendbuf_report,index+3);
+		pSendfun_report(Global_name, com->phy_connect_fd,sendbuf_report,index+3);
 	if (data!=NULL)
 		free(data);
 
@@ -174,7 +174,7 @@ int callNotificationReport(CommBlock* com,INT8U *plcbuf,OAD portOAD,int datalen)
 	sendbuf[index++] = 0;
 	FrameTail(sendbuf,index,hcsi);
 	if(com->p_send!=NULL)
-		com->p_send(com->phy_connect_fd,sendbuf,index+3);  //+3:crc1,crc2,0x16
+		com->p_send(com->name, com->phy_connect_fd,sendbuf,index+3);  //+3:crc1,crc2,0x16
 	return piid;
 }
 

@@ -35,6 +35,93 @@ typedef union { //control code
 ECAlarmState ecAlarm;
 PCAlarmState pcAlarm;
 
+int class8000_act129(int index, int attr_act, INT8U *data,
+		Action_result *act_ret) {
+
+	ProgramInfo *shareAddr = getShareAddr();
+	if (shareAddr->ctrls.c8001.state == 1)
+	{
+		shareAddr->ctrls.cf205.currentState = 0;
+	}else
+	{
+		shareAddr->ctrls.cf205.currentState = 1;
+	}
+
+	if(shareAddr->ctrls.cf205.currentState == 0){
+		return 0;
+	}
+
+	if(data[0] != 0x01 || data[1] != 0x01){
+		return -1;
+	}
+	if(data[2] != 0x02 || data[3] != 0x04){
+		return -1;
+	}
+
+	OI_698 oi = data[5] * 256 + data[6];
+	int delay = data[10];
+	int limit_time = data[12] * 256 + data[13];
+	int auto_act = data[15];
+
+	asyslog(LOG_WARNING, "遥控跳闸 %d - %d - %d\n", delay, limit_time, auto_act);
+
+	shareAddr->ctrls.control[0] = 0xEEFFEFEF;
+	shareAddr->ctrls.control[1] = 0xEEFFEFEF;
+	shareAddr->ctrls.control[2] = 0xEEFFEFEF;
+
+	shareAddr->ctrls.control_event = 1;
+	return 0;
+}
+
+int class8000_act130(int index, int attr_act, INT8U *data,
+		Action_result *act_ret) {
+
+	ProgramInfo *shareAddr = getShareAddr();
+
+	shareAddr->ctrls.cf205.currentState = 0;
+
+	if(shareAddr->ctrls.cf205.currentState == 0){
+		return 0;
+	}
+
+	if(data[0] != 0x01 || data[1] != 0x01){
+		return -1;
+	}
+	if(data[2] != 0x02 || data[3] != 0x04){
+		return -1;
+	}
+
+	OI_698 oi = data[5] * 256 + data[6];
+	int allow_or_auto = data[10];
+
+	asyslog(LOG_WARNING, "遥控合闸 %d\n", allow_or_auto);
+
+	shareAddr->ctrls.control[0] = 0xCCAACACA;
+	shareAddr->ctrls.control[1] = 0xCCAACACA;
+	shareAddr->ctrls.control[2] = 0xCCAACACA;
+
+	return 0;
+}
+
+int class8000_act_route(int index, int attr_act, INT8U *data,
+		Action_result *act_ret) {
+	switch (attr_act) {
+	case 127:
+//		class8000_act127(1, attr_act, data, act_ret);
+		break;
+	case 128:
+//		class8000_act128(1, attr_act, data, act_ret);
+		break;
+	case 129:
+		class8000_act129(1, attr_act, data, act_ret);
+		break;
+	case 130:
+		class8000_act130(1, attr_act, data, act_ret);
+		break;
+	}
+	return 1;
+}
+
 int class8001_act127(int index, int attr_act, INT8U *data,
 		Action_result *act_ret) {
 	asyslog(LOG_WARNING, "投入保电\n");
@@ -144,93 +231,6 @@ int class8002_act_route(int index, int attr_act, INT8U *data, Action_result *act
 	return 1;
 }
 
-int class8000_act129(int index, int attr_act, INT8U *data,
-		Action_result *act_ret) {
-
-	ProgramInfo *shareAddr = getShareAddr();
-	if (shareAddr->ctrls.c8001.state == 1)
-	{
-		shareAddr->ctrls.cf205.currentState = 0;
-	}else
-	{
-		shareAddr->ctrls.cf205.currentState = 1;
-	}
-
-	if(shareAddr->ctrls.cf205.currentState == 0){
-		return 0;
-	}
-
-	if(data[0] != 0x01 || data[1] != 0x01){
-		return -1;
-	}
-	if(data[2] != 0x02 || data[3] != 0x04){
-		return -1;
-	}
-
-	OI_698 oi = data[5] * 256 + data[6];
-	int delay = data[10];
-	int limit_time = data[12] * 256 + data[13];
-	int auto_act = data[15];
-
-	asyslog(LOG_WARNING, "遥控跳闸 %d - %d - %d\n", delay, limit_time, auto_act);
-
-	shareAddr->ctrls.control[0] = 0xEEFFEFEF;
-	shareAddr->ctrls.control[1] = 0xEEFFEFEF;
-	shareAddr->ctrls.control[2] = 0xEEFFEFEF;
-
-	shareAddr->ctrls.control_event = 1;
-	return 0;
-}
-
-int class8000_act130(int index, int attr_act, INT8U *data,
-		Action_result *act_ret) {
-
-	ProgramInfo *shareAddr = getShareAddr();
-
-	shareAddr->ctrls.cf205.currentState = 0;
-
-	if(shareAddr->ctrls.cf205.currentState == 0){
-		return 0;
-	}
-
-	if(data[0] != 0x01 || data[1] != 0x01){
-		return -1;
-	}
-	if(data[2] != 0x02 || data[3] != 0x04){
-		return -1;
-	}
-
-	OI_698 oi = data[5] * 256 + data[6];
-	int allow_or_auto = data[10];
-
-	asyslog(LOG_WARNING, "遥控合闸 %d\n", allow_or_auto);
-
-	shareAddr->ctrls.control[0] = 0xCCAACACA;
-	shareAddr->ctrls.control[1] = 0xCCAACACA;
-	shareAddr->ctrls.control[2] = 0xCCAACACA;
-
-	return 0;
-}
-
-
-int class8000_act_route(int index, int attr_act, INT8U *data,
-		Action_result *act_ret) {
-	switch (attr_act) {
-	case 127:
-//		class8000_act127(1, attr_act, data, act_ret);
-		break;
-	case 128:
-//		class8000_act128(1, attr_act, data, act_ret);
-		break;
-	case 129:
-		class8000_act129(1, attr_act, data, act_ret);
-		break;
-	case 130:
-		class8000_act130(1, attr_act, data, act_ret);
-		break;
-	}
-	return 1;
-}
 
 INT64U getLongValue(INT8U *data) {
 	INT64U v = 0x00;

@@ -135,6 +135,9 @@ extern int getZone(char *zone);
  * 写/nor/rc.d/ip.sh脚本
  * */
 extern void writeIpSh(INT8U *ip,INT8U *netmask);
+/* 修改ID生成备份文件
+ * */
+extern void writeIdFile(CLASS_4001_4002_4003 classtmp);
 /*
  * 参数初始化
  * */

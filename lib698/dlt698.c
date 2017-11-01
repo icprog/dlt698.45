@@ -13,7 +13,7 @@
 #include "PublicFunction.h"
 #define LIB698_VER 	1
 #define TESTDEF
-extern int doObjectAction();
+
 //extern int doActionReponse(int reponse,CSINFO *csinfo,PIID piid,OMD omd,int dar,INT8U *data,INT8U *buf);
 extern int getRequestRecord(OAD oad, INT8U *data, CSINFO *csinfo,
 		INT8U *sendbuf);
@@ -41,9 +41,10 @@ extern int Proxy_DoThenGetRequestList(INT8U *data, CSINFO *csinfo,
 extern unsigned short tryfcs16(unsigned char *cp, int len);
 extern INT32S secureConnectRequest(SignatureSecurity* securityInfo,
 		SecurityData* RetInfo);
-INT8S (*pSendfun)(int fd, INT8U* sndbuf, INT16U sndlen);
-extern void Get698_event(OAD oad, ProgramInfo* prginfo_event);
+INT8S (*pSendfun)(int name, int fd, INT8U* sndbuf, INT16U sndlen);
+
 int comfd = 0;
+int Global_name = 0;
 INT8U ClientPiid = 0;
 INT8U TmpDataBuf[MAXSIZ_FAM];
 INT8U TmpDataBufList[MAXSIZ_FAM * 2];
@@ -729,7 +730,7 @@ int appConnectResponse(INT8U *apdu, CSINFO *csinfo, INT8U *buf) {
 	FrameTail(buf, index, hcsi);
 
 	if (pSendfun != NULL && csinfo->sa_type != 2 && csinfo->sa_type != 3) //组地址或广播地址不需要应答
-		pSendfun(comfd, buf, index + 3);
+		pSendfun(Global_name, comfd, buf, index + 3);
 	return (index + 3);
 }
 
@@ -880,14 +881,17 @@ int doActionRequest(INT8U *apdu, CSINFO *csinfo, INT8U *buf) {
 		oad.attflg = apdu[apdu_index + 5];
 		oad.attrindex = apdu[apdu_index + 6];
 		data = &apdu[apdu_index + 7]; //Data
-		doObjectAction(oad, data, &act_ret);
+		doObjectAction(oad, data, &act_ret, csinfo, piid_g.data);
 		index += create_OAD(0, &TmpDataBuf[index], oad);
 		TmpDataBuf[index++] = act_ret.DAR;
 //			if(act_ret.DAR == success) {
 		TmpDataBuf[index++] = 0; //数据为空
 //			}
-		doReponse(ACTION_RESPONSE, ActionResponseNormal, csinfo, index,
-				TmpDataBuf, buf);
+		if(oad.OI == 0xF209 && oad.attflg == 127 && oad.attrindex == 0) {
+			syslog(LOG_NOTICE, "F209载波透传命令，等待载波回复");
+		}else {
+			doReponse(ACTION_RESPONSE, ActionResponseNormal, csinfo, index,	TmpDataBuf, buf);
+		}
 		//在应答帧接收到之后再发送复位参数
 		if (oad.OI == 0x4300 && oad.attflg == 1 && act_ret.DAR == success) { //设备复位 ,TODO:只考虑ACTIONREQUEST的
 			syslog(LOG_NOTICE, "接收到硬件复位命令");
@@ -913,7 +917,7 @@ int doActionRequest(INT8U *apdu, CSINFO *csinfo, INT8U *buf) {
 			oad.attflg = apdu[apdu_index++];
 			oad.attrindex = apdu[apdu_index++];
 			index += create_OAD(0, &TmpDataBuf[index], oad);
-			doObjectAction(oad, &apdu[apdu_index], &act_ret);
+			doObjectAction(oad, &apdu[apdu_index], &act_ret, csinfo, piid_g.data);
 			TmpDataBuf[index++] = act_ret.DAR;
 //				if(act_ret.DAR == success) {
 			TmpDataBuf[index++] = 0; //数据为空
@@ -938,7 +942,7 @@ int doActionRequest(INT8U *apdu, CSINFO *csinfo, INT8U *buf) {
 			oad.attflg = apdu[apdu_index++];
 			oad.attrindex = apdu[apdu_index++];
 			index += create_OAD(0, &TmpDataBuf[index], oad);
-			doObjectAction(oad, &apdu[apdu_index], &act_ret);
+			doObjectAction(oad, &apdu[apdu_index], &act_ret, csinfo, piid_g.data);
 			TmpDataBuf[index++] = act_ret.DAR;
 //				if(act_ret.DAR == success) {
 			TmpDataBuf[index++] = 0; //数据为空
@@ -1811,7 +1815,7 @@ int doReleaseConnect(INT8U *apdu, CSINFO *csinfo, INT8U *sendbuf) {
 
 	FrameTail(sendbuf, index, hcsi);
 	if (pSendfun != NULL)
-		pSendfun(comfd, sendbuf, index + 3);
+		pSendfun(Global_name, comfd, sendbuf, index + 3);
 	fprintf(stderr, "\n			断开应用连接 PIID = %x", ClientPiid);
 	return 1;
 }
@@ -1955,6 +1959,7 @@ int ProcessData(CommBlock *com) {
 	memp = (ProgramInfo*) com->shmem;
 	pSendfun = com->p_send;
 	comfd = com->phy_connect_fd;
+	Global_name = com->name;
 	if (CheckSerAddr(Rcvbuf, com->serveraddr) == 0)
 		return 0;
 	hcsok = CheckHead(Rcvbuf, &csinfo);

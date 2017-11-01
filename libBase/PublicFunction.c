@@ -1377,4 +1377,22 @@ void time_tToTS(time_t inTimet,TS *outts)
     outts->Minute = ctm.tm_min;
     outts->Sec = ctm.tm_sec;
 }
+
+void writeIdFile(CLASS_4001_4002_4003 classtmp)
+{
+	FILE *fp=NULL;
+
+	fp = fopen("/nor/config/id.cfg","w");
+	if (fp!=NULL)
+	{
+		fprintf(fp,"id=%02x-%02x-%02x-%02x-%02x-%02x-%02x-%02x-%02x-%02x-%02x-%02x-%02x-%02x-%02x-%02x",
+				classtmp.curstom_num[0],classtmp.curstom_num[1],classtmp.curstom_num[2],classtmp.curstom_num[3],
+				classtmp.curstom_num[4],classtmp.curstom_num[5],classtmp.curstom_num[6],classtmp.curstom_num[7],
+				classtmp.curstom_num[8],classtmp.curstom_num[9],classtmp.curstom_num[10],classtmp.curstom_num[11],
+				classtmp.curstom_num[12],classtmp.curstom_num[13],classtmp.curstom_num[14],classtmp.curstom_num[15]);
+		fclose(fp);
+	}
+	return ;
+}
+
 #endif /*JPublicFunctionH*/

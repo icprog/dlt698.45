@@ -63,7 +63,7 @@ INT16U set3106(OAD oad,INT8U *data,INT8U *DAR)
 		tmpobj.poweroff_para_obj.collect_para_obj.tsaarr.num = arraysize;
 		for(i=0;i<arraysize;i++)
 		{
-			index += getOctetstring(1,&data[index],tmpobj.poweroff_para_obj.collect_para_obj.tsaarr.meter_tas[i].addr,DAR);
+			index += getTSA(1,&data[index],tmpobj.poweroff_para_obj.collect_para_obj.tsaarr.meter_tas[i].addr,DAR);
 		}
 	}
 	if(oad.attrindex != 0x01){
@@ -228,7 +228,7 @@ INT16U set4001_4002_4003(OAD oad,INT8U *data,INT8U *DAR)	//通信地址，表号
 	memset(&class_addr.curstom_num,0,sizeof(class_addr.curstom_num));
 	if (oad.attflg == 2 )
 	{
-		index += getOctetstring(1,&data[index],(INT8U *)&class_addr.curstom_num,DAR);
+		index += getOctetstring(1,OCTET_STRING_LEN-1,&data[index],(INT8U *)&class_addr.curstom_num[1],&class_addr.curstom_num[0],DAR);
 		if(*DAR == success)
 		{
 			datalen = class_addr.curstom_num[0]+1;
@@ -238,6 +238,7 @@ INT16U set4001_4002_4003(OAD oad,INT8U *data,INT8U *DAR)	//通信地址，表号
 			}
 			*DAR = saveCoverClass(oad.OI,0,&class_addr,sizeof(CLASS_4001_4002_4003),para_vari_save);
 			*DAR = saveCoverClass(oad.OI,0,&class_addr,sizeof(CLASS_4001_4002_4003), para_init_save);
+			writeIdFile(class_addr);//写入ID备份文件
 		}
 	}
 	return index;
@@ -296,7 +297,7 @@ INT16U set4005(OAD oad,INT8U *data,INT8U *DAR)
         fprintf(stderr,"arraysize = %d \n",arraysize);
         for(i=0;i<arraysize;i++)
         {
-			INT8U len=getOctetstring(1,&data[index],&class4005.addr[i][0],DAR);
+			INT8U len=getOctetstring(1,OCTET_STRING_LEN-1,&data[index],&class4005.addr[i][1],&class4005.addr[i][0],DAR);
 			if(*DAR == success)
 			{
 				fprintf(stderr,"len=%d \n",len);
@@ -562,7 +563,7 @@ INT16U set4202(OAD oad,INT8U *data,INT8U *DAR)
 			int i=0;
 			for(i=0;i<class4202.tsanum;i++)
 			{
-				index += getOctetstring(1,&data[index],(INT8U *)&class4202.tsa[i][0],DAR);
+				index += getTSA(1,&data[index],(INT8U *)&class4202.tsa[i][0],DAR);
 				if(*DAR !=success)
 					break;
 			}
@@ -724,7 +725,7 @@ INT16U set4500(OAD oad,INT8U *data,INT8U *DAR)
 		if(*DAR!=success) return 0;
 		index += getVisibleString(&data[index],class4500.commconfig.passWord,DAR);
 		if(*DAR!=success) return 0;
-		index += getOctetstring(1,&data[index],class4500.commconfig.proxyIp,DAR);
+		index += getOctetstring(1,OCTET_STRING_LEN-1,&data[index],&class4500.commconfig.proxyIp[1],&class4500.commconfig.proxyIp[0],DAR);
 		index += getLongUnsigned(&data[index],(INT8U *)&class4500.commconfig.proxyPort);
 		index += getUnsigned(&data[index],(INT8U *)&class4500.commconfig.timeoutRtry,DAR);	//勘误更改
 		index += getLongUnsigned(&data[index],(INT8U *)&class4500.commconfig.heartBeat);
@@ -732,6 +733,9 @@ INT16U set4500(OAD oad,INT8U *data,INT8U *DAR)
 			*DAR = refuse_rw;
 			return index;
 		}
+	    write_apn((char *) &class4500.commconfig.apn[1]);
+		usleep(100*1000);
+		write_userpwd(&class4500.commconfig.userName[1],&class4500.commconfig.passWord[1],&class4500.commconfig.apn[1]);
 		break;
 	case 3:		//主站通信参数表
 		index += getArray(&data[index],(INT8U *)&class4500.master.masternum,DAR);
@@ -743,7 +747,7 @@ INT16U set4500(OAD oad,INT8U *data,INT8U *DAR)
 		}
 		for(i=0;i<class4500.master.masternum;i++) {
 			index += getStructure(&data[index],NULL,DAR);
-			index += getOctetstring(1,&data[index],class4500.master.master[i].ip,DAR);
+			index += getOctetstring(1,OCTET_STRING_LEN-1,&data[index],&class4500.master.master[i].ip[1],&class4500.master.master[i].ip[0],DAR);
 			if(*DAR!=success) return 0;
 			index += getLongUnsigned(&data[index],(INT8U *)&class4500.master.master[i].port);
 		}
@@ -855,7 +859,7 @@ INT16U set4510(OAD oad,INT8U *data,INT8U *DAR)
 		for(i=0;i<class4510.commconfig.listenPortnum;i++) {
 			index += getLongUnsigned(&data[index],(INT8U *)&class4510.commconfig.listenPort[i]);
 		}
-		index += getOctetstring(1,&data[index],class4510.commconfig.proxyIp,DAR);
+		index += getOctetstring(1,OCTET_STRING_LEN-1,&data[index],&class4510.commconfig.proxyIp[1],&class4510.commconfig.proxyIp[0],DAR);
 		index += getLongUnsigned(&data[index],(INT8U *)&class4510.commconfig.proxyPort);
 		index += getUnsigned(&data[index],(INT8U *)&class4510.commconfig.timeoutRtry,DAR);//勘误更改类型
 		index += getLongUnsigned(&data[index],(INT8U *)&class4510.commconfig.heartBeat);
@@ -885,16 +889,16 @@ INT16U set4510(OAD oad,INT8U *data,INT8U *DAR)
 		}
 		for(i=0;i<class4510.master.masternum;i++) {
 			index += getStructure(&data[index],NULL,DAR);
-			index += getOctetstring(1,&data[index],class4510.master.master[i].ip,DAR);
+			index += getOctetstring(1,OCTET_STRING_LEN-1,&data[index],&class4510.master.master[i].ip[1],&class4510.master.master[i].ip[0],DAR);
 			index += getLongUnsigned(&data[index],(INT8U *)&class4510.master.master[i].port);
 		}
 		break;
 	case 4:
 		index += getStructure(&data[index],NULL,DAR);
 		index += getEnum(1,&data[index],(INT8U *)&class4510.IP.ipConfigType);
-		index += getOctetstring(1,&data[index],class4510.IP.ip,DAR);
-		index += getOctetstring(1,&data[index],class4510.IP.subnet_mask,DAR);
-		index += getOctetstring(1,&data[index],class4510.IP.gateway,DAR);
+		index += getOctetstring(1,OCTET_STRING_LEN-1,&data[index],&class4510.IP.ip[1],&class4510.IP.ip[0],DAR);
+		index += getOctetstring(1,OCTET_STRING_LEN-1,&data[index],&class4510.IP.subnet_mask[1],&class4510.IP.subnet_mask[0],DAR);
+		index += getOctetstring(1,OCTET_STRING_LEN-1,&data[index],&class4510.IP.gateway[1],&class4510.IP.gateway[0],DAR);
 		index += getVisibleString(&data[index],class4510.IP.username_pppoe,DAR);
 		index += getVisibleString(&data[index],class4510.IP.password_pppoe,DAR);
 		writeIpSh(class4510.IP.ip,class4510.IP.subnet_mask);

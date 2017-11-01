@@ -21,7 +21,8 @@ int class23_act1(OI_698 oi) {
 	asyslog(LOG_WARNING, "清除所有配置单元(%04x)", no);
 	memset(&shareAddr->class23[no], 0x00, sizeof(CLASS23));
 	saveCoverClass(oi, 0, &shareAddr->class23[no], sizeof(CLASS23), para_vari_save);
-	return 0;
+	//数据为NULL，占用1个字节   23 01 01 00 00（NULL）
+	return 1;
 }
 
 int class23_act3_4(OAD oad, INT8U* data, Action_result *act_ret)
@@ -42,7 +43,7 @@ int class23_act3_4(OAD oad, INT8U* data, Action_result *act_ret)
 	}
 	for(i=0;i<unitnum;i++) {
 		index += getStructure(&data[index],NULL,&act_ret->DAR);
-		index += getOctetstring(1,&data[index],(INT8U *)&al_unit.tsa,&act_ret->DAR);
+		index += getTSA(1,&data[index],(INT8U *)&al_unit.tsa,&act_ret->DAR);
 		index += getEnum(1,&data[index],&al_unit.al_flag);
 		index += getEnum(1,&data[index],&al_unit.cal_flag);
 		if (shareAddr->class23[no].allist[i].tsa.addr[0] == 0x00 && act_ret->DAR == success) {
@@ -104,7 +105,7 @@ int class23_set_attr2(OI_698 oi,INT8U *data, INT8U *DAR, CLASS23 *memClass23)
 	unitnum = limitJudge("总加组配置单元",MAX_AL_UNIT,unitnum);
 	for(i=0;i<unitnum;i++) {
 		index += getStructure(&data[index],NULL,DAR);
-		index += getOctetstring(1,&data[index],(INT8U *)&class23[no].allist[i].tsa,DAR);
+		index += getTSA(1,&data[index],(INT8U *)&class23[no].allist[i].tsa,DAR);
 		index += getEnum(1,&data[index],&class23[no].allist[i].al_flag);
 		index += getEnum(1,&data[index],&class23[no].allist[i].cal_flag);
 	}

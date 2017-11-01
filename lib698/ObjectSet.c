@@ -112,7 +112,7 @@ INT16U setClass7attr(OAD oad,INT8U *data,INT8U *DAR)
 	case 1:	//逻辑名
 		memset(str,0,sizeof(str));
 		fprintf(stderr,"\n设置前:class7.logic_name = %s",class7.logic_name);
-		index += getOctetstring(1,&data[index],(INT8U *)&class7.logic_name,DAR);
+		index += getOctetstring(1,OCTET_STRING_LEN-1,&data[index],(INT8U *)&class7.logic_name[1],&class7.logic_name[0],DAR);
 		fprintf(stderr,"\n设置后:class7.logic_name = %s",class7.logic_name);
 		break;
 	case 3:	//关联属性表

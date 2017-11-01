@@ -245,6 +245,25 @@ int fill_timetag(INT8U *data,TimeTag timetag)
 	return index;
 }
 
+/*
+ * 根据A-XDR编码,填充octet-string,bit-string的长度,未考虑长度超过3个字节
+ * 返回实际填充的个数
+ * buf:填充的数据
+ * */
+INT8U fillStringLen(INT8U *buf,int strlen)
+{
+	if(strlen <=127) {
+		buf[0] = strlen;
+		return 1;
+	}else if(strlen > 127) {
+		buf[0] = 0x82;		//两个字节
+		buf[1] = (strlen >> 8) & 0xff;
+		buf[2] = strlen & 0xff;
+		return 3;
+	}
+	return 0;
+}
+
 int create_array(INT8U *data,INT8U numm)	//0x01
 {
 	//fprintf(stderr,"numm =%d \n",numm);
@@ -347,6 +366,12 @@ int fill_visible_string(INT8U *data,char *value,INT8U len)	//0x0a
 	data[0] = dtvisiblestring;
 	data[1] = len;
 	memcpy(&data[2],value,len);
+	for(int i=0;i<len;i++) {
+		if(data[2+i]<33 || data[2+i]>126) {
+			syslog(LOG_ERR,"无效ASCII码值[%d]=%x\n",2+i,data[2+i]);
+			data[2+i] = 48;		//初始化为“0”，山东主站解析xml解析报文，当读取4500参数有值为0时，解析失败
+		}
+	}
 	return (len+2);
 }
 
@@ -759,19 +784,51 @@ int getDouble(INT8U *source,INT8U *dest)	//5  and 6
 }
 
 /*
- *  type ==1 存在类型字节
- */
-int getOctetstring(INT8U type,INT8U *source,INT8U *tsa,INT8U *DAR)   //9  and  0x55
+ * 根据A-XDR编码,解析OctetString的实际长度
+ * source: 源数据
+ * strlen：返回实际填充的个数
+ * 返回值： 长度占用的实际长度
+ * */
+int getOctetstringLen(INT8U *source,INT16U *strlen)
 {
-	if ((type==1 && (source[0]==dtoctetstring || source[0]==dttsa)) || type==0)
-	{
-		INT8U num = source[type];//字节数
-		if(num>TSA_LEN) {		//todo: 定义 OCTET_STRING_LEN也会调用该函数
-			asyslog(LOG_ERR,"Octetstring 长度越限[%d]  num=%d\n",TSA_LEN,num);
-			num = TSA_LEN;
+	INT8U  bytes = 0;
+	if(source[0] <= 127) {
+		*strlen = source[0];
+		return 1;
+	}else if(source[0] & 0x80) {
+		bytes = source[0] & 0x7f;
+		if(bytes == 2) {
+			*strlen = (source[1]<<8) | source[2];
+			return 3;
+		}else if(bytes == 3) {
+			*strlen = (source[1]<<16) | (source[2]<<8) | source[3];
+			return 4;
 		}
-		memcpy(tsa, &source[type],num+1);
-		return (num + type + 1);	// 1:长度字节
+	}
+	return 0;
+}
+/*
+ *  type ==1 存在类型字节
+ *  limit: 该字节的有效长度
+ *  解析Octetstring类型长度最大为255
+ */
+int getOctetstring(INT8U type,INT16U limit,INT8U *source,INT8U *buf,INT8U *len,INT8U *DAR)   //9
+{
+	INT16U  num = 0;
+	INT16U  index = 0;
+
+	if ((type==1 && (source[0]==dtoctetstring)) || type==0)
+	{
+		index = type;
+		index += getOctetstringLen(&source[index],&num);
+		if(num>limit) {
+			asyslog(LOG_ERR,"Octetstring 长度越限[%d]  num=%d\n",limit,num);
+			num = limit;
+			if(DAR!=NULL && *DAR==success)	*DAR = boundry_over;
+		}
+		memcpy(&buf[0], &source[index],num);
+		*len = num;
+		return (index + num);
 	}else{
 		if(DAR!=NULL && *DAR==success)	*DAR = type_mismatch;
 		return 0;
@@ -989,6 +1046,24 @@ int getTI(INT8U type,INT8U *source,TI *ti)	//0x54
 }
 
 /*
+ *  type ==1 存在类型字节
+ */
+int getTSA(INT8U type,INT8U *source,INT8U *tsa,INT8U *DAR)   // 0x55
+{
+	if ((type==1 && source[0]==dttsa) || type==0)
+	{
+		INT8U num = source[type];//字节数
+		num = limitJudge("TSA长度",TSA_LEN,num);
+		memcpy(tsa, &source[type],num+1);
+		return (num + type + 1);	// 1:长度字节
+	}else  {
+		if(DAR!=NULL && *DAR==success)	*DAR = type_mismatch;
+		return 0;
+	}
+	return 0;
+}
+
+/*
  * 解析选择方法类型 RSD
  */
 int get_BasicRSD(INT8U type,INT8U *source,INT8U *dest,INT8U *seletype)		//0x5A
@@ -1192,7 +1267,7 @@ int getMS(INT8U type,INT8U *source,MY_MS *ms)		//0x5C
 		ms->ms.userAddr[msindex].addr[1] = seqlen & 0xff;
 		msindex++;
 		for(i=0;i<seqlen;i++) {
-			index += getOctetstring(0,&source[index],(INT8U *)&ms->ms.userAddr[msindex++].addr,NULL);
+			index += getTSA(0,&source[index],(INT8U *)&ms->ms.userAddr[msindex++].addr,NULL);
 			if(index>=(MAXSIZ_FAM-48)) {
 				syslog(LOG_ERR,"MS 数据类型填充数据[%d]超限[%d],不予处理",index,MAXSIZ_FAM);
 				break;

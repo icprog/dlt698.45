@@ -1466,7 +1466,7 @@ int save_protocol_3761_tx_para(INT8U* dealdata)
 
 	for(i=0;i<array_num;i++) {
 		index += getStructure(&dealdata[index],(INT8U *)&master.masternum,NULL);
-		index += getOctetstring(1,&dealdata[index],master.master[i].ip,NULL);
+		getOctetstring(1,OCTET_STRING_LEN-1,&dealdata[index],&master.master[i].ip[1],&master.master[i].ip[0],NULL);
 		index += getLongUnsigned(&dealdata[index],(INT8U *)&master.master[i].port);
 	}
 
@@ -1682,17 +1682,19 @@ int getOI6001(MY_MS ms,INT8U **tsas)
 		return tsa_num;
 	}
 	record_num = getFileRecordNum(0x6000);
-	switch(ms.mstype) {
-	case 3:	//一组用户地址	浙江主站招测报文含有两个相同的测量点，例如，集中器共2个测量点，主站招测4个测量点，其中2个是重复的，导致申请内存空间不足（申请两个，放置了4个测量点信息）
-		tsa_len = (ms.ms.userAddr[0].addr[0]<<8) | ms.ms.userAddr[0].addr[1];
-		fprintf(stderr,"\n11tsa_len=%d\n",tsa_len);
-		*tsas = malloc(tsa_len*sizeof(CLASS_6001));
-		break;
-	default:
-		*tsas = malloc(record_num*sizeof(CLASS_6001));
-		break;
-	}
-	fprintf(stderr," tsas  p=%p record_num=%d tsa_len=%d",*tsas,record_num,tsa_len);
+	*tsas = malloc(record_num*sizeof(CLASS_6001));
+//	浙江主站招测报文含有两个相同的测量点，例如，集中器共2个测量点，主站招测4个测量点，其中2个是重复的，导致申请内存空间不足（申请两个，放置了4个测量点信息）
+//	当配置两个测量点地址相同情况下，招测一组用户地址，查找到两条记录会申请内存不足，所以改为申请最大的测量点数量内存空间
+//	switch(ms.mstype) {
+//	case 3:	//一组用户地址
+//		tsa_len = (ms.ms.userAddr[0].addr[0]<<8) | ms.ms.userAddr[0].addr[1];
+//		*tsas = malloc(tsa_len*sizeof(CLASS_6001));
+//		break;
+//	default:
+//		*tsas = malloc(record_num*sizeof(CLASS_6001));
+//		break;
+//	}
+//	fprintf(stderr," tsas  p=%p record_num=%d tsa_len=%d",*tsas,record_num,tsa_len);
 	tsa_num = 0;
 	for(i=0;i<record_num;i++) {
 		if(readParaClass(0x6000,&meter,i)==1) {

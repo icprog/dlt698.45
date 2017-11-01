@@ -209,7 +209,7 @@ typedef struct {
 
 typedef struct{
 	INT8U num; //组地址数量
-	INT8U addr[20][17];//最多20个 每个最大长度16个字节，第一个字节为长度
+	INT8U addr[20][OCTET_STRING_LEN];//最多20个 每个最大长度16个字节，第一个字节为长度
 } CLASS_4005;
 typedef struct {
     INT8U clocksource;
@@ -657,11 +657,6 @@ typedef struct {
 	    INT32U	softVer;		//软件版本
 	}VersionInfo;
 	typedef struct{
-		TSA		commAddr;		//通信地址
-		INT32U	overTime;		//接收等待报文超时时间（秒）
-		INT8U	transBuf[255];	//透明转发命令
-	}TransPara;//透明转发（参数）
-	typedef struct{
 		INT32U	pointNo;		//从节点序号
 		INT8U	pointAddr[VISIBLE_STRING_LEN];		//从节点通信地址
 		INT8U	pointDesc[VISIBLE_STRING_LEN];		//从节点描述符
@@ -679,8 +674,8 @@ typedef struct {
 	CLASS_F209_PARA	para;			//参数
     TSA 			tsa;			//通讯地址
     int				timeout;		//超时时间
-	TransPara		trans;			//透明转发（参数）
-    INT8U			transFlg;		//透明转发标志，主站下发：置1，载波抄表：置0
+//	TransPara		trans;			//透明转发（参数）
+//    INT8U			transFlg;		//透明转发标志，主站下发：置1，载波抄表：置0
 } CLASS_f209;                       //载波/微功率无线接口
 
 /////////////////////////////////////////////////////////////////////
@@ -757,6 +752,15 @@ typedef struct{
 	INT16U timeout;
 	SETOBJ setobjs[5];
 }ACTION_SET_OBJ;
+
+typedef struct{
+	INT8U	dar;			//数据状态值
+	TSA		commAddr;		//通信地址
+	INT32U	overTime;		//接收等待报文超时时间（秒）
+	INT16U  buflen;			//透传报文长度
+	INT8U	transBuf[255];	//透明转发命令, F209返回报文:第一个字节为octet-string类型描述，第二字节为长度（长度>127，3个字节长度）+实际报文内容
+}F209_TransPara;//透明转发（参数）
+
 typedef union {
 	INT8U buf[1024];
 	GETOBJS objs[10];  				//代理请求列表		ProxyGetRequestList
@@ -764,6 +768,7 @@ typedef union {
     TRANSCMD transcmd;   		 	//代理操作透明转发	ProxyTransCommandRequest
     DO_Then_GET doTsaThenGet[5];	//TSA[n]	ProxySetThenGetRequestList	ProxyActionThenGetRequestList
     ACTION_SET_OBJ doTsaList[5];	//TSA[n]	Proxy  Action\Set- tList
+    F209_TransPara  f209Trans;		//F209的方法127：透明转发（参数）传输内容为DLT645，非376.2报文，作为一种代理使用
 }PROXYOBJ;
 typedef struct {
     INT8U status;      //代理传输状态		0 表示就绪     1 已经表示返回数据  2 已经响应主站   3 超时
@@ -827,7 +832,7 @@ typedef struct {
 } CLASS12_ENERGY;
 
 typedef struct {
-	INT8U addr[17];//通信地址
+	INT8U addr[TSA_LEN];//通信地址
 	INT32U pt;//互感器倍率
 	INT32U ct;//互感器倍率
 	PULSEUNIT unit[MAX_PULSE_UNIT];//脉冲配置
@@ -1070,11 +1075,12 @@ typedef struct {
     LINK_Response linkResponse; //心跳确认
     CONNECT_Response myAppVar;  //集中器支持的应用层会话参数
     CONNECT_Response AppVar;    //与主站协商后的应用层会话参数
-    INT8S (*p_send)(int fd, INT8U *buf, INT16U len);
+    INT8S (*p_send)(int name, int fd, INT8U *buf, INT16U len);
     INT8U SendBuf[BUFLEN];      //发送数据
     INT8U DealBuf[FRAMELEN];    //保存接口函数处理长度
     INT8U RecBuf[BUFLEN];       //接收数
     TS final_frame;				//最后一次收到报文的时间
+    INT8U name;					//端口名称，用于区分各个端口
 } CommBlock;
 ////////////////////////////////////////////////////////////////////
 typedef struct

@@ -31,6 +31,7 @@ void ProxyListResponse(PROXY_GETLIST *list,CommBlock *com)
 	CSINFO csinfo;
 	INT8U *sendbuf = com->SendBuf;
 	int index=0, hcsi=0,datalen=0 ,apduplace =0;
+	OAD	 f209_oad;
 
 	memcpy(&csinfo,&list->csinfo,sizeof(CSINFO));
 	csinfo.dir = 1;
@@ -41,9 +42,22 @@ void ProxyListResponse(PROXY_GETLIST *list,CommBlock *com)
 	index = index + 2;
 
 	apduplace = index;		//记录APDU 起始位置
-	sendbuf[index++] = PROXY_RESPONSE;
-	sendbuf[index++] = list->proxytype;
-	sendbuf[index++] = list->piid;
+
+	if(list->proxytype == F209TransCommandAnswer) {		//F209方法127透传命令
+		sendbuf[index++] = ACTION_RESPONSE;
+		sendbuf[index++] = ActionResponseNormal;		//只处理ACTIONREQUEST请求方式的操作方式
+		sendbuf[index++] = list->piid;
+		f209_oad.OI = 0xf209;	//载波接口
+		f209_oad.attflg = 127;	//方法127
+		f209_oad.attrindex = 0;
+		index += create_OAD(0, &sendbuf[index], f209_oad);
+		sendbuf[index++] = list->proxy_obj.f209Trans.dar;	//操作返回结果
+	}else {
+		sendbuf[index++] = PROXY_RESPONSE;
+		sendbuf[index++] = list->proxytype;
+		sendbuf[index++] = list->piid;
+	}
+
 	datalen = list->datalen ;
 	if (datalen > 512)
 		datalen =512;
@@ -53,7 +67,7 @@ void ProxyListResponse(PROXY_GETLIST *list,CommBlock *com)
 	index += fill_timetag(&sendbuf[index],Response_timetag);//时间标签		TimeTag
 	FrameTail(sendbuf,index,hcsi);
 	if(com->p_send!=NULL)
-		com->p_send(com->phy_connect_fd,sendbuf,index+3);
+		com->p_send(com->name, com->phy_connect_fd,sendbuf,index+3);
 }
 
 int getProxylist(INT8U *data,PROXY_GETLIST *getlist)
@@ -142,7 +156,7 @@ int Proxy_GetRequestRecord(INT8U *data,CSINFO *csinfo,INT8U *sendbuf,INT8U piid)
 //		num = sizeof(TSA);
 //	memcpy(&getlist.proxy_obj.record.tsa,&data[iindex],num+1);
 //	iindex = iindex + num +1;
-	iindex += getOctetstring(0,&data[iindex],(INT8U *)&getlist.proxy_obj.record.tsa,&dar);
+	iindex += getTSA(0,&data[iindex],(INT8U *)&getlist.proxy_obj.record.tsa,&dar);
 	fprintf(stderr,"tsa_index=%d\n",iindex);
 	iindex += getOAD(0,&data[iindex],&oadtmp,NULL);
 	memcpy(&getlist.proxy_obj.record.oad,&oadtmp,sizeof(oadtmp));
@@ -193,7 +207,7 @@ int getProxyDO_Then_Get_list(INT8U *data,DO_Then_GET *doget)
 //			num = sizeof(doget[i].tsa);
 //		memcpy(&doget[i].tsa,&data[iindex],num+1);
 //		iindex = iindex + num +1;
-		iindex += getOctetstring(0,&data[iindex],(INT8U *)&doget[i].tsa,&dar);
+		iindex += getTSA(0,&data[iindex],(INT8U *)&doget[i].tsa,&dar);
 		timeout = data[iindex];
 		doget[i].timeout = timeout<<8 |data[iindex+1];
 		iindex = iindex + 2;
