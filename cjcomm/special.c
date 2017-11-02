@@ -152,6 +152,7 @@ int specialCheckPow() {
 			dbSet("StopCommunite", 1);
 			gpofun("/dev/gpoONLINE_LED", 0);
 			asyslog(LOG_INFO, "检测到设备掉电一分钟，停止所有通信...");
+			count = 0;
 		}
 	} else {
 //		fprintf(stderr, "KKK------------------%d\n", count);

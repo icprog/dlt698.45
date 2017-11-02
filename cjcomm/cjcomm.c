@@ -26,7 +26,7 @@ int cWriteWithCalc(int name, int fd, INT8U *buf, INT16U len) {
 
 int cWrite(int name, int fd, INT8U *buf, INT16U len) {
 	int ret = anetWrite(fd, buf, (int) len);
-	fprintf(stderr, "=============++++%d %d %d\n",name, fd, len);
+//	fprintf(stderr, "=============++++%d %d %d\n",name, fd, len);
 	if (ret != len) {
 		asyslog(LOG_WARNING, "报文发送失败(长度:%d,错误:%d,端口:%d)", len, errno, fd);
 	}
@@ -82,7 +82,7 @@ void cRead(struct aeEventLoop *ep, int fd, void *clientData, int mask) {
 	ioctl(fd, FIONREAD, &revcount);
 
 	//关闭异常端口
-	if (revcount <= 0) {
+	if (revcount < 0) {
 		asyslog(LOG_WARNING, "链接[%d-%s]异常，关闭端口", errno,strerror(errno));
 		aeDeleteFileEvent(ep, fd, AE_READABLE);
 		close(fd);
