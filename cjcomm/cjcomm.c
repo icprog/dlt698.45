@@ -16,14 +16,17 @@
 #include "atBase.h"
 #include "special.h"
 
-int cWriteWithCalc(INT8U name, int fd, INT8U *buf, INT16U len) {
+
+int cWriteWithCalc(int name, int fd, INT8U *buf, INT16U len) {
 	int old = (int) dbGet("calc.new") + len;
 	dbSet("calc.new", old);
 	cWrite(name, fd, buf, len);
 }
 
-int cWrite(INT8U name, int fd, INT8U *buf, INT16U len) {
+
+int cWrite(int name, int fd, INT8U *buf, INT16U len) {
 	int ret = anetWrite(fd, buf, (int) len);
+	fprintf(stderr, "=============++++%d %d %d\n",name, fd, len);
 	if (ret != len) {
 		asyslog(LOG_WARNING, "报文发送失败(长度:%d,错误:%d,端口:%d)", len, errno, fd);
 	}

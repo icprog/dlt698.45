@@ -243,6 +243,7 @@ void SetID(int argc, char *argv[]) {
         }
         saveCoverClass(0x4001, 0, &classtmp, sizeof(CLASS_4001_4002_4003), para_vari_save);
         saveCoverClass(0x4001, 0, &classtmp, sizeof(CLASS_4001_4002_4003), para_init_save);
+        writeIdFile(classtmp);
         setOIChange_CJ(0x4001);
     } else {
         readCoverClass(0x4001, 0, &classtmp, sizeof(CLASS_4001_4002_4003), para_vari_save);

@@ -30,7 +30,7 @@ typedef struct {
 
 #define  IP_LEN		4			//参数ip类长度
 									//厂商代码　　软件版本　软件日期　　硬件版本　硬件日期  扩展信息
-static VERINFO verinfo          = { "QDGK", "V1.1", "171008", "1.10", "160328", "00000000" }; // 4300 版本信息
+static VERINFO verinfo          = { "QDGK", "V1.1", "171013", "1.10", "160328", "00000000" }; // 4300 版本信息
 									//湖南需要双协议,软件版本要求为SXY8（双协议8） ，1376.1（软件版本为SXY1）
 static VERINFO verinfo_HuNan    = { "QDGK", "SXY8", "170928", "1.10", "160328", "00000000" }; // 4300 版本信息
 static VERINFO verinfo_ShanDong  = { "QDGK", "V1.2", "171026", "1.10", "160328", "00000000" }; // 4300 版本信息
@@ -41,8 +41,8 @@ static char protcol[]           = "DL/T 698.45";                                
 static MASTER_STATION_INFO null_info = {};   //备用地址不设置传入
 ///湖南　Ｉ型
 static MASTER_STATION_INFO	master_info_HuNan = {{10,223,31,200},4000};			//IP				端口号
-static GprsPara 	gprs_para_HuNan = {"dl.vpdn.hn","cs@dl.vpdn.hn","hn123456",""};		//apn ,userName,passWord,proxyIp
-static MASTER_STATION_INFO	master_info_HuNan_4510 = {{192,168,127,127},9027};			//net IP	端口号
+static GprsPara 	gprs_para_HuNan = {"CSSDL.HN","cs@dl.vpdn.hn","hn123456",""};		//apn ,userName,passWord,proxyIp
+static MASTER_STATION_INFO	master_info_HuNan_4510 = {{10,223,31,200},4000};			//net IP	端口号
 static NETCONFIG 	IP_HuNan={1,{192,168,0,10},{255,255,255,0},{192,168,0,1},{},{}};	//网络配置
 
 ///浙江　ＩＩ型
@@ -102,6 +102,9 @@ void InitClass4500(INT16U heartBeat,MASTER_STATION_INFO master_info,MASTER_STATI
             class4500.master.master[1].ip[2], class4500.master.master[1].ip[3],
             class4500.master.master[1].ip[4], class4500.master.master[1].port);
     saveCoverClass(0x4500, 0, &class4500, sizeof(CLASS25), para_vari_save);
+    write_apn((char *) &class4500.commconfig.apn[1]);
+	usleep(100*1000);
+	write_userpwd(&class4500.commconfig.userName[1],&class4500.commconfig.passWord[1],&class4500.commconfig.apn[1]);
 }
 
 
@@ -165,16 +168,15 @@ void InitClass4300() //电气设备信息
 {
     CLASS19 oi4300 = {};
     int ret        = 0;
-    VERINFO		run_version;
+    VERINFO		run_version={};
 
 	if(getZone("HuNan")==0) {
 		memcpy(&run_version,&verinfo_HuNan,sizeof(VERINFO));
-	}if(getZone("ShanDong")==0) {
+	}else if(getZone("ShanDong")==0) {
 		memcpy(&run_version,&verinfo_ShanDong,sizeof(VERINFO));
 	}else {
 		memcpy(&run_version,&verinfo,sizeof(VERINFO));
 	}
-
     memset(&oi4300, 0, sizeof(CLASS19));
     ret = readCoverClass(0x4300, 0, &oi4300, sizeof(CLASS19), para_vari_save);
     if ((ret != 1) || (memcmp(&oi4300.info, &run_version, sizeof(VERINFO)) != 0)
@@ -284,7 +286,8 @@ void InitClassByZone(INT8U type)
 			InitClass4510(heartBeat,master_info_ZheJiang_4510,IP_ZheJiang);    //以太网通信模块1
 		}else if(getZone("HuNan")==0) {
 			heartBeat = 300;	//5分钟
-			InitClass4500(heartBeat,master_info_HuNan,null_info,gprs_para_HuNan);
+//			InitClass4500(heartBeat,master_info_HuNan,null_info,gprs_para_HuNan);
+			InitClass4500(heartBeat,master_info_HuNan,master_info_HuNan,gprs_para_HuNan);
 			InitClass4510(heartBeat,master_info_HuNan_4510,IP_HuNan);    //以太网通信模块1
 		}else if(getZone("GW")==0) {
 			InitClass4500(heartBeat,master_info_GW,master_info_GW,gprs_para_GW);

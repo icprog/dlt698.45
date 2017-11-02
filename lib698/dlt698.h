@@ -66,6 +66,7 @@ extern void print_rsd(INT8U choice, RSD rsd);
 extern void print4500(CLASS25 class4500);
 /**/
 extern void setOIChange(OI_698 oi);
+
 /*----------------------接口类及对象实例的基本数据类型组帧----------------------*/
 extern int fill_timetag(INT8U *data,TimeTag timetag);
 extern int create_array(INT8U* data, INT8U numm);					//0x01
@@ -125,6 +126,9 @@ extern int getCOMDCB(INT8U type, INT8U* source, COMDCB* comdcb,INT8U *DAR);     
 extern int get_BasicRCSD(INT8U type, INT8U* source, CSD_ARRAYTYPE* csds);         // 0x60
 extern int get_Data(INT8U* source, INT8U* dest);								//根据类型返回数据的长度
 extern int getSel_Data(INT8U type,INT8U *seldata,INT8U *destdata);				//根据selector类型的参数返回读取的数据
+
+
+
 /*
  * 根据数据类型返回相应的数据长度
  * */
@@ -134,6 +138,7 @@ extern int getDataTypeLen(int dt);
  * 返回实际填充的个数
  * buf:填充的数据
  * */
+
 extern INT8U fillStringLen(INT8U *buf,int strlen);
 /*----------------------具体OI类组帧函数----------------------*/
 /*----------------------统计相关数据----------------------*/

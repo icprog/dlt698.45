@@ -57,6 +57,7 @@ extern time_t tmtotime_t(TS ptm);
 extern time_t TimeBCDTotime_t(DateTimeBCD timeBCD);
 extern void TimeBCDToTs(DateTimeBCD timeBCD,TS* outTs);
 extern void TsToTimeBCD(TS inTs,DateTimeBCD* outTimeBCD);
+extern void time_tToTS(time_t inTimet,TS *outts);
 extern DateTimeBCD timet_bcd(time_t t);
 extern void setsystime(DateTimeBCD datetime);
 extern INT8U TScompare(TS ts1, TS ts2);
@@ -135,6 +136,7 @@ extern int getZone(char *zone);
  * 写/nor/rc.d/ip.sh脚本
  * */
 extern void writeIpSh(INT8U *ip,INT8U *netmask);
+
 /* 修改ID生成备份文件
  * */
 extern void writeIdFile(CLASS_4001_4002_4003 classtmp);

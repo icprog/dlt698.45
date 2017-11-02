@@ -30,6 +30,7 @@ INT8U Report_Event(CommBlock *com,INT8U *oiarr,INT8U report_type){
 	int index=0, hcsi=0,temindex=0,i=0;
 	static INT8U	piid=0;
 	pSendfun_report = com->p_send;
+	Global_name = com->name;
 	OI_698 oi=((oiarr[1]<<8)+oiarr[0]);
 	CSINFO csinfo;
 	csinfo.dir = 1;

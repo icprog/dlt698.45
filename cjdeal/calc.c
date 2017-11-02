@@ -218,7 +218,6 @@ void terminalTaskFreeze(INT8U taskid,INT8U fanganid)
 		asyslog(LOG_NOTICE,"tsa_num = %d\n",tsa_num);
 		for(meterid=0;meterid<tsa_num;meterid++) {
 			if(tsa_group[meterid].basicinfo.port.OI == PORT_JC) {
-
 				//满足交采测量点,查找到满足CSD的数据任务，进行相关任务数据存储
 				saveTerminalTaskData(taskid,savets,tsa_group[meterid].basicinfo.addr,class6015.csds);
 			}

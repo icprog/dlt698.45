@@ -171,6 +171,7 @@ int AFN14_F1(FORMAT3762 *down,FORMAT3762 *up,INT8U *sendBuf,INT8U* destAddr, INT
 	down->afn = 0x14;
 	down->fn = 1;
 	down->ctrl.PRM = 0;//从动站
+//	down->ctrl.PRM = 1;//启动站    test
 	down->info_down.ChannelFlag = up->info_up.ChannelFlag;//信道标识
 	down->info_down.ModuleFlag = 1;//有地址域A
 	down->info_down.Seq = up->info_up.Seq;//format3762_Down->info_down.Seq++;//序列号

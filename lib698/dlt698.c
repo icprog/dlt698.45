@@ -42,7 +42,7 @@ extern unsigned short tryfcs16(unsigned char *cp, int len);
 extern INT32S secureConnectRequest(SignatureSecurity* securityInfo,
 		SecurityData* RetInfo);
 INT8S (*pSendfun)(int name, int fd, INT8U* sndbuf, INT16U sndlen);
-
+//extern void Get698_event(OAD oad, ProgramInfo* prginfo_event);
 int comfd = 0;
 int Global_name = 0;
 INT8U ClientPiid = 0;

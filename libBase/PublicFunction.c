@@ -502,6 +502,18 @@ void TsToTimeBCD(TS inTs,DateTimeBCD* outTimeBCD)
 	outTimeBCD->sec.data = inTs.Sec;
 }
 
+void time_tToTS(time_t inTimet,TS *outts)
+{
+	struct tm ctm;
+    localtime_r(&inTimet, &ctm);
+    outts->Year = ctm.tm_year + 1900;
+    outts->Month = ctm.tm_mon + 1;
+    outts->Day = ctm.tm_mday;
+    outts->Hour = ctm.tm_hour;
+    outts->Minute = ctm.tm_min;
+    outts->Sec = ctm.tm_sec;
+}
+
 DateTimeBCD timet_bcd(time_t t)
 {
 	DateTimeBCD ts;
@@ -1366,16 +1378,27 @@ void PacketBufToFile(INT8U type,char *prefix, char *buf, int len, char *suffix)
 			break;
 	}
 }
-void time_tToTS(time_t inTimet,TS *outts)
+
+int readIdFile(CLASS_4001_4002_4003 *classtmp)
 {
-	struct tm ctm;
-    localtime_r(&inTimet, &ctm);
-    outts->Year = ctm.tm_year + 1900;
-    outts->Month = ctm.tm_mon + 1;
-    outts->Day = ctm.tm_mday;
-    outts->Hour = ctm.tm_hour;
-    outts->Minute = ctm.tm_min;
-    outts->Sec = ctm.tm_sec;
+	int i=0;
+	FILE *fp=NULL;
+	int tmp[OCTET_STRING_LEN]={};
+	fp = fopen("/nor/config/id.cfg","r");
+	if (fp!=NULL)
+	{
+		fscanf(fp,"id=%02x-%02x-%02x-%02x-%02x-%02x-%02x-%02x-%02x-%02x-%02x-%02x-%02x-%02x-%02x-%02x",
+				&tmp[0],&tmp[1],&tmp[2],&tmp[3],&tmp[4],&tmp[5],&tmp[6],&tmp[7],
+				&tmp[8],&tmp[9],&tmp[10],&tmp[11],&tmp[12],&tmp[13],&tmp[14],&tmp[15]);
+		for(i=0;i<OCTET_STRING_LEN;i++)
+			classtmp->curstom_num[i] = (INT8U)tmp[i];
+		fclose(fp);
+		fprintf(stderr,"\n读出ID:");
+		for(i=0;i<OCTET_STRING_LEN;i++)
+			fprintf(stderr," %02x",classtmp->curstom_num[i]);
+		return 1;
+	}
+	return 0;
 }
 
 void writeIdFile(CLASS_4001_4002_4003 classtmp)

@@ -43,6 +43,7 @@ int findtsa(FILE *fp,int *TSA_D,int A_TSAblock)
 			findok = 0;
 			break;
 		}
+		fprintf(stderr,"tmp = %x \n",tmp);
 		if(tmp!=0X55)
 		{
 			findok = 0;
@@ -326,6 +327,7 @@ void analyTaskData(int argc, char* argv[])
 	HEADFIXED_INFO taskhead_info;
 	HEAD_UNIT headoad_unit[FILEOADMAXNUM];
 
+
 	if (filename!=NULL)
 	{
 		if(argc>3)
@@ -349,6 +351,7 @@ void analyTaskData(int argc, char* argv[])
 			fread(&taskhead_info,sizeof(HEADFIXED_INFO),1,fp);
 			fread(headoad_unit,taskhead_info.oadnum*sizeof(HEAD_UNIT),1,fp);
 			head_len = sizeof(HEADFIXED_INFO)+taskhead_info.oadnum*sizeof(HEAD_UNIT);
+
 
 			fprintf(stderr,"\n文件头长度:%d (字节) 对象oad总数:%d 记录长度:%d 每日记录次数:%d 记录间隔:%d(秒)\n",
 					head_len,taskhead_info.oadnum,taskhead_info.reclen,taskhead_info.seqnum,taskhead_info.seqsec);

@@ -19,8 +19,8 @@
 #include "StdDataType.h"
 #include "PublicFunction.h"
 
-int cWrite(INT8U name, int fd, INT8U *buf, INT16U len);
-int cWriteWithCalc(INT8U name, int fd, INT8U *buf, INT16U len);
+int cWrite(int name, int fd, INT8U *buf, INT16U len);
+int cWriteWithCalc(int name, int fd, INT8U *buf, INT16U len);
 
 void cRead(struct aeEventLoop *ep, int fd, void *clientData, int mask);
 void cReadWithCalc(struct aeEventLoop *ep, int fd, void *clientData, int mask);

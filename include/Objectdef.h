@@ -1080,7 +1080,7 @@ typedef struct {
     INT8U DealBuf[FRAMELEN];    //保存接口函数处理长度
     INT8U RecBuf[BUFLEN];       //接收数
     TS final_frame;				//最后一次收到报文的时间
-    INT8U name;					//端口名称，用于区分各个端口
+    int name;					//端口名称，用于区分各个端口
 } CommBlock;
 ////////////////////////////////////////////////////////////////////
 typedef struct

@@ -4,12 +4,14 @@
 	<comment></comment>
 	<projects>
 		<project>include</project>
+		<project>lib376.2</project>
 		<project>lib698</project>
+		<project>lib698Esam</project>
 		<project>libAccess</project>
 		<project>libBase</project>
-		<project>libCjt188</project>
 		<project>libDlt645</project>
 		<project>libevent</project>
+		<project>libGui</project>
 		<project>libMq</project>
 	</projects>
 	<buildSpec>
