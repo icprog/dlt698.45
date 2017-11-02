@@ -30,7 +30,11 @@ int class8108_act3(int index, int attr_act, INT8U *data, INT8U *DAR);
 
 int class8107_set(OAD oad, INT8U *data, INT8U *DAR);
 
+int class8000_act_route(int index, int attr_act, INT8U *data, Action_result *act_ret);
+
 int class8001_act_route(int index, int attr_act, INT8U *data, Action_result *act_ret);
+
+int class8002_act_route(int index, int attr_act, INT8U *data, Action_result *act_ret);
 
 int class8103_act_route(int index, int attr_act, INT8U *data, Action_result *act_ret);
 

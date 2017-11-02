@@ -12,7 +12,7 @@ extern CONNECT_Response *AppVar_p;
 extern ProgramInfo *getShareAddr(void);//获取共享内存的地址
 
 extern unsigned short tryfcs16(unsigned char *cp, int  len);
-extern int doObjectAction(OAD oad, INT8U* data, Action_result* result);
+extern int doObjectAction(OAD oad, INT8U* data, Action_result* result, CSINFO *csinfo, INT8U piid);
 extern int StateProcess(CommBlock* nst, int delay_num);
 extern int ProcessData(CommBlock* com);
 extern int Link_Request(LINK_Request request, INT8U* addr, INT8U* buf);
@@ -104,7 +104,7 @@ extern int getStructure(INT8U *source,INT8U *dest,INT8U *DAR);                  
 extern int getBool(INT8U* source, INT8U* dest,INT8U *DAR);                                   // 3
 extern int getBitString(INT8U type, INT8U* source, INT8U* dest);                  // 4
 extern int getDouble(INT8U* source, INT8U* dest);                                 // 5 6
-extern int getOctetstring(INT8U type, INT8U* source, INT8U* tsa,INT8U *DAR);                 // 9 and 0x55
+extern int getOctetstring(INT8U type,INT16U limit,INT8U *source,INT8U *buf,INT8U *len,INT8U *DAR);      // 9
 extern int getVisibleString(INT8U *source,INT8U *dest,INT8U *DAR);                          // 0x0A
 extern int getInteger(INT8U *source,INT8S *dest,INT8U *DAR);                     // 0x0F
 extern int getUnsigned(INT8U *source,INT8U *dest,INT8U *DAR);                     // 0x11
@@ -118,6 +118,7 @@ extern int getOI(INT8U type, INT8U* source, OI_698 *oi);                        
 extern int getOAD(INT8U type,INT8U *source,OAD *oad,INT8U *DAR);                   // 0x51
 extern int getROAD(INT8U* source, ROAD* dest);                                    // 0x52
 extern int getTI(INT8U type, INT8U* source, TI* ti);                              // 0x54
+extern int getTSA(INT8U type,INT8U *source,INT8U *tsa,INT8U *DAR);   			  // 0x55
 extern int get_BasicRSD(INT8U type, INT8U* source, INT8U* dest, INT8U* seletype); // 0x5A
 extern int getCSD(INT8U type, INT8U* source, MY_CSD* csd);                        // 0X5B
 extern int getMS(INT8U type, INT8U* source, MY_MS* ms);                           // 0x5C
@@ -137,7 +138,8 @@ extern int getDataTypeLen(int dt);
  * 返回实际填充的个数
  * buf:填充的数据
  * */
-extern INT8U getStringLen(INT8U *buf,int strlen);
+
+extern INT8U fillStringLen(INT8U *buf,int strlen);
 /*----------------------具体OI类组帧函数----------------------*/
 /*----------------------统计相关数据----------------------*/
 extern INT8U Get_Vacs(RESULT_NORMAL *response,ProgramInfo* prginfo_acs);

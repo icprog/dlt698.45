@@ -4,6 +4,7 @@
 #include "PublicFunction.h"
 #include "libmmq.h"
 #include "show_ctrl.h"
+#include <semaphore.h>
 
 extern ProgramInfo* JProgramInfo;
 
@@ -79,7 +80,7 @@ pthread_t thread_dispatchTask;
 
 mqd_t mqd_485_main;//接受点抄的消息队列
 pthread_mutex_t mutex;
-
+pthread_mutex_t mutex_savetask;
 typedef union {
 	INT8U u8b;//方便变量初始化
 	struct {

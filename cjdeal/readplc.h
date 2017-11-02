@@ -369,7 +369,7 @@ time_t oldtime1;
 time_t newtime1;
 time_t beginSearchTime;
 INT8U buf645[BUFSIZE645];
-
+int trans645Len;
 typedef struct
 {
 	INT8U is;
@@ -380,4 +380,5 @@ typedef struct
 
 BroadCastTime broadtime;
 INT8U RouterFactory;
+CLASS_f209 myF209;
 #endif /* EVENTCALC_H_ */

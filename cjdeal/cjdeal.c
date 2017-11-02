@@ -1063,6 +1063,8 @@ int proxy_dar_fill(PROXY_GETLIST *dest_list,PROXY_GETLIST get_list)
 			dest_list->data[index++] = get_list.proxy_obj.transcmd.dar;//DAR
 		}
 		break;
+	case F209TransCommandAction:
+		break;
 	}
 	fprintf(stderr,"datelen=%d,index=%d\n",dest_list->datalen,index);
 	for(j=dest_list->datalen;j<index;j++) {
@@ -1248,6 +1250,19 @@ void Pre_ProxyDoRequestList(CJCOMM_PROXY proxy)//Proxy  Action / Set- List
 		proxyInUse.devUse.plcNeed = 1;
 	}
 }
+
+
+void Pre_F209TransAction(CJCOMM_PROXY proxy)
+{
+	fprintf(stderr,"\n------------- Pre_F209TransAction ok\n");
+	memset(proxyList_manager.data,0,sizeof(proxyList_manager.data));
+	proxyList_manager.datalen = 0;
+	cjcommProxy_plc.isInUse = 1;
+	proxyInUse.devUse.plcNeed = 1;
+	memcpy(&cjcommProxy_plc.strProxyList,&proxy.strProxyList,sizeof(PROXY_GETLIST));
+}
+
+
 void Pre_ProxyTransCommandRequest(CJCOMM_PROXY proxy)
 {
 	int rs485_1=0,rs485_2=0;
@@ -1302,7 +1317,7 @@ void divProxy(CJCOMM_PROXY proxy)
 	memset(&proxyList_manager.data,0,sizeof(proxyList_manager.data));
 	proxyList_manager.datalen = 0;	//此处清除，防止后面处理时，数据未组织好，将返回一个随机值。
 
-	if (proxyList_manager.timeout == 0)
+	if (proxyList_manager.timeout <= 0 || proxyList_manager.timeout>120)
 		proxyList_manager.timeout = 60;
 	switch(proxy.strProxyList.proxytype)
 	{
@@ -1323,6 +1338,9 @@ void divProxy(CJCOMM_PROXY proxy)
 		break;
 		case ProxyTransCommandRequest:
 			Pre_ProxyTransCommandRequest(proxy);
+			break;
+		case F209TransCommandAction:
+			Pre_F209TransAction(proxy);
 			break;
 	}
 }
@@ -1462,6 +1480,7 @@ INT8U dealProxyAnswer()
 				proxyList_manager.datalen += cjcommProxy_plc.strProxyList.datalen;
 				proxy_dar_fill(&proxyList_manager,cjcommProxy_plc.strProxyList);
 				proxyInUse.devUse.plcReady = 1;
+				proxyList_manager.proxy_obj.f209Trans.dar = cjcommProxy_plc.strProxyList.proxy_obj.f209Trans.dar;
 				fprintf(stderr,"\n代理消息内容.........datalen=%d\n",proxyList_manager.datalen);
 				fprintf(stderr,"proxyList_manager piid=%02x  ca=%02x \n",proxyList_manager.piid,proxyList_manager.csinfo.ca);
 				for(i = 0; i < proxyList_manager.datalen;i++)
@@ -1559,7 +1578,6 @@ void dispatch_thread()
 		if(mqd_485_main >= 0)
 		{
 			if(proxyInUse.devUse.proxyIdle == 0) {//只有当代理操作空闲时, 才处理下一个代理操作
-//				fprintf(stderr,"\n-------------wait---------proxy");
 				dealMsgProcess();
 			} else {
 				dealProxyAnswer();
@@ -1846,7 +1864,7 @@ int main(int argc, char *argv[])
 		return EXIT_FAILURE;
 	}
 	pthread_mutex_init(&mutex, NULL); //初始化互斥锁
-
+	pthread_mutex_init(&mutex_savetask, NULL); //初始化互斥锁
 	asyslog(LOG_INFO,"进程 %s PID = %d",JProgramInfo->Projects[1].ProjectName,JProgramInfo->Projects[1].ProjectID);
 	asyslog(LOG_INFO,"进程 %s PID = %d",JProgramInfo->Projects[2].ProjectName,JProgramInfo->Projects[2].ProjectID);
 	///液晶提前运行，为了上电15秒内点亮液晶运行程序
@@ -1899,6 +1917,7 @@ int main(int argc, char *argv[])
 
    	}
 	pthread_mutex_destroy(&mutex); //销毁互斥锁
+	pthread_mutex_destroy(&mutex_savetask); //销毁互斥锁
 	close_named_sem(SEMNAME_SPI0_0);
 	return EXIT_SUCCESS;//退出
 }

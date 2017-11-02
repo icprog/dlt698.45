@@ -24,9 +24,10 @@
 #include "class8.h"
 #include "class12.h"
 #include "class23.h"
+#include "../libMq/libmmq.h"
 
 extern int comfd;
-extern int Golobal_Name;
+extern int Global_name;
 extern ProgramInfo *memp;
 extern PIID piid_g;
 extern TimeTag	Response_timetag;		//响应的时间标签值
@@ -98,7 +99,7 @@ int doReponse(int server, int reponse, CSINFO *csinfo, int datalen, INT8U *data,
     FrameTail(buf, index, hcsi);
 
     if (pSendfun != NULL)
-        pSendfun(Golobal_Name, comfd, buf, index + 3);
+        pSendfun(Global_name, comfd, buf, index + 3);
     return (index + 3);
 }
 
@@ -339,7 +340,7 @@ void AddBatchMeterInfo(INT8U *data, INT8U type, Action_result *act_ret) {
         index += getStructure(&dealdata[index],NULL,&act_ret->DAR);
         index += getLongUnsigned(&dealdata[index], (INT8U *) &meter.sernum);
         index = index + 2;//struct
-        index += getOctetstring(1, &dealdata[index], (INT8U *) &meter.basicinfo.addr,&act_ret->DAR);
+        index += getTSA(1, &dealdata[index], (INT8U *) &meter.basicinfo.addr,&act_ret->DAR);
         index += getEnum(1, &dealdata[index], &meter.basicinfo.baud);
         DAR=getEnumValid(meter.basicinfo.baud,0,10,255);
         if(DAR != success)  act_ret->DAR = DAR;
@@ -351,7 +352,7 @@ void AddBatchMeterInfo(INT8U *data, INT8U type, Action_result *act_ret) {
 //		if(act_ret->DAR!=success)
 //			return;
         index += getOAD(1, &dealdata[index], &meter.basicinfo.port,&act_ret->DAR);
-        index += getOctetstring(1, &dealdata[index], (INT8U *) &meter.basicinfo.pwd,&act_ret->DAR);
+        index += getOctetstring(1,OCTET_STRING_LEN-1,&dealdata[index], (INT8U *)&meter.basicinfo.pwd[1],&meter.basicinfo.pwd[0],&act_ret->DAR);
         index += getUnsigned(&dealdata[index], &meter.basicinfo.ratenum,&act_ret->DAR);
         index += getUnsigned(&dealdata[index], &meter.basicinfo.usrtype,&act_ret->DAR);
         index += getEnum(1,&dealdata[index], &meter.basicinfo.connectype);
@@ -362,8 +363,8 @@ void AddBatchMeterInfo(INT8U *data, INT8U type, Action_result *act_ret) {
         index += getLongUnsigned(&dealdata[index], (INT8U *) &meter.basicinfo.ratedU);
         index += getLongUnsigned(&dealdata[index], (INT8U *) &meter.basicinfo.ratedI);
         index = index + 2;//struct
-        index += getOctetstring(1, &dealdata[index], (INT8U *) &meter.extinfo.cjq_addr,&act_ret->DAR);
-        index += getOctetstring(1, &dealdata[index], (INT8U *) &meter.extinfo.asset_code,&act_ret->DAR);
+        index += getTSA(1, &dealdata[index], (INT8U *) &meter.extinfo.cjq_addr,&act_ret->DAR);
+        index += getOctetstring(1,OCTET_STRING_LEN-1,&dealdata[index], (INT8U *) &meter.extinfo.asset_code[1],&meter.extinfo.asset_code[0],&act_ret->DAR);
         index += getLongUnsigned(&dealdata[index], (INT8U *) &meter.extinfo.pt);
         index += getLongUnsigned(&dealdata[index], (INT8U *) &meter.extinfo.ct);
         INT8U arraysize = 0;
@@ -430,11 +431,11 @@ void UpdateBatchMeterInfo(INT8U *data, INT8U type, Action_result *act_ret) {
             	if(type==129)
             	{
 					index = index + 2;//struct
-					index += getOctetstring(1, &data[index], (INT8U *) &meter.basicinfo.addr,&act_ret->DAR);
+					index += getTSA(1, &data[index], (INT8U *) &meter.basicinfo.addr,&act_ret->DAR);
 					index += getEnum(1, &data[index], &meter.basicinfo.baud);
 					index += getEnum(1, &data[index], &meter.basicinfo.protocol);
 					index += getOAD(1, &data[index], &meter.basicinfo.port,&act_ret->DAR);
-					index += getOctetstring(1, &data[index], (INT8U *) &meter.basicinfo.pwd,&act_ret->DAR);
+					index += getOctetstring(1,OCTET_STRING_LEN-1,&data[index], (INT8U *)&meter.basicinfo.pwd[1],&meter.basicinfo.pwd[0],&act_ret->DAR);
 					index += getUnsigned(&data[index], &meter.basicinfo.ratenum,&act_ret->DAR);
 					index += getUnsigned(&data[index], &meter.basicinfo.usrtype,&act_ret->DAR);
 					index += getEnum(1,&data[index], &meter.basicinfo.connectype);
@@ -444,8 +445,8 @@ void UpdateBatchMeterInfo(INT8U *data, INT8U type, Action_result *act_ret) {
             	else if(type==130)
             	{
             		index = index + 2;//struct
-					index += getOctetstring(1, &data[index], (INT8U *) &meter.extinfo.cjq_addr,&act_ret->DAR);
-					index += getOctetstring(1, &data[index], (INT8U *) &meter.extinfo.asset_code,&act_ret->DAR);
+					index += getTSA(1, &data[index], (INT8U *) &meter.extinfo.cjq_addr,&act_ret->DAR);
+					index += getOctetstring(1,OCTET_STRING_LEN-1,&data[index], (INT8U *)&meter.extinfo.asset_code[1],&meter.extinfo.asset_code[0],&act_ret->DAR);
 					index += getLongUnsigned(&data[index], (INT8U *) &meter.extinfo.pt);
 					index += getLongUnsigned(&data[index], (INT8U *) &meter.extinfo.ct);
 					INT8U arraysize = 0;
@@ -693,7 +694,7 @@ void AddOI6019(INT8U *data, Action_result *act_ret) {
     }
     for (i = 0; i < TransFangAn.contentnum; i++) {
         index += getLongUnsigned(&data[index], (INT8U *) &TransFangAn.plan[i].seqno);
-        index += getOctetstring(1, &data[index], (INT8U *) &TransFangAn.plan[i].addr,&act_ret->DAR);
+        index += getTSA(1, &data[index], (INT8U *) &TransFangAn.plan[i].addr,&act_ret->DAR);
         index += getLongUnsigned(&data[index], (INT8U *) &TransFangAn.plan[i].befscript);
         index += getLongUnsigned(&data[index], (INT8U *) &TransFangAn.plan[i].aftscript);
         index += getStructure(&data[index],NULL,&act_ret->DAR);	//方案控制标志
@@ -707,7 +708,7 @@ void AddOI6019(INT8U *data, Action_result *act_ret) {
         index += getArray(&data[index], &TransFangAn.plan[i].datanum,&act_ret->DAR);//方案报文集
         for(j=0;j<TransFangAn.plan[i].datanum;j++) {
         	index += getUnsigned(&data[index],&TransFangAn.plan[i].data[j].datano,&act_ret->DAR);
-        	index += getOctetstring(1, &data[index], (INT8U *) &TransFangAn.plan[i].data[j].data,&act_ret->DAR);
+        	index += getOctetstring(1,255,&data[index],(INT8U *)&TransFangAn.plan[i].data[j].data[1],&TransFangAn.plan[i].data[j].data[0],&act_ret->DAR);
         }
         index += getLongUnsigned(&data[index], (INT8U *) &TransFangAn.savedepth);
         act_ret->DAR = saveCoverClass(0x6019, TransFangAn.planno, &TransFangAn, sizeof(CLASS_6019), coll_para_save);
@@ -787,6 +788,7 @@ void CjiFangAnInfo(INT16U attr_act, INT8U *data, Action_result *act_ret) {
             break;
         case 129:    //方法 129:Clear( )
             fprintf(stderr, "\n清空普通采集方案");
+            system("rm -rf /nand/task");
             clearClass(0x6015);            //普通采集方案放置在6015目录下
             break;
         case 130:    //方法 130:Set_CSD(方案编号,array CSD)
@@ -806,6 +808,7 @@ void EventCjFangAnInfo(INT16U attr_act, INT8U *data, Action_result *act_ret) {
             break;
         case 129:    //方法 129:Clear( )
             fprintf(stderr, "\n清空事件采集方案");
+            system("rm -rf /nand/allevent");
             clearClass(0x6017);
             break;
         case 130:    //方法 130:Set_CSD(方案编号,array CSD)
@@ -968,7 +971,7 @@ void TaskInfo(INT16U attr_act, INT8U *data, Action_result *act_ret)
         	DeleteArrayID(0x6013,data);
             break;
         case 129://方法 129:Clear()
-            fprintf(stderr, "\n清空采集任务配置表");
+			system("rm -rf /nand/task");
             clearClass(0x6013);        //任务配置单元存放在/nand/para/6013目录
             break;
         case 130://方法130：update（任务ID，状态）更新任务状态
@@ -1257,21 +1260,34 @@ void FileTransMothod(INT16U attr_act, INT8U *data) {
 /*
  * 载波/微功率无线接口
  * */
-void PlcInfo(INT16U attr_act, INT8U *data, Action_result *act_ret)
+void PlcInfo(INT16U attr_act, INT8U *data, Action_result *act_ret, CSINFO *csinfo, INT8U piid)
 {
 	int   index = 0;
 	CLASS_f209	class_f209={};
 	OAD		oad={};
+	PROXY_GETLIST getlist;
 
     switch (attr_act) {
         case 127://透明转发
-    		readCoverClass(0xf209 ,0 , &class_f209,sizeof(CLASS_f209),para_vari_save);
+//    		readCoverClass(0xf209 ,0 , &class_f209,sizeof(CLASS_f209),para_vari_save);
             index += getStructure(&data[index], NULL,&act_ret->DAR);
-            index += getOctetstring(1,&data[index],(INT8U *) &class_f209.trans.commAddr,&act_ret->DAR);
-            index += getOctetstring(1,&data[index],(INT8U *) &class_f209.trans.transBuf,&act_ret->DAR);
-            class_f209.transFlg = 1;
-    		saveCoverClass(0xf209,0,&class_f209,sizeof(CLASS_f209),para_vari_save);
-    		setOIChange(0xf209);
+        	getlist.piid = piid;
+        	getlist.proxytype = F209TransCommandAction;
+        	getlist.proxy_obj.f209Trans.dar = other_err1;
+        	index += getTSA(1,&data[index],(INT8U *) &getlist.proxy_obj.f209Trans.commAddr,&act_ret->DAR);
+        	index += getLongUnsigned(&data[index],(INT8U *) &getlist.proxy_obj.f209Trans.overTime);
+        	index += getOctetstring(1,255,&data[index],(INT8U *) &getlist.proxy_obj.f209Trans.transBuf,(INT8U *)&getlist.proxy_obj.f209Trans.buflen,&act_ret->DAR);
+        	getlist.timeout = getlist.proxy_obj.f209Trans.overTime;
+        	//写入文件，等待转发			规约中只负责解析代理的内容，并追加写入到代理文件 /nand/proxy_list
+        	getlist.timeold = time(NULL);
+        	memcpy(&getlist.csinfo,csinfo,sizeof(CSINFO));
+
+        	INT8S	ret=0;
+        	OAD	mq_com_oad={};
+        	ret= mqs_send((INT8S *)PROXY_485_MQ_NAME,1,F209TransCommandAnswer,mq_com_oad,(INT8U *)&getlist,sizeof(PROXY_GETLIST));
+        	fprintf(stderr,"\n代理消息已经发出,ret=%d ,getlist.proxytype=%d getlist_len=%d\n\n",ret,getlist.proxytype,sizeof(PROXY_GETLIST));
+//            class_f209.transFlg = 1;
+//    		saveCoverClass(0xf209,0,&class_f209,sizeof(CLASS_f209),para_vari_save);
         	break;
         case 128://配置端口参数（端口号，通信参数）
     		index += getStructure(&data[index],NULL,&act_ret->DAR);
@@ -1427,7 +1443,7 @@ INT32S EsamMothod(INT16U attr_act, INT8U *data) {
 }
 
 
-int doObjectAction(OAD oad, INT8U *data, Action_result *act_ret) {
+int doObjectAction(OAD oad, INT8U *data, Action_result *act_ret, CSINFO *csinfo, INT8U piid) {
 	INT32S errflg = 0;
 	    INT16U oi = oad.OI;
 	    INT8U attr_act = oad.attflg;
@@ -1514,7 +1530,7 @@ int doObjectAction(OAD oad, INT8U *data, Action_result *act_ret) {
         	}
         	break;
         case 0xF209:
-        	PlcInfo(attr_act, data, act_ret);
+        	PlcInfo(attr_act, data, act_ret, csinfo, piid);
         	break;
         case 0x2401:
         case 0x2402:

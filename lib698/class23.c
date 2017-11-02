@@ -43,7 +43,7 @@ int class23_act3_4(OAD oad, INT8U* data, Action_result *act_ret)
 	}
 	for(i=0;i<unitnum;i++) {
 		index += getStructure(&data[index],NULL,&act_ret->DAR);
-		index += getOctetstring(1,&data[index],(INT8U *)&al_unit.tsa,&act_ret->DAR);
+		index += getTSA(1,&data[index],(INT8U *)&al_unit.tsa,&act_ret->DAR);
 		index += getEnum(1,&data[index],&al_unit.al_flag);
 		index += getEnum(1,&data[index],&al_unit.cal_flag);
 		if (shareAddr->class23[no].allist[i].tsa.addr[0] == 0x00 && act_ret->DAR == success) {
@@ -105,7 +105,7 @@ int class23_set_attr2(OI_698 oi,INT8U *data, INT8U *DAR, CLASS23 *memClass23)
 	unitnum = limitJudge("总加组配置单元",MAX_AL_UNIT,unitnum);
 	for(i=0;i<unitnum;i++) {
 		index += getStructure(&data[index],NULL,DAR);
-		index += getOctetstring(1,&data[index],(INT8U *)&class23[no].allist[i].tsa,DAR);
+		index += getTSA(1,&data[index],(INT8U *)&class23[no].allist[i].tsa,DAR);
 		index += getEnum(1,&data[index],&class23[no].allist[i].al_flag);
 		index += getEnum(1,&data[index],&class23[no].allist[i].cal_flag);
 	}

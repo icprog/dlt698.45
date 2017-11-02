@@ -3,11 +3,11 @@
 	<name>cj645</name>
 	<comment></comment>
 	<projects>
-		<project>lib376.2</project>
+		<project>include</project>
 		<project>lib698</project>
-		<project>lib698Esam</project>
 		<project>libAccess</project>
 		<project>libBase</project>
+		<project>libCjt188</project>
 		<project>libDlt645</project>
 		<project>libevent</project>
 		<project>libMq</project>
@@ -39,7 +39,7 @@
 				</dictionary>
 				<dictionary>
 					<key>org.eclipse.cdt.make.core.buildLocation</key>
-					<value>${workspace_loc:/v645}/Release</value>
+					<value>${workspace_loc:/cj}/Release</value>
 				</dictionary>
 				<dictionary>
 					<key>org.eclipse.cdt.make.core.cleanBuildTarget</key>
@@ -84,7 +84,6 @@
 	</buildSpec>
 	<natures>
 		<nature>org.eclipse.cdt.core.cnature</nature>
-		<nature>org.eclipse.cdt.core.ccnature</nature>
 		<nature>org.eclipse.cdt.managedbuilder.core.managedBuildNature</nature>
 		<nature>org.eclipse.cdt.managedbuilder.core.ScannerConfigNature</nature>
 	</natures>

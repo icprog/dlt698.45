@@ -15,6 +15,8 @@
 #include "cjsave.h"
 
 
+extern pthread_mutex_t mutex_savetask;
+
 void getFRZtime(CLASS_6013 class6013, CLASS_6015 class6015,TS ts,INT8U *buf,INT16U seqsec)
 {
 	int i=0;
@@ -478,10 +480,69 @@ int getTItoSec(TI ti)
 //}
 int SaveOADData(INT8U taskid,OAD oad_m,OAD oad_r,INT8U *databuf,int datalen,TS ts_res)
 {
-	return 0;
+	TSA tsa;
+	OADDATA_SAVE OADdata;
+	fprintf(stderr,"\nSaveOADData databuf(%d)\n",datalen);
+	PRTbuf(databuf,datalen);
+	if(datalen <= TSA_LEN+1)
+	{
+		fprintf(stderr,"\nSaveOADData 长度错误!!!\n");
+		return 0;
+	}
+	OADdata.oad_m = oad_m;
+	OADdata.oad_r = oad_r;
+	OADdata.datalen = datalen-TSA_LEN-1;
+	memcpy(OADdata.data,&databuf[sizeof(TSA)+1],OADdata.datalen);
+	memcpy(tsa.addr,&databuf[1],TSA_LEN);
+	saveREADOADdata(taskid,tsa,&OADdata,1,ts_res);
+	return OADdata.datalen;
+}
+void getCsdsInfo(INT8U *oadnum,INT32U *reclen,CSD_ARRAYTYPE csds)
+{
+	INT8U oad_num=0;
+	INT32U rec_len=0,len_tmp=0;
+	int i=0,j=0;
+	if(csds.num > MY_CSD_NUM)//超了
+		csds.num = MY_CSD_NUM;
+	for(i=0;i<csds.num;i++)
+	{
+		if(csds.csd[i].type == 0xee)
+			break;
+		if(csds.csd[i].type != 0 && csds.csd[i].type != 1)
+			continue;
+		if(csds.csd[i].type == 0)	//OAD
+		{
+			if(csds.csd[i].csd.oad.OI == 0x202a || csds.csd[i].csd.oad.OI == 0x6040 ||
+					csds.csd[i].csd.oad.OI == 0x6041 || csds.csd[i].csd.oad.OI == 0x6042)
+			{
+				fprintf(stderr,"OAD=%04x_%02x%02x 存在固定头，不计算长度\n",csds.csd[i].csd.oad.OI,csds.csd[i].csd.oad.attflg,csds.csd[i].csd.oad.attrindex);
+				continue;
+			}
+			 len_tmp = CalcOIDataLen(csds.csd[i].csd.oad);//多一个数据类型
+			 rec_len += len_tmp;
+			 oad_num++;
+		}else if(csds.csd[i].type == 1)	//ROAD
+		{
+			if(csds.csd[i].csd.road.num == 0xee)
+				continue;
+			if(csds.csd[i].csd.road.num > ROAD_OADS_NUM)//超了
+				csds.csd[i].csd.road.num = ROAD_OADS_NUM;
+			for(j=0;j<csds.csd[i].csd.road.num;j++)
+			{
+				if(csds.csd[i].csd.road.oads[j].OI == 0xeeee)
+					break;
+				len_tmp = CalcOIDataLen(csds.csd[i].csd.road.oads[j]);//多一个数据类型
+				rec_len += len_tmp;
+				oad_num++;
+			}
+		}
+	}
+	*oadnum=oad_num;
+	*reclen=rec_len;
 }
 void saveREADOADdata(INT8U taskid,TSA tsa,OADDATA_SAVE *OADdata,INT8U OADnum,TS OADts)
 {
+	pthread_mutex_lock(&mutex_savetask);
 #if 1
 	DbgPrintToFile1(1,"\n##############saveREADOADdata = %d",OADnum);
 	fprintf(stderr,"\n##############saveREADOADdata = %d",OADnum);
@@ -502,14 +563,14 @@ void saveREADOADdata(INT8U taskid,TSA tsa,OADDATA_SAVE *OADdata,INT8U OADnum,TS 
 		}
 	}
 #endif
-	INT8U frz_type=0,findtsa=0,tsadata[18],data_buf[2048];
+	INT8U frz_type=0,findtsa=0,oadnum=0,tsadata[18],data_buf[2048];
 	INT16U curseq=0;
-	INT32U blklen=0,headlen=0,seqsec=0,seqnum=0,oadsec=0;
+	INT32U blklen=0,headlen=0,reclen=0,seqsec=0,seqnum=0,oadsec=0;
 	int i=0;
 	long int savepos=0;
 
 	FILE *fp = NULL;
-	char fname[FILENAMELEN]={};
+	char fname[FILENAMELEN]={},cmd[FILENAMELEN]={};
 	CLASS_6015	class6015={};
 	CLASS_6013	class6013={};
 	HEADFIXED_INFO taskhead_info;
@@ -521,13 +582,18 @@ void saveREADOADdata(INT8U taskid,TSA tsa,OADDATA_SAVE *OADdata,INT8U OADnum,TS 
 	if((frz_type = get60136015info(taskid,&class6015,&class6013))==0)//获取任务参数
 	{
 		fprintf(stderr,"\n获取任务%d配置失败\n",taskid);
+		pthread_mutex_unlock(&mutex_savetask);
 		return;
 	}
 	fprintf(stderr,"\n任务%d存储类型为%d\n",taskid,frz_type);
 	seqnum = getTASKruntimes(class6013,class6015,&seqsec);
 	fprintf(stderr,"\n每天存储记录个数seqnum=%d,seqsec=%d\n",seqnum,seqsec);
 	if(seqnum == 0)
+	{
+		pthread_mutex_unlock(&mutex_savetask);
 		return;
+	}
+
 	oadsec = OADts.Hour*60*60+OADts.Minute*60+OADts.Sec;
 	getFILEts(frz_type,&ts_file);
 	getTaskFileName(taskid,ts_file,fname);
@@ -544,6 +610,18 @@ void saveREADOADdata(INT8U taskid,TSA tsa,OADDATA_SAVE *OADdata,INT8U OADnum,TS 
 		fread(&taskhead_info,sizeof(HEADFIXED_INFO),1,fp);
 		fread(headoad_unit,taskhead_info.oadnum*sizeof(HEAD_UNIT),1,fp);
 		fclose(fp);
+		getCsdsInfo(&oadnum,&reclen,class6015.csds);
+		if(seqnum!=taskhead_info.seqnum || seqsec!=taskhead_info.seqsec
+				|| oadnum+3!=taskhead_info.oadnum || reclen+24!=taskhead_info.reclen)//任务变更 todo 再加上oad不再这个方案里
+		{
+			asyslog(LOG_INFO,"删除原来任务%d文件，创建文件头 任务信息:%d %d %d %d 文件中信息:%d %d %d %d",taskid,
+					seqnum,seqsec,oadnum+3,reclen+24,
+					taskhead_info.seqnum,taskhead_info.seqsec,taskhead_info.oadnum,taskhead_info.reclen);
+			fprintf(stderr,"\n删除原来任务，创建文件头\n");
+			sprintf(cmd,"rm -r /nand/task/%02d",taskid);
+			system(cmd);
+			CreateSaveHead(fname,class6015.csds,&taskhead_info,headoad_unit,seqnum,seqsec);//写文件头信息并返回
+		}
 	}
 	blklen = taskhead_info.reclen*taskhead_info.seqnum;
 	headlen = sizeof(HEADFIXED_INFO)+taskhead_info.oadnum*sizeof(HEAD_UNIT);
@@ -615,6 +693,9 @@ void saveREADOADdata(INT8U taskid,TSA tsa,OADDATA_SAVE *OADdata,INT8U OADnum,TS 
 	fwrite(data_buf,taskhead_info.reclen,1,fp);//记录覆盖方式存入文件
 	if(fp!=NULL)
 		fclose(fp);
+
+	pthread_mutex_unlock(&mutex_savetask);
+
 }
 INT8U geteveno(OADDATA_SAVE *OADdata,INT8U OADnum,INT8U *eveno)
 {

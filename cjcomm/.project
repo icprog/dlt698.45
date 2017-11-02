@@ -12,6 +12,7 @@
 		<project>libDlt645</project>
 		<project>libevent</project>
 		<project>libMq</project>
+		<project>libTransmit</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>

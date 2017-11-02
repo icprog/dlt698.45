@@ -16,11 +16,13 @@
 #include "atBase.h"
 #include "special.h"
 
+
 int cWriteWithCalc(int name, int fd, INT8U *buf, INT16U len) {
 	int old = (int) dbGet("calc.new") + len;
 	dbSet("calc.new", old);
 	cWrite(name, fd, buf, len);
 }
+
 
 int cWrite(int name, int fd, INT8U *buf, INT16U len) {
 	int ret = anetWrite(fd, buf, (int) len);
@@ -81,7 +83,7 @@ void cRead(struct aeEventLoop *ep, int fd, void *clientData, int mask) {
 
 	//关闭异常端口
 	if (revcount <= 0) {
-		asyslog(LOG_WARNING, "链接[%d]异常，关闭端口", errno);
+		asyslog(LOG_WARNING, "链接[%d-%s]异常，关闭端口", errno,strerror(errno));
 		aeDeleteFileEvent(ep, fd, AE_READABLE);
 		close(fd);
 		dbSet("online.type", 0);
@@ -121,7 +123,8 @@ void cProc(struct aeEventLoop *ep, CommBlock * nst) {
 				nst->linkstate = build_connection;
 				nst->testcounter = 0;
 				break;
-			case 9:
+			case ACTION_REQUEST:	//F209的127透传报文处理
+			case PROXY_REQUEST:   //国网送检发现以太网口收到代理消息，返回到串口错误,此处重新获取端口
 				dbSet("proxy", nst);
 				fprintf(stderr, "以太网收到代理消息，更新端口\n");
 				break;
@@ -243,7 +246,7 @@ void refreshComPara(CommBlock *compara) {
 }
 
 void initComPara(CommBlock *compara,
-		INT32S (*p_send)(int name, int fd, INT8U *buf, INT16U len)) {
+	INT32S (*p_send)(int name, int fd, INT8U *buf, INT16U len)) {
 	CLASS_4001_4002_4003 c4001;
 	memset(&c4001, 0x00, sizeof(c4001));
 	readCoverClass(0x4001, 0, &c4001, sizeof(c4001), para_vari_save);
