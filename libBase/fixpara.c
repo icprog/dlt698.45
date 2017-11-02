@@ -33,7 +33,7 @@ typedef struct {
 static VERINFO verinfo          = { "QDGK", "V1.1", "171008", "1.10", "160328", "00000000" }; // 4300 版本信息
 									//湖南需要双协议,软件版本要求为SXY8（双协议8） ，1376.1（软件版本为SXY1）
 static VERINFO verinfo_HuNan    = { "QDGK", "SXY8", "170928", "1.10", "160328", "00000000" }; // 4300 版本信息
-static VERINFO verinfo_ShanDong  = { "QDGK", "V1.1", "170917", "1.10", "160328", "00000000" }; // 4300 版本信息
+static VERINFO verinfo_ShanDong  = { "QDGK", "V1.2", "171026", "1.10", "160328", "00000000" }; // 4300 版本信息
 
 static DateTimeBCD product_date = { { 2016 }, { 04 }, { 6 }, { 0 }, { 0 }, { 0 } };   // 4300 生产日期
 static char protcol[]           = "DL/T 698.45";                                      // 4300 支持规约类型

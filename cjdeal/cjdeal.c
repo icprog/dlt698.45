@@ -1864,7 +1864,7 @@ int main(int argc, char *argv[])
 		return EXIT_FAILURE;
 	}
 	pthread_mutex_init(&mutex, NULL); //初始化互斥锁
-
+	pthread_mutex_init(&mutex_savetask, NULL); //初始化互斥锁
 	asyslog(LOG_INFO,"进程 %s PID = %d",JProgramInfo->Projects[1].ProjectName,JProgramInfo->Projects[1].ProjectID);
 	asyslog(LOG_INFO,"进程 %s PID = %d",JProgramInfo->Projects[2].ProjectName,JProgramInfo->Projects[2].ProjectID);
 	///液晶提前运行，为了上电15秒内点亮液晶运行程序
@@ -1917,6 +1917,7 @@ int main(int argc, char *argv[])
 
    	}
 	pthread_mutex_destroy(&mutex); //销毁互斥锁
+	pthread_mutex_destroy(&mutex_savetask); //销毁互斥锁
 	close_named_sem(SEMNAME_SPI0_0);
 	return EXIT_SUCCESS;//退出
 }

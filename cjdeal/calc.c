@@ -128,6 +128,7 @@ int saveTerminalTaskData(INT8U taskid,TS savets,TSA tsa,CSD_ARRAYTYPE csds)
 
 	for(i=0;i<csds.num;i++)	{
 		if(csds.csd[i].type == 0) {	//oad
+			continue;
 			index = 0;
 			saveBuf[index++] = dttsa;	//TSA标识
 			memcpy(&saveBuf[index],&tsa,sizeof(TSA));
@@ -148,6 +149,8 @@ int saveTerminalTaskData(INT8U taskid,TS savets,TSA tsa,CSD_ARRAYTYPE csds)
 				relateOAD = csds.csd[i].csd.road.oads[j];
 				switch(relateOAD.OI) {
 				case 0x2021:	//数据冻结时间
+					savets.Minute = 0;
+					savets.Sec = 0;
 					TsToTimeBCD(savets,&freezetime);
 					index += fill_date_time_s(&saveBuf[index],&freezetime);
 					break;
@@ -181,7 +184,10 @@ int saveTerminalTaskData(INT8U taskid,TS savets,TSA tsa,CSD_ARRAYTYPE csds)
 					break;
 				}
 				asyslog(LOG_NOTICE,"saveTerminalTaskData taskid = %d freezeOAD=%04x relateOAD=%04x index=%d\n",taskid,freezeOAD.OI,relateOAD.OI,index);
-				saveret = SaveOADData(taskid,freezeOAD,relateOAD,saveBuf,index,savets);
+				if(saveBuf[18]!=0)
+				{
+					saveret = SaveOADData(taskid,freezeOAD,relateOAD,saveBuf,index,savets);
+				}
 			}
 		}
 	}
@@ -211,10 +217,11 @@ void terminalTaskFreeze(INT8U taskid,INT8U fanganid)
 		tsa_num = getOI6001(class6015.mst,(INT8U **)&tsa_group);
 		asyslog(LOG_NOTICE,"tsa_num = %d\n",tsa_num);
 		for(meterid=0;meterid<tsa_num;meterid++) {
-//			if(tsa_group[meterid].basicinfo.port.OI == PORT_JC) {
-//				//满足交采测量点,查找到满足CSD的数据任务，进行相关任务数据存储
-//				saveTerminalTaskData(taskid,savets,tsa_group[meterid].basicinfo.addr,class6015.csds);
-//			}
+			if(tsa_group[meterid].basicinfo.port.OI == PORT_JC) {
+
+				//满足交采测量点,查找到满足CSD的数据任务，进行相关任务数据存储
+				saveTerminalTaskData(taskid,savets,tsa_group[meterid].basicinfo.addr,class6015.csds);
+			}
 			if(tsa_group[meterid].basicinfo.port.OI == PORT_PLUSE) {
 				//满足脉冲输入设备，进行相关任务数据存储
 				pluseindex = tsa_group[meterid].basicinfo.port.attrindex-1;
@@ -257,11 +264,12 @@ void Vol_Rate_Tj(PassRate_U *passu_d_tmp,PassRate_U *passu_m_tmp,INT32U voltage,
         //月
 			passu_m_tmp->monitorTime +=per_min;
 			INT32U m_over=passu_m_tmp->upLimitTime+passu_m_tmp->downLimitTime;
-			FP32 m_over_per=(FP32)m_over/(FP32)passu_d_tmp->monitorTime;
+			FP32 m_over_per=(FP32)m_over/(FP32)passu_m_tmp->monitorTime;
+			//asyslog(LOG_NOTICE,"m_over_per = %f m_over = %d passu_m_tmp->monitorTime = %d",m_over_per,m_over,passu_m_tmp->monitorTime);
 			FP32 m_hege_per=1-m_over_per;
 			passu_m_tmp->overRate=m_over_per*100*100;
 			passu_m_tmp->passRate=m_hege_per*100*100;
-
+			//asyslog(LOG_NOTICE,"m_hege_per = %f passu_m_tmp->overRate = %d passu_m_tmp->monitorTime = %d",m_hege_per,passu_m_tmp->overRate,passu_m_tmp->passRate);
 	}
 }
 
@@ -313,7 +321,7 @@ void Save_Vol_Rate(INT8U flag,DateTimeBCD datetime)
 
 void Calc_Tj()
 {
-	static time_t	currtime=0,nexttime=0;
+	static time_t	currtime=0,nexttime=0;//
 	static INT8U 	first=1;
 	static INT8U lastchgoi4030=0,addnum=0,lastreset=0;
 
@@ -322,7 +330,8 @@ void Calc_Tj()
 	if(first==1) {
 		first = 0;
 		currtime = time(NULL);
-		nexttime = time(NULL);
+		nexttime = (currtime/60)*60;//基准比对时间去掉秒数
+
 		memset(&gongdian_tj,0,sizeof(Gongdian_tj));
 		readVariData(0x2203,0,&gongdian_tj,sizeof(Gongdian_tj));
 
@@ -332,6 +341,13 @@ void Calc_Tj()
 	    readCoverClass(0x4030,0,&obj_offset,sizeof(obj_offset),para_vari_save);
         memset(passu_d,0,sizeof(passu_d));
         memset(passu_m,0,sizeof(passu_m));
+        if(currtime%60 > 0)//秒数大于0，算一分钟还是头一次上电默认+1?
+        {
+    		Vol_Rate_Tj(&passu_d[0],&passu_m[0],JProgramInfo->ACSRealData.Ua,1);
+    		Vol_Rate_Tj(&passu_d[1],&passu_m[1],JProgramInfo->ACSRealData.Ub,1);
+    		Vol_Rate_Tj(&passu_d[2],&passu_m[2],JProgramInfo->ACSRealData.Uc,1);
+        }
+        return;
 	}
 	if(lastchgoi4030!=JProgramInfo->oi_changed.oi4030){
 		readCoverClass(0x4030,0,&obj_offset,sizeof(obj_offset),para_vari_save);
@@ -341,7 +357,7 @@ void Calc_Tj()
 	int tcha=abs(currtime - nexttime);
 	if(tcha >= 60) {
 		int per_min=tcha/60;
-		nexttime = currtime;
+		nexttime = (currtime/60)*60;//基准时间去掉秒数
 		Vol_Rate_Tj(&passu_d[0],&passu_m[0],JProgramInfo->ACSRealData.Ua,per_min);
 		Vol_Rate_Tj(&passu_d[1],&passu_m[1],JProgramInfo->ACSRealData.Ub,per_min);
 		Vol_Rate_Tj(&passu_d[2],&passu_m[2],JProgramInfo->ACSRealData.Uc,per_min);
@@ -401,6 +417,7 @@ void TerminalFreeze()
 				syslog(LOG_NOTICE,"存储：A相电压-监测时间（日）=%d，（月）=%d\n",volt_tj.dayu_tj.monitorTime,volt_tj.monthu_tj.monitorTime);
 			}
 			saveVariData((0x2131+j),0,(INT8U *)&volt_tj,sizeof(Volt_PassRate_tj));
+
 			Save_TJ_Freeze(0,(0x2131+j),0x0201,newts,sizeof(PassRate_U),(INT8U *)&passu_d[j]);
 			memset(&passu_d[j],0,sizeof(PassRate_U));
 		}
@@ -415,6 +432,7 @@ void TerminalFreeze()
 					syslog(LOG_NOTICE,"A相电压-监测时间（日）=%d，（月）=%d\n",volt_tj.dayu_tj.monitorTime,volt_tj.monthu_tj.monitorTime);
 				}
 				saveVariData((0x2131+j),0,(INT8U *)&volt_tj,sizeof(Volt_PassRate_tj));
+
 				Save_TJ_Freeze(1,(0x2131+j),0x0202,newts,sizeof(PassRate_U),(INT8U *)&passu_m[j]);
 				memset(&passu_m[j],0,sizeof(PassRate_U));
 			}

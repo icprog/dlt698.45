@@ -3896,10 +3896,12 @@ INT16S deal6015_9707(INT8U protocol,CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6
 				DbgPrintToFile1(port485, "冻结时标不正确");
 				continue;
 			}
+			INT8U isCurveROAD = 0;
 			//对于07表　曲线就是抄实时数据
 			if(st6015.csds.csd[dataIndex].csd.road.oad.OI == 0x5002)
 			{
 				st6015.csds.csd[dataIndex].csd.road.oad.OI = 0x0000;
+				isCurveROAD = 1;
 			}
 
 			INT8U csdIndex;
@@ -3911,13 +3913,30 @@ INT16S deal6015_9707(INT8U protocol,CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6
 				{
 					return PARA_CHANGE_RETVALUE;
 				}
+				if((isCurveROAD==1)&&(st6015.csds.csd[dataIndex].csd.road.oads[csdIndex].OI == DATA_TIMESTAMP_OI))
+				{
+					DateTimeBCD startTime;
+					DataTimeGet(&startTime);
+					startTime.sec.data = 0;
+					startTime.min.data = 0;
+					datalen = 8;
+					fill_date_time_s(dataContent,&startTime);
+				}
+				else
+				{
+					datalen = request9707_singleOAD(protocol,st6015.csds.csd[dataIndex].csd.road.oad.OI,
+							st6015.csds.csd[dataIndex].csd.road.oads[csdIndex],to6001,st6035,dataContent,port485);
+				}
 
-				datalen = request9707_singleOAD(protocol,st6015.csds.csd[dataIndex].csd.road.oad.OI,
-						st6015.csds.csd[dataIndex].csd.road.oads[csdIndex],to6001,st6035,dataContent,port485);
 				if(datalen > 0)
 				{
 					totaldataLen += datalen;
+
 					OADdata[oadDataNum].oad_m = st6015.csds.csd[dataIndex].csd.road.oad;
+					if(isCurveROAD == 1)
+					{
+						OADdata[oadDataNum].oad_m.OI = 0x5002;
+					}
 					OADdata[oadDataNum].oad_r = st6015.csds.csd[dataIndex].csd.road.oads[csdIndex];
 					OADdata[oadDataNum].datalen = datalen;
 					memcpy(OADdata[oadDataNum].data,dataContent,datalen);
@@ -3982,6 +4001,11 @@ INT16S deal6015_9707(INT8U protocol,CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6
 	{
 		TS OADts;
 		TSGet(&OADts);
+		if(OADdata[0].oad_m.OI == 0x5002)
+		{
+			OADts.Minute = 0;
+			OADts.Sec = 0;
+		}
 		saveREADOADdata(st6035->taskID,to6001.basicinfo.addr,OADdata,oadDataNum,OADts);
 	}
 
@@ -4374,7 +4398,7 @@ INT16S deal6015or6017_singlemeter(CLASS_6013 st6013,CLASS_6015 st6015,CLASS_6001
 		switch (obj6001.basicinfo.protocol)
 		{
 			case DLT_645_07:
-				ret = deal6017_07(st6015, obj6001,st6035,port485);
+				//ret = deal6017_07(st6015, obj6001,st6035,port485);
 			break;
 			default:
 				ret = deal6017_698(st6015,obj6001,st6035,port485);
@@ -4676,6 +4700,7 @@ INT8S deal6015or6017(CLASS_6013 st6013,CLASS_6015 st6015, INT8U port485,CLASS_60
 
 						INT16S dataLen = 0;
 						dataLen = deal6015or6017_singlemeter(st6013,st6015,meter,st6035,port485);
+
 						if(dataLen == PARA_CHANGE_RETVALUE)
 						{
 							DbgPrintToFile1(port485,"参数变更 重新抄表");
@@ -4684,8 +4709,17 @@ INT8S deal6015or6017(CLASS_6013 st6013,CLASS_6015 st6015, INT8U port485,CLASS_60
 						if(dataLen > 0)
 						{
 							st6035->successMSNum++;
+							if(getZone("GW")!=0)
+							{
+								//判断冻结数据是否已经抄读成功了
+								if(st6015.csds.csd[0].csd.road.oad.OI == 0x5004)
+								{
+									GetOrSetFreezeDataSuccess(1,st6013.taskID,port,info6000[port].list6001[meterIndex]);
+									DbgPrintToFile1(port485,"任务ID:%d deal6015 测量点 = %d　已经抄读成功,不用再抄了",st6013.taskID,info6000[port].list6001[meterIndex]);
+								}
+							}
 						}
-#if 1
+#if 0
 					TS tsNow;
 					TSGet(&tsNow);
 					INT16U tsaNum = getCBsuctsanum(st6035->taskID,tsNow);
