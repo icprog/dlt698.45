@@ -10,8 +10,8 @@
 		<project>libBase</project>
 		<project>libCjt188</project>
 		<project>libDlt645</project>
+		<project>libevent</project>
 		<project>libTransmit</project>
-		<project>libzlib</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>
