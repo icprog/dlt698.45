@@ -1058,10 +1058,12 @@ int proxy_dar_fill(PROXY_GETLIST *dest_list,PROXY_GETLIST get_list)
 		}
 		break;
 	case ProxyTransCommandRequest:
+		fprintf(stderr,"get_list.proxy_obj.transcmd.dar=%d index=%d\n",get_list.proxy_obj.transcmd.dar,index);
 		if(get_list.proxy_obj.transcmd.dar!=success) {
 			dest_list->data[index++] = 0;		//错误
 			dest_list->data[index++] = get_list.proxy_obj.transcmd.dar;//DAR
 		}
+		fprintf(stderr,"index=%d\n",index);
 		break;
 	case F209TransCommandAction:
 		break;
@@ -1555,6 +1557,7 @@ INT8U dealProxyAnswer()
 			proxy_dar_fill(&proxyList_manager,cjcommProxy.strProxyList);
 		}
 		OAD	oad={};
+		fprintf(stderr,"\n发送消息前 dar = %d",proxyList_manager.proxy_obj.transcmd.dar);
 		mqs_send((INT8S *)PROXY_NET_MQ_NAME,1,TERMINALPROXY_RESPONSE,oad,(INT8U *)&proxyList_manager,sizeof(PROXY_GETLIST));
 		fprintf(stderr,"\n全部代理操作完成，发消息 ！！");
 		timecount = 0;

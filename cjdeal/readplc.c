@@ -170,13 +170,13 @@ void setFactoryVar(INT8U *factory)
 }
 void SendDataToCom(int fd, INT8U *sendbuf, INT16U sendlen)
 {
-	int i=0;
+//	int i=0;
 	ssize_t slen;
 	slen = write(fd, sendbuf, sendlen);
 	DbPrt1(31,"S:", (char *) sendbuf, slen, NULL);
-	fprintf(stderr,"\nsend(%d)",slen);
-	for(i=0;i<slen;i++)
-		fprintf(stderr," %02x",sendbuf[i]);
+//	fprintf(stderr,"\nsend(%d)",slen);
+//	for(i=0;i<slen;i++)
+//		fprintf(stderr," %02x",sendbuf[i]);
 	if(getZone("GW")==0) {
 		PacketBufToFile(0,"[ZB]S:",(char *) sendbuf, slen, NULL);
 	}
@@ -188,15 +188,15 @@ int RecvDataFromCom(int fd,INT8U* buf,int* head)
 	memset(TmpBuf,0,ZBBUFSIZE);
 	if (fd < 0 ) return 0;
 	len = read(fd,TmpBuf,ZBBUFSIZE);
-	if (len>0)
-	{
-		fprintf(stderr,"\nrecv(%d): ",len);
-	}
+//	if (len>0)
+//	{
+//		fprintf(stderr,"\nrecv(%d): ",len);
+//	}
 
 	for(i=0;i<len;i++)
 	{
 		buf[*head]=TmpBuf[i];
-		fprintf(stderr,"%02x ",TmpBuf[i]);
+//		fprintf(stderr,"%02x ",TmpBuf[i]);
 		*head = (*head + 1) % ZBBUFSIZE;
 	}
 	return len;
@@ -3115,9 +3115,11 @@ INT8U Proxy_TransCommandRequest(RUNTIME_PLC *runtime_p,CJCOMM_PROXY *proxy,int* 
 		{
 			DbgPrintToFile1(31,"代理内容为广播对时，需要切换到对时流程");
 			//判断代理内容如果是广播对时，需要切换到对时流程
+			memset(cjcommProxy_plc.strProxyList.data,0,sizeof(cjcommProxy_plc.strProxyList.data));
 			cjcommProxy_plc.strProxyList.proxy_obj.transcmd.dar = success;
-			cjcommProxy_plc.strProxyList.data[0] = 1;
-			cjcommProxy_plc.strProxyList.data[1] = 0;
+			cjcommProxy_plc.strProxyList.data[0] = 1;//trans_result :有数据
+			cjcommProxy_plc.strProxyList.data[1] = 0;//数据NULL
+			cjcommProxy_plc.strProxyList.datalen = 2;
 			proxyInUse.devUse.plcReady = 1;
 			cjcommProxy_plc.isInUse = 0;
 			clearvar(runtime_p);
@@ -3537,7 +3539,8 @@ int doSerch(RUNTIME_PLC *runtime_p)
 					DbgPrintToFile1(31,"搜表完成!!");
 					beginwork =0;
 					step_cj = 4;
-					return(runtime_p->state_bak);
+//					return(runtime_p->state_bak);
+					return (TASK_PROCESS);
 				}
 				DbgPrintToFile1(31,"搜表未完成，继续等待");
 				step_cj = 3;
@@ -3650,7 +3653,6 @@ void delplcrecord()
 }
 int stateJuge(int nowdstate,MY_PARA_COUNTER *mypara_p,RUNTIME_PLC *runtime_p,int *startFlg)
 {
-
 	int state = nowdstate;
 	int i=0;
 	int dateChg = 0;
@@ -3668,11 +3670,24 @@ int stateJuge(int nowdstate,MY_PARA_COUNTER *mypara_p,RUNTIME_PLC *runtime_p,int
 	dateChg = dateJudge(&runtime_p->oldts,&runtime_p->nowts);
 	if (JProgramInfo->oi_changed.oi6000 != mypara_p->my6000 )
 	{
+		DbgPrintToFile1(31,"档案参数变更");
 		mypara_p->my6000  = JProgramInfo->oi_changed.oi6000;
 		pointChg = 1;
+		runtime_p->state_bak = runtime_p->state;
+		state = SLAVE_COMP;
+		runtime_p->state = state;
+		runtime_p->redo = 1;  //初始化之后需要重启抄读
+		initTaskData(&taskinfo);
+		delplcrecord();
+		freeList(tsa_head);
+		freeList(tsa_zb_head);
+		tsa_head = NULL;
+		tsa_zb_head = NULL;
+		tsa_count = initTsaList(&tsa_head);
+		tsa_print(tsa_head,tsa_count);
+		return state;
 	}
-
-	if ( dateChg == 1 ||  *startFlg == 1 || pointChg ==1 )
+	if ( dateChg == 1 ||  *startFlg == 1 )
 	{
 		DbgPrintToFile1(31,"初始化路由");
 		*startFlg = 0;
