@@ -28,10 +28,10 @@ void ProxyListResponse(PROXY_GETLIST *list,CommBlock *com)
 {
 	if (com==NULL || list==NULL)
 		return;
-	CSINFO csinfo;
+	CSINFO csinfo={};
 	INT8U *sendbuf = com->SendBuf;
 	int index=0, hcsi=0,datalen=0 ,apduplace =0;
-	OAD	 f209_oad;
+	OAD	 f209_oad={};
 
 	memcpy(&csinfo,&list->csinfo,sizeof(CSINFO));
 	csinfo.dir = 1;
