@@ -50,7 +50,7 @@ extern Proxy_Msg* p_Proxy_Msg_Data;//液晶给抄表发送代理处理结构体�
 extern TASK_CFG list6013[TASK6012_MAX];
 extern INT8U analyzeProtocol698(INT8U* Rcvbuf, INT8U* resultCount, INT16S recvLen,
 		INT8U* apduDataStartIndex, INT16S* dataLen) ;
-extern INT16S deal698RequestResponse(INT8U isProxyResponse,INT8U getResponseType,INT8U csdNum,INT8U* apdudata,INT8U* dataContent,CSD_ARRAYTYPE csds,CLASS_6001 obj6001,INT16U taskID,INT8U cjType);
+extern INT8U deal698RequestResponse(INT8U getResponseType,INT8U csdNum,INT8U* apdudata,OADDATA_SAVE* oadListContent,INT16U* apdudataLen);
 
 //-----------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -1515,7 +1515,11 @@ int saveProxyData(FORMAT3762 format_3762_Up,struct Tsa_Node *nodetmp)
 				getResponseType = analyzeProtocol698(buf645,&csdNum,len645,&apduDataStartIndex,&datalen);
 				if (getResponseType >0 )
 				{
-					len645  = deal698RequestResponse(0,getResponseType,csdNum,&buf645[apduDataStartIndex],dataContent,csds,meter, 0,0);
+					OADDATA_SAVE oadListContent[ROAD_OADS_NUM]={};
+					memset(oadListContent,0,ROAD_OADS_NUM*sizeof(OADDATA_SAVE));
+					INT16U apdudatalen = 0;
+//					len645  = deal698RequestResponse(0,getResponseType,csdNum,&buf645[apduDataStartIndex],dataContent,csds,meter, 0,0);
+					len645  = deal698RequestResponse(getResponseType,csdNum,&buf645[apduDataStartIndex],oadListContent,&apdudatalen);
 				}
 				break;
 		}
@@ -2548,7 +2552,12 @@ int SaveTaskData(FORMAT3762 format_3762_Up,INT8U taskid,INT8U fananNo)
 						{
 
 							CLASS_6001 to6001 ={};
-							INT16S retLen = deal698RequestResponse(0,getResponseType,csdNum,&buf645[apduDataStartIndex],dataContent,class6015.csds,to6001,taskid,class6015.cjtype);
+							OADDATA_SAVE oadListContent[ROAD_OADS_NUM]={};
+							memset(oadListContent,0,ROAD_OADS_NUM*sizeof(OADDATA_SAVE));
+							INT16U apdudatalen = 0;
+
+							INT8U retLen = deal698RequestResponse(getResponseType,csdNum,&buf645[apduDataStartIndex],oadListContent,&apdudatalen);
+
 							fprintf(stderr,"\n deal698RequestResponse retLen = %d",retLen);
 #ifdef TESTDEF
 							fprintf(stderr,"deal698RequestResponse Buf[%d] = \n",dataLen);
@@ -2567,11 +2576,11 @@ int SaveTaskData(FORMAT3762 format_3762_Up,INT8U taskid,INT8U fananNo)
 							{
 								TS ts_cc;
 								TSGet(&ts_cc);
-								DateTimeBCD startTime;
-								DataTimeGet(&startTime);
-								DateTimeBCD savetime;
-								getSaveTime(&savetime,class6015.cjtype,class6015.savetimeflag,class6015.data);
-								int bufflen = compose6012Buff(startTime,savetime,tsaMeter,retLen,dataContent,31);
+//								DateTimeBCD startTime;
+//								DataTimeGet(&startTime);
+//								DateTimeBCD savetime;
+//								getSaveTime(&savetime,class6015.cjtype,class6015.savetimeflag,class6015.data);
+//								int bufflen = compose6012Buff(startTime,savetime,tsaMeter,retLen,dataContent,31);
 								//湖南曲线任务是15分钟一个点,此处处理导致了一个小时存
 //								if(class6015.cjtype == TYPE_INTERVAL)
 //								{
@@ -2579,6 +2588,7 @@ int SaveTaskData(FORMAT3762 format_3762_Up,INT8U taskid,INT8U fananNo)
 //									ts_cc.Sec = 0;
 //								}
 //								SaveNorData(taskid,NULL,dataContent,bufflen,ts_cc);
+								saveREADOADdata(taskid,tsaMeter,oadListContent,apdudatalen,ts_cc);
 							}
 #endif
 
