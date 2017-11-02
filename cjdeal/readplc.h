@@ -303,6 +303,22 @@ int search_i;
 CLASS_6015 fangAn6015[FANGAN6015_MAX];
 TASK_INFO taskinfo_bak;
 TASK_INFO taskinfo;
+TASK_INFO taskinfo_tmp;
+
+typedef struct
+{
+	DATA_ITEM item;
+	int task_i;		//所属任务序号
+	int item_i;		//数据项序号
+	INT8U taskID;
+	TSA tsa;
+}POOLTYPE;
+typedef struct
+{
+	POOLTYPE pool[4];
+	int point;
+}GETPOOLS;
+GETPOOLS plcPools;	//缓存4个最近抄读的
 typedef struct
 {
 	TS nowts;
@@ -353,7 +369,7 @@ time_t oldtime1;
 time_t newtime1;
 time_t beginSearchTime;
 INT8U buf645[BUFSIZE645];
-int Lenth645;
+int trans645Len;
 typedef struct
 {
 	INT8U is;
