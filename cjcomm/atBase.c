@@ -269,6 +269,25 @@ int SendCommandGetOK(ATOBJ *ao, int retry, const char *fmt, ...) {
 	return 0;
 }
 
+int SendCommandGetWhatever(ATOBJ *ao, int retry, const char *fmt, ...) {
+	va_list argp;
+	va_start(argp, fmt);
+	char cmd[128];
+	memset(cmd, 0x00, sizeof(cmd));
+	vsprintf(cmd, fmt, argp);
+	va_end(argp);
+
+	for (int timeout = 0; timeout < retry; timeout++) {
+		char Mrecvbuf[128];
+		AtSendCmd(ao, cmd, strlen(cmd));
+		delay(500);
+		memset(Mrecvbuf, 0, 128);
+		RecieveFromComm(Mrecvbuf, 128, ao->fd);
+		return 1;
+	}
+	return 0;
+}
+
 int AtPrepare(ATOBJ *ao) {
 	static int count = 0;
 	static int retry = 0;
@@ -561,9 +580,16 @@ int AtPrepare(ATOBJ *ao) {
 			ao->state = 0;
 			return 100;
 		}
+
+		if(getZone("GW") == 0) {
+			retry = 0;
+			ao->state = 16;
+			return 100;
+		}
+
 		if((int)dbGet("model_2g") == 666){
 			asyslog(LOG_INFO,"强制2G上线....");
-			if (SendCommandGetOK(ao, 1, "\rat+qcfg=\"nwscanmode\",1\r") == 1) {
+			if (SendCommandGetWhatever(ao, 1, "\rat+qcfg=\"nwscanmode\",1\r") == 1) {
 				retry = 0;
 				ao->state = 16;
 				return 100;
@@ -571,7 +597,7 @@ int AtPrepare(ATOBJ *ao) {
 		}
 		else{
 			asyslog(LOG_INFO,"4G优先上线....");
-			if (SendCommandGetOK(ao, 1, "\rat+qcfg=\"nwscanmode\",0\r") == 1) {
+			if (SendCommandGetWhatever(ao, 1, "\rat+qcfg=\"nwscanmode\",0\r") == 1) {
 				retry = 0;
 				ao->state = 16;
 				return 100;

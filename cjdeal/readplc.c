@@ -2999,8 +2999,9 @@ INT8U F209_TransRequest(RUNTIME_PLC *runtime_p,CJCOMM_PROXY *proxy,int* beginwor
 			DbgPrintToFile1(31,"代理内容为广播对时，需要切换到对时流程");
 			//判断代理内容如果是广播对时，需要切换到对时流程
 			cjcommProxy_plc.strProxyList.proxy_obj.f209Trans.dar = success;
-			cjcommProxy_plc.strProxyList.data[0] = 1;
-			cjcommProxy_plc.strProxyList.data[1] = 0;
+			memset(cjcommProxy_plc.strProxyList.data,0,sizeof(cjcommProxy_plc.strProxyList.data));
+			cjcommProxy_plc.strProxyList.data[0] = 0;
+			cjcommProxy_plc.strProxyList.datalen = 1;
 			proxyInUse.devUse.plcReady = 1;
 			cjcommProxy_plc.isInUse = 0;
 			clearvar(runtime_p);
