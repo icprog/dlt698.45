@@ -7,17 +7,16 @@
 
 #include <stdlib.h>
 #include <stdio.h>
-#include <unistd.h>
 #include <string.h>
-#include <sys/mman.h>
+#include <unistd.h>
 #include <signal.h>
-#include <pthread.h>
-#include "sys/reboot.h"
 #include <wait.h>
 #include <errno.h>
-#include <unistd.h>
+#include <time.h>
+#include <pthread.h>
 #include <termios.h>
-#include "time.h"
+#include <sys/mman.h>
+#include <sys/reboot.h>
 #include <sys/time.h>
 #include "lib3762.h"
 #include "readplc.h"
@@ -902,7 +901,7 @@ int doInit(RUNTIME_PLC *runtime_p)
 
 			if (runtime_p->comfd >0)
 				CloseCom( runtime_p->comfd );
-			runtime_p->comfd = OpenCom(1, 9600,(unsigned char*)"even",1,8);// 5 载波路由串口 ttyS5   SER_ZB   //test  2
+			runtime_p->comfd = OpenCom(5, 9600,(unsigned char*)"even",1,8);// 5 载波路由串口 ttyS5   SER_ZB   //test  2
 			DbgPrintToFile1(31,"comfd=%d",runtime_p->comfd);
 			runtime_p->initflag = 0;
 			clearvar(runtime_p);//376.2上行内容容器清空，发送计时归零
@@ -924,7 +923,7 @@ int doInit(RUNTIME_PLC *runtime_p)
 			break;
 
 		case 1://读取载波信息
-			if ((nowtime  - runtime_p->send_start_time > 60) &&
+			if ((abs(nowtime  - runtime_p->send_start_time) > 60) &&
 				runtime_p->format_Up.afn != 0x03 && runtime_p->format_Up.fn!= 10)
 			{
 				DbgPrintToFile1(31,"读取载波信息");
@@ -985,7 +984,7 @@ int doSetMasterAddr(RUNTIME_PLC *runtime_p)
 	switch(step_MasterAddr )
 	{
 		case 0://查询主节点地址
-			if ((nowtime  - runtime_p->send_start_time > 20) )
+			if ((abs(nowtime  - runtime_p->send_start_time) > 20) )
 			{
 				sendlen = AFN03_F4(&runtime_p->format_Down,runtime_p->sendbuf);
 				SendDataToCom(runtime_p->comfd, runtime_p->sendbuf,sendlen );
@@ -1024,7 +1023,7 @@ int doSetMasterAddr(RUNTIME_PLC *runtime_p)
 			}
 			break;
 		case 1:
-			if (nowtime  - runtime_p->send_start_time > 20)
+			if (abs(nowtime  - runtime_p->send_start_time) > 20)
 			{
 				DbgPrintToFile1(31,"\n设置主节点地址 ");
 				clearvar(runtime_p);//376.2上行内容容器清空，发送计时归零
@@ -1063,7 +1062,7 @@ int doCompSlaveMeter(RUNTIME_PLC *runtime_p)
 	switch(step_cmpslave)
 	{
 		case 0://读取载波从节点数量
-			if (nowtime  - runtime_p->send_start_time > 20 && workflg==0)
+			if (abs(nowtime  - runtime_p->send_start_time) > 20 && workflg==0)
 			{
 				DbgPrintToFile1(31,"暂停抄表5");
 				workflg = 1;
@@ -1088,14 +1087,14 @@ int doCompSlaveMeter(RUNTIME_PLC *runtime_p)
 				step_cmpslave = 1;
 				index = 1;
 				workflg = 0;
-			}else if(nowtime  - runtime_p->send_start_time > 100 && workflg==1)
+			}else if(abs(nowtime  - runtime_p->send_start_time) > 100 && workflg==1)
 			{
 				DbgPrintToFile1(31,"读取载波从节点超时");
 				workflg = 0;
 			}
 			break;
 		case 1://读取全部载波从节点
-			if ((nowtime  - runtime_p->send_start_time > 20) &&
+			if ((abs(nowtime  - runtime_p->send_start_time) > 20) &&
 				runtime_p->format_Up.afn != 0x10 && runtime_p->format_Up.fn!= 2)
 			{
 				DbgPrintToFile1(31,"读从节点信息 index =%d ",index);
@@ -1138,7 +1137,7 @@ int doCompSlaveMeter(RUNTIME_PLC *runtime_p)
 			}
 			break;
 		case 2://删除多余节点
-			if (nowtime  - runtime_p->send_start_time > 10)
+			if (abs(nowtime  - runtime_p->send_start_time) > 10)
 			{
 				for(;;)
 				{
@@ -2671,7 +2670,7 @@ int doTask(RUNTIME_PLC *runtime_p)
 	switch( step_cj )
 	{
 		case 0://重启抄表
-			if ( nowtime - runtime_p->send_start_time > 20)
+			if ( abs(nowtime - runtime_p->send_start_time) > 20)
 			{
 				DbgPrintToFile1(31,"\n重启抄表");
 				clearvar(runtime_p);
@@ -2688,7 +2687,7 @@ int doTask(RUNTIME_PLC *runtime_p)
 			}
 			break;
 		case 1://恢复抄读
-			if ( nowtime - runtime_p->send_start_time > 20)
+			if (abs( nowtime - runtime_p->send_start_time) > 20)
 			{
 				DbgPrintToFile1(31,"\n恢复抄表");
 				runtime_p->redo = 0;
@@ -2763,7 +2762,7 @@ int doTask(RUNTIME_PLC *runtime_p)
 //				clearvar(runtime_p);
 //				runtime_p->send_start_time = nowtime;
 //			}
-			else if( nowtime - runtime_p->send_start_time > 100)
+			else if( abs(nowtime - runtime_p->send_start_time) > 100)
 			{
 				DbgPrintToFile1(31,"抄表过程，通讯超时,重启抄表");
 				step_cj = 0;
@@ -2878,7 +2877,7 @@ INT8U Proxy_GetRequestList(RUNTIME_PLC *runtime_p,CJCOMM_PROXY *proxy,int* begin
 		*beginwork = 0;
 		obj_index++;
 		DbgPrintToFile1(31,"代理1 完成一次代理");
-	} else if (((nowtime - runtime_p->send_start_time) > timeout) && *beginwork==1) {
+	} else if ((abs(nowtime - runtime_p->send_start_time) > timeout) && *beginwork==1) {
 		*beginwork = 0;
 		obj_index++;
 		DbgPrintToFile1(31,"单次超时");
@@ -2886,7 +2885,7 @@ INT8U Proxy_GetRequestList(RUNTIME_PLC *runtime_p,CJCOMM_PROXY *proxy,int* begin
 		*beginwork = 0;
 		proxy->isInUse = 0;
 		DbgPrintToFile1(31,"总超时判断取消等待");
-	}else if( nowtime - runtime_p->send_start_time > 100  ) {
+	}else if(abs( nowtime - runtime_p->send_start_time) > 100  ) {
 		clearvar(runtime_p);
 		*beginwork = 0;
 		obj_index = 0;
@@ -3067,7 +3066,7 @@ INT8U F209_TransRequest(RUNTIME_PLC *runtime_p,CJCOMM_PROXY *proxy,int* beginwor
 		memset(&runtime_p->format_Up, 0, sizeof(runtime_p->format_Up));
 		DbgPrintToFile1(31,"收到点抄数据  datalen=%d",cjcommProxy_plc.strProxyList.datalen);
 	}
-	else if (((nowtime - runtime_p->send_start_time) > timeout) && *beginwork==1) {
+	else if ((abs(nowtime - runtime_p->send_start_time) > timeout) && *beginwork==1) {
 		//代理超时后, 放弃本次操作, 上报超时应答
 		pthread_mutex_lock(&mutex);
 		cjcommProxy_plc.strProxyList.proxy_obj.transcmd.dar = request_overtime;
@@ -3082,7 +3081,7 @@ INT8U F209_TransRequest(RUNTIME_PLC *runtime_p,CJCOMM_PROXY *proxy,int* beginwor
 	{
 		*beginwork = 0;
 		DbgPrintToFile1(31,"总超时判断取消等待");
-	}else if( nowtime - runtime_p->send_start_time > 100  ) {
+	}else if(abs( nowtime - runtime_p->send_start_time) > 100  ) {
 		//最后一次代理操作后100秒, 才恢复抄读
 		DbgPrintToFile1(31,"100秒超时");
 		clearvar(runtime_p);
@@ -3206,7 +3205,7 @@ INT8U Proxy_TransCommandRequest(RUNTIME_PLC *runtime_p,CJCOMM_PROXY *proxy,int* 
 		memset(&runtime_p->format_Up, 0, sizeof(runtime_p->format_Up));
 		DbgPrintToFile1(31,"收到点抄数据");
 	}
-	else if (((nowtime - runtime_p->send_start_time) > timeout) && *beginwork==1) {
+	else if ((abs(nowtime - runtime_p->send_start_time) > timeout) && *beginwork==1) {
 		//代理超时后, 放弃本次操作, 上报超时应答
 		pthread_mutex_lock(&mutex);
 		cjcommProxy_plc.strProxyList.proxy_obj.transcmd.dar = request_overtime;
@@ -3221,7 +3220,7 @@ INT8U Proxy_TransCommandRequest(RUNTIME_PLC *runtime_p,CJCOMM_PROXY *proxy,int* 
 	{
 		*beginwork = 0;
 		DbgPrintToFile1(31,"总超时判断取消等待");
-	}else if( nowtime - runtime_p->send_start_time > 100  ) {
+	}else if(abs( nowtime - runtime_p->send_start_time) > 100  ) {
 		//最后一次代理操作后100秒, 才恢复抄读
 		DbgPrintToFile1(31,"100秒超时");
 		clearvar(runtime_p);
@@ -3271,13 +3270,13 @@ INT8U Proxy_Gui(RUNTIME_PLC *runtime_p,GUI_PROXY *proxy,int* beginwork,time_t no
 		saveProxyData(runtime_p->format_Up,nodetmp);
 		memset(&runtime_p->format_Up,0,sizeof(runtime_p->format_Up));
 		DbgPrintToFile1(31,"收到点抄数据");
-	}else if ((nowtime - runtime_p->send_start_time > 20  ) && *beginwork==1)
+	}else if ((abs(nowtime - runtime_p->send_start_time) > 20  ) && *beginwork==1)
 	{
 		DbgPrintToFile1(31,"单次点抄超时");
 		proxy->isInUse = 0;
 		*beginwork = 0;
 	}
-	else if( nowtime - runtime_p->send_start_time > 100  )
+	else if(abs( nowtime - runtime_p->send_start_time )> 100  )
 	{//100秒等待
 		DbgPrintToFile1(31,"100秒超时");
 		clearvar(runtime_p);
@@ -3296,7 +3295,7 @@ int doProxy(RUNTIME_PLC *runtime_p)
 	switch( step_cj )
 	{
 		case 0://暂停抄表
-			if ( nowtime - runtime_p->send_start_time > 20)
+			if (abs( nowtime - runtime_p->send_start_time )> 20)
 			{
 				DbgPrintToFile1(31,"暂停抄表4");
 				DEBUG_TIME_LINE("暂停抄表");
@@ -3359,7 +3358,7 @@ int doProxy(RUNTIME_PLC *runtime_p)
 		case 4://恢复抄表
 			if (runtime_p->state_bak == TASK_PROCESS )
 			{
-				if ( nowtime - runtime_p->send_start_time > 20)
+				if (abs( nowtime - runtime_p->send_start_time) > 20)
 				{
 					DbgPrintToFile1(31,"恢复抄表");
 					clearvar(runtime_p);
@@ -3423,7 +3422,7 @@ int doSerch(RUNTIME_PLC *runtime_p)
 	switch( step_cj )
 	{
 		case 0://暂停抄读
-			if ( nowtime - runtime_p->send_start_time > 20)
+			if ( abs(nowtime - runtime_p->send_start_time) > 20)
 			{
 				DbgPrintToFile1(31,"暂停抄表1");
 				clearvar(runtime_p);
@@ -3437,7 +3436,7 @@ int doSerch(RUNTIME_PLC *runtime_p)
 			}
 			break;
 		case 1://启动广播
-			if ( nowtime - runtime_p->send_start_time > 20  && beginwork==0)
+			if ( abs(nowtime - runtime_p->send_start_time) > 20  && beginwork==0)
 			{
 				DbgPrintToFile1(31,"启动广播");
 				clearvar(runtime_p);
@@ -3458,14 +3457,14 @@ int doSerch(RUNTIME_PLC *runtime_p)
 			else if (beginwork == 1)
 			{
 				DEBUG_TIME_LINE("\nruntime_p->send_start_time = %ld   nowtime=%ld",runtime_p->send_start_time,nowtime);
-				if (nowtime - runtime_p->send_start_time > 30 )
+				if (abs(nowtime - runtime_p->send_start_time) > 30 )
 				{
 					DbgPrintToFile1(31,"等待到时间");
 					clearvar(runtime_p);
 					step_cj = 2;
 				}else
 				{
-					if ((nowtime-runtime_p->send_start_time) % 10 == 0)
+					if ((abs(nowtime-runtime_p->send_start_time)) % 10 == 0)
 					{
 						DbgPrintToFile1(31,"等待120秒... (%ld)",nowtime-runtime_p->send_start_time);
 						sleep(1);
@@ -3474,7 +3473,7 @@ int doSerch(RUNTIME_PLC *runtime_p)
 			}
 			break;
 		case 2://激活从节点注册
-			if ( nowtime - runtime_p->send_start_time > 20)
+			if ( abs(nowtime - runtime_p->send_start_time) > 20)
 			{
 				DbgPrintToFile1(31,"激活从节点注册",nowtime);
 				beginwork = 0;
@@ -3499,7 +3498,7 @@ int doSerch(RUNTIME_PLC *runtime_p)
 			if(searchlen ==0)
 				searchlen = 10;
 
-			if ( (nowtime - runtime_p->send_start_time) < (searchlen *60) )
+			if ( abs(nowtime - runtime_p->send_start_time) < (searchlen *60) )
 			{
 				if ((runtime_p->format_Up.afn == 0x06 && runtime_p->format_Up.fn == 4)||
 					(runtime_p->format_Up.afn == 0x06 && runtime_p->format_Up.fn == 1))
@@ -3526,7 +3525,7 @@ int doSerch(RUNTIME_PLC *runtime_p)
 			}
 			break;
 		case 4://判断是否结束
-			if ( nowtime - runtime_p->send_start_time > 20 && beginwork==0)
+			if ( abs(nowtime - runtime_p->send_start_time) > 20 && beginwork==0)
 			{
 				sendlen = AFN10_F4(&runtime_p->format_Down,runtime_p->sendbuf);
 				SendDataToCom(runtime_p->comfd, runtime_p->sendbuf,sendlen );
@@ -3546,7 +3545,7 @@ int doSerch(RUNTIME_PLC *runtime_p)
 				step_cj = 3;
 				clearvar(runtime_p);
 				runtime_p->send_start_time = nowtime;
-			}else if (nowtime - runtime_p->send_start_time > 20 && beginwork==1)
+			}else if (abs(nowtime - runtime_p->send_start_time) > 20 && beginwork==1)
 			{
 				beginwork =0;
 				DbgPrintToFile1(31,"超时");
@@ -3677,7 +3676,7 @@ int stateJuge(int nowdstate,MY_PARA_COUNTER *mypara_p,RUNTIME_PLC *runtime_p,int
 		state = SLAVE_COMP;
 		runtime_p->state = state;
 		runtime_p->redo = 1;  //初始化之后需要重启抄读
-		//initTaskData(&taskinfo);
+//		initTaskData(&taskinfo);
 		delplcrecord();
 		freeList(tsa_head);
 		freeList(tsa_zb_head);
@@ -3730,6 +3729,7 @@ int stateJuge(int nowdstate,MY_PARA_COUNTER *mypara_p,RUNTIME_PLC *runtime_p,int
 		if(search6002.startSearchFlg == 1)
 		{
 			runtime_p->state_bak = runtime_p->state;
+			runtime_p->state = METER_SEARCH;
 			runtime_p->redo = 2;  //搜表后需要恢复抄读
 			search6002.startSearchFlg = 0;			//启动立即搜表
 			search_i = 0xff;
@@ -3746,6 +3746,7 @@ int stateJuge(int nowdstate,MY_PARA_COUNTER *mypara_p,RUNTIME_PLC *runtime_p,int
 		{
 			sleep(3);
 			runtime_p->state_bak = runtime_p->state;
+			runtime_p->state = METER_SEARCH;
 			clearvar(runtime_p);
 			search_i = i;
 			runtime_p->redo = 2;  //搜表后需要恢复抄读
@@ -3847,7 +3848,7 @@ int doTask_by_jzq(RUNTIME_PLC *runtime_p)
 	switch( step_cj )
 	{
 		case 0://暂停抄表
-			if ( nowtime - runtime_p->send_start_time > 20)
+			if (abs( nowtime - runtime_p->send_start_time) > 20)
 			{
 				DbgPrintToFile1(31,"\n暂停抄表2");
 				clearvar(runtime_p);
@@ -3886,7 +3887,7 @@ int doTask_by_jzq(RUNTIME_PLC *runtime_p)
 				clearvar(runtime_p);
 				runtime_p->send_start_time = nowtime;
 				inWaitFlag = 0;
-			}else if ((nowtime - runtime_p->send_start_time > 30 ) && inWaitFlag==1 )
+			}else if ((abs(nowtime - runtime_p->send_start_time) > 30 ) && inWaitFlag==1 )
 			{
 				DbgPrintToFile1(31,"超时");
 				inWaitFlag = 0;
@@ -4081,7 +4082,7 @@ int doAutoReport(RUNTIME_PLC *runtime_p)
 			beginwork = 0;
 			break;
 		case 1://抄读指定事件
-			if ( nowtime - runtime_p->send_start_time > 20 && beginwork==0)
+			if ( abs(nowtime - runtime_p->send_start_time) > 20 && beginwork==0)
 			{
 				DbgPrintToFile1(31,"暂停抄表3");
 				clearvar(runtime_p);
@@ -4095,7 +4096,7 @@ int doAutoReport(RUNTIME_PLC *runtime_p)
 			}
 			if (beginwork == 1)
 			{
-				if ( nowtime - runtime_p->send_start_time > 30 )
+				if ( abs(nowtime - runtime_p->send_start_time )> 30 )
 				{
 					clearvar(runtime_p);
 					sendlen = getOneEvent(autoReportAddr,	buf645);
@@ -4123,7 +4124,7 @@ int doAutoReport(RUNTIME_PLC *runtime_p)
 			}
 			break;
 		case 2://复位状态字
-			if ( nowtime - runtime_p->send_start_time > 20)
+			if (abs( nowtime - runtime_p->send_start_time )> 20)
 			{
 				retry++;
 				if (retry > 5)
@@ -4260,7 +4261,7 @@ int doBroadCast(RUNTIME_PLC *runtime_p)
 				clearvar(runtime_p);
 				break;
 			}
-			if ( nowtime - runtime_p->send_start_time > 20)
+			if (abs( nowtime - runtime_p->send_start_time )> 20)
 			{
 				DbgPrintToFile1(31,"广播对时_暂停抄表");
 				clearvar(runtime_p);
@@ -4275,7 +4276,7 @@ int doBroadCast(RUNTIME_PLC *runtime_p)
 			}
 			break;
 		case 1://查询通信延时相关广播通信时长
-			if ( nowtime - runtime_p->send_start_time > 20)
+			if ( abs(nowtime - runtime_p->send_start_time) > 20)
 			{
 				dealytime = 0;
 				memset(buf645,0,BUFSIZE645);
@@ -4304,7 +4305,7 @@ int doBroadCast(RUNTIME_PLC *runtime_p)
 			}
 			break;
 		case 2://
-			if ( nowtime - runtime_p->send_start_time > 20 && workflg==0)
+			if ( abs(nowtime - runtime_p->send_start_time) > 20 && workflg==0)
 			{
 				workflg = 1;
 				memset(buf645,0,BUFSIZE645);
@@ -4328,7 +4329,7 @@ int doBroadCast(RUNTIME_PLC *runtime_p)
 				workflg = 0;
 				runtime_p->redo = 2;  //广播后恢复抄表
 				return(runtime_p->state_bak);
-			}else if(((nowtime - runtime_p->send_start_time > 20) && workflg==1) )
+			}else if((abs(nowtime - runtime_p->send_start_time > 20) && workflg==1) )
 			{
 				DbgPrintToFile1(31,"广播超时");
 				clearvar(runtime_p);
@@ -4378,7 +4379,7 @@ void readplc_thread()
 		TSGet(&runtimevar.nowts);
 		state = stateJuge(state, &mypara,&runtimevar,&startFlg);
 		if(state != 0) {
-			//fprintf(stderr,"\n state  = %d",state);
+			fprintf(stderr,"\n state  = %d",state);
 		}
 		/********************************
 		 * 	   状态流程处理
