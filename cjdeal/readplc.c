@@ -1465,7 +1465,7 @@ int saveProxyData(FORMAT3762 format_3762_Up,struct Tsa_Node *nodetmp)
 {
 	INT8U buf645[255];
 	int len645=0;
-	int datalen=0;
+	INT16S datalen=0;
 	INT8U apduDataStartIndex = 0;
 	INT8U csdNum = 0;
 	INT8U nextFlag=0;

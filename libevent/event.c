@@ -845,8 +845,9 @@ INT8U Event_3104(INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
     	INT8U Save_buf[256];
 		bzero(Save_buf, sizeof(Save_buf));
 		fprintf(stderr,"currentnum = %d\n",prginfo_event->event_obj.Event3104_obj.crrentnum);
-		prginfo_event->event_obj.Event3104_obj.crrentnum=Getcurrno(prginfo_event->event_obj.Event3104_obj.crrentnum,prginfo_event->event_obj.Event3104_obj.maxnum);
+
 		prginfo_event->event_obj.Event3104_obj.crrentnum++;
+		prginfo_event->event_obj.Event3104_obj.crrentnum=Getcurrno(prginfo_event->event_obj.Event3104_obj.crrentnum,prginfo_event->event_obj.Event3104_obj.maxnum);
 		INT32U crrentnum = prginfo_event->event_obj.Event3104_obj.crrentnum;
 		INT8U index=0;
 		//标准数据单元
