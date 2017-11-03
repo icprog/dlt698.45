@@ -7,17 +7,16 @@
 
 #include <stdlib.h>
 #include <stdio.h>
-#include <unistd.h>
 #include <string.h>
-#include <sys/mman.h>
+#include <unistd.h>
 #include <signal.h>
-#include <pthread.h>
-#include "sys/reboot.h"
 #include <wait.h>
 #include <errno.h>
-#include <unistd.h>
+#include <time.h>
+#include <pthread.h>
 #include <termios.h>
-#include "time.h"
+#include <sys/mman.h>
+#include <sys/reboot.h>
 #include <sys/time.h>
 #include "lib3762.h"
 #include "readplc.h"
