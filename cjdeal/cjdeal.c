@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
-#include <time.h>
+#include <sys/time.h>
 #include <signal.h>
 #include <pthread.h>
 #include <wait.h>
@@ -1881,7 +1881,7 @@ int main(int argc, char *argv[])
 	//任务调度进程
 	dispatchTask_proccess();
 	//485、四表合一
-	read485_proccess();			//注意里面串口
+//	read485_proccess();			//注意里面串口
 	//统计计算 电压合格率 停电事件等
 	calc_proccess();
 	if(JProgramInfo->cfg_para.device == CCTT1)

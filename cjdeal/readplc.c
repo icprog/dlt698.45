@@ -902,7 +902,7 @@ int doInit(RUNTIME_PLC *runtime_p)
 
 			if (runtime_p->comfd >0)
 				CloseCom( runtime_p->comfd );
-			runtime_p->comfd = OpenCom(5, 9600,(unsigned char*)"even",1,8);// 5 载波路由串口 ttyS5   SER_ZB   //test  2
+			runtime_p->comfd = OpenCom(1, 9600,(unsigned char*)"even",1,8);// 5 载波路由串口 ttyS5   SER_ZB   //test  2
 			DbgPrintToFile1(31,"comfd=%d",runtime_p->comfd);
 			runtime_p->initflag = 0;
 			clearvar(runtime_p);//376.2上行内容容器清空，发送计时归零
@@ -3672,12 +3672,12 @@ int stateJuge(int nowdstate,MY_PARA_COUNTER *mypara_p,RUNTIME_PLC *runtime_p,int
 	{
 		DbgPrintToFile1(31,"档案参数变更");
 		mypara_p->my6000  = JProgramInfo->oi_changed.oi6000;
-		pointChg = 1;
+//		pointChg = 1;
 		runtime_p->state_bak = runtime_p->state;
 		state = SLAVE_COMP;
 		runtime_p->state = state;
 		runtime_p->redo = 1;  //初始化之后需要重启抄读
-		initTaskData(&taskinfo);
+		//initTaskData(&taskinfo);
 		delplcrecord();
 		freeList(tsa_head);
 		freeList(tsa_zb_head);
@@ -4202,6 +4202,7 @@ int doAutoReport(RUNTIME_PLC *runtime_p)
 			beginwork = 0;
 			retry = 0;
 			step_cj = 0;
+
 			return(runtime_p->state_bak);
 	}
 	return AUTO_REPORT;
