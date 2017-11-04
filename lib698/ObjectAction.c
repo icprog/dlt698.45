@@ -1271,13 +1271,13 @@ void PlcInfo(INT16U attr_act, INT8U *data, Action_result *act_ret, CSINFO *csinf
         case 127://透明转发
 //    		readCoverClass(0xf209 ,0 , &class_f209,sizeof(CLASS_f209),para_vari_save);
             index += getStructure(&data[index], NULL,&act_ret->DAR);
+            memset(&getlist,0,sizeof(PROXY_GETLIST));
         	getlist.piid = piid;
         	getlist.proxytype = F209TransCommandAction;
         	getlist.proxy_obj.f209Trans.dar = other_err1;
         	index += getTSA(1,&data[index],(INT8U *) &getlist.proxy_obj.f209Trans.commAddr,&act_ret->DAR);
         	index += getLongUnsigned(&data[index],(INT8U *) &getlist.proxy_obj.f209Trans.overTime);
         	index += getOctetstring(1,255,&data[index],(INT8U *) &getlist.proxy_obj.f209Trans.transBuf,(INT8U *)&getlist.proxy_obj.f209Trans.buflen,&act_ret->DAR);
-        	getlist.timeout = getlist.proxy_obj.f209Trans.overTime;
         	//写入文件，等待转发			规约中只负责解析代理的内容，并追加写入到代理文件 /nand/proxy_list
         	getlist.timeold = time(NULL);
         	memcpy(&getlist.csinfo,csinfo,sizeof(CSINFO));
@@ -1285,7 +1285,8 @@ void PlcInfo(INT16U attr_act, INT8U *data, Action_result *act_ret, CSINFO *csinf
         	INT8S	ret=0;
         	OAD	mq_com_oad={};
         	ret= mqs_send((INT8S *)PROXY_485_MQ_NAME,1,F209TransCommandAnswer,mq_com_oad,(INT8U *)&getlist,sizeof(PROXY_GETLIST));
-        	fprintf(stderr,"\n代理消息已经发出,ret=%d ,getlist.proxytype=%d getlist_len=%d\n\n",ret,getlist.proxytype,sizeof(PROXY_GETLIST));
+        	fprintf(stderr,"\n代理消息已经发出,ret=%d ,getlist.proxytype=%d  timeout=(%d) getlist_len=%d\n\n",ret,getlist.proxytype,
+        			getlist.proxy_obj.f209Trans.overTime,sizeof(PROXY_GETLIST));
 //            class_f209.transFlg = 1;
 //    		saveCoverClass(0xf209,0,&class_f209,sizeof(CLASS_f209),para_vari_save);
         	break;

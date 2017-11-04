@@ -3123,9 +3123,10 @@ INT8U Proxy_TransCommandRequest(RUNTIME_PLC *runtime_p,CJCOMM_PROXY *proxy,int* 
 	int transType = 0;
 
 	timeout = proxy->strProxyList.proxy_obj.transcmd.revtimeout ;
+//	DbgPrintToFile1(31," proxy_timeout=%d\n", proxy->strProxyList.proxy_obj.transcmd.revtimeout);
 	if(timeout>60 || timeout<=0)
 		timeout = 20;
-//	timeout = (proxy->strProxyList.proxy_obj.transcmd.revtimeout > 0) ?  \
+//	timeout = (proxy->strProxyList.proxy_obj.transcmd.revtimeout > 0) ?
 //			proxy->strProxyList.proxy_obj.transcmd.revtimeout: 20;
 
 	if (*beginwork==0 && cjcommProxy_plc.isInUse==1) {//发送点抄
