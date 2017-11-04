@@ -83,7 +83,7 @@ void cRead(struct aeEventLoop *ep, int fd, void *clientData, int mask) {
 
 	//关闭异常端口
 	if (revcount <= 0) {
-		asyslog(LOG_WARNING, "链接[%d-%s]异常，关闭端口", errno,strerror(errno));
+		asyslog(LOG_WARNING, "链接[%d-%s-%d]异常，关闭端口", errno,strerror(errno), errno);
 		aeDeleteFileEvent(ep, fd, AE_READABLE);
 		close(fd);
 		dbSet("online.type", 0);
