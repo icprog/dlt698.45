@@ -63,7 +63,7 @@ void refreshSumUp()
     static int old_month;
     static int first_flag = 1;
     static INT64S prev[8][4];
-    INT64U curP[8][8];
+    static INT64S curP[8][8];
 
     TS ts;
     TSGet(&ts);
@@ -87,21 +87,24 @@ void refreshSumUp()
         }
     }
 
-    for (int sum_i = 0; sum_i < 4; sum_i++) {
-        for (int i = 0; i < 4; i++) {
-            JProgramInfo->class23[sum_i].DayP[i] = 0;
-            JProgramInfo->class23[sum_i].DayQ[i] = 0;
-            JProgramInfo->class23[sum_i].MonthP[i] = 0;
-            JProgramInfo->class23[sum_i].MonthQ[i] = 0;
-        }
+    for (int sum_i = 0; sum_i < 8; sum_i++) {
+//        for (int i = 0; i < 4; i++) {
+//            JProgramInfo->class23[sum_i].DayP[i] = 0;
+//            JProgramInfo->class23[sum_i].DayQ[i] = 0;
+//            JProgramInfo->class23[sum_i].MonthP[i] = 0;
+//            JProgramInfo->class23[sum_i].MonthQ[i] = 0;
+//        }
 
         int tmp_remains = 0;
         for (int al_i = 0; al_i < 8; al_i++){
 			INT64U tmp = JProgramInfo->class23[sum_i].allist[al_i].curP[0] - curP[sum_i][al_i];
-			fprintf(stderr, "kk==========%lld, %lld, %lld\n", JProgramInfo->class23[sum_i].allist[al_i].curP[0], curP[sum_i][al_i], tmp);
 			tmp_remains -= (tmp <= 0) ? 0:tmp * 100;
 			curP[sum_i][al_i] = JProgramInfo->class23[sum_i].allist[al_i].curP[0];
         }
+        JProgramInfo->class23[sum_i].DayPALL -= tmp_remains;
+        JProgramInfo->class23[sum_i].MonthPALL -= tmp_remains;
+
+
 
         JProgramInfo->class23[sum_i].remains += tmp_remains;
 
@@ -139,14 +142,6 @@ void refreshSumUp()
                     JProgramInfo->class23[sum_i].MonthQ[i] -= JProgramInfo->class12[p_i].mon_pos_q[i];
                 }
             }
-
-//            fprintf(stderr, "5^^^^^^%d %d %d\n", mmm,
-//                JProgramInfo->class12[p_i].day_pos_p[0]
-//                    * (JProgramInfo->class23[0].allist[mmm].cal_flag
-//                                  == 0
-//                              ? 1
-//                              : -1),
-//                JProgramInfo->class23[0].DayP[0]);
         }
         int sssum = 0;
         for (int i = 0; i < 4; i++) {
@@ -812,16 +807,16 @@ int deal8108()
             float e = warn / 100.0;
 
             fprintf(stderr, "月电控值%lld [%f]\n",
-                JProgramInfo->class23[i].MonthPALL * 100, e * val);
+                JProgramInfo->class23[i].MonthPALL, e * val);
 
-            if (JProgramInfo->class23[i].MonthPALL * 100 > val) {
+            if (JProgramInfo->class23[i].MonthPALL > val) {
                 fprintf(stderr, "月电控跳闸！！！！！！！！！！！！！！！！！！\n", val);
                 JProgramInfo->ctrls.c8108.output[i].state = 192;
                 JProgramInfo->ctrls.c8108.overflow[i].state = 0;
                 return 2;
             }
 
-            if (JProgramInfo->class23[i].MonthPALL * 100 > e * val) {
+            if (JProgramInfo->class23[i].MonthPALL > e * val) {
                 fprintf(stderr, "月电控告警！！！！！！！！！！！！！！！！！！\n", val);
                 JProgramInfo->ctrls.c8108.output[i].state = 0;
                 JProgramInfo->ctrls.c8108.overflow[i].state = 1;
@@ -1004,13 +999,13 @@ void CtrlStateSumUp()
         }
 
         if (JProgramInfo->ctrls.c8107.overflow[i].state == 1) {
-        	JProgramInfo->class23[i].alCtlState.PCAlarmState = setBit(&JProgramInfo->class23[i].alCtlState.ECAlarmState, 7);
+        	JProgramInfo->class23[i].alCtlState.ECAlarmState = setBit(&JProgramInfo->class23[i].alCtlState.ECAlarmState, 6);
         }
         if (JProgramInfo->ctrls.c8108.overflow[i].state == 1) {
-        	JProgramInfo->class23[i].alCtlState.PCAlarmState = setBit(&JProgramInfo->class23[i].alCtlState.ECAlarmState, 6);
+        	JProgramInfo->class23[i].alCtlState.ECAlarmState = setBit(&JProgramInfo->class23[i].alCtlState.ECAlarmState, 7);
         }
-        JProgramInfo->class23[i].alCtlState.BuyOutputState = JProgramInfo->ctrls.c8107.output[i].state;
-        JProgramInfo->class23[i].alCtlState.MonthOutputState = JProgramInfo->ctrls.c8108.output[i].state;
+        JProgramInfo->class23[i].alCtlState.BuyOutputState |= JProgramInfo->ctrls.c8107.output[i].state;
+        JProgramInfo->class23[i].alCtlState.MonthOutputState |= JProgramInfo->ctrls.c8108.output[i].state;
 
         JProgramInfo->class23[i].alCtlState.OutputState |= JProgramInfo->ctrls.c8103.output[i].state;
         JProgramInfo->class23[i].alCtlState.OutputState |= JProgramInfo->ctrls.c8104.output[i].state;
