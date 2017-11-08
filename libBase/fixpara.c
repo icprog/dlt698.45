@@ -52,6 +52,13 @@ static MASTER_STATION_INFO	master_info_ZheJiang_4510 = {{10,137,253,7},9006};			
 static MASTER_STATION_INFO	bak_info_ZheJiang_4510 = {{10,137,253,7},9005};			//备net IP	端口号
 static NETCONFIG 	IP_ZheJiang={1,{192,168,0,4},{255,255,255,0},{192,168,0,1},{},{}};	//网络配置
 
+///山东　ＩＩ型
+static MASTER_STATION_INFO	master_info_ShanDong = {{10,158,243,224},8001};		//IP				端口号
+static GprsPara 	gprs_para_ShanDong = {"sddl.cjxt.sd","card","card",""};		//apn ,userName,passWord,proxyIp
+static MASTER_STATION_INFO	master_info_ShanDong_4510 = {{10,158,243,224},8001};		//主net IP	端口号
+static MASTER_STATION_INFO	bak_info_ShanDong_4510 = {{10,158,243,224},8001};			//备net IP	端口号
+static NETCONFIG 	IP_ShanDong={1,{192,168,0,4},{255,255,255,0},{192,168,0,1},{},{}};	//网络配置
+
 ///国网送检
 static MASTER_STATION_INFO	master_info_GW = {{192,168,127,127},9027};			//IP				端口号
 static GprsPara 	gprs_para_GW = {"CMNET","CARD","CARD",""};		//apn ,userName,passWord,proxyIp
@@ -284,12 +291,17 @@ void InitClassByZone(INT8U type)
     		heartBeat = 300;	//5分钟
 			InitClass4500(heartBeat,master_info_ZheJiang,bak_info_ZheJiang_4510,gprs_para_ZheJiang);
 			InitClass4510(heartBeat,master_info_ZheJiang_4510,IP_ZheJiang);    //以太网通信模块1
+		}else  if(getZone("ShanDong")==0) {
+    		heartBeat = 300;	//5分钟
+			InitClass4500(heartBeat,master_info_ShanDong,bak_info_ShanDong_4510,gprs_para_ShanDong);
+			InitClass4510(heartBeat,master_info_ShanDong_4510,IP_ShanDong);    //以太网通信模块1
 		}else if(getZone("HuNan")==0) {
 			heartBeat = 300;	//5分钟
 //			InitClass4500(heartBeat,master_info_HuNan,null_info,gprs_para_HuNan);
 			InitClass4500(heartBeat,master_info_HuNan,master_info_HuNan,gprs_para_HuNan);
 			InitClass4510(heartBeat,master_info_HuNan_4510,IP_HuNan);    //以太网通信模块1
 		}else if(getZone("GW")==0) {
+			heartBeat = 60;		//1分钟
 			InitClass4500(heartBeat,master_info_GW,master_info_GW,gprs_para_GW);
 			InitClass4510(heartBeat,master_info_GW_4510,IP_GW);    //以太网通信模块1
 			system("cp /nor/init/table6000.* /nand/para/");
