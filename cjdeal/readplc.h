@@ -311,6 +311,7 @@ typedef struct
 	int task_i;		//所属任务序号
 	int item_i;		//数据项序号
 	INT8U taskID;
+	INT8U fangAn;
 	TSA tsa;
 }POOLTYPE;
 typedef struct
@@ -369,7 +370,7 @@ time_t oldtime1;
 time_t newtime1;
 time_t beginSearchTime;
 INT8U buf645[BUFSIZE645];
-int trans645Len;
+
 typedef struct
 {
 	INT8U is;
@@ -380,5 +381,4 @@ typedef struct
 
 BroadCastTime broadtime;
 INT8U RouterFactory;
-CLASS_f209 myF209;
 #endif /* EVENTCALC_H_ */

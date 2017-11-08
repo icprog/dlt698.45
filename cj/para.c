@@ -58,6 +58,20 @@ void print4000()
 	fprintf(stderr,"通讯延时阀值：%d\n",oi4000.delay);
 	fprintf(stderr,"最小有效个数：%d\n",oi4000.num_min);
 }
+
+void print4030()
+{
+	CLASS_4030 oi4030={};
+
+	memset(&oi4030,0,sizeof(CLASS_4030));
+	fprintf(stderr,"电压合格率参数[4030]\n");
+	readCoverClass(0x4030,0,&oi4030,sizeof(CLASS_4030),para_vari_save);
+	fprintf(stderr,"电压考核上限：%d\n",oi4030.uUp_Kaohe);
+	fprintf(stderr,"电压考核下限：%d\n",oi4030.uDown_Kaohe);
+	fprintf(stderr,"电压合格上限：%d\n",oi4030.uUp);
+	fprintf(stderr,"电压合格下限：%d\n",oi4030.uDown);
+}
+
 void print4204()
 {
 	CLASS_4204 oi4204={};
@@ -272,6 +286,9 @@ void para_process(int argc, char *argv[])
 			sscanf(argv[3],"%04x",&tmp);
 			oi = tmp;
 			switch(oi) {
+			case 0x4030:
+				print4030();
+				break;
 			case 0x4300:
 				print4300();
 				break;

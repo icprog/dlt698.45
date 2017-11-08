@@ -1256,7 +1256,7 @@ void Pre_ProxyDoRequestList(CJCOMM_PROXY proxy)//Proxy  Action / Set- List
 
 void Pre_F209TransAction(CJCOMM_PROXY proxy)
 {
-	fprintf(stderr,"\n------------- Pre_F209TransAction ok\n");
+	fprintf(stderr,"\n------------- Pre_F209TransAction ok f209Trans.overTime=%d\n",proxy.strProxyList.proxy_obj.f209Trans.overTime);
 	memset(proxyList_manager.data,0,sizeof(proxyList_manager.data));
 	proxyList_manager.datalen = 0;
 	cjcommProxy_plc.isInUse = 1;
@@ -1313,6 +1313,7 @@ void Pre_ProxyTransCommandRequest(CJCOMM_PROXY proxy)
 
 void divProxy(CJCOMM_PROXY proxy)
 {
+	fprintf(stderr,"divProxy overTime=%d\n",proxy.strProxyList.proxy_obj.f209Trans.overTime);
 	memset(&cjcommProxy,0,sizeof(cjcommProxy));
 	memset(&cjcommProxy_plc,0,sizeof(cjcommProxy_plc));
 	memcpy(&proxyList_manager,&proxy.strProxyList,sizeof(PROXY_GETLIST));
@@ -1369,7 +1370,7 @@ INT8S dealMsgProcess()
 			DEBUG_TIME_LINE("\n收到代理召测\n");
 			memcpy(&cjcommProxy_Tmp.strProxyList,rev_485_buf,sizeof(PROXY_GETLIST));
 			fprintf(stderr,"proxy.strProxyList.num=%d  len=%d\n",cjcommProxy_Tmp.strProxyList.num,cjcommProxy_Tmp.strProxyList.proxylen);
-
+			fprintf(stderr,"overTime=%d\n",cjcommProxy_Tmp.strProxyList.proxy_obj.f209Trans.overTime);
 			//Proxy_GetRequestRecord 使用datalen 来置位发送的报文长度，因此此处不能清零
 //			cjcommProxy_Tmp.strProxyList.datalen=0;		//清除代理返回数据
 			memset(&cjcommProxy_Tmp.strProxyList.data,0,sizeof(cjcommProxy_Tmp.strProxyList.data));
