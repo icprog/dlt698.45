@@ -88,12 +88,12 @@ void refreshSumUp()
     }
 
     for (int sum_i = 0; sum_i < 8; sum_i++) {
-//        for (int i = 0; i < 4; i++) {
-//            JProgramInfo->class23[sum_i].DayP[i] = 0;
-//            JProgramInfo->class23[sum_i].DayQ[i] = 0;
-//            JProgramInfo->class23[sum_i].MonthP[i] = 0;
-//            JProgramInfo->class23[sum_i].MonthQ[i] = 0;
-//        }
+        for (int i = 0; i < 4; i++) {
+            JProgramInfo->class23[sum_i].DayP[i] = 0;
+            JProgramInfo->class23[sum_i].DayQ[i] = 0;
+            JProgramInfo->class23[sum_i].MonthP[i] = 0;
+            JProgramInfo->class23[sum_i].MonthQ[i] = 0;
+        }
 
         int tmp_remains = 0;
         for (int al_i = 0; al_i < 8; al_i++){
