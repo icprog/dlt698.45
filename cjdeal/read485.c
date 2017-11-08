@@ -1986,7 +1986,7 @@ INT8U checkTimeStamp698(OADDATA_SAVE oadListContent[ROAD_OADS_NUM])
 INT8U deal698RequestResponse(INT8U getResponseType,INT8U csdNum,INT8U* apdudata,OADDATA_SAVE* oadListContent,INT16U* apdudataLen)
 {
 	INT16U apdudataIndex =0;
-	INT16S dataCount =0;
+	INT8U dataCount =0;
 
 	INT16U oaddataLen = 0;
 
@@ -2013,6 +2013,11 @@ INT8U deal698RequestResponse(INT8U getResponseType,INT8U csdNum,INT8U* apdudata,
 				{
 					dataCount++;
 				}
+				if(dataCount >= ROAD_OADS_NUM)
+				{
+					asyslog(LOG_NOTICE,"ROAD_OADS_NUM dataCount > ROAD_OADS_NUM");
+					break;
+				}
 			}
 		}
 		break;
@@ -2031,6 +2036,11 @@ INT8U deal698RequestResponse(INT8U getResponseType,INT8U csdNum,INT8U* apdudata,
 					oaddataLen = parseSingleROADDataBody(&apdudata[apdudataIndex],&oadListContent[dataCount],rcvCSDnum);
 					apdudataIndex += oaddataLen;
 					dataCount += rcvCSDnum;
+				}
+				if(dataCount >= ROAD_OADS_NUM)
+				{
+					asyslog(LOG_NOTICE,"ROAD_OADS_NUM dataCount > ROAD_OADS_NUM");
+					break;
 				}
 			}
 
@@ -4504,6 +4514,7 @@ INT8U checkMeterType(MY_MS mst,INT8U usrType,TSA usrAddr)
 
 	return 0;
 }
+
 INT8U getSaveTime(DateTimeBCD* saveTime,INT8U cjType,INT8U saveTimeFlag,DATA_TYPE curvedata)
 {
 	INT8U ret = 0;
