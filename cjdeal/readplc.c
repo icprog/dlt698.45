@@ -118,6 +118,18 @@ MeterCurveDataType meterCurveData[CURVENUM]=
 //	{94, 3, 2, 4, "当前有功需量曲线",	{0xFF,0xFF,0xFF,0xFF}},
 //	{97, 3, 2, 4, "当前无功需量曲线",	{0xFF,0xFF,0xFF,0xFF}},
 };
+int findFromPools_ByTsa(INT8U *addr )
+{
+	int i = 0;
+	for(i=0;i<4;i++)
+	{
+		if (memcmp(addr,plcPools.pool[i].tsa.addr,8) == 0 )
+		{
+			return i;
+		}
+	}
+	return -1;
+}
 
 int findFromPools(INT8U *addr ,INT8U *itemflag)
 {
@@ -142,6 +154,7 @@ void myadd2Pools(int ti,int ii)
 	plcPools.pool[i].task_i = ti;
 	plcPools.pool[i].item_i = ii;
 	plcPools.pool[i].taskID = taskinfo.task_list[ti].taskId;
+	plcPools.pool[i].fangAn = taskinfo.task_list[ti].fangan.No;
 	memcpy(&plcPools.pool[i].item,&taskinfo.task_list[ti].fangan.items[ii],sizeof(DATA_ITEM));
 	memcpy(&plcPools.pool[i].tsa,&taskinfo.tsa,sizeof(TSA));
 
@@ -2495,6 +2508,7 @@ void doSave(INT8U protocol,FORMAT97 frame97,FORMAT07 frame07)
 }
 int SaveTaskData(FORMAT3762 format_3762_Up,INT8U taskid,INT8U fananNo)
 {
+	struct Tsa_Node *nodetmp;
 	int len645=0;
 	INT8U nextFlag=0, dataContent[1024]={0}, buf645[1024]={0};
 	FORMAT07 frame07 = {};
@@ -2502,6 +2516,19 @@ int SaveTaskData(FORMAT3762 format_3762_Up,INT8U taskid,INT8U fananNo)
 	memset(dataContent,0,sizeof(dataContent));
 	fprintf(stderr,"MsgLength = %d Protocol = %d \n",format_3762_Up.afn06_f2_up.MsgLength,format_3762_Up.afn06_f2_up.Protocol);
 
+
+	DbgPrintToFile1(31,"存储规约类型%d",format_3762_Up.afn06_f2_up.Protocol);
+	if (RouterFactory == DX_factory)//鼎信路由载波
+	{
+		if (format_3762_Up.afn06_f2_up.Protocol==0)
+		{
+			format_3762_Up.afn06_f2_up.Protocol  = DLT_698;
+			DbgPrintToFile1(31,"鼎信载波，存储规约改为类型%d",format_3762_Up.afn06_f2_up.Protocol);
+		}
+	}
+
+
+//	format_3762_Up.afn06_f2_up.Protocol = DLT_645_07;
 	if (format_3762_Up.afn06_f2_up.MsgLength > 0)
 	{
 		len645 = format_3762_Up.afn06_f2_up.MsgLength;
@@ -2538,12 +2565,30 @@ int SaveTaskData(FORMAT3762 format_3762_Up,INT8U taskid,INT8U fananNo)
 				}
 			}
 #endif
+			int pooli=0;
+			int pooltaski=taskinfo.now_taski;
+			int poolitemi=taskinfo.now_itemi;
+
 			if(getResponseType > 0)
 			{
 				INT16U count = getFECount(buf645, len645); //得到待解析报文中前导符FE的个数
 				TSA tsaMeter;
 				memset(&tsaMeter,0,sizeof(TSA));
 				Addr_TSA(&buf645[5+count],&tsaMeter);
+
+				if (memcmp(taskinfo.tsa.addr,tsaMeter.addr,8) == 0 )//上数TSA就在内存中
+				{
+					DbgPrintToFile1(31,"698表上数TSA在内存中　taskid= %d fananNo=%d",taskid,fananNo);
+				}else
+				{
+					pooli = findFromPools_ByTsa(tsaMeter.addr);
+					taskid = plcPools.pool[pooli].taskID;
+					fananNo = plcPools.pool[pooli].fangAn;
+					pooltaski = plcPools.pool[pooli].task_i;
+					poolitemi = plcPools.pool[pooli].item_i;
+					DbgPrintToFile1(31,"存储延迟上报698表数据 pooli = %d taskid= %d fananNo=%d pooltaski=%d",
+							pooli,taskid,fananNo,pooltaski);
+				}
 				fprintf(stderr,"\n fananNo = %d taskid = %d getResponseType = %d  csdNum = %d dataLen = %d \n",fananNo,taskid,getResponseType,csdNum,dataLen);
 				CLASS_6015 class6015;	//采集方案集
 				INT16U i = 0;
@@ -2575,27 +2620,85 @@ int SaveTaskData(FORMAT3762 format_3762_Up,INT8U taskid,INT8U fananNo)
 								}
 							}
 #endif
-#if 1
 							if(retLen > 0)
 							{
-								TS ts_cc;
-								TSGet(&ts_cc);
-//								DateTimeBCD startTime;
-//								DataTimeGet(&startTime);
-//								DateTimeBCD savetime;
-//								getSaveTime(&savetime,class6015.cjtype,class6015.savetimeflag,class6015.data);
-//								int bufflen = compose6012Buff(startTime,savetime,tsaMeter,retLen,dataContent,31);
-								//湖南曲线任务是15分钟一个点,此处处理导致了一个小时存
-//								if(class6015.cjtype == TYPE_INTERVAL)
-//								{
-//									ts_cc.Minute =0;
-//									ts_cc.Sec = 0;
-//								}
-//								SaveNorData(taskid,NULL,dataContent,bufflen,ts_cc);
-								saveREADOADdata(taskid,tsaMeter,oadListContent,apdudatalen,ts_cc);
-							}
-#endif
+								if(class6015.cjtype != TYPE_INTERVAL)
+								{
+									TS ts_cc;
+									TSGet(&ts_cc);
+									saveREADOADdata(taskid,tsaMeter,oadListContent,csdNum,ts_cc);
+									DbgPrintToFile1(31,"存储698数据taskid=%d",taskid);
+									nodetmp = getNodeByTSA(tsa_head,tsaMeter);
+									if (nodetmp!=NULL)
+									{
+										if (readParaClass(0x8888, &taskinfo_tmp, nodetmp->tsa_index) == 1 )
+										{
+											for(i=0;i<taskinfo_tmp.task_list[pooltaski].fangan.item_n;i++)
+												taskinfo_tmp.task_list[pooltaski].fangan.items[i].sucessflg = 2;
+											saveParaClass(0x8888, &taskinfo_tmp,taskinfo_tmp.tsa_index);
+											DbgPrintToFile1(31,"存储698表标识 tsaMeter = %02x %02x %02x %02x %02x %02x %02x %02x ",
+													tsaMeter.addr[0],tsaMeter.addr[1],tsaMeter.addr[2],tsaMeter.addr[3],
+													tsaMeter.addr[4],tsaMeter.addr[5],tsaMeter.addr[6],tsaMeter.addr[7]);
+										}
+									}
+								}
+								else
+								{
 
+									INT8U rcvCSDnum = 0,recordNum = 0;
+									INT16U oaddataLen = 0;
+
+									oaddataLen = parseSingleROADDataHead(&buf645[apduDataStartIndex],oadListContent,&rcvCSDnum,&recordNum);
+									apduDataStartIndex += oaddataLen;
+
+									DbgPrintToFile1(31,"存储698表数据曲线　rcvCSDnum = %d recordNum=%d",rcvCSDnum,recordNum);
+									if(rcvCSDnum > 0 && recordNum > 0)
+									{
+										INT8U recordIndex = 0;
+										TS freezeTimeStamp;
+										TSGet(&freezeTimeStamp);
+										freezeTimeStamp.Sec = 0;
+
+										INT16U minInterVal = 0;//冻结时标间隔-分钟
+										if(class6015.data.data[0] == minute_units)
+										{
+											minInterVal = (class6015.data.data[1]<<8)+class6015.data.data[2];
+											freezeTimeStamp.Minute = freezeTimeStamp.Minute/minInterVal*minInterVal;
+										}
+										if(class6015.data.data[0] == hour_units)
+										{
+											INT8U hourInterVal = (class6015.data.data[1]<<8)+class6015.data.data[2];
+											minInterVal = hourInterVal*60;
+											freezeTimeStamp.Minute = 0;
+											freezeTimeStamp.Hour = freezeTimeStamp.Hour/hourInterVal*hourInterVal;
+										}
+
+										for(recordIndex = 0;recordIndex < recordNum;recordIndex++)
+										{
+											oaddataLen = parseSingleROADDataBody(&buf645[apduDataStartIndex],oadListContent,rcvCSDnum);
+											apduDataStartIndex += oaddataLen;
+											saveREADOADdata(taskid,tsaMeter,oadListContent,rcvCSDnum,freezeTimeStamp);
+											INT32S bactm = 0-((class6015.data.data[1]<<8)+class6015.data.data[2]);
+											tminc(&freezeTimeStamp,class6015.data.data[0],bactm);
+										}
+
+										nodetmp = getNodeByTSA(tsa_head,tsaMeter);
+										if (nodetmp!=NULL)
+										{
+											if (readParaClass(0x8888, &taskinfo_tmp, nodetmp->tsa_index) == 1 )
+											{
+												for(i=0;i<taskinfo_tmp.task_list[pooltaski].fangan.item_n;i++)
+													taskinfo_tmp.task_list[pooltaski].fangan.items[i].sucessflg = 2;
+												saveParaClass(0x8888, &taskinfo_tmp,taskinfo_tmp.tsa_index);
+												DbgPrintToFile1(31,"存储698表标识曲线 tsaMeter = %02x %02x %02x %02x %02x %02x %02x %02x ",
+														tsaMeter.addr[0],tsaMeter.addr[1],tsaMeter.addr[2],tsaMeter.addr[3],
+														tsaMeter.addr[4],tsaMeter.addr[5],tsaMeter.addr[6],tsaMeter.addr[7]);
+											}
+										}
+									}
+
+								}
+							}
 							break;
 						}
 					}
