@@ -60,6 +60,7 @@ extern void TsToTimeBCD(TS inTs,DateTimeBCD* outTimeBCD);
 extern void time_tToTS(time_t inTimet,TS *outts);
 extern DateTimeBCD timet_bcd(time_t t);
 extern void setsystime(DateTimeBCD datetime);
+extern int getrtc(struct tm *rtctm,int *ms);
 extern INT8U TScompare(TS ts1, TS ts2);
 extern void DataTimeGet(DateTimeBCD* ts);
 extern INT8S tminc(TS* tmi, Time_Units unit, INT32S val);

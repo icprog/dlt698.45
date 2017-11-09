@@ -6,6 +6,7 @@
 #include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/time.h>
 #include <unistd.h>
 #include <net/if.h>
 #include <netinet/in.h>
@@ -15,7 +16,7 @@
 #include "cjcomm.h"
 #include "atBase.h"
 #include "special.h"
-
+#include "basedef.h"
 
 int cWriteWithCalc(int name, int fd, INT8U *buf, INT16U len) {
 	int old = (int) dbGet("calc.new") + len;
@@ -183,19 +184,23 @@ void QuitProcess(int sig) {
 
 void WriteLinkRequest(INT8U link_type, INT16U heartbeat, CommBlock *compara) {
 
-	struct timeval tpnow;
-    struct tm tmp_tm;
+	struct timeval tpnow={};
+    struct tm tmp_tm={};
+    int msec = 0;
 	static int piid = 0;
 
-
-	gettimeofday(&tpnow, NULL);
-    localtime_r(&tpnow.tv_sec, &tmp_tm);
-	int msec = tpnow.tv_usec/1000;//毫秒
-
+	ProgramInfo *info = (ProgramInfo *) dbGet("program.info");
+	if(getZone("GW")==0 && info->cfg_para.device==CCTT2) {		//II型日计时误差不合格，此处将心跳时钟读取RTC时钟
+		getrtc(&tmp_tm,&msec);		//RTC时钟读取失败，仍然使用系统时钟获取心跳
+	}else {
+		gettimeofday(&tpnow, NULL);
+		localtime_r(&tpnow.tv_sec, &tmp_tm);
+		msec = tpnow.tv_usec/1000;//毫秒
+	}
 	compara->link_request.type = link_type;
 	compara->link_request.piid_acd.data = piid;
-	piid = (piid + 1) % 64;
-	fprintf(stderr,"piid=%d\n",piid);
+	piid = (piid + 1) % 64;  //bit0-bit5:服务序号
+//	fprintf(stderr,"piid=%d\n",piid);
 	compara->link_request.time.year = tmp_tm.tm_year+1900;//((ts.Year << 8) & 0xff00) | ((ts.Year >> 8) & 0xff); // apdu 先高后低
 	compara->link_request.time.month = tmp_tm.tm_mon+1;
 	compara->link_request.time.day_of_month = tmp_tm.tm_mday;

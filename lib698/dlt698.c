@@ -431,7 +431,7 @@ int Link_Request(LINK_Request request, INT8U *addr, INT8U *buf) {
 	buf[index++] = 1; //LINK_Request
 
 //	memcpy(&buf[index], &request, sizeof(LINK_Request));
-	fprintf(stderr, "piid_acd = %d \n", request.piid_acd.data);
+//	fprintf(stderr, "piid_acd = %d \n", request.piid_acd.data);
 	buf[index++] = request.piid_acd.data;
 	buf[index++] = request.type;
 	index += fill_long_unsigned_noflag(&buf[index],request.heartbeat);
