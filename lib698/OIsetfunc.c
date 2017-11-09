@@ -175,6 +175,7 @@ int Set_4000_att2(INT8U *data,INT8U *DAR)
 
 //	DataTimeGet(&datetime);
 	index += getDateTimeS(1,data,(INT8U *)&datetime,DAR);
+
 	if(*DAR==success) {	//时间合法
 		setsystime(datetime);
 	}

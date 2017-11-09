@@ -181,27 +181,30 @@ void QuitProcess(int sig) {
 	exit(0);
 }
 
-void WriteLinkRequest(INT8U link_type, INT16U heartbeat, LINK_Request *link_req) {
+void WriteLinkRequest(INT8U link_type, INT16U heartbeat, CommBlock *compara) {
 
 	struct timeval tpnow;
+    struct tm tmp_tm;
+	static int piid = 0;
+
+
 	gettimeofday(&tpnow, NULL);
+    localtime_r(&tpnow.tv_sec, &tmp_tm);
+	int msec = tpnow.tv_usec/1000;//毫秒
 
-	int msec = (float)tpnow.tv_usec/1000;//毫秒
-
-	TS ts = { };
-	TSGet(&ts);
-	link_req->type = link_type;
-	link_req->piid_acd.data = 0;
-	link_req->time.year = ts.Year;//((ts.Year << 8) & 0xff00) | ((ts.Year >> 8) & 0xff); // apdu 先高后低
-	link_req->time.month = ts.Month;
-	link_req->time.day_of_month = ts.Day;
-	link_req->time.day_of_week = ts.Week;
-	link_req->time.hour = ts.Hour;
-	link_req->time.minute = ts.Minute;
-	link_req->time.second = ts.Sec;
-	link_req->time.milliseconds = msec;
-	link_req->heartbeat = heartbeat;//((heartbeat << 8) & 0xff00)| ((heartbeat >> 8) & 0xff);
-
+	compara->link_request.type = link_type;
+	compara->link_request.piid_acd.data = piid;
+	piid = (piid + 1) % 64;
+	fprintf(stderr,"piid=%d\n",piid);
+	compara->link_request.time.year = tmp_tm.tm_year+1900;//((ts.Year << 8) & 0xff00) | ((ts.Year >> 8) & 0xff); // apdu 先高后低
+	compara->link_request.time.month = tmp_tm.tm_mon+1;
+	compara->link_request.time.day_of_month = tmp_tm.tm_mday;
+	compara->link_request.time.day_of_week = tmp_tm.tm_wday;
+	compara->link_request.time.hour = tmp_tm.tm_hour;
+	compara->link_request.time.minute = tmp_tm.tm_min;
+	compara->link_request.time.second = tmp_tm.tm_sec;
+	compara->link_request.time.milliseconds = msec;
+	compara->link_request.heartbeat = heartbeat;//((heartbeat << 8) & 0xff00)| ((heartbeat >> 8) & 0xff);
 }
 
 int Comm_task(CommBlock *compara) {
@@ -216,12 +219,12 @@ int Comm_task(CommBlock *compara) {
 	}
 
 	if (compara->linkstate == close_connection) {
-		WriteLinkRequest(build_connection, heartbeat, &compara->link_request);
+		WriteLinkRequest(build_connection, heartbeat, compara);
 		int len = Link_Request(compara->link_request, compara->serveraddr,
 				compara->SendBuf);
 		compara->p_send(compara->name, compara->phy_connect_fd, compara->SendBuf, len);
 	} else {
-		WriteLinkRequest(heart_beat, heartbeat, &compara->link_request);
+		WriteLinkRequest(heart_beat, heartbeat, compara);
 		int len = Link_Request(compara->link_request, compara->serveraddr,
 				compara->SendBuf);
 		compara->p_send(compara->name, compara->phy_connect_fd, compara->SendBuf, len);
