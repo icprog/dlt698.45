@@ -213,6 +213,14 @@ void WriteLinkRequest(INT8U link_type, INT16U heartbeat, CommBlock *compara) {
 }
 
 int Comm_task(CommBlock *compara) {
+	static heartbeatfresh =  0;
+
+	ProgramInfo *pi = (ProgramInfo *)compara->shmem;
+	if(heartbeatfresh != pi->oi_changed.oi4000)
+	{
+		heartbeatfresh = pi->oi_changed.oi4000;
+		compara->lasttime = time(NULL);
+	}
 	INT16U heartbeat = (compara->Heartbeat == 0) ? 300 : compara->Heartbeat;
 	if (abs(time(NULL) - compara->lasttime) < heartbeat) {
 		return 0;
