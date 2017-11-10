@@ -24,7 +24,6 @@ int cWriteWithCalc(int name, int fd, INT8U *buf, INT16U len) {
 	cWrite(name, fd, buf, len);
 }
 
-
 int cWrite(int name, int fd, INT8U *buf, INT16U len) {
 	int ret = anetWrite(fd, buf, (int) len);
 //	fprintf(stderr, "=============++++%d %d %d\n",name, fd, len);
