@@ -892,21 +892,30 @@ void PackCtrlSituation()
         out |= JProgramInfo->class23[i].alCtlState.BuyOutputState;
         out |= JProgramInfo->class23[i].alCtlState.MonthOutputState;
 
-        outG |= JProgramInfo->class23[i].alCtlState.OutputState;
+//        outD |= JProgramInfo->class23[i].alConState.
 
-        outD |= JProgramInfo->class23[i].alCtlState.BuyOutputState;
-        outD |= JProgramInfo->class23[i].alCtlState.MonthOutputState;
+//        outG |= JProgramInfo->class23[i].alCtlState.OutputState;
+//
+//        outD |= JProgramInfo->class23[i].alCtlState.BuyOutputState;
+//        outD |= JProgramInfo->class23[i].alCtlState.MonthOutputState;
+//
+//        pc |= JProgramInfo->class23[i].alCtlState.PCAlarmState;
+//        ec |= JProgramInfo->class23[i].alCtlState.ECAlarmState;
+    }
 
-        pc |= JProgramInfo->class23[i].alCtlState.PCAlarmState;
-        ec |= JProgramInfo->class23[i].alCtlState.ECAlarmState;
+    ctrlunit.ctrl.lun1_red = (out == 128 || out == 192) ? 1 : 0;
+    ctrlunit.ctrl.lun2_red = (out == 192) ? 1 : 0;
+
+    for (int i = 0; i < 8; i++) {
+
     }
-    if (pc != 0 || ec != 0) {
-        al = 0;
-        //				gpio_writebyte((INT8S *)DEV_ALARM_BUZZER,0x01);
-    } else {
-        al = 1;
-        //				gpio_writebyte((INT8S *)DEV_ALARM_BUZZER,0x00);
+
+    if(ctrlunit.ctrl.lun1_red == 1){
+    	ctrlunit.ctrl.lun1_green = 0;
     }
+    if(ctrlunit.ctrl.lun2_red == 1){
+		ctrlunit.ctrl.lun2_green = 0;
+	}
 
     ctrlunit.ctrl.lun1_state = out >> 7;
     ctrlunit.ctrl.lun1_red = out >> 7;
@@ -927,7 +936,7 @@ void PackCtrlSituation()
 
     ctrlunit.ctrl.alm_state = al;
 
-    fprintf(stderr, "?????????????[%d %d %d] %d %d %d\n", out, out >> 7,
+    fprintf(stderr, "遥控模块最后汇总[%d %d %d] %d %d %d\n", out, out >> 7,
         (out & ~128) >> 6, pc, ec, al);
 }
 
@@ -1063,7 +1072,7 @@ void ShaningLED_F206()
 
     if(F206_state != 0)
     {
-    	gpofun("/dev/gpoBUZZER", 1);
+//    	gpofun("/dev/gpoBUZZER", 1);
     	if(step == 0){
     		gpofun("/dev/gpoALARM", 1);
     		step = 1;
@@ -1074,7 +1083,7 @@ void ShaningLED_F206()
     	}
     }else
     {
-    	gpofun("/dev/gpoBUZZER", 0);
+//    	gpofun("/dev/gpoBUZZER", 0);
     	gpofun("/dev/gpoALARM", 0);
     }
 }
