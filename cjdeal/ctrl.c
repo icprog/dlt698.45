@@ -21,6 +21,7 @@ extern ProgramInfo* JProgramInfo;
 CtrlState* CtrlC;
 
 static ctrlUN ctrlunit, ctrlunit_old;
+static INT8U F206_state = 0;
 
 int findPinSum(int sum_i, int p_i, int* mmm)
 {
@@ -156,6 +157,8 @@ void refreshSumUp()
         JProgramInfo->class23[0].p, JProgramInfo->class23[0].DayP[0],
         JProgramInfo->class23[0].DayP[1], JProgramInfo->class23[0].DayP[2],
         JProgramInfo->class23[0].DayP[3], JProgramInfo->class23[0].remains);
+
+
 
     if (old_day != ts.Day) {
         old_day = ts.Day;
@@ -975,6 +978,16 @@ void DoActuallyCtrl()
         close(fd);
     }
 }
+int gpofun(char *devname, int data) {
+	int fd = -1;
+	if ((fd = open(devname, O_RDWR | O_NDELAY)) >= 0) {
+		write(fd, &data, sizeof(int));
+		close(fd);
+		return 1;
+	}
+	return 0;
+}
+
 
 void CtrlStateSumUp()
 {
@@ -1014,6 +1027,54 @@ void CtrlStateSumUp()
     }
 
     fprintf(stderr, "=======================%d=%d==\n", JProgramInfo->ctrls.c8103.overflow[0].state, JProgramInfo->class23[0].alCtlState.PCAlarmState);
+
+    INT8U F206_tmp = 0;
+
+    //汇总F206
+    for (int sum_i = 0; sum_i < 8; sum_i++) {
+    	F206_tmp |= JProgramInfo->class23[sum_i].alCtlState.ECAlarmState;
+    	F206_tmp |= JProgramInfo->class23[sum_i].alCtlState.PCAlarmState;
+    }
+
+    if(F206_state != F206_tmp)
+    {
+    	fprintf(stderr, "告警状态F206变更!!!\n");
+    	F206_state = F206_tmp;
+    	CLASS_f206	f206={};
+    	memset(&f206,0,sizeof(CLASS_f206));
+    	readCoverClass(0xf206,0,&f206,sizeof(CLASS_f206),para_vari_save);
+    	for (int i = 0; i < 8; i++)
+    	{
+//    		int getBit(INT8U v, int index)
+//    		{
+//    		    return (v >> (index)) & 0x01;
+//    		}
+    		if(getBit(F206_state, 7-i)){
+    			f206.alarm_state[i] = 1;
+    		}
+    	}
+    	saveCoverClass(0xf206,0,&f206,sizeof(CLASS_f206),para_vari_save);
+    }
+}
+
+void ShaningLED_F206()
+{
+	static int step = 0;
+
+    if(F206_state != 0)
+    {
+    	if(step == 0){
+    		gpofun("/dev/gpoALARM", 1);
+    		step = 1;
+    	}else
+    	{
+    		gpofun("/dev/gpoALARM", 0);
+    		step = 1;
+    	}
+    }else
+    {
+    	gpofun("/dev/gpoALARM", 0);
+    }
 }
 
 int ctrlMain(void* arg)
@@ -1044,6 +1105,9 @@ int ctrlMain(void* arg)
             dealCtrl();
             CtrlStateSumUp();
         }
+
+        ShaningLED_F206();
+
         if (secOld == 57) {
             SaveAll();
         }
