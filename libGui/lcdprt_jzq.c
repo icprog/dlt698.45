@@ -78,6 +78,7 @@ Menu menu[]={//必须是一级菜单，然后二级菜单。。。。
 			{{level3,"3.液晶对比度", 	menu_lcdcontrast, 	MENU_NOPASSWD},		NULL},
 			{{level3,"4.交采芯片信息",menu_ac_info,		MENU_NOPASSWD},		NULL},
 			{{level3,"5.规约切换",menu_ProtocolChange,		MENU_NOPASSWD},NULL},
+			{{level3,"6.4G/2G切换",menu_4G2GChange,		MENU_NOPASSWD},NULL},
 		{{level2,"5.页面设置", 	menu_pagesetup, 				MENU_NOPASSWD},		NULL},
 		{{level2,"6.手动抄表", 	NULL, 				MENU_NOPASSWD},		NULL},
 			{{level3,"1.根据表序号抄表", menu_readmeterbycldno, 	MENU_NOPASSWD},	NULL},
@@ -4754,6 +4755,22 @@ void menu_ac_info(){
 		PressKey = NOKEY;
 	}
 }
+
+void menu_4G2GChange()
+{
+	int m2g = 0;
+	readCoverClass(0x4521, 0, &m2g, sizeof(int), para_vari_save);
+	if(m2g == 666){
+		if(msgbox_label((char*)"当前2G,切换到4G?", CTRL_BUTTON_OK) != ACK) return ;
+		m2g = 0;
+		saveCoverClass(0x4521, 0, &m2g, sizeof(int), para_vari_save);
+	}else {
+		if(msgbox_label((char*)"当前4G,切换到2G?", CTRL_BUTTON_OK) != ACK) return ;
+		m2g = 666;
+		saveCoverClass(0x4521, 0, &m2g, sizeof(int), para_vari_save);
+	}
+}
+
 //698协议切换到3761协议
 void menu_ProtocolChange()
 {

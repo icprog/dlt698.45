@@ -45,6 +45,7 @@ void menu_zb_info();
 void menu_gprs_info();
 void menu_ac_info();
 void menu_ProtocolChange();
+void menu_4G2GChange();
 void menu_485func_change();
 void menu_readmeter_info();
 void menu_heartcycle();

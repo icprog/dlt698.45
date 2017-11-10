@@ -544,7 +544,7 @@ void saveREADOADdata(INT8U taskid,TSA tsa,OADDATA_SAVE *OADdata,INT8U OADnum,TS 
 {
 	pthread_mutex_lock(&mutex_savetask);
 #if 1
-	DbgPrintToFile1(1,"\n##############saveREADOADdata = %d　TSA=%02x %02 %02 %02 %02 %02 %02 %02",
+	DbgPrintToFile1(1,"\n##############saveREADOADdata = %d　TSA=%02x %02x %02x %02x %02x %02x %02x %02x",
 			OADnum,tsa.addr[0],tsa.addr[1],tsa.addr[2],tsa.addr[3],tsa.addr[4],tsa.addr[5],tsa.addr[6],tsa.addr[7]);
 	fprintf(stderr,"\n##############saveREADOADdata = %d",OADnum);
 	INT8U prtIndex = 0;
