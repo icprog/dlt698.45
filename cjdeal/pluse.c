@@ -164,13 +164,39 @@ void refreshPluse(int sec) {
 		}
 	}
 
-	if (sec == 15) {
-		for (int i = 0; i < 2; i++) {
+	static int step[2];
+	static time_t last_time;
+
+	for(int i = 0; i < 2; i++) {
+		switch (step[i]) {
+		case 0:
 			if (pluse[i] >= pluseCountPeriod[i]) {
+				last_time = time(NULL);
+				step[i] = 1;
+			}
+			break;
+		case 1:
+			if(abs(time(NULL) - last_time) >= 60){
 				int val = pluse[i] - pluseCountPeriod[i];
 				cacl_PQ(val, i);
 				pluseCountPeriod[i] = pluse[i];
+				step[i] = 0;
 			}
+			break;
+		default:
+			step[i] = 0;
+			break;
 		}
 	}
+
+
+//	if (sec == 15) {
+//		for (int i = 0; i < 2; i++) {
+//			if (pluse[i] >= pluseCountPeriod[i]) {
+//				int val = pluse[i] - pluseCountPeriod[i];
+//				cacl_PQ(val, i);
+//				pluseCountPeriod[i] = pluse[i];
+//			}
+//		}
+//	}
 }

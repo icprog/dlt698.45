@@ -938,8 +938,9 @@ void PackCtrlSituation()
 
     ctrlunit.ctrl.alm_state = (al == 0)? 0 : 1;
 
-    fprintf(stderr, "遥控模块最后汇总[%d %d %d] %d %d %d\n", out, out >> 7,
-        (out & ~128) >> 6, pc, ec, al);
+    fprintf(stderr, "遥控模块最后汇总[%d %d %d] %d %d %d %d\n", ctrlunit.ctrl.alm_state, ctrlunit.ctrl.gongk_led,
+    		ctrlunit.ctrl.diank_led, ctrlunit.ctrl.lun1_red, ctrlunit.ctrl.lun2_red, ctrlunit.ctrl.lun1_green, ctrlunit.ctrl.lun1_green);
+    fprintf(stderr, " %d %d\n\n~~~~~~~~~~~~~~\n", (ctrlunit.u16b & 0xffff), (ctrlunit_old.u16b & 0xffff));
 }
 
 void HandlerCtrl()
@@ -974,6 +975,7 @@ void HandlerCtrl()
 
 void DoActuallyCtrl()
 {
+	fprintf(stderr, " %d %d\n\n~~~~~~~~~~~~~~\n", (ctrlunit.u16b & 0x3ff), (ctrlunit_old.u16b & 0x3ff));
     if ((ctrlunit.u16b & 0x3ff) ^ (ctrlunit_old.u16b & 0x3ff)) {
         ctrlunit_old.u16b = ctrlunit.u16b;
         asyslog(LOG_NOTICE, "接收到控制命令：控制状态【%04x】 原状态【%04x】", ctrlunit.u16b,
@@ -1126,8 +1128,8 @@ int ctrlMain(void* arg)
         }
 
         PackCtrlSituation();
-        HandlerCtrl();
         DoActuallyCtrl();
+        HandlerCtrl();
         CheckCtrlControl();
     }
 
