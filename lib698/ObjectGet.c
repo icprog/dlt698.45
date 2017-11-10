@@ -1742,7 +1742,11 @@ int GetF206(RESULT_NORMAL *response)
 	switch(oad.attflg )
 	{
 		case 2:	//通信配置
-
+			if(class_tmp.state_num == 0) {
+				class_tmp.state_num = 2;		//默认两个轮次告警
+				class_tmp.alarm_state[0] = 0;	//值 = 未输出
+				class_tmp.alarm_state[1] = 0;
+			}
 			index += create_array(&data[index],class_tmp.state_num);
 			for(i=0;i<class_tmp.state_num;i++)
 			{

@@ -1075,8 +1075,9 @@ int setf206(OAD oad,INT8U *data,INT8U *DAR)
 	{
 		index += getStructure(&data[index],NULL,DAR);
 		index += getArray(&data[index],&f206.state_num,DAR);
-		fprintf(stderr,"state_num = %d\n",f206.state_num);
 		f206.state_num = limitJudge("告警输出",10,f206.state_num);
+//		fprintf(stderr,"state_num = %d\n",f206.state_num);
+//		fprintf(stderr,"f206.state_num = %d\n",f206.state_num);
 		for(i=0;i<f206.state_num;i++) {
 			index += getEnum(1,&data[index],&f206.alarm_state[i]);
 		}
