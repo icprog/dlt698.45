@@ -1063,6 +1063,7 @@ void ShaningLED_F206()
 
     if(F206_state != 0)
     {
+    	gpofun("/dev/gpoBUZZER", 1);
     	if(step == 0){
     		gpofun("/dev/gpoALARM", 1);
     		step = 1;
@@ -1073,6 +1074,7 @@ void ShaningLED_F206()
     	}
     }else
     {
+    	gpofun("/dev/gpoBUZZER", 0);
     	gpofun("/dev/gpoALARM", 0);
     }
 }
