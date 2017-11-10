@@ -2346,6 +2346,9 @@ INT16U CalcOIDataLen(OAD oad)
 	int i=0;
 	OI_INFO oi_info;
 
+	if(oad.OI == 0x2001 && oad.attflg == 0x04 && oad.attrindex == 00)
+		return 5;
+
 	if(oad.attflg == 4 && oad.OI>=0x0000 && oad.OI<0x1000) {//临时处理高精度
 		if(oad.attrindex == 0)
 			return 47;//长度4+1个字节数据类型  +2: array 01 + 长度
@@ -2510,6 +2513,7 @@ void GetOADPosofUnit(ROAD_ITEM item_road,HEAD_UNIT *head_unit,INT8U unitnum,OAD_
 //			if(memcmp(&item_road.oad[i].oad_m,&head_unit[j].oad_m,sizeof(OAD))==0 &&
 //					memcmp(&item_road.oad[i].oad_r,&head_unit[j].oad_r,sizeof(OAD))==0)
 			if(memcmp(&item_road.oad[i].oad_m,&head_unit[j].oad_m,sizeof(OAD))==0 &&
+					item_road.oad[i].oad_r.attflg == head_unit[j].oad_r.attflg &&
 					item_road.oad[i].oad_r.OI == head_unit[j].oad_r.OI)
 			{
 //				fprintf(stderr,"\nfind oad %04x%02x%02x-%04x%02x%02x:offset:%d--head:%04x%02x%02x-%04x%02x%02x\n",
