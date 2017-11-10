@@ -881,8 +881,8 @@ void CheckCtrlControl()
 void PackCtrlSituation()
 {
     int out = 0;
-    int outD = 0;
-    int outG = 0;
+    int green_led = 0;
+
     int pc = 0;
     int ec = 0;
     int al = 0;
@@ -892,49 +892,51 @@ void PackCtrlSituation()
         out |= JProgramInfo->class23[i].alCtlState.BuyOutputState;
         out |= JProgramInfo->class23[i].alCtlState.MonthOutputState;
 
-//        outD |= JProgramInfo->class23[i].alConState.
-
-//        outG |= JProgramInfo->class23[i].alCtlState.OutputState;
-//
-//        outD |= JProgramInfo->class23[i].alCtlState.BuyOutputState;
-//        outD |= JProgramInfo->class23[i].alCtlState.MonthOutputState;
-//
-//        pc |= JProgramInfo->class23[i].alCtlState.PCAlarmState;
-//        ec |= JProgramInfo->class23[i].alCtlState.ECAlarmState;
+        al |= JProgramInfo->class23[i].alCtlState.PCAlarmState;
+        al |= JProgramInfo->class23[i].alCtlState.ECAlarmState;
     }
+
+    ctrlunit.ctrl.lun1_state = out >> 7;
+    ctrlunit.ctrl.lun2_state = (out & ~128) >> 6;
+
+    for (int i = 0; i < 8; i++) {
+    	green_led |= JProgramInfo->class23[i].alConState.PTrunState;
+    	green_led |= JProgramInfo->class23[i].alConState.ETrunState;
+    }
+    if(green_led == 192 || green_led == 128) {
+    	ctrlunit.ctrl.lun1_green = 1;
+    }
+    else{
+    	ctrlunit.ctrl.lun1_green = 0;
+    }
+
+    if(green_led == 128){
+		ctrlunit.ctrl.lun2_green = 1;
+	}
+    else {
+    	ctrlunit.ctrl.lun1_green = 0;
+    }
+
+	for(int j = 0; j < 8; j ++) {
+		pc |= JProgramInfo->ctrls.c8103.enable[j].state;
+		pc |= JProgramInfo->ctrls.c8104.enable[j].state;
+		pc |= JProgramInfo->ctrls.c8105.enable[j].state;
+		pc |= JProgramInfo->ctrls.c8106.enable.state;
+	}
+
+	for(int j = 0; j < 8; j ++) {
+		ec |= JProgramInfo->ctrls.c8107.enable[j].state;
+		ec |= JProgramInfo->ctrls.c8108.enable[j].state;
+	}
+
+	ctrlunit.ctrl.gongk_led = (pc == 0) ? 0 : 1;
+	ctrlunit.ctrl.diank_led = (ec == 0) ? 0 : 1;
+
 
     ctrlunit.ctrl.lun1_red = (out == 128 || out == 192) ? 1 : 0;
     ctrlunit.ctrl.lun2_red = (out == 192) ? 1 : 0;
 
-    for (int i = 0; i < 8; i++) {
-
-    }
-
-    if(ctrlunit.ctrl.lun1_red == 1){
-    	ctrlunit.ctrl.lun1_green = 0;
-    }
-    if(ctrlunit.ctrl.lun2_red == 1){
-		ctrlunit.ctrl.lun2_green = 0;
-	}
-
-    ctrlunit.ctrl.lun1_state = out >> 7;
-    ctrlunit.ctrl.lun1_red = out >> 7;
-    ctrlunit.ctrl.lun2_state = (out & ~128) >> 6;
-    ctrlunit.ctrl.lun2_red = (out & ~128) >> 6;
-
-    if (outD) {
-        ctrlunit.ctrl.diank_led = 1;
-    } else {
-        ctrlunit.ctrl.diank_led = 0;
-    }
-
-    if (outG) {
-        ctrlunit.ctrl.gongk_led = 1;
-    } else {
-        ctrlunit.ctrl.gongk_led = 0;
-    }
-
-    ctrlunit.ctrl.alm_state = al;
+    ctrlunit.ctrl.alm_state = (al == 0)? 0 : 1;
 
     fprintf(stderr, "遥控模块最后汇总[%d %d %d] %d %d %d\n", out, out >> 7,
         (out & ~128) >> 6, pc, ec, al);
