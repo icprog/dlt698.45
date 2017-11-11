@@ -936,9 +936,9 @@ int class8105_act6(int index, int attr_act, INT8U *data, Action_result *act_ret)
 //			para_vari_save);
 	memcpy(&c8105,&shareAddr->ctrls.c8105,sizeof(CLASS_8105));
 	c8105.enable[sindex].state = 0x01;
-	c8105.enable[sindex].name = 0x01;
+	c8105.enable[sindex].name = oi;
 	shareAddr->ctrls.c8105.enable[sindex].state = 0x01;
-	shareAddr->ctrls.c8105.enable[sindex].name = 0x01;
+	shareAddr->ctrls.c8105.enable[sindex].name = oi;
 	saveCoverClass(0x8105, 0, (void *) &c8105, sizeof(CLASS_8105),
 			para_vari_save);
 	return 0;
