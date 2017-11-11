@@ -1156,18 +1156,18 @@ void menu_realP(){
 
 			memset(str, 0, 100);
 			if (p_JProgramInfo->class23[0].p<1000)
-				sprintf((char*)str,"有功功率:%d  W",(int)p_JProgramInfo->class23[zj_index-1].p);	//FOR698
+				sprintf((char*)str,"有功功率:%d  W",(int)p_JProgramInfo->class23[zj_index-1].p*1.0/10);	//FOR698
 			else
-				sprintf((char*)str,"有功功率:%.2f kW",p_JProgramInfo->class23[zj_index-1].p*1.0/1000);	//FOR698
+				sprintf((char*)str,"有功功率:%.2f kW",p_JProgramInfo->class23[zj_index-1].p*1.0/10000);	//FOR698
 			pos.x = rect_Client.left + 4*FONTSIZE;
 			pos.y += FONTSIZE*3;
 			gui_textshow(str, pos, LCD_NOREV);
 
 			memset(str, 0, 100);
 			if (p_JProgramInfo->class23[0].q<1000)
-				sprintf((char*)str,"无功功率:%d  Var",(int)p_JProgramInfo->class23[zj_index-1].q);
+				sprintf((char*)str,"无功功率:%d  Var",(int)p_JProgramInfo->class23[zj_index-1].q*1.0/10);
 			else
-				sprintf((char*)str,"无功功率:%.2f kVar",p_JProgramInfo->class23[zj_index-1].p*1.0/1000);	//FOR698
+				sprintf((char*)str,"无功功率:%.2f kVar",p_JProgramInfo->class23[zj_index-1].p*1.0/10000);	//FOR698
 			pos.y += FONTSIZE*3;
 			gui_textshow(str, pos, LCD_NOREV);
 
@@ -1185,16 +1185,16 @@ void menu_realP(){
 			pos.x = rect_Client.left + 4*FONTSIZE;
 			memset(str, 0, 100);
 			if (p_JProgramInfo->class12[mc_index].p<1000)
-				sprintf((char*)str,"有功功率:%d  w",(int)p_JProgramInfo->class12[mc_index].p);
+				sprintf((char*)str,"有功功率:%d  w",(int)p_JProgramInfo->class12[mc_index].p*1.0/10);
 			else
-				sprintf((char*)str,"有功功率:%.2f kVar",p_JProgramInfo->class12[mc_index].p*1.0/1000);	//FOR698
+				sprintf((char*)str,"有功功率:%.2f kVar",p_JProgramInfo->class12[mc_index].p*1.0/10000);	//FOR698
 			pos.y += FONTSIZE*3;
 			gui_textshow(str, pos, LCD_NOREV);
 
 			if (p_JProgramInfo->class12[mc_index].q<1000)
-				sprintf((char*)str,"无功功率:%d  Var",(int)p_JProgramInfo->class12[mc_index].q);
+				sprintf((char*)str,"无功功率:%d  Var",(int)p_JProgramInfo->class12[mc_index].q*1.0/10);
 			else
-				sprintf((char*)str,"无功功率:%.2f kVar",p_JProgramInfo->class12[mc_index].q*1.0/1000);	//FOR698
+				sprintf((char*)str,"无功功率:%.2f kVar",p_JProgramInfo->class12[mc_index].q*1.0/10000);	//FOR698
 			pos.y += FONTSIZE*3;
 			gui_textshow(str, pos, LCD_NOREV);
 
@@ -2030,7 +2030,7 @@ void menu_shiduanpara(){
 				}
 			}
 			gui_clrrect(rect_Client);
-			gui_setpos(&pos, rect_Client.left+2*FONTSIZE, rect_Client.top+FONTSIZE);
+			gui_setpos(&pos, rect_Client.left+1*FONTSIZE, rect_Client.top+FONTSIZE);
 			memset(str, 0, 100);
 			sprintf(str,"配置单元%d [总加组%04x]", unite_index, c8103.list[unite_index-1].index);
 			gui_textshow(str, pos, LCD_NOREV);
