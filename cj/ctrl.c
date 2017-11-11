@@ -370,7 +370,9 @@ void sum_process(int argc, char *argv[])
 				}
 				if(oi==0x8103) {
 					CLASS_8103 c8103={};
+					JProgramInfo = OpenShMem("ProgramInfo", sizeof(ProgramInfo), NULL);
 					memset(&c8103, 0x00, sizeof(CLASS_8103));
+//					memcpy(&c8103,&JProgramInfo->ctrls.c8103,sizeof(CLASS_8103));
 					readCoverClass(oi, 0, (void *) &c8103, sizeof(CLASS_8103),para_vari_save);
 					int i=0;
 					for(i=0;i<MAX_AL_UNIT;i++) {
@@ -384,7 +386,11 @@ void sum_process(int argc, char *argv[])
 						fprintf(stderr,"V3 = %d %lld %lld %lld %lld %lld %lld %lld %lld \n",c8103.list[i].v3.n,c8103.list[i].v3.t1,c8103.list[i].v3.t2,
 								c8103.list[i].v3.t3,c8103.list[i].v3.t4,c8103.list[i].v3.t5,c8103.list[i].v3.t6,c8103.list[i].v3.t7,c8103.list[i].v3.t8);
 						fprintf(stderr,"para = %d\n",c8103.list[i].para);
+						fprintf(stderr,"控制投入 OI=%x",JProgramInfo->ctrls.c8103.enable[i].name);
+						fprintf(stderr,"控制输出 OI=%x",JProgramInfo->ctrls.c8103.output[i].name);
+						fprintf(stderr,"告警状态 OI=%x",JProgramInfo->ctrls.c8103.overflow[i].name);
 					}
+
 				}
 				if(oi==0x8105) {
 					CLASS_8105 c8105={};

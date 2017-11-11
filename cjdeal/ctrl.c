@@ -227,6 +227,18 @@ int initAll()
         para_vari_save);
     readCoverClass(0x8103, 0, &CtrlC->c8103, sizeof(CLASS_8103),
         para_vari_save);
+
+	int i=0;
+	for(i=0;i<MAX_AL_UNIT;i++) {
+		fprintf(stderr,"\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
+		fprintf(stderr,"\n-------i=%d------------\n",i);
+		fprintf(stderr,"OI = %04x\n",CtrlC->c8103.list[i].index);
+		fprintf(stderr,"sign = %02x\n",CtrlC->c8103.list[i].sign);
+		fprintf(stderr,"V1 = %d %lld %lld %lld %lld %lld %lld %lld %lld \n",CtrlC->c8103.list[i].v1.n,CtrlC->c8103.list[i].v1.t1,CtrlC->c8103.list[i].v1.t2,
+				CtrlC->c8103.list[i].v1.t3,CtrlC->c8103.list[i].v1.t4,CtrlC->c8103.list[i].v1.t5,CtrlC->c8103.list[i].v1.t6,CtrlC->c8103.list[i].v1.t7,CtrlC->c8103.list[i].v1.t8);
+		fprintf(stderr,"para = %d\n",CtrlC->c8103.list[i].para);
+	}
+
     readCoverClass(0x8104, 0, &CtrlC->c8104, sizeof(CLASS_8104),
         para_vari_save);
     readCoverClass(0x8105, 0, &CtrlC->c8105, sizeof(CLASS_8105),
