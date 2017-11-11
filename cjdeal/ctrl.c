@@ -21,6 +21,7 @@ extern ProgramInfo* JProgramInfo;
 CtrlState* CtrlC;
 
 static ctrlUN ctrlunit, ctrlunit_old;
+static INT8U F206_state = 0;
 
 int findPinSum(int sum_i, int p_i, int* mmm)
 {
@@ -156,6 +157,8 @@ void refreshSumUp()
         JProgramInfo->class23[0].p, JProgramInfo->class23[0].DayP[0],
         JProgramInfo->class23[0].DayP[1], JProgramInfo->class23[0].DayP[2],
         JProgramInfo->class23[0].DayP[3], JProgramInfo->class23[0].remains);
+
+
 
     if (old_day != ts.Day) {
         old_day = ts.Day;
@@ -890,8 +893,8 @@ void CheckCtrlControl()
 void PackCtrlSituation()
 {
     int out = 0;
-    int outD = 0;
-    int outG = 0;
+    int green_led = 0;
+
     int pc = 0;
     int ec = 0;
     int al = 0;
@@ -901,43 +904,55 @@ void PackCtrlSituation()
         out |= JProgramInfo->class23[i].alCtlState.BuyOutputState;
         out |= JProgramInfo->class23[i].alCtlState.MonthOutputState;
 
-        outG |= JProgramInfo->class23[i].alCtlState.OutputState;
-
-        outD |= JProgramInfo->class23[i].alCtlState.BuyOutputState;
-        outD |= JProgramInfo->class23[i].alCtlState.MonthOutputState;
-
-        pc |= JProgramInfo->class23[i].alCtlState.PCAlarmState;
-        ec |= JProgramInfo->class23[i].alCtlState.ECAlarmState;
-    }
-    if (pc != 0 || ec != 0) {
-        al = 0;
-        //				gpio_writebyte((INT8S *)DEV_ALARM_BUZZER,0x01);
-    } else {
-        al = 1;
-        //				gpio_writebyte((INT8S *)DEV_ALARM_BUZZER,0x00);
+        al |= JProgramInfo->class23[i].alCtlState.PCAlarmState;
+        al |= JProgramInfo->class23[i].alCtlState.ECAlarmState;
     }
 
     ctrlunit.ctrl.lun1_state = out >> 7;
-    ctrlunit.ctrl.lun1_red = out >> 7;
     ctrlunit.ctrl.lun2_state = (out & ~128) >> 6;
-    ctrlunit.ctrl.lun2_red = (out & ~128) >> 6;
 
-    if (outD) {
-        ctrlunit.ctrl.diank_led = 1;
-    } else {
-        ctrlunit.ctrl.diank_led = 0;
+    for (int i = 0; i < 8; i++) {
+    	green_led |= JProgramInfo->class23[i].alConState.PTrunState;
+    	green_led |= JProgramInfo->class23[i].alConState.ETrunState;
+    }
+    if(green_led == 192 || green_led == 128) {
+    	ctrlunit.ctrl.lun1_green = 1;
+    }
+    else{
+    	ctrlunit.ctrl.lun1_green = 0;
     }
 
-    if (outG) {
-        ctrlunit.ctrl.gongk_led = 1;
-    } else {
-        ctrlunit.ctrl.gongk_led = 0;
+    if(green_led == 128){
+		ctrlunit.ctrl.lun2_green = 1;
+	}
+    else {
+    	ctrlunit.ctrl.lun1_green = 0;
     }
 
-    ctrlunit.ctrl.alm_state = al;
+	for(int j = 0; j < 8; j ++) {
+		pc |= JProgramInfo->ctrls.c8103.enable[j].state;
+		pc |= JProgramInfo->ctrls.c8104.enable[j].state;
+		pc |= JProgramInfo->ctrls.c8105.enable[j].state;
+		pc |= JProgramInfo->ctrls.c8106.enable.state;
+	}
 
-    fprintf(stderr, "?????????????[%d %d %d] %d %d %d\n", out, out >> 7,
-        (out & ~128) >> 6, pc, ec, al);
+	for(int j = 0; j < 8; j ++) {
+		ec |= JProgramInfo->ctrls.c8107.enable[j].state;
+		ec |= JProgramInfo->ctrls.c8108.enable[j].state;
+	}
+
+	ctrlunit.ctrl.gongk_led = (pc == 0) ? 0 : 1;
+	ctrlunit.ctrl.diank_led = (ec == 0) ? 0 : 1;
+
+
+    ctrlunit.ctrl.lun1_red = (out == 128 || out == 192) ? 1 : 0;
+    ctrlunit.ctrl.lun2_red = (out == 192) ? 1 : 0;
+
+    ctrlunit.ctrl.alm_state = (al == 0)? 0 : 1;
+
+    fprintf(stderr, "遥控模块最后汇总[%d %d %d] %d %d %d %d\n", ctrlunit.ctrl.alm_state, ctrlunit.ctrl.gongk_led,
+    		ctrlunit.ctrl.diank_led, ctrlunit.ctrl.lun1_red, ctrlunit.ctrl.lun2_red, ctrlunit.ctrl.lun1_green, ctrlunit.ctrl.lun1_green);
+    fprintf(stderr, " %d %d\n\n~~~~~~~~~~~~~~\n", (ctrlunit.u16b & 0xffff), (ctrlunit_old.u16b & 0xffff));
 }
 
 void HandlerCtrl()
@@ -972,6 +987,7 @@ void HandlerCtrl()
 
 void DoActuallyCtrl()
 {
+	fprintf(stderr, " %d %d\n\n~~~~~~~~~~~~~~\n", (ctrlunit.u16b & 0x3ff), (ctrlunit_old.u16b & 0x3ff));
     if ((ctrlunit.u16b & 0x3ff) ^ (ctrlunit_old.u16b & 0x3ff)) {
         ctrlunit_old.u16b = ctrlunit.u16b;
         asyslog(LOG_NOTICE, "接收到控制命令：控制状态【%04x】 原状态【%04x】", ctrlunit.u16b,
@@ -987,6 +1003,16 @@ void DoActuallyCtrl()
         close(fd);
     }
 }
+int gpofun(char *devname, int data) {
+	int fd = -1;
+	if ((fd = open(devname, O_RDWR | O_NDELAY)) >= 0) {
+		write(fd, &data, sizeof(int));
+		close(fd);
+		return 1;
+	}
+	return 0;
+}
+
 
 void CtrlStateSumUp()
 {
@@ -1026,6 +1052,56 @@ void CtrlStateSumUp()
     }
 
     fprintf(stderr, "=======================%d=%d==\n", JProgramInfo->ctrls.c8103.overflow[0].state, JProgramInfo->class23[0].alCtlState.PCAlarmState);
+
+    INT8U F206_tmp = 0;
+
+    //汇总F206
+    for (int sum_i = 0; sum_i < 8; sum_i++) {
+    	F206_tmp |= JProgramInfo->class23[sum_i].alCtlState.ECAlarmState;
+    	F206_tmp |= JProgramInfo->class23[sum_i].alCtlState.PCAlarmState;
+    }
+
+    if(F206_state != F206_tmp)
+    {
+    	fprintf(stderr, "告警状态F206变更!!!\n");
+    	F206_state = F206_tmp;
+    	CLASS_f206	f206={};
+    	memset(&f206,0,sizeof(CLASS_f206));
+    	readCoverClass(0xf206,0,&f206,sizeof(CLASS_f206),para_vari_save);
+    	for (int i = 0; i < 8; i++)
+    	{
+//    		int getBit(INT8U v, int index)
+//    		{
+//    		    return (v >> (index)) & 0x01;
+//    		}
+    		if(getBit(F206_state, 7-i)){
+    			f206.alarm_state[i] = 1;
+    		}
+    	}
+    	saveCoverClass(0xf206,0,&f206,sizeof(CLASS_f206),para_vari_save);
+    }
+}
+
+void ShaningLED_F206()
+{
+	static int step = 0;
+
+    if(F206_state != 0)
+    {
+//    	gpofun("/dev/gpoBUZZER", 1);
+    	if(step == 0){
+    		gpofun("/dev/gpoALARM", 1);
+    		step = 1;
+    	}else
+    	{
+    		gpofun("/dev/gpoALARM", 0);
+    		step = 1;
+    	}
+    }else
+    {
+//    	gpofun("/dev/gpoBUZZER", 0);
+    	gpofun("/dev/gpoALARM", 0);
+    }
 }
 
 int ctrlMain(void* arg)
@@ -1056,13 +1132,16 @@ int ctrlMain(void* arg)
             dealCtrl();
             CtrlStateSumUp();
         }
+
+        ShaningLED_F206();
+
         if (secOld == 57) {
             SaveAll();
         }
 
         PackCtrlSituation();
-        HandlerCtrl();
         DoActuallyCtrl();
+        HandlerCtrl();
         CheckCtrlControl();
     }
 

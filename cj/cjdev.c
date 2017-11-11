@@ -276,7 +276,6 @@ void SetHEART(int argc, char *argv[]) {
     }
 }
 
-
 void SetApn(int argc, char *argv[]) {
     CLASS25 class4500;
     COMM_CONFIG_1 config1;

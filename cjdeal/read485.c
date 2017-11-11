@@ -640,17 +640,16 @@ void SendDataTo485(INT8U port485, INT8U *sendbuf, INT16U sendlen) {
 	INT8U str[50];
 	memset(str, 0, 50);
 
-	if (getZone("ZheJiang") == 0)
-	{
-		INT8U tmpbuf[512];
-		tmpbuf[0] = 0xfe;
-		tmpbuf[1] = 0xfe;
-		tmpbuf[2] = 0xfe;
-		tmpbuf[3] = 0xfe;
-		memcpy(&tmpbuf[4],sendbuf,sendlen);
-		sendlen += 4;
-		memcpy(sendbuf,tmpbuf,sendlen);
-	}
+	//698协议和645-07协议明确要求, 用串行总线传输报文时, 先在前面加4个
+	//0xFE, 唤醒总线设备
+	INT8U tmpbuf[512];
+	tmpbuf[0] = 0xfe;
+	tmpbuf[1] = 0xfe;
+	tmpbuf[2] = 0xfe;
+	tmpbuf[3] = 0xfe;
+	memcpy(&tmpbuf[4],sendbuf,sendlen);
+	sendlen += 4;
+	memcpy(sendbuf,tmpbuf,sendlen);
 #if 1
 	sprintf((char *) str, "485(%d)_S(%d):", port485, sendlen);
 	printbuff((char *) str, sendbuf, sendlen, "%02x", " ", "\n");
@@ -1758,6 +1757,22 @@ INT8S OADMap07DI(OI_698 roadOI,OAD sourceOAD, C601F_645* flag645) {
 						flag645->DI._07.DI_1[0][1] = sourceOAD.attrindex-1;
 					}
 
+					/*
+					 * 浙江创维主站, 在十一之后,
+					 *默认的单相电表的96点负荷曲线采集方案为13号,
+					 *对应的上报方案为72号
+					 *其中的零线电流改为2001 0400
+					 */
+					if(getZone("ZheJiang") == 0) {
+					        if((sourceOAD.OI==0x2001)&&((sourceOAD.attflg==0x04))) {
+					        //国网2017-08-04新标准, 零序电流的OAD改为 2001 0400, 对应的645-07 DI 为 02 80 00 01
+					                flag645->DI._07.DI_1[0][0] = 0x01;
+					                flag645->DI._07.DI_1[0][1] = 0x00;
+					                flag645->DI._07.DI_1[0][2] = 0x80;
+					                flag645->DI._07.DI_1[0][3] = 0x02;
+					                flag645->DI._07.dinum=1;
+					        }
+					}
 				}
 			}
 //			DEBUG_TIME_LINE("");
