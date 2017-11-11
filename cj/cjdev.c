@@ -423,7 +423,7 @@ void SetF202(int argc, char *argv[]) {
         fprintf(stderr, "停止位:stop0(0), stop1(1), stop2(2)\n");
 
         if (readCoverClass(0xf202, 0, &oif202, sizeof(CLASS_f202), para_vari_save) > 0) {
-            fprintf(stderr, "当前：波特率(%d)，校验方式(%d)，数据位(%d)，停止位(%d)\n", oif202.devpara.baud, oif202.devpara.verify,
+            fprintf(stderr, "\n\n当前配置：波特率(%d)，校验方式(%d)，数据位(%d)，停止位(%d)\n", oif202.devpara.baud, oif202.devpara.verify,
                     oif202.devpara.databits,
                     oif202.devpara.stopbits);
         }

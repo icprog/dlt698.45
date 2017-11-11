@@ -511,10 +511,10 @@ int class8103_act3(int index, int attr_act, INT8U *data, INT8U *DAR) {
 	if(*DAR == success) {
 		asyslog(LOG_WARNING, "时段功控-保存[unit=%d]",unit);
 //		fprintf(stderr,"c8103 act 3  v2.n=%d t1 = %lld\n",c8103.list[unit].v2.n,c8103.list[unit].v2.t1);
-		memcpy(shareAddr->ctrls.c8103.list, c8103.list, sizeof(c8103.list));
 		c8103.enable[unit].name = oi;
 		c8103.output[unit].name = oi;
 		c8103.overflow[unit].name = oi;
+		memcpy(&shareAddr->ctrls.c8103, &c8103, sizeof(CLASS_8103));
 		saveCoverClass(0x8103, 0, (void *) &c8103, sizeof(CLASS_8103),para_vari_save);
 	}
 	return ii;
@@ -665,17 +665,28 @@ int class8103_act6(int index, int attr_act, INT8U *data, Action_result *act_ret)
 
 	ProgramInfo *shareAddr = getShareAddr();
 	int sindex = oi - 0x2301;
-
-	CLASS_8103 c8103;
+	sindex = rangeJudge("总加组",sindex,0,(MAXNUM_SUMGROUP-1));
+	if(sindex == -1) {
+		act_ret->DAR = interface_uncomp;
+		return 0;
+	}
+	CLASS_8103 c8103={};
 	memset(&c8103, 0x00, sizeof(CLASS_8103));
 //	readCoverClass(0x8103, 0, (void *) &c8103, sizeof(CLASS_8103),
 //			para_vari_save);
 
 	memcpy(&c8103,&shareAddr->ctrls.c8103,sizeof(CLASS_8103));
+	fprintf(stderr,"\nindex=%04x sign=%d",shareAddr->ctrls.c8103.list[0].index,c8103.list[0].sign);
+	fprintf(stderr,"\nenable   name=%04x state=%d",shareAddr->ctrls.c8103.enable[0].name,shareAddr->ctrls.c8103.enable[0].state);
+	fprintf(stderr,"\noutput   name=%04x state=%d",shareAddr->ctrls.c8103.output[0].name,shareAddr->ctrls.c8103.output[0].state);
+	fprintf(stderr,"\noverflow name=%04x state=%d",shareAddr->ctrls.c8103.overflow[0].name,shareAddr->ctrls.c8103.overflow[0].state);
 	c8103.enable[sindex].state = 0x01;
 	c8103.enable[sindex].name = oi;
 	shareAddr->ctrls.c8103.enable[sindex].state = 0x01;
 	shareAddr->ctrls.c8103.enable[sindex].name = oi;
+	fprintf(stderr,"\noutput   name=%04x state=%d",c8103.output[0].name,c8103.output[0].state);
+	fprintf(stderr,"\noverflow name=%04x state=%d",c8103.overflow[0].name,c8103.overflow[0].state);
+
 	saveCoverClass(0x8103, 0, (void *) &c8103, sizeof(CLASS_8103),
 			para_vari_save);
 
@@ -693,7 +704,11 @@ int class8103_act7(int index, int attr_act, INT8U *data, Action_result *act_ret)
 
 	ProgramInfo *shareAddr = getShareAddr();
 	int sindex = oi - 0x2301;
-
+	sindex = rangeJudge("总加组",sindex,0,(MAXNUM_SUMGROUP-1));
+	if(sindex == -1) {
+		act_ret->DAR = interface_uncomp;
+		return 0;
+	}
 	CLASS_8103 c8103;
 	memset(&c8103, 0x00, sizeof(CLASS_8103));
 //	readCoverClass(0x8103, 0, (void *) &c8103, sizeof(CLASS_8103),
@@ -832,7 +847,11 @@ int class8104_act6(int index, int attr_act, INT8U *data, Action_result *act_ret)
 
 	ProgramInfo *shareAddr = getShareAddr();
 	int sindex = oi - 0x2301;
-
+	sindex = rangeJudge("总加组",sindex,0,(MAXNUM_SUMGROUP-1));
+	if(sindex == -1) {
+		act_ret->DAR = interface_uncomp;
+		return 0;
+	}
 	CLASS_8104 c8104;
 	memset(&c8104, 0x00, sizeof(CLASS_8104));
 //	readCoverClass(0x8104, 0, (void *) &c8104, sizeof(CLASS_8104),
@@ -859,7 +878,11 @@ int class8104_act7(int index, int attr_act, INT8U *data, Action_result *act_ret)
 
 	ProgramInfo *shareAddr = getShareAddr();
 	int sindex = oi - 0x2301;
-
+	sindex = rangeJudge("总加组",sindex,0,(MAXNUM_SUMGROUP-1));
+	if(sindex == -1) {
+		act_ret->DAR = interface_uncomp;
+		return 0;
+	}
 	CLASS_8104 c8104;
 	memset(&c8104, 0x00, sizeof(CLASS_8104));
 //	readCoverClass(0x8104, 0, (void *) &c8104, sizeof(CLASS_8104),
@@ -947,7 +970,7 @@ int class8105_act6(int index, int attr_act, INT8U *data, Action_result *act_ret)
 	int sindex = oi - 0x2301;
 	sindex = rangeJudge("总加组",sindex,0,(MAXNUM_SUMGROUP-1));
 	if(sindex == -1) {
-		act_ret->DAR =boundry_over;
+		act_ret->DAR =obj_unexist;
 		act_ret->datalen = 0;
 		return 0;
 	}
@@ -1302,7 +1325,10 @@ int set_OI810c(INT8U service,INT8U *data,BUY_CTRL *oi810c,INT8U *DAR)
 	INT16U oi_b = (tmp_oi810c.index<<8) | ((tmp_oi810c.index>>8));
 	sum_index = tmp_oi810c.index - 0x2301;
 	sum_index = rangeJudge("总加组",sum_index,0,(MAXNUM_SUMGROUP-1));
-	if(sum_index == -1)  *DAR = obj_unexist;
+	if(sum_index == -1) {
+		*DAR = obj_unexist;
+		return 0;
+	}
 	switch(service) {
 	case 2:	//set 属性2
 	case 3:	//添加
@@ -1417,6 +1443,12 @@ int class8108_act3(int index, int attr_act, INT8U *data, INT8U *DAR) {
 
 	oi = data[3] * 256 + data[4];
 	index = oi - 0x2301;
+	index = rangeJudge("总加组",index,0,(MAXNUM_SUMGROUP-1));
+	if(index == -1) {
+		*DAR = obj_unexist;
+		return 0;
+	}
+
 	shareAddr->ctrls.c8108.list[index].v = getLongValue(&data[5]);
 	v = getLongValue(&data[5]);
 	shareAddr->ctrls.c8108.list[index].para = data[15];
@@ -1451,6 +1483,12 @@ int class8108_act6(int index, int attr_act, INT8U *data, Action_result *act_ret)
 
 	oi = data[1] * 256 + data[2];
 	int sindex = oi - 0x2301;
+	sindex = rangeJudge("总加组",sindex,0,(MAXNUM_SUMGROUP-1));
+	if(sindex == -1) {
+		act_ret->DAR = obj_unexist;
+		return 0;
+	}
+
 	asyslog(LOG_WARNING, "月电-控制投入[%04x]", oi);
 
 	CLASS_8108 c8108;
@@ -1480,6 +1518,11 @@ int class8108_act7(int index, int attr_act, INT8U *data, Action_result *act_ret)
 
 	oi = data[1] * 256 + data[2];
 	int sindex = oi - 0x2301;
+	sindex = rangeJudge("总加组",sindex,0,(MAXNUM_SUMGROUP-1));
+	if(sindex == -1) {
+		act_ret->DAR = obj_unexist;
+		return 0;
+	}
 	asyslog(LOG_WARNING, "月电-控制解除[%04x]", oi);
 
 	CLASS_8108 c8108={};
