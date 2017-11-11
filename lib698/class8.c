@@ -1452,9 +1452,9 @@ int class8108_act6(int index, int attr_act, INT8U *data, Action_result *act_ret)
 //			para_vari_save);
 	memcpy(&c8108,&shareAddr->ctrls.c8108,sizeof(CLASS_8108));
 	shareAddr->ctrls.c8108.enable[sindex].state = 0x01;
-	shareAddr->ctrls.c8108.enable[sindex].name = 0x01;
+	shareAddr->ctrls.c8108.enable[sindex].name = oi;
 	c8108.enable[sindex].state = 0x01;
-	c8108.enable[sindex].name = 0x01;
+	c8108.enable[sindex].name = oi;
 	saveCoverClass(0x8108, 0, (void *) &c8108, sizeof(CLASS_8108),
 			para_vari_save);
 
