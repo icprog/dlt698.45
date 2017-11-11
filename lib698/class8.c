@@ -500,6 +500,10 @@ int class8103_act3(int index, int attr_act, INT8U *data, INT8U *DAR) {
 	ii += getOI(1,&data[ii],&oi);
 	unit  = oi - 0x2301;
 	unit = rangeJudge("总加组",unit,0,(MAXNUM_SUMGROUP-1));
+	if(unit == -1) {
+		*DAR = interface_uncomp;
+		return 0;
+	}
 	c8103.list[unit].index = oi;
 	asyslog(LOG_WARNING, "时段功控-添加控制单元[oi=%04x]",oi);
 	ii += getBitString(1,&data[ii],&c8103.list[unit].sign);
@@ -630,27 +634,15 @@ int class8103_act4(int index, int attr_act, INT8U *data, INT8U *DAR) {
 	ii += getOI(1,&data[ii],&oi);
 	unit  = oi - 0x2301;
 	unit = rangeJudge("总加组",unit,0,(MAXNUM_SUMGROUP-1));
-	if(unit < 0 || unit > 7) {
-
+	if(unit == -1) {
+		*DAR = interface_uncomp;
+		return 0;
 	}
 	c8103.list[unit].index = oi;
-	asyslog(LOG_WARNING, "时段功控-添加控制单元[oi=%04x]",oi);
-	ii += getBitString(1,&data[ii],&c8103.list[unit].sign);
-	fprintf(stderr,"unit = %d,sign=%02x\n",unit,c8103.list[unit].sign);
-	ii += get_PowerCtrlParam(&data[ii],&c8103.list[unit].v1,DAR);
-	ii += get_PowerCtrlParam(&data[ii],&c8103.list[unit].v2,DAR);
-	ii += get_PowerCtrlParam(&data[ii],&c8103.list[unit].v3,DAR);
-	ii += getInteger(&data[ii],&c8103.list[unit].para,DAR);
-	if(*DAR == success) {
-		asyslog(LOG_WARNING, "时段功控-保存[unit=%d]",unit);
-//		fprintf(stderr,"c8103 act 3  v2.n=%d t1 = %lld\n",c8103.list[unit].v2.n,c8103.list[unit].v2.t1);
-		memcpy(shareAddr->ctrls.c8103.list, c8103.list, sizeof(c8103.list));
-		c8103.enable[unit].name = oi;
-		c8103.output[unit].name = oi;
-		c8103.overflow[unit].name = oi;
-		saveCoverClass(0x8103, 0, (void *) &c8103, sizeof(CLASS_8103),para_vari_save);
-	}
-	return ii;
+	asyslog(LOG_WARNING, "时段功控-删除控制单元[oi=%04x]",oi);
+	memset(&c8103.list[unit], 0x00, sizeof(TIME_CTRL));
+	saveCoverClass(0x8103, 0, (void *) &c8103, sizeof(CLASS_8103),para_vari_save);
+	return 0;
 }
 
 
