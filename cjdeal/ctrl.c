@@ -380,7 +380,13 @@ int deal8103()
             count[i] = 0;
             JProgramInfo->ctrls.c8103.output[i].state = 0;
             JProgramInfo->ctrls.c8103.overflow[i].state = 0;
+            JProgramInfo->class23[i].alConState.PCState &= ~128;
             continue;
+        }
+        else{
+        	//更新总加组状态
+//        	fprintf(stderr, "deal8103\n\n\n\n\n89898989~~~~~~~~~~~~~~%d\n", JProgramInfo->class23[i].alConState.PCState);
+        	JProgramInfo->class23[i].alConState.PCState |= 128;
         }
 
         INT64U val = getCurrTimeValue(i);
@@ -481,8 +487,13 @@ int deal8104()
             count[i] = 0;
             JProgramInfo->ctrls.c8104.output[i].state = 0;
             JProgramInfo->ctrls.c8104.overflow[i].state = 0;
+            JProgramInfo->class23[i].alConState.PCState &= ~64;
             continue;
         }
+        else{
+			//更新总加组状态
+			JProgramInfo->class23[i].alConState.PCState |= 64;
+		}
 
         INT64U val = getIsInTime(i);
         fprintf(stderr, "厂休控限值(%lld Compare %lld) index=%d\n", val,
@@ -567,8 +578,13 @@ int deal8105()
             count[i] = 0;
             JProgramInfo->ctrls.c8105.output[i].state = 0;
             JProgramInfo->ctrls.c8105.overflow[i].state = 0;
+            JProgramInfo->class23[i].alConState.PCState &= ~32;
             continue;
         }
+        else {
+			//更新总加组状态
+			JProgramInfo->class23[i].alConState.PCState |= 32;
+		}
 
         INT64U val = getIsStop(i);
         fprintf(stderr, "营业报停控限值(%lld Compare %lld) index=%d\n", val,
@@ -661,6 +677,11 @@ int deal8106()
         TSGet(&start);
         JProgramInfo->ctrls.c8106.output.state = 0;
         JProgramInfo->ctrls.c8106.overflow.state = 0;
+        int i = JProgramInfo->ctrls.c8106.index - 0x2301;
+		if (i > 7 || i < 0) {
+			i = 0;
+		}
+		JProgramInfo->class23[i].alConState.PCState &= ~16;
         val = 0;
         return 0;
     }
@@ -679,6 +700,8 @@ int deal8106()
     if (i > 7 || i < 0) {
         i = 0;
     }
+	//更新总加组状态
+	JProgramInfo->class23[i].alConState.PCState |= 16;
 
     if (val <= 0) {
         val = getIsInDown(start, i);
@@ -740,16 +763,22 @@ int deal8107()
 
     fprintf(stderr, "deal8107(%lld)\n", CtrlC->c8107.list[0].ctrl);
     for (int i = 0; i < 1; i++) {
+        if (JProgramInfo->ctrls.c8107.enable[i].state == 0) {
+            JProgramInfo->ctrls.c8107.output[i].state = 0;
+            JProgramInfo->ctrls.c8107.overflow[i].state = 0;
+            JProgramInfo->class23[i].alConState.ECState &= ~128;
+            return 0;
+        }
+
+    	//更新总加组状态
+        fprintf(stderr, "deal8107\n\n\n\n\n8989898999999~~~~~~~~~~~~~~%d\n", JProgramInfo->class23[i].alConState.ECState);
+
+    	JProgramInfo->class23[i].alConState.ECState |= 128;
+
         if (!CheckAllUnitEmpty(JProgramInfo->class23[i].allist)) {
             continue;
         }
         fprintf(stderr, "8107 index = %d\n", i);
-
-        if (JProgramInfo->ctrls.c8107.enable[i].state == 0) {
-            JProgramInfo->ctrls.c8107.output[i].state = 0;
-            JProgramInfo->ctrls.c8107.overflow[i].state = 0;
-            return 0;
-        }
 
         INT64U val = CtrlC->c8107.list[0].ctrl;
         INT64U warn = CtrlC->c8107.list[0].alarm;
@@ -786,16 +815,19 @@ int deal8108()
 {
     fprintf(stderr, "deal8108(%lld)\n", CtrlC->c8108.list[0].v);
     for (int i = 0; i < 1; i++) {
+        if (JProgramInfo->ctrls.c8108.enable[i].state == 0) {
+            JProgramInfo->ctrls.c8108.output[i].state = 0;
+            JProgramInfo->ctrls.c8108.overflow[i].state = 0;
+            JProgramInfo->class23[i].alConState.ECState &= ~64;
+            return 0;
+        }
+    	//更新总加组状态
+    	JProgramInfo->class23[i].alConState.ECState |= 64;
+
         if (!CheckAllUnitEmpty(JProgramInfo->class23[i].allist)) {
             continue;
         }
         fprintf(stderr, "8108 index = %d\n", i);
-
-        if (JProgramInfo->ctrls.c8108.enable[i].state == 0) {
-            JProgramInfo->ctrls.c8108.output[i].state = 0;
-            JProgramInfo->ctrls.c8108.overflow[i].state = 0;
-            return 0;
-        }
 
         INT64U val = CtrlC->c8108.list[i].v;
         INT8U warn = CtrlC->c8108.list[i].para;
@@ -900,9 +932,10 @@ void PackCtrlSituation()
     ctrlunit.ctrl.lun2_state = (out & ~128) >> 6;
 
     for (int i = 0; i < 8; i++) {
-    	green_led |= JProgramInfo->class23[i].alConState.PTrunState;
-    	green_led |= JProgramInfo->class23[i].alConState.ETrunState;
+    	green_led |= JProgramInfo->class23[i].pConfig;
+    	green_led |= JProgramInfo->class23[i].eConfig;
     }
+    fprintf(stderr, "green_led %d\n", green_led);
     if(green_led == 192 || green_led == 128) {
     	ctrlunit.ctrl.lun1_green = 1;
     }
@@ -910,11 +943,11 @@ void PackCtrlSituation()
     	ctrlunit.ctrl.lun1_green = 0;
     }
 
-    if(green_led == 128){
+    if(green_led == 192 || green_led == 64){
 		ctrlunit.ctrl.lun2_green = 1;
 	}
     else {
-    	ctrlunit.ctrl.lun1_green = 0;
+    	ctrlunit.ctrl.lun2_green = 0;
     }
 
 	for(int j = 0; j < 8; j ++) {
@@ -932,9 +965,22 @@ void PackCtrlSituation()
 	ctrlunit.ctrl.gongk_led = (pc == 0) ? 0 : 1;
 	ctrlunit.ctrl.diank_led = (ec == 0) ? 0 : 1;
 
-
     ctrlunit.ctrl.lun1_red = (out == 128 || out == 192) ? 1 : 0;
     ctrlunit.ctrl.lun2_red = (out == 192) ? 1 : 0;
+
+    if (ctrlunit.ctrl.lun1_red == 1) {
+    	ctrlunit.ctrl.lun1_green = 0;
+    }
+
+    if (ctrlunit.ctrl.lun2_red == 1) {
+		ctrlunit.ctrl.lun2_green = 0;
+	}
+
+    if (JProgramInfo->ctrls.c8001.state == 1) {
+    	ctrlunit.ctrl.baodian_led = 1;
+    } else {
+    	ctrlunit.ctrl.baodian_led = 0;
+    }
 
     ctrlunit.ctrl.alm_state = (al == 0)? 0 : 1;
 
@@ -1051,29 +1097,28 @@ void CtrlStateSumUp()
 
     if(F206_state != F206_tmp)
     {
-    	fprintf(stderr, "告警状态F206变更!!!\n");
+    	fprintf(stderr, "告警状态F206变更!!! %d\n", F206_state);
     	F206_state = F206_tmp;
     	CLASS_f206	f206={};
     	memset(&f206,0,sizeof(CLASS_f206));
     	readCoverClass(0xf206,0,&f206,sizeof(CLASS_f206),para_vari_save);
-    	for (int i = 0; i < 8; i++)
-    	{
-//    		int getBit(INT8U v, int index)
-//    		{
-//    		    return (v >> (index)) & 0x01;
-//    		}
-    		if(getBit(F206_state, 7-i)){
-    			f206.alarm_state[i] = 1;
-    		}
+    	if(F206_state != 0){
+    		f206.alarm_state[0] = 1;
+    		f206.state_num = 1;
+    	}else{
+    		f206.alarm_state[0] = 0;
+    		f206.state_num = 1;
     	}
+
     	saveCoverClass(0xf206,0,&f206,sizeof(CLASS_f206),para_vari_save);
+    	fprintf(stderr, "告警状态F206变更!!! %d\n", F206_state);
     }
 }
 
 void ShaningLED_F206()
 {
 	static int step = 0;
-
+//	fprintf(stderr, "ShaningLED_F206 %d \n", F206_state);
     if(F206_state != 0)
     {
 //    	gpofun("/dev/gpoBUZZER", 1);
@@ -1083,7 +1128,7 @@ void ShaningLED_F206()
     	}else
     	{
     		gpofun("/dev/gpoALARM", 0);
-    		step = 1;
+    		step = 0;
     	}
     }else
     {
