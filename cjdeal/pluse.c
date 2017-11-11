@@ -52,6 +52,7 @@ void cacl_DD(unsigned int pulse, int index) {
 	}
 
 	con = con/(JProgramInfo->class12[index].pt * JProgramInfo->class12[index].ct);
+	con = con * 1000;
 
 	int time_zone = getNowZone();
 	switch (JProgramInfo->class12[index].unit[0].conf) {

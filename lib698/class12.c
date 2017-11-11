@@ -186,7 +186,11 @@ int class12_set_attr2(OI_698 oi,INT8U *data, INT8U *DAR, CLASS12 *memClass12)
 
 	memcpy(class12,memClass12,sizeof(class12));		//从内存或者，防止内存未及时更新到文件中
 //	readCoverClass(oi, 0, &class12, sizeof(CLASS12), para_vari_save);
-	index += getOctetstring(1,TSA_LEN-1,&data[index],(INT8U *)&class12[no].addr[1],&class12[no].addr[0],DAR);
+	if(data[index] == dtoctetstring) {
+		index += getOctetstring(1,TSA_LEN-1,&data[index],(INT8U *)&class12[no].addr[1],&class12[no].addr[0],DAR);
+	}else {
+		index += getTSA(1,&data[index],(INT8U *)&class12[no].addr[0],DAR);
+	}
 	if(*DAR == success) {
 		memcpy(memClass12,class12,sizeof(class12));
 		saveCoverClass(oi, 0, &class12[no], sizeof(CLASS12), para_vari_save);

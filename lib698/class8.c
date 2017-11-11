@@ -523,97 +523,6 @@ int class8103_act3(int index, int attr_act, INT8U *data, INT8U *DAR) {
 	}
 	return ii;
 
-//	if (data[0] != 0x02 || data[1] != 0x06) {
-//		return 0;
-//	}
-//
-//	if (data[2] != 0x50) {
-//		return 0;
-//	}
-//
-//	oi = data[3] * 256 + data[4];
-//	unit  = oi - 0x2301;
-//
-//	c8103.list[unit].index = oi;//data[3] * 256 + data[4];
-//	c8103.list[unit].sign = data[7];
-//
-//	if (data[8] != 0x02 || data[9] != 0x09) {
-//		return 0;
-//	}
-//	fprintf(stderr,"oi=%04x unit=%d\n",oi,unit);
-//
-//	int ind = 12;
-//	c8103.list[unit].v1.n = data[ind++];
-//	c8103.list[unit].v1.t1 = getLongValue(&data[ind]);
-//	ind =ind + 9;
-//	c8103.list[unit].v1.t2 = getLongValue(&data[ind]);
-//	ind =ind + 9;
-//	c8103.list[unit].v1.t3 = getLongValue(&data[ind]);
-//	ind =ind + 9;
-//	c8103.list[unit].v1.t4 = getLongValue(&data[ind]);
-//	ind =ind + 9;
-//	c8103.list[unit].v1.t5 = getLongValue(&data[ind]);
-//	ind =ind + 9;
-//	c8103.list[unit].v1.t6 = getLongValue(&data[ind]);
-//	ind =ind + 9;
-//	c8103.list[unit].v1.t7 = getLongValue(&data[ind]);
-//	ind =ind + 9;
-//	c8103.list[unit].v1.t8 = getLongValue(&data[ind]);
-//	ind =ind + 9;
-//	fprintf(stderr,"111111=%d  %d  %d\n",ind,data[ind],data[ind+1]);
-//	if (data[ind] != 0x02 || data[ind+1] != 0x09) {
-//		return 0;
-//	}
-//	fprintf(stderr,"222222=%d  %d  %d\n",ind,data[ind],data[ind+1]);
-//	ind = ind + 2;
-//	c8103.list[unit].v2.n = data[ind++];
-//	c8103.list[unit].v2.t1 = getLongValue(&data[ind]);
-//	ind = ind + 9;
-//	c8103.list[unit].v2.t2 = getLongValue(&data[ind]);
-//	ind = ind + 9;
-//	c8103.list[unit].v2.t3 = getLongValue(&data[ind]);
-//	ind = ind + 9;
-//	c8103.list[unit].v2.t4 = getLongValue(&data[ind]);
-//	ind = ind + 9;
-//	c8103.list[unit].v2.t5 = getLongValue(&data[ind]);
-//	ind = ind + 9;
-//	c8103.list[unit].v2.t6 = getLongValue(&data[ind]);
-//	ind = ind + 9;
-//	c8103.list[unit].v2.t7 = getLongValue(&data[ind]);
-//	ind = ind + 9;
-//	c8103.list[unit].v2.t8 = getLongValue(&data[ind]);
-//	ind = ind + 9;
-//	fprintf(stderr,"333333=%d  %d  %d\n",ind,data[ind],data[ind+1]);
-//	if (data[ind] != 0x02 || data[ind+1] != 0x09) {
-//		return 0;
-//	}
-//	fprintf(stderr,"444444=%d  %d  %d\n",ind,data[ind],data[ind+1]);
-//	ind = ind +2;
-//	c8103.list[unit].v2.n = data[ind++];
-//	c8103.list[unit].v2.t1 = getLongValue(&data[ind]);
-//	ind = ind + 9;
-//	c8103.list[unit].v2.t2 = getLongValue(&data[ind]);
-//	ind = ind + 9;
-//	c8103.list[unit].v2.t3 = getLongValue(&data[ind]);
-//	ind = ind + 9;
-//	c8103.list[unit].v2.t4 = getLongValue(&data[ind]);
-//	ind = ind + 9;
-//	c8103.list[unit].v2.t5 = getLongValue(&data[ind]);
-//	ind = ind + 9;
-//	c8103.list[unit].v2.t6 = getLongValue(&data[ind]);
-//	ind = ind + 9;
-//	c8103.list[unit].v2.t7 = getLongValue(&data[ind]);
-//	ind = ind + 9;
-//	c8103.list[unit].v2.t8 = getLongValue(&data[ind]);
-//	ind = ind + 10;
-//	c8103.list[unit].para = data[ind];
-//
-//	fprintf(stderr,"v2.n=%d t1 = %lld\n",c8103.list[unit].v2.n,c8103.list[unit].v2.t1);
-//	memcpy(shareAddr->ctrls.c8103.list, c8103.list, sizeof(c8103.list));
-//	printf("c8103 act 3\n");
-//	saveCoverClass(0x8103, 0, (void *) &c8103, sizeof(CLASS_8103),
-//			para_vari_save);
-//	return 0;
 }
 
 
@@ -630,7 +539,6 @@ int class8103_act4(int index, int attr_act, INT8U *data, INT8U *DAR) {
 
 //	readCoverClass(0x8103, 0, (void *) &c8103, sizeof(CLASS_8103),para_vari_save);
 	memcpy(&c8103,&shareAddr->ctrls.c8103,sizeof(CLASS_8103));
-	ii += getStructure(&data[ii],NULL,DAR);
 	ii += getOI(1,&data[ii],&oi);
 	unit  = oi - 0x2301;
 	unit = rangeJudge("总加组",unit,0,(MAXNUM_SUMGROUP-1));
@@ -828,6 +736,35 @@ int class8104_act3(int index, int attr_act, INT8U *data, INT8U *DAR) {
 	return 27;
 }
 
+/*
+ * 时段功控
+ * */
+int class8104_act4(int index, int attr_act, INT8U *data, INT8U *DAR) {
+	asyslog(LOG_WARNING, "厂休功控-删除控制单元");
+		CLASS_8104 c8104;
+		int ii = 0;
+		OI_698 oi = 0x00;
+		int unit = 0;
+		ii += getOI(1,&data[ii],&oi);
+
+		memset(&c8104, 0x00, sizeof(CLASS_8104));
+
+		asyslog(LOG_WARNING, "厂休功控-删除控制单元(OI=%04x)",oi);
+		if(oi>=0x2301 && oi<=0x2308) {
+			unit = oi-0x2301;
+		}else {
+			*DAR = interface_uncomp;
+			return 0;
+		}
+		fprintf(stderr, "unit = %d\n", unit);
+
+		ProgramInfo *shareAddr = getShareAddr();
+
+		memset(&shareAddr->ctrls.c8104.list[unit], 0x00, sizeof(FACT_CTRL));
+		saveCoverClass(0x8104, 0, (void *)&shareAddr->ctrls.c8104, sizeof(CLASS_8104),
+				para_vari_save);
+}
+
 int class8104_act6(int index, int attr_act, INT8U *data, Action_result *act_ret) {
 	int oi = 0x00;
 	if (data[0] != 0x50) {
@@ -894,6 +831,9 @@ int class8104_act_route(int index, int attr_act, INT8U *data,
 	switch (attr_act) {
 	case 3:
 		act_ret->datalen = class8104_act3(1, attr_act, data, &act_ret->DAR);
+		break;
+	case 4:
+		class8104_act4(1, attr_act, data, &act_ret->DAR);
 		break;
 	case 6:
 		class8104_act6(1, attr_act, data, act_ret);
@@ -973,9 +913,9 @@ int class8105_act6(int index, int attr_act, INT8U *data, Action_result *act_ret)
 //			para_vari_save);
 	memcpy(&c8105,&shareAddr->ctrls.c8105,sizeof(CLASS_8105));
 	c8105.enable[sindex].state = 0x01;
-	c8105.enable[sindex].name = 0x01;
+	c8105.enable[sindex].name = oi;
 	shareAddr->ctrls.c8105.enable[sindex].state = 0x01;
-	shareAddr->ctrls.c8105.enable[sindex].name = 0x01;
+	shareAddr->ctrls.c8105.enable[sindex].name = oi;
 	saveCoverClass(0x8105, 0, (void *) &c8105, sizeof(CLASS_8105),
 			para_vari_save);
 	return 0;
@@ -1489,9 +1429,9 @@ int class8108_act6(int index, int attr_act, INT8U *data, Action_result *act_ret)
 //			para_vari_save);
 	memcpy(&c8108,&shareAddr->ctrls.c8108,sizeof(CLASS_8108));
 	shareAddr->ctrls.c8108.enable[sindex].state = 0x01;
-	shareAddr->ctrls.c8108.enable[sindex].name = 0x01;
+	shareAddr->ctrls.c8108.enable[sindex].name = oi;
 	c8108.enable[sindex].state = 0x01;
-	c8108.enable[sindex].name = 0x01;
+	c8108.enable[sindex].name = oi;
 	saveCoverClass(0x8108, 0, (void *) &c8108, sizeof(CLASS_8108),
 			para_vari_save);
 
