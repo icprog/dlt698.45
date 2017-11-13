@@ -27,7 +27,6 @@
 #include "dlt698def.h"
 
 static OAD	OAD_PORT_ZB={0xF209,0x02,0x01};
-
 extern ProgramInfo* JProgramInfo;
 extern int SaveOADData(INT8U taskid,OAD oad_m,OAD oad_r,INT8U *databuf,int datalen,TS ts_res);
 extern INT16U data07Tobuff698(FORMAT07 Data07,INT8U* dataContent);
@@ -39,8 +38,8 @@ extern void DbPrt1(INT8U comport,char *prefix, char *buf, int len, char *suffix)
 extern INT8U checkMeterType(MY_MS mst,INT8U usrType,TSA usrAddr);
 extern INT16S composeProtocol698_GetRequest(INT8U* sendBuf, CLASS_6015 obj6015,TSA meterAddr);
 
-extern INT8U getSaveTime(DateTimeBCD* saveTime,INT8U cjType,INT8U saveTimeFlag,DATA_TYPE curvedata);
-extern INT16U compose6012Buff(DateTimeBCD startTime,DateTimeBCD saveTime,TSA meterAddr,INT16U dataLen,INT8U* dataContent, INT8U port485);
+//extern INT8U getSaveTime(DateTimeBCD* saveTime,INT8U cjType,INT8U saveTimeFlag,DATA_TYPE curvedata);
+//extern INT16U compose6012Buff(DateTimeBCD startTime,DateTimeBCD saveTime,TSA meterAddr,INT16U dataLen,INT8U* dataContent, INT8U port485);
 extern mqd_t mqd_zb_task;
 extern CLASS_4204	broadcase4204;
 
@@ -50,7 +49,8 @@ extern TASK_CFG list6013[TASK6012_MAX];
 extern INT8U analyzeProtocol698(INT8U* Rcvbuf, INT8U* resultCount, INT16S recvLen,
 		INT8U* apduDataStartIndex, INT16S* dataLen) ;
 extern INT8U deal698RequestResponse(INT8U getResponseType,INT8U csdNum,INT8U* apdudata,OADDATA_SAVE* oadListContent,INT16U* apdudataLen);
-
+extern INT8U parseSingleROADDataHead(INT8U* oadData,OADDATA_SAVE* oadListContent,INT8U* rcvCSDnum,INT8U* recordNum);
+extern INT16U parseSingleROADDataBody(INT8U* oadData,OADDATA_SAVE* oadListContent,INT8U rcvCSDnum);
 //-----------------------------------------------------------------------------------------------------------------------------------------------------
 
 typedef struct
@@ -159,6 +159,56 @@ void myadd2Pools(int ti,int ii)
 	memcpy(&plcPools.pool[i].tsa,&taskinfo.tsa,sizeof(TSA));
 
 	plcPools.point = (plcPools.point + 1)%4;
+}
+int findFangAnIndex(int code)
+{
+	int i=0;
+	for(i=0;i<20;i++)
+	{
+		if (fangAn6015[i].sernum == code)
+		{
+			return i;
+		}
+	}
+	return -1;
+}
+DateTimeBCD ChgSucessFlg(TASK_INFO *taskinfo_p,DATA_ITEM item,INT8U usrtype,INT8U protocol,INT8U sucessflg)
+{
+	DateTimeBCD timebcd;
+	int i=0,j=0,tnum=0,fnum=0,fangAnIndex=0,needflg=0;
+	tnum = taskinfo_p->task_n;
+	memset(&timebcd,0,sizeof(timebcd));
+	for(i=0;i<tnum;i++)
+	{
+		fangAnIndex = findFangAnIndex(taskinfo_p->task_list[i].fangan.No);//查被抄电表当前任务的采集方案编号，在6015中的索引
+		if (fangAnIndex >=0 )
+		{
+			needflg = checkMeterType(fangAn6015[fangAnIndex].mst, usrtype ,taskinfo_p->tsa);//查被抄电表的用户类型 是否满足6015中的用户类型条件
+		}
+		if (needflg)
+		{
+			fnum = taskinfo_p->task_list[i].fangan.item_n;
+			for(j=0; j<fnum; j++)
+			{
+				if ((protocol==DLT_645_97 && memcmp(taskinfo_p->task_list[i].fangan.items[j].item97,item.item97,2) == 0) ||
+					(protocol==DLT_645_07 && memcmp(taskinfo_p->task_list[i].fangan.items[j].item07,item.item07,4) == 0))
+				{
+					taskinfo_p->task_list[i].fangan.items[j].sucessflg = sucessflg;
+					taskinfo_p->now_itemi = j;
+					taskinfo_p->now_taski = i;
+					timebcd = taskinfo_p->task_list[i].fangan.items[j].savetime;
+					DbgPrintToFile1(31,"更新-%02x%02x%02x%02x%02x%02x%02x%02x[ti=%d ii=%d] [%02x%02x%02x%02x ,  %04x-%02x%02x]",
+							taskinfo_p->tsa.addr[0],taskinfo_p->tsa.addr[1],taskinfo_p->tsa.addr[2],taskinfo_p->tsa.addr[3],
+							taskinfo_p->tsa.addr[4],taskinfo_p->tsa.addr[5],taskinfo_p->tsa.addr[6],taskinfo_p->tsa.addr[7],i,j,
+							taskinfo_p->task_list[i].fangan.items[j].item07[0],taskinfo_p->task_list[i].fangan.items[j].item07[1],
+							taskinfo_p->task_list[i].fangan.items[j].item07[2],taskinfo_p->task_list[i].fangan.items[j].item07[3],
+							taskinfo_p->task_list[i].fangan.items[j].oad1.OI,taskinfo_p->task_list[i].fangan.items[j].oad1.attflg,taskinfo_p->task_list[i].fangan.items[j].oad1.attrindex,
+							taskinfo_p->task_list[i].fangan.items[j].oad2.OI,taskinfo_p->task_list[i].fangan.items[j].oad2.attflg,taskinfo_p->task_list[i].fangan.items[j].oad2.attrindex);
+				}
+			}
+		}
+	}
+	return timebcd;
 }
 int calcTime_t(time_t nowt,time_t time, int uplimit)
 {
@@ -1492,7 +1542,7 @@ int saveProxyData(FORMAT3762 format_3762_Up,struct Tsa_Node *nodetmp)
 	INT8U dataContent[50];
 	memset(dataContent,0,sizeof(dataContent));
 	CLASS_6001 meter = {};
-	CSD_ARRAYTYPE csds;
+//	CSD_ARRAYTYPE csds;
 	memcpy(&meter.basicinfo.addr,&nodetmp->tsa,sizeof(TSA));
 
 	if (format_3762_Up.afn13_f1_up.MsgLength > 0)
@@ -1555,19 +1605,6 @@ int saveProxyData(FORMAT3762 format_3762_Up,struct Tsa_Node *nodetmp)
 	}
 	return 0;
 }
-int findFangAnIndex(int code)
-{
-	int i=0;
-	for(i=0;i<20;i++)
-	{
-		if (fangAn6015[i].sernum == code)
-		{
-			return i;
-		}
-	}
-	return -1;
-}
-
 
 DATA_ITEM checkMeterData(TASK_INFO *meterinfo,int *taski,int *itemi,INT8U usrtype)
 {
@@ -1947,6 +1984,18 @@ int do_other_type( int taski, int itemi ,INT8U *buf, struct Tsa_Node *desnode, D
 					TS ts_start;
 					time_t  endtime;
 					TSGet(&ts_start);
+					if(st6015.data.data[0] == minute_units)
+					{
+						INT16U minInterVal = (st6015.data.data[1]<<8)+st6015.data.data[2];
+						ts_start.Minute = ts_start.Minute/minInterVal*minInterVal;
+					}
+					if(st6015.data.data[0] == hour_units)
+					{
+						INT8U hourInterVal = (st6015.data.data[1]<<8)+st6015.data.data[2];
+						ts_start.Minute = 0;
+						ts_start.Hour = ts_start.Hour/hourInterVal*hourInterVal;
+					}
+
 					st6015.data.data[CURVE_INFO_STARTINDEX+8] = 0x1c;
 					st6015.data.data[CURVE_INFO_STARTINDEX+9] = (ts_start.Year>>8)&0x00ff;
 					st6015.data.data[CURVE_INFO_STARTINDEX+10] = ts_start.Year&0x00ff;
@@ -1955,6 +2004,7 @@ int do_other_type( int taski, int itemi ,INT8U *buf, struct Tsa_Node *desnode, D
 					st6015.data.data[CURVE_INFO_STARTINDEX+13] = ts_start.Hour;
 					st6015.data.data[CURVE_INFO_STARTINDEX+14] = ts_start.Minute;
 					st6015.data.data[CURVE_INFO_STARTINDEX+15] = 0;
+
 					//曲线点结束时间
 					TS ts_end;
 //					ts_end = ts_start - 任务执行间隔；
@@ -1969,6 +2019,38 @@ int do_other_type( int taski, int itemi ,INT8U *buf, struct Tsa_Node *desnode, D
 					st6015.data.data[CURVE_INFO_STARTINDEX+5] = ts_end.Hour;
 					st6015.data.data[CURVE_INFO_STARTINDEX+6] = ts_end.Minute;
 					st6015.data.data[CURVE_INFO_STARTINDEX+7] = 0;
+
+
+					INT8U csdIndex = 0;
+					for(csdIndex = 0;csdIndex < st6015.csds.num;csdIndex++)
+					{
+						if(st6015.csds.csd[csdIndex].type == 1)
+						{
+							ROAD sourceRoad;
+							memcpy(&sourceRoad,&st6015.csds.csd[csdIndex].csd.road,sizeof(ROAD));
+
+							st6015.csds.csd[csdIndex].csd.road.oads[0].OI = 0x2021;
+							st6015.csds.csd[csdIndex].csd.road.oads[0].attflg = 0x02;
+							st6015.csds.csd[csdIndex].csd.road.oads[0].attrindex = 0x00;
+							st6015.csds.csd[csdIndex].csd.road.num = 1;
+							INT8U oadIndex = 0;
+							for(oadIndex = 0;oadIndex < sourceRoad.num;oadIndex++)
+							{
+								if(sourceRoad.oads[oadIndex].OI == 0x2021)
+								{
+									continue;
+								}
+								else
+								{
+									st6015.csds.csd[csdIndex].csd.road.oads[st6015.csds.csd[csdIndex].csd.road.num].OI = sourceRoad.oads[oadIndex].OI;
+									st6015.csds.csd[csdIndex].csd.road.oads[st6015.csds.csd[csdIndex].csd.road.num].attflg = sourceRoad.oads[oadIndex].attflg;
+									st6015.csds.csd[csdIndex].csd.road.oads[st6015.csds.csd[csdIndex].csd.road.num].attrindex = sourceRoad.oads[oadIndex].attrindex;
+									st6015.csds.csd[csdIndex].csd.road.num++;
+								}
+							}
+						}
+					}
+
 					DbgPrintToFile1(31,"抄读开始时间【%04d-%02d-%02d %02d:%02d:%02d】结束时间【%04d-%02d-%02d %02d:%02d:%02d】",
 							ts_end.Year,ts_end.Month,ts_end.Day,ts_end.Hour,ts_end.Minute,ts_end.Sec,
 							ts_start.Year,ts_start.Month,ts_start.Day,ts_start.Hour,ts_start.Minute,ts_start.Sec
@@ -1990,7 +2072,7 @@ int do_other_type( int taski, int itemi ,INT8U *buf, struct Tsa_Node *desnode, D
 		taskinfo.task_list[taski].fangan.item_i = itemi;
 
 		if(type == DLT_698) {		//698抄读成功后,全部数据项置成功标志
-			for(int i=0;i<taskinfo.task_n;i++) {
+			for(int i=0;i<taskinfo.task_list[taski].fangan.item_n;i++) {
 				taskinfo.task_list[taski].fangan.items[i].sucessflg = 1;
 			}
 		}
@@ -2074,7 +2156,7 @@ void chkTsaTask(TASK_INFO *meterinfo)
 						 meterinfo->task_list[i].taskId);
 			 }
 
-			 if(flgZeroCnt == 0 && flg5004Task==0) {//flg5004Task==0, 说明当前任务不是日冻结任务
+			 if(flgZeroCnt == 0 && flg5004Task==0) {//flg5004Task==0, 说明当前任务不是日冻结任务   并且成功标志都不是0
 				task_Refresh(&taskinfo.task_list[i]);
 				for(j = 0; j<meterinfo->task_list[i].fangan.item_n; j++) {
 					meterinfo->task_list[i].fangan.items[j].sucessflg = 0;
@@ -2324,7 +2406,7 @@ void saveTaskData_NormalData(INT8U protocol,TASK_INFO *tskinfo,FORMAT97 *frame97
 	if(len698 > 0)
 	{
 		alldata[0] = 0x55;
-		memcpy(&alldata[1],taskinfo.tsa.addr,17);
+		memcpy(&alldata[1],tskinfo->tsa.addr,17);
 		memcpy(&alldata[18],dataContent,len698);
 		len698 = len698 + 18;
 		DbPrt1(31,"存储:", (char *) alldata, len698, NULL);
@@ -2392,10 +2474,10 @@ void saveTaskData_MeterCurve(TASK_INFO *tskinfo,FORMAT07 *frame07,TS ts)
 }
 void doSave(INT8U protocol,FORMAT97 frame97,FORMAT07 frame07)
 {
-	int saveok = 0;
+	struct Tsa_Node *nodetmp;
+	DateTimeBCD timebcd;
+	DATA_ITEM item;
 	TSA tsatmp;
-	INT8U taskFlag97[4]={0,0},taskFlag07[4]={0,0,0,0},CurveFlg[4]={0x01, 0x00, 0x00, 0x06};
-	int taski=0 ,itemi=0 ;
 	TS ts;
 	if(protocol == DLT_645_97)
 	{
@@ -2405,115 +2487,323 @@ void doSave(INT8U protocol,FORMAT97 frame97,FORMAT07 frame07)
 	{
 		Addr_TSA(frame07.Addr,&tsatmp);
 	}
-
-//	DbgPrintToFile1(31,"内存- %02x%02x%02x%02x%02x%02x%02x%02x%02x  index=%d",
-//			taskinfo.tsa.addr[0],taskinfo.tsa.addr[1],taskinfo.tsa.addr[2],
-//			taskinfo.tsa.addr[3],taskinfo.tsa.addr[4],taskinfo.tsa.addr[5],
-//			taskinfo.tsa.addr[6],taskinfo.tsa.addr[7],taskinfo.tsa.addr[8],taskinfo.tsa_index);
-	DbgPrintToFile1(31,"上数- %02x%02x%02x%02x%02x%02x%02x%02x%02x",
-			tsatmp.addr[0],tsatmp.addr[1],tsatmp.addr[2],
-			tsatmp.addr[3],tsatmp.addr[4],tsatmp.addr[5],
-			tsatmp.addr[6],tsatmp.addr[7],tsatmp.addr[8]);
-	if (memcmp(taskinfo.tsa.addr,tsatmp.addr,8) == 0 )
-	{//是当前抄读TSA 数据
-		taski = taskinfo.now_taski;
-		itemi = taskinfo.now_itemi;
-		TimeBCDToTs(taskinfo.task_list[taski].fangan.items[itemi].savetime,&ts);//ts 为数据存储时间
-		if(protocol == DLT_645_97)
+	memcpy(item.item07,frame07.DI,4);
+	memcpy(item.item97,frame97.DI,2);
+	nodetmp = getNodeByTSA(tsa_head,tsatmp);
+	DbgPrintToFile1(31,"上数=%02x%02x%02x%02x%02x%02x%02x%02x [%d]规约%d",
+			tsatmp.addr[0],tsatmp.addr[1],tsatmp.addr[2],tsatmp.addr[3],
+			tsatmp.addr[4],tsatmp.addr[5],tsatmp.addr[6],tsatmp.addr[7],nodetmp->tsa_index,protocol);
+	if ((nodetmp==NULL ) ||
+			(protocol!=DLT_645_07 && protocol!=DLT_645_97 ))
+		return;
+	if (memcmp(taskinfo.tsa.addr,tsatmp.addr,8) == 0 )//上数TSA就在内存中
+	{
+		timebcd = ChgSucessFlg(&taskinfo,item,nodetmp->usrtype,protocol,2);
+		DbgPrintToFile1(31,"TSA在内存中 %d-%d-%d %d:%d tsknum=%d",timebcd.year.data,timebcd.month.data,timebcd.day.data,timebcd.hour.data,timebcd.min.data,taskinfo.task_n);
+		if (timebcd.year.data!=0 && timebcd.month.data!=0 && timebcd.day.data!=0)
 		{
-			memcpy(taskFlag97,taskinfo.task_list[taski].fangan.items[itemi].item97,2);
-			DbgPrintToFile1(31,"抄读数据项 %02x%02x%02x%02x",taskFlag07[0],taskFlag07[1]);
-			DbgPrintToFile1(31,"回码数据项 %02x%02x%02x%02x",frame97.DI[0],frame97.DI[1]);
+			TimeBCDToTs(timebcd,&ts);//ts 为数据存储时间
+			saveTaskData_NormalData(protocol,&taskinfo,&frame97,&frame07,ts);
 		}
-		else
+	}else
+	{
+		if (readParaClass(0x8888, &taskinfo_tmp, nodetmp->tsa_index) == 1 )
 		{
-			memcpy(taskFlag07,taskinfo.task_list[taski].fangan.items[itemi].item07,4);
-			DbgPrintToFile1(31,"抄读数据项 %02x%02x%02x%02x",taskFlag07[0],taskFlag07[1],taskFlag07[2],taskFlag07[3]);
-			DbgPrintToFile1(31,"回码数据项 %02x%02x%02x%02x",frame07.DI[0],frame07.DI[1],frame07.DI[2],frame07.DI[3]);
-		}
-
-		DbgPrintToFile1(31,"存储时间 %d -%d -%d  %d:%d:%d",ts.Year,ts.Month,ts.Day,ts.Hour,ts.Minute,ts.Sec);
-		if(protocol == DLT_645_97)
-		{
-			if (memcmp(taskFlag97,frame97.DI,2) == 0) //抄读项 与 回码数据项相同
+			timebcd = ChgSucessFlg(&taskinfo_tmp,item,nodetmp->usrtype,protocol,2);
+			DbgPrintToFile1(31,"TSA不在内存中 %d-%d-%d %d:%d",timebcd.year.data,timebcd.month.data,timebcd.day.data,timebcd.hour.data,timebcd.min.data);
+			if (timebcd.year.data!=0 && timebcd.month.data!=0 && timebcd.day.data!=0)
 			{
-				taskinfo.task_list[taski].fangan.items[itemi].sucessflg = 2;
-				saveTaskData_NormalData(DLT_645_97,&taskinfo,&frame97,&frame07,ts);
-				saveok = 1;
+				TimeBCDToTs(timebcd,&ts);//ts 为数据存储时间
+				saveTaskData_NormalData(protocol,&taskinfo_tmp,&frame97,&frame07,ts);
+				saveParaClass(0x8888, &taskinfo_tmp,taskinfo_tmp.tsa_index);
 			}
 		}
-		else
+	}
+}
+INT8U ChgSucessFlg_698(TSA tsaMeter,INT8U taskid)
+{
+	INT8U ret = 0;
+	int i = 0,j = 0;
+		if (memcmp(taskinfo.tsa.addr,tsaMeter.addr,8) == 0 )//上数TSA就在内存中
 		{
-			if (memcmp(taskFlag07,frame07.DI,4) == 0) //抄读项 与 回码数据项相同
+			int tnum = taskinfo.task_n;
+			for(i=0;i<tnum;i++)
 			{
-				taskinfo.task_list[taski].fangan.items[itemi].sucessflg = 2;
-				if(memcmp(CurveFlg,taskFlag07,4) == 0)//负荷曲线数据项
+				if(taskinfo.task_list[i].taskId == taskid)
 				{
-					saveTaskData_MeterCurve(&taskinfo,&frame07,ts);
-				}else								//其它数据项
-				{
-					saveTaskData_NormalData(DLT_645_07,&taskinfo,&frame97,&frame07,ts);
+					for(j=0; j<taskinfo.task_list[i].fangan.item_n; j++)
+					{
+						taskinfo.task_list[i].fangan.items[j].sucessflg = 2;
+					}
 				}
-				saveok = 1;
 			}
+			saveParaClass(0x8888, &taskinfo,taskinfo.tsa_index);
+			DbgPrintToFile1(31,"1---存储698表标识 tsaMeter = %02x %02x %02x %02x %02x %02x %02x %02x ",
+					tsaMeter.addr[0],tsaMeter.addr[1],tsaMeter.addr[2],tsaMeter.addr[3],
+					tsaMeter.addr[4],tsaMeter.addr[5],tsaMeter.addr[6],tsaMeter.addr[7]);
 		}
+		else
+		{
+			struct Tsa_Node *nodetmp = NULL;
+			nodetmp = getNodeByTSA(tsa_head,tsaMeter);
+			if (nodetmp!=NULL)
+			{
+				if (readParaClass(0x8888, &taskinfo_tmp, nodetmp->tsa_index) == 1 )
+				{
+					int tnum = taskinfo_tmp.task_n;
+					for(i=0;i<tnum;i++)
+					{
+						if(taskinfo_tmp.task_list[i].taskId == taskid)
+						{
+							for(j=0; j<taskinfo_tmp.task_list[i].fangan.item_n; j++)
+							{
+								taskinfo_tmp.task_list[i].fangan.items[j].sucessflg = 2;
+							}
+						}
+					}
+					saveParaClass(0x8888, &taskinfo_tmp,taskinfo_tmp.tsa_index);
+					DbgPrintToFile1(31,"2---存储698表标识 tsaMeter = %02x %02x %02x %02x %02x %02x %02x %02x ",
+							tsaMeter.addr[0],tsaMeter.addr[1],tsaMeter.addr[2],tsaMeter.addr[3],
+							tsaMeter.addr[4],tsaMeter.addr[5],tsaMeter.addr[6],tsaMeter.addr[7]);
+				}
+			}
 
-		DbgPrintToFile1(31,"有数据上来，刷新任务内存状态并保存");
-//		chkTsaTask(&taskinfo);
-//		saveParaClass(0x8888, &taskinfo,taskinfo.tsa_index);
+		}
+	return ret;
+}
+INT8U doSave_698(INT8U* buf645,int len645)
+{
+
+	INT8U ret = 0,csdNum = 0,taskid = 0,csdsIndex = 0;
+	INT16S dataLen = len645;
+	INT8U apduDataStartIndex = 0;
+
+	INT16U count = getFECount(buf645, len645); //得到待解析报文中前导符FE的个数
+	TSA tsaMeter;
+	memset(&tsaMeter,0,sizeof(TSA));
+	Addr_TSA(&buf645[5+count],&tsaMeter);
+
+
+	INT8U getResponseType = analyzeProtocol698_RN(buf645,&csdNum,len645,&apduDataStartIndex,&dataLen);
+	if(getResponseType == 0)
+	{
+		DbgPrintToFile1(31,"analyzeProtocol698_RN 失败");
+		return ret;
 	}
 
-	if(saveok==0)
+#ifdef TESTDEF
+	fprintf(stderr,"buf645 [%d] = \n",len645);
+	INT16U prtIndex =0;
+	for(prtIndex = 0;prtIndex < len645;prtIndex++)
 	{
-		struct Tsa_Node *nodetmp;
-		int tski=0,itmi=0;
-		int pooli=0;
-		DbgPrintToFile1(31,"存储延迟上报数据");
-		pooli = findFromPools(tsatmp.addr,frame07.DI);
-		if (pooli>=0)
+		fprintf(stderr,"%02x ",buf645[prtIndex]);
+		if((prtIndex+1)%20 ==0)
 		{
-			TimeBCDToTs(plcPools.pool[pooli].item.savetime,&ts);//ts 为数据存储时间
+			fprintf(stderr,"\n");
+		}
+	}
+#endif
 
-			memcpy(taskFlag07,plcPools.pool[pooli].item.item07,4);
-			DbgPrintToFile1(31,"发现目标,缓存第 %d",pooli);
-			DbgPrintToFile1(31,"抄读数据项 %02x%02x%02x%02x",taskFlag07[0],taskFlag07[1],taskFlag07[2],taskFlag07[3]);
-			DbgPrintToFile1(31,"回码数据项 %02x%02x%02x%02x",frame07.DI[0],frame07.DI[1],frame07.DI[2],frame07.DI[3]);
-			saveTaskData_NormalData_1(protocol,plcPools.pool[pooli].taskID,plcPools.pool[pooli],&frame97,&frame07,ts);
-			tski= plcPools.pool[pooli].task_i;
-			itmi= plcPools.pool[pooli].item_i;
+	OADDATA_SAVE oadListContent[ROAD_OADS_NUM]={};
+	memset(oadListContent,0,ROAD_OADS_NUM*sizeof(OADDATA_SAVE));
 
-			if (memcmp(taskinfo.tsa.addr,tsatmp.addr,8) == 0 )//上数TSA就在内存中
+	INT16U apdudatalen = 0;
+	ROAD_ITEM item_road;
+	memset(&item_road,0,sizeof(item_road));
+	CSD_ARRAYTYPE csds = {0};
+	CLASS_6001 tsa_group;
+	CLASS_6015 class6015;
+	memset(&tsa_group,0,sizeof(CLASS_6001));
+	memset(&class6015,0,sizeof(CLASS_6015));
+	OI_698 oi = 0x6015;
+
+	if(get6001ObjByTSA(tsaMeter,&tsa_group) == 0)
+	{
+		DbgPrintToFile1(31,"测点不在6000里");
+		return ret;
+	}
+
+
+	DbgPrintToFile1(31,"getResponseType = %d csdNum = %d",getResponseType,csdNum);
+	if(getResponseType < GET_REQUEST_RECORD)
+	{
+
+		INT8U datacount = deal698RequestResponse(getResponseType,csdNum,&buf645[apduDataStartIndex],oadListContent,&apdudatalen);
+		csds.num = datacount;
+		for(csdsIndex = 0;csdsIndex < datacount;csdsIndex++)
+		{
+			csds.csd[csdsIndex].type = 0;
+			memcpy(&csds.csd[csdsIndex].csd.oad,&oadListContent[csdsIndex].oad_r,sizeof(OAD));
+			DbgPrintToFile1(31,"---oadListContent[%d].oad_r = %04x",csdsIndex,oadListContent[csdsIndex].oad_r.OI);
+		}
+#if 0
+		DbgPrintToFile1(31,"csds.num = %d",csds.num);
+		for(csdsIndex = 0;csdsIndex < datacount;csdsIndex++)
+		{
+			DbgPrintToFile1(31,"---csds[%d] type = %d OI = %04x",csdsIndex,csds.csd[csdsIndex].type,csds.csd[csdsIndex].csd.oad.OI);
+		}
+#endif
+		extendcsds(csds,&item_road);
+#if 0
+		INT16U tmpindex = 0;
+		for(tmpindex = 0;tmpindex < item_road.oadmr_num;tmpindex++)
+		{
+			DbgPrintToFile1(31,"---item_road taskid = %d oad_m = %04x oad_r = %04x",
+					item_road.oad[tmpindex].taskid,item_road.oad[tmpindex].oad_m.OI,taskid,item_road.oad[tmpindex].oad_r.OI);
+		}
+#endif
+		if((taskid = GetTaskidFromCSDs(item_road,&tsa_group)) == 0) {
+			DbgPrintToFile1(31,"---########GetTaskData_error: taskid=%d\n",taskid);
+				return ret;
+		}
+		if(datacount > 0)
+		{
+			TS ts_cc;
+			TSGet(&ts_cc);
+			saveREADOADdata(taskid,tsaMeter,oadListContent,datacount,ts_cc);
+			ChgSucessFlg_698(tsaMeter,taskid);
+		}
+		else
+		{
+			DbgPrintToFile1(1,"\n收到回复报文但是没有数据taskid　＝　%d TSA=%02x %02x %02x %02x %02x %02x %02x %02x",
+						taskid,tsaMeter.addr[0],tsaMeter.addr[1],tsaMeter.addr[2],tsaMeter.addr[3],
+						tsaMeter.addr[4],tsaMeter.addr[5],tsaMeter.addr[6],tsaMeter.addr[7]);
+		}
+
+	}
+	else
+	{
+		INT8U rcvCSDnum = 0,recordNum = 0;
+		INT16U oaddataLen = 0;
+
+		oaddataLen = parseSingleROADDataHead(&buf645[apduDataStartIndex],oadListContent,&rcvCSDnum,&recordNum);
+		apduDataStartIndex += oaddataLen;
+
+		csds.num = 1;
+		csds.csd[0].type = 1;
+		memcpy(&csds.csd[0].csd.road.oad,&oadListContent[0].oad_m,sizeof(OAD));
+		csds.csd[0].csd.road.num = rcvCSDnum;
+		for(csdsIndex = 0;csdsIndex < rcvCSDnum;csdsIndex++)
+		{
+			memcpy(&csds.csd[0].csd.road.oads[csdsIndex],&oadListContent[csdsIndex].oad_r,sizeof(OAD));
+			DbgPrintToFile1(31,"oadListContent[%d].oad_r = %04x",csdsIndex,oadListContent[csdsIndex].oad_r.OI);
+		}
+#if 0
+		DbgPrintToFile1(31,"csds.num = %d csds.csd[0].csd.road.num = %d",csds.num,csds.csd[0].csd.road.num);
+		for(csdsIndex = 0;csdsIndex < rcvCSDnum;csdsIndex++)
+		{
+			DbgPrintToFile1(31,"csds[%d] m_OI=%04x OI=%04x",csdsIndex,csds.csd[0].csd.road.oad.OI,csds.csd[0].csd.road.oads[csdsIndex].OI);
+		}
+#endif
+		extendcsds(csds,&item_road);
+#if 0
+		INT16U tmpindex = 0;
+		for(tmpindex = 0;tmpindex < item_road.oadmr_num;tmpindex++)
+		{
+			DbgPrintToFile1(31,"item_road taskid = %d oad_m = %04x oad_r = %04x",
+					item_road.oad[tmpindex].taskid,item_road.oad[tmpindex].oad_m.OI,taskid,item_road.oad[tmpindex].oad_r.OI);
+		}
+#endif
+		if((taskid = GetTaskidFromCSDs(item_road,&tsa_group)) == 0) {
+			DbgPrintToFile1(31,"########GetTaskData_error: taskid=%d\n",taskid);
+				return ret;
+		}
+		DbgPrintToFile1(31,"rcvCSDnum = %d recordNum = %d taskid = %d",rcvCSDnum,recordNum,taskid);
+		INT16U taskIndex = 0;
+		for(taskIndex=0;taskIndex<TASK6012_MAX;taskIndex++)
+		{
+			if (list6013[taskIndex].basicInfo.taskID == taskid)
 			{
-				DbgPrintToFile1(31,"上数TSA在内存中");
-				taskinfo.task_list[tski].fangan.items[itmi].sucessflg = 2;
-			}else
-			{
-				DbgPrintToFile1(31,"上数TSA与内存不符");
-				nodetmp = getNodeByTSA(tsa_head,tsatmp);
-				if (nodetmp!=NULL)
+				if (readCoverClass(oi, list6013[taskIndex].basicInfo.sernum, &class6015, sizeof(CLASS_6015), coll_para_save)== 1)
 				{
-					if (readParaClass(0x8888, &taskinfo_tmp, nodetmp->tsa_index) == 1 )
+					if(rcvCSDnum > 0 && recordNum > 0)
 					{
-						if (memcmp(taskinfo_tmp.task_list[tski].fangan.items[itmi].item07,plcPools.pool[pooli].item.item07,4) == 0)
+						INT8U recordIndex = 0;
+						TS freezeTimeStamp;
+						TSGet(&freezeTimeStamp);
+
+						if(class6015.cjtype == TYPE_INTERVAL)
 						{
-							taskinfo_tmp.task_list[tski].fangan.items[itmi].sucessflg = 2;
-							saveParaClass(0x8888, &taskinfo_tmp,taskinfo_tmp.tsa_index);
+							freezeTimeStamp.Sec = 0;
+
+							INT16U minInterVal = 0;//冻结时标间隔-分钟
+							if(class6015.data.data[0] == minute_units)
+							{
+								minInterVal = (class6015.data.data[1]<<8)+class6015.data.data[2];
+								freezeTimeStamp.Minute = freezeTimeStamp.Minute/minInterVal*minInterVal;
+							}
+							if(class6015.data.data[0] == hour_units)
+							{
+								INT8U hourInterVal = (class6015.data.data[1]<<8)+class6015.data.data[2];
+								minInterVal = hourInterVal*60;
+								freezeTimeStamp.Minute = 0;
+								freezeTimeStamp.Hour = freezeTimeStamp.Hour/hourInterVal*hourInterVal;
+							}
+
+						}
+
+
+						for(recordIndex = 0;recordIndex < recordNum;recordIndex++)
+						{
+							oaddataLen = parseSingleROADDataBody(&buf645[apduDataStartIndex],oadListContent,rcvCSDnum);
+							apduDataStartIndex += oaddataLen;
+							if((oadListContent[0].oad_r.OI==0x2021)&&(oadListContent[0].data[0] == 0x1c))
+							{
+								freezeTimeStamp.Year = oadListContent[0].data[1];
+								freezeTimeStamp.Year = freezeTimeStamp.Year<<8;
+								freezeTimeStamp.Year += oadListContent[0].data[2];
+								freezeTimeStamp.Month = oadListContent[0].data[3];
+								freezeTimeStamp.Day = oadListContent[0].data[4];
+								freezeTimeStamp.Hour = oadListContent[0].data[5];
+								freezeTimeStamp.Minute = oadListContent[0].data[6];
+								freezeTimeStamp.Sec = oadListContent[0].data[7];
+								freezeTimeStamp.Week = 0;
+							}
+							saveREADOADdata(taskid,tsaMeter,oadListContent,rcvCSDnum,freezeTimeStamp);
+							if(class6015.cjtype == TYPE_INTERVAL)
+							{
+								//DbgPrintToFile1(31,"曲线时间点:%d-%d-%d %d:%d",freezeTimeStamp.Year,freezeTimeStamp.Month,freezeTimeStamp.Day,freezeTimeStamp.Hour,freezeTimeStamp.Minute);
+								INT32S bactm = 0-((class6015.data.data[1]<<8)+class6015.data.data[2]);
+								tminc(&freezeTimeStamp,class6015.data.data[0],bactm);
+							}
+
+						}
+						if((recordNum > 0)&&(rcvCSDnum > 0))
+						{
+							ChgSucessFlg_698(tsaMeter,taskid);
+						}
+						else
+						{
+							DbgPrintToFile1(1,"\n收到回复报文但是没有数据taskid　＝　%d TSA=%02x %02x %02x %02x %02x %02x %02x %02x",
+										taskid,tsaMeter.addr[0],tsaMeter.addr[1],tsaMeter.addr[2],tsaMeter.addr[3],
+										tsaMeter.addr[4],tsaMeter.addr[5],tsaMeter.addr[6],tsaMeter.addr[7]);
 						}
 					}
 				}
 			}
 		}
+
 	}
 
+
+#if 0
+	//力合微的模块,07表AFN14_F1请求抄读时,返回AFN06_F2上报抄读数据的规约类型为0,此处用698解析报文失败后,用07规约解析存储
+	else  if (analyzeProtocol07(&frame07, buf645, len645, &nextFlag) == 0)
+	{
+		DbgPrintToFile1(31,"存储规约类型%d",format_3762_Up.afn06_f2_up.Protocol);
+		doSave(DLT_645_07,frame97,frame07);
+	}
+#endif
+	return ret;
 }
 int SaveTaskData(FORMAT3762 format_3762_Up,INT8U taskid,INT8U fananNo)
 {
 	struct Tsa_Node *nodetmp;
 	int len645=0;
-	INT8U nextFlag=0, dataContent[1024]={0}, buf645[1024]={0};
+	INT8U nextFlag=0,  buf645[1024]={0};
 	FORMAT07 frame07 = {};
 	FORMAT97 frame97 = {};
-	memset(dataContent,0,sizeof(dataContent));
+
 	fprintf(stderr,"MsgLength = %d Protocol = %d \n",format_3762_Up.afn06_f2_up.MsgLength,format_3762_Up.afn06_f2_up.Protocol);
 
 
@@ -2526,9 +2816,6 @@ int SaveTaskData(FORMAT3762 format_3762_Up,INT8U taskid,INT8U fananNo)
 			DbgPrintToFile1(31,"鼎信载波，存储规约改为类型%d",format_3762_Up.afn06_f2_up.Protocol);
 		}
 	}
-
-
-//	format_3762_Up.afn06_f2_up.Protocol = DLT_645_07;
 	if (format_3762_Up.afn06_f2_up.MsgLength > 0)
 	{
 		len645 = format_3762_Up.afn06_f2_up.MsgLength;
@@ -2547,169 +2834,7 @@ int SaveTaskData(FORMAT3762 format_3762_Up,INT8U taskid,INT8U fananNo)
 		}
 		else if((format_3762_Up.afn06_f2_up.Protocol == DLT_698)||(format_3762_Up.afn06_f2_up.Protocol == PROTOCOL_UNKNOWN))
 		{
-
-
-			INT8U csdNum = 0;
-			INT16S dataLen = len645;
-			INT8U apduDataStartIndex = 0;
-			INT8U getResponseType = analyzeProtocol698_RN(buf645,&csdNum,len645,&apduDataStartIndex,&dataLen);
-#ifdef TESTDEF
-			fprintf(stderr,"buf645 [%d] = \n",len645);
-			INT16U prtIndex =0;
-			for(prtIndex = 0;prtIndex < len645;prtIndex++)
-			{
-				fprintf(stderr,"%02x ",buf645[prtIndex]);
-				if((prtIndex+1)%20 ==0)
-				{
-					fprintf(stderr,"\n");
-				}
-			}
-#endif
-			int pooli=0;
-			int pooltaski=taskinfo.now_taski;
-			int poolitemi=taskinfo.now_itemi;
-
-			if(getResponseType > 0)
-			{
-				INT16U count = getFECount(buf645, len645); //得到待解析报文中前导符FE的个数
-				TSA tsaMeter;
-				memset(&tsaMeter,0,sizeof(TSA));
-				Addr_TSA(&buf645[5+count],&tsaMeter);
-
-				if (memcmp(taskinfo.tsa.addr,tsaMeter.addr,8) == 0 )//上数TSA就在内存中
-				{
-					DbgPrintToFile1(31,"698表上数TSA在内存中　taskid= %d fananNo=%d",taskid,fananNo);
-				}else
-				{
-					pooli = findFromPools_ByTsa(tsaMeter.addr);
-					taskid = plcPools.pool[pooli].taskID;
-					fananNo = plcPools.pool[pooli].fangAn;
-					pooltaski = plcPools.pool[pooli].task_i;
-					poolitemi = plcPools.pool[pooli].item_i;
-					DbgPrintToFile1(31,"存储延迟上报698表数据 pooli = %d taskid= %d fananNo=%d pooltaski=%d",
-							pooli,taskid,fananNo,pooltaski);
-				}
-				fprintf(stderr,"\n fananNo = %d taskid = %d getResponseType = %d  csdNum = %d dataLen = %d \n",fananNo,taskid,getResponseType,csdNum,dataLen);
-				CLASS_6015 class6015;	//采集方案集
-				INT16U i = 0;
-				for(i=0;i<=255;i++)
-				{
-					memset(&class6015,0,sizeof(CLASS_6015));
-					if(readCoverClass(0x6015,i,&class6015,sizeof(CLASS_6015),coll_para_save)== 1)
-					{
-						if(class6015.sernum == fananNo)
-						{
-
-							CLASS_6001 to6001 ={};
-							OADDATA_SAVE oadListContent[ROAD_OADS_NUM]={};
-							memset(oadListContent,0,ROAD_OADS_NUM*sizeof(OADDATA_SAVE));
-							INT16U apdudatalen = 0;
-
-							INT8U retLen = deal698RequestResponse(getResponseType,csdNum,&buf645[apduDataStartIndex],oadListContent,&apdudatalen);
-
-							fprintf(stderr,"\n deal698RequestResponse retLen = %d",retLen);
-#ifdef TESTDEF
-							fprintf(stderr,"deal698RequestResponse Buf[%d] = \n",dataLen);
-
-							for(prtIndex = 0;prtIndex < retLen;prtIndex++)
-							{
-								fprintf(stderr,"%02x ",dataContent[prtIndex]);
-								if((prtIndex+1)%20 ==0)
-								{
-									fprintf(stderr,"\n");
-								}
-							}
-#endif
-							if(retLen > 0)
-							{
-								if(class6015.cjtype != TYPE_INTERVAL)
-								{
-									TS ts_cc;
-									TSGet(&ts_cc);
-									saveREADOADdata(taskid,tsaMeter,oadListContent,csdNum,ts_cc);
-									DbgPrintToFile1(31,"存储698数据taskid=%d",taskid);
-									nodetmp = getNodeByTSA(tsa_head,tsaMeter);
-									if (nodetmp!=NULL)
-									{
-										if (readParaClass(0x8888, &taskinfo_tmp, nodetmp->tsa_index) == 1 )
-										{
-											for(i=0;i<taskinfo_tmp.task_list[pooltaski].fangan.item_n;i++)
-												taskinfo_tmp.task_list[pooltaski].fangan.items[i].sucessflg = 2;
-											saveParaClass(0x8888, &taskinfo_tmp,taskinfo_tmp.tsa_index);
-											DbgPrintToFile1(31,"存储698表标识 tsaMeter = %02x %02x %02x %02x %02x %02x %02x %02x ",
-													tsaMeter.addr[0],tsaMeter.addr[1],tsaMeter.addr[2],tsaMeter.addr[3],
-													tsaMeter.addr[4],tsaMeter.addr[5],tsaMeter.addr[6],tsaMeter.addr[7]);
-										}
-									}
-								}
-								else
-								{
-
-									INT8U rcvCSDnum = 0,recordNum = 0;
-									INT16U oaddataLen = 0;
-
-									oaddataLen = parseSingleROADDataHead(&buf645[apduDataStartIndex],oadListContent,&rcvCSDnum,&recordNum);
-									apduDataStartIndex += oaddataLen;
-
-									DbgPrintToFile1(31,"存储698表数据曲线　rcvCSDnum = %d recordNum=%d",rcvCSDnum,recordNum);
-									if(rcvCSDnum > 0 && recordNum > 0)
-									{
-										INT8U recordIndex = 0;
-										TS freezeTimeStamp;
-										TSGet(&freezeTimeStamp);
-										freezeTimeStamp.Sec = 0;
-
-										INT16U minInterVal = 0;//冻结时标间隔-分钟
-										if(class6015.data.data[0] == minute_units)
-										{
-											minInterVal = (class6015.data.data[1]<<8)+class6015.data.data[2];
-											freezeTimeStamp.Minute = freezeTimeStamp.Minute/minInterVal*minInterVal;
-										}
-										if(class6015.data.data[0] == hour_units)
-										{
-											INT8U hourInterVal = (class6015.data.data[1]<<8)+class6015.data.data[2];
-											minInterVal = hourInterVal*60;
-											freezeTimeStamp.Minute = 0;
-											freezeTimeStamp.Hour = freezeTimeStamp.Hour/hourInterVal*hourInterVal;
-										}
-
-										for(recordIndex = 0;recordIndex < recordNum;recordIndex++)
-										{
-											oaddataLen = parseSingleROADDataBody(&buf645[apduDataStartIndex],oadListContent,rcvCSDnum);
-											apduDataStartIndex += oaddataLen;
-											saveREADOADdata(taskid,tsaMeter,oadListContent,rcvCSDnum,freezeTimeStamp);
-											INT32S bactm = 0-((class6015.data.data[1]<<8)+class6015.data.data[2]);
-											tminc(&freezeTimeStamp,class6015.data.data[0],bactm);
-										}
-
-										nodetmp = getNodeByTSA(tsa_head,tsaMeter);
-										if (nodetmp!=NULL)
-										{
-											if (readParaClass(0x8888, &taskinfo_tmp, nodetmp->tsa_index) == 1 )
-											{
-												for(i=0;i<taskinfo_tmp.task_list[pooltaski].fangan.item_n;i++)
-													taskinfo_tmp.task_list[pooltaski].fangan.items[i].sucessflg = 2;
-												saveParaClass(0x8888, &taskinfo_tmp,taskinfo_tmp.tsa_index);
-												DbgPrintToFile1(31,"存储698表标识曲线 tsaMeter = %02x %02x %02x %02x %02x %02x %02x %02x ",
-														tsaMeter.addr[0],tsaMeter.addr[1],tsaMeter.addr[2],tsaMeter.addr[3],
-														tsaMeter.addr[4],tsaMeter.addr[5],tsaMeter.addr[6],tsaMeter.addr[7]);
-											}
-										}
-									}
-
-								}
-							}
-							break;
-						}
-					}
-
-				}
-			}
-			//力合微的模块,07表AFN14_F1请求抄读时,返回AFN06_F2上报抄读数据的规约类型为0,此处用698解析报文失败后,用07规约解析存储
-			else  if (analyzeProtocol07(&frame07, buf645, len645, &nextFlag) == 0)
-			{
-				doSave(DLT_645_07,frame97,frame07);
-			}
+			doSave_698(buf645,len645);
 		}
 		else
 		{
@@ -3095,8 +3220,8 @@ INT8U F209_TransRequest(RUNTIME_PLC *runtime_p,CJCOMM_PROXY *proxy,int* beginwor
 	timeout = proxy->strProxyList.proxy_obj.f209Trans.overTime ;
 	if (timeout>60 || timeout<=0)
 		timeout = 20;
-//	timeout = (proxy->strProxyList.proxy_obj.transcmd.revtimeout > 0) ?  \
-//			proxy->strProxyList.proxy_obj.transcmd.revtimeout: 20;
+
+//	timeout = (proxy->strProxyList.proxy_obj.transcmd.revtimeout > 0) ? proxy->strProxyList.proxy_obj.transcmd.revtimeout: 20;
 
 	if (*beginwork==0 && cjcommProxy_plc.isInUse==1) {//发送点抄
 		*beginwork = 1;
@@ -3798,11 +3923,13 @@ int stateJuge(int nowdstate,MY_PARA_COUNTER *mypara_p,RUNTIME_PLC *runtime_p,int
 
 	if ((runtime_p->format_Up.afn==0x06) && (runtime_p->format_Up.fn==5))//AFN= 06 FN= F5  路由上报从节点事件
 	{
+#if 0
 		runtime_p->state_bak = runtime_p->state;
 		DbgPrintToFile1(31,"载波主动上报  备份状态 %d",runtime_p->state_bak);
 		state = AUTO_REPORT;
 		runtime_p->state = state;
 		return state;
+#endif
 	}
 	//-----------------------------------------------------------------------------------
 	dateChg = dateJudge(&runtime_p->oldts,&runtime_p->nowts);

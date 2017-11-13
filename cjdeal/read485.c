@@ -23,6 +23,7 @@ extern ProgramInfo* JProgramInfo;
 extern INT8U poweroffon_state;
 extern MeterPower MeterPowerInfo[POWEROFFON_NUM];
 
+//INT8U doSave_698(INT8U* buf645,int len645);
 
 INT8U flag07_0CF33[4] =   {0x00,0xff,0x01,0x00};//当前正向有功总电能示值
 INT8U flag07_0CF34[4] =   {0x00,0xff,0x02,0x00};//当前反向有功总电能示值
@@ -4013,8 +4014,25 @@ INT16S deal6015_9707(INT8U protocol,CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6
 		TSGet(&OADts);
 		if(OADdata[0].oad_m.OI == 0x5002)
 		{
-			OADts.Minute = 0;
-			OADts.Sec = 0;
+			if(st6015.cjtype == TYPE_INTERVAL)
+			{
+				OADts.Sec = 0;
+
+				INT16U minInterVal = 0;//冻结时标间隔-分钟
+				if(st6015.data.data[0] == minute_units)
+				{
+					minInterVal = (st6015.data.data[1]<<8)+st6015.data.data[2];
+					OADts.Minute = OADts.Minute/minInterVal*minInterVal;
+				}
+				if(st6015.data.data[0] == hour_units)
+				{
+					INT8U hourInterVal = (st6015.data.data[1]<<8)+st6015.data.data[2];
+					minInterVal = hourInterVal*60;
+					OADts.Minute = 0;
+					OADts.Hour = OADts.Hour/hourInterVal*hourInterVal;
+				}
+
+			}
 		}
 		saveREADOADdata(st6035->taskID,to6001.basicinfo.addr,OADdata,oadDataNum,OADts);
 	}

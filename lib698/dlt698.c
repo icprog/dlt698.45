@@ -1721,9 +1721,18 @@ INT8U analyzeProtocol698_RN(INT8U* Rcvbuf, INT8U* resultCount, INT16S recvLen,
 
 			if((apdu[2]&0x80)==0x80)//这说明字节多位
 			{
-				apdu = &apdu[5];
-				*dataLen = *dataLen - 9;
-				startIndex += 5;
+				if((apdu[2]&0x0f)==2)
+				{
+					apdu = &apdu[5];
+					*dataLen = *dataLen - 9;
+					startIndex += 5;
+				}
+				if((apdu[2]&0x0f)==1)
+				{
+					apdu = &apdu[4];
+					*dataLen = *dataLen - 8;
+					startIndex += 4;
+				}
 			}
 			else
 			{

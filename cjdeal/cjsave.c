@@ -17,15 +17,24 @@
 
 extern pthread_mutex_t mutex_savetask;
 
-void getFRZtime(CLASS_6013 class6013, CLASS_6015 class6015,TS ts,INT8U *buf,INT16U seqsec)
+void getFRZtime(CLASS_6013 class6013, CLASS_6015 class6015,TS ts,INT8U *buf,INT32U seqsec)
 {
 	int i=0;
-	INT16U daysec=0;
+	INT32U daysec=0;
 	TS ts_lastday,ts_lastmon;
 	ts_lastmon = ts_lastday= ts;//重新赋值，减一天用于日冻结存储时标赋值
 	fprintf(stderr,"\nclass6015.savetimeflag=%d\n",class6015.savetimeflag);
 	switch(class6015.savetimeflag)
 	{
+	case 1:
+		buf[0] = (ts.Year&0xff00)>>8;
+		buf[1] = ts.Year&0x00ff;
+		buf[2] = ts.Month;
+		buf[3] = ts.Day;
+		buf[4] = ts.Hour;
+		buf[5] = ts.Minute;
+		buf[6] = ts.Sec;
+		break;
 	case 2://相对当日零点零分
 		buf[0] = (ts.Year&0xff00)>>8;
 		buf[1] = ts.Year&0x00ff;
@@ -76,9 +85,11 @@ void getFRZtime(CLASS_6013 class6013, CLASS_6015 class6015,TS ts,INT8U *buf,INT1
 		buf[6] = 0;
 		break;
 	default:
+		fprintf(stderr,"\n%d:%d:%d daysec=%d\n",ts.Hour,ts.Minute,ts.Sec,daysec);
 		daysec = ts.Hour*3600+ts.Minute*60+ts.Sec;
 		daysec = daysec/seqsec;
 		daysec = daysec*seqsec;
+		fprintf(stderr,"\ndaysec=%d seqsec=%d\n",daysec,seqsec);
 		buf[0] = (ts.Year&0xff00)>>8;
 		buf[1] = ts.Year&0x00ff;
 		buf[2] = ts.Month;
@@ -276,8 +287,8 @@ void fillRECdata(OADDATA_SAVE *OADdata,INT8U OADnum,INT8U *databuf,HEADFIXED_INF
 //	pos6040 = 2*(1+sizeof(DateTimeBCD));//记录第三个位置为6041
 	//组记录头
 	fprintf(stderr,"\n---------------------------databuf[0]=%d class6015.savetimeflag=%d\n",databuf[0],class6015.savetimeflag);
-	if(databuf[0] == 0 && class6015.savetimeflag != 6)//采集开始时间为空 6表示冻结时标取抄表上来的6042
-	{
+	if(databuf[0] == 0)// && class6015.savetimeflag != 6)//采集开始时间为空 6表示冻结时标取抄表上来的6042
+	{//lyl 修改，没有抄上时标，先自组一个时标
 		databuf[0]=0x1c;
 		getFRZtime(class6013,class6015,OADts,&databuf[1],taskhead_info.seqsec);
 	}
@@ -544,8 +555,8 @@ void saveREADOADdata(INT8U taskid,TSA tsa,OADDATA_SAVE *OADdata,INT8U OADnum,TS 
 {
 	pthread_mutex_lock(&mutex_savetask);
 #if 1
-	DbgPrintToFile1(1,"\n##############saveREADOADdata = %d　TSA=%02x %02 %02 %02 %02 %02 %02 %02",
-			OADnum,tsa.addr[0],tsa.addr[1],tsa.addr[2],tsa.addr[3],tsa.addr[4],tsa.addr[5],tsa.addr[6],tsa.addr[7]);
+	DbgPrintToFile1(1,"\n##############taskid　＝　%d saveREADOADdata = %d　TSA=%02x %02x %02x %02x %02x %02x %02x %02x",
+			taskid,OADnum,tsa.addr[0],tsa.addr[1],tsa.addr[2],tsa.addr[3],tsa.addr[4],tsa.addr[5],tsa.addr[6],tsa.addr[7]);
 	fprintf(stderr,"\n##############saveREADOADdata = %d",OADnum);
 	INT8U prtIndex = 0;
 	for(prtIndex = 0;prtIndex < OADnum;prtIndex++)
