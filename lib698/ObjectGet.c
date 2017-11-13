@@ -486,6 +486,7 @@ int fill_ALSTATE(INT8U *data,ALSTATE *alstate,INT8U datatype)
 //	if(unitnum) {
 		index += create_array(&data[index],unitnum);	//数组位置，后面计算实际值更新改位置
 		for(i=0;i<MAX_AL_UNIT;i++) {
+			fprintf(stderr,"read c8103.enable[%d].name=%x state=%d\n",i,alstate[i].name,alstate[i].state);
 			if(alstate[i].name==0) continue;
 			unitnum++;
 			index += create_struct(&data[index],2);
@@ -503,6 +504,8 @@ int fill_ALSTATE(INT8U *data,ALSTATE *alstate,INT8U datatype)
 				break;
 			}
 		}
+
+		fprintf(stderr,"unitnum = %d\n",unitnum);
 		if(unitnum) {
 			create_array(&data[0],unitnum);		//赋array的有效值
 		}else  {
@@ -512,6 +515,7 @@ int fill_ALSTATE(INT8U *data,ALSTATE *alstate,INT8U datatype)
 //	}else {
 //		data[index++] = 0;		//NULL
 //	}
+		fprintf(stderr," fill_ALSTATE index = %d\n",index);
 	return index;
 }
 
@@ -667,6 +671,8 @@ int Get_8103(RESULT_NORMAL *response)
 		}
 		break;
 	case 3:	//控制投入状态
+		fprintf(stderr,"c8103.enable[0].name=%x state=%d\n",c8103.enable[0].name,c8103.enable[0].state);
+
 		index += fill_ALSTATE(&data[index],c8103.enable,dtenum);
 		break;
 	case 4:	//控制输出状态
@@ -1742,7 +1748,11 @@ int GetF206(RESULT_NORMAL *response)
 	switch(oad.attflg )
 	{
 		case 2:	//通信配置
-
+			if(class_tmp.state_num == 0) {
+				class_tmp.state_num = 2;		//默认两个轮次告警
+				class_tmp.alarm_state[0] = 0;	//值 = 未输出
+				class_tmp.alarm_state[1] = 0;
+			}
 			index += create_array(&data[index],class_tmp.state_num);
 			for(i=0;i<class_tmp.state_num;i++)
 			{

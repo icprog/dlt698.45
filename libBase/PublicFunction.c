@@ -670,6 +670,38 @@ time_t	TimeBCDTotime_t(DateTimeBCD datetime)
     return ctime;
 }
 
+/*
+ * 获取RTC时钟,RTC读取失败，会返回系统的时钟
+ * */
+int getrtc(struct tm *rtctm,int *ms)
+{
+	int rtc = 0;
+	int ret = 0;
+	struct rtc_time rtc_tm={};
+	struct timeval tpnow={};
+
+	gettimeofday(&tpnow, NULL);
+	localtime_r(&tpnow.tv_sec, rtctm);
+	*ms = tpnow.tv_usec/1000;//毫秒
+	rtc = open("/dev/rtc0", O_RDONLY);
+    ret = ioctl(rtc, RTC_RD_TIME, &rtc_tm);
+    if(ret!=-1)
+    {
+		rtctm->tm_year = rtc_tm.tm_year;// + 1900; 为实际年
+		rtctm->tm_mon = rtc_tm.tm_mon;// + 1; 为实际月
+		rtctm->tm_mday = rtc_tm.tm_mday;
+		rtctm->tm_hour = rtc_tm.tm_hour;
+		rtctm->tm_min = rtc_tm.tm_min;
+		rtctm->tm_sec = rtc_tm.tm_sec;
+		ret = 1;
+    }else {
+		syslog(LOG_NOTICE,"RTC Error:%d-%d-%d %d:%d:%d %d\n",rtctm->tm_year,rtctm->tm_mon,rtctm->tm_mday,rtctm->tm_hour,rtctm->tm_min,rtctm->tm_sec,rtctm->tm_wday);
+    	ret = 0;
+    }
+    close(rtc);
+    return ret;
+}
+
 void setsystime(DateTimeBCD datetime) {
     fprintf(stderr, "\n终端对时：%d年-%d月-%d日 %d时:%d分:%d秒", datetime.year.data, datetime.month.data, datetime.day.data, datetime.hour.data,
             datetime.min.data, datetime.sec.data);

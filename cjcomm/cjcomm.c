@@ -6,6 +6,7 @@
 #include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/time.h>
 #include <unistd.h>
 #include <net/if.h>
 #include <netinet/in.h>
@@ -15,14 +16,13 @@
 #include "cjcomm.h"
 #include "atBase.h"
 #include "special.h"
-
+#include "basedef.h"
 
 int cWriteWithCalc(int name, int fd, INT8U *buf, INT16U len) {
 	int old = (int) dbGet("calc.new") + len;
 	dbSet("calc.new", old);
 	cWrite(name, fd, buf, len);
 }
-
 
 int cWrite(int name, int fd, INT8U *buf, INT16U len) {
 	int ret = anetWrite(fd, buf, (int) len);
@@ -181,47 +181,62 @@ void QuitProcess(int sig) {
 	exit(0);
 }
 
-void WriteLinkRequest(INT8U link_type, INT16U heartbeat, LINK_Request *link_req) {
+void WriteLinkRequest(INT8U link_type, INT16U heartbeat, CommBlock *compara) {
 
-	struct timeval tpnow;
-	gettimeofday(&tpnow, NULL);
+	struct timeval tpnow={};
+    struct tm tmp_tm={};
+    int msec = 0;
+	static int piid = 0;
 
-	int msec = (float)tpnow.tv_usec/1000;//毫秒
-
-	TS ts = { };
-	TSGet(&ts);
-	link_req->type = link_type;
-	link_req->piid_acd.data = 0;
-	link_req->time.year = ts.Year;//((ts.Year << 8) & 0xff00) | ((ts.Year >> 8) & 0xff); // apdu 先高后低
-	link_req->time.month = ts.Month;
-	link_req->time.day_of_month = ts.Day;
-	link_req->time.day_of_week = ts.Week;
-	link_req->time.hour = ts.Hour;
-	link_req->time.minute = ts.Minute;
-	link_req->time.second = ts.Sec;
-	link_req->time.milliseconds = msec;
-	link_req->heartbeat = heartbeat;//((heartbeat << 8) & 0xff00)| ((heartbeat >> 8) & 0xff);
-
+	ProgramInfo *info = (ProgramInfo *) dbGet("program.info");
+	if(getZone("GW")==0 && info->cfg_para.device==CCTT2) {		//II型日计时误差不合格，此处将心跳时钟读取RTC时钟
+		getrtc(&tmp_tm,&msec);		//RTC时钟读取失败，仍然使用系统时钟获取心跳
+	}else {
+		gettimeofday(&tpnow, NULL);
+		localtime_r(&tpnow.tv_sec, &tmp_tm);
+		msec = tpnow.tv_usec/1000;//毫秒
+	}
+	compara->link_request.type = link_type;
+	compara->link_request.piid_acd.data = piid;
+	piid = (piid + 1) % 64;  //bit0-bit5:服务序号
+//	fprintf(stderr,"piid=%d\n",piid);
+	compara->link_request.time.year = tmp_tm.tm_year+1900;//((ts.Year << 8) & 0xff00) | ((ts.Year >> 8) & 0xff); // apdu 先高后低
+	compara->link_request.time.month = tmp_tm.tm_mon+1;
+	compara->link_request.time.day_of_month = tmp_tm.tm_mday;
+	compara->link_request.time.day_of_week = tmp_tm.tm_wday;
+	compara->link_request.time.hour = tmp_tm.tm_hour;
+	compara->link_request.time.minute = tmp_tm.tm_min;
+	compara->link_request.time.second = tmp_tm.tm_sec;
+	compara->link_request.time.milliseconds = msec;
+	compara->link_request.heartbeat = heartbeat;//((heartbeat << 8) & 0xff00)| ((heartbeat >> 8) & 0xff);
 }
 
 int Comm_task(CommBlock *compara) {
+	static INT8U heartbeatfresh =  0;
+
+	ProgramInfo *pi = (ProgramInfo *)compara->shmem;
+	if(heartbeatfresh != pi->oi_changed.oi4000)
+	{
+		heartbeatfresh = pi->oi_changed.oi4000;
+		compara->lasttime = time(NULL);
+	}
 	INT16U heartbeat = (compara->Heartbeat == 0) ? 300 : compara->Heartbeat;
 	if (abs(time(NULL) - compara->lasttime) < heartbeat) {
 		return 0;
 	}
-	compara->lasttime = time(NULL);
 
+	compara->lasttime = time(NULL);
 	if (compara->testcounter > 2) {
 		return -1;
 	}
 
 	if (compara->linkstate == close_connection) {
-		WriteLinkRequest(build_connection, heartbeat, &compara->link_request);
+		WriteLinkRequest(build_connection, heartbeat, compara);
 		int len = Link_Request(compara->link_request, compara->serveraddr,
 				compara->SendBuf);
 		compara->p_send(compara->name, compara->phy_connect_fd, compara->SendBuf, len);
 	} else {
-		WriteLinkRequest(heart_beat, heartbeat, &compara->link_request);
+		WriteLinkRequest(heart_beat, heartbeat, compara);
 		int len = Link_Request(compara->link_request, compara->serveraddr,
 				compara->SendBuf);
 		compara->p_send(compara->name, compara->phy_connect_fd, compara->SendBuf, len);
