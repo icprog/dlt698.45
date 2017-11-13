@@ -2559,6 +2559,7 @@ INT8U ChgSucessFlg_698(TSA tsaMeter,INT8U taskid)
 							{
 								taskinfo_tmp.task_list[i].fangan.items[j].sucessflg = 2;
 							}
+							task_Refresh(&taskinfo.task_list[i] );
 						}
 					}
 					saveParaClass(0x8888, &taskinfo_tmp,taskinfo_tmp.tsa_index);
@@ -3622,6 +3623,14 @@ int doProxy(RUNTIME_PLC *runtime_p)
 		case 4://恢复抄表
 			if (runtime_p->state_bak == TASK_PROCESS )
 			{
+				if(  runtime_p->modeFlag==1)
+				{
+					clearvar(runtime_p);
+					step_cj = 0;
+					beginwork = 0;
+					DbgPrintToFile1(31,"集中器主导返回到状态%d",runtime_p->state_bak);
+					return(runtime_p->state_bak);
+				}
 				if (abs( nowtime - runtime_p->send_start_time) > 20)
 				{
 					DbgPrintToFile1(31,"恢复抄表");
