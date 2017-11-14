@@ -105,7 +105,7 @@ extern int getBool(INT8U* source, INT8U* dest,INT8U *DAR);                      
 extern int getBitString(INT8U type, INT8U* source, INT8U* dest);                  // 4
 extern int getDouble(INT8U* source, INT8U* dest);                                 // 5 6
 extern int getOctetstring(INT8U type,INT16U limit,INT8U *source,INT8U *buf,INT8U *len,INT8U *DAR);      // 9
-extern int getVisibleString(INT8U *source,INT8U *dest,INT8U *DAR);                          // 0x0A
+extern int getVisibleString(INT8U type,INT16U limit,INT8U *source,INT8U *dest,INT8U *DAR);	//0x0A
 extern int getInteger(INT8U *source,INT8S *dest,INT8U *DAR);                     // 0x0F
 extern int getUnsigned(INT8U *source,INT8U *dest,INT8U *DAR);                     // 0x11
 extern int getLongUnsigned(INT8U* source, INT8U* dest);                           // 0x12

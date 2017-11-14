@@ -297,23 +297,60 @@ void setm2g(int argc, char* argv[])
 	int m2g = 0;
 	if(argc == 2){
 		readCoverClass(0x4521, 0, &m2g, sizeof(int), para_vari_save);
-		if(m2g == 666){
-			fprintf(stderr, "当前模式为2G锁定模式\n");
-		}else{
-			fprintf(stderr, "当前模式为4G优先模式\n");
+		switch(m2g) {
+		case 0x1:
+			fprintf(stderr,"当前模式为GSM\n");
+			break;
+		case 0x2:
+			fprintf(stderr,"当前模式为WCDMA\n");
+			break;
+		case 0x03:
+			fprintf(stderr,"当前模式为LTE\n");
+			break;
+		case 0x04:
+			fprintf(stderr,"当前模式为TD-SCDMA\n");
+			break;
+		case 0x05:
+			fprintf(stderr,"当前模式为UMTS\n");
+			break;
+		default:
+			fprintf(stderr,"当前模式为自适应模式\n");
+			break;
 		}
+//		if(m2g == 666){
+//			fprintf(stderr, "当前模式为2G锁定模式\n");
+//		}else{
+//			fprintf(stderr, "当前模式为4G优先模式\n");
+//		}
 	}else {
-		int setm = 4;
-		setm = atoi(argv[2]);
-		if(setm == 4){
-			m2g = 0;
-			saveCoverClass(0x4521, 0, &m2g, sizeof(int), para_vari_save);
-			fprintf(stderr, "设置为为4G优先模式\n");
-		}else if (setm == 2){
-			m2g = 666;
-			saveCoverClass(0x4521, 0, &m2g, sizeof(int), para_vari_save);
-			fprintf(stderr, "设置为为2G锁定模式\n");
+		m2g = atoi(argv[2]);
+		if(m2g<0 || m2g>5) {
+			fprintf(stderr,"无效设置模式,设置范围为0-5\n");
+			return;
 		}
+
+		switch(m2g) {
+		case 0x1:
+			fprintf(stderr,"设置当前模式为GSM\n");
+			break;
+		case 0x2:
+			fprintf(stderr,"设置当前模式为WCDMA\n");
+			break;
+		case 0x03:
+			fprintf(stderr,"设置当前模式为LTE\n");
+			break;
+		case 0x04:
+			fprintf(stderr,"设置当前模式为TD-SCDMA\n");
+			break;
+		case 0x05:
+			fprintf(stderr,"设置当前模式为UMTS\n");
+			break;
+		case 0:
+			fprintf(stderr,"设置当前模式为自适应模式\n");
+			break;
+		}
+		if(m2g>=0 && m2g<=5)
+			saveCoverClass(0x4521, 0, &m2g, sizeof(int), para_vari_save);
 	}
 }
 

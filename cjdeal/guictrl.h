@@ -23,8 +23,8 @@
 //#include "../libGui/comm.h"
 extern ProgramInfo* JProgramInfo;
 #define time_wait_ms(a) usleep((a)*1000)
-pthread_attr_t guictrl_attr_t,guishow_attr_t;
-int thread_guictrl_id,thread_guishow_id;        //液晶、控制（I型、专变）
-pthread_t thread_guictrl,thread_guishow;
+pthread_attr_t guictrl_attr_t, guishow_attr_t;
+int thread_guictrl_id, thread_guishow_id;        //液晶、控制（I型、专变）
+pthread_t thread_guictrl, thread_guishow;
 extern void guictrl_proccess();
 #endif /* EVENTCALC_H_ */
