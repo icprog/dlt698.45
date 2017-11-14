@@ -1,3 +1,8 @@
+
+#ifndef STB_LIB_H__
+#define STB_LIB_H__
+
+
 #include <assert.h>
 
 //////////////////////////////////////////////////////////////////////////////
@@ -10,6 +15,9 @@
 #define stb_big16(c)    ((c)[0]*256 + (c)[1])
 #define stb_little16(c) ((c)[1]*256 + (c)[0])
 
+extern unsigned char stb_getbit8(unsigned char v, int index);
+extern unsigned char stb_setbit8(unsigned char v, int index);
+
 extern int stb_bitcount(unsigned int a);
 extern unsigned int stb_bitreverse8(unsigned char n);
 extern unsigned int stb_bitreverse(unsigned int n);
@@ -20,6 +28,14 @@ extern int stb_log2_floor(unsigned int n);
 
 extern int stb_lowbit8(unsigned int n);
 extern int stb_highbit8(unsigned int n);
+
+unsigned char stb_getbit8(unsigned char v, int index) {
+	return (v >> (index)) & 0x01;
+}
+
+unsigned char stb_setbit8(unsigned char v, int index) {
+	return (0x01 << (index)) | v;
+}
 
 int stb_bitcount(unsigned int a) {
 	a = (a & 0x55555555) + ((a >> 1) & 0x55555555); // max 2
@@ -1260,6 +1276,4 @@ static void * stb__sbgrowf(void *arr, int increment, int itemsize) {
 }
 #endif
 
-
-
-
+#endif //STB_LIB_H__

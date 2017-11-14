@@ -587,16 +587,42 @@ int AtPrepare(ATOBJ *ao) {
 			return 100;
 		}
 
-		if((int)dbGet("model_2g") == 666){
-			asyslog(LOG_INFO,"强制2G上线....");
+		if((int)dbGet("model_2g") == 0x11){
 			if (SendCommandGetWhatever(ao, 1, "\rat+qcfg=\"nwscanmode\",1\r") == 1) {
 				retry = 0;
 				ao->state = 16;
 				return 100;
 			}
 		}
-		else{
-			asyslog(LOG_INFO,"4G优先上线....");
+		else if((int)dbGet("model_2g") == 0x22){
+			if (SendCommandGetWhatever(ao, 1, "\rat+qcfg=\"nwscanmode\",2\r") == 1) {
+				retry = 0;
+				ao->state = 16;
+				return 100;
+			}
+		}
+		else if((int)dbGet("model_2g") == 0x33){
+			if (SendCommandGetWhatever(ao, 1, "\rat+qcfg=\"nwscanmode\",3\r") == 1) {
+				retry = 0;
+				ao->state = 16;
+				return 100;
+			}
+		}
+		else if((int)dbGet("model_2g") == 0x44){
+			if (SendCommandGetWhatever(ao, 1, "\rat+qcfg=\"nwscanmode\",4\r") == 1) {
+				retry = 0;
+				ao->state = 16;
+				return 100;
+			}
+		}
+		else if((int)dbGet("model_2g") == 0x55){
+			if (SendCommandGetWhatever(ao, 1, "\rat+qcfg=\"nwscanmode\",5\r") == 1) {
+				retry = 0;
+				ao->state = 16;
+				return 100;
+			}
+		}
+		else {
 			if (SendCommandGetWhatever(ao, 1, "\rat+qcfg=\"nwscanmode\",0\r") == 1) {
 				retry = 0;
 				ao->state = 16;

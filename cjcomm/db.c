@@ -13,9 +13,9 @@ static DBStruct DB;
 void dbInit(int index) {
 	readCoverClass(0x4521, 0, (void *) &DB.model_2g, sizeof(DB.model_2g),
 			para_vari_save);
-	if (DB.model_2g == 666) {
-		asyslog(LOG_INFO, "警告，现在是强制2G上线模式....");
-	}
+//	if (DB.model_2g == 666) {
+//		asyslog(LOG_INFO, "警告，现在是强制2G上线模式....");
+//	}
 	readCoverClass(0x4500, 0, (void *) &DB.c25, sizeof(DB.c25), para_vari_save);
 	asyslog(LOG_INFO, "连接应用方式 enum{主备模式(0),多连接模式(1)}：%d",
 			DB.c25.commconfig.appConnectType);

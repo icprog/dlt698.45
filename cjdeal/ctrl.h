@@ -22,6 +22,12 @@ typedef union { //control code
 	} ctrl;
 } ctrlUN;
 
+typedef struct {
+	CLASS23			*class23;
+
+
+}SumUpUnit;
+
 int ctrlMain(void * arg);
 int SaveAll(void* arg);
 
