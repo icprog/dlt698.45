@@ -523,7 +523,7 @@ INT16U set4103(OAD oad,INT8U *data,INT8U *DAR)
 	readCoverClass(oad.OI,0,&class4103,sizeof(CLASS_4103),para_vari_save);
 	if (oad.attflg == 2 )
 	{
-		index += getVisibleString(&data[index],(INT8U *)&class4103.assetcode,DAR);
+		index += getVisibleString(1,40,&data[index],(INT8U *)&class4103.assetcode,DAR);
 		if(*DAR!=success)
 			return 0;
 		fprintf(stderr,"\n【资产管理编码】%d :",class4103.assetcode[0]);
@@ -720,11 +720,11 @@ INT16U set4500(OAD oad,INT8U *data,INT8U *DAR)
 		for(i=0;i<class4500.commconfig.listenPortnum;i++) {
 			index += getLongUnsigned(&data[index],(INT8U *)&class4500.commconfig.listenPort[i]);
 		}
-		index += getVisibleString(&data[index],class4500.commconfig.apn,DAR);
+		index += getVisibleString(1,VISIBLE_STRING_LEN,&data[index],class4500.commconfig.apn,DAR);
 		if(*DAR!=success) return 0;
-		index += getVisibleString(&data[index],class4500.commconfig.userName,DAR);
+		index += getVisibleString(1,VISIBLE_STRING_LEN,&data[index],class4500.commconfig.userName,DAR);
 		if(*DAR!=success) return 0;
-		index += getVisibleString(&data[index],class4500.commconfig.passWord,DAR);
+		index += getVisibleString(1,VISIBLE_STRING_LEN,&data[index],class4500.commconfig.passWord,DAR);
 		if(*DAR!=success) return 0;
 		index += getOctetstring(1,OCTET_STRING_LEN-1,&data[index],&class4500.commconfig.proxyIp[1],&class4500.commconfig.proxyIp[0],DAR);
 		index += getLongUnsigned(&data[index],(INT8U *)&class4500.commconfig.proxyPort);
@@ -760,7 +760,7 @@ INT16U set4500(OAD oad,INT8U *data,INT8U *DAR)
 	case 4:		//短信通信参数表
 		index += getStructure(&data[index],NULL,DAR);
 		fprintf(stderr,"struct index=%d\n",index);
-		index += getVisibleString(&data[index],(INT8U *)&class4500.sms.center,DAR);
+		index += getVisibleString(1,VISIBLE_STRING_LEN,&data[index],(INT8U *)&class4500.sms.center,DAR);
 		if(*DAR!=success)
 			return 0;
 		fprintf(stderr,"center index=%d %02x %02x\n",index,data[index],data[index+1]);
@@ -770,7 +770,7 @@ INT16U set4500(OAD oad,INT8U *data,INT8U *DAR)
 			class4500.sms.masternum = 4;
 		}
 		for(i=0;i<class4500.sms.masternum;i++){
-			index += getVisibleString(&data[index],(INT8U *)&class4500.sms.master[i],DAR);
+			index += getVisibleString(1,VISIBLE_STRING_LEN,&data[index],(INT8U *)&class4500.sms.master[i],DAR);
 			if(*DAR!=success) return 0;
 		}
 		index += getArray(&data[index],(INT8U *)&class4500.sms.destnum,DAR);
@@ -779,7 +779,7 @@ INT16U set4500(OAD oad,INT8U *data,INT8U *DAR)
 			class4500.sms.destnum = 4;
 		}
 		for(i=0;i<class4500.sms.destnum;i++){
-			index += getVisibleString(&data[index],(INT8U *)&class4500.sms.dest[i],DAR);
+			index += getVisibleString(1,VISIBLE_STRING_LEN,&data[index],(INT8U *)&class4500.sms.dest[i],DAR);
 			if(*DAR!=success) return 0;
 		}
 		if(index>=sizeof(class4500.sms)) {
@@ -789,7 +789,7 @@ INT16U set4500(OAD oad,INT8U *data,INT8U *DAR)
 		break;
 
 	case 10:
-		index += getVisibleString(&data[index],&class4500.simkard[0],DAR);
+		index += getVisibleString(1,VISIBLE_STRING_LEN,&data[index],&class4500.simkard[0],DAR);
 		if(*DAR!=success) return 0;
 		break;
 	case 5:
@@ -900,8 +900,8 @@ INT16U set4510(OAD oad,INT8U *data,INT8U *DAR)
 		index += getOctetstring(1,OCTET_STRING_LEN-1,&data[index],&class4510.IP.ip[1],&class4510.IP.ip[0],DAR);
 		index += getOctetstring(1,OCTET_STRING_LEN-1,&data[index],&class4510.IP.subnet_mask[1],&class4510.IP.subnet_mask[0],DAR);
 		index += getOctetstring(1,OCTET_STRING_LEN-1,&data[index],&class4510.IP.gateway[1],&class4510.IP.gateway[0],DAR);
-		index += getVisibleString(&data[index],class4510.IP.username_pppoe,DAR);
-		index += getVisibleString(&data[index],class4510.IP.password_pppoe,DAR);
+		index += getVisibleString(1,VISIBLE_STRING_LEN,&data[index],class4510.IP.username_pppoe,DAR);
+		index += getVisibleString(1,VISIBLE_STRING_LEN,&data[index],class4510.IP.password_pppoe,DAR);
 		writeIpSh(class4510.IP.ip,class4510.IP.subnet_mask);
 		break;
 	}
