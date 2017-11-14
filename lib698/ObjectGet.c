@@ -456,17 +456,77 @@ int Get_8002(RESULT_NORMAL *response)
 			para_vari_save);
 	switch(oad.attflg) {
 	case 2:
-		response->datalen = fill_enum(data, c8002.state);
+		response->dar = getEnumValid(c8002.state,0,1,0);
+		if(response->dar == success) {
+			response->datalen = fill_enum(data, c8002.state);
+		}
 		break;
 	case 3:
 		index += create_struct(&data[index], 2);
-		index += fill_octet_string(&data[index],c8002.alarmTime,3);
+		index += fill_octet_string(&data[index],&c8002.alarmTime[1],3);
 		index += fill_visible_string(&data[index],&c8002.alarmInfo[1],c8002.alarmInfo[0]);
 		response->datalen = index;
 		break;
 	}
 
 	fprintf(stderr,"C8002 datalen = %d\n",response->datalen);
+	return response->datalen;
+}
+
+//一般中文信息
+int Get_8003_8004(RESULT_NORMAL *response)
+{
+	CLASS_8003_8004 info={};
+	INT16U	index = 0;
+	INT8U *data=NULL;
+	OAD oad={};
+	INT8U	info_num=0,i=0;
+	int  ret=0;
+
+	oad = response->oad;
+	data = response->data;
+	response->datalen = 0;
+	ret = readCoverClass(oad.OI, 0, (void *) &info, sizeof(CLASS_8003_8004),para_vari_save);
+	if(ret==-1) {	//文件不存在，初始化中文信息序号
+		for(i=0;i<10;i++) {
+			info.chinese_info[i].no = 0xFF;
+		}
+	}
+	switch(oad.attflg) {
+	case 2:
+		index += create_array(&data[index],info_num);
+		for(i=0;i<10;i++) {
+			if(info.chinese_info[i].no!=0xff) {
+				info_num++;
+				index += create_struct(&data[index], 4);
+				index += fill_unsigned(&data[index],info.chinese_info[i].no);
+				index += fill_date_time_s(&data[index],&info.chinese_info[i].releaseData);
+				index += fill_bool(&data[index],info.chinese_info[i].readflg);
+				index += fill_visible_string(&data[index],&info.chinese_info[i].info[1],info.chinese_info[i].info[0]);
+			}
+		}
+		if(info_num) {
+			create_array(&data[0],info_num);	//数组回填
+			response->datalen = index;
+		}else {
+			response->dar = success;
+			response->datalen += create_array(&data[0],0);
+		}
+		break;
+	case 3:
+		for(i=0;i<10;i++) {
+			if(info.chinese_info[i].no!=0xff) {
+				info_num++;
+			}
+		}
+		response->datalen += fill_long_unsigned(&data[0],info_num);
+		break;
+	case 4:
+		response->datalen += fill_long_unsigned(&data[0],10);
+		break;
+	}
+
+	fprintf(stderr,"CLASS_8003_8004 oi=%04x datalen = %d\n",oad.OI,response->datalen);
 	return response->datalen;
 }
 
@@ -672,7 +732,6 @@ int Get_8103(RESULT_NORMAL *response)
 		break;
 	case 3:	//控制投入状态
 		fprintf(stderr,"c8103.enable[0].name=%x state=%d\n",c8103.enable[0].name,c8103.enable[0].state);
-
 		index += fill_ALSTATE(&data[index],c8103.enable,dtenum);
 		break;
 	case 4:	//控制输出状态
@@ -3295,6 +3354,10 @@ int GetCtrl(RESULT_NORMAL *response)
 			break;
 		case 0x8002://催费告警
 			response->datalen = Get_8002(response);
+			break;
+		case 0x8003://一般中文信息
+		case 0x8004://重要中文信息
+			response->datalen = Get_8003_8004(response);
 			break;
 		case 0x8100://终端保安定值
 			response->datalen = Get_8100(response);

@@ -52,11 +52,11 @@ INT16U setclass18(OAD oad,INT8U *data,INT8U *DAR)
 	switch(oad.attflg) {
 	case 2://文件信息
 		index += getStructure(&data[index],NULL,DAR);
-		index += getVisibleString(&data[index],(INT8U *)&class18.source_file,DAR);
-		index += getVisibleString(&data[index],(INT8U *)&class18.dist_file,DAR);
+		index += getVisibleString(1,VISIBLE_STRING_LEN,&data[index],(INT8U *)&class18.source_file,DAR);
+		index += getVisibleString(1,VISIBLE_STRING_LEN,&data[index],(INT8U *)&class18.dist_file,DAR);
 		index += getDouble(&data[index],(INT8U *)&class18.file_size);
 		index += getBitString(1,&data[index],(INT8U *)&class18.file_attr);
-		index += getVisibleString(&data[index],(INT8U *)&class18.file_version,DAR);
+		index += getVisibleString(1,VISIBLE_STRING_LEN,&data[index],(INT8U *)&class18.file_version,DAR);
 		index += getEnum(1,&data[index],(INT8U *)&class18.file_type);
 		fprintf(stderr,"source=%s,dist=%s\n,size-%d,attr=%d,version=%s,file_type=%d\n",
 				&class18.source_file[1],&class18.dist_file[1],class18.file_size,class18.file_attr,&class18.file_version[1],class18.file_type);
@@ -351,6 +351,10 @@ INT16U ALSetAttrib(OAD oad, INT8U *data, INT8U *DAR) {
 			break;
 		case 0x8001://保电设置
 			data_index = class8001_set(oad, data, DAR);
+			break;
+		case 0x8003://一般中文信息
+		case 0x8004://重要中文信息
+			data_index = class8003_8004_set(oad, data, DAR);
 			break;
 		case 0x8100://终端保安定值
 			data_index = class8100_set(10, oad, data, DAR);

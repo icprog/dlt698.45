@@ -887,14 +887,26 @@ typedef struct {
 } CLASS23;
 
 typedef struct {
-    INT32U 	limit; 		//继电器拉闸电流门限值
-    INT16U 	delaytime; 	//超电流门限保护延时时间
-    INT8U  	alarmstate;	//继电器告警状态
-    INT8U 	cmdstate;	//继电器命令状态
-    OAD		relay_oad;	//继电器号
-    INT8U	alarmdelay;	//告警延时
-    INT32U	powerouttime;	//限电时间
-    INT8U	autoclose;		//自动合闸
+	OAD		oad;		//继电器
+	INT8U	closecmd;	//命令：=0：合闸允许，=1:直接合闸
+	INT8U	passwd[VISIBLE_STRING_LEN];		//密码
+	INT8U	actionflag;		//==0x55:主站下发控制，通信控制后自动修改恢复=0
+}METER_CLOSE_CTRL;		//电表合闸控制
+
+typedef struct {
+    INT32U 	limit; 			//继电器拉闸电流门限值
+    INT16U 	delaytime; 		//超电流门限保护延时时间
+    INT8U  	alarmstate;		//继电器告警状态，只读
+    INT8U 	cmdstate;		//继电器命令状态，只读
+    INT8U	alarmaction;	//根据相应方法127：触发告警=0x55，方法128：解除告警=其他值，为了控制模块的执行动作
+    //下面属性：数组【0】:第一路遥控，【1】：第二路遥控，
+    OAD		relay_oad[2];	//继电器号
+    INT8U	alarmdelay[2];	//方法129：告警延时
+    INT32U	powerouttime[2];//方法129：限电时间
+    INT8U	autoclose[2];	//方法129：自动合闸
+    INT8U	closecmd[2];	//方法130：合闸命令 =0合闸允许，=1直接合闸
+    INT16U	openclose[2];	//根据相应方法129：设置值=0x5555为分闸 方法130：设置值=0xCCCC为合闸，为了控制模块的执行动作
+    METER_CLOSE_CTRL	meter_Ctrl[5];		//方法131：电表明文合闸
 } CLASS_8000;
 
 typedef struct {
@@ -915,6 +927,17 @@ typedef struct {
     char	alarmTime[4];		//告警时段
     char	alarmInfo[201];		//告警信息  [0]:后面有效长度
 } CLASS_8002;
+
+typedef struct {
+	INT8U   no;		//序号	no=0xFF :无效
+	DateTimeBCD	 releaseData;	//发布时间
+	INT8U   readflg;				//已阅读标记
+	char	info[201];				//信息内容
+}CHINESE_INFO;
+
+typedef struct {
+	CHINESE_INFO  chinese_info[10];		//一般中文信息
+}CLASS_8003_8004;
 
 typedef struct {
     INT64U v; //终端保安定值
