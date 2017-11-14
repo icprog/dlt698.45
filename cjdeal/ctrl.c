@@ -99,45 +99,54 @@ void refreshSumUp() {
 			if (JProgramInfo->class23[sum_i].allist[al_i].al_flag == 0) {
 				for(int rate_i = 0; rate_i < 5; rate_i ++){
 					INT64U tmp = JProgramInfo->class23[sum_i].allist[al_i].curP[rate_i] - curP[sum_i][al_i][rate_i];
-					tmp_remains -= (tmp <= 0) ? 0 : tmp * 100;
+					tmp_remains += (tmp <= 0) ? 0 : tmp * 100;
+					tmp_remains *= cal_flag;
 					curP[sum_i][al_i][rate_i] = JProgramInfo->class23[sum_i].allist[al_i].curP[rate_i];
 					if(rate_i > 0){
-						JProgramInfo->class23[sum_i].DayP[rate_i - 1] = tmp_remains * cal_flag;
-						JProgramInfo->class23[sum_i].MonthP[rate_i - 1] = tmp_remains * cal_flag;
+						JProgramInfo->class23[sum_i].DayP[rate_i - 1] += tmp_remains;
+						JProgramInfo->class23[sum_i].MonthP[rate_i - 1] += tmp_remains;
 					}else{
-						JProgramInfo->class23[sum_i].DayPALL -= tmp_remains * cal_flag;
-						JProgramInfo->class23[sum_i].MonthPALL -= tmp_remains * cal_flag;
+						JProgramInfo->class23[sum_i].DayPALL += tmp_remains;
+						JProgramInfo->class23[sum_i].MonthPALL += tmp_remains;
 					}
 				}
 				for(int rate_i = 0; rate_i < 5; rate_i ++){
 					INT64U tmp = JProgramInfo->class23[sum_i].allist[al_i].curQ[rate_i] - curQ[sum_i][al_i][rate_i];
-					tmp_remains -= (tmp <= 0) ? 0 : tmp * 100;
+					tmp_remains += (tmp <= 0) ? 0 : tmp * 100;
+					tmp_remains *= cal_flag;
 					curQ[sum_i][al_i][rate_i] = JProgramInfo->class23[sum_i].allist[al_i].curQ[rate_i];
 					if(rate_i > 0){
-						JProgramInfo->class23[sum_i].DayQ[rate_i - 1] = tmp_remains * cal_flag;
+						JProgramInfo->class23[sum_i].DayQ[rate_i - 1] += tmp_remains;
+						JProgramInfo->class23[sum_i].MonthP[rate_i - 1] += tmp_remains;
 					}else{
-						JProgramInfo->class23[sum_i].DayQALL -= tmp_remains * cal_flag;
+						JProgramInfo->class23[sum_i].DayQALL += tmp_remains;
+						JProgramInfo->class23[sum_i].MonthPALL += tmp_remains;
 					}
 				}
 			}else{
 				for(int rate_i = 0; rate_i < 5; rate_i ++){
 					INT64U tmp = JProgramInfo->class23[sum_i].allist[al_i].curP[rate_i] - curNP[sum_i][al_i][rate_i];
-					tmp_remains -= (tmp <= 0) ? 0 : tmp * 100;
+					tmp_remains += (tmp <= 0) ? 0 : tmp * 100;
 					curNP[sum_i][al_i][rate_i] = JProgramInfo->class23[sum_i].allist[al_i].curP[rate_i];
 					if(rate_i > 0){
-						JProgramInfo->class23[sum_i].DayP[rate_i - 1] = tmp_remains * cal_flag;
+						JProgramInfo->class23[sum_i].DayQ[rate_i - 1] += tmp_remains;
+						JProgramInfo->class23[sum_i].MonthQ[rate_i - 1] += tmp_remains;
 					}else{
-						JProgramInfo->class23[sum_i].DayPALL -= tmp_remains * cal_flag;
+						JProgramInfo->class23[sum_i].DayQALL += tmp_remains;
+						JProgramInfo->class23[sum_i].MonthQALL += tmp_remains;
 					}
 				}
+
 				for(int rate_i = 0; rate_i < 5; rate_i ++){
 					INT64U tmp = JProgramInfo->class23[sum_i].allist[al_i].curQ[rate_i] - curNQ[sum_i][al_i][rate_i];
-					tmp_remains -= (tmp <= 0) ? 0 : tmp * 100;
+					tmp_remains += (tmp <= 0) ? 0 : tmp * 100;
 					curNQ[sum_i][al_i][rate_i] = JProgramInfo->class23[sum_i].allist[al_i].curQ[rate_i];
 					if(rate_i > 0){
-						JProgramInfo->class23[sum_i].DayQ[rate_i - 1] = tmp_remains * cal_flag;
+						JProgramInfo->class23[sum_i].DayQ[rate_i - 1] += tmp_remains;
+						JProgramInfo->class23[sum_i].MonthQ[rate_i - 1] += tmp_remains;
 					}else{
-						JProgramInfo->class23[sum_i].DayQALL -= tmp_remains * cal_flag;
+						JProgramInfo->class23[sum_i].DayQALL += tmp_remains;
+						JProgramInfo->class23[sum_i].MonthQALL += tmp_remains;
 					}
 				}
 			}
