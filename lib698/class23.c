@@ -145,6 +145,7 @@ int class23_set_attr14_15(OAD oad,INT8U *data, INT8U *DAR, CLASS23 *memClass23)
 	switch(oad.attflg){
 	case 14:
 		index += getBitString(1,&data[index],&class23[no].pConfig);
+		class23[no].alConState.PTrunState = class23[no].pConfig;
 		if(*DAR==success) {
 			memcpy(memClass23,class23,sizeof(class23));
 			saveCoverClass(oad.OI, 0, &class23[no], sizeof(CLASS23), para_vari_save);
@@ -152,6 +153,7 @@ int class23_set_attr14_15(OAD oad,INT8U *data, INT8U *DAR, CLASS23 *memClass23)
 		break;
 	case 15:
 		index += getBitString(1,&data[index],&class23[no].eConfig);
+		class23[no].alConState.ETrunState = class23[no].eConfig;
 		if(*DAR==success) {
 			memcpy(memClass23,class23,sizeof(class23));
 			saveCoverClass(oad.OI, 0, &class23[no], sizeof(CLASS23), para_vari_save);
@@ -308,6 +310,7 @@ int class23_get_7_8_9_10(OAD oad, INT64S energy_all,INT64S *energy,INT8U *buf, i
 }
 
 int class23_get_16(OAD oad, ALCONSTATE alConState, INT8U *buf, int *len) {
+	fprintf(stderr, "class23_get_16 %d\n", alConState.PCState);
 	*len = 0;
 	*len += create_struct(&buf[*len],6);
 	*len += fill_unsigned(&buf[*len],alConState.index);

@@ -696,6 +696,10 @@ int class8103_act3(int index, int attr_act, INT8U *data, INT8U *DAR) {
 	ii += getOI(1,&data[ii],&oi);
 	unit  = oi - 0x2301;
 	unit = rangeJudge("总加组",unit,0,(MAXNUM_SUMGROUP-1));
+	if(unit == -1) {
+		*DAR = interface_uncomp;
+		return 0;
+	}
 	c8103.list[unit].index = oi;
 	asyslog(LOG_WARNING, "时段功控-添加控制单元[oi=%04x]",oi);
 	ii += getBitString(1,&data[ii],&c8103.list[unit].sign);
@@ -715,6 +719,35 @@ int class8103_act3(int index, int attr_act, INT8U *data, INT8U *DAR) {
 	}
 	return ii;
 }
+
+
+/*
+ * 时段功控
+ * */
+int class8103_act4(int index, int attr_act, INT8U *data, INT8U *DAR) {
+	int	ii = 0;
+	OI_698 oi = 0;
+	int unit = 0;
+
+	CLASS_8103 c8103={};
+	ProgramInfo *shareAddr = getShareAddr();
+
+//	readCoverClass(0x8103, 0, (void *) &c8103, sizeof(CLASS_8103),para_vari_save);
+	memcpy(&c8103,&shareAddr->ctrls.c8103,sizeof(CLASS_8103));
+	ii += getOI(1,&data[ii],&oi);
+	unit  = oi - 0x2301;
+	unit = rangeJudge("总加组",unit,0,(MAXNUM_SUMGROUP-1));
+	if(unit == -1) {
+		*DAR = interface_uncomp;
+		return 0;
+	}
+	c8103.list[unit].index = oi;
+	asyslog(LOG_WARNING, "时段功控-删除控制单元[oi=%04x]",oi);
+	memset(&c8103.list[unit], 0x00, sizeof(TIME_CTRL));
+	saveCoverClass(0x8103, 0, (void *) &c8103, sizeof(CLASS_8103),para_vari_save);
+	return 0;
+}
+
 
 int class8103_act6(int index, int attr_act, INT8U *data, Action_result *act_ret) {
 	int oi = 0x00;
@@ -830,6 +863,9 @@ int class8103_act_route(int index, int attr_act, INT8U *data,
 	case 3:
 		act_ret->datalen = class8103_act3(1, attr_act, data, &act_ret->DAR);
 		break;
+	case 4:
+		class8103_act4(1, attr_act, data, &act_ret->DAR);
+		break;
 	case 6:
 		class8103_act6(1, attr_act, data, act_ret);
 		break;
@@ -893,6 +929,35 @@ int class8104_act3(int index, int attr_act, INT8U *data, INT8U *DAR) {
 //			para_vari_save);
 	fprintf(stderr, "刷新参数 %lld %d %d\n", shareAddr->ctrls.c8104.list[unit].v, shareAddr->ctrls.c8104.list[unit].sustain, shareAddr->ctrls.c8104.list[unit].noDay);
 	return 27;
+}
+
+/*
+ * 时段功控
+ * */
+int class8104_act4(int index, int attr_act, INT8U *data, INT8U *DAR) {
+	asyslog(LOG_WARNING, "厂休功控-删除控制单元");
+		CLASS_8104 c8104;
+		int ii = 0;
+		OI_698 oi = 0x00;
+		int unit = 0;
+		ii += getOI(1,&data[ii],&oi);
+
+		memset(&c8104, 0x00, sizeof(CLASS_8104));
+
+		asyslog(LOG_WARNING, "厂休功控-删除控制单元(OI=%04x)",oi);
+		if(oi>=0x2301 && oi<=0x2308) {
+			unit = oi-0x2301;
+		}else {
+			*DAR = interface_uncomp;
+			return 0;
+		}
+		fprintf(stderr, "unit = %d\n", unit);
+
+		ProgramInfo *shareAddr = getShareAddr();
+
+		memset(&shareAddr->ctrls.c8104.list[unit], 0x00, sizeof(FACT_CTRL));
+		saveCoverClass(0x8104, 0, (void *)&shareAddr->ctrls.c8104, sizeof(CLASS_8104),
+				para_vari_save);
 }
 
 int class8104_act6(int index, int attr_act, INT8U *data, Action_result *act_ret) {
@@ -961,6 +1026,9 @@ int class8104_act_route(int index, int attr_act, INT8U *data,
 	switch (attr_act) {
 	case 3:
 		act_ret->datalen = class8104_act3(1, attr_act, data, &act_ret->DAR);
+		break;
+	case 4:
+		class8104_act4(1, attr_act, data, &act_ret->DAR);
 		break;
 	case 6:
 		class8104_act6(1, attr_act, data, act_ret);

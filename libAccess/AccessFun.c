@@ -2621,6 +2621,11 @@ INT32U getTASKruntimes(CLASS_6013 class6013,CLASS_6015 class6015,INT32U *seqsec)
 	}
 	if(seqsecond==0)
 		seqsecond = taskdaysec;
+	if(runtimes > class6015.deepsize)
+	{
+		runtimes = class6015.deepsize;
+		seqsecond = 24*60*60;//1天一次
+	}
 	*seqsec = seqsecond;
 	fprintf(stderr,"\n*seqsec =%d seqsecond =%d\n",*seqsec,seqsecond);
 	return runtimes;
@@ -2866,7 +2871,7 @@ INT8U GetTaskidFromCSDs(ROAD_ITEM item_road,CLASS_6001 *tsa)
 	CLASS_6015	class6015={};
 	CLASS_6013	class6013={};
 	int i=0,j=0,mm=0,nn=0;
-	INT8U taskno=0;
+	INT8U taskno=0,taskid=0;
 
 	memset(&class6013,0,sizeof(CLASS_6013));
 	memset(&class6015,0,sizeof(CLASS_6015));
@@ -2963,6 +2968,11 @@ INT8U GetTaskidFromCSDs(ROAD_ITEM item_road,CLASS_6001 *tsa)
 				if(taskno != 0)
 				{
 					asyslog(LOG_INFO,"return  ,taskno=%d\n",taskno);
+					taskid = taskno;
+					if(class6015.mst.mstype == 1)
+						return taskid;
+					else
+						continue;
 					return taskno;
 				}
 				else

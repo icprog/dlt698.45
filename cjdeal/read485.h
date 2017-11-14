@@ -1,5 +1,4 @@
 
-
 #ifndef READ485_H_
 #define READ485_H_
 #include "Objectdef.h"
@@ -37,18 +36,16 @@
 
 #define SAVE_EVENT_BUFF_HEAD_LEN 39
 pthread_attr_t read485_attr_t;
-int thread_read4851_id,thread_read4852_id;           //485、四表合一（I型、II型、专变）
-pthread_t thread_read4851,thread_read4852;
+int thread_read4851_id, thread_read4852_id;           //485、四表合一（I型、II型、专变）
+pthread_t thread_read4851, thread_read4852;
 
-typedef struct
-{
+typedef struct {
 	INT16U sernum;
 	TSA addr;			//通信地址
 	INT8U baud;			//波特率
 	METER_PROTOCOL protocol;		//规约类型
 	INT8U port;			//端口
-}BasicInfo6001;
-
+} BasicInfo6001;
 
 extern void read485_proccess();
 
@@ -61,7 +58,7 @@ struct mq_attr attr_485_2_task;
 
 INT32S comfd485[2];
 INT8U i485port1;
-INT8U readState;//是否正抄停上电事件－抄停上电事件的时候需要暂停正常抄表流程
+INT8U readState;			//是否正抄停上电事件－抄停上电事件的时候需要暂停正常抄表流程
 INT8U i485port2;
 
 //698 OAD 和 645 07规约 数据标识对应关系
