@@ -836,16 +836,20 @@ int getOctetstring(INT8U type,INT16U limit,INT8U *source,INT8U *buf,INT8U *len,I
 	return 0;
 }
 
-int getVisibleString(INT8U *source,INT8U *dest,INT8U *DAR)	//0x0A
+int getVisibleString(INT8U type,INT16U limit,INT8U *source,INT8U *dest,INT8U *DAR)	//0x0A
 {
-	if(source[0] == dtvisiblestring) {
-		int	len=VISIBLE_STRING_LEN-1;
-		if(source[1]<VISIBLE_STRING_LEN) {
-			len = source[1]+1;			// source[0]表示类型，source[1]表示长度，字符串长度加 长度字节本身
+	INT16U  index = 0;
+	int		len = 0;
+	if ((type==1 && (source[0]==dtvisiblestring)) || type==0) {
+		index = type;
+		if(source[index]<limit) {
+			len = source[index]+1;			// source[0]表示类型，source[1]表示长度，字符串长度加 长度字节本身
 		}else {
-			asyslog(LOG_ERR,"VisibleString (%d) over %d\n",(source[1]+1),VISIBLE_STRING_LEN);
+			len = limit-1;
+			asyslog(LOG_ERR,"VisibleString 长度越限[%d] len %d\n",limit,source[1]+1);
+			if(DAR!=NULL && *DAR==success)	*DAR = boundry_over;
 		}
-		memcpy(&dest[0],&source[1],len);
+		memcpy(&dest[0],&source[index],len);
 		return (len+1);			//+1:类型
 	}else{
 		if(DAR!=NULL && *DAR==success)	*DAR = type_mismatch;
