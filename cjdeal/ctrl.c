@@ -17,8 +17,6 @@
 #include "ctrl.h"
 #include "pluse.h"
 
-#define STB_DEFINE
-
 #include "stb.h"
 
 extern ProgramInfo* JProgramInfo;
@@ -167,33 +165,7 @@ void refreshSumUp() {
 			JProgramInfo->class23[0].DayP[1], JProgramInfo->class23[0].DayP[2],
 			JProgramInfo->class23[0].DayP[3], JProgramInfo->class23[0].remains);
 
-	if (old_day != ts.Day) {
-		old_day = ts.Day;
-		for (int i = 0; i < 2; i++) {
-			memset(&JProgramInfo->class12[i].day_nag_p[0], 0x00,
-					sizeof(JProgramInfo->class12[i].day_nag_p));
-			memset(&JProgramInfo->class12[i].day_nag_q[0], 0x00,
-					sizeof(JProgramInfo->class12[i].day_nag_q));
-			memset(&JProgramInfo->class12[i].day_pos_p[0], 0x00,
-					sizeof(JProgramInfo->class12[i].day_pos_p));
-			memset(&JProgramInfo->class12[i].day_pos_q[0], 0x00,
-					sizeof(JProgramInfo->class12[i].day_pos_q));
-		}
-	}
 
-	if (old_month != ts.Month) {
-		old_month = ts.Month;
-		for (int i = 0; i < 2; i++) {
-			memset(&JProgramInfo->class12[i].mon_nag_p[0], 0x00,
-					sizeof(JProgramInfo->class12[i].mon_nag_p));
-			memset(&JProgramInfo->class12[i].mon_nag_q[0], 0x00,
-					sizeof(JProgramInfo->class12[i].mon_nag_q));
-			memset(&JProgramInfo->class12[i].mon_pos_p[0], 0x00,
-					sizeof(JProgramInfo->class12[i].mon_pos_p));
-			memset(&JProgramInfo->class12[i].mon_pos_q[0], 0x00,
-					sizeof(JProgramInfo->class12[i].mon_pos_q));
-		}
-	}
 }
 
 int initAll() {
@@ -1167,12 +1139,6 @@ int ctrlMain(void* arg) {
 
 	//初始化参数,搭建8个总加组数据，读取功控、电控参数
 	initAll();
-
-	fprintf(stderr, "bit_count %d\n", stb_bitcount(0x01));
-	fprintf(stderr, "bit_count %d\n", stb_bitcount(0xff));
-	fprintf(stderr, "bit_count %d\n", stb_bitcount(0x55));
-	fprintf(stderr, "bit_count %d\n", stb_bitcount(0xaa));
-
 	pluseInitUnit(&pu, JProgramInfo);
 
 	while (1) {
