@@ -715,6 +715,10 @@ int task_leve(INT8U leve,TASK_UNIT *taskunit)
 			taskunit[t].taskId = list6013[i].basicInfo.taskID;
 			taskunit[t].leve = list6013[i].basicInfo.runprio;
 			taskunit[t].beginTime = calcnexttime(list6013[i].basicInfo.interval,list6013[i].basicInfo.startime,list6013[i].basicInfo.delay);//list6013[i].ts_next;
+			if(list6013[i].basicInfo.interval.units == day_units)
+			{
+				taskunit[t].beginTime -= 3600;
+			}
 			taskunit[t].endTime = tmtotime_t( DateBCD2Ts(list6013[i].basicInfo.endtime ));
 			ts =   timet_bcd(taskunit[t].beginTime);
 			taskunit[t].begin = ts;
@@ -2726,14 +2730,24 @@ INT8U doSave_698(INT8U* buf645,int len645)
 		oaddataLen = parseSingleROADDataHead(&buf645[apduDataStartIndex],oadListContent,&rcvCSDnum,&recordNum);
 		apduDataStartIndex += oaddataLen;
 
+		INT8U ishas2021 = 0;
 		csds.num = 1;
 		csds.csd[0].type = 1;
 		memcpy(&csds.csd[0].csd.road.oad,&oadListContent[0].oad_m,sizeof(OAD));
 		csds.csd[0].csd.road.num = rcvCSDnum;
 		for(csdsIndex = 0;csdsIndex < rcvCSDnum;csdsIndex++)
 		{
+			if(oadListContent[csdsIndex].oad_r.OI == 0x2021)
+			{
+				ishas2021 = 1;
+				continue;
+			}
 			memcpy(&csds.csd[0].csd.road.oads[csdsIndex],&oadListContent[csdsIndex].oad_r,sizeof(OAD));
 			DbgPrintToFile1(31,"oadListContent[%d].oad_r = %04x",csdsIndex,oadListContent[csdsIndex].oad_r.OI);
+		}
+		if(ishas2021 == 1)
+		{
+			csds.csd[0].csd.road.num -= 1;
 		}
 #if 0
 		DbgPrintToFile1(31,"csds.num = %d csds.csd[0].csd.road.num = %d",csds.num,csds.csd[0].csd.road.num);
