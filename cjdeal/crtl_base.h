@@ -36,8 +36,7 @@ int OpenSerialPort();
 int InitCtrlModel();
 
 INT8U SetCtrl_CMD(int serial_fd, INT8U lun1_state, INT8U lun1_red,
-                  INT8U lun1_green, INT8U lun2_state, INT8U lun2_red,
-                  INT8U lun2_green, INT8U gongk_led, INT8U diank_led,
-                  INT8U alm_state, INT8U baodian_led);
+		INT8U lun1_green, INT8U lun2_state, INT8U lun2_red, INT8U lun2_green,
+		INT8U gongk_led, INT8U diank_led, INT8U alm_state, INT8U baodian_led);
 
 #endif  // INC_698_CRTL_BASE_H

@@ -859,6 +859,3 @@ INT16U saveREADOADevent(ROAD eve_road,TSA tsa,OADDATA_SAVE *OADdata,INT8U OADnum
 		fclose(fp);
 	return evehappen;
 }
-
-
-

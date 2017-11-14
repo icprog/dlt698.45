@@ -397,10 +397,12 @@ INT8S use6013find6015or6017(INT8U cjType,INT16U fanganID,TI interval6013,CLASS_6
 								st6015->csds.csd[csdIndex].csd.road.num++;
 							}
 						}
+#if 0
 						if(ishas2021 == 0)
 						{
 							memcpy(&st6015->csds.csd[csdIndex].csd.road,&sourceRoad,sizeof(ROAD));
 						}
+#endif
 					}
 				}
 
