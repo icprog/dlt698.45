@@ -939,7 +939,7 @@ typedef struct {
 }CLASS_8003_8004;
 
 typedef struct {
-    INT64U v; //终端保安定值
+    INT64S v; //终端保安定值
 } CLASS_8100;
 
 typedef struct {
@@ -974,8 +974,13 @@ typedef struct {
 } TIME_CTRL;
 
 typedef struct {
-    INT8U sign;
-    INT8U numb;
+    OI_698 index;	//总加组对象
+    INT8U sign;		//时段功控投入标识
+    INT8U numb;		//时段功控定值方案号
+} TIME_SWITCH;
+
+typedef struct {
+	TIME_SWITCH	 plan[MAX_AL_UNIT];
     TIME_CTRL list[MAX_AL_UNIT];
     ALSTATE enable[MAX_AL_UNIT];
     ALSTATE output[MAX_AL_UNIT];
@@ -984,7 +989,7 @@ typedef struct {
 
 typedef struct {
     OI_698 index;
-    INT64U v;
+    INT64S v;
     DateTimeBCD start;
     INT16U sustain;
     INT8U noDay;
@@ -1028,7 +1033,7 @@ typedef struct {
     ALSTATE enable;
     ALSTATE output;
     ALSTATE overflow;
-} CLASS_8106;
+} CLASS_8106;//当前功率下浮控
 
 typedef struct {
     OI_698 index;	//总加组对象
@@ -1050,9 +1055,9 @@ typedef struct {
 
 typedef struct {
     OI_698 index;
-    INT64U v;
-    INT8U para;
-    INT8S flex;
+    INT64S v;
+    INT8U para; //报警门限值系数
+    INT8S flex; //月电量控定值浮动系数
 } MONTH_CTRL;
 
 typedef struct {

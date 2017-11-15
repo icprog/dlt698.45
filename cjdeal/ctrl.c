@@ -312,7 +312,7 @@ INT64U getCurrTimeValue(int line) {
 			time_num++;
 		}
 	}
-	int index = CtrlC->c8103.numb;
+	int index = CtrlC->c8103.plan[line].numb;
 	fprintf(stderr, "时段功控计算时段 index1 %d index2 %d last %d index %d\n",
 			time_index1, time_index2, time_num, index);
 	switch (index) {

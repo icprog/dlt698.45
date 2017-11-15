@@ -386,9 +386,9 @@ void sum_process(int argc, char *argv[])
 						fprintf(stderr,"V3 = %d %lld %lld %lld %lld %lld %lld %lld %lld \n",c8103.list[i].v3.n,c8103.list[i].v3.t1,c8103.list[i].v3.t2,
 								c8103.list[i].v3.t3,c8103.list[i].v3.t4,c8103.list[i].v3.t5,c8103.list[i].v3.t6,c8103.list[i].v3.t7,c8103.list[i].v3.t8);
 						fprintf(stderr,"para = %d\n",c8103.list[i].para);
-						fprintf(stderr,"控制投入 OI=%x",JProgramInfo->ctrls.c8103.enable[i].name);
-						fprintf(stderr,"控制输出 OI=%x",JProgramInfo->ctrls.c8103.output[i].name);
-						fprintf(stderr,"告警状态 OI=%x",JProgramInfo->ctrls.c8103.overflow[i].name);
+						fprintf(stderr,"控制投入 OI=%x  状态=%d\n",JProgramInfo->ctrls.c8103.enable[i].name,JProgramInfo->ctrls.c8103.enable[i].state);
+						fprintf(stderr,"控制输出 OI=%x  状态=%02x\n",JProgramInfo->ctrls.c8103.output[i].name,JProgramInfo->ctrls.c8103.output[i].state);
+						fprintf(stderr,"告警状态 OI=%x  状态=%d\n",JProgramInfo->ctrls.c8103.overflow[i].name,JProgramInfo->ctrls.c8103.overflow[i].state);
 					}
 
 				}
