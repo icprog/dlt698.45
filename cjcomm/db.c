@@ -82,6 +82,11 @@ void dbInit(int index) {
 			DB.JProgramInfo->dev_info.realTimeC2200.flow.month_tj);
 
 	DB.JProgramInfo->Projects[index].ProjectID = getpid();
+	readCoverClass(0x6099, 0, &DB.taskList, sizeof(taskFailInfo_s), para_vari_save);
+	asyslog(LOG_INFO, "初始化任务补报(%02x-%02x)(%02x-%02x)(%02x-%02x)",
+	                        DB.taskList.rptList[0][0],DB.taskList.rptList[0][1],
+	                        DB.taskList.rptList[1][0],DB.taskList.rptList[1][1],
+	                        DB.taskList.rptList[2][0],DB.taskList.rptList[2][1]);
 
 	DB.OnlineType = 0;
 	DB.ProgIndex = index;
@@ -163,6 +168,14 @@ void * dbGet(char * name) {
 	if (strcmp("f200", name) == 0) {
 		return &DB.cf200;
 	}
+
+	if (strcmp("task_list", name) == 0) {
+	        return &DB.taskList;
+	}
+	if (strcmp("curr_task", name) == 0) {
+	        return &DB.currTask;
+	}
+
 	return (void *) 0;
 }
 

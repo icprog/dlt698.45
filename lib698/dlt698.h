@@ -19,7 +19,7 @@ extern int Link_Request(LINK_Request request, INT8U* addr, INT8U* buf);
 extern void testframe(INT8U* apdu, int len);
 extern INT8U Report_Event(CommBlock* com, INT8U *oiarr, INT8U report_type);
 extern INT16U composeAutoReport(INT8U* SendApdu, INT16U length);
-extern INT16U composeAutoTask(AutoTaskStrap* list);
+extern INT16U composeAutoTask(AutoTaskStrap* list, rptInfo_s* rptInfo_p);
 extern int callAutoReport(char *filename,INT8U reportChoice,CommBlock* com, INT8U ifecho);
 extern int callEventAutoReport(CommBlock* com,INT8U *eventbuf,int datalen);
 extern int callNotificationReport(CommBlock* com,INT8U *plcbuf,OAD portOAD,int datalen);
@@ -105,7 +105,7 @@ extern int getBool(INT8U* source, INT8U* dest,INT8U *DAR);                      
 extern int getBitString(INT8U type, INT8U* source, INT8U* dest);                  // 4
 extern int getDouble(INT8U* source, INT8U* dest);                                 // 5 6
 extern int getOctetstring(INT8U type,INT16U limit,INT8U *source,INT8U *buf,INT8U *len,INT8U *DAR);      // 9
-extern int getVisibleString(INT8U *source,INT8U *dest,INT8U *DAR);                          // 0x0A
+extern int getVisibleString(INT8U type,INT16U limit,INT8U *source,INT8U *dest,INT8U *DAR);	//0x0A
 extern int getInteger(INT8U *source,INT8S *dest,INT8U *DAR);                     // 0x0F
 extern int getUnsigned(INT8U *source,INT8U *dest,INT8U *DAR);                     // 0x11
 extern int getLongUnsigned(INT8U* source, INT8U* dest);                           // 0x12

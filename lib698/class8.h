@@ -36,6 +36,8 @@ int class8001_act_route(int index, int attr_act, INT8U *data, Action_result *act
 
 int class8002_act_route(int index, int attr_act, INT8U *data, Action_result *act_ret);
 
+int class8003_8004_act_route(OAD oad, INT8U *data, Action_result *act_ret);
+
 int class8103_act_route(int index, int attr_act, INT8U *data, Action_result *act_ret);
 
 int class8104_act_route(int index, int attr_act, INT8U *data, Action_result *act_ret);

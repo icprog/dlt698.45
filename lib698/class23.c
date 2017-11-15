@@ -271,7 +271,7 @@ int class23_get_bitstring(OAD oad, INT8U val, INT8U *buf, int *len)
 	return 1;
 }
 
-//国网台体测试招测电量与实际值大于1000，将此处特殊处理，需要进一步分析
+//国网台体测试招测脉冲电量是二次值，不需要×PT×CT，总加组的电量计算要×PT×CT，计算一次值。
 int class23_get_7_8_9_10(OAD oad, INT64S energy_all,INT64S *energy,INT8U *buf, int *len){
 	INT64S total_energy[MAXVAL_RATENUM + 1];
 	INT8S	unit=0,i=0;
@@ -293,14 +293,14 @@ int class23_get_7_8_9_10(OAD oad, INT64S energy_all,INT64S *energy,INT8U *buf, i
 		*len = 0;
 		*len += create_array(&buf[*len],unit);
 		for(i=0;i<unit;i++) {
-			*len += fill_long64(&buf[*len], (INT64S)(total_energy[i]/1000)); ///////////
+			*len += fill_long64(&buf[*len], total_energy[i]);
 		}
 	}else {
 		unit = oad.attrindex - 1;
 		unit = rangeJudge("电能量",unit,0,(MAXVAL_RATENUM-1));
 		if(unit != -1) {
 			*len = 0;
-			*len += fill_long64(&buf[*len], (INT64S)(total_energy[unit]/1000));///////////
+			*len += fill_long64(&buf[*len], total_energy[unit]);
 		}else {
 			buf[*len++] = 0;		//NULL
 		}
