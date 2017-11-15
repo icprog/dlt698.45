@@ -2872,6 +2872,7 @@ INT8U GetTaskidFromCSDs(ROAD_ITEM item_road,CLASS_6001 *tsa)
 	CLASS_6013	class6013={};
 	int i=0,j=0,mm=0,nn=0;
 	INT8U taskno=0,taskid=0;
+	INT32U seqsec=0,seqnum=0;
 
 	memset(&class6013,0,sizeof(CLASS_6013));
 	memset(&class6015,0,sizeof(CLASS_6015));
@@ -2887,7 +2888,12 @@ INT8U GetTaskidFromCSDs(ROAD_ITEM item_road,CLASS_6001 *tsa)
 			}
 			if(readCoverClass(0x6015,class6013.sernum,&class6015,sizeof(CLASS_6015),coll_para_save) == 1)
 			{
-
+				seqnum = getTASKruntimes(class6013,class6015,&seqsec);
+				if(item_road.zc_seqsec != 0 && item_road.zc_seqsec < seqsec)//
+				{
+					fprintf(stderr,"\nitem_road.zc_seqsec=%d,seqsec=%d\n",item_road.zc_seqsec,seqsec);
+					continue;
+				}
 				if(cmpTSAtype(tsa,class6015)==0)//比对tsa类型，不符和本采集方案的跳过
 				{
 					fprintf(stderr,"\ntsa不符和\n");
@@ -3412,7 +3418,7 @@ int fillTsaNullData(INT8U *databuf,TSA tsa,ROAD_ITEM item_road)
 	return pindex;
 }
 //此招测类型用于招测的数据在一天,两个传进来的时间必须在同一天
-INT16U dealselect5(OAD oad_h,CSD_ARRAYTYPE csds,TS ts_start,TS ts_end,INT16U tsa_num,CLASS_6001 *tsa_group,INT16U frmmaxsize)
+INT16U dealselect5(OAD oad_h,CSD_ARRAYTYPE csds,TS ts_start,TS ts_end,INT32U zc_sec,INT16U tsa_num,CLASS_6001 *tsa_group,INT16U frmmaxsize)
 {
 	char fname[FILENAMELEN]={};
 	INT8U taskid,recorddata[2048],frmdata[2048],seqnumindex=0,frz_type=0;
@@ -3436,6 +3442,7 @@ INT16U dealselect5(OAD oad_h,CSD_ARRAYTYPE csds,TS ts_start,TS ts_end,INT16U tsa
 
 	memset(&item_road,0,sizeof(item_road));
 	extendcsds(csds,&item_road);
+	item_road.zc_seqsec = zc_sec;
 	if((taskid = GetTaskidFromCSDs(item_road,tsa_group)) == 0) {//暂时不支持招测的不在一个采集方案
 		//处理招测的oad不在一个任务
 		asyslog(LOG_INFO,"GetTaskData: taskid=%d\n",taskid);
@@ -4111,7 +4118,7 @@ MY_MS getSELEMS(INT8U selectype,RSD select)
 //3提取记录组文件 5 7 10等招测的应该在一个任务文件里
 INT16U getSelector(OAD oad_h,RSD select,INT8U selectype,CSD_ARRAYTYPE csds,INT8U *data,int *datalen,INT16U frmmaxsize)
 {
-	INT16U frmnum = 0,tsa_num=0;
+	INT16U frmnum = 0,tsa_num=0,zc_sec=0;//zc_sec 0:全天数据 非0：招测间隔
 	int day_num = 0,i=0;
 	TS ts_start,ts_end,ts_now;
 	time_t time_now=0,time_end=0;
@@ -4163,7 +4170,7 @@ INT16U getSelector(OAD oad_h,RSD select,INT8U selectype,CSD_ARRAYTYPE csds,INT8U
 		ts_end=ts_start;
 		ts_start.Hour=0;ts_start.Minute=0;ts_start.Sec=0;
 		ts_end.Hour=23;ts_end.Minute=59;ts_end.Sec=59;
-		frmnum = dealselect5(oad_h,csds,ts_start,ts_end,tsa_num,tsa_group,frmmaxsize);
+		frmnum = dealselect5(oad_h,csds,ts_start,ts_end,zc_sec,tsa_num,tsa_group,frmmaxsize);
 		break;
 //	case 7:
 //		day_num = getdaynum(select.selec7.collect_save_star,select.selec7.collect_save_finish);
@@ -4260,7 +4267,9 @@ INT16U getSelector(OAD oad_h,RSD select,INT8U selectype,CSD_ARRAYTYPE csds,INT8U
 			frmnum = dealselect10(oad_h,csds,1,tsa_num,tsa_group,frmmaxsize);//上报当前数据
 			break;
 		case 1:
-			frmnum = dealselect5(oad_h,csds,ts_start,ts_end,tsa_num,tsa_group,frmmaxsize);
+			zc_sec = getTItoSec(select.selec8.ti);
+			fprintf(stderr,"\n招测间隔zc_sec=%d\n",zc_sec);
+			frmnum = dealselect5(oad_h,csds,ts_start,ts_end,zc_sec,tsa_num,tsa_group,frmmaxsize);
 			break;
 		default:
 			frmnum = dealselect7(oad_h,csds,tsa_group,ts_start,ts_end,frmmaxsize);//找某一时间段的值

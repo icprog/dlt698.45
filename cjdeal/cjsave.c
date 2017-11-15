@@ -293,9 +293,11 @@ void fillRECdata(OADDATA_SAVE *OADdata,INT8U OADnum,INT8U *databuf,HEADFIXED_INF
 		getFRZtime(class6013,class6015,OADts,&databuf[1],taskhead_info.seqsec);
 	}
 
-	databuf[8]=0x1c;
-	TStoDATEBCD(OADts,&databuf[9]);//采集成功时间，由最后一次oad时间赋值s
-
+	if(databuf[16] == 0)//采集成功时间为空
+	{
+		databuf[8]=0x1c;
+		TStoDATEBCD(OADts,&databuf[9]);
+	}
 	if(databuf[16] == 0)//采集开始时间为空
 	{
 		databuf[16]=0x1c;
@@ -308,9 +310,9 @@ void fillRECdata(OADDATA_SAVE *OADdata,INT8U OADnum,INT8U *databuf,HEADFIXED_INF
 		taskhead_info.oadnum=100;//最多存储100个oads
 	for(i=0;i<taskhead_info.oadnum;i++)//开头三个时标
 	{
-		if(headoad_unit[i].oad_r.OI == 0x6040 || headoad_unit[i].oad_r.OI == 0x6041 ||
-				headoad_unit[i].oad_r.OI == 0x6042)
-			continue;
+//		if(headoad_unit[i].oad_r.OI == 0x6040 || headoad_unit[i].oad_r.OI == 0x6041 ||//抄表给三个时标
+//				headoad_unit[i].oad_r.OI == 0x6042)
+//			continue;
 		fprintf(stderr,"\n---------%d:0x%04x-0x%04x\n",i,headoad_unit[i].oad_m.OI,headoad_unit[i].oad_r.OI);
 		for(j=0;j<OADnum;j++)
 		{
