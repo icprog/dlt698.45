@@ -16,6 +16,7 @@
 #include "crtl_base.h"
 #include "ctrl.h"
 #include "pluse.h"
+#include "assert.h"
 
 #include "stb.h"
 
@@ -25,23 +26,16 @@ CtrlState* CtrlC;
 static ctrlUN ctrlunit, ctrlunit_old;
 static INT8U F206_state = 0;
 
-int findPinSum(int sum_i, int p_i, int* mmm) {
-//    fprintf(stderr, "==========!! %d==%d\n", sum_i, p_i);
+int sumUpfindPulse(SumUpUnit* suu, PluseUnit * pu, int sum_i, int p_i, int* mmm) {
 	int res = 0;
 	for (int i = 0; i < 8; i++) {
-		int n = JProgramInfo->class23[sum_i].allist[i].tsa.addr[0];
-		//		fprintf(stderr, "==========((((%d))))\n", n);
-		if (n == 0)
+		if (suu->class23[sum_i].allist[i].tsa.addr[0] == 0
+				|| suu->class23[sum_i].allist[i].tsa.addr[0] > 17) {
 			continue;
-		for (int a_i = 0; a_i < n - 1; a_i++) {
+		}
 
-			if (JProgramInfo->class23[sum_i].allist[i].tsa.addr[a_i + 2]
-					!= JProgramInfo->class12[p_i].addr[a_i + 1]) {
-				fprintf(stderr, "++++++++++++++++++++++查找电表表号-- [%02x %02x %02x] %02x %d-%d\n",
-						JProgramInfo->class23[sum_i].allist[i].tsa.addr[a_i],
-						JProgramInfo->class23[sum_i].allist[i].tsa.addr[a_i + 1],
-						JProgramInfo->class23[sum_i].allist[i].tsa.addr[a_i + 2],
-						JProgramInfo->class12[p_i].addr[a_i + 1], a_i, sum_i);
+		for (int a_i = 0; a_i < suu->class23[sum_i].allist[i].tsa.addr[0] - 1; a_i++) {
+			if (suu->class23[sum_i].allist[i].tsa.addr[a_i + 2] != pu->class12[p_i].addr[a_i + 1]) {
 				res = 0;
 				break;
 			}
@@ -52,164 +46,125 @@ int findPinSum(int sum_i, int p_i, int* mmm) {
 			break;
 		}
 	}
-	if (res == 1)
-		fprintf(stderr, "查找电表表号 %d %d!!\n", sum_i, p_i);
 	return res;
 }
 
+void sumUpInitUnit(SumUpUnit* suu, ProgramInfo* JProgramInfo) {
+	memset(suu, 0x00, sizeof(SumUpUnit));
+
+	suu->class23 = JProgramInfo->class23;
+
+	for (int ss = 0; ss < 8; ss++) {
+		suu->prev[ss] = JProgramInfo->class23[ss].DayPALL;
+	}
+}
+
 //刷新总加组
-void refreshSumUp() {
-	static int first_flag = 1;
-	static INT64U prev[8][4];
-	static INT64U curP[8][8][5];
-	static INT64U curQ[8][8][5];
-	static INT64U curNP[8][8][5];
-	static INT64U curNQ[8][8][5];
+void SumUpRefreshUnit(SumUpUnit* suu) {
+	for (int sum_i = 0; sum_i < 8; sum_i++) {
+		INT64U tmp_remains = 0;
+		for (int al_i = 0; al_i < 8; al_i++) {
+			int cal_flag = (suu->class23[sum_i].allist[al_i].cal_flag == 0) ? 1 : -1;
+			if (suu->class23[sum_i].allist[al_i].al_flag == 0) {
+				for (int rate_i = 0; rate_i < 5; rate_i++) {
+					INT64S tmp = suu->class23[sum_i].allist[al_i].curP[rate_i]
+							- suu->curP[sum_i][al_i][rate_i];
+					tmp_remains = (tmp <= 0) ? 0 : tmp * 100;
+					tmp_remains *= cal_flag;
+					suu->curP[sum_i][al_i][rate_i] = suu->class23[sum_i].allist[al_i].curP[rate_i];
+					if (rate_i > 0) {
+						suu->class23[sum_i].DayP[rate_i - 1] += tmp_remains;
+						suu->class23[sum_i].MonthP[rate_i - 1] += tmp_remains;
+					} else {
+						suu->class23[sum_i].DayPALL += tmp_remains;
+						suu->class23[sum_i].MonthPALL += tmp_remains;
+					}
+				}
+				for (int rate_i = 0; rate_i < 5; rate_i++) {
+					INT64U tmp = suu->class23[sum_i].allist[al_i].curQ[rate_i]
+							- suu->curQ[sum_i][al_i][rate_i];
+					tmp_remains = (tmp <= 0) ? 0 : tmp * 100;
+					tmp_remains *= cal_flag;
+					suu->curQ[sum_i][al_i][rate_i] = suu->class23[sum_i].allist[al_i].curQ[rate_i];
+					if (rate_i > 0) {
+						suu->class23[sum_i].DayQ[rate_i - 1] += tmp_remains;
+						suu->class23[sum_i].MonthQ[rate_i - 1] += tmp_remains;
+					} else {
+						suu->class23[sum_i].DayQALL += tmp_remains;
+						suu->class23[sum_i].MonthQALL += tmp_remains;
+					}
+				}
+			} else {
+				for (int rate_i = 0; rate_i < 5; rate_i++) {
+					INT64U tmp = suu->class23[sum_i].allist[al_i].curNP[rate_i]
+							- suu->curNP[sum_i][al_i][rate_i];
+					tmp_remains = (tmp <= 0) ? 0 : tmp * 100;
+					tmp_remains *= cal_flag;
+					suu->curNP[sum_i][al_i][rate_i] =
+							suu->class23[sum_i].allist[al_i].curNP[rate_i];
+					if (rate_i > 0) {
+						suu->class23[sum_i].DayP[rate_i - 1] += tmp_remains;
+						suu->class23[sum_i].MonthP[rate_i - 1] += tmp_remains;
+					} else {
+						suu->class23[sum_i].DayPALL += tmp_remains;
+						suu->class23[sum_i].MonthPALL += tmp_remains;
+					}
+				}
 
-	TS ts;
-	TSGet(&ts);
-
-	if (first_flag == 1) {
-		first_flag = 0;
-		for (int ss = 0; ss < 8; ss++) {
-			for (int i = 0; i < 4; i++) {
-				prev[ss][i] = JProgramInfo->class23[ss].DayP[i];
-			}
-		}
-
-		for (int i = 0; i < 8; i++) {
-			for (int j = 0; j < 8; j++) {
-				for (int k = 0; k < 5; k++){
-					curP[i][j][k] = 0;
-					curQ[i][j][k] = 0;
-					curNP[i][j][k] = 0;
-					curNQ[i][j][k] = 0;
-					if (k > 0){
-						JProgramInfo->class23[i].allist[j].curP[k-1] = 0;
-						JProgramInfo->class23[i].allist[j].curQ[k-1] = 0;
+				for (int rate_i = 0; rate_i < 5; rate_i++) {
+					INT64U tmp = suu->class23[sum_i].allist[al_i].curNQ[rate_i]
+							- suu->curNQ[sum_i][al_i][rate_i];
+					tmp_remains = (tmp <= 0) ? 0 : tmp * 100;
+					tmp_remains *= cal_flag;
+					suu->curNQ[sum_i][al_i][rate_i] =
+							suu->class23[sum_i].allist[al_i].curNQ[rate_i];
+					if (rate_i > 0) {
+						suu->class23[sum_i].DayQ[rate_i - 1] += tmp_remains;
+						suu->class23[sum_i].MonthQ[rate_i - 1] += tmp_remains;
+					} else {
+						suu->class23[sum_i].DayQALL += tmp_remains;
+						suu->class23[sum_i].MonthQALL += tmp_remains;
 					}
 				}
 			}
 		}
 	}
+}
 
-	for (int sum_i = 0; sum_i < 8; sum_i++) {
-		for (int i = 0; i < 4; i++) {
-			JProgramInfo->class23[sum_i].DayP[i] = 0;
-			JProgramInfo->class23[sum_i].DayQ[i] = 0;
-			JProgramInfo->class23[sum_i].MonthP[i] = 0;
-			JProgramInfo->class23[sum_i].MonthQ[i] = 0;
-		}
-
-		INT64U tmp_remains = 0;
-		for (int al_i = 0; al_i < 8; al_i++) {
-			int cal_flag = (JProgramInfo->class23[sum_i].allist[al_i].cal_flag == 0) ? 1 : -1;
-			if (JProgramInfo->class23[sum_i].allist[al_i].al_flag == 0) {
-				for(int rate_i = 0; rate_i < 5; rate_i ++){
-					INT64U tmp = JProgramInfo->class23[sum_i].allist[al_i].curP[rate_i] - curP[sum_i][al_i][rate_i];
-					tmp_remains = (tmp <= 0) ? 0 : tmp * 100;
-					tmp_remains *= cal_flag;
-					curP[sum_i][al_i][rate_i] = JProgramInfo->class23[sum_i].allist[al_i].curP[rate_i];
-					if(rate_i > 0){
-						JProgramInfo->class23[sum_i].DayP[rate_i - 1] += tmp_remains;
-						JProgramInfo->class23[sum_i].MonthP[rate_i - 1] += tmp_remains;
-					}else{
-						JProgramInfo->class23[sum_i].DayPALL += tmp_remains;
-						JProgramInfo->class23[sum_i].MonthPALL += tmp_remains;
-					}
-				}
-				for(int rate_i = 0; rate_i < 5; rate_i ++){
-					INT64U tmp = JProgramInfo->class23[sum_i].allist[al_i].curQ[rate_i] - curQ[sum_i][al_i][rate_i];
-					tmp_remains = (tmp <= 0) ? 0 : tmp * 100;
-					tmp_remains *= cal_flag;
-					curQ[sum_i][al_i][rate_i] = JProgramInfo->class23[sum_i].allist[al_i].curQ[rate_i];
-					if(rate_i > 0){
-						JProgramInfo->class23[sum_i].DayQ[rate_i - 1] += tmp_remains;
-						JProgramInfo->class23[sum_i].MonthP[rate_i - 1] += tmp_remains;
-					}else{
-						JProgramInfo->class23[sum_i].DayQALL += tmp_remains;
-						JProgramInfo->class23[sum_i].MonthPALL += tmp_remains;
-					}
-				}
-			}else{
-				for(int rate_i = 0; rate_i < 5; rate_i ++){
-					INT64U tmp = JProgramInfo->class23[sum_i].allist[al_i].curP[rate_i] - curNP[sum_i][al_i][rate_i];
-					tmp_remains = (tmp <= 0) ? 0 : tmp * 100;
-					curNP[sum_i][al_i][rate_i] = JProgramInfo->class23[sum_i].allist[al_i].curP[rate_i];
-					if(rate_i > 0){
-						JProgramInfo->class23[sum_i].DayQ[rate_i - 1] += tmp_remains;
-						JProgramInfo->class23[sum_i].MonthQ[rate_i - 1] += tmp_remains;
-					}else{
-						JProgramInfo->class23[sum_i].DayQALL += tmp_remains;
-						JProgramInfo->class23[sum_i].MonthQALL += tmp_remains;
-					}
-				}
-
-				for(int rate_i = 0; rate_i < 5; rate_i ++){
-					INT64U tmp = JProgramInfo->class23[sum_i].allist[al_i].curQ[rate_i] - curNQ[sum_i][al_i][rate_i];
-					tmp_remains = (tmp <= 0) ? 0 : tmp * 100;
-					curNQ[sum_i][al_i][rate_i] = JProgramInfo->class23[sum_i].allist[al_i].curQ[rate_i];
-					if(rate_i > 0){
-						JProgramInfo->class23[sum_i].DayQ[rate_i - 1] += tmp_remains;
-						JProgramInfo->class23[sum_i].MonthQ[rate_i - 1] += tmp_remains;
-					}else{
-						JProgramInfo->class23[sum_i].DayQALL += tmp_remains;
-						JProgramInfo->class23[sum_i].MonthQALL += tmp_remains;
-					}
-				}
-			}
-		}
-
+void SumUpRefreshPulseUnit(SumUpUnit* suu, PluseUnit * pu) {
+	for (int s_i = 0; s_i < 8; s_i++) {
 		//计算脉冲测量点在总加组中的数据
-		for (int pluse_idx = 0; pluse_idx < 2; pluse_idx++) {
+		for (int p_i = 0; p_i < 2; p_i++) {
 			int index = 0;
-			if (findPinSum(sum_i, pluse_idx, &index) == 0) {
+			if (sumUpfindPulse(suu, pu, s_i, p_i, &index) == 0) {
 				continue;
 			}
-			JProgramInfo->class23[sum_i].p = JProgramInfo->class12[pluse_idx].p;
-			JProgramInfo->class23[sum_i].q = JProgramInfo->class12[pluse_idx].q;
+			suu->class23[s_i].p = pu->class12[p_i].p;
+			suu->class23[s_i].q = pu->class12[p_i].q;
 
-			int cal_flag = (JProgramInfo->class23[sum_i].allist[index].cal_flag == 0) ? 1 : -1;
+			for (int i = 1; i < 5; i ++) {
+				suu->class23[s_i].allist[index].curP[i] = pu->class12[p_i].day_pos_p[i-1] / 100.0;
+				suu->class23[s_i].allist[index].curQ[i] = pu->class12[p_i].day_pos_q[i-1] / 100.0;
+				suu->class23[s_i].allist[index].curNP[i] = pu->class12[p_i].day_nag_p[i-1] / 100.0;
+				suu->class23[s_i].allist[index].curNQ[i] = pu->class12[p_i].day_nag_q[i-1] / 100.0;
 
-			if (JProgramInfo->class23[sum_i].allist[index].al_flag == 0) {
-				for (int i = 0; i < 4; i++) {
-					JProgramInfo->class23[sum_i].DayP[i] +=
-							JProgramInfo->class12[pluse_idx].day_pos_p[i] * cal_flag;
-					JProgramInfo->class23[sum_i].DayQ[i] +=
-							JProgramInfo->class12[pluse_idx].day_pos_q[i] * cal_flag;
-					JProgramInfo->class23[sum_i].MonthP[i] +=
-							JProgramInfo->class12[pluse_idx].mon_pos_p[i] * cal_flag;
-					JProgramInfo->class23[sum_i].MonthQ[i] +=
-							JProgramInfo->class12[pluse_idx].mon_pos_q[i] * cal_flag;
-				}
-			} else {
-				for (int i = 0; i < 4; i++) {
-					JProgramInfo->class23[sum_i].DayP[i] +=
-							JProgramInfo->class12[pluse_idx].day_nag_p[i] * cal_flag;
-					JProgramInfo->class23[sum_i].DayQ[i] +=
-							JProgramInfo->class12[pluse_idx].day_nag_q[i] * cal_flag;
-					JProgramInfo->class23[sum_i].MonthP[i] +=
-							JProgramInfo->class12[pluse_idx].mon_nag_p[i] * cal_flag;
-					JProgramInfo->class23[sum_i].MonthQ[i] +=
-							JProgramInfo->class12[pluse_idx].mon_nag_q[i] * cal_flag;
-				}
+				suu->class23[s_i].allist[index].curP[0] += pu->class12[p_i].day_pos_p[i-1] / 100.0;
+				suu->class23[s_i].allist[index].curQ[0] += pu->class12[p_i].day_pos_q[i-1] / 100.0;
+				suu->class23[s_i].allist[index].curNP[0] += pu->class12[p_i].day_nag_p[i-1] / 100.0;
+				suu->class23[s_i].allist[index].curNQ[0] += pu->class12[p_i].day_nag_q[i-1] / 100.0;
 			}
 		}
 
 		//根据总加组的日有功电量计算计算剩余电量
-		for (int i = 0; i < 4; i++) {
-			int tmp = (JProgramInfo->class23[sum_i].DayP[i] - prev[sum_i][i]);
-			prev[sum_i][i] = JProgramInfo->class23[sum_i].DayP[i];
-			JProgramInfo->class23[sum_i].DayPALL += tmp;
-			JProgramInfo->class23[sum_i].remains -= tmp;
-		}
+		int tmp = (suu->class23[s_i].DayPALL - suu->prev[s_i]);
+		suu->prev[s_i] = suu->class23[s_i].DayPALL;
+		suu->class23[s_i].remains -= tmp;
 
 	}
 
-	fprintf(stderr, "总加组功率%d 电量%lld %lld %lld %lld [%lld]\n", JProgramInfo->class23[0].p,
-			JProgramInfo->class23[0].DayP[0], JProgramInfo->class23[0].DayP[1],
-			JProgramInfo->class23[0].DayP[2], JProgramInfo->class23[0].DayP[3],
-			JProgramInfo->class23[0].remains);
+	fprintf(stderr, "总加组功率%d 电量%lld %lld %lld %lld [%lld]\n", suu->class23[0].p,
+			suu->class23[0].DayP[0], suu->class23[0].DayP[1], suu->class23[0].DayP[2],
+			suu->class23[0].DayP[3], suu->class23[0].remains);
 
 }
 
@@ -1136,14 +1091,17 @@ int ctrlMain(void* arg) {
 
 	int secOld = 0;
 	PluseUnit pu;
+	SumUpUnit suu;
 
 	//初始化参数,搭建8个总加组数据，读取功控、电控参数
 	initAll();
 	pluseInitUnit(&pu, JProgramInfo);
+	sumUpInitUnit(&suu, JProgramInfo);
 
 	//test filed
-	if(1){
-		for (int i = 0; i < 8; i++){
+	if (1) {
+
+		for (int i = 0; i < 8; i++) {
 			JProgramInfo->class23[i].allist[0].al_flag = 0;
 			JProgramInfo->class23[i].allist[0].cal_flag = 0;
 			JProgramInfo->class23[i].allist[0].curP[0] = 100;
@@ -1151,17 +1109,140 @@ int ctrlMain(void* arg) {
 			JProgramInfo->class23[i].allist[0].curP[2] = 30;
 			JProgramInfo->class23[i].allist[0].curP[3] = 20;
 			JProgramInfo->class23[i].allist[0].curP[4] = 30;
+		}
+
+		SumUpRefreshUnit(&suu);
+		for (int i = 0; i < 8; i++) {
+			assert(JProgramInfo->class23[i].DayPALL == 10000);
+			assert(JProgramInfo->class23[i].DayP[0] == 2000);
+			assert(JProgramInfo->class23[i].DayP[1] == 3000);
+			assert(JProgramInfo->class23[i].DayP[2] == 2000);
+			assert(JProgramInfo->class23[i].DayP[3] == 3000);
+		}
+
+		for (int i = 0; i < 8; i++) {
+			JProgramInfo->class23[i].allist[0].al_flag = 0;
+			JProgramInfo->class23[i].allist[0].cal_flag = 1;
+			JProgramInfo->class23[i].allist[0].curP[0] = 200;
+			JProgramInfo->class23[i].allist[0].curP[1] = 40;
+			JProgramInfo->class23[i].allist[0].curP[2] = 60;
+			JProgramInfo->class23[i].allist[0].curP[3] = 40;
+			JProgramInfo->class23[i].allist[0].curP[4] = 60;
+		}
+
+		SumUpRefreshUnit(&suu);
+		for (int i = 0; i < 8; i++) {
+			assert(JProgramInfo->class23[i].DayPALL == 0);
+			assert(JProgramInfo->class23[i].DayP[0] == 0);
+			assert(JProgramInfo->class23[i].DayP[1] == 0);
+			assert(JProgramInfo->class23[i].DayP[2] == 0);
+			assert(JProgramInfo->class23[i].DayP[3] == 0);
+		}
+
+		for (int i = 0; i < 8; i++) {
+			JProgramInfo->class23[i].allist[0].al_flag = 1;
+			JProgramInfo->class23[i].allist[0].cal_flag = 0;
+			JProgramInfo->class23[i].allist[0].curNP[0] = 100;
+			JProgramInfo->class23[i].allist[0].curNP[1] = 20;
+			JProgramInfo->class23[i].allist[0].curNP[2] = 30;
+			JProgramInfo->class23[i].allist[0].curNP[3] = 20;
+			JProgramInfo->class23[i].allist[0].curNP[4] = 30;
+		}
+
+		SumUpRefreshUnit(&suu);
+		for (int i = 0; i < 8; i++) {
+			assert(JProgramInfo->class23[i].DayPALL == 10000);
+			assert(JProgramInfo->class23[i].DayP[0] == 2000);
+			assert(JProgramInfo->class23[i].DayP[1] == 3000);
+			assert(JProgramInfo->class23[i].DayP[2] == 2000);
+			assert(JProgramInfo->class23[i].DayP[3] == 3000);
+		}
+
+		for (int i = 0; i < 8; i++) {
+			JProgramInfo->class23[i].allist[0].al_flag = 1;
+			JProgramInfo->class23[i].allist[0].cal_flag = 1;
+			JProgramInfo->class23[i].allist[0].curNP[0] = 200;
+			JProgramInfo->class23[i].allist[0].curNP[1] = 40;
+			JProgramInfo->class23[i].allist[0].curNP[2] = 60;
+			JProgramInfo->class23[i].allist[0].curNP[3] = 40;
+			JProgramInfo->class23[i].allist[0].curNP[4] = 60;
+		}
+
+		SumUpRefreshUnit(&suu);
+		for (int i = 0; i < 8; i++) {
+			assert(JProgramInfo->class23[i].DayPALL == 0);
+			assert(JProgramInfo->class23[i].DayP[0] == 0);
+			assert(JProgramInfo->class23[i].DayP[1] == 0);
+			assert(JProgramInfo->class23[i].DayP[2] == 0);
+			assert(JProgramInfo->class23[i].DayP[3] == 0);
+		}
+
+		JProgramInfo->class12[0].addr[0] = 0x05;
+		JProgramInfo->class12[0].addr[1] = 0x01;
+		JProgramInfo->class12[0].addr[2] = 0x02;
+		JProgramInfo->class12[0].addr[3] = 0x03;
+		JProgramInfo->class12[0].addr[4] = 0x04;
+		JProgramInfo->class12[0].addr[5] = 0x05;
+
+		JProgramInfo->class12[1].addr[0] = 0x05;
+		JProgramInfo->class12[1].addr[1] = 0x05;
+		JProgramInfo->class12[1].addr[2] = 0x04;
+		JProgramInfo->class12[1].addr[3] = 0x03;
+		JProgramInfo->class12[1].addr[4] = 0x02;
+		JProgramInfo->class12[1].addr[5] = 0x01;
+
+		JProgramInfo->class12[0].day_nag_p[0] = 10000;
+		JProgramInfo->class12[0].day_pos_p[0] = 20000;
+		JProgramInfo->class12[0].day_nag_q[0] = 10000;
+		JProgramInfo->class12[0].day_pos_q[0] = 20000;
+
+		JProgramInfo->class12[0].p = 12345;
+		JProgramInfo->class12[0].q = 123450;
+
+		JProgramInfo->class12[1].day_nag_p[0] = 30000;
+		JProgramInfo->class12[1].day_pos_p[0] = 20000;
+		JProgramInfo->class12[1].day_nag_q[0] = 30000;
+		JProgramInfo->class12[1].day_pos_q[0] = 20000;
+
+		JProgramInfo->class12[1].p = 54321;
+		JProgramInfo->class12[1].p = 543210;
+
+		int index = 0;
+		for (int sum_i = 0; sum_i < 8; sum_i++) {
+			JProgramInfo->class23[sum_i].allist[7 - sum_i].tsa.addr[0] = 0x06;
+			JProgramInfo->class23[sum_i].allist[7 - sum_i].tsa.addr[1] = 0x05;
+			JProgramInfo->class23[sum_i].allist[7 - sum_i].tsa.addr[2] = 0x01;
+			JProgramInfo->class23[sum_i].allist[7 - sum_i].tsa.addr[3] = 0x02;
+			JProgramInfo->class23[sum_i].allist[7 - sum_i].tsa.addr[4] = 0x03;
+			JProgramInfo->class23[sum_i].allist[7 - sum_i].tsa.addr[5] = 0x04;
+			JProgramInfo->class23[sum_i].allist[7 - sum_i].tsa.addr[6] = 0x05;
 
 		}
-		fprintf(stderr, "78787878787878787878787878\n");
-		refreshSumUp();
+		for (int sum_i = 0; sum_i < 8; sum_i++) {
+			for (int p_i = 0; p_i < 2; p_i++) {
+				if (sumUpfindPulse(&suu, &pu, sum_i, p_i, &index) == 1) {
+					assert(p_i == 0);
+					assert(index == 7 - sum_i);
+				}
+			}
+		}
+
+		SumUpRefreshPulseUnit(&suu, &pu);
+		SumUpRefreshUnit(&suu);
+
+		printf("finish!\n");
 
 		for (int i = 0; i < 8; i++){
-			fprintf(stderr, "==========%lld %lld %lld %lld %lld %lld\n", JProgramInfo->class23[i].DayPALL,
+			fprintf(stderr, "==========%lld %lld %lld %lld %lld\n", JProgramInfo->class23[i].DayPALL,
 					JProgramInfo->class23[i].DayP[0],
 					JProgramInfo->class23[i].DayP[1],
 					JProgramInfo->class23[i].DayP[2],
 					JProgramInfo->class23[i].DayP[3]);
+			fprintf(stderr, "==========%lld %lld %lld %lld %lld\n", JProgramInfo->class23[i].MonthPALL,
+					JProgramInfo->class23[i].MonthP[0],
+					JProgramInfo->class23[i].MonthP[1],
+					JProgramInfo->class23[i].MonthP[2],
+					JProgramInfo->class23[i].MonthP[3]);
 		}
 		exit(0);
 	}
@@ -1179,7 +1260,7 @@ int ctrlMain(void* arg) {
 		}
 
 		pluseRefreshUnit(&pu);
-		refreshSumUp();
+		SumUpRefreshUnit(&suu);
 
 		if (secOld % 5 == 0) {
 			dealCtrl();

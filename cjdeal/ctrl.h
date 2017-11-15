@@ -23,10 +23,14 @@ typedef union { //control code
 } ctrlUN;
 
 typedef struct {
-	CLASS23			*class23;
+	CLASS23 *class23;
+	INT64U prev[8];
+	INT64U curP[8][8][5];
+	INT64U curQ[8][8][5];
+	INT64U curNP[8][8][5];
+	INT64U curNQ[8][8][5];
 
-
-}SumUpUnit;
+} SumUpUnit;
 
 int ctrlMain(void * arg);
 int SaveAll(void* arg);
