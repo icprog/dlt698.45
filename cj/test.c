@@ -25,14 +25,14 @@
 extern ProgramInfo* JProgramInfo ;
 
 TSA tsas[]={
-		{0x07,0x05,0x00,0x00,0x00,0x00,0x00,0x01},
-		{0x07,0x05,0x00,0x00,0x00,0x00,0x00,0x02},
-		{0x07,0x05,0x00,0x00,0x00,0x00,0x00,0x03},
-		{0x07,0x05,0x00,0x00,0x00,0x00,0x00,0x04},
-		{0x07,0x05,0x00,0x00,0x00,0x00,0x00,0x05},
+		{{0x07,0x05,0x00,0x00,0x00,0x00,0x00,0x01}},
+		{{0x07,0x05,0x00,0x00,0x00,0x00,0x00,0x02}},
+		{{0x07,0x05,0x00,0x00,0x00,0x00,0x00,0x03}},
+		{{0x07,0x05,0x00,0x00,0x00,0x00,0x00,0x04}},
+		{{0x07,0x05,0x00,0x00,0x00,0x00,0x00,0x05}},
 };
 
-void Test(int argc, char *argv[])
+int Test(int argc, char *argv[])
 {
 	if (strcmp("plcmode", argv[1]) == 0) {
         JProgramInfo = OpenShMem("ProgramInfo", sizeof(ProgramInfo), NULL);
@@ -83,6 +83,35 @@ void Test(int argc, char *argv[])
         }
         return EXIT_SUCCESS;
     }
+
+	if (strcmp("report", argv[1]) == 0) {
+		JProgramInfo = OpenShMem("ProgramInfo", sizeof(ProgramInfo), NULL);
+		int retaskid = 64;
+		TS ts_rep1, ts_rep2;
+		if (argc >= 3) {
+			if (argc == 10) {
+				retaskid = atoi(argv[2]);
+				TSGet(&ts_rep1);
+				ts_rep1.Year = atoi(argv[3]);
+				ts_rep1.Month = atoi(argv[4]);
+				ts_rep1.Day = atoi(argv[5]);
+				ts_rep1.Hour = atoi(argv[6]);
+				ts_rep1.Minute = atoi(argv[7]);
+				memcpy(&ts_rep2, &ts_rep1, sizeof(TS));
+				ts_rep2.Hour = atoi(argv[8]);
+				ts_rep2.Minute = atoi(argv[9]);
+			} else {
+				fprintf(stderr,
+						"\n参数不够，格式如下:cj report 64 2017 6 6 10 30 11 30 **上报任务17-6-6 10:30到11:30这个点的数据上报\n");
+				return EXIT_SUCCESS;
+			}
+		}
+		fprintf(stderr, "report taskid=%d\n", retaskid);
+		supplementRpt(ts_rep1, ts_rep2, retaskid, &JProgramInfo->cfg_para.extpara[0]);
+		shmm_unregister("ProgramInfo", sizeof(ProgramInfo));
+		return EXIT_SUCCESS;
+	}
+
     if (strcmp("ms", argv[1]) == 0) {
 		 int taskid = 64;
 		 int ret = 0;
@@ -186,4 +215,5 @@ void Test(int argc, char *argv[])
 
     	return EXIT_SUCCESS;
     }
+    return EXIT_SUCCESS;
 }

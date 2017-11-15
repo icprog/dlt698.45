@@ -3545,7 +3545,7 @@ INT16S dealCurve_698(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT
 		st6015.data.data[CURVE_INFO_STARTINDEX+11] = ts_start.Month;
 		st6015.data.data[CURVE_INFO_STARTINDEX+12] = ts_start.Day;
 		st6015.data.data[CURVE_INFO_STARTINDEX+13] = ts_start.Hour;
-		st6015.data.data[CURVE_INFO_STARTINDEX+14] = 0;
+		st6015.data.data[CURVE_INFO_STARTINDEX+14] = ts_start.Minute;
 		st6015.data.data[CURVE_INFO_STARTINDEX+15] = 0;
 
 		for(tsIndex = 0;tsIndex < dataNumOneGroup;tsIndex++)
@@ -3563,7 +3563,7 @@ INT16S dealCurve_698(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT
 		st6015.data.data[CURVE_INFO_STARTINDEX+3] = ts_start.Month;
 		st6015.data.data[CURVE_INFO_STARTINDEX+4] = ts_start.Day;
 		st6015.data.data[CURVE_INFO_STARTINDEX+5] = ts_start.Hour;
-		st6015.data.data[CURVE_INFO_STARTINDEX+6] = 0;
+		st6015.data.data[CURVE_INFO_STARTINDEX+6] = ts_start.Minute;
 		st6015.data.data[CURVE_INFO_STARTINDEX+7] = 0;
 		INT8U curvedataContent[BUFFSIZE2048];
 		memset(curvedataContent,0,BUFFSIZE2048);

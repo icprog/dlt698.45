@@ -19,7 +19,7 @@ extern int Link_Request(LINK_Request request, INT8U* addr, INT8U* buf);
 extern void testframe(INT8U* apdu, int len);
 extern INT8U Report_Event(CommBlock* com, INT8U *oiarr, INT8U report_type);
 extern INT16U composeAutoReport(INT8U* SendApdu, INT16U length);
-extern INT16U composeAutoTask(AutoTaskStrap* list);
+extern INT16U composeAutoTask(AutoTaskStrap* list, rptInfo_s* rptInfo_p);
 extern int callAutoReport(char *filename,INT8U reportChoice,CommBlock* com, INT8U ifecho);
 extern int callEventAutoReport(CommBlock* com,INT8U *eventbuf,int datalen);
 extern int callNotificationReport(CommBlock* com,INT8U *plcbuf,OAD portOAD,int datalen);

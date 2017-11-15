@@ -298,19 +298,19 @@ void setm2g(int argc, char* argv[])
 	if(argc == 2){
 		readCoverClass(0x4521, 0, &m2g, sizeof(int), para_vari_save);
 		switch(m2g) {
-		case 0x1:
+		case 0x11:
 			fprintf(stderr,"当前模式为GSM\n");
 			break;
-		case 0x2:
+		case 0x22:
 			fprintf(stderr,"当前模式为WCDMA\n");
 			break;
-		case 0x03:
+		case 0x33:
 			fprintf(stderr,"当前模式为LTE\n");
 			break;
-		case 0x04:
+		case 0x44:
 			fprintf(stderr,"当前模式为TD-SCDMA\n");
 			break;
-		case 0x05:
+		case 0x55:
 			fprintf(stderr,"当前模式为UMTS\n");
 			break;
 		default:
@@ -324,6 +324,7 @@ void setm2g(int argc, char* argv[])
 //		}
 	}else {
 		m2g = atoi(argv[2]);
+		int cmd = 0x00;
 		if(m2g<0 || m2g>5) {
 			fprintf(stderr,"无效设置模式,设置范围为0-5\n");
 			return;
@@ -332,25 +333,31 @@ void setm2g(int argc, char* argv[])
 		switch(m2g) {
 		case 0x1:
 			fprintf(stderr,"设置当前模式为GSM\n");
+			cmd = 0x11;
 			break;
 		case 0x2:
 			fprintf(stderr,"设置当前模式为WCDMA\n");
+			cmd = 0x22;
 			break;
-		case 0x03:
+		case 0x3:
 			fprintf(stderr,"设置当前模式为LTE\n");
+			cmd = 0x33;
 			break;
-		case 0x04:
+		case 0x4:
 			fprintf(stderr,"设置当前模式为TD-SCDMA\n");
+			cmd = 0x44;
 			break;
-		case 0x05:
+		case 0x5:
 			fprintf(stderr,"设置当前模式为UMTS\n");
+			cmd = 0x55;
 			break;
-		case 0:
+		case 0x0:
+			cmd = 0x00;
 			fprintf(stderr,"设置当前模式为自适应模式\n");
 			break;
 		}
 		if(m2g>=0 && m2g<=5)
-			saveCoverClass(0x4521, 0, &m2g, sizeof(int), para_vari_save);
+			saveCoverClass(0x4521, 0, &cmd, sizeof(int), para_vari_save);
 	}
 }
 

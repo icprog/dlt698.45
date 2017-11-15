@@ -801,9 +801,10 @@ typedef struct {
     TSA tsa;
     INT8U al_flag;
     INT8U cal_flag;
-    INT64U curP[MAXVAL_RATENUM+1];    //当前有功-总尖峰平谷
-    INT64U curQ[MAXVAL_RATENUM+1];    //当前无功-总尖峰平谷
-    INT64U freeze[4][MAXVAL_RATENUM+1];    //[0-上一日有功;1-上一日无功;2-上一月有功;3-上一月无功][总尖峰平谷]
+    INT64U curP[MAXVAL_RATENUM+1];    //当前正向有功-总尖峰平谷
+    INT64U curQ[MAXVAL_RATENUM+1];    //当前正向无功-总尖峰平谷
+    INT64U curNP[MAXVAL_RATENUM+1];    //当前反向有功-总尖峰平谷
+    INT64U curNQ[MAXVAL_RATENUM+1];    //当前反向无功-总尖峰平谷
 } AL_UNIT;
 
 typedef struct {

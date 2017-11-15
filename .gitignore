@@ -15,6 +15,7 @@ bin_arm/
 bin_arm_test/
 updatetool/*
 updatetool/*/*
+*/CMakeFiles/
 
 include/version.h
 libTransmit/.project
