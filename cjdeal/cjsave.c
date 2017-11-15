@@ -26,15 +26,15 @@ void getFRZtime(CLASS_6013 class6013, CLASS_6015 class6015,TS ts,INT8U *buf,INT3
 	fprintf(stderr,"\nclass6015.savetimeflag=%d\n",class6015.savetimeflag);
 	switch(class6015.savetimeflag)
 	{
-	case 1:
-		buf[0] = (ts.Year&0xff00)>>8;
-		buf[1] = ts.Year&0x00ff;
-		buf[2] = ts.Month;
-		buf[3] = ts.Day;
-		buf[4] = ts.Hour;
-		buf[5] = ts.Minute;
-		buf[6] = ts.Sec;
-		break;
+//	case 1:
+//		buf[0] = (ts.Year&0xff00)>>8;
+//		buf[1] = ts.Year&0x00ff;
+//		buf[2] = ts.Month;
+//		buf[3] = ts.Day;
+//		buf[4] = ts.Hour;
+//		buf[5] = ts.Minute;
+//		buf[6] = ts.Sec;
+//		break;
 	case 2://相对当日零点零分
 		buf[0] = (ts.Year&0xff00)>>8;
 		buf[1] = ts.Year&0x00ff;
@@ -294,7 +294,7 @@ void fillRECdata(OADDATA_SAVE *OADdata,INT8U OADnum,INT8U *databuf,HEADFIXED_INF
 	}
 
 	databuf[8]=0x1c;
-	TStoDATEBCD(OADts,&databuf[9]);//采集成功时间，由最后一次oad时间赋值s
+	TStoDATEBCD(OADts,&databuf[9]);
 
 	if(databuf[16] == 0)//采集开始时间为空
 	{
@@ -308,7 +308,7 @@ void fillRECdata(OADDATA_SAVE *OADdata,INT8U OADnum,INT8U *databuf,HEADFIXED_INF
 		taskhead_info.oadnum=100;//最多存储100个oads
 	for(i=0;i<taskhead_info.oadnum;i++)//开头三个时标
 	{
-		if(headoad_unit[i].oad_r.OI == 0x6040 || headoad_unit[i].oad_r.OI == 0x6041 ||
+		if(headoad_unit[i].oad_r.OI == 0x6040 || headoad_unit[i].oad_r.OI == 0x6041 ||//抄表给三个时标
 				headoad_unit[i].oad_r.OI == 0x6042)
 			continue;
 		fprintf(stderr,"\n---------%d:0x%04x-0x%04x\n",i,headoad_unit[i].oad_m.OI,headoad_unit[i].oad_r.OI);

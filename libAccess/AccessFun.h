@@ -88,14 +88,10 @@ typedef struct {//例如：oad_m为50040200，oad_r为00100200 关联属性oad�
 	INT8U oad_num;//oad的写为1，road的写为从oad个数
 }OAD_MR;
 typedef struct {
+	INT32U zc_seqsec;//招测的间隔，0不比对
 	INT16U oadmr_num;//涉及到的road个数，每一个都写成二维OAD_MR，oad类型的关联属性oad_r写为0000
 	OAD_MR oad[MY_CSD_NUM*ROAD_OADS_NUM];
 }ROAD_ITEM;//将招测csd分解为多个oad
-typedef struct {
-	int recordno_num;//序列总数
-	time_t rec_start;//开始时间秒数
-	time_t rec_end;//结束时间秒数
-}CURR_RECINFO;//当前记录信息
 
 typedef struct{
 	OAD   oad_m;	//主OAD		oad 不存在主OAD，填0 ，road  存在主oad，如50040200
@@ -395,6 +391,7 @@ extern INT16U getCBsuctsanum(INT8U taskid,TS ts);//删除过期任务数据文�
 extern void getFILEts(INT8U frz_type,TS *ts_file);
 extern INT8U get60136015info(INT8U taskid,CLASS_6015 *class6015,CLASS_6013 *class6013);
 extern INT32U getTASKruntimes(CLASS_6013 class6013,CLASS_6015 class6015,INT32U *seqsec);
+extern void supplementRpt(TS ts1, TS ts2, INT8U retaskid, INT8U *saveflg);
 
 int readfile_int(FILE *fp);
 int getOADf(INT8U type,INT8U *source,OAD *oad);

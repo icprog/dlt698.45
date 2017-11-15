@@ -798,6 +798,19 @@ typedef struct{
 	Reportevent report_event[15];
 }NeedReport_Event;
 
+typedef struct {
+       INT8U   sign;           //当前时间点是否上报成功: 0xFF(RPT_FAIL) - 失败, 0xAA(RPT_SUC) - 成功.
+       INT8U   taskId;         //任务编号
+       INT8U   pos;            //数组中的位置
+       DateBCD date;           //曲线执行上报的日期
+       TS              startTime;      //本次任务开始时间点
+       TS              endTime;        //本次任务结束时间点
+} rptInfo_s;
+
+typedef struct {
+       rptInfo_s rptList[MAXNUM_AUTOTASK][2];//考虑到曲线任务要针对不同表计类型, 目前浙江分1型和3型电表. 先定20个任务
+} taskFailInfo_s;
+
 //消息命令
 typedef enum {
 	TERMINALEVENT_REPORT = 0,   //0

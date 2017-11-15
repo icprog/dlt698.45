@@ -55,6 +55,8 @@ typedef struct {
 	int StopCommunite;
 
 	CommBlock *last_proxy;//记录最后一次代理消息的端口
+	taskFailInfo_s taskList; //用于记录最后一次发送任务的成功时间，补发曲线
+	rptInfo_s currTask; //当前正在上报的任务参数
 } DBStruct;
 
 void * dbGet(char * name);
