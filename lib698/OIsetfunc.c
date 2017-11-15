@@ -1064,6 +1064,23 @@ int setf203(OAD oad,INT8U *data,INT8U *DAR)
 	return index;
 }
 
+int setf205(OAD oad,INT8U *data,INT8U *DAR)
+{
+	INT16U index=0;
+	CLASS_f203	f203={};
+	memset(&f203,0,sizeof(CLASS_f203));
+	readCoverClass(0xf203,0,&f203,sizeof(CLASS_f203),para_vari_save);
+	if ( oad.attflg == 4 )//配置参数
+	{
+		index += getStructure(&data[index],NULL,DAR);
+		index += getBitString(1,&data[index],(INT8U *)&f203.state4.StateAcessFlag);
+		index += getBitString(1,&data[index],(INT8U *)&f203.state4.StatePropFlag);
+		*DAR = saveCoverClass(0xf203,0,&f203,sizeof(CLASS_f203),para_vari_save);
+		fprintf(stderr,"\n状态量配置参数 : 接入标志 %02x  属性标志 %02x \n",f203.state4.StateAcessFlag,f203.state4.StatePropFlag);
+	}
+	return index;
+}
+
 int setf206(OAD oad,INT8U *data,INT8U *DAR)
 {
 	INT16U index=0;

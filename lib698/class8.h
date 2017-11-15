@@ -48,6 +48,11 @@ int class8105_set(OAD oad, INT8U *data, INT8U *DAR);
  * 购电控
  * */
 int class8107_set(OAD oad, INT8U *data, INT8U *DAR);
+/*
+ * 月电控
+ * */
+int class8108_set(OAD oad, INT8U *data, INT8U *DAR);
+
 
 int class8000_act_route(int index, int attr_act, INT8U *data, Action_result *act_ret);
 
@@ -89,8 +94,8 @@ int set_OI810c(INT8U service,INT8U *data,BUY_CTRL *oi810c,INT8U *DAR);
 /*
  * 月电控
  * */
-int class8108_act3(int index, int attr_act, INT8U *data, INT8U *DAR);
 int class8108_act_route(int index, int attr_act, INT8U *data, Action_result *act_ret);
+int class8108_act3(int index, int attr_act, INT8U *data, INT8U *DAR);
 
 
 #endif //INC_698_CLASS8_H

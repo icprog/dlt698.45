@@ -639,10 +639,22 @@ typedef struct {
     StateUnitArray statearri; //开关量单元属性2
     StateAtti4 state4;        //开关量属性
 } CLASS_f203;                 //开关量输
-typedef struct{
-	INT8U start[3];
-	INT8U end[3];
-}ENABLE_TIME;
+
+	typedef struct{
+		char  devdesc[VISIBLE_STRING_LEN];
+		OAD	  oad;
+		INT8U currentState; //当前状态 0输出 1未输出
+		INT8U switchAttr;	//开关属性 0脉冲 1保持式
+		INT8U wiredState;	//接线状态 0接入 1未接入
+	}RelayUnit;
+typedef struct {
+	RelayUnit	unit[4];
+} CLASS_F205;			//继电器单元
+
+	typedef struct{
+		INT8U start[3];
+		INT8U end[3];
+	}ENABLE_TIME;
 typedef struct {
 	INT8U state_num;
 	INT8U alarm_state[10];
@@ -1066,12 +1078,6 @@ typedef struct {
     ALSTATE output[MAX_AL_UNIT];
     ALSTATE overflow[MAX_AL_UNIT];
 } CLASS_8108;
-
-typedef struct {
-	INT8U currentState; //当前状态 0输出 1未输出
-	INT8U switchAttr;	//开关属性 0脉冲 1保持式
-	INT8U wiredState;	//接线状态 0接入 1未接入
-} CLASS_F205;
 
 /*
  * 任务启动识别信息

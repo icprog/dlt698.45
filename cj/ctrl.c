@@ -392,10 +392,27 @@ void sum_process(int argc, char *argv[])
 					}
 
 				}
+				if(oi==0x8104) {
+					CLASS_8104 c8104={};
+					memset(&c8104, 0x00, sizeof(CLASS_8104));
+					readCoverClass(oi, 0, (void *) &c8104, sizeof(CLASS_8104),para_vari_save);
+					int i=0;
+					for(i=0;i<MAX_AL_UNIT;i++) {
+						fprintf(stderr,"\n-------i=%d------------\n",i);
+						fprintf(stderr,"OI = %04x\n",c8104.list[i].index);
+						fprintf(stderr,"厂休控定值 =%lld\n",c8104.list[i].v);
+						printDataTimeS("限电起始时间",c8104.list[i].start);
+						fprintf(stderr,"限电延续时间 =%d\n",c8104.list[i].sustain);
+						fprintf(stderr,"每周限电日 =0x%x\n",c8104.list[i].noDay);
+						fprintf(stderr,"控制投入 OI=%x  状态=%d\n",c8104.enable[i].name,c8104.enable[i].state);
+						fprintf(stderr,"控制输出 OI=%x  状态=%02x\n",c8104.output[i].name,c8104.output[i].state);
+						fprintf(stderr,"告警状态 OI=%x  状态=%d\n",c8104.overflow[i].name,c8104.overflow[i].state);
+					}
+				}
 				if(oi==0x8105) {
 					CLASS_8105 c8105={};
 					memset(&c8105, 0x00, sizeof(CLASS_8105));
-					readCoverClass(oi, 0, (void *) &c8105, sizeof(CLASS_8103),para_vari_save);
+					readCoverClass(oi, 0, (void *) &c8105, sizeof(CLASS_8105),para_vari_save);
 					int i=0;
 					for(i=0;i<MAX_AL_UNIT;i++) {
 						fprintf(stderr,"\n-------i=%d------------\n",i);
@@ -403,9 +420,9 @@ void sum_process(int argc, char *argv[])
 						printDataTimeS("报停起止时间",c8105.list[i].start);
 						printDataTimeS("报停结束时间",c8105.list[i].end);
 						fprintf(stderr,"功率定值 =%lld\n",c8105.list[i].v);
-						fprintf(stderr,"enable = %04x\n",c8105.enable[i].name);
-						fprintf(stderr,"output = %04x\n",c8105.output[i].name);
-						fprintf(stderr,"overflow = %04x\n",c8105.overflow[i].name);
+						fprintf(stderr,"控制投入 OI=%x  状态=%d\n",c8105.enable[i].name,c8105.enable[i].state);
+						fprintf(stderr,"控制输出 OI=%x  状态=%02x\n",c8105.output[i].name,c8105.output[i].state);
+						fprintf(stderr,"告警状态 OI=%x  状态=%d\n",c8105.overflow[i].name,c8105.overflow[i].state);
 					}
 				}
 				if(oi==0x8107) {
@@ -418,6 +435,22 @@ void sum_process(int argc, char *argv[])
 								i,c8107.list[i].index, c8107.list[i].no,
 								c8107.list[i].add_refresh, c8107.list[i].type,
 								c8107.list[i].v, c8107.list[i].alarm, c8107.list[i].ctrl, c8107.list[i].mode);
+						fprintf(stderr,"控制投入 OI=%x  状态=%d\n",c8107.enable[i].name,c8107.enable[i].state);
+						fprintf(stderr,"控制输出 OI=%x  状态=%02x\n",c8107.output[i].name,c8107.output[i].state);
+						fprintf(stderr,"告警状态 OI=%x  状态=%d\n",c8107.overflow[i].name,c8107.overflow[i].state);
+					}
+				}
+				if(oi==0x8108) {
+					CLASS_8108 c8108={};
+					memset(&c8108, 0x00, sizeof(CLASS_8108));
+					readCoverClass(oi, 0, (void *) &c8108, sizeof(CLASS_8108),para_vari_save);
+					int i=0;
+					for(i=0;i<MAX_AL_UNIT;i++) {
+						fprintf(stderr, "\n\n月电-控制单元[%d]\n[对象%04x]\n [定值%ld]\n [限值系数%d]\n [浮动系数%d]\n",
+								i,c8108.list[i].index, c8108.list[i].v,c8108.list[i].para,c8108.list[i].flex);
+						fprintf(stderr,"控制投入 OI=%x  状态=%d\n",c8108.enable[i].name,c8108.enable[i].state);
+						fprintf(stderr,"控制输出 OI=%x  状态=%02x\n",c8108.output[i].name,c8108.output[i].state);
+						fprintf(stderr,"告警状态 OI=%x  状态=%d\n",c8108.overflow[i].name,c8108.overflow[i].state);
 
 					}
 				}
