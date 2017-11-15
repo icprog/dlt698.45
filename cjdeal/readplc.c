@@ -717,7 +717,7 @@ int task_leve(INT8U leve,TASK_UNIT *taskunit)
 			taskunit[t].beginTime = calcnexttime(list6013[i].basicInfo.interval,list6013[i].basicInfo.startime,list6013[i].basicInfo.delay);//list6013[i].ts_next;
 			if(list6013[i].basicInfo.interval.units == day_units)
 			{
-				taskunit[t].beginTime -= 3600;
+				taskunit[t].beginTime -= 86400;
 			}
 			taskunit[t].endTime = tmtotime_t( DateBCD2Ts(list6013[i].basicInfo.endtime ));
 			ts =   timet_bcd(taskunit[t].beginTime);
@@ -2072,7 +2072,7 @@ int do_other_type( int taski, int itemi ,INT8U *buf, struct Tsa_Node *desnode, D
 					st6015.data.data[CURVE_INFO_STARTINDEX+6] = ts_end.Minute;
 					st6015.data.data[CURVE_INFO_STARTINDEX+7] = 0;
 
-
+#if 0 //抄曲线的时候强制加上2021
 					INT8U csdIndex = 0;
 					for(csdIndex = 0;csdIndex < st6015.csds.num;csdIndex++)
 					{
@@ -2102,7 +2102,7 @@ int do_other_type( int taski, int itemi ,INT8U *buf, struct Tsa_Node *desnode, D
 							}
 						}
 					}
-
+#endif
 					DbgPrintToFile1(31,"抄读开始时间【%04d-%02d-%02d %02d:%02d:%02d】结束时间【%04d-%02d-%02d %02d:%02d:%02d】",
 							ts_end.Year,ts_end.Month,ts_end.Day,ts_end.Hour,ts_end.Minute,ts_end.Sec,
 							ts_start.Year,ts_start.Month,ts_start.Day,ts_start.Hour,ts_start.Minute,ts_start.Sec
