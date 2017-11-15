@@ -244,7 +244,57 @@ int GetReportData(CLASS_601D report)
 	return ret;
 }
 
-INT16U  composeAutoTask(AutoTaskStrap *list)
+/*
+ * 计算当前任务的执行时间
+ * 成功返回 1; 失败返回0.
+ */
+INT8U calcTaskStartTime(CLASS_6013 *class6013, TS* ts)
+{
+	time_t taskFreqSec = 0;			//任务执行频率
+
+	time_t curStartTimeSec = 0;		//当前时刻, 任务的开始执行时间
+	time_t nowSec = time(NULL);	//当前时刻的秒数
+
+	if (NULL == class6013 || NULL == ts)
+		return 0;
+
+	curStartTimeSec = TimeBCDTotime_t(class6013->startime);
+	if(curStartTimeSec > nowSec)
+		return 0;
+
+	taskFreqSec = TItoSec(class6013->interval);
+	while ( (curStartTimeSec+taskFreqSec) <= nowSec)
+		curStartTimeSec += taskFreqSec;
+
+	DEBUG_TIME_LINE("curStartTimeSec: %ld, nowSec: %ld\n", curStartTimeSec, nowSec);
+
+	time_tToTS(curStartTimeSec, ts);
+	return 1;
+}
+
+/*
+ * 获取当前任务的编号, 和当前时刻的开始执行时间
+ * 成功返回 1; 失败返回0.
+ */
+INT8U getRptInfo(CLASS_6013 *class6013, rptInfo_s* rptInfo)
+{
+	if(NULL == rptInfo)
+		return 0;
+
+	if(calcTaskStartTime(class6013, &(rptInfo->startTime)) == 0)
+		return 0;
+
+	rptInfo->taskId = class6013->sernum;
+	rptInfo->endTime = rptInfo->startTime;
+
+	DEBUG_TIME_LINE("taskId: %d, startTime: %4d-%2d-%2d %2d:%2d:%2d", rptInfo->taskId,
+			rptInfo->startTime.Year, rptInfo->startTime.Month, rptInfo->startTime.Day,
+			rptInfo->startTime.Hour, rptInfo->startTime.Minute, rptInfo->startTime.Sec);
+
+	return 1;
+}
+
+INT16U  composeAutoTask(AutoTaskStrap *list, rptInfo_s* rptInfo_p)
 {
 	int i=0, ret=0;
 	time_t timenow = time(NULL);
@@ -270,6 +320,7 @@ INT16U  composeAutoTask(AutoTaskStrap *list)
 //			asyslog(LOG_INFO,"\ni=%d 任务【 %d 】 	 开始执行   上报方案编号【 %d 】",i,list->ID,list->SerNo);
 			if (readCoverClass(0x601D, list->SerNo, &class601d, sizeof(CLASS_601D),coll_para_save) == 1)
 			{
+				getRptInfo(&class6013, rptInfo_p);
 //				asyslog(LOG_INFO,"方案编号601d:reportnum=%d",class601d.reportnum);
 				print_rcsd(class601d.reportdata.data.recorddata.csds);
 				list->ReportNum = class601d.maxreportnum;

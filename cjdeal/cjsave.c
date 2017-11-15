@@ -26,15 +26,15 @@ void getFRZtime(CLASS_6013 class6013, CLASS_6015 class6015,TS ts,INT8U *buf,INT3
 	fprintf(stderr,"\nclass6015.savetimeflag=%d\n",class6015.savetimeflag);
 	switch(class6015.savetimeflag)
 	{
-	case 1:
-		buf[0] = (ts.Year&0xff00)>>8;
-		buf[1] = ts.Year&0x00ff;
-		buf[2] = ts.Month;
-		buf[3] = ts.Day;
-		buf[4] = ts.Hour;
-		buf[5] = ts.Minute;
-		buf[6] = ts.Sec;
-		break;
+//	case 1:
+//		buf[0] = (ts.Year&0xff00)>>8;
+//		buf[1] = ts.Year&0x00ff;
+//		buf[2] = ts.Month;
+//		buf[3] = ts.Day;
+//		buf[4] = ts.Hour;
+//		buf[5] = ts.Minute;
+//		buf[6] = ts.Sec;
+//		break;
 	case 2://相对当日零点零分
 		buf[0] = (ts.Year&0xff00)>>8;
 		buf[1] = ts.Year&0x00ff;
