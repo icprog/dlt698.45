@@ -161,7 +161,6 @@ void clearClass23Data(CLASS23 *class23)
 	for(i=0;i<MAX_AL_UNIT;i++) {
 		memset(class23->allist[i].curP,0,sizeof(class23->allist[i].curP));
 		memset(class23->allist[i].curQ,0,sizeof(class23->allist[i].curQ));
-		memset(class23->allist[i].freeze,0,sizeof(class23->allist[i].freeze));
 	}
 	class23->p = 0;
 	class23->q = 0;
@@ -1592,22 +1591,22 @@ INT8U fillclass23data(OAD oad_m,OAD oad_r,TSA meter,INT8U* data,ProgramInfo* JPr
 							case 0x5004:
 								if(oad_r.OI == 0x0010)
 								{
-									JProgramInfo->class23[groupIndex].allist[meterIndex].freeze[0][rateIndex] = dianliang;
+//									JProgramInfo->class23[groupIndex].allist[meterIndex].freeze[0][rateIndex] = dianliang;
 								}
 								if(oad_r.OI == 0x0020)
 								{
-									JProgramInfo->class23[groupIndex].allist[meterIndex].freeze[1][rateIndex] = dianliang;
+//									JProgramInfo->class23[groupIndex].allist[meterIndex].freeze[1][rateIndex] = dianliang;
 								}
 								break;
 							//月冻结
 							case 0x5006:
 								if(oad_r.OI == 0x0010)
 								{
-									JProgramInfo->class23[groupIndex].allist[meterIndex].freeze[2][rateIndex] = dianliang;
+//									JProgramInfo->class23[groupIndex].allist[meterIndex].freeze[2][rateIndex] = dianliang;
 								}
 								if(oad_r.OI == 0x0020)
 								{
-									JProgramInfo->class23[groupIndex].allist[meterIndex].freeze[3][rateIndex] = dianliang;
+//									JProgramInfo->class23[groupIndex].allist[meterIndex].freeze[3][rateIndex] = dianliang;
 								}
 								break;
 							default:

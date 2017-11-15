@@ -78,10 +78,18 @@ void refreshSumUp() {
 		}
 
 		for (int i = 0; i < 8; i++) {
-//			for (int j = 0; j < 8; j++) {
-//				curP[i][j] = 0;
-//				JProgramInfo->class23[i].allist[j].curP[0] = 0;
-//			}
+			for (int j = 0; j < 8; j++) {
+				for (int k = 0; k < 5; k++){
+					curP[i][j][k] = 0;
+					curQ[i][j][k] = 0;
+					curNP[i][j][k] = 0;
+					curNQ[i][j][k] = 0;
+					if (k > 0){
+						JProgramInfo->class23[i].allist[j].curP[k-1] = 0;
+						JProgramInfo->class23[i].allist[j].curQ[k-1] = 0;
+					}
+				}
+			}
 		}
 	}
 
@@ -99,7 +107,7 @@ void refreshSumUp() {
 			if (JProgramInfo->class23[sum_i].allist[al_i].al_flag == 0) {
 				for(int rate_i = 0; rate_i < 5; rate_i ++){
 					INT64U tmp = JProgramInfo->class23[sum_i].allist[al_i].curP[rate_i] - curP[sum_i][al_i][rate_i];
-					tmp_remains += (tmp <= 0) ? 0 : tmp * 100;
+					tmp_remains = (tmp <= 0) ? 0 : tmp * 100;
 					tmp_remains *= cal_flag;
 					curP[sum_i][al_i][rate_i] = JProgramInfo->class23[sum_i].allist[al_i].curP[rate_i];
 					if(rate_i > 0){
@@ -112,7 +120,7 @@ void refreshSumUp() {
 				}
 				for(int rate_i = 0; rate_i < 5; rate_i ++){
 					INT64U tmp = JProgramInfo->class23[sum_i].allist[al_i].curQ[rate_i] - curQ[sum_i][al_i][rate_i];
-					tmp_remains += (tmp <= 0) ? 0 : tmp * 100;
+					tmp_remains = (tmp <= 0) ? 0 : tmp * 100;
 					tmp_remains *= cal_flag;
 					curQ[sum_i][al_i][rate_i] = JProgramInfo->class23[sum_i].allist[al_i].curQ[rate_i];
 					if(rate_i > 0){
@@ -126,7 +134,7 @@ void refreshSumUp() {
 			}else{
 				for(int rate_i = 0; rate_i < 5; rate_i ++){
 					INT64U tmp = JProgramInfo->class23[sum_i].allist[al_i].curP[rate_i] - curNP[sum_i][al_i][rate_i];
-					tmp_remains += (tmp <= 0) ? 0 : tmp * 100;
+					tmp_remains = (tmp <= 0) ? 0 : tmp * 100;
 					curNP[sum_i][al_i][rate_i] = JProgramInfo->class23[sum_i].allist[al_i].curP[rate_i];
 					if(rate_i > 0){
 						JProgramInfo->class23[sum_i].DayQ[rate_i - 1] += tmp_remains;
@@ -139,7 +147,7 @@ void refreshSumUp() {
 
 				for(int rate_i = 0; rate_i < 5; rate_i ++){
 					INT64U tmp = JProgramInfo->class23[sum_i].allist[al_i].curQ[rate_i] - curNQ[sum_i][al_i][rate_i];
-					tmp_remains += (tmp <= 0) ? 0 : tmp * 100;
+					tmp_remains = (tmp <= 0) ? 0 : tmp * 100;
 					curNQ[sum_i][al_i][rate_i] = JProgramInfo->class23[sum_i].allist[al_i].curQ[rate_i];
 					if(rate_i > 0){
 						JProgramInfo->class23[sum_i].DayQ[rate_i - 1] += tmp_remains;
@@ -151,14 +159,6 @@ void refreshSumUp() {
 				}
 			}
 		}
-
-
-
-		JProgramInfo->class23[sum_i].DayPALL -= tmp_remains;
-		JProgramInfo->class23[sum_i].MonthPALL -= tmp_remains;
-
-		JProgramInfo->class23[sum_i].remains += tmp_remains;
-
 
 		//计算脉冲测量点在总加组中的数据
 		for (int pluse_idx = 0; pluse_idx < 2; pluse_idx++) {
@@ -200,6 +200,7 @@ void refreshSumUp() {
 		for (int i = 0; i < 4; i++) {
 			int tmp = (JProgramInfo->class23[sum_i].DayP[i] - prev[sum_i][i]);
 			prev[sum_i][i] = JProgramInfo->class23[sum_i].DayP[i];
+			JProgramInfo->class23[sum_i].DayPALL += tmp;
 			JProgramInfo->class23[sum_i].remains -= tmp;
 		}
 
@@ -1139,6 +1140,31 @@ int ctrlMain(void* arg) {
 	//初始化参数,搭建8个总加组数据，读取功控、电控参数
 	initAll();
 	pluseInitUnit(&pu, JProgramInfo);
+
+	//test filed
+	if(1){
+		for (int i = 0; i < 8; i++){
+			JProgramInfo->class23[i].allist[0].al_flag = 0;
+			JProgramInfo->class23[i].allist[0].cal_flag = 0;
+			JProgramInfo->class23[i].allist[0].curP[0] = 100;
+			JProgramInfo->class23[i].allist[0].curP[1] = 20;
+			JProgramInfo->class23[i].allist[0].curP[2] = 30;
+			JProgramInfo->class23[i].allist[0].curP[3] = 20;
+			JProgramInfo->class23[i].allist[0].curP[4] = 30;
+
+		}
+		fprintf(stderr, "78787878787878787878787878\n");
+		refreshSumUp();
+
+		for (int i = 0; i < 8; i++){
+			fprintf(stderr, "==========%lld %lld %lld %lld %lld %lld\n", JProgramInfo->class23[i].DayPALL,
+					JProgramInfo->class23[i].DayP[0],
+					JProgramInfo->class23[i].DayP[1],
+					JProgramInfo->class23[i].DayP[2],
+					JProgramInfo->class23[i].DayP[3]);
+		}
+		exit(0);
+	}
 
 	while (1) {
 		TS now;

@@ -587,6 +587,7 @@ int AtPrepare(ATOBJ *ao) {
 			return 100;
 		}
 
+		asyslog(LOG_INFO, "model_2g = %d", (int)dbGet("model_2g"));
 		if((int)dbGet("model_2g") == 0x11){
 			if (SendCommandGetWhatever(ao, 1, "\rat+qcfg=\"nwscanmode\",1,1\r") == 1) {
 				retry = 0;
