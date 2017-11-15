@@ -1686,13 +1686,10 @@ DATA_ITEM checkMeterData(TASK_INFO *meterinfo,int *taski,int *itemi,INT8U usrtyp
 						 return item;	//存在常规任务，满足抄读条件数据项
 					 }
 				 }
-//				 if(getZone("GW")==0)
-//				 {
-//					 task_Refresh(&meterinfo->task_list[i]);
-//				 }
 			}
 		}
 	}
+//	return item;  /*没有要抄的了    ， 重起抄读时，再根据补抄标识将成功标识置0，补抄标识置0*/
 
 	//需要补抄的任务
 	//-----------------------------------------------------------
@@ -2272,9 +2269,8 @@ int ProcessMeter(INT8U *buf,struct Tsa_Node *desnode)
 			result6035.successMSNum = result6035.successMSNum > tsaNum?result6035.successMSNum:tsaNum;
 			saveClass6035(&result6035);
 	    }
-
-//		DbgPrintToFile1(31,"切表");
-		sendlen = 1;
+		DbgPrintToFile1(31,"成功切表切表");
+		sendlen = 2;
 	}
 	return sendlen;
 }
@@ -2350,6 +2346,9 @@ void* ProcessMeter_byJzq(INT8U *buf,INT8U *addrtmp,int *len)//struct Tsa_Node *n
 					taskinfo.tsa = nodetmp->tsa;
 					taskinfo.tsa_index = nodetmp->tsa_index;
 //					zeroitemflag(&taskinfo);;
+				}else
+				{
+					JugeLastTime_SetZero(&taskinfo);//计算测量点所有任务上一次开始时刻
 				}
 			}
 		}
@@ -2360,41 +2359,41 @@ void* ProcessMeter_byJzq(INT8U *buf,INT8U *addrtmp,int *len)//struct Tsa_Node *n
 	}
 	return NULL;
 }
-int buildMeterFrame(INT8U *buf,struct Tsa_Node *desnode,CJ_FANGAN fangAn)
-{
-	INT8U type = 0;
-	FORMAT07 Data07;
-	int sendlen = 0 ,itemindex = -1 ,readcounter = 0;
-
-	if (desnode == NULL)
-		return 0;
-
-	readcounter = desnode->readnum;
-	type = desnode->protocol;
-	itemindex = findFirstZeroFlg(desnode, fangAn.item_n);//fangAn.item_n);
-	memset(buf,0,BUFSIZE645);
-	if (itemindex >= 0 && readcounter < 2)//全部数据最多抄读2次
-	{
-		DbgPrintToFile1(31,"当前抄读第 %d 数据项 curr_i指到 %d 【OAD1 %04x-%02x %02x    OAD2 %04x-%02x %02x】第 %d 次抄读",itemindex,desnode->curr_i,
-				fangAn.items[itemindex].oad1.OI,fangAn.items[itemindex].oad1.attflg,fangAn.items[itemindex].oad1.attrindex,
-				fangAn.items[itemindex].oad2.OI,fangAn.items[itemindex].oad2.attflg,fangAn.items[itemindex].oad2.attrindex,desnode->readnum+1);
-		switch (type)
-		{
-			case DLT_645_07:
-				Format07(&Data07,fangAn.items[itemindex].oad1,fangAn.items[itemindex].oad2,desnode->tsa);
-				sendlen = composeProtocol07(&Data07, buf);
-				if (sendlen>0)
-				{
-//					DbPrt1(31,"645:", (char *) buf, sendlen, NULL);
-					return sendlen;
-				}
-				break;
-			case DLT_698:
-				return 20;
-		}
-	}
-	return 0;
-}
+//int buildMeterFrame(INT8U *buf,struct Tsa_Node *desnode,CJ_FANGAN fangAn)
+//{
+//	INT8U type = 0;
+//	FORMAT07 Data07;
+//	int sendlen = 0 ,itemindex = -1 ,readcounter = 0;
+//
+//	if (desnode == NULL)
+//		return 0;
+//
+//	readcounter = desnode->readnum;
+//	type = desnode->protocol;
+//	itemindex = findFirstZeroFlg(desnode, fangAn.item_n);//fangAn.item_n);
+//	memset(buf,0,BUFSIZE645);
+//	if (itemindex >= 0 && readcounter < 2)//全部数据最多抄读2次
+//	{
+//		DbgPrintToFile1(31,"当前抄读第 %d 数据项 curr_i指到 %d 【OAD1 %04x-%02x %02x    OAD2 %04x-%02x %02x】第 %d 次抄读",itemindex,desnode->curr_i,
+//				fangAn.items[itemindex].oad1.OI,fangAn.items[itemindex].oad1.attflg,fangAn.items[itemindex].oad1.attrindex,
+//				fangAn.items[itemindex].oad2.OI,fangAn.items[itemindex].oad2.attflg,fangAn.items[itemindex].oad2.attrindex,desnode->readnum+1);
+//		switch (type)
+//		{
+//			case DLT_645_07:
+//				Format07(&Data07,fangAn.items[itemindex].oad1,fangAn.items[itemindex].oad2,desnode->tsa);
+//				sendlen = composeProtocol07(&Data07, buf);
+//				if (sendlen>0)
+//				{
+////					DbPrt1(31,"645:", (char *) buf, sendlen, NULL);
+//					return sendlen;
+//				}
+//				break;
+//			case DLT_698:
+//				return 20;
+//		}
+//	}
+//	return 0;
+//}
 void addTimeLable(TASK_INFO *tskinfo,int taski,int itemi)
 {
 	INT8U index = tskinfo->task_list[taski].fangan.item_i;//当前抄到方案数据项第几数据项目
@@ -2931,7 +2930,6 @@ int doTask(RUNTIME_PLC *runtime_p)
 	static int step_cj = 0, beginwork=0;
 	static int inWaitFlag = 0;
 	struct Tsa_Node *nodetmp;
-//	INT8U seqtmp=0;
 	TSA tsatmp;
 	int sendlen=0, flag=0;
 
@@ -3001,7 +2999,6 @@ int doTask(RUNTIME_PLC *runtime_p)
 					sendlen = ProcessMeter(buf645,nodetmp);
 					runtime_p->taskno = taskinfo.task_list[taskinfo.now_taski].taskId;
 					runtime_p->fangAn.No = taskinfo.task_list[taskinfo.now_taski].fangan.No;
-					fprintf(stderr,"抄读 runtime_p->taskno = %d runtime_p->fangAn.No = %d",runtime_p->taskno,runtime_p->fangAn.No);
 				    if(getZone("GW")==1)
 				    {
 						//6035发送报文数量+1
@@ -3011,6 +3008,10 @@ int doTask(RUNTIME_PLC *runtime_p)
 						result6035.sendMsgNum++;
 						saveClass6035(&result6035);
 				    }
+				}else
+				{
+					DbgPrintToFile1(31,"请求抄读电表不在集中器内");
+					sendlen = 2;
 				}
 				flag= Echo_Frame( runtime_p,buf645,sendlen);//内部根据sendlen判断抄表 / 切表
 				if (flag==0 || flag == 1)
@@ -3675,7 +3676,7 @@ int doProxy(RUNTIME_PLC *runtime_p)
 				}
 				if (abs( nowtime - runtime_p->send_start_time) > 20)
 				{
-					DbgPrintToFile1(31,"恢复抄表");
+					DbgPrintToFile1(31,"恢复抄表 runtime_p->modeFlag=%d",runtime_p->modeFlag);
 					clearvar(runtime_p);
 					runtime_p->send_start_time = nowtime ;
 					sendlen = AFN12_F3(&runtime_p->format_Down,runtime_p->sendbuf);
@@ -4190,6 +4191,12 @@ int doTask_by_jzq(RUNTIME_PLC *runtime_p)
 				if (sendlen>0 && nodetmp!=NULL)
 				{
 					DbPrt1(31,"TS:", (char *) buf645, sendlen, NULL);
+					addrtmp[5] = nodetmp->tsa.addr[2];
+					addrtmp[4] = nodetmp->tsa.addr[3];
+					addrtmp[3] = nodetmp->tsa.addr[4];
+					addrtmp[2] = nodetmp->tsa.addr[5];
+					addrtmp[1] = nodetmp->tsa.addr[6];
+					addrtmp[0] = nodetmp->tsa.addr[7];
 					sendlen = AFN13_F1(&runtime_p->format_Down,runtime_p->sendbuf,addrtmp, nodetmp->protocol, 0, buf645, sendlen);
 					DbgPrintToFile1(31,"sendlen=%d  protocol=%d",sendlen,nodetmp->protocol);
 					SendDataToCom(runtime_p->comfd, runtime_p->sendbuf,sendlen );
@@ -4211,6 +4218,7 @@ int doTask_by_jzq(RUNTIME_PLC *runtime_p)
 				clearvar(runtime_p);
 				runtime_p->send_start_time = nowtime;
 			}
+
 			break;
 	}
 	return TASK_PROCESS;
