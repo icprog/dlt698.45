@@ -293,11 +293,9 @@ void fillRECdata(OADDATA_SAVE *OADdata,INT8U OADnum,INT8U *databuf,HEADFIXED_INF
 		getFRZtime(class6013,class6015,OADts,&databuf[1],taskhead_info.seqsec);
 	}
 
-	if(databuf[16] == 0)//采集成功时间为空
-	{
-		databuf[8]=0x1c;
-		TStoDATEBCD(OADts,&databuf[9]);
-	}
+	databuf[8]=0x1c;
+	TStoDATEBCD(OADts,&databuf[9]);
+
 	if(databuf[16] == 0)//采集开始时间为空
 	{
 		databuf[16]=0x1c;

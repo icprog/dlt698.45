@@ -20,6 +20,9 @@ typedef struct {
 	int step[2]; //功率计算步骤
 	time_t last_time;  //功率计算周期
 
+	int old_day;  //跨日清零
+	int old_month;  //跨月清零
+
 	CLASS12 *class12;
 } PluseUnit;
 

@@ -294,15 +294,7 @@ void sumgroupTest(OI_698 oi,CLASS23	class23)
 				class23.allist[i].curP[1],class23.allist[i].curP[2],class23.allist[i].curP[3],class23.allist[i].curP[4]);
 		fprintf(stderr,"当前无功=%lld-%lld-%lld-%lld-%lld\n",class23.allist[i].curQ[0],
 				class23.allist[i].curQ[1],class23.allist[i].curQ[2],class23.allist[i].curQ[3],class23.allist[i].curQ[4]);
-		fprintf(stderr,"上一日有功=%lld-%lld-%lld-%lld-%lld\n",class23.allist[i].freeze[0][0],
-				class23.allist[i].freeze[0][1],class23.allist[i].freeze[0][2],class23.allist[i].freeze[0][3],class23.allist[i].freeze[0][4]);
-		fprintf(stderr,"上一日无功=%lld-%lld-%lld-%lld-%lld\n",class23.allist[i].freeze[1][0],
-				class23.allist[i].freeze[1][1],class23.allist[i].freeze[1][2],class23.allist[i].freeze[1][3],class23.allist[i].freeze[1][4]);
-		fprintf(stderr,"上一月有功=%lld-%lld-%lld-%lld-%lld\n",class23.allist[i].freeze[2][0],
-				class23.allist[i].freeze[2][1],class23.allist[i].freeze[2][2],class23.allist[i].freeze[2][3],class23.allist[i].freeze[2][4]);
-		fprintf(stderr,"上一月无功=%lld-%lld-%lld-%lld-%lld\n",class23.allist[i].freeze[3][0],
-				class23.allist[i].freeze[3][1],class23.allist[i].freeze[3][2],class23.allist[i].freeze[3][3],class23.allist[i].freeze[3][4]);
-	}
+			}
 
 	fprintf(stderr,"att7:总加日有功电量=%lld-%lld-%lld-%lld-%lld\n",class23.DayPALL,
 			class23.DayP[0],class23.DayP[1],class23.DayP[2],class23.DayP[3]);
