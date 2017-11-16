@@ -277,9 +277,21 @@ void TStoDATEBCD(TS ts,INT8U *buf)
 	buf[5] = ts.Minute;
 	buf[6] = ts.Sec;
 }
+int findOADin(OADDATA_SAVE *OADdata,INT8U OADnum,OI_698 OI_m,OI_698 OI_r)
+{
+	int i = 0,ret=-1;
+	for(i=0;i<OADnum;i++)
+	{
+		fprintf(stderr,"\n%d:0x%04x-0x%04x\n",i,OADdata[i].oad_m.OI,OADdata[i].oad_r.OI);
+		if(OI_m == OADdata[i].oad_m.OI &&
+				OI_r == OADdata[i].oad_r.OI)
+			ret = i;//找到了这个oi
+	}
+	return ret;
+}
 void fillRECdata(OADDATA_SAVE *OADdata,INT8U OADnum,INT8U *databuf,HEADFIXED_INFO taskhead_info,HEAD_UNIT *headoad_unit,TS OADts,CLASS_6013 class6013,CLASS_6015 class6015)
 {
-	int i=0,j=0,mm=0;
+	int i=0,j=0,mm=0,date_index=0;
 	INT16U indexn = 0;
 
 //	pos6042 = 0;//记录第一个位置为6042，存储时间
@@ -293,11 +305,16 @@ void fillRECdata(OADDATA_SAVE *OADdata,INT8U OADnum,INT8U *databuf,HEADFIXED_INF
 		getFRZtime(class6013,class6015,OADts,&databuf[1],taskhead_info.seqsec);
 	}
 
-	databuf[8]=0x1c;
-	TStoDATEBCD(OADts,&databuf[9]);
+	if((date_index = findOADin(OADdata,OADnum,0x0000,0x6041)) >= 0)
+		memcpy(&databuf[8],OADdata[date_index].data,8);
+	else {
+		databuf[8]=0x1c;
+		TStoDATEBCD(OADts,&databuf[9]);
+	}
 
-	if(databuf[16] == 0)//采集开始时间为空
-	{
+	if((date_index = findOADin(OADdata,OADnum,0x0000,0x6040)) >= 0)
+		memcpy(&databuf[16],OADdata[date_index].data,8);
+	else if(databuf[16] == 0) {//采集开始时间为空
 		databuf[16]=0x1c;
 		TStoDATEBCD(OADts,&databuf[17]);
 	}
@@ -598,7 +615,14 @@ void saveREADOADdata(INT8U taskid,TSA tsa,OADDATA_SAVE *OADdata,INT8U OADnum,TS 
 		return;
 	}
 	fprintf(stderr,"\n任务%d存储类型为%d\n",taskid,frz_type);
-	seqnum = getTASKruntimes(class6013,class6015,&seqsec);
+	if(frz_type == 4)//实时数据，其他冻结数据默认一天存一个
+		seqnum = getTASKruntimes(class6013,class6015,&seqsec);
+	else
+	{
+		seqnum = 1;
+		seqsec = 86400;
+	}
+
 	fprintf(stderr,"\n每天存储记录个数seqnum=%d,seqsec=%d\n",seqnum,seqsec);
 	if(seqnum == 0)
 	{
