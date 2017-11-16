@@ -2617,7 +2617,6 @@ INT8U ChgSucessFlg_698(TSA tsaMeter,INT8U taskid)
 							{
 								taskinfo_tmp.task_list[i].fangan.items[j].sucessflg = 2;
 							}
-							task_Refresh(&taskinfo.task_list[i] );
 						}
 					}
 					saveParaClass(0x8888, &taskinfo_tmp,taskinfo_tmp.tsa_index);
@@ -2796,15 +2795,14 @@ INT8U doSave_698(INT8U* buf645,int len645)
 							freezeTimeStamp.Sec = 0;
 
 							INT16U minInterVal = 0;//冻结时标间隔-分钟
-							if(class6015.data.data[0] == minute_units)
+							if(list6013[taskIndex].basicInfo.interval.units == minute_units)
 							{
-								minInterVal = (class6015.data.data[1]<<8)+class6015.data.data[2];
+								minInterVal = list6013[taskIndex].basicInfo.interval.interval;
 								freezeTimeStamp.Minute = freezeTimeStamp.Minute/minInterVal*minInterVal;
 							}
-							if(class6015.data.data[0] == hour_units)
+							if(list6013[taskIndex].basicInfo.interval.units == hour_units)
 							{
-								INT8U hourInterVal = (class6015.data.data[1]<<8)+class6015.data.data[2];
-								minInterVal = hourInterVal*60;
+								INT8U hourInterVal = list6013[taskIndex].basicInfo.interval.interval;
 								freezeTimeStamp.Minute = 0;
 								freezeTimeStamp.Hour = freezeTimeStamp.Hour/hourInterVal*hourInterVal;
 							}
@@ -3550,8 +3548,13 @@ INT8U Proxy_TransCommandRequest(RUNTIME_PLC *runtime_p,CJCOMM_PROXY *proxy,int* 
 		}
 	}else if(proxyInUse.devUse.plcNeed == 0 && *beginwork == 1)
 	{
+		DbgPrintToFile1(31,"总超时判断取消等待");		clearvar(runtime_p);
 		*beginwork = 0;
-		DbgPrintToFile1(31,"总超时判断取消等待");
+		cjcommProxy_plc.isInUse = 0;
+		proxyInUse.devUse.plcReady = 1;
+		cjcommProxy_plc.strProxyList.datalen = 0;
+		cjcommProxy_plc.strProxyList.proxy_obj.transcmd.dar = request_overtime;
+		return 4;
 	}else if(abs( nowtime - runtime_p->send_start_time) > 100  ) {
 		//最后一次代理操作后100秒, 才恢复抄读
 		DbgPrintToFile1(31,"100秒超时");
@@ -4234,7 +4237,7 @@ int doTask_by_jzq(RUNTIME_PLC *runtime_p)
 				clearvar(runtime_p);
 				runtime_p->send_start_time = nowtime;
 				inWaitFlag = 0;
-			}else if ((abs(nowtime - runtime_p->send_start_time) > 6 ) && inWaitFlag==1 )
+			}else if ((abs(nowtime - runtime_p->send_start_time) > 20 ) && inWaitFlag==1 )
 			{
 				DbgPrintToFile1(31,"超时");
 				inWaitFlag = 0;
