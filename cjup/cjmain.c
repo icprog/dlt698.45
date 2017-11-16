@@ -29,7 +29,6 @@ void main(){
 	int FB_Handle=-1;
 	unsigned char LcdBuf[160*160];
 	memset(LcdBuf, 0x00, 160*160);
-
 	gpio_writebyte((char*)"/dev/gpoLCD_LIGHT", 1);//背光
 	FB_Handle = open("/dev/fb0", O_RDWR | O_NDELAY);
 	if(FB_Handle>=0)
@@ -39,5 +38,6 @@ void main(){
 		memset(LcdBuf, 0xff, 16*(i+1) *160);
 		write(FB_Handle,LcdBuf,160*160);
 	}
+
 	exit(0);
 }
