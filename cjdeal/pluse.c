@@ -136,7 +136,6 @@ int pluseInitUnit(PluseUnit * pu, ProgramInfo* JProgramInfo) {
 	pu->class12 = &JProgramInfo->class12[0];
 	pu->class12[0].pluse_count = pu->pNow[0];
 	pu->class12[1].pluse_count = pu->pNow[1];
-	pu->class12[0].ct = 0;
 
 	TS ts;
 	TSGet(&ts);
@@ -190,10 +189,10 @@ void pluseRefreshUnit(PluseUnit * pu) {
 		pu->old_month = ts.Month;
 		for (int i = 0; i < 2; i++) {
 			int size = sizeof(INT32U) * MAXVAL_RATENUM;
-			memset(pu->class12[i].mon_nag_p[0], 0x00, size);
-			memset(pu->class12[i].mon_nag_q[0], 0x00, size);
-			memset(pu->class12[i].mon_pos_p[0], 0x00, size);
-			memset(pu->class12[i].mon_pos_q[0], 0x00, size);
+			memset(pu->class12[i].mon_nag_p, 0x00, size);
+			memset(pu->class12[i].mon_nag_q, 0x00, size);
+			memset(pu->class12[i].mon_pos_p, 0x00, size);
+			memset(pu->class12[i].mon_pos_q, 0x00, size);
 		}
 	}
 }
