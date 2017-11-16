@@ -2858,7 +2858,6 @@ INT8U doSave_698(INT8U* buf645,int len645)
 }
 int SaveTaskData(FORMAT3762 format_3762_Up,INT8U taskid,INT8U fananNo)
 {
-	struct Tsa_Node *nodetmp;
 	int len645=0;
 	INT8U nextFlag=0,  buf645[1024]={0};
 	FORMAT07 frame07 = {};
@@ -3173,8 +3172,11 @@ INT8U Proxy_GetRequestList(RUNTIME_PLC *runtime_p,CJCOMM_PROXY *proxy,int* begin
 		obj_index++;
 		DbgPrintToFile1(31,"单次超时");
 	}else if(proxyInUse.devUse.plcNeed == 0 && *beginwork == 1) {
+		clearvar(runtime_p);
 		*beginwork = 0;
+		obj_index = 0;
 		proxy->isInUse = 0;
+		return 4;
 		DbgPrintToFile1(31,"总超时判断取消等待");
 	}else if(abs( nowtime - runtime_p->send_start_time) > 100  ) {
 		clearvar(runtime_p);
@@ -3386,7 +3388,9 @@ INT8U F209_TransRequest(RUNTIME_PLC *runtime_p,CJCOMM_PROXY *proxy,int* beginwor
 	}else if(proxyInUse.devUse.plcNeed == 0 && *beginwork == 1)
 	{
 		*beginwork = 0;
+		clearvar(runtime_p);
 		DbgPrintToFile1(31,"总超时判断取消等待");
+		return 4;
 	}else if(abs( nowtime - runtime_p->send_start_time) > 100  ) {
 		//最后一次代理操作后100秒, 才恢复抄读
 		DbgPrintToFile1(31,"100秒超时");
@@ -4230,7 +4234,7 @@ int doTask_by_jzq(RUNTIME_PLC *runtime_p)
 				clearvar(runtime_p);
 				runtime_p->send_start_time = nowtime;
 				inWaitFlag = 0;
-			}else if ((abs(nowtime - runtime_p->send_start_time) > 6 ) && inWaitFlag==1 )
+			}else if ((abs(nowtime - runtime_p->send_start_time) > 20 ) && inWaitFlag==1 )
 			{
 				DbgPrintToFile1(31,"超时");
 				inWaitFlag = 0;
