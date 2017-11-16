@@ -198,22 +198,6 @@ void JugeLastTime_SetZero(TASK_INFO *tasklist)
 		}
 	}
 }
-void JugeNexTime_SetZero(TASK_UNIT *taskunit)
-{
-	int j,count=0;
-	for(j=0;j<taskunit->fangan.item_n; j++)
-	{
-		if (taskunit->fangan.items[j].sucessflg == 2)
-		{
-			count++;
-		}
-	}
-	if (taskunit->fangan.item_n == count)
-	{
-		task_Refresh(taskunit);
-	}
-}
-
 DateTimeBCD ChgSucessFlg(TASK_INFO *taskinfo_p,DATA_ITEM item,INT8U usrtype,INT8U protocol,INT8U sucessflg)
 {
 	DateTimeBCD timebcd;
@@ -1937,7 +1921,7 @@ int do_5002_type( int taski, int itemi ,INT8U *buf, struct Tsa_Node *desnode, DA
 	taskinfo.now_itemi = itemi;
 	PrintTaskInfo(&taskinfo,taski);
 //	DbgPrintToFile1(31,"重新初始化 任务%d 开始时间",taskinfo.task_list[taski].taskId);
-	task_Refresh(&taskinfo.task_list[taski] );
+//	task_Refresh(&taskinfo.task_list[taski] );
 
 	return sendlen;
 }
@@ -2273,7 +2257,6 @@ int ProcessMeter(INT8U *buf,struct Tsa_Node *desnode)
 			result6035.successMSNum = result6035.successMSNum > tsaNum?result6035.successMSNum:tsaNum;
 			saveClass6035(&result6035);
 	    }
-		DbgPrintToFile1(31,"成功切表切表");
 		sendlen = 2;
 	}
 	return sendlen;
@@ -2602,6 +2585,16 @@ INT8U ChgSucessFlg_698(TSA tsaMeter,INT8U taskid)
 		{
 			struct Tsa_Node *nodetmp = NULL;
 			nodetmp = getNodeByTSA(tsa_head,tsaMeter);
+
+			DbgPrintToFile1(31,"2---存储698表标识 tsaMeter = %02x %02x %02x %02x %02x %02x %02x %02x ",
+					tsaMeter.addr[0],tsaMeter.addr[1],tsaMeter.addr[2],tsaMeter.addr[3],
+					tsaMeter.addr[4],tsaMeter.addr[5],tsaMeter.addr[6],tsaMeter.addr[7]);
+
+			DbgPrintToFile1(31,"2---nodetmp表 tsa = %02x %02x %02x %02x %02x %02x %02x %02x --(%d)",
+					nodetmp->tsa.addr[0],nodetmp->tsa.addr[1],nodetmp->tsa.addr[2],nodetmp->tsa.addr[3],
+					nodetmp->tsa.addr[4],nodetmp->tsa.addr[5],nodetmp->tsa.addr[6],nodetmp->tsa.addr[7],nodetmp->tsa_index);
+
+
 			if (nodetmp!=NULL)
 			{
 				if (readParaClass(0x8888, &taskinfo_tmp, nodetmp->tsa_index) == 1 )
@@ -2615,7 +2608,7 @@ INT8U ChgSucessFlg_698(TSA tsaMeter,INT8U taskid)
 							{
 								taskinfo_tmp.task_list[i].fangan.items[j].sucessflg = 2;
 							}
-							task_Refresh(&taskinfo.task_list[i] );
+//							task_Refresh(&taskinfo.task_list[i] );
 						}
 					}
 					saveParaClass(0x8888, &taskinfo_tmp,taskinfo_tmp.tsa_index);
@@ -3548,8 +3541,14 @@ INT8U Proxy_TransCommandRequest(RUNTIME_PLC *runtime_p,CJCOMM_PROXY *proxy,int* 
 		}
 	}else if(proxyInUse.devUse.plcNeed == 0 && *beginwork == 1)
 	{
-		*beginwork = 0;
 		DbgPrintToFile1(31,"总超时判断取消等待");
+		clearvar(runtime_p);
+		*beginwork = 0;
+		cjcommProxy_plc.isInUse = 0;
+		proxyInUse.devUse.plcReady = 1;
+		cjcommProxy_plc.strProxyList.datalen = 0;
+		cjcommProxy_plc.strProxyList.proxy_obj.transcmd.dar = request_overtime;
+		return 4;
 	}else if(abs( nowtime - runtime_p->send_start_time) > 100  ) {
 		//最后一次代理操作后100秒, 才恢复抄读
 		DbgPrintToFile1(31,"100秒超时");
@@ -4207,12 +4206,9 @@ int doTask_by_jzq(RUNTIME_PLC *runtime_p)
 		case 1://开始抄表
 			if ( inWaitFlag==0)
 			{
-				fprintf(stderr,"\n------------------>>>1");
 				nodetmp = (struct Tsa_Node *)ProcessMeter_byJzq(buf645,addrtmp,&sendlen );//下发 AFN_13_F1 找到一块需要抄读的表，抄读
-//				DbgPrintToFile1(31,"sendlen=%d  nodetmp=%p",sendlen,nodetmp);
 				if (sendlen>0 && nodetmp!=NULL)
 				{
-					fprintf(stderr,"\n------------------>>>2");
 					DbPrt1(31,"TS:", (char *) buf645, sendlen, NULL);
 					addrtmp[5] = nodetmp->tsa.addr[2];
 					addrtmp[4] = nodetmp->tsa.addr[3];
@@ -4228,7 +4224,6 @@ int doTask_by_jzq(RUNTIME_PLC *runtime_p)
 				inWaitFlag = 1;
 			}else if( runtime_p->format_Up.afn == 0x13 && runtime_p->format_Up.fn == 1 && inWaitFlag==1 )
 			{
-				fprintf(stderr,"\n------------------>>>3");
 				DbgPrintToFile1(31,"集中器主导流程_收数据");
 				saveF13_F1Data(runtime_p->format_Up);
 				SaveTaskData(runtime_p->format_Up, runtime_p->taskno, runtime_p->fangAn.No);
@@ -4237,7 +4232,6 @@ int doTask_by_jzq(RUNTIME_PLC *runtime_p)
 				inWaitFlag = 0;
 			}else if ((abs(nowtime - runtime_p->send_start_time) > 6 ) && inWaitFlag==1 )
 			{
-				fprintf(stderr,"\n------------------>>>4");
 				DbgPrintToFile1(31,"超时");
 				inWaitFlag = 0;
 				clearvar(runtime_p);
@@ -4424,7 +4418,8 @@ int doAutoReport(RUNTIME_PLC *runtime_p)
 				addMeterEvent(&msg_index,buf645,runtime_p->format_Up.afn06_f5_up.MsgLength);//保存状态字到事件缓存
 				step_cj = 1;
 			}else{
-				step_cj = 2;
+				step_cj = 0;
+				return(runtime_p->state_bak);
 			}
 			sendlen = AFN00_F01( &runtime_p->format_Up,runtime_p->sendbuf );//确认
 			SendDataToCom(runtime_p->comfd, runtime_p->sendbuf,sendlen );

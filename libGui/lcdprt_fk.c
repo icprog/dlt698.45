@@ -956,28 +956,41 @@ void show_msg(char *text, Point text_pos){
 }
 
 void menu_zhongwen(){
+	CLASS_8003_8004 info_nor={};
+	CLASS_8003_8004 info_imp={};
 	char str[200], str_neirong[200];
 	Point pos;
+	int  ret=0,i=0;
 	memset(str, 0, 200);
 	PressKey = NOKEY;
 	gui_clrrect(rect_Client);
 	memset(str_neirong, 0, 200);
-//	memcpy(str_neirong, shmm_getdevstat()->controls.f32_cfg.data, shmm_getdevstat()->controls.f32_cfg.len);//没有主站的中文信息数据   //FOR698
+	ret = readCoverClass(0x8003, 0, (void *) &info_nor, sizeof(CLASS_8003_8004),para_vari_save);
+
 	while(g_LcdPoll_Flag==LCD_NOTPOLL){
-		if(PressKey==ESC)
-			break;
+		switch(PressKey)
+		{
+			case LEFT:
+				break;
+			case UP:
+				i = (i - 1)%20;
+				break;
+			case RIGHT:
+				break;
+			case DOWN:
+				i = (i + 1)%20;
+				break;
+			case ESC:
+				return;
+		}
 		gui_setpos(&pos, rect_Client.left+10*FONTSIZE, rect_Client.top+2*FONTSIZE);
 		memset(str, 0, 200);
-		sprintf(str, "中文信息");
+		sprintf(str, "重要中文信息");
 		gui_textshow(str, pos, LCD_NOREV);
 		pos.x = rect_Client.left + FONTSIZE;
 		pos.y += FONTSIZE*3;
 		memset(str, 0, 200);
-//		if(str[0]!=0)
-//			sprintf(str, "种类: %s  编号: %d", shmm_getdevstat()->controls.f32_cfg.type?"重要信息":"普通信息",			//FOR698
-//					shmm_getdevstat()->controls.f32_cfg.id);
-//		else
-			sprintf(str, "种类:           编号:  ");
+		sprintf(str, "编号: %d",info_imp.chinese_info[i].no);
 		gui_textshow(str, pos, LCD_NOREV);
 		pos.y += FONTSIZE*3;
 		sprintf(str, "信息内容:");
