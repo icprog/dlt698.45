@@ -1585,6 +1585,7 @@ INT8U fillclass23data(OAD oad_m,OAD oad_r,TSA meter,INT8U* data,ProgramInfo* JPr
 					for(rateIndex = 0;rateIndex < MAXVAL_RATENUM+1;rateIndex++)
 					{
 						INT32U dianliang = (data[rateIndex*5+1]<<24)+(data[rateIndex*5+2]<<16)+(data[rateIndex*5+3]<<8)+data[rateIndex*5+4];
+						dianliang = dianliang*100;
 						switch(oad_m.OI)
 						{
 							//日冻结
@@ -1616,17 +1617,38 @@ INT8U fillclass23data(OAD oad_m,OAD oad_r,TSA meter,INT8U* data,ProgramInfo* JPr
 								}
 								if(oad_r.OI == 0x0020)
 								{
+									JProgramInfo->class23[groupIndex].allist[meterIndex].curNP[rateIndex] = dianliang;
+								}
+								if(oad_r.OI == 0x0030)
+								{
 									JProgramInfo->class23[groupIndex].allist[meterIndex].curQ[rateIndex] = dianliang;
+								}
+								if(oad_r.OI == 0x0040)
+								{
+									JProgramInfo->class23[groupIndex].allist[meterIndex].curNQ[rateIndex] = dianliang;
 								}
 						}
 					}
 				}
 				else if(oad_r.attrindex == 1)
 				{
+					INT32U dianliang = (data[1]<<24)+(data[2]<<16)+(data[3]<<8)+data[4];
+					dianliang = dianliang*100;
 					if(oad_r.OI == 0x0010)
 					{
- 						INT32U dianliang = (data[1]<<24)+(data[2]<<16)+(data[3]<<8)+data[4];
 						JProgramInfo->class23[groupIndex].allist[meterIndex].curP[0] = dianliang;
+					}
+					if(oad_r.OI == 0x0020)
+					{
+						JProgramInfo->class23[groupIndex].allist[meterIndex].curNP[0] = dianliang;
+					}
+					if(oad_r.OI == 0x0030)
+					{
+						JProgramInfo->class23[groupIndex].allist[meterIndex].curQ[0] = dianliang;
+					}
+					if(oad_r.OI == 0x0040)
+					{
+						JProgramInfo->class23[groupIndex].allist[meterIndex].curNQ[0] = dianliang;
 					}
 				}
 				return 1;
