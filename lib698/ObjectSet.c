@@ -357,7 +357,7 @@ INT16U ALSetAttrib(OAD oad, INT8U *data, INT8U *DAR) {
 			data_index = class8003_8004_set(oad, data, DAR);
 			break;
 		case 0x8100://终端保安定值
-			data_index = class8100_set(10, oad, data, DAR);
+			data_index = class8100_set(oad, data, DAR);
 			break;
         case 0x8101:
             data_index = class8101_set(oad, data, DAR);

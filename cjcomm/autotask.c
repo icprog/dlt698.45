@@ -147,7 +147,7 @@ void checkAndSendAppends(INT8U *saveOver) {
 		memcpy(&failts, &tfs->rptList[i][1].startTime, sizeof(TS));
 
 		//没有补报的时长是否超过15分钟
-		tminc(&failts, 1, 15);
+		tminc(&failts, minute_units, 15);
 
 		int res = TScompare(failts, succts);
 		if (res == 0 || res == 1) {
@@ -157,7 +157,7 @@ void checkAndSendAppends(INT8U *saveOver) {
 			memcpy(&failts, &tfs->rptList[i][1].startTime, sizeof(TS));
 			//计算补报结束时间
 			tminc(&tfs->rptList[i][1].startTime, 2, 1);
-			asyslog(LOG_INFO, "检查到任务: %d 的数据需要补报, 时间: %04d-%02d-%02d %02d-%02d-%02d, %04d-%02d-%02d %02d-%02d-%02d",
+			asyslog(LOG_INFO, "检查到任务: <%d> 的数据需要补报, 时间: %04d-%02d-%02d %02d-%02d-%02d, %04d-%02d-%02d %02d-%02d-%02d",
 					tfs->rptList[i][1].taskId,
 					failts.Year, failts.Month, failts.Day, failts.Hour, failts.Minute, failts.Sec,
 					tfs->rptList[i][1].startTime.Year, tfs->rptList[i][1].startTime.Month, tfs->rptList[i][1].startTime.Day,

@@ -1531,6 +1531,9 @@ int doObjectAction(OAD oad, INT8U *data, Action_result *act_ret, CSINFO *csinfo,
         		act_ret->datalen = setf202(0xf202,data,&act_ret->DAR);
         	}
         	break;
+        case 0xF205:
+        	setf205();
+        	break;
         case 0xF209:
         	PlcInfo(attr_act, data, act_ret, csinfo, piid);
         	break;
