@@ -112,6 +112,7 @@ int class8001_set(OAD oad, INT8U *data, INT8U *DAR) {
 INT8U findInfoIndex(CLASS_8003_8004 info,INT8U info_no)
 {
 	INT8U  infoindex = 0xff, i=0;
+	fprintf(stderr,"info_no=%d\n",info_no);
 	for(i=0;i<10;i++) {
 		if(info.chinese_info[i].no==info_no) {
 			infoindex = i;
@@ -120,6 +121,7 @@ INT8U findInfoIndex(CLASS_8003_8004 info,INT8U info_no)
 	}
 	if(infoindex == 0xff) {	//未找到相同序号，查找空位置
 		for(i=0;i<10;i++) {
+			fprintf(stderr,"info[%d].no=%d\n",i,info.chinese_info[i].no);
 			if(info.chinese_info[i].no==0xff) {
 				infoindex = i;
 				break;
@@ -658,9 +660,14 @@ int class8003_8004_act127(OI_698 OI, INT8U *data,	Action_result *act_ret)
 int class8003_8004_act128(OI_698 OI, INT8U *data,Action_result *act_ret) {
 	CLASS_8003_8004 info={};
 	INT8U	 info_no=0,i=0;
-	int		index=0;
+	int		index=0,ret = 0;
 
-	readCoverClass(OI, 0, (void *) &info, sizeof(CLASS_8003_8004),para_vari_save);
+	ret = readCoverClass(OI, 0, (void *) &info, sizeof(CLASS_8003_8004),para_vari_save);
+	if(ret==-1) {
+		for(i=0;i<10;i++) {
+			info.chinese_info[i].no=0xff;
+		}
+	}
 	index += getUnsigned(&data[index],&info_no,&act_ret->DAR);
 	for(i=0;i<10;i++) {
 		if(info.chinese_info[i].no==info_no) {
@@ -899,12 +906,20 @@ int set_8106_attr6_7(INT8U service,INT8U *data,int *sum_index,ALSTATE *alstate,I
 	asyslog(LOG_WARNING, "控制[%04x] act=%d", oi,service);
 	switch(service) {
 	case 6:	//投入
-		tmp_alstate.name = oi;
-		tmp_alstate.state = 1;
+//		if(alstate->name == oi) {
+//			tmp_alstate.name = oi;
+//			tmp_alstate.state = 1;
+//		}
+		*DAR = obj_undefine;
 		break;
 	case 7:	//解除
-		tmp_alstate.name = oi;
-		tmp_alstate.state = 0;
+		fprintf(stderr,"alstate.name = %04x oi=%04x\n",alstate->name,oi);
+		if(alstate->name == oi) {
+			tmp_alstate.name = oi;
+			tmp_alstate.state = 0;
+		}else {
+			*DAR = obj_unexist;
+		}
 		break;
 	}
 	if(*DAR == success) {
@@ -928,7 +943,12 @@ int class8106_unit(int attr_act, INT8U *data, CLASS_8106 *shmc8106, INT8U *DAR)
 	case 3:	//添加
 	case 5: //更新
 	case 127: //投入
-		if(attr_act == 127) c8106.enable.state = 0x01;
+		if(attr_act == 127) {
+			c8106.enable.state = 0x01;
+			c8106.enable.name = c8106.index;
+			c8106.output.name = c8106.index;
+			c8106.overflow.name = c8106.index;
+		}
 		ii += getStructure(&data[ii],NULL,DAR);
 		ii += getUnsigned(&data[ii],&c8106.list.down_huacha,DAR);
 		ii += getInteger(&data[ii],&c8106.list.down_xishu,DAR);

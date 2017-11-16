@@ -1068,6 +1068,24 @@ int getTSA(INT8U type,INT8U *source,INT8U *tsa,INT8U *DAR)   // 0x55
 }
 
 /*
+ *  type ==1 存在类型字节
+ */
+int getScalerUnit(INT8U type,INT8U *source,Scaler_Unit *su,INT8U *DAR)   // 0x59
+{
+	if ((type==1 && source[0]==dtscalerunit) || type==0)
+	{
+		su->conver = source[type];
+		su->units = source[type+1];
+		*DAR = getEnumValid(su->units,1,255,255);
+		return (type + 2);
+	}else  {
+		if(DAR!=NULL && *DAR==success)	*DAR = type_mismatch;
+		return 0;
+	}
+	return 0;
+}
+
+/*
  * 解析选择方法类型 RSD
  */
 int get_BasicRSD(INT8U type,INT8U *source,INT8U *dest,INT8U *seletype)		//0x5A

@@ -209,8 +209,6 @@ int class23_set_attr17(OAD oad,INT8U *data, INT8U *DAR, CLASS23 *memClass23)
 	return index;
 }
 
-
-
 int class23_get_2(OAD oad, INT8U index, INT8U *buf, int *len)
 {
 	ProgramInfo *shareAddr = getShareAddr();
@@ -412,7 +410,7 @@ int class23_set(OAD oad, INT8U *data, INT8U *DAR)
 	case 17:
 		return class23_set_attr17(oad,data,DAR,shareAddr->class23);
 	case 18://单位及换算
-		break;
+		return set_Scaler_Unit(oad,data,DAR,NULL,shareAddr->class23);
 	}
 	return 0;
 }

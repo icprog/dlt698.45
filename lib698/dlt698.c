@@ -768,7 +768,6 @@ int doSetAttribute(INT8U *apdu, CSINFO *csinfo, INT8U *buf) {
 		setThenGetRequestNormalList(&apdu[3], csinfo, buf);
 		break;
 	}
-
 	return 1;
 }
 

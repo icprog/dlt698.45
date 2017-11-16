@@ -648,6 +648,7 @@ typedef struct {
 		INT8U wiredState;	//接线状态 0接入 1未接入
 	}RelayUnit;
 typedef struct {
+	INT8U 	relaynum;		//继电器数
 	RelayUnit	unit[4];
 } CLASS_F205;			//继电器单元
 
@@ -661,6 +662,12 @@ typedef struct {
 	INT8U time_num;
 	ENABLE_TIME timev[10];
 } CLASS_f206;                 //开关量输
+
+typedef struct {
+	INT8U	num;			//端子数量
+	OAD		oad[4];			//路号
+	INT8U	func[4];		//端子功能
+} CLASS_f207;                 //多功能端子
 
 	typedef struct{
 	    char factoryCode[2];    //厂商代码
