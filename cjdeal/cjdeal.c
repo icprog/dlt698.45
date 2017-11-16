@@ -1760,16 +1760,35 @@ INT8U get6001ObjByTSA(TSA addr, CLASS_6001* targetMeter) {
 	fprintf(stderr, "get6001ObjByTSA ret=%d\n", ret);
 	return ret;
 }
+INT8U checkReplenishDatInFile(Replenish_TaskInfo* replenishinfo)
+{
+	TS tsNow;
+	TSGet(&tsNow);
+	INT8U ret = 0,tIndex = 0;
+	for(tIndex = 0;tIndex < infoReplenish.tasknum;tIndex++)
+	{
+		INT16U tsaNum = getCBsuctsanum(infoReplenish.unitReplenish[tIndex].taskID,tsNow);
+		DbgPrintToFile1(3, "任务ID = %d tsaNum = %d",infoReplenish.unitReplenish[tIndex].taskID,tsaNum);
+		if(tsaNum == 0)
+		{
+			memset(infoReplenish.unitReplenish[tIndex].isSuccess, 0,2 * MAX_METER_NUM_1_PORT);
+		}
 
+	}
+	filewrite(REPLENISHFILEPATH, &infoReplenish,sizeof(Replenish_TaskInfo));
+	return ret;
+}
 void dispatchTask_proccess() {
 	//读取所有任务文件		TODO：参数下发后需要更新内存值
 	init6013ListFrom6012File();
 	init6000InfoFrom6000FIle();
 	init6035TotalNum();
-#if 1
-	fileread(REPLENISHFILEPATH, &infoReplenish, sizeof(Replenish_TaskInfo));
-	//printinfoReplenish(1);
-#endif
+	if (getZone("GW") != 0)
+	{
+		fileread(REPLENISHFILEPATH, &infoReplenish, sizeof(Replenish_TaskInfo));
+		checkReplenishDatInFile(&infoReplenish);
+		//printinfoReplenish(1);
+	}
 	init4204Info();
 #ifdef TESTDEF1
 	fprintf(stderr,"\n补抄内容:\n");

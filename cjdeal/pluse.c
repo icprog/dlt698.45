@@ -56,15 +56,12 @@ void pluseCalcDD(PluseUnit * pu) {
 		}
 
 		//检查参数
-		if (pu->class12[index].pt == 0 || pu->class12[index].ct == 0
-				|| pu->class12[index].unit[index].k == 0) {
+		if (pu->class12[index].unit[index].k == 0) {
 			continue;
-			pu->class12->ct = 0;
 		}
 
-		float con = pu->class12[index].unit[index].k * 10000.0;
-		con /= (pu->class12[index].pt * pu->class12[index].ct);
-		con *= pulse;
+		float con = pu->class12[index].unit[index].k;
+		con = (pulse * 10000.0) / con;
 
 		int time_zone = pluseGetTimeZone();
 
@@ -90,7 +87,6 @@ void pluseCalcDD(PluseUnit * pu) {
 			fprintf(stderr, "[CTRL]实时正向无功 %d\n",
 					pu->class12[index].val_pos_q[time_zone]);
 			break;
-
 		case 3:
 			pu->class12[index].val_nag_q[time_zone] += con;
 			pu->class12[index].day_nag_q[time_zone] += con;
@@ -105,27 +101,25 @@ void pluseCalcDD(PluseUnit * pu) {
 //计算周期内实时功率
 int pluseCalcPQ(PluseUnit * pu, int pulse, int index) {
 	//检查参数
-	if (pu->class12[index].pt == 0 || pu->class12[index].ct == 0
-			|| pu->class12[index].unit[index].k == 0) {
+	if (pu->class12[index].unit[index].k == 0) {
 		return 0;
 	}
 
-	float con = pu->class12[index].unit[index].k * 60.0 * 10.0;
-	con /= (pu->class12[index].pt * pu->class12[index].ct);
-	con *= pulse;
-
-	int time_zone = pluseGetTimeZone();
+	float con = pu->class12[index].unit[index].k;
+	con = (pulse * 60.0 * 10000.0) / con;
 
 	switch (pu->class12[index].unit[index].conf) {
 	case 0:
 	case 2:
 		JProgramInfo->class12[index].p = con;
-		fprintf(stderr, "[CTRL]实时有功功率 %d\n", pu->class12[index].p);
+		fprintf(stderr, "[CTRL]实时有功功率 %d\n\n\n\n\n\n\n\n\n\n\n",
+				pu->class12[index].p);
 		break;
 	case 1:
 	case 3:
 		JProgramInfo->class12[index].q = con;
-		fprintf(stderr, "[CTRL]实时无功功率 %d\n", pu->class12[index].q);
+		fprintf(stderr, "[CTRL]实时无功功率 %d\n\n\n\n\n\n\n\n\n\n\n",
+				pu->class12[index].q);
 		break;
 	}
 }
@@ -142,7 +136,12 @@ int pluseInitUnit(PluseUnit * pu, ProgramInfo* JProgramInfo) {
 	pu->class12 = &JProgramInfo->class12[0];
 	pu->class12[0].pluse_count = pu->pNow[0];
 	pu->class12[1].pluse_count = pu->pNow[1];
-	pu->class12[0].ct = 0;
+
+	TS ts;
+	TSGet(&ts);
+
+	pu->old_day = ts.Day;
+	pu->old_month = ts.Month;
 }
 
 void pluseRefreshUnit(PluseUnit * pu) {
@@ -168,6 +167,32 @@ void pluseRefreshUnit(PluseUnit * pu) {
 		default:
 			pu->step[i] = 0;
 			break;
+		}
+	}
+
+	//跨日、月清零
+	TS ts;
+	TSGet(&ts);
+
+	if (pu->old_day != ts.Day) {
+		pu->old_day = ts.Day;
+		for (int i = 0; i < 2; i++) {
+			int size = sizeof(INT32U) * MAXVAL_RATENUM;
+			memset(pu->class12[i].day_nag_p, 0x00, size);
+			memset(pu->class12[i].day_nag_q, 0x00, size);
+			memset(pu->class12[i].day_pos_p, 0x00, size);
+			memset(pu->class12[i].day_pos_q, 0x00, size);
+		}
+	}
+
+	if (pu->old_month != ts.Month) {
+		pu->old_month = ts.Month;
+		for (int i = 0; i < 2; i++) {
+			int size = sizeof(INT32U) * MAXVAL_RATENUM;
+			memset(pu->class12[i].mon_nag_p, 0x00, size);
+			memset(pu->class12[i].mon_nag_q, 0x00, size);
+			memset(pu->class12[i].mon_pos_p, 0x00, size);
+			memset(pu->class12[i].mon_pos_q, 0x00, size);
 		}
 	}
 }

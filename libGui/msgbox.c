@@ -7,6 +7,9 @@
 #include "lcd_ctrl.h"
 #include "gui.h"
 #include "lcdprt.h"
+#include "list.h"
+#include "comm.h"
+
 ////pos左上角坐标   len 对话框长度   width 对话框宽度
 //void msgbox_init(Form *box, Point pos, int len, int width)
 //{

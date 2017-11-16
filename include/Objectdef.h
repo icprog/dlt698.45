@@ -639,10 +639,22 @@ typedef struct {
     StateUnitArray statearri; //开关量单元属性2
     StateAtti4 state4;        //开关量属性
 } CLASS_f203;                 //开关量输
-typedef struct{
-	INT8U start[3];
-	INT8U end[3];
-}ENABLE_TIME;
+
+	typedef struct{
+		char  devdesc[VISIBLE_STRING_LEN];
+		OAD	  oad;
+		INT8U currentState; //当前状态 0输出 1未输出
+		INT8U switchAttr;	//开关属性 0脉冲 1保持式
+		INT8U wiredState;	//接线状态 0接入 1未接入
+	}RelayUnit;
+typedef struct {
+	RelayUnit	unit[4];
+} CLASS_F205;			//继电器单元
+
+	typedef struct{
+		INT8U start[3];
+		INT8U end[3];
+	}ENABLE_TIME;
 typedef struct {
 	INT8U state_num;
 	INT8U alarm_state[10];
@@ -789,9 +801,10 @@ typedef struct {
     TSA tsa;
     INT8U al_flag;
     INT8U cal_flag;
-    INT64U curP[MAXVAL_RATENUM+1];    //当前有功-总尖峰平谷
-    INT64U curQ[MAXVAL_RATENUM+1];    //当前无功-总尖峰平谷
-    INT64U freeze[4][MAXVAL_RATENUM+1];    //[0-上一日有功;1-上一日无功;2-上一月有功;3-上一月无功][总尖峰平谷]
+    INT64U curP[MAXVAL_RATENUM+1];    //当前正向有功-总尖峰平谷
+    INT64U curQ[MAXVAL_RATENUM+1];    //当前正向无功-总尖峰平谷
+    INT64U curNP[MAXVAL_RATENUM+1];    //当前反向有功-总尖峰平谷
+    INT64U curNQ[MAXVAL_RATENUM+1];    //当前反向无功-总尖峰平谷
 } AL_UNIT;
 
 typedef struct {
@@ -939,7 +952,7 @@ typedef struct {
 }CLASS_8003_8004;
 
 typedef struct {
-    INT64U v; //终端保安定值
+    INT64S v; //终端保安定值
 } CLASS_8100;
 
 typedef struct {
@@ -974,8 +987,13 @@ typedef struct {
 } TIME_CTRL;
 
 typedef struct {
-    INT8U sign;
-    INT8U numb;
+    OI_698 index;	//总加组对象
+    INT8U sign;		//时段功控投入标识
+    INT8U numb;		//时段功控定值方案号
+} TIME_SWITCH;
+
+typedef struct {
+	TIME_SWITCH	 plan[MAX_AL_UNIT];
     TIME_CTRL list[MAX_AL_UNIT];
     ALSTATE enable[MAX_AL_UNIT];
     ALSTATE output[MAX_AL_UNIT];
@@ -984,7 +1002,7 @@ typedef struct {
 
 typedef struct {
     OI_698 index;
-    INT64U v;
+    INT64S v;
     DateTimeBCD start;
     INT16U sustain;
     INT8U noDay;
@@ -1028,7 +1046,7 @@ typedef struct {
     ALSTATE enable;
     ALSTATE output;
     ALSTATE overflow;
-} CLASS_8106;
+} CLASS_8106;//当前功率下浮控
 
 typedef struct {
     OI_698 index;	//总加组对象
@@ -1050,9 +1068,9 @@ typedef struct {
 
 typedef struct {
     OI_698 index;
-    INT64U v;
-    INT8U para;
-    INT8S flex;
+    INT64S v;
+    INT8U para; //报警门限值系数
+    INT8S flex; //月电量控定值浮动系数
 } MONTH_CTRL;
 
 typedef struct {
@@ -1061,12 +1079,6 @@ typedef struct {
     ALSTATE output[MAX_AL_UNIT];
     ALSTATE overflow[MAX_AL_UNIT];
 } CLASS_8108;
-
-typedef struct {
-	INT8U currentState; //当前状态 0输出 1未输出
-	INT8U switchAttr;	//开关属性 0脉冲 1保持式
-	INT8U wiredState;	//接线状态 0接入 1未接入
-} CLASS_F205;
 
 /*
  * 任务启动识别信息
