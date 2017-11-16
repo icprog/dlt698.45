@@ -2033,14 +2033,15 @@ int do_other_type( int taski, int itemi ,INT8U *buf, struct Tsa_Node *desnode, D
 					TS ts_start;
 					time_t  endtime;
 					TSGet(&ts_start);
-					if(st6015.data.data[0] == minute_units)
+
+					if(taskinfo.task_list[taski].ti.units == minute_units)
 					{
-						INT16U minInterVal = (st6015.data.data[1]<<8)+st6015.data.data[2];
+						INT16U minInterVal = taskinfo.task_list[taski].ti.interval;
 						ts_start.Minute = ts_start.Minute/minInterVal*minInterVal;
 					}
-					if(st6015.data.data[0] == hour_units)
+					if(taskinfo.task_list[taski].ti.units == hour_units)
 					{
-						INT8U hourInterVal = (st6015.data.data[1]<<8)+st6015.data.data[2];
+						INT8U hourInterVal = taskinfo.task_list[taski].ti.interval;
 						ts_start.Minute = 0;
 						ts_start.Hour = ts_start.Hour/hourInterVal*hourInterVal;
 					}
@@ -2100,8 +2101,9 @@ int do_other_type( int taski, int itemi ,INT8U *buf, struct Tsa_Node *desnode, D
 						}
 					}
 #endif
-					DbgPrintToFile1(31,"抄读开始时间【%04d-%02d-%02d %02d:%02d:%02d】结束时间【%04d-%02d-%02d %02d:%02d:%02d】",
-							ts_end.Year,ts_end.Month,ts_end.Day,ts_end.Hour,ts_end.Minute,ts_end.Sec,
+					DbgPrintToFile1(31,"任务ID:%d 方案ID:%d 执行频率 %d[%d] 抄读开始时间【%04d-%02d-%02d %02d:%02d:%02d】结束时间【%04d-%02d-%02d %02d:%02d:%02d】",
+							taskinfo.task_list[taski].taskId,taskinfo.task_list[taski].fangan.No,taskinfo.task_list[taski].ti.units,
+							taskinfo.task_list[taski].ti.interval,ts_end.Year,ts_end.Month,ts_end.Day,ts_end.Hour,ts_end.Minute,ts_end.Sec,
 							ts_start.Year,ts_start.Month,ts_start.Day,ts_start.Hour,ts_start.Minute,ts_start.Sec
 					);
 				}
@@ -2615,7 +2617,6 @@ INT8U ChgSucessFlg_698(TSA tsaMeter,INT8U taskid)
 							{
 								taskinfo_tmp.task_list[i].fangan.items[j].sucessflg = 2;
 							}
-							task_Refresh(&taskinfo.task_list[i] );
 						}
 					}
 					saveParaClass(0x8888, &taskinfo_tmp,taskinfo_tmp.tsa_index);
@@ -2794,15 +2795,14 @@ INT8U doSave_698(INT8U* buf645,int len645)
 							freezeTimeStamp.Sec = 0;
 
 							INT16U minInterVal = 0;//冻结时标间隔-分钟
-							if(class6015.data.data[0] == minute_units)
+							if(list6013[taskIndex].basicInfo.interval.units == minute_units)
 							{
-								minInterVal = (class6015.data.data[1]<<8)+class6015.data.data[2];
+								minInterVal = list6013[taskIndex].basicInfo.interval.interval;
 								freezeTimeStamp.Minute = freezeTimeStamp.Minute/minInterVal*minInterVal;
 							}
-							if(class6015.data.data[0] == hour_units)
+							if(list6013[taskIndex].basicInfo.interval.units == hour_units)
 							{
-								INT8U hourInterVal = (class6015.data.data[1]<<8)+class6015.data.data[2];
-								minInterVal = hourInterVal*60;
+								INT8U hourInterVal = list6013[taskIndex].basicInfo.interval.interval;
 								freezeTimeStamp.Minute = 0;
 								freezeTimeStamp.Hour = freezeTimeStamp.Hour/hourInterVal*hourInterVal;
 							}
@@ -3548,8 +3548,13 @@ INT8U Proxy_TransCommandRequest(RUNTIME_PLC *runtime_p,CJCOMM_PROXY *proxy,int* 
 		}
 	}else if(proxyInUse.devUse.plcNeed == 0 && *beginwork == 1)
 	{
+		DbgPrintToFile1(31,"总超时判断取消等待");		clearvar(runtime_p);
 		*beginwork = 0;
-		DbgPrintToFile1(31,"总超时判断取消等待");
+		cjcommProxy_plc.isInUse = 0;
+		proxyInUse.devUse.plcReady = 1;
+		cjcommProxy_plc.strProxyList.datalen = 0;
+		cjcommProxy_plc.strProxyList.proxy_obj.transcmd.dar = request_overtime;
+		return 4;
 	}else if(abs( nowtime - runtime_p->send_start_time) > 100  ) {
 		//最后一次代理操作后100秒, 才恢复抄读
 		DbgPrintToFile1(31,"100秒超时");
@@ -4207,12 +4212,10 @@ int doTask_by_jzq(RUNTIME_PLC *runtime_p)
 		case 1://开始抄表
 			if ( inWaitFlag==0)
 			{
-				fprintf(stderr,"\n------------------>>>1");
 				nodetmp = (struct Tsa_Node *)ProcessMeter_byJzq(buf645,addrtmp,&sendlen );//下发 AFN_13_F1 找到一块需要抄读的表，抄读
 //				DbgPrintToFile1(31,"sendlen=%d  nodetmp=%p",sendlen,nodetmp);
 				if (sendlen>0 && nodetmp!=NULL)
 				{
-					fprintf(stderr,"\n------------------>>>2");
 					DbPrt1(31,"TS:", (char *) buf645, sendlen, NULL);
 					addrtmp[5] = nodetmp->tsa.addr[2];
 					addrtmp[4] = nodetmp->tsa.addr[3];
@@ -4228,16 +4231,14 @@ int doTask_by_jzq(RUNTIME_PLC *runtime_p)
 				inWaitFlag = 1;
 			}else if( runtime_p->format_Up.afn == 0x13 && runtime_p->format_Up.fn == 1 && inWaitFlag==1 )
 			{
-				fprintf(stderr,"\n------------------>>>3");
 				DbgPrintToFile1(31,"集中器主导流程_收数据");
 				saveF13_F1Data(runtime_p->format_Up);
 				SaveTaskData(runtime_p->format_Up, runtime_p->taskno, runtime_p->fangAn.No);
 				clearvar(runtime_p);
 				runtime_p->send_start_time = nowtime;
 				inWaitFlag = 0;
-			}else if ((abs(nowtime - runtime_p->send_start_time) > 6 ) && inWaitFlag==1 )
+			}else if ((abs(nowtime - runtime_p->send_start_time) > 20 ) && inWaitFlag==1 )
 			{
-				fprintf(stderr,"\n------------------>>>4");
 				DbgPrintToFile1(31,"超时");
 				inWaitFlag = 0;
 				clearvar(runtime_p);
