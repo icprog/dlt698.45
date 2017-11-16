@@ -55,7 +55,7 @@ extern void getFrmFCS(int argc, char* argv[]);
 
 void showCheckPara();
 
-extern void Test(int argc, char *argv[]);
+extern int Test(int argc, char *argv[]);
 extern void showPlcMeterstatus(int argc, char *argv[]);
 extern void setm2g(int argc, char* argv[]);
 extern void breezeTest(int argc, char *argv[]);

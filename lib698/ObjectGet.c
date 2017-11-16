@@ -340,30 +340,44 @@ int GetYxPara(RESULT_NORMAL *response)
 	return 0;
 }
 
-
+/*继电器单元
+ * */
 int Get_f205_attr2(RESULT_NORMAL *response)
 {
 	int index=0;
+	int i=0;
 	INT8U *data = NULL;
 	OAD oad;
 	CLASS_F205 objtmp;
-	int	 chgflag=0;
+	int	 relaynum=0;
+
 	oad = response->oad;
 	data = response->data;
-	memset(&objtmp,0,sizeof(objtmp));
+	memset(&objtmp,0,sizeof(CLASS_F205));
+	readCoverClass(oad.OI, 0, (void *) &objtmp, sizeof(CLASS_F205),para_vari_save);
 	switch(oad.attflg )
 	{
 		case 2://设备对象列表
-			fprintf(stderr,"Get_f205_attr2 oi.att=%d\n",oad.attflg);
-
-			index += create_struct(&data[index], 4);
-			index += fill_visible_string(&data[index], "Relay-1", strlen("Relay-1"));
-			index += fill_enum(&data[index],memp->ctrls.cf205.currentState);
-			index += fill_enum(&data[index],memp->ctrls.cf205.switchAttr);
-			index += fill_enum(&data[index],memp->ctrls.cf205.wiredState);
+			index = 2;	//array+ 数组
+			for(i=0;i<4;i++) {
+				if(objtmp.unit[i].oad.OI !=0) {
+					relaynum++;
+					index += create_struct(&data[index], 4);
+					index += fill_visible_string(&data[index],&objtmp.unit[i].devdesc[1],objtmp.unit[i].devdesc[0]);
+					index += fill_enum(&data[index],objtmp.unit[i].currentState);
+					index += fill_enum(&data[index],objtmp.unit[i].switchAttr);
+					index += fill_enum(&data[index],objtmp.unit[i].wiredState);
+				}
+			}
+			if(relaynum) {
+				create_array(&data[0],relaynum);
+				response->datalen = index;
+			}else {
+				data[0] = 0;		//NULL
+				response->datalen = 1;
+			}
 			break;
 	}
-	response->datalen = index;
 	return 0;
 }
 int GetEsamPara(RESULT_NORMAL *response)
@@ -710,14 +724,10 @@ int Get_8103(RESULT_NORMAL *response)
 	switch(oad.attflg){
 	case 2:	//时段功控配置单元
 		unitnum=0;
+		index += 2;	//array + 数组个数
 		for(i=0;i<MAX_AL_UNIT;i++) {
-			if(c8103.list[i].index !=0) {
+			if(c8103.list[i].index != 0) {
 				unitnum++;
-			}else break;
-		}
-		if(unitnum) {
-			index += create_array(&data[index],unitnum);
-			for(i=0;i<unitnum;i++) {
 				index += create_struct(&data[index],6);
 				index += fill_OI(&data[index],c8103.list[i].index);
 				index += fill_bit_string(&data[index],8,&c8103.list[i].sign);
@@ -726,7 +736,11 @@ int Get_8103(RESULT_NORMAL *response)
 				index += fill_PowerCtrlParam(&data[index],c8103.list[i].v3);
 				index += fill_integer(&data[index],c8103.list[i].para);
 			}
+		}
+		if(unitnum) {
+			create_array(&data[0],unitnum);
 		}else {
+			index = 0;
 			data[index++] = 0;	//NULL
 		}
 		break;
@@ -762,14 +776,10 @@ int Get_8104(RESULT_NORMAL *response)
 	switch(oad.attflg){
 	case 2:	//厂休控配置单元
 		unitnum=0;
+		index += 2;	//array + 数组个数
 		for(i=0;i<MAX_AL_UNIT;i++) {
-			if(c8104.list[i].index !=0) {
+			if(c8104.list[i].index != 0) {
 				unitnum++;
-			}else break;
-		}
-		if(unitnum) {
-			index += create_array(&data[index],unitnum);
-			for(i=0;i<unitnum;i++) {
 				index += create_struct(&data[index],5);
 				index += fill_OI(&data[index],c8104.list[i].index);
 				index += fill_long64(&data[index],c8104.list[i].v);
@@ -777,7 +787,11 @@ int Get_8104(RESULT_NORMAL *response)
 				index += fill_long_unsigned(&data[index],c8104.list[i].sustain);
 				index += fill_bit_string(&data[index],8,&c8104.list[i].noDay);
 			}
+		}
+		if(unitnum) {
+			create_array(&data[0],unitnum);
 		}else {
+			index = 0;
 			data[index++] = 0;	//NULL
 		}
 		break;
@@ -812,21 +826,21 @@ int Get_8105(RESULT_NORMAL *response)
 	switch(oad.attflg){
 	case 2:	//营业报停控配置单元
 		unitnum=0;
+		index += 2;	//array + 数组个数
 		for(i=0;i<MAX_AL_UNIT;i++) {
-			if(c8105.list[i].index !=0) {
+			if(c8105.list[i].index != 0) {
 				unitnum++;
-			}else break;
-		}
-		if(unitnum) {
-			index += create_array(&data[index],unitnum);
-			for(i=0;i<unitnum;i++) {
 				index += create_struct(&data[index],4);
 				index += fill_OI(&data[index],c8105.list[i].index);
 				index += fill_date_time_s(&data[index],&c8105.list[i].start);
 				index += fill_date_time_s(&data[index],&c8105.list[i].end);
 				index += fill_long64(&data[index],c8105.list[i].v);
 			}
+		}
+		if(unitnum) {
+			create_array(&data[0],unitnum);
 		}else {
+			index = 0;
 			data[index++] = 0;	//NULL
 		}
 		break;
@@ -850,7 +864,6 @@ int Get_8106(RESULT_NORMAL *response)
 {
 	CLASS_8106 c8106={};
 	INT8U *data=NULL;
-	INT8U	i=0,unitnum=0;
 	OAD 	oad={};
 	int 	index=0;
 
@@ -902,14 +915,10 @@ int Get_8107(RESULT_NORMAL *response)
 	switch(oad.attflg){
 	case 2:	//购电控配置单元
 		unitnum=0;
+		index += 2;	//array + 数组个数
 		for(i=0;i<MAX_AL_UNIT;i++) {
-			if(c8107.list[i].index !=0) {
+			if(c8107.list[i].index != 0) {
 				unitnum++;
-			}else break;
-		}
-		if(unitnum) {
-			index += create_array(&data[index],unitnum);
-			for(i=0;i<unitnum;i++) {
 				index += create_struct(&data[index],8);
 				index += fill_OI(&data[index],c8107.list[i].index);
 				index += fill_double_long_unsigned(&data[index],c8107.list[i].no);
@@ -920,7 +929,11 @@ int Get_8107(RESULT_NORMAL *response)
 				index += fill_long64(&data[index],c8107.list[i].ctrl);
 				index += fill_enum(&data[index],c8107.list[i].mode);
 			}
+		}
+		if(unitnum) {
+			create_array(&data[0],unitnum);
 		}else {
+			index = 0;
 			data[index++] = 0;	//NULL
 		}
 		break;
@@ -955,21 +968,21 @@ int Get_8108(RESULT_NORMAL *response)
 	switch(oad.attflg){
 	case 2:	//月电控配置单元
 		unitnum=0;
+		index += 2;	//array + 数组个数
 		for(i=0;i<MAX_AL_UNIT;i++) {
-			if(c8108.list[i].index !=0) {
+			if(c8108.list[i].index != 0) {
 				unitnum++;
-			}else break;
-		}
-		if(unitnum) {
-			index += create_array(&data[index],unitnum);
-			for(i=0;i<unitnum;i++) {
 				index += create_struct(&data[index],4);
 				index += fill_OI(&data[index],c8108.list[i].index);
 				index += fill_long64(&data[index],c8108.list[i].v);
 				index += fill_unsigned(&data[index],c8108.list[i].flex);
 				index += fill_integer(&data[index],c8108.list[i].para);
 			}
+		}
+		if(unitnum) {
+			create_array(&data[0],unitnum);
 		}else {
+			index = 0;
 			data[index++] = 0;	//NULL
 		}
 		break;
