@@ -370,7 +370,10 @@ int Get_f205_attr2(RESULT_NORMAL *response)
 	oad = response->oad;
 	data = response->data;
 	memset(&objtmp,0,sizeof(CLASS_F205));
-	readCoverClass(oad.OI, 0, (void *) &objtmp, sizeof(CLASS_F205),para_vari_save);
+//	readCoverClass(oad.OI, 0, (void *) &objtmp, sizeof(CLASS_F205),para_vari_save);
+	ProgramInfo *shareAddr = getShareAddr();
+
+	memcpy(&objtmp,&shareAddr->ctrls.cf205,sizeof(CLASS_F205));
 	switch(oad.attflg )
 	{
 		case 2://设备对象列表
@@ -382,7 +385,7 @@ int Get_f205_attr2(RESULT_NORMAL *response)
 				if(relaynum>1) {
 					index += create_array(&data[index],relaynum);
 				}
-				syslog(LOG_NOTICE,"relaynum = %d  currentState=%d switchAttr=%d wiredState=%d\n",
+				syslog(LOG_NOTICE,"mem relaynum = %d  currentState=%d switchAttr=%d wiredState=%d\n",i,
 						objtmp.unit[i].currentState,objtmp.unit[i].switchAttr,objtmp.unit[i].wiredState);
 				index += create_struct(&data[index], 4);
 				index += fill_visible_string(&data[index],&objtmp.unit[i].devdesc[1],objtmp.unit[i].devdesc[0]);
@@ -3706,46 +3709,6 @@ int getRequestRecord(OAD oad,INT8U *data,CSINFO *csinfo,INT8U *sendbuf)
 }
 
 //
-int getRequestRecordList(INT8U *data,CSINFO *csinfo,INT8U *sendbuf)
-{
-	RESULT_RECORD record={};
-	OAD	oad={};
-	INT16U 		subframe=0;
-	int i=0;
-	int recordnum = 0;
-	int destindex=0;
-	int sourceindex=0;
-
-	memset(TmpDataBufList,0,sizeof(TmpDataBufList));
-	recordnum = data[sourceindex++];
-	fprintf(stderr,"getRequestRecordList  Result-record=%d \n ",recordnum);
-	TmpDataBufList[destindex++] = recordnum;
-	for(i=0;i<recordnum;i++) {
-		memset(TmpDataBuf,0,sizeof(TmpDataBuf));
-		record.data = TmpDataBuf;
-		record.datalen = 0;
-		sourceindex += getOAD(0,&data[sourceindex],&oad,NULL);
-		record.oad = oad;
-		sourceindex += doGetrecord(GET_REQUEST_RECORD_LIST,oad,&data[sourceindex],&record,&subframe);
-		memcpy(&TmpDataBufList[destindex],record.data,record.datalen);
-		destindex += record.datalen;
-//		fprintf(stderr,"$$$$$$$$$$$$$$$$$$$$$$$$$$i=%d  record.datalen  ==== %d  subframe = %d\n\n\n\n",i,record.datalen,subframe);
-	}
-	fprintf(stderr,"!!!record.datalen  ==== %d  subframe = %d\n\n\n\n",record.datalen,subframe);
-	record.data = TmpDataBufList;
-	record.datalen = destindex;
-	if(subframe==1) {		//不分帧　原来判断＝０？有错
-		BuildFrame_GetResponseRecord(GET_REQUEST_RECORD_LIST,csinfo,record,sendbuf);//原来是GET_REQUEST_RECORD，是否有错？？
-	}else  if(subframe>1){
-		next_info.subframeSum = subframe;
-		next_info.frameNo = 1;
-		next_info.repsonseType = GET_REQUEST_RECORD_LIST;
-		BuildFrame_GetResponseNext(GET_REQUEST_RECORD_NEXT,csinfo,record.dar,record.datalen,record.data,sendbuf);
-	}
-
-	return 1;
-}
-
 //int getRequestRecordList(INT8U *data,CSINFO *csinfo,INT8U *sendbuf)
 //{
 //	RESULT_RECORD record={};
@@ -3759,10 +3722,8 @@ int getRequestRecordList(INT8U *data,CSINFO *csinfo,INT8U *sendbuf)
 //	memset(TmpDataBufList,0,sizeof(TmpDataBufList));
 //	recordnum = data[sourceindex++];
 //	fprintf(stderr,"getRequestRecordList  Result-record=%d \n ",recordnum);
-//	//一个RequestRecordList按照 resultRecord的个数，响应多个GetReponseRecordList，主站是否能正确解析后面的帧数据需要确认
+//	TmpDataBufList[destindex++] = recordnum;
 //	for(i=0;i<recordnum;i++) {
-//		destindex = 0;
-//		TmpDataBufList[destindex++] = 1;	//SEQUENCE OF A-ResultRecord
 //		memset(TmpDataBuf,0,sizeof(TmpDataBuf));
 //		record.data = TmpDataBuf;
 //		record.datalen = 0;
@@ -3770,9 +3731,58 @@ int getRequestRecordList(INT8U *data,CSINFO *csinfo,INT8U *sendbuf)
 //		record.oad = oad;
 //		sourceindex += doGetrecord(GET_REQUEST_RECORD_LIST,oad,&data[sourceindex],&record,&subframe);
 //		memcpy(&TmpDataBufList[destindex],record.data,record.datalen);
-//		record.datalen = (record.datalen+1);	//1：SEQUENCE OF A-ResultRecord， record.datalen = A-ResultRecord长度
-//		fprintf(stderr,"$$$$$$$$$$$$$$$$$$$$$$$$$$i=%d  record.datalen  ==== %d  subframe = %d\n\n\n\n",i,record.datalen,subframe);
-//		record.data = TmpDataBufList;
+//		destindex += record.datalen;
+////		fprintf(stderr,"$$$$$$$$$$$$$$$$$$$$$$$$$$i=%d  record.datalen  ==== %d  subframe = %d\n\n\n\n",i,record.datalen,subframe);
+//	}
+//	fprintf(stderr,"!!!record.datalen  ==== %d  subframe = %d\n\n\n\n",record.datalen,subframe);
+//	record.data = TmpDataBufList;
+//	record.datalen = destindex;
+//	if(subframe==1) {		//不分帧　原来判断＝０？有错
+//		BuildFrame_GetResponseRecord(GET_REQUEST_RECORD_LIST,csinfo,record,sendbuf);//原来是GET_REQUEST_RECORD，是否有错？？
+//	}else  if(subframe>1){
+//		next_info.subframeSum = subframe;
+//		next_info.frameNo = 1;
+//		next_info.repsonseType = GET_REQUEST_RECORD_LIST;
+//		BuildFrame_GetResponseNext(GET_REQUEST_RECORD_NEXT,csinfo,record.dar,record.datalen,record.data,sendbuf);
+//	}
+//
+//	return 1;
+//}
+
+int getRequestRecordList(INT8U *data,CSINFO *csinfo,INT8U *sendbuf)
+{
+	RESULT_RECORD record={};
+	OAD	oad={};
+	INT16U 		subframe=0;
+	int i=0;
+	int recordnum = 0;
+	int destindex=0;
+	int sourceindex=0;
+
+	memset(TmpDataBufList,0,sizeof(TmpDataBufList));
+	recordnum = data[sourceindex++];
+	fprintf(stderr,"getRequestRecordList  Result-record=%d \n ",recordnum);
+	//一个RequestRecordList按照 resultRecord的个数，响应多个GetReponseRecordList，主站是否能正确解析后面的帧数据需要确认
+	for(i=0;i<recordnum;i++) {
+		destindex = 0;
+		TmpDataBufList[destindex++] = 1;	//SEQUENCE OF A-ResultRecord
+		memset(TmpDataBuf,0,sizeof(TmpDataBuf));
+		record.data = TmpDataBuf;
+		record.datalen = 0;
+		sourceindex += getOAD(0,&data[sourceindex],&oad,NULL);
+		record.oad = oad;
+		sourceindex += doGetrecord(GET_REQUEST_RECORD_LIST,oad,&data[sourceindex],&record,&subframe);
+		memcpy(&TmpDataBufList[destindex],record.data,record.datalen);
+		record.datalen = (record.datalen+1);	//1：SEQUENCE OF A-ResultRecord， record.datalen = A-ResultRecord长度
+		fprintf(stderr,"$$$$$$$$$$$$$$$$$$$$$$$$$$i=%d  record.datalen  ==== %d  subframe = %d\n\n\n\n",i,record.datalen,subframe);
+		record.data = TmpDataBufList;
+
+		//模拟分帧上送
+		next_info.subframeSum = recordnum;
+		next_info.frameNo = i+1;
+		next_info.repsonseType = GET_REQUEST_RECORD_LIST;
+		BuildFrame_GetResponseNext(GET_REQUEST_RECORD_NEXT,csinfo,record.dar,record.datalen,record.data,sendbuf);
+
 //		if(subframe==1) {		//不分帧　原来判断＝０？有错
 //			BuildFrame_GetResponseRecord(GET_REQUEST_RECORD_LIST,csinfo,record,sendbuf);//原来是GET_REQUEST_RECORD，是否有错？？
 //		}else  if(subframe>1){
@@ -3781,9 +3791,18 @@ int getRequestRecordList(INT8U *data,CSINFO *csinfo,INT8U *sendbuf)
 //			next_info.repsonseType = GET_REQUEST_RECORD_LIST;
 //			BuildFrame_GetResponseNext(GET_REQUEST_RECORD_NEXT,csinfo,record.dar,record.datalen,record.data,sendbuf);
 //		}
-//	}
-//	return 1;
-//}
+	}
+	return 1;
+}
+//
+//typedef struct {
+//	INT8U	repsonseType;		//分帧响应类型 CHOICE 	错误信息[0]   DAR，  对象属性[1]   SEQUENCE OF A-ResultNormal，记录型对象属性	[2] SEQUENCE OF A-ResultRecord
+//	INT8U	seqOfNum;			//用于保存sequence of a-ResultNormal的个数，ResultNormal的情况分帧时写入文件
+//	INT16U	subframeSum;		//Get 分帧总数
+//	INT16U	frameNo;			//帧序号
+//	INT16U	currSite;			//当前帧序号在文件中位置
+//	INT16U	nextSite;			//下一帧数据偏移位置
+//} NEXT_INFO;	//getResponseNext 需要保存的信息内容
 
 int getRequestNext(INT8U *data,CSINFO *csinfo,INT8U *sendbuf)
 {

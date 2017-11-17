@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <fcntl.h>
 
 #include "AccessFun.h"
 #include "StdDataType.h"
@@ -226,7 +227,10 @@ void breezeTest(int argc, char *argv[])
 
 void ctrl_process(int argc, char *argv[])
 {
-	ctrlUN 	ctrlunit;
+	ctrlUN 	ctrlunit={};
+	int fd = 0;
+	unsigned int pluse_tmp[2] = { };
+
 	if(argc>2) {
 		if(strcmp(argv[1],"ctrl")==0) {
 			if(strcmp(argv[2],"round")==0) {
@@ -240,6 +244,15 @@ void ctrl_process(int argc, char *argv[])
 			}else if(strcmp(argv[2],"clear")==0) {
 				ctrlunit.u16b = 0;
 				ctrl_comm(ctrlunit);
+			}else if(strcmp(argv[2],"pulse")==0) {
+				for(;;) {
+					if ((fd = open(DEV_PULSE, O_RDWR | O_NDELAY)) >= 0) {
+						read(fd, &pluse_tmp, 2 * sizeof(unsigned int));
+						close(fd);
+					}
+					fprintf(stderr,"Pulse1 = %d		Pulse2 = %d\n",pluse_tmp[0],pluse_tmp[1]);
+					sleep(1);
+				}
 			}
 		}
 	}
