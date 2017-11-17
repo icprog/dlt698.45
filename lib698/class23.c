@@ -29,8 +29,8 @@ int class23_act3_4(OAD oad, INT8U* data, Action_result *act_ret)
 {
 	int  index = 0;
 	AL_UNIT al_unit={};
-	int no = oad.OI - 0x2301;
 	INT8U	unitnum =0, i=0;
+	int no = oad.OI - 0x2301;
 
 	ProgramInfo *shareAddr = getShareAddr();
 	asyslog(LOG_WARNING, "添加一个配置单元(%04x)", no);
@@ -61,8 +61,24 @@ int class23_act3_4(OAD oad, INT8U* data, Action_result *act_ret)
 
 int class23_act5(OAD oad, INT8U* data, Action_result *act_ret)
 {
-//	saveCoverClass(oad.OI, 0, &shareAddr->class23[no], sizeof(CLASS23), para_vari_save);
-//	act_ret->datalen = index;
+	int  index = 0,i=0;
+	int no = oad.OI - 0x2301;
+	TSA  del_tsa={};
+
+	ProgramInfo *shareAddr = getShareAddr();
+	index += getTSA(1,&data[index],(INT8U *)&del_tsa,&act_ret->DAR);
+	if(act_ret->DAR == success) {
+		for(i=0;i<MAX_AL_UNIT;i++) {
+//			printTSA(shareAddr->class23[no].allist[i].tsa);
+//			printTSA(del_tsa);
+			if(memcmp(&shareAddr->class23[no].allist[i].tsa,&del_tsa,(del_tsa.addr[0]+1))==0) {
+				memset(&shareAddr->class23[no].allist[i], 0,sizeof(AL_UNIT));
+				saveCoverClass(oad.OI, 0, &shareAddr->class23[no], sizeof(CLASS23), para_vari_save);
+				break;
+			}
+		}
+	}
+	act_ret->datalen = index;
 	return 0;
 }
 
