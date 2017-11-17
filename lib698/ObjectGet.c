@@ -362,6 +362,7 @@ int Get_f205_attr2(RESULT_NORMAL *response)
 {
 	int index=0;
 	int i=0;
+	INT8U unit_index = 0,relaynum = 0;
 	INT8U *data = NULL;
 	OAD oad={};
 	CLASS_F205 objtmp={};
@@ -373,21 +374,21 @@ int Get_f205_attr2(RESULT_NORMAL *response)
 	switch(oad.attflg )
 	{
 		case 2://设备对象列表
-			objtmp.relaynum = limitJudge("继电器单元",4,objtmp.relaynum);
-			if(objtmp.relaynum) {
-				index += create_array(&data[index],objtmp.relaynum);
-				for(i=0;i<objtmp.relaynum;i++) {
-					index += create_struct(&data[index], 4);
-					index += fill_visible_string(&data[index],&objtmp.unit[i].devdesc[1],objtmp.unit[i].devdesc[0]);
-					index += fill_enum(&data[index],objtmp.unit[i].currentState);
-					index += fill_enum(&data[index],objtmp.unit[i].switchAttr);
-					index += fill_enum(&data[index],objtmp.unit[i].wiredState);
+			unit_index = oad.attrindex;
+			if(unit_index==0) {
+				relaynum = 3;
+			}else  relaynum = 1;
+			for(i = 0;i < relaynum; i++) {
+				if(relaynum>1) {
+					index += create_array(&data[index],objtmp.relaynum);
 				}
-				response->datalen = index;
-			}else {
-				data[0] = 0;		//NULL
-				response->datalen = 1;
+				index += create_struct(&data[index], 4);
+				index += fill_visible_string(&data[index],&objtmp.unit[i].devdesc[1],objtmp.unit[i].devdesc[0]);
+				index += fill_enum(&data[index],objtmp.unit[i].currentState);
+				index += fill_enum(&data[index],objtmp.unit[i].switchAttr);
+				index += fill_enum(&data[index],objtmp.unit[i].wiredState);
 			}
+			response->datalen = index;
 			break;
 	}
 	return 0;
