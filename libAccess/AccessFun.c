@@ -1968,7 +1968,8 @@ INT16U GetOIinfo(OI_698 oi,INT8U rate,OI_INFO *oi_info)//得到oi的信息
 	case 1:
 		oi_info->ic = 2;
 		oi_info->oinum = rate+1;//总加rate个费率
-		oi_info->io_unit = 2;
+		oi_info->io_unit = 1;//array
+		oi_info->mem_unit = 2;//数组
 		oi_info->mem_num = 2;
 		oi_info->oi_mem[0].mem_len = 4;
 		oi_info->oi_mem[0].mem_chg = 14;//-4
@@ -2363,7 +2364,7 @@ INT16U GetOIinfo(OI_698 oi,INT8U rate,OI_INFO *oi_info)//得到oi的信息
  */
 INT16U CalcOIDataLen(OAD oad)
 {
-	INT16U oi_len = 0;
+	INT16U oi_len = 0,len_tmp=0;
 	int i=0;
 	OI_INFO oi_info;
 
@@ -2385,7 +2386,16 @@ INT16U CalcOIDataLen(OAD oad)
 		switch(oi_info.io_unit)
 		{
 		case 1://array 类型加个数
-			oi_len = 2 + oi_info.oinum*(oi_info.oi_mem[0].mem_len+1);
+			if(oi_info.mem_unit == 2)
+			{
+				fprintf(stderr,"\n数组里面包含结构体\n");
+				oi_len = 2;
+				for(i=0;i<oi_info.mem_num;i++)
+					len_tmp += oi_info.oi_mem[i].mem_len+1;
+				oi_len += oi_info.oinum*(2+len_tmp);
+			}
+			else
+				oi_len = 2 + oi_info.oinum*(oi_info.oi_mem[0].mem_len+1);
 			break;
 		case 2://struct
 			oi_len = 2;//类型加个数
@@ -3533,6 +3543,11 @@ INT16U dealselect5(OAD oad_h,CSD_ARRAYTYPE csds,TS ts_start,TS ts_end,INT32U zc_
 	fprintf(stderr,"\n----1\n");
 	if(seq_end > taskhead_info.seqnum)
 		seq_end = taskhead_info.seqnum;
+	if(frz_type != 4)//除了实时数据，其他一天就存一个
+	{
+		seq_start = 0;
+		seq_end = 1;
+	}
 	fprintf(stderr,"\n招测序号%d--%d\n",seq_start,seq_end);
 
 	//------------------------------------------------------------------------------获得每个招测的oad在一条记录中的偏移

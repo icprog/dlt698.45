@@ -397,8 +397,8 @@ typedef struct
 
 typedef struct
 {
-	INT8U conver;
-	Physical_Units units;
+	INT8U conver;		//换算
+	Physical_Units units;	//单位
 }Scaler_Unit;
 
 typedef struct

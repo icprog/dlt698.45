@@ -115,6 +115,7 @@ typedef struct{
 	INT8U ic;//接口类
 	INT8U oinum;//最大费率或相数
 	INT8U io_unit;//针对array和struct类型，其他写0
+	INT8U mem_unit;//成员类型，针对array和struct类型，其他写0
 	INT8U mem_num;//成员个数
 	OI_MEM oi_mem[10];//最多10个
 }OI_INFO;

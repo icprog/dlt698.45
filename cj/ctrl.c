@@ -253,6 +253,7 @@ void pluseTest(OI_698 oi,CLASS12	class12)
 		fprintf(stderr,"%02x ",class12.addr[i]);
 	}
 	fprintf(stderr,"\n");
+	fprintf(stderr,"att3-4:互感器倍率PT=%d，CT=%d\n",class12.pt,class12.ct);
 	fprintf(stderr,"att5  :有功功率=%d\n",class12.p);
 	fprintf(stderr,"att6  :无功功率=%d\n",class12.q);
 	fprintf(stderr,"att7  :当日正向有功电量=%d-%d-%d-%d\n",class12.day_pos_p[0],class12.day_pos_p[1],class12.day_pos_p[2],class12.day_pos_p[3]);

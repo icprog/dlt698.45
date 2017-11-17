@@ -1261,9 +1261,7 @@ int ctrlMain(void* arg) {
 	pluseInitUnit(&pu, JProgramInfo);
 	sumUpInitUnit(&suu, JProgramInfo);
 
-//test filed
 	if (0) {
-
 		for (int i = 0; i < 8; i++) {
 			JProgramInfo->class23[i].allist[0].al_flag = 0;
 			JProgramInfo->class23[i].allist[0].cal_flag = 0;
