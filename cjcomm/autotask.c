@@ -165,10 +165,10 @@ void checkAndSendAppends(INT8U *saveOver) {
 			supplementRpt(failts, tfs->rptList[i][1].startTime,
 					tfs->rptList[i][1].taskId, saveOver);
 			saveCoverClass(0x6099, 0, tfs, sizeof(taskFailInfo_s), para_vari_save);
-			stopREtry = 1;
 			break;
 		}
 	}
+	stopREtry = 1;
 }
 
 void RegularAutoTask(struct aeEventLoop* ep, CommBlock* nst) {
@@ -187,9 +187,6 @@ void RegularAutoTask(struct aeEventLoop* ep, CommBlock* nst) {
 		timeChangeSign = shmem->oi_changed.oi4000;
 		stopSign = 0;		//清除上报标记
 	}
-
-	//////////2017.6.7浙江曲线补点增加
-	HandReportTask(nst, &shmem->cfg_para.extpara[0]);	//cj report命令手动补抄进行任务上送
 
 	for (int i = 0; i < MAXNUM_AUTOTASK; i++) {
 		//调用日常通信接口
@@ -229,6 +226,8 @@ void RegularAutoTask(struct aeEventLoop* ep, CommBlock* nst) {
 		}
 	}
 	//没有正常曲线上报，且没有补报曲线上报
+	HandReportTask(nst, &shmem->cfg_para.extpara[0]);	//cj report命令手动补抄进行任务上送
+
 	if (stopSign == 0 && stopREtry != 1) {
 		checkAndSendAppends(&shmem->cfg_para.extpara[0]);
 	}

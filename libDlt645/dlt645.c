@@ -65,117 +65,116 @@ INT16U getFFCount(INT8U* recvBuf, const INT16U recvLen)//得到待解析报文�
 INT16S composeProtocol07(FORMAT07* format07, INT8U* sendBuf)
 {
 	INT16U i;
+	INT8U len;
+	INT16S sendlen = 0;
 	INT8U addrBuff[6] = {0};
+	INT8U tmpbuf[512] = {0};
+
 	fprintf(stderr,"composeProtocol07 format07->Addr = %02x%02x%02x%02x%02x%02x",
 			format07->Addr[0],format07->Addr[1],format07->Addr[2],format07->Addr[3],format07->Addr[4],format07->Addr[5]);
 	reversebuff(format07->Addr,6,addrBuff);
 
-	fprintf(stderr,"\n\n composeProtocol07 ctrl = %d",format07->Ctrl);
-	if (format07->Ctrl == 0x11)//读数据
-	{
+	DEBUG_TIME_LINE("composeProtocol07 ctrl = %02X", format07->Ctrl);
+
+	switch (format07->Ctrl) {
+	case 0x11: //读数据
 		sendBuf[0] = 0x68;
-		memcpy(&sendBuf[1], addrBuff, 6);//地址
+		memcpy(&sendBuf[1], addrBuff, 6); //地址
 		sendBuf[7] = 0x68;
 		sendBuf[8] = format07->Ctrl;
-		sendBuf[9] = 0x04;//长度
-		memcpy(&sendBuf[10], format07->DI, 4);//数据标识
+		sendBuf[9] = 0x04; //长度
+		memcpy(&sendBuf[10], format07->DI, 4); //数据标识
 
-		for (i=10; i<14; i++)
-		{
+		for (i = 10; i < 14; i++) {
 			sendBuf[i] += 0x33;
 		}
 
 		sendBuf[14] = getCS645(&sendBuf[0], 14);
 		sendBuf[15] = 0x16;
 
-		return 16;
-	}
-	if (format07->Ctrl == 0x12)//读后续数据
-	{
+		sendlen = 16;
+		break;
+	case 0x12: //读后续数据
 		sendBuf[0] = 0x68;
-		memcpy(&sendBuf[1], addrBuff, 6);//地址
+		memcpy(&sendBuf[1], addrBuff, 6); //地址
 		sendBuf[7] = 0x68;
 		sendBuf[8] = format07->Ctrl;
-		sendBuf[9] = 0x05;//长度
-		memcpy(&sendBuf[10], format07->DI, 4);//数据标识
+		sendBuf[9] = 0x05; //长度
+		memcpy(&sendBuf[10], format07->DI, 4); //数据标识
 		sendBuf[14] = format07->SEQ;
 
-		for (i=10; i<15; i++)
-		{
+		for (i = 10; i < 15; i++) {
 			sendBuf[i] += 0x33;
 		}
 
 		sendBuf[15] = getCS645(&sendBuf[0], 15);
 		sendBuf[16] = 0x16;
 
-		return 17;
-	}else if(format07->Ctrl == 0x14)  //  台体校表扩展
-	{
-		INT8U len = format07->Length;
+		sendlen = 17;
+		break;
+	case 0x14: //  台体校表扩展
+		len = format07->Length;
 		sendBuf[0] = 0x68;
-		memcpy(&sendBuf[1], format07->Addr, 6);//地址
+		memcpy(&sendBuf[1], format07->Addr, 6); //地址
 		sendBuf[7] = 0x68;
 		sendBuf[8] = format07->Ctrl;
-		sendBuf[9] = len;//长度
-		memcpy(&sendBuf[10], format07->DI, 4);//数据标识
-		memcpy(&sendBuf[14], format07->Data, len-4);
-		for(i=10;i<10+len;i++)
-		{
+		sendBuf[9] = len; //长度
+		memcpy(&sendBuf[10], format07->DI, 4); //数据标识
+		memcpy(&sendBuf[14], format07->Data, len - 4);
+		for (i = 10; i < 10 + len; i++) {
 			sendBuf[i] += 0x33;
 		}
-		sendBuf[10+len] = getCS645(&sendBuf[0], 10+len);
-		sendBuf[11+len] = 0x16;
-		return (12+len);
-	}else if (format07->Ctrl == 0x13)//启动搜表（鼎信用）
-	{
+		sendBuf[10 + len] = getCS645(&sendBuf[0], 10 + len);
+		sendBuf[11 + len] = 0x16;
+
+		sendlen = (12 + len);
+		break;
+	case 0x13: //启动搜表（鼎信用）
 		sendBuf[0] = 0x68;
-		memset(&sendBuf[1], 0xAA, 6);//地址
+		memset(&sendBuf[1], 0xAA, 6); //地址
 		sendBuf[7] = 0x68;
 		sendBuf[8] = format07->Ctrl;
-		sendBuf[9] = 0x02;//长度
-		memcpy(&sendBuf[10], format07->SearchTime, 2);//搜表时长
+		sendBuf[9] = 0x02; //长度
+		memcpy(&sendBuf[10], format07->SearchTime, 2); //搜表时长
 
-		for (i=10; i<12; i++)
-		{
+		for (i = 10; i < 12; i++) {
 			sendBuf[i] += 0x33;
 		}
 
 		sendBuf[12] = getCS645(&sendBuf[0], 16);
 		sendBuf[13] = 0x16;
 
-		return 14;
-	}
-	else if (format07->Ctrl == 0x08)//广播校时
-	{
+		sendlen = 14;
+		break;
+	case 0x08: //广播校时
 		sendBuf[0] = 0x68;
-		memcpy(&sendBuf[1], addrBuff, 6);//地址
+		memcpy(&sendBuf[1], addrBuff, 6); //地址
 		sendBuf[7] = 0x68;
 		sendBuf[8] = format07->Ctrl;
-		sendBuf[9] = 0x06;//长度
-		int32u2bcd(format07->Time[0], &sendBuf[10], inverted);//校时时间
+		sendBuf[9] = 0x06; //长度
+		int32u2bcd(format07->Time[0], &sendBuf[10], inverted); //校时时间
 		int32u2bcd(format07->Time[1], &sendBuf[11], inverted);
 		int32u2bcd(format07->Time[2], &sendBuf[12], inverted);
 		int32u2bcd(format07->Time[3], &sendBuf[13], inverted);
 		int32u2bcd(format07->Time[4], &sendBuf[14], inverted);
-		int32u2bcd(format07->Time[5]%100, &sendBuf[15], inverted);
+		int32u2bcd(format07->Time[5] % 100, &sendBuf[15], inverted);
 
-		for (i=10; i<16; i++)
-		{
+		for (i = 10; i < 16; i++) {
 			sendBuf[i] += 0x33;
 		}
 
 		sendBuf[16] = getCS645(&sendBuf[0], 16);
 		sendBuf[17] = 0x16;
 
-		return 18;
-	}else if (format07->Ctrl == 0xff)//读负荷曲线
-	{
+		sendlen = 18;
+		break;
+	case 0xff: //读负荷曲线
 		sendBuf[0] = 0x68;
-		memcpy(&sendBuf[1], addrBuff, 6);//地址
+		memcpy(&sendBuf[1], addrBuff, 6); //地址
 		sendBuf[7] = 0x68;
 		sendBuf[8] = 0x11;
-		sendBuf[9] = 10;//长度
-		memcpy(&sendBuf[10], format07->DI, 4);//数据标识
+		sendBuf[9] = 10; //长度
+		memcpy(&sendBuf[10], format07->DI, 4); //数据标识
 		sendBuf[14] = format07->sections;
 		sendBuf[15] = format07->startMinute;
 		sendBuf[16] = format07->startHour;
@@ -183,17 +182,31 @@ INT16S composeProtocol07(FORMAT07* format07, INT8U* sendBuf)
 		sendBuf[18] = format07->startMonth;
 		sendBuf[19] = format07->startYear;
 
-		for (i=10; i<20; i++)
-		{
+		for (i = 10; i < 20; i++) {
 			sendBuf[i] += 0x33;
 		}
 
 		sendBuf[20] = getCS645(&sendBuf[0], 20);
 		sendBuf[21] = 0x16;
 
-		return 22;
+		sendlen = 22;
+		break;
+	default:
+		sendlen = -1;
+		break;
 	}
-	return -1;
+
+	DEBUG_TIME_LINE("sendlen: %d", sendlen);
+	if(sendlen > 0) {//dlt645-07协议明确要求, 在前面加4个0xFE, 以唤醒总线设备
+		tmpbuf[0] = 0xfe;
+		tmpbuf[1] = 0xfe;
+		tmpbuf[2] = 0xfe;
+		tmpbuf[3] = 0xfe;
+		memcpy(&tmpbuf[4], sendBuf, sendlen);
+		sendlen += 4;
+		memcpy(sendBuf,tmpbuf,sendlen);
+	}
+	return sendlen;
 }
 
 //07报文解析入口函数
