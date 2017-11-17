@@ -1603,6 +1603,7 @@ int doObjectAction(OAD oad, INT8U *data, Action_result *act_ret, CSINFO *csinfo,
         	act_ret->datalen = 0;
             break;
     }
+    fprintf(stderr,"\n--------------oi== %04x------act_ret->DAR==%d--------------------------------!!!!",oi,success);
     if(act_ret->DAR == success) {
 		if (oi == 0x4300 && attr_act == 3) {        //数据区初始化
 			memp->oi_changed.init++;
@@ -1610,6 +1611,7 @@ int doObjectAction(OAD oad, INT8U *data, Action_result *act_ret, CSINFO *csinfo,
 		if (oi == 0x4300 && attr_act == 4) {        //恢复出厂设置
 			memp->oi_changed.ctrlinit = 0x55;
 		}
+		fprintf(stderr,"\n---------------oi==%04x----------",oi);
 		setOIChange(oi);
     }
     return act_ret->DAR;    //DAR=0，成功
