@@ -894,6 +894,17 @@ int deal8108() {
 }
 
 void dealCtrl() {
+
+	//如果保电不跳闸
+	if(CtrlC->c8001.state == 1)
+	{
+		//保电
+		return;
+	}else if(CtrlC->c8001.state == 2)
+	{
+		//zidong
+	}
+
 //直接跳闸，必须检测
 	deal8107();
 	deal8108();
@@ -1042,6 +1053,50 @@ void PackCtrlSituation() {
 	}
 
 	ctrlunit.ctrl.alm_state = (al == 0) ? 0 : 1;
+
+	//如果保电不跳闸
+	if(CtrlC->c8001.state == 1)
+	{
+		//保电
+		return;
+	}else if(CtrlC->c8001.state == 2)
+	{
+		//zidong
+	}
+
+	//汇总遥控命令
+	static int step = 0;
+	if (CtrlC->c8000.openclose[0] == 0x5555)
+	{
+		ctrlunit.ctrl.lun1_state = 0;
+	}
+	if (CtrlC->c8000.openclose[0] == 0xCCCC)
+	{
+		ctrlunit.ctrl.lun1_state = 1;
+	}
+
+	if (CtrlC->c8000.openclose[1] == 0x5555)
+	{
+		ctrlunit.ctrl.lun2_state = 0;
+	}
+	if (CtrlC->c8000.openclose[1] == 0xCCCC)
+	{
+		ctrlunit.ctrl.lun2_state = 1;
+	}
+
+	//置F205状态
+	CtrlC->cf205[0].currentState = ctrlunit.ctrl.lun1_state;
+	CtrlC->cf205[1].currentState = ctrlunit.ctrl.lun2_state;
+
+
+	//置8000继电器告警状态
+	if (CtrlC->cf205[0].currentState == 1){
+		CtrlC->c8000.cmdstate = stb_setbit8(CtrlC->c8000.cmdstate, 7);
+	}
+	if (CtrlC->cf205[1].currentState == 1){
+		CtrlC->c8000.cmdstate = stb_setbit8(CtrlC->c8000.cmdstate, 6);
+	}
+
 
 	fprintf(stderr, "遥控模块最后汇总[%d %d %d] %d %d %d %d\n", ctrlunit.ctrl.alm_state,
 			ctrlunit.ctrl.gongk_led, ctrlunit.ctrl.diank_led, ctrlunit.ctrl.lun1_red,
@@ -1376,13 +1431,13 @@ int ctrlMain(void* arg) {
 
 		if (secOld % 5 == 0) {
 			dealCtrl();
-			CtrlStateSumUp();
 		}
 
-		ShaningLED_F206();
-
+		CtrlStateSumUp();
 		PackCtrlSituation();
+		ShaningLED_F206();
 		DoActuallyCtrl();
+
 		HandlerCtrl();
 		CheckCtrlControl();
 	}
