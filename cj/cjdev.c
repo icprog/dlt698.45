@@ -60,6 +60,19 @@ void printF101() {
     }
 }
 
+void printF205() {
+    CLASS_F205 f205 = {};
+    int i = 0;
+    readCoverClass(0xf205, 0, &f205, sizeof(CLASS_F205), para_vari_save);
+    fprintf(stderr, "[F205]继电器输出\n");
+    for(i=0;i<3;i++) {
+    	fprintf(stderr,"--%d--\n",i);
+		fprintf(stderr,"当前状态  = %d\n",f205.unit[i].currentState);
+		fprintf(stderr,"开关属性  = %d\n",f205.unit[i].switchAttr);
+		fprintf(stderr,"接线状态  = %d\n",f205.unit[i].wiredState);
+    }
+}
+
 void SetF101(int argc, char *argv[]) {
     CLASS_F101 f101 = {};
     int tmp = 0;
@@ -334,6 +347,9 @@ void inoutdev_process(int argc, char *argv[]) {
                         break;
                     case 0xf101:
                         printF101();
+                        break;
+                    case 0xf205:
+                        printF205();
                 }
             } else {
                 switch (oi) {
