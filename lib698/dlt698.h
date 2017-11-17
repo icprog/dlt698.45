@@ -119,6 +119,7 @@ extern int getOAD(INT8U type,INT8U *source,OAD *oad,INT8U *DAR);                
 extern int getROAD(INT8U* source, ROAD* dest);                                    // 0x52
 extern int getTI(INT8U type, INT8U* source, TI* ti);                              // 0x54
 extern int getTSA(INT8U type,INT8U *source,INT8U *tsa,INT8U *DAR);   			  // 0x55
+extern int getScalerUnit(INT8U type,INT8U *source,Scaler_Unit *su,INT8U *DAR);     // 0x59
 extern int get_BasicRSD(INT8U type, INT8U* source, INT8U* dest, INT8U* seletype); // 0x5A
 extern int getCSD(INT8U type, INT8U* source, MY_CSD* csd);                        // 0X5B
 extern int getMS(INT8U type, INT8U* source, MY_MS* ms);                           // 0x5C

@@ -30,6 +30,8 @@ typedef struct {
 	INT64U curNP[8][8][5];
 	INT64U curNQ[8][8][5];
 
+	int old_day;
+	int old_month;
 } SumUpUnit;
 
 int ctrlMain(void * arg);

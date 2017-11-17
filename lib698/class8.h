@@ -23,7 +23,6 @@ int class8003_8004_set(OAD oad, INT8U *data, INT8U *DAR);
  * 终端保安定值
  */
 int class8100_set(OAD oad, INT8U *data, INT8U *DAR);
-
 /*
  * 终端时控时段
  * */

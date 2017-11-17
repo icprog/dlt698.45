@@ -52,8 +52,9 @@ extern int setf200(OI_698 oi,INT8U *data,INT8U *DAR);
 extern int setf201(OI_698 oi,INT8U *data,INT8U *DAR);
 extern int setf202(OI_698 oi,INT8U *data,INT8U *DAR);
 extern int setf203(OAD oad,INT8U *data,INT8U *DAR);
+extern int setf205(OAD oad,INT8U *data,INT8U *DAR);
 extern int setf206(OAD oad,INT8U *data,INT8U *DAR);
 extern int setf209(OAD setoad,INT8U *data,INT8U *DAR);
 
-
+extern int f205_act127(OAD oad,INT8U *data,INT8U *DAR);
 #endif /* OISETFUNC_H_ */
