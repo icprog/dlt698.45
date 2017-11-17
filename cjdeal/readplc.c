@@ -2017,14 +2017,15 @@ int do_other_type( int taski, int itemi ,INT8U *buf, struct Tsa_Node *desnode, D
 					TS ts_start;
 					time_t  endtime;
 					TSGet(&ts_start);
-					if(st6015.data.data[0] == minute_units)
+
+					if(taskinfo.task_list[taski].ti.units == minute_units)
 					{
-						INT16U minInterVal = (st6015.data.data[1]<<8)+st6015.data.data[2];
+						INT16U minInterVal = taskinfo.task_list[taski].ti.interval;
 						ts_start.Minute = ts_start.Minute/minInterVal*minInterVal;
 					}
-					if(st6015.data.data[0] == hour_units)
+					if(taskinfo.task_list[taski].ti.units == hour_units)
 					{
-						INT8U hourInterVal = (st6015.data.data[1]<<8)+st6015.data.data[2];
+						INT8U hourInterVal = taskinfo.task_list[taski].ti.interval;
 						ts_start.Minute = 0;
 						ts_start.Hour = ts_start.Hour/hourInterVal*hourInterVal;
 					}
@@ -2084,8 +2085,9 @@ int do_other_type( int taski, int itemi ,INT8U *buf, struct Tsa_Node *desnode, D
 						}
 					}
 #endif
-					DbgPrintToFile1(31,"抄读开始时间【%04d-%02d-%02d %02d:%02d:%02d】结束时间【%04d-%02d-%02d %02d:%02d:%02d】",
-							ts_end.Year,ts_end.Month,ts_end.Day,ts_end.Hour,ts_end.Minute,ts_end.Sec,
+					DbgPrintToFile1(31,"任务ID:%d 方案ID:%d 执行频率 %d[%d] 抄读开始时间【%04d-%02d-%02d %02d:%02d:%02d】结束时间【%04d-%02d-%02d %02d:%02d:%02d】",
+							taskinfo.task_list[taski].taskId,taskinfo.task_list[taski].fangan.No,taskinfo.task_list[taski].ti.units,
+							taskinfo.task_list[taski].ti.interval,ts_end.Year,ts_end.Month,ts_end.Day,ts_end.Hour,ts_end.Minute,ts_end.Sec,
 							ts_start.Year,ts_start.Month,ts_start.Day,ts_start.Hour,ts_start.Minute,ts_start.Sec
 					);
 				}
@@ -2608,7 +2610,6 @@ INT8U ChgSucessFlg_698(TSA tsaMeter,INT8U taskid)
 							{
 								taskinfo_tmp.task_list[i].fangan.items[j].sucessflg = 2;
 							}
-//							task_Refresh(&taskinfo.task_list[i] );
 						}
 					}
 					saveParaClass(0x8888, &taskinfo_tmp,taskinfo_tmp.tsa_index);
@@ -2787,15 +2788,14 @@ INT8U doSave_698(INT8U* buf645,int len645)
 							freezeTimeStamp.Sec = 0;
 
 							INT16U minInterVal = 0;//冻结时标间隔-分钟
-							if(class6015.data.data[0] == minute_units)
+							if(list6013[taskIndex].basicInfo.interval.units == minute_units)
 							{
-								minInterVal = (class6015.data.data[1]<<8)+class6015.data.data[2];
+								minInterVal = list6013[taskIndex].basicInfo.interval.interval;
 								freezeTimeStamp.Minute = freezeTimeStamp.Minute/minInterVal*minInterVal;
 							}
-							if(class6015.data.data[0] == hour_units)
+							if(list6013[taskIndex].basicInfo.interval.units == hour_units)
 							{
-								INT8U hourInterVal = (class6015.data.data[1]<<8)+class6015.data.data[2];
-								minInterVal = hourInterVal*60;
+								INT8U hourInterVal = list6013[taskIndex].basicInfo.interval.interval;
 								freezeTimeStamp.Minute = 0;
 								freezeTimeStamp.Hour = freezeTimeStamp.Hour/hourInterVal*hourInterVal;
 							}
@@ -4220,6 +4220,7 @@ int doTask_by_jzq(RUNTIME_PLC *runtime_p)
 					addrtmp[2] = nodetmp->tsa.addr[5];
 					addrtmp[1] = nodetmp->tsa.addr[6];
 					addrtmp[0] = nodetmp->tsa.addr[7];
+					memcpy(runtime_p->format_Down.addr.SourceAddr, runtime_p->masteraddr, 6);
 					sendlen = AFN13_F1(&runtime_p->format_Down,runtime_p->sendbuf,addrtmp, nodetmp->protocol, 0, buf645, sendlen);
 					DbgPrintToFile1(31,"sendlen=%d  protocol=%d",sendlen,nodetmp->protocol);
 					SendDataToCom(runtime_p->comfd, runtime_p->sendbuf,sendlen );
@@ -4451,6 +4452,7 @@ int doAutoReport(RUNTIME_PLC *runtime_p)
 					sendlen = getOneEvent(autoReportAddr,	buf645);
 					if (sendlen > 0)
 					{
+						memcpy(runtime_p->format_Down.addr.SourceAddr, runtime_p->masteraddr, 6);
 						sendlen = AFN13_F1(&runtime_p->format_Down,runtime_p->sendbuf,autoReportAddr, 2, 0, buf645, sendlen);
 						SendDataToCom(runtime_p->comfd, runtime_p->sendbuf, sendlen );
 						runtime_p->send_start_time = nowtime ;
@@ -4481,6 +4483,7 @@ int doAutoReport(RUNTIME_PLC *runtime_p)
 				DbgPrintToFile1(31,"复位状态字");
 				memset(buf645,0,BUFSIZE645);
 				sendlen = resetAutoEvent(autoReportAddr,buf645);
+				memcpy(runtime_p->format_Down.addr.SourceAddr, runtime_p->masteraddr, 6);
 				sendlen = AFN13_F1(&runtime_p->format_Down,runtime_p->sendbuf,autoReportAddr, 2, 0, buf645, sendlen);
 				SendDataToCom(runtime_p->comfd, runtime_p->sendbuf, sendlen );
 				clearvar(runtime_p);
@@ -4506,6 +4509,7 @@ int doAutoReport(RUNTIME_PLC *runtime_p)
 					DbgPrintToFile1(31,"收到应答报文，重读状态字");
 					memset(buf645,0,BUFSIZE645);
 					sendlen = readStateWord(autoReportAddr,buf645);
+					memcpy(runtime_p->format_Down.addr.SourceAddr, runtime_p->masteraddr, 6);
 					sendlen = AFN13_F1(&runtime_p->format_Down,runtime_p->sendbuf,autoReportAddr, 2, 0, buf645, sendlen);
 					SendDataToCom(runtime_p->comfd, runtime_p->sendbuf, sendlen );
 					clearvar(runtime_p);

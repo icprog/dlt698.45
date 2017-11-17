@@ -965,7 +965,15 @@ void menu_zhongwen(){
 	PressKey = NOKEY;
 	gui_clrrect(rect_Client);
 	memset(str_neirong, 0, 200);
+
 	ret = readCoverClass(0x8003, 0, (void *) &info_nor, sizeof(CLASS_8003_8004),para_vari_save);
+	if(ret == -1) {
+		memset(&info_nor,0xff,sizeof(info_nor));
+	}
+	ret = readCoverClass(0x8004, 0, (void *) &info_nor, sizeof(CLASS_8003_8004),para_vari_save);
+	if(ret == -1) {
+		memset(&info_imp,0xff,sizeof(info_imp));
+	}
 
 	while(g_LcdPoll_Flag==LCD_NOTPOLL){
 		switch(PressKey)
@@ -973,12 +981,15 @@ void menu_zhongwen(){
 			case LEFT:
 				break;
 			case UP:
-				i = (i - 1)%20;
+				if(i>0)
+					i = (i - 1)%19;
+				else
+					i = 19;
 				break;
 			case RIGHT:
 				break;
 			case DOWN:
-				i = (i + 1)%20;
+				i = (i + 1)%19;
 				break;
 			case ESC:
 				return;
@@ -990,18 +1001,22 @@ void menu_zhongwen(){
 		pos.x = rect_Client.left + FONTSIZE;
 		pos.y += FONTSIZE*3;
 		memset(str, 0, 200);
-		sprintf(str, "编号: %d",info_imp.chinese_info[i].no);
+		if (info_imp.chinese_info[i].no==0xff)
+		{
+			sprintf(str, "序号 %02d 无效",i);
+			gui_textshow(str, pos, LCD_NOREV);
+			continue;
+		}
+		else
+			sprintf(str, "编号: %02d",info_imp.chinese_info[i].no);
 		gui_textshow(str, pos, LCD_NOREV);
 		pos.y += FONTSIZE*3;
 		sprintf(str, "信息内容:");
 		gui_textshow(str, pos, LCD_NOREV);
-
 		pos.y += FONTSIZE*3;
 		memset(str, 0, 200);
-		if(str_neirong[0]!=0)
-			show_msg(str_neirong, pos);
-		else
-			show_msg((char*)"无中文信息", pos);
+		memcpy(str_neirong,info_imp.chinese_info[i].info);
+		show_msg(str_neirong, pos);
 		PressKey = NOKEY;
 		delay(300);
 	}
