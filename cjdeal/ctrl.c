@@ -178,8 +178,8 @@ void SumUpRefreshPulseUnit(SumUpUnit* suu, PluseUnit * pu) {
 				continue;
 			}
 			fprintf(stderr, "找到总加组-脉冲配对 %d %d %d\n", s_i, p_i, index);
-			suu->class23[s_i].p = pu->class12[p_i].p;
-			suu->class23[s_i].q = pu->class12[p_i].q;
+			suu->class23[s_i].p = pu->class12[p_i].p * con;
+			suu->class23[s_i].q = pu->class12[p_i].q * con;
 
 			suu->class23[s_i].allist[index].curP[0] = 0;
 			suu->class23[s_i].allist[index].curQ[0] = 0;
@@ -309,6 +309,9 @@ int initAll() {
 
 	fprintf(stderr, "==============================ctrl init end============================\n");
 
+
+	readCoverClass(0xf205, 0, &CtrlC->cf205, sizeof(CLASS_F205),
+							para_vari_save);
 	return 0;
 }
 
@@ -831,13 +834,15 @@ int deal8107() {
 				JProgramInfo->ctrls.c8107.output[i].state = 192;
 				JProgramInfo->ctrls.c8107.overflow[i].state = 0;
 				return 2;
-			}
-
-			if (mmm <= warn) {
+			} else if (mmm <= warn) {
 				fprintf(stderr, "购电控告警！！！！！！！！！！！！！！！！！！\n");
 				JProgramInfo->ctrls.c8107.output[i].state = 0;
 				JProgramInfo->ctrls.c8107.overflow[i].state = 1;
 				return 1;
+			}
+			else{
+				JProgramInfo->ctrls.c8107.output[i].state = 0;
+				JProgramInfo->ctrls.c8107.overflow[i].state = 0;
 			}
 		}
 	}
@@ -917,13 +922,6 @@ void dealCtrl() {
 	deal8103();
 }
 
-void CheckInitPara() {
-	if (JProgramInfo->oi_changed.ctrlinit == 0x55) {
-		initAll();
-		JProgramInfo->oi_changed.ctrlinit = 0x00;
-	}
-}
-
 int SaveAll(void* arg) {
 	TS now;
 	int secOld = 0;
@@ -945,7 +943,14 @@ int SaveAll(void* arg) {
 			secOld = now.Sec;
 		}
 
-		if (secOld % 20 == 0) {
+		void CheckInitPara() {
+			if (JProgramInfo->oi_changed.ctrlinit == 0x55) {
+				initAll();
+				JProgramInfo->oi_changed.ctrlinit = 0x00;
+			}
+		}
+
+		if (secOld % 47 == 0) {
 			for (int i = 0; i < 8; ++i) {
 				sign = stb_crc32(&JProgramInfo->class23[i], sizeof(CLASS23));
 				if(sign != old_sign[i]){
@@ -1068,22 +1073,25 @@ void PackCtrlSituation() {
 	static int old_state1 = 0;
 	static int old_state2 = 0;
 
+	fprintf(stderr, "CtrlC->c8000.openclose[0] == %04x\n", CtrlC->c8000.openclose[0]);
 	if (CtrlC->c8000.openclose[0] == 0x5555)
 	{
-		ctrlunit.ctrl.lun1_state = 0;
+		fprintf(stderr, "CtrlC->c8000.openclose[0] == 0x5555\n");
+		ctrlunit.ctrl.lun1_state = 1;
 	}
 	if (CtrlC->c8000.openclose[0] == 0xCCCC)
 	{
-		ctrlunit.ctrl.lun1_state = 1;
+		fprintf(stderr, "CtrlC->c8000.openclose[0] == 0xCCCC\n");
+		ctrlunit.ctrl.lun1_state = 0;
 	}
 
 	if (CtrlC->c8000.openclose[1] == 0x5555)
 	{
-		ctrlunit.ctrl.lun2_state = 0;
+		ctrlunit.ctrl.lun2_state = 1;
 	}
 	if (CtrlC->c8000.openclose[1] == 0xCCCC)
 	{
-		ctrlunit.ctrl.lun2_state = 1;
+		ctrlunit.ctrl.lun2_state = 0;
 	}
 
 	if (CtrlC->c8000.openclose[0] != old_state1 || CtrlC->c8000.openclose[1] != old_state2)
@@ -1124,6 +1132,13 @@ void PackCtrlSituation() {
 	}
 	else {
 		CtrlC->c8000.cmdstate = 0;
+	}
+
+	if (ctrlunit.ctrl.alm_state == 0)
+	{
+		ctrlunit.ctrl.alm_state = 1;
+	}else{
+		ctrlunit.ctrl.alm_state = 0;
 	}
 
 

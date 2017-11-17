@@ -45,7 +45,7 @@ int pluseGetTimeZone() {
 
 //根据脉冲计算电量
 void pluseCalcDD(PluseUnit * pu) {
-	for (int index; index < 2; index++) {
+	for (int index = 0; index < 2; index++) {
 		//检查变化
 		int pulse = pu->pNow[index] - pu->pDD[index];
 		if (pulse > 0) {
