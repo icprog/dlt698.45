@@ -164,7 +164,10 @@ void menu_control(){
 
 		gui_setpos(&pos, rect_Client.left+1*FONTSIZE, rect_Client.top+10*FONTSIZE);//4
 
-		touru =tourujuge(c8106.enable.name, c8106.enable.state);
+		if(c8106.index == (0x2300 + zj_index))
+		{
+			touru =tourujuge(c8106.enable.name, c8106.enable.state);
+		}
 		menu_control_showstate((char*)"下浮：",touru & 0x01, pos);			//当前功率下浮控	没有控制方案集数组，默认参数下发在原来结构体数组 0
 		pos.y += FONTSIZE*3;
 
