@@ -1093,9 +1093,20 @@ void PackCtrlSituation() {
 		CtrlC->control_event = 1;
 	}
 
+	static int cf205_s1 = 0;
+	static int cf205_s2 = 0;
+
 	//置F205状态
 	CtrlC->cf205.unit[0].currentState = ctrlunit.ctrl.lun1_state;
 	CtrlC->cf205.unit[1].currentState = ctrlunit.ctrl.lun2_state;
+
+	if(CtrlC->cf205.unit[0].currentState != cf205_s1 || CtrlC->cf205.unit[1].currentState != cf205_s2)
+	{
+		cf205_s1 = CtrlC->cf205.unit[0].currentState;
+		cf205_s2 = CtrlC->cf205.unit[1].currentState;
+		saveCoverClass(0xf205, 0, &CtrlC->cf205, sizeof(CLASS_F205),
+						para_vari_save);
+	}
 
 	fprintf(stderr, "ctrlunit.ctrl.lun1_state = %d %d\n", ctrlunit.ctrl.lun1_state, CtrlC->cf205.unit[0].currentState);
 	fprintf(stderr, "ctrlunit.ctrl.lun2_state = %d %d\n", ctrlunit.ctrl.lun2_state, CtrlC->cf205.unit[1].currentState);
