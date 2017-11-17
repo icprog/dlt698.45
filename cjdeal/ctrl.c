@@ -1065,7 +1065,9 @@ void PackCtrlSituation() {
 	}
 
 	//汇总遥控命令
-	static int step = 0;
+	static int old_state1 = 0;
+	static int old_state2 = 0;
+
 	if (CtrlC->c8000.openclose[0] == 0x5555)
 	{
 		ctrlunit.ctrl.lun1_state = 0;
@@ -1084,17 +1086,33 @@ void PackCtrlSituation() {
 		ctrlunit.ctrl.lun2_state = 1;
 	}
 
+	if (CtrlC->c8000.openclose[0] != old_state1 || CtrlC->c8000.openclose[1] != old_state2)
+	{
+		old_state1 = CtrlC->c8000.openclose[0];
+		old_state2 = CtrlC->c8000.openclose[1];
+		CtrlC->control_event = 1;
+	}
+
 	//置F205状态
-	CtrlC->cf205[0].currentState = ctrlunit.ctrl.lun1_state;
-	CtrlC->cf205[1].currentState = ctrlunit.ctrl.lun2_state;
+	CtrlC->cf205.unit[0].currentState = ctrlunit.ctrl.lun1_state;
+	CtrlC->cf205.unit[1].currentState = ctrlunit.ctrl.lun2_state;
+
+	fprintf(stderr, "ctrlunit.ctrl.lun1_state = %d %d\n", ctrlunit.ctrl.lun1_state, CtrlC->cf205.unit[0].currentState);
+	fprintf(stderr, "ctrlunit.ctrl.lun2_state = %d %d\n", ctrlunit.ctrl.lun2_state, CtrlC->cf205.unit[1].currentState);
 
 
 	//置8000继电器告警状态
-	if (CtrlC->cf205[0].currentState == 1){
+	if (CtrlC->cf205.unit[0].currentState == 1){
 		CtrlC->c8000.cmdstate = stb_setbit8(CtrlC->c8000.cmdstate, 7);
 	}
-	if (CtrlC->cf205[1].currentState == 1){
+	else{
+		CtrlC->c8000.cmdstate = 0;
+	}
+	if (CtrlC->cf205.unit[1].currentState == 1){
 		CtrlC->c8000.cmdstate = stb_setbit8(CtrlC->c8000.cmdstate, 6);
+	}
+	else {
+		CtrlC->c8000.cmdstate = 0;
 	}
 
 
