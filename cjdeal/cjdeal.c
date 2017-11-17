@@ -1879,6 +1879,7 @@ int main(int argc, char *argv[]) {
 		syslog(LOG_ERR, "进程 %s 参数错误", argv[0]);
 		return EXIT_FAILURE;
 	}
+
 	pthread_mutex_init(&mutex, NULL); //初始化互斥锁
 	pthread_mutex_init(&mutex_savetask, NULL); //初始化互斥锁
 	asyslog(LOG_INFO, "进程 %s PID = %d", JProgramInfo->Projects[1].ProjectName,
@@ -1886,6 +1887,7 @@ int main(int argc, char *argv[]) {
 	asyslog(LOG_INFO, "进程 %s PID = %d", JProgramInfo->Projects[2].ProjectName,
 			JProgramInfo->Projects[2].ProjectID);
 	///液晶提前运行，为了上电15秒内点亮液晶运行程序
+
 	if (JProgramInfo->cfg_para.device != CCTT2) {
 		//液晶、控制
 		guictrl_proccess();
@@ -1909,10 +1911,8 @@ int main(int argc, char *argv[]) {
 	}
 	//交采
 	acs_process();
-
 	while (1) {
 		gettimeofday(&start, NULL);
-
 		TSGet(&ts);
 		if (ts.Hour == 15 && ts.Minute == 5 && del_day != ts.Day
 				&& del_min != ts.Minute) {

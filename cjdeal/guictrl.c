@@ -256,16 +256,24 @@ void guictrl_proccess() {
 		fprintf(stderr, "\n\n open fb0 fail!!!!! return");
 		return;
 	}
+
 	lcm_ac_power();
+
 	init_gobal_variable();			//初始化全局变量
+
 	initmenu();			//初始化液晶菜单
+
 	ReadHzkBuff_16();			//读字库16*16
+
 	ReadHzkBuff_12();			//12*12
+
 	initliangdu();			//初始化液晶亮度
+
 	syslog(LOG_NOTICE, "lcd_light = 1\n");
 	initlunxian();			//读配置文件
 
 	setFontSize(12);			//设置字体
+
 	pthread_attr_init(&guictrl_attr_t);
 	pthread_attr_setstacksize(&guictrl_attr_t, 2048 * 1024);
 	pthread_attr_setdetachstate(&guictrl_attr_t, PTHREAD_CREATE_DETACHED);

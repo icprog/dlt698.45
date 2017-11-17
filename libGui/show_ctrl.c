@@ -56,7 +56,6 @@ void Init_GuiLib_variable()
 		memset(&g_Class4001_4002_4003,0,sizeof(CLASS_4001_4002_4003));
 		printf("\nlibgui:read para  0x4001 err!!\n");
 	}
-
 	if(readCoverClass(0x4300, 0, (void*)&g_class19_oi4300, sizeof(CLASS19), para_vari_save)<=0)
 	{
 		memset(&g_class19_oi4300,0,sizeof(CLASS19));
