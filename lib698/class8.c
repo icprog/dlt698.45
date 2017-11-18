@@ -190,7 +190,7 @@ int class8100_set(OAD oad, INT8U *data, INT8U *DAR)
 	shareAddr->ctrls.c8100.v = c8100.v;
 	saveCoverClass(0x8100, 0, (void *) &c8100, sizeof(CLASS_8100),
 			para_vari_save);
-	asyslog(LOG_WARNING, "设置终端安保定值(%lld)", c8100.v);
+	asyslog(LOG_WARNING, "设置终端安保定值(%lld)", shareAddr->ctrls.c8100.v);
 
 	return index;
 }
