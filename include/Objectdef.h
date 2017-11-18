@@ -817,20 +817,20 @@ typedef struct {
 typedef struct {
     INT8U index;
     INT8U enable_flag;
-    INT8U PCState;
-    INT8U ECState;
-    INT8U PTrunState;
-    INT8U ETrunState;
+    INT8U PCState;			//功控状态
+    INT8U ECState;			//电控状态
+    INT8U PTrunState;		//功控轮次状态
+    INT8U ETrunState;		//电控轮次状态
 } ALCONSTATE;
 
 typedef struct {
     INT64S v;
     INT8S Downc;
-    INT8U OutputState;
-    INT8U MonthOutputState;
-    INT8U BuyOutputState;
-    INT8U PCAlarmState;
-    INT8U ECAlarmState;
+    INT8U OutputState;		//功率跳闸输出状态
+    INT8U MonthOutputState;	//月电控跳闸输出状态
+    INT8U BuyOutputState;	//购电控跳闸输出状态
+    INT8U PCAlarmState;		//功控越限告警状态
+    INT8U ECAlarmState;		//电控越限告警状态
 } ALCTLSTATE;
 
 typedef struct {

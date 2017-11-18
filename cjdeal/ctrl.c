@@ -157,7 +157,8 @@ void SumUpRefreshUnit(SumUpUnit* suu) {
 		}
 	}
 
-	fprintf(stderr, "before 总加组功率%d 电量%lld %lld %lld %lld [%lld]\n", suu->class23[0].p,
+	fprintf(stderr, "before 总加组功率%d 电表 %lld  电表电量【%d】%lld     %lld %lld %lld [%lld]\n", suu->class23[0].p,
+			suu->curP[0][0][0],suu->class23[0].allist[0].curP[0],
 			suu->class23[0].DayP[0], suu->class23[0].DayP[1], suu->class23[0].DayP[2],
 			suu->class23[0].DayP[3], suu->class23[0].remains);
 }
@@ -311,8 +312,7 @@ int initAll() {
 	fprintf(stderr, "==============================ctrl init end============================\n");
 
 
-	readCoverClass(0xf205, 0, &CtrlC->cf205, sizeof(CLASS_F205),
-							para_vari_save);
+	readCoverClass(0xf205, 0, &CtrlC->cf205, sizeof(CLASS_F205), para_vari_save);
 	return 0;
 }
 
@@ -896,17 +896,17 @@ int deal8108() {
 		if (val != -1) {
 			float e = warn / 100.0;
 
-			fprintf(stderr, "月电控值%lld [%f]\n", JProgramInfo->class23[i].MonthPALL, e * val);
+			fprintf(stderr, "月电控值%lld [%f][e=%f warn=%d]\n", JProgramInfo->class23[i].MonthPALL, e * val,e,warn);
 
 			if (JProgramInfo->class23[i].MonthPALL > val) {
-				fprintf(stderr, "月电控跳闸！！！！！！！！！！！！！！！！！！\n", val);
+				fprintf(stderr, "月电控跳闸！！！！！！！！！！！！！！！！！！\n");
 				JProgramInfo->ctrls.c8108.output[i].state = 192;
 				JProgramInfo->ctrls.c8108.overflow[i].state = 0;
 				return 2;
 			}
 
 			if (JProgramInfo->class23[i].MonthPALL > e * val) {
-				fprintf(stderr, "月电控告警！！！！！！！！！！！！！！！！！！\n", val);
+				fprintf(stderr, "月电控告警！！！！！！！！！！！！！！！！！！\n");
 				JProgramInfo->ctrls.c8108.output[i].state = 0;
 				JProgramInfo->ctrls.c8108.overflow[i].state = 1;
 				return 1;
@@ -940,6 +940,21 @@ void dealCtrl() {
 	deal8103();
 }
 
+/*
+ * 初始化参数
+ * */
+void CheckInitPara() {
+	if (JProgramInfo->oi_changed.ctrlinit == 0x55) {
+		JProgramInfo->oi_changed.ctrlinit = 0x00;
+		system("rm -rf /nand/para/230*");
+		system("rm -rf /nand/para/240*");
+		system("rm -rf /nand/para/80*");
+		sleep(3);
+		syslog(LOG_NOTICE,"恢复出厂设置 重新载入参数！！！！！！！！");
+		initAll();
+	}
+}
+
 int SaveAll(void* arg) {
 	TS now;
 	int secOld = 0;
@@ -960,18 +975,7 @@ int SaveAll(void* arg) {
 		} else {
 			secOld = now.Sec;
 		}
-
-		void CheckInitPara() {
-			if (JProgramInfo->oi_changed.ctrlinit == 0x55) {
-				system("rm /nand/para/230*");
-				system("rm /nand/para/240*");
-				system("rm /nand/para/81*");
-				sleept(3);
-				fprintf(stderr,"恢复出厂设置 重新载入参数！！！！！！！！");
-				initAll();
-				JProgramInfo->oi_changed.ctrlinit = 0x00;
-			}
-		}
+		CheckInitPara();
 
 		if (secOld % 47 == 0) {
 			for (int i = 0; i < 8; ++i) {
