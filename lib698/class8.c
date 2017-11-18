@@ -190,7 +190,7 @@ int class8100_set(OAD oad, INT8U *data, INT8U *DAR)
 	shareAddr->ctrls.c8100.v = c8100.v;
 	saveCoverClass(0x8100, 0, (void *) &c8100, sizeof(CLASS_8100),
 			para_vari_save);
-	asyslog(LOG_WARNING, "设置终端安保定值(%lld)", c8100.v);
+	asyslog(LOG_WARNING, "设置终端安保定值(%lld)", shareAddr->ctrls.c8100.v);
 
 	return index;
 }
@@ -918,12 +918,12 @@ int set_8106_attr6_7(INT8U service,INT8U *data,int *sum_index,ALSTATE *alstate,I
 		break;
 	case 7:	//解除
 		fprintf(stderr,"alstate.name = %04x oi=%04x\n",alstate->name,oi);
-		if(alstate->name == oi) {
+//		if(alstate->name == oi) {		//国网台体测试，未下发功率下浮控投入，先发解除，原程序应答错误，台体不合格。此处去掉判断
 			tmp_alstate.name = oi;
 			tmp_alstate.state = 0;
-		}else {
-			*DAR = obj_unexist;
-		}
+//		}else {
+//			*DAR = obj_unexist;
+//		}
 		break;
 	}
 	if(*DAR == success) {

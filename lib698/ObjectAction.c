@@ -998,8 +998,8 @@ void memDataInit(INT8U type,ProgramInfo *memp)
 			clearClass23Data(&memp->class23[i]);
 		}
 	}else {
-		memset(&memp->class12,0,sizeof(memp->class12));
-		memset(&memp->class23,0,sizeof(memp->class23));
+//		memset(&memp->class12,0,sizeof(memp->class12));
+//		memset(&memp->class23,0,sizeof(memp->class23));
 	}
 }
 
