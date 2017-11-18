@@ -474,18 +474,18 @@ int deal8103() {
 						JProgramInfo->class23[i].alCtlState.OutputState);
 				fprintf(stderr, "功控告警时间 %d\n", CtrlC->c8102.time[1] * 60);
 				JProgramInfo->ctrls.c8103.output[i].state = 128;
-				JProgramInfo->ctrls.c8103.overflow[i].state = 1;
+				JProgramInfo->ctrls.c8103.overflow[i].state = 0;
 				if (count[i] * 5 >= (CtrlC->c8102.time[1]) * 60) {
 					fprintf(stderr, "时段功控，二轮跳闸！！！！！！！！！！！！！");
 					JProgramInfo->ctrls.c8103.output[i].state = 192;
-					JProgramInfo->ctrls.c8103.overflow[i].state = 0;
+					JProgramInfo->ctrls.c8103.overflow[i].state = 1;
 					step[i] = 2;
 				}
 				count[i] += 1;
 				break;
 			case 2:
 				JProgramInfo->ctrls.c8103.output[i].state = 192;
-				JProgramInfo->ctrls.c8103.overflow[i].state = 0;
+				JProgramInfo->ctrls.c8103.overflow[i].state = 1;
 				break;
 			}
 		} else {
@@ -566,7 +566,7 @@ int deal8104() {
 						count[i] * 5);
 				if (count[i] * 5 >= (CtrlC->c8102.time[0]) * 60) {
 					JProgramInfo->ctrls.c8104.output[i].state = 128;
-					JProgramInfo->ctrls.c8104.overflow[i].state = 0;
+					JProgramInfo->ctrls.c8104.overflow[i].state = 1;
 					count[i] = 0;
 					step[i] = 1;
 					fprintf(stderr, "厂休控，一轮跳闸[%d]！！！！！！！！！！！！！",
@@ -583,14 +583,14 @@ int deal8104() {
 				if (count[i] * 5 >= (CtrlC->c8102.time[1]) * 60) {
 					fprintf(stderr, "厂休控，二轮跳闸！！！！！！！！！！！！！");
 					JProgramInfo->ctrls.c8104.output[i].state = 192;
-					JProgramInfo->ctrls.c8104.overflow[i].state = 0;
+					JProgramInfo->ctrls.c8104.overflow[i].state = 1;
 					step[i] = 2;
 				}
 				count[i] += 1;
 				break;
 			case 2:
 				JProgramInfo->ctrls.c8104.output[i].state = 192;
-				JProgramInfo->ctrls.c8104.overflow[i].state = 0;
+				JProgramInfo->ctrls.c8104.overflow[i].state = 1;
 				break;
 			}
 		} else {
@@ -656,7 +656,7 @@ int deal8105() {
 						count[i] * 5);
 				if (count[i] * 5 >= (CtrlC->c8102.time[0]) * 60) {
 					JProgramInfo->ctrls.c8105.output[i].state = 128;
-					JProgramInfo->ctrls.c8105.overflow[i].state = 0;
+					JProgramInfo->ctrls.c8105.overflow[i].state = 1;
 					count[i] = 0;
 					step[i] = 1;
 					fprintf(stderr, "营业报停控，一轮跳闸[%d]！！！！！！！！！！！！！",
@@ -673,14 +673,14 @@ int deal8105() {
 				if (count[i] * 5 >= (CtrlC->c8102.time[1]) * 60) {
 					fprintf(stderr, "营业报停控，二轮跳闸！！！！！！！！！！！！！");
 					JProgramInfo->ctrls.c8105.output[i].state = 192;
-					JProgramInfo->ctrls.c8105.overflow[i].state = 0;
+					JProgramInfo->ctrls.c8105.overflow[i].state = 1;
 					step[i] = 2;
 				}
 				count[i] += 1;
 				break;
 			case 2:
 				JProgramInfo->ctrls.c8105.output[i].state = 192;
-				JProgramInfo->ctrls.c8105.overflow[i].state = 0;
+				JProgramInfo->ctrls.c8105.overflow[i].state = 1;
 				break;
 			}
 		} else {
