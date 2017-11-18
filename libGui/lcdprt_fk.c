@@ -2009,7 +2009,7 @@ void getshiduanparaStr(char* str,INT8U shiduanno,int t1,int t2)
 	memset(str, 0, 100);
 	FP32 ft1 = t1/10000.0;
 	FP32 ft2 = t2/10000.0;
-	sprintf(str,"时段%d:%4.2fkw 时段%d:%4.2fkw",shiduanno,t1,shiduanno+1,t2);
+	sprintf(str,"[%d]%.1fkw [%d]%.1fkw",shiduanno,ft1,shiduanno+1,ft2);
 }
 //时段控
 void menu_shiduanpara(){
