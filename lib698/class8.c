@@ -13,29 +13,6 @@
 #include "event.h"
 #include "dlt698.h"
 
-//typedef union { //control code
-//	INT8U u8b; //convenient to set value to 0
-//	struct { //only for little endian mathine!
-//		INT8U bak :4; //备用
-//		INT8U power_ctl :1; //当前功率下浮控
-//		INT8U business_ctl :1; //营业报停控
-//		INT8U work_ctl :1; //厂休控
-//		INT8U time_ctl :1; //时段控
-//	} pcstate;
-//} PCAlarmState;
-//
-//typedef union { //control code
-//	INT8U u8b; //convenient to set value to 0
-//	struct { //only for little endian mathine!
-//		INT8U bak :6; //备用
-//		INT8U buy_elec_ctl :1; 	//购电控
-//		INT8U month_elec_ctl :1; //月电控
-//	} ecstate;
-//} ECAlarmState;
-//
-//ECAlarmState ecAlarm;
-//PCAlarmState pcAlarm;
-
 /*
  * 根据QGDW1374.1-2013在参数设置，控制投入或解除及控制执行时应有音响（或者语音）告警通知用户
  * */
