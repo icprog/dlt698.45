@@ -45,7 +45,7 @@ int pluseGetTimeZone() {
 
 //根据脉冲计算电量
 void pluseCalcDD(PluseUnit * pu) {
-	for (int index=0; index < 2; index++) {
+	for (int index = 0; index < 2; index++) {
 		//检查变化
 		int pulse = pu->pNow[index] - pu->pDD[index];
 		if (pulse > 0) {
@@ -134,8 +134,6 @@ int pluseInitUnit(PluseUnit * pu, ProgramInfo* JProgramInfo) {
 	}
 
 	pu->class12 = &JProgramInfo->class12[0];
-	pu->class12[0].pluse_count = pu->pNow[0];
-	pu->class12[1].pluse_count = pu->pNow[1];
 
 	TS ts;
 	TSGet(&ts);
