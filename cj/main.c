@@ -34,6 +34,7 @@ static char *usage_yk = "\n--------------------III型专变命令---------------
 		"		 【告警】 cj ctrl alarm 1 <投入告警>  cj ctrl alarm 0<解除告警>\n]"   \
 		"		 【保电】 cj ctrl keepelec 1<投入保电> cj ctrl keepelec 0<0解除保电>\n"   \
 		"		 【清除控制状态】 cj ctrl clear\n"   \
+		"		 【读取脉冲数】 cj ctrl pulse\n"   \
         "-------------------------------------------------------\n\n";
 
 static char *usage_sumgroup = "\n--------------------总加组----------------------------\n"
@@ -134,6 +135,7 @@ static char *usage_coll =
 static char *usage_inoutdev = "\n-------------------A.12　输入输出设备类对象----------------------------\n"
         "\n---------文件传输类对象 	ESAM接口类对象 	输入输出设备类对象 	显示类对象--------\n"
         "【开关量输入】cj dev pro f203 				\n"
+		"【继电器状态】cj dev pro f205 				\n"
         "[初始化通信参数]  cj dev init <oi> :	例如：初始化通信参数  cj dev init 4500 	\n"
         "【安全模式参数读取】cj dev pro f101 			\n"
         "【安全模式参数设置,0:不启用，1:启用】cj dev set f101 <0/1>		\n"
@@ -630,7 +632,6 @@ int main(int argc, char *argv[]) {
         }
         return EXIT_SUCCESS;
     }
-
     prthelp();
     return EXIT_SUCCESS;
 }

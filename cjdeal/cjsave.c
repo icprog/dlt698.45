@@ -282,11 +282,14 @@ int findOADin(OADDATA_SAVE *OADdata,INT8U OADnum,OI_698 OI_m,OI_698 OI_r)
 	int i = 0,ret=-1;
 	for(i=0;i<OADnum;i++)
 	{
-		fprintf(stderr,"\n%d:0x%04x-0x%04x\n",i,OADdata[i].oad_m.OI,OADdata[i].oad_r.OI);
+		DEBUG_TIME_LINE("\n%d:0x%04x-0x%04x\n",i,OADdata[i].oad_m.OI,OADdata[i].oad_r.OI);
 		if(OI_m == OADdata[i].oad_m.OI &&
-				OI_r == OADdata[i].oad_r.OI)
+				OI_r == OADdata[i].oad_r.OI) {
 			ret = i;//找到了这个oi
+			break;
+		}
 	}
+	DEBUG_TIME_LINE("ret: %d", ret);
 	return ret;
 }
 void fillRECdata(OADDATA_SAVE *OADdata,INT8U OADnum,INT8U *databuf,HEADFIXED_INFO taskhead_info,HEAD_UNIT *headoad_unit,TS OADts,CLASS_6013 class6013,CLASS_6015 class6015)
@@ -715,9 +718,16 @@ void saveREADOADdata(INT8U taskid,TSA tsa,OADDATA_SAVE *OADdata,INT8U OADnum,TS 
 		fread(data_buf,taskhead_info.reclen,1,fp);
 	}
 
+	DEBUG_TIME_LINE("OADdata: ");
+	int index = 0;
+	for(index = 0; index < OADdata->datalen-1; index++) {
+		fprintf(stderr, "%02X ", OADdata->data[index]);
+	}
+	fprintf(stderr, "%02X", OADdata->data[index]);
+
 	fillRECdata(OADdata,OADnum,data_buf,taskhead_info,headoad_unit,OADts,class6013,class6015);//把数据组好，放入缓存
 
-	fprintf(stderr,"\nsavepos=%d data_buf(%d):",savepos,taskhead_info.reclen);
+	fprintf(stderr,"\nsavepos=%d data_buf(%ld):",savepos,taskhead_info.reclen);
 	for(i=0;i<taskhead_info.reclen;i++)
 		fprintf(stderr," %02x",data_buf[i]);
 	fprintf(stderr,"\n");
