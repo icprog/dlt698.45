@@ -134,8 +134,6 @@ int pluseInitUnit(PluseUnit * pu, ProgramInfo* JProgramInfo) {
 	}
 
 	pu->class12 = &JProgramInfo->class12[0];
-	pu->class12[0].pluse_count = pu->pNow[0];
-	pu->class12[1].pluse_count = pu->pNow[1];
 
 	TS ts;
 	TSGet(&ts);

@@ -280,8 +280,9 @@ int initAll() {
 	for (int i = 0; i < 2; ++i) {
 		memset(&JProgramInfo->class12[i], 0x00, sizeof(CLASS12));
 		readCoverClass(0x2401 + i, 0, &JProgramInfo->class12[i], sizeof(CLASS12), para_vari_save);
-		fprintf(stderr, "%d, %d\n", JProgramInfo->class12[i].pt, JProgramInfo->class12[i].ct);
+		fprintf(stderr, "%d, %d, %d\n\n\n\n\n", JProgramInfo->class12[i].pt, JProgramInfo->class12[i].ct, JProgramInfo->class12[i].pluse_count);
 	}
+	sleep(5);
 
 	readCoverClass(0x8100, 0, &CtrlC->c8100, sizeof(CLASS_8100), para_vari_save);
 	readCoverClass(0x8101, 0, &CtrlC->c8101, sizeof(CLASS_8101), para_vari_save);

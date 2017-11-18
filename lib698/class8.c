@@ -521,7 +521,7 @@ int class8000_act129(int attr_act, INT8U *data,Action_result *act_ret)
 		index += getLongUnsigned(&data[index],(INT8U *)&c8000.powerouttime[i]);
 		index += getBool(&data[index],&c8000.autoclose[i],&act_ret->DAR);
 		c8000.openclose[i] = 0x5555;
-		asyslog(LOG_WARNING, "遥控跳闸第%d路 OAD=%04x_%02x%02x - %d - %d - %d\n",i,
+		asyslog(LOG_WARNING, "遥控跳闸第%d路[%04x] OAD=%04x_%02x%02x - %d - %d - %d\n",i,c8000.openclose[i],
 				c8000.relay_oad[i].OI,c8000.relay_oad[i].attflg,c8000.relay_oad[i].attrindex,
 				c8000.alarmdelay[i], c8000.powerouttime[i], c8000.autoclose[i]);
 	}
@@ -552,7 +552,7 @@ int class8000_act130(int attr_act, INT8U *data, Action_result *act_ret) {
 		index += getOAD(1,&data[index],&c8000.relay_oad[i],&act_ret->DAR);
 		index += getEnum(1,&data[index],&c8000.closecmd[i]);
 		c8000.openclose[i] = 0xCCCC;
-		asyslog(LOG_WARNING, "遥控合闸第%d路 OAD=%04x_%02x%02x - %d \n",i,
+		asyslog(LOG_WARNING, "遥控合闸第%d路[%04x] OAD=%04x_%02x%02x - %d \n",i,c8000.openclose[i],
 				c8000.relay_oad[i].OI,c8000.relay_oad[i].attflg,c8000.relay_oad[i].attrindex,c8000.closecmd[i]);
 	}
 	if(act_ret->DAR == success){
@@ -1018,10 +1018,10 @@ int set_OI810c(INT8U service,INT8U *data,BUY_CTRL *oi810c,INT8U *DAR)
 		index += getLong64(&data[index],&tmp_oi810c.ctrl);
 		index += getEnum(1,&data[index],&tmp_oi810c.mode);
 		for(i=0;i<MAX_AL_UNIT;i++) {
-			if(i!=sum_index) {
-				if(tmp_oi810c.no == shareAddr->ctrls.c8107.list[i].no && service==3) {
-					*DAR = recharge_reuse;
-				}
+//			asyslog(LOG_WARNING,"i = %x sum_index=%d 单号 %ld, 原单号 %ld\n",i,sum_index,tmp_oi810c.no,shareAddr->ctrls.c8107.list[i].no);
+			if(tmp_oi810c.no == shareAddr->ctrls.c8107.list[i].no) { //购电单号相同，应返回错误值无效
+				*DAR = recharge_reuse;
+				break;
 			}
 		}
 		break;
@@ -1035,12 +1035,14 @@ int set_OI810c(INT8U service,INT8U *data,BUY_CTRL *oi810c,INT8U *DAR)
 		fprintf(stderr,"enable[%d] = %04x\n",sum_index,shareAddr->ctrls.c8107.enable[sum_index].name);
 		memcpy(&oi810c[sum_index],&tmp_oi810c,sizeof(BUY_CTRL));
 		if(service == 3 || service == 5) {
-			if(service == 3) {		//添加
+			if(tmp_oi810c.add_refresh == 0) {		//
 				shareAddr->class23[sum_index].remains += shareAddr->ctrls.c8107.list[sum_index].v;
-			}else if(service == 5) {
+				asyslog(LOG_WARNING,"追加  remains = %d\n",oi_b,shareAddr->class23[sum_index].remains);
+			}else if(tmp_oi810c.add_refresh == 1) {	//
 				shareAddr->class23[sum_index].remains = shareAddr->ctrls.c8107.list[sum_index].v;
+				asyslog(LOG_WARNING,"添加  remains = %d\n",oi_b,shareAddr->class23[sum_index].remains);
 			}
-			asyslog(LOG_WARNING,"Event_3202事件 oi_b=%04x\n",oi_b);
+			asyslog(LOG_WARNING,"Event_3202事件 oi_b=%04x  remains = %d\n",oi_b,shareAddr->class23[sum_index].remains);
 			Event_3202((INT8U *)&oi_b,2, getShareAddr());
 		}
 	}

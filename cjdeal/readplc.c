@@ -820,7 +820,6 @@ void reset_ZB()
 }
 void tsa_print(struct Tsa_Node *head,int num)
 {
-	return;
 	struct Tsa_Node *tmp = NULL;
 	tmp = head;
 	while(tmp!=NULL)
@@ -996,7 +995,7 @@ int doInit(RUNTIME_PLC *runtime_p)
 			tsa_head = NULL;
 			tsa_zb_head = NULL;
 			tsa_count = initTsaList(&tsa_head);
-			tsa_print(tsa_head,tsa_count);
+//			tsa_print(tsa_head,tsa_count);
 
 			if (runtime_p->comfd >0)
 				CloseCom( runtime_p->comfd );
@@ -1229,7 +1228,7 @@ int doCompSlaveMeter(RUNTIME_PLC *runtime_p)
 				if (slavenum<=0  || replyn==0)
 				{
 					DbgPrintToFile1(31,"载波：读取结束 读%d 个  实际 %d 个",index,slavenum);
-					tsa_print(tsa_zb_head,slavenum);
+					//tsa_print(tsa_zb_head,slavenum);
 					step_cmpslave = 2;//读取结束
 					currtsa = tsa_zb_head;
 				}
@@ -4011,7 +4010,7 @@ int stateJuge(int nowdstate,MY_PARA_COUNTER *mypara_p,RUNTIME_PLC *runtime_p,int
 	dateChg = dateJudge(&runtime_p->oldts,&runtime_p->nowts);
 	if (JProgramInfo->oi_changed.oi6000 != mypara_p->my6000 )
 	{
-		DbgPrintToFile1(31,"档案参数变更");
+		DbgPrintToFile1(31,"档案参数变更1");
 		mypara_p->my6000  = JProgramInfo->oi_changed.oi6000;
 //		pointChg = 1;
 		runtime_p->state_bak = runtime_p->state;
@@ -4019,6 +4018,7 @@ int stateJuge(int nowdstate,MY_PARA_COUNTER *mypara_p,RUNTIME_PLC *runtime_p,int
 		runtime_p->state = state;
 		runtime_p->redo = 1;  //初始化之后需要重启抄读
 //		initTaskData(&taskinfo);
+		memcpy(&taskinfo,&taskinfo_bak,sizeof(taskinfo));
 		delplcrecord();
 		freeList(tsa_head);
 		freeList(tsa_zb_head);

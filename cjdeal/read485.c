@@ -635,7 +635,6 @@ INT16S ReceDataFrom485(METER_PROTOCOL meterPro,INT8U port485, INT16U delayms, IN
  * 485口发送
  */
 void SendDataTo485(INT8U port485, INT8U *sendbuf, INT16U sendlen) {
-
 	INT32S fd = comfd485[port485-1];
 
 	ssize_t slen;
@@ -643,16 +642,6 @@ void SendDataTo485(INT8U port485, INT8U *sendbuf, INT16U sendlen) {
 	INT8U str[50];
 	memset(str, 0, 50);
 
-	//698协议和645-07协议明确要求, 用串行总线传输报文时, 先在前面加4个
-	//0xFE, 唤醒总线设备
-	INT8U tmpbuf[512];
-	tmpbuf[0] = 0xfe;
-	tmpbuf[1] = 0xfe;
-	tmpbuf[2] = 0xfe;
-	tmpbuf[3] = 0xfe;
-	memcpy(&tmpbuf[4],sendbuf,sendlen);
-	sendlen += 4;
-	memcpy(sendbuf,tmpbuf,sendlen);
 #if 1
 	sprintf((char *) str, "485(%d)_S(%d):", port485, sendlen);
 	printbuff((char *) str, sendbuf, sendlen, "%02x", " ", "\n");
@@ -1620,7 +1609,9 @@ INT16S request698_07Data(INT8U* DI07,INT8U* dataContent,CLASS_6001 meter,CLASS_6
 			Data07.Addr[0],Data07.Addr[1],Data07.Addr[2],Data07.Addr[3],Data07.Addr[4],Data07.Addr[5],
 			DI07[0],DI07[1],DI07[2],DI07[3]);
 
+	DEBUG_TIME_LINE("Ctrl: %02X", Data07.Ctrl);
 	SendLen = composeProtocol07(&Data07, SendBuff);
+	DEBUG_TIME_LINE("SendLen: %d", SendLen);
 	if (SendLen < 0)
 	{
 		fprintf(stderr, "request698_07DataList1");
