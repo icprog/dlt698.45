@@ -279,15 +279,15 @@ void TStoDATEBCD(TS ts,INT8U *buf)
 }
 int findOADin(OADDATA_SAVE *OADdata,INT8U OADnum,OI_698 OI_m,OI_698 OI_r)
 {
-	int i = 0,ret=-1;
+	int i = 0;
 	for(i=0;i<OADnum;i++)
 	{
 		fprintf(stderr,"\n%d:0x%04x-0x%04x\n",i,OADdata[i].oad_m.OI,OADdata[i].oad_r.OI);
 		if(OI_m == OADdata[i].oad_m.OI &&
 				OI_r == OADdata[i].oad_r.OI)
-			ret = i;//找到了这个oi
+			return i;//找到了这个oi
 	}
-	return ret;
+	return -1;
 }
 void fillRECdata(OADDATA_SAVE *OADdata,INT8U OADnum,INT8U *databuf,HEADFIXED_INFO taskhead_info,HEAD_UNIT *headoad_unit,TS OADts,CLASS_6013 class6013,CLASS_6015 class6015)
 {
