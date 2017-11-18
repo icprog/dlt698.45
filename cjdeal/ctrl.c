@@ -430,7 +430,7 @@ int deal8103() {
 	static int count[8];
 
 	for (int i = 0; i < 8; i++) {
-		if (JProgramInfo->ctrls.c8103.enable[i].state == 0) {
+		if (JProgramInfo->ctrls.c8103.enable[i].state == 0 || JProgramInfo->ctrls.c8103.list[i].index == 0x00) {
 			step[i] = 0;
 			count[i] = 0;
 			JProgramInfo->ctrls.c8103.output[i].state = 0;
@@ -532,7 +532,7 @@ int deal8104() {
 	static int bar2[128];
 
 	for (int i = 0; i < 1; i++) {
-		if (JProgramInfo->ctrls.c8104.enable[i].state == 0) {
+		if (JProgramInfo->ctrls.c8104.enable[i].state == 0 || JProgramInfo->ctrls.c8104.list[i].index == 0x00) {
 			step[i] = 0;
 			count[i] = 0;
 			JProgramInfo->ctrls.c8104.output[i].state = 0;
@@ -618,7 +618,7 @@ int deal8105() {
 	static int count[8];
 
 	for (int i = 0; i < 8; i++) {
-		if (JProgramInfo->ctrls.c8105.enable[i].state == 0) {
+		if (JProgramInfo->ctrls.c8105.enable[i].state == 0 || JProgramInfo->ctrls.c8105.list[i].index == 0x00) {
 			step[i] = 0;
 			count[i] = 0;
 			JProgramInfo->ctrls.c8105.output[i].state = 0;
@@ -800,7 +800,7 @@ int deal8107() {
 
 	fprintf(stderr, "deal8107(%lld)\n", CtrlC->c8107.list[0].ctrl);
 	for (int i = 0; i < 1; i++) {
-		if (JProgramInfo->ctrls.c8107.enable[i].state == 0) {
+		if (JProgramInfo->ctrls.c8107.enable[i].state == 0 || JProgramInfo->ctrls.c8107.list[i].index == 0x00) {
 			JProgramInfo->ctrls.c8107.output[i].state = 0;
 			JProgramInfo->ctrls.c8107.overflow[i].state = 0;
 			JProgramInfo->class23[i].alConState.ECState &= ~128;
@@ -853,7 +853,7 @@ int deal8107() {
 int deal8108() {
 	fprintf(stderr, "deal8108(%lld)\n", CtrlC->c8108.list[0].v);
 	for (int i = 0; i < 1; i++) {
-		if (JProgramInfo->ctrls.c8108.enable[i].state == 0) {
+		if (JProgramInfo->ctrls.c8108.enable[i].state == 0 || JProgramInfo->ctrls.c8103.list[i].index == 0x00) {
 			JProgramInfo->ctrls.c8108.output[i].state = 0;
 			JProgramInfo->ctrls.c8108.overflow[i].state = 0;
 			JProgramInfo->class23[i].alConState.ECState &= ~64;
@@ -946,6 +946,11 @@ int SaveAll(void* arg) {
 
 		void CheckInitPara() {
 			if (JProgramInfo->oi_changed.ctrlinit == 0x55) {
+				system("rm /nand/para/230*");
+				system("rm /nand/para/240*");
+				system("rm /nand/para/81*");
+				sleept(3);
+				fprintf(stderr,"恢复出厂设置 重新载入参数！！！！！！！！");
 				initAll();
 				JProgramInfo->oi_changed.ctrlinit = 0x00;
 			}
