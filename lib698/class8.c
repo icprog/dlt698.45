@@ -918,12 +918,12 @@ int set_8106_attr6_7(INT8U service,INT8U *data,int *sum_index,ALSTATE *alstate,I
 		break;
 	case 7:	//解除
 		fprintf(stderr,"alstate.name = %04x oi=%04x\n",alstate->name,oi);
-		if(alstate->name == oi) {
+//		if(alstate->name == oi) {		//国网台体测试，未下发功率下浮控投入，先发解除，原程序应答错误，台体不合格。此处去掉判断
 			tmp_alstate.name = oi;
 			tmp_alstate.state = 0;
-		}else {
-			*DAR = obj_unexist;
-		}
+//		}else {
+//			*DAR = obj_unexist;
+//		}
 		break;
 	}
 	if(*DAR == success) {
