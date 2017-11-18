@@ -788,7 +788,7 @@ int deal8106() {
 					JProgramInfo->class23[i].alCtlState.OutputState);
 			fprintf(stderr, "功控告警时间 %d\n", CtrlC->c8102.time[1] * 60);
 			JProgramInfo->ctrls.c8106.output.state = 128;
-			JProgramInfo->ctrls.c8106.overflow.state = 1;
+			JProgramInfo->ctrls.c8106.overflow.state = 0;
 			if (count * 5 >= (CtrlC->c8102.time[1]) * 60) {
 				fprintf(stderr, "功率下浮控，二轮跳闸！！！！！！！！！！！！！");
 				JProgramInfo->ctrls.c8106.output.state = 192;
