@@ -136,12 +136,16 @@ int class12_act4(OI_698 oi,INT8U *data, INT8U *DAR, CLASS12 *memClass12)
 	CLASS12	 class12[MAX_PULSE_NUM]={};
 	int  index = 0;
 	int  no = oi - 0x2401;
-	int  i = 0;
+	int  i = 0,ret = 0;
 	OAD	 port_oad={};
 
 	memcpy(class12,memClass12,sizeof(class12));
 //	readCoverClass(oi, 0, &class12, sizeof(CLASS12), para_vari_save);
 	index += getOAD(1,&data[index],&port_oad,DAR);
+	ret = rangeJudge("脉冲单元",port_oad.OI,0x2401,0x2402);
+	if(ret == -1) {
+		*DAR = interface_uncomp;
+	}
 	syslog(LOG_NOTICE,"删除脉冲单元[%04x_%02x%02x]",port_oad.OI,port_oad.attflg,port_oad.attrindex);
 	if(*DAR == success) {
 		for (i = 0; i < MAX_PULSE_UNIT; i++) {
@@ -263,6 +267,7 @@ int class12_set(OAD oad, INT8U *data, INT8U *DAR)
 		datalen = class12_act3_attr4(SET_REQUEST,oad.OI,data,DAR,shareAddr->class12);
 		break;
 	case 19:	//单位换算
+		datalen = set_Scaler_Unit(oad,data,DAR,shareAddr->class12,NULL);
 		break;
 	}
 
@@ -339,6 +344,40 @@ int class12_get_double_long_unsigned(OAD oad, INT32U *val, INT8U *buf, int *len)
 		}
 	}
 	return 1;
+}
+
+int set_Scaler_Unit(OAD oad,INT8U *data, INT8U *DAR, CLASS12 *memClass12,CLASS23 *memClass23)
+{
+	int  index = 0,i=0;
+	CLASS23		class23[MAX_AL_UNIT]={};
+	CLASS12		class12[MAX_PULSE_NUM]={};
+	int  no = 0;
+
+	if(memClass12 != NULL) {
+		no = oad.OI - 0x2401;	//调用地方已经异常处理
+		memcpy(class12,memClass12,sizeof(class12));
+		index += getStructure(&data[index],NULL,DAR);
+		for(i=0;i<14;i++) {
+			index += getScalerUnit(1,&data[index],&class12[no].su[i],DAR);
+		}
+		if(*DAR==success) {
+			memcpy(memClass12,class12,sizeof(class12));
+			saveCoverClass(oad.OI, 0, &class12[no], sizeof(CLASS12), para_vari_save);
+		}
+	}
+	if(memClass23 != NULL) {
+		no = oad.OI - 0x2301;	//调用地方已经异常处理
+		memcpy(class23,memClass23,sizeof(class23));
+		index += getStructure(&data[index],NULL,DAR);
+		for(i=0;i<10;i++) {
+			index += getScalerUnit(1,&data[index],&class23[no].su[i],DAR);
+		}
+		if(*DAR==success) {
+			memcpy(memClass23,class23,sizeof(class23));
+			saveCoverClass(oad.OI, 0, &class23[no], sizeof(CLASS23), para_vari_save);
+		}
+	}
+	return index;
 }
 
 int get_Scaler_Unit(OAD oad,Scaler_Unit *su, INT8U *buf, int *len)

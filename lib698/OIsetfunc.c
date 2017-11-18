@@ -482,8 +482,6 @@ INT16U set4024(OAD oad,INT8U *data,INT8U *DAR)
 		int state = data[1];
 		fprintf(stderr, "剔除状态变更 %d\n", state);
 		memp->ctrls.c4024 = state;
-		//测试要求，不知是为什么
-		memp->ctrls.c8100.v = 5000;
 	}
 	return index;
 }
@@ -1064,19 +1062,98 @@ int setf203(OAD oad,INT8U *data,INT8U *DAR)
 	return index;
 }
 
+
 int setf205(OAD oad,INT8U *data,INT8U *DAR)
 {
+	int	RelayNum = 0,i=0;
 	INT16U index=0;
-	CLASS_f203	f203={};
-	memset(&f203,0,sizeof(CLASS_f203));
-	readCoverClass(0xf203,0,&f203,sizeof(CLASS_f203),para_vari_save);
-	if ( oad.attflg == 4 )//配置参数
+	CLASS_F205	f205={};
+	memset(&f205,0,sizeof(CLASS_F205));
+	readCoverClass(oad.OI,0,&f205,sizeof(CLASS_F205),para_vari_save);
+	if ( oad.attflg == 2 )//继电器单元
 	{
+		index += getArray(&data[index],(INT8U *)&RelayNum,DAR);
+		RelayNum = rangeJudge("继电器单元",RelayNum,0,4);
+		if(RelayNum == -1) {
+			*DAR = boundry_over;
+		}else {
+			f205.relaynum = RelayNum;
+			for(i=0;i<RelayNum;i++) {
+				index += getStructure(&data[index],NULL,DAR);
+				index += getVisibleString(1,VISIBLE_STRING_LEN,&data[index],(INT8U *)&f205.unit[i].devdesc,DAR);
+				index += getEnum(1,&data[index],(INT8U *)&f205.unit[i].currentState);
+				index += getEnum(1,&data[index],(INT8U *)&f205.unit[i].switchAttr);
+				index += getEnum(1,&data[index],(INT8U *)&f205.unit[i].wiredState);
+				fprintf(stderr,"\n继电器状态 %d %d %d \n",f205.unit[i].currentState,f205.unit[i].switchAttr,f205.unit[i].wiredState);
+			}
+			if(*DAR == success){
+				*DAR = saveCoverClass(oad.OI,0,&f205,sizeof(CLASS_F205),para_vari_save);
+			}
+		}
+	}
+	return index;
+}
+
+/*
+ * 修改开关属性（继电器号、开关属性）
+ * */
+int f205_act127(OAD oad,INT8U *data,INT8U *DAR)
+{
+	INT16U index = 0;
+	CLASS_F205	f205={};
+	INT8U  attrindex = 0;
+	int		ret = 0;
+	OAD		relayoad = {};
+
+	memset(&f205,0,sizeof(CLASS_F205));
+	readCoverClass(oad.OI,0,&f205,sizeof(CLASS_F205),para_vari_save);
+	if(oad.attflg == 127) {
 		index += getStructure(&data[index],NULL,DAR);
-		index += getBitString(1,&data[index],(INT8U *)&f203.state4.StateAcessFlag);
-		index += getBitString(1,&data[index],(INT8U *)&f203.state4.StatePropFlag);
-		*DAR = saveCoverClass(0xf203,0,&f203,sizeof(CLASS_f203),para_vari_save);
-		fprintf(stderr,"\n状态量配置参数 : 接入标志 %02x  属性标志 %02x \n",f203.state4.StateAcessFlag,f203.state4.StatePropFlag);
+		index += getOAD(1,&data[index],&relayoad,DAR);
+		attrindex = relayoad.attrindex;
+		ret = rangeJudge("继电器号",attrindex,1,4);
+		if(ret == -1) {
+			*DAR = boundry_over;
+		}else {
+			attrindex = attrindex-1;
+			memcpy(&f205.unit[attrindex].oad,&relayoad,sizeof(OAD));
+			index += getEnum(1,&data[index],(INT8U *)&f205.unit[attrindex].switchAttr);
+		}
+	}
+	if(*DAR == success) {
+		*DAR = saveCoverClass(oad.OI,0,&f205,sizeof(CLASS_F205),para_vari_save);
+	}
+	return index;
+}
+
+/*
+ * 修改多功能端子工作模式
+ * */
+int f207_act127(OAD oad,INT8U *data,INT8U *DAR)
+{
+	INT16U index = 0;
+	CLASS_f207	f207={};
+	INT8U  attrindex = 0;
+	int		ret = 0;
+	OAD		relayoad = {};
+
+	memset(&f207,0,sizeof(CLASS_f207));
+	readCoverClass(oad.OI,0,&f207,sizeof(CLASS_f207),para_vari_save);
+	if(oad.attflg == 127) {
+		index += getStructure(&data[index],NULL,DAR);
+		index += getOAD(1,&data[index],&relayoad,DAR);
+		attrindex = relayoad.attrindex;
+		ret = rangeJudge("多功能端子",attrindex,1,4);
+		if(ret == -1) {
+			*DAR = boundry_over;
+		}else {
+			attrindex = attrindex-1;
+			memcpy(&f207.oad[attrindex],&relayoad,sizeof(OAD));
+			index += getEnum(1,&data[index],(INT8U *)&f207.func[attrindex]);
+		}
+	}
+	if(*DAR == success) {
+		*DAR = saveCoverClass(oad.OI,0,&f207,sizeof(CLASS_f207),para_vari_save);
 	}
 	return index;
 }

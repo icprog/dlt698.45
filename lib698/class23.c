@@ -29,8 +29,8 @@ int class23_act3_4(OAD oad, INT8U* data, Action_result *act_ret)
 {
 	int  index = 0;
 	AL_UNIT al_unit={};
-	int no = oad.OI - 0x2301;
 	INT8U	unitnum =0, i=0;
+	int no = oad.OI - 0x2301;
 
 	ProgramInfo *shareAddr = getShareAddr();
 	asyslog(LOG_WARNING, "添加一个配置单元(%04x)", no);
@@ -51,44 +51,35 @@ int class23_act3_4(OAD oad, INT8U* data, Action_result *act_ret)
 			asyslog(LOG_WARNING, "添加一个配置单元，地址(%d)", i);
 		}
 	}
-	saveCoverClass(oad.OI, 0, &shareAddr->class23[no], sizeof(CLASS23), para_vari_save);
+	if(act_ret->DAR == success) {
+		saveCoverClass(oad.OI, 0, &shareAddr->class23[no], sizeof(CLASS23), para_vari_save);
+	}
 	act_ret->datalen = index;
 	return 0;
-//	if (data[0] != 0x02 || data[1] != 0x03 || data[2] != 0x55) {
-//		return 0;
-//	}
-//
-//	int tsa_len = data[3];
-//	int data_index = 4;
-//
-//	if (tsa_len > 17) {
-//		return 0;
-//	}
-//	al_unit.tsa.addr[0] = data[3];
-//
-//	for (int i = 0; i < tsa_len; ++i) {
-//		al_unit.tsa.addr[1 + i] = data[data_index];
-//		data_index++;
-//	}
-//
-//	if (data[data_index] != 0x16 || data[data_index + 2] != 0x16) {
-//		return 0;
-//	}
-//
-//	al_unit.al_flag = data[data_index + 1];
-//	al_unit.cal_flag = data[data_index + 3];
-//
-//	asyslog(LOG_WARNING, "添加一个配置单元(%d)", index);
-//	ProgramInfo *shareAddr = getShareAddr();
-//	for (int i = 0; i < MAX_AL_UNIT; i++) {
-//		if (shareAddr->class23[index].allist[i].tsa.addr[0] == 0x00) {
-//			memcpy(&shareAddr->class23[index].allist[i], &al_unit,
-//					sizeof(AL_UNIT));
-//			asyslog(LOG_WARNING, "添加一个配置单元，地址(%d)", i);
-//			break;
-//		}
-//	}
-//	return 0;
+}
+
+
+int class23_act5(OAD oad, INT8U* data, Action_result *act_ret)
+{
+	int  index = 0,i=0;
+	int no = oad.OI - 0x2301;
+	TSA  del_tsa={};
+
+	ProgramInfo *shareAddr = getShareAddr();
+	index += getTSA(1,&data[index],(INT8U *)&del_tsa,&act_ret->DAR);
+	if(act_ret->DAR == success) {
+		for(i=0;i<MAX_AL_UNIT;i++) {
+//			printTSA(shareAddr->class23[no].allist[i].tsa);
+//			printTSA(del_tsa);
+			if(memcmp(&shareAddr->class23[no].allist[i].tsa,&del_tsa,(del_tsa.addr[0]+1))==0) {
+				memset(&shareAddr->class23[no].allist[i], 0,sizeof(AL_UNIT));
+				saveCoverClass(oad.OI, 0, &shareAddr->class23[no], sizeof(CLASS23), para_vari_save);
+				break;
+			}
+		}
+	}
+	act_ret->datalen = index;
+	return 0;
 }
 
 int class23_set_attr2(OI_698 oi,INT8U *data, INT8U *DAR, CLASS23 *memClass23)
@@ -208,8 +199,6 @@ int class23_set_attr17(OAD oad,INT8U *data, INT8U *DAR, CLASS23 *memClass23)
 	}
 	return index;
 }
-
-
 
 int class23_get_2(OAD oad, INT8U index, INT8U *buf, int *len)
 {
@@ -412,7 +401,7 @@ int class23_set(OAD oad, INT8U *data, INT8U *DAR)
 	case 17:
 		return class23_set_attr17(oad,data,DAR,shareAddr->class23);
 	case 18://单位及换算
-		break;
+		return set_Scaler_Unit(oad,data,DAR,NULL,shareAddr->class23);
 	}
 	return 0;
 }
@@ -434,6 +423,9 @@ int class23_selector(OAD oad, INT8U *data, Action_result *act_ret)
 		break;
 	case 4:		//批量添加总加配置单元
 		class23_act3_4(oad, data, act_ret);
+		break;
+	case 5:		//删除一个总加配置单元
+		class23_act5(oad,data,act_ret);
 		break;
 	}
 	return 0;

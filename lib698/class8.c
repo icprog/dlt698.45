@@ -71,13 +71,17 @@ int class8001_set(OAD oad, INT8U *data, INT8U *DAR) {
 	memcpy(&c8001,&shareAddr->ctrls.c8001,sizeof(CLASS_8001));
 	switch(oad.attflg) {
 	case 2:	//保电状态，只读
-		index += getEnum(1,data,&c8001.state);
-		if(index==0)  *DAR = type_mismatch;
+//		index += getEnum(1,data,&c8001.state);
+//		if(index==0)  *DAR = type_mismatch;
+		*DAR = no_wdblock_state;
 		break;
 	case 3:
 		index += getLongUnsigned(data,(INT8U *)&c8001.noCommTime);
 		if(index==0)  *DAR = type_mismatch;
 		else asyslog(LOG_WARNING, "设置保电属性3(%d)", c8001.noCommTime);
+		if(c8001.noCommTime !=0) {	//=0:表示不自动保电
+			c8001.state = 2;		//自动保电
+		}
 		break;
 	case 4:
 		index += getLongUnsigned(data,(INT8U *)&c8001.autoTime);
@@ -112,6 +116,7 @@ int class8001_set(OAD oad, INT8U *data, INT8U *DAR) {
 INT8U findInfoIndex(CLASS_8003_8004 info,INT8U info_no)
 {
 	INT8U  infoindex = 0xff, i=0;
+	fprintf(stderr,"info_no=%d\n",info_no);
 	for(i=0;i<10;i++) {
 		if(info.chinese_info[i].no==info_no) {
 			infoindex = i;
@@ -120,6 +125,7 @@ INT8U findInfoIndex(CLASS_8003_8004 info,INT8U info_no)
 	}
 	if(infoindex == 0xff) {	//未找到相同序号，查找空位置
 		for(i=0;i<10;i++) {
+			fprintf(stderr,"info[%d].no=%d\n",i,info.chinese_info[i].no);
 			if(info.chinese_info[i].no==0xff) {
 				infoindex = i;
 				break;
@@ -184,7 +190,7 @@ int class8100_set(OAD oad, INT8U *data, INT8U *DAR)
 	shareAddr->ctrls.c8100.v = c8100.v;
 	saveCoverClass(0x8100, 0, (void *) &c8100, sizeof(CLASS_8100),
 			para_vari_save);
-	asyslog(LOG_WARNING, "设置终端安保定值(%lld)", c8100.v);
+	asyslog(LOG_WARNING, "设置终端安保定值(%lld)", shareAddr->ctrls.c8100.v);
 
 	return index;
 }
@@ -515,7 +521,7 @@ int class8000_act129(int attr_act, INT8U *data,Action_result *act_ret)
 		index += getLongUnsigned(&data[index],(INT8U *)&c8000.powerouttime[i]);
 		index += getBool(&data[index],&c8000.autoclose[i],&act_ret->DAR);
 		c8000.openclose[i] = 0x5555;
-		asyslog(LOG_WARNING, "遥控跳闸第%d路 OAD=%04x_%02x%02x - %d - %d - %d\n",i,
+		asyslog(LOG_WARNING, "遥控跳闸第%d路[%04x] OAD=%04x_%02x%02x - %d - %d - %d\n",i,c8000.openclose[i],
 				c8000.relay_oad[i].OI,c8000.relay_oad[i].attflg,c8000.relay_oad[i].attrindex,
 				c8000.alarmdelay[i], c8000.powerouttime[i], c8000.autoclose[i]);
 	}
@@ -546,7 +552,7 @@ int class8000_act130(int attr_act, INT8U *data, Action_result *act_ret) {
 		index += getOAD(1,&data[index],&c8000.relay_oad[i],&act_ret->DAR);
 		index += getEnum(1,&data[index],&c8000.closecmd[i]);
 		c8000.openclose[i] = 0xCCCC;
-		asyslog(LOG_WARNING, "遥控合闸第%d路 OAD=%04x_%02x%02x - %d \n",i,
+		asyslog(LOG_WARNING, "遥控合闸第%d路[%04x] OAD=%04x_%02x%02x - %d \n",i,c8000.openclose[i],
 				c8000.relay_oad[i].OI,c8000.relay_oad[i].attflg,c8000.relay_oad[i].attrindex,c8000.closecmd[i]);
 	}
 	if(act_ret->DAR == success){
@@ -658,9 +664,14 @@ int class8003_8004_act127(OI_698 OI, INT8U *data,	Action_result *act_ret)
 int class8003_8004_act128(OI_698 OI, INT8U *data,Action_result *act_ret) {
 	CLASS_8003_8004 info={};
 	INT8U	 info_no=0,i=0;
-	int		index=0;
+	int		index=0,ret = 0;
 
-	readCoverClass(OI, 0, (void *) &info, sizeof(CLASS_8003_8004),para_vari_save);
+	ret = readCoverClass(OI, 0, (void *) &info, sizeof(CLASS_8003_8004),para_vari_save);
+	if(ret==-1) {
+		for(i=0;i<10;i++) {
+			info.chinese_info[i].no=0xff;
+		}
+	}
 	index += getUnsigned(&data[index],&info_no,&act_ret->DAR);
 	for(i=0;i<10;i++) {
 		if(info.chinese_info[i].no==info_no) {
@@ -899,12 +910,20 @@ int set_8106_attr6_7(INT8U service,INT8U *data,int *sum_index,ALSTATE *alstate,I
 	asyslog(LOG_WARNING, "控制[%04x] act=%d", oi,service);
 	switch(service) {
 	case 6:	//投入
-		tmp_alstate.name = oi;
-		tmp_alstate.state = 1;
+//		if(alstate->name == oi) {
+//			tmp_alstate.name = oi;
+//			tmp_alstate.state = 1;
+//		}
+		*DAR = obj_undefine;
 		break;
 	case 7:	//解除
-		tmp_alstate.name = oi;
-		tmp_alstate.state = 0;
+		fprintf(stderr,"alstate.name = %04x oi=%04x\n",alstate->name,oi);
+//		if(alstate->name == oi) {		//国网台体测试，未下发功率下浮控投入，先发解除，原程序应答错误，台体不合格。此处去掉判断
+			tmp_alstate.name = oi;
+			tmp_alstate.state = 0;
+//		}else {
+//			*DAR = obj_unexist;
+//		}
 		break;
 	}
 	if(*DAR == success) {
@@ -928,7 +947,12 @@ int class8106_unit(int attr_act, INT8U *data, CLASS_8106 *shmc8106, INT8U *DAR)
 	case 3:	//添加
 	case 5: //更新
 	case 127: //投入
-		if(attr_act == 127) c8106.enable.state = 0x01;
+		if(attr_act == 127) {
+			c8106.enable.state = 0x01;
+			c8106.enable.name = c8106.index;
+			c8106.output.name = c8106.index;
+			c8106.overflow.name = c8106.index;
+		}
 		ii += getStructure(&data[ii],NULL,DAR);
 		ii += getUnsigned(&data[ii],&c8106.list.down_huacha,DAR);
 		ii += getInteger(&data[ii],&c8106.list.down_xishu,DAR);
@@ -994,10 +1018,10 @@ int set_OI810c(INT8U service,INT8U *data,BUY_CTRL *oi810c,INT8U *DAR)
 		index += getLong64(&data[index],&tmp_oi810c.ctrl);
 		index += getEnum(1,&data[index],&tmp_oi810c.mode);
 		for(i=0;i<MAX_AL_UNIT;i++) {
-			if(i!=sum_index) {
-				if(tmp_oi810c.no == shareAddr->ctrls.c8107.list[i].no) {
-					*DAR = recharge_reuse;
-				}
+//			asyslog(LOG_WARNING,"i = %x sum_index=%d 单号 %ld, 原单号 %ld\n",i,sum_index,tmp_oi810c.no,shareAddr->ctrls.c8107.list[i].no);
+			if(tmp_oi810c.no == shareAddr->ctrls.c8107.list[i].no) { //购电单号相同，应返回错误值无效
+				*DAR = recharge_reuse;
+				break;
 			}
 		}
 		break;
@@ -1011,8 +1035,14 @@ int set_OI810c(INT8U service,INT8U *data,BUY_CTRL *oi810c,INT8U *DAR)
 		fprintf(stderr,"enable[%d] = %04x\n",sum_index,shareAddr->ctrls.c8107.enable[sum_index].name);
 		memcpy(&oi810c[sum_index],&tmp_oi810c,sizeof(BUY_CTRL));
 		if(service == 3 || service == 5) {
-			shareAddr->class23[sum_index].remains += shareAddr->ctrls.c8107.list[sum_index].v;
-			asyslog(LOG_WARNING,"Event_3202事件 oi_b=%04x\n",oi_b);
+			if(tmp_oi810c.add_refresh == 0) {		//
+				shareAddr->class23[sum_index].remains += shareAddr->ctrls.c8107.list[sum_index].v;
+				asyslog(LOG_WARNING,"追加  remains = %d\n",oi_b,shareAddr->class23[sum_index].remains);
+			}else if(tmp_oi810c.add_refresh == 1) {	//
+				shareAddr->class23[sum_index].remains = shareAddr->ctrls.c8107.list[sum_index].v;
+				asyslog(LOG_WARNING,"添加  remains = %d\n",oi_b,shareAddr->class23[sum_index].remains);
+			}
+			asyslog(LOG_WARNING,"Event_3202事件 oi_b=%04x  remains = %d\n",oi_b,shareAddr->class23[sum_index].remains);
 			Event_3202((INT8U *)&oi_b,2, getShareAddr());
 		}
 	}
@@ -1085,11 +1115,9 @@ int class8001_act_route(int index, int attr_act, INT8U *data,Action_result *act_
 	case 127:
 		shareAddr->ctrls.c8001.state = 1; //保电投入
 		break;
-	case 128:
+	case 128://解除保电
+	case 129://自动保电 //属性3值 !=0  进入自动保电
 		shareAddr->ctrls.c8001.state = 0; //解除保电
-		break;
-	case 129:
-		shareAddr->ctrls.c8001.state = 2; //自动保电 //TODO：action129为解除自动保电，此处是否设置=2
 		break;
 	}
 	asyslog(LOG_WARNING, "投入保电 state=%d\n",shareAddr->ctrls.c8001.state);

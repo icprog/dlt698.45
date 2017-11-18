@@ -164,7 +164,10 @@ void menu_control(){
 
 		gui_setpos(&pos, rect_Client.left+1*FONTSIZE, rect_Client.top+10*FONTSIZE);//4
 
-		touru =tourujuge(c8106.enable.name, c8106.enable.state);
+		if(c8106.index == (0x2300 + zj_index))
+		{
+			touru =tourujuge(c8106.enable.name, c8106.enable.state);
+		}
 		menu_control_showstate((char*)"下浮：",touru & 0x01, pos);			//当前功率下浮控	没有控制方案集数组，默认参数下发在原来结构体数组 0
 		pos.y += FONTSIZE*3;
 
@@ -956,39 +959,67 @@ void show_msg(char *text, Point text_pos){
 }
 
 void menu_zhongwen(){
+	CLASS_8003_8004 info_nor={};
+	CLASS_8003_8004 info_imp={};
 	char str[200], str_neirong[200];
 	Point pos;
+	int  ret=0,i=0;
 	memset(str, 0, 200);
 	PressKey = NOKEY;
 	gui_clrrect(rect_Client);
 	memset(str_neirong, 0, 200);
-//	memcpy(str_neirong, shmm_getdevstat()->controls.f32_cfg.data, shmm_getdevstat()->controls.f32_cfg.len);//没有主站的中文信息数据   //FOR698
+
+	ret = readCoverClass(0x8003, 0, (void *) &info_nor, sizeof(CLASS_8003_8004),para_vari_save);
+	if(ret == -1) {
+		memset(&info_nor,0xff,sizeof(info_nor));
+	}
+	ret = readCoverClass(0x8004, 0, (void *) &info_nor, sizeof(CLASS_8003_8004),para_vari_save);
+	if(ret == -1) {
+		memset(&info_imp,0xff,sizeof(info_imp));
+	}
+
 	while(g_LcdPoll_Flag==LCD_NOTPOLL){
-		if(PressKey==ESC)
-			break;
+		switch(PressKey)
+		{
+			case LEFT:
+				break;
+			case UP:
+				if(i>0)
+					i = (i - 1)%19;
+				else
+					i = 19;
+				break;
+			case RIGHT:
+				break;
+			case DOWN:
+				i = (i + 1)%19;
+				break;
+			case ESC:
+				return;
+		}
 		gui_setpos(&pos, rect_Client.left+10*FONTSIZE, rect_Client.top+2*FONTSIZE);
 		memset(str, 0, 200);
-		sprintf(str, "中文信息");
+		sprintf(str, "重要中文信息");
 		gui_textshow(str, pos, LCD_NOREV);
 		pos.x = rect_Client.left + FONTSIZE;
 		pos.y += FONTSIZE*3;
 		memset(str, 0, 200);
-//		if(str[0]!=0)
-//			sprintf(str, "种类: %s  编号: %d", shmm_getdevstat()->controls.f32_cfg.type?"重要信息":"普通信息",			//FOR698
-//					shmm_getdevstat()->controls.f32_cfg.id);
-//		else
-			sprintf(str, "种类:           编号:  ");
+		if (info_imp.chinese_info[i].no==0xff)
+		{
+			sprintf(str, "序号 %02d 无效",i);
+			gui_textshow(str, pos, LCD_NOREV);
+			continue;
+		}
+		else
+			sprintf(str, "编号: %02d",info_imp.chinese_info[i].no);
 		gui_textshow(str, pos, LCD_NOREV);
 		pos.y += FONTSIZE*3;
 		sprintf(str, "信息内容:");
 		gui_textshow(str, pos, LCD_NOREV);
-
 		pos.y += FONTSIZE*3;
 		memset(str, 0, 200);
-		if(str_neirong[0]!=0)
-			show_msg(str_neirong, pos);
-		else
-			show_msg((char*)"无中文信息", pos);
+//		memcpy(str_neirong,info_imp.chinese_info[i].info);
+		show_msg(str_neirong, pos);
 		PressKey = NOKEY;
 		delay(300);
 	}
@@ -1056,7 +1087,7 @@ void menu_goudian(){
 				pos.x = rect_Client.left+5*FONTSIZE;
 				pos.y += 5*FONTSIZE;
 				memset(str, 0, 100);
-				sprintf(str,"未投入");
+				sprintf(str,"未配置");
 				gui_textshow(str, pos, LCD_NOREV);
 				PressKey = NOKEY;
 				delay(300);
@@ -1973,6 +2004,13 @@ int initshiduan(const INT8U period_powerctrl[][4],struct shiduanpara_ts *sd_ts){
 /************************************************************************************************************************************************************
 --------------------------------------------------------------参数定值-----------时段控参数----------------------------------------------------------------------
 ************************************************************************************************************************************************************/
+void getshiduanparaStr(char* str,INT8U shiduanno,int t1,int t2)
+{
+	memset(str, 0, 100);
+	FP32 ft1 = t1/10000.0;
+	FP32 ft2 = t2/10000.0;
+	sprintf(str,"[%d]%.1fkw [%d]%.1fkw",shiduanno,ft1,shiduanno+1,ft2);
+}
 //时段控
 void menu_shiduanpara(){
 	CLASS_8103 c8103;
@@ -2041,7 +2079,7 @@ void menu_shiduanpara(){
 				pos.x = rect_Client.left+5*FONTSIZE;
 				pos.y += 5*FONTSIZE;
 				memset(str, 0, 100);
-				sprintf(str,"未投入");
+				sprintf(str,"未配置");
 				gui_textshow(str, pos, LCD_NOREV);
 				PressKey = NOKEY;
 				delay(300);
@@ -2062,51 +2100,51 @@ void menu_shiduanpara(){
 			switch(dingzhi)
 			{
 				case 1://第一套定值
-					sprintf(str,"时段1:%05d 时段2:%05d",(int)c8103.list[unite_index-1].v1.t1,(int)c8103.list[unite_index-1].v1.t2);
+					getshiduanparaStr(str,1,(int)c8103.list[unite_index-1].v1.t1,(int)c8103.list[unite_index-1].v1.t2);
 					gui_textshow(str, pos, LCD_NOREV);
 					pos.y += 3*FONTSIZE;
-					memset(str, 0, 100);
-					sprintf(str,"时段3:%05d 时段4:%05d",(int)c8103.list[unite_index-1].v1.t3,(int)c8103.list[unite_index-1].v1.t4);
+
+					getshiduanparaStr(str,3,(int)c8103.list[unite_index-1].v1.t3,(int)c8103.list[unite_index-1].v1.t4);
 					gui_textshow(str, pos, LCD_NOREV);
 					pos.y += 3*FONTSIZE;
-					memset(str, 0, 100);
-					sprintf(str,"时段5:%05d 时段6:%05d",(int)c8103.list[unite_index-1].v1.t5,(int)c8103.list[unite_index-1].v1.t6);
+
+					getshiduanparaStr(str,5,(int)c8103.list[unite_index-1].v1.t5,(int)c8103.list[unite_index-1].v1.t6);
 					gui_textshow(str, pos, LCD_NOREV);
 					pos.y += 3*FONTSIZE;
-					memset(str, 0, 100);
-					sprintf(str,"时段7:%05d 时段8:%05d",(int)c8103.list[unite_index-1].v1.t7,(int)c8103.list[unite_index-1].v1.t8);
+
+					getshiduanparaStr(str,7,(int)c8103.list[unite_index-1].v1.t7,(int)c8103.list[unite_index-1].v1.t8);
 					gui_textshow(str, pos, LCD_NOREV);
 					break;
 				case 2://第二套定值
-					sprintf(str,"时段1:%05d 时段2:%05d",(int)c8103.list[unite_index-1].v2.t1,(int)c8103.list[unite_index-1].v2.t2);
+					getshiduanparaStr(str,1,(int)c8103.list[unite_index-1].v2.t1,(int)c8103.list[unite_index-1].v2.t2);
 					gui_textshow(str, pos, LCD_NOREV);
 					pos.y += 3*FONTSIZE;
-					memset(str, 0, 100);
-					sprintf(str,"时段3:%05d 时段4:%05d",(int)c8103.list[unite_index-1].v2.t3,(int)c8103.list[unite_index-1].v2.t4);
+
+					getshiduanparaStr(str,3,(int)c8103.list[unite_index-1].v2.t3,(int)c8103.list[unite_index-1].v2.t4);
 					gui_textshow(str, pos, LCD_NOREV);
 					pos.y += 3*FONTSIZE;
-					memset(str, 0, 100);
-					sprintf(str,"时段5:%05d 时段6:%05d",(int)c8103.list[unite_index-1].v2.t5,(int)c8103.list[unite_index-1].v2.t6);
+
+					getshiduanparaStr(str,5,(int)c8103.list[unite_index-1].v2.t5,(int)c8103.list[unite_index-1].v2.t6);
 					gui_textshow(str, pos, LCD_NOREV);
 					pos.y += 3*FONTSIZE;
-					memset(str, 0, 100);
-					sprintf(str,"时段7:%05d 时段8:%05d",(int)c8103.list[unite_index-1].v2.t7,(int)c8103.list[unite_index-1].v2.t8);
+
+					getshiduanparaStr(str,7,(int)c8103.list[unite_index-1].v2.t7,(int)c8103.list[unite_index-1].v2.t8);
 					gui_textshow(str, pos, LCD_NOREV);
 					break;
 				case 3://第三套定值
-					sprintf(str,"时段1:%05d 时段2:%05d",(int)c8103.list[unite_index-1].v3.t1,(int)c8103.list[unite_index-1].v3.t2);
+					getshiduanparaStr(str,1,(int)c8103.list[unite_index-1].v3.t1,(int)c8103.list[unite_index-1].v3.t2);
 					gui_textshow(str, pos, LCD_NOREV);
 					pos.y += 3*FONTSIZE;
-					memset(str, 0, 100);
-					sprintf(str,"时段3:%05d 时段4:%05d",(int)c8103.list[unite_index-1].v3.t3,(int)c8103.list[unite_index-1].v3.t4);
+
+					getshiduanparaStr(str,3,(int)c8103.list[unite_index-1].v3.t3,(int)c8103.list[unite_index-1].v3.t4);
 					gui_textshow(str, pos, LCD_NOREV);
 					pos.y += 3*FONTSIZE;
-					memset(str, 0, 100);
-					sprintf(str,"时段5:%05d 时段6:%05d",(int)c8103.list[unite_index-1].v3.t5,(int)c8103.list[unite_index-1].v3.t6);
+
+					getshiduanparaStr(str,5,(int)c8103.list[unite_index-1].v3.t5,(int)c8103.list[unite_index-1].v3.t6);
 					gui_textshow(str, pos, LCD_NOREV);
 					pos.y += 3*FONTSIZE;
-					memset(str, 0, 100);
-					sprintf(str,"时段7:%05d 时段8:%05d",(int)c8103.list[unite_index-1].v3.t7,(int)c8103.list[unite_index-1].v3.t8);
+
+					getshiduanparaStr(str,7,(int)c8103.list[unite_index-1].v3.t7,(int)c8103.list[unite_index-1].v3.t8);
 					gui_textshow(str, pos, LCD_NOREV);
 					break;
 			}
@@ -2177,7 +2215,7 @@ void menu_changxiupara(){
 				pos.x = rect_Client.left+5*FONTSIZE;
 				pos.y += 5*FONTSIZE;
 				memset(str, 0, 100);
-				sprintf(str,"未投入");
+				sprintf(str,"未配置");
 				gui_textshow(str, pos, LCD_NOREV);
 				PressKey = NOKEY;
 				delay(300);
@@ -2296,7 +2334,7 @@ void menu_baotingpara(){
 				pos.x = rect_Client.left+5*FONTSIZE;
 				pos.y += 5*FONTSIZE;
 				memset(str, 0, 100);
-				sprintf(str,"未投入");
+				sprintf(str,"未配置");
 				gui_textshow(str, pos, LCD_NOREV);
 				PressKey = NOKEY;
 				delay(300);
@@ -2336,7 +2374,7 @@ void menu_baotingpara(){
 			memset(str, 0, 100);
 			tmpfloat = c8105.list[unite_index-1].v*(1.0)/10;
 			if (c8105.list[unite_index-1].v>0)
-				sprintf(str, "定值 %.1f W", c8105.list[unite_index-1].v);
+				sprintf(str, "定值 %.1f W", tmpfloat);
 			else
 				sprintf(str, "定值 错误 ");
 			gui_textshow(str, pos, LCD_NOREV);
@@ -2485,7 +2523,7 @@ void menu_yuedianpara(){
 				pos.x = rect_Client.left+5*FONTSIZE;
 				pos.y += 5*FONTSIZE;
 				memset(str, 0, 100);
-				sprintf(str,"未投入");
+				sprintf(str,"未配置");
 				gui_textshow(str, pos, LCD_NOREV);
 				PressKey = NOKEY;
 				delay(300);

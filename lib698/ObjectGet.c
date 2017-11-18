@@ -64,8 +64,12 @@ int BuildFrame_GetResponseRecord(INT8U response_type,CSINFO *csinfo,RESULT_RECOR
 
 	fprintf(stderr,"record.datalen = %d\n",record.datalen);
 	if (record.datalen > 0)  {
-		memcpy(&sendbuf[index],record.data,record.datalen);
-		index = index + record.datalen;
+		if((index+record.datalen+3) > BUFLEN) {
+			syslog(LOG_ERR,"GetResponseRecord 长度[%d]越限[%d],数据应答错误",record.datalen,BUFLEN);
+		}else {
+			memcpy(&sendbuf[index],record.data,record.datalen);
+			index = index + record.datalen;
+		}
 	}
 	sendbuf[index++] = 0;	//FollowReport
 	sendbuf[index++] = 0;	//TimeTag
@@ -105,8 +109,12 @@ int BuildFrame_GetResponse(INT8U response_type,CSINFO *csinfo,INT8U oadnum,RESUL
 	sendbuf[index++] = piid_g.data;	//	piid
 	if (oadnum>0)
 		sendbuf[index++] = oadnum;
-	memcpy(&sendbuf[index],response.data,response.datalen);
-	index = index + response.datalen;
+	if((index+response.datalen+3) > BUFLEN) {
+		syslog(LOG_ERR,"GetResponse 长度[%d]越限[%d],数据应答错误",response.datalen,BUFLEN);
+	}else {
+		memcpy(&sendbuf[index],response.data,response.datalen);
+		index = index + response.datalen;
+	}
 	sendbuf[index++] = 0;	//跟随上报信息域 	FollowReport
 	index += fill_timetag(&sendbuf[index],Response_timetag);//时间标签		TimeTag
 	if(securetype!=0)//安全等级类型不为0，代表是通过安全传输下发报文，上行报文需要以不低于请求的安全级别回复
@@ -155,8 +163,12 @@ int BuildFrame_GetResponseNext(INT8U response_type,CSINFO *csinfo,INT8U DAR,INT1
 			sendbuf[index++] = 2;		//记录型对象属性[2]SEQUENCE OF A-ResultRecord
 			sendbuf[index++] = 1;//A-ResultRecord∷=CHOICE  1:记录数据
 		}
-		memcpy(&sendbuf[index],databuf,datalen);
-		index = index + datalen;
+		if((index+datalen+3) > BUFLEN) {
+			syslog(LOG_ERR,"GetResponseNext 长度[%d]越限[%d],数据应答错误",datalen,BUFLEN);
+		}else {
+			memcpy(&sendbuf[index],databuf,datalen);
+			index = index + datalen;
+		}
 	}else {
 		sendbuf[index++] = 0;//choice 0  ,DAR 有效 (数据访问可能的结果)
 		sendbuf[index++] = DAR;
@@ -211,8 +223,12 @@ int Build_subFrame(INT8U saveflg,INT16U framelen,INT8U seqOfNum,RESULT_NORMAL *r
 //		for(i=0;i< response->datalen;i++) {
 //			fprintf(stderr,"%02x ",response->data[i]);
 //		}
-		memcpy(&oneFrameBuf[index],response->data,response->datalen);	//报文帧中 从 array开始
-		index += response->datalen;
+		if((index+response->datalen+3) > BUFLEN) {
+			syslog(LOG_ERR,"subFrame 长度[%d]越限[%d],数据应答错误",response->datalen,BUFLEN);
+		}else {
+			memcpy(&oneFrameBuf[index],response->data,response->datalen);	//报文帧中 从 array开始
+			index += response->datalen;
+		}
 		oneFrameBuf[0] = (index-2) & 0xff;				//报文帧长度
 		oneFrameBuf[1] = ((index-2) >>8) & 0xff;
 		saveOneFrame(oneFrameBuf,index,fp);
@@ -346,36 +362,38 @@ int Get_f205_attr2(RESULT_NORMAL *response)
 {
 	int index=0;
 	int i=0;
+	INT8U unit_index = 0,relaynum = 0;
 	INT8U *data = NULL;
-	OAD oad;
-	CLASS_F205 objtmp;
-	int	 relaynum=0;
+	OAD oad={};
+	CLASS_F205 objtmp={};
 
 	oad = response->oad;
 	data = response->data;
 	memset(&objtmp,0,sizeof(CLASS_F205));
-	readCoverClass(oad.OI, 0, (void *) &objtmp, sizeof(CLASS_F205),para_vari_save);
+//	readCoverClass(oad.OI, 0, (void *) &objtmp, sizeof(CLASS_F205),para_vari_save);
+	ProgramInfo *shareAddr = getShareAddr();
+
+	memcpy(&objtmp,&shareAddr->ctrls.cf205,sizeof(CLASS_F205));
 	switch(oad.attflg )
 	{
 		case 2://设备对象列表
-			index = 2;	//array+ 数组
-			for(i=0;i<4;i++) {
-				if(objtmp.unit[i].oad.OI !=0) {
-					relaynum++;
-					index += create_struct(&data[index], 4);
-					index += fill_visible_string(&data[index],&objtmp.unit[i].devdesc[1],objtmp.unit[i].devdesc[0]);
-					index += fill_enum(&data[index],objtmp.unit[i].currentState);
-					index += fill_enum(&data[index],objtmp.unit[i].switchAttr);
-					index += fill_enum(&data[index],objtmp.unit[i].wiredState);
+			unit_index = oad.attrindex;
+			if(unit_index==0) {
+				relaynum = 3;
+			}else  relaynum = 1;
+			for(i = 0;i < relaynum; i++) {
+				if(relaynum>1) {
+					index += create_array(&data[index],relaynum);
 				}
+				syslog(LOG_NOTICE,"mem relaynum = %d  currentState=%d switchAttr=%d wiredState=%d\n",i,
+						objtmp.unit[i].currentState,objtmp.unit[i].switchAttr,objtmp.unit[i].wiredState);
+				index += create_struct(&data[index], 4);
+				index += fill_visible_string(&data[index],&objtmp.unit[i].devdesc[1],objtmp.unit[i].devdesc[0]);
+				index += fill_enum(&data[index],objtmp.unit[i].currentState);
+				index += fill_enum(&data[index],objtmp.unit[i].switchAttr);
+				index += fill_enum(&data[index],objtmp.unit[i].wiredState);
 			}
-			if(relaynum) {
-				create_array(&data[0],relaynum);
-				response->datalen = index;
-			}else {
-				data[0] = 0;		//NULL
-				response->datalen = 1;
-			}
+			response->datalen = index;
 			break;
 	}
 	return 0;
@@ -400,9 +418,11 @@ int Get_8000(RESULT_NORMAL *response)
 	INT8U	index=0;
 	OAD oad = response->oad;
 	data = response->data;
+	ProgramInfo *shareAddr = getShareAddr();
 
-	memset(&c8000,0,sizeof(CLASS_8000));
-	readCoverClass(oad.OI, 0, (void *) &c8000, sizeof(CLASS_8000),para_vari_save);
+//	memset(&c8000,0,sizeof(CLASS_8000));
+//	readCoverClass(oad.OI, 0, (void *) &c8000, sizeof(CLASS_8000),para_vari_save);
+	memcpy(&c8000,&shareAddr->ctrls.c8000,sizeof(CLASS_8000));
 	switch(oad.attflg) {
 	case 2:
 		index += create_struct(&data[index],2);
@@ -428,9 +448,11 @@ int Get_8001(RESULT_NORMAL *response)
 	INT8U	i=0,index=0;
 	OAD oad = response->oad;
 	data = response->data;
+	ProgramInfo *shareAddr = getShareAddr();
 
-	memset(&c8001,0,sizeof(CLASS_8001));
-	readCoverClass(0x8001, 0, (void *) &c8001, sizeof(CLASS_8001),para_vari_save);
+//	memset(&c8001,0,sizeof(CLASS_8001));
+//	readCoverClass(0x8001, 0, (void *) &c8001, sizeof(CLASS_8001),para_vari_save);
+	memcpy(&c8001,&shareAddr->ctrls.c8001,sizeof(CLASS_8001));
 	fprintf(stderr,"c8001.noCommTime=%d autoTime=%d\n",c8001.noCommTime,c8001.autoTime);
 	switch(oad.attflg) {
 	case 2:
@@ -462,12 +484,13 @@ int Get_8002(RESULT_NORMAL *response)
 	INT16U	index = 0;
 	INT8U *data=NULL;
 	OAD oad;
+	ProgramInfo *shareAddr = getShareAddr();
 
 	oad = response->oad;
 	data = response->data;
 	response->datalen = 0;
-	readCoverClass(0x8002, 0, (void *) &c8002, sizeof(CLASS_8002),
-			para_vari_save);
+//	readCoverClass(0x8002, 0, (void *) &c8002, sizeof(CLASS_8002), para_vari_save);
+	memcpy(&c8002,&shareAddr->ctrls.c8002,sizeof(CLASS_8002));
 	switch(oad.attflg) {
 	case 2:
 		response->dar = getEnumValid(c8002.state,0,1,0);
@@ -642,14 +665,17 @@ int fill_PowerCtrlParam(INT8U *data,PowerCtrlParam para)
 //终端保安定值
 int Get_8100(RESULT_NORMAL *response)
 {
-	CLASS_8100 c8100={};
+//	CLASS_8100 c8100={};
 	INT8U *data=NULL;
 	OAD oad={};
+	ProgramInfo *shareAddr = getShareAddr();
+
 	oad = response->oad;
 	data = response->data;
-	readCoverClass(0x8100, 0, (void *) &c8100, sizeof(CLASS_8100),
-				para_vari_save);
-	response->datalen = fill_long64(data, c8100.v);
+//	readCoverClass(0x8100, 0, (void *) &c8100, sizeof(CLASS_8100),para_vari_save);
+//	memcpy(&c8100,&shareAddr->ctrls.c8100,sizeof(CLASS_8100));
+	response->datalen = fill_long64(data, shareAddr->ctrls.c8100.v);
+	asyslog(LOG_WARNING, "读取终端安保定值(%lld)", shareAddr->ctrls.c8100.v);
 	fprintf(stderr,"datalen = %d\n",response->datalen);
 	return response->datalen;
 }
@@ -661,11 +687,13 @@ int Get_8101(RESULT_NORMAL *response)
 	INT8U	i=0;
 	OAD 	oad={};
 	int 	index=0;
+	ProgramInfo *shareAddr = getShareAddr();
 
 	oad = response->oad;
 	data = response->data;
 	memset(&c8101,0,sizeof(CLASS_8101));
-	readCoverClass(oad.OI, 0, (void *) &c8101, sizeof(CLASS_8101),para_vari_save);
+//	readCoverClass(oad.OI, 0, (void *) &c8101, sizeof(CLASS_8101),para_vari_save);
+	memcpy(&c8101,&shareAddr->ctrls.c8101,sizeof(CLASS_8101));
 	switch(oad.attflg){
 	case 2:
 		index += create_array(&data[index],c8101.time_num);
@@ -687,11 +715,13 @@ int Get_8102(RESULT_NORMAL *response)
 	INT8U	i=0;
 	OAD 	oad={};
 	int 	index=0;
+	ProgramInfo *shareAddr = getShareAddr();
 
 	oad = response->oad;
 	data = response->data;
 	memset(&c8102,0,sizeof(CLASS_8102));
-	readCoverClass(oad.OI, 0, (void *) &c8102, sizeof(CLASS_8102),para_vari_save);
+//	readCoverClass(oad.OI, 0, (void *) &c8102, sizeof(CLASS_8102),para_vari_save);
+	memcpy(&c8102,&shareAddr->ctrls.c8102,sizeof(CLASS_8102));
 	switch(oad.attflg){
 	case 2:
 		c8102.time_num = limitJudge("功控告警时间",8,c8102.time_num);
@@ -716,11 +746,13 @@ int Get_8103(RESULT_NORMAL *response)
 	INT8U	i=0,unitnum=0;
 	OAD 	oad={};
 	int 	index=0;
+	ProgramInfo *shareAddr = getShareAddr();
 
 	oad = response->oad;
 	data = response->data;
 	memset(&c8103,0,sizeof(CLASS_8103));
-	readCoverClass(0x8103, 0, (void *) &c8103, sizeof(CLASS_8103),para_vari_save);
+//	readCoverClass(0x8103, 0, (void *) &c8103, sizeof(CLASS_8103),para_vari_save);
+	memcpy(&c8103,&shareAddr->ctrls.c8103,sizeof(CLASS_8103));
 	switch(oad.attflg){
 	case 2:	//时段功控配置单元
 		unitnum=0;
@@ -768,11 +800,13 @@ int Get_8104(RESULT_NORMAL *response)
 	INT8U	i=0,unitnum=0;
 	OAD 	oad={};
 	int 	index=0;
+	ProgramInfo *shareAddr = getShareAddr();
 
 	oad = response->oad;
 	data = response->data;
 	memset(&c8104,0,sizeof(CLASS_8104));
-	readCoverClass(oad.OI, 0, (void *) &c8104, sizeof(CLASS_8104),para_vari_save);
+//	readCoverClass(oad.OI, 0, (void *) &c8104, sizeof(CLASS_8104),para_vari_save);
+	memcpy(&c8104,&shareAddr->ctrls.c8104,sizeof(CLASS_8104));
 	switch(oad.attflg){
 	case 2:	//厂休控配置单元
 		unitnum=0;
@@ -818,11 +852,13 @@ int Get_8105(RESULT_NORMAL *response)
 	INT8U	i=0,unitnum=0;
 	OAD 	oad={};
 	int 	index=0;
+	ProgramInfo *shareAddr = getShareAddr();
 
 	oad = response->oad;
 	data = response->data;
 	memset(&c8105,0,sizeof(CLASS_8105));
-	readCoverClass(oad.OI, 0, (void *) &c8105, sizeof(CLASS_8105),para_vari_save);
+//	readCoverClass(oad.OI, 0, (void *) &c8105, sizeof(CLASS_8105),para_vari_save);
+	memcpy(&c8105,&shareAddr->ctrls.c8105,sizeof(CLASS_8105));
 	switch(oad.attflg){
 	case 2:	//营业报停控配置单元
 		unitnum=0;
@@ -866,11 +902,14 @@ int Get_8106(RESULT_NORMAL *response)
 	INT8U *data=NULL;
 	OAD 	oad={};
 	int 	index=0;
+	ProgramInfo *shareAddr = getShareAddr();
 
 	oad = response->oad;
 	data = response->data;
 	memset(&c8106,0,sizeof(CLASS_8106));
-	readCoverClass(oad.OI, 0, (void *) &c8106, sizeof(CLASS_8106),para_vari_save);
+//	readCoverClass(oad.OI, 0, (void *) &c8106, sizeof(CLASS_8106),para_vari_save);
+	memcpy(&c8106,&shareAddr->ctrls.c8106,sizeof(CLASS_8106));
+
 	switch(oad.attflg){
 	case 2:	//营业报停控配置单元
 		index += create_struct(&data[index],8);
@@ -907,11 +946,13 @@ int Get_8107(RESULT_NORMAL *response)
 	INT8U	i=0,unitnum=0;
 	OAD 	oad={};
 	int 	index=0;
+	ProgramInfo *shareAddr = getShareAddr();
 
 	oad = response->oad;
 	data = response->data;
 	memset(&c8107,0,sizeof(CLASS_8107));
-	readCoverClass(0x8107, 0, (void *) &c8107, sizeof(CLASS_8107),para_vari_save);
+//	readCoverClass(0x8107, 0, (void *) &c8107, sizeof(CLASS_8107),para_vari_save);
+	memcpy(&c8107,&shareAddr->ctrls.c8107,sizeof(CLASS_8107));
 	switch(oad.attflg){
 	case 2:	//购电控配置单元
 		unitnum=0;
@@ -960,11 +1001,14 @@ int Get_8108(RESULT_NORMAL *response)
 	INT8U	i=0,unitnum=0;
 	OAD 	oad={};
 	int 	index=0;
+	ProgramInfo *shareAddr = getShareAddr();
 
 	oad = response->oad;
 	data = response->data;
 	memset(&c8108,0,sizeof(CLASS_8108));
-	readCoverClass(oad.OI, 0, (void *) &c8108, sizeof(CLASS_8108),para_vari_save);
+//	readCoverClass(oad.OI, 0, (void *) &c8108, sizeof(CLASS_8108),para_vari_save);
+	memcpy(&c8108,&shareAddr->ctrls.c8108,sizeof(CLASS_8108));
+
 	switch(oad.attflg){
 	case 2:	//月电控配置单元
 		unitnum=0;
@@ -975,8 +1019,8 @@ int Get_8108(RESULT_NORMAL *response)
 				index += create_struct(&data[index],4);
 				index += fill_OI(&data[index],c8108.list[i].index);
 				index += fill_long64(&data[index],c8108.list[i].v);
-				index += fill_unsigned(&data[index],c8108.list[i].flex);
-				index += fill_integer(&data[index],c8108.list[i].para);
+				index += fill_unsigned(&data[index],c8108.list[i].para);
+				index += fill_integer(&data[index],c8108.list[i].flex);
 			}
 		}
 		if(unitnum) {
@@ -1781,7 +1825,7 @@ int Get4500(RESULT_NORMAL *response)
 int Get4018(RESULT_NORMAL *response)
 {
 	int index=0,i=0;
-	CLASS_4018 class4018;
+	CLASS_4018 class4018={};
 	OAD oad={};
 	INT8U *data = NULL;
 	data = response->data;
@@ -1797,7 +1841,7 @@ int Get4018(RESULT_NORMAL *response)
 			if(class4018.num) {
 				for(i=0;i<class4018.num;i++) {
 					index += fill_double_long_unsigned(&data[index],class4018.feilv_price[i]);
-					fprintf(stderr,"\n%d  -  %ld",i,class4018.feilv_price[i]);
+					fprintf(stderr,"\n%d  -  %lld",i,class4018.feilv_price[i]);
 				}
 			}
 			break;
@@ -1845,6 +1889,31 @@ int GetF206(RESULT_NORMAL *response)
 	response->datalen = index;
 	return 0;
 }
+
+int GetF207(RESULT_NORMAL *response)
+{
+	int index=0,i=0;
+	INT8U *data = NULL;
+	OAD oad={};
+	CLASS_f207	class_tmp={};
+
+	data = response->data;
+	oad = response->oad;
+	memset(&class_tmp,0,sizeof(CLASS_f207));
+	readCoverClass(oad.OI,0,&class_tmp,sizeof(CLASS_f207),para_vari_save);
+	if(oad.attflg ==2) {
+		index += create_array(&data[index],class_tmp.num);
+		for(i=0;i<class_tmp.num;i++)
+		{
+			index += create_struct(&data[index],1);
+			index += create_OAD(1,&data[index],class_tmp.oad[i]);
+			index += fill_enum(&data[index],class_tmp.func[i]);
+		}
+	}
+	response->datalen = index;
+	return 0;
+}
+
 //
 int Get4510(RESULT_NORMAL *response)
 {
@@ -3488,6 +3557,9 @@ int GetDeviceIo(RESULT_NORMAL *response)
 		case 0xF206:
 			GetF206(response);
 			break;
+		case 0xF207:
+			GetF207(response);
+			break;
 		case 0xF209:	//ZB
 			response->datalen = GetF209(response->oad,response->data);
 			break;
@@ -3662,7 +3734,7 @@ int getRequestRecord(OAD oad,INT8U *data,CSINFO *csinfo,INT8U *sendbuf)
 	return 1;
 }
 
-
+//
 int getRequestRecordList(INT8U *data,CSINFO *csinfo,INT8U *sendbuf)
 {
 	RESULT_RECORD record={};
@@ -3686,7 +3758,9 @@ int getRequestRecordList(INT8U *data,CSINFO *csinfo,INT8U *sendbuf)
 		sourceindex += doGetrecord(GET_REQUEST_RECORD_LIST,oad,&data[sourceindex],&record,&subframe);
 		memcpy(&TmpDataBufList[destindex],record.data,record.datalen);
 		destindex += record.datalen;
+//		fprintf(stderr,"$$$$$$$$$$$$$$$$$$$$$$$$$$i=%d  record.datalen  ==== %d  subframe = %d\n\n\n\n",i,record.datalen,subframe);
 	}
+	fprintf(stderr,"!!!record.datalen  ==== %d  subframe = %d\n\n\n\n",record.datalen,subframe);
 	record.data = TmpDataBufList;
 	record.datalen = destindex;
 	if(subframe==1) {		//不分帧　原来判断＝０？有错
@@ -3697,9 +3771,64 @@ int getRequestRecordList(INT8U *data,CSINFO *csinfo,INT8U *sendbuf)
 		next_info.repsonseType = GET_REQUEST_RECORD_LIST;
 		BuildFrame_GetResponseNext(GET_REQUEST_RECORD_NEXT,csinfo,record.dar,record.datalen,record.data,sendbuf);
 	}
-///	securetype = 0;		//清除安全等级标识
+
 	return 1;
 }
+
+//int getRequestRecordList(INT8U *data,CSINFO *csinfo,INT8U *sendbuf)
+//{
+//	RESULT_RECORD record={};
+//	OAD	oad={};
+//	INT16U 		subframe=0;
+//	int i=0;
+//	int recordnum = 0;
+//	int destindex=0;
+//	int sourceindex=0;
+//
+//	memset(TmpDataBufList,0,sizeof(TmpDataBufList));
+//	recordnum = data[sourceindex++];
+//	fprintf(stderr,"getRequestRecordList  Result-record=%d \n ",recordnum);
+//	//一个RequestRecordList按照 resultRecord的个数，响应多个GetReponseRecordList，主站是否能正确解析后面的帧数据需要确认
+//	for(i=0;i<recordnum;i++) {
+//		destindex = 0;
+//		TmpDataBufList[destindex++] = 1;	//SEQUENCE OF A-ResultRecord
+//		memset(TmpDataBuf,0,sizeof(TmpDataBuf));
+//		record.data = TmpDataBuf;
+//		record.datalen = 0;
+//		sourceindex += getOAD(0,&data[sourceindex],&oad,NULL);
+//		record.oad = oad;
+//		sourceindex += doGetrecord(GET_REQUEST_RECORD_LIST,oad,&data[sourceindex],&record,&subframe);
+//		memcpy(&TmpDataBufList[destindex],record.data,record.datalen);
+//		record.datalen = (record.datalen+1);	//1：SEQUENCE OF A-ResultRecord， record.datalen = A-ResultRecord长度
+//		fprintf(stderr,"$$$$$$$$$$$$$$$$$$$$$$$$$$i=%d  record.datalen  ==== %d  subframe = %d\n\n\n\n",i,record.datalen,subframe);
+//		record.data = TmpDataBufList;
+//
+//		//模拟分帧上送
+//		next_info.subframeSum = recordnum;
+//		next_info.frameNo = i+1;
+//		next_info.repsonseType = GET_REQUEST_RECORD_LIST;
+//		BuildFrame_GetResponseNext(GET_REQUEST_RECORD_NEXT,csinfo,record.dar,record.datalen,record.data,sendbuf);
+//
+////		if(subframe==1) {		//不分帧　原来判断＝０？有错
+////			BuildFrame_GetResponseRecord(GET_REQUEST_RECORD_LIST,csinfo,record,sendbuf);//原来是GET_REQUEST_RECORD，是否有错？？
+////		}else  if(subframe>1){
+////			next_info.subframeSum = subframe;
+////			next_info.frameNo = 1;
+////			next_info.repsonseType = GET_REQUEST_RECORD_LIST;
+////			BuildFrame_GetResponseNext(GET_REQUEST_RECORD_NEXT,csinfo,record.dar,record.datalen,record.data,sendbuf);
+////		}
+//	}
+//	return 1;
+//}
+//
+//typedef struct {
+//	INT8U	repsonseType;		//分帧响应类型 CHOICE 	错误信息[0]   DAR，  对象属性[1]   SEQUENCE OF A-ResultNormal，记录型对象属性	[2] SEQUENCE OF A-ResultRecord
+//	INT8U	seqOfNum;			//用于保存sequence of a-ResultNormal的个数，ResultNormal的情况分帧时写入文件
+//	INT16U	subframeSum;		//Get 分帧总数
+//	INT16U	frameNo;			//帧序号
+//	INT16U	currSite;			//当前帧序号在文件中位置
+//	INT16U	nextSite;			//下一帧数据偏移位置
+//} NEXT_INFO;	//getResponseNext 需要保存的信息内容
 
 int getRequestNext(INT8U *data,CSINFO *csinfo,INT8U *sendbuf)
 {

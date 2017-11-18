@@ -2014,7 +2014,9 @@ INT16U GetOIinfo(OI_698 oi,INT8U rate,OI_INFO *oi_info)//得到oi的信息
 		case 0x2141:
 			oi_info->ic = 2;
 			oi_info->oinum = rate+1;//总加rate个费率
-			oi_info->io_unit = 2;//struct
+
+			oi_info->io_unit = 1;//array
+			oi_info->mem_unit = 2;//数组
 			oi_info->mem_num = 2;
 
 			oi_info->oi_mem[0].mem_unit = 6;

@@ -178,8 +178,8 @@ void SumUpRefreshPulseUnit(SumUpUnit* suu, PluseUnit * pu) {
 				continue;
 			}
 			fprintf(stderr, "找到总加组-脉冲配对 %d %d %d\n", s_i, p_i, index);
-			suu->class23[s_i].p = pu->class12[p_i].p;
-			suu->class23[s_i].q = pu->class12[p_i].q;
+			suu->class23[s_i].p = pu->class12[p_i].p * con;
+			suu->class23[s_i].q = pu->class12[p_i].q * con;
 
 			suu->class23[s_i].allist[index].curP[0] = 0;
 			suu->class23[s_i].allist[index].curQ[0] = 0;
@@ -280,8 +280,9 @@ int initAll() {
 	for (int i = 0; i < 2; ++i) {
 		memset(&JProgramInfo->class12[i], 0x00, sizeof(CLASS12));
 		readCoverClass(0x2401 + i, 0, &JProgramInfo->class12[i], sizeof(CLASS12), para_vari_save);
-		fprintf(stderr, "%d, %d\n", JProgramInfo->class12[i].pt, JProgramInfo->class12[i].ct);
+		fprintf(stderr, "%d, %d, %d\n\n\n\n\n", JProgramInfo->class12[i].pt, JProgramInfo->class12[i].ct, JProgramInfo->class12[i].pluse_count);
 	}
+	sleep(5);
 
 	readCoverClass(0x8100, 0, &CtrlC->c8100, sizeof(CLASS_8100), para_vari_save);
 	readCoverClass(0x8101, 0, &CtrlC->c8101, sizeof(CLASS_8101), para_vari_save);
@@ -309,6 +310,9 @@ int initAll() {
 
 	fprintf(stderr, "==============================ctrl init end============================\n");
 
+
+	readCoverClass(0xf205, 0, &CtrlC->cf205, sizeof(CLASS_F205),
+							para_vari_save);
 	return 0;
 }
 
@@ -426,7 +430,7 @@ int deal8103() {
 	static int count[8];
 
 	for (int i = 0; i < 8; i++) {
-		if (JProgramInfo->ctrls.c8103.enable[i].state == 0) {
+		if (JProgramInfo->ctrls.c8103.enable[i].state == 0 || JProgramInfo->ctrls.c8103.list[i].index == 0x00) {
 			step[i] = 0;
 			count[i] = 0;
 			JProgramInfo->ctrls.c8103.output[i].state = 0;
@@ -528,7 +532,7 @@ int deal8104() {
 	static int bar2[128];
 
 	for (int i = 0; i < 1; i++) {
-		if (JProgramInfo->ctrls.c8104.enable[i].state == 0) {
+		if (JProgramInfo->ctrls.c8104.enable[i].state == 0 || JProgramInfo->ctrls.c8104.list[i].index == 0x00) {
 			step[i] = 0;
 			count[i] = 0;
 			JProgramInfo->ctrls.c8104.output[i].state = 0;
@@ -614,7 +618,7 @@ int deal8105() {
 	static int count[8];
 
 	for (int i = 0; i < 8; i++) {
-		if (JProgramInfo->ctrls.c8105.enable[i].state == 0) {
+		if (JProgramInfo->ctrls.c8105.enable[i].state == 0 || JProgramInfo->ctrls.c8105.list[i].index == 0x00) {
 			step[i] = 0;
 			count[i] = 0;
 			JProgramInfo->ctrls.c8105.output[i].state = 0;
@@ -796,7 +800,7 @@ int deal8107() {
 
 	fprintf(stderr, "deal8107(%lld)\n", CtrlC->c8107.list[0].ctrl);
 	for (int i = 0; i < 1; i++) {
-		if (JProgramInfo->ctrls.c8107.enable[i].state == 0) {
+		if (JProgramInfo->ctrls.c8107.enable[i].state == 0 || JProgramInfo->ctrls.c8107.list[i].index == 0x00) {
 			JProgramInfo->ctrls.c8107.output[i].state = 0;
 			JProgramInfo->ctrls.c8107.overflow[i].state = 0;
 			JProgramInfo->class23[i].alConState.ECState &= ~128;
@@ -831,13 +835,15 @@ int deal8107() {
 				JProgramInfo->ctrls.c8107.output[i].state = 192;
 				JProgramInfo->ctrls.c8107.overflow[i].state = 0;
 				return 2;
-			}
-
-			if (mmm <= warn) {
+			} else if (mmm <= warn) {
 				fprintf(stderr, "购电控告警！！！！！！！！！！！！！！！！！！\n");
 				JProgramInfo->ctrls.c8107.output[i].state = 0;
 				JProgramInfo->ctrls.c8107.overflow[i].state = 1;
 				return 1;
+			}
+			else{
+				JProgramInfo->ctrls.c8107.output[i].state = 0;
+				JProgramInfo->ctrls.c8107.overflow[i].state = 0;
 			}
 		}
 	}
@@ -847,7 +853,7 @@ int deal8107() {
 int deal8108() {
 	fprintf(stderr, "deal8108(%lld)\n", CtrlC->c8108.list[0].v);
 	for (int i = 0; i < 1; i++) {
-		if (JProgramInfo->ctrls.c8108.enable[i].state == 0) {
+		if (JProgramInfo->ctrls.c8108.enable[i].state == 0 || JProgramInfo->ctrls.c8103.list[i].index == 0x00) {
 			JProgramInfo->ctrls.c8108.output[i].state = 0;
 			JProgramInfo->ctrls.c8108.overflow[i].state = 0;
 			JProgramInfo->class23[i].alConState.ECState &= ~64;
@@ -894,6 +900,17 @@ int deal8108() {
 }
 
 void dealCtrl() {
+
+	//如果保电不跳闸
+	if(CtrlC->c8001.state == 1)
+	{
+		//保电
+		return;
+	}else if(CtrlC->c8001.state == 2)
+	{
+		//zidong
+	}
+
 //直接跳闸，必须检测
 	deal8107();
 	deal8108();
@@ -904,13 +921,6 @@ void dealCtrl() {
 	deal8105();
 	deal8104();
 	deal8103();
-}
-
-void CheckInitPara() {
-	if (JProgramInfo->oi_changed.ctrlinit == 0x55) {
-		initAll();
-		JProgramInfo->oi_changed.ctrlinit = 0x00;
-	}
 }
 
 int SaveAll(void* arg) {
@@ -934,7 +944,19 @@ int SaveAll(void* arg) {
 			secOld = now.Sec;
 		}
 
-		if (secOld % 20 == 0) {
+		void CheckInitPara() {
+			if (JProgramInfo->oi_changed.ctrlinit == 0x55) {
+				system("rm /nand/para/230*");
+				system("rm /nand/para/240*");
+				system("rm /nand/para/81*");
+				sleept(3);
+				fprintf(stderr,"恢复出厂设置 重新载入参数！！！！！！！！");
+				initAll();
+				JProgramInfo->oi_changed.ctrlinit = 0x00;
+			}
+		}
+
+		if (secOld % 47 == 0) {
 			for (int i = 0; i < 8; ++i) {
 				sign = stb_crc32(&JProgramInfo->class23[i], sizeof(CLASS23));
 				if(sign != old_sign[i]){
@@ -1042,6 +1064,89 @@ void PackCtrlSituation() {
 	}
 
 	ctrlunit.ctrl.alm_state = (al == 0) ? 0 : 1;
+
+	//如果保电不跳闸
+	if(CtrlC->c8001.state == 1)
+	{
+		//保电
+		return;
+	}else if(CtrlC->c8001.state == 2)
+	{
+		//zidong
+	}
+
+	//汇总遥控命令
+	static int old_state1 = 0;
+	static int old_state2 = 0;
+
+	fprintf(stderr, "CtrlC->c8000.openclose[0] == %04x\n", CtrlC->c8000.openclose[0]);
+	if (CtrlC->c8000.openclose[0] == 0x5555)
+	{
+		fprintf(stderr, "CtrlC->c8000.openclose[0] == 0x5555\n");
+		ctrlunit.ctrl.lun1_state = 1;
+	}
+	if (CtrlC->c8000.openclose[0] == 0xCCCC)
+	{
+		fprintf(stderr, "CtrlC->c8000.openclose[0] == 0xCCCC\n");
+		ctrlunit.ctrl.lun1_state = 0;
+	}
+
+	if (CtrlC->c8000.openclose[1] == 0x5555)
+	{
+		ctrlunit.ctrl.lun2_state = 1;
+	}
+	if (CtrlC->c8000.openclose[1] == 0xCCCC)
+	{
+		ctrlunit.ctrl.lun2_state = 0;
+	}
+
+	if (CtrlC->c8000.openclose[0] != old_state1 || CtrlC->c8000.openclose[1] != old_state2)
+	{
+		old_state1 = CtrlC->c8000.openclose[0];
+		old_state2 = CtrlC->c8000.openclose[1];
+		CtrlC->control_event = 1;
+	}
+
+	static int cf205_s1 = 0;
+	static int cf205_s2 = 0;
+
+	//置F205状态
+	CtrlC->cf205.unit[0].currentState = ctrlunit.ctrl.lun1_state;
+	CtrlC->cf205.unit[1].currentState = ctrlunit.ctrl.lun2_state;
+
+	if(CtrlC->cf205.unit[0].currentState != cf205_s1 || CtrlC->cf205.unit[1].currentState != cf205_s2)
+	{
+		cf205_s1 = CtrlC->cf205.unit[0].currentState;
+		cf205_s2 = CtrlC->cf205.unit[1].currentState;
+		saveCoverClass(0xf205, 0, &CtrlC->cf205, sizeof(CLASS_F205),
+						para_vari_save);
+	}
+
+	fprintf(stderr, "ctrlunit.ctrl.lun1_state = %d %d\n", ctrlunit.ctrl.lun1_state, CtrlC->cf205.unit[0].currentState);
+	fprintf(stderr, "ctrlunit.ctrl.lun2_state = %d %d\n", ctrlunit.ctrl.lun2_state, CtrlC->cf205.unit[1].currentState);
+
+
+	//置8000继电器告警状态
+	if (CtrlC->cf205.unit[0].currentState == 1){
+		CtrlC->c8000.cmdstate = stb_setbit8(CtrlC->c8000.cmdstate, 7);
+	}
+	else{
+		CtrlC->c8000.cmdstate = 0;
+	}
+	if (CtrlC->cf205.unit[1].currentState == 1){
+		CtrlC->c8000.cmdstate = stb_setbit8(CtrlC->c8000.cmdstate, 6);
+	}
+	else {
+		CtrlC->c8000.cmdstate = 0;
+	}
+
+	if (ctrlunit.ctrl.alm_state == 0)
+	{
+		ctrlunit.ctrl.alm_state = 1;
+	}else{
+		ctrlunit.ctrl.alm_state = 0;
+	}
+
 
 	fprintf(stderr, "遥控模块最后汇总[%d %d %d] %d %d %d %d\n", ctrlunit.ctrl.alm_state,
 			ctrlunit.ctrl.gongk_led, ctrlunit.ctrl.diank_led, ctrlunit.ctrl.lun1_red,
@@ -1206,9 +1311,7 @@ int ctrlMain(void* arg) {
 	pluseInitUnit(&pu, JProgramInfo);
 	sumUpInitUnit(&suu, JProgramInfo);
 
-//test filed
 	if (0) {
-
 		for (int i = 0; i < 8; i++) {
 			JProgramInfo->class23[i].allist[0].al_flag = 0;
 			JProgramInfo->class23[i].allist[0].cal_flag = 0;
@@ -1378,13 +1481,13 @@ int ctrlMain(void* arg) {
 
 		if (secOld % 5 == 0) {
 			dealCtrl();
-			CtrlStateSumUp();
 		}
 
-		ShaningLED_F206();
-
+		CtrlStateSumUp();
 		PackCtrlSituation();
+		ShaningLED_F206();
 		DoActuallyCtrl();
+
 		HandlerCtrl();
 		CheckCtrlControl();
 	}

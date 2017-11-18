@@ -456,8 +456,8 @@ typedef struct {
 	ACCoe_SAVE 		Accoepara;
 	_RealData		ACSRealData;		//计量芯片实时数据
 	ACEnergy_Sum	ACSEnergy;			//计量芯片电能量数据
-	CLASS12			class12[2];			//脉冲计量
-	CLASS23			class23[8];			//总加组
+	CLASS12			class12[MAX_PULSE_NUM];			//脉冲计量
+	CLASS23			class23[MAX_AL_UNIT];			//总加组
 	CtrlState		ctrls;				//专变参数-为液晶共享数据
 //	TerminalTj		TjData;				//终端统计数据
 	ProjectInfo		Projects[PROJECTCOUNT];	//子程序信息
