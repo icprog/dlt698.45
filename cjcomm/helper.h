@@ -22,6 +22,7 @@ int helperComOpen9600(int port, int baud, unsigned char par, unsigned char stopb
 
 int helperReadPositionGet(int length);
 void helperPeerStat(int fd, char *info);
+void helperChangeNetType();
 
 MASTER_STATION_INFO helperGetNextNetIp();
 MASTER_STATION_INFO helperGetNextGPRSIp();
