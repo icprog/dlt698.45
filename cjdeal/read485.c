@@ -635,7 +635,6 @@ INT16S ReceDataFrom485(METER_PROTOCOL meterPro,INT8U port485, INT16U delayms, IN
  * 485口发送
  */
 void SendDataTo485(INT8U port485, INT8U *sendbuf, INT16U sendlen) {
-
 	INT32S fd = comfd485[port485-1];
 
 	ssize_t slen;
@@ -643,16 +642,6 @@ void SendDataTo485(INT8U port485, INT8U *sendbuf, INT16U sendlen) {
 	INT8U str[50];
 	memset(str, 0, 50);
 
-	//698协议和645-07协议明确要求, 用串行总线传输报文时, 先在前面加4个
-	//0xFE, 唤醒总线设备
-	INT8U tmpbuf[512];
-	tmpbuf[0] = 0xfe;
-	tmpbuf[1] = 0xfe;
-	tmpbuf[2] = 0xfe;
-	tmpbuf[3] = 0xfe;
-	memcpy(&tmpbuf[4],sendbuf,sendlen);
-	sendlen += 4;
-	memcpy(sendbuf,tmpbuf,sendlen);
 #if 1
 	sprintf((char *) str, "485(%d)_S(%d):", port485, sendlen);
 	printbuff((char *) str, sendbuf, sendlen, "%02x", " ", "\n");
@@ -1620,7 +1609,9 @@ INT16S request698_07Data(INT8U* DI07,INT8U* dataContent,CLASS_6001 meter,CLASS_6
 			Data07.Addr[0],Data07.Addr[1],Data07.Addr[2],Data07.Addr[3],Data07.Addr[4],Data07.Addr[5],
 			DI07[0],DI07[1],DI07[2],DI07[3]);
 
+	DEBUG_TIME_LINE("Ctrl: %02X", Data07.Ctrl);
 	SendLen = composeProtocol07(&Data07, SendBuff);
+	DEBUG_TIME_LINE("SendLen: %d", SendLen);
 	if (SendLen < 0)
 	{
 		fprintf(stderr, "request698_07DataList1");
@@ -3646,7 +3637,25 @@ INT16S dealCurve_698(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT
 							freezeTimeStamp.Minute = oadListContent[index2021].data[6];
 							freezeTimeStamp.Sec = oadListContent[index2021].data[7];
 							freezeTimeStamp.Week = 0;
-							saveREADOADdata(st6035->taskID,to6001.basicinfo.addr,oadListContent,rcvCSDnum,freezeTimeStamp);
+							if(getZone("ZheJiang") == 0)
+							{
+									oadListContent[rcvCSDnum].oad_m.OI = 0x6040;
+									oadListContent[rcvCSDnum].oad_m.attflg = 0x02;
+									oadListContent[rcvCSDnum].oad_m.attrindex = 0;
+									oadListContent[rcvCSDnum].datalen = fill_date_time_s(oadListContent[rcvCSDnum].data, &st6035->starttime);
+
+									DateTimeBCD nowTime;
+									DataTimeGet(&nowTime);
+									oadListContent[rcvCSDnum+1].oad_m.OI = 0x6041;
+									oadListContent[rcvCSDnum+1].oad_m.attflg = 0x02;
+									oadListContent[rcvCSDnum+1].oad_m.attrindex = 0;
+									oadListContent[rcvCSDnum+1].datalen = fill_date_time_s(oadListContent[rcvCSDnum+1].data, &nowTime);
+									saveREADOADdata(st6035->taskID,to6001.basicinfo.addr,oadListContent,rcvCSDnum+2,freezeTimeStamp);
+							}
+							else
+							{
+								saveREADOADdata(st6035->taskID,to6001.basicinfo.addr,oadListContent,rcvCSDnum,freezeTimeStamp);
+							}
 						}
 
 					}
@@ -3730,8 +3739,26 @@ INT16S deal6015_698(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8
 				//存储数据
 				TS OADts;
 				TSGet(&OADts);
-				saveREADOADdata(st6035->taskID,to6001.basicinfo.addr,oadListContent,dataCount,OADts);
 
+				if(getZone("ZheJiang") == 0)
+				{
+						oadListContent[dataCount].oad_m.OI = 0x6040;
+						oadListContent[dataCount].oad_m.attflg = 0x02;
+						oadListContent[dataCount].oad_m.attrindex = 0;
+						oadListContent[dataCount].datalen = fill_date_time_s(oadListContent[dataCount].data, &st6035->starttime);
+
+						DateTimeBCD nowTime;
+						TsToTimeBCD(OADts, &nowTime);
+						oadListContent[dataCount+1].oad_m.OI = 0x6041;
+						oadListContent[dataCount+1].oad_m.attflg = 0x02;
+						oadListContent[dataCount+1].oad_m.attrindex = 0;
+						oadListContent[dataCount+1].datalen = fill_date_time_s(oadListContent[dataCount+1].data, &nowTime);
+						saveREADOADdata(st6035->taskID,to6001.basicinfo.addr,oadListContent,dataCount+2,OADts);
+				}
+				else
+				{
+					saveREADOADdata(st6035->taskID,to6001.basicinfo.addr,oadListContent,dataCount,OADts);
+				}
 				//判断事件
 				if((getResponseType < GET_REQUEST_RECORD)&&(st6035->taskID > 0))
 				{
@@ -4051,7 +4078,26 @@ INT16S deal6015_9707(INT8U protocol,CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6
 
 			}
 		}
-		saveREADOADdata(st6035->taskID,to6001.basicinfo.addr,OADdata,oadDataNum,OADts);
+
+		if(getZone("ZheJiang") == 0)
+		{
+			OADdata[oadDataNum].oad_m.OI = 0x6040;
+			OADdata[oadDataNum].oad_m.attflg = 0x02;
+			OADdata[oadDataNum].oad_m.attrindex = 0;
+			OADdata[oadDataNum].datalen = fill_date_time_s(OADdata[oadDataNum].data, &st6035->starttime);
+
+			DateTimeBCD nowTime;
+			TsToTimeBCD(OADts, &nowTime);
+			OADdata[oadDataNum+1].oad_m.OI = 0x6041;
+			OADdata[oadDataNum+1].oad_m.attflg = 0x02;
+			OADdata[oadDataNum+1].oad_m.attrindex = 0;
+			OADdata[oadDataNum+1].datalen = fill_date_time_s(OADdata[oadDataNum+1].data, &nowTime);
+			saveREADOADdata(st6035->taskID,to6001.basicinfo.addr,OADdata,oadDataNum+2,OADts);
+		}
+		else
+		{
+			saveREADOADdata(st6035->taskID,to6001.basicinfo.addr,OADdata,oadDataNum,OADts);
+		}
 	}
 
 #endif

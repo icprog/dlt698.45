@@ -1974,8 +1974,8 @@ INT16U GetOIinfo(OI_698 oi,INT8U rate,OI_INFO *oi_info)//得到oi的信息
 		oi_info->oi_mem[0].mem_len = 4;
 		oi_info->oi_mem[0].mem_chg = 14;//-4
 
-		oi_info->oi_mem[1].mem_unit = 30;
-		oi_info->oi_mem[1].mem_len = 6;
+		oi_info->oi_mem[1].mem_unit = 28;
+		oi_info->oi_mem[1].mem_len = 7;
 		oi_info->oi_mem[1].mem_chg = 0;
 		switch(oi)
 		{
@@ -2014,15 +2014,17 @@ INT16U GetOIinfo(OI_698 oi,INT8U rate,OI_INFO *oi_info)//得到oi的信息
 		case 0x2141:
 			oi_info->ic = 2;
 			oi_info->oinum = rate+1;//总加rate个费率
-			oi_info->io_unit = 2;//struct
+
+			oi_info->io_unit = 1;//array
+			oi_info->mem_unit = 2;//数组
 			oi_info->mem_num = 2;
 
 			oi_info->oi_mem[0].mem_unit = 6;
 			oi_info->oi_mem[0].mem_len = 4;
 			oi_info->oi_mem[0].mem_chg = 14;
 
-			oi_info->oi_mem[1].mem_unit = 30;
-			oi_info->oi_mem[1].mem_len = 6;
+			oi_info->oi_mem[1].mem_unit = 28;
+			oi_info->oi_mem[1].mem_len = 7;
 			oi_info->oi_mem[1].mem_chg = 0;
 			break;
 			////////////////////////////////////////////////////////ic = 3
@@ -2112,10 +2114,10 @@ INT16U GetOIinfo(OI_698 oi,INT8U rate,OI_INFO *oi_info)//得到oi的信息
 			oi_info->ic = 6;
 			oi_info->oinum = 7;
 			oi_info->io_unit = 1;//array
-			oi_info->mem_num = 2;
+			oi_info->mem_num = 1;
 			oi_info->oi_mem[0].mem_chg = 0;//
-			oi_info->oi_mem[0].mem_len = 1;
-			oi_info->oi_mem[0].mem_unit = 9;
+			oi_info->oi_mem[0].mem_len = 3;
+			oi_info->oi_mem[0].mem_unit = 4;
 			break;
 		case 0x2015:
 			oi_info->ic = 6;
@@ -2419,15 +2421,20 @@ INT16U CalcOIDataLen(OAD oad)
 		fprintf(stderr,"\noi_info.io_unit=%d oi=%04x\n",oi_info.io_unit,oad.OI);
 		if(oi_info.io_unit == 2 && (oad.OI == 0x2131 || oad.OI == 0x2132 || oad.OI == 0x2133))
 		{
-			fprintf(stderr,"\noi_info.mem_num=%d\n",oi_info.mem_num);
+			fprintf(stderr,"\n1oi_info.mem_num=%d\n",oi_info.mem_num);
 			oi_len = 2;//类型加个数
 			for(i=0;i<oi_info.mem_num;i++)
 			{
 				oi_len += oi_info.oi_mem[i].mem_len+1;
 			}
 		}
-		else
-			oi_len = oi_info.oi_mem[0].mem_len+1;
+		else if(oi_info.mem_unit == 2) {//数组里面有结构体
+			fprintf(stderr,"\n2oi_info.mem_num=%d\n",oi_info.mem_num);
+			oi_len = 2;//类型加个数
+			for(i=0;i<oi_info.mem_num;i++)
+				oi_len += oi_info.oi_mem[i].mem_len+1;
+			} else
+				oi_len = oi_info.oi_mem[0].mem_len+1;
 	}
 	fprintf(stderr,"\n0x%04x-02%02x计算的长度为%d\n",oad.OI,oad.attrindex,oi_len);
 	return oi_len;

@@ -482,8 +482,6 @@ INT16U set4024(OAD oad,INT8U *data,INT8U *DAR)
 		int state = data[1];
 		fprintf(stderr, "剔除状态变更 %d\n", state);
 		memp->ctrls.c4024 = state;
-		//测试要求，不知是为什么
-		memp->ctrls.c8100.v = 5000;
 	}
 	return index;
 }

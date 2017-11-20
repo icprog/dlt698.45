@@ -998,8 +998,8 @@ void memDataInit(INT8U type,ProgramInfo *memp)
 			clearClass23Data(&memp->class23[i]);
 		}
 	}else {
-		memset(&memp->class12,0,sizeof(memp->class12));
-		memset(&memp->class23,0,sizeof(memp->class23));
+//		memset(&memp->class12,0,sizeof(memp->class12));
+//		memset(&memp->class23,0,sizeof(memp->class23));
 	}
 }
 
@@ -1026,7 +1026,7 @@ void TerminalInfo(INT16U attr_act, INT8U *data, Action_result *act_ret)
         			index += getOAD(1,&data[index],&oad[i],&act_ret->DAR);
         		}
         	}
-        	memDataInit(0,memp);	//数据初始化后将内存值清零，oichange.ctrlinit = 0x55,控制模块进行初始化参数为默认init参数值
+        	memDataInit(0,memp);	//数据初始化后将内存值清零，同时删除para文件夹，将oichange.ctrlinit = 0x55,控制模块进行初始化参数为默认init参数值
         	paraInit(oadnum,oad);
         	//清除总表计量电量
         	clearEnergy();
