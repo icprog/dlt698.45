@@ -8,7 +8,6 @@
 #include "show_ctrl.h"
 #define OFFSET_Y 3
 #define TIMEOUT_SHORT 2
-#pragma message("\n\n************************************\n SPTF_III__Compiling............\n************************************\n")
 extern void jzq_id_edit();
 extern void menu_set_nettx();
 extern void menu_set_wlantx();
