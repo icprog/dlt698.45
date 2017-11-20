@@ -64,7 +64,7 @@ void pluseCalcDD(PluseUnit * pu) {
 		con = (pulse * 10000.0) / con;
 
 		int time_zone = pluseGetTimeZone();
-
+		fprintf(stderr,"time_zone = %d\n",time_zone);
 		switch (pu->class12[index].unit[index].conf) {
 		case 0:
 			pu->class12[index].val_pos_p[time_zone] += con;

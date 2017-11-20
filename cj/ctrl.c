@@ -281,6 +281,7 @@ void pluseTest(OI_698 oi,CLASS12	class12)
 	fprintf(stderr,"att16 :反向有功电能示值=%d-%d-%d-%d\n",class12.val_nag_p[0],class12.val_nag_p[1],class12.val_nag_p[2],class12.val_nag_p[3]);
 	fprintf(stderr,"att17 :正向无功电能示值=%d-%d-%d-%d\n",class12.val_pos_q[0],class12.val_pos_q[1],class12.val_pos_q[2],class12.val_pos_q[3]);
 	fprintf(stderr,"att18 :反向无功电能示值=%d-%d-%d-%d\n",class12.val_nag_q[0],class12.val_nag_q[1],class12.val_nag_q[2],class12.val_nag_q[3]);
+	fprintf(stderr,"pulse_count = %d\n",class12.pluse_count);
 }
 
 void sumgroupTest(OI_698 oi,CLASS23	class23)
