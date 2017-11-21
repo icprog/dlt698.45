@@ -1353,9 +1353,14 @@ int Echo_Frame(RUNTIME_PLC *runtime_p,INT8U *framebuf,int len)
 		flag = 0;
 		len = 0;
 		sleep(5);
-	}else
+	}else if (len==-1)
 	{
 		flag = 1;
+		len  = 0;
+	}
+	else
+	{
+		flag = 0;
 		len = 0;
 	}
 	memcpy(runtime_p->format_Down.addr.SourceAddr,runtime_p->masteraddr,6);
@@ -2258,7 +2263,7 @@ int ProcessMeter(INT8U *buf,struct Tsa_Node *desnode)
 			result6035.successMSNum = result6035.successMSNum > tsaNum?result6035.successMSNum:tsaNum;
 			saveClass6035(&result6035);
 	    }
-		sendlen = 2;
+		sendlen = 0;
 	}
 	return sendlen;
 }
@@ -3023,7 +3028,7 @@ int doTask(RUNTIME_PLC *runtime_p)
 				}else
 				{
 					DbgPrintToFile1(31,"请求抄读电表不在集中器内");
-					sendlen = 2;
+					sendlen = -1;
 				}
 				flag= Echo_Frame( runtime_p,buf645,sendlen);//内部根据sendlen判断抄表 / 切表
 				if (flag==0 || flag == 1)
