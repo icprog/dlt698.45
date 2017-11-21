@@ -4366,10 +4366,14 @@ int getOneEvent(INT8U *addr,INT8U *buf)
 					nextFlag=0;
 					memset(buf,0,BUFSIZE645);
 					Data07.Ctrl = 0x11;//读数据
-					memcpy(Data07.Addr, addr, 6);
+//					memcpy(Data07.Addr, addr, 6);
+					reversebuff(addr,6,Data07.Addr);
 					memcpy(Data07.DI, dataFlag, 4);
 					sendLen645 = composeProtocol07(&Data07, buf);
-					DbgPrintToFile1(31,"FLAG07 %02x%02x%02x%02x   sendLen645=%d  ctrl=%02x",dataFlag[0],dataFlag[1],dataFlag[2],dataFlag[3],sendLen645,Data07.Ctrl);
+					DbgPrintToFile1(31,"addr=%02x%02x%02x%02x%02x%02x FLAG07 %02x%02x%02x%02x   sendLen645=%d  ctrl=%02x",
+							Data07.Addr[0],Data07.Addr[1],Data07.Addr[2],Data07.Addr[3],
+							Data07.Addr[4],Data07.Addr[5],Data07.Addr[6],Data07.Addr[7],
+							dataFlag[0],dataFlag[1],dataFlag[2],dataFlag[3],sendLen645,Data07.Ctrl);
 					return sendLen645;
 				}
 			}

@@ -1346,7 +1346,7 @@ void myBCDtoASC1(char val, char dest[2])
 	}
 }
 
-
+//打印内容：DB.ifr.name = 1;//DB.serial.name = 2;//DB.serial_hn.name = 5;//DB.net.name = 3;//DB.gprs.name = 4;
 void PacketBufToFile(INT8U type,char *prefix, char *buf, int len, char *suffix)
 {
 //	return ;
