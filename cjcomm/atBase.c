@@ -458,6 +458,7 @@ int AtPrepare(ATOBJ *ao) {
 	case 16:
 		if (retry > 35) {
 			ao->state = 0;
+			helperChangeNetType();
 			return 100;
 		}
 		AtSendCmd(ao, "\rAT+CREG?\r", 10);
@@ -735,6 +736,7 @@ int AtPrepare(ATOBJ *ao) {
 	case AT_FINISH_PREPARE:
 		if (retry > 10) {
 			ao->state = 0;
+			helperChangeNetType();
 			return 1000;
 		}
 		retry++;
