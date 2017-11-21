@@ -311,9 +311,9 @@ INT16U  composeAutoTask(AutoTaskStrap *list, rptInfo_s* rptInfo_p)
 	{
 //		asyslog(LOG_INFO,"任务上报时间%ld, %ld\n", list->nexttime, timenow);
 		timebcd = timet_bcd(timenow);
-		asyslog(LOG_INFO,"[任务上报时间%ld, %ld]: %04d:%02d:%02d %02d:%02d:%02d\n",list->nexttime, timenow,
-				timebcd.year.data,timebcd.month.data,timebcd.day.data,
-				timebcd.hour.data,timebcd.min.data,timebcd.sec.data);
+//		asyslog(LOG_INFO,"[任务上报时间%ld, %ld]: %04d:%02d:%02d %02d:%02d:%02d\n",list->nexttime, timenow,
+//				timebcd.year.data,timebcd.month.data,timebcd.day.data,
+//				timebcd.hour.data,timebcd.min.data,timebcd.sec.data);
 
 		if (readCoverClass(0x6013, list->ID, &class6013, sizeof(CLASS_6013),coll_para_save) == 1)
 		{

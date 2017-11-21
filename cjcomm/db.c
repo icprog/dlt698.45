@@ -203,5 +203,18 @@ int dbSet(char * name, void* data) {
 	if (strcmp("mmq.retry_count", name) == 0) {
 		DB.retry_count = (int) data;
 	}
+
+	if(strcmp("model_2g", name)) {
+		switch ((int)data) {
+			case 0x11:
+			case 0x22:
+			case 0x33:
+			case 0x44:
+			case 0x55:
+				DB.model_2g = (int) data;
+			default:
+				DB.model_2g = 0x00;
+		}
+	}
 	return 1;
 }
