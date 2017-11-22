@@ -1235,13 +1235,13 @@ void DoActuallyCtrl() {
 	if ((ctrlunit.u16b & 0x3ff) ^ (ctrlunit_old.u16b & 0x3ff)) {
 		ctrlunit_old.u16b = ctrlunit.u16b;
 		asyslog(LOG_NOTICE, "接收到控制命令：控制状态【%04x】 原状态【%04x】", ctrlunit.u16b, ctrlunit_old.u16b);
-		InitCtrlModel();
-		int fd = OpenSerialPort();
-		SetCtrl_CMD(fd, ctrlunit.ctrl.lun1_state, ctrlunit.ctrl.lun1_red, ctrlunit.ctrl.lun1_green,
+//		InitCtrlModel();
+//		int fd = OpenSerialPort();
+		SetCtrl_CMD(0, ctrlunit.ctrl.lun1_state, ctrlunit.ctrl.lun1_red, ctrlunit.ctrl.lun1_green,
 				ctrlunit.ctrl.lun2_state, ctrlunit.ctrl.lun2_red, ctrlunit.ctrl.lun2_green,
 				ctrlunit.ctrl.gongk_led, ctrlunit.ctrl.diank_led, ctrlunit.ctrl.alm_state,
 				ctrlunit.ctrl.baodian_led);
-		close(fd);
+//		close(fd);
 	}
 }
 int gpofun(char *devname, int data) {
