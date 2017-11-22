@@ -94,7 +94,7 @@ int InitPara() {
 	 * 初始化698-07-97数据对应关系结构体map07DI_698OAD
 	 * */
 	map07DI_698OAD_NUM = initMap07DI_698OAD();
-
+	memset(&proxyInUse,0,sizeof(proxyInUse));
 	return 0;
 }
 

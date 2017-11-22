@@ -294,7 +294,7 @@ int CheckTail(unsigned char * buf, INT16U length) {
 		if (cs16 == fcs16) {
 			return 1;
 		} else {
-			fprintf(stderr, "\n帧尾校验错误!");
+			fprintf(stderr, "\n帧尾校验错误!   %04x %04x",cs16,fcs16);
 		}
 	}
 	return 0;
