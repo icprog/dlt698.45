@@ -2022,9 +2022,9 @@ INT8U deal698RequestResponse(INT8U getResponseType,INT8U csdNum,INT8U* apdudata,
 				{
 					dataCount++;
 				}
-				if(dataCount >= ROAD_OADS_NUM)
+				if(dataCount >= OADS_NUM_485_ONCEREAD)
 				{
-					asyslog(LOG_NOTICE,"ROAD_OADS_NUM dataCount > ROAD_OADS_NUM");
+					asyslog(LOG_NOTICE,"dataCount dataCount > OADS_NUM_485_ONCEREAD");
 					break;
 				}
 			}
@@ -2046,9 +2046,9 @@ INT8U deal698RequestResponse(INT8U getResponseType,INT8U csdNum,INT8U* apdudata,
 					apdudataIndex += oaddataLen;
 					dataCount += rcvCSDnum;
 				}
-				if(dataCount >= ROAD_OADS_NUM)
+				if(dataCount >= OADS_NUM_485_ONCEREAD)
 				{
-					asyslog(LOG_NOTICE,"ROAD_OADS_NUM dataCount > ROAD_OADS_NUM");
+					asyslog(LOG_NOTICE,"dataCount dataCount > OADS_NUM_485_ONCEREAD");
 					break;
 				}
 			}
@@ -3721,8 +3721,8 @@ INT16S deal6015_698(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8
 					}
 				}
 	#endif
-				OADDATA_SAVE oadListContent[ROAD_OADS_NUM];
-				memset(oadListContent,0,ROAD_OADS_NUM*sizeof(OADDATA_SAVE));
+				OADDATA_SAVE oadListContent[OADS_NUM_485_ONCEREAD];
+				memset(oadListContent,0,OADS_NUM_485_ONCEREAD*sizeof(OADDATA_SAVE));
 				INT16U apdudatalen = 0;
 				dataCount = deal698RequestResponse(getResponseType,csdNum,&recvbuff[apduDataStartIndex],oadListContent,&apdudatalen);
 
@@ -4436,7 +4436,28 @@ INT16S deal6017_07(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8U
 
 	return 0;
 }
+INT8U getsub6015(INT8U subIndex,CLASS_6015 source6015,CLASS_6015* desst6015)
+{
+	memset(desst6015,0,sizeof(CLASS_6015));
+	INT8U ret = 0;
+	if (source6015.cjtype == TYPE_NULL)
+	{
+		memcpy(desst6015,&source6015,sizeof(CLASS_6015));
+		if(subIndex==0)
+		{
+			desst6015->csds.num = OADS_NUM_485_ONCEREAD;
+			return ret;
+		}
+		else
+		{
+			desst6015->csds.num -= subIndex*OADS_NUM_485_ONCEREAD;
+			memset(desst6015->csds.csd,0,sizeof(MY_CSD)*MY_CSD_NUM);
+			memcpy(desst6015->csds.csd,&source6015.csds.csd[subIndex*OADS_NUM_485_ONCEREAD],sizeof(MY_CSD)*desst6015->csds.num);
+		}
 
+	}
+	return ret;
+}
 /*
  * 抄读1个测量点
  */
@@ -4469,7 +4490,34 @@ INT16S deal6015or6017_singlemeter(CLASS_6013 st6013,CLASS_6015 st6015,CLASS_6001
 					//曲线　　每次抄一小时的数据
 					if(st6015.cjtype != TYPE_INTERVAL)
 					{
-						ret = deal6015_698(st6015,obj6001,st6035,port485);
+						INT8U csdcount = st6015.csds.num;
+
+						if(st6015.cjtype !=TYPE_NULL)
+						{
+							csdcount = st6015.csds.csd[0].csd.road.num;
+						}
+						INT8U readTimes = (csdcount/OADS_NUM_485_ONCEREAD)+1;
+						if(csdcount%OADS_NUM_485_ONCEREAD==0)
+						{
+							readTimes -= 1;
+						}
+						if(readTimes==1)
+						{
+							ret = deal6015_698(st6015,obj6001,st6035,port485);
+						}
+						else
+						{
+							//数据项超过10分开抄
+							INT8U readIndex = 0;
+							for (readIndex = 0;readIndex < readTimes;readIndex++)
+							{
+								CLASS_6015 st6015sub;
+								getsub6015(readIndex,st6015,&st6015sub);
+								ret = deal6015_698(st6015sub,obj6001,st6035,port485);
+							}
+						}
+
+
 					}
 					else
 					{
