@@ -1788,14 +1788,14 @@ INT8U getSinglegOADDataUnit(INT8U* oadData)
 		{
 			length++;
 			INT8U arrayNum = oadData[length++];
-			fprintf(stderr,"\n arrayNum = %d\n",arrayNum);
+			//fprintf(stderr,"\n arrayNum = %d\n",arrayNum);
 			INT8U arrayNumIndex = 0;
 			for(arrayNumIndex = 0;arrayNumIndex < arrayNum;arrayNumIndex++)
 			{
 				if((oadData[length] == dtarray)||(oadData[length] == dtstructure))
 				{
 					dataUnitLen = getSinglegOADDataUnit(&oadData[length]);
-					length++;
+					//fprintf(stderr,"\n 1111  dataUnitLen = %d\n",dataUnitLen);
 					length += dataUnitLen;
 				}
 				else
@@ -1811,11 +1811,12 @@ INT8U getSinglegOADDataUnit(INT8U* oadData)
 		{
 			length++;
 			INT8U structMemberNum = oadData[length++];
-			fprintf(stderr,"\n structMemberNum = %d\n",structMemberNum);
+			//fprintf(stderr,"\n structMemberNum = %d\n",structMemberNum);
 			INT8U structMemberIndex = 0;
 			for(structMemberIndex = 0;structMemberIndex < structMemberNum;structMemberIndex++)
 			{
 				dataUnitLen = getBase_DataTypeLen(oadData[length],oadData[length+1]);
+			//	fprintf(stderr,"\n 22222  dataUnitLen = %d\n",dataUnitLen);
 				length++;
 				length += dataUnitLen;
 			}
