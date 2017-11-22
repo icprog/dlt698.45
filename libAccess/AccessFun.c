@@ -1933,8 +1933,8 @@ INT16U GetOIinfo(OI_698 oi,INT8U rate,OI_INFO *oi_info)//得到oi的信息
 	oi_info->oinum = 1;//默认1
 	oi_info->mem_num = 1;//默认1 不是默认值修改
 	oi_info->io_unit = 0;//只有array和struct才赋值
-	fprintf(stderr,"\noi=%04x\n",oi);
-	fprintf(stderr,"\n-----case %d\n",((oi&0xf000)>>12));
+//	fprintf(stderr,"\noi=%04x\n",oi);
+//	fprintf(stderr,"\n-----case %d\n",((oi&0xf000)>>12));
 	switch((oi&0xf000)>>12)//穷举
 	{
 	case 0:
@@ -2382,7 +2382,7 @@ INT16U CalcOIDataLen(OAD oad)
 
 	GetOIinfo(oad.OI,4,&oi_info);
 
-	fprintf(stderr,"\n---------------oi_info.io_unit=%d\n",oi_info.io_unit);
+//	fprintf(stderr,"\n---------------oi_info.io_unit=%d\n",oi_info.io_unit);
 	if(oad.attrindex == 0)
 	{
 		switch(oi_info.io_unit)
@@ -2436,7 +2436,7 @@ INT16U CalcOIDataLen(OAD oad)
 			} else
 				oi_len = oi_info.oi_mem[0].mem_len+1;
 	}
-	fprintf(stderr,"\n0x%04x-02%02x计算的长度为%d\n",oad.OI,oad.attrindex,oi_len);
+//	fprintf(stderr,"\n0x%04x-02%02x计算的长度为%d\n",oad.OI,oad.attrindex,oi_len);
 	return oi_len;
 }
 
@@ -3194,11 +3194,11 @@ void saveOneFrame1(INT8U *buf,int len)
 	else
 		fprintf(stderr,"\n帧文件流 NULL\n");
 }
-FILE* openFramefile(char *filename)
+FILE* openFramefile(char *filename,int addflg)
 {
 	FILE *fp = NULL;
 
-	if (access(filename,0)==0)
+	if (access(filename,0)==0 && addflg == 0)
 	{
 		fp = fopen(filename,"w");
 		fclose(fp);
@@ -3456,7 +3456,7 @@ int fillTsaNullData(INT8U *databuf,TSA tsa,ROAD_ITEM item_road)
 	return pindex;
 }
 //此招测类型用于招测的数据在一天,两个传进来的时间必须在同一天
-INT16U dealselect5(OAD oad_h,CSD_ARRAYTYPE csds,TS ts_start,TS ts_end,INT32U zc_sec,INT16U tsa_num,CLASS_6001 *tsa_group,INT16U frmmaxsize)
+INT16U dealselect5(OAD oad_h,CSD_ARRAYTYPE csds,TS ts_start,TS ts_end,INT32U zc_sec,INT16U tsa_num,CLASS_6001 *tsa_group,INT16U frmmaxsize,int frmadd_flg)
 {
 	char fname[FILENAMELEN]={};
 	INT8U taskid,recorddata[2048],frmdata[2048],seqnumindex=0,frz_type=0;
@@ -3562,7 +3562,7 @@ INT16U dealselect5(OAD oad_h,CSD_ARRAYTYPE csds,TS ts_start,TS ts_end,INT32U zc_
 	GetOADPosofUnit(item_road,headoad_unit,taskhead_info.oadnum,oad_offset);//得到每一个oad在块数据中的偏移
 
 	//------------------------------------------------------------------------------提取记录并组帧
-	frm_fp = openFramefile(TASK_FRAME_DATA);
+	frm_fp = openFramefile(TASK_FRAME_DATA,frmadd_flg);
 	memset(frmdata,0,sizeof(frmdata));
 	//初始化分帧头
 	indexn = 2;
@@ -3668,7 +3668,7 @@ INT16U dealselect7(OAD oad_h,CSD_ARRAYTYPE csds,CLASS_6001 *tsa_group,TS ts_star
 			return 0;
 	}
 
-	frm_fp = openFramefile(TASK_FRAME_DATA);
+	frm_fp = openFramefile(TASK_FRAME_DATA,0);
 	fprintf(stderr,"\ntsa_num=%d\n",tsa_num);
 	time_chaoshi = time(NULL);
 	for(i=0;i<tsa_num;i++)
@@ -3799,7 +3799,7 @@ void saveNULLfrm(INT8U oad_num,OAD oad_h,CSD_ARRAYTYPE csds)
 	memset(frmdata,0x00,sizeof(frmdata));
 
 	fprintf(stderr,"\noad_num=%d\n",oad_num);
-	frm_fp = openFramefile(TASK_FRAME_DATA);
+	frm_fp = openFramefile(TASK_FRAME_DATA,0);
 	if(frm_fp !=NULL)
 	{
 		frmdata[indexn++] = 1;							//SEQUENCE OF A-ResultRecord
@@ -3889,7 +3889,7 @@ INT16U dealselect10(OAD oad_h,CSD_ARRAYTYPE csds,INT16U zcseq_num,INT8U tsa_num,
 	tsa_findnum = getTSAblkoffnum(tsa_group,tsa_num,blklen,headlen,fp);
 	if(tsa_findnum == 0)
 		return 0;
-	frm_fp = openFramefile(TASK_FRAME_DATA);
+	frm_fp = openFramefile(TASK_FRAME_DATA,0);
 //	if(zcseq_num == 1)//招测最新的一条记录，开启补报模式
 	for(i=0;i<tsa_num;i++)
 	{
@@ -4073,7 +4073,7 @@ INT16U dealevent(OAD oad_h,ROAD road_eve,CSD_ARRAYTYPE csds,INT16U tsa_num,CLASS
 	fprintf(stderr,"\ntsa_offnum=%d\n",tsa_findnum);
 	if(tsa_findnum == 0)
 		return 0;
-	frm_fp = openFramefile(TASK_FRAME_DATA);
+	frm_fp = openFramefile(TASK_FRAME_DATA,0);
 //	if(zcseq_num == 1)//招测最新的一条记录，开启补报模式
 	for(i=0;i<tsa_findnum;i++)
 	{
@@ -4159,7 +4159,7 @@ MY_MS getSELEMS(INT8U selectype,RSD select)
 //1得到招测信心
 //2确定taskid  data最多一帧能存入2048个字节
 //3提取记录组文件 5 7 10等招测的应该在一个任务文件里
-INT16U getSelector(OAD oad_h,RSD select,INT8U selectype,CSD_ARRAYTYPE csds,INT8U *data,int *datalen,INT16U frmmaxsize)
+INT16U getSelector(OAD oad_h,RSD select,INT8U selectype,CSD_ARRAYTYPE csds,INT8U *data,int *datalen,INT16U frmmaxsize,int recordnum)
 {
 	INT16U frmnum = 0,tsa_num=0,zc_sec=0;//zc_sec 0:全天数据 非0：招测间隔
 	int day_num = 0,i=0;
@@ -4213,7 +4213,7 @@ INT16U getSelector(OAD oad_h,RSD select,INT8U selectype,CSD_ARRAYTYPE csds,INT8U
 		ts_end=ts_start;
 		ts_start.Hour=0;ts_start.Minute=0;ts_start.Sec=0;
 		ts_end.Hour=23;ts_end.Minute=59;ts_end.Sec=59;
-		frmnum = dealselect5(oad_h,csds,ts_start,ts_end,zc_sec,tsa_num,tsa_group,frmmaxsize);
+		frmnum = dealselect5(oad_h,csds,ts_start,ts_end,zc_sec,tsa_num,tsa_group,frmmaxsize,recordnum);
 		break;
 //	case 7:
 //		day_num = getdaynum(select.selec7.collect_save_star,select.selec7.collect_save_finish);
@@ -4312,7 +4312,7 @@ INT16U getSelector(OAD oad_h,RSD select,INT8U selectype,CSD_ARRAYTYPE csds,INT8U
 		case 1:
 			zc_sec = getTItoSec(select.selec8.ti);
 			fprintf(stderr,"\n招测间隔zc_sec=%d\n",zc_sec);
-			frmnum = dealselect5(oad_h,csds,ts_start,ts_end,zc_sec,tsa_num,tsa_group,frmmaxsize);
+			frmnum = dealselect5(oad_h,csds,ts_start,ts_end,zc_sec,tsa_num,tsa_group,frmmaxsize,0);
 			break;
 		default:
 			frmnum = dealselect7(oad_h,csds,tsa_group,ts_start,ts_end,frmmaxsize);//找某一时间段的值
@@ -4808,7 +4808,7 @@ INT16U selectData(OAD oad_h,CSD_ARRAYTYPE csds,CLASS_6001 *tsa_group, INT16U tsa
 	GetOADPosofUnit(item_road, headoad_unit, taskhead_info.oadnum, oad_offset);	//得到每一个oad在块数据中的偏移
 
 	//------------------------------------------------------------------------------提取记录并组帧
-	frm_fp = openFramefile(REPORT_FRAME_DATA);
+	frm_fp = openFramefile(REPORT_FRAME_DATA,0);
 	memset(frmdata, 0, sizeof(frmdata));
 	//初始化分帧头
 	indexn = 2;

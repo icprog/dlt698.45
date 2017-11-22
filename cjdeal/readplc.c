@@ -3123,7 +3123,7 @@ INT8U Proxy_GetRequestList(RUNTIME_PLC *runtime_p,CJCOMM_PROXY *proxy,int* begin
 				sendlen = buildProxyFrame(runtime_p,nodetmp,oad1,oad2);
 				SendDataToCom(runtime_p->comfd, runtime_p->sendbuf,sendlen );
 				runtime_p->send_start_time = nowtime;
-				DbgPrintToFile1(31,"发送代理 %d",obj_index);
+				DbgPrintToFile1(31,"发送代理 %d  timeout=%d",obj_index,proxy->strProxyList.proxy_obj.objs[obj_index].onetimeout);
 			}else
 			{
 				obj_index++;
@@ -3135,19 +3135,30 @@ INT8U Proxy_GetRequestList(RUNTIME_PLC *runtime_p,CJCOMM_PROXY *proxy,int* begin
 			*beginwork = 0;
 			proxy->isInUse = 0;
 			obj_index = 0;
+			if(getZone("GW")==0) {
+				clearvar(runtime_p);
+				proxy->isInUse = 0;
+				obj_index = 0;
+				*beginwork = 0;
+				return 4;
+			}
 		}
 	}else if ((runtime_p->format_Up.afn == 0x13 && runtime_p->format_Up.fn == 1 ) && *beginwork==1)
 	{
+		DbgPrintToFile1(31,"代理1 收到数据");
 		singleLen = 0;
 		if (runtime_p->format_Up.afn13_f1_up.MsgLength > 0)
 		{
 			len645 = runtime_p->format_Up.afn13_f1_up.MsgLength;
 			memcpy(buf645, runtime_p->format_Up.afn13_f1_up.MsgContent, len645);
+			DbgPrintToFile1(31,"代理1 收到数据 报文长度=%d",runtime_p->format_Up.afn13_f1_up.MsgLength);
 			if (analyzeProtocol07(&frame07, buf645, len645, &nextFlag) == 0)
 			{
+				DbgPrintToFile1(31,"代理1 收到数据 分析报文成功");
 				pthread_mutex_lock(&mutex);
 				memset(tmpbuf,0,sizeof(tmpbuf));
 				singleLen = data07Tobuff698(frame07,tmpbuf);
+				DbgPrintToFile1(31,"代理1 收到数据   to 698 len=%d",singleLen);
 				if(singleLen > 0)
 				{
 					int dataindex = proxy->strProxyList.datalen;
@@ -3161,6 +3172,9 @@ INT8U Proxy_GetRequestList(RUNTIME_PLC *runtime_p,CJCOMM_PROXY *proxy,int* begin
 					proxy->strProxyList.datalen += dataindex;
 				}
 				pthread_mutex_unlock(&mutex);
+			}else
+			{
+				DbgPrintToFile1(31,"代理1 收到数据 分析报文失败");
 			}
 		}
 		if(singleLen==0)
@@ -3168,6 +3182,17 @@ INT8U Proxy_GetRequestList(RUNTIME_PLC *runtime_p,CJCOMM_PROXY *proxy,int* begin
 		*beginwork = 0;
 		obj_index++;
 		DbgPrintToFile1(31,"代理1 完成一次代理");
+//		if(getZone("GW")==0) {
+//			clearvar(runtime_p);
+//			proxy->isInUse = 0;
+//			obj_index = 0;
+//			*beginwork = 0;
+//			return 4;
+//		}
+	} else if ((abs(nowtime - runtime_p->send_start_time) > timeout) && *beginwork==1) {
+		*beginwork = 0;
+		obj_index++;
+		DbgPrintToFile1(31,"单次超时");
 		if(getZone("GW")==0) {
 			clearvar(runtime_p);
 			proxy->isInUse = 0;
@@ -3175,10 +3200,6 @@ INT8U Proxy_GetRequestList(RUNTIME_PLC *runtime_p,CJCOMM_PROXY *proxy,int* begin
 			*beginwork = 0;
 			return 4;
 		}
-	} else if ((abs(nowtime - runtime_p->send_start_time) > timeout) && *beginwork==1) {
-		*beginwork = 0;
-		obj_index++;
-		DbgPrintToFile1(31,"单次超时");
 	}else if(proxyInUse.devUse.plcNeed == 0 && *beginwork == 1) {
 		clearvar(runtime_p);
 		*beginwork = 0;
@@ -3696,6 +3717,8 @@ int doProxy(RUNTIME_PLC *runtime_p)
 			step_cj = F209_TransRequest(runtime_p, &cjcommProxy_plc, &beginwork, nowtime);
 			break;
 		case 4://恢复抄表
+			proxyInUse.devUse.plcReady = 1;
+			cjcommProxy_plc.isInUse = 0;
 			if (runtime_p->state_bak == TASK_PROCESS )
 			{
 				if(  runtime_p->modeFlag==1)
