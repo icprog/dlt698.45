@@ -3168,6 +3168,13 @@ INT8U Proxy_GetRequestList(RUNTIME_PLC *runtime_p,CJCOMM_PROXY *proxy,int* begin
 		*beginwork = 0;
 		obj_index++;
 		DbgPrintToFile1(31,"代理1 完成一次代理");
+		if(getZone("GW")==0) {
+			clearvar(runtime_p);
+			proxy->isInUse = 0;
+			obj_index = 0;
+			*beginwork = 0;
+			return 4;
+		}
 	} else if ((abs(nowtime - runtime_p->send_start_time) > timeout) && *beginwork==1) {
 		*beginwork = 0;
 		obj_index++;
