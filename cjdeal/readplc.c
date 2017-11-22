@@ -1060,7 +1060,8 @@ int doInit(RUNTIME_PLC *runtime_p)
 					}
 				}
 				clearvar(runtime_p);//376.2上行内容容器清空，发送计时归零
-				return INIT_MASTERADDR;
+				return ZB_MODE;
+//				return INIT_MASTERADDR;
 			}
 			//else if  (runtime_p->send_start_time !=0 && (nowtime  - runtime_p->send_start_time)>10)
 			else if (read_num>=3)
@@ -1535,7 +1536,9 @@ int buildProxyFrame(RUNTIME_PLC *runtime_p,struct Tsa_Node *desnode,OAD oad1,OAD
 				addrtmp[2] = desnode->tsa.addr[5];
 				addrtmp[1] = desnode->tsa.addr[6];
 				addrtmp[0] = desnode->tsa.addr[7];
-				return (AFN13_F1(&runtime_p->format_Down,runtime_p->sendbuf,addrtmp, DLT_645_07, 0, buf645, sendlen));
+//				return (AFN13_F1(&runtime_p->format_Down,runtime_p->sendbuf,addrtmp, DLT_645_07, 0, buf645, sendlen));
+				//东软载波模块测试
+				return (AFN13_F1(&runtime_p->format_Down,runtime_p->sendbuf,addrtmp, 0, 0, buf645, sendlen));
 			}
 			break;
 		case DLT_698:
@@ -4754,7 +4757,8 @@ int doBroadCast(RUNTIME_PLC *runtime_p)
 //载波查询模块工作模式和修改工作模式报文
 //INT8U  searchMode[15]={0x68,0x0f,0x00,0x47,0x00,0x00,0xFF,0x00,0x00,0x0b,0x02,0x40,0x01,0x94,0x16};
 //INT8U  setMode[16]={0x68,0x10,0x00,0x47,0x00,0x00,0xFF,0x00,0x00,0x0d,0x01,0x40,0x01,0x66,0xFb,0x16};
-
+//东软载波模块,切换路由工作模式
+INT8U chgMode[15]={0x68,0x0F,0x00,0x47,0x00,0x00,0xFF,0x00,0x00,0x01,0x02,0x40,0x01,0x8A,0x16};
 void readplc_thread()
 {
 	int startFlg = 1;
@@ -4798,6 +4802,16 @@ void readplc_thread()
 		{
 			case DATE_CHANGE :
 				state = doInit(&runtimevar);					//初始化 		 （ 1、硬件复位 2、模块版本信息查询  ）
+				break;
+			case ZB_MODE ://如果东软载波模块(ESRT)，且版本为(4331)进行路由模式切换到第４代。此时透传的AFN13-F1的规约类型一致填写:00(透明传输)
+				if(getZone("GW")!=0) {  //非国网送检
+					if(module_info.ModuleInfo.VendorCode[1]=='E' && module_info.ModuleInfo.VendorCode[0]=='S'
+					   && module_info.ModuleInfo.Version[1] == 43 && module_info.ModuleInfo.Version[0] == 31) {
+						SendDataToCom(runtimevar.comfd, chgMode,15);
+						DbgPrintToFile1(31,"东软载波模块[ESRT]，软件版本为4331。进行路由模式切换");
+					}
+				}
+				state = INIT_MASTERADDR;
 				break;
 			case INIT_MASTERADDR :
 				state = doSetMasterAddr(&runtimevar);			//设置主节点地址 ( 1、主节点地址设置  )

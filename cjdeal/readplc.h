@@ -28,6 +28,8 @@ extern INT16S getTaskIndex(INT8U port);
 #define AUTO_REPORT    		6
 #define BROADCAST			7
 #define F209_127			8
+#define ZB_MODE				9
+
 
 #define ALLOK 2
 #define ZBBUFSIZE 512
