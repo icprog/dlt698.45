@@ -69,6 +69,7 @@
 #define COLLCLASS_MAXNUM		1024		//定义集合类最大元素个数
 
 #define	REPORT_CHANN_OAD_NUM	10			//上报方案 array OAD最大个数
+#define OADS_NUM_485_ONCEREAD   10          //485抄表一次最多抄10个
 #define MY_CSD_NUM				20			//my_csd数组最大各数
 #define ROAD_OADS_NUM           20          //ROAD结构体里oads的最大个数
 #define ARRAY_ROAD_NUM			20			//raod数组的最大个数
