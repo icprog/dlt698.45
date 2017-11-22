@@ -177,7 +177,7 @@ int fillTaskfrm(OAD oad,INT8U *data,int frmlen)
 	INT8U	frmdata[MAXSIZ_FAM]={};
 	int		index = 2; //前两个字节保存有效长度
 
-	fp = openFramefile(TASK_FRAME_DATA);
+	fp = openFramefile(TASK_FRAME_DATA,0);
 	if (fp==NULL)
 		return 0;
 	memset(frmdata,0,sizeof(frmdata));
@@ -235,7 +235,7 @@ int GetReportData(CLASS_601D report)
 		ret = getSelector(report.reportdata.data.oad,
 							report.reportdata.data.recorddata.rsd,
 							report.reportdata.data.recorddata.selectType,
-							report.reportdata.data.recorddata.csds,NULL, NULL,server_send_size);
+							report.reportdata.data.recorddata.csds,NULL, NULL,server_send_size,0);
 		fprintf(stderr,"GetReportData   ret=%d\n",ret);
 		if(ret>=1) {	//查找到相应的数据
 			ret = REPROTNOTIFICATIONRECORDLIST;	//

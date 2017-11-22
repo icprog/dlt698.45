@@ -150,6 +150,7 @@ int BuildFrame_GetResponseNext(INT8U response_type,CSINFO *csinfo,INT8U DAR,INT1
 	sendbuf[index++] = response_type;
 	sendbuf[index++] = piid_g.data;		//	piid
 
+	fprintf(stderr,"\n当前帧序号%d 总帧数%d\n",next_info.frameNo,next_info.subframeSum);
 	if(next_info.frameNo==next_info.subframeSum) {
 		sendbuf[index++] = TRUE;		//末帧标志
 	}else sendbuf[index++] = FALSE;
@@ -166,6 +167,9 @@ int BuildFrame_GetResponseNext(INT8U response_type,CSINFO *csinfo,INT8U DAR,INT1
 		if((index+datalen+3) > BUFLEN) {
 			syslog(LOG_ERR,"GetResponseNext 长度[%d]越限[%d],数据应答错误",datalen,BUFLEN);
 		}else {
+			fprintf(stderr,"\n\n1**************************************");
+			PRTbuf(databuf,datalen);
+			fprintf(stderr,"\n\n1**************************************");
 			memcpy(&sendbuf[index],databuf,datalen);
 			index = index + datalen;
 		}
@@ -2949,7 +2953,7 @@ int getSelector12(RESULT_RECORD *record)
  * type = 4:GetResponseRecordList
  * RSD用于选择记录型对象属性的各条记录，即二维记录表的行选择，其通过对构成记录的某些对象属性数值进行指定来进行选择，范围选择区间：前闭后开，即[起始值，结束值）。
  * */
-int doGetrecord(INT8U type,OAD oad,INT8U *data,RESULT_RECORD *record,INT16U *subframe)
+int doGetrecord(INT8U type,OAD oad,INT8U *data,RESULT_RECORD *record,INT16U *subframe,int recordnum)
 {
 	const static OI_698 event_relate_oi[]={0x2022,0x201e,0x2020,0x2024};	//事件记录序号，事件发生时间，事件结束时间，事件发生源
 	INT8U 	oihead = 0;
@@ -3072,7 +3076,7 @@ int doGetrecord(INT8U type,OAD oad,INT8U *data,RESULT_RECORD *record,INT16U *sub
 	case 8://指定电能表集合、指定采集成功时间区间内连续间隔值
 		dest_index +=fill_RCSD(0,&record->data[dest_index],record->rcsd.csds);
 		record->data = &TmpDataBuf[dest_index];
-		*subframe = getSelector(oad,record->select, record->selectType,record->rcsd.csds,(INT8U *)record->data,(int *)&record->datalen,AppVar_p->server_send_size);
+		*subframe = getSelector(oad,record->select, record->selectType,record->rcsd.csds,(INT8U *)record->data,(int *)&record->datalen,AppVar_p->server_send_size,recordnum);
 
 		if(*subframe>=1) {		//无分帧
 			next_info.nextSite = readFrameDataFile(TASK_FRAME_DATA,0,TmpDataBuf,&datalen);
@@ -3155,7 +3159,7 @@ int doGetrecord(INT8U type,OAD oad,INT8U *data,RESULT_RECORD *record,INT16U *sub
 			fprintf(stderr,"招测的OAD有效！！！\n");
 
 
-		*subframe = getSelector(record->oad,record->select,record->selectType,record->rcsd.csds,NULL,NULL,AppVar_p->server_send_size);
+		*subframe = getSelector(record->oad,record->select,record->selectType,record->rcsd.csds,NULL,NULL,AppVar_p->server_send_size,0);
 		if(*subframe==1) {		//无分帧
 			//文件中第一个字节保存的是：SEQUENCE OF A-ResultRecord，此处从TmpDataBuf[1]上送，上送长度也要-1
 			next_info.nextSite = readFrameDataFile(TASK_FRAME_DATA,0,TmpDataBuf,&datalen);
@@ -3721,7 +3725,7 @@ int getRequestRecord(OAD oad,INT8U *data,CSINFO *csinfo,INT8U *sendbuf)
 	record.oad = oad;
 	record.data = TmpDataBuf;
 	record.datalen = 0;
-	doGetrecord(GET_REQUEST_RECORD,oad,data,&record,&subframe);
+	doGetrecord(GET_REQUEST_RECORD,oad,data,&record,&subframe,0);
 	if(subframe==1) {
 		BuildFrame_GetResponseRecord(GET_REQUEST_RECORD,csinfo,record,sendbuf);
 	}else  if(subframe>1){
@@ -3734,12 +3738,12 @@ int getRequestRecord(OAD oad,INT8U *data,CSINFO *csinfo,INT8U *sendbuf)
 	return 1;
 }
 
-//
+
 int getRequestRecordList(INT8U *data,CSINFO *csinfo,INT8U *sendbuf)
 {
 	RESULT_RECORD record={};
 	OAD	oad={};
-	INT16U 		subframe=0;
+	INT16U 		subframe=0,frmrecord=0;
 	int i=0;
 	int recordnum = 0;
 	int destindex=0;
@@ -3748,21 +3752,31 @@ int getRequestRecordList(INT8U *data,CSINFO *csinfo,INT8U *sendbuf)
 	memset(TmpDataBufList,0,sizeof(TmpDataBufList));
 	recordnum = data[sourceindex++];
 	fprintf(stderr,"getRequestRecordList  Result-record=%d \n ",recordnum);
-	TmpDataBufList[destindex++] = recordnum;
+//	TmpDataBufList[destindex++] = 1;
 	for(i=0;i<recordnum;i++) {
 		memset(TmpDataBuf,0,sizeof(TmpDataBuf));
 		record.data = TmpDataBuf;
 		record.datalen = 0;
 		sourceindex += getOAD(0,&data[sourceindex],&oad,NULL);
 		record.oad = oad;
-		sourceindex += doGetrecord(GET_REQUEST_RECORD_LIST,oad,&data[sourceindex],&record,&subframe);
-		memcpy(&TmpDataBufList[destindex],record.data,record.datalen);
-		destindex += record.datalen;
+		sourceindex += doGetrecord(GET_REQUEST_RECORD_LIST,oad,&data[sourceindex],&record,&subframe,i);
+		if(recordnum > 1 && subframe > 0)
+			frmrecord += subframe;
+		if(i == 0)
+		{
+			fprintf(stderr,"\n\n*************************(%d)",record.datalen);
+			PRTbuf(record.data,record.datalen);
+			fprintf(stderr,"\n\n*************************");
+			memcpy(&TmpDataBufList[destindex],&record.data[0],record.datalen);
+			destindex += record.datalen;
+		}
 //		fprintf(stderr,"$$$$$$$$$$$$$$$$$$$$$$$$$$i=%d  record.datalen  ==== %d  subframe = %d\n\n\n\n",i,record.datalen,subframe);
 	}
 	fprintf(stderr,"!!!record.datalen  ==== %d  subframe = %d\n\n\n\n",record.datalen,subframe);
 	record.data = TmpDataBufList;
 	record.datalen = destindex;
+	if(frmrecord > 0)
+		subframe = frmrecord;
 	if(subframe==1) {		//不分帧　原来判断＝０？有错
 		BuildFrame_GetResponseRecord(GET_REQUEST_RECORD_LIST,csinfo,record,sendbuf);//原来是GET_REQUEST_RECORD，是否有错？？
 	}else  if(subframe>1){
@@ -3791,7 +3805,7 @@ int getRequestRecordList(INT8U *data,CSINFO *csinfo,INT8U *sendbuf)
 //	//一个RequestRecordList按照 resultRecord的个数，响应多个GetReponseRecordList，主站是否能正确解析后面的帧数据需要确认
 //	for(i=0;i<recordnum;i++) {
 //		destindex = 0;
-//		TmpDataBufList[destindex++] = 1;	//SEQUENCE OF A-ResultRecord
+////		TmpDataBufList[destindex++] = 1;	//SEQUENCE OF A-ResultRecord
 //		memset(TmpDataBuf,0,sizeof(TmpDataBuf));
 //		record.data = TmpDataBuf;
 //		record.datalen = 0;
@@ -3854,7 +3868,8 @@ int getRequestNext(INT8U *data,CSINFO *csinfo,INT8U *sendbuf)
 			if(datalen>=1)  datalen=datalen-1;
 			BuildFrame_GetResponseNext(GET_REQUEST_RECORD_NEXT,csinfo,DAR,datalen,&TmpDataBuf[1],sendbuf);
 		}else {
-			BuildFrame_GetResponseNext(GET_REQUEST_RECORD_NEXT,csinfo,DAR,datalen,TmpDataBuf,sendbuf);
+			if(datalen>=1)  datalen=datalen-1;
+			BuildFrame_GetResponseNext(GET_REQUEST_RECORD_NEXT,csinfo,DAR,datalen,&TmpDataBuf[1],sendbuf);
 		}
 		break;
 	}

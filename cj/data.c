@@ -43,7 +43,6 @@ int findtsa(FILE *fp,int *TSA_D,int A_TSAblock)
 			findok = 0;
 			break;
 		}
-		fprintf(stderr,"tmp = %x \n",tmp);
 		if(tmp!=0X55)
 		{
 			findok = 0;
@@ -413,6 +412,32 @@ void analyTaskData(int argc, char* argv[])
 		}
 	}
 	return ;
+}
+void prtOADlen(int argc, char* argv[])
+{
+	OAD oad;
+
+	fprintf(stderr,"\n参考格式 cj oadlen 0010\n");
+	if(argc>2)
+	{
+		sscanf(argv[2],"%04x",&oad.OI);
+		if(oad.OI == 0x2001 || (oad.OI & 0xf000) == 0)
+		{
+			oad.attflg = 4;
+			oad.attrindex = 0;
+			fprintf(stderr,"\nOAD:%04x-%02x%02x长度为  长度%d",oad.OI,oad.attflg,oad.attrindex,CalcOIDataLen(oad));
+			oad.attflg = 4;
+			oad.attrindex = 1;
+			fprintf(stderr,"\nOAD:%04x-%02x%02x长度为  长度%d",oad.OI,oad.attflg,oad.attrindex,CalcOIDataLen(oad));
+		}
+
+		oad.attflg = 2;
+		oad.attrindex = 0;
+		fprintf(stderr,"\nOAD:%04x-%02x%02x长度为  总长%d",oad.OI,oad.attflg,oad.attrindex,CalcOIDataLen(oad));
+		oad.attflg = 2;
+		oad.attrindex = 1;
+		fprintf(stderr,"\nOAD:%04x-%02x%02x长度为  单长%d",oad.OI,oad.attflg,oad.attrindex,CalcOIDataLen(oad));
+	}
 }
 INT16U getTaskDataTsaNum(INT8U taskID)
 {
