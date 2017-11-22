@@ -476,6 +476,10 @@ int main(int argc, char *argv[]) {
         analyTaskData(argc, argv);
         return EXIT_SUCCESS;
     }
+    if (strcmp("oadlen", argv[1]) == 0) {
+        prtOADlen(argc, argv);
+        return EXIT_SUCCESS;
+    }
     if (strcmp("m2g", argv[1]) == 0) {
     	setm2g(argc, argv);
 		return EXIT_SUCCESS;

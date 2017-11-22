@@ -338,7 +338,7 @@ extern void Save_TJ_Freeze(INT8U flag,OI_698 oi,INT16U attr,TS savets,int savele
 ///////////////数据文件存储
 extern int getOI6001(MY_MS ms,INT8U **tsas); //注!!!!!意:调用后，释放**tsas的内存
 extern int getTsas(MY_MS ms, INT8U** tsas); //注意：！！！！！函数调用需要外部释放内存
-extern INT16U getSelector(OAD oad_h,RSD select, INT8U selectype, CSD_ARRAYTYPE csds, INT8U *data, int *datalen,INT16U frmmaxsize);
+extern INT16U getSelector(OAD oad_h,RSD select,INT8U selectype,CSD_ARRAYTYPE csds,INT8U *data,int *datalen,INT16U frmmaxsize,int recordnum);
 
 extern long int readFrameDataFile(char *filename,int offset,INT8U *buf,int *datalen);
 //extern void ReadFileHeadLen(FILE *fp,int *headlen,int *blocklen);
@@ -348,7 +348,7 @@ extern void getEveFileName(OI_698 eve_oi,char *fname);
 extern INT8U datafile_write(char *FileName, void *source, int size, int offset);
 extern INT8U datafile_read(char *FileName, void *source, int size, int offset);
 extern INT16U CalcOIDataLen(OAD oad);
-extern FILE* openFramefile(char *filename);
+extern FILE* openFramefile(char *filename,int addflg);
 extern void saveOneFrame(INT8U *buf,int len,FILE *fp);
 /*
  * 获取湖南规约切换通信参数
