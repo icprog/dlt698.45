@@ -3637,7 +3637,25 @@ INT16S dealCurve_698(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT
 							freezeTimeStamp.Minute = oadListContent[index2021].data[6];
 							freezeTimeStamp.Sec = oadListContent[index2021].data[7];
 							freezeTimeStamp.Week = 0;
-							saveREADOADdata(st6035->taskID,to6001.basicinfo.addr,oadListContent,rcvCSDnum,freezeTimeStamp);
+							if(getZone("ZheJiang") == 0)
+							{
+									oadListContent[rcvCSDnum].oad_m.OI = 0x6040;
+									oadListContent[rcvCSDnum].oad_m.attflg = 0x02;
+									oadListContent[rcvCSDnum].oad_m.attrindex = 0;
+									oadListContent[rcvCSDnum].datalen = fill_date_time_s(oadListContent[rcvCSDnum].data, &st6035->starttime);
+
+									DateTimeBCD nowTime;
+									DataTimeGet(&nowTime);
+									oadListContent[rcvCSDnum+1].oad_m.OI = 0x6041;
+									oadListContent[rcvCSDnum+1].oad_m.attflg = 0x02;
+									oadListContent[rcvCSDnum+1].oad_m.attrindex = 0;
+									oadListContent[rcvCSDnum+1].datalen = fill_date_time_s(oadListContent[rcvCSDnum+1].data, &nowTime);
+									saveREADOADdata(st6035->taskID,to6001.basicinfo.addr,oadListContent,rcvCSDnum+2,freezeTimeStamp);
+							}
+							else
+							{
+								saveREADOADdata(st6035->taskID,to6001.basicinfo.addr,oadListContent,rcvCSDnum,freezeTimeStamp);
+							}
 						}
 
 					}
@@ -3721,8 +3739,26 @@ INT16S deal6015_698(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8
 				//存储数据
 				TS OADts;
 				TSGet(&OADts);
-				saveREADOADdata(st6035->taskID,to6001.basicinfo.addr,oadListContent,dataCount,OADts);
 
+				if(getZone("ZheJiang") == 0)
+				{
+						oadListContent[dataCount].oad_m.OI = 0x6040;
+						oadListContent[dataCount].oad_m.attflg = 0x02;
+						oadListContent[dataCount].oad_m.attrindex = 0;
+						oadListContent[dataCount].datalen = fill_date_time_s(oadListContent[dataCount].data, &st6035->starttime);
+
+						DateTimeBCD nowTime;
+						TsToTimeBCD(OADts, &nowTime);
+						oadListContent[dataCount+1].oad_m.OI = 0x6041;
+						oadListContent[dataCount+1].oad_m.attflg = 0x02;
+						oadListContent[dataCount+1].oad_m.attrindex = 0;
+						oadListContent[dataCount+1].datalen = fill_date_time_s(oadListContent[dataCount+1].data, &nowTime);
+						saveREADOADdata(st6035->taskID,to6001.basicinfo.addr,oadListContent,dataCount+2,OADts);
+				}
+				else
+				{
+					saveREADOADdata(st6035->taskID,to6001.basicinfo.addr,oadListContent,dataCount,OADts);
+				}
 				//判断事件
 				if((getResponseType < GET_REQUEST_RECORD)&&(st6035->taskID > 0))
 				{
@@ -4042,7 +4078,26 @@ INT16S deal6015_9707(INT8U protocol,CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6
 
 			}
 		}
-		saveREADOADdata(st6035->taskID,to6001.basicinfo.addr,OADdata,oadDataNum,OADts);
+
+		if(getZone("ZheJiang") == 0)
+		{
+			OADdata[oadDataNum].oad_m.OI = 0x6040;
+			OADdata[oadDataNum].oad_m.attflg = 0x02;
+			OADdata[oadDataNum].oad_m.attrindex = 0;
+			OADdata[oadDataNum].datalen = fill_date_time_s(OADdata[oadDataNum].data, &st6035->starttime);
+
+			DateTimeBCD nowTime;
+			TsToTimeBCD(OADts, &nowTime);
+			OADdata[oadDataNum+1].oad_m.OI = 0x6041;
+			OADdata[oadDataNum+1].oad_m.attflg = 0x02;
+			OADdata[oadDataNum+1].oad_m.attrindex = 0;
+			OADdata[oadDataNum+1].datalen = fill_date_time_s(OADdata[oadDataNum+1].data, &nowTime);
+			saveREADOADdata(st6035->taskID,to6001.basicinfo.addr,OADdata,oadDataNum+2,OADts);
+		}
+		else
+		{
+			saveREADOADdata(st6035->taskID,to6001.basicinfo.addr,OADdata,oadDataNum,OADts);
+		}
 	}
 
 #endif
