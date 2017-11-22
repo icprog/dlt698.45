@@ -1792,6 +1792,29 @@ INT8U getSinglegOADDataUnit(INT8U* oadData)
 			INT8U arrayNumIndex = 0;
 			for(arrayNumIndex = 0;arrayNumIndex < arrayNum;arrayNumIndex++)
 			{
+				if((oadData[length] == dtarray)||(oadData[length] == dtstructure))
+				{
+					dataUnitLen = getSinglegOADDataUnit(&oadData[length]);
+					length++;
+					length += dataUnitLen;
+				}
+				else
+				{
+					dataUnitLen = getBase_DataTypeLen(oadData[length],oadData[length+1]);
+					length++;
+					length += dataUnitLen;
+				}
+			}
+		}
+		break;
+		case dtstructure:
+		{
+			length++;
+			INT8U structMemberNum = oadData[length++];
+			fprintf(stderr,"\n structMemberNum = %d\n",structMemberNum);
+			INT8U structMemberIndex = 0;
+			for(structMemberIndex = 0;structMemberIndex < structMemberNum;structMemberIndex++)
+			{
 				dataUnitLen = getBase_DataTypeLen(oadData[length],oadData[length+1]);
 				length++;
 				length += dataUnitLen;
@@ -2780,7 +2803,7 @@ INT8S dealGuiRead(Proxy_Msg pMsg,INT8U port485)
 		fprintf(stderr,"dealGuiRead 非本端口测量点不处理");
 		return result;
 	}
-	DbgPrintToFile1(port485,"\n dealGuiRead 处理液晶点抄 :%d%d%d%d%d%d%d%d 波特率=%d protocol=%d 端口号=%04x%02x%02x 规约类型=%d 数据标识=%04x"
+	DbgPrintToFile1(port485,"\n dealGuiRead 处理液晶点抄 :%02x%02x%02x%02x%02x%02x%02x%02x 波特率=%d protocol=%d 端口号=%04x%02x%02x 规约类型=%d 数据标识=%04x"
 			,pMsg.addr.addr[0],pMsg.addr.addr[1],pMsg.addr.addr[2],pMsg.addr.addr[3]
 			,pMsg.addr.addr[4],pMsg.addr.addr[5],pMsg.addr.addr[6],pMsg.addr.addr[7]
 			,pMsg.baud,pMsg.protocol,pMsg.port.OI,pMsg.port.attflg,pMsg.port.attrindex
@@ -2805,6 +2828,23 @@ INT8S dealGuiRead(Proxy_Msg pMsg,INT8U port485)
 	meter.basicinfo.protocol = pMsg.protocol;
 	switch(meter.basicinfo.protocol)
 	{
+	case DLT_645_97:
+			{
+				OAD requestOAD;
+				requestOAD.OI = pMsg.oi;
+				requestOAD.attflg = 0x02;
+				requestOAD.attrindex = 0x00;
+
+				C601F_645 Flag645;
+				memset(&Flag645,0,sizeof(C601F_645));
+				Flag645.protocol = DLT_645_97;
+
+				if(OADMap07DI(0x0000,requestOAD, &Flag645) == 1)
+				{
+					retLen = request698_97Data(Flag645.DI._97.DI_1[0],dataContent,meter,&st6035,meter.basicinfo.port.attrindex);
+				}
+			}
+			break;
 		case DLT_645_07:
 			{
 				OAD requestOAD;
@@ -4450,7 +4490,14 @@ INT8U getsub6015(INT8U subIndex,CLASS_6015 source6015,CLASS_6015* desst6015)
 		}
 		else
 		{
-			desst6015->csds.num -= subIndex*OADS_NUM_485_ONCEREAD;
+			if(desst6015->csds.num >= (subIndex+1)*OADS_NUM_485_ONCEREAD)
+			{
+				desst6015->csds.num = OADS_NUM_485_ONCEREAD;
+			}
+			else
+			{
+				desst6015->csds.num -= subIndex*OADS_NUM_485_ONCEREAD;
+			}
 			memset(desst6015->csds.csd,0,sizeof(MY_CSD)*MY_CSD_NUM);
 			memcpy(desst6015->csds.csd,&source6015.csds.csd[subIndex*OADS_NUM_485_ONCEREAD],sizeof(MY_CSD)*desst6015->csds.num);
 		}
