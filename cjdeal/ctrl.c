@@ -157,7 +157,8 @@ void SumUpRefreshUnit(SumUpUnit* suu) {
 		}
 	}
 
-	fprintf(stderr, "before 总加组功率%d 电量%lld %lld %lld %lld [%lld]\n", suu->class23[0].p,
+	fprintf(stderr, "before 总加组功率%d 电表 %lld  电表电量【%d】%lld     %lld %lld %lld [%lld]\n", suu->class23[0].p,
+			suu->curP[0][0][0],suu->class23[0].allist[0].curP[0],
 			suu->class23[0].DayP[0], suu->class23[0].DayP[1], suu->class23[0].DayP[2],
 			suu->class23[0].DayP[3], suu->class23[0].remains);
 }
@@ -311,8 +312,7 @@ int initAll() {
 	fprintf(stderr, "==============================ctrl init end============================\n");
 
 
-	readCoverClass(0xf205, 0, &CtrlC->cf205, sizeof(CLASS_F205),
-							para_vari_save);
+	readCoverClass(0xf205, 0, &CtrlC->cf205, sizeof(CLASS_F205), para_vari_save);
 	return 0;
 }
 
@@ -444,6 +444,11 @@ int deal8103() {
 		}
 
 		INT64U val = getCurrTimeValue(i);
+
+		if(val < JProgramInfo->ctrls.c8100.v)
+		{
+			val = JProgramInfo->ctrls.c8100.v;
+		}
 		fprintf(stderr, "时段功控限值(%lld Compare %lld) index=%d\n", val, JProgramInfo->class23[i].p, i);
 
 		if (val <= JProgramInfo->class23[i].p) {
@@ -469,18 +474,18 @@ int deal8103() {
 						JProgramInfo->class23[i].alCtlState.OutputState);
 				fprintf(stderr, "功控告警时间 %d\n", CtrlC->c8102.time[1] * 60);
 				JProgramInfo->ctrls.c8103.output[i].state = 128;
-				JProgramInfo->ctrls.c8103.overflow[i].state = 0;
+				JProgramInfo->ctrls.c8103.overflow[i].state = 1;
 				if (count[i] * 5 >= (CtrlC->c8102.time[1]) * 60) {
 					fprintf(stderr, "时段功控，二轮跳闸！！！！！！！！！！！！！");
 					JProgramInfo->ctrls.c8103.output[i].state = 192;
-					JProgramInfo->ctrls.c8103.overflow[i].state = 0;
+					JProgramInfo->ctrls.c8103.overflow[i].state = 1;
 					step[i] = 2;
 				}
 				count[i] += 1;
 				break;
 			case 2:
 				JProgramInfo->ctrls.c8103.output[i].state = 192;
-				JProgramInfo->ctrls.c8103.overflow[i].state = 0;
+				JProgramInfo->ctrls.c8103.overflow[i].state = 1;
 				break;
 			}
 		} else {
@@ -545,6 +550,10 @@ int deal8104() {
 		}
 
 		INT64U val = getIsInTime(i);
+		if(val < JProgramInfo->ctrls.c8100.v)
+		{
+			val = JProgramInfo->ctrls.c8100.v;
+		}
 		fprintf(stderr, "厂休控限值(%lld Compare %lld) index=%d\n", val, JProgramInfo->class23[i].p, i);
 		if (val <= JProgramInfo->class23[i].p) {
 			//		if(1){
@@ -570,18 +579,18 @@ int deal8104() {
 						JProgramInfo->class23[i].alCtlState.OutputState);
 				fprintf(stderr, "功控告警时间 %d\n", CtrlC->c8102.time[1] * 60);
 				JProgramInfo->ctrls.c8104.output[i].state = 128;
-				JProgramInfo->ctrls.c8104.overflow[i].state = 0;
+				JProgramInfo->ctrls.c8104.overflow[i].state = 1;
 				if (count[i] * 5 >= (CtrlC->c8102.time[1]) * 60) {
 					fprintf(stderr, "厂休控，二轮跳闸！！！！！！！！！！！！！");
 					JProgramInfo->ctrls.c8104.output[i].state = 192;
-					JProgramInfo->ctrls.c8104.overflow[i].state = 0;
+					JProgramInfo->ctrls.c8104.overflow[i].state = 1;
 					step[i] = 2;
 				}
 				count[i] += 1;
 				break;
 			case 2:
 				JProgramInfo->ctrls.c8104.output[i].state = 192;
-				JProgramInfo->ctrls.c8104.overflow[i].state = 0;
+				JProgramInfo->ctrls.c8104.overflow[i].state = 1;
 				break;
 			}
 		} else {
@@ -631,6 +640,10 @@ int deal8105() {
 		}
 
 		INT64U val = getIsStop(i);
+		if(val < JProgramInfo->ctrls.c8100.v)
+		{
+			val = JProgramInfo->ctrls.c8100.v;
+		}
 		fprintf(stderr, "营业报停控限值(%lld Compare %lld) index=%d\n", val, JProgramInfo->class23[i].p,
 				i);
 		if (val <= JProgramInfo->class23[i].p) {
@@ -656,18 +669,18 @@ int deal8105() {
 						JProgramInfo->class23[i].alCtlState.OutputState);
 				fprintf(stderr, "功控告警时间 %d\n", CtrlC->c8102.time[1] * 60);
 				JProgramInfo->ctrls.c8105.output[i].state = 128;
-				JProgramInfo->ctrls.c8105.overflow[i].state = 0;
+				JProgramInfo->ctrls.c8105.overflow[i].state = 1;
 				if (count[i] * 5 >= (CtrlC->c8102.time[1]) * 60) {
 					fprintf(stderr, "营业报停控，二轮跳闸！！！！！！！！！！！！！");
 					JProgramInfo->ctrls.c8105.output[i].state = 192;
-					JProgramInfo->ctrls.c8105.overflow[i].state = 0;
+					JProgramInfo->ctrls.c8105.overflow[i].state = 1;
 					step[i] = 2;
 				}
 				count[i] += 1;
 				break;
 			case 2:
 				JProgramInfo->ctrls.c8105.output[i].state = 192;
-				JProgramInfo->ctrls.c8105.overflow[i].state = 0;
+				JProgramInfo->ctrls.c8105.overflow[i].state = 1;
 				break;
 			}
 		} else {
@@ -748,6 +761,10 @@ int deal8106() {
 	}
 
 	fprintf(stderr, "功率下浮控限值(%lld Compare %lld)\n", val, JProgramInfo->class23[i].p);
+	if(val < JProgramInfo->ctrls.c8100.v)
+	{
+		val = JProgramInfo->ctrls.c8100.v;
+	}
 	if (val <= JProgramInfo->class23[i].p) {
 		fprintf(stderr, "进入功率下浮控时间，判断功率%lld\n", JProgramInfo->class23[i].p);
 		switch (step) {
@@ -771,18 +788,18 @@ int deal8106() {
 					JProgramInfo->class23[i].alCtlState.OutputState);
 			fprintf(stderr, "功控告警时间 %d\n", CtrlC->c8102.time[1] * 60);
 			JProgramInfo->ctrls.c8106.output.state = 128;
-			JProgramInfo->ctrls.c8106.overflow.state = 0;
+			JProgramInfo->ctrls.c8106.overflow.state = 1;
 			if (count * 5 >= (CtrlC->c8102.time[1]) * 60) {
 				fprintf(stderr, "功率下浮控，二轮跳闸！！！！！！！！！！！！！");
 				JProgramInfo->ctrls.c8106.output.state = 192;
-				JProgramInfo->ctrls.c8106.overflow.state = 0;
+				JProgramInfo->ctrls.c8106.overflow.state = 1;
 				step = 2;
 			}
 			count += 1;
 			break;
 		case 2:
 			JProgramInfo->ctrls.c8106.output.state = 192;
-			JProgramInfo->ctrls.c8106.overflow.state = 0;
+			JProgramInfo->ctrls.c8106.overflow.state = 1;
 			break;
 		}
 	} else {
@@ -879,17 +896,17 @@ int deal8108() {
 		if (val != -1) {
 			float e = warn / 100.0;
 
-			fprintf(stderr, "月电控值%lld [%f]\n", JProgramInfo->class23[i].MonthPALL, e * val);
+			fprintf(stderr, "月电控值%lld [%f][e=%f warn=%d]\n", JProgramInfo->class23[i].MonthPALL, e * val,e,warn);
 
 			if (JProgramInfo->class23[i].MonthPALL > val) {
-				fprintf(stderr, "月电控跳闸！！！！！！！！！！！！！！！！！！\n", val);
+				fprintf(stderr, "月电控跳闸！！！！！！！！！！！！！！！！！！\n");
 				JProgramInfo->ctrls.c8108.output[i].state = 192;
 				JProgramInfo->ctrls.c8108.overflow[i].state = 0;
 				return 2;
 			}
 
 			if (JProgramInfo->class23[i].MonthPALL > e * val) {
-				fprintf(stderr, "月电控告警！！！！！！！！！！！！！！！！！！\n", val);
+				fprintf(stderr, "月电控告警！！！！！！！！！！！！！！！！！！\n");
 				JProgramInfo->ctrls.c8108.output[i].state = 0;
 				JProgramInfo->ctrls.c8108.overflow[i].state = 1;
 				return 1;
@@ -923,6 +940,21 @@ void dealCtrl() {
 	deal8103();
 }
 
+/*
+ * 初始化参数
+ * */
+void CheckInitPara() {
+	if (JProgramInfo->oi_changed.ctrlinit == 0x55) {
+		JProgramInfo->oi_changed.ctrlinit = 0x00;
+		system("rm -rf /nand/para/230*");
+		system("rm -rf /nand/para/240*");
+		system("rm -rf /nand/para/80*");
+		sleep(3);
+		syslog(LOG_NOTICE,"恢复出厂设置 重新载入参数！！！！！！！！");
+		initAll();
+	}
+}
+
 int SaveAll(void* arg) {
 	TS now;
 	int secOld = 0;
@@ -943,18 +975,7 @@ int SaveAll(void* arg) {
 		} else {
 			secOld = now.Sec;
 		}
-
-		void CheckInitPara() {
-			if (JProgramInfo->oi_changed.ctrlinit == 0x55) {
-				system("rm /nand/para/230*");
-				system("rm /nand/para/240*");
-				system("rm /nand/para/81*");
-				sleept(3);
-				fprintf(stderr,"恢复出厂设置 重新载入参数！！！！！！！！");
-				initAll();
-				JProgramInfo->oi_changed.ctrlinit = 0x00;
-			}
-		}
+		CheckInitPara();
 
 		if (secOld % 47 == 0) {
 			for (int i = 0; i < 8; ++i) {
@@ -1241,6 +1262,34 @@ void CtrlStateSumUp() {
 			JProgramInfo->class23[i].alCtlState.ECAlarmState = stb_setbit8(
 					JProgramInfo->class23[i].alCtlState.ECAlarmState, 7);
 		}
+
+
+		if (JProgramInfo->ctrls.c8103.enable[i].state == 1) {
+			JProgramInfo->class23[i].alConState.PCState = stb_setbit8(
+					JProgramInfo->class23[i].alConState.PCState, 7);
+		}
+		if (JProgramInfo->ctrls.c8104.enable[i].state == 1) {
+			JProgramInfo->class23[i].alConState.PCState = stb_setbit8(
+					JProgramInfo->class23[i].alConState.PCState, 6);
+		}
+		if (JProgramInfo->ctrls.c8105.enable[i].state == 1) {
+			JProgramInfo->class23[i].alConState.PCState = stb_setbit8(
+					JProgramInfo->class23[i].alConState.PCState, 5);
+		}
+		if (JProgramInfo->ctrls.c8106.enable.state == 1) {
+			JProgramInfo->class23[i].alConState.PCState = stb_setbit8(
+					JProgramInfo->class23[i].alConState.PCState, 4);
+		}
+
+		if (JProgramInfo->ctrls.c8107.enable[i].state == 1) {
+			JProgramInfo->class23[i].alConState.ECState = stb_setbit8(
+					JProgramInfo->class23[i].alConState.ECState, 6);
+		}
+		if (JProgramInfo->ctrls.c8108.enable[i].state == 1) {
+			JProgramInfo->class23[i].alConState.ECState = stb_setbit8(
+					JProgramInfo->class23[i].alConState.ECState, 7);
+		}
+
 		JProgramInfo->class23[i].alCtlState.BuyOutputState |=
 				JProgramInfo->ctrls.c8107.output[i].state;
 		JProgramInfo->class23[i].alCtlState.MonthOutputState |=
@@ -1287,6 +1336,7 @@ void CtrlStateSumUp() {
 
 void ShaningLED_F206() {
 	static int step = 0;
+	static int count = 0;
 	if (F206_state != 0) {
 		if (step == 0) {
 			gpofun("/dev/gpoALARM", 1);
@@ -1295,8 +1345,16 @@ void ShaningLED_F206() {
 			gpofun("/dev/gpoALARM", 0);
 			step = 0;
 		}
+		if (count < 60) {
+			gpofun("/dev/gpoBUZZER", 1);
+			count ++;
+		}else{
+			gpofun("/dev/gpoBUZZER", 0);
+		}
 	} else {
 		gpofun("/dev/gpoALARM", 0);
+		gpofun("/dev/gpoBUZZER", 0);
+		count  = 0;
 	}
 }
 

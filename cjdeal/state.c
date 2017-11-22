@@ -142,6 +142,7 @@ BOOLEAN oi_f203_changed(INT8U save_changed) {
  * */
 INT8U state_check(BOOLEAN changed, INT8U devicetype) {
 	INT8U state_num = 1;
+	INT8U yx_num = 4;
 	INT8U staret = 0;
 	INT8U i = 0;
 	INT8U bit_state[STATE_MAXNUM] = { };
@@ -154,9 +155,13 @@ INT8U state_check(BOOLEAN changed, INT8U devicetype) {
 		state_num = STATE_MAXNUM;
 
 	for (i = 0; i < state_num; i++) {
-		if (((oif203.state4.StateAcessFlag >> (STATE_MAXNUM - 1 - i)) & 0x01)
-				== 1) {
-			if (i >= 0 && i <= 3) {		//YX1-YX4
+		if (((oif203.state4.StateAcessFlag >> (STATE_MAXNUM - 1 - i)) & 0x01) == 1) {
+			if(devicetype == SPTF3) {
+				yx_num = 1;			//YX1-YX2
+			}else if(devicetype == CCTT1){
+				yx_num = 3;			//YX1-YX4
+			}
+			if (i >= 0 && i <= yx_num) {
 				readstate[i] = state_get(i + 1);
 				if (readstate[i] != -1) {
 					bit_state[i] = (~(readstate[i])) & 0x01;
@@ -171,8 +176,7 @@ INT8U state_check(BOOLEAN changed, INT8U devicetype) {
 					}
 				}
 			}
-			if (((oif203.state4.StatePropFlag >> (STATE_MAXNUM - 1 - i)) & 0x01)
-					== 0) {	//常闭
+			if (((oif203.state4.StatePropFlag >> (STATE_MAXNUM - 1 - i)) & 0x01) == 0) {	//常闭
 				bit_state[i] = (~bit_state[i]) & 0x01;
 			}
 		}

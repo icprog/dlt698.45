@@ -8,7 +8,6 @@
 #include "show_ctrl.h"
 #define OFFSET_Y 3
 #define TIMEOUT_SHORT 2
-#pragma message("\n\n************************************\n SPTF_III__Compiling............\n************************************\n")
 extern void jzq_id_edit();
 extern void menu_set_nettx();
 extern void menu_set_wlantx();
@@ -1018,7 +1017,6 @@ void menu_zhongwen(){
 		gui_textshow(str, pos, LCD_NOREV);
 		pos.y += FONTSIZE*3;
 		memset(str, 0, 200);
-//		memcpy(str_neirong,info_imp.chinese_info[i].info);
 		show_msg(str_neirong, pos);
 		PressKey = NOKEY;
 		delay(300);
