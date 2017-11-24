@@ -417,13 +417,13 @@ void PluseFreeze(INT8U device_type, CLASS12 *class12) {
 	INT8U i = 0;
 	for (i = 0; i < 2; i++) {
 		memcpy(&pluse_energy[i].val_pos_p, &class12[i].val_pos_p,
-				sizeof(pluse_energy[i].val_pos_p));
+				sizeof(class12[i].val_pos_p));
 		memcpy(&pluse_energy[i].val_pos_q, &class12[i].val_pos_q,
-				sizeof(pluse_energy[i].val_pos_q));
+				sizeof(class12[i].val_pos_q));
 		memcpy(&pluse_energy[i].val_nag_p, &class12[i].val_nag_p,
-				sizeof(pluse_energy[i].val_nag_p));
+				sizeof(class12[i].val_nag_p));
 		memcpy(&pluse_energy[i].val_nag_q, &class12[i].val_nag_q,
-				sizeof(pluse_energy[i].val_nag_q));
+				sizeof(class12[i].val_nag_q));
 	}
 	saveVariData(PORT_PLUSE, 0, (INT8U *) &pluse_energy, sizeof(pluse_energy));
 }
