@@ -979,6 +979,8 @@ void clearvar(RUNTIME_PLC *runtime_p)
 	runtime_p->send_start_time = 0;
 	memset(&runtime_p->format_Up,0,sizeof(runtime_p->format_Up));
 }
+
+
 int doInit(RUNTIME_PLC *runtime_p)
 {
 	static int step_init = 0;
@@ -3208,8 +3210,8 @@ INT8U Proxy_GetRequestList(RUNTIME_PLC *runtime_p,CJCOMM_PROXY *proxy,int* begin
 		*beginwork = 0;
 		obj_index = 0;
 		proxy->isInUse = 0;
-		return 4;
 		DbgPrintToFile1(31,"总超时判断取消等待");
+		return 4;
 	}else if(abs( nowtime - runtime_p->send_start_time) > 100  ) {
 		clearvar(runtime_p);
 		*beginwork = 0;
@@ -3475,10 +3477,13 @@ INT8U Proxy_TransCommandRequest(RUNTIME_PLC *runtime_p,CJCOMM_PROXY *proxy,int* 
 			SendDataToCom(runtime_p->comfd, cjcommProxy_plc.strProxyList.proxy_obj.transcmd.cmdbuf, cjcommProxy_plc.strProxyList.proxy_obj.transcmd.cmdlen);
 		}else
 		{
-			DbgPrintToFile1(31,"透传的是645报文");
+			DbgPrintToFile1(31,"透传的是645-698报文");
 			getTransCmdAddrProto(cjcommProxy_plc.strProxyList.proxy_obj.transcmd.cmdbuf, addrtmp, &proto,cjcommProxy_plc.strProxyList.proxy_obj.transcmd.cmdlen);
 			memcpy(runtime_p->format_Down.addr.SourceAddr, runtime_p->masteraddr, 6);
-			sendlen = AFN13_F1(&runtime_p->format_Down,runtime_p->sendbuf, addrtmp, 0, 0, \
+//			sendlen = AFN13_F1(&runtime_p->format_Down,runtime_p->sendbuf, addrtmp, 0, 0,
+//					cjcommProxy_plc.strProxyList.proxy_obj.transcmd.cmdbuf, cjcommProxy_plc.strProxyList.proxy_obj.transcmd.cmdlen);
+			//东软载波模块测试，规约类型发送２DLT_645_07
+			sendlen = AFN13_F1(&runtime_p->format_Down,runtime_p->sendbuf, addrtmp, DLT_645_07, 0, \
 					cjcommProxy_plc.strProxyList.proxy_obj.transcmd.cmdbuf, cjcommProxy_plc.strProxyList.proxy_obj.transcmd.cmdlen);
 			SendDataToCom(runtime_p->comfd, runtime_p->sendbuf, sendlen );
 		}
@@ -4149,13 +4154,14 @@ int stateJuge(int nowdstate,MY_PARA_COUNTER *mypara_p,RUNTIME_PLC *runtime_p,int
 		return DATA_REAL;
 	}
 
+	DbgPrintToFile1(31,"plcNeed: %d, isInUse: %d, plcReady: %d  state:%d",proxyInUse.devUse.plcNeed, cjcommProxy_plc.isInUse, proxyInUse.devUse.plcReady,state);
+
 	if (proxyInUse.devUse.plcNeed == 1 && \
 			cjcommProxy_plc.isInUse ==1 && \
 			state!=DATE_CHANGE && \
 			state!=DATA_REAL)
 	{	//出现代理标识，并且不在初始化和点抄状态
-		DbgPrintToFile1(31,"载波收到点代理请求, plcNeed: %d, plcReady: %d",\
-				proxyInUse.devUse.plcNeed, proxyInUse.devUse.plcReady);
+		DbgPrintToFile1(31,"载波收到点代理请求, plcNeed: %d, plcReady: %d",proxyInUse.devUse.plcNeed, proxyInUse.devUse.plcReady);
 		runtime_p->state_bak = runtime_p->state;
 		runtime_p->state = DATA_REAL;
 		clearvar(runtime_p);
@@ -4757,8 +4763,41 @@ int doBroadCast(RUNTIME_PLC *runtime_p)
 //载波查询模块工作模式和修改工作模式报文
 //INT8U  searchMode[15]={0x68,0x0f,0x00,0x47,0x00,0x00,0xFF,0x00,0x00,0x0b,0x02,0x40,0x01,0x94,0x16};
 //INT8U  setMode[16]={0x68,0x10,0x00,0x47,0x00,0x00,0xFF,0x00,0x00,0x0d,0x01,0x40,0x01,0x66,0xFb,0x16};
-//东软载波模块,切换路由工作模式
-INT8U chgMode[15]={0x68,0x0F,0x00,0x47,0x00,0x00,0xFF,0x00,0x00,0x01,0x02,0x40,0x01,0x8A,0x16};
+int ESRT_Mode_Chg(RUNTIME_PLC *runtime_p)
+{
+	//东软载波模块,切换路由工作模式
+	static INT8U chgMode[16]={0x68,0x10,0x00,0x47,0x00,0x00,0xFF,0x00,0x00,0x00,0x01,0x40,0x01,0x76,0xFE,0x16};
+	static INT8U count = 0;
+
+	if(getZone("GW")!=0) {  //非国网送检
+		if(module_info.ModuleInfo.VendorCode[1]=='E' && module_info.ModuleInfo.VendorCode[0]=='S'
+		   && module_info.ModuleInfo.Version[1] == 43 && module_info.ModuleInfo.Version[0] == 31) {
+			time_t nowtime = time(NULL);
+			if ((abs(nowtime  - runtime_p->send_start_time) > 20) )
+			{
+				count++;
+				if(count>3) {
+					count = 0;
+					clearvar(runtime_p);//376.2上行内容容器清空，发送计时归零
+					DbgPrintToFile1(31,"进行路由模式切换结束");
+					return INIT_MASTERADDR;
+				}
+				SendDataToCom(runtime_p->comfd, chgMode,16);
+				DbgPrintToFile1(31,"东软载波模块[ESRT]，软件版本为4331。进行路由模式切换");
+				clearvar(runtime_p);//376.2上行内容容器清空，发送计时归零
+				runtime_p->send_start_time = nowtime ;
+			}else if(runtime_p->format_Up.afn == 0x00 && runtime_p->format_Up.fn == 1)
+			{
+				clearvar(runtime_p);
+				return INIT_MASTERADDR;
+			}
+			return ZB_MODE;
+		}
+	}
+	return INIT_MASTERADDR;
+}
+
+
 void readplc_thread()
 {
 	int startFlg = 1;
@@ -4804,13 +4843,7 @@ void readplc_thread()
 				state = doInit(&runtimevar);					//初始化 		 （ 1、硬件复位 2、模块版本信息查询  ）
 				break;
 			case ZB_MODE ://如果东软载波模块(ESRT)，且版本为(4331)进行路由模式切换到第４代。此时透传的AFN13-F1的规约类型一致填写:00(透明传输)
-				if(getZone("GW")!=0) {  //非国网送检
-					if(module_info.ModuleInfo.VendorCode[1]=='E' && module_info.ModuleInfo.VendorCode[0]=='S'
-					   && module_info.ModuleInfo.Version[1] == 43 && module_info.ModuleInfo.Version[0] == 31) {
-						SendDataToCom(runtimevar.comfd, chgMode,15);
-						DbgPrintToFile1(31,"东软载波模块[ESRT]，软件版本为4331。进行路由模式切换");
-					}
-				}
+//				state = ESRT_Mode_Chg(&runtimevar);
 				state = INIT_MASTERADDR;
 				break;
 			case INIT_MASTERADDR :

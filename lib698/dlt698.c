@@ -823,6 +823,7 @@ int doProxyRequest(INT8U *apdu, CSINFO *csinfo, INT8U *sendbuf) {
 	for (int i = 0; i < 8; i++) {
 		fprintf(stderr, "%02x ", apdu[i]);
 	}
+	syslog(LOG_NOTICE,"接收到主站代理[%d]",getType);
 	switch (getType) {
 	case ProxyGetRequestList:
 		fprintf(stderr, "\n====ProxyGetRequestList======\n");

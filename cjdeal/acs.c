@@ -963,12 +963,8 @@ INT8U get_rates_no(TS ts_t, CLASS_4016 class4016) {
 		return rate;
 	for (i = 0; i < (class4016.day_num - 1); i++) {
 		for (j = 0; j < (class4016.zone_num - 1); j++) {
-			if (((ts_t.Hour * 60 + ts_t.Minute)
-					>= (class4016.Period_Rate[i][j].hour * 60
-							+ class4016.Period_Rate[i][j].min))
-					&& ((ts_t.Hour * 60 + ts_t.Minute)
-							< (class4016.Period_Rate[i][j + 1].hour * 60
-									+ class4016.Period_Rate[i][j + 1].min))) {
+			if (((ts_t.Hour * 60 + ts_t.Minute)	>= (class4016.Period_Rate[i][j].hour * 60 + class4016.Period_Rate[i][j].min))
+					&& ((ts_t.Hour * 60 + ts_t.Minute)	< (class4016.Period_Rate[i][j + 1].hour * 60 + class4016.Period_Rate[i][j + 1].min))) {
 				rate = class4016.Period_Rate[i][j].rateno;
 				//			fprintf(stderr,"rate=%d\n",rate);
 				break;
@@ -1570,8 +1566,7 @@ void acs_process() {
 	pthread_attr_init(&acs_attr_t);
 	pthread_attr_setstacksize(&acs_attr_t, 2048 * 1024);
 	pthread_attr_setdetachstate(&acs_attr_t, PTHREAD_CREATE_DETACHED);
-	while ((thread_acs_id = pthread_create(&thread_acs, &acs_attr_t,
-			(void*) thread_deal_acs, NULL)) != 0) {
+	while ((thread_acs_id = pthread_create(&thread_acs, &acs_attr_t,(void*) thread_deal_acs, NULL)) != 0) {
 		sleep(1);
 	}
 }
