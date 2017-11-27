@@ -21,7 +21,6 @@
 #include "../libMq/libmmq.h"
 #include "../libBase/PublicFunction.h"
 
-#pragma message("\n\n************************************\n CCTT_I__Compiling............\n************************************\n")
 extern ProgramInfo* p_JProgramInfo ;
 
 /*
@@ -3361,7 +3360,7 @@ void menu_wlanmaster()
 	edit_init(&edit_salveport, str, 5, pos, NOFRAME, NORETFLG, client.node.child,KEYBOARD_DEC);//备端口
 	//------------------------------------------
 	pos.y += FONTSIZE*2 + ROW_INTERVAL;
-	memset(str, ' ', INPUTKEYNUM);
+	memset(str, 0x00, INPUTKEYNUM);
 //	if(strlen((char*)ParaAll->f3.APN)!=0)
 		strcpy(str,(char*) &g_class25_oi4500.commconfig.apn[1]);
 //	else
@@ -3432,6 +3431,12 @@ void menu_wlanmaster()
 						g_class25_oi4500.master.master[1].port = atoi(str);
 						memset(str, 0, INPUTKEYNUM);
 						eidt_gettext(&edit_apn, str);
+                        for(i = 0; i < strlen(str); i++)
+                        {
+                            if(str[i] == ' '){
+                                str[i] = 0x00;
+                            }
+                        }
 						strcpy((char*)&g_class25_oi4500.commconfig.apn[1], str);
 						g_class25_oi4500.commconfig.apn[0] = (INT8U)(strlen(str));
 //						DEBUG_TIME_LINE("\nthe len of apn %s is %d\n",&Class25.commconfig.apn[1],Class25.commconfig.apn[0]);

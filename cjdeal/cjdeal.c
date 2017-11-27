@@ -94,7 +94,7 @@ int InitPara() {
 	 * 初始化698-07-97数据对应关系结构体map07DI_698OAD
 	 * */
 	map07DI_698OAD_NUM = initMap07DI_698OAD();
-
+	memset(&proxyInUse,0,sizeof(proxyInUse));
 	return 0;
 }
 
@@ -1526,8 +1526,7 @@ INT8U dealProxyAnswer() {
 																				//将代理标记清零, 处理下一个代理操作.
 		pthread_mutex_lock(&mutex); //上锁
 		//处理非载波及485表的TSA的透传应答帧处理
-		if (proxyInUse.devUse.plcNeed == 0
-				&& proxyInUse.devUse.rs485Need == 0) {
+		if (proxyInUse.devUse.plcNeed == 0	&& proxyInUse.devUse.rs485Need == 0) {
 			proxy_dar_fill(&proxyList_manager, cjcommProxy.strProxyList);
 		}
 		OAD oad = { };

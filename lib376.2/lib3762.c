@@ -367,7 +367,7 @@ int AFN00_F01(FORMAT3762 *up,INT8U *sendBuf)
 	FORMAT3762 down;
 	int sendlen=0;
 	memset(&sendBuf[0], 0, 256);
-
+	memset(&down,0,sizeof(down));
 	down.afn = 0x00;
 	down.fn = 1;
 	down.ctrl.PRM = 0;//从动站

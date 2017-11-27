@@ -720,14 +720,15 @@ INT32U read_regist(INT32S fp) {
 	realdata.CosB = trans_regist(COS, 1, RRec[r_Pfb], tmm);
 	realdata.CosC = trans_regist(COS, 1, RRec[r_Pfc], tmm);
 	realdata.Cos = trans_regist(COS, 1, RRec[r_Pft], tmm);
-	if ((realdata.Pa >= 0) && (realdata.Pa <= 10))
-		realdata.CosA = 1 * COS_COEF;	//没有功率时，功率因数=1
-	if ((realdata.Pb >= 0) && (realdata.Pb <= 10))
-		realdata.CosB = 1 * COS_COEF;
-	if ((realdata.Pc >= 0) && (realdata.Pc <= 10))
-		realdata.CosC = 1 * COS_COEF;
-	if ((realdata.Pt >= 0) && (realdata.Pt <= 10))
-		realdata.Cos = 1 * COS_COEF;
+	//国网台体测试，功率因数误差增加下面代码导致不合格
+//	if ((realdata.Pa >= 0) && (realdata.Pa <= 10))
+//		realdata.CosA = 1 * COS_COEF;	//没有功率时，功率因数=1
+//	if ((realdata.Pb >= 0) && (realdata.Pb <= 10))
+//		realdata.CosB = 1 * COS_COEF;
+//	if ((realdata.Pc >= 0) && (realdata.Pc <= 10))
+//		realdata.CosC = 1 * COS_COEF;
+//	if ((realdata.Pt >= 0) && (realdata.Pt <= 10))
+//		realdata.Cos = 1 * COS_COEF;
 	realdata.Freq = trans_regist(FREQ, 1, RRec[r_Freq], tmm);
 
 	realdata.LineUa = trans_regist(U, 1, RRec[r_LineUaRrms], tmm);
@@ -962,12 +963,8 @@ INT8U get_rates_no(TS ts_t, CLASS_4016 class4016) {
 		return rate;
 	for (i = 0; i < (class4016.day_num - 1); i++) {
 		for (j = 0; j < (class4016.zone_num - 1); j++) {
-			if (((ts_t.Hour * 60 + ts_t.Minute)
-					>= (class4016.Period_Rate[i][j].hour * 60
-							+ class4016.Period_Rate[i][j].min))
-					&& ((ts_t.Hour * 60 + ts_t.Minute)
-							< (class4016.Period_Rate[i][j + 1].hour * 60
-									+ class4016.Period_Rate[i][j + 1].min))) {
+			if (((ts_t.Hour * 60 + ts_t.Minute)	>= (class4016.Period_Rate[i][j].hour * 60 + class4016.Period_Rate[i][j].min))
+					&& ((ts_t.Hour * 60 + ts_t.Minute)	< (class4016.Period_Rate[i][j + 1].hour * 60 + class4016.Period_Rate[i][j + 1].min))) {
 				rate = class4016.Period_Rate[i][j].rateno;
 				//			fprintf(stderr,"rate=%d\n",rate);
 				break;
@@ -1569,8 +1566,7 @@ void acs_process() {
 	pthread_attr_init(&acs_attr_t);
 	pthread_attr_setstacksize(&acs_attr_t, 2048 * 1024);
 	pthread_attr_setdetachstate(&acs_attr_t, PTHREAD_CREATE_DETACHED);
-	while ((thread_acs_id = pthread_create(&thread_acs, &acs_attr_t,
-			(void*) thread_deal_acs, NULL)) != 0) {
+	while ((thread_acs_id = pthread_create(&thread_acs, &acs_attr_t,(void*) thread_deal_acs, NULL)) != 0) {
 		sleep(1);
 	}
 }

@@ -26,7 +26,7 @@
  * 返回:0：成功；-1：asc为空；-2：en为0；-3：order有误
  * 例如:0x12 0x34 -> 1234
  * */
-#define PATH_MAX 256
+#define BASE_PATH_MAX 256
 #define PIN_BASE 32
 #define AT91_PIN_PC1 (PIN_BASE + 0x40 + 1)
 #define AT91_PIN_PA7 (PIN_BASE + 0x00 + 7)
@@ -951,15 +951,15 @@ INT32S prog_find_pid_by_name(INT8S* ProcName, INT32S* foundpid) {
     }
     /* Walk through the directory. */
     while ((d = readdir(dir)) != NULL) {
-        char exe[PATH_MAX + 1];
-        char path[PATH_MAX + 1];
+        char exe[BASE_PATH_MAX + 1];
+        char path[BASE_PATH_MAX + 1];
         int len;
         int namelen;
         /* See if this is a process */
         if ((pid = atoi(d->d_name)) == 0)
             continue;
         snprintf(exe, sizeof(exe), "/proc/%s/exe", d->d_name);
-        if ((len = readlink(exe, path, PATH_MAX)) < 0)
+        if ((len = readlink(exe, path, BASE_PATH_MAX)) < 0)
             continue;
         path[len] = '\0';
         /* Find ProcName */
@@ -1346,7 +1346,7 @@ void myBCDtoASC1(char val, char dest[2])
 	}
 }
 
-
+//打印内容：DB.ifr.name = 1;//DB.serial.name = 2;//DB.serial_hn.name = 5;//DB.net.name = 3;//DB.gprs.name = 4;
 void PacketBufToFile(INT8U type,char *prefix, char *buf, int len, char *suffix)
 {
 //	return ;

@@ -48,7 +48,7 @@ extern Rect rect_TopStatus, rect_BottomStatus, rect_Client;//液晶划分的3个
 #define QUXIAN_DATA 	3
 
 //#ifdef SPTF_III
-#define LunPageNum 	11  //轮寻页数
+#define LunPageNum 	14  //轮寻页数
 //#else
 //#define LunPageNum 	14  //轮寻页数
 //#endif

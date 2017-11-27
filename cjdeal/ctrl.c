@@ -282,6 +282,9 @@ int initAll() {
 		memset(&JProgramInfo->class12[i], 0x00, sizeof(CLASS12));
 		readCoverClass(0x2401 + i, 0, &JProgramInfo->class12[i], sizeof(CLASS12), para_vari_save);
 		fprintf(stderr, "%d, %d, %d\n\n\n\n\n", JProgramInfo->class12[i].pt, JProgramInfo->class12[i].ct, JProgramInfo->class12[i].pluse_count);
+		syslog(LOG_INFO,"[%d]initAll...... day_pos_p=%d_%d_%d_%d ",i,
+							JProgramInfo->class12[i].day_pos_p[0],JProgramInfo->class12[i].day_pos_p[1]
+			               ,JProgramInfo->class12[i].day_pos_p[2],JProgramInfo->class12[i].day_pos_p[3]);
 	}
 	sleep(5);
 
