@@ -537,53 +537,24 @@ INT8U init6035TotalNum() {
 	if (blknum <= 0) {
 		return 0;
 	}
-	typedef struct {
-		INT8U usrtype;
-		TSA meter;
-	} MeterInfo;
 
-	MeterInfo* allMeter = NULL;
-	allMeter = malloc(blknum * sizeof(MeterInfo));
-	if (allMeter == NULL) {
-		return 0;
-	}
-
-	for (meterIndex = 0; meterIndex < blknum; meterIndex++) {
+	for (meterIndex = 0; meterIndex < blknum; meterIndex++)
+	{
 		if (readParaClass(0x6000, &meter, meterIndex) == 1) {
 			if (meter.sernum != 0 && meter.sernum != 0xffff) {
-				allMeter[totalNum].usrtype = meter.basicinfo.usrtype;
-				memcpy(&allMeter[totalNum].meter, &meter.basicinfo.addr,
-						sizeof(TSA));
 				totalNum++;
 			}
 		}
 	}
 
-	for (tIndex = 0; tIndex < total_tasknum; tIndex++) {
+	for (tIndex = 0; tIndex < total_tasknum; tIndex++)
+	{
 		CLASS_6035 result6035;
 		memset(&result6035, 0, sizeof(CLASS_6035));
 		get6035ByTaskID(list6013[tIndex].basicInfo.taskID, &result6035);
-
-		CLASS_6015 to6015;	//采集方案集
-		memset(&to6015, 0, sizeof(CLASS_6015));
-
-		ret = use6013find6015or6017(list6013[tIndex].basicInfo.cjtype,
-				list6013[tIndex].basicInfo.sernum,
-				list6013[tIndex].basicInfo.interval, &to6015);
-		if (ret == 1) {
-			for (meterIndex = 0; meterIndex < totalNum; meterIndex++) {
-				if (checkMeterType(to6015.mst, allMeter[meterIndex].usrtype,
-						allMeter[meterIndex].meter)) {
-					result6035.totalMSNum++;
-				}
-			}
-			saveClass6035(&result6035);
-		}
-
+		result6035.totalMSNum = totalNum;
+		saveClass6035(&result6035);
 	}
-
-	free(allMeter);
-	allMeter = NULL;
 
 	return ret;
 }
