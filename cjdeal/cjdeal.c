@@ -1859,7 +1859,7 @@ void ctrl_proccess_save() {
 /*********************************************************
  * 主进程
  *********************************************************/
-#include "crtl_base.h"
+#include "ctrlBase.h"
 
 int main(int argc, char *argv[]) {
 	//return ctrl_base_test();
