@@ -13,6 +13,7 @@
 #include <syslog.h>
 
 #include "pluse.h"
+#include "PublicFunction.h"
 #include "Shmem.h"
 #include "Objectdef.h"
 #include "AccessFun.h"
@@ -199,28 +200,30 @@ void pluseCalcDD(PluseUnit * pu)
 //}
 
 //计算周期内实时功率
-int pluseCalcPQ(PluseUnit * pu, int pulse, int index) {
+void pluseCalcPQ(PluseUnit * pu, int pulse, int index) {
 	//检查参数
 	if (pu->class12[index].unit[index].k == 0) {
-		return 0;
+		return;
 	}
 
-	float con = pu->class12[index].unit[index].k;
+	double con = pu->class12[index].unit[index].k;
 	con = (pulse * 60.0 * 10000.0) / con;
 
 	switch (pu->class12[index].unit[index].conf) {
-	case 0:
-	case 2:
-		JProgramInfo->class12[index].p = con;
-		fprintf(stderr, "[CTRL]实时有功功率 %d\n\n\n\n\n\n\n\n\n\n\n",
-				pu->class12[index].p);
-		break;
-	case 1:
-	case 3:
-		JProgramInfo->class12[index].q = con;
-		fprintf(stderr, "[CTRL]实时无功功率 %d\n\n\n\n\n\n\n\n\n\n\n",
-				pu->class12[index].q);
-		break;
+		case 0:
+		case 2:
+			pu->class12[index].p = (INT32S)con;
+			fprintf(stderr, "[CTRL]实时有功功率 %d\n\n\n\n\n\n\n\n\n\n\n",
+					pu->class12[index].p);
+			break;
+		case 1:
+		case 3:
+			pu->class12[index].q = (INT32S)con;
+			fprintf(stderr, "[CTRL]实时无功功率 %d\n\n\n\n\n\n\n\n\n\n\n",
+					pu->class12[index].q);
+			break;
+		default:
+			break;
 	}
 }
 
@@ -241,6 +244,27 @@ int pluseInitUnit(PluseUnit * pu, ProgramInfo* JProgramInfo) {
 
 	pu->old_day = ts.Day;
 	pu->old_month = ts.Month;
+	return 1;
+}
+
+void pluseCleanUpDayData(PluseUnit * pu) {
+	for (int i = 0; i < 2; i++) {
+		int size = sizeof(INT32U) * MAXVAL_RATENUM;
+		memset(pu->class12[i].day_nag_p, 0x00, size);
+		memset(pu->class12[i].day_nag_q, 0x00, size);
+		memset(pu->class12[i].day_pos_p, 0x00, size);
+		memset(pu->class12[i].day_pos_q, 0x00, size);
+	}
+}
+
+void pluseCleanUpYearData(PluseUnit * pu) {
+	for (int i = 0; i < 2; i++) {
+		int size = sizeof(INT32U) * MAXVAL_RATENUM;
+		memset(pu->class12[i].mon_nag_p, 0x00, size);
+		memset(pu->class12[i].mon_nag_q, 0x00, size);
+		memset(pu->class12[i].mon_pos_p, 0x00, size);
+		memset(pu->class12[i].mon_pos_q, 0x00, size);
+	}
 }
 
 void pluseRefreshUnit(PluseUnit * pu) {
@@ -257,7 +281,7 @@ void pluseRefreshUnit(PluseUnit * pu) {
 			}
 			break;
 		case 1:
-			if (abs(time(NULL) - pu->last_time) >= 59) {
+			if (abs((int)(time(NULL) - pu->last_time)) >= 59) {
 				pluseCalcPQ(pu, pu->pNow[i] - pu->pPQ[i], i);
 				pu->pPQ[i] = pu->pNow[i];
 				pu->step[i] = 0;
@@ -274,23 +298,11 @@ void pluseRefreshUnit(PluseUnit * pu) {
 
 	if (pu->old_day != ts.Day) {
 		pu->old_day = ts.Day;
-		for (int i = 0; i < 2; i++) {
-			int size = sizeof(INT32U) * MAXVAL_RATENUM;
-			memset(pu->class12[i].day_nag_p, 0x00, size);
-			memset(pu->class12[i].day_nag_q, 0x00, size);
-			memset(pu->class12[i].day_pos_p, 0x00, size);
-			memset(pu->class12[i].day_pos_q, 0x00, size);
-		}
+		pluseCleanUpDayData(pu);
 	}
 
 	if (pu->old_month != ts.Month) {
 		pu->old_month = ts.Month;
-		for (int i = 0; i < 2; i++) {
-			int size = sizeof(INT32U) * MAXVAL_RATENUM;
-			memset(pu->class12[i].mon_nag_p, 0x00, size);
-			memset(pu->class12[i].mon_nag_q, 0x00, size);
-			memset(pu->class12[i].mon_pos_p, 0x00, size);
-			memset(pu->class12[i].mon_pos_q, 0x00, size);
-		}
+		pluseCleanUpYearData(pu);
 	}
 }
