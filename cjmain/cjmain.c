@@ -27,12 +27,12 @@
 static ProgramInfo *JProgramInfo = NULL;
 static int mmqFds[MAX_MMQ_SIZE] = { };
 
-const static mmq_attribute mmq_register[] = { { cjcomm, PROXY_485_MQ_NAME,
-		MAXSIZ_PROXY_NET, MAXNUM_PROXY_NET }, { cjdeal, PROXY_NET_MQ_NAME,
-		MAXSIZ_PROXY_485, MAXNUM_PROXY_485 }, { cjdeal, TASKID_485_1_MQ_NAME,
-		MAXSIZ_TASKID_QUEUE, MAXNUM_TASKID_QUEUE }, { cjdeal,
-		TASKID_485_2_MQ_NAME, MAXSIZ_TASKID_QUEUE, MAXNUM_TASKID_QUEUE }, {
-		cjdeal, TASKID_plc_MQ_NAME, MAXSIZ_TASKID_QUEUE, MAXNUM_TASKID_QUEUE } };
+const static mmq_attribute mmq_register[] =
+		{ { cjcomm, PROXY_485_MQ_NAME,MAXSIZ_PROXY_NET, MAXNUM_PROXY_NET },
+		  { cjdeal, PROXY_NET_MQ_NAME,MAXSIZ_PROXY_485, MAXNUM_PROXY_485 },
+		  { cjdeal, TASKID_485_1_MQ_NAME,MAXSIZ_TASKID_QUEUE, MAXNUM_TASKID_QUEUE },
+		  { cjdeal, TASKID_485_2_MQ_NAME, MAXSIZ_TASKID_QUEUE, MAXNUM_TASKID_QUEUE },
+		  { cjdeal, TASKID_plc_MQ_NAME, MAXSIZ_TASKID_QUEUE, MAXNUM_TASKID_QUEUE } };
 
 #define	LED_LIGHT	1//点亮led
 #define	LED_CLOSE	0//关闭led
