@@ -17,37 +17,6 @@
 #include "AccessFun.h"
 #include "../include/StdDataType.h"
 
-//int class12_act3(int index, INT8U* data) {
-//	if (data[0] != 0x02 || data[1] != 0x03) {
-//		return 0;
-//	}
-//	if (data[2] != 0x51) {
-//		return 0;
-//	}
-//
-//	ProgramInfo *shareAddr = getShareAddr();
-//	for (int i = 0; i < 12; i++) {
-//		if (shareAddr->class12[index].unit[i].no.OI == 0x00) {
-//			shareAddr->class12[index].unit[i].no.OI = data[3] * 256 + data[4];
-//			asyslog(LOG_INFO, "添加脉冲计量配置单元 %04x",
-//					shareAddr->class12[index].unit[i].no.OI);
-//			shareAddr->class12[index].unit[i].no.attflg = data[5];
-//			shareAddr->class12[index].unit[i].no.attrindex = data[6];
-//
-//			shareAddr->class12[index].unit[i].conf = data[8];
-//			shareAddr->class12[index].unit[i].k = data[10] * 256 + data[11];
-//			break;
-//		}
-//	}
-//
-//	for (int i = 0; i < 2; ++i) {
-//		saveCoverClass(0x2401 + i, 0, &shareAddr->class12[i],
-//				sizeof(CLASS12), para_vari_save);
-//	}
-//
-//	return 0;
-//}
-
 /*
  * type =  ACTION_REQUEST  07
  * type =  SET_REQUEST  06
