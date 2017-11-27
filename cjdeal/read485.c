@@ -1788,11 +1788,35 @@ INT8U getSinglegOADDataUnit(INT8U* oadData)
 		{
 			length++;
 			INT8U arrayNum = oadData[length++];
-			fprintf(stderr,"\n arrayNum = %d\n",arrayNum);
+			//fprintf(stderr,"\n arrayNum = %d\n",arrayNum);
 			INT8U arrayNumIndex = 0;
 			for(arrayNumIndex = 0;arrayNumIndex < arrayNum;arrayNumIndex++)
 			{
+				if((oadData[length] == dtarray)||(oadData[length] == dtstructure))
+				{
+					dataUnitLen = getSinglegOADDataUnit(&oadData[length]);
+					//fprintf(stderr,"\n 1111  dataUnitLen = %d\n",dataUnitLen);
+					length += dataUnitLen;
+				}
+				else
+				{
+					dataUnitLen = getBase_DataTypeLen(oadData[length],oadData[length+1]);
+					length++;
+					length += dataUnitLen;
+				}
+			}
+		}
+		break;
+		case dtstructure:
+		{
+			length++;
+			INT8U structMemberNum = oadData[length++];
+			//fprintf(stderr,"\n structMemberNum = %d\n",structMemberNum);
+			INT8U structMemberIndex = 0;
+			for(structMemberIndex = 0;structMemberIndex < structMemberNum;structMemberIndex++)
+			{
 				dataUnitLen = getBase_DataTypeLen(oadData[length],oadData[length+1]);
+			//	fprintf(stderr,"\n 22222  dataUnitLen = %d\n",dataUnitLen);
 				length++;
 				length += dataUnitLen;
 			}
@@ -2022,9 +2046,9 @@ INT8U deal698RequestResponse(INT8U getResponseType,INT8U csdNum,INT8U* apdudata,
 				{
 					dataCount++;
 				}
-				if(dataCount >= ROAD_OADS_NUM)
+				if(dataCount >= OADS_NUM_485_ONCEREAD)
 				{
-					asyslog(LOG_NOTICE,"ROAD_OADS_NUM dataCount > ROAD_OADS_NUM");
+					asyslog(LOG_NOTICE,"dataCount dataCount > OADS_NUM_485_ONCEREAD");
 					break;
 				}
 			}
@@ -2046,9 +2070,9 @@ INT8U deal698RequestResponse(INT8U getResponseType,INT8U csdNum,INT8U* apdudata,
 					apdudataIndex += oaddataLen;
 					dataCount += rcvCSDnum;
 				}
-				if(dataCount >= ROAD_OADS_NUM)
+				if(dataCount >= OADS_NUM_485_ONCEREAD)
 				{
-					asyslog(LOG_NOTICE,"ROAD_OADS_NUM dataCount > ROAD_OADS_NUM");
+					asyslog(LOG_NOTICE,"dataCount dataCount > OADS_NUM_485_ONCEREAD");
 					break;
 				}
 			}
@@ -2780,7 +2804,7 @@ INT8S dealGuiRead(Proxy_Msg pMsg,INT8U port485)
 		fprintf(stderr,"dealGuiRead 非本端口测量点不处理");
 		return result;
 	}
-	DbgPrintToFile1(port485,"\n dealGuiRead 处理液晶点抄 :%d%d%d%d%d%d%d%d 波特率=%d protocol=%d 端口号=%04x%02x%02x 规约类型=%d 数据标识=%04x"
+	DbgPrintToFile1(port485,"\n dealGuiRead 处理液晶点抄 :%02x%02x%02x%02x%02x%02x%02x%02x 波特率=%d protocol=%d 端口号=%04x%02x%02x 规约类型=%d 数据标识=%04x"
 			,pMsg.addr.addr[0],pMsg.addr.addr[1],pMsg.addr.addr[2],pMsg.addr.addr[3]
 			,pMsg.addr.addr[4],pMsg.addr.addr[5],pMsg.addr.addr[6],pMsg.addr.addr[7]
 			,pMsg.baud,pMsg.protocol,pMsg.port.OI,pMsg.port.attflg,pMsg.port.attrindex
@@ -2805,6 +2829,23 @@ INT8S dealGuiRead(Proxy_Msg pMsg,INT8U port485)
 	meter.basicinfo.protocol = pMsg.protocol;
 	switch(meter.basicinfo.protocol)
 	{
+	case DLT_645_97:
+			{
+				OAD requestOAD;
+				requestOAD.OI = pMsg.oi;
+				requestOAD.attflg = 0x02;
+				requestOAD.attrindex = 0x00;
+
+				C601F_645 Flag645;
+				memset(&Flag645,0,sizeof(C601F_645));
+				Flag645.protocol = DLT_645_97;
+
+				if(OADMap07DI(0x0000,requestOAD, &Flag645) == 1)
+				{
+					retLen = request698_97Data(Flag645.DI._97.DI_1[0],dataContent,meter,&st6035,meter.basicinfo.port.attrindex);
+				}
+			}
+			break;
 		case DLT_645_07:
 			{
 				OAD requestOAD;
@@ -3721,8 +3762,8 @@ INT16S deal6015_698(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8
 					}
 				}
 	#endif
-				OADDATA_SAVE oadListContent[ROAD_OADS_NUM];
-				memset(oadListContent,0,ROAD_OADS_NUM*sizeof(OADDATA_SAVE));
+				OADDATA_SAVE oadListContent[OADS_NUM_485_ONCEREAD];
+				memset(oadListContent,0,OADS_NUM_485_ONCEREAD*sizeof(OADDATA_SAVE));
 				INT16U apdudatalen = 0;
 				dataCount = deal698RequestResponse(getResponseType,csdNum,&recvbuff[apduDataStartIndex],oadListContent,&apdudatalen);
 
@@ -4436,7 +4477,35 @@ INT16S deal6017_07(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8U
 
 	return 0;
 }
+INT8U getsub6015(INT8U subIndex,CLASS_6015 source6015,CLASS_6015* desst6015)
+{
+	memset(desst6015,0,sizeof(CLASS_6015));
+	INT8U ret = 0;
+	if (source6015.cjtype == TYPE_NULL)
+	{
+		memcpy(desst6015,&source6015,sizeof(CLASS_6015));
+		if(subIndex==0)
+		{
+			desst6015->csds.num = OADS_NUM_485_ONCEREAD;
+			return ret;
+		}
+		else
+		{
+			if(desst6015->csds.num >= (subIndex+1)*OADS_NUM_485_ONCEREAD)
+			{
+				desst6015->csds.num = OADS_NUM_485_ONCEREAD;
+			}
+			else
+			{
+				desst6015->csds.num -= subIndex*OADS_NUM_485_ONCEREAD;
+			}
+			memset(desst6015->csds.csd,0,sizeof(MY_CSD)*MY_CSD_NUM);
+			memcpy(desst6015->csds.csd,&source6015.csds.csd[subIndex*OADS_NUM_485_ONCEREAD],sizeof(MY_CSD)*desst6015->csds.num);
+		}
 
+	}
+	return ret;
+}
 /*
  * 抄读1个测量点
  */
@@ -4469,7 +4538,34 @@ INT16S deal6015or6017_singlemeter(CLASS_6013 st6013,CLASS_6015 st6015,CLASS_6001
 					//曲线　　每次抄一小时的数据
 					if(st6015.cjtype != TYPE_INTERVAL)
 					{
-						ret = deal6015_698(st6015,obj6001,st6035,port485);
+						INT8U csdcount = st6015.csds.num;
+
+						if(st6015.cjtype !=TYPE_NULL)
+						{
+							csdcount = st6015.csds.csd[0].csd.road.num;
+						}
+						INT8U readTimes = (csdcount/OADS_NUM_485_ONCEREAD)+1;
+						if(csdcount%OADS_NUM_485_ONCEREAD==0)
+						{
+							readTimes -= 1;
+						}
+						if(readTimes==1)
+						{
+							ret = deal6015_698(st6015,obj6001,st6035,port485);
+						}
+						else
+						{
+							//数据项超过10分开抄
+							INT8U readIndex = 0;
+							for (readIndex = 0;readIndex < readTimes;readIndex++)
+							{
+								CLASS_6015 st6015sub;
+								getsub6015(readIndex,st6015,&st6015sub);
+								ret = deal6015_698(st6015sub,obj6001,st6035,port485);
+							}
+						}
+
+
 					}
 					else
 					{

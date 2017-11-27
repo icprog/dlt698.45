@@ -3,11 +3,13 @@
 	<name>lib698</name>
 	<comment></comment>
 	<projects>
+		<project>include</project>
 		<project>lib698Esam</project>
 		<project>libAccess</project>
 		<project>libBase</project>
 		<project>libCjt188</project>
 		<project>libDlt645</project>
+		<project>libevent</project>
 		<project>libzlib</project>
 	</projects>
 	<buildSpec>

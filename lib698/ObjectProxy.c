@@ -127,7 +127,7 @@ int Proxy_GetRequestlist(INT8U *data,CSINFO *csinfo,INT8U *sendbuf,INT8U piid)
 	//写入文件，等待转发			规约中只负责解析代理的内容，并追加写入到代理文件 /nand/proxy_list
 	getlist.timeold = time(NULL);
 	memcpy(&getlist.csinfo,csinfo,sizeof(CSINFO));
-
+	fprintf(stderr,"\nProxy_GetRequestlist, timeout =%d  代理的对象属性读取数量 %d",getlist.timeout,getlist.num);
 	ret= mqs_send((INT8S *)PROXY_485_MQ_NAME,1,ProxyGetResponseList,mq_com_oad,(INT8U *)&getlist,sizeof(PROXY_GETLIST));
 	fprintf(stderr,"\n代理消息已经发出,ret=%d ,getlist_len=%d\n\n",ret,sizeof(PROXY_GETLIST));
 	return 1;
@@ -335,6 +335,6 @@ int Proxy_TransCommandRequest(INT8U *data,CSINFO *csinfo,INT8U *sendbuf,INT8U pi
 	printcmd(getlist);
 	fprintf(stderr,"代理内容：sizeof(getlist)=%d\n",sizeof(PROXY_GETLIST));
 	ret= mqs_send((INT8S *)PROXY_485_MQ_NAME,1,ProxyGetResponseList,mq_com_oad,(INT8U *)&getlist,sizeof(PROXY_GETLIST));
-	fprintf(stderr,"\n代理消息已经发出,ret=%d\n\n",ret);
+	syslog(LOG_NOTICE,"代理[%d]消息发出,ret=%d",getlist.proxytype,ret);
 	return 1;
 }

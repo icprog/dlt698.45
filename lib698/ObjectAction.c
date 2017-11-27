@@ -1456,7 +1456,7 @@ int doObjectAction(OAD oad, INT8U *data, Action_result *act_ret, CSINFO *csinfo,
 			act_ret->datalen = 0;
 			fprintf(stderr, "进入oi判断1\n");
 			return act_ret->datalen;
-		}else if((oi==0x8000 && attr_act==129) || (oi==0x8001 && attr_act==127)){
+		}else if((oi==0x8000 && (attr_act==129 || attr_act==130)) || (oi==0x8001 && attr_act==127)){
 			//国网一致性测试：远程控制跳闸[TP_06]与投入保电[TP_07]，必须带时间标签，否则认为无效
 			if(Response_timetag.flag == 0) {		//无时间标签
 				act_ret->DAR = timetag_invalid;
