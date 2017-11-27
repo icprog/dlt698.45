@@ -318,6 +318,12 @@ void Checkupdate() {
 		asyslog(LOG_INFO, "检测有升级目录{3}，开始执行升级脚本...");
 		system("mkdir /nand/UpFiles");
 		system("chmod 777 /dos/cjgwn/index.sh");
+
+		if(getZone("ZheJiang") == 0) {
+			asyslog(LOG_INFO, "浙江地区不检测校验码, 直接升级...");
+			system("/dos/cjgwn/index.sh");
+		}
+
 		fp_org = fopen("/nand/Version.log", "r");
 		if (fp_org != NULL) {
 			char md5_org[24];

@@ -1,16 +1,12 @@
 #include <stdio.h>
-#include <fcntl.h>
-#include <pthread.h>
-#include <signal.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/stat.h>
-#include <sys/types.h>
 #include <unistd.h>
 
+#include "db.h"
 #include "cjcomm.h"
 #include "ParaDef.h"
-//停止日常上报检测标志
+//停止日常上报检测标
 static int stopSign = 0;
 //上报确认标志
 static int conformSign = 0;
@@ -20,7 +16,7 @@ static int reportChoice = 0;
 //是否还有更多报文标示
 static int MoreContentSign = 0;
 //时间任务序号
-static int conformCheckId = 0;
+static long long conformCheckId = 0;
 
 //任务参数变更
 static INT16S taskChangeSign = -1;

@@ -3,17 +3,12 @@
 //
 
 #include <stdio.h>
-#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 
-#include "../libBase/PublicFunction.h"
-#include "crtl_base.h"
+#include "PublicFunction.h"
+#include "ctrlBase.h"
 
-/*
- * 操作与控制模块通讯的串口,控制相关的GPIO，并且进行协议封包和解析
- *
- * */
-
-//CRC高位字节值表
 const INT8U auchCRCHi[] = { 0x00, 0xC1, 0x81, 0x40, 0x01, 0xC0, 0x80, 0x41,
 		0x01, 0xC0, 0x80, 0x41, 0x00, 0xC1, 0x81, 0x40, 0x01, 0xC0, 0x80, 0x41,
 		0x00, 0xC1, 0x81, 0x40, 0x00, 0xC1, 0x81, 0x40, 0x01, 0xC0, 0x80, 0x41,
@@ -36,7 +31,7 @@ const INT8U auchCRCHi[] = { 0x00, 0xC1, 0x81, 0x40, 0x01, 0xC0, 0x80, 0x41,
 		0x01, 0xC0, 0x80, 0x41, 0x00, 0xC1, 0x81, 0x40, 0x00, 0xC1, 0x81, 0x40,
 		0x01, 0xC0, 0x80, 0x41, 0x00, 0xC1, 0x81, 0x40, 0x01, 0xC0, 0x80, 0x41,
 		0x01, 0xC0, 0x80, 0x41, 0x00, 0xC1, 0x81, 0x40 };
-//CRC 低位字节值表
+
 const INT8U auchCRCLo[] = { 0x00, 0xC0, 0xC1, 0x01, 0xC3, 0x03, 0x02, 0xC2,
 		0xC6, 0x06, 0x07, 0xC7, 0x05, 0xC5, 0xC4, 0x04, 0xCC, 0x0C, 0x0D, 0xCD,
 		0x0F, 0xCF, 0xCE, 0x0E, 0x0A, 0xCA, 0xCB, 0x0B, 0xC9, 0x09, 0x08, 0xC8,
@@ -60,167 +55,101 @@ const INT8U auchCRCLo[] = { 0x00, 0xC0, 0xC1, 0x01, 0xC3, 0x03, 0x02, 0xC2,
 		0x8D, 0x4D, 0x4C, 0x8C, 0x44, 0x84, 0x85, 0x45, 0x87, 0x47, 0x46, 0x86,
 		0x82, 0x42, 0x43, 0x83, 0x41, 0x81, 0x80, 0x40 };
 
-//获得CRC16值
-//puchMsg:要校验的数组
-//usDataLen:数组长度
 INT16U Get_Crc16(INT8U* puchMsg, INT16U usDataLen) {
-	INT8U uchCRCHi = 0xFF; //高CRC 字节初始化
-	INT8U uchCRCLo = 0xFF; //低CRC 字节初始化
-	INT8U uIndex; //CRC 循环中的索引
-	while (usDataLen--) //传输消息缓冲区
+	INT8U uchCRCHi = 0xFF;
+	INT8U uchCRCLo = 0xFF;
+	INT8U uIndex;
+	while (usDataLen--)
 	{
-		uIndex = uchCRCHi ^ *puchMsg++; //计算CRC
+		uIndex = uchCRCHi ^ *puchMsg++;
 		uchCRCHi = uchCRCLo ^ auchCRCHi[uIndex];
 		uchCRCLo = auchCRCLo[uIndex];
 	}
 	return (uchCRCHi << 8 | uchCRCLo);
 }
 
-/*
- *检测模块是否已插入
- */
-int CheckModelState() {
-	//读取模块状态，查询模块是否已经插入
-	char* ZB_STATE = "/dev/gpiZB_STATE";
-	if (1 == gpio_readbyte((INT8S*) ZB_STATE)) {
-		perror("State of Ctrl Module is 1!\r\n");
+int CtrlModelIsPlugIn() {
+	if (1 == gpio_readbyte("/dev/gpiZB_STATE")) {
+		return 1;
+	} else {
 		return 0;
 	}
-	return 1;
 }
 
-/*打开控制模块串口*/
-int OpenSerialPort() {
-	int serial_fd = OpenCom(5, 19200, (unsigned char*) "even", 1, 8);
+int CtrlInitCommPort() {
+	int serial_fd = OpenCom(5, 19200, (unsigned char *) "even", 1, 8);
 	if (serial_fd <= 0) {
-		fprintf(stderr, "Open Serial Port Failed-%d!\r\n", serial_fd);
+		return -1;
+	} else {
+		return serial_fd;
 	}
-	return serial_fd;
 }
 
-/*初始化控制模块
- */
-int InitCtrlModel() {
+void CtrlInitModelState() {
+	gpio_writebyte("/dev/gpoZAIBO_RST", 0);
+	gpio_writebyte("/dev/gpoZAIBO_RST", 1);
+	gpio_writebyte("/dev/gpoCTL_EN", 1);
 
-	if (CheckModelState() == 0)
-		return 0;
-
-	//复位控制模块，低电平有效
-	char* ZB_RST = "/dev/gpoZAIBO_RST";
-	if (gpio_writebyte((INT8S*) ZB_RST, 0) < 0) {
-		perror("Ctrl Module RST ERR!\r\n");
-		return 0;
-	}
-
-	if (gpio_writebyte((INT8S*) ZB_RST, 1) < 0) {
-		perror("Ctrl Module RST ERR!\r\n");
-		return 0;
-	}
-
-	//控制模块使能，高电平有效
-	char* CTL_EN = "/dev/gpoCTL_EN";
-	if (gpio_writebyte((INT8S*) CTL_EN, 1) < 0) {
-		perror("Ctrl Module CTLEN ERR!\r\n");
-		return 0;
-	}
-
-	//复位后，至少需要60多毫秒，控制模块才能正常使用
-	usleep(80000);
-	fprintf(stderr, "\nvctrl 初始化模块完成");
-	return 1;
+	usleep(80 * 1000); //等待至少60ms
+	return;
 }
 
-/*从串口读取数据，并进行命令解析
- *参数：fd 串口文件标识
- *返回值：两字节的实际数据
- */
+INT8U ReadCmd(int fd, INT8U* rdata1, INT8U* rdata2) {
+	INT8U readBuf[CTRL_LEN];
+	memset(readBuf, 0, CTRL_LEN);
 
-int ReadCmd(int fd, INT8U* rdata1, INT8U* rdata2) {
-	INT8U len = 255; // CTRL_LEN;
-	INT8U buf[len];
-	INT16U Parity, crc_buf;
-	int retcmd, i, k = 0;
-	memset(buf, 0, len);
-	int n = read(fd, buf, len);
-	if (n < CTRL_LEN) {
-		fprintf(stderr, "\n收到 %d ", n);
-		perror("Read Ctrl CMD Error  ");
-		return 0;
-	}
-	fprintf(stderr, "\r\nvctrl read buf :");
-
-	for (i = 0; i < n; i++) {
-		fprintf(stderr, "%x ", buf[i]);
-		if (buf[i] == 0x68)
-			k = i;
+	int n = (int) read(fd, readBuf, CTRL_LEN);
+	if (n < 0) {
+		return 0xFF;
 	}
 
-	crc_buf = (buf[k + 4] << 8) + buf[k + 5];
-	Parity = Get_Crc16(&buf[k], 4);
-	if (crc_buf != Parity) {
-		perror("CRC Error!\r\n");
-		return 0;
+	int start = 0;
+	for (int i = 0; i < n; i++) {
+		if (readBuf[i] == 0x68)
+			start = i;
 	}
 
-	retcmd = buf[k + 1];
-	*rdata1 = buf[k + 2];
-	*rdata2 = buf[k + 3];
+	if ((readBuf[start + 4] << 8) + readBuf[start + 5] != Get_Crc16(&readBuf[start], 4)) {
+		return 0xFF;
+	}
 
-	return retcmd;
+	*rdata1 = readBuf[start + 2];
+	*rdata2 = readBuf[start + 3];
+	return readBuf[start + 1];
 }
 
 INT8U SendCmd(int fd, INT8U cmd, INT8U getcmd, INT8U* data1, INT8U* data2) {
-	INT16U crcdata = 0xffff;
 	INT8U sendbuf[CTRL_LEN];
-	INT8U rcmd = 0;
-	INT8U i;
+	memset(sendbuf, 0x00, CTRL_LEN);
+
 	sendbuf[0] = CTRL_HEAD;
 	sendbuf[1] = cmd;
 	sendbuf[2] = *data1;
 	sendbuf[3] = *data2;
-	crcdata = Get_Crc16(sendbuf, 4);
-	sendbuf[4] = (crcdata & 0xff00) >> 8;
-	sendbuf[5] = crcdata & 0x00ff;
+	INT16U crcdata = Get_Crc16(sendbuf, 4);
+	sendbuf[4] = (INT8U) ((crcdata & 0xff00) >> 8);
+	sendbuf[5] = (INT8U) (crcdata & 0x00ff);
 	sendbuf[6] = CTRL_END;
-	int n = write(fd, sendbuf, CTRL_LEN);
-	if (n != CTRL_LEN)
-		fprintf(stderr, "\nVCTRL 串口发送错误 %d", n);
-	fprintf(stderr, "\nvctrl 发送命令 %02x: ", cmd);
-	for (i = 0; i < n; i++)
-		fprintf(stderr, " %02x", sendbuf[i]);
 
-	usleep(200000);
-	rcmd = ReadCmd(fd, data1, data2);
-	return rcmd;
-}
+	int n = (int) write(fd, sendbuf, CTRL_LEN);
+	if (n != CTRL_LEN) {
+		return 0xFF;
+	}
 
-INT8U Byte_to_state(INT8U abyte, INT8U place) {
-	INT8U state = 0;
-	state = (abyte >> place) & 0x01;
-	return state;
+	usleep(200 * 1000);
+	return ReadCmd(fd, data1, data2);
 }
 
 void BuildByte_by_state(INT8U* abyte, INT8U state, INT8U place) {
-	switch (state) {
-	case TRUE_STATE:
-		*abyte = *abyte | (1 << place);
-		break;
-	case ZERO_STATE:
-		*abyte = *abyte & ~(1 << place);
-		break;
-	}
+	*abyte = (INT8U) ((state == 0x01) ? *abyte | (0x01 << place) : *abyte & ~(0x01 << place));
 }
 
-/*---------------------------------------------------
- *  输出控制状态命令	命令 2	(A3)
- */
 INT8U SetCtrl_CMD(int serial_fd, INT8U lun1_state, INT8U lun1_red,
 		INT8U lun1_green, INT8U lun2_state, INT8U lun2_red, INT8U lun2_green,
 		INT8U gongk_led, INT8U diank_led, INT8U alm_state, INT8U baodian_led) {
-	INT8U data_low, data_hig;
 
-	data_low = 0;
-	data_hig = 0;
+	INT8U data_low = 0;
+	INT8U data_hig = 0;
 
 	BuildByte_by_state(&data_low, lun1_state, 0); //b0	轮次1	分/合闸
 	BuildByte_by_state(&data_low, lun1_red, 1); //b1	轮次1	分-红
@@ -233,10 +162,12 @@ INT8U SetCtrl_CMD(int serial_fd, INT8U lun1_state, INT8U lun1_red,
 	BuildByte_by_state(&data_hig, alm_state, 0); //B0	告警继电器合闸
 	BuildByte_by_state(&data_hig, baodian_led, 1); //B1	保电指示灯
 
-	INT8U rcmd = SendCmd(serial_fd, SEND_CTRL_CMD, RECE_CTRL_CMD, &data_low,
-			&data_hig);
+	CtrlModelIsPlugIn();
+	CtrlInitModelState();
+	int fd = CtrlInitCommPort();
 
-	fprintf(stderr, "\n返回命令:%02x 数据1 %02x 数据2 %02x ", rcmd, data_low, data_hig);
-
-	return rcmd;
+	INT8U res = SendCmd(fd, SEND_CTRL_CMD, RECE_CTRL_CMD, &data_low,
+						&data_hig);
+	close(fd);
+	return res;
 }

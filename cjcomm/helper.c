@@ -15,6 +15,7 @@
 #include <netinet/tcp.h>
 
 #include "anet.h"
+#include "db.h"
 #include "StdDataType.h"
 #include "PublicFunction.h"
 #include "helper.h"
@@ -218,4 +219,13 @@ int helperReadPositionGet(int length) {
 		pos++;
 	}
 	return pos;
+}
+
+void helperChangeNetType() {
+	if(dbGet("model_2g") == 0x00){
+		dbSet("model_2g", 0x11);
+	}else{
+		dbSet("model_2g", 0x00);
+	}
+    asyslog(LOG_INFO, "达到切换网络条件，执行网络类型切换(%02x)，尝试上线", dbGet("model_2g"));
 }
