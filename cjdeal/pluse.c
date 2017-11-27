@@ -268,9 +268,6 @@ void pluseRefreshUnit(PluseUnit * pu) {
 			break;
 		}
 	}
-	asyslog(LOG_INFO,"\n333 day_pos_p=%d_%d_%d_%d ",pu->class12[0].day_pos_p[0],pu->class12[0].day_pos_p[1]
-		               ,pu->class12[0].day_pos_p[2],pu->class12[0].day_pos_p[3]);
-
 	//跨日、月清零
 	TS ts;
 	TSGet(&ts);

@@ -1834,10 +1834,10 @@ void dispatchTask_proccess() {
 void ctrl_proccess() {
 	fprintf(stderr, "\n CJGUI compile time:%s %s", __DATE__, __TIME__);
 
-	pthread_attr_init(&guictrl_attr_t);
-	pthread_attr_setstacksize(&guictrl_attr_t, 2048 * 1024);
-	pthread_attr_setdetachstate(&guictrl_attr_t, PTHREAD_CREATE_DETACHED);
-	while ((thread_guictrl_id = pthread_create(&thread_guictrl, &guictrl_attr_t,
+	pthread_attr_init(&ctrlmain_attr_t);
+	pthread_attr_setstacksize(&ctrlmain_attr_t, 2048 * 1024);
+	pthread_attr_setdetachstate(&ctrlmain_attr_t, PTHREAD_CREATE_DETACHED);
+	while ((thread_ctrlmain_id = pthread_create(&thread_ctrlmain, &ctrlmain_attr_t,
 			(void*) ctrlMain, NULL)) != 0) {
 		sleep(1);
 	}
@@ -1846,10 +1846,10 @@ void ctrl_proccess() {
 void ctrl_proccess_save() {
 	fprintf(stderr, "\n CJGUI compile time:%s %s", __DATE__, __TIME__);
 
-	pthread_attr_init(&guictrl_attr_t);
-	pthread_attr_setstacksize(&guictrl_attr_t, 2048 * 1024);
-	pthread_attr_setdetachstate(&guictrl_attr_t, PTHREAD_CREATE_DETACHED);
-	while ((thread_guictrl_id = pthread_create(&thread_guictrl, &guictrl_attr_t,
+	pthread_attr_init(&ctrlsave_attr_t);
+	pthread_attr_setstacksize(&ctrlsave_attr_t, 2048 * 1024);
+	pthread_attr_setdetachstate(&ctrlsave_attr_t, PTHREAD_CREATE_DETACHED);
+	while ((thread_ctrlsave_id = pthread_create(&thread_ctrlsave, &ctrlsave_attr_t,
 			(void*) SaveAll, NULL)) != 0) {
 		sleep(1);
 	}
