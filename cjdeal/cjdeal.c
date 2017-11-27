@@ -1433,7 +1433,7 @@ INT8U dealProxyAnswer() {
 			proxyList_manager.timeout);
 	if (proxyInUse.devUse.plcNeed == 1){
 		if (proxyInUse.devUse.plcReady == 1 || timecount > proxyList_manager.timeout) {	//收集数据
-			DbgPrintToFile1(32,"载波操作完成 timeout=%d  timecount=%d  plcready=%d",proxyList_manager.timeout,timecount ,proxyInUse.devUse.plcReady);
+//			DbgPrintToFile1(32,"载波操作完成 timeout=%d  timecount=%d  plcready=%d",proxyList_manager.timeout,timecount ,proxyInUse.devUse.plcReady);
 			pthread_mutex_lock(&mutex); //上锁
 			index = proxyList_manager.datalen;
 			if (cjcommProxy_plc.strProxyList.datalen < 512) {
@@ -1475,7 +1475,7 @@ INT8U dealProxyAnswer() {
 					"proxyInUse.devUse.rs485Ready = %d timecount = %d proxyList_manager.timeout = %d",
 					proxyInUse.devUse.rs485Ready, timecount,
 					proxyList_manager.timeout);
-			DbgPrintToFile1(32,"485代理操作完成， timecount=%d ready=%d",timecount,proxyInUse.devUse.rs485Ready);
+//			DbgPrintToFile1(32,"485代理操作完成， timecount=%d ready=%d",timecount,proxyInUse.devUse.rs485Ready);
 			pthread_mutex_lock(&mutex); //上锁
 			fprintf(stderr, "\n\nRS485 代理返回报文 长度：%d :",
 					cjcommProxy.strProxyList.datalen);
@@ -1535,7 +1535,7 @@ INT8U dealProxyAnswer() {
 		timecount = 0;
 		proxyInUse.u8b = 0;
 		pthread_mutex_unlock(&mutex);
-		DbgPrintToFile1(32,"全部代理操作完成，发消息  timecount=%d",timecount);
+//		DbgPrintToFile1(32,"全部代理操作完成，发消息  timecount=%d",timecount);
 	}
 	return 1;
 }

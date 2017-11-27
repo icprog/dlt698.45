@@ -4100,7 +4100,7 @@ int stateJuge(int nowdstate,MY_PARA_COUNTER *mypara_p,RUNTIME_PLC *runtime_p,int
 		return DATA_REAL;
 	}
 
-	DbgPrintToFile1(31,"plcNeed: %d, isInUse: %d, plcReady: %d  state:%d",proxyInUse.devUse.plcNeed, cjcommProxy_plc.isInUse, proxyInUse.devUse.plcReady,state);
+//	DbgPrintToFile1(31,"plcNeed: %d, isInUse: %d, plcReady: %d  state:%d",proxyInUse.devUse.plcNeed, cjcommProxy_plc.isInUse, proxyInUse.devUse.plcReady,state);
 
 	if (proxyInUse.devUse.plcNeed == 1 && \
 			cjcommProxy_plc.isInUse ==1 && \
