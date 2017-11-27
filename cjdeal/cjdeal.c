@@ -1832,10 +1832,10 @@ void dispatchTask_proccess() {
 void ctrl_proccess() {
 	fprintf(stderr, "\n CJGUI compile time:%s %s", __DATE__, __TIME__);
 
-	pthread_attr_init(&guictrl_attr_t);
-	pthread_attr_setstacksize(&guictrl_attr_t, 2048 * 1024);
-	pthread_attr_setdetachstate(&guictrl_attr_t, PTHREAD_CREATE_DETACHED);
-	while ((thread_guictrl_id = pthread_create(&thread_guictrl, &guictrl_attr_t,
+	pthread_attr_init(&ctrlmain_attr_t);
+	pthread_attr_setstacksize(&ctrlmain_attr_t, 2048 * 1024);
+	pthread_attr_setdetachstate(&ctrlmain_attr_t, PTHREAD_CREATE_DETACHED);
+	while ((thread_ctrlmain_id = pthread_create(&thread_ctrlmain, &ctrlmain_attr_t,
 			(void*) ctrlMain, NULL)) != 0) {
 		sleep(1);
 	}
@@ -1844,10 +1844,10 @@ void ctrl_proccess() {
 void ctrl_proccess_save() {
 	fprintf(stderr, "\n CJGUI compile time:%s %s", __DATE__, __TIME__);
 
-	pthread_attr_init(&guictrl_attr_t);
-	pthread_attr_setstacksize(&guictrl_attr_t, 2048 * 1024);
-	pthread_attr_setdetachstate(&guictrl_attr_t, PTHREAD_CREATE_DETACHED);
-	while ((thread_guictrl_id = pthread_create(&thread_guictrl, &guictrl_attr_t,
+	pthread_attr_init(&ctrlsave_attr_t);
+	pthread_attr_setstacksize(&ctrlsave_attr_t, 2048 * 1024);
+	pthread_attr_setdetachstate(&ctrlsave_attr_t, PTHREAD_CREATE_DETACHED);
+	while ((thread_ctrlsave_id = pthread_create(&thread_ctrlsave, &ctrlsave_attr_t,
 			(void*) SaveAll, NULL)) != 0) {
 		sleep(1);
 	}
@@ -1856,19 +1856,20 @@ void ctrl_proccess_save() {
 /*********************************************************
  * 主进程
  *********************************************************/
+#include "ctrlBase.h"
+
 int main(int argc, char *argv[]) {
-//	printf("a\n");
 	//return ctrl_base_test();
 	int del_day = 0, del_min = 0;
 	TS ts;
-	struct timeval start = { }, end = { };
+	struct timeval start = {}, end = {};
 	long interval = 0;
 
 	pid_t pids[128];
-	struct sigaction sa = { };
+	struct sigaction sa = {};
 	Setsig(&sa, QuitProcess);
 
-	if (prog_find_pid_by_name((INT8S*) argv[0], pids) > 1)
+	if (prog_find_pid_by_name((INT8S *) argv[0], pids) > 1)
 		return EXIT_SUCCESS;
 
 	fprintf(stderr, "\n[cjdeal]:cjdeal run!");
@@ -1894,7 +1895,7 @@ int main(int argc, char *argv[]) {
 	//任务调度进程
 	dispatchTask_proccess();
 	//485、四表合一
-	read485_proccess();			//注意里面串口
+	read485_proccess();            //注意里面串口
 	//统计计算 电压合格率 停电事件等
 	calc_proccess();
 	if (JProgramInfo->cfg_para.device == CCTT1) {
@@ -1912,7 +1913,7 @@ int main(int argc, char *argv[]) {
 		gettimeofday(&start, NULL);
 		TSGet(&ts);
 		if (ts.Hour == 15 && ts.Minute == 5 && del_day != ts.Day
-				&& del_min != ts.Minute) {
+			&& del_min != ts.Minute) {
 			deloutofdatafile();
 			del_day = ts.Day;
 			del_min = 0;
@@ -1921,7 +1922,7 @@ int main(int argc, char *argv[]) {
 		DealState(JProgramInfo);
 		gettimeofday(&end, NULL);
 		interval = 1000000 * (end.tv_sec - start.tv_sec)
-				+ (end.tv_usec - start.tv_usec);
+				   + (end.tv_usec - start.tv_usec);
 		if (interval >= 1000000)
 			fprintf(stderr, "deal main interval = %f(ms)\n", interval / 1000.0);
 
