@@ -17,6 +17,7 @@
 #include "atBase.h"
 #include "special.h"
 #include "basedef.h"
+#include "PublicFunction.h"
 
 int cWriteWithCalc(int name, int fd, INT8U *buf, INT16U len) {
 	int old = (int) dbGet("calc.new") + len;

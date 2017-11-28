@@ -1410,6 +1410,7 @@ void replenish_tmp() {
  *	都就绪或者没使用, 则将总的应答报文
  *	发走.
  */
+extern void DbgPrintToFile1(INT8U comport,const char *format,...);
 INT8U dealProxyAnswer() {
 	static int timecount = 0;
 	static time_t begintime = 0;
@@ -1421,7 +1422,6 @@ INT8U dealProxyAnswer() {
 		begintime = nowtime;
 		timecount++;
 	}
-
 	if (begintime != nowtime) {
 		if (abs(nowtime - begintime) < 30)
 			timecount = abs(nowtime - begintime);
@@ -1431,11 +1431,9 @@ INT8U dealProxyAnswer() {
 	fprintf(stderr, "\n[载波通道 %d   RS485通道 %d ]  timecount=%d  timeout=%d\n",
 			proxyInUse.devUse.plcNeed, proxyInUse.devUse.rs485Need, timecount,
 			proxyList_manager.timeout);
-	if (proxyInUse.devUse.plcNeed == 1) {
-		if (proxyInUse.devUse.plcReady == 1
-				|| timecount > proxyList_manager.timeout) {	//收集数据
-
-//			fprintf(stderr,"\n---------------------------------------datalen = %d",cjcommProxy_plc.strProxyList.datalen);
+	if (proxyInUse.devUse.plcNeed == 1){
+		if (proxyInUse.devUse.plcReady == 1 || timecount > proxyList_manager.timeout) {	//收集数据
+//			DbgPrintToFile1(32,"载波操作完成 timeout=%d  timecount=%d  plcready=%d",proxyList_manager.timeout,timecount ,proxyInUse.devUse.plcReady);
 			pthread_mutex_lock(&mutex); //上锁
 			index = proxyList_manager.datalen;
 			if (cjcommProxy_plc.strProxyList.datalen < 512) {
@@ -1472,12 +1470,12 @@ INT8U dealProxyAnswer() {
 		fprintf(stderr, "\nrs485_1_Active = %d  rs485_2_Active = %d\n",
 				proxyInUse.devUse.rs485_1_Active,
 				proxyInUse.devUse.rs485_2_Active);
-		if (proxyInUse.devUse.rs485Ready == 1
-				|| timecount > proxyList_manager.timeout) { //收集数据
+		if (proxyInUse.devUse.rs485Ready == 1 || timecount > proxyList_manager.timeout) { //收集数据
 			fprintf(stderr,
 					"proxyInUse.devUse.rs485Ready = %d timecount = %d proxyList_manager.timeout = %d",
 					proxyInUse.devUse.rs485Ready, timecount,
 					proxyList_manager.timeout);
+//			DbgPrintToFile1(32,"485代理操作完成， timecount=%d ready=%d",timecount,proxyInUse.devUse.rs485Ready);
 			pthread_mutex_lock(&mutex); //上锁
 			fprintf(stderr, "\n\nRS485 代理返回报文 长度：%d :",
 					cjcommProxy.strProxyList.datalen);
@@ -1495,9 +1493,7 @@ INT8U dealProxyAnswer() {
 					cjcommProxy.strProxyList.datalen);
 			if (cjcommProxy.strProxyList.datalen < 512) {
 				proxyList_manager.datalen += cjcommProxy.strProxyList.datalen;
-				//			if(timecount > proxyList_manager.timeout) {		//TODO：超时，发送超时的错误，ProxyTransCommandRequest支持，其他类型是否需要？？？
 				proxy_dar_fill(&proxyList_manager, cjcommProxy.strProxyList);
-				//			}
 				fprintf(stderr, "\n代理消息内容.........datalen=%d\n",
 						proxyList_manager.datalen);
 				fprintf(stderr, "proxyList_manager piid=%02x  ca=%02x \n",
@@ -1529,15 +1525,17 @@ INT8U dealProxyAnswer() {
 		if (proxyInUse.devUse.plcNeed == 0	&& proxyInUse.devUse.rs485Need == 0) {
 			proxy_dar_fill(&proxyList_manager, cjcommProxy.strProxyList);
 		}
-		OAD oad = { };
+		OAD oad = {};
 		fprintf(stderr, "\n发送消息前 dar = %d",
 				proxyList_manager.proxy_obj.transcmd.dar);
 		mqs_send((INT8S *) PROXY_NET_MQ_NAME, 1, TERMINALPROXY_RESPONSE, oad,
 				(INT8U *) &proxyList_manager, sizeof(PROXY_GETLIST));
 		fprintf(stderr, "\n全部代理操作完成，发消息 ！！");
+
 		timecount = 0;
 		proxyInUse.u8b = 0;
 		pthread_mutex_unlock(&mutex);
+//		DbgPrintToFile1(32,"全部代理操作完成，发消息  timecount=%d",timecount);
 	}
 	return 1;
 }
@@ -1834,10 +1832,10 @@ void dispatchTask_proccess() {
 void ctrl_proccess() {
 	fprintf(stderr, "\n CJGUI compile time:%s %s", __DATE__, __TIME__);
 
-	pthread_attr_init(&guictrl_attr_t);
-	pthread_attr_setstacksize(&guictrl_attr_t, 2048 * 1024);
-	pthread_attr_setdetachstate(&guictrl_attr_t, PTHREAD_CREATE_DETACHED);
-	while ((thread_guictrl_id = pthread_create(&thread_guictrl, &guictrl_attr_t,
+	pthread_attr_init(&ctrlmain_attr_t);
+	pthread_attr_setstacksize(&ctrlmain_attr_t, 2048 * 1024);
+	pthread_attr_setdetachstate(&ctrlmain_attr_t, PTHREAD_CREATE_DETACHED);
+	while ((thread_ctrlmain_id = pthread_create(&thread_ctrlmain, &ctrlmain_attr_t,
 			(void*) ctrlMain, NULL)) != 0) {
 		sleep(1);
 	}
@@ -1846,10 +1844,10 @@ void ctrl_proccess() {
 void ctrl_proccess_save() {
 	fprintf(stderr, "\n CJGUI compile time:%s %s", __DATE__, __TIME__);
 
-	pthread_attr_init(&guictrl_attr_t);
-	pthread_attr_setstacksize(&guictrl_attr_t, 2048 * 1024);
-	pthread_attr_setdetachstate(&guictrl_attr_t, PTHREAD_CREATE_DETACHED);
-	while ((thread_guictrl_id = pthread_create(&thread_guictrl, &guictrl_attr_t,
+	pthread_attr_init(&ctrlsave_attr_t);
+	pthread_attr_setstacksize(&ctrlsave_attr_t, 2048 * 1024);
+	pthread_attr_setdetachstate(&ctrlsave_attr_t, PTHREAD_CREATE_DETACHED);
+	while ((thread_ctrlsave_id = pthread_create(&thread_ctrlsave, &ctrlsave_attr_t,
 			(void*) SaveAll, NULL)) != 0) {
 		sleep(1);
 	}
@@ -1858,19 +1856,20 @@ void ctrl_proccess_save() {
 /*********************************************************
  * 主进程
  *********************************************************/
+#include "ctrlBase.h"
+
 int main(int argc, char *argv[]) {
-//	printf("a\n");
 	//return ctrl_base_test();
 	int del_day = 0, del_min = 0;
 	TS ts;
-	struct timeval start = { }, end = { };
+	struct timeval start = {}, end = {};
 	long interval = 0;
 
 	pid_t pids[128];
-	struct sigaction sa = { };
+	struct sigaction sa = {};
 	Setsig(&sa, QuitProcess);
 
-	if (prog_find_pid_by_name((INT8S*) argv[0], pids) > 1)
+	if (prog_find_pid_by_name((INT8S *) argv[0], pids) > 1)
 		return EXIT_SUCCESS;
 
 	fprintf(stderr, "\n[cjdeal]:cjdeal run!");
@@ -1896,7 +1895,7 @@ int main(int argc, char *argv[]) {
 	//任务调度进程
 	dispatchTask_proccess();
 	//485、四表合一
-	read485_proccess();			//注意里面串口
+	read485_proccess();            //注意里面串口
 	//统计计算 电压合格率 停电事件等
 	calc_proccess();
 	if (JProgramInfo->cfg_para.device == CCTT1) {
@@ -1914,7 +1913,7 @@ int main(int argc, char *argv[]) {
 		gettimeofday(&start, NULL);
 		TSGet(&ts);
 		if (ts.Hour == 15 && ts.Minute == 5 && del_day != ts.Day
-				&& del_min != ts.Minute) {
+			&& del_min != ts.Minute) {
 			deloutofdatafile();
 			del_day = ts.Day;
 			del_min = 0;
@@ -1923,7 +1922,7 @@ int main(int argc, char *argv[]) {
 		DealState(JProgramInfo);
 		gettimeofday(&end, NULL);
 		interval = 1000000 * (end.tv_sec - start.tv_sec)
-				+ (end.tv_usec - start.tv_usec);
+				   + (end.tv_usec - start.tv_usec);
 		if (interval >= 1000000)
 			fprintf(stderr, "deal main interval = %f(ms)\n", interval / 1000.0);
 
