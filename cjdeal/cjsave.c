@@ -333,7 +333,7 @@ void fillRECdata(OADDATA_SAVE *OADdata,INT8U OADnum,INT8U *databuf,HEADFIXED_INF
 		{
 			fprintf(stderr,"\n%d:0x%04x-0x%04x\n",j,OADdata[j].oad_m.OI,OADdata[j].oad_r.OI);
 			if(headoad_unit[i].oad_m.OI == OADdata[j].oad_m.OI &&
-					headoad_unit[i].oad_r.OI == OADdata[j].oad_r.OI)
+					memcmp(&headoad_unit[i].oad_r , &OADdata[j].oad_r, sizeof(OAD)) == 0)
 			{
 				fprintf(stderr,"\nclass6015.savetimeflag == %d headoad_unit[i].oad_r.OI = %04x\n",
 						class6015.savetimeflag,headoad_unit[i].oad_r.OI);
@@ -580,8 +580,9 @@ void saveREADOADdata(INT8U taskid,TSA tsa,OADDATA_SAVE *OADdata,INT8U OADnum,TS 
 	{
 		fprintf(stderr,"\nOADdata[%d] oad_m = %04x oad_r =  %04x data[%d] =",
 						prtIndex,OADdata[prtIndex].oad_m.OI,OADdata[prtIndex].oad_r.OI,OADdata[prtIndex].datalen);
-		DbgPrintToFile1(1,"\nOADdata[%d] oad_m = %04x oad_r =  %04x data[%d] = %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x",
-				prtIndex,OADdata[prtIndex].oad_m.OI,OADdata[prtIndex].oad_r.OI,OADdata[prtIndex].datalen,
+		DbgPrintToFile1(1,"\nOADdata[%d] oad_m = %04x oad_r =  %04x-%02x-%02x data[%d] = %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x",
+				prtIndex,OADdata[prtIndex].oad_m.OI,OADdata[prtIndex].oad_r.OI,OADdata[prtIndex].oad_r.attflg, OADdata[prtIndex].oad_r.attrindex,
+				OADdata[prtIndex].datalen,
 				OADdata[prtIndex].data[0],OADdata[prtIndex].data[1],OADdata[prtIndex].data[2],OADdata[prtIndex].data[3]
 				,OADdata[prtIndex].data[4],OADdata[prtIndex].data[5],OADdata[prtIndex].data[6],OADdata[prtIndex].data[7]
 				,OADdata[prtIndex].data[8],OADdata[prtIndex].data[9],OADdata[prtIndex].data[10],OADdata[prtIndex].data[11]);

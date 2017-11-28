@@ -291,7 +291,6 @@ int fill_bool(INT8U *data,INT8U value)		//0x03
  * */
 int fill_bit_string(INT8U *data,INT8U size,INT8U *bits)		//0x04
 {
-	//TODO : 默认8bit ，不符合A-XDR规范
 	if(size>=0 && size<=8){
 		size = 8;
 //		asyslog(LOG_ERR,"fill_bit_string size=%d, error",size);
@@ -870,6 +869,19 @@ int getInteger(INT8U *source,INT8S *dest,INT8U *DAR)                     // 0x0F
 	}
 }
 
+int getLong(INT8U *source,INT16S *dest,INT8U *DAR)                     // 0x10
+{
+	if(source[0] == dtlong) {
+		dest[1] = source[1];
+		dest[0] = source[2];
+		return 3;
+	}else {
+		if(DAR!=NULL && *DAR==success) {
+			*DAR = type_mismatch;
+		}
+		return 0;
+	}
+}
 int getUnsigned(INT8U *source,INT8U *dest,INT8U *DAR)	//0x11
 {
 	if(source[0] == dtunsigned) {
@@ -1090,7 +1102,7 @@ int getScalerUnit(INT8U type,INT8U *source,Scaler_Unit *su,INT8U *DAR)   // 0x59
  */
 int get_BasicRSD(INT8U type,INT8U *source,INT8U *dest,INT8U *seletype)		//0x5A
 {
-	INT16U source_sumindex=0,source_index=0,dest_index=0;
+//	INT16U source_sumindex=0,source_index=0,dest_index=0;
 	int index = 0,i=0;
 	RSD		rsd={};
 	INT8U	DAR=success;
