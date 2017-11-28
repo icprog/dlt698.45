@@ -18,9 +18,9 @@
  * */
 void buzzerCtrl()
 {
-	gpio_writebyte((INT8S *)DEV_ALARM_BUZZER,0x01);
+	gpio_writebyte((char *)DEV_ALARM_BUZZER,0x01);
 	usleep(500000);
-	gpio_writebyte((INT8S *)DEV_ALARM_BUZZER,0x0);
+	gpio_writebyte((char *)DEV_ALARM_BUZZER,0x0);
 }
 
 ///////////////////////////////////////////////set

@@ -11,6 +11,7 @@
 #include "Objectdef.h"
 #include "Shmem.h"
 
+extern int GetClass18(INT8U attflg,INT8U *data);
 /*----------------------变量类----------------------*/
 extern INT8U Get_213x(INT8U getflg, INT8U *sourcebuf, INT8U *buf, int *len);
 extern INT8U Get_2200(INT8U getflg, INT8U* sourcebuf, INT8U* buf, int* len);

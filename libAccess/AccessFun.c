@@ -2659,7 +2659,7 @@ INT32U getTASKruntimes(CLASS_6013 class6013,CLASS_6015 class6015,INT32U *seqsec)
 	}
 	if(seqsecond==0)
 		seqsecond = taskdaysec;
-	if(runtimes > class6015.deepsize)
+	if(runtimes > class6015.deepsize && runtimes == 1)
 	{
 		runtimes = class6015.deepsize;
 		seqsecond = 24*60*60;//1天一次
@@ -2668,6 +2668,7 @@ INT32U getTASKruntimes(CLASS_6013 class6013,CLASS_6015 class6015,INT32U *seqsec)
 	fprintf(stderr,"\n*seqsec =%d seqsecond =%d\n",*seqsec,seqsecond);
 	return runtimes;
 }
+
 INT8U get60136015info(INT8U taskid,CLASS_6015 *class6015,CLASS_6013 *class6013)
 {
 	int i=0;

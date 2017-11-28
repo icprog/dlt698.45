@@ -384,7 +384,21 @@ INT16U set4007(OAD oad,INT8U *data,INT8U *DAR)
 	}
 	return index;
 }
-
+INT16U set4008_4009_400A_400B(OAD oad,INT8U *data,INT8U *DAR)
+{
+	int index=0;
+	CLASS_4008_4009_400A_400B class4008_4009_400A_400B={};
+	memset(&class4008_4009_400A_400B,0,sizeof(CLASS_4008_4009_400A_400B));
+	readCoverClass(oad.OI,0,&class4008_4009_400A_400B,sizeof(CLASS_4008_4009_400A_400B),para_vari_save);
+	if (oad.attflg == 2 )
+	{
+		index += getDateTimeS(1,data,(INT8U *)&class4008_4009_400A_400B.datetime_s,DAR);
+		if(*DAR == success) {
+			*DAR = saveCoverClass(oad.OI,0,&class4008_4009_400A_400B,sizeof(CLASS_4008_4009_400A_400B),para_vari_save);
+		}
+	}
+	return index;
+}
 INT16U set400c(OAD oad,INT8U *data,INT8U *DAR)
 {
 	int index=0;
@@ -417,7 +431,75 @@ INT16U set400c(OAD oad,INT8U *data,INT8U *DAR)
 	}
 	return index;
 }
+INT16U set400D_400E_400F_4010(OAD oad,INT8U *data,INT8U *DAR)
+{
+	int index=0;
+	CLASS_400D_400E_400F_4010 class400D_400E_400F_4010={};
 
+	memset(&class400D_400E_400F_4010,0,sizeof(CLASS_400D_400E_400F_4010));
+	readCoverClass(oad.OI,0,&class400D_400E_400F_4010,sizeof(CLASS_400D_400E_400F_4010),para_vari_save);
+	if (oad.attflg == 2 )
+	{
+		index += getUnsigned(&data[index],&class400D_400E_400F_4010.num,DAR);
+		if(*DAR == success) {
+			*DAR = saveCoverClass(oad.OI,0,&class400D_400E_400F_4010,sizeof(CLASS_400D_400E_400F_4010),para_vari_save);
+		}
+	}
+	return index;
+}
+INT16U set4011(OAD oad,INT8U *data,INT8U *DAR)
+{
+	int index=0;
+	int i=0;
+	CLASS_4011 class4011={};
+
+	memset(&class4011,0,sizeof(class4011));
+	readCoverClass(oad.OI,0,&class4011,sizeof(CLASS_4014),para_vari_save);
+	if (oad.attflg == 2 )
+	{
+		index += getArray(&data[index],&class4011.holidaynum,DAR);
+		class4011.holidaynum = limitJudge("当前公共假日数",MAX_PUBLIC_HOLIDAY_NUM,class4011.holidaynum);
+		for(i=0;i<class4011.holidaynum;i++) {
+			index += getStructure(&data[index],NULL,DAR);
+			index += getDateTimeS(1,data,(INT8U *)&class4011.holiday[i].datetime,DAR);
+			index += getUnsigned(&data[index],&class4011.holiday[i].tableno,DAR);
+		}
+		if(*DAR == success) {
+			*DAR = saveCoverClass(oad.OI,0,&class4011,sizeof(CLASS_4011),para_vari_save);
+		}
+	}
+	return index;
+}
+INT16U set4012(OAD oad,INT8U *data,INT8U *DAR)
+{
+	INT16U index=0;
+	CLASS_4012	class4012={};
+	memset(&class4012,0,sizeof(CLASS_4012));
+	readCoverClass(oad.OI,0,&class4012,sizeof(CLASS_4012),para_vari_save);
+	if ( oad.attflg == 2 )
+	{
+		index += getBitString(1,&data[index],(INT8U *)&class4012.restdayflag);
+//		if(*DAR == success) {
+			*DAR = saveCoverClass(oad.OI,0,&class4012,sizeof(CLASS_4012),para_vari_save);
+//		}
+	}
+	return index;
+}
+INT16U set4013(OAD oad,INT8U *data,INT8U *DAR)
+{
+	INT16U index=0;
+	CLASS_4013	class4013={};
+	memset(&class4013,0,sizeof(CLASS_4013));
+	readCoverClass(oad.OI,0,&class4013,sizeof(CLASS_4013),para_vari_save);
+	if ( oad.attflg == 2 )
+	{
+		index += getUnsigned(&data[index],&class4013.tableno,DAR);
+		if(*DAR == success) {
+			*DAR = saveCoverClass(oad.OI,0,&class4013,sizeof(CLASS_4013),para_vari_save);
+		}
+	}
+	return index;
+}
 INT16U set4014(OAD oad,INT8U *data,INT8U *DAR)
 {
 	int index=0;
@@ -473,7 +555,165 @@ INT16U set4016(OAD oad,INT8U *data,INT8U *DAR)
 	}
 	return index;
 }
+INT16U set401A(OAD oad,INT8U *data,INT8U *DAR)
+{
+	int index=0;
+	int i=0;
+	CLASS_401A class401a={};
+	CLASS_400D_400E_400F_4010	class400d={};
 
+	memset(&class401a,0,sizeof(CLASS_401A));
+	memset(&class400d,0,sizeof(CLASS_400D_400E_400F_4010));
+	readCoverClass(oad.OI,0,&class401a,sizeof(CLASS_401A),para_vari_save);
+	readCoverClass(0x400D,0,&class400d,sizeof(CLASS_401A),para_vari_save);
+	if (oad.attflg == 2 )
+	{
+		index += getStructure(&data[index],NULL,DAR);
+
+		for(i=0;i<class400d.num;i++) {
+			index += getDouble(&data[index],(INT8U *)&class401a.ladder_value[i]);
+		}
+		for(i=0;i<class400d.num;i++) {
+			index += getDouble(&data[index],(INT8U *)&class401a.ladder_price[i]);
+		}
+		for(i=0;i<class400d.num;i++) {
+			index += getStructure(&data[index],NULL,DAR);
+			index += getUnsigned(&data[index],&class401a.account_day[i].month,DAR);
+			index += getUnsigned(&data[index],&class401a.account_day[i].day,DAR);
+			index += getUnsigned(&data[index],&class401a.account_day[i].hour,DAR);
+		}
+
+		if(*DAR == success) {
+			*DAR = saveCoverClass(oad.OI,0,&class401a,sizeof(CLASS_401A),para_vari_save);
+		}
+	}
+	return index;
+}
+INT16U set401C(OAD oad,INT8U *data,INT8U *DAR)
+{
+	int index=0;
+	CLASS_401C_401D class401c={};
+
+	memset(&class401c,0,sizeof(CLASS_401C_401D));
+	readCoverClass(oad.OI,0,&class401c,sizeof(CLASS_401C_401D),para_vari_save);
+	if (oad.attflg == 2 )
+	{
+		index += getDouble(&data[index],(INT8U *)&class401c.k);
+//		if(*DAR == success) {
+			*DAR = saveCoverClass(oad.OI,0,&class401c,sizeof(CLASS_401C_401D),para_vari_save);
+//		}
+	}
+	return index;
+}
+INT16U set401E(OAD oad,INT8U *data,INT8U *DAR)
+{
+	int index=0;
+	CLASS_401E class401e={};
+
+	memset(&class401e,0,sizeof(CLASS_401E));
+	readCoverClass(oad.OI,0,&class401e,sizeof(CLASS_401E),para_vari_save);
+	if (oad.attflg == 2 )
+	{
+		index += getStructure(&data[index],NULL,DAR);
+		index += getDouble(&data[index],(INT8U *)&class401e.alarm_amount_limit_1);
+		index += getDouble(&data[index],(INT8U *)&class401e.alarm_amount_limit_2);
+
+		if(*DAR == success) {
+			*DAR = saveCoverClass(oad.OI,0,&class401e,sizeof(CLASS_401E),para_vari_save);
+		}
+	}
+	return index;
+}
+INT16U set401F(OAD oad,INT8U *data,INT8U *DAR)
+{
+	int index=0;
+	CLASS_401F class401f={};
+
+	memset(&class401f,0,sizeof(CLASS_401F));
+	readCoverClass(oad.OI,0,&class401f,sizeof(CLASS_401F),para_vari_save);
+	if (oad.attflg == 2 )
+	{
+		index += getStructure(&data[index],NULL,DAR);
+		index += getDouble(&data[index],(INT8U *)&class401f.overdraft_amount_limit);
+		index += getDouble(&data[index],(INT8U *)&class401f.hoarding_amount_limit);
+		index += getDouble(&data[index],(INT8U *)&class401f.switchin_amount_limit);
+
+		if(*DAR == success) {
+			*DAR = saveCoverClass(oad.OI,0,&class401f,sizeof(CLASS_401F),para_vari_save);
+		}
+	}
+	return index;
+}
+INT16U set4020(OAD oad,INT8U *data,INT8U *DAR)
+{
+	int index=0;
+	CLASS_4020 class4020={};
+
+	memset(&class4020,0,sizeof(CLASS_401E));
+	readCoverClass(oad.OI,0,&class4020,sizeof(CLASS_401E),para_vari_save);
+	if (oad.attflg == 2 )
+	{
+		index += getStructure(&data[index],NULL,DAR);
+		index += getDouble(&data[index],(INT8U *)&class4020.alarm_electricity_limit_1);
+		index += getDouble(&data[index],(INT8U *)&class4020.alarm_electricity_limit_2);
+
+		if(*DAR == success) {
+			*DAR = saveCoverClass(oad.OI,0,&class4020,sizeof(CLASS_401E),para_vari_save);
+		}
+	}
+	return index;
+}
+INT16U set4021(OAD oad,INT8U *data,INT8U *DAR)
+{
+	int index=0;
+	CLASS_4021 class4021={};
+
+	memset(&class4021,0,sizeof(CLASS_4021));
+	readCoverClass(oad.OI,0,&class4021,sizeof(CLASS_4021),para_vari_save);
+	if (oad.attflg == 2 )
+	{
+		index += getStructure(&data[index],NULL,DAR);
+		index += getDouble(&data[index],(INT8U *)&class4021.hoarding_electricity_limit);
+		index += getDouble(&data[index],(INT8U *)&class4021.overdraft_electricity_limit);
+		index += getDouble(&data[index],(INT8U *)&class4021.switchin_electricity_limit);
+
+		if(*DAR == success) {
+			*DAR = saveCoverClass(oad.OI,0,&class4021,sizeof(CLASS_4021),para_vari_save);
+		}
+	}
+	return index;
+}
+INT16U set4022(OAD oad,INT8U *data,INT8U *DAR)
+{
+	INT16U index=0;
+	CLASS_4022	class4022={};
+	memset(&class4022,0,sizeof(CLASS_4022));
+	readCoverClass(oad.OI,0,&class4022,sizeof(CLASS_4022),para_vari_save);
+	if ( oad.attflg == 2 )
+	{
+		index += getBitString(1,&data[index],(INT8U *)&class4022.card_flag);
+//		if(*DAR == success) {
+			*DAR = saveCoverClass(oad.OI,0,&class4022,sizeof(CLASS_4022),para_vari_save);
+//		}
+	}
+	return index;
+}
+INT16U set4023(OAD oad,INT8U *data,INT8U *DAR)
+{
+	int index=0;
+	CLASS_4023 class4023={};
+
+	memset(&class4023,0,sizeof(CLASS_4023));
+	readCoverClass(oad.OI,0,&class4023,sizeof(CLASS_4023),para_vari_save);
+	if (oad.attflg == 2 )
+	{
+		index += getLongUnsigned(&data[index],(INT8U *)&class4023.effective_duration);
+//		if(*DAR == success) {
+			*DAR = saveCoverClass(oad.OI,0,&class4023,sizeof(CLASS_4023),para_vari_save);
+//		}
+	}
+	return index;
+}
 INT16U set4024(OAD oad,INT8U *data,INT8U *DAR)
 {
 	int index=0;
@@ -510,6 +750,23 @@ INT16U set4030(OAD oad,INT8U *data,INT8U *DAR)
 	return index;
 }
 
+INT16U set4100_4101_4102(OAD oad,INT8U *data,INT8U *DAR)
+{
+	int index=0;
+	CLASS_4100_4101_4102 class4100_4101_4102={};
+
+	memset(&class4100_4101_4102,0,sizeof(CLASS_4100_4101_4102));
+	readCoverClass(oad.OI,0,&class4100_4101_4102,sizeof(CLASS_4100_4101_4102),para_vari_save);
+	if (oad.attflg == 2 )
+	{
+		index += getUnsigned(&data[index],&class4100_4101_4102.data,DAR);
+		if(*DAR == success) {
+			*DAR = saveCoverClass(oad.OI,0,&class4100_4101_4102,sizeof(CLASS_4100_4101_4102),para_vari_save);
+		}
+	}
+	return index;
+}
+
 INT16U set4103(OAD oad,INT8U *data,INT8U *DAR)
 {
 	int i=0;//,bytenum=0;
@@ -532,6 +789,207 @@ INT16U set4103(OAD oad,INT8U *data,INT8U *DAR)
 	}
 	return index;
 }
+INT16U set4104(OAD oad,INT8U *data,INT8U *DAR)
+{
+	int	index=0;
+	CLASS_4104 class4104={};
+
+	memset(&class4104,0,sizeof(CLASS_4104));
+	readCoverClass(oad.OI,0,&class4104,sizeof(CLASS_4104),para_vari_save);
+	if (oad.attflg == 2 )
+	{
+		index += getVisibleString(1,VISIBLE_STRING_LEN,&data[index],(INT8U *)&class4104.ratedU,DAR);
+		if(*DAR!=success)
+			return 0;
+		*DAR = saveCoverClass(oad.OI,0,&class4104,sizeof(CLASS_4104),para_vari_save);
+	}
+	return index;
+}
+INT16U set4105(OAD oad,INT8U *data,INT8U *DAR)
+{
+	int	index=0;
+	CLASS_4105 class4105={};
+
+	memset(&class4105,0,sizeof(CLASS_4105));
+	readCoverClass(oad.OI,0,&class4105,sizeof(CLASS_4105),para_vari_save);
+	if (oad.attflg == 2 )
+	{
+		index += getVisibleString(1,VISIBLE_STRING_LEN,&data[index],(INT8U *)&class4105.ratedI,DAR);
+		if(*DAR!=success)
+			return 0;
+		*DAR = saveCoverClass(oad.OI,0,&class4105,sizeof(CLASS_4105),para_vari_save);
+	}
+	return index;
+}
+INT16U set4106(OAD oad,INT8U *data,INT8U *DAR)
+{
+	int	index=0;
+	CLASS_4106 class4106={};
+
+	memset(&class4106,0,sizeof(CLASS_4106));
+	readCoverClass(oad.OI,0,&class4106,sizeof(CLASS_4106),para_vari_save);
+	if (oad.attflg == 2 )
+	{
+		index += getVisibleString(1,VISIBLE_STRING_LEN,&data[index],(INT8U *)&class4106.maxI,DAR);
+		if(*DAR!=success)
+			return 0;
+		*DAR = saveCoverClass(oad.OI,0,&class4106,sizeof(CLASS_4106),para_vari_save);
+	}
+	return index;
+}
+INT16U set4107_4108(OAD oad,INT8U *data,INT8U *DAR)
+{
+	int	index=0;
+	CLASS_4107_4108 class4107_4108={};
+
+	memset(&class4107_4108,0,sizeof(CLASS_4107_4108));
+	readCoverClass(oad.OI,0,&class4107_4108,sizeof(CLASS_4107_4108),para_vari_save);
+	if (oad.attflg == 2 )
+	{
+		index += getVisibleString(1,VISIBLE_STRING_LEN,&data[index],(INT8U *)&class4107_4108.accuracy_class,DAR);
+		if(*DAR!=success)
+			return 0;
+		*DAR = saveCoverClass(oad.OI,0,&class4107_4108,sizeof(CLASS_4107_4108),para_vari_save);
+	}
+	return index;
+}
+INT16U set4109_410A(OAD oad,INT8U *data,INT8U *DAR)
+{
+	int index=0;
+	CLASS_4109_410A class4109_410A={};
+
+	memset(&class4109_410A,0,sizeof(CLASS_4109_410A));
+	readCoverClass(oad.OI,0,&class4109_410A,sizeof(CLASS_4109_410A),para_vari_save);
+	if (oad.attflg == 2 )
+	{
+		index += getDouble(&data[index],(INT8U *)&class4109_410A.constant);
+		if(*DAR == success) {
+			*DAR = saveCoverClass(oad.OI,0,&class4109_410A,sizeof(CLASS_4109_410A),para_vari_save);
+		}
+	}
+	return index;
+}
+INT16U set410B(OAD oad,INT8U *data,INT8U *DAR)
+{
+	int	index=0;
+	CLASS_410B class410B={};
+
+	memset(&class410B,0,sizeof(CLASS_410B));
+	readCoverClass(oad.OI,0,&class410B,sizeof(CLASS_410B),para_vari_save);
+	if (oad.attflg == 2 )
+	{
+		index += getVisibleString(1,VISIBLE_STRING_LEN,&data[index],(INT8U *)&class410B.meter_type,DAR);
+		if(*DAR!=success)
+			return 0;
+		*DAR = saveCoverClass(oad.OI,0,&class410B,sizeof(CLASS_410B),para_vari_save);
+	}
+	return index;
+}
+INT16U set410C_410D_410E_410F(OAD oad,INT8U *data,INT8U *DAR)
+{
+	int index=0;
+	CLASS_410C_410D_410E_410F class410C_410D_410E_410F={};
+	memset(&class410C_410D_410E_410F,0,sizeof(CLASS_410C_410D_410E_410F));
+
+	readCoverClass(oad.OI,0,&class410C_410D_410E_410F,sizeof(CLASS_410C_410D_410E_410F),para_vari_save);
+	if (oad.attflg == 2 )
+	{
+		index += getStructure(&data[index],NULL,DAR);
+		index += getLong(&data[index],&class410C_410D_410E_410F.ratio_A,DAR);
+		index += getLong(&data[index],&class410C_410D_410E_410F.ratio_B,DAR);
+		index += getLong(&data[index],&class410C_410D_410E_410F.ratio_C,DAR);
+		if(*DAR==success) {
+			*DAR = saveCoverClass(oad.OI,0,&class410C_410D_410E_410F,sizeof(CLASS_410C_410D_410E_410F),para_vari_save);
+		}
+	}
+	return index;
+}
+INT16U set4110(OAD oad,INT8U *data,INT8U *DAR)
+{
+	INT16U index=0;
+	CLASS_4110	class4110={};
+	memset(&class4110,0,sizeof(CLASS_4110));
+	readCoverClass(oad.OI,0,&class4110,sizeof(CLASS_4110),para_vari_save);
+	if ( oad.attflg == 2 )
+	{
+		index += getBitString(1,&data[index],(INT8U *)&class4110.meter_running_character);
+//		if(*DAR == success) {
+			*DAR = saveCoverClass(oad.OI,0,&class4110,sizeof(CLASS_4110),para_vari_save);
+//		}
+	}
+	return index;
+}
+INT16U set4111(OAD oad,INT8U *data,INT8U *DAR)
+{
+	int	index=0;
+	CLASS_4111 class4111={};
+
+	memset(&class4111,0,sizeof(CLASS_4111));
+	readCoverClass(oad.OI,0,&class4111,sizeof(CLASS_4111),para_vari_save);
+	if (oad.attflg == 2 )
+	{
+		index += getVisibleString(1,VISIBLE_STRING_LEN,&data[index],(INT8U *)&class4111.soft_recordnumber,DAR);
+		if(*DAR!=success)
+			return 0;
+		*DAR = saveCoverClass(oad.OI,0,&class4111,sizeof(CLASS_4111),para_vari_save);
+	}
+	return index;
+}
+INT16U set4112_4113_4114(OAD oad,INT8U *data,INT8U *DAR)
+{
+	INT16U index=0;
+	CLASS_4112_4113_4114	class4112_4113_4114={};
+	memset(&class4112_4113_4114,0,sizeof(CLASS_4112_4113_4114));
+	readCoverClass(oad.OI,0,&class4112_4113_4114,sizeof(CLASS_4112_4113_4114),para_vari_save);
+	if ( oad.attflg == 2 )
+	{
+		index += getBitString(1,&data[index],(INT8U *)&class4112_4113_4114.group_character);
+//		if(*DAR == success) {
+			*DAR = saveCoverClass(oad.OI,0,&class4112_4113_4114,sizeof(CLASS_4112_4113_4114),para_vari_save);
+//		}
+	}
+	return index;
+}
+INT16U set4116(OAD oad,INT8U *data,INT8U *DAR)
+{
+	int	index=0,i=0;;
+	CLASS_4116 class4116={};
+	memset(&class4116,0,sizeof(CLASS_4116));
+	readCoverClass(oad.OI,0,&class4116,sizeof(CLASS_4116),para_vari_save);
+	if (oad.attflg == 2 )
+	{
+		index += getArray(&data[index],(INT8U *)&class4116.day_num,DAR);
+		for(i=0;i<class4116.day_num;i++)
+		{
+			index += getStructure(&data[index],NULL,DAR);
+			index += getUnsigned(&data[index],(INT8U *)&class4116.accountdate[i].day,DAR);
+			index += getUnsigned(&data[index],(INT8U *)&class4116.accountdate[i].hour,DAR);
+			if(*DAR !=success)
+				break;
+		}
+		if(*DAR == success) {
+			*DAR = saveCoverClass(oad.OI,0,&class4116,sizeof(CLASS_4116),para_vari_save);
+		}
+	}
+	return index;
+}
+//
+INT16U set4117(OAD oad,INT8U *data,INT8U *DAR)
+{
+	INT16U index=0;
+	CLASS_4117	class4117={};
+	memset(&class4117,0,sizeof(CLASS_4117));
+	readCoverClass(oad.OI,0,&class4117,sizeof(CLASS_4117),para_vari_save);
+	if ( oad.attflg == 2 )
+	{
+		index += getTI(1,&data[index],&class4117.freezeperiod);
+//		if(*DAR == success) {
+			*DAR = saveCoverClass(oad.OI,0,&class4117,sizeof(CLASS_4117),para_vari_save);
+//		}
+	}
+	return index;
+}
+
 INT16U set4202(OAD oad,INT8U *data,INT8U *DAR)
 {
 	int	index=0;
@@ -677,6 +1135,23 @@ INT16U set4400(OAD oad,INT8U *data,INT8U *DAR)
 		break;
 	}
 	return 0;
+}
+
+INT16U set4401(OAD oad,INT8U *data,INT8U *DAR)
+{
+	int	index=0;
+	CLASS_4401 class4401={};
+
+	memset(&class4401,0,sizeof(CLASS_4401));
+	readCoverClass(oad.OI,0,&class4401,sizeof(CLASS_4401),para_vari_save);
+	if (oad.attflg == 2 )
+	{
+		index += getVisibleString(1,VISIBLE_STRING_LEN,&data[index],(INT8U *)&class4401.connect_pwd,DAR);
+		if(*DAR!=success)
+			return 0;
+		*DAR = saveCoverClass(oad.OI,0,&class4401,sizeof(CLASS_4401),para_vari_save);
+	}
+	return index;
 }
 
 INT16U set4500(OAD oad,INT8U *data,INT8U *DAR)

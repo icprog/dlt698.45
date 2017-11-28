@@ -1263,7 +1263,7 @@ void FileTransMothod(INT16U attr_act, INT8U *data) {
 void PlcInfo(INT16U attr_act, INT8U *data, Action_result *act_ret, CSINFO *csinfo, INT8U piid)
 {
 	int   index = 0;
-	CLASS_f209	class_f209={};
+//	CLASS_f209	class_f209={};
 	OAD		oad={};
 	PROXY_GETLIST getlist;
 

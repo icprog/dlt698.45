@@ -135,11 +135,11 @@ int StateProcess(CommBlock* nst, int delay_num) {
  * 检测下行帧服务器地址是否与本终端匹配
  */
 int CheckSerAddr(unsigned char* buf, INT8U *addr) {
-	INT8U checkByte = 0;
+//	INT8U checkByte = 0;
 	INT8U Check_Hb = 0, Check_Lb = 0, My_Hb = 0, My_Lb = 0;
 	INT8U sa_length = 0, mycslen = 0;
 	INT8U logicID = 0;
-	INT8U tmp[OCTET_STRING_LEN];
+	INT8U tmp[OCTET_STRING_LEN]={};
 	int i = 0;
 	INT8U cstype = 0;
 	if (buf[0] == 0x68) {
