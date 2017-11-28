@@ -13,3 +13,6 @@ From,Name,NewName,Position
 ../bin_arm/,libDlt645.so,libDlt645.so,/nor/lib/
 ../bin_arm/,libevent.so,libevent.so,/nor/lib/
 ../bin_arm/,libMq.so,libMq.so,/nor/lib/
+../bin_arm/,libGui.so,libGui.so,/nor/lib/
+../bin_arm/,libCjt188.so,libCjt188.so,/nor/lib/
+../bin_arm/,lib376.2.so,lib376.2.so,/nor/lib/
