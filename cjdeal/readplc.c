@@ -3243,12 +3243,6 @@ int JugeTransType(INT8U *buf,INT8U len,INT8U *buf_645)
 				}
 			}
 		}
-			//dev合并不确定修改原因，暂时注释
-//		else if(formatup.afn==0x13 & formatup.fn==1)
-//		{
-//			*len645 = formatup.afn13_f1_down.MsgLength;
-//			memcpy(buf645,formatup.afn13_f1_down.MsgContent,formatup.afn13_f1_down.MsgLength);//取出透传3762中的645报文
-//		}
 		return 2;/*其它376.2报文*/
 	}else
 	{
@@ -3436,11 +3430,11 @@ INT8U Proxy_TransCommandRequest(RUNTIME_PLC *runtime_p,CJCOMM_PROXY *proxy,int* 
 			DbgPrintToFile1(31,"透传的是645-698报文");
 			getTransCmdAddrProto(cjcommProxy_plc.strProxyList.proxy_obj.transcmd.cmdbuf, addrtmp, &proto,cjcommProxy_plc.strProxyList.proxy_obj.transcmd.cmdlen);
 			memcpy(runtime_p->format_Down.addr.SourceAddr, runtime_p->masteraddr, 6);
-			sendlen = AFN13_F1(&runtime_p->format_Down,runtime_p->sendbuf, addrtmp, 0, 0,
-					cjcommProxy_plc.strProxyList.proxy_obj.transcmd.cmdbuf, cjcommProxy_plc.strProxyList.proxy_obj.transcmd.cmdlen);
-			//东软载波模块测试，规约类型发送２DLT_645_07
-//			sendlen = AFN13_F1(&runtime_p->format_Down,runtime_p->sendbuf, addrtmp, DLT_645_07, 0, \
+//			sendlen = AFN13_F1(&runtime_p->format_Down,runtime_p->sendbuf, addrtmp, 0, 0,
 //					cjcommProxy_plc.strProxyList.proxy_obj.transcmd.cmdbuf, cjcommProxy_plc.strProxyList.proxy_obj.transcmd.cmdlen);
+			//东软载波模块测试，规约类型发送２DLT_645_07
+			sendlen = AFN13_F1(&runtime_p->format_Down,runtime_p->sendbuf, addrtmp, DLT_645_07, 0,
+					cjcommProxy_plc.strProxyList.proxy_obj.transcmd.cmdbuf, cjcommProxy_plc.strProxyList.proxy_obj.transcmd.cmdlen);
 			SendDataToCom(runtime_p->comfd, runtime_p->sendbuf, sendlen );
 		}
 		DbgPrintToFile1(31,"发送 plc 代理 command ");
