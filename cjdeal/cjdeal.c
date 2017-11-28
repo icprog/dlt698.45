@@ -406,10 +406,6 @@ INT8S init6000InfoFrom6000FIle() {
 }
 INT8S saveClass6035(CLASS_6035* class6035) {
 	INT8S ret = -1;
-
-	if (class6035->totalMSNum < class6035->successMSNum) {
-		class6035->totalMSNum = class6035->successMSNum;
-	}
 	saveCoverClass(0x6035, class6035->taskID, class6035, sizeof(CLASS_6035),
 			coll_para_save);
 
@@ -537,24 +533,56 @@ INT8U init6035TotalNum() {
 	if (blknum <= 0) {
 		return 0;
 	}
+	typedef struct {
+		INT8U usrtype;
+		TSA meter;
+	} MeterInfo;
 
-	for (meterIndex = 0; meterIndex < blknum; meterIndex++)
-	{
+	MeterInfo* allMeter = NULL;
+	allMeter = malloc(blknum * sizeof(MeterInfo));
+	if (allMeter == NULL) {
+		return 0;
+	}
+
+	for (meterIndex = 0; meterIndex < blknum; meterIndex++) {
 		if (readParaClass(0x6000, &meter, meterIndex) == 1) {
 			if (meter.sernum != 0 && meter.sernum != 0xffff) {
+				allMeter[totalNum].usrtype = meter.basicinfo.usrtype;
+				memcpy(&allMeter[totalNum].meter, &meter.basicinfo.addr,
+						sizeof(TSA));
 				totalNum++;
 			}
 		}
 	}
 
-	for (tIndex = 0; tIndex < total_tasknum; tIndex++)
-	{
-		CLASS_6035 result6035;
-		memset(&result6035, 0, sizeof(CLASS_6035));
-		get6035ByTaskID(list6013[tIndex].basicInfo.taskID, &result6035);
-		result6035.totalMSNum = totalNum;
-		saveClass6035(&result6035);
+	for (tIndex = 0; tIndex < total_tasknum; tIndex++) {
+		CLASS_6015 to6015;	//采集方案集
+		memset(&to6015, 0, sizeof(CLASS_6015));
+
+		ret = use6013find6015or6017(list6013[tIndex].basicInfo.cjtype,
+				list6013[tIndex].basicInfo.sernum,
+				list6013[tIndex].basicInfo.interval, &to6015);
+		if (ret == 1) {
+			INT16U totalMSNum = 0;
+			CLASS_6035 result6035;
+			memset(&result6035, 0, sizeof(CLASS_6035));
+			get6035ByTaskID(list6013[tIndex].basicInfo.taskID, &result6035);
+
+			for (meterIndex = 0; meterIndex < totalNum; meterIndex++) {
+				if (checkMeterType(to6015.mst, allMeter[meterIndex].usrtype,
+						allMeter[meterIndex].meter)) {
+					totalMSNum++;
+				}
+			}
+			asyslog(LOG_WARNING, "init6035TotalNum id =%d  totalMSNum = %d",result6035.taskID,result6035.totalMSNum);
+			result6035.totalMSNum = totalMSNum;
+			saveClass6035(&result6035);
+		}
+
 	}
+
+	free(allMeter);
+	allMeter = NULL;
 
 	return ret;
 }
@@ -1381,6 +1409,7 @@ void replenish_tmp() {
  *	都就绪或者没使用, 则将总的应答报文
  *	发走.
  */
+extern void DbgPrintToFile1(INT8U comport,const char *format,...);
 INT8U dealProxyAnswer() {
 	static int timecount = 0;
 	static time_t begintime = 0;
@@ -1392,7 +1421,6 @@ INT8U dealProxyAnswer() {
 		begintime = nowtime;
 		timecount++;
 	}
-
 	if (begintime != nowtime) {
 		if (abs(nowtime - begintime) < 30)
 			timecount = abs(nowtime - begintime);
@@ -1402,11 +1430,9 @@ INT8U dealProxyAnswer() {
 	fprintf(stderr, "\n[载波通道 %d   RS485通道 %d ]  timecount=%d  timeout=%d\n",
 			proxyInUse.devUse.plcNeed, proxyInUse.devUse.rs485Need, timecount,
 			proxyList_manager.timeout);
-	if (proxyInUse.devUse.plcNeed == 1) {
-		if (proxyInUse.devUse.plcReady == 1
-				|| timecount > proxyList_manager.timeout) {	//收集数据
-
-//			fprintf(stderr,"\n---------------------------------------datalen = %d",cjcommProxy_plc.strProxyList.datalen);
+	if (proxyInUse.devUse.plcNeed == 1){
+		if (proxyInUse.devUse.plcReady == 1 || timecount > proxyList_manager.timeout) {	//收集数据
+//			DbgPrintToFile1(32,"载波操作完成 timeout=%d  timecount=%d  plcready=%d",proxyList_manager.timeout,timecount ,proxyInUse.devUse.plcReady);
 			pthread_mutex_lock(&mutex); //上锁
 			index = proxyList_manager.datalen;
 			if (cjcommProxy_plc.strProxyList.datalen < 512) {
@@ -1443,12 +1469,12 @@ INT8U dealProxyAnswer() {
 		fprintf(stderr, "\nrs485_1_Active = %d  rs485_2_Active = %d\n",
 				proxyInUse.devUse.rs485_1_Active,
 				proxyInUse.devUse.rs485_2_Active);
-		if (proxyInUse.devUse.rs485Ready == 1
-				|| timecount > proxyList_manager.timeout) { //收集数据
+		if (proxyInUse.devUse.rs485Ready == 1 || timecount > proxyList_manager.timeout) { //收集数据
 			fprintf(stderr,
 					"proxyInUse.devUse.rs485Ready = %d timecount = %d proxyList_manager.timeout = %d",
 					proxyInUse.devUse.rs485Ready, timecount,
 					proxyList_manager.timeout);
+//			DbgPrintToFile1(32,"485代理操作完成， timecount=%d ready=%d",timecount,proxyInUse.devUse.rs485Ready);
 			pthread_mutex_lock(&mutex); //上锁
 			fprintf(stderr, "\n\nRS485 代理返回报文 长度：%d :",
 					cjcommProxy.strProxyList.datalen);
@@ -1466,9 +1492,7 @@ INT8U dealProxyAnswer() {
 					cjcommProxy.strProxyList.datalen);
 			if (cjcommProxy.strProxyList.datalen < 512) {
 				proxyList_manager.datalen += cjcommProxy.strProxyList.datalen;
-				//			if(timecount > proxyList_manager.timeout) {		//TODO：超时，发送超时的错误，ProxyTransCommandRequest支持，其他类型是否需要？？？
 				proxy_dar_fill(&proxyList_manager, cjcommProxy.strProxyList);
-				//			}
 				fprintf(stderr, "\n代理消息内容.........datalen=%d\n",
 						proxyList_manager.datalen);
 				fprintf(stderr, "proxyList_manager piid=%02x  ca=%02x \n",
@@ -1500,15 +1524,17 @@ INT8U dealProxyAnswer() {
 		if (proxyInUse.devUse.plcNeed == 0	&& proxyInUse.devUse.rs485Need == 0) {
 			proxy_dar_fill(&proxyList_manager, cjcommProxy.strProxyList);
 		}
-		OAD oad = { };
+		OAD oad = {};
 		fprintf(stderr, "\n发送消息前 dar = %d",
 				proxyList_manager.proxy_obj.transcmd.dar);
 		mqs_send((INT8S *) PROXY_NET_MQ_NAME, 1, TERMINALPROXY_RESPONSE, oad,
 				(INT8U *) &proxyList_manager, sizeof(PROXY_GETLIST));
 		fprintf(stderr, "\n全部代理操作完成，发消息 ！！");
+
 		timecount = 0;
 		proxyInUse.u8b = 0;
 		pthread_mutex_unlock(&mutex);
+//		DbgPrintToFile1(32,"全部代理操作完成，发消息  timecount=%d",timecount);
 	}
 	return 1;
 }
