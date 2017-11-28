@@ -4717,8 +4717,7 @@ int ESRT_Mode_Chg(RUNTIME_PLC *runtime_p)
 	static INT8U count = 0;
 
 	if(getZone("GW")!=0) {  //非国网送检
-		if(module_info.ModuleInfo.VendorCode[1]=='E' && module_info.ModuleInfo.VendorCode[0]=='S'
-		   && module_info.ModuleInfo.Version[1] == 43 && module_info.ModuleInfo.Version[0] == 31) {
+		if(module_info.ModuleInfo.VendorCode[1]=='E' && module_info.ModuleInfo.VendorCode[0]=='S') {
 			time_t nowtime = time(NULL);
 			if ((abs(nowtime  - runtime_p->send_start_time) > 20) )
 			{
@@ -4726,15 +4725,16 @@ int ESRT_Mode_Chg(RUNTIME_PLC *runtime_p)
 				if(count>3) {
 					count = 0;
 					clearvar(runtime_p);//376.2上行内容容器清空，发送计时归零
-					DbgPrintToFile1(31,"进行路由模式切换结束");
+					DbgPrintToFile1(31,"读取路由模式切换结束");
 					return INIT_MASTERADDR;
 				}
 				SendDataToCom(runtime_p->comfd, readMode,15);
-				DbgPrintToFile1(31,"东软载波模块[ESRT]，软件版本为4331。进行路由模式切换");
+				DbgPrintToFile1(31,"东软载波模块[ESRT]。查询路由模式");
 				clearvar(runtime_p);//376.2上行内容容器清空，发送计时归零
 				runtime_p->send_start_time = nowtime ;
-			}else if(runtime_p->format_Up.afn == 0x00 && runtime_p->format_Up.fn == 1)
+			}else if(runtime_p->format_Up.afn == 0x02 && runtime_p->format_Up.fn == 15)
 			{
+//				DbgPrintToFile1(31,"afn = %02x fn = %d \n",runtime_p->format_Up.afn,runtime_p->format_Up.fn);
 				clearvar(runtime_p);
 				return INIT_MASTERADDR;
 			}
