@@ -406,10 +406,6 @@ INT8S init6000InfoFrom6000FIle() {
 }
 INT8S saveClass6035(CLASS_6035* class6035) {
 	INT8S ret = -1;
-
-	if (class6035->totalMSNum < class6035->successMSNum) {
-		class6035->totalMSNum = class6035->successMSNum;
-	}
 	saveCoverClass(0x6035, class6035->taskID, class6035, sizeof(CLASS_6035),
 			coll_para_save);
 
@@ -560,10 +556,6 @@ INT8U init6035TotalNum() {
 	}
 
 	for (tIndex = 0; tIndex < total_tasknum; tIndex++) {
-		CLASS_6035 result6035;
-		memset(&result6035, 0, sizeof(CLASS_6035));
-		get6035ByTaskID(list6013[tIndex].basicInfo.taskID, &result6035);
-
 		CLASS_6015 to6015;	//采集方案集
 		memset(&to6015, 0, sizeof(CLASS_6015));
 
@@ -571,12 +563,19 @@ INT8U init6035TotalNum() {
 				list6013[tIndex].basicInfo.sernum,
 				list6013[tIndex].basicInfo.interval, &to6015);
 		if (ret == 1) {
+			INT16U totalMSNum = 0;
+			CLASS_6035 result6035;
+			memset(&result6035, 0, sizeof(CLASS_6035));
+			get6035ByTaskID(list6013[tIndex].basicInfo.taskID, &result6035);
+
 			for (meterIndex = 0; meterIndex < totalNum; meterIndex++) {
 				if (checkMeterType(to6015.mst, allMeter[meterIndex].usrtype,
 						allMeter[meterIndex].meter)) {
-					result6035.totalMSNum++;
+					totalMSNum++;
 				}
 			}
+			asyslog(LOG_WARNING, "init6035TotalNum id =%d  totalMSNum = %d",result6035.taskID,result6035.totalMSNum);
+			result6035.totalMSNum = totalMSNum;
 			saveClass6035(&result6035);
 		}
 

@@ -2257,18 +2257,6 @@ int ProcessMeter(INT8U *buf,struct Tsa_Node *desnode)
 		}
 	}else
 	{
-	    if(getZone("GW")==1)
-	    {
-			//更新6035抄读成功数量
-			CLASS_6035 result6035;	//采集任务监控单元
-			get6035ByTaskID(taskinfo.task_list[taski].taskId,&result6035);
-			result6035.taskState = AFTER_OPR;
-			TS tsNow;
-			TSGet(&tsNow);
-			INT16U tsaNum = getCBsuctsanum(result6035.taskID,tsNow);
-			result6035.successMSNum = result6035.successMSNum > tsaNum?result6035.successMSNum:tsaNum;
-			saveClass6035(&result6035);
-	    }
 		sendlen = 0;
 	}
 	return sendlen;
@@ -3054,6 +3042,10 @@ int doTask(RUNTIME_PLC *runtime_p)
 					CLASS_6035 result6035;	//采集任务监控单元
 					get6035ByTaskID(taskinfo.task_list[taskinfo.now_taski].taskId,&result6035);
 					result6035.rcvMsgNum++;
+					TS tsNow;
+					TSGet(&tsNow);
+					INT16U tsaNum = getCBsuctsanum(result6035.taskID,tsNow);
+					result6035.successMSNum = result6035.successMSNum > tsaNum?result6035.successMSNum:tsaNum;
 					saveClass6035(&result6035);
 			    }
 			}

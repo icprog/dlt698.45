@@ -101,14 +101,13 @@ void specialTransFlow() {
 		old.Minute = ts.Minute;
 		if (old.Day != ts.Day) {
 			asyslog(LOG_INFO, "检测到夸日,清零前数据(%d)", Tj_info->day_tj);
-			Save_TJ_Freeze(0x2200, 0x0200, 0, ts, sizeof(Flow_tj),
-					(INT8U *) &info->dev_info.realTimeC2200);
+			Save_TJ_Freeze(0, 0x2200, 0x0200, ts, sizeof(Flow_tj),(INT8U *) &info->dev_info.realTimeC2200);
 			Tj_info->day_tj = 0;
 			old.Day = ts.Day;
 		}
 		if (old.Month != ts.Month) {
 			asyslog(LOG_INFO, "检测到夸月,清零前数据(%d)", Tj_info->month_tj);
-			Save_TJ_Freeze(0x2200, 0x0200, 1, ts, sizeof(Flow_tj),
+			Save_TJ_Freeze(1, 0x2200, 0x0200, ts, sizeof(Flow_tj),
 					(INT8U *) &info->dev_info.realTimeC2200);
 			Tj_info->month_tj = 0;
 			old.Month = ts.Month;

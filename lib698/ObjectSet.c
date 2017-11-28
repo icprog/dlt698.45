@@ -235,11 +235,63 @@ INT16U EnvironmentValue(OAD oad,INT8U *data,INT8U *DAR)
 		case 0x400C://时区时段数
 			data_index = set400c(oad,data,DAR);
 			break;
+		case 0x400D://阶梯数
+		case 0x400E://谐波分析次数
+		case 0x400F://密钥总条数
+		case 0x4010://计量元件数
+			data_index = set400D_400E_400F_4010(oad,data,DAR);
+			break;
+		case 0x4011://公共假日表
+			data_index = set4011(oad,data,DAR);
+			break;
+		case 0x4012://周休日特征字
+			data_index = set4012(oad,data,DAR);
+			break;
+		case 0x4013://周休日采用的日时段表号
+			data_index = set4013(oad,data,DAR);
+			break;
 		case 0x4014://当前套时区表
+			data_index = set4014(oad,data,DAR);
+			break;
+		case 0x4015://备用套时区表
 			data_index = set4014(oad,data,DAR);
 			break;
 		case 0x4016://当前套日时段表
 			data_index = set4016(oad,data,DAR);
+			break;
+		case 0x4017://备用套日时段表
+			data_index = set4016(oad,data,DAR);
+			break;
+		case 0x4019://备用套费率电价
+			data_index = set4018(oad,data,DAR);
+			break;
+		case 0x401A://当前套阶梯电价
+			data_index = set401A(oad,data,DAR);
+			break;
+		case 0x401B://备用套阶梯电价
+			data_index = set401A(oad,data,DAR);
+			break;
+		case 0x401C://电流互感器变比
+		case 0x401D://电压互感器变比
+			data_index = set401C(oad,data,DAR);
+			break;
+		case 0x401E://报警金额限值
+			data_index = set401E(oad,data,DAR);
+			break;
+		case 0x401F://其他金额限值
+			data_index = set401F(oad,data,DAR);
+			break;
+		case 0x4020://报警电量限值
+			data_index = set4020(oad,data,DAR);
+			break;
+		case 0x4021://其他电量限值
+			data_index = set4021(oad,data,DAR);
+			break;
+		case 0x4022://插卡状态字
+			data_index = set4022(oad,data,DAR);
+			break;
+		case 0x4023://认证有效时长
+			data_index = set4023(oad,data,DAR);
 			break;
 		case 0x4024://剔除
 			data_index = set4024(oad,data,DAR);
@@ -247,8 +299,56 @@ INT16U EnvironmentValue(OAD oad,INT8U *data,INT8U *DAR)
 		case 0x4030://电压合格率参数
 			data_index = set4030(oad,data,DAR);
 			break;
+		case 0x4100://最大需量周期
+		case 0x4101://滑差时间
+		case 0x4102://校表脉冲宽度
+			data_index = set4100_4101_4102(oad,data,DAR);
+			break;
 		case 0x4103://资产管理编码
 			data_index = set4103(oad,data,DAR);
+			break;
+		case 0x4104://额定电压
+			data_index = set4104(oad,data,DAR);
+			break;
+		case 0x4105://额定电流/基本电流
+			data_index = set4105(oad,data,DAR);
+			break;
+		case 0x4106://最大电流
+			data_index = set4106(oad,data,DAR);
+			break;
+		case 0x4107://有功准确度等级
+		case 0x4108://无功准确度等级
+			data_index = set4107_4108(oad,data,DAR);
+			break;
+		case 0x4109://电能表有功常数
+		case 0x410A://电能表无功常数
+			data_index = set4109_410A(oad,data,DAR);
+			break;
+		case 0x410B://电能表常数
+			data_index = set410B(oad,data,DAR);
+			break;
+		case 0x410C://ABC各相电导系数
+		case 0x410D://ABC各相电抗系数
+		case 0x410E://ABC各相电阻系数
+		case 0x410F://ABC各相电纳系数
+			data_index = set410C_410D_410E_410F(oad,data,DAR);
+			break;
+		case 0x4110://电能表运行状态字
+			data_index = set4110(oad,data,DAR);
+			break;
+		case 0x4111://软件备案号
+			data_index = set4111(oad,data,DAR);
+			break;
+		case 0x4112://有功组合方式特征字
+		case 0x4113://无功组合方式1特征字
+		case 0x4114://无功组合方式2特征字
+			data_index = set4112_4113_4114(oad,data,DAR);
+			break;
+		case 0x4116://结算日
+			data_index = set4116(oad,data,DAR);
+			break;
+		case 0x4117://期间需量冻结周期
+			data_index = set4117(oad,data,DAR);
 			break;
 		case 0x4202://级联通信参数
 			data_index = set4202(oad,data,DAR);
@@ -259,13 +359,37 @@ INT16U EnvironmentValue(OAD oad,INT8U *data,INT8U *DAR)
 		case 0x4300://电气设备
 			data_index = set4300(oad,data,DAR);
 			break;
-		case 0x4400:
+		case 0x4307://水表
+			*DAR =obj_undefine;
+			break;
+		case 0x4308://气表
+			*DAR =obj_undefine;
+			break;
+		case 0x4309://热表
+			*DAR =obj_undefine;
+			break;
+		case 0x4400://应用连接
 			data_index = set4400(oad,data,DAR);
 			break;
-		case 0x4500:
+		case 0x4401://认证密码
+			data_index = set4401(oad,data,DAR);
+			break;
+		case 0x4500://公网通信模块1
+			data_index = set4500(oad,data,DAR);
+			break;
+		case 0x4501://公网通信模块2
 			data_index = set4500(oad,data,DAR);
 			break;
 		case 0x4510://以太网通信接口类
+			data_index = set4510(oad,data,DAR);
+			break;
+		case 0x4511://以太网通信模块2
+		case 0x4512://以太网通信模块3
+		case 0x4513://以太网通信模块4
+		case 0x4514://以太网通信模块5
+		case 0x4515://以太网通信模块6
+		case 0x4516://以太网通信模块7
+		case 0x4517://以太网通信模块8
 			data_index = set4510(oad,data,DAR);
 			break;
 		case 0x4018://当前套费率电价

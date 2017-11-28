@@ -982,29 +982,29 @@ void CheckInitPara() {
 }
 
 int SaveAll(void* arg) {
-	TS now;
-	int secOld = 0;
+//	TS now;
+//	int secOld = 0;
 	int sign = 0;
-	int old_sign[10];
+	static int old_sign[10];
+//
+//	for(int i = 0; i < 10; i++)
+//	{
+//		old_sign[i] = 0;
+//	}
+//
+//	int run = 1;
+//	while (run) {
+//		TSGet(&now);
+//		//一秒钟刷新一次
+//		if (secOld == now.Sec) {
+//			usleep(500 * 1000);
+//			continue;
+//		} else {
+//			secOld = now.Sec;
+//		}
+//		CheckInitPara();
 
-	for(int i = 0; i < 10; i++)
-	{
-		old_sign[i] = 0;
-	}
-
-	int run = 1;
-	while (run) {
-		TSGet(&now);
-		//一秒钟刷新一次
-		if (secOld == now.Sec) {
-			usleep(500 * 1000);
-			continue;
-		} else {
-			secOld = now.Sec;
-		}
-		CheckInitPara();
-
-		if (secOld % 47 == 0) {
+//		if (secOld % 47 == 0) {
 			for (int i = 0; i < 8; ++i) {
 				sign = stb_crc32((unsigned char *)&JProgramInfo->class23[i], sizeof(CLASS23));
 				if(sign != old_sign[i]){
@@ -1025,9 +1025,9 @@ int SaveAll(void* arg) {
 				saveCoverClass(0x2402, 0, &JProgramInfo->class12[1], sizeof(CLASS12),
 						para_vari_save);
 			}
-		}
-	}
-    return (void*)0;
+//		}
+//	}
+//    return (void*)0;
 }
 
 void CheckCtrlControl() {
@@ -1567,6 +1567,12 @@ int ctrlMain(void* arg) {
 		if (secOld % 5 == 0) {
 			dealCtrl();
 		}
+
+		if (secOld % 46 == 0) {
+			SaveAll((void *)0);
+		}
+
+
 
 		CtrlStateSumUp();
 		PackCtrlSituation();
