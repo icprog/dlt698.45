@@ -452,7 +452,7 @@ int getTItoSec(TI ti)
 		default:
 			break;
 	}
-	fprintf(stderr,"get TI(%d-%d) sec=%d\n",ti.units,ti.interval,sec);
+//	fprintf(stderr,"get TI(%d-%d) sec=%d\n",ti.units,ti.interval,sec);
 	return sec;
 }
 //INT32U getTASKruntimes(CLASS_6013 class6013,CLASS_6015 class6015,INT32U *seqsec)//计算任务每天抄读次数
