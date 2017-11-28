@@ -1539,8 +1539,6 @@ int buildProxyFrame(RUNTIME_PLC *runtime_p,struct Tsa_Node *desnode,OAD oad1,OAD
 				addrtmp[1] = desnode->tsa.addr[6];
 				addrtmp[0] = desnode->tsa.addr[7];
 				return (AFN13_F1(&runtime_p->format_Down,runtime_p->sendbuf,addrtmp, DLT_645_07, 0, buf645, sendlen));
-				//东软载波模块测试
-//				return (AFN13_F1(&runtime_p->format_Down,runtime_p->sendbuf,addrtmp, 0, 0, buf645, sendlen));
 			}
 			break;
 		case DLT_698:
@@ -1562,7 +1560,8 @@ int buildProxyFrame(RUNTIME_PLC *runtime_p,struct Tsa_Node *desnode,OAD oad1,OAD
 				addrtmp[2] = desnode->tsa.addr[5];
 				addrtmp[1] = desnode->tsa.addr[6];
 				addrtmp[0] = desnode->tsa.addr[7];
-				return (AFN13_F1(&runtime_p->format_Down,runtime_p->sendbuf,addrtmp, getProtocol698Flag(RouterFactory), 0, buf645, sendlen));
+//				return (AFN13_F1(&runtime_p->format_Down,runtime_p->sendbuf,addrtmp, getProtocol698Flag(RouterFactory), 0, buf645, sendlen));/*698表规约类型鼎信0，其它厂商3*/
+				return (AFN13_F1(&runtime_p->format_Down,runtime_p->sendbuf,addrtmp, 0, 0, buf645, sendlen));
 			}
 			break;
 	}
@@ -3068,13 +3067,17 @@ INT8U getTransCmdAddrProto(INT8U* cmdbuf, INT8U* addrtmp, INT8U* proto,INT8U len
 		return 0;
 	}
 	int i=0;
+	TSA tsatmp;
 	*proto = 0;
 	for(i=0;i<len;i++)
 	{
 		if (cmdbuf[i] == 0x68 && cmdbuf[i+7]==0x68)
 		{
 			memcpy(addrtmp, &cmdbuf[i+1], 6);
-			*proto = 2;//dlt645-07
+			Addr_TSA(addrtmp,&tsatmp);
+			struct Tsa_Node *nodetmp=NULL;
+			nodetmp = getNodeByTSA(tsa_head,tsatmp) ;
+			*proto = nodetmp->protocol;//dlt645-07 or 97
 			return 1;
 		}
 	}
@@ -3084,7 +3087,6 @@ INT8U getTransCmdAddrProto(INT8U* cmdbuf, INT8U* addrtmp, INT8U* proto,INT8U len
 		if (cmdbuf[i] == 0x68)
 		{
 			Af = cmdbuf[i+4] & 0x0F;
-
 			memcpy(addrtmp, &cmdbuf[i+5], Af+1);
 			*proto = 0;//698.45
 			return 1;
@@ -3260,6 +3262,14 @@ int JugeTransType(INT8U *buf,INT8U len,INT8U *buf_645)
 				return 1; /*376.2 AFN=05 fn=f3 启动广播*/
 			}
 			return 0;/*透传的是645报文*/
+		}else
+		{
+			INT8U addr[6]={};
+			memcpy(buf645,tmp3762,len);
+			if (simpleProtocol698(buf645,len,addr)==1)/*透传的是645报文*/
+			{
+				return 0;/*透传的是645报文*/
+			}
 		}
 	}
 	return 3;/*透传的是其它报文*/
@@ -3306,7 +3316,7 @@ INT8U F209_TransRequest(RUNTIME_PLC *runtime_p,CJCOMM_PROXY *proxy,int* beginwor
 			DbgPrintToFile1(31,"透传的是645报文");
 			getTransCmdAddrProto(cjcommProxy_plc.strProxyList.proxy_obj.f209Trans.transBuf, addrtmp, &proto,datalen);
 			memcpy(runtime_p->format_Down.addr.SourceAddr, runtime_p->masteraddr, 6);
-			sendlen = AFN13_F1(&runtime_p->format_Down,runtime_p->sendbuf, addrtmp, 0, 0, \
+			sendlen = AFN13_F1(&runtime_p->format_Down,runtime_p->sendbuf, addrtmp, proto, 0, \
 					cjcommProxy_plc.strProxyList.proxy_obj.f209Trans.transBuf, datalen);
 			SendDataToCom(runtime_p->comfd, runtime_p->sendbuf, sendlen );
 		}
@@ -3425,12 +3435,11 @@ INT8U Proxy_TransCommandRequest(RUNTIME_PLC *runtime_p,CJCOMM_PROXY *proxy,int* 
 			sendlen = AFN13_F1(&runtime_p->format_Down,runtime_p->sendbuf, addrtmp, 0, 0,
 					cjcommProxy_plc.strProxyList.proxy_obj.transcmd.cmdbuf, cjcommProxy_plc.strProxyList.proxy_obj.transcmd.cmdlen);
 			SendDataToCom(runtime_p->comfd, runtime_p->sendbuf, sendlen );
-
 		}else {
 			DbgPrintToFile1(31,"透传的是645报文");
 			getTransCmdAddrProto(cjcommProxy_plc.strProxyList.proxy_obj.transcmd.cmdbuf, addrtmp, &proto,cjcommProxy_plc.strProxyList.proxy_obj.transcmd.cmdlen);
 			memcpy(runtime_p->format_Down.addr.SourceAddr, runtime_p->masteraddr, 6);
-			sendlen = AFN13_F1(&runtime_p->format_Down,runtime_p->sendbuf, addrtmp, DLT_645_07, 0,
+			sendlen = AFN13_F1(&runtime_p->format_Down,runtime_p->sendbuf, addrtmp, proto, 0,
 					cjcommProxy_plc.strProxyList.proxy_obj.transcmd.cmdbuf, cjcommProxy_plc.strProxyList.proxy_obj.transcmd.cmdlen);
 			SendDataToCom(runtime_p->comfd, runtime_p->sendbuf, sendlen );
 		}
@@ -3636,23 +3645,24 @@ int doProxy(RUNTIME_PLC *runtime_p)
 			{
 				if(cjcommProxy_plc.strProxyList.proxytype == F209TransCommandAction)
 				{
-					DbgPrintToFile1(31,"进入F209透传==>");
+					DbgPrintToFile1(31,"进入F209透传>>>");
 					step_cj = 3;
 					break;
 				}else
 				{
-					DbgPrintToFile1(31,"进入主站代理==>");
+					DbgPrintToFile1(31,"进入主站代理>>>");
 					step_cj = 2;
 					break;
 				}
 			} else if (cjGuiProxy_plc.isInUse == 1)
 			{
-				DbgPrintToFile1(31,"进入液晶点抄==>");
+				DbgPrintToFile1(31,"进入液晶点抄>>>");
 				step_cj = 1;
 				break;
 			}
 			int outtime = abs( nowtime - runtime_p->send_start_time) ;
-			DbgPrintToFile1(31,"计时%d",outtime);
+			if (outtime%5==0)
+				DbgPrintToFile1(31,"计时%d",outtime);
 			if(outtime > 100  || getZone("GW")==0)
 			{
 				//最后一次代理操作后100秒, 才恢复抄读
@@ -4768,9 +4778,7 @@ void readplc_thread()
 		********************************/
 		TSGet(&runtimevar.nowts);
 		state = stateJuge(state, &mypara,&runtimevar,&startFlg);
-		if(state != 0) {
-			fprintf(stderr,"\n state  = %d",state);
-		}
+
 		/********************************
 		 * 	   状态流程处理
 		********************************/
