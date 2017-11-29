@@ -3169,16 +3169,10 @@ int doGetrecord(INT8U type,OAD oad,INT8U *data,RESULT_RECORD *record,INT16U *sub
 		if(*subframe==1) {		//无分帧
 			//文件中第一个字节保存的是：SEQUENCE OF A-ResultRecord，此处从TmpDataBuf[1]上送，上送长度也要-1
 			next_info.nextSite = readFrameDataFile(TASK_FRAME_DATA,0,TmpDataBuf,&datalen);
-			//国网一致性测试特殊处理。因为现场其他地方已经应用，为了不影响其他功能，此处特殊处理
-//			if(oad.OI == 0x6012 && oad.attflg == 03 && type==GET_REQUEST_RECORD_LIST) {		//6012的属性3招测记录单元走招测任务数据
-//				record->data = TmpDataBuf;				//data 指向回复报文帧头 [0] = SEQUENCE OF A-ResultRecord
-//				record->datalen += datalen;				//数据长度+ResultRecord
-//			}else {
 			if(datalen>=1) {	//文件中第一个字节保存的是：SEQUENCE OF A-ResultRecord，此处从TmpDataBuf[1]上送，上送长度也要-1
 				record->data = &TmpDataBuf[1];				//data 指向回复报文帧头
 				record->datalen += (datalen-1);				//数据长度+ResultRecord
 			}
-//			}
 //			if(type==GET_REQUEST_RECORD) {//文件中第一个字节保存的是：SEQUENCE OF A-ResultRecord，此处从TmpDataBuf[1]上送，上送长度也要-1
 //				if(datalen>=1) {								//TODO:浙江曲线招测测试过
 //					record->data = &TmpDataBuf[1];				//data 指向回复报文帧头
