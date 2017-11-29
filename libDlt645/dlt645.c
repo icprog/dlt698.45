@@ -212,7 +212,18 @@ INT16S composeProtocol07(FORMAT07* format07, INT8U* sendBuf)
 
 	return sendlen;
 }
-
+INT8S simpleProtocol698(INT8U* recvBuf, const INT16U recvLen,INT8U *addr)
+{
+	INT16U count, count2;
+	count = getFECount(recvBuf, recvLen);//得到待解析报文中前导符FE的个数
+	count2 = getFFCount(recvBuf, recvLen);//得到待解析报文中后缀FF的个数（江苏II型新联的电表）
+	if (isValid645(&recvBuf[count], recvLen-count-count2) == 0)	//校验通过
+	{
+		memcpy(addr, &recvBuf[count+1], 6);
+		return 1;
+	}
+	return 0;
+}
 //07报文解析入口函数
 INT8S analyzeProtocol07(FORMAT07* format07, INT8U* recvBuf, const INT16U recvLen, BOOLEAN *nextFlag)
 {

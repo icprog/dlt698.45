@@ -83,6 +83,7 @@
 #define SERACH_NUM				100			//搜表结果记录最大个数
 #define SERACH_PARA_NUM			24			//搜表配置参数个数
 #define EVENT_OI_MAXNUM			30			//终端需要判断事件
+#define MAX_PUBLIC_HOLIDAY_NUM   254			//公共假日数
 
 #define	VARI_LEN				64			//变量类对象每个oi占用的位置空间
 //一个CSD 对应07数据项个数 数组

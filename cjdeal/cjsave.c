@@ -435,26 +435,7 @@ void fillEVEdata(OADDATA_SAVE *OADdata,INT8U OADnum,INT8U *databuf,HEADFIXED_INF
 //		return 0;
 //	return 4;//实时或曲线
 //}
-int getTItoSec(TI ti)
-{
-	int  sec = 0;
-	switch(ti.units)
-	{
-		case sec_units://秒
-			sec = ti.interval;
-			break;
-		case minute_units://分
-			sec = ti.interval * 60;
-			break;
-		case hour_units://时
-			sec =  ti.interval * 3600;
-			break;
-		default:
-			break;
-	}
-	fprintf(stderr,"get TI(%d-%d) sec=%d\n",ti.units,ti.interval,sec);
-	return sec;
-}
+
 //INT32U getTASKruntimes(CLASS_6013 class6013,CLASS_6015 class6015,INT32U *seqsec)//计算任务每天抄读次数
 //{
 //	INT32U runtimes=0,seqsecond=0,taskdaysec=0;//频率秒数 任务一天的活跃秒数

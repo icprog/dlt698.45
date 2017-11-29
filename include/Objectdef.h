@@ -225,6 +225,9 @@ typedef struct {
     INT8U energydata_dec;    //显示电能小数位
     INT8U powerdata_dec;     //显示功率小数位
 } CLASS_4007;
+typedef struct {
+	DateTimeBCD datetime_s;//切换时间
+} CLASS_4008_4009_400A_400B;
 
 typedef struct {
     INT8U 	year_zone;   		//年时区数p<=14
@@ -234,6 +237,26 @@ typedef struct {
     INT8U 	public_holiday;  	//公共假日数	n<=254
 } CLASS_400C;
 
+typedef struct {
+	INT8U num;					//数量
+} CLASS_400D_400E_400F_4010;
+
+typedef struct {
+	DateTimeBCD	datetime;		//日期
+	INT8U		tableno;		//日时段表号
+} HOLIDAY_INFO;
+typedef struct {
+	INT8U holidaynum;		//公共假日数量（至少要保存20个假日）
+	HOLIDAY_INFO holiday[MAX_PUBLIC_HOLIDAY_NUM];	//公共假日
+} CLASS_4011;
+
+typedef struct {
+	INT8U restdayflag;		//周休日特征字(size(8))（附录G）
+} CLASS_4012;
+
+typedef struct {
+	INT8U tableno;		//周休日采用的日时段表号
+} CLASS_4013;
 typedef struct {
     INT8U month;   	//月
     INT8U day;    	//日
@@ -260,18 +283,124 @@ typedef struct {
 	INT8U 	num; //费率电价个数
 	INT64U feilv_price[32]; //费率电价   元/kWh 换算:-4
 } CLASS_4018;
+typedef struct {
+    INT8U month;   	//月
+    INT8U day;    	//日
+    INT8U hour; 	//日时段表号
+} ACCOUNT_DAY;
+typedef struct {
+	INT32U 	ladder_value[32]; 				//阶梯值     kWh 换算：-2
+	INT32U ladder_price[32]; 			//阶梯电价   元/kWh 换算:-4
+	ACCOUNT_DAY account_day[32];		//阶梯结算日
+} CLASS_401A;
+typedef struct {
+	INT32U 	k; 		//电压/电流互感器变比 换算：-2
+} CLASS_401C_401D;
 
 typedef struct {
-    INT16U uUp;
-    INT16U uDown;
-    INT16U uUp_Kaohe;
-    INT16U uDown_Kaohe;
-} CLASS_4030;		//电压合格率参数
+	INT32U 	alarm_amount_limit_1; 		//报警金额限值  元 换算：-2
+	INT32U 	alarm_amount_limit_2; 		//其他金额限值  元 换算：-2
+} CLASS_401E;
 
+typedef struct {
+	INT32U 	overdraft_amount_limit; 	//透支金额限值  元 换算：-2
+	INT32U 	hoarding_amount_limit; 		//囤积金额限值  元 换算：-2
+	INT32U 	switchin_amount_limit; 		//合闸允许金额限值  元 换算：-2
+} CLASS_401F;
+typedef struct {
+	INT32U 	alarm_electricity_limit_1; 	//报警电量限值  元 换算：-2
+	INT32U 	alarm_electricity_limit_2; 	//其他电量限值  元 换算：-2
+} CLASS_4020;
+
+typedef struct {
+	INT32U 	overdraft_electricity_limit; //囤积电量限值  元 换算：-2
+	INT32U 	hoarding_electricity_limit; //透支电量限值  元 换算：-2
+	INT32U 	switchin_electricity_limit; //合闸允许电量限值  元 换算：-2
+} CLASS_4021;
+
+typedef struct {
+	INT8U 	card_flag; //插卡状态字(size(16))（附录G）
+} CLASS_4022;
+
+typedef struct {
+	INT16U 	effective_duration; //认证有效时长  分钟
+} CLASS_4023;
+typedef struct {
+    INT8U tichu;
+} CLASS_4024;
+typedef struct {
+    INT16U uUp;				//电压考核上限  V 换算：-1
+    INT16U uDown;			//电压考核下限  V 换算：-1
+    INT16U uUp_Kaohe;		//电压合格上限  V 换算：-1
+    INT16U uDown_Kaohe;		//电压合格下限  V 换算：-1
+} CLASS_4030;				//电压合格率参数
+
+typedef struct {
+	INT8U data;		//最大需量时间/滑差时间 分钟 换算：0
+					//校表脉冲宽度 毫秒 换算：0
+} CLASS_4100_4101_4102;
 typedef struct {
     char assetcode[40]; // 0：代表有效长度
 } CLASS_4103;           //资产管理编码
 
+typedef struct {
+    char ratedU[VISIBLE_STRING_LEN]; 	// 0：代表有效长度
+} CLASS_4104;           				//额定电压
+typedef struct {
+    char ratedI[VISIBLE_STRING_LEN]; 	// 0：代表有效长度
+} CLASS_4105; 							//额定电流/基本电流
+typedef struct {
+    char maxI[VISIBLE_STRING_LEN]; 		// 0：代表有效长度
+} CLASS_4106; 							//最大电流
+
+typedef struct {
+    char accuracy_class[VISIBLE_STRING_LEN]; 		// 0：代表有效长度
+} CLASS_4107_4108; 									//有/无功准确度等级
+
+typedef struct {
+    INT32U constant; 		// 电能表有/无功常数
+} CLASS_4109_410A;
+typedef struct {
+    char meter_type[VISIBLE_STRING_LEN]; // 0：代表有效长度
+} CLASS_410B;           //电能表型号
+typedef struct {
+    INT16S ratio_A; // A相系数
+    INT16S ratio_B; // B相系数
+    INT16S ratio_C; // C相系数
+} CLASS_410C_410D_410E_410F;
+
+typedef struct {
+	INT8U 	meter_running_character; //电能表运行特征字1(size(8))
+} CLASS_4110;
+typedef struct {
+    char soft_recordnumber[VISIBLE_STRING_LEN]; // 软件备案号
+} CLASS_4111;
+typedef struct {
+	INT8U 	group_character; //有功组合方式特征字1(size(8))(附录G)
+							//无功组合方式1/2特征字
+} CLASS_4112_4113_4114;
+
+typedef struct {
+    INT8U ictype;
+} CLASS_4115;
+
+typedef struct {
+    INT8U day;    	//日
+    INT8U hour; 	//时
+} ACCOUNT_DATE;
+typedef struct {
+	INT8U day_num;	//结算日数
+	ACCOUNT_DATE accountdate[];//结算日日期
+} CLASS_4116;
+typedef struct {
+	TI freezeperiod;	//期间需量冻结周期
+} CLASS_4117;
+
+typedef struct {
+	TSA tsa;	//通信地址
+	INT8U father_tsanum;//
+	TSA father_tsa[20];//父节点集合
+} CLASS_4201;
 typedef struct{
 	INT8U flag;//级联标志            bool
 	OAD oad;//级联通信端口号      OAD
@@ -323,6 +452,9 @@ typedef struct{
    INT8U custom;//当前客户机地址
    INT8U renzheng;//当前认证机制
 }CLASS_4400;
+typedef struct {
+    char connect_pwd[VISIBLE_STRING_LEN]; // 认证密码
+} CLASS_4401;
 
 /********************************************************
  *				A.6　冻结类对象
@@ -675,6 +807,11 @@ typedef struct {
 	    char softDate[3];       //软件版本日期
 	    INT32U	softVer;		//软件版本
 	}VersionInfo;
+	typedef struct{
+		TSA		commAddr;		//通信地址
+		INT32U	overTime;		//接收等待报文超时时间（秒）
+		INT8U	transBuf[255];	//透明转发命令
+	}TransPara;//透明转发（参数）
 	typedef struct{
 		INT32U	pointNo;		//从节点序号
 		INT8U	pointAddr[VISIBLE_STRING_LEN];		//从节点通信地址
