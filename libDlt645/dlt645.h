@@ -45,7 +45,7 @@ extern INT8U getCS645(INT8U* buf, const INT16U len);
 extern INT16U getFECount(INT8U* recvBuf, const INT16U recvLen);//得到待解析报文中前导符FE的个数
 extern INT16S composeProtocol07(FORMAT07* format07, INT8U* sendBuf);
 extern INT8S analyzeProtocol07(FORMAT07* format07, INT8U* recvBuf, const INT16U recvLen, BOOLEAN *nextFlag);
-
+extern INT8S simpleProtocol698(INT8U* recvBuf, const INT16U recvLen,INT8U *addr);
 extern INT16S composeProtocol97(FORMAT97* format97, INT8U* sendBuf);
 extern INT8S analyzeProtocol97(FORMAT97* format97, INT8U* recvBuf, const INT16U recvLen, BOOLEAN *nextFlag);
 #endif

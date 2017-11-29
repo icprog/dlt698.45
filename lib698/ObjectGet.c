@@ -2975,8 +2975,10 @@ int doGetrecord(INT8U type,OAD oad,INT8U *data,RESULT_RECORD *record,INT16U *sub
 		SelectorN = 10;
 	DEBUG_TIME_LINE("\n- getRequestRecord SelectorN=%d OI = %04x  attrib=%d  index=%d",SelectorN,record->oad.OI,record->oad.attflg,record->oad.attrindex);
 	printrecord(*record);
+
+	record->data = &TmpDataBuf[dest_index];
 	dest_index += create_OAD(0,&record->data[dest_index],record->oad);
-    fprintf(stderr,"selectorn=%d \n",SelectorN);
+    fprintf(stderr,"selectorn=%d  dest_index = %d %02x_%02x_%02x_%02x\n",SelectorN,dest_index,record->data[0],record->data[1],record->data[2],record->data[3]);
 	switch(SelectorN) {
 	case 0:
 	case 1:		//指定对象指定值
@@ -3075,9 +3077,8 @@ int doGetrecord(INT8U type,OAD oad,INT8U *data,RESULT_RECORD *record,INT16U *sub
 	case 7://指定电能表集合、指定采集存储时间区间内连续间隔值
 	case 8://指定电能表集合、指定采集成功时间区间内连续间隔值
 		dest_index +=fill_RCSD(0,&record->data[dest_index],record->rcsd.csds);
-		record->data = &TmpDataBuf[dest_index];
+//		record->data = &TmpDataBuf[dest_index];
 		*subframe = getSelector(oad,record->select, record->selectType,record->rcsd.csds,(INT8U *)record->data,(int *)&record->datalen,AppVar_p->server_send_size,recordnum);
-
 		if(*subframe>=1) {		//无分帧
 			next_info.nextSite = readFrameDataFile(TASK_FRAME_DATA,0,TmpDataBuf,&datalen);
 			fprintf(stderr,"next_info.nextSite=%d\n",next_info.nextSite);
@@ -3096,6 +3097,10 @@ int doGetrecord(INT8U type,OAD oad,INT8U *data,RESULT_RECORD *record,INT16U *sub
 //				record->data = &TmpDataBuf[1];				//data 指向回复报文帧头
 //				record->datalen += (datalen-1);			//湖南招测 .....case10:????
 //			}
+		}else {	//无数据
+			record->data[dest_index++] = 1;	//CHOICE = 1
+			record->data[dest_index++] = 0;	//A-RecordRow = 0 无数据
+			record->datalen = dest_index;
 		}
 		break;
 
@@ -3176,6 +3181,10 @@ int doGetrecord(INT8U type,OAD oad,INT8U *data,RESULT_RECORD *record,INT16U *sub
 //				record->data = TmpDataBuf;				//data 指向回复报文帧头
 //				record->datalen += dest_index;			//数据长度+ResultRecord
 //			}
+		}else {	//无数据
+			record->data[dest_index++] = 1;	//CHOICE = 1
+			record->data[dest_index++] = 0;	//A-RecordRow = 0 无数据
+			record->datalen = dest_index;
 		}
 		break;
 	}
@@ -3726,7 +3735,7 @@ int getRequestRecord(OAD oad,INT8U *data,CSINFO *csinfo,INT8U *sendbuf)
 	record.data = TmpDataBuf;
 	record.datalen = 0;
 	doGetrecord(GET_REQUEST_RECORD,oad,data,&record,&subframe,0);
-	if(subframe==1) {
+	if(subframe==0 || subframe==1) {
 		BuildFrame_GetResponseRecord(GET_REQUEST_RECORD,csinfo,record,sendbuf);
 	}else  if(subframe>1){
 		next_info.subframeSum = subframe;
