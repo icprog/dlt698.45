@@ -2588,26 +2588,26 @@ void GetOADPosofUnit(ROAD_ITEM item_road,HEAD_UNIT *head_unit,INT8U unitnum,OAD_
 	}
 }
 
-int getTItoSec(TI ti)
-{
-	int  sec = 0;
-	switch(ti.units)
-	{
-		case sec_units://秒
-			sec = ti.interval;
-			break;
-		case minute_units://分
-			sec = ti.interval * 60;
-			break;
-		case hour_units://时
-			sec =  ti.interval * 3600;
-			break;
-		default:
-			break;
-	}
-	fprintf(stderr,"get TI(%d-%d) sec=%d\n",ti.units,ti.interval,sec);
-	return sec;
-}
+//int getTItoSec(TI ti)
+//{
+//	int  sec = 0;
+//	switch(ti.units)
+//	{
+//		case sec_units://秒
+//			sec = ti.interval;
+//			break;
+//		case minute_units://分
+//			sec = ti.interval * 60;
+//			break;
+//		case hour_units://时
+//			sec =  ti.interval * 3600;
+//			break;
+//		default:
+//			break;
+//	}
+////	fprintf(stderr,"get TI(%d-%d) sec=%d\n",ti.units,ti.interval,sec);
+//	return sec;
+//}
 INT32U getTASKruntimes(CLASS_6013 class6013,CLASS_6015 class6015,INT32U *seqsec)//计算任务每天抄读次数
 {
 	INT32U runtimes=0,seqsecond=0,taskdaysec=0;//频率秒数 任务一天的活跃秒数
@@ -2630,7 +2630,7 @@ INT32U getTASKruntimes(CLASS_6013 class6013,CLASS_6015 class6015,INT32U *seqsec)
 	case 0://当前数据 存储次数由任务执行频率决定
 	case 1:
 	case 2:
-		seqsecond = getTItoSec(class6013.interval);
+		seqsecond = TItoSec(class6013.interval);
 		if(seqsecond==0)
 			runtimes = 1;
 		else
@@ -2645,7 +2645,7 @@ INT32U getTASKruntimes(CLASS_6013 class6013,CLASS_6015 class6015,INT32U *seqsec)
 	case 3://按时标间隔采集
 		ti_tmp.interval = (class6015.data.data[1]<<8) + class6015.data.data[2];
 		ti_tmp.units = class6015.data.data[0];
-		seqsecond = getTItoSec(ti_tmp);
+		seqsecond = TItoSec(ti_tmp);
 		if(seqsecond==0)
 			runtimes = 1;
 		else
@@ -3497,7 +3497,7 @@ INT16U dealselect5(OAD oad_h,CSD_ARRAYTYPE csds,TS ts_start,TS ts_end,INT32U zc_
 	if(ts_start.Year == 0xffff)
 	{
 		fprintf(stderr,"\n任务%d存储类型为%d\n",taskid,frz_type);
-		seqsec = getTItoSec(class6013.interval);
+		seqsec = TItoSec(class6013.interval);
 		fprintf(stderr,"\n每天存储记录个数seqsec=%d\n",seqsec);
 		if(seqsec == 0)
 			seqsec = 86400;
@@ -4311,7 +4311,7 @@ INT16U getSelector(OAD oad_h,RSD select,INT8U selectype,CSD_ARRAYTYPE csds,INT8U
 			frmnum = dealselect10(oad_h,csds,1,tsa_num,tsa_group,frmmaxsize);//上报当前数据
 			break;
 		case 1:
-			zc_sec = getTItoSec(select.selec8.ti);
+			zc_sec = TItoSec(select.selec8.ti);
 			fprintf(stderr,"\n招测间隔zc_sec=%d\n",zc_sec);
 			frmnum = dealselect5(oad_h,csds,ts_start,ts_end,zc_sec,tsa_num,tsa_group,frmmaxsize,0);
 			break;
@@ -4740,7 +4740,7 @@ INT16U selectData(OAD oad_h,CSD_ARRAYTYPE csds,CLASS_6001 *tsa_group, INT16U tsa
 
 	if (ts_start.Year == 0xffff) {
 		fprintf(stderr, "\n任务%d存储类型为%d\n", taskid, frz_type);
-		seqsec = getTItoSec(class6013.interval);
+		seqsec = TItoSec(class6013.interval);
 		fprintf(stderr, "\n每天存储记录个数seqsec=%d\n", seqsec);
 		if (seqsec == 0)
 			seqsec = 86400;
