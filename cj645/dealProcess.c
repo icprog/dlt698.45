@@ -27,6 +27,7 @@
 #include "gui.h"
 
 extern void InitACSPara();
+extern void Watchdog(int count);
 #define MsgSendOverTime 3
 #define MC 6400
 
@@ -734,6 +735,9 @@ void dealProcess()
     	if (JProgramInfo->cfg_para.device == CCTT2) {    //II型集中器
     		checkProcess();			//指示灯控制功能检测
     	}else {
+    		//I型及专变
+    		JProgramInfo->Projects[CjCommIndex].WaitTimes = 0;
+    		JProgramInfo->Projects[CjDealIndex].WaitTimes = 0;
     		//显示时钟，方便生产校表过程中观察时钟
     		time_t curr_time=time(NULL);
     		struct tm curr_tm;
