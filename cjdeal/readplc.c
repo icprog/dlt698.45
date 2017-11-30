@@ -3465,9 +3465,9 @@ INT8U Proxy_TransCommandRequest(RUNTIME_PLC *runtime_p,CJCOMM_PROXY *proxy,int* 
 
 			if(getZone("GW")==0) {
 				datalen = runtime_p->format_Up.length;
-				cjcommProxy_plc.strProxyList.data[1] = datalen;
-				memcpy(&cjcommProxy_plc.strProxyList.data[2],&runtime_p->dealbuf,datalen);
-				dindex = datalen;
+				cjcommProxy_plc.strProxyList.data[dindex++] = datalen;
+				memcpy(&cjcommProxy_plc.strProxyList.data[2],runtime_p->dealbuf,datalen);
+				dindex += datalen;
 			}else
 			{
 				datalen = runtime_p->format_Up.afn13_f1_up.MsgLength - starttIndex;

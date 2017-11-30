@@ -322,6 +322,18 @@ int  vs485_test(int port1,int port2)
     return Test_485_result;
 }
 
+void Watchdog(int count) //硬件看门狗
+{
+	int fd = -1;
+
+	if ((fd = open(DEV_WATCHDOG, O_RDWR | O_NDELAY)) == -1) {
+		asyslog(LOG_ERR, "打开硬件狗设备失败，原因(%d)", errno);
+	} else {
+		write(fd, &count, sizeof(int));
+		close(fd);
+	}
+	return;
+}
 
 //主程序
 int main(int argc, char *argv[])
@@ -345,7 +357,7 @@ int main(int argc, char *argv[])
     fprintf(stderr, "\ncj645 start Checking....\n\r");
 	fprintf(stderr,"\n===========================\nstep1:停止进程cjdeal(为了U盘功能检测)\n===========================\n");
 	system("pkill cjdeal");
-
+	Watchdog(3600);
 	if (JProgramInfo->cfg_para.device != CCTT2) {    //II型集中器
 		fprintf(stderr,"\n===========================\nstep2:I型集中器，III型专变液晶显示校表中\n===========================\n");
 		ReadHzkBuff_16();//读字库16*16
@@ -363,7 +375,7 @@ int main(int argc, char *argv[])
 		lcm_write();
 	}
 
-	fprintf(stderr,"\n===========================\nstep2:停止进程cjcomm(为了检测485口)\n===========================\n");
+	fprintf(stderr,"\n===========================\nstep3:停止进程cjcomm(为了检测485口)\n===========================\n");
     for(;;) {
 		cjcomm_pid = check_cjcomm();
 		if(cjcomm_pid>0) {
@@ -413,6 +425,8 @@ int main(int argc, char *argv[])
 			}
 			sleep(1);
 		}
+    }else {	//I型及专变
+    	JProgramInfo->Projects[CjCommIndex].WaitTimes = 0;
     }
     acs_process();		//交采线程,实时计量数据,为了精度检测
     dealProcess();

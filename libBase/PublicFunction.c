@@ -411,7 +411,7 @@ int TItoSec(TI ti)
 		default:
 			break;
 	}
-	fprintf(stderr,"get TI(%d-%d) sec=%d\n",ti.units,ti.interval,sec);
+//	fprintf(stderr,"get TI(%d-%d) sec=%d\n",ti.units,ti.interval,sec);
 	return sec;
 }
 
