@@ -24,6 +24,7 @@
 #include "class8.h"
 #include "class12.h"
 #include "class23.h"
+#include "PublicFunction.h"
 #include "../libMq/libmmq.h"
 
 extern int comfd;
@@ -318,13 +319,58 @@ void get_BasicUnit(INT8U *source, INT16U *sourceindex, INT8U *dest, INT16U *dest
     *destindex = dest_sumindex;
 }
 
+/*
+ * 2017-12-1 湖南目前主站不具备修改4500的主站通信地址及端口的功能。
+ * 湖南主站升级机制：
+ * 1、将要升级的终端的主IP修改为1.6.0.22,  主IP端口改为4136（每台前置机的端口不一样）
+ * 2、下发通信参数，重启集中器，等待集中器登陆到厂家自行开发的升级软件中，进行升级。
+ *
+ * 目前考虑方案：
+ * （１）通过短信功能切换，发送短信给集中器，进行主站端口及IP的修改
+ * （２）通过主站下发一个特殊的测量点档案，测量点序号为65535,表地址为01060022+端口。如果端口为4136,则表地址为010600224136
+ *
+ * 返回值＝１：是下发修改4500参数
+ * 　　　　 = 0 :非下发参数
+ * */
+int Update4500Para_HN(INT16U num,TSA tsa)
+{
+	int  ret = 0;
+	CLASS25 class4500={};
+
+    if(getZone("HuNan")!=0) {	//非湖南地区，不设计特殊修改4500参数
+    	return 0;
+    }
+	if(num==0xffff && tsa.addr[0]==7 && tsa.addr[1]==5 && tsa.addr[2]==01 && tsa.addr[3]==06 && tsa.addr[4]==00 && tsa.addr[5]==0x22) {
+		ret = readCoverClass(0x4500,0,&class4500,sizeof(CLASS25),para_vari_save);
+		if(ret==1) {
+			class4500.master.master[0].ip[0]=4;
+			class4500.master.master[0].ip[1]=1;
+			class4500.master.master[0].ip[2]=6;
+			class4500.master.master[0].ip[3]=0;
+			class4500.master.master[0].ip[4]=22;
+			class4500.master.master[0].port = (tsa.addr[6]>>4)*1000+(tsa.addr[6]&0x0f)*100+(tsa.addr[7]>>4)*10+(tsa.addr[7]&0x0f);
+			syslog(LOG_NOTICE,"！！！湖南:收到下发特殊测量点报文,修改主IP %d.%d.%d.%d:%d",class4500.master.master[0].ip[1],
+	                class4500.master.master[0].ip[2],class4500.master.master[0].ip[3],
+	                class4500.master.master[0].ip[4],class4500.master.master[0].port);
+			ret = saveCoverClass(0x4500, 0, &class4500, sizeof(CLASS25), para_vari_save);
+			if(ret==0) {
+				syslog(LOG_NOTICE,"！！！湖南远程切换端口成功，将重启，连接升级主站过程...");
+				memp->oi_changed.reset++;
+			}
+
+			return 1;
+		}
+	}
+	return 0;
+}
+
 void AddBatchMeterInfo(INT8U *data, INT8U type, Action_result *act_ret) {
     CLASS_6001 meter = {};
     int k = 0, saveflg = 0, index = 0;
     INT8U *dealdata = NULL;
     INT8U addnum = 0;// = data[1];
     INT8U	DAR = 0;
-
+    int		para_flag = 0;
     if (type == 127) {
         dealdata = data;
         addnum = 1;
@@ -375,15 +421,21 @@ void AddBatchMeterInfo(INT8U *data, INT8U type, Action_result *act_ret) {
             getOAD(1, &dealdata[index], &meter.aninfo.oad,&act_ret->DAR);
         }
         saveflg = -1;
-        if(act_ret->DAR==success) {
-        	saveflg = saveParaClass(0x6000, (unsigned char *) &meter, meter.sernum);
-        }
-        if (saveflg != 0) {
-            fprintf(stderr, "\n采集档案配置 %d 保存失败", meter.sernum);
-            act_ret->DAR = refuse_rw;
-        }else {
-        	fprintf(stderr, "\n采集档案配置 %d 保存成功", meter.sernum);
-        }
+        ////////////////////////////////////////////////////////////////
+
+        para_flag = 0;
+       	para_flag = Update4500Para_HN(meter.sernum,meter.basicinfo.addr);
+
+       	////////////////////////////////////////////////////////////////
+		if(act_ret->DAR==success && para_flag == 0) {
+			saveflg = saveParaClass(0x6000, (unsigned char *) &meter, meter.sernum);
+			if (saveflg != 0) {
+				fprintf(stderr, "\n采集档案配置 %d 保存失败", meter.sernum);
+				act_ret->DAR = refuse_rw;
+			}else {
+				fprintf(stderr, "\n采集档案配置 %d 保存成功", meter.sernum);
+			}
+		}
         fprintf(stderr, "\n........meter.sernum=%d,addr=%02x-%02x-%02x%02x%02x%02x%02x%02x,baud=%d,protocol=%d", meter.sernum,
                 meter.basicinfo.addr.addr[0], meter.basicinfo.addr.addr[1], meter.basicinfo.addr.addr[2],meter.basicinfo.addr.addr[3],
                 meter.basicinfo.addr.addr[4], meter.basicinfo.addr.addr[5], meter.basicinfo.addr.addr[6],meter.basicinfo.addr.addr[7],
