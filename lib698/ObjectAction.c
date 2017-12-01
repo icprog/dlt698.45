@@ -340,14 +340,14 @@ int Update4500Para_HN(INT16U num,TSA tsa)
     if(getZone("HuNan")!=0) {	//非湖南地区，不设计特殊修改4500参数
     	return 0;
     }
-	if(num==0xffff && tsa.addr[0]==7 && tsa.addr[1]==5 && tsa.addr[2]==01 && tsa.addr[3]==06 && tsa.addr[4]==00 && tsa.addr[5]==0x22) {
+	if(num==0xffff && tsa.addr[0]==7 && tsa.addr[1]==5 && tsa.addr[2]==01 && tsa.addr[3]==06 && tsa.addr[4]==00) {
 		dar = readCoverClass(0x4500,0,&class4500,sizeof(CLASS25),para_vari_save);
 		if(dar==1) {
 			class4500.master.master[0].ip[0]=4;
-			class4500.master.master[0].ip[1]=1;
-			class4500.master.master[0].ip[2]=6;
-			class4500.master.master[0].ip[3]=0;
-			class4500.master.master[0].ip[4]=22;
+			class4500.master.master[0].ip[1]=tsa.addr[2];
+			class4500.master.master[0].ip[2]=tsa.addr[3];
+			class4500.master.master[0].ip[3]=tsa.addr[4];
+			class4500.master.master[0].ip[4]=tsa.addr[5];
 			class4500.master.master[0].port = (tsa.addr[6]>>4)*1000+(tsa.addr[6]&0x0f)*100+(tsa.addr[7]>>4)*10+(tsa.addr[7]&0x0f);
 			syslog(LOG_NOTICE,"！！！湖南:收到下发特殊测量点报文,修改主IP %d.%d.%d.%d:%d",class4500.master.master[0].ip[1],
 	                class4500.master.master[0].ip[2],class4500.master.master[0].ip[3],
