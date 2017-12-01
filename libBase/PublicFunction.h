@@ -141,6 +141,12 @@ extern void writeIpSh(INT8U *ip,INT8U *netmask);
 /* 修改ID生成备份文件
  * */
 extern void writeIdFile(CLASS_4001_4002_4003 classtmp);
+
+/*
+ * 湖南判断为升级主站端口，重启系统，方便集中器进行升级端口的切换
+ * */
+extern void Chg4500_reboot_HN(INT8U DAR,INT8U *ip,INT16U port,INT8U *resetflg);
+
 /*
  * 参数初始化
  * */

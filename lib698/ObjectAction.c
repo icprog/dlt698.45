@@ -334,15 +334,15 @@ void get_BasicUnit(INT8U *source, INT16U *sourceindex, INT8U *dest, INT16U *dest
  * */
 int Update4500Para_HN(INT16U num,TSA tsa)
 {
-	int  ret = 0;
+	int  dar = 0;
 	CLASS25 class4500={};
 
     if(getZone("HuNan")!=0) {	//非湖南地区，不设计特殊修改4500参数
     	return 0;
     }
 	if(num==0xffff && tsa.addr[0]==7 && tsa.addr[1]==5 && tsa.addr[2]==01 && tsa.addr[3]==06 && tsa.addr[4]==00 && tsa.addr[5]==0x22) {
-		ret = readCoverClass(0x4500,0,&class4500,sizeof(CLASS25),para_vari_save);
-		if(ret==1) {
+		dar = readCoverClass(0x4500,0,&class4500,sizeof(CLASS25),para_vari_save);
+		if(dar==1) {
 			class4500.master.master[0].ip[0]=4;
 			class4500.master.master[0].ip[1]=1;
 			class4500.master.master[0].ip[2]=6;
@@ -352,12 +352,8 @@ int Update4500Para_HN(INT16U num,TSA tsa)
 			syslog(LOG_NOTICE,"！！！湖南:收到下发特殊测量点报文,修改主IP %d.%d.%d.%d:%d",class4500.master.master[0].ip[1],
 	                class4500.master.master[0].ip[2],class4500.master.master[0].ip[3],
 	                class4500.master.master[0].ip[4],class4500.master.master[0].port);
-			ret = saveCoverClass(0x4500, 0, &class4500, sizeof(CLASS25), para_vari_save);
-			if(ret==0) {
-				syslog(LOG_NOTICE,"！！！湖南远程切换端口成功，将重启，连接升级主站过程...");
-				memp->oi_changed.reset++;
-			}
-
+			dar = saveCoverClass(0x4500, 0, &class4500, sizeof(CLASS25), para_vari_save);
+			Chg4500_reboot_HN(dar,class4500.master.master[0].ip,class4500.master.master[0].port,&memp->oi_changed.reset);
 			return 1;
 		}
 	}

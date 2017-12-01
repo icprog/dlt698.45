@@ -1350,8 +1350,6 @@ void myBCDtoASC1(char val, char dest[2])
 void PacketBufToFile(INT8U type,char *prefix, char *buf, int len, char *suffix)
 {
 //	return ;
-
-
 	char str[50], tmpbuf[2048], c[2], c1[2], c2[2];
 	int i=0;
 	memset(c, 0, 2);
@@ -1449,4 +1447,13 @@ void writeIdFile(CLASS_4001_4002_4003 classtmp)
 	return ;
 }
 
+void Chg4500_reboot_HN(INT8U DAR,INT8U *ip,INT16U port,INT8U *resetflg)
+{
+	if(getZone("HuNan")==0 && DAR==success && ip[1]==1 && ip[2]==6	&& ip[3]==0) {
+	//湖南地区,并且主站IP修改为1.6.0.22，说明是切换到了远程升级的IP，默认系统重启，进行主IP的连接过程
+		syslog(LOG_NOTICE,"！！！湖南更改主站端口[%d.%d.%d.%d:%d]，将重启，连接升级主站过程...",
+				ip[1],ip[2],ip[3],ip[4],port);
+		*resetflg = *resetflg + 1;
+	}
+}
 #endif /*JPublicFunctionH*/

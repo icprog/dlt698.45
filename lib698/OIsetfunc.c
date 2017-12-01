@@ -1277,17 +1277,7 @@ INT16U set4500(OAD oad,INT8U *data,INT8U *DAR)
 	}
 	print4500(class4500);
 	*DAR = saveCoverClass(oad.OI,0,&class4500,sizeof(CLASS25),para_vari_save);
-
-	if(getZone("HuNan")==0 && *DAR==success
-			&& class4500.master.master[0].ip[1]==1 && class4500.master.master[0].ip[2]==6
-			&& class4500.master.master[0].ip[3]==0 && class4500.master.master[0].ip[4]==22) {
-		//湖南地区,并且主站IP修改为1.6.0.22，说明是切换到了远程升级的IP，默认系统重启，进行主IP的连接过程
-		syslog(LOG_NOTICE,"！！！湖南更改主站端口[%d.%d.%d.%d:%d]，将重启，连接升级主站过程...",
-				class4500.master.master[0].ip[1],class4500.master.master[0].ip[2],
-				class4500.master.master[0].ip[3],class4500.master.master[0].ip[4],class4500.master.master[0].port);
-		memp->oi_changed.reset++;
-    }
-
+	Chg4500_reboot_HN(*DAR,class4500.master.master[0].ip,class4500.master.master[0].port,&memp->oi_changed.reset);
 	return index;
 }
 
