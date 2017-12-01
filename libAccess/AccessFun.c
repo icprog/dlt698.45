@@ -482,6 +482,7 @@ int saveParaClass(OI_698 oi,void *blockdata,int seqnum)
 	case 0x6000:
 		if(seqnum>MAX_POINT_NUM) {
 			syslog(LOG_ERR,"save oi=%x seqnum=%d 超过限值 %d\n,无法存储！！",oi,seqnum,MAX_POINT_NUM);
+			return ret;
 		}
 		break;
 	}
