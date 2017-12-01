@@ -8,6 +8,7 @@
 #include <stdarg.h>
 
 #include "db.h"
+#include "sms.h"
 #include "cjcomm.h"
 #include "atBase.h"
 #include "helper.h"
@@ -741,9 +742,7 @@ int AtPrepare(ATOBJ *ao) {
 		}
 		retry++;
 		asyslog(LOG_INFO, "======%d", retry);
-		if(getZone("HuNan") == 0){
-			checkSms(ao);
-		}
+
 		ao->at_retry = 0;
 		readCoverClass(0x4500, 0, c25, sizeof(CLASS25), para_vari_save);
 		c25->signalStrength = ao->CSQ;
@@ -789,10 +788,9 @@ int AtPrepare(ATOBJ *ao) {
 		c25->protcol[0][0] = strlen("698");
 		c25->protocolnum = 1;
 
-
 		int DAR = saveCoverClass(0x4500, 0, c25, sizeof(CLASS25), para_vari_save);
-		ProgramInfo *info = (ProgramInfo *) dbGet("program.info");
-		Chg4500_reboot_HN(DAR,c25->master.master[0].ip,c25->master.master[0].port,&info->oi_changed.reset);
+//		ProgramInfo *info = (ProgramInfo *) dbGet("program.info");
+//		Chg4500_reboot_HN(DAR,c25->master.master[0].ip,c25->master.master[0].port,&info->oi_changed.reset);
 		return 10 * 1000;
 	}
 	return 0;
