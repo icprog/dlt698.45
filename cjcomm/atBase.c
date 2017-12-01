@@ -743,6 +743,10 @@ int AtPrepare(ATOBJ *ao) {
 		retry++;
 		asyslog(LOG_INFO, "======%d", retry);
 
+        if(getZone("HuNan") == 0){
+            checkSms(ao);
+        }
+
 		ao->at_retry = 0;
 		readCoverClass(0x4500, 0, c25, sizeof(CLASS25), para_vari_save);
 		c25->signalStrength = ao->CSQ;
