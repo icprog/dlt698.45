@@ -241,10 +241,10 @@ void checkAndSendAppends(CommBlock* nst, INT8U *saveOver) {
 
 		int res = TScompare(failts, succts);
 		if (res == 2 ) {//没有补报的时长超过一个执行周期, 则开始补报
+			do {
 			//取补报起始时间
 			memcpy(&failts, &tfs->rptList[i][1].startTime, sizeof(TS));
 			times = 0;
-			do {
 				//计算补报结束时间
 //				if(TItoSec(taskInv) < 3600) {
 //					tminc(&tfs->rptList[i][1].startTime, hour_units, 1);
