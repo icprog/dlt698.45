@@ -620,6 +620,7 @@ void checkDevReset() {
 		break;
 	case 1:
 		if (abs(time(NULL) - oldtime) >= 10) { //掉电前电量处理
+
 			system("reboot");
 		}
 		break;
