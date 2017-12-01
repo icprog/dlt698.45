@@ -189,13 +189,13 @@ int updateTime(int i, TI* taskInv)
 	if(TScompare(tmp, tfs->rptList[i][0].startTime) == 2)//如果有漏报的数据, 就不更新上一次上报时间
 		return 0;
 
-
 	//如果没有漏报的数据, 把上一次上报时间更新为当前上报时间
 	memcpy(&tfs->rptList[i][1].startTime, &tfs->rptList[i][0].startTime, sizeof(TS));
 	asyslog(LOG_INFO, "[%s][%d]修正任务<%d>的上次上报时间: %04d-%02d-%02d %02d-%02d-%02d",__FUNCTION__, __LINE__,
 			tfs->rptList[i][1].taskId,
 			tfs->rptList[i][1].startTime.Year, tfs->rptList[i][1].startTime.Month, tfs->rptList[i][1].startTime.Day,
 			tfs->rptList[i][1].startTime.Hour, tfs->rptList[i][1].startTime.Minute, tfs->rptList[i][1].startTime.Sec);
+
 	return 1;
 }
 
@@ -205,6 +205,7 @@ void checkAndSendAppends(CommBlock* nst, INT8U *saveOver) {
 	taskFailInfo_s* tfs = (taskFailInfo_s*)dbGet("task_list");
 	TI taskInv = {0};
 	rptInfo_s* rptInfo = (rptInfo_s*) dbGet("curr_retry_task");
+	int i = 0;
 	int times = 0;
 
 	if ( NULL == tfs || NULL == saveOver ) {
