@@ -175,7 +175,9 @@ void * dbGet(char * name) {
 	if (strcmp("curr_task", name) == 0) {
 	        return &DB.currTask;
 	}
-
+	if (strcmp("curr_retry_task", name) == 0) {
+	        return &DB.currRetryTask;
+	}
 	return (void *) 0;
 }
 

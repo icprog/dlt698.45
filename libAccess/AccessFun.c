@@ -4895,7 +4895,7 @@ void supplementRpt(TS ts1, TS ts2, INT8U retaskid, INT8U *saveflg)
 	*saveflg = 0;
 
 	if (access("/nand/reportdata", F_OK) == 0) {
-		fprintf(stderr, "\n文件%s存在，退出！！！\n", "/nand/reportdata");
+		asyslog(LOG_INFO, "文件%s存在，退出！！！", "/nand/reportdata");
 		goto Ret;
 	}
 

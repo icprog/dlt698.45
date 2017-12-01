@@ -30,10 +30,10 @@ typedef struct {
 
 #define  IP_LEN		4			//参数ip类长度
 									//厂商代码　　软件版本　软件日期　　硬件版本　硬件日期  扩展信息
-static VERINFO verinfo          = { "QDGK", "V1.1", "171127", "1.10", "160328", "00000000" }; // 4300 版本信息
+static VERINFO verinfo          = { "QDGK", "V1.1", "171130", "1.10", "160328", "00000000" }; // 4300 版本信息
 									//湖南需要双协议,软件版本要求为SXY8（双协议8） ，1376.1（软件版本为SXY1）
 static VERINFO verinfo_HuNan    = { "QDGK", "SXY8", "171128", "1.10", "160328", "00000000" }; // 4300 版本信息
-static VERINFO verinfo_ZheJiang  = { "QDGK", "V1.1", "171128", "1.10", "160328", "00000000" }; // 4300 版本信息
+static VERINFO verinfo_ZheJiang  = { "QDGK", "V1.1", "171130", "1.10", "160328", "00000000" }; // 4300 版本信息
 static VERINFO verinfo_ShanDong  = { "QDGK", "V1.2", "171026", "1.10", "160328", "00000000" }; // 4300 版本信息
 
 static DateTimeBCD product_date = { { 2016 }, { 04 }, { 6 }, { 0 }, { 0 }, { 0 } };   // 4300 生产日期

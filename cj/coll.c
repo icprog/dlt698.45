@@ -947,6 +947,34 @@ void Task6035(int argc, char *argv[])
 	}
 }
 
+void Task6099(int argc, char *argv[])
+{
+	taskFailInfo_s tfs = {};
+	int i=0;
+	int taskNum = 0;
+
+	if(argc == 4) {
+		if(strcmp("pro",argv[2])==0) {
+			if(readCoverClass(0x6099, 0, &tfs, sizeof(taskFailInfo_s), para_vari_save) == 1) {
+				taskNum = sizeof(taskFailInfo_s)/sizeof(rptInfo_s);
+				taskNum /= 2;
+				DEBUG_TIME_LINE("taskNum: %d", taskNum);
+				for(i=0;i<taskNum;i++) {
+					fprintf(stderr, "\ntaskID<%02d>:\t%04d-%02d-%02d %02d-%02d-%02d,\t%04d-%02d-%02d %02d-%02d-%02d",
+							tfs.rptList[i][0].taskId,
+							tfs.rptList[i][0].startTime.Year, tfs.rptList[i][0].startTime.Month, tfs.rptList[i][0].startTime.Day,
+							tfs.rptList[i][0].startTime.Hour, tfs.rptList[i][0].startTime.Minute, tfs.rptList[i][0].startTime.Sec,
+							tfs.rptList[i][1].startTime.Year, tfs.rptList[i][1].startTime.Month, tfs.rptList[i][1].startTime.Day,
+							tfs.rptList[i][1].startTime.Hour, tfs.rptList[i][1].startTime.Minute, tfs.rptList[i][1].startTime.Sec);
+				}
+				fprintf(stderr, "\n");
+			} else {
+				DEBUG_TIME_LINE("6099文件打开失败");
+			}
+		}
+	}
+}
+
 void coll_process(int argc, char *argv[])
 {
 	int 	tmp=0;
@@ -980,6 +1008,11 @@ void coll_process(int argc, char *argv[])
 				break;
 			case 0x6035:
 				Task6035(argc,argv);
+				break;
+			case 0x6099:
+				Task6099(argc,argv);
+				break;
+			default:
 				break;
 			}
 		}
