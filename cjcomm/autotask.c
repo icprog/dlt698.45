@@ -90,44 +90,124 @@ int ConformCheck(struct aeEventLoop* ep, long long id, void* clientData) {
 int HandReportTask(CommBlock* nst,INT8U *saveover)
 {
 	int callret = 0;
+	int times = 0;
+
 	if ((access(REPORT_FRAME_DATA, F_OK) == 0) && (*saveover == 1)) {
-		DEBUG_TIME_LINE("");
-		sleep(3);
-		asyslog(LOG_INFO, "发现手动补报曲线文件");
-		callret = callAutoReport(REPORT_FRAME_DATA,
-		REPROTNOTIFICATIONRECORDLIST, nst, 1);		//1:默认收到确认数据
+		times = 0;
+		do{
+			sleep(3);
+			asyslog(LOG_INFO, "发现手动补报文件");
+			callret = callAutoReport(REPORT_FRAME_DATA,
+			REPROTNOTIFICATIONRECORDLIST, nst, 1);		//1:默认收到确认数据
+			times++;
+		}while(callret && times <= 1024);
+
 		if (callret == 0) {	//上报结束
 			asyslog(LOG_INFO, "补报结束,删除文件");
 			callret = unlink(REPORT_FRAME_DATA);
 			if (callret == 0) {
 				*saveover = 0;
 				asyslog(LOG_INFO, "补报文件删除成功");
+			} else {
+				asyslog(LOG_INFO, "补报文件删除失败");
 			}
 		}
 	}
 	return 0;
 }
 
+int getTaskInterval(int i, TI* taskInv)
+{
+	ProgramInfo * shmem = (ProgramInfo *)dbGet("program.info");
+	taskFailInfo_s* tfs = (taskFailInfo_s*)dbGet("task_list");
+	CLASS_6013 class6013={};
+
+	if( NULL == taskInv	 || NULL == tfs || NULL == shmem)
+		return 0;
+
+	if (readCoverClass(0x6013, shmem->autotask[tfs->rptList[i][1].pos].ID, &class6013, sizeof(CLASS_6013),coll_para_save) == 1) {
+		taskInv->units = class6013.interval.units;
+		taskInv->interval = class6013.interval.interval;
+	} else
+		return 0;
+
+	return 1;
+}
+
 void repairTime(int i, taskFailInfo_s* tfs)
 {
 	//检查需要补的时间是否过长
 	TS tmp;
+
+	if(NULL == tfs)
+		return;
+
 	memcpy(&tmp, &tfs->rptList[i][1].startTime, sizeof(TS));
-	tminc(&tmp, 2, 12);
+	tminc(&tmp, hour_units, 24);
 	if (TScompare(tmp, tfs->rptList[i][0].startTime) == 2) {
 		memcpy(&tmp, &tfs->rptList[i][0].startTime, sizeof(TS));
-		tminc(&tmp, 2, -12);
+		tminc(&tmp, hour_units, -24);
 		memcpy(&tfs->rptList[i][1].startTime, &tmp, sizeof(TS));
+
+		asyslog(LOG_INFO, "[%s][%d]修正任务<%d>的上次上报时间: %04d-%02d-%02d %02d-%02d-%02d",__FUNCTION__, __LINE__,
+				tfs->rptList[i][1].taskId,
+				tfs->rptList[i][1].startTime.Year, tfs->rptList[i][1].startTime.Month, tfs->rptList[i][1].startTime.Day,
+				tfs->rptList[i][1].startTime.Hour, tfs->rptList[i][1].startTime.Minute, tfs->rptList[i][1].startTime.Sec);
 		saveCoverClass(0x6099, 0, tfs, sizeof(taskFailInfo_s), para_vari_save);
+		return;
 	}
 }
 
-void checkAndSendAppends(INT8U *saveOver) {
-	TS failts;
-	TS succts;
+/*
+ * 如果上一次上报成功时间只比当前成功上报时间早一个周期,
+ * 则说明没有漏报的数据, 将上一次上报时间修正为当前上报
+ * 时间
+ * 0: 有漏报的数据
+ * 1: 没有漏报的数据
+ */
+int updateTime(int i, TI* taskInv)
+{
+	TS tmp = {0};
 	taskFailInfo_s* tfs = (taskFailInfo_s*)dbGet("task_list");
 
-	if ( NULL == tfs || NULL == saveOver) {
+	if ( NULL == tfs )
+		return 1;
+
+	memcpy(&tmp, &tfs->rptList[i][1].startTime, sizeof(TS));
+
+	if(TScompare(tmp, tfs->rptList[i][0].startTime) == 1) {//如果上一次上报时间大于当前上报时间, 修正为当前上报时间
+		memcpy(&tfs->rptList[i][1].startTime, &tfs->rptList[i][0].startTime, sizeof(TS));
+		asyslog(LOG_INFO, "[%s][%d]修正任务<%d>的上次上报时间: %04d-%02d-%02d %02d-%02d-%02d",__FUNCTION__, __LINE__,
+				tfs->rptList[i][1].taskId,
+				tfs->rptList[i][1].startTime.Year, tfs->rptList[i][1].startTime.Month, tfs->rptList[i][1].startTime.Day,
+				tfs->rptList[i][1].startTime.Hour, tfs->rptList[i][1].startTime.Minute, tfs->rptList[i][1].startTime.Sec);
+		return 1;
+	}
+
+	tminc(&tmp, taskInv->units, taskInv->interval);
+
+	if(TScompare(tmp, tfs->rptList[i][0].startTime) == 2)//如果有漏报的数据, 就不更新上一次上报时间
+		return 0;
+
+
+	//如果没有漏报的数据, 把上一次上报时间更新为当前上报时间
+	memcpy(&tfs->rptList[i][1].startTime, &tfs->rptList[i][0].startTime, sizeof(TS));
+	asyslog(LOG_INFO, "[%s][%d]修正任务<%d>的上次上报时间: %04d-%02d-%02d %02d-%02d-%02d",__FUNCTION__, __LINE__,
+			tfs->rptList[i][1].taskId,
+			tfs->rptList[i][1].startTime.Year, tfs->rptList[i][1].startTime.Month, tfs->rptList[i][1].startTime.Day,
+			tfs->rptList[i][1].startTime.Hour, tfs->rptList[i][1].startTime.Minute, tfs->rptList[i][1].startTime.Sec);
+	return 1;
+}
+
+void checkAndSendAppends(CommBlock* nst, INT8U *saveOver) {
+	TS failts = {0};
+	TS succts = {0};
+	taskFailInfo_s* tfs = (taskFailInfo_s*)dbGet("task_list");
+	TI taskInv = {0};
+	rptInfo_s* rptInfo = (rptInfo_s*) dbGet("curr_retry_task");
+	int times = 0;
+
+	if ( NULL == tfs || NULL == saveOver ) {
 		return;
 	}
 
@@ -137,31 +217,69 @@ void checkAndSendAppends(INT8U *saveOver) {
 				|| tfs->rptList[i][1].sign != 0xAA) {
 			continue;
 		}
+
+		if(getTaskInterval(i, &taskInv) == 0)
+			continue;
+
+		if(updateTime(i, &taskInv) == 1)
+			continue;
+
+		memcpy(&rptInfo->sign, &tfs->rptList[i][1].sign, sizeof(rptInfo_s));
+		rptInfo->pos = i;
 		//先修正一下补报时间，然后去最后一次上报成功时间和补报时间
 		repairTime(i, tfs);
 		memcpy(&succts, &tfs->rptList[i][0].startTime, sizeof(TS));
 		memcpy(&failts, &tfs->rptList[i][1].startTime, sizeof(TS));
+		asyslog(LOG_INFO, "检查到任务: <%d> 的上报时间: %04d-%02d-%02d %02d-%02d-%02d, %04d-%02d-%02d %02d-%02d-%02d",
+							tfs->rptList[i][1].taskId,
+							succts.Year, succts.Month, succts.Day, succts.Hour, succts.Minute, succts.Sec,
+							failts.Year, failts.Month, failts.Day, failts.Hour, failts.Minute, failts.Sec);
 
-		//没有补报的时长是否超过15分钟
-		tminc(&failts, minute_units, 15);
+		tminc(&failts, taskInv.units, taskInv.interval);
+		asyslog(LOG_INFO, "检查到任务: <%d> 的执行频率: %d-%02d",
+				tfs->rptList[i][1].taskId, taskInv.units, taskInv.interval);
 
 		int res = TScompare(failts, succts);
-		if (res == 0 || res == 1) {
-			continue;
-		} else {
+		if (res == 2 ) {//没有补报的时长超过一个执行周期, 则开始补报
 			//取补报起始时间
 			memcpy(&failts, &tfs->rptList[i][1].startTime, sizeof(TS));
-			//计算补报结束时间
-			tminc(&tfs->rptList[i][1].startTime, 2, 1);
-			asyslog(LOG_INFO, "检查到任务: <%d> 的数据需要补报, 时间: %04d-%02d-%02d %02d-%02d-%02d, %04d-%02d-%02d %02d-%02d-%02d",
-					tfs->rptList[i][1].taskId,
-					failts.Year, failts.Month, failts.Day, failts.Hour, failts.Minute, failts.Sec,
-					tfs->rptList[i][1].startTime.Year, tfs->rptList[i][1].startTime.Month, tfs->rptList[i][1].startTime.Day,
-					tfs->rptList[i][1].startTime.Hour, tfs->rptList[i][1].startTime.Minute, tfs->rptList[i][1].startTime.Sec);
-			supplementRpt(failts, tfs->rptList[i][1].startTime,
-					tfs->rptList[i][1].taskId, saveOver);
-			saveCoverClass(0x6099, 0, tfs, sizeof(taskFailInfo_s), para_vari_save);
-			break;
+			times = 0;
+			do {
+				//计算补报结束时间
+//				if(TItoSec(taskInv) < 3600) {
+//					tminc(&tfs->rptList[i][1].startTime, hour_units, 1);
+//				} else {
+					tminc(&tfs->rptList[i][1].startTime, taskInv.units, taskInv.interval);
+//				}
+					asyslog(LOG_INFO, "[%s()][%d]任务<%d>的taskInv: %d-%d, class6013.interval: %d-%d",__FUNCTION__, __LINE__,
+									tfs->rptList[i][1].taskId, taskInv.units, taskInv.interval);
+				res = TScompare(tfs->rptList[i][1].startTime, tfs->rptList[i][0].startTime);
+				asyslog(LOG_INFO, "[%s][%d]修正任务<%d>的上次上报时间: %04d-%02d-%02d %02d-%02d-%02d",__FUNCTION__, __LINE__,
+													tfs->rptList[i][1].taskId,
+													tfs->rptList[i][1].startTime.Year, tfs->rptList[i][1].startTime.Month, tfs->rptList[i][1].startTime.Day,
+													tfs->rptList[i][1].startTime.Hour, tfs->rptList[i][1].startTime.Minute, tfs->rptList[i][1].startTime.Sec);
+				if(res == 1) {//如果结束时间晚于当前上报时间, 修正为当前上报时间
+					asyslog(LOG_INFO, "任务: <%d> , 修正结束时间", tfs->rptList[i][1].taskId);
+					memcpy(&tfs->rptList[i][1].startTime, &tfs->rptList[i][0].startTime, sizeof(TS));
+					asyslog(LOG_INFO, "[%s][%d]修正任务<%d>的上次上报时间: %04d-%02d-%02d %02d-%02d-%02d",__FUNCTION__, __LINE__,
+														tfs->rptList[i][1].taskId,
+														tfs->rptList[i][1].startTime.Year, tfs->rptList[i][1].startTime.Month, tfs->rptList[i][1].startTime.Day,
+														tfs->rptList[i][1].startTime.Hour, tfs->rptList[i][1].startTime.Minute, tfs->rptList[i][1].startTime.Sec);
+				}
+				res = TScompare(tfs->rptList[i][1].startTime, tfs->rptList[i][0].startTime);
+				asyslog(LOG_INFO, "检查到任务: <%d> 的数据需要补报, 时间: %04d-%02d-%02d %02d-%02d-%02d, %04d-%02d-%02d %02d-%02d-%02d",
+						tfs->rptList[i][1].taskId,
+						failts.Year, failts.Month, failts.Day, failts.Hour, failts.Minute, failts.Sec,
+						tfs->rptList[i][1].startTime.Year, tfs->rptList[i][1].startTime.Month, tfs->rptList[i][1].startTime.Day,
+						tfs->rptList[i][1].startTime.Hour, tfs->rptList[i][1].startTime.Minute, tfs->rptList[i][1].startTime.Sec);
+				supplementRpt(failts, tfs->rptList[i][1].startTime,
+						tfs->rptList[i][1].taskId, saveOver);
+				asyslog(LOG_INFO, "saveOver: %d", *saveOver);
+				HandReportTask(nst, saveOver);	//cj report命令手动补抄进行任务上送
+				saveCoverClass(0x6099, 0, tfs, sizeof(taskFailInfo_s), para_vari_save);
+				times++;
+				sleep(2);
+			}while (res == 2 && stopSign == 0 && stopREtry != 1 && times < 228);//228=96*3, 即96点负荷曲线3天的存储深度
 		}
 	}
 	stopREtry = 1;
@@ -221,11 +339,9 @@ void RegularAutoTask(struct aeEventLoop* ep, CommBlock* nst) {
 			break;
 		}
 	}
-	//没有正常曲线上报，且没有补报曲线上报
-	HandReportTask(nst, &shmem->cfg_para.extpara[0]);	//cj report命令手动补抄进行任务上送
 
-	if (stopSign == 0 && stopREtry != 1) {
-		checkAndSendAppends(&shmem->cfg_para.extpara[0]);
+	if (stopSign == 0 && stopREtry != 1) {//没有正常曲线上报，且没有补报曲线上报
+		checkAndSendAppends(nst, &shmem->cfg_para.extpara[0]);
 	}
 }
 
@@ -251,21 +367,34 @@ void ConformAutoTask(struct aeEventLoop* ep, CommBlock* nst, int res) {
 						conformTimes, conformOverTime);
 			}
 		} else {
+			taskFailInfo_s* tfs = dbGet("task_list");
+			rptInfo_s* rptInfo = (rptInfo_s*) dbGet("curr_task");
+			int i = rptInfo->pos;
+			TI taskInv = {};
+
 			//这里成功上送了一次任务
 			stopSign = 0;
 			conformSign = 1;
-			taskFailInfo_s* tfs = dbGet("task_list");
-			rptInfo_s* rptInfo = (rptInfo_s*) dbGet("curr_task");
-			int index = rptInfo->pos;
+
 			rptInfo->sign = 0xAA;
 			//更新最新的成功上报任务的时间
-			memcpy(&tfs->rptList[index][0], rptInfo, sizeof(rptInfo_s));
-			//如果1位置没有初始化，就在这里初始化一下。
-			if (tfs->rptList[index][1].sign != 0xAA) {
-				memcpy(&tfs->rptList[index][1], rptInfo, sizeof(rptInfo_s));
+			memcpy(&tfs->rptList[i][0], rptInfo, sizeof(rptInfo_s));
+			if (getTaskInterval(i, &taskInv) == 1)
+				updateTime(i, &taskInv);
+
+			//如果上一次上报时间的sign没有初始化，就在这里初始化一下。
+			if (tfs->rptList[i][1].sign != 0xAA) {
+				memcpy(&tfs->rptList[i][1], rptInfo, sizeof(rptInfo_s));
+				asyslog(LOG_INFO, "[%s][%d]修正任务<%d>的上次上报时间: %04d-%02d-%02d %02d-%02d-%02d",__FUNCTION__, __LINE__,
+								tfs->rptList[i][1].taskId,
+								tfs->rptList[i][1].startTime.Year, tfs->rptList[i][1].startTime.Month, tfs->rptList[i][1].startTime.Day,
+								tfs->rptList[i][1].startTime.Hour, tfs->rptList[i][1].startTime.Minute, tfs->rptList[i][1].startTime.Sec);
 			}
 			stopREtry = 0;
 			saveCoverClass(0x6099, 0, tfs, sizeof(taskFailInfo_s), para_vari_save);
 		}
+	} else if (res == REPORT_RESPONSE && stopSign == 0 && stopREtry != 1 ) {//更新当前补报成功时间
+		rptInfo_s* rptInfo = (rptInfo_s*) dbGet("curr_retry_task");
+		asyslog(LOG_INFO, "收到补报确认报文");
 	}
 }
