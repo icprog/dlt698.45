@@ -12,6 +12,7 @@
 #include <netinet/in.h>
 
 #include "db.h"
+#include "sms.h"
 #include "Shmem.h"
 #include "cjcomm.h"
 #include "atBase.h"
@@ -323,10 +324,17 @@ void commEnvCheck(int argc, char *argv[]) {
 }
 
 int doAt(struct aeEventLoop *ep, long long id, void *clientData) {
+	static int step = 0;
 	ATOBJ *ao = (ATOBJ *) clientData;
 	if ((int) dbGet("online.type") != 0) {
+		step ++;
+		if(getZone("HuNan") == 0 && step % 43 == 0 && ((int) dbGet("online.type")) == 1){
+			checkSms(ao);
+			step = 0;
+		}
 		return 2000;
 	}
+	step = 0;
 	return AtPrepare(ao);
 }
 
