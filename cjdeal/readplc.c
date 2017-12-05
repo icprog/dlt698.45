@@ -3077,8 +3077,11 @@ INT8U getTransCmdAddrProto(INT8U* cmdbuf, INT8U* addrtmp, INT8U* proto,INT8U len
 			Addr_TSA(addrtmp,&tsatmp);
 			struct Tsa_Node *nodetmp=NULL;
 			nodetmp = getNodeByTSA(tsa_head,tsatmp) ;
-			*proto = nodetmp->protocol;//dlt645-07 or 97
-			return 1;
+			if (nodetmp != NULL)
+			{
+				*proto = nodetmp->protocol;//dlt645-07 or 97
+				return 1;
+			}
 		}
 	}
 	INT8U Af = 0;
@@ -4207,12 +4210,14 @@ int doTask_by_jzq(RUNTIME_PLC *runtime_p)
 				if (sendlen>0 && nodetmp!=NULL)
 				{
 					DbPrt1(31,"TS:", (char *) buf645, sendlen, NULL);
+#if 1
 					addrtmp[5] = nodetmp->tsa.addr[2];
 					addrtmp[4] = nodetmp->tsa.addr[3];
 					addrtmp[3] = nodetmp->tsa.addr[4];
 					addrtmp[2] = nodetmp->tsa.addr[5];
 					addrtmp[1] = nodetmp->tsa.addr[6];
 					addrtmp[0] = nodetmp->tsa.addr[7];
+#endif
 					memcpy(runtime_p->format_Down.addr.SourceAddr, runtime_p->masteraddr, 6);
 					sendlen = AFN13_F1(&runtime_p->format_Down,runtime_p->sendbuf,addrtmp, nodetmp->protocol, 0, buf645, sendlen);
 					DbgPrintToFile1(31,"sendlen=%d  protocol=%d",sendlen,nodetmp->protocol);
