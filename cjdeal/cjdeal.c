@@ -1176,8 +1176,7 @@ void Pre_ProxyDoRequestList(CJCOMM_PROXY proxy)	//Proxy  Action / Set- List
 
 	proxyList_manager.data[dataindex++] = num;
 	for (i = 0; i < num; i++) {
-		if (get6001ObjByTSA(proxy.strProxyList.proxy_obj.doTsaList[i].tsa,
-				&obj6001) != 1) {	//TSA未找到
+		if (get6001ObjByTSA(proxy.strProxyList.proxy_obj.doTsaList[i].tsa,&obj6001) != 1) {	//TSA未找到
 			proxyList_manager.proxy_obj.doTsaList[i].dar = other_err1;
 //			dataindex += proxy_one_fill(proxy.strProxyList.proxy_obj.doTsaList[i], 0, NULL,0x21, &proxyList_manager.data[dataindex]);
 		} else {
