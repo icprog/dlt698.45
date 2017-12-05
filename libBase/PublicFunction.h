@@ -150,10 +150,12 @@ extern void Chg4500_reboot_HN(INT8U DAR,INT8U *ip,INT16U port,INT8U *resetflg);
 /*
  * 参数初始化
  * */
+extern void InItClass(INT8U type);
 extern void InitClass4016();	//当前套日时段表
 extern void InitClass4300();	//电气设备信息
 //extern void InitClass4510(INT16U heartBeat,MASTER_STATION_INFO master_info,NETCONFIG net_ip); //以太网通信模块1
 extern void InitClass6000();	//采集配置单元
+extern void InitClassf201();	//RS485
 extern void InitClassf203();	//开关量输入
 extern void InitClassByZone(INT8U type);	//根据地区进行相应初始化
 

@@ -1822,8 +1822,7 @@ void dispatchTask_proccess() {
 	pthread_attr_setstacksize(&dispatchTask_attr_t, 2048 * 1024);
 	pthread_attr_setdetachstate(&dispatchTask_attr_t, PTHREAD_CREATE_DETACHED);
 
-	while ((thread_dispatchTask_id = pthread_create(&thread_dispatchTask,
-			&dispatchTask_attr_t, (void*) dispatch_thread, NULL)) != 0) {
+	while ((thread_dispatchTask_id = pthread_create(&thread_dispatchTask,&dispatchTask_attr_t, (void*) dispatch_thread, NULL)) != 0) {
 		sleep(1);
 	}
 }

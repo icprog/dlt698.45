@@ -2427,11 +2427,7 @@ void jzq_reset(int type_init){
 	case FACTORY_RESET:
 		system("rm -rf /nand/para");
 		system("rm -rf /nand/event/property");
-		InitClass4016();    //当前套日时段表
-		InitClass4300();    //电气设备信息
-		//InitClass6000();	//初始化交采采集档案
-	    InitClassf203();	//开关量输入
-		InitClassByZone(0);		//根据地区进行相应初始化	4500,4510参数
+		InItClass(0);
 		break;
 	default :
 		break;
