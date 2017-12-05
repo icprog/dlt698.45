@@ -3077,8 +3077,11 @@ INT8U getTransCmdAddrProto(INT8U* cmdbuf, INT8U* addrtmp, INT8U* proto,INT8U len
 			Addr_TSA(addrtmp,&tsatmp);
 			struct Tsa_Node *nodetmp=NULL;
 			nodetmp = getNodeByTSA(tsa_head,tsatmp) ;
-			*proto = nodetmp->protocol;//dlt645-07 or 97
-			return 1;
+			if(nodetmp!=NULL)
+			{
+				*proto = nodetmp->protocol;//dlt645-07 or 97
+				return 1;
+			}
 		}
 	}
 	INT8U Af = 0;
