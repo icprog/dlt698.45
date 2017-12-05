@@ -77,7 +77,7 @@ Menu menu[]={//必须是一级菜单，然后二级菜单。。。。
 			{{level3,"3.液晶对比度", 	menu_lcdcontrast, 	MENU_NOPASSWD},		NULL},
 			{{level3,"4.交采芯片信息",menu_ac_info,		MENU_NOPASSWD},		NULL},
 			{{level3,"5.规约切换",menu_ProtocolChange,		MENU_NOPASSWD},NULL},
-			{{level3,"6.4G/2G切换",menu_4G2GChange,		MENU_NOPASSWD},NULL},
+//			{{level3,"6.4G/2G切换",menu_4G2GChange,		MENU_NOPASSWD},NULL},
 		{{level2,"5.页面设置", 	menu_pagesetup, 				MENU_NOPASSWD},		NULL},
 		{{level2,"6.手动抄表", 	NULL, 				MENU_NOPASSWD},		NULL},
 			{{level3,"1.根据表序号抄表", menu_readmeterbycldno, 	MENU_NOPASSWD},	NULL},
