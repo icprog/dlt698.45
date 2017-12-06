@@ -27,7 +27,7 @@
 #define PARA_CHANGE_RETVALUE  -1
 
 #define MAX_RETRY_NUM 1 //抄表失败重试次数
-
+#define MAX_RETRY_NUM_698 2 //抄表失败重试次数
 #define TSA_OI 0x202a
 #define DATA_TIMESTAMP_OI 0x2021
 #define EVENT_INDEX_OI 0x2022
