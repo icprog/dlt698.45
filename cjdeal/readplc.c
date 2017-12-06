@@ -3164,6 +3164,8 @@ INT8U Proxy_GetRequestList(RUNTIME_PLC *runtime_p,CJCOMM_PROXY *proxy,int* begin
 					memcpy(&proxy->strProxyList.data[dataindex],&proxy->strProxyList.proxy_obj.objs[obj_index].tsa.addr[0],addrlen);
 					dataindex += addrlen;
 					proxy->strProxyList.data[dataindex++] = proxy->strProxyList.proxy_obj.objs[obj_index].num;
+					dataindex += create_OAD(0,&proxy->strProxyList.data[dataindex],proxy->strProxyList.proxy_obj.objs[obj_index].oads[0]);
+					proxy->strProxyList.data[dataindex++] = 1;//data
 					proxy->strProxyList.proxy_obj.objs[obj_index].dar = proxy_success;
 					memcpy(&proxy->strProxyList.data[dataindex],tmpbuf,singleLen);
 					dataindex += singleLen;
@@ -3174,6 +3176,7 @@ INT8U Proxy_GetRequestList(RUNTIME_PLC *runtime_p,CJCOMM_PROXY *proxy,int* begin
 			{
 				DbgPrintToFile1(31,"代理1 收到数据 分析报文失败");
 			}
+			proxyInUse.devUse.plcReady = 1;
 		}
 		if(singleLen==0)
 			proxy->strProxyList.proxy_obj.objs[obj_index].dar = request_overtime;
