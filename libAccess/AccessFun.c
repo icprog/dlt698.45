@@ -4001,6 +4001,9 @@ INT16U dealselect10(OAD oad_h,CSD_ARRAYTYPE csds,INT16U zcseq_num,INT8U tsa_num,
 			saveOneFrame(frmdata,indexn,frm_fp);
 		}
 	}
+
+	if(fp != NULL)
+		fclose(fp);
 	if(frm_fp != NULL)
 		fclose(frm_fp);
 	return frmnum;
