@@ -74,8 +74,12 @@ int BuildFrame_GetResponseRecord(INT8U response_type,CSINFO *csinfo,RESULT_RECOR
 	sendbuf[index++] = 0;	//FollowReport
 	sendbuf[index++] = 0;	//TimeTag
 //	INT16U
+
 	if(securetype!=0)//安全等级类型不为0，代表是通过安全传输下发报文，上行报文需要以不低于请求的安全级别回复
 	{
+		if (getZone("GW") == 0) {
+			PacketBufToFile(1,"APDU_REC:", (char *)sendbuf, index, NULL);
+		}
 		apduplace += composeSecurityResponse(&sendbuf[apduplace],index-apduplace);
 		index=apduplace;
 	}
@@ -119,6 +123,9 @@ int BuildFrame_GetResponse(INT8U response_type,CSINFO *csinfo,INT8U oadnum,RESUL
 	index += fill_timetag(&sendbuf[index],Response_timetag);//时间标签		TimeTag
 	if(securetype!=0)//安全等级类型不为0，代表是通过安全传输下发报文，上行报文需要以不低于请求的安全级别回复
 	{
+    	if (getZone("GW") == 0) {
+    		PacketBufToFile(1,"APDU_GET:", (char *)sendbuf, index, NULL);
+    	}
 		apduplace += composeSecurityResponse(&sendbuf[apduplace],index-apduplace);
 		index=apduplace;
 	}
@@ -181,10 +188,12 @@ int BuildFrame_GetResponseNext(INT8U response_type,CSINFO *csinfo,INT8U DAR,INT1
 	index += fill_timetag(&sendbuf[index],Response_timetag);//时间标签		TimeTag
 	if(securetype!=0)//安全等级类型不为0，代表是通过安全传输下发报文，上行报文需要以不低于请求的安全级别回复
 	{
+	   	if (getZone("GW") == 0) {
+			PacketBufToFile(1,"APDU_NEX:", (char *)sendbuf, index, NULL);
+		}
 		apduplace += composeSecurityResponse(&sendbuf[apduplace],index-apduplace);
 		index=apduplace;
 	}
-
 	FrameTail(sendbuf,index,hcsi);
 	if(pSendfun!=NULL && csinfo->sa_type!=2 && csinfo->sa_type!=3)//组地址或广播地址不需要应答
 		pSendfun(Global_name, comfd,sendbuf,index+3);

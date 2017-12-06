@@ -87,8 +87,13 @@ int doReponse(int server, int reponse, CSINFO *csinfo, int datalen, INT8U *data,
     index += fill_timetag(&buf[index],Response_timetag);//时间标签		TimeTag
     fprintf(stderr,"securetype = %d\n",securetype);
     int ret=0;
+
+
     if (securetype != 0)//安全等级类型不为0，代表是通过安全传输下发报文，上行报文需要以不低于请求的安全级别回复
     {
+    	if (getZone("GW") == 0) {
+			PacketBufToFile(1,"APDU_ACT:", (char *)buf, index, NULL);
+		}
     	fprintf(stderr,"\n apduplace = %d   index=%d     index-apduplace=%d",apduplace,index,index - apduplace);
     	ret = composeSecurityResponse(&buf[apduplace], index - apduplace);
     	fprintf(stderr,"\nret = %d",ret);

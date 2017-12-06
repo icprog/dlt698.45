@@ -30,7 +30,7 @@ typedef struct {
 
 #define  IP_LEN		4			//参数ip类长度
 									//厂商代码　　软件版本　软件日期　　硬件版本　硬件日期  扩展信息
-static VERINFO verinfo          = { "QDGK", "V1.1", "171205", "1.10", "160328", "00000000" }; // 4300 版本信息
+static VERINFO verinfo          = { "QDGK", "V1.2", "171205", "1.10", "160328", "00000000" }; // 4300 版本信息
 									//湖南需要双协议,软件版本要求为SXY8（双协议8） ，1376.1（软件版本为SXY1）
 static VERINFO verinfo_HuNan    = { "QDGK", "SXY8", "171128", "1.10", "160328", "00000000" }; // 4300 版本信息
 static VERINFO verinfo_ZheJiang  = { "QDGK", "V1.1", "171130", "1.10", "160328", "00000000" }; // 4300 版本信息
@@ -238,6 +238,39 @@ void InitClass6000() {
     }
 }
 
+void InitClassf201()
+{
+	INT8U	serno=0;
+	CLASS_f201	oif201[3]={};
+	INT8U 	devfunc[3] = {1,1,1};
+
+	if(getZone("HuNan")==0) {
+		devfunc[0]=1;
+		devfunc[1]=1;
+		devfunc[2]=0;	//上行通信
+	}else {
+		devfunc[0]=1;
+		devfunc[1]=1;
+		devfunc[2]=1;	//抄表口
+	}
+	if(readCoverClass(0xf201, 0, oif201, sizeof(CLASS_f201)*3, para_vari_save)==-1)
+	{
+		for(serno=0;serno<3;serno++) {
+			oif201[serno].devpara.baud = bps2400;
+			oif201[serno].devpara.verify = even;
+			oif201[serno].devpara.databits = d8;
+			oif201[serno].devpara.stopbits = stop1;
+			oif201[serno].devfunc = devfunc[serno];
+			switch(oif201[serno].devfunc) {
+				case 0:memcpy(oif201[serno].devdesc,"698",3);break;
+				case 1:memcpy(oif201[serno].devdesc,"645",3);break;
+				case 2:memcpy(oif201[serno].devdesc,"uplink",6);break;
+				case 3:memcpy(oif201[serno].devdesc,"stop",4);break;
+			}
+		}
+		saveCoverClass(0xf201, 0, &oif201, sizeof(CLASS_f201)*3, para_vari_save);
+	}
+}
 /*
  * 开关量输入
  * */
@@ -312,4 +345,17 @@ void InitClassByZone(INT8U type)
 			system("cp -rf /nor/init/6013 /nand/para/");
 		}
     }
+}
+
+/*
+ * type = 1: 判断参数不存在初始化,上电运行判断参数文件
+ * 　　　　　= 0: 初始化参数
+ * */
+void InItClass(INT8U type)
+{
+	InitClass4016(); //当前套日时段表
+	InitClass4300(); //电气设备信息
+	InitClassf201(); //RS485口初始化
+	InitClassf203(); //开关量输入
+	InitClassByZone(type); //根据地区进行相应初始化	4500,4510参数,防止参数丢失,重新生产
 }
