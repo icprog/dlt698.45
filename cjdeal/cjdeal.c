@@ -1041,11 +1041,11 @@ void Pre_ProxyGetRequestList(CJCOMM_PROXY proxy) {
 			dataindex = 0, rs485_1 = 0, rs485_2 = 0;
 	CLASS_6001 obj6001 = { };
 
+	if(num>10) num = 10;		//溢出判断
 	proxyList_manager.num = num;	//一致性测试
 	proxyList_manager.data[dataindex++] = num;
 	for (i = 0; i < num; i++) {
-		if (get6001ObjByTSA(proxy.strProxyList.proxy_obj.objs[i].tsa, &obj6001)
-				!= 1) {	//TSA未找到
+		if (get6001ObjByTSA(proxy.strProxyList.proxy_obj.objs[i].tsa, &obj6001)!= 1) {	//TSA未找到
 			proxyList_manager.proxy_obj.objs[i].dar = other_err1;
 //			fprintf(stderr,"i=%d,dar=%d\n",i,proxyList_manager.proxy_obj.objs[i].dar);
 //			dataindex += proxy_one_fill(proxy.strProxyList.proxy_obj.objs[i], 0, NULL,request_overtime, &proxyList_manager.data[dataindex]);
@@ -1058,8 +1058,7 @@ void Pre_ProxyGetRequestList(CJCOMM_PROXY proxy) {
 				if (obj6001.basicinfo.port.attrindex == 2)
 					rs485_2 = 1;
 
-				memcpy(&cjcommProxy.strProxyList.proxy_obj.objs[num_485++],
-						&proxy.strProxyList.proxy_obj.objs[i], sizeof(GETOBJS));
+				memcpy(&cjcommProxy.strProxyList.proxy_obj.objs[num_485++],&proxy.strProxyList.proxy_obj.objs[i], sizeof(GETOBJS));
 				cjcommProxy.strProxyList.num = num_485;
 			} else if (obj6001.basicinfo.port.OI == PORT_ZB) {
 				memcpy(&cjcommProxy_plc.strProxyList.proxy_obj.objs[num_zb++],
@@ -1892,7 +1891,7 @@ int main(int argc, char *argv[]) {
 	//任务调度进程
 	dispatchTask_proccess();
 	//485、四表合一
-	read485_proccess();            //注意里面串口
+//	read485_proccess();            //注意里面串口
 	//统计计算 电压合格率 停电事件等
 	calc_proccess();
 	if (JProgramInfo->cfg_para.device == CCTT1) {

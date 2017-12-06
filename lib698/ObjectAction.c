@@ -1024,8 +1024,8 @@ void TaskInfo(INT16U attr_act, INT8U *data, Action_result *act_ret)
         	DeleteArrayID(0x6013,data);
             break;
         case 129://方法 129:Clear()
-			system("rm -rf /nand/task");
             clearClass(0x6013);        //任务配置单元存放在/nand/para/6013目录
+			system("rm -rf /nand/task");
             break;
         case 130://方法130：update（任务ID，状态）更新任务状态
         	UpdateTaskStatus(0x6013,data,act_ret);
