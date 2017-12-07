@@ -3082,7 +3082,7 @@ int doGetrecord(INT8U type,OAD oad,INT8U *data,RESULT_RECORD *record,INT16U *sub
 		*subframe = getSelector(oad,record->select, record->selectType,record->rcsd.csds,(INT8U *)record->data,(int *)&record->datalen,AppVar_p->server_send_size,recordnum);
 		if(*subframe>=1) {		//无分帧
 //			next_info.nextSite = readFrameDataFile(TASK_FRAME_DATA,0,TmpDataBuf,&datalen);
-			next_info.nextSite += readFrameDataFile(TASK_FRAME_DATA,next_info.nextSite,TmpDataBuf,&datalen);
+			next_info.nextSite = readFrameDataFile(TASK_FRAME_DATA,next_info.nextSite,TmpDataBuf,&datalen);
 			fprintf(stderr,"next_info.nextSite=%d\n",next_info.nextSite);
 			//文件中第一个字节保存的是：SEQUENCE OF A-ResultRecord，GET_REQUEST_RECORD 此处从TmpDataBuf[1]上送，上送长度也要-1
 			//湖南招测多个测量点报文使用 GET_REQUEST_RECORD_LIST 解析过程中上送了SEQUENCE OF A-ResultRecord，不读取文件中该值
