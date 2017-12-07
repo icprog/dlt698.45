@@ -343,7 +343,7 @@ void showCheckPara()
 	fprintf(stderr,"===================程序基本版本信息========================\n");
 	print4300();
 	fprintf(stderr,"\n------------------------------------------------------\n");
-	fprintf(stderr,"GIT VERSION : %d\n", GL_VERSION);
+	fprintf(stderr,"GIT VERSION : %d\n",GL_VERSION);
 	fprintf(stderr,"------------------------------------------------------\n");
 	system("md5sum /nand/bin/cjmain");
 	system("md5sum /nand/bin/cjdeal");
