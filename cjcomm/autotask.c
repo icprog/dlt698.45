@@ -13,10 +13,14 @@ static int conformSign = 0; //正常上报确认标志
 static int confirmSignAppend = 0; //补报确认标志
 
 static int conformTimes = 0, bak_conformTimes = 0;
-static int confirmTimesAppend = 0, bak_confirmTimesAppend; //补报重复次数
+
+static int confirmTimesAppend = 0; //补报重复次数, 用于主站未确认时, 重发的次数, 每重发一次就递减1
+static int bak_confirmTimesAppend = 0; //补报次数备份. 用于多帧发送时, 避免重新读取任务的重发次数
 
 static int conformOverTime = 0, bak_conformOverTime = 0;
-static int confirmOverTimeAppend = 0, bak_confirmOverTimeAppend; //补报超时时间
+
+static int confirmOverTimeAppend = 0;//补报延时, 用于决定主站未确认时, 多久重发一次
+static int bak_confirmOverTimeAppend = 0; //补报延时备份, 用于多帧发送时, 避免重新读取任务的超时时间
 
 static int reportChoice = 0;
 
@@ -36,9 +40,7 @@ static INT8U stopREtry = 0;
 
 void init6013ListFrom6012File(ProgramInfo *JProgramInfo)
 {
-
 	INT16U total_autotasknum = 0;
-
 	INT8U result = 0;
 	memset(&JProgramInfo->autotask, 0, sizeof(JProgramInfo->autotask));	//增加初始化
 	INT16U tIndex = 0;
@@ -105,7 +107,7 @@ int repeatRptAppend(struct aeEventLoop* ep, long long id, void* clientData)
 	asyslog(LOG_INFO, "[%s()][%d]confirmSignAppend = %d\n", __FUNCTION__,
 	__LINE__, confirmSignAppend);
 	//在此检查上报报文是否得到确认
-	if (confirmSignAppend == 1) {
+	if ((confirmSignAppend == 1) || (dbGet("online.type") == 0)) {
 		return AE_NOMORE;
 	}
 
@@ -189,9 +191,11 @@ void repairTime(int i, taskFailInfo_s* tfs)
 /*
  * 如果上一次上报成功时间只比当前成功上报时间早一个周期,
  * 则说明没有漏报的数据, 将上一次上报时间修正为当前上报
- * 时间
- * 0: 有漏报的数据
- * 1: 没有漏报的数据
+ * 时间.
+ * 如果上一次上报成功时间比当前成功上报时间早,且超过
+ * 一个周期, 则说明有漏报的时间点.
+ * @return: 0-有漏报的数据,
+ *          1-没有漏报的数据
  */
 int updateTime(int i, TI* taskInv)
 {
@@ -201,26 +205,33 @@ int updateTime(int i, TI* taskInv)
 	if ( NULL == tfs)
 		return 1;
 
-	memcpy(&tmp, &tfs->rptList[i][1].startTime, sizeof(TS));
-
-	if (TScompare(tmp, tfs->rptList[i][0].startTime) == 1) {//如果上一次上报时间大于当前上报时间, 修正为当前上报时间
-		memcpy(&tfs->rptList[i][1].startTime, &tfs->rptList[i][0].startTime,
-				sizeof(TS));
-		return 1;
-	}
-
+	tmp = tfs->rptList[i][1].startTime;
 	tminc(&tmp, taskInv->units, taskInv->interval);
 
 	if (TScompare(tmp, tfs->rptList[i][0].startTime) == 2)//如果有漏报的数据, 就不更新上一次上报时间
 		return 0;
 
-	//如果没有漏报的数据, 把上一次上报时间更新为当前上报时间
-	memcpy(&tfs->rptList[i][1].startTime, &tfs->rptList[i][0].startTime,
-			sizeof(TS));
+	/*
+	 *    如果上一次上报时间大于当前上报时间, 或者上一次上报时间增加一个周期后,
+	 * 比当前上报时间晚, 则把上一次上报时间更新为当前上报时间
+	 */
+	tfs->rptList[i][1].startTime = tfs->rptList[i][0].startTime;
+	tfs->rptList[i][1].endTime = tfs->rptList[i][0].startTime;
 
 	return 1;
 }
 
+
+/*
+ * 检查当前上报任务是否有漏点的.
+ * 检查依据: 每个任务有两个对应结构: rptInfo_s, 保存了当前任务
+ * 在nst->shmem.autotask 中的索引号, 任务成功上报的时间点,
+ * 且第1个rptInfo_s保存的是正常上报的时间点, 第2个rptInfo_s
+ * 保存的是补报成功的时间点. 如果第2个时间点比第1个时间点早1个
+ * 任务执行周期, 则说明当前任务没有漏点. 如果第2个时间点比第1个
+ * 时间点早, 且多于1个任务执行周期, 则说明当前任务有漏点,
+ * 需要对当前任务进行补报.
+ */
 void checkAndSendAppends(struct aeEventLoop* ep, CommBlock* nst)
 {
 	CLASS_6013 class6013 = { 0 };
@@ -328,7 +339,8 @@ void checkAndSendAppends(struct aeEventLoop* ep, CommBlock* nst)
 				asyslog(LOG_INFO, "[%s()][%d]任务参数丢失！", __FUNCTION__, __LINE__);
 			}
 
-			if (shmem->autotask[i].ReportNum > 5) {
+			//ReportNum的类型可能会改为有符号类型, 所以考虑小于等于0的异常情况
+			if (shmem->autotask[i].ReportNum > 5 || shmem->autotask[i].ReportNum <= 0) {
 				confirmTimesAppend = 5;
 				asyslog(LOG_INFO, "[%s()][%d]任务重复上报设置次数[%d]过大,设置默认上报5次",
 						__FUNCTION__, __LINE__, shmem->autotask[i].ReportNum);
@@ -336,7 +348,8 @@ void checkAndSendAppends(struct aeEventLoop* ep, CommBlock* nst)
 				confirmTimesAppend = shmem->autotask[i].ReportNum;
 			}
 
-			if (shmem->autotask[i].OverTime > 120) {
+			//OverTime的类型可能会改为有符号类型, 所以考虑小于等于0的异常情况
+			if (shmem->autotask[i].OverTime > 120 || shmem->autotask[i].OverTime <= 0) {
 				confirmOverTimeAppend = 120;
 				asyslog(LOG_INFO, "[%s()][%d]任务重复上报超时时间[%d]秒,设置超时120秒",
 						__FUNCTION__, __LINE__, shmem->autotask[i].OverTime);
@@ -361,9 +374,9 @@ void checkAndSendAppends(struct aeEventLoop* ep, CommBlock* nst)
 
 void RegularAutoTask(struct aeEventLoop* ep, CommBlock* nst)
 {
-
 	ProgramInfo* shmem = (ProgramInfo*) nst->shmem;
 	rptInfo_s* rptInfo = (rptInfo_s*) dbGet("curr_task");
+
 	if (stopSign == 1) {
 		return;
 	}
@@ -391,12 +404,6 @@ void RegularAutoTask(struct aeEventLoop* ep, CommBlock* nst)
 			//标示上报任务尚未获得确认
 			conformSign = 0;
 
-			asyslog(LOG_INFO, "[%s()][%d]任务重复上报设置次数[%d]", __FUNCTION__,
-			__LINE__, shmem->autotask[i].ReportNum);
-
-			asyslog(LOG_INFO, "[%s()][%d]任务重复上报超时[%d]秒", __FUNCTION__, __LINE__,
-					shmem->autotask[i].OverTime);
-
 			if (shmem->autotask[i].ReportNum > 5) {
 				conformTimes = 5;
 				asyslog(LOG_INFO, "[%s()][%d]任务重复上报设置次数[%d]过大,设置默认上报5次",
@@ -404,6 +411,7 @@ void RegularAutoTask(struct aeEventLoop* ep, CommBlock* nst)
 			} else {
 				conformTimes = shmem->autotask[i].ReportNum;
 			}
+
 			if (shmem->autotask[i].OverTime > 120) {
 				conformOverTime = 120;
 				asyslog(LOG_INFO, "[%s()][%d]任务重复上报超时时间[%d]秒,设置超时120秒",
@@ -411,6 +419,7 @@ void RegularAutoTask(struct aeEventLoop* ep, CommBlock* nst)
 			} else {
 				conformOverTime = shmem->autotask[i].OverTime;
 			}
+
 			bak_conformTimes = conformTimes;			//记录第一帧无应答后,下一帧重复发送次数
 			bak_conformOverTime = conformOverTime;
 			//注册时间事件，检查确认状态

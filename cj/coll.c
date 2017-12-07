@@ -947,33 +947,110 @@ void Task6035(int argc, char *argv[])
 	}
 }
 
+TS getTS(char* s)
+{
+	TS time = {0};
+	char temp[10] = {0};
+
+	DEBUG_TIME_LINE("%s", s);
+	memcpy(&temp[0], &s[0], 4);
+	time.Year = atoi(temp);
+
+	memset(temp, 0, sizeof(temp));
+	memcpy(&temp[0], &s[5], 2);
+	time.Month = atoi(temp);
+
+	memset(temp, 0, sizeof(temp));
+	memcpy(&temp[0], &s[8], 2);
+	time.Day = atoi(temp);
+
+	memset(temp, 0, sizeof(temp));
+	memcpy(&temp[0], &s[11], 2);
+	time.Hour = atoi(temp);
+
+	memset(temp, 0, sizeof(temp));
+	memcpy(&temp[0], &s[14], 2);
+	time.Minute = atoi(temp);
+
+	memset(temp, 0, sizeof(temp));
+	memcpy(&temp[0], &s[17], 2);
+	time.Sec = atoi(temp);
+
+	DEBUG_TIME_LINE("%04d-%02d-%02d %02d-%02d-%02d", time.Year, time.Month,
+			time.Day, time.Hour, time.Minute, time.Sec);
+	return time;
+}
+
 void Task6099(int argc, char *argv[])
 {
-	taskFailInfo_s tfs = {};
-	int i=0;
+	taskFailInfo_s tfs = { };
+	int i = 0;
 	int taskNum = 0;
 
-	if(argc == 4) {
-		if(strcmp("pro",argv[2])==0) {
-			if(readCoverClass(0x6099, 0, &tfs, sizeof(taskFailInfo_s), para_vari_save) == 1) {
-				taskNum = sizeof(taskFailInfo_s)/sizeof(rptInfo_s);
+	if (argc == 4) {
+		if (strcmp("pro", argv[2]) == 0) {
+			if (readCoverClass(0x6099, 0, &tfs, sizeof(taskFailInfo_s),
+					para_vari_save) == 1) {
+				taskNum = sizeof(taskFailInfo_s) / sizeof(rptInfo_s);
 				taskNum /= 2;
 				DEBUG_TIME_LINE("taskNum: %d", taskNum);
-				for(i=0;i<taskNum;i++) {
-					fprintf(stderr, "\ntaskID<%02d>:\t%04d-%02d-%02d %02d-%02d-%02d,\t[%04d-%02d-%02d %02d-%02d-%02d <--> %04d-%02d-%02d %02d-%02d-%02d]",
+				for (i = 0; i < taskNum; i++) {
+					fprintf(stderr,
+							"\ntaskID<%02d>:\t%04d-%02d-%02d %02d-%02d-%02d,\t[%04d-%02d-%02d %02d-%02d-%02d <--> %04d-%02d-%02d %02d-%02d-%02d]",
 							tfs.rptList[i][0].taskId,
-							tfs.rptList[i][0].startTime.Year, tfs.rptList[i][0].startTime.Month, tfs.rptList[i][0].startTime.Day,
-							tfs.rptList[i][0].startTime.Hour, tfs.rptList[i][0].startTime.Minute, tfs.rptList[i][0].startTime.Sec,
-							tfs.rptList[i][1].startTime.Year, tfs.rptList[i][1].startTime.Month, tfs.rptList[i][1].startTime.Day,
-							tfs.rptList[i][1].startTime.Hour, tfs.rptList[i][1].startTime.Minute, tfs.rptList[i][1].startTime.Sec,
-							tfs.rptList[i][1].endTime.Year, tfs.rptList[i][1].endTime.Month, tfs.rptList[i][1].endTime.Day,
-							tfs.rptList[i][1].endTime.Hour, tfs.rptList[i][1].endTime.Minute, tfs.rptList[i][1].endTime.Sec);
+							tfs.rptList[i][0].startTime.Year,
+							tfs.rptList[i][0].startTime.Month,
+							tfs.rptList[i][0].startTime.Day,
+							tfs.rptList[i][0].startTime.Hour,
+							tfs.rptList[i][0].startTime.Minute,
+							tfs.rptList[i][0].startTime.Sec,
+							tfs.rptList[i][1].startTime.Year,
+							tfs.rptList[i][1].startTime.Month,
+							tfs.rptList[i][1].startTime.Day,
+							tfs.rptList[i][1].startTime.Hour,
+							tfs.rptList[i][1].startTime.Minute,
+							tfs.rptList[i][1].startTime.Sec,
+							tfs.rptList[i][1].endTime.Year,
+							tfs.rptList[i][1].endTime.Month,
+							tfs.rptList[i][1].endTime.Day,
+							tfs.rptList[i][1].endTime.Hour,
+							tfs.rptList[i][1].endTime.Minute,
+							tfs.rptList[i][1].endTime.Sec);
 				}
 				fprintf(stderr, "\n");
 			} else {
 				DEBUG_TIME_LINE("6099文件打开失败");
 			}
 		}
+	} else if (argc == 8 && strcmp("set", argv[2]) == 0) {//cj coll set 6099 1 0 starttime "2017-12-07 15:45:00"
+		int index = atoi(argv[4]);
+		int i = atoi(argv[5]);
+		TS time = getTS(argv[7]);
+
+		if(index < 0 || index > MAXNUM_AUTOTASK) {
+			DEBUG_TIME_LINE("任务索引超出范围");
+			return;
+		}
+
+		if(i < 0 || i > MAXNUM_AUTOTASK) {
+			DEBUG_TIME_LINE("任务信息记录只能是0或1");
+			return;
+		}
+
+		if (readCoverClass(0x6099, 0, &tfs, sizeof(taskFailInfo_s),
+				para_vari_save) != 1) {
+			DEBUG_TIME_LINE("6099文件打开失败");
+			return;
+		}
+
+		if(strcmp("starttime", argv[6]) == 0) {
+			tfs.rptList[index][i].startTime = time;
+		} else if(strcmp("endtime", argv[6]) == 0) {
+			tfs.rptList[index][i].endTime = time;
+		}
+
+		saveCoverClass(0x6099, 0, &tfs, sizeof(taskFailInfo_s),
+				para_vari_save);
 	}
 }
 
