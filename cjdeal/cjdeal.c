@@ -1036,6 +1036,7 @@ int proxy_dar_fill(PROXY_GETLIST *dest_list, PROXY_GETLIST get_list) {
 	return index;
 }
 extern void set_port_active(INT8U port485, INT8U value);
+
 void Pre_ProxyGetRequestList(CJCOMM_PROXY proxy) {
 	int num = proxy.strProxyList.num, i = 0, num_485 = 0, num_zb = 0,
 			dataindex = 0, rs485_1 = 0, rs485_2 = 0;
@@ -1059,10 +1060,11 @@ void Pre_ProxyGetRequestList(CJCOMM_PROXY proxy) {
 					rs485_2 = 1;
 
 				memcpy(&cjcommProxy.strProxyList.proxy_obj.objs[num_485++],&proxy.strProxyList.proxy_obj.objs[i], sizeof(GETOBJS));
+				cjcommProxy.strProxyList.timeout = proxyList_manager.timeout;
 				cjcommProxy.strProxyList.num = num_485;
 			} else if (obj6001.basicinfo.port.OI == PORT_ZB) {
-				memcpy(&cjcommProxy_plc.strProxyList.proxy_obj.objs[num_zb++],
-						&proxy.strProxyList.proxy_obj.objs[i], sizeof(GETOBJS));
+				memcpy(&cjcommProxy_plc.strProxyList.proxy_obj.objs[num_zb++],&proxy.strProxyList.proxy_obj.objs[i], sizeof(GETOBJS));
+				cjcommProxy_plc.strProxyList.timeout = proxyList_manager.timeout;
 				cjcommProxy_plc.strProxyList.num = num_zb;
 			}
 		}
@@ -1268,9 +1270,9 @@ void Pre_ProxyTransCommandRequest(CJCOMM_PROXY proxy) {
 	}
 }
 
-void divProxy(CJCOMM_PROXY proxy) {
-	fprintf(stderr, "divProxy overTime=%d\n",
-			proxy.strProxyList.proxy_obj.f209Trans.overTime);
+void divProxy(CJCOMM_PROXY proxy)
+{
+	fprintf(stderr, "divProxy overTime=%d\n",proxy.strProxyList.proxy_obj.f209Trans.overTime);
 	memset(&cjcommProxy, 0, sizeof(cjcommProxy));
 	memset(&cjcommProxy_plc, 0, sizeof(cjcommProxy_plc));
 	memcpy(&proxyList_manager, &proxy.strProxyList, sizeof(PROXY_GETLIST));
