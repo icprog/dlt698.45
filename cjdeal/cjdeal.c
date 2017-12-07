@@ -1908,8 +1908,7 @@ int main(int argc, char *argv[]) {
 	while (1) {
 		gettimeofday(&start, NULL);
 		TSGet(&ts);
-		if (ts.Hour == 15 && ts.Minute == 5 && del_day != ts.Day
-			&& del_min != ts.Minute) {
+		if (ts.Hour == 15 && ts.Minute == 5 && del_day != ts.Day && del_min!= ts.Minute){
 			deloutofdatafile();
 			del_day = ts.Day;
 			del_min = 0;
@@ -1917,8 +1916,7 @@ int main(int argc, char *argv[]) {
 		}
 		DealState(JProgramInfo);
 		gettimeofday(&end, NULL);
-		interval = 1000000 * (end.tv_sec - start.tv_sec)
-				   + (end.tv_usec - start.tv_usec);
+		interval = 1000000 * (end.tv_sec - start.tv_sec) + (end.tv_usec - start.tv_usec);
 		if (interval >= 1000000)
 			fprintf(stderr, "deal main interval = %f(ms)\n", interval / 1000.0);
 
