@@ -3736,6 +3736,7 @@ int getRequestRecord(OAD oad,INT8U *data,CSINFO *csinfo,INT8U *sendbuf)
 	record.oad = oad;
 	record.data = TmpDataBuf;
 	record.datalen = 0;
+	next_info.nextSite = 0;	//初始化，调用doGetrecord从nextSite位置开始获取
 	doGetrecord(GET_REQUEST_RECORD,oad,data,&record,&subframe,0);
 	if(subframe==0 || subframe==1) {
 		BuildFrame_GetResponseRecord(GET_REQUEST_RECORD,csinfo,record,sendbuf);
