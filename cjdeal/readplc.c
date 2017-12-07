@@ -3207,8 +3207,6 @@ INT8U Proxy_GetRequestList(RUNTIME_PLC *runtime_p,CJCOMM_PROXY *proxy,int* begin
 			{
 				DbgPrintToFile1(31,"代理1 收到数据 分析报文失败");
 			}
-			proxyInUse.devUse.plcReady = 1;
-			proxy->isInUse = 0;
 		}
 		if(singleLen==0)
 			proxy->strProxyList.proxy_obj.objs[obj_index].dar = request_overtime;
@@ -3216,6 +3214,8 @@ INT8U Proxy_GetRequestList(RUNTIME_PLC *runtime_p,CJCOMM_PROXY *proxy,int* begin
 		obj_index = (obj_index+1)%proxy->strProxyList.num;//obj_index++;
 		runtime_p->send_start_time = nowtime;
 		DbgPrintToFile1(31,"代理1 完成一次代理 obj_index=%d num=%d",obj_index,proxy->strProxyList.num);
+		proxyInUse.devUse.plcReady = 1;
+		proxy->isInUse = 0;
 		return 5;//进入100秒等待
 	} else if ((abs(nowtime - runtime_p->send_start_time) > timeout) && *beginwork==1) {
 		pthread_mutex_lock(&mutex);
