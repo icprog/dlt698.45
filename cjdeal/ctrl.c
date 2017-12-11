@@ -982,54 +982,31 @@ void CheckInitPara() {
 }
 
 int SaveAll(void* arg) {
-//	TS now;
-//	int secOld = 0;
 	int sign = 0;
 	static int old_sign[10];
-//
-//	for(int i = 0; i < 10; i++)
-//	{
-//		old_sign[i] = 0;
-//	}
-//
-//	int run = 1;
-//	while (run) {
-//		TSGet(&now);
-//		//一秒钟刷新一次
-//		if (secOld == now.Sec) {
-//			usleep(500 * 1000);
-//			continue;
-//		} else {
-//			secOld = now.Sec;
-//		}
-//		CheckInitPara();
 
-//		if (secOld % 47 == 0) {
-			for (int i = 0; i < 8; ++i) {
-				sign = stb_crc32((unsigned char *)&JProgramInfo->class23[i], sizeof(CLASS23));
-				if(sign != old_sign[i]){
-					old_sign[i] = sign;
-					saveCoverClass(0x2301 + i, 0, &JProgramInfo->class23[i], sizeof(CLASS23),
-						para_vari_save);
-				}
-			}
-			sign = stb_crc32((unsigned char *)&JProgramInfo->class12[0], sizeof(CLASS12));
-			if(sign != old_sign[8]){
-				old_sign[8] = sign;
-				saveCoverClass(0x2401, 0, &JProgramInfo->class12[0], sizeof(CLASS12),
-						para_vari_save);
-			}
-			sign = stb_crc32((unsigned char *)&JProgramInfo->class12[1], sizeof(CLASS12));
-			if(sign != old_sign[9]){
-				old_sign[9] = sign;
-				saveCoverClass(0x2402, 0, &JProgramInfo->class12[1], sizeof(CLASS12),
-						para_vari_save);
-			}
-//		}
-//	}
-//    return (void*)0;
+
+	for (int i = 0; i < 8; ++i) {
+		sign = stb_crc32((unsigned char *) &JProgramInfo->class23[i], sizeof(CLASS23));
+		if (sign != old_sign[i]) {
+			old_sign[i] = sign;
+			saveCoverClass(0x2301 + i, 0, &JProgramInfo->class23[i], sizeof(CLASS23),
+						   para_vari_save);
+		}
+	}
+	sign = stb_crc32((unsigned char *) &JProgramInfo->class12[0], sizeof(CLASS12));
+	if (sign != old_sign[8]) {
+		old_sign[8] = sign;
+		saveCoverClass(0x2401, 0, &JProgramInfo->class12[0], sizeof(CLASS12),
+					   para_vari_save);
+	}
+	sign = stb_crc32((unsigned char *) &JProgramInfo->class12[1], sizeof(CLASS12));
+	if (sign != old_sign[9]) {
+		old_sign[9] = sign;
+		saveCoverClass(0x2402, 0, &JProgramInfo->class12[1], sizeof(CLASS12),
+					   para_vari_save);
+	}
 }
-
 void CheckCtrlControl() {
 	static int count = 0;
 	if (CtrlC->control_event == 1) {
@@ -1567,6 +1544,8 @@ int ctrlMain(void* arg) {
 		if (secOld % 5 == 0) {
 			dealCtrl();
 		}
+
+        CheckInitPara();
 
 		if (secOld % 46 == 0) {
 			SaveAll((void *)0);
