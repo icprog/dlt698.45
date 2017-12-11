@@ -329,7 +329,7 @@ int doAt(struct aeEventLoop *ep, long long id, void *clientData) {
 	ATOBJ *ao = (ATOBJ *) clientData;
 	if ((int) dbGet("online.type") != 0) {
 		step ++;
-		if(getZone("HuNan") == 0 && step % 43 == 0 && ((int) dbGet("online.type")) == 1){
+		if(getZone("HuNan") == 0 && step % 150 == 0 && ((int) dbGet("online.type")) == 1){
 			checkSms(ao);
 			step = 0;
 		}
