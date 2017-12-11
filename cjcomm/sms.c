@@ -305,5 +305,5 @@ void checkSms(ATOBJ *ao) {
             break;
         }
     }
-    if(fd!=NULL) close(fd);
+    if(fd!=NULL) close(fd);//不关闭会不断出现/dev/pts/1的设备
 }
