@@ -330,7 +330,7 @@ int doAt(struct aeEventLoop *ep, long long id, void *clientData) {
 	if ((int) dbGet("online.type") != 0) {
 		step ++;
 		if(getZone("HuNan") == 0 && step % 43 == 0 && ((int) dbGet("online.type")) == 1){
-			checkSms(ao);
+//			checkSms(ao);
 			step = 0;
 		}
 		return 2000;

@@ -297,8 +297,6 @@ void checkSms(ATOBJ *ao) {
                 	    break;
                 	}
                 }
-
-
                 fprintf(stderr, "\n---\n");
                 break;
             }
@@ -307,4 +305,5 @@ void checkSms(ATOBJ *ao) {
             break;
         }
     }
+    if(fd!=NULL) close(fd);
 }
