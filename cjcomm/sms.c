@@ -208,13 +208,15 @@ int gsmDecodePdu(const char *pSrc, SM_PARAM *pDst) {
 }
 
 void checkSms(ATOBJ *ao) {
-	int fd = OpenMuxCom(1, 115200, (unsigned char *) "none", 1, 8); // 0
+	int fd = NULL;
+
+    fd = OpenMuxCom(1, 115200, (unsigned char *) "none", 1, 8); // 0
 
 	if(fd < 0){
 		return;
 	}
 
-    for (int timeout = 0; timeout < 50; timeout++) {
+    for (int timeout = 0; timeout < 2; timeout++) {
         char Mrecvbuf[512];
 
         write(fd, "\rAT+CMGL=0\r", 11);
