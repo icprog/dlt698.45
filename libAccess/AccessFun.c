@@ -3486,13 +3486,13 @@ INT16U dealselect5(OAD oad_h,CSD_ARRAYTYPE csds,TS ts_start,TS ts_end,INT32U zc_
 	if((taskid = GetTaskidFromCSDs(item_road,tsa_group)) == 0) {//暂时不支持招测的不在一个采集方案
 		//处理招测的oad不在一个任务
 		asyslog(LOG_INFO,"GetTaskData: taskid=%d\n",taskid);
-			return 0;
+		goto err;
 	}
 	//------------------------------------------------------------------------------打开任务文件，并获得任务文件头信息
 	if((frz_type = get60136015info(taskid,&class6015,&class6013))==0)//获取任务参数
 	{
 		fprintf(stderr,"\n获取任务%d配置失败\n",taskid);
-		return 0;
+		goto err;
 	}
 
 	if(ts_start.Year == 0xffff)
@@ -3529,7 +3529,7 @@ INT16U dealselect5(OAD oad_h,CSD_ARRAYTYPE csds,TS ts_start,TS ts_end,INT32U zc_
 	if(fp == NULL)//文件不存在，返回空
 	{
 		fprintf(stderr,"\n打开文件%s失败!!!\n",fname);
-		return 0;
+		goto err;
 	}
 	else
 	{
@@ -3539,7 +3539,7 @@ INT16U dealselect5(OAD oad_h,CSD_ARRAYTYPE csds,TS ts_start,TS ts_end,INT32U zc_
 	seq_start = (ts_start.Hour*60*60+ts_start.Minute*60+ts_start.Sec)/taskhead_info.seqsec;
 	seq_end = (ts_end.Hour*60*60+ts_end.Minute*60+ts_end.Sec)/taskhead_info.seqsec+1;
 	if(ts_start.Year != ts_end.Year || ts_start.Month != ts_end.Month || ts_start.Day != ts_end.Day)
-		return 0;
+		goto err;
 
 	blklen = taskhead_info.reclen*taskhead_info.seqnum;
 	headlen = sizeof(HEADFIXED_INFO)+taskhead_info.oadnum*sizeof(HEAD_UNIT);
@@ -3548,7 +3548,7 @@ INT16U dealselect5(OAD oad_h,CSD_ARRAYTYPE csds,TS ts_start,TS ts_end,INT32U zc_
 	tsa_findnum = getTSAblkoffnum(tsa_group,tsa_num,blklen,headlen,fp);
 	fprintf(stderr,"\ntsa_offnum=%d\n",tsa_findnum);
 	if(tsa_findnum == 0)
-		return 0;
+		goto err;
 	fprintf(stderr,"\n----1\n");
 	if(seq_end > taskhead_info.seqnum)
 		seq_end = taskhead_info.seqnum;
@@ -3633,9 +3633,20 @@ INT16U dealselect5(OAD oad_h,CSD_ARRAYTYPE csds,TS ts_start,TS ts_end,INT32U zc_
 //			indexn += initFrameHead(&frmdata[indexn],oad_h,csds,&seqnumindex);
 		}
 	}
+
+final:
 	if(frm_fp != NULL)
 		fclose(frm_fp);
+	if(fp != NULL)
+		fclose(fp);
 	return frmnum;
+
+err:
+	if(frm_fp != NULL)
+		fclose(frm_fp);
+	if(fp != NULL)
+		fclose(fp);
+	return 0;
 }
 /*
  * 上报某一时间段数据记录，这一时间段跨日
@@ -3689,7 +3700,7 @@ INT16U dealselect7(OAD oad_h,CSD_ARRAYTYPE csds,CLASS_6001 *tsa_group,TS ts_star
 			if(abs(time(NULL)-time_chaoshi)>25)//进入函数超过25s，则退出本函数   超时前处理
 			{
 				fprintf(stderr,"\n查找数据超时，返回现有帧\n");
-				return frmnum;
+				goto final;
 			}
 			getTaskFileName(taskid,ts_cur,fname);
 			fprintf(stderr,"\n打开文件%s\n",fname);
@@ -3697,7 +3708,7 @@ INT16U dealselect7(OAD oad_h,CSD_ARRAYTYPE csds,CLASS_6001 *tsa_group,TS ts_star
 			if(fp == NULL)//文件不存在，返回空
 			{
 				fprintf(stderr,"\n打开文件%s失败!!!\n",fname);
-				return 0;
+				goto err;
 			}
 			else
 			{
@@ -3764,6 +3775,9 @@ INT16U dealselect7(OAD oad_h,CSD_ARRAYTYPE csds,CLASS_6001 *tsa_group,TS ts_star
 			ts_cur.Sec = 0;
 			tminc(&ts_cur,day_units,1);//加上一天,加到当天0点0分0秒
 			time_cur = tstotime_t(ts_cur);
+
+			if(fp != NULL)
+				close(fp);
 		}
 	}
 
@@ -3788,8 +3802,19 @@ INT16U dealselect7(OAD oad_h,CSD_ARRAYTYPE csds,CLASS_6001 *tsa_group,TS ts_star
 			saveOneFrame(frmdata,indexn,frm_fp);
 		}
 	}
+
+final:
 	if(frm_fp != NULL)
 		fclose(frm_fp);
+	if(fp != NULL)
+		fclose(fp);
+	return frmnum;
+
+err:
+	if(frm_fp != NULL)
+		fclose(frm_fp);
+	if(fp != NULL)
+		fclose(fp);
 	return frmnum;
 }
 
@@ -3976,6 +4001,9 @@ INT16U dealselect10(OAD oad_h,CSD_ARRAYTYPE csds,INT16U zcseq_num,INT8U tsa_num,
 			saveOneFrame(frmdata,indexn,frm_fp);
 		}
 	}
+
+	if(fp != NULL)
+		fclose(fp);
 	if(frm_fp != NULL)
 		fclose(frm_fp);
 	return frmnum;
@@ -4050,7 +4078,7 @@ INT16U dealevent(OAD oad_h,ROAD road_eve,CSD_ARRAYTYPE csds,INT16U tsa_num,CLASS
 	if(fp == NULL)//文件不存在，返回空
 	{
 		fprintf(stderr,"\n打开事件文件失败!!!\n");
-		return 0;
+		goto err;
 	}
 	else
 	{
@@ -4074,7 +4102,7 @@ INT16U dealevent(OAD oad_h,ROAD road_eve,CSD_ARRAYTYPE csds,INT16U tsa_num,CLASS
 	tsa_findnum = getTSAblkoffnum(tsa_group,tsa_num,blklen,headlen,fp);
 	fprintf(stderr,"\ntsa_offnum=%d\n",tsa_findnum);
 	if(tsa_findnum == 0)
-		return 0;
+		goto err;
 	frm_fp = openFramefile(TASK_FRAME_DATA,0);
 //	if(zcseq_num == 1)//招测最新的一条记录，开启补报模式
 	for(i=0;i<tsa_findnum;i++)
@@ -4122,11 +4150,20 @@ INT16U dealevent(OAD oad_h,ROAD road_eve,CSD_ARRAYTYPE csds,INT16U tsa_num,CLASS
 			saveOneFrame(frmdata,indexn,frm_fp);
 		}
 	}
+
+final:
 	if(fp != NULL)
 		fclose(fp);
 	if(frm_fp != NULL)
 		fclose(frm_fp);
 	return frmnum;
+
+err:
+	if(fp != NULL)
+		fclose(fp);
+	if(frm_fp != NULL)
+		fclose(frm_fp);
+	return 0;
 }
 MY_MS getSELEMS(INT8U selectype,RSD select)
 {
@@ -4183,11 +4220,7 @@ INT16U getSelector(OAD oad_h,RSD select,INT8U selectype,CSD_ARRAYTYPE csds,INT8U
 
 	fprintf(stderr,"\ntsa_num=%d\n",tsa_num);
 	if(tsa_num==0)
-	{
-		if(tsa_group != NULL)
-			free(tsa_group);
-		return 0;
-	}
+		goto err;
 //	for(i=0;i<tsa_num;i++)
 //		prtTSA(tsa_group[i].basicinfo.addr);
 
@@ -4304,7 +4337,7 @@ INT16U getSelector(OAD oad_h,RSD select,INT8U selectype,CSD_ARRAYTYPE csds,INT8U
 			if(time_end > time_now)
 				ts_end = ts_now;
 			if(day_num<0)
-			return 0;
+				goto err;
 		}
 		switch(day_num)
 		{
@@ -4329,10 +4362,22 @@ INT16U getSelector(OAD oad_h,RSD select,INT8U selectype,CSD_ARRAYTYPE csds,INT8U
 		frmnum = dealselect10(oad_h,csds,select.selec10.recordn,tsa_num,tsa_group,frmmaxsize);
 		break;
 	}
-	if(tsa_group != NULL)
+
+final:
+	if(tsa_group != NULL) {
 		free(tsa_group);
+		tsa_group = NULL;
+	}
 	fprintf(stderr,"\n帧总数frmnum=%d\n",frmnum);
 	return frmnum;
+
+err:
+	if(tsa_group != NULL) {
+		free(tsa_group);
+		tsa_group = NULL;
+	}
+	fprintf(stderr,"\n帧总数frmnum=%d\n",0);
+	return 0;
 }
 //返回oad的三个时标加oad值
 INT16S getTASKoaddata(INT8U taskid,INT8U frz_type,TS ts,TSA tsa,TASK_OADDATA *oaddata)
@@ -4776,7 +4821,7 @@ INT16U selectData(OAD oad_h,CSD_ARRAYTYPE csds,CLASS_6001 *tsa_group, INT16U tsa
 	if (fp == NULL)		//文件不存在，返回空
 	{
 		fprintf(stderr, "\n打开文件%s失败!!!\n", fname);
-		return 0;
+		goto err;
 	} else {
 		fread(&taskhead_info, sizeof(HEADFIXED_INFO), 1, fp);
 		fread(headoad_unit, taskhead_info.oadnum * sizeof(HEAD_UNIT), 1, fp);
@@ -4787,7 +4832,7 @@ INT16U selectData(OAD oad_h,CSD_ARRAYTYPE csds,CLASS_6001 *tsa_group, INT16U tsa
 			/ taskhead_info.seqsec + 1;
 	if (ts_start.Year != ts_end.Year || ts_start.Month != ts_end.Month
 			|| ts_start.Day != ts_end.Day)
-		return 0;
+		goto err;
 
 	blklen = taskhead_info.reclen * taskhead_info.seqnum;
 	headlen = sizeof(HEADFIXED_INFO) + taskhead_info.oadnum * sizeof(HEAD_UNIT);
@@ -4799,7 +4844,7 @@ INT16U selectData(OAD oad_h,CSD_ARRAYTYPE csds,CLASS_6001 *tsa_group, INT16U tsa
 	tsa_findnum = getTSAblkoffnum(tsa_group, tsa_num, blklen, headlen, fp);
 	fprintf(stderr, "\ntsa_offnum=%d\n", tsa_findnum);
 	if (tsa_findnum == 0)
-		return 0;
+		goto err;
 	fprintf(stderr, "\n----1\n");
 	if (seq_end > taskhead_info.seqnum)
 		seq_end = taskhead_info.seqnum;
@@ -4880,9 +4925,20 @@ INT16U selectData(OAD oad_h,CSD_ARRAYTYPE csds,CLASS_6001 *tsa_group, INT16U tsa
 			saveOneFrame(frmdata, indexn, frm_fp);
 		}
 	}
+
+final:
 	if (frm_fp != NULL)
 		fclose(frm_fp);
+	if (fp != NULL)
+		fclose(fp);
 	return frmnum;
+
+err:
+	if (frm_fp != NULL)
+		fclose(frm_fp);
+	if (fp != NULL)
+		fclose(fp);
+	return 0;
 }
 
 void supplementRpt(TS ts1, TS ts2, INT8U retaskid, INT8U *saveflg)

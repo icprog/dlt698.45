@@ -1041,6 +1041,7 @@ void Pre_ProxyGetRequestList(CJCOMM_PROXY proxy) {
 			dataindex = 0, rs485_1 = 0, rs485_2 = 0;
 	CLASS_6001 obj6001 = { };
 
+	if(num>10) num = 10;		//溢出判断
 	proxyList_manager.num = num;	//一致性测试
 	proxyList_manager.data[dataindex++] = num;
 	for (i = 0; i < num; i++) {
@@ -1060,10 +1061,12 @@ void Pre_ProxyGetRequestList(CJCOMM_PROXY proxy) {
 
 				memcpy(&cjcommProxy.strProxyList.proxy_obj.objs[num_485++],
 						&proxy.strProxyList.proxy_obj.objs[i], sizeof(GETOBJS));
+				cjcommProxy.strProxyList.timeout = proxyList_manager.timeout;
 				cjcommProxy.strProxyList.num = num_485;
 			} else if (obj6001.basicinfo.port.OI == PORT_ZB) {
 				memcpy(&cjcommProxy_plc.strProxyList.proxy_obj.objs[num_zb++],
 						&proxy.strProxyList.proxy_obj.objs[i], sizeof(GETOBJS));
+				cjcommProxy_plc.strProxyList.timeout = proxyList_manager.timeout;
 				cjcommProxy_plc.strProxyList.num = num_zb;
 			}
 		}

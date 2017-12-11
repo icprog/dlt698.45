@@ -156,7 +156,8 @@ int cProcForShanDongAutoReport(struct aeEventLoop *ep, CommBlock * nst) {
 				nst->linkstate = build_connection;
 				nst->testcounter = 0;
 				break;
-			case 9:
+			case ACTION_REQUEST:
+			case PROXY_REQUEST:
 				dbSet("proxy", nst);
 				fprintf(stderr, "串口收到代理消息，更新端口\n");
 				break;

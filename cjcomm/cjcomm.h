@@ -49,9 +49,9 @@ extern void First_VerifiTime(LINK_Response linkResponse,
 		ProgramInfo *JProgramInfo);
 
 //任务自动上送接口
-void ConformAutoTask(struct aeEventLoop *ep, CommBlock *nst, int res);
+extern void ConformAutoTask(struct aeEventLoop *ep, CommBlock *nst, int res);
 
-void RegularAutoTask(struct aeEventLoop *ep, CommBlock *nst);
+extern void RegularAutoTask(struct aeEventLoop *ep, CommBlock *nst);
 
 int StartPowerOff(struct aeEventLoop *ep, long long id, void *clientData);
 

@@ -140,7 +140,6 @@ extern int getDataTypeLen(int dt);
  * 返回实际填充的个数
  * buf:填充的数据
  * */
-
 extern INT8U fillStringLen(INT8U *buf,int strlen);
 /*----------------------具体OI类组帧函数----------------------*/
 /*----------------------统计相关数据----------------------*/

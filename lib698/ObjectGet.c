@@ -3081,7 +3081,7 @@ int doGetrecord(INT8U type,OAD oad,INT8U *data,RESULT_RECORD *record,INT16U *sub
 //		record->data = &TmpDataBuf[dest_index];
 		*subframe = getSelector(oad,record->select, record->selectType,record->rcsd.csds,(INT8U *)record->data,(int *)&record->datalen,AppVar_p->server_send_size,recordnum);
 		if(*subframe>=1) {		//无分帧
-			next_info.nextSite = readFrameDataFile(TASK_FRAME_DATA,0,TmpDataBuf,&datalen);
+			next_info.nextSite = readFrameDataFile(TASK_FRAME_DATA,next_info.nextSite,TmpDataBuf,&datalen);
 			fprintf(stderr,"next_info.nextSite=%d\n",next_info.nextSite);
 			//文件中第一个字节保存的是：SEQUENCE OF A-ResultRecord，GET_REQUEST_RECORD 此处从TmpDataBuf[1]上送，上送长度也要-1
 			//湖南招测多个测量点报文使用 GET_REQUEST_RECORD_LIST 解析过程中上送了SEQUENCE OF A-ResultRecord，不读取文件中该值
@@ -3735,6 +3735,7 @@ int getRequestRecord(OAD oad,INT8U *data,CSINFO *csinfo,INT8U *sendbuf)
 	record.oad = oad;
 	record.data = TmpDataBuf;
 	record.datalen = 0;
+	next_info.nextSite = 0;	//初始化，调用doGetrecord从nextSite位置开始获取
 	doGetrecord(GET_REQUEST_RECORD,oad,data,&record,&subframe,0);
 	if(subframe==0 || subframe==1) {
 		BuildFrame_GetResponseRecord(GET_REQUEST_RECORD,csinfo,record,sendbuf);
@@ -3809,12 +3810,13 @@ int getRequestRecordList(INT8U *data,CSINFO *csinfo,INT8U *sendbuf)
 	int recordnum = 0;
 	int destindex=0;
 	int sourceindex=0;
-	int	first_frameLen = 0;
+	int	first_frameLen = 0,first_fileLen=0;
 
 	memset(TmpDataBufList,0,sizeof(TmpDataBufList));
 	recordnum = data[sourceindex++];
 	fprintf(stderr,"getRequestRecordList  Result-record=%d \n ",recordnum);
 	TmpDataBufList[destindex++] = recordnum;	//Reponse的A-ResultRecord的总个数
+	next_info.nextSite = 0;
 	for(i=0;i<recordnum;i++) {
 		memset(TmpDataBuf,0,sizeof(TmpDataBuf));
 		record.data = TmpDataBuf;
@@ -3835,7 +3837,8 @@ int getRequestRecordList(INT8U *data,CSINFO *csinfo,INT8U *sendbuf)
 		}
 		if(i == 0)
 		{
-			first_frameLen = record.datalen;
+			first_fileLen = next_info.nextSite;		//记录第一帧的数据的文件位置，方便分帧查找数据
+			first_frameLen = record.datalen;		//记录第一帧数据长度，分帧发送第一帧数据的位置
 		}
 //		fprintf(stderr,"$$$$$$$$$$$$$$$$$$$$$$$$$$i=%d  record.datalen  ==== %d  subframe = %d\n\n\n\n",i,record.datalen,subframe);
 	}
@@ -3845,6 +3848,7 @@ int getRequestRecordList(INT8U *data,CSINFO *csinfo,INT8U *sendbuf)
 	if(destindex >= BUFLEN) {		//RequestRecordList计算全部的list长度计算是否需要分帧进行处理
 		record.data = &TmpDataBufList[1];	//从数据帧开始，去掉sequence of A-ResultRecord
 		record.datalen = first_frameLen;
+		next_info.nextSite = first_fileLen;
 		next_info.subframeSum = subframe;
 		next_info.frameNo = 1;
 		next_info.repsonseType = GET_REQUEST_RECORD_LIST;
