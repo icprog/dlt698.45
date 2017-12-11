@@ -1411,12 +1411,18 @@ INT16U data97Tobuff698(FORMAT97 Data97,INT8U* dataContent)
 	INT16U len = 0;
 	Base_DataType dataType = dtnull;
 	INT8U unitSize = 0;
+	if((Data97.DI[1]==0x90)||(Data97.DI[1]==0x91))
+	{
+		Data97.Length = (Data97.Length > 22)?22:Data97.Length;
+	}
 	INT8U unitNum = getASNInfo97(&Data97,&dataType);
 	if(unitNum == 0)
 	{
 		return 0;
 	}
+
 	INT16U dataLen97 = Data97.Length-2;
+
 	#ifdef TESTDEF
 		fprintf(stderr, "正常应答！  DI97 = %02x%02x datalen = %d data=", Data97.DI[1], Data97.DI[0],dataLen97);
 		for(index = 0;index < dataLen97;index++)
@@ -1529,7 +1535,9 @@ INT16S request698_97DataSingle(FORMAT97* format97, INT8U* SendBuf,INT16S SendLen
 
 	SendDataTo485(por485, SendBuf, SendLen);
 	st6035->sendMsgNum++;
+
 	RecvLen = ReceDataFrom485(DLT_645_07,por485, 500, RecvBuff);
+
 	if (RecvLen > 0)
 	{
 		buffLen = 0;
