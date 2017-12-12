@@ -1565,7 +1565,7 @@ void dispatch_thread() {
 			para_change485[0] = 1;
 			para_change485[1] = 1;
 			init6000InfoFrom6000FIle();
-
+			//printinfoReplenish(4);
 			if (getZone("GW") != 0) {
 				filewrite(REPLENISHFILEPATH, &infoReplenish,
 						sizeof(Replenish_TaskInfo));
@@ -1582,7 +1582,7 @@ void dispatch_thread() {
 			para_change485[1] = 1;
 			system("rm -rf /nand/para/6035");
 			init6013ListFrom6012File();
-
+			//printinfoReplenish(3);
 			if (getZone("GW") != 0) {
 				filewrite(REPLENISHFILEPATH, &infoReplenish,
 						sizeof(Replenish_TaskInfo));
@@ -1641,7 +1641,12 @@ void dispatch_thread() {
 	pthread_exit(&thread_dispatchTask);
 }
 void printinfoReplenish(INT8U flag) {
-
+	if (flag == 4)
+		DbgPrintToFile1(3, "\n参数6000变更后还需要补抄任务数量 = %d－－－－－－－－－－\n",
+				infoReplenish.tasknum);
+	if (flag == 3)
+		DbgPrintToFile1(3, "\n参数6012变更要补抄任务数量 = %d－－－－－－－－－－\n",
+				infoReplenish.tasknum);
 	if (flag == 2)
 		DbgPrintToFile1(3, "\n跨天清理后还需要补抄任务数量 = %d－－－－－－－－－－\n",
 				infoReplenish.tasknum);
