@@ -1721,7 +1721,7 @@ int getOI6001(MY_MS ms,INT8U **tsas)
 					break;
 				case 2:	//一组用户类型
 					tsa_len = (ms.ms.userType[0]<<8) | ms.ms.userType[1];
-//					fprintf(stderr,"\n一组用户类型(%d)",tsa_len);
+					fprintf(stderr,"\n一组用户类型(%d)",tsa_len);
 					for(j=0;j<tsa_len;j++) {
 						if(ms.ms.userType[j+2]==meter.basicinfo.usrtype) {
 							memcpy(*tsas+(tsa_num*sizeof(CLASS_6001)),&meter,sizeof(CLASS_6001));
@@ -1732,7 +1732,7 @@ int getOI6001(MY_MS ms,INT8U **tsas)
 					break;
 				case 3:	//一组用户地址
 					tsa_len = (ms.ms.userAddr[0].addr[0]<<8) | ms.ms.userAddr[0].addr[1];
-//					fprintf(stderr,"\n一组用户地址(%d)\n\n",tsa_len);
+					fprintf(stderr,"\n一组用户地址(%d)\n\n",tsa_len);
 					for(j=0;j<tsa_len;j++) {
 						if(memcmp(&ms.ms.userAddr[j+1],&meter.basicinfo.addr,sizeof(TSA))==0) {  //TODO:TSA下发的地址是否按照00：长度，01：TSA长度格式
 							memcpy(*tsas+(tsa_num*sizeof(CLASS_6001)),&meter,sizeof(CLASS_6001));
@@ -1743,9 +1743,9 @@ int getOI6001(MY_MS ms,INT8U **tsas)
 //					fprintf(stderr,"\nms.mstype = %d,tsa_num = %d",ms.mstype,tsa_num);
 					break;
 				case 4:	//一组配置序号
-//					fprintf(stderr,"\n招测序号集(%d)",ms.ms.configSerial[0]);
+					fprintf(stderr,"\n招测序号集(%d)",ms.ms.configSerial[0]);
 					for(j=0;j<ms.ms.configSerial[0];j++) {
-//						fprintf(stderr," %d",ms.ms.configSerial[j+1]);
+						fprintf(stderr," %d",ms.ms.configSerial[j+1]);
 						if(meter.sernum == ms.ms.configSerial[j+1]) {
 							memcpy(*tsas+(tsa_num*sizeof(CLASS_6001)),&meter,sizeof(CLASS_6001));
 							tsa_num++;
@@ -1764,7 +1764,7 @@ int getOI6001(MY_MS ms,INT8U **tsas)
 					for(j=0;j<COLLCLASS_MAXNUM;j++) {
 						if(ms.ms.addr[j].type!=interface) {	//有效类型
 							getTsaRegion(ms.ms.serial[j].type,&StartNo,&EndNo);
-//							fprintf(stderr,"Start-serial=%d  End-serial=%d\n",StartNo,EndNo);
+							fprintf(stderr,"Start-serial=%d  End-serial=%d\n",StartNo,EndNo);
 							for(k=StartNo;k<EndNo;k++) {
 								if(memcmp(&ms.ms.addr[j].begin[1],&meter.basicinfo.addr,sizeof(TSA))==0) {  //TODO:TSA下发的地址是否按照00：长度，01：TSA长度格式
 									memcpy(*tsas+(tsa_num*sizeof(CLASS_6001)),&meter,sizeof(CLASS_6001));
@@ -2911,16 +2911,16 @@ INT8U GetTaskidFromCSDs(ROAD_ITEM item_road,CLASS_6001 *tsa)
 	CLASS_6015	class6015={};
 	CLASS_6013	class6013={};
 	int i=0,j=0,mm=0,nn=0;
-	INT8U taskno=0,taskid=0;
+	INT8U taskno=0,taskid=0,taskid_tmp=0,taskid_matchnum=0,taskid_matchnum_old=0;
 	INT32U seqsec=0,seqnum=0;
 
 	memset(&class6013,0,sizeof(CLASS_6013));
 	memset(&class6015,0,sizeof(CLASS_6015));
 	for(i=0;i<256;i++)
 	{
+		fprintf(stderr,"\n查找任务%d\n",i+1);
 		if(readCoverClass(0x6013,i+1,&class6013,sizeof(class6013),coll_para_save) == 1)
 		{
-			fprintf(stderr,"\n查找任务%d\n",i+1);
 			if(class6013.cjtype != 1 || class6013.state != 1)//过滤掉不是普通采集方案的
 			{
 				fprintf(stderr,"\n非普通方案\n");
@@ -2940,13 +2940,11 @@ INT8U GetTaskidFromCSDs(ROAD_ITEM item_road,CLASS_6001 *tsa)
 					continue;
 				}
 				else
-					fprintf(stderr,"\ntsa_equ=1,taskid=%d csds.num=%d\n",i+1,class6015.csds.num);
+					fprintf(stderr,"\ntsa_equ=1,taskid=%d\n",i+1);
 				for(j=0;j<class6015.csds.num;j++)
 				{
-					fprintf(stderr,"\nzc:%04x%02x%02x  oadmr_num=%d\n",
-						class6015.csds.csd[j].csd.oad.OI,class6015.csds.csd[j].csd.oad.attflg,class6015.csds.csd[j].csd.oad.attrindex,
-						item_road.oadmr_num);
-
+					fprintf(stderr,"\nzc:%04x%02x%02x\n",
+						class6015.csds.csd[j].csd.oad.OI,class6015.csds.csd[j].csd.oad.attflg,class6015.csds.csd[j].csd.oad.attrindex);
 					for(mm=0;mm<item_road.oadmr_num;mm++)
 					{
 						switch(class6015.csds.csd[j].type)
@@ -2973,13 +2971,8 @@ INT8U GetTaskidFromCSDs(ROAD_ITEM item_road,CLASS_6001 *tsa)
 							}
 							break;
 						case 1:
-							fprintf(stderr,"oad_m:%04x%02x%02x  road.oad:%04x%02x%02x\n",
-									item_road.oad[mm].oad_m.OI,item_road.oad[mm].oad_m.attflg,item_road.oad[mm].oad_m.attrindex,
-									class6015.csds.csd[j].csd.road.oad.OI,class6015.csds.csd[j].csd.road.oad.attflg,class6015.csds.csd[j].csd.road.oad.attrindex);
-
 							if(memcmp(&item_road.oad[mm].oad_m,&class6015.csds.csd[j].csd.road.oad,sizeof(OAD))==0)//
 							{
-								fprintf(stderr,"road.num = %d\n",class6015.csds.csd[j].csd.road.num);
 								for(nn=0;nn<class6015.csds.csd[j].csd.road.num;nn++)
 								{
 									fprintf(stderr,"oad_r=%04x%02x%02x %d.oad=%04x%02x%02x\n",
@@ -3005,9 +2998,10 @@ INT8U GetTaskidFromCSDs(ROAD_ITEM item_road,CLASS_6001 *tsa)
 						}
 					}
 				}
+
 				for(mm=0;mm<(item_road.oadmr_num);mm++)
 				{
-					fprintf(stderr,"=====0====taskno=%d oad=%04x%02x%02x taskid=%d\n",
+					fprintf(stderr,"=====0====taskno=%d oad=%04x%02x%02x taskid=%d",
 							taskno,item_road.oad[mm].oad_r.OI,item_road.oad[mm].oad_r.attflg,item_road.oad[mm].oad_r.attrindex,
 							item_road.oad[mm].taskid);
 					if(item_road.oad[mm].oad_r.OI == 0x202a || item_road.oad[mm].oad_r.OI == 0x6040 ||
@@ -3015,8 +3009,15 @@ INT8U GetTaskidFromCSDs(ROAD_ITEM item_road,CLASS_6001 *tsa)
 							(item_road.oad[mm].oad_r.OI >= 0x9000 && item_road.oad[mm].oad_r.OI <= 0xf000))
 						continue;
 					taskno = item_road.oad[mm].taskid;
-					if(taskno == 0 || taskno != item_road.oad[mm].taskid)
-						break;
+//					if(taskno == 0 || taskno != item_road.oad[mm].taskid)
+//						break;
+					taskid_matchnum ++;
+					fprintf(stderr,"\ntaskid_tmp = %d taskno = %d match %d %d\n",taskid_tmp,taskno,taskid_matchnum,taskid_matchnum_old);
+					if(taskno != 0 && taskid_matchnum > taskid_matchnum_old)
+					{
+						taskid_tmp = taskno;
+						taskid_matchnum_old = taskid_matchnum;
+					}
 				}
 				if(taskno != 0)
 				{
@@ -3033,7 +3034,7 @@ INT8U GetTaskidFromCSDs(ROAD_ITEM item_road,CLASS_6001 *tsa)
 			}
 		}
 	}
-	return taskno;
+	return taskid_tmp;
 }
 INT16U getrecdata(INT8U *recorddata,TSA tsa,ROAD_ITEM item_road,OAD_INDEX *oad_offset,INT8U *databuf)
 {
