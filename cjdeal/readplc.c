@@ -3080,6 +3080,7 @@ INT8U getTransCmdAddrProto(INT8U* cmdbuf, INT8U* addrtmp, INT8U* proto,INT8U len
 			if (nodetmp != NULL)
 			{
 				*proto = nodetmp->protocol;//dlt645-07 or 97
+				DbgPrintToFile1(31,"透传TSA proto=%d",*proto);
 				return 1;
 			}
 		}
@@ -3092,6 +3093,7 @@ INT8U getTransCmdAddrProto(INT8U* cmdbuf, INT8U* addrtmp, INT8U* proto,INT8U len
 			Af = cmdbuf[i+4] & 0x0F;
 			memcpy(addrtmp, &cmdbuf[i+5], Af+1);
 			*proto = 0;//698.45
+			DbgPrintToFile1(31,"透传 proto=%d",*proto);
 			return 1;
 		}
 	}

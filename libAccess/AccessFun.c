@@ -2911,7 +2911,7 @@ INT8U GetTaskidFromCSDs(ROAD_ITEM item_road,CLASS_6001 *tsa)
 	CLASS_6015	class6015={};
 	CLASS_6013	class6013={};
 	int i=0,j=0,mm=0,nn=0;
-	INT8U taskno=0,taskid=0;
+	INT8U taskno=0,taskid=0,taskid_tmp=0,taskid_matchnum=0,taskid_matchnum_old=0;
 	INT32U seqsec=0,seqnum=0;
 
 	memset(&class6013,0,sizeof(CLASS_6013));
@@ -2998,6 +2998,7 @@ INT8U GetTaskidFromCSDs(ROAD_ITEM item_road,CLASS_6001 *tsa)
 						}
 					}
 				}
+
 				for(mm=0;mm<(item_road.oadmr_num);mm++)
 				{
 					fprintf(stderr,"=====0====taskno=%d oad=%04x%02x%02x taskid=%d",
@@ -3008,8 +3009,15 @@ INT8U GetTaskidFromCSDs(ROAD_ITEM item_road,CLASS_6001 *tsa)
 							(item_road.oad[mm].oad_r.OI >= 0x9000 && item_road.oad[mm].oad_r.OI <= 0xf000))
 						continue;
 					taskno = item_road.oad[mm].taskid;
-					if(taskno == 0 || taskno != item_road.oad[mm].taskid)
-						break;
+//					if(taskno == 0 || taskno != item_road.oad[mm].taskid)
+//						break;
+					taskid_matchnum ++;
+					fprintf(stderr,"\ntaskid_tmp = %d taskno = %d match %d %d\n",taskid_tmp,taskno,taskid_matchnum,taskid_matchnum_old);
+					if(taskno != 0 && taskid_matchnum > taskid_matchnum_old)
+					{
+						taskid_tmp = taskno;
+						taskid_matchnum_old = taskid_matchnum;
+					}
 				}
 				if(taskno != 0)
 				{
@@ -3026,7 +3034,7 @@ INT8U GetTaskidFromCSDs(ROAD_ITEM item_road,CLASS_6001 *tsa)
 			}
 		}
 	}
-	return taskno;
+	return taskid_tmp;
 }
 INT16U getrecdata(INT8U *recorddata,TSA tsa,ROAD_ITEM item_road,OAD_INDEX *oad_offset,INT8U *databuf)
 {
