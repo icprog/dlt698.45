@@ -295,10 +295,6 @@ INT8S use6013find6015or6017(INT8U cjType,INT16U fanganID,TI interval6013,CLASS_6
 				{
 					minInterVal = ((st6015->data.data[1]<<8)+st6015->data.data[2])*60;
 				}
-				if((minSpan&minInterVal)==0)
-				{
-					asyslog(LOG_NOTICE,"ERROR 目前不支持的类型");
-				}
 
 				dataNum = minSpan/minInterVal;
 				fprintf(stderr,"\n\n 曲线任务执行频率分=%d　 冻结时标间隔=%d分　　数据点数=%d \n\n",minSpan,minInterVal,dataNum);
@@ -1013,9 +1009,9 @@ INT8U getASNInfo(FORMAT07* DI07,Base_DataType* dataType)
 		INT8U tmpIndex = 0;
 		for(tmpIndex = 0;tmpIndex < unitNum;tmpIndex++)
 		{
-			xuliangdata[tmpIndex*15] = 0x02;
+			xuliangdata[tmpIndex*15] = dtstructure;
 			xuliangdata[tmpIndex*15+1] = 0x02;
-			xuliangdata[tmpIndex*15+2] = 0x06;
+			xuliangdata[tmpIndex*15+2] = dtdoublelongunsigned;
 			//最大需量
 			if((DI07->Data[tmpIndex*8]==0xff)&&(DI07->Data[tmpIndex*8+1]==0xff)&&(DI07->Data[tmpIndex*8+2]==0xff))
 			{
@@ -1181,7 +1177,59 @@ INT8U getASNInfo97(FORMAT97* DI97,Base_DataType* dataType)
 		DI97->Data[2] = second;
 		return unitNum;
 	}
+	//需量类时间
+	if((DI97->DI[1]==0xB0)||(DI97->DI[1]==0xB1)||(DI97->DI[1]==0xB4)
+		||(DI97->DI[1]==0xB5)||(DI97->DI[1]==0xB8)||(DI97->DI[1]==0xB9))
+	{
+		*dataType = dtdatetimes;
+		unitNum = 1;
+		if((DI97->DI[0]&0x0f)==0x0f)
+		{
+			unitNum = 5;
+		}
+		INT8U unitIndex = 0;
+		TS tsNow;
+		TSGet(&tsNow);
+		for(unitIndex = 0;unitIndex < unitNum; unitIndex++)
+		{
+			DI97->Data[unitIndex*7]= (tsNow.Year>>8)&0x00ff;
+			DI97->Data[unitIndex*7+1] = tsNow.Year&0x00ff;
+			DI97->Data[unitIndex*7+2] = (DI97->Data[unitIndex*4+3] >> 4)*10 + (DI97->Data[unitIndex*4+3]&0x0f);
+			DI97->Data[unitIndex*7+3] = (DI97->Data[unitIndex*4+2] >> 4)*10 + (DI97->Data[unitIndex*4+2]&0x0f);
+			DI97->Data[unitIndex*7+4] = (DI97->Data[unitIndex*4+1] >> 4)*10 + (DI97->Data[unitIndex*4+1]&0x0f);
+			DI97->Data[unitIndex*7+5] = (DI97->Data[unitIndex*4] >> 4)*10 + (DI97->Data[unitIndex*4]&0x0f);
+			DI97->Data[unitIndex*7+6] = 0;
+			DI97->Length += 3;
+		}
+		return unitNum;
+	}
+	//需量类
+	if((DI97->DI[1]==0xA0)||(DI97->DI[1]==0xA1)||(DI97->DI[1]==0xA4)
+		||(DI97->DI[1]==0xA5)||(DI97->DI[1]==0xA8)||(DI97->DI[1]==0xA9))
+	{
+		*dataType = dtdoublelongunsigned;
+		unitNum = 1;
+		INT8U xuliangbuff[20] = {0};
 
+		if((DI97->DI[0]&0x0f)==0x0f)
+		{
+			unitNum = 5;
+		}
+		INT8U unitIndex = 0;
+		for(unitIndex = 0;unitIndex < unitNum; unitIndex++)
+		{
+			if((DI97->Data[unitIndex*3]==0xff)&&(DI97->Data[unitIndex*3+1]==0xff)&&(DI97->Data[unitIndex*3+2]==0xff))
+			{
+				memset(&xuliangbuff[unitIndex*4],0,4);
+			}
+			else
+			{
+				memcpy(&xuliangbuff[(unitIndex*4)+1],&DI97->Data[unitIndex*3],3);
+			}
+			DI97->Length += 1;
+		}
+		memcpy(&DI97->Data[0],xuliangbuff,20);
+	}
 
 	for (index = 0; index < map07DI_698OAD_NUM; index++)
 	{
@@ -1411,9 +1459,19 @@ INT16U data97Tobuff698(FORMAT97 Data97,INT8U* dataContent)
 	INT16U len = 0;
 	Base_DataType dataType = dtnull;
 	INT8U unitSize = 0;
-	if((Data97.DI[1]==0x90)||(Data97.DI[1]==0x91))
+	//电量返回
+	//68 75 00 00 00 00 00 68 81 1f 52 c3 63 c6 3a 34 5b 68 53 33 b7 c8 63 33 b4 8b 5b 33 6a 36 5b 33 33 33 33 33 33 33 33 33 dd 5f 16
+	if((Data97.DI[1]==0x90)||(Data97.DI[1]==0x91)
+		||(Data97.DI[1]==0xB0)||(Data97.DI[1]==0xB1)||(Data97.DI[1]==0xB4)
+		||(Data97.DI[1]==0xB5)||(Data97.DI[1]==0xB8)||(Data97.DI[1]==0xB9))
 	{
 		Data97.Length = (Data97.Length > 22)?22:Data97.Length;
+	}
+
+	if((Data97.DI[1]==0xA0)||(Data97.DI[1]==0xA1)||(Data97.DI[1]==0xA4)
+		||(Data97.DI[1]==0xA5)||(Data97.DI[1]==0xA8)||(Data97.DI[1]==0xA9))
+	{
+		Data97.Length = (Data97.Length > 17)?17:Data97.Length;
 	}
 	INT8U unitNum = getASNInfo97(&Data97,&dataType);
 	if(unitNum == 0)
@@ -1552,9 +1610,7 @@ INT16S request698_97DataSingle(FORMAT97* format97, INT8U* SendBuf,INT16S SendLen
 		{
 
 			if (recsta == -1) {
-				fprintf(stderr, "电表异常应答，无数据项  %02x%02x%02x%02x！！！\n",
-						format97->DI[3], format97->DI[2], format97->DI[1],
-						format97->DI[0]);
+				fprintf(stderr, "电表异常应答，无数据项  %02x%02x！！！\n",format97->DI[1],format97->DI[0]);
 			} else if (recsta == -2) {
 				fprintf(stderr, "电表异常应答，未知错误！ Err=%02x\n", format97->Err);
 			} else if (recsta == -3) {
@@ -3904,8 +3960,44 @@ INT16S request9707_singleOAD(INT8U protocol,OI_698 roadOI,OAD soureOAD,CLASS_600
 		{
 			datalen = request698_97DataList(Flag645.DI._97, to6001,dataContent,st6035,port485);
 
-			fprintf(stderr,"\n deal6015_97 datalen=%d",datalen);
+			fprintf(stderr,"\n deal6015_97 datalen=%d\n",datalen);
+			//特殊处理需量类数据
+			if((datalen > 0)&&((soureOAD.OI == 0x1010)||(soureOAD.OI == 0x1020)))
+			{
+				//01 05 06 XX XX XX XX 06 XX XX XX XX 06 XX XX XX XX 06 XX XX XX XX 06 XX XX XX XX
+				//01 05 1c XX XX XX XX XX XX XX 1c XX XX XX XX XX XX XX 1c XX XX XX XX XX XX XX 1c XX XX XX XX XX XX XX 1c XX XX XX XX XX XX XX
+#if 0
+				INT8U prtIndex = 0;
+				for(prtIndex = 0;prtIndex < 75;prtIndex++)
+				{
+					fprintf(stderr,"%02x ",dataContent[prtIndex]);
+				}
+#endif
+				if(soureOAD.attrindex==0)
+				{
+					INT8U resultbuf[75] = {0};
 
+					INT8U rateIndex = 0;
+					for(rateIndex = 0;rateIndex < dataContent[1];rateIndex++)
+					{
+						resultbuf[rateIndex*15] = dtstructure;
+						resultbuf[rateIndex*15+1] = 2;
+						memcpy(&resultbuf[rateIndex*15+2],&dataContent[2+rateIndex*5],5);
+						memcpy(&resultbuf[rateIndex*15+7],&dataContent[29+rateIndex*8],8);
+					}
+					memcpy(&dataContent[2],resultbuf,75);
+					datalen = 77;
+				}
+				else
+				{
+					INT8U resultbuf[13] = {0};
+					memcpy(resultbuf,dataContent,13);
+					dataContent[0] = dtstructure;
+					dataContent[1] = 2;
+					memcpy(&dataContent[2],resultbuf,13);
+					datalen = 15;
+				}
+			}
 		}
 		else
 		{
@@ -5278,6 +5370,13 @@ INT8U initMap07DI_698OAD()
 		map07DI_698OAD[linenum].datatype = dataType;
 		map07DI_698OAD[linenum].flag97.dinum =1;
 		memcpy(map07DI_698OAD[linenum].flag97.DI_1,dataflag97,2);
+		//97表需量和需量时间分两个数据项
+		if((map07DI_698OAD[linenum].flag97.DI_1[0][1]==0xA0)||(map07DI_698OAD[linenum].flag97.DI_1[0][1]==0xA1))
+		{
+			map07DI_698OAD[linenum].flag97.dinum = 2;
+			map07DI_698OAD[linenum].flag97.DI_1[1][1] = map07DI_698OAD[linenum].flag97.DI_1[0][1] + 0x10;
+			map07DI_698OAD[linenum].flag97.DI_1[1][0] = map07DI_698OAD[linenum].flag97.DI_1[0][0];
+		}
 		map07DI_698OAD[linenum].flag07.dinum =1;
 		memcpy(map07DI_698OAD[linenum].flag07.DI_1,dataflag07,DF07_BYTES);
 		linenum++;
