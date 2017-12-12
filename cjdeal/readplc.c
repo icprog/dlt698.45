@@ -1848,8 +1848,7 @@ int do_5004_type( int taski, int itemi ,INT8U *buf, struct Tsa_Node *desnode, DA
 	type = desnode->protocol;
 	switch(type)
 	{
-	case DLT_645_97:
-
+		case DLT_645_97:
 		Format97(&Data97,tmpitem.oad1,tmpitem.oad2,desnode->tsa);
 		DbgPrintToFile1(31,"当前抄读 【OAD1 %04x-%02x %02x    OAD2 %04x-%02x %02x】%02x%02x",
 				tmpitem.oad1.OI,tmpitem.oad1.attflg,tmpitem.oad1.attrindex,tmpitem.oad2.OI,tmpitem.oad2.attflg,tmpitem.oad2.attrindex,
