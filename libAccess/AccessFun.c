@@ -2911,7 +2911,7 @@ INT8U GetTaskidFromCSDs(ROAD_ITEM item_road,CLASS_6001 *tsa)
 	CLASS_6015	class6015={};
 	CLASS_6013	class6013={};
 	int i=0,j=0,mm=0,nn=0;
-	INT8U taskno=0,taskid=0,taskid_tmp=0,taskid_matchnum=0,taskid_matchnum_old=0;
+	INT8U taskno=0,taskid=0,taskid_matchnum=0,taskid_matchnum_old=0;
 	INT32U seqsec=0,seqnum=0;
 
 	memset(&class6013,0,sizeof(CLASS_6013));
@@ -3012,10 +3012,10 @@ INT8U GetTaskidFromCSDs(ROAD_ITEM item_road,CLASS_6001 *tsa)
 //					if(taskno == 0 || taskno != item_road.oad[mm].taskid)
 //						break;
 					taskid_matchnum ++;
-					fprintf(stderr,"\ntaskid_tmp = %d taskno = %d match %d %d\n",taskid_tmp,taskno,taskid_matchnum,taskid_matchnum_old);
+					fprintf(stderr,"\ntaskid_tmp = %d taskno = %d match %d %d\n",taskid,taskno,taskid_matchnum,taskid_matchnum_old);
 					if(taskno != 0 && taskid_matchnum > taskid_matchnum_old)
 					{
-						taskid_tmp = taskno;
+						taskid = taskno;
 						taskid_matchnum_old = taskid_matchnum;
 					}
 				}
@@ -3025,17 +3025,16 @@ INT8U GetTaskidFromCSDs(ROAD_ITEM item_road,CLASS_6001 *tsa)
 					taskid = taskno;
 					if(class6015.mst.mstype == 1)
 						return taskid;
-					else
-						continue;
-					return taskno;
 				}
 				else
 					fprintf(stderr,"\n====1===taskno=%d \n",taskno);
 			}
 		}
 	}
-	return taskid_tmp;
+	asyslog(LOG_INFO,"return  ,taskid=%d\n",taskid);
+	return taskid;
 }
+
 INT16U getrecdata(INT8U *recorddata,TSA tsa,ROAD_ITEM item_road,OAD_INDEX *oad_offset,INT8U *databuf)
 {
 	INT16U pindex=0,oadlen=0,retlen=0;
@@ -3493,13 +3492,13 @@ INT16U dealselect5(OAD oad_h,CSD_ARRAYTYPE csds,TS ts_start,TS ts_end,INT32U zc_
 	item_road.zc_seqsec = zc_sec;
 	if((taskid = GetTaskidFromCSDs(item_road,tsa_group)) == 0) {//暂时不支持招测的不在一个采集方案
 		//处理招测的oad不在一个任务
-		asyslog(LOG_INFO,"GetTaskData: taskid=%d\n",taskid);
+		asyslog(LOG_ERR,"GetTaskData: taskid=%d\n",taskid);
 		goto err;
 	}
 	//------------------------------------------------------------------------------打开任务文件，并获得任务文件头信息
 	if((frz_type = get60136015info(taskid,&class6015,&class6013))==0)//获取任务参数
 	{
-		fprintf(stderr,"\n获取任务%d配置失败\n",taskid);
+		asyslog(LOG_ERR,"获取任务%d配置失败",taskid);
 		goto err;
 	}
 
@@ -3536,7 +3535,7 @@ INT16U dealselect5(OAD oad_h,CSD_ARRAYTYPE csds,TS ts_start,TS ts_end,INT32U zc_
 	fp = fopen(fname,"r");//读取格式
 	if(fp == NULL)//文件不存在，返回空
 	{
-		fprintf(stderr,"\n打开文件%s失败!!!\n",fname);
+		asyslog(LOG_ERR,"打开文件%s失败!!!",fname);
 		goto err;
 	}
 	else
@@ -3546,8 +3545,11 @@ INT16U dealselect5(OAD oad_h,CSD_ARRAYTYPE csds,TS ts_start,TS ts_end,INT32U zc_
 	}
 	seq_start = (ts_start.Hour*60*60+ts_start.Minute*60+ts_start.Sec)/taskhead_info.seqsec;
 	seq_end = (ts_end.Hour*60*60+ts_end.Minute*60+ts_end.Sec)/taskhead_info.seqsec+1;
-	if(ts_start.Year != ts_end.Year || ts_start.Month != ts_end.Month || ts_start.Day != ts_end.Day)
+	if(ts_start.Year != ts_end.Year || ts_start.Month != ts_end.Month || ts_start.Day != ts_end.Day) {
+		asyslog(LOG_ERR,"ts.start=%04d-%02d-%02d ts.end=%04d-%02d-%02d\n",ts_start.Year,ts_start.Month,ts_start.Day,
+				ts_end.Year,ts_end.Month,ts_end.Day);
 		goto err;
+	}
 
 	blklen = taskhead_info.reclen*taskhead_info.seqnum;
 	headlen = sizeof(HEADFIXED_INFO)+taskhead_info.oadnum*sizeof(HEAD_UNIT);
@@ -3555,8 +3557,10 @@ INT16U dealselect5(OAD oad_h,CSD_ARRAYTYPE csds,TS ts_start,TS ts_end,INT32U zc_
 	//------------------------------------------------------------------------------获得招测的TSA在文件中的偏移块数
 	tsa_findnum = getTSAblkoffnum(tsa_group,tsa_num,blklen,headlen,fp);
 	fprintf(stderr,"\ntsa_offnum=%d\n",tsa_findnum);
-	if(tsa_findnum == 0)
+	if(tsa_findnum == 0) {
+		asyslog(LOG_ERR,"tsa_findnum==%d blklen=%d headlen=%d\n",tsa_findnum,blklen,headlen);
 		goto err;
+	}
 	fprintf(stderr,"\n----1\n");
 	if(seq_end > taskhead_info.seqnum)
 		seq_end = taskhead_info.seqnum;

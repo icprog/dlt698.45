@@ -1848,8 +1848,7 @@ int do_5004_type( int taski, int itemi ,INT8U *buf, struct Tsa_Node *desnode, DA
 	type = desnode->protocol;
 	switch(type)
 	{
-	case DLT_645_97:
-
+		case DLT_645_97:
 		Format97(&Data97,tmpitem.oad1,tmpitem.oad2,desnode->tsa);
 		DbgPrintToFile1(31,"当前抄读 【OAD1 %04x-%02x %02x    OAD2 %04x-%02x %02x】%02x%02x",
 				tmpitem.oad1.OI,tmpitem.oad1.attflg,tmpitem.oad1.attrindex,tmpitem.oad2.OI,tmpitem.oad2.attflg,tmpitem.oad2.attrindex,
@@ -2151,15 +2150,9 @@ int do_other_type( int taski, int itemi ,INT8U *buf, struct Tsa_Node *desnode, D
 }
 
 /*
- * 假如载波模块请求的测量点TSA与
- * 内存中的TSA不同, 则需要更新数据
- * 项的抄读状态.
- * 如果当前TSA的某个任务的所有数据
- * 的状态全不为0, 则表示这个任务的
- * 所有数据项都被操作完毕, 除日冻结
- * 任务需要补抄外, 其他任务暂时不做
- * 补抄处理, 更新下一次任务执行时间,
- * 并将各抄读项状态置0.
+ * 假如载波模块请求的测量点TSA与内存中的TSA不同, 则需要更新数据项的抄读状态.
+ * 如果当前TSA的某个任务的所有数据的状态全不为0, 则表示这个任务的所有数据项都被操作完毕,
+ * 除日冻结任务需要补抄外, 其他任务暂时不做补抄处理, 更新下一次任务执行时间,并将各抄读项状态置0.
  */
 void chkTsaTask(TASK_INFO *meterinfo)
 {
