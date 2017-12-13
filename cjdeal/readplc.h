@@ -18,6 +18,7 @@ pthread_t thread_readplc;
 extern void readplc_proccess();
 extern INT16S getTaskIndex(INT8U port);
 
+//#define CHECKSSTAMP
 #define NONE_PROCE	 		-1
 #define DATE_CHANGE   		0
 #define DATA_REAL     		1

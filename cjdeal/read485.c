@@ -1363,36 +1363,6 @@ INT8U getASNInfo97(FORMAT97* DI97,Base_DataType* dataType)
 
 	return unitNum;
 }
-INT8U isTimerSame(INT8S index, INT8U* timeData)
-{
-	INT8S ret = 1;
-	if(timeData[0]!= dtdatetimes)
-	{
-		return 0;
-	}
-	TS freezeTime;
-	TSGet(&freezeTime);
-	if(index!=0)
-	{
-		tminc(&freezeTime, day_units, index);
-	}
-	INT16U year = (timeData[1]<<8) + timeData[2];
-	asyslog(LOG_NOTICE,"电表时标：%d-%d-%d 集中器时标:%d-%d-%d",
-			year,timeData[3],timeData[4],freezeTime.Year,freezeTime.Month,freezeTime.Day);
-	if(freezeTime.Year!=year)
-	{
-		return 0;
-	}
-	if(timeData[3]!=freezeTime.Month)
-	{
-		return 0;
-	}
-	if(timeData[4]!=freezeTime.Day)
-	{
-		return 0;
-	}
-	return ret;
-}
 
 //把抄回来的07数据转换成698格式存储
 INT16U data07Tobuff698(FORMAT07 Data07,INT8U* dataContent)
@@ -4733,7 +4703,8 @@ INT8U checkMeterType(MY_MS mst,INT8U usrType,TSA usrAddr)
 			fprintf(stderr,"\n5：一组用户类型区间\n");
 			for(collIndex = 0;collIndex < COLLCLASS_MAXNUM;collIndex++)
 			{
-				if(mst.ms.type[collIndex].type != interface)
+				if((mst.ms.type[collIndex].type != interface)
+						&&(mst.ms.type[collIndex].begin[0]|mst.ms.type[collIndex].end[0])!=0)
 				{
 					INT16S typeBegin = -1;
 					INT16S typeEnd = -1;
@@ -4745,7 +4716,7 @@ INT8U checkMeterType(MY_MS mst,INT8U usrType,TSA usrAddr)
 					{
 						typeEnd = mst.ms.type[collIndex].end[1];
 					}
-					fprintf(stderr,"\n metertype = %d typeBegin = %d typeEnd = %d \n",usrType,typeBegin,typeEnd);
+					fprintf(stderr,"\n collIndex = %d metertype = %d typeBegin = %d typeEnd = %d \n",collIndex,usrType,typeBegin,typeEnd);
 					if((usrType > typeBegin)&&(usrType < typeEnd))
 					{
 						return 1;

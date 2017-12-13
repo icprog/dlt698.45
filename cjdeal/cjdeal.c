@@ -1717,7 +1717,36 @@ INT8S get6035ByTaskID(INT16U taskID, CLASS_6035* class6035) {
 			coll_para_save);
 	return -1;
 }
-
+INT8U isTimerSame(INT8S index, INT8U* timeData)
+{
+	INT8S ret = 1;
+	if(timeData[0]!= dtdatetimes)
+	{
+		return 0;
+	}
+	TS freezeTime;
+	TSGet(&freezeTime);
+	if(index!=0)
+	{
+		tminc(&freezeTime, day_units, index);
+	}
+	INT16U year = (timeData[1]<<8) + timeData[2];
+	asyslog(LOG_NOTICE,"电表时标：%d-%d-%d 集中器时标:%d-%d-%d",
+			year,timeData[3],timeData[4],freezeTime.Year,freezeTime.Month,freezeTime.Day);
+	if(freezeTime.Year!=year)
+	{
+		return 0;
+	}
+	if(timeData[3]!=freezeTime.Month)
+	{
+		return 0;
+	}
+	if(timeData[4]!=freezeTime.Day)
+	{
+		return 0;
+	}
+	return ret;
+}
 //根据TSA从文件中找出6001
 INT8U get6001ObjByTSA(TSA addr, CLASS_6001* targetMeter) {
 	INT8U ret = 0;
