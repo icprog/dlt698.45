@@ -1264,7 +1264,7 @@ typedef struct {
 ////////////////////////////////////////////////////////////////////
 typedef struct
 {
-	int sucessflg;		//0:没抄读	n:抄读n次
+	int sucessflg;		//0:没抄读；1:已抄读，无数据返回；2:抄读成功
 	OAD oad1;			//非关联 oad1.OI=0
 	OAD oad2;			//数据项
 	INT8U item97[4];	//97规约  15753578781
