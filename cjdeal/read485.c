@@ -4884,13 +4884,17 @@ INT8U GetOrSetFreezeDataSuccess(INT8U GetOrSet,INT8U taskID,INT8U port,INT16U mp
 {
 	INT8U ret = 0;
 	INT8U tIndex = 0;
+	//DbgPrintToFile1(1,"taskID = %d port:%d mpSernum = %d　infoReplenish.tasknum = %d",taskID,port,mpSernum,infoReplenish.tasknum);
 	for(tIndex = 0;tIndex < infoReplenish.tasknum;tIndex++)
 	{
+		//DbgPrintToFile1(1,"infoReplenish.unitReplenish[tIndex].taskID = %d　",infoReplenish.unitReplenish[tIndex].taskID);
 		if(taskID == infoReplenish.unitReplenish[tIndex].taskID)
 		{
+			//DbgPrintToFile1(1,"infoReplenish.unitReplenish[%d].list6001[%d].meterSum = %d　",tIndex,port,infoReplenish.unitReplenish[tIndex].list6001[port].meterSum);
 			INT16U mpIndex = 0;
 			for(mpIndex = 0;mpIndex < infoReplenish.unitReplenish[tIndex].list6001[port].meterSum;mpIndex++)
 			{
+				//DbgPrintToFile1(1,"list6001[%d] = %d",mpIndex,infoReplenish.unitReplenish[tIndex].list6001[port].list6001[mpIndex]);
 				if(mpSernum == infoReplenish.unitReplenish[tIndex].list6001[port].list6001[mpIndex])
 				{
 					if(GetOrSet == 0)
@@ -4940,7 +4944,7 @@ INT8S deal6015or6017(CLASS_6013 st6013,CLASS_6015 st6015, INT8U port485,CLASS_60
 							if((st6015.csds.csd[0].csd.road.oad.OI == 0x5004)
 								&&(GetOrSetFreezeDataSuccess(0,st6013.taskID,port,info6000[port].list6001[meterIndex])==1))
 							{
-								DbgPrintToFile1(port485,"任务ID:%d deal6015 测量点 = %d　已经抄读成功,不用再抄了",st6013.taskID,info6000[port].list6001[meterIndex]);
+								DbgPrintToFile1(port485,"1-任务ID:%d deal6015 测量点 = %d　已经抄读成功,不用再抄了",st6013.taskID,info6000[port].list6001[meterIndex]);
 								continue;
 							}
 						}
@@ -4966,7 +4970,7 @@ INT8S deal6015or6017(CLASS_6013 st6013,CLASS_6015 st6015, INT8U port485,CLASS_60
 								if(st6015.csds.csd[0].csd.road.oad.OI == 0x5004)
 								{
 									GetOrSetFreezeDataSuccess(1,st6013.taskID,port,info6000[port].list6001[meterIndex]);
-									DbgPrintToFile1(port485,"任务ID:%d deal6015 测量点 = %d　已经抄读成功,不用再抄了",st6013.taskID,info6000[port].list6001[meterIndex]);
+									DbgPrintToFile1(port485,"2-任务ID:%d deal6015 测量点 = %d　已经抄读成功,不用再抄了",st6013.taskID,info6000[port].list6001[meterIndex]);
 								}
 							}
 						}
@@ -5211,7 +5215,7 @@ void read485_thread(void* i485port) {
 				{
 					//保存需要补抄的数据到文件
 					filewrite(REPLENISHFILEPATH,&infoReplenish,sizeof(Replenish_TaskInfo));
-					//printinfoReplenish(0);
+					printinfoReplenish(0);
 				}
 			}
 

@@ -344,7 +344,7 @@ INT8S init6000InfoFrom6000FIle() {
 			memset(infoReplenish.unitReplenish[tIndex].list6001, 0,
 					2 * sizeof(INFO_6001_LIST));
 			memset(infoReplenish.unitReplenish[tIndex].isSuccess, 0,
-					2 * MAX_REPLENISH_TASK_NUM);
+					2 * MAX_METER_NUM_1_PORT);
 		}
 	}
 
@@ -443,7 +443,7 @@ INT8U init6013ListFrom6012File() {
 		for (tIndex = 0; tIndex < infoReplenish.tasknum; tIndex++) {
 			infoReplenish.unitReplenish[tIndex].taskID = 0;
 			memset(infoReplenish.unitReplenish[tIndex].isSuccess, 0,
-					2 * MAX_REPLENISH_TASK_NUM);
+					2 * MAX_METER_NUM_1_PORT);
 		}
 		infoReplenish.tasknum = 0;
 	}
@@ -727,16 +727,14 @@ void timeProcess() {
 
 			if (getZone("GW") != 0) {
 				INT8U taskIndex = 0;
-				for (taskIndex = 0; taskIndex < infoReplenish.tasknum;
-						taskIndex++) {
-					memset(infoReplenish.unitReplenish[taskIndex].isSuccess, 0,
-							2 * MAX_METER_NUM_1_PORT);
+				for (taskIndex = 0; taskIndex < infoReplenish.tasknum;taskIndex++) {
+					memset(infoReplenish.unitReplenish[taskIndex].isSuccess, 0,2 * MAX_METER_NUM_1_PORT);
 				}
 				filewrite(REPLENISHFILEPATH, &infoReplenish,
 						sizeof(Replenish_TaskInfo));
 			}
 
-			//printinfoReplenish(2);
+			printinfoReplenish(2);
 
 			CLASS_6035 file6035;
 			INT16U i;
@@ -1565,7 +1563,7 @@ void dispatch_thread() {
 			para_change485[0] = 1;
 			para_change485[1] = 1;
 			init6000InfoFrom6000FIle();
-			//printinfoReplenish(4);
+			printinfoReplenish(4);
 			if (getZone("GW") != 0) {
 				filewrite(REPLENISHFILEPATH, &infoReplenish,
 						sizeof(Replenish_TaskInfo));
@@ -1582,7 +1580,7 @@ void dispatch_thread() {
 			para_change485[1] = 1;
 			system("rm -rf /nand/para/6035");
 			init6013ListFrom6012File();
-			//printinfoReplenish(3);
+			printinfoReplenish(3);
 			if (getZone("GW") != 0) {
 				filewrite(REPLENISHFILEPATH, &infoReplenish,
 						sizeof(Replenish_TaskInfo));
@@ -1663,21 +1661,15 @@ void printinfoReplenish(INT8U flag) {
 		DbgPrintToFile1(3, "485 1 测量点%d个 :",
 				infoReplenish.unitReplenish[prtIndex].list6001[0].meterSum);
 		INT16U mpIndex = 0;
-		for (mpIndex = 0;
-				mpIndex
-						< infoReplenish.unitReplenish[prtIndex].list6001[0].meterSum;
-				mpIndex++) {
+		for (mpIndex = 0;mpIndex < infoReplenish.unitReplenish[prtIndex].list6001[0].meterSum;mpIndex++)
+		{
 			DbgPrintToFile1(3, "点号%d-%d",
 					infoReplenish.unitReplenish[prtIndex].list6001[0].list6001[mpIndex],
 					infoReplenish.unitReplenish[prtIndex].isSuccess[0][mpIndex]);
 		}
-		DbgPrintToFile1(3, "\n485 2 测量点%d个 :",
-				infoReplenish.unitReplenish[prtIndex].list6001[1].meterSum);
-
-		for (mpIndex = 0;
-				mpIndex
-						< infoReplenish.unitReplenish[prtIndex].list6001[1].meterSum;
-				mpIndex++) {
+		DbgPrintToFile1(3, "485 2 测量点%d个 :",infoReplenish.unitReplenish[prtIndex].list6001[1].meterSum);
+		for (mpIndex = 0;mpIndex< infoReplenish.unitReplenish[prtIndex].list6001[1].meterSum;mpIndex++)
+		{
 			DbgPrintToFile1(3, "点号%d-%d",
 					infoReplenish.unitReplenish[prtIndex].list6001[1].list6001[mpIndex],
 					infoReplenish.unitReplenish[prtIndex].isSuccess[1][mpIndex]);
@@ -1798,17 +1790,16 @@ INT8U checkReplenishDatInFile(Replenish_TaskInfo* replenishinfo)
 	TS tsNow;
 	TSGet(&tsNow);
 	INT8U ret = 0,tIndex = 0;
-	for(tIndex = 0;tIndex < infoReplenish.tasknum;tIndex++)
+	for(tIndex = 0;tIndex < replenishinfo->tasknum;tIndex++)
 	{
-		INT16U tsaNum = getCBsuctsanum(infoReplenish.unitReplenish[tIndex].taskID,tsNow);
-		DbgPrintToFile1(3, "任务ID = %d tsaNum = %d",infoReplenish.unitReplenish[tIndex].taskID,tsaNum);
+		INT16U tsaNum = getCBsuctsanum(replenishinfo->unitReplenish[tIndex].taskID,tsNow);
+		DbgPrintToFile1(3, "任务ID = %d tsaNum = %d",replenishinfo->unitReplenish[tIndex].taskID,tsaNum);
 		if(tsaNum == 0)
 		{
-			memset(infoReplenish.unitReplenish[tIndex].isSuccess, 0,2 * MAX_METER_NUM_1_PORT);
+			memset(replenishinfo->unitReplenish[tIndex].isSuccess, 0,2 * MAX_METER_NUM_1_PORT);
 		}
 
 	}
-	filewrite(REPLENISHFILEPATH, &infoReplenish,sizeof(Replenish_TaskInfo));
 	return ret;
 }
 void dispatchTask_proccess() {
@@ -1818,9 +1809,17 @@ void dispatchTask_proccess() {
 	init6035TotalNum();
 	if (getZone("GW") != 0)
 	{
-		fileread(REPLENISHFILEPATH, &infoReplenish, sizeof(Replenish_TaskInfo));
-		checkReplenishDatInFile(&infoReplenish);
-		//printinfoReplenish(1);
+		Replenish_TaskInfo infoReplenishtmp;
+		fileread(REPLENISHFILEPATH, &infoReplenishtmp, sizeof(Replenish_TaskInfo));
+		if((infoReplenishtmp.tasknum > 0)
+			&&((infoReplenishtmp.unitReplenish[0].list6001[0].meterSum >0)
+				||(infoReplenishtmp.unitReplenish[0].list6001[1].meterSum >0)))
+		{
+			checkReplenishDatInFile(&infoReplenishtmp);
+			memcpy(&infoReplenish,&infoReplenishtmp,sizeof(Replenish_TaskInfo));
+		}
+		filewrite(REPLENISHFILEPATH, &infoReplenish,sizeof(Replenish_TaskInfo));
+		printinfoReplenish(1);
 	}
 	init4204Info();
 #ifdef TESTDEF1
