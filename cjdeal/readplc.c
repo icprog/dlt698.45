@@ -699,10 +699,21 @@ int task_leve(INT8U leve,TASK_UNIT *taskunit)
 			taskunit[t].taskId = list6013[i].basicInfo.taskID;
 			taskunit[t].leve = list6013[i].basicInfo.runprio;
 			taskunit[t].beginTime = calcnexttime(list6013[i].basicInfo.interval,list6013[i].basicInfo.startime,list6013[i].basicInfo.delay);//list6013[i].ts_next;
+#if 0
+			DbgPrintToFile1(31," list6013[i].basicInfo.taskID = %d units=%d", list6013[i].basicInfo.taskID,list6013[i].basicInfo.interval.units);
 			if(list6013[i].basicInfo.interval.units == day_units)
 			{
-				taskunit[t].beginTime -= 86400;
+				//如果是日冻结任务并且任务文件夹不存在，就现在抄日冻结
+				char dirname[FILENAMELEN]={};
+				sprintf(dirname,"%s/%03d",TASKDATA,taskunit[t].taskId);
+				if(access(dirname,F_OK)!=0)
+				{
+					DbgPrintToFile1(31,"%s不存在,任务开始时间减一天",dirname);
+					taskunit[t].beginTime -= 86400;
+				}
+
 			}
+#endif
 			taskunit[t].endTime = tmtotime_t( DateBCD2Ts(list6013[i].basicInfo.endtime ));
 			ts =   timet_bcd(taskunit[t].beginTime);
 			taskunit[t].begin = ts;
@@ -1863,7 +1874,30 @@ int do_5004_type( int taski, int itemi ,INT8U *buf, struct Tsa_Node *desnode, DA
 			DbgPrintToFile1(31,"当前抄读 【OAD1 %04x-%02x %02x    OAD2 %04x-%02x %02x】%02x%02x%02x%02x ",
 					tmpitem.oad1.OI,tmpitem.oad1.attflg,tmpitem.oad1.attrindex,tmpitem.oad2.OI,tmpitem.oad2.attflg,tmpitem.oad2.attrindex,
 						Data07.DI[3],Data07.DI[2],Data07.DI[1],Data07.DI[0]);
+#ifdef CHECKSSTAMP
+			if(taskinfo.freezeStamp == 0)
+			{
+				DbgPrintToFile1(31,"抄读冻结时标");
+				Data07.DI[0] = 0x01;
+				Data07.DI[1] = 0x00;
+				Data07.DI[2] = 0x06;
+				Data07.DI[3] = 0x05;
+			}
+			if(taskinfo.freezeStamp == 1)
+			{
+				DbgPrintToFile1(31,"冻结时标不对此方案不抄了");
+				for(int i=0;i<taskinfo.task_list[taski].fangan.item_n;i++) {
+							taskinfo.task_list[taski].fangan.items[i].sucessflg = 1;}
+				return 0;
+			}
+
+#endif
 			sendlen = composeProtocol07(&Data07, buf);
+
+#ifdef CHECKSSTAMP
+			if(taskinfo.freezeStamp == 0)
+				return sendlen;
+#endif
 			if (sendlen>0)
 				memcpy(item07,Data07.DI,4);// 保存07规约数据项
 			break;
@@ -2192,6 +2226,7 @@ void chkTsaTask(TASK_INFO *meterinfo)
 						 meterinfo->tsa.addr[4],meterinfo->tsa.addr[5],
 						 meterinfo->tsa.addr[6],meterinfo->tsa.addr[7],
 						 meterinfo->task_list[i].taskId);
+				 //meterinfo->freezeStamp = 0;
 			 }
 
 //			 if(flgZeroCnt == 0 && flg5004Task==0) {//flg5004Task==0, 说明当前任务不是日冻结任务   并且成功标志都不是0
@@ -2225,6 +2260,7 @@ int ProcessMeter(INT8U *buf,struct Tsa_Node *desnode)
 			memcpy(&taskinfo,&taskinfo_bak,sizeof(taskinfo));
 			taskinfo.tsa = desnode->tsa;
 			taskinfo.tsa_index = desnode->tsa_index;
+			taskinfo.freezeStamp = 0;
 			DbgPrintToFile1(31,"第一次请求，用备份结构体初始化该表抄读状态");
 		}
 	}
@@ -2269,6 +2305,7 @@ void* ProcessMeter_byJzq(INT8U *buf,INT8U *addrtmp,int *len)//struct Tsa_Node *n
 			memcpy(&taskinfo,&taskinfo_bak,sizeof(taskinfo));
 			taskinfo.tsa =  tsa_head->tsa;
 			taskinfo.tsa_index = tsa_head->tsa_index;
+			taskinfo.freezeStamp = 0;
 			DbgPrintToFile1(31,"第一次请求，用备份结构体初始化该表抄读状态");
 		}
 	}
@@ -2526,10 +2563,35 @@ void doSave(INT8U protocol,FORMAT97 frame97,FORMAT07 frame07)
 	DbgPrintToFile1(31,"上数=%02x%02x%02x%02x%02x%02x%02x%02x [%d]规约%d ",
 			tsatmp.addr[0],tsatmp.addr[1],tsatmp.addr[2],tsatmp.addr[3],
 			tsatmp.addr[4],tsatmp.addr[5],tsatmp.addr[6],tsatmp.addr[7],nodetmp->tsa_index,protocol);
+
+
 	if (memcmp(taskinfo.tsa.addr,tsatmp.addr,8) == 0 )//上数TSA就在内存中
 	{
+#ifdef CHECKSSTAMP
+		if((protocol==DLT_645_07)&&(frame07.DI[3]==0x05)&&(frame07.DI[2]==0x06)&&(frame07.DI[1]==0x00)&&(frame07.DI[0]==0x01))
+		{
+			INT8U stampbuf[50] = {0};
+			data07Tobuff698(frame07,stampbuf);
+			DbgPrintToFile1(31,"冻结时标frame07.Data = %02x %02x %02x %02x %02x %02x dataContent = %02x %02x %02x %02x %02x %02x",
+					frame07.Data[0],frame07.Data[1],frame07.Data[2],frame07.Data[3],frame07.Data[4],frame07.Data[5],
+					stampbuf[0],stampbuf[1],stampbuf[2],stampbuf[3],stampbuf[4],stampbuf[5]);
+			if(isTimerSame(0,stampbuf))
+			{
+				taskinfo.freezeStamp = 2;
+				DbgPrintToFile1(31,"冻结时标正确");
+			}
+			else
+			{
+				taskinfo.freezeStamp = 0;
+				DbgPrintToFile1(31,"冻结时标错误");
+			}
+			return;
+		}
+#endif
+
 		timebcd = ChgSucessFlg(&taskinfo,item,nodetmp->usrtype,protocol,2);
 		DbgPrintToFile1(31,"TSA在内存中 %d-%d-%d %d:%d tsknum=%d",timebcd.year.data,timebcd.month.data,timebcd.day.data,timebcd.hour.data,timebcd.min.data,taskinfo.task_n);
+
 		if (timebcd.year.data!=0 && timebcd.month.data!=0 && timebcd.day.data!=0)
 		{
 			TimeBCDToTs(timebcd,&ts);//ts 为数据存储时间
@@ -2539,6 +2601,30 @@ void doSave(INT8U protocol,FORMAT97 frame97,FORMAT07 frame07)
 	{
 		if (readParaClass(0x8888, &taskinfo_tmp, nodetmp->tsa_index) == 1 )
 		{
+#ifdef CHECKSSTAMP
+
+		if((protocol==DLT_645_07)&&(frame07.DI[3]==0x05)&&(frame07.DI[2]==0x06)&&(frame07.DI[1]==0x00)&&(frame07.DI[0]==0x01))
+		{
+			INT8U stampbuf[50] = {0};
+			data07Tobuff698(frame07,stampbuf);
+			DbgPrintToFile1(31,"冻结时标frame07.Data = %02x %02x %02x %02x %02x %02x dataContent = %02x %02x %02x %02x %02x %02x",
+					frame07.Data[0],frame07.Data[1],frame07.Data[2],frame07.Data[3],frame07.Data[4],frame07.Data[5],
+					stampbuf[0],stampbuf[1],stampbuf[2],stampbuf[3],stampbuf[4],stampbuf[5]);
+			if(isTimerSame(0,stampbuf))
+			{
+				taskinfo_tmp.freezeStamp = 2;
+				DbgPrintToFile1(31,"冻结时标正确");
+			}
+			else
+			{
+				taskinfo_tmp.freezeStamp = 0;
+				DbgPrintToFile1(31,"冻结时标错误");
+			}
+			saveParaClass(0x8888, &taskinfo_tmp,taskinfo_tmp.tsa_index);
+			return;
+		}
+#endif
+
 			timebcd = ChgSucessFlg(&taskinfo_tmp,item,nodetmp->usrtype,protocol,2);
 			DbgPrintToFile1(31,"TSA不在内存中 %d-%d-%d %d:%d",timebcd.year.data,timebcd.month.data,timebcd.day.data,timebcd.hour.data,timebcd.min.data);
 			if (timebcd.year.data!=0 && timebcd.month.data!=0 && timebcd.day.data!=0)

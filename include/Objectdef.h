@@ -1304,6 +1304,7 @@ typedef struct
 	int tsa_index;						//表序号
 	int now_taski;//当前抄读的任务
 	int now_itemi;//当前抄读的数据项
+	INT8U freezeStamp;//冻结时标抄读状态　0-未抄读　1-已抄读但冻结时标不对　2-已抄读冻结时标正确
 }TASK_INFO;
 
 #endif /* OBJECTACTION_H_ */
