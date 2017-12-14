@@ -691,6 +691,8 @@ int task_leve(INT8U leve,TASK_UNIT *taskunit)
 	DateTimeBCD ts;
 	int i=0,t=0;
 	INT8U type=0 ,serNo=0;
+	TS tsNow;
+	TSGet(&tsNow);
 
 	for(i=0;i<TASK6012_MAX;i++)
 	{
@@ -699,19 +701,11 @@ int task_leve(INT8U leve,TASK_UNIT *taskunit)
 			taskunit[t].taskId = list6013[i].basicInfo.taskID;
 			taskunit[t].leve = list6013[i].basicInfo.runprio;
 			taskunit[t].beginTime = calcnexttime(list6013[i].basicInfo.interval,list6013[i].basicInfo.startime,list6013[i].basicInfo.delay);//list6013[i].ts_next;
-#if 0
-			DbgPrintToFile1(31," list6013[i].basicInfo.taskID = %d units=%d", list6013[i].basicInfo.taskID,list6013[i].basicInfo.interval.units);
-			if(list6013[i].basicInfo.interval.units == day_units)
+#if 1//这部分代码是为了新安装的集中器能抄日冻结
+			if((list6013[i].basicInfo.interval.units == day_units)&&(tsNow.Hour<22))
 			{
-				//如果是日冻结任务并且任务文件夹不存在，就现在抄日冻结
-				char dirname[FILENAMELEN]={};
-				sprintf(dirname,"%s/%03d",TASKDATA,taskunit[t].taskId);
-				if(access(dirname,F_OK)!=0)
-				{
-					DbgPrintToFile1(31,"%s不存在,任务开始时间减一天",dirname);
+					DbgPrintToFile1(31,"任务=%d 22点以前重启就强制抄读日冻结",taskunit[t].taskId);
 					taskunit[t].beginTime -= 86400;
-				}
-
 			}
 #endif
 			taskunit[t].endTime = tmtotime_t( DateBCD2Ts(list6013[i].basicInfo.endtime ));
