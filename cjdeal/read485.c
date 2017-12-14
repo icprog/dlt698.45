@@ -5240,7 +5240,7 @@ void read485_thread(void* i485port) {
 				{
 					//保存需要补抄的数据到文件
 					filewrite(REPLENISHFILEPATH,&infoReplenish,sizeof(Replenish_TaskInfo));
-					//printinfoReplenish(0);
+//					printinfoReplenish(0);
 				}
 			}
 

@@ -1791,7 +1791,7 @@ void dispatchTask_proccess() {
 	{
 		fileread(REPLENISHFILEPATH, &infoReplenish, sizeof(Replenish_TaskInfo));
 		checkReplenishDatInFile(&infoReplenish);
-		//printinfoReplenish(1);
+		printinfoReplenish(1);
 	}
 	init4204Info();
 #ifdef TESTDEF1
