@@ -4963,7 +4963,6 @@ INT8S deal6015or6017(CLASS_6013 st6013,CLASS_6015 st6015, INT8U port485,CLASS_60
 						}
 						if(dataLen > 0)
 						{
-							st6035->successMSNum++;
 							if(getZone("GW")!=0)
 							{
 								//判断冻结数据是否已经抄读成功了
@@ -4974,14 +4973,6 @@ INT8S deal6015or6017(CLASS_6013 st6013,CLASS_6015 st6015, INT8U port485,CLASS_60
 								}
 							}
 						}
-#if 0
-					TS tsNow;
-					TSGet(&tsNow);
-					INT16U tsaNum = getCBsuctsanum(st6035->taskID,tsNow);
-					DbgPrintToFile1(port,"tsaNum = %d",tsaNum);
-					st6035->successMSNum = st6035->successMSNum > tsaNum?st6035->successMSNum:tsaNum;
-					saveClass6035(st6035);
-#endif
 				}
 				else
 				{
@@ -5203,7 +5194,7 @@ void read485_thread(void* i485port) {
 			TSGet(&tsNow);
 			INT16U tsaNum = getCBsuctsanum(result6035.taskID,tsNow);
 			DataTimeGet(&result6035.endtime);
-			result6035.successMSNum = result6035.successMSNum > tsaNum?result6035.successMSNum:tsaNum;
+			result6035.successMSNum = tsaNum;
 			saveClass6035(&result6035);
 #endif
 			if(getZone("GW")!=0)

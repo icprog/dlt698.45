@@ -3117,7 +3117,7 @@ int doTask(RUNTIME_PLC *runtime_p)
 					TS tsNow;
 					TSGet(&tsNow);
 					INT16U tsaNum = getCBsuctsanum(result6035.taskID,tsNow);
-					result6035.successMSNum = result6035.successMSNum > tsaNum?result6035.successMSNum:tsaNum;
+					result6035.successMSNum = tsaNum;
 					saveClass6035(&result6035);
 			    }
 			}
