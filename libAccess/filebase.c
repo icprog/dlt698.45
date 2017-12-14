@@ -622,7 +622,7 @@ INT8U file_read(char *FileName, void *source, int size,int offset,INT16U *retcrc
 				ret = 0;
 			}
 		}else {
-			syslog(LOG_ERR,"__%s__,read num=%d,size=%d",__func__,num,size);
+			syslog(LOG_ERR,"__%s__,[%s]read num=%d,size=%d",__func__,FileName,num,size);
 		}
 		fclose(fp);
 	} else
