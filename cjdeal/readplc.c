@@ -2277,6 +2277,15 @@ int ProcessMeter(INT8U *buf,struct Tsa_Node *desnode)
 		{
 			sendlen = do_other_type( taski, itemi , buf, desnode, tmpitem);//其它数据
 		}
+		if(getZone("GW")==1)
+		{
+			//6035发送报文数量+1
+			CLASS_6035 result6035;	//采集任务监控单元
+			get6035ByTaskID(taskinfo.task_list[taski].taskId,&result6035);
+			result6035.taskState = IN_OPR;
+			result6035.sendMsgNum++;
+			saveClass6035(&result6035);
+		}
 	}else
 	{
 		sendlen = 0;
@@ -2345,6 +2354,15 @@ void* ProcessMeter_byJzq(INT8U *buf,INT8U *addrtmp,int *len)//struct Tsa_Node *n
 					tmpitem.oad2.OI,tmpitem.oad2.attflg,tmpitem.oad2.attrindex,sendlen,nodetmp);
 			*len = sendlen;
 			DbgPrintToFile1(31,"有数据抄读，刷新任务内存状态");
+			if(getZone("GW")==1)
+			{
+				//6035发送报文数量+1
+				CLASS_6035 result6035;	//采集任务监控单元
+				get6035ByTaskID(taskinfo.task_list[taski].taskId,&result6035);
+				result6035.taskState = IN_OPR;
+				result6035.sendMsgNum++;
+				saveClass6035(&result6035);
+			}
 //			chkTsaTask(&taskinfo);
 			return nodetmp;
 		}else
@@ -2988,6 +3006,18 @@ int SaveTaskData(FORMAT3762 format_3762_Up,INT8U taskid,INT8U fananNo)
 			}
 		}
 	}
+    if((getZone("GW")==1)&&((format_3762_Up.afn06_f2_up.MsgLength > 0)||(format_3762_Up.afn13_f1_up.MsgLength > 0)))
+	{
+		//6035发送报文数量+1
+		CLASS_6035 result6035;	//采集任务监控单元
+		get6035ByTaskID(taskid,&result6035);
+		result6035.rcvMsgNum++;
+		TS tsNow;
+		TSGet(&tsNow);
+		INT16U tsaNum = getCBsuctsanum(result6035.taskID,tsNow);
+		result6035.successMSNum = tsaNum;
+		saveClass6035(&result6035);
+	}
 	return 1;
 }
 
@@ -3080,15 +3110,6 @@ int doTask(RUNTIME_PLC *runtime_p)
 					sendlen = ProcessMeter(buf645,nodetmp);
 					runtime_p->taskno = taskinfo.task_list[taskinfo.now_taski].taskId;
 					runtime_p->fangAn.No = taskinfo.task_list[taskinfo.now_taski].fangan.No;
-				    if(getZone("GW")==1)
-				    {
-						//6035发送报文数量+1
-						CLASS_6035 result6035;	//采集任务监控单元
-						get6035ByTaskID(taskinfo.task_list[taskinfo.now_taski].taskId,&result6035);
-						result6035.taskState = IN_OPR;
-						result6035.sendMsgNum++;
-						saveClass6035(&result6035);
-				    }
 				}else
 				{
 					DbgPrintToFile1(31,"请求抄读电表不在集中器内");
@@ -3108,18 +3129,6 @@ int doTask(RUNTIME_PLC *runtime_p)
 				SaveTaskData(runtime_p->format_Up, runtime_p->taskno, runtime_p->fangAn.No);
 				clearvar(runtime_p);
 				runtime_p->send_start_time = nowtime;
-			    if(getZone("GW")==1)
-			    {
-					//6035发送报文数量+1
-					CLASS_6035 result6035;	//采集任务监控单元
-					get6035ByTaskID(taskinfo.task_list[taskinfo.now_taski].taskId,&result6035);
-					result6035.rcvMsgNum++;
-					TS tsNow;
-					TSGet(&tsNow);
-					INT16U tsaNum = getCBsuctsanum(result6035.taskID,tsNow);
-					result6035.successMSNum = tsaNum;
-					saveClass6035(&result6035);
-			    }
 			}
 			else if( abs(nowtime - runtime_p->send_start_time) > 100)
 			{
