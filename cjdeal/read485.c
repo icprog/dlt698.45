@@ -295,10 +295,6 @@ INT8S use6013find6015or6017(INT8U cjType,INT16U fanganID,TI interval6013,CLASS_6
 				{
 					minInterVal = ((st6015->data.data[1]<<8)+st6015->data.data[2])*60;
 				}
-				if((minSpan&minInterVal)==0)
-				{
-					asyslog(LOG_NOTICE,"ERROR 目前不支持的类型");
-				}
 
 				dataNum = minSpan/minInterVal;
 				fprintf(stderr,"\n\n 曲线任务执行频率分=%d　 冻结时标间隔=%d分　　数据点数=%d \n\n",minSpan,minInterVal,dataNum);
@@ -1013,9 +1009,9 @@ INT8U getASNInfo(FORMAT07* DI07,Base_DataType* dataType)
 		INT8U tmpIndex = 0;
 		for(tmpIndex = 0;tmpIndex < unitNum;tmpIndex++)
 		{
-			xuliangdata[tmpIndex*15] = 0x02;
+			xuliangdata[tmpIndex*15] = dtstructure;
 			xuliangdata[tmpIndex*15+1] = 0x02;
-			xuliangdata[tmpIndex*15+2] = 0x06;
+			xuliangdata[tmpIndex*15+2] = dtdoublelongunsigned;
 			//最大需量
 			if((DI07->Data[tmpIndex*8]==0xff)&&(DI07->Data[tmpIndex*8+1]==0xff)&&(DI07->Data[tmpIndex*8+2]==0xff))
 			{
@@ -1181,7 +1177,59 @@ INT8U getASNInfo97(FORMAT97* DI97,Base_DataType* dataType)
 		DI97->Data[2] = second;
 		return unitNum;
 	}
+	//需量类时间
+	if((DI97->DI[1]==0xB0)||(DI97->DI[1]==0xB1)||(DI97->DI[1]==0xB4)
+		||(DI97->DI[1]==0xB5)||(DI97->DI[1]==0xB8)||(DI97->DI[1]==0xB9))
+	{
+		*dataType = dtdatetimes;
+		unitNum = 1;
+		if((DI97->DI[0]&0x0f)==0x0f)
+		{
+			unitNum = 5;
+		}
+		INT8U unitIndex = 0;
+		TS tsNow;
+		TSGet(&tsNow);
+		for(unitIndex = 0;unitIndex < unitNum; unitIndex++)
+		{
+			DI97->Data[unitIndex*7]= (tsNow.Year>>8)&0x00ff;
+			DI97->Data[unitIndex*7+1] = tsNow.Year&0x00ff;
+			DI97->Data[unitIndex*7+2] = (DI97->Data[unitIndex*4+3] >> 4)*10 + (DI97->Data[unitIndex*4+3]&0x0f);
+			DI97->Data[unitIndex*7+3] = (DI97->Data[unitIndex*4+2] >> 4)*10 + (DI97->Data[unitIndex*4+2]&0x0f);
+			DI97->Data[unitIndex*7+4] = (DI97->Data[unitIndex*4+1] >> 4)*10 + (DI97->Data[unitIndex*4+1]&0x0f);
+			DI97->Data[unitIndex*7+5] = (DI97->Data[unitIndex*4] >> 4)*10 + (DI97->Data[unitIndex*4]&0x0f);
+			DI97->Data[unitIndex*7+6] = 0;
+			DI97->Length += 3;
+		}
+		return unitNum;
+	}
+	//需量类
+	if((DI97->DI[1]==0xA0)||(DI97->DI[1]==0xA1)||(DI97->DI[1]==0xA4)
+		||(DI97->DI[1]==0xA5)||(DI97->DI[1]==0xA8)||(DI97->DI[1]==0xA9))
+	{
+		*dataType = dtdoublelongunsigned;
+		unitNum = 1;
+		INT8U xuliangbuff[20] = {0};
 
+		if((DI97->DI[0]&0x0f)==0x0f)
+		{
+			unitNum = 5;
+		}
+		INT8U unitIndex = 0;
+		for(unitIndex = 0;unitIndex < unitNum; unitIndex++)
+		{
+			if((DI97->Data[unitIndex*3]==0xff)&&(DI97->Data[unitIndex*3+1]==0xff)&&(DI97->Data[unitIndex*3+2]==0xff))
+			{
+				memset(&xuliangbuff[unitIndex*4],0,4);
+			}
+			else
+			{
+				memcpy(&xuliangbuff[(unitIndex*4)+1],&DI97->Data[unitIndex*3],3);
+			}
+			DI97->Length += 1;
+		}
+		memcpy(&DI97->Data[0],xuliangbuff,20);
+	}
 
 	for (index = 0; index < map07DI_698OAD_NUM; index++)
 	{
@@ -1315,36 +1363,6 @@ INT8U getASNInfo97(FORMAT97* DI97,Base_DataType* dataType)
 
 	return unitNum;
 }
-INT8U isTimerSame(INT8S index, INT8U* timeData)
-{
-	INT8S ret = 1;
-	if(timeData[0]!= dtdatetimes)
-	{
-		return 0;
-	}
-	TS freezeTime;
-	TSGet(&freezeTime);
-	if(index!=0)
-	{
-		tminc(&freezeTime, day_units, index);
-	}
-	INT16U year = (timeData[1]<<8) + timeData[2];
-	asyslog(LOG_NOTICE,"电表时标：%d-%d-%d 集中器时标:%d-%d-%d",
-			year,timeData[3],timeData[4],freezeTime.Year,freezeTime.Month,freezeTime.Day);
-	if(freezeTime.Year!=year)
-	{
-		return 0;
-	}
-	if(timeData[3]!=freezeTime.Month)
-	{
-		return 0;
-	}
-	if(timeData[4]!=freezeTime.Day)
-	{
-		return 0;
-	}
-	return ret;
-}
 
 //把抄回来的07数据转换成698格式存储
 INT16U data07Tobuff698(FORMAT07 Data07,INT8U* dataContent)
@@ -1411,9 +1429,19 @@ INT16U data97Tobuff698(FORMAT97 Data97,INT8U* dataContent)
 	INT16U len = 0;
 	Base_DataType dataType = dtnull;
 	INT8U unitSize = 0;
-	if((Data97.DI[1]==0x90)||(Data97.DI[1]==0x91))
+	//电量返回
+	//68 75 00 00 00 00 00 68 81 1f 52 c3 63 c6 3a 34 5b 68 53 33 b7 c8 63 33 b4 8b 5b 33 6a 36 5b 33 33 33 33 33 33 33 33 33 dd 5f 16
+	if((Data97.DI[1]==0x90)||(Data97.DI[1]==0x91)
+		||(Data97.DI[1]==0xB0)||(Data97.DI[1]==0xB1)||(Data97.DI[1]==0xB4)
+		||(Data97.DI[1]==0xB5)||(Data97.DI[1]==0xB8)||(Data97.DI[1]==0xB9))
 	{
 		Data97.Length = (Data97.Length > 22)?22:Data97.Length;
+	}
+
+	if((Data97.DI[1]==0xA0)||(Data97.DI[1]==0xA1)||(Data97.DI[1]==0xA4)
+		||(Data97.DI[1]==0xA5)||(Data97.DI[1]==0xA8)||(Data97.DI[1]==0xA9))
+	{
+		Data97.Length = (Data97.Length > 17)?17:Data97.Length;
 	}
 	INT8U unitNum = getASNInfo97(&Data97,&dataType);
 	if(unitNum == 0)
@@ -1552,9 +1580,7 @@ INT16S request698_97DataSingle(FORMAT97* format97, INT8U* SendBuf,INT16S SendLen
 		{
 
 			if (recsta == -1) {
-				fprintf(stderr, "电表异常应答，无数据项  %02x%02x%02x%02x！！！\n",
-						format97->DI[3], format97->DI[2], format97->DI[1],
-						format97->DI[0]);
+				fprintf(stderr, "电表异常应答，无数据项  %02x%02x！！！\n",format97->DI[1],format97->DI[0]);
 			} else if (recsta == -2) {
 				fprintf(stderr, "电表异常应答，未知错误！ Err=%02x\n", format97->Err);
 			} else if (recsta == -3) {
@@ -3904,8 +3930,44 @@ INT16S request9707_singleOAD(INT8U protocol,OI_698 roadOI,OAD soureOAD,CLASS_600
 		{
 			datalen = request698_97DataList(Flag645.DI._97, to6001,dataContent,st6035,port485);
 
-			fprintf(stderr,"\n deal6015_97 datalen=%d",datalen);
+			fprintf(stderr,"\n deal6015_97 datalen=%d\n",datalen);
+			//特殊处理需量类数据
+			if((datalen > 0)&&((soureOAD.OI == 0x1010)||(soureOAD.OI == 0x1020)))
+			{
+				//01 05 06 XX XX XX XX 06 XX XX XX XX 06 XX XX XX XX 06 XX XX XX XX 06 XX XX XX XX
+				//01 05 1c XX XX XX XX XX XX XX 1c XX XX XX XX XX XX XX 1c XX XX XX XX XX XX XX 1c XX XX XX XX XX XX XX 1c XX XX XX XX XX XX XX
+#if 0
+				INT8U prtIndex = 0;
+				for(prtIndex = 0;prtIndex < 75;prtIndex++)
+				{
+					fprintf(stderr,"%02x ",dataContent[prtIndex]);
+				}
+#endif
+				if(soureOAD.attrindex==0)
+				{
+					INT8U resultbuf[75] = {0};
 
+					INT8U rateIndex = 0;
+					for(rateIndex = 0;rateIndex < dataContent[1];rateIndex++)
+					{
+						resultbuf[rateIndex*15] = dtstructure;
+						resultbuf[rateIndex*15+1] = 2;
+						memcpy(&resultbuf[rateIndex*15+2],&dataContent[2+rateIndex*5],5);
+						memcpy(&resultbuf[rateIndex*15+7],&dataContent[29+rateIndex*8],8);
+					}
+					memcpy(&dataContent[2],resultbuf,75);
+					datalen = 77;
+				}
+				else
+				{
+					INT8U resultbuf[13] = {0};
+					memcpy(resultbuf,dataContent,13);
+					dataContent[0] = dtstructure;
+					dataContent[1] = 2;
+					memcpy(&dataContent[2],resultbuf,13);
+					datalen = 15;
+				}
+			}
 		}
 		else
 		{
@@ -4641,7 +4703,8 @@ INT8U checkMeterType(MY_MS mst,INT8U usrType,TSA usrAddr)
 			fprintf(stderr,"\n5：一组用户类型区间\n");
 			for(collIndex = 0;collIndex < COLLCLASS_MAXNUM;collIndex++)
 			{
-				if(mst.ms.type[collIndex].type != interface)
+				if((mst.ms.type[collIndex].type != interface)
+						&&(mst.ms.type[collIndex].begin[0]|mst.ms.type[collIndex].end[0])!=0)
 				{
 					INT16S typeBegin = -1;
 					INT16S typeEnd = -1;
@@ -4653,7 +4716,7 @@ INT8U checkMeterType(MY_MS mst,INT8U usrType,TSA usrAddr)
 					{
 						typeEnd = mst.ms.type[collIndex].end[1];
 					}
-					fprintf(stderr,"\n metertype = %d typeBegin = %d typeEnd = %d \n",usrType,typeBegin,typeEnd);
+					fprintf(stderr,"\n collIndex = %d metertype = %d typeBegin = %d typeEnd = %d \n",collIndex,usrType,typeBegin,typeEnd);
 					if((usrType > typeBegin)&&(usrType < typeEnd))
 					{
 						return 1;
@@ -4821,13 +4884,17 @@ INT8U GetOrSetFreezeDataSuccess(INT8U GetOrSet,INT8U taskID,INT8U port,INT16U mp
 {
 	INT8U ret = 0;
 	INT8U tIndex = 0;
+	//DbgPrintToFile1(1,"taskID = %d port:%d mpSernum = %d　infoReplenish.tasknum = %d",taskID,port,mpSernum,infoReplenish.tasknum);
 	for(tIndex = 0;tIndex < infoReplenish.tasknum;tIndex++)
 	{
+		//DbgPrintToFile1(1,"infoReplenish.unitReplenish[tIndex].taskID = %d　",infoReplenish.unitReplenish[tIndex].taskID);
 		if(taskID == infoReplenish.unitReplenish[tIndex].taskID)
 		{
+			//DbgPrintToFile1(1,"infoReplenish.unitReplenish[%d].list6001[%d].meterSum = %d　",tIndex,port,infoReplenish.unitReplenish[tIndex].list6001[port].meterSum);
 			INT16U mpIndex = 0;
 			for(mpIndex = 0;mpIndex < infoReplenish.unitReplenish[tIndex].list6001[port].meterSum;mpIndex++)
 			{
+				//DbgPrintToFile1(1,"list6001[%d] = %d",mpIndex,infoReplenish.unitReplenish[tIndex].list6001[port].list6001[mpIndex]);
 				if(mpSernum == infoReplenish.unitReplenish[tIndex].list6001[port].list6001[mpIndex])
 				{
 					if(GetOrSet == 0)
@@ -4877,7 +4944,7 @@ INT8S deal6015or6017(CLASS_6013 st6013,CLASS_6015 st6015, INT8U port485,CLASS_60
 							if((st6015.csds.csd[0].csd.road.oad.OI == 0x5004)
 								&&(GetOrSetFreezeDataSuccess(0,st6013.taskID,port,info6000[port].list6001[meterIndex])==1))
 							{
-								DbgPrintToFile1(port485,"任务ID:%d deal6015 测量点 = %d　已经抄读成功,不用再抄了",st6013.taskID,info6000[port].list6001[meterIndex]);
+								DbgPrintToFile1(port485,"1-任务ID:%d deal6015 测量点 = %d　已经抄读成功,不用再抄了",st6013.taskID,info6000[port].list6001[meterIndex]);
 								continue;
 							}
 						}
@@ -4896,25 +4963,16 @@ INT8S deal6015or6017(CLASS_6013 st6013,CLASS_6015 st6015, INT8U port485,CLASS_60
 						}
 						if(dataLen > 0)
 						{
-							st6035->successMSNum++;
 							if(getZone("GW")!=0)
 							{
 								//判断冻结数据是否已经抄读成功了
 								if(st6015.csds.csd[0].csd.road.oad.OI == 0x5004)
 								{
 									GetOrSetFreezeDataSuccess(1,st6013.taskID,port,info6000[port].list6001[meterIndex]);
-									DbgPrintToFile1(port485,"任务ID:%d deal6015 测量点 = %d　已经抄读成功,不用再抄了",st6013.taskID,info6000[port].list6001[meterIndex]);
+									DbgPrintToFile1(port485,"2-任务ID:%d deal6015 测量点 = %d　已经抄读成功,不用再抄了",st6013.taskID,info6000[port].list6001[meterIndex]);
 								}
 							}
 						}
-#if 0
-					TS tsNow;
-					TSGet(&tsNow);
-					INT16U tsaNum = getCBsuctsanum(st6035->taskID,tsNow);
-					DbgPrintToFile1(port,"tsaNum = %d",tsaNum);
-					st6035->successMSNum = st6035->successMSNum > tsaNum?st6035->successMSNum:tsaNum;
-					saveClass6035(st6035);
-#endif
 				}
 				else
 				{
@@ -5136,7 +5194,7 @@ void read485_thread(void* i485port) {
 			TSGet(&tsNow);
 			INT16U tsaNum = getCBsuctsanum(result6035.taskID,tsNow);
 			DataTimeGet(&result6035.endtime);
-			result6035.successMSNum = result6035.successMSNum > tsaNum?result6035.successMSNum:tsaNum;
+			result6035.successMSNum = tsaNum;
 			saveClass6035(&result6035);
 #endif
 			if(getZone("GW")!=0)
@@ -5148,7 +5206,7 @@ void read485_thread(void* i485port) {
 				{
 					//保存需要补抄的数据到文件
 					filewrite(REPLENISHFILEPATH,&infoReplenish,sizeof(Replenish_TaskInfo));
-					//printinfoReplenish(0);
+					printinfoReplenish(0);
 				}
 			}
 
@@ -5278,6 +5336,13 @@ INT8U initMap07DI_698OAD()
 		map07DI_698OAD[linenum].datatype = dataType;
 		map07DI_698OAD[linenum].flag97.dinum =1;
 		memcpy(map07DI_698OAD[linenum].flag97.DI_1,dataflag97,2);
+		//97表需量和需量时间分两个数据项
+		if((map07DI_698OAD[linenum].flag97.DI_1[0][1]==0xA0)||(map07DI_698OAD[linenum].flag97.DI_1[0][1]==0xA1))
+		{
+			map07DI_698OAD[linenum].flag97.dinum = 2;
+			map07DI_698OAD[linenum].flag97.DI_1[1][1] = map07DI_698OAD[linenum].flag97.DI_1[0][1] + 0x10;
+			map07DI_698OAD[linenum].flag97.DI_1[1][0] = map07DI_698OAD[linenum].flag97.DI_1[0][0];
+		}
 		map07DI_698OAD[linenum].flag07.dinum =1;
 		memcpy(map07DI_698OAD[linenum].flag07.DI_1,dataflag07,DF07_BYTES);
 		linenum++;

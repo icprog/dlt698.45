@@ -109,5 +109,5 @@ INT8S saveClass6035(CLASS_6035* class6035);
 void printinfoReplenish(INT8U);
 INT8S get6035ByTaskID(INT16U taskID, CLASS_6035* class6035);
 INT8U get6001ObjByTSA(TSA addr, CLASS_6001* targetMeter);
-
+INT8U isTimerSame(INT8S index, INT8U* timeData);
 #endif

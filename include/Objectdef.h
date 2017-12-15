@@ -1264,7 +1264,7 @@ typedef struct {
 ////////////////////////////////////////////////////////////////////
 typedef struct
 {
-	int sucessflg;		//0:没抄读	n:抄读n次
+	int sucessflg;		//0:没抄读；1:已抄读，无数据返回；2:抄读成功
 	OAD oad1;			//非关联 oad1.OI=0
 	OAD oad2;			//数据项
 	INT8U item97[4];	//97规约  15753578781
@@ -1304,6 +1304,7 @@ typedef struct
 	int tsa_index;						//表序号
 	int now_taski;//当前抄读的任务
 	int now_itemi;//当前抄读的数据项
+	INT8U freezeStamp;//冻结时标抄读状态　0-未抄读　1-已抄读但冻结时标不对　2-已抄读冻结时标正确
 }TASK_INFO;
 
 #endif /* OBJECTACTION_H_ */
