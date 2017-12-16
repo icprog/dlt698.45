@@ -88,6 +88,7 @@ typedef struct {//例如：oad_m为50040200，oad_r为00100200 关联属性oad�
 	INT8U oad_num;//oad的写为1，road的写为从oad个数
 }OAD_MR;
 typedef struct {
+	INT32U zc_num;   //招测记录个数
 	INT32U zc_seqsec;//招测的间隔，0不比对
 	INT16U oadmr_num;//涉及到的road个数，每一个都写成二维OAD_MR，oad类型的关联属性oad_r写为0000
 	OAD_MR oad[MY_CSD_NUM*ROAD_OADS_NUM];

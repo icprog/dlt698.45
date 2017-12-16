@@ -2660,9 +2660,11 @@ INT32U getTASKruntimes(CLASS_6013 class6013,CLASS_6015 class6015,INT32U *seqsec)
 	}
 	if(seqsecond==0)
 		seqsecond = taskdaysec;
-	if(runtimes > class6015.deepsize && runtimes == 1)
-	{
+	if(runtimes > class6015.deepsize)
 		runtimes = class6015.deepsize;
+	if(class6015.deepsize == 1)
+	{
+		runtimes = 1;
 		seqsecond = 24*60*60;//1天一次
 	}
 	*seqsec = seqsecond;
@@ -2910,6 +2912,7 @@ typedef struct {
 	INT8U taskid;//当前匹配的任务号
 	INT8U taskid_matchnum;//匹配的任务个数
 	INT8U taskid_matchlevel;//匹配的程度，不匹配0 凑合匹配1：50020100和00000010匹配 完全匹配 2
+	INT8U taskid_savetype;
 }TASKID_MATCH;
 INT8U GetTaskidFromCSDs(ROAD_ITEM item_road,CLASS_6001 *tsa)
 {
@@ -2941,6 +2944,9 @@ INT8U GetTaskidFromCSDs(ROAD_ITEM item_road,CLASS_6001 *tsa)
 					fprintf(stderr,"\nitem_road.zc_seqsec=%d,seqsec=%d\n",item_road.zc_seqsec,seqsec);
 					continue;
 				}
+				fprintf(stderr,"\ntask:%d class6015.deepsize=%d item_road.zc_num=%d\n",i+1,class6015.deepsize,item_road.zc_num);
+				if(class6015.deepsize == 1 && item_road.zc_num != 1)//一天存一次，用于湖南实时数据
+					continue;
 				if(cmpTSAtype(tsa,class6015)==0)//比对tsa类型，不符和本采集方案的跳过
 				{
 					fprintf(stderr,"\ntsa不符和\n");
@@ -3027,8 +3033,8 @@ INT8U GetTaskidFromCSDs(ROAD_ITEM item_road,CLASS_6001 *tsa)
 //					if(taskno == 0 || taskno != item_road.oad[mm].taskid)
 //						break;
 					taskmatch.taskid_matchnum ++;
-					asyslog(LOG_INFO,"taskno = %d old = %d match %d %d level %d %d",taskno,taskmatch_last.taskid,taskmatch.taskid_matchnum,taskmatch_last.taskid_matchnum,taskmatch.taskid_matchlevel,taskmatch_last.taskid_matchlevel);
-					fprintf(stderr,"\ntaskno = %d old = %d match %d %d level %d %d\n",taskno,taskmatch_last.taskid,taskmatch.taskid_matchnum,taskmatch_last.taskid_matchnum,taskmatch.taskid_matchlevel,taskmatch_last.taskid_matchlevel);
+//					asyslog(LOG_INFO,"taskno = %d old = %d match %d %d level %d %d",taskno,taskmatch_last.taskid,taskmatch.taskid_matchnum,taskmatch_last.taskid_matchnum,taskmatch.taskid_matchlevel,taskmatch_last.taskid_matchlevel);
+//					fprintf(stderr,"\ntaskno = %d old = %d match %d %d level %d %d\n",taskno,taskmatch_last.taskid,taskmatch.taskid_matchnum,taskmatch_last.taskid_matchnum,taskmatch.taskid_matchlevel,taskmatch_last.taskid_matchlevel);
 					if(taskno != 0 && taskmatch.taskid_matchnum >= taskmatch_last.taskid_matchnum)
 					{
 						if(taskmatch.taskid_matchlevel >= taskmatch_last.taskid_matchlevel)
@@ -3901,8 +3907,9 @@ INT16U dealselect10(OAD oad_h,CSD_ARRAYTYPE csds,INT16U zcseq_num,INT8U tsa_num,
 	memset(&item_road,0x00,sizeof(ROAD_ITEM));
 	memset(frmdata,0,sizeof(frmdata));
 
-	fprintf(stderr,"\n招测方式     select 10\n");
+	fprintf(stderr,"\n招测方式     select 10 招测个数%d\n",zcseq_num);
 	extendcsds(csds,&item_road);
+	item_road.zc_num = zcseq_num;
 	if((taskid = GetTaskidFromCSDs(item_road,tsa_group)) == 0) {//暂时不支持招测的不在一个采集方案
 		asyslog(LOG_INFO,"GetTaskData: taskid=%d\n",taskid);
 		//初始化分帧头
