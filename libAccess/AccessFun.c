@@ -2551,7 +2551,14 @@ void GetOADPosofUnit(ROAD_ITEM item_road,HEAD_UNIT *head_unit,INT8U unitnum,OAD_
 			memcpy(&oad_offset[i].oad_r,&item_road.oad[i].oad_r,sizeof(OAD));
 //			if(memcmp(&item_road.oad[i].oad_m,&head_unit[j].oad_m,sizeof(OAD))==0 &&
 //					memcmp(&item_road.oad[i].oad_r,&head_unit[j].oad_r,sizeof(OAD))==0)
-			if(memcmp(&item_road.oad[i].oad_m,&head_unit[j].oad_m,sizeof(OAD))==0 &&
+//			fprintf(stderr,"\nsearch oad %04x%02x%02x-%04x%02x%02x:offset:%d--head:%04x%02x%02x-%04x%02x%02x\n",
+//					item_road.oad[i].oad_m.OI,item_road.oad[i].oad_m.attflg,item_road.oad[i].oad_m.attrindex,
+//					item_road.oad[i].oad_r.OI,item_road.oad[i].oad_r.attflg,item_road.oad[i].oad_r.attrindex,
+//					datapos,
+//					head_unit[j].oad_m.OI,head_unit[j].oad_m.attflg,head_unit[j].oad_m.attrindex,
+//					head_unit[j].oad_r.OI,head_unit[j].oad_r.attflg,head_unit[j].oad_r.attrindex);
+			if((memcmp(&item_road.oad[i].oad_m,&head_unit[j].oad_m,sizeof(OAD))==0 ||
+					((item_road.oad[i].oad_m.OI >= 0x5000 && item_road.oad[i].oad_m.OI <= 0x5002) && head_unit[j].oad_m.OI == 0)) &&
 					item_road.oad[i].oad_r.attflg == head_unit[j].oad_r.attflg &&
 					item_road.oad[i].oad_r.OI == head_unit[j].oad_r.OI)
 			{
@@ -3598,7 +3605,24 @@ INT16U dealselect5(OAD oad_h,CSD_ARRAYTYPE csds,TS ts_start,TS ts_end,INT32U zc_
 
 	//------------------------------------------------------------------------------获得每个招测的oad在一条记录中的偏移
 	memset(oad_offset,0x00,sizeof(oad_offset));
+
+	fprintf(stderr,"\n-----------------headunit:");
+	for(i=0;i<taskhead_info.oadnum;i++)
+	{
+		fprintf(stderr,"\n%04x-%04x %02x %02x-len:%d",
+				headoad_unit[i].oad_m.OI,headoad_unit[i].oad_r.OI,headoad_unit[i].oad_r.attflg,headoad_unit[i].oad_r.attrindex,
+				headoad_unit[i].len);
+	}
+	fprintf(stderr,"\n-----------------headunit");
 	GetOADPosofUnit(item_road,headoad_unit,taskhead_info.oadnum,oad_offset);//得到每一个oad在块数据中的偏移
+	fprintf(stderr,"\n-----------------招测的oad偏移表:");
+	for(i=0;i<taskhead_info.oadnum;i++)
+	{
+		fprintf(stderr,"\n%04x-%04x %02x %02x-len:%d offset:%d",
+				oad_offset[i].oad_m.OI,oad_offset[i].oad_r.OI,oad_offset[i].oad_r.attflg,oad_offset[i].oad_r.attrindex,
+				oad_offset[i].len,oad_offset[i].offset);
+	}
+	fprintf(stderr,"\n-----------------招测的oad偏移表:");
 
 	//------------------------------------------------------------------------------提取记录并组帧
 	frm_fp = openFramefile(TASK_FRAME_DATA,frmadd_flg);
