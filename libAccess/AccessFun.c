@@ -2540,40 +2540,48 @@ INT16U GetFileOadLen(INT8U units,INT8U tens)//个位十位转化为一个INT16U
 void GetOADPosofUnit(ROAD_ITEM item_road,HEAD_UNIT *head_unit,INT8U unitnum,OAD_INDEX *oad_offset)
 {
 	int i=0,j=0,datapos=0;
-//	fprintf(stderr,"-------oadmr_num=%d,unitnum=%d\n",item_road.oadmr_num,unitnum);
+	fprintf(stderr,"-------oadmr_num=%d,unitnum=%d\n",item_road.oadmr_num,unitnum);
 	for(i=0;i<item_road.oadmr_num;i++)//找不到呢
 	{
 		datapos=0;
 		for(j=0;j<unitnum;j++)
 		{
-//			fprintf(stderr,"j=%d,len=%d,datapos=%d\n",j,head_unit[j].len,datapos);
+			fprintf(stderr,"j=%d,len=%d,datapos=%d\n",j,head_unit[j].len,datapos);
 			memcpy(&oad_offset[i].oad_m,&item_road.oad[i].oad_m,sizeof(OAD));
 			memcpy(&oad_offset[i].oad_r,&item_road.oad[i].oad_r,sizeof(OAD));
 //			if(memcmp(&item_road.oad[i].oad_m,&head_unit[j].oad_m,sizeof(OAD))==0 &&
 //					memcmp(&item_road.oad[i].oad_r,&head_unit[j].oad_r,sizeof(OAD))==0)
-			if(memcmp(&item_road.oad[i].oad_m,&head_unit[j].oad_m,sizeof(OAD))==0 &&
-					item_road.oad[i].oad_r.attflg == head_unit[j].oad_r.attflg &&
+			fprintf(stderr,"item_road m = %04x%02x%02x  oad_r=%04x%02x%02x \n",
+					item_road.oad[i].oad_m.OI,item_road.oad[i].oad_m.attflg,item_road.oad[i].oad_m.attrindex,
+					item_road.oad[i].oad_r.OI,item_road.oad[i].oad_r.attflg,item_road.oad[i].oad_r.attrindex);
+			fprintf(stderr,"head_unit m = %04x%02x%02x  oad_r=%04x%02x%02x \n",
+					head_unit[j].oad_m.OI,head_unit[j].oad_m.attflg,head_unit[j].oad_m.attrindex,
+					head_unit[j].oad_r.OI,head_unit[j].oad_r.attflg,head_unit[j].oad_r.attrindex);
+//			if(memcmp(&item_road.oad[i].oad_m,&head_unit[j].oad_m,sizeof(OAD))==0 &&
+//					item_road.oad[i].oad_r.attflg == head_unit[j].oad_r.attflg &&
+//					item_road.oad[i].oad_r.OI == head_unit[j].oad_r.OI)
+			if(item_road.oad[i].oad_r.attflg == head_unit[j].oad_r.attflg &&
 					item_road.oad[i].oad_r.OI == head_unit[j].oad_r.OI)
 			{
-//				fprintf(stderr,"\nfind oad %04x%02x%02x-%04x%02x%02x:offset:%d--head:%04x%02x%02x-%04x%02x%02x\n",
-//						item_road.oad[i].oad_m.OI,item_road.oad[i].oad_m.attflg,item_road.oad[i].oad_m.attrindex,
-//						item_road.oad[i].oad_r.OI,item_road.oad[i].oad_r.attflg,item_road.oad[i].oad_r.attrindex,
-//						datapos,
-//						head_unit[j].oad_m.OI,head_unit[j].oad_m.attflg,head_unit[j].oad_m.attrindex,
-//						head_unit[j].oad_r.OI,head_unit[j].oad_r.attflg,head_unit[j].oad_r.attrindex);
+				fprintf(stderr,"\nfind oad %04x%02x%02x-%04x%02x%02x:offset:%d--head:%04x%02x%02x-%04x%02x%02x\n",
+						item_road.oad[i].oad_m.OI,item_road.oad[i].oad_m.attflg,item_road.oad[i].oad_m.attrindex,
+						item_road.oad[i].oad_r.OI,item_road.oad[i].oad_r.attflg,item_road.oad[i].oad_r.attrindex,
+						datapos,
+						head_unit[j].oad_m.OI,head_unit[j].oad_m.attflg,head_unit[j].oad_m.attrindex,
+						head_unit[j].oad_r.OI,head_unit[j].oad_r.attflg,head_unit[j].oad_r.attrindex);
 				if(item_road.oad[i].oad_r.attrindex != 0 && head_unit[j].oad_r.attrindex == 0)//招测某一项
 				{
 					INT16U oadlen = CalcOIDataLen(item_road.oad[i].oad_r);
 					oad_offset[i].offset = datapos + (item_road.oad[i].oad_r.attrindex-1)*oadlen +2;
 					oad_offset[i].len = oadlen;
-//					fprintf(stderr,"\n招测某一项oadlen=%d\n",oadlen);
+					fprintf(stderr,"\n招测某一项oadlen=%d offset=%d\n",oadlen,oad_offset[i].offset );
 				}
 				else if(item_road.oad[i].oad_r.attrindex == head_unit[j].oad_r.attrindex)
 				{
 //					fprintf(stderr,"\n招测所有项\n");
 					oad_offset[i].offset = datapos;
 					oad_offset[i].len = head_unit[j].len;
-//					fprintf(stderr,"\n招测所有oadlen=%d\n",oad_offset[i].len);
+					fprintf(stderr,"\n招测所有oadlen=%d  offset=%d\n",oad_offset[i].len,oad_offset[i].offset );
 				}
 				else
 				{
@@ -2912,7 +2920,6 @@ typedef struct {
 	INT8U taskid;//当前匹配的任务号
 	INT8U taskid_matchnum;//匹配的任务个数
 	INT8U taskid_matchlevel;//匹配的程度，不匹配0 凑合匹配1：50020100和00000010匹配 完全匹配 2
-	INT8U taskid_savetype;
 }TASKID_MATCH;
 INT8U GetTaskidFromCSDs(ROAD_ITEM item_road,CLASS_6001 *tsa)
 {

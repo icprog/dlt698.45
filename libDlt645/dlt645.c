@@ -196,19 +196,19 @@ INT16S composeProtocol07(FORMAT07* format07, INT8U* sendBuf)
 		break;
 	}
 
-	if (getZone("GW")!=0)
-	{
-		DEBUG_TIME_LINE("sendlen: %d", sendlen);
-		if(sendlen > 0) {//dlt645-07协议明确要求, 在前面加4个0xFE, 以唤醒总线设备
-			tmpbuf[0] = 0xfe;
-			tmpbuf[1] = 0xfe;
-			tmpbuf[2] = 0xfe;
-			tmpbuf[3] = 0xfe;
-			memcpy(&tmpbuf[4], sendBuf, sendlen);
-			sendlen += 4;
-			memcpy(sendBuf,tmpbuf,sendlen);
-		}
-	}
+//	if (getZone("GW")!=0)
+//	{
+//		DEBUG_TIME_LINE("sendlen: %d", sendlen);
+//		if(sendlen > 0) {//dlt645-07协议明确要求, 在前面加4个0xFE, 以唤醒总线设备
+//			tmpbuf[0] = 0xfe;
+//			tmpbuf[1] = 0xfe;
+//			tmpbuf[2] = 0xfe;
+//			tmpbuf[3] = 0xfe;
+//			memcpy(&tmpbuf[4], sendBuf, sendlen);
+//			sendlen += 4;
+//			memcpy(sendBuf,tmpbuf,sendlen);
+//		}
+//	}
 
 	return sendlen;
 }
