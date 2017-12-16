@@ -206,7 +206,7 @@ int dbSet(char * name, void* data) {
 		DB.retry_count = (int) data;
 	}
 
-	if(strcmp("model_2g", name)) {
+	if(strcmp("model_2g", name) == 0) {
 		switch ((int)data) {
 			case 0x11:
 			case 0x22:
@@ -214,6 +214,7 @@ int dbSet(char * name, void* data) {
 			case 0x44:
 			case 0x55:
 				DB.model_2g = (int) data;
+                break;
 			default:
 				DB.model_2g = 0x00;
 		}

@@ -1732,7 +1732,7 @@ int getOI6001(MY_MS ms,INT8U **tsas)
 					break;
 				case 3:	//一组用户地址
 					tsa_len = (ms.ms.userAddr[0].addr[0]<<8) | ms.ms.userAddr[0].addr[1];
-					fprintf(stderr,"\n一组用户地址(%d)\n\n",tsa_len);
+//					fprintf(stderr,"\n一组用户地址(%d)\n\n",tsa_len);
 					for(j=0;j<tsa_len;j++) {
 						if(memcmp(&ms.ms.userAddr[j+1],&meter.basicinfo.addr,sizeof(TSA))==0) {  //TODO:TSA下发的地址是否按照00：长度，01：TSA长度格式
 							memcpy(*tsas+(tsa_num*sizeof(CLASS_6001)),&meter,sizeof(CLASS_6001));
@@ -2931,6 +2931,7 @@ INT8U GetTaskidFromCSDs(ROAD_ITEM item_road,CLASS_6001 *tsa)
 		memset(&taskmatch,0,sizeof(TASKID_MATCH));
 		if(readCoverClass(0x6013,i+1,&class6013,sizeof(class6013),coll_para_save) == 1)
 		{
+			fprintf(stderr,"\n查找任务%d\n",i+1);
 			if(class6013.cjtype != 1 || class6013.state != 1)//过滤掉不是普通采集方案的
 			{
 				fprintf(stderr,"\n非普通方案\n");
