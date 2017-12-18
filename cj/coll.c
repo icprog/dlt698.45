@@ -996,8 +996,10 @@ void Task6099(int argc, char *argv[])
 				DEBUG_TIME_LINE("taskNum: %d", taskNum);
 				for (i = 0; i < taskNum; i++) {
 					fprintf(stderr,
-							"\ntaskID<%02d>:\t%04d-%02d-%02d %02d-%02d-%02d,\t[%04d-%02d-%02d %02d-%02d-%02d <--> %04d-%02d-%02d %02d-%02d-%02d]",
+							"\ntaskID<%d ,%02d, %02d>:\t%04d-%02d-%02d %02d-%02d-%02d,\t[%04d-%02d-%02d %02d-%02d-%02d <--> %04d-%02d-%02d %02d-%02d-%02d]",
+							i,
 							tfs.rptList[i][0].taskId,
+							tfs.rptList[i][1].taskId,
 							tfs.rptList[i][0].startTime.Year,
 							tfs.rptList[i][0].startTime.Month,
 							tfs.rptList[i][0].startTime.Day,

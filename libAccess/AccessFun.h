@@ -130,10 +130,10 @@ typedef struct{
 //new
 #define FILEOADMAXNUM 100
 typedef struct {
-	INT32U reclen;//不包括tsa
-	INT32U seqnum;
-	INT32U seqsec;
-	INT8U  oadnum;
+	INT32U reclen;//当前采集方案中, 每个测量点的每个数据点所占长度
+	INT32U seqnum;//每个测量点每天要保存的数据点数量, 比如15分钟执行一次, 每天就有96个数据点
+	INT32U seqsec;//采集方案执行时间间隔(单位秒), 比如15分钟(900秒)
+	INT8U  oadnum;//每个数据点要采集的数据项目数
 }HEADFIXED_INFO;
 typedef struct{
 	time_t zc_start;//招测开始时间 秒数
