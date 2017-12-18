@@ -2574,14 +2574,14 @@ void GetOADPosofUnit(ROAD_ITEM item_road,HEAD_UNIT *head_unit,INT8U unitnum,OAD_
 					INT16U oadlen = CalcOIDataLen(item_road.oad[i].oad_r);
 					oad_offset[i].offset = datapos + (item_road.oad[i].oad_r.attrindex-1)*oadlen +2;
 					oad_offset[i].len = oadlen;
-//					fprintf(stderr,"\n招测某一项oadlen=%d\n",oadlen);
+					fprintf(stderr,"\n招测某一项oadlen=%d offset=%d\n",oadlen,oad_offset[i].offset );
 				}
 				else if(item_road.oad[i].oad_r.attrindex == head_unit[j].oad_r.attrindex)
 				{
 //					fprintf(stderr,"\n招测所有项\n");
 					oad_offset[i].offset = datapos;
 					oad_offset[i].len = head_unit[j].len;
-//					fprintf(stderr,"\n招测所有oadlen=%d\n",oad_offset[i].len);
+					fprintf(stderr,"\n招测所有oadlen=%d  offset=%d\n",oad_offset[i].len,oad_offset[i].offset );
 				}
 				else
 				{
@@ -2920,7 +2920,6 @@ typedef struct {
 	INT8U taskid;//当前匹配的任务号
 	INT8U taskid_matchnum;//匹配的任务个数
 	INT8U taskid_matchlevel;//匹配的程度，不匹配0 凑合匹配1：50020100和00000010匹配 完全匹配 2
-	INT8U taskid_savetype;
 }TASKID_MATCH;
 INT8U GetTaskidFromCSDs(ROAD_ITEM item_road,CLASS_6001 *tsa)
 {
@@ -2939,7 +2938,7 @@ INT8U GetTaskidFromCSDs(ROAD_ITEM item_road,CLASS_6001 *tsa)
 		memset(&taskmatch,0,sizeof(TASKID_MATCH));
 		if(readCoverClass(0x6013,i+1,&class6013,sizeof(class6013),coll_para_save) == 1)
 		{
-			fprintf(stderr,"\n查找任务%d\n",i+1);
+//			fprintf(stderr,"\n查找任务%d\n",i+1);
 			if(class6013.cjtype != 1 || class6013.state != 1)//过滤掉不是普通采集方案的
 			{
 				fprintf(stderr,"\n非普通方案\n");
@@ -2948,12 +2947,15 @@ INT8U GetTaskidFromCSDs(ROAD_ITEM item_road,CLASS_6001 *tsa)
 			if(readCoverClass(0x6015,class6013.sernum,&class6015,sizeof(CLASS_6015),coll_para_save) == 1)
 			{
 				seqnum = getTASKruntimes(class6013,class6015,&seqsec);
-				if(item_road.zc_seqsec != 0 && item_road.zc_seqsec < seqsec)//
-				{
-					fprintf(stderr,"\nitem_road.zc_seqsec=%d,seqsec=%d\n",item_road.zc_seqsec,seqsec);
-					continue;
-				}
-				fprintf(stderr,"\ntask:%d class6015.deepsize=%d item_road.zc_num=%d\n",i+1,class6015.deepsize,item_road.zc_num);
+				//lhl  湖南户表曲线任务５（４－日），招测select7(0:0:0-23:59:59) 15分钟，计算时间
+				//item_road.zc_seqsec=900,seqsec=14400,导致任务查找失败。因此注释下面
+
+//				if(item_road.zc_seqsec != 0 && item_road.zc_seqsec < seqsec)//
+//				{
+//					fprintf(stderr,"\nitem_road.zc_seqsec=%d,seqsec=%d\n",item_road.zc_seqsec,seqsec);
+//					continue;
+//				}
+//				fprintf(stderr,"\ntask:%d class6015.deepsize=%d item_road.zc_num=%d\n",i+1,class6015.deepsize,item_road.zc_num);
 				if(class6015.deepsize == 1 && item_road.zc_num != 1)//一天存一次，用于湖南实时数据
 					continue;
 				if(cmpTSAtype(tsa,class6015)==0)//比对tsa类型，不符和本采集方案的跳过
@@ -3004,9 +3006,9 @@ INT8U GetTaskidFromCSDs(ROAD_ITEM item_road,CLASS_6001 *tsa)
 							{
 								for(nn=0;nn<class6015.csds.csd[j].csd.road.num;nn++)
 								{
-//									fprintf(stderr,"oad_r=%04x%02x%02x %d.oad=%04x%02x%02x\n",
-//											item_road.oad[mm].oad_r.OI,item_road.oad[mm].oad_r.attflg,item_road.oad[mm].oad_r.attrindex,nn,
-//											class6015.csds.csd[j].csd.road.oads[nn].OI,class6015.csds.csd[j].csd.road.oads[nn].attflg,class6015.csds.csd[j].csd.road.oads[nn].attrindex);
+									fprintf(stderr,"oad_r=%04x%02x%02x %d.oad=%04x%02x%02x\n",
+											item_road.oad[mm].oad_r.OI,item_road.oad[mm].oad_r.attflg,item_road.oad[mm].oad_r.attrindex,nn,
+											class6015.csds.csd[j].csd.road.oads[nn].OI,class6015.csds.csd[j].csd.road.oads[nn].attflg,class6015.csds.csd[j].csd.road.oads[nn].attrindex);
 									if(item_road.oad[mm].oad_r.OI >= 0x9000)//无效数据
 									{
 										item_road.oad[mm].taskid = 0;
@@ -3018,7 +3020,7 @@ INT8U GetTaskidFromCSDs(ROAD_ITEM item_road,CLASS_6001 *tsa)
 												class6015.csds.csd[j].csd.road.oads[nn].attrindex == 0)){
 										item_road.oad[mm].taskid = i+1;
 										taskmatch.taskid_matchlevel = 2;//完全匹配
-										fprintf(stderr,"\n------find \n");
+//										fprintf(stderr,"\n------find \n");
 										continue;
 									}
 								}
@@ -3056,7 +3058,7 @@ INT8U GetTaskidFromCSDs(ROAD_ITEM item_road,CLASS_6001 *tsa)
 				}
 				if(taskno != 0 && class6015.mst.mstype == 1)
 				{
-					asyslog(LOG_INFO,"return  ,taskid=%d\n",taskno);
+					asyslog(LOG_INFO,"return1  ,taskid=%d\n",taskno);
 					return taskno;
 				}
 				else
@@ -3064,7 +3066,7 @@ INT8U GetTaskidFromCSDs(ROAD_ITEM item_road,CLASS_6001 *tsa)
 			}
 		}
 	}
-	asyslog(LOG_INFO,"return  ,taskid=%d\n",taskid);
+	asyslog(LOG_INFO,"return2  ,taskid=%d\n",taskid);
 	return taskid;
 }
 
