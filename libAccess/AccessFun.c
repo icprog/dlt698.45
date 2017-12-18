@@ -2540,35 +2540,34 @@ INT16U GetFileOadLen(INT8U units,INT8U tens)//个位十位转化为一个INT16U
 void GetOADPosofUnit(ROAD_ITEM item_road,HEAD_UNIT *head_unit,INT8U unitnum,OAD_INDEX *oad_offset)
 {
 	int i=0,j=0,datapos=0;
-	fprintf(stderr,"-------oadmr_num=%d,unitnum=%d\n",item_road.oadmr_num,unitnum);
+//	fprintf(stderr,"-------oadmr_num=%d,unitnum=%d\n",item_road.oadmr_num,unitnum);
 	for(i=0;i<item_road.oadmr_num;i++)//找不到呢
 	{
 		datapos=0;
 		for(j=0;j<unitnum;j++)
 		{
-			fprintf(stderr,"j=%d,len=%d,datapos=%d\n",j,head_unit[j].len,datapos);
+//			fprintf(stderr,"j=%d,len=%d,datapos=%d\n",j,head_unit[j].len,datapos);
 			memcpy(&oad_offset[i].oad_m,&item_road.oad[i].oad_m,sizeof(OAD));
 			memcpy(&oad_offset[i].oad_r,&item_road.oad[i].oad_r,sizeof(OAD));
 //			if(memcmp(&item_road.oad[i].oad_m,&head_unit[j].oad_m,sizeof(OAD))==0 &&
 //					memcmp(&item_road.oad[i].oad_r,&head_unit[j].oad_r,sizeof(OAD))==0)
-			fprintf(stderr,"item_road m = %04x%02x%02x  oad_r=%04x%02x%02x \n",
-					item_road.oad[i].oad_m.OI,item_road.oad[i].oad_m.attflg,item_road.oad[i].oad_m.attrindex,
-					item_road.oad[i].oad_r.OI,item_road.oad[i].oad_r.attflg,item_road.oad[i].oad_r.attrindex);
-			fprintf(stderr,"head_unit m = %04x%02x%02x  oad_r=%04x%02x%02x \n",
-					head_unit[j].oad_m.OI,head_unit[j].oad_m.attflg,head_unit[j].oad_m.attrindex,
-					head_unit[j].oad_r.OI,head_unit[j].oad_r.attflg,head_unit[j].oad_r.attrindex);
-//			if(memcmp(&item_road.oad[i].oad_m,&head_unit[j].oad_m,sizeof(OAD))==0 &&
-//					item_road.oad[i].oad_r.attflg == head_unit[j].oad_r.attflg &&
-//					item_road.oad[i].oad_r.OI == head_unit[j].oad_r.OI)
-			if(item_road.oad[i].oad_r.attflg == head_unit[j].oad_r.attflg &&
+//			fprintf(stderr,"\nsearch oad %04x%02x%02x-%04x%02x%02x:offset:%d--head:%04x%02x%02x-%04x%02x%02x\n",
+//					item_road.oad[i].oad_m.OI,item_road.oad[i].oad_m.attflg,item_road.oad[i].oad_m.attrindex,
+//					item_road.oad[i].oad_r.OI,item_road.oad[i].oad_r.attflg,item_road.oad[i].oad_r.attrindex,
+//					datapos,
+//					head_unit[j].oad_m.OI,head_unit[j].oad_m.attflg,head_unit[j].oad_m.attrindex,
+//					head_unit[j].oad_r.OI,head_unit[j].oad_r.attflg,head_unit[j].oad_r.attrindex);
+			if((memcmp(&item_road.oad[i].oad_m,&head_unit[j].oad_m,sizeof(OAD))==0 ||
+					((item_road.oad[i].oad_m.OI >= 0x5000 && item_road.oad[i].oad_m.OI <= 0x5002) && head_unit[j].oad_m.OI == 0)) &&
+					item_road.oad[i].oad_r.attflg == head_unit[j].oad_r.attflg &&
 					item_road.oad[i].oad_r.OI == head_unit[j].oad_r.OI)
 			{
-				fprintf(stderr,"\nfind oad %04x%02x%02x-%04x%02x%02x:offset:%d--head:%04x%02x%02x-%04x%02x%02x\n",
-						item_road.oad[i].oad_m.OI,item_road.oad[i].oad_m.attflg,item_road.oad[i].oad_m.attrindex,
-						item_road.oad[i].oad_r.OI,item_road.oad[i].oad_r.attflg,item_road.oad[i].oad_r.attrindex,
-						datapos,
-						head_unit[j].oad_m.OI,head_unit[j].oad_m.attflg,head_unit[j].oad_m.attrindex,
-						head_unit[j].oad_r.OI,head_unit[j].oad_r.attflg,head_unit[j].oad_r.attrindex);
+//				fprintf(stderr,"\nfind oad %04x%02x%02x-%04x%02x%02x:offset:%d--head:%04x%02x%02x-%04x%02x%02x\n",
+//						item_road.oad[i].oad_m.OI,item_road.oad[i].oad_m.attflg,item_road.oad[i].oad_m.attrindex,
+//						item_road.oad[i].oad_r.OI,item_road.oad[i].oad_r.attflg,item_road.oad[i].oad_r.attrindex,
+//						datapos,
+//						head_unit[j].oad_m.OI,head_unit[j].oad_m.attflg,head_unit[j].oad_m.attrindex,
+//						head_unit[j].oad_r.OI,head_unit[j].oad_r.attflg,head_unit[j].oad_r.attrindex);
 				if(item_road.oad[i].oad_r.attrindex != 0 && head_unit[j].oad_r.attrindex == 0)//招测某一项
 				{
 					INT16U oadlen = CalcOIDataLen(item_road.oad[i].oad_r);
@@ -2938,7 +2937,7 @@ INT8U GetTaskidFromCSDs(ROAD_ITEM item_road,CLASS_6001 *tsa)
 		memset(&taskmatch,0,sizeof(TASKID_MATCH));
 		if(readCoverClass(0x6013,i+1,&class6013,sizeof(class6013),coll_para_save) == 1)
 		{
-			fprintf(stderr,"\n查找任务%d\n",i+1);
+//			fprintf(stderr,"\n查找任务%d\n",i+1);
 			if(class6013.cjtype != 1 || class6013.state != 1)//过滤掉不是普通采集方案的
 			{
 				fprintf(stderr,"\n非普通方案\n");
@@ -2947,12 +2946,15 @@ INT8U GetTaskidFromCSDs(ROAD_ITEM item_road,CLASS_6001 *tsa)
 			if(readCoverClass(0x6015,class6013.sernum,&class6015,sizeof(CLASS_6015),coll_para_save) == 1)
 			{
 				seqnum = getTASKruntimes(class6013,class6015,&seqsec);
-				if(item_road.zc_seqsec != 0 && item_road.zc_seqsec < seqsec)//
-				{
-					fprintf(stderr,"\nitem_road.zc_seqsec=%d,seqsec=%d\n",item_road.zc_seqsec,seqsec);
-					continue;
-				}
-				fprintf(stderr,"\ntask:%d class6015.deepsize=%d item_road.zc_num=%d\n",i+1,class6015.deepsize,item_road.zc_num);
+				//lhl  湖南户表曲线任务５（４－日），招测select7(0:0:0-23:59:59) 15分钟，计算时间
+				//item_road.zc_seqsec=900,seqsec=14400,导致任务查找失败。因此注释下面
+
+//				if(item_road.zc_seqsec != 0 && item_road.zc_seqsec < seqsec)//
+//				{
+//					fprintf(stderr,"\nitem_road.zc_seqsec=%d,seqsec=%d\n",item_road.zc_seqsec,seqsec);
+//					continue;
+//				}
+//				fprintf(stderr,"\ntask:%d class6015.deepsize=%d item_road.zc_num=%d\n",i+1,class6015.deepsize,item_road.zc_num);
 				if(class6015.deepsize == 1 && item_road.zc_num != 1)//一天存一次，用于湖南实时数据
 					continue;
 				if(cmpTSAtype(tsa,class6015)==0)//比对tsa类型，不符和本采集方案的跳过
@@ -3003,9 +3005,9 @@ INT8U GetTaskidFromCSDs(ROAD_ITEM item_road,CLASS_6001 *tsa)
 							{
 								for(nn=0;nn<class6015.csds.csd[j].csd.road.num;nn++)
 								{
-//									fprintf(stderr,"oad_r=%04x%02x%02x %d.oad=%04x%02x%02x\n",
-//											item_road.oad[mm].oad_r.OI,item_road.oad[mm].oad_r.attflg,item_road.oad[mm].oad_r.attrindex,nn,
-//											class6015.csds.csd[j].csd.road.oads[nn].OI,class6015.csds.csd[j].csd.road.oads[nn].attflg,class6015.csds.csd[j].csd.road.oads[nn].attrindex);
+									fprintf(stderr,"oad_r=%04x%02x%02x %d.oad=%04x%02x%02x\n",
+											item_road.oad[mm].oad_r.OI,item_road.oad[mm].oad_r.attflg,item_road.oad[mm].oad_r.attrindex,nn,
+											class6015.csds.csd[j].csd.road.oads[nn].OI,class6015.csds.csd[j].csd.road.oads[nn].attflg,class6015.csds.csd[j].csd.road.oads[nn].attrindex);
 									if(item_road.oad[mm].oad_r.OI >= 0x9000)//无效数据
 									{
 										item_road.oad[mm].taskid = 0;
@@ -3017,7 +3019,7 @@ INT8U GetTaskidFromCSDs(ROAD_ITEM item_road,CLASS_6001 *tsa)
 												class6015.csds.csd[j].csd.road.oads[nn].attrindex == 0)){
 										item_road.oad[mm].taskid = i+1;
 										taskmatch.taskid_matchlevel = 2;//完全匹配
-										fprintf(stderr,"\n------find \n");
+//										fprintf(stderr,"\n------find \n");
 										continue;
 									}
 								}
@@ -3055,7 +3057,7 @@ INT8U GetTaskidFromCSDs(ROAD_ITEM item_road,CLASS_6001 *tsa)
 				}
 				if(taskno != 0 && class6015.mst.mstype == 1)
 				{
-					asyslog(LOG_INFO,"return  ,taskid=%d\n",taskno);
+					asyslog(LOG_INFO,"return1  ,taskid=%d\n",taskno);
 					return taskno;
 				}
 				else
@@ -3063,7 +3065,7 @@ INT8U GetTaskidFromCSDs(ROAD_ITEM item_road,CLASS_6001 *tsa)
 			}
 		}
 	}
-	asyslog(LOG_INFO,"return  ,taskid=%d\n",taskid);
+	asyslog(LOG_INFO,"return2  ,taskid=%d\n",taskid);
 	return taskid;
 }
 
@@ -3605,7 +3607,24 @@ INT16U dealselect5(OAD oad_h,CSD_ARRAYTYPE csds,TS ts_start,TS ts_end,INT32U zc_
 
 	//------------------------------------------------------------------------------获得每个招测的oad在一条记录中的偏移
 	memset(oad_offset,0x00,sizeof(oad_offset));
+
+	fprintf(stderr,"\n-----------------headunit:");
+	for(i=0;i<taskhead_info.oadnum;i++)
+	{
+		fprintf(stderr,"\n%04x-%04x %02x %02x-len:%d",
+				headoad_unit[i].oad_m.OI,headoad_unit[i].oad_r.OI,headoad_unit[i].oad_r.attflg,headoad_unit[i].oad_r.attrindex,
+				headoad_unit[i].len);
+	}
+	fprintf(stderr,"\n-----------------headunit");
 	GetOADPosofUnit(item_road,headoad_unit,taskhead_info.oadnum,oad_offset);//得到每一个oad在块数据中的偏移
+	fprintf(stderr,"\n-----------------招测的oad偏移表:");
+	for(i=0;i<taskhead_info.oadnum;i++)
+	{
+		fprintf(stderr,"\n%04x-%04x %02x %02x-len:%d offset:%d",
+				oad_offset[i].oad_m.OI,oad_offset[i].oad_r.OI,oad_offset[i].oad_r.attflg,oad_offset[i].oad_r.attrindex,
+				oad_offset[i].len,oad_offset[i].offset);
+	}
+	fprintf(stderr,"\n-----------------招测的oad偏移表:");
 
 	//------------------------------------------------------------------------------提取记录并组帧
 	frm_fp = openFramefile(TASK_FRAME_DATA,frmadd_flg);
