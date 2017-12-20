@@ -1293,6 +1293,7 @@ long int readFrameDataFile(char *filename,int offset,INT8U *buf,int *datalen)
 		fprintf(stderr," readFrameDataFile bytelen=%d\n",bytelen);
 		if(bytelen>=MAX_APDU_SIZE) {		//防止读取数据溢出
 			syslog(LOG_ERR,"read filename=%s bytelen = %d 大于限定值=%d\n",filename,bytelen,MAX_APDU_SIZE);
+			fclose(fp);
 			return 0;
 		}
 		if (fread(buf,bytelen,1,fp) <=0 ) {	//按数据报文长度，读出全部字节
@@ -4928,6 +4929,7 @@ INT16U selectData(OAD oad_h,CSD_ARRAYTYPE csds,CLASS_6001 *tsa_group, INT16U tsa
 		if (tsa_group[i].extinfo.pt == 0) {//没有这个地址的数据
 			continue;
 		}
+
 		for (j = seq_start; j < seq_end; j++) {
 			memset(recorddata, 0x00, sizeof(recorddata));
 			fprintf(stderr, "\n序号%d 记录位置%d\n", j,
@@ -4966,24 +4968,12 @@ INT16U selectData(OAD oad_h,CSD_ARRAYTYPE csds,CLASS_6001 *tsa_group, INT16U tsa
 	fprintf(stderr, "\nrecordnum=%d\n", recordnum);
 	if (frmnum == 0) {
 		frmnum = 1; //一帧
-		fprintf(stderr,
-				"\n indexn = %d saveOneFrame  seqnumindex=%d,  recordnum=%d!!!!!!!!!!!!!!!!\n",
-				indexn, seqnumindex, recordnum);
-		asyslog(LOG_INFO,
-				"任务数据文件组帧:indexn = %d , seqnumindex=%d,  recordnum=%d\n",
-				indexn, seqnumindex, recordnum);
 		intToBuf((indexn - 2), frmdata);
 		frmdata[seqnumindex] = recordnum;
 		saveOneFrame(frmdata, indexn, frm_fp);
 	} else {
 		if (recordnum != 0) {
 			frmnum++;
-			fprintf(stderr,
-					"\n last frm indexn = %d saveOneFrame  seqnumindex=%d,  recordnum=%d!!!!!!!!!!!!!!!!\n",
-					indexn, seqnumindex, recordnum);
-			asyslog(LOG_INFO,
-					"任务数据文件组帧:indexn = %d , seqnumindex=%d,  recordnum=%d\n",
-					indexn, seqnumindex, recordnum);
 			intToBuf((indexn - 2), frmdata);
 			frmdata[seqnumindex] = recordnum;
 			saveOneFrame(frmdata, indexn, frm_fp);
@@ -5007,16 +4997,23 @@ err:
 
 void supplementRpt(TS ts1, TS ts2, INT8U retaskid, INT8U *saveflg)
 {
-	INT16U tsa_num = 0; //上报的序号
+	INT16U tsa_num = 0; //上报的测量点数
+	INT16U frmCount = 0; //上报的帧数
 	CLASS_601D class601d = {};
 	CLASS_6001 *tsa_group = NULL;//本次召测的tsa集合
 	MY_MS meters_cur;
+	char cmd[500] = {0};
 
 	*saveflg = 0;
 
-	if (access("/nand/reportdata", F_OK) == 0) {
-		asyslog(LOG_INFO, "文件%s存在，退出！！！", "/nand/reportdata");
-		goto Ret;
+	if (access(REPORT_FRAME_DATA, F_OK) == 0) {
+	 sprintf(cmd, "rm %s_bak", REPORT_FRAME_DATA);
+	 system(cmd);
+	 sleep(1);
+	 sprintf(cmd, "mv %s %s_bak", REPORT_FRAME_DATA, REPORT_FRAME_DATA);
+	 system(cmd);
+	 sleep(1);
+	 asyslog(LOG_INFO, "[%s()][%d]文件%s已存在，已重命名！！！", __FUNCTION__, __LINE__, REPORT_FRAME_DATA);
 	}
 
 	if (readCoverClass(0x601D, retaskid, &class601d, sizeof(CLASS_601D),
@@ -5036,12 +5033,16 @@ void supplementRpt(TS ts1, TS ts2, INT8U retaskid, INT8U *saveflg)
 			class601d.reportdata.data.recorddata.rsd);
 	tsa_num = getOI6001(meters_cur,(INT8U **)&tsa_group);
 
-	selectData(class601d.reportdata.data.recorddata.oad,
+	frmCount = selectData(class601d.reportdata.data.recorddata.oad,
 			class601d.reportdata.data.recorddata.csds,
 			tsa_group, tsa_num, ts1, ts2);
 
-	sleep(2);
-	*saveflg = 1;
+	if(frmCount > 0) {
+		sleep(2);
+		*saveflg = 1;
+	} else {
+		*saveflg = 0;
+	}
 
 Ret:
 	if (tsa_group != NULL)

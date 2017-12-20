@@ -260,20 +260,32 @@ void checkAndSendAppends(struct aeEventLoop* ep, CommBlock* nst)
 			continue;
 		}
 
+		if(tfs->rptList[i][0].taskId != tfs->rptList[i][1].taskId
+				||i != tfs->rptList[i][1].pos) {//todo: 方案索引或者方案编号不一致, 说明任务被重新调整过. 是否要记住调整之前的补报信息?
+
+			asyslog(LOG_INFO, "[%s()][%d]任务: <%d, %02d, %02d> 的方案编号不一致, 丢弃以前的补报信息", __FUNCTION__,
+					__LINE__, i, tfs->rptList[i][0].taskId, tfs->rptList[i][1].taskId);
+
+			tfs->rptList[i][1].pos = i;
+			tfs->rptList[i][1].taskId = tfs->rptList[i][0].taskId;
+			tfs->rptList[i][1].startTime = tfs->rptList[i][0].startTime;
+			tfs->rptList[i][1].endTime = tfs->rptList[i][1].startTime;
+			continue;
+		}
+
 		if (getTaskInterval(i, &taskInv) == 0)
 			continue;
 
 		if (updateTime(i, &taskInv) == 1)
 			continue;
 
-		memcpy(rptInfo, &tfs->rptList[i][1], sizeof(rptInfo_s));
-		rptInfo->pos = tfs->rptList[i][1].pos;
 		//先修正一下补报时间，然后去最后一次上报成功时间和补报时间
 		repairTime(i, tfs);
-		memcpy(&succts, &tfs->rptList[i][0].startTime, sizeof(TS));
-		memcpy(&failts, &tfs->rptList[i][1].startTime, sizeof(TS));
+		succts = tfs->rptList[i][0].startTime;
+		failts = tfs->rptList[i][1].startTime;
 
 		tminc(&failts, taskInv.units, taskInv.interval);
+
 		asyslog(LOG_INFO, "[%s()][%d]任务: <%d> 的执行频率: %d-%02d", __FUNCTION__,
 		__LINE__, tfs->rptList[i][1].taskId, taskInv.units, taskInv.interval);
 
@@ -304,8 +316,8 @@ void checkAndSendAppends(struct aeEventLoop* ep, CommBlock* nst)
 			}
 
 			asyslog(LOG_INFO,
-					"[%s()][%d]检查到任务: <%d> 的数据需要补报, 时间: %04d-%02d-%02d %02d-%02d-%02d, %04d-%02d-%02d %02d-%02d-%02d",
-					__FUNCTION__, __LINE__, tfs->rptList[i][1].taskId,
+					"[%s()][%d]检查到任务: <%d, %d, %d> 的数据需要补报, 时间: %04d-%02d-%02d %02d-%02d-%02d, %04d-%02d-%02d %02d-%02d-%02d",
+					__FUNCTION__, __LINE__, i, tfs->rptList[i][0].taskId, tfs->rptList[i][1].taskId,
 					tfs->rptList[i][1].startTime.Year,
 					tfs->rptList[i][1].startTime.Month,
 					tfs->rptList[i][1].startTime.Day,
@@ -314,8 +326,15 @@ void checkAndSendAppends(struct aeEventLoop* ep, CommBlock* nst)
 					tfs->rptList[i][1].startTime.Sec, failts.Year, failts.Month,
 					failts.Day, failts.Hour, failts.Minute, failts.Sec);
 
+			//todo: supplementRpt 返回是否有数据需要补报, 有些任务, 没有对应的数据, 所以不需要补报.
+			//比如, 三相表任务的时间不对, 但是测量点中只有单相表, 就不需要补报
 			supplementRpt(tfs->rptList[i][1].startTime, failts,
 					tfs->rptList[i][1].taskId, &shmem->cfg_para.extpara[0]);
+
+			if(shmem->cfg_para.extpara[0] == 0) {
+				asyslog(LOG_INFO,"[%s()][%d]no data found", __FUNCTION__, __LINE__);
+				continue;
+			}
 
 			MoreContentSignAppend = callAutoReport(REPORT_FRAME_DATA,
 			REPROTNOTIFICATIONRECORDLIST, nst, 0);						//发第一帧
@@ -364,7 +383,7 @@ void checkAndSendAppends(struct aeEventLoop* ep, CommBlock* nst)
 			conformCheckIdAppend = aeCreateTimeEvent(ep,
 					confirmOverTimeAppend * 1000, repeatRptAppend, nst, NULL);
 			asyslog(LOG_INFO,
-					"[%s()][%d]检查到补报任务，初始化补报状态(次数=%d-时间=%d)、注册时间事件(%d)",
+					"[%s()][%d]检查到补报任务, 初始化补报状态(次数=%d-时间=%d), 注册时间事件(%d)",
 					__FUNCTION__, __LINE__, confirmTimesAppend,
 					confirmOverTimeAppend, conformCheckIdAppend);
 			break;
@@ -466,48 +485,40 @@ void ConformAutoTask(struct aeEventLoop* ep, CommBlock* nst, int res)
 
 			//这里成功上送了一次任务
 			stopSign = 0;
+			stopREtry = 0;
 			conformSign = 1;
 
 			rptInfo->sign = 0xAA;
 			//更新最新的成功上报任务的时间
 			memcpy(&tfs->rptList[i][0], rptInfo, sizeof(rptInfo_s));
-			if (getTaskInterval(i, &taskInv) == 1)
-				updateTime(i, &taskInv);
 
-			//如果上一次上报时间的sign没有初始化，就在这里初始化一下。
-			if (tfs->rptList[i][1].sign != 0xAA) {
+			if (tfs->rptList[i][1].sign != 0xAA) {//如果上一次上报时间的sign没有初始化，就在这里初始化一下。
 				memcpy(&tfs->rptList[i][1], rptInfo, sizeof(rptInfo_s));
-				asyslog(LOG_INFO,
-						"[%s][%d]修正任务<%d>的上次上报时间: %04d-%02d-%02d %02d-%02d-%02d",
-						__FUNCTION__, __LINE__, tfs->rptList[i][1].taskId,
-						tfs->rptList[i][1].startTime.Year,
-						tfs->rptList[i][1].startTime.Month,
-						tfs->rptList[i][1].startTime.Day,
-						tfs->rptList[i][1].startTime.Hour,
-						tfs->rptList[i][1].startTime.Minute,
-						tfs->rptList[i][1].startTime.Sec);
+			} else if (getTaskInterval(i, &taskInv) == 1) {	//如果已经初始化上次上报时间的sign, 那么更新上次上报时间
+				updateTime(i, &taskInv);
 			}
-			stopREtry = 0;
-			saveCoverClass(0x6099, 0, tfs, sizeof(taskFailInfo_s),
-					para_vari_save);
+
+		   if(saveCoverClass(0x6099, 0, tfs, sizeof(taskFailInfo_s), para_vari_save) != 0) {
+				  asyslog(LOG_INFO, "[%s][%d]save 6099 failed!!", __FUNCTION__, __LINE__);
+		   }
 		}
 	} else if (res == REPORT_RESPONSE && stopSign == 0 && stopREtry == 1) {	//更新当前补报成功时间
-		asyslog(LOG_INFO, "收到补报确认报文");
+		asyslog(LOG_INFO, "[%s()][%d]收到补报确认报文", __FUNCTION__, __LINE__);
 
 		confirmSignAppend = 1;
-		MoreContentSignAppend = callAutoReport(TASK_FRAME_DATA, reportChoice,
+		MoreContentSignAppend = callAutoReport(REPORT_FRAME_DATA, REPROTNOTIFICATIONRECORDLIST,
 				nst, 1);
 		if (MoreContentSignAppend == 1) {
 			asyslog(LOG_INFO, "[%s()][%d]发现更多的报文，注销检查函数，任务序号(%d)", __FUNCTION__,
 					__LINE__, conformCheckIdAppend);
 			if (aeDeleteTimeEvent(ep, conformCheckIdAppend) == AE_OK) {	//TODO:是否需要增加删除成功,重新注册,删除失败会有什么问题?
 				confirmSignAppend = 0;		//清除确认标记,方便重新进入检查函数
-				confirmTimesAppend = bak_conformTimes;
-				confirmOverTimeAppend = bak_conformOverTime;
+				confirmTimesAppend = bak_confirmTimesAppend;
+				confirmOverTimeAppend = bak_confirmOverTimeAppend;
 				conformCheckIdAppend = aeCreateTimeEvent(ep,
 						confirmOverTimeAppend * 1000, repeatRptAppend, nst,
 						NULL);
-				asyslog(LOG_INFO, "[%s()][%d]重新注册，任务序号(%d),(次数=%d-时间=%d)",
+				asyslog(LOG_INFO, "[%s()][%d]重新注册, 任务序号(%d), (次数=%d-时间=%d)",
 						__FUNCTION__, __LINE__, conformCheckIdAppend,
 						confirmTimesAppend, confirmOverTimeAppend);
 			}
@@ -532,6 +543,12 @@ void ConformAutoTask(struct aeEventLoop* ep, CommBlock* nst, int res)
 			} else {
 				asyslog(LOG_INFO, "补报文件删除失败");
 			}
+
+			if (aeDeleteTimeEvent(ep, conformCheckIdAppend) == AE_OK) {
+			        asyslog(LOG_INFO, "[%s()][%d]删除重发成功",
+			                           __FUNCTION__, __LINE__);
+			}
+
 			saveCoverClass(0x6099, 0, tfs, sizeof(taskFailInfo_s),
 					para_vari_save);
 		}
