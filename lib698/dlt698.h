@@ -84,6 +84,7 @@ extern int fill_long_unsigned(INT8U* data, INT16U value);			//0x12
 extern int fill_long64(INT8U *data,INT64S value);					//0x14
 extern int fill_long64_unsigned(INT8U *data,INT64U value);			//0x15
 extern int fill_enum(INT8U* data, INT8U value);						//0x16
+extern int fill_date(INT8U* data, INT8U* value);					//0x1a
 extern int fill_time(INT8U* data, INT8U* value);					//0x1b
 extern int fill_date_time_s(INT8U* data, DateTimeBCD* time);		//0x1c
 extern int fill_OI(INT8U *data,OI_698 value);                        //0x50

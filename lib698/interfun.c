@@ -439,6 +439,13 @@ int fill_enum(INT8U *data,INT8U value)		//0x16
 	return 2;
 }
 
+int fill_date(INT8U *data,INT8U *value)			//0x1a
+{
+	data[0] = dtdate;
+	memcpy(&data[1],&value[0],5);
+	return 6;
+}
+
 int fill_time(INT8U *data,INT8U *value)			//0x1b
 {
 	data[0] = dttime;
