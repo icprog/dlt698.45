@@ -684,8 +684,27 @@ int task_Refresh(TASK_UNIT *taskunit)
 	}
 	return t;
 }
+int task_dateFlgItem(TASK_UNIT *taskunit)
+{
+	DateTimeBCD beginBCD;
+	beginBCD.year =
+	taskunit[0].taskId = 0;
+	taskunit[0].leve = 0;
+	taskunit[0].beginTime = calcnexttime(list6013[i].basicInfo.interval,list6013[i].basicInfo.startime,list6013[i].basicInfo.delay);//list6013[i].ts_next;
+	taskunit[0].endTime = tmtotime_t( DateBCD2Ts(list6013[i].basicInfo.endtime ));
+	ts =   timet_bcd(taskunit[0].beginTime);
+	taskunit[0].begin = ts;
+	taskunit[0].end = list6013[i].basicInfo.endtime;
+	type = list6013[i].basicInfo.cjtype;
+	serNo = list6013[i].basicInfo.sernum;//方案序号
+	memset(&taskunit[t].fangan,0,sizeof(CJ_FANGAN));
+	taskunit[0].fangan.type = type;
+	taskunit[0].fangan.No = serNo;
+	taskunit[0].ti = list6013[i].basicInfo.interval;
+	taskunit[0].fangan.item_n = Array_OAD_Items(&taskunit[t].fangan);
 
-//int task_leve(INT8U leve,TASK_UNIT *taskunit,INT8U usrType,TSA usrAddr)
+	return 1;
+}
 int task_leve(INT8U leve,TASK_UNIT *taskunit)
 {
 	DateTimeBCD ts;
@@ -696,6 +715,8 @@ int task_leve(INT8U leve,TASK_UNIT *taskunit)
 
 	for(i=0;i<TASK6012_MAX;i++)
 	{
+		if (list6013[i].basicInfo.cjtype==events)
+			continue;
 		if (list6013[i].basicInfo.runprio == leve && list6013[i].basicInfo.taskID>0)
 		{
 			taskunit[t].taskId = list6013[i].basicInfo.taskID;
@@ -761,6 +782,8 @@ int initTaskData(TASK_INFO *task)
 	memset(fangAn6015,0,sizeof(fangAn6015));
 	memset(&plcPools,0,sizeof(plcPools));
 	task_init6015(fangAn6015);
+	/*初始化一个日冻结时标任务*/
+
 	num += task_leve(0,&task->task_list[num]);
 	num += task_leve(1,&task->task_list[num]);
 	num += task_leve(2,&task->task_list[num]);
