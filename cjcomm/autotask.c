@@ -315,25 +315,22 @@ void checkAndSendAppends(struct aeEventLoop* ep, CommBlock* nst)
 				failts = tfs->rptList[i][1].startTime;
 			}
 
-			asyslog(LOG_INFO,
-					"[%s()][%d]检查到任务: <%d, %d, %d> 的数据需要补报, 时间: %04d-%02d-%02d %02d-%02d-%02d, %04d-%02d-%02d %02d-%02d-%02d",
-					__FUNCTION__, __LINE__, i, tfs->rptList[i][0].taskId, tfs->rptList[i][1].taskId,
-					tfs->rptList[i][1].startTime.Year,
-					tfs->rptList[i][1].startTime.Month,
-					tfs->rptList[i][1].startTime.Day,
-					tfs->rptList[i][1].startTime.Hour,
-					tfs->rptList[i][1].startTime.Minute,
-					tfs->rptList[i][1].startTime.Sec, failts.Year, failts.Month,
-					failts.Day, failts.Hour, failts.Minute, failts.Sec);
-
-			//todo: supplementRpt 返回是否有数据需要补报, 有些任务, 没有对应的数据, 所以不需要补报.
-			//比如, 三相表任务的时间不对, 但是测量点中只有单相表, 就不需要补报
 			supplementRpt(tfs->rptList[i][1].startTime, failts,
 					tfs->rptList[i][1].taskId, &shmem->cfg_para.extpara[0]);
 
 			if(shmem->cfg_para.extpara[0] == 0) {
-				asyslog(LOG_INFO,"[%s()][%d]no data found", __FUNCTION__, __LINE__);
 				continue;
+			} else {
+				asyslog(LOG_INFO,
+									"[%s()][%d]检查到任务: <%d, %d, %d> 的数据需要补报, 时间: %04d-%02d-%02d %02d-%02d-%02d, %04d-%02d-%02d %02d-%02d-%02d",
+									__FUNCTION__, __LINE__, i, tfs->rptList[i][0].taskId, tfs->rptList[i][1].taskId,
+									tfs->rptList[i][1].startTime.Year,
+									tfs->rptList[i][1].startTime.Month,
+									tfs->rptList[i][1].startTime.Day,
+									tfs->rptList[i][1].startTime.Hour,
+									tfs->rptList[i][1].startTime.Minute,
+									tfs->rptList[i][1].startTime.Sec, failts.Year, failts.Month,
+									failts.Day, failts.Hour, failts.Minute, failts.Sec);
 			}
 
 			MoreContentSignAppend = callAutoReport(REPORT_FRAME_DATA,
