@@ -2559,6 +2559,7 @@ void doSave(INT8U protocol,FORMAT97 frame97,FORMAT07 frame07)
 	DATA_ITEM item;
 	TSA tsatmp;
 	TS ts;
+	INT16U savetaskID = 0;
 	if(protocol == DLT_645_97)
 	{
 		Addr_TSA(frame97.Addr,&tsatmp);
@@ -2609,6 +2610,7 @@ void doSave(INT8U protocol,FORMAT97 frame97,FORMAT07 frame07)
 			TimeBCDToTs(timebcd,&ts);//ts 为数据存储时间
 			saveTaskData_NormalData(protocol,&taskinfo,&frame97,&frame07,ts);
 		}
+		savetaskID = taskinfo.task_list[taskinfo.now_taski].taskId;
 	}else
 	{
 		if (readParaClass(0x8888, &taskinfo_tmp, nodetmp->tsa_index) == 1 )
@@ -2645,7 +2647,20 @@ void doSave(INT8U protocol,FORMAT97 frame97,FORMAT07 frame07)
 				saveTaskData_NormalData(protocol,&taskinfo_tmp,&frame97,&frame07,ts);
 				saveParaClass(0x8888, &taskinfo_tmp,taskinfo_tmp.tsa_index);
 			}
+			savetaskID = taskinfo_tmp.task_list[taskinfo_tmp.now_taski].taskId;
 		}
+	}
+	if((getZone("GW")==1)&&(savetaskID>0))
+	{
+		//6035发送报文数量+1
+		CLASS_6035 result6035;	//采集任务监控单元
+		get6035ByTaskID(savetaskID,&result6035);
+		result6035.rcvMsgNum++;
+		TS tsNow;
+		TSGet(&tsNow);
+		INT16U tsaNum = getCBsuctsanum(result6035.taskID,tsNow);
+		result6035.successMSNum = tsaNum;
+		saveClass6035(&result6035);
 	}
 }
 INT8U ChgSucessFlg_698(TSA tsaMeter,INT8U taskid)
@@ -2932,7 +2947,18 @@ INT8U doSave_698(INT8U* buf645,int len645)
 
 	}
 
-
+	if((getZone("GW")==1)&&(taskid>0))
+	{
+		//6035发送报文数量+1
+		CLASS_6035 result6035;	//采集任务监控单元
+		get6035ByTaskID(taskid,&result6035);
+		result6035.rcvMsgNum++;
+		TS tsNow;
+		TSGet(&tsNow);
+		INT16U tsaNum = getCBsuctsanum(result6035.taskID,tsNow);
+		result6035.successMSNum = tsaNum;
+		saveClass6035(&result6035);
+	}
 #if 0
 	//力合微的模块,07表AFN14_F1请求抄读时,返回AFN06_F2上报抄读数据的规约类型为0,此处用698解析报文失败后,用07规约解析存储
 	else  if (analyzeProtocol07(&frame07, buf645, len645, &nextFlag) == 0)
@@ -3005,18 +3031,6 @@ int SaveTaskData(FORMAT3762 format_3762_Up,INT8U taskid,INT8U fananNo)
 				doSave(DLT_645_07,frame97,frame07);
 			}
 		}
-	}
-    if((getZone("GW")==1)&&((format_3762_Up.afn06_f2_up.MsgLength > 0)||(format_3762_Up.afn13_f1_up.MsgLength > 0)))
-	{
-		//6035发送报文数量+1
-		CLASS_6035 result6035;	//采集任务监控单元
-		get6035ByTaskID(taskid,&result6035);
-		result6035.rcvMsgNum++;
-		TS tsNow;
-		TSGet(&tsNow);
-		INT16U tsaNum = getCBsuctsanum(result6035.taskID,tsNow);
-		result6035.successMSNum = tsaNum;
-		saveClass6035(&result6035);
 	}
 	return 1;
 }
