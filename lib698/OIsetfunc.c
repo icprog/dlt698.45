@@ -1163,6 +1163,8 @@ INT16U set4500(OAD oad,INT8U *data,INT8U *DAR)
 	readCoverClass(oad.OI,0,&class4500,sizeof(CLASS25),para_vari_save);
 	fprintf(stderr,"\n先读出 主站IP %d.%d.%d.%d :%d\n",class4500.master.master[0].ip[1],class4500.master.master[0].ip[2],
 			class4500.master.master[0].ip[3],class4500.master.master[0].ip[4],class4500.master.master[0].port);
+//	syslog(LOG_NOTICE,"\n读出 主站IP %d.%d.%d.%d :%d [oad=%d]\n",class4500.master.master[0].ip[1],class4500.master.master[0].ip[2],
+//			class4500.master.master[0].ip[3],class4500.master.master[0].ip[4],class4500.master.master[0].port,oad.attflg);
 
 	switch(oad.attflg) {
 	case 2:	//通信配置
@@ -1277,6 +1279,9 @@ INT16U set4500(OAD oad,INT8U *data,INT8U *DAR)
 	}
 	print4500(class4500);
 	*DAR = saveCoverClass(oad.OI,0,&class4500,sizeof(CLASS25),para_vari_save);
+	syslog(LOG_NOTICE,"\n主站IP %d.%d.%d.%d :%d [oad=%d]\n",class4500.master.master[0].ip[1],class4500.master.master[0].ip[2],
+			class4500.master.master[0].ip[3],class4500.master.master[0].ip[4],class4500.master.master[0].port,oad.attflg);
+
 	Chg4500_reboot_HN(*DAR,class4500.master.master[0].ip,class4500.master.master[0].port,&memp->oi_changed.reset);
 	return index;
 }

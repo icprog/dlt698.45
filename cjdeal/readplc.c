@@ -2489,6 +2489,7 @@ void saveTaskData_NormalData(INT8U protocol,TASK_INFO *tskinfo,FORMAT97 *frame97
 		memcpy(&alldata[1],tskinfo->tsa.addr,17);
 		memcpy(&alldata[18],dataContent,len698);
 		len698 = len698 + 18;
+		DbgPrintToFile1(31,"存储任务[%d][%04d-%02d-%02d %02d:%02d:%02d]",tskinfo->task_list[ti].taskId,ts.Year,ts.Month,ts.Day,ts.Hour,ts.Minute,ts.Sec);
 		DbPrt1(31,"存储:", (char *) alldata, len698, NULL);
 		SaveOADData(tskinfo->task_list[ti].taskId,tskinfo->task_list[ti].fangan.items[ii].oad1,tskinfo->task_list[ti].fangan.items[ii].oad2,alldata,len698,ts);
 	}
@@ -4824,7 +4825,7 @@ int doBroadCast(RUNTIME_PLC *runtime_p)
 int ESRT_Mode_Chg(RUNTIME_PLC *runtime_p)
 {
 	//东软载波模块,切换路由工作模式
-	static INT8U chgMode[16]={0x68,0x10,0x00,0x47,0x00,0x00,0xFF,0x00,0x00,0x00,0x01,0x40,0x01,0x76,0xFE,0x16};
+//	static INT8U chgMode[16]={0x68,0x10,0x00,0x47,0x00,0x00,0xFF,0x00,0x00,0x00,0x01,0x40,0x01,0x76,0xFE,0x16};
 	static INT8U readMode[15]={0x68,0x0f,0x00,0x47,0x00,0x00,0xFF,0x00,0x00,0x02,0x02,0x40,0x01,0x8b,0x16};
 	static INT8U count = 0;
 
