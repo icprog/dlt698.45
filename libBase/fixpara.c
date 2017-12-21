@@ -32,8 +32,8 @@ typedef struct {
 									//厂商代码　　软件版本　软件日期　　硬件版本　硬件日期  扩展信息
 static VERINFO verinfo          = { "QDGK", "V1.1", "171130", "1.10", "160328", "00000000" }; // 4300 版本信息
 									//湖南需要双协议,软件版本要求为SXY8（双协议8） ，1376.1（软件版本为SXY1）
-static VERINFO verinfo_HuNan    = { "QDGK", "SXY8", "171216", "1.10", "160328", "00000000" }; // 4300 版本信息
-static VERINFO verinfo_ZheJiang  = { "QDGK", "V1.1", "171207", "1.10", "160328", "00000000" }; // 4300 版本信息
+static VERINFO verinfo_HuNan    = { "QDGK", "SXY8", "171220", "1.10", "160328", "00000000" }; // 4300 版本信息
+static VERINFO verinfo_ZheJiang  = { "QDGK", "V1.1", "171221", "1.10", "160328", "00000000" }; // 4300 版本信息
 static VERINFO verinfo_ShanDong  = { "QDGK", "V1.2", "171026", "1.10", "160328", "00000000" }; // 4300 版本信息
 
 static DateTimeBCD product_date = { { 2016 }, { 04 }, { 6 }, { 0 }, { 0 }, { 0 } };   // 4300 生产日期
@@ -48,7 +48,7 @@ static NETCONFIG 	IP_HuNan={1,{192,168,0,10},{255,255,255,0},{192,168,0,1},{},{}
 
 ///浙江　ＩＩ型
 static MASTER_STATION_INFO	master_info_ZheJiang = {{10,137,253,7},9006};		//IP				端口号
-static GprsPara 	gprs_para_ZheJiang = {"ZJDL.ZJ","card.ZJ","card",""};		//apn ,userName,passWord,proxyIp
+static GprsPara 	gprs_para_ZheJiang = {"ZJJC.ZJ","m2m@zjdl.zj","vnet_mobi",""};		//apn ,userName,passWord,proxyIp
 static MASTER_STATION_INFO	master_info_ZheJiang_4510 = {{10,137,253,7},9006};			//主net IP	端口号
 static MASTER_STATION_INFO	bak_info_ZheJiang_4510 = {{10,137,253,7},9005};			//备net IP	端口号
 static NETCONFIG 	IP_ZheJiang={1,{192,168,0,4},{255,255,255,0},{192,168,0,1},{},{}};	//网络配置

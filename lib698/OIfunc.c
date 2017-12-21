@@ -541,7 +541,8 @@ int GetF209(OAD oad,INT8U *data)
 		index += create_struct(&data[index],4);
 		index += fill_visible_string(&data[index],f209.para.version.factoryCode,2);
 		index += fill_visible_string(&data[index],f209.para.version.chipCode,2);
-		index += fill_visible_string(&data[index],f209.para.version.softDate,3);
+//		index += fill_visible_string(&data[index],f209.para.version.softDate,3);
+		index += fill_date(&data[index],f209.para.version.softDate);
 		index += fill_long_unsigned(&data[index],f209.para.version.softVer);
 		break;
 	case 5:

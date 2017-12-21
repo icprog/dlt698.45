@@ -804,7 +804,7 @@ typedef struct {
 	typedef struct{
 	    char factoryCode[2];    //厂商代码
 	    char chipCode[2];        //软件版本号
-	    char softDate[3];       //软件版本日期
+	    INT8U softDate[5];       //软件版本日期
 	    INT32U	softVer;		//软件版本
 	}VersionInfo;
 	typedef struct{

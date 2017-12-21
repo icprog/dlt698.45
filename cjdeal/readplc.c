@@ -684,27 +684,27 @@ int task_Refresh(TASK_UNIT *taskunit)
 	}
 	return t;
 }
-int task_dateFlgItem(TASK_UNIT *taskunit)
-{
-	DateTimeBCD beginBCD;
-	beginBCD.year =
-	taskunit[0].taskId = 0;
-	taskunit[0].leve = 0;
-	taskunit[0].beginTime = calcnexttime(list6013[i].basicInfo.interval,list6013[i].basicInfo.startime,list6013[i].basicInfo.delay);//list6013[i].ts_next;
-	taskunit[0].endTime = tmtotime_t( DateBCD2Ts(list6013[i].basicInfo.endtime ));
-	ts =   timet_bcd(taskunit[0].beginTime);
-	taskunit[0].begin = ts;
-	taskunit[0].end = list6013[i].basicInfo.endtime;
-	type = list6013[i].basicInfo.cjtype;
-	serNo = list6013[i].basicInfo.sernum;//方案序号
-	memset(&taskunit[t].fangan,0,sizeof(CJ_FANGAN));
-	taskunit[0].fangan.type = type;
-	taskunit[0].fangan.No = serNo;
-	taskunit[0].ti = list6013[i].basicInfo.interval;
-	taskunit[0].fangan.item_n = Array_OAD_Items(&taskunit[t].fangan);
-
-	return 1;
-}
+//int task_dateFlgItem(TASK_UNIT *taskunit)
+//{
+//	DateTimeBCD beginBCD;
+//	beginBCD.year =
+//	taskunit[0].taskId = 0;
+//	taskunit[0].leve = 0;
+//	taskunit[0].beginTime = calcnexttime(list6013[i].basicInfo.interval,list6013[i].basicInfo.startime,list6013[i].basicInfo.delay);//list6013[i].ts_next;
+//	taskunit[0].endTime = tmtotime_t( DateBCD2Ts(list6013[i].basicInfo.endtime ));
+//	ts =   timet_bcd(taskunit[0].beginTime);
+//	taskunit[0].begin = ts;
+//	taskunit[0].end = list6013[i].basicInfo.endtime;
+//	type = list6013[i].basicInfo.cjtype;
+//	serNo = list6013[i].basicInfo.sernum;//方案序号
+//	memset(&taskunit[t].fangan,0,sizeof(CJ_FANGAN));
+//	taskunit[0].fangan.type = type;
+//	taskunit[0].fangan.No = serNo;
+//	taskunit[0].ti = list6013[i].basicInfo.interval;
+//	taskunit[0].fangan.item_n = Array_OAD_Items(&taskunit[t].fangan);
+//
+//	return 1;
+//}
 int task_leve(INT8U leve,TASK_UNIT *taskunit)
 {
 	DateTimeBCD ts;
@@ -1008,6 +1008,30 @@ void clearvar(RUNTIME_PLC *runtime_p)
 	memset(&runtime_p->format_Up,0,sizeof(runtime_p->format_Up));
 }
 
+void saveClassF209(AFN03_F1_UP module_info)
+{
+	CLASS_f209	f209={};
+	int  year=0;
+
+	readCoverClass(0xf209,0,&f209,sizeof(CLASS_f209),para_vari_save);
+	memcpy(f209.para.devdesc,"3762",4);
+	f209.para.devpara.baud = bps9600;
+	f209.para.devpara.databits = d8;
+	f209.para.devpara.verify = even;
+	f209.para.devpara.stopbits = stop1;
+	f209.para.version.factoryCode[1] = module_info.VendorCode[1];
+	f209.para.version.factoryCode[0] = module_info.VendorCode[0];
+	f209.para.version.chipCode[1] = module_info.ChipCode[1];
+	f209.para.version.chipCode[0] = module_info.ChipCode[0];
+	year = 2000 + module_info.VersionYear;
+	f209.para.version.softDate[0] = (year >>8) & 0xff;
+	f209.para.version.softDate[1] = year & 0xff;
+	f209.para.version.softDate[2] = module_info.VersionMonth;
+	f209.para.version.softDate[3] = module_info.VersionDay;
+	f209.para.version.softDate[4] = 0;		//day_of_week
+	f209.para.version.softVer = module_info.Version[1]*100 + module_info.Version[0];
+	saveCoverClass(0xf209,0,&f209,sizeof(CLASS_f209),para_vari_save);
+}
 
 int doInit(RUNTIME_PLC *runtime_p)
 {
@@ -1089,6 +1113,9 @@ int doInit(RUNTIME_PLC *runtime_p)
 						DbgPrintToFile1(31,"路由主导");
 					}
 				}
+				//存储F209载波／微功率无线接口的本地通信模块单元信息
+				saveClassF209(module_info.ModuleInfo);
+
 				clearvar(runtime_p);//376.2上行内容容器清空，发送计时归零
 				return ZB_MODE;
 //				return INIT_MASTERADDR;
@@ -2512,6 +2539,7 @@ void saveTaskData_NormalData(INT8U protocol,TASK_INFO *tskinfo,FORMAT97 *frame97
 		memcpy(&alldata[1],tskinfo->tsa.addr,17);
 		memcpy(&alldata[18],dataContent,len698);
 		len698 = len698 + 18;
+		DbgPrintToFile1(31,"存储任务[%d][%04d-%02d-%02d %02d:%02d:%02d]",tskinfo->task_list[ti].taskId,ts.Year,ts.Month,ts.Day,ts.Hour,ts.Minute,ts.Sec);
 		DbPrt1(31,"存储:", (char *) alldata, len698, NULL);
 		SaveOADData(tskinfo->task_list[ti].taskId,tskinfo->task_list[ti].fangan.items[ii].oad1,tskinfo->task_list[ti].fangan.items[ii].oad2,alldata,len698,ts);
 	}
@@ -4861,7 +4889,7 @@ int doBroadCast(RUNTIME_PLC *runtime_p)
 int ESRT_Mode_Chg(RUNTIME_PLC *runtime_p)
 {
 	//东软载波模块,切换路由工作模式
-	static INT8U chgMode[16]={0x68,0x10,0x00,0x47,0x00,0x00,0xFF,0x00,0x00,0x00,0x01,0x40,0x01,0x76,0xFE,0x16};
+//	static INT8U chgMode[16]={0x68,0x10,0x00,0x47,0x00,0x00,0xFF,0x00,0x00,0x00,0x01,0x40,0x01,0x76,0xFE,0x16};
 	static INT8U readMode[15]={0x68,0x0f,0x00,0x47,0x00,0x00,0xFF,0x00,0x00,0x02,0x02,0x40,0x01,0x8b,0x16};
 	static INT8U count = 0;
 

@@ -73,6 +73,19 @@ void printF205() {
     }
 }
 
+void printF209() {
+	CLASS_f209 f209 = {};
+    int i = 0;
+    readCoverClass(0xf209, 0, &f209, sizeof(CLASS_f209), para_vari_save);
+    fprintf(stderr, "[F209]载波接口\n");
+	fprintf(stderr,"--%d--\n",i);
+	fprintf(stderr,"厂商信息  = %c%c%c%c\n",f209.para.version.factoryCode[1],f209.para.version.factoryCode[0],
+			f209.para.version.chipCode[1],f209.para.version.chipCode[0]);
+	fprintf(stderr,"版本日期  = %d-%d-%d-%d\n",f209.para.version.softDate[0],f209.para.version.softDate[1],
+											 f209.para.version.softDate[2],f209.para.version.softDate[3]);
+	fprintf(stderr,"软件版本  = %d\n",f209.para.version.softVer);
+}
+
 void SetF101(int argc, char *argv[]) {
     CLASS_F101 f101 = {};
     int tmp = 0;
@@ -350,6 +363,10 @@ void inoutdev_process(int argc, char *argv[]) {
                         break;
                     case 0xf205:
                         printF205();
+                        break;
+                    case 0xf209:
+                        printF209();
+                        break;
                 }
             } else {
                 switch (oi) {
