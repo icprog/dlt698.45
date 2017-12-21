@@ -1262,11 +1262,17 @@ void CtrlStateSumUp() {
 		JProgramInfo->class23[i].alCtlState.PCAlarmState = 0;
 		JProgramInfo->class23[i].alCtlState.ECAlarmState = 0;
 
-		if (JProgramInfo->ctrls.c8103.overflow[i].state == 1) {
-			JProgramInfo->class23[i].alCtlState.PCAlarmState = stb_setbit8(JProgramInfo->class23[i].alCtlState.PCAlarmState, 7);
-			////时段功控投入时，增加总加组的方案号与投入标识的更新　lhl
+		////时段功控投入解除时，增加总加组的方案号与投入标识的更新　lhl
+		if (JProgramInfo->ctrls.c8103.plan[i].index == 0) {
+			JProgramInfo->class23[i].alConState.index = 0; //方案号
+			JProgramInfo->class23[i].alConState.enable_flag = 0; //投入标识
+		}else {
 			JProgramInfo->class23[i].alConState.index = JProgramInfo->ctrls.c8103.plan[i].numb; //方案号
 			JProgramInfo->class23[i].alConState.enable_flag = JProgramInfo->ctrls.c8103.plan[i].sign; //投入标识
+		}
+
+		if (JProgramInfo->ctrls.c8103.overflow[i].state == 1) {
+			JProgramInfo->class23[i].alCtlState.PCAlarmState = stb_setbit8(JProgramInfo->class23[i].alCtlState.PCAlarmState, 7);
 		}
 		if (JProgramInfo->ctrls.c8104.overflow[i].state == 1) {
 			JProgramInfo->class23[i].alCtlState.PCAlarmState = stb_setbit8(
