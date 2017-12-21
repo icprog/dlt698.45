@@ -846,7 +846,7 @@ int deal8107() {
 		if (JProgramInfo->ctrls.c8107.enable[i].state == 0 || JProgramInfo->ctrls.c8107.list[i].index == 0x00) {
 			JProgramInfo->ctrls.c8107.output[i].state = 0;
 			JProgramInfo->ctrls.c8107.overflow[i].state = 0;
-			JProgramInfo->class23[i].alConState.ECState &= ~128;
+			JProgramInfo->class23[i].alConState.ECState &= ~64;
 			return 0;
 		}
 
@@ -854,7 +854,7 @@ int deal8107() {
 		fprintf(stderr, "deal8107\n\n\n\n\n8989898999999~~~~~~~~~~~~~~%d\n",
 				JProgramInfo->class23[i].alConState.ECState);
 
-		JProgramInfo->class23[i].alConState.ECState |= 128;
+		JProgramInfo->class23[i].alConState.ECState |= 64;
 
 		if (!CheckAllUnitEmpty(JProgramInfo->class23[i].allist)) {
 			continue;
@@ -899,11 +899,11 @@ int deal8108() {
 		if (JProgramInfo->ctrls.c8108.enable[i].state == 0 || JProgramInfo->ctrls.c8103.list[i].index == 0x00) {
 			JProgramInfo->ctrls.c8108.output[i].state = 0;
 			JProgramInfo->ctrls.c8108.overflow[i].state = 0;
-			JProgramInfo->class23[i].alConState.ECState &= ~64;
+			JProgramInfo->class23[i].alConState.ECState &= ~128;
 			return 0;
 		}
 		//更新总加组状态
-		JProgramInfo->class23[i].alConState.ECState |= 64;
+		JProgramInfo->class23[i].alConState.ECState |= 128;
 
 		if (!CheckAllUnitEmpty(JProgramInfo->class23[i].allist)) {
 			continue;
@@ -1282,7 +1282,6 @@ void CtrlStateSumUp() {
 			JProgramInfo->class23[i].alConState.PCState = stb_setbit8(
 					JProgramInfo->class23[i].alConState.PCState, 4);
 		}
-
 		if (JProgramInfo->ctrls.c8107.enable[i].state == 1) {
 			JProgramInfo->class23[i].alConState.ECState = stb_setbit8(
 					JProgramInfo->class23[i].alConState.ECState, 6);
