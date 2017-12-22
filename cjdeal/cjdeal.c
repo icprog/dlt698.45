@@ -422,11 +422,19 @@ INT8U deal6013_onPara4000changed() {
 	for (tIndex = 0; tIndex < total_tasknum; tIndex++) {
 		if ((list6013[tIndex].basicInfo.taskID > 0)
 				&& (time_now < list6013[tIndex].ts_next)) {
-			fprintf(stderr, "\n12313123123123\n");
-			list6013[tIndex].ts_next = calcnexttime(
-					list6013[tIndex].basicInfo.interval,
-					list6013[tIndex].basicInfo.startime,
-					list6013[tIndex].basicInfo.delay);
+			if((list6013[tIndex].basicInfo.interval.units == minute_units)&&(list6013[tIndex].basicInfo.interval.interval == 5))
+			{
+				asyslog(LOG_INFO,"无奈除此下策");
+				list6013[tIndex].ts_next = time_now;
+			}
+			else
+			{
+				list6013[tIndex].ts_next = calcnexttime(
+						list6013[tIndex].basicInfo.interval,
+						list6013[tIndex].basicInfo.startime,
+						list6013[tIndex].basicInfo.delay);
+			}
+
 		}
 	}
 	fprintf(stderr, "\ndeal6013_onPara4000changed--------------------end\n");
