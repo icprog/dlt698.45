@@ -1903,7 +1903,7 @@ int main(int argc, char *argv[]) {
 	if (JProgramInfo->cfg_para.device == SPTF3) {
 		//负控
 		ctrl_proccess();
-		ctrl_proccess_save();
+		ctrl_proccess_save();	//增加线程导致了台体测试脉冲计数的时候，出现莫名奇妙的统计电量错误.原因未查清，去掉线程
 	}
 	//交采
 	acs_process();

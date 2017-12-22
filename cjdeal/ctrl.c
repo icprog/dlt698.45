@@ -1007,20 +1007,20 @@ int SaveAll(void* arg) {
 //		if (secOld % 47 == 0) {
 			for (int i = 0; i < 8; ++i) {
 				sign = stb_crc32((unsigned char *)&JProgramInfo->class23[i], sizeof(CLASS23));
-				if(sign != old_sign[i]){
+				if(sign != old_sign[i] && JProgramInfo->oi_changed.ctrlinit==0){
 					old_sign[i] = sign;
 					saveCoverClass(0x2301 + i, 0, &JProgramInfo->class23[i], sizeof(CLASS23),
 						para_vari_save);
 				}
 			}
 			sign = stb_crc32((unsigned char *)&JProgramInfo->class12[0], sizeof(CLASS12));
-			if(sign != old_sign[8]){
+			if(sign != old_sign[8] && JProgramInfo->oi_changed.ctrlinit==0){
 				old_sign[8] = sign;
 				saveCoverClass(0x2401, 0, &JProgramInfo->class12[0], sizeof(CLASS12),
 						para_vari_save);
 			}
 			sign = stb_crc32((unsigned char *)&JProgramInfo->class12[1], sizeof(CLASS12));
-			if(sign != old_sign[9]){
+			if(sign != old_sign[9] && JProgramInfo->oi_changed.ctrlinit==0){
 				old_sign[9] = sign;
 				saveCoverClass(0x2402, 0, &JProgramInfo->class12[1], sizeof(CLASS12),
 						para_vari_save);
@@ -1028,6 +1028,7 @@ int SaveAll(void* arg) {
 //		}
 //	}
 //    return (void*)0;
+	return 1;
 }
 
 void CheckCtrlControl() {
@@ -1267,7 +1268,7 @@ void CtrlStateSumUp() {
 			JProgramInfo->class23[i].alConState.index = JProgramInfo->ctrls.c8103.plan[i].numb; //方案号
 			JProgramInfo->class23[i].alConState.enable_flag = JProgramInfo->ctrls.c8103.plan[i].sign; //投入标识
 		}
-		if (JProgramInfo->ctrls.c8103.overflow[i].state == 0) {
+		if (JProgramInfo->ctrls.c8103.enable[i].state == 0) {
 			JProgramInfo->class23[i].alConState.index = 0; //方案号
 			JProgramInfo->class23[i].alConState.enable_flag = 0; //投入标识
 		}
@@ -1573,6 +1574,7 @@ int ctrlMain(void* arg) {
 			dealCtrl();
 		}
 
+		CheckInitPara();
 		if (secOld % 46 == 0) {
 			SaveAll((void *)0);
 		}

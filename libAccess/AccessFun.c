@@ -284,6 +284,7 @@ void paraInit(INT8U oadnum,OAD *oad)
 	if(oadnum == 0) {	//恢复出厂参数
 		system("rm -rf /nand/para");
 		system("rm -rf /nand/event/property");
+		sleep(3);		//延时保证能争取删除参数并通知进程初始化参数
 		InItClass(0);
 	}else {
 		for(i=0;i<oadnum;i++) {

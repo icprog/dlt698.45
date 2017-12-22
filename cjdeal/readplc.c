@@ -4160,7 +4160,10 @@ int stateJuge(int nowdstate,MY_PARA_COUNTER *mypara_p,RUNTIME_PLC *runtime_p,int
 	if (proxyInUse.devUse.plcNeed == 1 && \
 			cjcommProxy_plc.isInUse ==1 && \
 			state!=DATE_CHANGE && \
-			state!=DATA_REAL)
+			state!=DATA_REAL && \
+			state!=INIT_MASTERADDR && \
+			state!=ZB_MODE && \
+			state!=SLAVE_COMP)
 	{	//出现代理标识，并且不在初始化和点抄状态
 		DbgPrintToFile1(31,"载波收到点代理请求, plcNeed: %d, plcReady: %d",proxyInUse.devUse.plcNeed, proxyInUse.devUse.plcReady);
 		runtime_p->state_bak = runtime_p->state;

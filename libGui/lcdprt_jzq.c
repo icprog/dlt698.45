@@ -2361,6 +2361,8 @@ void getlocalip(char *ip){
 
 void menu_jzqreboot()
 {
+	syslog(LOG_NOTICE,"液晶控制重启");
+	sleep(1);
 	reboot(LINUX_REBOOT_CMD_RESTART);
 }
 //1打印开关 2 升级 3 内存使用率

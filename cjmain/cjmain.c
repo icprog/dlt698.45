@@ -617,7 +617,8 @@ void checkDevReset() {
 		break;
 	case 1:
 		if (abs(time(NULL) - oldtime) >= 10) { //掉电前电量处理
-
+			asyslog(LOG_WARNING, "检测到设备需要复位");
+			sleep(3);
 			system("reboot");
 		}
 		break;
@@ -649,6 +650,8 @@ void checkRebootFile() {
 		fclose(fp);
 		count++;
 		if (count > 10) {
+			asyslog(LOG_ERR, "检查到UpFiles/reboot重启...");
+			sleep(1);
 			system("reboot");
 		}
 	}
@@ -777,7 +780,7 @@ int main(int argc, char *argv[])
 //			asyslog(LOG_INFO, "检测有升级目录，延长喂狗时间...");
 			Watchdog(60);
 		} else
-			Watchdog(5);
+			Watchdog(15);//ＧＷ送检经常重启，延长一下清狗时间
 
 		//每20分钟校时
 		SyncRtc();
