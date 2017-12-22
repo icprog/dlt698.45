@@ -1242,6 +1242,9 @@ void CtrlStateSumUp() {
 		if (JProgramInfo->ctrls.c8103.overflow[i].state == 1) {
 			JProgramInfo->class23[i].alCtlState.PCAlarmState = stb_setbit8(
 					JProgramInfo->class23[i].alCtlState.PCAlarmState, 7);
+			////时段功控投入时，增加总加组的方案号与投入标识的更新
+			JProgramInfo->class23[i].alConState.index = JProgramInfo->ctrls.c8103.plan[i].numb; //方案号
+			JProgramInfo->class23[i].alConState.enable_flag = JProgramInfo->ctrls.c8103.plan[i].sign; //投入标识
 		}
 		if (JProgramInfo->ctrls.c8104.overflow[i].state == 1) {
 			JProgramInfo->class23[i].alCtlState.PCAlarmState = stb_setbit8(
@@ -1297,12 +1300,9 @@ void CtrlStateSumUp() {
 		JProgramInfo->class23[i].alCtlState.MonthOutputState |=
 				JProgramInfo->ctrls.c8108.output[i].state;
 
-		JProgramInfo->class23[i].alCtlState.OutputState |=
-				JProgramInfo->ctrls.c8103.output[i].state;
-		JProgramInfo->class23[i].alCtlState.OutputState |=
-				JProgramInfo->ctrls.c8104.output[i].state;
-		JProgramInfo->class23[i].alCtlState.OutputState |=
-				JProgramInfo->ctrls.c8105.output[i].state;
+		JProgramInfo->class23[i].alCtlState.OutputState |= JProgramInfo->ctrls.c8103.output[i].state;
+		JProgramInfo->class23[i].alCtlState.OutputState |= JProgramInfo->ctrls.c8104.output[i].state;
+		JProgramInfo->class23[i].alCtlState.OutputState |= JProgramInfo->ctrls.c8105.output[i].state;
 		JProgramInfo->class23[i].alCtlState.OutputState |= JProgramInfo->ctrls.c8106.output.state;
 	}
 

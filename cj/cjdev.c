@@ -75,10 +75,8 @@ void printF205() {
 
 void printF209() {
 	CLASS_f209 f209 = {};
-    int i = 0;
     readCoverClass(0xf209, 0, &f209, sizeof(CLASS_f209), para_vari_save);
-    fprintf(stderr, "[F209]载波接口\n");
-	fprintf(stderr,"--%d--\n",i);
+    fprintf(stderr, "[F209]载波接口[鼎信：TCR3　　东软：ESRT　　力合微：LH9C　　芯珑：SLE2 　瑞斯康　0101]\n");
 	fprintf(stderr,"厂商信息  = %c%c%c%c\n",f209.para.version.factoryCode[1],f209.para.version.factoryCode[0],
 			f209.para.version.chipCode[1],f209.para.version.chipCode[0]);
 	fprintf(stderr,"版本日期  = %d-%d-%d-%d\n",f209.para.version.softDate[0],f209.para.version.softDate[1],

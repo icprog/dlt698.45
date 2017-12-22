@@ -62,7 +62,7 @@ int BuildFrame_GetResponseRecord(INT8U response_type,CSINFO *csinfo,RESULT_RECOR
 	sendbuf[index++] = response_type;
 	sendbuf[index++] = piid_g.data;		//	piid
 
-	fprintf(stderr,"record.datalen = %d\n",record.datalen);
+//	fprintf(stderr,"record.datalen = %d\n",record.datalen);
 	if (record.datalen > 0)  {
 		if((index+record.datalen+3) > BUFLEN) {
 			syslog(LOG_ERR,"GetResponseRecord 长度[%d]越限[%d],数据应答错误",record.datalen,BUFLEN);
@@ -2965,21 +2965,21 @@ int doGetrecord(INT8U type,OAD oad,INT8U *data,RESULT_RECORD *record,INT16U *sub
 	int		seqof_len = 0;
 	int		i=0	,freezeflg = 0 ,ret = 0;
 
-	DEBUG_TIME_LINE("\nGetRequestRecord   oi=%x  %02x  %02x",record->oad.OI,record->oad.attflg,record->oad.attrindex);
+//	DEBUG_TIME_LINE("\nGetRequestRecord   oi=%x  %02x  %02x",record->oad.OI,record->oad.attflg,record->oad.attrindex);
 	source_index = get_BasicRSD(0,&data[source_index],(INT8U *)&record->select,&record->selectType);
-	DEBUG_TIME_LINE("\nRSD Select%d     data[%d] = %02x",record->selectType,source_index,data[source_index]);
+//	DEBUG_TIME_LINE("\nRSD Select%d     data[%d] = %02x",record->selectType,source_index,data[source_index]);
 	source_index +=get_BasicRCSD(0,&data[source_index],&record->rcsd.csds);
 	//record.rcsd.csds.csd[i].csd.oad.OI
 	SelectorN = record->selectType;
 	if(oad.OI == 0x6012 && oad.attflg == 03 && SelectorN == 0) {//6012的属性3招测记录单元走招测任务数据
 		SelectorN = 10;
 	}
-	DEBUG_TIME_LINE("\n- getRequestRecord SelectorN=%d OI = %04x  attrib=%d  index=%d",SelectorN,record->oad.OI,record->oad.attflg,record->oad.attrindex);
-	printrecord(*record);
+//	DEBUG_TIME_LINE("\n- getRequestRecord SelectorN=%d OI = %04x  attrib=%d  index=%d",SelectorN,record->oad.OI,record->oad.attflg,record->oad.attrindex);
+//	printrecord(*record);
 
 	record->data = &TmpDataBuf[dest_index];
 	dest_index += create_OAD(0,&record->data[dest_index],record->oad);
-    fprintf(stderr,"selectorn=%d  dest_index = %d %02x_%02x_%02x_%02x\n",SelectorN,dest_index,record->data[0],record->data[1],record->data[2],record->data[3]);
+//    fprintf(stderr,"selectorn=%d  dest_index = %d %02x_%02x_%02x_%02x\n",SelectorN,dest_index,record->data[0],record->data[1],record->data[2],record->data[3]);
 	switch(SelectorN) {
 	case 0:
 	case 1:		//指定对象指定值
@@ -3108,7 +3108,7 @@ int doGetrecord(INT8U type,OAD oad,INT8U *data,RESULT_RECORD *record,INT16U *sub
 	case 9:		//指定读取上第n次记录
 		*subframe = 1;		//TODO:未处理分帧
 		dest_index +=fill_RCSD(0,&record->data[dest_index],record->rcsd.csds);
-		fprintf(stderr,"dest_index = %d  record->rcsd.csds.num=%d\n",dest_index,record->rcsd.csds.num);
+//		fprintf(stderr,"dest_index = %d  record->rcsd.csds.num=%d\n",dest_index,record->rcsd.csds.num);
 		record->data = &TmpDataBuf[dest_index];
 		 //一致性测试GET_24 rcsd=0,应答帧应填写rcsd=0 ,
 		if((record->oad.OI & 0xf000) == 0x5000) {	//招测冻结类数据

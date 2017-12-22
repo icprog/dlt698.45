@@ -1713,35 +1713,7 @@ DATA_ITEM checkMeterData(TASK_INFO *meterinfo,int *taski,int *itemi,INT8U usrtyp
 //			meterinfo->tsa.addr[3],meterinfo->tsa.addr[4],meterinfo->tsa.addr[5],
 //			meterinfo->tsa.addr[6],meterinfo->tsa.addr[7],
 //			meterinfo->tsa_index,meterinfo->task_n,meterinfo->task_list[i].fangan.item_n);
-	//正常任务判断
-	for(i=0; i< meterinfo->task_n; i++)
-	{
-		if (nowt >= meterinfo->task_list[i].beginTime && meterinfo->task_list[i].tryAgain != 0x55 )
-		{
-			//判断是否需要抄读
-			fangAnIndex = findFangAnIndex(meterinfo->task_list[i].fangan.No);//查被抄电表当前任务的采集方案编号，在6015中的索引
-			if (fangAnIndex >=0 )
-			{
-				needflg = checkMeterType(fangAn6015[fangAnIndex].mst, usrtype ,meterinfo->tsa);//查被抄电表的用户类型 是否满足6015中的用户类型条件
-			}
-			if (needflg == 1)
-			{
-				 for(j = 0; j<meterinfo->task_list[i].fangan.item_n; j++)
-				 {
-					 if ( meterinfo->task_list[i].fangan.items[j].sucessflg==0)
-					 {
-						 item.oad1 = meterinfo->task_list[i].fangan.items[j].oad1;
-						 item.oad2 = meterinfo->task_list[i].fangan.items[j].oad2;
-						 *taski = i;
-						 *itemi = j;
-						 DbgPrintToFile1(31,"常规任务,满足抄读条件数据项");
-						 return item;	//存在常规任务，满足抄读条件数据项
-					 }
-				 }
-			}
-		}
-	}
-//	return item;  /*没有要抄的了    ， 重起抄读时，再根据补抄标识将成功标识置0，补抄标识置0*/
+
 
 	//需要补抄的任务
 	//-----------------------------------------------------------
@@ -1775,6 +1747,38 @@ DATA_ITEM checkMeterData(TASK_INFO *meterinfo,int *taski,int *itemi,INT8U usrtyp
 			}
 		}
 	}
+
+
+
+	//正常任务判断
+	for(i=0; i< meterinfo->task_n; i++)
+	{
+		if (nowt >= meterinfo->task_list[i].beginTime && meterinfo->task_list[i].tryAgain != 0x55 )
+		{
+			//判断是否需要抄读
+			fangAnIndex = findFangAnIndex(meterinfo->task_list[i].fangan.No);//查被抄电表当前任务的采集方案编号，在6015中的索引
+			if (fangAnIndex >=0 )
+			{
+				needflg = checkMeterType(fangAn6015[fangAnIndex].mst, usrtype ,meterinfo->tsa);//查被抄电表的用户类型 是否满足6015中的用户类型条件
+			}
+			if (needflg == 1)
+			{
+				 for(j = 0; j<meterinfo->task_list[i].fangan.item_n; j++)
+				 {
+					 if ( meterinfo->task_list[i].fangan.items[j].sucessflg==0)
+					 {
+						 item.oad1 = meterinfo->task_list[i].fangan.items[j].oad1;
+						 item.oad2 = meterinfo->task_list[i].fangan.items[j].oad2;
+						 *taski = i;
+						 *itemi = j;
+						 DbgPrintToFile1(31,"常规任务,满足抄读条件数据项");
+						 return item;	//存在常规任务，满足抄读条件数据项
+					 }
+				 }
+			}
+		}
+	}
+//	return item;  /*没有要抄的了    ， 重起抄读时，再根据补抄标识将成功标识置0，补抄标识置0*/
 
 	return item;
 }
@@ -1971,7 +1975,8 @@ int do_5004_type( int taski, int itemi ,INT8U *buf, struct Tsa_Node *desnode, DA
 	}
 	myadd2Pools(taski,itemi);
 	PrintTaskInfo(&taskinfo,taski);
-
+	if(sendlen<0)
+		sendlen = 0;
 	return sendlen;
 }
 int do_5002_type( int taski, int itemi ,INT8U *buf, struct Tsa_Node *desnode, DATA_ITEM  tmpitem)
@@ -2008,7 +2013,8 @@ int do_5002_type( int taski, int itemi ,INT8U *buf, struct Tsa_Node *desnode, DA
 	PrintTaskInfo(&taskinfo,taski);
 //	DbgPrintToFile1(31,"重新初始化 任务%d 开始时间",taskinfo.task_list[taski].taskId);
 //	task_Refresh(&taskinfo.task_list[taski] );
-
+	if(sendlen<0)
+		sendlen = 0;
 	return sendlen;
 }
 
@@ -2200,6 +2206,8 @@ int do_other_type( int taski, int itemi ,INT8U *buf, struct Tsa_Node *desnode, D
 		}
 		myadd2Pools(taski,itemi);
 	}
+	if(sendlen<0)
+		sendlen = 0;
 	PrintTaskInfo(&taskinfo,taski);
 	return sendlen;
 }
