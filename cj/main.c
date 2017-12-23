@@ -42,6 +42,7 @@ static char *usage_sumgroup = "\n--------------------总加组------------------
 		"        【总加组2-8】cj sum pro 2302-2308		\n"
 		"        【脉冲1】cj pulse pro 2401				\n"
 		"        【脉冲2-8】cj pulse pro 2402-2408		\n"
+		"        【终端功控时段】cj ctrlp pro 8101		\n"
 		"        【功控告警时间】cj ctrlp pro 8102		\n"
 		"        【时段功控】cj ctrlp pro 8103		\n"
 		"        【营业报停控】cj ctrlp pro 8105		\n"

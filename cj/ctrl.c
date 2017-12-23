@@ -372,6 +372,16 @@ void sum_process(int argc, char *argv[])
 			if(strcmp(argv[2],"pro")==0) {
 				sscanf(argv[3],"%04x",&tmp);
 				oi = tmp;
+				if(oi==0x8101) {
+					CLASS_8101 c8101={};
+					memset(&c8101, 0x00, sizeof(CLASS_8101));
+					readCoverClass(0x8101, 0, (void *) &c8101, sizeof(CLASS_8101),para_vari_save);
+					fprintf(stderr,"c8101.time_num = %d\n",c8101.time_num);
+					int i = 0;
+					for (i = 0; i < c8101.time_num; i++) {
+						fprintf(stderr,"%02x\n", c8101.time[i]);
+					}
+				}
 				if(oi==0x8102) {
 					CLASS_8102 c8102={};
 					memset(&c8102, 0x00, sizeof(CLASS_8102));
