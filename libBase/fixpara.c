@@ -353,9 +353,9 @@ void InitClassByZone(INT8U type)
  * */
 void InItClass(INT8U type)
 {
+	InitClassByZone(type); //根据地区进行相应初始化	4500,4510参数,防止参数丢失,重新生产
 	InitClass4016(); //当前套日时段表
 	InitClass4300(); //电气设备信息
 	InitClassf201(); //RS485口初始化
 	InitClassf203(); //开关量输入
-	InitClassByZone(type); //根据地区进行相应初始化	4500,4510参数,防止参数丢失,重新生产
 }

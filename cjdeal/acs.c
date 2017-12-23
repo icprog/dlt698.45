@@ -1479,13 +1479,11 @@ void ACSEnergySave(ACEnergy_Sum energysum_tmp) {
 		if (pwr_has() == FALSE) {
 			sleep(2);
 			if (bettery_getV(&bett[0], &bett[1]) == TRUE) {
-				fprintf(stderr, "bett=%f,%f  saveflag=%d\n", bett[0], bett[1],
-						saveflag);
+				fprintf(stderr, "bett=%f,%f  saveflag=%d\n", bett[0], bett[1],saveflag);
 				if ((bett[1] >= MIN_BATTWORK_VOL) && saveflag != 1) {//掉电后且电池电量满足，只保存一次
 					saveflag = 1;
 					fprintf(stderr, "save energy\n");
-					saveCoverClass(0, 0, &energysum_tmp, sizeof(ACEnergy_Sum),
-							acs_energy_save);
+					saveCoverClass(0, 0, &energysum_tmp, sizeof(ACEnergy_Sum),acs_energy_save);
 					syslog(LOG_NOTICE, "底板电源已关闭，电池电压=%f V,保存电能示值", bett[1]);
 				} else {
 					if (bett[1] < MIN_BATTWORK_VOL)
