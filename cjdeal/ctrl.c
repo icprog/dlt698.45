@@ -552,6 +552,8 @@ INT64S getIsInTime(int line) {
 int deal8104() {
 	static int step[8];
 	static int count[8];
+	static INT16S shiduantiaozha = -1;
+	INT8U shiduannow = getCurrTimeShiDuan();
 
 	for (int i = 0; i < 1; i++) {
 		if (JProgramInfo->ctrls.c8104.enable[i].state == 0 || JProgramInfo->ctrls.c8104.list[i].index == 0x00) {
@@ -588,6 +590,7 @@ int deal8104() {
 					step[i] = 1;
 					fprintf(stderr, "厂休控，一轮跳闸[%d]！！！！！！！！！！！！！",
 							JProgramInfo->class23[i].alCtlState.OutputState);
+					shiduantiaozha = shiduannow;
 				}
 				count[i] += 1;
 				break;
@@ -614,10 +617,14 @@ int deal8104() {
 				break;
 			}
 		} else {
-			step[i] = 0;
-			count[i] = 0;
-			JProgramInfo->ctrls.c8104.output[i].state = 0;
-			JProgramInfo->ctrls.c8104.overflow[i].state = 0;
+			if(shiduantiaozha != shiduannow)
+			{
+				step[i] = 0;
+				count[i] = 0;
+				JProgramInfo->ctrls.c8104.output[i].state = 0;
+				JProgramInfo->ctrls.c8104.overflow[i].state = 0;
+			}
+
 		}
 	}
 	return 0;
@@ -661,6 +668,8 @@ INT64S getIsStop(int line) {
 int deal8105() {
 	static int step[8];
 	static int count[8];
+	static INT16S shiduantiaozha = -1;
+	INT8U shiduannow = getCurrTimeShiDuan();
 
 	for (int i = 0; i < 8; i++) {
 		if (JProgramInfo->ctrls.c8105.enable[i].state == 0 || JProgramInfo->ctrls.c8105.list[i].index == 0x00) {
@@ -697,6 +706,7 @@ int deal8105() {
 						step[i] = 1;
 						fprintf(stderr, "营业报停控，一轮跳闸[%d]！！！！！！！！！！！！！",
 								JProgramInfo->class23[i].alCtlState.OutputState);
+						shiduantiaozha = shiduannow;
 					}
 					count[i] += 1;
 					break;
@@ -722,10 +732,13 @@ int deal8105() {
 					step[i] = 0;
 			}
 		} else {
-			JProgramInfo->ctrls.c8105.output[i].state = 0;
-			JProgramInfo->ctrls.c8105.overflow[i].state = 0;
-			step[i] = 0;
-			count[i] = 0;
+			if(shiduantiaozha != shiduannow)
+			{
+				JProgramInfo->ctrls.c8105.output[i].state = 0;
+				JProgramInfo->ctrls.c8105.overflow[i].state = 0;
+				step[i] = 0;
+				count[i] = 0;
+			}
 		}
 	}
 	return 0;
@@ -760,6 +773,8 @@ int deal8106() {
     static int count = 0;
     static int freeze_count = 0;
     static INT64S val;
+	static INT16S shiduantiaozha = -1;
+	INT8U shiduannow = getCurrTimeShiDuan();
 
     if (JProgramInfo->ctrls.c8106.enable.state == 0) {
         step = 0;
@@ -817,6 +832,7 @@ int deal8106() {
                     step = 1;
                     fprintf(stderr, "功率下浮控，一轮跳闸[%d]！！！！！！！！！！！！！",
                             JProgramInfo->class23[i].alCtlState.OutputState);
+            		shiduantiaozha = shiduannow;
                 }
                 count += 1;
                 break;
@@ -842,10 +858,14 @@ int deal8106() {
                 step = 0;
         }
     } else {
-        JProgramInfo->ctrls.c8106.output.state = 0;
-        JProgramInfo->ctrls.c8106.overflow.state = 0;
-        step = 0;
-        count = 0;
+    	if(shiduantiaozha != shiduannow)
+    	{
+            JProgramInfo->ctrls.c8106.output.state = 0;
+            JProgramInfo->ctrls.c8106.overflow.state = 0;
+            step = 0;
+            count = 0;
+    	}
+
     }
     return 0;
 }
