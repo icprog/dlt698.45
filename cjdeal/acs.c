@@ -720,11 +720,19 @@ INT32U read_regist(INT32S fp) {
 	realdata.CosB = trans_regist(COS, 1, RRec[r_Pfb], tmm);
 	realdata.CosC = trans_regist(COS, 1, RRec[r_Pfc], tmm);
 	realdata.Cos = trans_regist(COS, 1, RRec[r_Pft], tmm);
+<<<<<<< HEAD
 	//国网台体测试，功率因数误差增加下面代码导致不合格
 //	if ((realdata.Pa >= 0) && (realdata.Pa <= 10))		realdata.CosA = 1 * COS_COEF;	//没有功率时，功率因数=1
 //	if ((realdata.Pb >= 0) && (realdata.Pb <= 10))		realdata.CosB = 1 * COS_COEF;
 //	if ((realdata.Pc >= 0) && (realdata.Pc <= 10))		realdata.CosC = 1 * COS_COEF;
 //	if ((realdata.Pt >= 0) && (realdata.Pt <= 10))		realdata.Cos = 1 * COS_COEF;
+=======
+	//国网台体专变测试，功率因数误差原来判断＜＝１０，导致不合格，改为３.
+	if ((realdata.Pa >= 0) && (realdata.Pa <= 3))		realdata.CosA = 1 * COS_COEF;	//没有功率时，功率因数=1,否认会是一个跳变的值
+	if ((realdata.Pb >= 0) && (realdata.Pb <= 3))		realdata.CosB = 1 * COS_COEF;
+	if ((realdata.Pc >= 0) && (realdata.Pc <= 3))		realdata.CosC = 1 * COS_COEF;
+	if ((realdata.Pt >= 0) && (realdata.Pt <= 3))		realdata.Cos = 1 * COS_COEF;
+>>>>>>> 7af692a3649a5b20ccb3c482b733de6b140539c2
 	realdata.Freq = trans_regist(FREQ, 1, RRec[r_Freq], tmm);
 
 	realdata.LineUa = trans_regist(U, 1, RRec[r_LineUaRrms], tmm);

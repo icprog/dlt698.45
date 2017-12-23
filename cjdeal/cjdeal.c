@@ -422,11 +422,19 @@ INT8U deal6013_onPara4000changed() {
 	for (tIndex = 0; tIndex < total_tasknum; tIndex++) {
 		if ((list6013[tIndex].basicInfo.taskID > 0)
 				&& (time_now < list6013[tIndex].ts_next)) {
-			fprintf(stderr, "\n12313123123123\n");
-			list6013[tIndex].ts_next = calcnexttime(
-					list6013[tIndex].basicInfo.interval,
-					list6013[tIndex].basicInfo.startime,
-					list6013[tIndex].basicInfo.delay);
+			if((list6013[tIndex].basicInfo.interval.units == minute_units)&&(list6013[tIndex].basicInfo.interval.interval == 5))
+			{
+				asyslog(LOG_INFO,"无奈除此下策");
+				list6013[tIndex].ts_next = time_now;
+			}
+			else
+			{
+				list6013[tIndex].ts_next = calcnexttime(
+						list6013[tIndex].basicInfo.interval,
+						list6013[tIndex].basicInfo.startime,
+						list6013[tIndex].basicInfo.delay);
+			}
+
 		}
 	}
 	fprintf(stderr, "\ndeal6013_onPara4000changed--------------------end\n");
@@ -1034,6 +1042,7 @@ int proxy_dar_fill(PROXY_GETLIST *dest_list, PROXY_GETLIST get_list) {
 	return index;
 }
 extern void set_port_active(INT8U port485, INT8U value);
+
 void Pre_ProxyGetRequestList(CJCOMM_PROXY proxy) {
 	int num = proxy.strProxyList.num, i = 0, num_485 = 0, num_zb = 0,
 			dataindex = 0, rs485_1 = 0, rs485_2 = 0;
@@ -1043,8 +1052,7 @@ void Pre_ProxyGetRequestList(CJCOMM_PROXY proxy) {
 	proxyList_manager.num = num;	//一致性测试
 	proxyList_manager.data[dataindex++] = num;
 	for (i = 0; i < num; i++) {
-		if (get6001ObjByTSA(proxy.strProxyList.proxy_obj.objs[i].tsa, &obj6001)
-				!= 1) {	//TSA未找到
+		if (get6001ObjByTSA(proxy.strProxyList.proxy_obj.objs[i].tsa, &obj6001)!= 1) {	//TSA未找到
 			proxyList_manager.proxy_obj.objs[i].dar = other_err1;
 //			fprintf(stderr,"i=%d,dar=%d\n",i,proxyList_manager.proxy_obj.objs[i].dar);
 //			dataindex += proxy_one_fill(proxy.strProxyList.proxy_obj.objs[i], 0, NULL,request_overtime, &proxyList_manager.data[dataindex]);
@@ -1057,6 +1065,7 @@ void Pre_ProxyGetRequestList(CJCOMM_PROXY proxy) {
 				if (obj6001.basicinfo.port.attrindex == 2)
 					rs485_2 = 1;
 
+<<<<<<< HEAD
 				memcpy(&cjcommProxy.strProxyList.proxy_obj.objs[num_485++],
 						&proxy.strProxyList.proxy_obj.objs[i], sizeof(GETOBJS));
 				cjcommProxy.strProxyList.timeout = proxyList_manager.timeout;
@@ -1064,6 +1073,13 @@ void Pre_ProxyGetRequestList(CJCOMM_PROXY proxy) {
 			} else if (obj6001.basicinfo.port.OI == PORT_ZB) {
 				memcpy(&cjcommProxy_plc.strProxyList.proxy_obj.objs[num_zb++],
 						&proxy.strProxyList.proxy_obj.objs[i], sizeof(GETOBJS));
+=======
+				memcpy(&cjcommProxy.strProxyList.proxy_obj.objs[num_485++],&proxy.strProxyList.proxy_obj.objs[i], sizeof(GETOBJS));
+				cjcommProxy.strProxyList.timeout = proxyList_manager.timeout;
+				cjcommProxy.strProxyList.num = num_485;
+			} else if (obj6001.basicinfo.port.OI == PORT_ZB) {
+				memcpy(&cjcommProxy_plc.strProxyList.proxy_obj.objs[num_zb++],&proxy.strProxyList.proxy_obj.objs[i], sizeof(GETOBJS));
+>>>>>>> 7af692a3649a5b20ccb3c482b733de6b140539c2
 				cjcommProxy_plc.strProxyList.timeout = proxyList_manager.timeout;
 				cjcommProxy_plc.strProxyList.num = num_zb;
 			}
@@ -1177,8 +1193,7 @@ void Pre_ProxyDoRequestList(CJCOMM_PROXY proxy)	//Proxy  Action / Set- List
 
 	proxyList_manager.data[dataindex++] = num;
 	for (i = 0; i < num; i++) {
-		if (get6001ObjByTSA(proxy.strProxyList.proxy_obj.doTsaList[i].tsa,
-				&obj6001) != 1) {	//TSA未找到
+		if (get6001ObjByTSA(proxy.strProxyList.proxy_obj.doTsaList[i].tsa,&obj6001) != 1) {	//TSA未找到
 			proxyList_manager.proxy_obj.doTsaList[i].dar = other_err1;
 //			dataindex += proxy_one_fill(proxy.strProxyList.proxy_obj.doTsaList[i], 0, NULL,0x21, &proxyList_manager.data[dataindex]);
 		} else {
@@ -1271,9 +1286,9 @@ void Pre_ProxyTransCommandRequest(CJCOMM_PROXY proxy) {
 	}
 }
 
-void divProxy(CJCOMM_PROXY proxy) {
-	fprintf(stderr, "divProxy overTime=%d\n",
-			proxy.strProxyList.proxy_obj.f209Trans.overTime);
+void divProxy(CJCOMM_PROXY proxy)
+{
+	fprintf(stderr, "divProxy overTime=%d\n",proxy.strProxyList.proxy_obj.f209Trans.overTime);
 	memset(&cjcommProxy, 0, sizeof(cjcommProxy));
 	memset(&cjcommProxy_plc, 0, sizeof(cjcommProxy_plc));
 	memcpy(&proxyList_manager, &proxy.strProxyList, sizeof(PROXY_GETLIST));
@@ -1858,8 +1873,7 @@ void dispatchTask_proccess() {
 	pthread_attr_setstacksize(&dispatchTask_attr_t, 2048 * 1024);
 	pthread_attr_setdetachstate(&dispatchTask_attr_t, PTHREAD_CREATE_DETACHED);
 
-	while ((thread_dispatchTask_id = pthread_create(&thread_dispatchTask,
-			&dispatchTask_attr_t, (void*) dispatch_thread, NULL)) != 0) {
+	while ((thread_dispatchTask_id = pthread_create(&thread_dispatchTask,&dispatchTask_attr_t, (void*) dispatch_thread, NULL)) != 0) {
 		sleep(1);
 	}
 }
@@ -1947,8 +1961,7 @@ int main(int argc, char *argv[]) {
 	while (1) {
 		gettimeofday(&start, NULL);
 		TSGet(&ts);
-		if (ts.Hour == 15 && ts.Minute == 5 && del_day != ts.Day
-			&& del_min != ts.Minute) {
+		if (ts.Hour == 15 && ts.Minute == 5 && del_day != ts.Day && del_min!= ts.Minute){
 			deloutofdatafile();
 			del_day = ts.Day;
 			del_min = 0;
@@ -1956,8 +1969,7 @@ int main(int argc, char *argv[]) {
 		}
 		DealState(JProgramInfo);
 		gettimeofday(&end, NULL);
-		interval = 1000000 * (end.tv_sec - start.tv_sec)
-				   + (end.tv_usec - start.tv_usec);
+		interval = 1000000 * (end.tv_sec - start.tv_sec) + (end.tv_usec - start.tv_usec);
 		if (interval >= 1000000)
 			fprintf(stderr, "deal main interval = %f(ms)\n", interval / 1000.0);
 

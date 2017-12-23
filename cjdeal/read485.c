@@ -3757,7 +3757,7 @@ INT16S deal6015_698(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8
 	}
 
 	subindex = 0;
-	while(subindex < MAX_RETRY_NUM)
+	while(subindex < MAX_RETRY_NUM_698)
 	{
 		memset(recvbuff, 0, BUFFSIZE2048);
 		SendDataTo485(port485, sendbuff, sendLen);
@@ -4339,7 +4339,7 @@ INT16S deal6017_698(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8
 		}
 	//	fprintf(stderr,"\n\n1------------comfd1 = %d",comfd485[0]);
 		subindex = 0;
-		while(subindex < MAX_RETRY_NUM)
+		while(subindex < MAX_RETRY_NUM_698)
 		{
 			memset(recvbuff, 0, BUFFSIZE2048);
 			SendDataTo485(port485, sendbuff, sendLen);

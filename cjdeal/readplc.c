@@ -1054,7 +1054,7 @@ int doInit(RUNTIME_PLC *runtime_p)
 
 			if (runtime_p->comfd >0)
 				CloseCom( runtime_p->comfd );
-			runtime_p->comfd = OpenCom(5, 9600,(unsigned char*)"even",1,8);// 5 载波路由串口 ttyS5   SER_ZB   //呼唤性模拟测试test  1
+			runtime_p->comfd = OpenCom(5, 9600,(unsigned char*)"even",1,8);// 5 载波路由串口 ttyS5   SER_ZB   //呼唤性模拟测试接485-1 test  1
 			DbgPrintToFile1(31,"comfd=%d",runtime_p->comfd);
 			runtime_p->initflag = 0;
 			clearvar(runtime_p);//376.2上行内容容器清空，发送计时归零
@@ -1115,8 +1115,12 @@ int doInit(RUNTIME_PLC *runtime_p)
 				}
 				//存储F209载波／微功率无线接口的本地通信模块单元信息
 				saveClassF209(module_info.ModuleInfo);
+<<<<<<< HEAD
 
+=======
+>>>>>>> 7af692a3649a5b20ccb3c482b733de6b140539c2
 				clearvar(runtime_p);//376.2上行内容容器清空，发送计时归零
+
 				return ZB_MODE;
 //				return INIT_MASTERADDR;
 			}
@@ -3232,10 +3236,16 @@ INT8U getTransCmdAddrProto(INT8U* cmdbuf, INT8U* addrtmp, INT8U* proto,INT8U len
 			Addr_TSA(addrtmp,&tsatmp);
 			struct Tsa_Node *nodetmp=NULL;
 			nodetmp = getNodeByTSA(tsa_head,tsatmp) ;
+<<<<<<< HEAD
 			if (nodetmp != NULL)
 			{
 				*proto = nodetmp->protocol;//dlt645-07 or 97
 				DbgPrintToFile1(31,"透传TSA proto=%d",*proto);
+=======
+			if(nodetmp!=NULL)
+			{
+				*proto = nodetmp->protocol;//dlt645-07 or 97
+>>>>>>> 7af692a3649a5b20ccb3c482b733de6b140539c2
 				return 1;
 			}
 		}
@@ -3292,12 +3302,14 @@ INT8U Proxy_GetRequestList(RUNTIME_PLC *runtime_p,CJCOMM_PROXY *proxy,int* begin
 				obj_index = (obj_index+1)%proxy->strProxyList.num;//obj_index++;
 				DbgPrintToFile1(31,"代理1 发现未知TSA ");
 			}
-		}else
+		}
+		else
 		{
 			DbgPrintToFile1(31,"代理1  obj_index=%d  allnum=%d",obj_index,proxy->strProxyList.num);
 			*beginwork = 0;
 			proxy->isInUse = 0;
 			obj_index = 0;
+//		代理１发送１次之后，再进入obj_index　＝　proxy->strProxyList.num就直接退出了
 			return 5;	//进入100秒等待
 		}
 	}else if ((runtime_p->format_Up.afn == 0x13 && runtime_p->format_Up.fn == 1 ) && *beginwork==1)

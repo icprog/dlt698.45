@@ -13,6 +13,7 @@
 #include "PublicFunction.h"
 #include "OIfunc.h"
 #include "dlt698.h"
+#include "basedef.h"
 
 
 ///////////////////////////////////////////////////////////
@@ -495,26 +496,31 @@ int Get_6035(INT8U type,INT8U taskid,INT8U *data)
 	return index;
 }
 
+
 int GetF201(OAD oad,INT8U *data)
 {
 	INT8U	comindex = 0, i=0;
 	int 	index=0,ret=0;
+	int		dev_num = 3;
 	CLASS_f201	f201[3]={};
+	ProgramInfo *shareAddr = getShareAddr();
 
 	if(oad.attflg != 2)  return index;
 	memset(&f201,0,sizeof(f201));
 	ret = readCoverClass(oad.OI,0,&f201,sizeof(f201),para_vari_save);
-
+	if(shareAddr->cfg_para.device == CCTT1 || shareAddr->cfg_para.device == SPTF3) {
+		dev_num = 2;
+	}else dev_num = 3;
 	if(oad.attrindex == 0) {
-		index += create_array(&data[index],3);
-		for(i=0;i<3;i++) {
+		index += create_array(&data[index],dev_num);
+		for(i=0;i<dev_num;i++) {
 			index += create_struct(&data[index],3);
 			index += fill_visible_string(&data[index],f201[i].devdesc,strlen(f201[i].devdesc));
 			index += fill_COMDCB(1,&data[index],f201[i].devpara);
 			index += fill_enum(&data[index],f201[i].devfunc);
 		}
 	}else {
-		if(oad.attrindex>=1 && oad.attrindex<=3) {
+		if(oad.attrindex>=1 && oad.attrindex<=dev_num) {
 			comindex = oad.attrindex - 1;
 			index += create_struct(&data[index],3);
 			index += fill_visible_string(&data[index],f201[comindex].devdesc,strlen(f201[comindex].devdesc));

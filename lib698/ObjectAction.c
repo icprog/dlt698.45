@@ -87,8 +87,13 @@ int doReponse(int server, int reponse, CSINFO *csinfo, int datalen, INT8U *data,
     index += fill_timetag(&buf[index],Response_timetag);//时间标签		TimeTag
     fprintf(stderr,"securetype = %d\n",securetype);
     int ret=0;
+
+
     if (securetype != 0)//安全等级类型不为0，代表是通过安全传输下发报文，上行报文需要以不低于请求的安全级别回复
     {
+    	if (getZone("GW") == 0) {
+			PacketBufToFile(1,"APDU_ACT:", (char *)buf, index, NULL);
+		}
     	fprintf(stderr,"\n apduplace = %d   index=%d     index-apduplace=%d",apduplace,index,index - apduplace);
     	ret = composeSecurityResponse(&buf[apduplace], index - apduplace);
     	fprintf(stderr,"\nret = %d",ret);
@@ -1019,8 +1024,8 @@ void TaskInfo(INT16U attr_act, INT8U *data, Action_result *act_ret)
         	DeleteArrayID(0x6013,data);
             break;
         case 129://方法 129:Clear()
-			system("rm -rf /nand/task");
             clearClass(0x6013);        //任务配置单元存放在/nand/para/6013目录
+			system("rm -rf /nand/task");
             break;
         case 130://方法130：update（任务ID，状态）更新任务状态
         	UpdateTaskStatus(0x6013,data,act_ret);
