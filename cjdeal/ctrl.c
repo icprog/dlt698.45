@@ -330,20 +330,19 @@ int CheckAllUnitEmpty(AL_UNIT au[]) {
 //总加组为空
 	return 0;
 }
-
-//根据当前时段
-INT64S getCurrTimeValue(int line) {
+INT8U getCurrTimeShiDuan()
+{
 	TS ts;
 	TSGet(&ts);
 
-//计算当前标准时段
+	INT8U time_num = 0;
+	//计算当前标准时段
 	int offtime = (ts.Hour * 2 + (ts.Minute / 30));
-	int time_index1 = offtime / 4;
-	int time_index2 = offtime % 4;
 
-	int curr_type = 0;
-	int time_num = 0;
-	for (int i = 0; i < offtime; i++) {
+	int curr_type = stb_getbit8(CtrlC->c8101.time[0], 0)
+						+ stb_getbit8(CtrlC->c8101.time[0], 1) * 2;
+
+	for (int i = 0; i < (offtime+1); i++) {
 		int inner_index1 = i / 4;
 		int inner_index2 = i % 4;
 		int inner_type = stb_getbit8(CtrlC->c8101.time[inner_index1], inner_index2 * 2)
@@ -354,9 +353,15 @@ INT64S getCurrTimeValue(int line) {
 		}
 	}
 
+	return time_num;
+}
+//根据当前时段
+INT64S getCurrTimeValue(int line) {
+
+	INT8U time_num = 0;
+	time_num = getCurrTimeShiDuan();
 	int index = CtrlC->c8103.plan[line].numb;
-	fprintf(stderr, "时段功控计算时段 index1 %d index2 %d last %d index %d\n", time_index1, time_index2,
-			time_num, index);
+	fprintf(stderr, "时段功控计算时段last %d index %d\n",time_num, index);
 	switch (index) {
 	case 0:
 		switch (time_num) {
@@ -433,6 +438,9 @@ int deal8103() {
 	static int step[8];
 	static int count[8];
 
+	static INT16S shiduantiaozha = -1;
+	INT8U shiduannow = getCurrTimeShiDuan();
+
 	for (int i = 0; i < 8; i++) {
 		if (JProgramInfo->ctrls.c8103.enable[i].state == 0 || JProgramInfo->ctrls.c8103.list[i].index == 0x00) {
 			step[i] = 0;
@@ -470,6 +478,7 @@ int deal8103() {
 					step[i] = 1;
 					fprintf(stderr, "时段功控，一轮跳闸[%d]！！！！！！！！！！！！！",
 							JProgramInfo->class23[i].alCtlState.OutputState);
+					shiduantiaozha = shiduannow;
 				}
 				count[i] += 1;
 				break;
@@ -496,10 +505,13 @@ int deal8103() {
 				break;
 			}
 		} else {
-			JProgramInfo->ctrls.c8103.output[i].state = 0;
-			JProgramInfo->ctrls.c8103.overflow[i].state = 0;
-			step[i] = 0;
-			count[i] = 0;
+				if(shiduantiaozha!=shiduannow)
+				{
+					JProgramInfo->ctrls.c8103.output[i].state = 0;
+					JProgramInfo->ctrls.c8103.overflow[i].state = 0;
+					step[i] = 0;
+					count[i] = 0;
+				}
 		}
 	}
 	return 0;
