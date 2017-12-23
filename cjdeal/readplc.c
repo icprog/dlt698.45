@@ -860,9 +860,13 @@ int findTsaInList(struct Tsa_Node *head,struct Tsa_Node *desnode)
 	{
 		if(memcmp(&(p->tsa.addr[2]),&(desnode->tsa.addr[2]), desnode->tsa.addr[1]+1)==0)
 		{
-			if(p->protocol == desnode->protocol)
-			{
+			if(getZone("GW")==0) {		//ＧＷ送检不进行规约类型比对，防止鼎信698表比对档案出现类型不匹配，删除从节点继续添加
 				return 1;
+			}else {
+				if(p->protocol == desnode->protocol)
+				{
+					return 1;
+				}
 			}
 //			desnode->readnum = p->readnum;
 //			desnode->protocol = p->protocol;
