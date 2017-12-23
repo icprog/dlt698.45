@@ -1009,21 +1009,21 @@ int SaveAll(void* arg) {
 				sign = stb_crc32((unsigned char *)&JProgramInfo->class23[i], sizeof(CLASS23));
 				if(sign != old_sign[i] && JProgramInfo->oi_changed.ctrlinit==0){
 					old_sign[i] = sign;
-					saveCoverClass(0x2301 + i, 0, &JProgramInfo->class23[i], sizeof(CLASS23),
-						para_vari_save);
+					saveCoverClass(0x2301 + i, 0, &JProgramInfo->class23[i], sizeof(CLASS23),para_vari_save);
+					syslog(LOG_NOTICE,"save class23[%d]",i);
 				}
 			}
 			sign = stb_crc32((unsigned char *)&JProgramInfo->class12[0], sizeof(CLASS12));
 			if(sign != old_sign[8] && JProgramInfo->oi_changed.ctrlinit==0){
 				old_sign[8] = sign;
-				saveCoverClass(0x2401, 0, &JProgramInfo->class12[0], sizeof(CLASS12),
-						para_vari_save);
+				saveCoverClass(0x2401, 0, &JProgramInfo->class12[0], sizeof(CLASS12),para_vari_save);
+				syslog(LOG_NOTICE,"save class12[0]");
 			}
 			sign = stb_crc32((unsigned char *)&JProgramInfo->class12[1], sizeof(CLASS12));
 			if(sign != old_sign[9] && JProgramInfo->oi_changed.ctrlinit==0){
 				old_sign[9] = sign;
-				saveCoverClass(0x2402, 0, &JProgramInfo->class12[1], sizeof(CLASS12),
-						para_vari_save);
+				saveCoverClass(0x2402, 0, &JProgramInfo->class12[1], sizeof(CLASS12),para_vari_save);
+				syslog(LOG_NOTICE,"save class12[1]");
 			}
 //		}
 //	}

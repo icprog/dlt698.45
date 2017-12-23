@@ -1084,6 +1084,9 @@ void TerminalInfo(INT16U attr_act, INT8U *data, Action_result *act_ret)
         	//清除总表计量电量
         	clearEnergy();
         	//参数初始化将相应的变位标志置位
+        	memp->oi_changed.oi6000++;
+        	memp->oi_changed.oi6012++;
+        	memp->oi_changed.oi6014++;
         	memp->oi_changed.oi4016++;
         	memp->oi_changed.oiF203++;
         	memp->oi_changed.oi4300++;

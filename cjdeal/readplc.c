@@ -1033,15 +1033,15 @@ int doInit(RUNTIME_PLC *runtime_p)
 			reset_ZB();
 
 			fprintf(stderr,"\n-----------tsacount=%d",tsa_count);
-			if (tsa_count <= 0)
-			{
-				DbgPrintToFile1(31,"无载波测量点,路由参数初始化");
-				step_init = 0;
-//				sendlen = AFN01_F2(&runtime_p->format_Down,runtime_p->sendbuf);
-//				SendDataToCom(runtime_p->comfd, runtime_p->sendbuf,sendlen );
-				sleep(5);
-				return NONE_PROCE;
-			}
+//			if (tsa_count <= 0)
+//			{
+//				DbgPrintToFile1(31,"无载波测量点,路由参数初始化");
+//				step_init = 0;
+////				sendlen = AFN01_F2(&runtime_p->format_Down,runtime_p->sendbuf);
+////				SendDataToCom(runtime_p->comfd, runtime_p->sendbuf,sendlen );
+//				sleep(5);
+//				return NONE_PROCE;
+//			}
 			runtime_p->send_start_time = nowtime ;
 			step_init = 1;
 			read_num = 0;
@@ -1183,11 +1183,19 @@ int doCompSlaveMeter(RUNTIME_PLC *runtime_p)
 	INT8U addrtmp[6]={};
 	time_t nowtime = time(NULL);
 	INT8U protocoltmp =0;
-	if (module_info.SlavePointMode == 0)
+
+	if (module_info.SlavePointMode == 0 || tsa_head==NULL)//getTsaCount(tsa_head)
 	{
-		DbgPrintToFile1(31,"不需要下发从节点信息，无路由管理");
+		if (tsa_head==NULL)
+		{
+			DbgPrintToFile1(31,"tsa_head=NULL（无测量点）");
+			return NONE_PROCE;
+		}
+		if (module_info.SlavePointMode == 0 )
+			DbgPrintToFile1(31,"无路由管理 ");
 		return TASK_PROCESS;
 	}
+
 	switch(step_cmpslave)
 	{
 		case 0://读取载波从节点数量
