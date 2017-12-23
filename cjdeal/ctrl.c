@@ -1558,7 +1558,7 @@ int ctrlMain(void* arg) {
 
 		//一秒钟刷新一次
 		if (secOld == now.Sec) {
-			usleep(200 * 1000);
+			usleep(10 * 1000);
 			continue;
 		} else {
 			secOld = now.Sec;
