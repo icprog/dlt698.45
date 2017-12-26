@@ -1,6 +1,8 @@
 From,Name,NewName,Position
 ../config/,07DI_698OAD.cfg,07DI_698OAD.cfg,/nor/config/
 ../config/,OI_TYPE.cfg,OI_TYPE.cfg,/nor/config/
+../config/,device.ZheJiang.cfg,device.cfg,/nor/config/
+../config/,systema.cfg,systema.cfg,/nor/config/
 ../bin_arm/,cj,cj,/nand/bin/
 ../bin_arm/,cjup,cjup,/nand/bin/
 ../bin_arm/,cjcomm,cjcomm,/nand/bin/

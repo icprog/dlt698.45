@@ -1064,22 +1064,11 @@ void Pre_ProxyGetRequestList(CJCOMM_PROXY proxy) {
 					rs485_1 = 1;
 				if (obj6001.basicinfo.port.attrindex == 2)
 					rs485_2 = 1;
-
-<<<<<<< HEAD
-				memcpy(&cjcommProxy.strProxyList.proxy_obj.objs[num_485++],
-						&proxy.strProxyList.proxy_obj.objs[i], sizeof(GETOBJS));
-				cjcommProxy.strProxyList.timeout = proxyList_manager.timeout;
-				cjcommProxy.strProxyList.num = num_485;
-			} else if (obj6001.basicinfo.port.OI == PORT_ZB) {
-				memcpy(&cjcommProxy_plc.strProxyList.proxy_obj.objs[num_zb++],
-						&proxy.strProxyList.proxy_obj.objs[i], sizeof(GETOBJS));
-=======
 				memcpy(&cjcommProxy.strProxyList.proxy_obj.objs[num_485++],&proxy.strProxyList.proxy_obj.objs[i], sizeof(GETOBJS));
 				cjcommProxy.strProxyList.timeout = proxyList_manager.timeout;
 				cjcommProxy.strProxyList.num = num_485;
 			} else if (obj6001.basicinfo.port.OI == PORT_ZB) {
 				memcpy(&cjcommProxy_plc.strProxyList.proxy_obj.objs[num_zb++],&proxy.strProxyList.proxy_obj.objs[i], sizeof(GETOBJS));
->>>>>>> 7af692a3649a5b20ccb3c482b733de6b140539c2
 				cjcommProxy_plc.strProxyList.timeout = proxyList_manager.timeout;
 				cjcommProxy_plc.strProxyList.num = num_zb;
 			}
