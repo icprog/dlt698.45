@@ -1299,7 +1299,6 @@ void CtrlStateSumUp() {
 			JProgramInfo->class23[i].alConState.PCState = stb_setbit8(
 					JProgramInfo->class23[i].alConState.PCState, 4);
 		}
-
 		if (JProgramInfo->ctrls.c8107.enable[i].state == 1) {
 			JProgramInfo->class23[i].alConState.ECState = stb_setbit8(
 					JProgramInfo->class23[i].alConState.ECState, 6);
