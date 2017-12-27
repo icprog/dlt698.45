@@ -650,7 +650,7 @@ INT8U Get_StandardUnit(ProgramInfo* prginfo_event,OI_698 oi,INT8U *Rbuf,INT8U *I
 		Rbuf[(*Index)++] = 0;//15无结束时间
 	}else if(oi==0x3106){
 		if(*Source==0){
-			if(getZone("ZheJiang")==0) {
+			if((getZone("ZheJiang")==0)||(getZone("HuNan"))==0) {
 				Rbuf[(*Index)++] = 0;//15无结束时间
 			}else {			//TODO:山东要求停电事件时，报上一次的上电时间
 				Rbuf[(*Index)++] = dtdatetimes;//15
@@ -693,7 +693,7 @@ INT8U Get_StandardUnit(ProgramInfo* prginfo_event,OI_698 oi,INT8U *Rbuf,INT8U *I
 	(*Index)+=sourcelen;
 	//事件上报状态
 	Rbuf[(*Index)++] = dtarray;//array
-	Rbuf[(*Index)++] = 0x02;//数量
+	Rbuf[(*Index)++] = 0x03;//数量
 	Rbuf[(*Index)++] = dtstructure;//struct
 	Rbuf[(*Index)++] = 0x02;//数量
 	Rbuf[(*Index)++] = 0x51;//OAD
@@ -710,6 +710,15 @@ INT8U Get_StandardUnit(ProgramInfo* prginfo_event,OI_698 oi,INT8U *Rbuf,INT8U *I
 	Rbuf[(*Index)++] = 0x10;
 	Rbuf[(*Index)++] = 0x00;
 	Rbuf[(*Index)++] = 0x00;
+	Rbuf[(*Index)++] = dtunsigned;//unsigned
+	Rbuf[(*Index)++] = 0x00;
+	Rbuf[(*Index)++] = dtstructure;//struct
+	Rbuf[(*Index)++] = 0x02;//数量
+	Rbuf[(*Index)++] = 0x51;//OAD
+	Rbuf[(*Index)++] = 0xF2;//2
+	Rbuf[(*Index)++] = 0x00;
+	Rbuf[(*Index)++] = 0x02;
+	Rbuf[(*Index)++] = 0x01;
 	Rbuf[(*Index)++] = dtunsigned;//unsigned
 	Rbuf[(*Index)++] = 0x00;
 	INT8U low_unit=oi&0x00ff;

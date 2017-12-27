@@ -45,6 +45,10 @@ INT8U Report_Event(CommBlock *com,INT8U *oiarr,INT8U report_type){
 	csinfo.ca = com->taskaddr;
     csinfo.sa_length = sa_len;
 	INT8U sendbuf_report[300],tem_buf[300];
+#ifdef TINGSHANGDIAN
+	csinfo.logic_addr = 0;
+	csinfo.ca = 0x10;
+#endif
 	index = FrameHead(&csinfo,sendbuf_report);
 	hcsi = index;  //两字节校验
 	index = index + 2;
