@@ -1138,19 +1138,19 @@ void FileTransMothod(INT16U attr_act, INT8U *data) {
             if (data[2] == 0x02 && data[3] == 0x05) {
                 int data_index = 4;
                 if (data[data_index] != 0x0a) {
-                    fprintf(stderr, "未能找到文件名\n");
+                    syslog(LOG_ERR, "未能找到文件名\n");
                     goto err;
                 }
                 data_index++;
                 if (data[data_index] >= 128) {
-                    fprintf(stderr, "文件名过长\n");
+                	syslog(LOG_ERR, "文件名过长\n");
                     goto err;
                 }
                 memcpy(name, &data[data_index + 1], data[data_index]);
                 data_index += data[data_index] + 1;
 
                 if (data[data_index] != 0x0a) {
-                    fprintf(stderr, "未能找到文件扩展名\n");
+                	syslog(LOG_ERR, "未能找到文件扩展名\n");
                     goto err;
                 }
                 data_index++;
@@ -1162,7 +1162,7 @@ void FileTransMothod(INT16U attr_act, INT8U *data) {
                 data_index += data[data_index] + 1;
 
                 if (data[data_index] != 0x06) {
-                    fprintf(stderr, "未能找到文件长度\n");
+                	syslog(LOG_ERR, "未能找到文件长度\n");
                     goto err;
                 }
                 data_index++;
@@ -1176,19 +1176,19 @@ void FileTransMothod(INT16U attr_act, INT8U *data) {
                 data_index += 3;
 
                 if (data[data_index] != 0x0a) {
-                    fprintf(stderr, "未能找到文件版本信息\n");
+                	syslog(LOG_ERR, "未能找到文件版本信息\n");
                     goto err;
                 }
                 data_index++;
                 if (data[data_index] >= 128) {
-                    fprintf(stderr, "文件版本信息过长\n");
+                	syslog(LOG_ERR, "文件版本信息过长\n");
                     goto err;
                 }
                 memcpy(version, &data[data_index + 1], data[data_index]);
                 data_index += data[data_index] + 1;
 
                 if (data[data_index] != 0x12) {
-                    fprintf(stderr, "未能找到文件传输块大小\n");
+                	syslog(LOG_ERR, "未能找到文件传输块大小\n");
                     goto err;
                 }
                 data_index++;
@@ -1198,12 +1198,12 @@ void FileTransMothod(INT16U attr_act, INT8U *data) {
 
                 data_index += 2;
                 if (data[data_index] != 0x16 || data[data_index + 1] != 0x00) {
-                    fprintf(stderr, "无法找到文件校验方式或者文件校验方式不是CRC{%d}\n", data[data_index + 1]);
+                	syslog(LOG_ERR, "无法找到文件校验方式或者文件校验方式不是CRC{%d}\n", data[data_index + 1]);
                     goto err;
                 }
                 data_index += 2;
                 if (data[data_index] != 0x09) {
-                    fprintf(stderr, "无法找到文件校验的crc\n");
+                	syslog(LOG_ERR, "无法找到文件校验的crc\n");
                     goto err;
                 }
                 data_index++;
@@ -1211,20 +1211,20 @@ void FileTransMothod(INT16U attr_act, INT8U *data) {
             } else if (data[2] == 0x02 && data[3] == 0x06) {
                 int data_index = 4;
                 if (data[data_index] != 0x0a) {
-                    fprintf(stderr, "无法找到源文件\n");
+                	syslog(LOG_ERR, "无法找到源文件\n");
                     goto err;
                 }
                 data_index++;
                 data_index += data[data_index] + 1;
                 if (data[data_index] != 0x0a) {
-                    fprintf(stderr, "无法找到目标文件\n");
+                	syslog(LOG_ERR, "无法找到目标文件\n");
                     goto err;
                 }
                 data_index++;
                 memcpy(name, &data[data_index + 1], data[data_index]);
                 data_index += data[data_index] + 1;
                 if (data[data_index] != 0x06) {
-                    fprintf(stderr, "未能找到文件长度\n");
+                	syslog(LOG_ERR, "未能找到文件长度\n");
                     goto err;
                 }
                 data_index++;
@@ -1237,14 +1237,14 @@ void FileTransMothod(INT16U attr_act, INT8U *data) {
                 file_length += data[data_index++];
                 data_index += 3;
                 if (data[data_index] != 0x0a) {
-                    fprintf(stderr, "未能找到版本信息\n");
+                	syslog(LOG_ERR, "未能找到版本信息\n");
                     goto err;
                 }
                 data_index++;
                 data_index += data[data_index] + 1 + 2;
 
                 if (data[data_index] != 0x12) {
-                    fprintf(stderr, "未能找到分段长度信息\n");
+                	syslog(LOG_ERR, "未能找到分段长度信息\n");
                     goto err;
                 }
                 data_index++;
@@ -1257,7 +1257,7 @@ void FileTransMothod(INT16U attr_act, INT8U *data) {
 
             snprintf(path, sizeof(path), "/nand/UpFiles/%s.%s.temp", name, sub_name);
 
-            fprintf(stderr, "启动传输 文件名:%s,文件长度:%d,文件校验%02x,块长度%d\n", path, file_length, crc, block_length);
+            syslog(LOG_NOTICE, "启动传输 文件名:%s,文件长度:%d,文件校验%02x,块长度%d\n", path, file_length, crc, block_length);
             createFile(path, file_length, crc, block_length);
             break;
         case 8://写文件
@@ -1266,7 +1266,7 @@ void FileTransMothod(INT16U attr_act, INT8U *data) {
                 INT16U block_index = 0;
                 INT32U block_sub_len = 0;
                 if (data[data_index] != 0x12) {
-                    fprintf(stderr, "未能找到分段序号\n");
+                	syslog(LOG_ERR, "未能找到分段序号\n");
                     goto err;
                 }
                 data_index++;
@@ -1275,14 +1275,14 @@ void FileTransMothod(INT16U attr_act, INT8U *data) {
                 block_index += data[data_index++];
 
                 if (data[data_index] != 0x09) {
-                    fprintf(stderr, "未能找到分段长度\n");
+                	syslog(LOG_ERR, "未能找到分段长度\n");
                     goto err;
                 }
                 data_index++;
                 if (data[data_index] > 128) {
                     int length_len = data[data_index] - 128;
                     if (length_len > 2) {
-                        fprintf(stderr, "分片过长\n");
+                    	syslog(LOG_ERR, "分片过长\n");
                         goto err;
                     }
                     data_index++;

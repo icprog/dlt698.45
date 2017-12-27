@@ -223,7 +223,7 @@ DateTimeBCD ChgSucessFlg(TASK_INFO *taskinfo_p,DATA_ITEM item,INT8U usrtype,INT8
 					taskinfo_p->now_itemi = j;
 					taskinfo_p->now_taski = i;
 					timebcd = taskinfo_p->task_list[i].fangan.items[j].savetime;
-					DbgPrintToFile1(31,"更新-%02x%02x%02x%02x%02x%02x%02x%02x[ti=%d ii=%d] [%02x%02x%02x%02x ,  %04x-%02x%02x]",
+					DbgPrintToFile(31,"更新-%02x%02x%02x%02x%02x%02x%02x%02x[ti=%d ii=%d] [%02x%02x%02x%02x ,  %04x-%02x%02x]",
 							taskinfo_p->tsa.addr[0],taskinfo_p->tsa.addr[1],taskinfo_p->tsa.addr[2],taskinfo_p->tsa.addr[3],
 							taskinfo_p->tsa.addr[4],taskinfo_p->tsa.addr[5],taskinfo_p->tsa.addr[6],taskinfo_p->tsa.addr[7],i,j,
 							taskinfo_p->task_list[i].fangan.items[j].item07[0],taskinfo_p->task_list[i].fangan.items[j].item07[1],
@@ -979,7 +979,7 @@ void addTsaList(struct Tsa_Node **head,SlavePointInformation *pointinfo)
 void printModelinfo(AFN03_F10_UP info)
 {
 	DbgPrintToFile1(31,"硬件复位");
-	DbgPrintToFile1(31,"\n\n--------------------------------\n\n厂商信息:%c%c%c%c \nDate:%d-%d-%d \nVersion:%d%d",
+	DbgPrintToFile(31,"\n\n--------------------------------\n\n厂商信息:%c%c%c%c \nDate:%d-%d-%d \nVersion:%d%d",
 			info.ModuleInfo.VendorCode[1],
 			info.ModuleInfo.VendorCode[0],
 			info.ModuleInfo.ChipCode[1],
@@ -989,15 +989,15 @@ void printModelinfo(AFN03_F10_UP info)
 			info.ModuleInfo.VersionDay,
 			info.ModuleInfo.Version[1],
 			info.ModuleInfo.Version[0]);
-	DbgPrintToFile1(31,"\n主节点地址:%02x%02x%02x%02x%02x%02x",
+	DbgPrintToFile(31,"\n主节点地址:%02x%02x%02x%02x%02x%02x",
 			info.MasterPointAddr[5],
 			info.MasterPointAddr[4],
 			info.MasterPointAddr[3],
 			info.MasterPointAddr[2],
 			info.MasterPointAddr[1],
 			info.MasterPointAddr[0]);
-	DbgPrintToFile1(31,"\nMonitorOverTime=%d 秒", info.MonitorOverTime);
-	DbgPrintToFile1(31,"\nReadMode=%02x\n--------------------------------\n\n", info.ReadMode);
+	DbgPrintToFile(31,"\nMonitorOverTime=%d 秒", info.MonitorOverTime);
+	DbgPrintToFile(31,"\nReadMode=%02x\n--------------------------------\n\n", info.ReadMode);
 
 }
 void clearvar(RUNTIME_PLC *runtime_p)
@@ -1044,7 +1044,7 @@ int doInit(RUNTIME_PLC *runtime_p)
 	switch(step_init )
 	{
 		case 0://初始化
-			DbgPrintToFile1(31,"硬件复位...");
+			DbgPrintToFile(31,"硬件复位...");
 			freeList(tsa_head);
 			freeList(tsa_zb_head);
 			tsa_head = NULL;
@@ -2520,7 +2520,7 @@ void saveTaskData_NormalData_1(INT8U protocol,int taskid,POOLTYPE poolone,FORMAT
 		memcpy(&alldata[1],poolone.tsa.addr,17);
 		memcpy(&alldata[18],dataContent,len698);
 		len698 = len698 + 18;
-		DbPrt1(31,"存储:", (char *) alldata, len698, NULL);
+//		DbPrt1(31,"存储:", (char *) alldata, len698, NULL);
 		SaveOADData(taskid,poolone.item.oad1,poolone.item.oad2,alldata,len698,ts);
 	}
 }
@@ -2548,7 +2548,7 @@ void saveTaskData_NormalData(INT8U protocol,TASK_INFO *tskinfo,FORMAT97 *frame97
 		memcpy(&alldata[18],dataContent,len698);
 		len698 = len698 + 18;
 		DbgPrintToFile1(31,"存储任务[%d][%04d-%02d-%02d %02d:%02d:%02d]",tskinfo->task_list[ti].taskId,ts.Year,ts.Month,ts.Day,ts.Hour,ts.Minute,ts.Sec);
-		DbPrt1(31,"存储:", (char *) alldata, len698, NULL);
+//		DbPrt1(31,"存储:", (char *) alldata, len698, NULL);
 		SaveOADData(tskinfo->task_list[ti].taskId,tskinfo->task_list[ti].fangan.items[ii].oad1,tskinfo->task_list[ti].fangan.items[ii].oad2,alldata,len698,ts);
 	}
 
@@ -2564,7 +2564,7 @@ void saveTaskData_MeterCurve(TASK_INFO *tskinfo,FORMAT07 *frame07,TS ts)
 	FORMAT07 myframe07;
 	INT8U errCode[2] = {0xE0, 0xE0};//错误的起始码
 
-	DbPrt1(31,"curve:", (char *) frame07->Data, frame07->Length, NULL);
+//	DbPrt1(31,"curve:", (char *) frame07->Data, frame07->Length, NULL);
 	if (memcmp(&frame07->Data[0], errCode, 2) == 0)
 		return;
 
@@ -2596,7 +2596,7 @@ void saveTaskData_MeterCurve(TASK_INFO *tskinfo,FORMAT07 *frame07,TS ts)
 						memcpy(&alldata[1],tskinfo->tsa.addr,17);
 						memcpy(&alldata[18],dataContent,len698);
 						len698 = len698 + 18;
-						DbPrt1(31,"存储:", (char *) alldata, len698, NULL);
+//						DbPrt1(31,"存储:", (char *) alldata, len698, NULL);
 						SaveOADData(tskinfo->task_list[ti].taskId,
 								tskinfo->task_list[ti].fangan.items[n].oad1,
 								taskinfo.task_list[ti].fangan.items[n].oad2,
@@ -3389,7 +3389,7 @@ int JugeTransType(INT8U *buf,INT8U len,INT8U *buf_645)
 	memset(buf_645,0,BUFSIZE645);
 	memcpy(tmp3762,buf,len);
 
-	DbPrt1(31,"透传的报文:", (char *) tmp3762, len, NULL);
+//	DbPrt1(31,"透传的报文:", (char *) tmp3762, len, NULL);
 	transType = simpleAnaly3762(&formatup,tmp3762,len);
 	if (transType==1)/*透传的是376.2报文*/
 	{
@@ -3400,8 +3400,8 @@ int JugeTransType(INT8U *buf,INT8U len,INT8U *buf_645)
 			memcpy(buf_645,&buf[15],len07);
 			broadtime.len = len07;
 			memcpy(broadtime.buf,buf_645,len07);
-			DbPrt1(31,"645:", (char *) buf_645, len07, NULL);
-			DbPrt1(31,"645:", (char *) &buf[14], 19, NULL);
+//			DbPrt1(31,"645:", (char *) buf_645, len07, NULL);
+//			DbPrt1(31,"645:", (char *) &buf[14], 19, NULL);
 			ret = analyzeProtocol07(&frame07, buf_645, len07, &NEXTflag);
 			if ( ret == 1)
 			{
@@ -4949,7 +4949,7 @@ void readplc_thread()
 	initSearchMeter(&search6002);
 	initTaskData(&taskinfo);
 	PrintTaskInfo2(&taskinfo);
-	DbgPrintToFile1(31,"载波线程开始...111");
+	DbgPrintToFile(31,"载波线程开始...111");
 	runtimevar.format_Down.info_down.ReplyBytes = 0x28;
 
 	DbgPrintToFile1(31,"1-fangAn6015[%d].sernum = %d  fangAn6015[%d].mst.mstype = %d ",
