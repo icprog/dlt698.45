@@ -12,16 +12,17 @@ extern void DealState(ProgramInfo* prginfo);
 extern void read_oif203_para();
 extern INT32S spi_close(INT32S fd);
 extern INT8U is485OAD(OAD portOAD, INT8U port485);
-
-#define TASK6012_MAX 256
+//采集任务最大数量
+#define TASK6012_CAIJI 20
 
 typedef struct {
 	INT8U run_flg; //累计需要抄读次数 抄读一次后置为0   到下一次抄读时间置为1
 	time_t ts_next; //下一次抄表时刻
 	CLASS_6013 basicInfo;
+	CLASS_6035 Info6035;
 } TASK_CFG;
 INT8U total_tasknum;
-TASK_CFG list6013[TASK6012_MAX];
+TASK_CFG list6013[TASK6012_CAIJI];
 
 typedef enum {
 	para_no_chg = 0,
@@ -104,10 +105,8 @@ typedef struct {
 GUI_PROXY cjguiProxy;
 GUI_PROXY cjGuiProxy_plc;
 
-INT8S saveClass6035(CLASS_6035* class6035);
-
 void printinfoReplenish(INT8U);
-INT8S get6035ByTaskID(INT16U taskID, CLASS_6035* class6035);
 INT8U get6001ObjByTSA(TSA addr, CLASS_6001* targetMeter);
+INT8U increase6035Value(INT8U taskID,INT8U type);
 INT8U isTimerSame(INT8S index, INT8U* timeData);
 #endif

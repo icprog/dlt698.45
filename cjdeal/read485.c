@@ -5182,27 +5182,14 @@ void read485_thread(void* i485port) {
 			cleanTaskIDmmq(port);
 		}
 		INT16S taskIndex = getTaskIndex(port);
-#if 0//FAKE
-		INT8U tIndex = 0;
-		for(tIndex = 0;tIndex < TASK6012_MAX;tIndex++)
-		{
-			if(list6013[tIndex].basicInfo.taskID == 1)
-			{
-				taskIndex = tIndex;
-				break;
-			}
-		}
-#endif
 
 		if((taskIndex > -1)&&(info6000[port-1].meterSum > 0))
 		{
 			fprintf(stderr,"\n read485_thread ---------port = %d ------ taskIndex = %d \n",port,taskIndex);
 			DbgPrintToFile1(port,"******************************************taskIndex = %d 任务开始*******************************",taskIndex);
-			CLASS_6035 result6035;	//采集任务监控单元
-			get6035ByTaskID(list6013[taskIndex].basicInfo.taskID,&result6035);
-			result6035.taskState = IN_OPR;
-			DataTimeGet(&result6035.starttime);
-			saveClass6035(&result6035);
+
+			list6013[taskIndex].Info6035.taskState = IN_OPR;
+			DataTimeGet(&list6013[taskIndex].Info6035.starttime);
 
 			CLASS_6015 to6015;	//采集方案集
 			memset(&to6015, 0, sizeof(CLASS_6015));
@@ -5215,11 +5202,7 @@ void read485_thread(void* i485port) {
 					ret = use6013find6015or6017(list6013[taskIndex].basicInfo.cjtype,list6013[taskIndex].basicInfo.sernum,list6013[taskIndex].basicInfo.interval,&to6015);
 					if(ret == 1)
 					{
-						ret = deal6015or6017(list6013[taskIndex].basicInfo,to6015,port,&result6035);
-						DbgPrintToFile1(port,"    deal6015or6017 ret = %d totol=%d,success=%d,send=%d,rev=%d",
-								ret,
-								result6035.totalMSNum,result6035.successMSNum,result6035.sendMsgNum,result6035.rcvMsgNum);
-
+						ret = deal6015or6017(list6013[taskIndex].basicInfo,to6015,port,&list6013[taskIndex].Info6035);
 					}
 					else
 					{
@@ -5240,22 +5223,16 @@ void read485_thread(void* i485port) {
 					break;
 			}
 
-			fprintf(stderr,"\n发送报文数量：%d  接受报文数量：%d",result6035.sendMsgNum,result6035.rcvMsgNum);
 			DbgPrintToFile1(port,"****************taskIndex = %d 任务结束 发送报文数量：%d  接受报文数量：%d*******************************",
-					taskIndex,result6035.sendMsgNum,result6035.rcvMsgNum);
-#if 1
-			result6035.taskState = AFTER_OPR;
+					list6013[taskIndex].basicInfo.taskID,list6013[taskIndex].Info6035.sendMsgNum,list6013[taskIndex].Info6035.rcvMsgNum);
+
+			list6013[taskIndex].Info6035.taskState = AFTER_OPR;
 			TS tsNow;
 			TSGet(&tsNow);
-			INT16U tsaNum = getCBsuctsanum(result6035.taskID,tsNow);
-			DataTimeGet(&result6035.endtime);
-			result6035.successMSNum = tsaNum;
-			saveClass6035(&result6035);
-#endif
+			DataTimeGet(&list6013[taskIndex].Info6035.endtime);
 			if(getZone("GW")!=0)
 			{
 				//抄完日冻结任务需要把infoReplenish　保存到文件里　保证重启后补抄不用全部都抄
-
 				//日冻结任务
 				if(to6015.csds.csd[0].csd.road.oad.OI == 0x5004)
 				{
@@ -5264,10 +5241,14 @@ void read485_thread(void* i485port) {
 					printinfoReplenish(0);
 				}
 			}
-
+			else
+			{
+				list6013[taskIndex].Info6035.successMSNum = getCBsuctsanum(list6013[taskIndex].basicInfo.taskID,tsNow);
+				saveCoverClass(0x6035, list6013[taskIndex].Info6035.taskID, &list6013[taskIndex].Info6035,sizeof(CLASS_6035), coll_para_save);
+			}
 
 			//判断485故障事件
-			if((result6035.sendMsgNum > 0)&&(result6035.rcvMsgNum==0))
+			if((list6013[taskIndex].Info6035.sendMsgNum > 0)&&(list6013[taskIndex].Info6035.rcvMsgNum==0))
 			{
 				Event_310A(c485_err,JProgramInfo);
 			}

@@ -31,7 +31,7 @@ extern ProgramInfo* JProgramInfo;
 extern int SaveOADData(INT8U taskid,OAD oad_m,OAD oad_r,INT8U *databuf,int datalen,TS ts_res);
 extern INT16U data07Tobuff698(FORMAT07 Data07,INT8U* dataContent);
 extern INT16U data97Tobuff698(FORMAT97 Data97,INT8U* dataContent);
-
+extern INT8U increase6035Value(INT8U taskID,INT8U type);
 extern INT8S OADMap07DI(OI_698 roadOI,OAD sourceOAD, C601F_645* flag645);
 extern void DbgPrintToFile1(INT8U comport,const char *format,...);
 extern void DbPrt1(INT8U comport,char *prefix, char *buf, int len, char *suffix);
@@ -45,7 +45,7 @@ extern CLASS_4204	broadcase4204;
 
 extern GUI_PROXY cjGuiProxy_plc;
 extern Proxy_Msg* p_Proxy_Msg_Data;//液晶给抄表发送代理处理结构体，指向由guictrl.c配置的全局变量
-extern TASK_CFG list6013[TASK6012_MAX];
+extern TASK_CFG list6013[TASK6012_CAIJI];
 extern INT8U analyzeProtocol698(INT8U* Rcvbuf, INT8U* resultCount, INT16S recvLen,
 		INT8U* apduDataStartIndex, INT16S* dataLen) ;
 extern INT8U deal698RequestResponse(INT8U getResponseType,INT8U csdNum,INT8U* apdudata,OADDATA_SAVE* oadListContent,INT16U* apdudataLen);
@@ -669,7 +669,7 @@ int task_Refresh(TASK_UNIT *taskunit)
 	INT8U id=0;
 	id = taskunit->taskId;
 	DbgPrintToFile1(31,"task_Refresh  重新初始化 任务%d ",id);
-	for(i=0;i<TASK6012_MAX;i++)
+	for(i=0;i<TASK6012_CAIJI;i++)
 	{
 		if (list6013[i].basicInfo.taskID == id)
 		{
@@ -713,7 +713,7 @@ int task_leve(INT8U leve,TASK_UNIT *taskunit)
 	TS tsNow;
 	TSGet(&tsNow);
 
-	for(i=0;i<TASK6012_MAX;i++)
+	for(i=0;i<TASK6012_CAIJI;i++)
 	{
 		if (list6013[i].basicInfo.cjtype==events)
 			continue;
@@ -749,7 +749,7 @@ int task_leve(INT8U leve,TASK_UNIT *taskunit)
 void task_init6015(CLASS_6015 *fangAn6015p)
 {
 	int i=0,j=0;
-	for(i=0;i<TASK6012_MAX;i++)
+	for(i=0;i<TASK6012_CAIJI;i++)
 	{
 		if (list6013[i].basicInfo.cjtype == norm)//普通采集任务
 		{
@@ -828,10 +828,10 @@ int initTsaList(struct Tsa_Node **head)
 	CLASS_6001	 meter={};
 	struct Tsa_Node *p=NULL;
 	struct Tsa_Node *tmp=NULL;
-
+#ifdef CHECK5004RATE
 	static INT16S lastMeterusrtype = -1;
 	static INT8U oad5004num = 0;//5004数据项个数
-
+#endif
 	record_num = getFileRecordNum(0x6000);
 	for(i=0;i<record_num;i++)
 	{
@@ -2378,15 +2378,13 @@ int ProcessMeter(INT8U *buf,struct Tsa_Node *desnode)
 		{
 			sendlen = do_other_type( taski, itemi , buf, desnode, tmpitem);//其它数据
 		}
+
 		if(getZone("GW")==1)
 		{
 			//6035发送报文数量+1
-			CLASS_6035 result6035;	//采集任务监控单元
-			get6035ByTaskID(taskinfo.task_list[taski].taskId,&result6035);
-			result6035.taskState = IN_OPR;
-			result6035.sendMsgNum++;
-			saveClass6035(&result6035);
+			increase6035Value(taskinfo.task_list[taski].taskId,0);
 		}
+
 	}else
 	{
 		sendlen = 0;
@@ -2455,15 +2453,13 @@ void* ProcessMeter_byJzq(INT8U *buf,INT8U *addrtmp,int *len)//struct Tsa_Node *n
 					tmpitem.oad2.OI,tmpitem.oad2.attflg,tmpitem.oad2.attrindex,sendlen,nodetmp);
 			*len = sendlen;
 			DbgPrintToFile1(31,"有数据抄读，刷新任务内存状态");
+
 			if(getZone("GW")==1)
 			{
 				//6035发送报文数量+1
-				CLASS_6035 result6035;	//采集任务监控单元
-				get6035ByTaskID(taskinfo.task_list[taski].taskId,&result6035);
-				result6035.taskState = IN_OPR;
-				result6035.sendMsgNum++;
-				saveClass6035(&result6035);
+				increase6035Value(taskinfo.task_list[taski].taskId,0);
 			}
+
 //			chkTsaTask(&taskinfo);
 			return nodetmp;
 		}else
@@ -2752,18 +2748,12 @@ void doSave(INT8U protocol,FORMAT97 frame97,FORMAT07 frame07)
 			savetaskID = taskinfo_tmp.task_list[taskinfo_tmp.now_taski].taskId;
 		}
 	}
+
 	if((getZone("GW")==1)&&(savetaskID>0))
 	{
-		//6035发送报文数量+1
-		CLASS_6035 result6035;	//采集任务监控单元
-		get6035ByTaskID(savetaskID,&result6035);
-		result6035.rcvMsgNum++;
-		TS tsNow;
-		TSGet(&tsNow);
-		INT16U tsaNum = getCBsuctsanum(result6035.taskID,tsNow);
-		result6035.successMSNum = tsaNum;
-		saveClass6035(&result6035);
+		increase6035Value(savetaskID,1);
 	}
+
 }
 INT8U ChgSucessFlg_698(TSA tsaMeter,INT8U taskid)
 {
@@ -2975,7 +2965,7 @@ INT8U doSave_698(INT8U* buf645,int len645)
 		}
 		DbgPrintToFile1(31,"rcvCSDnum = %d recordNum = %d taskid = %d",rcvCSDnum,recordNum,taskid);
 		INT16U taskIndex = 0;
-		for(taskIndex=0;taskIndex<TASK6012_MAX;taskIndex++)
+		for(taskIndex=0;taskIndex<TASK6012_CAIJI;taskIndex++)
 		{
 			if (list6013[taskIndex].basicInfo.taskID == taskid)
 			{
@@ -3051,16 +3041,9 @@ INT8U doSave_698(INT8U* buf645,int len645)
 
 	if((getZone("GW")==1)&&(taskid>0))
 	{
-		//6035发送报文数量+1
-		CLASS_6035 result6035;	//采集任务监控单元
-		get6035ByTaskID(taskid,&result6035);
-		result6035.rcvMsgNum++;
-		TS tsNow;
-		TSGet(&tsNow);
-		INT16U tsaNum = getCBsuctsanum(result6035.taskID,tsNow);
-		result6035.successMSNum = tsaNum;
-		saveClass6035(&result6035);
+		increase6035Value(taskid,1);
 	}
+
 #if 0
 	//力合微的模块,07表AFN14_F1请求抄读时,返回AFN06_F2上报抄读数据的规约类型为0,此处用698解析报文失败后,用07规约解析存储
 	else  if (analyzeProtocol07(&frame07, buf645, len645, &nextFlag) == 0)
