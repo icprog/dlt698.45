@@ -38,6 +38,7 @@ extern INT16S getTaskIndex(INT8U port);
 #define ZBBUFSIZE 512
 #define BUFSIZE645 256
 #define TASK6012_MAX 256
+#define TASK6012_CAIJI 20
 #define FANGAN_ITEM_MAX 64
 #define FANGAN6015_MAX 20
 #define NUM_07DI_698OAD 100

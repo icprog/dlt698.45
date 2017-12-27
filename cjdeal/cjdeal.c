@@ -404,13 +404,7 @@ INT8S init6000InfoFrom6000FIle() {
 
 	return result;
 }
-INT8S saveClass6035(CLASS_6035* class6035) {
-	INT8S ret = -1;
-	saveCoverClass(0x6035, class6035->taskID, class6035, sizeof(CLASS_6035),
-			coll_para_save);
 
-	return ret;
-}
 //集中器调时间　需要重新处理任务开始时间：如果是向前对时需要重新计算任务下一次开始时间，向后对时就不用了
 INT8U deal6013_onPara4000changed() {
 	fprintf(stderr, "\ndeal6013_onPara4000changed--------------------start\n");
@@ -463,7 +457,7 @@ INT8U init6013ListFrom6012File() {
 	fprintf(stderr,
 			"\n \n-------------init6013ListFrom6012File---------------start\n");
 	INT8U result = 0;
-	memset(list6013, 0, TASK6012_MAX * sizeof(TASK_CFG));
+	memset(list6013, 0, TASK6012_CAIJI * sizeof(TASK_CFG));
 
 	OI_698 oi = 0x6013;
 	CLASS_6013 class6013 = { };
@@ -520,6 +514,11 @@ INT8U init6013ListFrom6012File() {
 				}
 				//TODO
 				total_tasknum++;
+				if(total_tasknum >= TASK6012_CAIJI)
+				{
+					asyslog(LOG_WARNING, "采集任务数量超过TASK6012_CAIJI");
+					return result;
+				}
 
 			}
 		}
@@ -572,9 +571,12 @@ INT8U init6035TotalNum() {
 				list6013[tIndex].basicInfo.interval, &to6015);
 		if (ret == 1) {
 			INT16U totalMSNum = 0;
-			CLASS_6035 result6035;
-			memset(&result6035, 0, sizeof(CLASS_6035));
-			get6035ByTaskID(list6013[tIndex].basicInfo.taskID, &result6035);
+
+			memset(&list6013[tIndex].Info6035, 0, sizeof(CLASS_6035));
+			list6013[tIndex].Info6035.taskID = list6013[tIndex].basicInfo.taskID;
+			list6013[tIndex].Info6035.taskState = BEFORE_OPR;
+			memcpy(&list6013[tIndex].Info6035.starttime,&list6013[tIndex].basicInfo.startime,sizeof(DateTimeBCD));
+			memcpy(&list6013[tIndex].Info6035.endtime,&list6013[tIndex].basicInfo.endtime,sizeof(DateTimeBCD));
 
 			for (meterIndex = 0; meterIndex < totalNum; meterIndex++) {
 				if (checkMeterType(to6015.mst, allMeter[meterIndex].usrtype,
@@ -582,9 +584,9 @@ INT8U init6035TotalNum() {
 					totalMSNum++;
 				}
 			}
-			asyslog(LOG_WARNING, "init6035TotalNum id =%d  totalMSNum = %d",result6035.taskID,result6035.totalMSNum);
-			result6035.totalMSNum = totalMSNum;
-			saveClass6035(&result6035);
+			asyslog(LOG_WARNING, "init6035TotalNum id =%d  totalMSNum = %d",list6013[tIndex].Info6035.taskID,list6013[tIndex].Info6035.totalMSNum);
+			list6013[tIndex].Info6035.totalMSNum = totalMSNum;
+			saveCoverClass(0x6035, list6013[tIndex].Info6035.taskID, &list6013[tIndex].Info6035, sizeof(CLASS_6035),coll_para_save);
 		}
 
 	}
@@ -709,6 +711,8 @@ void timeProcess() {
 	TS nowTime;
 	TSGet(&nowTime);
 
+	INT8U tIndex = 0;
+
 	if (firstFlag) {
 		lastTime.Year = nowTime.Year;
 		lastTime.Month = nowTime.Month;
@@ -733,29 +737,42 @@ void timeProcess() {
 
 			resetFlag = 1;
 
-			if (getZone("GW") != 0) {
+			if (getZone("GW") != 0)
+			{
 				INT8U taskIndex = 0;
 				for (taskIndex = 0; taskIndex < infoReplenish.tasknum;taskIndex++) {
 					memset(infoReplenish.unitReplenish[taskIndex].isSuccess, 0,2 * MAX_METER_NUM_1_PORT);
 				}
-				filewrite(REPLENISHFILEPATH, &infoReplenish,
-						sizeof(Replenish_TaskInfo));
+				filewrite(REPLENISHFILEPATH, &infoReplenish,sizeof(Replenish_TaskInfo));
 			}
 
 			printinfoReplenish(2);
 
-			CLASS_6035 file6035;
-			INT16U i;
-			for (i = 0; i <= 255; i++) {
-				memset(&file6035, 0, sizeof(CLASS_6035));
-				if (readCoverClass(0x6035, i, &file6035, sizeof(CLASS_6035),
-						coll_para_save) == 1) {
-					file6035.successMSNum = 0;
-					file6035.sendMsgNum = 0;
-					file6035.rcvMsgNum = 0;
-					saveCoverClass(0x6035, file6035.taskID, &file6035,
-							sizeof(CLASS_6035), coll_para_save);
+			for (tIndex = 0; tIndex < total_tasknum; tIndex++)
+			{
+				list6013[tIndex].Info6035.successMSNum = 0;
+				list6013[tIndex].Info6035.sendMsgNum = 0;
+				list6013[tIndex].Info6035.rcvMsgNum = 0;
+				saveCoverClass(0x6035, list6013[tIndex].Info6035.taskID, &list6013[tIndex].Info6035,sizeof(CLASS_6035), coll_para_save);
+			}
+		}
+		if (getZone("GW") != 0)
+		{
+			//每60分钟同步一次6035
+			if(nowTime.Hour!=lastTime.Hour)
+			{
+				for (tIndex = 0; tIndex < total_tasknum; tIndex++)
+				{
+					if(list6013[tIndex].Info6035.rcvMsgNum > 0)
+					{
+						list6013[tIndex].Info6035.successMSNum = getCBsuctsanum(list6013[tIndex].basicInfo.taskID,nowTime);
+						saveCoverClass(0x6035, list6013[tIndex].Info6035.taskID, &list6013[tIndex].Info6035,sizeof(CLASS_6035), coll_para_save);
+						asyslog(LOG_WARNING, "同步6035 id =%d  sendMsgNum = %d rcvMsgNum = %d totalMSNum = %d successMSNum = %d",
+								list6013[tIndex].Info6035.taskID,list6013[tIndex].Info6035.sendMsgNum,
+								list6013[tIndex].Info6035.rcvMsgNum,list6013[tIndex].Info6035.successMSNum,list6013[tIndex].Info6035.totalMSNum);
+					}
 				}
+				lastTime.Hour = nowTime.Hour;
 			}
 		}
 
@@ -1682,37 +1699,6 @@ void printinfoReplenish(INT8U flag) {
 
 }
 
-INT8S get6035ByTaskID(INT16U taskID, CLASS_6035* class6035) {
-	memset(class6035, 0, sizeof(CLASS_6035));
-	class6035->taskID = taskID;
-	CLASS_6035 tmp6035;
-	memset(&tmp6035, 0, sizeof(CLASS_6035));
-	INT16U i;
-	for (i = 0; i <= 255; i++) {
-		if (readCoverClass(0x6035, i, &tmp6035, sizeof(CLASS_6035),
-				coll_para_save) == 1) {
-			if (tmp6035.taskID == taskID) {
-				memcpy(class6035, &tmp6035, sizeof(CLASS_6035));
-				return 1;
-			}
-		}
-	}
-
-	class6035->taskState = BEFORE_OPR;
-	INT8U findIndex;
-	for (findIndex = 0; findIndex < total_tasknum; findIndex++) {
-		if (list6013[findIndex].basicInfo.taskID == class6035->taskID) {
-			memcpy(&class6035->starttime,
-					&list6013[findIndex].basicInfo.startime,
-					sizeof(DateTimeBCD));
-			memcpy(&class6035->endtime, &list6013[findIndex].basicInfo.endtime,
-					sizeof(DateTimeBCD));
-		}
-	}
-	saveCoverClass(0x6035, class6035->taskID, class6035, sizeof(CLASS_6035),
-			coll_para_save);
-	return -1;
-}
 INT8U isTimerSame(INT8S index, INT8U* timeData)
 {
 	INT8S ret = 1;
@@ -1789,6 +1775,28 @@ INT8U get6001ObjByTSA(TSA addr, CLASS_6001* targetMeter) {
 	fprintf(stderr, "get6001ObjByTSA ret=%d\n", ret);
 	return ret;
 }
+//type =0 sendMsgNum++;/type =1 rcvMsgNum++;
+INT8U increase6035Value(INT8U taskID,INT8U type)
+{
+	INT8U ret = 0;
+	INT8U tIndex;
+	for (tIndex = 0; tIndex < total_tasknum; tIndex++)
+	{
+		if (list6013[tIndex].Info6035.taskID == taskID)
+		{
+			if(type==0)
+			{
+				list6013[tIndex].Info6035.sendMsgNum++;
+				list6013[tIndex].Info6035.taskState = IN_OPR;
+			}
+			else
+			{
+				list6013[tIndex].Info6035.rcvMsgNum++;
+			}
+		}
+	}
+	return ret;
+}
 INT8U checkReplenishDatInFile(Replenish_TaskInfo* replenishinfo)
 {
 	TS tsNow;
@@ -1796,13 +1804,12 @@ INT8U checkReplenishDatInFile(Replenish_TaskInfo* replenishinfo)
 	INT8U ret = 0,tIndex = 0;
 	for(tIndex = 0;tIndex < replenishinfo->tasknum;tIndex++)
 	{
-		INT16U tsaNum = getCBsuctsanum(replenishinfo->unitReplenish[tIndex].taskID,tsNow);
-		DbgPrintToFile1(3, "任务ID = %d tsaNum = %d",replenishinfo->unitReplenish[tIndex].taskID,tsaNum);
-		if(tsaNum == 0)
+		char fname[FILENAMELEN]={};
+		getTaskFileName(replenishinfo->unitReplenish[tIndex].taskID,tsNow,fname);
+		if(access(fname,F_OK)!=0)
 		{
 			memset(replenishinfo->unitReplenish[tIndex].isSuccess, 0,2 * MAX_METER_NUM_1_PORT);
 		}
-
 	}
 	return ret;
 }
