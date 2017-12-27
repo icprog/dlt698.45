@@ -46,8 +46,12 @@ INT16U compose6012Buff(DateTimeBCD startTime,DateTimeBCD saveTime,TSA meterAddr,
 INT8U getSaveTime(DateTimeBCD* saveTime,INT8U cjType,INT8U saveTimeFlag,DATA_TYPE curvedata);
 INT8U request698_singleOAD(CLASS_6015 st6015, CLASS_6001 to6001,INT8U* data,INT8U port485);
 
+/*
+ * 去掉程序中日志的内容
+ * */
 void DbgPrintToFile1(INT8U comport,const char *format,...)
 {
+	return;
 	char str[50];
 	char fname[100];
 	char tmpcmd[256];
@@ -82,6 +86,57 @@ void DbgPrintToFile1(INT8U comport,const char *format,...)
 	stat(fname, &fileInfo);
 	if(comport==31) {	//载波口log
 		logsize = 8192*1000;	//8M
+	}else
+		logsize = 2048*1000;	//2M	防止II型集中器log过大，nand空间不足
+	//	if (fileInfo.st_size>4096*1000)//超过300K
+	if (fileInfo.st_size>logsize)//超过300K
+	{
+		memset(tmpcmd,0,sizeof(tmpcmd));
+		sprintf(tmpcmd,"cp %s %s.0",fname,fname);
+		system(tmpcmd);
+		sleep(3);
+		memset(tmpcmd,0,sizeof(tmpcmd));
+		sprintf(tmpcmd,"rm %s",fname);
+		system(tmpcmd);
+	}
+}
+
+void DbgPrintToFile(INT8U comport,const char *format,...)
+{
+	char str[50];
+	char fname[100];
+	char tmpcmd[256];
+	time_t cur_time;
+	struct tm cur_tm;
+	long  int  logsize=0;
+	FILE *fp = NULL;
+
+	memset(fname,0,sizeof(fname));
+	sprintf(fname,"/nand/log_698/vs485_%d.log",comport);
+	memset(str,0,50);
+	cur_time=time(NULL);
+	localtime_r(&cur_time,&cur_tm);
+	sprintf(str, "\n[%04d-%02d-%02d %02d:%02d:%02d]",
+			cur_tm.tm_year+1900, cur_tm.tm_mon+1, cur_tm.tm_mday,
+			cur_tm.tm_hour, cur_tm.tm_min, cur_tm.tm_sec);
+
+	fp = fopen(fname, "a+");//内容存入文件
+	if (fp != NULL)
+	{
+		va_list ap;
+	    va_start(ap,format);
+		vfprintf(fp,str,ap);
+	    if(fp)
+			vfprintf(fp,format,ap);
+	    va_end(ap);
+	    fflush(fp);
+		fclose(fp);
+	}
+
+	struct stat fileInfo;
+	stat(fname, &fileInfo);
+	if(comport==31) {	//载波口log
+		logsize = 4096*1000;	//4M
 	}else
 		logsize = 2048*1000;	//2M	防止II型集中器log过大，nand空间不足
 	//	if (fileInfo.st_size>4096*1000)//超过300K
@@ -148,7 +203,7 @@ void DbPrt1(INT8U comport,char *prefix, char *buf, int len, char *suffix)
 		}
 		if(suffix!=NULL)
 			strcat(tmpbuf, suffix);
-		DbgPrintToFile1(comport,tmpbuf);
+		DbgPrintToFile(comport,tmpbuf);
 		count += prtlen;
 		if(count>=len)
 			break;
@@ -4018,7 +4073,7 @@ INT8S checkTimeStamp07(CLASS_6001 obj6001,INT8U port485)
 		result = isTimerSame(0,dataContent);
 	}
 
-	DbPrt1(port485,"checkTimeStamp07 buff:", (char *) dataContent, 10, NULL);
+//	DbPrt1(port485,"checkTimeStamp07 buff:", (char *) dataContent, 10, NULL);
 	return result;
 }
 
@@ -4875,8 +4930,8 @@ INT16U compose6012Buff(DateTimeBCD startTime,DateTimeBCD saveTime,TSA meterAddr,
 	}
 	memset(dataContent,0,DATA_CONTENT_LEN);
 	memcpy(dataContent,buff6012,bufflen);
-	fprintf(stderr,"\n\n buff6012[%d]:",bufflen);
-	DbPrt1(port485,"存储数据  compose6012Buff:", (char *) dataContent, bufflen, NULL);
+//	fprintf(stderr,"\n\n buff6012[%d]:",bufflen);
+//	DbPrt1(port485,"存储数据  compose6012Buff:", (char *) dataContent, bufflen, NULL);
 	return bufflen;
 }
 //GetOrSet 0 -get 1-set
