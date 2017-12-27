@@ -68,8 +68,11 @@ void cReadWithoutCheck(struct aeEventLoop *ep, int fd, void *clientData, int mas
 	}
 	int buflen = 0;
 	buflen = (nst->RHead - nst->RTail + BUFLEN) % BUFLEN;
+
 	if(buflen < 512) {		//测试，主站升级时，去掉日志打印
 		bufsyslog(nst->RecBuf, "接收:", nst->RHead, nst->RTail, BUFLEN);
+	}else {
+		asyslog(LOG_WARNING, "接收[H=%d T=%d len=%d]",nst->RHead, nst->RTail, buflen);
 	}
 	if (getZone("GW") == 0) {
 		char prtpara[16];
@@ -98,10 +101,15 @@ void cRead(struct aeEventLoop *ep, int fd, void *clientData, int mask) {
 			read(fd, &nst->RecBuf[nst->RHead], 1);
 			nst->RHead = (nst->RHead + 1) % BUFLEN;
 		}
-		bufsyslog(nst->RecBuf, "接收:", nst->RHead, nst->RTail, BUFLEN);
+		int buflen = 0;
+		buflen = (nst->RHead - nst->RTail + BUFLEN) % BUFLEN;
+
+		if(buflen < 512) {		//测试，主站升级时，去掉日志打印
+			bufsyslog(nst->RecBuf, "接收:", nst->RHead, nst->RTail, BUFLEN);
+		}else {
+			asyslog(LOG_WARNING, "接收[H=%d T=%d len=%d]",nst->RHead, nst->RTail, buflen);
+		}
 		if (getZone("GW") == 0) {
-			int buflen = 0;
-			buflen = (nst->RHead - nst->RTail + BUFLEN) % BUFLEN;
 			char prtpara[16];
 			sprintf(prtpara,"[NET_%d]R:",nst->name);
 			PacketBufToFile(1,prtpara, (char *) &nst->RecBuf[nst->RTail],

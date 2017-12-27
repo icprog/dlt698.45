@@ -135,9 +135,9 @@ void DbgPrintToFile(INT8U comport,const char *format,...)
 
 	struct stat fileInfo;
 	stat(fname, &fileInfo);
-//	if(comport==31) {	//载波口log
-//		logsize = 8192*1000;	//8M
-//	}else
+	if(comport==31) {	//载波口log
+		logsize = 4096*1000;	//4M
+	}else
 		logsize = 2048*1000;	//2M	防止II型集中器log过大，nand空间不足
 	//	if (fileInfo.st_size>4096*1000)//超过300K
 	if (fileInfo.st_size>logsize)//超过300K
