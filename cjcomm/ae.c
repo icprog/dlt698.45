@@ -90,6 +90,9 @@ err:
         free(eventLoop->events);
         free(eventLoop->fired);
         free(eventLoop);
+        eventLoop->events = NULL;
+        eventLoop->fired = NULL;
+        eventLoop = NULL;
     }
     return NULL;
 }
@@ -145,6 +148,9 @@ void aeDeleteEventLoop(aeEventLoop* eventLoop) {
     free(eventLoop->events);
     free(eventLoop->fired);
     free(eventLoop);
+    eventLoop->events = NULL;
+    eventLoop->fired = NULL;
+    eventLoop = NULL;
 }
 
 /*
@@ -325,7 +331,7 @@ int aeDeleteTimeEvent(aeEventLoop* eventLoop, long long id) {
 
             // 释放时间事件
             free(te);
-
+            te = NULL;
             return AE_OK;
         }
         prev = te;

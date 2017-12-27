@@ -210,8 +210,10 @@ int msgbox_passwd(char *passwd, int len) {
 	btn_ok.form.focus = FOCUS;
 	gui_setrect(&msgbox_rect, msgbox_pos.x, msgbox_pos.y, msgbox_pos.x+13*FONTSIZE, msgbox_pos.y+8*FONTSIZE);
 	msgbox(msgbox_rect, head, NULL, &msgbox_ret);
-	if(head!=NULL)
+	if(head!=NULL) {
 		free(head);
+		head = NULL;
+	}
 //------------------------------------------------
 	if(len>INPUTKEYNUM)
 		return PASSWD_ERR;
@@ -261,8 +263,10 @@ int msgbox_setpasswd(char *passwd, int len, char *s_passwd_ret)
 	memcpy(ttext[1].text, (char*)"新密码:", strlen("新密码:"));
 	gui_setrect(&msgbox_rect, msgbox_pos.x, msgbox_pos.y, msgbox_pos.x+17*FONTSIZE, msgbox_pos.y+10*FONTSIZE);
 	msgbox(msgbox_rect, head, ttext, &msgbox_ret);
-	if(head!=NULL)
+	if(head!=NULL) {
 		free(head);
+		head = NULL;
+	}
 	//------------------------------------------------
 	int passwd_ok=0;
 	if(msgbox_ret.btn_ret==ACK){
@@ -312,8 +316,10 @@ int msgbox_label(char *text, int ctrl_focus){
 	memcpy(ttext[0].text, text, strlen(text));
 	gui_setrect(&msgbox_rect, msgbox_pos.x, msgbox_pos.y, msgbox_pos.x+14*FONTSIZE+offset_x*FONTSIZE, msgbox_pos.y+8*FONTSIZE);
 	msgbox(msgbox_rect, head, ttext, &msgbox_ret);
-	if(head!=NULL)
+	if(head!=NULL) {
 		free(head);
+		head = NULL;
+	}
 	return msgbox_ret.btn_ret;
 }
 //显示当前的485-2规约，定义一个功能切换按钮，按下按钮之后进行功能切换并实时刷新
@@ -348,8 +354,10 @@ int menu_485func_show(char *text,INT8U ctrl_focus)
 	memcpy(ttext[0].text, text, strlen(text));
 	gui_setrect(&msgbox_rect, msgbox_pos.x, msgbox_pos.y, msgbox_pos.x+14*FONTSIZE+offset_x*FONTSIZE, msgbox_pos.y+8*FONTSIZE);
 	msgbox(msgbox_rect, head, ttext, &msgbox_ret);//为什么按下确定键之后对话框消失了
-	if(head!=NULL)
+	if(head!=NULL) {
 		free(head);
+		head = NULL;
+	}
 	return msgbox_ret.btn_ret;
 }
 //通过测量点号抄表
@@ -383,8 +391,10 @@ int msgbox_inputcldno(){
 	set_oprmode(OPRMODE_MODIFY);
 	msgbox(msgbox_rect, head, NULL, &msgbox_ret);
 	set_oprmode(oprmode_old);
-	if(head!=NULL)
+	if(head!=NULL) {
 		free(head);
+		head = NULL;
+	}
 	if(msgbox_ret.btn_ret==ACK){
 		cldno = atoi((char*)msgbox_ret.s_ret);
 //		dbg_prt("\n s_cldno[%02x][%02x][%02x][%02x] cldno=%d",
@@ -424,8 +434,10 @@ int msgbox_inputcldaddr(char *cldaddr,int num){
 	set_oprmode(OPRMODE_MODIFY);
 	msgbox(msgbox_rect, head, NULL, &msgbox_ret);
 	set_oprmode(oprmode_old);
-	if(head!=NULL)
+	if(head!=NULL) {
 		free(head);
+		head = NULL;
+	}
 	if(msgbox_ret.btn_ret==ACK){
 		asc2bcd((INT8U*)msgbox_ret.s_ret, 12, (INT8U*)cldaddr, positive);
 	}
@@ -472,8 +484,10 @@ int msgbox_inputjzqtime(char *s_jzqtime, int len)
 	else
 		gui_setrect(&msgbox_rect, msgbox_pos.x, msgbox_pos.y, msgbox_pos.x+21*FONTSIZE, msgbox_pos.y+8*FONTSIZE);
 	msgbox(msgbox_rect, head, NULL, &msgbox_ret);
-	if(head!=NULL)
+	if(head!=NULL) {
 		free(head);
+		head = NULL;
+	}
 	memcpy(s_jzqtime, msgbox_ret.s_ret, len);
 	return msgbox_ret.btn_ret;
 }
@@ -513,8 +527,10 @@ int msgbox_jzqaddr_10(char *s_jzqdizhi10, int len){
 //	memcpy(ttext[1].text, (char*)"逻辑地址:", strlen("逻辑地址:"));
 	gui_setrect(&msgbox_rect, msgbox_pos.x, msgbox_pos.y, msgbox_pos.x+18*FONTSIZE, msgbox_pos.y+12*FONTSIZE);
 	msgbox(msgbox_rect, head, ttext, &msgbox_ret);
-	if(head!=NULL)
+	if(head!=NULL) {
 		free(head);
+		head = NULL;
+	}
 
 	memcpy(s_jzqdizhi10, msgbox_ret.s_ret, len*2+1);
 //	dbg_prt("\n intput dizhi10: ");
@@ -561,8 +577,10 @@ int msgbox_masterip(char *s_ipport, int len){
 	memcpy(ttext[1].text, (char*)"端口号:", strlen("端口号:"));
 	gui_setrect(&msgbox_rect, msgbox_pos.x, msgbox_pos.y, msgbox_pos.x+19*FONTSIZE, msgbox_pos.y+13*FONTSIZE);
 	msgbox(msgbox_rect, head, ttext, &msgbox_ret);
-	if(head!=NULL)
+	if(head!=NULL) {
 		free(head);
+		head = NULL;
+	}
 	memcpy(s_ipport, msgbox_ret.s_ret, len);
 //	dbg_prt("\n s_jzqip:[%s]", s_ipport);
 	return msgbox_ret.btn_ret;
@@ -603,8 +621,10 @@ int msgbox_jzqip(char *s_ipport, int len){
 	set_oprmode(OPRMODE_MODIFY);
 	msgbox(msgbox_rect, head, ttext, &msgbox_ret);
 	set_oprmode(oprmode_old);
-	if(head!=NULL)
+	if(head!=NULL) {
 		free(head);
+		head = NULL;
+	}
 	memcpy(s_ipport, msgbox_ret.s_ret, len);
 //	dbg_prt("\n s_jzqip:[%s]", s_ipport);
 	return msgbox_ret.btn_ret;
@@ -644,8 +664,10 @@ int _msgbox_soubiao(int *index, Text_t *ttext, MsgBoxRet *msgbox_ret)
 	gui_setrect(&msgbox_rect, msgbox_pos.x, msgbox_pos.y, msgbox_pos.x+17*FONTSIZE, msgbox_pos.y+8*FONTSIZE);
 	msgbox(msgbox_rect, head, ttext, msgbox_ret);
 	*index = msgbox_ret->s_ret[0];
-	if(head!=NULL)
+	if(head!=NULL) {
 		free(head);
+		head = NULL;
+	}
 	return msgbox_ret->btn_ret;
 }
 int msgbox_soubiao(int *index, MsgBoxRet *msgbox_ret){
@@ -687,8 +709,10 @@ int msgbox_heart(char *s_heart, int len){
 	memcpy(ttext[1].text, (char*)"分钟", strlen("分钟"));
 	gui_setrect(&msgbox_rect, msgbox_pos.x, msgbox_pos.y, msgbox_pos.x+18*FONTSIZE, msgbox_pos.y+8*FONTSIZE);
 	msgbox(msgbox_rect, head, ttext, &msgbox_ret);
-	if(head!=NULL)
+	if(head!=NULL) {
 		free(head);
+		head = NULL;
+	}
 	memcpy(s_heart, msgbox_ret.s_ret, 2);
 //	dbg_prt("\n s_heart:[%s]", s_heart);
 	return msgbox_ret.btn_ret;
@@ -731,8 +755,10 @@ int msgbox_apn(char *s_apn){
 	memcpy(ttext[0].text, (char*)"APN:", strlen("APN:"));
 	gui_setrect(&msgbox_rect, msgbox_pos.x, msgbox_pos.y, msgbox_pos.x+20*FONTSIZE, msgbox_pos.y+9*FONTSIZE);
 	msgbox(msgbox_rect, head, ttext, &msgbox_ret);
-	if(head!=NULL)
+	if(head!=NULL) {
 		free(head);
+		head = NULL;
+	}
 	if(msgbox_ret.btn_ret==ACK){
 		memcpy(s_apn, msgbox_ret.s_ret, strlen(msgbox_ret.s_ret));
 //		dbg_prt("\n apn=%s",s_apn);
@@ -764,8 +790,10 @@ int msgbox_oprmode(int ctrl_focus){
 
 	gui_setrect(&msgbox_rect, msgbox_pos.x, msgbox_pos.y, msgbox_pos.x+16*FONTSIZE, msgbox_pos.y+12*FONTSIZE);
 	msgbox(msgbox_rect, head, NULL, &msgbox_ret);
-	if(head!=NULL)
+	if(head!=NULL) {
 		free(head);
+		head = NULL;
+	}
 	if(msgbox_ret.btn_ret==ACK)
 		return OPRMODE_MODIFY;
 	else if(msgbox_ret.btn_ret==CAN)

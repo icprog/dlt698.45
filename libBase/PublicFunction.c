@@ -1064,13 +1064,15 @@ INT8S reversebuff(INT8U* buff, INT32U len, INT8U* invbuff) {
     if (invbuff == NULL)
         return -3;
     INT8U* buftmp = (INT8U*)malloc(len);
-    memcpy(buftmp, buff, len);
-    INT32U i = 0;
-    for (i = 0; i < len; i++) {
-        invbuff[i] = buftmp[len - i - 1];
+    if(buftmp != NULL) {
+		memcpy(buftmp, buff, len);
+		INT32U i = 0;
+		for (i = 0; i < len; i++) {
+			invbuff[i] = buftmp[len - i - 1];
+		}
+		free(buftmp);
+		buftmp = NULL;
     }
-    free(buftmp);
-    buftmp = NULL;
     return 0;
 }
 

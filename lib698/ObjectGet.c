@@ -2726,13 +2726,19 @@ int GetSle0_task(RESULT_RECORD *record)
 
 		if(fp != NULL)
 		{
-			unitnum = GetTaskHead(fp,&headsize,&blocksize,&headunit);
+			unitnum = GetTaskHead(fp,&headsize,&blocksize,&headunit);//////////TODO：lyl
+			if(headunit == NULL) {
+				fclose(fp);
+				return 0;
+			}
 			INT8U *blockbuf=NULL;
 			INT8U m=0,n=0,offset=0,j=0;
 			blockbuf=malloc(blocksize);
 
-			if(headunit == NULL)
+			if(blockbuf == NULL) {
+				fclose(fp);
 				return 0;
+			}
 			INT8U first=0;
 			for(m=0;m<tsa_num;m++)
 			{
@@ -3223,21 +3229,27 @@ int GetEventRecord(RESULT_NORMAL *response)
 		if (datalen > 512 || data==NULL)
 		{
 			fprintf(stderr,"\n获取事件数据Get_Event函数异常! [datalen=%d  data=%p]",datalen,data);
-			if (data!=NULL)
+			if (data!=NULL) {
 				free(data);
+				data = NULL;
+			}
 			return 0;
 		}
 		memcpy(response->data,data,datalen);
 		response->datalen = datalen;
-		if (data!=NULL)
+		if (data!=NULL) {
 			free(data);
+			data = NULL;
+		}
 		return 1;
 	}
 	response->datalen = 0;
 	response->dar = other_err1;
 	fprintf(stderr,"\n获取事件数据Get_Event函数返回 0  [datalen=%d  data=%p]",datalen,data);
-	if (data!=NULL)
+	if (data!=NULL) {
 		free(data);
+		data = NULL;
+	}
 	return 1;
 }
 
@@ -3264,6 +3276,7 @@ int GetClass7attr(RESULT_NORMAL *response)
 		memcpy(&class7,parabuf,sizeof(Class7_Object));
 		if(parabuf!=NULL) {
 			free(parabuf);
+			parabuf = NULL;
 		}
 	}
 	fprintf(stderr,"ret = %d class7.crrentnum=%d\n",ret, class7.crrentnum);

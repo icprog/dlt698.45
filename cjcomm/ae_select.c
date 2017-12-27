@@ -61,6 +61,7 @@ static int aeApiResize(aeEventLoop* eventLoop, int setsize) {
 
 static void aeApiFree(aeEventLoop* eventLoop) {
     free(eventLoop->apidata);
+    eventLoop->apidata = NULL;
 }
 
 static int aeApiAddEvent(aeEventLoop* eventLoop, int fd, int mask) {

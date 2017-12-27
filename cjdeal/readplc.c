@@ -820,6 +820,8 @@ INT8U get5004Num(INT8U usrType,TSA usrAddr)
 	}
 	return result;
 }
+
+//注意函数调用之前要free内存
 int initTsaList(struct Tsa_Node **head)
 {
 	int i=0, record_num=0 ,n=0;
@@ -837,7 +839,7 @@ int initTsaList(struct Tsa_Node **head)
 		{
 			if (meter.sernum!=0 && meter.sernum!=0xffff && meter.basicinfo.port.OI==0xf209)
 			{
-				tmp = (struct Tsa_Node *)malloc(sizeof(struct Tsa_Node));
+				tmp = (struct Tsa_Node *)malloc(sizeof(struct Tsa_Node));//在函数外面 freeList
 				memcpy(&tmp->tsa , &meter.basicinfo.addr,sizeof(TSA));
 				tmp->protocol = meter.basicinfo.protocol;
 				tmp->usrtype = meter.basicinfo.usrtype;

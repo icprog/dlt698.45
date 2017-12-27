@@ -120,6 +120,7 @@ void deletemenu(MenuList *pmenulist_head){
 			if(pmenulist_head!=NULL){
 				//dbg_prt("\n del head0");
 				free(pmenulist_head);
+				pmenulist_head = NULL;
 			}
 			//dbg_prt("\n pmenulist_head->node.child==NULL");
 			break;
@@ -140,8 +141,10 @@ void deletemenu(MenuList *pmenulist_head){
 				//dbg_prt( "\n  del node=%x", (int)node);
 				tmpnode = node->prev;
 				list_del(node);
-				if(menunode!=NULL)
+				if(menunode!=NULL) {
 					free(menunode);
+					menunode = NULL;
+				}
 				node = tmpnode;
 			}while(node->prev!=NULL);
 			// 释放内存

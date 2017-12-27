@@ -261,8 +261,8 @@ void terminalTaskFreeze(INT8U taskid, INT8U fanganid) {
 		}
 	}
 	if (tsa_group != NULL) {
-		tsa_group = NULL;
 		free(tsa_group);
+		tsa_group = NULL;
 	}
 }
 /*

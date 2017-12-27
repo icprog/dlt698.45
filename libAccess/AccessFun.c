@@ -359,7 +359,10 @@ int delClassBySeq(OI_698 oi,void *blockdata,int seqnum)
 		}
 	}
 	ret = save_block_file((char *)class_info[infoi].file_name,blockdata,class_info[infoi].unit_len,class_info[infoi].interface_len,seqnum);
-	if(blockdata!=NULL)		free(blockdata);
+	if(blockdata!=NULL)		{
+		free(blockdata);
+		blockdata = NULL;
+	}
 	CloseSem(sem_save);
 	return ret;
 }
@@ -728,6 +731,7 @@ int saveVariData(OI_698 oi,int coll_seqnum,void *blockdata,int datalen)
 			fsync(fd);
 			if(wbuf!=NULL) {
 				free(wbuf);
+				wbuf = NULL;
 			}
 		}else ret = -1;
 		fclose(fp);
@@ -803,6 +807,7 @@ int  readVariData(OI_698 oi,int coll_seqnum,void *blockdata,int len)
 			if(rbuf!=NULL) {
 //				fprintf(stderr,"free rbuf\n");
 				free(rbuf);
+				rbuf =  NULL;
 			}
 		}
 		fclose(fp);
@@ -1808,6 +1813,7 @@ int getOI6001(MY_MS ms,INT8U **tsas)
  * 根据ms.type填充tsas ; 返回TS 的数量
  * 注意调用后，释放**tsas的内存
  */
+#if 0
 int getTsas(MY_MS ms,INT8U **tsas)
 {
 	int  tsa_num = 0;
@@ -1926,7 +1932,7 @@ int getTsas(MY_MS ms,INT8U **tsas)
 	fprintf(stderr,"\nms.mstype = %d,tsa_num = %d",ms.mstype,tsa_num);
 	return tsa_num;
 }
-
+#endif
 /*
  * rate表示费率
  */
@@ -2480,6 +2486,7 @@ INT8U datafile_write(char *FileName, void *source, int size, int offset)
 		res = 0;
 	}
 	free(blockdata);
+	blockdata = NULL;
 	return res;
 }
 
@@ -5047,8 +5054,9 @@ void supplementRpt(TS ts1, TS ts2, INT8U retaskid, INT8U *saveflg)
 	}
 
 Ret:
-	if (tsa_group != NULL)
+	if (tsa_group != NULL) {
 		free(tsa_group);
-
+		tsa_group = NULL;
+	}
 	return;
 }

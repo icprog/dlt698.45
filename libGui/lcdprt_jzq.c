@@ -928,6 +928,7 @@ void gui_mp_free(CLASS_6001 *gui_mp){
 	if(gui_mp==NULL)
 		return;
 	free(gui_mp);
+	gui_mp=NULL;
 }
 //获取当前0x6000中测量点序号，寻找最大的序号，返回最大序号加1，用以添加测量点使用
 int gui_mp_getsernum()
@@ -1624,8 +1625,10 @@ void menu_set485II()
 			}
 			break;
 		case ESC:
-			if(client.node.child!=NULL)
+			if(client.node.child!=NULL) {
 				free(client.node.child);
+				client.node.child = NULL;
+			}
 			return;
 		}
 		if(PressKey!=NOKEY||first_flg==0){
@@ -1658,8 +1661,10 @@ void menu_set485II()
 		PressKey = NOKEY;
 		delay(100);
 	}
-	if(client.node.child!=NULL)
+	if(client.node.child!=NULL) {
 		free(client.node.child);
+		client.node.child = NULL;
+	}
 }
 
 void setmeterpara(void *pindex)
@@ -1870,8 +1875,10 @@ void setmeterpara(void *pindex)
 			}
 			break;
 		case ESC:
-			if(client.node.child!=NULL)
+			if(client.node.child!=NULL) {
 				free(client.node.child);
+				client.node.child = NULL;
+			}
 			return;
 		}
 		if(PressKey!=NOKEY||first_flg==0){
@@ -1904,8 +1911,10 @@ void setmeterpara(void *pindex)
 		PressKey = NOKEY;
 		delay(100);
 	}
-	if(client.node.child!=NULL)
+	if(client.node.child!=NULL) {
 		free(client.node.child);
+		client.node.child = NULL;
+	}
 }
 
 /*
@@ -2116,8 +2125,10 @@ void addmeter()
 			}
 			break;
 		case ESC:
-			if(client.node.child!=NULL)
+			if(client.node.child!=NULL) {
 				free(client.node.child);
+				client.node.child = NULL;
+			}
 			return;
 		}
 		if(PressKey!=NOKEY||first_flg==0){
@@ -2147,8 +2158,10 @@ void addmeter()
 		PressKey = NOKEY;
 		delay(100);
 	}
-	if(client.node.child!=NULL)
+	if(client.node.child!=NULL) {
 		free(client.node.child);
+		client.node.child = NULL;
+	}
 }
 
 void deletemeter(void* pindex)
@@ -2559,8 +2572,10 @@ int pagesetup_item(int pageno, INT8U *lunxun_flg){
 			}
 			break;
 		case ESC:
-			if(client.node.child!=NULL)
+			if(client.node.child!=NULL) {
 				free(client.node.child);
+				client.node.child = NULL;
+			}
 			return ESC;
 		}
 		if(PressKey!=NOKEY||first_flg==0){
@@ -2595,9 +2610,18 @@ int pagesetup_item(int pageno, INT8U *lunxun_flg){
 			rect.top -= 1;
 			gui_rectangle(gui_changerect(gui_moverect(rect, DOWN, 4), 4));
 			first_flg = 1;
-			if(PressKey==LEFT)
+			if(PressKey==LEFT) {
+				if(client.node.child!=NULL)	{	//add  17-12-27
+					free(client.node.child);
+					client.node.child = NULL;
+				}
 				return LEFT;
+			}
 			if(PressKey==RIGHT){
+				if(client.node.child!=NULL)	 {	//add  17-12-27
+					free(client.node.child);
+					client.node.child = NULL;
+				}
 				return RIGHT;
 			}
 //			//更新轮显标志
@@ -2611,8 +2635,10 @@ int pagesetup_item(int pageno, INT8U *lunxun_flg){
 		PressKey = NOKEY;
 		delay(100);
 	}
-	if(client.node.child!=NULL)
+	if(client.node.child!=NULL) {
 		free(client.node.child);
+		client.node.child = NULL;
+	}
 	return 0;
 }
 void menu_pagesetup(){
@@ -2815,8 +2841,10 @@ void menu_set_nettx()
 			}
 			break;
 		case ESC:
-			if(client.node.child!=NULL)
+			if(client.node.child!=NULL) {
 				free(client.node.child);
+				client.node.child = NULL;
+			}
 			return;
 		}
 		if(PressKey!=NOKEY||first_flg==0){
@@ -2846,8 +2874,10 @@ void menu_set_nettx()
 		PressKey = NOKEY;
 		delay(100);
 	}
-	if(client.node.child!=NULL)
+	if(client.node.child!=NULL) {
 		free(client.node.child);
+		client.node.child = NULL;
+	}
 	return;
 }
 
@@ -3006,8 +3036,10 @@ void menu_set_wlantx()
 			}
 			break;
 		case ESC:
-			if(client.node.child!=NULL)
+			if(client.node.child!=NULL) {
 				free(client.node.child);
+				client.node.child = NULL;
+			}
 			return;
 		}
 		if(PressKey!=NOKEY||first_flg==0){
@@ -3037,8 +3069,10 @@ void menu_set_wlantx()
 		PressKey = NOKEY;
 		delay(100);
 	}
-	if(client.node.child!=NULL)
+	if(client.node.child!=NULL) {
 		free(client.node.child);
+		client.node.child = NULL;
+	}
 	return;
 }
 
@@ -3255,8 +3289,10 @@ void menu_netmaster()
 			}
 			break;
 		case ESC:
-			if(client.node.child!=NULL)
+			if(client.node.child!=NULL) {
 				free(client.node.child);
+				client.node.child = NULL;
+			}
 			return;
 		}
 		if(PressKey!=NOKEY||first_flg==0){
@@ -3287,8 +3323,10 @@ void menu_netmaster()
 		PressKey = NOKEY;
 		delay(100);
 	}
-	if(client.node.child!=NULL)
+	if(client.node.child!=NULL) {
 		free(client.node.child);
+		client.node.child = NULL;
+	}
 	return;
 }
 
@@ -3445,8 +3483,10 @@ void menu_wlanmaster()
 			}
 			break;
 		case ESC:
-			if(client.node.child!=NULL)
+			if(client.node.child!=NULL) {
 				free(client.node.child);
+				client.node.child = NULL;
+			}
 			return;
 		}
 		if(PressKey!=NOKEY||first_flg==0){
@@ -3477,8 +3517,10 @@ void menu_wlanmaster()
 		PressKey = NOKEY;
 		delay(100);
 	}
-	if(client.node.child!=NULL)
+	if(client.node.child!=NULL) {
 		free(client.node.child);
+		client.node.child = NULL;
+	}
 	return;
 }
 //IP配置、终端IP、子网掩码、网关地址、侦听端口、PPPoE用户名、PPPoE密码
@@ -3662,8 +3704,10 @@ void menu_eth0para(){
 			}
 			break;
 		case ESC:
-			if(client.node.child!=NULL)
+			if(client.node.child!=NULL) {
 				free(client.node.child);
+				client.node.child = NULL;
+			}
 			return;
 		}
 		if(PressKey!=NOKEY||first_flg==0){
@@ -3693,8 +3737,10 @@ void menu_eth0para(){
 		PressKey = NOKEY;
 		delay(100);
 	}
-	if(client.node.child!=NULL)
+	if(client.node.child!=NULL) {
 		free(client.node.child);
+		client.node.child = NULL;
+	}
 	return;
 }
 
@@ -3833,8 +3879,10 @@ void menu_jzqtelephone()
 			}
 			break;
 		case ESC:
-			if(client.node.child!=NULL)
+			if(client.node.child!=NULL) {
 				free(client.node.child);
+				client.node.child = NULL;
+			}
 			return;
 		}
 		if(PressKey!=NOKEY||first_flg==0){
@@ -3865,8 +3913,10 @@ void menu_jzqtelephone()
 		PressKey = NOKEY;
 		delay(100);
 	}
-	if(client.node.child!=NULL)
+	if(client.node.child!=NULL) {
 		free(client.node.child);
+		client.node.child = NULL;
+	}
 	return;
 }
 //地址类型、逻辑地址、终端地址
@@ -4529,7 +4579,10 @@ int msgbox_pro(int type)
 	msgbox(msgbox_rect, head,ttext, &msgbox_ret);
 	if(cb_baud.form.key[0].c == 0x33)   //给combox控件做初始话，如果 初始化值未变，则不需要修改，直接返回。
 	{
-		if(head!=NULL) free(head);
+		if(head!=NULL){
+			free(head);
+			head = NULL;
+		}
 		return -1;
 	}
 	if(msgbox_ret.btn_ret==ACK){
