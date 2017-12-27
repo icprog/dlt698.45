@@ -793,12 +793,42 @@ int initTaskData(TASK_INFO *task)
 	memcpy(&taskinfo_bak,task,sizeof(TASK_INFO));//初始化一个备份
 	return 1;
 }
+INT8U get5004Num(INT8U usrType,TSA usrAddr)
+{
+	INT8U result = 0;
+	int tasknum = taskinfo_bak.task_n;
+	int taskIndex = 0,itemIndex = 0;
+	for(taskIndex=0;taskIndex<tasknum;taskIndex++)
+	{
+		//判断是否需要抄读
+		int fangAnIndex = findFangAnIndex(taskinfo_bak.task_list[taskIndex].fangan.No);//查被抄电表当前任务的采集方案编号，在6015中的索引
+		if (fangAnIndex >=0 )
+		{
+			INT8U needflg = checkMeterType(fangAn6015[fangAnIndex].mst, usrType ,usrAddr);//查被抄电表的用户类型 是否满足6015中的用户类型条件
+			if(needflg == 1)
+			{
+				for(itemIndex = 0; itemIndex<taskinfo_bak.task_list[taskIndex].fangan.item_n; itemIndex++)
+				{
+					if (taskinfo_bak.task_list[taskIndex].fangan.items[itemIndex].oad1.OI == 0x5004)
+					{
+						result++;
+					}
+				}
+			}
+
+		}
+	}
+	return result;
+}
 int initTsaList(struct Tsa_Node **head)
 {
 	int i=0, record_num=0 ,n=0;
 	CLASS_6001	 meter={};
 	struct Tsa_Node *p=NULL;
 	struct Tsa_Node *tmp=NULL;
+
+	static INT16S lastMeterusrtype = -1;
+	static INT8U oad5004num = 0;//5004数据项个数
 
 	record_num = getFileRecordNum(0x6000);
 	for(i=0;i<record_num;i++)
@@ -826,6 +856,17 @@ int initTsaList(struct Tsa_Node **head)
 						p = p->next;
 					}
 					n++;
+
+#ifdef CHECK5004RATE
+					if(lastMeterusrtype != tmp->usrtype)
+					{
+
+					}
+					else
+					{
+						totoal5004NUm += oad5004num;
+					}
+#endif
 				}
 			}
 		}

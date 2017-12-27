@@ -17,8 +17,10 @@ int thread_readplc_id;        //载波（I型）
 pthread_t thread_readplc;
 extern void readplc_proccess();
 extern INT16S getTaskIndex(INT8U port);
-
+/*检查日冻结时标*/
 //#define CHECKSSTAMP
+/*检查日冻结抄表率*/
+//#define CHECK5004RATE
 #define NONE_PROCE	 		-1
 #define DATE_CHANGE   		0
 #define DATA_REAL     		1
@@ -287,6 +289,10 @@ CLASS_6015 fangAn6015[FANGAN6015_MAX];
 TASK_INFO taskinfo_bak;
 TASK_INFO taskinfo;
 TASK_INFO taskinfo_tmp;
+
+//CHECK5004RATE
+INT16U totoal5004Num;//所有测量点5004数据项总个数
+INT16U success5004Num;//所有测量点5004数据项总个数
 
 typedef struct {
 	DATA_ITEM item;
