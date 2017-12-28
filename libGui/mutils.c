@@ -88,6 +88,7 @@ INT8S str2bcd(INT8U* str,INT8U* bcd,INT8U bcd_len)
 		if(s_point!=NULL)
 		{
 			free(s_point);
+			s_point = NULL;
 		}
 		return -1;
 	}
@@ -98,6 +99,7 @@ INT8S str2bcd(INT8U* str,INT8U* bcd,INT8U bcd_len)
 			if(s_point!=NULL)
 			{
 				free(s_point);
+				s_point = NULL;
 			}
 			return -2;
 		}
@@ -114,6 +116,7 @@ INT8S str2bcd(INT8U* str,INT8U* bcd,INT8U bcd_len)
 	if(s_point!=NULL)
 	{
 		free(s_point);
+		s_point = NULL;
 	}
 	return 1;
 }

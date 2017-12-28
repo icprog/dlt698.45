@@ -847,6 +847,8 @@ void init5004Num(int tsa_index,INT8U usrType,TSA usrAddr)
 	totoal5004Num += t5004count;
 }
 
+
+//注意函数调用之前要free内存
 int initTsaList(struct Tsa_Node **head)
 {
 	success5004Num = 0;
@@ -863,7 +865,7 @@ int initTsaList(struct Tsa_Node **head)
 		{
 			if (meter.sernum!=0 && meter.sernum!=0xffff && meter.basicinfo.port.OI==0xf209)
 			{
-				tmp = (struct Tsa_Node *)malloc(sizeof(struct Tsa_Node));
+				tmp = (struct Tsa_Node *)malloc(sizeof(struct Tsa_Node));//在函数外面 freeList
 				memcpy(&tmp->tsa , &meter.basicinfo.addr,sizeof(TSA));
 				tmp->protocol = meter.basicinfo.protocol;
 				tmp->usrtype = meter.basicinfo.usrtype;
@@ -1840,7 +1842,7 @@ DATA_ITEM checkMeterData(TASK_INFO *meterinfo,int *taski,int *itemi,INT8U usrtyp
 						DbgPrintToFile1(31,"s5004rate = %f success5004Num = %d totoal5004Num = %d",s5004rate,success5004Num,totoal5004Num);
 						TS tsNow;
 						TSGet(&tsNow);
-						if((s5004rate<99.6)&&(tsNow.Hour<=9)&&(item.oad1.OI!=0x5004))
+						if((s5004rate<99.6)&&(tsNow.Hour<=7)&&(item.oad1.OI!=0x5004))
 						{
 							DbgPrintToFile1(31,"success5004Num = %d totoal5004Num = %d 抄表率不高切表",success5004Num,totoal5004Num);
 							memset(&item,0,sizeof(DATA_ITEM));

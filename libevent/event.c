@@ -367,8 +367,10 @@ INT8U Getevent_Record(INT8U event_no,OI_698 *oi_array,INT8U oi_index,INT8U *real
 					break;
 			}
 		 }
-		 if (Getbuf!=NULL)
+		 if (Getbuf!=NULL) {
 			free(Getbuf);
+			Getbuf = NULL;
+		 }
 	}else{
 		record_para->data[(*real_index)++]=1;
 		record_para->data[(*real_index)++]=0;
@@ -479,6 +481,10 @@ INT8U Getevent_Record_Selector(RESULT_RECORD *record_para,ProgramInfo* prginfo_e
 //			real_index = 3;
 //		}
 		record_para->datalen =real_index;//最终长度
+		if(data!=NULL) {   //add  17-12-27
+			free(data);
+			data = NULL;
+		}
 	 }
 	return 1;
 }

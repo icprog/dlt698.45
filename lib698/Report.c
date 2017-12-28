@@ -136,8 +136,10 @@ INT8U Report_Event(CommBlock *com,INT8U *oiarr,INT8U report_type){
 	FrameTail(sendbuf_report,index,hcsi);
 	if(pSendfun_report!=NULL)
 		pSendfun_report(Global_name, com->phy_connect_fd,sendbuf_report,index+3);
-	if (data!=NULL)
+	if (data!=NULL) {
 		free(data);
+		data = NULL;
+	}
 
 	return (index+3);
 }

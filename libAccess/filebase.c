@@ -101,12 +101,12 @@ int WriteClass11(OI_698 oi,INT16U seqnum,INT8U method)
 	}
 
 	unitdata = malloc(tmpinfo.unit_len);
-	memset(unitdata,0,tmpinfo.unit_len);
 	if(unitdata==NULL) {
 		free(unitdata);
 		syslog(LOG_NOTICE," oi = %04x malloc error",oi);
 		return -2;
 	}
+	memset(unitdata,0,tmpinfo.unit_len);
 
 	if(readInterClass(oi,&class11)==0){			//文件不存在，初始化类
 		strncpy((char *)&class11.logic_name,tmpinfo.logic_name,sizeof(class11.logic_name));
@@ -139,6 +139,7 @@ int WriteClass11(OI_698 oi,INT16U seqnum,INT8U method)
 	}
 	writeInterClass((char *)tmpinfo.file_name,&class11,sizeof(CLASS11));
 	free(unitdata);
+	unitdata = NULL;
 	return 1;
 }
 /*
@@ -696,6 +697,7 @@ INT8U file_write(char *FileName, void *source, int size, int offset)
 	}
 //	fprintf(stderr, "free %p\n", blockdata);
 	free(blockdata);//add by nl1031
+	blockdata = NULL;
 	return res;
 }
 
@@ -736,8 +738,14 @@ INT8U block_file_sync(char *fname,void *blockdata,int size,int headsize,int inde
 	memset(blockdata2,0,sizenew);
 //	fprintf(stderr,"\nmalloc p=%p",blockdata2);
 	if(blockdata1==NULL || blockdata2==NULL ) {
-		if(blockdata1!=NULL)free(blockdata1);
-		if(blockdata2!=NULL)free(blockdata2);
+		if(blockdata1!=NULL) {
+			free(blockdata1);
+			blockdata1 = NULL;
+		}
+		if(blockdata2!=NULL) {
+			free(blockdata2);
+			blockdata2 = NULL;
+		}
 		syslog(LOG_NOTICE," %s malloc error",fname);
 		return 0;
 	}
@@ -811,6 +819,8 @@ INT8U block_file_sync(char *fname,void *blockdata,int size,int headsize,int inde
 	}
 	free(blockdata1);
 	free(blockdata2);
+	blockdata1 = NULL;
+	blockdata2 = NULL;
 //	fprintf(stderr,"ret=%d\n",ret);
 //	syslog(LOG_NOTICE,"after free  %s 返回数据 ret=%d",fname,ret);////////5
 	return ret;					//异常情况，程序返回0，参数初始默认值，产生ERC2参数丢失事件
