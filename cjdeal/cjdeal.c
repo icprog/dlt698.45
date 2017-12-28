@@ -769,7 +769,7 @@ void timeProcess() {
 						saveCoverClass(0x6035, list6013[tIndex].Info6035.taskID, &list6013[tIndex].Info6035,sizeof(CLASS_6035), coll_para_save);
 						asyslog(LOG_WARNING, "同步6035 id =%d  sendMsgNum = %d rcvMsgNum = %d totalMSNum = %d successMSNum = %d",
 								list6013[tIndex].Info6035.taskID,list6013[tIndex].Info6035.sendMsgNum,
-								list6013[tIndex].Info6035.rcvMsgNum,list6013[tIndex].Info6035.successMSNum,list6013[tIndex].Info6035.totalMSNum);
+								list6013[tIndex].Info6035.rcvMsgNum,list6013[tIndex].Info6035.totalMSNum,list6013[tIndex].Info6035.successMSNum);
 					}
 				}
 				lastTime.Hour = nowTime.Hour;
@@ -1784,6 +1784,7 @@ INT8U increase6035Value(INT8U taskID,INT8U type)
 	{
 		if (list6013[tIndex].Info6035.taskID == taskID)
 		{
+			DbgPrintToFile1(31,"increase6035Value　taskID=%d type = %d",taskID,type);
 			if(type==0)
 			{
 				list6013[tIndex].Info6035.sendMsgNum++;

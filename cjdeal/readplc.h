@@ -20,7 +20,7 @@ extern INT16S getTaskIndex(INT8U port);
 /*检查日冻结时标*/
 //#define CHECKSSTAMP
 /*检查日冻结抄表率*/
-//#define CHECK5004RATE
+#define CHECK5004RATE
 #define NONE_PROCE	 		-1
 #define DATE_CHANGE   		0
 #define DATA_REAL     		1

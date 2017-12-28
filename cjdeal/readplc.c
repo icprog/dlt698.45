@@ -220,6 +220,12 @@ DateTimeBCD ChgSucessFlg(TASK_INFO *taskinfo_p,DATA_ITEM item,INT8U usrtype,INT8
 					(protocol==DLT_645_07 && memcmp(taskinfo_p->task_list[i].fangan.items[j].item07,item.item07,4) == 0))
 				{
 					taskinfo_p->task_list[i].fangan.items[j].sucessflg = sucessflg;
+#ifdef CHECK5004RATE
+					if((sucessflg==2)&&(taskinfo_p->task_list[i].fangan.items[j].oad1.OI==0x5004))
+					{
+						success5004Num++;
+					}
+#endif
 					taskinfo_p->now_itemi = j;
 					taskinfo_p->now_taski = i;
 					timebcd = taskinfo_p->task_list[i].fangan.items[j].savetime;
@@ -793,43 +799,63 @@ int initTaskData(TASK_INFO *task)
 	memcpy(&taskinfo_bak,task,sizeof(TASK_INFO));//初始化一个备份
 	return 1;
 }
-INT8U get5004Num(INT8U usrType,TSA usrAddr)
+void init5004Num(int tsa_index,INT8U usrType,TSA usrAddr)
 {
-	INT8U result = 0;
-	int tasknum = taskinfo_bak.task_n;
-	int taskIndex = 0,itemIndex = 0;
-	for(taskIndex=0;taskIndex<tasknum;taskIndex++)
+	static INT16S lastMeterusrtype = -1;
+	static INT8U t5004count = 0;
+	int taskIndex = 0,itemIndex = 0,tasknum = 0;
+	INT8U tcount = 0,scount = 0,isHasRecord = 1;
+
+	TASK_INFO taskinfoFile;
+	if (readParaClass(0x8888, &taskinfoFile, tsa_index) != 1 )////读取序号为 tsa_index 的任务记录到内存变量 taskinfo 返回 1 成功   0 失败
 	{
-		//判断是否需要抄读
-		int fangAnIndex = findFangAnIndex(taskinfo_bak.task_list[taskIndex].fangan.No);//查被抄电表当前任务的采集方案编号，在6015中的索引
-		if (fangAnIndex >=0 )
+		memcpy(&taskinfoFile,&taskinfo_bak,sizeof(taskinfo));
+		isHasRecord = 0;
+	}
+
+	if((lastMeterusrtype != usrType)||(isHasRecord==1))
+	{
+		lastMeterusrtype = usrType;
+		tasknum = taskinfo_bak.task_n;
+		for(taskIndex=0;taskIndex<tasknum;taskIndex++)
 		{
-			INT8U needflg = checkMeterType(fangAn6015[fangAnIndex].mst, usrType ,usrAddr);//查被抄电表的用户类型 是否满足6015中的用户类型条件
-			if(needflg == 1)
+			//判断是否需要抄读
+			int fangAnIndex = findFangAnIndex(taskinfoFile.task_list[taskIndex].fangan.No);//查被抄电表当前任务的采集方案编号，在6015中的索引
+			if (fangAnIndex >=0 )
 			{
-				for(itemIndex = 0; itemIndex<taskinfo_bak.task_list[taskIndex].fangan.item_n; itemIndex++)
+				INT8U needflg = checkMeterType(fangAn6015[fangAnIndex].mst, usrType ,usrAddr);//查被抄电表的用户类型 是否满足6015中的用户类型条件
+				if(needflg == 1)
 				{
-					if (taskinfo_bak.task_list[taskIndex].fangan.items[itemIndex].oad1.OI == 0x5004)
+					for(itemIndex = 0; itemIndex<taskinfoFile.task_list[taskIndex].fangan.item_n; itemIndex++)
 					{
-						result++;
+						if (taskinfoFile.task_list[taskIndex].fangan.items[itemIndex].oad1.OI == 0x5004)
+						{
+							tcount++;
+							if((isHasRecord==1)&&(taskinfoFile.task_list[taskIndex].fangan.items[itemIndex].sucessflg==2))
+							{
+								scount++;
+							}
+						}
 					}
 				}
-			}
 
+			}
 		}
+		t5004count = tcount;
 	}
-	return result;
+	success5004Num += scount;
+	totoal5004Num += t5004count;
 }
+
 int initTsaList(struct Tsa_Node **head)
 {
+	success5004Num = 0;
+	totoal5004Num = 0;;
 	int i=0, record_num=0 ,n=0;
 	CLASS_6001	 meter={};
 	struct Tsa_Node *p=NULL;
 	struct Tsa_Node *tmp=NULL;
-#ifdef CHECK5004RATE
-	static INT16S lastMeterusrtype = -1;
-	static INT8U oad5004num = 0;//5004数据项个数
-#endif
+
 	record_num = getFileRecordNum(0x6000);
 	for(i=0;i<record_num;i++)
 	{
@@ -858,14 +884,7 @@ int initTsaList(struct Tsa_Node **head)
 					n++;
 
 #ifdef CHECK5004RATE
-					if(lastMeterusrtype != tmp->usrtype)
-					{
-
-					}
-					else
-					{
-						totoal5004NUm += oad5004num;
-					}
+					init5004Num(tmp->tsa_index,tmp->usrtype,tmp->tsa);
 #endif
 				}
 			}
@@ -875,6 +894,8 @@ int initTsaList(struct Tsa_Node **head)
 	{
 		p->next = NULL;
 	}
+
+	asyslog(LOG_INFO,"totoal5004Num = %d success5004Num=%d",totoal5004Num,success5004Num);
 	return n;
 }
 
@@ -1813,13 +1834,25 @@ DATA_ITEM checkMeterData(TASK_INFO *meterinfo,int *taski,int *itemi,INT8U usrtyp
 						 *taski = i;
 						 *itemi = j;
 						 DbgPrintToFile1(31,"常规任务,满足抄读条件数据项");
+
+#ifdef CHECK5004RATE
+						FP32 s5004rate = success5004Num/(totoal5004Num*1.0);
+						DbgPrintToFile1(31,"s5004rate = %f success5004Num = %d totoal5004Num = %d",s5004rate,success5004Num,totoal5004Num);
+						TS tsNow;
+						TSGet(&tsNow);
+						if((s5004rate<99.6)&&(tsNow.Hour<=9)&&(item.oad1.OI!=0x5004))
+						{
+							DbgPrintToFile1(31,"success5004Num = %d totoal5004Num = %d 抄表率不高切表",success5004Num,totoal5004Num);
+							memset(&item,0,sizeof(DATA_ITEM));
+						}
+#endif
+
 						 return item;	//存在常规任务，满足抄读条件数据项
 					 }
 				 }
 			}
 		}
 	}
-//	return item;  /*没有要抄的了    ， 重起抄读时，再根据补抄标识将成功标识置0，补抄标识置0*/
 
 	return item;
 }
