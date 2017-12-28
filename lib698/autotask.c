@@ -138,7 +138,7 @@ void init_autotask(INT16U taskIndex,CLASS_6013 class6013,AutoTaskStrap* list)
 		fprintf(stderr,"\ninit_autotask [ %d 任务 %d 方案 %d  下次时间 %ld ]",taskIndex,list[taskIndex].ID ,list[taskIndex].SerNo,list[taskIndex].nexttime );
 		localtime_r(&list[taskIndex].nexttime,&tmp_tm);
 		fprintf(stderr,"下次时间 %04d-%02d-%02d %02d:%02d:%02d\n",tmp_tm.tm_year+1900,tmp_tm.tm_mon+1,tmp_tm.tm_mday,tmp_tm.tm_hour,tmp_tm.tm_min,tmp_tm.tm_sec);
-		asyslog(LOG_NOTICE,"任务索引【%d】,方案【%d】,下次时间【%04d-%02d-%02d %02d:%02d:%02d】",taskIndex,list[taskIndex].ID,tmp_tm.tm_year+1900,tmp_tm.tm_mon+1,tmp_tm.tm_mday,tmp_tm.tm_hour,tmp_tm.tm_min,tmp_tm.tm_sec);
+//		asyslog(LOG_NOTICE,"任务索引【%d】,方案【%d】,下次时间【%04d-%02d-%02d %02d:%02d:%02d】",taskIndex,list[taskIndex].ID,tmp_tm.tm_year+1900,tmp_tm.tm_mon+1,tmp_tm.tm_mday,tmp_tm.tm_hour,tmp_tm.tm_min,tmp_tm.tm_sec);
 
 }
 int fillcsinfo(CSINFO *csinfo,INT8U *addr,INT8U clientaddr)
@@ -382,7 +382,7 @@ int callAutoReport(char *filename,INT8U reportChoice,CommBlock* com, INT8U ifech
 		fprintf(stderr,"%02x ",TmpDataBuf[j]);
 	}
 //	fprintf(stderr,"\n下帧偏移位置 nextoffset = %d ",nextoffset);
-	asyslog(LOG_INFO,"当前偏移nowoffset = %d  下帧偏移nextoffset = %d ",nowoffset,nextoffset);
+//	asyslog(LOG_INFO,"当前偏移nowoffset = %d  下帧偏移nextoffset = %d ",nowoffset,nextoffset);
 	if (nextoffset == 0)
 	{
 		fprintf(stderr,"\n发送完毕！");

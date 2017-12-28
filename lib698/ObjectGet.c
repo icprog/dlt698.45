@@ -688,7 +688,7 @@ int Get_8100(RESULT_NORMAL *response)
 //	readCoverClass(0x8100, 0, (void *) &c8100, sizeof(CLASS_8100),para_vari_save);
 //	memcpy(&c8100,&shareAddr->ctrls.c8100,sizeof(CLASS_8100));
 	response->datalen = fill_long64(data, shareAddr->ctrls.c8100.v);
-	asyslog(LOG_WARNING, "读取终端安保定值(%lld)", shareAddr->ctrls.c8100.v);
+//	asyslog(LOG_WARNING, "读取终端安保定值(%lld)", shareAddr->ctrls.c8100.v);
 	fprintf(stderr,"datalen = %d\n",response->datalen);
 	return response->datalen;
 }

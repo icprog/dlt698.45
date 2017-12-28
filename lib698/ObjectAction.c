@@ -1518,7 +1518,7 @@ int doObjectAction(OAD oad, INT8U *data, Action_result *act_ret, CSINFO *csinfo,
 				return act_ret->datalen;
 			}
 		}
-		syslog(LOG_INFO, "进入oi[%04x]判断(action)\n",oi);
+//		syslog(LOG_INFO, "进入oi[%04x]判断(action)\n",oi);
 		switch (oi) {
     	case 0x4000:	//广播校时
      		if (attr_act == 127) {  //方法 127 广播校时

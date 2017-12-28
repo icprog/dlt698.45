@@ -333,7 +333,7 @@ int Proxy_TransCommandRequest(INT8U *data,CSINFO *csinfo,INT8U *sendbuf,INT8U pi
 
 
 	printcmd(getlist);
-	fprintf(stderr,"代理内容：sizeof(getlist)=%d\n",sizeof(PROXY_GETLIST));
+//	fprintf(stderr,"代理内容：sizeof(getlist)=%d\n",sizeof(PROXY_GETLIST));
 	ret= mqs_send((INT8S *)PROXY_485_MQ_NAME,1,ProxyGetResponseList,mq_com_oad,(INT8U *)&getlist,sizeof(PROXY_GETLIST));
 	syslog(LOG_NOTICE,"代理[%d]消息发出,ret=%d",getlist.proxytype,ret);
 	return 1;

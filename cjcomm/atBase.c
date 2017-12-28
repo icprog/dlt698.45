@@ -745,7 +745,7 @@ int AtPrepare(ATOBJ *ao) {
 			return 1000;
 		}
 		retry++;
-		asyslog(LOG_INFO, "======%d", retry);
+//		asyslog(LOG_INFO, "======%d", retry);
 
         if(getZone("HuNan") == 0){
             checkSms(ao);

@@ -92,7 +92,7 @@ void SyncRtc(void) {
 		MinOld = ts.Minute;
 
 		if (ts.Minute % 20 == 0) {
-			asyslog(LOG_INFO, "开始更新TRTC时钟...[%d:%d]", ts.Hour, ts.Minute);
+//			asyslog(LOG_INFO, "开始更新TRTC时钟...[%d:%d]", ts.Hour, ts.Minute);
 			system("hwclock -s &");
 		}
 	}
@@ -740,8 +740,7 @@ int main(int argc, char *argv[])
     CreateSem();
     InitSharedMem(argc, argv);
     ReadDeviceConfig(&JProgramInfo->cfg_para);
-    asyslog(LOG_NOTICE, "\n当前运行类型：%d 型终端\n", JProgramInfo->cfg_para.device);
-    asyslog(LOG_NOTICE, "\n当前运行地区：%s\n", JProgramInfo->cfg_para.zone);
+    asyslog(LOG_NOTICE, "\n当前运行类型：%d 型终端  地区：%s \n", JProgramInfo->cfg_para.device, JProgramInfo->cfg_para.zone);
 
 
     if (argc >= 2 && strncmp("all", argv[1], 3) == 0) {
@@ -804,6 +803,14 @@ int main(int argc, char *argv[])
 		//集中器不在线重启
 		CheckOnLineStatue();
 
+//		if(getZone("HuNan")==0) {		//特殊处理
+//			TS ts;
+//			TSGet(&ts);
+//			if(ts.Hour == 23 && ts.Minute == 45 && (ts.Sec >= 8 && ts.Sec<=28)) {
+//				asyslog(LOG_WARNING, "湖南测试定时重启");
+//				JProgramInfo->oi_changed.reset++;
+//			}
+//		}
 		//检查设备是否需要重启
 		checkDevReset();
 

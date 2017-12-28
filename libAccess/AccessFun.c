@@ -323,10 +323,10 @@ int dataInit(INT16U attr)
 
 	gettimeofday(&end, NULL);
 	interval = 1000000*(end.tv_sec - start.tv_sec) + (end.tv_usec - start.tv_usec);
-    fprintf(stderr,"dataInit interval = %f(ms)\n", interval/1000.0);
-//    if(interval>60*1000*1000) {
+//    fprintf(stderr,"dataInit interval = %f(ms)\n", interval/1000.0);
+    if(interval>60*1000*1000) {
     	syslog(LOG_ERR,"初始化时间=%f(ms)\n", interval/1000.0);
-//    }
+    }
  	return 0;
 }
 
@@ -386,7 +386,7 @@ int clearClass(OI_698 oi)
 	sem_save = InitSem();
 
 	infoi = getclassinfo(oi,&info);
-	syslog(LOG_NOTICE,"##### infoi=%d oi=%04x",infoi,oi);
+//	syslog(LOG_NOTICE,"##### infoi=%d oi=%04x",infoi,oi);
 	if(infoi==-1) {
 		memset(cmd,0,sizeof(cmd));
 		oiA1 = (oi & 0xf000) >> 12;
@@ -1295,7 +1295,7 @@ long int readFrameDataFile(char *filename,int offset,INT8U *buf,int *datalen)
 	{
 		fseek(fp,offset,0);		 			//定位到文件指定偏移位置
 		fread(&bytelen,2,1,fp);				//读出数据报文长度
-		fprintf(stderr," readFrameDataFile bytelen=%d\n",bytelen);
+//		fprintf(stderr," readFrameDataFile bytelen=%d\n",bytelen);
 		if(bytelen>=MAX_APDU_SIZE) {		//防止读取数据溢出
 			syslog(LOG_ERR,"read filename=%s bytelen = %d 大于限定值=%d\n",filename,bytelen,MAX_APDU_SIZE);
 			fclose(fp);
@@ -2523,7 +2523,7 @@ FILE* openevefile(OI_698 eve_oi)
 	FILE *fp = NULL;
 	char	fname[FILENAMELEN]={};
 	getEveFileName(eve_oi,fname);//得到要抄读的文件名称
-	fprintf(stderr,"fname=%s\n",fname);
+//	fprintf(stderr,"fname=%s\n",fname);
 	asyslog(LOG_INFO,"组帧frmdata，打开任务文件=%s,\n",fname);
 	fp =fopen(fname,"r");
 	return fp;
@@ -2793,7 +2793,7 @@ void extendcsds(CSD_ARRAYTYPE csds,ROAD_ITEM *item_road)
 		csds.num = MY_CSD_NUM;
 	for(i=0;i<csds.num;i++)
 	{
-		asyslog(LOG_INFO,"csds.csd[%d].type=%d\n",i,csds.csd[i].type);
+//		asyslog(LOG_INFO,"csds.csd[%d].type=%d\n",i,csds.csd[i].type);
 		switch(csds.csd[i].type)
 		{
 		case 0://OAD类型，第一个oad为0x00000000，第二个oad为OAD
@@ -2803,7 +2803,7 @@ void extendcsds(CSD_ARRAYTYPE csds,ROAD_ITEM *item_road)
 			memcpy(&item_road->oad[item_road->oadmr_num].oad_r,&csds.csd[i].csd.oad,sizeof(OAD));
 			item_road->oad[item_road->oadmr_num].oad_num = 0;//oad类型写为0
 			item_road->oadmr_num++;
-			asyslog(LOG_INFO,"0000:item_road->oadmr_num=%d\n",item_road->oadmr_num);
+//			asyslog(LOG_INFO,"0000:item_road->oadmr_num=%d\n",item_road->oadmr_num);
 
 			break;
 		case 1:
@@ -2816,7 +2816,7 @@ void extendcsds(CSD_ARRAYTYPE csds,ROAD_ITEM *item_road)
 				memcpy(&item_road->oad[item_road->oadmr_num].oad_r,&csds.csd[i].csd.road.oads[j],sizeof(OAD));
 				item_road->oadmr_num++;
 			}
-			asyslog(LOG_INFO,"11111:item_road->oadmr_num=%d\n",item_road->oadmr_num);
+//			asyslog(LOG_INFO,"11111:item_road->oadmr_num=%d\n",item_road->oadmr_num);
 
 			break;
 		default:break;
@@ -3685,7 +3685,7 @@ INT16U dealselect5(OAD oad_h,CSD_ARRAYTYPE csds,TS ts_start,TS ts_end,INT32U zc_
 	fprintf(stderr,"\nrecordnum=%d\n",recordnum);
 	if(frmnum==0) {
 		frmnum = 1; //一帧
-		fprintf(stderr,"\n indexn = %d saveOneFrame  seqnumindex=%d,  recordnum=%d!!!!!!!!!!!!!!!!\n",indexn,seqnumindex,recordnum);
+//		fprintf(stderr,"\n indexn = %d saveOneFrame  seqnumindex=%d,  recordnum=%d!!!!!!!!!!!!!!!!\n",indexn,seqnumindex,recordnum);
 		asyslog(LOG_INFO,"任务数据文件组帧:indexn = %d , seqnumindex=%d,  recordnum=%d\n",indexn,seqnumindex,recordnum);
 		intToBuf((indexn-2),frmdata);
 		frmdata[seqnumindex] = recordnum;
@@ -3751,7 +3751,7 @@ INT16U dealselect7(OAD oad_h,CSD_ARRAYTYPE csds,CLASS_6001 *tsa_group,TS ts_star
 	extendcsds(csds,&item_road);
 	if((taskid = GetTaskidFromCSDs(item_road,tsa_group)) == 0) {//暂时不支持招测的不在一个采集方案
 		asyslog(LOG_INFO,"GetTaskData: taskid=%d\n",taskid);
-			return 0;
+		return 0;
 	}
 
 	frm_fp = openFramefile(TASK_FRAME_DATA,0);
@@ -3950,7 +3950,7 @@ INT16U dealselect10(OAD oad_h,CSD_ARRAYTYPE csds,INT16U zcseq_num,INT8U tsa_num,
 	if((taskid = GetTaskidFromCSDs(item_road,tsa_group)) == 0) {//暂时不支持招测的不在一个采集方案
 		asyslog(LOG_INFO,"GetTaskData: taskid=%d\n",taskid);
 		//初始化分帧头
-		fprintf(stderr,"\n存空帧\n");
+//		fprintf(stderr,"\n存空帧\n");
 		saveNULLfrm(item_road.oadmr_num,oad_h,csds);
 		return 1;
 	}
