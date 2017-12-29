@@ -654,7 +654,7 @@ INT8U file_write(char *FileName, void *source, int size, int offset)
 //	fprintf(stderr,"\nwrite sourceaddr=%p,blockdata=%p\n", source,blockdata);
 	if(blockdata!=NULL) {
 //		fprintf(stderr,"write memcpy blockdata\n");
-		memset(blockdata,0,sizeof(size));
+		memset(blockdata,0,size);
 		memcpy(blockdata,source,size-2);
 	} else {
 		return 0;//error
@@ -677,12 +677,15 @@ INT8U file_write(char *FileName, void *source, int size, int offset)
 //		fprintf(stderr,"替换文件\n");
 	}
 	if (fp != NULL) {
+		setbuf(fp,NULL);
 		fseek(fp, offset, SEEK_SET);
 
 		num = fwrite(blockdata, size,1,fp);
+		fflush(fp);
+//		usleep(1000);
 //		fprintf(stderr,"write index=%d,size=%d num=%d\n",offset,size,num);
-		fd = fileno(fp);
-		fsync(fd);
+//		fd = fileno(fp);
+//		fsync(fd);
 		fclose(fp);
 //		syslog(LOG_NOTICE,"fwrite.num=%d,FileName=%s,size=%d\n",num,FileName,size);
 //		fprintf(stderr,"fwrite.num=%d,FileName=%s,size=%d\n",num,FileName,size);

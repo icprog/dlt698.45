@@ -165,7 +165,7 @@ void myadd2Pools(int ti,int ii)
 int findFangAnIndex(int code)
 {
 	int i=0;
-	for(i=0;i<20;i++)
+	for(i=0;i<FANGAN6015_MAX;i++)
 	{
 		if (fangAn6015[i].sernum == code)
 		{
@@ -4161,6 +4161,9 @@ int dateJudge(TS *old ,TS *new)
 //	}
 	if ((new->Hour==23 && new->Minute>=55 )   && (old->Day!=new->Day))
 	{
+		//清cache空间，防止free过小
+		system("echo 2 > /proc/sys/vm/drop_caches");
+		sleep(1);
 		memcpy(old,new,sizeof(TS));
 		return 1;
 	}
