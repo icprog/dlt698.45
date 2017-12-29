@@ -1842,7 +1842,7 @@ DATA_ITEM checkMeterData(TASK_INFO *meterinfo,int *taski,int *itemi,INT8U usrtyp
 						DbgPrintToFile1(31,"s5004rate = %f success5004Num = %d totoal5004Num = %d",s5004rate,success5004Num,totoal5004Num);
 						TS tsNow;
 						TSGet(&tsNow);
-						if((s5004rate<99.6)&&(tsNow.Hour<=7)&&(item.oad1.OI!=0x5004))
+						if((s5004rate<0.996)&&(tsNow.Hour<=7)&&(item.oad1.OI!=0x5004))
 						{
 							DbgPrintToFile1(31,"success5004Num = %d totoal5004Num = %d 抄表率不高切表",success5004Num,totoal5004Num);
 							memset(&item,0,sizeof(DATA_ITEM));
