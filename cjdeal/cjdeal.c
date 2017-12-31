@@ -1970,7 +1970,7 @@ int main(int argc, char *argv[]) {
 		if (interval >= 1000000)
 			fprintf(stderr, "deal main interval = %f(ms)\n", interval / 1000.0);
 
-		usleep(10 * 1000);
+		usleep(500 * 1000);//usleep(10 * 1000);
 		clearcount(ProIndex);
 
 	}

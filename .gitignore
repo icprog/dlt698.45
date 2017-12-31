@@ -10,7 +10,7 @@ vmsgr/*
 !.project
 !.cproject
 !*.cfg
-cjtest/
+cj-test/
 bin_arm/
 bin_arm_test/
 updatetool/*

@@ -4162,6 +4162,8 @@ int dateJudge(TS *old ,TS *new)
 	if ((new->Hour==23 && new->Minute>=55 )   && (old->Day!=new->Day))
 	{
 		//清cache空间，防止free过小
+		sync();
+		sleep(1);
 		system("echo 2 > /proc/sys/vm/drop_caches");
 		sleep(1);
 		memcpy(old,new,sizeof(TS));
@@ -4212,12 +4214,12 @@ void delplcrecord()
 	}
 	if(access("/nand/para/plcrecord.par",F_OK)==0)
 	{
-		DbgPrintToFile1(31,"初始化任务参数失败 plcrecord.par");
+		DbgPrintToFile(31,"初始化任务参数失败 plcrecord.par");
 		unlink("/nand/para/plcrecord.par");
 	}
 	if(access("/nand/para/plcrecord.bak",F_OK)==0)
 	{
-		DbgPrintToFile1(31,"初始化任务参数失败 plcrecord.bak");
+		DbgPrintToFile(31,"初始化任务参数失败 plcrecord.bak");
 		unlink("/nand/para/plcrecord.bak");
 	}
 	sync();
@@ -5021,7 +5023,7 @@ void readplc_thread()
 	memset(&runtimevar.oldts,0,sizeof(&runtimevar.oldts));
 	while(1)
 	{
-		usleep(50000);
+		sleep(1);//usleep(10000);
 		/********************************
 		 * 	   状态实时判断
 		********************************/

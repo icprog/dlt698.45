@@ -48,10 +48,13 @@ INT8U request698_singleOAD(CLASS_6015 st6015, CLASS_6001 to6001,INT8U* data,INT8
 
 /*
  * 去掉程序中日志的内容
+ * 防止日志频繁,出现异常,DbgPrintToFile1 改为DbgPrintToFile记录,记录内容尽量少
  * */
 void DbgPrintToFile1(INT8U comport,const char *format,...)
 {
 	return;
+
+#if 0
 	char str[50];
 	char fname[100];
 	char tmpcmd[256];
@@ -99,10 +102,12 @@ void DbgPrintToFile1(INT8U comport,const char *format,...)
 		sprintf(tmpcmd,"rm %s",fname);
 		system(tmpcmd);
 	}
+#endif
 }
 
 void DbgPrintToFile(INT8U comport,const char *format,...)
 {
+	static INT8U  log_num = 0;
 	char str[50];
 	char fname[100];
 	char tmpcmd[256];
@@ -116,13 +121,13 @@ void DbgPrintToFile(INT8U comport,const char *format,...)
 	memset(str,0,50);
 	cur_time=time(NULL);
 	localtime_r(&cur_time,&cur_tm);
-	sprintf(str, "\n[%04d-%02d-%02d %02d:%02d:%02d]",
-			cur_tm.tm_year+1900, cur_tm.tm_mon+1, cur_tm.tm_mday,
-			cur_tm.tm_hour, cur_tm.tm_min, cur_tm.tm_sec);
+	sprintf(str, "\n[%02d-%02d %02d:%02d:%02d]",
+			cur_tm.tm_mon+1, cur_tm.tm_mday,cur_tm.tm_hour, cur_tm.tm_min, cur_tm.tm_sec);
 
 	fp = fopen(fname, "a+");//内容存入文件
 	if (fp != NULL)
 	{
+		setbuf(fp,NULL);
 		va_list ap;
 	    va_start(ap,format);
 		vfprintf(fp,str,ap);
@@ -134,21 +139,33 @@ void DbgPrintToFile(INT8U comport,const char *format,...)
 	}
 
 	struct stat fileInfo;
-	stat(fname, &fileInfo);
-	if(comport==31) {	//载波口log
-		logsize = 4096*1000;	//4M
-	}else
-		logsize = 2048*1000;	//2M	防止II型集中器log过大，nand空间不足
+	if(stat(fname, &fileInfo)==-1) {
+		syslog(LOG_ERR,"DbgPrintToFile stat error\n");
+		sprintf(tmpcmd,"rm %s",fname);
+		system(tmpcmd);
+	};
+	logsize = 2048*1000;	//2M	防止II型集中器log过大，nand空间不足
 	//	if (fileInfo.st_size>4096*1000)//超过300K
 	if (fileInfo.st_size>logsize)//超过300K
 	{
 		memset(tmpcmd,0,sizeof(tmpcmd));
-		sprintf(tmpcmd,"cp %s %s.0",fname,fname);
+		if(comport==31) {
+			sprintf(tmpcmd,"cp %s %s.%d",fname,fname,log_num);
+			log_num++;
+			if(log_num>=6) {
+				log_num = 0;
+			}
+		}else {
+			sprintf(tmpcmd,"cp %s %s.0",fname,fname);
+		}
 		system(tmpcmd);
 		sleep(3);
 		memset(tmpcmd,0,sizeof(tmpcmd));
-		sprintf(tmpcmd,"rm %s",fname);
+		sprintf(tmpcmd,"rm -f %s",fname);
 		system(tmpcmd);
+		sleep(2);
+		unlink(fname);
+		sync();
 	}
 }
 

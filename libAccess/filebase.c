@@ -677,7 +677,7 @@ INT8U file_write(char *FileName, void *source, int size, int offset)
 //		fprintf(stderr,"替换文件\n");
 	}
 	if (fp != NULL) {
-		setbuf(fp,NULL);
+		setbuf(fp,NULL);		//不使用cache缓存空间
 		fseek(fp, offset, SEEK_SET);
 
 		num = fwrite(blockdata, size,1,fp);
