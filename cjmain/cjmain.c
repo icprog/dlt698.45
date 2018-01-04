@@ -322,6 +322,8 @@ void Checkupdate() {
 		if(getZone("ZheJiang") == 0) {
 			asyslog(LOG_INFO, "浙江地区不检测校验码, 直接升级...");
 			system("/dos/cjgwn/index.sh");
+			UpStates = 1;
+			return;
 		}
 
 		fp_org = fopen("/nand/Version.log", "r");
