@@ -5206,8 +5206,10 @@ void read485_thread(void* i485port) {
 			DbgPrintToFile1(port,"******************************************taskIndex = %d 任务开始*******************************",taskIndex);
 
 			list6013[taskIndex].Info6035.taskState = IN_OPR;
-			DataTimeGet(&list6013[taskIndex].Info6035.starttime);
-
+			if(list6013[taskIndex].Info6035.sendMsgNum == 0)
+			{
+				DataTimeGet(&list6013[taskIndex].Info6035.starttime);
+			}
 			CLASS_6015 to6015;	//采集方案集
 			memset(&to6015, 0, sizeof(CLASS_6015));
 

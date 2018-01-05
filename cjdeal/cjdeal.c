@@ -1793,6 +1793,7 @@ INT8U increase6035Value(INT8U taskID,INT8U type)
 			else
 			{
 				list6013[tIndex].Info6035.rcvMsgNum++;
+				DataTimeGet(&list6013[tIndex].Info6035.endtime);
 			}
 		}
 	}
