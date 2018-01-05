@@ -344,7 +344,9 @@ int main(int argc, char *argv[])
     int		i=0,j=0;
 	struct tm tm_curr;
 	char	cmd[64]={};
-    system("rm /nand/check.log");
+
+	syslog(LOG_NOTICE,"cj645 start\n");
+	system("rm /nand/check.log");
     sleep(1);
 
     JProgramInfo = OpenShMem("ProgramInfo", sizeof(ProgramInfo), NULL);
