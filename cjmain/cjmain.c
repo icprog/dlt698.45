@@ -322,6 +322,8 @@ void Checkupdate() {
 		if(getZone("ZheJiang") == 0) {
 			asyslog(LOG_INFO, "浙江地区不检测校验码, 直接升级...");
 			system("/dos/cjgwn/index.sh");
+			UpStates = 1;
+			return;
 		}
 
 		fp_org = fopen("/nand/Version.log", "r");
@@ -809,6 +811,14 @@ int main(int argc, char *argv[])
 //			if(ts.Hour == 23 && ts.Minute == 45 && (ts.Sec >= 8 && ts.Sec<=28)) {
 //				asyslog(LOG_WARNING, "湖南测试定时重启");
 //				JProgramInfo->oi_changed.reset++;
+//			}
+//		}
+//		if(getZone("HuNan")==0) {		//监控集中器电压值
+//			TS ts,oldts;
+//			TSGet(&ts);
+//			if((ts.Minute % 15==0) && ts.Minute != oldts.Minute) {
+//				oldts.Minute = ts.Minute;
+//				asyslog(LOG_WARNING, "U=%d_%d_%d\n",JProgramInfo->ACSRealData.Ua,JProgramInfo->ACSRealData.Ub,JProgramInfo->ACSRealData.Uc);
 //			}
 //		}
 		//检查设备是否需要重启

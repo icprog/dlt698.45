@@ -152,7 +152,7 @@ void DbgPrintToFile(INT8U comport,const char *format,...)
 		if(comport==31) {
 			sprintf(tmpcmd,"cp %s %s.%d",fname,fname,log_num);
 			log_num++;
-			if(log_num>=6) {
+			if(log_num>=2) {
 				log_num = 0;
 			}
 		}else {
