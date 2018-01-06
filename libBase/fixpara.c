@@ -30,7 +30,7 @@ typedef struct {
 
 #define  IP_LEN		4			//参数ip类长度
 									//厂商代码　　软件版本　软件日期　　硬件版本　硬件日期  扩展信息
-static VERINFO verinfo          = { "QDGK", "V1.2", "171217", "1.10", "160328", "00000000" }; // 4300 版本信息
+static VERINFO verinfo          = { "QDGK", "V1.1", "171223", "1.10", "160328", "00000000" }; // 4300 版本信息
 									//湖南需要双协议,软件版本要求为SXY8（双协议8） ，1376.1（软件版本为SXY1）
 static VERINFO verinfo_HuNan    = { "QDGK", "SXY8", "171128", "1.10", "160328", "00000000" }; // 4300 版本信息
 static VERINFO verinfo_ZheJiang  = { "QDGK", "V1.1", "171130", "1.10", "160328", "00000000" }; // 4300 版本信息
@@ -353,9 +353,9 @@ void InitClassByZone(INT8U type)
  * */
 void InItClass(INT8U type)
 {
+	InitClassByZone(type); //根据地区进行相应初始化	4500,4510参数,防止参数丢失,重新生产
 	InitClass4016(); //当前套日时段表
 	InitClass4300(); //电气设备信息
 	InitClassf201(); //RS485口初始化
 	InitClassf203(); //开关量输入
-	InitClassByZone(type); //根据地区进行相应初始化	4500,4510参数,防止参数丢失,重新生产
 }

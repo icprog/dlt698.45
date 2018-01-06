@@ -860,9 +860,13 @@ int findTsaInList(struct Tsa_Node *head,struct Tsa_Node *desnode)
 	{
 		if(memcmp(&(p->tsa.addr[2]),&(desnode->tsa.addr[2]), desnode->tsa.addr[1]+1)==0)
 		{
-			if(p->protocol == desnode->protocol)
-			{
+			if(getZone("GW")==0) {		//ＧＷ送检不进行规约类型比对，防止鼎信698表比对档案出现类型不匹配，删除从节点继续添加
 				return 1;
+			}else {
+				if(p->protocol == desnode->protocol)
+				{
+					return 1;
+				}
 			}
 //			desnode->readnum = p->readnum;
 //			desnode->protocol = p->protocol;
@@ -1033,15 +1037,15 @@ int doInit(RUNTIME_PLC *runtime_p)
 			reset_ZB();
 
 			fprintf(stderr,"\n-----------tsacount=%d",tsa_count);
-			if (tsa_count <= 0)
-			{
-				DbgPrintToFile1(31,"无载波测量点,路由参数初始化");
-				step_init = 0;
-//				sendlen = AFN01_F2(&runtime_p->format_Down,runtime_p->sendbuf);
-//				SendDataToCom(runtime_p->comfd, runtime_p->sendbuf,sendlen );
-				sleep(5);
-				return NONE_PROCE;
-			}
+//			if (tsa_count <= 0)
+//			{
+//				DbgPrintToFile1(31,"无载波测量点,路由参数初始化");
+//				step_init = 0;
+////				sendlen = AFN01_F2(&runtime_p->format_Down,runtime_p->sendbuf);
+////				SendDataToCom(runtime_p->comfd, runtime_p->sendbuf,sendlen );
+//				sleep(5);
+//				return NONE_PROCE;
+//			}
 			runtime_p->send_start_time = nowtime ;
 			step_init = 1;
 			read_num = 0;
@@ -1183,11 +1187,19 @@ int doCompSlaveMeter(RUNTIME_PLC *runtime_p)
 	INT8U addrtmp[6]={};
 	time_t nowtime = time(NULL);
 	INT8U protocoltmp =0;
-	if (module_info.SlavePointMode == 0)
+
+	if (module_info.SlavePointMode == 0 || tsa_head==NULL)//getTsaCount(tsa_head)
 	{
-		DbgPrintToFile1(31,"不需要下发从节点信息，无路由管理");
+		if (tsa_head==NULL)
+		{
+			DbgPrintToFile1(31,"tsa_head=NULL（无测量点）");
+			return NONE_PROCE;
+		}
+		if (module_info.SlavePointMode == 0 )
+			DbgPrintToFile1(31,"无路由管理 ");
 		return TASK_PROCESS;
 	}
+
 	switch(step_cmpslave)
 	{
 		case 0://读取载波从节点数量
@@ -4160,7 +4172,10 @@ int stateJuge(int nowdstate,MY_PARA_COUNTER *mypara_p,RUNTIME_PLC *runtime_p,int
 	if (proxyInUse.devUse.plcNeed == 1 && \
 			cjcommProxy_plc.isInUse ==1 && \
 			state!=DATE_CHANGE && \
-			state!=DATA_REAL)
+			state!=DATA_REAL && \
+			state!=INIT_MASTERADDR && \
+			state!=ZB_MODE && \
+			state!=SLAVE_COMP)
 	{	//出现代理标识，并且不在初始化和点抄状态
 		DbgPrintToFile1(31,"载波收到点代理请求, plcNeed: %d, plcReady: %d",proxyInUse.devUse.plcNeed, proxyInUse.devUse.plcReady);
 		runtime_p->state_bak = runtime_p->state;

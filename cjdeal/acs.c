@@ -720,11 +720,11 @@ INT32U read_regist(INT32S fp) {
 	realdata.CosB = trans_regist(COS, 1, RRec[r_Pfb], tmm);
 	realdata.CosC = trans_regist(COS, 1, RRec[r_Pfc], tmm);
 	realdata.Cos = trans_regist(COS, 1, RRec[r_Pft], tmm);
-	//国网台体专变测试，功率因数误差增加下面代码导致不合格
-//	if ((realdata.Pa >= 0) && (realdata.Pa <= 10))		realdata.CosA = 1 * COS_COEF;	//没有功率时，功率因数=1
-//	if ((realdata.Pb >= 0) && (realdata.Pb <= 10))		realdata.CosB = 1 * COS_COEF;
-//	if ((realdata.Pc >= 0) && (realdata.Pc <= 10))		realdata.CosC = 1 * COS_COEF;
-//	if ((realdata.Pt >= 0) && (realdata.Pt <= 10))		realdata.Cos = 1 * COS_COEF;
+	//国网台体专变测试，功率因数误差原来判断＜＝１０，导致不合格，改为３.
+	if ((realdata.Pa >= 0) && (realdata.Pa <= 3))		realdata.CosA = 1 * COS_COEF;	//没有功率时，功率因数=1,否认会是一个跳变的值
+	if ((realdata.Pb >= 0) && (realdata.Pb <= 3))		realdata.CosB = 1 * COS_COEF;
+	if ((realdata.Pc >= 0) && (realdata.Pc <= 3))		realdata.CosC = 1 * COS_COEF;
+	if ((realdata.Pt >= 0) && (realdata.Pt <= 3))		realdata.Cos = 1 * COS_COEF;
 	realdata.Freq = trans_regist(FREQ, 1, RRec[r_Freq], tmm);
 
 	realdata.LineUa = trans_regist(U, 1, RRec[r_LineUaRrms], tmm);
@@ -1479,13 +1479,11 @@ void ACSEnergySave(ACEnergy_Sum energysum_tmp) {
 		if (pwr_has() == FALSE) {
 			sleep(2);
 			if (bettery_getV(&bett[0], &bett[1]) == TRUE) {
-				fprintf(stderr, "bett=%f,%f  saveflag=%d\n", bett[0], bett[1],
-						saveflag);
+				fprintf(stderr, "bett=%f,%f  saveflag=%d\n", bett[0], bett[1],saveflag);
 				if ((bett[1] >= MIN_BATTWORK_VOL) && saveflag != 1) {//掉电后且电池电量满足，只保存一次
 					saveflag = 1;
 					fprintf(stderr, "save energy\n");
-					saveCoverClass(0, 0, &energysum_tmp, sizeof(ACEnergy_Sum),
-							acs_energy_save);
+					saveCoverClass(0, 0, &energysum_tmp, sizeof(ACEnergy_Sum),acs_energy_save);
 					syslog(LOG_NOTICE, "底板电源已关闭，电池电压=%f V,保存电能示值", bett[1]);
 				} else {
 					if (bett[1] < MIN_BATTWORK_VOL)
