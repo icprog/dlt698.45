@@ -79,8 +79,8 @@ void topstatus_showcommtype(INT8U online_type)
 //					str[0] = 0x34;//4G
 //					str[1] = 0x47;
 
-                    str[0] = 0x01;//G
-                    str[1] = 0x02;
+					str[0] = 0x01;//G
+					str[1] = 0x02;
 				}
 			}else {
 				if (p_JProgramInfo->dev_info.wirelessType==1)
