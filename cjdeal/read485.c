@@ -1222,7 +1222,7 @@ INT8U getASNInfo97(FORMAT97* DI97,Base_DataType* dataType)
 	fprintf(stderr, "\n getASNInfo DI97 = %02x%02x",DI97->DI[1],DI97->DI[0]);
 	INT8U unitNum = 1;
 	INT8U index;
-
+	INT8U flagnegative[10] = {0};
 	//电表日期
 	if((DI97->DI[0] == 11)&&(DI97->DI[1] == 0xc0))
 	{
@@ -1325,13 +1325,13 @@ INT8U getASNInfo97(FORMAT97* DI97,Base_DataType* dataType)
 	if(DI97->DI[1]==0xb6)
 	{
 		//电压
-		if((DI97->DI[0]&0xf0) == 1)
+		if((DI97->DI[0]&0xf0) == 0x10)
 		{
-			if((DI97->Data[2] = 0xff)&&(DI97->Data[3] = 0xff))
+			if((DI97->Data[2] == 0xff)&&(DI97->Data[3] == 0xff))
 			{
 				memset(&DI97->Data[2],0,2);
 			}
-			if((DI97->Data[4] = 0xff)&&(DI97->Data[5] = 0xff))
+			if((DI97->Data[4] == 0xff)&&(DI97->Data[5] == 0xff))
 			{
 				memset(&DI97->Data[4],0,2);
 			}
@@ -1351,7 +1351,7 @@ INT8U getASNInfo97(FORMAT97* DI97,Base_DataType* dataType)
 				}
 				else
 				{
-					memcpy(&f25_2_buff[(tmpIndex*4)+2],&DI97->Data[tmpIndex*2],2);
+					memcpy(&f25_2_buff[tmpIndex*4],&DI97->Data[tmpIndex*2],2);
 				}
 			}
 			memcpy(&DI97->Data[0],f25_2_buff,16);
@@ -1365,15 +1365,42 @@ INT8U getASNInfo97(FORMAT97* DI97,Base_DataType* dataType)
 			}
 
 		}
-		//有功功率
-		if(((DI97->DI[0]&0xf0) == 0x30)||((DI97->DI[0]&0xf0) == 0x40))
+
+		if((DI97->DI[0]&0xf0) == 0x30)
 		{
 			*dataType = dtdoublelong;
 			INT8U f25_3_buff[16] = {0};
 			INT8U tmpIndex = 0;
 			for(tmpIndex = 0;tmpIndex < unitNum;tmpIndex++)
 			{
-				if((DI97->Data[tmpIndex*8]==0xff)&&(DI97->Data[tmpIndex*8+1]==0xff)&&(DI97->Data[tmpIndex*8+2]==0xff))
+				if((DI97->Data[tmpIndex*3]==0xff)&&(DI97->Data[tmpIndex*3+1]==0xff)&&(DI97->Data[tmpIndex*3+2]==0xff))
+				{
+					memset(&f25_3_buff[tmpIndex*4],0,4);
+				}
+				else
+				{
+					if((DI97->Data[tmpIndex*3+2]&0x80) == 0x80)
+					{
+						DI97->Data[tmpIndex*3+2] = DI97->Data[tmpIndex*3+2]&0x7f;
+						flagnegative[tmpIndex] = 1;
+					}
+					memcpy(&f25_3_buff[tmpIndex*4],&DI97->Data[tmpIndex*3],3);
+				}
+			}
+			memcpy(DI97->Data,f25_3_buff,16);
+			DI97->Length += unitNum;
+		}
+
+
+		//有功功率
+		if((DI97->DI[0]&0xf0) == 0x40)
+		{
+			*dataType = dtdoublelong;
+			INT8U f25_3_buff[16] = {0};
+			INT8U tmpIndex = 0;
+			for(tmpIndex = 0;tmpIndex < unitNum;tmpIndex++)
+			{
+				if((DI97->Data[tmpIndex*8]==0xff)&&(DI97->Data[tmpIndex*8+1]==0xff))
 				{
 					memset(&f25_3_buff[tmpIndex*4],0,4);
 				}
@@ -1390,15 +1417,15 @@ INT8U getASNInfo97(FORMAT97* DI97,Base_DataType* dataType)
 	//功率因数
 	if((DI97->DI[0]&0xf0) == 0x50)
 	{
-		if((DI97->Data[2] = 0xff)&&(DI97->Data[3] = 0xff))
+		if((DI97->Data[2] == 0xff)&&(DI97->Data[3] == 0xff))
 		{
 			memset(&DI97->Data[2],0,2);
 		}
-		if((DI97->Data[4] = 0xff)&&(DI97->Data[5] = 0xff))
+		if((DI97->Data[4] == 0xff)&&(DI97->Data[5] == 0xff))
 		{
 			memset(&DI97->Data[4],0,2);
 		}
-		if((DI97->Data[6] = 0xff)&&(DI97->Data[7] = 0xff))
+		if((DI97->Data[6] == 0xff)&&(DI97->Data[7] == 0xff))
 		{
 			memset(&DI97->Data[6],0,2);
 		}
@@ -1415,6 +1442,10 @@ INT8U getASNInfo97(FORMAT97* DI97,Base_DataType* dataType)
 		INT32U value = 0;
 		INT8U dataIndex = unitIndex*unitSize;
 		bcd2int32u(&DI97->Data[dataIndex],unitSize,inverted,&value);
+		if((DI97->DI[1]==0xb6)&&(((DI97->DI[0]&0xf0) == 0x10)||((DI97->DI[0]&0xf0) == 0x20)))
+		{
+			value = value*10;
+		}
 		fprintf(stderr,"\n value = %d",value);
 		memcpy(&DI97->Data[dataIndex],&value,unitSize);
 
