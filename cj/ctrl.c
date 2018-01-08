@@ -38,6 +38,70 @@ typedef union {//control code
 		INT8U baodian_led	: 1;//报警灯
 	} ctrl;
 } ctrlUN;
+
+void ctrl_comm(ctrlUN 	ctrlunit)
+{
+	CheckModelState();
+	InitCtrlModel();
+	int fd = OpenSerialPort();
+	fprintf(stderr,"ctrlunit = %d",ctrlunit.u16b);
+	SetCtrl_CMD(fd, ctrlunit.ctrl.lun1_state, ctrlunit.ctrl.lun1_red, ctrlunit.ctrl.lun1_green,
+				ctrlunit.ctrl.lun2_state, ctrlunit.ctrl.lun2_red, ctrlunit.ctrl.lun2_green,
+				ctrlunit.ctrl.gongk_led, ctrlunit.ctrl.diank_led, ctrlunit.ctrl.alm_state, ctrlunit.ctrl.baodian_led);
+	close(fd);
+}
+
+void ctrlTest(int argc, char *argv[])
+{
+	int	type=0;
+	ctrlUN 	ctrlunit;
+	int roundno = 0;
+	int cmd = 0;
+	if(argc < 5){
+		fprintf(stderr, "参数不足\n");
+	}else {
+		roundno = atoi(argv[3]);
+		cmd = atoi(argv[4]);
+	}
+	if(roundno == 1) {
+		ctrlunit.ctrl.lun1_state = 1;
+		if(cmd == 1) { //合闸
+			ctrlunit.ctrl.lun1_red = 1;
+			ctrlunit.ctrl.lun1_green = 0;
+		}else if(cmd == 0) {
+			ctrlunit.ctrl.lun1_red = 0;
+			ctrlunit.ctrl.lun1_green = 1;
+		}
+		ctrlunit.ctrl.lun2_state = 0;
+		ctrlunit.ctrl.lun2_red = 0;
+		ctrlunit.ctrl.lun2_green = 0;
+		ctrlunit.ctrl.gongk_led = 0;
+		ctrlunit.ctrl.diank_led = 0;
+		ctrlunit.ctrl.baodian_led = 0;
+		ctrlunit.ctrl.alm_state = 0;
+	}else  if(roundno == 2){
+		ctrlunit.ctrl.lun1_state = 0;
+		ctrlunit.ctrl.lun1_red = 0;
+		ctrlunit.ctrl.lun1_green = 1;
+		ctrlunit.ctrl.lun2_state = 1;
+		if(cmd == 1) { //合闸
+			ctrlunit.ctrl.lun2_red = 1;
+			ctrlunit.ctrl.lun2_green = 0;
+		}else if(cmd == 0) {
+			ctrlunit.ctrl.lun2_red = 0;
+			ctrlunit.ctrl.lun2_green = 1;
+		}
+		ctrlunit.ctrl.gongk_led = 0;
+		ctrlunit.ctrl.diank_led = 0;
+		ctrlunit.ctrl.baodian_led = 0;
+		ctrlunit.ctrl.alm_state = 0;
+	}
+	if(roundno==1 || roundno==2) {
+		ctrl_comm(ctrlunit);
+	}
+}
+
+#if 0
 void ctrlTest(int argc, char *argv[])
 {
 	int roundno = 0;
@@ -75,18 +139,7 @@ void ctrlTest(int argc, char *argv[])
 	}
 	shmm_unregister("ProgramInfo", sizeof(ProgramInfo));
 }
-
-void ctrl_comm(ctrlUN 	ctrlunit)
-{
-	CheckModelState();
-	InitCtrlModel();
-	int fd = OpenSerialPort();
-	fprintf(stderr,"ctrlunit = %d",ctrlunit.u16b);
-	SetCtrl_CMD(fd, ctrlunit.ctrl.lun1_state, ctrlunit.ctrl.lun1_red, ctrlunit.ctrl.lun1_green,
-				ctrlunit.ctrl.lun2_state, ctrlunit.ctrl.lun2_red, ctrlunit.ctrl.lun2_green,
-				ctrlunit.ctrl.gongk_led, ctrlunit.ctrl.diank_led, ctrlunit.ctrl.alm_state, ctrlunit.ctrl.baodian_led);
-	close(fd);
-}
+#endif
 void ctrlType(int argc, char *argv[])
 {
 	int	type=0;

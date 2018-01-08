@@ -5023,7 +5023,8 @@ void readplc_thread()
 	memset(&runtimevar.oldts,0,sizeof(&runtimevar.oldts));
 	while(1)
 	{
-		sleep(1);//usleep(10000);
+//		sleep(1);//1231版本测试修改。状态机内部有延时，可能会影响收发数据，恢复原来的usleep(10000);
+		usleep(10000);
 		/********************************
 		 * 	   状态实时判断
 		********************************/
