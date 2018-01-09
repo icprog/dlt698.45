@@ -479,9 +479,21 @@ int Get_601D(INT8U type,INT8U seqnum,INT8U *data)
 int Get_6035(INT8U type,INT8U taskid,INT8U *data)
 {
 	int 	index=0,ret=0;
-	CLASS_6035	classoi={};
-
-	ret = readCoverClass(0x6035,taskid,&classoi,sizeof(CLASS_6035),coll_para_save);
+	CLASS_6035	classoi={0};
+	ProgramInfo *shareAddr = getShareAddr();
+	if(shareAddr!=NULL)
+	{
+		INT8U taskIndex = 0;
+		for(taskIndex = 0;taskIndex < TASK6012_CAIJI;taskIndex++)
+		{
+			if(shareAddr->info6035[taskIndex].taskID == taskid)
+			{
+				memcpy(&classoi,&shareAddr->info6035[taskIndex],sizeof(CLASS_6035));
+				ret = 1;
+				break;
+			}
+		}
+	}
 	if ((ret == 1) || (type==1)) {
 		index += create_struct(&data[index],8);
 		index += fill_unsigned(&data[index],classoi.taskID);

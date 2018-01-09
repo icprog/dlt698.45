@@ -239,7 +239,9 @@ INT16U set4001_4002_4003(OAD oad,INT8U *data,INT8U *DAR)	//通信地址，表号
 			}
 			*DAR = saveCoverClass(oad.OI,0,&class_addr,sizeof(CLASS_4001_4002_4003),para_vari_save);
 			*DAR = saveCoverClass(oad.OI,0,&class_addr,sizeof(CLASS_4001_4002_4003), para_init_save);
-			writeIdFile(class_addr);//写入ID备份文件
+			if(oad.OI == 0x4001) {		//通信地址
+				writeIdFile(class_addr);//写入ID备份文件
+			}
 		}
 	}
 	return index;

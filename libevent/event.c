@@ -358,7 +358,7 @@ INT8U Getevent_Record(INT8U event_no,OI_698 *oi_array,INT8U oi_index,INT8U *real
 				}
 				break;
 				case 0x3309://停上电属性标志
-					memcpy(&record_para->data[*real_index],&Getbuf[T_index+20],3);
+					memcpy(&record_para->data[*real_index],&Getbuf[T_index+20],3);//////
 					(*real_index) +=3;
 					break;
 				case 0x2025://事件当前值
@@ -656,7 +656,8 @@ INT8U Get_StandardUnit(ProgramInfo* prginfo_event,OI_698 oi,INT8U *Rbuf,INT8U *I
 		Rbuf[(*Index)++] = 0;//15无结束时间
 	}else if(oi==0x3106){
 		if(*Source==0){
-			if((getZone("ZheJiang")==0)||(getZone("HuNan"))==0) {
+//			if((getZone("ZheJiang")==0)||(getZone("HuNan"))==0) {  //Getevent_Record 招测3309上报状态查找位置会有影响
+			if((getZone("ZheJiang")==0)) {  //Getevent_Record 招测3309上报状态查找位置会有影响
 				Rbuf[(*Index)++] = 0;//15无结束时间
 			}else {			//TODO:山东要求停电事件时，报上一次的上电时间
 				Rbuf[(*Index)++] = dtdatetimes;//15
@@ -697,9 +698,9 @@ INT8U Get_StandardUnit(ProgramInfo* prginfo_event,OI_698 oi,INT8U *Rbuf,INT8U *I
 	if(sourcelen>0)
 		memcpy(&Rbuf[(*Index)],Source,sourcelen);
 	(*Index)+=sourcelen;
-	//事件上报状态
+	//事件上报状态   //上报状态的改变会影响：Getevent_Record 招测3309上报状态查找位置
 	Rbuf[(*Index)++] = dtarray;//array
-	Rbuf[(*Index)++] = 0x03;//数量
+	Rbuf[(*Index)++] = 0x02;//数量
 	Rbuf[(*Index)++] = dtstructure;//struct
 	Rbuf[(*Index)++] = 0x02;//数量
 	Rbuf[(*Index)++] = 0x51;//OAD
@@ -718,15 +719,15 @@ INT8U Get_StandardUnit(ProgramInfo* prginfo_event,OI_698 oi,INT8U *Rbuf,INT8U *I
 	Rbuf[(*Index)++] = 0x00;
 	Rbuf[(*Index)++] = dtunsigned;//unsigned
 	Rbuf[(*Index)++] = 0x00;
-	Rbuf[(*Index)++] = dtstructure;//struct
-	Rbuf[(*Index)++] = 0x02;//数量
-	Rbuf[(*Index)++] = 0x51;//OAD
-	Rbuf[(*Index)++] = 0xF2;//2
-	Rbuf[(*Index)++] = 0x00;
-	Rbuf[(*Index)++] = 0x02;
-	Rbuf[(*Index)++] = 0x01;
-	Rbuf[(*Index)++] = dtunsigned;//unsigned
-	Rbuf[(*Index)++] = 0x00;
+//	Rbuf[(*Index)++] = dtstructure;//struct
+//	Rbuf[(*Index)++] = 0x02;//数量
+//	Rbuf[(*Index)++] = 0x51;//OAD
+//	Rbuf[(*Index)++] = 0xF2;//2
+//	Rbuf[(*Index)++] = 0x00;
+//	Rbuf[(*Index)++] = 0x02;
+//	Rbuf[(*Index)++] = 0x01;
+//	Rbuf[(*Index)++] = dtunsigned;//unsigned
+//	Rbuf[(*Index)++] = 0x00;
 	INT8U low_unit=oi&0x00ff;
 	prginfo_event->dev_info.Cur_Ercno=((((low_unit>>4)&0x0f)*10)+(low_unit&0x0f));
     return 1;

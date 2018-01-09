@@ -52,9 +52,10 @@ INT8U request698_singleOAD(CLASS_6015 st6015, CLASS_6001 to6001,INT8U* data,INT8
  * */
 void DbgPrintToFile1(INT8U comport,const char *format,...)
 {
-	return;
+//	return;
 
-#if 0
+#if 1
+	static INT8U  log_num = 0;
 	char str[50];
 	char fname[100];
 	char tmpcmd[256];
@@ -87,21 +88,30 @@ void DbgPrintToFile1(INT8U comport,const char *format,...)
 
 	struct stat fileInfo;
 	stat(fname, &fileInfo);
-	if(comport==31) {	//载波口log
-		logsize = 8192*1000;	//8M
-	}else
-		logsize = 2048*1000;	//2M	防止II型集中器log过大，nand空间不足
+	logsize = 2048*1000;	//2M	防止II型集中器log过大，nand空间不足
 	//	if (fileInfo.st_size>4096*1000)//超过300K
 	if (fileInfo.st_size>logsize)//超过300K
 	{
 		memset(tmpcmd,0,sizeof(tmpcmd));
-		sprintf(tmpcmd,"cp %s %s.0",fname,fname);
+		if(comport==31) {
+			sprintf(tmpcmd,"cp %s %s.%d",fname,fname,log_num);
+			log_num++;
+			if(log_num>=2) {
+				log_num = 0;
+			}
+		}else {
+			sprintf(tmpcmd,"cp %s %s.0",fname,fname);
+		}
 		system(tmpcmd);
 		sleep(3);
 		memset(tmpcmd,0,sizeof(tmpcmd));
-		sprintf(tmpcmd,"rm %s",fname);
+		sprintf(tmpcmd,"rm -f %s",fname);
 		system(tmpcmd);
+		sleep(2);
+		unlink(fname);
+		sync();
 	}
+
 #endif
 }
 
@@ -1222,7 +1232,7 @@ INT8U getASNInfo97(FORMAT97* DI97,Base_DataType* dataType)
 	fprintf(stderr, "\n getASNInfo DI97 = %02x%02x",DI97->DI[1],DI97->DI[0]);
 	INT8U unitNum = 1;
 	INT8U index;
-
+	INT8U flagnegative[10] = {0};
 	//电表日期
 	if((DI97->DI[0] == 11)&&(DI97->DI[1] == 0xc0))
 	{
@@ -1325,13 +1335,13 @@ INT8U getASNInfo97(FORMAT97* DI97,Base_DataType* dataType)
 	if(DI97->DI[1]==0xb6)
 	{
 		//电压
-		if((DI97->DI[0]&0xf0) == 1)
+		if((DI97->DI[0]&0xf0) == 0x10)
 		{
-			if((DI97->Data[2] = 0xff)&&(DI97->Data[3] = 0xff))
+			if((DI97->Data[2] == 0xff)&&(DI97->Data[3] == 0xff))
 			{
 				memset(&DI97->Data[2],0,2);
 			}
-			if((DI97->Data[4] = 0xff)&&(DI97->Data[5] = 0xff))
+			if((DI97->Data[4] == 0xff)&&(DI97->Data[5] == 0xff))
 			{
 				memset(&DI97->Data[4],0,2);
 			}
@@ -1351,7 +1361,7 @@ INT8U getASNInfo97(FORMAT97* DI97,Base_DataType* dataType)
 				}
 				else
 				{
-					memcpy(&f25_2_buff[(tmpIndex*4)+2],&DI97->Data[tmpIndex*2],2);
+					memcpy(&f25_2_buff[tmpIndex*4],&DI97->Data[tmpIndex*2],2);
 				}
 			}
 			memcpy(&DI97->Data[0],f25_2_buff,16);
@@ -1365,15 +1375,42 @@ INT8U getASNInfo97(FORMAT97* DI97,Base_DataType* dataType)
 			}
 
 		}
-		//有功功率
-		if(((DI97->DI[0]&0xf0) == 0x30)||((DI97->DI[0]&0xf0) == 0x40))
+
+		if((DI97->DI[0]&0xf0) == 0x30)
 		{
 			*dataType = dtdoublelong;
 			INT8U f25_3_buff[16] = {0};
 			INT8U tmpIndex = 0;
 			for(tmpIndex = 0;tmpIndex < unitNum;tmpIndex++)
 			{
-				if((DI97->Data[tmpIndex*8]==0xff)&&(DI97->Data[tmpIndex*8+1]==0xff)&&(DI97->Data[tmpIndex*8+2]==0xff))
+				if((DI97->Data[tmpIndex*3]==0xff)&&(DI97->Data[tmpIndex*3+1]==0xff)&&(DI97->Data[tmpIndex*3+2]==0xff))
+				{
+					memset(&f25_3_buff[tmpIndex*4],0,4);
+				}
+				else
+				{
+					if((DI97->Data[tmpIndex*3+2]&0x80) == 0x80)
+					{
+						DI97->Data[tmpIndex*3+2] = DI97->Data[tmpIndex*3+2]&0x7f;
+						flagnegative[tmpIndex] = 1;
+					}
+					memcpy(&f25_3_buff[tmpIndex*4],&DI97->Data[tmpIndex*3],3);
+				}
+			}
+			memcpy(DI97->Data,f25_3_buff,16);
+			DI97->Length += unitNum;
+		}
+
+
+		//有功功率
+		if((DI97->DI[0]&0xf0) == 0x40)
+		{
+			*dataType = dtdoublelong;
+			INT8U f25_3_buff[16] = {0};
+			INT8U tmpIndex = 0;
+			for(tmpIndex = 0;tmpIndex < unitNum;tmpIndex++)
+			{
+				if((DI97->Data[tmpIndex*8]==0xff)&&(DI97->Data[tmpIndex*8+1]==0xff))
 				{
 					memset(&f25_3_buff[tmpIndex*4],0,4);
 				}
@@ -1390,15 +1427,15 @@ INT8U getASNInfo97(FORMAT97* DI97,Base_DataType* dataType)
 	//功率因数
 	if((DI97->DI[0]&0xf0) == 0x50)
 	{
-		if((DI97->Data[2] = 0xff)&&(DI97->Data[3] = 0xff))
+		if((DI97->Data[2] == 0xff)&&(DI97->Data[3] == 0xff))
 		{
 			memset(&DI97->Data[2],0,2);
 		}
-		if((DI97->Data[4] = 0xff)&&(DI97->Data[5] = 0xff))
+		if((DI97->Data[4] == 0xff)&&(DI97->Data[5] == 0xff))
 		{
 			memset(&DI97->Data[4],0,2);
 		}
-		if((DI97->Data[6] = 0xff)&&(DI97->Data[7] = 0xff))
+		if((DI97->Data[6] == 0xff)&&(DI97->Data[7] == 0xff))
 		{
 			memset(&DI97->Data[6],0,2);
 		}
@@ -1415,6 +1452,10 @@ INT8U getASNInfo97(FORMAT97* DI97,Base_DataType* dataType)
 		INT32U value = 0;
 		INT8U dataIndex = unitIndex*unitSize;
 		bcd2int32u(&DI97->Data[dataIndex],unitSize,inverted,&value);
+		if((DI97->DI[1]==0xb6)&&(((DI97->DI[0]&0xf0) == 0x10)||((DI97->DI[0]&0xf0) == 0x20)))
+		{
+			value = value*10;
+		}
 		fprintf(stderr,"\n value = %d",value);
 		memcpy(&DI97->Data[dataIndex],&value,unitSize);
 
@@ -2455,7 +2496,7 @@ INT8S dealProxyType2(PROXY_GETLIST *getlist,INT8U port485)
 	int dataindex=0;
 	INT8S result = -1;
 	INT16U singleLen = 0;
-	INT8U tmpbuf[256]={};
+	INT8U tmpbuf[512]={};
 	CLASS_6001 obj6001 = {};
 
 	if( get6001ObjByTSA(getlist->proxy_obj.record.tsa,&obj6001) != 1 ||
@@ -2516,7 +2557,7 @@ INT8S dealProxyType1(PROXY_GETLIST *getlist,INT8U port485)
 	INT8S result = -1;
 	INT8U index;
 	INT16U singleLen = 0;
-	INT8U tmpbuf[256]={};
+	INT8U tmpbuf[512]={};
 	CLASS_6001 obj6001 = {};
 	fprintf(stderr,"\n RS485-%d 判断代理对象(TSA)数量 objs num = %d :",port485,getlist->num);
 
@@ -2686,7 +2727,7 @@ INT8S dealProxyType3(PROXY_GETLIST *getlist,INT8U port485)
 	INT8S result = -1;
 	INT8U mpindex = 0;
 	INT16U singleLen = 0;
-	INT8U tmpbuf[256]={};
+	INT8U tmpbuf[512]={};
 	CLASS_6001 obj6001 = {};
 	INT8U type = SET_REQUEST;
 	fprintf(stderr,"\n\n\n -------------------port485 = %d dealProxyType3 代理对象(TSA)数量 objs num = %d :",port485,getlist->num);
@@ -3803,6 +3844,10 @@ INT16S dealCurve_698(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT
 			}
 		}
 	}
+	if(dataCount > 0)
+	{
+		increase6035SuccNum(st6035->taskID,to6001.sernum);
+	}
 	return dataCount;
 }
 INT16S deal6015_698(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8U port485)
@@ -3874,7 +3919,10 @@ INT16S deal6015_698(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8
 						return 0;
 					}
 				}
-
+				if(dataCount > 0)
+				{
+					increase6035SuccNum(st6035->taskID,to6001.sernum);
+				}
 				//存储数据
 				TS OADts;
 				TSGet(&OADts);
@@ -4096,7 +4144,7 @@ INT8S checkTimeStamp07(CLASS_6001 obj6001,INT8U port485)
 
 INT16S deal6015_9707(INT8U protocol,CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8U port485) {
 	INT16S datalen = 0,totaldataLen = 0;
-	INT8U oadDataNum = 0;
+	INT8U oadDataNum = 0,isAllSucc = 0;
 	fprintf(stderr,
 			"\n\n-------start------------ deal6015_07  meter = %d st6015.sernum = %d st6015.csds.num = %d---------",
 			to6001.sernum, st6015.sernum, st6015.csds.num);
@@ -4180,7 +4228,10 @@ INT16S deal6015_9707(INT8U protocol,CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6
 				}
 
 			}
-
+			if(oadDataNum == st6015.csds.csd[dataIndex].csd.road.num)
+			{
+				isAllSucc = 1;
+			}
 
 		}
 		else
@@ -4218,6 +4269,10 @@ INT16S deal6015_9707(INT8U protocol,CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6
 		{
 			break;
 		}
+		if(oadDataNum == st6015.csds.num)
+		{
+			isAllSucc = 1;
+		}
 	}
 	if(totaldataLen >= DATA_CONTENT_LEN)
 	{
@@ -4225,7 +4280,10 @@ INT16S deal6015_9707(INT8U protocol,CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6
 		fprintf(stderr,"deal6015_07 datalen = %d totaldataLen = %d",datalen,totaldataLen);
 		return totaldataLen;
 	}
-
+	if(isAllSucc == 1)
+	{
+		increase6035SuccNum(st6035->taskID,to6001.sernum);
+	}
 #ifdef SAVETESTDEF
 	if(totaldataLen > 0)
 	{
@@ -5205,10 +5263,10 @@ void read485_thread(void* i485port) {
 			fprintf(stderr,"\n read485_thread ---------port = %d ------ taskIndex = %d \n",port,taskIndex);
 			DbgPrintToFile1(port,"******************************************taskIndex = %d 任务开始*******************************",taskIndex);
 
-			list6013[taskIndex].Info6035.taskState = IN_OPR;
-			if(list6013[taskIndex].Info6035.sendMsgNum == 0)
+			JProgramInfo->info6035[taskIndex].taskState = IN_OPR;
+			if(JProgramInfo->info6035[taskIndex].sendMsgNum == 0)
 			{
-				DataTimeGet(&list6013[taskIndex].Info6035.starttime);
+				DataTimeGet(&JProgramInfo->info6035[taskIndex].starttime);
 			}
 			CLASS_6015 to6015;	//采集方案集
 			memset(&to6015, 0, sizeof(CLASS_6015));
@@ -5221,7 +5279,7 @@ void read485_thread(void* i485port) {
 					ret = use6013find6015or6017(list6013[taskIndex].basicInfo.cjtype,list6013[taskIndex].basicInfo.sernum,list6013[taskIndex].basicInfo.interval,&to6015);
 					if(ret == 1)
 					{
-						ret = deal6015or6017(list6013[taskIndex].basicInfo,to6015,port,&list6013[taskIndex].Info6035);
+						ret = deal6015or6017(list6013[taskIndex].basicInfo,to6015,port,&JProgramInfo->info6035[taskIndex]);
 					}
 					else
 					{
@@ -5241,14 +5299,10 @@ void read485_thread(void* i485port) {
 				}
 					break;
 			}
-
+			DataTimeGet(&JProgramInfo->info6035[taskIndex].endtime);
 			DbgPrintToFile1(port,"****************taskIndex = %d 任务结束 发送报文数量：%d  接受报文数量：%d*******************************",
-					list6013[taskIndex].basicInfo.taskID,list6013[taskIndex].Info6035.sendMsgNum,list6013[taskIndex].Info6035.rcvMsgNum);
+					list6013[taskIndex].basicInfo.taskID,JProgramInfo->info6035[taskIndex].sendMsgNum,JProgramInfo->info6035[taskIndex].rcvMsgNum);
 
-			list6013[taskIndex].Info6035.taskState = AFTER_OPR;
-			TS tsNow;
-			TSGet(&tsNow);
-			DataTimeGet(&list6013[taskIndex].Info6035.endtime);
 			if(getZone("GW")!=0)
 			{
 				//抄完日冻结任务需要把infoReplenish　保存到文件里　保证重启后补抄不用全部都抄
@@ -5260,14 +5314,9 @@ void read485_thread(void* i485port) {
 					printinfoReplenish(0);
 				}
 			}
-			else
-			{
-				list6013[taskIndex].Info6035.successMSNum = getCBsuctsanum(list6013[taskIndex].basicInfo.taskID,tsNow);
-				saveCoverClass(0x6035, list6013[taskIndex].Info6035.taskID, &list6013[taskIndex].Info6035,sizeof(CLASS_6035), coll_para_save);
-			}
 
 			//判断485故障事件
-			if((list6013[taskIndex].Info6035.sendMsgNum > 0)&&(list6013[taskIndex].Info6035.rcvMsgNum==0))
+			if((JProgramInfo->info6035[taskIndex].sendMsgNum > 0)&&(JProgramInfo->info6035[taskIndex].rcvMsgNum==0))
 			{
 				Event_310A(c485_err,JProgramInfo);
 			}
