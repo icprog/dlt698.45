@@ -464,12 +464,24 @@ void InitSharedMem(int argc, char *argv[]) {
 	readCoverClass(0x3010, 0, &JProgramInfo->event_obj.Event3010_obj,
 			sizeof(JProgramInfo->event_obj.Event3010_obj), event_para_save);
 
-	if (0 == JProgramInfo->event_obj.Event3106_obj.poweroff_para_obj.screen_para_obj.recover_voltage_limit) {
-		JProgramInfo->event_obj.Event3106_obj.poweroff_para_obj.screen_para_obj.recover_voltage_limit = VOL_ON_THR;
-	}
+	if(bufIsNULL((INT8U*)&(JProgramInfo->event_obj.Event3106_obj), sizeof(Event3106_Object))==TRUE) {
+		DEBUG_TIME_LINE("3106 is null! set default para...");
 
-	if (0 == JProgramInfo->event_obj.Event3106_obj.poweroff_para_obj.screen_para_obj.happen_voltage_limit) {
-		JProgramInfo->event_obj.Event3106_obj.poweroff_para_obj.screen_para_obj.happen_voltage_limit = VOL_DOWN_THR;
+		JProgramInfo->event_obj.Event3106_obj.poweroff_para_obj.collect_para_obj.collect_flag = 0;//do not read meter's value
+
+		JProgramInfo->event_obj.Event3106_obj.event_obj.enableflag = 1;
+		JProgramInfo->event_obj.Event3106_obj.event_obj.reportflag = 1;
+		JProgramInfo->event_obj.Event3106_obj.poweroff_para_obj.screen_para_obj.mintime_space = 1;
+		JProgramInfo->event_obj.Event3106_obj.poweroff_para_obj.screen_para_obj.maxtime_space = 4320;//3*24*60
+		JProgramInfo->event_obj.Event3106_obj.poweroff_para_obj.screen_para_obj.startstoptime_offset = 5;
+		JProgramInfo->event_obj.Event3106_obj.poweroff_para_obj.screen_para_obj.sectortime_offset = 1;
+		JProgramInfo->event_obj.Event3106_obj.poweroff_para_obj.screen_para_obj.happen_voltage_limit = VOL_DOWN_THR;//220*60%
+		JProgramInfo->event_obj.Event3106_obj.poweroff_para_obj.screen_para_obj.recover_voltage_limit = VOL_ON_THR;//220*80%
+
+		saveCoverClass(0x3106, 0, &JProgramInfo->event_obj.Event3106_obj,
+					sizeof(JProgramInfo->event_obj.Event3106_obj), event_para_save);
+		saveCoverClass(0x3106, 0, &JProgramInfo->event_obj.Event3106_obj,
+					sizeof(JProgramInfo->event_obj.Event3106_obj), para_init_save);
 	}
 }
 

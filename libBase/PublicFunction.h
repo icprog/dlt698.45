@@ -123,6 +123,7 @@ extern void debugToPlcFile(const char* file, const char* func, INT32U line, cons
 extern void debugToStderr(const char* file, const char* func, INT32U line, const char *fmt, ...);
 extern void debugToFile(const char* fname, const char* file, const char* func, INT32U line, const char *fmt,...);
 extern void readFrm(char* str,  INT8U* buf, INT32U* bufSize);
+extern int bufIsNULL(INT8U* buf, INT32U bufSize);
 
 //读取设备配置信息
 extern int ReadDeviceConfig(ConfigPara	*cfg_para);

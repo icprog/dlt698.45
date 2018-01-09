@@ -470,6 +470,7 @@ typedef struct {
     Terminal_Dev_Info dev_info;
     INT8U			powerState;			//集中器停上电状态, PWR_ON - 上电状态; PWR_DOWN - 断电状态.
     									//宏在"include/att7022e."定义. 程序初始化的时候, 默认停电状态.
+    CLASS_6035 info6035[TASK6012_CAIJI];
 }ProgramInfo; //程序信息结构
 
 #endif /* GTYPE_H_ */

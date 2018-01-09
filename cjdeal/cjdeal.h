@@ -12,14 +12,11 @@ extern void DealState(ProgramInfo* prginfo);
 extern void read_oif203_para();
 extern INT32S spi_close(INT32S fd);
 extern INT8U is485OAD(OAD portOAD, INT8U port485);
-//采集任务最大数量
-#define TASK6012_CAIJI 12		//国网台体全事件采集共下发了12个采集方案
 
 typedef struct {
 	INT8U run_flg; //累计需要抄读次数 抄读一次后置为0   到下一次抄读时间置为1
 	time_t ts_next; //下一次抄表时刻
 	CLASS_6013 basicInfo;
-	CLASS_6035 Info6035;
 } TASK_CFG;
 INT8U total_tasknum;
 TASK_CFG list6013[TASK6012_CAIJI];
@@ -37,12 +34,21 @@ INT8U para_ChangeType;
 
 //6000测量点信息
 #define MAX_METER_NUM_1_PORT 200
+
 //需要补抄的任务个数
 #define MAX_REPLENISH_TASK_NUM 5
 typedef struct {
 	INT16U meterSum; //此端口上的测量点数量
 	INT16U list6001[MAX_METER_NUM_1_PORT]; //测量点序号
 } INFO_6001_LIST;
+
+typedef struct {
+	INT8U taskID; //任务ID
+	INT16U meterSuccSum; //抄读成功测量点数量
+	INT16U list6001[MAX_METER_NUM]; //抄读成功测量点序号
+}Meter_SUCC_FLG;
+
+Meter_SUCC_FLG metersuccFlag[TASK6012_CAIJI];//测量点抄表成功标志
 
 INFO_6001_LIST info6000[2]; //两路485
 INT8U isNeed4852; //0-4852维护口　1-4852抄表口
@@ -108,5 +114,6 @@ GUI_PROXY cjGuiProxy_plc;
 void printinfoReplenish(INT8U);
 INT8U get6001ObjByTSA(TSA addr, CLASS_6001* targetMeter);
 INT8U increase6035Value(INT8U taskID,INT8U type);
+INT8U increase6035SuccNum(INT8U taskID,INT16U meterser);
 INT8U isTimerSame(INT8S index, INT8U* timeData);
 #endif

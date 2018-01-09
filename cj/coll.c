@@ -933,13 +933,25 @@ void Task6035(int argc, char *argv[])
 					}
 				}
 			}else if(argc==5) {
+				fprintf(stderr,"共享内存中值\n");
 				sscanf(argv[4],"%04x",&tmp[0]);
 				taskid = tmp[0];
 				fprintf(stderr,"taskid=%d\n",taskid);
-				memset(&class6035,0,sizeof(CLASS_6035));
-				if(readCoverClass(oi,taskid,&class6035,sizeof(class6035),coll_para_save)==1) {
-					print6035(class6035);
-				}else {
+
+				ProgramInfo* JProgramInfo = OpenShMem("ProgramInfo", sizeof(ProgramInfo), NULL);
+				if(JProgramInfo)
+				{
+					INT8U taskIndex = 0;
+					for(taskIndex = 0;taskIndex < 10;taskIndex++)
+					{
+						if(JProgramInfo->info6035[taskIndex].taskID == taskid)
+						{
+							print6035(JProgramInfo->info6035[taskIndex]);
+						}
+					}
+				}
+				else
+				{
 					fprintf(stderr,"无任务配置单元");
 				}
 			}
