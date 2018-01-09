@@ -91,10 +91,10 @@ void printClass3106()
 
 void printSet3106Usage()
 {
-	fprintf(stderr, "usage: cj event set 3106 06 01 {1,2,3,4,130,180}\n");
+	fprintf(stderr, "usage: cj event set 3106 06 01 {1, 4320, 5, 1, 1320, 1760}\n");
 }
 
-int getIntegers(char* s, int* v, INT16U* cnt)
+int getIntegers(char* s, INT16U* v, INT16U* cnt)
 {
 	INT16U len = strlen(s);
 	INT16U i=0;
@@ -143,13 +143,18 @@ int getIntegers(char* s, int* v, INT16U* cnt)
 	for(*cnt=0; *cnt < i; *cnt += 1) {
 		v[*cnt] = atoi(pDec[*cnt]);
 	}
-	free(pDec);
+
+	if(NULL != pDec) {
+		free(pDec);
+		pDec = NULL;
+	}
+
 	return 1;
 }
 
 /*
  * 设置3106的属性2或者属性6内的值
- * 用法: cj event set 3106 06 01 {1, 2, 3, 4, 130, 180}
+ * 用法: cj event set 3106 06 01 {1, 4320, 5, 1, 1320, 1760}
  * 解释: 设置3106类的属性06, 内的第01个成员
  * 的第04个成员的值为130
  * 注: 属性内成员索引从00开始
@@ -158,7 +163,7 @@ void setClass3106(int argc, char* argv[])
 {
 	ProgramInfo *JProgramInfo = OpenShMem("ProgramInfo",sizeof(ProgramInfo),NULL);
 	Event3106_Object e3106Obj;
-	int value[] = {0,0,0,0,0,0};
+	INT16U value[] = {0,0,0,0,0,0};
 	INT16U	vCnt = 6;
 
 	if (argc != 7) {
@@ -188,9 +193,9 @@ void setClass3106(int argc, char* argv[])
 					e3106Obj.poweroff_para_obj.screen_para_obj.happen_voltage_limit 	= value[4];
 					e3106Obj.poweroff_para_obj.screen_para_obj.recover_voltage_limit 	= value[5];
 					saveCoverClass(0x3106,0,(void *)&e3106Obj,sizeof(Event3106_Object),event_para_save);
-					memset((void *)&JProgramInfo->event_obj.Event3106_obj,
-							(void *)&e3106Obj,
-							sizeof(Event3106_Object));
+					memcpy((void *)(&JProgramInfo->event_obj.Event3106_obj.poweroff_para_obj.screen_para_obj),
+							(void *)(&e3106Obj.poweroff_para_obj.screen_para_obj),
+							sizeof(Screen_Para_Object));
 			} else {
 				printSet3106Usage();
 			}

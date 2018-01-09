@@ -1458,4 +1458,22 @@ void Chg4500_reboot_HN(INT8U DAR,INT8U *ip,INT16U port,INT8U *resetflg)
 		*resetflg = *resetflg + 1;
 	}
 }
+
+int bufIsNULL(INT8U* buf, INT32U bufSize)
+{
+	INT32U i = 0;
+
+	if(NULL == buf || 0 == bufSize) {
+		return TRUE;
+	}
+
+	for(i=0;i<bufSize;i++){
+		if(buf[i] != 0)
+			return FALSE;
+	}
+
+	return TRUE;
+}
+
+
 #endif /*JPublicFunctionH*/
