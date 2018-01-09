@@ -91,7 +91,10 @@
 #define DI97_NUM_601F 			10
 
 #define POWEROFFON_NUM          10          //停上电事件需要抄读得测量点最大数
-
+//采集任务最大数量
+#define TASK6012_CAIJI 10
+//测量点最大数量
+#define MAX_METER_NUM 800
 /*
  * 控制部分功能
  * */

@@ -339,14 +339,15 @@ INT8U isPlcOAD(OAD portOAD) {
 INT8S init6000InfoFrom6000FIle() {
 	memset(&info6000, 0, 2 * sizeof(INFO_6001_LIST));
 	INT8U tIndex = 0;
-	if (getZone("GW") != 0) {
-		for (tIndex = 0; tIndex < infoReplenish.tasknum; tIndex++) {
-			memset(infoReplenish.unitReplenish[tIndex].list6001, 0,
-					2 * sizeof(INFO_6001_LIST));
-			memset(infoReplenish.unitReplenish[tIndex].isSuccess, 0,
-					2 * MAX_METER_NUM_1_PORT);
+	if (getZone("GW") != 0)
+	{
+		for (tIndex = 0; tIndex < infoReplenish.tasknum; tIndex++)
+		{
+			memset(infoReplenish.unitReplenish[tIndex].list6001, 0,2 * sizeof(INFO_6001_LIST));
+			memset(infoReplenish.unitReplenish[tIndex].isSuccess, 0,2 * MAX_METER_NUM_1_PORT);
 		}
 	}
+
 
 	INT8S result = -1;
 	INT16U meterIndex = 0;
@@ -572,21 +573,23 @@ INT8U init6035TotalNum() {
 		if (ret == 1) {
 			INT16U totalMSNum = 0;
 
-			memset(&list6013[tIndex].Info6035, 0, sizeof(CLASS_6035));
-			list6013[tIndex].Info6035.taskID = list6013[tIndex].basicInfo.taskID;
-			list6013[tIndex].Info6035.taskState = BEFORE_OPR;
-			memcpy(&list6013[tIndex].Info6035.starttime,&list6013[tIndex].basicInfo.startime,sizeof(DateTimeBCD));
-			memcpy(&list6013[tIndex].Info6035.endtime,&list6013[tIndex].basicInfo.endtime,sizeof(DateTimeBCD));
+			memset(&JProgramInfo->info6035[tIndex], 0, sizeof(CLASS_6035));
+			metersuccFlag[tIndex].taskID = list6013[tIndex].basicInfo.taskID;
+			JProgramInfo->info6035[tIndex].taskID = list6013[tIndex].basicInfo.taskID;
+			JProgramInfo->info6035[tIndex].taskState = BEFORE_OPR;
+			memcpy(&JProgramInfo->info6035[tIndex].starttime,&list6013[tIndex].basicInfo.startime,sizeof(DateTimeBCD));
+			memcpy(&JProgramInfo->info6035[tIndex].endtime,&list6013[tIndex].basicInfo.endtime,sizeof(DateTimeBCD));
 
-			for (meterIndex = 0; meterIndex < totalNum; meterIndex++) {
-				if (checkMeterType(to6015.mst, allMeter[meterIndex].usrtype,
-						allMeter[meterIndex].meter)) {
+			for (meterIndex = 0; meterIndex < totalNum; meterIndex++)
+			{
+				if (checkMeterType(to6015.mst, allMeter[meterIndex].usrtype,allMeter[meterIndex].meter))
+				{
 					totalMSNum++;
 				}
 			}
-			asyslog(LOG_WARNING, "init6035TotalNum id =%d  totalMSNum = %d",list6013[tIndex].Info6035.taskID,list6013[tIndex].Info6035.totalMSNum);
-			list6013[tIndex].Info6035.totalMSNum = totalMSNum;
-			saveCoverClass(0x6035, list6013[tIndex].Info6035.taskID, &list6013[tIndex].Info6035, sizeof(CLASS_6035),coll_para_save);
+			asyslog(LOG_WARNING, "init6035TotalNum id =%d  totalMSNum = %d",JProgramInfo->info6035[tIndex].taskID,JProgramInfo->info6035[tIndex].totalMSNum);
+			JProgramInfo->info6035[tIndex].totalMSNum = totalMSNum;
+			saveCoverClass(0x6035, JProgramInfo->info6035[tIndex].taskID, &JProgramInfo->info6035[tIndex], sizeof(CLASS_6035),coll_para_save);
 		}
 
 	}
@@ -670,39 +673,6 @@ INT8S init4204Info() {
 	}
 	return ret;
 }
-INT8U findfake6001(INT8U tIndex, CLASS_6001* meter) {
-	INT8S ret = -1;
-	INT16U meterIndex = 0;
-	CLASS_6015 to6015;	//采集方案集
-	memset(&to6015, 0, sizeof(CLASS_6015));
-	memset(meter, 0, sizeof(CLASS_6001));
-
-	ret = use6013find6015or6017(list6013[tIndex].basicInfo.cjtype,
-			list6013[tIndex].basicInfo.sernum,
-			list6013[tIndex].basicInfo.interval, &to6015);
-	if (ret == 1) {
-		INT8U portIndex = 0;
-		ret = -1;
-		for (portIndex = 0; portIndex < 2; portIndex++) {
-			for (meterIndex = 0; meterIndex < info6000[portIndex].meterSum;
-					meterIndex++) {
-				if (readParaClass(0x6000, meter,
-						info6000[portIndex].list6001[meterIndex]) == 1) {
-					if (meter->sernum != 0 && meter->sernum != 0xffff) {
-						if (checkMeterType(to6015.mst, meter->basicinfo.usrtype,
-								meter->basicinfo.addr)) {
-							fprintf(stderr,
-									"\n 找到任务对应测量点　%d portIndex = %d meterIndex = %d",
-									meter->sernum, portIndex, meterIndex);
-							return 1;
-						}
-					}
-				}
-			}
-		}
-	}
-	return -1;
-}
 
 void timeProcess() {
 	static TS lastTime;
@@ -747,35 +717,38 @@ void timeProcess() {
 			}
 
 			printinfoReplenish(2);
-
+			//6035相关数据reset
 			for (tIndex = 0; tIndex < total_tasknum; tIndex++)
 			{
-				list6013[tIndex].Info6035.successMSNum = 0;
-				list6013[tIndex].Info6035.sendMsgNum = 0;
-				list6013[tIndex].Info6035.rcvMsgNum = 0;
-				saveCoverClass(0x6035, list6013[tIndex].Info6035.taskID, &list6013[tIndex].Info6035,sizeof(CLASS_6035), coll_para_save);
+				metersuccFlag[tIndex].meterSuccSum = 0;
+				memset(metersuccFlag[tIndex].list6001,0,MAX_METER_NUM);
+				JProgramInfo->info6035[tIndex].successMSNum = 0;
+				JProgramInfo->info6035[tIndex].sendMsgNum = 0;
+				JProgramInfo->info6035[tIndex].rcvMsgNum = 0;
+				saveCoverClass(0x6035, JProgramInfo->info6035[tIndex].taskID, &JProgramInfo->info6035[tIndex],sizeof(CLASS_6035), coll_para_save);
 			}
+
+
 		}
 		if (getZone("GW") != 0)
 		{
-			//每60分钟同步一次6035
+			 //每60分钟同步一次6035
 			if(nowTime.Hour!=lastTime.Hour)
 			{
 				for (tIndex = 0; tIndex < total_tasknum; tIndex++)
 				{
-					if(list6013[tIndex].Info6035.rcvMsgNum > 0)
+					if(JProgramInfo->info6035[tIndex].rcvMsgNum > 0)
 					{
-						list6013[tIndex].Info6035.successMSNum = getCBsuctsanum(list6013[tIndex].basicInfo.taskID,nowTime);
-						saveCoverClass(0x6035, list6013[tIndex].Info6035.taskID, &list6013[tIndex].Info6035,sizeof(CLASS_6035), coll_para_save);
+						saveCoverClass(0x6035, JProgramInfo->info6035[tIndex].taskID, &JProgramInfo->info6035[tIndex],sizeof(CLASS_6035), coll_para_save);
 						asyslog(LOG_WARNING, "同步6035 id =%d  sendMsgNum = %d rcvMsgNum = %d totalMSNum = %d successMSNum = %d",
-								list6013[tIndex].Info6035.taskID,list6013[tIndex].Info6035.sendMsgNum,
-								list6013[tIndex].Info6035.rcvMsgNum,list6013[tIndex].Info6035.totalMSNum,list6013[tIndex].Info6035.successMSNum);
+								JProgramInfo->info6035[tIndex].taskID,JProgramInfo->info6035[tIndex].sendMsgNum,
+								JProgramInfo->info6035[tIndex].rcvMsgNum,JProgramInfo->info6035[tIndex].totalMSNum,JProgramInfo->info6035[tIndex].successMSNum);
 					}
 				}
+				filewrite(METERSUCCFLAGPATH, &metersuccFlag,sizeof(Meter_SUCC_FLG)*TASK6012_CAIJI);
 				lastTime.Hour = nowTime.Hour;
 			}
 		}
-
 		if ((nowTime.Hour == 23) && (nowTime.Minute >= 59)
 				&& (resetFlag == 1)) {
 			fprintf(stderr, "\n 集中器跨天 para_change485[0] = 1");
@@ -1600,6 +1573,8 @@ void dispatch_thread() {
 			para_change485[0] = 1;
 			para_change485[1] = 1;
 			system("rm -rf /nand/para/6035");
+			memset(&metersuccFlag,0,sizeof(Meter_SUCC_FLG)*TASK6012_CAIJI);
+			memset(JProgramInfo->info6035,0,sizeof(CLASS_6035)*TASK6012_CAIJI);
 			init6013ListFrom6012File();
 			printinfoReplenish(3);
 			if (getZone("GW") != 0) {
@@ -1608,8 +1583,7 @@ void dispatch_thread() {
 			}
 
 		}
-		if ((para_ChangeType & para_6000_chg)
-				|| (para_ChangeType & para_6012_chg)) {
+		if ((para_ChangeType & para_6000_chg)|| (para_ChangeType & para_6012_chg)) {
 			init6035TotalNum();
 		}
 		if (para_ChangeType & para_4204_chg) {
@@ -1775,6 +1749,32 @@ INT8U get6001ObjByTSA(TSA addr, CLASS_6001* targetMeter) {
 	fprintf(stderr, "get6001ObjByTSA ret=%d\n", ret);
 	return ret;
 }
+INT8U increase6035SuccNum(INT8U taskID,INT16U meterser)
+{
+	DbgPrintToFile1(31,"increase6035SuccNum　taskID=%d meterser = %d　total_tasknum　＝ %d",taskID,meterser,total_tasknum);
+	INT8U ret = 0;
+	INT8U taskIndex = 0;
+	for(taskIndex = 0;taskIndex < total_tasknum;taskIndex++)
+	{
+		if(metersuccFlag[taskIndex].taskID == taskID)
+		{
+			INT16U meterIndex = 0;
+			for(meterIndex = 0;meterIndex < metersuccFlag[taskIndex].meterSuccSum ;meterIndex++)
+			{
+				if(meterser == metersuccFlag[taskIndex].list6001[meterIndex])
+				{
+					return ret;
+				}
+			}
+
+			metersuccFlag[taskIndex].list6001[metersuccFlag[taskIndex].meterSuccSum] = meterser;
+			metersuccFlag[taskIndex].meterSuccSum += 1;
+			JProgramInfo->info6035[taskIndex].successMSNum += 1;
+			return ret;
+		}
+	}
+	return ret;
+}
 //type =0 sendMsgNum++;/type =1 rcvMsgNum++;
 INT8U increase6035Value(INT8U taskID,INT8U type)
 {
@@ -1782,18 +1782,18 @@ INT8U increase6035Value(INT8U taskID,INT8U type)
 	INT8U tIndex;
 	for (tIndex = 0; tIndex < total_tasknum; tIndex++)
 	{
-		if (list6013[tIndex].Info6035.taskID == taskID)
+		if (JProgramInfo->info6035[tIndex].taskID == taskID)
 		{
 			DbgPrintToFile1(31,"increase6035Value　taskID=%d type = %d",taskID,type);
 			if(type==0)
 			{
-				list6013[tIndex].Info6035.sendMsgNum++;
-				list6013[tIndex].Info6035.taskState = IN_OPR;
+				JProgramInfo->info6035[tIndex].sendMsgNum++;
+				JProgramInfo->info6035[tIndex].taskState = IN_OPR;
 			}
 			else
 			{
-				list6013[tIndex].Info6035.rcvMsgNum++;
-				DataTimeGet(&list6013[tIndex].Info6035.endtime);
+				JProgramInfo->info6035[tIndex].rcvMsgNum++;
+				DataTimeGet(&JProgramInfo->info6035[tIndex].endtime);
 			}
 		}
 	}
@@ -1815,11 +1815,69 @@ INT8U checkReplenishDatInFile(Replenish_TaskInfo* replenishinfo)
 	}
 	return ret;
 }
+INT8U Init6035FromFile()
+{
+	INT8U ret = 1;
+	INT8U taskIndex = 0;
+	for(taskIndex = 0;taskIndex < total_tasknum;taskIndex++)
+	{
+		if(readCoverClass(0x6035,list6013[total_tasknum].basicInfo.taskID,&JProgramInfo->info6035[taskIndex],sizeof(CLASS_6035),coll_para_save)== 1)
+		{
+			CLASS_6035 class6035;
+			memcpy(&class6035,&JProgramInfo->info6035[taskIndex],sizeof(CLASS_6035));
+			fprintf(stderr,"[6035]采集任务监控单元 -----\n");
+			fprintf(stderr,"\n\n[1]任务ID [2]执行状态<0:未执行 1:执行中 2:已执行> [3]任务执行开始时间 [4]任务执行结束时间 [5]采集总数量 [6]采集成功数量 [7]已发送报文条数 [8]已接收报文条数 \n");
+			fprintf(stderr,"[1]%d [2]%d ",class6035.taskID,class6035.taskState);
+			fprintf(stderr,"[3]%d-%d-%d %02d:%02d:%02d ",class6035.starttime.year.data,class6035.starttime.month.data,class6035.starttime.day.data,
+					class6035.starttime.hour.data,class6035.starttime.min.data,class6035.starttime.sec.data);
+			fprintf(stderr,"[4]%d-%d-%d %02d:%02d:%02d ",class6035.endtime.year.data,class6035.endtime.month.data,class6035.endtime.day.data,
+					class6035.endtime.hour.data,class6035.endtime.min.data,class6035.endtime.sec.data);
+			fprintf(stderr,"[5]%d [6]%d [7]%d [8]%d\n",class6035.totalMSNum,class6035.successMSNum,class6035.sendMsgNum,class6035.rcvMsgNum);
+
+		}
+	}
+	fileread(METERSUCCFLAGPATH, &metersuccFlag,sizeof(Meter_SUCC_FLG)*TASK6012_CAIJI);
+	return ret;
+}
+INT8U checkMetersuccFlag()
+{
+	INT8U ret = 1;
+	INT8U taskIndex = 0;
+	for(taskIndex = 0;taskIndex < total_tasknum;taskIndex++)
+	{
+		if(JProgramInfo->info6035[taskIndex].taskID == metersuccFlag[taskIndex].taskID)
+		{
+			if(JProgramInfo->info6035[taskIndex].successMSNum != metersuccFlag[taskIndex].meterSuccSum)
+			{
+				JProgramInfo->info6035[taskIndex].successMSNum = metersuccFlag[taskIndex].meterSuccSum;
+				DbgPrintToFile1(3, "1-JProgramInfo successMSNum = %d---- metersuccFlag successMSNum = %d",
+						JProgramInfo->info6035[taskIndex].successMSNum,metersuccFlag[taskIndex].meterSuccSum);
+			}
+		}
+		else
+		{
+			metersuccFlag[taskIndex].taskID = JProgramInfo->info6035[taskIndex].taskID;
+			metersuccFlag[taskIndex].meterSuccSum = 0;
+			memset(metersuccFlag[taskIndex].list6001,0,MAX_METER_NUM);
+			DbgPrintToFile1(3, "2-JProgramInfo taskID = %d---- metersuccFlag taskID = %d",
+					JProgramInfo->info6035[taskIndex].taskID,metersuccFlag[taskIndex].taskID);
+		}
+
+	}
+
+	return ret;
+}
 void dispatchTask_proccess() {
 	//读取所有任务文件		TODO：参数下发后需要更新内存值
 	init6013ListFrom6012File();
 	init6000InfoFrom6000FIle();
+	//初始化共享内存的6035
+	memset(&metersuccFlag,0,sizeof(Meter_SUCC_FLG)*TASK6012_CAIJI);
+	memset(JProgramInfo->info6035,0,sizeof(CLASS_6035)*TASK6012_CAIJI);
+	Init6035FromFile();
 	init6035TotalNum();
+	checkMetersuccFlag();
+
 	if (getZone("GW") != 0)
 	{
 		Replenish_TaskInfo infoReplenishtmp;
