@@ -13,7 +13,7 @@ extern void read_oif203_para();
 extern INT32S spi_close(INT32S fd);
 extern INT8U is485OAD(OAD portOAD, INT8U port485);
 //采集任务最大数量
-#define TASK6012_CAIJI 10
+#define TASK6012_CAIJI 12		//国网台体全事件采集共下发了12个采集方案
 
 typedef struct {
 	INT8U run_flg; //累计需要抄读次数 抄读一次后置为0   到下一次抄读时间置为1

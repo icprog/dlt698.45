@@ -1805,7 +1805,7 @@ int getOI6001(MY_MS ms,INT8U **tsas)
 			}
 		}
 	}
-//	fprintf(stderr,"\nms.mstype = %d,tsa_num = %d",ms.mstype,tsa_num);
+	fprintf(stderr,"\nms.mstype = %d,tsa_num = %d",ms.mstype,tsa_num);
 	return tsa_num;
 }
 

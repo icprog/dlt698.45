@@ -38,7 +38,7 @@ extern INT16S getTaskIndex(INT8U port);
 #define ZBBUFSIZE 512
 #define BUFSIZE645 256
 #define TASK6012_MAX 256
-#define TASK6012_CAIJI 10
+#define TASK6012_CAIJI 12	//国网台体全事件采集共下发了12个采集方案
 #define FANGAN_ITEM_MAX 64
 #define FANGAN6015_MAX 20
 #define NUM_07DI_698OAD 100
