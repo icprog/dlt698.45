@@ -656,8 +656,8 @@ INT8U Get_StandardUnit(ProgramInfo* prginfo_event,OI_698 oi,INT8U *Rbuf,INT8U *I
 		Rbuf[(*Index)++] = 0;//15无结束时间
 	}else if(oi==0x3106){
 		if(*Source==0){
-//			if((getZone("ZheJiang")==0)||(getZone("HuNan"))==0) {  //Getevent_Record 招测3309上报状态查找位置会有影响
-			if((getZone("ZheJiang")==0)) {  //Getevent_Record 招测3309上报状态查找位置会有影响
+//			if((getZone("ZheJiang")==0)||(getZone("HuNan"))==0) {  //湖南是否需要 结束事件需要主站确认？？
+			if((getZone("ZheJiang")==0)) {
 				Rbuf[(*Index)++] = 0;//15无结束时间
 			}else {			//TODO:山东要求停电事件时，报上一次的上电时间
 				Rbuf[(*Index)++] = dtdatetimes;//15
