@@ -92,7 +92,8 @@
 
 #define POWEROFFON_NUM          10          //停上电事件需要抄读得测量点最大数
 //采集任务最大数量
-#define TASK6012_CAIJI 10
+//国网台体全事件采集共下发了12个采集方案
+#define TASK6012_CAIJI 12
 //测量点最大数量
 #define MAX_METER_NUM 800
 /*
