@@ -2708,7 +2708,7 @@ void doSave(INT8U protocol,FORMAT97 frame97,FORMAT07 frame07)
 			tsatmp.addr[0],tsatmp.addr[1],tsatmp.addr[2],tsatmp.addr[3],
 			tsatmp.addr[4],tsatmp.addr[5],tsatmp.addr[6],tsatmp.addr[7],nodetmp->tsa_index,protocol);
 
-
+	INT8U isAllSucc = 1,itemIndex = 0;
 	if (memcmp(taskinfo.tsa.addr,tsatmp.addr,8) == 0 )//上数TSA就在内存中
 	{
 #ifdef CHECKSSTAMP
@@ -2742,6 +2742,15 @@ void doSave(INT8U protocol,FORMAT97 frame97,FORMAT07 frame07)
 			saveTaskData_NormalData(protocol,&taskinfo,&frame97,&frame07,ts);
 		}
 		savetaskID = taskinfo.task_list[taskinfo.now_taski].taskId;
+		//判断这个任务是不是都抄完了
+		for(itemIndex = 0;itemIndex < taskinfo.task_list[taskinfo.now_taski].fangan.item_n;itemIndex++)
+		{
+			if(taskinfo.task_list[taskinfo.now_taski].fangan.items[itemIndex].sucessflg!=2)
+			{
+				isAllSucc = 0;
+				break;
+			}
+		}
 	}else
 	{
 		if (readParaClass(0x8888, &taskinfo_tmp, nodetmp->tsa_index) == 1 )
@@ -2779,13 +2788,27 @@ void doSave(INT8U protocol,FORMAT97 frame97,FORMAT07 frame07)
 				saveParaClass(0x8888, &taskinfo_tmp,taskinfo_tmp.tsa_index);
 			}
 			savetaskID = taskinfo_tmp.task_list[taskinfo_tmp.now_taski].taskId;
+			//判断这个任务是不是都抄完了
+			for(itemIndex = 0;itemIndex < taskinfo_tmp.task_list[taskinfo.now_taski].fangan.item_n;itemIndex++)
+			{
+				if(taskinfo_tmp.task_list[taskinfo.now_taski].fangan.items[itemIndex].sucessflg!=2)
+				{
+					isAllSucc = 0;
+					break;
+				}
+			}
 		}
 	}
 
 	if((getZone("GW")==1)&&(savetaskID>0))
 	{
 		increase6035Value(savetaskID,1);
+		if(isAllSucc == 1)
+		{
+			increase6035SuccNum(savetaskID,nodetmp->tsa_index);
+		}
 	}
+
 
 }
 INT8U ChgSucessFlg_698(TSA tsaMeter,INT8U taskid)
@@ -3075,6 +3098,7 @@ INT8U doSave_698(INT8U* buf645,int len645)
 	if((getZone("GW")==1)&&(taskid>0))
 	{
 		increase6035Value(taskid,1);
+		increase6035SuccNum(taskid,tsa_group.sernum);
 	}
 
 #if 0
@@ -5023,7 +5047,8 @@ void readplc_thread()
 	memset(&runtimevar.oldts,0,sizeof(&runtimevar.oldts));
 	while(1)
 	{
-		sleep(1);//usleep(10000);
+//		sleep(1);//1231版本测试修改。状态机内部有延时，可能会影响收发数据，恢复原来的usleep(10000);
+		usleep(10000);
 		/********************************
 		 * 	   状态实时判断
 		********************************/

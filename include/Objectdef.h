@@ -186,7 +186,7 @@ typedef struct {
     INT8U hearbeatnum;    //心跳时间总个数
     INT8U tichu_max;      //最大剔除个数
     INT8U tichu_min;      //最小剔除个数
-    INT8U delay;          //通讯延时阀值
+    INT8U delay;          //通讯延时阈(yu-四声, 意为门槛)值
     INT8U num_min;        //最少有效个数
 } CLASS_4000;             //日期时间
 
