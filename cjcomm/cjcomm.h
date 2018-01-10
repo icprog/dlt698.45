@@ -26,6 +26,7 @@ void cRead(struct aeEventLoop *ep, int fd, void *clientData, int mask);
 void cReadWithCalc(struct aeEventLoop *ep, int fd, void *clientData, int mask);
 void cReadWithoutCheck(struct aeEventLoop *ep, int fd, void *clientData, int mask);
 void cProc(struct aeEventLoop *ep, CommBlock * nst);
+int cProcForShanDongAutoReport(struct aeEventLoop *ep, CommBlock * nst);
 
 int Comm_task(CommBlock *compara);
 void refreshComPara(CommBlock *compara);

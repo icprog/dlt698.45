@@ -1234,6 +1234,7 @@ typedef struct {
     INT16U OverTime; //上报响应超时时间，单位：秒
     time_t nexttime; //执行时间
 } AutoTaskStrap;
+
 typedef struct {
     INT8U securetype;           //安全类型
     CLASS_F101 f101;            //安全模式信息
