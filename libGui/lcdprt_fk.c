@@ -16,6 +16,9 @@ extern void menu_showclddata();
 extern void menu_jzqsetmeter();
 extern void menu_jzqaddmeter();
 extern void menu_jzqdelmeter();
+extern void menu_wlanmaster();
+extern void menu_netmaster();
+
 extern ProgramInfo* p_JProgramInfo ;
 Menu menu_fk[]={
 	//level,    name,   		fun, 				ispasswd			pthis,
@@ -47,6 +50,11 @@ Menu menu_fk[]={
 													{{level4,"1.通信方式", 	NULL, 				MENU_NOPASSWD},		NULL},
 																{{level5,"1.以太网通信方式",   menu_set_nettx,        MENU_NOPASSWD},     NULL},
 																{{level5,"2.无线通信方式",     menu_set_wlantx,       MENU_NOPASSWD },    NULL},
+													{{level4,"2.短信中心", 	menu_jzqtelephone, 	MENU_NOPASSWD},		NULL},//111
+													{{level4,"3.主站通信参数", 	NULL, 		MENU_NOPASSWD},		NULL},//1
+																{{level5,"1.以太网通信参数",	menu_netmaster,		MENU_NOPASSWD}},//1111
+																{{level5,"2.无线通信参数",		menu_wlanmaster,	MENU_NOPASSWD}},//1111
+													{{level4,"4.本地IP配置", 	menu_eth0para, 		MENU_NOPASSWD},		NULL},//11
 									{{level3,"3.终端复位", 	NULL, 						MENU_ISPASSWD},		NULL},
 													{{level4,"1.终端重启", 	menu_jzqreboot, 	MENU_ISPASSWD},		NULL},
 													{{level4,"2.数据初始化", 	menu_initjzqdata, 	MENU_ISPASSWD},		NULL},
@@ -199,6 +207,9 @@ void menu_control(){
 	}
 }
 
+
+
+
 void fk_realE_showZJ(LcdDataItem *item,int itemNum,INT8U cldno,INT8U *surfix)
 {
 	int offset_y = 3;
@@ -308,7 +319,6 @@ void fk_realE_showZJ_JC(INT8U cldno,INT8U *surfix)
 	gui_textshow((char*)str, pos, LCD_NOREV);
 	return;
 }
-
 
 void fk_realQ_showZJ(LcdDataItem *item,int itemNum,INT8U cldno,INT8U *surfix)
 {
