@@ -619,17 +619,17 @@ INT8U file_read(char *FileName, void *source, int size,int offset,INT16U *retcrc
 				ret = 1;
 			}
 			else {
-//				syslog(LOG_ERR,"__%s__,校验错误:crc=%d__readcrc=%d",__func__,crc,readcrc);
+				syslog(LOG_ERR,"__%s__,校验错误:crc=%d__readcrc=%d",__func__,crc,readcrc);
 				ret = 0;
 			}
 		}else {
-			syslog(LOG_ERR,"__%s__,[%s]read num=%d,size=%d",__func__,FileName,num,size);
+//			syslog(LOG_ERR,"__%s__,[%s]read num=%d,size=%d",__func__,FileName,num,size);
 		}
 		fclose(fp);
 	} else
 	{
 		ret = 0;
-		syslog(LOG_ERR,"__%s__,文件打开失败【%s】,ret=%d",__func__,FileName,ret);
+//		syslog(LOG_ERR,"__%s__,文件打开失败【%s】,ret=%d",__func__,FileName,ret);
 //		fprintf(stderr, "%s read error\n\r", FileName);
 	}
 	return ret;
