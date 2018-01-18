@@ -1336,8 +1336,7 @@ INT8S dealMsgProcess() {
 		if (mq_h.pid == cjgui) {
 			memcpy(&cjguiProxy_Tmp.strProxyMsg, rev_485_buf, sizeof(Proxy_Msg));
 			if (cjguiProxy_Tmp.strProxyMsg.port.OI == PORT_ZB) {
-				memcpy(&cjGuiProxy_plc, &cjguiProxy_Tmp,
-						sizeof(cjGuiProxy_plc));	//如果点抄的是载波测量点，消息变量转存
+				memcpy(&cjGuiProxy_plc, &cjguiProxy_Tmp,sizeof(cjGuiProxy_plc));	//如果点抄的是载波测量点，消息变量转存
 				cjGuiProxy_plc.isInUse = 1;
 			} else if (cjguiProxy_Tmp.strProxyMsg.port.OI == PORT_485) {
 				memcpy(&cjguiProxy.strProxyMsg, rev_485_buf, sizeof(Proxy_Msg));

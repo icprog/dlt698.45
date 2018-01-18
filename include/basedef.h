@@ -10,9 +10,10 @@
  * 现在已改为读取/nor/config/device.cfg
  * 来决定终端的类型
  */
-#define CCTT_I //I型集中器
+//#define CCTT_I //I型集中器
 //#define CCTT_II//II型集中器
 //#define SPTF_III//III型专变
+//#define HUNAN_SXY		//湖南双协议698-3761切换
 
 #define CCTT1	1//与配置文件约定的I型集中器编号
 #define CCTT2	2//与配置文件约定的II型集中器编号

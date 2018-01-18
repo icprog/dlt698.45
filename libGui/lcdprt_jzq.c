@@ -76,7 +76,9 @@ Menu menu[]={//必须是一级菜单，然后二级菜单。。。。
 			{{level3,"2.GPRSIP查看",	menu_gprsip, 		MENU_NOPASSWD},		NULL},//111
 			{{level3,"3.液晶对比度", 	menu_lcdcontrast, 	MENU_NOPASSWD},		NULL},
 			{{level3,"4.交采芯片信息",menu_ac_info,		MENU_NOPASSWD},		NULL},
+#ifdef HUNAN_SXY
 			{{level3,"5.规约切换",menu_ProtocolChange,		MENU_NOPASSWD},NULL},
+#endif
 //			{{level3,"6.4G/2G切换",menu_4G2GChange,		MENU_NOPASSWD},NULL},
 		{{level2,"5.页面设置", 	menu_pagesetup, 				MENU_NOPASSWD},		NULL},
 		{{level2,"6.手动抄表", 	NULL, 				MENU_NOPASSWD},		NULL},
@@ -4825,6 +4827,7 @@ void menu_4G2GChange()
 	}
 }
 
+#ifdef HUNAN_SXY
 //698协议切换到3761协议
 void menu_ProtocolChange()
 {
@@ -4832,6 +4835,7 @@ void menu_ProtocolChange()
 	if(msgbox_label((char*)"切换到1376.1?", CTRL_BUTTON_OK) != ACK) return ;
 	chg_rc_local_3761();
 }
+#endif
 void getPluseCount(unsigned int *pulse) {
 	int fd = open("/dev/pulse", O_RDWR);
 	read(fd, pulse, sizeof(unsigned int) * 2);

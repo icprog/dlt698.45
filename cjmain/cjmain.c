@@ -760,10 +760,12 @@ int main(int argc, char *argv[])
     if (argc >= 2 && strncmp("all", argv[1], 3) == 0) {
         ProgsNum = ReadSystemInfo();
     }
+#ifdef HUNAN_SXY
     if(getZone("HuNan")==0) {
     	get_protocol_3761_tx_para();//湖南获取3761切换通信参数，在初始化其他操作之后进行
        	sync_Id_fromFile();//湖南要求3761和698两套程序设置的逻辑地址通用，因此程序运行起来后需要和公共ID文件同步
     }
+#endif
     //点亮运行灯，初始化运行状态
 
 //    JProgramInfo->powerState = PWR_ON;
