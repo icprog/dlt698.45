@@ -3960,13 +3960,15 @@ void show_jzq_ver()
     gui_setpos(&pos, rect_Client.left+10*FONTSIZE, rect_Client.top+FONTSIZE);
     gui_textshow((char*)"终端信息", pos, LCD_NOREV);
 
-    pos.x = rect_Client.left + FONTSIZE*3;
-    pos.y += FONTSIZE*3;
-    memcpy(str,&g_class19_oi4300.name[1],g_class19_oi4300.name[0]);
-    sprintf(str,"厂商代码:%c%c%c%c",g_class19_oi4300.info.factoryCode[0],g_class19_oi4300.info.factoryCode[1],
-    								g_class19_oi4300.info.factoryCode[2],g_class19_oi4300.info.factoryCode[3]);
-    gui_textshow(str, pos, LCD_NOREV);
-
+    if(getZone("GW")!=0) {
+    	pos.x = rect_Client.left + FONTSIZE*3;
+		pos.y += FONTSIZE*3;
+		memcpy(str,&g_class19_oi4300.name[1],g_class19_oi4300.name[0]);
+		sprintf(str,"厂商代码:%c%c%c%c",g_class19_oi4300.info.factoryCode[0],g_class19_oi4300.info.factoryCode[1],
+										g_class19_oi4300.info.factoryCode[2],g_class19_oi4300.info.factoryCode[3]);
+		gui_textshow(str, pos, LCD_NOREV);
+    }
+	pos.x = rect_Client.left + FONTSIZE*3;
     memset(str,0,sizeof(str));
     pos.y += FONTSIZE*2+2;
     sprintf(str,"软件版本:%c%c%c%c",g_class19_oi4300.info.softVer[0],g_class19_oi4300.info.softVer[1],

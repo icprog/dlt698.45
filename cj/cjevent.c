@@ -26,6 +26,7 @@ void printEventName(OI_698 oi)
 {
 	switch(oi) {
 	case 0x3000: fprintf(stderr,"        oi=%04x 电能表失压事件\n",oi);break;
+	case 0x300f: fprintf(stderr,"        oi=%04x 电能表电压逆相序\n",oi);break;
 	case 0x3105: fprintf(stderr,"        oi=%04x 电能表时钟超差事件\n",oi);break;
 	case 0x3106: fprintf(stderr,"        oi=%04x 终端停/上电事件\n",oi);break;
 	case 0x310b: fprintf(stderr,"        oi=%04x 电能表示度下降事件\n",oi);break;
@@ -402,22 +403,37 @@ void printEventEnable()
 	int	oi=0;
 	char	filename[64];
 	Class7_Object	class7={};
+	INT8U*	eventbuff=NULL;
+	int 	saveflg=0,i=0;
+	int		classlen=0;
 
 	for(oi=0x3000;oi<0x3320;oi++) {
 		memset(filename,0,sizeof(filename));
 		sprintf(filename,"/nand/event/property/%04x/%04x.par",oi,oi);
-//		fprintf(stderr,"filename=%s\n",filename);
-		if(access(filename,F_OK)==0) {
-//			fprintf(stderr,"open ok");
-			memset(&class7,0,sizeof(Class7_Object));
-			fprintf(stderr,"/*********************************/\n");
-			readCoverClass(oi,0,&class7,sizeof(Class7_Object),event_para_save);
-			printEventName(oi);
-			printClass7(class7);
-			fprintf(stderr,"/*********************************/\n");
+		for(i=0; i < sizeof(event_class_len)/sizeof(EVENT_CLASS_INFO);i++)
+		{
+			if(event_class_len[i].oi == oi) {
+				classlen = event_class_len[i].classlen;
+				eventbuff = (INT8U *)malloc(classlen);
+				if(eventbuff!=NULL) {
+					memset(eventbuff,0,classlen);
+					fprintf(stderr,"i=%d, oi=%04x, size=%d\n",i,event_class_len[i].oi,classlen);
+					saveflg = 0;
+					saveflg = readCoverClass(event_class_len[i].oi,0,(INT8U *)eventbuff,classlen,event_para_save);
+					if(saveflg) {
+						fprintf(stderr,"/*********************************/\n");
+						memcpy(&class7,eventbuff,sizeof(Class7_Object));
+						printEventName(oi);
+						printClass7(class7);
+						fprintf(stderr,"/*********************************/\n");
+					}
+					free(eventbuff);
+					eventbuff=NULL;
+					break;
+				}
+			}
 		}
 	}
-
 }
 
 void event_process(int argc, char *argv[])
@@ -682,6 +698,30 @@ void event_process(int argc, char *argv[])
 				CLASS19 class19;
 				memset(&class19,0,sizeof(CLASS19));
 				JProgramInfo = OpenShMem("ProgramInfo",sizeof(ProgramInfo),NULL);
+				if(oi == 0x300f){
+					if(flag == 1){
+						JProgramInfo->event_obj.Event300F_obj.event_obj.enableflag=TRUE;
+						JProgramInfo->event_obj.Event300F_obj.event_obj.reportflag=TRUE;
+						saveCoverClass(oi,0,(void *)&JProgramInfo->event_obj.Event300F_obj.event_obj,sizeof(Class7_Object),para_init_save);
+						JProgramInfo->oi_changed.oi300F++;
+						readCoverClass(0x4300,0,&class19,sizeof(class19),para_vari_save);
+						class19.active_report =1;
+						class19.talk_master =1;
+						saveCoverClass(0x4300,0,(void *)&class19,sizeof(class19),para_vari_save);
+						JProgramInfo->oi_changed.oi4300++;
+					}else{
+						readCoverClass(oi,0,&JProgramInfo->event_obj.Event300F_obj,sizeof(Event300F_Object),event_para_save);
+						JProgramInfo->event_obj.Event300F_obj.event_obj.enableflag=FALSE;
+						JProgramInfo->event_obj.Event300F_obj.event_obj.reportflag=FALSE;
+						saveCoverClass(oi,0,(void *)&JProgramInfo->event_obj.Event300F_obj,sizeof(Event300F_Object),para_init_save);
+						JProgramInfo->oi_changed.oi300F++;
+						readCoverClass(0x4300,0,&class19,sizeof(class19),para_vari_save);
+						class19.active_report =0;
+						class19.talk_master =0;
+						saveCoverClass(0x4300,0,(void *)&class19,sizeof(class19),para_vari_save);
+						JProgramInfo->oi_changed.oi4300++;
+					}
+				}
 				if(oi == 0x301B){
 					if(flag == 1){
 						JProgramInfo->event_obj.Event301B_obj.enableflag=TRUE;

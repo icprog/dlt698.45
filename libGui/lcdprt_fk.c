@@ -55,7 +55,7 @@ Menu menu_fk[]={
 													{{level4,"3.主站通信参数", 	NULL, 		MENU_NOPASSWD},		NULL},//1
 																{{level5,"1.以太网通信参数",	menu_netmaster,		MENU_NOPASSWD}},//1111
 																{{level5,"2.无线通信参数",		menu_wlanmaster,	MENU_NOPASSWD}},//1111
-													{{level4,"4.本地以太网配置", 	menu_eth0para, 		MENU_NOPASSWD},		NULL},//11
+													{{level4,"4.本地IP配置", 	menu_eth0para, 		MENU_NOPASSWD},		NULL},//11
 									{{level3,"3.终端复位", 	NULL, 						MENU_ISPASSWD},		NULL},
 													{{level4,"1.终端重启", 	menu_jzqreboot, 	MENU_ISPASSWD},		NULL},
 													{{level4,"2.数据初始化", 	menu_initjzqdata, 	MENU_ISPASSWD},		NULL},

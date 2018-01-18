@@ -2843,12 +2843,14 @@ INT8U Event_3203(INT8U* data,INT8U len,ProgramInfo* prginfo_event) {
  */
 INT8U Event_300F(ProgramInfo* prginfo_event) {
 	if(oi_chg.oi300F != prginfo_event->oi_changed.oi300F){
-		readCoverClass(0x300F,0,&prginfo_event->event_obj.Event300F_obj,sizeof(prginfo_event->event_obj.Event300F_obj),event_para_save);
+		readCoverClass(0x300F,0,&prginfo_event->event_obj.Event300F_obj,sizeof(Event300F_Object),event_para_save);
 		oi_chg.oi300F = prginfo_event->oi_changed.oi300F;
 	}
    // fprintf(stderr,"[300F] enableflag=%d \n",prginfo_event->event_obj.Event300F_obj.event_obj.enableflag);
-    if (prginfo_event->event_obj.Event300F_obj.event_obj.enableflag == 0) {
-        return 0;
+    //国网台体测试，终端事件默认打开
+	if (prginfo_event->event_obj.Event300F_obj.event_obj.enableflag == 0) {
+    	prginfo_event->event_obj.Event300F_obj.event_obj.enableflag = 1;
+    	//return 0;
     }
     //事件判定
     INT8U offset=prginfo_event->event_obj.Event300F_obj.offset;
@@ -2878,7 +2880,7 @@ INT8U Event_300F(ProgramInfo* prginfo_event) {
 			//无关联数据
 			Save_buf[STANDARD_NUM_INDEX]+=0;
 			//存储更改后得参数
-			saveCoverClass(0x300F,(INT16U)crrentnum,(void *)&prginfo_event->event_obj.Event300F_obj,sizeof(Class7_Object),event_para_save);
+			saveCoverClass(0x300F,(INT16U)crrentnum,(void *)&prginfo_event->event_obj.Event300F_obj,sizeof(Event300F_Object),event_para_save);
 			//存储记录集
 			saveCoverClass(0x300F,(INT16U)crrentnum,(void *)Save_buf,(int)index,event_record_save);
 			//存储当前记录值
@@ -2905,9 +2907,10 @@ INT8U Event_3010(ProgramInfo* prginfo_event) {
 		readCoverClass(0x3010,0,&prginfo_event->event_obj.Event3010_obj,sizeof(prginfo_event->event_obj.Event3010_obj),event_para_save);
 		oi_chg.oi3010 = prginfo_event->oi_changed.oi3010;
 	}
-
+	//国网台体测试，终端事件默认打开
     if (prginfo_event->event_obj.Event3010_obj.event_obj.enableflag == 0) {
-        return 0;
+    	prginfo_event->event_obj.Event3010_obj.event_obj.enableflag = 1;
+//        return 0;
     }
     //事件判定
     INT8U offset=prginfo_event->event_obj.Event3010_obj.offset;
