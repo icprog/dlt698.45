@@ -1783,7 +1783,7 @@ INT8U increase6035Value(INT8U taskID,INT8U type)
 	{
 		if (JProgramInfo->info6035[tIndex].taskID == taskID)
 		{
-			DbgPrintToFile1(31,"increase6035Value　taskID=%d type = %d",taskID,type);
+			//DbgPrintToFile1(31,"increase6035Value　taskID=%d type = %d",taskID,type);
 			if(type==0)
 			{
 				JProgramInfo->info6035[tIndex].sendMsgNum++;
