@@ -4004,8 +4004,10 @@ int doProxy(RUNTIME_PLC *runtime_p)
 			}
 			break;
 		case 4://恢复抄表
-			if (runtime_p->state_bak == TASK_PROCESS )
+			if (runtime_p->state_bak == TASK_PROCESS || runtime_p->state_bak==DATA_REAL)
 			{
+				//湖南发现 代理时收到主动上报状态字，处理完主动上报后，返回时state_bak==DATA_REAL,因此需加以上判断和此处赋值，否则进入死循环，不断发暂停抄表
+				runtime_p->state_bak = TASK_PROCESS;
 				if(  runtime_p->modeFlag==1)
 				{
 					clearvar(runtime_p);
