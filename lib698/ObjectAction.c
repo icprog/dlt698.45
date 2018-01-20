@@ -1101,6 +1101,7 @@ void TerminalInfo(INT16U attr_act, INT8U *data, Action_result *act_ret)
             syslog(LOG_NOTICE, "终端数据初始化!（act=%d）",attr_act);
             break;
             //68 1a 00 c3 05 05 00 00 00 00 00 01 e1 eb 87 01 0e 43 00 4c 00 00 00 00 00 e0 d6 16  报文Data：NULL
+#ifdef HUNAN_SXY
         case 76:	//0x4C  湖南主站切换到3761下发报文
         	syslog(LOG_NOTICE, "\n湖南协议从698切换到3761【4C】\n");
         	chg_rc_local_3761();
@@ -1112,6 +1113,7 @@ void TerminalInfo(INT16U attr_act, INT8U *data, Action_result *act_ret)
             	chg_rc_local_3761();
             }
             break;
+#endif
     }
     act_ret->datalen = index;
     act_ret->DAR = success;

@@ -3343,7 +3343,7 @@ INT8U Proxy_GetRequestList(RUNTIME_PLC *runtime_p,CJCOMM_PROXY *proxy,int* begin
 {
 	static int obj_index = 0;
 	int len645 =0,sendlen = 0 ;
-	INT16U singleLen = 0 ,timeout = 20;
+	INT16U singleLen = 0 ,timeout = 30;
 	INT8U tmpbuf[256]={} , nextFlag=0;
 	struct Tsa_Node *nodetmp=NULL;
 	FORMAT07 frame07;
@@ -3352,7 +3352,7 @@ INT8U Proxy_GetRequestList(RUNTIME_PLC *runtime_p,CJCOMM_PROXY *proxy,int* begin
 	//代理一个服务器的超时时间
 	timeout = proxy->strProxyList.proxy_obj.objs[obj_index].onetimeout;
     if(timeout==0){
-    	timeout = (proxy->strProxyList.timeout  > 0) ? proxy->strProxyList.timeout: 20;  //整个代理请求的超时时间
+    	timeout = (proxy->strProxyList.timeout  > 0) ? proxy->strProxyList.timeout: 30;  //整个代理请求的超时时间
     }
 	if (*beginwork==0 && proxy->isInUse==1)
 	{
@@ -3664,14 +3664,14 @@ INT8U Proxy_TransCommandRequest(RUNTIME_PLC *runtime_p,CJCOMM_PROXY *proxy,int* 
 	INT8U addrtmp[10] = {0};//645报文中的目标地址
 	int sendlen = 0;
 	INT8U proto = 0;
-	INT16U timeout = 20;
+	INT16U timeout = 60;
 	INT8U datalen =0;
 	INT16U	dindex = 0;
 	int transType = 0;
 
 	timeout = proxy->strProxyList.proxy_obj.transcmd.revtimeout ;
-	if(timeout>60 || timeout<=0)
-		timeout = 20;
+	if(timeout>100 || timeout<=0)
+		timeout = 60;
 
 	if (*beginwork==0 && cjcommProxy_plc.isInUse==1) {//发送点抄
 		*beginwork = 1;
@@ -3940,8 +3940,10 @@ int doProxy(RUNTIME_PLC *runtime_p)
 			}
 			break;
 		case 4://恢复抄表
-			if (runtime_p->state_bak == TASK_PROCESS )
+			if (runtime_p->state_bak == TASK_PROCESS || runtime_p->state_bak==DATA_REAL)
 			{
+				//湖南发现 代理时收到主动上报状态字，处理完主动上报后，返回时state_bak==DATA_REAL,因此需加以上判断和此处赋值，否则进入死循环，不断发暂停抄表
+				runtime_p->state_bak = TASK_PROCESS;
 				if(  runtime_p->modeFlag==1)
 				{
 					clearvar(runtime_p);

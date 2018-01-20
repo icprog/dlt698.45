@@ -52,9 +52,9 @@ INT8U request698_singleOAD(CLASS_6015 st6015, CLASS_6001 to6001,INT8U* data,INT8
  * */
 void DbgPrintToFile1(INT8U comport,const char *format,...)
 {
-//	return;
+	return;
 
-#if 1
+#if 0
 	static INT8U  log_num = 0;
 	char str[50];
 	char fname[100];

@@ -9,11 +9,11 @@
 #include "../include/att7022e.h"
 #include "../libBase/PublicFunction.h"
 
-#ifdef CCTT_I
+//#ifdef CCTT_I
 #include "lcdprt_jzq.h"
-#else
-#include "lcdprt_fk.h"
-#endif
+//#else
+//#include "lcdprt_fk.h"
+//#endif
 
 #define MUL_OFFSET 1000
 

@@ -407,22 +407,37 @@ void printEventEnable()
 	int	oi=0;
 	char	filename[64];
 	Class7_Object	class7={};
+	INT8U*	eventbuff=NULL;
+	int 	saveflg=0,i=0;
+	int		classlen=0;
 
 	for(oi=0x3000;oi<0x3320;oi++) {
 		memset(filename,0,sizeof(filename));
 		sprintf(filename,"/nand/event/property/%04x/%04x.par",oi,oi);
-//		fprintf(stderr,"filename=%s\n",filename);
-		if(access(filename,F_OK)==0) {
-//			fprintf(stderr,"open ok");
-			memset(&class7,0,sizeof(Class7_Object));
-			fprintf(stderr,"/*********************************/\n");
-			readCoverClass(oi,0,&class7,sizeof(Class7_Object),event_para_save);
-			printEventName(oi);
-			printClass7(class7);
-			fprintf(stderr,"/*********************************/\n");
+		for(i=0; i < sizeof(event_class_len)/sizeof(EVENT_CLASS_INFO);i++)
+		{
+			if(event_class_len[i].oi == oi) {
+				classlen = event_class_len[i].classlen;
+				eventbuff = (INT8U *)malloc(classlen);
+				if(eventbuff!=NULL) {
+					memset(eventbuff,0,classlen);
+					fprintf(stderr,"i=%d, oi=%04x, size=%d\n",i,event_class_len[i].oi,classlen);
+					saveflg = 0;
+					saveflg = readCoverClass(event_class_len[i].oi,0,(INT8U *)eventbuff,classlen,event_para_save);
+					if(saveflg) {
+						fprintf(stderr,"/*********************************/\n");
+						memcpy(&class7,eventbuff,sizeof(Class7_Object));
+						printEventName(oi);
+						printClass7(class7);
+						fprintf(stderr,"/*********************************/\n");
+					}
+					free(eventbuff);
+					eventbuff=NULL;
+					break;
+				}
+			}
 		}
 	}
-
 }
 
 void event_process(int argc, char *argv[])

@@ -264,6 +264,7 @@ void clearEvent()
 						class7.crrentnum = 0;			//清除当前记录数
 						memcpy(eventbuff,&class7,sizeof(Class7_Object));
 						saveflg = saveCoverClass(event_class_len[i].oi,0,eventbuff,classlen,event_para_save);
+						setOIChange(event_class_len[i].oi);
 					}
 				}
 				free(eventbuff);
@@ -1421,6 +1422,8 @@ INT8U get_protocol_3761_tx_para()
 	}
 	return ret;
 }
+
+#ifdef HUNAN_SXY
 /*
  * 698规约协议切换至3761，保存通信参数至/nor/ProTransCfg/protocol.cfg
  * */
@@ -1570,6 +1573,7 @@ INT8U write_3761_rc_local()
 	}
 	return 1;
 }
+#endif
 INT8U fillclass23data(OAD oad_m,OAD oad_r,TSA meter,INT8U* data,ProgramInfo* JProgramInfo)
 {
 	fprintf(stderr,"\n\n ---------------fillclass23data");

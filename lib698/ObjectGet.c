@@ -2436,7 +2436,12 @@ int  fill_variClass(OAD oad,INT8U getflg,INT8U *sourcebuf,INT8U *destbuf,INT16U 
 		break;
 	case 0x2011:	//时钟电池电压
 		if(bettery_getV(&bett[0],&bett[1]) == TRUE) {
-			buflen = fill_long_unsigned(destbuf,(INT16U)bett[0]*100);
+			buflen = fill_long_unsigned(destbuf,(INT16U)(bett[0]*100));
+		}
+		break;
+	case 0x2012:	//停电抄表电池电压
+		if(bettery_getV(&bett[0],&bett[1]) == TRUE) {
+			buflen = fill_long_unsigned(destbuf,(INT16U)(bett[1]*100));
 		}
 		break;
 	case 0x2131:
