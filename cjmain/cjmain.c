@@ -397,75 +397,41 @@ void InitSharedMem(int argc, char *argv[]) {
 	InItClass(1);
 
 	//事件参数初始化
-	readCoverClass(0x3100, 0, &JProgramInfo->event_obj.Event3100_obj,
-			sizeof(JProgramInfo->event_obj.Event3100_obj), event_para_save);
-	readCoverClass(0x3101, 0, &JProgramInfo->event_obj.Event3101_obj,
-			sizeof(JProgramInfo->event_obj.Event3101_obj), event_para_save);
-	readCoverClass(0x3104, 0, &JProgramInfo->event_obj.Event3104_obj,
-			sizeof(JProgramInfo->event_obj.Event3104_obj), event_para_save);
-	readCoverClass(0x3105, 0, &JProgramInfo->event_obj.Event3105_obj,
-			sizeof(JProgramInfo->event_obj.Event3105_obj), event_para_save);
-	readCoverClass(0x3106, 0, &JProgramInfo->event_obj.Event3106_obj,
-			sizeof(JProgramInfo->event_obj.Event3106_obj), event_para_save);
-	readCoverClass(0x3107, 0, &JProgramInfo->event_obj.Event3107_obj,
-			sizeof(JProgramInfo->event_obj.Event3107_obj), event_para_save);
-	readCoverClass(0x3108, 0, &JProgramInfo->event_obj.Event3108_obj,
-			sizeof(JProgramInfo->event_obj.Event3108_obj), event_para_save);
-	readCoverClass(0x3109, 0, &JProgramInfo->event_obj.Event3109_obj,
-			sizeof(JProgramInfo->event_obj.Event3109_obj), event_para_save);
-	readCoverClass(0x310A, 0, &JProgramInfo->event_obj.Event310A_obj,
-			sizeof(JProgramInfo->event_obj.Event310A_obj), event_para_save);
-	readCoverClass(0x310B, 0, &JProgramInfo->event_obj.Event310B_obj,
-			sizeof(JProgramInfo->event_obj.Event310B_obj), event_para_save);
-	readCoverClass(0x310C, 0, &JProgramInfo->event_obj.Event310C_obj,
-			sizeof(JProgramInfo->event_obj.Event310C_obj), event_para_save);
-	readCoverClass(0x310D, 0, &JProgramInfo->event_obj.Event310D_obj,
-			sizeof(JProgramInfo->event_obj.Event310D_obj), event_para_save);
-	readCoverClass(0x310E, 0, &JProgramInfo->event_obj.Event310E_obj,
-			sizeof(JProgramInfo->event_obj.Event310E_obj), event_para_save);
-	readCoverClass(0x310F, 0, &JProgramInfo->event_obj.Event310F_obj,
-			sizeof(JProgramInfo->event_obj.Event310F_obj), event_para_save);
-	readCoverClass(0x3110, 0, &JProgramInfo->event_obj.Event3110_obj,
-			sizeof(JProgramInfo->event_obj.Event3110_obj), event_para_save);
-	readCoverClass(0x3111, 0, &JProgramInfo->event_obj.Event3111_obj,
-			sizeof(JProgramInfo->event_obj.Event3111_obj), event_para_save);
-	readCoverClass(0x3112, 0, &JProgramInfo->event_obj.Event3112_obj,
-			sizeof(JProgramInfo->event_obj.Event3112_obj), event_para_save);
-	readCoverClass(0x3114, 0, &JProgramInfo->event_obj.Event3114_obj,
-			sizeof(JProgramInfo->event_obj.Event3114_obj), event_para_save);
-	readCoverClass(0x3115, 0, &JProgramInfo->event_obj.Event3115_obj,
-			sizeof(JProgramInfo->event_obj.Event3115_obj), event_para_save);
-	readCoverClass(0x3116, 0, &JProgramInfo->event_obj.Event3116_obj,
-			sizeof(JProgramInfo->event_obj.Event3116_obj), event_para_save);
-	readCoverClass(0x3117, 0, &JProgramInfo->event_obj.Event3117_obj,
-			sizeof(JProgramInfo->event_obj.Event3117_obj), event_para_save);
-	readCoverClass(0x3118, 0, &JProgramInfo->event_obj.Event3118_obj,
-			sizeof(JProgramInfo->event_obj.Event3118_obj), event_para_save);
-	readCoverClass(0x3119, 0, &JProgramInfo->event_obj.Event3119_obj,
-			sizeof(JProgramInfo->event_obj.Event3119_obj), event_para_save);
-	readCoverClass(0x311A, 0, &JProgramInfo->event_obj.Event311A_obj,
-			sizeof(JProgramInfo->event_obj.Event311A_obj), event_para_save);
-	readCoverClass(0x311B, 0, &JProgramInfo->event_obj.Event311B_obj,
-			sizeof(JProgramInfo->event_obj.Event311B_obj), event_para_save);
-	readCoverClass(0x311C, 0, &JProgramInfo->event_obj.Event311C_obj,
-			sizeof(JProgramInfo->event_obj.Event311C_obj), event_para_save);
-	readCoverClass(0x3200, 0, &JProgramInfo->event_obj.Event3200_obj,
-			sizeof(JProgramInfo->event_obj.Event3200_obj), event_para_save);
-	readCoverClass(0x3201, 0, &JProgramInfo->event_obj.Event3201_obj,
-			sizeof(JProgramInfo->event_obj.Event3201_obj), event_para_save);
-	readCoverClass(0x3202, 0, &JProgramInfo->event_obj.Event3202_obj,
-			sizeof(JProgramInfo->event_obj.Event3202_obj), event_para_save);
-	readCoverClass(0x3203, 0, &JProgramInfo->event_obj.Event3203_obj,
-			sizeof(JProgramInfo->event_obj.Event3203_obj), event_para_save);
-	readCoverClass(0x300F, 0, &JProgramInfo->event_obj.Event300F_obj,
-			sizeof(JProgramInfo->event_obj.Event300F_obj), event_para_save);
-	readCoverClass(0x3010, 0, &JProgramInfo->event_obj.Event3010_obj,
-			sizeof(JProgramInfo->event_obj.Event3010_obj), event_para_save);
-
+	readCoverClass(0x300F, 0, &JProgramInfo->event_obj.Event300F_obj,sizeof(JProgramInfo->event_obj.Event300F_obj), event_para_save);
+	readCoverClass(0x3010, 0, &JProgramInfo->event_obj.Event3010_obj,sizeof(JProgramInfo->event_obj.Event3010_obj), event_para_save);
+	readCoverClass(0x3100, 0, &JProgramInfo->event_obj.Event3100_obj,sizeof(JProgramInfo->event_obj.Event3100_obj), event_para_save);
+	readCoverClass(0x3101, 0, &JProgramInfo->event_obj.Event3101_obj,sizeof(JProgramInfo->event_obj.Event3101_obj), event_para_save);
+	readCoverClass(0x3104, 0, &JProgramInfo->event_obj.Event3104_obj,sizeof(JProgramInfo->event_obj.Event3104_obj), event_para_save);
+	readCoverClass(0x3105, 0, &JProgramInfo->event_obj.Event3105_obj,sizeof(JProgramInfo->event_obj.Event3105_obj), event_para_save);
+	readCoverClass(0x3106, 0, &JProgramInfo->event_obj.Event3106_obj,sizeof(JProgramInfo->event_obj.Event3106_obj), event_para_save);
+	readCoverClass(0x3107, 0, &JProgramInfo->event_obj.Event3107_obj,sizeof(JProgramInfo->event_obj.Event3107_obj), event_para_save);
+	readCoverClass(0x3108, 0, &JProgramInfo->event_obj.Event3108_obj,sizeof(JProgramInfo->event_obj.Event3108_obj), event_para_save);
+	readCoverClass(0x3109, 0, &JProgramInfo->event_obj.Event3109_obj,sizeof(JProgramInfo->event_obj.Event3109_obj), event_para_save);
+	readCoverClass(0x310A, 0, &JProgramInfo->event_obj.Event310A_obj,sizeof(JProgramInfo->event_obj.Event310A_obj), event_para_save);
+	readCoverClass(0x310B, 0, &JProgramInfo->event_obj.Event310B_obj,sizeof(JProgramInfo->event_obj.Event310B_obj), event_para_save);
+	readCoverClass(0x310C, 0, &JProgramInfo->event_obj.Event310C_obj,sizeof(JProgramInfo->event_obj.Event310C_obj), event_para_save);
+	readCoverClass(0x310D, 0, &JProgramInfo->event_obj.Event310D_obj,sizeof(JProgramInfo->event_obj.Event310D_obj), event_para_save);
+	readCoverClass(0x310E, 0, &JProgramInfo->event_obj.Event310E_obj,sizeof(JProgramInfo->event_obj.Event310E_obj), event_para_save);
+	readCoverClass(0x310F, 0, &JProgramInfo->event_obj.Event310F_obj,sizeof(JProgramInfo->event_obj.Event310F_obj), event_para_save);
+	readCoverClass(0x3110, 0, &JProgramInfo->event_obj.Event3110_obj,sizeof(JProgramInfo->event_obj.Event3110_obj), event_para_save);
+	readCoverClass(0x3111, 0, &JProgramInfo->event_obj.Event3111_obj,sizeof(JProgramInfo->event_obj.Event3111_obj), event_para_save);
+	readCoverClass(0x3112, 0, &JProgramInfo->event_obj.Event3112_obj,sizeof(JProgramInfo->event_obj.Event3112_obj), event_para_save);
+	readCoverClass(0x3114, 0, &JProgramInfo->event_obj.Event3114_obj,sizeof(JProgramInfo->event_obj.Event3114_obj), event_para_save);
+	readCoverClass(0x3115, 0, &JProgramInfo->event_obj.Event3115_obj,sizeof(JProgramInfo->event_obj.Event3115_obj), event_para_save);
+	readCoverClass(0x3116, 0, &JProgramInfo->event_obj.Event3116_obj,sizeof(JProgramInfo->event_obj.Event3116_obj), event_para_save);
+	readCoverClass(0x3117, 0, &JProgramInfo->event_obj.Event3117_obj,sizeof(JProgramInfo->event_obj.Event3117_obj), event_para_save);
+	readCoverClass(0x3118, 0, &JProgramInfo->event_obj.Event3118_obj,sizeof(JProgramInfo->event_obj.Event3118_obj), event_para_save);
+	readCoverClass(0x3119, 0, &JProgramInfo->event_obj.Event3119_obj,sizeof(JProgramInfo->event_obj.Event3119_obj), event_para_save);
+	readCoverClass(0x311A, 0, &JProgramInfo->event_obj.Event311A_obj,sizeof(JProgramInfo->event_obj.Event311A_obj), event_para_save);
+	readCoverClass(0x311B, 0, &JProgramInfo->event_obj.Event311B_obj,sizeof(JProgramInfo->event_obj.Event311B_obj), event_para_save);
+	readCoverClass(0x311C, 0, &JProgramInfo->event_obj.Event311C_obj,sizeof(JProgramInfo->event_obj.Event311C_obj), event_para_save);
+	readCoverClass(0x3200, 0, &JProgramInfo->event_obj.Event3200_obj,sizeof(JProgramInfo->event_obj.Event3200_obj), event_para_save);
+	readCoverClass(0x3201, 0, &JProgramInfo->event_obj.Event3201_obj,sizeof(JProgramInfo->event_obj.Event3201_obj), event_para_save);
+	readCoverClass(0x3202, 0, &JProgramInfo->event_obj.Event3202_obj,sizeof(JProgramInfo->event_obj.Event3202_obj), event_para_save);
+	readCoverClass(0x3203, 0, &JProgramInfo->event_obj.Event3203_obj,sizeof(JProgramInfo->event_obj.Event3203_obj), event_para_save);
 	if (0 == JProgramInfo->event_obj.Event3106_obj.poweroff_para_obj.screen_para_obj.recover_voltage_limit) {
 		JProgramInfo->event_obj.Event3106_obj.poweroff_para_obj.screen_para_obj.recover_voltage_limit = VOL_ON_THR;
 	}
-
 	if (0 == JProgramInfo->event_obj.Event3106_obj.poweroff_para_obj.screen_para_obj.happen_voltage_limit) {
 		JProgramInfo->event_obj.Event3106_obj.poweroff_para_obj.screen_para_obj.happen_voltage_limit = VOL_DOWN_THR;
 	}

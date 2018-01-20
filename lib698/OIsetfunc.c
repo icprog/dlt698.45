@@ -1110,6 +1110,7 @@ INT16U set4300(OAD oad,INT8U *data,INT8U *DAR)
 		index +=getArray(&data[index],(INT8U*)&arraysize,DAR);
 		if(*DAR!=success)
 			return 0;
+		memset(&class4300.oads[0],0,sizeof(class4300.oads));
 		for(i=0;i<arraysize;i++)
 		{
 			index +=getOAD(1,&data[index],&class4300.oads[i],DAR);
@@ -1260,7 +1261,6 @@ INT16U set4500(OAD oad,INT8U *data,INT8U *DAR)
 			return index;
 		}
 		break;
-
 	case 10:
 		index += getVisibleString(1,VISIBLE_STRING_LEN,&data[index],&class4500.simkard[0],DAR);
 		if(*DAR!=success) return 0;

@@ -260,6 +260,7 @@ void clearEvent()
 						class7.crrentnum = 0;			//清除当前记录数
 						memcpy(eventbuff,&class7,sizeof(Class7_Object));
 						saveflg = saveCoverClass(event_class_len[i].oi,0,eventbuff,classlen,event_para_save);
+						setOIChange(event_class_len[i].oi);
 					}
 				}
 				free(eventbuff);

@@ -3532,7 +3532,7 @@ INT8U request698_singleOAD(CLASS_6015 st6015, CLASS_6001 to6001,INT8U* data,INT8
 INT16S dealCurve_698(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8U port485)
 {
 	INT16S sendLen = 0,recvLen = 0,readTimes = 0,dataCount = 0;
-	INT8U readTimeIndex = 0,tsIndex = 0,dataNumOneGroup = 4;//一次抄4个数据点
+	INT8U readTimeIndex = 0,tsIndex = 0,dataNumOneGroup = 4,subindex = 0;;//一次抄4个数据点
 	TS ts_start;
 	ts_start.Year = (st6015.data.data[CURVE_INFO_STARTINDEX+16]<<8) + st6015.data.data[CURVE_INFO_STARTINDEX+17];
 	ts_start.Month = st6015.data.data[CURVE_INFO_STARTINDEX+18];
@@ -3603,98 +3603,103 @@ INT16S dealCurve_698(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT
 			fprintf(stderr,"deal6015_698  sendLen < 0");
 			return dataCount;
 		}
-		SendDataTo485(port485, sendbuff, sendLen);
-		st6035->sendMsgNum++;
-
-		recvLen = ReceDataFrom485(DLT_698,port485, 2000, recvbuff);
-
-		fprintf(stderr,"\n\n recvLen = %d \n",recvLen);
-		if(recvLen > 0)
+		while(subindex < MAX_RETRY_NUM_698)
 		{
-			st6035->rcvMsgNum++;
-			INT8U csdNum = 0;
-			INT16S dataLen = recvLen;
-			INT8U apduDataStartIndex = 0;
-			INT8U getResponseType = analyzeProtocol698_RN(recvbuff,&csdNum,recvLen,&apduDataStartIndex,&dataLen);
-			DbgPrintToFile1(port485,"\n getResponseType = %d  csdNum = %d dataLen = %d \n",getResponseType,csdNum,dataLen);
-			if(getResponseType > 0)
+			memset(recvbuff, 0, BUFFSIZE2048);
+			SendDataTo485(port485, sendbuff, sendLen);
+			st6035->sendMsgNum++;
+
+			recvLen = ReceDataFrom485(DLT_698,port485, 2000, recvbuff);
+
+			fprintf(stderr,"\n\n recvLen = %d \n",recvLen);
+			if(recvLen > 0)
 			{
-	#ifdef TESTDEF
-				fprintf(stderr,"deal698RequestResponse Buf[%d] = \n",dataLen);
-				INT16U prtIndex =0;
-				for(prtIndex = 0;prtIndex < dataLen;prtIndex++)
+				st6035->rcvMsgNum++;
+				INT8U csdNum = 0;
+				INT16S dataLen = recvLen;
+				INT8U apduDataStartIndex = 0;
+				INT8U getResponseType = analyzeProtocol698_RN(recvbuff,&csdNum,recvLen,&apduDataStartIndex,&dataLen);
+				DbgPrintToFile1(port485,"\n getResponseType = %d  csdNum = %d dataLen = %d \n",getResponseType,csdNum,dataLen);
+				if(getResponseType > 0)
 				{
-					fprintf(stderr,"%02x ",recvbuff[apduDataStartIndex+prtIndex]);
-					if((prtIndex+1)%20 ==0)
+		#ifdef TESTDEF
+					fprintf(stderr,"deal698RequestResponse Buf[%d] = \n",dataLen);
+					INT16U prtIndex =0;
+					for(prtIndex = 0;prtIndex < dataLen;prtIndex++)
 					{
-						fprintf(stderr,"\n");
-					}
-				}
-	#endif
-				OADDATA_SAVE oadListContent[ROAD_OADS_NUM];
-				memset(oadListContent,0,ROAD_OADS_NUM*sizeof(OADDATA_SAVE));
-
-				INT8U rcvCSDnum = 0,recordNum = 0;
-				INT16U oaddataLen = 0;
-
-				oaddataLen = parseSingleROADDataHead(&recvbuff[apduDataStartIndex],oadListContent,&rcvCSDnum,&recordNum);
-				INT8U csdIndex = 0,index2021 = 0;
-				for(csdIndex = 0;csdIndex < rcvCSDnum;csdIndex++)
-				{
-					if(oadListContent[csdIndex].oad_r.OI == DATA_TIMESTAMP_OI)
-					{
-						index2021 = csdIndex;
-						break;
-					}
-				}
-				apduDataStartIndex += oaddataLen;
-				DbgPrintToFile1(port485,"\n　曲线记录个数 = %d",recordNum);
-				if(rcvCSDnum > 0 && recordNum > 0)
-				{
-					INT8U recordIndex = 0;
-					for(recordIndex = 0;recordIndex < recordNum;recordIndex++)
-					{
-						oaddataLen = parseSingleROADDataBody(&recvbuff[apduDataStartIndex],oadListContent,rcvCSDnum);
-						apduDataStartIndex += oaddataLen;
-						dataCount += rcvCSDnum;
-
-						TS freezeTimeStamp;
-						if(oadListContent[index2021].data[0] == 0x1c)
+						fprintf(stderr,"%02x ",recvbuff[apduDataStartIndex+prtIndex]);
+						if((prtIndex+1)%20 ==0)
 						{
-							freezeTimeStamp.Year = oadListContent[index2021].data[1];
-							freezeTimeStamp.Year = freezeTimeStamp.Year<<8;
-							freezeTimeStamp.Year += oadListContent[index2021].data[2];
-							freezeTimeStamp.Month = oadListContent[index2021].data[3];
-							freezeTimeStamp.Day = oadListContent[index2021].data[4];
-							freezeTimeStamp.Hour = oadListContent[index2021].data[5];
-							freezeTimeStamp.Minute = oadListContent[index2021].data[6];
-							freezeTimeStamp.Sec = oadListContent[index2021].data[7];
-							freezeTimeStamp.Week = 0;
-							if(getZone("ZheJiang") == 0)
-							{
-									oadListContent[rcvCSDnum].oad_m.OI = 0x6040;
-									oadListContent[rcvCSDnum].oad_m.attflg = 0x02;
-									oadListContent[rcvCSDnum].oad_m.attrindex = 0;
-									oadListContent[rcvCSDnum].datalen = fill_date_time_s(oadListContent[rcvCSDnum].data, &st6035->starttime);
-
-									DateTimeBCD nowTime;
-									DataTimeGet(&nowTime);
-									oadListContent[rcvCSDnum+1].oad_m.OI = 0x6041;
-									oadListContent[rcvCSDnum+1].oad_m.attflg = 0x02;
-									oadListContent[rcvCSDnum+1].oad_m.attrindex = 0;
-									oadListContent[rcvCSDnum+1].datalen = fill_date_time_s(oadListContent[rcvCSDnum+1].data, &nowTime);
-									saveREADOADdata(st6035->taskID,to6001.basicinfo.addr,oadListContent,rcvCSDnum+2,freezeTimeStamp);
-							}
-							else
-							{
-								saveREADOADdata(st6035->taskID,to6001.basicinfo.addr,oadListContent,rcvCSDnum,freezeTimeStamp);
-							}
+							fprintf(stderr,"\n");
 						}
-
 					}
-				}
+		#endif
+					OADDATA_SAVE oadListContent[ROAD_OADS_NUM];
+					memset(oadListContent,0,ROAD_OADS_NUM*sizeof(OADDATA_SAVE));
 
+					INT8U rcvCSDnum = 0,recordNum = 0;
+					INT16U oaddataLen = 0;
+
+					oaddataLen = parseSingleROADDataHead(&recvbuff[apduDataStartIndex],oadListContent,&rcvCSDnum,&recordNum);
+					INT8U csdIndex = 0,index2021 = 0;
+					for(csdIndex = 0;csdIndex < rcvCSDnum;csdIndex++)
+					{
+						if(oadListContent[csdIndex].oad_r.OI == DATA_TIMESTAMP_OI)
+						{
+							index2021 = csdIndex;
+							break;
+						}
+					}
+					apduDataStartIndex += oaddataLen;
+					DbgPrintToFile1(port485,"\n　曲线记录个数 = %d",recordNum);
+					if(rcvCSDnum > 0 && recordNum > 0)
+					{
+						INT8U recordIndex = 0;
+						for(recordIndex = 0;recordIndex < recordNum;recordIndex++)
+						{
+							oaddataLen = parseSingleROADDataBody(&recvbuff[apduDataStartIndex],oadListContent,rcvCSDnum);
+							apduDataStartIndex += oaddataLen;
+							dataCount += rcvCSDnum;
+
+							TS freezeTimeStamp;
+							if(oadListContent[index2021].data[0] == 0x1c)
+							{
+								freezeTimeStamp.Year = oadListContent[index2021].data[1];
+								freezeTimeStamp.Year = freezeTimeStamp.Year<<8;
+								freezeTimeStamp.Year += oadListContent[index2021].data[2];
+								freezeTimeStamp.Month = oadListContent[index2021].data[3];
+								freezeTimeStamp.Day = oadListContent[index2021].data[4];
+								freezeTimeStamp.Hour = oadListContent[index2021].data[5];
+								freezeTimeStamp.Minute = oadListContent[index2021].data[6];
+								freezeTimeStamp.Sec = oadListContent[index2021].data[7];
+								freezeTimeStamp.Week = 0;
+								if(getZone("ZheJiang") == 0)
+								{
+										oadListContent[rcvCSDnum].oad_m.OI = 0x6040;
+										oadListContent[rcvCSDnum].oad_m.attflg = 0x02;
+										oadListContent[rcvCSDnum].oad_m.attrindex = 0;
+										oadListContent[rcvCSDnum].datalen = fill_date_time_s(oadListContent[rcvCSDnum].data, &st6035->starttime);
+
+										DateTimeBCD nowTime;
+										DataTimeGet(&nowTime);
+										oadListContent[rcvCSDnum+1].oad_m.OI = 0x6041;
+										oadListContent[rcvCSDnum+1].oad_m.attflg = 0x02;
+										oadListContent[rcvCSDnum+1].oad_m.attrindex = 0;
+										oadListContent[rcvCSDnum+1].datalen = fill_date_time_s(oadListContent[rcvCSDnum+1].data, &nowTime);
+										saveREADOADdata(st6035->taskID,to6001.basicinfo.addr,oadListContent,rcvCSDnum+2,freezeTimeStamp);
+								}
+								else
+								{
+									saveREADOADdata(st6035->taskID,to6001.basicinfo.addr,oadListContent,rcvCSDnum,freezeTimeStamp);
+								}
+							}
+
+						}
+					}
+					break;
+				}
 			}
+			subindex++;
 		}
 	}
 	return dataCount;
@@ -3800,9 +3805,8 @@ INT16S deal6015_698(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8
 						checkEvent698(oadListContent[dataCountIndex].oad_r,oadListContent[dataCountIndex].data,oadListContent[dataCountIndex].datalen,to6001,st6035->taskID);
 					}
 				}
-
+				break;
 			}
-
 		}
 		subindex++;
 	}
