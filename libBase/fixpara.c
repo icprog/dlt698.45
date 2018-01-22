@@ -33,7 +33,7 @@ typedef struct {
 static VERINFO verinfo          = { "QDGK", "V1.1", "171221", "1.10", "160328", "00000000" }; // 4300 版本信息
 									//湖南需要双协议,软件版本要求为SXY8（双协议8） ，1376.1（软件版本为SXY1）
 #ifdef HUNAN_SXY
-static VERINFO verinfo_HuNan    = { "QDGK", "SXY8", "171229", "1.10", "160328", "00000000" }; // 4300 版本信息
+static VERINFO verinfo_HuNan    = { "QDGK", "SXY8", "171229", "1.11", "160328", "00000000" }; // 4300 版本信息
 #else
 static VERINFO verinfo_HuNan    = { "QDGK", "V1.1", "171229", "1.10", "160328", "00000000" }; // 4300 版本信息
 #endif

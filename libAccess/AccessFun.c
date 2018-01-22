@@ -25,6 +25,7 @@
 #include "ParaDef.h"
 #include "PublicFunction.h"
 #include "dlt698.h"
+#include "basedef.h"
 
 #define 	LIB_ACCESS_VER 			0x0001
 
