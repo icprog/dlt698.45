@@ -52,7 +52,7 @@ extern INT8U deal698RequestResponse(INT8U getResponseType,INT8U csdNum,INT8U* ap
 extern INT8U parseSingleROADDataHead(INT8U* oadData,OADDATA_SAVE* oadListContent,INT8U* rcvCSDnum,INT8U* recordNum);
 extern INT16U parseSingleROADDataBody(INT8U* oadData,OADDATA_SAVE* oadListContent,INT8U rcvCSDnum);
 int task_Refresh(TASK_UNIT *taskunit);
-
+void chkTsaTask(TASK_INFO *meterinfo);
 //-----------------------------------------------------------------------------------------------------------------------------------------------------
 
 typedef struct
@@ -1771,39 +1771,59 @@ int saveProxyData(FORMAT3762 format_3762_Up,struct Tsa_Node *nodetmp)
 	}
 	return 0;
 }
-INT8U checkSuccQieBiao(TASK_INFO meterinfo)
+INT8U checkSuccQieBiao(TASK_INFO meterinfo,INT8U usrtype,int *taski,int *itemi,DATA_ITEM* item)
 {
+	int fangAnIndex = 0,needflg = 0;
 	INT8U ret = 0;
 	TS tsNow;
 	TSGet(&tsNow);
-	INT8U isAll5004Succ = 1;
+	time_t nowt = time(NULL);
+	INT8U isHas5004Succ0 = 0,isHas5004Succ1 = 0;//日冻结数据项sucessflg = 1
 	if((s5004rate<=SUCCRATE)&&(tsNow.Hour<=7))
 	{
 		INT8U taskIndex = 0,itemIndex;
 		for(taskIndex=0; taskIndex< meterinfo.task_n; taskIndex++)
 		{
+			//判断是否需要抄读
+			fangAnIndex = findFangAnIndex(meterinfo.task_list[taskIndex].fangan.No);//查被抄电表当前任务的采集方案编号，在6015中的索引
+			if (fangAnIndex >=0 )
+			{
+				needflg = checkMeterType(fangAn6015[fangAnIndex].mst, usrtype ,meterinfo.tsa);//查被抄电表的用户类型 是否满足6015中的用户类型条件
+			}
+			if (needflg != 1)
+			{
+				continue;
+			}
 			 for(itemIndex = 0; itemIndex<meterinfo.task_list[taskIndex].fangan.item_n; itemIndex++)
 			 {
 				 if (meterinfo.task_list[taskIndex].fangan.items[itemIndex].oad1.OI!=0x5004)
 				 {
 					 break;
 				 }
-				 else if(meterinfo.task_list[taskIndex].fangan.items[itemIndex].sucessflg != 2)
+				 if(meterinfo.task_list[taskIndex].fangan.items[itemIndex].sucessflg == 1)
 				 {
-					 isAll5004Succ = 0;
-					 break;
+					 isHas5004Succ1 = 1;
 				 }
-			 }
-			 if( isAll5004Succ == 0)
-			 {
-				 break;
+				 if(meterinfo.task_list[taskIndex].fangan.items[itemIndex].sucessflg == 0)
+				 {
+					 isHas5004Succ0 = 1;
+					 if(nowt >= meterinfo.task_list[taskIndex].beginTime)
+					 {
+						 //如果有日冻结数据项还没抄直接抄
+						 item->oad1 = meterinfo.task_list[taskIndex].fangan.items[itemIndex].oad1;
+						 item->oad2 = meterinfo.task_list[taskIndex].fangan.items[itemIndex].oad2;
+						 *taski = taskIndex;
+						 *itemi = itemIndex;
+						 return 3;
+					 }
+				 }
 			 }
 		}
 
 		//此测量点日冻结全抄成功了，成功切表
-		if(isAll5004Succ == 1)
+		if((isHas5004Succ0 == 0)&&(isHas5004Succ1 == 0))
 		{
-			DbgPrintToFile1(31,"isAll5004Succ = %d success5004Num = %d totoal5004Num = %d 抄表率不高成功切表",isAll5004Succ,success5004Num,totoal5004Num);
+			DbgPrintToFile(31,"success5004Num = %d totoal5004Num = %d 抄表率不高成功切表",success5004Num,totoal5004Num);
 			isNeedRedo = 1;
 			return 1;
 		}
@@ -1828,11 +1848,21 @@ DATA_ITEM checkMeterData(TASK_INFO *meterinfo,int *taski,int *itemi,INT8U usrtyp
 //			meterinfo->tsa.addr[6],meterinfo->tsa.addr[7],
 //			meterinfo->tsa_index,meterinfo->task_n,meterinfo->task_list[i].fangan.item_n);
 #ifdef CHECK5004RATE
-	INT8U chgFlag = checkSuccQieBiao(*meterinfo);
+	INT8U chgFlag = checkSuccQieBiao(*meterinfo,usrtype,taski,itemi,&item);
 	if(chgFlag == 1)
 	{
 		//成功切表
 		item.oad1.attrindex = 88;
+		return item;
+	}
+	if(chgFlag == 2)
+	{
+		chkTsaTask(meterinfo);
+		return item;
+	}
+	if(chgFlag == 3)
+	{
+		DbgPrintToFile1(31,"taski = %d itemi = %d oad1 = %04x oad2 = %04x",*taski,*itemi,item.oad1.OI,item.oad2.OI);
 		return item;
 	}
 #endif
@@ -1893,15 +1923,6 @@ DATA_ITEM checkMeterData(TASK_INFO *meterinfo,int *taski,int *itemi,INT8U usrtyp
 						 *taski = i;
 						 *itemi = j;
 	//					 DbgPrintToFile1(31,"常规任务,满足抄读条件数据项");
-
-#ifdef CHECK5004RATE
-						if((chgFlag == 2)&&(item.oad1.OI!=0x5004))
-						{
-							DbgPrintToFile1(31,"success5004Num = %d totoal5004Num = %d 抄表率不高失败切表",success5004Num,totoal5004Num);
-							//失败切表
-							memset(&item,0,sizeof(DATA_ITEM));
-						}
-#endif
 						return item;	//存在常规任务，满足抄读条件数据项
 					 }
 				 }
@@ -2659,7 +2680,7 @@ void saveTaskData_NormalData_1(INT8U protocol,int taskid,POOLTYPE poolone,FORMAT
 }
 void saveTaskData_NormalData(INT8U protocol,TASK_INFO *tskinfo,FORMAT97 *frame97,FORMAT07 *frame07,TS ts)
 {
-	INT8U dataContent[50]={},alldata[100]={};
+	INT8U dataContent[128]={0},alldata[128]={0};
 	int ti=0,ii=0,len698=0;
 	ti = tskinfo->now_taski;
 	ii = tskinfo->now_itemi;
@@ -2680,6 +2701,7 @@ void saveTaskData_NormalData(INT8U protocol,TASK_INFO *tskinfo,FORMAT97 *frame97
 		memcpy(&alldata[1],tskinfo->tsa.addr,17);
 		memcpy(&alldata[18],dataContent,len698);
 		len698 = len698 + 18;
+
 //		DbgPrintToFile1(31,"存储任务[%d][%04d-%02d-%02d %02d:%02d:%02d]",tskinfo->task_list[ti].taskId,ts.Year,ts.Month,ts.Day,ts.Hour,ts.Minute,ts.Sec);
 //		DbPrt1(31,"存储:", (char *) alldata, len698, NULL);
 		SaveOADData(tskinfo->task_list[ti].taskId,tskinfo->task_list[ti].fangan.items[ii].oad1,tskinfo->task_list[ti].fangan.items[ii].oad2,alldata,len698,ts);
@@ -3944,7 +3966,7 @@ int doProxy(RUNTIME_PLC *runtime_p)
 			step_cj = Proxy_Gui(runtime_p, &cjGuiProxy_plc, &beginwork, nowtime);
 			break;
 		case 2://处理主站代理
-			DbgPrintToFile1(31,"处理主站代理 类型=%d",cjcommProxy_plc.strProxyList.proxytype);
+			DbgPrintToFile(31,"处理主站代理 类型=%d",cjcommProxy_plc.strProxyList.proxytype);
 			switch(cjcommProxy_plc.strProxyList.proxytype) {
 				case ProxyGetRequestList:
 					step_cj = Proxy_GetRequestList(runtime_p, &cjcommProxy_plc, &beginwork, nowtime);
@@ -4030,6 +4052,7 @@ int doProxy(RUNTIME_PLC *runtime_p)
 					clearvar(runtime_p);
 					step_cj = 0;
 					beginwork = 0;
+					runtime_p->send_start_time = nowtime;
 					DbgPrintToFile1(31,"返回到状态%d",runtime_p->state_bak);
 					return(runtime_p->state_bak);
 				}
@@ -4551,7 +4574,7 @@ int doTask_by_jzq(RUNTIME_PLC *runtime_p)
 				nodetmp = (struct Tsa_Node *)ProcessMeter_byJzq(buf645,addrtmp,&sendlen );//下发 AFN_13_F1 找到一块需要抄读的表，抄读
 				if (sendlen>0 && nodetmp!=NULL)
 				{
-					DbPrt1(31,"TS:", (char *) buf645, sendlen, NULL);
+					//DbPrt1(31,"TS:", (char *) buf645, sendlen, NULL);
 #if 1
 					addrtmp[5] = nodetmp->tsa.addr[2];
 					addrtmp[4] = nodetmp->tsa.addr[3];
