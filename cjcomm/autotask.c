@@ -50,7 +50,7 @@ void init6013ListFrom6012File(ProgramInfo *JProgramInfo)
 	for (tIndex = 0; tIndex < 256; tIndex++) {
 		if (readCoverClass(oi, tIndex, &class6013, sizeof(CLASS_6013),
 				coll_para_save) == 1) {
-			if (class6013.cjtype == rept) {
+			if (class6013.cjtype == rept && class6013.state == 1) {
 				init_autotask(total_autotasknum, class6013,
 						JProgramInfo->autotask);
 				total_autotasknum++;
@@ -286,7 +286,7 @@ void checkAndSendAppends(struct aeEventLoop* ep, CommBlock* nst)
 
 		tminc(&failts, taskInv.units, taskInv.interval);
 
-		asyslog(LOG_INFO, "[%s()][%d]任务: <%d> 的执行频率: %d-%02d", __FUNCTION__,
+//		asyslog(LOG_INFO, "[%s()][%d]任务: <%d> 的执行频率: %d-%02d", __FUNCTION__,
 		__LINE__, tfs->rptList[i][1].taskId, taskInv.units, taskInv.interval);
 
 		int res = TScompare(failts, succts);
