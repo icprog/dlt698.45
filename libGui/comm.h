@@ -129,6 +129,19 @@ extern  volatile char g_LcdPoll_Flag; //液晶是否在轮显中
 #define ZB_SYNCMETER	 	3
 #define ZB_SEARCHMETER	 	4
 
+#define NONE_PROCE	 		-1
+#define DATE_CHANGE   		0
+#define DATA_REAL     		1
+#define METER_SEARCH  		2
+#define TASK_PROCESS  		3
+#define SLAVE_COMP    		4
+#define INIT_MASTERADDR    	5
+#define AUTO_REPORT    		6
+#define BROADCAST			7
+#define F209_127			8
+#define ZB_MODE				9
+
+
 #define GPRS_MODEM_INIT		0
 #define GPRS_CHECKMODEM 	1
 #define GPRS_GETVER			2

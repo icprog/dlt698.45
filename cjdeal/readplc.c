@@ -5191,6 +5191,7 @@ void readplc_thread()
 				sleep(1);
 				break;
 		}
+		JProgramInfo->dev_info.PLC_status = state;
 		runtimevar.state  = state;
 		/********************************
 		 * 	   接收报文，并处理

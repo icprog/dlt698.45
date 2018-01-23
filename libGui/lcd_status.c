@@ -18,6 +18,7 @@ int g_curcldno;
 #define GPRSCSQ_LEN2 5
 #define GPRSCSQ_LEN3 8
 #define GPRSCSQ_LEN4 11
+
 INT8U flag = 0;
 void topstatus_showCSQ(INT16U gprscsq)
 {
@@ -241,23 +242,38 @@ void lcd_showBottomStatus(int zb_status, int gprs_status)
 
 	if (SPTF3 != p_JProgramInfo->cfg_para.device)
 	{
-		switch(zb_status)
-		{
-		case ZB_IDLE:
-			sprintf(str, "%s", "载波:空闲中...");
+		switch(zb_status) {
+		case DATE_CHANGE:
+			sprintf(str, "%s", "载波:初始化...");
 			break;
-		case ZB_INIT:
-			sprintf(str, "%s", "载波:初始化中...");
+		case DATA_REAL:
+			sprintf(str, "%s", "载波:代理点抄...");
 			break;
-		case ZB_METERREADING:
-			sprintf(str, "%s", "载波:终端抄表中...");
-			break;
-		case ZB_SYNCMETER:
-			sprintf(str, "%s", "载波:同步档案中...");
-			break;
-		case ZB_SEARCHMETER:
+		case METER_SEARCH:
 			sprintf(str, "%s", "载波:终端搜表中...");
 			break;
+		case TASK_PROCESS:
+			sprintf(str, "%s", "载波:按任务抄表...");
+			break;
+		case SLAVE_COMP:
+			sprintf(str, "%s", "载波:从节点比对...");
+			break;
+		case INIT_MASTERADDR:
+			sprintf(str, "%s", "载波:设置主节点...");
+			break;
+		case AUTO_REPORT:
+			sprintf(str, "%s", "载波:主动上报处理...");
+			break;
+		case BROADCAST:
+			sprintf(str, "%s", "载波:广播对时...");
+			break;
+		case ZB_MODE:
+			sprintf(str, "%s", "载波:模块模式修改...");
+			break;
+		default:
+			sprintf(str, "%s", "载波:空闲...");
+			break;
+
 		}
 		if(curtime%6>=3)
 			gui_textshow(str, pos, LCD_NOREV);
