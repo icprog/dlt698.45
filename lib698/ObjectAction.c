@@ -1072,6 +1072,7 @@ void TerminalInfo(INT16U attr_act, INT8U *data, Action_result *act_ret)
             syslog(LOG_NOTICE, "4300 设备复位!（act=%d）",attr_act);
             break;
         case 4:	//参数初始化，恢复出厂参数
+        	syslog(LOG_NOTICE, "4300 恢复出厂参数!（act=%d data=%d）",attr_act,data[index]);
         	if(data[index]==1) {	//参数：array OAD
         		index += getArray(&data[index],(INT8U *)&oadnum,&act_ret->DAR);
         		if(oadnum >= 10)  oadnum = 10;

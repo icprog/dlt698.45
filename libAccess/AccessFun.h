@@ -143,7 +143,7 @@ typedef struct{
 typedef struct{
 	OAD oad_m;
 	OAD oad_r;
-	INT8U data[100];
+	INT8U data[128];
 	INT8U datalen;
 }OADDATA_SAVE;
 typedef struct {

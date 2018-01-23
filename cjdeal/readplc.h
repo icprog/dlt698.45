@@ -41,6 +41,8 @@ extern INT16S getTaskIndex(INT8U port);
 #define FANGAN_ITEM_MAX 64
 #define FANGAN6015_MAX 20
 #define NUM_07DI_698OAD 100
+#define SUCCRATE 0.996
+
 typedef enum {
 	OTHER_factory, DX_factory
 } FACTORY_ENUM; /*厂家*/
@@ -293,7 +295,9 @@ TASK_INFO taskinfo_tmp;
 //CHECK5004RATE
 INT16U totoal5004Num;//所有测量点5004数据项总个数
 INT16U success5004Num;//所有测量点5004数据项总个数
-
+FP32 s5004rate;
+INT8U isRedo;
+INT8U isNeedRedo;//是否需要发重启抄读
 typedef struct {
 	DATA_ITEM item;
 	int task_i;		//所属任务序号

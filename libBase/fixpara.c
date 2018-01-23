@@ -247,7 +247,6 @@ void InitClassf201()
 	INT8U	serno=0;
 	CLASS_f201	oif201[3]={};
 	INT8U 	devfunc[3] = {1,1,1};
-
 	if(getZone("HuNan")==0) {
 		devfunc[0]=1;
 		devfunc[1]=0;	//485-2  出厂默认维护口 上行通道
@@ -257,6 +256,7 @@ void InitClassf201()
 		devfunc[1]=1;
 		devfunc[2]=1;	//抄表口
 	}
+	asyslog(LOG_INFO,"devfunc = %d %d %d",devfunc[0],devfunc[1],devfunc[2]);
 	if(readCoverClass(0xf201, 0, oif201, sizeof(CLASS_f201)*3, para_vari_save)==-1)
 	{
 		for(serno=0;serno<3;serno++) {
@@ -272,6 +272,7 @@ void InitClassf201()
 				case 3:memcpy(oif201[serno].devdesc,"stop",4);break;
 			}
 		}
+		asyslog(LOG_INFO,"oif201[0] = %d oif201[1] = %d oif201[2] = %d",oif201[0].devfunc,oif201[1].devfunc,oif201[2].devfunc);
 		saveCoverClass(0xf201, 0, &oif201, sizeof(CLASS_f201)*3, para_vari_save);
 	}
 }

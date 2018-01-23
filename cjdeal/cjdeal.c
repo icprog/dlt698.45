@@ -1750,7 +1750,7 @@ INT8U get6001ObjByTSA(TSA addr, CLASS_6001* targetMeter) {
 }
 INT8U increase6035SuccNum(INT8U taskID,INT16U meterser)
 {
-	DbgPrintToFile1(31,"increase6035SuccNum　taskID=%d meterser = %d　total_tasknum　＝ %d",taskID,meterser,total_tasknum);
+	//DbgPrintToFile1(31,"increase6035SuccNum　taskID=%d meterser = %d　total_tasknum　＝ %d",taskID,meterser,total_tasknum);
 	INT8U ret = 0;
 	INT8U taskIndex = 0;
 	for(taskIndex = 0;taskIndex < total_tasknum;taskIndex++)
@@ -1783,7 +1783,7 @@ INT8U increase6035Value(INT8U taskID,INT8U type)
 	{
 		if (JProgramInfo->info6035[tIndex].taskID == taskID)
 		{
-			DbgPrintToFile1(31,"increase6035Value　taskID=%d type = %d",taskID,type);
+			//DbgPrintToFile1(31,"increase6035Value　taskID=%d type = %d",taskID,type);
 			if(type==0)
 			{
 				JProgramInfo->info6035[tIndex].sendMsgNum++;

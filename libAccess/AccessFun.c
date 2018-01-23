@@ -290,6 +290,7 @@ void paraInit(INT8U oadnum,OAD *oad)
 	if(oadnum == 0) {	//恢复出厂参数
 		system("rm -rf /nand/para");
 		system("rm -rf /nand/event/property");
+		sleep(2);
 		InItClass(0);
 	}else {
 		for(i=0;i<oadnum;i++) {
@@ -3072,7 +3073,7 @@ INT8U GetTaskidFromCSDs(ROAD_ITEM item_road,CLASS_6001 *tsa)
 				}
 				if(taskno != 0 && class6015.mst.mstype == 1)
 				{
-					asyslog(LOG_INFO,"return1  ,taskid=%d\n",taskno);
+//					asyslog(LOG_INFO,"return1  ,taskid=%d\n",taskno);
 					return taskno;
 				}
 				else
@@ -3080,7 +3081,7 @@ INT8U GetTaskidFromCSDs(ROAD_ITEM item_road,CLASS_6001 *tsa)
 			}
 		}
 	}
-	asyslog(LOG_INFO,"return2  ,taskid=%d\n",taskid);
+//	asyslog(LOG_INFO,"return2  ,taskid=%d\n",taskid);
 	return taskid;
 }
 

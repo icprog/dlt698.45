@@ -44,7 +44,7 @@ INT16S request9707_singleOAD(INT8U protocol,OI_698 roadOI,OAD soureOAD,CLASS_600
 INT16S deal6015_698(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8U port485);
 INT16U compose6012Buff(DateTimeBCD startTime,DateTimeBCD saveTime,TSA meterAddr,INT16U dataLen,INT8U* dataContent, INT8U port485);
 INT8U getSaveTime(DateTimeBCD* saveTime,INT8U cjType,INT8U saveTimeFlag,DATA_TYPE curvedata);
-INT8U request698_singleOAD(CLASS_6015 st6015, CLASS_6001 to6001,INT8U* data,INT8U port485);
+INT16S request698_singleOAD(CLASS_6015 st6015, CLASS_6001 to6001,INT8U* data,INT8U port485);
 
 /*
  * 去掉程序中日志的内容
@@ -52,9 +52,9 @@ INT8U request698_singleOAD(CLASS_6015 st6015, CLASS_6001 to6001,INT8U* data,INT8
  * */
 void DbgPrintToFile1(INT8U comport,const char *format,...)
 {
-	return;
+return;
 
-#if 0
+#if 1
 	static INT8U  log_num = 0;
 	char str[50];
 	char fname[100];
@@ -3615,11 +3615,10 @@ INT8S dealRealTimeRequst(INT8U port485)
 
 	return result;
 }
-INT8U request698_singleOAD(CLASS_6015 st6015, CLASS_6001 to6001,INT8U* data,INT8U port485)
+INT16S request698_singleOAD(CLASS_6015 st6015, CLASS_6001 to6001,INT8U* data,INT8U port485)
 {
-	INT16S recvLen = 0;
-	INT16S sendLen = 0;
-	INT8U getResponseType = 0,csdNum = 0,datalen = 0;
+	INT16S recvLen = 0,dataLen = 0,sendLen = 0;
+	INT8U getResponseType = 0,csdNum = 0;
 	INT8U sendbuff[BUFFSIZE128];
 	INT8U recvbuff[BUFFSIZE2048];
 	memset(sendbuff, 0, BUFFSIZE128);
@@ -3627,23 +3626,22 @@ INT8U request698_singleOAD(CLASS_6015 st6015, CLASS_6001 to6001,INT8U* data,INT8
 	sendLen = composeProtocol698_GetRequest(sendbuff, st6015,to6001.basicinfo.addr);
 	if(sendLen < 0)
 	{
-		fprintf(stderr,"deal6015_698  sendLen < 0");
-		return datalen;
+		//fprintf(stderr,"deal6015_698  sendLen < 0");
+		return dataLen;
 	}
 
 	SendDataTo485(port485, sendbuff, sendLen);
 	recvLen = ReceDataFrom485(DLT_698,port485, 500, recvbuff);
 
-	fprintf(stderr,"\n\n recvLen = %d \n",recvLen);
 	if(recvLen > 0)
 	{
-		INT16S dataLen = recvLen;
+		dataLen = recvLen;
 		INT8U apduDataStartIndex = 0;
 		getResponseType = analyzeProtocol698(recvbuff,&csdNum,recvLen,&apduDataStartIndex,&dataLen);
-		fprintf(stderr,"\n getResponseType = %d  csdNum = %d dataLen = %d \n",getResponseType,csdNum,dataLen);
+		//fprintf(stderr,"\n getResponseType = %d  csdNum = %d dataLen = %d \n",getResponseType,csdNum,dataLen);
 		if(getResponseType > 0)
 		{
-#ifdef TESTDEF
+#ifdef TESTDEF1
 			fprintf(stderr,"request698_singleOAD Buf[%d] = \n",dataLen);
 			INT16U prtIndex =0;
 			for(prtIndex = 0;prtIndex < dataLen;prtIndex++)
@@ -3668,12 +3666,11 @@ INT8U request698_singleOAD(CLASS_6015 st6015, CLASS_6001 to6001,INT8U* data,INT8
 				startIndex = apduDataStartIndex;
 				dataLen = getSinglegOADDataUnit(&recvbuff[apduDataStartIndex]);
 				apduDataStartIndex += dataLen;
-
 				memcpy(data,&recvbuff[startIndex],dataLen);
 			}
 		}
 	}
-	return datalen;
+	return dataLen;
 }
 //处理曲线数据
 INT16S dealCurve_698(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8U port485)
