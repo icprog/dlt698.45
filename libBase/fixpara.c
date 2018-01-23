@@ -250,7 +250,7 @@ void InitClassf201()
 
 	if(getZone("HuNan")==0) {
 		devfunc[0]=1;
-		devfunc[1]=1;
+		devfunc[1]=0;	//485-2  出厂默认维护口 上行通道
 		devfunc[2]=0;	//上行通信
 	}else {
 		devfunc[0]=1;

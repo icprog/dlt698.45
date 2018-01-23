@@ -619,7 +619,8 @@ INT8U file_read(char *FileName, void *source, int size,int offset,INT16U *retcrc
 				ret = 1;
 			}
 			else {
-				syslog(LOG_ERR,"__%s__,校验错误:crc=%d__readcrc=%d",__func__,crc,readcrc);
+				//null数据会计算crc=0x2664，不是错误
+//				syslog(LOG_ERR,"__%s__,校验错误:crc=%04x__readcrc=%d",__func__,crc,readcrc);
 				ret = 0;
 			}
 		}else {
