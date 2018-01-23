@@ -290,6 +290,7 @@ void paraInit(INT8U oadnum,OAD *oad)
 	if(oadnum == 0) {	//恢复出厂参数
 		system("rm -rf /nand/para");
 		system("rm -rf /nand/event/property");
+		sleep(2);
 		InItClass(0);
 	}else {
 		for(i=0;i<oadnum;i++) {
