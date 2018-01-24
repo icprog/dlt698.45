@@ -42,6 +42,7 @@ extern INT16S getTaskIndex(INT8U port);
 #define FANGAN6015_MAX 20
 #define NUM_07DI_698OAD 100
 #define SUCCRATE 0.996
+#define CHECKHOUR	7		//每天7点前检测日冻结5004抄表成功率，湖南曲线任务时间为[7:00-23:00]
 
 typedef enum {
 	OTHER_factory, DX_factory

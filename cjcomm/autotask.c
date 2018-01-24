@@ -286,8 +286,7 @@ void checkAndSendAppends(struct aeEventLoop* ep, CommBlock* nst)
 
 		tminc(&failts, taskInv.units, taskInv.interval);
 
-//		asyslog(LOG_INFO, "[%s()][%d]任务: <%d> 的执行频率: %d-%02d", __FUNCTION__,
-		__LINE__, tfs->rptList[i][1].taskId, taskInv.units, taskInv.interval);
+//		asyslog(LOG_INFO, "[%s()][%d]任务: <%d> 的执行频率: %d-%02d", __FUNCTION__,_LINE__, tfs->rptList[i][1].taskId, taskInv.units, taskInv.interval);
 
 		int res = TScompare(failts, succts);
 		if (res == 2) {									//没有补报的时长超过一个执行周期, 则开始补报

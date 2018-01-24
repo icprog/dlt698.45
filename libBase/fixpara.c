@@ -256,11 +256,13 @@ void InitClassf201()
 		devfunc[1]=1;
 		devfunc[2]=1;	//抄表口
 	}
-	asyslog(LOG_INFO,"devfunc = %d %d %d",devfunc[0],devfunc[1],devfunc[2]);
+//	asyslog(LOG_INFO,"devfunc = %d %d %d",devfunc[0],devfunc[1],devfunc[2]);
 	if(readCoverClass(0xf201, 0, oif201, sizeof(CLASS_f201)*3, para_vari_save)==-1)
 	{
 		for(serno=0;serno<3;serno++) {
-			oif201[serno].devpara.baud = bps2400;
+			if(getZone("HuNan")==0 && serno==1) {
+				oif201[serno].devpara.baud = bps9600;
+			}else 	oif201[serno].devpara.baud = bps2400;
 			oif201[serno].devpara.verify = even;
 			oif201[serno].devpara.databits = d8;
 			oif201[serno].devpara.stopbits = stop1;
@@ -272,7 +274,7 @@ void InitClassf201()
 				case 3:memcpy(oif201[serno].devdesc,"stop",4);break;
 			}
 		}
-		asyslog(LOG_INFO,"oif201[0] = %d oif201[1] = %d oif201[2] = %d",oif201[0].devfunc,oif201[1].devfunc,oif201[2].devfunc);
+//		asyslog(LOG_INFO,"oif201[0] = %d oif201[1] = %d oif201[2] = %d",oif201[0].devfunc,oif201[1].devfunc,oif201[2].devfunc);
 		saveCoverClass(0xf201, 0, &oif201, sizeof(CLASS_f201)*3, para_vari_save);
 	}
 }

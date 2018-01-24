@@ -396,10 +396,8 @@ INT8S init6000InfoFrom6000FIle() {
 //	fprintf(stderr,"485 1口测量点数量 = %d   485 2口测量点数量 = %d",info6000[0].meterSum,info6000[1].meterSum);
 	if (getZone("GW") != 0) {
 		for (tIndex = 0; tIndex < infoReplenish.tasknum; tIndex++) {
-			memcpy(&infoReplenish.unitReplenish[tIndex].list6001[0],
-					&info6000[0], sizeof(INFO_6001_LIST));
-			memcpy(&infoReplenish.unitReplenish[tIndex].list6001[1],
-					&info6000[1], sizeof(INFO_6001_LIST));
+			memcpy(&infoReplenish.unitReplenish[tIndex].list6001[0],&info6000[0], sizeof(INFO_6001_LIST));
+			memcpy(&infoReplenish.unitReplenish[tIndex].list6001[1],&info6000[1], sizeof(INFO_6001_LIST));
 		}
 	}
 

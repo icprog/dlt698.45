@@ -1779,7 +1779,7 @@ INT8U checkSuccQieBiao(TASK_INFO meterinfo,INT8U usrtype,int *taski,int *itemi,D
 	TSGet(&tsNow);
 	time_t nowt = time(NULL);
 	INT8U isHas5004Succ0 = 0,isHas5004Succ1 = 0;//日冻结数据项sucessflg = 1
-	if((s5004rate<=SUCCRATE)&&(tsNow.Hour<=7))
+	if((s5004rate<=SUCCRATE)&&(tsNow.Hour<CHECKHOUR))
 	{
 		INT8U taskIndex = 0,itemIndex;
 		for(taskIndex=0; taskIndex< meterinfo.task_n; taskIndex++)
@@ -4414,7 +4414,7 @@ int stateJuge(int nowdstate,MY_PARA_COUNTER *mypara_p,RUNTIME_PLC *runtime_p,int
 		mypara.my6012 = JProgramInfo->oi_changed.oi6012 ;
 	}
 
-	if(((s5004rate > SUCCRATE)||(runtime_p->nowts.Hour > 7))&&(isRedo == 0)&&(isNeedRedo == 1))
+	if(((s5004rate > SUCCRATE)||(runtime_p->nowts.Hour >= CHECKHOUR))&&(isRedo == 0)&&(isNeedRedo == 1))
 	{
 		runtime_p->redo = 1;  //初始化之后需要重启抄读
 		isRedo = 1;
