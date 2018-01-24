@@ -37,7 +37,7 @@ static VERINFO verinfo_HuNan    = { "QDGK", "SXY8", "171229", "1.11", "160328", 
 #else
 static VERINFO verinfo_HuNan    = { "QDGK", "V1.1", "171229", "1.10", "160328", "00000000" }; // 4300 版本信息
 #endif
-static VERINFO verinfo_ZheJiang  = { "QDGK", "V1.1", "180109", "1.10", "160328", "00000000" }; // 4300 版本信息
+static VERINFO verinfo_ZheJiang  = { "QDGK", "V1.1", "180122", "1.10", "160328", "00000000" }; // 4300 版本信息
 static VERINFO verinfo_ShanDong  = { "QDGK", "V1.2", "171026", "1.10", "160328", "00000000" }; // 4300 版本信息
 
 static DateTimeBCD product_date = { { 2016 }, { 04 }, { 6 }, { 0 }, { 0 }, { 0 } };   // 4300 生产日期
