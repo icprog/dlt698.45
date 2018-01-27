@@ -226,11 +226,15 @@ void lcd_showTopStatus()
 		topstatus_showcommtype(p_JProgramInfo->dev_info.jzq_login);
 }
 
+extern total_tasknum;
 void lcd_showBottomStatus(int zb_status, int gprs_status)
 {
 	INT8U jzq_login_type = 0;
 	time_t curtime=time(NULL);
-	char str[50] = {0};
+	INT8U mod = (curtime%9);
+	char zbStateStr[50] = {0};
+	char taskStateStr[50] = {0};
+	char gprsStateStr[50] = {0};
 	Point pos = {0};
 	gui_clrrect(rect_BottomStatus);
 	pos.x = rect_BottomStatus.left;
@@ -238,82 +242,93 @@ void lcd_showBottomStatus(int zb_status, int gprs_status)
 	gui_hline(pos, LCM_X);
 	pos.x = rect_BottomStatus.left + 3;
 	pos.y = rect_BottomStatus.top + 1;
-	memset(str, 0, 50);
 
 	if (SPTF3 != p_JProgramInfo->cfg_para.device)
 	{
 		switch(zb_status) {
 		case DATE_CHANGE:
-			sprintf(str, "%s", "载波:初始化...");
+			sprintf(zbStateStr, "载波:初始化...");
 			break;
 		case DATA_REAL:
-			sprintf(str, "%s", "载波:代理点抄...");
+			sprintf(zbStateStr, "载波:代理点抄...");
 			break;
 		case METER_SEARCH:
-			sprintf(str, "%s", "载波:终端搜表中...");
+			sprintf(zbStateStr, "载波:终端搜表中...");
 			break;
 		case TASK_PROCESS:
-			sprintf(str, "%s", "载波:按任务抄表...");
+			if(p_JProgramInfo->currentTaskIdx <= total_tasknum) {
+				sprintf(zbStateStr, "载波:按任务抄表, ...");
+			}
 			break;
 		case SLAVE_COMP:
-			sprintf(str, "%s", "载波:从节点比对...");
+			sprintf(zbStateStr, "载波:从节点比对...");
 			break;
 		case INIT_MASTERADDR:
-			sprintf(str, "%s", "载波:设置主节点...");
+			sprintf(zbStateStr, "载波:设置主节点...");
 			break;
 		case AUTO_REPORT:
-			sprintf(str, "%s", "载波:主动上报处理...");
+			sprintf(zbStateStr, "载波:主动上报处理...");
 			break;
 		case BROADCAST:
-			sprintf(str, "%s", "载波:广播对时...");
+			sprintf(zbStateStr, "载波:广播对时...");
 			break;
 		case ZB_MODE:
-			sprintf(str, "%s", "载波:模块模式修改...");
+			sprintf(zbStateStr, "载波:模块模式修改...");
 			break;
 		default:
-			sprintf(str, "%s", "载波:空闲...");
+			sprintf(zbStateStr, "载波:空闲...");
 			break;
-
 		}
-		if(curtime%6>=3)
-			gui_textshow(str, pos, LCD_NOREV);
+
+		if(p_JProgramInfo->currentTaskIdx <= total_tasknum) {
+			sprintf(taskStateStr, "采集任务:%d, %d/%d",
+					p_JProgramInfo->info6035[p_JProgramInfo->currentTaskIdx].taskID,
+					p_JProgramInfo->info6035[p_JProgramInfo->currentTaskIdx].successMSNum,
+					p_JProgramInfo->info6035[p_JProgramInfo->currentTaskIdx].totalMSNum);
+		}
 	}
-	memset(str, 0, 50);
+
 
 	switch(gprs_status)
 	{
 		case GPRS_MODEM_INIT:
-			sprintf(str, "%s", "GPRS:初始化通信模块");
+			sprintf(gprsStateStr, "%s", "GPRS:初始化通信模块");
 			break;
 		case GPRS_CHECKMODEM:
-			sprintf(str, "%s", "GPRS:检测AT命令成功");
+			sprintf(gprsStateStr, "%s", "GPRS:检测AT命令成功");
 			break;
 		case GPRS_GETVER:
-			sprintf(str, "%s", "GPRS:获取模块版本信息");
+			sprintf(gprsStateStr, "%s", "GPRS:获取模块版本信息");
 			break;
 		case GPRS_SIMOK:
-			sprintf(str, "%s", "GPRS:检测到SIM卡");
+			sprintf(gprsStateStr, "%s", "GPRS:检测到SIM卡");
 			break;
 		case GPRS_CREGOK:
-			sprintf(str, "%s%d", "GPRS:注册网络,信号强度为",p_JProgramInfo->dev_info.Gprs_csq);
+			sprintf(gprsStateStr, "%s%d", "GPRS:注册网络,信号强度为",p_JProgramInfo->dev_info.Gprs_csq);
 			break;
 		case GPRS_DIALING:
-			sprintf(str, "%s", "GPRS:拨号中...");
+			sprintf(gprsStateStr, "%s", "GPRS:拨号中...");
 			break;
 		case GPRS_CONNECTING:
-			sprintf(str, "%s", "GPRS:连接到主站...");
+			sprintf(gprsStateStr, "%s", "GPRS:连接到主站...");
 			break;
 		case GPRS_ONLINE:
-			sprintf(str, "%s", "GPRS:终端在线");
+			sprintf(gprsStateStr, "%s", "GPRS:终端在线");
 			break;
 	}
+
 	if(p_JProgramInfo != NULL) {
 		jzq_login_type = p_JProgramInfo->dev_info.jzq_login;
 	}
-	if(curtime%6<3){
+
+	if(mod<3){
 		if(jzq_login_type != NET_COM )
-			gui_textshow(str, pos, LCD_NOREV);
+			gui_textshow(gprsStateStr, pos, LCD_NOREV);
 		else if(jzq_login_type == NET_COM)
 			gui_textshow((char*)"以太网:终端在线", pos, LCD_NOREV);
+	} else if (mod>=3 && mod <6) {
+		gui_textshow(zbStateStr, pos, LCD_NOREV);
+	} else {
+		gui_textshow(taskStateStr, pos, LCD_NOREV);
 	}
 }

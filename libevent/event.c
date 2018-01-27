@@ -1315,6 +1315,10 @@ INT8U Event_3106(ProgramInfo* prginfo_event,MeterPower *MeterPowerInfo,INT8U *st
         if(off_flag == 1)
 		{
 			off_time++;
+
+			if(getZone("HuNan") == 1 && off_time < 15)//2018-01-24, 湖南黄瑞开会要求停电稳定15秒后再报停电事件
+				return 0;
+
 			if(off_time <5)
 				return 0;
 			off_time=0;
