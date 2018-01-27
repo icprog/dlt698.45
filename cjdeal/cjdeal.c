@@ -1766,6 +1766,7 @@ INT8U increase6035SuccNum(INT8U taskID,INT16U meterser)
 			metersuccFlag[taskIndex].list6001[metersuccFlag[taskIndex].meterSuccSum] = meterser;
 			metersuccFlag[taskIndex].meterSuccSum += 1;
 			JProgramInfo->info6035[taskIndex].successMSNum += 1;
+			JProgramInfo->currentTaskIdx = taskIndex;
 			return ret;
 		}
 	}
