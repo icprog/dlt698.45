@@ -1364,8 +1364,7 @@ void replenish_tmp() {
 							findIndex,tIndex,
 							list6013[findIndex].basicInfo.taskID,infoReplenish.unitReplenish[tIndex].taskID);
 #endif
-					if (list6013[findIndex].basicInfo.taskID
-							== infoReplenish.unitReplenish[tIndex].taskID) {
+					if (list6013[findIndex].basicInfo.taskID == infoReplenish.unitReplenish[tIndex].taskID) {
 						//asyslog(LOG_WARNING,"发送补抄任务ID tIndex = %d　",tIndex);
 						INT8S ret = mqs_send((INT8S *) TASKID_485_2_MQ_NAME,
 								cjdeal, 1, OAD_PORT_485_2, (INT8U *) &findIndex,

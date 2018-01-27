@@ -843,9 +843,8 @@ int main(int argc, char *argv[])
 
 		gettimeofday(&end, NULL);
 
-		interval = 1000000 * (end.tv_sec - start.tv_sec)
-				+ (end.tv_usec - start.tv_usec);
-		if (interval >= 1000000)
+		interval = 1000000 * (end.tv_sec - start.tv_sec) + (end.tv_usec - start.tv_usec);
+		if (interval >= 2000000)
 			asyslog(LOG_NOTICE, "main interval = %f(ms)\n", interval / 1000.0);
 
 	}

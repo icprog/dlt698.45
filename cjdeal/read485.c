@@ -52,7 +52,7 @@ INT16S request698_singleOAD(CLASS_6015 st6015, CLASS_6001 to6001,INT8U* data,INT
  * */
 void DbgPrintToFile1(INT8U comport,const char *format,...)
 {
-return;
+//return;
 
 #if 1
 	static INT8U  log_num = 0;
@@ -4139,9 +4139,29 @@ INT8S checkTimeStamp07(CLASS_6001 obj6001,INT8U port485)
 	return result;
 }
 
+INT8U realtoFreeze(CSD freezecsd, CSD *realcsd,INT8U port485)
+{
+	TS ts_now;
+	TSGet(&ts_now);
+	if(ts_now.Hour >= 6) {
+		DbgPrintToFile1(port485, "切换实时数据读取");
+		memcpy(realcsd,&freezecsd,sizeof(CSD));
+		if(realcsd->road.oad.OI == 0x5004)
+		{
+			realcsd->road.oad.OI = 0x0000;
+		}
+		return 1;
+	}
+	return 0;
+}
+
 INT16S deal6015_9707(INT8U protocol,CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8U port485) {
 	INT16S datalen = 0,totaldataLen = 0;
 	INT8U oadDataNum = 0,isAllSucc = 0;
+
+	CSD 	realcsd={};
+	INT8U 	realflg = 1;
+
 	fprintf(stderr,
 			"\n\n-------start------------ deal6015_07  meter = %d st6015.sernum = %d st6015.csds.num = %d---------",
 			to6001.sernum, st6015.sernum, st6015.csds.num);
@@ -4169,6 +4189,11 @@ INT16S deal6015_9707(INT8U protocol,CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6
 			if(isFreezeValid==0)
 			{
 				DbgPrintToFile1(port485, "冻结时标不正确");
+#ifdef REALTOFREEZE		//或判断地区山东
+
+				realflg = realtoFreeze(st6015.csds.csd[dataIndex].csd,&realcsd,port485);
+				if(realflg == 0) continue;
+#endif
 				continue;
 			}
 			INT8U isCurveROAD = 0;
@@ -4199,8 +4224,18 @@ INT16S deal6015_9707(INT8U protocol,CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6
 				}
 				else
 				{
-					datalen = request9707_singleOAD(protocol,st6015.csds.csd[dataIndex].csd.road.oad.OI,
+#ifdef REALTOFREEZE		//或判断地区山东
+					if(realflg == 1){
+						datalen = request9707_singleOAD(protocol,realcsd.road.oad.OI,
+								realcsd.road.oads[csdIndex],to6001,st6035,dataContent,port485);
+					}else {
+						datalen = request9707_singleOAD(protocol,st6015.csds.csd[dataIndex].csd.road.oad.OI,
 							st6015.csds.csd[dataIndex].csd.road.oads[csdIndex],to6001,st6035,dataContent,port485);
+					}
+#else
+						datalen = request9707_singleOAD(protocol,st6015.csds.csd[dataIndex].csd.road.oad.OI,
+							st6015.csds.csd[dataIndex].csd.road.oads[csdIndex],to6001,st6035,dataContent,port485);
+#endif
 				}
 
 				if(datalen > 0)
