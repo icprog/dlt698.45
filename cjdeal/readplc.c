@@ -2900,61 +2900,62 @@ INT8U ChgSucessFlg_698(TSA tsaMeter,INT8U taskid)
 {
 	INT8U ret = 0;
 	int i = 0,j = 0;
-		if (memcmp(taskinfo.tsa.addr,tsaMeter.addr,8) == 0 )//上数TSA就在内存中
+	if (memcmp(taskinfo.tsa.addr,tsaMeter.addr,8) == 0 )//上数TSA就在内存中
+	{
+		int tnum = taskinfo.task_n;
+		for(i=0;i<tnum;i++)
 		{
-			int tnum = taskinfo.task_n;
-			for(i=0;i<tnum;i++)
+			if(taskinfo.task_list[i].taskId == taskid)
 			{
-				if(taskinfo.task_list[i].taskId == taskid)
+				for(j=0; j<taskinfo.task_list[i].fangan.item_n; j++)
 				{
-					for(j=0; j<taskinfo.task_list[i].fangan.item_n; j++)
-					{
-						taskinfo.task_list[i].fangan.items[j].sucessflg = 2;
-					}
+					taskinfo.task_list[i].fangan.items[j].sucessflg = 2;
 				}
 			}
-			saveParaClass(0x8888, &taskinfo,taskinfo.tsa_index);
-			DbgPrintToFile1(31,"1---存储698表标识 tsaMeter = %02x %02x %02x %02x %02x %02x %02x %02x ",
-					tsaMeter.addr[0],tsaMeter.addr[1],tsaMeter.addr[2],tsaMeter.addr[3],
-					tsaMeter.addr[4],tsaMeter.addr[5],tsaMeter.addr[6],tsaMeter.addr[7]);
 		}
-		else
+		saveParaClass(0x8888, &taskinfo,taskinfo.tsa_index);
+		DbgPrintToFile1(31,"1---存储698表标识 tsaMeter = %02x %02x %02x %02x %02x %02x %02x %02x ",
+				tsaMeter.addr[0],tsaMeter.addr[1],tsaMeter.addr[2],tsaMeter.addr[3],
+				tsaMeter.addr[4],tsaMeter.addr[5],tsaMeter.addr[6],tsaMeter.addr[7]);
+	}
+	else
+	{
+		struct Tsa_Node *nodetmp = NULL;
+		nodetmp = getNodeByTSA(tsa_head,tsaMeter);
+
+		DbgPrintToFile1(31,"2---存储698表标识 tsaMeter = %02x %02x %02x %02x %02x %02x %02x %02x ",
+				tsaMeter.addr[0],tsaMeter.addr[1],tsaMeter.addr[2],tsaMeter.addr[3],
+				tsaMeter.addr[4],tsaMeter.addr[5],tsaMeter.addr[6],tsaMeter.addr[7]);
+
+		DbgPrintToFile1(31,"2---nodetmp表 tsa = %02x %02x %02x %02x %02x %02x %02x %02x --(%d)",
+				nodetmp->tsa.addr[0],nodetmp->tsa.addr[1],nodetmp->tsa.addr[2],nodetmp->tsa.addr[3],
+				nodetmp->tsa.addr[4],nodetmp->tsa.addr[5],nodetmp->tsa.addr[6],nodetmp->tsa.addr[7],nodetmp->tsa_index);
+
+
+		if (nodetmp!=NULL)
 		{
-			struct Tsa_Node *nodetmp = NULL;
-			nodetmp = getNodeByTSA(tsa_head,tsaMeter);
-
-			DbgPrintToFile1(31,"2---存储698表标识 tsaMeter = %02x %02x %02x %02x %02x %02x %02x %02x ",
-					tsaMeter.addr[0],tsaMeter.addr[1],tsaMeter.addr[2],tsaMeter.addr[3],
-					tsaMeter.addr[4],tsaMeter.addr[5],tsaMeter.addr[6],tsaMeter.addr[7]);
-
-			DbgPrintToFile1(31,"2---nodetmp表 tsa = %02x %02x %02x %02x %02x %02x %02x %02x --(%d)",
-					nodetmp->tsa.addr[0],nodetmp->tsa.addr[1],nodetmp->tsa.addr[2],nodetmp->tsa.addr[3],
-					nodetmp->tsa.addr[4],nodetmp->tsa.addr[5],nodetmp->tsa.addr[6],nodetmp->tsa.addr[7],nodetmp->tsa_index);
-
-
-			if (nodetmp!=NULL)
+			if (readParaClass(0x8888, &taskinfo_tmp, nodetmp->tsa_index) == 1 )
 			{
-				if (readParaClass(0x8888, &taskinfo_tmp, nodetmp->tsa_index) == 1 )
+				int tnum = taskinfo_tmp.task_n;
+				for(i=0;i<tnum;i++)
 				{
-					int tnum = taskinfo_tmp.task_n;
-					for(i=0;i<tnum;i++)
+					if(taskinfo_tmp.task_list[i].taskId == taskid)
 					{
-						if(taskinfo_tmp.task_list[i].taskId == taskid)
+						for(j=0; j<taskinfo_tmp.task_list[i].fangan.item_n; j++)
 						{
-							for(j=0; j<taskinfo_tmp.task_list[i].fangan.item_n; j++)
-							{
-								taskinfo_tmp.task_list[i].fangan.items[j].sucessflg = 2;
-							}
+							taskinfo_tmp.task_list[i].fangan.items[j].sucessflg = 2;
 						}
 					}
-					saveParaClass(0x8888, &taskinfo_tmp,taskinfo_tmp.tsa_index);
-					DbgPrintToFile1(31,"2---存储698表标识 tsaMeter = %02x %02x %02x %02x %02x %02x %02x %02x ",
-							tsaMeter.addr[0],tsaMeter.addr[1],tsaMeter.addr[2],tsaMeter.addr[3],
-							tsaMeter.addr[4],tsaMeter.addr[5],tsaMeter.addr[6],tsaMeter.addr[7]);
 				}
+				saveParaClass(0x8888, &taskinfo_tmp,taskinfo_tmp.tsa_index);
+				DbgPrintToFile1(31,"2---存储698表标识 tsaMeter = %02x %02x %02x %02x %02x %02x %02x %02x ",
+						tsaMeter.addr[0],tsaMeter.addr[1],tsaMeter.addr[2],tsaMeter.addr[3],
+						tsaMeter.addr[4],tsaMeter.addr[5],tsaMeter.addr[6],tsaMeter.addr[7]);
 			}
-
 		}
+
+	}
+	success5004Num++;
 	return ret;
 }
 INT8U doSave_698(INT8U* buf645,int len645)
