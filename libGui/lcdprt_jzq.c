@@ -4851,7 +4851,7 @@ void menu_6035State()
     taskResion.top = pos.y + lineDelta + 3;
     taskResion.bottom -= lineDelta*2;
 	lineNum = (taskResion.bottom - taskResion.top)/lineDelta;;
-	pageNum = total_tasknum/lineNum+((total_tasknum%lineNum) ? 1 : 0);
+	pageNum = p_JProgramInfo->total_tasknum/lineNum+((p_JProgramInfo->total_tasknum%lineNum) ? 1 : 0);
 
 	while(g_LcdPoll_Flag==LCD_NOTPOLL) {
 		delay(300);
@@ -4860,11 +4860,11 @@ void menu_6035State()
 			if(taskIdx>0) {
 				taskIdx--;
 			} else {
-				taskIdx = total_tasknum-1;
+				taskIdx = p_JProgramInfo->total_tasknum-1;
 			}
 			break;
 		case DOWN:
-			if(taskIdx < (total_tasknum-1)) {
+			if(taskIdx < (p_JProgramInfo->total_tasknum-1)) {
 				taskIdx++;
 			} else {
 				taskIdx = 0;
@@ -4881,10 +4881,7 @@ void menu_6035State()
 		if(pageIdx < (pageNum-1))
 			endIdx = startIdx + lineNum - 1;
 		else
-			endIdx = total_tasknum - 1;
-
-		fprintf(stderr, "[%s][%d]lineNum: %d, taskIdx: %d, pageNum: %d, pageIdx: %d, startIdx: %d, endIdx:%d\n",
-				__FUNCTION__, __LINE__, lineNum, taskIdx, pageNum, pageIdx, startIdx, endIdx);
+			endIdx = p_JProgramInfo->total_tasknum - 1;
 
 		taskResion.bottom += lineDelta;
 		gui_clrrect(taskResion);

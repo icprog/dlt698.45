@@ -226,7 +226,6 @@ void lcd_showTopStatus()
 		topstatus_showcommtype(p_JProgramInfo->dev_info.jzq_login);
 }
 
-extern INT8U total_tasknum;
 void lcd_showBottomStatus(int zb_status, int gprs_status)
 {
 	INT8U jzq_login_type = 0;
