@@ -413,7 +413,10 @@ typedef struct{
 typedef struct {
 	INT8U	device;			//设备类型，1：I型集中器，2:II型集中器，3：III型专变
 	char	zone[32];		//地区
-	INT8U	extpara[128];	//预留参数, 元素0用于标识补报数据文件是否保存成功
+	INT8U	extpara[128];	//预留参数:注意 数组元素[0][1]已使用
+	/*extpara[0]:	用于标识补报数据文件是否保存成功
+	 *extpara[1]:	用于山东II型实时转冻结方式处理
+	 * */
 	/*extpara[0]:cj report文件保存成功后,通知cjcomm补数上送
 	 * */
 }ConfigPara;
