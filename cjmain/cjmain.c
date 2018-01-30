@@ -754,7 +754,8 @@ int main(int argc, char *argv[])
     CreateSem();
     InitSharedMem(argc, argv);
     ReadDeviceConfig(&JProgramInfo->cfg_para);
-    asyslog(LOG_NOTICE, "\n当前运行类型：%d 型终端  地区：%s \n", JProgramInfo->cfg_para.device, JProgramInfo->cfg_para.zone);
+    asyslog(LOG_NOTICE, "\n当前运行类型：%d 型终端  地区：%s  实时转冻结方式：%d\n",
+    		JProgramInfo->cfg_para.device, JProgramInfo->cfg_para.zone, JProgramInfo->cfg_para.extpara[1]);
 
 
     if (argc >= 2 && strncmp("all", argv[1], 3) == 0) {
