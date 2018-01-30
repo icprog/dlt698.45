@@ -1352,9 +1352,10 @@ void replenish_tmp() {
 	INT16U nowMin = nowTime.Hour * 60 + nowTime.Minute;
 	INT8S tmpIndex = 0;
 	for (tmpIndex = 3; tmpIndex >= 0; tmpIndex--) {
+//		fprintf(stderr,"\n-------tmpIndex=%d isReplenishOver = %d",tmpIndex,isReplenishOver[tmpIndex] );
 		if ((isReplenishOver[tmpIndex] == 1)
 				&& (nowMin >= replenishTime[tmpIndex])) {
-			//asyslog(LOG_WARNING,"第%d次补抄　时间%d分 补抄任务数量=%d",tmpIndex,replenishTime[tmpIndex],infoReplenish.tasknum);
+//			asyslog(LOG_WARNING,"第%d次补抄　时间%d分 补抄任务数量=%d",tmpIndex,replenishTime[tmpIndex],infoReplenish.tasknum);
 			INT8U tIndex = 0;
 			for (tIndex = 0; tIndex < infoReplenish.tasknum; tIndex++) {
 				INT8U findIndex;
@@ -1365,7 +1366,7 @@ void replenish_tmp() {
 							list6013[findIndex].basicInfo.taskID,infoReplenish.unitReplenish[tIndex].taskID);
 #endif
 					if (list6013[findIndex].basicInfo.taskID == infoReplenish.unitReplenish[tIndex].taskID) {
-						//asyslog(LOG_WARNING,"发送补抄任务ID tIndex = %d　",tIndex);
+						asyslog(LOG_WARNING,"发送补抄任务ID tIndex = %d　",tIndex);
 						INT8S ret = mqs_send((INT8S *) TASKID_485_2_MQ_NAME,
 								cjdeal, 1, OAD_PORT_485_2, (INT8U *) &findIndex,
 								sizeof(INT16S));
@@ -1533,7 +1534,7 @@ INT8U dealProxyAnswer() {
 void dispatch_thread() {
 	//运行调度任务进程
 //	fprintf(stderr,"\ndispatch_thread start \n");
-	memset(isReplenishOver, 0, 4);
+	memset(isReplenishOver, 1, 4);
 
 	proxyTimeOut = 0;
 	proxyInUse.u8b = 0;		//初始化代理操作标记
