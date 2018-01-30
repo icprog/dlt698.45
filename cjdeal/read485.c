@@ -4190,11 +4190,11 @@ INT16S deal6015_9707(INT8U protocol,CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6
 			{
 				DbgPrintToFile1(port485, "冻结时标不正确");
 #ifdef REALTOFREEZE		//或判断地区山东
-
 				realflg = realtoFreeze(st6015.csds.csd[dataIndex].csd,&realcsd,port485);
 				if(realflg == 0) continue;
-#endif
+#else
 				continue;
+#endif
 			}
 			INT8U isCurveROAD = 0;
 			//对于07表　曲线就是抄实时数据
