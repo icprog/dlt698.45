@@ -3021,9 +3021,9 @@ INT8U GetTaskidFromCSDs(ROAD_ITEM item_road,CLASS_6001 *tsa)
 							{
 								for(nn=0;nn<class6015.csds.csd[j].csd.road.num;nn++)
 								{
-									fprintf(stderr,"oad_r=%04x%02x%02x %d.oad=%04x%02x%02x\n",
-											item_road.oad[mm].oad_r.OI,item_road.oad[mm].oad_r.attflg,item_road.oad[mm].oad_r.attrindex,nn,
-											class6015.csds.csd[j].csd.road.oads[nn].OI,class6015.csds.csd[j].csd.road.oads[nn].attflg,class6015.csds.csd[j].csd.road.oads[nn].attrindex);
+//									fprintf(stderr,"oad_r=%04x%02x%02x %d.oad=%04x%02x%02x\n",
+//											item_road.oad[mm].oad_r.OI,item_road.oad[mm].oad_r.attflg,item_road.oad[mm].oad_r.attrindex,nn,
+//											class6015.csds.csd[j].csd.road.oads[nn].OI,class6015.csds.csd[j].csd.road.oads[nn].attflg,class6015.csds.csd[j].csd.road.oads[nn].attrindex);
 									if(item_road.oad[mm].oad_r.OI >= 0x9000)//无效数据
 									{
 										item_road.oad[mm].taskid = 0;
@@ -3035,7 +3035,7 @@ INT8U GetTaskidFromCSDs(ROAD_ITEM item_road,CLASS_6001 *tsa)
 												class6015.csds.csd[j].csd.road.oads[nn].attrindex == 0)){
 										item_road.oad[mm].taskid = i+1;
 										taskmatch.taskid_matchlevel = 2;//完全匹配
-//										fprintf(stderr,"\n------find \n");
+										//fprintf(stderr,"\n------find \n");
 										continue;
 									}
 								}
@@ -3051,7 +3051,7 @@ INT8U GetTaskidFromCSDs(ROAD_ITEM item_road,CLASS_6001 *tsa)
 //					fprintf(stderr,"\n=====0====taskno=%d oad=%04x%02x%02x taskid=%d\n",
 //							taskno,item_road.oad[mm].oad_r.OI,item_road.oad[mm].oad_r.attflg,item_road.oad[mm].oad_r.attrindex,
 //							item_road.oad[mm].taskid);
-					if(item_road.oad[mm].oad_r.OI == 0x202a || item_road.oad[mm].oad_r.OI == 0x6040 ||
+					if(item_road.oad[mm].oad_r.OI == 0x2021 ||item_road.oad[mm].oad_r.OI == 0x202a || item_road.oad[mm].oad_r.OI == 0x6040 ||
 							item_road.oad[mm].oad_r.OI == 0x6041 || item_road.oad[mm].oad_r.OI == 0x6042 ||
 							(item_road.oad[mm].oad_r.OI >= 0x9000 && item_road.oad[mm].oad_r.OI <= 0xf000))
 						continue;
@@ -3059,8 +3059,7 @@ INT8U GetTaskidFromCSDs(ROAD_ITEM item_road,CLASS_6001 *tsa)
 //					if(taskno == 0 || taskno != item_road.oad[mm].taskid)
 //						break;
 					taskmatch.taskid_matchnum ++;
-//					asyslog(LOG_INFO,"taskno = %d old = %d match %d %d level %d %d",taskno,taskmatch_last.taskid,taskmatch.taskid_matchnum,taskmatch_last.taskid_matchnum,taskmatch.taskid_matchlevel,taskmatch_last.taskid_matchlevel);
-//					fprintf(stderr,"\ntaskno = %d old = %d match %d %d level %d %d\n",taskno,taskmatch_last.taskid,taskmatch.taskid_matchnum,taskmatch_last.taskid_matchnum,taskmatch.taskid_matchlevel,taskmatch_last.taskid_matchlevel);
+				//	asyslog(LOG_INFO,"taskno = %d old = %d match %d %d level %d %d",taskno,taskmatch_last.taskid,taskmatch.taskid_matchnum,taskmatch_last.taskid_matchnum,taskmatch.taskid_matchlevel,taskmatch_last.taskid_matchlevel);
 					if(taskno != 0 && taskmatch.taskid_matchnum >= taskmatch_last.taskid_matchnum)
 					{
 						if(taskmatch.taskid_matchlevel >= taskmatch_last.taskid_matchlevel)
@@ -3071,9 +3070,10 @@ INT8U GetTaskidFromCSDs(ROAD_ITEM item_road,CLASS_6001 *tsa)
 						}
 					}
 				}
-				if(taskno != 0 && class6015.mst.mstype == 1)
+				//liuyanliang u see see
+				if(taskno != 0 && class6015.mst.mstype == 1 &&taskmatch.taskid_matchlevel == 2)
 				{
-//					asyslog(LOG_INFO,"return1  ,taskid=%d\n",taskno);
+					asyslog(LOG_INFO,"return1  ,taskid=%d\n",taskno);
 					return taskno;
 				}
 				else

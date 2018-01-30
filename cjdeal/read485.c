@@ -4143,7 +4143,7 @@ INT8U realtoFreeze(CSD freezecsd, CSD *realcsd,INT8U port485)
 {
 	TS ts_now;
 	TSGet(&ts_now);
-	if(ts_now.Hour >= 6) {
+	if(ts_now.Hour >= 1) {
 		DbgPrintToFile1(port485, "切换实时数据读取");
 		memcpy(realcsd,&freezecsd,sizeof(CSD));
 		if(realcsd->road.oad.OI == 0x5004)
