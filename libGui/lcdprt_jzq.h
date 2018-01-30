@@ -16,6 +16,7 @@ typedef struct{
 }Gui_MP_t;
 
 extern int g_curcldno;
+extern INT8U total_tasknum;
 extern INT8U g_JZQ_TimeSetUp_flg;
 void menu_set485II();
 void addmeter();
@@ -44,6 +45,7 @@ void menu_rs232_set();
 void menu_zb_info();
 void menu_gprs_info();
 void menu_ac_info();
+void menu_6035State();
 void menu_ProtocolChange();
 void menu_4G2GChange();
 void menu_485func_change();
