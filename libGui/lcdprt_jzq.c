@@ -80,6 +80,7 @@ Menu menu[]={//必须是一级菜单，然后二级菜单。。。。
 			{{level3,"5.规约切换",menu_ProtocolChange,		MENU_NOPASSWD},NULL},
 #endif
 //			{{level3,"6.4G/2G切换",menu_4G2GChange,		MENU_NOPASSWD},NULL},
+			{{level3,"6.采集任务监控",menu_6035State,		MENU_NOPASSWD},NULL},
 		{{level2,"5.页面设置", 	menu_pagesetup, 				MENU_NOPASSWD},		NULL},
 		{{level2,"6.手动抄表", 	NULL, 				MENU_NOPASSWD},		NULL},
 			{{level3,"1.根据表序号抄表", menu_readmeterbycldno, 	MENU_NOPASSWD},	NULL},
@@ -4824,6 +4825,78 @@ void menu_4G2GChange()
 		if(msgbox_label((char*)"当前4G,切换到2G?", CTRL_BUTTON_OK) != ACK) return ;
 		m2g = 666;
 		saveCoverClass(0x4521, 0, &m2g, sizeof(int), para_vari_save);
+	}
+}
+
+
+void menu_6035State()
+{
+	char taskStateStr[50] = {0};
+	INT8U taskIdx = 0;//用户选择的任务索引
+	INT8U lineNum = 0;//区域rect_Client能显示的任务行数
+	INT8U pageNum = 0;//一共要显示几页
+	INT8U pageIdx = 0;//当前的页面索引, 从0开始
+	INT8U startIdx = 0;//在当前页面中的开始任务索引
+	INT8U endIdx = 0;//在当前页面中的结束任务索引
+	INT8U i=0;
+	INT8U lineDelta = FONTSIZE*2+3;//行高
+	Point pos = {0};
+	Rect taskResion = {0};//显示具体任务信息的区域
+
+    gui_clrrect(rect_Client);
+    gui_setpos(&pos, rect_Client.left+8*FONTSIZE, rect_Client.top+3);
+    gui_textshow((char*)"采集任务信息", pos, LCD_NOREV);
+
+    memcpy(&taskResion, &rect_Client, sizeof(Rect));
+    taskResion.top = pos.y + lineDelta + 3;
+    taskResion.bottom -= lineDelta*2;
+	lineNum = (taskResion.bottom - taskResion.top)/lineDelta;;
+	pageNum = p_JProgramInfo->total_tasknum/lineNum+((p_JProgramInfo->total_tasknum%lineNum) ? 1 : 0);
+
+	while(g_LcdPoll_Flag==LCD_NOTPOLL) {
+		delay(300);
+		switch (PressKey) {
+		case UP:
+			if(taskIdx>0) {
+				taskIdx--;
+			} else {
+				taskIdx = p_JProgramInfo->total_tasknum-1;
+			}
+			break;
+		case DOWN:
+			if(taskIdx < (p_JProgramInfo->total_tasknum-1)) {
+				taskIdx++;
+			} else {
+				taskIdx = 0;
+			}
+			break;
+		case ESC:
+			return;
+		default:
+			break;
+		}
+
+		pageIdx = taskIdx/lineNum;
+		startIdx = lineNum*pageIdx;
+		if(pageIdx < (pageNum-1))
+			endIdx = startIdx + lineNum - 1;
+		else
+			endIdx = p_JProgramInfo->total_tasknum - 1;
+
+		taskResion.bottom += lineDelta;
+		gui_clrrect(taskResion);
+		pos.y = taskResion.top;
+		for(i=startIdx;i<=endIdx;i++) {
+			sprintf(taskStateStr, "任务%d: %d/%d",
+					p_JProgramInfo->info6035[i].taskID,
+					p_JProgramInfo->info6035[i].successMSNum,
+					p_JProgramInfo->info6035[i].totalMSNum);
+
+			pos.y += lineDelta;
+			gui_textshow((char*)taskStateStr, pos, ((i==taskIdx)?LCD_REV:LCD_NOREV));
+		}
+		taskResion.bottom -= lineDelta;
+		PressKey = NOKEY;
 	}
 }
 

@@ -449,6 +449,7 @@ INT8U init6013ListFrom6012File() {
 		infoReplenish.tasknum = 0;
 	}
 	total_tasknum = 0;
+	JProgramInfo->total_tasknum = 0;
 	//list6013  初始化下一次抄表时间
 	TS ts_now;
 	TSGet(&ts_now);
@@ -513,6 +514,7 @@ INT8U init6013ListFrom6012File() {
 				}
 				//TODO
 				total_tasknum++;
+				JProgramInfo->total_tasknum++;
 				if(total_tasknum >= TASK6012_CAIJI)
 				{
 					asyslog(LOG_WARNING, "采集任务数量超过TASK6012_CAIJI");
@@ -1352,9 +1354,10 @@ void replenish_tmp() {
 	INT16U nowMin = nowTime.Hour * 60 + nowTime.Minute;
 	INT8S tmpIndex = 0;
 	for (tmpIndex = 3; tmpIndex >= 0; tmpIndex--) {
+//		fprintf(stderr,"\n-------tmpIndex=%d isReplenishOver = %d",tmpIndex,isReplenishOver[tmpIndex] );
 		if ((isReplenishOver[tmpIndex] == 1)
 				&& (nowMin >= replenishTime[tmpIndex])) {
-			//asyslog(LOG_WARNING,"第%d次补抄　时间%d分 补抄任务数量=%d",tmpIndex,replenishTime[tmpIndex],infoReplenish.tasknum);
+//			asyslog(LOG_WARNING,"第%d次补抄　时间%d分 补抄任务数量=%d",tmpIndex,replenishTime[tmpIndex],infoReplenish.tasknum);
 			INT8U tIndex = 0;
 			for (tIndex = 0; tIndex < infoReplenish.tasknum; tIndex++) {
 				INT8U findIndex;
@@ -1365,7 +1368,7 @@ void replenish_tmp() {
 							list6013[findIndex].basicInfo.taskID,infoReplenish.unitReplenish[tIndex].taskID);
 #endif
 					if (list6013[findIndex].basicInfo.taskID == infoReplenish.unitReplenish[tIndex].taskID) {
-						//asyslog(LOG_WARNING,"发送补抄任务ID tIndex = %d　",tIndex);
+						asyslog(LOG_WARNING,"发送补抄任务ID tIndex = %d　",tIndex);
 						INT8S ret = mqs_send((INT8S *) TASKID_485_2_MQ_NAME,
 								cjdeal, 1, OAD_PORT_485_2, (INT8U *) &findIndex,
 								sizeof(INT16S));
@@ -1533,7 +1536,7 @@ INT8U dealProxyAnswer() {
 void dispatch_thread() {
 	//运行调度任务进程
 //	fprintf(stderr,"\ndispatch_thread start \n");
-	memset(isReplenishOver, 0, 4);
+	memset(isReplenishOver, 1, 4);
 
 	proxyTimeOut = 0;
 	proxyInUse.u8b = 0;		//初始化代理操作标记
@@ -1766,7 +1769,6 @@ INT8U increase6035SuccNum(INT8U taskID,INT16U meterser)
 			metersuccFlag[taskIndex].list6001[metersuccFlag[taskIndex].meterSuccSum] = meterser;
 			metersuccFlag[taskIndex].meterSuccSum += 1;
 			JProgramInfo->info6035[taskIndex].successMSNum += 1;
-			JProgramInfo->currentTaskIdx = taskIndex;
 			return ret;
 		}
 	}

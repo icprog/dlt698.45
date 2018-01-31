@@ -413,7 +413,10 @@ typedef struct{
 typedef struct {
 	INT8U	device;			//设备类型，1：I型集中器，2:II型集中器，3：III型专变
 	char	zone[32];		//地区
-	INT8U	extpara[128];	//预留参数, 元素0用于标识补报数据文件是否保存成功
+	INT8U	extpara[128];	//预留参数:注意 数组元素[0][1]已使用
+	/*extpara[0]:	用于标识补报数据文件是否保存成功
+	 *extpara[1]:	用于山东II型实时转冻结方式处理
+	 * */
 	/*extpara[0]:cj report文件保存成功后,通知cjcomm补数上送
 	 * */
 }ConfigPara;
@@ -471,7 +474,7 @@ typedef struct {
     INT8U			powerState;			//集中器停上电状态, PWR_ON - 上电状态; PWR_DOWN - 断电状态.
     									//宏在"include/att7022e."定义. 程序初始化的时候, 默认停电状态.
     CLASS_6035 info6035[TASK6012_CAIJI];
-    INT8U	currentTaskIdx;				//集中器当前正在处理的采集任务在6035数组中的索引, 用于液晶显示.
+    INT8U	total_tasknum;				//一共有多少个采集任务, 用于液晶显示.
 }ProgramInfo; //程序信息结构
 
 #endif /* GTYPE_H_ */

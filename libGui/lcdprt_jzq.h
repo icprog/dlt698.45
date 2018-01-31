@@ -44,6 +44,7 @@ void menu_rs232_set();
 void menu_zb_info();
 void menu_gprs_info();
 void menu_ac_info();
+void menu_6035State();
 void menu_ProtocolChange();
 void menu_4G2GChange();
 void menu_485func_change();

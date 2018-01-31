@@ -226,14 +226,12 @@ void lcd_showTopStatus()
 		topstatus_showcommtype(p_JProgramInfo->dev_info.jzq_login);
 }
 
-extern total_tasknum;
 void lcd_showBottomStatus(int zb_status, int gprs_status)
 {
 	INT8U jzq_login_type = 0;
 	time_t curtime=time(NULL);
-	INT8U mod = (curtime%9);
+	INT8U mod = (curtime%6);
 	char zbStateStr[50] = {0};
-	char taskStateStr[50] = {0};
 	char gprsStateStr[50] = {0};
 	Point pos = {0};
 	gui_clrrect(rect_BottomStatus);
@@ -256,9 +254,7 @@ void lcd_showBottomStatus(int zb_status, int gprs_status)
 			sprintf(zbStateStr, "载波:终端搜表中...");
 			break;
 		case TASK_PROCESS:
-			if(p_JProgramInfo->currentTaskIdx <= total_tasknum) {
-				sprintf(zbStateStr, "载波:按任务抄表, ...");
-			}
+			sprintf(zbStateStr, "载波:按任务抄表, ...");
 			break;
 		case SLAVE_COMP:
 			sprintf(zbStateStr, "载波:从节点比对...");
@@ -279,15 +275,7 @@ void lcd_showBottomStatus(int zb_status, int gprs_status)
 			sprintf(zbStateStr, "载波:空闲...");
 			break;
 		}
-
-		if(p_JProgramInfo->currentTaskIdx <= total_tasknum) {
-			sprintf(taskStateStr, "采集任务:%d, %d/%d",
-					p_JProgramInfo->info6035[p_JProgramInfo->currentTaskIdx].taskID,
-					p_JProgramInfo->info6035[p_JProgramInfo->currentTaskIdx].successMSNum,
-					p_JProgramInfo->info6035[p_JProgramInfo->currentTaskIdx].totalMSNum);
-		}
 	}
-
 
 	switch(gprs_status)
 	{
@@ -326,9 +314,7 @@ void lcd_showBottomStatus(int zb_status, int gprs_status)
 			gui_textshow(gprsStateStr, pos, LCD_NOREV);
 		else if(jzq_login_type == NET_COM)
 			gui_textshow((char*)"以太网:终端在线", pos, LCD_NOREV);
-	} else if (mod>=3 && mod <6) {
-		gui_textshow(zbStateStr, pos, LCD_NOREV);
 	} else {
-		gui_textshow(taskStateStr, pos, LCD_NOREV);
+		gui_textshow(zbStateStr, pos, LCD_NOREV);
 	}
 }
