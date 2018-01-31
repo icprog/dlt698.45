@@ -474,7 +474,7 @@ typedef struct {
     INT8U			powerState;			//集中器停上电状态, PWR_ON - 上电状态; PWR_DOWN - 断电状态.
     									//宏在"include/att7022e."定义. 程序初始化的时候, 默认停电状态.
     CLASS_6035 info6035[TASK6012_CAIJI];
-    INT8U	currentTaskIdx;				//集中器当前正在处理的采集任务在6035数组中的索引, 用于液晶显示.
+    INT8U	total_tasknum;				//一共有多少个采集任务, 用于液晶显示.
 }ProgramInfo; //程序信息结构
 
 #endif /* GTYPE_H_ */

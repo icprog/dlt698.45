@@ -2884,7 +2884,6 @@ void doSave(INT8U protocol,FORMAT97 frame97,FORMAT07 frame07)
 		}
 	}
 
-	p_JProgramInfo->currentTaskIdx = 0xFF;
 	if((getZone("GW")==1 || getZone("HuNan")==1)&&(savetaskID>0))
 	{
 		increase6035Value(savetaskID,1);

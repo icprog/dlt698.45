@@ -449,6 +449,7 @@ INT8U init6013ListFrom6012File() {
 		infoReplenish.tasknum = 0;
 	}
 	total_tasknum = 0;
+	JProgramInfo->total_tasknum = 0;
 	//list6013  初始化下一次抄表时间
 	TS ts_now;
 	TSGet(&ts_now);
@@ -513,6 +514,7 @@ INT8U init6013ListFrom6012File() {
 				}
 				//TODO
 				total_tasknum++;
+				JProgramInfo->total_tasknum++;
 				if(total_tasknum >= TASK6012_CAIJI)
 				{
 					asyslog(LOG_WARNING, "采集任务数量超过TASK6012_CAIJI");
@@ -1767,7 +1769,6 @@ INT8U increase6035SuccNum(INT8U taskID,INT16U meterser)
 			metersuccFlag[taskIndex].list6001[metersuccFlag[taskIndex].meterSuccSum] = meterser;
 			metersuccFlag[taskIndex].meterSuccSum += 1;
 			JProgramInfo->info6035[taskIndex].successMSNum += 1;
-			JProgramInfo->currentTaskIdx = taskIndex;
 			return ret;
 		}
 	}

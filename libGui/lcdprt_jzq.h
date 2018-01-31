@@ -16,7 +16,6 @@ typedef struct{
 }Gui_MP_t;
 
 extern int g_curcldno;
-extern INT8U total_tasknum;
 extern INT8U g_JZQ_TimeSetUp_flg;
 void menu_set485II();
 void addmeter();
