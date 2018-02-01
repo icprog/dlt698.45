@@ -2954,7 +2954,6 @@ INT8U ChgSucessFlg_698(TSA tsaMeter,INT8U taskid)
 		}
 
 	}
-	success5004Num++;
 	return ret;
 }
 INT8U doSave_698(INT8U* buf645,int len645)
@@ -3166,10 +3165,16 @@ INT8U doSave_698(INT8U* buf645,int len645)
 						if((recordNum > 0)&&(rcvCSDnum > 0))
 						{
 							ChgSucessFlg_698(tsaMeter,taskid);
+							if(class6015.csds.csd[0].csd.road.oad.OI == 0x5004)
+							{
+								DbgPrintToFile1(3,"收到日冻结数据 更新success5004Num rcvCSDnum = %d",rcvCSDnum);
+								success5004Num += rcvCSDnum;
+								s5004rate = success5004Num/(totoal5004Num*1.0);
+							}
 						}
 						else
 						{
-							DbgPrintToFile1(1,"\n收到回复报文但是没有数据taskid　＝　%d TSA=%02x %02x %02x %02x %02x %02x %02x %02x",
+							DbgPrintToFile1(31,"\n收到回复报文但是没有数据taskid　＝　%d TSA=%02x %02x %02x %02x %02x %02x %02x %02x",
 										taskid,tsaMeter.addr[0],tsaMeter.addr[1],tsaMeter.addr[2],tsaMeter.addr[3],
 										tsaMeter.addr[4],tsaMeter.addr[5],tsaMeter.addr[6],tsaMeter.addr[7]);
 						}
