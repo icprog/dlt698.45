@@ -754,7 +754,8 @@ int main(int argc, char *argv[])
     CreateSem();
     InitSharedMem(argc, argv);
     ReadDeviceConfig(&JProgramInfo->cfg_para);
-    asyslog(LOG_NOTICE, "\n当前运行类型：%d 型终端  地区：%s \n", JProgramInfo->cfg_para.device, JProgramInfo->cfg_para.zone);
+    asyslog(LOG_NOTICE, "\n当前运行类型：%d 型终端  地区：%s  实时转冻结方式：%d\n",
+    		JProgramInfo->cfg_para.device, JProgramInfo->cfg_para.zone, JProgramInfo->cfg_para.extpara[1]);
 
 
     if (argc >= 2 && strncmp("all", argv[1], 3) == 0) {
@@ -843,9 +844,8 @@ int main(int argc, char *argv[])
 
 		gettimeofday(&end, NULL);
 
-		interval = 1000000 * (end.tv_sec - start.tv_sec)
-				+ (end.tv_usec - start.tv_usec);
-		if (interval >= 1000000)
+		interval = 1000000 * (end.tv_sec - start.tv_sec) + (end.tv_usec - start.tv_usec);
+		if (interval >= 2000000)
 			asyslog(LOG_NOTICE, "main interval = %f(ms)\n", interval / 1000.0);
 
 	}

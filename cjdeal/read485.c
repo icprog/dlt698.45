@@ -44,7 +44,8 @@ INT16S request9707_singleOAD(INT8U protocol,OI_698 roadOI,OAD soureOAD,CLASS_600
 INT16S deal6015_698(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8U port485);
 INT16U compose6012Buff(DateTimeBCD startTime,DateTimeBCD saveTime,TSA meterAddr,INT16U dataLen,INT8U* dataContent, INT8U port485);
 INT8U getSaveTime(DateTimeBCD* saveTime,INT8U cjType,INT8U saveTimeFlag,DATA_TYPE curvedata);
-INT8U request698_singleOAD(CLASS_6015 st6015, CLASS_6001 to6001,INT8U* data,INT8U port485);
+INT16S request698_singleOAD(CLASS_6015 st6015, CLASS_6001 to6001,INT8U* data,INT8U port485);
+
 
 /*
  * 去掉程序中日志的内容
@@ -52,9 +53,10 @@ INT8U request698_singleOAD(CLASS_6015 st6015, CLASS_6001 to6001,INT8U* data,INT8
  * */
 void DbgPrintToFile1(INT8U comport,const char *format,...)
 {
-	return;
-
-#if 0
+	if(comport == 31) {		//载波口不记录详细log
+		return;
+	}
+#if 1
 	static INT8U  log_num = 0;
 	char str[50];
 	char fname[100];
@@ -69,13 +71,13 @@ void DbgPrintToFile1(INT8U comport,const char *format,...)
 	memset(str,0,50);
 	cur_time=time(NULL);
 	localtime_r(&cur_time,&cur_tm);
-	sprintf(str, "\n[%04d-%02d-%02d %02d:%02d:%02d]",
-			cur_tm.tm_year+1900, cur_tm.tm_mon+1, cur_tm.tm_mday,
-			cur_tm.tm_hour, cur_tm.tm_min, cur_tm.tm_sec);
+	sprintf(str, "\n[%02d-%02d %02d:%02d:%02d]",
+			cur_tm.tm_mon+1, cur_tm.tm_mday,cur_tm.tm_hour, cur_tm.tm_min, cur_tm.tm_sec);
 
 	fp = fopen(fname, "a+");//内容存入文件
 	if (fp != NULL)
 	{
+		setbuf(fp,NULL);
 		va_list ap;
 	    va_start(ap,format);
 		vfprintf(fp,str,ap);
@@ -87,7 +89,11 @@ void DbgPrintToFile1(INT8U comport,const char *format,...)
 	}
 
 	struct stat fileInfo;
-	stat(fname, &fileInfo);
+	if(stat(fname, &fileInfo)==-1) {
+		syslog(LOG_ERR,"DbgPrintToFile stat error\n");
+		sprintf(tmpcmd,"rm %s",fname);
+		system(tmpcmd);
+	};
 	logsize = 2048*1000;	//2M	防止II型集中器log过大，nand空间不足
 	//	if (fileInfo.st_size>4096*1000)//超过300K
 	if (fileInfo.st_size>logsize)//超过300K
@@ -111,7 +117,6 @@ void DbgPrintToFile1(INT8U comport,const char *format,...)
 		unlink(fname);
 		sync();
 	}
-
 #endif
 }
 
@@ -3615,11 +3620,10 @@ INT8S dealRealTimeRequst(INT8U port485)
 
 	return result;
 }
-INT8U request698_singleOAD(CLASS_6015 st6015, CLASS_6001 to6001,INT8U* data,INT8U port485)
+INT16S request698_singleOAD(CLASS_6015 st6015, CLASS_6001 to6001,INT8U* data,INT8U port485)
 {
-	INT16S recvLen = 0;
-	INT16S sendLen = 0;
-	INT8U getResponseType = 0,csdNum = 0,datalen = 0;
+	INT16S recvLen = 0,dataLen = 0,sendLen = 0;
+	INT8U getResponseType = 0,csdNum = 0;
 	INT8U sendbuff[BUFFSIZE128];
 	INT8U recvbuff[BUFFSIZE2048];
 	memset(sendbuff, 0, BUFFSIZE128);
@@ -3627,23 +3631,22 @@ INT8U request698_singleOAD(CLASS_6015 st6015, CLASS_6001 to6001,INT8U* data,INT8
 	sendLen = composeProtocol698_GetRequest(sendbuff, st6015,to6001.basicinfo.addr);
 	if(sendLen < 0)
 	{
-		fprintf(stderr,"deal6015_698  sendLen < 0");
-		return datalen;
+		//fprintf(stderr,"deal6015_698  sendLen < 0");
+		return dataLen;
 	}
 
 	SendDataTo485(port485, sendbuff, sendLen);
 	recvLen = ReceDataFrom485(DLT_698,port485, 500, recvbuff);
 
-	fprintf(stderr,"\n\n recvLen = %d \n",recvLen);
 	if(recvLen > 0)
 	{
-		INT16S dataLen = recvLen;
+		dataLen = recvLen;
 		INT8U apduDataStartIndex = 0;
 		getResponseType = analyzeProtocol698(recvbuff,&csdNum,recvLen,&apduDataStartIndex,&dataLen);
-		fprintf(stderr,"\n getResponseType = %d  csdNum = %d dataLen = %d \n",getResponseType,csdNum,dataLen);
+		//fprintf(stderr,"\n getResponseType = %d  csdNum = %d dataLen = %d \n",getResponseType,csdNum,dataLen);
 		if(getResponseType > 0)
 		{
-#ifdef TESTDEF
+#ifdef TESTDEF1
 			fprintf(stderr,"request698_singleOAD Buf[%d] = \n",dataLen);
 			INT16U prtIndex =0;
 			for(prtIndex = 0;prtIndex < dataLen;prtIndex++)
@@ -3668,12 +3671,11 @@ INT8U request698_singleOAD(CLASS_6015 st6015, CLASS_6001 to6001,INT8U* data,INT8
 				startIndex = apduDataStartIndex;
 				dataLen = getSinglegOADDataUnit(&recvbuff[apduDataStartIndex]);
 				apduDataStartIndex += dataLen;
-
 				memcpy(data,&recvbuff[startIndex],dataLen);
 			}
 		}
 	}
-	return datalen;
+	return dataLen;
 }
 //处理曲线数据
 INT16S dealCurve_698(CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8U port485)
@@ -4142,9 +4144,30 @@ INT8S checkTimeStamp07(CLASS_6001 obj6001,INT8U port485)
 	return result;
 }
 
+INT8U realtoFreeze(CSD freezecsd, CSD *realcsd,INT8U port485)
+{
+	TS ts_now;
+	TSGet(&ts_now);
+	if(ts_now.Hour >= 2)
+	{
+		DbgPrintToFile1(port485, "切换实时数据读取");
+		memcpy(realcsd,&freezecsd,sizeof(CSD));
+		if(realcsd->road.oad.OI == 0x5004)
+		{
+			realcsd->road.oad.OI = 0x0000;
+		}
+		return 1;
+	}
+	return 0;
+}
+
 INT16S deal6015_9707(INT8U protocol,CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6035* st6035,INT8U port485) {
 	INT16S datalen = 0,totaldataLen = 0;
 	INT8U oadDataNum = 0,isAllSucc = 0;
+
+	CSD 	realcsd={};
+	INT8U 	realflg = 0;
+
 	fprintf(stderr,
 			"\n\n-------start------------ deal6015_07  meter = %d st6015.sernum = %d st6015.csds.num = %d---------",
 			to6001.sernum, st6015.sernum, st6015.csds.num);
@@ -4172,7 +4195,13 @@ INT16S deal6015_9707(INT8U protocol,CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6
 			if(isFreezeValid==0)
 			{
 				DbgPrintToFile1(port485, "冻结时标不正确");
-				continue;
+				if(JProgramInfo->cfg_para.extpara[1] == 1) { //实时转冻结方式
+					realflg = realtoFreeze(st6015.csds.csd[dataIndex].csd,&realcsd,port485);
+					if(realflg == 0) continue;
+				}else {
+					realflg = 0;
+					continue;
+				}
 			}
 			INT8U isCurveROAD = 0;
 			//对于07表　曲线就是抄实时数据
@@ -4202,8 +4231,13 @@ INT16S deal6015_9707(INT8U protocol,CLASS_6015 st6015, CLASS_6001 to6001,CLASS_6
 				}
 				else
 				{
-					datalen = request9707_singleOAD(protocol,st6015.csds.csd[dataIndex].csd.road.oad.OI,
+					if(realflg == 1){
+						datalen = request9707_singleOAD(protocol,realcsd.road.oad.OI,
+								realcsd.road.oads[csdIndex],to6001,st6035,dataContent,port485);
+					}else {
+						datalen = request9707_singleOAD(protocol,st6015.csds.csd[dataIndex].csd.road.oad.OI,
 							st6015.csds.csd[dataIndex].csd.road.oads[csdIndex],to6001,st6035,dataContent,port485);
+					}
 				}
 
 				if(datalen > 0)

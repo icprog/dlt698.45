@@ -38,6 +38,7 @@ int ReadDeviceConfig(ConfigPara	*cfg_para)
     FILE* fp        = NULL;
     char aline[128] = {};
     int devicetype  = 1;
+    int freezetype  = 0;
 
     memset(cfg_para,0,sizeof(ConfigPara));
     fp = fopen((const char*)DEVICE_CFG, (const char*)"r");
@@ -62,6 +63,12 @@ int ReadDeviceConfig(ConfigPara	*cfg_para)
             if (strncmp(aline, "zone", 4) == 0) //设备类型
             {
                 sscanf(aline, "zone=%s", cfg_para->zone);
+            }
+            cfg_para->extpara[1] = freezetype;
+            if (strncmp(aline, "realtofreeze", 12) == 0) //实时数据转冻结
+            {
+                sscanf(aline, "realtofreeze=%d", &freezetype);
+                cfg_para->extpara[1] = freezetype;
             }
         }
     }

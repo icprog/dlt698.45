@@ -1451,8 +1451,7 @@ INT16S composeProtocol698_GetRequest(INT8U* sendBuf, CLASS_6015 obj6015,
 
 }
 
-INT16S composeProtocol698_GetRequest_RN(INT8U* sendBuf, CLASS_6015 obj6015,
-		TSA meterAddr) {
+INT16S composeProtocol698_GetRequest_RN(INT8U* sendBuf, CLASS_6015 obj6015,	TSA meterAddr) {
 	INT8U PIID = 0x02;
 	int sendLen = 0, hcsi = 0, apdulen = 0;
 

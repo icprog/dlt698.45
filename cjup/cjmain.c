@@ -37,7 +37,10 @@ void main(){
 		usleep(600 * 1000);
 		memset(LcdBuf, 0xff, 16*(i+1) *160);
 		write(FB_Handle,LcdBuf,160*160);
+		gpio_writebyte((char*)"/dev/gpoALARM", i%2);//背光
+		gpio_writebyte((char*)"/dev/gpoRUN_LED", i%2);//背光
+		gpio_writebyte((char*)"/dev/gpoONLINE_LED", i%2);//背光
+		gpio_writebyte((char*)"/dev/gpoCSQ_RED", i%2);//背光
 	}
-
 	exit(0);
 }

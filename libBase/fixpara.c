@@ -33,11 +33,11 @@ typedef struct {
 static VERINFO verinfo          = { "QDGK", "V1.1", "171221", "1.10", "160328", "00000000" }; // 4300 版本信息
 									//湖南需要双协议,软件版本要求为SXY8（双协议8） ，1376.1（软件版本为SXY1）
 #ifdef HUNAN_SXY
-static VERINFO verinfo_HuNan    = { "QDGK", "SXY8", "171229", "1.10", "160328", "00000000" }; // 4300 版本信息
+static VERINFO verinfo_HuNan    = { "QDGK", "SXY8", "171229", "1.11", "160328", "00000000" }; // 4300 版本信息
 #else
 static VERINFO verinfo_HuNan    = { "QDGK", "V1.1", "171229", "1.10", "160328", "00000000" }; // 4300 版本信息
 #endif
-static VERINFO verinfo_ZheJiang  = { "QDGK", "V1.1", "180109", "1.10", "160328", "00000000" }; // 4300 版本信息
+static VERINFO verinfo_ZheJiang  = { "QDGK", "V1.1", "180122", "1.10", "160328", "00000000" }; // 4300 版本信息
 static VERINFO verinfo_ShanDong  = { "QDGK", "V1.2", "171026", "1.10", "160328", "00000000" }; // 4300 版本信息
 
 static DateTimeBCD product_date = { { 2016 }, { 04 }, { 6 }, { 0 }, { 0 }, { 0 } };   // 4300 生产日期
@@ -247,20 +247,22 @@ void InitClassf201()
 	INT8U	serno=0;
 	CLASS_f201	oif201[3]={};
 	INT8U 	devfunc[3] = {1,1,1};
-
 	if(getZone("HuNan")==0) {
 		devfunc[0]=1;
-		devfunc[1]=1;
+		devfunc[1]=0;	//485-2  出厂默认维护口 上行通道
 		devfunc[2]=0;	//上行通信
 	}else {
 		devfunc[0]=1;
 		devfunc[1]=1;
 		devfunc[2]=1;	//抄表口
 	}
+//	asyslog(LOG_INFO,"devfunc = %d %d %d",devfunc[0],devfunc[1],devfunc[2]);
 	if(readCoverClass(0xf201, 0, oif201, sizeof(CLASS_f201)*3, para_vari_save)==-1)
 	{
 		for(serno=0;serno<3;serno++) {
-			oif201[serno].devpara.baud = bps2400;
+			if(getZone("HuNan")==0 && serno==1) {
+				oif201[serno].devpara.baud = bps9600;
+			}else 	oif201[serno].devpara.baud = bps2400;
 			oif201[serno].devpara.verify = even;
 			oif201[serno].devpara.databits = d8;
 			oif201[serno].devpara.stopbits = stop1;
@@ -272,6 +274,7 @@ void InitClassf201()
 				case 3:memcpy(oif201[serno].devdesc,"stop",4);break;
 			}
 		}
+//		asyslog(LOG_INFO,"oif201[0] = %d oif201[1] = %d oif201[2] = %d",oif201[0].devfunc,oif201[1].devfunc,oif201[2].devfunc);
 		saveCoverClass(0xf201, 0, &oif201, sizeof(CLASS_f201)*3, para_vari_save);
 	}
 }
